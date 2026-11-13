@@ -1,51 +1,95 @@
--- ZeDUI/tools/qa/zedqa_cov_vehicles.lua  (Nov 12 2026, QA coverage: AUDIT_DESIGN_AND_COVERAGE_20261111.md Table B, vehicles)
--- In game on the ZeD-QA save only (Saves/Sandbox/ZeD-QA), the character on the Irvington drag strip (the prelude's
--- ZEDQA_HOME). Copy to Zomboid/Lua/zedqa.lua, bump zedqa.go, grep console.txt for "ZEDQA cov_vehicles"; runner manifest
--- cov_vehicles.txt. Each check prints "PASS <what>" or "FAIL <what> (<got> vs <want>)" from values read off ZeD's own
--- objects and the game's (the panels' click areas and fields, the radio's device data, the car's lightbar modes and
--- seats); it ends with RESULT and DONE. Screenshots: Zomboid/Screenshots/zqa_covveh_*.png, each on a SHOT line.
+-- ZeDUI/tools/qa/zedqa_cov_vehicles.lua  (Nov 12 2026, QA coverage: AUDIT_DESIGN_AND_COVERAGE_20261111.md Table B, vehicles;
+-- repaired the same day after its independent review)
+-- In game on the ZeD-QA save only (Saves/Sandbox/ZeD-QA; on any other save it touches nothing and stops), the character
+-- on the Irvington drag strip (the prelude's ZEDQA_HOME). Copy to Zomboid/Lua/zedqa.lua, bump zedqa.go, grep console.txt
+-- for "ZEDQA cov_vehicles"; runner manifest cov_vehicles.txt (also in regression.txt's vehicles block). Each check prints
+-- "PASS <what>" or "FAIL <what> (<got> vs <want>)" from values read off ZeD's own objects and the game's (the panels'
+-- click areas and fields, the radio's device data, the car's lightbar modes and seats). A check headed "presence:" proves
+-- only that a thing is there (a hook, a click area, a prompt); the effect checks after it press it. A "staging:" line
+-- FAILs only when the run could not set up what the next check needs. It ends with RESULT and DONE. Screenshots:
+-- Zomboid/Screenshots/zqa_covveh_*.png, each on a SHOT line.
 --
 -- WHAT IT CHECKS
 --   Rod and clock-radio plates (ZeD.FishRod.draw, ZeD.SleepClock.draw) on a recording canvas: all 17 rod frames have a
---     plate and anchors; tension picks the frame; the line runs hot from 0.9, MAX lights from 0.85, the dial's pointer
---     sits low when slack and in the red at the limit; the clock lights each digit's seven segments (10:46 PM, 9:05 AM
---     with the leading zero blank, 12:30 AM, 12:00 PM), the AM / PM dot, the ALARM lamp only when asked, whole multiples.
+--     plate and anchors; tension picks the frame; the line is pale at 0.89 and hot from 0.9, MAX dark at 0.84 and lit
+--     from 0.85, the dial's pointer sits low when slack and in the red at the limit; at 2x the plate doubles and the line
+--     and pointer are 2 x 2 squares on the 2x grid; the clock lights each digit's seven segments (10:46 PM, 9:05 AM with
+--     the leading zero blank, 12:30 AM, 12:00 PM), the AM / PM dot, the ALARM lamp only when asked, 2x digits.
 --   Fishing rod prop (Overrides/Fishing.lua on vanilla's Fishing.ISTensionUI): hooked; updateValue keeps the raw tension
---     beside vanilla's angle; render draws the rod with it at the screen's whole multiple, low and near the middle.
---   Sleep clock (Overrides/Sleeping.lua on ISSleepingUI): hooked; render draws the clock at the panel's hour, centred, at
---     the whole multiple; the ALARM lamp follows an alarm clock carried (in the inventory, in a bag) and goes back off.
---   Car radio up close (ZeD_CarRadio.lua, Overrides/CarRadio.lua) in a police car spawned beside the character: the
---     wheel's Device Options opens it, not vanilla's window; every plate and design (RadioPlates.lua) control is a live
---     click area at the dash's multiple; it stands above the dash. Through the mouse handlers: VOL powers it, the glass
---     reads FM and the frequency, TUNE's halves step, a held preset stores (STORE flash), a short press recalls, an empty
---     one flashes EMPTY, MUTE and back, SEEK lands on vanilla's next station, SCAN on and off. Controller: A's prompt,
---     up turns VOL, right moves right, B puts it away.
---   CD deck: no CD -> a greyed "No CDs" row; a row per CD in ZeD's menu; Escape closes the list before the radio; picking
---     inserts (vanilla's action), PLAY plays (CD time on the glass), PLAY again stops at once, EJECT gives the disc back.
+--     beside vanilla's angle; render draws the rod with it at a whole multiple, low and near the middle.
+--   Sleep clock (Overrides/Sleeping.lua on ISSleepingUI): hooked; render draws the clock at the panel's hour, centered, at
+--     a whole multiple; with the character's own alarms switched off (back on after) the ALARM lamp is dark, an alarm
+--     clock carried (in the inventory, in a bag) lights it, and it goes dark again.
+--   Car radio up close (ZeD_CarRadio.lua, Overrides/CarRadio.lua) in a police car spawned beside the character, Devices
+--     and the siren's Dashboard form pinned to Immersive for the face sections whatever ZeD setup says: the wheel's
+--     Device Options opens it, not vanilla's window; every plate and design (RadioPlates.lua) control has a click area
+--     (presence); the face draws at a whole multiple, the dash's; it stands above the dash; a press where the plate draws
+--     VOL powers it (the click area sits on the plate). Through the mouse handlers: the glass reads FM and the frequency,
+--     TUNE's halves step, a held preset stores (STORE flash), a short press recalls, an empty one flashes EMPTY, MUTE and
+--     back, SEEK lands on the next station vanilla names (worked out here from vanilla's own list, not ZeD's), SCAN
+--     starts on the one after and moves on after its dwell, SCAN again stops it. Controller: A's prompt, up turns VOL,
+--     right moves right, B puts it away.
+--   CD deck: no CD -> a grayed "No CDs" row; the list grows by one row for the CD given (a row per CD carried, counted
+--     here); Escape closes the list before the radio; picking inserts (vanilla's action), PLAY plays (CD time on the
+--     glass), PLAY again stops at once, EJECT gives the disc back.
 --   Plain card (Devices: Simple): the card replaces the face, its power switch works, back to the face.
 --   Two-way (ham set): the ham face, first stop CH up, MEM stores, CH up / down step and wrap both ways (01 -> last),
 --     MIC (MIC OFF on the glass), a held MEM names a channel; an empty name keeps OK live and forgets it.
 --   Siren controller (ZeD_SirenController.lua, SirenPlate.lua, the lightbar hook): the Lightbar slice opens it (not
---     ISLightbarUI) and puts the radio away; its ten click areas are the plate's; clicks and the controller set the car's
---     lightbar modes through vanilla's commands (stops at ALARM, A wraps); the plain card works; the slice closes it.
---   Seat chooser (ZeD_SeatChooser.lua, the seat hook): Switch Seat opens it (not ISVehicleSeatUI); each seat's kind and
---     reach match vanilla's rules, with vanilla's reason; planks read as vanilla's occupied and move tests say; the
---     controller's prompts and seat grid; Cancel and Escape close it; a click moves the character to a back seat (the
---     radio goes away), the 1 key brings it back, X gets out by the door (the radio goes away); from outside: Enter
---     Vehicle, no door, no seat of yours.
--- THE LEDGER: given items, the CD count, the spawned car (removed once the character is out), stubbed readers, the qaJoy /
--- qaPoint hooks, the test panels and god mode are put back at the end, and at once on an error. It enters no car but the
--- one it spawned, and that one only after it settled (square, chunk, physics seen, 1.5 s held: zedqa_dash_keys_edge.lua).
+--     ISLightbarUI) and puts the radio away; its ten click areas are the plate's (presence); clicks and the controller set
+--     the car's lightbar modes through vanilla's commands (stops at ALARM, A wraps); the plain card works; the slice
+--     closes it.
+--   Seat chooser (ZeD_SeatChooser.lua, the seat hook), the car's own loot taken off its seats first: Switch Seat opens it
+--     (not ISVehicleSeatUI); you at the wheel and every other seat empty, the ones vanilla's canSwitchSeat can't reach
+--     marked out of reach, with vanilla's reason; planks read as items, their reason as vanilla's moveItemsFromSeat
+--     answers, and the seat empty again once they are off; the controller's prompts (presence) and its seat grid; Cancel
+--     and Escape close it; a click moves the character to a seat the driver can switch to: a back seat when the car has
+--     one (the radio goes away there); the police car has none (its cage: its script empties the front seats' switches
+--     to the back), so the click takes the seat beside, where the radio stays, and ZeD's reach test is asked about the
+--     back seats with a stand-in occupant. The 1 key takes the wheel again, X gets out by the door (the radio goes
+--     away); from outside: Enter Vehicle, no door, no seat of yours.
+-- THE MOD BUG IT CATCHES: ZeD_RadioOps.chStep steps with ((at - 1 + dir) % n) + 1; Kahlua's % keeps the sign, so CH down
+-- on channel 01 gives 0 and l:get(-1) throws. "CH down on channel 01 goes round to the last channel" FAILs until the count
+-- is added before the % (the same trap: ObjectCards.lua, StationPopout.lua, ZeD_MainMenuOptions.lua).
+-- THE LEDGER: given items, the discs (by id: a disc that is not one of the character's own goes), the character's alarms
+-- switched off, the planks, the spawned car (removed once the character is out), the stood-in readers, the rod and clock
+-- drawing wrappers, the qaJoy / qaPoint hooks as they were, the test panels, the debug console, god mode and a pause
+-- lifted at the start are put back by the final steps. Those always run, each put-back on its own (one that throws is an
+-- ERR line and the rest still run). A step that throws counts as a FAIL and the run goes on; a section that never came
+-- up counts one FAIL and its steps are skipped. It enters no car but the one it spawned, and that one only after it
+-- settled (square, chunk, physics seen, 1.5 s held: zedqa_dash_keys_edge.lua).
 
 local TAG = "cov_vehicles"
 local function say(s) print("ZEDQA " .. TAG .. " " .. tostring(s)) end
+
+-- only the QA save: anywhere else nothing is touched
+local SAVE = nil
+pcall(function() SAVE = getWorld():getWorld() end)
+if SAVE ~= "ZeD-QA" or getPlayer() == nil then
+    say("ERR not the ZeD-QA save with a player (" .. tostring(SAVE) .. "): nothing was touched")
+    say("FAIL the run is on the ZeD-QA save (" .. tostring(SAVE) .. " vs ZeD-QA)")
+    say("RESULT 0 pass, 1 fail")
+    say("DONE")
+    return
+end
+
+-- (a game paused when the run starts: unpaused for the steps, which run on ticks, and paused again at the very end)
+local unpaused = false
+pcall(function() if getGameSpeed and setGameSpeed and getGameSpeed() == 0 then setGameSpeed(1); unpaused = true end end)
 if ZEDQA_HOME then ZEDQA_HOME(TAG) end   -- (open ground: an earlier script can leave the character indoors)
 local p = getPlayer()
 local pn = p:getPlayerNum()
-local CR, RO, SI, SE = ZeD.CarRadio, ZeD.RadioOps, ZeD.Siren, ZeD.Seats
--- the run's state: counts, what was given / spawned / stubbed, which sections came up (gates for the steps)
-local V = { pass = 0, fail = 0, given = {}, spawned = {}, ok = {}, stage = { tries = 0, phys = false, since = nil, why = "" } }
+local Z = ZeD or {}
+local CR, RO, SI, SE = Z.CarRadio, Z.RadioOps, Z.Siren, Z.Seats
+-- the run's state: counts, what was given / spawned / stood in, which sections came up (gates for the steps)
+local V = { pass = 0, fail = 0, given = {}, spawned = {}, ok = {}, skipSec = {}, alarmsOff = {}, consoles = {}, planks = {},
+            unpaused = unpaused, stage = { tries = 0, phys = false, since = nil, why = "" } }
 pcall(function() V.god0 = p:isGodMod() end)
+-- the test hooks as they were (put back as they were, not just cleared)
+V.qa0 = {}
+pcall(function() V.qa0.crJ, V.qa0.crP = CR.qaJoy, CR.qaPoint end)
+pcall(function() V.qa0.siJ, V.qa0.siP = SI.qaJoy, SI.qaPoint end)
+pcall(function() V.qa0.seJ, V.qa0.seP = SE.qaJoy, SE.qaPoint end)
 
 -- ---------------------------------------------------------------------------------------------------------------
 -- WORDS, CAPTURES, THE LEDGER'S HELPERS
@@ -58,6 +102,11 @@ local function check(ok, what, got, want)
         V.fail = V.fail + 1
         say("FAIL " .. what .. " (" .. tostring(got) .. " vs " .. tostring(want) .. ")")
     end
+    return ok
+end
+-- set-up the next check needs: silent when it worked, a FAIL headed "staging:" when it did not
+local function staged(ok, what, got, want)
+    if not ok then check(false, "staging: " .. what, got, want) end
     return ok
 end
 local function shot(name)
@@ -73,6 +122,7 @@ end
 local function visible(o) return o ~= nil and o:isReallyVisible() == true end
 local function root() return (ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root()) or (getPlayerScreenHeight(pn) / 1080) end
 local function near(a, b, eps) return a ~= nil and b ~= nil and math.abs(a - b) <= (eps or 0.001) end
+local function whole(k) return type(k) == "number" and k >= 1 and k == math.floor(k) end
 
 -- a stand-in panel that records what a plate's draw function asks of it
 local function canvas()
@@ -82,7 +132,7 @@ local function canvas()
     return c
 end
 local function sameColor(q, col) return math.abs(q.r - col[1]) < 0.002 and math.abs(q.g - col[2]) < 0.002 and math.abs(q.b - col[3]) < 0.002 end
--- rects of a colour (and alpha, when given) on a canvas; inside a box (x0, y0, w, h) when given
+-- rects of a color (and alpha, when given) on a canvas; inside a box (x0, y0, w, h) when given
 local function countColor(cv, col, a, box)
     local n = 0
     for _, q in ipairs(cv.rects) do
@@ -98,7 +148,7 @@ end
 local function part() return V.car and V.car:getPartById("Radio") end
 local function dd() local pt = part(); return pt and pt:getDeviceData() end
 local function rd() local pt = part(); return pt and RO.read(pt) end
-local function prop() return CR.props[pn] end
+local function prop() return CR and CR.props and CR.props[pn] or nil end
 
 -- a click area of a panel (the radio, the siren: x, y, w, h in the panel's px) by id
 local function hitOf(panel, id)
@@ -112,13 +162,17 @@ local function missing(want, have)
     for _, id in ipairs(want or {}) do if not have[id] then out[#out + 1] = id end end
     return table.concat(out, ",")
 end
--- a press and release on a click area, through the panel's own mouse handlers (fx: where across it, 0..1)
+-- a press and release at (x, y) of a panel, through its own mouse handlers
+local function pressAt(panel, x, y)
+    x, y = math.floor(x), math.floor(y)
+    panel:onMouseDown(x, y)
+    panel:onMouseUp(x, y)
+end
+-- a press and release on a click area (fx: where across it, 0..1)
 local function click(panel, id, fx)
     local h = hitOf(panel, id)
     if not h then return false end
-    local x, y = h.x + math.floor(h.w * (fx or 0.5)), h.y + math.floor(h.h / 2)
-    panel:onMouseDown(x, y)
-    panel:onMouseUp(x, y)
+    pressAt(panel, h.x + math.floor(h.w * (fx or 0.5)), h.y + math.floor(h.h / 2))
     return true
 end
 -- the press only (a hold); release() lets go where it was pressed
@@ -134,11 +188,7 @@ local function release()
     V.hold = nil
     if hd then pcall(function() hd.panel:onMouseUp(hd.x, hd.y) end) end
 end
-local function clickRect(panel, r)
-    local x, y = r.x + math.floor(r.w / 2), r.y + math.floor(r.h / 2)
-    panel:onMouseDown(x, y)
-    panel:onMouseUp(x, y)
-end
+local function clickRect(panel, r) pressAt(panel, r.x + r.w / 2, r.y + r.h / 2) end
 
 -- the vanilla windows ZeD's take the place of
 local function uiOfType(typ)
@@ -159,8 +209,10 @@ local function vanillaSeatsUp()
     local u = ISVehicleMenu.seatUI and ISVehicleMenu.seatUI[pn]
     return visible(u)
 end
--- the naming prompt a radio opened (ZeD's prompt or vanilla's ISTextBox: both keep target, entry and yes)
+-- the naming prompt a radio opened (ZeD's prompt or vanilla's ISTextBox: both keep target, entry and yes); nil without
+-- a radio to ask for, so no other dialog is ever taken for it
 local function promptFor(target)
+    if target == nil then return nil end
     local ui = UIManager.getUI()
     for i = 0, ui:size() - 1 do
         local ok, t = pcall(function() return ui:get(i):getTable() end)
@@ -176,6 +228,10 @@ local function plateIds(kind)
     local out = {}
     for _, h in ipairs(des and des.hits or {}) do if (h.kind or "press") ~= "look" then out[#out + 1] = h.id end end
     return out, des
+end
+local function plateHitOf(des, id)
+    for _, q in ipairs(des and des.hits or {}) do if q.id == id then return q end end
+    return nil
 end
 local function designIds(kind)
     local f = ZeD.RadioPlates and ZeD.RadioPlates.faces and ZeD.RadioPlates.faces[kind]
@@ -223,12 +279,112 @@ local function stepFrom(cur, dir, st)
     if nv > st.max then nv = st.min elseif nv < st.min then nv = st.max end
     return nv
 end
+-- the next frequency up the band (vanilla's 200 kHz grid; past the top it starts again at the bottom) that vanilla's own
+-- list names a station on (ZomboidRadio:getChannelName), worked out here apart from ZeD_RadioOps; vanilla's "Unknown
+-- Frequency" is no station. nil when the band holds no station but cur.
+local function stationAfter(cur, lo, hi)
+    local zr = getZomboidRadio()
+    if not (zr and cur and lo and hi) then return nil end
+    local f = cur
+    for _ = 1, math.floor((hi - lo) / 200) + 1 do
+        f = f + 200
+        if f > hi then f = lo end
+        if f == cur then return nil end
+        local ok, name = pcall(function() return zr:getChannelName(f) end)
+        if ok and name ~= nil and tostring(name) ~= "" and not string.find(string.upper(tostring(name)), "UNKNOWN") then return f end
+    end
+    return nil
+end
+-- the CDs the character carries and in the bags in its inventory (two bags deep) of the radio's media type, counted here
+-- from vanilla's item calls apart from ZeD_RadioOps.cds
+local function cdsCarried(mt)
+    local out = {}
+    local function walk(inv, depth)
+        local items = inv and inv:getItems()
+        if not items then return end
+        for i = 0, items:size() - 1 do
+            local it = items:get(i)
+            local ok, isCd = pcall(function() return it:isRecordedMedia() and it:getMediaType() == mt end)
+            if ok and isCd then out[#out + 1] = it end
+            if depth < 2 and instanceof(it, "InventoryContainer") then walk(it:getInventory(), depth + 1) end
+        end
+    end
+    pcall(function() walk(p:getInventory(), 0) end)
+    return out
+end
+-- the slot's list: the CDs its rows hold, and whether the grayed "No CDs" row is there
+local function listRows(ctx)
+    local rows, noCds = {}, false
+    if not ctx then return rows, false end
+    for k = 1, (ctx.numOptions or 1) - 1 do
+        local o = ctx.options[k]
+        if o then
+            if o.param1 ~= nil then rows[#rows + 1] = o.param1
+            elseif o.notAvailable == true and o.name == ZeD.tr("UI_ZeD_Radio_NoCds") then noCds = true end
+        end
+    end
+    return rows, noCds
+end
 local function closeList()
-    local pr = prop()
-    pcall(function() local m = pr and pr:openList(); if m then m:close() end end)
-    pcall(function() local c = pr and pr._list; if c and c:isReallyVisible() then c:closeAll() end end)
+    pcall(function() local pr = prop(); local m = pr and pr:openList(); if m then m:close() end end)
+    pcall(function() local pr = prop(); local c = pr and pr._list; if c and c:isReallyVisible() then c:closeAll() end end)
+end
+-- the character's retail discs by id (put back: a disc that is not among them goes)
+local function discIds()
+    local set = {}
+    pcall(function()
+        local list = p:getInventory():getAllTypeRecurse("Base.Disc_Retail")
+        for i = 0, list:size() - 1 do set[list:get(i):getID()] = true end
+    end)
+    return set
+end
+-- the alarms set on anything the character carries or wears (alarm clocks and watches, bags four deep)
+local function alarmsOn()
+    local out = {}
+    local function walk(inv, depth)
+        if not inv or depth > 4 then return end
+        local items = inv:getItems()
+        for i = 0, items:size() - 1 do
+            local it = items:get(i)
+            if instanceof(it, "AlarmClock") or instanceof(it, "AlarmClockClothing") then
+                local ok, on = pcall(function() return it:isAlarmSet() end)
+                if ok and on then out[#out + 1] = it end
+            end
+            if instanceof(it, "InventoryContainer") then walk(it:getInventory(), depth + 1) end
+        end
+    end
+    pcall(function() walk(p:getInventory(), 0) end)
+    return out
+end
+local function restoreAlarms()
+    for _, it in ipairs(V.alarmsOff) do pcall(function() it:setAlarmSet(true) end) end
+    V.alarmsOff = {}
+end
+-- (stood in) a form setting's reader, pinned while the sections that need a form run: Devices (the radio's face or its
+-- plain card) and the siren's Dashboard form. ZeD setup's choice is not touched; the real readers go back at the end.
+local function pinDevices(simple)
+    local S = ZeD.Settings
+    if not S then return end
+    if not V.dsPinned then V.realDS, V.dsPinned = S.devicesSimple, true end
+    V.devSimple = simple
+    S.devicesSimple = function() return V.devSimple == true end
+end
+local function pinSiren(simple)
+    if not SI then return end
+    if not V.ssPinned then V.realSS, V.ssPinned = SI.simple, true end
+    V.sirSimple = simple
+    SI.simple = function() return V.sirSimple == true end
 end
 local function modes() local v = V.car; return v:getLightbarLightsMode(), v:getLightbarSirenMode() end
+-- ZeD's reach test (ZeD_RadioOps.reachable: what keeps the radio up close or puts it away on a seat switch) asked about a
+-- stand-in occupant of seat i of the car
+local function reachFrom(i)
+    local car = V.car
+    local sv = { getSeat = function() return i end, getPartById = function(_, id) return car:getPartById(id) end }
+    local ok, r = pcall(RO.reachable, { getVehicle = function() return sv end })
+    if ok then return r end
+    return nil
+end
 
 -- ---------------------------------------------------------------------------------------------------------------
 -- THE CAR: a police car (lightbar, radio part, four seats) on a free square beside the character, seated only once it
@@ -272,10 +428,11 @@ end
 
 -- ---------------------------------------------------------------------------------------------------------------
 -- THE PLAN: steps run one after another, ms after the previous one; a wait step polls until its test is true or ms
--- pass. need = the section a step depends on (V.ok[need]); a step whose section never came up is skipped. The final
--- steps always run.
+-- pass. need = the section a step depends on (V.ok[need]); a step whose section never came up is skipped, and the
+-- section counts one FAIL. The final steps always run.
 -- ---------------------------------------------------------------------------------------------------------------
 local PLAN = {}
+local drive   -- (the driver, declared here: the last final step takes it off OnTick before it pauses the game again)
 local function add(ms, fn, need) PLAN[#PLAN + 1] = { ms = ms, fn = fn, need = need } end
 local function waitUntil(ms, test, need, onTimeout) PLAN[#PLAN + 1] = { wait = true, ms = ms, fn = test, need = need, onTimeout = onTimeout } end
 local function final(ms, fn) PLAN[#PLAN + 1] = { ms = ms, fn = fn, final = true } end
@@ -284,14 +441,19 @@ local function final(ms, fn) PLAN[#PLAN + 1] = { ms = ms, fn = fn, final = true 
 -- 0. SETUP
 -- ===============================================================================================================
 add(100, function()
+    -- the game's debug console off the pictures (each one hidden is shown again at the end)
     local u = UIManager.getUI()
-    for i = 0, u:size() - 1 do local e = u:get(i); if e:getClass():getSimpleName() == "UIDebugConsole" then e:setVisible(false) end end
-    if getGameSpeed and getGameSpeed() == 0 and setGameSpeed then setGameSpeed(1) end
+    for i = 0, u:size() - 1 do
+        local e = u:get(i)
+        if e:getClass():getSimpleName() == "UIDebugConsole" and e:isVisible() then e:setVisible(false); V.consoles[#V.consoles + 1] = e end
+    end
     p:setGodMod(true)
+    check(CR ~= nil and RO ~= nil and SI ~= nil and SE ~= nil, "presence: ZeD's car radio, radio workings, siren controller and seat chooser are loaded",
+        tostring(CR ~= nil) .. "/" .. tostring(RO ~= nil) .. "/" .. tostring(SI ~= nil) .. "/" .. tostring(SE ~= nil), "true/true/true/true")
     local safe = ZeD.Safe and ZeD.Safe.on and ZeD.Safe.on() or false
     check(not safe, "ZeD's safe mode is off (with it on every hook below hands over to vanilla)", safe, false)
     local hooked = ISVehicleMenu._zedRadio ~= nil and ISVehicleMenu._zedSeats ~= nil and ISLightbarUITimedAction ~= nil and ISLightbarUITimedAction._zedSiren ~= nil
-    check(hooked, "the vehicle wheel's hooks are in: Device Options, Switch Seat, Lightbar", hooked, true)
+    check(hooked, "presence: the vehicle wheel's hooks are in: Device Options, Switch Seat, Lightbar", hooked, true)
 end)
 
 -- ===============================================================================================================
@@ -306,7 +468,7 @@ local function sameTex(a, b)
     local ok, same = pcall(function() local na = a:getName(); return na ~= nil and na ~= "" and tostring(na) == tostring(b:getName()) end)
     return ok and same == true
 end
--- the rod's pointer tip on a canvas: the NEEDLE square farthest from the dial's centre
+-- the rod's pointer tip on a canvas: the NEEDLE square farthest from the dial's center
 local function needleTip(cv, dial)
     local best, bd = nil, -1
     for _, q in ipairs(cv.rects) do
@@ -319,11 +481,11 @@ local function needleTip(cv, dial)
 end
 add(100, function()
     local F = ZeD.FishRod
-    check(F ~= nil and ZeD.SleepClock ~= nil, "the rod and clock-radio plates are loaded (ZeD.FishRod, ZeD.SleepClock)", tostring(F ~= nil) .. "/" .. tostring(ZeD.SleepClock ~= nil), "true/true")
+    check(F ~= nil and ZeD.SleepClock ~= nil, "presence: the rod and clock-radio plates are loaded (ZeD.FishRod, ZeD.SleepClock)", tostring(F ~= nil) .. "/" .. tostring(ZeD.SleepClock ~= nil), "true/true")
     if not F then return end
     local miss = {}
     for i = 0, F.FRAMES do if not (rodFrame(i) and F.ANCH[i + 1]) then miss[#miss + 1] = i end end
-    check(#miss == 0 and #F.ANCH == F.FRAMES + 1, "all " .. (F.FRAMES + 1) .. " rod frames have a plate and anchors", "missing " .. table.concat(miss, ","), "none")
+    check(#miss == 0 and #F.ANCH == F.FRAMES + 1, "presence: all " .. (F.FRAMES + 1) .. " rod frames have a plate and anchors", "missing " .. table.concat(miss, ","), "none")
     -- the tension picks the frame (slack and none: the straight blank; past 1: the last)
     local bad = {}
     for _, c in ipairs({ { -0.5, 0 }, { 0, 0 }, { 0.5, 8 }, { 0.9, 14 }, { 1.0, 16 }, { 1.4, 16 } }) do
@@ -337,13 +499,22 @@ add(100, function()
         end
     end
     check(#bad == 0, "the rod's tension picks its frame (slack 0, 0.5 frame 8, 0.9 frame 14, 1 and past it 16)", table.concat(bad, " "), "all as listed")
-    -- the line, MAX and the pointer
-    local cv5, cv87, cv95 = canvas(), canvas(), canvas()
-    F.draw(cv5, 0, 0, 1, 0.5); F.draw(cv87, 0, 0, 1, 0.87); F.draw(cv95, 0, 0, 1, 0.95)
-    check(countColor(cv5, LINE) > 0 and countColor(cv5, LINE_HOT) == 0 and countColor(cv87, LINE_HOT) == 0 and countColor(cv95, LINE_HOT) > 0,
-        "the line is pale under load and runs hot from 0.9", "hot at 0.5/0.87/0.95: " .. countColor(cv5, LINE_HOT) .. "/" .. countColor(cv87, LINE_HOT) .. "/" .. countColor(cv95, LINE_HOT), "0/0/>0")
-    check(countColor(cv5, MAXC, 0.45) == 0 and countColor(cv87, MAXC, 0.45) == 1 and countColor(cv95, MAXC, 0.45) == 1,
-        "MAX lights from 0.85", countColor(cv5, MAXC, 0.45) .. "/" .. countColor(cv87, MAXC, 0.45) .. "/" .. countColor(cv95, MAXC, 0.45), "0/1/1")
+    -- the line and MAX on each side of their thresholds (0.89 / 0.9 and 0.84 / 0.85)
+    local TS = { 0.5, 0.84, 0.85, 0.87, 0.89, 0.9, 0.95 }
+    local hot, pale, mx = {}, {}, {}
+    for i, t in ipairs(TS) do
+        local cv = canvas()
+        F.draw(cv, 0, 0, 1, t)
+        hot[i], pale[i], mx[i] = countColor(cv, LINE_HOT), countColor(cv, LINE), countColor(cv, MAXC, 0.45)
+    end
+    local hotOk = pale[1] > 0 and pale[5] > 0 and pale[6] == 0
+    for i = 1, 5 do if hot[i] ~= 0 then hotOk = false end end
+    if not (hot[6] > 0 and hot[7] > 0) then hotOk = false end
+    check(hotOk, "the line is pale under load and runs hot from 0.9 (pale at 0.89, all hot at 0.9)",
+        "hot / pale squares at 0.5, 0.84, 0.85, 0.87, 0.89, 0.9, 0.95: " .. table.concat(hot, "/") .. " ; " .. table.concat(pale, "/"), "0/0/0/0/0/>0/>0 ; pale >0 to 0.89, 0 at 0.9")
+    local mxOk = mx[1] == 0 and mx[2] == 0
+    for i = 3, 7 do if mx[i] ~= 1 then mxOk = false end end
+    check(mxOk, "MAX lights from 0.85 (dark at 0.84)", "MAX at 0.5, 0.84, 0.85, 0.87, 0.89, 0.9, 0.95: " .. table.concat(mx, "/"), "0/0/1/1/1/1/1")
     local cvS, cvL = canvas(), canvas()
     F.draw(cvS, 0, 0, 1, -0.5); F.draw(cvL, 0, 0, 1, 1.0)
     local dS, dL = F.ANCH[1].dial, F.ANCH[F.FRAMES + 1].dial
@@ -351,11 +522,20 @@ add(100, function()
     check(tS ~= nil and tL ~= nil and tS.x < dS[1] and tS.y > dS[2] and tL.x > dL[1], "the dial's pointer sits low on the left when slack and in the red at the limit",
         tS and tL and ("slack " .. tostring(tS.x) .. "," .. tostring(tS.y) .. " limit " .. tostring(tL.x) .. "," .. tostring(tL.y)),
         "left of " .. tostring(dS[1]) .. " below " .. tostring(dS[2]) .. ", right of " .. tostring(dL[1]))
-    -- whole multiples
+    -- whole multiples: at 2x the plate doubles and the live line and pointer are 2 x 2 squares on the 2x grid
     local cv2 = canvas()
     F.draw(cv2, 0, 0, 2, 0.5)
-    check(cv2.texs[1] and cv2.texs[1].w == F.W * 2 and cv2.texs[1].h == F.H * 2, "the rod plate draws at whole multiples (2x: " .. (F.W * 2) .. " x " .. (F.H * 2) .. ")",
-        cv2.texs[1] and (cv2.texs[1].w .. " x " .. cv2.texs[1].h), (F.W * 2) .. " x " .. (F.H * 2))
+    local live, offGrid = 0, 0
+    for _, q in ipairs(cv2.rects) do
+        if sameColor(q, LINE) or sameColor(q, NEEDLE) then
+            live = live + 1
+            if not (q.w == 2 and q.h == 2 and math.floor(q.x / 2) * 2 == q.x and math.floor(q.y / 2) * 2 == q.y) then offGrid = offGrid + 1 end
+        end
+    end
+    local t2 = cv2.texs[1]
+    check(t2 ~= nil and t2.w == F.W * 2 and t2.h == F.H * 2 and live > 0 and offGrid == 0,
+        "the rod draws at whole multiples (2x: the plate " .. (F.W * 2) .. " x " .. (F.H * 2) .. ", its line and pointer 2 x 2 squares on the 2x grid)",
+        (t2 and (t2.w .. " x " .. t2.h) or "no plate") .. ", " .. offGrid .. " of " .. live .. " squares off", (F.W * 2) .. " x " .. (F.H * 2) .. ", 0 off")
 end)
 -- the clock's digits: plate pixels of the four digit cells (DX 36, DY 26; cells 16 x 34 at 0, 22, 52, 74), the dots
 local LIT = { 1.0, 0.2, 0.133 }
@@ -397,7 +577,7 @@ end)
 add(100, function()
     local TUI = Fishing and Fishing.ISTensionUI
     local hooked = TUI ~= nil and TUI._zedOrigRender ~= nil and TUI.render ~= TUI._zedOrigRender and TUI.updateValue ~= TUI._zedOrigUpdateValue
-    check(hooked, "vanilla's tension meter is hooked (render, updateValue)", hooked, true)
+    check(hooked, "presence: vanilla's tension meter is hooked (render, updateValue)", hooked, true)
     if not TUI then return end
     -- the rod's drawing, watched: what the meter's render passed it
     V.realRod = ZeD.FishRod.draw
@@ -419,13 +599,12 @@ add(400, function()
     check(r ~= nil and r.ret == true and near(r.t, 0.72, 1e-6), "the meter's render draws the rod (its plates loaded) with the tension it was fed",
         r and (tostring(r.ret) .. " t=" .. tostring(r.t)), "true t=0.72")
     if not r then return end
-    local kWant = math.max(1, math.floor(2 * root() + 0.001))
-    check(r.k == kWant, "the rod is drawn at this screen's whole multiple", r.k, kWant)
+    check(whole(r.k), "the rod is drawn at a whole multiple (" .. tostring(r.k) .. "x)", r.k, "a whole number from 1")
     local x, y, w, h = r.ax + r.ox, r.ay + r.oy, ZeD.FishRod.W * r.k, ZeD.FishRod.H * r.k
     local sl, st, sw, sh = getPlayerScreenLeft(pn), getPlayerScreenTop(pn), getPlayerScreenWidth(pn), getPlayerScreenHeight(pn)
     check(x >= sl and x + w <= sl + sw and y + h <= st + sh and y >= st + sh / 2 - h and math.abs(x + w / 2 - (sl + sw / 2)) <= 42 * root() + 2,
         "the rod stands at the bottom middle of the player's screen", tostring(x) .. "," .. tostring(y) .. " " .. tostring(w) .. "x" .. tostring(h),
-        "inside " .. tostring(sl) .. "," .. tostring(st) .. " " .. tostring(sw) .. "x" .. tostring(sh) .. ", low, centred")
+        "inside " .. tostring(sl) .. "," .. tostring(st) .. " " .. tostring(sw) .. "x" .. tostring(sh) .. ", low, centered")
     shot("1_rod")
     V.rodRec = nil
     ui:updateValue(-0.6)
@@ -442,9 +621,13 @@ end, "rod")
 -- 3. THE SLEEP CLOCK: vanilla's sleep panel, its own update off so it stays while awake
 -- ===============================================================================================================
 add(100, function()
-    check(ISSleepingUI ~= nil and ISSleepingUI._zedOrigRender ~= nil and ISSleepingUI.render ~= ISSleepingUI._zedOrigRender, "vanilla's sleep panel is hooked (render)",
+    check(ISSleepingUI ~= nil and ISSleepingUI._zedOrigRender ~= nil and ISSleepingUI.render ~= ISSleepingUI._zedOrigRender, "presence: vanilla's sleep panel is hooked (render)",
         ISSleepingUI and tostring(ISSleepingUI.render ~= ISSleepingUI._zedOrigRender), true)
-    if not ISSleepingUI then return end
+    if not (ISSleepingUI and ZeD.SleepClock) then return end
+    -- (staged) the character's own alarms off for the lamp's checks, so the clocks given below are the only ones set
+    V.alarmsOff = alarmsOn()
+    for _, it in ipairs(V.alarmsOff) do pcall(function() it:setAlarmSet(false) end) end
+    if #V.alarmsOff > 0 then say("note: " .. #V.alarmsOff .. " alarm(s) the character carries switched off for the lamp's checks (back on after)") end
     V.realClock = ZeD.SleepClock.draw
     ZeD.SleepClock.draw = function(self, ox, oy, k, hour, alarm)
         local r = V.realClock(self, ox, oy, k, hour, alarm)
@@ -463,28 +646,27 @@ add(400, function()
     check(r ~= nil and r.ret == true and near(r.hour, 14 + 40 / 60, 1e-6), "the sleep panel draws the clock radio (its plate loaded) at the hour it was given",
         r and (tostring(r.ret) .. " " .. tostring(r.hour)), "true 14.67")
     if not r then return end
-    local kWant = math.max(1, math.floor(3 * root() + 0.001))
-    check(r.k == kWant, "the clock is drawn at this screen's whole multiple", r.k, kWant)
+    check(whole(r.k), "the clock is drawn at a whole multiple (" .. tostring(r.k) .. "x)", r.k, "a whole number from 1")
     local cx = r.ax + r.ox + ZeD.SleepClock.W * r.k / 2
     local want = getPlayerScreenLeft(pn) + getPlayerScreenWidth(pn) / 2
     check(math.abs(cx - want) <= 1, "the clock stands in the middle of the player's screen", cx, want)
-    V.alarm0 = r.alarm == true
+    check(r.alarm ~= true, "with no alarm set on anything the character carries, the ALARM lamp is dark", r.alarm, false)
     shot("2_sleep_clock")
     V.clock = give("Base.AlarmClock2")
-    V.clock:setAlarmSet(true)
+    if V.clock then V.clock:setAlarmSet(true) end
     V.sleep.hourOfDay = 6 + 58 / 60
     V.sleep._zedAlarmAt = nil; V.clockRec = nil
 end, "sleep")
 add(300, function()
     local r = V.clockRec
-    check(r ~= nil and r.alarm == true and near(r.hour, 6 + 58 / 60, 1e-6), "an alarm clock carried with its alarm set lights ALARM; the hour follows the panel",
+    check(V.clock ~= nil and r ~= nil and r.alarm == true and near(r.hour, 6 + 58 / 60, 1e-6), "an alarm clock carried with its alarm set lights ALARM; the hour follows the panel",
         r and (tostring(r.alarm) .. " " .. tostring(r.hour)), "true 6.97")
-    V.clock:setAlarmSet(false)
+    if V.clock then V.clock:setAlarmSet(false) end
     V.sleep._zedAlarmAt = nil; V.clockRec = nil
 end, "sleep")
 add(300, function()
     local r = V.clockRec
-    check(r ~= nil and (r.alarm == true) == V.alarm0, "its alarm switched off, the lamp goes back as it was", r and r.alarm, V.alarm0)
+    check(r ~= nil and r.alarm ~= true, "its alarm switched off, the lamp goes dark again", r and r.alarm, false)
     local bag = give("Base.Bag_Satchel")
     if bag then
         local c2 = give("Base.AlarmClock2", bag:getInventory())
@@ -498,10 +680,11 @@ add(300, function()
     if V.clock2 then V.clock2:setAlarmSet(false) end
     V.sleep:setVisible(false); V.sleep:removeFromUIManager(); V.sleep = nil
     ZeD.SleepClock.draw = V.realClock; V.realClock = nil
+    restoreAlarms()
 end, "sleep")
 
 -- ===============================================================================================================
--- 4. THE CAR: spawned beside the character, settled, then repaired, fuelled, keyed and seated in one tick
+-- 4. THE CAR: spawned beside the character, settled, then repaired, fueled, keyed and seated in one tick
 -- ===============================================================================================================
 add(300, function()
     if not spawnCar() then check(false, "a police car spawned beside the character", "no free loaded square near " .. math.floor(p:getX()) .. "," .. math.floor(p:getY()), "a car") end
@@ -540,6 +723,7 @@ end)
 -- 5. THE CAR RADIO UP CLOSE: the Premium Technologies CD receiver
 -- ===============================================================================================================
 add(200, function()
+    pinDevices(false)   -- (stood in) Devices: Immersive for the face sections, whatever ZeD setup says
     CR.closeFor(pn)
     fit("Base.RadioRed")
     local st = rd()
@@ -555,29 +739,32 @@ add(500, function()
     local have = idSet(pr._hits)
     local want, des = plateIds("premium")
     local m1, m2 = missing(want, have), missing(designIds("premium"), have)
-    check(#want > 0 and m1 == "" and m2 == "", "every control of the plate and of the radio's design (RadioPlates.lua) is a live click area", "missing " .. m1 .. " | " .. m2, "none")
-    local h, ph = hitOf(pr, "vol"), nil
-    for _, q in ipairs(des and des.hits or {}) do if q.id == "vol" then ph = q end end
+    check(#want > 0 and m1 == "" and m2 == "", "presence: every control of the plate and of the radio's design (RadioPlates.lua) has a click area", "missing " .. m1 .. " | " .. m2, "none")
     local d = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance(pn)
     local dashK = d and d._s or nil
-    local onPlate = h ~= nil and ph ~= nil and h.x == ph.x * pr._s and h.w == ph.w * pr._s and (dashK == nil or pr._s == dashK)
-    check(onPlate, "the face's click areas sit on the plate at the dash's whole multiple",
-        "vol x " .. tostring(h and h.x) .. " at " .. tostring(pr._s), "plate x " .. tostring(ph and ph.x) .. " times " .. tostring(dashK or pr._s))
+    local s = pr._s
+    check(whole(s) and (dashK == nil or s == dashK), "the radio's face draws at a whole multiple" .. (dashK and ", the dash's own" or ""), s, dashK or "a whole number from 1")
     onDash(pr, "radio")
     shot("3_radio_premium")
     V.on0 = dd():getIsTurnedOn()
-    click(pr, "vol")
+    -- a press where the plate draws VOL (its place in the design times the face's multiple), through the face's own mouse
+    -- handlers: it reaches VOL only when the click area sits on the plate
+    local ph = plateHitOf(des, "vol")
+    V.volPressed = ph ~= nil and whole(s)
+    if V.volPressed then pressAt(pr, (ph.x + ph.w / 2) * s, (ph.y + ph.h / 2) * s) end
 end, "car")
 add(300, function()
     local on1 = dd():getIsTurnedOn()
-    check(on1 ~= V.on0, "a press on VOL switches the set " .. (V.on0 and "off" or "on"), on1, not V.on0)
+    check(V.volPressed and on1 ~= V.on0, "a press where the plate draws VOL switches the set " .. (V.on0 and "off" or "on") .. " (its click area sits on the plate)",
+        V.volPressed and on1 or "no VOL on the plate to press", not V.on0)
     if not on1 then click(prop(), "vol") end
 end, "radio")
 add(300, function()
     local st = rd()
     check(st.on, "the radio is on, powered from the car's battery", tostring(st.switchOn) .. "/" .. tostring(st.powered), "true/true")
     local r = RO.displayReading(st)
-    check(r ~= nil and r.band == "FM" and r.big == RO.freqText(st.channel, false), "the glass reads FM and the frequency", r and (tostring(r.band) .. " " .. tostring(r.big)), "FM " .. RO.freqText(st.channel, false))
+    local freq = string.format("%.1f", st.channel / 1000)   -- (an FM set's frequency in MHz, one decimal)
+    check(r ~= nil and r.band == "FM" and r.big == freq, "the glass reads FM and the frequency", r and (tostring(r.band) .. " " .. tostring(r.big)), "FM " .. freq)
     RO.run("SetVolume", p, part(), 0.6)
     V.ch0 = st.channel
     click(prop(), "tune", 0.8)
@@ -636,21 +823,46 @@ add(250, function()
 end, "radio")
 add(250, function()
     check(near(rd().volume, V.vol0), "MUTE again brings back the volume it had", rd().volume, V.vol0)
-    V.seekWant = RO.nextStation(dd(), 1)
-    V.chB = rd().channel
-    click(prop(), "seek")
+    -- SEEK and SCAN against the stations worked out here from vanilla's own list: the next one up, and the one after it
+    -- (SCAN's first stop); with fewer than two named stations on the band neither can be told from doing nothing
+    local st = rd()
+    V.chB = st.channel
+    V.seekWant = stationAfter(st.channel, st.min, st.max)
+    V.scanWant = V.seekWant and stationAfter(V.seekWant, st.min, st.max)
+    if staged(V.scanWant ~= nil, "two stations vanilla names on the radio's band, to SEEK to and SCAN between (SEEK and SCAN are not checked)",
+              "from " .. tostring(st.channel) .. ": " .. tostring(V.seekWant) .. ", " .. tostring(V.scanWant), "two stations") then
+        click(prop(), "seek")
+    else
+        V.seekWant = nil
+    end
 end, "radio")
 add(250, function()
-    local want = V.seekWant or V.chB
-    check(rd().channel == want, "SEEK tunes to the next station vanilla broadcasts on", rd().channel, want)
+    if not V.seekWant then return end
+    local st = rd()
+    check(st.channel == V.seekWant, "SEEK tunes to the next station up that vanilla names (" .. tostring(V.seekWant) .. ", worked out from vanilla's list)", st.channel, V.seekWant)
     click(prop(), "scan")
 end, "radio")
 add(250, function()
-    check(rd().scanning == (V.seekWant ~= nil), "SCAN starts scanning the stations", rd().scanning, V.seekWant ~= nil)
-    if rd().scanning then click(prop(), "scan") end
+    if not V.seekWant then return end
+    local st = rd()
+    check(st.scanning and st.channel == V.scanWant, "SCAN starts scanning, on to the next station (" .. tostring(V.scanWant) .. ")",
+        tostring(st.scanning) .. " " .. tostring(st.channel), "true " .. tostring(V.scanWant))
+    V.scanNext = stationAfter(V.scanWant, st.min, st.max) or V.scanWant
+end, "radio")
+waitUntil(9000, function() local st = rd(); return st == nil or not V.seekWant or not st.scanning or st.channel ~= V.scanWant end, "radio")
+add(100, function()
+    if not V.seekWant then return end
+    local st = rd()
+    check(st.scanning and st.channel == V.scanNext, "SCAN moves on to the station after it once its dwell is up (" .. tostring(V.scanNext) .. ")",
+        tostring(st.scanning) .. " " .. tostring(st.channel), "true " .. tostring(V.scanNext))
+    V.scanOn = st.scanning
+    if st.scanning then click(prop(), "scan") end
 end, "radio")
 add(250, function()
-    check(not rd().scanning, "SCAN again stops it", rd().scanning, false)
+    if V.seekWant and V.scanOn then
+        local st = rd()
+        check(not st.scanning and st.channel == V.scanNext, "SCAN again stops it, on the station it was at", tostring(st.scanning) .. " " .. tostring(st.channel), "false " .. tostring(V.scanNext))
+    end
     -- the controller (the radio's qa hook stands in for a pad holding it)
     CR.qaJoy = {}
     prop().focusId = "vol"
@@ -658,7 +870,7 @@ add(250, function()
 end, "radio")
 add(300, function()
     local pr = prop()
-    check(pr.joyfocus ~= nil and pr:labelA() == ZeD.tr("IGUI_RadioPower"), "with a controller on VOL the strip offers A: Power", pr:labelA(), ZeD.tr("IGUI_RadioPower"))
+    check(pr.joyfocus ~= nil and pr:labelA() == ZeD.tr("IGUI_RadioPower"), "presence: with a controller on VOL the strip offers A: Power", pr:labelA(), ZeD.tr("IGUI_RadioPower"))
     V.volA = rd().volume
     pr:onJoypadDirUp()
 end, "radio")
@@ -688,21 +900,25 @@ end, "radio")
 -- 6. THE CD DECK
 -- ===============================================================================================================
 add(200, function()
-    V.cds0 = #RO.cds(p, part())
+    local st = rd()
+    V.mt = st.mediaType
+    V.discIds0 = discIds()
     V.discs0 = p:getInventory():getCountTypeRecurse("Base.Disc_Retail")
-    if V.cds0 == 0 then click(prop(), "slot") end
+    V.cdsHad = #cdsCarried(V.mt)
+    V.listOpened = not st.hasMedia
+    if V.listOpened then click(prop(), "slot") else say("note: the radio has a disc in already; the list before the CD is not opened") end
 end, "radio")
 add(400, function()
-    if V.cds0 == 0 then
-        local ctx = prop()._list
-        local n = ctx and (ctx.numOptions - 1)
-        local o = ctx and ctx.options[1]
-        check(n == 1 and o ~= nil and o.notAvailable == true and o.name == ZeD.tr("UI_ZeD_Radio_NoCds"), "with no CD carried, the slot's list says so, greyed",
-            tostring(n) .. " " .. tostring(o and o.name), "1 " .. ZeD.tr("UI_ZeD_Radio_NoCds"))
-        closeList()
+    local rows, noCds = listRows(V.listOpened and prop()._list or nil)
+    V.rows0 = V.listOpened and #rows or nil
+    if not V.listOpened then
+        say("note: no list before the CD (a disc was in); the empty list is not checked")
+    elseif V.cdsHad == 0 then
+        check(#rows == 0 and noCds, "with no CD carried (counted here), the slot's list says so, grayed", #rows .. " rows, No CDs " .. tostring(noCds), "0 rows, No CDs true")
     else
-        say("note: the character carries " .. V.cds0 .. " CDs already; the empty list is not checked")
+        say("note: the character carries " .. V.cdsHad .. " CDs already; the empty list is not checked")
     end
+    closeList()
     local cd = give("Base.Disc_Retail")
     local list = getZomboidRadio():getRecordedMedia():getAllMediaForCategory("CDs")
     if cd and list and list:size() > 0 then cd:setRecordedMediaData(list:get(0)) end
@@ -716,9 +932,21 @@ add(200, function()
 end, "radio")
 add(400, function()
     local pr = prop()
-    local ctx = pr._list
-    local n = ctx and (ctx.numOptions - 1)
-    check(n == #RO.cds(p, part()), "the slot's list has a row per CD carried", n, #RO.cds(p, part()))
+    local rows = listRows(pr._list)
+    local carried = cdsCarried(V.mt)
+    local carriedSet, seen = {}, {}
+    for _, it in ipairs(carried) do carriedSet[it] = true end
+    local has, twice, stray = false, 0, 0
+    for _, it in ipairs(rows) do
+        if it == V.cd then has = true end
+        if seen[it] then twice = twice + 1 end
+        seen[it] = true
+        if not carriedSet[it] then stray = stray + 1 end
+    end
+    check(has and twice == 0 and stray == 0 and #rows == #carried and (V.rows0 == nil or #rows == V.rows0 + 1),
+        "the slot's list gains a row for the CD given: a row per CD carried (counted here), none twice",
+        #rows .. " rows (before " .. tostring(V.rows0) .. "), the CD's " .. tostring(has) .. ", twice " .. twice .. ", not carried " .. stray,
+        #carried .. " rows, the CD's true, 0, 0")
     check(pr:openList() ~= nil, "the list is ZeD's menu, open over the radio", pr:openList() ~= nil, true)
     CR.takeEscape()
 end, "radio")
@@ -733,7 +961,7 @@ add(400, function()
         local o = ctx.options[k]
         if o and o.param1 == V.cd then opt = o end
     end
-    check(opt ~= nil, "the CD's row is in the list", opt ~= nil, true)
+    check(opt ~= nil, "presence: the CD's row is in the list", opt ~= nil, true)
     if opt then opt.onSelect(opt.target, opt.param1) end   -- (what a click on the row runs)
     closeList()
 end, "radio")
@@ -765,10 +993,7 @@ end, "radio")
 -- ===============================================================================================================
 -- 7. THE PLAIN CARD (Devices: Simple; the setting's reader stood in for, so nothing is saved)
 -- ===============================================================================================================
-add(200, function()
-    V.realDS = ZeD.Settings.devicesSimple
-    ZeD.Settings.devicesSimple = function() return true end
-end, "radio")
+add(200, function() pinDevices(true) end, "radio")
 add(300, function()
     local pr = prop()
     check(pr._plain == true and hitOf(pr, "power") ~= nil, "Devices: Simple draws the plain card, with its power switch", tostring(pr._plain) .. " " .. tostring(hitOf(pr, "power") ~= nil), "true true")
@@ -782,8 +1007,7 @@ add(250, function()
 end, "radio")
 add(250, function()
     check(dd():getIsTurnedOn() == V.onP, "and switches it back", dd():getIsTurnedOn(), V.onP)
-    ZeD.Settings.devicesSimple = V.realDS
-    V.realDS = nil
+    pinDevices(false)
 end, "radio")
 add(300, function()
     check(prop()._plain == false and hitOf(prop(), "vol") ~= nil, "back to Immersive, the face again", prop()._plain, false)
@@ -805,7 +1029,7 @@ add(500, function()
     check(pr.focusId == "chup", "a two-way set's controller starts on CH up", pr.focusId, "chup")
     local have = idSet(pr._hits)
     local m1, m2 = missing((plateIds("ham")), have), missing(designIds("ham"), have)
-    check(m1 == "" and m2 == "", "every control of the ham plate and its design is a live click area", "missing " .. m1 .. " | " .. m2, "none")
+    check(m1 == "" and m2 == "", "presence: every control of the ham plate and its design has a click area", "missing " .. m1 .. " | " .. m2, "none")
     if not st.on then click(pr, "vol") end
 end, "radio")
 add(300, function()
@@ -845,7 +1069,7 @@ end, "ham")
 add(250, function()
     local st = rd()
     check(st.channel == st.presets[1].freq, "CH down steps back to channel 01", st.channel, st.presets[1].freq)
-    -- down from 01: round to the last (ZeD_RadioOps.chStep)
+    -- down from 01: round to the last (ZeD_RadioOps.chStep; Kahlua's % keeps the sign, the mod bug this catches)
     local ok, e = pcall(click, prop(), "chdn")
     V.chdnErr = (not ok) and tostring(e) or nil
     if not ok then pcall(function() prop():onMouseUpOutside(0, 0) end) end
@@ -910,6 +1134,7 @@ end, "ham")
 -- 9. THE SIREN CONTROLLER (the Lightbar slice, through vanilla's timed action)
 -- ===============================================================================================================
 add(200, function()
+    pinSiren(false)   -- (stood in) the siren's Dashboard form: Immersive for the face, whatever ZeD setup says
     if not visible(prop()) then wheelRadio() end
 end, "car")
 add(400, function()
@@ -927,7 +1152,7 @@ add(300, function()
     local des = ZeD.PhysPx.plates.siren
     local want = {}
     for _, h in ipairs(des.hits) do want[#want + 1] = h.id end
-    check(#s._hits == #want and missing(want, idSet(s._hits)) == "", "its click areas are the plate's ten (two knobs, eight positions)", #s._hits, #want)
+    check(#s._hits == #want and missing(want, idSet(s._hits)) == "", "presence: its click areas are the plate's ten (two knobs, eight positions)", #s._hits, #want)
     onDash(s, "siren controller")
     shot("7_siren")
     click(s, "lights:2")
@@ -989,15 +1214,12 @@ add(200, function()
     ISVehicleMenu.onLightbar(p)
 end, "siren")
 waitUntil(3000, function() return visible(SI.get(pn)) end, "siren")
-add(200, function()
-    V.realSS = SI.simple
-    SI.simple = function() return true end
-end, "siren")
+add(200, function() pinSiren(true) end, "siren")
 add(300, function()
     local s = SI.get(pn)
     local want = {}
     for _, h in ipairs(ZeD.PhysPx.plates.siren.hits) do want[#want + 1] = h.id end
-    check(s._plainOn == true and #s._hits == 10 and missing(want, idSet(s._hits)) == "", "the simple dash draws the controller as a plain card with the same ten switches",
+    check(s._plainOn == true and #s._hits == 10 and missing(want, idSet(s._hits)) == "", "presence: the simple dash draws the controller as a plain card with the same ten switches",
         tostring(s._plainOn) .. " " .. #s._hits, "true 10")
     shot("8_siren_plain")
     click(s, "lights:3")
@@ -1006,8 +1228,7 @@ add(300, function()
     local l = modes()
     check(l == 3, "the plain card's LIGHTS 3 sets the lights to 3", l, 3)
     click(SI.get(pn), "lights:0")
-    SI.simple = V.realSS
-    V.realSS = nil
+    pinSiren(false)
 end, "siren")
 add(300, function()
     local l = modes()
@@ -1024,10 +1245,21 @@ end, "siren")
 -- ===============================================================================================================
 add(200, function()
     local v = V.car
-    V.sw = {}   -- the seats the driver can switch to, fitted and empty
-    for i = 1, v:getMaxPassengers() - 1 do
+    local maxP = v:getMaxPassengers()
+    -- (staged) the car's own loot off its seats, so what each seat holds is known (the car goes at the end)
+    for i = 0, maxP - 1 do
+        pcall(function() local c = v:getPartForSeatContainer(i):getItemContainer(); if c and not c:isEmpty() then c:removeAllItems() end end)
+    end
+    V.sw = {}   -- the seats the driver can switch to (vanilla's canSwitchSeat), fitted and empty
+    for i = 1, maxP - 1 do
         if v:isSeatInstalled(i) and not v:isSeatOccupied(i) and v:canSwitchSeat(0, i) then V.sw[#V.sw + 1] = i end
     end
+    V.back = nil
+    for _, i in ipairs(V.sw) do if i > 1 and not V.back then V.back = i end end
+    V.to = V.back or V.sw[1]   -- (a back seat when the driver can reach one: the radio goes away there; else the seat beside)
+    V.itemSeat = nil           -- a fitted seat for the planks: not the driver's, not the one switched to
+    for i = 1, maxP - 1 do if not V.itemSeat and i ~= V.to and v:isSeatInstalled(i) then V.itemSeat = i end end
+    V.itemSeat = V.itemSeat or V.to
     ISVehicleMenu.onShowSeatUI(p, v)
 end, "car")
 add(400, function()
@@ -1037,22 +1269,21 @@ add(400, function()
     check(not vanillaSeatsUp(), "vanilla's seat window stays shut", vanillaSeatsUp(), false)
     if not V.ok.seats then return end
     check(w.title == getText("IGUI_SwitchSeat"), "seated, it is titled Switch Seat", w.title, getText("IGUI_SwitchSeat"))
-    check(#(w._seats or {}) == v:getMaxPassengers(), "a place for every seat", #(w._seats or {}), v:getMaxPassengers())
-    local bad = {}
-    for n, st in ipairs(w._seats or {}) do
-        local i = n - 1
-        local who = v:getCharacter(i)
-        local kind
-        if who then kind = (who == p) and "you" or "person"
-        elseif v:isSeatOccupied(i) then kind = "items"
-        else
-            local pt = v:getPartForSeatContainer(i)
-            kind = (pt and not pt:getInventoryItem()) and "none" or "empty"
+    local maxP = v:getMaxPassengers()
+    check(#(w._seats or {}) == maxP, "presence: a place for every seat", #(w._seats or {}), maxP)
+    -- what is in each seat is known (the character at the wheel, the rest emptied above); the reach is vanilla's rule
+    local busy = {}
+    for i = 1, maxP - 1 do if v:isSeatOccupied(i) or not v:isSeatInstalled(i) then busy[#busy + 1] = i + 1 end end
+    if staged(#busy == 0 and v:getSeat(p) == 0, "the character at the wheel, every other seat fitted and empty", "seat " .. tostring(v:getSeat(p)) .. ", busy or missing " .. table.concat(busy, ","), "seat 0, none") then
+        local bad = {}
+        for n, st in ipairs(w._seats or {}) do
+            local i = n - 1
+            local kind = (i == 0) and "you" or "empty"
+            local far = (i ~= 0) and not v:canSwitchSeat(0, i)
+            if st.kind ~= kind or (st.far == true) ~= far then bad[#bad + 1] = n .. ":" .. tostring(st.kind) .. "/" .. tostring(st.far) .. " want " .. kind .. "/" .. tostring(far) end
         end
-        local far = (i ~= 0) and not v:canSwitchSeat(0, i)
-        if st.kind ~= kind or (st.far == true) ~= far then bad[#bad + 1] = n .. ":" .. tostring(st.kind) .. "/" .. tostring(st.far) .. " want " .. kind .. "/" .. tostring(far) end
+        check(#bad == 0, "each seat reads as it is (you at the wheel, the rest empty), the ones vanilla's canSwitchSeat can't reach out of reach", table.concat(bad, "; "), "none off")
     end
-    check(#bad == 0, "each seat reads as vanilla's rules say (who sits there, which the driver can reach)", table.concat(bad, "; "), "none off")
     local farN
     for n, st in ipairs(w._seats or {}) do if st.far and st.kind == "empty" then farN = n end end
     if farN then
@@ -1061,10 +1292,9 @@ add(400, function()
     else
         say("note: every seat of this car can be reached from the wheel; the out-of-reach reason is not checked")
     end
-    check(w._doors and w._doors[1] ~= nil, "the driver's door is offered to get out by", w._doors and w._doors[1] ~= nil, true)
+    check(w._doors and w._doors[1] ~= nil, "presence: the driver's door is offered to get out by", w._doors and w._doors[1] ~= nil, true)
     shot("9_seats")
     -- planks on a seat
-    V.itemSeat = V.sw[2] or V.sw[1]
     V.planks = {}
     if V.itemSeat then
         local c = v:getPartForSeatContainer(V.itemSeat):getItemContainer()
@@ -1072,21 +1302,24 @@ add(400, function()
     end
 end, "car")
 add(400, function()
-    if not V.itemSeat then say("note: no seat to load"); return end
+    if not staged(V.itemSeat ~= nil, "a fitted seat besides the driver's to load", "none", "one") then return end
     local w, v = SE.get(pn), V.car
     local st = w._seats[V.itemSeat + 1]
-    local occ = v:isSeatOccupied(V.itemSeat)
-    local want = occ and "items" or "empty"
-    check(st.kind == want, "eight planks on seat " .. (V.itemSeat + 1) .. ": it reads as vanilla's occupied test says (" .. want .. ")", st.kind, want)
-    if occ then
+    if staged(v:isSeatOccupied(V.itemSeat), "eight planks make seat " .. (V.itemSeat + 1) .. " occupied for vanilla", false, true) then
+        check(st ~= nil and st.kind == "items", "eight planks on seat " .. (V.itemSeat + 1) .. ": it reads as items", st and st.kind, "items")
         local mv = ISVehicleMenu.moveItemsFromSeat(p, v, V.itemSeat, false, false) and true or false
-        check(st.movable == mv, "and whether its load can be moved, as vanilla works it out", st.movable, mv)
+        local why = st and w:reason(st)
+        local want = getText(mv and "IGUI_VehicleSeat_MoveItems" or "IGUI_VehicleSeat_Items")
+        check(why == want, "its reason says whether the load can be moved, as vanilla's moveItemsFromSeat answers (" .. tostring(mv) .. ")", why, want)
     end
     for _, it in ipairs(V.planks) do pcall(function() it:getContainer():Remove(it) end) end
     V.planks = {}
 end, "seats")
 add(300, function()
-    if V.itemSeat and SE.get(pn)._seats[V.itemSeat + 1].kind == "items" then say("note: seat " .. (V.itemSeat + 1) .. " still reads items after the planks came off") end
+    if V.itemSeat then
+        local st = SE.get(pn)._seats[V.itemSeat + 1]
+        check(st ~= nil and st.kind == "empty", "the planks off, seat " .. (V.itemSeat + 1) .. " reads empty again", st and st.kind, "empty")
+    end
     SE.qaJoy = {}
     SE.get(pn).joypadSeat = 1
 end, "seats")
@@ -1094,19 +1327,18 @@ add(250, function()
     local w = SE.get(pn)
     local cnt = V.car:getScript():getPassengerCount()
     local pr = w:getFooterPrompts()
-    check(pr ~= nil and #pr == 4, "with a controller the help line offers Move, A Sit, X Get out here, B Cancel", pr and #pr, 4)
+    local glyphs = {}
+    for k = 2, #(pr or {}) do glyphs[#glyphs + 1] = tostring(type(pr[k]) == "table" and pr[k].glyph) end
+    check(pr ~= nil and #pr == 4 and table.concat(glyphs, ",") == "A,X,B", "presence: with a controller the help line offers Move, A Sit, X Get out here, B Cancel", pr and table.concat(glyphs, ","), "A,X,B")
     local seen = { w.joypadSeat }
     w:onJoypadDirRight(); seen[2] = w.joypadSeat
     w:onJoypadDirDown(); seen[3] = w.joypadSeat
     w:onJoypadDirLeft(); seen[4] = w.joypadSeat
     w:onJoypadDirUp(); seen[5] = w.joypadSeat
-    -- vanilla's grid: two columns, odd seats left; up / down a row of two
-    local want = { 1 }
-    want[2] = (cnt >= 2) and 2 or 1
-    want[3] = (want[2] <= cnt - 2) and want[2] + 2 or want[2]
-    want[4] = (want[3] % 2 == 0) and want[3] - 1 or want[3]
-    want[5] = (want[4] > 2) and want[4] - 2 or want[4]
-    check(table.concat(seen, ">") == table.concat(want, ">"), "the D-pad walks vanilla's two-column seat grid (right, down, left, up)", table.concat(seen, ">"), table.concat(want, ">"))
+    -- vanilla's grid for a four-seat car: seats 1 2 over 3 4 (both sides written by table.concat, so they read alike)
+    local walk = table.concat({ 1, 2, 4, 3, 1 }, ">")
+    check(cnt == 4 and table.concat(seen, ">") == walk, "the D-pad walks vanilla's two-column seat grid: right, down, left, up from seat 1 (1 2 over 3 4)",
+        cnt .. " seats: " .. table.concat(seen, ">"), "4 seats: " .. walk)
     SE.qaJoy = nil
 end, "seats")
 add(200, function()
@@ -1120,7 +1352,7 @@ end, "seats")
 add(300, function()
     local took = SE.takeEscape()
     check(took == true and not visible(SE.get(pn)), "Escape closes it", tostring(took) .. "/" .. tostring(visible(SE.get(pn))), "true/false")
-    wheelRadio()   -- (the radio up close: from the back it can't be reached)
+    if not visible(prop()) then wheelRadio() end   -- (the radio up close for the switch; the wheel toggles it, so only when away)
 end, "seats")
 add(400, function()
     V.radioUp = visible(prop())
@@ -1128,32 +1360,44 @@ add(400, function()
 end, "seats")
 add(300, function()
     local w = SE.get(pn)
-    local to = V.sw[1]
-    if not to then check(false, "a seat the driver can switch to", "none", "one"); return end
+    local to = V.to
+    if not to then check(false, "a seat the driver can switch to (vanilla's canSwitchSeat)", "none", "one"); return end
     local g = w._g and w._g.seats[to + 1]
-    if not g then check(false, "seat " .. (to + 1) .. " has a place on the car", "none", "a place"); return end
+    if not g then check(false, "seat " .. (to + 1) .. " has a place on the car", "none", "a place"); V.to = nil; return end
     clickRect(w, g.hit)
     check(not visible(w), "a click on seat " .. (to + 1) .. " closes the chooser (vanilla acts on the press)", visible(w), false)
 end, "seats")
-waitUntil(10000, function() return V.sw[1] == nil or V.car:getSeat(p) == V.sw[1] end, "seats")
+waitUntil(10000, function() return V.to == nil or V.car:getSeat(p) == V.to end, "seats")
 add(500, function()
-    local to = V.sw[1]
+    local to = V.to
     if not to then return end
-    check(V.car:getSeat(p) == to, "the character moved to seat " .. (to + 1) .. " (vanilla's switch)", V.car:getSeat(p), to)
-    if to > 1 then check(V.radioUp and not visible(prop()), "the radio is put away: it can't be reached from the back", tostring(V.radioUp) .. "/" .. tostring(visible(prop())), "true/false") end
+    V.moved = V.car:getSeat(p) == to
+    check(V.moved, "the character moved to seat " .. (to + 1) .. " (vanilla's switch)", V.car:getSeat(p), to)
+    if to > 1 then
+        check(V.radioUp and not visible(prop()), "the radio is put away: it can't be reached from the back", tostring(V.radioUp) .. "/" .. tostring(visible(prop())), "true/false")
+    else
+        check(V.radioUp and visible(prop()), "the radio stays up close from the seat beside the driver (vanilla: both front seats reach it)", tostring(V.radioUp) .. "/" .. tostring(visible(prop())), "true/true")
+    end
+    if not V.back then
+        say("note: no back seat of this car can be reached from the wheel (the police car's cage: its script empties the front seats' switches to the back); the radio's back-seat rule is asked of ZeD's reach test with a stand-in occupant")
+        local rp = part()
+        local r0, r1, r2, r3 = reachFrom(0), reachFrom(1), reachFrom(2), reachFrom(3)
+        check(rp ~= nil and r0 == rp and r1 == rp and r2 == nil and r3 == nil, "ZeD's reach test keeps vanilla's rule, front seats only: seats 1 and 2 reach the radio, 3 and 4 don't (a stand-in occupant)",
+            tostring(r0 ~= nil) .. "/" .. tostring(r1 ~= nil) .. "/" .. tostring(r2 ~= nil) .. "/" .. tostring(r3 ~= nil), "true/true/false/false")
+    end
     ISVehicleMenu.onShowSeatUI(p, V.car)
 end, "seats")
 add(300, function()
+    if not (V.to and V.moved) then return end
     local w = SE.get(pn)
-    local to = V.sw[1]
-    if not to then return end
+    local to = V.to
     check(w._seats[to + 1] and w._seats[to + 1].kind == "you", "reopened there, the chooser has you in seat " .. (to + 1), w._seats[to + 1] and w._seats[to + 1].kind, "you")
     w:onKeyRelease(Keyboard.KEY_1)   -- (the 1 key: the driver's seat)
 end, "seats")
 waitUntil(15000, function() return V.car:getSeat(p) == 0 end, "seats")
 add(500, function()
-    check(V.car:getSeat(p) == 0, "the 1 key takes the driver's seat again", V.car:getSeat(p), 0)
-    wheelRadio()
+    if V.to and V.moved then check(V.car:getSeat(p) == 0, "the 1 key takes the driver's seat again", V.car:getSeat(p), 0) end
+    if not visible(prop()) then wheelRadio() end   -- (the radio up close again for the exit)
 end, "seats")
 add(400, function()
     V.radioUp = visible(prop())
@@ -1166,7 +1410,7 @@ end, "seats")
 waitUntil(15000, function() return p:getVehicle() == nil end, "seats")
 add(1500, function()
     check(p:getVehicle() == nil, "X on your own seat gets you out (vanilla's exit, door and all)", p:getVehicle() ~= nil, false)
-    check(V.radioUp and not visible(prop()), "leaving the car puts the radio away", tostring(V.radioUp) .. "/" .. tostring(visible(prop())), "true/false")
+    check(V.radioUp and not visible(prop()), "leaving the car puts the radio away", "up before " .. tostring(V.radioUp) .. ", after " .. tostring(visible(prop())), "up before true, after false")
     ISVehicleMenu.onShowSeatUI(p, V.car)
 end, "seats")
 add(400, function()
@@ -1181,87 +1425,132 @@ add(400, function()
 end, "seats")
 
 -- ===============================================================================================================
--- THE END: everything put back (these steps run whatever happened above)
+-- THE END: everything put back. These steps run whatever happened above; each put-back runs on its own, so one
+-- that throws (an ERR line) leaves the rest to run. The stood-in readers and the exit come first.
 -- ===============================================================================================================
+local function try(what, fn)
+    local ok, e = pcall(fn)
+    if not ok then say("ERR putting back " .. what .. ": " .. tostring(e)) end
+end
 final(300, function()
-    release()
-    CR.qaJoy, CR.qaPoint, SI.qaJoy, SI.qaPoint, SE.qaJoy, SE.qaPoint = nil, nil, nil, nil, nil, nil
-    if V.realDS then ZeD.Settings.devicesSimple = V.realDS; V.realDS = nil end
-    if V.realSS then SI.simple = V.realSS; V.realSS = nil end
-    if V.realRod then ZeD.FishRod.draw = V.realRod; V.realRod = nil end
-    if V.realClock then ZeD.SleepClock.draw = V.realClock; V.realClock = nil end
-    pcall(function() if V.tui then V.tui:setVisible(false); V.tui:removeFromUIManager(); V.tui = nil end end)
-    pcall(function() if V.sleep then V.sleep:setVisible(false); V.sleep:removeFromUIManager(); V.sleep = nil end end)
-    pcall(function() local b = promptFor(prop()); if b then if b.answerCancel then b:answerCancel() else b:destroy() end end end)
-    closeList()
-    pcall(function() CR.closeFor(pn) end)
-    pcall(function() SI.takeEscape() end)
-    pcall(function() SE.takeEscape() end)
-    pcall(function() ISTimedActionQueue.clear(p) end)
-    local v = p:getVehicle()
+    try("the held press", release)
+    try("the Devices reader", function() if V.dsPinned then ZeD.Settings.devicesSimple = V.realDS; V.dsPinned = nil end end)
+    try("the siren's Dashboard reader", function() if V.ssPinned then SI.simple = V.realSS; V.ssPinned = nil end end)
+    try("the rod's drawing", function() if V.realRod then ZeD.FishRod.draw = V.realRod; V.realRod = nil end end)
+    try("the clock's drawing", function() if V.realClock then ZeD.SleepClock.draw = V.realClock; V.realClock = nil end end)
+    try("the radio's test hooks", function() if CR then CR.qaJoy, CR.qaPoint = V.qa0.crJ, V.qa0.crP end end)
+    try("the siren's test hooks", function() if SI then SI.qaJoy, SI.qaPoint = V.qa0.siJ, V.qa0.siP end end)
+    try("the chooser's test hooks", function() if SE then SE.qaJoy, SE.qaPoint = V.qa0.seJ, V.qa0.seP end end)
+    -- out of the car: the queue dropped, the bar off, the exit
+    try("the action queue", function() ISTimedActionQueue.clear(p) end)
+    local v = nil
+    pcall(function() v = p:getVehicle() end)
     if v then
-        pcall(function()
+        try("the lightbar", function()
             if v:hasLightbar() then
                 sendClientCommand(p, "vehicle", "setLightbarLightsMode", { mode = 0 })
                 sendClientCommand(p, "vehicle", "setLightbarSirenMode", { mode = 0 })
             end
         end)
-        pcall(function() v:exit(p) end)
-        triggerEvent("OnExitVehicle", p)
+        try("the seat (the exit)", function() v:exit(p); triggerEvent("OnExitVehicle", p) end)
     end
-    for _, it in ipairs({ V.clock, V.clock2 }) do pcall(function() it:setAlarmSet(false) end) end
+    -- the windows and the test panels
+    try("the naming prompt", function()
+        local pr = prop()
+        local b = pr and promptFor(pr)
+        if b then if b.answerCancel then b:answerCancel() else b:destroy() end end
+    end)
+    try("the CD list", closeList)
+    try("the radio", function() if CR then CR.closeFor(pn) end end)
+    try("the siren controller", function() if SI then SI.takeEscape() end end)
+    try("the seat chooser", function() if SE then SE.takeEscape() end end)
+    try("the tension meter", function() if V.tui then V.tui:setVisible(false); V.tui:removeFromUIManager(); V.tui = nil end end)
+    try("the sleep panel", function() if V.sleep then V.sleep:setVisible(false); V.sleep:removeFromUIManager(); V.sleep = nil end end)
+    -- the alarms: the given clocks off, the character's own back on
+    if V.clock then try("the given clock's alarm", function() V.clock:setAlarmSet(false) end) end
+    if V.clock2 then try("the bag's clock's alarm", function() V.clock2:setAlarmSet(false) end) end
+    try("the character's alarms", restoreAlarms)
+    try("the debug console", function() for _, e in ipairs(V.consoles) do e:setVisible(true) end; V.consoles = {} end)
 end)
 final(1500, function()
-    -- the car, once the character is out of it (a car removed with someone in it takes the game down)
-    local left = 0
+    -- the car, once the character is out of it (a car removed with someone in it takes the game down); still in: out
+    -- again now, and the car goes in the next step
+    V.later, V.carsGone = {}, 0
     for _, car in ipairs(V.spawned) do
-        if p:getVehicle() ~= car then pcall(function() car:permanentlyRemove() end) else left = left + 1 end
+        local inIt = false
+        pcall(function() inIt = p:getVehicle() == car end)
+        if inIt then
+            try("the seat (the exit again)", function() car:exit(p); triggerEvent("OnExitVehicle", p) end)
+            V.later[#V.later + 1] = car
+        else
+            try("the car", function() car:permanentlyRemove(); V.carsGone = V.carsGone + 1 end)
+        end
     end
-    if left > 0 then say("note: the character is still in the spawned car: it is left in place") end
     V.spawned = {}
+end)
+final(1500, function()
+    for _, car in ipairs(V.later or {}) do
+        local inIt = true
+        pcall(function() inIt = p:getVehicle() == car end)
+        if inIt then say("ERR the character is still in the spawned car: it is left in place")
+        else try("the car", function() car:permanentlyRemove(); V.carsGone = V.carsGone + 1 end) end
+    end
+    V.later = {}
     -- given items, newest first (the clock in the bag before the bag)
     local gone = 0
     for k = #V.given, 1, -1 do
         local it = V.given[k]
-        pcall(function()
+        try("a given item", function()
             local c = it:getContainer()
             if c then pcall(function() p:removeFromHands(it) end); c:Remove(it); gone = gone + 1 end
         end)
     end
     V.given = {}
-    -- the disc count as it was (the ejected disc is a new item)
-    if V.discs0 then
-        pcall(function()
+    -- the planks, if their step stopped before taking them off
+    for _, it in ipairs(V.planks) do try("a plank", function() local c = it:getContainer(); if c then c:Remove(it) end end) end
+    V.planks = {}
+    -- the discs: any that is not one of the character's own (the ejected disc is a new item)
+    if V.discIds0 then
+        try("the discs", function()
             local list = p:getInventory():getAllTypeRecurse("Base.Disc_Retail")
-            local k = list:size() - 1
-            while k >= 0 and p:getInventory():getCountTypeRecurse("Base.Disc_Retail") > V.discs0 do
-                local it = list:get(k)
-                local c = it:getContainer()
-                if c then c:Remove(it); gone = gone + 1 end
-                k = k - 1
+            for i = list:size() - 1, 0, -1 do
+                local it = list:get(i)
+                if not V.discIds0[it:getID()] then
+                    local c = it:getContainer()
+                    if c then c:Remove(it); gone = gone + 1 end
+                end
             end
         end)
     end
-    pcall(function() p:setGodMod(V.god0 == true) end)
-    if ZEDQA_HOME then ZEDQA_HOME(TAG) end
-    say("put back: " .. gone .. " items taken away, the car removed, the readers and panels restored")
+    try("god mode", function() p:setGodMod(V.god0 == true) end)
+    if ZEDQA_HOME then try("the character's place", function() ZEDQA_HOME(TAG) end) end
+    say("put back: " .. gone .. " items taken away, " .. tostring(V.carsGone or 0) .. " spawned car(s) removed, the readers, hooks, alarms and panels restored")
 end)
 final(300, function()
     say("RESULT " .. V.pass .. " pass, " .. V.fail .. " fail" .. ((V.skipped or 0) > 0 and (", " .. V.skipped .. " steps skipped (a section never came up)") or ""))
     say("DONE")
+    if V.unpaused then
+        pcall(function() Events.OnTick.Remove(drive) end)
+        pcall(function() setGameSpeed(0) end)
+    end
 end)
 
 -- ---------------------------------------------------------------------------------------------------------------
 -- THE DRIVER
 -- ---------------------------------------------------------------------------------------------------------------
 local Dv = { i = 1, t0 = nil }
-local function drive()
+drive = function()
     local st = PLAN[Dv.i]
     if not st then Events.OnTick.Remove(drive); return end
     local now = getTimestampMs()
     Dv.t0 = Dv.t0 or now
     if st.need and not V.ok[st.need] then
+        -- a section that never came up: one FAIL for it, then its steps are skipped
         V.skipped = (V.skipped or 0) + 1
+        if not V.skipSec[st.need] then
+            V.skipSec[st.need] = true
+            check(false, "the " .. st.need .. " section came up (its steps are skipped)", "it never came up", "up")
+        end
         Dv.i = Dv.i + 1
         return
     end

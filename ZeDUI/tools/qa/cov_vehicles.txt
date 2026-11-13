@@ -1,11 +1,16 @@
 # ZeDUI/tools/qa/cov_vehicles.txt  (Nov 12 2026, QA coverage: AUDIT_DESIGN_AND_COVERAGE_20261111.md Table B, vehicles)
 # The car radio up close and its CD deck, the plain card and the two-way set; the siren controller and the lightbar
 # hook; the seat chooser; the rod and clock-radio plates, the fishing rod prop and the sleep clock: real PASS / FAIL
-# checks read off ZeD's own objects (zedqa_cov_vehicles.lua's header lists them). Run with:
+# checks read off ZeD's own objects (zedqa_cov_vehicles.lua's header lists them; "presence:" checks only prove a thing is
+# there, "staging:" FAILs mean the run could not set up the next check). Run with:
 #   zedqa_run.ps1 -Manifest .../cov_vehicles.txt                       (1920 x 1080 window)
 #   zedqa_run.ps1 -Mode fullscreen4k -Manifest .../cov_vehicles.txt    (the director's 4K)
+# Also in regression.txt's vehicles block. On any save but ZeD-QA it touches nothing and stops.
 # The prelude takes the character to the Irvington drag strip in daylight; the script spawns its own police car beside
-# it, enters only that one once it has settled, and removes it at the end.
+# it, enters only that one once it has settled, and removes it at the end. Devices and the siren's Dashboard form are
+# pinned to Immersive for the face sections whatever ZeD setup says (the real readers go back at the end). The police
+# car's cage means the driver can switch only to the seat beside: the seat check moves there (the radio stays) and asks
+# ZeD's reach test about the back seats with a stand-in occupant.
 # expect=: the engine's world drawing (FBORenderCell) sometimes throws while a car is spawned and removed beside the
 # character (zedqa_dash_keys_edge.lua's runs); it is not ZeD's.
 # Until ZeD_RadioOps.chStep adds the count before the % (Kahlua keeps -1 % n negative), "CH down on channel 01" FAILs
