@@ -3913,6 +3913,7 @@
     "UI_ZeD_Msg_DeleteAskErrors": "Cancellare tutti gli errori? Non si possono recuperare.",
     "UI_ZeD_Msg_HelpAskNo": "Tieni i messaggi.",
     "UI_ZeD_Map_HelpCant": "%1: %2",
+    "UI_ZeD_Map_HelpNamed": "%1: %2",
     "UI_ZeD_Map_HelpDraw": "Mostra o nascondi gli strumenti di disegno.",
     "UI_ZeD_Map_HelpDrawErase": "Cancella: premi sulla mappa e passa sui segni per toglierli.",
     "UI_ZeD_Map_HelpDrawFree": "Disegna a mano libera: premi sulla mappa e muovi.",

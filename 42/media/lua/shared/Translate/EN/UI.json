@@ -3913,6 +3913,7 @@
     "UI_ZeD_Msg_DeleteAskErrors": "Delete all errors? They can't be brought back.",
     "UI_ZeD_Msg_HelpAskNo": "Keep the messages.",
     "UI_ZeD_Map_HelpCant": "%1: %2",
+    "UI_ZeD_Map_HelpNamed": "%1: %2",
     "UI_ZeD_Map_HelpDraw": "Show or hide the drawing tools.",
     "UI_ZeD_Map_HelpDrawErase": "Erase: press on the map and move over the marks to take them off.",
     "UI_ZeD_Map_HelpDrawFree": "Draw freehand: press on the map and move.",

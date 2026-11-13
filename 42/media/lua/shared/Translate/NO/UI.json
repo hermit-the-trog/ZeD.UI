@@ -3913,6 +3913,7 @@
     "UI_ZeD_Msg_DeleteAskErrors": "Slette alle feil? De kan ikke hentes tilbake.",
     "UI_ZeD_Msg_HelpAskNo": "Behold meldingene.",
     "UI_ZeD_Map_HelpCant": "%1: %2",
+    "UI_ZeD_Map_HelpNamed": "%1: %2",
     "UI_ZeD_Map_HelpDraw": "Vis eller skjul tegneverktøyene.",
     "UI_ZeD_Map_HelpDrawErase": "Visk ut: trykk på kartet og før over merkene for å ta dem bort.",
     "UI_ZeD_Map_HelpDrawFree": "Tegn frihånds: trykk på kartet og beveg.",

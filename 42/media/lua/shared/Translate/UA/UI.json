@@ -3913,6 +3913,7 @@
     "UI_ZeD_Msg_DeleteAskErrors": "Видалити всі помилки? Їх не вдасться повернути.",
     "UI_ZeD_Msg_HelpAskNo": "Залишити повідомлення.",
     "UI_ZeD_Map_HelpCant": "%1: %2",
+    "UI_ZeD_Map_HelpNamed": "%1: %2",
     "UI_ZeD_Map_HelpDraw": "Показати чи сховати інструменти малювання.",
     "UI_ZeD_Map_HelpDrawErase": "Стерти: натисніть на карті й проведіть по позначках, щоб прибрати їх.",
     "UI_ZeD_Map_HelpDrawFree": "Малювати від руки: натисніть на карті й рухайте.",

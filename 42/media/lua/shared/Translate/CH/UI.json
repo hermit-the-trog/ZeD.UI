@@ -3913,6 +3913,7 @@
     "UI_ZeD_Msg_DeleteAskErrors": "刪除所有錯誤？無法復原。",
     "UI_ZeD_Msg_HelpAskNo": "保留訊息。",
     "UI_ZeD_Map_HelpCant": "%1：%2",
+    "UI_ZeD_Map_HelpNamed": "%1：%2",
     "UI_ZeD_Map_HelpDraw": "顯示或隱藏繪圖工具。",
     "UI_ZeD_Map_HelpDrawErase": "擦除：在地圖上按住，移過標記即可擦掉。",
     "UI_ZeD_Map_HelpDrawFree": "手繪：在地圖上按住並移動。",

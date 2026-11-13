@@ -50,3 +50,4 @@ Drawn controller (Nov 12 2026): 30 UI_ZeD_PadFig_ lines (Options > Controls > Bu
 UI_ZeD_Inv_ColCond (Nov 12): "Status" in place of "Cond / Amt" (the director); machine draft.
 
 Nov 12 2026: UI_ZeD_Select_Label uses the full-width colon "%1：" as UI_ZeD_Craft_SortPick does; %1 the label.
+Maps icon buttons (Nov 12 2026, punch list 175 C6): UI_ZeD_Map_HelpNamed is "%1: %2", the button's name, then what it does; copied from UI_ZeD_Map_HelpCant's punctuation, nothing to translate.

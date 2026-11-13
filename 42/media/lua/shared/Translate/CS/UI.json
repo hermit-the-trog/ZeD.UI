@@ -3913,6 +3913,7 @@
     "UI_ZeD_Msg_DeleteAskErrors": "Smazat všechny chyby? Nelze je získat zpět.",
     "UI_ZeD_Msg_HelpAskNo": "Ponechat zprávy.",
     "UI_ZeD_Map_HelpCant": "%1: %2",
+    "UI_ZeD_Map_HelpNamed": "%1: %2",
     "UI_ZeD_Map_HelpDraw": "Ukázat nebo skrýt kreslicí nástroje.",
     "UI_ZeD_Map_HelpDrawErase": "Vymazat: stiskni na mapě a přejeď přes značky, aby zmizely.",
     "UI_ZeD_Map_HelpDrawFree": "Kreslit od ruky: stiskni na mapě a pohybuj.",

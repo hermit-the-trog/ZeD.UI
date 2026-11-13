@@ -3913,6 +3913,7 @@
     "UI_ZeD_Msg_DeleteAskErrors": "Hapus semua error? Tidak bisa dikembalikan.",
     "UI_ZeD_Msg_HelpAskNo": "Simpan pesan.",
     "UI_ZeD_Map_HelpCant": "%1: %2",
+    "UI_ZeD_Map_HelpNamed": "%1: %2",
     "UI_ZeD_Map_HelpDraw": "Tampilkan atau sembunyikan alat gambar.",
     "UI_ZeD_Map_HelpDrawErase": "Hapus: tekan di peta dan gerakkan di atas tanda untuk menghapusnya.",
     "UI_ZeD_Map_HelpDrawFree": "Gambar bebas: tekan di peta dan gerakkan.",

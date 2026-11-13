@@ -3913,6 +3913,7 @@
     "UI_ZeD_Msg_DeleteAskErrors": "Excluir todos os erros? Não dá para trazê-los de volta.",
     "UI_ZeD_Msg_HelpAskNo": "Manter as mensagens.",
     "UI_ZeD_Map_HelpCant": "%1: %2",
+    "UI_ZeD_Map_HelpNamed": "%1: %2",
     "UI_ZeD_Map_HelpDraw": "Mostrar ou ocultar as ferramentas de desenho.",
     "UI_ZeD_Map_HelpDrawErase": "Apagar: aperte no mapa e passe sobre as marcas para tirá-las.",
     "UI_ZeD_Map_HelpDrawFree": "Desenho livre: aperte no mapa e mova.",

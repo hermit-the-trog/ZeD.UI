@@ -3913,6 +3913,7 @@
     "UI_ZeD_Msg_DeleteAskErrors": "모든 오류를 삭제하시겠습니까? 되돌릴 수 없습니다.",
     "UI_ZeD_Msg_HelpAskNo": "메시지를 유지합니다.",
     "UI_ZeD_Map_HelpCant": "%1: %2",
+    "UI_ZeD_Map_HelpNamed": "%1: %2",
     "UI_ZeD_Map_HelpDraw": "그리기 도구 표시 또는 숨기기.",
     "UI_ZeD_Map_HelpDrawErase": "지우개: 지도를 누른 채 표시 위로 움직여 지웁니다.",
     "UI_ZeD_Map_HelpDrawFree": "자유 그리기: 지도를 누른 채 움직입니다.",

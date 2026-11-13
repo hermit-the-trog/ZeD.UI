@@ -3913,6 +3913,7 @@
     "UI_ZeD_Msg_DeleteAskErrors": "Törlöd az összes hibát? Nem hozhatók vissza.",
     "UI_ZeD_Msg_HelpAskNo": "Az üzenetek megmaradnak.",
     "UI_ZeD_Map_HelpCant": "%1: %2",
+    "UI_ZeD_Map_HelpNamed": "%1: %2",
     "UI_ZeD_Map_HelpDraw": "A rajzeszközök mutatása vagy elrejtése.",
     "UI_ZeD_Map_HelpDrawErase": "Radír: nyomd meg a térképen, és mozgasd a jelek fölött, hogy eltávolítsd őket.",
     "UI_ZeD_Map_HelpDrawFree": "Szabadkézi rajz: nyomd meg a térképen, és mozgasd.",
