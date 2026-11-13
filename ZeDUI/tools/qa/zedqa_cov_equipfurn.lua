@@ -1,50 +1,83 @@
 -- ZeDUI/tools/qa/zedqa_cov_equipfurn.lua  (Nov 12 2026, QA coverage: audit Table B, group "equipfurn")
--- In game on the ZeD-QA save only (Saves/Sandbox/ZeD-QA), at the QA home (the Irvington drag strip, 925,13040).
--- Copy to Zomboid/Lua/zedqa.lua and bump zedqa.go, or run cov_equipfurn.txt with zedqa_run.ps1 -Manifest; grep
--- console.txt for "ZEDQA cov_equipfurn". Every check prints "PASS <what>" or "FAIL <what> (<got> vs <want>)",
--- read from ZeD's own objects; the run ends with RESULT and DONE. Captures: Screenshots/zqa_cov_ef_*.png, each
--- announced by a SHOT line.
+-- In game on the ZeD-QA save only (Saves/Sandbox/ZeD-QA; on any other save it prints an ERR line and touches
+-- nothing), at the QA home (the Irvington drag strip, 925,13040). Copy to Zomboid/Lua/zedqa.lua and bump zedqa.go,
+-- or run cov_equipfurn.txt with zedqa_run.ps1 -Manifest; grep console.txt for "ZEDQA cov_equipfurn". Every check
+-- prints "PASS <what>" or "FAIL <what> (<got> vs <want>)", read from ZeD's own objects. A check named
+-- "presence: ..." only shows that something is there; what it does is checked by the lines after it. A part that
+-- cannot run says FAIL with the reason, never a silent skip. The run ends with RESULT and DONE. Captures:
+-- Screenshots/zqa_cov_ef_*.png, each announced by a SHOT line.
 --
 -- WHAT IT CHECKS
 -- 1. Equip tab, the defense summary (EquipmentTab.lua's defense dashboard, ProtectionTab.gatherData). Read from
---    the window's own model (win._equipProtCache, what the dashboard draws), against a model this script builds
---    from the worn items (WornItems, the script item's BloodClothingType, Clothing.getDefForPart) and against the
---    game's own per-part number (IsoGameCharacter.getBodyPartClothingDefense, what vanilla's protection panel
---    shows):
+--    the window's own model (win._equipProtCache, what the dashboard draws), built again before the first read (an
+--    item card or the loadouts' to-do can leave an old one), against a model this script builds from the worn items
+--    by the game's own rule (IsoGameCharacter.getBodyPartClothingDefense in 42.22: each worn garment over a part,
+--    with no hole there, adds its Clothing.getDefForPart; the total stops at 100; this is what vanilla's protection
+--    panel shows and what a bite rolls against), and against that game number itself:
 --    - bare (the clothes that cover parts taken off): 0 garments, 0%, grade F, every part uncovered, no best part;
 --    - a staged outfit (hard hat, denim shirt under a leather jacket, jeans, leather gloves, work boots): the
---      garments, the parts, each part's bite / scratch / bullet / layers, the average, its grade, the uncovered
---      count, the worst and best part; single-layer parts equal the game's number; layered parts equal the game's
---      number (the game adds the layers, up to 100); the Equip list has a row for every garment; the summary
---      refreshed by itself after the change;
+--      summary followed the change by itself (no refresh called), the script's model is the game's number on every
+--      part, then the garments, each part's bite / scratch / bullet (the layers added) and layer count, the average,
+--      its grade, the uncovered count, the worst and best part; single-layer and layered parts against the game's
+--      number; the Equip list has a row for every garment (presence);
 --    - a garment held in the hand is not counted as worn; the summary follows the jacket coming off; at the end it
 --      reads as it did before the run.
---    (Expected to FAIL on 0.3.0-beta11, by the game's bytecode: the layered parts, where ZeD takes the best layer,
---    and the held garment, which InventoryItem:isEquipped() counts.)
--- 2. World window, the Furniture tab (FurnitureTab.lua), with a piece of furniture made from the game's own
---    furniture sprites (one tile, four faces, no tool to move): opening the tab starts the game's cursor; each of
---    the five mode tabs, pressed through the drawer's click handler, switches the game's cursor and is drawn
---    active. Place: YOUR FURNITURE has the piece's row, its button puts it on the cursor, FACING offers four
---    faces, E turns it east, the tab reads it on the target tile as placeable, and the game's place (the cursor's
---    tryBuild, what a click in the world runs) puts it there facing east, out of the inventory. Rotate: the tab
---    reads the placed piece, S picks the south face for that tile, the rotate turns it south. Disassemble: the
---    tab reads the piece, says it cannot be taken apart with its tools set aside and can with them, its tool
---    line red then green. Repair: the tab shows a target and rows exactly when the game has something to repair
---    on the tile. Pick up: ON THIS TILE lists what the game can pick up there, Target puts the piece on the
---    cursor for the tile, the pick-up takes it off the tile into the inventory. Leaving the tab ends the cursor.
--- 3. Container buttons (ContainerControls.lua) between a shelf placed beside you and a duffel bag in your hand,
---    pressed through each list's own click handler (its "cc:" hit zone): the rows carry their buttons; Same type
---    marks and takes only the shelf's nails; your Same type is off with nothing in common, a press on it moves
---    nothing, then it puts only the screws back; Take all empties the shelf into the bag; Transfer all empties
---    the bag onto the shelf; To floor puts the shelf's things on the ground; the floor's own row has no To floor.
+--    Whole numbers: ZeD's may be the game's total rounded down or to nearest, or its layers each rounded down and
+--    added, so each comparison takes that range (the staged clothes have whole numbers: it is exact here).
+--    Expected to FAIL on 0.3.0-beta11 (the game's bytecode): the layered parts (ZeD keeps the best layer; the game
+--    adds them), so the per-part line, the average and "layered parts" fail; and the held garment, which
+--    InventoryItem:isEquipped() counts. A fixed ZeD reads all PASS.
+-- 2. Container buttons (ContainerControls.lua) between a shelf placed beside you (marked explored at once, so the
+--    World window does not fill it with the game's loot) and a duffel bag in your hand, pressed through each list's
+--    own click handler (its "cc:" hit zone): the rows carry their buttons (presence); the shelf holds only what was
+--    put on it; Same type marks and takes only the shelf's nails; your Same type is off with nothing in common, and
+--    a press on it while it is drawn off does nothing even with a screw just put in the bag; then it marks and puts
+--    only that screw back; Take all empties the shelf into the bag; Transfer all empties the bag onto the shelf; To
+--    floor puts the shelf's things on the ground; the floor's own row has Take all and no To floor (presence).
+-- 3. World window, the Furniture tab (FurnitureTab.lua), with a piece of furniture made from the game's own
+--    furniture sprites (one tile, four faces, no tool to move): opening the tab starts the game's cursor in the
+--    tab's own mode (staged as Rotate while the game's last mode is Pick up); each of the five mode tabs, pressed
+--    through the drawer's click handler, switches the game's cursor and is drawn active. Place: YOUR FURNITURE has
+--    the piece's row (presence), its button puts it on the cursor, FACING offers four faces (presence), E turns it
+--    east, the tab reads it on the target tile as placeable, and the game's place (the cursor's tryBuild, what a
+--    click in the world runs) puts it there facing east, out of the inventory. Rotate: the tab reads the placed
+--    piece, S picks the south face for that tile, the rotate turns it south. Disassemble (the game's furniture
+--    cheats off for it): the tab reads the piece, says it cannot be taken apart with its tools set aside (a tool on
+--    the belt comes off the belt for it) and can with them, its tool line red then green. Repair: a damaged wooden
+--    piece set beside you (one the game's own repair list takes): the tab shows the game's target there, ON THIS
+--    TILE has its row (presence) and Target picks it for that tile; then on the furniture's tile, where the game
+--    repairs nothing, the target and the rows are gone. Pick up: ON THIS TILE lists what the game can pick up there
+--    (presence), Target puts the piece on the cursor for the tile, the pick-up takes it off the tile into the
+--    inventory. Leaving the tab ends the cursor.
 -- THE LEDGER: everything given, set aside, placed or changed goes back at the end, and at once on an error: given
 -- items and the furniture (and whatever it became) taken away wherever they are (hands, worn, a container, the
--- ground), the shelf removed, the clothes worn again, set-aside tools given back, the hands, god mode, instant
--- actions, the cursor's mode, the construction mark on the furniture's tile, both windows' tabs and containers.
--- The pointer is parked over the World window during the furniture part (the tab holds its tile while the
+-- ground), the shelf and the repair piece removed, anything left in the run's shelf or bag, the clothes worn again,
+-- set-aside tools given back (a belt tool onto its belt slot), the hands, god mode, instant actions, the furniture
+-- cheats, the cursor's and the tab's modes, the tab's pick and last read, the construction mark on the furniture's
+-- tile, the Equip tab's item card and to-do, a window rolled up by hand, both windows' tabs and containers, the
+-- pointer. The pointer is parked over the World window during the furniture part (the tab holds its tile while the
 -- pointer is on a ZeD window), so leave the mouse alone while it runs. Run it after zedqa_pin_windows.lua (the
 -- manifest does): an unpinned window rolls up when the pointer leaves it and stops drawing what is read here.
 local function say(s) print("ZEDQA cov_equipfurn " .. tostring(s)) end
+
+-- only the QA save, and only with ZeD's windows loaded: anything else is left untouched
+do
+    local wn = nil
+    pcall(function() wn = getWorld():getWorld() end)
+    local why = nil
+    if wn ~= "ZeD-QA" then why = "not the ZeD-QA save (" .. tostring(wn) .. ")"
+    elseif not getPlayer() then why = "no player"
+    elseif not (ZeD and ZeD.FurnitureTab and ZeD.ProtectionTab and ZeD_CharacterWindow and ZeD_WorldWindow) then why = "a ZeD module is missing" end
+    if why then
+        say("ERR " .. why .. ": nothing touched")
+        say("RESULT 0 pass, 0 fail")
+        say("DONE")
+        return
+    end
+end
+-- a run before this one that never finished: its ticks stop and its changes come off first
+if type(ZEDQA_COV_EF) == "table" and ZEDQA_COV_EF.abort then pcall(ZEDQA_COV_EF.abort, "a run before this one") end
+
 local p = getPlayer()
 local pn = p:getPlayerNum()
 local FT = ZeD.FurnitureTab
@@ -53,7 +86,7 @@ local R = { pass = 0, fail = 0 }
 local S = { eq = true, con = false, fur = false, park = false }
 local Q = {}
 local MARK = "ZeDQA_cov_ef"
-local LG = { added = {}, taken = {}, done = false, worn = {}, outfit = {}, objs = {} }
+local LG = { added = {}, taken = {}, done = false, worn = {}, outfit = {}, objs = {}, fobjs = {} }
 local drive   -- (forward declaration: Q.fatal removes it; Kahlua captures free names when a closure is made)
 
 local function check(ok, what, got, want)
@@ -72,6 +105,7 @@ local function shot(n)
     say("SHOT " .. f)
     pcall(function() getCore():TakeFullScreenshot(f) end)
 end
+local function inWin(v, lo, hi) return type(v) == "number" and v >= lo and v <= hi end
 
 -- ---------------------------------------------------------------------------------------------------------------
 -- WINDOWS AND ITEMS
@@ -107,13 +141,33 @@ function Q.drop(it)
         end
     end)
 end
--- an item of the character's set aside (the ledger gives it back to the container it came from)
+-- an object off its square (the single-player path of transmitRemoveItemFromSquare is RemoveTileObject)
+function Q.removeObj(sq, o)
+    if not (sq and o) then return end
+    pcall(function() sq:transmitRemoveItemFromSquare(o) end)
+    pcall(function()
+        local objs = sq:getObjects()
+        for i = 0, objs:size() - 1 do if objs:get(i) == o then sq:RemoveTileObject(o); break end end
+    end)
+end
+-- an item of the character's set aside (the ledger gives it back to the container it came from, and a belt tool
+-- back onto its belt slot: the hotbar's own way without the animation, ISHotbar.attachItem / removeItem)
 function Q.takeOne(it)
     local c = it and it:getContainer()
     if not c then return end
+    local rec = { item = it, cont = c }
+    pcall(function()
+        if p:isAttachedItem(it) then
+            rec.slot, rec.slotType, rec.model = it:getAttachedSlot(), it:getAttachedSlotType(), it:getAttachedToModel()
+            p:removeAttachedItem(it)
+            it:setAttachedSlot(-1)
+            it:setAttachedSlotType(nil)
+            it:setAttachedToModel(nil)
+        end
+    end)
     pcall(function() p:removeFromHands(it) end)
     c:Remove(it)
-    LG.taken[#LG.taken + 1] = { item = it, cont = c }
+    LG.taken[#LG.taken + 1] = rec
 end
 function Q.count(inv, ft)
     local n = 0
@@ -148,12 +202,19 @@ function Q.pickSquares()
     S.T = orth[1]                -- the furniture's tile
     S.C = orth[2] or diag[1]     -- the shelf's
     S.O = here                   -- the tile the cursor reads in between (the info is read again on the way back)
+    -- the repair piece's: the next free one
+    local rest = {}
+    for k = 3, #orth do rest[#rest + 1] = orth[k] end
+    for _, sq in ipairs(diag) do rest[#rest + 1] = sq end
+    for _, sq in ipairs(rest) do if sq ~= S.C and not S.R then S.R = sq end end
 end
 function Q.sqName(sq) return sq and (sq:getX() .. "," .. sq:getY()) or "none" end
 
 -- ---------------------------------------------------------------------------------------------------------------
--- 1. THE DEFENSE SUMMARY: the script's own model of the worn items
+-- 1. THE DEFENSE SUMMARY: the script's own model of the worn items, by the game's rule
 -- ---------------------------------------------------------------------------------------------------------------
+-- the three numbers of a part, as Clothing.getDefForPart's flags (bite, bullet)
+Q.KINDS = { { "bite", true, false }, { "scratch", false, false }, { "bullet", false, true } }
 function Q.gradeOf(avg)
     -- (the rule as ProtectionTab's comment states it: A at 60+, B 35+, C 15+, D 1+, else F)
     if avg >= 60 then return "A" end
@@ -167,6 +228,45 @@ function Q.coveredOf(it)
     pcall(function() list = BloodClothingType.getCoveredParts(it:getScriptItem():getBloodClothingType()) end)
     return list
 end
+-- one worn layer over a part: counted, and its numbers added unless it has a hole there (the game skips it)
+function Q.addLayer(m, it, bp)
+    local ps = m.parts[tostring(bp)]
+    if not ps then return end
+    ps.layers = ps.layers + 1
+    local hole = 0
+    pcall(function() hole = it:getVisual():getHole(bp) end)
+    if hole ~= 0 then return end
+    for k, kd in ipairs(Q.KINDS) do
+        local v = it:getDefForPart(bp, kd[2], kd[3]) or 0
+        ps.sum[k] = ps.sum[k] + v
+        ps.floors[k] = ps.floors[k] + math.floor(v)
+    end
+end
+-- per part and kind the whole numbers a summary may show: lo the layers each rounded down and added, hi the total
+-- rounded to nearest, both at most 100 (an uncovered part is -1); and the game's own number beside them
+function Q.windows(m)
+    local sLo, sHi = 0, 0
+    m.worstLo, m.worstHi, m.bestLo, m.bestHi, m.uncovered = 999, 999, -1, -1, 0
+    for _, name in ipairs(m.names) do
+        local ps = m.parts[name]
+        for k, kd in ipairs(Q.KINDS) do
+            local g = nil
+            pcall(function() g = p:getBodyPartClothingDefense(ps.bp:index(), kd[2], kd[3]) end)
+            ps.game[k] = g
+            if ps.layers == 0 then
+                ps.lo[k], ps.hi[k] = -1, -1
+            else
+                ps.lo[k] = math.min(100, ps.floors[k])
+                ps.hi[k] = math.floor(math.min(100, ps.sum[k]) + 0.5)
+            end
+        end
+        if ps.layers == 0 then m.uncovered = m.uncovered + 1 end
+        sLo, sHi = sLo + math.max(0, ps.lo[1]), sHi + math.max(0, ps.hi[1])
+        m.worstLo, m.worstHi = math.min(m.worstLo, ps.lo[1]), math.min(m.worstHi, ps.hi[1])
+        m.bestLo, m.bestHi = math.max(m.bestLo, ps.lo[1]), math.max(m.bestHi, ps.hi[1])
+    end
+    m.avgLo, m.avgHi = math.floor(sLo / m.nParts), math.floor(sHi / m.nParts)
+end
 function Q.model()
     local m = { parts = {}, names = {}, garments = 0 }
     local nMax = BloodBodyPartType.MAX:index()
@@ -174,7 +274,7 @@ function Q.model()
         local bp = BloodBodyPartType.FromIndex(i)
         local name = tostring(bp)
         m.names[#m.names + 1] = name
-        m.parts[name] = { bp = bp, bite = -1, scratch = -1, bullet = -1, layers = 0 }
+        m.parts[name] = { bp = bp, layers = 0, sum = { 0, 0, 0 }, floors = { 0, 0, 0 }, lo = {}, hi = {}, game = {} }
     end
     m.nParts = #m.names
     local wi = p:getWornItems()
@@ -184,34 +284,41 @@ function Q.model()
             local cov = Q.coveredOf(it)
             if cov and cov:size() > 0 then
                 m.garments = m.garments + 1
+                -- (a garment counts once per part, as in the game's loop, even when two of its blood types share one)
+                local seen = {}
                 for j = 0, cov:size() - 1 do
                     local bp = cov:get(j)
-                    local ps = m.parts[tostring(bp)]
-                    if ps then
-                        ps.bite = math.max(ps.bite, math.floor(it:getDefForPart(bp, true, false)))
-                        ps.scratch = math.max(ps.scratch, math.floor(it:getDefForPart(bp, false, false)))
-                        ps.bullet = math.max(ps.bullet, math.floor(it:getDefForPart(bp, false, true)))
-                        ps.layers = ps.layers + 1
-                    end
+                    if not seen[tostring(bp)] then seen[tostring(bp)] = true; Q.addLayer(m, it, bp) end
                 end
             end
         end
     end
-    local sum, worst, best, unc = 0, 999, -1, 0
-    for _, name in ipairs(m.names) do
-        local b = m.parts[name].bite
-        sum = sum + math.max(0, b)
-        if b < worst then worst = b end
-        if b > best then best = b end
-        if m.parts[name].layers == 0 then unc = unc + 1 end
-    end
-    m.avg = math.floor(sum / m.nParts)
-    m.worst, m.best, m.uncovered = worst, best, unc
+    Q.windows(m)
     return m
 end
+function Q.win(lo, hi) return lo == hi and tostring(lo) or (tostring(lo) .. "-" .. tostring(hi)) end
 function Q.ps(t)
     if not t then return "nil" end
     return tostring(t.bite) .. "/" .. tostring(t.scratch) .. "/" .. tostring(t.bullet) .. " x" .. tostring(t.layers)
+end
+function Q.pm(ms)
+    return Q.win(ms.lo[1], ms.hi[1]) .. "/" .. Q.win(ms.lo[2], ms.hi[2]) .. "/" .. Q.win(ms.lo[3], ms.hi[3]) .. " x" .. ms.layers
+end
+-- the script's model against the game's own number (a check on this script: if it fails, so may the lines after it)
+function Q.modelCheck(pre, m)
+    local bad, first = 0, nil
+    for _, name in ipairs(m.names) do
+        local ps = m.parts[name]
+        for k, kd in ipairs(Q.KINDS) do
+            local want = (ps.layers == 0) and 0 or math.min(100, ps.sum[k])
+            if type(ps.game[k]) ~= "number" or math.abs(ps.game[k] - want) > 0.01 then
+                bad = bad + 1
+                first = first or (name .. " " .. kd[1] .. " game " .. tostring(ps.game[k]) .. " vs model " .. tostring(want))
+            end
+        end
+    end
+    check(bad == 0, pre .. "this script's model (the worn layers added up to 100, holes skipped) is the game's own number on every part",
+        first and (bad .. " differ, first " .. first) or "equal", "equal")
 end
 -- ZeD's summary against the model: a list of { what, ok, got, want }
 function Q.defDiff(z, m)
@@ -222,26 +329,30 @@ function Q.defDiff(z, m)
     local nb, first = 0, nil
     for _, name in ipairs(m.names) do
         local zs, ms = z.partStats and z.partStats[name], m.parts[name]
-        local same = zs ~= nil and zs.bite == ms.bite and zs.scratch == ms.scratch and zs.bullet == ms.bullet and zs.layers == ms.layers
+        local same = zs ~= nil and zs.layers == ms.layers and inWin(zs.bite, ms.lo[1], ms.hi[1])
+            and inWin(zs.scratch, ms.lo[2], ms.hi[2]) and inWin(zs.bullet, ms.lo[3], ms.hi[3])
         if not same then
             nb = nb + 1
-            first = first or (name .. " " .. Q.ps(zs) .. " vs " .. Q.ps(ms))
+            first = first or (name .. " " .. Q.ps(zs) .. " vs " .. Q.pm(ms))
         end
     end
-    add("each part's bite / scratch / bullet / layers is its best worn layer's (" .. m.nParts .. " parts)", nb == 0,
-        first and (nb .. " differ, first " .. first) or "all equal", "all equal")
-    add("average bite over all parts", z.avgBiteDef == m.avg, z.avgBiteDef, m.avg)
-    add("letter grade for that average", z.grade == Q.gradeOf(m.avg), z.grade, Q.gradeOf(m.avg))
+    add("each part's bite / scratch / bullet is its worn layers added up to 100, as the game counts them, and its layer count the garments over it ("
+        .. m.nParts .. " parts)", nb == 0, first and (nb .. " differ, first " .. first) or "all equal", "all equal")
+    add("average bite over all parts", inWin(z.avgBiteDef, m.avgLo, m.avgHi), z.avgBiteDef, Q.win(m.avgLo, m.avgHi))
+    local gWant = Q.gradeOf(math.max(m.avgLo, math.min(m.avgHi, z.avgBiteDef or -1)))
+    add("letter grade for that average", z.grade == gWant, z.grade, gWant)
     add("uncovered parts listed", #(z.uncoveredParts or {}) == m.uncovered, #(z.uncoveredParts or {}), m.uncovered)
-    add("worst part's bite", z.worstPart and z.worstPart.biteDef == m.worst, z.worstPart and z.worstPart.biteDef, m.worst)
-    add("best part's bite", z.bestPart and z.bestPart.biteDef == m.best, z.bestPart and z.bestPart.biteDef, m.best)
+    local wb = z.worstPart and z.worstPart.biteDef
+    add("worst part's bite", inWin(wb, m.worstLo, m.worstHi), wb, Q.win(m.worstLo, m.worstHi))
+    local bb = z.bestPart and z.bestPart.biteDef
+    add("best part's bite", inWin(bb, m.bestLo, m.bestHi), bb, Q.win(m.bestLo, m.bestHi))
     return out
 end
 function Q.defChecks(pre, z, m)
-    if not check(z ~= nil, pre .. "the Equip tab has a defense summary", "nil", "a summary") then return end
+    if not check(z ~= nil, "presence: " .. pre .. "the Equip tab has a defense summary", "nil", "a summary") then return end
     for _, d in ipairs(Q.defDiff(z, m)) do check(d.ok, pre .. d.what, d.got, d.want) end
 end
--- one line: does the summary follow the worn items (garments, average, grade, every part)?
+-- one line: does the summary follow the worn items (garments, every part, average, grade, worst, best)?
 function Q.defAll(what, z, m)
     if not z then check(false, what, "no summary", "a summary"); return end
     local bad = nil
@@ -250,39 +361,38 @@ function Q.defAll(what, z, m)
     end
     check(bad == nil, what, bad or "", "the worn items' numbers")
 end
--- ZeD's per-part bite against the game's own (single layers and layered parts apart)
+-- ZeD's per-part numbers against the game's own (single layers and layered parts apart); ZeD's whole number may be
+-- the game's rounded down or to nearest, or its layers each rounded down and added
 function Q.gameChecks(pre, z, m)
     local n1, n2, b1, b2, d1, d2 = 0, 0, 0, 0, nil, nil
     for _, name in ipairs(m.names) do
         local ms = m.parts[name]
         if ms.layers >= 1 then
-            local g = nil
-            pcall(function() g = math.floor(p:getBodyPartClothingDefense(ms.bp:index(), true, false)) end)
-            local zb = z.partStats and z.partStats[name] and z.partStats[name].bite
-            if g ~= nil then
-                if ms.layers == 1 then
-                    n1 = n1 + 1
-                    if zb ~= g then b1 = b1 + 1; d1 = d1 or (name .. " " .. tostring(zb) .. " vs game " .. g) end
-                else
-                    n2 = n2 + 1
-                    if zb ~= g then b2 = b2 + 1; d2 = d2 or (name .. " " .. tostring(zb) .. " vs game " .. g) end
+            local zs = z.partStats and z.partStats[name]
+            local bad = nil
+            for k, kd in ipairs(Q.KINDS) do
+                local g = ms.game[k]
+                local v = zs and zs[kd[1]]
+                if type(g) ~= "number" or not inWin(v, math.min(ms.lo[k], math.floor(g)), math.floor(g + 0.5)) then
+                    bad = bad or (name .. " " .. kd[1] .. " " .. tostring(v) .. " vs game " .. tostring(g))
                 end
+            end
+            if ms.layers == 1 then
+                n1 = n1 + 1
+                if bad then b1 = b1 + 1; d1 = d1 or bad end
+            else
+                n2 = n2 + 1
+                if bad then b2 = b2 + 1; d2 = d2 or bad end
             end
         end
     end
-    if n1 > 0 then
-        check(b1 == 0, pre .. "single-layer parts show the game's own bite defense (" .. n1 .. " parts)",
-            d1 and (b1 .. " differ, first " .. d1) or "equal", "equal")
-    else
-        note(pre .. "no single-layer part to hold against the game's number")
-    end
-    if n2 > 0 then
-        check(b2 == 0, pre .. "layered parts show the game's own bite defense, which adds the layers up to 100 (" .. n2 .. " parts)",
-            d2 and (b2 .. " differ, first " .. d2) or "equal", "equal")
-    else
-        note(pre .. "no layered part to hold against the game's number")
-    end
+    check(n1 > 0 and b1 == 0, pre .. "single-layer parts show the game's own bite / scratch / bullet defense (" .. n1 .. " parts)",
+        (n1 == 0 and "no single-layer part") or (d1 and (b1 .. " differ, first " .. d1)) or "equal", "equal")
+    check(n2 > 0 and b2 == 0, pre .. "layered parts show the game's own bite / scratch / bullet defense, which adds the layers up to 100 (" .. n2 .. " parts)",
+        (n2 == 0 and "no layered part") or (d2 and (b2 .. " differ, first " .. d2)) or "equal", "equal")
 end
+-- the summary built since t (the tab builds it again every 250 ms while it draws its list)
+function Q.fresh(w, t) return w ~= nil and w._equipProtCache ~= nil and (w._equipProtAt or 0) > t end
 function Q.rowOf(w, it)
     local d = w and w._equipCache
     for _, g in ipairs(d and d.groups or {}) do
@@ -348,7 +458,8 @@ end
 -- ---------------------------------------------------------------------------------------------------------------
 Q.MODE_IDX = { pickup = 1, place = 2, rotate = 3, scrap = 4, repair = 5 }
 -- a piece of furniture to move: one tile, an Object with four faces, no tool or skill to move it, not a table or
--- a container; one that can be taken apart (a scrap definition for its material) first, then the lightest
+-- a container; one that can be taken apart only with tools first (the Disassemble checks need that), then one that
+-- can be taken apart, then the lightest
 function Q.pieceOk(name)
     local spr = getSprite(name)
     if not spr then return nil end
@@ -367,8 +478,13 @@ function Q.pieceOk(name)
     end
     local defs = ISMoveableDefinitions:getInstance()
     local scrap = (mp.canScrap and mp.material and defs.isScrapDefinitionValid(mp.material)) and true or false
-    return { name = name, mp = mp, faces = f, scrap = scrap, weight = mp.weight or 99,
-             set = { [f.N] = true, [f.E] = true, [f.S] = true, [f.W] = true } }
+    local tools = false
+    if scrap and mp.scrapUseTool then
+        local def = defs.getScrapDefinition(mp.material)
+        tools = def ~= nil and (#(def.tools or {}) > 0 or #(def.tools2 or {}) > 0)
+    end
+    return { name = name, mp = mp, faces = f, scrap = scrap, tools = tools, rank = (tools and 2) or (scrap and 1) or 0,
+             weight = mp.weight or 99, set = { [f.N] = true, [f.E] = true, [f.S] = true, [f.W] = true } }
 end
 function Q.pieceSprite()
     local best = nil
@@ -379,7 +495,7 @@ function Q.pieceSprite()
         for i = 0, fam[2] do
             local ok, pc = pcall(Q.pieceOk, fam[1] .. i)
             if ok and pc then
-                local better = not best or (pc.scrap and not best.scrap) or (pc.scrap == best.scrap and pc.weight < best.weight)
+                local better = not best or pc.rank > best.rank or (pc.rank == best.rank and pc.weight < best.weight)
                 if better then best = pc end
             end
         end
@@ -433,6 +549,9 @@ function Q.reread(sq)
     return FT.cap[pn]
 end
 function Q.fur() local w = Q.ww(); return w and w._fur end
+-- the tab's body scrolled to its end: the lists sit under the target's facts, and a row out of view has no zone (on a
+-- short window the facts can push them out); the tab clamps it to its real end on its next frame
+function Q.scrollDown() local s = Q.fur(); if s then s.scrollY = 100000 end end
 function Q.zone(id) local s = Q.fur(); return s and s.byId and s.byId[id] end
 function Q.zoneCount(prefix)
     local n = 0
@@ -483,6 +602,7 @@ function Q.parkTick()
             y = w:getAbsoluteY() + math.floor(w:getHeight() / 2)
         end
         pcall(function() Mouse.setXY(x, y) end)
+        LG.parked = true
     end
     local cur = Q.cur()
     if cur and S.holdSq then
@@ -504,7 +624,7 @@ function Q.toolState(c)
     end
     return st
 end
--- would ZeD's reading of the game's good / bad highlight colours give green / red? (a colour-blind palette may not)
+-- would ZeD's reading of the game's good / bad highlight colors give green / red? (a color-blind palette may not)
 function Q.colorsRead()
     local ok, res = pcall(function()
         local g, b = getCore():getGoodHighlitedColor(), getCore():getBadHighlitedColor()
@@ -514,7 +634,7 @@ function Q.colorsRead()
     end)
     return ok and res
 end
--- the material's scrap tools: all set aside (false when one is on the belt or worn: it stays)
+-- the material's scrap tools: all set aside (false when one is worn: it stays)
 function Q.scrapTools()
     local def = S.piece and ISMoveableDefinitions:getInstance().getScrapDefinition(S.piece.mp.material)
     local t1, t2 = (def and def.tools) or {}, (def and def.tools2) or {}
@@ -528,12 +648,14 @@ function Q.setAsideTools()
             local found = p:getInventory():getAllTypeRecurse(ft)
             for k = found:size() - 1, 0, -1 do
                 local it = found:get(k)
-                local stuck = false
-                pcall(function() stuck = p:isAttachedItem(it) or p:isEquippedClothing(it) end)
-                if stuck then clean = false else Q.takeOne(it) end
+                local worn = false
+                pcall(function() worn = p:isEquippedClothing(it) end)
+                if worn then clean = false else Q.takeOne(it) end
             end
         end
     end
+    -- (the belt's icons follow a tool taken off it, as ISHotbar.removeItem does)
+    pcall(function() local hb = getPlayerHotbar and getPlayerHotbar(pn); if hb then hb:reloadIcons() end end)
     return clean
 end
 function Q.giveTools()
@@ -548,6 +670,52 @@ function Q.haveCons(sq)
     pcall(function() local z = sq:getZone(); if z then v = z:haveCons() end end)
     return v
 end
+-- what the game's own repair list takes on a tile (vanilla's ISMoveableCursor.getRepairObjectList on a stand-in
+-- cursor for that tile, the tile in sight)
+function Q.gameRepairList(sq)
+    local out = {}
+    pcall(function()
+        local probe = setmetatable({ currentSquare = sq, canSeeCurrentSquare = true, character = p, player = pn }, { __index = ISMoveableCursor })
+        out = probe:getRepairObjectList() or {}
+    end)
+    return out
+end
+-- a damaged wooden piece on sq that the game would repair: a player-built fence (an IsoThumpable, as vanilla's
+-- builders and its debug scenarios make one) at half health, else the furniture's own sprite as one; the first the
+-- game's repair list takes
+function Q.repairTarget(sq)
+    if not sq then return nil end
+    local names = { "carpentry_02_48", "carpentry_02_49", "carpentry_02_40", "carpentry_02_41", "carpentry_02_44", "carpentry_02_45" }
+    if S.piece then names[#names + 1] = S.piece.name end
+    for _, name in ipairs(names) do
+        if getSprite(name) then
+            local o = nil
+            pcall(function()
+                o = IsoThumpable.new(getCell(), sq, name, nil, false, nil)
+                o:setMaxHealth(200)
+                o:setHealth(100)
+                sq:AddSpecialObject(o)
+            end)
+            if o then
+                Q.mark(o)
+                LG.fobjs[#LG.fobjs + 1] = { obj = o, sq = sq }
+                for _, e in ipairs(Q.gameRepairList(sq)) do
+                    if e.object == o then return { obj = o, name = name } end
+                end
+                Q.removeObj(sq, o)
+                LG.fobjs[#LG.fobjs] = nil
+            end
+        end
+    end
+    return nil
+end
+function Q.removeRepairTarget()
+    local n = 0
+    for _, o in ipairs(LG.fobjs) do Q.removeObj(o.sq, o.obj); n = n + 1 end
+    LG.fobjs = {}
+    S.rep = nil
+    return n
+end
 
 -- ---------------------------------------------------------------------------------------------------------------
 -- 3. THE CONTAINER BUTTONS
@@ -559,11 +727,15 @@ function Q.shelf(sq)
             sq:AddTileObject(o)
             pcall(function() o:createContainersFromSpriteProperties() end)
             if o:getContainer() then
+                -- (explored at once: the World window fills an unexplored container with the game's loot the first
+                -- time it lists it, ZeD_WorldWindow.lua's ItemPicker.fillContainer; outdoors that is shelf loot)
+                for k = 0, o:getContainerCount() - 1 do pcall(function() o:getContainerByIndex(k):setExplored(true) end) end
+                pcall(function() o:getContainer():setExplored(true) end)
                 Q.mark(o)
                 LG.objs[#LG.objs + 1] = { obj = o, sq = sq }
                 return o, name
             end
-            pcall(function() sq:transmitRemoveItemFromSquare(o) end)
+            Q.removeObj(sq, o)
         end
     end
     return nil
@@ -582,6 +754,20 @@ function Q.selectIn(w, inv, idx)
     w._activeContainer = idx
     w._viewedContainer = nil
     return true
+end
+-- a window's container selection by the containers themselves (its list is built again, so indices move)
+function Q.selOf(w)
+    local cs = w and w._containers or {}
+    local function invAt(i) local c = i and cs[i]; return c and c.inventory end
+    return { inv = invAt(w and w._activeContainer), view = invAt(w and w._viewedContainer), mainVis = w and w._mainVisible }
+end
+function Q.putSel(w, sel, fallback)
+    if not (w and sel) then return end
+    local i = sel.inv and Q.idxOf(w, sel.inv)
+    if i or fallback then w._activeContainer = i or fallback end
+    w._viewedContainer = sel.view and Q.idxOf(w, sel.view) or nil
+    if sel.mainVis ~= nil then w._mainVisible = sel.mainVis end
+    w._containerTimer = 30
 end
 -- the row's button with this id (take, same, floor, xfer, near) and its place in the frame's hits
 function Q.hit(content, key)
@@ -647,13 +833,17 @@ function Q.restoreFurniture()
         if WWm.isTabShowing("furniture") then WWm.openTab(pn, (LG.wwTab and LG.wwTab ~= "furniture") and LG.wwTab or "loot") end
     end)
     pcall(function() local cur = Q.cur(); if cur then cur._zedHold = nil; cur:exitCursor() end end)
-    local gone = 0
+    -- (the tab's pick and its last read go with the cursor: FT.setMode clears the pick, the run set the mode directly;
+    -- its body back at the top)
+    FT.pick = nil
+    pcall(function() FT.cap[pn] = nil end)
+    pcall(function() local s = Q.fur(); if s then s.scrollY = 0 end end)
+    local gone = Q.removeRepairTarget()
     if S.piece and S.T then
         for _ = 1, 4 do
             local o = Q.pieceOn(S.T)
             if not o then break end
-            pcall(function() S.T:transmitRemoveItemFromSquare(o) end)
-            pcall(function() if Q.pieceOn(S.T) == o then S.T:RemoveTileObject(o) end end)
+            Q.removeObj(S.T, o)
             gone = gone + 1
         end
         for _, it in ipairs(Q.newFamily()) do Q.drop(it); gone = gone + 1 end
@@ -666,41 +856,44 @@ function Q.restoreFurniture()
         pcall(function() FT.state.mode = LG.modes.tab or "pickup" end)
         LG.modes = nil
     end
+    pcall(function() if LG.movCheat ~= nil then p:setMovablesCheat(LG.movCheat) end end)
+    pcall(function() if LG.defCheat ~= nil then ISMoveableDefinitions.cheat = LG.defCheat end end)
+    LG.movCheat, LG.defCheat = nil, nil
     return gone
 end
 function Q.restoreContainers()
     for _, it in ipairs(S.conItems or {}) do Q.drop(it) end
     S.conItems = {}
+    -- (anything else left in the run's shelf or bag: nothing should be)
+    for _, inv in ipairs({ S.shelfInv or false, S.bagInv or false }) do
+        if inv then
+            pcall(function()
+                local items = inv:getItems()
+                for k = items:size() - 1, 0, -1 do Q.drop(items:get(k)) end
+            end)
+        end
+    end
     if S.bag then Q.drop(S.bag); S.bag = nil end
     local n = 0
-    for _, o in ipairs(LG.objs) do
-        pcall(function() o.sq:transmitRemoveItemFromSquare(o.obj) end)
-        pcall(function()
-            local objs = o.sq:getObjects()
-            for i = 0, objs:size() - 1 do if objs:get(i) == o.obj then o.sq:RemoveTileObject(o.obj); break end end
-        end)
-        n = n + 1
-    end
+    for _, o in ipairs(LG.objs) do Q.removeObj(o.sq, o.obj); n = n + 1 end
     LG.objs = {}
     Q.hands()
     -- each window back on the container it showed
-    pcall(function()
-        local w = Q.ww()
-        if w and LG.wwSel then
-            local i = LG.wwSel.inv and Q.idxOf(w, LG.wwSel.inv)
-            if i then w._activeContainer = i end
-            w._viewedContainer, w._mainVisible = LG.wwSel.viewed, LG.wwSel.mainVis
-        end
-    end)
-    pcall(function()
-        local w = Q.cw()
-        if w and LG.cwSel then
-            local i = LG.cwSel.inv and Q.idxOf(w, LG.cwSel.inv)
-            w._activeContainer = i or 1
-            w._viewedContainer = LG.cwSel.viewed
-        end
-    end)
+    pcall(function() Q.putSel(Q.ww(), LG.wwSel, nil) end)
+    pcall(function() Q.putSel(Q.cw(), LG.cwSel, 1) end)
+    LG.wwSel, LG.cwSel = nil, nil
     return n
+end
+-- the Equip tab's to-do, and the item card it had open when it shows again (any tab switch closes the card, so
+-- this runs after the tabs are put back)
+function Q.restoreEquipTab()
+    local w = Q.cw()
+    if not w then return end
+    if LG.todo then pcall(function() if w._el then w._el.todo = true end end); LG.todo = nil end
+    if LG.eqSel ~= nil then
+        if w._activeTab == "equip" and w._drawerMode == "tab" and w._drawerOpen == true then w._equipSelected = LG.eqSel end
+        LG.eqSel = nil
+    end
 end
 function Q.restore(why)
     if LG.done then return end
@@ -721,8 +914,17 @@ function Q.restore(why)
     end
     local back = 0
     for _, t in ipairs(LG.taken) do
-        pcall(function() if not t.item:getContainer() then t.cont:AddItem(t.item); back = back + 1 end end)
+        pcall(function()
+            if not t.item:getContainer() then t.cont:AddItem(t.item); back = back + 1 end
+            if t.model then
+                p:setAttachedItem(t.model, t.item)
+                t.item:setAttachedSlot(t.slot)
+                t.item:setAttachedSlotType(t.slotType)
+                t.item:setAttachedToModel(t.model)
+            end
+        end)
     end
+    pcall(function() local hb = getPlayerHotbar and getPlayerHotbar(pn); if hb then hb:reloadIcons() end end)
     Q.hands()
     pcall(function() p:setTimedActionInstantCheat(LG.instant == true) end)
     pcall(function() p:setGodMod(LG.god == true) end)
@@ -735,6 +937,11 @@ function Q.restore(why)
             if LG.wwTab and LG.wwTab ~= "furniture" and LG.wwDrawer then WWm.openTab(pn, LG.wwTab) end
         end
     end)
+    pcall(Q.restoreEquipTab)
+    -- (a window rolled up by hand before the run rolls up again; the hover roll-up does its own)
+    pcall(function() local w = Q.cw(); if LG.cwShaded and w and not w.windowShaded then w:setWindowShaded(true) end end)
+    pcall(function() local w = Q.ww(); if LG.wwShaded and w and not w.windowShaded then w:setWindowShaded(true) end end)
+    pcall(function() if LG.parked and LG.mx and Mouse and Mouse.setXY then Mouse.setXY(LG.mx, LG.my) end end)
     pcall(function() if LG.console then LG.console:setVisible(true) end end)
     say("restored (" .. tostring(why) .. "): furniture pieces removed " .. f .. ", shelves removed " .. c .. ", given items taken back "
         .. gone .. ", set-aside items given back " .. back .. " of " .. #LG.taken)
@@ -750,6 +957,7 @@ local function pollAct(maxMs, act, cond, what) plan[#plan + 1] = { wait = true, 
 function Q.finish()
     say("RESULT " .. R.pass .. " pass, " .. R.fail .. " fail")
     say("DONE")
+    ZEDQA_COV_EF = nil
 end
 function Q.fatal(msg)
     say("ERR " .. tostring(msg))
@@ -771,12 +979,14 @@ function Q.modeStep(m)
         check(S.clickedMode == m and ISMoveableCursor.mode[pn] == m and FT.state.mode == m and s ~= nil and s.stripModeSeen == m,
             "the " .. m .. " tab switches the game's cursor and is drawn active (cursor/tab/drawn)", got, m .. "/" .. m .. "/" .. m)
         Q.hold(S.T)
+        Q.scrollDown()
     end)
 end
 
 -- ---- SETUP -----------------------------------------------------------------------------------------------------
 add(0, function()
-    if ZEDQA_HOME then ZEDQA_HOME("cov_equipfurn") end
+    S.moved = false
+    if ZEDQA_HOME then S.moved = ZEDQA_HOME("cov_equipfurn") == true end
     pcall(function()
         local u = UIManager.getUI()
         for k = 0, u:size() - 1 do
@@ -787,51 +997,75 @@ add(0, function()
     LG.god = p:isGodMod()
     LG.instant = p:isTimedActionInstantCheat()
     LG.prim, LG.sec, LG.handsSet = p:getPrimaryHandItem(), p:getSecondaryHandItem(), true
+    pcall(function() LG.mx, LG.my = getMouseX(), getMouseY() end)
     p:setGodMod(true)
     p:setTimedActionInstantCheat(true)
     LG.cwOpen = CWm.isOpen()
     local cw, ww = Q.cw(), Q.ww()
     LG.cwTab, LG.cwDrawer = cw and cw._activeTab, cw and cw._drawerOpen and cw._drawerMode == "tab"
     LG.wwTab, LG.wwDrawer = ww and ww._activeTab, ww and ww._drawerOpen and ww._drawerMode == "tab"
+    LG.cwShaded = cw ~= nil and cw.windowShaded == true and cw._autoShaded ~= true
+    LG.wwShaded = ww ~= nil and ww.windowShaded == true and ww._autoShaded ~= true
 end)
--- (a moment for a move to the drag strip to settle before the tiles beside the character are read)
+-- (after a move to the drag strip its tiles take a moment to load)
+waitFor(15000, function()
+    if not S.moved then return true end
+    local px, py, pz = math.floor(p:getX()), math.floor(p:getY()), math.floor(p:getZ())
+    local cell = getCell()
+    return cell:getGridSquare(px + 1, py, pz) ~= nil and cell:getGridSquare(px, py + 1, pz) ~= nil
+        and cell:getGridSquare(px - 1, py, pz) ~= nil and cell:getGridSquare(px, py - 1, pz) ~= nil
+end, "the drag strip's tiles after the move there")
 add(400, function()
     Q.pickSquares()
     say("start: at " .. math.floor(p:getX()) .. "," .. math.floor(p:getY()) .. "; furniture tile " .. Q.sqName(S.T)
-        .. ", shelf tile " .. Q.sqName(S.C))
+        .. ", shelf tile " .. Q.sqName(S.C) .. ", repair piece tile " .. Q.sqName(S.R))
 end)
 
 -- ---- 1. THE EQUIP TAB'S DEFENSE SUMMARY --------------------------------------------------------------------------
 add(100, function() CWm.openTab(pn, "equip") end)
 waitFor(5000, function()
     local w = Q.cw()
-    return w ~= nil and w._activeTab == "equip" and w._drawerOpen == true and w._drawerMode == "tab" and w._equipProtCache ~= nil
+    return w ~= nil and w._activeTab == "equip" and w._drawerOpen == true and w._drawerMode == "tab"
 end, "the Equip tab")
-add(400, function()
+add(300, function()
     local w = Q.cw()
-    S.eq = check(w ~= nil and w._activeTab == "equip" and w._equipProtCache ~= nil, "the Equip tab opens with its defense summary",
-        w and w._activeTab, "equip")
+    S.eq = check(w ~= nil and w._activeTab == "equip" and w._drawerOpen == true and w._drawerMode == "tab",
+        "presence: the Equip tab opens", w and tostring(w._activeTab) .. "/" .. tostring(w._drawerMode), "equip/tab")
     if not S.eq then return end
-    if w.windowShaded then w:setWindowShaded(false) end
+    -- what keeps the list (and its summary) from drawing: an item card on a row, the loadouts' to-do (both back at the end)
+    LG.eqSel = w._equipSelected
     w._equipSelected = nil
-    if ZeD.EquipLoadout and ZeD.EquipLoadout.todoOpen and ZeD.EquipLoadout.todoOpen(w) then note("the loadouts' to-do covers the tab") end
+    if w._el and w._el.todo == true then
+        LG.todo = true
+        w._el.todo = false
+        note("the loadouts' to-do covered the tab: set aside for the run")
+    end
     if w._equipDefHidden then note("the tab's Find text hides the defense block on screen (its numbers are still read)") end
+    -- the summary built again from now: an open card or the to-do leaves an old one behind (openTab returns early
+    -- when the tab already shows, so nothing else would reset it)
+    w._equipProtCache = nil
+end)
+waitFor(5000, function() local w = Q.cw(); return (not S.eq) or (w ~= nil and w._equipProtCache ~= nil) end, "the defense summary built again")
+add(100, function()
+    if not S.eq then return end
+    local w = Q.cw()
     local z = w._equipProtCache
+    S.eq = check(z ~= nil, "presence: the Equip tab builds its defense summary again after a reset", "none", "a summary")
+    if not S.eq then return end
     LG.z0 = { g = z.totalGarments, avg = z.avgBiteDef, grade = z.grade }
     say("before the run: " .. z.totalGarments .. " garments, " .. z.avgBiteDef .. "% grade " .. tostring(z.grade))
     local off, kept = Q.strip()
     say("clothes that cover a part taken off: " .. off .. (kept > 0 and (", " .. kept .. " kept (they give slots)") or ""))
-    S.tChange = getTimestampMs()
 end)
 add(900, function()
     if not S.eq then return end
     local w = Q.cw()
     local z, m = w._equipProtCache, Q.model()
-    check((w._equipProtAt or 0) > S.tChange, "the summary refreshed by itself after the clothes came off", w._equipProtAt, "after " .. S.tChange)
     if m.garments > 0 then
-        note(m.garments .. " worn garments still cover parts (they give belt slots): the bare checks are left out")
+        check(false, "bare: every garment that covers a part comes off, so the bare checks can run", m.garments .. " still on (they give belt slots)", 0)
         return
     end
+    if not z then check(false, "bare: the Equip tab has a defense summary", "none", "a summary"); return end
     check(z.totalGarments == 0, "bare: the summary counts 0 garments", z.totalGarments, 0)
     check(z.avgBiteDef == 0 and z.grade == "F", "bare: average 0% and grade F", z.avgBiteDef .. "% " .. tostring(z.grade), "0% F")
     check(#z.uncoveredParts == m.nParts, "bare: every part listed uncovered", #z.uncoveredParts, m.nParts)
@@ -840,6 +1074,8 @@ add(900, function()
 end)
 add(100, function()
     if not S.eq then return end
+    local z0 = Q.cw()._equipProtCache
+    S.gBefore = z0 and z0.totalGarments
     local worn = 0
     for _, ft in ipairs({ "Base.Hat_HardHat", "Base.Shirt_Denim", "Base.Jacket_LeatherBlack", "Base.Trousers_Denim",
                           "Base.Gloves_LeatherGloves", "Base.Shoes_WorkBoots" }) do
@@ -858,21 +1094,27 @@ add(100, function()
         end
     end
     pcall(function() triggerEvent("OnClothingUpdated", p) end)
+    S.outfitN = worn
     say("outfit on: " .. worn .. " of 6")
-    S.tChange = getTimestampMs()
 end)
 add(900, function()
     if not S.eq then return end
     local w = Q.cw()
     local z, m = w._equipProtCache, Q.model()
-    check((w._equipProtAt or 0) > S.tChange, "the summary refreshed by itself after the outfit went on", w._equipProtAt, "after " .. S.tChange)
-    say(string.format("outfit model: %d garments, average %d%%, grade %s, worst %d, best %d, %d uncovered",
-        m.garments, m.avg, Q.gradeOf(m.avg), m.worst, m.best, m.uncovered))
+    check(S.outfitN == 6, "the staged outfit is worn (hard hat, denim shirt under a leather jacket, jeans, leather gloves, work boots)",
+        tostring(S.outfitN) .. " of 6", "6 of 6")
+    -- (nothing here asks the tab to build it again: the count can only follow the change by the tab's own refresh)
+    check(z ~= nil and S.gBefore ~= nil and S.gBefore ~= m.garments and z.totalGarments == m.garments,
+        "the summary refreshed by itself after the outfit went on (its garment count followed)",
+        tostring(S.gBefore) .. " -> " .. tostring(z and z.totalGarments), tostring(S.gBefore) .. " -> " .. m.garments)
+    say("outfit model: " .. m.garments .. " garments, average " .. Q.win(m.avgLo, m.avgHi) .. "%, worst " .. Q.win(m.worstLo, m.worstHi)
+        .. ", best " .. Q.win(m.bestLo, m.bestHi) .. ", " .. m.uncovered .. " uncovered")
+    Q.modelCheck("outfit: ", m)
     Q.defChecks("outfit: ", z, m)
-    Q.gameChecks("outfit: ", z, m)
+    if z then Q.gameChecks("outfit: ", z, m) end
     local missing = {}
     for _, it in ipairs(LG.outfit) do if not Q.rowOf(w, it) then missing[#missing + 1] = it:getType() end end
-    check(#LG.outfit > 0 and #missing == 0, "the Equip list has a row for every garment worn", table.concat(missing, ","), "none missing")
+    check(#LG.outfit > 0 and #missing == 0, "presence: the Equip list has a row for every garment worn", table.concat(missing, ","), "none missing")
     shot("1_defense")
 end)
 add(100, function()
@@ -883,8 +1125,12 @@ add(100, function()
 end)
 add(900, function()
     if not S.eq then return end
-    local z, m = Q.cw()._equipProtCache, Q.model()
-    check(z.totalGarments == m.garments, "a garment held in the hand is not counted as worn", z.totalGarments, m.garments)
+    local w = Q.cw()
+    local z, m = w._equipProtCache, Q.model()
+    local held = LG.heldGlove ~= nil and p:getPrimaryHandItem() == LG.heldGlove
+    local fresh = Q.fresh(w, S.tChange)
+    check(held and fresh and z.totalGarments == m.garments, "a garment held in the hand is not counted as worn",
+        (not held and "no glove in the hand") or (not fresh and "the summary was not built again after it") or z.totalGarments, m.garments)
     pcall(function() p:setPrimaryHandItem(nil) end)
     Q.drop(LG.heldGlove)
     LG.heldGlove = nil
@@ -895,19 +1141,29 @@ add(100, function()
     pcall(function() triggerEvent("OnClothingUpdated", p) end)
 end)
 add(900, function()
-    if not (S.eq and LG.jacket) then return end
-    Q.defAll("the summary follows the jacket coming off (garments, average, grade, every part)", Q.cw()._equipProtCache, Q.model())
+    if not S.eq then return end
+    if not LG.jacket then
+        check(false, "the summary follows the jacket coming off (garments, every part, average, grade, worst, best)", "no jacket was worn", "a jacket")
+        return
+    end
+    Q.defAll("the summary follows the jacket coming off (garments, every part, average, grade, worst, best)", Q.cw()._equipProtCache, Q.model())
 end)
 add(100, function()
     if not S.eq then return end
     Q.unstage()
+    S.tChange = getTimestampMs()
 end)
 add(900, function()
     if not (S.eq and LG.z0) then return end
-    local z = Q.cw()._equipProtCache
+    local w = Q.cw()
+    local z = w._equipProtCache
+    local want = LG.z0.g .. " / " .. LG.z0.avg .. "% " .. tostring(LG.z0.grade)
+    if not Q.fresh(w, S.tChange) then
+        check(false, "put back: the summary reads as it did before the run", "not built again since the clothes went back", want)
+        return
+    end
     check(z.totalGarments == LG.z0.g and z.avgBiteDef == LG.z0.avg and z.grade == LG.z0.grade,
-        "put back: the summary reads as it did before the run",
-        z.totalGarments .. " / " .. z.avgBiteDef .. "% " .. tostring(z.grade), LG.z0.g .. " / " .. LG.z0.avg .. "% " .. tostring(LG.z0.grade))
+        "put back: the summary reads as it did before the run", z.totalGarments .. " / " .. z.avgBiteDef .. "% " .. tostring(z.grade), want)
 end)
 
 -- ---- 2. THE CONTAINER BUTTONS ------------------------------------------------------------------------------------
@@ -921,11 +1177,13 @@ add(500, function()
         check(false, "containers: both windows open and a free tile beside you for the shelf", Q.sqName(S.C), "a tile")
         return
     end
-    LG.wwSel = { inv = ww._containers and ww._containers[ww._activeContainer] and ww._containers[ww._activeContainer].inventory,
-                 viewed = ww._viewedContainer, mainVis = ww._mainVisible }
-    LG.cwSel = { inv = cw._containers and cw._containers[cw._activeContainer] and cw._containers[cw._activeContainer].inventory,
-                 viewed = cw._viewedContainer }
-    if #(ww._mcSelected or {}) > 0 or #(cw._mcSelected or {}) > 0 then note("a window shows several containers side by side: its row is off there") end
+    -- (several containers side by side: the row is off there, and the run does not take that view apart)
+    if #(ww._mcSelected or {}) > 0 or #(cw._mcSelected or {}) > 0 then
+        check(false, "containers: each window shows one list, so the button rows draw (the container checks cannot run)",
+            #(cw._mcSelected or {}) .. " / " .. #(ww._mcSelected or {}) .. " extra columns", "0 / 0")
+        return
+    end
+    LG.wwSel, LG.cwSel = Q.selOf(ww), Q.selOf(cw)
     local o = Q.shelf(S.C)
     if not o then check(false, "containers: a shelf placed beside you", "none", "a shelf"); return end
     S.shelfInv = o:getContainer()
@@ -949,6 +1207,21 @@ waitFor(5000, function()
 end, "the shelf and the bag in the windows' lists")
 add(100, function()
     if not S.con then return end
+    -- the shelf holds only what the run put on it (anything else is game loot, taken away at once: it would upset
+    -- every count after this)
+    local mine, extra = {}, {}
+    for _, it in ipairs(S.conItems) do mine[it] = true end
+    local items = S.shelfInv:getItems()
+    for k = items:size() - 1, 0, -1 do
+        local it = items:get(k)
+        if not mine[it] then
+            extra[#extra + 1] = it:getType()
+            Q.mark(it)
+            pcall(function() S.shelfInv:Remove(it) end)
+        end
+    end
+    check(#extra == 0, "the new shelf holds only what was put on it (marked explored, so the World window does not fill it with loot)",
+        #extra == 0 and "only those" or (#extra .. " more, taken away: " .. table.concat(extra, ",")), "only those")
     local a = Q.selectIn(Q.ww(), S.shelfInv)
     local b = Q.selectIn(Q.cw(), S.bagInv)
     if not (a and b) then
@@ -959,12 +1232,12 @@ end)
 add(700, function()
     if not S.con then return end
     local wc, cc = Q.wc(), Q.cc()
-    check(wc._inventory == S.shelfInv and wc._ccEntry ~= nil, "the World list shows the shelf with its button row", tostring(wc._inventory == S.shelfInv), "true")
-    check(cc._inventory == S.bagInv and cc._ccEntry ~= nil, "the Character list shows the bag with its button row", tostring(cc._inventory == S.bagInv), "true")
+    check(wc._inventory == S.shelfInv and wc._ccEntry ~= nil, "presence: the World list shows the shelf with its button row", tostring(wc._inventory == S.shelfInv), "true")
+    check(cc._inventory == S.bagInv and cc._ccEntry ~= nil, "presence: the Character list shows the bag with its button row", tostring(cc._inventory == S.bagInv), "true")
     local wk, ck = Q.keys(wc), Q.keys(cc)
     check(Q.hit(wc, "take") ~= nil and Q.hit(wc, "same") ~= nil and Q.hit(wc, "floor") ~= nil,
-        "the World row has Take all, Same type and To floor", wk, "take,same,floor,...")
-    check(Q.hit(cc, "xfer") ~= nil and Q.hit(cc, "same") ~= nil, "your row has Transfer all and Same type", ck, "xfer,same,...")
+        "presence: the World row has Take all, Same type and To floor", wk, "take,same,floor,...")
+    check(Q.hit(cc, "xfer") ~= nil and Q.hit(cc, "same") ~= nil, "presence: your row has Transfer all and Same type", ck, "xfer,same,...")
     say("start: " .. Q.counts())
     shot("2_rows")
     local n, kinds, where = Q.marksOf(wc, "same")
@@ -987,14 +1260,18 @@ add(400, function()
     local h = Q.hit(cc, "same")
     check(h ~= nil and h.spec ~= nil and h.spec.enabled == false, "your Same type is off with no kind both sides hold",
         h and h.spec and tostring(h.spec.enabled), "false")
+    -- a screw into the bag, then at once (the row is built again only on its next frame) a press on the button still
+    -- drawn off: it must do nothing, though there is now a screw it could move
+    local it = Q.give("Base.Screws", S.bagInv)
+    if it then S.conItems[#S.conItems + 1] = it end
     S.snap = Q.counts()
-    Q.press(cc, "same")
+    S.offPress, S.offWhy = Q.press(cc, "same")
 end)
 add(600, function()
     if not S.con then return end
-    check(Q.counts() == S.snap, "a press on the off button moves nothing", Q.counts(), S.snap)
-    local it = Q.give("Base.Screws", S.bagInv)
-    if it then S.conItems[#S.conItems + 1] = it end
+    check(S.offPress == true and Q.counts() == S.snap,
+        "a press on your Same type while it is drawn off does nothing (the screw just put in the bag stays there)",
+        S.offPress and Q.counts() or ("no press: " .. tostring(S.offWhy)), S.snap)
 end)
 add(700, function()
     if not S.con then return end
@@ -1038,13 +1315,17 @@ add(300, function()
     if fi then Q.selectIn(w, nil, fi) end
 end)
 add(700, function()
-    if not S.con then return end
-    local wc = Q.wc()
-    local onFloor = wc._inventory and wc._inventory:getType() == "floor"
-    check(onFloor and Q.hit(wc, "floor") == nil and Q.hit(wc, "take") ~= nil, "the floor's own row has Take all and no To floor",
-        tostring(onFloor) .. " " .. Q.keys(wc), "true, no floor")
-    local n = Q.restoreContainers()
-    say("containers put back: shelves removed " .. n)
+    if S.con then
+        local wc = Q.wc()
+        local onFloor = wc._inventory and wc._inventory:getType() == "floor"
+        check(onFloor and Q.hit(wc, "floor") == nil and Q.hit(wc, "take") ~= nil, "presence: the floor's own row has Take all, and no To floor",
+            tostring(onFloor) .. " " .. Q.keys(wc), "true, no floor")
+    end
+    -- (put back whatever got this far: the shelf, the bag, the things, both windows' containers)
+    if LG.wwSel or #LG.objs > 0 or S.bag then
+        local n = Q.restoreContainers()
+        say("containers put back: shelves removed " .. n)
+    end
     S.con = false
 end)
 
@@ -1055,7 +1336,7 @@ add(300, function()
     if not check(S.piece ~= nil, "furniture: a one-tile piece with four faces the game moves without tools", "none", "a sprite") then return end
     say("furniture piece " .. S.piece.name .. " (" .. tostring(S.piece.mp.name) .. ", " .. tostring(S.piece.mp.weight) .. " kg, faces N "
         .. S.piece.faces.N .. " E " .. S.piece.faces.E .. " S " .. S.piece.faces.S .. " W " .. S.piece.faces.W
-        .. (S.piece.scrap and ", can be taken apart" or "") .. ")")
+        .. (S.piece.scrap and ", can be taken apart" or "") .. (S.piece.tools and " with tools" or "") .. ")")
     S.famBase = {}
     for _, it in ipairs(Q.family()) do S.famBase[it] = true end
     local it = S.piece.mp:instanceItem(S.piece.name)
@@ -1070,6 +1351,14 @@ add(300, function()
     S.pieceItem = it
     LG.consT = Q.haveCons(S.T)
     LG.modes = { cursor = ISMoveableCursor.mode[pn], tab = FT.state.mode }
+    local old = Q.cur()
+    if old then
+        note("a furniture cursor was up before the run: it is ended first")
+        pcall(function() old:exitCursor() end)
+    end
+    -- the tab's mode staged apart from the game's last one: the cursor must start in the tab's (put back at the end)
+    ISMoveableCursor.mode[pn] = "pickup"
+    FT.state.mode = "rotate"
     S.fur = true
     WWm.openTab(pn, "furniture")
 end)
@@ -1079,7 +1368,9 @@ add(300, function()
     S.park = true
     check(WWm.isTabShowing("furniture") and Q.cur() ~= nil and FT.state.active == true, "opening the Furniture tab starts the game's furniture cursor",
         tostring(WWm.isTabShowing("furniture")) .. "/" .. tostring(Q.cur() ~= nil) .. "/" .. tostring(FT.state.active), "true/true/true")
-    check(ISMoveableCursor.mode[pn] == FT.state.mode, "the tab's mode is the cursor's", ISMoveableCursor.mode[pn], FT.state.mode)
+    check(ISMoveableCursor.mode[pn] == "rotate" and FT.state.mode == "rotate",
+        "the cursor starts in the tab's own mode (Rotate here), not the game's last one (Pick up)",
+        tostring(ISMoveableCursor.mode[pn]) .. "/" .. tostring(FT.state.mode), "rotate/rotate")
     Q.hold(S.T)
 end)
 add(300, function()
@@ -1098,10 +1389,13 @@ add(400, function()
     local k = nil
     for n, e in ipairs(type(list) == "table" and list or {}) do if e.object == S.pieceItem then k = n end end
     local rows = Q.zoneCount("fur:inv:")
-    check(k ~= nil and Q.zone("fur:inv:" .. tostring(k)) ~= nil, "Place: YOUR FURNITURE has a row for the carried piece", k and ("row " .. k) or "no row", "a row")
+    check(k ~= nil and Q.zone("fur:inv:" .. tostring(k)) ~= nil, "presence: Place: YOUR FURNITURE has a row for the carried piece", k and ("row " .. k) or "no row", "a row")
     if #list <= 3 then
-        check(rows == #list, "Place: YOUR FURNITURE shows every piece the game can place from your inventory", rows, #list)
+        check(rows == #list, "presence: Place: YOUR FURNITURE shows every piece the game can place from your inventory", rows, #list)
     end
+    -- (the cursor's pick cleared first, as a mode change leaves it: with one piece carried it is already that row's,
+    -- so only the press can set it again before the next frame)
+    if cur then cur.objectIndex = -1 end
     if k then Q.clickZone("fur:inv:" .. k) end
     check(cur ~= nil and k ~= nil and cur.objectIndex == k, "Place: the row's button puts the piece on the cursor", cur and cur.objectIndex, k)
     Q.hold(S.T)
@@ -1110,7 +1404,7 @@ add(400, function()
     if not S.fur then return end
     local cur = Q.cur()
     if not cur then check(false, "Place: the cursor is still up", "nil", "a cursor"); return end
-    check(Q.faceZones() == "N,E,S,W", "Place: FACING offers the piece's four faces", Q.faceZones(), "N,E,S,W")
+    check(Q.faceZones() == "N,E,S,W", "presence: Place: FACING offers the piece's four faces", Q.faceZones(), "N,E,S,W")
     Q.hold(S.T)
     Q.clickZone("fur:face:E")
     check(cur.cursorFacing == 4, "Place: the E button turns the piece on the cursor east", cur.cursorFacing, 4)
@@ -1147,7 +1441,7 @@ add(400, function()
     local c = FT.cap[pn]
     check(c ~= nil and c.mp ~= nil and c.mp.spriteName == S.piece.faces.E and c.sq == S.T, "Rotate: the tab reads the placed piece (facing east)",
         c and c.mp and c.mp.spriteName, S.piece.faces.E)
-    check(Q.faceZones() == "N,E,S,W", "Rotate: FACING offers the piece's four faces", Q.faceZones(), "N,E,S,W")
+    check(Q.faceZones() == "N,E,S,W", "presence: Rotate: FACING offers the piece's four faces", Q.faceZones(), "N,E,S,W")
     Q.clickZone("fur:face:S")
     local pk = FT.pick
     check(pk ~= nil and pk.sq == S.T and pk.idx == 3 and cur.objectIndex == 3, "Rotate: the S button picks the south face for this tile",
@@ -1170,29 +1464,38 @@ end)
 -- Disassemble (read only: nothing is taken apart)
 Q.modeStep("scrap")
 add(100, function()
-    if not S.fur then return end
-    local t1 = Q.scrapTools()
-    S.scrapTools = S.piece.scrap and S.piece.mp.scrapUseTool and #t1 > 0
-    if S.scrapTools then
-        S.toolsClean = Q.setAsideTools()
-        if not S.toolsClean then note("a scrap tool is on your belt or worn: the no-tool check is left out") end
-    end
+    if not (S.fur and S.piece.scrap) then return end
+    local t1, t2 = Q.scrapTools()
+    S.scrapTools = S.piece.tools and (#t1 > 0 or #t2 > 0)
+    -- (the game's furniture cheats let anything come apart: off for these checks, back at the end)
+    LG.movCheat = p:isMovablesCheat()
+    LG.defCheat = ISMoveableDefinitions.cheat
+    if LG.movCheat then p:setMovablesCheat(false) end
+    if LG.defCheat then ISMoveableDefinitions.cheat = false end
+    if S.scrapTools then S.toolsClean = Q.setAsideTools() end
 end)
 add(400, function()
     if not S.fur then return end
-    local c = Q.reread(S.T)
     if not S.piece.scrap then
-        note("the piece's material has no scrap definition: Disassemble is left out")
+        check(false, "Disassemble: the piece can be taken apart (a scrap definition for its material), so the Disassemble checks can run",
+            tostring(S.piece.mp.material), "a scrap material")
         return
     end
+    local c = Q.reread(S.T)
     local _, onTile = Q.pieceOn(S.T)
     check(c ~= nil and c.mp ~= nil and onTile ~= nil and c.mp.spriteName == onTile and c.sq == S.T, "Disassemble: the tab reads the piece on the tile",
         c and c.mp and c.mp.spriteName, onTile)
-    if S.scrapTools and S.toolsClean then
+    if not S.scrapTools then
+        check(false, "Disassemble: taking the piece apart needs tools, so the without-tools checks can run", "no tool needed", "tools")
+    elseif not S.toolsClean then
+        check(false, "Disassemble: every scrap tool set aside, so the without-tools checks can run", "one is worn and stays", "all set aside")
+    else
         check(c ~= nil and c.canCreate == false, "Disassemble: with its tools set aside the tab says it cannot be taken apart",
             c and tostring(c.canCreate), "false")
         if Q.colorsRead() then
             check(Q.toolState(c) == "bad", "Disassemble: the tool line reads red without the tools", Q.toolState(c), "bad")
+        else
+            check(false, "Disassemble: the game's good / bad colors read as green / red here, so the tool-line checks can run", "another palette", "green / red")
         end
     end
     if S.scrapTools then say("tools given: " .. Q.giveTools()) end
@@ -1207,27 +1510,69 @@ add(400, function()
     end
 end)
 
--- Repair (read only)
+-- Repair (read only): a damaged wooden piece beside you, then the furniture's tile, where the game repairs nothing
+add(100, function()
+    if not S.fur then return end
+    S.rep = Q.repairTarget(S.R)
+    if S.rep then say("repair piece " .. S.rep.name .. " on " .. Q.sqName(S.R) .. " at half health") end
+end)
 Q.modeStep("repair")
 add(400, function()
     if not S.fur then return end
     local cur = Q.cur()
-    local c = Q.reread(S.T)
-    local list = cur and cur.objectListCache
-    local n = type(list) == "table" and #list or 0
-    S.repairN = n
-    check((n > 0) == (c ~= nil and c.mp ~= nil), "Repair: the tab shows a target exactly when the game has something to repair on the tile",
-        tostring(c and c.mp ~= nil) .. " with " .. n .. " repairable", tostring(n > 0))
-    if n > 0 and c and c.mp then
-        local e = list[cur.objectIndex] or list[1]
-        check(e and e.moveProps and c.mp.spriteName == e.moveProps.spriteName, "Repair: the target is the game's pick on the tile",
-            c.mp.spriteName, e and e.moveProps and e.moveProps.spriteName)
+    if not cur then check(false, "Repair: the cursor is still up", "nil", "a cursor"); return end
+    if not S.rep then
+        check(false, "Repair: a damaged wooden piece beside you that the game's repair list takes, so the Repair checks can run",
+            S.R and "none of the pieces tried is listed" or "no free tile", "one")
+        return
     end
+    local c = Q.reread(S.R)
+    Q.scrollDown()
+    local list = cur.objectListCache
+    local n = type(list) == "table" and #list or 0
+    local k = nil
+    for q, e in ipairs(n > 0 and list or {}) do if e.object == S.rep.obj then k = q end end
+    S.repN, S.repK = n, k
+    local e = n > 0 and list[cur.objectIndex] or nil
+    local want = e and e.moveProps and e.moveProps.spriteName
+    check(k ~= nil and c ~= nil and c.mp ~= nil and c.sq == S.R and c.mode == "repair" and want ~= nil and c.mp.spriteName == want,
+        "Repair: on a tile with something to repair the tab shows the game's target there",
+        tostring(c and c.mp and c.mp.spriteName) .. " on " .. Q.sqName(c and c.sq) .. " (" .. n .. " listed)", tostring(want) .. " on " .. Q.sqName(S.R))
+end)
+add(300, function()
+    if not (S.fur and S.rep) then return end
+    local cur = Q.cur()
+    if not cur then return end
+    check((S.repN or 0) > 0 and Q.zoneCount("fur:obj:") == S.repN, "presence: Repair: ON THIS TILE has a row for everything the game would repair there",
+        Q.zoneCount("fur:obj:"), S.repN)
+    local k = S.repK
+    if k then Q.clickZone("fur:obj:" .. k) end
+    local pk = FT.pick
+    check(k ~= nil and cur.objectIndex == k and pk ~= nil and pk.sq == S.R and pk.mode == "repair" and pk.idx == k,
+        "Repair: Target picks the piece on the cursor for this tile",
+        tostring(cur.objectIndex) .. " on " .. Q.sqName(pk and pk.sq) .. " in " .. tostring(pk and pk.mode), tostring(k) .. " on " .. Q.sqName(S.R) .. " in repair")
+end)
+add(400, function()
+    if not S.fur then return end
+    local cur = Q.cur()
+    if not cur then check(false, "Repair: the cursor is still up", "nil", "a cursor"); return end
+    local c = Q.reread(S.T)
+    local list = cur.objectListCache
+    local n = type(list) == "table" and #list or 0
+    S.repN2 = n
+    if n > 0 then
+        check(false, "Repair: the furniture's tile holds nothing the game would repair (a plain object), so the empty checks can run", n .. " listed", "none")
+        return
+    end
+    check(c ~= nil and c.sq == S.T and c.mp == nil, "Repair: on a tile with nothing to repair (after one with a target) the tab shows no target",
+        tostring(c and c.mp and c.mp.spriteName or "none") .. " on " .. Q.sqName(c and c.sq), "none on " .. Q.sqName(S.T))
 end)
 add(300, function()
     if not S.fur then return end
-    check(Q.zoneCount("fur:obj:") == (S.repairN or 0), "Repair: ON THIS TILE lists what the game would repair there",
-        Q.zoneCount("fur:obj:"), S.repairN or 0)
+    if S.repN2 == 0 then
+        check(Q.zoneCount("fur:obj:") == 0, "Repair: ON THIS TILE empties on a tile with nothing to repair", Q.zoneCount("fur:obj:"), 0)
+    end
+    Q.removeRepairTarget()
 end)
 
 -- Pick up
@@ -1238,6 +1583,7 @@ add(400, function()
     if not cur then check(false, "Pick up: the cursor is still up", "nil", "a cursor"); return end
     Q.hold(S.T)
     cur:isValid(S.T)
+    Q.scrollDown()
     local list = cur.objectListCache
     local n = type(list) == "table" and #list or 0
     local obj = Q.pieceOn(S.T)
@@ -1250,7 +1596,7 @@ add(300, function()
     if not S.fur then return end
     local cur = Q.cur()
     if not cur then return end
-    check((S.pickN or 0) > 0 and Q.zoneCount("fur:obj:") == S.pickN, "Pick up: ON THIS TILE has a row for everything the game can pick up there",
+    check((S.pickN or 0) > 0 and Q.zoneCount("fur:obj:") == S.pickN, "presence: Pick up: ON THIS TILE has a row for everything the game can pick up there",
         Q.zoneCount("fur:obj:"), S.pickN)
     local k = S.pickK
     if k then Q.clickZone("fur:obj:" .. k) end
@@ -1318,4 +1664,10 @@ drive = function()
     local ok, e = pcall(st.fn)
     if not ok then Q.fatal("step " .. (i - 1) .. ": " .. tostring(e)) end
 end
+-- (a later run of this script stops this one and puts its changes back first)
+ZEDQA_COV_EF = { abort = function(why)
+    pcall(function() Events.OnTick.Remove(drive) end)
+    i = #plan + 1
+    Q.restore(why)
+end }
 Events.OnTick.Add(drive)
