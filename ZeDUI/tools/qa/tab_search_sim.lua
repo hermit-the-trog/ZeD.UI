@@ -15,6 +15,12 @@
 --     both taking the window's focus into the tab from wherever it was (the tab strip); the Skills tab's Up and Down order at its top: Up from the
 --     top skill rows lands on the Transcribe key (a mod's key line) before the heading, Up from the key on the
 --     Find field, Down from the field or the disclosure on the key; with no key everything moves as before.
+--   * the Nov 12 review's findings (section 8, each check failed before its fix): the field lets go of the game's
+--     keyboard after B, on Enter, hidden and on close; the help line's A Type / X Clear; the doll's outfit read again
+--     while nothing matches; a belt hook matched in neither view; the Equipped group headers' height and the belt's
+--     one heading; Training materials in name order with room for the names; a row tag measured as drawn; an extra's
+--     height asked once a frame; no new tables or strings each frame while searching; the empty result's and the
+--     Worst zone's words.
 -- What it can't show is how it looks and the pad in the game: ZeDUI/tools/qa/zedqa_tab_search.lua.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/tab_search_sim.lua
 -- It prints FAIL lines and a last line "tab_search_sim: N checks, M failed", and exits 1 if any failed.
@@ -54,7 +60,7 @@ local TEXT = {
     UI_ZeD_Find_SkillsLooks = "The Find field looks at skills, their groups and the training books.",
     UI_ZeD_Find_EquipNone = 'Nothing on the Equipment tab matches "%1".',
     UI_ZeD_Find_EquipLooks = "The Find field looks at worn items, slots and the body parts they cover.",
-    UI_ZeD_Find_Clear = "Clear", UI_ZeD_Find_Covers = "covers %1",
+    UI_ZeD_Find_Clear = "Clear", UI_ZeD_Find_Covers = "covers %1", UI_ZeD_Inv_PromptType = "Type",
 }
 local function tr(k, ...)
     local s = TEXT[k] or k
@@ -250,6 +256,7 @@ for _, s in ipairs({ "Blacksmithing", "Carpentry", "Cooking", "Mechanics", "Tail
     TRAINING[#TRAINING + 1] = { label = s, disp = s, items = { { title = "Vol", volume = "I", status = "missing" } } }
 end
 local SKILLS_DATA = skillsData()
+local realTraining = ZeD.SkillsTab.gatherTrainingData   -- (section 8 runs the real one over the game's books)
 ZeD.SkillsTab.gatherData = function() return SKILLS_DATA end
 ZeD.SkillsTab.gatherTrainingData = function() return TRAINING end
 
@@ -750,6 +757,303 @@ local fresh = newWin()
 check("a new window: both texts empty (the search goes with the window)", F.text(fresh, "skills") == "" and F.text(fresh, "equip") == "")
 drawSkills(fresh)
 check("a new window: nothing dimmed", dims() == 0)
+
+-- ===========================================================================
+-- 8. THE NOV 12 REVIEW'S FINDINGS (each check below failed on the code before its fix)
+-- ===========================================================================
+
+-- 8a. The field lets go of the game's keyboard: after B on the pad keyboard, on Enter, hidden (another tab, an item
+-- card over it) and when the window closes. A text box that keeps the keyboard takes every key while hidden or gone
+-- (WASD, the hotkeys), and the game takes no interact press meanwhile: the pad's A opens no door.
+do
+    local w = newWin()
+    drawSkills(w); F.onWindowFrame(w, 480)
+    local f = w._findFields.skills
+    JoypadState.players[1] = nil
+    local osk = nil
+    OnScreenKeyboard = { Show = function(_, e) osk = { textEntryBox = e }; return osk end }
+    local els = {}
+    F.stops(w, "skills", els)
+    els[1].onActivate(w, els[1])
+    check("A on the field: the keyboard will say when it is cancelled", osk ~= nil and type(osk.onCancel) == "function")
+    f.input:focus()   -- (the keyboard's hide gives the field the caret back, then calls onCancel)
+    if osk and osk.onCancel then osk.onCancel(osk) end
+    check("B on the pad keyboard: the field lets go of the game's keyboard", f.input:isFocused() == false)
+    OnScreenKeyboard = nil
+    f.input:focus()   -- (a click in the field)
+    check("Enter: the field has its submit", type(f.onSubmit) == "function")
+    if f.onSubmit then f.onSubmit(f, f:getText()) end
+    check("Enter: the field lets go of the game's keyboard", f.input:isFocused() == false)
+    f.input:focus()
+    w._activeTab = "equip"
+    F.onWindowFrame(w, 480)
+    check("another tab: the hidden field lets go of the game's keyboard", f.visible == false and f.input:isFocused() == false)
+    f.input:focus()   -- (the pad keyboard's own hide gives a hidden field the caret back)
+    F.onWindowFrame(w, 480)
+    check("a hidden field given the caret back lets go of it the next frame", f.input:isFocused() == false)
+    w._activeTab = "skills"
+    drawSkills(w); F.onWindowFrame(w, 480); drawSkills(w)
+    f.input:focus()
+    F.onWindowFrame(w, 480); drawSkills(w)
+    check("a field that shows keeps its caret (typing with the mouse)", f.visible == true and f.input:isFocused() == true)
+    f:setVisible(false)   -- (an item card over the field: the window hides it after the window's frame)
+    F.onWindowFrame(w, 480)
+    check("a field an item card hid lets go of the game's keyboard the next frame", f.input:isFocused() == false)
+    -- the window closing with the pad keyboard on the Skills field: it is put away (its hide gives the caret back),
+    -- then both fields let go
+    w._activeTab = "equip"; drawEquip(w); F.onWindowFrame(w, 480)
+    local ef = w._findFields.equip
+    ef.input:focus()
+    local hidden = false
+    ZeD.Keyboard = { instance = { textEntryBox = f.input }, hide = function() hidden = true; f.input:focus() end }
+    F.onClose(w)
+    check("closing the window: the pad keyboard on its field put away", hidden)
+    check("closing the window: both fields let go of the game's keyboard", not f.input:isFocused() and not ef.input:isFocused())
+    ZeD.Keyboard = nil
+    f.input:focus()
+    F.onClose(w)
+    check("closing the window with no keyboard up: the field lets go too", f.input:isFocused() == false)
+end
+
+-- 8b. The help line on the field and on Clear names what A and X do (it read "A Choose  X Menu", and X clears)
+do
+    local w = newWin()
+    drawSkills(w); F.onWindowFrame(w, 480); drawSkills(w)
+    local function px(el) if type(el.promptX) == "function" then return el.promptX(w, el) end return el.promptX end
+    local els = {}
+    F.stops(w, "skills", els)
+    check("the field's help line: A Type (as the Inventory's Filter field)", els[1].promptA == "Type", tostring(els[1].promptA))
+    check("the field's help line with nothing typed: no X", px(els[1]) == false, tostring(px(els[1])))
+    typeInto(w._findFields.skills, "piloting")
+    drawSkills(w); F.onWindowFrame(w, 480); drawSkills(w)
+    els = {}
+    F.stops(w, "skills", els)
+    check("the field's help line with text: X Clear", px(els[1]) == "Clear", tostring(px(els[1])))
+    check("the empty result's Clear: A Clear, X not named a second time", els[2] ~= nil and els[2].promptA == "Clear"
+        and els[2].promptX == false)
+end
+
+-- 8c. The Doll view while nothing matches: the doll does not draw, so its own timer does not gather the outfit again;
+-- the tab does. A fedora put on while "fedora" matched nothing is found, and an outfit changed in the List view is
+-- read again at once back in the Doll view.
+do
+    VIEW = 2
+    local w = newWin()
+    w._activeTab = "equip"
+    local FEDORA = item("Fedora", { "Head" })
+    local cap = table.remove(WORN, 1)   -- (no hat on)
+    F.setText(w, "equip", "fedora")
+    drawEquip(w); drawEquip(w)
+    check("doll 'fedora' with no hat on: the empty result", drew('Nothing on the Equipment tab matches "fedora".') ~= nil)
+    table.insert(WORN, 1, { "Base:Hat", FEDORA })   -- (a fedora put on)
+    NOW = NOW + 300
+    drawEquip(w)
+    local r = w._findEquip and w._findEquip.res
+    check("doll: a fedora put on while 'fedora' matched nothing is found", r ~= nil and r.shown == 1
+        and drew('matches "fedora"') == nil, r and r.shown)
+    -- a new window, the fedora on and found in the Doll view; taken off while the List view shows
+    local w2 = newWin()
+    w2._activeTab = "equip"
+    F.setText(w2, "equip", "fedora")
+    WORN[1] = { "Base:Hat", FEDORA }
+    drawEquip(w2)
+    local r1 = w2._findEquip and w2._findEquip.res
+    VIEW = 1
+    drawEquip(w2)
+    WORN[1] = cap   -- (the fedora off, the cap back on)
+    NOW = NOW + 300
+    drawEquip(w2)
+    VIEW = 2
+    drawEquip(w2)
+    local r2 = w2._findEquip and w2._findEquip.res
+    check("doll after the outfit changed in the List view: the old outfit is not matched", r1 ~= nil and r1.shown == 1
+        and r2 ~= nil and r2.shown == 0 and drew('Nothing on the Equipment tab matches "fedora".') ~= nil, r2 and r2.shown)
+    VIEW = 1
+end
+
+-- 8d. A tool on the belt's hook: the List and Doll views agree (the hooks are not worn, in either view)
+do
+    local HAMMER = setmetatable({ _class = "HandWeapon", getDisplayName = function() return "Hammer" end,
+        getCondition = function() return 8 end, getConditionMax = function() return 10 end }, NOT_CLOTHING)
+    ZeD.Belt = { slots = function() return { { i = 1, key = 1, item = HAMMER, slot = { slotType = "SmallBeltLeft" } } } end,
+                 provider = function() return nil end, slotName = function() return "Belt left" end,
+                 cond = function() return 0.8 end }
+    local w = newWin()
+    w._activeTab = "equip"
+    F.setText(w, "equip", "hammer")
+    VIEW = 1
+    drawEquip(w)
+    local listShown = w._findEquip and w._findEquip.res.shown
+    VIEW = 2
+    drawEquip(w); drawEquip(w)
+    local dollShown = w._findEquip and w._findEquip.res.shown
+    check("a hammer on the belt's hook: the List and Doll views agree (a hook is not worn)", listShown == 0 and dollShown == 0,
+        tostring(listShown) .. " / " .. tostring(dollShown))
+    check("doll: the hooked hammer's box is dimmed and no stop", F.equipOff(w, "doll:belt1") == true)
+    F.setText(w, "equip", "hand")
+    drawEquip(w); drawEquip(w)
+    check("doll 'hand' with a belt: the worn and held boxes match as before", w._findEquip.res.shown == 3, w._findEquip.res.shown)
+    VIEW = 1
+    ZeD.Belt = nil
+end
+
+-- 8e. The Equipped list's group headers and the belt's heading: the words with 6u above and below (the 15u category
+-- row was half an item row, its words touching the rows around it); the belt's line one heading
+do
+    local cats = {}
+    ZeD.Molecules.drawCategoryRow = function(_, x, y, w, text, count, expanded, opts)
+        cats[#cats + 1] = { text = text, h = opts and opts.h, noArrow = opts and opts.noArrow }
+        return opts and opts.h or 15
+    end
+    VIEW = 1
+    local w = newWin()
+    w._activeTab = "equip"
+    drawEquip(w)
+    local want = 14 + 12   -- (the F1 words, 14 tall here, with 6u above and below)
+    local groups, allH, belt = 0, true, nil
+    for _, c in ipairs(cats) do
+        if c.noArrow then belt = c
+        else groups = groups + 1; if c.h ~= want then allH = false end end
+    end
+    check("the Equipped group headers: their words with 6u above and below", groups == 5 and allH,
+        groups .. " groups, the first " .. tostring(cats[1] and cats[1].h) .. " tall")
+    check("a group's stop is its header's height", w._equipGroupZones[1] ~= nil and w._equipGroupZones[1].h == want)
+    check("the belt's line is one heading, in the group headers' look and height", belt ~= nil
+        and belt.text == "UI_ZeD_Equip_BeltHeadLeft" and belt.h == want)
+    check("the belt's line has no second head at its right", drew("UI_ZeD_Equip_BeltHeadRight") == nil)
+    ZeD.Molecules.drawCategoryRow = nil
+end
+
+-- 8f. Training materials: in the order of the names shown (the ids are not the names), and a name takes the room the
+-- book squares leave it ("Blacksmith..." was cut at a third of the column with room to spare)
+do
+    local IDS = { Blacksmith = "Blacksmithing", Farming = "Agriculture", Electricity = "Electrical",
+                  Husbandry = "Animal Care", FirstAid = "First Aid", Glassmaking = "Glassmaking" }
+    SkillBook = {}
+    for id in pairs(IDS) do SkillBook[id] = { perk = id } end
+    PerkFactory = { getPerk = function(p) return { getName = function() return IDS[p] end } end }
+    ItemType = { LITERATURE = "literature" }
+    getScriptManager = function()
+        return { getAllItems = function()
+            local t = {}
+            for id in pairs(IDS) do
+                t[#t + 1] = { isItemType = function(_, k) return k == "literature" end, getSkillTrained = function() return id end,
+                              getDisplayName = function() return id .. " for Beginners" end,
+                              getFullName = function() return "Base.Book" .. id end, getNumberOfPages = function() return 100 end }
+            end
+            return list(t)
+        end }
+    end
+    local reader = { getInventory = function() return { getItems = function() return list({}) end } end,
+                     getAlreadyReadPages = function() return 0 end,
+                     getAlreadyReadBook = function() return { contains = function() return false end } end }
+    local rows = realTraining(reader)
+    local shown = {}
+    for i, r in ipairs(rows) do shown[i] = r.disp end
+    check("Training materials in the order of the names they show", table.concat(shown, ", ")
+        == "Agriculture, Animal Care, Blacksmithing, Electrical, First Aid, Glassmaking", table.concat(shown, ", "))
+    SkillBook, PerkFactory, ItemType, getScriptManager = nil, nil, nil, nil
+    local w = newWin()
+    drawSkills(w)
+    local cut = nil
+    for _, t in ipairs(D.texts) do if string.find(t.s, "...", 1, true) then cut = t.s end end
+    check("Training materials: a name with room to spare is drawn whole", cut == nil, cut)
+end
+
+-- 8g. A skill row's tag is the status square and its word (ZeD.Atoms.drawTag): measured so, the tag ends a small gap
+-- short of the bar (the old box's side padding and square were still measured: a 10u hole)
+do
+    local tags = {}
+    ZeD.Molecules.drawTag = function(_, x, y, text) tags[#tags + 1] = { x = x, text = text } end
+    ZeD.Atoms.tagW = function(text, marked) return #tostring(text) * 7 + (marked and 10 or 0) end
+    ZeD.SkillsTab._drawRowTags(panel, PLAYER, { name = "Axe", level = 3, boost = 3, xpProgress = 0 }, 400, 0, 20, 10, 30)
+    local t = tags[1]
+    local right = t and (t.x + ZeD.Atoms.tagW(t.text, true)) or 0
+    check("the boost tag ends a small gap short of the bar", right == 400 - 2 - T.sp.xs, right)
+    ZeD.Molecules.drawTag, ZeD.Atoms.tagW = nil, nil
+end
+
+-- 8h. An extra's block at the top of the Skills tab: its height asked once a frame (the draw takes it from the
+-- measure; Skill Recovery Journal's height walks every bag for the journal)
+do
+    local asked = 0
+    ZeD.SkillsTab.addExtras("SimHead", { headHeight = function() asked = asked + 1; return 30 end, drawHead = noop })
+    drawSkills(newWin())
+    check("an extra's block: its height asked once a frame", asked == 1, asked)
+    for i, e in ipairs(ZeD.SkillsTab.extras) do
+        if e.id == "SimHead" then table.remove(ZeD.SkillsTab.extras, i); break end
+    end
+end
+
+-- 8i. No new tables or strings each frame while a search is up: the field's clear box, the typed text made ready to
+-- match, the underline's cut and measures, the covers line
+do
+    ZeD_SearchField.render = noop
+    ZeD_SearchField.drawRect, ZeD_SearchField.drawRectBorder, ZeD_SearchField.drawText = noop, noop, noop
+    ZeD_SearchField.getMouseX = function() return -1 end
+    ZeD_SearchField.getMouseY = function() return -1 end
+    local w = newWin()
+    drawSkills(w); F.onWindowFrame(w, 480)
+    local f = w._findFields.skills
+    typeInto(f, "bla")
+    f:render()
+    local r1 = f._clearR
+    f:render()
+    check("the field's clear box: one table, refilled each frame", r1 ~= nil and f._clearR == r1)
+    typeInto(f, ""); f:render()
+    check("the field's clear box: none while the field is empty", f._clearR == nil)
+    typeInto(f, "bla")
+    local realNorm, norms = F.norm, 0
+    F.norm = function(s) norms = norms + 1; return realNorm(s) end
+    drawSkills(w); drawSkills(w)
+    F.norm = realNorm
+    check("the typed text is made ready to match when it is typed, not each frame", norms == 0, norms)
+    local realSub, subs = string.sub, 0
+    string.sub = function(...) subs = subs + 1; return realSub(...) end
+    drawSkills(w); drawSkills(w)
+    string.sub = realSub
+    check("the underline's cut and measures are kept (no string cut each frame)", subs == 0, subs)
+    check("the matched rows are still underlined", underlines() == 3, underlines())
+    local ew2 = newWin()
+    ew2._activeTab = "equip"
+    VIEW = 1
+    F.setText(ew2, "equip", "foot")
+    drawEquip(ew2)
+    local realConcat, joins = table.concat, 0
+    table.concat = function(...) joins = joins + 1; return realConcat(...) end
+    drawEquip(ew2); drawEquip(ew2)
+    table.concat = realConcat
+    check("the covers line is kept with the matches (not joined each frame)", joins == 0, joins)
+    check("the covers line is still drawn", drewCount("covers ") == 2 and drew("covers Left Foot, Right Foot") ~= nil)
+end
+
+-- 8j. The words (the real English): the Skills empty result does not promise the books (titles are not searched),
+-- and the Worst zone of a part no garment protects says so ("uncovered" read wrong with a baseball cap on: a cap
+-- covers no body part in the game's protection, Clothing.getCoveredParts gives none for it)
+do
+    local fh = io.open(ROOT .. "42/media/lua/shared/Translate/EN/UI.json", "rb")
+    local en = fh and fh:read("*a") or ""
+    if fh then fh:close() end
+    local function enText(key) return string.match(en, '"' .. key .. '": "(.-)",?\r?\n') end
+    local looks = enText("UI_ZeD_Find_SkillsLooks") or ""
+    local looksAt = string.match(looks, "looks at ([^;.]*)") or ""
+    check("the Skills empty result does not say the field searches the books", looksAt ~= ""
+        and not string.find(looksAt, "book", 1, true), looks)
+    local bt = F.matchSkills(SKILLS_DATA.categories, { { label = "Carving", disp = "Carving",
+        items = { { title = "Beginners Carving" } } } }, F.norm("beginners"))
+    check("a book's title alone matches nothing, as the line says", bt.shown == 0 and not bt.train.Carving)
+    TEXT.UI_ZeD_Equip_ZoneUncovered = enText("UI_ZeD_Equip_ZoneUncovered")
+    local values = {}
+    ZeD.Atoms.drawBody = function(_, s) values[#values + 1] = s end
+    local w = newWin()
+    w._activeTab = "equip"
+    VIEW = 1
+    drawEquip(w)
+    ZeD.Atoms.drawBody = nil
+    local worst = nil
+    for _, s in ipairs(values) do if string.find(s, "Head", 1, true) then worst = s end end
+    check("Worst zone, a head only a cap is on: 'Head (no protection)'", worst == "Head (no protection)", worst)
+end
 
 print(string.format("tab_search_sim: %d checks, %d failed", checks, failed))
 os.exit(failed == 0 and 0 or 1)

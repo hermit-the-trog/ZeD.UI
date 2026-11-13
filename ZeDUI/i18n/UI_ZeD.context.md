@@ -33,7 +33,7 @@ Total keys: 5128.
 - [Disclose](#disclose) (3)
 - [Doll](#doll) (23)
 - [Drawer](#drawer) (2)
-- [Equip](#equip) (40)
+- [Equip](#equip) (39)
 - [ETW](#etw) (7)
 - [Farm](#farm) (50)
 - [Find](#find) (12)
@@ -1159,8 +1159,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Equip_BackBag` | `Back/bag` | Equipment tab (Character window), list view: SLOT column text on a slot row (narrow column, one short word) | 10 |
 | `UI_ZeD_Equip_BeltAlways` | `Always there` | Equipment tab (Character window), list view: under a belt slot's name when no worn item is needed for the slot | 20 |
 | `UI_ZeD_Equip_BeltFrom` | `From the %1` | Equipment tab (Character window), list view: under a belt slot's name; %1 is the worn item that gives the slot (a belt, a holster...) | 40 |
-| `UI_ZeD_Equip_BeltHeadLeft` | `The belt \| keys` | Equipment tab (Character window), list view: belt sub-header, left side (' \| ' is ZeD's separator). The keys are the hotbar keys 1-8 | 24 |
-| `UI_ZeD_Equip_BeltHeadRight` | `Slot \| what gives it` | Equipment tab (Character window), list view: belt sub-header, right side: slot name, then the worn item that provides the slot | 28 |
+| `UI_ZeD_Equip_BeltHeadLeft` | `The belt \| keys` | Equipment tab (Character window), list view: the belt's heading, one line over its rows in the group headers' look (' \| ' is ZeD's separator). The keys are the hotbar keys 1-8 | 28 |
 | `UI_ZeD_Equip_BestZone` | `Best zone` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): stat label above the most protected body part | 14 |
 | `UI_ZeD_Equip_ColBullet` | `Bul` | Equipment tab (Character window), list view: column head above the slot rows (fixed narrow column) - bullet protection | 4 |
 | `UI_ZeD_Equip_ColCond` | `Cond` | Equipment tab (Character window), list view: column head above the slot rows (fixed narrow column) - condition bar | 6 |
@@ -1192,7 +1191,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Equip_WorstZone` | `Worst zone` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): stat label above the least protected body part | 14 |
 | `UI_ZeD_Equip_Wrist` | `Wrist` | Equipment tab (Character window), list view: SLOT column text on a slot row (narrow column, one short word) | 10 |
 | `UI_ZeD_Equip_ZonePct` | `%1 (%2)` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): value under Worst/Best Zone; %1 is a body part name, %2 its bite protection as a percentage | 36 |
-| `UI_ZeD_Equip_ZoneUncovered` | `%1 (uncovered)` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): value under Worst Zone when that part has no protection; %1 is a body part name | 36 |
+| `UI_ZeD_Equip_ZoneUncovered` | `%1 (no protection)` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): value under Worst Zone when nothing worn protects that part (no garment covers it in the game's protection: a baseball cap gives the head none). Not that nothing is worn there; %1 is a body part name | 36 |
 | `UI_ZeD_Equip_BeltRowHelp` | `%1 on the belt: %2 is the button at the right` | Equipment tab, list view: help line over a belt slot row; %1 = the item's name (or Empty), %2 = the label of the row's button | - |
 
 ## ETW
@@ -1272,10 +1271,10 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Find_EquipHint` | `Find worn, slot, body part` | Equipment tab heading: the Find field's placeholder, shown while it is empty | 30 |
 | `UI_ZeD_Find_Count` | `%1 of %2` | Skills and Equipment tab headings: the count left of the Find field; %1 rows that match, %2 in all | 12 |
 | `UI_ZeD_Find_SkillsNone` | `Nothing on the Skills tab matches "%1".` | Skills tab: the line in place of the rows when nothing matches; %1 is the text typed | - |
-| `UI_ZeD_Find_SkillsLooks` | `The Find field looks at skills, their groups and the training books.` | Skills tab: the line under it, what the Find field searches | - |
+| `UI_ZeD_Find_SkillsLooks` | `The Find field looks at skills and their groups; a skill's training books show with it.` | Skills tab: the line under it, what the Find field searches (book titles are not searched: a skill's Training materials row stays when the skill does) | - |
 | `UI_ZeD_Find_EquipNone` | `Nothing on the Equipment tab matches "%1".` | Equipment tab: the line in place of the rows when nothing matches; %1 is the text typed | - |
 | `UI_ZeD_Find_EquipLooks` | `The Find field looks at worn items, slots and the body parts they cover.` | Equipment tab: the line under it, what the Find field searches | - |
-| `UI_ZeD_Find_Clear` | `Clear` | Skills and Equipment tabs: the button under the "nothing matches" lines that empties the Find field | 12 |
+| `UI_ZeD_Find_Clear` | `Clear` | Skills and Equipment tabs: the button under the "nothing matches" lines that empties the Find field; also the controller prompt on that button (A) and on the Find field (X) | 12 |
 | `UI_ZeD_Find_Covers` | `covers %1` | Equipment tab: a small line under a worn item matched by a body part; %1 is the parts it covers, comma-separated, in the game's words | - |
 | `UI_ZeD_Find_HelpSkills` | `Type part of a skill's name or its group's name: the rest dim` | Skills tab: help line over the Find field | - |
 | `UI_ZeD_Find_HelpEquip` | `Type part of a worn item's name, a slot or a body part: the rest dim` | Equipment tab: help line over the Find field | - |
@@ -5915,4 +5914,4 @@ Staff-only cards that take over the game's admin windows. Button and tag lengths
 | `UI_ZeD_Inv_FilterClearHelp` | `Clear: empties the name and the categories; the bar stays open` | Inventory Filter bar: help line over Clear | - |
 | `UI_ZeD_Inv_FilterChipHelp` | `%1: only things in it stay bright; pick several to see more` | Inventory Filter bar: help line over a category chip that is not picked. %1 the category's name (the game's word) | - |
 | `UI_ZeD_Inv_FilterChipOffHelp` | `%1: press again to unpick` | Inventory Filter bar: help line over a picked category chip. %1 the category's name | - |
-| `UI_ZeD_Inv_PromptType` | `Type` | Controller prompt on the Filter field: A opens the on-screen keyboard | 10 |
+| `UI_ZeD_Inv_PromptType` | `Type` | Controller prompt on the Filter field and on the Skills and Equipment tabs' Find fields: A opens the on-screen keyboard | 10 |
