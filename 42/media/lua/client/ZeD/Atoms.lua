@@ -464,6 +464,19 @@ function ZeD.Atoms.pctText(percent)
     return s
 end
 
+--- A load over a capacity, written the one way the mod writes it: "5.8 / 28 kg", the load to one decimal and the
+--- capacity to one decimal without a ".0" when it is whole (UI_ZeD_Char_WeightOfMax). The inventory headings, the
+--- Character window's title bar and the item card's capacity all use it. With no capacity (the floor) the load
+--- alone, as a single weight is written: "2.0 kg".
+function ZeD.Atoms.loadText(load, cap)
+    local l = string.format("%.1f", tonumber(load) or 0)
+    local cn = tonumber(cap) or 0
+    if cn <= 0 then return ZeD.tr("UI_ZeD_Inv_LoadKg", l) end
+    local c = string.format("%.1f", cn)
+    if string.sub(c, -2) == ".0" then c = string.sub(c, 1, -3) end
+    return ZeD.tr("UI_ZeD_Char_WeightOfMax", l, c)
+end
+
 --- The help line's words for a fill bar: "Condition 64%", or "64%" with no label
 function ZeD.Atoms.fillBarHelp(percent, label)
     local s = ZeD.Atoms.pctText(percent)

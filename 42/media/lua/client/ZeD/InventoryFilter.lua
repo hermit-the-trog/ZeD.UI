@@ -15,6 +15,8 @@
 -- key), and a window that starts showing other containers takes the filter the
 -- first of them saved (none saved: the filter empties). So the crate filtered
 -- for "metal" is still filtered when it is opened again, after a reload too.
+-- A container with no place of its own (the floor, a car not yet saved) keeps
+-- no filter: its key is the same wherever the player stands.
 --
 -- The matches are worked out once per change (the text, the chips, a list's
 -- model being rebuilt), never per frame: the rows only look up a table.
@@ -55,15 +57,42 @@ function IF.active(S)
     return S ~= nil and (S.ql ~= "" or S.nCats > 0)
 end
 
+-- A container key with a place of its own, so a filter saved on it means that container. The floor has none: the
+-- game has one floor container, the same object wherever the player stands, so its key is "type:floor" in every
+-- town. Nor has a car not yet saved: its part's key carries no database id yet ("veh:-1:..."). A filter kept on
+-- either opened on every floor or unsaved car and was written on to whatever showed beside it; theirs lasts while
+-- the window shows them.
+local function placed(k)
+    if type(k) ~= "string" or string.sub(k, 1, 5) == "type:" then return false end
+    if string.sub(k, 1, 4) == "veh:" then
+        local id = tonumber(string.match(k, "^veh:([^:]*):") or "")
+        return id ~= nil and id >= 0
+    end
+    return true
+end
+IF.placed = placed
+
 -- the saved filters: the character's mod data, by container key (a sim hands in a plain table as S.store)
 local function store(S)
-    if S.store then return S.store end
-    local p = S.panel and S.panel._playerObj
-    if not p and getPlayer then p = getPlayer() end
-    if not p then return nil end
-    local md = p:getModData()
-    md.ZeD_Filters = md.ZeD_Filters or {}
-    return md.ZeD_Filters
+    local st = S.store
+    if not st then
+        local p = S.panel and S.panel._playerObj
+        if not p and getPlayer then p = getPlayer() end
+        if not p then return nil end
+        local md = p:getModData()
+        md.ZeD_Filters = md.ZeD_Filters or {}
+        st = md.ZeD_Filters
+    end
+    if not S.swept then
+        -- (once per window: a save from before this kept the floor's filter, never read now; it is let go)
+        S.swept = true
+        local drop = nil
+        for k in pairs(st) do
+            if not placed(k) then drop = drop or {}; drop[#drop + 1] = k end
+        end
+        for i = 1, (drop and #drop or 0) do st[drop[i]] = nil end
+    end
+    return st
 end
 
 --- The filter as one string: the text, then each picked category, a line each (cats in key order, so the same
@@ -93,14 +122,14 @@ function IF.decode(s)
     return q, cats
 end
 
--- the filter written to (or, empty, taken off) every container the window shows
+-- the filter written to (or, empty, taken off) every container the window shows that has a place of its own
 local function save(S)
     local st = store(S)
     if not st then return end
     local v = IF.active(S) and IF.encode(S) or nil
     for i = 1, S.nKeys do
         local k = S.keys[i]
-        if k then st[k] = v end
+        if placed(k) then st[k] = v end
     end
 end
 
@@ -162,7 +191,8 @@ end
 
 --- The containers the window shows this frame, by key (keys[1..n]). When they differ from the last frame's, the
 --- window takes the filter the first of them saved, and writes it to the rest; none saved: the filter empties (an
---- open bar stays open). Returns true when the filter changed.
+--- open bar stays open). A key with no place of its own (the floor) is kept here, so a change is still seen, but
+--- never gives or takes a saved filter. Returns true when the filter changed.
 function IF.sync(S, keys, n)
     local same = S.synced and n == S.nKeys
     if same then
@@ -177,7 +207,7 @@ function IF.sync(S, keys, n)
     local saved = nil
     for i = 1, n do
         local k = keys[i]
-        if k and st and st[k] then saved = st[k]; break end
+        if st and placed(k) and st[k] then saved = st[k]; break end
     end
     local before = IF.encode(S)
     if saved then
@@ -232,6 +262,16 @@ function IF.result(S, M)
     return res
 end
 
+-- two counts that read the same: totals, and the chips in order with their keys, words, numbers and picks
+local function sameAgg(a, b)
+    if a.total ~= b.total or a.matched ~= b.matched or #a.chips ~= #b.chips then return false end
+    for i = 1, #a.chips do
+        local x, y = a.chips[i], b.chips[i]
+        if x.key ~= y.key or x.label ~= y.label or x.n ~= y.n or x.on ~= y.on then return false end
+    end
+    return true
+end
+
 --- A frame starts: no columns counted yet.
 function IF.frameStart(S) S.nFrame = 0 end
 
@@ -280,6 +320,9 @@ function IF.aggregate(S, label)
         if la ~= lb then return la < lb end
         return a.key < b.key
     end)
+    -- A column's model is built again about once a second with nothing in it changed (a new model, so new results):
+    -- a count that reads the same keeps the last table, so the bar is not laid out again for it.
+    if S.agg and sameAgg(S.agg, agg) then agg = S.agg end
     S.agg, S.aggN, S.aggGen, S.aggTr = agg, n, S.gen, ZeD._trGen
     return agg
 end
@@ -305,8 +348,19 @@ local function chipW(T, c)
     return tm:MeasureStringX(T.fontF1, c.label) + T.px(5) + tm:MeasureStringX(T.fontF1, c.nstr or tostring(c.n)) + T.px(12)
 end
 
+-- true when the stops in a differ from b's: a stop added, gone, or moved
+local function rectsMoved(a, b)
+    if #a ~= #b then return true end
+    for i = 1, #a do
+        local p, q = a[i], b[i]
+        if p.id ~= q.id or p.x ~= q.x or p.y ~= q.y or p.w ~= q.w or p.h ~= q.h then return true end
+    end
+    return false
+end
+
 --- Lays the bar out for width w at panel y (S.y): S.rects (panel coords, each { x, y, w, h, view = "fbar", key,
---- id }), S.barH, and the field's and the count's places. Kept while nothing it is made from changed.
+--- id }), S.barH, and the field's and the count's places. Kept while nothing it is made from changed. S.lgen goes
+--- up only when a stop is added, goes or moves: the windows build their controller stops again on it.
 function IF.layout(S, w, agg)
     local T = ZeD.T
     local u = T.px(10)
@@ -347,8 +401,10 @@ function IF.layout(S, w, agg)
     S.barH = bottom + padY + T.px(1) - y0
     -- (last: the bar's own ground, so a press between the controls is the bar's and starts no box)
     rects[#rects + 1] = { x = 0, y = y0, w = w, h = S.barH, view = "fbar", key = "bg", id = "view:fbar:bg" }
+    -- (the new rects are kept even when nothing moved: a chip's rect carries this count's chip, which it draws)
+    local moved = rectsMoved(rects, S.rects)
     S.rects, S.w = rects, w
-    S.lgen = S.lgen + 1
+    if moved then S.lgen = S.lgen + 1 end
 end
 
 -- the field: a ZeD search field (the game's text box inside) made once, a child of the list panel

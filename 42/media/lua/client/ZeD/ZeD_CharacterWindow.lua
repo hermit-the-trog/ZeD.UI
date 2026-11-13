@@ -538,6 +538,13 @@ local function exitMultiContainer(win, content)
     win._lastSetX = snapX
 end
 
+--- The Loot columns closed, back to the one list, as the tab strip closes them on the way to another tab. "Go to
+--- saved position" (ZeD_WindowPlaces.lua) starts with it: a place is kept without columns, and one saved on a tab
+--- would otherwise open that tab's card beside them.
+ZeD_CharacterWindow.closeColumns = function(win)
+    if #(win._mcSelected or {}) > 0 and win._mainContent then exitMultiContainer(win, win._mainContent) end
+end
+
 -- Forward-decl: mcToggleContainer's tail calls _syncRingZonesToActiveTab to
 -- refresh the per-column charMC<n> ring zones. Without hoisting, the closure
 -- captures the name as a global at creation time and the
@@ -1883,7 +1890,8 @@ end
 -- Per-frame refresh of the Loot tab's per-column charMC<n> zones. Each column
 -- is rebuilt only when it changed (_charMCColumnDirty): rebuilding every column
 -- every frame made a table, an id string and four closures per row, for
--- mouse players too. Focus is kept on the same item across a rebuild.
+-- mouse players too. Focus is kept on the same item across a rebuild, or on the
+-- same view or Filter stop (keepToggleIdx: a press on the Filter bar rebuilds it).
 local function _refreshCharMCZones(win, Focus)
     if win._activeTab ~= "loot" then
         win._lastMCSnap = nil  -- the zones are rebuilt on the way back
@@ -1895,6 +1903,7 @@ local function _refreshCharMCZones(win, Focus)
     for slot = 1, #mcSel do
         local cs = colStates and colStates[slot]
         if not cs or _charMCColumnDirty(win, slot, cs) then
+            local zoneName = "charMC" .. slot
             local newEls = _buildCharacterMCColumnFocusables(win, slot) or {}
             local preserveIdx = 1
             if #newEls > 0 and win._gpFocusedMCItem then
@@ -1905,8 +1914,9 @@ local function _refreshCharMCZones(win, Focus)
                     end
                 end
             end
-            Focus.setRingZoneElements(win, "charMC" .. slot, newEls, preserveIdx)
-            Focus.setZoneFocusable   (win, "charMC" .. slot, #newEls > 0)
+            preserveIdx = ZeD.InventoryRenderer.keepToggleIdx(win, zoneName, newEls, preserveIdx)
+            Focus.setRingZoneElements(win, zoneName, newEls, preserveIdx)
+            Focus.setZoneFocusable   (win, zoneName, #newEls > 0)
         end
     end
 end
@@ -6129,7 +6139,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- (composeCharHealth, the window's own prerender).
         local inv = self._inventory
         -- (the character's own load over their own max, never the viewed bag's weight)
-        local weight = round(self._playerObj:getInventory():getCapacityWeight(), 2)
+        local weight = self._playerObj:getInventory():getCapacityWeight()
         local maxWt = self._playerObj:getMaxWeight()
         win.titleStats = {}
 
@@ -6139,8 +6149,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
         local pinStats = ZeD.Pins.stats(self._playerObj)
         for _, st in ipairs(pinStats) do win.titleStats[#win.titleStats + 1] = st end
 
-        -- Weight (rightmost): a figure, no status mark
-        win.titleStats[#win.titleStats + 1] = { text = weight .. " / " .. maxWt, noMark = true }
+        -- Weight (rightmost): "5.8 / 28 kg", its unit kept so it never reads as bare numbers; no status mark
+        win.titleStats[#win.titleStats + 1] = { text = ZeD.Atoms.loadText(weight, maxWt), noMark = true }
 
         local mcSel = win._mcSelected or {}
         -- Count visible MC columns
@@ -6187,14 +6197,14 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 local cInv = cnt.inventory
                 local cWeight = cInv and round(cInv:getCapacityWeight(), 1) or 0
                 local cMax = cInv and round(cInv:getMaxWeight(), 1) or 0
-                -- (a mod's gate, ContainerGates.lua: only what it lets show is counted, and its words
-                -- stand for the weight; Immersive Searching's "Not searched" on a bag never searched)
-                local cItems = cInv and ZeD.ContainerGates.count(cInv, win._playerObj) or 0
+                -- (what the rows show is counted: worn and held things leave this list, and a mod's gate,
+                -- ContainerGates.lua, lets only some show; its words stand for the weight, Immersive Searching's
+                -- "Not searched" on a bag never searched)
+                local cItems = cInv and ZeD.InventoryRenderer.shownCount(self, cInv, win._playerObj) or 0
                 self._containerInfo = {
                     name    = cnt.name,
                     texture = cnt.texture,
-                    stats   = ZeD.ContainerGates.status(cInv, win._playerObj)
-                        or ZeD.tr("UI_ZeD_Char_WeightOfMax", string.format("%.1f", cWeight), string.format("%.0f", cMax)),
+                    stats   = ZeD.ContainerGates.status(cInv, win._playerObj) or ZeD.Atoms.loadText(cWeight, cMax),
                     count   = (cItems == 1) and ZeD.tr("UI_ZeD_Char_ItemsOne", cItems) or ZeD.tr("UI_ZeD_Char_ItemsMany", cItems),
                 }
                 self._inventory = cInv
@@ -6654,7 +6664,6 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- ----------------------------------------------------------------
     -- MOUSE HANDLERS — the list's clicks, selection, drags, scroll and right-click
     -- ----------------------------------------------------------------
-    local scrollW = T.sp.scrollbarW
     local countSelected        = r.countSelected
     local findIndex            = r.findIndex
     local handleDrop           = r.handleDrop
@@ -6686,22 +6695,24 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 return true
             end
         end
-        local w = self:getWidth()
 
-        -- Multi-container: column-aware scroll check
+        -- Multi-container: column-aware scroll check. Only a press on a bar as drawn is the bar's (hitY): the strip
+        -- above it, beside the heading's controls, holds the Filter's Clear and the end of its chips' lines.
         if #(win._mcSelected or {}) > 0 and self._colStates then
             for _, cs in ipairs(self._colStates) do
-                if cs.scroll and cs.scroll.visible
-                   and x >= cs.scroll.x and x < cs.scroll.x + cs.scroll.width
-                   and y >= cs.scroll.y then
-                    cs.scroll:handleMouseDown(y - cs.scroll.y)
+                local sy = cs.scroll and cs.scroll:hitY(x, y)
+                if sy then
+                    cs.scroll:handleMouseDown(sy)
                     self._activeScroll = cs.scroll
                     return true
                 end
             end
-        elseif x >= w - scrollW then
-            self._scroll:handleMouseDown(y)
-            return true
+        else
+            local sy = self._scroll:hitY(x, y)
+            if sy then
+                self._scroll:handleMouseDown(sy)
+                return true
+            end
         end
 
         local zone = self:hitZoneAt(x, y)
@@ -6995,7 +7006,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         if self._box then ZeD.BoxSelect.move(self, self:getMouseX(), self:getMouseY()); return true end
         local T = ZeD.T
         local my = self:getMouseY()
-        self._scroll:handleMouseMove(my)
+        self._scroll:handleMouseMove(my - self._scroll.y)   -- (on the bar's own y, as its press is)
 
         -- Column divider drag → update width (columns are right-aligned, so negate delta)
         if self._colDrag then

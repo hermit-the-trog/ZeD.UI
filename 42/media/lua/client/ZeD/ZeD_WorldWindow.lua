@@ -2259,6 +2259,13 @@ exitWorldMC = function(win, content)
     win:setWidth(snapW)
 end
 
+--- The Loot columns closed, back to one list, as the tab strip closes them on the way to another tab. "Go to saved
+--- position" (ZeD_WindowPlaces.lua) starts with it: a place is kept without columns, and one saved on a tab would
+--- otherwise open that tab's card beside them.
+ZeD_WorldWindow.closeColumns = function(win)
+    if #(win._mcSelected or {}) > 0 and win._mainContent then exitWorldMC(win, win._mainContent) end
+end
+
 -- Fill the `_switchWorldTabForNav` slot forward-declared above.
 -- Assigned here so it has exitWorldMC + getWorldActiveScroll in scope.
 -- Mirrors the "different tab" branch of the tab strip's mouse click
@@ -4752,16 +4759,16 @@ function ZeD_WorldWindow.toggle(playerNum)
             win._titleCount, win._statusLine = nil, nil
             if cnt then
                 local cInv = cnt.inventory
-                -- (a mod's gate, ContainerGates.lua: only what it lets show is counted, and its words
-                -- stand for the weight; Immersive Searching's "Not searched")
-                local cItems = cInv and ZeD.ContainerGates.count(cInv, win._playerObj) or 0
+                -- (what the rows show is counted, as the Character window does; a mod's gate, ContainerGates.lua,
+                -- lets only some show, and its words stand for the weight; Immersive Searching's "Not searched")
+                local cItems = cInv and ZeD.InventoryRenderer.shownCount(self, cInv, win._playerObj) or 0
                 local cWeight = cInv and round(cInv:getCapacityWeight(), 1) or 0
                 local cMax = cInv and round(cInv:getMaxWeight(), 1) or 0
 
                 self._containerInfo = {
                     name    = cnt.name,
                     texture = not cnt.isFloor and cnt.texture or nil,
-                    stats   = cnt.isFloor and "" or ZeD.ContainerGates.status(cInv, win._playerObj) or string.format("%.1f/%.0fkg", cWeight, cMax),
+                    stats   = cnt.isFloor and "" or ZeD.ContainerGates.status(cInv, win._playerObj) or ZeD.Atoms.loadText(cWeight, cMax),
                     count   = ZeD.tr(cItems == 1 and "UI_ZeD_Inv_ItemsOne" or "UI_ZeD_Inv_ItemsMany", cItems),
                 }
 
@@ -5222,6 +5229,8 @@ function ZeD_WorldWindow.toggle(playerNum)
                             end
                         end
                     end
+                    -- (a view or Filter stop keeps the focus: a press on the Filter bar rebuilds the column)
+                    preserveIdx = ZeD.InventoryRenderer.keepToggleIdx(win, zoneName, newEls, preserveIdx)
                     Focus.setRingZoneElements(win, zoneName, newEls, preserveIdx)
                     Focus.setZoneFocusable   (win, zoneName, #newEls > 0)
                 end
@@ -5470,21 +5479,23 @@ function ZeD_WorldWindow.toggle(playerNum)
                 return true
             end
         end
-        -- MC column-aware scrollbar check
+        -- MC column-aware scrollbar check. Only a press on a bar as drawn is the bar's (hitY): the strip above it,
+        -- beside the heading's controls, holds the Filter's Clear and the end of its chips' lines.
         if #(win._mcSelected or {}) > 0 and self._colStates then
             for _, cs in ipairs(self._colStates) do
-                if cs.scroll and cs.scroll.visible
-                   and x >= cs.scroll.x and x < cs.scroll.x + cs.scroll.width
-                   and y >= cs.scroll.y then
-                    cs.scroll:handleMouseDown(y - cs.scroll.y)
+                local sy = cs.scroll and cs.scroll:hitY(x, y)
+                if sy then
+                    cs.scroll:handleMouseDown(sy)
                     self._activeScroll = cs.scroll
                     return true
                 end
             end
-        elseif self._scroll.visible
-           and x >= self._scroll.x and x < self._scroll.x + self._scroll.width then
-            self._scroll:handleMouseDown(y - self._scroll.y)
-            return true
+        else
+            local sy = self._scroll:hitY(x, y)
+            if sy then
+                self._scroll:handleMouseDown(sy)
+                return true
+            end
         end
 
         local zone = self:hitZoneAt(x, y)
@@ -5807,7 +5818,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         if self._box then ZeD.BoxSelect.move(self, self:getMouseX(), self:getMouseY()); return true end
         ISPanel.onMouseMove(self, dx, dy)
         local T = ZeD.T
-        self._scroll:handleMouseMove(self:getMouseY())
+        self._scroll:handleMouseMove(self:getMouseY() - self._scroll.y)   -- (on the bar's own y, as its press is)
 
         -- Column divider drag
         if self._colDrag then

@@ -1076,6 +1076,15 @@ function ZeD_ScrollbarState:pageStep()
     return self.height * 0.9 / range
 end
 
+--- A press at (x, y) in the parent's coords: its y on the bar (the bar's top is 0) when it lands on the bar as drawn,
+--- else nil (the bar hidden, or the press beside, above or below it), so the parent hands the press on.
+function ZeD_ScrollbarState:hitY(x, y)
+    if not self.visible or x < self.x or x >= self.x + self.width or y < self.y or y >= self.y + self.height then
+        return nil
+    end
+    return y - self.y
+end
+
 --- Handle mouse down. localY is relative to scrollbar top.
 function ZeD_ScrollbarState:handleMouseDown(localY)
     if self.barSizeRatio >= 1.0 then return end

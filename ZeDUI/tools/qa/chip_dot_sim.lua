@@ -5,8 +5,10 @@
 --            minW (drawBadge's old room) centres the square and the word; markGap moves the word
 --   INJURY   a Health injury row's tags: each square under the part's square (x + 2), each word under the part's
 --            name (x + 14) on every line of the wrap, an unmarked tag's word in step; measuring and drawing agree
---   ROW      the inventory row's Belt 2 / Next level: the word in the secondary ink (textDim), the focus ink on the
---            controller's row, no square, no outline; the Equipment belt's In hand the same
+--   ROW      the inventory row's Belt 2 / Next level: since the tab catalog's review (Nov 12 2026) its status square
+--            (Belt n the info colour, Next level the accent), then the word in the secondary ink (textDim), the focus
+--            ink on the controller's row, no outline: bare, the word read as more of the item's name; the Equipment
+--            belt's In hand the same (info)
 --   CALLERS  the layouts that measured the old box (Health, Equipment, the inventory rows, the medic card, the
 --            Animals tab, the station rows, the mod list, the belt's In hand) measure the new one
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/chip_dot_sim.lua
@@ -200,7 +202,7 @@ do
     check("the medic card's tags under its names", medic:find("HT.condTags(card, en.conditions, x + ind, ty, w - ind, hang)", 1, true) ~= nil)
 end
 
-section("ROW: Belt 2 and In hand, the secondary ink")
+section("ROW: Belt 2, Next level and In hand: the status square, then the word in the secondary ink")
 do
     local ok, err = load("InventoryRenderer.lua", nil, { "local _rowTagOpts = {}" })
     check("rowTag cuts and loads", ok, err)
@@ -208,31 +210,37 @@ do
     local chunk = loadstring(cutFn(src, "local _rowTagOpts = {}") .. "\nreturn rowTag\n", "=InventoryRenderer.lua (cut)")
     local rowTag = chunk()
     local T = ZeD.T
+    T.info = col(0.3, 0.6, 0.7)
     LOG = {}
-    rowTag(panel, 200, 10, 30, "Belt 2", nil)
-    local t = first("text")
-    check("Belt 2: the word alone", #LOG == 1 and t ~= nil, #LOG)
-    check("Belt 2: in the secondary ink", t and t.r == T.textDim.r, t and t.r)
-    check("Belt 2: at x", t and t.x == 200, t and t.x)
+    rowTag(panel, 200, 10, 30, "Belt 2", nil, T.info)
+    local t, sq = first("text"), first("rect")
+    check("Belt 2: its square, then the word", #LOG == 2 and t ~= nil and sq ~= nil, #LOG)
+    check("Belt 2: the square at x, in the info colour", sq and sq.x == 200 and sq.w == 6 and sq.r == T.info.r, sq and sq.x)
+    check("Belt 2: the word after the square, in the secondary ink", t and t.x == 210 and t.r == T.textDim.r, t and t.x)
     LOG = {}
-    rowTag(panel, 200, 10, 30, "Belt 2", T.textOnFocus)
-    check("Belt 2 on the focused row: the focus ink", first("text") and first("text").r == T.textOnFocus.r)
+    rowTag(panel, 200, 10, 30, "Belt 2", T.textOnFocus, T.info)
+    check("Belt 2 on the focused row: the focus ink, the square kept", first("text") and first("text").r == T.textOnFocus.r
+        and first("rect") ~= nil)
     -- the ink is read fresh: a theme change shows on the next call
     local was = T.textDim
     T.textDim = col(0.25, 0.25, 0.25)
     LOG = {}
-    rowTag(panel, 200, 10, 30, "Belt 2", nil)
+    rowTag(panel, 200, 10, 30, "Belt 2", nil, T.info)
     check("the secondary ink read fresh", first("text") and first("text").r == 0.25)
     T.textDim = was
+    check("the rows hand Belt n the info square", src:find("rowTag(self, xOff + afterName, y, rowH, tag, focusTxt, T.info)", 1, true) ~= nil)
+    check("the rows hand Next level the accent square (the grid's next-level arrow)",
+        src:find("rowTag(self, xOff + afterName, y, rowH, nextTag, focusTxt, T.accentText or T.accent)", 1, true) ~= nil)
     local eq = srcOf("EquipmentTab.lua")
     check("In hand: the secondary ink", eq:find("_beltTagOpts.textColor = ink or ZeD.T.textDim", 1, true) ~= nil)
+    check("In hand: the info square", eq:find("return ZeD.Molecules.drawTag(panel, x, y, text, ZeD.T.info, _beltTagOpts)", 1, true) ~= nil)
 end
 
 section("CALLERS: no layout measures the old box")
 do
     local function has(rel, s) return srcOf(rel):find(s, 1, true) ~= nil end
-    check("inventory rows measure through tagW", has("InventoryRenderer.lua", "return ZeD.Atoms.tagW(text, false)"))
-    check("Equipment's In hand measures through tagW", has("EquipmentTab.lua", "return ZeD.Atoms.tagW(text, false)"))
+    check("inventory rows measure through tagW, the square in", has("InventoryRenderer.lua", "return ZeD.Atoms.tagW(text, true)"))
+    check("Equipment's In hand measures through tagW, the square in", has("EquipmentTab.lua", "return ZeD.Atoms.tagW(text, true)"))
     check("the station rows measure through tagW", has("StationAppliance.lua", "tagW = ZeD.Atoms.tagW(tagTxt, tagMark ~= nil) + T.px(6)"))
     check("the mod list measures through tagW", has("ZeD_MainMenuMods.lua", "return ZeD.Atoms.tagW(text, tagMark(variant) ~= nil)"))
     check("the belt's In hand centres the word itself", has("ZeD_Belt.lua", "local tw = tm:MeasureStringX(f5, ZeD.textCase(text))\n"))

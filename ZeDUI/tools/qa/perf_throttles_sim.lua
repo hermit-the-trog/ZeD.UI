@@ -505,7 +505,17 @@ do
     end
     local a = statsWith(pinsOld, "ZeD_Pins@base")
     local b = statsWith(pinsNew, "ZeD_Pins")
-    check("PINS: the same entries, words and colors as before", same(a, b))
+    -- (the base's last shorter form, the numbers alone, is gone on purpose: the title bar drops a pin before it shows
+    -- numbers with no word to them; the words, the colors and the name cut short are as before)
+    local function worded(list)
+        local out = {}
+        for i, e in ipairs(list) do out[i] = { text = e.text, color = e.color, short = e.alts and e.alts[1] } end
+        return out
+    end
+    check("PINS: the same entries, words and colors as before", same(worded(a), worded(b)))
+    local bare = 0
+    for _, e in ipairs(b) do for _, al in ipairs(e.alts or {}) do if not tostring(al):find("%a") then bare = bare + 1 end end end
+    check("PINS: no shorter form is numbers alone (each keeps the pin's name)", bare == 0, bare)
     check("PINS: every kind answered (8 pins with words)", #b == 8, #b)
 end
 

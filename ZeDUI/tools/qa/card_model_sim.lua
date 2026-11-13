@@ -16,6 +16,8 @@
 -- A change the card has no reading for (poison put in food) shows within MODEL_MS: the sim measures it.
 -- And (Nov 8 2026, code flags) a fold on a drawer card keeps the scroll: ItemCard:_toggleFold clamps with the height
 -- renderBody drew, no longer the old layout's shorter _calcBodyH (the old card is shown jumping).
+-- And (Nov 12 2026, the tab catalog's review) the Kind row is the game's word for the kind (the inventory's
+-- catLabel), and a container's capacity is the one load format (Atoms.loadText), carried into the old files.
 -- What it can't show is the game itself: the frame time with a card open, in the game.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/card_model_sim.lua
 -- It prints FAIL lines and a last line "card_model_sim: N checks, M failed", and exits 1 if any failed.
@@ -303,6 +305,14 @@ local function newEnv(label, sources, clock)
         textCase = function(s) return "tc(" .. tostring(s) .. ")" end,
         ammoOf = function(item) return nil, item._f.getAmmoType end,
     })
+    -- the one way a load over a capacity is written (the real Atoms.loadText, Nov 12 2026: the Kind block's Capacity
+    -- row and Container Facts write it), not a drawing: run, not logged
+    do
+        local at = readFile("42/media/lua/client/ZeD/Atoms.lua") or ""
+        local a1 = string.find(at, "function ZeD.Atoms.loadText(load, cap)", 1, true)
+        local b1 = a1 and string.find(at, "\nend\n", a1, true)
+        if a1 and b1 then assert(loadstring("local ZeD = ...\n" .. string.sub(at, a1, b1 + 4), "=loadText"))(Z) end
+    end
     Z.Molecules = recorderTable("M.", {
         drawCardBackBar = function(panel, x, y, w, name, verbs, progressActive, compact, outRects, opts)
             rec("M.drawCardBackBar", x, y, w, name, verbs, progressActive, compact, opts)
@@ -425,6 +435,13 @@ if haveBase then
     if oa and ob and na and nb then
         oldSrc[2].src = string.sub(o, 1, oa - 1) .. string.sub(n, na, nb - 1) .. string.sub(o, ob)
     end
+    -- (Nov 12 2026) Container Facts writes the capacity in the one load format too (Atoms.loadText, "5.8 / 28 kg"): a
+    -- change made on purpose, carried into the old facts panel the same way
+    local o3 = oldSrc[3].src
+    local OLDF = 'string.format("%.1f / %d kg", current, cap)'
+    local fa = string.find(o3, OLDF, 1, true)
+    check("the facts panel's capacity carried into the old card", fa ~= nil)
+    if fa then oldSrc[3].src = string.sub(o3, 1, fa - 1) .. "ZeD.Atoms.loadText(current, cap)" .. string.sub(o3, fa + #OLDF) end
 end
 local OLD
 if haveBase then
@@ -450,8 +467,23 @@ do
     for _, r in ipairs(ok and rows or {}) do
         if r.label == "en:Tooltip_container_Capacity" then got = r.value end
     end
-    check("a bag reading getItemCapacity -1: Capacity 4.5 / 15 kg, as its Container Facts", got == "4.5 / 15 kg",
-        ok and tostring(got) or rows)
+    -- (its words: the one load format, UI_ZeD_Char_WeightOfMax, "4.5 / 15 kg" in English)
+    check("a bag reading getItemCapacity -1: Capacity 4.5 / 15 kg, as its Container Facts",
+        got == "en:UI_ZeD_Char_WeightOfMax:4.5:15", ok and tostring(got) or rows)
+end
+-- (Nov 12 2026, the tab catalog's review) the Kind row is the game's word for the kind, as the inventory's Category
+-- column has it (InventoryRenderer.catLabel: IGUI_ItemCat_<key>), never the script's key ("GardeningWeapon")
+do
+    local asked = nil
+    NEW.ZeD.InventoryRenderer = { catLabel = function(k) asked = k; return "IGUI_ItemCat_" .. tostring(k) .. " (word)" end }
+    local ok, rows = pcall(NEW.ZeD.ItemCard.topStatsForItem, ITEMS.bag)
+    NEW.ZeD.InventoryRenderer = nil
+    local kind = nil
+    for _, r in ipairs(ok and rows or {}) do
+        if r.label == "en:UI_ZeD_Card_Kind" then kind = r.value end
+    end
+    check("the Kind row is the game's word for the item's display category", asked == "Bag" and kind == "IGUI_ItemCat_Bag (word)",
+        ok and tostring(kind) or rows)
 end
 
 local function frameOf(env)
