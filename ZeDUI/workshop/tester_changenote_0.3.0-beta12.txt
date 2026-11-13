@@ -1,0 +1,64 @@
+0.3.0-beta12
+
+This beta brings a bigger Lua console, a drawn controller in Options, run and sneak on one controller button and a long list of bug fixes, with the first groundwork for split view. Screens were also tidied to one set of rules, and a few new tools came with it: a Filter in both windows, a Fishing tab and quick actions for animals.
+
+Console
+- The Lua console (debug mode only) has a Log page: the game's output and its error list in one list, a repeated error as one row with a count, filters by kind, mod and file, a search field and Export to a .log file in the Lua folder.
+- Scratchpad swaps the one line for a box of many lines. Shift+Enter makes a new line, Enter runs it. Runs and saved snippets are kept between games.
+- Names suggest themselves after two letters: globals, a table's fields after "." and methods after ":". Tab or Enter takes one.
+- The Commands page lists every server command with its syntax and an example, only those your role allows. A click fills the chat line; commands that can't be undone ask first. In single player each one points at its debug menu window.
+- A Help page says what runs where, the keys and the controller.
+- The same console is out as its own mod, Lua Console 93 Professional Edition, for players without ZeD-GUI. With both on, ZeD-GUI's console is used.
+
+Split view
+- Groundwork only: ZeD now keeps its windows, focus and controller state per local player. Players 2 to 4 still get the game's own windows for now; player 1 is unchanged.
+
+Pad map
+- Options > Controls, Button map and test, draws your controller in pixel art for your button set (Xbox, PlayStation, Steam Deck or Nintendo), with the game's action on each label. A click or A on a part opens its actions.
+- The live test lights pressed buttons in your accent, fills the triggers with a percent and shows where the sticks point.
+- The quick wheel's Controller map draws the same pad. Its zoom words were the wrong way round: hold LB and tap RB zooms in.
+
+Run+sneak
+- New in ZeD setup, off by default: the game's Run button also sneaks. Standing still, hold it to crouch or stand; moving, hold it to run; a tap does what it did before. It works when Run is on a button, as in the Original layout (right trigger), and does nothing on the Default layout, where Run is a full stick push.
+
+Bug fixes
+- Simplified Chinese draws whole in balloons and windows; letters the game's font lacks were dropped.
+- Equipment defense adds every worn layer as the game does, up to 100. A garment in your hand no longer counts as worn.
+- Recipes check every skill they need, not only the first.
+- Health's Overall never rounds up to 100%; the damage word has its own line.
+- The moodle note no longer sits over a window, and the moodles no longer block clicks on windows near them.
+- Fixed: the radio's CH down on channel 01, a placement turned below 0, Previous on an object card, the context strip after a fast scroll, the Tooltip Font option and the hen count in a pen.
+
+One set of rules
+- "Unread" everywhere. Every dropdown reads "Label: Value", as "Sort: Craftable" or "Category: All".
+- The Cond / Amt column is now Status.
+- Each tab opens with its title and uses one small section heading.
+- Journal, Radio and Vehicle pick sub-pages from a tab strip: a tab per Journal page, per radio and per vehicle.
+- The item card's top block keeps Kind and Weight; every other fact shows once, below.
+- Light and High Contrast windows are always solid; see-through works in Dark only. Grayed labels read better in both.
+- The rows under the title bar share two sizes in every tab and both windows, and follow text size.
+- Tags are a status square and a word, without a box. Trait rows show the icon, then the name.
+- List and Grid are one view button. Search boxes have a pixel magnifier. Short hints say LMB and RMB.
+- The foot line says "48 items", or "3 of 48 picked | 4.2 kg" while rows are picked.
+- A status pixel before your name in the Character window shows your health and blinks at 20% and under. ZeD setup > Look can hold it steady.
+
+New
+- Filter: a button in every column heading of both windows, by name and by category. Items that don't match are dimmed in place. It's kept per container.
+- Dragging several items shows up to three chips.
+- Find on the Skills and Equipment tabs.
+- Fishing tab on the World window, with a rod in hand or water close by: the rod, line and bait, cast and reel, the catch log and a trophy wall of your biggest catches.
+- Animals: alerts get Milk, Shear or Walk to; tick roster rows, or All hungry and All milkable, then Milk, Shear or Feed them with food you carry.
+- Journal entries take tags (Danger, Loot, News, Food, Weather, Base, Travel, Injury), and search finds them.
+- Health, Thermal, both radio tabs, Notebooks and Loadouts show more of the game's facts.
+- Save position and Go to saved position in the window menu.
+- Mods screen: a Files tab turns off one file of a mod and back on, with what uses it and its errors. Error cards in Messages open Mods at the file.
+
+Cars
+- Civilian dashboards come in three cabin colors, picked by the car's paint and kept with the car. Public service dashboards are black.
+
+Main menu
+- A new ZeD-GUI poster, and the desk's boombox has no antenna.
+
+Mods
+- Summer Car: the engine window opens beside ZeD's Vehicle tab, and the Engine's footer has Inspect engine components.
+- Skill Recovery Journal: with a Bound Journal on you, the Skills tab has a Transcribe key.
