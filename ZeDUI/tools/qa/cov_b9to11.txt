@@ -4,7 +4,7 @@
 # Labels on ZeD's map. ZeD-QA save only. Each check runs at the starting UI scale and again at a second one.
 # Run it twice:
 #   zedqa_run.ps1 -Mode fullscreen4k -Manifest .../cov_b9to11.txt   (1.75x, then 1.0: no inventory is narrowed either way)
-#   zedqa_run.ps1 -Manifest .../cov_b9to11.txt                      (the 1920 x 1080 window: 1.0, then a bigger step)
+#   zedqa_run.ps1 -Mode windowed -Manifest .../cov_b9to11.txt       (the 1920 x 1080 window: 1.0, then a bigger step)
 # Only the 1080p run can catch #150: the bigger step opens each inventory narrower, and the round trip's "each window's
 # inventory is as wide as it was" check FAILs while ZeD never widens it again (Scale.fitInvW, applyCharState).
 # Known FAIL until the director rules: #134 Color, a map mod's label (ZeD turns the game's PlaceNames off outside Survey).

@@ -98,7 +98,7 @@ do
     local wn = "?"
     pcall(function() wn = tostring(getWorld():getWorld()) end)
     if not p then say("ERR no player: nothing was done"); say("DONE"); return end
-    if not string.find(wn, "ZeD-QA", 1, true) then say("ERR this is not the ZeD-QA save (" .. wn .. "): nothing was done"); say("DONE"); return end
+    if wn ~= "ZeD-QA" then say("ERR this is not the ZeD-QA save (" .. wn .. "): nothing was done"); say("DONE"); return end
     if not (CWm and WWm and TP and HT and IT and RT and BL and MN and WP and SC and Z.Text and Z.Atoms and Z.Molecules and Z.MapsTab) then
         say("ERR a ZeD module is missing: nothing was done"); say("DONE"); return
     end
@@ -443,6 +443,14 @@ end
 local function speedBack()
     if L.speedChanged then L.speedChanged = false; setGameSpeed(L.speed0) end
 end
+-- the Identity photo and Health figure folds as the run found them, on the Character window open now
+local function applyFolds()
+    local w = CW()
+    if w and L.flags then
+        w._identityPhotoExpanded, w._healthFigureExpanded = L.flags.id, L.flags.hf
+        w._healthCache, w._identityCache = nil, nil
+    end
+end
 local function restoreAll(why)
     if L.done then return end
     L.done = true
@@ -479,13 +487,7 @@ local function restoreAll(why)
     pcall(function() if L.beltStyleWas then ZeD.Settings.beltStyleOption:setValue(L.beltStyleWas); L.beltStyleWas = nil end end)
     pcall(restoreMap)
     pcall(function() if L.scaleChanged then SC.override = L.override; SC.refresh(); L.scaleChanged = false end end)
-    pcall(function()
-        local w = CW()
-        if w and L.flags then
-            w._identityPhotoExpanded, w._healthFigureExpanded = L.flags.id, L.flags.hf
-            w._healthCache, w._identityCache = nil, nil
-        end
-    end)
+    pcall(applyFolds)
     pcall(function() for _, e in ipairs(L.dbg) do e:setVisible(true) end end)
     say("restored (" .. tostring(why) .. ")")
 end
@@ -1223,7 +1225,7 @@ local function pass(tag)
     whenStill(g, tag, "both windows on Loot")
     gstep(g, 1, function()
         local c, w = CW(), WW()
-        check(c ~= nil and w ~= nil and c._activeTab == "loot" and w._activeTab == "loot", pre(tag) .. " a click on each strip's Loot puts both windows on Loot",
+        check(c ~= nil and w ~= nil and c._activeTab == "loot" and w._activeTab == "loot", pre(tag) .. " (setup) both windows on Loot",
             tostring(c and c._activeTab) .. "/" .. tostring(w and w._activeTab), "loot/loot")
         pairChecks(tag, "both on Loot"); L.hold, L.moved = shape(), false; L.holdN = 0
     end)
@@ -1648,7 +1650,8 @@ waitUntil(150, function() return CWm.isOpen() and WWm.isOpen() end, "the pair to
     if not ok then check(false, "put back: the pair opens for the put-back", "shut", "open within 150 ticks") end
 end)
 whenStill(false, "a", "before the put-back", "put back: the windows settle")
-step(1, function() placeBack() end)
+-- (the folds again here: an error in pass b, or while the pair was shut, leaves a new window on its own defaults)
+step(1, function() pcall(applyFolds); placeBack() end)
 whenStill(false, "a", "after the put-back", "put back: the windows settle")
 step(1, finalChecks)
 step(1, function()
