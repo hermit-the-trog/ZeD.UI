@@ -24,6 +24,8 @@ local MOVE_STEP, TURN_STEP = 0.05, 15   -- controller left / right on a slider
 local function col(c) return c.r, c.g, c.b end
 local AXIS_NAME = { x = "X", y = "Y", z = "Z" }   -- (the axes' letters)
 local function round(v, dp) local m = 10 ^ (dp or 3) return math.floor(v * m + 0.5) / m end
+-- a floored remainder: Kahlua's % keeps the dividend's sign (-10 % 360 is -10, not 350)
+local function wrap360(a) return a - math.floor(a / 360) * 360 end
 
 local def = { id = "place3d", leash = 3 }
 
@@ -79,7 +81,7 @@ local function setAxis(t, section, ax, v)
         v = math.max(0, math.min(1, v))
         t.group = "translate"
     else
-        v = v % 360
+        v = wrap360(v)   -- (0..360 as vanilla keeps it: "-15" from 5 is 350)
         t.group = "rotate"
     end
     ax.set(t, v)
@@ -138,7 +140,7 @@ local function axisRow(card, x, y, w, t, section, ax)
     local ac = T.accent
     local isMove = section == "move"
     local v = ax.get(t)
-    local frac = isMove and v or (v / 360)
+    local frac = isMove and v or (wrap360(v) / 360)   -- (an angle saved below 0 still finds its place)
     card:drawText(AXIS_NAME[ax.id] or ax.id, x, y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
     -- nudges (right)
     local nud = isMove and MOVE_NUDGE or TURN_NUDGE
@@ -157,7 +159,7 @@ local function axisRow(card, x, y, w, t, section, ax)
         help = ZeD.tr("UI_ZeD_Place_HelpNudgeUp", AXIS_NAME[ax.id] or ax.id),
         run = function() setAxis(t, section, ax, ax.get(t) + nud) end })
     -- readout
-    local val = isMove and string.format("%.2f", v) or (tostring(math.floor(v + 0.5) % 360) .. DEG)
+    local val = isMove and string.format("%.2f", v) or (tostring(wrap360(math.floor(v + 0.5))) .. DEG)
     local vx = minusX - T.px(10)
     A.drawTextRight(card, val, vx, y + math.floor((h - tm:getFontHeight(f3)) / 2), f3, T.text)
     -- slider: the library's strip with a flat block on it; the controller's mark goes under the track

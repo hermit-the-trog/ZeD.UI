@@ -536,7 +536,9 @@ function ZeD_ContextMenu:page(dir)
         self._animToOriginX = (self._animToOriginX or 0) - px
     end
     self._ctx.pos = self._ctx.pos + dir * V
-    self._ctx.selected = ((self._ctx.pos - 1) % N) + 1
+    -- (pos can sit below 1 here after a fast run of steps left, before the settle; Kahlua's % keeps a
+    -- negative dividend's sign, so the remainder is floored by hand)
+    self._ctx.selected = (((self._ctx.pos - 1) % N + N) % N) + 1
     self:_scheduleSettle()
 end
 function ZeD_ContextMenu:nextPage() self:page(1) end
@@ -716,8 +718,10 @@ function ZeD_ContextMenu:_settleCarousel()
     local N = #self._ctx.items
     if N == 0 then return end
     if self._ctx.pos < N + 1 or self._ctx.pos > 2 * N then
-        -- Normalize pos into the middle copy
-        self._ctx.pos = ((self._ctx.pos - 1) % N) + N + 1
+        -- Normalize pos into the middle copy. A fast run of steps left (the wheel spun, a key held) puts off
+        -- the settle and can take pos below 1; Kahlua's % keeps a negative dividend's sign, so the remainder
+        -- is floored by hand (else pos lands in the first copy, with blank cells before it)
+        self._ctx.pos = (((self._ctx.pos - 1) % N + N) % N) + N + 1
         -- Skip animation for one frame so the teleport is silent. _layout
         -- recomputes targetOriginX from the normalized pos and snaps
         -- currentOriginX to it immediately (progress = 1 during suppress).

@@ -599,6 +599,10 @@ end
 -- (kept per font while the token table and the root scale stay: every text draw and measure asks)
 local _zoom = { T = false, root = false, z = {} }
 X._zoom = _zoom   -- (the lean text draw reads it inline: Overrides/TextScale.lua)
+-- One role font drawn and measured at a multiple of its size for the length of a call
+-- (X.withFontScale: the game's Tooltip Font option on the tooltips, Overrides/Tooltip.lua).
+-- The kept zooms and measures hold every font at its own size, so that font passes them by.
+X._mulFont, X._mul = nil, 1
 --- the zoom a font draws at now: a role font's px times the root over its face, 1 for anything else
 function X.zoomOf(font)
     if font == nil then return 1 end
@@ -612,7 +616,19 @@ function X.zoomOf(font)
         else z = px * root / ((T.fontFace and T.fontFace[font]) or 64) end
         _zoom.z[font] = z
     end
+    if font == X._mulFont then return z * X._mul end
     return z
+end
+--- Run fn(a) with role font `font` drawn and measured m times its size; nothing kept changes
+--- (the zooms and measures kept per font stay at the font's own size). Returns what fn returns.
+function X.withFontScale(font, m, fn, a)
+    if font == nil or not m or m == 1 then return fn(a) end
+    local pf, pm = X._mulFont, X._mul
+    X._mulFont, X._mul = font, m
+    local ok, r = pcall(fn, a)
+    X._mulFont, X._mul = pf, pm
+    if not ok then error(r) end
+    return r
 end
 
 -- ---------------------------------------------------------------------------
@@ -799,6 +815,8 @@ end
 --- a string's width in screen px, zoomed for a role font; kept, as above
 function TM:MeasureStringX(font, str)
     if type(str) ~= "string" then str = tostring(str) end
+    -- (a font drawn at a multiple of its size for now, X.withFontScale, is measured fresh and not kept)
+    if font ~= nil and font == X._mulFont then return X.roleWidth(font, str, X.zoomOf(font)) end
     -- (mcOn's test inline: this runs a few hundred times a frame)
     if font == nil or not ((X._fontsSettled and MC.T == ZeD.T and MC.root == S._root and MC.gen == ZeD._trGen
                             and MC.fs == MC.fsNow) or mcOn()) then
@@ -830,6 +848,8 @@ function TM:MeasureStringY(font, str)
 end
 --- a font's line height in screen px, zoomed for a role font; kept, as above
 function TM:getFontHeight(font)
+    -- (as in MeasureStringX: a font at a multiple of its size for now is measured fresh and not kept)
+    if font ~= nil and font == X._mulFont then return X.realTM():getFontHeight(font) * X.zoomOf(font) end
     -- (mcOn's test inline first, as in MeasureStringX)
     if font ~= nil and X._fontsSettled and MC.T == ZeD.T and MC.root == S._root and MC.gen == ZeD._trGen
        and MC.fs == MC.fsNow then

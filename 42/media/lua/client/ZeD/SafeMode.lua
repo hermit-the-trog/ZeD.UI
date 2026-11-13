@@ -30,10 +30,12 @@
 --   ZeD.Safe.trip(where, err)  step aside now, for this session
 --   ZeD.Safe.reset()           take a trip back by hand (the option going Off clears one too)
 --   ZeD.Safe.reread()          read the option now rather than within half a second
---   ZeD.Safe.register(name, { enter = fn, leave = fn })
+--   ZeD.Safe.register(name, { enter = fn, leave = fn, screen = name })
 --       a piece of ZeD that parks something of vanilla's (hides its pages,
 --       replaces its methods, moves its clock) says how to hand it back
 --       (leave) and how to take it over again (enter). Both may run twice.
+--       screen (optional): the ZeD setup switch the hook follows when it is
+--       not its own name (the column's window buttons follow the belt's).
 --   ZeD.Safe.guard(panel, fn, label)
 --       runs a per-frame draw hook under pcall: on a failure the stencils it
 --       set are cleared, the failure counts as a fault and is logged once
@@ -153,7 +155,7 @@ local function sync()
     for i = 1, #order do
         local name = order[i]
         local h = hooks[name]
-        local want = all or S.pieceOff(name)
+        local want = all or S.pieceOff(h and h.screen or name)   -- (a hook may follow another screen's switch: def.screen)
         if h and want ~= (st.by[name] or false) then
             st.by[name] = want
             if want then
@@ -174,7 +176,7 @@ function S.register(name, def)
     if not hooks[name] then order[#order + 1] = name end
     hooks[name] = def
     -- registered while safe mode already holds, or with its screen given back: it hands back at once
-    if (st.applied or S.pieceOff(name)) and def.leave then
+    if (st.applied or S.pieceOff(def.screen or name)) and def.leave then
         st.by[name] = true
         runHook(name, def.leave, "hand back")
     end

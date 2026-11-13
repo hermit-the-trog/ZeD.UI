@@ -52,9 +52,11 @@ local function applyTooltipOverrides()
     -- The game's Tooltip Font option (Small / Medium / Large) sizes the tooltip text: ZeD's body
     -- role at its own size, one step up (x1.15) or two (x1.3). The description is a rich-text
     -- panel drawn in GetFont's font and the title shares it, so layout and drawing run with the
-    -- body role's px raised for the option and put back after. While the game's fonts stand in
-    -- for ZeD's (Chinese, Japanese, Korean, Thai, Dyslexic font: ZeD.Text.fallback) the
-    -- description takes the game's own pick, as vanilla does.
+    -- body role drawn and measured at the option's multiple (ZeD.Text.withFontScale). The zooms
+    -- and measures kept per font are left alone: raising the role's px in place did nothing once
+    -- those were kept, and leaked the bigger size into all body text whenever they were empty.
+    -- While the game's fonts stand in for ZeD's (Chinese, Japanese, Korean, Thai, Dyslexic font:
+    -- ZeD.Text.fallback) the description takes the game's own pick, as vanilla does.
     local TIP_MUL = { Small = 1.0, Medium = 1.15, Large = 1.3 }
     local function tipMul()
         local ok, v = pcall(function() return getCore():getOptionTooltipFont() end)
@@ -63,13 +65,10 @@ local function applyTooltipOverrides()
     local function withTipSize(fn, self)
         local T = ZeD.T
         local f = T and T.fontF2
-        local base = f and T.fontPx and T.fontPx[f]
+        local X = ZeD.Text
         local m = tipMul()
-        if not base or m == 1.0 then return fn(self) end
-        T.fontPx[f] = base * m
-        local ok, err = pcall(fn, self)
-        T.fontPx[f] = base
-        if not ok then error(err) end
+        if m == 1.0 or not (f and T.fontPx and T.fontPx[f] and X and X.withFontScale) then return fn(self) end
+        return X.withFontScale(f, m, fn, self)
     end
 
     function ISToolTip.GetFont()

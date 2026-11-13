@@ -244,7 +244,7 @@ function OC.tick(e, player)
         end
         if #live == 0 then return false end
         e.list = live
-        e.idx = math.min(e.idx or 1, #live)
+        e.idx = math.max(1, math.min(e.idx or 1, #live))   -- (kept inside the list, so live[e.idx] is always there)
         e.t = live[e.idx]
         e.t._refreshT = OC.REFRESH
         e._browseT = 0
@@ -281,7 +281,8 @@ end
 function OC.browse(e, dir)
     if not (e.list and #e.list > 1) then return end
     local n = #e.list
-    local i = ((e.idx or 1) - 1 + dir) % n + 1
+    -- (Kahlua's % keeps the sign of a negative number: add the count first)
+    local i = ((e.idx or 1) - 1 + dir + n) % n + 1
     e.idx = i
     e.t = e.list[i]
     e.t._refreshT = OC.REFRESH

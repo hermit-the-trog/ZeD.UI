@@ -137,13 +137,15 @@ local function _reset()
     _transition(Chord.STATE_IDLE)
 end
 
--- Fire one zoom step. direction: +1 = zoom-in, -1 = zoom-out. Matches
--- getCore():doZoomScroll(playerIdx, direction) signature exactly; vanilla's
--- Tutorial/Steps.lua and ISBackButtonWheel.lua are the call-site precedent.
+-- Fire one zoom step. direction is the engine's own: +1 = zoom-out (getZoom
+-- rises, wider view), -1 = zoom-in. Vanilla precedent: ISBackButtonWheel's
+-- ZoomOut.png slice sends +1 ("ZoomPlus") and its ZoomIn.png slice sends -1
+-- ("ZoomMinus"); the ZoomedIn and ZoomedOut steps in Tutorial/Steps.lua check
+-- getZoom against its min and max.
 -- The game's Java side can throw if a future PZ patch renames or removes the
 -- API; pcall turns that crash into a logged miss instead of a dead tick handler.
 local function _fire(direction)
-    local label = (direction > 0) and "zoom-in" or "zoom-out"
+    local label = (direction > 0) and "zoom-out" or "zoom-in"
     print(string.format("[ZeD.Input] chord fire: %s", label))
     local ok, err = pcall(function()
         -- Player 0 only. Split-screen zoom would need a chord per player.
@@ -202,7 +204,7 @@ local function onTick()
         -- Deterministic either way — direction just picked by rule.
         if lbPressEdge and rbPressEdge then
             _primary = "LB"
-            _fire(-1) -- LB primary = zoom-out
+            _fire(1) -- LB primary = zoom-out
             _transition(Chord.STATE_CONSUMED)
         elseif lbPressEdge then
             _primary = "LB"
@@ -217,7 +219,7 @@ local function onTick()
         -- thumb-roll-off doesn't lose the fire when LB release lands on the
         -- same tick as RB press.
         if rbPressEdge then
-            _fire(-1) -- LB-then-RB = zoom-out
+            _fire(1) -- LB-then-RB = zoom-out
             _transition(Chord.STATE_CONSUMED)
         elseif lbReleaseEdge then
             _reset() -- LB released without an RB tap — unowned single-tap
@@ -226,7 +228,7 @@ local function onTick()
     elseif _state == Chord.STATE_RB_HELD then
         -- Mirror of LB_HELD.
         if lbPressEdge then
-            _fire(1) -- RB-then-LB = zoom-in
+            _fire(-1) -- RB-then-LB = zoom-in
             _transition(Chord.STATE_CONSUMED)
         elseif rbReleaseEdge then
             _reset()
@@ -237,9 +239,9 @@ local function onTick()
         -- another step while the first bumper remains held; stay in CONSUMED.
         -- Only exit when BOTH bumpers are fully released (clean slate).
         if _primary == "LB" and lbDown and rbPressEdge then
-            _fire(-1) -- LB-primary = zoom-out
+            _fire(1) -- LB-primary = zoom-out
         elseif _primary == "RB" and rbDown and lbPressEdge then
-            _fire(1)  -- RB-primary = zoom-in
+            _fire(-1) -- RB-primary = zoom-in
         elseif (not lbDown) and (not rbDown) then
             _reset()
         end

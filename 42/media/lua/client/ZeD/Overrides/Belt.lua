@@ -79,6 +79,21 @@ local MP_OWN = { "safetyBtn", "radialIcon", "clientBtn", "adminBtn" }
 -- frames the column waits before deciding, so other mods' hooks have added theirs
 local COLUMN_SETTLE = 30
 
+-- The column's hover list (vanilla checkToolTip tests bounds, not visibility) files the hands first, as stand-in
+-- rects (ISEquippedItem.lua createFakeObject: a plain table of x, y, w, h), not as the hand panels, and reads ids
+-- 1 and 2 as the hands (the held item's box) and 3 and up as the buttons (their labels). A hand's entry keeps its
+-- place with no area, as a new entry: the list kept for safe mode shares vanilla's entries.
+local NO_AREA = {
+    getX = function() return -1000000 end, getY = function() return -1000000 end,
+    getWidth = function() return 0 end, getHeight = function() return 0 end,
+}
+local function handZone(panel, i, v)
+    local o = v and v.object
+    if i > 2 or o == nil then return false end
+    if o == panel.mainHand or o == panel.offHand then return true end
+    return type(o) == "table" and rawget(o, "javaObject") == nil and rawget(o, "w") ~= nil and rawget(o, "h") ~= nil
+end
+
 local function columnForeignVisible(panel)
     local own = {}
     for _, key in ipairs(COLUMN_OWN) do
@@ -205,13 +220,13 @@ local function apply()
             if ZeD.Safe.on("belt") or inTutorial() then return origRender(self) end   -- safe mode and the Tutorial: vanilla's, hands and all
             if self.mainHand and self.mainHand:getIsVisible() then self.mainHand:setVisible(false) end
             if self.offHand and self.offHand:getIsVisible() then self.offHand:setVisible(false) end
-            -- the hands leave the hover list too (it tests bounds, not visibility;
-            -- vanilla's whole list is kept for safe mode to put back)
+            -- the hands' hover zones go too, each kept in its place with no area (handZone, NO_AREA);
+            -- vanilla's whole list is kept for safe mode to put back
             if self.mouseOverList and not self._zedHandsOut then
                 self._zedOverAll = self._zedOverAll or self.mouseOverList
                 local keep = {}
-                for _, v in ipairs(self.mouseOverList) do
-                    if v.object ~= self.mainHand and v.object ~= self.offHand then keep[#keep + 1] = v end
+                for i, v in ipairs(self.mouseOverList) do
+                    keep[i] = handZone(self, i, v) and { object = NO_AREA, displayString = v.displayString } or v
                 end
                 self.mouseOverList = keep
                 self._zedHandsOut = true

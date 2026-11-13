@@ -42,11 +42,13 @@ local function rowText(content)
     return table.concat(t, ", ")
 end
 local function pressLabel(content, label)
-    local L = content._cc and content._cc.layout
-    for i, r in ipairs(L and L.rects or {}) do
-        if r.label == label then CT.press(content, i); return true end
+    -- (the band's buttons are this frame's hits, the index CT.press takes; a hit's own label is
+    -- its hover hint, so the button's word is matched on its spec)
+    local cc = content._cc
+    for i, h in ipairs(cc and cc.hits or {}) do
+        if h.spec and h.spec.label == label then CT.press(content, i); return true end
     end
-    say("no button " .. label)
+    say("ERR no button " .. label)
     return false
 end
 local function select(inv)

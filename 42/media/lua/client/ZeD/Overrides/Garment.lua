@@ -63,6 +63,11 @@ local function openCard(player, clothing)
     end
     local cnt = win and win._mainContent
     if not (cnt and win._updateDrawer) then return false end
+    -- the card opens as a tap of A opens it: every list's marks go first, and their rule with them
+    -- (the controller's marks hide the card even at one; left standing, Inspect fell back to vanilla's window)
+    local IR = ZeD.InventoryRenderer
+    if IR and IR.padClearMarks then IR.padClearMarks(win, nil, true) end
+    cnt._padMarks = nil
     local sel = cnt._selectedItems or {}
     for k in pairs(sel) do sel[k] = nil end
     sel[clothing] = true
