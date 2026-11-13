@@ -1,0 +1,7 @@
+# ZeDUI/tools/qa/cov_b9to11.txt (Nov 12 2026): real checks for the beta 9 to 11 fixes no check reached
+# (qa/AUDIT_DESIGN_AND_COVERAGE_20261111.md, Table B and B3): #159 windows jumping, the window tab-strip icons, the
+# belt's strap and buckles, #147 the permit stamp, #148 the Health percent, #140 the radio preset +, #134 Custom Map
+# Labels on ZeD's map. ZeD-QA save only. Each check runs at the starting UI scale and again at a second one (1.0 from
+# 4K at 1.75x). zedqa_run.ps1 -Mode fullscreen4k -Manifest .../cov_b9to11.txt
+zedqa_prelude.lua | pre | timeout=120
+zedqa_cov_b9to11.lua | cov_b9to11 | timeout=480
