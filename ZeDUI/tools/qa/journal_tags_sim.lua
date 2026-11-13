@@ -545,7 +545,13 @@ end
 p = draw(win)
 local nTags = 0
 for _, s in ipairs(JT.tagFocusables(win)) do if s.journalKind == "tag" then nTags = nTags + 1 end end
-check("a long log: tag stops only near the view", nTags > 0 and nTags < #win._journalTagZones, nTags .. " of " .. #win._journalTagZones)
+-- (the tags far from the view are neither drawn nor stamped: every stamped one is a stop, and they are far fewer
+-- than the 120 tagged entries)
+check("a long log: tag stops only near the view", nTags > 0 and nTags == #win._journalTagZones and nTags < 120,
+    nTags .. " of " .. #win._journalTagZones)
+local foodDrawn = 0
+for _, d in ipairs(texts(p)) do if d[2] == WORDS.EN.UI_ZeD_Journal_Tag_Food then foodDrawn = foodDrawn + 1 end end
+check("a long log: only the tags near the view are drawn", foodDrawn > 0 and foodDrawn < 60, foodDrawn)
 local k1 = JT.padKey(win)
 win._killsExpanded = true
 draw(win)
@@ -577,11 +583,18 @@ do
         return n, row
     end
     local n0 = tagStops()
-    check("later months first: the run's tag zones are drawn", #qw._journalTagZones == 8, #qw._journalTagZones)
+    -- (past the pad's reach the run's tags are neither drawn nor stamped, so no click can land on one either)
+    check("later months first: the run's tags lie past the reach, none stamped", #qw._journalTagZones == 0, #qw._journalTagZones)
     check("later months first: none in the pad's reach (what QA saw: entry tags nil)", n0 == 0, n0)
+    -- scrolled down to them, their tags are drawn and stamped again
+    qw._journalScroll:setScrollPos(1)
+    drawShort()
     local z0 = nil
     for _, z in ipairs(qw._journalTagZones) do if z.k == "base" then z0 = z end end
-    check("later months first: a click on the Base tag falls outside the log", z0 and not JT.onBodyClick(qw, z0.x + 1, z0.y + 1))
+    check("later months first: scrolled to the run's entries, their tags are stamped", z0 ~= nil and #qw._journalTagZones >= 2,
+        #qw._journalTagZones)
+    qw._journalScroll:setScrollPos(0)
+    drawShort()
     -- the script's fix: a search for the run's mark
     JT.setSearch(qw, "[qa-tags]")
     drawShort()
@@ -625,6 +638,73 @@ end
 lang, CHARW.F3 = "EN", 6
 local lay = JT.pickLayout(newWin(), W - 22)
 check("EN Normal: one line", lay.rows == 1, lay.rows)
+
+-- ===========================================================================
+section("a frame's cost (review, Nov 12): the picks measured once, the tags' tables kept, far tags skipped")
+do
+    local savedMd, savedDue = P.md, ZeD.CraftingCore.due
+    -- (the page's data read as in game: once, then on its clock, not every frame as the stand-in above has it)
+    ZeD.CraftingCore.due = function(_, _, _, force) return force and true or false end
+    local tagWords = {}
+    for _, t in ipairs(JT.TAGS) do tagWords[WORDS.EN[t.key]] = true end
+    -- a short log, no scrollbar: the picks are measured at the scrollbar's width and drawn at the full width
+    P.md = { ZeD_Journal = { entries = {
+        { month = 7, day = 25, year = 1993, hour = 15, minute = 5, survivalDay = 80, text = "generator needs fuel", tags = { "base", "food" } },
+    } } }
+    local sw = newWin()
+    local function frame(w) squares = {}; local pp = newPanel(); JT.render(pp, w, 0, 0, W, H); return pp end
+    frame(sw); frame(sw)
+    local realMeasure = ZeD.TM.MeasureStringX
+    local measured = 0
+    ZeD.TM.MeasureStringX = function(tm, f, s) if tagWords[s] then measured = measured + 1 end; return realMeasure(tm, f, s) end
+    frame(sw)
+    ZeD.TM.MeasureStringX = realMeasure
+    check("a short log: no scrollbar", sw._journalScroll.visible == false)
+    check("a short log: the picks' words are not measured again each frame", measured == 0, measured)
+    -- the zone tables and their lists are the same frame to frame (the old page made new ones for every tag, every frame)
+    local tzList, pzList = sw._journalTagZones, sw._journalPickZones
+    local tz1, pz1 = tzList[1], pzList[1]
+    frame(sw)
+    check("a frame keeps the tags' zone tables", tz1 ~= nil and sw._journalTagZones[1] == tz1 and sw._journalPickZones[1] == pz1)
+    check("a frame keeps the zone lists", sw._journalTagZones == tzList and sw._journalPickZones == pzList and #tzList == 2 and #pzList == 8,
+        #tzList .. " / " .. #pzList)
+    -- a long log: the memory a frame takes, with every entry tagged and with none (GC stopped; the squares and the
+    -- words drawn by a panel that writes nothing down, so only the page's own tables count)
+    local function longLog(tagged)
+        local L = {}
+        for i = 1, 300 do
+            L[i] = { month = 5, day = i % 28, year = 1993, hour = 1, minute = 0, survivalDay = 1, text = "note " .. i,
+                     tags = tagged and ((i % 2 == 0) and { "food" } or { "loot", "base" }) or nil }
+        end
+        return L
+    end
+    local quiet = newPanel()
+    function quiet:drawRect() end
+    function quiet:drawRectBorder() end
+    function quiet:drawText() end
+    local dot, hol = ZeD.Atoms.drawStatusDot, ZeD.Atoms.drawStatusHollow
+    ZeD.Atoms.drawStatusDot, ZeD.Atoms.drawStatusHollow = function() end, function() end
+    local function frameKB(tagged)
+        P.md = { ZeD_Journal = { entries = longLog(tagged) } }
+        local lw = newWin()
+        for _ = 1, 3 do JT.render(quiet, lw, 0, 0, W, H) end
+        collectgarbage("collect")
+        collectgarbage("stop")
+        local m0 = collectgarbage("count")
+        JT.render(quiet, lw, 0, 0, W, H)
+        local kb = collectgarbage("count") - m0
+        collectgarbage("restart")
+        return kb, lw
+    end
+    local plainKB = frameKB(false)
+    local taggedKB, lw = frameKB(true)
+    ZeD.Atoms.drawStatusDot, ZeD.Atoms.drawStatusHollow = dot, hol
+    check("a long log: its tags cost a frame no more memory than no tags", taggedKB - plainKB < 1,
+        string.format("%.1f KB tagged, %.1f KB untagged", taggedKB, plainKB))
+    check("a long log: the tags far from the view make no zone", #lw._journalTagZones > 0 and #lw._journalTagZones < 60,
+        #lw._journalTagZones)
+    P.md, ZeD.CraftingCore.due = savedMd, savedDue
+end
 
 -- ===========================================================================
 section("the Character window calls the page")

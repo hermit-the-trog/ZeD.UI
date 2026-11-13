@@ -245,7 +245,9 @@ local function summary(card, t, rx, ry, rw)
     local dotSz, dotGap = T.px(6), T.px(4)
     local y = ry
     local pct = math.floor(d.overall + 0.5)
-    y = y + M.drawStatRowDot(card, rx, y, rw, ZeD.tr("UI_ZeD_Health_Overall"), pct .. "%", pctColor(pct)) + T.sp.rowGap
+    -- (the game's own word for the overall, as the Health tab's row and the game's health panel say it)
+    y = y + M.drawStatRowDot(card, rx, y, rw, ZeD.tr("UI_ZeD_Health_Overall"),
+        ZeD.HealthTab.overallWordOf(d), pctColor(pct)) + T.sp.rowGap
     y = y + M.drawFillBar(card, rx, y, rw, d.overall / 100, nil, ZeD.tr("UI_ZeD_Health_Overall")) + T.sp.xs
     local wounded = d.woundedCount or d.injuredCount
     if wounded == 0 then

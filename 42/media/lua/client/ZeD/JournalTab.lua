@@ -274,12 +274,20 @@ function ZeD.JournalTab.save(win, text)
 end
 
 -- The picks' places under the write box, one row or more (they wrap at the width: the Deck's
--- size with Large text takes two); kept per width, scale, font and language.
+-- size with Large text takes two); kept per width, scale, font and language. Two widths are
+-- kept, the newest first: the page measures the picks at its width with the scrollbar and
+-- draws them at the width it has, and while the log needs no scrollbar the two differ every
+-- frame (one kept layout was made again twice a frame, its words measured each time).
+-- Each pick's zone is made with its layout and moved, not made, each frame.
 local function pickLayout(win, w)
     local T = ZeD.T
     local lang = ZeD.trTestOn() and 1 or 0
-    local c = win._journalPickLay
-    if c and c.w == w and c.scale == T.scale and c.font == T.fontF3 and c.lang == lang then return c end
+    local slots = win._journalPickLay
+    if not slots then slots = {}; win._journalPickLay = slots end
+    for i = 1, 2 do
+        local c = slots[i]
+        if c and c.w == w and c.scale == T.scale and c.font == T.fontF3 and c.lang == lang then return c end
+    end
     local f3 = T.fontF3
     local box, gap, between = T.px(TAG_BOX), T.px(TAG_GAP), T.px(PICK_GAP)
     local rowH = math.max(ZeD.TM:getFontHeight(f3), box) + T.px(4)
@@ -289,27 +297,32 @@ local function pickLayout(win, w)
         local word = ZeD.tr(t.key)
         local iw = box + gap + ZeD.TM:MeasureStringX(f3, word)
         if cx > 0 and cx + iw > w then row = row + 1; cx = 0 end
-        items[i] = { t = t, word = word, dx = cx, dy = row * rowH, w = iw }
+        if not t.pickId then t.pickId = "journal:tagpick:" .. t.k end
+        items[i] = { t = t, word = word, dx = cx, dy = row * rowH, w = iw, zone = { k = t.k, id = t.pickId } }
         cx = cx + iw + between
     end
-    c = { w = w, scale = T.scale, font = T.fontF3, lang = lang, items = items, rows = row + 1, rowH = rowH, h = (row + 1) * rowH }
-    win._journalPickLay = c
+    local c = { w = w, scale = T.scale, font = T.fontF3, lang = lang, items = items, rows = row + 1, rowH = rowH, h = (row + 1) * rowH }
+    slots[2] = slots[1]
+    slots[1] = c
     return c
 end
 ZeD.JournalTab.pickLayout = pickLayout
 
--- the picks drawn at (x, y), w wide, inside the view vy0 .. vy1; their zones stamped. Returns their height.
-local function drawPicks(panel, win, x, y, w, vy0, vy1, rects)
+-- the picks drawn at (x, y), w wide, inside the view vy0 .. vy1; their zones stamped (the
+-- layout's own zone tables, in one list kept on the window). Returns their height.
+local function drawPicks(panel, win, x, y, w, vy0, vy1)
     local T, A = ZeD.T, ZeD.Atoms
     local lay = pickLayout(win, w)
     local f3 = T.fontF3
     local fh3 = ZeD.TM:getFontHeight(f3)
     local box, gap, rowH = T.px(TAG_BOX), T.px(TAG_GAP), lay.rowH
-    local zones = {}
+    local zones = win._journalPickZones
+    if not zones then zones = {}; win._journalPickZones = zones end
+    for i = #zones, 1, -1 do zones[i] = nil end
     for _, it in ipairs(lay.items) do
         local t = it.t
         local ix, iy = x + it.dx, y + it.dy
-        local id = "journal:tagpick:" .. t.k
+        local id = t.pickId
         local on = ZeD.JournalTab.isPicked(win, t.k)
         local hov = hoverIn(panel, ix, iy, it.w, rowH, vy0, vy1)
         if hov then help(win, ZeD.tr(t.help)) end
@@ -321,24 +334,30 @@ local function drawPicks(panel, win, x, y, w, vy0, vy1, rects)
         else A.drawStatusHollow(panel, ix, by, tagColor(t, false), box) end
         local tc = (washed and T.textOnFocus) or (on and tagColor(t, true)) or (hov and T.text) or T.textSec
         panel:drawText(it.word, ix + box + gap, iy + math.floor((rowH - fh3) / 2), tc.r, tc.g, tc.b, tc.a or 1, f3)
-        local z = { k = t.k, id = id, x = ix, y = iy, w = it.w, h = rowH }
+        local z = it.zone
+        z.x, z.y, z.w, z.h = ix, iy, it.w, rowH
         zones[#zones + 1] = z
-        rects[id] = z
     end
-    win._journalPickZones = zones
     return lay.h
 end
 
 -- An entry's tags in its head row: their places, kept on the entry's row (room: the row's width
 -- less the delete cross). The date keeps at least half the row; past three tags, or with no room
--- for the words, the squares alone.
-local function tagLayout(wrapped, room)
-    local tags = entryTags(wrapped.entry)
-    if #tags == 0 then return nil end
+-- for the words, the squares alone. Kept while the room, the scale, the font and the language
+-- hold (testOn: the test language's state, read once a frame by the page; nil reads it here):
+-- compared field by field, so a kept layout costs no new string. Each tag's id and zone are
+-- made with the layout and moved, not made, each frame.
+local function tagLayout(wrapped, room, testOn)
+    local src = wrapped.entry and wrapped.entry.tags
+    if type(src) ~= "table" or #src == 0 then return nil end
     local T = ZeD.T
-    local key = tostring(room) .. "|" .. tostring(T.scale) .. "|" .. tostring(T.fontF3) .. (ZeD.trTestOn() and "t" or "n")
+    if testOn == nil then testOn = ZeD.trTestOn() and true or false end
     local lay = wrapped.tagLay
-    if lay and lay.key == key and lay.src == wrapped.entry.tags then return lay end
+    if lay and lay.src == src and lay.room == room and lay.scale == T.scale and lay.font == T.fontF3
+       and lay.testOn == testOn then
+        return lay.items[1] and lay or nil
+    end
+    local tags = entryTags(wrapped.entry)
     local box, gap = T.px(TAG_BOX), T.px(TAG_GAP)
     local items = {}
     local words = #tags <= TAG_WORDS_MAX
@@ -362,17 +381,23 @@ local function tagLayout(wrapped, room)
         end
     end
     local dx = 0
-    for _, it in ipairs(items) do it.dx = dx; dx = dx + it.w + between end
-    lay = { key = key, src = wrapped.entry.tags, words = words, w = tw, items = items }
+    for _, it in ipairs(items) do
+        it.dx = dx
+        dx = dx + it.w + between
+        local id = "journal:tag:" .. tostring(wrapped.idx) .. ":" .. it.t.k
+        it.zone = { id = id, k = it.t.k, entryIdx = wrapped.idx }
+    end
+    -- (an entry whose every tag is one a later version added keeps an empty layout: no tags shown)
+    lay = { src = src, room = room, scale = T.scale, font = T.fontF3, testOn = testOn, words = words, w = tw, items = items }
     wrapped.tagLay = lay
-    return lay
+    return items[1] and lay or nil
 end
 ZeD.JournalTab.tagLayout = tagLayout
 
 -- An entry's tags drawn in its head row, ending at `right`; their zones stamped. Returns the x
 -- they start at (the date ends short of it), or nil when the entry has none.
-local function drawEntryTags(panel, win, wrapped, right, rowY, rowH, room, vy0, vy1, zones, rects)
-    local lay = tagLayout(wrapped, room)
+local function drawEntryTags(panel, win, wrapped, right, rowY, rowH, room, vy0, vy1, zones, testOn)
+    local lay = tagLayout(wrapped, room, testOn)
     if not lay then return nil end
     local T, A = ZeD.T, ZeD.Atoms
     local f3 = T.fontF3
@@ -382,20 +407,27 @@ local function drawEntryTags(panel, win, wrapped, right, rowY, rowH, room, vy0, 
     for _, it in ipairs(lay.items) do
         local t = it.t
         local ix = x0 + it.dx
-        local id = "journal:tag:" .. tostring(wrapped.idx) .. ":" .. t.k
+        local z = it.zone
         if hoverIn(panel, ix, rowY, it.w, rowH, vy0, vy1) then help(win, ZeD.tr(t.help)) end
-        local fo = focusOf(win, id)
+        local fo = focusOf(win, z.id)
         local washed = fo and ZeD.Focus.mark(panel, ix, rowY, it.w, rowH, fo)
         A.drawStatusDot(panel, ix, rowY + math.floor((rowH - box) / 2), tagColor(t, false), box)
         if it.word then
             local tc = washed and T.textOnFocus or tagColor(t, true)
             panel:drawText(it.word, ix + box + gap, rowY + math.floor((rowH - fh3) / 2), tc.r, tc.g, tc.b, tc.a or 1, f3)
         end
-        local z = { id = id, k = t.k, entryIdx = wrapped.idx, x = ix, y = rowY, w = it.w, h = rowH }
+        z.x, z.y, z.w, z.h = ix, rowY, it.w, rowH
         zones[#zones + 1] = z
-        rects[id] = z
     end
     return x0
+end
+
+-- the zone with this id in a list of zones (a tag pick, a tag on an entry), or nil
+local function zoneById(list, id)
+    for _, z in ipairs(list or _noTags) do
+        if z.id == id then return z end
+    end
+    return nil
 end
 
 -- ============================================================================
@@ -848,6 +880,8 @@ end
 -- RENDERER — JOURNAL SUB-TAB (full-width diary)
 -- ============================================================================
 
+local _reachProbe = {}   -- an entry's head row as inPadReach reads a rect (one table, refilled per entry)
+
 local function renderJournal(panel, win, x, y, w, h)
     local T    = ZeD.T
     local A    = ZeD.Atoms
@@ -952,8 +986,10 @@ local function renderJournal(panel, win, x, y, w, h)
             end
         end
         -- a tag pick, or a tag on an entry
-        local tz = not ty and win._journalTagRects and win._journalTagRects[gpFocusedId]
-        if tz then ty, th = tz.y, tz.h end
+        if not ty then
+            local tz = zoneById(win._journalPickZones, gpFocusedId) or zoneById(win._journalTagZones, gpFocusedId)
+            if tz then ty, th = tz.y, tz.h end
+        end
         if ty and th then
             local prevScrollOff = math.floor(scroll.scrollPos * (totalContentH - h))
             local contentTy = ty - (y - prevScrollOff)  -- convert screen-space Y to content-space
@@ -977,11 +1013,10 @@ local function renderJournal(panel, win, x, y, w, h)
 
     local stencilW = needsScroll and (outerW - scrollW) or outerW
     panel:setStencilRect(outerX, y, stencilW, h)
-    -- the log's view (a tag's click counts only inside it) and this frame's tag stops by id
+    -- the log's view (a tag's click counts only inside it)
     local view = win._journalView or {}
     win._journalView = view
     view.x, view.y, view.w, view.h = outerX, y, stencilW, h
-    local tagRects = {}
 
     local scrollOff = 0
     if needsScroll then
@@ -1038,7 +1073,7 @@ local function renderJournal(panel, win, x, y, w, h)
         curY = curY + T.px(ENTRY_INPUT_H) + T.sp.xs
     end
     -- the tag picks under it (ticked ones go with the entry on Save)
-    curY = curY + drawPicks(panel, win, x, curY, drawW, y, y + h, tagRects) + T.sp.xs
+    curY = curY + drawPicks(panel, win, x, curY, drawW, y, y + h) + T.sp.xs
     if intoShown then
         -- Into: the log only, or a carried notebook the character writes it in too (it stays
         -- with the write box)
@@ -1057,9 +1092,20 @@ local function renderJournal(panel, win, x, y, w, h)
     -- Journal entries — grouped by month, newest first
     local groupZones = {}
     local deleteZones = {}
-    local tagZones = {}
+    -- (the tags' zones: one list kept on the window, refilled each frame with the layouts' own
+    -- zone tables; the loop draws every entry each frame, so it makes no table per tag)
+    local tagZones = win._journalTagZones
+    if not tagZones then tagZones = {}; win._journalTagZones = tagZones end
+    for i = #tagZones, 1, -1 do tagZones[i] = nil end
     local delSz = T.buttonH - T.px(4)   -- the delete icon button: a list row's button size
     local headH = entryHeadH()
+    -- the test language's state, read once a frame (the stamps and the tags' layouts key on it)
+    local testOn = ZeD.trTestOn() and true or false
+    local stampKey = testOn and "t" or "n"
+    -- an entry's tags are drawn, and are stops, only near the view: the band the controller's
+    -- stops come from (inPadReach); a long log's far entries cost no tag work each frame
+    local reach = _reachProbe
+    reach.h = headH
 
     if #groups == 0 then
         curY = curY + M.drawEmptyLine(panel, x, curY, drawW, ZeD.tr("UI_ZeD_Journal_NoEntries"))
@@ -1089,7 +1135,6 @@ local function renderJournal(panel, win, x, y, w, h)
                     local entry = wrapped.entry
                     -- The stamp is built once per entry and language state (the loop draws every
                     -- entry each frame, and a translated phrase costs more than a concatenation).
-                    local stampKey = ZeD.trTestOn() and "t" or "n"
                     local dateStr = wrapped.stamp
                     if dateStr == nil or wrapped.stampKey ~= stampKey then
                         local monthStr = MONTHS[(entry.month or 0) + 1] and ZeD.tr(MONTHS[(entry.month or 0) + 1]) or "???"
@@ -1117,8 +1162,12 @@ local function renderJournal(panel, win, x, y, w, h)
 
                     -- its tags between the date and the delete cross (the date ends short of them)
                     local delX = x + drawW - delSz
-                    local tagX = drawEntryTags(panel, win, wrapped, delX - T.px(8), curY, headH, drawW - delSz - T.px(8),
-                        y, y + h, tagZones, tagRects)
+                    local tagX = nil
+                    reach.y = curY
+                    if ZeD.JournalTab.inPadReach(win, reach) then
+                        tagX = drawEntryTags(panel, win, wrapped, delX - T.px(8), curY, headH, drawW - delSz - T.px(8),
+                            y, y + h, tagZones, testOn)
+                    end
                     dateStr = truncText(dateStr, T.fontF3, (tagX or delX) - x - T.px(8))
                     panel:drawText(dateStr, x, curY + math.floor((headH - ZeD.TM:getFontHeight(T.fontF3)) / 2),
                         T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a or 1, T.fontF3)
@@ -1153,8 +1202,6 @@ local function renderJournal(panel, win, x, y, w, h)
     end
     win._journalGroupZones  = groupZones
     win._journalDeleteZones = deleteZones
-    win._journalTagZones    = tagZones
-    win._journalTagRects    = tagRects
 
     panel:clearStencilRect()
 
@@ -1572,8 +1619,8 @@ function ZeD.JournalTab.onBodyClick(win, x, y)
 end
 
 --- Whether a stop on the log lies within a view's height of the view (the rest are left out of
---- the controller's stops, so a long log does not make hundreds a frame; the scroll-follow
---- brings the next ones in).
+--- the controller's stops, and an entry's tags out of it are neither drawn nor stamped, so a
+--- long log does not make hundreds a frame; the scroll-follow brings the next ones in).
 function ZeD.JournalTab.inPadReach(win, z)
     local v = win and win._journalView
     if not (v and z) then return true end
