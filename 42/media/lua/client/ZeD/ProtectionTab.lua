@@ -143,7 +143,7 @@ local function gradeColor(grade)
 end
 ZeD.ProtectionTab.gradeColor = gradeColor
 
---- the colour for a part's best defense; below zero means uncovered
+--- the color for a part's defense (its layers added, at most 100); below zero means uncovered
 local function protectionColorForDef(def)
     local T = ZeD.T
     if def < 0  then return T.danger   end  -- uncovered

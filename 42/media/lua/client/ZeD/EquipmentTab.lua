@@ -144,7 +144,8 @@ end
 -- LAYOUT CONSTANTS
 -- ============================================================================
 
-local GROUP_H    = 15  -- the least a group header can be (the library's category row, T.sp.catHdrH)
+local GROUP_H    = 20  -- the least a group header can be: the tab fill's fold head (ZeD_TabFill HEAD_H), the one
+                       -- section style (design review D6; was the list's 15u category row, which read cramped: D7)
 
 -- A group header's height (and the belt's heading's): its words with 6u above and below. At the
 -- category row's 15u it was half an item row and its words touched the rows around it.
@@ -651,7 +652,8 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
 
     local pad = ZeD.Molecules.getTabPad()
     if not bodyOnly then
-        M.drawSectionHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Equip_Defense"), nil, true, false, T.fontF4, nil, pad, headerH)
+        -- the one section style (design review D6): the tab fill's mono line, not a large title
+        M.drawCategoryRow(panel, x, y, w, ZeD.tr("UI_ZeD_Equip_Defense"), nil, true, { bleedLeft = pad, h = headerH })
     end
 
     -- --- Dashboard content ---

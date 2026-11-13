@@ -1587,6 +1587,7 @@ end
 
 --- Draws the laid-out section L on panel at (x, top), inside the view viewY..viewY + viewH, and
 --- sets the 3D figures over the frames that show. Also keeps this frame's click zones.
+HB._headOpts = {}   -- (the section head's draw options, kept: a frame makes no new table)
 function HB.draw(panel, win, L, x, top, w, viewY, viewH)
     local T = ZeD.T
     local st = state(win)
@@ -1621,7 +1622,11 @@ function HB.draw(panel, win, L, x, top, w, viewY, viewH)
         end
         if vis then
             if k == "subh" then
-                ZeD.Molecules.drawSectionHeader(panel, ix, y, it.w, it.text, nil, true, false, nil, nil, nil, nil, true)
+                -- the one section style (design review D6): the tab fill's mono line, 20u, the
+                -- content line under it; not folding, so no triangle
+                local ho = HB._headOpts
+                ho.noArrow, ho.inset, ho.h = true, 0, it.h or T.px(20)
+                ZeD.Molecules.drawCategoryRow(panel, ix, y, it.w, it.text, nil, true, ho)
             elseif k == "heads" then drawHeads(panel, win, st, item, y, wants, view)
             elseif k == "parts" then drawParts(panel, win, st, item, y, mx, my)
             elseif k == "cut" then drawCut(panel, win, st, item, y, mx, my, cs, viewY, viewH)

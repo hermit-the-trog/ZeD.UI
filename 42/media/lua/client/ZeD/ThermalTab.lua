@@ -613,6 +613,7 @@ function ZeD.ThermalTab.cellH()
     return math.max(TM:getFontHeight(T.fontF3), TM:getFontHeight(T.fontF2)) + T.px(8)
 end
 
+ZeD.ThermalTab._headOpts = {}
 function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
     local T    = ZeD.T
     local A    = ZeD.Atoms
@@ -634,9 +635,12 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
 
     -- (the Core / Air / Wind readings and the core gauge sit beside the figure: _renderHeader)
 
-    -- Section head (the content line under it comes with the molecule)
-    drawY = drawY + M.drawSectionHeader(panel, listX, drawY, listW,
-        ZeD.tr("UI_ZeD_Thermal_ByRegion", ZeD.ThermalTab.labelOf(view)), nil, true, false, nil, nil, nil, nil, true)
+    -- Section head: the one section style (design review D6), the tab fill's mono line, 20u with
+    -- the content line under it; not folding, so no triangle
+    local ho = ZeD.ThermalTab._headOpts
+    ho.noArrow, ho.inset, ho.h = true, 0, T.px(20)
+    drawY = drawY + M.drawCategoryRow(panel, listX, drawY, listW,
+        ZeD.tr("UI_ZeD_Thermal_ByRegion", ZeD.ThermalTab.labelOf(view)), nil, true, ho)
     drawY = drawY + T.sp.xs
 
     -- Two-column body part grid

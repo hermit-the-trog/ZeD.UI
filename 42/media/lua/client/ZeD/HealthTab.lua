@@ -569,18 +569,35 @@ local function breakRun(out, line, font, w)
     end
     out[#out + 1] = line
 end
--- the word's lines at a width, kept on the read (a new read every few frames, a new width
--- only while the drawer moves)
-local function overallLines(data, font, w)
-    if data.overallLines and data.overallLinesW == w and data.overallLinesF == font then return data.overallLines end
+-- the word's lines at a width (no cache)
+local function buildOverallLines(data, font, w)
     local out = {}
     for _, line in ipairs(ZeD.Atoms.wrapText(ZeD.HealthTab.overallWordOf(data), font, w)) do
         breakRun(out, line, font, w)
     end
+    return out
+end
+-- the word's lines at a width, kept on the read (a new read every few frames, a new width
+-- only while the drawer moves)
+local function overallLines(data, font, w)
+    if data.overallLines and data.overallLinesW == w and data.overallLinesF == font then return data.overallLines end
+    local out = buildOverallLines(data, font, w)
     data.overallLines, data.overallLinesW, data.overallLinesF = out, w, font
     return out
 end
 ZeD.HealthTab.overallLines = overallLines
+-- how many lines the word takes at a width, for the measure: kept on the read apart from the
+-- draw's lines (the measure's width is the narrowest the column draws at, the draw's may be wider,
+-- and one cache for both would build the lines twice a frame)
+function ZeD.HealthTab.overallLineCount(data, font, w)
+    w = math.max(1, math.floor(w))
+    if data.overallMeasN and data.overallMeasW == w and data.overallMeasF == font then return data.overallMeasN end
+    local n
+    if data.overallLines and data.overallLinesW == w and data.overallLinesF == font then n = #data.overallLines
+    else n = #buildOverallLines(data, font, w) end
+    data.overallMeasN, data.overallMeasW, data.overallMeasF = n, w, font
+    return n
+end
 
 function ZeD.HealthTab.drawOverall(panel, x, y, w, data)
     local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
@@ -1491,11 +1508,20 @@ function ZeD.HealthTab._measureZoneA(data, rw, win)
     local T     = ZeD.T
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
 
-    -- Right column: summary section (its heading lives in the disclosure header)
+    -- Right column: summary section (its heading lives in the disclosure header): Overall's row
+    -- and bar, the game's word for it (drawOverall: its wrapped lines, then a gap), the summary line
     local rightH = 0
-    local statRowH = math.max(secH, ZeD.TM:getFontHeight(T.fontF2)) + T.px(4)
+    local f2H = ZeD.TM:getFontHeight(T.fontF2)
+    local statRowH = math.max(secH, f2H) + T.px(4)
     rightH = rightH + statRowH + T.sp.rowGap
-    rightH = rightH + T.fillBarH + T.sp.xs + secH + T.sp.sm
+    rightH = rightH + T.fillBarH + T.sp.xs
+    -- (counted at the narrowest the column draws, the scroll bar showing: never short of the draw;
+    -- left out, the scroll range caught up a frame late, from what the last frame drew)
+    if data then
+        local narrowW = ZeD.Molecules.layoutZoneA(0, 0, rw - T.sp.scrollbarW, 0, 0).rightW
+        rightH = rightH + ZeD.HealthTab.overallLineCount(data, T.fontF2, narrowW) * f2H + T.sp.xs
+    end
+    rightH = rightH + secH + T.sp.sm
 
     -- Right column: the picked exercise's info block (its controls are the footer band's)
     rightH = rightH + ZeD.HealthTab._measureExerciseInfo(win, rw)
