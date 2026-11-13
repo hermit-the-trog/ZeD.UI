@@ -198,7 +198,14 @@ function WM.build(win)
     items[#items + 1] = size
 
     if S.seeThroughKeys then
-        local see = { name = tr("UI_ZeD_Settings_SeeThrough"), category = "look", children = {} }
+        -- Dark only: in Light and High Contrast the windows are solid whatever it says, so the row is
+        -- dimmed there and says why (ZeD.seeThroughWorks)
+        local see = { name = tr("UI_ZeD_Settings_SeeThrough"), category = "look", children = {},
+                      disabled = function() return ZeD.seeThroughWorks ~= nil and not ZeD.seeThroughWorks() end,
+                      state = function()
+                          if ZeD.seeThroughWorks and not ZeD.seeThroughWorks() then return tr("UI_ZeD_Settings_SeeThroughDarkOnly") end
+                          return ""
+                      end }
         for i, v in ipairs(S.seeThroughKeys) do
             see.children[#see.children + 1] = leaf(tr("UI_ZeD_Settings_SeeThroughPct", v), function() S.setSeeThrough(i) end,
                 function() return S.seeThroughIndex() == i end)

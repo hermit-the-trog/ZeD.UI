@@ -318,7 +318,14 @@ end
 -- a ZeD setup row that works only while another of ZeD's switches is on (ZeD_MainMenuOptionGroups'
 -- needs: Restock needs Loadouts and outfits): true while that switch's live pick, Apply or not, is Off. Such a row
 -- dims, takes no click or press, and the controller passes over it; its pick is kept for when the switch comes on.
+-- See-through and Solid while in use work in the Dark theme only (ZeD.seeThroughWorks: Light and High Contrast draw
+-- the windows solid): outside Dark their rows dim the same way, and the help line is See-through's, which says so.
+local SEE_ROWS = { UI_ZeD_Settings_SeeThrough = true, UI_ZeD_Settings_SolidInUse = true }
+local function seeOff(r)
+    return r.labelKey ~= nil and SEE_ROWS[r.labelKey] == true and ZeD.seeThroughWorks ~= nil and not ZeD.seeThroughWorks()
+end
 local function needsOff(r)
+    if seeOff(r) then return true end
     local id = r.zedNeeds or r.zedNeedsNot   -- (needsNot: the same row, dim while that switch is On)
     if not id then return false end
     local zo = PZAPI and PZAPI.ModOptions and PZAPI.ModOptions:getOptions("ZeD_UI")
@@ -361,6 +368,7 @@ local function help(r)
     -- the groups' marks (ZeD_MainMenuOptionGroups): why it does nothing, where it works, where it lives
     -- (r.moot, r.only[2] and r.why are translation keys or plain words: G.text turns them into the player's language)
     if r.moot then return ZeD.tr("UI_ZeD_Options_MootHelp", MM.optionGroups.text(r.moot)) end
+    if seeOff(r) then return UI.plain(ZeD.tr("UI_ZeD_Settings_SeeThroughTip")) end
     if needsOff(r) then return ZeD.tr(r.zedNeedsWhy) end
     -- vanilla's tooltips often end without a full stop: add one before ZeD's words
     local function join(a, b)
