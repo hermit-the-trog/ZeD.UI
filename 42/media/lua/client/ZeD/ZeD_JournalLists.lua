@@ -680,8 +680,8 @@ local function drawDetail(panel, win, x, y, w)
         local hover = hoverRect(panel, win, x, cy, w, h)
         local label = ZeD.tr(def.key)
         if hover then help(win, ZeD.tr(folded and "UI_ZeD_Lists_HelpShow" or "UI_ZeD_Lists_HelpHide", label)) end
-        M.drawSectionHeader(panel, x + T.px(4), cy, w - T.px(4), label, #sec.lines, not folded, hover, nil, true, T.px(4), h, nil,
-            { focus = focusOf(win, id) })
+        -- (the one section style, the small mono fold line, as the lists' own heads; punch list 175a, D6)
+        M.drawCategoryRow(panel, x, cy, w, label, #sec.lines, not folded, { hover = hover, focus = focusOf(win, id), h = h, inset = T.px(6) })
         local cap = ZeD.tr(def.cap)
         local dc = T.textDim
         if tw(f1, cap) < w * 0.5 then

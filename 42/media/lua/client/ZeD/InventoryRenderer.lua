@@ -1292,7 +1292,8 @@ local function requestReadCard(self, hc)
 end
 
 -- A list row's read mark (ReadMarks.lua): in the COND column a square mark and a word, or (the column hidden) the
--- mark alone at x; the mark's shape (hollow, half, full) and colour carry the status. Returns nothing.
+-- same after the name, in readTagW's width (colW nil: the mark alone); the mark's shape (hollow, half, full) and colour
+-- carry the status. Returns nothing.
 local function drawReadCond(self, rs, x, y, rowH, colW, padX, focusTxt)
     local T, tm = ZeD.T, ZeD.TM
     local RM = ZeD.ReadMarks
@@ -1309,6 +1310,27 @@ local function drawReadCond(self, rs, x, y, rowH, colW, padX, focusTxt)
     self:drawText(word, tx, y + math.floor((rowH - tm:getFontHeight(f3)) / 2), c.r, c.g, c.b, c.a or 1, f3)
 end
 ZeD.InventoryRenderer._drawReadCond = drawReadCond
+
+-- The read tag after a name, for a row whose Status column is hidden: the mark, its lead and its word (the short
+-- word when the status has one, "30%"), so the tag keeps its word at Large text too (punch list 175f(1): it was
+-- the bare square). Returns its width in px; drawReadCond draws it given this width plus half the pad.
+local function readTagW(rs)
+    local T = ZeD.T
+    return ZeD.ReadMarks.markSize() + T.px(5) + ZeD.TM:MeasureStringX(T.fontF3, rs.short or rs.word or "")
+end
+ZeD.InventoryRenderer._readTagW = readTagW
+
+-- Which of the Category and Status columns a list row keeps, given the room past the name's least width (room)
+-- and the two columns' widths. Both when both fit; else Status drops first, then Category, as always. With read
+-- marks on, Category gives way before Status when Status alone fits: Status carries the read word (Unread, Read),
+-- and the row's category is the group heading over it (punch list 175f(1): at Large text the Status column
+-- dropped and the tag lost its word). Returns showCond, showCat.
+local function fitColumns(room, catW, condW, readOn)
+    if catW + condW <= room then return true, true end
+    if readOn and condW <= room then return true, false end
+    return false, catW <= room
+end
+ZeD.InventoryRenderer._fitColumns = fitColumns
 
 -- A grid cell names its item in a hint, a readable row or cell shows its read
 -- card: the library's hover boxes, asked of the window's overlay (which keeps
@@ -1827,14 +1849,10 @@ local function renderItemList(self)
         wtColW   = wtFit(colWData, colWData.wtC, colW - nameX - padX - scrollW, MIN_NAME)
     else
         local wtD = colWData.wt - wtShare(colWData, colWData.wt)   -- (the unit's width: the bracket drops no column)
-        if (colW - nameX - catColW - condColW - wtD - padX - scrollW) < MIN_NAME then
-            showCond = false
-            condColW = 0
-            if (colW - nameX - catColW - wtD - padX - scrollW) < MIN_NAME then
-                showCat = false
-                catColW = 0
-            end
-        end
+        -- (Status first, then Category; with read marks on, Category before Status: fitColumns)
+        showCond, showCat = fitColumns(colW - nameX - wtD - padX - scrollW - MIN_NAME, catColW, condColW, readOn)
+        if not showCond then condColW = 0 end
+        if not showCat then catColW = 0 end
         wtColW = wtFit(colWData, colWData.wt, colW - nameX - catColW - condColW - padX - scrollW, MIN_NAME)
     end
 
@@ -2189,7 +2207,9 @@ local function renderItemList(self)
         local isChild     = childParent ~= nil
         local childIndent = isChild and T.px(10) or 0
 
-        -- the read mark's status (ReadMarks.lua): read items faded with "Dim read items"
+        -- the read mark's status (ReadMarks.lua): read items dimmed with "Dim read items", the icon faded and the name in
+        -- T.textDim at full strength (it keeps 4.6 : 1 in every theme; the name faded to half was pale gray on pale gray
+        -- in Light; punch list 175f(2))
         local rs = ZeD.ReadMarks.state(playerObj or getSpecificPlayer(0), item)
         local dimA = (rs and rs.st == "r" and ZeD.ReadMarks.dimOn()) and 0.5 or 1
 
@@ -2204,7 +2224,7 @@ local function renderItemList(self)
 
         -- Name (truncated to column width), with the stack's triangle / count
         local textY  = y + math.floor((rowH - bodyFH) / 2)
-        local nameColor = focusTxt or (isSelected and T.toneHi or T.toneNorm)
+        local nameColor = focusTxt or (dimA < 1 and T.textDim) or (isSelected and T.toneHi or T.toneNorm)
         local baseName = item:getName() or "???"
         local suffix = ""
         local chevW = 0
@@ -2225,7 +2245,7 @@ local function renderItemList(self)
         local nextTag = rs and rs.next and ZeD.ReadMarks.nextOn() and ZeD.tr("UI_ZeD_Read_NextLevel") or nil
         local nextW = nextTag and tagW(nextTag) or 0
         if nextTag then avail = avail - nextW - T.px(6) end
-        local dotW = (rs and not showCond) and ZeD.ReadMarks.markSize() or 0
+        local dotW = (rs and not showCond) and readTagW(rs) or 0   -- (the mark and its word: readTagW)
         if dotW > 0 then avail = avail - dotW - T.px(6) end
         local displayName = baseName .. suffix
         if suffix ~= "" and ZeD.TM:MeasureStringX(T.fontF2, displayName) > avail then
@@ -2234,7 +2254,7 @@ local function renderItemList(self)
             displayName = truncateText(displayName, T.fontF2, avail)
         end
         dT(displayName, nameX + childIndent + chevW, textY,
-            nameColor.r, nameColor.g, nameColor.b, (nameColor.a or 1) * dimA, T.fontF2)
+            nameColor.r, nameColor.g, nameColor.b, nameColor.a or 1, T.fontF2)
         local afterName = nameX + childIndent + chevW + ZeD.TM:MeasureStringX(T.fontF2, displayName) + T.px(6)
         if ZeD.InvTip then ZeD.InvTip.nameEnd(self, item, xOff + afterName) end   -- (the loot card's tail past the name)
         if nextTag then
@@ -2243,7 +2263,7 @@ local function renderItemList(self)
             afterName = afterName + nextW + T.px(6)
         end
         if dotW > 0 then
-            drawReadCond(self, rs, xOff + afterName, y, rowH, nil, padX, focusTxt)
+            drawReadCond(self, rs, xOff + afterName, y, rowH, dotW + math.floor(padX / 2), padX, focusTxt)
             afterName = afterName + dotW + T.px(6)
         end
 

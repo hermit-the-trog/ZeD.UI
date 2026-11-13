@@ -2945,8 +2945,8 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Papers_PlaceMany` | `%1 places` | Character window, Journal tab, Papers sub-tab: second line of a list row when the piece names several places (%1 = 2 to 5) | 12 |
 | `UI_ZeD_Papers_PlaceOne` | `1 place` | Character window, Journal tab, Papers sub-tab: second line of a list row when the piece names one place | 12 |
 | `UI_ZeD_Papers_ShowPlaceN` | `Show place %1` | Papers quick look: button for the nth place when a piece names several (%1 = 1 to 5) | 20 |
-| `UI_ZeD_Papers_StateRead` | `Read` | Character window, Journal tab, Papers sub-tab: right side of a list row, piece read (next to a green dot) | 14 |
-| `UI_ZeD_Papers_StateUnread` | `Not read yet` | Character window, Journal tab, Papers sub-tab: right side of a list row, piece not read (next to a grey dot) | 16 |
+| `UI_ZeD_Papers_StateRead` | `Read` | Character window, Journal tab, Papers sub-tab: right side of a list row, piece read (next to a green dot); also the Papers and Books rows under "No notebook on you" | 14 |
+| `UI_ZeD_Papers_StateUnread` | `Not read yet` | No longer shown: the Papers rows use UI_ZeD_Read_Unread (one word for unread everywhere) | 16 |
 | `UI_ZeD_Papers_TooDark` | `Too dark to read` | Papers quick look: dim line under the disabled Read button | 30 |
 | `UI_ZeD_Papers_HelpBack` | `Back to the list.` | Character window, Journal tab, Papers sub-tab: help line over the Back button of a piece being read | - |
 | `UI_ZeD_Papers_HelpFilter` | `Show %1.` | Character window, Journal tab, Papers sub-tab: help line over a filter pill; %1 = the filter's name | - |
@@ -3165,7 +3165,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Read_Unread` | `Unread` | Item lists, COND column beside the read mark: nothing read yet | 12 |
+| `UI_ZeD_Read_Unread` | `Unread` | Item lists, Status column (or after the name) beside the read mark: nothing read yet; also the read hover card's first line, the Journal's Papers rows and the Papers and Books rows under "No notebook on you". The one word for this state everywhere: no period | 12 |
 | `UI_ZeD_Read_Read` | `Read` | Item lists, COND column beside the read mark: read (or below your level) | 12 |
 | `UI_ZeD_Read_Known` | `Known` | Item lists, COND column beside the read mark: a recipe magazine whose recipes are all known | 12 |
 | `UI_ZeD_Read_Watched` | `Watched` | Item lists, COND column beside the read mark: a VHS tape seen to the end | 12 |
