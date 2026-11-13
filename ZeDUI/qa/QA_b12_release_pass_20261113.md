@@ -96,3 +96,15 @@ One line per picture (S = Small, L = Large):
 - Radio, S and L: not checked: needs staging. A walkie in the bag did not put a Radio tab on the Character strip (`ZEDQA r3b ERR press radio=false loot=true`; the tab needs a radio in hand or in reach).
 - Vehicle, S and L: not checked: needs staging. A car spawned beside the character by the helper did not put a Vehicle tab on the World strip (`ZEDQA r3b ERR press loot=true vehicle=false`; the tab appears when you sit in or inspect a car).
 List A: none. List B: the two press lines above (staging).
+
+## Part 4. Dash interior colors (4K)
+
+Ran: no separate run. zedqa_dashpx.lua (the 24-car pass, inside Part 2's main run) already draws every car's dash with the key on at 4K and pictures each, so one car per group came from it (running a second time would have been a repeat). Pictures (the dash strip cropped from the 4K picture, 1600 x 356): Zomboid/Screenshots/b12_release_20261113/p4 (dash_<car>.png; the full pictures are in p2/zqa_dashpx_<n>_<car>_keyon.png).
+Cars by group, each dash drawn whole (`ZEDQA dpx` line per car with rect=1120,1804,1600,356 on the screen): station wagon: 10_wagon (olive green cabin, wood trim); 70s: 03_cossette (orange-tan leather) and 02_nyala (tan); 80s: 09_horizon (maroon); 90s late models: 07_primani (grey); sports and luxury leather: 01_luxury (brown leather, wood); police: 04_police (black). The picture count is 114 passed and 1 failed in dpx (the fail is `ZEDQA dpx FAIL 01_luxury: the engine is running`, a start timing line, see Part 2).
+Legend text that is hard to read on its plate:
+- 07_primani (grey): the small "TEMP" and "FAN" captions and the "ACC LOCK ON ST" ring around the ignition are pale grey on mid grey, thin; the heater's "TEMP" caption sits tight under the radio.
+- 02_nyala and 03_cossette (tan and orange-brown): the small captions under the buttons ("LIGHTS", "LOCK", "TRUNK", "WIPER", "ON SET") and the scale words "COLD / WARM / OFF / VENT / HEAT / DEF" are light grey on tan: readable, but the lowest contrast of the set.
+- 10_wagon: the "COLD WARM / OFF VENT HEAT DEF" words on the dark wood strip are small and thin; "CERISE WAGON" reads fine.
+- 04_police: all legends read well on black.
+- The "D-PAD RIGHT: VEHICLE / DASHBOARD" hint at the top right of every dash is small pixel text over the cabin colour, thin on all of them (worst on the wood and tan ones).
+List A: none for colors (no dash drawn wrongly, none cut). List B: the cars not entered in dgr and cov_vehicles (Part 2).
