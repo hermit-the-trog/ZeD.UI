@@ -346,6 +346,19 @@ local function splitLines(text)
     return out
 end
 
+function L.stackLines(text)
+    local out = {}
+    for _, l in ipairs(splitLines(text)) do
+        local _, rest = splitPrefix(l)
+        local t = rest:gsub("^%s+", ""):gsub("%s+$", "")
+        local divider = t == "" or t:find("^%-+$") or t == "STACK TRACE" or t:find("^DEBUG%-MODE STACK TRACE:?$")
+            or t:find("^dumping Lua stack trace")
+        if not divider then out[#out + 1] = l end
+    end
+    if #out == 0 then return splitLines(text) end
+    return out
+end
+
 local function rowAtPlace(place, k, noMsg)
     local r = place and L.byPlace[place]
     if not r then return nil end
@@ -400,7 +413,7 @@ function L.addError(text, source, t)
     local noMsg = msg == "" and place ~= nil
     if msg == "" and not noMsg then msg = first or "" end
     local key = msg .. "|" .. tostring(file) .. ":" .. tostring(line)
-    local stack = splitLines(text)
+    local stack = L.stackLines(text)
     local k = source == "f11" and "nF11" or "nBox"
     local r = L.byKey[key]
     if not r or noMsg then r = rowAtPlace(place, k, noMsg) or r
@@ -556,7 +569,7 @@ local function boxLine(s, t, ms)
     local b = L._blk
     if b then
         local piece = errorPiece(s)
-        local more = L.continuesError(s) or piece == "dump" or (piece == "exc" and not b.exc)
+        local more = piece ~= "sep" and (L.continuesError(s) or piece == "dump" or (piece == "exc" and not b.exc))
         if not more and b.wantMsg and not piece and s ~= "" and not splitPrefix(s) then more = true end
         if more then
             b.lines[#b.lines + 1] = s

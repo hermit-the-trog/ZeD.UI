@@ -554,7 +554,7 @@ do
     check("box error: the message without the Java class or its 'at ...'", e and e.msg == "attempted index: getHealth of non-table: null", e and e.msg)
     check("box error: the mod from '| MOD: Bandits'", e and e.mod == "Bandits")
     check("box error: the file and line of the mod's top frame", e and e.file == "BanditUpdate.lua" and e.line == 1203 and L.srcOf(e) == "BanditUpdate.lua:1203")
-    check("box error: the whole block is its stack", e and #e.stack == 9 and e.stack[#e.stack]:find("| Vanilla", 1, true) ~= nil, e and #e.stack)
+    check("box error: the whole block is its stack, without the dividers", e and #e.stack == 6 and e.stack[#e.stack]:find("| Vanilla", 1, true) ~= nil, e and #e.stack)
     check("box error: counted", L.errTotal == 1 and select(3, L.counts()) == 1)
     -- a following plain line closes the block at once
     L.reset()
@@ -803,8 +803,8 @@ do
     L.setQuery("")
     L.toggle("mod", "ZeD-GUI")
     local copied = table.concat(L.rowText(findRow("getHealth")), "\n")
-    check("copy one: the error and its stack", copied:find("^14:30:05 | error |") ~= nil and select(2, copied:gsub("\n", "")) == 9)
-    check("copy all: every shown row", select(2, L.shownText():gsub("\n", "")) == 4 + 9 - 1)
+    check("copy one: the error and its stack", copied:find("^14:30:05 | error |") ~= nil and select(2, copied:gsub("\n", "")) == 6)
+    check("copy all: every shown row", select(2, L.shownText():gsub("\n", "")) == 4 + 6 - 1)
     local realW = getFileWriter
     getFileWriter = function() error("disk full") end
     local bad, n0, tried = L.export()
@@ -1184,6 +1184,21 @@ do
     for _, r in ipairs(prints) do if not (r.msg:find("Radio Logbook", 1, true) or r.msg:find("Kentucky time", 1, true)) then stray = stray + 1 end end
     check("only the mods' real prints are print rows (6)", #prints == 6 and stray == 0, #prints .. " prints, " .. stray .. " stray")
     check("the Trail Markers row keeps the whole stack", tr_ and #tr_.stack >= 10, tr_ and #tr_.stack)
+    local noise = 0
+    for _, r in ipairs({ tr_, st }) do
+        for _, l in ipairs(r and r.stack or {}) do
+            if l:find("dumping Lua stack trace", 1, true) or l:find("^%s*%-%-%-%-%-") or l:find("> %-%-%-%-%-") or l:find("STACK TRACE$") or l:find("DEBUG%-MODE") then noise = noise + 1 end
+        end
+    end
+    check("an opened error's stack has no dividers (dump line, dashes, STACK TRACE)", noise == 0, noise)
+    -- the second error right after the first, no print between (QA, Nov 13: the lone Camp Stove error): its separator
+    -- ends in dashes and must not join the first error, or its message line becomes a print
+    L.reset(); L.forgetMods()
+    L.feedText(trail .. stove .. P("after"), 50000); L.tick(60000)
+    local st2 = findRow("minutes of non-table")
+    check("back to back: two error rows", #rowsOf("error") == 2, #rowsOf("error"))
+    check("back to back: Camp Stove's message is its error row, not a print", st2 and st2.kind == "error" and #rowsOf("print") == 1,
+        (st2 and st2.kind or "nil") .. " " .. #rowsOf("print") .. " prints")
     L.reset()
 end
 
