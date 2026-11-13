@@ -141,7 +141,7 @@ end
 function getModInfoByID(id)
     local m = MODS[(tostring(id):gsub("^\\", ""))]
     if not m then return nil end
-    return { getDir = function() return m.dir end, getName = function() return m.name end, getId = function() return id end,
+    return { getDir = function() return m.reportDir or m.dir end, getName = function() return m.name end, getId = function() return id end,
         getVersionDir = function() return m.dir .. "/42" end, getCommonDir = function() return m.dir .. "/common" end }
 end
 -- the fake mods' files live here (path -> text)
@@ -767,6 +767,13 @@ do
     MODS.FakeInventory.dir = "D:/Media/SteamLibrary/steamapps/workshop/content/108600/9/mods/FakeInventory"
     shape("a mod in a Steam library under a folder called Media: replacing", "function ISHotbar:render()\nend\n", "ISHotbar", "render", true)
     MODS.FakeInventory.dir = keepDir
+end
+-- the closure's file under another path than the mod's folder (ownerOf's match by the folder under mods/): the
+-- search for "/media/" starts in the file's own path, not at the length of a longer folder it does not begin with
+do
+    MODS.FakeInventory.reportDir = "C:/Games/Steam/steamapps/workshop/content/108600/1234567890/a/very/long/library/path/mods/FakeInventory"
+    shape("a file found by its folder under mods/ (another path than the mod's): replacing", "function ISHotbar:render()\nend\n", "ISHotbar", "render", true)
+    MODS.FakeInventory.reportDir = nil
 end
 
 QUIET = false

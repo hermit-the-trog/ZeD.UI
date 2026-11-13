@@ -131,7 +131,16 @@ function ZeD_MMMods:switchFiles(d, paths, off)
     for _, path in ipairs(paths) do
         if self._filesSeen[path] == nil then self._filesSeen[path] = (P.offOf(path) == d.modId) end
     end
-    P.setOff(d.modId, paths, off)
+    -- (the list's mods on, in load order: a path another mod holds off is taken only when this mod's copy runs)
+    local order = nil
+    local m = model()
+    pcall(function()
+        local l = m:getActiveMods():getMods()
+        local t = {}
+        for k = 0, l:size() - 1 do t[#t + 1] = l:get(k) end
+        order = t
+    end)
+    P.setOff(d.modId, paths, off, order)
     self:afterPicks()
     self._filesChanged = d.name
     MM.clickSound()
@@ -180,9 +189,36 @@ function ZeD_MMMods:resolveJump()
     if j.tries > 300 then self._pendingJump = nil end
 end
 
+--- The files "Turn off with the N" takes: this file, then each file that names it and runs from
+--- this mod (fileState "on": never the game's, one already off, or one another mod's copy stands
+--- in for, whose switch would be that mod's).
+function ZeD_MMMods:offWith(d, f, used)
+    local with = { f.path }
+    local mine = {}
+    for _, g in ipairs(F.files(d.modId)) do mine[g.path] = g end
+    for _, p in ipairs(used or {}) do
+        local g = mine[p]
+        if g and self:fileState(d, g) == "on" then with[#with + 1] = p end
+    end
+    return with
+end
+
 -- ----------------------------------------------------------------------------
 -- THE TAB
 -- ----------------------------------------------------------------------------
+--- The reading moves on for this mod's tab (once a frame), and the frame is marked as read.
+function ZeD_MMMods:stepFiles(modId)
+    self._filesStepped = true
+    return F.step(modId)
+end
+
+--- At the end of each frame of the Mods screen: no Files tab read this frame (another tab, page or
+--- mod row), so the file being read is shut (F.pause; it is read again from its start).
+function ZeD_MMMods:filesFrameEnd()
+    if not self._filesStepped then F.pause() end
+    self._filesStepped = false
+end
+
 --- How many code files the tab lists (0 while the mod was not loaded).
 function ZeD_MMMods:filesCount(d)
     if not MS.isLoaded(d.modId) then return 0 end
@@ -199,7 +235,7 @@ function ZeD_MMMods:drawFilesTab(d, ix, iw, cy, vy, vh)
     end
     local files = F.files(d.modId)
     if #files == 0 then return self:paneNote(ZeD.tr("UI_ZeD_Mods_FilesTabNone"), ix, iw, cy) end
-    F.step(d.modId)   -- (the one place the reading moves on: once a frame)
+    self:stepFiles(d.modId)   -- (the one place the reading moves on: once a frame)
     local nOff = offCount(d.modId)
     local can = self:canSwitchFiles(d)
     -- the counts, and Turn all back on
@@ -423,8 +459,7 @@ function ZeD_MMMods:drawFileCard(d, f, i, ix, iw, cy, vy, vh, can)
         cy = self:fileNote(ZeD.tr(#used == 1 and "UI_ZeD_Mods_FileUsedOne" or "UI_ZeD_Mods_FileUsedMany", #used, namesOf(used)), T.warningText, cx, cw, cy)
         if can then
             verbs[#verbs + 1] = { "mf:off", ZeD.tr("UI_ZeD_Mods_FileVerbOffAnyway"), function() self:switchFiles(d, { f.path }, true) end }
-            local with = { f.path }
-            for _, p in ipairs(used) do if not F.isGameFile(p) then with[#with + 1] = p end end
+            local with = self:offWith(d, f, used)
             verbs[#verbs + 1] = { "mf:offwith", ZeD.tr("UI_ZeD_Mods_FileVerbOffWith", #with - 1), function() self:switchFiles(d, with, true) end }
         end
     end

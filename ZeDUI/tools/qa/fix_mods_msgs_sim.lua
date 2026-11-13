@@ -9,6 +9,7 @@
 --            game's deferred reload once; never after a reset (a save's list, Accept, its own reload)
 --   FRAME    the Files tab's reading moves on once a frame, however many rows ask; a long file carries over
 --   SERVER   a server's list: no switching back on, and the helper's copies follow the player's own list
+--   TAKEOVER a shadowed copy (one that never runs) never takes the switch-off of the mod whose copy runs
 --   OWN      ZeD-GUI's own files and ZeD picks' copies are never switched off
 --   MEDIA    a Steam library under a folder called Media (or /run/media/): the Files tab, the conflict scan and
 --            Reset settings still find a mod's files in sub-folders
@@ -223,6 +224,7 @@ check("PICKOFF: and the off line", list:find("off=" .. X .. "|ModA", 1, true) ~=
 P, F = reloadPicks()
 check("PICKOFF: after a reload the pick is still there", P.pickOf(X) == "ModA", P.pickOf(X))
 check("PICKOFF: and the switch-off", P.offOf(X) == "ModA", P.offOf(X))
+check("PICKOFF: the helper's chip counts the path once (picked and off)", P.changedCount and P.changedCount() == 1, P.changedCount and P.changedCount())
 P.sync(OWN)
 boot(OWN)
 check("PICKOFF: while off, the picked copy is the one stubbed", (select(2, helperRuns(X)) or ""):find("switched off", 1, true) ~= nil)
@@ -400,6 +402,21 @@ step("Small")
 check("FRAME: the first mod's open file is shut when another mod reads", READ.opened == READ.closed, READ.opened .. " " .. READ.closed)
 for _ = 1, 200 do res = step("Big"); if res then break end end
 check("FRAME: the first mod still reads to the end, its file whole", res and res.byPath[BIG] and res.byPath[BIG].lines == 10000, res and res.byPath[BIG] and res.byPath[BIG].lines)
+-- the player leaves the Files tab partway through a file: the next frame without the tab shuts it
+F.forget()
+READ.opened, READ.closed = 0, 0
+READ.perLine = function() CLOCK = CLOCK + 1 end
+if W.stepFiles then W:stepFiles("Big") else step("Big") end
+READ.perLine = nil
+check("FRAME: partway through a long file, it is open", READ.opened > READ.closed, READ.opened .. " " .. READ.closed)
+if W.filesFrameEnd then W:filesFrameEnd() end
+check("FRAME: a frame that drew the Files tab keeps it open", READ.opened > READ.closed, READ.opened .. " " .. READ.closed)
+if W.filesFrameEnd then W:filesFrameEnd() end
+check("FRAME: a frame with no Files tab (another tab, or the screen left) shuts it", READ.opened == READ.closed, READ.opened .. " " .. READ.closed)
+READ.lines = 0
+for _ = 1, 200 do res = step("Big"); if res then break end end
+check("FRAME: back on the tab, the file is read again from its start, whole", res and res.byPath[BIG] and res.byPath[BIG].lines == 10000, res and res.byPath[BIG] and res.byPath[BIG].lines)
+check("FRAME: and shut at its end", READ.opened == READ.closed, READ.opened .. " " .. READ.closed)
 
 -- ---------------------------------------------------------------------------
 section("SERVER: a server's list")
@@ -495,6 +512,50 @@ boot(OWN)
 check("OWN: an old switch on ZeD-GUI's file never empties it", select(2, helperRuns(ZP)) == text("ZeD_UI", ZP), select(2, helperRuns(ZP)))
 P.setOff("ZeD_UI", { ZP }, false)
 check("OWN: and it can be switched back on", P.offOf(ZP) == nil)
+
+-- ---------------------------------------------------------------------------
+section("TAKEOVER: a shadowed copy never takes another mod's switch")
+-- ---------------------------------------------------------------------------
+-- ModT ships XLib.lua and Shared3.lua (which needs XLib); ModU ships Shared3.lua too and loads later, so ModU's
+-- Shared3 runs. ModU's Shared3 is switched off on ModU's tab.
+local XL, SH = "media/lua/client/XLib.lua", "media/lua/client/Shared3.lua"
+mod("ModT", { [XL] = { "XLib = {}" }, [SH] = { "require \"XLib\"", "Shared3 = XLib" } })
+mod("ModU", { [SH] = { "-- U's Shared3", "Shared3 = {}" } })
+local TU = { "ModT", "ModU", "ZeD_UI", "ZeD_Picks" }
+boot(TU)
+for _, id in ipairs({ "ModT", "ModU" }) do MODS[id] = { modId = id, name = id, isActive = true, modInfo = getModInfoByID(id) } end
+ModSelector = { instance = { model = { mods = MODS } } }
+P.setOff("ModU", { SH }, true, TU)
+P.sync(TU)
+check("TAKEOVER: ModU's Shared3 is off", P.offOf(SH) == "ModU" and (text("ZeD_Picks", SH) or ""):find("switched off", 1, true) ~= nil, P.offOf(SH))
+F.forget()
+local tf = {}
+for _, f in ipairs(F.files("ModT")) do tf[f.path] = f end
+for _ = 1, 50 do if step("ModT") then break end end
+local xlUsed = F.usedBy("ModT", XL)
+check("TAKEOVER: XLib is used by ModT's Shared3", xlUsed and #xlUsed == 1 and xlUsed[1] == SH, xlUsed and table.concat(xlUsed, ","))
+-- the box (or A) on ModT's Shared3 before the conflict scan is done: it reads 'on' there
+MS.start()
+check("TAKEOVER: before the scan, ModT's shadowed Shared3 reads on", W:fileState(MODS.ModT, tf[SH]) == "on", W:fileState(MODS.ModT, tf[SH]))
+W:fileA(MODS.ModT, tf[SH])
+check("TAKEOVER: the box on it leaves ModU's switch alone", P.offOf(SH) == "ModU", P.offOf(SH))
+P.setOff("ModT", { SH }, true, TU)
+check("TAKEOVER: the list never hands a path off for a mod whose copy runs to a shadowed one", P.offOf(SH) == "ModU", P.offOf(SH))
+for _ = 1, 200 do MS.step(); if MS.res.done then break end end
+check("TAKEOVER: the scan is done, and ModT's Shared3 never runs", MS.res.done and W:fileState(MODS.ModT, tf[SH]) == "other", W:fileState(MODS.ModT, tf[SH]))
+-- Turn off with the 1 on ModT's XLib card: XLib only (ModT's Shared3 never runs)
+local with = W.offWith and W:offWith(MODS.ModT, tf[XL], xlUsed) or { XL, SH }
+check("TAKEOVER: Turn off with takes no file another mod's copy stands in for", #with == 1 and with[1] == XL, table.concat(with, ","))
+W:switchFiles(MODS.ModT, with, true)
+P.sync(TU)
+check("TAKEOVER: after it ModU's Shared3 is still off for ModU", P.offOf(SH) == "ModU", P.offOf(SH))
+check("TAKEOVER: and the helper's copy still does nothing", (text("ZeD_Picks", SH) or ""):find("switched off", 1, true) ~= nil, text("ZeD_Picks", SH))
+check("TAKEOVER: XLib is off for ModT", P.offOf(XL) == "ModT", P.offOf(XL))
+-- a record a mod no longer runs (ModU off): the mod whose copy runs now takes it over
+P.setOff("ModT", { SH }, true, { "ModT", "ZeD_UI", "ZeD_Picks" })
+check("TAKEOVER: with ModU off, ModT's copy runs and takes the switch", P.offOf(SH) == "ModT", P.offOf(SH))
+P.setOff("ModT", { SH, XL }, false)
+P.sync(TU)
 
 -- ---------------------------------------------------------------------------
 section("MEDIA: a Steam library under a folder called Media")

@@ -111,11 +111,18 @@ function P.mayOff(modId) return modId ~= nil and modId ~= ZED_ID and modId ~= P.
 --- Switch these paths of modId off (off = true) or back on, and keep the list. A path the
 --- helper never held before is held from now on (a copy can never be deleted from Lua).
 --- A mod whose files may not be switched off (P.mayOff) is only ever switched back on.
-function P.setOff(modId, paths, off)
+--- A path another mod holds switched off is taken over only when modId's copy is the one that
+--- runs (P.runsFrom on order, the mods on in load order; the game's list when nil): a shadowed
+--- copy switched off must not hand the path back to the mod whose copy does run.
+function P.setOff(modId, paths, off, order)
     if not picks then load() end
     if off and not P.mayOff(modId) then return end
     for _, path in ipairs(paths) do
-        if off then offs[path] = modId; held[path] = true
+        if off then
+            local holder = offs[path]
+            if not holder or holder == modId or P.runsFrom(path, order) == modId then
+                offs[path] = modId; held[path] = true
+            end
         elseif offs[path] == modId then offs[path] = nil end
     end
     save()
@@ -130,6 +137,15 @@ function P.offFor(modId)
     return out
 end
 function P.pickOf(path) if not picks then load() end; return picks[path] end
+
+--- How many paths the helper changes now: a pick, a switch-off, or both on one path counted once.
+function P.changedCount()
+    if not picks then load() end
+    local n = 0
+    for _ in pairs(picks) do n = n + 1 end
+    for path in pairs(offs) do if not picks[path] then n = n + 1 end end
+    return n
+end
 
 -- the helper mod, when it is installed
 function P.helper() return safe(getModInfoByID, P.HELPER) end
@@ -226,6 +242,37 @@ end
 -- ----------------------------------------------------------------------------
 -- the helper's copies
 -- ----------------------------------------------------------------------------
+local orderOf   -- (the game's list of mods on, in load order: below)
+
+-- the copy that runs without a switch: the pick while its mod is on and ships the file, else load
+-- order's (the last mod that is on and ships it). Returns its lines and the mod it comes from.
+local function runCopy(path, order, on, fresh)
+    local from = picks[path]
+    if from and on[from] then
+        local l = P.lines(from, path, fresh)
+        if l then return l, from end
+    end
+    for i = #order, 1, -1 do
+        local id = order[i]
+        if id ~= P.HELPER then
+            local l = P.lines(id, path, fresh)
+            if l then return l, id end
+        end
+    end
+    return nil, nil
+end
+
+--- The mod whose copy of this path runs without a switch (order: the mods on, in load order; the
+--- game's list when nil), or nil when no mod that is on ships it.
+function P.runsFrom(path, order)
+    if not picks then load() end
+    order = order or orderOf()
+    local on = {}
+    for _, id in ipairs(order) do on[id] = true end
+    local _, runId = runCopy(path, order, on, false)
+    return runId
+end
+
 -- order: the mod ids that are (or will be, after the reload) on, in load order. Returns how many copies
 -- changed (a write counts once the copy reads back as written, so one that did not take asks no reload).
 function P.sync(order)
@@ -236,23 +283,8 @@ function P.sync(order)
     for _, id in ipairs(order) do on[id] = true end
     local wrote = 0
     for path in pairs(held) do
-        -- the copy that runs without a switch: the pick while its mod is on and ships the file, else
-        -- load order's (the last mod that is on and ships it); runId is the mod it comes from
-        local want, runId = nil, nil
-        local from = picks[path]
-        if from and on[from] then
-            want = P.lines(from, path, true)
-            if want then runId = from end
-        end
-        if not want then
-            for i = #order, 1, -1 do
-                local id = order[i]
-                if id ~= P.HELPER then
-                    local l = P.lines(id, path, true)
-                    if l then want, runId = l, id; break end
-                end
-            end
-        end
+        -- the copy that runs without a switch (runCopy); runId is the mod it comes from
+        local want, runId = runCopy(path, order, on, true)
         -- switched off: the do-nothing line, only while the copy that would run is that mod's own. A pick
         -- of another copy, or a mod later in the order that ships the same path, runs as it would (the
         -- switch is one mod's copy, not every mod's). Never a path the game has too, whose own copy it
@@ -305,6 +337,14 @@ end
 -- and this reload never runs twice. The check waits for the menu's first frame, when OnResetLua
 -- has had its turn.
 
+-- the game's list of mods on, in load order (getActivatedMods)
+orderOf = function()
+    local order = {}
+    local l = safe(getActivatedMods)
+    for i = 0, (l and l:size() or 0) - 1 do order[#order + 1] = l:get(i) end
+    return order
+end
+
 --- The copies rebuilt for the list the game loaded; when one changed while the helper is loaded,
 --- the game's deferred reload is asked for (Core.DelayResetLua: the main menu's update runs it
 --- after the frame's Lua events; a reset from inside an event handler closed the game). Not on a
@@ -312,13 +352,8 @@ end
 --- changed and whether the reload was asked for.
 function P.refreshLoaded()
     if not P.helper() then return 0, false end
-    local order, loaded = {}, false
-    local l = safe(getActivatedMods)
-    for i = 0, (l and l:size() or 0) - 1 do
-        local id = l:get(i)
-        order[#order + 1] = id
-        if id == P.HELPER then loaded = true end
-    end
+    local order, loaded = orderOf(), false
+    for _, id in ipairs(order) do if id == P.HELPER then loaded = true end end
     if not loaded then return 0, false end
     local wrote = 0
     pcall(function() wrote = P.sync(order) end)

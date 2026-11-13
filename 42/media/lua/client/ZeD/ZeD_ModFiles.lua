@@ -37,6 +37,7 @@
 --   F.places(name)            the last game's error places for a mod by its name
 --   F.placesOn(name, path)    those on one file; F.errorCount(name) all of them
 --   F.setJump / F.takeJump    Open in Mods' target, kept across the trip to the main menu
+--   F.pause()                 shut the file being read (the Files tab is not drawn)
 --   F.forget()                read afresh (the Mods screen opens)
 -- ============================================================================
 require "ZeD/ZeD_VanillaLua"
@@ -406,6 +407,13 @@ function F.takeJump()
     if w then pcall(function() w:close() end) end
     return { name = name, file = file }
 end
+
+--- Shut the file being read, if any (the Files tab is not drawn: another tab, or the Mods screen
+--- left). Its mod's reading starts that file again from the start on its next F.step.
+function F.pause()
+    if reading then closeFile(reading.cur); reading.cur = nil; reading = nil end
+end
+if Events and Events.OnGameStart then Events.OnGameStart.Add(F.pause) end
 
 function F.forget()
     if reading then closeFile(reading.cur); reading = nil end

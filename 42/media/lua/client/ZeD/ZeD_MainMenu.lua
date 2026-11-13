@@ -2741,6 +2741,8 @@ function MM.showView(view, joypadData)
     MM.ctx.open, MM.ctx.hot, MM.ctx.press = nil, nil, nil
     local w = MM.activeWindow()
     if was and was ~= w then MM.unfocusEntries(was) end
+    -- (the Mods screen left: the Files tab's open file is shut, or it stays open for the whole session)
+    if was ~= w and ZeD.ModFiles and ZeD.ModFiles.pause then ZeD.ModFiles.pause() end
     if w and w.onShow then w:onShow() end
     -- back at the desk after a death (Overrides/Respawn.lua): the desk over the world, not the pause
     -- menu's MainScreen; the respawning player's controller (if any) on the desk
