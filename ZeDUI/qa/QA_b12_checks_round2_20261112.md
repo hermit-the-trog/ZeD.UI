@@ -191,3 +191,56 @@ What the pictures show:
 ### List A (real mod bugs)
 - At Large on the 1280x800 screen the Character window's header word "Inventory" is cut to "Invent..." (the window is 276 px wide there). Picture: Zomboid/Screenshots/b12_round2_20261112/p3/zqa_p3_deck_large_loot_craft.png. Minor; the items' names also take ellipses at that width, as designed.
 ### List B: none. Not run: Normal as a third size (does not exist); the Journal and Foraging sort rows were not pictured (Forage appears in the Loot + Forage pictures).
+
+## Part 4. Build's remaining check list
+
+Ran (reports in ZeDUI/qa/regression/: 2026-11-12_b12r2_p4_4k.md, _p4_deck.md, _fishing_4k.md, _cn_4k.md, _ch_4k.md). Pictures: Zomboid/Screenshots/b12_round2_20261112/p4 (tooltips, console, window pictures, tab search, hair and beard), p4fish, p4cn.
+For the by-hand items I wrote one short bridge script of my own (kept out of the repo) and ran it at 4K and at 1280x800.
+
+- zedqa_container_controls.lua: ran inside the main run (tag ct): PASS, 27 s.
+- cov_input, cov_vehicles, cov_equipfurn, cov_reading, cov_b9to11: all in main_run.txt, so they ran there (Part 2), not again.
+- Game's Tooltip Font option: PASS. A tooltip built with ZeD's tooltip code at 4K measured 420 x 192 at Small, 455 x 214 at Medium, 508 x 236 at Large (and 180 / 195 / 218 wide at 1280x800); the text is visibly bigger in the pictures p4/zqa_p4_4k_tooltip_Small.png and _Large.png. The sim (coverage_bugs_sim, TOOLTIP part) is clean.
+- "Previous" on the first of several object cards wraps to the last: PASS on the real code in the game (OC.browse on a three-object list: Previous from 1 gives 3, Next from 3 gives 1, under the game's own Kahlua). Not checked on a staged set of two or more real objects in reach: needs staging. Also a sim (coverage_bugs_sim, BROWSE).
+- Two-way radio, CH down on channel 01 goes to the last stored channel: now a sim (coverage_bugs_sim, CHANNEL, clean). Not checked in the game: needs a staged two-way set with stored channels.
+- Hold LB, tap RB zooms in; hold RB, tap LB zooms out: now a sim (coverage_bugs_sim, CHORD, clean). Not checked in the game: needs a pad on the path (a real pad is connected but nobody was there to press).
+- Hidden belt hands show no hover text: now a sim (coverage_bugs_sim, HANDS, clean). Not checked in the game.
+- Window and inventory fixes, pictured at 4K and 1280x800 (char_loot, char_equip, char_health; the Part 3 pictures show the World window too):
+  - Weight reads "0.0 / 8 kg" in the Inventory header and title bar with "63 items" under it: the form is right (the QA character carries 0.0 of 8, not 5.8 of 28: a bag with a load was not staged). "5.8 / 28 kg" appears only in my sample tooltip text.
+  - The title bar shows names, units and words (Angel Cross, Flashlight | 100%, 0.0 / 8 kg, Ground, 18 items), no bare number: seen in all pictures.
+  - Not checked (needs staging, or is a sim now): a bare character's header over "Nothing here."; "Belt n" and "In hand" tags with the square marker; the Category column running into an empty Cond cell; no trunk prompt in the gap between paired windows (no trunk open); Loot column Filter focus staying put (inventory_filter_sim holds the logic); a saved window position closing Loot columns (window_saved_pos_sim).
+- Fishing live (zedqa_fishing_tab_live): PASS, 2/2 (33 PASS lines, no ERR or FAIL line), pictures in p4fish. The reload half (tag ftr) was not run (it needs a quit and a second launch).
+- zedqa_hairbeard.lua: every check FAILed from the start: `ZEDQA hb FAIL the Character window is on Identity` came first (the script did not reach the Identity tab, so the rest read 0 or nil). List B, unclear whether the tab id moved. Not checked: hair and beard.
+- Tab search on Skills and Equipment with the pad path (zedqa_tab_search): the pad lines passed: `A on the field: the pad keyboard opens`, `under the keyboard: the hand on the field`, `X on the field clears`, `the field is a stop in the tab's zone`; one pad line failed: `ZEDQA ts FAIL RT: the hand lands on the first match | skill:Blacksmithing`. Typed-text lines failed too: `Skills 'bla': some kept, the rest dimmed`, `'combat'`, `'piloting': nothing matches`, `Clear empties the field`, `Equipment 'hand'`, `Defense block hides` / `is back` (the cook and foot lines passed). All of those drive the field by script text, not typed keys: List B, unclear (a real gap in the filter is possible; tab_search_sim is the logic check and is clean). Not checked: "B leaves" and "doors still open with A afterwards" (the script has no such step; needs a pad).
+- The Fishing tab has a picture on the wheel: FAIL, a real gap, see List A (the same line as Part 2).
+- Chinese speech balloon (language CN): the four-character string built with string.char (E6 90 9C E5 88 AE E7 8A B6 E6 80 81) draws garbled, not as Chinese; see List A. Picture: p4cn/zqa_cn_CN_balloon.png.
+- Two tabs in CN (Health + Crafting, Skills + Foraging) and two in CH (the same): whole, sharp, no boxes and no cut text at 4K. Pictures: p4cn/zqa_cn_CN_health_craft.png, zqa_cn_CN_skills_forage.png, zqa_cn_CH_health_craft.png, zqa_cn_CH_skills_forage.png. Language put back to EN (options.ini restored whole).
+- The console in -debug, through the game's own ProcessCommand route (ZeD's DebugConsole.run, the call the box's Enter makes; I did not type keys): `local x = nil; x.y = 1` run three times gave TWO error rows, each with a count of 3 (one from the game's box with the Java line `zombie.ui.UIDebugConsole.ProcessCommand(UIDebugConsole.java:391)`, one from the F11 list with `attempted index of non-table`), not one row; each opens to its stack. See List A. `print("a","b")`: a row "a b" was found twice at 4K and none at 1280x800; unclear. Pictures: p4/zqa_p4_4k_console_errors.png, zqa_p4_4k_console_error_opened.png, zqa_p4_4k_console_print_ab.png and the _deck twins.
+
+### List A (real mod bugs), Part 4
+1. `ZEDQA wi FAIL 144 slices on ZeD's five wheels, 126 with a wheel icon, the rest items, glyphs or colours: right > Tabs > Fishing: rod is no icon` (Part 2's line; the Fishing tab's slice has no picture). Picture: p2/zqa_wi_dpad_right.png.
+2. Chinese balloon garbled: the balloon shows Latin-1 shapes (the bytes read as single letters) for the bytes E6 90 9C ... when the game language is CN. Picture: p4cn/zqa_cn_CN_balloon.png. Caveat: the string reached the game through the player's Say with the bytes as separate characters; if the balloon expects another hand-over, this is the check's route, not the mod's. I followed the director's description exactly.
+3. The console's error rows: the same error run three times is two rows, not one (the box row and the F11 row do not merge when their messages differ). Lines: `ZEDQA p4 C errrow n=3 box=3 f11=nil mod=ZeD-GUI msg=zombie.ui.UIDebugConsole.ProcessCommand(UIDebugConsole.java:391) stack=47` and `ZEDQA p4 C errrow n=3 box=nil f11=3 mod=ZeD-GUI msg=attempted index of non-table stack=73`. Pictures: p4/zqa_p4_deck_console_errors.png and the 4K twin.
+4. Part 3's "Invent..." cut at Large on 1280x800.
+
+### List B (test trouble), Part 4
+- hairbeard: the Identity tab step failed (above).
+- tab_search: typed-text lines drive the field by script text; unclear.
+- At 4K the print rows were listed twice: unclear whether the console shows each print twice or my listing counted twice.
+
+### Not run / not checked, Part 4
+Object cards on real staged objects; the two-way set; LB/RB zoom on the pad path; hidden belt hands hover; bare character header; Belt n / In hand tags; Category into an empty Cond cell; trunk prompt gap; Filter focus; saved position; hair and beard; "B leaves" and A on doors in tab search; the fishing reload half.
+
+## Part 5. The drawn controller (pad_figure)
+
+Ran: pad_figure.txt at 4K inside the main run (tag padfig, PASS, 31 PASS lines; pictures p2/zqa_padfig_*_3840x2160.png) and at 1280x800 windowed by its own manifest (2/2 pass, 29 PASS lines, no FAIL; pictures p5/zqa_padfig_*_1280x800.png; report 2026-11-12_b12r2_padfig_deck.md). The Deck run reports ZeD scale 0.75, k 2, the pad 376x212 in a 732x416 box.
+List A: none. List B: none. Not run: the real controller steps below.
+
+### For the director's controller session
+With a controller in hand, on Options > Controls > Button map and test:
+- each face button, View, Menu and both bumpers: held, it fills with the accent; a face button and View / Menu sit one art pixel down and right, their shadow gone
+- each D-pad arm: that arm lights with its arrow; the D-pad's label picture shows the arm
+- each stick: the cap follows the push (up is up), the label's dial dot too; a click lights the cap
+- each trigger: fills from the bottom row up as it is pulled, the label's percent counts to 100
+- the D-pad walks the labels (one stop each); A opens a label's actions; on a stick or the D-pad A first asks which element; B there goes back, B again closes; B on the page backs out
+- Test controller: pick the pad, the page leaves the buttons alone; A and Y held together end the test
+- the same with the button pictures on PlayStation (the D-pad up top) and on Xbox (the left stick up top)
