@@ -1642,6 +1642,9 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
     -- is owned by exactly one panel at a time). The whole of it is one stop for
     -- the controller (it folds the map back), so it carries the mark.
     if win._mapPopout and panel ~= win._mapPopout._contentPanel then
+        -- the tab's title over the placeholder too (punch list 175, C1): the drawer opens titled in every state
+        local th0 = ZeD.Molecules.drawTabHeader(panel, x, y, w, ZeD.tr("UI_ZeD_World_TabMaps"), false, false, true)
+        y, h = y + th0, h - th0
         ZeD.Atoms.surfaceFill(panel, x, y, w, h, "surf1")
         local onFocus = (_liveFocusId(win) == "map:fold") and ZeD.Focus.mark(panel, x, y, w, h, FOCUS)
         local fh = ZeD.TM:getFontHeight(T.fontF2)

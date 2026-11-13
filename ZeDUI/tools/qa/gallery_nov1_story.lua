@@ -316,50 +316,48 @@ if Z.want("00") then
     S.step(30, function() end)
 end
 
--- ---- 02 the plan: the Journal tab, its Page pop-up open ----------------------------------
+-- ---- 02 the plan: the Journal tab, its title and its pages' tab strip ---------------------
+-- (Nov 12 2026, punch list 175h: the "Page: Journal" pop-up is gone; the pages are a tab strip under the
+-- tab's title, so the spread shows the strip with the Journal page open)
 if Z.want("02") then
     S.step(10, function() ST.gt:setTimeOfDay(10.25); Z.openPair() end)
     S.poll(10, 120, function() return Z.charTab("journal") end)
     S.step(10, function()
         local w = Z.CW()
-        w._journalSubTab = 1
+        if w._journalSubTab ~= 1 then
+            local ok = pcall(function() ZeD.JournalTab.setPage(w, 1) end)
+            if not ok then w._journalSubTab = 1 end
+        end
         w._journalCache = nil
         Z.tall()
     end)
     S.step(60, function() Z.tall(); ST.parkMouse() end)
-    S.step(40, function()
+    S.step(2, function()
         local w = Z.CW()
-        -- what the header's Page box does on a click (JournalTab openPageMenu: the flag; the list draws next frame)
-        if not w._journalPageBox then S.err("story_02a_journal_entry", "no Page box on the Journal header") end
-        w._journalPageOpen = true
-        w._journalPageZones = nil
+        w._journalTabZones = nil
+        Z.jr = nil
     end)
-    -- (Nov 1 2026, the fix after the first run: the list was caught a few px tall) the list's rows must stand still
-    -- for 20 frames running, and 30 frames at least must have passed since it opened, before the shot
+    -- the strip's tabs must stand still for 20 frames running, and 30 frames at least must have passed, before the shot
     S.poll(1, 600, function()
         local w = Z.CW()
-        local s = (w and w._journalPageOpen) and Z.zonesSig(w._journalPageZones) or nil
+        local s = w and Z.zonesSig(w._journalTabZones) or nil
         Z.jr = Z.jr or { same = 0, f = 0 }
         local R = Z.jr
         R.f = R.f + 1
         if s ~= nil and s == R.last then R.same = R.same + 1 else R.same, R.last = 0, s end
         return s ~= nil and R.same >= 20 and R.f >= 30
-    end, function() say("note: the Page list did not settle (" .. tostring(Z.jr and Z.jr.last) .. ")") end)
+    end, function() say("note: the Journal's tab strip did not settle (" .. tostring(Z.jr and Z.jr.last) .. ")") end)
     S.step(2, function()
         local w = Z.CW()
-        local zs = w._journalPageZones or {}
+        local zs = w._journalTabZones or {}
+        if #zs == 0 then S.err("story_02a_journal_entry", "no tab strip under the Journal's title") end
         local ids = {}
-        for _, z in ipairs(zs) do ids[#ids + 1] = tostring(z.id) end
-        say("journal: Page pop-up open " .. tostring(w._journalPageOpen) .. " with " .. #zs .. " pages (" .. table.concat(ids, " ")
+        for _, z in ipairs(zs) do ids[#ids + 1] = tostring(z.page) end
+        say("journal: page " .. tostring(w._journalSubTab) .. " open, " .. #zs .. " tabs (" .. table.concat(ids, " ")
             .. ") | " .. tostring(Z.zonesSig(zs)))
         Z.shot("story_02a_journal_entry")
     end)
-    S.step(2, function()
-        local w = Z.CW()
-        w._journalPageOpen = nil
-        w._journalPageZones = nil
-        Z.charTab("loot")
-    end)
+    S.step(2, function() Z.charTab("loot") end)
     S.step(20, function() end)
 end
 
