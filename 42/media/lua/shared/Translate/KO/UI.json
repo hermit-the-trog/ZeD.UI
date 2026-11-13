@@ -6228,6 +6228,7 @@
     "UI_ZeD_Console_AcJavaOf": "%1의 Java 메서드",
     "UI_ZeD_Console_AcMore": "%1개 더",
     "UI_ZeD_Console_AcKeys": "Tab이나 Enter는 고른 제안을 선택하고, 위쪽 키와 아래쪽 키는 제안 사이를 이동하며, Esc는 제안을 닫습니다.",
+    "UI_ZeD_Console_LineFull": "그 제안은 들어가지 않습니다. 한 줄은 %1자까지입니다.",
     "UI_ZeD_Console_PadTake": "선택",
     "UI_ZeD_Console_PadShut": "닫기",
     "UI_ZeD_Console_BackToLog": "로그로 돌아가기",

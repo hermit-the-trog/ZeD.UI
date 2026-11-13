@@ -6,7 +6,11 @@
 -- Zomboid/Lua as a table of files, and the game's print landing in the console's box a frame late. It checks:
 --   * the swap: the Scratchpad keycap puts the box in place of the line (the line's words come along), One line back
 --   * a run of many lines, past 256 characters, through loadstring: a "ran" row, its output from Console under it,
---     the box's late copy of that output skipped; Enter runs, Shift+Enter makes a new line
+--     the box's late copy of that output skipped (the box writes 42.22.2's prefix; 200 prints and one print of 200
+--     lines alike, each line once); Enter runs, Shift+Enter makes a new line
+--   * a big box (1500 lines): a steady frame makes no pass over its text and no copy of it, a keystroke reads only
+--     near the cursor; S.lines, S.lineCount and the cursor's line and column as the old patterns gave them; a click
+--     in a box with \r\n endings
 --   * a line that does not compile and a run that fails: an error row from Console with the message given
 --   * the history: Up on the first line and Down on the last step through runs, the draft comes back; the cap of 200
 --     runs (oldest dropped), no run twice in a row; the file written and read back
@@ -158,7 +162,10 @@ end
 function JC:onOtherKey(k)
     if k == 15 and self.prevSuggestion then self.cmd:SetText(self.prevSuggestion .. "()") end
 end
-function say(s) STDOUT[#STDOUT + 1] = "LOG  : Lua          f:1, t:1> " .. tostring(s) .. "\n" end
+-- (a print reaches the box as 42.22.2 writes it, DebugLog.formatLogStringForConsole: "LOG  : Lua          f:<frame>> ";
+-- 42.21 wrote ", t:<ms>" after the frame, and this stub in that shape hid the scratchpad's doubled lines)
+local PREFIX = "LOG  : Lua          f:1> "
+function say(s) STDOUT[#STDOUT + 1] = PREFIX .. tostring(s) .. "\n" end
 
 local MADE, ON_SCREEN = true, true
 UIManager = {
@@ -426,7 +433,7 @@ print = function(...)
     for i = 1, select("#", ...) do parts[i] = tostring((select(i, ...))) end
     local s = table.concat(parts, "\t")
     if s:find("^FAIL") or s:find("^console_scratch_sim") then sysPrint(s); return end
-    STDOUT[#STDOUT + 1] = "LOG  : Lua          f:1, t:1> " .. s .. "\n"
+    STDOUT[#STDOUT + 1] = PREFIX .. s .. "\n"
 end
 require "ZeD/ZeD_DebugConsole"
 local DC = ZeD.DebugConsole
@@ -538,9 +545,27 @@ check("the run on the history", S.history[#S.history] == code)
 check("the history file written", (FILES["ZeD_console_history.txt"] or ""):find("for i = 1, 3 do n = n + i end", 1, true) ~= nil)
 frame(); frame()
 check("the box's late copy of the output skipped", countMsg("total    6") == 1, countMsg("total    6"))
-STDOUT[#STDOUT + 1] = "LOG  : Lua          f:1, t:1> total\t6\n"
+STDOUT[#STDOUT + 1] = PREFIX .. "total\t6\n"
 frame()
 check("a second print of the same words (not the run's) is a row", countMsg("total    6") == 2, countMsg("total    6"))
+-- every line a run prints is one row, however many: 200 prints, and one print of 200 lines (the box's copies
+-- skipped past the 64th line too, and the game's prefix off each of them)
+local function countHas(part)
+    local n = 0
+    for _, r in ipairs(rows()) do if r.kind == "print" and r.msg:find(part, 1, true) then n = n + 1 end end
+    return n
+end
+S.run("for i = 1, 200 do print('sep row ' .. i) end")
+frame(); frame()
+check("200 prints: 200 rows, the box's copies skipped", countHas("sep row ") == 200, countHas("sep row "))
+check("200 prints: no row keeps the game's prefix", countHas("f:1>") == 0, countHas("f:1>"))
+do
+    local many = {}
+    for i = 1, 200 do many[i] = "one print line " .. i end
+    S.run("print(" .. string.format("%q", table.concat(many, "\n")) .. ")")
+end
+frame(); frame()
+check("one print of 200 lines: 200 rows", countHas("one print line ") == 200, countHas("one print line "))
 -- past the game's 256
 local long = "local s = '" .. string.rep("x", 400) .. "'\nprint(#s)"
 check("the long run is past 256 characters", #long > 256)
@@ -864,6 +889,128 @@ for _, prof in ipairs(PROFILES) do
     end
 end
 JoypadState.players[1] = nil
+
+-- ============================================================================
+-- 9. a big box (1500 lines, 39 KB, the cursor at its end): a frame works nothing out again over the whole text, a
+--    keystroke reads only near the cursor, and what the box draws and where its cursor stands are as before
+-- ============================================================================
+ZEDQA_ROOT, ZEDQA_LARGE = 1, false
+ZeD.applyTheme("dark", "orange", "small")
+SCREEN.w, SCREEN.h = 1920, 1080
+DC.close()
+DC.win, DC.place = nil, nil
+MODE = "kbm"
+JC.visible = true
+frame()
+win = DC.win
+win:setMode("pad")
+win.pad:focus()
+local TEMPLATES = { "local inv = getPlayer():getInventory()", "local items = inv:getItems()", "for i = 0, items:size() - 1 do",
+    "    local it = items:get(i)", "    if it:getType() == \"Axe\" then", "        print(it:getName(), it:getCondition())", "    end",
+    "end", "-- the bag's weight, then the player's", "local w = inv:getCapacityWeight()", "print(w)", "x = x + 1" }
+local bigLines = {}
+for i = 1, 1500 do bigLines[i] = TEMPLATES[(i - 1) % #TEMPLATES + 1] end
+local bigText = table.concat(bigLines, "\n") .. "\nlocal p = getPl"
+check("the big box: 39 KB", #bigText > 38000, #bigText)
+-- what touches a text of 10000 characters or more: a pattern pass over it (a find that ran past the 10000th character,
+-- any match, gmatch or gsub), a copy that long, and how many string.sub calls in all; plain finds are the game's
+-- indexOf and stay free
+local BIG = 10000
+local W9 = { on = false, big = 0, bigSub = 0, subs = 0, what = {} }
+local real = { find = string.find, match = string.match, gmatch = string.gmatch, gsub = string.gsub, sub = string.sub }
+local function seen(name, p) W9.big = W9.big + 1; W9.what[#W9.what + 1] = name .. " " .. tostring(p) end
+string.find = function(s, p, init, plain)
+    local r = { real.find(s, p, init, plain) }
+    if W9.on and type(s) == "string" and #s >= BIG and not plain and (r[1] == nil or r[1] >= BIG) then seen("find", p) end
+    return unpack(r)
+end
+string.match = function(s, p, ...)
+    if W9.on and type(s) == "string" and #s >= BIG then seen("match", p) end
+    return real.match(s, p, ...)
+end
+string.gmatch = function(s, p)
+    if W9.on and type(s) == "string" and #s >= BIG then seen("gmatch", p) end
+    return real.gmatch(s, p)
+end
+string.gsub = function(s, p, ...)
+    if W9.on and type(s) == "string" and #s >= BIG then seen("gsub", p) end
+    return real.gsub(s, p, ...)
+end
+string.sub = function(s, i, j)
+    local r = real.sub(s, i, j)
+    if W9.on then
+        W9.subs = W9.subs + 1
+        if #r >= BIG then W9.bigSub = W9.bigSub + 1 end
+    end
+    return r
+end
+local function watch(fn)
+    W9.big, W9.bigSub, W9.subs, W9.what = 0, 0, 0, {}
+    W9.on = true
+    fn()
+    W9.on = false
+end
+win:_padSet(bigText)
+draw(win)
+draw(win)
+watch(function() draw(win) end)
+check("big box, a steady frame: no pass over the whole text", W9.big == 0, table.concat(W9.what, ", "))
+check("big box, a steady frame: no copy of it", W9.bigSub == 0, W9.bigSub)
+check("big box, a steady frame: a few dozen substrings at most (the rows shown)", W9.subs <= 200, W9.subs)
+check("big box: the meta line counts its lines", textHas("Lines: 1501 | Characters: " .. #bigText))
+check("big box: the last line drawn, its caret on it", textHas("local p = getPl") and win._caret ~= nil)
+check("big box: the suggestions follow it", win.ac ~= nil and win.ac.items[1].n == "getPlayer", win.ac and win.ac.items[1].n)
+typeIn(win.pad, "a")
+watch(function() draw(win) end)
+check("big box, a keystroke: no pattern pass over the whole text", W9.big == 0, table.concat(W9.what, ", "))
+check("big box, a keystroke: the string scan jumps (not a string.sub per character)", W9.subs < 1000, W9.subs)
+check("big box, a keystroke: the box took it", win:padText() == bigText .. "a")
+if os.getenv("ZEDQA_VERBOSE") then sysPrint("  big box keystroke: " .. W9.subs .. " string.sub calls, " .. W9.big .. " whole-text passes") end
+-- a click on the second line of a text with \r\n endings: the cursor there, at the column clicked (the \r not drawn)
+win:_padSet("ab\r\ncd\r\nef", 0)
+draw(win)
+check("\\r\\n: the rows drawn without the \\r", textHas("cd") and not textHas("cd\r"))
+local st = win._padSt
+win:padClick(st.tx + st.cw * 1 + 1, st.ty + st.lh + 1)
+check("\\r\\n: a click on line 2, column 1, puts the cursor after its c", win._padCur == 5, win._padCur)
+string.find, string.match, string.gmatch, string.gsub, string.sub = real.find, real.match, real.gmatch, real.gsub, real.sub
+
+-- the walks that took the place of the patterns give what the patterns gave (copies of the old ones, on random texts)
+local function oldLines(text)
+    local out = {}
+    for l in (tostring(text or ""):gsub("\r", "") .. "\n"):gmatch("([^\n]*)\n") do out[#out + 1] = l end
+    return out
+end
+local function oldLineCount(text)
+    local n = 1
+    for _ in tostring(text or ""):gmatch("\n") do n = n + 1 end
+    return n
+end
+local function oldLineCol(text, cur)
+    local before = text:sub(1, cur)
+    local line = 0
+    for _ in before:gmatch("\n") do line = line + 1 end
+    local col = #(before:match("([^\n]*)$") or "")
+    return line, col
+end
+math.randomseed(1112)
+local ALPHA = { "a", "b", " ", "\n", "\n", "\r", "x" }
+local bad = {}
+for _ = 1, 400 do
+    local parts = {}
+    for k = 1, math.random(0, 14) do parts[k] = ALPHA[math.random(#ALPHA)] end
+    local t = table.concat(parts)
+    local a, b = oldLines(t), S.lines(t)
+    if table.concat(a, "|") .. #a ~= table.concat(b, "|") .. #b then bad[#bad + 1] = "lines " .. string.format("%q", t) end
+    if oldLineCount(t) ~= S.lineCount(t) then bad[#bad + 1] = "count " .. string.format("%q", t) end
+    for cur = 0, #t do
+        local l1, c1 = oldLineCol(t, cur)
+        local l2, c2 = DC.lineCol(t, cur)
+        if l1 ~= l2 or c1 ~= c2 then bad[#bad + 1] = "lineCol " .. string.format("%q", t) .. " " .. cur end
+    end
+end
+check("S.lines, S.lineCount and the cursor's line and column: as the patterns gave", #bad == 0, bad[1])
+DC.close()
 
 sysPrint("console_scratch_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end

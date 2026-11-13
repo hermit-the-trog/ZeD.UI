@@ -6228,6 +6228,7 @@
     "UI_ZeD_Console_AcJavaOf": "Metodele Java ale lui %1",
     "UI_ZeD_Console_AcMore": "încă %1",
     "UI_ZeD_Console_AcKeys": "Tab sau Enter ia sugestia aleasă, Sus și Jos se mută printre ele, Esc le închide.",
+    "UI_ZeD_Console_LineFull": "Sugestia nu încape: linia are loc pentru %1 de caractere.",
     "UI_ZeD_Console_PadTake": "Ia",
     "UI_ZeD_Console_PadShut": "Închide",
     "UI_ZeD_Console_BackToLog": "Înapoi la jurnal",

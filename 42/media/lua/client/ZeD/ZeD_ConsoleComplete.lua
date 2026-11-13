@@ -163,27 +163,60 @@ end
 -- THE WORD AT THE CURSOR
 -- ---------------------------------------------------------------------------
 -- Is the cursor inside a string or a comment? (a scan of the code before it, "--" to the line's end, quotes with
--- their backslash escapes; long brackets count as a string from "[[" or "[=[" on)
+-- their backslash escapes; long brackets count as a string from "[[" or "[=[" on, to the next "]]")
+-- (The scan jumps from one character that can change what it is in to the next with plain finds, the game's own
+-- indexOf: a string.sub per character cost 16 ms a keystroke at the end of a 1500-line scratchpad.)
 local function inStringOrComment(before)
-    local i, n = 1, #before
-    local q = nil
+    local n = #before
+    local i, q = 1, nil
+    -- (in code: where the next quote, bracket and dash stand, each found again only once the scan has passed it)
+    local nDq, nSq, nBr, nDa = 0, 0, 0, 0
     while i <= n do
-        local c = string.sub(before, i, i)
-        if q then
-            if c == "\\" then i = i + 1
-            elseif q == "]]" then
-                if string.sub(before, i, i + 1) == "]]" then q = nil; i = i + 1 end
-            elseif c == q then q = nil end
-        elseif c == "\"" or c == "'" then q = c
-        elseif c == "[" and (string.sub(before, i, i + 1) == "[[" or string.sub(before, i, i + 1) == "[=") then q = "]]"
-        elseif c == "-" and string.sub(before, i, i + 1) == "--" then
-            local nl = string.find(before, "\n", i, true)
-            if not nl then return true end
-            i = nl
+        if q == nil then
+            if nDq < i then nDq = string.find(before, "\"", i, true) or n + 1 end
+            if nSq < i then nSq = string.find(before, "'", i, true) or n + 1 end
+            if nBr < i then nBr = string.find(before, "[", i, true) or n + 1 end
+            if nDa < i then nDa = string.find(before, "-", i, true) or n + 1 end
+            local j = math.min(nDq, nSq, nBr, nDa)
+            if j > n then return false end
+            i = j + 1
+            if j == nDq or j == nSq then
+                q = string.sub(before, j, j)
+            elseif j == nBr then
+                local d = string.sub(before, i, i)
+                if d == "[" or d == "=" then q = "]]" end
+            elseif string.sub(before, i, i) == "-" then
+                local nl = string.find(before, "\n", j, true)
+                if not nl then return true end
+                i = nl + 1
+            end
+        else
+            -- (in a string: the next backslash skips the character after it; the next closer ends it)
+            local b = string.find(before, "\\", i, true) or n + 1
+            local e = string.find(before, q, i, true) or n + 1
+            if b > n and e > n then return true end
+            if b < e then
+                i = b + 2
+            else
+                i = e + #q
+                q = nil
+            end
         end
-        i = i + 1
     end
     return q ~= nil
+end
+C.inStringOrComment = inStringOrComment   -- (for the sims)
+
+-- the name characters ([%w_]*) that end at cur, read from a short tail of the text and a longer one only while the
+-- word fills it (an unanchored match over the whole text before the cursor cost 43 ms a keystroke at 1500 lines)
+local function wordBefore(text, cur)
+    local span = 64
+    while true do
+        local from = math.max(1, cur - span + 1)
+        local pre = string.match(string.sub(text, from, cur), "[%w_]*$") or ""
+        if from == 1 or #pre < cur - from + 1 then return pre end
+        span = span * 4
+    end
 end
 
 -- the steps of a base: { { name, call } , { sep, name, call }, ... } or nil when it is not a plain chain
@@ -216,13 +249,12 @@ end
 function C.token(text, cur)
     text = tostring(text or "")
     cur = math.max(0, math.min(#text, cur or #text))
-    local before = string.sub(text, 1, cur)
-    local pre = string.match(before, "[%w_]*$") or ""
+    local pre = wordBefore(text, cur)
     local ps = cur - #pre
     -- (a number, or a name that starts with a digit, gets nothing)
     if pre ~= "" and string.find(pre, "^%d") then return nil end
     local sep = ps > 0 and string.sub(text, ps, ps) or ""
-    if inStringOrComment(before) then return nil end
+    if inStringOrComment(string.sub(text, 1, cur)) then return nil end
     if sep ~= "." and sep ~= ":" then
         if #pre < C.MIN_GLOBAL then return nil end
         -- (a field after a bracket or a closing call that is not a plain chain: nothing)

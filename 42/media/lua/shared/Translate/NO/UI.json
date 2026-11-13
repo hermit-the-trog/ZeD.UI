@@ -6228,6 +6228,7 @@
     "UI_ZeD_Console_AcJavaOf": "Java-metoder i %1",
     "UI_ZeD_Console_AcMore": "%1 til",
     "UI_ZeD_Console_AcKeys": "Tab eller Enter tar det valgte forslaget, Opp og Ned flytter gjennom dem, Esc lukker dem.",
+    "UI_ZeD_Console_LineFull": "Det forslaget får ikke plass: linjen tar %1 tegn.",
     "UI_ZeD_Console_PadTake": "Ta",
     "UI_ZeD_Console_PadShut": "Lukk",
     "UI_ZeD_Console_BackToLog": "Tilbake til loggen",
