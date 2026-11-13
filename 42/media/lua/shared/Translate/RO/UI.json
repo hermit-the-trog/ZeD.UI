@@ -3357,6 +3357,7 @@
     "UI_ZeD_Animals_RunMilking": "Se mulge %1 din %2",
     "UI_ZeD_Animals_RunShearing": "Se tunde %1 din %2",
     "UI_ZeD_Animals_RunStopped": "Oprit după %1 din %2.",
+    "UI_ZeD_Animals_RunFast": "Oprit după %1 din %2: la această viteză jocul nu merge pe jos.",
     "UI_ZeD_Animals_RunFull": "%1 plin: muls %2 din %3.",
     "UI_ZeD_Animals_SelNothing": "%1 selectate: nimic de muls sau de tuns",
     "UI_ZeD_Animals_Selected": "%1 selectate",

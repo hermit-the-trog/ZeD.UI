@@ -3357,6 +3357,7 @@
     "UI_ZeD_Animals_RunMilking": "Melke %1 von %2",
     "UI_ZeD_Animals_RunShearing": "Schere %1 von %2",
     "UI_ZeD_Animals_RunStopped": "Gestoppt nach %1 von %2.",
+    "UI_ZeD_Animals_RunFast": "Gestoppt nach %1 von %2: bei diesem Spieltempo wird nicht gelaufen.",
     "UI_ZeD_Animals_RunFull": "%1 voll: %2 von %3 gemolken.",
     "UI_ZeD_Animals_SelNothing": "%1 ausgewählt: nichts zu melken oder scheren",
     "UI_ZeD_Animals_Selected": "%1 ausgewählt",

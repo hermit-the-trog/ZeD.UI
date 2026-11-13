@@ -109,6 +109,24 @@ local function discoverPlayerAnimals(player)
         end
     end
 
+    -- the last fallback: an animal no zone listed and with no zone of its own yet (a hen just placed in a pen)
+    -- goes to the streamed zone whose bounds hold its square, so the zone row counts what the totals count
+    for _, obj in ipairs(animals) do
+        if not placed[obj] then
+            local ax, ay, az = math.floor(obj:getX()), math.floor(obj:getY()), math.floor(obj:getZ())
+            for _, zone in ipairs(zoneList) do
+                local okB, zx, zy, zw, zh, zz = pcall(function()
+                    return zone:getX(), zone:getY(), zone:getW(), zone:getH(), zone:getZ()
+                end)
+                if okB and zx and zw and zh and (zz == nil or zz == az)
+                        and ax >= zx and ax < zx + zw and ay >= zy and ay < zy + zh then
+                    put(zone, obj)
+                    break
+                end
+            end
+        end
+    end
+
     return animals, zoneMap, zoneList
 end
 

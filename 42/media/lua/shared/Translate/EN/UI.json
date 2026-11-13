@@ -3357,6 +3357,7 @@
     "UI_ZeD_Animals_RunMilking": "Milking %1 of %2",
     "UI_ZeD_Animals_RunShearing": "Shearing %1 of %2",
     "UI_ZeD_Animals_RunStopped": "Stopped after %1 of %2.",
+    "UI_ZeD_Animals_RunFast": "Stopped after %1 of %2: the game will not walk at this speed.",
     "UI_ZeD_Animals_RunFull": "%1 full: milked %2 of %3.",
     "UI_ZeD_Animals_SelNothing": "%1 selected: nothing to milk or shear",
     "UI_ZeD_Animals_Selected": "%1 selected",

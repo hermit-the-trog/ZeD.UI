@@ -432,9 +432,10 @@ end
 section("TABS")
 -- ---------------------------------------------------------------------------
 local FUR, ANI = readFile(CL .. "FurnitureTab.lua"), readFile(CL .. "AnimalsTab.lua")
--- (Nov 12 2026, design review C1: the tab's title is row 1, the sub-tabs end on the strip under it)
+-- (Nov 12 2026, design review C1 + D6: every tab's title is row 1, the sub-tabs end on the strip under it)
 check("TABS Furniture: the sub-tabs sit at the foot of the strip under the title", FUR:find("local tabY = y + titleH + T.stripH - T.tabH", 1, true) ~= nil)
-check("TABS Animals: the sub-tabs sit at the foot of row 1", ANI:find("local topPad = T.stripH - T.tabH", 1, true) ~= nil)
+check("TABS Animals: row 1 is the tab's title, the sub-tabs under it",
+    ANI:find('local titleH = M.drawTabHeader(panel, x, y, w, ZeD.tr("UI_ZeD_World_TabAnimals"), false, false, true)', 1, true) ~= nil)
 -- the station header (the real renderViewHeader)
 do
     local STS = readFile(CL .. "Stations.lua")

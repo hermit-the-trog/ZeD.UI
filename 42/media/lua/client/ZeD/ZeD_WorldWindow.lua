@@ -195,6 +195,29 @@ end
 -- ZeD_WorldWindow._extTabs by the window's per-tab dispatch (focus, click, scroll, the focus refresh).
 ZeD_WorldWindow._extTabs = ZeD_WorldWindow._extTabs or {}
 ZeD_WorldWindow._extPending = ZeD_WorldWindow._extPending or {}
+
+-- The animal each tab stop shows, in order (false for a stop with none): a roster scrolled by whole rows keeps
+-- its stops' count, ids and places, so the animals key the ring's rebuild too (a pad X after a mouse scroll
+-- ticked the animal the row showed before the scroll).
+function ZeD_WorldWindow._tabSnapAnimals(els)
+    local out = {}
+    for i = 1, #els do out[i] = els[i].animal or false end
+    return out
+end
+--- Whether the tab's stops differ from the last snapshot (the ring is rebuilt then): another tab, another count,
+--- other first or last stops, the last one moved or resized, or another animal on any stop.
+function ZeD_WorldWindow._tabSnapDirty(snap, tab, els)
+    local n = #els
+    if not snap or snap.tab ~= tab or snap.n ~= n then return true end
+    if n == 0 then return false end
+    if snap.firstId ~= els[1].id or snap.lastId ~= els[n].id
+        or snap.lastY ~= els[n].y or snap.lastH ~= els[n].h then return true end   -- (the stops move when the tab
+    local an = snap.animals                                                         -- scrolls or resizes)
+    for i = 1, n do
+        if ((an and an[i]) or false) ~= (els[i].animal or false) then return true end
+    end
+    return false
+end
 -- the tabs and the test, for the D-pad wheels' Tabs slice (ZeD_DpadWheels.lua)
 ZeD_WorldWindow.TABS = WORLD_TABS
 ZeD_WorldWindow.isTabVisible = isTabVisible
@@ -2482,7 +2505,10 @@ local function worldStateOf(win)
     -- Persisted geometry is stored in DESIGN UNITS (screen px / T.scale).
     -- _baseInvW already holds design units; x/y/h are screen px and are divided here.
     -- Saves written before the scale system were at scale 1.0, so they read back as-is.
-    local baseW = CONTAINER_STRIP_W + (win._baseInvW or 372) + ACTION_TAB_STRIP_W   -- design units
+    local invU = win._baseInvW or 372
+    -- (a width this screen's fit brought it down to is saved as the width it came from until the player resizes it)
+    if T and win._fitFromInvW and win._fitInvW and math.abs(T.px(invU) - T.px(win._fitInvW)) <= 1 then invU = win._fitFromInvW end
+    local baseW = CONTAINER_STRIP_W + invU + ACTION_TAB_STRIP_W   -- design units
     return {
         -- the window's own place: a rolled side where it starts unrolled, and a window the engine pushed left
         -- while a full card holds it against the screen's edge where it stands without the push
@@ -2562,7 +2588,9 @@ local function applyWorldState(win, ws)
     -- (ZeD.Scale.fitInvW; the director, Nov 11 2026; the window grows right, so its left edge stays)
     local fitU = ZeD.Scale and ZeD.Scale.fitInvW and
         ZeD.Scale.fitInvW(T, math.min(win._maxWinW or math.floor(screenW * 0.5), screenL + screenW - x), CONTAINER_STRIP_W + ACTION_TAB_STRIP_W)
+    win._fitInvW, win._fitFromInvW = nil, nil
     if type(fitU) == "number" and wU - CONTAINER_STRIP_W - ACTION_TAB_STRIP_W > fitU then
+        win._fitFromInvW, win._fitInvW = wU - CONTAINER_STRIP_W - ACTION_TAB_STRIP_W, fitU
         wU = CONTAINER_STRIP_W + fitU + ACTION_TAB_STRIP_W
         w = T.px(wU)
     end
@@ -3485,6 +3513,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     win._zedLabel = "World"
 
     -- Restore saved position/size (must come after _maxWinW is set)
+    if type(fitU) == "number" then win._fitInvW, win._fitFromInvW = fitU, 372 end   -- (the restore below replaces both)
     restoreWorldState(win, playerObj)
 
     -- registerWindow fires early; ring construction + claimFocus deferred
@@ -4859,16 +4888,8 @@ function ZeD_WorldWindow.toggle(playerNum)
             -- empty tables. This catch-up keeps worldTabContent in sync with live data.
             local newEls = _buildWorldPanelFocusables(win, self, win._activeTab) or {}
             local snap   = win._lastTabContentSnapshot
-            local oldN   = snap and snap.n or -1
-            local oldTab = snap and snap.tab or nil
             local newN   = #newEls
-            local dirty  = (oldTab ~= win._activeTab) or (oldN ~= newN)
-            if not dirty and newN > 0 and snap then
-                dirty = (snap.firstId ~= newEls[1].id)
-                     or (snap.lastId  ~= newEls[newN].id)
-                     or (snap.lastY   ~= newEls[newN].y)   -- (the stops move when the tab scrolls
-                     or (snap.lastH   ~= newEls[newN].h)   -- or resizes, as the map does with the text size)
-            end
+            local dirty  = ZeD_WorldWindow._tabSnapDirty(snap, win._activeTab, newEls)
             -- Pending card-jump after recipe selection. CC.buildFocusables
             -- recipeRow onActivate sets state._gpPendingCardJump after openCraft.
             -- Card pane renders via split animation over a few frames; once the
@@ -5027,6 +5048,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                     lastId  = newEls[newN] and newEls[newN].id or nil,
                     lastY   = newEls[newN] and newEls[newN].y or nil,
                     lastH   = newEls[newN] and newEls[newN].h or nil,
+                    animals = ZeD_WorldWindow._tabSnapAnimals(newEls),
                 }
                 Focus.setRingZoneElements(win, "worldTabContent", newEls, preserveIdx)
                 Focus.setZoneFocusable   (win, "worldTabContent", newN > 0)

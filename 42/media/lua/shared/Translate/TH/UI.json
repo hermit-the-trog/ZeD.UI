@@ -3357,6 +3357,7 @@
     "UI_ZeD_Animals_RunMilking": "กำลังรีดนม %1 จาก %2",
     "UI_ZeD_Animals_RunShearing": "กำลังตัดขน %1 จาก %2",
     "UI_ZeD_Animals_RunStopped": "หยุดหลัง %1 จาก %2",
+    "UI_ZeD_Animals_RunFast": "หยุดหลัง %1 จาก %2: เดินไม่ได้ที่ความเร็วเกมนี้",
     "UI_ZeD_Animals_RunFull": "%1 เต็ม: รีดนมแล้ว %2 จาก %3",
     "UI_ZeD_Animals_SelNothing": "เลือก %1 ตัว: ไม่มีอะไรให้รีดนมหรือตัดขน",
     "UI_ZeD_Animals_Selected": "เลือก %1 ตัว",

@@ -3357,6 +3357,7 @@
     "UI_ZeD_Animals_RunMilking": "Dojení %1 z %2",
     "UI_ZeD_Animals_RunShearing": "Stříhání %1 z %2",
     "UI_ZeD_Animals_RunStopped": "Zastaveno po %1 z %2.",
+    "UI_ZeD_Animals_RunFast": "Zastaveno po %1 z %2: při této rychlosti hry se nechodí.",
     "UI_ZeD_Animals_RunFull": "%1 je plný: podojeno %2 z %3.",
     "UI_ZeD_Animals_SelNothing": "%1 vybráno: nic k dojení ani stříhání",
     "UI_ZeD_Animals_Selected": "%1 vybráno",

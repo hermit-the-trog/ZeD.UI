@@ -1522,6 +1522,11 @@ function ZeD_Window.resetLayout(which, pn)
     end
     if charWin then resetChar(charWin, defW, defH, gap, screenW, screenL, screenT) end
     if worldWin then resetWorld(worldWin, defW, defH, gap, screenW, screenL, screenT) end
+    -- (a width the fit narrowed is saved as the usual 372 until the player resizes, as a fresh open: #150)
+    local fitted = defW < T.px(444) and (defW - T.px(36) - T.px(36)) / (T.scale or 1) or nil
+    for _, w in ipairs({ charWin or false, worldWin or false }) do
+        if w then w._fitInvW, w._fitFromInvW = fitted, fitted and 372 or nil end
+    end
     -- the controller's stops follow the reset to Loot (the stops of the tab that was
     -- showing stayed registered, and a Right from the strip landed on one not drawn)
     if charWin and ZeD_CharacterWindow.syncRing then ZeD_CharacterWindow.syncRing(charWin) end

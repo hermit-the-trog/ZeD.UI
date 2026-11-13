@@ -3357,6 +3357,7 @@
     "UI_ZeD_Animals_RunMilking": "Fejés %1 / %2",
     "UI_ZeD_Animals_RunShearing": "Nyírás %1 / %2",
     "UI_ZeD_Animals_RunStopped": "Leállítva %1 / %2 után.",
+    "UI_ZeD_Animals_RunFast": "Leállítva %1 / %2 után: ezen a játéksebességen nincs gyaloglás.",
     "UI_ZeD_Animals_RunFull": "%1 megtelt: %2 / %3 megfejve.",
     "UI_ZeD_Animals_SelNothing": "%1 kiválasztva: nincs mit fejni vagy nyírni",
     "UI_ZeD_Animals_Selected": "%1 kiválasztva",
