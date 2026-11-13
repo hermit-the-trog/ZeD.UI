@@ -140,7 +140,7 @@ for did, g in pairs(DP.CAB_GROUP) do
     check("DATA " .. did .. " is in DashPx", des ~= nil)
     if des then
         local G = DP.CAB_ODDS[g]
-        local want = HCOL[G.title].ramps
+        local want = HCOL[G.heading].ramps
         if G.always then
             check("DATA " .. did .. ": one color, no cabins", des.cabins == nil and des.cabinTex == nil)
         else
