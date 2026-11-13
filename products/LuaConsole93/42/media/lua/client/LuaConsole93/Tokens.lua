@@ -1,7 +1,7 @@
 -- LuaConsole93/42/media/lua/client/LuaConsole93/Tokens.lua
 -- ============================================================================================================
--- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's Tokens.lua the console uses (60 of its 99
--- statements).
+-- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's Tokens.lua the console uses (61 of its
+-- 100 statements).
 -- Made from ZeD-GUI's 42/media/lua/shared/ZeD/Tokens.lua by ZeDUI/tools/products/build_luaconsole93.py. Do
 -- not edit it here: change ZeD-GUI's file and build again.
 -- ============================================================================================================
@@ -124,7 +124,7 @@ LC93.BaseThemes = {
         info     = hex("#1A5566"),
         violet   = hex("#552288"),
         borderW  = 1,
-        disabledAlpha = 0.42,
+        disabledAlpha = 0.6,
         chromeHi = rgba(1.0, 1.0, 1.0, 1.0),
         chromeSh = rgba(0.0, 0.0, 0.0, 0.40),
         grooveDark  = rgba(0.0, 0.0, 0.0, 0.30),
@@ -184,7 +184,7 @@ LC93.BaseThemes = {
         info     = hex("#44CCFF"),
         violet   = hex("#CC99FF"),
         borderW  = 2,
-        disabledAlpha = 0.42,
+        disabledAlpha = 0.55,
         chromeHi = rgba(1.0, 1.0, 1.0, 1.0),
         chromeSh = rgba(0.0, 0.0, 0.0, 1.0),
         grooveDark  = rgba(0.0, 0.0, 0.0, 0.65),
@@ -644,6 +644,10 @@ LC93.currentAccent = LC93.DEFAULT_ACCENT
 LC93.currentSize   = "small"
 LC93.surfaceAlpha = 0.9
 
+function LC93.seeThroughWorks(baseKey)
+    return (baseKey or LC93.currentBase) == "dark"
+end
+
 function LC93.applyTheme(baseKey, accentKey, sizeKey)
     LC93.currentBase   = baseKey   or LC93.currentBase
     LC93.currentAccent = accentKey or LC93.currentAccent
@@ -673,6 +677,15 @@ function LC93.applyTheme(baseKey, accentKey, sizeKey)
     T.surf3    = base.surf3
     T.surf4    = base.surf4
     local sa = LC93.surfaceAlpha
+    if LC93._seeForced and sa == 1 then sa = LC93._seePick end
+    if LC93.seeThroughWorks(LC93.currentBase) then
+        LC93._seeForced = nil
+        LC93.surfaceAlpha = sa
+    else
+        LC93._seePick, LC93._seeForced = sa, true
+        sa = 1
+        LC93.surfaceAlpha = 1
+    end
     if type(sa) == "number" then
         if sa < 0.6 then sa = 0.6 elseif sa > 1 then sa = 1 end
         T.base  = LC93.colorAlpha(T.base, sa)

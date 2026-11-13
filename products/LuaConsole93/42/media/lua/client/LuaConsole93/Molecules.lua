@@ -455,13 +455,12 @@ function LC93.Molecules.drawSectionHeader(panel, x, y, w, text, count, expanded,
     local T = LC93.T
     local sp = T.sp
     local h = heightOverride or T.px(SECTION_H)
-    local font = fontOverride or T.fontF1
+    local font = T.fontF1
     local tm = LC93.TM
     local bleed = bleedLeft or 0
     opts = opts or NO_OPTS
     text = LC93.Atoms.textCase(text)
 
-    LC93.Atoms.surfaceFill(panel, x - bleed, y, w + bleed, h, "surf2")
     if hovered then
         local hv = T.hover
         panel:drawRect(x - bleed, y, w + bleed, h, hv.a, hv.r, hv.g, hv.b)
@@ -471,35 +470,35 @@ function LC93.Molecules.drawSectionHeader(panel, x, y, w, text, count, expanded,
         onFocus = LC93.Focus.mark(panel, x - bleed, y, w + bleed, h, opts.focus)
     end
 
-    LC93.Atoms.drawDividerH(panel, x - bleed, y + h - T.px(1), w + bleed, false)
+    LC93.Atoms.drawDividerH(panel, x - bleed, y + h - (T.hair or T.px(1)), w + bleed, false)
 
-    local discSz = math.max(T.px(8), math.floor(tm:getFontHeight(font) * 0.5))
+    local tc = onFocus and T.textOnFocus or (T.toneLo or T.textDim)
+
+    local discSz = math.min(T.px(8), h - T.px(4))
     local discX = x
     local discY = y + math.floor((h - discSz) / 2)
     if not noArrow then
-        local discColor = T.arrow
         if expanded then
-            LC93.Atoms.drawTriangleDown(panel, discX, discY, discSz, discColor)
+            LC93.Atoms.drawTriangleDown(panel, discX, discY, discSz, tc)
         else
-            LC93.Atoms.drawTriangleRight(panel, discX, discY, discSz, discColor)
+            LC93.Atoms.drawTriangleRight(panel, discX, discY, discSz, tc)
         end
     end
-    local textY = y + (h - tm:getFontHeight(font)) / 2
+    local textY = y + math.floor((h - tm:getFontHeight(font)) / 2)
 
-    local titleX = noArrow and discX or (discX + discSz + T.px(6))
-    local tc = onFocus and T.textOnFocus or T.textHead
+    local titleX = noArrow and discX or (discX + discSz + T.px(4))
     local countStr = count and ("(" .. tostring(count) .. ")") or nil
     local room = x + w - sp.sm - titleX
     if countStr then room = room - tm:MeasureStringX(T.fontF1, countStr) - sp.xs end
     text = LC93.Atoms.truncateText(text, font, math.max(0, room))
-    panel:drawText(text, titleX, textY, tc.r, tc.g, tc.b, tc.a, font)
+    panel:drawText(text, titleX, textY, tc.r, tc.g, tc.b, tc.a or 1, font)
 
     if count then
-        local dc = onFocus and T.textOnFocus or T.textDim
+        local dc = tc
         if countInline then
             local titleW = tm:MeasureStringX(font, text)
             local countX = titleX + titleW + sp.xs
-            panel:drawText(countStr, countX, textY, dc.r, dc.g, dc.b, dc.a, T.fontF1)
+            panel:drawText(countStr, countX, textY, dc.r, dc.g, dc.b, dc.a or 1, T.fontF1)
         else
             LC93.Atoms.drawTextRight(panel, countStr, x + w - sp.sm, textY, T.fontF1, dc)
         end
