@@ -152,7 +152,9 @@ end
 local fileCache = {}
 local function readModFile(m, path)
     local p = slash(path)
-    local at = p:lower():find("/media/", 1, true)
+    -- (the "/media/" after the mod's own folder: a Steam library can sit in a folder called Media,
+    -- "D:/Media/SteamLibrary/...", or under /run/media/ on a Steam Deck)
+    local at = p:lower():find("/media/", m.dir and (#m.dir + 1) or 1, true)
     if not at then return nil end
     local rel = p:sub(at + 1)
     local ck = tostring(m.key) .. "|" .. rel

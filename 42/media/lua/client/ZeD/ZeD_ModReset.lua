@@ -142,8 +142,12 @@ local function sourceFiles(modId)
     if ZeD.ModScan and ZeD.ModScan.isLoaded(modId) then
         for i = 0, (getLoadedLuaCount() or 0) - 1 do
             local raw = tostring(getLoadedLua(i)):gsub("\\", "/")
-            local at = lower(raw):find("/media/", 1, true)
-            if at and roots[lower(raw:sub(1, at - 1))] then add(raw:sub(at + 1)) end
+            -- (the mod's folder ends before a "/media/": the first one that is its folder, since a Steam
+            -- library can sit in a folder called Media, "D:/Media/SteamLibrary/...", or under /run/media/)
+            local lp = lower(raw)
+            local at = lp:find("/media/", 1, true)
+            while at and not roots[lp:sub(1, at - 1)] do at = lp:find("/media/", at + 1, true) end
+            if at then add(raw:sub(at + 1)) end
         end
     end
     for _, dir in ipairs({ "media/lua/client", "media/lua/shared", "media/lua/server" }) do
