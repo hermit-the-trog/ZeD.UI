@@ -2243,6 +2243,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Map_NotesEmpty` | `No learned notes. Use %1 on a paper with someone's notes to learn them.` | Maps tab with Share Annotations: side list when no notes are learned. %1 the mod's menu entry (Remember annotations) | - |
 | `UI_ZeD_Map_WhereOff` | `Kentucky, USA` | Maps tab with Where Am I?: over the map when the character is in none of the mod's areas (the mod's own words) | - |
 | `UI_ZeD_Map_HelpCant` | `%1: %2` | Maps tab: help line over a mark, pen or tool that cannot be used now; %1 = its name, %2 = the reason (the game's own words, e.g. you need a pen) | - |
+| `UI_ZeD_Map_HelpNamed` | `%1: %2` | Maps tab: the help line over one of the toolbar's or the band's icon buttons (they carry no words), under the pointer or the controller; %1 = the button's name (Unfold, Map key), %2 = what it does (a whole sentence) | - |
 | `UI_ZeD_Map_HelpDraw` | `Show or hide the drawing tools.` | Maps tab, toolbar: help line over the button that shows or hides the drawing tools | - |
 | `UI_ZeD_Map_HelpDrawErase` | `Erase: press on the map and move over the marks to take them off.` | Maps tab, drawing tools: help line over the Erase tool | - |
 | `UI_ZeD_Map_HelpDrawFree` | `Draw freehand: press on the map and move.` | Maps tab, drawing tools: help line over the freehand Draw tool | - |

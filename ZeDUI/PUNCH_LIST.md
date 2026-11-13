@@ -4510,6 +4510,18 @@ to be proposed.
       pause), then drag the Character or World window over that moodle and point at it again (no balloon, no note
       over the window). Same run, under -debug: Furniture's chip at the cursor's tile in the lower right corner sits
       above the game's position line (x: ... y: ...) as well as the version line, with any cheat lines on.
+   h. **Built (Build, Nov 12 2026), C4, C1, D6 and C6 for Radio, Vehicle, Journal and Maps.** C4: one sub-page
+      strip, ZeD.SubTabs (RadioTab.lua; the library's tab in a row, as Animals and Furniture): Radio has a tab per
+      radio (the set's name; two alike carry where each is), Vehicle a tab per vehicle (its type a tag at the right),
+      Journal its pages as tabs; the "< Secondary (1) >" pager and the "Page: Journal" pop-up are gone. A strip
+      short of room closes up, then cuts the longer names, then shows the tabs round the open one. Pad stops
+      radio:tab:n, mech:veh:n, jtab:page (A opens; with one radio or vehicle no stop); the wheel over the radios'
+      strip steps. C1: Journal opens with its title (the search at its right), Maps with "Maps" (not in the
+      pop-out). D6: Vehicle's and the trailer's card sections, the Maps side list's sections and the Journal's
+      kills head are the small mono line (drawCategoryRow); Radio's Channels / Heard / Power already were. C6:
+      Maps' icon buttons name themselves in the help line under the pointer and the controller ("Unfold: Open
+      the map..."; UI_ZeD_Map_HelpNamed, 28 languages). subpage_tabs_sim. QA: each tab at the Deck and 4K, Normal
+      and Large text, mouse and pad; a car lot (several vehicles) and three radios at once.
 176. **Lua Console 93 Professional Edition: the Lua console as its own mod (the director, Nov 12 2026, via QA: "I want to release this as a
    separate mod. Just the console. Call it like Console Pro 93"; ships with beta 12, the same day, after QA passes
    both).** Debug mode only, for mod makers. Built by ZeDUI/tools/products/build_luaconsole93.py from ZeD's own console

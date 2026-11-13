@@ -3912,6 +3912,7 @@
     "UI_ZeD_Msg_DeleteAskErrors": "Tüm hatalar silinsin mi? Geri getirilemez.",
     "UI_ZeD_Msg_HelpAskNo": "Mesajları sakla.",
     "UI_ZeD_Map_HelpCant": "%1: %2",
+    "UI_ZeD_Map_HelpNamed": "%1: %2",
     "UI_ZeD_Map_HelpDraw": "Çizim araçlarını göster veya gizle.",
     "UI_ZeD_Map_HelpDrawErase": "Sil: haritaya basın ve işaretlerin üzerinden geçerek kaldırın.",
     "UI_ZeD_Map_HelpDrawFree": "Serbest çiz: haritaya basın ve hareket ettirin.",

@@ -3912,6 +3912,7 @@
     "UI_ZeD_Msg_DeleteAskErrors": "ลบข้อผิดพลาดทั้งหมดหรือไม่? เอากลับมาไม่ได้",
     "UI_ZeD_Msg_HelpAskNo": "เก็บข้อความไว้",
     "UI_ZeD_Map_HelpCant": "%1: %2",
+    "UI_ZeD_Map_HelpNamed": "%1: %2",
     "UI_ZeD_Map_HelpDraw": "แสดงหรือซ่อนเครื่องมือวาด",
     "UI_ZeD_Map_HelpDrawErase": "ลบ: กดบนแผนที่แล้วเลื่อนผ่านเครื่องหมายเพื่อลบออก",
     "UI_ZeD_Map_HelpDrawFree": "วาดอิสระ: กดบนแผนที่แล้วเลื่อน",

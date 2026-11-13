@@ -145,9 +145,17 @@ local function drawBtn(panel, win, b, x, y, h, iconOnly, focId)
         o.active, o.disabled, o.pressed = b.on and true or false, b.dim and true or false, false
         o.focus = focused and FOCUS or nil
         o.id = id
+        -- (punch list 175, C6: an icon button carries no words: the help line names it, under the pointer or the
+        -- controller, "Map key: Show or hide the map key...")
+        local named = o.hover or focused
         o.hint = o.hover and (b.hint or b.text) or nil
-        o.help = o.hover and helpOf(b) or nil
+        o.help = nil
+        if named then
+            local hl = helpOf(b)
+            o.help = (b.dim and b.hint) and hl or ZeD.MapsTab.namedHelp(b.hint or b.text, hl)
+        end
         M.drawIconButton(panel, x, y, h, pic, o)
+        if focused and o.help then ZeD.Help.set(panel, o.help) end
     else
         local text = b.text or ""
         w = M.buttonW(text)
@@ -155,7 +163,8 @@ local function drawBtn(panel, win, b, x, y, h, iconOnly, focId)
         o.hover = A.mouseIn(panel, x, y, w, h)
         o.disabled = b.dim and true or false
         o.focus = focused and (b.on and FOCUS_SOLID or FOCUS) or nil
-        o.help = o.hover and helpOf(b) or nil
+        o.help = (o.hover or focused) and helpOf(b) or nil
+        if focused and o.help then ZeD.Help.set(panel, o.help) end
         -- on: the active look, solid accent with its words in textOnAccent
         local col = nil
         if b.on then
@@ -384,14 +393,15 @@ function E.dockedSideW(win, panel)
     return ZeD.T.px(SIDE_W)
 end
 
--- The list is built from the library: section heads (M.drawSectionHeader), rows
+-- The list is built from the library: section heads (M.drawCategoryRow), rows
 -- with the hover wash, the selected wash and the controller's mark, a System 7
 -- checkbox or a square status mark, prose in F2, an icon button to delete, a
 -- scrollbar when it runs long. The question before a delete (Cancel and Delete)
 -- is the card's band while it is asked (E.drawAsk, from MapsTab.lua).
 local ROW_PAD   = 8    -- design units: the text inset, and the gap after a row's mark
 local ROW_TOP   = 6    -- design units: above the first line of a row (and below its last)
-local SECTION_H = 20   -- design units: M.drawSectionHeader's height
+local SECTION_H = 20   -- design units: a section head's height (M.drawCategoryRow, punch list 175 D6)
+local _secO = { noArrow = true }
 local NO_LINES  = {}
 local _delOpts, _askOpts, _askSpec = {}, {}, {}
 local _askBtns = { {}, {} }
@@ -535,7 +545,10 @@ local function drawSection(target, win, s, x, cy, w, ox, oy, focId, ask)
     local T, M = ZeD.T, ZeD.Molecules
     local pad = T.px(ROW_PAD)
     local headH = T.px(SECTION_H)
-    M.drawSectionHeader(target, x + pad, cy, w - pad, s.title or "", s.count, true, false, nil, nil, pad, headH, true)
+    -- (punch list 175, D6: the one section style, the small mono line, as Moodles, Fitness and Presets; no fold
+    -- triangle: a section here does not fold)
+    _secO.h, _secO.inset = headH, pad
+    M.drawCategoryRow(target, x, cy, w, s.title or "", s.count, true, _secO)
     cy = cy + headH
     if s.rows and #s.rows > 0 then
         for _, r in ipairs(s.rows) do

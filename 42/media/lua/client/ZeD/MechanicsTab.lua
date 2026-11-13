@@ -37,6 +37,7 @@ require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/MechFigs"
 require "ZeD/MechTrailer"
+require "ZeD/RadioTab"   -- (ZeD.SubTabs, the sub-page tab strip)
 
 ZeD = ZeD or {}
 ZeD.MechanicsTab = ZeD.MechanicsTab or {}
@@ -53,6 +54,10 @@ local COL_GAP       = 12
 local ROW_H         = 24
 local CAT_H         = 15     -- the library's category row
 local SEC_H         = 20
+-- a card section's head: the category row (the one section style, punch list 175 D6), no fold triangle
+-- (it does not fold), SEC_H tall, its words at the card's inset
+local _secO = { noArrow = true }
+local function _secOpts(pad) _secO.h, _secO.inset = ZeD.T.px(SEC_H), pad; return _secO end
 local FIX_H         = 38
 local MINI_BAR_W    = 40
 local LIST_BAR_W    = 24     -- the part list's bar, in its narrower column
@@ -904,7 +909,47 @@ end
 
 -- opts for the library parts that take the controller's focus themselves (reused each frame)
 local _cancelOpts = {}                 -- the progress band's Cancel
-local _browseOpts = { focusParts = {} } -- the drawer header's previous / next keys
+-- the vehicles' tab strip (ZeD.SubTabs, RadioTab.lua): its opts; the mark goes on the tab the controller is on
+local _stripFocus = { s = nil }
+local _stripOpts = { focusOf = function(i) local s = _stripFocus.s; return s and focusFor(s, "mech:veh:" .. i) or nil end }
+
+local _vehTabItems = {}
+--- The vehicles' tabs: each one's name (two of the same name carry their place in the list, "Chevalier Nyala (2)");
+--- the help line names it and its type.
+function MT.vehicleTabItems(list)
+    local seen = {}
+    for i, v in ipairs(list or {}) do
+        local n = vehicleName(v)
+        seen[n] = (seen[n] or 0) + 1
+    end
+    for i, v in ipairs(list or {}) do
+        local n = vehicleName(v)
+        local it = _vehTabItems[i] or {}
+        _vehTabItems[i] = it
+        it.label = (seen[n] > 1) and (n .. " (" .. i .. ")") or n
+        local ty = mechType(v)
+        it.help = (ty ~= "") and (n .. " | " .. ty) or n
+    end
+    for i = #_vehTabItems, #(list or {}) + 1, -1 do _vehTabItems[i] = nil end
+    return _vehTabItems
+end
+
+-- a vehicle tab's press: that vehicle, its list from the top and no part chosen (the pager's old reset)
+local _vehTabFns = {}
+function MT.vehicleTabFn(s, i)
+    local by = _vehTabFns[s]
+    if not by then by = {}; _vehTabFns[s] = by end
+    local fn = by[i]
+    if not fn then
+        fn = function()
+            if s.idx == i then return end
+            s.idx = i
+            s.scrollY, s.cardScroll, s.card, s.confirm = 0, 0, nil, nil
+        end
+        by[i] = fn
+    end
+    return fn
+end
 
 -- ----------------------------------------------------------------------------
 -- Car figure
@@ -1747,7 +1792,8 @@ local function renderCardBody(panel, win, s, x, top, w, bodyH, v, chr, cm)
     end
 
     local function section(text)
-        local sh = M.drawSectionHeader(panel, x + pad, cy, cw - pad, text, nil, true, false, nil, nil, pad, T.px(SEC_H), true)
+        -- (punch list 175, D6: the one section style, the small mono line, as Moodles, Fitness and Presets)
+        local sh = M.drawCategoryRow(panel, x, cy, cw, text, nil, true, _secOpts(pad))
         cy = cy + sh + T.px(4)
     end
 
@@ -2040,21 +2086,32 @@ local function renderSplit(panel, win, s, x, y, w, h, v, chr, inspected)
     local M = ZeD.Molecules
     local parts = cachedParts(s, v, chr)
 
-    -- header: browse + vehicle name + type tag
-    _browseOpts.focusParts.prev = focusFor(s, "mech:prev")
-    _browseOpts.focusParts.next = focusFor(s, "mech:next")
-    local prevZ, nextZ = M.drawDrawerInternalHeader(panel, x, y, w,
-        { idx = s.idx, total = #s.vehicles }, vehicleName(v), mechType(v), nil, _browseOpts)
-    local headerH = T.stripH   -- row 1, as drawDrawerInternalHeader draws it
+    -- row 1: the vehicles' tab strip (punch list 175, C4: a tab per vehicle, as Animals picks Ranch or
+    -- Butcher), at the row's foot; the shown vehicle's type as a tag at the right. A tab's press (or A)
+    -- shows that vehicle; with one vehicle its tab is no stop.
+    local headerH = T.stripH   -- row 1
+    local tag = mechType(v)
+    local tagW = 0
+    if tag ~= "" then
+        local pillH = T.px(16)
+        tagW = ZeD.Atoms.tagW(tag, false)
+        if tagW * 3 < w then
+            M.drawTag(panel, x + w - T.px(10) - tagW, y + math.floor((headerH - pillH) / 2), tag, nil)
+            tagW = tagW + T.px(16)
+        else
+            tagW = 0
+        end
+    end
+    local items = MT.vehicleTabItems(s.vehicles)
+    local gp = s.gpId
+    _stripFocus.s = s
+    _stripOpts.focus = gp and tonumber(gp:match("^mech:veh:(%d+)$") or "") or nil
+    _stripOpts.rightReserve, _stripOpts.noHover, _stripOpts.win = tagW, isGamepad(), win
+    local _, tabZones = ZeD.SubTabs.draw(panel, x, y + headerH - T.tabH, w, items, s.idx, _stripOpts)
     if #s.vehicles > 1 then
-        stamp(s, "mech:prev", prevZ.x, prevZ.y, prevZ.w, prevZ.h, function()
-            s.idx = s.idx - 1; if s.idx < 1 then s.idx = #s.vehicles end
-            s.scrollY, s.cardScroll, s.card, s.confirm = 0, 0, nil, nil
-        end)
-        stamp(s, "mech:next", nextZ.x, nextZ.y, nextZ.w, nextZ.h, function()
-            s.idx = s.idx + 1; if s.idx > #s.vehicles then s.idx = 1 end
-            s.scrollY, s.cardScroll, s.card, s.confirm = 0, 0, nil, nil
-        end)
+        for _, z in ipairs(tabZones) do
+            stamp(s, "mech:veh:" .. z.idx, z.x, z.y, z.w, z.h, MT.vehicleTabFn(s, z.idx))
+        end
     end
 
     -- the chosen part (only after an inspection; a part that is gone lets the card go)
