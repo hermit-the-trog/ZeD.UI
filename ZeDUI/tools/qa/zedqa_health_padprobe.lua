@@ -5,8 +5,8 @@
 -- exercise pop-up and Start: ids health:exercise, health:time:dec / inc, health:start). Wounds as that test sets them; every Health stop listed
 -- with its rect, then a Down walk from the first stop with each landing printed.
 -- (Oct 30 2026, punch list 21 a-f; run it at 1280x800 too: zedqa_run.ps1 -Width 1280 -Height 800)
--- Checks (PASS / FAIL): the Down walk reaches the band (a bandStop: the exercise box, - / +,
--- Start) at Large text and at the player's size; every body stop it lands on is whole in the
+-- Checks (PASS / FAIL): Down from the first stop (the figure) lands on a stop whose top edge is below the figure stop's bottom edge (the pad rule, not a fixed control; Nov 12 2026; the walk still runs to the band and says whether it got there),
+-- at Large text and at the player's size; every body stop it lands on is whole in the
 -- body's view, between the pinned header and the band (none under the band); no stop the
 -- ring holds lies under the band.
 -- Puts the text size, the wounds and the tab back. grep "ZEDQA hp".
@@ -80,16 +80,21 @@ local function census()
     Focus.focusWhere(w, "charTabContent", function(e) return e == first end)
 end
 -- the Down walk: each landing printed and checked in view; ends where Down stays put
-local n, last, band, outside = 0, nil, false, 0
+local n, last, band, outside, fig, first1 = 0, nil, false, 0, nil, nil
 local function walk()
     local w = cw()
     local e = Focus.getFocusedElement(w)
     local z = Focus.getFocusedZone(w)
     say(string.format("down %02d -> %s %s", n, tostring(z and z.zone), e and rect(e) or "nil"))
+    if n == 0 then fig = e elseif n == 1 then first1 = e end   -- (the stop Down starts from, and where the first Down landed)
     if e and e.bandStop then band = true end
     if e and n > 0 and not inView(w, e) then outside = outside + 1; say("  (out of the body's view)") end
     if band or n >= 40 or not z or z.zone ~= "charTabContent" or (e and e.id == last and n > 0) then
-        check(band, ZeD.currentSize .. ": Down from the figure reaches the band (ended on " .. tostring(e and e.id) .. ")")
+        -- the pad rule, not a fixed control: Down goes to a stop whose top edge is below the figure stop's bottom edge
+        -- (which stop is the nearest one straight below is the mod's own pick, Focus.previewMove; not recomputed here)
+        check(fig ~= nil and first1 ~= nil and first1.y >= fig.y + fig.h - 1,
+            ZeD.currentSize .. ": Down from the figure lands on a stop below it (" .. (fig and rect(fig) or "no start") .. " -> " .. (first1 and rect(first1) or "no move") .. ")")
+        say("band reached by the walk: " .. tostring(band))
         check(outside == 0, ZeD.currentSize .. ": every body stop the walk landed on was whole in view (" .. outside .. " not)")
         return
     end
@@ -103,7 +108,7 @@ step(5, walk)
 step(10, function()
     -- the same walk at the player's own size
     ZeD.applyTheme(nil, nil, origSize)
-    n, last, band, outside = 0, nil, false, 0
+    n, last, band, outside, fig, first1 = 0, nil, false, 0, nil, nil
 end)
 step(60, census)
 step(5, walk)

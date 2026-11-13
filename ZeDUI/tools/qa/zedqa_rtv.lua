@@ -162,8 +162,9 @@ local function faceChecks(w, pid, tag)
         local want = halfHere and TT.px(220) or TT.px(480)
         check(math.abs(dw - want) <= 1, tag .. ": " .. (inWorld and "the World window's full card (the half card only held in)" or "the half card where a width fits, else the full") .. " (" .. dw .. " px, want " .. want .. ")")
         if halfHere then check(t.pid == hid, tag .. ": the width that fills the half card (" .. tostring(hid) .. ", got " .. t.pid .. ")") end
-        local x0 = math.floor((t.view.w - des.w * t.k) / 2)
-        check(math.abs(t.face.x - x0) <= 1, tag .. ": centred, its margins its own (x " .. t.face.x .. ", want " .. x0 .. ")")
+        -- (Nov 12 2026) centred in the card: the gap on its left and on its right are within 1 px of each other
+        local gl, gr = t.face.x, t.view.w - (t.face.x + des.w * t.k)
+        check(math.abs(gl - gr) <= 1, tag .. ": centred in the card, left gap " .. gl .. ", right gap " .. gr)
     end
     check(w._radioFullZone == nil, tag .. ": no full view button (a two-way set's)")
     local want = #des.hits - (R.factsOf(des).volPower and 1 or 0)

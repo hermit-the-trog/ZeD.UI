@@ -100,7 +100,8 @@ function ZEDQA_LAYOUT_DEFAULT(tag)
     for _, name in ipairs({ "Guide", "MessagesWindow" }) do
         pcall(function()
             local t = ZeD[name]
-            local win = t and t.windows and t.windows[0]
+            local pn = getPlayer() and getPlayer():getPlayerNum() or 0
+            local win = t and ((t.get and t.get(pn)) or (t.windows and t.windows[pn]))   -- (a shut window is left shut: never ZeD.Guide.toggle)
             if win and win:isVisible() then win:close(); notes[#notes + 1] = name .. " closed" end
         end)
     end
@@ -188,7 +189,7 @@ end
 -- ============================================================================
 -- (Nov 12 2026, test cleanup plan rule 7) ONE copy of the car staging. Ten scripts each carried their own "find a
 -- free square, spawn, wait for the physics, seat the driver" block with a one-tile check, and every timing fix had to
--- be made in each. The helper spawns on the marked stretch of the drag strip: seven fixed spots round the home square
+-- be made in each. The helper spawns on the marked stretch of the drag strip: ten candidate spots round the home square, each taken only on a road or pavement floor
 -- (925,13040), all on the open asphalt between the grandstands (x 875-893 and 964-977), never the grandstand.
 --   local v, why = ZEDQA_CAR_SPAWN(script, tag [, dir])   a car facing north on the next clear spot, or nil and why.
 --                                   The WHOLE footprint is checked (3 x 7 tiles: loaded, outdoors, free, no tree, no
@@ -208,7 +209,24 @@ end
 --                                   in the tick of the exit is a NullPointerException and the main menu).
 -- A script run without the prelude finds these nil and must say so as an ERR line.
 -- ============================================================================
-local CAR_SPOTS = { { 5, 2 }, { 5, -3 }, { -5, 2 }, { 2, 5 }, { -4, -4 }, { 6, 6 }, { -6, 0 } }   -- from home; a car faces north
+local CAR_SPOTS = { { 5, 2 }, { 5, -3 }, { -5, 2 }, { 2, 5 }, { -4, -4 }, { 6, 6 }, { -6, 0 }, { -8, 3 }, { -8, -3 }, { -3, 7 } }   -- from home; a car faces north
+-- (Nov 12 2026) the floor under a car must be road or pavement: the first smoke run put a car on grass beside a shed at
+-- 930,13042. The coordinates of the asphalt are NOT yet established from the repo (nothing on record names them), so
+-- each spot is judged by the floor sprite of five tiles (the middle, both ends, both sides): a name with street, road,
+-- asphalt, blacktop or pavement in it passes (blends_street_* are the game's road tiles). A spot that fails says so
+-- with the sprite name, and the next spot is tried. Spots 8 to 10 are extra candidates to the west.
+local function carFloorName(sq)
+    local nm = ""
+    pcall(function() local f = sq:getFloor(); nm = string.lower(tostring(f and f:getSprite() and f:getSprite():getName() or "")) end)
+    return nm
+end
+local function carFloorRoad(nm)
+    for _, w in ipairs({ "street", "road", "asphalt", "blacktop", "pavement" }) do
+        if string.find(nm, w, 1, true) then return true end
+    end
+    return false
+end
+local CAR_FLOOR = { { 0, 0 }, { 0, -3 }, { 0, 3 }, { -1, 0 }, { 1, 0 } }
 local CAR_NEAR = 25
 local carNext, carSeen, carGone = 0, {}, {}
 local function carDist(v, pl)
@@ -232,6 +250,10 @@ local function carSpotClear(cx, cy)
             if not ok then return false, "the footprint could not be read" end
             if bad then return false, bad .. " at " .. (cx + dx) .. "," .. (cy + dy) end
         end
+    end
+    for _, o in ipairs(CAR_FLOOR) do
+        local nm = carFloorName(cell:getGridSquare(cx + o[1], cy + o[2], 0))
+        if not carFloorRoad(nm) then return false, "the floor is not road or pavement (" .. (nm == "" and "no floor" or nm) .. ") at " .. (cx + o[1]) .. "," .. (cy + o[2]) end
     end
     local busy = false
     pcall(function()
