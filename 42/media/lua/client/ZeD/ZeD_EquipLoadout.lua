@@ -555,7 +555,7 @@ end
 -- ---------------------------------------------------------------------------
 EL.openFor = EL.openFor or {}
 local function foldOpen(win) return EL.openFor[pnum(win)] == true end
-local function headH() return ZeD.T.sp.tabHeaderH or ZeD.T.px(37) end
+local function headH() return ZeD.T.stripH end   -- row 1's height
 
 function EL.sectionH(win, w)
     if not player(win) or not L.on() then return 0 end

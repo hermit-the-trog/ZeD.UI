@@ -4600,3 +4600,9 @@ to be proposed.
    plates and review sheets in `ZeDUI/art/rtv_faces_r4/`; designs edited in `ZeDUI/tools/physpx/`. For Build: copy
    the plates, merge their PhysPx entries, fit the taller radios in the card, platesame. Open with the director: the
    makeshift's big speaker exists at 257 only. Nothing in `42/` yet.
+   **Build, Nov 12 2026:** row 1 is T.stripH and row 2 T.sortBarH, both from the text size and the UI scale
+   (37 and 20 at Small and 1080p, 43 and 24 at Large). The sort bar's words stay F5 at Small, so the narrow
+   headings (Cond / Amt in every language, the Equip protection heads) look and fit as before, and are F1 at Large.
+   Kept their own height on purpose, not row 2, so not a fault: the station band under the station select (Craft,
+   Cooking: a heading and an icon, 28u) and the Animals back bar (a full-size button, 34u); their lines fall below
+   the container strip's sort row.

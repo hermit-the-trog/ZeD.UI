@@ -1297,7 +1297,7 @@ function ZeD_ObjectCard:prerender()
     local def, t = e.def, e.t
 
     self:drawBackground(w, h)
-    local hh = T.px(37)
+    local hh = T.stripH   -- row 1, the shared strip
     local pillTxt, pillMark = self:drawHeader(e, hh, win)
     local verbsY = hh
     -- (a narrow card's state tag that did not fit beside the name: its own row, then the verbs)

@@ -484,11 +484,10 @@ ZeD.Spacing = {
     cardAfterHead  = 8,   -- space after a card heading (before body content)
     cardAfterBody  = 4,   -- space after card body content
     cardAfterLabel = 6,   -- space after card labels / between bars
-    colHdrH       = 20,   -- column header bar height (NAME / SLOT / BITE etc.)
+    colHdrH       = 20,   -- column header bar height (NAME / SLOT / BITE etc.); T.sp.colHdrH is T.sortBarH
     catHdrH       = 15,   -- category header row height in inventory lists
-    tabHeaderH    = 37,   -- pinned drawer / tab header strip height
-                          -- (Health / Equipment-Defense / Thermal / Identity /
-                          --  Skills / Maps toolbar / Radio drawer header)
+    tabHeaderH    = 37,   -- pinned drawer / tab header strip height; T.sp.tabHeaderH is T.stripH
+                          -- (both follow the text size: applyTheme sets them from the shared rows)
     figurePadTop  = 12,   -- padding above body figure in Health/Protection/Thermal tabs
     figureW       = 220,  -- body figure width  (shared by Health/Protection/Thermal)
     figureH       = 260,  -- body figure height (shared by Health/Protection/Thermal)
@@ -1160,6 +1159,21 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     T.minWinW    = SP("minWinW")
     T.minWinH    = SP("minWinH")
 
+    -- The two rows under the title bar, each one size across both windows (punch list 178): row 1, the
+    -- strip, runs from the tab strip's top cell across the tab's header to the container strip's top
+    -- cell; row 2, the sort bar, runs under it (the container strip's sort row and the inventory's
+    -- column header). Each is the tallest thing it holds plus air, at the text size, times the root:
+    --   T.stripH    the Find field, the selects and the header's buttons (inputH / buttonH, or one F4
+    --               heading line if that is taller) + 11u. Small 37u, Large 43u
+    --   T.sortBarH  one line of F1 (the sort font at Large; F5 at Small sits in it with air) + 7u. Small 20u, Large 24u
+    -- (a line is the face's 77/64 of the preset px. Whoever draws in a row reads these fresh, never a
+    -- copy made at load, so a new text size or UI scale moves both windows at once)
+    local lineK = 77 / 64
+    local rowSc = size.scale or 1
+    local row1  = math.max(size.inputH, size.buttonH, size.fontF4.px * lineK)
+    T.stripH    = math.floor((row1 + 11 * rowSc) * root + 0.5)
+    T.sortBarH  = math.floor((size.fontF1.px * lineK + 7 * rowSc) * root + 0.5)
+
     -- Thermal spectrum (per-theme: dark vibrant, light darker for contrast)
     T.tempCold = base.tempCold
     T.tempCool = base.tempCool
@@ -1182,6 +1196,9 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     -- Spacing is always available (doesn't change with theme)
     T.sp = {}   -- scaled copy; the static table stays the design-unit source
     for k, v in pairs(ZeD.Spacing) do T.sp[k] = (type(v) == "number") and T.px(v) or v end
+    -- (the old names for the two rows read the shared sizes, so the tabs that ask for them line up)
+    T.sp.tabHeaderH = T.stripH
+    T.sp.colHdrH    = T.sortBarH
     -- the body figure is pixel art (ZeD_BodyFigure.lua): its box is the canvas at the whole zoom it draws at,
     -- so the Health, Thermal and Equip layouts make room for the size it really is
     T.sp.figureW = ZeD.Spacing.figureW * T.art
@@ -1211,6 +1228,24 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
         T.fontF3H = tm:getFontHeight(T.fontF3)
         T.fontF4H = tm:getFontHeight(T.fontF4)
         T.fontF5H = tm:getFontHeight(T.fontF5)
+        -- the game's own fonts (Chinese, Japanese, Korean, Thai, Dyslexic) can stand taller than ZeD's
+        -- faces: the rows grow to hold them, still one size each
+        if T.fontFallback then
+            T.stripH   = math.max(T.stripH, T.fontF4H + T.px(11))
+            T.sortBarH = math.max(T.sortBarH, T.fontF1H + T.px(7))
+            T.sp.tabHeaderH, T.sp.colHdrH = T.stripH, T.sortBarH
+        end
+    end
+    -- the sort bar's labels: at Small (the default) F5, today's look, so the narrow headings ("Cond / Amt",
+    -- the Equip protection heads) still fit their columns in every language; at Large F1, which reads at the
+    -- size (F5 stayed tiny there). T.sortWidthK is how much wider the sort font's words run than F5's at
+    -- this size, for the columns that cap a heading's room (the inventory's COND)
+    if ZeD.currentSize == "large" then
+        T.sortFont   = T.fontF1
+        T.sortWidthK = (size.fontF1.px * 0.6) / (size.fontF5.px * 0.48)
+    else
+        T.sortFont   = T.fontF5
+        T.sortWidthK = 1
     end
     if ZeD.Scale then ZeD.Scale._appliedRoot = root end
 

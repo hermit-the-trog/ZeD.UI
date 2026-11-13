@@ -79,7 +79,7 @@ local INV_MIN_BESIDE_CARD  = 180
 local OBJECT_CARD_W        = 480   -- object cards (generator, fires, farm plots)
 local DRAWER_PX_SPEED      = 260 * 8   -- ~2080 design units/sec, matches char window; scaled at use (T.px(DRAWER_PX_SPEED) * dt)
 local ACTION_TAB_STRIP_W   = 36
-local ACTION_TAB_BTN_SZ    = 36
+-- (a tab's cell is row 1's height, ZeD.T.stripH, so the top tab's line runs on the header's: punch list 178)
 -- Tab strip separator (matches CharacterWindow). Declared this early because
 -- _buildWorldTabBarElements reads them — in Kahlua a closure captures a local
 -- declared below it as nil.
@@ -255,12 +255,12 @@ local function _buildWorldTabBarElements(win)
                 lastGroup = tab.group
             end
             elements[#elements + 1] = {
-                x = 0, y = curY, w = T.px(ACTION_TAB_BTN_SZ), h = T.px(ACTION_TAB_BTN_SZ),
+                x = 0, y = curY, w = T.px(ACTION_TAB_STRIP_W), h = T.stripH,   -- (the strip's width; only the height is row 1)
                 id       = "tab:" .. tab.id,
                 tabId    = tab.id,
                 tabIndex = i,
             }
-            curY = curY + T.px(ACTION_TAB_BTN_SZ)
+            curY = curY + T.stripH
         end
     end
     return elements
@@ -365,8 +365,9 @@ _buildWorldLootFocusables = function(win)
     -- Match the visual render layout of drawWorldContainerStrip exactly.
     -- Strip visual order:
     --   Zone 1 (floor, pinned top) at y=stripY — containers[#containers]
-    --   Zone 2 (sort row, NOT focusable) at y=stripY+CONTAINER_BTN_SZ+1, h=20
-    --   Zone 3 (scrollable non-floor list) starts at zone3Y = stripY + 37 + 20
+    --   Zone 1 is row 1 (T.stripH, its line included)
+    --   Zone 2 (sort row, NOT focusable) under it, row 2 (T.sortBarH)
+    --   Zone 3 (scrollable non-floor list) starts at zone3Y = stripY + T.stripH + T.sortBarH
     -- The floor is LAST in containers[] but draws at the TOP, and the list
     -- below follows the sort order, so element.containerIdx must come from
     -- listEntries, never from the raw container index.
@@ -378,8 +379,7 @@ _buildWorldLootFocusables = function(win)
     -- so window-local numbers sat every button a body-height too low for
     -- the D-pad's sums. The list scrolls: stops follow the scroll.
     local L = win._stripLay
-    local colHdrH = T.px(20)
-    local zone3Y = (L and L.listY) or (T.px(CONTAINER_BTN_SZ) + T.px(1) + colHdrH)
+    local zone3Y = (L and L.listY) or (T.stripH + T.sortBarH)
     zone3Y = zone3Y - ((L and L.scroll) or 0)
     stripY = 0
 
@@ -388,7 +388,7 @@ _buildWorldLootFocusables = function(win)
     local floorCnt = win._containers[floorIdx]
     if floorCnt and floorCnt.isFloor then
         elements[#elements + 1] = {
-            x = 0, y = stripY, w = T.px(CONTAINER_STRIP_W), h = T.px(CONTAINER_BTN_SZ),
+            x = 0, y = stripY, w = T.px(CONTAINER_STRIP_W), h = T.stripH - T.px(1),
             id = "container:" .. tostring(floorIdx),
             containerIdx = floorIdx,
             inventory = floorCnt.inventory,
@@ -1814,7 +1814,7 @@ local function measureWorldTabStripH(win)
                 totalH = totalH + T.px(TAB_SEP_MAR) + T.px(TAB_SEP_H) + T.px(TAB_SEP_MAR)
                 lastGroup = tab.group
             end
-            totalH = totalH + T.px(ACTION_TAB_BTN_SZ)
+            totalH = totalH + T.stripH
         end
     end
     return totalH
@@ -1831,7 +1831,7 @@ local function worldTabStripFollow(win, viewH, scrollOff, maxScroll, focusedId)
     if tgt == win._tabFollowId and isPad == win._tabFollowPad then return scrollOff end
     win._tabFollowId, win._tabFollowPad = tgt, isPad
     local T = ZeD.T
-    local y, lastGroup, btn = 0, 1, T.px(ACTION_TAB_BTN_SZ)
+    local y, lastGroup, btn = 0, 1, T.stripH
     for _, tab in ipairs(WORLD_TABS) do
         if isTabVisible(tab, win) then
             if tab.group ~= lastGroup then
@@ -1966,7 +1966,7 @@ local function drawWorldTabStrip(self, win)
             end
 
             local isActive = (tab.id == visualActive)
-            local isHover  = (mx >= 0 and mx < w and my >= curY and my < curY + T.px(ACTION_TAB_BTN_SZ))
+            local isHover  = (mx >= 0 and mx < w and my >= curY and my < curY + T.stripH)
 
             -- The tabs in lit pixel art (ZeD_TabPx), as in
             -- the character window. The pointer's hover is the T.hover wash; the
@@ -1976,30 +1976,30 @@ local function drawWorldTabStrip(self, win)
             if TPX and TPX.has(tab.id) then
                 tabDrawOpts.focus = (gpFocusedTabId == tab.id) and tabFocusOpts or nil
                 tabDrawOpts.help = (isHover and my < tabAreaH) and ZeD.tr("UI_ZeD_World_TabHelp", ZeD_WorldWindow.tabLabel(tab)) or nil
-                TPX.drawTab(self, T.px(1), curY, w - T.px(1), T.px(ACTION_TAB_BTN_SZ) - T.px(1), tab.id, isActive,
+                TPX.drawTab(self, T.px(1), curY, w - T.px(1), T.stripH - T.px(1), tab.id, isActive,
                     isHover and not cuesOn and not isActive, T.px(1), tabDrawOpts)
             end
 
             -- Bottom border between tabs (a content line, from the waterfall's inner edge)
-            self:drawRect(T.px(1), curY + T.px(ACTION_TAB_BTN_SZ) - T.px(1), w - T.px(1), T.px(1), bd.a, bd.r, bd.g, bd.b)
+            self:drawRect(T.px(1), curY + T.stripH - T.px(1), w - T.px(1), T.px(1), bd.a, bd.r, bd.g, bd.b)
 
             -- Hit zone
-            if curY + T.px(ACTION_TAB_BTN_SZ) > 0 and curY < tabAreaH then
-                self:addHitZone("tab:" .. tab.id, 0, curY, w, T.px(ACTION_TAB_BTN_SZ))
+            if curY + T.stripH > 0 and curY < tabAreaH then
+                self:addHitZone("tab:" .. tab.id, 0, curY, w, T.stripH)
                 -- the tab's name in a balloon beside it: after the pause for the mouse, at once for the
                 -- controller's focus
                 if isHover and my < tabAreaH and (not self.isMouseOver or self:isMouseOver()) then
                     win._tabHintCand = { key = "tab:" .. tab.id, text = ZeD_WorldWindow.tabLabel(tab),
-                                         x = self:getX(), y = self:getY() + curY, w = w, h = T.px(ACTION_TAB_BTN_SZ), side = "l" }
+                                         x = self:getX(), y = self:getY() + curY, w = w, h = T.stripH, side = "l" }
                     ZeD.Atoms.syncHintLayer(win, win._tabHintLayer)
                 elseif cuesOn and gpFocusedTabId == tab.id and not win._tabHintCand then
                     win._tabHintCand = { key = "tab:" .. tab.id, text = ZeD_WorldWindow.tabLabel(tab),
-                                         x = self:getX(), y = self:getY() + curY, w = w, h = T.px(ACTION_TAB_BTN_SZ), side = "l", now = true }
+                                         x = self:getX(), y = self:getY() + curY, w = w, h = T.stripH, side = "l", now = true }
                     ZeD.Atoms.syncHintLayer(win, win._tabHintLayer)
                 end
             end
 
-            curY = curY + T.px(ACTION_TAB_BTN_SZ)
+            curY = curY + T.stripH
         end
     end
 
@@ -3051,6 +3051,8 @@ local function drawWorldContainerStrip(self, win, content)
     local floorIdx = #containers
     local floorCnt = containers[floorIdx]
     local curY = 0
+    -- the floor cell and the line under it are row 1 (T.stripH), level with the tab's header
+    local floorH = T.stripH - T.px(1)
     if floorCnt and floorCnt.isFloor then
         local isActive = (win._activeContainer == floorIdx)
         local isMC = false
@@ -3058,7 +3060,7 @@ local function drawWorldContainerStrip(self, win, content)
             if ci == floorIdx then isMC = true; break end
         end
 
-        local isHover = (mx >= 0 and mx < w and my >= curY and my < curY + T.px(CONTAINER_BTN_SZ)) and not cuesOn
+        local isHover = (mx >= 0 and mx < w and my >= curY and my < curY + floorH) and not cuesOn
         -- Zone 1 is "on" when: main visible (loot MC), or inventory open showing floor (non-loot)
         local mainVis
         if win._activeTab == "loot" then
@@ -3070,34 +3072,34 @@ local function drawWorldContainerStrip(self, win, content)
         local floorOn = mainVis and (isActive or isMC)
         if floorOn then
             local ac = T.accent
-            self:drawRect(0, curY, w - T.px(1), T.px(CONTAINER_BTN_SZ), selA, ac.r, ac.g, ac.b)
+            self:drawRect(0, curY, w - T.px(1), floorH, selA, ac.r, ac.g, ac.b)
         elseif isHover then
             local hv = T.hover
-            self:drawRect(0, curY, w - T.px(1), T.px(CONTAINER_BTN_SZ), hv.a, hv.r, hv.g, hv.b)
+            self:drawRect(0, curY, w - T.px(1), floorH, hv.a, hv.r, hv.g, hv.b)
         end
         if isHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_World_FloorHelp")) end
         local onFocusF = false
         if gpFocusedCI == floorIdx then
-            onFocusF = ZeD.Focus.mark(self, 0, curY, w - T.px(1), T.px(CONTAINER_BTN_SZ), stripFocus)
+            onFocusF = ZeD.Focus.mark(self, 0, curY, w - T.px(1), floorH, stripFocus)
         end
 
         local iconAlpha = mainVis and 1 or 0.5
         local tex = floorCnt.texture or ZeD.genericContainerTex()
         if tex then
             local ix = math.floor((w - iconSz) / 2)
-            local iy = curY + math.floor((T.px(CONTAINER_BTN_SZ) - iconSz) / 2)
+            local iy = curY + math.floor((floorH - iconSz) / 2)
             self:drawTextureScaledAspect(tex, ix, iy, iconSz, iconSz, iconAlpha, 1, 1, 1)
         else
             local glyph = "F"
             local gw = ZeD.TM:MeasureStringX(font, glyph)
             local gx = math.floor((w - gw) / 2)
-            local gy = curY + math.floor((T.px(CONTAINER_BTN_SZ) - fontH) / 2)
+            local gy = curY + math.floor((floorH - fontH) / 2)
             local color = onFocusF and T.textOnFocus or (mainVis and (floorOn and T.text or T.textSec) or T.textDim)
             self:drawText(glyph, gx, gy, color.r, color.g, color.b, color.a, font)
         end
 
         -- other mods' marks on the button (StripDecorators.lua); before the badge below so the badge stays on top
-        ZeD.StripDecorators.run(self, win, "world", floorCnt, 0, curY, w - T.px(1), T.px(CONTAINER_BTN_SZ))
+        ZeD.StripDecorators.run(self, win, "world", floorCnt, 0, curY, w - T.px(1), floorH)
         -- MC badge for floor when shown as a column in MC mode.
         -- Floor is at the LAST colSel position when mainVisible=true, so its
         -- badge = #_mcSelected + 1. Doesn't appear in _mcSelected itself
@@ -3107,13 +3109,13 @@ local function drawWorldContainerStrip(self, win, content)
         if mainVis and mcCountF > 0 then
             local badge = tostring(mcCountF + 1)
             local bx = T.px(4)
-            local by = curY + T.px(CONTAINER_BTN_SZ) - fontH - T.px(1)
+            local by = curY + floorH - fontH - T.px(1)
             local bc = onFocusF and T.textOnFocus or T.text
             self:drawText(badge, bx, by, bc.r, bc.g, bc.b, bc.a, font)
         end
 
-        self:addHitZone(floorIdx, 0, curY, w, T.px(CONTAINER_BTN_SZ))
-        curY = curY + T.px(CONTAINER_BTN_SZ)
+        self:addHitZone(floorIdx, 0, curY, w, floorH)
+        curY = curY + floorH
     end
 
     -- Divider below floor
@@ -3126,10 +3128,11 @@ local function drawWorldContainerStrip(self, win, content)
     -- ZONE 2: Sort mode label — aligned with column header bar
     -- Cycles: dist → wt → type → dist
     -- --------------------------------------------------------
-    local colHdrH     = T.px(20)
+    -- row 2, the sort bar (T.sortBarH), its word in the sort font: level with the inventory's column header
+    local colHdrH     = T.sortBarH
     local sortRowY    = curY
     local sortRowH    = colHdrH
-    local f5Font      = T.fontF5
+    local f5Font      = T.sortFont
     local f5H         = ZeD.TM:getFontHeight(f5Font)
     local isActive    = sortMode ~= "dist"
     local sortLabel   = ZeD.textCase(ZeD.tr(sortMode == "wt" and "UI_ZeD_World_SortWt" or sortMode == "type" and "UI_ZeD_World_SortType" or "UI_ZeD_World_SortDist"))
@@ -3859,8 +3862,9 @@ function ZeD_WorldWindow.toggle(playerNum)
     content._sortAsc = true
 
     -- Column header Y offset — aligns with container strip's header row
-    content._hdrYOffset = T.px(CONTAINER_BTN_SZ) + T.px(1)
-    content._defaultHdrYOffset = T.px(CONTAINER_BTN_SZ) + T.px(1)
+    -- (row 1, T.stripH: set again before each draw, so a new text size or UI scale moves it with the strips)
+    content._hdrYOffset = T.stripH
+    content._defaultHdrYOffset = T.stripH
 
     -- Container buttons (ContainerControls): the row at the bottom of the list
     content._ccSide = "world"
@@ -4488,10 +4492,10 @@ function ZeD_WorldWindow.toggle(playerNum)
 
         -- Scroll arrows
         if zid == "tab_scroll_up" then
-            win._actionTabScrollOffset = (win._actionTabScrollOffset or 0) - T.px(ACTION_TAB_BTN_SZ)
+            win._actionTabScrollOffset = (win._actionTabScrollOffset or 0) - T.stripH
             return true
         elseif zid == "tab_scroll_down" then
-            win._actionTabScrollOffset = (win._actionTabScrollOffset or 0) + T.px(ACTION_TAB_BTN_SZ)
+            win._actionTabScrollOffset = (win._actionTabScrollOffset or 0) + T.stripH
             return true
         end
 
@@ -4587,7 +4591,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         local T = ZeD.T
         local totalH = measureWorldTabStripH(win)
         if totalH > self:getHeight() then
-            win._actionTabScrollOffset = (win._actionTabScrollOffset or 0) + del * T.px(ACTION_TAB_BTN_SZ)
+            win._actionTabScrollOffset = (win._actionTabScrollOffset or 0) + del * T.stripH
             return true
         end
         return false
@@ -4737,6 +4741,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             win._titleBase = ZeD.tr(#colSel == 1 and "UI_ZeD_World_ContainersOne" or "UI_ZeD_World_ContainersMany", #colSel)
             win._titleCount = nil
             self._ccEntry = nil
+            self._defaultHdrYOffset = ZeD.T.stripH   -- (row 1, read fresh: punch list 178)
             r.renderMultiColumnContent(self)
             -- (after the columns drew: they now hold this frame's picks) the help line's own words,
             -- every shown column's things, and what is picked across them (InventoryPicked.lua)
@@ -4785,6 +4790,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                     "UI_ZeD_Inv_ItemsOne", "UI_ZeD_Inv_ItemsMany", win._playerObj)
             end
             self._ccEntry = cnt
+            self._hdrYOffset = ZeD.T.stripH   -- (row 1, read fresh: punch list 178)
             r.renderItemList(self)
         end
         -- (the columns were rebuilt above: a column gone snaps the width, as a click on the strip does, and the

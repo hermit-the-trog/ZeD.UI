@@ -52,7 +52,6 @@ local FIG_H         = 258    -- the diagram's height in the right column (the pi
 local COL_GAP       = 12
 local ROW_H         = 24
 local CAT_H         = 15     -- the library's category row
-local COLHDR_H      = 20
 local SEC_H         = 20
 local FIX_H         = 38
 local MINI_BAR_W    = 40
@@ -1477,9 +1476,9 @@ local function renderList(panel, win, s, x, top, w, bodyH, v, chr, inspected, pa
     if inspected then
         -- column heads: Part sorts By section; Cond sorts By condition, a sort from Mechanics 4
         -- (under it a heading only); the sorted one underlined
-        local hh = T.px(COLHDR_H)
+        local hh = T.sortBarH   -- row 2's height and font (punch list 178)
         A.surfaceFill(panel, x, cy, cw, hh, "surf2")
-        local f5 = T.fontF5
+        local f5 = T.sortFont
         local f5h = TM:getFontHeight(f5)
         local ty = cy + math.floor((hh - f5h) / 2)
         local condRight = x + cw - pad
@@ -2046,7 +2045,7 @@ local function renderSplit(panel, win, s, x, y, w, h, v, chr, inspected)
     _browseOpts.focusParts.next = focusFor(s, "mech:next")
     local prevZ, nextZ = M.drawDrawerInternalHeader(panel, x, y, w,
         { idx = s.idx, total = #s.vehicles }, vehicleName(v), mechType(v), nil, _browseOpts)
-    local headerH = T.px((ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37)
+    local headerH = T.stripH   -- row 1, as drawDrawerInternalHeader draws it
     if #s.vehicles > 1 then
         stamp(s, "mech:prev", prevZ.x, prevZ.y, prevZ.w, prevZ.h, function()
             s.idx = s.idx - 1; if s.idx < 1 then s.idx = #s.vehicles end

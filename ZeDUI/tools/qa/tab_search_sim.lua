@@ -134,7 +134,7 @@ end }
 local COLOR = { r = 0.5, g = 0.5, b = 0.5, a = 1 }
 local ACCENT = { r = 0.9, g = 0.6, b = 0.1, a = 1 }
 local BASE = { r = 0.1, g = 0.1, b = 0.12, a = 0.92 }
-local NUM = { scale = 1, rowH = 24, inputH = 20, buttonH = 22, selectionA = 0.3, disabledAlpha = 0.4, hair = 1 }
+local NUM = { scale = 1, rowH = 24, inputH = 20, buttonH = 22, selectionA = 0.3, disabledAlpha = 0.4, hair = 1, stripH = 37, sortBarH = 20 }
 local T = setmetatable({ px = function(n) return n end, accent = ACCENT, base = BASE,
     sp = setmetatable({ tabHeaderH = 37, scrollbarW = 8 }, { __index = function() return 4 end }) },
     { __index = function(_, k)
