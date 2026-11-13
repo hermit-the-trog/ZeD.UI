@@ -244,3 +244,20 @@ With a controller in hand, on Options > Controls > Button map and test:
 - the D-pad walks the labels (one stop each); A opens a label's actions; on a stick or the D-pad A first asks which element; B there goes back, B again closes; B on the page backs out
 - Test controller: pick the pad, the page leaves the buttons alone; A and Y held together end the test
 - the same with the button pictures on PlayStation (the D-pad up top) and on Xbox (the left stick up top)
+
+## Part 6. Summer Car with the mod on
+
+Ran: zedqa_mods_run.ps1 with summercar_mods.txt and summercar_manifest.txt (the prelude and zedqa_summercar.lua), once, at 4K fullscreen (UI scale 1.75x), ZeD last in the mod list, the real-mouse helper beside it (stopped afterwards). The mod came from SteamCMD's download folder, copied into Zomboid/mods for the run and removed after; the runner restored the ZeD-QA save and its mods.txt lists only ZeD_UI. The Deck-size and ZeD-first runs of batch_summercar.ps1 were not run (one run per script). Report: ZeDUI/qa/regression/2026-11-12_2128_mods_fullscreen4k.md (prelude pass, summercar WARN: 155 s). Pictures: Zomboid/Screenshots/b12_round2_20261112/p6 (zqa_sc_B..N, 9 files).
+
+What it showed:
+- "Inspect engine components" works from the engine row's menu and from the footer verb (F and G PASS); ZeD's menu cells: `DBG: ISVehicleMechanics.cheat=true | Remove engine at lift | Inspect engine components`; no Take engine parts or Repair engine.
+- Positions and sizes at 4K, default layout (World window x=1929, y=0, 1617 x 735): the engine components window opens at x=1419, y=10, 500 x 631, anchored. It is top-aligned with the World window (10 px lower than its top edge) with a 10 px gap, but on the LEFT of the World window, not the right: 1419 + 500 = 1919, then 10 px, then 1929. The right side has no room at the default layout (the World window ends at 3546; the screen is 3840; 500 + 10 does not fit), so it takes the left side and sits over the Character window's inventory strip (picture p6/zqa_sc_F_menu.png). When the World window is dragged left to x=1111 it opens on the right at x=2738, y=10 (gap 10 after 1111 + 1617 = 2728) (step L, PASS). With a second car: x=1419, y=10 (World window at 2643, 903 wide), one window only (I, PASS).
+- It closes with the tab: the hood shut closes it, rolling the World window closes it and unrolling brings it back, closing the World window closes it and reopening on the Vehicle tab brings it back (H, J, K PASS), and a fold's close comes back with the tab (D PASS).
+- The mod's sentence on a shut hood: "The hood must be open to inspect engine components." (H PASS).
+
+### List A (real mod bugs), Part 6
+- None sure. A deviation from the expected "sits to the right": at the default 4K layout it opens on the left of the World window, over the Character window's inventory strip, because the right side is too narrow (picture above). That may be as designed ("beside, or 420 wide at x 10 over the inventory side" is the script's own line); the director should look.
+
+### List B (test trouble), Part 6
+- `ZEDQA sc ERR step 'B wait inspected' timed out` and the lines that follow from it: `ZEDQA sc B opened: no engine window` (62987 ms after the inspection), `ZEDQA sc ERR B: the World window not moved (1929)`, `ZEDQA sc ERR C: still open 5 s later` (no window to stay), `ZEDQA sc ERR D: the pointer on the engine window holds the tab`, `ZEDQA sc ERR E: Loot and back: still shut (the player's close lasts)`. The auto-open on inspecting the car never happened in this run, so B, C, D (hold) and E (Loot and back) read as failed; F onward opened it through the menu and passed. Unclear whether the auto-open is a real gap or the inspection step did not run; the "the reported bug" step C needs an open window to judge, so it was not judged.
+- Not run: step M (the wheels: `M outside wheel:` printed no result) and O (`skipped: no pad (the sim proves the hand-back)`).
