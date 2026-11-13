@@ -498,9 +498,9 @@ do
     for _, r in ipairs(ok and rows or {}) do
         if r.label == "en:Tooltip_container_Capacity" then got = r.value end
     end
-    check("a Disorganized character's bag: the card's Capacity reads 4.5 / 10 kg", got == "4.5 / 10 kg", ok and tostring(got) or rows)
+    check("a Disorganized character's bag: the card's Capacity reads 4.5 / 10 kg (the one load format)", got == "en:UI_ZeD_Char_WeightOfMax:4.5:10", ok and tostring(got) or rows)
     local fv = okF and facts and facts.groups and facts.groups[1] and facts.groups[1].rows[1] and facts.groups[1].rows[1].value
-    check("and its Container Facts the same", fv == "4.5 / 10 kg", okF and tostring(fv) or facts)
+    check("and its Container Facts the same", fv == "en:UI_ZeD_Char_WeightOfMax:4.5:10", okF and tostring(fv) or facts)
     local src = readFile("42/media/lua/client/ZeD/ItemCardOrganism.lua") or ""
     check("the card's model reads the stats and the facts for its own player",
         src:find("m.stats  = topStatsForItem(item, playerNum)", 1, true) ~= nil
