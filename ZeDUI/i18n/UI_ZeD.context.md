@@ -1879,7 +1879,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | Key | English | Where it shows | Max |
 |---|---|---|---|
 | `UI_ZeD_Inv_ColCat` | `Cat` | Inventory list: column heading for the item category | 6 |
-| `UI_ZeD_Inv_ColCond` | `Cond` | Inventory list: column heading for item condition | 6 |
+| `UI_ZeD_Inv_ColCond` | `Status` | Inventory list: column heading for each row's state (condition, fill, uses, freshness); the director, Nov 12: "Status" | 6 |
 | `UI_ZeD_Inv_ColName` | `Name` | Inventory list: column heading, and the name of the sort order in the grid's order line | 8 |
 | `UI_ZeD_Inv_ColWt` | `Wt` | Inventory list: column heading for item weight | 4 |
 | `UI_ZeD_Inv_Empty` | `Nothing here.` | Inventory list: centered message when a container, a floor tile or any list has no items | 24 |
