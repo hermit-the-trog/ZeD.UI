@@ -423,6 +423,12 @@ end
 -- Target) takes the row's own ink: an accent outline and accent words sank into
 -- the accent wash and read poorly (the controller's focus keeps its own ink)
 local _rowInk = {}
+-- the one section heading, the small mono line with no fold (design review D6), section-high
+local _secOpts = {}
+local function secOpts()
+    _secOpts.noArrow, _secOpts.h, _secOpts.inset = true, ZeD.T.px(SEC_H), 0
+    return _secOpts
+end
 local function drawRow(panel, s, x, y, w, id, tex, name, sub, label, primary, fn, enabled)
     local T, tm = ZeD.T, ZeD.TM
     local M = ZeD.Molecules
@@ -735,10 +741,12 @@ function FT.render(panel, win, x, y, w, h)
     local c = FT.cap[pn]
     if c and c.mode ~= mode then c = nil end
 
+    -- the tab's title on row 1 (design review C1: every tab body opens with its title); under it the
     -- header strip (the standard height): the five modes as sub-tabs, drawn as Animals' Ranch | Butcher
-    -- (the tab sits at the foot of row 1, T.stripH, the strip's line around the active one); no title line, no band
+    -- (the tab sits at the foot of the strip, T.stripH, the strip's line around the active one); no band
     local M = ZeD.Molecules
-    local tabY = y + T.stripH - T.tabH
+    local titleH = M.drawTabHeader(panel, x, y, w, getText("IGUI_CraftingCategories_Furniture"), false, false, true)
+    local tabY = y + titleH + T.stripH - T.tabH
     local sy = tabY + T.tabH
     drawModeStrip(panel, win, s, x, tabY, w, mode, pn)
 
@@ -784,7 +792,7 @@ function FT.render(panel, win, x, y, w, h)
         local ys = yieldsOf(c.mp)
         if #ys > 0 then
             if vis(cy, T.px(SEC_H)) then
-                M.drawSectionHeader(panel, bx0, cy, bw0, ZeD.tr("UI_ZeD_Furn_MayYield"), nil, true, false, nil, false, 0, T.px(SEC_H), true)
+                M.drawCategoryRow(panel, bx0, cy, bw0, ZeD.tr("UI_ZeD_Furn_MayYield"), nil, true, secOpts())
                 -- the columns' names, right-aligned on the head
                 local cols = ZeD.textCase(ZeD.tr("UI_ZeD_Furn_UpTo")) .. " " .. DOT .. " " .. ZeD.textCase(ZeD.tr("UI_ZeD_Furn_RollChance"))
                 ZeD.Atoms.drawTextRight(panel, cols, bx0 + bw0 - T.px(2), cy + math.floor((T.px(SEC_H) - tm:getFontHeight(T.fontF1)) / 2), T.fontF1, T.textDim)
@@ -802,7 +810,7 @@ function FT.render(panel, win, x, y, w, h)
         if mode == "place" then
             local list = cur.objectListCache
             if not list then local ok, l = pcall(function() return cur:getInventoryObjectList() end); list = ok and l or {} end
-            if vis(cy, T.px(SEC_H)) then M.drawSectionHeader(panel, bx0, cy, bw0, ZeD.tr("UI_ZeD_Furn_YourFurniture"), #list, true, false, nil, false, 0, T.px(SEC_H), true) end
+            if vis(cy, T.px(SEC_H)) then M.drawCategoryRow(panel, bx0, cy, bw0, ZeD.tr("UI_ZeD_Furn_YourFurniture"), #list, true, secOpts()) end
             cy = cy + T.px(SEC_H)
             for i, e in ipairs(list) do
                 local it = e.object
@@ -824,7 +832,7 @@ function FT.render(panel, win, x, y, w, h)
         elseif mode ~= "rotate" then
             local list = cur.objectListCache
             if type(list) == "table" and #list > 0 then
-                if vis(cy, T.px(SEC_H)) then M.drawSectionHeader(panel, bx0, cy, bw0, ZeD.tr("UI_ZeD_Furn_OnThisTile"), #list, true, false, nil, false, 0, T.px(SEC_H), true) end
+                if vis(cy, T.px(SEC_H)) then M.drawCategoryRow(panel, bx0, cy, bw0, ZeD.tr("UI_ZeD_Furn_OnThisTile"), #list, true, secOpts()) end
                 cy = cy + T.px(SEC_H)
                 for i, e in ipairs(list) do
                     local selected = (cur.objectIndex == i)
@@ -1045,6 +1053,10 @@ function FT.versionStackW()
                 w = math.max(w, tm:MeasureStringX(f, getText("IGUI_CheatPanel_" .. cheats:get(i):getTooltip())))
             end
             if isClient() then
+                -- (the player cap notice, on a server for more than 32: versionLines counts it too)
+                if (tonumber(getMaxPlayers()) or 0) > 32 then
+                    w = math.max(w, tm:MeasureStringX(f, getText("UI_MaxPlayers_Notification")))
+                end
                 w = math.max(w, tm:MeasureStringX(f, getText("UI_ServerTime", "00:00:00", "0000")))
                 w = math.max(w, tm:MeasureStringX(f, "\"" .. getServerName() .. "\" (" .. getServerIP() .. ":" .. getServerPort() .. ")"))
             end

@@ -2501,6 +2501,7 @@
     "UI_ZeD_Station_NeedsAn": "ต้องใช้ %1",
     "UI_ZeD_Station_NoneInReach": "ไม่มีอะไรในระยะ",
     "UI_ZeD_Station_SelectLabel": "จุดทำงาน",
+    "UI_ZeD_Select_Label": "%1:",
     "UI_ZeD_Station_ShortBarrel": "ถังไม้",
     "UI_ZeD_Station_ShortBeam": "คาน",
     "UI_ZeD_Station_ShortCharcoal": "ถ่าน",

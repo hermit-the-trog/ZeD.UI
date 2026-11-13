@@ -789,7 +789,8 @@ local function stamp(x, id, kind, zx, zy, zw, zh)
     zs[#zs + 1] = { type = "plate", fid = "craft:a:" .. id, id = id, kind = kind, pid = x.pid, x = zx, y = zy, w = zw, h = zh }
 end
 local _bo = {}
-local _sel = { fill = { r = 0, g = 0, b = 0, a = 0 } }
+local _secOpts = {}   -- the contents' section heading (drawCategoryRow)
+local _sel ={ fill = { r = 0, g = 0, b = 0, a = 0 } }
 local _ink = {}
 local function selColors(ink)
     local T = ZeD.T
@@ -1158,9 +1159,10 @@ function SA.render(panel, win, x, y, w, h, state, st, opts)
         cyy = cyy + lineH + T.px(10)
     end
 
-    -- Contents
-    ZeD.Molecules.drawSectionHeader(panel, x + T.px(10), cyy, cw - 2 * T.px(10),
-        ZeD.tr(mw and "UI_ZeD_Appliance_InMicrowave" or "UI_ZeD_Appliance_InOven"), #rows, true, false, nil, true, T.px(6), secH, true)
+    -- Contents (the one section heading, the small mono line: design review D6)
+    _secOpts.noArrow, _secOpts.bleedLeft, _secOpts.h, _secOpts.inset = true, T.px(6), secH, 0
+    ZeD.Molecules.drawCategoryRow(panel, x + T.px(10), cyy, cw - 2 * T.px(10),
+        ZeD.tr(mw and "UI_ZeD_Appliance_InMicrowave" or "UI_ZeD_Appliance_InOven"), #rows, true, _secOpts)
     cyy = cyy + secH
     if #rows == 0 then
         ZeD.Molecules.drawEmptyLine(panel, x + T.px(16), cyy + T.px(8), cw - T.px(32),

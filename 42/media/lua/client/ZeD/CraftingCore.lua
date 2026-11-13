@@ -831,7 +831,14 @@ function CC.categoryLabel(raw)
     raw = tostring(raw)
     local hit = _catLabelCache[raw]
     if hit then return hit end
-    local cap = ZeD.upper(string.sub(raw, 1, 1)) .. string.sub(raw, 2)
+    -- every category: the game's plain "All", not its crafting window's "-- ALL --", so the
+    -- select reads "Category: All" (design review C2)
+    if raw == "All" then
+        local all = ZeD.tr("UI_All")
+        _catLabelCache[raw] = all
+        return all
+    end
+    local cap =ZeD.upper(string.sub(raw, 1, 1)) .. string.sub(raw, 2)
     local label = getTextOrNull and getTextOrNull("IGUI_CraftingCategories_" .. cap)
     _catLabelCache[raw] = label or cap
     return label or cap
@@ -1449,13 +1456,32 @@ function CC.placeSearch(win, config, state, x, y, w, h)
     else f.placeholder = f._zedBaseHint or getText("IGUI_CraftingWindow_SearchRecipes") end
 end
 
+--- The tab's title (design review C1, ruled Nov 12 2026: every tab body opens with its title):
+--- the library's tab head, no fold, row 1 high. config.titleVKey is the game's word, config.titleKey
+--- ZeD's. Returns its height (0 with neither).
+function CC.tabTitleText(config)
+    if not config then return nil end
+    if config.titleVKey then return getText(config.titleVKey) end
+    if config.titleKey then return ZeD.tr(config.titleKey) end
+    return nil
+end
+
+function CC.renderTabTitle(panel, x, y, w, config)
+    local title = CC.tabTitleText(config)
+    if not title then return 0 end
+    return M.drawTabHeader(panel, x, y, w, title, false, false, true)
+end
+
 function CC.renderStaticHeader(panel, x, y, w, state, config, win)
     local T  = ZeD.T
     local A  = ZeD.Atoms
     local zones = state.zones
     local pfx = (config and config.prefix) or "jrecipe"
     local ST = config and config.stations and ZeD.Stations or nil
-    local headerH = T.stripH  -- row 1, the shared strip
+    -- the title on its own row 1, the selects and the search on the row under it
+    local titleH = CC.renderTabTitle(panel, x, y, w, config)
+    y = y + titleH
+    local headerH = T.stripH  -- the selects' row, the shared strip
     local pad, gap = T.px(6), T.px(6)
     local ddH = T.inputH  -- the selects match the search field
     local rowY = y + math.floor((headerH - ddH) / 2)
@@ -1463,16 +1489,15 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
 
     if ST then
         -- Crafting: STATION, CATEGORY and the search in thirds; a select is never narrower
-        -- than its value and its arrow ("-- All --" v): the search gives it the room, down
-        -- to half its own third (at 1280x720, UI scale 2.0, Large text an even split read
-        -- the Category as "-- A...")
+        -- than its label, its value and its arrow ("Category: All" v): the search gives it
+        -- the room, down to half its own third (at 1280x720, UI scale 2.0, Large text an
+        -- even split read the Category as "-- A...")
         local selW = math.floor((w - pad * 2 - gap * 2) / 3)
         local player = win and win._playerObj
         local cur = player and ST.current(player) or nil
         local stVal = cur and cur.name or ZeD.tr("UI_ZeD_Station_Hand")
-        local chrome = T.sp.inputPadX * 2 + T.px(5) + T.px(4) + T.px(1)   -- (ST.drawSelect's pads and arrow)
-        local stW = math.max(selW, ZeD.TM:MeasureStringX(T.fontF2, stVal) + chrome)
-        local cW = math.max(selW, ZeD.TM:MeasureStringX(T.fontF2, CC.activeCategoryLabel(state)) + chrome)
+        local stW = math.max(selW, ST.selectW(ZeD.tr("UI_ZeD_Station_SelectLabel"), stVal))
+        local cW = math.max(selW, ST.selectW(ZeD.tr("IGUI_invpanel_Category"), CC.activeCategoryLabel(state)))
         local grow = (stW - selW) + (cW - selW)
         local spare = (w - pad * 2 - gap * 2) - stW - cW - math.floor(selW / 2)
         if spare < 0 and grow > 0 then
@@ -1500,12 +1525,13 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
     end
 
     CC.placeSearch(win, config, state, searchX, rowY, searchW, ddH)
-    drawCatSelect(panel, state, pfx, ddX, rowY, ddW, ddH, ST and ZeD.tr("IGUI_invpanel_Category") or nil, false)
+    -- (labeled in Building too: "Category: All", not a bare "-- ALL --")
+    drawCatSelect(panel, state, pfx, ddX, rowY, ddW, ddH, ZeD.tr("IGUI_invpanel_Category"), false)
 
     -- Bottom rule on header row
     A.drawDividerH(panel, x, y + headerH - T.px(1), w, true)
 
-    return headerH
+    return titleH + headerH
 end
 
 -- ============================================================================
@@ -1591,20 +1617,22 @@ local function popWidths(state, config, sortModes, showModes)
     local sw, hw, sc, hc = 0, 0, 0, 0
     for _, m in ipairs(sortModes) do
         sw = math.max(sw, M.popupMenuW(ZeD.tr("UI_ZeD_Craft_SortPick", m.label)))
-        sc = math.max(sc, M.popupMenuW(m.label, true))
+        sc = math.max(sc, M.popupMenuW(ZeD.tr("UI_ZeD_Craft_SortPick", m.label), true))
     end
     for _, m in ipairs(showModes) do
         hw = math.max(hw, M.popupMenuW(ZeD.tr("UI_ZeD_Craft_ShowToggle", m.label)))
-        hc = math.max(hc, M.popupMenuW(m.label, true))
+        hc = math.max(hc, M.popupMenuW(ZeD.tr("UI_ZeD_Craft_ShowToggle", m.label), true))
     end
-    -- (sortC / showC: the longest choice alone in a tight box, for a band short of room)
+    -- (sortC / showC: the longest words in a tight box, for a band short of room; the label
+    -- stays, "Sort: Craftable", design review C2)
     state._popW = { scale = T.scale, font = T.fontF1, lang = lang, ro = ro, sort = sw, show = hw, sortC = sc, showC = hc }
     return sw, hw, sc, hc
 end
 
 -- One of the band's pop-up boxes: its zone, and the open list's geometry (it opens
 -- upward from the box: the band is at the card's foot). frozen: greyed, no press.
--- (short: the choice alone, shown when "Sort: Craftable" does not fit)
+-- (short: the choice alone, shown when the label does not fit; the band passes none, so
+-- "Sort: Craftable" keeps its label and is cut instead: design review C2)
 local function drawPopBox(panel, state, kind, x, y, w, h, label, modes, frozen, focused, mx, my, short, tight)
     local P = POP[kind]
     local hov = (not frozen) and mx >= x and mx < x + w and my >= y and my < y + h
@@ -1723,18 +1751,22 @@ function CC.renderBand(panel, x, y, w, state, config, rd)
     local edge, gap = T.px(8), T.px(8)
 
     -- the left's boxes: at most the longest words each can carry, at least the current
-    -- choice and its arrow ("Craftable" v), and at worst its first letter and the arrow
+    -- words and the arrow ("Sort: Craftable" v), and at worst the first letter and the arrow
     -- (a plain even share leaves Sort and Show too narrow for any words at 1280x720,
     -- UI scale 2.0, Large text)
     local sortModes = CC.popModes("sort", config)
     local showModes = CC.popModes("show", config)
-    local sortName = modeLabel(sortModes, state.sort or "craftable")
-    local showName = modeLabel(showModes, CC.showMode(state, config))
+    -- every box keeps its label, "Sort: Craftable" (design review C2): short of room the words
+    -- are cut, never swapped for the choice alone
+    local sortName = ZeD.tr("UI_ZeD_Craft_SortPick", modeLabel(sortModes, state.sort or "craftable"))
+    local showName = ZeD.tr("UI_ZeD_Craft_ShowToggle", modeLabel(showModes, CC.showMode(state, config)))
     local sortW, showW, sortC, showC = popWidths(state, config, sortModes, showModes)
     local catName = ro and CC.activeCategoryLabel(state) or nil
     local catW = ro and T.px(CAT_BAND_W) or 0
     local sortMin, showMin = math.min(sortW, M.popupMenuW(sortName)), math.min(showW, M.popupMenuW(showName))
-    local catMin = ro and math.min(catW, M.popupMenuW(catName)) or 0
+    local catLbl = ro and ZeD.tr("IGUI_invpanel_Category") or nil
+    local catMin = ro and math.min(catW, (ZeD.Stations and ZeD.Stations.selectW) and ZeD.Stations.selectW(catLbl, catName)
+        or M.popupMenuW(catName)) or 0
     local nGaps = ro and 2 or 1
 
     -- the right: the amount and Craft / Build (the read-only list has none)
@@ -1748,13 +1780,12 @@ function CC.renderBand(panel, x, y, w, state, config, rd)
         leftEnd, narrow = drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx,
             edge + gap * nGaps + catMin + sortMin + showMin)
     end
-    -- short of room the spaces close up first, and the boxes hold the choice alone ("Craftable",
-    -- not "Sort: Craftable") at tight pads, the longest choice at most
+    -- short of room the spaces close up first, and the boxes keep "Sort: Craftable" at tight
+    -- pads, the longest words at most
     if narrow then
         edge, gap = T.px(4), T.px(4)
         sortW, showW = sortC, showC
         sortMin, showMin = M.popupMenuW(sortName, true), M.popupMenuW(showName, true)
-        if ro then catMin = math.min(catW, M.popupMenuW(catName, true)) end
     end
 
     local lx = x + edge
@@ -1787,14 +1818,12 @@ function CC.renderBand(panel, x, y, w, state, config, rd)
         end
     end
     if ro then
-        drawCatSelect(panel, state, pfx, lx, by, catW, bh, ZeD.tr("IGUI_invpanel_Category"), true)
+        drawCatSelect(panel, state, pfx, lx, by, catW, bh, catLbl, true)
         lx = lx + catW + gap
     end
-    drawPopBox(panel, state, "sort", lx, by, sortW, bh, narrow and sortName or ZeD.tr("UI_ZeD_Craft_SortPick", sortName),
-        sortModes, frozen, fid == pfx .. ":sortMenu", mx, my, sortName, narrow)
+    drawPopBox(panel, state, "sort", lx, by, sortW, bh, sortName, sortModes, frozen, fid == pfx .. ":sortMenu", mx, my, nil, narrow)
     lx = lx + sortW + gap
-    drawPopBox(panel, state, "show", lx, by, showW, bh, narrow and showName or ZeD.tr("UI_ZeD_Craft_ShowToggle", showName),
-        showModes, frozen, fid == pfx .. ":showMenu", mx, my, showName, narrow)
+    drawPopBox(panel, state, "show", lx, by, showW, bh, showName, showModes, frozen, fid == pfx .. ":showMenu", mx, my, nil, narrow)
 end
 
 -- A band pop-up's list, open: drawn last (over the rows) above its box. Its row zones are
@@ -2655,8 +2684,10 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     -- Learn info section (readOnly + not accessible — renders ABOVE required; it does not fold)
     if showLearnSection then
         local learnLabel = ZeD.tr("UI_ZeD_Craft_HowToLearn")
-        M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), learnLabel,
-            nil, true, false, nil, false, T.px(6), catHdrH, true)
+        local lo = state._cardLearnOpts or {}
+        state._cardLearnOpts = lo
+        lo.noArrow, lo.bleedLeft, lo.h, lo.inset = true, T.px(6), catHdrH, 0
+        M.drawCategoryRow(panel, x + T.px(6), curY, contentW - T.px(6), learnLabel, nil, true, lo)
         curY = curY + catHdrH
 
         -- Skill requirements: the status square carries met / not met, the words stay default
@@ -2701,9 +2732,11 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     local reqHdrHover = mx >= x and mx < x + contentW and my >= curY and my < curY + catHdrH
     local secOpts = state._cardSecOpts or {}
     state._cardSecOpts = secOpts
+    -- (the one section heading, the small fold-open mono line: design review D6)
     secOpts.focus = (state._gpFocusedId == (pfx .. ":card:req")) and NO_FOCUS_OPTS or nil
-    M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), secLabel,
-        haveCount .. "/" .. reqCount, not state.reqCollapsed, reqHdrHover, nil, true, T.px(6), catHdrH, nil, secOpts)
+    secOpts.hover, secOpts.bleedLeft, secOpts.h, secOpts.inset, secOpts.noArrow = reqHdrHover, T.px(6), catHdrH, 0, nil
+    M.drawCategoryRow(panel, x + T.px(6), curY, contentW - T.px(6), secLabel,
+        haveCount .. "/" .. reqCount, not state.reqCollapsed, secOpts)
     zones[#zones + 1] = {
         type = "cardSection", id = "req",
         x = x, y = curY, w = contentW, h = catHdrH, _scrolled = true,
@@ -2754,8 +2787,9 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     if outCount > 0 then
         local outHdrHover = mx >= x and mx < x + contentW and my >= curY and my < curY + catHdrH
         secOpts.focus = (state._gpFocusedId == (pfx .. ":card:out")) and NO_FOCUS_OPTS or nil
-        M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), ZeD.tr("IGUI_CraftingWindow_Creates"),
-            outCount, not state.outCollapsed, outHdrHover, nil, true, T.px(6), catHdrH, nil, secOpts)
+        secOpts.hover, secOpts.bleedLeft, secOpts.h, secOpts.inset, secOpts.noArrow = outHdrHover, T.px(6), catHdrH, 0, nil
+        M.drawCategoryRow(panel, x + T.px(6), curY, contentW - T.px(6), ZeD.tr("IGUI_CraftingWindow_Creates"),
+            outCount, not state.outCollapsed, secOpts)
         zones[#zones + 1] = {
             type = "cardSection", id = "out",
             x = x, y = curY, w = contentW, h = catHdrH, _scrolled = true,

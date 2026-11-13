@@ -432,14 +432,15 @@ end
 section("TABS")
 -- ---------------------------------------------------------------------------
 local FUR, ANI = readFile(CL .. "FurnitureTab.lua"), readFile(CL .. "AnimalsTab.lua")
-check("TABS Furniture: the sub-tabs sit at the foot of row 1", FUR:find("local tabY = y + T.stripH - T.tabH", 1, true) ~= nil)
+-- (Nov 12 2026, design review C1: the tab's title is row 1, the sub-tabs end on the strip under it)
+check("TABS Furniture: the sub-tabs sit at the foot of the strip under the title", FUR:find("local tabY = y + titleH + T.stripH - T.tabH", 1, true) ~= nil)
 check("TABS Animals: the sub-tabs sit at the foot of row 1", ANI:find("local topPad = T.stripH - T.tabH", 1, true) ~= nil)
 -- the station header (the real renderViewHeader)
 do
     local STS = readFile(CL .. "Stations.lua")
     local piece = cutFn(STS, "function ST.renderViewHeader(")
     local ST = { drawSelect = noop, drawBand = function() return 0 end }
-    local env = setmetatable({ ST = ST }, { __index = _G })
+    local env = setmetatable({ ST = ST, getText = function(k) return k end }, { __index = _G })
     local fn = piece and loadstring(piece, "@Stations.lua")
     if fn then setfenv(fn, env); fn() end
     check("TABS Stations: renderViewHeader cut out and loaded", ST.renderViewHeader ~= nil)
@@ -451,9 +452,11 @@ do
                 local state = { zones = {} }
                 local used = ST.renderViewHeader(p, { _playerObj = {} }, 0, 0, 400, state, { name = "Bench" })
                 local z = state.zones[1]
-                check("TABS station header " .. size .. " x" .. root .. ": row 1 high", used == T.stripH, tostring(used) .. " vs " .. tostring(T.stripH))
-                check("TABS station header " .. size .. " x" .. root .. ": its select centered in row 1",
-                    z and type(T.stripH) == "number" and math.abs((z.y + z.h / 2) - T.stripH / 2) <= 1, z and z.y)
+                -- (Nov 12 2026, design review C1: the tab's title on row 1, the select on the strip under it)
+                check("TABS station header " .. size .. " x" .. root .. ": the title row and the strip, each row 1 high",
+                    used == 2 * T.stripH, tostring(used) .. " vs " .. tostring(T.stripH))
+                check("TABS station header " .. size .. " x" .. root .. ": its select centered in the strip under the title",
+                    z and type(T.stripH) == "number" and math.abs((z.y + z.h / 2) - (T.stripH + T.stripH / 2)) <= 1, z and z.y)
             end
         end
     end

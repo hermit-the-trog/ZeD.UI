@@ -2501,6 +2501,7 @@
     "UI_ZeD_Station_NeedsAn": "Kræver %1.",
     "UI_ZeD_Station_NoneInReach": "Intet i nærheden",
     "UI_ZeD_Station_SelectLabel": "Station",
+    "UI_ZeD_Select_Label": "%1:",
     "UI_ZeD_Station_ShortBarrel": "Tønde",
     "UI_ZeD_Station_ShortBeam": "Bjælke",
     "UI_ZeD_Station_ShortCharcoal": "Trækul",

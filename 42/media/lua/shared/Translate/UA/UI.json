@@ -2501,6 +2501,7 @@
     "UI_ZeD_Station_NeedsAn": "Потрібно: %1.",
     "UI_ZeD_Station_NoneInReach": "Поруч нічого немає",
     "UI_ZeD_Station_SelectLabel": "Місце",
+    "UI_ZeD_Select_Label": "%1:",
     "UI_ZeD_Station_ShortBarrel": "Бочка",
     "UI_ZeD_Station_ShortBeam": "Балка",
     "UI_ZeD_Station_ShortCharcoal": "Вугілля",

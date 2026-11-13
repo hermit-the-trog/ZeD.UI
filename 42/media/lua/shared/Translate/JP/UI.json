@@ -2501,6 +2501,7 @@
     "UI_ZeD_Station_NeedsAn": "%1が必要です。",
     "UI_ZeD_Station_NoneInReach": "手の届く範囲になし",
     "UI_ZeD_Station_SelectLabel": "ステーション",
+    "UI_ZeD_Select_Label": "%1:",
     "UI_ZeD_Station_ShortBarrel": "樽",
     "UI_ZeD_Station_ShortBeam": "梁",
     "UI_ZeD_Station_ShortCharcoal": "炭焼き",

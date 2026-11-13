@@ -521,11 +521,26 @@ end
 -- DRAWING — selector box, dropdown overlay, station band
 -- ----------------------------------------------------------------------------
 
+--- The label as a select draws it, with its colon in the player's language ("Station:",
+--- French "Poste :"), in the label case.
+function ST.selectLabel(label)
+    return ZeD.Atoms.textCase(ZeD.tr("UI_ZeD_Select_Label", label))
+end
+
+--- The width a select needs to show its label and the whole value (pads, gap, arrow).
+function ST.selectW(label, value)
+    local T, tm = ZeD.T, ZeD.TM
+    local w = T.sp.inputPadX * 2 + T.px(5) + T.px(4) + T.px(1) + tm:MeasureStringX(T.fontF2, value or "")
+    if label and label ~= "" then w = w + tm:MeasureStringX(T.fontF1, ST.selectLabel(label)) + T.px(6) end
+    return w
+end
+
 --- A select box in the pop-up menu's look (ZeD_Dropdown): surface 2 with a 1u outline,
 --- the label in F1 textDim, the value in F2, the triangle at the right. Hover is the
 --- T.hover wash; the controller's mark goes under the words. accentOn is accepted
 --- but not drawn: a bound station reads from its name and the band under it.
 --- disabled: the whole control at T.disabledAlpha (a select that cannot be opened now).
+--- (Its label is drawn by ST.selectLabel, "Station:"; ST.selectW is the room it needs.)
 function ST.drawSelect(panel, x, y, w, h, label, value, accentOn, focused, hovered, disabled)
     local T  = ZeD.T
     local A  = ZeD.Atoms
@@ -543,17 +558,22 @@ function ST.drawSelect(panel, x, y, w, h, label, value, accentOn, focused, hover
     local arrowSz = T.px(5)
     local arrowX = x + w - arrowSz - T.sp.inputPadX
     local vf = T.fontF2
-    -- the label goes when the label and the value do not fit together: the value
-    -- wins (at UI scale 2.0 with Large text the box once read "Station ..")
+    -- every dropdown reads "Label: Value" (design review C2, ruled Nov 12 2026): the label
+    -- with its colon stays, and short of room the value is cut ("Station: Wood...");
+    -- the label is cut too only when it alone would not leave the value one letter
     if label and label ~= "" then
-        local s = A.textCase(label)
+        local s = ST.selectLabel(label)
+        local room = arrowX - T.px(4) - cx
+        local minV = tm:MeasureStringX(vf, "W...")
         local lw = tm:MeasureStringX(lf, s) + T.px(6)
-        if cx + lw + tm:MeasureStringX(vf, value or "") <= arrowX - T.px(4) then
-            local lc = onFocus and T.textOnFocus or T.textDim
-            local ly = y + math.floor((h - tm:getFontHeight(lf)) / 2)
-            panel:drawText(s, cx, ly, lc.r, lc.g, lc.b, (lc.a or 1) * da, lf)
-            cx = cx + lw
+        if lw > room - minV then
+            s = ZeD.CraftingCore.truncText(s, lf, math.max(0, room - minV - T.px(6)))
+            lw = tm:MeasureStringX(lf, s) + T.px(6)
         end
+        local lc = onFocus and T.textOnFocus or T.textDim
+        local ly = y + math.floor((h - tm:getFontHeight(lf)) / 2)
+        panel:drawText(s, cx, ly, lc.r, lc.g, lc.b, (lc.a or 1) * da, lf)
+        cx = cx + lw
     end
     local v = ZeD.CraftingCore.truncText(value or "", vf, arrowX - cx - T.px(4))
     local vy = y + math.floor((h - tm:getFontHeight(vf)) / 2)
@@ -844,7 +864,10 @@ function ST.renderViewHeader(panel, win, x, y, w, state, st)
     local T = ZeD.T
     local pad = T.px(6)
     local h = T.inputH
-    -- (the select centered in row 1, the shared strip: punch list 178)
+    -- the Crafting tab's title on row 1, as the recipe list opens (design review C1), the
+    -- select centered in the shared strip under it (punch list 178)
+    local titleH = ZeD.Molecules.drawTabHeader(panel, x, y, w, getText("IGUI_CraftingWindow_Title"), false, false, true)
+    y = y + titleH
     local rowH = T.stripH
     local sx, sy, sw = x + pad, y + math.floor((rowH - h) / 2), w - pad * 2
     local mx, my = panel:getMouseX(), panel:getMouseY()
@@ -855,7 +878,7 @@ function ST.renderViewHeader(panel, win, x, y, w, state, st)
     ZeD.Atoms.drawDividerH(panel, x, y + rowH - T.px(1), w, true)
     local used = rowH
     used = used + ST.drawBand(panel, x, y + used, w, st, win._playerObj)
-    return used
+    return titleH + used
 end
 
 --- Shared click handling for a view's header: the dropdown when open, the
