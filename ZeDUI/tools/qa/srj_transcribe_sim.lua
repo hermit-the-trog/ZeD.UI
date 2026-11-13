@@ -8,6 +8,8 @@
 --     arguments (the items, the player, the writing tool);
 --   * the mod's own reasons grey it (asleep, illiterate, someone else's journal, no pen, too dark) with its words,
 --     and a press then calls nothing;
+--   * the journal looked for once per quarter second, not four times a frame (each look walks every bag), and a
+--     press still looks at once;
 --   * the mod's menu file failing to load: no key.
 -- What it can't show is how it looks and the real timed action: the in-game list in the build's QA notes.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/srj_transcribe_sim.lua
@@ -228,6 +230,40 @@ do
     SandboxVars.SkillRecoveryJournal.IlliterateSpeedMultiplier = 0.5
     check("illiterate with the sandbox option allowing it: allowed", S.transcribeWhy(c3, c3.item) == nil)
     SandboxVars.SkillRecoveryJournal.IlliterateSpeedMultiplier = 0
+end
+
+-- The journal is looked for once a quarter second at most, not four times a frame (Nov 12 2026 review): the key
+-- block's height (the tab measures it), the key's height, the row and its height each walked every bag the character
+-- carries. A press still looks at once, so a journal just dropped is never written into.
+do
+    local t = 50000
+    getTimestampMs = function() return t end
+    local w = fresh()
+    local c = char({ journal = false, pen = true })
+    local inv = c.getInventory()
+    local walk, walks = inv.getFirstTypeRecurse, 0
+    inv.getFirstTypeRecurse = function(...) walks = walks + 1; return walk(...) end
+    w._playerObj = c
+    X.headHeight(w, 400)        -- (the tab's measure)
+    drawHeadFor(X, w, c)        -- (the block drawn)
+    check("one frame of the key block: the bags walked for the journal once", walks == 1, walks)
+    t = t + 16
+    X.headHeight(w, 400)
+    drawHeadFor(X, w, c)
+    check("the next frame: not walked again", walks == 1, walks)
+    t = t + 300
+    X.headHeight(w, 400)
+    check("a quarter second on: walked again (a journal picked up shows)", walks == 2, walks)
+    -- a journal on the character, the key drawn; then taken off: a press right after writes nothing
+    local c2 = char({ journal = true, pen = true })
+    local w2 = fresh()
+    drawHeadFor(X, w2, c2)
+    local key = buttons[1]
+    c2.getInventory().getFirstTypeRecurse = function() return nil end
+    writeCalls = {}
+    if key then ZeD.SkillsTab.onClick(w2, key.x + 2, key.y + 2) end
+    check("a press right after the journal was taken off writes nothing (the press looks again)", key ~= nil and #writeCalls == 0)
+    getTimestampMs = function() return 1000 end
 end
 
 -- the mod's menu file missing: no key (and no gap)

@@ -142,6 +142,19 @@ function S.journal(char)
     return { item = item, who = who, where = where }
 end
 
+-- The journal as the tab shows it, kept a quarter second per character. The key block asks for it
+-- several times a frame (its height, the key's, the row, a row's card), and each ask walks every bag
+-- the character carries when there is no journal. A press asks S.journal itself, so it never acts on
+-- a journal just dropped.
+local _shown = { t = -1 }
+local function journalShown(char)
+    local now = getTimestampMs()
+    if _shown.who == char and now >= _shown.t and now - _shown.t < 250 then return _shown.j end
+    _shown.who, _shown.t, _shown.j = char, now, S.journal(char)
+    return _shown.j
+end
+S.journalShown = journalShown
+
 local function journalName()
     return getItemNameFromFullType(JOURNAL_TYPE) or JOURNAL_TYPE
 end
@@ -273,17 +286,20 @@ function X.headHeight(win, w)
     return ZeD.T.px(20) + X.journalRowH(win) + lineH() * #wordRows(w) + ZeD.T.px(10)
 end
 
--- The Transcribe key's height, and whether it shows: a Bound Journal on the character, the mod's menu loaded
+-- The Transcribe key's height; it shows with a Bound Journal on the character and the mod's menu loaded
 local function keyH() return ZeD.T.buttonH - ZeD.T.px(4) end
-local function keyShows(win)
-    return win and win._playerObj and CTX() and S.journal(win._playerObj) ~= nil
+
+-- the journal row's height for the journal shown (j, or nil for none)
+local function rowHFor(j)
+    local lh = lineH()
+    if j and CTX() then return math.max(lh, keyH() + ZeD.T.px(2)) end
+    return lh
 end
 
 --- The journal row's height: a text line, or the key's height (and a little air) when the key shows.
 function X.journalRowH(win)
-    local lh = lineH()
-    if keyShows(win) then return math.max(lh, keyH() + ZeD.T.px(2)) end
-    return lh
+    local char = win and win._playerObj
+    return rowHFor(char and journalShown(char) or nil)
 end
 
 -- the pressed key's action (made once; the tab hands it the window)
@@ -326,8 +342,8 @@ function X.drawHead(panel, win, x, y, w)
     end
     y = y + hh
     -- row 1: the journal on the character, or none (a status square, as everywhere)
-    local j = S.journal(char)
-    local r1 = X.journalRowH(win)
+    local j = journalShown(char)
+    local r1 = rowHFor(j)
     local dot = T.px(6)
     local dy = y + math.floor((r1 - dot) / 2)
     local cx = x
@@ -380,7 +396,7 @@ function X.card(char, perk, skill)
     lines[#lines + 1] = { total = true, text = ZeD.tr("IGUI_Total") .. " " .. ZeD.tr("IGUI_XP_xp"), value = tostring(round(a.totalXP)) }
     local note
     if a.deficitXP > 0 then
-        if S.journal(char) then note = ZeD.tr("UI_ZeD_SRJ_NoteOn", round(a.deficitXP))
+        if journalShown(char) then note = ZeD.tr("UI_ZeD_SRJ_NoteOn", round(a.deficitXP))
         else note = ZeD.tr("UI_ZeD_SRJ_NoteNone", round(a.deficitXP)) end
     else
         note = ZeD.tr("UI_ZeD_SRJ_NoteAll")

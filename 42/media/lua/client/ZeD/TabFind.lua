@@ -2,9 +2,10 @@
 -- ============================================================================
 -- TAB FIND — client; the Find field in the heading of the Character window's
 -- Skills and Equipment tabs, and the matching behind it.
--- Skills matches a skill's name, its group's name (a group that matches keeps
--- all its skills) and the Training materials rows. Equipment matches a worn
--- item's name, its slot's words and the body parts it covers. Rows that don't
+-- Skills matches a skill's name and its group's name (a group that matches keeps
+-- all its skills); a skill's Training materials row goes with the skill (book
+-- titles are not matched). Equipment matches a worn or held item's name, its
+-- slot's words and the body parts it covers (not the belt's hooks). Rows that don't
 -- match are dimmed in place, never hidden, so nothing moves under the pointer;
 -- the controller's hand skips them.
 -- Each tab keeps its own text on the window (win._find): it stays while the
@@ -118,6 +119,7 @@ end
 --- { id, slots = { { type, item } } }). wordsOf(slot) gives the slot's words, infoOf(item)
 --- { name, parts }. Returns { q, worn, shown, hit = { [slot type] = "name" | "slot" | "covers" },
 --- covers = { [slot type] = { part, ... } }, group = { [group id] = rows kept } }
+--- (Only what is worn or held: the belt's hooks are not worn, and the Doll view leaves them out too.)
 function F.matchEquip(groups, q, wordsOf, infoOf)
     local r = { q = q, worn = 0, shown = 0, hit = {}, covers = {}, group = {} }
     for _, g in ipairs(groups or {}) do
@@ -210,10 +212,21 @@ end
 function F.setText(win, tab, text)
     win._find = win._find or {}
     win._find[tab] = text or ""
+    -- the text as it is matched, worked out here once: the tabs ask for it several times a frame
+    win._findQ = win._findQ or {}
+    win._findQ[tab] = F.norm(text)
 end
 
 local function query(win, tab)
-    local q = F.norm(F.text(win, tab))
+    local qs = win and win._findQ
+    local q = qs and qs[tab]
+    if q == nil then
+        -- (a text set without its matched form, a window from before a reload of this file: worked out once here)
+        local t = F.text(win, tab)
+        if t == "" then return nil end
+        F.setText(win, tab, t)
+        q = win._findQ[tab]
+    end
     if q == "" then return nil end
     return q
 end
@@ -256,7 +269,8 @@ local function sigList(l, data)
     end
     return finish(l)
 end
--- the doll: every layer of every box, each box closed with a marker
+-- the doll: every layer of every box, each box closed with a marker, then the hands (the belt's
+-- hooks are not matched, so they are not part of it)
 local function sigDoll(l, data)
     begin(l)
     local D = ZeD.EquipDoll
@@ -273,7 +287,6 @@ local function sigDoll(l, data)
         end
         put(l, data.main or false)
         put(l, data.off or false)
-        for _, bs in ipairs(data.belt or {}) do put(l, bs.item or false) end
     end
     return finish(l)
 end
@@ -326,7 +339,9 @@ function F.equip(win, data)
     return c.res
 end
 
--- the doll's boxes as F.matchBoxes takes them, from EquipDoll.gather's data
+-- the doll's boxes as F.matchBoxes takes them, from EquipDoll.gather's data: the worn and held ones.
+-- The belt's hooks stay out, as the List view's belt rows do: a hooked tool is not worn, and with it
+-- counted here "hammer" found one thing in the Doll view and nothing in the List view.
 local function dollBoxes(data)
     local D = ZeD.EquipDoll
     local out = {}
@@ -341,12 +356,6 @@ local function dollBoxes(data)
     end
     out[#out + 1] = { key = "doll:main", words = ZeD.tr("UI_ZeD_Doll_Main"), items = { data.main } }
     out[#out + 1] = { key = "doll:off", words = ZeD.tr("UI_ZeD_Doll_Off"), items = { data.off } }
-    for _, bs in ipairs(data.belt or {}) do
-        if bs.item then
-            out[#out + 1] = { key = "doll:belt" .. tostring(bs.i),
-                              words = ZeD.tr("UI_ZeD_Doll_BeltSlot", tostring(bs.key or bs.i)), items = { bs.item } }
-        end
-    end
     return out
 end
 
@@ -404,18 +413,59 @@ function F.dim(panel, x, y, w, h)
     panel:drawRect(x, y, w, h, DIM_A, b.r, b.g, b.b)
 end
 
+-- where q sits in a drawn text, in px from its left: the offset and the width, nil when it holds none
+local function measureUnderline(text, font, q)
+    local s, e = F.find(text, q)
+    if not s then return nil, nil end
+    local tm = ZeD.TM
+    return tm:MeasureStringX(font, string.sub(text, 1, s - 1)), tm:MeasureStringX(font, string.sub(text, s, e))
+end
+
+-- The same, kept per drawn text for the current q: the matched rows draw every frame, and the two cuts
+-- and measures come out the same each time. Started over when q or the measures change (a new scale,
+-- font or language); not kept while the measures are not (the fonts still loading).
+local _ul, _ulQ, _ulEp, _ulN = {}, nil, nil, 0
+local function underlineAt(text, font, q)
+    local X = ZeD.Text
+    local ep = X and X.measureEpoch and X.measureEpoch() or nil
+    if ep == nil or type(text) ~= "string" then return measureUnderline(text, font, q) end
+    if q ~= _ulQ or ep ~= _ulEp or _ulN >= 512 then _ul, _ulQ, _ulEp, _ulN = {}, q, ep, 0 end
+    local e = _ul[text]
+    if not e or e.font ~= font then
+        if not e then e = {}; _ul[text] = e; _ulN = _ulN + 1 end
+        e.font = font
+        e.ux, e.uw = measureUnderline(text, font, q)
+    end
+    return e.ux, e.uw
+end
+
 --- A 1u accent line under the part of text (drawn at x, y in font) that holds q; kept
 --- left of maxX. Draws nothing when the drawn text doesn't hold it (a name cut short).
 function F.underline(panel, text, font, x, y, q, maxX)
-    local s, e = F.find(text, q)
-    if not s then return end
+    local ox, uw = underlineAt(text, font, q)
+    if not ox then return end
     local T, tm = ZeD.T, ZeD.TM
-    local ux = x + tm:MeasureStringX(font, string.sub(text, 1, s - 1))
-    local uw = tm:MeasureStringX(font, string.sub(text, s, e))
+    local ux = x + ox
     if maxX and ux + uw > maxX then uw = maxX - ux end
     if uw <= 0 then return end
     local ac = T.accent
     panel:drawRect(ux, y + tm:getFontHeight(font), uw, T.px(1), 1, ac.r, ac.g, ac.b)
+end
+
+--- The "covers ..." line under a list row matched by a body part (res: F.equip's matches, key: the
+--- slot's type), or nil. Kept on the matches in the language showing, so a row does not join the
+--- parts and look the words up again every frame.
+function F.coversLine(res, key)
+    local parts = res and res.covers and res.covers[key]
+    if not parts then return nil end
+    local X = ZeD.Text
+    local ep = X and X.wordsEpoch and X.wordsEpoch() or nil
+    if ep == nil then return ZeD.tr("UI_ZeD_Find_Covers", table.concat(parts, ", ")) end
+    local c = res.coversLine
+    if not c or res.coversEp ~= ep then c = {}; res.coversLine, res.coversEp = c, ep end
+    local s = c[key]
+    if not s then s = ZeD.tr("UI_ZeD_Find_Covers", table.concat(parts, ", ")); c[key] = s end
+    return s
 end
 
 --- Where a tab heading's title ends (ZeD.Molecules.drawTabHeader's own layout).
@@ -575,7 +625,11 @@ function ZeD_TabFindField:render()
     local T, tm = ZeD.T, ZeD.TM
     local s = self.height - T.px(6)
     local cx, cy = self.width - s - T.px(3), T.px(3)
-    self._clearR = { x = cx, y = cy, w = s, h = s }
+    -- (one box table, refilled each frame)
+    local r = self._clearBox or {}
+    self._clearBox = r
+    r.x, r.y, r.w, r.h = cx, cy, s, s
+    self._clearR = r
     local mx, my = self:getMouseX(), self:getMouseY()
     self._overClear = mx >= cx and mx < cx + s and my >= cy and my < cy + s
     local bs = T.borderS
@@ -597,6 +651,15 @@ function ZeD_TabFindField:onMouseDown(x, y)
     return false
 end
 
+-- The field's text box lets go of the game's keyboard. A text box that has it keeps it while hidden
+-- and after its window is gone: every key types into it (WASD, the hotkeys), and while it holds the
+-- keyboard the game takes no interact press, so the pad's A opens no door or window. Only a left click
+-- elsewhere, or this, ends that.
+local function release(f)
+    local e = f and f.input
+    if e and e:isFocused() then e:unfocus() end
+end
+
 -- the tab's field, made the first time the tab shows (as a child of the drawer)
 local function makeField(win, tab, drawer)
     local f = ZeD_TabFindField:new(0, 0, ZeD.T.px(FIELD_W), ZeD.tr(HINT_KEY[tab]))
@@ -606,6 +669,8 @@ local function makeField(win, tab, drawer)
     f.onFilter = function(_, text)
         F.setText(win, tab, text)
     end
+    -- Enter: done typing (the text stays, the keys go back to the game)
+    f.onSubmit = function() release(f) end
     drawer:addChild(f)
     win._findFields = win._findFields or {}
     win._findFields[tab] = f
@@ -617,7 +682,8 @@ end
 
 --- Every frame of the Character window (ZeD_CharacterWindow.extFrame): each tab's field
 --- shows only while its tab shows in the drawer and drew its heading last frame, at the
---- place it gave.
+--- place it gave. A field that is hidden, or was hidden since last frame (an item card over
+--- it), lets go of the game's keyboard.
 function F.onWindowFrame(win, drawerW)
     local drawer = win._drawerPanel
     if not drawer then return end
@@ -632,6 +698,9 @@ function F.onWindowFrame(win, drawerW)
         local cb = win._findClearBtn and win._findClearBtn[tab]
         if cb then cb.live = show and cb.drawn == true; cb.drawn = false end
         if f then
+            -- (the pad keyboard's own hide gives a field it typed into the keyboard back, even a hidden
+            -- one, so this is asked every frame, not only when the field goes)
+            if not (on and f:isVisible()) then release(f) end
             if on then
                 if f:getX() ~= r.x or f:getY() ~= r.y then f:setX(r.x); f:setY(r.y) end
                 if f:getWidth() ~= r.w or f:getHeight() ~= r.h then f:setWidth(r.w); f:setHeight(r.h) end
@@ -661,6 +730,12 @@ function F.accepted(win, tab)
     win._findLand = { tab = tab, to = "match" }
 end
 
+--- The keyboard's Cancel (B): the text is back as it was, and the field lets go of the game's
+--- keyboard (the keyboard's hide gives it the caret back); the hand stays on the field.
+function F.canceled(win, tab)
+    release(win._findFields and win._findFields[tab])
+end
+
 --- A on the field: ZeD's pad keyboard on it (the text narrows the tab as each key goes in);
 --- RT accepts, B puts the text back. Only the controller's A comes here (a click goes to the
 --- field itself), so the keyboard opens whether or not a pad is bound to the player (a press the
@@ -675,6 +750,7 @@ function F.edit(win, tab)
         local ok, osk = pcall(OnScreenKeyboard.Show, pn, f.input, jd)
         if ok and osk then
             osk.onAccept = function() F.accepted(win, tab) end
+            osk.onCancel = function() F.canceled(win, tab) end
             if jd and jd.focus ~= osk then
                 osk.prevFocus = jd.focus
                 jd.focus = osk
@@ -708,14 +784,18 @@ function F.onClick(win, x, y)
     return false
 end
 
---- Hides the pad keyboard if it is typing into one of the window's fields (the window closing).
+--- The window closing: the pad keyboard typing into one of its fields is put away, then both
+--- fields let go of the game's keyboard (the keyboard's hide gives its field the caret back, and a
+--- removed field keeps it as a hidden one does).
 function F.onClose(win)
     local KB = ZeD.Keyboard
     local k = KB and KB.instance
-    if not (k and k.textEntryBox) then return end
     for _, tab in ipairs(F.TABS) do
         local f = win._findFields and win._findFields[tab]
-        if f and k.textEntryBox == f.input then KB.hide() end
+        if f then
+            if k and k.textEntryBox and k.textEntryBox == f.input then KB.hide() end
+            release(f)
+        end
     end
 end
 
@@ -730,24 +810,31 @@ local function stopFns(tab)
         onFocus = function(w, el) w._gpFocusedEquipSlot = el.slotType end,
         edit = function(w) F.edit(w, tab) end,
         clear = function(w) F.clear(w, tab) end,
+        -- the help line's word for X on the field: Clear while it holds text, none while empty
+        -- (without it the line read "X Menu", and X empties the field)
+        promptClear = function(w) return F.active(w, tab) and ZeD.tr("UI_ZeD_Find_Clear") or false end,
     }
     _stopFns[tab] = s
     return s
 end
 
 --- Adds the tab's Find stops to a list of the controller's stops: the field (A types, X
---- clears) and, with nothing matching, the empty result's Clear.
+--- clears) and, with nothing matching, the empty result's Clear. The help line names them as
+--- the Inventory's Filter field does: A Type and X Clear on the field, A Clear on the key (X there
+--- clears too, unnamed: the key says it already).
 function F.stops(win, tab, elements)
     local fn = stopFns(tab)
     local r = F.rect(win, tab)
     if r and r.live then
         elements[#elements + 1] = { x = r.x, y = r.y, w = r.w, h = r.h, id = tab .. ":find", slotType = "__find",
-            findField = true, onFocus = fn.onFocus, onActivate = fn.edit, onContextMenu = fn.clear }
+            findField = true, onFocus = fn.onFocus, onActivate = fn.edit, onContextMenu = fn.clear,
+            promptA = ZeD.tr("UI_ZeD_Inv_PromptType"), promptX = fn.promptClear }
     end
     local b = win._findClearBtn and win._findClearBtn[tab]
     if b and b.live and F.active(win, tab) then
         elements[#elements + 1] = { x = b.x, y = b.y, w = b.w, h = b.h, id = tab .. ":findclear", slotType = "__findclear",
-            findClear = true, onFocus = fn.onFocus, onActivate = fn.clear, onContextMenu = fn.clear }
+            findClear = true, onFocus = fn.onFocus, onActivate = fn.clear, onContextMenu = fn.clear,
+            promptA = ZeD.tr("UI_ZeD_Find_Clear"), promptX = false }
     end
 end
 

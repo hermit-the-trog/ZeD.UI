@@ -144,7 +144,14 @@ end
 -- LAYOUT CONSTANTS
 -- ============================================================================
 
-local GROUP_H    = 15  -- group header height (the library's category row, matches T.sp.catHdrH)
+local GROUP_H    = 15  -- the least a group header can be (the library's category row, T.sp.catHdrH)
+
+-- A group header's height (and the belt's heading's): its words with 6u above and below. At the
+-- category row's 15u it was half an item row and its words touched the rows around it.
+local function groupH()
+    local T = ZeD.T
+    return math.max(T.px(GROUP_H), (T.fontF1H or ZeD.TM:getFontHeight(T.fontF1)) + T.px(12))
+end
 
 -- The controller is on this element of the tab: the window has the focus, the
 -- controller is in use (Focus.liveZone) and the focus is in the tab's zone.
@@ -612,7 +619,7 @@ local function _drawDefenseDetailView(panel, win, protData, partName, rx, ry, rw
 end
 
 -- Stacked stat helper with status dot: label (secondary) on line 1, dot + value (body, neutral) on line 2
-local function _drawStackedStatDot(panel, x, y, label, value, dotColor, dotSz, dotGap)
+local function _drawStackedStatDot(panel, x, y, label, value, dotColor, dotSz, dotGap, colW)
     local T = ZeD.T
     local A = ZeD.Atoms
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
@@ -623,6 +630,9 @@ local function _drawStackedStatDot(panel, x, y, label, value, dotColor, dotSz, d
     panel:drawText(ZeD.textCase(label), x, y, T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a, T.fontF1)
     local valY = y + secH + labelValueGap
     A.drawStatusDot(panel, x, valY + math.floor((bodyH - dotSz) / 2), dotColor, dotSz)
+    -- the value is one line: a long one ends in "..." at the column edge (the worst-zone line names
+    -- a body part, and the game's longest ones are wide)
+    if colW then value = A.truncateText(value, T.fontF2, colW - dotSz - dotGap) end
     A.drawBody(panel, value, x + dotSz + dotGap, valY)
 
     return secH + labelValueGap + bodyH + afterGap
@@ -710,16 +720,16 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
         else
             worstValue = ZeD.tr("UI_ZeD_Equip_ZonePct", ZeD.partLabel(protData.worstPart.name), protData.worstPart.biteDef .. "%")
         end
-        local h1 = _drawStackedStatDot(panel, rightX, statY, ZeD.tr("UI_ZeD_Equip_WorstZone"), worstValue, T.danger, dotSz, dotGap)
+        local h1 = _drawStackedStatDot(panel, rightX, statY, ZeD.tr("UI_ZeD_Equip_WorstZone"), worstValue, T.danger, dotSz, dotGap, rightW)
         statY = statY + h1
 
         if protData.bestPart.biteDef >= 0 then
             local bestStr = ZeD.tr("UI_ZeD_Equip_ZonePct", ZeD.partLabel(protData.bestPart.name), protData.bestPart.biteDef .. "%")
-            local h2 = _drawStackedStatDot(panel, rightX, statY, ZeD.tr("UI_ZeD_Equip_BestZone"), bestStr, tierColor(protData.bestPart.biteDef), dotSz, dotGap)
+            local h2 = _drawStackedStatDot(panel, rightX, statY, ZeD.tr("UI_ZeD_Equip_BestZone"), bestStr, tierColor(protData.bestPart.biteDef), dotSz, dotGap, rightW)
             statY = statY + h2
         end
 
-        local h3 = _drawStackedStatDot(panel, rightX, statY, ZeD.tr("UI_ZeD_Equip_Garments"), ZeD.tr("UI_ZeD_Equip_GarmentsEquipped", protData.totalGarments), T.positive, dotSz, dotGap)
+        local h3 = _drawStackedStatDot(panel, rightX, statY, ZeD.tr("UI_ZeD_Equip_Garments"), ZeD.tr("UI_ZeD_Equip_GarmentsEquipped", protData.totalGarments), T.positive, dotSz, dotGap, rightW)
         statY = statY + h3
     end
 
@@ -737,7 +747,7 @@ end
 local _grpOpts = {}
 local function _drawGroupHeader(panel, win, group, expanded, x, y, w)
     local T = ZeD.T
-    local h = T.px(GROUP_H)
+    local h = groupH()
     local hovered = eqHover(panel, win, x, y, w, h)
 
     -- Count equipped items
@@ -873,7 +883,7 @@ end
 
 -- ============================================================================
 -- THE BELT (HOOK_MAP rows 5 + 6) — the hotbar's slots under HELD + BELT
--- A sub-header ("THE BELT | KEYS", "SLOT | WHAT GIVES IT"), then one row per
+-- A heading ("The belt | keys"), then one row per
 -- slot in key order: the key in an accent badge, the item's icon, its name
 -- (or "Empty") over the slot's name and the worn item that gives the slot,
 -- the condition bar in the COND column, then IN HAND and the verb (DETACH,
@@ -912,6 +922,7 @@ local function _beltTag(panel, text, x, y, ink)
     return ZeD.Molecules.drawTag(panel, x, y, text, ZeD.T.info, _beltTagOpts)
 end
 
+local _beltHeadOpts = {}
 local function _drawBeltRows(panel, win, slots, x, y, w, zones)
     local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
     local B = ZeD.Belt
@@ -919,27 +930,14 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
     local DOT = " | "   -- the separator: ZeD's pipe, never a middle dot
     local f1, f2 = T.fontF1, T.fontF2
     local f1h, f2h = tm:getFontHeight(f1), tm:getFontHeight(f2)
-    -- sub-header, in the category rows' height and type (sentence case), with no
-    -- fill of its own: the window body is under it, one layer
-    local hh = T.px(GROUP_H)
-    local lo = T.toneLo
-    local hy = y + math.floor((hh - f1h) / 2)
-    -- the two heads keep to their own sides: short of room each is cut in its own share, the
-    -- right one gets at most half (with Large text on a narrow card "The belt | keys"
-    -- otherwise runs into "Slot | what gives it")
-    local headL = ZeD.textCase(ZeD.tr("UI_ZeD_Equip_BeltHeadLeft"))
-    local cap = ZeD.textCase(ZeD.tr("UI_ZeD_Equip_BeltHeadRight"))
-    local hRoom = w - c.padX * 2 - T.px(2) - T.px(8)
-    local lw, rw = tm:MeasureStringX(f1, headL), tm:MeasureStringX(f1, cap)
-    if lw + rw > hRoom then
-        rw = math.min(rw, math.max(math.floor(hRoom / 2), hRoom - lw))
-        lw = hRoom - rw
-        headL = A.truncateText(headL, f1, lw)
-        cap = A.truncateText(cap, f1, rw)
-    end
-    panel:drawText(headL, x + c.padX + T.px(2), hy, lo.r, lo.g, lo.b, lo.a or 1, f1)
-    panel:drawText(cap, x + w - c.padX - tm:MeasureStringX(f1, cap), hy, lo.r, lo.g, lo.b, lo.a or 1, f1)
-    A.drawDividerH(panel, x, y + hh - T.px(1), w, false)
+    -- The heading: one line in the group headers' look and height (the category row with no arrow:
+    -- the belt does not fold), its words where the key badges start, no fill of its own (the window
+    -- body is under it, one layer). A second head at the right ("Slot | what gives it") read as an
+    -- unrelated label; each row's own second line names the slot and what gives it.
+    local hh = groupH()
+    local ho = _beltHeadOpts
+    ho.h, ho.noArrow, ho.inset = hh, true, c.padX + T.px(2)
+    ZeD.Molecules.drawCategoryRow(panel, x, y, w, ZeD.tr("UI_ZeD_Equip_BeltHeadLeft"), nil, false, ho)
     y = y + hh
 
     local rowH = _beltRowH()
@@ -1343,10 +1341,12 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
         win._equipSlotZones, win._equipBeltZones, win._equipGroupZones = {}, {}, {}
         win._equipDefenseZone = nil
         if win._equipScroll then win._equipScroll.visible = false end
+        win._equipDollStale = true   -- (the doll gathers once when it shows again)
         EL.renderTodo(panel, win, x, y, w, h)
         return
     end
     if win._equipSelected then
+        win._equipDollStale = true   -- (the doll gathers once when it shows again)
         -- Find the selected slot data: a doll slot (its layers), or a list row
         local selSlot = nil
         local layerIdx, layerN = 1, 1
@@ -1444,7 +1444,7 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     -- not using a pinned header for defense any more).
     local defBodyH = math.max(0, defDashH - headerH)
     local slotRowH = T.rowH
-    local groupHeaderH_pre = T.px(GROUP_H)
+    local groupHeaderH_pre = groupH()   -- (the belt's heading takes the same height)
     local hasDefBody = defBodyH > 0
     -- Layout: equipped inventory list first (collapsible), defense body below
     -- (always visible). T.sp.figurePadTop is the canonical gap above body
@@ -1458,10 +1458,25 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     -- the data changes). While it holds text the Defense block hides (it is about the whole
     -- outfit); with nothing matching, the empty result takes the list's or the doll's place.
     local TF = ZeD.TabFind
-    if dollView and not win._equipDollData then win._equipDollData = Doll.gather(win._playerObj, win.playerNum or 0) end
+    -- The doll's data is gathered again on its own timer while the doll draws (EquipDoll.draw). With
+    -- Find text that matched nothing the doll does not draw (the empty result is in its place), so
+    -- that timer stops; here the data is gathered on a 250 ms clock instead, only on the frames after
+    -- one where the doll did not draw (a hat put on while "hat" matched nothing shows). While the doll
+    -- draws, only its own timer gathers: one gather every 15 frames, not two. The data goes stale
+    -- while the List view shows, so the first Doll frame after it gathers once (an outfit changed in
+    -- the List view is matched as it is now).
+    local dollWanted = dollView
+    if dollView and (not win._equipDollData or win._equipDollStale
+                     or (win._equipDollFindNone and TF and TF.active(win, "equip")
+                         and dueMs(win, "_equipDollFindAt", 250))) then
+        win._equipDollData = Doll.gather(win._playerObj, win.playerNum or 0, win._equipDollBands)
+        win._equipDollTimer = 0
+    end
+    win._equipDollStale = not dollWanted
     local findRes = TF and (dollView and TF.doll(win, win._equipDollData) or TF.equip(win, data)) or nil
     local findEmpty = listExpanded and findRes ~= nil and findRes.shown == 0
     if findEmpty then dollView = false end
+    win._equipDollFindNone = dollWanted and findEmpty
     win._equipDefHidden = findRes ~= nil
     if findRes then hasDefBody = false end
     local covH = ZeD.TM:getFontHeight(T.fontF1) + T.px(4)   -- (a "covers ..." line under a row)
@@ -1596,16 +1611,16 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
             local expanded = win._equipExpanded[g.id]
             -- Group header (dimmed when nothing in it matches the Find text)
             _drawGroupHeader(panel, win, g, expanded, x, drawY, contentW)
-            if findRes and (findRes.group[g.id] or 0) == 0 then TF.dim(panel, x, drawY, contentW, T.px(GROUP_H)) end
+            if findRes and (findRes.group[g.id] or 0) == 0 then TF.dim(panel, x, drawY, contentW, groupHeaderH_pre) end
 
             -- Store group zone + stamp Y for scroll-follow (keyed by group focus id)
             gzi = gzi + 1
             -- (the zone tables are refilled each frame, not made anew)
             local gz = win._equipGroupZones[gzi] or {}
-            gz.x, gz.y, gz.w, gz.h, gz.id = x, drawY, contentW, T.px(GROUP_H), g.id
+            gz.x, gz.y, gz.w, gz.h, gz.id = x, drawY, contentW, groupHeaderH_pre, g.id
             win._equipGroupZones[gzi] = gz
             win._equipSlotYMap["__group_" .. tostring(g.id)] = drawY
-            drawY = drawY + T.px(GROUP_H)
+            drawY = drawY + groupHeaderH_pre
 
             -- Slot rows:
             -- Expanded: show all slots
@@ -1629,11 +1644,11 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
                     end
                     drawY = drawY + T.rowH
                     -- matched by a body part it covers: which ones, on a line under the row
-                    local cov = findRes and s.item and findRes.covers[s.type]
-                    if cov then
+                    -- (the line kept with the matches: TabFind.coversLine)
+                    local line = findRes and s.item and TF.coversLine(findRes, s.type)
+                    if line then
                         local cc = calcEquipColumns(contentW, win)
                         local ac = T.accent
-                        local line = ZeD.tr("UI_ZeD_Find_Covers", table.concat(cov, ", "))
                         line = ZeD.Atoms.truncateText(line, T.fontF1, contentW - cc.nameX - T.px(8))
                         panel:drawText(line, x + cc.nameX, drawY + T.px(1), ac.r, ac.g, ac.b, ac.a or 1, T.fontF1)
                         drawY = drawY + covH

@@ -197,10 +197,11 @@ local function skillRowFit(columns, colW, barMin, font)
     return f
 end
 
--- a row tag's width with the gap before it (words, side padding, the square)
+-- a row tag's width with the gap after it: the tag as ZeD.Atoms.drawTag draws it (the status square
+-- and the word; the old box's side padding is gone with the box, and measuring it left a hole
+-- between the tag and the bar)
 local function rowTagW(text)
-    local T = ZeD.T
-    return ZeD.TM:MeasureStringX(T.fontF1, ZeD.textCase(text)) + T.px(10) + T.px(10) + T.sp.xs
+    return ZeD.Atoms.tagW(text, true) + ZeD.T.sp.xs
 end
 
 -- a tag ending at x, centred on the row; returns its left edge (the name stops short of it)
@@ -427,6 +428,14 @@ function ZeD.SkillsTab.perkName(skillId)
     return skillId
 end
 
+-- the Training materials rows in the order of the names they show, any case (the catalog is in the
+-- skills' ids' order, and an id is not the name: Farming showed as Agriculture between Electrical
+-- and First Aid, Husbandry as Animal Care after Glassmaking)
+local function byShownName(a, b)
+    if a.sortKey ~= b.sortKey then return a.sortKey < b.sortKey end
+    return a.label < b.label
+end
+
 function ZeD.SkillsTab.gatherTrainingData(playerObj)
     local catalog = buildTMCatalog()
 
@@ -465,12 +474,15 @@ function ZeD.SkillsTab.gatherTrainingData(playerObj)
                 status     = status,
             }
         end
+        local disp = ZeD.SkillsTab.perkName(catGroup.label)
         groups[#groups + 1] = {
-            label = catGroup.label,                                   -- the skill id: expand keys, sorting
-            disp  = ZeD.SkillsTab.perkName(catGroup.label),           -- what the row shows
+            label = catGroup.label,                                   -- the skill id: expand keys
+            disp  = disp,                                             -- what the row shows
+            sortKey = string.lower(disp),                             -- (its place in the list)
             items = books,
         }
     end
+    table.sort(groups, byShownName)
 
     return groups
 end
@@ -561,14 +573,24 @@ local function extrasLaneH()
     return h
 end
 
+-- The extras' blocks' heights at width w, together; each one is kept for the draw in the frame
+-- (win._skillsExtraH, one table refilled), which asks no extra again: an extra's height can be dear
+-- (Skill Recovery Journal's looks for the journal in every bag the character carries).
 local function extrasHeadH(win, w)
+    local hs = win._skillsExtraH
+    if not hs then hs = {}; win._skillsExtraH = hs end
+    local extras = ZeD.SkillsTab.extras
     local h = 0
-    for _, e in ipairs(ZeD.SkillsTab.extras) do
+    for i, e in ipairs(extras) do
+        local eh = 0
         if e.headHeight then
-            local ok, eh = pcall(e.headHeight, win, w)
-            if ok and eh then h = h + eh end
+            local ok, v = pcall(e.headHeight, win, w)
+            if ok and v then eh = v end
         end
+        hs[i] = eh
+        h = h + eh
     end
+    for i = #extras + 1, #hs do hs[i] = nil end
     return h
 end
 
@@ -925,10 +947,18 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
 
     local colStartY = cy
 
+    -- the widest row of book squares: the squares start at one place in every row, and a skill's
+    -- name takes the room they leave it (a third of the column cut "Blacksmithing" with room to spare)
+    local maxBooks = 0
+    for _, group in ipairs(training) do
+        if #group.items > maxBooks then maxBooks = #group.items end
+    end
+    local booksW = maxBooks > 0 and (maxBooks * (T.px(A.SWATCH_W) + T.px(TM_DOT_GAP)) - T.px(TM_DOT_GAP)) or 0
+
     -- ── Draw a training materials column ──
     local keysByCol = _trainKeys   -- (the rows' expand keys, made once)
 
-    local function drawTMColumn(startX, colWidth, dataList, columnKey, find)   -- (find passed in: a captured one is a new upvalue a frame)
+    local function drawTMColumn(startX, colWidth, dataList, columnKey, find, booksW)   -- (find and booksW passed in: a captured one is a new upvalue a frame)
         local dy = colStartY
         local keys = keysByCol[columnKey]
         if not keys then keys = {}; keysByCol[columnKey] = keys end
@@ -966,9 +996,10 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
                 A.drawTriangleRight(panel, chevX, chevY, chevSz, chevC)
             end
 
-            -- Skill label (truncated to ~35% of column width)
+            -- Skill label: the room the widest row of squares leaves it, at the least ~35% of the column
             local labelX = startX + T.px(8) + chevSz + T.px(8)
-            local labelMaxW = math.floor(colWidth * 0.35)
+            local labelMaxW = math.max(math.floor(colWidth * 0.35),
+                startX + colWidth - T.px(8) - booksW - T.px(8) - labelX)
             local labelStr = truncText(dispName, font, labelMaxW)
             local labelC = onFocus and T.textOnFocus or T.toneNorm
             panel:drawText(labelStr, labelX, dy + math.floor((collapsedRowH - secH) / 2),
@@ -1042,8 +1073,8 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
         return dy
     end
 
-    local y1 = drawTMColumn(col1X, colW, col1, "col1", find)
-    local y2 = drawTMColumn(col2X, colW, col2, "col2", find)
+    local y1 = drawTMColumn(col1X, colW, col1, "col1", find, booksW)
+    local y2 = drawTMColumn(col2X, colW, col2, "col2", find, booksW)
     endZones(zones)
 
     return zones, math.max(y1, y2) - startY
@@ -1271,13 +1302,12 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- ----------------------------------------------------------------
     if gridExpanded and extraHeadH > 0 then
         local hy = curY
-        for _, e in ipairs(ZeD.SkillsTab.extras) do
-            if e.headHeight and e.drawHead then
-                local ok, eh = pcall(e.headHeight, win, w - scrollW - pad * 2)
-                if ok and eh and eh > 0 then
-                    pcall(e.drawHead, panel, win, x + pad, hy, contentW - pad * 2)
-                    hy = hy + eh
-                end
+        local hs = win._skillsExtraH   -- (each one's height, from extrasHeadH above in this frame)
+        for i, e in ipairs(ZeD.SkillsTab.extras) do
+            local eh = hs and hs[i] or 0
+            if e.drawHead and eh > 0 then
+                pcall(e.drawHead, panel, win, x + pad, hy, contentW - pad * 2)
+                hy = hy + eh
             end
         end
         curY = curY + extraHeadH
