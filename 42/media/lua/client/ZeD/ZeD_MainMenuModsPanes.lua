@@ -659,9 +659,20 @@ function ZeD_MMMods:picksChanged()
     return false
 end
 
--- after picks change: the helper's copies, the helper on and last, the counts
+-- after picks change: the helper's copies, the helper on and last, the counts. In a server's list
+-- (the host's settings) the copies follow the player's own list, as Accept keeps them, and the
+-- server's list is left as it is: the helper never goes into it (it is single player only) and its
+-- order is never written.
 function ZeD_MMMods:afterPicks()
     local m = model()
+    if m and m.isServerSettingsMods then
+        local own = nil
+        pcall(function() own = jlist(ActiveMods.getById("default"):getMods()) end)
+        if P.sync(own or jlist(getActivatedMods())) > 0 then self._picksRefreshed = true end
+        MS.dirtyCounts()
+        self:dirty()
+        return
+    end
     local order = m and jlist(m:getActiveMods():getMods()) or {}
     if P.holdsAny() and m then
         local h = m.mods[P.HELPER]

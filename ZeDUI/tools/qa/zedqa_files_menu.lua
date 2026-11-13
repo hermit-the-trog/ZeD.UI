@@ -49,14 +49,15 @@ at(260, function()
     check(#F.placesOn("Bandits Week One", "BWOScheduler.lua") > 0, "BWOScheduler.lua carries errors")
     shot("2_files_tab")
     S.list = list
-    F.scan(BWO)
 end)
--- the scan reads the files a little each frame
+-- the scan reads the files a little each frame (the tab's own F.step, once a frame; F.scan only reads the result)
 at(900, function()
     local ok = F.scan(BWO)
     say("scan done: " .. tostring(ok ~= nil and ok ~= false))
 end)
 at(1000, function()
+    -- (the checks below need every file read: finish here whatever the frame rate was)
+    for _ = 1, 100000 do if F.step(BWO) then break end end
     local w, dd = win(), d()
     local free, used, game = nil, nil, nil
     for _, f in ipairs(S.list) do

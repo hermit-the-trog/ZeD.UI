@@ -281,9 +281,7 @@ function ZeD_MMMods:rowChips(d)
         if ne > 0 then out[#out + 1] = { ZeD.tr(ne == 1 and "UI_ZeD_Mods_ChipErrorOne" or "UI_ZeD_Mods_ChipErrors", ne), "danger" } end
     end
     if d.modId == ZeD.ModPicks.HELPER then
-        local k = 0
-        for _ in pairs(ZeD.ModPicks.picks()) do k = k + 1 end
-        for _ in pairs(ZeD.ModPicks.offs()) do k = k + 1 end   -- (files switched off: an empty copy each)
+        local k = ZeD.ModPicks.changedCount()   -- (picked or switched off, a path with both once)
         if k > 0 then out[#out + 1] = { ZeD.tr(k == 1 and "UI_ZeD_Mods_ChipFilesOne" or "UI_ZeD_Mods_ChipFilesMany", k), "positive" } end
     end
     local it = MS.wsFor(d.modInfo)
@@ -599,6 +597,7 @@ function ZeD_MMMods:accept()
     if not m then return end
     MM.clickSound()
     if self.find:isFocused() then self.find:unfocus() end
+    if ZeD.ModFiles then ZeD.ModFiles.pause() end   -- (the Files tab's open file: a reload never shuts it)
     local server = m.isServerSettingsMods
     local inst = ModSelector.instance
     -- ZeD picks' copies for the list about to run, not the one the screen opened with: a picked mod
@@ -1150,6 +1149,7 @@ function ZeD_MMMods:prerender()
         self:drawOrder(pad, bodyY, w - pad * 2, bodyH)   -- (it shows Find on the load order page)
     end
     self:buildStrip(stripY, stripH, w)
+    if self.filesFrameEnd then self:filesFrameEnd() end   -- (no Files tab this frame: its open file is shut)
 end
 
 -- the footer line when nothing is under the pointer: how many mods are on

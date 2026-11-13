@@ -173,8 +173,10 @@ GAMEVER = "42.22.2 abcdef"
 -- 3. reading the files: sizes, first lines, used by
 -- ---------------------------------------------------------------------------
 local res
-for _ = 1, 50 do res = F.scan("BanditsWeekOne"); if res then break end end
+-- (F.step is the Files tab's once-a-frame read; F.scan only hands over the result)
+for _ = 1, 50 do res = F.step("BanditsWeekOne"); if res then break end end
 check("the scan finishes", res ~= nil)
+check("F.scan hands over the same result", F.scan("BanditsWeekOne") == res)
 local intro = "media/lua/client/BWOIntro.lua"
 local music = "media/lua/client/BWOMusic.lua"
 local sched = "media/lua/client/BWOScheduler.lua"
@@ -345,7 +347,7 @@ local d = MODS.BanditsWeekOne
 P.helper = function() return getModInfoByID("ZeD_Picks") end
 local function fileOf(path) for _, f in ipairs(F.files("BanditsWeekOne")) do if f.path == path then return f end end end
 F.forget()
-for _ = 1, 50 do if F.scan("BanditsWeekOne") then break end end
+for _ = 1, 50 do if F.step("BanditsWeekOne") then break end end
 W:fileA(d, fileOf(intro))
 check("A on a file nothing uses: off at once", P.offOf(intro) == "BanditsWeekOne" and after == 1)
 check("the note says a reload puts it in place", said == "UI_ZeD_Mods_SayFileOff(1," .. BWO .. ")", said)

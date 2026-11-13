@@ -172,7 +172,10 @@ local function scanBody(res)
     for i = 0, n - 1 do
         local raw = tostring(getLoadedLua(i)):gsub("\\", "/")
         local p = string.lower(raw)
+        -- (the mod's folder ends before a "/media/": the first one that is a mod's folder, since a Steam
+        -- library can sit in a folder called Media, "D:/Media/SteamLibrary/...", or under /run/media/)
         local at = p:find("/media/", 1, true)
+        while at and not roots[p:sub(1, at - 1)] do at = p:find("/media/", at + 1, true) end
         local id = at and roots[p:sub(1, at - 1)]
         -- (only media/lua/: the game's code runs every mod's media/registries.lua, not one
         -- winner, so the same registries file in two mods is no conflict)

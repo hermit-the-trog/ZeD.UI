@@ -30,12 +30,14 @@
 -- screen to open at that file.
 --
 --   F.isGameFile(path)        the game ships this path too (never switched off)
---   F.files(modId)            { { path, side, sub, gone } } sorted, the mod's Lua files
---   F.scan(modId)             { byPath = { path -> { bytes, first, lines } } } once read, else nil (call each frame)
---   F.usedBy(modId, path)     the mod's other files that name this one (sorted), once scanned
+--   F.files(modId)            { { path, key, side, sub, gone } } sorted, the mod's Lua files (key: path in lower case)
+--   F.step(modId)             read a frame's share of them (the Files tab, once a frame); the scan once done
+--   F.scan(modId)             { byPath = { path -> { bytes, first, lines } } } once read, else nil (reads nothing)
+--   F.usedBy(modId, path)     the mod's other files that name this one (sorted), once scanned (reads nothing)
 --   F.places(name)            the last game's error places for a mod by its name
 --   F.placesOn(name, path)    those on one file; F.errorCount(name) all of them
 --   F.setJump / F.takeJump    Open in Mods' target, kept across the trip to the main menu
+--   F.pause()                 shut the file being read (the Files tab is not drawn)
 --   F.forget()                read afresh (the Mods screen opens)
 -- ============================================================================
 require "ZeD/ZeD_VanillaLua"
@@ -47,7 +49,11 @@ local F = ZeD.ModFiles
 
 F.PLACES_FILE = "ZeD_error_places.txt"
 F.JUMP_FILE = "ZeD_mods_jump.txt"
+-- a frame's share of the reading: this many lines (a file opened counts as one), and no more than STEP_MS
+-- (a line costs tens of microseconds in the game), the clock read every CHECK_EVERY lines
 local LINES_PER_FRAME = 4000
+local STEP_MS = 6
+local CHECK_EVERY = 100
 local FIRST_LINES = 4
 local SIDES = { "client", "shared", "server" }
 
@@ -124,6 +130,18 @@ local function sideRank(side)
     return #SIDES + 1
 end
 
+-- A loaded file's path under its mod's folder ("media/lua/client/X.lua"), when the full path is under
+-- one of roots (lower case, forward slashes); else nil. The mod's folder ends before a "/media/", but
+-- not always the first one: a Steam library can sit in a folder called Media ("D:/Media/SteamLibrary/
+-- ..."), or under /run/media/ on a Steam Deck, so the first "/media/" whose part before it is a root.
+local function relIn(raw, rt)
+    local lp = lower(raw)
+    local at = lp:find("/media/", 1, true)
+    while at and not rt[lp:sub(1, at - 1)] do at = lp:find("/media/", at + 1, true) end
+    if at and lp:sub(at + 1, at + 10) == "media/lua/" then return raw:sub(at + 1) end
+    return nil
+end
+
 --- The mod's Lua files: every one the game loaded from it (sub-folders too: listing a mod's
 --- folder gives no sub-folders), its top-level client, shared and server files, and the ones
 --- switched off (loaded from ZeD picks now, so listed by the list of them). A file switched
@@ -136,14 +154,13 @@ function F.files(modId)
         if seen[k] then return end
         seen[k] = true
         local side, sub = split(rel)
-        out[#out + 1] = { path = rel, side = side, sub = sub, gone = gone == true }
+        out[#out + 1] = { path = rel, key = k, side = side, sub = sub, gone = gone == true }
     end
     local rt = roots(modId)
     local n = safe(getLoadedLuaCount) or 0
     for i = 0, n - 1 do
-        local raw = slash(safe(getLoadedLua, i) or "")
-        local at = lower(raw):find("/media/", 1, true)
-        if at and rt[lower(raw:sub(1, at - 1))] and lower(raw:sub(at + 1, at + 10)) == "media/lua/" then add(raw:sub(at + 1)) end
+        local rel = relIn(slash(safe(getLoadedLua, i) or ""), rt)
+        if rel then add(rel) end
     end
     for _, side in ipairs(SIDES) do
         local dir = "media/lua/" .. side
@@ -174,28 +191,41 @@ F.baseName = baseName
 
 local function isName(s) return s ~= nil and s:match("^[%a_][%w_]*$") ~= nil and #s >= 3 end
 
--- the tables a file makes at its top level (no indent): Foo = {}, Foo = Foo or {}, Foo = X:derive(...)
+-- the table a line makes at a file's top level (no indent): Foo = {}, Foo = Foo or {}, Foo = X:derive(...)
+local function madeName(l)
+    local name, rhs = l:match("^([%a_][%w_]*)%s*=%s*(.-)%s*$")
+    if name and name ~= "local" and isName(name) then
+        if rhs:sub(1, 1) == "{" or rhs:find("derive(", 1, true) or rhs:match("^" .. name .. "%s+or%s+{") then return name end
+    end
+    return nil
+end
 local function madeNames(lines)
     local out = {}
     for _, l in ipairs(lines) do
-        local name, rhs = l:match("^([%a_][%w_]*)%s*=%s*(.-)%s*$")
-        if name and name ~= "local" and isName(name) then
-            if rhs:sub(1, 1) == "{" or rhs:find("derive(", 1, true) or rhs:match("^" .. name .. "%s+or%s+{") then
-                out[#out + 1] = name
-            end
-        end
+        local nm = madeName(l)
+        if nm then out[#out + 1] = nm end
     end
     return out
 end
 F.madeNames = madeNames
 
--- every name a file's text holds
-local function wordsOf(lines)
-    local w = {}
-    for _, l in ipairs(lines) do
-        for word in l:gmatch("[%a_][%w_]*") do w[word] = true end
+local function now() return safe(getTimestampMs) or 0 end
+
+-- the file being read, kept across frames: a file can be longer than a frame's share
+local function openFile(modId, f)
+    if f.gone then return nil end
+    local r = safe(function() return getModFileReader(modId, f.path, false) end)
+    if not r then return nil end
+    local c = { r = r, n = 0, bytes = 0, first = {}, made = {}, words = {} }
+    c.read = function() return r:readLine() end   -- (one closure a file, not one a line)
+    return c
+end
+local function closeFile(c)
+    if c and c.r then
+        local r = c.r
+        c.r = nil
+        pcall(function() r:close() end)
     end
-    return w
 end
 
 local function finish(j)
@@ -218,31 +248,67 @@ local function finish(j)
     j.res = { byPath = j.byPath, used = {} }
 end
 
---- The mod's files read, a little each frame (a mod can have hundreds); nil until done.
-function F.scan(modId)
+-- the job that holds a file open: one at a time (another mod's turn shuts it, and its file is read
+-- again from the start when it comes back)
+local reading = nil
+
+--- Read a frame's share of the mod's files (a mod can have hundreds, and one file tens of thousands of
+--- lines): the Files tab calls this once a frame, and nothing else reads, so the share holds however
+--- many rows ask. Lines are counted as they are read; a file longer than the share carries on next
+--- frame. Returns the scan once every file is read (as F.scan), else nil.
+function F.step(modId)
     local j = jobs[modId]
     if not j then
         j = { files = F.files(modId), i = 1, byPath = {} }
         jobs[modId] = j
     end
     if j.res then return j.res end
-    local budget = LINES_PER_FRAME
+    if reading and reading ~= j then closeFile(reading.cur); reading.cur = nil end
+    reading = j
+    local budget, t0, ops = LINES_PER_FRAME, now(), 0
     while j.i <= #j.files and budget > 0 do
         local f = j.files[j.i]
-        local lines = (not f.gone) and ZeD.ModSettings and ZeD.ModSettings.readLines(modId, f.path) or nil
-        if lines then
-            local bytes, first = 0, {}
-            for k, l in ipairs(lines) do
-                bytes = bytes + #l + 1
-                if #first < FIRST_LINES and l:match("%S") then first[#first + 1] = { n = k, text = l } end
-            end
-            j.byPath[f.path] = { bytes = bytes, first = first, lines = #lines, made = madeNames(lines), words = wordsOf(lines) }
+        local c = j.cur
+        if c == nil then
+            c = openFile(modId, f) or false
+            j.cur = c
+            budget, ops = budget - 1, ops + 1
         end
-        budget = budget - math.max(1, lines and #lines or 1)
-        j.i = j.i + 1
+        local ended = true
+        if c then
+            ended = false
+            while budget > 0 do
+                local ok, l = pcall(c.read)
+                if not ok or l == nil then ended = true; break end
+                c.n = c.n + 1
+                c.bytes = c.bytes + #l + 1
+                if #c.first < FIRST_LINES and l:match("%S") then c.first[#c.first + 1] = { n = c.n, text = l } end
+                local nm = madeName(l)
+                if nm then c.made[#c.made + 1] = nm end
+                for word in l:gmatch("[%a_][%w_]*") do c.words[word] = true end
+                budget, ops = budget - 1, ops + 1
+                if ops % CHECK_EVERY == 0 and now() - t0 >= STEP_MS then budget = 0 end
+            end
+            if ended then
+                closeFile(c)
+                j.byPath[f.path] = { bytes = c.bytes, first = c.first, lines = c.n, made = c.made, words = c.words }
+            end
+        end
+        if ended then j.cur, j.i = nil, j.i + 1 end
+        if ops % CHECK_EVERY == 0 and now() - t0 >= STEP_MS then budget = 0 end
     end
-    if j.i > #j.files then finish(j) end
+    if j.i > #j.files then
+        finish(j)
+        if reading == j then reading = nil end
+    end
     return j.res
+end
+
+--- The mod's files once read ({ byPath = { path -> { bytes, first, lines } } }), else nil. Reads nothing
+--- (F.step does, once a frame).
+function F.scan(modId)
+    local j = jobs[modId]
+    return j and j.res or nil
 end
 
 --- The mod's other files that name this one (paths, sorted); nil while the mod is being read.
@@ -342,4 +408,14 @@ function F.takeJump()
     return { name = name, file = file }
 end
 
-function F.forget() fileLists, jobs, placeList = {}, {}, nil end
+--- Shut the file being read, if any (the Files tab is not drawn: another tab, or the Mods screen
+--- left). Its mod's reading starts that file again from the start on its next F.step.
+function F.pause()
+    if reading then closeFile(reading.cur); reading.cur = nil; reading = nil end
+end
+if Events and Events.OnGameStart then Events.OnGameStart.Add(F.pause) end
+
+function F.forget()
+    if reading then closeFile(reading.cur); reading = nil end
+    fileLists, jobs, placeList = {}, {}, nil
+end

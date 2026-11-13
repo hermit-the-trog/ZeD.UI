@@ -12,10 +12,14 @@
 -- names switches off at once (the box, or A); one others use, or one with
 -- errors, asks on its card first (Turn off anyway, or with the files that use
 -- it). The mod's row in the list says "1 file off"; Turn all back on undoes it.
+-- A file another mod's copy stands in for (that mod loads later, or a pick in
+-- Conflicts chose its copy) never runs, so it says so and has no switch here.
 --
 -- How it is done: ZeD_ModFiles.lua (the engine path) and ZeD_ModPicks.lua (the
 -- helper's copies). The change is kept at once; a reload puts it in place.
--- Never a file the game has too, never a server's list.
+-- Never a file the game has too, never ZeD-GUI's own files or ZeD picks'
+-- copies, and nothing in a server's list (not even back on: the copies follow
+-- the player's own list).
 -- ============================================================================
 require "ZeD/ZeD_MainMenuModsPanes"
 require "ZeD/ZeD_ModFiles"
@@ -47,20 +51,70 @@ end
 -- WHAT CAN BE SWITCHED
 -- ----------------------------------------------------------------------------
 --- Files of this mod can be switched here: ZeD picks is installed, the mod is on and was
---- loaded (its files are known), and the list is not a server's (a server checks every
---- player's code matches its own).
+--- loaded (its files are known), it is not ZeD-GUI or ZeD picks (P.mayOff: this screen runs on
+--- ZeD-GUI's files, and ZeD picks' files are the copies themselves), and the list is not a
+--- server's (a server checks every player's code matches its own).
 function ZeD_MMMods:canSwitchFiles(d)
     local m = model()
     if not (m and d and d.isActive and MS.isLoaded(d.modId)) then return false end
-    if m.isServerSettingsMods then return false end
+    if m.isServerSettingsMods or not P.mayOff(d.modId) then return false end
     return P.helper() ~= nil
 end
 
+--- A file switched off can be switched back on here: anywhere but a server's list (switching
+--- back rewrites the helper's copies too, and those follow the player's own list).
+function ZeD_MMMods:canSwitchBack()
+    local m = model()
+    return not (m and m.isServerSettingsMods)
+end
+
+-- the conflict scan's file conflicts that name one mod, by path in lower case: { { e, path } },
+-- made once the scan is done and kept while it stays the same (rows ask every frame)
+local runC = nil
+local function fileConflicts(modId)
+    local res = MS.res
+    if not (res and res.done) then return nil end
+    local c = runC
+    if c and c.modId == modId and c.res == res then return c.byPath end
+    local byPath = {}
+    for _, e in ipairs(res.byMod and res.byMod[modId] or {}) do
+        if e.kind == "file" then
+            for _, t in ipairs(e.things) do
+                local k = string.lower(tostring(t))
+                local l = byPath[k]
+                if not l then l = {}; byPath[k] = l end
+                l[#l + 1] = { e = e, path = t }
+            end
+        end
+    end
+    runC = { modId = modId, res = res, byPath = byPath }
+    return byPath
+end
+
+--- The mod whose copy of this file runs in place of this mod's, or nil (this mod's own runs, or the
+--- conflict scan is not done yet): a mod later in the load order that ships the same path wins it,
+--- unless the path is picked in Conflicts and the picked mod is on (ZeD picks holds its copy).
+function ZeD_MMMods:fileRunsFrom(d, f)
+    local l = fileConflicts(d.modId)
+    l = l and l[f.key or string.lower(f.path)]
+    if not l then return nil end
+    local m = model()
+    for _, x in ipairs(l) do
+        local run = x.e.winner
+        local pick = P.pickOf(x.path)
+        local pd = pick and m and m.mods and m.mods[pick]
+        if pd and pd.isActive then run = pick end
+        if run ~= d.modId then return run end
+    end
+    return nil
+end
+
 --- The file's state: "game" (the game ships the path too), "gone" (off, and an update took it
---- out of the mod), "off", "on".
+--- out of the mod), "off", "other" (another mod's copy runs in its place: fileRunsFrom), "on".
 function ZeD_MMMods:fileState(d, f)
     if F.isGameFile(f.path) then return "game" end
     if P.offOf(f.path) == d.modId then return f.gone and "gone" or "off" end
+    if self:fileRunsFrom(d, f) then return "other" end
     return "on"
 end
 
@@ -77,7 +131,16 @@ function ZeD_MMMods:switchFiles(d, paths, off)
     for _, path in ipairs(paths) do
         if self._filesSeen[path] == nil then self._filesSeen[path] = (P.offOf(path) == d.modId) end
     end
-    P.setOff(d.modId, paths, off)
+    -- (the list's mods on, in load order: a path another mod holds off is taken only when this mod's copy runs)
+    local order = nil
+    local m = model()
+    pcall(function()
+        local l = m:getActiveMods():getMods()
+        local t = {}
+        for k = 0, l:size() - 1 do t[#t + 1] = l:get(k) end
+        order = t
+    end)
+    P.setOff(d.modId, paths, off, order)
     self:afterPicks()
     self._filesChanged = d.name
     MM.clickSound()
@@ -86,12 +149,12 @@ function ZeD_MMMods:switchFiles(d, paths, off)
     else self:say(ZeD.tr(n == 1 and "UI_ZeD_Mods_SayFileOn" or "UI_ZeD_Mods_SayFilesOn", n, d.name)) end
 end
 
---- The box on a row, or A on it: on a file that is off, back on; on a file that is safe to
---- switch off on its own (read, no other file names it, no errors), off; otherwise its card opens
---- so the warning is read first.
+--- The box on a row, or A on it: on a file that is off, back on (not in a server's list); on a
+--- file that is safe to switch off on its own (read, no other file names it, no errors), off;
+--- otherwise its card opens so the warning is read first.
 function ZeD_MMMods:fileA(d, f)
     local st = self:fileState(d, f)
-    if st == "off" or st == "gone" then self:switchFiles(d, { f.path }, false); self.fileSel = f.path; return end
+    if (st == "off" or st == "gone") and self:canSwitchBack() then self:switchFiles(d, { f.path }, false); self.fileSel = f.path; return end
     if st == "on" and self:canSwitchFiles(d) then
         local used = F.usedBy(d.modId, f.path)
         if used and #used == 0 and #F.placesOn(d.name, f.path) == 0 then
@@ -126,9 +189,36 @@ function ZeD_MMMods:resolveJump()
     if j.tries > 300 then self._pendingJump = nil end
 end
 
+--- The files "Turn off with the N" takes: this file, then each file that names it and runs from
+--- this mod (fileState "on": never the game's, one already off, or one another mod's copy stands
+--- in for, whose switch would be that mod's).
+function ZeD_MMMods:offWith(d, f, used)
+    local with = { f.path }
+    local mine = {}
+    for _, g in ipairs(F.files(d.modId)) do mine[g.path] = g end
+    for _, p in ipairs(used or {}) do
+        local g = mine[p]
+        if g and self:fileState(d, g) == "on" then with[#with + 1] = p end
+    end
+    return with
+end
+
 -- ----------------------------------------------------------------------------
 -- THE TAB
 -- ----------------------------------------------------------------------------
+--- The reading moves on for this mod's tab (once a frame), and the frame is marked as read.
+function ZeD_MMMods:stepFiles(modId)
+    self._filesStepped = true
+    return F.step(modId)
+end
+
+--- At the end of each frame of the Mods screen: no Files tab read this frame (another tab, page or
+--- mod row), so the file being read is shut (F.pause; it is read again from its start).
+function ZeD_MMMods:filesFrameEnd()
+    if not self._filesStepped then F.pause() end
+    self._filesStepped = false
+end
+
 --- How many code files the tab lists (0 while the mod was not loaded).
 function ZeD_MMMods:filesCount(d)
     if not MS.isLoaded(d.modId) then return 0 end
@@ -145,18 +235,20 @@ function ZeD_MMMods:drawFilesTab(d, ix, iw, cy, vy, vh)
     end
     local files = F.files(d.modId)
     if #files == 0 then return self:paneNote(ZeD.tr("UI_ZeD_Mods_FilesTabNone"), ix, iw, cy) end
-    F.scan(d.modId)
+    self:stepFiles(d.modId)   -- (the one place the reading moves on: once a frame)
     local nOff = offCount(d.modId)
     local can = self:canSwitchFiles(d)
     -- the counts, and Turn all back on
     local sum = ZeD.tr("UI_ZeD_Mods_FilesCount", #files) .. " | " .. ((nOff > 0) and ZeD.tr("UI_ZeD_Mods_FilesOffN", nOff) or ZeD.tr("UI_ZeD_Mods_FilesAllOn"))
     cy = self:paneText(sum, ix, cy, iw, f2, nOff > 0 and T.warningText or T.text) + T.px(4)
-    if nOff > 0 then
+    if nOff > 0 and self:canSwitchBack() then
         cy = self:paneVerbs({ { "mf:allon", ZeD.tr("UI_ZeD_Mods_FilesVerbAllOn"), function() self:switchFiles(d, P.offFor(d.modId), false); self.focusId = "dtab:files" end } }, ix, cy, iw, vy, vh, 690) + T.px(8)
     end
     -- why the boxes may be off, and how it works
     local m = model()
     if m and m.isServerSettingsMods then cy = self:paneNote(ZeD.tr("UI_ZeD_Mods_FilesServer"), ix, iw, cy, T.warningText)
+    elseif d.modId == P.HELPER then cy = self:paneNote(ZeD.tr("UI_ZeD_Mods_FilesHelperOwn"), ix, iw, cy, T.accent)
+    elseif not P.mayOff(d.modId) then cy = self:paneNote(ZeD.tr("UI_ZeD_Mods_FilesZeDOwn"), ix, iw, cy, T.accent)
     elseif not P.helper() then cy = self:paneNote(ZeD.tr("UI_ZeD_Mods_FilesNoHelper"), ix, iw, cy, T.warningText) end
     cy = self:paneText(ZeD.tr("UI_ZeD_Mods_FilesHowWorks"), ix, cy, iw, f3, dim) + T.px(8)
     -- Open in Mods from an error card: the file it named, picked and scrolled to
@@ -208,6 +300,9 @@ function ZeD_MMMods:drawFileRow(d, f, i, ix, iw, cy, vy, vh, can)
     local gp = MM.gamepad()
     local sid = "mfile:" .. i
     local st = self:fileState(d, f)
+    local isOff = st == "off" or st == "gone"
+    -- (the box switches a file of this mod that runs, or puts one that is off back on)
+    local switchable = (can and st ~= "game" and st ~= "other") or (isOff and self:canSwitchBack())
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     if cy + rh > vy and cy < vy + vh then
         local hid = "mods:mfile:" .. i
@@ -221,8 +316,7 @@ function ZeD_MMMods:drawFileRow(d, f, i, ix, iw, cy, vy, vh, can)
         end
         local cb = T.checkboxSz
         local cbx = ix + T.px(10)
-        local switchable = can and st ~= "game"
-        ZeD.Atoms.drawCheckbox(self, cbx, midY - math.floor(cb / 2), st ~= "off" and st ~= "gone", (not gp) and MM.ctx.hot == hid .. ":cb", not switchable and st ~= "off")
+        ZeD.Atoms.drawCheckbox(self, cbx, midY - math.floor(cb / 2), not isOff, (not gp) and MM.ctx.hot == hid .. ":cb", not switchable)
         -- the tags and the size, from the right
         local right = ix + iw
         local size = F.sizeText(d.modId, f.path) or ""
@@ -238,6 +332,7 @@ function ZeD_MMMods:drawFileRow(d, f, i, ix, iw, cy, vy, vh, can)
         if nErr > 0 then tags[#tags + 1] = { ZeD.tr(nErr == 1 and "UI_ZeD_Mods_FileTagErrorOne" or "UI_ZeD_Mods_FileTagErrors", nErr), T.danger } end
         if st == "game" then tags[#tags + 1] = { ZeD.tr("UI_ZeD_Mods_FileTagGame"), T.warning }
         elseif st == "gone" then tags[#tags + 1] = { ZeD.tr("UI_ZeD_Mods_FileTagGone"), T.warning }
+        elseif st == "other" then tags[#tags + 1] = { ZeD.tr("UI_ZeD_Mods_FileTagOther"), T.textDim }
         else
             local used = F.usedBy(d.modId, f.path)
             if used and #used > 0 then tags[#tags + 1] = { ZeD.tr("UI_ZeD_Mods_FileTagUsedBy", #used), nil } end
@@ -251,7 +346,6 @@ function ZeD_MMMods:drawFileRow(d, f, i, ix, iw, cy, vy, vh, can)
         end
         -- the name: its path under the side folder; off: dim and struck through
         local nx = cbx + cb + T.px(8)
-        local isOff = st == "off" or st == "gone"
         local nc = onFocus and T.textOnFocus or (isOff and T.textDim or T.text)
         local name = ZeD.Atoms.truncateText(f.sub, f2, right - T.px(6) - nx)
         local ny = midY - math.floor(MM.fontH(f2) / 2)
@@ -265,7 +359,7 @@ function ZeD_MMMods:drawFileRow(d, f, i, ix, iw, cy, vy, vh, can)
                 if self.fileSel ~= f.path then self.fileSel = f.path; MM.clickSound() else self.fileSel = nil end
                 self.focusId = sid
             end }
-            if switchable or isOff then
+            if switchable then
                 self._hits[#self._hits + 1] = { id = hid .. ":cb", x = ax + ix, y = ay + top, w = cbx - ix + cb + T.px(6), h = bot - top, fn = function()
                     self.focusId = sid
                     self:fileA(d, f)
@@ -276,7 +370,7 @@ function ZeD_MMMods:drawFileRow(d, f, i, ix, iw, cy, vy, vh, can)
     -- the controller: A switches (or opens the card first, as the box does); the pane follows it
     self._specs[#self._specs + 1] = { id = sid, listRow = true, paneStop = true, row = 700 + i, col = 1, x = ix, y = cy, w = iw, h = rh,
                                       clipTop = vy, clipBot = vy + vh, fn = function()
-                                          if (can and st ~= "game") or st == "off" or st == "gone" then self:fileA(d, f)
+                                          if switchable then self:fileA(d, f)
                                           else self.fileSel = (self.fileSel ~= f.path) and f.path or nil end
                                       end }
     return cy + rh
@@ -314,7 +408,7 @@ function ZeD_MMMods:drawFileCard(d, f, i, ix, iw, cy, vy, vh, can)
     local cx, cw = ix + pad, iw - pad * 2
     cy = cy + pad
     local st = self:fileState(d, f)
-    local res = F.scan(d.modId)
+    local res = F.scan(d.modId)   -- (read only: drawFilesTab moves the reading on)
     local used = F.usedBy(d.modId, f.path)
     local e = res and res.byPath[f.path]
     -- the head: its name, where it is, its size, who uses it
@@ -344,14 +438,18 @@ function ZeD_MMMods:drawFileCard(d, f, i, ix, iw, cy, vy, vh, can)
     end
     -- what switching it off does
     local verbs = {}
+    local back = self:canSwitchBack()
     if st == "game" then
         cy = self:fileNote(ZeD.tr("UI_ZeD_Mods_FileGame"), T.warningText, cx, cw, cy)
+    elseif st == "other" then
+        local run = self:fileRunsFrom(d, f)
+        cy = self:fileNote(ZeD.tr("UI_ZeD_Mods_FileOther", MS.modName and MS.modName(run) or tostring(run)), T.textDim, cx, cw, cy)
     elseif st == "gone" then
         cy = self:fileNote(ZeD.tr("UI_ZeD_Mods_FileGone"), T.warningText, cx, cw, cy)
-        verbs[#verbs + 1] = { "mf:on", ZeD.tr("UI_ZeD_Mods_FileVerbForget"), function() self:switchFiles(d, { f.path }, false) end, "primary" }
+        if back then verbs[#verbs + 1] = { "mf:on", ZeD.tr("UI_ZeD_Mods_FileVerbForget"), function() self:switchFiles(d, { f.path }, false) end, "primary" } end
     elseif st == "off" then
         cy = self:paneText(ZeD.tr("UI_ZeD_Mods_FileOffNow", d.name), cx, cy, cw, f2, T.text) + T.px(6)
-        verbs[#verbs + 1] = { "mf:on", ZeD.tr("UI_ZeD_Mods_FileVerbOn"), function() self:switchFiles(d, { f.path }, false) end, "primary" }
+        if back then verbs[#verbs + 1] = { "mf:on", ZeD.tr("UI_ZeD_Mods_FileVerbOn"), function() self:switchFiles(d, { f.path }, false) end, "primary" } end
     elseif not used then
         cy = self:paneText(ZeD.tr("UI_ZeD_Mods_FileReading"), cx, cy, cw, f2, dim) + T.px(6)
     elseif #used == 0 then
@@ -361,8 +459,7 @@ function ZeD_MMMods:drawFileCard(d, f, i, ix, iw, cy, vy, vh, can)
         cy = self:fileNote(ZeD.tr(#used == 1 and "UI_ZeD_Mods_FileUsedOne" or "UI_ZeD_Mods_FileUsedMany", #used, namesOf(used)), T.warningText, cx, cw, cy)
         if can then
             verbs[#verbs + 1] = { "mf:off", ZeD.tr("UI_ZeD_Mods_FileVerbOffAnyway"), function() self:switchFiles(d, { f.path }, true) end }
-            local with = { f.path }
-            for _, p in ipairs(used) do if not F.isGameFile(p) then with[#with + 1] = p end end
+            local with = self:offWith(d, f, used)
             verbs[#verbs + 1] = { "mf:offwith", ZeD.tr("UI_ZeD_Mods_FileVerbOffWith", #with - 1), function() self:switchFiles(d, with, true) end }
         end
     end
