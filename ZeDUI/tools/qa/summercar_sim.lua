@@ -283,7 +283,7 @@ local function setup(opts)
         PRINTS[#PRINTS + 1] = table.concat(t, " ")
     end
     P = { sw = opts.sw or 3840, sh = opts.sh or 2160, speed = 1, mouseX = 0, mouseY = 0, safe = false, reclaims = 0, debug = false }
-    ZeD, MSC, ZeD_WorldWindow, ISVehicleMechanics = nil, nil, nil, nil
+    ZeD, MSC, ZeD_WorldWindow, ISVehicleMechanics, ZeD_CharacterWindow = nil, nil, nil, nil, nil
     require = function() end
     Events = { OnTickEvenPaused = newEvent(), OnTick = newEvent(), OnPlayerDeath = newEvent(), OnGameStart = newEvent(),
                OnMechanicActionDone = newEvent() }
@@ -369,6 +369,17 @@ local function setup(opts)
     P.win = newWorldWin(P.chr, opts.wx or 1929, 0, opts.ww or 1617, 735)
     if opts.dw then P.win._drawerEffW = opts.dw end
     if opts.rollW then P.win._rolled, P.win._rollW = true, opts.rollW end
+    -- the Character window (opts.cw = { x, y, w, h }), ZeD's other window: the engine window keeps off it too
+    if opts.cw then
+        local c = opts.cw
+        P.cwin = { x = c[1], y = c[2], w = c[3], h = c[4], shown = true, _rolled = false, _rollW = 0 }
+        function P.cwin:getX() return self.x end
+        function P.cwin:getY() return self.y end
+        function P.cwin:getWidth() return self.w end
+        function P.cwin:getHeight() return self.h end
+        function P.cwin:isVisible() return self.shown end
+        ZeD_CharacterWindow = { getWindow = function(pn) if (pn or 0) == 0 then return P.cwin end return nil end }
+    end
     -- the tab, real
     local src = opts.mtSource or readFile(CLIENT .. "ZeD/MechanicsTab.lua")
     local f, err = loadstring(src, "@MechanicsTab.lua")
@@ -615,6 +626,59 @@ eng():setX(800)                 -- the player drags it
 P.win.x, P.win.w = 600, 2946
 ms(300)
 check("PLACE: a window the player dragged stays where they put it", eng().x == 800)
+
+-- (QA b12 round 2) the Character window at its default 4K place (x 1136..1910): the mod's x 1419 lands on it
+check("PLACE CW: freeSide at 4K: the stretch left of the Character window, the mod's gap",
+    P.S.freeSide(1929, 1617, 3840, 420, 500, nil, nil, 1136, 1910) == 626, P.S.freeSide(1929, 1617, 3840, 420, 500, nil, nil, 1136, 1910))
+local fxw, fww = P.S.freeSide(1929, 1617, 3840, 420, 500, nil, nil, 1136, 1910)
+check("PLACE CW: and the mod's width", fww == 500, fww)
+-- the World window on the left, the Character window on the right: the right stretch, against the World window
+local fxr = P.S.freeSide(10, 1617, 3840, 420, 500, nil, nil, 2700, 3474)
+check("PLACE CW: World left, Character right: the stretch right of the World window", fxr == 1637, fxr)
+-- the Character window clear of both stretches: as with none
+check("PLACE CW: a Character window off the stretches changes nothing", P.S.freeSide(250, 640, 1280, 420, 500, nil, nil, 2000, 2400) == 850)
+-- no free stretch holds 420: the edge fallback as before
+check("PLACE CW: no stretch holds 420: the screen edge", P.S.freeSide(320, 640, 1280, 420, 500, 704, 960, 0, 300) == 10)
+check("PLACE CW: nothing given for the Character window: as before", P.S.freeSide(1929, 1617, 3840, 420, 500) == 1419)
+setup({ cw = { 1136, 0, 774, 2000 } }); ms(300)
+check("PLACE CW: S.place keeps the engine window off the Character window", eng() and eng().x == 626 and eng().w == 500,
+    eng() and (eng().x .. " " .. eng().w))
+check("PLACE CW: neither ZeD window moved", P.win.x == 1929 and P.cwin.x == 1136)
+setup({ cw = { 1136, 1200, 774, 900 } }); ms(300)
+check("PLACE CW: a Character window below the engine window's rows: the mod's place", eng() and eng().x == 1419, eng() and eng().x)
+-- the Character window moved into an engine window placed clear of it: placed again
+setup({ cw = { 100, 0, 774, 2000 } }); ms(300)
+check("PLACE CW: before the move: the mod's place", eng().x == 1419, eng().x)
+P.cwin.x = 1136
+ms(300)
+check("PLACE CW: the Character window moved into it: placed again, clear", eng().x == 626, eng().x)
+
+-- ===========================================================================
+section("INSPECT: the inspection brings an active Vehicle tab rolled away into view (QA b12 round 2)")
+-- the World window's halves unpinned and rolled up by the hover roll-up (the pointer on the world), the Vehicle tab
+-- already the active one: the inspection's end unrolls it as the tab's key does, and the engine window opens by itself
+local function inspectRolled(withHalves)
+    setup({ notInspected = true })
+    P.win.windowShaded, P.win._autoShaded, P.win._outSince = true, true, 0
+    function P.win:setWindowShaded(v) self.windowShaded = v end
+    if withHalves then
+        P.win._halves = {}
+        ZeD.Halves = { showAll = function(w) w._shownAll = (w._shownAll or 0) + 1; w._autoShaded = false; w.windowShaded = false end }
+    end
+    ZeD_WorldWindow.isOpen = function() return true end
+    ZeD_WorldWindow.open = function() end
+    P.MT.refresh = function() end   -- (the world scan: no cell here; the car is the tab's already)
+    local okO, ret = pcall(P.MT.openFromAction, P.chr, P.v, false)
+    check("INSPECT: openFromAction runs on the stubs" .. (withHalves and " (halves)" or ""), okO and ret == true, ret)
+end
+inspectRolled(true)
+check("INSPECT: the halves unfolded (showAll)", P.win._shownAll == 1, P.win._shownAll)
+check("INSPECT: the window unrolled", P.win.windowShaded == false and P.win._autoShaded == false)
+check("INSPECT: the hover roll-up held 500 ms from now", P.win._outSince == clock + 500, P.win._outSince)
+ms(1200)
+check("INSPECT: the engine window opened by itself", eng() ~= nil and eng().autoOpen == true)
+inspectRolled(false)
+check("INSPECT: no halves: the window's own shade lifted", P.win.windowShaded == false and P.win._outSince == clock + 500)
 
 -- ===========================================================================
 section("CLOSE: with the tab, in the same frame")

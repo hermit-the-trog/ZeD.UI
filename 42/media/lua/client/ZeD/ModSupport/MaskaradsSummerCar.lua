@@ -282,14 +282,61 @@ local function cover(x, w, a0, a1)
     if a0 == nil then return 0 end
     return math.max(0, math.min(x + w, a1) - math.max(x, a0))
 end
+-- the stretches of a..b left when c0..c1 is taken out, added to out as { from, to }
+local function cutGap(out, a, b, c0, c1)
+    if b <= a then return end
+    if c0 == nil or c1 <= a or c0 >= b then out[#out + 1] = { a, b }; return end
+    if c0 > a then out[#out + 1] = { a, c0 } end
+    if c1 < b then out[#out + 1] = { c1, b } end
+end
+-- With the Character window's span cx0..cx1 (its rod counted) on the engine window's rows: the free stretches beside
+-- the World window less the Character window, the first that holds minW: the one against the World window's right,
+-- the one against its left (both: the larger, as freeSide), then any other, the nearest to the World window, set
+-- against its end nearest the World window. Nil when none holds minW.
+local function freeStretch(ax, aw, sw, minW, maxW, cx0, cx1)
+    local r0, l1 = ax + aw + GAP, ax - GAP
+    local gaps = {}
+    cutGap(gaps, r0, sw - MARGIN, cx0 - GAP, cx1 + GAP)
+    cutGap(gaps, MARGIN, l1, cx0 - GAP, cx1 + GAP)
+    local right, left, other, otherD = nil, nil, nil, nil
+    for _, g in ipairs(gaps) do
+        local len = g[2] - g[1]
+        if len >= minW then
+            if g[1] == r0 then right = g
+            elseif g[2] == l1 then left = g
+            else
+                local d = (g[1] >= r0) and (g[1] - r0) or (l1 - g[2])
+                if otherD == nil or d < otherD then other, otherD = g, d end
+            end
+        end
+    end
+    if right and (not left or right[2] - right[1] >= left[2] - left[1]) then
+        return right[1], math.min(maxW, right[2] - right[1])
+    end
+    if left then
+        local width = math.min(maxW, left[2] - left[1])
+        return left[2] - width, width
+    end
+    if other then
+        local width = math.min(maxW, other[2] - other[1])
+        if other[1] >= r0 then return other[1], width end
+        return other[2] - width, width
+    end
+    return nil
+end
 -- The side and width for the engine window when the mod found no free side. tx0..tx1
--- is the Vehicle tab (the drawer and its tab strip), or nil. With neither side wide
--- enough, the window goes to a screen edge at the mod's minimum: the edge that covers
--- less of the tab, then the side with more room (it covers less of the window).
-local function freeSide(ax, aw, sw, minW, maxW, tx0, tx1)
+-- is the Vehicle tab (the drawer and its tab strip), or nil; cx0..cx1 the Character
+-- window on the engine window's rows, or nil (it never covers either ZeD window while a
+-- free stretch holds it). With no side wide enough, the window goes to a screen edge at
+-- the mod's minimum: the edge that covers less of the tab, then the side with more room
+-- (it covers less of the window).
+local function freeSide(ax, aw, sw, minW, maxW, tx0, tx1, cx0, cx1)
     local L = ax - GAP - MARGIN
     local R = sw - MARGIN - (ax + aw + GAP)
-    if R >= minW and R >= L then
+    if cx0 ~= nil and cx1 ~= nil then
+        local fx, fw = freeStretch(ax, aw, sw, minW, maxW, cx0, cx1)
+        if fx then return fx, fw end
+    elseif R >= minW and R >= L then
         local width = math.min(maxW, R)
         return ax + aw + GAP, width
     elseif L >= minW then
@@ -319,22 +366,40 @@ local function tabSpan(pn)
 end
 S.tabSpan = tabSpan
 
+-- The Character window's span on screen (its curtain rod on the right counted) while it is shown and on the
+-- engine window's rows ey..ey+eh. Nil otherwise, or when it cannot be read.
+local function charSpan(pn, ey, eh)
+    if type(ZeD_CharacterWindow) ~= "table" or type(ZeD_CharacterWindow.getWindow) ~= "function" then return nil end
+    local ok, x0, x1 = pcall(function()
+        local w = ZeD_CharacterWindow.getWindow(pn)
+        if not w or not w:isVisible() then return nil end
+        local cy, ch = w:getY(), w:getHeight()
+        if not (ey < cy + ch and ey + eh > cy) then return nil end
+        local x = w:getX()
+        return x, x + w:getWidth() + (w._rolled and (w._rollW or 0) or 0)
+    end)
+    if not ok then note("character span", x0); return nil end
+    return x0, x1
+end
+S.charSpan = charSpan
+
 --- Places an engine window opened against player pn's anchor. The mod's own place
---- stands unless it asked to slide ZeD's window or lies over it; then the window takes
---- the side with more room. again: a re-place after the World window grew into it
---- (top-aligned again as well).
+--- stands unless it asked to slide ZeD's window or lies over ZeD's World or Character
+--- window; then the window takes a free stretch beside the World window (the side with
+--- more room). again: a re-place after a ZeD window grew into it (top-aligned again as well).
 function S.place(eng, pn, again)
     local stand = S.standIn(pn)
     local ax, ay, aw, ah = stand:rect()
     local ex, ew = eng:getX(), eng:getWidth()
     local st = stOf(pn)
     if st.placed ~= eng then st.chosenW = ew end
-    local overlaps = ex < ax + aw and ex + ew > ax
+    local cx0, cx1 = charSpan(pn, eng:getY(), eng:getHeight())
+    local overlaps = (ex < ax + aw and ex + ew > ax) or (cx0 ~= nil and ex < cx1 and ex + ew > cx0)
     if stand._askedX ~= nil or overlaps then
         local sw = getCore():getScreenWidth()
         local minW = tonumber(eng.minimumWidth) or MIN_W
         local tx0, tx1 = tabSpan(pn)
-        local x, width = freeSide(ax, aw, sw, minW, math.max(st.chosenW or ew, minW), tx0, tx1)
+        local x, width = freeSide(ax, aw, sw, minW, math.max(st.chosenW or ew, minW), tx0, tx1, cx0, cx1)
         eng:setWidth(math.floor(width))   -- (width first: setX keeps a top-level panel on screen against its width)
         eng:setX(math.floor(x))
         if again then
@@ -344,7 +409,9 @@ function S.place(eng, pn, again)
     end
     st.placed = eng
     st.placedX, st.placedY, st.placedW = eng:getX(), eng:getY(), eng:getWidth()
-    st.placedFoot = { ax, ay, aw, ah }
+    -- (with the Character window's span where it was placed against: replace() places again when it moves in)
+    local c0, c1 = charSpan(pn, eng:getY(), eng:getHeight())
+    st.placedFoot = { ax, ay, aw, ah, c0, c1 }
 end
 
 --- ZeD's own opens (the footer verb, the auto-open): the mod's openFromMechanics
@@ -454,12 +521,16 @@ local function sameRect(a, x, y, w, h)
     return a ~= nil and a[1] == x and a[2] == y and a[3] == w and a[4] == h
 end
 local function near(a, b) return a ~= nil and b ~= nil and math.abs(a - b) < 1 end
--- the World window grew into an engine window the player has not moved: place it again
+-- the World window grew, or the Character window moved, into an engine window the player has not moved: place it again
 local function replace(eng, pn, st, fx, fy, fw, fh)
-    if st.placed ~= eng or sameRect(st.placedFoot, fx, fy, fw, fh) then return end
-    if not (near(eng:getX(), st.placedX) and near(eng:getY(), st.placedY) and near(eng:getWidth(), st.placedW)) then return end
-    local ex, ey = eng:getX(), eng:getY()
-    local over = ex < fx + fw and ex + eng:getWidth() > fx and ey < fy + fh and ey + eng:getHeight() > fy
+    if st.placed ~= eng then return end
+    local ex, ey, ew, eh = eng:getX(), eng:getY(), eng:getWidth(), eng:getHeight()
+    local cx0, cx1 = charSpan(pn, ey, eh)
+    local pf = st.placedFoot
+    if sameRect(pf, fx, fy, fw, fh) and pf[5] == cx0 and pf[6] == cx1 then return end
+    if not (near(ex, st.placedX) and near(ey, st.placedY) and near(ew, st.placedW)) then return end
+    local over = (ex < fx + fw and ex + ew > fx and ey < fy + fh and ey + eh > fy)
+        or (cx0 ~= nil and ex < cx1 and ex + ew > cx0)
     if not over then return end
     local ok, err = pcall(S.place, eng, pn, true)
     if not ok then note("place again", err) end

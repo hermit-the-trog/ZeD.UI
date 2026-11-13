@@ -2368,6 +2368,12 @@ function MT.openFromAction(chr, vehicle, usedHood)
     s.pendingId = vid
     MT.refresh(win)
     s.view, s.card, s.confirm = "overview", nil, nil
+    -- the inspection brings the tab into view as the tab's key does: the halves unfolded (a side rolled by hand stays),
+    -- the window unrolled, its hover roll-up held from now (an unpinned window rolls up while the pointer is on the
+    -- world, and an active Vehicle tab rolled away showed nothing: QA b12 round 2)
+    if win._halves and ZeD.Halves and ZeD.Halves.showAll then ZeD.Halves.showAll(win) end
+    if win.windowShaded then win._autoShaded = false; win:setWindowShaded(false) end
+    win._outSince = getTimestampMs() + 500
     -- the tab strip stamps its hit zones while drawing: try now, then for a few ticks
     local tries = 0
     local function attempt()
