@@ -881,7 +881,7 @@ local function _buildTabBarElements(win)
                 lastGroup = tab.group
             end
             elements[#elements + 1] = {
-                x = 0, y = curY, w = T.stripH, h = T.stripH,
+                x = 0, y = curY, w = T.px(TAB_STRIP_W), h = T.stripH,   -- (the strip's width; only the height is row 1)
                 id       = "tab:" .. tab.id,
                 tabId    = tab.id,
                 tabIndex = i,

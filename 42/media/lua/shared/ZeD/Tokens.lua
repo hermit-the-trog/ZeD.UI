@@ -1165,7 +1165,7 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     -- column header). Each is the tallest thing it holds plus air, at the text size, times the root:
     --   T.stripH    the Find field, the selects and the header's buttons (inputH / buttonH, or one F4
     --               heading line if that is taller) + 11u. Small 37u, Large 43u
-    --   T.sortBarH  one line of the sort font (F1) + 7u. Small 20u, Large 24u
+    --   T.sortBarH  one line of F1 (the sort font at Large; F5 at Small sits in it with air) + 7u. Small 20u, Large 24u
     -- (a line is the face's 77/64 of the preset px. Whoever draws in a row reads these fresh, never a
     -- copy made at load, so a new text size or UI scale moves both windows at once)
     local lineK = 77 / 64
@@ -1236,8 +1236,17 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
             T.sp.tabHeaderH, T.sp.colHdrH = T.stripH, T.sortBarH
         end
     end
-    -- the sort bar's labels: F1, which grows with Large (F5 stayed tiny there)
-    T.sortFont = T.fontF1
+    -- the sort bar's labels: at Small (the default) F5, today's look, so the narrow headings ("Cond / Amt",
+    -- the Equip protection heads) still fit their columns in every language; at Large F1, which reads at the
+    -- size (F5 stayed tiny there). T.sortWidthK is how much wider the sort font's words run than F5's at
+    -- this size, for the columns that cap a heading's room (the inventory's COND)
+    if ZeD.currentSize == "large" then
+        T.sortFont   = T.fontF1
+        T.sortWidthK = (size.fontF1.px * 0.6) / (size.fontF5.px * 0.48)
+    else
+        T.sortFont   = T.fontF5
+        T.sortWidthK = 1
+    end
     if ZeD.Scale then ZeD.Scale._appliedRoot = root end
 
     -- A custom event for windows that want to hear of a new palette. It fires only once some file

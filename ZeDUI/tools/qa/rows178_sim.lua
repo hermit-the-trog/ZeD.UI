@@ -4,7 +4,15 @@
 --            UI scale 0.75, 1 and 1.75 (4K at 1.75, 1080p at 1, 1280x800 at 0.75): row 1 (T.stripH) and row 2
 --            (T.sortBarH) are there; at Small and scale 1 they are today's 37 and 20; Large is taller than Small at
 --            every scale; both grow with the scale; T.sp.tabHeaderH and T.sp.colHdrH are the same numbers; the sort
---            font (T.sortFont) is F1, which grows with Large, and its line fits row 2
+--            font (T.sortFont) is F5 at Small (today's look) and F1 at Large, which grows, and its line fits row 2
+--   FIT      the narrow sort headings at Small and Large, in a real per-face width (F5 about 0.48 of its px a
+--            character, F1 0.6): the longest translations of "Cond / Amt" fit the COND column's cap whole
+--            (the cap read from the real InventoryRenderer line), and the Equip protection heads are measured
+--            in the sort font
+--   STOPS    the pad's tab stops (the real _buildTabBarElements and _buildWorldTabBarElements): each one is the
+--            strip's width (never past it into the drawer or past the window's edge) and row 1 high
+--   BANDS    the station band and the Animals back bar are kept their own height on purpose (a heading and icon,
+--            a full-size button); the punch list says so, so QA does not flag them
 --   CHAR     the Character window's real drawTabStrip and drawContainerStrip on a recording panel: the top tab's cell,
 --            the main container's cell with the line under it, and the tab's header (the real drawTabHeader) are one
 --            height with their lines on one y; the strip's sort row starts there and is row 2 high, its word in the
@@ -102,7 +110,9 @@ for _, root in ipairs(SCALES) do
         check("TOKENS " .. tag .. ": row 2 (T.sortBarH) is a whole number of px", type(T.sortBarH) == "number" and T.sortBarH == math.floor(T.sortBarH), T.sortBarH)
         check("TOKENS " .. tag .. ": T.sp.tabHeaderH is row 1", T.sp and T.sp.tabHeaderH == T.stripH, tostring(T.sp and T.sp.tabHeaderH) .. " / " .. tostring(T.stripH))
         check("TOKENS " .. tag .. ": T.sp.colHdrH is row 2", T.sp and T.sp.colHdrH == T.sortBarH, tostring(T.sp and T.sp.colHdrH) .. " / " .. tostring(T.sortBarH))
-        check("TOKENS " .. tag .. ": the sort font is F1", T.sortFont ~= nil and T.sortFont == T.fontF1, tostring(T.sortFont))
+        local want = (size == "large") and T.fontF1 or T.fontF5
+        check("TOKENS " .. tag .. ": the sort font is " .. ((size == "large") and "F1" or "F5 (today's look)"),
+            T.sortFont ~= nil and T.sortFont == want, tostring(T.sortFont))
         if type(T.stripH) == "number" then
             check("TOKENS " .. tag .. ": row 1 holds the Find field and the buttons with air",
                 T.stripH >= math.max(T.inputH, T.buttonH) + T.px(8), T.stripH .. " vs " .. math.max(T.inputH, T.buttonH))
@@ -133,7 +143,39 @@ end
 apply("small", 1); local fSm = ZeD.TM:getFontHeight(ZeD.T.sortFont or ZeD.T.fontF5)
 apply("large", 1); local fLg = ZeD.TM:getFontHeight(ZeD.T.sortFont or ZeD.T.fontF5)
 check("TOKENS the sort font's line is taller at Large", fLg > fSm, fSm .. " / " .. fLg)
-check("TOKENS the sort font is not F5 (9 px, tiny at Large)", ZeD.T.sortFont ~= nil and ZeD.T.sortFont ~= ZeD.T.fontF5)
+check("TOKENS the sort font at Large is not F5 (tiny there)", ZeD.T.sortFont ~= nil and ZeD.T.sortFont ~= ZeD.T.fontF5)
+
+-- ---------------------------------------------------------------------------
+section("FIT")
+-- ---------------------------------------------------------------------------
+do
+    local IR0 = readFile(CL .. "InventoryRenderer.lua")
+    local capLine = IR0:match("cond = math%.max%([^\n]*\n([^\n]*)")
+    check("FIT the COND cap reads the sort font's width (T.sortWidthK)", capLine and capLine:find("math.floor(90 * scale * (T.sortWidthK or 1))", 1, true) ~= nil, capLine)
+    -- the longest headings, as their character counts (the translations, letters with marks counted once)
+    local HEADS = { EN = "Cond / Amt", CA = "Cond. / Quant.", ES = "Cond. / Cant.", DE = "Zust. / Menge",
+                    DA = "Tilst. / Mgd.", FI = "Kunto / Maara", HU = "All. / Menny.", RU = "Sost. / Kol." }
+    for _, root in ipairs(SCALES) do
+        for _, size in ipairs(SIZES) do
+            local T = apply(size, root)
+            local pre = ZeD.TextSizes[size]
+            local isF1 = (T.sortFont == T.fontF1)
+            local em = isF1 and 0.6 or 0.48
+            local fpx = (isF1 and pre.fontF1.px or pre.fontF5.px) * root
+            local cap = math.floor(90 * T.scale * (T.sortWidthK or 1))
+            local padX = T.sp.sm
+            local room = cap - padX - T.px(2)   -- (renderItemList shortens the heading to its cell less the inset and 2u)
+            for lang, s in pairs(HEADS) do
+                local need = math.ceil(#s * fpx * em)
+                check("FIT " .. size .. " x" .. root .. " " .. lang .. ": '" .. s .. "' fits the COND cap whole", need <= room, need .. " vs " .. room)
+            end
+        end
+    end
+    local EQ = readFile(CL .. "EquipmentTab.lua")
+    local narrow = cutFn(EQ, "local function getNarrowColW(") or ""
+    check("FIT Equip: the protection heads are measured in the sort font", narrow:find("MeasureStringX(T.sortFont, ZeD.tr(k))", 1, true) ~= nil)
+    check("FIT Equip: the narrow columns are measured again at a new size (keyed on T.scale)", narrow:find("tostring(ZeD.T.scale)", 1, true) ~= nil)
+end
 
 -- ---------------------------------------------------------------------------
 -- THE STUBS: ZeD's library and a recording panel
@@ -298,7 +340,7 @@ section("CHAR")
 -- ---------------------------------------------------------------------------
 local cwExtra = stubsFor("CHAR_TABS")
 cwExtra.measureTabStripH = function() return measureTabs(ZeD.T) end
-local CWP, CWS = loadPieces(CL .. "ZeD_CharacterWindow.lua", { "drawTabStrip", "drawContainerStrip" }, cwExtra)
+local CWP, CWS = loadPieces(CL .. "ZeD_CharacterWindow.lua", { "drawTabStrip", "drawContainerStrip", "_buildTabBarElements" }, cwExtra)
 if CWP.drawTabStrip and CWP.drawContainerStrip then
     windowChecks("CHAR", CWP, "drawTabStrip", "drawContainerStrip", "main_toggle", "wt_sort", "cnt:2", "char")
 end
@@ -312,7 +354,7 @@ local wwExtra = stubsFor("ACTION_TABS")
 for name in WWS0:gmatch("ipairs%(([A-Z_]+_TABS)%)") do wwExtra[name] = TABS end
 wwExtra.measureWorldTabStripH = function() return measureTabs(ZeD.T) end
 wwExtra.worldTabStripFollow = function(_, _, off) return off end
-local WWP, WWS = loadPieces(CL .. "ZeD_WorldWindow.lua", { "_worldStripListOrder", "drawWorldTabStrip", "drawWorldContainerStrip" }, wwExtra)
+local WWP, WWS = loadPieces(CL .. "ZeD_WorldWindow.lua", { "_worldStripListOrder", "drawWorldTabStrip", "drawWorldContainerStrip", "_buildWorldTabBarElements" }, wwExtra)
 if WWP.drawWorldTabStrip and WWP.drawWorldContainerStrip then
     -- the floor is the last container, pinned at the top: its zone is its index (3); the first list button is 1
     windowChecks("WORLD", WWP, "drawWorldTabStrip", "drawWorldContainerStrip", 3, "wt_sort", 1, "world")
@@ -346,6 +388,44 @@ for _, rel in ipairs({ "Molecules.lua", "CraftingCore.lua", "MapsTab.lua", "Equi
               or src:match("\nlocal [%w_]+%s*=%s*%(?ZeD%.Spacing and ZeD%.Spacing%.colHdrH%)?[^\n]*")
     check("CONTENT " .. rel .. ": no copy of the rows made at load", copy == nil, copy)
     check("CONTENT " .. rel .. ": no 37 for row 1", not src:find("T%.px%(37%)") and not src:find("tabHeaderH%) or 37%)"))
+end
+
+-- ---------------------------------------------------------------------------
+section("STOPS")
+-- ---------------------------------------------------------------------------
+-- the strips are T.px(36) wide in both windows (TAB_STRIP_W, ACTION_TAB_STRIP_W)
+local function stopChecks(label, build, stripName, srcText)
+    local stripW = constants(srcText, {})[stripName]
+    check(label .. ": " .. stripName .. " read from the file", type(stripW) == "number", stripW)
+    if not (build and stripW) then return end
+    for _, root in ipairs(SCALES) do
+        for _, size in ipairs(SIZES) do
+            local T = apply(size, root)
+            local ok, els = pcall(build, {})
+            local tag = label .. " " .. size .. " x" .. root
+            check(tag .. ": the tab stops build on the stubs", ok and type(els) == "table" and #els == #TABS, ok and #els or els)
+            if ok and type(els) == "table" then
+                for i, e in ipairs(els) do
+                    check(tag .. " stop " .. i .. ": the strip's width, not past it", e.x == 0 and e.w == T.px(stripW), e.w .. " vs " .. T.px(stripW))
+                    check(tag .. " stop " .. i .. ": row 1 high, one under the other", e.h == T.stripH and e.y == (i - 1) * T.stripH, e.y .. "+" .. e.h)
+                end
+            end
+        end
+    end
+end
+stopChecks("STOPS CHAR", CWP._buildTabBarElements, "TAB_STRIP_W", CWS)
+stopChecks("STOPS WORLD", WWP._buildWorldTabBarElements, "ACTION_TAB_STRIP_W", WWS)
+
+-- ---------------------------------------------------------------------------
+section("BANDS")
+-- ---------------------------------------------------------------------------
+do
+    local PL = readFile("ZeDUI/PUNCH_LIST.md")
+    local e178 = PL:match("\n178%. .*") or ""
+    check("BANDS the punch list keeps the station band and the Animals back bar their own height, on purpose",
+        e178:find("station band", 1, true) ~= nil and e178:find("back bar", 1, true) ~= nil)
+    local STS = readFile(CL .. "Stations.lua")
+    check("BANDS Stations: the band is its own 28u (a heading and an icon)", STS:find("\nST.BAND_H = 28", 1, true) ~= nil)
 end
 
 -- ---------------------------------------------------------------------------

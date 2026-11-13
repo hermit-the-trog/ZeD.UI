@@ -1778,9 +1778,10 @@ local function renderItemList(self)
             cat  = math.ceil(math.min(ZeD.TM:MeasureStringX(T.fontF1, ZeD.InventoryRenderer.catLabel("Literature")), T.px(96)) + padX * 2),
             -- (a book's read status takes the column, a dot and a word; room
             -- for the one-word statuses, so the column still shows in the default window; longer ones shorten)
-            -- (and room for its heading, "Cond / Amt", whole: up to 90 units, past that it shortens)
+            -- (and room for its heading, "Cond / Amt", whole: up to 90 units of F5, past that it shortens; the cap
+            -- runs wider by T.sortWidthK when the sort font is F1, at Large, so a heading that fit in F5 still fits)
             cond = math.max(readOn and math.max(math.floor(50 * scale), ZeD.ReadMarks.wordRoom() + padX) or math.floor(50 * scale),
-                            math.min(math.ceil(ZeD.TM:MeasureStringX(T.sortFont, ZeD.tr("UI_ZeD_Inv_ColCond")) + padX * 2), math.floor(90 * scale))),
+                            math.min(math.ceil(ZeD.TM:MeasureStringX(T.sortFont, ZeD.tr("UI_ZeD_Inv_ColCond")) + padX * 2), math.floor(90 * scale * (T.sortWidthK or 1)))),
             readOn = readOn,
             -- (a stack's row shows its total in brackets, "(2.5)"; wtU is an item's
             -- own, the width the bracket gives way to, see wtFit)

@@ -693,7 +693,8 @@ function ST.stateText(st, player)
     end
 end
 
---- The station band under the header: icon, name, distance and kind, state.
+--- The station band under the header: icon, name, distance and kind, state. Not row 2 (punch list 178):
+--- it holds a heading line and an 18u icon, so it keeps its own 28u and its line falls below the sort row's
 ST.BAND_H = 28
 function ST.drawBand(panel, x, y, w, st, player)
     local T  = ZeD.T

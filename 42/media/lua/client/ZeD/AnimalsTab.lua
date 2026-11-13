@@ -1041,7 +1041,8 @@ local function drawSubmodeStrip(panel, win, x, y, w)
 end
 
 -- ============================================================================
--- BACK — the library's back key in a row of its own (zone and animal views)
+-- BACK — the library's back key in a row of its own (zone and animal views); not row 2 (punch list 178):
+-- it holds a full-size button, so it is the button plus BACK_PAD above and below
 -- ============================================================================
 
 local function drawBackBar(panel, win, x, y, w)

@@ -4584,3 +4584,9 @@ to be proposed.
    (UI scale only, not text size: too tall at Small, pinched at Large). Row 2 is scattered: T.sp.colHdrH, T.px(20) in
    CW 1218/3670 and WW 381/3129, Foraging 15/20, Journal 15, Skills 20, a Crafting 60 estimate. Its labels stay tiny at
    Large. Check at Deck size with Large text. Ties to D6 and D7.
+   **Build, Nov 12 2026:** row 1 is T.stripH and row 2 T.sortBarH, both from the text size and the UI scale
+   (37 and 20 at Small and 1080p, 43 and 24 at Large). The sort bar's words stay F5 at Small, so the narrow
+   headings (Cond / Amt in every language, the Equip protection heads) look and fit as before, and are F1 at Large.
+   Kept their own height on purpose, not row 2, so not a fault: the station band under the station select (Craft,
+   Cooking: a heading and an icon, 28u) and the Animals back bar (a full-size button, 34u); their lines fall below
+   the container strip's sort row.
