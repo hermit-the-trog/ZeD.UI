@@ -4,7 +4,8 @@
 --   * #4 deleting the active custom sandbox preset: the header's base is the preset the values sit closest to
 --     (Apocalypse + 1 change saved and deleted read "Six Months Later, 36 changed": vanilla's reload lands on the last)
 --   * #5 a name question opens with its default selected, so typing replaces it (Sandbox Save as preset, Traits Save
---     build, Looks Save preset), and the controller's keyboard selects it again when it opens on the untouched default
+--     build, Looks Save preset), and the controller's keyboard selects it again when it opens on the untouched default;
+--     the keyboard's B tells its opener (onCancel) once it is put away (Nov 12 2026)
 --   * #6 Options > Find shows ZeD's own options from ZeD setup (ZeD's controls), not the Mods page's drop-downs
 -- What it can't show: the selection drawn in the field, the radio rows on screen (in the game).
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/menus_b7_sim.lua
@@ -230,6 +231,27 @@ check("Keyboard: a field already typed into is not selected", lw.field.sel == fa
 local plain = newField("note text")
 kb:show(0, plain, nil)
 check("Keyboard: an ordinary field is not selected", plain.sel == false)
+
+-- B (Cancel) tells the opener, after the keyboard is put away (Nov 12 2026: a Find field kept the game's keyboard after
+-- B, so WASD and the pad's A went into a hidden text box; its opener now lets go of the keyboard then)
+local kb2 = setmetatable({ setVisible = noop, addToUIManager = noop, setAlwaysOnTop = noop, layout = noop,
+                           removeFromUIManager = noop }, ZeD_Keyboard)
+local fld = newField("before")
+fld.javaObject.onTextChange = noop
+kb2:show(0, fld, nil)
+local heard, caretThen = false, nil
+kb2.onCancel = function() heard = true; caretThen = fld.focused end
+fld:type("x")
+kb2:cancel()
+check("Keyboard: B puts the text back", fld.text == "before", fld.text)
+check("Keyboard: B tells the opener (onCancel)", heard == true)
+check("Keyboard: onCancel comes once the keyboard is put away (the field has had its caret back)", caretThen == true)
+kb2:show(0, fld, nil)
+check("Keyboard: a fresh opening has no onCancel of the last opener's", kb2.onCancel == nil)
+local wrongCall = false
+kb2.onCancel = function() wrongCall = true end
+kb2:accept()
+check("Keyboard: Accept does not call onCancel", wrongCall == false)
 
 -- ---------------------------------------------------------------------------
 section("#6 Options > Find: ZeD's own options with ZeD's controls")

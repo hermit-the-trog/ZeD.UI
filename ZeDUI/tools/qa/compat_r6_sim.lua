@@ -63,6 +63,8 @@ ZeD = {
     end,
     textCase = function(s) return s end,
     Safe = { on = function() return false end },
+    -- the tag's width as ZeD.Atoms.tagW gives it: the 6u square, 4u, the words
+    Atoms = { tagW = function(text, marked) return #tostring(text) * 7 + (marked and 10 or 0) end },
 }
 
 -- ---------------------------------------------------------------------------
