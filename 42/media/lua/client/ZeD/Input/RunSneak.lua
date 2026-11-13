@@ -27,9 +27,11 @@
 -- button, so a hold of one is never this file's.
 --
 -- Standing still means the character too, not only the stick: the game's
--- auto-walk walks with the stick at rest, and during a walk the game does on
--- its own (to a door, a seat, a car) a press does nothing here, as Run did
--- nothing there before.
+-- auto-walk walks with the stick at rest, and that is moving. Run does nothing
+-- there in the game until the stick is pushed, and nothing here either: the
+-- push, however long after Run went down, starts the hold as a fresh press
+-- would. During a walk the game does on its own (to a door, a seat, a car) a
+-- press does nothing here, as Run did nothing there before.
 --
 -- Public interface:
 --   ZeD.Input.RunSneak.HOLD_MS               how long a press must last to be a hold
@@ -54,7 +56,9 @@ local RS = ZeD.Input.RunSneak
 -- is Run AND the stick, though, not Run alone: it begins when the stick
 -- leaves its rest with Run down. So a hold that moves is timed from that
 -- moment too (see _step), or a Run press made standing still, then a push,
--- could reach 400 ms here while the game still saw a tap.
+-- could reach 400 ms here while the game still saw a tap. For the same
+-- reason a press that moved waits while the stick is at rest: the game has
+-- no run press to time then.
 RS.HOLD_MS = 400
 -- A gap this long between two looks is a pause or a load, not a hold: the
 -- press it spans does nothing (player updates stop while the game is paused).
@@ -67,7 +71,8 @@ RS.GAP_MS = 1000
 --            during it (the game's own run press starts there)
 --   stick    the stick was past its dead zone at the last look
 --   moved    the character moved at some point in this press (the stick, or
---            the game's auto-walk)
+--            the game's auto-walk): no still hold then, and while the stick
+--            is at rest the press waits for its next push
 --   spent    this press has done its one thing, or never may (a tap stays a tap)
 --   lastMs   the last look; nil means the next look starts fresh
 --   player   the character in this seat at the last look
@@ -259,6 +264,11 @@ local function _step(p, pn, now)
         return
     end
     if now - st.pressMs < RS.HOLD_MS then return end
+    -- Moved in this press, but the stick is at rest now (let go, or the
+    -- game's auto-walk walking on its own): the game has no run press then,
+    -- and Run alone does nothing, so the press waits, unspent. The stick's
+    -- next push starts the hold again (above), as it starts the game's run.
+    if st.moved and not stick then return end
 
     -- The hold: one thing per press.
     st.spent = true
@@ -274,9 +284,7 @@ local function _step(p, pn, now)
         act = "stand-run"
         p:setSneaking(false)
     end
-    -- (moving and standing: the game is already running; the stick let go
-    -- part way through, or the game's auto-walk with the stick at rest, where
-    -- the game's Run does nothing: no clear intent, so nothing)
+    -- (moving and standing: the game is already running, so nothing)
     if act then
         st.act, st.actMs = act, now
         print(string.format("[ZeD.Input] run-sneak p%d: %s", pn, act))

@@ -6,9 +6,10 @@
 --      so its timing and its one call (setSneaking) are checked in the real game: switched off, a hold does nothing;
 --      standing still, a hold crouches (not before 400 ms) and a second hold stands; a tap changes nothing; crouched
 --      and moving, a hold stands up; standing and moving, a hold leaves the stance alone; Run held standing still and
---      the stick pushed after, the stand-up is timed from the push (the game's own run press), not from Run. The
---      stand-in can't make the character really run (the game's run reads the real stick and trigger), and it can't
---      stand in for the Default layout, a seat, the game's auto-walk or a walk-to: that is part B.
+--      the stick pushed after, the stand-up is timed from the push (the game's own run press), not from Run; moving,
+--      then the stick let go with Run held, the press waits, and a push long after Run stands up 400 ms after that
+--      push. The stand-in can't make the character really run (the game's run reads the real stick and trigger), and
+--      it can't stand in for the Default layout, a seat, the game's auto-walk or a walk-to: that is part B.
 --   B, by hand with the director's pad, both layouts: the steps are printed ("ZEDQA rs HAND"), the switch stays on
 --      for four minutes, and every change of crouch, run, sprint and the module's state on each local player is logged
 --      ("ZEDQA rs live"), beside the module's own "[ZeD.Input] run-sneak" lines. Then the switch is put back.
@@ -102,6 +103,20 @@ after(400, function()
     check(not p:isSneaking() and act() == "stand-run", "and stood up by 700 ms after the push")
     pad(false, false)
 end)
+-- Moving, then the stick let go with Run held: the game has no run press then, so the press waits for the next push
+after(300, function() p:setSneaking(true); pad(false, true) end)
+after(200, function() pad(true, true) end)
+after(150, function() pad(true, false) end)
+after(450, function()
+    check(p:isSneaking() and RS.getState(pn) == "held",
+          "crouched and moving, the stick let go 150 ms in: still crouched 600 ms after Run, the press waiting")
+    pad(true, true)
+end)
+after(300, function() check(p:isSneaking(), "the stick pushed again: still crouched 300 ms after the push") end)
+after(400, function()
+    check(not p:isSneaking() and act() == "stand-run", "and stood up by 700 ms after the second push")
+    pad(false, false)
+end)
 after(200, function()
     RS.qaInput(pn, nil)
     p:setSneaking(wasSneak)
@@ -116,11 +131,11 @@ local HAND = {
     "ORIGINAL 3. Crouched, walk and hold RT: a moment of crouched run, then stands up and runs.",
     "ORIGINAL 4. Quick taps of RT: walking, a short run as before; standing still, nothing.",
     "ORIGINAL 5. L3 as before: a tap crouches, a hold opens the game's left joystick radial menu.",
-    "ORIGINAL 6. Crouched and still, hold RT, then push the stick a moment later: stands up about half a second after the push, not at the RT press.",
+    "ORIGINAL 6. Crouched and still, hold RT and push the stick within about a quarter second of pressing RT: stands up about half a second after the push, not at the RT press. A push half a second or more after RT is too late: the still hold has stood up first, by design.",
     "ORIGINAL 7. Sit on a chair, a sofa or the ground, hold RT: nothing. Get up with the stick, RT still held: no crouch.",
-    "ORIGINAL 8. Auto walk on (L3 menu or RB + L3), stick at rest, hold RT, standing or crouched: nothing, as the game. Push the stick while holding: crouched, stands about half a second after the push.",
+    "ORIGINAL 8. Once standing, once crouched (crouch with an L3 tap before Auto walk). Auto walk on (L3 menu or RB + L3), push the stick to set the way and let it go: the character walks on its own. Hold RT, stick at rest: nothing, as the game. Keep holding RT a second or more, then push the stick: crouched, stands up about half a second after the push and runs; standing, runs as the game.",
     "ORIGINAL 9. Pick Enter on a car a few tiles away (or walk to a container), hold RT while the character walks there: nothing.",
-    "ORIGINAL 10. The game's Toggle key to Jog on (Options > Controls > Movement): crouched and still, press RT, push the stick, let go of RT within a moment of the push: the game's jog toggles on, still crouched. A long hold after the push stands up and toggles nothing. Put the option back after.",
+    "ORIGINAL 10. The game's Toggle key to Jog on (Options > Controls > Movement): crouched and still, press RT, push the stick within about a quarter second of pressing RT, let go of RT within a moment of the push: the game's jog toggles on, still crouched. A long hold after the push stands up and toggles nothing. Put the option back after.",
     "DEFAULT: switch the layout to Default in Options > Controller (put it back to Original after).",
     "DEFAULT 11. Hold L3 standing still: the game's radial menu opens as always, nothing of ZeD's.",
     "DEFAULT 12. A quick tap of L3: crouch toggles as always. RT held standing still: nothing new.",

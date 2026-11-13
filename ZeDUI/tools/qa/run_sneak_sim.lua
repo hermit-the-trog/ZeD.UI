@@ -19,9 +19,14 @@
 --   ORIGINAL  off does nothing; still hold crouches at 400 ms (not before), once per hold, again stands; moving runs
 --             (the game's own run) while held and stops on release; crouched and moving stands and runs; taps pass;
 --             the dead zone is the controller's own; a hold that moves is timed from the stick's push (the game's own
---             run press is Run with the stick)
+--             run press is Run with the stick); a press that moved waits while the stick is at rest (let go, or the
+--             game's auto-walk), and a later push, however late, stands up 400 ms after it; one thing per press
 --   TOGGLE    the game's "Toggle to run" on: a press is the game's tap (its run toggled) or a hold here, never both,
---             over a sweep of stick pushes and let-gos; a long hold stands up and toggles nothing
+--             over a sweep of stick pushes and let-gos; a long hold stands up and toggles nothing; the same over an
+--             auto-walk sweep, a let-go-and-push-again sweep and a seeded random sweep, where every stand-up also
+--             lands exactly 400 ms into the game's run press, every crouch or stand lands with the character still,
+--             a press acts once, and a crouched character whose run press reaches 400 ms always stands (unless that
+--             press already acted)
 --   DEFAULT   the switch on, nothing at all: no stance change from any hold of L3, RT or the stick, L3's tap stays the
 --             game's crouch toggle, L3's hold opens the game's radial menu at 250 ms, the stick's full push is the
 --             game's run, the module's state never leaves idle; the radial menu's code is never wrapped
@@ -30,8 +35,9 @@
 --             turned on, a stick let go part way, a dead player, Safe mode, sitting on a seat or on the ground (and
 --             getting up with Run held), a walk the game does on its own (a path): nothing
 --   AUTO-WALK the game's auto-walk with the stick at rest is moving: no crouch, no stand-up (the game's Run does
---             nothing there); a push of the stick then stands up 400 ms after the push; auto-walk with no direction
---             yet is standing still
+--             nothing there), however long Run is held; a push of the stick then stands up 400 ms after the push, a
+--             push long after Run went down too; an auto-walk that starts mid-press is no still hold; auto-walk with
+--             no direction yet is standing still
 --   BINDINGS  any layout with Run on a button or a trigger works (RT in Original, or B in a player's own layout:
 --             crouch, stand, tap, stand-run); Run on the stick (Default), on L3, on R3, on LB or on RB: refused,
 --             nothing of ZeD's (a bumper is never even read: it stays ZeD's quick actions)
@@ -40,6 +46,8 @@
 --             L3, the Crouch binding or the radial menu; one handler after a reload; isSitting, hasPath, isAutoWalk
 --   WORDS     both keys in all 28 languages, the English exact (Run on a button works, as in Original on RT; a full
 --             stick push, the Default layout, or LB / RB does nothing), every language names LB and RB, AR with voseo
+--   QA STEPS  zedqa_run_sneak.lua: part A pushes again long after Run in a press that moved; part B steps 6 and 10
+--             push the stick within about a quarter second of RT, step 8 holds RT a second or more before the push
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/run_sneak_sim.lua
 -- It prints FAIL lines and a last line "run_sneak_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -496,6 +504,56 @@ play(80)
 check("400 ms after the second push: stood up", #P0.calls == 1 and P0.sneaking == false, #P0.calls)
 pad(0).run = false; pad(0).x = 0; play(48)
 
+section("Original: a press that moved waits while the stick is at rest; a later push is timed from the push")
+reset()
+P0.sneaking = true
+pad(0).x = 1.0; play(32)
+pad(0).run = true; play(160)
+pad(0).x = 0; play(400)            -- the stick let go 160 ms in, Run held: 544 ms after Run, past the old 400 ms mark
+check("crouched, moving, the stick let go 160 ms in: nothing by 544 ms", #P0.calls == 0 and P0.sneaking == true, #P0.calls)
+check("the press waits for the stick (held, not spent)", RS.getState(0) == "held", RS.getState(0))
+pad(0).x = 1.0; play(352)          -- pushed again 560 ms in; now 336 ms after the push
+check("pushed again 560 ms in: no stand-up 336 ms after the push", #P0.calls == 0 and P0.sneaking == true, #P0.calls)
+play(64)
+check("400 ms after the push: stood up and running", #P0.calls == 1 and P0.sneaking == false and P0.running == true
+      and RS.lastAction(0) == "stand-run", #P0.calls)
+-- one thing per press: crouch again with the game's L3, let the stick go and push it again, Run held all along
+pad(0).l3 = true; play(48); pad(0).l3 = false; play(48)
+check("crouched again by the game's L3 tap, Run still held", P0.sneaking == true and P0.gameToggles == 1, P0.gameToggles)
+pad(0).x = 0; play(96)
+pad(0).x = 1.0; play(800)
+check("a press acts once: another push in the same press does nothing", #P0.calls == 1 and P0.sneaking == true,
+      #P0.calls)
+pad(0).run = false; pad(0).x = 0; play(48)
+reset()
+P0.sneaking = true
+pad(0).run = true; play(64)
+pad(0).x = 1.0; play(96)           -- pushed 64 ms in, let go 160 ms in
+pad(0).x = 0; play(1040)
+pad(0).x = 1.0; play(352)          -- pushed again 1200 ms in
+check("crouched and still at Run, a push and a let-go, a second push 1200 ms in: nothing 336 ms after it",
+      #P0.calls == 0 and P0.sneaking == true, #P0.calls)
+play(64)
+check("then stood up, 400 ms after the second push", #P0.calls == 1 and P0.sneaking == false and P0.running == true,
+      #P0.calls)
+pad(0).run = false; pad(0).x = 0; play(48)
+reset()
+pad(0).x = 1.0; play(32)
+pad(0).run = true; play(160)
+pad(0).x = 0; play(400)
+pad(0).x = 1.0; play(608)
+check("standing, the stick let go and pushed again: the game runs, the stance is left alone", #P0.calls == 0
+      and P0.sneaking == false and P0.running == true, #P0.calls)
+check("and that press is spent", RS.getState(0) == "spent", RS.getState(0))
+pad(0).run = false; pad(0).x = 0; play(48)
+reset()
+pad(0).x = 1.0; play(32)
+pad(0).run = true; play(160)
+pad(0).x = 0; play(1504)           -- the stick let go, the character still, Run held 1.5 s more
+check("moved, then still with Run held on: no crouch (a press that moved never crouches or stands still)",
+      #P0.calls == 0 and P0.sneaking == false, #P0.calls)
+pad(0).run = false; play(48)
+
 section("Original: taps pass, the dead zone is the controller's")
 reset()
 pad(0).run = true; play(208); pad(0).run = false; play(48)
@@ -740,6 +798,36 @@ play(64)
 check("then stood up and running", #P0.calls == 1 and P0.sneaking == false and P0.running == true, #P0.calls)
 pad(0).run = false; pad(0).x = 0; play(48)
 reset()
+P0.autoWalk = true; P0.autoDir = true; P0.sneaking = true
+play(48)
+pad(0).run = true; play(800)       -- Run held 800 ms with the stick at rest: past the old 400 ms mark
+check("auto-walking crouched, Run held 800 ms with the stick at rest: still crouched", #P0.calls == 0
+      and P0.sneaking == true, #P0.calls)
+check("and the press waits for the stick (held, not spent)", RS.getState(0) == "held", RS.getState(0))
+pad(0).x = 1.0; play(352)          -- the stick pushed 800 ms in; now 336 ms after the push
+check("then the stick, 800 ms in: no stand-up 336 ms after the push", #P0.calls == 0 and P0.sneaking == true, #P0.calls)
+play(64)
+check("400 ms after the push: stood up and running", #P0.calls == 1 and P0.sneaking == false and P0.running == true
+      and RS.lastAction(0) == "stand-run", #P0.calls)
+play(400)                          -- Run and the stick held 800 ms past the push in all
+check("and one thing for the press", #P0.calls == 1, #P0.calls)
+pad(0).run = false; pad(0).x = 0; play(48)
+reset()
+P0.autoWalk = true; P0.autoDir = true
+play(48)
+pad(0).run = true; play(800)
+pad(0).x = 1.0; play(800)
+check("auto-walking standing, Run held 800 ms, then the stick: the game's run, the stance left alone", #P0.calls == 0
+      and P0.sneaking == false and P0.running == true, #P0.calls)
+pad(0).run = false; pad(0).x = 0; play(48)
+reset()
+pad(0).run = true; play(160)
+P0.autoWalk = true; P0.autoDir = true   -- the auto-walk walking from 160 ms in, the stick at rest
+play(1200)
+check("still at Run, walking on its own from 160 ms: no crouch at 400 ms or after (not still then)", #P0.calls == 0
+      and P0.sneaking == false, #P0.calls)
+pad(0).run = false; play(48)
+reset()
 P0.autoWalk = true                  -- switched on standing still: no direction yet, so not walking
 play(48)
 pad(0).run = true; play(448); pad(0).run = false; play(48)
@@ -764,6 +852,146 @@ P0.path = { to = "a door" }         -- a walk begun mid-hold
 play(600); P0.path = nil
 pad(0).run = false; play(48)
 check("a walk begun mid-hold: nothing", #P0.calls == 0)
+
+-- =========================================================================
+section("Toggle to run on, a press that waits for the stick: the game's tap or this hold, never both")
+TOGGLE_RUN = true
+reset()
+P0.autoWalk = true; P0.autoDir = true; P0.sneaking = true
+play(48)
+pad(0).run = true; play(800)
+pad(0).x = 1.0; play(320)
+pad(0).run = false; frame(16)      -- Run let go 320 ms after the push
+check("auto-walking crouched, Run 800 ms, then the stick, Run let go 320 ms after the push: the game's tap",
+      P0.gameClicks == 1, P0.gameClicks)
+check("and no stand-up here", #P0.calls == 0 and P0.sneaking == true, #P0.calls)
+pad(0).x = 0; play(48)
+reset()
+P0.autoWalk = true; P0.autoDir = true; P0.sneaking = true
+play(48)
+pad(0).run = true; play(800)
+pad(0).x = 1.0; play(608)
+pad(0).run = false; frame(16)
+check("the same, Run held 608 ms past the push: stood up, and not the game's tap", #P0.calls == 1
+      and P0.sneaking == false and P0.gameClicks == 0, P0.gameClicks)
+pad(0).x = 0; play(48)
+
+-- One press, frame by frame: Run down from 0 ms to upAt, the stick set at the times in moves ({ ms, x }, in order).
+-- Returns what this module did (acts: when, what, when the game's run press began, whether the stick or the
+-- auto-walk moved the character), the game's taps (each run press it read as one: from, to), and the frames that
+-- were due: the game's run press turning 400 ms old, crouched, in a press that had not acted (it must stand up in
+-- that very frame), with how many of those it missed.
+local function onePress(moves, upAt)
+    local acts, taps, due, missed = {}, {}, 0, 0
+    local mi = 1
+    pad(0).run = true
+    local t = 0
+    while t <= upAt do
+        while moves[mi] and moves[mi][1] <= t do pad(0).x = moves[mi][2]; mi = mi + 1 end
+        if t == upAt then pad(0).run = false end
+        local n, before, crouched = #P0.calls, #acts, P0.sneaking
+        local moving = Movement:isApplied(0) or (P0.autoWalk and P0.autoDir)
+        frame(16)
+        if P0.tRun.clicked then taps[#taps + 1] = { from = P0.tRun.clickFrom, to = CLOCK } end
+        local acted = #P0.calls > n
+        if acted then
+            acts[#acts + 1] = { ms = CLOCK, what = RS.lastAction(0), runFrom = P0.tRun.downMs, moving = moving }
+        end
+        if crouched and before == 0 and P0.tRun.downMs ~= 0 and CLOCK - P0.tRun.downMs == 400 then
+            due = due + 1
+            if not acted then missed = missed + 1 end
+        end
+        t = t + 16
+    end
+    return acts, taps, due, missed
+end
+local function newTally()
+    return { presses = 0, both = 0, late = 0, unstill = 0, twice = 0, due = 0, missed = 0, holds = 0, taps = 0 }
+end
+-- both: an act inside a run press the game read as a tap; late: a stand-up not exactly 400 ms into the game's run
+-- press; unstill: a crouch or a stand while the stick or the auto-walk moved the character; twice: a press that acted
+-- more than once
+local function tally(acc, acts, taps, due, missed)
+    acc.presses, acc.due, acc.missed = acc.presses + 1, acc.due + due, acc.missed + missed
+    if #acts > 1 then acc.twice = acc.twice + 1 end
+    if #acts > 0 then acc.holds = acc.holds + 1 end
+    if #taps > 0 then acc.taps = acc.taps + 1 end
+    for _, a in ipairs(acts) do
+        for _, tp in ipairs(taps) do if tp.from <= a.ms and a.ms < tp.to then acc.both = acc.both + 1 end end
+        if a.what == "stand-run" and (a.runFrom == 0 or a.ms - a.runFrom ~= 400) then acc.late = acc.late + 1 end
+        if (a.what == "crouch" or a.what == "stand") and a.moving then acc.unstill = acc.unstill + 1 end
+    end
+end
+local function report(name, acc)
+    check(name .. ": over " .. acc.presses .. " presses none is both the game's tap and a hold here", acc.both == 0, acc.both)
+    check(name .. ": every stand-up exactly 400 ms into the game's run press", acc.late == 0, acc.late)
+    check(name .. ": every crouch or stand with the character still", acc.unstill == 0, acc.unstill)
+    check(name .. ": one thing per press", acc.twice == 0, acc.twice)
+    check(name .. ": a crouched run press held 400 ms stands up, unless its Run press already acted", acc.missed == 0,
+          acc.missed .. " of " .. acc.due .. " missed")
+    check(name .. ": the sweep has holds, taps and run presses due", acc.holds > 0 and acc.taps > 0 and acc.due > 0,
+          acc.holds .. " holds / " .. acc.taps .. " taps / " .. acc.due .. " due")
+end
+-- auto-walking (the stick at rest), crouched or standing: the stick pushed at 0 to 1200 ms or never, Run let go at
+-- 208 to 2000 ms
+local acc = newTally()
+for _, crouch in ipairs({ true, false }) do
+    for _, at in ipairs({ 0, 144, 384, 448, 800, 1200, -1 }) do
+        for _, upAt in ipairs({ 208, 464, 800, 1008, 1264, 1600, 2000 }) do
+            reset()
+            P0.autoWalk = true; P0.autoDir = true; P0.sneaking = crouch
+            play(48)
+            tally(acc, onePress(at >= 0 and { { at, 1.0 } } or {}, upAt))
+            pad(0).x = 0; play(48)
+        end
+    end
+end
+report("auto-walk sweep", acc)
+-- moving at Run (the stick pushed first), crouched or standing: the stick let go at 64 to 640 ms and pushed again
+-- 96 ms later, at 560 ms or at 1000 ms; Run let go at 464 to 1400 ms
+acc = newTally()
+for _, crouch in ipairs({ true, false }) do
+    for _, off in ipairs({ 64, 160, 384, 448, 640 }) do
+        for _, again in ipairs({ off + 96, 560, 1000 }) do
+            if again > off then
+                for _, upAt in ipairs({ 464, 800, 1008, 1400 }) do
+                    reset()
+                    P0.sneaking = crouch
+                    pad(0).x = 1.0; play(32)
+                    tally(acc, onePress({ { off, 0 }, { again, 1.0 } }, upAt))
+                    pad(0).x = 0; play(48)
+                end
+            end
+        end
+    end
+end
+report("let go and push again sweep", acc)
+-- seeded random presses, the same on every machine: crouched or standing; still, moving by the stick, auto-walking,
+-- or auto-walk on with no direction yet; up to four stick changes; Run let go at 16 to 2000 ms
+local seed = 20261112
+local function rnd(n)   -- 0 to n - 1 (Park-Miller, exact in doubles)
+    seed = (seed * 16807) % 2147483647
+    return seed % n
+end
+acc = newTally()
+for _ = 1, 1500 do
+    reset()
+    P0.sneaking = rnd(2) == 0
+    local walk = rnd(4)
+    if walk == 2 then P0.autoWalk = true; P0.autoDir = true elseif walk == 3 then P0.autoWalk = true end
+    pad(0).x = (walk == 1) and 1.0 or 0
+    play(48)
+    local moves, t, x = {}, 0, pad(0).x
+    for _ = 1, rnd(5) do
+        t = t + 16 * (1 + rnd(50))
+        x = (x == 0) and 1.0 or 0
+        moves[#moves + 1] = { t, x }
+    end
+    tally(acc, onePress(moves, 16 * (1 + rnd(125))))
+    pad(0).x = 0; play(48)
+end
+report("random sweep", acc)
+TOGGLE_RUN = false
 
 section("Bindings: any layout with Run on a button or a trigger works; a stick, a stick click or a bumper does not")
 reset()
@@ -923,6 +1151,26 @@ end
 local ar = (UI.AR or {}).UI_ZeD_Settings_RunSneakTip or ""
 check("AR is Argentine Spanish (no Arabic letters)", not ar:find("\216[\128-\191]") and not ar:find("\217[\128-\191]"))
 check("AR: voseo (mantene with its accent)", ar:find("manten\195\169", 1, true) ~= nil)
+
+-- ---------------------------------------------------------------------------
+-- QA STEPS
+-- ---------------------------------------------------------------------------
+section("QA steps (zedqa_run_sneak.lua)")
+local qa = readFile(ROOT .. "ZeDUI/tools/qa/zedqa_run_sneak.lua") or ""
+check("the QA script is there", #qa > 0)
+-- a step of part B, by number: the text after "ORIGINAL n. "
+local function handStep(n) return qa:match('"ORIGINAL ' .. n .. '%. ([^\n]*)"') or "" end
+local QUARTER = "push the stick within about a quarter second of pressing RT"
+check("B6: push the stick within about a quarter second of RT (a later push lets the still hold stand up first)",
+      handStep(6):find(QUARTER, 1, true) ~= nil and handStep(6):find("stands up about half a second after the push", 1, true)
+      ~= nil, handStep(6))
+check("B10: the same quarter second before the game's tap", handStep(10):find(QUARTER, 1, true) ~= nil, handStep(10))
+check("B8: RT held a second or more with the stick at rest, then the push: stands up half a second after the push",
+      handStep(8):find("Keep holding RT a second or more, then push the stick", 1, true) ~= nil
+      and handStep(8):find("stands up about half a second after the push", 1, true) ~= nil, handStep(8))
+check("part A: a press that moved waits with the stick at rest, then a push long after Run stands up",
+      qa:find("the stick let go 150 ms in: still crouched 600 ms after Run, the press waiting", 1, true) ~= nil
+      and qa:find("and stood up by 700 ms after the second push", 1, true) ~= nil)
 
 print(string.format("run_sneak_sim: %d checks, %d failed", checks, failed))
 os.exit(failed == 0 and 0 or 1)
