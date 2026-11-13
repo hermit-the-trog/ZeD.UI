@@ -29,13 +29,29 @@ local X = LC93.Text
 -- in its character width), F4 heading, F5 micro
 X.ROLE_FONTS = { "Small", "Small", "CodeSmall", "Medium", "Small" }
 
+-- The languages whose words the code face draws: the game's codeSmall.fnt holds the first 256 characters only, so a
+-- language with letters past them (Cyrillic, CJK, Thai, Polish, Turkish, German quotes) gets the data role in its own
+-- Small face, which the game picks by language. Worked out by the build from each language's words here.
+X.CODE_LANGS = { AR = true, CA = true, DA = true, EN = true, ES = true, ES_CL = true, ES_MX = true, FI = true, FR = true, ID = true, IT = true, NL = true, NO = true, PT = true, PTBR = true, }
+
+local function langName() return tostring(Translator.getLanguage():name()) end
+
+--- True when the game's language is one the code face draws (or the language cannot be read).
+function X.codeFaceFits()
+    local ok, name = pcall(langName)
+    if not ok or type(name) ~= "string" then return true end
+    return X.CODE_LANGS[name] == true
+end
+
 --- True: the roles draw in the game's own fonts (the palette then asks roleFallbackFont for each one).
 function X.checkRoleFonts() return true end
 
 --- The game's font for role i (1 to 5). px, the role's design size, is not needed: the game's faces come in the
 --- size its font size option picks.
 function X.roleFallbackFont(px, i)
-    return UIFont[X.ROLE_FONTS[i or 2] or "Small"] or UIFont.Small
+    local name = X.ROLE_FONTS[i or 2] or "Small"
+    if name == "CodeSmall" and not X.codeFaceFits() then name = "Small" end
+    return UIFont[name] or UIFont.Small
 end
 
 -- The kept measures: two generations of MAX strings. They start over whenever a width could differ: a new palette
@@ -115,13 +131,15 @@ setmetatable(TM, { __index = function(t, k)
     return wrapper
 end })
 
--- the game's font size option, read once a frame; a new screen size starts the measures over
+-- the game's font size option, read once a frame while the console can open (debug mode); one function made at
+-- load, never one a frame. A new screen size starts the measures over.
+local function readFontSize() return getCore():getOptionFontSize() end
+local function onPreUIDraw()
+    local ok, v = pcall(readFontSize)
+    fsNow = ok and v or false
+end
+X._onPreUIDraw = onPreUIDraw
 if Events then
-    if Events.OnPreUIDraw then
-        Events.OnPreUIDraw.Add(function()
-            local ok, v = pcall(function() return getCore():getOptionFontSize() end)
-            fsNow = ok and v or false
-        end)
-    end
+    if Events.OnPreUIDraw and isDebugEnabled and isDebugEnabled() then Events.OnPreUIDraw.Add(onPreUIDraw) end
     if Events.OnResolutionChange then Events.OnResolutionChange.Add(function() M.T = false end) end
 end

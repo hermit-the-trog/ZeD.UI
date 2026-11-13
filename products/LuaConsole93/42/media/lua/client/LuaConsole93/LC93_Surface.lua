@@ -1,6 +1,6 @@
 -- LuaConsole93/42/media/lua/client/LuaConsole93/LC93_Surface.lua
 -- ============================================================================================================
--- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's ZeD_Surface.lua the console uses (18 of
+-- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's ZeD_Surface.lua the console uses (23 of
 -- its 25 statements).
 -- Made from ZeD-GUI's 42/media/lua/client/ZeD/ZeD_Surface.lua by ZeDUI/tools/products/build_luaconsole93.py.
 -- Do not edit it here: change ZeD-GUI's file and build again.
@@ -32,9 +32,42 @@ local MAX_CLIPS  = 16
 
 local _clips, _clipN = {}, 0
 
+local function pushClip(panel, x, y, w, h)
+    _clipN = _clipN + 1
+    if _clipN > MAX_CLIPS then return end
+    local jo = panel and panel.javaObject
+    local ax = jo and jo:getAbsoluteX() or 0
+    local ay = jo and jo:getAbsoluteY() or 0
+    local x0, y0 = ax + (x or 0), ay + (y or 0)
+    local x1, y1 = x0 + (w or 0), y0 + (h or 0)
+    local prev = _clips[_clipN - 1]
+    if _clipN > 1 and prev then
+        if prev.x0 > x0 then x0 = prev.x0 end
+        if prev.y0 > y0 then y0 = prev.y0 end
+        if prev.x1 < x1 then x1 = prev.x1 end
+        if prev.y1 < y1 then y1 = prev.y1 end
+    end
+    if x1 < x0 then x1 = x0 end
+    if y1 < y0 then y1 = y0 end
+    local c = _clips[_clipN]
+    if not c then c = {}; _clips[_clipN] = c end
+    c.x0, c.y0, c.x1, c.y1 = x0, y0, x1, y1
+end
+
+local function popClip()
+    if _clipN > 0 then _clipN = _clipN - 1 end
+end
+
 function S.clip()
     if _clipN <= 0 then return nil end
     return _clips[math.min(_clipN, MAX_CLIPS)]
+end
+
+function S.resetClips() _clipN = 0 end
+S._pushClip, S._popClip = pushClip, popClip
+if Events then
+    if Events.OnPreUIDraw then Events.OnPreUIDraw.Add(S.resetClips) end
+    if Events.OnPostUIDraw then Events.OnPostUIDraw.Add(S.resetClips) end
 end
 
 function S.windowOf(panel)

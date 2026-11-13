@@ -5,12 +5,14 @@ files only the parts the console reaches (its closure, worked out below), rename
 translation key to Lua Console 93's own, and writes the mod into products/LuaConsole93/ in the repo:
 
     products/LuaConsole93/
-        42/mod.info, poster.png, icon.png, README.txt
+        42/mod.info, poster.png, icon.png, README.txt, LICENSE.txt (the repo's LICENSE, which the texts cite)
         42/media/lua/client/LuaConsole93/*.lua          the console and the parts of ZeD-GUI it uses
         42/media/lua/shared/Translate/<LANG>/UI.json     only the keys it uses, renamed, 28 languages
-        42/media/textures/LuaConsole93/                  the controller's slice picture, ZeD-GUI's arrow strip
+        42/media/textures/LuaConsole93/                  the controller's slice picture (the icon), ZeD-GUI's arrow strip
         workshop/preview.png, workshop/README.txt        the Workshop page's picture and the gallery shot list
         workshop_description.bbcode                      the Workshop page's text
+The pictures are design's (ZeDUI/art/lua_console_93/: preview.png, poster.png, icon.png), copied at each build.
+QA's gallery shots live in ZeDUI/workshop/luaconsole93/, outside the built folder.
 
 Run it from anywhere with the no-install Python:
     python -I ZeDUI/tools/products/build_luaconsole93.py            build products/LuaConsole93
@@ -70,7 +72,10 @@ REPO = os.path.normpath(os.path.join(TOOL_DIR, "..", "..", ".."))
 SRC = os.path.join(REPO, "42", "media", "lua")
 ZED_MOD_INFO = os.path.join(REPO, "42", "mod.info")
 TRANSLATE = os.path.join(SRC, "shared", "Translate")
-PIXEL_FONTS = os.path.join(SRC, "client", "ZeD", "PixelFonts.lua")
+ART_DIR = os.path.join(REPO, "ZeDUI", "art", "lua_console_93")
+LICENSE = os.path.join(REPO, "LICENSE")
+LICENSE_URL = "https://github.com/hermit-the-trog/ZeD.UI/blob/main/LICENSE"
+GALLERY_REL = "ZeDUI/workshop/luaconsole93"   # QA's gallery shots: outside the built folder
 OUT_REL = os.path.join("products", MOD_ID)
 LUA_DIR_REL = "42/media/lua/client/" + MOD_ID
 TEX_DIR_REL = "42/media/textures/" + MOD_ID
@@ -125,6 +130,7 @@ LEFT_OUT = {
 ROOT_EFFECTS = [
     ("shared/ZeD/Tokens.lua", 'ZeD.applyTheme("dark", ZeD.DEFAULT_ACCENT, "small")'),   # the palette, made at load
     ("shared/ZeD/Scale.lua", "if Events and Events.OnTick then"),   # the palette made again when the scale moves
+    ("client/ZeD/ZeD_Surface.lua", "if Events then"),   # the clip stack starts empty before and after each UI draw
 ]
 # Effects that write into the game's own tables or globals: each one decided here. An undecided one that touches
 # the closure stops the build.
@@ -163,6 +169,18 @@ EDITS = [
     # the game's fonts are in place before any Lua runs: nothing to wait for (ZeD-GUI waits for its own atlases)
     ("shared/ZeD/Scale.lua", "if S._tick == 0 then rootChanged(); fontsSettle() end",
      "if S._tick == 0 then rootChanged() end"),
+    # the clip in force: ZeD-GUI watches every panel's stencils by wrapping ISUIElement (dropped here: a console mod
+    # must not wrap the game's base class). Every stencil the console sets is its window's, so the window tells the
+    # surface layer itself, and a claim half scrolled out of a list is cut to the list as in ZeD-GUI
+    ("client/ZeD/Organisms.lua",
+     "    self._zedStencilN = (self._zedStencilN or 0) + 1\n    return ISPanel.setStencilRect(self, x, y, w, h)\n",
+     "    self._zedStencilN = (self._zedStencilN or 0) + 1\n    local r = ISPanel.setStencilRect(self, x, y, w, h)\n"
+     "    if ZeD.Surface and ZeD.Surface._pushClip then ZeD.Surface._pushClip(self, x, y, w, h) end\n    return r\n"),
+    ("client/ZeD/Organisms.lua",
+     "    if n and n > 0 then self._zedStencilN = n - 1 end\n    return ISPanel.clearStencilRect(self)\n",
+     "    if n and n > 0 then self._zedStencilN = n - 1 end\n"
+     "    if ZeD.Surface and ZeD.Surface._popClip then ZeD.Surface._popClip() end\n"
+     "    return ISPanel.clearStencilRect(self)\n"),
 ]
 # Words inside strings, in this order. What is left with "ZeD" in it stops the build.
 STRING_RULES = [
@@ -986,6 +1004,16 @@ ROLES = {
     "client/ZeD/ZeD_ConsoleCommands.lua": "the server command list, who may use each, and sending one.",
 }
 
+# The game's code face (media/fonts/codeSmall.fnt, Noto Sans Mono, every size) holds the characters 32 to 126 and
+# 160 to 255 (the soft hyphen, 173, aside); anything past them it draws as "?". A language whose words all fit keeps
+# the data role on it; the build fills the list in where the text shim marks it.
+CODE_LANGS_MARK = "@CODE_LANGS@"
+
+
+def code_face_has(text):
+    return all(32 <= ord(c) <= 126 or (160 <= ord(c) <= 255 and ord(c) != 173) or c in "\n\t" for c in text)
+
+
 T_ = {"T": TABLE, "MOD": MOD_ID, "KEY": KEY_PREFIX, "SLICE": SLICE_TEX, "tl": TABLE.lower()}
 
 TEXT_SHIM = """
@@ -997,13 +1025,29 @@ local X = %(T)s.Text
 -- in its character width), F4 heading, F5 micro
 X.ROLE_FONTS = { "Small", "Small", "CodeSmall", "Medium", "Small" }
 
+-- The languages whose words the code face draws: the game's codeSmall.fnt holds the first 256 characters only, so a
+-- language with letters past them (Cyrillic, CJK, Thai, Polish, Turkish, German quotes) gets the data role in its own
+-- Small face, which the game picks by language. Worked out by the build from each language's words here.
+X.CODE_LANGS = { @CODE_LANGS@ }
+
+local function langName() return tostring(Translator.getLanguage():name()) end
+
+--- True when the game's language is one the code face draws (or the language cannot be read).
+function X.codeFaceFits()
+    local ok, name = pcall(langName)
+    if not ok or type(name) ~= "string" then return true end
+    return X.CODE_LANGS[name] == true
+end
+
 --- True: the roles draw in the game's own fonts (the palette then asks roleFallbackFont for each one).
 function X.checkRoleFonts() return true end
 
 --- The game's font for role i (1 to 5). px, the role's design size, is not needed: the game's faces come in the
 --- size its font size option picks.
 function X.roleFallbackFont(px, i)
-    return UIFont[X.ROLE_FONTS[i or 2] or "Small"] or UIFont.Small
+    local name = X.ROLE_FONTS[i or 2] or "Small"
+    if name == "CodeSmall" and not X.codeFaceFits() then name = "Small" end
+    return UIFont[name] or UIFont.Small
 end
 
 -- The kept measures: two generations of MAX strings. They start over whenever a width could differ: a new palette
@@ -1083,20 +1127,23 @@ setmetatable(TM, { __index = function(t, k)
     return wrapper
 end })
 
--- the game's font size option, read once a frame; a new screen size starts the measures over
+-- the game's font size option, read once a frame while the console can open (debug mode); one function made at
+-- load, never one a frame. A new screen size starts the measures over.
+local function readFontSize() return getCore():getOptionFontSize() end
+local function onPreUIDraw()
+    local ok, v = pcall(readFontSize)
+    fsNow = ok and v or false
+end
+X._onPreUIDraw = onPreUIDraw
 if Events then
-    if Events.OnPreUIDraw then
-        Events.OnPreUIDraw.Add(function()
-            local ok, v = pcall(function() return getCore():getOptionFontSize() end)
-            fsNow = ok and v or false
-        end)
-    end
+    if Events.OnPreUIDraw and isDebugEnabled and isDebugEnabled() then Events.OnPreUIDraw.Add(onPreUIDraw) end
     if Events.OnResolutionChange then Events.OnResolutionChange.Add(function() M.T = false end) end
 end
 """ % T_
 
 STANDALONE_SHIM = """
 require "%(MOD)s/Organisms"
+require "%(MOD)s/%(T)s_DebugConsole"
 
 %(T)s = %(T)s or {}
 
@@ -1111,22 +1158,108 @@ function KB.isVisible()
     return OnScreenKeyboard ~= nil and OnScreenKeyboard.IsVisible ~= nil and OnScreenKeyboard.IsVisible() == true
 end
 
--- KB.instance: the game's keyboard, looked up when asked (the game makes it the first time it shows)
+-- KB.instance: the game's keyboard while it is up, nil once it is put away. The game's keeps its textEntryBox after
+-- it hides, and its hide() gives that box the keys again; the console closing would then leave its own hidden line
+-- holding every key. So the console sees only a keyboard that is up, and putting it away leaves the box unfocused,
+-- as ZeD-GUI's keyboard does.
+local proxy = {}
+function proxy.hide()
+    local inst = OnScreenKeyboard and OnScreenKeyboard.instance
+    if not inst then return end
+    local box = inst.textEntryBox
+    pcall(function() inst:hide() end)
+    if box and box.unfocus then pcall(function() box:unfocus() end) end
+end
 setmetatable(KB, { __index = function(_, k)
-    if k == "instance" and OnScreenKeyboard then return OnScreenKeyboard.instance end
+    if k == "instance" and KB.isVisible() then
+        proxy.textEntryBox = OnScreenKeyboard.instance and OnScreenKeyboard.instance.textEntryBox
+        return proxy
+    end
     return nil
 end })
 
+-- The game's keyboard's Accept (and RT) put the words in the box, hide, give the box the keys, then press Enter for
+-- it (ISOnScreenKeyboard:KeyFunction_Enter queues KEY_RETURN). ZeD-GUI's keyboard only puts the words in: the console
+-- then lands the controller on Run or Send, and A runs it. So the Enter that follows an Accept into one of the
+-- console's boxes is let go here (within ACCEPT_MS of the Accept), and the box lets the keys go with it.
+local ACCEPT_MS = 500
+local function acceptRecorded(o)
+    KB._acceptAt, KB._acceptBox = getTimestampMs(), o and o.textEntryBox
+end
+local function wrapAccept(osk)
+    if type(osk) ~= "table" or osk._%(tl)sAccept then return end
+    local orig = osk.accept
+    if type(orig) ~= "function" then return end
+    osk._%(tl)sAccept = orig
+    osk.accept = function(o, ...)
+        if o and o.textEntryBox and o.textEntryBox._%(tl)sEnter then acceptRecorded(o) end
+        return orig(o, ...)
+    end
+end
+--- True (once) when an Enter into box is the one the game's keyboard pressed after its Accept.
+function KB.acceptEnter(box)
+    if KB._acceptBox ~= box or not KB._acceptAt then return false end
+    local now = getTimestampMs()
+    KB._acceptBox = nil
+    return now - KB._acceptAt <= ACCEPT_MS
+end
+local function wrapEnter(box)
+    if type(box) ~= "table" or box._%(tl)sEnter then return end
+    box._%(tl)sEnter = true
+    local orig = box.onCommandEntered
+    box.onCommandEntered = function(...)
+        if KB.acceptEnter(box) then
+            pcall(function() box:unfocus() end)
+            return
+        end
+        if type(orig) == "function" then return orig(...) end
+    end
+end
+local W = %(T)s_DebugConsoleWindow
+if W and W.openKeyboard and not W._%(tl)sKbWrapped then
+    W._%(tl)sKbWrapped = true
+    local origOpen = W.openKeyboard
+    function W:openKeyboard(jd, entry)
+        entry = entry or self.input
+        wrapEnter(entry)
+        local r = origOpen(self, jd, entry)
+        if self._kbOpen then wrapAccept(OnScreenKeyboard and OnScreenKeyboard.instance) end
+        return r
+    end
+end
+
 -- THE CHAT: a chat channel's line (/all, /say, /yell, /whisper, /faction, /safehouse, /admin) from the Commands page
--- goes through the game's own chat box (ISChat), which knows each channel's tab, its slow mode and its rules.
+-- goes through the game's own chat box (ISChat), which knows each channel's tab, its slow mode and its rules. The
+-- game's chat drops a line without a word back in two cases: slow mode, and a channel of another tab than the one
+-- the chat shows (it says so in the chat). Those are told here before the chat is asked, so the page never says Sent
+-- for a line that went nowhere.
 %(T)s.Chat = %(T)s.Chat or {}
 
---- Send a chat channel's line as the game's chat does. True when the chat took it.
+local function streamOf(text)
+    for _, s in ipairs(ISChat.allChatStreams or {}) do
+        if (s.command and string.sub(text, 1, #s.command) == s.command)
+            or (s.shortCommand and string.sub(text, 1, #s.shortCommand) == s.shortCommand) then return s end
+    end
+    return nil
+end
+local function ignoresSlowMode()
+    local ok, yes = pcall(function() return getPlayer():getRole():hasCapability(Capability.IgnoreChatSlowMode) end)
+    return ok and yes == true
+end
+
+--- Send a chat channel's line as the game's chat does. True when the chat sent it; false and why ("slow", "tab")
+--- when it would not have.
 function %(T)s.Chat.send(text)
     local chat = ISChat and ISChat.instance
     if not (chat and chat.textEntry and ISChat.onCommandEntered) then return false end
+    text = tostring(text or "")
+    if not ignoresSlowMode() and type(chat.timerMessageSlowMode) == "number" and chat.timerMessageSlowMode > getTimestampMs() then
+        return false, "slow"
+    end
+    local stream = streamOf(text)
+    if stream and stream.tabID and chat.currentTabID and stream.tabID ~= chat.currentTabID then return false, "tab" end
     local ok = pcall(function()
-        chat.textEntry:setText(tostring(text or ""))
+        chat.textEntry:setText(text)
         ISChat.onCommandEntered(chat)
     end)
     pcall(function() chat.textEntry:setText("") end)
@@ -1160,13 +1293,28 @@ require "ISUI/ISBackButtonWheel"
 -- In debug mode, with the game's console made, the game's Back button wheel (ISBackButtonWheel) gets one more slice:
 -- the console, opened with the controller in it, as the wheel's own slices open their windows. The keyboard's way in
 -- is the game's own key. Keep the game's addCommands once, so a Lua reload never wraps the wrapper.
+-- While the game is paused the slice is left off, as the game leaves off its own window slices (Player Info,
+-- Crafting): a paused game drops every button but the D-pad for a window holding the controller
+-- (JoypadControllerData:onPressButton), so the console could be neither typed in nor closed.
+local function paused()
+    local ok, yes = pcall(function()
+        local sc = UIManager.getSpeedControls and UIManager.getSpeedControls()
+        if sc and sc:getCurrentGameSpeed() == 0 then return true end
+        return isGamePaused ~= nil and isGamePaused() == true
+    end)
+    return ok and yes == true
+end
+local function consoleHere()
+    local DC = %(T)s.DebugConsole
+    return DC and DC.exists and DC.exists()
+end
 if ISBackButtonWheel and not ISBackButtonWheel._%(tl)sOrig then
     ISBackButtonWheel._%(tl)sOrig = ISBackButtonWheel.addCommands
     function ISBackButtonWheel:addCommands()
         ISBackButtonWheel._%(tl)sOrig(self)
         local DC = %(T)s.DebugConsole
-        local ok, here = pcall(function() return DC and DC.exists and DC.exists() end)
-        if ok and here then
+        local ok, here = pcall(consoleHere)
+        if ok and here and not paused() then
             local pn = self.playerNum
             self:addSlice(%(T)s.tr("%(KEY)sConsole_Title"), getTexture("%(SLICE)s"), function() DC.open(pn) end)
         end
@@ -1288,184 +1436,27 @@ def translations(keys):
 
 
 # ======================================================================================================================
-# THE PICTURES: 1993 box art, drawn here in pixels with ZeD-GUI's own pixel fonts (PixelFonts.lua's 5 x 7 and 3 x 5)
+# THE PICTURES: design's box art, copied as it is (ZeDUI/art/lua_console_93/, HANDOFF_design_lua_console_93_box_20261112)
 # ======================================================================================================================
-def pixel_fonts():
-    with open(PIXEL_FONTS, encoding="utf-8") as fh:
-        src = fh.read()
-    fonts = {}
-    for name in ("35", "57"):
-        m = re.search(r'\["%s"\]\s*=\s*\{(.*?)\n  \},' % name, src, re.S)
-        if not m:
-            raise BuildError("PixelFonts.lua: no %s font" % name)
-        glyphs = {}
-        for g in re.finditer(r'(?:\["(.)"\]|\b([A-Za-z0-9])|\[string\.char\((\d+)\)\])\s*=\s*\{([^}]*)\}', m.group(1)):
-            ch = g.group(1) or g.group(2) or chr(int(g.group(3)))
-            glyphs[ch] = re.findall(r'"([01]+)"', g.group(4))
-        fonts[name] = glyphs
-    # the prompt's two marks, which the dashboards' fonts never needed
-    fonts["57"][">"] = ["10000", "01000", "00100", "00010", "00100", "01000", "10000"]
-    fonts["57"]["_"] = ["00000", "00000", "00000", "00000", "00000", "00000", "11111"]
-    fonts["35"][">"] = ["100", "010", "001", "010", "100"]
-    fonts["35"]["_"] = ["000", "000", "000", "000", "111"]
-    return fonts
+# Read at build time, so a re-export by design reaches the mod with no other step. The icon is the controller wheel's
+# slice too (the director approved it, Nov 12 2026).
+ART_FILES = {
+    "workshop/preview.png": "preview.png",
+    "42/poster.png": "poster.png",
+    "42/icon.png": "icon.png",
+    TEX_DIR_REL + "/console_slice.png": "icon.png",
+}
 
 
-INK = (24, 22, 20, 255)
-BEIGE = (217, 207, 174, 255)
-BEIGE_HI = (240, 233, 206, 255)
-BEIGE_SH = (166, 154, 118, 255)
-BEIGE_DK = (190, 178, 140, 255)
-SCREEN = (10, 24, 15, 255)
-SCAN = (14, 33, 21, 255)
-GREEN = (74, 255, 120, 255)
-GREEN_DIM = (36, 140, 70, 255)
-CREAM = (243, 233, 204, 255)
-CREAM_DIM = (176, 168, 146, 255)
-TEAL = (71, 161, 140, 255)
-TEAL_DK = (26, 72, 62, 255)
-NIGHT = (17, 19, 25, 255)
-STRIPES = [(236, 196, 66, 255), (226, 124, 52, 255), (196, 62, 46, 255), (71, 161, 140, 255)]
-
-
-class Canvas:
-    """A small picture in design pixels, enlarged by whole pixels at the end (crisp at every size)."""
-
-    def __init__(self, w, h, bg):
-        from PIL import Image
-        self.Image = Image
-        self.img = Image.new("RGBA", (w, h), bg)
-        self.px = self.img.load()
-        self.w, self.h = w, h
-
-    def rect(self, x, y, w, h, c):
-        for yy in range(max(0, y), min(self.h, y + h)):
-            for xx in range(max(0, x), min(self.w, x + w)):
-                self.px[xx, yy] = c
-
-    def text(self, font, s, x, y, k, c):
-        for ch in s:
-            g = font.get(ch) or font.get(ch.upper())
-            if g is None:
-                x += 3 * k
-                continue
-            for r, row in enumerate(g):
-                for col, bit in enumerate(row):
-                    if bit == "1":
-                        self.rect(x + col * k, y + r * k, k, k, c)
-            x += (len(g[0]) + 1) * k
-        return x
-
-    @staticmethod
-    def text_w(font, s, k):
-        w = 0
-        for ch in s:
-            g = font.get(ch) or font.get(ch.upper())
-            w += ((len(g[0]) if g else 2) + 1) * k
-        return w - k
-
-    def png(self, scale):
-        from io import BytesIO
-        big = self.img.resize((self.w * scale, self.h * scale), self.Image.NEAREST)
-        buf = BytesIO()
-        big.save(buf, format="PNG", optimize=False)
-        return buf.getvalue()
-
-
-def draw_crt(cv, x, y, w, h, fonts, big):
-    """A beige 1993 monitor at (x, y), w x h, its screen dark with a green prompt; big: room for lines of output."""
-    cv.rect(x, y, w, h, INK)
-    cv.rect(x + 1, y + 1, w - 2, h - 2, BEIGE)
-    cv.rect(x + 1, y + 1, w - 2, 1, BEIGE_HI)
-    cv.rect(x + 1, y + 1, 1, h - 2, BEIGE_HI)
-    cv.rect(x + 1, y + h - 2, w - 2, 1, BEIGE_SH)
-    cv.rect(x + w - 2, y + 1, 1, h - 2, BEIGE_SH)
-    b = max(3, w // 12)
-    sx, sy, sw, sh = x + b, y + b, w - 2 * b, h - 2 * b - (b if big else 1)
-    cv.rect(sx - 1, sy - 1, sw + 2, sh + 2, BEIGE_DK)
-    cv.rect(sx, sy, sw, sh, SCREEN)
-    for yy in range(sy + 1, sy + sh, 2):
-        cv.rect(sx, yy, sw, 1, SCAN)
-    if big:
-        f = fonts["57"]
-        k = 2
-        lx, ly = sx + 6, sy + 6
-        for n, frac in enumerate((0.70, 0.45, 0.82, 0.30)):
-            cv.rect(lx, ly + n * 9, int((sw - 12) * frac), 3, GREEN_DIM)
-        cv.text(f, ">_", lx, ly + 4 * 9 + 2, k, GREEN)
-        # the power light and the badge
-        cv.rect(x + w - b - 6, y + h - b + 1, 3, 2, GREEN)
-        cv.rect(x + b, y + h - b + 1, 10, 2, BEIGE_SH)
-    else:
-        f = fonts["35"]
-        cv.text(f, ">_", sx + 2, sy + max(1, (sh - 5) // 2), 1, GREEN)
-
-
-def box_words():
-    """The box's words from the product's names: the title, its number drawn large, the edition on the band
-    ("LUA CONSOLE", "93", "PROFESSIONAL EDITION")."""
-    words = SHORT.upper().split()
-    num = words.pop() if words and words[-1].isdigit() else ""
-    edition = NAME[len(SHORT):].strip().upper() if NAME.startswith(SHORT) else ""
-    return " ".join(words), num, edition or "FOR MOD MAKERS"
-
-
-def poster_png(fonts):
-    cv = Canvas(256, 256, NIGHT)
-    f57, f35 = fonts["57"], fonts["35"]
-    title, num, ed = box_words()
-    # the box's frame
-    cv.rect(3, 3, 250, 1, CREAM)
-    cv.rect(3, 252, 250, 1, CREAM)
-    cv.rect(3, 3, 1, 250, CREAM)
-    cv.rect(252, 3, 1, 250, CREAM)
-    # the name, over the stripes (smaller when a longer name would not fit)
-    k = 3 if Canvas.text_w(f57, title, 3) <= 240 else 2
-    tw = Canvas.text_w(f57, title, k)
-    tx = (256 - tw) // 2
-    cv.text(f57, title, tx + 2, 16 + 2, k, TEAL_DK)
-    cv.text(f57, title, tx, 16, k, CREAM)
-    for n, c in enumerate(STRIPES):
-        cv.rect(4, 46 + n * 4, 248, 3, c)
-    # the monitor, its stand and the keyboard
-    draw_crt(cv, 22, 76, 124, 98, fonts, True)
-    cv.rect(66, 174, 36, 6, INK)
-    cv.rect(67, 174, 34, 5, BEIGE_SH)
-    cv.rect(52, 179, 64, 5, INK)
-    cv.rect(53, 179, 62, 4, BEIGE)
-    cv.rect(14, 190, 140, 20, INK)
-    cv.rect(15, 191, 138, 18, BEIGE)
-    cv.rect(15, 191, 138, 1, BEIGE_HI)
-    for row in range(3):
-        for col in range(16):
-            cv.rect(19 + col * 8 + (row % 2) * 2, 194 + row * 5, 6, 3, BEIGE_DK)
-    # the number, large
-    if num:
-        nk = 7 if Canvas.text_w(f57, num, 7) <= 86 else 4
-        nw = Canvas.text_w(f57, num, nk)
-        nx = 160 + (90 - nw) // 2
-        cv.text(f57, num, nx + 4, 92 + 4, nk, TEAL_DK)
-        cv.text(f57, num, nx, 92, nk, TEAL)
-    # who it is for, under the number
-    for n, line in enumerate(("FOR MOD", "MAKERS")):
-        lw = Canvas.text_w(f35, line, 2)
-        cv.text(f35, line, 160 + (90 - lw) // 2, 158 + n * 14, 2, CREAM_DIM)
-    # the edition, on a cream band
-    ek = 2 if Canvas.text_w(f35, ed, 2) <= 240 else 1
-    ew = Canvas.text_w(f35, ed, ek)
-    cv.rect(4, 222, 248, 22, CREAM)
-    cv.text(f35, ed, (256 - ew) // 2, 228, ek, INK)
-    return cv.png(2)
-
-
-def icon_png(fonts):
-    cv = Canvas(32, 32, (0, 0, 0, 0))
-    draw_crt(cv, 2, 3, 28, 22, fonts, False)
-    cv.rect(12, 25, 8, 2, INK)
-    cv.rect(13, 25, 6, 1, BEIGE_SH)
-    cv.rect(8, 27, 16, 3, INK)
-    cv.rect(9, 27, 14, 2, BEIGE)
-    return cv.png(2)
+def art():
+    out = {}
+    for rel, name in ART_FILES.items():
+        p = os.path.join(ART_DIR, name)
+        if not os.path.isfile(p):
+            raise BuildError("the art is missing: %s (design exports it into ZeDUI/art/lua_console_93/)" % name)
+        with open(p, "rb") as fh:
+            out[rel] = fh.read()
+    return out
 
 
 # ======================================================================================================================
@@ -1511,7 +1502,9 @@ console is closed too.
 
 OPENING IT
 Start the game with -debug. In a game, press the game's console key (Toggle Lua Console in the
-key options). With a controller, hold the Back button: the wheel has a %(SHORT)s slice.
+key options). With a controller, hold the Back button: the wheel has a %(SHORT)s slice
+(not while the game is paused). Close it with the same key, with B on a controller, or with its
+close box.
 
 WHAT IT DOES
 - Log: everything the game prints in debug mode and the F11 Lua Debugger's errors, one row each.
@@ -1545,9 +1538,10 @@ Dark, with the PZ Teal accent, in the game's own fonts. The window grows with th
 game's font size option. Its text is in the %(N)d languages the game ships.
 
 CREDITS
-Made from %(ZED)s's Lua console by %(AUTHOR)s. %(ZED)s's source-available license covers it.
+Made from %(ZED)s's Lua console by %(AUTHOR)s. %(ZED)s's source-available license covers it:
+LICENSE.txt beside this file, and %(LICENSE_URL)s
 """ % {"NAME": NAME, "VERSION": VERSION, "SHORT": SHORT, "MOD": MOD_ID, "ZED": ZED_NAME, "ZED_UP": ZED_NAME.upper(),
-       "AUTHOR": zed.get("author", ""), "N": len(langs)}
+       "AUTHOR": zed.get("author", ""), "N": len(langs), "LICENSE_URL": LICENSE_URL}
 
 
 def workshop_text(zed, langs):
@@ -1566,7 +1560,7 @@ The game's own Lua console, the one debug mode gives you, as a window you can wo
 [/list]
 
 [h2]Opening it[/h2]
-Press the game's console key (Toggle Lua Console in the key options). With a controller, hold the Back button: the wheel has a %(SHORT)s slice. Close it the same way, or with its close box.
+Press the game's console key (Toggle Lua Console in the key options). With a controller, hold the Back button: the wheel has a %(SHORT)s slice (not while the game is paused). Close it with the same key, with B on a controller, or with its close box.
 
 [h2]What it does[/h2]
 [list]
@@ -1587,20 +1581,22 @@ Everything %(SHORT)s keeps is in Zomboid/Lua: each export, your snippets (%(MOD)
 The window's text comes in the %(N)d languages the game ships. Server commands are described in the game's own words.
 
 [h2]Credits[/h2]
-Made from %(ZED)s's Lua console by %(AUTHOR)s. %(ZED)s's source-available license covers it.
+Made from %(ZED)s's Lua console by %(AUTHOR)s. %(ZED)s's [url=%(LICENSE_URL)s]source-available license[/url] covers it; the mod carries a copy as LICENSE.txt.
 """ % {"NAME": NAME, "VERSION": VERSION, "SHORT": SHORT, "MOD": MOD_ID, "ZED": ZED_NAME,
-       "AUTHOR": zed.get("author", ""), "N": len(langs), "ZED_URL": zed.get("url", "")}
+       "AUTHOR": zed.get("author", ""), "N": len(langs), "ZED_URL": zed.get("url", ""), "LICENSE_URL": LICENSE_URL}
 
 
 def gallery_readme():
     return """%(NAME)s: the Workshop page's pictures
 
-preview.png (512 x 512) is the item's preview picture, made by ZeDUI/tools/products/build_luaconsole93.py
-(the same box art as the mod's poster). Build again to remake it; do not edit it here.
+preview.png (512 x 512) is the item's preview picture: design's box art, copied from ZeDUI/art/lua_console_93/
+by ZeDUI/tools/products/build_luaconsole93.py (the same picture as the mod's poster). A new export there and a
+build bring it here; do not edit it here. This folder is rewritten by every build.
 
 The gallery: shots QA takes in game, on the plain game with %(SHORT)s alone (-debug -nosteam, mods.txt
 listing only %(MOD)s), at 4K unless the shot says otherwise, the window settled before each shot. Save
-them in this folder under these names (1920 x 1080 crops or reductions are fine for Steam):
+them in %(GALLERY)s/ (not here: a build rewrites this folder) under these names (1920 x 1080 crops or
+reductions are fine for Steam):
 
   1. shot1_log_filters.png    The log with a few mods' prints, a warning and errors; the MOD filter folded open,
                               one mod unticked, a search typed in, the count "shown of total | Errors" in view.
@@ -1614,7 +1610,7 @@ them in this folder under these names (1920 x 1080 crops or reductions are fine 
                               example and level in the detail, the chat line filled.
   6. shot6_deck.png           The window at the Steam Deck's size (1280 x 800, the game's font size on Auto),
                               the log page whole.
-""" % {"NAME": NAME, "SHORT": SHORT, "MOD": MOD_ID}
+""" % {"NAME": NAME, "SHORT": SHORT, "MOD": MOD_ID, "GALLERY": GALLERY_REL}
 
 
 # ======================================================================================================================
@@ -1706,24 +1702,29 @@ def build():
     tr, tr_problems, langs = translations(keys)
     if tr_problems:
         raise BuildError("translations:\n  " + "\n  ".join(tr_problems))
+    # the languages the game's code face draws (the text shim's CODE_LANGS)
+    fits = [lang for lang in langs if all(code_face_has(v) for v in json.loads(tr[lang]).values())]
+    if "EN" not in fits:
+        raise BuildError("the English words have a letter the game's code face does not draw")
+    filled = " ".join("%s = true," % lang for lang in fits)
+    for name in list(lua):
+        if CODE_LANGS_MARK in lua[name]:
+            lua[name] = lua[name].replace(CODE_LANGS_MARK, filled)
     zed = zed_mod_info()
-    fonts = pixel_fonts()
     out = {}
     for name, text in lua.items():
         out[LUA_DIR_REL + "/" + name] = text.encode("utf-8")
     for lang, text in tr.items():
         out["42/media/lua/shared/Translate/%s/UI.json" % lang] = text.encode("utf-8")
-    poster = poster_png(fonts)
-    icon = icon_png(fonts)
+    out.update(art())
     out["42/mod.info"] = mod_info_text(zed).encode("utf-8")
-    out["42/poster.png"] = poster
-    out["42/icon.png"] = icon
     out["42/README.txt"] = readme_text(zed, langs).encode("utf-8")
-    out[TEX_DIR_REL + "/console_slice.png"] = icon
+    # the licence the texts cite travels with the mod, beside mod.info (each mod's own file: no path the game loads)
+    with open(LICENSE, "rb") as fh:
+        out["42/LICENSE.txt"] = fh.read()
     for tex in TEXTURES:
         with open(os.path.join(REPO, "42", "media", "textures", "ZeD", tex.replace("/", os.sep)), "rb") as fh:
             out[TEX_DIR_REL + "/" + tex] = fh.read()
-    out["workshop/preview.png"] = poster
     out["workshop/README.txt"] = gallery_readme().encode("utf-8")
     out["workshop_description.bbcode"] = workshop_text(zed, langs).encode("utf-8")
     problems, notes = check_output(out, lua)
@@ -1736,9 +1737,23 @@ def build():
 TEXTURES = ["lines/chev.png"]
 
 
+def kept_by_hand(rel):
+    """A file a person puts in the built folder that no build makes: a gallery shot saved in workshop/ before the
+    shots moved out (GALLERY_REL). A build leaves it where it is and --check does not count it."""
+    return re.fullmatch(r"workshop/shot[^/]*\.png", rel) is not None
+
+
 def write_tree(out, root):
     if os.path.isdir(root):
-        shutil.rmtree(root)
+        for d, dirs, fs in os.walk(root, topdown=False):
+            for f in fs:
+                p = os.path.join(d, f)
+                if not kept_by_hand(os.path.relpath(p, root).replace(os.sep, "/")):
+                    os.remove(p)
+            for sub in dirs:
+                sp = os.path.join(d, sub)
+                if os.path.isdir(sp) and not os.listdir(sp):
+                    os.rmdir(sp)
     for rel in sorted(out):
         p = os.path.join(root, rel.replace("/", os.sep))
         os.makedirs(os.path.dirname(p), exist_ok=True)
@@ -1753,7 +1768,9 @@ def same_tree(a, b):
         got = set()
         for d, _, fs in os.walk(root):
             for f in fs:
-                got.add(os.path.relpath(os.path.join(d, f), root).replace(os.sep, "/"))
+                rel = os.path.relpath(os.path.join(d, f), root).replace(os.sep, "/")
+                if not kept_by_hand(rel):
+                    got.add(rel)
         return got
     fa, fb = walk(a), walk(b) if os.path.isdir(b) else set()
     for rel in sorted(fa | fb):

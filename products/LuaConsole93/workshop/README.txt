@@ -1,11 +1,13 @@
 Lua Console 93 Professional Edition: the Workshop page's pictures
 
-preview.png (512 x 512) is the item's preview picture, made by ZeDUI/tools/products/build_luaconsole93.py
-(the same box art as the mod's poster). Build again to remake it; do not edit it here.
+preview.png (512 x 512) is the item's preview picture: design's box art, copied from ZeDUI/art/lua_console_93/
+by ZeDUI/tools/products/build_luaconsole93.py (the same picture as the mod's poster). A new export there and a
+build bring it here; do not edit it here. This folder is rewritten by every build.
 
 The gallery: shots QA takes in game, on the plain game with Lua Console 93 alone (-debug -nosteam, mods.txt
 listing only LuaConsole93), at 4K unless the shot says otherwise, the window settled before each shot. Save
-them in this folder under these names (1920 x 1080 crops or reductions are fine for Steam):
+them in ZeDUI/workshop/luaconsole93/ (not here: a build rewrites this folder) under these names (1920 x 1080 crops or
+reductions are fine for Steam):
 
   1. shot1_log_filters.png    The log with a few mods' prints, a warning and errors; the MOD filter folded open,
                               one mod unticked, a search typed in, the count "shown of total | Errors" in view.

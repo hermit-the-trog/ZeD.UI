@@ -1,7 +1,7 @@
 -- LuaConsole93/42/media/lua/client/LuaConsole93/Organisms.lua
 -- ============================================================================================================
--- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's Organisms.lua the console uses (90 of its
--- 144 statements).
+-- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's Organisms.lua the console uses (91 of its
+-- 145 statements).
 -- Made from ZeD-GUI's 42/media/lua/client/ZeD/Organisms.lua by ZeDUI/tools/products/build_luaconsole93.py. Do
 -- not edit it here: change ZeD-GUI's file and build again.
 -- ============================================================================================================
@@ -235,12 +235,15 @@ end
 
 function LC93_Window:setStencilRect(x, y, w, h)
     self._lc93StencilN = (self._lc93StencilN or 0) + 1
-    return ISPanel.setStencilRect(self, x, y, w, h)
+    local r = ISPanel.setStencilRect(self, x, y, w, h)
+    if LC93.Surface and LC93.Surface._pushClip then LC93.Surface._pushClip(self, x, y, w, h) end
+    return r
 end
 
 function LC93_Window:clearStencilRect()
     local n = self._lc93StencilN
     if n and n > 0 then self._lc93StencilN = n - 1 end
+    if LC93.Surface and LC93.Surface._popClip then LC93.Surface._popClip() end
     return ISPanel.clearStencilRect(self)
 end
 
@@ -978,7 +981,8 @@ function LC93_Window:_resizeStep()
     local minW = self.minimumWidth or T.px(200)
     local minH = self.minimumHeight or T.px(120)
     if mode == "s" or mode == "se" or mode == "sw" then
-        local newH = math.min(my - ay, getCore():getScreenHeight() - self:getY())
+        local _, screenH, _, screenT = LC93.screenOf(self)
+        local newH = math.min(my - ay, screenT + screenH - self:getY())
         newH = math.max(newH, minH)
         if newH ~= self:getHeight() then self:setHeight(newH) end
     end
@@ -1103,6 +1107,11 @@ function LC93_Window:onMouseUpOutside(x, y)
         return true
     end
     self.moving = false
+end
+
+function LC93.screenOf(w)
+    local core = getCore()
+    return core:getScreenWidth(), core:getScreenHeight(), 0, 0
 end
 
 function LC93_Window:openWindowMenu()

@@ -6,7 +6,8 @@ It runs on the plain game; with ZeD-GUI on it steps aside and ZeD-GUI's console 
 Workshop item, a full release (no beta), the same day as ZeD-GUI beta 12, once this check passes.
 
 What is different from ZeD-GUI's console, on purpose: the game's own fonts (Noto Sans; the log, the line and the
-scratchpad in the game's Noto Sans Mono code face), no window box at the title bar's right end (it opens ZeD-GUI's
+scratchpad in the game's Noto Sans Mono code face, except in a language with letters that face lacks, where that role
+is the language's own Small face), no window box at the title bar's right end (it opens ZeD-GUI's
 window menu), the game's own on-screen keyboard for a controller, the game's Back button wheel as the controller's
 way in, chat channels sent through the game's chat box, the game's default roles as the Commands page's levels on a
 server (ZeD-GUI reads the server's), no safe mode, and its own files in Zomboid/Lua (`LuaConsole93_*`).
@@ -25,7 +26,7 @@ listing ZeD_UI): this check uses a copy, `LC93-QA`.
    & $lua ZeDUI/tools/qa/luaconsole93_sim.lua
    & $py -I ZeDUI/tools/qa/kahlua_guard.py --path products/LuaConsole93/42/media/lua
    ```
-   Expect `BUILT ... 60 files`, `STAGED the mod to ~/Zomboid/mods/LuaConsole93`, `luaconsole93_sim: N checks, 0 failed`
+   Expect `BUILT ... 61 files`, `STAGED the mod to ~/Zomboid/mods/LuaConsole93`, `luaconsole93_sim: N checks, 0 failed`
    and `RESULT: PASS`.
 2. Copy the folder `Zomboid/Saves/Sandbox/ZeD-QA` to `Zomboid/Saves/Sandbox/LC93-QA` (skip if it is there).
 3. Copy `Zomboid/mods/default.txt` to `Zomboid/mods/default.txt.qa-backup` (the main menu's mod list; Run 1 changes
@@ -50,8 +51,8 @@ listing ZeD_UI): this check uses a copy, `LC93-QA`.
    ```
    Start-Process -FilePath 'E:\Project Zomboid\SteamApps\common\ProjectZomboid\ProjectZomboid64.exe' -ArgumentList '-debug -nosteam' -WorkingDirectory 'E:\Project Zomboid\SteamApps\common\ProjectZomboid'
    ```
-3. Main menu, Mods: Lua Console 93 Professional Edition is listed with its CRT icon and poster, version 1.0.0, and is
-   the only mod on. The main menu is the game's own (no ZeD-GUI desk).
+3. Main menu, Mods: Lua Console 93 Professional Edition is listed with design's box art (the "LUA 93" icon and the
+   retail box poster, from `ZeDUI/art/lua_console_93/`), version 1.0.0, and is the only mod on. The main menu is the game's own (no ZeD-GUI desk).
 4. Continue LC93-QA. Press the game's console key (Toggle Lua Console; the backquote by default). Expected: a window
    titled "Lua Console 93", Dark with the PZ Teal accent, the page strip at the left (Log, Commands, Help), the
    filters (KIND / MOD / FILE), the search, the log, the line with its Scratchpad keycap, the band (Export, Copy,
@@ -76,13 +77,21 @@ listing ZeD_UI): this check uses a copy, `LC93-QA`.
     at the window's edges; the window drags by its title bar and resizes from its edges and grow box. Then the Steam
     Deck's size (1280 x 800 windowed, the game's font size on Auto): the window fits the screen, the log readable,
     the band's four buttons whole.
-13. Controller (if one is connected): hold Back. The wheel has a "Lua Console 93" slice with the CRT picture; choose
-    it. The window opens with the hand on the line. A: the game's on-screen keyboard; type `print(2)`, accept: the
-    hand lands on Run; A runs it. D-pad walks the strip, filters, search, log, line and band; X exports; Y swaps the
-    line and the scratchpad; B closes and the controller is the player's again.
+13. Controller (if one is connected): hold Back. The wheel has a "Lua Console 93" slice with the "LUA 93" icon;
+    choose it. The window opens with the hand on the line. A: the game's on-screen keyboard; type `print(2)`, Accept
+    (or RT): the line holds `print(2)` and nothing ran yet (no "ran" row), the hand lands on Run; A runs it. Do the
+    same on the Commands page's chat line: Accept fills it, nothing is sent until Send. D-pad walks the strip,
+    filters, search, log, line and band; X exports; Y swaps the line and the scratchpad; B closes and the controller
+    is the player's again. Then the keys: walk with WASD and press the console key: the player moves and the console
+    opens (no hidden line kept the keys). Close it with the console key and walk again.
+    Paused: pause the game (game speed 0), hold Back: the wheel has no Lua Console 93 slice (as it has no Player Info
+    or Crafting slice then). Unpause.
 14. The hand-back switch: quit the game. Create an empty file `Zomboid/Lua/LuaConsole93_off.txt`. Launch as in step
     2, Continue, press the console key: the game's own console opens (not Lua Console 93). console.txt has
     `[Lua Console 93] handed back to the game (Zomboid/Lua/LuaConsole93_off.txt)`. Quit; delete the file.
+14a. Another language: Options > Language, Russian (the game restarts its Lua). Open the console: the band's buttons,
+    the placeholders and the "N of M | Errors" line read in Cyrillic, no runs of "?". Do the same in Polish (its
+    letters with tails, no "?"). Back to English: the buttons and counts in the code face again.
 15. console.txt for the whole run: no line `[Lua Console 93] <place>: <error>` (the mod's logged failures), no Lua
     error from a `LuaConsole93/` file in the F11 list, no `[ZeD]` line.
     ```
@@ -113,13 +122,15 @@ ZeD-GUI from the repo (`Zomboid/mods/ZeD-UI`, beta 12) and Lua Console 93 staged
 - [ ] `luaconsole93_sim.lua` 0 failed; `kahlua_guard.py --path products/LuaConsole93/42/media/lua` PASS; the five
       console sims of ZeD-GUI 0 failed.
 - [ ] `products/LuaConsole93/42/mod.info`: name Lua Console 93 Professional Edition, id LuaConsole93, modversion
-      1.0.0, versionMin 42.17.0, url empty, poster.png and icon.png beside it, no require= line.
+      1.0.0, versionMin 42.17.0, url empty, poster.png, icon.png and LICENSE.txt beside it, no require= line.
+- [ ] The pictures are design's latest export: `products/LuaConsole93/workshop/preview.png`, `42/poster.png` and
+      `42/icon.png` are the bytes of `ZeDUI/art/lua_console_93/` (the sim checks it; a re-export needs a build).
 - [ ] No "beta" anywhere a player reads: the window, mod.info, README.txt, workshop_description.bbcode, the
       poster, the preview, the icon (the build refuses a "beta" in text; the pictures by eye).
 - [ ] Runs 1 and 2 passed on 42.22 (the game's console fields the mod reads by name are 42.21 and 42.22's).
 - [ ] The Workshop item is a new one (not ZeD-GUI's 3824968485): title Lua Console 93 Professional Edition, the
-      text from `workshop_description.bbcode`, the preview `workshop/preview.png`, the gallery shots listed in
-      `workshop/README.txt`, tags Build 42 and the director's picks. The upload is the director's step.
+      text from `workshop_description.bbcode`, the preview `workshop/preview.png`, the gallery shots in
+      `ZeDUI/workshop/luaconsole93/` (listed in `products/LuaConsole93/workshop/README.txt`), tags Build 42 and the director's picks. The upload is the director's step.
 - [ ] The upload's folder: `Contents/mods/LuaConsole93/42/...` copied from `products/LuaConsole93/42` (the
       staged `~/Zomboid/mods/LuaConsole93` is the same files).
 
@@ -133,4 +144,5 @@ next check.
 
 - Each step's answer (pass, or what showed), with a capture of anything that looks wrong.
 - The console.txt lines from Run 1 step 15 and Run 2 step 3.
-- The gallery shots (`products/LuaConsole93/workshop/README.txt` lists them) if Run 1 passed.
+- The gallery shots (`products/LuaConsole93/workshop/README.txt` lists them), saved in `ZeDUI/workshop/luaconsole93/`
+  (not in `products/LuaConsole93/workshop/`: every build rewrites that folder), if Run 1 passed.

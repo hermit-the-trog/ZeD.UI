@@ -26,13 +26,28 @@ LC93 = LC93 or {}
 -- In debug mode, with the game's console made, the game's Back button wheel (ISBackButtonWheel) gets one more slice:
 -- the console, opened with the controller in it, as the wheel's own slices open their windows. The keyboard's way in
 -- is the game's own key. Keep the game's addCommands once, so a Lua reload never wraps the wrapper.
+-- While the game is paused the slice is left off, as the game leaves off its own window slices (Player Info,
+-- Crafting): a paused game drops every button but the D-pad for a window holding the controller
+-- (JoypadControllerData:onPressButton), so the console could be neither typed in nor closed.
+local function paused()
+    local ok, yes = pcall(function()
+        local sc = UIManager.getSpeedControls and UIManager.getSpeedControls()
+        if sc and sc:getCurrentGameSpeed() == 0 then return true end
+        return isGamePaused ~= nil and isGamePaused() == true
+    end)
+    return ok and yes == true
+end
+local function consoleHere()
+    local DC = LC93.DebugConsole
+    return DC and DC.exists and DC.exists()
+end
 if ISBackButtonWheel and not ISBackButtonWheel._lc93Orig then
     ISBackButtonWheel._lc93Orig = ISBackButtonWheel.addCommands
     function ISBackButtonWheel:addCommands()
         ISBackButtonWheel._lc93Orig(self)
         local DC = LC93.DebugConsole
-        local ok, here = pcall(function() return DC and DC.exists and DC.exists() end)
-        if ok and here then
+        local ok, here = pcall(consoleHere)
+        if ok and here and not paused() then
             local pn = self.playerNum
             self:addSlice(LC93.tr("UI_LC93_Console_Title"), getTexture("media/textures/LuaConsole93/console_slice.png"), function() DC.open(pn) end)
         end

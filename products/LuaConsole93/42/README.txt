@@ -8,7 +8,9 @@ console is closed too.
 
 OPENING IT
 Start the game with -debug. In a game, press the game's console key (Toggle Lua Console in the
-key options). With a controller, hold the Back button: the wheel has a Lua Console 93 slice.
+key options). With a controller, hold the Back button: the wheel has a Lua Console 93 slice
+(not while the game is paused). Close it with the same key, with B on a controller, or with its
+close box.
 
 WHAT IT DOES
 - Log: everything the game prints in debug mode and the F11 Lua Debugger's errors, one row each.
@@ -42,4 +44,5 @@ Dark, with the PZ Teal accent, in the game's own fonts. The window grows with th
 game's font size option. Its text is in the 28 languages the game ships.
 
 CREDITS
-Made from ZeD-GUI's Lua console by Hermit the Trog. ZeD-GUI's source-available license covers it.
+Made from ZeD-GUI's Lua console by Hermit the Trog. ZeD-GUI's source-available license covers it:
+LICENSE.txt beside this file, and https://github.com/hermit-the-trog/ZeD.UI/blob/main/LICENSE

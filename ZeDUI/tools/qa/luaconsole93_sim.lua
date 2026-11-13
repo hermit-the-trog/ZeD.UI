@@ -434,24 +434,71 @@ function getClassFieldVal(o, f) return f.v end
 -- ---------------------------------------------------------------------------------------------------------------------
 -- THE GAME'S PARTS THE MOD USES IN PLACE OF ZeD-GUI'S: the on-screen keyboard, the chat box, the Back button wheel
 -- ---------------------------------------------------------------------------------------------------------------------
--- (the game's keyboard, ISOnScreenKeyboard: on hide it hands the controller back to prevFocus, or the text box)
-local OSK = { visible = false, shows = 0 }
+-- (the game's keyboard, ISOnScreenKeyboard.lua on 42.22: one instance, made the first time it shows and kept; it
+-- keeps its textEntryBox after it hides; hide() gives that box the keys again and hands the controller back to
+-- prevFocus, or the box; Accept (KeyFunction_Enter on one line) puts the words in, hides, then queues KEY_RETURN,
+-- which the box with the keys gets as Enter: onCommandEntered)
+local OSK = { visible = false, shows = 0, queued = {} }
+local OSKI = {}
+function OSKI:hide()
+    OSK.visible = false
+    if self.textEntryBox then self.textEntryBox:focus() end
+    if self.jd then self.jd.focus = self.prevFocus or self.textEntryBox end
+end
+function OSKI:accept()
+    if self.textEntryBox then self.textEntryBox:setText(self.typed or "") end
+    self:hide()
+end
+function OSKI:KeyFunction_Enter()
+    if not (self.textEntryBox and self.textEntryBox:isMultipleLine()) then self:accept() end
+    OSK.queued[#OSK.queued + 1] = Keyboard.KEY_RETURN
+end
 OnScreenKeyboard = {
     IsVisible = function() return OSK.visible end,
     Show = function(pn, entry, jd)
+        if OSK.visible then return OnScreenKeyboard.instance end
+        if not OnScreenKeyboard.instance then OnScreenKeyboard.instance = setmetatable({}, { __index = OSKI }) end
+        local inst = OnScreenKeyboard.instance
         OSK.visible, OSK.shows = true, OSK.shows + 1
-        local inst = { textEntryBox = entry }
-        inst.hide = function()
-            OSK.visible = false
-            if jd then jd.focus = inst.prevFocus or entry end
-        end
-        OnScreenKeyboard.instance = inst
+        inst.textEntryBox, inst.jd, inst.typed = entry, jd, entry and entry:getText() or ""
+        if entry then entry:unfocus() end
         return inst
     end,
 }
+-- the keys the game queued reach the box with the keys (a one-line box's Enter is its onCommandEntered)
+local function deliverQueuedKeys()
+    local q = OSK.queued
+    OSK.queued = {}
+    for _, k in ipairs(q) do
+        local e = KEYS.entry
+        if k == Keyboard.KEY_RETURN and e and not e:isMultipleLine() and e.onCommandEntered then e.onCommandEntered(e) end
+    end
+end
+-- (the game's chat, ISChat.lua on 42.22: slow mode and a channel of another tab drop the line with no error)
 local CHAT = { sent = {} }
-ISChat = { instance = { textEntry = { text = "", setText = function(self, s) self.text = s end, getText = function(self) return self.text end } } }
-function ISChat.onCommandEntered(chat) CHAT.sent[#CHAT.sent + 1] = ISChat.instance.textEntry:getText() end
+ISChat = { instance = { currentTabID = 1, timerMessageSlowMode = 0,
+                        textEntry = { text = "", setText = function(self, s) self.text = s end, getText = function(self) return self.text end } } }
+ISChat.allChatStreams = {
+    { name = "say", command = "/say ", shortCommand = "/s ", tabID = 1 }, { name = "yell", command = "/yell ", shortCommand = "/y ", tabID = 1 },
+    { name = "whisper", command = "/whisper ", shortCommand = "/w ", tabID = 1 }, { name = "faction", command = "/faction ", shortCommand = "/f ", tabID = 1 },
+    { name = "safehouse", command = "/safehouse ", shortCommand = "/sh ", tabID = 1 }, { name = "general", command = "/all ", tabID = 1 },
+    { name = "admin", command = "/admin ", shortCommand = "/a ", tabID = 2 },
+}
+function ISChat.onCommandEntered(chat)
+    local c = ISChat.instance
+    local text = c.textEntry:getText()
+    if not PLAYER:getRole():hasCapability(Capability.IgnoreChatSlowMode) and c.timerMessageSlowMode > getTimestampMs() then return end
+    for _, s in ipairs(ISChat.allChatStreams) do
+        if text:sub(1, #s.command) == s.command or (s.shortCommand and text:sub(1, #s.shortCommand) == s.shortCommand) then
+            if c.currentTabID ~= s.tabID then return end
+            break
+        end
+    end
+    CHAT.sent[#CHAT.sent + 1] = text
+end
+local SPEED = { v = 1 }
+UIManager.getSpeedControls = function() return { getCurrentGameSpeed = function() return SPEED.v end } end
+function isGamePaused() return SPEED.v == 0 end
 local SENT = {}
 function SendCommandToServer(s) SENT[#SENT + 1] = s end
 ISBackButtonWheel = { playerNum = 0 }
@@ -565,6 +612,42 @@ do
     check("the fixed-pitch face measures by the character", LC93.TM:MeasureStringX(T.fontF3, "0000000000") == 70)
 end
 check("ZeD-GUI's button-label exception gone", LC93.btnCase("ZED") == "Zed")
+-- the data role (buttons, counts, placeholders) in a face that has the language's letters: the game's code face
+-- holds the first 256 characters only
+do
+    local lang = "RU"
+    local realLang = Translator.getLanguage
+    Translator.getLanguage = function() return { name = function() return lang end } end
+    LC93.applyTheme("dark", LC93.DEFAULT_ACCENT, "small")
+    check("fonts: in Russian the data role draws in the language's own Small face", LC93.T.fontF3 == UIFont.Small, LC93.T.fontF3)
+    lang = "PL"
+    LC93.applyTheme("dark", LC93.DEFAULT_ACCENT, "small")
+    check("fonts: in Polish too (letters past the code face's 256)", LC93.T.fontF3 == UIFont.Small, LC93.T.fontF3)
+    lang = "FR"
+    LC93.applyTheme("dark", LC93.DEFAULT_ACCENT, "small")
+    check("fonts: in French the data role keeps the code face", LC93.T.fontF3 == UIFont.CodeSmall, LC93.T.fontF3)
+    Translator.getLanguage = realLang
+    LC93.applyTheme("dark", LC93.DEFAULT_ACCENT, "small")
+    T = LC93.T
+    check("fonts: in English the code face", T.fontF3 == UIFont.CodeSmall)
+end
+-- the text stand-in's frame hook makes no function a frame
+do
+    local h
+    for _, fn in ipairs(EVENTS.OnPreUIDraw.list) do
+        local src = debug.getinfo(fn, "S").source or ""
+        if src:find("LC93_Text%.lua$") then h = fn end
+    end
+    check("text: the font size hook is on in debug mode", h ~= nil)
+    if h then
+        local seen = {}
+        local realPcall = pcall
+        pcall = function(f, ...) seen[#seen + 1] = f; return realPcall(f, ...) end
+        h(); h()
+        pcall = realPcall
+        check("text: the frame hook makes no function a frame (one made at load)", #seen == 2 and seen[1] == seen[2], #seen)
+    end
+end
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- 3. THE WINDOW: opened by the game's console flag, drawn inside itself at 1080p, 4K and the Deck's size
@@ -659,6 +742,21 @@ end)())
 check("the palette made again for the new scale", LC93.T.px(10) == 10 and LC93.Scale.root() == 1)
 win = reopen()
 T = LC93.T
+-- the clip in force: a stencil on the window (every stencil the console sets is its window's) is the clip a claim
+-- is cut to, so a header half scrolled out of a list leaves the body showing above the list
+do
+    local Sf = LC93.Surface
+    win:setStencilRect(10, 20, 30, 40)
+    local c = Sf.clip()
+    local okIn = c ~= nil and c.x0 == win:getAbsoluteX() + 10 and c.y0 == win:getAbsoluteY() + 20 and c.y1 == win:getAbsoluteY() + 60
+    win:clearStencilRect()
+    check("surface: a stencil on the window is the clip in force", okIn, c and (c.x0 .. "," .. c.y0) or "no clip")
+    check("surface: cleared with the stencil", Sf.clip() == nil)
+    check("surface: the clip stack starts empty before each UI draw", (function()
+        for _, fn in ipairs(EVENTS.OnPreUIDraw.list) do if fn == Sf.resetClips then return true end end
+        return false
+    end)())
+end
 check("the arrows draw from the mod's own chev.png", TEX_ASKED["media/textures/LuaConsole93/lines/chev.png"] == true)
 check("every texture the code asked for is in the mod", (function()
     for p in pairs(TEX_ASKED) do if not readFile(PRODUCT .. "42/" .. p) then return false end end
@@ -793,6 +891,18 @@ do
     CC.qaServer = true
     check("commands: a chat channel goes through the game's chat", CC.send("/say over here") == "chat" and CHAT.sent[#CHAT.sent] == "/say over here", CHAT.sent[#CHAT.sent])
     check("commands: the chat box emptied after", ISChat.instance.textEntry:getText() == "")
+    -- the game's chat drops a line of another tab's channel, and any line in slow mode: never told Sent
+    local nSent = #CHAT.sent
+    ISChat.instance.currentTabID = 1
+    check("commands: /admin while the chat shows General is not told Sent", CC.send("/admin someone's duping") == false and #CHAT.sent == nSent)
+    ISChat.instance.currentTabID = 2
+    check("commands: /admin from the Admin tab goes", CC.send("/admin someone's duping") == "chat" and CHAT.sent[#CHAT.sent] == "/admin someone's duping")
+    check("commands: /say while the chat shows Admin is not told Sent", CC.send("/say over here") == false)
+    ISChat.instance.currentTabID = 1
+    nSent = #CHAT.sent
+    ISChat.instance.timerMessageSlowMode = getTimestampMs() + 3000
+    check("commands: a line in the chat's slow mode is not told Sent", CC.send("/say again") == false and #CHAT.sent == nSent)
+    ISChat.instance.timerMessageSlowMode = 0
     check("commands: a server command goes to the server", CC.send("/players") == "sent" and SENT[#SENT] == "/players")
     CC.qaServer = nil
     win:setPage("cmds")
@@ -826,13 +936,38 @@ do
     win:onJoypadDown(Joypad.AButton, jd)
     check("pad: A on the line shows the game's own keyboard", OSK.visible and OSK.shows == 1 and LC93.Keyboard.isVisible())
     check("pad: the keyboard types into the window's line", LC93.Keyboard.instance and LC93.Keyboard.instance.textEntryBox == win.input)
-    win.input:setText("print(2)")
-    LC93.Keyboard.instance.hide()
+    -- (Accept on the game's keyboard: the words in, the keyboard away, then the Enter the game queues)
+    local ranBefore = JC.prev:size()
+    OnScreenKeyboard.instance.typed = "print(2)"
+    OnScreenKeyboard.instance:KeyFunction_Enter()
+    deliverQueuedKeys()
+    frame(); frame()
+    check("pad: Accept on the game's keyboard puts the words in the line and does not run them",
+        win.input:getText() == "print(2)" and JC.prev:size() == ranBefore, win.input:getText() .. " | runs " .. (JC.prev:size() - ranBefore))
     check("pad: the game's keyboard hands the controller back to the window", jd.focus == win)
+    check("pad: after Accept the line lets the keys go (as ZeD-GUI's keyboard leaves it)", not win.input:isFocused())
     win:update()
     check("pad: the keyboard put away, the hand lands on Run", win.zone == "band" and win.bandFocus == 4, win.zone)
+    check("pad: the console sees no keyboard once it is put away", LC93.Keyboard.instance == nil)
     win:onJoypadDown(Joypad.BButton, jd)
     check("pad: B closes the window and gives the controller back", not DC.isOpen() and jd.focus == nil)
+    check("pad: no hidden console box holds the keys after the close", KEYS.entry == nil, KEYS.entry and "a box is focused")
+    -- the console key closing it after a keyboard use: the same
+    win = (function() JC.visible = true; frame(); return DC.win end)()
+    win.zone = "input"
+    jd.focus = win
+    win:onJoypadDown(Joypad.AButton, jd)
+    OnScreenKeyboard.instance:hide()
+    win:update()
+    JC.visible = false
+    frame()
+    check("pad: the console key's close leaves no hidden box with the keys", not DC.isOpen() and KEYS.entry == nil, KEYS.entry and "a box is focused")
+    -- while the game is paused the wheel has no console slice (a paused game drops a window's buttons)
+    SPEED.v = 0
+    local wp = setmetatable({ playerNum = 0 }, { __index = ISBackButtonWheel })
+    wp:addCommands()
+    check("pad: no slice while the game is paused", #wp.slices == 1, #wp.slices)
+    SPEED.v = 1
     JoypadState.players[1] = nil
     DEBUG = false
     local w2 = setmetatable({ playerNum = 0 }, { __index = ISBackButtonWheel })
@@ -898,6 +1033,47 @@ do
         end
     end
     check("no ZeD name survives in the code", #left == 0, left[1])
+end
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- 10. THE PICTURES, THE LICENCE, THE PAGE
+-- ---------------------------------------------------------------------------------------------------------------------
+do
+    local ART = ROOT .. "ZeDUI/art/lua_console_93/"
+    for _, p in ipairs({ { "workshop/preview.png", "preview.png" }, { "42/poster.png", "poster.png" }, { "42/icon.png", "icon.png" },
+                         { "42/media/textures/LuaConsole93/console_slice.png", "icon.png" } }) do
+        local mine, design = readFile(PRODUCT .. p[1]), readFile(ART .. p[2])
+        check("art: " .. p[1] .. " is design's " .. p[2], mine ~= nil and design ~= nil and mine == design)
+    end
+    local lic = readFile(ROOT .. "LICENSE")
+    check("licence: the mod carries the repo's LICENSE as 42/LICENSE.txt", lic ~= nil and readFile(PRODUCT .. "42/LICENSE.txt") == lic)
+    local URL = "https://github.com/hermit-the-trog/ZeD.UI/blob/main/LICENSE"
+    local readme = readFile(PRODUCT .. "42/README.txt") or ""
+    local page = readFile(PRODUCT .. "workshop_description.bbcode") or ""
+    check("licence: the README names its copy and links it", readme:find("LICENSE.txt", 1, true) ~= nil and readme:find(URL, 1, true) ~= nil)
+    check("licence: the Workshop page links it", page:find("[url=" .. URL .. "]", 1, true) ~= nil)
+    check("page: a controller closes it with B (the Back button does not)", page:find("Close it the same way", 1, true) == nil
+        and page:find("with B on a controller", 1, true) ~= nil)
+    local gal = readFile(PRODUCT .. "workshop/README.txt") or ""
+    check("gallery: the shots are saved outside the built folder (a build rewrites it)", gal:find("ZeDUI/workshop/luaconsole93/", 1, true) ~= nil
+        and gal:find("in this folder", 1, true) == nil)
+end
+
+-- outside debug mode the text stand-in hooks no frame (the mod does nothing there)
+do
+    local function textHooks()
+        local n = 0
+        for _, fn in ipairs(EVENTS.OnPreUIDraw.list) do
+            if (debug.getinfo(fn, "S").source or ""):find("LC93_Text%.lua$") then n = n + 1 end
+        end
+        return n
+    end
+    local n0 = textHooks()
+    DEBUG = false
+    local fn = loadfile(LUA_DIR .. "LC93_Text.lua")
+    if fn then pcall(fn) end
+    DEBUG = true
+    check("text: no frame hook outside debug mode", fn ~= nil and textHooks() == n0, textHooks() - n0)
 end
 
 sysPrint(SIM_NAME .. ": " .. checks .. " checks, " .. failed .. " failed")
