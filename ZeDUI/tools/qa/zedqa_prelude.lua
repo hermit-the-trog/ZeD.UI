@@ -209,7 +209,9 @@ end
 --                                   in the tick of the exit is a NullPointerException and the main menu).
 -- A script run without the prelude finds these nil and must say so as an ERR line.
 -- ============================================================================
-local CAR_SPOTS = { { 5, 2 }, { 5, -3 }, { -5, 2 }, { 2, 5 }, { -4, -4 }, { 6, 6 }, { -6, 0 }, { -8, 3 }, { -8, -3 }, { -3, 7 } }   -- from home; a car faces north
+local CAR_SPOTS = { { 5, 2 }, { 5, -3 }, { -5, 2 }, { 2, 5 }, { -4, -4 }, { 6, 6 }, { -6, 0 }, { -8, 3 }, { -8, -3 }, { -3, 7 }, { -8, -10 }, { -15, -3 }, { -8, -16 } }   -- from home; a car faces north
+-- (Nov 12 2026, the first main run: only spot 9, 917,13037, passed the floor check, so spots 11 to 13 are more
+-- candidates beside it. The floor check still judges each one.)
 -- (Nov 12 2026) the floor under a car must be road or pavement: the first smoke run put a car on grass beside a shed at
 -- 930,13042. The coordinates of the asphalt are NOT yet established from the repo (nothing on record names them), so
 -- each spot is judged by the floor sprite of five tiles (the middle, both ends, both sides): a name with street, road,
@@ -229,6 +231,7 @@ end
 local CAR_FLOOR = { { 0, 0 }, { 0, -3 }, { 0, 3 }, { -1, 0 }, { 1, 0 } }
 local CAR_NEAR = 25
 local carNext, carSeen, carGone = 0, {}, {}
+ZEDQA_CAR_KEEP = {}   -- a script that wants two cars at once sets ZEDQA_CAR_KEEP[v] = true on the first, nil after
 local function carDist(v, pl)
     local dx, dy = v:getX() - pl:getX(), v:getY() - pl:getY()
     return math.sqrt(dx * dx + dy * dy)
@@ -276,6 +279,25 @@ function ZEDQA_CAR_SPAWN(script, tag, dir)
     end
     local hx, hy = math.floor(HOME.x), math.floor(HOME.y)
     local why = "no spot tried"
+    -- (Nov 12 2026: a car an earlier script spawned here and never took away sat on the one good spot and refused every
+    -- later spawn, 14 in one run. A car this helper spawned, with the character not in it and not already on its way
+    -- out, is taken away before the spots are judged. Cars the helper did not spawn are left alone.)
+    local old = {}
+    for ov in pairs(carSeen) do
+        local going = false
+        for _, g in ipairs(carGone) do if g.v == ov then going = true end end
+        if not going and pl:getVehicle() ~= ov and not ZEDQA_CAR_KEEP[ov] then old[#old + 1] = ov end
+    end
+    -- (a script may have removed its car itself: only a car still in the cell is taken away, the rest are forgotten)
+    local live = {}
+    pcall(function() local it = getCell():getVehicles():iterator(); while it:hasNext() do live[it:next()] = true end end)
+    for _, ov in ipairs(old) do
+        carSeen[ov] = nil
+        if live[ov] then
+            pcall(function() ov:permanentlyRemove() end)
+            print("ZEDQA car " .. tostring(tag) .. " took away a car an earlier spawn left behind")
+        end
+    end
     for _ = 1, #CAR_SPOTS do
         carNext = carNext + 1
         if carNext > #CAR_SPOTS then carNext = 1 end

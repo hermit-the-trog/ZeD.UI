@@ -5,7 +5,9 @@
 -- element in the window's ring, asks the focus manager where each D-pad
 -- direction would go (Focus.previewMove: a dry run, focus never moves) and
 -- reports per tab:
---   * TRAP     an element with its own D-pad handler (it eats the D-pad)
+--   * TRAP     an element with its own D-pad handler that the D-pad cannot leave: the element does not say its
+--              handler hands back the moves it does not hold (dpadExits), or the dry run finds no other stop in any
+--              direction. A handler that takes a press and passes the rest on (Skills rows, the doll's slots) is no trap.
 --   * ISLAND   an element no other element's move reaches
 --   * STUCK    an element with no move at all in some direction (fine at
 --              an edge; listed for review)
@@ -18,7 +20,7 @@
 -- move dumps (the long part of every report) are off; name a tab in DUMP to get its map back.
 -- A tab with no controls at all is a failing line in both modes (the tab did not draw).
 local Focus, Det = ZeD.Input.Focus, ZeD.Input.Detector
-local STRICT = false
+local STRICT = true   -- (Nov 12 2026: the first list was triaged: 7 islands were one real bug, fixed; 87 traps were misreads)
 local KNOWN = {}   -- e.g. ["world maps trap mapcanvas"] = true: accepted after triage, never counted
 local DUMP = {}
 local nTrap, nIsland, nTabs = 0, 0, 0
@@ -45,7 +47,7 @@ local function audit(label, w, tabId)
     for zi, z in ipairs(w._focusRing or {}) do
         if z.focusable and z.elements then
             for ei, e in ipairs(z.elements) do
-                all[#all + 1] = { zi = zi, ei = ei, zone = z.zone, id = tostring(e.id), custom = e.onDpadDir ~= nil }
+                all[#all + 1] = { zi = zi, ei = ei, zone = z.zone, id = tostring(e.id), custom = e.onDpadDir ~= nil, exits = e.dpadExits == true }
             end
         end
     end
@@ -55,18 +57,20 @@ local function audit(label, w, tabId)
         w._focusIdx = a.zi
         w._focusRing[a.zi].focusedElementIdx = a.ei
         local parts, none = {}, {}
+        local realExit = false
         for _, d in ipairs(DIRS) do
             local r = Focus.previewMove(w, d)
             if r.zone then
                 local key = r.zone .. "|" .. tostring(r.id)
-                if key ~= a.zone .. "|" .. a.id then incoming[key] = true end
+                if key ~= a.zone .. "|" .. a.id then incoming[key] = true; realExit = true end
+                if r.dpadExits == true then a.exits = true end
                 parts[#parts + 1] = SHORT[d] .. ">" .. ((r.zone == a.zone) and "" or (r.zone .. ":")) .. tostring(r.id) .. (r.pass == "half" and "~" or "")
             else
                 parts[#parts + 1] = SHORT[d] .. ">-"
                 none[#none + 1] = SHORT[d]
             end
         end
-        if a.custom then traps[#traps + 1] = a.id end
+        if a.custom and not (a.exits and realExit) then traps[#traps + 1] = a.id end
         if #none > 0 then stuck[#stuck + 1] = a.id .. "(" .. table.concat(none) .. ")" end
         lines[#lines + 1] = a.zone .. ":" .. a.id .. (a.custom and " [OWN D-PAD]" or "") .. "  " .. table.concat(parts, " ")
     end
