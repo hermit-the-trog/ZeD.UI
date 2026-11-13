@@ -1,0 +1,2 @@
+zedqa_prelude.lua | pre | timeout=120
+zedqa_msc_run1.lua | msc1 | timeout=420

@@ -1,0 +1,1 @@
+zedqa_msc_run2.lua | msc2 | timeout=300
