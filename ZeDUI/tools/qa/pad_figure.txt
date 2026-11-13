@@ -1,0 +1,7 @@
+# ZeDUI/tools/qa/pad_figure.txt: the drawn controller (Options > Controls > Button map and test, and the quick
+# wheel's Controller map), single player. Run at 4K (the default) and at the Deck's size:
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/pad_figure.txt
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/pad_figure.txt -Mode windowed -Width 1280 -Height 800
+# The live test with a real controller is by hand: the MANUAL lines of zedqa_pad_figure.lua.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pad_figure.lua | padfig | timeout=180

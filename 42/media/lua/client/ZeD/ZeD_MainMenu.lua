@@ -105,6 +105,7 @@ local WALL_VIDEO_W, WALL_VIDEO_H = 1280, 720
 -- ---------------------------------------------------------------------------
 local BAR_H, BAR_PAD, BAR_ITEM_PAD = 24, 6, 11
 local DROP_MIN_W, DROP_ROW_H, DROP_PAD_X, DROP_PAD_Y, DROP_SEP_H = 236, 26, 16, 3, 9
+local DROP_PIC_U, DROP_RIGHT_U = 15, 220   -- a row's button pictures (about this tall), its right-hand words' widest
 local MAIN_W, PAUSE_W = 660, 360
 local STACK_PAD, STACK_GAP = 12, 8
 local CARD_PAD, THUMB, CARD_GAP = 10, 128, 14
@@ -1715,6 +1716,10 @@ function MM.openItems()
 end
 
 --- Opens a pop-up menu at a button: anchor = { x, y, w, h } in screen px; up = above it, right-aligned.
+--- An item is "-" (a line) or { text, fn, check, disabled }, and may carry header = true (a dim title row, never
+--- picked; give it disabled = true too), pad = { roles } (button pictures before the words, ZeD_PadGlyphs) and
+--- right = "..." (dim words at the row's right end). MM.popup.back, when set, is what the controller's B opens
+--- instead of only closing (a pull-down opened from another goes back to it).
 function MM.openPopup(key, items, anchor, up)
     MM.popup = { key = key, items = items, anchor = anchor, up = up }
     MM.ctx.open = key
@@ -1756,13 +1761,19 @@ function ZeD_MMDrop:prerender()
     local rowH, padX, padY, sepH = T.px(DROP_ROW_H), T.px(DROP_PAD_X), T.px(DROP_PAD_Y), T.px(DROP_SEP_H)
     -- size
     local w, h = T.px(DROP_MIN_W), padY * 2
+    local PG = ZeD.PadGlyphs
+    local gset = PG and (PG.set() or "xbox")
+    local gk = PG and PG.k(T.px(DROP_PIC_U)) or 1
     for _, it in ipairs(items) do
         if it == "-" then h = h + sepH
         elseif it.about then
             w = math.max(w, T.px(ABOUT_W) + padX * 2)
             h = h + T.px(10) * 2 + aboutHeight(aboutRows())
         else
-            w = math.max(w, textW(font, it.text) + padX * 2)
+            local iw = textW(it.header and f1 or font, it.text) + padX * 2
+            if it.pad and PG then iw = iw + PG.width(it.pad, gk, gset) + T.px(6) end
+            if it.right then iw = iw + T.px(20) + math.min(textW(f3, it.right), T.px(DROP_RIGHT_U)) end
+            w = math.max(w, iw)
             h = h + rowH
         end
     end
@@ -1845,6 +1856,11 @@ function ZeD_MMDrop:prerender()
                 ly = ly + r[4]
             end
             cy = cy + T.px(10) * 2 + aboutHeight(rows)
+        elseif it.header then
+            -- a title row: the words in the chrome face, dim, never picked
+            local d = T.textDim
+            self:drawText(it.text, padX, cy + math.floor((rowH - fontH(f1)) / 2), d.r, d.g, d.b, d.a or 1, f1)
+            cy = cy + rowH
         else
             local id = "drop:" .. key .. ":" .. i
             if not it.disabled then live = live + 1 end
@@ -1868,7 +1884,15 @@ function ZeD_MMDrop:prerender()
             end
             local c = onFocus and T.textOnFocus or T.text
             local a = (c.a or 1) * (it.disabled and T.disabledAlpha or 1)
-            self:drawText(it.text, padX, cy + math.floor((rowH - fontH(font)) / 2), c.r, c.g, c.b, a, font)
+            local tx = padX
+            if it.pad and PG then tx = tx + PG.draw(self, it.pad, padX, cy, rowH, gk, gset) + T.px(6) end
+            if it.right then
+                local dc = onFocus and T.textOnFocus or T.textDim
+                local rw = math.min(textW(f3, it.right), T.px(DROP_RIGHT_U))
+                local rx = w - padX - rw - ((scrollMax > 0) and dropBarW or 0)
+                self:drawText(ZeD.Atoms.truncateText(it.right, f3, rw), rx, cy + math.floor((rowH - fontH(f3)) / 2), dc.r, dc.g, dc.b, (dc.a or 1) * a, f3)
+            end
+            self:drawText(it.text, tx, cy + math.floor((rowH - fontH(font)) / 2), c.r, c.g, c.b, a, font)
             if it.check then   -- (the chosen one of a set: a lit square in the margin, as System 7 ticks it)
                 local sq = T.px(6)
                 self:drawRect(math.floor((padX - sq) / 2), cy + math.floor((rowH - sq) / 2), sq, sq, a, c.r, c.g, c.b)
@@ -2899,7 +2923,11 @@ function MM.joyDown(m, button)
             MM.ctx.open = nil
             if it and it.fn then it.fn() end
         elseif button == Joypad.BButton then
+            -- (a pull-down opened from another goes back to that one: MM.popup.back)
+            local pop = MM.popup
+            local back = pop and pop.key == MM.ctx.open and pop.back or nil
             MM.ctx.open = nil
+            if back then back() end
         end
         return
     end

@@ -219,3 +219,4 @@ zedqa_b11_notes.lua | b11n | timeout=600          # beta 11: the belt's hand ico
 
 # -- coverage (QA, Nov 12 2026, from the design and coverage audit's Table B): in-game scripts with real checks for what was only photographed
 zedqa_cov_objcards.lua | cov_objcards | timeout=600 | expect=\.browse\(ObjectCards\.lua:   # the seven object cards (tracks, placement, fluid, campfire, trough, hen house, farm plot) through the game's entry points; stages and takes back a hammer, a campfire, a trough, a hen house with hens and eggs, two plots (leaves ~3 Husbandry XP); two FAILs and the expected browse error until ObjectCards / ObjectCardPlacement stop trusting Kahlua's % (OC.browse, setAxis)
+zedqa_pad_figure.lua | padfig | timeout=180       # the drawn controller: Button map and test (its multiple, the labels, lit parts, the four sets, the pull-downs), the Controller map
