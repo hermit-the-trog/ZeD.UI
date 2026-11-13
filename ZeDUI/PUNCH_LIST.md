@@ -4502,6 +4502,16 @@ to be proposed.
       window. (5) Window bodies show the scene through them in Light and High Contrast. **Ruled (the director, Nov 12
       2026, multiple choice): "Solid in Light and HC"**: Light and High Contrast always draw window bodies solid;
       See-through works in Dark only, and its help line says so.
+      **Built (Nov 12 2026, the shared look core; theme_look_core_sim):** (5) ZeD.applyTheme draws every surface solid
+      in Light and High Contrast (the pick is kept aside and comes back with Dark); the help line says Dark only in all
+      28 languages; the Select wheel and the window menu show See-through off with "Dark theme only", ZeD setup dims
+      See-through and Solid while in use. (2) grayed labels: disabledAlpha 0.6 in Light (was 2.2 : 1, now 3.3 : 1),
+      0.55 in High Contrast (3.7 to 5.2 : 1); Dark unchanged. D2 was already in drawButton (a grayed button is the plain
+      keycap). D6: drawSectionHeader is now the small fold-open mono line (no band, F1, T.toneLo) for every caller;
+      drawTabHeader stays the tab's title. (4) verified in code (the isMouseOver gate); by-hand QA is 175g. (3) not
+      changed here: the shared mark is right (the hand style is the hover wash and the hand by design; lists look
+      filled because the focused row is also the selected row); Crafting and Furniture's controls are call sites (G3).
+      Not changed: the chat window still dims while idle in every theme (ZeD_Chat.lua's own DIM_A).
    g. **QA by hand, the moodle note (review of the build's fix to f(4), Nov 12 2026).** The moodle layer no longer
       raises itself; a moodle answers the pointer only while the engine's own picking says nothing above the layer
       holds it (isMouseOver). zedqa_moodles and zedqa_moodle_quarters (and the sims) stand that picking in with the

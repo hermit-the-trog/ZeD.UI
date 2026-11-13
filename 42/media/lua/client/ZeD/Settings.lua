@@ -447,7 +447,8 @@ local function liveIdx(opt)
 end
 -- See-through: one alpha for every window surface, 100 to 60 in steps of 10 (the items are
 -- numbers: ModOptions runs every label through getText, which chokes on a percent sign).
--- Applied with the theme (applyFromOptions, below).
+-- Applied with the theme (applyFromOptions, below). Dark only: Light and High Contrast draw
+-- solid whatever it says (ZeD.seeThroughWorks), and its help line says so.
 local seeKeys = { 100, 90, 80, 70, 60 }
 local seeThrough = opts:addComboBox("seeThrough", ZeD.tr("UI_ZeD_Settings_SeeThrough"), ZeD.tr("UI_ZeD_Settings_SeeThroughTip"))
 for _, v in ipairs(seeKeys) do seeThrough:addItem(tostring(v), v == 90) end   -- default: 90
@@ -1003,6 +1004,8 @@ local function applyFromOptions(changed, sel)
     local seeIdx = (changed == seeThrough and tonumber(sel)) or (changed and pickedIdx(seeThrough)) or seeThrough:getValue()
     local see = (seeKeys[seeIdx or 2] or 90) / 100
     if see ~= ZeD.surfaceAlpha and ZeD_Window and ZeD_Window.clearPaletteCache then ZeD_Window.clearPaletteCache() end
+    -- (the player's own pick: applyTheme keeps it aside and draws solid outside Dark, ZeD.seeThroughWorks)
+    ZeD._seeForced = nil
     ZeD.surfaceAlpha = see
     -- the status colors too: the windows' own palettes solve their status text shades from them
     local stIdx = (changed == statusColors and tonumber(sel)) or (changed and pickedIdx(statusColors)) or statusColors:getValue()

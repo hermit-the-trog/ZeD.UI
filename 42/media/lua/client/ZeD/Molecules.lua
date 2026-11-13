@@ -1646,23 +1646,25 @@ ZeD.Molecules.Dropdown = ZeD_Dropdown
 -- @param hovered    Is this header hovered?
 -- @param opts       Optional { focus = the ZeD.Focus.mark opts }
 -- @return height    Total height of the drawn header
--- The section head: 20u unless heightOverride says otherwise,
--- the triangle atom, F1 in sentence case, the count "(4)" in T.textDim, a content
--- line (T.border) under it. The strip is surface 2 drawn without stacking on the
--- body; hover is the T.hover wash over it.
+-- The section head is the one section style (the director's D6 ruling, Nov 12 2026: the small
+-- fold-open mono line, as Moodles, Fitness and Presets draw it, plus the tab's title, drawTabHeader):
+-- 20u unless heightOverride says otherwise, no band (it sits on the body as the category row does),
+-- the triangle atom and F1 in sentence case, both in T.toneLo, the count "(4)" in the same ink, a
+-- content line under it; hover is the T.hover wash over it. noArrow: the same line with no
+-- triangle (a heading that does not fold). fontOverride is no longer drawn (the large-title and
+-- band styles are gone): a caller keeps its height with heightOverride.
 local SECTION_H = 20   -- design units
 function ZeD.Molecules.drawSectionHeader(panel, x, y, w, text, count, expanded, hovered, fontOverride, countInline, bleedLeft, heightOverride, noArrow, opts)
     local T = ZeD.T
     local sp = T.sp
-    local h = heightOverride or T.px(SECTION_H)  -- total strip height (bg + line)
-    local font = fontOverride or T.fontF1
+    local h = heightOverride or T.px(SECTION_H)  -- total strip height (line included)
+    local font = T.fontF1
     local tm = ZeD.TM
     local bleed = bleedLeft or 0
     opts = opts or NO_OPTS
     text = ZeD.Atoms.textCase(text)
 
-    -- Background (slightly elevated) — extends left by bleed to reach panel edge
-    ZeD.Atoms.surfaceFill(panel, x - bleed, y, w + bleed, h, "surf2")
+    -- no band: the mono line sits on the body (the hover wash and the focus mark extend left by bleed)
     if hovered then
         local hv = T.hover
         panel:drawRect(x - bleed, y, w + bleed, h, hv.a, hv.r, hv.g, hv.b)
@@ -1672,42 +1674,43 @@ function ZeD.Molecules.drawSectionHeader(panel, x, y, w, text, count, expanded, 
         onFocus = ZeD.Focus.mark(panel, x - bleed, y, w + bleed, h, opts.focus)
     end
 
-    -- Bottom content line — same bleed
-    ZeD.Atoms.drawDividerH(panel, x - bleed, y + h - T.px(1), w + bleed, false)
+    -- Bottom content line — same bleed (the category row's hairline)
+    ZeD.Atoms.drawDividerH(panel, x - bleed, y + h - (T.hair or T.px(1)), w + bleed, false)
 
-    -- Disclosure indicator (geometric) — centered in full header height
+    -- the line's ink: the category row's (T.toneLo), the focus ink on the controller's mark
+    local tc = onFocus and T.textOnFocus or (T.toneLo or T.textDim)
+
+    -- Disclosure indicator (geometric) — centered in full header height, the category row's size
     -- Arrow at x (caller owns horizontal inset)
-    local discSz = math.max(T.px(8), math.floor(tm:getFontHeight(font) * 0.5))
+    local discSz = math.min(T.px(8), h - T.px(4))
     local discX = x
     local discY = y + math.floor((h - discSz) / 2)
     if not noArrow then
-        local discColor = T.arrow
         if expanded then
-            ZeD.Atoms.drawTriangleDown(panel, discX, discY, discSz, discColor)
+            ZeD.Atoms.drawTriangleDown(panel, discX, discY, discSz, tc)
         else
-            ZeD.Atoms.drawTriangleRight(panel, discX, discY, discSz, discColor)
+            ZeD.Atoms.drawTriangleRight(panel, discX, discY, discSz, tc)
         end
     end
-    local textY = y + (h - tm:getFontHeight(font)) / 2
+    local textY = y + math.floor((h - tm:getFontHeight(font)) / 2)
 
     -- Section title
-    local titleX = noArrow and discX or (discX + discSz + T.px(6))
-    local tc = onFocus and T.textOnFocus or T.textHead
+    local titleX = noArrow and discX or (discX + discSz + T.px(4))
     -- the title is cut to its own strip (and the count's room), never drawn into the next
     -- column's head (an uncut title once ran on as "Combat - FirearCombat - Melee")
     local countStr = count and ("(" .. tostring(count) .. ")") or nil
     local room = x + w - sp.sm - titleX
     if countStr then room = room - tm:MeasureStringX(T.fontF1, countStr) - sp.xs end
     text = ZeD.Atoms.truncateText(text, font, math.max(0, room))
-    panel:drawText(text, titleX, textY, tc.r, tc.g, tc.b, tc.a, font)
+    panel:drawText(text, titleX, textY, tc.r, tc.g, tc.b, tc.a or 1, font)
 
-    -- Count
+    -- Count (in the line's ink, as the category row's)
     if count then
-        local dc = onFocus and T.textOnFocus or T.textDim
+        local dc = tc
         if countInline then
             local titleW = tm:MeasureStringX(font, text)
             local countX = titleX + titleW + sp.xs
-            panel:drawText(countStr, countX, textY, dc.r, dc.g, dc.b, dc.a, T.fontF1)
+            panel:drawText(countStr, countX, textY, dc.r, dc.g, dc.b, dc.a or 1, T.fontF1)
         else
             ZeD.Atoms.drawTextRight(panel, countStr, x + w - sp.sm, textY, T.fontF1, dc)
         end
