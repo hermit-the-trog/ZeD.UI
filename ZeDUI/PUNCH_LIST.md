@@ -4402,10 +4402,11 @@ to be proposed.
    UI UPGRADE over the flames; the fire cools to smoke, ZeD-GUI rises from it, a bald eagle soars behind with
    fireworks. Done (not committed): `make_vdf.py` and `set_preview_gif.ps1` point at it, `tools/release/preview.png`
    and `workshop/thumbnail/preview.png` are its first frame, RELEASE_CHECKLIST steps 6 and 17 updated.
-   **Open (Build, once QA is clear of 42/):** copy `Zomboid/ZeD_design_refs/thumb/poster_zedgui_eagle.png` over
-   `42/poster.png` (the director: ZeD-GUI just after the eagle rises over the G; "Yep, that works."). The main
-   menu's boombox without its antenna (`ZeDUI/art/main_menu/v7/desk.png`, `desk_lampdim.png`) waits the same way for
-   `42/media/textures/ZeD/mainmenu/`.
+   **Done (Build, 106e2892, Nov 12 2026 3:19 pm):** `Zomboid/ZeD_design_refs/thumb/poster_zedgui_eagle.png` is
+   `42/poster.png` (the director: ZeD-GUI just after the eagle rises over the G; "Yep, that works."), and the main
+   menu's boombox without its antenna (`ZeDUI/art/main_menu/v7/desk.png`, `desk_lampdim.png`) is in
+   `42/media/textures/ZeD/mainmenu/` (byte for byte, checked 5:10 pm). Ships with beta 12; QA sees both on the
+   main menu at the next run.
 
 175. **Design review of the tab catalog (design, Nov 12 2026; the director: "Yes, punch plus handoff").** All 50
    catalog pictures (4:50 PM Nov 11) and the 14 retakes (8:11 PM) read; the write-up with every finding is
@@ -4463,6 +4464,11 @@ to be proposed.
    b. Art: products/LuaConsole93/workshop/preview.png (512x512, 1993 box art, no tape), poster.png, icon.
       **The director, Nov 12 2026: the box art is being made with design, not Build.** The generator's own
       preview.png and poster.png are stand-ins until design's art arrives; then the generator copies design's files.
+      **Design, Nov 12 2026: the art is in.** `ZeDUI/art/lua_console_93/` holds preview.png and poster.png
+      (512 x 512, the same picture), icon.png (64 x 64), the box, front and back panels for the gallery, and the
+      source; handoff `ZeDUI/HANDOFF_design_lua_console_93_box_20261112.md`. The director approved it ("Awesome.
+      Wrap that up for build to use."). Publisher on the box: DOIDBRO & BUZZLORD SOFTWARE, DIVISION OF LANGUAGE
+      PROTOCOLS LLC. Version 1.0, no beta wording, no ZeD-GUI named. Build: point the generator at these three files.
    c. Page: workshop_description.bbcode (a 1.0 tool for mod makers, debug mode, works alone; with ZeD-GUI on,
       ZeD-GUI's console is used), the director approves the text.
    d. Gallery: QA shoots the log with filters, an error opened, the scratchpad, autocomplete, the Commands page and

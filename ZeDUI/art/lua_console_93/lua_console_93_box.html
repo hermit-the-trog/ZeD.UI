@@ -1,0 +1,174 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  :root{--ink:#141414;--cream:#f6efd8;--red:#d2242c;--yel:#f0c428;--blue:#1e4cc4;--teal:#47a18c;--mag:#c8327a;--pink:#f29ac0}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2a2a2e;font-family:"Liberation Sans",Arial,sans-serif;width:1960px;padding:28px 30px 34px;color:#d4d4d8}
+  h1{font:700 15px "DejaVu Sans Mono",monospace;letter-spacing:.06em;margin-bottom:4px}
+  .sub{font:12px "DejaVu Sans Mono",monospace;color:#8a8a92;margin-bottom:20px}
+  .stage{display:flex;gap:36px;align-items:flex-start}
+  .lab{font:700 12px "DejaVu Sans Mono",monospace;color:#f2f0ec;margin-top:14px}.lab span{color:var(--teal)}
+  .mono{font-family:"DejaVu Sans Mono",monospace}
+  .zlogo{display:inline-block;width:16px;height:16px;border:2px solid currentColor;font:900 11px/12px "Liberation Sans",sans-serif;text-align:center;margin-right:7px;vertical-align:-3px}
+
+  .box{position:relative;width:590px;height:700px;flex:none}
+  .front,.back{position:relative;width:480px;height:620px;overflow:hidden;border:3px solid var(--ink);background:var(--cream)}
+  .box .front{position:absolute;left:104px;top:64px}
+  .spine{position:absolute;left:34px;top:64px;width:70px;height:620px;transform-origin:right center;transform:skewY(30deg);border:3px solid var(--ink);border-right:0;overflow:hidden;background:var(--mag)}
+  .top{position:absolute;left:104px;top:24px;width:480px;height:40px;transform-origin:center bottom;transform:skewX(60deg);border:3px solid var(--ink);border-bottom:0;background:#efe6c8}
+  .shadow{position:absolute;left:70px;top:676px;width:530px;height:22px;background:#000;opacity:.4;transform:skewX(-50deg);filter:blur(6px)}
+  .spine .v{position:absolute;left:0;top:0;width:620px;height:70px;transform-origin:0 0;transform:rotate(90deg) translate(0,-70px);display:flex;align-items:center;gap:14px;padding:0 20px;white-space:nowrap;font:900 23px "Liberation Sans",sans-serif;color:#fff}
+  .spine .v em{font:italic 700 18px "Liberation Serif",serif;color:var(--yel)}
+  .spine .v i{margin-left:auto;font:700 9.5px "DejaVu Sans Mono",monospace;letter-spacing:.08em;font-style:normal;color:#fff}
+
+  /* front shapes */
+  .dots{position:absolute;left:262px;top:38px;width:204px;height:72px;background:radial-gradient(var(--ink) 2.2px,transparent 2.6px) 0 0/12px 12px}
+  .tri{position:absolute;left:-46px;top:236px;width:0;height:0;border-left:190px solid transparent;border-right:190px solid transparent;border-bottom:310px solid var(--teal)}
+  .tri2{position:absolute;left:-52px;top:230px;width:0;height:0;border-left:196px solid transparent;border-right:196px solid transparent;border-bottom:320px solid var(--ink)}
+  .circ{position:absolute;right:-74px;top:330px;width:290px;height:290px;border-radius:50%;background:var(--yel);border:3px solid var(--ink)}
+  .bar{position:absolute;left:-20px;top:438px;width:540px;height:44px;background:var(--mag);transform:rotate(-12deg);border-top:3px solid var(--ink);border-bottom:3px solid var(--ink)}
+  .bar2{position:absolute;left:-20px;top:492px;width:540px;height:12px;background:var(--blue);transform:rotate(-12deg);border-top:3px solid var(--ink);border-bottom:3px solid var(--ink)}
+  svg.sq{position:absolute;overflow:visible}
+  .conf{position:absolute;width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-bottom:16px solid var(--pink)}
+  .ring{position:absolute;width:26px;height:26px;border-radius:50%;border:6px solid var(--blue)}
+  .plus{position:absolute;font:900 30px/1 "Liberation Sans",sans-serif;color:var(--red)}
+
+  .pub{position:absolute;left:18px;top:12px;font:700 12px "DejaVu Sans Mono",monospace;letter-spacing:.14em;color:var(--ink)}
+  .pub small{display:block;font:700 7.5px "DejaVu Sans Mono",monospace;letter-spacing:.16em;margin:3px 0 0 25px}
+  .name{position:absolute;left:16px;top:44px;font:900 84px/0.88 "Liberation Sans",sans-serif;letter-spacing:-.04em;color:var(--ink)}
+  .n93{position:absolute;right:14px;top:98px;font:900 132px/0.9 "Liberation Sans",sans-serif;letter-spacing:-.07em;color:var(--mag);text-shadow:6px 6px 0 var(--teal),7px 7px 0 var(--ink),8px 8px 0 var(--ink);transform:rotate(-7deg)}
+  .ed{position:absolute;left:20px;top:214px;font:italic 700 31px "Liberation Serif",serif;color:var(--ink);background:var(--cream);padding:1px 10px 3px;border:3px solid var(--ink);box-shadow:5px 5px 0 var(--ink);transform:rotate(-4deg)}
+  .scr{position:absolute;left:34px;top:330px;width:206px;height:128px;background:#0c0c0e;border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink);transform:rotate(5deg)}
+  .scr .tb{height:13px;border-bottom:2px solid #6a6a72;background:repeating-linear-gradient(#55555c 0 2px,#222226 2px 4px)}
+  .scr pre{font:8.6px/1.5 "DejaVu Sans Mono",monospace;color:#9fd8c6;padding:5px 7px}
+  .scr .e{color:#ff7a55}.scr .c{background:#47a18c;color:#0c0c0c}.scr .d{color:#6a8a80}
+  .burst{position:absolute;right:16px;top:300px;width:158px;height:158px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;font:900 15px/1.1 "Liberation Sans",sans-serif;transform:rotate(9deg);
+     clip-path:polygon(50% 0,59% 14%,75% 7%,77% 24%,93% 25%,86% 40%,100% 50%,86% 60%,93% 75%,77% 76%,75% 93%,59% 86%,50% 100%,41% 86%,25% 93%,23% 76%,7% 75%,14% 60%,0 50%,14% 40%,7% 25%,23% 24%,25% 7%,41% 14%)}
+  .burst b{display:block;font-size:46px;line-height:.95}
+  .burstsh{position:absolute;right:10px;top:306px;width:158px;height:158px;background:var(--ink);transform:rotate(9deg);clip-path:polygon(50% 0,59% 14%,75% 7%,77% 24%,93% 25%,86% 40%,100% 50%,86% 60%,93% 75%,77% 76%,75% 93%,59% 86%,50% 100%,41% 86%,25% 93%,23% 76%,7% 75%,14% 60%,0 50%,14% 40%,7% 25%,23% 24%,25% 7%,41% 14%)}
+  .new{position:absolute;left:262px;top:262px;width:78px;height:78px;border-radius:50%;background:var(--blue);color:#fff;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);display:flex;align-items:center;justify-content:center;text-align:center;font:900 10px/1.1 "Liberation Sans",sans-serif;transform:rotate(-14deg)}
+  .new b{display:block;font-size:21px;color:var(--yel)}
+  .feat{position:absolute;right:16px;bottom:52px;width:190px;font:900 13.5px/1.5 "Liberation Sans",sans-serif;color:var(--ink);text-align:right}
+  .price{position:absolute;left:18px;bottom:50px;background:#fff;border:2px solid var(--ink);padding:4px 9px 3px;font:700 10px/1.25 "DejaVu Sans Mono",monospace;color:var(--ink);transform:rotate(-6deg);box-shadow:3px 3px 0 var(--ink)}
+  .price s{color:#777}.price b{display:block;font:900 22px/1 "Liberation Sans",sans-serif;color:var(--red)}
+  .req{position:absolute;left:0;right:0;bottom:0;height:36px;background:var(--ink);color:var(--cream);font:11px "DejaVu Sans Mono",monospace;display:flex;align-items:center;justify-content:space-between;padding:0 14px}
+
+  /* back */
+  .back{background:var(--cream)}
+  .back .hd{background:var(--mag);color:#fff;border-bottom:3px solid var(--ink);padding:14px 18px 12px}
+  .back .hd h2{font:900 30px/1 "Liberation Sans",sans-serif;letter-spacing:-.02em}
+  .back .hd p{font:italic 700 17px "Liberation Serif",serif;color:var(--yel);margin-top:4px}
+  .back .shots{display:flex;gap:10px;padding:14px 16px 0}
+  .back .shot{flex:1}
+  .back .win{height:86px;background:#0c0c0e;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);overflow:hidden}
+  .back .win .tb{height:10px;border-bottom:1px solid #6a6a72;background:repeating-linear-gradient(#55555c 0 2px,#222226 2px 4px)}
+  .back .win pre{font:6.6px/1.5 "DejaVu Sans Mono",monospace;color:#9fd8c6;padding:4px 5px}
+  .back .win .e{color:#ff7a55}.back .win .y{color:#ccaa22}.back .win .c{background:#47a18c;color:#0c0c0c}.back .win .d{color:#6a8a80}
+  .back .shot h3{font:900 13px "Liberation Sans",sans-serif;margin-top:9px;color:var(--ink)}
+  .back .shot p{font:11px/1.35 "Liberation Sans",sans-serif;color:#333;margin-top:2px}
+  .back .nums{display:flex;gap:0;margin:14px 16px 0;border:3px solid var(--ink)}
+  .back .num{flex:1;text-align:center;padding:7px 2px 6px;border-right:3px solid var(--ink);font:700 9.5px/1.2 "DejaVu Sans Mono",monospace;color:var(--ink)}
+  .back .num:last-child{border-right:0}
+  .back .num b{display:block;font:900 27px/1 "Liberation Sans",sans-serif}
+  .back .num:nth-child(1){background:var(--yel)}.back .num:nth-child(2){background:var(--teal)}.back .num:nth-child(3){background:var(--pink)}.back .num:nth-child(4){background:#fff}
+  .back .quote{margin:13px 18px 0;font:italic 700 16px/1.25 "Liberation Serif",serif;color:var(--ink)}
+  .back .quote span{display:block;font:700 9.5px "DejaVu Sans Mono",monospace;font-style:normal;color:#555;margin-top:3px;letter-spacing:.08em}
+  .back .sys{position:absolute;left:16px;bottom:50px;width:270px;border:2px solid var(--ink);background:#fff;padding:7px 9px;font:9.5px/1.5 "DejaVu Sans Mono",monospace;color:var(--ink)}
+  .back .sys b{display:block;font:900 11px "Liberation Sans",sans-serif;letter-spacing:.1em;margin-bottom:2px}
+  .back .bc{position:absolute;right:18px;bottom:50px;width:140px;height:74px;background:#fff;border:2px solid var(--ink);padding:6px 8px 0}
+  .back .bc div{height:46px;background:repeating-linear-gradient(90deg,#141414 0 2px,#fff 2px 3px,#141414 3px 4px,#fff 4px 7px,#141414 7px 10px,#fff 10px 11px,#141414 11px 12px,#fff 12px 15px)}
+  .back .bc p{font:9px "DejaVu Sans Mono",monospace;color:var(--ink);text-align:center;margin-top:3px;letter-spacing:.2em}
+  .back .zz{position:absolute;right:-30px;top:96px;width:120px;height:14px;background:linear-gradient(135deg,var(--ink) 25%,transparent 25%) 0 0/14px 14px,linear-gradient(225deg,var(--ink) 25%,transparent 25%) 0 0/14px 14px;transform:rotate(90deg)}
+
+  .back .req{font-size:8.6px;white-space:nowrap;padding:0 10px}
+  .back .req .zlogo{width:13px;height:13px;font-size:9px;line-height:9px;margin-right:5px}
+  .sqs{display:flex;flex-direction:column;gap:14px}
+  .sqb{position:relative;overflow:hidden;border:2px solid #000;background:var(--blue)}
+  .sqb .box{position:absolute;transform-origin:0 0}
+  .s256{width:256px;height:256px}.s256 .box{left:18px;top:2px;transform:scale(.36)}
+  .s512{width:512px;height:512px;border:0}.s512 .box{left:34px;top:2px;transform:scale(.725)}
+  #icon{position:relative;width:256px;height:256px;background:var(--cream);border:12px solid var(--ink);overflow:hidden}
+  #icon b{position:absolute;left:8px;top:58px;font:900 190px/0.9 "Liberation Sans",sans-serif;letter-spacing:-.07em;color:var(--mag);text-shadow:9px 9px 0 var(--teal),12px 12px 0 var(--ink)}
+  #icon i{position:absolute;left:14px;top:8px;font:900 58px/1 "Liberation Sans",sans-serif;font-style:normal;letter-spacing:-.03em;color:var(--ink)}
+  .s96{width:96px;height:96px}.s96 .box{left:7px;top:1px;transform:scale(.135)}
+  .sqcap{font:11px "DejaVu Sans Mono",monospace;color:#8a8a92;margin-top:4px}
+</style></head><body>
+<h1>LUA CONSOLE 93 PROFESSIONAL EDITION &nbsp;|&nbsp; BOX ART, APPROVED NOV 12 2026</h1>
+<div class="sub">Front with spine, back, and the square. Source of the exported pictures; export with export.js.</div>
+<div class="stage">
+ <div>
+  <div class="box" id="thebox"><div class="shadow"></div><div class="top"></div>
+   <div class="spine"><div class="v">LUA CONSOLE 93 <em>Professional Edition</em><i>DOIDBRO &amp; BUZZLORD SOFTWARE</i></div></div>
+   <div class="front">
+    <div class="dots"></div>
+    <div class="tri2"></div><div class="tri"></div><div class="circ"></div><div class="bar"></div><div class="bar2"></div>
+    <svg class="sq" style="left:70px;top:556px" width="160" height="20"><path d="M0 10 q10 -14 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0" fill="none" stroke="#1e4cc4" stroke-width="5"/></svg>
+    <svg class="sq" style="left:14px;top:286px" width="110" height="20"><path d="M0 10 q8 -14 16 0 t16 0 t16 0 t16 0 t16 0 t16 0" fill="none" stroke="#d2242c" stroke-width="5"/></svg>
+    <div class="conf" style="left:440px;top:12px;transform:rotate(18deg)"></div>
+    <div class="conf" style="left:420px;top:262px;transform:rotate(-30deg);border-bottom-color:#47a18c"></div>
+    <div class="conf" style="left:196px;top:520px;transform:rotate(40deg);border-bottom-color:#f0c428"></div>
+    <div class="ring" style="left:16px;top:540px;border-color:#c8327a"></div>
+    <div class="plus" style="left:356px;top:232px">+</div>
+    <div class="plus" style="left:262px;top:504px;color:#141414">+</div>
+    <div class="pub"><i class="zlogo">D</i>DOIDBRO &amp; BUZZLORD SOFTWARE<small>DIVISION OF LANGUAGE PROTOCOLS LLC</small></div>
+    <div class="name">Lua<br>Console</div>
+    <div class="n93">93</div>
+    <div class="ed">Professional Edition</div>
+    <div class="scr"><div class="tb"></div><pre><span class="d">09:14</span> print  1167 recipes
+<span class="d">09:14</span> <span class="e">error  index nil  x3</span>
+<span class="d">     </span>  MyMod main.lua:42
+<span class="d">09:14</span> print  Long Blade 6
+
+&gt; getPlayer():get<span class="c"> </span></pre></div>
+    <div class="new"><div><b>NEW!</b>SCRATCH<br>PAD</div></div>
+    <div class="burstsh"></div>
+    <div class="burst"><div><b>78</b>SERVER<br>COMMANDS<br>INSIDE!</div></div>
+    <div class="feat">Log &middot; Scratchpad<br>Suggestions &middot; Snippets<br>Export &middot; Controller</div>
+    <div class="price"><s>$149.95</s><b>FREE</b>on the Workshop</div>
+    <div class="req"><span>Version 1.0 &middot; Build 42 &middot; debug mode</span><span>3.5" HD &middot; ages 13 and up</span></div>
+   </div>
+  </div>
+  <div class="lab"><span>FRONT</span> &nbsp;with the spine</div>
+ </div>
+
+ <div>
+  <div style="height:64px"></div>
+  <div class="back">
+   <div class="hd"><h2>Stop squinting at console.txt.</h2><p>Everything your mod says, in one window.</p></div>
+   <div class="shots">
+    <div class="shot"><div class="win"><div class="tb"></div><pre><span class="d">09:14</span> print  loaded
+<span class="d">09:14</span> <span class="y">warn</span>   F1 twice
+<span class="d">09:14</span> <span class="e">error  nil  x3</span>
+<span class="d">09:15</span> print  ok
+<span class="d">09:15</span> print  ok</pre></div><h3>The Log</h3><p>Prints and errors in one list. Filter by kind, mod or file. A repeated error is one row with a count.</p></div>
+    <div class="shot"><div class="win"><div class="tb"></div><pre> 1 local p = getPlayer()
+ 2 for i = 1, 3 do
+ 3   print(p:getX())
+ 4 end
+ 5 <span class="c"> </span></pre></div><h3>The Scratchpad</h3><p>Write past 256 characters, on as many lines as you like. Runs are kept; snippets are saved.</p></div>
+    <div class="shot"><div class="win"><div class="tb"></div><pre>/additem
+/addkey
+/godmode
+/servermsg</pre></div><h3>The Commands</h3><p>Every server command with its syntax and an example. Pick one and it fills the line.</p></div>
+   </div>
+   <div class="nums"><div class="num"><b>78</b>SERVER<br>COMMANDS</div><div class="num"><b>5,000</b>LOG ROWS<br>KEPT</div><div class="num"><b>200</b>RUNS OF<br>HISTORY</div><div class="num"><b>2</b>LETTERS TO<br>A SUGGESTION</div></div>
+   <div class="quote">"It printed."<span>A MOD MAKER, 1993</span></div>
+   <div class="quote" style="margin-top:9px">"I found the error. It was mine."<span>ANOTHER MOD MAKER, LATER THAT NIGHT</span></div>
+   <div class="sys"><b>SYSTEM REQUIREMENTS</b>Project Zomboid Build 42<br>The game started with <span style="white-space:nowrap">-debug</span><br>An error. Yours will do.<br>Nothing else. Stands alone.</div>
+   <div class="bc"><div></div><p>0 1993 42136 7</p></div>
+   <div class="req"><span><i class="zlogo">D</i>DOIDBRO &amp; BUZZLORD SOFTWARE</span><span>DIVISION OF LANGUAGE PROTOCOLS LLC</span></div>
+  </div>
+  <div class="lab"><span>BACK</span></div>
+ </div>
+
+ <div class="sqs">
+  <div style="height:64px"></div>
+  <div style="position:absolute;left:-9999px"><div class="sqb s512" id="s512"></div><div id="icon"><b>93</b><i>LUA</i></div></div>
+  <div><div class="sqb s256" id="s256"></div><div class="sqcap">in a square, 256 px</div></div>
+  <div><div class="sqb s96" id="s96"></div><div class="sqcap">96 px</div></div>
+ </div>
+</div>
+<script>
+for(const id of ['s512','s256','s96']) document.getElementById(id).appendChild(document.getElementById('thebox').cloneNode(true));
+</script>
+</body></html>
