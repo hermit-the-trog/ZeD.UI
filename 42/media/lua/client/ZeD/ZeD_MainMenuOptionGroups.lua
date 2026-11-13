@@ -185,11 +185,12 @@ G.ZED_GROUPS = {
         { "restock", "radio", needs = "loadouts", needsWhy = "UI_ZeD_Options_NeedsLoadouts" } } },
     { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "contextStyle", "radio" }, { "equipView", "radio" }, { "modsStyle", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "hiddenActions" } } },
     { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio" }, { "actionBar", "radio" } } },
-    -- (how the wheels are worked; Toggle mode overrides open and commit, so they dim while it is on)
+    -- (how the wheels are worked; Toggle mode overrides open and commit, so they dim while it is on; then the Run
+    -- button that also crouches, Input/RunSneak.lua)
     { "UI_ZeD_Options_ZedControls", { { "focusStyle" }, { "glyphDisplay" }, { "inputModeLock" },
         { "wheelOpen", "radio", needsNot = "wheelToggle", needsWhy = "UI_ZeD_Options_NeedsNoToggle" },
         { "wheelCommit", "radio", needsNot = "wheelToggle", needsWhy = "UI_ZeD_Options_NeedsNoToggle" },
-        { "wheelToggle", "onoff" }, { "wheelDeadZone", "scale" } } },
+        { "wheelToggle", "onoff" }, { "wheelDeadZone", "scale" }, { "runSneak", "onoff" } } },
     -- (the twelve chords, ZeD_QuickChords; not ModOptions: rows of their own)
     { "UI_ZeD_Options_ZedChords", {}, chords = true },
     -- (one screen at a time steps aside, under Safe mode and read as it is:

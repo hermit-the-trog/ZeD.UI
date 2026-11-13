@@ -3274,6 +3274,8 @@
     "UI_ZeD_Settings_WheelToggleTip": "스틱 조작이 어렵거나 버튼을 계속 누르기 힘든 경우를 위한 설정입니다. 탭하면 열리고, 오른쪽 스틱이나 방향 패드로 강조 표시를 옮기며, A로 선택하고 B로 닫습니다. 직접 닫을 때까지 휠이 열려 있습니다.",
     "UI_ZeD_Settings_WheelDeadZone": "휠 스틱 데드존",
     "UI_ZeD_Settings_WheelDeadZoneTip": "칸이 켜지려면 오른쪽 스틱을 얼마나 움직여야 하는지 정합니다. 스틱이 저절로 쏠리면 값을 높이십시오.",
+    "UI_ZeD_Settings_RunSneak": "달리기 버튼으로 웅크리기",
+    "UI_ZeD_Settings_RunSneakTip": "게임의 달리기가 버튼에 있을 때 동작합니다(컨트롤러 배치 오리지널에서는 오른쪽 트리거 RT). 달리기가 스틱을 끝까지 미는 것일 때(기본값 배치)나 LB 또는 RB에 있을 때(ZeD의 빠른 동작용)는 아무것도 하지 않습니다. 멈춰 있을 때 달리기를 길게 누르면 웅크리고, 다시 길게 누르면 일어섭니다. 이동 중에는 달리기로 평소처럼 달리며, 웅크린 상태라면 길게 눌러 먼저 일어섭니다. 짧게 누르면 원래대로 동작합니다.",
     "UI_ZeD_Settings_FocusStyle": "컨트롤러 강조",
     "UI_ZeD_Settings_FocusStyleTip": "컨트롤러가 가리키는 대상을 표시하는 방식: 가리키는 손, 모서리 표시, 강조색 한 겹, 또는 움직이는 점선.",
     "UI_ZeD_Settings_FocusHand": "가리키는 손",

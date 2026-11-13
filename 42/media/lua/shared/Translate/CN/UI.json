@@ -3274,6 +3274,8 @@
     "UI_ZeD_Settings_WheelToggleTip": "适合难以操作的摇杆或难以按住的按键。轻点打开，右摇杆或十字键移动高亮，A 键选定，B 键关闭，轮盘会一直保持打开，直到你关闭。",
     "UI_ZeD_Settings_WheelDeadZone": "轮盘摇杆死区",
     "UI_ZeD_Settings_WheelDeadZoneTip": "右摇杆需要推多远才会点亮一格。会漂移的摇杆需要更大的数值。",
+    "UI_ZeD_Settings_RunSneak": "奔跑键兼蹲下",
+    "UI_ZeD_Settings_RunSneakTip": "游戏的奔跑绑定在按键上时才起作用，例如初始值手柄配置（奔跑在右扳机 RT）；奔跑是把摇杆推到底时（默认配置），或绑定在 LB 或 RB 上时（ZeD 将其留给快捷操作），则不起作用。站着不动时，按住奔跑蹲下，再按住一次站起。移动时，奔跑照常；蹲着时，按住会先站起来。轻点仍是游戏原本的作用。",
     "UI_ZeD_Settings_FocusStyle": "手柄高亮",
     "UI_ZeD_Settings_FocusStyleTip": "手柄怎样标出它所在的东西：指向的手、角标、一抹强调色，或蚂蚁线。",
     "UI_ZeD_Settings_FocusHand": "指向的手",

@@ -3274,6 +3274,8 @@
     "UI_ZeD_Settings_WheelToggleTip": "Dla opornej gałki albo przycisków trudnych do przytrzymania. Stuknij, by otworzyć; prawa gałka lub krzyżak przesuwa zaznaczenie, A wybiera, B zamyka, a koło zostaje, dopóki go nie zamkniesz.",
     "UI_ZeD_Settings_WheelDeadZone": "Martwa strefa gałki koła",
     "UI_ZeD_Settings_WheelDeadZoneTip": "Jak daleko trzeba odchylić prawą gałkę, żeby wycinek się podświetlił. Gałka, która dryfuje, potrzebuje wyższej liczby.",
+    "UI_ZeD_Settings_RunSneak": "Przycisk Bieg też kuca",
+    "UI_ZeD_Settings_RunSneakTip": "Działa, gdy Bieg w grze jest na przycisku, jak w układzie kontrolera Originalne (Bieg na prawym spuście, RT); nic nie robi, gdy Bieg to pełne wychylenie gałki (układ Domyślne) lub jest na LB albo RB, które ZeD zostawia na swoje szybkie akcje. Stojąc w miejscu, przytrzymaj Bieg, by kucnąć, i jeszcze raz, by wstać. W ruchu Bieg biegnie jak zawsze; kucając, przytrzymanie najpierw cię podnosi. Krótkie stuknięcie działa jak zawsze.",
     "UI_ZeD_Settings_FocusStyle": "Podświetlenie kontrolera",
     "UI_ZeD_Settings_FocusStyleTip": "Jak kontroler oznacza to, na czym jest: wskazująca dłoń, znaczniki w rogach, jedno wypełnienie kolorem akcentu albo maszerujące mrówki.",
     "UI_ZeD_Settings_FocusHand": "Wskazująca dłoń",
