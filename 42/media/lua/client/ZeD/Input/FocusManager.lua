@@ -81,12 +81,21 @@
 --   On claimFocus → Chord.setEnabled(false) so LB/RB pick a window
 --   On releaseFocus → Chord.setEnabled(true) so LB/RB route to zoom chord
 --
--- Public interface:
+-- SPLIT-SCREEN: one record of focus state a local player (pn 0-3, 0 = player
+-- 1): the focused window, the holds, the D-pad repeat, the aiming escape, the
+-- focus marks. A pad's press works on its own player's record
+-- (joypadData.player), a call about a window on that window's (w.playerNum),
+-- and a call that names no player means player 1, so every caller written
+-- before split-screen keeps meaning player 1. The mouse and keyboard are
+-- player 1's; players 2-4 are always on a pad. Opening ZeD's windows with Y
+-- waits for ZeD.windowsFor(pn), the gate in Atoms.lua.
+--
+-- Public interface (a trailing pn is optional; missing means player 1):
 --   ZeD.Input.Focus.registerWindow(w)
 --   ZeD.Input.Focus.unregisterWindow(w)
 --   ZeD.Input.Focus.claimFocus(w)
---   ZeD.Input.Focus.releaseFocus()
---   ZeD.Input.Focus.getFocusedWindow()
+--   ZeD.Input.Focus.releaseFocus(pn)
+--   ZeD.Input.Focus.getFocusedWindow(pn)
 --   ZeD.Input.Focus.isLocked()                            -- always false (the Y-hold lock is gone)
 --   ZeD.Input.Focus.getFocusedZone(w)                     -- current zone or nil
 --   ZeD.Input.Focus.getFocusedElement(w)                  -- focused element or nil
@@ -94,8 +103,8 @@
 --   ZeD.Input.Focus.setZoneFocusable(w, zoneRef, flag)    -- drawer toggling
 --   ZeD.Input.Focus.dispatchJoypadDown(w, button, joypadData)
 --   ZeD.Input.Focus.dispatchJoypadDir(w, dir, joypadData)
---   ZeD.Input.Focus.reclaimEngineFocus()                  -- hand the pad back after a menu or wheel
---   ZeD.Input.Focus.cuesVisible()                         -- the controller's focus mark shows (pad in use)
+--   ZeD.Input.Focus.reclaimEngineFocus(pn)                -- hand the pad back after a menu or wheel
+--   ZeD.Input.Focus.cuesVisible(pn)                       -- the controller's focus mark shows (pad in use)
 --   ZeD.Input.Focus.isFocused(w, zoneName?, elementId?)   -- draw a focus mark here? (focused window only)
 --   ZeD.Input.Focus.liveZone(w) / liveElement(w)          -- the same as zone / element, nil when not shown
 --   Also: isRegistered, held, setRingZoneElementsKeepId, focusWhere,
@@ -104,7 +113,7 @@
 --   previewMove, flatElements and qaButton (each documented where it lives).
 --
 -- Event emitted:
---   Events.ZeD_FocusChanged(newWindow, oldWindow)
+--   Events.ZeD_FocusChanged(newWindow, oldWindow, pn)
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -142,49 +151,63 @@ local function _aimingThresholdSq() return (ZeD.T and ZeD.T.gp and ZeD.T.gp.aimi
 -- FILE-LOCAL STATE
 -- ---------------------------------------------------------------------------
 
-local _focusedWindow = nil
-local _windowRegistry = {}
+local _windowRegistry = {}   -- every window the pads can reach, all players' (each knows its player: w.playerNum)
 
--- D-pad hold-to-repeat tracking.
-local _dpadHoldDir    = nil
-local _dpadHoldStart  = 0
-local _dpadLastRepeat = 0
-
--- Y hold-timer state (B has no hold). Y, A and X are the hold-armed buttons.
-local _yHeld         = false
-local _yStartMs      = 0
-local _yConsumed     = false
-
--- A-button tap-vs-hold state. Press defers firing until release (tap →
--- onActivate) or threshold (hold → onHoldActivate, when defined). `_aWindow`
--- captures which window owned focus at press time so the callback fires on
--- the correct window even if focus moved (defensive).
-local _aHeld        = false
-local _aStartMs     = 0
-local _aConsumed    = false
-local _aWindow      = nil
+-- A-button and X-button hold thresholds. A press defers firing until release
+-- (tap) or this long held (hold); see the A and X notes in the record below.
 local A_HOLD_MS     = 350
+local X_HOLD_MS     = 350
 
--- X-button tap-vs-hold state, mirror of A's. Tap (release before
--- threshold) fires onContextMenu / onReset. Hold past threshold fires
--- onHoldContextDrag with no dir on entry (signal "drag mode armed"); while
--- X stays held, D-pad presses fire onHoldContextDrag(w, el, dir) instead
--- of moving the focus, so the element can mutate its position. Release
--- after hold fires onHoldContextRelease (commit / exit drag). An element
--- with onHoldContext instead gets that once at the threshold (no drag).
-local _xHeld         = false
-local _xStartMs      = 0
-local _xConsumed     = false
-local _xWindow       = nil
-local _xElement      = nil  -- captured at press time; locked through release
-local X_HOLD_MS      = 350
+-- ---------------------------------------------------------------------------
+-- PER-PLAYER STATE (split-screen)
+-- One record a local player (pn 0-3, 0 = player 1), made on first use; player
+-- 1's is made at load and never replaced. Fields:
+--   win                    the window holding this player's pad, or nil
+--   dDir, dStart, dLast    D-pad hold-to-repeat: the direction held, when, the last repeat
+--   yHeld, yStart, yUsed   Y tap-vs-hold (B has no hold; Y, A and X are the hold-armed buttons)
+--   aHeld, aStart, aUsed, aWin   A tap-vs-hold. A press defers firing until release (tap:
+--                          onActivate) or A_HOLD_MS (hold: onHoldActivate, when defined). aWin
+--                          is the window that had the focus at the press, so the callback fires
+--                          on the right window even if the focus moved (defensive)
+--   xHeld, xStart, xUsed, xWin, xEl   X tap-vs-hold, A's mirror. A tap fires onContextMenu /
+--                          onReset. A hold past X_HOLD_MS fires onHoldContextDrag with no dir
+--                          ("drag mode armed"); while X stays held the D-pad fires
+--                          onHoldContextDrag(w, el, dir) instead of moving the focus; the release
+--                          fires onHoldContextRelease. An element with onHoldContext gets that
+--                          once at the threshold instead (no drag). xEl is captured at the press
+--                          and locked through the release
+--   prevY                  Y's level last tick while no window is focused (the Y that opens the pair)
+--   wsLatched, wsGrace     the aiming escape's edge latch, and the end of its grace after a claim
+--   cues, cueSince         the focus marks show (CUES below); players 2-4 have no mouse to hide them
+--   qa, qaN                Focus.qaButton's held buttons for this player's pad, and how many
+--   away                   the player was not playing on the last tick: their next tick starts
+--                          from the pad as it is
+-- Fresh on every load, like the registry: a kept window would point at one the new registry
+-- doesn't hold. Focus._st is read by QA and the sims.
+-- ---------------------------------------------------------------------------
+local _st = {}
+Focus._st = _st
 
--- Rising-edge tracker for Y when no window is focused (global Y-to-open).
-local _prevYPressedUnfocused = false
-
--- Aiming-escape edge latch + grace period.
-local _wsLatched       = false
-local _wsGraceUntilMs  = 0
+local function _S(pn)
+    if type(pn) ~= "number" then pn = 0 end
+    local s = _st[pn]
+    if s == nil then
+        s = { pn = pn, win = nil,
+              dDir = nil, dStart = 0, dLast = 0,
+              yHeld = false, yStart = 0, yUsed = false,
+              aHeld = false, aStart = 0, aUsed = false, aWin = nil,
+              xHeld = false, xStart = 0, xUsed = false, xWin = nil, xEl = nil,
+              prevY = false,
+              wsLatched = false, wsGrace = 0,
+              cues = (pn ~= 0), cueSince = 0,
+              qa = {}, qaN = 0,
+              away = (pn ~= 0) }
+        _st[pn] = s
+    end
+    return s
+end
+-- player 1's record: made now and never replaced (the per-row focus mark reads it first)
+local _st0 = _S(0)
 
 -- D-pad debug overlay toggle (F9, debug builds). Paints the focused
 -- element's bbox + the per-direction picks (cyan = lined up, the picker's
@@ -225,35 +248,82 @@ local function _indexOf(w)
     return nil
 end
 
+-- Whose a press or a call is: the pressing pad's player when a joypadData
+-- names one, else the window's (w.playerNum, set when the window is built),
+-- else player 1. Not ZeD.playerNumOf(w): the World window's restore runs
+-- before its _playerObj is set.
+local function _pnOf(w, joypadData)
+    local pn = (type(joypadData) == "table") and joypadData.player or nil
+    if pn == nil and type(w) == "table" then pn = w.playerNum end
+    if type(pn) ~= "number" then return 0 end
+    return pn
+end
+
+-- "" for player 1, so player 1's log lines read word for word as before
+local function _who(pn)
+    if pn == 0 then return "" end
+    return " (player " .. tostring(pn + 1) .. ")"
+end
+
+-- A player's input mode: player 1's follows the detector, players 2-4 are always on a pad
+local function _modeOf(pn)
+    local D = ZeD.Input.Detector
+    if not (D and D.getMode) then return nil end
+    if pn == 0 then return D.getMode() end
+    return D.getMode(pn)
+end
+
+-- Whether ZeD's windows are this player's (read at call time, so a later
+-- split-screen stage can open the gate). Player 1's always are.
+local function _ownsWindows(pn)
+    if pn == 0 then return true end
+    local W = ZeD.windowsFor
+    return W ~= nil and W(pn) == true
+end
+
+-- The registered windows of one player: how many, and the last one
+local function _countOf(pn)
+    local n = 0
+    for i = 1, #_windowRegistry do
+        if _pnOf(_windowRegistry[i]) == pn then n = n + 1 end
+    end
+    return n
+end
+local function _lastOf(pn)
+    for i = #_windowRegistry, 1, -1 do
+        local o = _windowRegistry[i]
+        if _pnOf(o) == pn then return o end
+    end
+    return nil
+end
+
 -- Push engine-level joypad focus so PZ's onJoypad* dispatch reaches our
--- window's shims. setJoypadFocus is the engine's canonical setter; `nil` is
--- valid and clears engine focus. The game's Java side can throw, so pcall
--- turns a crash into a miss. Hardcoded playerID 0; split-screen would need
--- the player index threaded through.
-local function _pushEngineFocus(control)
+-- window's shims, on player pn's pad slot. setJoypadFocus is the engine's
+-- canonical setter; `nil` is valid and clears engine focus. The game's Java
+-- side can throw, so pcall turns a crash into a miss.
+local function _pushEngineFocus(control, pn)
     if not setJoypadFocus then return end
-    pcall(setJoypadFocus, 0, control)
+    pcall(setJoypadFocus, pn or 0, control)
 end
 
 -- Tell the engine to ignore aim input until sticks recenter — prevents stick
 -- pressure at the moment of claim from leaking into aiming. Only meaningful
 -- in gamepad mode.
-local function _maybeIgnoreAim()
-    local mode = ZeD.Input.Detector and ZeD.Input.Detector.getMode
-                 and ZeD.Input.Detector.getMode()
-    if mode ~= "gamepad" then return end
+local function _maybeIgnoreAim(pn)
+    if _modeOf(pn) ~= "gamepad" then return end
     -- (the setter is the game's global, by player number; getJoypadData is a plain Lua table without it)
-    if setJoypadIgnoreAimUntilCentered and getSpecificPlayer(0) then
-        pcall(setJoypadIgnoreAimUntilCentered, 0, true)
+    if setJoypadIgnoreAimUntilCentered and getSpecificPlayer(pn) then
+        pcall(setJoypadIgnoreAimUntilCentered, pn, true)
     end
 end
 
--- Enable/disable BumperChord. Wrapped in a helper because the module may not
--- be loaded yet (load-order-agnostic) and we don't want a nil-index crash
--- to break focus claim.
-local function _setBumperChordEnabled(flag)
+-- Enable/disable a player's BumperChord. Wrapped in a helper because the
+-- module may not be loaded yet (load-order-agnostic) and we don't want a
+-- nil-index crash to break focus claim.
+local function _setBumperChordEnabled(flag, pn)
     if ZeD.Input.Chord and ZeD.Input.Chord.setEnabled then
-        ZeD.Input.Chord.setEnabled(flag)
+        if pn == nil or pn == 0 then ZeD.Input.Chord.setEnabled(flag)
+        else ZeD.Input.Chord.setEnabled(flag, pn) end
     end
 end
 
@@ -298,38 +368,41 @@ end
 -- focused zone and element stay, so the next pad press carries on from them.
 -- ---------------------------------------------------------------------------
 local CUE_MOUSE_U = 8          -- mouse travel (design units) that counts as using it
-local _cuesOn = false
-local _cueMouseX, _cueMouseY = nil, nil
-local _cueSinceMs = 0
+local _cueMouseX, _cueMouseY = nil, nil   -- (the mouse is player 1's: only their marks watch it)
 
-local function _showCues()
-    _cuesOn = true
-    _cueSinceMs = getTimestampMs() or 0
-    if getMouseX then _cueMouseX, _cueMouseY = getMouseX(), getMouseY() end
+local function _showCues(s)
+    s.cues = true
+    s.cueSince = getTimestampMs() or 0
+    if s.pn == 0 and getMouseX then _cueMouseX, _cueMouseY = getMouseX(), getMouseY() end
 end
 
-local function _hideCues()
-    _cuesOn = false
+local function _hideCues(s)
+    s.cues = false
 end
 
--- once per rendered frame (it also runs while the game is paused)
+-- once per rendered frame (it also runs while the game is paused); player 1's marks only
 local function _watchCueMouse()
-    if not _cuesOn or not getMouseX then return end
+    local s = _st0
+    if not s.cues or not getMouseX then return end
     local mx, my = getMouseX(), getMouseY()
     if _cueMouseX == nil then _cueMouseX, _cueMouseY = mx, my; return end
     local T = ZeD.T
     local th = (T and T.px) and T.px(CUE_MOUSE_U) or CUE_MOUSE_U
-    if math.abs(mx - _cueMouseX) > th or math.abs(my - _cueMouseY) > th then _hideCues(); return end
+    if math.abs(mx - _cueMouseX) > th or math.abs(my - _cueMouseY) > th then _hideCues(s); return end
     local D = ZeD.Input.Detector
-    if D and D.msSinceMouseClick and D.msSinceMouseClick() < (getTimestampMs() or 0) - _cueSinceMs then
-        _hideCues()
+    if D and D.msSinceMouseClick and D.msSinceMouseClick() < (getTimestampMs() or 0) - s.cueSince then
+        _hideCues(s)
     end
 end
 
---- True while the controller's focus mark shows: the last pad press that
---- reached a ZeD window is newer than the last use of the mouse.
-function Focus.cuesVisible()
-    return _cuesOn
+--- True while player pn's focus mark shows (pn missing: player 1): the last
+--- pad press that reached a ZeD window is newer than the last use of the
+--- mouse. Players 2-4 have no mouse, so theirs always show.
+function Focus.cuesVisible(pn)
+    if type(pn) ~= "number" then pn = 0 end
+    local s = _st[pn]
+    if s == nil then return pn ~= 0 end
+    return s.cues
 end
 
 -- ---------------------------------------------------------------------------
@@ -346,43 +419,62 @@ function Focus.registerWindow(w)
     if not w then return end
     if _indexOf(w) then return end
     _windowRegistry[#_windowRegistry + 1] = w
+    local pn = _pnOf(w)
     print("[ZeD.Input] Focus: register: " .. _label(w)
-       .. " (" .. tostring(#_windowRegistry) .. " registered)")
+       .. " (" .. tostring(_countOf(pn)) .. " registered)" .. _who(pn))
 end
 
 --- Atomic focus transfer on unregister: if the removed window was focused and
---- another survives, hand off in a SINGLE ZeD_FocusChanged event so subscribers
---- can diff cleanly. If no survivors, degrades to regular release (new = nil).
+--- another of its player's survives, hand off in a SINGLE ZeD_FocusChanged
+--- event so subscribers can diff cleanly. If no survivors, degrades to regular
+--- release (new = nil). Focus never passes to another player's window.
 function Focus.unregisterWindow(w)
     if not w then return end
-    local wasFocused = (_focusedWindow == w)
+    local pn = _pnOf(w)
+    local s = _S(pn)
+    local wasFocused = (s.win == w)
     local idx = _indexOf(w)
     if idx then
         table.remove(_windowRegistry, idx)
         print("[ZeD.Input] Focus: unregister: " .. _label(w)
-           .. " (" .. tostring(#_windowRegistry) .. " registered)")
+           .. " (" .. tostring(_countOf(pn)) .. " registered)" .. _who(pn))
     end
     if not wasFocused then return end
 
-    local nextW = _windowRegistry[#_windowRegistry]
-    local old   = _focusedWindow
-    _focusedWindow = nextW
-    _dpadHoldDir   = nil
+    local old = s.win
+    -- a second player who died or left: their pad's slot is the post-death
+    -- screen's now, so nothing is handed on or pushed there (the windows'
+    -- death handler may close them before this file hears of the death)
+    if pn ~= 0 then
+        local p = getSpecificPlayer and getSpecificPlayer(pn)
+        if p == nil or p:isDead() then
+            s.win = nil
+            s.dDir = nil
+            _setBumperChordEnabled(true, pn)
+            print("[ZeD.Input] Focus: release: " .. _label(old) .. " -> nil" .. _who(pn))
+            triggerEvent("ZeD_FocusChanged", nil, old, pn)
+            return
+        end
+    end
+
+    local nextW = _lastOf(pn)
+    s.win  = nextW
+    s.dDir = nil
 
     if nextW then
         print("[ZeD.Input] Focus: transfer: " .. _label(old)
-           .. " -> " .. _label(nextW))
-        _pushEngineFocus(nextW)
-        _maybeIgnoreAim()
+           .. " -> " .. _label(nextW) .. _who(pn))
+        _pushEngineFocus(nextW, pn)
+        _maybeIgnoreAim(pn)
         -- BumperChord stays disabled — a ZeD window is still focused.
     else
-        print("[ZeD.Input] Focus: release: " .. _label(old) .. " -> nil")
-        _pushEngineFocus(nil)
+        print("[ZeD.Input] Focus: release: " .. _label(old) .. " -> nil" .. _who(pn))
+        _pushEngineFocus(nil, pn)
         -- No more focused windows: hand bumpers back to the zoom chord.
-        _setBumperChordEnabled(true)
+        _setBumperChordEnabled(true, pn)
     end
 
-    triggerEvent("ZeD_FocusChanged", nextW, old)
+    triggerEvent("ZeD_FocusChanged", nextW, old, pn)
 end
 
 -- ---------------------------------------------------------------------------
@@ -397,23 +489,23 @@ function Focus.held()
     return CM ~= nil and CM.joinWin ~= nil
 end
 
---- Give w the pad: it becomes the focused window, lands on something lit
---- (Focus.ensureEntry), takes the engine's joypad focus, and the bumpers
---- leave the zoom chord for the window pair; ZeD_FocusChanged fires.
+--- Give w the pad of its player (w.playerNum): it becomes that player's
+--- focused window, lands on something lit (Focus.ensureEntry), takes the
+--- engine's joypad focus on that player's slot, and their bumpers leave the
+--- zoom chord for the window pair; ZeD_FocusChanged fires.
 --- Does nothing while Focus.held().
 function Focus.claimFocus(w)
     if not w then return end
-    if _focusedWindow == w then return end
+    local pn = _pnOf(w)
+    local s = _S(pn)
+    if s.win == w then return end
     if Focus.held() then return end
 
-    local old = _focusedWindow
-    _focusedWindow = w
-    print("[ZeD.Input] Focus: claim: " .. _label(old) .. " -> " .. _label(w))
+    local old = s.win
+    s.win = w
+    print("[ZeD.Input] Focus: claim: " .. _label(old) .. " -> " .. _label(w) .. _who(pn))
     -- a window the pad opened shows where its focus is at once
-    do
-        local D = ZeD.Input.Detector
-        if D and D.getMode and D.getMode() == "gamepad" then _showCues() end
-    end
+    if _modeOf(pn) == "gamepad" then _showCues(s) end
     -- land on something lit (the last focused element, else the list's first
     -- row); see Focus.ensureEntry
     if Focus.ensureEntry then
@@ -421,37 +513,42 @@ function Focus.claimFocus(w)
         if not ok then print("[ZeD.Input] Focus: ensureEntry failed: " .. tostring(err)) end
     end
 
-    _pushEngineFocus(w)
-    _maybeIgnoreAim()
+    _pushEngineFocus(w, pn)
+    _maybeIgnoreAim(pn)
 
     -- Bumpers become window-swap while we hold focus. Disable the zoom chord.
-    _setBumperChordEnabled(false)
+    _setBumperChordEnabled(false, pn)
 
     -- Start grace window against stick-drift / trigger-pressure aiming-escape.
-    _wsGraceUntilMs = getTimestampMs() + WS_GRACE_MS
-    _wsLatched      = false
+    s.wsGrace   = getTimestampMs() + WS_GRACE_MS
+    s.wsLatched = false
 
-    triggerEvent("ZeD_FocusChanged", w, old)
+    triggerEvent("ZeD_FocusChanged", w, old, pn)
 end
 
---- Let the pad go: no window is focused, the engine's joypad focus clears
---- (the pad is the game's again) and the bumpers return to the zoom chord.
-function Focus.releaseFocus()
-    if not _focusedWindow then return end
-    local old = _focusedWindow
-    _focusedWindow = nil
-    _dpadHoldDir   = nil
+--- Let player pn's pad go (pn missing: player 1's): no window is focused, the
+--- engine's joypad focus clears (the pad is the game's again) and the bumpers
+--- return to the zoom chord.
+function Focus.releaseFocus(pn)
+    if type(pn) ~= "number" then pn = 0 end
+    local s = _st[pn]
+    if not (s and s.win) then return end
+    local old = s.win
+    s.win  = nil
+    s.dDir = nil
 
-    _pushEngineFocus(nil)
-    _setBumperChordEnabled(true)
+    _pushEngineFocus(nil, pn)
+    _setBumperChordEnabled(true, pn)
 
-    print("[ZeD.Input] Focus: release: " .. _label(old) .. " -> nil")
-    triggerEvent("ZeD_FocusChanged", nil, old)
+    print("[ZeD.Input] Focus: release: " .. _label(old) .. " -> nil" .. _who(pn))
+    triggerEvent("ZeD_FocusChanged", nil, old, pn)
 end
 
---- The window holding the pad, or nil.
-function Focus.getFocusedWindow()
-    return _focusedWindow
+--- The window holding player pn's pad (pn missing: player 1's), or nil.
+function Focus.getFocusedWindow(pn)
+    if type(pn) ~= "number" then pn = 0 end
+    local s = _st[pn]
+    return s and s.win
 end
 
 --- Always false: Y-hold closes the pair now instead of toggling a windowshade
@@ -516,10 +613,18 @@ end
 -- row (Craft, Build, Journal, Animals, Foraging, Stations, JournalReaders), and
 -- the mark would stay lit while the mouse is used. Surfaces draw marks through these:
 
---- The zone a focus mark may show in, or nil: w is the focused window and the
---- controller is in use.
+--- The zone a focus mark may show in, or nil: w is its player's focused
+--- window and that player's controller is in use.
+-- (Surfaces ask this for every row on every drawn frame: player 1's focused
+-- window is one comparison, any other window one table read, no record made.)
 function Focus.liveZone(w)
-    if not w or w ~= _focusedWindow or not _cuesOn then return nil end
+    if not w then return nil end
+    local s = _st0
+    if w ~= s.win then
+        s = _st[w.playerNum or 0]
+        if not s or w ~= s.win then return nil end
+    end
+    if not s.cues then return nil end
     return Focus.getFocusedZone(w)
 end
 
@@ -617,14 +722,17 @@ function Focus.setZoneFocusable(w, zoneRef, flag)
 end
 
 -- ---------------------------------------------------------------------------
--- reclaimEngineFocus — re-push engine focus to the tracked focused window,
--- so dispatch resumes after something that borrowed the pad (a context menu,
--- a D-pad wheel, the chat) let it go.
+-- reclaimEngineFocus — re-push engine focus to a player's tracked focused
+-- window, so dispatch resumes after something that borrowed the pad (a context
+-- menu, a D-pad wheel, the chat) let it go. pn: the player whose pad it was
+-- (missing: player 1); another player closing a menu never pulls player 1's.
 -- ---------------------------------------------------------------------------
 
-function Focus.reclaimEngineFocus()
-    if _focusedWindow and setJoypadFocus then
-        pcall(setJoypadFocus, 0, _focusedWindow)
+function Focus.reclaimEngineFocus(pn)
+    if type(pn) ~= "number" then pn = 0 end
+    local s = _st[pn]
+    if s and s.win and setJoypadFocus then
+        pcall(setJoypadFocus, pn, s.win)
     end
 end
 
@@ -984,7 +1092,7 @@ local function _drawDebugOverlay()
     -- mouse so a stray F9 never paints over KBM play.
     local mode = ZeD.Input.Detector and ZeD.Input.Detector.getMode and ZeD.Input.Detector.getMode()
     if mode ~= "gamepad" then return end
-    local w = _focusedWindow
+    local w = _st0.win   -- (F9 is the keyboard's: player 1's focused window)
     if not w or not w.drawRect then return end
 
     -- Refresh the picks against the current focus state every frame so the
@@ -1055,23 +1163,23 @@ end
 -- DISPATCH HANDLERS
 -- ---------------------------------------------------------------------------
 
--- LB/RB: claim focus on a specific window (LB = Character, RB = World).
+-- LB/RB: claim focus on a specific window of player pn (LB = Character, RB = World).
 -- Absolute, not toggle — pressing LB while already on Character is a no-op
--- (Focus.claimFocus early-exits when target == _focusedWindow). On gamepad
+-- (Focus.claimFocus early-exits when target is already focused). On gamepad
 -- both windows are guaranteed open by the window-pair invariant; if one is
 -- somehow missing (transition / boot), call ensureBothOpenForGamepad first.
-local function _focusWindow(side)
+local function _focusWindow(side, pn)
     local CW = ZeD_CharacterWindow
     local WW = ZeD_WorldWindow
     if not CW or not WW then return end
 
     -- Enforce invariant first — a closed sibling would make the bumper a no-op.
     if CW.ensureBothOpenForGamepad then
-        pcall(CW.ensureBothOpenForGamepad, 0)
+        pcall(CW.ensureBothOpenForGamepad, pn)
     end
 
-    local charWin  = CW.getWindow  and CW.getWindow()
-    local worldWin = WW.getWindow  and WW.getWindow()
+    local charWin  = CW.getWindow  and CW.getWindow(pn)
+    local worldWin = WW.getWindow  and WW.getWindow(pn)
     if not charWin or not worldWin then return end
 
     local target = (side == "char") and charWin or worldWin
@@ -1099,16 +1207,17 @@ end
 
 --- A bumper tapped while a D-pad wheel is up (ZeD_WheelGesture): the bumpers
 --- close the wheel and open the windows — the pair open and showing, the pad
---- on that bumper's window. side: "char" or "world".
-function Focus.openSide(side)
+--- on that bumper's window. side: "char" or "world"; pn: whose wheel (missing: player 1).
+function Focus.openSide(side, pn)
+    if type(pn) ~= "number" then pn = 0 end
     if ZeD_CharacterWindow and ZeD_CharacterWindow.ensureBothOpenForGamepad then
-        pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, 0)
+        pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, pn)
     end
     for _, M in ipairs({ ZeD_CharacterWindow or {}, ZeD_WorldWindow or {} }) do
-        local w = M.getWindow and M.getWindow()
+        local w = M.getWindow and M.getWindow(pn)
         Focus.showWin(w)
     end
-    _focusWindow(side)
+    _focusWindow(side, pn)
 end
 
 -- A button (tap): fire the focused element's onActivate (= LMB).
@@ -1148,8 +1257,8 @@ end
 -- fire it. If not, NO-OP (no shade-all fallback): B does nothing when there's
 -- nothing to cancel; the player presses Y to hide, or flicks the right stick
 -- for the aiming escape, to dismiss the windows.
-local function _handleBContextual()
-    local w = _focusedWindow
+local function _handleBContextual(pn)
+    local w = _S(pn).win
     if not w then return end
     local el = Focus.getFocusedElement(w)
     if not el or not el.onCancel then return end
@@ -1158,17 +1267,19 @@ local function _handleBContextual()
     -- Beyond the sound, the return value is ignored — B has no fall-through path.
 end
 
--- The registered window lying `dir` of w on screen (visible, not rolled up),
--- nearest first by the same rectangle rule as the controls; nil when none.
+-- The registered window of w's player lying `dir` of w on screen (visible,
+-- not rolled up), nearest first by the same rectangle rule as the controls;
+-- nil when none. Another player's window is never next door.
 local function _windowThatWay(w, dir)
     local N = ZeD.SpatialNav
     if not (N and w and w.getX and w._focusEntryZone) then return nil end
     local from = { x = w:getX(), y = w:getY(), w = w:getWidth(), h = w:getHeight() }
+    local pn = _pnOf(w)
     local best, bestTier, bestCost
     for i = 1, #_windowRegistry do
         local o = _windowRegistry[i]
         -- (the window pair only: windows with an entry zone, not the dash or the map's pop-out)
-        if o ~= w and o._focusEntryZone and o.isVisible and o:isVisible() and not o.windowShaded and o._focusRing then
+        if o ~= w and o._focusEntryZone and _pnOf(o) == pn and o.isVisible and o:isVisible() and not o.windowShaded and o._focusRing then
             local tier, c = N.cost(from, { x = o:getX(), y = o:getY(), w = o:getWidth(), h = o:getHeight() }, dir)
             if tier and (bestTier == nil or tier < bestTier or (tier == bestTier and c < bestCost)) then
                 best, bestTier, bestCost = o, tier, c
@@ -1236,13 +1347,26 @@ local function _menuNav(w, dir)
     if zi ~= oldZoneIdx and w.onFocusZoneChanged then
         _fireCb("window.onFocusZoneChanged", w.onFocusZoneChanged, w, { new = z, old = ring[oldZoneIdx] })
     end
-    print("[ZeD.Input] Focus: list " .. dir .. " -> " .. tostring(el and el.id) .. " [" .. _label(w) .. "]")
+    print("[ZeD.Input] Focus: list " .. dir .. " -> " .. tostring(el and el.id) .. " [" .. _label(w) .. "]" .. _who(_pnOf(w)))
     return true
 end
 
 -- D-pad: an X-hold drag first, then an open pop-up list, then the focused
 -- element's own onDpadDir (cursor movement, grid scroll), else the flat
 -- spatial pick across all focusable zones.
+
+-- The X-hold drag of w's player, when one is armed: the D-pad goes to the
+-- element's drag handler (see the intercept below). True when it did.
+local function _xDragMove(w, dir)
+    local s = _st[_pnOf(w)]
+    if not (s and s.xHeld and s.xUsed and s.xEl and s.xEl.onHoldContextDrag) then return false end
+    local el = s.xEl
+    _fireCb("element.onHoldContextDrag(dir)",
+        function(ww, ee) el.onHoldContextDrag(ww, ee, dir) end,
+        s.xWin or w, el)
+    return true
+end
+
 local function _handleSpatialNav(w, dir)
     _fresh(w)
     if not w or not w._focusRing then return end
@@ -1254,12 +1378,7 @@ local function _handleSpatialNav(w, dir)
     -- its position/state via the callback. Fires BEFORE generic onDpadDir
     -- so a drag-capable element can be reordered without conflicting with
     -- its idle-state navigation behavior.
-    if not _preview and _xHeld and _xConsumed and _xElement and _xElement.onHoldContextDrag then
-        _fireCb("element.onHoldContextDrag(dir)",
-            function(ww, ee) _xElement.onHoldContextDrag(ww, ee, dir) end,
-            _xWindow or w, _xElement)
-        return
-    end
+    if not _preview and _xDragMove(w, dir) then return end
 
     -- An open pop-up list keeps the controller inside it: the list is modal,
     -- its rows alone are the stops while it is open, and the rest of the
@@ -1306,7 +1425,7 @@ local function _handleSpatialNav(w, dir)
                     return
                 end
                 w._navLast = { fromZone = fromNow.zone, fromId = fromNowEl.id, dir = dir, toZone = z.zone, toId = e.id }
-                print("[ZeD.Input] Focus: spatial " .. dir .. " -> back to " .. tostring(e.id) .. " [" .. _label(w) .. "]")
+                print("[ZeD.Input] Focus: spatial " .. dir .. " -> back to " .. tostring(e.id) .. " [" .. _label(w) .. "]" .. _who(_pnOf(w)))
                 _applyFlatLanding(w, locator, fromIdx, i)
                 return
             end
@@ -1379,7 +1498,7 @@ local function _handleSpatialNav(w, dir)
                     _preview.zone, _preview.id, _preview.pass = "window", _label(other), "window"
                     return
                 end
-                print("[ZeD.Input] Focus: spatial " .. dir .. " -> window " .. _label(other))
+                print("[ZeD.Input] Focus: spatial " .. dir .. " -> window " .. _label(other) .. _who(_pnOf(w)))
                 Focus.claimFocus(other)
                 pcall(function() getSoundManager():playUISound("UISelectListItem") end)
             end
@@ -1554,7 +1673,7 @@ local function _handleSpatialNav(w, dir)
     print("[ZeD.Input] Focus: spatial " .. dir .. " -> flat[" .. newFlatIdx
        .. "/" .. #elements .. "] (" .. tostring(pass) .. ") zone="
        .. tostring(w._focusRing[locator[newFlatIdx].zoneIdx].zone)
-       .. " [" .. _label(w) .. "]")
+       .. " [" .. _label(w) .. "]" .. _who(_pnOf(w)))
     _applyFlatLanding(w, locator, logFromIdx, newFlatIdx)
 end
 
@@ -1564,7 +1683,8 @@ end
 local _spatialNavCore = _handleSpatialNav
 _handleSpatialNav = function(w, dir)
     _spatialNavCore(w, dir)
-    if (not _preview) and _aHeld and _aConsumed and w and w._gpPaint then
+    local s = w and _st[_pnOf(w)]
+    if (not _preview) and s and s.aHeld and s.aUsed and w._gpPaint then
         local el = Focus.getFocusedElement(w)
         if el and el.onPaint then
             local paint = w._gpPaint
@@ -1573,80 +1693,84 @@ _handleSpatialNav = function(w, dir)
     end
 end
 
--- Hide every registered window (windowshade) + release focus: the aiming
--- escape. Idempotent. A window with halves (WindowHalves.lua) rolls only its
--- unpinned halves: a pinned half stays as it is.
-local function _hideAllWindows(reason)
-    if #_windowRegistry == 0 then return end
-    print("[ZeD.Input] Focus: hideAll (" .. (reason or "?") .. ")")
+-- Hide every registered window of player pn (windowshade) + release their
+-- focus: the aiming escape. Idempotent. A window with halves (WindowHalves.lua)
+-- rolls only its unpinned halves: a pinned half stays as it is.
+local function _hideAllWindows(reason, pn)
+    if _countOf(pn) == 0 then return end
+    print("[ZeD.Input] Focus: hideAll (" .. (reason or "?") .. ")" .. _who(pn))
     for _, w in ipairs(_windowRegistry) do
-        if w._halves and ZeD.Halves then
+        if _pnOf(w) ~= pn then
+            -- (another player's window: theirs to roll up)
+        elseif w._halves and ZeD.Halves then
             ZeD.Halves.aim(w)
         elseif w.setWindowShaded and not w.windowShaded then
             w:setWindowShaded(true)
         end
     end
-    Focus.releaseFocus()
+    Focus.releaseFocus(pn)
 end
 
--- Close every registered window (hard close). Copies registry first because
--- close() re-enters unregisterWindow and mutates the array mid-iteration.
-local function _closeAllWindows()
-    if #_windowRegistry == 0 then return end
-    print("[ZeD.Input] Focus: closeAll")
+-- Close every registered window of player pn (hard close). Copies them first
+-- because close() re-enters unregisterWindow and mutates the array mid-iteration.
+local function _closeAllWindows(pn)
+    if _countOf(pn) == 0 then return end
+    print("[ZeD.Input] Focus: closeAll" .. _who(pn))
     local toClose = {}
-    for _, w in ipairs(_windowRegistry) do toClose[#toClose + 1] = w end
+    for _, w in ipairs(_windowRegistry) do
+        if _pnOf(w) == pn then toClose[#toClose + 1] = w end
+    end
     for _, w in ipairs(toClose) do
         if w.close then
             pcall(function() w:close() end)
         end
     end
-    Focus.releaseFocus()
+    Focus.releaseFocus(pn)
 end
 
--- Y tap: paired visibility toggle.
+-- Y tap: player pn's paired visibility toggle.
 --   both closed   → open both (Character focus)
 --   both visible  → hide both (windowshade, release focus)
 --   both shaded   → unhide both (Character focus)
 --   mixed         → normalize via ensureBothOpenForGamepad + unhide all,
 --                   focus Character (gamepad invariant: paired)
-local function _handleYTap()
+local function _handleYTap(pn)
     local CW = ZeD_CharacterWindow
     local WW = ZeD_WorldWindow
     if not CW or not WW then return end
 
-    local charOpen  = CW.isOpen and CW.isOpen()
-    local worldOpen = WW.isOpen and WW.isOpen()
+    local charOpen  = CW.isOpen and CW.isOpen(pn)
+    local worldOpen = WW.isOpen and WW.isOpen(pn)
 
     -- Both closed: open both.
     if (not charOpen) and (not worldOpen) then
         if CW.ensureBothOpenForGamepad then
-            CW.ensureBothOpenForGamepad(0)
+            CW.ensureBothOpenForGamepad(pn)
         elseif CW.toggleBothPaired then
-            CW.toggleBothPaired(0)
+            CW.toggleBothPaired(pn)
         end
-        local charWin = CW.getWindow and CW.getWindow()
+        local charWin = CW.getWindow and CW.getWindow(pn)
         if charWin then Focus.claimFocus(charWin) end
-        print("[ZeD.Input] Focus: Y tap - opened pair, Character focus")
+        print("[ZeD.Input] Focus: Y tap - opened pair, Character focus" .. _who(pn))
         return
     end
 
     -- Mixed (one open, one closed): enforce invariant.
     if charOpen ~= worldOpen then
-        if CW.ensureBothOpenForGamepad then CW.ensureBothOpenForGamepad(0) end
-        local charWin = CW.getWindow and CW.getWindow()
+        if CW.ensureBothOpenForGamepad then CW.ensureBothOpenForGamepad(pn) end
+        local charWin = CW.getWindow and CW.getWindow(pn)
         if charWin then
             Focus.showWin(charWin)
             Focus.claimFocus(charWin)
         end
-        Focus.showWin(WW.getWindow and WW.getWindow())
-        print("[ZeD.Input] Focus: Y tap - normalized pair, Character focus")
+        Focus.showWin(WW.getWindow and WW.getWindow(pn))
+        print("[ZeD.Input] Focus: Y tap - normalized pair, Character focus" .. _who(pn))
         return
     end
 
     -- Both open: visibility toggle (paired).
-    local charWin  = CW.getWindow  and CW.getWindow()
-    local worldWin = WW.getWindow  and WW.getWindow()
+    local charWin  = CW.getWindow  and CW.getWindow(pn)
+    local worldWin = WW.getWindow  and WW.getWindow(pn)
     if not charWin or not worldWin then return end
 
     -- (a window with a half rolled by itself counts as rolled: one Y brings that half
@@ -1659,8 +1783,8 @@ local function _handleYTap()
     if bothVisible then
         if charWin.setWindowShaded  then charWin:setWindowShaded(true)  end
         if worldWin.setWindowShaded then worldWin:setWindowShaded(true) end
-        Focus.releaseFocus()
-        print("[ZeD.Input] Focus: Y tap - hide pair")
+        Focus.releaseFocus(pn)
+        print("[ZeD.Input] Focus: Y tap - hide pair" .. _who(pn))
         return
     end
 
@@ -1668,7 +1792,7 @@ local function _handleYTap()
         Focus.showWin(charWin)
         Focus.showWin(worldWin)
         Focus.claimFocus(charWin)
-        print("[ZeD.Input] Focus: Y tap - unhide pair, Character focus")
+        print("[ZeD.Input] Focus: Y tap - unhide pair, Character focus" .. _who(pn))
         return
     end
 
@@ -1676,28 +1800,44 @@ local function _handleYTap()
     if charShaded  then Focus.showWin(charWin)  end
     if worldShaded then Focus.showWin(worldWin) end
     Focus.claimFocus(charWin)
-    print("[ZeD.Input] Focus: Y tap - normalized visibility, Character focus")
+    print("[ZeD.Input] Focus: Y tap - normalized visibility, Character focus" .. _who(pn))
 end
 
--- Y hold: close every registered window (full lifecycle teardown — each
--- window's close() unregisters it through Focus.unregisterWindow).
-local function _handleYHold()
-    print("[ZeD.Input] Focus: Y hold - close pair")
-    _closeAllWindows()
+-- Y hold: close every registered window of player pn (full lifecycle teardown
+-- — each window's close() unregisters it through Focus.unregisterWindow).
+local function _handleYHold(pn)
+    print("[ZeD.Input] Focus: Y hold - close pair" .. _who(pn))
+    _closeAllWindows(pn)
 end
 
 -- ---------------------------------------------------------------------------
 -- DISPATCH ENTRY POINTS
 -- ---------------------------------------------------------------------------
 
+-- The player a press on w belongs to: w's own. nil when the pad pressing is
+-- another local player's (that slot's engine focus left on w): such a press
+-- is dropped, never worked on w's player's holds or focus. A press with no
+-- joypadData, or a pad not playing yet, counts as w's player's, as before.
+local function _pressPn(w, joypadData)
+    local pn = _pnOf(w)
+    local jp = (type(joypadData) == "table") and joypadData.player or nil
+    if type(jp) == "number" and jp ~= pn then return nil end
+    return pn
+end
+
 --- A pad button went down while w holds the pad (w's onJoypadDown stub calls
 --- this). Shows the focus marks, names the button through ActionMap and
 --- routes it: A, X and Y arm their tap-vs-hold timers (settled on the tick),
 --- LB / RB pick a window, B cancels, L3 / R3 change the list's view.
+--- The press is worked on the record of w's player; a press from another
+--- player's pad (its slot's engine focus left on w) is dropped.
 function Focus.dispatchJoypadDown(w, button, joypadData)
     if not w then return end
+    local pn = _pressPn(w, joypadData)
+    if pn == nil then return end
+    local s = _S(pn)
     _fresh(w)
-    _showCues()
+    _showCues(s)
     -- B also hides the balloon that is up until the focus moves on (B still does its own job)
     if button == Joypad.BButton and ZeD.Balloon and ZeD.Balloon.dismiss then ZeD.Balloon.dismiss() end
     local actions = ZeD.Input.Action and ZeD.Input.Action.fromGamepadButton
@@ -1710,11 +1850,11 @@ function Focus.dispatchJoypadDown(w, button, joypadData)
             -- A = tap-vs-hold. Defer firing until release (tap → onActivate)
             -- or hold threshold (A_HOLD_MS → onHoldActivate). Re-press during
             -- a hold cycle is a noop.
-            if not _aHeld then
-                _aHeld      = true
-                _aStartMs   = getTimestampMs()
-                _aConsumed  = false
-                _aWindow    = w
+            if not s.aHeld then
+                s.aHeld  = true
+                s.aStart = getTimestampMs()
+                s.aUsed  = false
+                s.aWin   = w
             end
             return
         elseif aid == "context_menu" then
@@ -1723,27 +1863,27 @@ function Focus.dispatchJoypadDown(w, button, joypadData)
             -- (onHoldContextDrag fires with no dir; subsequent D-pad presses
             -- fire onHoldContextDrag(dir); release fires onHoldContextRelease).
             -- Defer firing until release/threshold (mirror of A).
-            if not _xHeld then
-                _xHeld      = true
-                _xStartMs   = getTimestampMs()
-                _xConsumed  = false
-                _xWindow    = w
-                _xElement   = Focus.getFocusedElement(w)
+            if not s.xHeld then
+                s.xHeld  = true
+                s.xStart = getTimestampMs()
+                s.xUsed  = false
+                s.xWin   = w
+                s.xEl    = Focus.getFocusedElement(w)
             end
             return
         elseif aid == "window_prev" then
-            _focusWindow("char"); return    -- LB → Character (absolute)
+            _focusWindow("char", pn); return    -- LB → Character (absolute)
         elseif aid == "window_next" then
-            _focusWindow("world"); return   -- RB → World (absolute)
+            _focusWindow("world", pn); return   -- RB → World (absolute)
         elseif aid == "cancel" then
             -- B is immediate (no hold): a purely contextual cancel.
-            _handleBContextual(); return
+            _handleBContextual(pn); return
         elseif aid == "window_control" then
             -- Y press arms hold timer. OnTick decides tap vs hold.
-            if not _yHeld then
-                _yHeld      = true
-                _yStartMs   = getTimestampMs()
-                _yConsumed  = false
+            if not s.yHeld then
+                s.yHeld  = true
+                s.yStart = getTimestampMs()
+                s.yUsed  = false
             end
             return
         elseif aid == "list_sort" or aid == "list_view" then
@@ -1796,11 +1936,13 @@ end
 -- the stops (focusByIdSoon and the like) and none a tab named for its next rebuild (the card jump on Craft and
 -- Build, the new zone and the breadcrumb on Animals, the vehicle's target), so what a rebuild does with those comes
 -- on the frame it always did. Anything here that reads the stops brings them up to date first (w._focusFresh).
+-- The mouse and keyboard are player 1's: another player's window is always on a pad, so its stops never wait.
 function Focus.stopsMayWait(w)
     local D = ZeD.Input.Detector
     if not (w and D and D.getMode and D.getMode() == "kbm") then return false end
+    if _pnOf(w) ~= 0 then return false end
     if ZEDQA_FRESH_STOPS then return false end   -- (QA scripts read w._focusRing directly: the QA prelude keeps the stops fresh)
-    if _cuesOn or Focus.soonPending(w) then return false end
+    if _st0.cues or Focus.soonPending(w) then return false end
     if w._mechFocusTarget or w._animalsFocusAfterCreate or w._animalsNavFocusTarget then return false end
     local cs, bs = w._craftState, w._buildState
     if (cs and cs._gpPendingCardJump) or (bs and bs._gpPendingCardJump) then return false end
@@ -1867,25 +2009,34 @@ end
 
 --- A D-pad press while w holds the pad (w's onJoypadDir* stubs call this;
 --- dir is "up" / "down" / "left" / "right"). Shows the focus marks, starts
---- the hold-to-repeat clock and runs the move.
+--- the hold-to-repeat clock and runs the move. A press from another player's
+--- pad is dropped, as in dispatchJoypadDown.
 function Focus.dispatchJoypadDir(w, dir, joypadData)
     if not w then return end
-    _showCues()
+    local pn = _pressPn(w, joypadData)
+    if pn == nil then return end
+    local s = _S(pn)
+    _showCues(s)
 
-    -- Track hold-start for auto-repeat. Engine fires onJoypadDir* on initial
-    -- press only; OnTick does the repeat work.
-    if _dpadHoldDir ~= dir then
-        _dpadHoldDir    = dir
-        _dpadHoldStart  = getTimestampMs()
-        _dpadLastRepeat = _dpadHoldStart
+    -- Track hold-start for auto-repeat. Two repeats reach the move while the
+    -- D-pad stays down, and both stay: the tick's below (holdInitMs, then
+    -- every holdRepeatMs) and the engine's own (it calls onJoypadDir* again
+    -- after 300 ms, then faster, JoyPadSetup.lua).
+    if s.dDir ~= dir then
+        s.dDir   = dir
+        s.dStart = getTimestampMs()
+        s.dLast  = s.dStart
     end
 
     _handleSpatialNav(w, dir)
 end
 
 -- ---------------------------------------------------------------------------
--- ONTICK POLL — every tick, and every drawn frame while the game is paused
---   (A) Mode gate (outside gamepad mode, every hold and repeat is dropped)
+-- ONTICK POLL — every tick, and every drawn frame while the game is paused;
+-- player 1 first, then each other local player who is playing, each on their
+-- own pad and record
+--   (A) Mode gate (outside gamepad mode, every hold and repeat is dropped;
+--       players 2-4 are always on a pad)
 --   then: never focus with nothing lit (Focus.ensureEntry), and hand a pad
 --         left with no focus back to the focused window
 --   (B) Global Y rising edge (only when no window focused) — opens the pair
@@ -1907,55 +2058,98 @@ local function _currentDpadDir(joypadData)
     return nil
 end
 
-local _qaBtn = {}
 --- QA hook: a QA script may hold a pad button on a rig with no pad bound.
---- Focus.qaButton(name, true) holds the button, false lets it go, nil hands it back to the pad.
-function Focus.qaButton(name, down) _qaBtn[name] = down end
-local function _btnDown(name, jid)
-    local o = _qaBtn[name]
+--- Focus.qaButton(name, true, pn) holds the button of player pn's pad (pn
+--- missing: player 1's), false lets it go, nil hands it back to the pad.
+function Focus.qaButton(name, down, pn)
+    local s = _S(pn)
+    local was = s.qa[name]
+    if was == nil and down ~= nil then s.qaN = s.qaN + 1 end
+    if was ~= nil and down == nil then s.qaN = s.qaN - 1 end
+    s.qa[name] = down
+end
+local function _btnDown(name, jid, s)
+    local o = s.qa[name]
     if o ~= nil then return o end
     if jid == nil then return false end
     return JoypadButton[name]:isDown(jid)
 end
 
--- the Y, A and X holds: a tap on release, the hold at its threshold (A and X 350 ms; Y the
--- gp.holdMs token, 400). jid may be nil (no pad bound): the holds still run so QA's hook can
--- drive them; a nil pad reads as every button up.
-local function _holdTicks(jid)
+-- Every hold and the D-pad repeat dropped without firing (the mouse took
+-- over, or the pad went away mid-hold: a hold cut short is no tap).
+local function _dropHolds(s)
+    if s.dDir      then s.dDir = nil end
+    if s.yHeld     then s.yHeld = false; s.yUsed = false end
+    if s.prevY     then s.prevY = false end
+    if s.wsLatched then s.wsLatched = false end
+    if s.aHeld     then if s.aWin then s.aWin._gpPaint = nil end; s.aHeld = false; s.aUsed = false; s.aWin = nil end
+    if s.xHeld     then s.xHeld = false; s.xUsed = false; s.xWin = nil; s.xEl = nil end
+end
+
+-- A player's pad id to read, or nil: a slot with no pad, one that lost its
+-- pad (id -1, which the engine reads as every pad's A, B, X and Y), or a
+-- controller no longer connected (it reads all up).
+local function _padOf(pn)
+    local jd = getJoypadData and getJoypadData(pn)
+    local jid = jd and jd.id or nil
+    if type(jid) == "number" and (jid < 0 or (isControllerConnected and not isControllerConnected(jid))) then
+        jid = nil
+    end
+    return jid, jd
+end
+
+-- The holds dropped and Y's last level taken from the pad as it is, so a
+-- button held through a new character, a respawn or a return to play is no
+-- new press. The window and the marks stay.
+local function _resume(s, pn)
+    _dropHolds(s)
+    local jid = _padOf(pn)
+    if jid ~= nil and JoypadButton then s.prevY = _btnDown("Y", jid, s) and true or false end
+    s.away = false
+end
+
+-- the Y, A and X holds of player pn: a tap on release, the hold at its threshold (A and X
+-- 350 ms; Y the gp.holdMs token, 400). jid may be nil (no pad bound) only while QA's hook holds
+-- a button of this player (Focus.qaButton): a nil pad reads as every button up.
+local function _holdTicks(s, jid, pn)
     if Focus.held() then
-        _yHeld, _yConsumed = false, false
-        _prevYPressedUnfocused = _btnDown("Y", jid)
+        s.yHeld, s.yUsed = false, false
+        s.prevY = _btnDown("Y", jid, s)
         return
     end
-    if not _focusedWindow then
-        local yNow = _btnDown("Y", jid)
-        -- (with a bumper held, Y is a quick action chord, ZeD_QuickChords.lua, never the windows)
-        local bumper = _btnDown("LeftBump", jid) or _btnDown("RightBump", jid)
-        -- (a D-pad wheel up: Y does nothing. This raw poll would read Y straight past the wheel's hold on the pad.)
-        local wheel = ZeD.DpadWheels and ZeD.DpadWheels.state and ZeD.DpadWheels.state[0]
-        if yNow and (not _prevYPressedUnfocused) and (not _yHeld) and not bumper and not wheel then
-            _yHeld      = true
-            _yStartMs   = getTimestampMs()
-            _yConsumed  = false
+    if not s.win then
+        -- (Y opens ZeD's pair only for a player whose windows they are, ZeD.windowsFor: the
+        -- others' Y is the game's own inventory)
+        if _ownsWindows(pn) then
+            local yNow = _btnDown("Y", jid, s)
+            -- (with a bumper held, Y is a quick action chord, ZeD_QuickChords.lua, never the windows)
+            local bumper = _btnDown("LeftBump", jid, s) or _btnDown("RightBump", jid, s)
+            -- (a D-pad wheel up: Y does nothing. This raw poll would read Y straight past the wheel's hold on the pad.)
+            local wheel = ZeD.DpadWheels and ZeD.DpadWheels.state and ZeD.DpadWheels.state[pn]
+            if yNow and (not s.prevY) and (not s.yHeld) and not bumper and not wheel then
+                s.yHeld  = true
+                s.yStart = getTimestampMs()
+                s.yUsed  = false
+            end
+            s.prevY = yNow
         end
-        _prevYPressedUnfocused = yNow
     else
-        _prevYPressedUnfocused = false
+        s.prevY = false
     end
 
     -- (C) Y hold-timer.
-    if _yHeld then
-        local stillDown = _btnDown("Y", jid)
+    if s.yHeld then
+        local stillDown = _btnDown("Y", jid, s)
         if stillDown then
-            if (not _yConsumed) and (getTimestampMs() - _yStartMs) >= _holdMs() then
-                _handleYHold()
-                _yConsumed = true
+            if (not s.yUsed) and (getTimestampMs() - s.yStart) >= _holdMs() then
+                _handleYHold(pn)
+                s.yUsed = true
             end
         else
-            if not _yConsumed then _handleYTap() end
-            _yHeld     = false
-            _yStartMs  = 0
-            _yConsumed = false
+            if not s.yUsed then _handleYTap(pn) end
+            s.yHeld  = false
+            s.yStart = 0
+            s.yUsed  = false
         end
     end
 
@@ -1963,174 +2157,226 @@ local function _holdTicks(jid)
     -- A_HOLD_MS → onHoldActivate (if focused element defines it). Released-
     -- early without a hold target fires onActivate; released-early after
     -- threshold already fired _handleHoldConfirm and is marked consumed.
-    if _aHeld then
-        local stillDown = _btnDown("A", jid)
+    if s.aHeld then
+        local stillDown = _btnDown("A", jid, s)
         if stillDown then
-            if (not _aConsumed) and (getTimestampMs() - _aStartMs) >= A_HOLD_MS then
-                local targetW = _aWindow or _focusedWindow
+            if (not s.aUsed) and (getTimestampMs() - s.aStart) >= A_HOLD_MS then
+                local targetW = s.aWin or s.win
                 local el = targetW and Focus.getFocusedElement(targetW) or nil
                 if el and el.onHoldActivate then
                     _handleHoldConfirm(targetW)
-                    _aConsumed = true
+                    s.aUsed = true
                 end
             end
         else
-            if not _aConsumed then
-                local targetW = _aWindow or _focusedWindow
+            if not s.aUsed then
+                local targetW = s.aWin or s.win
                 if targetW then _handleConfirm(targetW) end
             end
-            if _aWindow then _aWindow._gpPaint = nil end   -- (the painted run ends with the hold)
-            _aHeld     = false
-            _aStartMs  = 0
-            _aConsumed = false
-            _aWindow   = nil
+            if s.aWin then s.aWin._gpPaint = nil end   -- (the painted run ends with the hold)
+            s.aHeld  = false
+            s.aStart = 0
+            s.aUsed  = false
+            s.aWin   = nil
         end
     end
 
     -- (C3) X tap-vs-hold resolver. Tap → onContextMenu/onReset on
     -- release; hold past X_HOLD_MS → onHoldContextDrag(w, el, nil) (drag-mode
     -- entry, dir == nil signals "armed"), else onHoldContext once. On release
-    -- after consumption, fire onHoldContextRelease (commit). _xElement is
+    -- after consumption, fire onHoldContextRelease (commit). s.xEl is
     -- captured at press to lock the drag target — focused element may shift
     -- if a D-pad move fires mid-hold (defensive, shouldn't happen since D-pad
     -- is intercepted).
-    if _xHeld then
-        local stillDown = _btnDown("X", jid)
+    if s.xHeld then
+        local stillDown = _btnDown("X", jid, s)
         if stillDown then
-            if (not _xConsumed) and (getTimestampMs() - _xStartMs) >= X_HOLD_MS then
-                local el = _xElement
+            if (not s.xUsed) and (getTimestampMs() - s.xStart) >= X_HOLD_MS then
+                local el = s.xEl
                 if el and el.onHoldContextDrag then
                     _fireCb("element.onHoldContextDrag(arm)",
                         function(w, e) el.onHoldContextDrag(w, e, nil) end,
-                        _xWindow or _focusedWindow, el)
-                    _xConsumed = true
+                        s.xWin or s.win, el)
+                    s.xUsed = true
                 elseif el and el.onHoldContext then
                     -- a one-shot hold with no drag (hold X on a row is the quick use)
-                    _fireCb("element.onHoldContext", el.onHoldContext, _xWindow or _focusedWindow, el)
-                    _xConsumed = true
+                    _fireCb("element.onHoldContext", el.onHoldContext, s.xWin or s.win, el)
+                    s.xUsed = true
                 end
             end
         else
-            if _xConsumed then
+            if s.xUsed then
                 -- Was a hold — fire release callback if defined.
-                local targetW = _xWindow or _focusedWindow
-                local el = _xElement
+                local targetW = s.xWin or s.win
+                local el = s.xEl
                 if el and el.onHoldContextRelease then
                     _fireCb("element.onHoldContextRelease",
                         el.onHoldContextRelease, targetW, el)
                 end
             else
                 -- Was a tap — fire normal context-menu / reset path.
-                local targetW = _xWindow or _focusedWindow
+                local targetW = s.xWin or s.win
                 if targetW then _handleContextOrReset(targetW) end
             end
-            _xHeld     = false
-            _xStartMs  = 0
-            _xConsumed = false
-            _xWindow   = nil
-            _xElement  = nil
+            s.xHeld  = false
+            s.xStart = 0
+            s.xUsed  = false
+            s.xWin   = nil
+            s.xEl    = nil
         end
     end
 end
 
-local function _onTick()
+-- The right stick's strongest push that counts for player pn's aiming escape.
+-- Player 1: every connected controller but the ones another local player plays
+-- with (a pad nobody plays with still counts, as it always did: the Deck's
+-- phantom slot). Players 2-4: their own pad only. Walk the controllers by
+-- index: getControllerAxisValue wants the int index, not
+-- joypadData.controller (a Lua table). No math.abs() on axis reads — on
+-- drivers whose triggers rest at -1 it reads a resting trigger as fully
+-- pulled; the stick's ax²+ay² is never negative anyway.
+local function _aimMagSq(pn, jid)
+    if pn ~= 0 then
+        local rx = getControllerAxisValue(jid, AXIS_RSTICK_X) or 0
+        local ry = getControllerAxisValue(jid, AXIS_RSTICK_Y) or 0
+        return rx * rx + ry * ry
+    end
+    local D = ZeD.Input.Detector
+    local owner = D and D.padOwner
+    local maxMagSq = 0
+    local n = (getControllerCount and getControllerCount()) or 0
+    for ctlIdx = 0, n - 1 do
+        if isControllerConnected and isControllerConnected(ctlIdx) then
+            local o = owner and owner(ctlIdx) or nil
+            if o == nil or o == 0 then
+                local rx = getControllerAxisValue(ctlIdx, AXIS_RSTICK_X) or 0
+                local ry = getControllerAxisValue(ctlIdx, AXIS_RSTICK_Y) or 0
+                local m2 = rx*rx + ry*ry
+                if m2 > maxMagSq then maxMagSq = m2 end
+            end
+        end
+    end
+    return maxMagSq
+end
+
+-- One player's poll; player 1's is the poll this file had before split-screen, step for step.
+local function _tickPlayer(pn, s)
     -- (A) Mode gate.
-    local mode = ZeD.Input.Detector and ZeD.Input.Detector.getMode
-                 and ZeD.Input.Detector.getMode()
-    if mode ~= "gamepad" then
-        if _dpadHoldDir           then _dpadHoldDir = nil end
-        if _yHeld                 then _yHeld = false; _yConsumed = false end
-        if _prevYPressedUnfocused then _prevYPressedUnfocused = false end
-        if _wsLatched             then _wsLatched = false end
-        if _aHeld                 then if _aWindow then _aWindow._gpPaint = nil end; _aHeld = false; _aConsumed = false; _aWindow = nil end
-        if _xHeld                 then _xHeld = false; _xConsumed = false; _xWindow = nil; _xElement = nil end
+    if _modeOf(pn) ~= "gamepad" then
+        _dropHolds(s)
         return
     end
 
     -- Never focus with nothing lit. A fresh window lands on its
     -- list's first row once the rows exist; focus left on a zone that went
     -- away (a card closed, a tab emptied) moves to the list (Focus.ensureEntry)
-    if _focusedWindow and (_focusedWindow._focusPendingEntry or not _focusLive(_focusedWindow)) then
-        local ok, err = pcall(Focus.ensureEntry, _focusedWindow)
+    if s.win and (s.win._focusPendingEntry or not _focusLive(s.win)) then
+        local ok, err = pcall(Focus.ensureEntry, s.win)
         if not ok then print("[ZeD.Input] Focus: ensureEntry failed: " .. tostring(err)) end
     end
     -- A prompt or menu that closed and left the pad with no focus at all
     -- hands it back to the focused window, on the element it had; left
     -- alone, the pad would go to the game and the next press act in the world
-    if _focusedWindow and JoypadState and JoypadState.players and JoypadState.players[1]
-       and getJoypadFocus and getJoypadFocus(0) == nil
-       and _focusedWindow:isVisible() and not _focusedWindow.windowShaded then
-        _pushEngineFocus(_focusedWindow)
+    if s.win and JoypadState and JoypadState.players and JoypadState.players[pn + 1]
+       and getJoypadFocus and getJoypadFocus(pn) == nil
+       and s.win:isVisible() and not s.win.windowShaded then
+        _pushEngineFocus(s.win, pn)
     end
 
-    local jd = getJoypadData and getJoypadData(0)
-    local jid = jd and jd.id or nil
-    _holdTicks(jid)   -- (before the no-pad return: QA's hook drives the holds with no pad bound)
+    local jid, jd = _padOf(pn)
+    -- no pad to read: the holds go without firing, unless QA's hook is holding
+    -- a button (it drives the holds with no pad bound)
+    if jid == nil and s.qaN == 0 then
+        _dropHolds(s)
+        return
+    end
+    _holdTicks(s, jid, pn)
     if not jid then return end
 
     -- (D) Aiming escape. Right-stick magnitude² > threshold → roll up every
-    -- registered window and release focus. No lock state (the Y-hold lock is
-    -- gone); it fires whenever active, outside the grace after a claim.
-    -- Walk the connected controllers by index: getControllerAxisValue wants
-    -- the int index, not joypadData.controller (a Lua table). No math.abs()
-    -- on axis reads — on drivers whose triggers rest at -1 it reads a resting
-    -- trigger as fully pulled; the stick's ax²+ay² is never negative anyway.
-    local aimThSq = _aimingThresholdSq()
-    local maxMagSq = 0
-    local n = (getControllerCount and getControllerCount()) or 0
-    for ctlIdx = 0, n - 1 do
-        if isControllerConnected and isControllerConnected(ctlIdx) then
-            local rx = getControllerAxisValue(ctlIdx, AXIS_RSTICK_X) or 0
-            local ry = getControllerAxisValue(ctlIdx, AXIS_RSTICK_Y) or 0
-            local m2 = rx*rx + ry*ry
-            if m2 > maxMagSq then maxMagSq = m2 end
-        end
-    end
-
-    local aimingActive = (maxMagSq > aimThSq)
-    local graceActive  = (getTimestampMs() < _wsGraceUntilMs)
-    local canFire = aimingActive and _focusedWindow and (not _wsLatched)
+    -- registered window of this player and release their focus. No lock state
+    -- (the Y-hold lock is gone); it fires whenever active, outside the grace
+    -- after a claim.
+    local maxMagSq = _aimMagSq(pn, jid)
+    local aimingActive = (maxMagSq > _aimingThresholdSq())
+    local graceActive  = (getTimestampMs() < s.wsGrace)
+    local canFire = aimingActive and s.win and (not s.wsLatched)
                     and (not graceActive)
 
     if canFire then
-        _wsLatched = true
+        s.wsLatched = true
         print("[ZeD.Input] Focus: aiming-escape magSq=" .. tostring(maxMagSq)
-           .. " " .. _label(_focusedWindow))
-        _hideAllWindows("aim-RS")
+           .. " " .. _label(s.win) .. _who(pn))
+        _hideAllWindows("aim-RS", pn)
         return
     end
 
     -- Edge latch bookkeeping: latch when aiming-active, unlatch when in deadzone.
     if aimingActive then
-        _wsLatched = true
+        s.wsLatched = true
     else
-        _wsLatched = false
+        s.wsLatched = false
     end
 
     -- (E) D-pad hold-to-repeat (only if still focused after aiming-escape path).
-    if not _focusedWindow then
-        if _dpadHoldDir then _dpadHoldDir = nil end
+    if not s.win then
+        if s.dDir then s.dDir = nil end
         return
     end
 
     local dir = _currentDpadDir(jd)
     if not dir then
-        if _dpadHoldDir then _dpadHoldDir = nil end
+        if s.dDir then s.dDir = nil end
         return
     end
 
-    if dir ~= _dpadHoldDir then
-        _dpadHoldDir    = dir
-        _dpadHoldStart  = getTimestampMs()
-        _dpadLastRepeat = _dpadHoldStart
+    if dir ~= s.dDir then
+        s.dDir   = dir
+        s.dStart = getTimestampMs()
+        s.dLast  = s.dStart
         return
     end
 
     local now = getTimestampMs()
-    if (now - _dpadHoldStart) >= _holdInitialMs()
-       and (now - _dpadLastRepeat) >= _holdRepeatMs() then
-        _handleSpatialNav(_focusedWindow, dir)
-        _dpadLastRepeat = now
+    if (now - s.dStart) >= _holdInitialMs()
+       and (now - s.dLast) >= _holdRepeatMs() then
+        _handleSpatialNav(s.win, dir)
+        s.dLast = now
+    end
+end
+
+local MAX_PN = 3   -- the last local player's number (four players at most)
+
+-- Whether player pn (1-3) is playing: their pad's slot is bound to them and
+-- their character is alive. The game keeps the slot through the post-death
+-- screen and binds it again before the new character exists (character
+-- creation's accept), so the slot alone is not enough.
+local function _playing(P, pn)
+    local jd = P[pn + 1]
+    if not (jd and jd.player == pn) then return false end
+    local p = getSpecificPlayer and getSpecificPlayer(pn)
+    return p ~= nil and not p:isDead()
+end
+
+local function _onTick()
+    _tickPlayer(0, _st0)
+    -- players 2-4, each on their own pad. Theirs run under pcall so one
+    -- player's error never stops the others; player 1's errors surface as before.
+    local P = JoypadState and JoypadState.players
+    if not P then return end
+    for pn = 1, MAX_PN do
+        if _playing(P, pn) then
+            local s = _S(pn)
+            if s.away then _resume(s, pn) end
+            local ok, err = pcall(_tickPlayer, pn, s)
+            if not ok and not s.tickErr then
+                s.tickErr = true
+                print("[ZeD.Input] Focus: tick failed: " .. tostring(err) .. _who(pn))
+            end
+        else
+            local s = _st[pn]
+            if s then s.away = true end
+        end
     end
 end
 
@@ -2159,13 +2405,41 @@ if Events.OnRenderTick then
 end
 if Events.OnRenderTick then Events.OnRenderTick.Add(_watchCueMouse) end
 
+-- A player's number can come back with another pad and another character (a
+-- respawn, or a new player in a dead player's number). Players 2-4 start over
+-- (their painted run cleared, their next tick starting from the pad as it
+-- is); player 1 keeps the window, the marks and QA's held buttons, and drops
+-- only the holds. Nothing here touches the engine focus: the post-death
+-- screen and character creation own it then.
+local function _forget(pn)
+    if type(pn) ~= "number" then return end
+    if pn == 0 then
+        _resume(_st0, 0)
+        return
+    end
+    local old = _st[pn]
+    if old and old.aWin then old.aWin._gpPaint = nil end
+    _st[pn] = nil
+    _S(pn)
+end
+if Events.OnCreatePlayer then
+    Events.OnCreatePlayer.Add(function(pn) _forget(pn) end)
+end
+if Events.OnPlayerDeath then
+    Events.OnPlayerDeath.Add(function(p)
+        local ok, pn = pcall(function() return p:getPlayerNum() end)
+        if ok and pn ~= 0 then _forget(pn) end
+    end)
+end
+
 -- Window-pair invariant. On kbm→gamepad transition, ensure both windows
 -- are open as a pair (gamepad-only invariant; mouse mode keeps asymmetric
 -- open/closed state). Late-binds ZeD_CharacterWindow because that module
--- loads after this one (Input/* is a separate dir from the windows).
+-- loads after this one (Input/* is a separate dir from the windows). The
+-- mode is player 1's, and so are the marks it hides.
 local function _onModeChanged(newMode, oldMode)
     -- the mouse or keyboard took over: the focus marks go (the focus itself stays)
-    if newMode == "kbm" then _hideCues() end
+    if newMode == "kbm" then _hideCues(_st0) end
     if newMode == "gamepad" and oldMode ~= "gamepad" then
         if ZeD_CharacterWindow and ZeD_CharacterWindow.ensureBothOpenForGamepad then
             pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, 0)
@@ -2199,7 +2473,7 @@ Events.OnGameStart.Add(function()
         local _origRender = ZeD_Window.render
         function ZeD_Window:render()
             _origRender(self)
-            if _debugOverlay and _focusedWindow == self then
+            if _debugOverlay and _st0.win == self then
                 pcall(_drawDebugOverlay)
             end
         end

@@ -162,8 +162,9 @@ end
 -- required — any ISPanel subclass that defines these method names receives
 -- dispatch.
 --
--- These methods act only when THIS panel is the focused ZeD window (the
--- FocusManager singleton); then the focus manager takes the input
+-- These methods act only when THIS panel is the focused ZeD window of the
+-- pressing pad's player (FocusManager keeps one a local player; a press with
+-- no player named is player 1's); then the focus manager takes the input
 -- (dispatchJoypadDown maps the button to actions, dispatchJoypadDir moves
 -- the focus). Unfocused panels ignore joypad input even if joypadData.focus
 -- happens to point at them for some other reason.
@@ -177,35 +178,35 @@ end
 
 function ZeD_Panel:onJoypadDown(button, joypadData)
     if ZeD and ZeD.Input and ZeD.Input.Focus
-       and ZeD.Input.Focus.getFocusedWindow() == self then
+       and ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
         ZeD.Input.Focus.dispatchJoypadDown(self, button, joypadData)
     end
 end
 
 function ZeD_Panel:onJoypadDirUp(joypadData)
     if ZeD and ZeD.Input and ZeD.Input.Focus
-       and ZeD.Input.Focus.getFocusedWindow() == self then
+       and ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
         ZeD.Input.Focus.dispatchJoypadDir(self, "up", joypadData)
     end
 end
 
 function ZeD_Panel:onJoypadDirDown(joypadData)
     if ZeD and ZeD.Input and ZeD.Input.Focus
-       and ZeD.Input.Focus.getFocusedWindow() == self then
+       and ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
         ZeD.Input.Focus.dispatchJoypadDir(self, "down", joypadData)
     end
 end
 
 function ZeD_Panel:onJoypadDirLeft(joypadData)
     if ZeD and ZeD.Input and ZeD.Input.Focus
-       and ZeD.Input.Focus.getFocusedWindow() == self then
+       and ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
         ZeD.Input.Focus.dispatchJoypadDir(self, "left", joypadData)
     end
 end
 
 function ZeD_Panel:onJoypadDirRight(joypadData)
     if ZeD and ZeD.Input and ZeD.Input.Focus
-       and ZeD.Input.Focus.getFocusedWindow() == self then
+       and ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
         ZeD.Input.Focus.dispatchJoypadDir(self, "right", joypadData)
     end
 end

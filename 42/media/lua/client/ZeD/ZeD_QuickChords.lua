@@ -338,7 +338,9 @@ end
 -- the pad: a bumper held and one of the six pressed, in the world
 -- ---------------------------------------------------------------------------
 local FACE_OF = {}
-local consumed = {}   -- button -> true, until it is let go (its release is swallowed too)
+-- pad id -> { button -> true }: a chord's button until that pad lets it go (its release is swallowed too).
+-- Kept per pad, so one local player's chord never swallows another player's release of the same button.
+local consumed = {}
 
 local function bumperHeld(jid)
     if Q.qaBumper then return Q.qaBumper end   -- (a test hook: zedqa_quick_chords.lua holds a bumper without a pad)
@@ -363,8 +365,10 @@ function Q.onPress(joypadData, button)
     local p = getSpecificPlayer(joypadData.player)
     if not p or p:isDead() or paused() then return false end
     local F = ZeD.Input and ZeD.Input.Focus
-    if F and F.getFocusedWindow and F.getFocusedWindow() then return false end
-    consumed[button] = true
+    if F and F.getFocusedWindow and F.getFocusedWindow(joypadData.player) then return false end   -- (that player's window has the pad)
+    local mine = consumed[joypadData.id]
+    if not mine then mine = {}; consumed[joypadData.id] = mine end
+    mine[button] = true
     local chord = bump .. "+" .. face
     local ok, err = pcall(Q.run, p, chord)
     if not ok then print("[ZeD] QuickChords: " .. chord .. ": " .. tostring(err)) end
@@ -387,16 +391,24 @@ local function apply()
     end
     local origRelease = JoypadControllerData.onReleaseButton
     function JoypadControllerData:onReleaseButton(button)
-        if consumed[button] then
-            consumed[button] = nil
-            local jd = self.joypad
-            if not (jd and jd.focus) then return end   -- (in the world: the release of a chord's button is the chord's too)
+        -- (keyed on the controller's joypadData as the press is: a QA controller may carry no id of its own)
+        local jd = self.joypad
+        local mine = jd and jd.id ~= nil and consumed[jd.id]
+        if mine and mine[button] then
+            mine[button] = nil
+            if not jd.focus then return end   -- (in the world: the release of a chord's button is the chord's too)
         end
         return origRelease(self, button)
     end
     print("[ZeD] QuickChords: a bumper held with A, B, X, Y, L3 or R3 runs a quick action")
 end
 Q._apply = apply
+
+-- A pad unplugged with a chord's button down never sends that release: drop what it held, so the
+-- pad plugged back in starts clean
+if Events.OnGamepadDisconnect then
+    Events.OnGamepadDisconnect.Add(function(id) if id ~= nil then consumed[id] = nil end end)
+end
 
 Events.OnGameBoot.Add(apply)
 apply()

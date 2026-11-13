@@ -189,3 +189,159 @@ Player 1 behaves identically: every change below reads the whole screen at origi
 - The new optional `pn` arguments, unused so far: InventoryRenderer:2796 (`inReach`), FishingTab:1108 and
   FurnitureTab:279 (`isTabShowing`), MechTrailer:423, ObjectCardLaundry:153, ObjectCardLock:171 (`selectContainer`),
   ObjectCardHutch:132 (`closeObjectCard`).
+
+## S1 as built (Nov 12 2026)
+
+Player 1 behaves identically: every press, hold, repeat, chord, mode switch and log line of player 1 is the one from
+before (the golden run below, 186 lines, word for word), and the gate `ZeD.windowsFor` (Atoms.lua:1708) is untouched,
+so players 2-4 still get the game's own windows. What changed is underneath: focus, chord and input-mode state are kept
+per local player and every press is worked on the record of the player it belongs to, so player 2's pad no longer
+reaches player 1's focus, holds, chord or input mode. Built on main at `feed35cbd` (the chord directions as swapped in
+`3f1b86412`: Hold LB + tap RB zooms in, Hold RB + tap LB zooms out). `Input/RunSneak.lua` is not on main; nothing here
+touches it.
+
+### What S1 added
+
+- FocusManager keeps one record a local player, `_st[pn]` (FocusManager.lua:188-210, `Focus._st` for QA and the
+  sims): the focused window, the D-pad repeat, the Y / A / X holds, the unfocused Y's last level, the aiming latch and
+  grace, the focus marks, QA's held buttons (`qa`, `qaN`) and `away`. Player 1's record is made at load and never
+  replaced (`_st0`, :210). Whose a press or call is: `_pnOf(w, joypadData)` (:255), the pad's `joypadData.player`, else
+  the window's `w.playerNum`, else player 1. No "current player" variable: the player number or the record travels as
+  an argument.
+- New FocusManager helpers: `_who(pn)` (:263, "" for player 1 so the logs read as before, " (player N)" for the
+  others), `_modeOf(pn)` (:269), `_ownsWindows(pn)` (:278, player 1 always; the others by `ZeD.windowsFor`, read at
+  call time), `_countOf` / `_lastOf` (:285, :292), `_pressPn` (:1821, drops a press from another player's pad),
+  `_xDragMove` (:1360), `_dropHolds` (:2080), `_padOf` (:2092), `_resume` (:2104), `_aimMagSq` (:2238), `_tickPlayer`
+  (:2263), `_playing` (:2354), `_forget` (:2414).
+- Optional trailing `pn` (missing or not a number = player 1) on `Focus.getFocusedWindow`, `releaseFocus`,
+  `cuesVisible`, `reclaimEngineFocus`, `openSide`, `qaButton`; `Chord.setEnabled`, `getState`, `isActive`;
+  `Detector.getMode` (players 2-4: always "gamepad"). New `Detector.padOwner(i)` (InputModeDetector.lua:186): the local
+  player on controller i, or nil; a pad in character creation for a new player counts as that player's already.
+  `ZeD_FocusChanged` carries the player as its third argument.
+- BumperChord keeps one chord record a player, `_rec[pn]` (BumperChord.lua:96), each read from that player's pad and
+  zooming that player's view. Players 2-4 poll only while `ZeD.windowsFor(pn)` (false today) and they are playing.
+
+### The critics' points (all twelve addressed)
+
+1. A dead player's slot is not "playing": FocusManager (:2354) and BumperChord (:159) tick players 2-4 only while
+   `JoypadState.players[pn+1].player == pn` and `getSpecificPlayer(pn)` is alive. A record that sat out (`away`) or
+   was reset starts from the pad as it is: Y's last level seeded (`_resume`, :2104), the bumpers' too (`_seed`,
+   BumperChord:145), so a button held through the post-death screen or `OnCreatePlayer` is no new press.
+2. `Detector.padOwner` returns `CoopCharacterCreation.instance.playerIndex` for the creation pad (playerIndex not 0), so
+   the mode and player 1's aim scan both skip a pad still in character creation.
+3. A pad gone mid-hold (id -1 or `isControllerConnected(id)` false) drops the holds and the D-pad repeat without
+   firing (`_padOf` + `_dropHolds`, :2092, :2080); the holds run with no pad only while QA's hook holds a button
+   (`qaN > 0`).
+4. `OnCreatePlayer(0)` drops player 1's holds and seeds Y (`_forget(0)` -> `_resume`), keeping the window, the marks
+   and `qa`; BumperChord's `onSeatChanged(0)` (:383) resets the chord to IDLE with the bumpers seeded and keeps the kill
+   switch. The load-time `OnCreatePlayer(0)` finds everything idle, so the golden run is unchanged.
+5. Nothing depends on file order at a death: `unregisterWindow` (:431) neither hands focus on nor pushes the engine
+   focus for a player 2-4 who is dead or gone, and `_forget` clears `aWin._gpPaint`. Checked with the Character
+   window's death handler run first.
+6. ZeD_QuickChords.lua:409-411 drops a pad's held chord buttons on `OnGamepadDisconnect`.
+7. Re-baselined on `feed35cbd`; the golden run is taken on it, with the swapped zoom directions.
+8. `ZeD_Window:_inUse` and `ZeD_Window:_footerPrompts` are added to the list for S3 below.
+9. The quick chords' release reads the same key as the press, the controller's `joypadData.id`
+   (ZeD_QuickChords.lua:396), so zedqa_quick_chords.lua's fake controller (no `id` of its own) pairs up as before.
+10. BumperChord's new registrations and its players-2-4 loop are guarded (`Events.OnCreatePlayer` /
+    `OnPlayerDeath` may be missing, `ZeD.windowsFor` and `JoypadState` are read guarded); coverage_bugs_sim (159) keeps
+    its count and BumperChord stays free of the `%` operator.
+11. inventory_filter_sim's FocusManager cut gets stand-ins of the new shape (`_st0`, `_st`, `_S`, `_pnOf`).
+12. `Focus.liveZone` (:620) keeps player 1's fast path: one comparison against `_st0.win`, any other window one table
+    read, no record made.
+
+### Every place S1 changed
+
+| File:line | What |
+|---|---|
+| FocusManager.lua:1-117 | header: the per-player record, the routing rule, the new signatures, the event's third argument |
+| FocusManager.lua:150-210 | the state block: `_windowRegistry`, `A_HOLD_MS` / `X_HOLD_MS`, `_st`, `_S`, `_st0` (the 21 file locals gone) |
+| FocusManager.lua:243-328 | `_pnOf`, `_who`, `_modeOf`, `_ownsWindows`, `_countOf`, `_lastOf`; `_pushEngineFocus(control, pn)`, `_maybeIgnoreAim(pn)`, `_setBumperChordEnabled(flag, pn)` |
+| FocusManager.lua:370-406 | the marks: `_showCues(s)` (only player 1's moves the mouse anchor), `_hideCues(s)`, `_watchCueMouse` on `_st0`, `cuesVisible(pn)` |
+| FocusManager.lua:418-552 | `registerWindow` (count of that player's windows), `unregisterWindow` (hand-off within the player, nothing pushed for a dead player 2-4), `claimFocus`, `releaseFocus(pn)`, `getFocusedWindow(pn)` |
+| FocusManager.lua:620 | `liveZone` fast path |
+| FocusManager.lua:731 | `reclaimEngineFocus(pn)` on that player's slot |
+| FocusManager.lua:1095, 2476 | the F9 overlay and its render patch read `_st0.win` |
+| FocusManager.lua:1171-1222 | `_focusWindow(side, pn)`, `openSide(side, pn)` |
+| FocusManager.lua:1260, 1273 | `_handleBContextual(pn)`; `_windowThatWay` keeps to w's player |
+| FocusManager.lua:1350, 1428, 1501, 1676 | the list and spatial log lines end with `_who` |
+| FocusManager.lua:1360, 1684 | the X-hold drag and the painted run read w's player's record |
+| FocusManager.lua:1699-1811 | `_hideAllWindows(reason, pn)`, `_closeAllWindows(pn)`, `_handleYTap(pn)`, `_handleYHold(pn)`: that player's windows only |
+| FocusManager.lua:1821-1905 | `_pressPn`; `dispatchJoypadDown` on the press's player's record, another player's pad dropped |
+| FocusManager.lua:1940 | `stopsMayWait`: another player's window never waits; player 1's marks from `_st0` |
+| FocusManager.lua:2014 | `dispatchJoypadDir` the same; the wrong "initial press only" comment fixed (the engine repeats too) |
+| FocusManager.lua:2064-2235 | `qaButton(name, down, pn)`, `_btnDown(name, jid, s)`, `_dropHolds`, `_padOf`, `_resume`, `_holdTicks(s, jid, pn)` (the unfocused Y opens the pair only where `_ownsWindows`) |
+| FocusManager.lua:2238-2405 | `_aimMagSq`, `_tickPlayer` (the old `_onTick` step for step), `_playing`, the new `_onTick` (player 1, then 2-4 under pcall) |
+| FocusManager.lua:2408-2451 | `_forget` on `OnCreatePlayer` / `OnPlayerDeath`; `_onModeChanged` hides `_st0`'s marks |
+| BumperChord.lua:33-55 | header |
+| BumperChord.lua:78-160 | `_rec` / `_C`, `_who`, `_padIdx(pn)`, `_seed`, `_playing` |
+| BumperChord.lua:169-305 | `_transition(c, s)`, `_reset(c)`, `_fire(c, dir)` (`doZoomScroll(c.pn, dir)`), `_tickPad(c)` (the old machine on the record) |
+| BumperChord.lua:307-366 | `onTick` (player 1, then 2-4 behind the gate), `setEnabled` / `getState` / `isActive` with pn |
+| BumperChord.lua:371-431 | `onModeChanged` resets player 1's; `onSeatChanged`, guarded registrations |
+| InputModeDetector.lua:18-29 | header |
+| InputModeDetector.lua:186-224 | `padOwner`, `othersPad`; `anyGamepadActive` skips other players' pads |
+| InputModeDetector.lua:312 | `getMode(pn)` |
+| InputModeDetector.lua:415-427 | `onGamepadDisconnect` falls back to kbm when only other players' pads remain |
+| ZeD_QuickChords.lua:343, 368-370, 394-401, 409-411 | `consumed` per pad, the focused-window test for the pressing player, the release keyed like the press, the disconnect drop |
+| ZeD_ContextMenu.lua:164, ZeD_ContextList.lua:173 | `reclaimEngineFocus(self.player)` |
+| ZeD_MpLeftovers.lua:241, MapsTab.lua:719 | `reclaimEngineFocus(pn)` |
+| ZeD_Panel.lua:165-212 | the dash's five stubs gate on `getFocusedWindow(joypadData and joypadData.player)` |
+| world_refresh_sim.lua:411-421, inventory_filter_sim.lua:552-555 | harness stand-ins for the new shape; checks untouched |
+| known_issues_sim.lua:419 | the S1 section |
+
+Leaks closed: player 2's stick, trigger or button flipping player 1 to the pad (and opening their pair); player 2's pad
+keeping player 1 in pad mode after player 1's pad left; player 2 aiming rolling up player 1's windows; player 2
+closing a menu pulling player 1's pad back; player 1's slot with id -1 reading player 2's Y; player 2's quick chord
+swallowing player 1's release; any pad whose engine focus reached a ZeD window driving player 1's holds (now dropped in
+`dispatchJoypad*` whatever the stub's gate says); player 1's focused window blocking player 2's quick chords.
+
+### Proof that player 1 is unchanged
+
+- known_issues_sim S1 section (66 checks): T1 runs player 1 alone through every pad feature (mouse first, the pad
+  switching in, both Y taps, D-pad tap and held repeat, the hop to the World window, LB / RB, A tap, A hold with the
+  painted run, X tap, X hold drag, B, the aiming escape, both zoom chords, the engine focus reclaimed, Y hold closing
+  the pair, the mouse taking over) and compares player 1's 186 lines with GOLDEN, taken from the files before S1
+  (`ZEDQA_S1_DUMP=1` prints the run). T2 adds player 2 on pad 2 doing everything a pad does (stick, trigger, buttons,
+  aim, a quick chord held across player 1's Y release, a reclaim, LB+RB, the pad unplugged) and T3 gives player 2 ZeD
+  windows of their own at the same moments (gate opened in the sim only): player 1's lines equal GOLDEN in both. On
+  the old files 29 of the 54 checks that run there fail (the join-and-death game stops at its first harness step).
+- Every sim, 111, before and after: identical counts and the same failures, except known_issues_sim (88 -> 154, the
+  new section). `action_bar_name_sim` fails 1 before and after (not S1). Two harnesses follow the new shapes with their
+  checks untouched: world_refresh_sim (9430) gains `_st0` / `_pnOf` stand-ins and its marks setter feeds both shapes
+  (it still passes on the old FocusManager); inventory_filter_sim (127) gains `_st0`, `_st`, `_S`, `_pnOf`.
+- `kahlua_guard.py` PASS, `i18n_guard.py` PASS, KCheck (the game Kahlua compiler, on the game JRE) parses all nine touched game files, no `next()`, no new non-ASCII (FocusManager 226 -> 220 high bytes,
+  BumperChord 54 -> 48, the rest equal). Declared locals: FocusManager's main chunk 84 -> 81, `_handleSpatialNav`
+  128 -> 128 (the drag check moved into `_xDragMove`), `_tickPlayer` 12, `_holdTicks` 16, `_aimMagSq` 16,
+  `dispatchJoypadDown` 13, the new `_onTick` 9; BumperChord's main chunk 14 -> 16, `_tickPad` 9;
+  InputModeDetector's main chunk 29 -> 30; QuickChords' `Q.onPress` 9 -> 10. Upvalues at most 16.
+
+### Left for S2 (per-player windows behind `ZeD.splitWindows`)
+
+- Organisms.lua:1726-1759, the window's five joypad stubs (a held file in this stage): gate on
+  `ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self`, as ZeD_Panel's do. Until then player 2's
+  presses never reach their own Character or World window (FocusManager already drops another player's press, so
+  player 1 is safe either way). known_issues_sim's opened-gate games apply this change to their copy.
+- The balloon slot is one for the game: player 2's B dismisses player 1's balloon (FocusManager.lua:1842).
+- `ZeD_Modal.show` covers every player's part.
+- Check in game that the post-death screen keeps its pad focus for players 2-4 when the windows' death handler closes
+  their windows (FocusManager no longer pushes anything there).
+- The dash heater (ZeD_Dashboard.lua `D.heater`) can claim player 2's dash: that now goes to player 2's slot, not
+  player 1's.
+
+### Left for S3 (callers)
+
+- Player 1's mode, marks or focused window read for another player's surface, one argument each: `ZeD_Window:_inUse`
+  (Organisms.lua:385, `getFocusedWindow(self.playerNum)` and `getMode(self.playerNum)`), `ZeD_Window:_footerPrompts`
+  (Organisms.lua:919, the same), Overrides/ContextMenu.lua:53-60 and :92-115, ZeD_ContextList.lua:152-153 and 528-529,
+  ZeD_Dashboard.lua:2155-2159 and 2198-2199, ZeD_FocusPaint.lua:230-238, ZeD_Belt.lua:1604, ZeD_Reader.lua:722.
+- MapsTab's pad tick (`_mapPadTick`), RadioTab's `getJoypadData(0)`, MapsTab's pop-out with no `playerNum` (reads as
+  player 1).
+- ZeD_Keyboard.lua:538 and :541 read `isJoypadLT/RTPressed(jd.id)` with an id that can be -1 (any pad).
+
+### Left for S4
+
+- Open the gate. The unfocused Y and the zoom chord of players 2-4 already wait on it and need nothing more.
+- The wheel and belt routes still name player 1: ZeD_DpadWheels.lua:366-371, ZeD_WheelGesture.lua:317-319 (pass the
+  wheel's player to `Focus.openSide(side, pn)`), ZeD_Belt.lua:2487-2490, ModSupport/SPNCC.lua:1190-1207,
+  WorldRoutes.lua:90; the dash's pad controller is player 1's (ZeD_Dashboard `canTakePad`).
+- Rewrite the comment above `ZeD.windowsFor` (Atoms.lua:1701-1707).
