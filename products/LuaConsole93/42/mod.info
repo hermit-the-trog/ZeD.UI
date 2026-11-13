@@ -1,0 +1,9 @@
+name=Lua Console 93 Professional Edition
+id=LuaConsole93
+description=A Lua console for mod makers, in debug mode (-debug): the game's own console as a window, with its log filtered by kind, mod and file, a scratchpad, suggestions as you type and the server command list. Works on the plain game. With ZeD-GUI on, ZeD-GUI's console is used.
+modversion=1.0.0
+versionMin=42.17.0
+author=Hermit the Trog
+url=
+poster=poster.png
+icon=icon.png

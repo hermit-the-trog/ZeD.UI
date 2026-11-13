@@ -1,0 +1,37 @@
+[h1]Lua Console 93 Professional Edition[/h1]
+A Lua console for Project Zomboid Build 42, made for mod makers. Version 1.0.0.
+
+The game's own Lua console, the one debug mode gives you, as a window you can work in: the log filtered and searched, a scratchpad of many lines, suggestions as you type, and every server command with its syntax and the role it needs. The game's console still runs everything; this mod is the window over it.
+
+[h2]Before you subscribe[/h2]
+[list]
+[*][b]Debug mode only.[/b] Start the game with -debug. Without it there is no console, and Lua Console 93 does nothing.
+[*][b]Build 42.[/b] It does not run on Build 41.
+[*][b]Works on the plain game.[/b] You do not need ZeD-GUI or any other mod.
+[*][b]With [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3824968485]ZeD-GUI[/url] on,[/b] ZeD-GUI's own console (this same console) is used and Lua Console 93 steps aside. Nothing to set.
+[*][b]Nothing in your save.[/b] It is interface only: add it or remove it at any time.
+[/list]
+
+[h2]Opening it[/h2]
+Press the game's console key (Toggle Lua Console in the key options). With a controller, hold the Back button: the wheel has a Lua Console 93 slice. Close it the same way, or with its close box.
+
+[h2]What it does[/h2]
+[list]
+[*][b]Log.[/b] Everything the game prints in debug mode and the F11 Lua Debugger's errors, one row each. Filter by kind (print, warning, error, ran here), by mod and by file, and search the messages and the stacks. A repeated error is one row with a count; click an error to open its whole stack in place.
+[*][b]Export and Copy.[/b] Export writes what the filters show to a new .log file in Zomboid/Lua, with your user name taken out of the paths. Copy copies the picked row, or everything shown.
+[*][b]The line.[/b] Type Lua and press Enter: it runs through the game's own console, its history and its suggestion included.
+[*][b]Scratchpad.[/b] A box of many lines, past the game's 256 characters. Enter runs it, Shift+Enter makes a new line. Save snippets, and step through your last runs.
+[*][b]Suggestions.[/b] They open as you type: globals after two letters, a table's fields after a dot, an object's methods after a colon, Java methods marked.
+[*][b]Commands.[/b] Every server command with its syntax, an example and the lowest role that may use it. On a server you see the ones your role allows; a click fills the line and Send sends it, asking first before one that can't be undone. In single player each command points at the debug menu's own way of doing it.
+[*][b]Help.[/b] What runs where, the keys, the controller and the files, in the window itself.
+[*][b]Controller.[/b] The whole window works with a controller: the D-pad moves, A picks or types, B closes.
+[/list]
+
+[h2]Files[/h2]
+Everything Lua Console 93 keeps is in Zomboid/Lua: each export, your snippets (LuaConsole93_snippets.txt, a plain text file you can edit) and your last runs (LuaConsole93_history.txt). An empty file named LuaConsole93_off.txt there hands the console back to the game's own from the next game start.
+
+[h2]Languages[/h2]
+The window's text comes in the 28 languages the game ships. Server commands are described in the game's own words.
+
+[h2]Credits[/h2]
+Made from ZeD-GUI's Lua console by Hermit the Trog. ZeD-GUI's source-available license covers it.
