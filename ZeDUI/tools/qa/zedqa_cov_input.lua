@@ -1,9 +1,10 @@
 -- ZeDUI/tools/qa/zedqa_cov_input.lua  (Nov 12 2026, QA; coverage audit ZeDUI/qa/AUDIT_DESIGN_AND_COVERAGE_20261111.md,
--- Table B, the "input" group)
+-- Table B, the "input" group; the review's fixes the same day)
 -- The controller plumbing, the game's hidden top-left buttons and the text scale override, checked from ZeD's own
 -- objects, in game on the ZeD-QA save only (it refuses any other save). Copy to Zomboid/Lua/zedqa.lua and bump
 -- zedqa.go, or run cov_input.txt through zedqa_run.ps1; grep console.txt for "ZEDQA cov_input". Each check prints
--- "PASS <what>" or "FAIL <what> (<got> vs <want>)"; SKIP says why a check could not run; RESULT, then DONE.
+-- "PASS <what>" or "FAIL <what> (<got> vs <want>)"; a check that could not run prints "FAIL <what> (not checked:
+-- <why>)", so a skipped section never reads as a clean run; RESULT, then DONE.
 -- Pictures (SHOT lines): Screenshots/zqa_cin_icons.png (the left-edge column with no window buttons),
 -- zqa_cin_pad_world.png (RB moved the pad to the World window), zqa_cin_zoomed_in.png (two chord steps in).
 --
@@ -17,34 +18,47 @@
 --   window, LB back to the Character window, a press on the window that does not hold the pad does nothing, and L3
 --   steps the list's sort.
 --  Input mode detector (Input/InputModeDetector.lua): a stand-in controller on slot 15 is fed to the detector's own
---   reads (getControllerCount, isControllerConnected, getControllerAxisValue, getControllerName): a stick inside the
---   dead zone stays on mouse and keys, past it switches to the pad and fires ZeD_InputModeChanged(gamepad, kbm); a
---   key (the engine's OnKeyPressed with an unbound key) inside the cooldown does not switch back, after it does; a
---   stick and a key on one tick: the key wins; a trigger under and over its threshold; a pad unplugged with none
---   left goes back to mouse and keys; the controller type from the pad's name; the lock answers at once, switches
---   the detector and tells the listeners, wins over a key, and a lock value that is not a mode is ignored.
+--   reads (getControllerCount, isControllerConnected, getControllerAxisValue, getControllerName; each axis read is
+--   counted, so a "stays on mouse and keys" check fails when the detector never read the input): a stick inside the
+--   dead zone stays on mouse and keys, past it switches to the pad and fires ZeD_InputModeChanged(gamepad, kbm); a key
+--   (the engine's OnKeyPressed with an unbound key) inside the cooldown does not switch back (the time to the
+--   detector's read is measured), after it does; a stick and a key on one tick: the key wins; a trigger under its
+--   threshold (in auto mode, from mouse and keys, a cooldown after the last switch, so a misread would switch) and
+--   over it; a pad unplugged with none left goes back to mouse and keys; the controller type from the pad's name; the
+--   lock answers at once, switches the detector and tells the listeners, wins over a key, and a lock value that is
+--   not a mode is ignored.
 --  Pad bumpers, combat zoom (Input/BumperChord.lua): the bumpers are read through stand-ins for getJoypadData(0) and
 --   JoypadButton.LeftBump / RightBump (nothing else of the game's is replaced): with a window holding the pad LB is
 --   not the chord's; released, hold LB tap RB zooms in one level (the engine's target zoom, read back through
 --   getNextZoom), each further RB tap one more, hold RB tap LB zooms out, a bumper alone does nothing, both on one
 --   tick zoom in; the chord's states on the way (LB_HELD, RB_HELD, CONSUMED, IDLE); setEnabled(false) mid-chord
 --   drops it; no pad on player 1's slot and a switch to mouse and keys mid-chord stop it.
---  Game's top-left buttons hidden (Overrides/ScreenIcons.lua): the window buttons of the left-edge column hidden,
---   the furniture hint and pop-up too; no hover label left for them; the debug button left alone; the hand slots the
---   belt hid leave no hover zone; safe mode's hand-back shows the buttons the game had showing and its whole hover
---   list, and the next frames hide them again.
---  Text scale override (Overrides/TextScale.lua): the patches are in; each role font zooms by its px x the root over
---   its face; ISUIElement text draws (left, right, centred) of a role font take the engine's zoom call, a vanilla
---   font the engine's own call untouched, a collapsed element draws nothing; borders are T.px(1) thick on ZeD
---   elements and one pixel on vanilla ones; the lean draw calls make exactly ISUIElement's Java calls; the listed
---   classes are flagged and every ZeD UI class draws through the lean calls; ZeD.TM measures role fonts zoomed and
---   vanilla ones as they are; a ZeD text entry takes the face for the scale and ZeD draws its placeholder; the
---   tooltip text size option reaches the zoom. (The draws are recorded on a stand-in Java object: the same
---   functions the panels call, nothing drawn.)
--- PUTS BACK: every stand-in global (on its own too, 90 s after it went in, and at the start of a run that finds
--- one left behind), the zoom level, the input lock as ZeD setup has it (after a pass through mouse and keys), the
--- pad focus, the windows as found, the sort it stepped, the test text entry, the probe action, the game's flag
--- for controller slot 15. Kahlua-safe: ASCII only, no table iterator calls outside pairs and ipairs.
+--  Game's top-left buttons hidden (Overrides/ScreenIcons.lua): the window buttons of the left-edge column hidden; the
+--   furniture button's hint and pop-up, each raised by the game's own prerender for a frame (the game's furniture
+--   cursor up for the hint, a stand-in pointer on the button for the pop-up; a spy on each setVisible shows the
+--   raise) and taken down again by ZeD's in that frame; no hover label left for the hidden buttons; the debug button
+--   left alone; the hand slots the belt hid leave no hover zone; safe mode's hand-back shows the buttons the game had
+--   showing and its whole hover list, and the next frames hide them again.
+--  Text scale override (Overrides/TextScale.lua): the patches are in (presence); each role font zooms by its px x the
+--   root over its face; ISUIElement text draws (left, right, centered) of a role font take the engine's zoom call, a
+--   vanilla font the engine's own call untouched, a collapsed element draws nothing; borders are T.px(1) thick on
+--   ZeD elements and one pixel on vanilla ones; the lean draw calls make exactly ISUIElement's Java calls; the listed
+--   classes are flagged and every ZeD UI class has the lean calls (presence); ZeD.TM measures role fonts zoomed and
+--   vanilla ones as they are; a ZeD text entry takes the face for the scale, the game's own placeholder (set first
+--   through vanilla's setter) is emptied and ZeD draws its own; the tooltip text size option reaches the zoom. (The
+--   draws are recorded on a stand-in Java object: the same functions the panels call, nothing drawn.)
+-- PUTS BACK (also when a step fails): every stand-in global (on its own too, 90 s after it went in, and at the start
+-- of a run that finds one left behind), the zoom level, the input mode and lock (the detector through the mode the
+-- lock gives, or the mode the run found when ZeD setup says auto, then the lock as ZeD setup's own option has it),
+-- each window as found (one the run opened is closed again, a rolled half or window rolled again), then the pad
+-- focus, the sort and the scroll L3 changed, the test text entry, the probe action, the role px and the zoom kept for
+-- it, the furniture cursor and the game's cursor globals it touched (mode, its cache, the cursor, the info box), the
+-- stand-in pointer and the spies, ZeD's Furniture tab timer, the game's flags for controller slot 15 and its
+-- controller test, the game speed (a paused game is unpaused for the run and paused again at the end).
+-- ASSUMES: no real controller connected or joined. The synthetic unplug (OnGamepadDisconnect for slot 15) reaches
+-- every listener, vanilla's main menu hand-back and options screen too; with none connected or joined they find
+-- nothing to change, and with one the check is not made (FAIL, not checked). Kahlua-safe: ASCII only, no table
+-- iterator calls outside pairs and ipairs.
 
 local TAG = "ZEDQA cov_input "
 local function say(s) print(TAG .. tostring(s)) end
@@ -59,9 +73,10 @@ local function check(ok, what, got, want)
     end
     return ok
 end
+-- a check that could not run counts as a FAIL, so a skipped section never reads as a clean run
 local function skip(what, why)
-    nskip = nskip + 1
-    say("SKIP " .. what .. " (" .. tostring(why) .. ")")
+    nfail, nskip = nfail + 1, nskip + 1
+    say("FAIL " .. what .. " (not checked: " .. tostring(why) .. ")")
 end
 local function shot(n)
     local name = "zqa_cin_" .. n .. ".png"
@@ -144,7 +159,8 @@ local function padStub(on)
     end
 end
 
--- the controller the detector polls: slot FC, axes 0-1 left stick, 2-3 right stick, 4-5 triggers (SDL order)
+-- the controller the detector polls: slot FC, axes 0-1 left stick, 2-3 right stick, 4-5 triggers (SDL order); every
+-- read of an axis is counted (fc.reads), so a check that the detector stayed put can tell it read the input
 local function ctlStub(on)
     if not on then
         getControllerCount, isControllerConnected, getControllerAxisValue, getControllerName = O.gcc, O.icc, O.gcav, O.gcn
@@ -152,7 +168,8 @@ local function ctlStub(on)
         return
     end
     S.deadline = getTimestampMs() + 90000
-    S.fc = { connected = true, none = false, ax = { [0] = 0, [1] = 0, [2] = 0, [3] = 0, [4] = 0, [5] = 0 }, name = "QA Pad" }
+    S.fc = { connected = true, none = false, ax = { [0] = 0, [1] = 0, [2] = 0, [3] = 0, [4] = 0, [5] = 0 }, reads = {},
+             name = "QA Pad" }
     getControllerCount = function()
         local n = O.gcc() or 0
         if late() then return n end
@@ -165,7 +182,10 @@ local function ctlStub(on)
         return O.icc(i)
     end
     getControllerAxisValue = function(i, a)
-        if S.ctlStub and i == FC then return S.fc.ax[a] or 0 end
+        if S.ctlStub and i == FC then
+            S.fc.reads[a] = (S.fc.reads[a] or 0) + 1
+            return S.fc.ax[a] or 0
+        end
         return O.gcav(i, a)
     end
     getControllerName = function(i)
@@ -185,11 +205,65 @@ local function norm(list)
     return table.concat(c, " ")
 end
 local function cooldown() return (ZeD.T and ZeD.T.gp and ZeD.T.gp.cooldownMs) or 200 end
+local function stickTh() return (ZeD.T and ZeD.T.gp and ZeD.T.gp.stickThresh) or 0.2 end
+local function trigTh() return (ZeD.T and ZeD.T.gp and ZeD.T.gp.triggerThresh) or 0.15 end
+-- ZeD setup's input mode choice from the mod option itself, as Settings.lua's applyInputLock reads it (the
+-- character's modData copy is only written when it changes with a character loaded): nil for auto
 local function settingLock()
-    local md = p and p:getModData()
-    local k = md and md.ZeD_Gamepad and md.ZeD_Gamepad.inputModeLock
-    if k == "kbm" or k == "gamepad" then return k end
+    local MO = PZAPI and PZAPI.ModOptions
+    local opts = MO and MO.getOptions and MO:getOptions("ZeD_UI")
+    local o = opts and opts.getOption and opts:getOption("inputModeLock")
+    local keys = ZeD.Settings and ZeD.Settings.inputLockKeys
+    local key = (o and keys) and keys[o:getValue() or 1] or nil
+    if key == "kbm" or key == "gamepad" then return key end
     return nil
+end
+-- the real pads: how many are connected (the game's own functions), and whether one is joined to a player or the menu
+local function realPads()
+    local n, joined = 0, false
+    local c = O.gcc() or 0
+    for i = 0, c - 1 do if O.icc(i) then n = n + 1 end end
+    if JoypadState then
+        for i = 1, 4 do if JoypadState.players and JoypadState.players[i] then joined = true end end
+        for _, jd in ipairs(JoypadState.joypads or {}) do if jd.id ~= nil and jd.id ~= -1 then joined = true end end
+    end
+    return n, joined
+end
+-- a window as found: open, rolled up, and (a window with halves, WindowHalves.lua) each half's roll
+local function winState(M)
+    local w = M and M.getWindow and M.getWindow()
+    if not w then return { open = false } end
+    local st = { open = true, shaded = w.windowShaded and true or false }
+    local h = w._halves
+    if h and h.inv and h.drawer then st.inv, st.drw = h.inv.rolled and true or false, h.drawer.rolled and true or false end
+    return st
+end
+local function winText(st)
+    if not st.open then return "closed" end
+    return st.shaded and "rolled up" or "open"
+end
+local function putWindow(name, M, s0, close)
+    if not s0 then return end
+    local w = M.getWindow and M.getWindow()
+    if not s0.open then
+        if w then close(); say("INFO put back: the " .. name .. " window the run opened (the switch to the pad opens the pair) is closed again") end
+        return
+    end
+    if not w then say("INFO the " .. name .. " window open at the start was closed during the run: left closed"); return end
+    local h = w._halves
+    if s0.inv ~= nil and h and h.inv and h.drawer then
+        -- (the halves roll the window themselves, ZeD.Halves.drive, one step now and the rest on its own updates)
+        if (h.inv.rolled and true or false) ~= s0.inv or (h.drawer.rolled and true or false) ~= s0.drw then
+            h.inv.rolled, h.drawer.rolled = s0.inv, s0.drw
+            h.inv.out, h.drawer.out = nil, nil
+            if ZeD.Halves and ZeD.Halves.drive then ZeD.Halves.drive(w) end
+            say("INFO put back: the " .. name .. " window's halves rolled as found (inventory " .. tostring(s0.inv)
+                .. ", drawer " .. tostring(s0.drw) .. ")")
+        end
+    elseif (w.windowShaded and true or false) ~= s0.shaded and w.setWindowShaded then
+        w:setWindowShaded(s0.shaded)
+        say("INFO put back: the " .. name .. " window " .. (s0.shaded and "rolled up" or "rolled down") .. " as found")
+    end
 end
 -- the engine's target zoom sits between these two (getNextZoom reads the target, which doZoomScroll sets at once)
 local function zl()
@@ -279,12 +353,16 @@ local function vanillaFont()
     end
     return nil
 end
+-- the sort L3 stepped and the scroll it sent to the top (InventoryRenderer.padSort), back as found
 local function restoreSort()
     local s = S.sortSave
     if not s then return end
+    S.sortSave = nil
     s.cnt._sortCol, s.cnt._sortAsc = s.col, s.asc
     if s.cs then s.cs.sortCol, s.cs.sortAsc = s.cscol, s.csasc end
-    S.sortSave = nil
+    if s.sb and s.pos ~= nil then
+        if s.sb.setScrollPos then s.sb:setScrollPos(s.pos) else s.sb.scrollPos = s.pos end
+    end
 end
 local function onMode(newMode, oldMode)
     S.events[#S.events + 1] = { new = tostring(newMode), old = tostring(oldMode) }
@@ -293,9 +371,94 @@ local function lastEv()
     local e = S.events[#S.events]
     return e and (e.new .. "," .. e.old) or "none"
 end
+-- the synthetic unplug's marks on the game, back as found: slot 15's flag, the controller test flag, the menu's pad focus
+local function unplugBack()
+    local u = S.unplug
+    if not u then return end
+    S.unplug = nil
+    if S.fc then S.fc.none = false end
+    local vc = JoypadState and JoypadState.controllers and JoypadState.controllers[FC]
+    if vc then vc.connected = u.v end
+    if JoypadState then JoypadState.controllerTest = u.test end
+    if u.ms then u.ms.joyfocus = u.focus end
+end
+
+-- the furniture button's hint and pop-up: a spy on an element's setVisible (every value set, in order); the game's
+-- cursor up for a frame; a stand-in pointer on the button for a frame. Each is taken down by its pair below.
+local function spyVisible(el, log)
+    local own = rawget(el, "setVisible")
+    local base = el.setVisible
+    el.setVisible = function(self, v, ...)
+        log[#log + 1] = v and true or false
+        return base(self, v, ...)
+    end
+    return { el = el, own = own }
+end
+local function unspy(s) if s then s.el.setVisible = s.own end end
+local function sawRaise(log)
+    for _, v in ipairs(log) do if v then return true end end
+    return false
+end
+local function furCursorUp(eq)
+    local MC, IW = ISMoveableCursor, ISMoveableInfoWindow
+    local F = { tip = {}, pop = {}, deadline = getTimestampMs() + 10000 }
+    S.fur = F
+    F.spyTip = spyVisible(eq.movableTooltip, F.tip)
+    -- (ZeD's Furniture tab opens itself for a cursor started any other way, FurnitureTab.lua's watch: held off)
+    local FTs = ZeD.FurnitureTab and ZeD.FurnitureTab.state
+    if FTs then F.ft, F.ftOpening = FTs, FTs.openingMs; FTs.openingMs = getTimestampMs() + 60000 end
+    -- (the game's cursor globals this touches: the mode, its cache, the cursor, the info box)
+    F.mode0, F.cache0, F.cur0 = MC.mode[0], MC.cacheMode[0], MC.cursors and MC.cursors[0]
+    F.panel0 = IW and IW.infoPanels and IW.infoPanels[0]
+    F.globals = true
+    -- (pickup, already cached: nothing turned and hidden as rotate does, no info box text, no sound)
+    MC.mode[0], MC.cacheMode[0] = "pickup", "pickup"
+    F.cursor = MC:new(p)
+    getCell():setDrag(F.cursor, 0)
+end
+local function furCursorDown()
+    local F = S.fur
+    if not F then return end
+    local MC, IW = ISMoveableCursor, ISMoveableInfoWindow
+    local cur = F.cursor
+    F.cursor = nil
+    if cur then
+        local cell = getCell()
+        if cell and cell:getDrag(0) == cur then cur:exitCursor() end
+    end
+    if F.globals then
+        F.globals = nil
+        MC.mode[0], MC.cacheMode[0] = F.mode0, F.cache0
+        if MC.cursors then MC.cursors[0] = F.cur0 end
+        if IW and IW.infoPanels then
+            local made = IW.infoPanels[0]
+            if made and made ~= F.panel0 then made:removeFromUIManager() end
+            IW.infoPanels[0] = F.panel0
+        end
+    end
+    unspy(F.spyTip); F.spyTip = nil
+    if F.ft then F.ft.openingMs = F.ftOpening; F.ft = nil end
+end
+local function furHoverUp(eq)
+    local F = S.fur
+    F.spyPop = spyVisible(eq.movablePopup, F.pop)
+    F.overBtn, F.overOwn = eq.movableBtn, rawget(eq.movableBtn, "isMouseOver")
+    eq.movableBtn.isMouseOver = function() return true end
+end
+local function furHoverDown()
+    local F = S.fur
+    if not F then return end
+    if F.overBtn then F.overBtn.isMouseOver = F.overOwn; F.overBtn = nil end
+    unspy(F.spyPop); F.spyPop = nil
+end
 local function watch()
     if S.finished then Events.OnRenderTick.Remove(watch); return end
-    if (S.padStub or S.ctlStub) and getTimestampMs() > S.deadline then unstub("past their 90 s, the game stopped ticking") end
+    local now = getTimestampMs()
+    if (S.padStub or S.ctlStub) and now > S.deadline then unstub("past their 90 s, the game stopped ticking") end
+    if S.fur and now > S.fur.deadline then
+        furCursorDown(); furHoverDown(); S.fur = nil
+        say("INFO the furniture cursor and the stand-in pointer came down after 10 s: the game stopped ticking")
+    end
 end
 
 -- THE QUEUE: step(n, fn) runs fn, then waits n ticks; untilDo(cond, ms, fn, n) waits for cond (at most ms), runs
@@ -349,6 +512,7 @@ step(1, function()
     if l1 then l1[1] = "qa_changed"; l1[#l1 + 1] = "qa_added" end
     local l2 = norm(Act.fromGamepadButton(O.jb.DPadUp))
     check(l2 == "nav_up strip_hotbar", "action map: a list handed out is a copy (changing it leaves the map as it was)", l2, "nav_up strip_hotbar")
+    Act.rebuild()   -- (were it not a copy, the map is whole again from the table)
     local B = Act.getBinding
     local gb = tostring(B("confirm", "kbm")) .. " " .. tostring(B("confirm", "gamepad")) .. " " .. tostring(B("context_menu", "kbm")) .. " " .. tostring(B("window_prev", "kbm"))
     check(gb == "Return A MouseRight nil", "action map: getBinding per mode (confirm Return and A, context menu the right button, LB no key)", gb, "Return A MouseRight nil")
@@ -379,7 +543,7 @@ end)
 -- B. THE GAME'S TOP-LEFT BUTTONS (the left-edge column, ISEquippedItem)
 -- ================================================================================================================
 step(1, function()
-    check(ISEquippedItem ~= nil and ISEquippedItem._zedScreenIconsPatched == true, "top-left buttons: the override is on the game's column",
+    check(ISEquippedItem ~= nil and ISEquippedItem._zedScreenIconsPatched == true, "top-left buttons: the override is on the game's column (presence: its patch flag)",
         tostring(ISEquippedItem and ISEquippedItem._zedScreenIconsPatched), "true")
     local pd = getPlayerData and getPlayerData(0)
     local eq = pd and pd.equipped
@@ -396,9 +560,6 @@ step(1, function()
             say("INFO top-left buttons: the game built no " .. k .. " here")
         end
     end
-    local tipUp = eq.movableTooltip and eq.movableTooltip:getIsVisible()
-    local popUp = eq.movablePopup and eq.movablePopup:getIsVisible()
-    check(not tipUp and not popUp, "top-left buttons: the furniture button's hint and pop-up stay down", tostring(tipUp) .. "/" .. tostring(popUp), "false/false")
     local left = 0
     for _, v in ipairs(eq.mouseOverList or {}) do if hiddenSet[v.object] then left = left + 1 end end
     check(left == 0, "top-left buttons: no hover label is left for a hidden button", left .. " left", "0")
@@ -430,6 +591,50 @@ step(1, function()
     end
     shot("icons")
 end)
+-- the furniture button's hint and pop-up: the game's prerender raises the hint every frame its furniture cursor is up
+-- and the pop-up every frame the pointer is on the button (idle, it keeps both down itself, so only a raise tests
+-- ZeD); ZeD's prerender must take each down again in the same frame
+step(0, function()
+    local eq = S.eq
+    if not eq then return end   -- (the section's first step said why)
+    local what, MC, cell = "top-left buttons: the furniture hint and pop-up", ISMoveableCursor, getCell()
+    if not eq:getIsVisible() then skip(what, "the column is hidden: its prerender does not run"); return end
+    if not (eq.movableBtn and eq.movableTooltip and eq.movablePopup) then skip(what, "the game built no furniture button here"); return end
+    if not (MC and MC.new and MC.mode and MC.cacheMode and cell) then skip(what, "no furniture cursor (ISMoveableCursor) loaded"); return end
+    if cell:getDrag(0) ~= nil then skip(what, "a cursor of the game's is up"); return end
+    if ISEntityUI and ISEntityUI.IsWindowOpen and ISEntityUI.IsWindowOpen(0, "BuildWindow") then
+        skip(what, "the game's build window is open (a cursor hides it)"); return
+    end
+    S.furTried = true
+    furCursorUp(eq)
+end)
+untilDo(function() return S.fur == nil or sawRaise(S.fur.tip) end, 1500, function(ok)
+    local F, eq = S.fur, S.eq
+    if not F then
+        if S.furTried then skip("top-left buttons: the furniture hint and pop-up", "the cursor came down before a frame drew") end
+        return
+    end
+    local tip = eq.movableTooltip
+    local last = F.tip[#F.tip]
+    check(ok and last == false and not tip:getIsVisible(),
+        "top-left buttons: the furniture hint the game raises for its cursor is taken down in the same frame",
+        "raised by the game " .. tostring(ok) .. ", last set " .. tostring(last) .. ", showing " .. tostring(tip:getIsVisible()),
+        "raised by the game true, last set false, showing false")
+    furCursorDown()
+    furHoverUp(eq)
+end, 0)
+untilDo(function() return S.fur == nil or sawRaise(S.fur.pop) end, 1500, function(ok)
+    local F, eq = S.fur, S.eq
+    if not F then return end
+    local pop = eq.movablePopup
+    local last = F.pop[#F.pop]
+    check(ok and last == false and not pop:getIsVisible(),
+        "top-left buttons: the furniture pop-up the game raises for the pointer on its button is taken down in the same frame",
+        "raised by the game " .. tostring(ok) .. ", last set " .. tostring(last) .. ", showing " .. tostring(pop:getIsVisible()),
+        "raised by the game true, last set false, showing false")
+    furHoverDown()
+    S.fur = nil
+end, 0)
 step(1, function()
     -- safe mode's hand-back ("screen icons" in ZeD.Safe): the buttons the game had showing and its whole hover list
     local eq = S.eq
@@ -470,7 +675,7 @@ end)
 step(1, function()
     local got = tostring(ISUIElement._zedTextScalePatched) .. "/" .. tostring(ISUIElement._zedBorderPatched) .. "/"
         .. tostring(ISTextEntryBox and ISTextEntryBox._zedEntryPatched) .. "/" .. tostring(LEAN ~= nil)
-    check(got == "true/true/true/true", "text scale: the text, border and entry patches are in and ZeD.LeanDraw is published", got, "true/true/true/true")
+    check(got == "true/true/true/true", "text scale: the text, border and entry patches are in and ZeD.LeanDraw is published (presence: the flags)", got, "true/true/true/true")
     local T = ZeD.T
     local root = ZeD.Scale.root()
     S.fallback = (X.fallback == true) or (T.fontFallback == true)
@@ -512,7 +717,7 @@ step(1, function()
         ISUIElement.drawTextCentre({ javaObject = r.jo }, "Hello", 100, 20, 1, 1, 1, 1, F)
         c = r.calls[1]
         check(#r.calls == 1 and c.name == "DrawText" and c.n == 9 and math.abs(c.a[3] - (100 - w / 2)) < 1e-6 and c.a[5] == z,
-            "text scale: drawTextCentre centres the zoomed text on x", sig(r), "DrawText at x " .. tostring(100 - w / 2))
+            "text scale: drawTextCentre centers the zoomed text on x", sig(r), "DrawText at x " .. tostring(100 - w / 2))
         r = recorder()
         ISUIElement.drawText({ javaObject = r.jo, isCollapsed = true }, "Hello", 10, 20, 1, 1, 1, 1, F)
         check(#r.calls == 0, "text scale: a collapsed element draws no zoomed text (as ISUIElement's own rule)", sig(r), "(no draw)")
@@ -590,7 +795,7 @@ step(1, function()
             if c.zedScaled ~= true then unflagged[#unflagged + 1] = n end
         end
     end
-    check(present > 0 and #unflagged == 0, "text scale: the " .. present .. " listed ZeD classes are flagged for scaled borders",
+    check(present > 0 and #unflagged == 0, "text scale: the " .. present .. " listed ZeD classes are flagged for scaled borders (presence: the flag the border draw reads)",
         (#unflagged > 0) and table.concat(unflagged, " ") or (present .. " present"), "none unflagged")
     local nUI, miss = 0, {}
     for k, v in pairs(_G) do
@@ -606,12 +811,12 @@ step(1, function()
         end
     end
     table.sort(miss)
-    check(nUI > 0 and #miss == 0, "text scale: every ZeD UI class (" .. nUI .. ") draws through the lean calls or its own",
+    check(nUI > 0 and #miss == 0, "text scale: every ZeD UI class (" .. nUI .. ") has the lean draw calls or its own, none left on ISUIElement's (presence)",
         (#miss > 0) and table.concat(miss, " ") or "none", "none on ISUIElement's")
     local cw = CWm and CWm.getWindow and CWm.getWindow()
     if cw then
         local got = tostring(cw.zedScaled) .. "/" .. tostring(cw.drawText ~= ISUIElement.drawText) .. "/" .. tostring(cw.drawRectBorder ~= ISUIElement.drawRectBorder)
-        check(got == "true/true/true", "text scale: the open Character window draws scaled borders and lean text", got, "true/true/true")
+        check(got == "true/true/true", "text scale: the open Character window carries the scaled-border flag and the lean text and border calls (presence)", got, "true/true/true")
     else
         skip("text scale: the open Character window", "the Character window is not open")
     end
@@ -622,12 +827,16 @@ step(1, function()
     local s = "Hello world"
     local real = X.realTM()
     local z = X.zoomOf(F)
-    local zm, want = ZeD.TM:MeasureStringX(F, s), real:MeasureStringX(F, s) * z
-    check(math.abs(zm - want) < 0.01, "text scale: ZeD.TM measures a role font zoomed, as it draws", zm, want)
+    if z == 1 then
+        skip("text scale: ZeD.TM's zoomed width and line height of a role font", "F2 draws at zoom 1 here (the game's fonts on the roles), so zoomed and plain read the same")
+    else
+        local zm, want = ZeD.TM:MeasureStringX(F, s), real:MeasureStringX(F, s) * z
+        check(math.abs(zm - want) < 0.01, "text scale: ZeD.TM measures a role font zoomed, as it draws", zm, want)
+        local fh, fw = ZeD.TM:getFontHeight(F), real:getFontHeight(F) * z
+        check(math.abs(fh - fw) < 0.01, "text scale: ZeD.TM's line height of a role font is zoomed", fh, fw)
+    end
     local vm, vw = ZeD.TM:MeasureStringX(VF, s), real:MeasureStringX(VF, s)
     check(vm == vw, "text scale: ZeD.TM measures a vanilla font as the engine does", vm, vw)
-    local fh, fw = ZeD.TM:getFontHeight(F), real:getFontHeight(F) * z
-    check(math.abs(fh - fw) < 0.01, "text scale: ZeD.TM's line height of a role font is zoomed", fh, fw)
     check(getTextManager() == ZeD.TM, "text scale: the game's getTextManager() hands vanilla panels the zoomed proxy", tostring(getTextManager()), "ZeD.TM")
     -- Overrides/Tooltip.lua raises F2's px (T.fontPx) while a tooltip lays out and draws, for the game's tooltip
     -- text size option (Medium 1.15, Large 1.3): that only works if the zoom follows T.fontPx
@@ -643,15 +852,22 @@ step(1, function()
         local wantBig = base * 1.3 * ZeD.Scale.root() / face
         check(ok and math.abs(zBig - wantBig) < 1e-6, "text scale: a raised role px (the tooltip's Large text, Overrides/Tooltip.lua) reaches the zoom",
             zBig, wantBig)
-        check(X.zoomOf(F) == z0, "text scale: F2's zoom is as it was after the raise", X.zoomOf(F), z0)
+        local zAfter = X.zoomOf(F)
+        check(zAfter == z0, "text scale: F2's zoom is as it was after the raise", zAfter, z0)
+        -- (a zoom kept for the raised px would size every F2 text: the kept zooms start over)
+        if zAfter ~= z0 and X._zoom then X._zoom.T = false end
     end
 end)
 step(4, function()
-    -- a ZeD text entry (zedEntry), on screen for a few frames
+    -- a ZeD text entry (zedEntry), on screen for a few frames; the game's own placeholder goes in first through
+    -- vanilla's setter, so ZeD has one to empty
     local e = ISTextEntryBox:new("", 40, 40, 260, 26)
     e:initialise()
     e:instantiate()
+    S.entry = e
     e.zedEntry = true
+    e:setPlaceholderText("QA game placeholder")
+    S.phGame = tostring(e:getPlaceholderText())
     S.phDrawn = {}
     e.drawText = function(self, s, ...)
         S.phDrawn[#S.phDrawn + 1] = tostring(s)
@@ -659,14 +875,14 @@ step(4, function()
     end
     X.ownPlaceholder(e, "QA placeholder", nil, 1)
     e:addToUIManager()
-    S.entry = e
 end)
 step(1, function()
     local e = S.entry
     local f = X.entryFont()
     check(e.font == f and e._zedFont == f, "text scale: a ZeD text entry takes the entry face for this scale", tostring(e.font), tostring(f))
     local ph = e.javaObject:getPlaceholderText()
-    check(ph == nil or ph == "", "text scale: the game's own placeholder of a ZeD entry is emptied", ph, "")
+    check(S.phGame == "QA game placeholder" and ph == "", "text scale: the game's own placeholder of a ZeD entry is emptied",
+        tostring(S.phGame) .. " -> " .. tostring(ph), "QA game placeholder -> (empty)")
     local drawn = false
     for _, s in ipairs(S.phDrawn) do if s == "QA placeholder" then drawn = true end end
     check(drawn, "text scale: ZeD draws the entry's placeholder while it is empty and not focused", table.concat(S.phDrawn, "/"), "QA placeholder")
@@ -683,62 +899,102 @@ untilDo(sinceSwitch(450), 2000, function()
     Det.setLockedMode(nil)
     check(Det.getMode() == "kbm", "input mode: locked to mouse and keys, then let go, the detector stays on kbm", Det.getMode(), "kbm")
     ctlStub(true)
-    local th = (ZeD.T.gp and ZeD.T.gp.stickThresh) or 0.2
+    local th = stickTh()
     S.fc.ax[0], S.fc.ax[1] = th * 0.6, th * 0.6   -- (|0.6, 0.6| x the threshold = 0.85 of it)
+    S.fc.reads[0] = 0
 end, 10)
 step(0, function()
-    check(Det.getMode() == "kbm", "input mode: a stick inside the dead zone (0.85 of it, both axes) leaves mouse and keys", Det.getMode(), "kbm")
-    local th = (ZeD.T.gp and ZeD.T.gp.stickThresh) or 0.2
+    local rd = S.fc.reads[0] or 0
+    check(Det.getMode() == "kbm" and rd > 0, "input mode: a stick inside the dead zone (0.85 of it, both axes; read " .. rd
+        .. " times in auto mode, past the cooldown) leaves mouse and keys", Det.getMode() .. ", read " .. rd, "kbm, read > 0")
     S.nEv = #S.events
-    S.fc.ax[0], S.fc.ax[1] = math.min(0.9, th * 2.5), 0
+    S.fc.ax[0], S.fc.ax[1] = math.min(0.9, stickTh() * 2.5), 0
 end)
 untilDo(function() return Det.getMode() == "gamepad" end, 1500, function(ok)
     check(ok, "input mode: a stick past the dead zone switches to the pad", Det.getMode(), "gamepad")
     check(#S.events > S.nEv and lastEv() == "gamepad,kbm", "input mode: ZeD_InputModeChanged fires (gamepad, kbm)", lastEv(), "gamepad,kbm")
+    S.padOn = ok
     S.tSw = getTimestampMs()
     if ok and S.freeKey then triggerEvent("OnKeyPressed", S.freeKey) end   -- (inside the cooldown)
-end, 2)
+end, 0)
 step(0, function()
-    if S.freeKey then
-        check(Det.getMode() == "gamepad", "input mode: a key inside the " .. cooldown() .. " ms cooldown does not switch back ("
-            .. (getTimestampMs() - S.tSw) .. " ms on)", Det.getMode(), "gamepad")
+    -- (the detector read the key on this tick, before this step: the time it saw since the switch is at most this)
+    if not S.freeKey then
+        skip("input mode: the four key checks (inside and after the cooldown, a stick and a key on one tick, a key on a locked mode)", "no unbound key to press")
+    elseif not S.padOn then
+        skip("input mode: the three key checks on the pad (inside and after the cooldown, a stick and a key on one tick)", "the stick never put the detector on the pad")
     else
-        skip("input mode: the key checks", "no unbound key to press")
+        local took = getTimestampMs() - S.tSw
+        if took >= cooldown() then
+            skip("input mode: a key inside the cooldown", "the game took " .. took .. " ms to its next tick, past the " .. cooldown() .. " ms cooldown")
+        else
+            check(Det.getMode() == "gamepad", "input mode: a key " .. took .. " ms after the switch, inside the " .. cooldown()
+                .. " ms cooldown, does not switch back", Det.getMode(), "gamepad")
+        end
     end
     S.fc.ax[0], S.fc.ax[1] = 0, 0
 end)
 untilDo(sinceSwitch(cooldown() + 250), 3000, function()
     S.nEv = #S.events
-    if S.freeKey then triggerEvent("OnKeyPressed", S.freeKey) end
+    if not (S.freeKey and S.padOn) then return end   -- (said above)
+    if Det.getMode() ~= "gamepad" then
+        skip("input mode: a key after the cooldown switches back, and its event", "the detector was not on the pad before the key")
+        return
+    end
+    S.keyBack = true
+    triggerEvent("OnKeyPressed", S.freeKey)
 end, 2)
 step(0, function()
-    if S.freeKey then
-        check(Det.getMode() == "kbm", "input mode: a key after the cooldown switches back to mouse and keys", Det.getMode(), "kbm")
+    if S.keyBack then
+        check(#S.events > S.nEv and Det.getMode() == "kbm", "input mode: a key after the cooldown switches back to mouse and keys", Det.getMode(), "kbm")
         check(#S.events > S.nEv and lastEv() == "kbm,gamepad", "input mode: ZeD_InputModeChanged fires (kbm, gamepad)", lastEv(), "kbm,gamepad")
     end
+    S.keyBack = nil
     S.tSw = getTimestampMs()
 end)
 untilDo(sinceSwitch(cooldown() + 250), 3000, function()
-    if not S.freeKey then return end
+    if not (S.freeKey and S.padOn) then return end   -- (said above)
+    if Det.getMode() ~= "kbm" then
+        skip("input mode: a stick and a key on the same tick", "the detector was not on mouse and keys before it")
+        return
+    end
+    S.stickKey = true
+    S.fc.reads[0] = 0
     S.fc.ax[0] = 0.9
     triggerEvent("OnKeyPressed", S.freeKey)   -- (the stick and a key for the detector's next tick)
 end, 0)
 step(0, function()
-    if S.freeKey then
-        check(Det.getMode() == "kbm", "input mode: a stick and a key on the same tick, the key (the newer event) wins", Det.getMode(), "kbm")
+    if S.stickKey then
+        local rd = S.fc.reads[0] or 0
+        check(Det.getMode() == "kbm" and rd > 0, "input mode: a stick and a key on the same tick (the stick read " .. rd
+            .. " times), the key (the newer event) wins", Det.getMode() .. ", read " .. rd, "kbm, read > 0")
     end
+    S.stickKey = nil
     S.fc.ax[0] = 0
 end)
+-- the trigger, from mouse and keys in auto mode: a run the stick left on the pad (no key) gets there through the lock,
+-- let go once the detector has switched; the trigger then sits a cooldown after that switch, so a misread would switch
 untilDo(sinceSwitch(cooldown() + 250), 3000, function()
-    if Det.getMode() ~= "kbm" then Det.setLockedMode("kbm") end   -- (a key-less run is on the pad here: back first)
-    local tt = (ZeD.T.gp and ZeD.T.gp.triggerThresh) or 0.15
-    S.fc.ax[4] = tt * 0.6
+    S.fc.ax[0], S.fc.ax[1] = 0, 0
+    S.nEv = #S.events
+    if Det.getMode() ~= "kbm" then Det.setLockedMode("kbm"); S.trigLock = true end
+end, 0)
+untilDo(function() return not S.trigLock or (#S.events > S.nEv and S.events[#S.events].new == "kbm") end, 1500, function(ok)
+    if not S.trigLock then return end
+    Det.setLockedMode(nil)
+    S.trigLock = nil
+    S.tSw = getTimestampMs()
+    if not ok then say("INFO the lock to mouse and keys did not switch the detector in 1.5 s") end
+end, 0)
+untilDo(sinceSwitch(cooldown() + 250), 3000, function()
+    S.fc.reads[4] = 0
+    S.fc.ax[4] = trigTh() * 0.6
 end, 10)
 step(0, function()
-    Det.setLockedMode(nil)
-    check(Det.getMode() == "kbm", "input mode: a trigger at 0.6 of its threshold leaves mouse and keys", Det.getMode(), "kbm")
-    local tt = (ZeD.T.gp and ZeD.T.gp.triggerThresh) or 0.15
-    S.fc.ax[4] = math.min(0.9, tt * 3)
+    local rd = S.fc.reads[4] or 0
+    check(Det.getMode() == "kbm" and rd > 0, "input mode: a trigger at 0.6 of its threshold (read " .. rd
+        .. " times in auto mode, past the cooldown) leaves mouse and keys", Det.getMode() .. ", read " .. rd, "kbm, read > 0")
+    S.fc.ax[4] = math.min(0.9, trigTh() * 3)
 end)
 untilDo(function() return Det.getMode() == "gamepad" end, 1500, function(ok)
     check(ok, "input mode: a trigger pulled past its threshold switches to the pad", Det.getMode(), "gamepad")
@@ -746,16 +1002,24 @@ untilDo(function() return Det.getMode() == "gamepad" end, 1500, function(ok)
     S.fc.ax[4] = 0
 end, 1)
 untilDo(sinceSwitch(cooldown() + 250), 3000, function()
+    local what = "input mode: a pad unplugged with none left goes back to mouse and keys"
     local vc = JoypadState and JoypadState.controllers and JoypadState.controllers[FC]
-    if Det.getMode() ~= "gamepad" then skip("input mode: a pad unplugged", "not on the pad before it"); return end
-    if not vc or vc.connected == true then skip("input mode: a pad unplugged", "the game's slot " .. FC .. " is missing or holds a real pad"); return end
-    S.vcSave = { v = vc.connected }
+    if Det.getMode() ~= "gamepad" then skip(what, "not on the pad before it"); return end
+    if not vc or vc.connected == true then skip(what, "the game's slot " .. FC .. " is missing or holds a real pad"); return end
+    -- (OnGamepadDisconnect reaches every listener: vanilla's main menu hand-back and options screen as well as the
+    -- detector; with no real pad connected or joined they have nothing to change, so only then)
+    local pads, joined = realPads()
+    local MSi = MainScreen and MainScreen.instance
+    if pads > 0 or joined or (MSi and MSi.termsOfService) then
+        local why = (pads > 0) and (pads .. " real pad(s) connected") or (joined and "a pad is joined" or "the main menu's terms are up")
+        skip(what, why .. ": the unplug would reach the game's own pad handlers")
+        return
+    end
+    S.unplug = { v = vc.connected, test = JoypadState.controllerTest, ms = MSi, focus = MSi and MSi.joyfocus }
     S.fc.none = true   -- (no controller left anywhere)
     local ok, e = pcall(triggerEvent, "OnGamepadDisconnect", FC)
-    vc.connected = S.vcSave.v
-    S.vcSave = nil
-    S.fc.none = false
-    check(ok and Det.getMode() == "kbm", "input mode: a pad unplugged with none left goes back to mouse and keys", ok and Det.getMode() or tostring(e), "kbm")
+    unplugBack()
+    check(ok and Det.getMode() == "kbm", what, ok and Det.getMode() or tostring(e), "kbm")
     S.tSw = getTimestampMs()
 end, 1)
 step(1, function()
@@ -835,7 +1099,10 @@ step(1, function()
     if not cnt then skip("pad path: L3", "no list in the Character window"); return end
     local el = Focus.getFocusedElement(cw)
     local cs = (el and el.colIdx and cnt._colStates and cnt._colStates[el.colIdx]) or nil
-    S.sortSave = { cnt = cnt, cs = cs, col = cnt._sortCol, asc = cnt._sortAsc, cscol = cs and cs.sortCol, csasc = cs and cs.sortAsc }
+    -- (padSort also sends that list's scroll to the top: kept to put back with the sort)
+    local sb = (cs and cs.scroll) or cnt._scroll
+    S.sortSave = { cnt = cnt, cs = cs, col = cnt._sortCol, asc = cnt._sortAsc, cscol = cs and cs.sortCol, csasc = cs and cs.sortAsc,
+                   sb = sb, pos = sb and sb.scrollPos }
     local before = (cs and cs.sortCol) or cnt._sortCol or "name"
     cw:onJoypadDown(Joypad.LStickButton, nil)
     local after = (cs and cs.sortCol) or cnt._sortCol or "name"
@@ -869,7 +1136,7 @@ step(2, function()
         local n = 0
         while c:getNextZoom(0, -1) <= c:getMinZoom() and n < 3 do c:doZoomScroll(0, 1); n = n + 1 end
     else
-        say("INFO the zoom level cannot move here (zoom off, auto zoom, or between levels): the zoom checks are skipped")
+        say("INFO the zoom level cannot move here (zoom off, auto zoom, or between levels): the zoom checks cannot be made")
     end
 end)
 step(3, function() S.z = zl(); S.lb = true end)
@@ -981,46 +1248,63 @@ local function try(what, fn)
     local ok, e = pcall(fn)
     if not ok then say("ERR putting back " .. what .. ": " .. tostring(e)) end
 end
+-- the last of it, once the detector is on the mode it should be on (cleanup waits for that switch): the lock as
+-- ZeD setup has it, then the windows (closing one hands its pad focus on), then the pad focus, the chord, the speed
 finish = function()
     if S.finished then return end
-    try("the input lock", function() Det.setLockedMode(settingLock()) end)
+    S.finished = true
+    try("the input lock", function() Det.setLockedMode(S.lock0) end)
+    try("the Character window", function() putWindow("Character", CWm, S.cw0, function() CWm.toggle(0) end) end)
+    try("the World window", function() putWindow("World", WWm, S.ww0, function() WWm.close(0) end) end)
     try("the pad focus", function()
         local f0 = S.focus0
-        if f0 and f0.isVisible and f0:isVisible() then Focus.claimFocus(f0)
+        if f0 and Focus.isRegistered and Focus.isRegistered(f0) then
+            if Focus.getFocusedWindow() ~= f0 then Focus.claimFocus(f0) end
         elseif Focus.getFocusedWindow() then Focus.releaseFocus() end
-        Chord.setEnabled(Focus.getFocusedWindow() == nil)
     end)
-    try("the windows", function()
-        if S.win0 == false and CWm.isOpen() and WWm.isOpen() then CWm.toggleBothPaired(0) end
-    end)
+    try("the chord", function() Chord.setEnabled(Focus.getFocusedWindow() == nil) end)
     try("the mode listener", function() Events.ZeD_InputModeChanged.Remove(onMode) end)
+    try("the game speed", function()
+        if S.speed0 ~= nil and S.speed0 <= 0 and getGameSpeed() > 0 then setGameSpeed(S.speed0); say("INFO put back: the game paused again, as found") end
+    end)
     ZEDQA_CIN_ORIG = nil
-    S.finished = true
-    say(string.format("RESULT %d pass, %d fail, %d skip", npass, nfail, nskip))
+    say(string.format("RESULT %d pass, %d fail (%d of them checks that could not run)", npass, nfail, nskip))
     say("DONE")
 end
 cleanup = function()
     if S.cleaning then finish(); return end
     S.cleaning = true
     try("the stand-ins", function() unstub("the clean-up") end)
+    try("the furniture cursor and pointer", function() furCursorDown(); furHoverDown(); S.fur = nil end)
+    try("the unplug's marks", unplugBack)
     try("the probe action", function()
-        if S.probe then ZeD.Input.Actions.__qa_probe = nil; Act.rebuild(); S.probe = nil end
+        if S.probe then ZeD.Input.Actions.__qa_probe = nil; S.probe = nil end
+        Act.rebuild()
     end)
     try("the test entry", function()
         if S.entry then S.entry:setVisible(false); S.entry:removeFromUIManager(); S.entry = nil end
     end)
     try("the sort", restoreSort)
-    try("the role px", function() if S.pxSave then ZeD.T.fontPx[S.pxSave.f] = S.pxSave.v; S.pxSave = nil end end)
-    try("controller slot " .. FC, function()
-        if S.vcSave then JoypadState.controllers[FC].connected = S.vcSave.v; S.vcSave = nil end
+    try("the role px", function()
+        if S.pxSave then
+            ZeD.T.fontPx[S.pxSave.f] = S.pxSave.v
+            S.pxSave = nil
+            if X._zoom then X._zoom.T = false end   -- (the kept zooms start over)
+        end
     end)
     try("the zoom", restoreZoom)
-    try("the chord", function() Chord.setEnabled(true) end)
-    -- through mouse and keys before the lock goes back as ZeD setup has it (auto then starts on kbm)
-    try("the input mode", function() Det.setLockedMode("kbm") end)
-    S.tSw = getTimestampMs()
+    -- the mode: the detector through the mode the lock gives (or, with ZeD setup on auto, the mode the run found:
+    -- kbm when it found none), so auto starts from it; the lock itself goes back once the detector has switched
+    S.modeTarget = S.lock0 or ((S.mode0 == "gamepad") and "gamepad" or "kbm")
+    try("the input mode", function() Det.setLockedMode(S.modeTarget) end)
     Q, qi, waitT = {}, 0, 0
-    untilDo(sinceSwitch(cooldown() + 250), 2000, function() finish() end, 0)
+    untilDo(function()
+        local e = S.events[#S.events]
+        return ((e and e.new) or S.mode0) == S.modeTarget
+    end, 1500, function(ok)
+        if not ok then say("INFO the detector did not come to " .. tostring(S.modeTarget) .. " in 1.5 s") end
+        finish()
+    end, 0)
 end
 
 local function drive()
@@ -1050,19 +1334,22 @@ end
 local okStart, whyNot = pcall(function()
     if not (ZeD and Det and Chord and Act and Focus and X and LEAN and CWm and WWm) then error("ZeD's input or text modules are not loaded") end
     local save = tostring(getWorld():getWorld())
-    if string.find(save, "ZeD-QA", 1, true) ~= 1 then error("not the ZeD-QA save (" .. save .. "): nothing was touched") end
-    if getGameSpeed() <= 0 then setGameSpeed(1) end
+    if save ~= "ZeD-QA" then error("not the ZeD-QA save (" .. save .. "): nothing was touched") end
+    S.speed0 = getGameSpeed()
+    if S.speed0 <= 0 then setGameSpeed(1) end   -- (ticks drive the run; paused again at the end)
     S.focus0 = Focus.getFocusedWindow()
-    S.win0 = (CWm.isOpen() and WWm.isOpen()) and true or false
+    S.cw0, S.ww0 = winState(CWm), winState(WWm)
     S.z0 = zl()
+    S.mode0, S.lock0 = Det.getMode(), settingLock()
     Events.ZeD_InputModeChanged.Add(onMode)
 end)
 if okStart then
     Events.OnRenderTick.Add(watch)
     Events.OnTick.Add(drive)
-    say(string.format("start: mode %s, chord %s, pad on %s, windows open %s, zoom target between %.2f and %.2f, lock in ZeD setup %s",
-        tostring(Det.getMode()), tostring(Chord.getState()), label(S.focus0), tostring(S.win0), S.z0.dn, S.z0.up, tostring(settingLock() or "auto")))
+    say(string.format("start: mode %s, chord %s, pad on %s, Character window %s, World window %s, zoom target between %.2f and %.2f, lock in ZeD setup %s",
+        tostring(S.mode0), tostring(Chord.getState()), label(S.focus0), winText(S.cw0), winText(S.ww0), S.z0.dn, S.z0.up, tostring(S.lock0 or "auto")))
 else
+    if S.speed0 ~= nil and S.speed0 <= 0 then pcall(setGameSpeed, S.speed0) end
     ZEDQA_CIN_ORIG = nil
     say("ERR " .. tostring(whyNot))
     say("DONE")
