@@ -1,0 +1,5 @@
+0.3.0-beta12a
+
+A small fix to beta 12.
+
+- Fixed: New game > Challenges was empty. It lists every challenge again, the game's own and any a mod adds.
