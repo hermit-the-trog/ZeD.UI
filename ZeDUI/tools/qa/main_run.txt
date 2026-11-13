@@ -1,0 +1,144 @@
+# ZeDUI/tools/qa/main_run.txt  (Nov 12 2026, test cleanup plan section 4 and its amendments): the main run
+# The list run before an upload. After a build, run smoke.txt and the checks for what changed, not this.
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/main_run.txt
+# It replaces regression.txt as the pre-upload list. regression.txt stays in place because merges still add lines
+# to it; a line added there is carried here by hand (last carried: pad_figure, cov_equipfurn, cov_reading,
+# cov_b9to11).
+#
+# The lines' format is regression.txt's: <script> | <tag> | timeout=<s> | end=<regex> | expect=<regex>   # comment
+# Every tag is unique. The allowlist rule is regression.txt's (in game, ends with DONE, puts back what it adds).
+#
+# Out of this list on purpose (plan section 4 and amendments):
+#   zedqa_pin_windows.lua, zedqa_loot_tabs.lua    the prelude does both now (the window rule)
+#   zedqa_curtain2.lua                            covered by zedqa_curtain.lua steps 1 and 5
+#   zedqa_win / rootchange / scalewalk / large    no checks; zedqa_uiscale.lua is the one scale script
+#   zedqa_doll.lua                                zedqa_doll_v4.lua does all of it
+#   zedqa_dash19.lua                              the same 19 cars as zedqa_dashpx.lua, which now has checks
+#   zedqa_wheels.lua                              zedqa_wheel_icons.lua's live radials cover it
+#   zedqa_furniture.lua                           read nothing on the asphalt and passed; zedqa_cov_equipfurn.lua
+#                                                 stages a piece and checks the five modes (restage: not done yet)
+#   zedqa_immersive_searching.lua                 only its "mod off" half ran here, a no-op; it stays in the compat run
+#   zedqa_b11_notes.lua                           a shipped beta's checklist that failed every run on its own timing
+#   zedqa_cov_objcards.lua                        stages a hen house, hens and a trough on the strip: no animal staging
+#                                                 until a farm is picked (amendment 1); its other cards wait for the split
+#   every animal script, zedqa_b8_animals.lua     amendment 1: no farm yet
+#   zedqa_dash_odo.lua, zedqa_dash_odo_reload.lua  need a quit and a second launch: dash_odo_a.txt, then dash_odo_b.txt
+#   zedqa_fishing_tab_live*.lua                   run when fishing changes (the shore, their own manifest)
+#   the compat set (exinfo aside)                 capacity, dropnloot, nested, isearch, roadworthy, msc_run1/2, r3_D_cars,
+#                                                 b8_seven_menus, minsidebar, cml, responsiveui, modlist: with their mods
+
+# ---- first: the drag strip, the default window layout, pinned, the console closed
+zedqa_prelude.lua | pre | timeout=120
+
+# ---- the suites
+suite_tabs.lua | tabs                            # every tab of both windows; each press must make its tab active
+suite_verbs.lua | verbs                          # item card header verbs through the real dispatch; its items taken back
+suite_band.lua | band                            # progress band: reading, cancel; cooking if a stove is near
+suite_perf.lua | perf                            # ms per tick on every tab + recipe builder cost
+
+# ---- windows, cards, the pad
+zedqa_audit_fixes.lua | af | expect=QA: a tab that throws   # throwing tab logs once, equip card hides, card outlives item, weight
+zedqa_ctxlist.lua | cl                           # context menu as a list, submenu, back to the strip
+zedqa_ctx_icons.lua | cx | timeout=300           # the right-click menu's pixel icons (the icon table half moves to a sim: Build)
+zedqa_onepath.lua | op                           # Move to, Rename, double-click, Take all, card verbs, the no-craft chip
+zedqa_grid.lua | grid                            # inventory grid, cell card, pad walk, the List / Grid button
+zedqa_sort_groups.lua | sg | timeout=420         # category headers only under Sort by Category; orders (the ordering half moves to a sim: Build)
+zedqa_wt_bracket.lua | wtb | timeout=240         # a stack's total in brackets; Small / Large; two columns; narrow WT
+zedqa_doll_v4.lua | dollv4 | timeout=420         # the doll's 38 small slots, the pad in and out, half and full card
+zedqa_curtain.lua | cu | timeout=400             # curtain roll / unroll to the pixel, close while rolled, three tabs while rolled; layout put back
+zedqa_navevents.lua | ev                         # where pad focus lands after cards, strips, tabs, LB / RB, the map (prints; its map part is to join wpt)
+zedqa_navmap.lua | nav                           # the pad map of every tab: traps and islands listed (strict after triage)
+zedqa_cov_input.lua | cov_input | timeout=240    # the controller plumbing and the text scale (most of it moves to a sim: Build)
+zedqa_world_pad_take.lua | wpt | timeout=300     # the pad into the World window and back, steps 1 to 6 and focus-comes-back
+zedqa_uiscale.lua | scale                        # UI scale steps with checks: windows on screen at each step, scale and layout back
+zedqa_two_widths.lua | tww | timeout=600         # every tab and item card is the half or the full card; the other window never moves
+zedqa_charinfo.lua | ci | timeout=180            # the game's Character window keys land on ZeD's tabs
+zedqa_exinfo.lua | ex                            # Health tab exercise info (ZeD's own feature: amendment 4)
+zedqa_equipdrag.lua | eqd | timeout=240          # Equip rows and doll slots as drag sources (fake mouse; all put back)
+zedqa_faiv.lua | fav | timeout=240               # FAIV's three reports (to shrink to the loot-flash check: not done yet)
+zedqa_lists.lua | ls | timeout=240               # loadouts and outfits
+zedqa_restock.lua | rst | timeout=900            # loadouts in the Equip tab, restock three ways, at the grandstand (the day math moves to a sim: Build)
+zedqa_px_icons.lua | px | timeout=240            # ZeD's pixel icons outside the wheels
+zedqa_ring_squares.lua | rs | timeout=200        # the hands' condition ring; the setup switch for the theme squares
+zedqa_sandbox_ig.lua | sbx | timeout=240         # Sandbox options in game
+zedqa_messages.lua | msg | timeout=300 | expect=qaMessagesError   # Messages: notes kept, questions asked, an error filed once (clears the inbox first)
+zedqa_prompts.lua | pr                           # every prompt kind through vanilla's constructors (no pictures)
+zedqa_fishing.lua | fi                           # the rod meter fed each tension
+b10_guide_open_frames.lua | gframes | timeout=90 # the guide opens without a long frame
+zedqa_b10_tooltips.lua | b10tt | timeout=900     # every hover box a balloon with a tail (to shrink to 3 or 4 balloons: not done yet)
+zedqa_b8_station.lua | b8sc | timeout=240        # the game's own butcher hook and log furniture keep the game's window (given nails)
+
+# ---- containers (their pickup comes from the shared spawn on the strip; a crate instead: not done yet)
+zedqa_container_bottom.lua | cb                  # container buttons row at the bottom, campfire ribbon (to join container_controls)
+zedqa_container_controls.lua | ct                # Same type / Take all / Transfer all / To floor, campfire buttons
+
+# ---- wheels and chords (their cars come from the shared spawn on the strip)
+zedqa_wheel_icons.lua | wi | timeout=600         # the wheels' icons and the live radials (the data half moves to a sim: Build)
+zedqa_dpad_wheels.lua | dw | timeout=600         # the D-pad wheels and Select; the car scene on its own car now (the gesture half moves to a sim: Build)
+zedqa_pad_glyphs.lua | pg | timeout=400          # the button pictures in every set; the dash hint on its own car now
+zedqa_quick_chords.lua | qc | timeout=300        # quick action chords
+zedqa_put_back.lua | pb | timeout=900 | expect=ISDrinkFromBottle.lua:82   # things go back into the bag (the tire scene reads "not run": its car is not restaged yet)
+
+# ---- vehicles (every car from the one shared spawn, zedqa_prelude.lua)
+zedqa_cov_vehicles.lua | cov_vehicles | timeout=600 | expect=FBORenderCell   # car radio, CD, siren, seat chooser with real checks (rod, clock and sleep clock move to a sim: Build)
+zedqa_dashpx.lua | dpx | timeout=720             # the 19-car pass (24 with the liveries): in, key, engine, dash drawn, each checked
+zedqa_mech79.lua | m79 | timeout=1200            # the Vehicle tab in two columns; a real uninstall and install
+zedqa_dash_lamps.lua | dl | timeout=300          # lamps by part condition, blink, hover chips, bulb check
+zedqa_dashnight.lua | dnt | timeout=480          # dash night lighting on three cars
+zedqa_dash_green.lua | dgr | timeout=600 | expect=FBORenderCell   # D6 fan needle parked by day; the green-lit late models at night (no push to speed)
+# (amendment 3: these four stay until zedqa_cov_vehicles.lua has one green run, then they go)
+zedqa_seat_lightbar_vanilla.lua | sl | expect=FBORenderLevels.getNLevels   # seat chooser and lightbar from vanilla's entry points (pictures)
+zedqa_car_radio_build.lua | rb                   # the car radio up close with each radio fitted (pictures)
+zedqa_car_radio_cd.lua | cd                      # CD deck: list, insert, play, eject (prints)
+zedqa_dash_props_smoke.lua | sm                  # v6 dash, radio up close, siren controller still draw (pictures)
+
+# ---- coverage scripts added by Build's merges (carried from regression.txt)
+zedqa_pad_figure.lua | padfig | timeout=180      # the drawn controller: Button map and test, the Controller map
+zedqa_cov_equipfurn.lua | cov_equipfurn | timeout=300   # the Equip tab's defense summary, container buttons on a staged shelf and bag, the Furniture tab's five modes
+zedqa_cov_reading.lua | cov_reading | timeout=300       # the Journal's diary; Recipes; newspapers; the print and garment hooks
+zedqa_cov_b9to11.lua | cov_b9to11 | timeout=480         # the beta 9 to 11 fixes no check reached, at two UI scales
+
+# ---- in regression.txt and not judged by name in the plan: kept as they were (phase 1's rule)
+zedqa_mapshot.lua | ms                           # both windows, then the Maps tab
+zedqa_mapstyles.lua | mst                        # Survey / Color / Paper at two zooms
+zedqa_flyers.lua | fl                            # the Maps tab marks only flyers read
+zedqa_flyermap.lua | fm                          # flyer pins, hover card, reader from a pin, Show on map
+zedqa_mapnotes.lua | mnote                       # notes and marks in vanilla's store; all taken back
+zedqa_journal_refs.lua | jr                      # Journal tab diary and Flyers gallery
+zedqa_journal_readers.lua | jrd                  # Notebooks, Papers, Into; items and log entry taken back
+zedqa_reader.lua | rd                            # the reader through vanilla's Read
+zedqa_reader_refs.lua | rr                       # reader reference captures; items taken back
+zedqa_notebook.lua | nb                          # writing in a notebook through vanilla's Write
+zedqa_print_fit.lua | pf                         # newspaper stories fitted to their columns
+zedqa_print_typeset.lua | ts                     # newspaper page typeset by ZeD
+zedqa_props_plates.lua | props                   # rod and clock radio plates on a test panel
+zedqa_belt_strap.lua | belt                      # the pixel-art belt strap
+zedqa_straps.lua | straps                        # per-slot strap materials, four loadouts, all taken off
+zedqa_buckle.lua | bk                            # the buckle stays on the screen centre
+zedqa_buckles.lua | bks                          # every profession's buckle; the profession goes back
+zedqa_beltwatch.lua | bw                         # the mini watch on the belt
+zedqa_hands_together.lua | ht | timeout=300      # the hands together at the left end
+zedqa_watches2.lua | watches                     # the nine watch plates by day and night
+zedqa_food_verbs.lua | fv | timeout=120          # a food with its own verb
+zedqa_moodles.lua | mood | timeout=240           # the moodles in each place
+zedqa_twoway.lua | tw | timeout=600              # the ten two-way radio faces
+zedqa_rtv.lua | rtv | timeout=600                # the ordinary radios, the CD player and the three TVs as faces
+zedqa_appliances.lua | ap | timeout=240          # oven and microwave faces (indoors for power)
+zedqa_plates_336.lua | p336 | timeout=900        # the 336 px machine plates and 200 px narrow faces
+zedqa_laundry.lua | ldy | timeout=600            # the washer, dryer and washer-dryer face cards (indoors for power)
+zedqa_cazio_light.lua | czl | timeout=240        # the CaZio LIGHT: bulb by day and at night, mini watch
+
+# ---- waiting for Build's script-to-sim mapping (plan: MOVE TO SIM). Kept as they are until the sims take them
+# ---- over; then these lines go. About 9 minutes of this run.
+zedqa_segbars.lua | segb | timeout=60            # the segmented fill bars' lit counts
+zedqa_sc_font.lua | scf                          # simplified Chinese face (the run is in English: it cannot fail on bug 158)
+zedqa_158_balloon.lua | b158 | timeout=120       # Chinese in the speech balloon (in English here; one look by hand in Chinese)
+zedqa_button_case_game.lua | bg                  # sentence-case buttons across the windows
+zedqa_ctx_overlap.lua | ctxov | timeout=300      # a submenu over its parent stays open
+zedqa_guide_bubble.lua | gbub | timeout=240      # the guide offers itself from the Messages icon
+zedqa_dash_keys_edge.lua | dke | timeout=1500 | expect=FBORenderCell   # 19 designs: the key at OFF, START, ON; the dash flush on the screen's edge (the key order moves to a sim; the rest joins the 19-car pass)
+zedqa_dash_brands.lua | dbr | timeout=900 | expect=FBORenderCell       # the makers' marks (the badge choice moves to a sim; the rest joins the 19-car pass)
+
+# ---- last
+zedqa_safemode.lua | safe | timeout=240          # safe mode trips, turns ZeD off, and recovers
+zedqa_soak.lua | soak | timeout=600              # 2 rounds with a before-and-after check (once per release: zedqa_soak_long.lua | soaklong, then this with timeout=2700)

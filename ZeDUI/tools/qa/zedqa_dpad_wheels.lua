@@ -282,18 +282,25 @@ step(30, function()
 end)
 
 -- in the deep run's car, then beside a tame animal: the top levels' slices
-local car
+-- (Nov 12 2026, test cleanup RESTAGE: the script's own car on the drag strip from the one shared spawn in
+-- zedqa_prelude.lua. It used to look for the deep run's car within 8 tiles; that car stands in the woods 2 km away,
+-- so this scene was skipped in nearly every run. A scene that cannot run says "not run".)
+local car, carKey
 step(20, function()
-    local it = getCell():getVehicles():iterator()
-    while it:hasNext() do
-        local v = it:next()
-        local t
-        pcall(function() t = v:getModData().ZeDDeepRun end)
-        if t == "near_car" and v:DistTo(p) < 8 then car = v end
+    if ZEDQA_HOME then ZEDQA_HOME("dw") end
+    if ZEDQA_CAR_SPAWN then car = ZEDQA_CAR_SPAWN("Base.CarNormal", "dw") end
+    if not car then say("not run: the car scene (no car from the shared spawn; zedqa_prelude.lua must run first)") end
+end)
+-- (the car settles: its physics is looked for every few ticks, as the helper asks)
+for _ = 1, 15 do step(8, function() if car and ZEDQA_CAR_READY then ZEDQA_CAR_READY(car) end end) end
+step(5, function()
+    if not car then return end
+    carKey = ZEDQA_CAR_PREP(car)
+    local okE, whyE = ZEDQA_CAR_ENTER(car)
+    if not okE then
+        say("not run: the car scene (" .. tostring(whyE) .. ")")
+        ZEDQA_CAR_AWAY(car, carKey); car, carKey = nil, nil
     end
-    if not car then say("no deep-run car within 8 tiles: the car scene is skipped"); return end
-    pcall(function() car:enter(0, p) end)
-    pcall(function() triggerEvent("OnEnterVehicle", p) end)
 end)
 -- the driver's seat leaves the D-pad with the wheels (director, Oct 24 2026);
 -- World > Vehicle > Dashboard hands it to the dash, B lets go
@@ -353,6 +360,7 @@ step(5, function()
 end)
 step(30, function()
     if car and p:getVehicle() then pcall(function() car:exit(p) end); pcall(function() triggerEvent("OnExitVehicle", p) end) end
+    if car and ZEDQA_CAR_AWAY then ZEDQA_CAR_AWAY(car, carKey); car, carKey = nil, nil end   -- (the script's own car taken away)
 end)
 local home, spawned
 step(30, function()

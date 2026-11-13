@@ -1,3 +1,4 @@
+# Nov 12 2026: the pre-upload list is main_run.txt now, and the after-build list is smoke.txt (test cleanup plan, phase 2). This file stays because merges still add lines to it; a line added here is carried into main_run.txt by hand.
 # ZeDUI/tools/qa/regression.txt  (Oct 19 2026)
 # Nov 12 2026: archived to archive/ (test cleanup plan, section 4, DROP) and removed from this list: suite_gamepad.lua, zedqa_card_pad.lua, zedqa_tabicons.lua, zedqa_tabs_lit.lua, zedqa_container_controls_captures.lua, zedqa_wheel_sizes.lua, zedqa_tm.lua, zedqa_tour3.lua, zedqa_testlang.lua
 # The default manifest of zedqa_run.ps1: the bridge QA library, run unattended

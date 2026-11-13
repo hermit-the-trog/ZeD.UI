@@ -103,18 +103,25 @@ end
 step(5, function() D.Z.theme(before.base, before.accent, before.size) end)
 
 -- the dash's hint, with the pad on the dash
-local car
+-- (Nov 12 2026, test cleanup RESTAGE: the script's own car on the drag strip from the one shared spawn in
+-- zedqa_prelude.lua. It used to look for the deep run's car within 8 tiles; that car stands in the woods 2 km away,
+-- so this scene was skipped in nearly every run. A scene that cannot run says "not run".)
+local car, carKey
 step(10, function()
-    local it = getCell():getVehicles():iterator()
-    while it:hasNext() do
-        local v = it:next()
-        local t
-        pcall(function() t = v:getModData().ZeDDeepRun end)
-        if t == "near_car" and v:DistTo(p) < 8 then car = v end
+    if ZEDQA_HOME then ZEDQA_HOME("pg") end
+    if ZEDQA_CAR_SPAWN then car = ZEDQA_CAR_SPAWN("Base.CarNormal", "pg") end
+    if not car then say("not run: the dash scene (no car from the shared spawn; zedqa_prelude.lua must run first)") end
+end)
+-- (the car settles: its physics is looked for every few ticks, as the helper asks)
+for _ = 1, 15 do step(8, function() if car and ZEDQA_CAR_READY then ZEDQA_CAR_READY(car) end end) end
+step(5, function()
+    if not car then return end
+    carKey = ZEDQA_CAR_PREP(car)
+    local okE, whyE = ZEDQA_CAR_ENTER(car)
+    if not okE then
+        say("not run: the dash scene (" .. tostring(whyE) .. ")")
+        ZEDQA_CAR_AWAY(car, carKey); car, carKey = nil, nil
     end
-    if not car then say("no deep-run car within 8 tiles: the dash scene is skipped"); return end
-    pcall(function() car:enter(0, p) end)
-    pcall(function() triggerEvent("OnEnterVehicle", p) end)
 end)
 for _, key in ipairs({ "ps", "xbox" }) do
     step(40, function()
@@ -127,6 +134,7 @@ for _, key in ipairs({ "ps", "xbox" }) do
 end
 step(20, function()
     if car and p:getVehicle() then pcall(function() car:exit(p) end); pcall(function() triggerEvent("OnExitVehicle", p) end) end
+    if car and ZEDQA_CAR_AWAY then ZEDQA_CAR_AWAY(car, carKey); car, carKey = nil, nil end   -- (the script's own car taken away)
 end)
 
 -- put back what was there

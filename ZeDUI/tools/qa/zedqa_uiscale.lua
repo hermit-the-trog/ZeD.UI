@@ -4,7 +4,7 @@
 -- over each other, and the icon must have a drawing; at the end the scale is the one the run started on and the
 -- windows are back where they were (the window rule: ZEDQA_LAYOUT_SNAP / ZEDQA_LAYOUT_BACK from the prelude).
 -- This is the one scale script now: zedqa_win.lua, zedqa_rootchange.lua and zedqa_scalewalk.lua printed the same
--- geometry with no checks and are archived. Lines "PASS ..." / "FAIL ..."; grep "ZEDQA scale".
+-- geometry with no checks and are out of the main run. Lines "PASS ..." / "FAIL ..."; grep "ZEDQA scale".
 local function W() return ZeD_WorldWindow.getWindow() end
 local function C() return ZeD_CharacterWindow.getWindow() end
 local nPass, nFail = 0, 0

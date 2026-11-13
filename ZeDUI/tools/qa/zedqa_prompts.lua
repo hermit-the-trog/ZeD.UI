@@ -12,7 +12,12 @@ if ZeD.Keyboard and ZeD.Keyboard.instance and not ZeD.Keyboard.isVisible() then 
 local function say(s) print("ZEDQA pr " .. tostring(s)) end
 local steps, tick = {}, 0
 local function at(n, fn) steps[#steps + 1] = { n = n, fn = fn } end
-local function shot(name) pcall(function() getCore():TakeFullScreenshot("zqa_pr_" .. name .. ".png") end) end
+-- (Nov 12 2026, test cleanup SHRINK: no pictures in the regular run, 17 of them that nobody compared. Set
+-- ZEDQA_PROMPT_SHOTS = true in the console before a run to take them again.)
+local function shot(name)
+    if not ZEDQA_PROMPT_SHOTS then return end
+    pcall(function() getCore():TakeFullScreenshot("zqa_pr_" .. name .. ".png") end)
+end
 local function cb(tag)
     return function(target, button, a1, a2)
         say("answer " .. tag .. " internal=" .. tostring(button and button.internal)

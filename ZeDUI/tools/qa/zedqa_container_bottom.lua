@@ -35,10 +35,11 @@ local function nearVehicle(pred)
     return best
 end
 local function spawnVehicle(script, dx, dy)
-    local sq = getCell():getGridSquare(math.floor(p:getX()) + dx, math.floor(p:getY()) + dy, math.floor(p:getZ()))
-    if not sq then say("no square for " .. script); return nil end
-    local ok, v = pcall(addVehicleDebug, script, IsoDirections.N, nil, sq)
-    if ok and v then spawned[#spawned + 1] = v; return v end
+    -- (Nov 12 2026, test cleanup rule 7: the one shared car spawn in zedqa_prelude.lua. The pickup stands on the drag
+    -- strip's marked spots with its whole footprint checked, never beside a character left indoors; dx, dy are unused.)
+    if not ZEDQA_CAR_SPAWN then say("ERR needs zedqa_prelude.lua first (ZEDQA_CAR_SPAWN)"); return nil end
+    local v = ZEDQA_CAR_SPAWN(script, "cb")
+    if v then spawned[#spawned + 1] = v; return v end
     return nil
 end
 local function removeSpawned()

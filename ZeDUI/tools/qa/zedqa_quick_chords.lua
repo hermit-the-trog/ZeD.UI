@@ -170,7 +170,7 @@ step(10, function()
     local pick = D.H.bestLight(p)
     if pick ~= chk then
         bagSkip = true
-        say("LB + X from a bag: skipped, LB + X picks " .. tostring(pick and pick:getFullType()) .. " in a hand or on the belt first")
+        say("not run: LB + X from a bag (LB + X picks " .. tostring(pick and pick:getFullType()) .. " in a hand or on the belt first")
         return
     end
     press("LB", Joypad.XButton)

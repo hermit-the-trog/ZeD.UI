@@ -29,7 +29,7 @@
 -- 3. Last of all (Nov 12 2026, the window rule): puts the layout back the way it found it and checks it. (It used
 --    to leave both windows rolled for the next launch to read; that broke the next script.)
 -- Nov 12 2026, test cleanup: step 5 runs on three tabs (World: Forage, Craft; Character: Skills), and
--- zedqa_curtain2.lua (archived) is covered by steps 1 and 5.
+-- zedqa_curtain2.lua (out of the main run) is covered by steps 1 and 5.
 -- Screenshots zqa_cu_*.png. grep "ZEDQA cu".
 local function say(s) print("ZEDQA cu " .. tostring(s)) end
 local SNAP = ZEDQA_LAYOUT_SNAP and ZEDQA_LAYOUT_SNAP()   -- (the prelude's helper; nil when run alone)

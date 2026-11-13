@@ -161,6 +161,12 @@ step(1, function()
     p:setGodMod(true)
     if getGameSpeed() <= 0 then setGameSpeed(1) end
     bothShut()
+    -- (Nov 12 2026, test cleanup plan: "give it nails") the builds take nails; whatever is left is taken back
+    local nails = {}
+    for _ = 1, 40 do local it = p:getInventory():AddItem("Base.Nails"); if it then nails[#nails + 1] = it end end
+    onCleanup(function()
+        for _, it in ipairs(nails) do pcall(function() local c = it:getContainer(); if c then c:Remove(it) end end) end
+    end)
 end)
 
 for _, full in ipairs(FULLS) do
@@ -168,7 +174,7 @@ for _, full in ipairs(FULLS) do
     step(25, function()
         current.full, current.objs = full, nil
         local objs, why = build(full)
-        if not objs then say("NOTE " .. short .. ": not built here (" .. tostring(why) .. "); skipped"); return end
+        if not objs then say("not run: " .. short .. " (not built here: " .. tostring(why) .. ")"); return end
         current.objs = objs
         local names = {}
         for _, o in ipairs(objs) do names[#names + 1] = tostring(o:getClass():getSimpleName()) end

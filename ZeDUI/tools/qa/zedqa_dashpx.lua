@@ -20,7 +20,7 @@ local LIST = {
 }
 local function say(s) print("ZEDQA dpx " .. tostring(s)) end
 -- (Nov 12 2026, test cleanup) This is the one 19-car pass: zedqa_dash19.lua ran the same 19 cars with fewer
--- readings and is archived. Each car now has real checks (seated, the key in, the engine running, a dash of a
+-- readings and is out of the main run. Each car now has real checks (seated, the key in, the engine running, a dash of a
 -- known design drawn wholly on the screen), so a car can fail. The smoke run takes ONE car from it:
 -- zedqa_dash_one.lua, run right before, sets ZEDQA_DASH_ONE to a tag of LIST for the next run of this script only.
 local nPass, nFail = 0, 0

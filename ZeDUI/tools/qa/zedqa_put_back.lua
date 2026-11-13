@@ -143,11 +143,11 @@ step(5, function()
         pcall(function() t = v:getModData().ZeDDeepRun end)
         if t == "near_car" and v:DistTo(p) < 10 then car = v end
     end
-    if not car then say("no deep-run car within 10 tiles: the tire scene is skipped"); return end
+    if not car then say("not run: the tire scene (no deep-run car within 10 tiles)"); return end
     tirePart = car:getPartById("TireRearLeft")   -- (beside the trunk: the game walks to the wheel, then reaches for the tools)
     local tb = car:getPartById("TruckBed")
     trunk = tb and tb:getItemContainer()
-    if not (tirePart and tirePart:getInventoryItem() and trunk) then say("the car has no tire or trunk: skipped"); car = nil; return end
+    if not (tirePart and tirePart:getInventoryItem() and trunk) then say("not run: the tire scene (the car has no tire or trunk)"); car = nil; return end
     -- the tools in the bag you carry (the game reaches a trunk only from its own side, never from a wheel:
     -- QA Oct 24 2026), the character's own out of the way
     jack, wrench = give(bagInv or main, "Base.Jack"), give(bagInv or main, "Base.LugWrench")

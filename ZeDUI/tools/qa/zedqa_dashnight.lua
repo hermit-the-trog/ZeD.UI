@@ -8,9 +8,9 @@
 if ZEDQA_HOME then ZEDQA_HOME("dnt") end   -- (punch list 47: open ground first; an earlier script can leave the character indoors)
 local p = getPlayer(); local D = ZeD.Dashboard
 local LIST = {
-    { "wagon", "Base.CarStationWagon" }, { "nyala", "Base.CarNormal" }, { "dashelite", "Base.ModernCar" },
-    { "luxury", "Base.CarLuxury" }, { "ambulance", "Base.VanAmbulance" }, { "race", "Base.RaceCar12" },
-    { "d6", "Base.PickUpTruck" },
+    -- (Nov 12 2026, test cleanup SHRINK: three cars, not seven. The wagon stays first: it also reads the game's own
+    -- light. Cut: the Nyala, the Luxury, the ambulance and the race car; name one here to bring it back.)
+    { "wagon", "Base.CarStationWagon" }, { "dashelite", "Base.ModernCar" }, { "d6", "Base.PickUpTruck" },
 }
 local function say(s) print("ZEDQA dnt " .. tostring(s)) end
 if getGameSpeed() == 0 then setGameSpeed(1) end
