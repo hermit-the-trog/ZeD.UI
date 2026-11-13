@@ -4447,6 +4447,14 @@ to be proposed.
       window. (5) Window bodies show the scene through them in Light and High Contrast. **Ruled (the director, Nov 12
       2026, multiple choice): "Solid in Light and HC"**: Light and High Contrast always draw window bodies solid;
       See-through works in Dark only, and its help line says so.
+   g. **QA by hand, the moodle note (review of the build's fix to f(4), Nov 12 2026).** The moodle layer no longer
+      raises itself; a moodle answers the pointer only while the engine's own picking says nothing above the layer
+      holds it (isMouseOver). zedqa_moodles and zedqa_moodle_quarters (and the sims) stand that picking in with the
+      pointer, so no script shows it working. In a real run, with the real pointer: put the moodles right, then left,
+      then in the bottom row; at each, point at a moodle with no window over it (its balloon shows after the hover
+      pause), then drag the Character or World window over that moodle and point at it again (no balloon, no note
+      over the window). Same run, under -debug: Furniture's chip at the cursor's tile in the lower right corner sits
+      above the game's position line (x: ... y: ...) as well as the version line, with any cheat lines on.
 176. **Lua Console 93 Professional Edition: the Lua console as its own mod (the director, Nov 12 2026, via QA: "I want to release this as a
    separate mod. Just the console. Call it like Console Pro 93"; ships with beta 12, the same day, after QA passes
    both).** Debug mode only, for mod makers. Built by ZeDUI/tools/products/build_luaconsole93.py from ZeD's own console

@@ -10,7 +10,8 @@
 --   SOIL     (Nov 12 2026) the item card's soil tags, 220w and 480w: the last tag ends at the right edge, each
 --            the tag gap before the next (the layouts cut from ItemCard.lua and ItemCardOrganism.lua)
 --   CALLERS  the layouts that measured the old box (Health, Equipment, the inventory rows, the medic card, the
---            Animals tab, the station rows, the mod list, the belt's In hand, the item cards' soil) measure the new one
+--            Animals tab, the station rows, the mod list, the belt's In hand, the item cards' soil,
+--            the Foraging hero) measure the new one
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/chip_dot_sim.lua
 -- It prints FAIL lines and a last line "chip_dot_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -295,6 +296,10 @@ do
     check("the Health tab's own box width is gone", not has("HealthTab.lua", "ZeD.textCase(label)) + T.px(10)"))
     check("the item cards' soil tags measure through tagW", has("ItemCardOrganism.lua", "local cw = ZeD.Atoms.tagW(c.label, true)")
         and has("ItemCard.lua", "return ZeD.Atoms.tagW(lbl, true)"))
+    check("the Foraging hero tags measure through tagW",
+        has("ForagingTab.lua", "return ZeD.Atoms.tagW(ZeD.textCase(text), chipMark(style, T) ~= nil, { keepCase = true })")
+        and has("ForagingTab.lua", "local room = maxW - (mark and T.px(10) or 0)")
+        and not has("ForagingTab.lua", "T.px(5) * 2"))
 end
 
 print(string.format("chip_dot_sim: %d checks, %d failed", checks, failed))

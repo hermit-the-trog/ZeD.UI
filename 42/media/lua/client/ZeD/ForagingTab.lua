@@ -451,8 +451,8 @@ end
 -- CHIP DRAW HELPER
 -- ============================================================================
 
--- The hero's facts as tags (the one tag look: a 1u outline, F1 in sentence case, a
--- status square when the fact is a status). style: "pos" (a good state), "warn"
+-- The hero's facts as tags (the one tag look: F1 in sentence case, a status
+-- square when the fact is a status). style: "pos" (a good state), "warn"
 -- (a poor one), anything else: no mark.
 local function chipMark(style, T)
     if style == "pos" then return T.positive end
@@ -460,11 +460,9 @@ local function chipMark(style, T)
     return nil
 end
 
--- The width a tag takes for its text (the tag sizes to its words).
+-- The width a tag takes for its text, measured the way drawTag draws it.
 local function chipWidth(text, T, style)
-    local w = ZeD.TM:MeasureStringX(T.fontF1, ZeD.textCase(text)) + T.px(5) * 2
-    if chipMark(style, T) then w = w + T.px(6) + T.px(4) end
-    return w
+    return ZeD.Atoms.tagW(ZeD.textCase(text), chipMark(style, T) ~= nil, { keepCase = true })
 end
 
 -- maxW (optional): the widest the tag may be; longer text ends in "..."
@@ -472,7 +470,7 @@ local function drawChip(panel, x, y, text, style, T, maxW)
     local mark = chipMark(style, T)
     local s = ZeD.textCase(text)
     if maxW then
-        local room = maxW - T.px(5) * 2 - (mark and T.px(10) or 0)
+        local room = maxW - (mark and T.px(10) or 0)
         s = ZeD.Atoms.truncateText(s, T.fontF1, room)
     end
     local cw = ZeD.Molecules.drawTag(panel, x, y, s, mark, { keepCase = true })

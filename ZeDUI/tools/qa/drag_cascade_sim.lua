@@ -10,6 +10,7 @@
 --     stack (InventoryRenderer.dragItems, cut from the file): the chip counts and cascades what the rows carry
 --     ("Nails x50", three chips), the drag's items stay the rows; an open stack's head row is one thing; every drag
 --     start in the Character and World windows (and the F6 bench) passes what its rows carry
+--   * a long count: past 999 the count reads 999+, and the weight gives way when the two would meet
 -- Run: lua.exe ZeDUI/tools/qa/drag_cascade_sim.lua (from the repo root)
 
 local function slurp(p) local f = assert(io.open(p, "rb")); local s = f:read("*a"); f:close(); return (s:gsub("\r", "")) end
@@ -58,7 +59,7 @@ function P:getAbsoluteY() return 0 end
 function P:drawRect(x, y, w, h, a) self.draws[#self.draws + 1] = { k = "rect", x = x, y = y } end
 function P:drawRectBorder(x, y, w, h, a, r, g, b) self.draws[#self.draws + 1] = { k = "border", x = x, y = y, r = r } end
 function P:drawTextureScaledAspect(tex, x, y, w, h, a) self.draws[#self.draws + 1] = { k = "tex", tex = tex, x = x, y = y, a = a } end
-function P:drawText(s, x, y) self.draws[#self.draws + 1] = { k = "text", s = s } end
+function P:drawText(s, x, y) self.draws[#self.draws + 1] = { k = "text", s = s, x = x } end
 
 local function drag(items, front)
     local d = setmetatable({}, ZeD_DragState)
@@ -160,6 +161,27 @@ local c4 = content("list", { nails, planks, rope })
 d, boxes = dragRows(c4, { nails.rep, planks.rep, rope.rep }, nails.rep)
 ok(d.ghostCount == 150 and countText() == "x150", "THREE STACKS: three closed stacks of 50 read x150 (" .. tostring(countText()) .. ")")
 ok(d.ghostBehind[1].kind == "Plank" and d.ghostBehind[2].kind == "Rope", "THREE STACKS: the other kinds behind")
+
+-- A long count (Nov 12 2026, review): a crate of 1000+ nails dragged as one row. The count and the weight share the
+-- 58u chip's foot (count from the left, weight right-aligned): the count caps at 999+ and the weight gives way
+-- when the two would meet, so they never draw over each other.
+local function weightText()
+    for _, e in ipairs(P.draws) do if e.k == "text" and e.s:sub(1, 1) ~= "x" then return e end end
+    return nil
+end
+local function footClear()
+    local q, w = nil, weightText()
+    for _, e in ipairs(P.draws) do if e.k == "text" and e.s:sub(1, 1) == "x" then q = e end end
+    if not (q and w) then return true end
+    return q.x + ZeD.TM:MeasureStringX(T.fontF3, q.s) < w.x
+end
+d, boxes = dragRows(c1, { nails.rep }, nails.rep)
+ok(weightText() ~= nil and footClear(), "SHORT COUNT: x50 keeps the weight beside it, clear of it")
+local crate = stackOf("Nails", 1200)
+d, boxes = dragRows(content("list", { crate }), { crate.rep }, crate.rep)
+ok(d.ghostCount == 1200 and countText() == "x999+", "LONG COUNT: 1200 nails read x999+ (" .. tostring(countText()) .. ")")
+ok(footClear(), "LONG COUNT: the count and the weight never overlap")
+ok(weightText() == nil, "LONG COUNT: the weight gives way to the count")
 
 -- every press in the windows (and the F6 bench) hands beginPending what the rows carry
 for _, f in ipairs({ "ZeD_CharacterWindow.lua", "ZeD_WorldWindow.lua", "TestInventory.lua" }) do
