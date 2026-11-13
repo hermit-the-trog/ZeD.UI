@@ -986,16 +986,13 @@ add(400, function()
     if w._jrecipeState then w._jrecipeState.search = "plank" end
     setField(w._flyerSearch, "flyer")
     w._flyerSearchText = "flyer"
-    -- to Recipes through the header's Page list
-    local b = w._journalPageBox
-    if b then click(w, center(b)) end
 end)
 add(400, function()
     if SEC["the Journal"] then skip("the Recipes page", "the Journal did not open"); return end
     local w = W()
-    local open = check(w._journalPageOpen == true, "a click on Page opens the page list", tostring(w._journalPageOpen), "true")
-    local z = open and zoneOf(w._journalPageZones, function(pz) return pz.id == 4 end) or nil
-    check(z ~= nil, "the page list offers Recipes", #(w._journalPageZones or {}) .. " rows", "a Recipes row")
+    -- (Nov 12 2026, design review C4: the pages are a tab strip in the header now; the "Page:" list is gone)
+    local z = zoneOf(w._journalTabZones, function(pz) return pz.page == 4 end)
+    check(z ~= nil, "the header's tab strip offers Recipes", #(w._journalTabZones or {}) .. " tabs", "a Recipes tab")
     if z then
         D.viaList = true
         click(w, center(z))
@@ -1018,7 +1015,7 @@ add(100, function()
     local w = W()
     local s, data = w._jrecipeState, w._jrecipeCache
     if not (w._journalSubTab == 4 and s and data and data.recipes) then skip("the Recipes page", "it never drew"); return end
-    check(D.viaList == true and w._journalSubTab == 4 and not JT.listsOpen(w), "the Page list's Recipes row opens Recipes and the list shuts",
+    check(D.viaList == true and w._journalSubTab == 4 and not JT.listsOpen(w), "a click on the header's Recipes tab opens Recipes",
         (D.viaList and "the row" or "opened by the run, not the list") .. ", page " .. tostring(w._journalSubTab) .. ", lists open " .. tostring(JT.listsOpen(w)),
         "the row, page 4, lists shut")
     local jt, rt, ft = w._journalSearchText or "", fieldText(w._jrecipeSearch), w._flyerSearchText or ""

@@ -62,7 +62,7 @@ end
 -- 1. the mouse on the pop-ups
 mousePop("mouse_health", cw, C, "charTabContent", "health", "health:exercise", function() return cw._healthMenuOpen == true end, "menuRow")
 mousePop("mouse_thermal", cw, C, "charTabContent", "thermal", "thermal:view", function() return cw._thermalMenuOpen == true end, "viewRow")
-mousePop("mouse_journal", cw, C, "charTabContent", "journal", "jpage", function() return cw._journalPageOpen == true end, "^jpage:", function() cw._journalSubTab = 1 end)
+-- (Nov 12 2026, design review C4: the Journal's "Page:" pop-up is gone, its pages are a tab strip; no pop-up to click)
 step(5, function() cw._journalSubTab = 1; tabClick(C, "loot") end)
 mousePop("mouse_craft", ww, W, "worldTabContent", "craft", "craft:sortMenu",
     function() return ww._craftState and ww._craftState.sortMenuOpen == true end, "sortRow")
