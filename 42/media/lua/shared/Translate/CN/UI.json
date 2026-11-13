@@ -6228,6 +6228,7 @@
     "UI_ZeD_Console_AcJavaOf": "%1 的 Java 方法",
     "UI_ZeD_Console_AcMore": "另有 %1 项",
     "UI_ZeD_Console_AcKeys": "按 Tab 或 Enter 采用选中的建议,上键和下键在其间移动,Esc 关闭建议。",
+    "UI_ZeD_Console_LineFull": "这个建议放不下,单行最多 %1 个字符。",
     "UI_ZeD_Console_PadTake": "采用",
     "UI_ZeD_Console_PadShut": "关闭",
     "UI_ZeD_Console_BackToLog": "返回日志",

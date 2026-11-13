@@ -72,6 +72,16 @@ local function countMsg(msg)
     for i = L.first, L.last do local r = L.rows[i]; if r and r.msg == msg then n = n + 1 end end
     return n
 end
+-- print rows holding these words, whatever stands in front of them (a box copy the log failed to skip keeps the
+-- game's "LOG  : Lua          f:N> " in front, and an exact match never saw it)
+local function countPrints(part)
+    local n = 0
+    for i = L.first, L.last do
+        local r = L.rows[i]
+        if r and r.kind == "print" and tostring(r.msg):find(part, 1, true) then n = n + 1 end
+    end
+    return n
+end
 local function lastError()
     for i = L.last, L.first, -1 do local r = L.rows[i]; if r and r.kind == "error" then return r end end
     return nil
@@ -154,7 +164,8 @@ step(40, function()
     local out = rowWith("zedqa_cs_total", "print")
     check(out ~= nil and out.mod == L.CONSOLE, "2: its print a row from Console (" .. tostring(out and out.msg) .. ")")
     check(ran and out and out.id > ran.id, "2: the print under the ran row")
-    check(out and countMsg(out.msg) == 1, "2: the box's own copy of the print skipped (" .. tostring(out and countMsg(out.msg)) .. " rows)")
+    check(out and countMsg(out.msg) == 1 and countPrints("zedqa_cs_total") == 1, "2: the box's own copy of the print skipped (" .. tostring(out and countMsg(out.msg)) .. " rows, "
+        .. tostring(countPrints("zedqa_cs_total")) .. " with the words)")
     win():_padSet(LONG)
     win():press("run")
 end)

@@ -6228,6 +6228,7 @@
     "UI_ZeD_Console_AcJavaOf": "Методы Java у %1",
     "UI_ZeD_Console_AcMore": "ещё %1",
     "UI_ZeD_Console_AcKeys": "Tab или Enter берёт выбранную подсказку, Вверх и Вниз перемещаются по ним, Esc закрывает их.",
+    "UI_ZeD_Console_LineFull": "Эта подсказка не помещается: в строку входит %1 символов.",
     "UI_ZeD_Console_PadTake": "Взять",
     "UI_ZeD_Console_PadShut": "Закрыть",
     "UI_ZeD_Console_BackToLog": "Назад к журналу",

@@ -141,7 +141,11 @@ end
 function JC:onOtherKey(k)
     if k == 15 and self.prevSuggestion then self.cmd:SetText(self.prevSuggestion .. "()") end
 end
-function say(s) STDOUT[#STDOUT + 1] = "LOG  : Lua          f:1, t:1> " .. tostring(s) .. "\n" end
+-- (a print reaches the box as 42.22.2 writes it, DebugLog.formatLogStringForConsole: "LOG  : Lua          f:<frame>> ";
+-- 42.21 wrote ", t:<ms>" after the frame, and a sim with that shape hid the scratchpad's doubled lines)
+local PREFIX = "LOG  : Lua          f:1> "
+H.PREFIX = PREFIX
+function say(s) STDOUT[#STDOUT + 1] = PREFIX .. tostring(s) .. "\n" end
 
 local MADE, ON_SCREEN = true, true
 UIManager = {
@@ -409,7 +413,7 @@ print = function(...)
     for i = 1, select("#", ...) do parts[i] = tostring((select(i, ...))) end
     local s = table.concat(parts, "\t")
     if s:find("^FAIL") or s:find("^" .. SIM_NAME) then sysPrint(s); return end
-    STDOUT[#STDOUT + 1] = "LOG  : Lua          f:1, t:1> " .. s .. "\n"
+    STDOUT[#STDOUT + 1] = PREFIX .. s .. "\n"
 end
 require "ZeD/ZeD_DebugConsole"
 local DC = ZeD.DebugConsole

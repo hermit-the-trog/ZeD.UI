@@ -6228,6 +6228,7 @@
     "UI_ZeD_Console_AcJavaOf": "Metody Java z %1",
     "UI_ZeD_Console_AcMore": "dalších %1",
     "UI_ZeD_Console_AcKeys": "Tab nebo Enter vezme vybraný návrh, Nahoru a Dolů se mezi nimi pohybují, Esc je zavře.",
+    "UI_ZeD_Console_LineFull": "Tento návrh se nevejde: řádek pojme %1 znaků.",
     "UI_ZeD_Console_PadTake": "Vzít",
     "UI_ZeD_Console_PadShut": "Zavřít",
     "UI_ZeD_Console_BackToLog": "Zpět na záznam",

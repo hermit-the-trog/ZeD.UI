@@ -5589,6 +5589,7 @@ The game's own Lua console rebuilt as a ZeD window; only players who start the g
 | `UI_ZeD_Console_AcJavaOf` | `Java methods of %1` | Lua console, suggestions pull-down: its foot line after a colon on a Java object; %1 the code before the colon (e.g. getPlayer()) | - |
 | `UI_ZeD_Console_AcMore` | `%1 more` | Lua console, suggestions pull-down: after its foot line, how many more names match than it shows; %1 a number | 14 |
 | `UI_ZeD_Console_AcKeys` | `Tab or Enter takes the picked suggestion, Up and Down move through them, Esc shuts them.` | Lua console: the help line while the suggestions are open (Tab, Enter, Up, Down and Esc are key names) | - |
+| `UI_ZeD_Console_LineFull` | `That suggestion does not fit: the line takes %1 characters.` | Lua console: the band's line when the picked suggestion would make the one-line command longer than the game's line takes (Enter and Tab then take nothing); %1 is 256 | - |
 | `UI_ZeD_Console_PadTake` | `Take` | Lua console: controller prompt on A over the suggestions (puts the picked one into the line) | 10 |
 | `UI_ZeD_Console_PadShut` | `Close` | Lua console: controller prompt on B over the suggestions (shuts the pull-down, not the console) | 10 |
 | `UI_ZeD_Console_BackToLog` | `Back to the log` | Lua console, Help page: the band's keycap that goes back to the Log page | 18 |

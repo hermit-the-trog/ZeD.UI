@@ -6228,6 +6228,7 @@
     "UI_ZeD_Console_AcJavaOf": "Metody Java %1",
     "UI_ZeD_Console_AcMore": "jeszcze %1",
     "UI_ZeD_Console_AcKeys": "Tab lub Enter bierze wybraną podpowiedź, Góra i Dół przesuwają się między nimi, Esc je zamyka.",
+    "UI_ZeD_Console_LineFull": "Ta podpowiedź się nie zmieści: wiersz mieści %1 znaków.",
     "UI_ZeD_Console_PadTake": "Weź",
     "UI_ZeD_Console_PadShut": "Zamknij",
     "UI_ZeD_Console_BackToLog": "Wróć do dziennika",

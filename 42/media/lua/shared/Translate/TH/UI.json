@@ -6228,6 +6228,7 @@
     "UI_ZeD_Console_AcJavaOf": "เมธอด Java ของ %1",
     "UI_ZeD_Console_AcMore": "อีก %1",
     "UI_ZeD_Console_AcKeys": "Tab หรือ Enter เลือกข้อเสนอแนะที่เลือกไว้ ปุ่มขึ้นและปุ่มลงเลื่อนไปตามข้อเสนอแนะ Esc ปิดข้อเสนอแนะ",
+    "UI_ZeD_Console_LineFull": "ข้อเสนอแนะนั้นใส่ไม่ได้ บรรทัดรับได้สูงสุด %1 ตัวอักษร",
     "UI_ZeD_Console_PadTake": "เลือก",
     "UI_ZeD_Console_PadShut": "ปิด",
     "UI_ZeD_Console_BackToLog": "กลับไปที่บันทึก",

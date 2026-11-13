@@ -49,17 +49,32 @@ local function trimRight(s) return (tostring(s or ""):gsub("%s+$", "")) end
 local function trim(s) return (tostring(s or ""):gsub("^%s+", ""):gsub("%s+$", "")) end
 
 --- The lines of a text, "\r" dropped, an empty text one empty line.
+-- (Both walk the text with plain finds, the game's indexOf: Kahlua's gmatch is Lua that runs a match per step, about
+-- 20 ms over a 1500-line box.)
 function S.lines(text)
-    local out = {}
-    for l in (tostring(text or ""):gsub("\r", "") .. "\n"):gmatch("([^\n]*)\n") do out[#out + 1] = l end
-    return out
+    local s = tostring(text or "")
+    if string.find(s, "\r", 1, true) then s = string.gsub(s, "\r", "") end
+    local out, p = {}, 1
+    while true do
+        local e = string.find(s, "\n", p, true)
+        if not e then
+            out[#out + 1] = string.sub(s, p)
+            return out
+        end
+        out[#out + 1] = string.sub(s, p, e - 1)
+        p = e + 1
+    end
 end
 
 --- How many lines a text runs to.
 function S.lineCount(text)
-    local n = 1
-    for _ in tostring(text or ""):gmatch("\n") do n = n + 1 end
-    return n
+    local s = tostring(text or "")
+    local n, p = 1, 1
+    while true do
+        local e = string.find(s, "\n", p, true)
+        if not e then return n end
+        n, p = n + 1, e + 1
+    end
 end
 
 --- A snippet's name from its code: the first line with words on it, trimmed and cut to NAME_MAX.
