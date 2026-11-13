@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "Wydruk",
     "UI_LC93_Console_KindRan": "Uruchomione tu",
     "UI_LC93_Console_KindWarn": "Ostrzeżenie",
+    "UI_LC93_Console_LineFull": "Ta podpowiedź się nie zmieści: wiersz mieści %1 znaków.",
     "UI_LC93_Console_ModConsole": "Konsola",
     "UI_LC93_Console_ModGame": "Gra",
     "UI_LC93_Console_Name": "Nazwa skryptu",

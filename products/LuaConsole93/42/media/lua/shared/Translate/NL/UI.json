@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "Print",
     "UI_LC93_Console_KindRan": "Hier uitgevoerd",
     "UI_LC93_Console_KindWarn": "Waarschuwing",
+    "UI_LC93_Console_LineFull": "Die suggestie past niet: de regel heeft plaats voor %1 tekens.",
     "UI_LC93_Console_ModConsole": "Console",
     "UI_LC93_Console_ModGame": "Spel",
     "UI_LC93_Console_Name": "Naam van snippet",

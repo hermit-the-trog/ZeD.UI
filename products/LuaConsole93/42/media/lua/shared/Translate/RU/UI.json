@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "Вывод",
     "UI_LC93_Console_KindRan": "Запущено здесь",
     "UI_LC93_Console_KindWarn": "Предупреждение",
+    "UI_LC93_Console_LineFull": "Эта подсказка не помещается: в строку входит %1 символов.",
     "UI_LC93_Console_ModConsole": "Консоль",
     "UI_LC93_Console_ModGame": "Игра",
     "UI_LC93_Console_Name": "Имя сниппета",

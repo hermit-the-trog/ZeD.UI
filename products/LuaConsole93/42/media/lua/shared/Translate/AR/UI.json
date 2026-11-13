@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "Impresión",
     "UI_LC93_Console_KindRan": "Ejecutado acá",
     "UI_LC93_Console_KindWarn": "Aviso",
+    "UI_LC93_Console_LineFull": "Esa sugerencia no entra: la línea admite %1 caracteres.",
     "UI_LC93_Console_ModConsole": "Consola",
     "UI_LC93_Console_ModGame": "Juego",
     "UI_LC93_Console_Name": "Nombre del fragmento",

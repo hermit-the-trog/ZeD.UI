@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "Výpis",
     "UI_LC93_Console_KindRan": "Spuštěno zde",
     "UI_LC93_Console_KindWarn": "Varování",
+    "UI_LC93_Console_LineFull": "Tento návrh se nevejde: řádek pojme %1 znaků.",
     "UI_LC93_Console_ModConsole": "Konzole",
     "UI_LC93_Console_ModGame": "Hra",
     "UI_LC93_Console_Name": "Název úryvku",

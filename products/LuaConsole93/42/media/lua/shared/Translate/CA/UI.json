@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "Impressió",
     "UI_LC93_Console_KindRan": "Executat aquí",
     "UI_LC93_Console_KindWarn": "Avís",
+    "UI_LC93_Console_LineFull": "Aquest suggeriment no hi cap: la línia admet %1 caràcters.",
     "UI_LC93_Console_ModConsole": "Consola",
     "UI_LC93_Console_ModGame": "Joc",
     "UI_LC93_Console_Name": "Nom del fragment",

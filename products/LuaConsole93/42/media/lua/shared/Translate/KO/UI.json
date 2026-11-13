@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "출력",
     "UI_LC93_Console_KindRan": "여기서 실행",
     "UI_LC93_Console_KindWarn": "경고",
+    "UI_LC93_Console_LineFull": "그 제안은 들어가지 않습니다. 한 줄은 %1자까지입니다.",
     "UI_LC93_Console_ModConsole": "콘솔",
     "UI_LC93_Console_ModGame": "게임",
     "UI_LC93_Console_Name": "스니펫 이름",

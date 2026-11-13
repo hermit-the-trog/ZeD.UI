@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "Kiírás",
     "UI_LC93_Console_KindRan": "Itt futtatva",
     "UI_LC93_Console_KindWarn": "Figyelmeztetés",
+    "UI_LC93_Console_LineFull": "Ez a javaslat nem fér el: a sorba %1 karakter fér.",
     "UI_LC93_Console_ModConsole": "Konzol",
     "UI_LC93_Console_ModGame": "Játék",
     "UI_LC93_Console_Name": "Részlet neve",

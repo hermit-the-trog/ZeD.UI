@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "出力",
     "UI_LC93_Console_KindRan": "ここで実行",
     "UI_LC93_Console_KindWarn": "警告",
+    "UI_LC93_Console_LineFull": "その候補は入りきりません。1行は%1文字までです。",
     "UI_LC93_Console_ModConsole": "コンソール",
     "UI_LC93_Console_ModGame": "ゲーム",
     "UI_LC93_Console_Name": "スニペット名",

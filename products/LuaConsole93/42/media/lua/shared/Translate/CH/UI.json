@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "輸出",
     "UI_LC93_Console_KindRan": "在此執行",
     "UI_LC93_Console_KindWarn": "警告",
+    "UI_LC93_Console_LineFull": "這個建議放不下,單行最多 %1 個字元。",
     "UI_LC93_Console_ModConsole": "主控台",
     "UI_LC93_Console_ModGame": "遊戲",
     "UI_LC93_Console_Name": "片段名稱",

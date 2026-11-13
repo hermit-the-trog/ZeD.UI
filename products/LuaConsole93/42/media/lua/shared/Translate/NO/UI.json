@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "Utskrift",
     "UI_LC93_Console_KindRan": "Kjørt her",
     "UI_LC93_Console_KindWarn": "Advarsel",
+    "UI_LC93_Console_LineFull": "Det forslaget får ikke plass: linjen tar %1 tegn.",
     "UI_LC93_Console_ModConsole": "Konsoll",
     "UI_LC93_Console_ModGame": "Spill",
     "UI_LC93_Console_Name": "Navn på utdrag",

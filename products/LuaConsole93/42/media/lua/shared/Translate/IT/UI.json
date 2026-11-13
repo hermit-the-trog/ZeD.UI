@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "Stampa",
     "UI_LC93_Console_KindRan": "Eseguito qui",
     "UI_LC93_Console_KindWarn": "Avviso",
+    "UI_LC93_Console_LineFull": "Quel suggerimento non ci sta: la riga contiene %1 caratteri.",
     "UI_LC93_Console_ModConsole": "Console",
     "UI_LC93_Console_ModGame": "Gioco",
     "UI_LC93_Console_Name": "Nome dello snippet",

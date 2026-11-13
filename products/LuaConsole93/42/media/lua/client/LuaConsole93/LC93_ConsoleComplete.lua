@@ -145,25 +145,52 @@ function C.javaMethods(obj)
 end
 
 local function inStringOrComment(before)
-    local i, n = 1, #before
-    local q = nil
+    local n = #before
+    local i, q = 1, nil
+    local nDq, nSq, nBr, nDa = 0, 0, 0, 0
     while i <= n do
-        local c = string.sub(before, i, i)
-        if q then
-            if c == "\\" then i = i + 1
-            elseif q == "]]" then
-                if string.sub(before, i, i + 1) == "]]" then q = nil; i = i + 1 end
-            elseif c == q then q = nil end
-        elseif c == "\"" or c == "'" then q = c
-        elseif c == "[" and (string.sub(before, i, i + 1) == "[[" or string.sub(before, i, i + 1) == "[=") then q = "]]"
-        elseif c == "-" and string.sub(before, i, i + 1) == "--" then
-            local nl = string.find(before, "\n", i, true)
-            if not nl then return true end
-            i = nl
+        if q == nil then
+            if nDq < i then nDq = string.find(before, "\"", i, true) or n + 1 end
+            if nSq < i then nSq = string.find(before, "'", i, true) or n + 1 end
+            if nBr < i then nBr = string.find(before, "[", i, true) or n + 1 end
+            if nDa < i then nDa = string.find(before, "-", i, true) or n + 1 end
+            local j = math.min(nDq, nSq, nBr, nDa)
+            if j > n then return false end
+            i = j + 1
+            if j == nDq or j == nSq then
+                q = string.sub(before, j, j)
+            elseif j == nBr then
+                local d = string.sub(before, i, i)
+                if d == "[" or d == "=" then q = "]]" end
+            elseif string.sub(before, i, i) == "-" then
+                local nl = string.find(before, "\n", j, true)
+                if not nl then return true end
+                i = nl + 1
+            end
+        else
+            local b = string.find(before, "\\", i, true) or n + 1
+            local e = string.find(before, q, i, true) or n + 1
+            if b > n and e > n then return true end
+            if b < e then
+                i = b + 2
+            else
+                i = e + #q
+                q = nil
+            end
         end
-        i = i + 1
     end
     return q ~= nil
+end
+C.inStringOrComment = inStringOrComment
+
+local function wordBefore(text, cur)
+    local span = 64
+    while true do
+        local from = math.max(1, cur - span + 1)
+        local pre = string.match(string.sub(text, from, cur), "[%w_]*$") or ""
+        if from == 1 or #pre < cur - from + 1 then return pre end
+        span = span * 4
+    end
 end
 
 local function stepsOf(base)
@@ -192,12 +219,11 @@ end
 function C.token(text, cur)
     text = tostring(text or "")
     cur = math.max(0, math.min(#text, cur or #text))
-    local before = string.sub(text, 1, cur)
-    local pre = string.match(before, "[%w_]*$") or ""
+    local pre = wordBefore(text, cur)
     local ps = cur - #pre
     if pre ~= "" and string.find(pre, "^%d") then return nil end
     local sep = ps > 0 and string.sub(text, ps, ps) or ""
-    if inStringOrComment(before) then return nil end
+    if inStringOrComment(string.sub(text, 1, cur)) then return nil end
     if sep ~= "." and sep ~= ":" then
         if #pre < C.MIN_GLOBAL then return nil end
         local prev = ps > 0 and string.sub(text, ps, ps) or ""

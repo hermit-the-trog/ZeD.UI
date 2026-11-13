@@ -1,7 +1,7 @@
 -- LuaConsole93/42/media/lua/client/LuaConsole93/Organisms.lua
 -- ============================================================================================================
--- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's Organisms.lua the console uses (91 of its
--- 145 statements).
+-- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's Organisms.lua the console uses (94 of its
+-- 147 statements).
 -- Made from ZeD-GUI's 42/media/lua/client/ZeD/Organisms.lua by ZeDUI/tools/products/build_luaconsole93.py. Do
 -- not edit it here: change ZeD-GUI's file and build again.
 -- ============================================================================================================
@@ -454,17 +454,53 @@ function LC93_Window.pixelLit(blink, ms)
     return clockStep(ms or getTimestampMs(), BLINK_MS, 2) == 0
 end
 
-local function fitStat(st, txt, sx, edge, markW, tm, f3)
-    local sw = tm:MeasureStringX(f3, txt)
-    if sx - sw - markW >= edge then return txt, sw, sw + markW end
-    local alts = st.alts
-    if not alts then return nil end
-    for k = 1, #alts do
-        local a = tostring(alts[k])
-        local aw = tm:MeasureStringX(f3, a)
-        if sx - aw - markW >= edge then return a, aw, aw + markW end
+local function fitStats(self, stats, right, edgeFull, edgeLeast, markRoom, gap, tm, f3)
+    local tx, tw, mw = self._tsText, self._tsW, self._tsMark
+    if not tx then
+        tx, tw, mw = {}, {}, {}
+        self._tsText, self._tsW, self._tsMark = tx, tw, mw
     end
-    return nil
+    local dim = LC93.T.textDim
+    local n = #stats
+    for i = 1, n do
+        local st = stats[i]
+        local t = tostring(st.text or "")
+        local w = tm:MeasureStringX(f3, t)
+        local alts = st.alts
+        for k = 1, (alts and #alts or 0) do
+            local a = tostring(alts[k])
+            local aw = tm:MeasureStringX(f3, a)
+            if aw < w then t, w = a, aw end
+        end
+        local dc = st.color or dim
+        mw[i] = (not st.noMark and (dc.a == nil or dc.a > 0)) and markRoom or 0
+        tx[i], tw[i] = t, w
+    end
+    local first, total = n + 1, 0
+    for i = n, 1, -1 do
+        local add = tw[i] + mw[i] + ((i < n) and gap or 0)
+        if right - (total + add) < edgeLeast then break end
+        total, first = total + add, i
+    end
+    if right - total >= edgeFull then
+        for i = n, first, -1 do
+            local st = stats[i]
+            local alts = st.alts
+            local t, k = tostring(st.text or ""), 0
+            while t ~= tx[i] do
+                local w = tm:MeasureStringX(f3, t)
+                if right - (total - tw[i] + w) >= edgeFull then
+                    total = total - tw[i] + w
+                    tx[i], tw[i] = t, w
+                    break
+                end
+                k = k + 1
+                if not (alts and alts[k]) then break end
+                t = tostring(alts[k])
+            end
+        end
+    end
+    return first
 end
 
 function LC93_Window:_drawTitleBar(w, tbH)
@@ -508,22 +544,15 @@ function LC93_Window:_drawTitleBar(w, tbH)
     local stats = self.titleStats
     if stats and #stats > 0 then
         local pad = tbp * 2 + sp.md + reserve
-        local edgeFull = nameX + fullW + pad
-        local edgeLeast = nameX + leastW + pad
+        local first = fitStats(self, stats, right, nameX + fullW + pad, nameX + leastW + pad, mk + mkGap, sp.md, tm, f3)
+        local tx, tw, mw = self._tsText, self._tsW, self._tsMark
         local sx = right
         local tc = T.text
-        for i = #stats, 1, -1 do
-            local st = stats[i]
-            local txt = tostring(st.text or "")
-            local dc = st.color or T.textDim
-            local mark = not st.noMark and (dc.a == nil or dc.a > 0)
-            local markW = mark and (mk + mkGap) or 0
-            local t2, sw = fitStat(st, txt, sx, edgeFull, markW, tm, f3)
-            if not t2 and edgeLeast < edgeFull then t2, sw = fitStat(st, txt, sx, edgeLeast, markW, tm, f3) end
-            if not t2 then break end
-            sx = sx - sw
-            self:drawText(t2, sx, textY, tc.r, tc.g, tc.b, tc.a or 1, f3)
-            if mark then
+        for i = #stats, first, -1 do
+            local dc = stats[i].color or T.textDim
+            sx = sx - tw[i]
+            self:drawText(tx[i], sx, textY, tc.r, tc.g, tc.b, tc.a or 1, f3)
+            if mw[i] > 0 then
                 sx = sx - mkGap - mk
                 self:drawRect(sx, my, mk, mk, dc.a or 1, dc.r, dc.g, dc.b)
             end
@@ -891,6 +920,24 @@ local function drawFrameRect(p, w, h, lit)
     p:drawRect(w - t, t, t, h - 2 * t, c.a or 1, c.r, c.g, c.b)
 end
 
+local PAIR_GAP = 16
+local function drawPairGap(win, p, w, h)
+    local k = win:pairKey()
+    if not k then return end
+    local CWm, WWm = LC93_CharacterWindow, LC93_WorldWindow
+    local other
+    if k == "char" then other = WWm and WWm.getWindow and WWm.getWindow() else other = CWm and CWm.getWindow and CWm.getWindow() end
+    if not (other and other:isVisible()) then return end
+    local gap = other:getX() - (win:getX() + w)
+    if gap <= 0 or gap > LC93.T.px(PAIR_GAP) then return end
+    local y0 = win:getY()
+    local top = math.max(y0, other:getY())
+    local bot = math.min(y0 + h, other:getY() + other:shownHeight())
+    if bot <= top then return end
+    local bs = LC93.T.borderS
+    p:drawRect(w, top - y0, gap, bot - top, bs.a or 1, bs.r, bs.g, bs.b)
+end
+
 function LC93_Window._drawTop(win)
     local p = win._lc93Overlay
     if not p then return end
@@ -903,6 +950,7 @@ function LC93_Window._drawTop(win)
         if lit then drawHandle(win, p, w, h, lit) end
     end
     drawFrameRect(p, w, h, lit)
+    drawPairGap(win, p, w, h)
     local F = LC93.Focus
     if F and F.drawOverlay then
         local ok, err = pcall(F.drawOverlay, p, win)
@@ -1112,6 +1160,14 @@ end
 function LC93.screenOf(w)
     local core = getCore()
     return core:getScreenWidth(), core:getScreenHeight(), 0, 0
+end
+
+function LC93_Window:pairKey()
+    local cw = LC93_CharacterWindow and LC93_CharacterWindow.getWindow and LC93_CharacterWindow.getWindow()
+    if cw == self then return "char" end
+    local ww = LC93_WorldWindow and LC93_WorldWindow.getWindow and LC93_WorldWindow.getWindow()
+    if ww == self then return "world" end
+    return nil
 end
 
 function LC93_Window:openWindowMenu()

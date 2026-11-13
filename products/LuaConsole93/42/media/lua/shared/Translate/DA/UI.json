@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "Udskrift",
     "UI_LC93_Console_KindRan": "Kørt her",
     "UI_LC93_Console_KindWarn": "Advarsel",
+    "UI_LC93_Console_LineFull": "Det forslag er der ikke plads til: linjen rummer %1 tegn.",
     "UI_LC93_Console_ModConsole": "Konsol",
     "UI_LC93_Console_ModGame": "Spil",
     "UI_LC93_Console_Name": "Navn på uddrag",

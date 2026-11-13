@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "Print",
     "UI_LC93_Console_KindRan": "Ran here",
     "UI_LC93_Console_KindWarn": "Warning",
+    "UI_LC93_Console_LineFull": "That suggestion does not fit: the line takes %1 characters.",
     "UI_LC93_Console_ModConsole": "Console",
     "UI_LC93_Console_ModGame": "Game",
     "UI_LC93_Console_Name": "Snippet name",

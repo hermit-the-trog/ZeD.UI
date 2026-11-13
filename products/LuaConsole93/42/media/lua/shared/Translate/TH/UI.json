@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "พิมพ์",
     "UI_LC93_Console_KindRan": "รันที่นี่",
     "UI_LC93_Console_KindWarn": "คำเตือน",
+    "UI_LC93_Console_LineFull": "ข้อเสนอแนะนั้นใส่ไม่ได้ บรรทัดรับได้สูงสุด %1 ตัวอักษร",
     "UI_LC93_Console_ModConsole": "คอนโซล",
     "UI_LC93_Console_ModGame": "เกม",
     "UI_LC93_Console_Name": "ชื่อสนิปเพ็ต",

@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "Вивід",
     "UI_LC93_Console_KindRan": "Запущено тут",
     "UI_LC93_Console_KindWarn": "Попередження",
+    "UI_LC93_Console_LineFull": "Ця підказка не вміщається: рядок вміщує %1 символів.",
     "UI_LC93_Console_ModConsole": "Консоль",
     "UI_LC93_Console_ModGame": "Гра",
     "UI_LC93_Console_Name": "Назва сніпета",

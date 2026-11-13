@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "Tuloste",
     "UI_LC93_Console_KindRan": "Ajettu täällä",
     "UI_LC93_Console_KindWarn": "Varoitus",
+    "UI_LC93_Console_LineFull": "Ehdotus ei mahdu: riville mahtuu %1 merkkiä.",
     "UI_LC93_Console_ModConsole": "Konsoli",
     "UI_LC93_Console_ModGame": "Peli",
     "UI_LC93_Console_Name": "Pätkän nimi",

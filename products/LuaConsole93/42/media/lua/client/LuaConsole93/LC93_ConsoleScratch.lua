@@ -46,15 +46,28 @@ local function trimRight(s) return (tostring(s or ""):gsub("%s+$", "")) end
 local function trim(s) return (tostring(s or ""):gsub("^%s+", ""):gsub("%s+$", "")) end
 
 function S.lines(text)
-    local out = {}
-    for l in (tostring(text or ""):gsub("\r", "") .. "\n"):gmatch("([^\n]*)\n") do out[#out + 1] = l end
-    return out
+    local s = tostring(text or "")
+    if string.find(s, "\r", 1, true) then s = string.gsub(s, "\r", "") end
+    local out, p = {}, 1
+    while true do
+        local e = string.find(s, "\n", p, true)
+        if not e then
+            out[#out + 1] = string.sub(s, p)
+            return out
+        end
+        out[#out + 1] = string.sub(s, p, e - 1)
+        p = e + 1
+    end
 end
 
 function S.lineCount(text)
-    local n = 1
-    for _ in tostring(text or ""):gmatch("\n") do n = n + 1 end
-    return n
+    local s = tostring(text or "")
+    local n, p = 1, 1
+    while true do
+        local e = string.find(s, "\n", p, true)
+        if not e then return n end
+        n, p = n + 1, e + 1
+    end
 end
 
 function S.nameFrom(code)

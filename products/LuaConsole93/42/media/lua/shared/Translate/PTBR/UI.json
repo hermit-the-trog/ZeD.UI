@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "Impressão",
     "UI_LC93_Console_KindRan": "Executado aqui",
     "UI_LC93_Console_KindWarn": "Aviso",
+    "UI_LC93_Console_LineFull": "Essa sugestão não cabe: a linha só aceita %1 caracteres.",
     "UI_LC93_Console_ModConsole": "Console",
     "UI_LC93_Console_ModGame": "Jogo",
     "UI_LC93_Console_Name": "Nome do trecho",

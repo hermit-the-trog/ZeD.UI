@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "Yazdırma",
     "UI_LC93_Console_KindRan": "Burada çalıştı",
     "UI_LC93_Console_KindWarn": "Uyarı",
+    "UI_LC93_Console_LineFull": "Bu öneri sığmıyor: satır %1 karakter alır.",
     "UI_LC93_Console_ModConsole": "Konsol",
     "UI_LC93_Console_ModGame": "Oyun",
     "UI_LC93_Console_Name": "Parça adı",

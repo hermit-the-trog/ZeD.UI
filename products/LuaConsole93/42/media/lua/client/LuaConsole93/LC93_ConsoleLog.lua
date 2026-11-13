@@ -84,10 +84,11 @@ function L.continuesError(s)
 end
 
 local function splitPrefix(s)
-    local lvl, rest = s:match("^(%u+)%s*:%s*%S+%s+f:%d+,%s*t:%d+>%s?(.*)$")
+    local lvl, rest = s:match("^(%u+)%s*:%s*%S+%s+f:%d+[^>]*>%s?(.*)$")
     if lvl then return lvl, rest end
     return nil, s
 end
+L.splitPrefix = splitPrefix
 
 function L.frames(text)
     local out = {}
@@ -179,6 +180,8 @@ end
 
 local function lower(s) return string.lower(s) end
 
+local function newExpect() return { first = 1, last = 0, by = {} } end
+
 local function hayOf(r)
     if not r.hay then
         local parts = { r.msg, L.modName(r.mod), L.srcOf(r) }
@@ -236,7 +239,7 @@ function L.reset()
     L._seen, L._part = nil, ""
     L._f11Seen = 0
     L._ran = {}
-    L._expect = {}
+    L._expect = newExpect()
     L.q, L._ql = "", ""
     L.off = { kind = {}, mod = {}, file = {} }
 end
@@ -391,24 +394,55 @@ function L.ranCode(code, t)
 end
 
 L.EXPECT_MS = 10000
+L.EXPECT_CAP = 4096
+
+local function dropExpect(e)
+    local x = e[e.first]
+    e[e.first] = nil
+    e.first = e.first + 1
+    if x and not x.done then
+        x.done = true
+        local q = e.by[x.s]
+        if q and q[q.h] == x then
+            q[q.h] = nil
+            q.h = q.h + 1
+            if q.h > q.t then e.by[x.s] = nil end
+        end
+    end
+end
+
 function L.output(text, t, ms)
     text = tostring(text or ""):gsub("\r", ""):gsub("\t", "    ")
     ms = ms or (getTimestampMs and getTimestampMs()) or 0
-    L._expect = L._expect or {}
+    local e = L._expect
+    if not (e and e.by) then e = newExpect(); L._expect = e end
     for line in (text .. "\n"):gmatch("([^\n]*)\n") do
         add({ t = t or L.clock(), kind = "print", msg = line, mod = CONSOLE, file = "" })
-        L._expect[#L._expect + 1] = { s = line, at = ms }
-        if #L._expect > 64 then table.remove(L._expect, 1) end
+        local x = { s = line, at = ms }
+        e.last = e.last + 1
+        e[e.last] = x
+        local q = e.by[line]
+        if not q then q = { h = 1, t = 0 }; e.by[line] = q end
+        q.t = q.t + 1
+        q[q.t] = x
+        while e.last - e.first + 1 > L.EXPECT_CAP do dropExpect(e) end
     end
 end
 
 local function expected(msg)
     local e = L._expect
-    if not e then return false end
-    for i = 1, #e do
-        if e[i].s == msg then table.remove(e, i); return true end
+    local q = e and e.by and e.by[msg]
+    if not q then return false end
+    local x = q[q.h]
+    q[q.h] = nil
+    q.h = q.h + 1
+    if q.h > q.t then e.by[msg] = nil end
+    x.done = true
+    while e.first <= e.last and e[e.first].done do
+        e[e.first] = nil
+        e.first = e.first + 1
     end
-    return false
+    return true
 end
 
 local function closeBlock()
@@ -544,7 +578,7 @@ function L.tick(ms)
     if L._blk and ms - (L._blk.at or 0) >= L.FLUSH_MS then closeBlock() end
     if L._f11 and ms - (L._f11.at or 0) >= L.FLUSH_MS then closeF11() end
     local e = L._expect
-    while e and e[1] and ms - (e[1].at or 0) >= L.EXPECT_MS do table.remove(e, 1) end
+    while e and e.by and e.first <= e.last and ms - (e[e.first].at or 0) >= L.EXPECT_MS do dropExpect(e) end
 end
 
 local KIND_KEY = { print = "UI_LC93_Console_WordPrint", warn = "UI_LC93_Console_WordWarn", error = "UI_LC93_Console_WordError", ran = "UI_LC93_Console_WordRan" }

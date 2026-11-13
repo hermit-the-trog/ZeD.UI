@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "Affichage",
     "UI_LC93_Console_KindRan": "Lancé ici",
     "UI_LC93_Console_KindWarn": "Avertissement",
+    "UI_LC93_Console_LineFull": "Cette suggestion ne tient pas : la ligne prend %1 caractères.",
     "UI_LC93_Console_ModConsole": "Console",
     "UI_LC93_Console_ModGame": "Jeu",
     "UI_LC93_Console_Name": "Nom de l'extrait",

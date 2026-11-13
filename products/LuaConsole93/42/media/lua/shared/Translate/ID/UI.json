@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "Cetak",
     "UI_LC93_Console_KindRan": "Dijalankan di sini",
     "UI_LC93_Console_KindWarn": "Peringatan",
+    "UI_LC93_Console_LineFull": "Saran itu tidak muat: baris hanya memuat %1 karakter.",
     "UI_LC93_Console_ModConsole": "Konsol",
     "UI_LC93_Console_ModGame": "Game",
     "UI_LC93_Console_Name": "Nama snippet",

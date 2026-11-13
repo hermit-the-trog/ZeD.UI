@@ -119,6 +119,7 @@
     "UI_LC93_Console_KindPrint": "Afișare",
     "UI_LC93_Console_KindRan": "Rulat aici",
     "UI_LC93_Console_KindWarn": "Avertisment",
+    "UI_LC93_Console_LineFull": "Sugestia nu încape: linia are loc pentru %1 de caractere.",
     "UI_LC93_Console_ModConsole": "Consolă",
     "UI_LC93_Console_ModGame": "Joc",
     "UI_LC93_Console_Name": "Numele fragmentului",

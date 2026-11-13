@@ -399,14 +399,14 @@ function W:createChildren()
     LC93_Window.createChildren(self)
     local e = makeEntry(self, LINE_MAX)
     local win = self
-    e.onCommandEntered = function() if not win:acTake() then win:runLine() end end
+    e.onCommandEntered = function() if win.ac then win:acTake() else win:runLine() end end
     e.onPressUp = function() if win.ac then win:acMove(-1) else win:historyStep(-1) end end
     e.onPressDown = function() if win.ac then win:acMove(1) else win:historyStep(1) end end
     e.onOtherKey = function(_, key)
         if key == Keyboard.KEY_ESCAPE then
             if win.ac then win:acShut() else e:unfocus() end
         elseif key == TAB_KEY then
-            if not win:acTake() then win:complete() end
+            if win.ac then win:acTake() else win:complete() end
         end
     end
     self.input = e
@@ -438,13 +438,14 @@ end
 function W:lineText()
     return self.input and tostring(self.input:getText() or "") or ""
 end
-local function blank(s) return (s:gsub("%s", "")) == "" end
+local function blank(s) return string.find(s, "%S") == nil end
 
 function W:runLine()
     local text = self:lineText()
     if blank(text) or not DC.allowed() then return end
     local typing = self.input:isFocused()
     DC.run(text)
+    if self._status and self._status.lineFull then self._status = nil end
     self.input:setText("")
     self.hi, self.draft = nil, ""
     self.scroll, self.pick = 0, nil
@@ -491,21 +492,61 @@ end
 DC.cursorOf = cursorOf
 
 local function lineCol(text, cur)
-    local before = text:sub(1, cur)
-    local line = 0
-    for _ in before:gmatch("\n") do line = line + 1 end
-    local col = #(before:match("([^\n]*)$") or "")
-    return line, col
+    cur = math.max(0, math.min(#text, cur))
+    local line, at, p = 0, 0, 1
+    while true do
+        local e = string.find(text, "\n", p, true)
+        if not e or e > cur then break end
+        line, at, p = line + 1, e, e + 1
+    end
+    return line, cur - at
 end
 DC.lineCol = lineCol
 
-local function setCursor(inp, text, cur)
+local function padInfo(win, text)
+    local c = win._padInfo
+    if c and c.text == text then return c end
+    local starts, p = { 0 }, 1
+    while true do
+        local e = string.find(text, "\n", p, true)
+        if not e then break end
+        starts[#starts + 1] = e
+        p = e + 1
+    end
+    c = { text = text, starts = starts, n = #starts, cr = string.find(text, "\r", 1, true) ~= nil, blank = blank(text) }
+    win._padInfo = c
+    return c
+end
+
+local function lineAt(c, pos)
+    local s = c.starts
+    local lo, hi = 1, #s
+    while lo < hi do
+        local mid = math.floor((lo + hi + 1) / 2)
+        if s[mid] <= pos then lo = mid else hi = mid - 1 end
+    end
+    return lo - 1
+end
+
+local function padSlice(c, li, left, cols)
+    local a = c.starts[li + 1]
+    if not a then return nil end
+    local nxt = c.starts[li + 2]
+    local e = nxt and (nxt - 1) or #c.text
+    if c.cr then
+        local s = string.gsub(string.sub(c.text, a + 1, e), "\r", "")
+        return string.sub(s, left + 1, left + cols)
+    end
+    return string.sub(c.text, a + 1 + left, math.min(e, a + left + cols))
+end
+
+local function setCursor(inp, text, cur, line)
     pcall(function()
         local j = inp.javaObject
         j:setMultipleLine(false)
         j:setCursorPos(cur)
         j:setMultipleLine(true)
-        j:setCursorLine((lineCol(text, cur)))
+        j:setCursorLine(line or (lineCol(text, cur)))
     end)
 end
 
@@ -513,7 +554,7 @@ function W:_padSet(text, cur)
     text = tostring(text or "")
     cur = math.max(0, math.min(#text, cur or #text))
     self.pad:setText(text)
-    setCursor(self.pad, text, cur)
+    setCursor(self.pad, text, cur, lineAt(padInfo(self, text), cur))
     self._padPrev, self._padCur = text, cur
 end
 
@@ -550,7 +591,7 @@ end
 
 function W:_padHold()
     local text = self:padText()
-    if self._padPrev == text and self._padCur then setCursor(self.pad, text, self._padCur) end
+    if self._padPrev == text and self._padCur then setCursor(self.pad, text, self._padCur, lineAt(padInfo(self, text), self._padCur)) end
 end
 
 function W:_acSource()
@@ -570,10 +611,12 @@ function W:_acUpdate()
     end
     local text = tostring(inp:getText() or "")
     local cur = cursorOf(inp, text)
-    local key = (inp == self.pad and "p" or "l") .. tostring(cur) .. "|" .. text
-    if key == self._acKey then return end
-    self._acKey = key
-    if key == self._acShutKey then self.ac = nil; return end
+    local k = self._acKey
+    if k and k.inp == inp and k.cur == cur and k.text == text then return end
+    k = { inp = inp, cur = cur, text = text }
+    self._acKey = k
+    local sk = self._acShutKey
+    if sk and sk.inp == inp and sk.cur == cur and sk.text == text then self.ac = nil; return end
     self._acShutKey = nil
     local ok, ac = pcall(AC.complete, text, cur)
     if not ok then LC93.logOnce("lua console suggestions", ac); ac = nil end
@@ -608,10 +651,14 @@ function W:acTake(i)
     if pad then
         self:_padSet(t, cur)
     else
-        if #t > LINE_MAX then return false end
+        if #t > LINE_MAX then
+            self._status = { text = tr("UI_LC93_Console_LineFull", LINE_MAX), color = LC93.T.warning, lineFull = true }
+            return false
+        end
         self.input:setText(t)
         pcall(function() self.input.javaObject:setCursorPos(cur) end)
     end
+    if self._status and self._status.lineFull then self._status = nil end
     self.ac, self._acKey = nil, nil
     if self.zone == "ac" then self.zone = "input" end
     sound()
@@ -1137,7 +1184,7 @@ function W:_drawPad(x, y, w, noteH, boxH, joy)
     local text = self:padText()
     local f3 = T.fontF3
     local td = T.textDim
-    local meta = tr("UI_LC93_Console_Scratchpad") .. " | " .. tr("UI_LC93_Console_PadMeta", S.lineCount(text), #text)
+    local meta = tr("UI_LC93_Console_Scratchpad") .. " | " .. tr("UI_LC93_Console_PadMeta", padInfo(self, text).n, #text)
     local kx = self:_keycap("toline", x + w, y, mh - px(4), btn(tr("UI_LC93_Console_OneLine")), off and "primary" or "default", tr("UI_LC93_Console_HelpToLine"), joy)
     kx = self:_keycap("save", kx - px(U.GAP), y, mh - px(4), btn(tr("UI_LC93_Console_SaveSnippet")), "default", tr("UI_LC93_Console_HelpSave"), joy)
     meta = LC93.Atoms.truncateText(meta, f3, math.max(0, kx - px(8) - x))
@@ -1162,9 +1209,10 @@ function W:_drawPadBox(x, y, w, h, joy, off)
     LC93.Atoms.drawDividerV(self, x + gw, y + px(1), h - px(2))
     parkEntry(inp, w - gw, y, h)
     local text = self:padText()
-    local lines = S.lines(text)
+    local info = padInfo(self, text)
     local cur = cursorOf(inp, text)
-    local cl, cc = lineCol(text, cur)
+    local cl = lineAt(info, cur)
+    local cc = cur - info.starts[cl + 1]
     local lh = fh(f) + px(2)
     local rows = math.max(1, math.floor((h - px(8)) / lh))
     local cw = charW(f)
@@ -1173,7 +1221,7 @@ function W:_drawPadBox(x, y, w, h, joy, off)
     local st = self._padSt
     local top, left = st.top or 0, st.left or 0
     if cl < top then top = cl elseif cl >= top + rows then top = cl - rows + 1 end
-    top = math.max(0, math.min(top, math.max(0, #lines - rows), cl))
+    top = math.max(0, math.min(top, math.max(0, info.n - rows), cl))
     if cc < left then left = cc elseif cc > left + cols then left = cc - cols end
     st.top, st.left, st.tx, st.ty, st.lh, st.cw = top, left, tx, y + px(4), lh, cw
     local alpha = off and (T.disabledAlpha or 0.4) or 1
@@ -1184,8 +1232,8 @@ function W:_drawPadBox(x, y, w, h, joy, off)
         local ly = y + px(4) + r * lh
         local ns = tostring(li + 1)
         self:drawText(ns, x + gw - px(4) - LC93.TM:MeasureStringX(f, ns), ly, dc.r, dc.g, dc.b, (dc.a or 1) * alpha, f)
-        local s = lines[li + 1]
-        if s and s ~= "" then self:drawText(s:sub(left + 1, left + cols), tx, ly, tc.r, tc.g, tc.b, (tc.a or 1) * alpha, f) end
+        local s = padSlice(info, li, left, cols)
+        if s and s ~= "" then self:drawText(s, tx, ly, tc.r, tc.g, tc.b, (tc.a or 1) * alpha, f) end
     end
     if text == "" and not focused then
         self:drawText(tr("UI_LC93_Console_Type"), tx, y + px(4), dc.r, dc.g, dc.b, (dc.a or 1) * alpha, f)
@@ -1204,13 +1252,11 @@ function W:padClick(mx, my)
     local st = self._padSt
     if not (st.lh and st.cw) then return end
     local text = self:padText()
-    local lines = S.lines(text)
-    local li = math.max(0, math.min(#lines - 1, (st.top or 0) + math.floor((my - st.ty) / st.lh)))
+    local info = padInfo(self, text)
+    local li = math.max(0, math.min(info.n - 1, (st.top or 0) + math.floor((my - st.ty) / st.lh)))
     local col = math.max(0, (st.left or 0) + math.floor((mx - st.tx) / st.cw + 0.5))
-    local pos = 0
-    for i = 1, li do pos = pos + #lines[i] + 1 end
-    pos = pos + math.min(col, #lines[li + 1])
-    setCursor(self.pad, text, pos)
+    local pos = info.starts[li + 1] + math.min(col, #padSlice(info, li, 0, #text))
+    setCursor(self.pad, text, pos, li)
     self._padCur = pos
 end
 
@@ -1218,9 +1264,13 @@ function W:_sideItems()
     local key = tostring(S.rev) .. "|" .. tostring(self.sFold.snips) .. tostring(self.sFold.hist)
     if self._sKey == key and self._sItems then return self._sItems end
     local items = { { t = "fold", g = "snips", label = "UI_LC93_Console_FoldSnippets", n = #S.snippets } }
-    if not self.sFold.snips then for i = 1, #S.snippets do items[#items + 1] = { t = "snip", i = i } end end
+    if not self.sFold.snips then
+        for i = 1, #S.snippets do items[#items + 1] = { t = "snip", i = i, ns = tostring(S.lineCount(S.snippets[i].code)) } end
+    end
     items[#items + 1] = { t = "fold", g = "hist", label = "UI_LC93_Console_FoldHistory", n = #S.history }
-    if not self.sFold.hist then for i = #S.history, 1, -1 do items[#items + 1] = { t = "hist", i = i } end end
+    if not self.sFold.hist then
+        for i = #S.history, 1, -1 do items[#items + 1] = { t = "hist", i = i, first = string.match(S.history[i] or "", "^([^\n]*)") or "" } end
+    end
     self._sKey, self._sItems = key, items
     if self.sFocus > #items then self.sFocus = #items end
     return items
@@ -1298,14 +1348,14 @@ function W:_drawSideRow(it, x, y, w, h, hover, foc)
     if it.t == "snip" then
         local s = S.snippets[it.i]
         local f2, f3 = T.fontF2, T.fontF3
-        local ns = tostring(S.lineCount(s.code))
+        local ns = it.ns or tostring(S.lineCount(s.code))
         local nw = LC93.TM:MeasureStringX(f3, ns)
         self:drawText(ns, x + w - px(8) - nw, y + math.floor((h - fh(f3)) / 2), dc.r, dc.g, dc.b, dc.a or 1, f3)
         local name = A.truncateText(s.name, f2, math.max(0, x + w - px(14) - nw - tx))
         self:drawText(name, tx, y + math.floor((h - fh(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
     else
         local f3 = T.fontF3
-        local first = (S.history[it.i] or ""):match("^([^\n]*)") or ""
+        local first = it.first or (S.history[it.i] or ""):match("^([^\n]*)") or ""
         first = A.truncateText(first, f3, math.max(0, x + w - px(6) - tx))
         self:drawText(first, tx, y + math.floor((h - fh(f3)) / 2), dc.r, dc.g, dc.b, dc.a or 1, f3)
     end
@@ -1804,7 +1854,7 @@ function W:_drawBand(y, w, joy)
     if self.mode == "pad" then
         local can = S.canRun()
         b3.help = (not allowed) and tr("UI_LC93_Console_NotAllowed") or (can and tr("UI_LC93_Console_HelpPad") or tr("UI_LC93_Console_HelpNoLoad"))
-        b3.disabled = (not allowed) or (not can) or blank(self:padText())
+        b3.disabled = (not allowed) or (not can) or padInfo(self, self:padText()).blank
     else
         b3.help = allowed and tr("UI_LC93_Console_HelpRun") or tr("UI_LC93_Console_NotAllowed")
         b3.disabled = (not allowed) or blank(self:lineText())
@@ -2100,8 +2150,7 @@ function W:onJoypadDown(button, jd)
     if self.page ~= "log" and self.zone ~= "strip" and self._pageButton and self:_pageButton(button, jd) then return end
     if self.zone == "ac" then
         if button == Joypad.AButton then
-            self:acTake()
-            self.zone = "input"
+            if self:acTake() or not self.ac then self.zone = "input" end
             return
         elseif button == Joypad.BButton then
             sound()
