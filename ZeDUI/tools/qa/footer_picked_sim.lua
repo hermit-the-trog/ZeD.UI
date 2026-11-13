@@ -101,6 +101,17 @@ do
     if a2 and b2 then assert(loadstring(ir:sub(a2, b2 + 4), "=shownCount"))() end
 end
 
+-- (Nov 12 2026) the headings ask the game's capacity for the character (InventoryRenderer.capacityOf, cut out and run:
+-- the character's own inventory its carry limit, any other container getEffectiveCapacity)
+do
+    local f = io.open(ROOT .. "42/media/lua/client/ZeD/InventoryRenderer.lua", "rb")
+    local s = f and (f:read("*a"):gsub("\r\n", "\n")) or ""
+    if f then f:close() end
+    local a = s:find("function ZeD.InventoryRenderer.capacityOf(", 1, true)
+    local e = a and s:find("\nend\n", a, true)
+    if a and e then assert(loadstring(s:sub(a, e + 4)))() end
+end
+
 local okM, eM = pcall(dofile, ROOT .. "42/media/lua/client/ZeD/InventoryPicked.lua")
 check("InventoryPicked.lua loads", okM, eM)
 local P = ZeD.InventoryPicked
@@ -175,8 +186,11 @@ end
 -- ---------------------------------------------------------------------------
 local function round(x, n) local m = 10 ^ (n or 0); return math.floor(x * m + 0.5) / m end
 local function javaInv(n, w, max)
-    return { n = n, getCapacityWeight = function() return w end, getMaxWeight = function() return max end }
+    return { n = n, getCapacityWeight = function() return w end, getMaxWeight = function() return max end,
+             getEffectiveCapacity = function() return max end }
 end
+-- a character whose own inventory is `main` (its heading reads the carry limit)
+local function playerOf(main) return { getInventory = function() return main end } end
 local function run(piece, name, ...)
     local f, err = loadstring(piece, "=" .. name)
     if not f then return nil, err end
@@ -193,7 +207,7 @@ do
     if single then
         local cInv = javaInv(48, 7.04, 19)
         local self = { _selectedItems = {}, _stacks = {} }
-        local win = { _containers = { { name = "Inventory", isMain = true, inventory = cInv } }, _playerObj = {} }
+        local win = { _containers = { { name = "Inventory", isMain = true, inventory = cInv } }, _playerObj = playerOf(cInv) }
         local ok, e = run("local self, win, viewIdx, round = ...\n" .. single .. "\nend", "char single", self, win, 1, round)
         check("it runs", ok, e)
         CLOCK = CLOCK + 1000
@@ -232,7 +246,7 @@ do
         local floor = javaInv(4, 3, 0)
         local self = { _selectedItems = {}, _stacks = {} }
         local win = { _containers = { { name = "Crate", inventory = crate }, { name = "Floor", isFloor = true, inventory = floor } },
-            _playerObj = {}, _mainVisible = true }
+            _playerObj = playerOf(javaInv(0, 0, 22)), _mainVisible = true }
         CLOCK = CLOCK + 1000
         local ok, e = run(head .. single .. "\nend", "world single", self, win, 1, round, {})
         check("it runs", ok, e)
@@ -379,6 +393,12 @@ do
     check("the World heading's weight, in the one format", ok, why)
     ok, why = oneFormat("InventoryRenderer.lua", "            local weight   = inv and inv:getCapacityWeight() or 0", "local statsStr")
     check("the column heading's weight, in the one format", ok, why)
+    -- (Nov 12 2026: the headings' capacity is the game's for the character, InventoryRenderer.capacityOf)
+    local colNow = cut(srcOf("InventoryRenderer.lua"), "            local weight   = inv and inv:getCapacityWeight() or 0", "local statsStr")
+    check("the column heading's capacity asks the game's for the character",
+        colNow ~= nil and colNow:find("local capacity = ZeD.InventoryRenderer.capacityOf(inv, self._playerObj)", 1, true) ~= nil)
+    check("the Character heading's capacity asks the game's for the character",
+        srcOf("ZeD_CharacterWindow.lua"):find("round(ZeD.InventoryRenderer.capacityOf(cInv, win._playerObj), 1)", 1, true) ~= nil)
     -- every new string in every language
     for _, L in ipairs({ "AR", "CA", "CH", "CN", "CS", "DA", "DE", "EN", "ES", "ES_CL", "ES_MX", "FI", "FR", "HU", "ID", "IT",
                          "JP", "KO", "NL", "NO", "PL", "PT", "PTBR", "RO", "RU", "TH", "TR", "UA" }) do

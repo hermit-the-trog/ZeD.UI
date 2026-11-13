@@ -249,7 +249,8 @@ local function toggleTestInventory()
             cs2.lastClickedItem = item
             local dragItems = collectFromMap(selectedItems)
             if #dragItems > 0 then
-                self._drag:beginPending(dragItems, dragItems[1], screenX, screenY)
+                self._drag:beginPending(dragItems, dragItems[1], screenX, screenY,
+                    ZeD.InventoryRenderer.dragItems(self, dragItems, self._dragSourceInv))
             end
 
         elseif isShiftKeyDown() and cs2.lastClickedItem then
@@ -265,18 +266,21 @@ local function toggleTestInventory()
             end
             local dragItems = collectFromMap(selectedItems)
             if #dragItems > 0 then
-                self._drag:beginPending(dragItems, item, screenX, screenY)
+                self._drag:beginPending(dragItems, item, screenX, screenY,
+                    ZeD.InventoryRenderer.dragItems(self, dragItems, self._dragSourceInv))
             end
 
         else
             if selectedItems[item] then
                 self._deferredSelect = { item = item, colIdx = colIdx }
                 local dragItems = collectFromMap(selectedItems)
-                self._drag:beginPending(dragItems, item, screenX, screenY)
+                self._drag:beginPending(dragItems, item, screenX, screenY,
+                    ZeD.InventoryRenderer.dragItems(self, dragItems, self._dragSourceInv))
             else
                 cs2.selectedItems = {[item] = true}
                 cs2.lastClickedItem = item
-                self._drag:beginPending({item}, item, screenX, screenY)
+                self._drag:beginPending({item}, item, screenX, screenY,
+                    ZeD.InventoryRenderer.dragItems(self, {item}, self._dragSourceInv))
             end
         end
 

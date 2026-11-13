@@ -24,6 +24,9 @@
 -- column; UIManager hands a mouse move to the topmost element under the pointer
 -- only, so the column never sees the pointer and never draws its own text, while
 -- it keeps drawing the moodles. Clicks pass through, as they do on vanilla's column.
+-- The layer keeps its place under the windows (a moodle a window covers is the
+-- window's, and shows no balloon); the note and the balloon draw from a second,
+-- see-through layer on top of everything (ZeD_MoodleNote).
 --
 -- Vanilla facts (42.20.2, MoodlesUI): the column sits at x = right edge -
 -- (10 + size), y = 120; the engine resets its x every frame before the UI
@@ -374,11 +377,14 @@ function M.rect(playerNum)
     return L._rect
 end
 
--- The moodle under the pointer (index into self._list), or nil
+-- The moodle under the pointer (index into self._list), or nil. Only while nothing above the layer holds the
+-- pointer there (the engine's own picking, as ZeD_Window:pointerOn asks): a window pulled over the column takes
+-- the pointer, and a moodle under it says nothing. (Asked after the cheap test: the pointer on the strip at all.)
 function ZeD_MoodleLayer:_hoverIndex()
     local mx, my = self:getMouseX(), self:getMouseY()
     local size = self._size or 32
     if mx < 0 or my < 0 or mx >= self:getWidth() or my >= self:getHeight() then return nil end
+    if not self:isMouseOver() then return nil end
     local i
     if self._mode == "bottom" then
         i = math.floor(mx / (size + GAP))
@@ -431,7 +437,9 @@ end
 -- bubble (ZeD.Bubbles' cloud, the one over the head) whose trail of three small bubbles runs to the
 -- moodle it is about, so the note shows which moodle it comes from. Right / left: the cloud beside
 -- the column, level with its moodle, the trail across; bottom: above the row, the trail down.
-function ZeD_MoodleLayer:_drawChip(m, idx)
+-- Laid out in the layer's own space; drawn on `on` (the note layer) with the layer's corner at (ox, oy) in it.
+function ZeD_MoodleLayer:_drawChip(m, idx, on, ox, oy)
+    on, ox, oy = on or self, ox or 0, oy or 0
     local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
     local p = self:player()
     local md = p and p:getMoodles()
@@ -479,20 +487,20 @@ function ZeD_MoodleLayer:_drawChip(m, idx)
         dir = "right"
     end
     Bb.syncColours(T)
-    local cv = P.canvas(self, cx, cy, k)
+    local cv = P.canvas(on, ox + cx, oy + cy, k)
     Bb.cloudShadow(cv, 0, 0, wu, hu, 1, rad)
-    Bb.drawTrail(P.canvas(self, tox, toy, tk), T, dir, 0, 0, 1)
+    Bb.drawTrail(P.canvas(on, ox + tox, oy + toy, tk), T, dir, 0, 0, 1)
     Bb.cloudBody(cv, T, 0, 0, wu, hu, 1, rad)
-    self._chip = { idx = idx, key = m.key, x = cx, y = cy, w = W, h = H, k = k, tk = tk, dir = dir, tox = tox, toy = toy }   -- (where the note went; the in-game test scripts read it)
+    self._chip = { idx = idx, key = m.key, x = cx, y = cy, w = W, h = H, k = k, tk = tk, dir = dir, tox = tox, toy = toy }   -- (where the note went, in the layer's space; the in-game test scripts read it)
     local dot = (m.gbn == 1 and T.positive) or (m.gbn == 2 and (m.level >= 3 and T.danger or T.warning)) or T.textDim
     local ds = T.px(7)
-    A.drawStatusDot(self, cx + padX, cy + padY + math.floor((nh - ds) / 2), dot, ds)
+    A.drawStatusDot(on, ox + cx + padX, oy + cy + padY + math.floor((nh - ds) / 2), dot, ds)
     local tc = T.text
-    self:drawText(name, cx + padX + ds + T.px(7), cy + padY, tc.r, tc.g, tc.b, tc.a or 1, f4)
+    on:drawText(name, ox + cx + padX + ds + T.px(7), oy + cy + padY, tc.r, tc.g, tc.b, tc.a or 1, f4)
     local dc = T.textDim
     local ly = cy + padY + nh + T.px(3)
     for _, ln in ipairs(lines) do
-        self:drawText(ln, cx + padX, ly, dc.r, dc.g, dc.b, dc.a or 1, f2)
+        on:drawText(ln, ox + cx + padX, oy + ly, dc.r, dc.g, dc.b, dc.a or 1, f2)
         ly = ly + lh
     end
 end
@@ -538,57 +546,56 @@ function ZeD_MoodleLayer:_noticeTick()
     end
 end
 
--- The layer was added at game start, under every window opened since: a note drawn from it lay half
--- behind the World window (the director's review, Nov 11 2026). While a note or a balloon shows, the
--- layer stands over every window, as the inventory's loot card does (ZeD_InvTip's layer); once it goes,
--- the layer drops back, so windows pulled over the moodle column take the pointer again.
-function ZeD_MoodleLayer:_raise(on)
-    if on == (self._raised == true) then return end
-    self._raised = on
-    pcall(function()
-        self:setAlwaysOnTop(on)
-        if on then self:bringToTop() end
-    end)
-end
-
+-- The layer keeps its own place among the windows: it was added at game start, so a window opened or
+-- pressed since sits over it and takes the pointer there. The copy of the row (bottom) is the moodles
+-- themselves and draws here, under such a window, as the game's own column does. The note and the
+-- balloon draw from the note layer instead (ZeD_MoodleNote, over every window), so a note is never half
+-- hidden behind the World window, and the layer itself never has to stand over the windows.
 function ZeD_MoodleLayer:prerender()
     if not ZeD.T or not self._mode then return end
     self:_noticeTick()
     self._chip = nil
     self._held = nil
-    self:_prerenderNotes()
-    self:_raise(self._chip ~= nil or self._held == true)
+    -- (a stand-in draws the row itself, at M.rect)
+    if self._show and self._mode == "bottom" and not M.standIn(self.playerNum) then self:_drawRow() end
 end
 
-function ZeD_MoodleLayer:_prerenderNotes()
+-- A press on the strip leaves the layer where it is (ISUIElement's onFocus brings a top-level panel to
+-- the top: the layer would then stand over the windows and take their pointer in its strip)
+function ZeD_MoodleLayer:onFocus() end
+
+--- The note or the balloon this frame, drawn on `on` (the note layer, from its render: over every
+--- window); the layer's corner sits at (ox, oy) in it.
+function ZeD_MoodleLayer:_drawNotes(on)
     if not self._show then return end
-    -- (a stand-in draws the row itself, at M.rect)
-    if self._mode == "bottom" and not M.standIn(self.playerNum) then self:_drawRow() end
+    local ox, oy = self:getAbsoluteX() - on:getAbsoluteX(), self:getAbsoluteY() - on:getAbsoluteY()
     local i = self:_hoverIndex()
     -- the moodle under the pointer: its name and description in the balloon beside it, after the shared pause
     self._hvSt = self._hvSt or {}
     local hm = i and self._list[i]
     local A = ZeD.Atoms
     if A and A.hoverReady and A.hoverReady(self._hvSt, hm and hm.key or nil) and hm then
-        self:_drawBalloon(hm, i)
+        self:_drawBalloon(hm, i, on, ox, oy)
         return
     end
     if hm then return end
     -- (the pointer went from the moodle onto its balloon: it stays)
-    if ZeD.Balloon and ZeD.Balloon.redrawHeld(self, self) then self._held = true; return end
+    if ZeD.Balloon and ZeD.Balloon.redrawHeld(self, on) then self._held = true; return end
     -- (ZeD setup's "Moodle notices", off for a new player: while it is off, a note shows only under the pointer)
     local S = ZeD.Settings
     local notices = S and S.moodleNoticesOn and S.moodleNoticesOn() or false
     if notices and self._notices[1] then
         for k, m in ipairs(self._list or {}) do if m.key == self._notices[1] then i = k end end
-        if i then self:_drawChip(self._list[i], i) end
+        if i then self:_drawChip(self._list[i], i, on, ox, oy) end
     end
 end
 
 -- The moodle's balloon: the game's name for its level as the title, its description as the line,
 -- beside the column (the side away from the screen's edge) or above the row, the tail on the moodle.
 -- A notice that shows by itself keeps the thought bubble (_drawChip): it is not pointed at.
-function ZeD_MoodleLayer:_drawBalloon(m, idx)
+-- Drawn on `on` (the note layer), the layer's corner at (ox, oy) in it.
+function ZeD_MoodleLayer:_drawBalloon(m, idx, on, ox, oy)
+    on, ox, oy = on or self, ox or 0, oy or 0
     local p = self:player()
     local md = p and p:getMoodles()
     if not (md and ZeD.Balloon) then return end
@@ -602,18 +609,19 @@ function ZeD_MoodleLayer:_drawBalloon(m, idx)
     local size = self._size or 32
     local a = self._ba
     if not a then a = {}; self._ba = a end
-    local ox, oy = self:getAbsoluteX(), self:getAbsoluteY()
+    local lx, ly = self:getAbsoluteX(), self:getAbsoluteY()
     local side
     if self._mode == "bottom" then
-        a.x, a.y, side = ox + (idx - 1) * (size + GAP), oy, "above"
+        a.x, a.y, side = lx + (idx - 1) * (size + GAP), ly, "above"
     else
-        a.x, a.y = ox, oy + (idx - 1) * (size + GAP)
+        a.x, a.y = lx, ly + (idx - 1) * (size + GAP)
         side = (self._mode == "left") and "right" or "left"
     end
     a.w, a.h, a.below, a.noFlip = size, size, nil, nil
-    local x, y, w, h = ZeD.Balloon.draw(self, c, a, side, { key = "moodle:" .. tostring(m.key), owner = self })
+    local x, y, w, h = ZeD.Balloon.draw(on, c, a, side, { key = "moodle:" .. tostring(m.key), owner = self })
     if x then
-        self._chip = { idx = idx, key = m.key, x = x, y = y, w = w, h = h, balloon = true }   -- (the in-game test scripts read it)
+        -- (where it went, in the layer's space; the in-game test scripts read it)
+        self._chip = { idx = idx, key = m.key, x = x - ox, y = y - oy, w = w, h = h, balloon = true }
     end
 end
 function ZeD_MoodleLayer:render() end
@@ -629,17 +637,64 @@ function ZeD_MoodleLayer:onRightMouseUp(x, y) return false end
 function ZeD_MoodleLayer:onMouseWheel(del) return false end
 
 -- ----------------------------------------------------------------------------
--- Lifecycle: one layer per local player
+-- ZeD_MoodleNote — the note layer, one per moodle layer: a 1x1 top-level panel
+-- at the screen's corner, always on top, that takes no pointer at all (as the
+-- inventory's loot card's layer, ZeD_InvTip). Its render draws the moodle
+-- layer's note and balloon at that layer's place, so they show over every
+-- window while the moodle layer keeps its own place under them.
+-- ----------------------------------------------------------------------------
+ZeD_MoodleNote = ZeD_MoodleNote or ZeD_Panel:derive("ZeD_MoodleNote")
+
+function ZeD_MoodleNote:new(layer)
+    local o = ZeD_Panel:new(0, 0, 1, 1)
+    setmetatable(o, self)
+    self.__index = self
+    o.layer = layer
+    o._zedLabel = "Moodle notes"
+    o.anchorBottom, o.anchorRight = false, false
+    o.wantMouseEvents = false
+    return o
+end
+function ZeD_MoodleNote:instantiate()
+    ZeD_Panel.instantiate(self)
+    pcall(function() self.javaObject:setConsumeMouseEvents(false) end)
+end
+function ZeD_MoodleNote:onMouseMove() return false end
+function ZeD_MoodleNote:onMouseMoveOutside() end
+function ZeD_MoodleNote:onMouseDown() return false end
+function ZeD_MoodleNote:onMouseUp() return false end
+function ZeD_MoodleNote:onRightMouseDown() return false end
+function ZeD_MoodleNote:onRightMouseUp() return false end
+function ZeD_MoodleNote:onMouseWheel() return false end
+function ZeD_MoodleNote:onFocus() end
+function ZeD_MoodleNote:prerender() end
+function ZeD_MoodleNote:render()
+    local L = self.layer
+    -- (only for the layer that is installed: a game started again makes new ones)
+    if not (ZeD.T and L and L._mode and M._layers[L.playerNum] == L) then return end
+    L:_drawNotes(self)
+end
+
+-- ----------------------------------------------------------------------------
+-- Lifecycle: one layer per local player, each with its note layer
 -- ----------------------------------------------------------------------------
 M._layers = M._layers or {}
 function M.install(playerNum)
     playerNum = playerNum or 0
     local old = M._layers[playerNum]
     if old then return old end
+    local shown = not ZeD.Safe.on("moodles")   -- safe mode: hidden until ZeD takes over again
     local layer = ZeD_MoodleLayer:new(playerNum)
     layer:initialise()
     layer:addToUIManager()
-    layer:setVisible(not ZeD.Safe.on("moodles"))   -- safe mode: hidden until ZeD takes over again
+    layer:setVisible(shown)
+    local note = ZeD_MoodleNote:new(layer)
+    note:initialise()
+    note:addToUIManager()
+    -- (the game's Java side can throw; pcall turns a crash into a note layer that stays in the list's order)
+    pcall(function() note:setAlwaysOnTop(true) end)
+    note:setVisible(shown)
+    layer._note = note
     M._layers[playerNum] = layer
     print("[ZeD] Moodles: layer installed for player " .. tostring(playerNum) .. " (" .. M.place() .. ")")
     return layer
@@ -664,6 +719,7 @@ ZeD.Safe.register("moodles", {
     leave = function()
         for pn, layer in pairs(M._layers) do
             layer:setVisible(false)
+            if layer._note then layer._note:setVisible(false) end
             layer._show = false
             local mui = getSpecificPlayer(pn) and layer:vanilla()
             if mui then
@@ -673,7 +729,10 @@ ZeD.Safe.register("moodles", {
         end
     end,
     enter = function()
-        for _, layer in pairs(M._layers) do layer:setVisible(true) end
+        for _, layer in pairs(M._layers) do
+            layer:setVisible(true)
+            if layer._note then layer._note:setVisible(true) end
+        end
     end,
 })
 

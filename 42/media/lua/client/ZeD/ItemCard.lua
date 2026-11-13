@@ -672,9 +672,10 @@ local function drawItemSoilRow(panel, x, y, w, soil)
     local rx = x + w   -- right cursor, grows leftward
 
     -- the item's soil as tags, right-aligned: the word (sentence case) after a
-    -- square mark in the soil's colour (no tinted fills, no coloured words)
+    -- square mark in the soil's color (no tinted fills, no colored words), each
+    -- measured as drawTag draws it, so the last ends at the row's right edge
     local tagW = function(lbl)
-        return ZeD.TM:MeasureStringX(T.fontF1, ZeD.Atoms.textCase(lbl)) + T.px(10) + T.px(6) + T.px(4)
+        return ZeD.Atoms.tagW(lbl, true)
     end
     local ty = y + math.floor((btnSz - T.px(16)) / 2)
     if soil.wet then

@@ -46,14 +46,18 @@ ZeD.Molecules = ZeD.Molecules or {}
 -- @param colors   Optional override for "flat" variant — { bg, border, text, font? }.
 --                 Each value is an RGBA table. font is optional UIFont reference
 --                 (defaults to fontF3). Required only for variant == "flat".
---                 The other variants read two optional fields: fill (an RGBA drawn
---                 under the chrome: the 0.55 focus or 0.22 hover accent) and text
---                 (the label colour, e.g. T.text over a focus fill, where a red or
---                 accent label would sink into the accent). keepCase = true draws
+--                 The other variants read three optional fields: fill (an RGBA drawn
+--                 under the chrome: the 0.55 focus or 0.22 hover accent), text
+--                 (the label color, e.g. T.text over a focus fill, where a red or
+--                 accent label would sink into the accent) and border (the outline's
+--                 color, for the same reason: a default button on a row in the
+--                 selected wash takes the row's ink). keepCase = true draws
 --                 the label as given instead of in sentence case (a key's name).
 -- @param opts     Optional (the push button's shared states):
 --                   hover    = bool: the T.hover wash under the outline
---                   disabled = bool: the whole control at T.disabledAlpha (no pulse)
+--                   disabled = bool: the plain keycap (one line in borderS, the
+--                              default ink) at T.disabledAlpha, whatever the
+--                              variant: no accent, no double line, no pulse
 --                   compact  = bool: height T.buttonH - T.px(4) (inside a list row),
 --                              centred in the h given
 --                   focus    = the ZeD.Focus.mark opts ({ win = win, ... }), or true
@@ -168,18 +172,22 @@ function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, col
 
     -- Variant determines border, fill, and text color.
     -- Danger pulses a red fill to signal destructive action (not while disabled).
+    -- A grayed button is the plain keycap whatever its variant: the default's
+    -- accent double ring on a button that does nothing ("Craft" with nothing to
+    -- make, "Restock 0:00") read as the focused default. Disabled wins.
     local borderColor, textColor
-    if variant == "primary" then
+    if opts.disabled then
+        borderColor = T.borderS
+        textColor = T.text
+    elseif variant == "primary" then
         borderColor = T.accent
         textColor = T.accentText
     elseif variant == "danger" then
         borderColor = T.danger
         textColor = T.dangerText
-        if not opts.disabled then
-            local pulse = math.sin((getTimestampMs() or 0) / 400) * 0.5 + 0.5
-            local fillA = T.dangerPulseMin + pulse * (T.dangerPulseMax - T.dangerPulseMin)
-            A.fillRounded(panel, x, y, w, h, T.danger.r, T.danger.g, T.danger.b, fillA)
-        end
+        local pulse = math.sin((getTimestampMs() or 0) / 400) * 0.5 + 0.5
+        local fillA = T.dangerPulseMin + pulse * (T.dangerPulseMax - T.dangerPulseMin)
+        A.fillRounded(panel, x, y, w, h, T.danger.r, T.danger.g, T.danger.b, fillA)
     else
         borderColor = T.borderS
         textColor = T.text
@@ -197,13 +205,15 @@ function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, col
         -- a wash of 0.5 or more: the label is the focus ink, whatever the variant's own colour
         textColor = T.textOnFocus
     end
+    if colors and colors.border then borderColor = colors.border end
     if onFocus then borderColor = T.textOnFocus end
 
     -- Rounded border (colored per variant). In System 7 only the default button
     -- carries the double border line; every other button gets a single line.
     -- So: two lines on "primary", or on a red button that is the default answer
-    -- (opts.default: a confirm's Delete); one line on the rest.
-    if variant == "primary" or opts.default then
+    -- (opts.default: a confirm's Delete); one line on the rest, and on any
+    -- grayed button (a default that can't be pressed is not the default).
+    if not opts.disabled and (variant == "primary" or opts.default) then
         A.borderDoubleRounded(panel, x, y, w, h, borderColor.r, borderColor.g, borderColor.b, (borderColor.a or 1) * alpha)
     else
         A.borderRounded(panel, x, y, w, h, borderColor.r, borderColor.g, borderColor.b, (borderColor.a or 1) * alpha)
@@ -1218,9 +1228,9 @@ function ZeD_DragState:new()
     local o = setmetatable({}, self)
     o.active     = false   -- drag in progress (threshold exceeded)
     o.pending    = false   -- mouseDown happened, awaiting threshold
-    o.items      = nil     -- flat table of InventoryItem objects
+    o.items      = nil     -- flat table of InventoryItem objects (the rows dragged)
     o.ghostItem  = nil     -- representative item for icon/name
-    o.ghostCount = 0       -- count for badge
+    o.ghostCount = 0       -- count for badge (the things the rows carry)
     o.ghostX     = 0       -- screen-absolute cursor X
     o.ghostY     = 0       -- screen-absolute cursor Y
     o.startX     = 0       -- screen-absolute mouseDown X
@@ -1229,13 +1239,17 @@ function ZeD_DragState:new()
     return o
 end
 
-function ZeD_DragState:beginPending(items, ghostItem, screenX, screenY)
+-- items: the rows dragged (the Equip doll and the belt take one thing from them). carried (optional): the things
+-- those rows move, a closed stack's row being its whole stack (InventoryRenderer.dragItems); the chip's count and the
+-- chips behind it read these, so "Nails x50" shows x50 and its cascade. Without it, the rows themselves.
+function ZeD_DragState:beginPending(items, ghostItem, screenX, screenY, carried)
+    local moved = carried or items
     self.pending    = true
     self.active     = false
     self.items      = items
     self.ghostItem  = ghostItem
-    self.ghostCount = #items
-    self.ghostBehind = ZeD_DragState.pickBehind(items, ghostItem)
+    self.ghostCount = #moved
+    self.ghostBehind = ZeD_DragState.pickBehind(moved, ghostItem)
     self.startX     = screenX
     self.startY     = screenY
     self.ghostX     = screenX
@@ -1349,11 +1363,15 @@ function ZeD_DragState:drawGhost(panel)
     local ty = ly + pad + iconSz + pad
     local tc = T.textSec
     local wt = string.format("%.1f", item:getUnequippedWeight())
-    panel:drawText(wt, lx + gw - pad - ZeD.TM:MeasureStringX(T.fontF3, wt), ty, tc.r, tc.g, tc.b, 0.85, T.fontF3)
+    local wx = lx + gw - pad - ZeD.TM:MeasureStringX(T.fontF3, wt)
     if self.ghostCount > 1 then
-        local qty = "x" .. tostring(self.ghostCount)
+        -- the count is what a row carries, so a crate of nails dragged as one row can run past 999: it reads 999+,
+        -- and the weight gives way when the count would reach it (the count is the reading then)
+        local qty = self.ghostCount > 999 and "x999+" or ("x" .. tostring(self.ghostCount))
         panel:drawText(qty, lx + pad, ty, tc.r, tc.g, tc.b, 0.85, T.fontF3)
+        if lx + pad + ZeD.TM:MeasureStringX(T.fontF3, qty) + T.px(2) > wx then wt = nil end
     end
+    if wt then panel:drawText(wt, wx, ty, tc.r, tc.g, tc.b, 0.85, T.fontF3) end
 end
 
 function ZeD_DragState:cancel()

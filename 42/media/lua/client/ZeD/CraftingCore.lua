@@ -968,10 +968,12 @@ function CC.filterAndSort(data, state, config)
 
         -- Filter: SHOW. Ready = only what can be made right now (vanilla's all-green
         -- answer); Known = learned and skilled enough; All = everything. A search
-        -- looks through everything.
+        -- looks through everything. The open card's recipe keeps its row whatever
+        -- Show holds back: the card is the list's picked row (a craft that uses the
+        -- last ingredients, or a recipe opened from an item's card, stays listed)
         local modeOut = false
         local show = CC.showMode(state, config)
-        if not searchOut and not searching and show ~= "all" then
+        if not searchOut and not searching and show ~= "all" and entry.name ~= state.selected then
             if entry.needLearn and not rd.learned then modeOut = true
             elseif not rd.hasSkill then modeOut = true
             elseif show == "ready" and rd.status ~= "craftable" then modeOut = true end
@@ -1300,13 +1302,31 @@ function CC.openCraft(state, recipeId)
     state.cardScroll:setScrollPos(0)
 end
 
---- Shuts the craft card: nothing selected, no picks, the split pane closing.
+--- Shuts the craft card: nothing selected, no picks, the split pane closing. The list
+--- is filtered again (a row Show held back only because its card was open goes with it).
 function CC.closeCraft(state)
     state.selected = nil
     state.picks = {}
     state.qty = 1
     state.splitTarget = 0
+    state.filterDirty = true
     if state.altSlotName then CC.exitAltMode(state) end
+end
+
+--- The list filtered and sorted again for the band's choices (filterAndSort), the card kept
+--- to it: the card is the list's picked row, so a recipe the list no longer shows (another
+--- category, a search that leaves it out) closes its card. Show never hides the open card's
+--- recipe (filterAndSort keeps its row).
+function CC.refilter(data, state, config)
+    state.filteredCache, state.filteredCounts = CC.filterAndSort(data, state, config)
+    state.filterDirty = false
+    state._sectionsStale = true  -- sections depend on filteredCache
+    local sel = state.selected
+    if not sel then return end
+    for _, rd in ipairs(state.filteredCache) do
+        if rd.entry.name == sel then return end
+    end
+    CC.closeCraft(state)
 end
 
 function CC.enterAltMode(state, slotName, slotIdx, playerObj, containers, inputDef)
@@ -2841,12 +2861,8 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
     -- Reset click zones each frame
     state.zones = {}
 
-    -- Filter + sort (cached — only rebuild when dirty)
-    if state.filterDirty then
-        state.filteredCache, state.filteredCounts = CC.filterAndSort(data, state, config)
-        state.filterDirty = false
-        state._sectionsStale = true  -- sections depend on filteredCache
-    end
+    -- Filter + sort (cached — only rebuild when dirty); the card follows the list
+    if state.filterDirty then CC.refilter(data, state, config) end
 
     -- Update split animation (real dt via getTimestampMs inside)
     CC.updateSplitAnimation(state)
