@@ -44,7 +44,7 @@ local function readFile(rel)
     return (string.gsub(s, "\r\n", "\n"))
 end
 local function gitShow(rel)
-    local p = io.popen('git -C "' .. (ROOT ~= "" and ROOT or ".") .. '" show ' .. BASE .. ":" .. rel .. " 2>nul")
+    local p = io.popen('git -C "' .. (ROOT ~= "" and (ROOT:gsub("[/\\]+$", "")) or ".") .. '" show ' .. BASE .. ":" .. rel .. " 2>nul")
     if not p then return nil end
     local s = p:read("*a")
     p:close()

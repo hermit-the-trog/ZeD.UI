@@ -44,7 +44,7 @@ local function readFile(path)
     return (s:gsub("\r\n", "\n"))   -- (the cuts below match LF line ends)
 end
 local function baseFile(name)
-    local p = io.popen('git -C "' .. (ROOT ~= "" and ROOT or ".") .. '" show ' .. BASE .. ':42/media/lua/client/ZeD/' .. name .. ' 2>NUL')
+    local p = io.popen('git -C "' .. (ROOT ~= "" and (ROOT:gsub("[/\\]+$", "")) or ".") .. '" show ' .. BASE .. ':42/media/lua/client/ZeD/' .. name .. ' 2>NUL')
     local s = p and p:read("*a") or ""
     if p then p:close() end
     return s ~= "" and (s:gsub("\r\n", "\n")) or nil

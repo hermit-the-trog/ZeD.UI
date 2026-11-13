@@ -399,7 +399,7 @@ end
 local nowSource = readFile(CLIENT .. "ZeD/ZeD_Dashboard.lua")
 -- the dash before the mask's hook (Nov 7 2026), for the MASK section's proof
 local function gitShowDash()
-    local h = io.popen('git -C "' .. (ROOT == "" and "." or ROOT) .. '" show 6d1f46de:42/media/lua/client/ZeD/ZeD_Dashboard.lua')
+    local h = io.popen('git -C "' .. (ROOT == "" and "." or (ROOT:gsub("[/\\]+$", ""))) .. '" show 6d1f46de:42/media/lua/client/ZeD/ZeD_Dashboard.lua')
     local t = h and h:read("*a") or ""
     if h then h:close() end
     return t

@@ -7,7 +7,7 @@
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/safe_notice_sim.lua
 -- It prints FAIL lines and a last line "safe_notice_sim: N checks, M failed", and exits 1 if any failed.
 
-local ROOT = string.gsub(arg and arg[0] or "", "ZeDUI[/\]tools[/\]qa[/\]safe_notice_sim%.lua$", "")
+local ROOT = string.gsub(arg and arg[0] or "", "ZeDUI[/\\]tools[/\\]qa[/\\]safe_notice_sim%.lua$", "")
 local Z = ROOT .. "42/media/lua/client/ZeD/"
 local checks, failed = 0, 0
 local function check(name, ok, detail)
