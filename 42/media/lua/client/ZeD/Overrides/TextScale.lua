@@ -15,7 +15,8 @@
 -- When the game's own fonts hold those slots (Chinese, Japanese, Korean, Thai,
 -- or the Dyslexic font option; ZeD.Text.checkRoleFonts) the roles are the
 -- game's Small / Medium / Large with no zoom registered, so zoomOf is 1 and
--- every draw below takes the original path at native size.
+-- every draw below takes the original path at native size, except a string
+-- with letters that face lacks (standInDraw, below).
 -- Each patch here sits behind a _zed*Patched flag, so a Lua reload never
 -- wraps the wrapper.
 -- ============================================================================
@@ -24,16 +25,62 @@ require "ZeD/Scale"
 
 local X = ZeD.Text
 
--- A role font's text with letters ZeD's fonts lack (Chinese, Japanese) draws in the game's face
--- for them (ZeD.Text.scriptSwap, shared/ZeD/Scale.lua): the face, its zoom and the y shift.
+-- A role font's text with letters ZeD's fonts lack (Chinese, Japanese) draws in the face that has
+-- them (ZeD.Text.scriptSwap, shared/ZeD/Scale.lua): the face, its zoom and the y shift.
 local function faceOf(font)
     local T = ZeD.T
     return (T and T.fontFace and T.fontFace[font]) or 64
 end
+local standInDraw
+-- (while the game's faces stand in, a role font drawn at a multiple of its size, ZeD.Text.withFontScale,
+-- still swaps a string its face lacks letters for: the same face and multiple ZeD.TM measures it at)
 local function roleDraw(jo, font, str, x, y, z, r, g, b, a)
+    if X.fallback and standInDraw(jo, font, str, x, y, r, g, b, a, nil, z) then return end
     local sf, zz, dy = X.scriptSwap(str, z, faceOf(font))
     if sf then jo:DrawText(sf, str, x, y + dy, zz, r, g, b, a)
     else jo:DrawText(font, str, x, y, z, r, g, b, a) end
+end
+-- While the game's faces stand in for ZeD's, text in them draws through the original calls, except a
+-- string with letters the face lacks: that one draws in the face that has them, at the same letter
+-- size, as ZeD.TM measures it (ZeD.Text.standInSwap). Every Lua text draw in the game's Small, Medium
+-- or Large takes this, the game's own windows' too, since they measure through ZeD.TM as well. align:
+-- nil (x is the left edge), "r" (x is the right edge) or "c" (x is the centre). True when it drew.
+-- A string of several lines draws one line at a time, each in the face that draws it, a stand-in line apart:
+-- the engine's zoomed draw would step down by the swapped face's own unzoomed line height (58 px for Noto Sans
+-- SC), not the stand-in's the layout left room for. The block is placed as the engine places one, by its widest
+-- line, and every line starts at its left edge. z: the zoom the font draws at (1 unless a multiple of its
+-- size is in force, ZeD.Text.withFontScale).
+standInDraw = function(jo, font, str, x, y, r, g, b, a, align, z)
+    if type(str) ~= "string" then return false end
+    font = font or UIFont.Small
+    z = z or 1
+    local sf, zz, dy = X.standInSwap(str, font, z)
+    if not sf then return false end
+    if not string.find(str, "\n", 1, true) then
+        if align then
+            local w = X.realTM():MeasureStringX(sf, str) * zz
+            if align == "r" then x = x - w else x = x - w / 2 end
+        end
+        jo:DrawText(sf, str, x, y + dy, zz, r, g, b, a)
+        return true
+    end
+    if align then
+        local w = X.roleWidth(font, str, z)
+        if align == "r" then x = x - w else x = x - w / 2 end
+    end
+    local pitch = X.realTM():getFontHeight(font) * z
+    local lines = X.lines(str)
+    for k = 1, #lines do
+        local line = lines[k]
+        if line ~= "" then
+            local lf, lz, ly = X.standInSwap(line, font, z)
+            if lf then jo:DrawText(lf, line, x, y + ly, lz, r, g, b, a)
+            elseif z ~= 1 then jo:DrawText(font, line, x, y, z, r, g, b, a)
+            else jo:DrawText(font, line, x, y, r, g, b, a) end
+        end
+        y = y + pitch
+    end
+    return true
 end
 
 if not ISUIElement._zedTextScalePatched then
@@ -46,7 +93,11 @@ if not ISUIElement._zedTextScalePatched then
     -- drawText(str, x, y, r, g, b, a, font): x, y = top-left of the text box
     function ISUIElement:drawText(str, x, y, r, g, b, a, font)
         local z = X.zoomOf(font)
-        if z == 1 then return origDrawText(self, str, x, y, r, g, b, a, font) end
+        if z == 1 then
+            if X.fallback and self.javaObject ~= nil and not self.isCollapsed
+               and standInDraw(self.javaObject, font, str, x, y, r, g, b, a, nil) then return end
+            return origDrawText(self, str, x, y, r, g, b, a, font)
+        end
         if self.javaObject ~= nil then
             if self.isCollapsed then return end   -- (as ISUIElement's own)
             roleDraw(self.javaObject, font, tostring(str), x, y, z, r, g, b, a)
@@ -56,7 +107,11 @@ if not ISUIElement._zedTextScalePatched then
     -- drawTextRight(str, x, y, ...): the text ENDS at x
     function ISUIElement:drawTextRight(str, x, y, r, g, b, a, font)
         local z = X.zoomOf(font)
-        if z == 1 then return origDrawTextRight(self, str, x, y, r, g, b, a, font) end
+        if z == 1 then
+            if X.fallback and self.javaObject ~= nil and not self.isCollapsed
+               and standInDraw(self.javaObject, font, str, x, y, r, g, b, a, "r") then return end
+            return origDrawTextRight(self, str, x, y, r, g, b, a, font)
+        end
         if self.javaObject ~= nil then
             if self.isCollapsed then return end
             str = tostring(str)
@@ -68,7 +123,11 @@ if not ISUIElement._zedTextScalePatched then
     -- drawTextCentre(str, x, y, ...): the text is centred on x
     function ISUIElement:drawTextCentre(str, x, y, r, g, b, a, font)
         local z = X.zoomOf(font)
-        if z == 1 then return origDrawTextCentre(self, str, x, y, r, g, b, a, font) end
+        if z == 1 then
+            if X.fallback and self.javaObject ~= nil and not self.isCollapsed
+               and standInDraw(self.javaObject, font, str, x, y, r, g, b, a, "c") then return end
+            return origDrawTextCentre(self, str, x, y, r, g, b, a, font)
+        end
         if self.javaObject ~= nil then
             if self.isCollapsed then return end
             str = tostring(str)
@@ -165,9 +224,10 @@ function LEAN.drawText(self, str, x, y, r, g, b, a, font)
     if z == nil then z = X.zoomOf(font) end
     local jo = self.javaObject
     if z == 1 then
-        -- ISUIElement:drawText as the engine has it
+        -- ISUIElement:drawText as the engine has it (a letter the game's stand-in face lacks: standInDraw)
         if jo ~= nil then
             if self.isCollapsed then return end
+            if X.fallback and standInDraw(jo, font, str, x, y, r, g, b, a, nil) then return end
             if font ~= nil then jo:DrawText(font, str, x, y, r, g, b, a)
             else jo:DrawText(UIFont.Small, str, x, y, r, g, b, a) end
         end
