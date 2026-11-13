@@ -3355,6 +3355,7 @@
     "UI_ZeD_Animals_RunMilking": "Dojenie %1 z %2",
     "UI_ZeD_Animals_RunShearing": "Strzyżenie %1 z %2",
     "UI_ZeD_Animals_RunStopped": "Zatrzymano po %1 z %2.",
+    "UI_ZeD_Animals_RunFast": "Zatrzymano po %1 z %2: przy tej prędkości gry nie da się chodzić.",
     "UI_ZeD_Animals_RunFull": "%1 pełne: wydojono %2 z %3.",
     "UI_ZeD_Animals_SelNothing": "Wybrano %1: nic do dojenia ani strzyżenia",
     "UI_ZeD_Animals_Selected": "Wybrano %1",

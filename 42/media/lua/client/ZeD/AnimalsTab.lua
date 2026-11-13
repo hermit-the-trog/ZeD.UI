@@ -902,8 +902,9 @@ local function renderZoneCreateContent(panel, win, x, y, w, h)
     updateZoneCreateMouse(win)
 
     -- What is being made: the section head
-    curY = curY + M.drawSectionHeader(panel, x + pad, curY, w - pad,
-        ZeD.tr("UI_ZeD_Animals_CreateZoneTitle"), nil, true, false, nil, nil, pad, nil, true) + pad
+    -- (the one section style, the small mono line: D6)
+    curY = curY + M.drawCategoryRow(panel, x, curY, w, ZeD.tr("UI_ZeD_Animals_CreateZoneTitle"), nil, true,
+        { noArrow = true }) + pad
 
     -- Zone name
     local f2 = T.fontF2
@@ -991,6 +992,8 @@ end
 -- ============================================================================
 -- SUBMODE STRIP — RANCH / BUTCHER
 -- ============================================================================
+
+local STRIP_GAP_U = 4   -- design units between the sub-tab strip and the page under it
 
 local SUBMODES = {
     { id = "ranch",   label = "UI_ZeD_Animals_SubRanch",  help = "UI_ZeD_Animals_HelpRanch" },   -- text keys: translated where drawn
@@ -2089,7 +2092,8 @@ end
 local function detailHead(panel, x, y, w, text)
     local M = ZeD.Molecules
     local pad = M.getTabPad()
-    return M.drawSectionHeader(panel, x, y, w + pad, text, nil, true, false, nil, nil, pad, nil, true)
+    -- (the one section style, the small mono line, D6: from the tab's edge as the other Animals headings)
+    return M.drawCategoryRow(panel, x - pad, y, w + pad * 2, text, nil, true, { noArrow = true })
 end
 
 -- ============================================================================
@@ -3556,10 +3560,11 @@ function ZeD.AnimalsTab.render(panel, win, x, y, w, h)
     local state = getState(win)
     local zc = getZoneCreateState(win)
 
-    -- the sub-tab strip sits at the foot of row 1 (T.stripH), its line on the strips' line
-    local topPad = T.stripH - T.tabH
-    y = y + topPad
-    h = h - topPad
+    -- the tab opens with its title in row 1 (T.stripH), as every tab does (C1, D6); the sub-tab strip under it,
+    -- and a gap under the strip so the first heading ("Zones (1)") does not touch it
+    local titleH = M.drawTabHeader(panel, x, y, w, ZeD.tr("UI_ZeD_World_TabAnimals"), false, false, true)
+    y = y + titleH
+    h = h - titleH
 
     -- zones of the views not drawn this frame must not answer clicks or focus
     win._animalsStructZones = {}
@@ -3578,14 +3583,14 @@ function ZeD.AnimalsTab.render(panel, win, x, y, w, h)
     -- Zone create mode overrides everything
     if zc.active then
         clearBandZones(win)
-        local tabH = drawSubmodeStrip(panel, win, x, y, w)
+        local tabH = drawSubmodeStrip(panel, win, x, y, w) + T.px(STRIP_GAP_U)
         renderZoneCreateView(panel, win, x, y + tabH, w, h - tabH)
         return
     end
     win._zoneConfirmYes, win._zoneConfirmNo, win._zoneCancelBtn = nil, nil, nil
 
     -- Sub-tab strip (always visible)
-    local curY = y + drawSubmodeStrip(panel, win, x, y, w)
+    local curY = y + drawSubmodeStrip(panel, win, x, y, w) + T.px(STRIP_GAP_U)
 
     -- Back (zone/animal views only)
     if state.view == "zone" or state.view == "animal" then

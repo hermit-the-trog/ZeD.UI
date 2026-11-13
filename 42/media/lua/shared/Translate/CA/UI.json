@@ -3355,6 +3355,7 @@
     "UI_ZeD_Animals_RunMilking": "Munyint %1 de %2",
     "UI_ZeD_Animals_RunShearing": "Esquilant %1 de %2",
     "UI_ZeD_Animals_RunStopped": "Aturat després de %1 de %2.",
+    "UI_ZeD_Animals_RunFast": "Aturat després de %1 de %2: el joc no camina a aquesta velocitat.",
     "UI_ZeD_Animals_RunFull": "%1 ple: munyits %2 de %3.",
     "UI_ZeD_Animals_SelNothing": "%1 seleccionats: res per munyir ni esquilar",
     "UI_ZeD_Animals_Selected": "%1 seleccionats",

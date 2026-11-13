@@ -3355,6 +3355,7 @@
     "UI_ZeD_Animals_RunMilking": "Ordeñando %1 de %2",
     "UI_ZeD_Animals_RunShearing": "Esquilando %1 de %2",
     "UI_ZeD_Animals_RunStopped": "Detenido después de %1 de %2.",
+    "UI_ZeD_Animals_RunFast": "Detenido después de %1 de %2: el juego no camina a esta velocidad.",
     "UI_ZeD_Animals_RunFull": "%1 lleno: ordeñaste %2 de %3.",
     "UI_ZeD_Animals_SelNothing": "%1 seleccionados: nada para ordeñar ni esquilar",
     "UI_ZeD_Animals_Selected": "%1 seleccionados",

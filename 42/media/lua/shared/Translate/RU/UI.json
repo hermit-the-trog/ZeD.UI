@@ -3355,6 +3355,7 @@
     "UI_ZeD_Animals_RunMilking": "Дойка %1 из %2",
     "UI_ZeD_Animals_RunShearing": "Стрижка %1 из %2",
     "UI_ZeD_Animals_RunStopped": "Остановлено после %1 из %2.",
+    "UI_ZeD_Animals_RunFast": "Остановлено после %1 из %2: на этой скорости игры ходьба невозможна.",
     "UI_ZeD_Animals_RunFull": "%1: полно, подоено %2 из %3.",
     "UI_ZeD_Animals_SelNothing": "Выбрано %1: некого доить или стричь",
     "UI_ZeD_Animals_Selected": "Выбрано %1",

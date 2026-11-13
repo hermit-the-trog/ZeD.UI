@@ -3355,6 +3355,7 @@
     "UI_ZeD_Animals_RunMilking": "A ordenhar %1 de %2",
     "UI_ZeD_Animals_RunShearing": "A tosquiar %1 de %2",
     "UI_ZeD_Animals_RunStopped": "Parado após %1 de %2.",
+    "UI_ZeD_Animals_RunFast": "Parado após %1 de %2: o jogo não anda a esta velocidade.",
     "UI_ZeD_Animals_RunFull": "%1 cheio: ordenhados %2 de %3.",
     "UI_ZeD_Animals_SelNothing": "%1 selecionados: nada para ordenhar ou tosquiar",
     "UI_ZeD_Animals_Selected": "%1 selecionados",
