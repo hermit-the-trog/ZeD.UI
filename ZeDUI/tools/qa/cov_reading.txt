@@ -1,0 +1,15 @@
+# ZeDUI/tools/qa/cov_reading.txt  (Nov 12 2026)
+# Coverage run for the "reading" group of ZeDUI/qa/AUDIT_DESIGN_AND_COVERAGE_20261111.md Table B: the Journal's
+# diary and Recipes pages, newspaper fit and typesetting and the print hook, the garment hook, the corkboard
+# note's model and the Workshop description editor's model. In game on the ZeD-QA save:
+#   & ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/cov_reading.txt
+# Every check prints PASS or FAIL with the value read; a FAIL reads WARN in the runner's report.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_cov_reading.lua | cov_reading | timeout=300   # diary, Recipes, newspapers, garment, note and editor models; puts back what it adds
+
+# ---- main menu half (never in a zedqa_run.ps1 manifest: the runner refuses main menu scripts)
+# zedqa_cov_reading_menu.lua | cov_reading_menu   the corkboard note on the live desk (this copy's heading, BETA 11,
+#                                  BETA 12, BETA 100 left off, every line, the ink) and the description editor window
+#                                  (blocks, palette, count, add, type, move, remove, undo, redo, H2, Bold, codes view,
+#                                  over the limit, Cancel's question, the hand-off; the upload window stays shut); run with
+#                                  zedqa_menu_mods_run.ps1 -ModList <an empty file> -Script zedqa_cov_reading_menu.lua -Tag cov_reading_menu -TimeoutSec 180
