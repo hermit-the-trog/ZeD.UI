@@ -163,13 +163,23 @@ local function stories(els, parent)
                 end
             end
             local top = head and head.box.y or e.box.y
-            -- the column is the gap the body really has: anything beside it narrows it
+            -- the column is the gap the body really has: anything beside it narrows it. A cut that would leave less
+            -- than half the column (or under 40 units) is not beside it but above or below it (a headline measured
+            -- taller than the game sets it): Knox Knews July 1's second story went to 3 units wide and the page's
+            -- body to 0.46 (QA b12 round 2)
+            local w0 = col.w
+            local minW = math.max(40, w0 * 0.5)
             for _, o in ipairs(boxes) do
                 if o ~= e and o ~= head and o.box.w < parent.width * 0.8 and o.box.h > 4 and o.box.y < bottom and o.box.y + o.box.h > top then
                     local ox1, ox2 = o.box.x, o.box.x + o.box.w
                     if ox2 > col.x + 6 and ox1 < col.x + col.w - 6 then
-                        if ox1 > col.x + 6 then col.w = ox1 - 10 - col.x
-                        elseif ox2 < col.x + col.w - 6 then local r = col.x + col.w; col.x = ox2 + 10; col.w = r - col.x end
+                        if ox1 > col.x + 6 then
+                            local nw = ox1 - 10 - col.x
+                            if nw >= minW then col.w = nw end
+                        elseif ox2 < col.x + col.w - 6 then
+                            local r, nx = col.x + col.w, ox2 + 10
+                            if r - nx >= minW then col.x, col.w = nx, r - nx end
+                        end
                     end
                 end
             end
@@ -189,7 +199,8 @@ local function stories(els, parent)
             list[#list + 1] = { body = e, head = head, bylines = bylines, x = col.x, w = col.w,
                                 hw = head and math.max(col.w, head.box.w) or col.w,
                                 center = head and (head.pivotX or 0) == 0.5, cx = head and head.x,
-                                top = top, bottom = bottom, lead = head and (head.scaleY or 1) >= 1 }
+                                top = top, bottom = bottom, lead = head and (head.scaleY or 1) >= 1,
+                                atFoot = bottom == parent.height - FOOT, pageH = parent.height }
         end
     end
     return list
@@ -277,11 +288,19 @@ function P.page(m)
     -- the body: no larger than about 25 letters to a column's line, then the largest that fits every column
     local b = 40
     for _, st in ipairs(list) do b = math.min(b, st.w / 6.5) end
-    while b > 12 do
-        local ok = true
+    -- (down to the floor, 11.5, and the floor itself tried: National Dispatch July 6 stopped at 11.58 untried)
+    local ok = false
+    while true do
+        ok = true
         for _, st in ipairs(list) do if setStory(st, b, nil) > st.bottom - st.top then ok = false; break end end
-        if ok then break end
-        b = b - 0.5
+        if ok or b <= 11.5 then break end
+        b = math.max(11.5, b - 0.5)
+    end
+    -- still too long at the floor: a story with nothing set under it but the page foot runs down to the page's edge
+    if not ok then
+        for _, st in ipairs(list) do
+            if st.atFoot and setStory(st, b, nil) > st.bottom - st.top then st.bottom = st.pageH - GAP end
+        end
     end
     local out = {}
     for _, st in ipairs(list) do setStory(st, b, out) end

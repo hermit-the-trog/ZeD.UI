@@ -768,6 +768,12 @@ function ZeD.JournalTab.gatherRecipeData(playerObj, win)
                 playerLevel = playerObj:getPerkLevel(perkType)
             end
             hasSkill = playerLevel >= entry.requiredLevel
+            -- (the game's rule for every required skill, not the first only: a recipe whose second skill is short
+            -- is locked; playerLevel stays the first skill's, for the row)
+            if entry.recipe then
+                local okS, has = pcall(entry.recipe.characterHasRequiredSkills, entry.recipe, playerObj)
+                if okS then hasSkill = has and true or false end
+            end
         end
 
         -- Learned check

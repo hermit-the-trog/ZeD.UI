@@ -774,5 +774,39 @@ do
     CC.refreshRow = real
 end
 
+-- (QA b12 round 2) TWO SKILLS: a recipe's lock is the game's rule for every required skill
+-- (CraftRecipe.characterHasRequiredSkills), not its first skill only: the first met, the second short, it is locked
+do
+    for i = 1, N_CRAFT do VIS["R" .. i] = true; KNOWN["R" .. i] = true end
+    for _, pt in pairs(PT) do LEVELS[pt] = 10 end
+    LEVELS.None = 10
+    WORLD.bench = nil
+    local function rowOf(data, r) for _, rd in ipairs(data.recipes) do if rd.entry.recipe == r then return rd end end end
+    local function shortSecond(r) r.characterHasRequiredSkills = function() return false end end
+    local function metAll(r) r.characterHasRequiredSkills = function() return true end end
+    local rc, rb = CRAFT[1], BUILDR[1]
+    shortSecond(rc); shortSecond(rb)
+    CLOCK = CLOCK + 10000
+    local dc = ZeD.CraftingTab.gatherData(player, { _playerObj = player })
+    local db = ZeD.BuildingTab.gatherData(player, { _playerObj = player })
+    local c1, b1 = rowOf(dc, rc), rowOf(db, rb)
+    check("TWO SKILLS: Craft: the first skill met, the second short: locked", c1 and c1.status == "locked" and c1.hasSkill == false,
+        c1 and c1.status)
+    check("TWO SKILLS: Craft: the row's level is still the first skill's", c1 and c1.playerLevel == 10, c1 and c1.playerLevel)
+    check("TWO SKILLS: Build: locked too", b1 and b1.status == "locked" and b1.hasSkill == false, b1 and b1.status)
+    metAll(rc); metAll(rb)
+    CLOCK = CLOCK + 10000
+    dc = ZeD.CraftingTab.gatherData(player, { _playerObj = player })
+    c1 = rowOf(dc, rc)
+    check("TWO SKILLS: Craft: every skill met: not locked", c1 and c1.status ~= "locked" and c1.hasSkill == true, c1 and c1.status)
+    rc.characterHasRequiredSkills, rb.characterHasRequiredSkills = nil, nil
+    -- the Journal's Recipes page: the same rule (its status loop, read from the source: it needs the whole Journal)
+    local f = io.open(ROOT .. "42/media/lua/client/ZeD/JournalTab.lua", "rb")
+    local js = f and f:read("*a") or ""
+    if f then f:close() end
+    check("TWO SKILLS: the Journal's Recipes page asks the game's rule for every skill",
+        js:find("pcall(entry.recipe.characterHasRequiredSkills, entry.recipe, playerObj)", 1, true) ~= nil)
+end
+
 print("craft_rows_perf_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end
