@@ -735,9 +735,10 @@ function JL.placeSearch(win, x, y, w, h)
     s.searchShown = w > ZeD.T.px(40)
 end
 
--- the band's buttons, left to right: { id, label key, help key }
+-- the band's buttons, left to right: { id, label key, help key, variant }; one default button, the one the
+-- band is for: Save loadout (design review C5)
 local BAND_BTNS = {
-    { "carry", "UI_ZeD_Lists_SaveCarryShort", "UI_ZeD_Lists_HelpSaveCarry" },
+    { "carry", "UI_ZeD_Lists_SaveCarryShort", "UI_ZeD_Lists_HelpSaveCarry", "primary" },
     { "wear",  "UI_ZeD_Lists_SaveWearShort",  "UI_ZeD_Lists_HelpSaveWear" },
     { "new",   "UI_ZeD_Lists_NewList",        "UI_ZeD_Lists_HelpNew" },
 }
@@ -822,7 +823,7 @@ local function drawPageBand(panel, win, x, y, w)
     zone(win, { id = "filter", x = fx, y = by, w = fw, h = bh, fn = function() s.filterOpen = true; s.step = nil end })
     for i, d in ipairs(BAND_BTNS) do
         local id = d[1]
-        button(panel, win, id, _bandX[i], by, ZeD.tr(d[2]), function() BAND_FN[id](win) end, nil,
+        button(panel, win, id, _bandX[i], by, ZeD.tr(d[2]), function() BAND_FN[id](win) end, d[4],
             { help = ZeD.tr(d[3]), w = _bandW[i], fixed = true })
     end
     if open then drawFilterList(panel, win, fx, by, fw, modes) end

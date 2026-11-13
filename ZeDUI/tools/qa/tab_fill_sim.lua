@@ -356,6 +356,27 @@ do
     check("Loadouts: no segmented pill left", jl:find("panel:drawRect(sx, y, sw, h, 1, ac.r", 1, true) == nil)
     check("Loadouts: opens on a list", jl:find('L.all(p, "loadout")[1]', 1, true) ~= nil)
     check("Loadouts: ready X of Y in the head", jl:find('"UI_ZeD_EqBar_Ready"', 1, true) ~= nil)
+    do
+        -- (design review C5: the band's three buttons have exactly one default button, Save loadout)
+        local src = jl:gsub("\r\n", "\n")
+        local a = src:find("local BAND_BTNS = {", 1, true)
+        local e = a and src:find("\n}\n", a, true)
+        local f = e and loadstring("return " .. src:sub(a + #"local BAND_BTNS = ", e + 1))
+        local ok, btns = false, nil
+        if f then ok, btns = pcall(f) end
+        local prim, ids = {}, {}
+        if ok and type(btns) == "table" then
+            for _, d in ipairs(btns) do
+                ids[#ids + 1] = d[1]
+                if d[4] == "primary" then prim[#prim + 1] = d[1] end
+            end
+        end
+        check("Loadouts band: three buttons, exactly one default (primary), Save loadout",
+            #ids == 3 and #prim == 1 and prim[1] == "carry" and btns[1][2] == "UI_ZeD_Lists_SaveCarryShort",
+            table.concat(ids, ",") .. " / " .. table.concat(prim, ","))
+        check("Loadouts band: the buttons draw with their variant",
+            src:find("function() BAND_FN[id](win) end, d[4],", 1, true) ~= nil)
+    end
     check("Loadouts: the standing read on a clock", jl:find("now - c.at < 500", 1, true) ~= nil)
     local rt = readFile("42/media/lua/client/ZeD/RadioTab.lua") or ""
     check("Radio: the blocks read on a clock", rt:find("now - tw.fillAt >= 500", 1, true) ~= nil)

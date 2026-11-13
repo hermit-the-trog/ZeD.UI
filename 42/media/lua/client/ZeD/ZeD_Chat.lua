@@ -602,9 +602,10 @@ function ZeD_ChatWindow:_idle()
     local last = math.max(self._usedAt or 0, C.lastLineAt or 0)
     return now - last > IDLE_MS
 end
--- dimmed: the surfaces at DIM_A while idle (at once, no fade: ZeD has no animation), else as any window
+-- dimmed: the surfaces at DIM_A while idle (at once, no fade: ZeD has no animation), else as any window;
+-- only where See-through works (Dark): Light and High Contrast always draw the window solid (the director, Nov 12 2026)
 function ZeD_ChatWindow:_surfaceAlpha(T)
-    if self._dim then return DIM_A end
+    if self._dim and ZeD.seeThroughWorks() then return DIM_A end
     return ZeD_Window._surfaceAlpha(self, T)
 end
 
@@ -661,7 +662,7 @@ function ZeD_ChatWindow:prerender()
     if not C.active() then self:close(); return end
     self.minimumWidth, self.minimumHeight = px(U.MIN_W), px(U.MIN_H)
     self.title = tr("UI_ZeD_Chat_Title")
-    self._dim = self:_idle()
+    self._dim = ZeD.seeThroughWorks() and self:_idle()   -- (the words' wash too: solid themes never dim)
     ZeD_Window.prerender(self)
     local ok, err = pcall(self._drawBody, self)
     if not ok then ZeD.logOnce("chat window", err) end

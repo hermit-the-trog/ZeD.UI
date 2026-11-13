@@ -4,7 +4,8 @@
 --   SOLID     (175f(5), the director: "Solid in Light and HC") Light and High Contrast always draw the window bodies
 --             solid, whatever See-through says: ZeD.applyTheme sets every surface to alpha 1 there, and ZeD.surfaceAlpha
 --             (which the windows' own accent palettes read) reads 1; Dark keeps the pick, and the pick comes back when
---             the theme goes back to Dark, through applyTheme alone (the wheel, the window menu) and through ZeD setup
+--             the theme goes back to Dark, through applyTheme alone (the wheel, the window menu) and through ZeD setup;
+--             the chat window's idle dim happens in Dark only
 --   HELP      the See-through help line says it works in Dark only, in all 28 languages, with a context row and a
 --             machine-draft note; the short "Dark theme only" line is there too
 --   OFF       outside Dark the Select wheel's See-through and its choices are off and say why, the window menu's
@@ -172,6 +173,36 @@ do
         see:setValue(2)
         S = nil
     end
+end
+do
+    -- the chat window's idle dim: only where See-through works (Dark); Light and High Contrast stay solid
+    local ch = readFile(CDIR .. "ZeD_Chat.lua") or ""
+    local sa = cutFn(ch, "function ZeD_ChatWindow:_surfaceAlpha(T)")
+    local res = {}
+    if sa then
+        local env = setmetatable({ ZeD = ZeD, ZeD_ChatWindow = {}, ZeD_Window = { _surfaceAlpha = function() return 1 end } },
+            { __index = _G })
+        local f = loadstring("local DIM_A = 0.35\n" .. sa)
+        if f then
+            setfenv(f, env)
+            local ok = pcall(f)
+            local W = env.ZeD_ChatWindow
+            if ok and W._surfaceAlpha then
+                local idle = { _dim = true }
+                for _, b in ipairs({ "dark", "light", "hicon" }) do
+                    ZeD.currentBase = b
+                    res[b] = W._surfaceAlpha(idle, ZeD.T)
+                end
+                ZeD.currentBase = "dark"
+            end
+        end
+    end
+    check("Chat: idle dims to 0.35 in Dark, stays solid in Light and High contrast",
+        res.dark == 0.35 and res.light == 1 and res.hicon == 1,
+        tostring(res.dark) .. " " .. tostring(res.light) .. " " .. tostring(res.hicon))
+    local pre = cutFn(ch, "function ZeD_ChatWindow:prerender()") or ""
+    check("Chat: the idle flag (and the words' wash) is set only where See-through works",
+        pre:find("self._dim = ZeD.seeThroughWorks() and self:_idle()", 1, true) ~= nil)
 end
 
 -- ---------------------------------------------------------------------------
