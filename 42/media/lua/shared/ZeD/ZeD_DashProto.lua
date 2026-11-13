@@ -89,35 +89,35 @@ DP.CAB_GROUP = {
 -- per group, the paint's rows as design wrote them: the paint words, then each cabin color (its ramp) and its odds
 -- in a hundred. The fleet always black
 DP.CAB_ODDS = {
-    wagon = { title = "Station wagon", rows = {
+    wagon = { heading = "Station wagon", rows = {
         { paint = { "brown", "tan", "yellow", "orange", "red" }, odds = { { "v_walnut", 80 }, { "v_army", 20 } } },
         { paint = { "green" }, odds = { { "v_army", 75 }, { "v_walnut", 25 } } },
         { paint = { "blue" }, odds = { { "v_navy70", 80 }, { "v_walnut", 20 } } },
         { paint = { "white", "silver", "gray", "black" }, odds = { { "v_walnut", 40 }, { "v_navy70", 30 }, { "v_army", 30 } } },
     } },
-    s70 = { title = "70s", rows = {
+    s70 = { heading = "70s", rows = {
         { paint = { "green" }, odds = { { "v_moss", 75 }, { "v_ltbrown", 25 } } },
         { paint = { "blue" }, odds = { { "v_navy70", 80 }, { "v_ltbrown", 20 } } },
         { paint = { "brown", "tan", "yellow", "orange", "red" }, odds = { { "v_ltbrown", 85 }, { "v_moss", 15 } } },
         { paint = { "white", "silver", "gray", "black" }, odds = { { "v_ltbrown", 40 }, { "v_navy70", 30 }, { "v_moss", 30 } } },
     } },
-    s80 = { title = "80s", rows = {
+    s80 = { heading = "80s", rows = {
         { paint = { "red", "maroon" }, odds = { { "v_maroon", 75 }, { "v_beige_d", 25 } } },
         { paint = { "blue" }, odds = { { "v_navy", 80 }, { "v_beige_d", 20 } } },
         { paint = { "brown", "tan", "yellow", "green" }, odds = { { "v_beige_d", 85 }, { "v_maroon", 15 } } },
         { paint = { "white", "silver", "gray", "black" }, odds = { { "v_maroon", 40 }, { "v_navy", 35 }, { "v_beige_d", 25 } } },
     } },
-    s90 = { title = "90s late models", rows = {
+    s90 = { heading = "90s late models", rows = {
         { paint = { "brown", "tan", "green", "white" }, odds = { { "v_beige_d", 60 }, { "v_grey", 40 } } },
         { paint = { "blue", "silver", "gray" }, odds = { { "v_grey", 70 }, { "v_black", 30 } } },
         { paint = { "red", "black" }, odds = { { "v_black", 50 }, { "v_grey", 35 }, { "v_beige_d", 15 } } },
     } },
-    lux = { title = "Sports and luxury", rows = {
+    lux = { heading = "Sports and luxury", rows = {
         { paint = { "red" }, odds = { { "l_black", 60 }, { "l_brown", 40 } } },
         { paint = { "black", "white", "silver" }, odds = { { "l_red", 45 }, { "l_black", 35 }, { "l_brown", 20 } } },
         { paint = { "brown", "tan", "green", "blue" }, odds = { { "l_brown", 70 }, { "l_black", 30 } } },
     } },
-    fleet = { title = "Public service", always = "v_black" },
+    fleet = { heading = "Public service", always = "v_black" },
 }
 
 --- the paint's bucket from the car's hue, saturation and value (each 0..1, as BaseVehicle.getColorHue / Saturation /

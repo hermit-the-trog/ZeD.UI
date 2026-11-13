@@ -79,7 +79,7 @@ end
 check("HANDOFF the colors table read: six groups", #order == 6, #order)
 
 local byTitle = {}
-for g, G in pairs(DP.CAB_ODDS) do byTitle[G.title] = g end
+for g, G in pairs(DP.CAB_ODDS) do byTitle[G.heading] = g end
 for _, title in ipairs(order) do
     local g = byTitle[title]
     check("HANDOFF a group for " .. title, g ~= nil)
