@@ -671,6 +671,11 @@ local function boxLine(s, t, ms)
         end
         closeBlock()
     end
+    -- an indented Java frame with no error open is the tail of an error that began before the log started reading
+    -- (the window opened mid-error): a piece of nothing, not a print and not an error
+    if s:find("^%s+[%w_%$%./]+%(.-%)%s*$") and (s:find("%.java:%d+%)%s*$") or s:find("%(Unknown Source%)%s*$") or s:find("%(Native Method%)%s*$")) then
+        return
+    end
     if L.startsError(s) then
         openBlock(s, t, ms)
         return

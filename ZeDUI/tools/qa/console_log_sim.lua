@@ -1199,6 +1199,12 @@ do
     check("back to back: two error rows", #rowsOf("error") == 2, #rowsOf("error"))
     check("back to back: Camp Stove's message is its error row, not a print", st2 and st2.kind == "error" and #rowsOf("print") == 1,
         (st2 and st2.kind or "nil") .. " " .. #rowsOf("print") .. " prints")
+    -- the log starts reading mid-error (the window opened while an error was being written): its trailing Java frames
+    -- are no rows at all
+    L.reset(); L.forgetMods()
+    L.feedText("\tzombie.GameWindow.frameStep(GameWindow.java:780)\n\tzombie.MainThread.mainLoop(MainThread.java:69)\n"
+        .. "\tjava.base/java.lang.Thread.run(Unknown Source)\n" .. P("after the tail"), 70000); L.tick(80000)
+    check("mid-error tail: no rows but the print after it", L.last - L.first + 1 == 1 and findRow("after the tail") ~= nil, L.last - L.first + 1)
     L.reset()
 end
 

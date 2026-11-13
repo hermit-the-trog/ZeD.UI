@@ -580,6 +580,9 @@ local function boxLine(s, t, ms)
         end
         closeBlock()
     end
+    if s:find("^%s+[%w_%$%./]+%(.-%)%s*$") and (s:find("%.java:%d+%)%s*$") or s:find("%(Unknown Source%)%s*$") or s:find("%(Native Method%)%s*$")) then
+        return
+    end
     if L.startsError(s) then
         openBlock(s, t, ms)
         return
