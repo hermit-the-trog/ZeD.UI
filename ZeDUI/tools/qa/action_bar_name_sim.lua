@@ -13,7 +13,7 @@ local function check(name, ok, detail)
     checks = checks + 1
     if not ok then failed = failed + 1; print("FAIL " .. name .. (detail ~= nil and (" (" .. tostring(detail) .. ")") or "")) end
 end
-local f = io.open(ROOT .. "42/media/lua/client/ZeD/ZeD_ActionBar.lua", "rb"); local src = f:read("*a"); f:close()
+local f = io.open(ROOT .. "42/media/lua/client/ZeD/ZeD_ActionBar.lua", "rb"); local src = f:read("*a"):gsub("\r\n", "\n"); f:close()
 local fa = src:find("local ITEM_FIELDS", 1, true)
 local fb = src:find("\n", src:find("}", fa, true), true)
 local na = src:find("function AB.itemName(action)", 1, true)

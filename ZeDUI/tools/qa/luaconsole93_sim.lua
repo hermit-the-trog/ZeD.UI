@@ -1046,7 +1046,9 @@ do
         check("art: " .. p[1] .. " is design's " .. p[2], mine ~= nil and design ~= nil and mine == design)
     end
     local lic = readFile(ROOT .. "LICENSE")
-    check("licence: the mod carries the repo's LICENSE as 42/LICENSE.txt", lic ~= nil and readFile(PRODUCT .. "42/LICENSE.txt") == lic)
+    -- (line endings aside: a Windows checkout gives the repo's LICENSE CRLF)
+    local function lf(s) return (tostring(s or ""):gsub("\r\n", "\n")) end
+    check("licence: the mod carries the repo's LICENSE as 42/LICENSE.txt", lic ~= nil and lf(readFile(PRODUCT .. "42/LICENSE.txt")) == lf(lic))
     local URL = "https://github.com/hermit-the-trog/ZeD.UI/blob/main/LICENSE"
     local readme = readFile(PRODUCT .. "42/README.txt") or ""
     local page = readFile(PRODUCT .. "workshop_description.bbcode") or ""
