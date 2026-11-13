@@ -4753,7 +4753,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                 -- stand for the weight; Immersive Searching's "Not searched")
                 local cItems = cInv and ZeD.ContainerGates.count(cInv, win._playerObj) or 0
                 local cWeight = cInv and round(cInv:getCapacityWeight(), 1) or 0
-                local cMax = cInv and round(cInv:getMaxWeight(), 1) or 0
+                local cMax = cInv and round(ZeD.InventoryRenderer.capacityOf(cInv, win._playerObj), 1) or 0
 
                 self._containerInfo = {
                     name    = cnt.name,
@@ -5635,7 +5635,9 @@ function ZeD_WorldWindow.toggle(playerNum)
             local dragItems = {}
             for it, _ in pairs(sel) do dragItems[#dragItems + 1] = it end
             if #dragItems > 0 then
-                self._drag:beginPending(dragItems, dragItems[1], screenX, screenY)
+                -- (the chip counts what the rows carry: a closed stack's row is its whole stack)
+                self._drag:beginPending(dragItems, dragItems[1], screenX, screenY,
+                    ZeD.InventoryRenderer.dragItems(self, dragItems, self._dragSourceInv))
             end
 
         elseif isShift and lastClicked then
@@ -5652,7 +5654,8 @@ function ZeD_WorldWindow.toggle(playerNum)
             local dragItems = {}
             for it, _ in pairs(sel) do dragItems[#dragItems + 1] = it end
             if #dragItems > 0 then
-                self._drag:beginPending(dragItems, item, screenX, screenY)
+                self._drag:beginPending(dragItems, item, screenX, screenY,
+                    ZeD.InventoryRenderer.dragItems(self, dragItems, self._dragSourceInv))
             end
 
         else
@@ -5660,13 +5663,15 @@ function ZeD_WorldWindow.toggle(playerNum)
                 self._deferredSelect = { item = item, colIdx = colIdx }
                 local dragItems = {}
                 for it, _ in pairs(sel) do dragItems[#dragItems + 1] = it end
-                self._drag:beginPending(dragItems, item, screenX, screenY)
+                self._drag:beginPending(dragItems, item, screenX, screenY,
+                    ZeD.InventoryRenderer.dragItems(self, dragItems, self._dragSourceInv))
             else
                 for k in pairs(sel) do sel[k] = nil end
                 sel[item] = true
                 if colCs then colCs.lastClickedItem = item
                 else self._lastClickedItem = item end
-                self._drag:beginPending({item}, item, screenX, screenY)
+                self._drag:beginPending({item}, item, screenX, screenY,
+                    ZeD.InventoryRenderer.dragItems(self, {item}, self._dragSourceInv))
             end
         end
 

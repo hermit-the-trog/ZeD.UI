@@ -376,6 +376,17 @@ function ZeD.InventoryRenderer.isGridKey(key)
     return ok and v == 2
 end
 
+--- The most a container holds, as the game counts it for this character (the number its heading shows after the
+--- load): the character's own inventory, the weight it can carry (getMaxWeight); any other container, its capacity
+--- with the Organized or Disorganized trait applied (getEffectiveCapacity), which is what the game checks a transfer
+--- against and what its own inventory shows. A plain getMaxWeight on a bag reads the bare capacity: 28 for an
+--- Organized character's ALICE pack that takes 36. Two getter calls, no table: the headings ask every frame.
+function ZeD.InventoryRenderer.capacityOf(inv, playerObj)
+    if not inv then return 0 end
+    if not playerObj or inv == playerObj:getInventory() then return inv:getMaxWeight() end
+    return inv:getEffectiveCapacity(playerObj)
+end
+
 function ZeD.InventoryRenderer.setGridKey(key, on)
     local s = key and gridStore()
     if s then s[key] = on and true or false end   -- (false: this one a list, whatever the option says)
@@ -2627,7 +2638,7 @@ local function renderMultiColumnContent(self)
             -- Build container info header
             local inv = cs.inventory
             local weight   = inv and inv:getCapacityWeight() or 0
-            local capacity = inv and inv:getMaxWeight() or 0
+            local capacity = ZeD.InventoryRenderer.capacityOf(inv, self._playerObj)
             local capStr   = capacity > 0 and string.format("%.1f", capacity) or "---"
             -- (a mod's gate: its words for the weight, and only the things it lets show)
             local statsStr = ZeD.ContainerGates.status(inv, self._playerObj) or string.format("%.1f/%skg", weight, capStr)

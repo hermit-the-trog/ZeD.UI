@@ -420,7 +420,10 @@ local function drawNotes(panel, x, y, w, notes)
 end
 
 -- one list row: icon, name + sub, button (a push button at the list-row height);
--- the row the cursor carries wears the selected wash
+-- the row the cursor carries wears the selected wash, and its button (the default,
+-- Target) takes the row's own ink: an accent outline and accent words sank into
+-- the accent wash and read poorly (the controller's focus keeps its own ink)
+local _rowInk = {}
 local function drawRow(panel, s, x, y, w, id, tex, name, sub, label, primary, fn, enabled)
     local T, tm = ZeD.T, ZeD.TM
     local M = ZeD.Molecules
@@ -433,7 +436,12 @@ local function drawRow(panel, s, x, y, w, id, tex, name, sub, label, primary, fn
     local bx = x + w - T.px(2) - bw
     local by = y + math.floor((rh - bh) / 2)
     local dis = enabled == false
-    M.drawButton(panel, bx, by, bw, bh, label, primary and "primary" or "default", false, nil,
+    local ink = nil
+    if primary and not dis and s.gpId ~= id then
+        ink = _rowInk
+        ink.text, ink.border = T.text, T.text
+    end
+    M.drawButton(panel, bx, by, bw, bh, label, primary and "primary" or "default", false, ink,
         { disabled = dis, hover = not dis and ZeD.Atoms.mouseIn(panel, bx, by, bw, bh), focus = (s.gpId == id) or nil })
     stamp(s, id, bx, by, bw, bh, fn)
     local f2, f5 = T.fontF2, T.fontF5
@@ -975,10 +983,37 @@ function ZeD_FurnitureChip:prerender()
     local sq = c.sq
     local x = isoToScreenX(pn, sq:getX() + 1, sq:getY(), sq:getZ()) + T.px(6)
     local y = isoToScreenY(pn, sq:getX(), sq:getY(), sq:getZ()) - math.floor(h / 2)
-    -- the mouse sits on the tile: flip above when the chip would cover it
-    local mx, my = getMouseX(), getMouseY()
-    if mx >= x and mx < x + w and my >= y and my < y + h then y = y - h - T.px(16) end
+    local core = getCore()
+    local vw, vh = FT.versionBox()
+    x, y = FT.chipSpot(x, y, w, h, core:getScreenWidth(), core:getScreenHeight(), vw, vh, getMouseX(), getMouseY())
     self:setX(x); self:setY(y); self:setWidth(w + T.hair); self:setHeight(h + T.hair)
+end
+
+--- The room the game's version line takes in the screen's lower right corner, from the corner (ISVersionWaterMark:
+--- a button as wide as the version words in UIFont.Small, 100 at least, as tall as UIFont.NewSmall, 10 px in from
+--- the corner). Measured once: the words never change in a session. Returns width, height (0, 0 if unreadable).
+function FT.versionBox()
+    if not FT._verW then
+        FT._verW, FT._verH = 0, 0
+        pcall(function()
+            local tm, core = getTextManager(), getCore()
+            local s = core:getVersion() .. " pzBullet(" .. core:getBulletVersion() .. ")"
+            FT._verW = math.max(100, tm:MeasureStringX(UIFont.Small, s) + 10) + 10
+            FT._verH = tm:getFontHeight(UIFont.NewSmall) + 6 + 10
+        end)
+    end
+    return FT._verW, FT._verH
+end
+
+--- Where the chip goes, from where it would sit (x, y; w x h, beside the cursor's tile): lifted clear of the game's
+--- version line when it would sit on it (vw x vh from the corner of the sw x sh screen), then above the pointer
+--- (mx, my) when it would cover it. Returns x, y.
+function FT.chipSpot(x, y, w, h, sw, sh, vw, vh, mx, my)
+    local T = ZeD.T
+    if vw > 0 and x + w > sw - vw and y + h > sh - vh then y = sh - vh - h - T.px(4) end
+    -- the mouse sits on the tile: flip above when the chip would cover it
+    if mx >= x and mx < x + w and my >= y and my < y + h then y = y - h - T.px(16) end
+    return x, y
 end
 
 function ZeD_FurnitureChip:render()
