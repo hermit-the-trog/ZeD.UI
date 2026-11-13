@@ -3275,7 +3275,7 @@
     "UI_ZeD_Settings_WheelDeadZone": "輪盤搖桿死區",
     "UI_ZeD_Settings_WheelDeadZoneTip": "右搖桿要推多遠才會亮起一格。會飄移的搖桿需要較大的數值。",
     "UI_ZeD_Settings_RunSneak": "跑步鍵兼蹲下",
-    "UI_ZeD_Settings_RunSneakTip": "遊戲的跑步綁定在按鍵上時才有作用，例如原始控制器配置（跑步在右扳機 RT）；跑步是把搖桿推到底時（預設配置）則不作用。站著不動時，按住跑步蹲下，再按住一次站起。移動時，跑步照常；蹲著時，按住會先站起來。輕點照遊戲原本的作用。",
+    "UI_ZeD_Settings_RunSneakTip": "遊戲的跑步綁定在按鍵上時才有作用，例如原始控制器配置（跑步在右扳機 RT）；跑步是把搖桿推到底時（預設配置），或綁定在 LB 或 RB 上時（ZeD 將其留給快捷操作），則不作用。站著不動時，按住跑步蹲下，再按住一次站起。移動時，跑步照常；蹲著時，按住會先站起來。輕點照遊戲原本的作用。",
     "UI_ZeD_Settings_FocusStyle": "控制器醒目提示",
     "UI_ZeD_Settings_FocusStyleTip": "控制器怎樣標出它所在的東西：指向的手、角標、一抹強調色，或螞蟻線。",
     "UI_ZeD_Settings_FocusHand": "指向的手",

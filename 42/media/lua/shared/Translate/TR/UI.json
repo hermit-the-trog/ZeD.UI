@@ -3275,7 +3275,7 @@
     "UI_ZeD_Settings_WheelDeadZone": "Çark çubuğu ölü bölgesi",
     "UI_ZeD_Settings_WheelDeadZoneTip": "Bir dilim aydınlanmadan önce sağ çubuğun ne kadar hareket etmesi gerektiği. Kayan bir çubuk daha yüksek bir sayı ister.",
     "UI_ZeD_Settings_RunSneak": "Koş tuşuyla eğil",
-    "UI_ZeD_Settings_RunSneakTip": "Oyunun Koş komutu bir tuştayken çalışır, Orijinal kontrolcü düzenindeki gibi (Koş sağ tetikte, RT); Koş çubuğu sonuna kadar itmekse (Varsayılan düzen) hiçbir şey yapmaz. Dururken Koş'u basılı tutarak eğil, tekrar basılı tutarak doğrul. Hareket halindeyken Koş her zamanki gibi koşturur; eğilmişsen basılı tutmak önce doğrultur. Kısa bir dokunuş her zamanki işini yapar.",
+    "UI_ZeD_Settings_RunSneakTip": "Oyunun Koş komutu bir tuştayken çalışır, Orijinal kontrolcü düzenindeki gibi (Koş sağ tetikte, RT); Koş çubuğu sonuna kadar itmekse (Varsayılan düzen) ya da ZeD'in hızlı eylemlere ayırdığı LB veya RB'deyse hiçbir şey yapmaz. Dururken Koş'u basılı tutarak eğil, tekrar basılı tutarak doğrul. Hareket halindeyken Koş her zamanki gibi koşturur; eğilmişsen basılı tutmak önce doğrultur. Kısa bir dokunuş her zamanki işini yapar.",
     "UI_ZeD_Settings_FocusStyle": "Kontrolcü vurgusu",
     "UI_ZeD_Settings_FocusStyleTip": "Kontrolcünün üzerinde durduğu şeyi nasıl işaretlediği: İşaret eden el, Köşe işaretleri, Tek dolgu (vurgu renginin bir kez sürülmesi) veya Yürüyen karıncalar.",
     "UI_ZeD_Settings_FocusHand": "İşaret eden el",

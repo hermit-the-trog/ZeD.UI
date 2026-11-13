@@ -2,11 +2,14 @@
 -- running. ZeD's REAL Settings.lua and Input/RunSneak.lua on Lua 5.1 stubs of the game. The pad is a table per
 -- controller (the trigger, L3, the movement stick, the bumpers, its dead zone). The game's frame is modeled from its
 -- 42.22 Java (javap):
---   1. the input step (CharacterInputComponent.frameStep): "Toggle to run" off clears the run flag every frame; the
---      Crouch button's click timer runs (TimedInputHandler: a release within 400 ms is a click)
+--   1. the input step (CharacterInputComponent.frameStep): the "Toggle to run" timer runs on Run with the stick
+--      (isToggleRunButtonDown; a click toggles the run flag), and with the option off it is muted and clears the run
+--      flag every frame; the Crouch button's click timer runs (TimedInputHandler: a release within 400 ms is a click)
 --   2. the player update (IsoPlayer.updateInternal2): OnPlayerUpdate fires, then a Crouch click toggles the stance
---      (updateSneakKey), then the input is read (UpdateInputState): running = the stick past its dead zone with Run
---      down and Run allowed (isRunButtonDown), or the run flag
+--      (updateSneakKey), then a move direction of zero on the last frame clears the run flag, then the movement is
+--      read (the stick, else the auto-walk direction; a path walks the character too: isPlayerMoving, read by the
+--      next frame), then the input is read (UpdateInputState): running = the stick past its dead zone with Run down
+--      and Run allowed (isRunButtonDown), or the run flag
 --   3. the prompts' update: L3 held 250 ms opens the game's left joystick radial menu (ISJoystickButtonRadialMenu)
 --   4. OnTick, at the end of the frame
 -- The layouts: Original (the game's default) has Run on RT; Default has Run on a full push of the stick (0.975), no
@@ -15,20 +18,28 @@
 --             group; not an addition
 --   ORIGINAL  off does nothing; still hold crouches at 400 ms (not before), once per hold, again stands; moving runs
 --             (the game's own run) while held and stops on release; crouched and moving stands and runs; taps pass;
---             the dead zone is the controller's own
+--             the dead zone is the controller's own; a hold that moves is timed from the stick's push (the game's own
+--             run press is Run with the stick)
+--   TOGGLE    the game's "Toggle to run" on: a press is the game's tap (its run toggled) or a hold here, never both,
+--             over a sweep of stick pushes and let-gos; a long hold stands up and toggles nothing
 --   DEFAULT   the switch on, nothing at all: no stance change from any hold of L3, RT or the stick, L3's tap stays the
 --             game's crouch toggle, L3's hold opens the game's radial menu at 250 ms, the stick's full push is the
 --             game's run, the module's state never leaves idle; the radial menu's code is never wrapped
 --   EVERYWHERE the run flag is never set, L3 is never read; the run is always the game's
 --   GATES     a window holding the pad, aiming, a car, a bumper (chords), a pause, a press already held when the switch
---             turned on, a stick let go part way, a dead player, Safe mode: nothing
---   BINDINGS  any layout with Run on a real button works (RT in Original, or B in a player's own layout: crouch,
---             stand, tap, stand-run); Run on the stick (Default), on L3 or on R3: refused, nothing of ZeD's
+--             turned on, a stick let go part way, a dead player, Safe mode, sitting on a seat or on the ground (and
+--             getting up with Run held), a walk the game does on its own (a path): nothing
+--   AUTO-WALK the game's auto-walk with the stick at rest is moving: no crouch, no stand-up (the game's Run does
+--             nothing there); a push of the stick then stands up 400 ms after the push; auto-walk with no direction
+--             yet is standing still
+--   BINDINGS  any layout with Run on a button or a trigger works (RT in Original, or B in a player's own layout:
+--             crouch, stand, tap, stand-run); Run on the stick (Default), on L3, on R3, on LB or on RB: refused,
+--             nothing of ZeD's (a bumper is never even read: it stays ZeD's quick actions)
 --   PLAYERS   split screen: two players on two pads keep their own timing; a keyboard player 1 is left alone
 --   SOURCE    ASCII only, no next(), the only state it changes is setSneaking, OnPlayerUpdate, getTimestampMs, nothing of
---             L3, the Crouch binding or the radial menu; one handler after a reload
+--             L3, the Crouch binding or the radial menu; one handler after a reload; isSitting, hasPath, isAutoWalk
 --   WORDS     both keys in all 28 languages, the English exact (Run on a button works, as in Original on RT; a full
---             stick push, the Default layout, does nothing), AR with voseo
+--             stick push, the Default layout, or LB / RB does nothing), every language names LB and RB, AR with voseo
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/run_sneak_sim.lua
 -- It prints FAIL lines and a last line "run_sneak_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -131,7 +142,8 @@ local SAFE = false
 -- THE PAD AND THE GAME'S BINDINGS (one table per controller id)
 -- ---------------------------------------------------------------------------
 local PAD = {}
-local L3_READS = 0   -- every read of L3 by anyone but the game's own model below
+local L3_READS = 0     -- every read of L3 by anyone but the game's own model below
+local BUMP_READS = 0   -- every read of LB or RB by anyone but the game's own model below
 local function pad(id)
     PAD[id] = PAD[id] or { run = false, l3 = false, r3 = false, x = 0, lb = false, rb = false, dz = 0.2 }
     return PAD[id]
@@ -141,20 +153,25 @@ JoypadButton = {
     A = enum("A"), B = enum("B"),
     LeftStick = enum("LeftStick", function(_, id) L3_READS = L3_READS + 1; return PAD[id] ~= nil and PAD[id].l3 end),
     RightStick = enum("RightStick", function(_, id) L3_READS = L3_READS + 1; return PAD[id] ~= nil and PAD[id].r3 end),
-    LeftBump = enum("LeftBump", function(_, id) return PAD[id] ~= nil and PAD[id].lb end),
-    RightBump = enum("RightBump", function(_, id) return PAD[id] ~= nil and PAD[id].rb end),
+    LeftBump = enum("LeftBump", function(_, id) BUMP_READS = BUMP_READS + 1; return PAD[id] ~= nil and PAD[id].lb end),
+    RightBump = enum("RightBump", function(_, id) BUMP_READS = BUMP_READS + 1; return PAD[id] ~= nil and PAD[id].rb end),
 }
 JoypadAxis1d = { LeftTrigger = enum("LeftTrigger"), RightTrigger = enum("RightTrigger"), LeftStickY = enum("LeftStickY") }
 JoypadAxis2d = { LeftStick = enum("LeftStick2d"), RightStick = enum("RightStick2d") }
 -- what the game's Run is on: "trigger" (Original: RT), "stick" (Default: a full push, 0.975), "button" (B, a
--- player's own layout), "stickclick" (L3), "stickclickR" (R3), "stickaxis" (one axis of a stick)
+-- player's own layout), "stickclick" (L3), "stickclickR" (R3), "stickaxis" (one axis of a stick), "bumperL" (LB),
+-- "bumperR" (RB)
 local KIND_RUN = "trigger"
+-- the game's "Toggle to run" option (off for a new player)
+local TOGGLE_RUN = false
 local function len2(p) return p.x * p.x end
 local Run = {}
 function Run:getJoypadButton()
     if KIND_RUN == "button" then return JoypadButton.B
     elseif KIND_RUN == "stickclick" then return JoypadButton.LeftStick
-    elseif KIND_RUN == "stickclickR" then return JoypadButton.RightStick end
+    elseif KIND_RUN == "stickclickR" then return JoypadButton.RightStick
+    elseif KIND_RUN == "bumperL" then return JoypadButton.LeftBump
+    elseif KIND_RUN == "bumperR" then return JoypadButton.RightBump end
     return nil
 end
 function Run:getJoypadAxis1d()
@@ -169,10 +186,13 @@ local function runIsDown(id)
     if KIND_RUN == "stickclick" then return p.l3 end
     if KIND_RUN == "stickclickR" then return p.r3 end
     if KIND_RUN == "stickaxis" then return false end
+    if KIND_RUN == "bumperL" then return p.lb end
+    if KIND_RUN == "bumperR" then return p.rb end
     return p.run
 end
 function Run:isDown(id)
     if KIND_RUN == "stickclick" or KIND_RUN == "stickclickR" then L3_READS = L3_READS + 1 end
+    if KIND_RUN == "bumperL" or KIND_RUN == "bumperR" then BUMP_READS = BUMP_READS + 1 end
     return runIsDown(id)
 end
 -- the Crouch binding is the game's (L3); the module must never read it
@@ -194,18 +214,24 @@ CharacterJoypadAxis2dBinding = { Movement = Movement }
 -- THE PLAYERS (split screen: up to four, each with its own controller id; -1 is keyboard and mouse)
 -- ---------------------------------------------------------------------------
 local function newTimer() return { downMs = 0, clicked = false } end
--- TimedInputHandler.updateState: a click is a release within 400 ms of the press
+-- TimedInputHandler.updateState: a click is a release within 400 ms of the press (clickFrom: when that press began)
 local function stepTimer(t, keyDown)
     local pressed = keyDown and t.downMs == 0
     local released = (not keyDown) and t.downMs ~= 0
     t.clicked = released and (CLOCK - t.downMs) < 400
+    if t.clicked then t.clickFrom = t.downMs end
     if pressed then t.downMs = CLOCK elseif released then t.downMs = 0 end
 end
 local FORCE_SETS = 0   -- every setForceRun call, by anyone
+-- sitting is on the ground (isSitOnGround), seated on a chair, sofa or bed (isSittingOnFurniture: a flag of its own,
+-- PlayerSitOnFurnitureState never sets the ground one); isSitting is either. autoWalk and autoDir: the game's
+-- auto-walk and whether it has a direction yet; path: a walk the game does on its own (hasPath); moveDir: the move
+-- direction was not zero on the last frame; playerMoving: the game's isPlayerMoving, set late in the last frame
 local function newPlayer(pn, bind)
     local p = { pn = pn, bind = bind, sneaking = false, dead = false, vehicle = nil, aiming = false, asleep = false,
-                sitting = false, climbing = false, ignoreMove = false, allowRun = true, forceRun = false, running = false,
-                runFrames = 0, calls = {}, gameToggles = 0, tCrouch = newTimer() }
+                sitting = false, seated = false, climbing = false, ignoreMove = false, allowRun = true, forceRun = false,
+                running = false, runFrames = 0, calls = {}, gameToggles = 0, tCrouch = newTimer(), tRun = newTimer(),
+                gameClicks = 0, autoWalk = false, autoDir = false, path = nil, moveDir = false, playerMoving = false }
     function p:getPlayerNum() return self.pn end
     function p:getJoypadBind() return self.bind end
     function p:isSneaking() return self.sneaking end
@@ -215,9 +241,13 @@ local function newPlayer(pn, bind)
     function p:isAsleep() return self.asleep end
     function p:getIgnoreMovement() return self.ignoreMove end
     function p:isSitOnGround() return self.sitting end
+    function p:isSittingOnFurniture() return self.seated end
+    function p:isSitting() return self.sitting or self.seated end
     function p:isClimbing() return self.climbing end
     function p:isAiming() return self.aiming end
-    function p:isPlayerMoving() return false end
+    function p:isAutoWalk() return self.autoWalk end
+    function p:hasPath() return self.path ~= nil end
+    function p:isPlayerMoving() return self.playerMoving end
     function p:isAllowRun() return self.allowRun end
     function p:isForceRun() return self.forceRun end
     function p:setForceRun(v) FORCE_SETS = FORCE_SETS + 1; self.forceRun = v end
@@ -258,13 +288,26 @@ local function frame(ms)
             local d = onPad and pad(b) or nil
             local moving = onPad and Movement:isApplied(b) or false
             local runDown = onPad and p.allowRun and moving and runIsDown(b) or false
-            -- 1. the input step
-            p.forceRun = false                  -- ("Toggle to run" off, the game's default)
+            -- 1. the input step: the Toggle to run timer keys on Run with the stick, so its press starts at the push
+            stepTimer(p.tRun, TOGGLE_RUN and runDown or false)
+            if not TOGGLE_RUN then
+                p.forceRun = false              -- (muted: "Toggle to run" off, the game's default)
+            elseif p.tRun.clicked then
+                p.forceRun = not p.forceRun     -- (toggleForceRun)
+                p.gameClicks = p.gameClicks + 1
+                p.tappedFrom = p.tRun.clickFrom
+            end
             local active = FOCUS[pn] == nil and not JoypadState.disableMovement
             stepTimer(p.tCrouch, onPad and active and d.l3 or false)
             -- 2. the player update
             for _, f in ipairs(updFns) do f(p) end
             if p.tCrouch.clicked and active then p.sneaking = not p.sneaking; p.gameToggles = p.gameToggles + 1 end
+            if not p.moveDir then p.forceRun = false end   -- (the last frame's move direction zero clears the run flag)
+            -- the movement: the stick, else the auto-walk direction (the stick sets it; at rest it stays while auto-walk
+            -- is on); a path walks the character on its own
+            if moving then p.autoDir = true elseif not p.autoWalk then p.autoDir = false end
+            p.moveDir = moving or (p.autoWalk and p.autoDir) or false
+            p.playerMoving = p.moveDir or p.path ~= nil
             p.running = (not p.vehicle) and (runDown or p.forceRun) or false
             if p.running and moving then p.runFrames = p.runFrames + 1 end
             -- 3. the prompts: L3 held opens the radial menu
@@ -341,11 +384,16 @@ local P0, P1 = newPlayer(0, 0), newPlayer(1, 1)
 PLAYERS[0] = P0
 pad(0); pad(1)
 local function reset()
-    for _, p in pairs(PLAYERS) do p.sneaking = false; p.aiming = false; p.vehicle = nil; p.dead = false; p.allowRun = true end
+    for _, p in pairs(PLAYERS) do
+        p.sneaking = false; p.aiming = false; p.vehicle = nil; p.dead = false; p.allowRun = true
+        p.sitting = false; p.seated = false; p.autoWalk = false; p.autoDir = false; p.path = nil
+    end
     for _, d in pairs(PAD) do d.run = false; d.l3 = false; d.r3 = false; d.x = 0; d.lb = false; d.rb = false; d.dz = 0.2 end
     FOCUS = {}; PAUSED = false; SAFE = false
     play(64)   -- a few frames with everything up, so the next press is a fresh one
-    for _, p in pairs(PLAYERS) do p.calls = {}; p.runFrames = 0; p.gameToggles = 0 end
+    for _, p in pairs(PLAYERS) do
+        p.calls = {}; p.runFrames = 0; p.gameToggles = 0; p.gameClicks = 0; p.forceRun = false; p.tappedFrom = nil
+    end
     for _, r in pairs(RADIAL) do r.opens = 0 end
 end
 local function radialOpens(pn) return RADIAL[pn] and RADIAL[pn].opens or 0 end
@@ -424,6 +472,30 @@ pad(0).run = false
 play(32)
 check("let go: the run stops, the character stays standing", P0.running == false and P0.sneaking == false)
 
+section("Original: a hold that moves is timed from the stick's push (the game's run press is Run with the stick)")
+reset()
+P0.sneaking = true
+pad(0).run = true; play(144)       -- Run down standing still: the game sees no run press yet
+pad(0).x = 1.0; play(352)          -- the stick pushed 144 ms in; now 480 ms after Run, 336 after the push
+check("crouched, Run then the stick: no stand-up 400 ms after Run (the game's run press is 336 ms old)",
+      P0.sneaking == true and #P0.calls == 0, #P0.calls)
+check("state: still held", RS.getState(0) == "held", RS.getState(0))
+play(64)
+check("400 ms after the push: stood up and running", P0.sneaking == false and #P0.calls == 1 and P0.running == true
+      and RS.lastAction(0) == "stand-run", #P0.calls)
+pad(0).run = false; pad(0).x = 0; play(48)
+reset()
+P0.sneaking = true
+pad(0).x = 1.0; play(32)
+pad(0).run = true; play(160)
+pad(0).x = 0; play(96)             -- the stick let go with Run held: the game's run press is over
+pad(0).x = 1.0; play(336)          -- pushed again 256 ms in; now 576 ms after Run, 320 after the second push
+check("pushed, let go, pushed again: timed from the second push (not yet at 320 ms)", #P0.calls == 0 and P0.sneaking == true,
+      #P0.calls)
+play(80)
+check("400 ms after the second push: stood up", #P0.calls == 1 and P0.sneaking == false, #P0.calls)
+pad(0).run = false; pad(0).x = 0; play(48)
+
 section("Original: taps pass, the dead zone is the controller's")
 reset()
 pad(0).run = true; play(208); pad(0).run = false; play(48)
@@ -460,6 +532,73 @@ pad(0).l3 = true; play(400)
 check("an L3 hold: the game's radial menu opens at 250 ms", radialOpens(0) == 1, radialOpens(0))
 pad(0).l3 = false; play(48)
 check("and nothing of ZeD's", #P0.calls == 0)
+
+-- =========================================================================
+section("Original, the game's Toggle to run on: a press is the game's tap or this hold, never both")
+TOGGLE_RUN = true
+reset()
+P0.sneaking = true
+pad(0).run = true; play(144)       -- crouched, still: Run down, then the stick 144 ms in (to get up and flee)
+pad(0).x = 1.0; play(320)
+pad(0).run = false; frame(16)      -- Run let go 464 ms after it went down, 320 after the push
+check("Run, then the stick, let go 320 ms after the push: the game's tap toggles its run", P0.gameClicks == 1
+      and P0.forceRun == true, P0.gameClicks)
+check("and no stand-up here: the same press is never also a hold", P0.sneaking == true and #P0.calls == 0, #P0.calls)
+play(160)
+check("the stick still pushed: the game's toggled run carries on, crouched (its sneak run)", P0.running == true
+      and P0.sneaking == true)
+pad(0).x = 0; play(48)
+check("the stick at rest: the game drops its toggled run", P0.forceRun == false and P0.running == false)
+reset()
+P0.sneaking = true
+pad(0).x = 0.8; play(32)
+pad(0).run = true; play(608)
+check("crouched and moving, a hold: stood up at 400 ms", P0.sneaking == false and #P0.calls == 1, #P0.calls)
+pad(0).run = false; frame(16)
+check("let go past 400 ms: not the game's tap, its run is not toggled", P0.gameClicks == 0 and P0.forceRun == false,
+      P0.gameClicks)
+play(32)
+check("and the run stops with the button", P0.running == false)
+pad(0).x = 0; play(48)
+reset()
+pad(0).x = 1.0; play(32)
+pad(0).run = true; play(208); pad(0).run = false; frame(16)
+check("a moving tap: the game toggles its run on, nothing here", P0.gameClicks == 1 and P0.forceRun == true and #P0.calls == 0)
+play(160)
+check("and keeps running with the button up", P0.running == true)
+pad(0).run = true; play(208); pad(0).run = false; frame(16)
+check("a second tap toggles it off", P0.gameClicks == 2 and P0.forceRun == false and #P0.calls == 0)
+pad(0).x = 0
+-- every way one press can go, crouched and still at the start: the stick pushed at 0 to 448 ms or never, Run let go
+-- at 208 to 1200 ms. "Both" is a hold here that lands inside a run press the game then reads as a tap. (A still
+-- hold that lands before the stick moves is not: the game's run press only begins at the push.)
+local both, holds, taps, presses = 0, 0, 0, 0
+for _, at in ipairs({ 0, 64, 144, 256, 384, 448, -1 }) do
+    for _, upAt in ipairs({ 208, 384, 416, 464, 544, 560, 800, 1200 }) do
+        reset()
+        P0.sneaking = true
+        pad(0).run = true
+        local t = 0
+        while t < upAt do
+            if at >= 0 and t >= at then pad(0).x = 1.0 end
+            frame(16); t = t + 16
+        end
+        pad(0).run = false; frame(16)
+        presses = presses + 1
+        local _, actMs = RS.lastAction(0)
+        local held, tapped = #P0.calls > 0, P0.tappedFrom ~= nil
+        if held then holds = holds + 1 end
+        if tapped then taps = taps + 1 end
+        if held and tapped and actMs >= P0.tappedFrom then
+            both = both + 1
+            print("  both: the stick at " .. at .. " ms, Run let go at " .. upAt .. " ms")
+        end
+        pad(0).x = 0; play(48)
+    end
+end
+check("over " .. presses .. " presses none is both the game's tap and a hold here", both == 0, both)
+check("and the sweep has both kinds", holds > 0 and taps > 0, holds .. " holds / " .. taps .. " taps")
+TOGGLE_RUN = false
 
 -- =========================================================================
 section("Default layout (Run on a full stick push, no Run button): nothing at all")
@@ -557,7 +696,76 @@ play(800); pad(0).run = false; play(48)
 check("a new character in the seat mid-hold: nothing for either", #old.calls == 0 and #fresh.calls == 0)
 PLAYERS[0] = old
 
-section("Bindings: any layout with Run on a real button works; a stick or a stick click does not")
+section("Gates: sitting, on a seat or on the ground")
+reset()
+P0.seated = true                  -- on a chair, a sofa, a bed (the game's own flag for it, not the ground one)
+pad(0).run = true; play(600); pad(0).run = false; play(48)
+check("seated, a still hold: nothing", #P0.calls == 0 and P0.sneaking == false, #P0.calls)
+reset()
+P0.seated = true
+pad(0).run = true; play(160)
+P0.seated = false; pad(0).x = 1.0   -- getting up with Run still held, the stick pushed to flee
+play(800)
+check("got up with Run held: no crouch, no stand-up (the press began seated)", #P0.calls == 0 and P0.sneaking == false,
+      #P0.calls)
+check("and the game runs, standing", P0.running == true)
+pad(0).run = false; pad(0).x = 0; play(48)
+reset()
+P0.sitting = true
+pad(0).run = true; play(600); pad(0).run = false; play(48)
+check("sitting on the ground, a still hold: nothing", #P0.calls == 0)
+reset()
+pad(0).run = true; play(160)
+P0.seated = true; play(600); P0.seated = false
+pad(0).run = false; play(48)
+check("sat down mid-hold: nothing", #P0.calls == 0)
+
+section("Gates: the game's auto-walk is moving, not standing still")
+reset()
+P0.autoWalk = true; P0.autoDir = true   -- walking on its own, the stick at rest (the L3 menu's Auto walk)
+play(48)
+check("auto-walk walks with the stick at rest", P0:isPlayerMoving() == true and pad(0).x == 0)
+pad(0).run = true; play(600); pad(0).run = false; play(48)
+check("auto-walking, a hold with the stick at rest: no crouch", #P0.calls == 0 and P0.sneaking == false, #P0.calls)
+check("and no run either (the game's Run needs the stick)", P0.runFrames == 0, P0.runFrames)
+P0.sneaking = true
+pad(0).run = true; play(600); pad(0).run = false; play(48)
+check("auto-walking crouched, a hold with the stick at rest: still crouched (the game does nothing there)",
+      #P0.calls == 0 and P0.sneaking == true, #P0.calls)
+pad(0).run = true; play(144)
+pad(0).x = 1.0; play(352)          -- 336 ms after the push
+check("auto-walking crouched, Run then the stick: no stand-up before 400 ms from the push", #P0.calls == 0
+      and P0.sneaking == true, #P0.calls)
+play(64)
+check("then stood up and running", #P0.calls == 1 and P0.sneaking == false and P0.running == true, #P0.calls)
+pad(0).run = false; pad(0).x = 0; play(48)
+reset()
+P0.autoWalk = true                  -- switched on standing still: no direction yet, so not walking
+play(48)
+pad(0).run = true; play(448); pad(0).run = false; play(48)
+check("auto-walk on with no direction yet is standing still: a hold crouches", #P0.calls == 1 and P0.sneaking == true,
+      #P0.calls)
+
+section("Gates: a walk the game does on its own (a path) is not standing still")
+reset()
+P0.path = { to = "a car seat" }     -- a walk-to (Enter from a few tiles away): the game walks, the stick at rest
+play(48)
+pad(0).run = true; play(600)
+check("walking a path, a hold: nothing (Run did nothing there before)", #P0.calls == 0 and P0.sneaking == false, #P0.calls)
+check("the press is spent", RS.getState(0) == "spent", RS.getState(0))
+P0.path = nil                       -- the walk ends, Run still held
+play(600); pad(0).run = false; play(48)
+check("the walk over, the same press still does nothing", #P0.calls == 0)
+pad(0).run = true; play(448); pad(0).run = false; play(48)
+check("the next press works", #P0.calls == 1 and P0.sneaking == true, #P0.calls)
+reset()
+pad(0).run = true; play(160)
+P0.path = { to = "a door" }         -- a walk begun mid-hold
+play(600); P0.path = nil
+pad(0).run = false; play(48)
+check("a walk begun mid-hold: nothing", #P0.calls == 0)
+
+section("Bindings: any layout with Run on a button or a trigger works; a stick, a stick click or a bumper does not")
 reset()
 check("runBindingKind: trigger (Original, RT)", RS.runBindingKind() == "trigger", RS.runBindingKind())
 KIND_RUN = "button"
@@ -598,6 +806,26 @@ check("Run on R3: crouched and moving, a hold stays the game's", P0.sneaking == 
 pad(0).x = 0
 KIND_RUN = "stickaxis"
 check("runBindingKind: one axis of a stick is a stick", RS.runBindingKind() == "stick", RS.runBindingKind())
+-- a bumper held is the start of one of ZeD's quick actions, however long before the second button: Run there is
+-- never a hold of this file's
+reset()
+KIND_RUN = "bumperR"
+check("runBindingKind: bumper (Run on RB, a player's own layout)", RS.runBindingKind() == "bumper", RS.runBindingKind())
+local bumpReads = BUMP_READS
+pad(0).rb = true; play(1000); pad(0).rb = false; play(48)
+check("Run on RB: refused, a long hold standing still changes nothing", #P0.calls == 0 and P0.sneaking == false
+      and RS.getState(0) == "idle", RS.getState(0))
+pad(0).x = 0.6; P0.sneaking = true; play(32)
+pad(0).rb = true; play(1000)
+check("Run on RB: crouched and moving, a hold stays the game's (its sneak run)", P0.sneaking == true and #P0.calls == 0
+      and P0.running == true)
+pad(0).rb = false; pad(0).x = 0; play(48)
+KIND_RUN = "bumperL"
+check("runBindingKind: bumper (Run on LB)", RS.runBindingKind() == "bumper", RS.runBindingKind())
+P0.sneaking = false
+pad(0).lb = true; play(1000); pad(0).lb = false; play(48)
+check("Run on LB: refused", #P0.calls == 0 and RS.getState(0) == "idle", RS.getState(0))
+check("Run on a bumper: the module never read LB, RB or Run", BUMP_READS == bumpReads, BUMP_READS - bumpReads)
 KIND_RUN = "trigger"
 
 section("Players: split screen")
@@ -666,6 +894,12 @@ check("nothing of L3: no Crouch binding, no radial menu", not code:find("Crouch"
 check("the hook is OnPlayerUpdate, not OnTick", code:find("Events.OnPlayerUpdate.Add", 1, true) ~= nil
       and not code:find("Events.OnTick", 1, true))
 check("timed with getTimestampMs", code:find("getTimestampMs()", 1, true) ~= nil)
+check("sitting is the game's isSitting (the ground and a seat)", code:find('"isSitting"', 1, true) ~= nil)
+check("a walk the game does on its own: hasPath", code:find('"hasPath"', 1, true) ~= nil)
+check("the game's auto-walk: isAutoWalk with isPlayerMoving", code:find('"isAutoWalk"', 1, true) ~= nil
+      and code:find('"isPlayerMoving"', 1, true) ~= nil)
+check("Run on LB or RB is a kind of its own", code:find("btn == JoypadButton.LeftBump or btn == JoypadButton.RightBump", 1, true)
+      ~= nil and code:find('return "bumper"', 1, true) ~= nil)
 
 -- ---------------------------------------------------------------------------
 -- WORDS
@@ -676,12 +910,15 @@ local tip = EN.UI_ZeD_Settings_RunSneakTip or ""
 check("English help: Run on a button works, as in Original (RT)", tip:find("Works when the game's Run is on a button", 1, true) ~= nil
       and tip:find("as in the Original controller layout (Run on the right trigger, RT)", 1, true) ~= nil)
 check("English help: a full stick push (Default) does nothing", tip:find("does nothing when Run is a full push of the stick (the Default layout)", 1, true) ~= nil)
+check("English help: Run on LB or RB does nothing, kept for the quick actions",
+      tip:find("(the Default layout) or on LB or RB, which ZeD keeps for its quick actions.", 1, true) ~= nil)
 check("English help: the hold and the tap", tip:find("hold Run to crouch", 1, true) ~= nil and tip:find("A quick tap", 1, true) ~= nil)
 for _, l in ipairs(LANGS) do
     local t = UI[l] or {}
+    local lt = t.UI_ZeD_Settings_RunSneakTip or ""
     check(l .. ": both keys", t.UI_ZeD_Settings_RunSneak ~= nil and t.UI_ZeD_Settings_RunSneakTip ~= nil)
-    check(l .. ": names RT, never L3", (t.UI_ZeD_Settings_RunSneakTip or ""):find("RT", 1, true) ~= nil
-          and not (t.UI_ZeD_Settings_RunSneakTip or ""):find("L3", 1, true))
+    check(l .. ": names RT, never L3", lt:find("RT", 1, true) ~= nil and not lt:find("L3", 1, true))
+    check(l .. ": names LB and RB", lt:find("LB", 1, true) ~= nil and lt:find("RB", 1, true) ~= nil)
 end
 local ar = (UI.AR or {}).UI_ZeD_Settings_RunSneakTip or ""
 check("AR is Argentine Spanish (no Arabic letters)", not ar:find("\216[\128-\191]") and not ar:find("\217[\128-\191]"))

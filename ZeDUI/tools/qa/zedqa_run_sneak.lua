@@ -1,13 +1,14 @@
 -- ZeDUI/tools/qa/zedqa_run_sneak.lua  (Nov 12 2026, punch list 121)
--- Run button also sneaks (42/media/lua/client/ZeD/Input/RunSneak.lua): any layout with Run on a real button (RT in
--- the game's Original layout, or a player's own; never a stick click); where Run is a full push of the stick (the
--- Default layout) it does nothing at all. Two parts.
+-- Run button also sneaks (42/media/lua/client/ZeD/Input/RunSneak.lua): any layout with Run on a button or a trigger
+-- (RT in the game's Original layout, or a player's own; never a stick click or a bumper); where Run is a full push of
+-- the stick (the Default layout) it does nothing at all. Two parts.
 --   A, by itself, no controller needed: the module is driven through ZeD.Input.RunSneak.qaInput on the QA character,
 --      so its timing and its one call (setSneaking) are checked in the real game: switched off, a hold does nothing;
 --      standing still, a hold crouches (not before 400 ms) and a second hold stands; a tap changes nothing; crouched
---      and moving, a hold stands up; standing and moving, a hold leaves the stance alone. The stand-in can't make the
---      character really run (the game's run reads the real stick and trigger), and it can't stand in for the
---      Default layout: that is part B.
+--      and moving, a hold stands up; standing and moving, a hold leaves the stance alone; Run held standing still and
+--      the stick pushed after, the stand-up is timed from the push (the game's own run press), not from Run. The
+--      stand-in can't make the character really run (the game's run reads the real stick and trigger), and it can't
+--      stand in for the Default layout, a seat, the game's auto-walk or a walk-to: that is part B.
 --   B, by hand with the director's pad, both layouts: the steps are printed ("ZEDQA rs HAND"), the switch stays on
 --      for four minutes, and every change of crouch, run, sprint and the module's state on each local player is logged
 --      ("ZEDQA rs live"), beside the module's own "[ZeD.Input] run-sneak" lines. Then the switch is put back.
@@ -30,7 +31,7 @@ local preset = getCore().getOptionGamepadBindingPreset and getCore():getOptionGa
 local kind = RS.runBindingKind()
 say("the game's controller layout: " .. tostring(preset) .. "; Run is on a " .. tostring(kind))
 if kind ~= "button" and kind ~= "trigger" then
-    say("WARN this layout has no Run button: by design the module does nothing, part A's holds will FAIL")
+    say("WARN Run is on a " .. tostring(kind) .. " in this layout: by design the module does nothing there, part A's holds will FAIL")
 end
 
 -- kept to put back
@@ -90,6 +91,17 @@ after(800, function()
     check(not p:isSneaking() and t == stamp, "standing and moving: the stance is left alone")
     pad(false, false)
 end)
+-- Run first, the stick after: the game's run press (and its Toggle to run tap) begins at the push, so the hold does too
+after(300, function() p:setSneaking(true); pad(false, false) end)
+after(200, function() pad(true, false) end)
+after(250, function() pad(true, true) end)
+after(300, function()
+    check(p:isSneaking(), "crouched, Run then the stick 250 ms later: still crouched 550 ms after Run (300 after the push)")
+end)
+after(400, function()
+    check(not p:isSneaking() and act() == "stand-run", "and stood up by 700 ms after the push")
+    pad(false, false)
+end)
 after(200, function()
     RS.qaInput(pn, nil)
     p:setSneaking(wasSneak)
@@ -104,13 +116,18 @@ local HAND = {
     "ORIGINAL 3. Crouched, walk and hold RT: a moment of crouched run, then stands up and runs.",
     "ORIGINAL 4. Quick taps of RT: walking, a short run as before; standing still, nothing.",
     "ORIGINAL 5. L3 as before: a tap crouches, a hold opens the game's left joystick radial menu.",
+    "ORIGINAL 6. Crouched and still, hold RT, then push the stick a moment later: stands up about half a second after the push, not at the RT press.",
+    "ORIGINAL 7. Sit on a chair, a sofa or the ground, hold RT: nothing. Get up with the stick, RT still held: no crouch.",
+    "ORIGINAL 8. Auto walk on (L3 menu or RB + L3), stick at rest, hold RT, standing or crouched: nothing, as the game. Push the stick while holding: crouched, stands about half a second after the push.",
+    "ORIGINAL 9. Pick Enter on a car a few tiles away (or walk to a container), hold RT while the character walks there: nothing.",
+    "ORIGINAL 10. The game's Toggle key to Jog on (Options > Controls > Movement): crouched and still, press RT, push the stick, let go of RT within a moment of the push: the game's jog toggles on, still crouched. A long hold after the push stands up and toggles nothing. Put the option back after.",
     "DEFAULT: switch the layout to Default in Options > Controller (put it back to Original after).",
-    "DEFAULT 6. Hold L3 standing still: the game's radial menu opens as always, nothing of ZeD's.",
-    "DEFAULT 7. A quick tap of L3: crouch toggles as always. RT held standing still: nothing new.",
-    "DEFAULT 8. Walk with a gentle push and hold L3 or RT: no run; a full push runs as always (the game's own).",
-    "BOTH 9. Open a ZeD window with LB, hold RT: the character does nothing.",
-    "BOTH 10. Aim with the right stick and pull RT: the attack as before, no crouch.",
-    "BOTH 11. Split screen, if a second pad is in: each player's hold is their own.",
+    "DEFAULT 11. Hold L3 standing still: the game's radial menu opens as always, nothing of ZeD's.",
+    "DEFAULT 12. A quick tap of L3: crouch toggles as always. RT held standing still: nothing new.",
+    "DEFAULT 13. Walk with a gentle push and hold L3 or RT: no run; a full push runs as always (the game's own).",
+    "BOTH 14. Open a ZeD window with LB, hold RT: the character does nothing.",
+    "BOTH 15. Aim with the right stick and pull RT: the attack as before, no crouch.",
+    "BOTH 16. Split screen, if a second pad is in: each player's hold is their own.",
 }
 local watchMs = 240000
 after(0, function()

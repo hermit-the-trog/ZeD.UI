@@ -3141,6 +3141,14 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     code untouched; the game's frame order modeled); in game:
     zedqa_run_sneak.lua (part A by itself through RunSneak.qaInput, part B by hand with the director's pad, both
     layouts). Not proven in game yet: the real run, stand and crouch on a pad (part B).
+    - **Review fixes (Nov 12 2026):** five from an independent review, each with a sim check that failed
+      before. A hold that moves is timed from the stick's push, as the game times its own run press (Run with
+      the stick), so with Toggle to run on a press is the game's tap or ZeD's hold, never both. Sitting on a
+      seat counts as sitting (isSitting). The game's auto-walk with the stick at rest is moving: no crouch and
+      no stand-up (the game's Run does nothing there). A walk the game does on its own (hasPath: a walk-to, a
+      seat, a car) spends the press. Run on LB or RB is left alone like L3 / R3 (a bumper held starts ZeD's
+      quick actions, with no time limit); the help line now says so, in all 28 languages (machine drafts).
+      Sim 246 checks; zedqa_run_sneak.lua part A adds the push-timed stand-up, part B steps 6 to 10.
 122. **The survival guide stops blasting players at game start (the director, Nov 8 2026; beta 10).** "I love the survival
     guide. I don't like blasting it." Players want to get in, take a breath and look around first. The guide no longer
     opens full screen when a game starts. Instead a speech bubble pops out of the Messages icon on the belt (wording to

@@ -3275,7 +3275,7 @@
     "UI_ZeD_Settings_WheelDeadZone": "Zona morta levetta ruota",
     "UI_ZeD_Settings_WheelDeadZoneTip": "Quanto deve muoversi la levetta destra prima che una fetta si accenda. Una levetta che slitta richiede un numero più alto.",
     "UI_ZeD_Settings_RunSneak": "Corri fa anche abbassare",
-    "UI_ZeD_Settings_RunSneakTip": "Funziona quando Corri del gioco è su un tasto, come nello schema del controller Originale (Corri sul grilletto destro, RT); non fa nulla quando Corri è la levetta spinta a fondo (lo schema Predefinito). Da fermo, tieni premuto Corri per abbassarti e di nuovo per rialzarti. In movimento, Corri corre come sempre; abbassato, tenerlo premuto prima ti rialza. Un tocco rapido fa quello di sempre.",
+    "UI_ZeD_Settings_RunSneakTip": "Funziona quando Corri del gioco è su un tasto, come nello schema del controller Originale (Corri sul grilletto destro, RT); non fa nulla quando Corri è la levetta spinta a fondo (lo schema Predefinito) o è su LB o RB, che ZeD riserva alle sue azioni rapide. Da fermo, tieni premuto Corri per abbassarti e di nuovo per rialzarti. In movimento, Corri corre come sempre; abbassato, tenerlo premuto prima ti rialza. Un tocco rapido fa quello di sempre.",
     "UI_ZeD_Settings_FocusStyle": "Evidenziazione controller",
     "UI_ZeD_Settings_FocusStyleTip": "Come il controller segna ciò su cui si trova: una mano che indica, segni agli angoli, una sola velatura del colore accento, o formiche in marcia.",
     "UI_ZeD_Settings_FocusHand": "Mano che indica",

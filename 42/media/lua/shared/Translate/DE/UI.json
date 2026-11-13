@@ -3275,7 +3275,7 @@
     "UI_ZeD_Settings_WheelDeadZone": "Totzone des Rad-Sticks",
     "UI_ZeD_Settings_WheelDeadZoneTip": "Wie weit sich der rechte Stick bewegen muss, bis ein Segment leuchtet. Ein Stick, der driftet, braucht einen höheren Wert.",
     "UI_ZeD_Settings_RunSneak": "Rennen-Taste duckt auch",
-    "UI_ZeD_Settings_RunSneakTip": "Wirkt, wenn Rennen im Spiel auf einer Taste liegt, wie in der Controller-Belegung Original (Rennen auf dem rechten Trigger, RT); tut nichts, wenn Rennen ein voller Stickausschlag ist (die Belegung Standard). Im Stand Rennen halten zum Ducken, erneut halten zum Aufstehen. In Bewegung rennt Rennen wie immer; geduckt stehst du beim Halten zuerst auf. Kurzes Antippen tut, was es immer tat.",
+    "UI_ZeD_Settings_RunSneakTip": "Wirkt, wenn Rennen im Spiel auf einer Taste liegt, wie in der Controller-Belegung Original (Rennen auf dem rechten Trigger, RT); tut nichts, wenn Rennen ein voller Stickausschlag ist (die Belegung Standard) oder auf LB oder RB liegt, die ZeD für seine Schnellaktionen nutzt. Im Stand Rennen halten zum Ducken, erneut halten zum Aufstehen. In Bewegung rennt Rennen wie immer; geduckt stehst du beim Halten zuerst auf. Kurzes Antippen tut, was es immer tat.",
     "UI_ZeD_Settings_FocusStyle": "Controller-Hervorhebung",
     "UI_ZeD_Settings_FocusStyleTip": "Wie der Controller markiert, worauf er steht: eine zeigende Hand, Eckmarken, ein Farbschleier in der Akzentfarbe oder wandernde Ameisen.",
     "UI_ZeD_Settings_FocusHand": "Zeigende Hand",

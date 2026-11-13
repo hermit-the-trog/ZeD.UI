@@ -3275,7 +3275,7 @@
     "UI_ZeD_Settings_WheelDeadZone": "Zona morta do analógico",
     "UI_ZeD_Settings_WheelDeadZoneTip": "Quanto o analógico direito precisa se mover para acender uma fatia. Um analógico que desvia precisa de um número maior.",
     "UI_ZeD_Settings_RunSneak": "Botão Correr também agacha",
-    "UI_ZeD_Settings_RunSneakTip": "Funciona quando Correr do jogo está em um botão, como no layout de controle Original (Correr no gatilho direito, RT); não faz nada quando Correr é empurrar o analógico até o fim (o layout Padrão). Parado, segure Correr para agachar e segure de novo para levantar. Em movimento, Correr corre como sempre; agachado, segurar faz você levantar primeiro. Um toque rápido faz o que sempre fez.",
+    "UI_ZeD_Settings_RunSneakTip": "Funciona quando Correr do jogo está em um botão, como no layout de controle Original (Correr no gatilho direito, RT); não faz nada quando Correr é empurrar o analógico até o fim (o layout Padrão) ou está em LB ou RB, que o ZeD reserva para suas ações rápidas. Parado, segure Correr para agachar e segure de novo para levantar. Em movimento, Correr corre como sempre; agachado, segurar faz você levantar primeiro. Um toque rápido faz o que sempre fez.",
     "UI_ZeD_Settings_FocusStyle": "Realce do controle",
     "UI_ZeD_Settings_FocusStyleTip": "Como o controle marca onde está: uma mão apontando, marcas de canto, uma lavada da cor de destaque ou formigas marchando.",
     "UI_ZeD_Settings_FocusHand": "Mão apontando",

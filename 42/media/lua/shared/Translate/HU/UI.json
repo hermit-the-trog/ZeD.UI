@@ -3275,7 +3275,7 @@
     "UI_ZeD_Settings_WheelDeadZone": "Körmenü kar holtzónája",
     "UI_ZeD_Settings_WheelDeadZoneTip": "Mennyit kell mozdítani a jobb kart, hogy egy szelet kigyulladjon. A sodródó karhoz nagyobb szám kell.",
     "UI_ZeD_Settings_RunSneak": "Futás gomb guggol is",
-    "UI_ZeD_Settings_RunSneakTip": "Akkor működik, ha a játék Futás parancsa gombon van, mint az Eredeti kontroller-kiosztásban (Futás a jobb ravaszon, RT); nem csinál semmit, ha a Futás a kar teljes kitolása (az Alapértelmezett kiosztás). Állva tartsd nyomva a Futást a guggoláshoz, és újra a felálláshoz. Mozgás közben a Futás fut, mint mindig; guggolva a nyomva tartás előbb felállít. Egy rövid koppintás azt teszi, amit eddig.",
+    "UI_ZeD_Settings_RunSneakTip": "Akkor működik, ha a játék Futás parancsa gombon van, mint az Eredeti kontroller-kiosztásban (Futás a jobb ravaszon, RT); nem csinál semmit, ha a Futás a kar teljes kitolása (az Alapértelmezett kiosztás), vagy ha LB-n vagy RB-n van, mert ezeket a ZeD a gyorsműveleteihez tartja fenn. Állva tartsd nyomva a Futást a guggoláshoz, és újra a felálláshoz. Mozgás közben a Futás fut, mint mindig; guggolva a nyomva tartás előbb felállít. Egy rövid koppintás azt teszi, amit eddig.",
     "UI_ZeD_Settings_FocusStyle": "Irányító-kiemelés",
     "UI_ZeD_Settings_FocusStyleTip": "Hogyan jelöli az irányító, min áll: mutató kézzel, sarokjelekkel, a kiemelő szín egyszeri kitöltésével, vagy futó szegéllyel.",
     "UI_ZeD_Settings_FocusHand": "Mutató kéz",
