@@ -233,7 +233,8 @@ local SIDE_IDS = { L = { "LT", "LB", "DPAD", "LS" }, R = { "RT", "RB", "Y", "B",
 --- u(n): design units to px (T.px). The pad takes the largest whole multiple that leaves the side columns their
 --- room and the top and bottom rows theirs; each side label sits as near its part's height as the others allow,
 --- in the parts' order, so no two leaders cross. Returns { k, x, y, w, h (the pad), place = { id = { x, y } },
---- leads = { id = { x1, y1, x2, y2, ... } } }.
+--- leads = { id = { x1, y1, x2, y2, ... } }, over (true when a side column is taller than its room: its top
+--- label is held at the top and meets the next, so the caller shortens the labels) }.
 function F.layout(W, H, sizes, set, u)
     local A = F.anchors(set)
     local GAP, MARG = u(22), u(8)
@@ -285,6 +286,9 @@ function F.layout(W, H, sizes, set, u)
                 local lim = (i < n) and (tops[i + 1] - u(4) - sizes[ids[i]].h) or (hi - sizes[ids[i]].h)
                 tops[i] = math.min(tops[i], lim)
             end
+            -- (still past the top: the column is taller than its room, and the top label below would sit on the
+            -- next one; the caller shortens the labels and asks again)
+            if tops[1] < lo - 0.5 then L.over = true end
         end
         for i, id in ipairs(ids) do
             local s = sizes[id]

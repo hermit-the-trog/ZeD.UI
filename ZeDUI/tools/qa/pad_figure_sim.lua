@@ -13,7 +13,15 @@
 --   * the glyph set: the texture and the layout per set (Xbox and Nintendo stick up top, PlayStation and Deck the
 --     D-pad), the glyph pictures off drawing the Xbox pad
 --   * the pull-downs: a label's click or A opens its actions under the element's name; the sticks and the D-pad ask
---     which element first; B in the actions goes back to that question, B there closes; a pick edits the binding
+--     which element first; B in the actions goes back to that question on the row picked, B there closes; a pick
+--     edits the binding; the actions' help line only while an actions list is the menu open
+--   * the window's render draws no label again (no push button saying "nil" over the words)
+--   * the controller: Left and Right never move within a side column, nor out past it; Down from X is not the
+--     right stick beside it; Back and Apply keep the focus
+--   * the desk's Options (the root held at 1.0, the lean framing) at 1280 x 800, 1280 x 720 and 1366 x 768 with
+--     Large text, with the game's real bindings (its Original and Default presets, read from the game's Java and
+--     gamepadBinding.lua) and its own action names in EN, DE, PL and RU (read from the game's install): no label over
+--     another; each action named once
 -- What it can't show: the pixels themselves (pixel_pad_v2.py --check rebuilds lit states from the shipped files the
 -- same way and compares them with the drawing), real fonts, the controller's hardware (QA: zedqa_pad_figure.lua).
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/pad_figure_sim.lua
@@ -33,7 +41,6 @@ end
 -- ============================================================================
 -- THE GAME'S GLOBALS
 -- ============================================================================
-function getTimestampMs() return 1000000 end
 function getTimestamp() return 1000 end
 function isClient() return false end
 function isServer() return false end
@@ -78,10 +85,28 @@ local function readJson(path, into)
     for k, v in s:gmatch('"([%w_]+)": "(.-)",?%s*\r?\n') do into[k] = v end
     return true
 end
+-- the game's own action names (its UI.json writes "key" : "value", spaced either way)
+local GAME_TR = "E:/Project Zomboid/steamapps/common/ProjectZomboid/media/lua/shared/Translate/"
+local function readGameNames(lang, into)
+    local f = io.open(GAME_TR .. lang .. "/UI.json", "rb")
+    if not f then return false end
+    local s = f:read("*a")
+    f:close()
+    for k, v in s:gmatch('"(UI_optionscreen_gamepad_[%w_]+)"%s*:%s*"(.-)"%s*,?%s*\r?\n') do into[k] = v end
+    return true
+end
+-- the game's language, as ZeD.tr asks for it (a change drops its kept templates)
+local LANGS = {}
+function getTimestampMs() return 1000000 end
 local function loadWords(lang)
     TEXT = {}
     readJson(ROOT .. "42/media/lua/shared/Translate/EN/UI.json", TEXT)
     if lang ~= "EN" then readJson(ROOT .. "42/media/lua/shared/Translate/" .. lang .. "/UI.json", TEXT) end
+    GAME_NAMES = readGameNames("EN", TEXT)
+    if lang ~= "EN" then readGameNames(lang, TEXT) end
+    LANGS[lang] = LANGS[lang] or { name = function() return lang end }
+    LANG_NOW = LANGS[lang]
+    if ZeD and ZeD._trState then ZeD._trState.nextRead = 0 end
     TEXT.UI_btn_apply, TEXT.UI_btn_back, TEXT.UI_Cancel = "Apply", "Back", "Cancel"
     TEXT.UI_ControllerTest_Combo, TEXT.UI_ControllerTest_AY4exit = "Test Controller:", "Press A and Y buttons for exit"
     TEXT.UI_Bind_Interact, TEXT.UI_Bind_Aim, TEXT.UI_Bind_Run, TEXT.UI_Bind_Movement, TEXT.UI_Bind_Crouch = "Interact", "Aim", "Run", "Movement", "Crouch"
@@ -93,6 +118,7 @@ local function loadWords(lang)
     TEXT.UI_Joypad2_LeftStick, TEXT.UI_Joypad2_RightStick = "Left Stick", "Right Stick"
     if ZeD then ZeD._trGen = (ZeD._trGen or 0) + 1 end
 end
+Translator = { getLanguage = function() return LANG_NOW end }
 loadWords("EN")
 function getText(k, ...)
     local s = TEXT[k] or k
@@ -289,6 +315,7 @@ for _, n in ipairs({ "ZeD/ZeD_PadGlyphs", "ZeD/ZeD_PadFigure", "ZeD/ZeD_MainMenu
 end
 if failed > 0 then print("pad_figure_sim: " .. checks .. " checks, " .. failed .. " failed"); os.exit(1) end
 local MM, PF, G = ZeD.MainMenu, ZeD.PadFigure, ZeD.PadGlyphs
+local deskLayout = function() return MM.leanLayout() or MM.roomLayout() end   -- (the desk's: section 6)
 MM.layout = function() return { sw = CORE.screenW, sh = CORE.screenH, tx = 0, ty = 0, tw = CORE.screenW, th = CORE.screenH, ox = 0, oy = 0, s = 1 } end
 
 -- ============================================================================
@@ -371,9 +398,22 @@ ow:instantiate()
 ow.anyChanged = function() return false end
 ow:setVisible(true)
 
+-- each frame as the game runs it: prerender, then render (which draws every stop not marked as drawn by its
+-- page); what render drew over the labels is kept
+REND = { labBtns = 0, nils = 0 }
+do
+    local drawBtn = MM.drawBtn
+    MM.drawBtn = function(win, b, ...)
+        if b and b.padLab then REND.labBtns = REND.labBtns + 1 end
+        return drawBtn(win, b, ...)
+    end
+end
 local function frame()
     DRAWN, JDRAW = {}, {}
     ow:prerender()
+    local n = #DRAWN
+    ow:render()
+    for i = n + 1, #DRAWN do if DRAWN[i].kind == "text" and DRAWN[i].text == "nil" then REND.nils = REND.nils + 1 end end
     return ow._padFig
 end
 local function openPage(w, h, root, base)
@@ -489,6 +529,9 @@ loadWords("EN")
 -- the light theme: the leaders draw without their dark case
 fig = openPage(3840, 2160, 1.75, "light")
 checkPlacement(fig, "4K light")
+-- the window's render: the labels are the page's own drawing, never a push button over them
+check("render: no label drawn again as a push button", REND.labBtns == 0, REND.labBtns)
+check("render: no \"nil\" drawn", REND.nils == 0, REND.nils)
 
 -- ============================================================================
 -- 2. THE LIVE TEST, DRAW BY DRAW
@@ -655,13 +698,33 @@ MM.joyDown(m, Joypad.AButton)
 pop = MM.popup
 check("LS click: its actions, Crouch ticked", MM.ctx.open == "combo" and pop.items[1].header and pop.items[1].text == ZeD.tr("UI_ZeD_PadFig_StickClick", "Left Hat"))
 check("LS click: B goes back", pop.back ~= nil)
+ZeD.Help.last = nil
+frame()
+check("an actions list open: the help line says how ticks work", ZeD.Help.last == ZeD.tr("UI_ZeD_PadFig_HelpMenu"), ZeD.Help.last)
 MM.joyDown(m, Joypad.BButton)
 check("LS click, B: back to which element", MM.ctx.open == "combo" and MM.popup.items[1].text == "Left Stick")
+check("LS click, B: on the click's row, the one picked", MM.ctx.dropFocus == 2, MM.ctx.dropFocus)
+ZeD.Help.last = nil
+frame()
+check("the which-element list open: not the actions' help line", ZeD.Help.last ~= ZeD.tr("UI_ZeD_PadFig_HelpMenu"), ZeD.Help.last)
 MM.joyDown(m, Joypad.BButton)
 check("which element, B: closed", MM.ctx.open == nil)
 -- the D-pad: its four arms
 spec("lab:DPAD").fn()
 check("D-pad: asks which arm (4)", #MM.popup.items == 4 and MM.popup.items[1].pad[1] == "DU")
+MM.ctx.dropFocus = 4
+MM.joyDown(m, Joypad.AButton)
+check("D-pad Right: its actions", MM.ctx.open == "combo" and MM.popup.items[1].header and MM.popup.items[1].text == "DPad Right", MM.popup.items[1].text)
+MM.joyDown(m, Joypad.BButton)
+check("D-pad Right, B: back on its row (4)", MM.ctx.open == "combo" and MM.ctx.dropFocus == 4, MM.ctx.dropFocus)
+MM.ctx.open = nil
+-- an actions list closed, then a menu-bar menu open over the page: not the actions' help line
+spec("lab:LT").fn()
+MM.ctx.open = nil
+MM.ctx.open = "file"
+ZeD.Help.last = nil
+frame()
+check("a menu-bar menu after an actions list: not the actions' help line", ZeD.Help.last ~= ZeD.tr("UI_ZeD_PadFig_HelpMenu"), ZeD.Help.last)
 MM.ctx.open = nil
 -- a pick edits the game's binding (Run onto B), and the label says so
 spec("lab:B").fn()
@@ -696,6 +759,53 @@ ow:joyDir("down")
 check("D-pad down from LT: the left bumper's label", ow.focusId == "lab:LB", ow.focusId)
 ow:joyDir("right")
 check("D-pad right from LB: somewhere new", ow.focusId ~= "lab:LB", ow.focusId)
+-- Left and Right never move up or down a side column, nor out past it (to the band at the window's foot); Down
+-- from X is not the right stick beside it
+local COL = { LT = "L", LB = "L", DPAD = "L", LS = "L", RT = "R", RB = "R", Y = "R", B = "R", A = "R" }
+local function navFrom(id, dir)
+    ow.focusId = "lab:" .. id
+    frame()
+    ow:joyDir(dir)
+    local to = ow.focusId
+    frame()
+    return to
+end
+for _, s in ipairs({ { 3840, 2160, 1.75, "xbox" }, { 1280, 800, 0.75, "xbox" }, { 3840, 2160, 1.75, "ps" }, { 1280, 800, 0.75, "ps" } }) do
+    CORE.screenW, CORE.screenH = s[1], s[2]
+    theme(s[3])
+    GLYPH = s[4]
+    local tag = s[4] .. " " .. s[1] .. "x" .. s[2]
+    for id, side in pairs(COL) do
+        for _, dir in ipairs({ "left", "right" }) do
+            local to = navFrom(id, dir)
+            local toId = to and to:match("^lab:(.+)$")
+            local out = (side == "L" and dir == "left") or (side == "R" and dir == "right")
+            if out then check(tag .. ": " .. dir .. " on " .. id .. " goes nowhere (nothing that way)", to == "lab:" .. id, to)
+            else check(tag .. ": " .. dir .. " on " .. id .. " leaves its column", toId ~= nil and COL[toId] ~= side, to) end
+        end
+    end
+    check(tag .. ": down on X is not the right stick beside it", navFrom("X", "down") ~= "lab:RS", ow.focusId)
+end
+GLYPH = "auto"
+theme(1.75)
+CORE.screenW, CORE.screenH = 3840, 2160
+-- Back and Apply keep the focus (the band's buttons are found after they are in)
+ow.anyChanged = function() return true end
+for _, id in ipairs({ "back", "apply" }) do
+    ow.focusId = id
+    frame()
+    frame()
+    check("the focus on " .. id .. " stays", ow.focusId == id, ow.focusId)
+end
+ow.focusId = "lab:A"
+frame()
+local downs = 0
+while ow.focusId and ow.focusId:find("^lab:") and downs < 6 do ow:joyDir("down"); frame(); downs = downs + 1 end
+check("down past the labels reaches the band and stays", ow.focusId == "back" or ow.focusId == "apply", ow.focusId)
+ow.anyChanged = function() return false end
+ow.focusId = "apply"
+frame()
+check("Apply greyed (nothing to apply): the focus goes back to the first label", ow.focusId == "lab:LT", ow.focusId)
 ow:joyB()
 check("B on the page: back to the Controls page", ow.sub == nil)
 MM.forceGamepad = nil
@@ -729,6 +839,130 @@ check("the old picture is gone from the code", (function()
     f:close()
     return s:find("controller_map.png", 1, true) == nil
 end)())
+
+-- ============================================================================
+-- 6. THE DESK'S OPTIONS WITH THE GAME'S REAL BINDINGS
+-- ============================================================================
+-- The game's defaults (CharacterJoypadButtonBinding's static init in 42.22, by javap): each action, the element
+-- and the pull point it starts on. "Default" is exactly these; "Original" (the game's own default preset,
+-- gamepadBinding.lua) then moves Run to the right trigger, Sprint to B and Precision Aim to the right stick.
+local REAL = {
+    { "Aim", AX2[2], 0.1 }, { "PrecisionAim", AX1[2], -0.8 }, { "Melee", AX1[1], -0.8 }, { "Attack", AX1[2], 0.93 },
+    { "Run", AX2[1], 0.975 }, { "Interact", BTN.A }, { "WalkTo" }, { "Crouch", BTN.LeftStick }, { "ReloadWeapon", BTN.RightBump },
+    { "RackFirearm", BTN.LeftBump }, { "Sprint", BTN.RightStick }, { "CancelAction", BTN.B }, { "ManualFloorAtk", BTN.LeftBump },
+    { "Inventory", BTN.Y }, { "Loot", BTN.X }, { "ClosePanel", BTN.B }, { "CycleLoot", BTN.RightBump }, { "CycleInventory", BTN.LeftBump },
+    { "CycleTabsLeft", BTN.LeftBump }, { "CycleTabsRight", BTN.RightBump }, { "TransferItem", BTN.X }, { "InteractOptions", BTN.X },
+    { "ClimbThrough", BTN.B }, { "SmashWindow", BTN.B }, { "Brakes", BTN.B }, { "CruiseControl", BTN.X }, { "ZoomIn" }, { "ZoomOut" },
+}
+local ORIGINAL = { Run = { AX1[2], 0.01 }, Sprint = { BTN.B }, PrecisionAim = { AX2[2], 0.01 } }
+local function realBinding(name)
+    local b = { name = name, on = {} }
+    b.getNameTranslationKey = function() return "UI_optionscreen_gamepad_CharacterJoypadButtonBinding_name_" .. name end
+    b.containsBinding = function(_, el) return b.on[el] == true end
+    b.addBinding = function(_, el) b.on[el] = true end
+    b.removeBinding = function(_, el) b.on[el] = nil end
+    b.isAxisMaxThresholdInfinity = function() return true end
+    b.getAxisMinThreshold = function() return b.thr or 0.5 end
+    return b
+end
+local function realAxis2d(name, el)
+    local a = { name = name, on = el }
+    a.getNameTranslationKey = function() return "UI_optionscreen_gamepad_CharacterJoypadAxis2dBinding_name_" .. name end
+    a.getBinding = function() return a.on end
+    a.setBinding = function(_, e) a.on = e end
+    a.removeBinding = function() a.on = nil end
+    return a
+end
+local function preset(which)
+    local list, two = {}, { realAxis2d("Movement", AX2[1]), realAxis2d("Aiming", AX2[2]) }
+    for _, r in ipairs(REAL) do
+        local b = realBinding(r[1])
+        local o = (which == "Original") and ORIGINAL[r[1]] or nil
+        local el, thr = (o or r)[o and 1 or 2], (o or r)[o and 2 or 3]
+        if el then b.on[el] = true end
+        b.thr = thr
+        list[#list + 1] = b
+    end
+    CharacterJoypadButtonBinding = {
+        allBindings = function() return list end,
+        findBindings = function(el) local t = {}; for _, b in ipairs(list) do if b.on[el] then t[#t + 1] = b end end; return t end,
+    }
+    CharacterJoypadAxis2dBinding = {
+        allBindings = function() return two end,
+        findBindings = function(el) local t = {}; for _, a in ipairs(two) do if a.on == el then t[#t + 1] = a end end; return t end,
+    }
+end
+if not GAME_NAMES then
+    print("NOTE the game's translation files are not at " .. GAME_TR .. ": section 6 skipped")
+else
+    -- each action named once on a label: the right stick's Aim and Aiming are one word in most languages
+    -- (the label's game line, its wrapped lines joined back up to the click's line; and the which-element list's
+    -- words for the stick, the same names unwrapped)
+    local function repeats(body)
+        body = body:match("^[^:]*:%s*(.+)$") or body
+        local seen = {}
+        for n in body:gmatch("[^,]+") do
+            n = n:gsub("^%s+", ""):gsub("%s+$", "")
+            if seen[n] then return n end
+            seen[n] = true
+        end
+        return nil
+    end
+    for _, lang in ipairs({ "EN", "DE", "PL", "RU" }) do
+        loadWords(lang)
+        for _, pr in ipairs({ "Original", "Default" }) do
+            preset(pr)
+            fig = openPage(3840, 2160, 1.75)
+            local click = ZeD.tr("UI_ZeD_PadFig_Click", "")
+            local game = {}
+            for _, l in ipairs(fig.labs.RS.lines) do
+                if l:sub(1, #click) == click or l == ZeD.tr("UI_ZeD_PadFig_ClickNothing") then break end
+                game[#game + 1] = l
+            end
+            local joined = table.concat(game, " ")
+            check("4K " .. lang .. " " .. pr .. ": the right stick's label names each action once", repeats(joined) == nil, joined)
+            local sp
+            for _, s in ipairs(ow._specs) do if s.id == "lab:RS" then sp = s end end
+            sp.fn()
+            local right = MM.popup.items[1].right
+            check("4K " .. lang .. " " .. pr .. ": the right stick's row in its list names each action once", repeats(right) == nil, right)
+            MM.ctx.open = nil
+            local cut = nil
+            for _, id in ipairs(IDS) do for _, l in ipairs(fig.labs[id].lines) do if l:find("%.%.%.$") then cut = id end end end
+            check("4K " .. lang .. " " .. pr .. ": room for every action, none cut short", cut == nil, cut)
+        end
+    end
+    -- the desk's own window: at the menu the root stays 1.0 and the window sits on the monitor, leaned in
+    local dw = ZeD_MMOptions:new(false)
+    dw:initialise()
+    dw:instantiate()
+    dw.anyChanged = function() return false end
+    dw:setVisible(true)
+    local sim = MM.layout
+    MM.layout = deskLayout
+    for _, lang in ipairs({ "EN", "DE", "PL", "RU" }) do
+        loadWords(lang)
+        for _, pr in ipairs({ "Original", "Default" }) do
+            preset(pr)
+            for _, sz in ipairs({ { 1280, 800 }, { 1280, 720 }, { 1366, 768 } }) do
+                CORE.screenW, CORE.screenH = sz[1], sz[2]
+                MM._layout, MM._lean = nil, nil
+                ZEDQA_ROOT = 1
+                ZeD.applyTheme("dark", "teal", "large")
+                dw.sub = nil
+                dw:openSub("pad")
+                DRAWN, JDRAW = {}, {}
+                dw:prerender()
+                local dfig = dw._padFig
+                checkPlacement(dfig, "desk " .. sz[1] .. "x" .. sz[2] .. " Large " .. lang .. " " .. pr)
+                for _, id in ipairs(IDS) do for _, l in ipairs(dfig.labs[id].lines) do if l:find("%.%.%.$") then CUT_SEEN = (CUT_SEEN or 0) + 1 end end end
+            end
+        end
+    end
+    check("desk: a column too tall has its game lines cut short (with dots) somewhere", (CUT_SEEN or 0) > 0, CUT_SEEN)
+    MM.layout = sim
+    loadWords("EN")
+end
 
 print("pad_figure_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed > 0 and 1 or 0)

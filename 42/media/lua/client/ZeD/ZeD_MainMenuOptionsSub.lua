@@ -235,19 +235,20 @@ function O:prerender()
     local bodyY, bodyH = tb + pad, stripY - tb - pad * 2
     if self.sub == "pad" then self:drawPadPage(pad, bodyY, w - pad * 2, bodyH)
     else self:drawSoundsPage(pad, bodyY, w - pad * 2, bodyH) end
-    -- the controller starts on the list's first row or the first label (and comes back to it when its stop went:
-    -- a new category)
-    local onSpec, first = false, nil
-    for _, sp in ipairs(self._specs) do
-        if sp.id == self.focusId then onSpec = true end
-        if not first and (sp.listRow or sp.padLab) then first = sp end
-    end
-    if not onSpec and first then self.focusId = first.id end
     local rights = {}
     if self.sub == "pad" then
         rights[1] = { "apply", getText("UI_btn_apply"), function() self:apply(false) end, "primary", not self:anyChanged() }
     end
     UI.stripSpecs(self, stripY, w, 1000, { { "back", getText("UI_btn_back"), function() self:closeSub(); MM.clickSound() end } }, rights)
+    -- the controller starts on the list's first row or the first label (and comes back to it when its stop went:
+    -- a new category, Apply greyed once it applied). Looked for after the band's buttons are in, so Back and
+    -- Apply keep it.
+    local onSpec, first = false, nil
+    for _, sp in ipairs(self._specs) do
+        if sp.id == self.focusId and not sp.disabled then onSpec = true end
+        if not first and (sp.listRow or sp.padLab) then first = sp end
+    end
+    if not onSpec and first then self.focusId = first.id end
 end
 
 -- ----------------------------------------------------------------------------
@@ -359,8 +360,14 @@ local function partLit(part, st)
     return b[part.id] == true
 end
 
+-- each action's name once: the right stick's Aim and Aiming share one word in most languages ("Zielen"), and the
+-- pull-down still ticks both
 local function boundNames(el, into)
-    for _, b in ipairs(MM.padBound(el)) do into[#into + 1] = b.name end
+    for _, b in ipairs(MM.padBound(el)) do
+        local dup = false
+        for _, n in ipairs(into) do if n == b.name then dup = true; break end end
+        if not dup then into[#into + 1] = b.name end
+    end
     return into
 end
 
@@ -387,8 +394,9 @@ end
 
 -- one label's pieces and size: the part's picture, ZeD's words, the readout; under them the game's actions,
 -- wrapped to the label's widest. ra: read from the right (the left column, View, the right stick), so the
--- picture sits nearest the pad
-local function measureLabel(part, br, set, st, side)
+-- picture sits nearest the pad. cap: the most lines each game line wraps to, its last cut with dots (nil: all;
+-- a side column too tall for the box asks for 2, then 1, as the pull-down lists every action anyway)
+local function measureLabel(part, br, set, st, side, cap)
     local T = ZeD.T
     local G = ZeD.PadGlyphs
     local f2, f3 = T.fontF2, T.fontF3
@@ -418,7 +426,16 @@ local function measureLabel(part, br, set, st, side)
     for _, l in ipairs(lab.wl) do lab.ww = math.max(lab.ww, MM.textW(f2, l)) end
     lab.lines = {}
     for _, l in ipairs(gameLines(part, br)) do
-        for _, wl in ipairs(ZeD.Atoms.wrapText(l, f3, room)) do lab.lines[#lab.lines + 1] = wl end
+        local wls = ZeD.Atoms.wrapText(l, f3, room)
+        if cap and #wls > cap then
+            local rest = {}
+            for i = cap, #wls do rest[#rest + 1] = wls[i] end
+            local cut = {}
+            for i = 1, cap - 1 do cut[i] = wls[i] end
+            cut[cap] = ZeD.Atoms.truncateText(table.concat(rest, " "), f3, room)   -- (two wrapped lines never fit one: always cut)
+            wls = cut
+        end
+        for _, wl in ipairs(wls) do lab.lines[#lab.lines + 1] = wl end
     end
     local l2w = 0
     for _, l in ipairs(lab.lines) do l2w = math.max(l2w, MM.textW(f3, l)) end
@@ -558,9 +575,15 @@ function O:drawPadFigure(x, y, w, h)
     local br = byRole(els)
     local st = MM.padState(els, MM.padLive())
     local A = PF.anchors(set)
-    local labs = {}
-    for _, part in ipairs(PAD_PARTS) do labs[part.id] = measureLabel(part, br, set, st, A[part.id].side) end
-    local L = PF.layout(w, h, labs, set, T.px)
+    local labs, L
+    -- every action on its label; a side column too tall for the box (Large text on the Deck, a long language)
+    -- takes each game line to 2 lines, then 1
+    for _, cap in ipairs({ false, 2, 1 }) do
+        labs = {}
+        for _, part in ipairs(PAD_PARTS) do labs[part.id] = measureLabel(part, br, set, st, A[part.id].side, cap or nil) end
+        L = PF.layout(w, h, labs, set, T.px)
+        if not L.over then break end
+    end
     local gp = MM.gamepad()
     local hot = (not gp) and self:pctx().hot or nil
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
@@ -574,19 +597,42 @@ function O:drawPadFigure(x, y, w, h)
         lab.focus = gp and self.focusId == "lab:" .. part.id
         drawLeader(self, x, y, L.leads[part.id], lab)
     end
+    -- the controller moves on lined-up boxes: a side column's labels share one x and width, a row above or below
+    -- the pad one y and height. Each label is only as wide as its words, so on their own boxes the D-pad would
+    -- read a label higher in the same column as being to the right.
+    local nav = {}
+    for _, grp in ipairs({ { "L", "LT", "LB", "DPAD", "LS" }, { "R", "RT", "RB", "Y", "B", "A" }, { "top", "SEL", "START" }, { "under", "RS", "X" } }) do
+        local x0, x1, y0, y1 = nil, nil, nil, nil
+        for j = 2, #grp do
+            local pl, lab = L.place[grp[j]], labs[grp[j]]
+            x0 = math.min(x0 or pl.x, pl.x); x1 = math.max(x1 or 0, pl.x + lab.w)
+            y0 = math.min(y0 or pl.y, pl.y); y1 = math.max(y1 or 0, pl.y + lab.h)
+        end
+        for j = 2, #grp do
+            local pl, lab = L.place[grp[j]], labs[grp[j]]
+            if grp[1] == "L" or grp[1] == "R" then nav[grp[j]] = { side = grp[1], x = x + x0, y = y + pl.y, w = x1 - x0, h = lab.h }
+            else nav[grp[j]] = { x = x + pl.x, y = y + y0, w = lab.w, h = y1 - y0 } end
+        end
+    end
     for i, part in ipairs(PAD_PARTS) do
         local lab, pl = labs[part.id], L.place[part.id]
         local lx, ly = x + pl.x, y + pl.y
         drawLabel(self, lab, lx, ly, set, st)
         local anchor = { x = ax + lx, y = ay + ly, w = lab.w, h = lab.h }
         local open = function() self:openPadPart(part, anchor) end
-        self._specs[#self._specs + 1] = { id = "lab:" .. part.id, padLab = true, row = i, col = 1, x = lx, y = ly, w = lab.w, h = lab.h, fn = open }
+        local nv = nav[part.id]
+        -- (noDraw: the label is drawn above; the window's render would draw it again as a push button)
+        self._specs[#self._specs + 1] = { id = "lab:" .. part.id, padLab = true, noDraw = true, side = nv.side, row = i, col = 1,
+                                          x = nv.x, y = nv.y, w = nv.w, h = nv.h, fn = open }
         self._hits[#self._hits + 1] = { id = self.kind .. ":lab:" .. part.id, x = ax + lx, y = ay + ly, w = lab.w, h = lab.h, fn = open, sound = true }
         if lab.hot or lab.focus then ZeD.Help.set(self, partHelp(part, set, gp)) end
         fig.lit[part.id] = lab.lit
         fig.labs[part.id] = { x = lx, y = ly, w = lab.w, h = lab.h, lead = L.leads[part.id], lines = lab.lines, words = lab.words }
     end
-    if MM.ctx.open and MM.popup and MM.popup.padMenu then ZeD.Help.set(self, ZeD.tr("UI_ZeD_PadFig_HelpMenu")) end
+    -- (MM.popup stays after its pull-down closes: only while it is the menu open, and only an actions list, where
+    -- the ticks are)
+    local pop = MM.popup
+    if MM.ctx.open and pop and pop.key == MM.ctx.open and pop.padMenu == "actions" then ZeD.Help.set(self, ZeD.tr("UI_ZeD_PadFig_HelpMenu")) end
     self._padFig = fig
 end
 
@@ -660,19 +706,20 @@ function O:openPadPart(part, anchor)
 end
 
 -- which element: each with its picture and what it does in game now; a pick opens its actions, and B there
--- comes back here
-function O:openPadWhich(part, els, anchor)
+-- comes back here, on the row picked. focus: the row the controller starts on (every row is live, so the item's
+-- place is its row)
+function O:openPadWhich(part, els, anchor, focus)
     local set = ZeD.PadGlyphs.set() or "xbox"
     local items = {}
-    for _, el in ipairs(els) do
+    for i, el in ipairs(els) do
         local names = boundNames(el, {})
         items[#items + 1] = { text = MM.padElName(el, set), pad = { el.role },
             right = (#names > 0) and table.concat(names, ", ") or ZeD.tr("UI_ZeD_PadMap_Nothing"),
-            fn = function() self:openPadActions(el, anchor, function() self:openPadWhich(part, els, anchor) end) end }
+            fn = function() self:openPadActions(el, anchor, function() self:openPadWhich(part, els, anchor, i) end) end }
     end
     MM.openPopup("combo", items, anchor, false)
-    MM.popup.padMenu = true
-    MM.ctx.dropFocus = 1
+    MM.popup.padMenu = "which"
+    MM.ctx.dropFocus = focus or 1
 end
 
 -- an element's actions as a pull-down under its name, the bound ones ticked (a trigger's with its pull point, as
@@ -692,7 +739,7 @@ function O:openPadActions(el, anchor, back)
         items[#items + 1] = { text = bb and bb.text or getText(cb:getNameTranslationKey()), check = bb ~= nil, fn = function() MM.padToggle(el, cb, false); MM.clickSound() end }
     end
     MM.openPopup("combo", items, anchor, false)
-    MM.popup.padMenu = true
+    MM.popup.padMenu = "actions"
     MM.popup.back = back
     MM.ctx.dropFocus = 1
 end
@@ -869,6 +916,9 @@ function O:joyDir(dir)
         MM.hoverSound()
         return
     end
+    -- (out past a side column of labels there is nothing that way: the nearest by centre would be a button down
+    -- in the band)
+    if b and b.padLab and ((b.side == "L" and dir == "left") or (b.side == "R" and dir == "right")) then return end
     ZeD_MMWindow.joyDir(self, dir)
     b = subFocused(self)
     if b and b.listRow then
