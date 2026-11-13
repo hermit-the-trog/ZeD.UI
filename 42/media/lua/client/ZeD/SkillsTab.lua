@@ -795,6 +795,16 @@ local TM_DETAIL_PAD = 26
 
 -- The tab's hit zones (rows, training rows) are kept on the window and filled again each frame in the
 -- tables they had: a new table a row a frame otherwise, all garbage. list.n is how many are live.
+-- The section heads' draw options: the one section style (design review D6), the tab fill's
+-- mono line (ZeD_TabFill's fold head), 20u, the words at the column's edge, no triangle (the
+-- heads here do not fold). Kept: a frame makes no new table.
+local _headOpts = {}
+local function sectionHeadOpts()
+    local o = _headOpts
+    o.noArrow, o.inset, o.h = true, 0, ZeD.T.px(20)
+    return o
+end
+
 local function zoneList(win, field)
     local l = win and win[field]
     if not l then l = {}; if win then win[field] = l end end
@@ -909,10 +919,11 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
     local detailRowH    = secH + T.px(12)
     local cy = startY + T.px(12)
 
-    -- ── Header: the section head "Training materials" (not folding) ──
+    -- ── Header: the section head "Training materials" (not folding): the one section style
+    -- (design review D6), the tab fill's mono line, 20u, no triangle ──
     local tm = ZeD.TM
-    cy = cy + ZeD.Molecules.drawSectionHeader(panel, x, cy, w, ZeD.tr("UI_ZeD_Skills_TrainingMaterials"),
-        nil, true, false, nil, nil, nil, nil, true) + T.sp.afterGroove
+    cy = cy + ZeD.Molecules.drawCategoryRow(panel, x, cy, w, ZeD.tr("UI_ZeD_Skills_TrainingMaterials"),
+        nil, true, sectionHeadOpts()) + T.sp.afterGroove
 
     -- Legend row (left-aligned below heading)
     local legendDefs = LEGEND
@@ -1338,11 +1349,11 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
         local skillRowIdx = 0
 
         for _, group in ipairs(colGroups) do
-            -- Group header: the section head, the category's name in sentence case
-            -- (the molecule draws its content line)
+            -- Group header: the one section style (design review D6), the tab fill's mono line,
+            -- the category's name in sentence case (the molecule draws its content line)
             local hy = cy
-            cy = cy + ZeD.Molecules.drawSectionHeader(panel, startX, cy, colWidth, group.name,
-                nil, true, false, nil, nil, nil, nil, true) + T.sp.afterGroove
+            cy = cy + ZeD.Molecules.drawCategoryRow(panel, startX, cy, colWidth, group.name,
+                nil, true, sectionHeadOpts()) + T.sp.afterGroove
             -- the Find text: a group with nothing kept is dimmed with its rows
             if find and (find.group[group.name] or 0) == 0 then
                 ZeD.TabFind.dim(panel, startX, hy, colWidth, cy - hy)

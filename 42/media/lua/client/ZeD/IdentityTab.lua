@@ -1430,7 +1430,8 @@ end
 local _traitIds = {}   -- (a trait's controller id, "identity:trait:<name>", made once)
 local WHITE = { r = 1, g = 1, b = 1 }   -- (the trait icons keep their own colors)
 
---- A trait row's places across: the icon (18 units, the game's own size), the dot, the name.
+--- A trait row's places across: the icon (18 units, the game's own size), then the name. No
+--- colored square: the group's heading (Positive / Negative) says which (design review A4).
 --- (one table, made again only when the row height or the theme changes)
 local _traitLay = {}
 function ZeD.IdentityTab.traitRowLayout(rh)
@@ -1438,14 +1439,12 @@ function ZeD.IdentityTab.traitRowLayout(rh)
     local L = _traitLay
     if L.rh == rh and L.T == T then return L end
     local icon = math.min(T.px(18), rh)
-    local dot = T.px(8)
-    local dotX = icon + T.px(6)
     L.rh, L.T = rh, T
     L.icon, L.iconX, L.iconY = icon, 0, math.floor((rh - icon) / 2)
-    L.dot, L.dotX, L.nameX = dot, dotX, dotX + dot + T.px(8)
+    L.nameX = icon + T.px(8)
     return L
 end
-local function renderTraitRow(panel, win, trait, tx, ty, tw, color)
+local function renderTraitRow(panel, win, trait, tx, ty, tw)
     local T = ZeD.T
     local A = ZeD.Atoms
     local rh = traitRowH()
@@ -1477,13 +1476,11 @@ local function renderTraitRow(panel, win, trait, tx, ty, tw, color)
         focused = ZeD.Focus.mark(panel, tx, ty, tw, rh, { win = win })
     end
 
-    -- the trait's icon, the dot (good or bad), then the name
+    -- the trait's icon, then the name (the group's heading says good or bad)
     local lay = ZeD.IdentityTab.traitRowLayout(rh)
     if trait.texture then
         A.drawIcon(panel, trait.texture, tx + lay.iconX, ty + lay.iconY, lay.icon, 1, WHITE)
     end
-    local sq = lay.dot
-    panel:drawRect(tx + lay.dotX, ty + math.floor((rh - sq) / 2), sq, sq, color.a or 1, color.r, color.g, color.b)
     local nameX = tx + lay.nameX
     local nameY = ty + math.floor((rh - bodyH) / 2)
     local nc = focused and T.textOnFocus or T.text
@@ -1491,7 +1488,7 @@ local function renderTraitRow(panel, win, trait, tx, ty, tw, color)
         nc.r, nc.g, nc.b, nc.a or 1, T.fontF2)
 end
 
-local function renderTraitGroup(panel, win, traits, label, x, curY, contentW, color, cols)
+local function renderTraitGroup(panel, win, traits, label, x, curY, contentW, cols)
     local T    = ZeD.T
 
     -- Category row ("Positive (3)": the count is in the label), not folding
@@ -1506,7 +1503,7 @@ local function renderTraitGroup(panel, win, traits, label, x, curY, contentW, co
         local row = math.floor((i - 1) / cols)
         local tx = x + col * (colW + gap)
         local ty = curY + row * pitch
-        renderTraitRow(panel, win, trait, tx, ty, colW, color)
+        renderTraitRow(panel, win, trait, tx, ty, colW)
     end
 
     local rows = math.ceil(#traits / cols)
@@ -1514,6 +1511,7 @@ local function renderTraitGroup(panel, win, traits, label, x, curY, contentW, co
     return curY
 end
 
+local _traitsHeadOpts = {}
 local function renderZoneB(panel, win, data, x, drawY, w, cols)
     local T    = ZeD.T
     local A    = ZeD.Atoms
@@ -1524,9 +1522,12 @@ local function renderZoneB(panel, win, data, x, drawY, w, cols)
 
     local totalCount = #data.posTraits + #data.negTraits
 
-    -- Section head (20u, sentence case, the total at the right, the content line under it); not folding
-    curY = curY + ZeD.Molecules.drawSectionHeader(panel, x + pad, curY, contentW, getText("IGUI_char_Traits"),
-        totalCount > 0 and totalCount or nil, true, false, nil, nil, nil, nil, true) + T.sp.afterGroove
+    -- Section head: the one section style (design review D6), the tab fill's mono line
+    -- (20u, the count after the words, the content line under it); not folding, so no triangle
+    local ho = _traitsHeadOpts
+    ho.noArrow, ho.inset, ho.h = true, 0, T.px(20)
+    curY = curY + ZeD.Molecules.drawCategoryRow(panel, x + pad, curY, contentW, getText("IGUI_char_Traits"),
+        totalCount > 0 and totalCount or nil, true, ho) + T.sp.afterGroove
 
     if totalCount == 0 then
         ZeD.Molecules.drawEmptyLine(panel, x + pad, curY, contentW, ZeD.tr("UI_ZeD_Identity_NoTraits"))
@@ -1537,14 +1538,14 @@ local function renderZoneB(panel, win, data, x, drawY, w, cols)
     if #data.posTraits > 0 then
         curY = renderTraitGroup(panel, win, data.posTraits,
             ZeD.tr("UI_ZeD_Identity_TraitsPositive", #data.posTraits),
-            x + pad, curY, contentW, T.positive, cols)
+            x + pad, curY, contentW, cols)
     end
 
     -- Negative traits
     if #data.negTraits > 0 then
         curY = renderTraitGroup(panel, win, data.negTraits,
             ZeD.tr("UI_ZeD_Identity_TraitsNegative", #data.negTraits),
-            x + pad, curY, contentW, T.danger, cols)
+            x + pad, curY, contentW, cols)
     end
 end
 

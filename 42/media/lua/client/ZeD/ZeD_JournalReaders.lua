@@ -32,6 +32,7 @@ require "ZeD/ZeD_PrintPage"
 require "ZeD/ZeD_Reader"
 require "ZeD/ZeD_WriteNoteAction"
 require "ZeD/ZeD_TabFill"
+require "ZeD/ReadMarks"   -- (UI_ZeD_Read_Unread: the one word for an unread piece, as the item lists; punch list 175a, A2)
 
 ZeD = ZeD or {}
 ZeD.JournalReaders = ZeD.JournalReaders or {}
@@ -304,6 +305,18 @@ local function subLine(e)
     return s
 end
 
+--- A paper row's words: its title, its kind line and its read state, as colours drawn at full strength. An unread
+--- piece reads dim by its tone (T.textDim, which keeps 4.6 : 1 on the window in every theme), not by fading the
+--- words: faded, the Light theme's row was pale gray on pale gray (punch list 175f(2)). Only the picture fades.
+--- swapped: the row holds the controller's 0.55 accent fill (its words then T.textOnFocus).
+--- Returns title, kind line, state colours and the picture's alpha.
+function J.paperTones(read, swapped)
+    local T = ZeD.T
+    if swapped then return T.textOnFocus, T.textOnFocus, T.textOnFocus, read and 1 or T.disabledAlpha end
+    if read then return T.toneHi, T.textDim, T.text, 1 end
+    return T.textDim, T.textDim, T.text, T.disabledAlpha
+end
+
 local function filtered(win, papers)
     local s = st(win)
     local q = string.lower(win._flyerSearchText or "")
@@ -369,25 +382,22 @@ local function renderPaperList(panel, win, x, y, w, h, carried)
                 help(win, ZeD.tr("UI_ZeD_Papers_HelpOpen", e.title))
             end
             local swapped = markFocus(panel, win, "jr:" .. zid, r.x, r.y, r.w, r.h)
-            -- unread: listed, dim
-            local a = e.read and 1 or T.disabledAlpha
+            -- unread: listed, dim (by tone, J.paperTones; the picture faded)
+            local hi, sc, tc, a = J.paperTones(e.read, swapped)
             thumb(panel, e, lx, cy + T.px(6), thW, thH, a)
             -- the read state, right: a square and plain words (full when read, hollow when not)
-            local state = e.read and ZeD.tr("UI_ZeD_Papers_StateRead") or ZeD.tr("UI_ZeD_Papers_StateUnread")
+            local state = e.read and ZeD.tr("UI_ZeD_Papers_StateRead") or ZeD.tr("UI_ZeD_Read_Unread")
             local sw = tw(f3, state)
             local dsz = T.px(6)
             local sx = lx + lw - sw
-            local tc = swapped and T.textOnFocus or T.text
-            panel:drawText(state, sx, cy + T.px(8), tc.r, tc.g, tc.b, a, f3)
+            panel:drawText(state, sx, cy + T.px(8), tc.r, tc.g, tc.b, tc.a or 1, f3)
             local my = cy + T.px(8) + math.floor((fh(f3) - dsz) / 2)
             if e.read then A.drawStatusDot(panel, sx - dsz - T.px(5), my, T.positive, dsz)
             else A.drawStatusHollow(panel, sx - dsz - T.px(5), my, T.textDim, dsz) end
             local nx = lx + thW + T.sp.md
             local nw = sx - dsz - T.px(12) - nx
-            local hi = swapped and T.textOnFocus or T.toneHi
-            panel:drawText(trunc(e.title, f2, nw), nx, cy + T.px(6), hi.r, hi.g, hi.b, (hi.a or 1) * a, f2)
-            local sc = swapped and T.textOnFocus or dc
-            panel:drawText(trunc(subLine(e), f3, lw - thW - T.sp.md), nx, cy + T.px(8) + fh(f2), sc.r, sc.g, sc.b, (sc.a or 1) * a, f3)
+            panel:drawText(trunc(e.title, f2, nw), nx, cy + T.px(6), hi.r, hi.g, hi.b, hi.a or 1, f2)
+            panel:drawText(trunc(subLine(e), f3, lw - thW - T.sp.md), nx, cy + T.px(8) + fh(f2), sc.r, sc.g, sc.b, sc.a or 1, f3)
             A.drawDividerH(panel, x, cy + rowH - T.px(1), dw)
             zone(win, { id = zid, x = r.x, y = r.y, w = r.w, h = r.h, fn = function() openPaper(win, e.id) end })
             cy = cy + rowH
@@ -406,10 +416,12 @@ local function readPiece(win, e)
     ISInventoryPaneContextMenu.onLiteratureItems({ e.item }, pn)
 end
 
--- a section head (20u, sentence case, its content line under it), not folding; returns the y under it
+-- a section head, not folding: the one section style (the small mono line of the fold heads, as Moodles, Fitness and
+-- the blocks under "No notebook on you", 20u, its line under it; punch list 175a, D6), no triangle as it does not
+-- fold; returns the y under it
 local function section(panel, label, x, y, w)
     local T = ZeD.T
-    local hh = ZeD.Molecules.drawSectionHeader(panel, x, y, w, label, nil, true, false, nil, nil, nil, nil, true)
+    local hh = ZeD.Molecules.drawCategoryRow(panel, x, y, w, label, nil, true, { noArrow = true, h = T.px(20), inset = 0 })
     return y + hh + T.px(6)
 end
 
@@ -801,12 +813,12 @@ local function noNotebookRows(win, carried)
         if e.read then nRead = nRead + 1 end
         local id = e.id
         rows.papers[i] = { id = "fill:notebooks:paper:" .. i, dot = e.read and T.positive or T.textDim, hollow = not e.read,
-            label = e.title, sub = ZeD.tr(e.read and "UI_ZeD_Papers_StateRead" or "UI_ZeD_Papers_StateUnread"),
+            label = e.title, sub = ZeD.tr(e.read and "UI_ZeD_Papers_StateRead" or "UI_ZeD_Read_Unread"),
             fn = function() ZeD.JournalTab.setPage(win, 3); openPaper(win, id) end }
     end
     rows.paperCount = ZeD.tr("UI_ZeD_Papers_Count", nRead, #c.papers)
     for i, e in ipairs(c.reads) do
-        local sub = getText(e.read and "Tooltip_literature_HasBeenRead" or "Tooltip_literature_NotBeenRead")
+        local sub = ZeD.tr(e.read and "UI_ZeD_Papers_StateRead" or "UI_ZeD_Read_Unread")
         if e.pages > 0 then sub = sub .. " | " .. getText("Tooltip_literature_Number_of_Pages") .. ": " .. e.pages end
         rows.reads[i] = { id = "fill:notebooks:book:" .. i, dot = e.read and T.positive or T.textDim, hollow = not e.read,
             label = e.name, sub = sub, read = true }

@@ -555,7 +555,10 @@ end
 -- ---------------------------------------------------------------------------
 EL.openFor = EL.openFor or {}
 local function foldOpen(win) return EL.openFor[pnum(win)] == true end
-local function headH() return ZeD.T.stripH end   -- row 1's height
+-- the fold's head: the one section style (design review D6), the tab fill's mono line (ZeD_TabFill's
+-- fold head, 20u), not a second large title under the tab's own
+local function headH() return ZeD.T.px(20) end
+local _headOpts = {}
 
 function EL.sectionH(win, w)
     if not player(win) or not L.on() then return 0 end
@@ -604,12 +607,15 @@ function EL.drawSection(panel, win, x, y, w, view)
     local hh = headH()
     local title = ZeD.tr("UI_ZeD_EqBar_Title")
     local hover = hoverRect(panel, win, x, y, w, hh)
-    ZeD.Molecules.drawTabHeader(panel, x, y, w, title, open, hover, nil, { focus = focusOf(win, "fold") })
+    local ho = _headOpts
+    ho.hover, ho.focus, ho.h = hover, focusOf(win, "fold"), hh
+    ZeD.Molecules.drawCategoryRow(panel, x, y, w, title, nil, open, ho)
     if hover then help(win, ZeD.tr(open and "UI_ZeD_Inv_CatFoldHelp" or "UI_ZeD_Inv_CatOpenHelp")) end
     local sm = (not open) and foldSummary(win)
     if sm then
         local f1, d = T.fontF1, T.textDim
-        local left = x + T.px(40) + tw(T.fontF4, ZeD.Atoms.textCase(title))
+        -- (past the row's inset, triangle and words: drawCategoryRow's own places)
+        local left = x + T.px(6) + T.px(8) + T.px(4) + tw(f1, ZeD.Atoms.textCase(title)) + T.px(10)
         local right = x + w - T.px(10)
         local txt = trunc(sm, f1, right - left)
         panel:drawText(txt, right - tw(f1, txt), y + math.floor((hh - fh(f1)) / 2), d.r, d.g, d.b, d.a or 1, f1)
@@ -747,10 +753,13 @@ local function section(panel, win, id, x, y, w, label, caption)
     local T, M = ZeD.T, ZeD.Molecules
     local s = st(win)
     local folded = s.fold[id]
-    local h = T.px(22)
+    local h = headH()
     local hover = hoverRect(panel, win, x, y, w, h)
     if hover then help(win, ZeD.tr(folded and "UI_ZeD_Lists_HelpShow" or "UI_ZeD_Lists_HelpHide", label)) end
-    M.drawSectionHeader(panel, x, y, w, label, nil, not folded, hover, nil, true, 0, h, nil, { focus = focusOf(win, id) })
+    -- the one section style (design review D6): the tab fill's mono line, folding
+    local ho = _headOpts
+    ho.hover, ho.focus, ho.h = hover, focusOf(win, id), h
+    M.drawCategoryRow(panel, x, y, w, label, nil, not folded, ho)
     if caption and caption ~= "" then
         local f1 = T.fontF1
         local dc = T.textDim

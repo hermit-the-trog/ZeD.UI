@@ -152,7 +152,8 @@ ZeD.BaseThemes = {
         info     = hex("#1A5566"),
         violet   = hex("#552288"),
         borderW  = 1,
-        disabledAlpha = 0.42,
+        -- (a grayed label at 0.42 read 2.2 : 1 on these surfaces, "nearly invisible"; 0.6 is 3.3 : 1 or more, as Dark reads at its 0.42)
+        disabledAlpha = 0.6,
         chromeHi = rgba(1.0, 1.0, 1.0, 1.0),
         chromeSh = rgba(0.0, 0.0, 0.0, 0.40),
         grooveDark  = rgba(0.0, 0.0, 0.0, 0.30),
@@ -218,7 +219,8 @@ ZeD.BaseThemes = {
         info     = hex("#44CCFF"),
         violet   = hex("#CC99FF"),
         borderW  = 2,     -- thicker borders for accessibility
-        disabledAlpha = 0.42,
+        -- (0.55: a grayed label 5.2 : 1 or more on these surfaces, as High Contrast should read; at 0.42 it read 3.7 : 1)
+        disabledAlpha = 0.55,
         chromeHi = rgba(1.0, 1.0, 1.0, 1.0),
         chromeSh = rgba(0.0, 0.0, 0.0, 1.0),
         grooveDark  = rgba(0.0, 0.0, 0.0, 0.65),
@@ -908,6 +910,12 @@ ZeD.currentBase   = "dark"
 ZeD.currentAccent = ZeD.DEFAULT_ACCENT
 ZeD.currentSize   = "small"
 
+-- See-through (ZeD setup) works in the Dark theme only: Light and High Contrast always draw the window bodies
+-- solid (the director, Nov 12 2026). baseKey: a base theme's key (default: the one in use).
+function ZeD.seeThroughWorks(baseKey)
+    return (baseKey or ZeD.currentBase) == "dark"
+end
+
 -- ---------------------------------------------------------------------------
 -- APPLY THEME
 -- Call this whenever a setting changes. Rebuilds ZeD.T from the three axes.
@@ -955,7 +963,19 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     -- dark, 0.97 light, 0.95 high contrast) here, before the accent tint (which keeps alpha)
     -- and before deriveReadable, which solves the text colours against these surfaces as
     -- translucent over the world. New tables: BaseThemes stays as written.
+    -- Light and High Contrast always draw the bodies solid (the director, punch list 175f(5)): See-through works in
+    -- Dark only. The player's pick is kept aside while forced (ZeD._seePick) and comes back with Dark, so the readers of
+    -- ZeD.surfaceAlpha (the windows' own accent palettes) see the solid value too.
     local sa = ZeD.surfaceAlpha
+    if ZeD._seeForced and sa == 1 then sa = ZeD._seePick end
+    if ZeD.seeThroughWorks(ZeD.currentBase) then
+        ZeD._seeForced = nil
+        ZeD.surfaceAlpha = sa
+    else
+        ZeD._seePick, ZeD._seeForced = sa, true
+        sa = 1
+        ZeD.surfaceAlpha = 1
+    end
     if type(sa) == "number" then
         if sa < 0.6 then sa = 0.6 elseif sa > 1 then sa = 1 end
         T.base  = ZeD.colorAlpha(T.base, sa)

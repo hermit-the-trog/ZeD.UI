@@ -140,11 +140,13 @@ function ZeD_MMMods:switchFiles(d, paths, off)
         for k = 0, l:size() - 1 do t[#t + 1] = l:get(k) end
         order = t
     end)
-    P.setOff(d.modId, paths, off, order)
+    -- (a switch the list refused, such as a shadowed copy taking another mod's switch-off, changes
+    -- nothing: no click, no "files changed" band, no notice)
+    local n = P.setOff(d.modId, paths, off, order) or 0
+    if n == 0 then return end
     self:afterPicks()
     self._filesChanged = d.name
     MM.clickSound()
-    local n = #paths
     if off then self:say(ZeD.tr(n == 1 and "UI_ZeD_Mods_SayFileOff" or "UI_ZeD_Mods_SayFilesOff", n, d.name))
     else self:say(ZeD.tr(n == 1 and "UI_ZeD_Mods_SayFileOn" or "UI_ZeD_Mods_SayFilesOn", n, d.name)) end
 end
@@ -459,8 +461,11 @@ function ZeD_MMMods:drawFileCard(d, f, i, ix, iw, cy, vy, vh, can)
         cy = self:fileNote(ZeD.tr(#used == 1 and "UI_ZeD_Mods_FileUsedOne" or "UI_ZeD_Mods_FileUsedMany", #used, namesOf(used)), T.warningText, cx, cw, cy)
         if can then
             verbs[#verbs + 1] = { "mf:off", ZeD.tr("UI_ZeD_Mods_FileVerbOffAnyway"), function() self:switchFiles(d, { f.path }, true) end }
+            -- (Turn off with the N only when it takes another file along: with none, it is Turn off anyway)
             local with = self:offWith(d, f, used)
-            verbs[#verbs + 1] = { "mf:offwith", ZeD.tr("UI_ZeD_Mods_FileVerbOffWith", #with - 1), function() self:switchFiles(d, with, true) end }
+            if #with > 1 then
+                verbs[#verbs + 1] = { "mf:offwith", ZeD.tr("UI_ZeD_Mods_FileVerbOffWith", #with - 1), function() self:switchFiles(d, with, true) end }
+            end
         end
     end
     -- (a verb leaves the controller on the file's row: the verb itself goes when the card changes)

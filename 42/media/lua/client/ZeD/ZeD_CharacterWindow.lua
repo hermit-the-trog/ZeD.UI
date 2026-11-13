@@ -179,8 +179,13 @@ local function charStateOf(win)
     -- _baseInvW already holds design units; positions/heights are screen px and are
     -- divided here. Saves from before UI scaling were written at scale 1.0, so they
     -- read back as-is.
-    local baseW  = TAB_STRIP_W + (win._baseInvW or 372) + CONTAINER_STRIP_W   -- design units
-    local anchor = ((win._anchorRightEdge or (win:getX() + T.px(baseW))) + (win._rolled and win._rollW or 0)) / sc   -- design units (a rolled side: its unrolled right edge)
+    local liveInvU = win._baseInvW or 372
+    -- (a width this screen's fit brought it down to, ZeD.Scale.fitInvW, is saved as the width it came from while the
+    -- player has not resized it: a scale round trip opens it at that width again)
+    local invU = liveInvU
+    if win._fitFromInvW and win._fitInvW and math.abs(T.px(liveInvU) - T.px(win._fitInvW)) <= 1 then invU = win._fitFromInvW end
+    local baseW  = TAB_STRIP_W + invU + CONTAINER_STRIP_W   -- design units
+    local anchor = ((win._anchorRightEdge or (win:getX() + T.px(TAB_STRIP_W + liveInvU + CONTAINER_STRIP_W))) + (win._rolled and win._rollW or 0)) / sc   -- design units (a rolled side: its unrolled right edge)
     return {
         x = anchor - baseW,
         y = win:getY() / sc,
@@ -269,7 +274,9 @@ local function applyCharState(win, cs)
     -- right edge kept (ZeD.Scale.fitInvW; the director, Nov 11 2026)
     local fitU = ZeD.Scale and ZeD.Scale.fitInvW and
         ZeD.Scale.fitInvW(T, math.min(win._maxWinW or math.floor(screenW * 0.5), anchor - screenL), TAB_STRIP_W + CONTAINER_STRIP_W)
+    win._fitInvW, win._fitFromInvW = nil, nil
     if type(fitU) == "number" and wU - TAB_STRIP_W - CONTAINER_STRIP_W > fitU then
+        win._fitFromInvW, win._fitInvW = wU - TAB_STRIP_W - CONTAINER_STRIP_W, fitU
         wU = TAB_STRIP_W + fitU + CONTAINER_STRIP_W
         local w2 = T.px(wU)
         x = math.max(screenL, x + w - w2)
@@ -4111,6 +4118,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._activeTab = "loot"
     win._tabScrollOffset = 0
     win._baseInvW = invW                 -- DESIGN UNITS (T.px() at every use; saved as-is)
+    if type(fitU) == "number" then win._fitInvW, win._fitFromInvW = fitU, 372 end   -- (saved as 372 until a resize)
     win._anchorRightEdge = win:getX() + winW
 
     -- Container state

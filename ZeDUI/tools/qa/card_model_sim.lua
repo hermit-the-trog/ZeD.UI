@@ -423,25 +423,55 @@ end
 -- (Nov 11 2026, tab review item 3) the Kind block's Capacity row now reads the bag's weight ("4.5 / 15 kg", as
 -- Container Facts), no longer getItemCapacity (-1 on a real bag): a change made on purpose, so the old card is
 -- given the new block and the comparison stays on the model
+-- (Nov 12 2026, G7, D4 ruled) the top block keeps Kind and Weight only and every other fact shows once, below, in the
+-- facts panel (which now carries the state rows and their mirror): a change made on purpose, so the old card is given
+-- the new top block, the new facts panel whole (data only) and the new facts drawing (drawFactsGroups), and the
+-- comparison stays on the model. (This replaces the Nov 11-12 carries of the Capacity row and the load format: the
+-- new top block has no Capacity row, and the new facts panel has the load format.)
 if haveBase then
     local o, n = oldSrc[2].src, newSrc[2].src
-    local OPEN, CLOSE = '    elseif cat == "Container" then\n        local cap = safeGet(item, "getItemCapacity")', "        if inner then\n"
-    local NOPEN = '    elseif cat == "Container" then\n        -- the weight it holds'
-    local oa = string.find(o, OPEN, 1, true)
-    local ob = oa and string.find(o, CLOSE, oa, true)
-    local na = string.find(n, NOPEN, 1, true)
-    local nb = na and string.find(n, CLOSE, na, true)
-    check("the Capacity row's new block carried into the old card", oa and ob and na and nb)
-    if oa and ob and na and nb then
-        oldSrc[2].src = string.sub(o, 1, oa - 1) .. string.sub(n, na, nb - 1) .. string.sub(o, ob)
+    local B7 = "-- ---------------------------------------------------------------------------\n-- B7: state mirror"
+    local oa = string.find(o, "local function topStatsForItem(item)", 1, true)
+    local ob = oa and string.find(o, B7, oa, true)
+    local na = string.find(n, "local function topStatsForItem(item, playerNum)", 1, true)
+    local nb = na and string.find(n, B7, na, true)
+    local AM = string.find(n, "-- the mirror key of the item's running action", 1, true)
+    local AMe = AM and string.find(n, "local function mirrorActiveStateOnRows", AM, true)
+    local FG = string.find(n, "-- The facts panel's groups, a thin rule between them", 1, true)
+    local FGe = FG and string.find(n, "\n-- ----", FG, true)
+    check("D4: the new top block and facts drawing carried into the old card", oa and ob and na and nb and AM and AMe and FG and FGe)
+    if oa and ob and na and nb and AM and AMe and FG and FGe then
+        o = string.sub(o, 1, oa - 1) .. string.sub(n, na, nb - 1) .. string.sub(o, ob)
+        local mo = string.find(o, "local function mirrorActiveStateOnRows", 1, true)
+        o = string.sub(o, 1, mo - 1) .. string.sub(n, AM, AMe - 1) .. string.sub(n, FG, FGe) .. "\n" .. string.sub(o, mo)
+        -- the old card's two facts loops become the new helper's calls
+        local function loop(ind)
+            local i2, i3, i4 = ind .. "    ", ind .. "        ", ind .. "            "
+            return ind .. "for gi, group in ipairs(panel.groups or {}) do\n"
+                .. i2 .. "if gi > 1 then\n"
+                .. i3 .. "cy = cy + (M.drawFactsRuleThin and M.drawFactsRuleThin(card, x, cy, w) or 0) + T.px(2)\n"
+                .. i2 .. "end\n"
+                .. i2 .. "for _, row in ipairs(group.rows or {}) do\n"
+                .. i3 .. "local lbl = row.label\n"
+                .. i3 .. "if compact and lbl and row.short then\n"
+                .. i4 .. "lbl = row.short\n"
+                .. i3 .. "end\n"
+                .. i3 .. "cy = cy + (M.drawFactsRow and\n"
+                .. i4 .. "M.drawFactsRow(card, x, cy, w,\n"
+                .. i4 .. "    lbl, row.value, row.valueClass, row.isSub, row.needsProbe) or 0)\n"
+                .. i2 .. "end\n"
+                .. ind .. "end\n"
+        end
+        local L12, L8 = loop("            "), loop("        ")
+        local a12 = string.find(o, L12, 1, true)
+        check("D4: the old clothing facts loop found", a12 ~= nil)
+        if a12 then o = string.sub(o, 1, a12 - 1) .. "            cy = drawFactsGroups(card, item, x, cy, w, panel, compact, #zones > 0)\n" .. string.sub(o, a12 + #L12) end
+        local a8 = string.find(o, L8, 1, true)
+        check("D4: the old generic facts loop found", a8 ~= nil)
+        if a8 then o = string.sub(o, 1, a8 - 1) .. "        cy = drawFactsGroups(card, item, x, cy, w, panel, compact, false)\n" .. string.sub(o, a8 + #L8) end
+        oldSrc[2].src = o
     end
-    -- (Nov 12 2026) Container Facts writes the capacity in the one load format too (Atoms.loadText, "5.8 / 28 kg"): a
-    -- change made on purpose, carried into the old facts panel the same way
-    local o3 = oldSrc[3].src
-    local OLDF = 'string.format("%.1f / %d kg", current, cap)'
-    local fa = string.find(o3, OLDF, 1, true)
-    check("the facts panel's capacity carried into the old card", fa ~= nil)
-    if fa then oldSrc[3].src = string.sub(o3, 1, fa - 1) .. "ZeD.Atoms.loadText(current, cap)" .. string.sub(o3, fa + #OLDF) end
+    oldSrc[3].src = newSrc[3].src
 end
 local OLD
 if haveBase then
@@ -461,15 +491,16 @@ do
     local f = ITEMS.bag._f
     local was = f.getItemCapacity
     f.getItemCapacity = -1
-    local ok, rows = pcall(NEW.ZeD.ItemCard.topStatsForItem, ITEMS.bag)
+    -- (G7, D4: the Capacity row is the Container Facts' alone now, the top block keeps Kind and Weight)
+    local ok, facts = pcall(NEW.ZeD.ItemFactsPanel.ContainerFacts, ITEMS.bag)
     f.getItemCapacity = was
     local got = nil
-    for _, r in ipairs(ok and rows or {}) do
+    for _, r in ipairs(ok and facts and facts.groups[1].rows or {}) do
         if r.label == "en:Tooltip_container_Capacity" then got = r.value end
     end
     -- (its words: the one load format, UI_ZeD_Char_WeightOfMax, "4.5 / 15 kg" in English)
-    check("a bag reading getItemCapacity -1: Capacity 4.5 / 15 kg, as its Container Facts",
-        got == "en:UI_ZeD_Char_WeightOfMax:4.5:15", ok and tostring(got) or rows)
+    check("a bag reading getItemCapacity -1: Capacity 4.5 / 15 kg in its Container Facts",
+        got == "en:UI_ZeD_Char_WeightOfMax:4.5:15", ok and tostring(got) or facts)
 end
 -- (Nov 12 2026, the tab catalog's review) the Kind row is the game's word for the kind, as the inventory's Category
 -- column has it (InventoryRenderer.catLabel: IGUI_ItemCat_<key>), never the script's key ("GardeningWeapon")
@@ -491,16 +522,63 @@ end
 do
     local f = BAG_INV._f
     f.getEffectiveCapacity = function(_, chr) return chr == PLAYER and 10 or 15 end
-    local ok, rows = pcall(NEW.ZeD.ItemCard.topStatsForItem, ITEMS.bag, 0)
     local okF, facts = pcall(NEW.ZeD.ItemFactsPanel.ContainerFacts, ITEMS.bag, 0)
     f.getEffectiveCapacity = nil
-    local got = nil
-    for _, r in ipairs(ok and rows or {}) do
-        if r.label == "en:Tooltip_container_Capacity" then got = r.value end
+    -- (G7, D4 ruled by the director, Nov 12 2026) the top block keeps Kind and Weight only; everything else shows
+    -- once, below, in the facts panel: no label twice, and nothing the old top block said is lost
+    local KW = { ["en:UI_ZeD_Card_Kind"] = true, ["en:UI_ZeD_Weight"] = true }
+    local MOVED = {   -- what the old top block said, by item: each must be in the facts panel now
+        shirt   = { "en:UI_ZeD_Card_Fabric", "en:IGUI_invpanel_Condition", "en:UI_ZeD_Card_Run" },
+        apple   = { "en:Tooltip_food_Cooked", "en:Tooltip_food_Fresh", "en:UI_ZeD_Card_HungerReduction", "en:UI_ZeD_Card_ThirstReduction" },
+        bat     = { "en:Tooltip_weapon_Condition", "en:Tooltip_weapon_Damage", "en:Tooltip_weapon_Range" },
+        pistol  = { "en:Tooltip_weapon_Condition", "en:Tooltip_weapon_Ammo" },
+        book    = { "en:UI_ZeD_Card_Progress", "en:IGUI_Skill", "en:UI_ZeD_Card_LevelRange" },
+        bag     = { "en:Tooltip_container_Capacity", "en:UI_ZeD_Card_Items", "en:UI_ZeD_Card_WeightReduction" },
+        lighter = { "en:IGUI_invpanel_Remaining" },
+    }
+    for name, want in pairs(MOVED) do
+        local it = ITEMS[name]
+        local okT, top = pcall(NEW.ZeD.ItemCard.topStatsForItem, it, 0)
+        local okP, panel = pcall(NEW.ZeD.ItemFactsPanel.factsFor, it, 0)
+        local labels, extra = {}, {}
+        for _, r in ipairs(okT and top or {}) do if not KW[r.label] then extra[#extra + 1] = tostring(r.label) end end
+        check("D4 " .. name .. ": the top block is Kind and Weight only", okT and #top == 2 and #extra == 0,
+            okT and (#top .. " rows: " .. table.concat(extra, ",")) or top)
+        local seen, twice = {}, {}
+        for _, g in ipairs(okP and panel and panel.groups or {}) do
+            for _, r in ipairs(g.rows or {}) do
+                if seen[r.label] then twice[#twice + 1] = tostring(r.label) end
+                seen[r.label] = r
+            end
+        end
+        local missing = {}
+        for _, l in ipairs(want) do if not seen[l] then missing[#missing + 1] = l end end
+        check("D4 " .. name .. ": what the top block said is in the facts panel, once", okP and panel and #missing == 0 and #twice == 0,
+            okP and ("missing " .. table.concat(missing, ",") .. " twice " .. table.concat(twice, ",")) or panel)
     end
-    check("a Disorganized character's bag: the card's Capacity reads 4.5 / 10 kg (the one load format)", got == "en:UI_ZeD_Char_WeightOfMax:4.5:10", ok and tostring(got) or rows)
+    -- the state rows keep their mirror keys (the card colors them while cooking, reading, repairing)
+    local function factRow(it, label)
+        local ok2, panel = pcall(NEW.ZeD.ItemFactsPanel.factsFor, it, 0)
+        for _, g in ipairs(ok2 and panel and panel.groups or {}) do
+            for _, r in ipairs(g.rows or {}) do if r.label == label then return r end end
+        end
+    end
+    local ck = factRow(ITEMS.apple, "en:Tooltip_food_Cooked")
+    check("D4: the apple's Cooked row mirrors cooking", ck and ck.mirrorKey == "cooked", ck and ck.mirrorKey)
+    local pr = factRow(ITEMS.book, "en:UI_ZeD_Card_Progress")
+    check("D4: the book's Progress row mirrors reading", pr and pr.mirrorKey == "progress", pr and pr.mirrorKey)
+    local cw = factRow(ITEMS.bat, "en:Tooltip_weapon_Condition")
+    check("D4: the bat's Condition row mirrors a repair", cw and cw.mirrorKey == "condition", cw and cw.mirrorKey)
+    local cs = factRow(ITEMS.shirt, "en:IGUI_invpanel_Condition")
+    check("D4: the shirt's Condition row mirrors a repair and gives way to the zones heading", cs and cs.mirrorKey == "condition" and cs.zoneCond == true,
+        cs and tostring(cs.mirrorKey) .. "/" .. tostring(cs.zoneCond))
+    local am = factRow(ITEMS.pistol, "en:Tooltip_weapon_Ammo")
+    check("D4: the pistol's Ammo row says the rounds loaded", am and tostring(am.value):find("15 / 15", 1, true) ~= nil, am and am.value)
+    local lr = factRow(ITEMS.lighter, "en:IGUI_invpanel_Remaining")
+    check("D4: the lighter's Remaining is 60%", lr and lr.value == "60%", lr and lr.value)
     local fv = okF and facts and facts.groups and facts.groups[1] and facts.groups[1].rows[1] and facts.groups[1].rows[1].value
-    check("and its Container Facts the same", fv == "en:UI_ZeD_Char_WeightOfMax:4.5:10", okF and tostring(fv) or facts)
+    check("a Disorganized character's bag: its Container Facts' Capacity reads 4.5 / 10 kg (the one load format)",
+        fv == "en:UI_ZeD_Char_WeightOfMax:4.5:10", okF and tostring(fv) or facts)
     local src = readFile("42/media/lua/client/ZeD/ItemCardOrganism.lua") or ""
     check("the card's model reads the stats and the facts for its own player",
         src:find("m.stats  = topStatsForItem(item, playerNum)", 1, true) ~= nil
@@ -769,19 +847,44 @@ frame("shirt after the scroll checks")
 -- TEETH: a model kept with no readings would show stale numbers
 -- ---------------------------------------------------------------------------
 section("TEETH: with the readings taken away, the sim sees the stale card")
-setItem(ITEMS.bat)
-frame("bat before the teeth")
+-- (G7, D4) drawn: the shirt's overall condition once (its zones heading; the facts leave theirs out), and the
+-- pistol's Condition facts row in the warning color while it is repaired (the state mirror on the facts)
+section("D4: each fact once, drawn")
+do
+    setItem(ITEMS.shirt)
+    local _, _, _, _, _, lg = frame("D4 shirt")
+    -- (the language is French by here: the labels read "fr:...")
+    local zonesDrawn = lg:find("UI_ZeD_Card_Zones", 1, true) ~= nil
+    local condFacts = lg:find('M.drawFactsRow%([^\n]*:IGUI_invpanel_Condition"') ~= nil
+    local fabric = lg:find('M.drawFactsRow%([^\n]*:UI_ZeD_Card_Fabric"') ~= nil
+    check("D4 shirt: zones drawn, so the facts draw no second Condition row; Fabric is in the facts",
+        zonesDrawn and not condFacts and fabric, tostring(zonesDrawn) .. "/" .. tostring(condFacts) .. "/" .. tostring(fabric))
+    setItem(ITEMS.pistol)
+    frame("D4 pistol")
+    local rep2 = { mode = "active", label = "Repairing", kind = "repair", percent = 0.2 }
+    both(function(e) e.ZeD.ItemActionManager.notify(ITEMS.pistol, "start", rep2) end)
+    local _, _, _, _, _, lg2 = frame("D4 pistol: repairing")
+    check("D4 pistol: its Condition facts row takes the warning color while repaired",
+        lg2:find('M.drawFactsRow%([^\n]*:Tooltip_weapon_Condition"[^\n]*"warn"') ~= nil)
+    both(function(e) e.ZeD.ItemActionManager.notify(ITEMS.pistol, "complete") end)
+    frame("D4 pistol: repaired")
+end
+
+-- (G7, D4: the condition shows only in the facts panel now, and the bat's is a mod's panel by here: the pistol's
+-- Combat Facts show its condition)
+setItem(ITEMS.pistol)
+frame("pistol before the teeth")
 local savedProbe = NEW.ZeD_ItemCard._cardModel
 NEW.ZeD_ItemCard._cardModel = function(self, item, ctx)
     local m = self._model
     if m and m.item == item then return m end
     return savedProbe(self, item, ctx)
 end
-ITEMS.bat._f.getCondition = 2
-local caughtTeeth = not frame("bat: condition with no reading", 16, true)
+ITEMS.pistol._f.getCondition = 2
+local caughtTeeth = not frame("pistol: condition with no reading", 16, true)
 check("a kept model that misses a change is caught", caughtTeeth)
 NEW.ZeD_ItemCard._cardModel = savedProbe
-frame("bat: the readings back")
+frame("pistol: the readings back")
 
 print(string.format("   %d frames compared, %d differed (the poison lag left out)", frames, diffs - (caughtTeeth and 1 or 0)))
 -- (153, Nov 11 2026: the "Used to make" rows drawn flush, the director's "flush left with the rest of the card")

@@ -566,18 +566,24 @@ function Z.actionBarWheel()
 end
 
 -- see-through: 100% to 60%, then solid while in use (ZeD.Settings saves the pick and re-applies
--- the theme, as the window box's menu does)
+-- the theme, as the window box's menu does). Dark only: in Light and High Contrast the windows are
+-- solid whatever it says, so its choices are off there and say why (ZeD.seeThroughWorks).
 local SEE_ICON, FOCUS_ICON = "seethrough", "focus"
+function Z.seeThroughOff()
+    if ZeD.seeThroughWorks and not ZeD.seeThroughWorks() then return tr("UI_ZeD_Settings_SeeThroughDarkOnly") end
+    return nil
+end
 function Z.seeThroughWheel()
     local S, out = ZeD.Settings, {}
     local cur = S.seeThroughIndex and S.seeThroughIndex()
+    local off = Z.seeThroughOff()
     for i, v in ipairs(S.seeThroughKeys or {}) do
         out[#out + 1] = { name = tr("UI_ZeD_Settings_SeeThroughPct", v), icon = SEE_ICON, detail = inUse(cur == i),
-            run = function() S.setSeeThrough(i) end }
+            run = function() S.setSeeThrough(i) end, off = off }
     end
     if S.solidInUse then
         out[#out + 1] = { name = tr("UI_ZeD_Settings_SolidInUse"), icon = SEE_ICON, detail = getText(S.solidInUse() and "UI_On" or "UI_Off"),
-            run = function() S.setSolidInUse(not S.solidInUse()) end }
+            run = function() S.setSolidInUse(not S.solidInUse()) end, off = off }
     end
     return out
 end
@@ -624,7 +630,8 @@ D.B.zed = function(p, pn)
           detail = at(S.accentKeys, S.accentLabels, ZeD.currentAccent), sub = Z.accentWheel },
         { name = tr("UI_ZeD_Settings_TextSize"), icon = "textsize", detail = at(S.sizeKeys, S.sizeLabels, ZeD.currentSize), sub = Z.sizeWheel },
         { name = tr("UI_ZeD_Settings_SeeThrough"), icon = SEE_ICON,
-          detail = tr("UI_ZeD_Settings_SeeThroughPct", S.seeThrough and S.seeThrough() or 90), sub = Z.seeThroughWheel },
+          detail = tr("UI_ZeD_Settings_SeeThroughPct", S.seeThrough and S.seeThrough() or 90), sub = Z.seeThroughWheel,
+          off = Z.seeThroughOff() },
         { name = tr("UI_ZeD_Settings_FocusStyle"), icon = FOCUS_ICON,
           detail = current(S.focusStyleOption, S.focusStyleLabels or {}), sub = Z.focusWheel },
         { name = tr("UI_ZeD_Settings_UiScale"), icon = "scale", sub = Z.scaleWheel },

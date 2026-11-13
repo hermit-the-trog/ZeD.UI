@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Only the pixel-face words are capitals: the action bar labels (READING, CHEWING) and the marks on the dash, watch and radio. They stay capitals in your language. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey), for headings, column heads, tags, buttons and status words alike; write yours the way your language writes a heading or a button, not in capitals.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head arrives in whatever case the game text has, and ZeD sets it in sentence case.
 
-Total keys: 5271.
+Total keys: 5302.
 
 ## Areas
 
@@ -614,6 +614,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Animals_RunMilking` | `Milking %1 of %2` | Animals tab, zone view: status line while a milking run goes; %1 is the animal under way, %2 how many | 30 |
 | `UI_ZeD_Animals_RunShearing` | `Shearing %1 of %2` | Animals tab, zone view: status line while a shearing run goes; %1 is the animal under way, %2 how many | 30 |
 | `UI_ZeD_Animals_RunStopped` | `Stopped after %1 of %2.` | Animals tab, zone view: status line after a run was stopped; %1 done of %2 | 40 |
+| `UI_ZeD_Animals_RunFast` | `Stopped after %1 of %2: the game will not walk at this speed.` | Animals tab band: a run over several animals was cut because the game runs faster than speed 2, where it drops every walk; %1 done of %2 | - |
 | `UI_ZeD_Animals_RunFull` | `%1 full: milked %2 of %3.` | Animals tab band: a milking run over several animals ended because the last milk container carried filled; %1 is the container's own name from the game (Bucket), %2 the animals milked dry, %3 the animals picked | - |
 | `UI_ZeD_Animals_SelNothing` | `%1 selected: nothing to milk or shear` | Animals tab, zone view: status line when the ticked animals have nothing to milk or shear; %1 is how many | 40 |
 | `UI_ZeD_Animals_Selected` | `%1 selected` | Animals tab, zone view: status line with rows ticked; %1 is how many | 20 |
@@ -2945,8 +2946,8 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Papers_PlaceMany` | `%1 places` | Character window, Journal tab, Papers sub-tab: second line of a list row when the piece names several places (%1 = 2 to 5) | 12 |
 | `UI_ZeD_Papers_PlaceOne` | `1 place` | Character window, Journal tab, Papers sub-tab: second line of a list row when the piece names one place | 12 |
 | `UI_ZeD_Papers_ShowPlaceN` | `Show place %1` | Papers quick look: button for the nth place when a piece names several (%1 = 1 to 5) | 20 |
-| `UI_ZeD_Papers_StateRead` | `Read` | Character window, Journal tab, Papers sub-tab: right side of a list row, piece read (next to a green dot) | 14 |
-| `UI_ZeD_Papers_StateUnread` | `Not read yet` | Character window, Journal tab, Papers sub-tab: right side of a list row, piece not read (next to a grey dot) | 16 |
+| `UI_ZeD_Papers_StateRead` | `Read` | Character window, Journal tab, Papers sub-tab: right side of a list row, piece read (next to a green dot); also the Papers and Books rows under "No notebook on you" | 14 |
+| `UI_ZeD_Papers_StateUnread` | `Not read yet` | No longer shown: the Papers rows use UI_ZeD_Read_Unread (one word for unread everywhere) | 16 |
 | `UI_ZeD_Papers_TooDark` | `Too dark to read` | Papers quick look: dim line under the disabled Read button | 30 |
 | `UI_ZeD_Papers_HelpBack` | `Back to the list.` | Character window, Journal tab, Papers sub-tab: help line over the Back button of a piece being read | - |
 | `UI_ZeD_Papers_HelpFilter` | `Show %1.` | Character window, Journal tab, Papers sub-tab: help line over a filter pill; %1 = the filter's name | - |
@@ -3165,7 +3166,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Read_Unread` | `Unread` | Item lists, COND column beside the read mark: nothing read yet | 12 |
+| `UI_ZeD_Read_Unread` | `Unread` | Item lists, Status column (or after the name) beside the read mark: nothing read yet; also the read hover card's first line, the Journal's Papers rows and the Papers and Books rows under "No notebook on you". The one word for this state everywhere: no period | 12 |
 | `UI_ZeD_Read_Read` | `Read` | Item lists, COND column beside the read mark: read (or below your level) | 12 |
 | `UI_ZeD_Read_Known` | `Known` | Item lists, COND column beside the read mark: a recipe magazine whose recipes are all known | 12 |
 | `UI_ZeD_Read_Watched` | `Watched` | Item lists, COND column beside the read mark: a VHS tape seen to the end | 12 |
@@ -3635,7 +3636,8 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Settings_MoodleNotices` | `Moodle notices` | Options, ZeD setup, HUD: the switch's name | - |
 | `UI_ZeD_Settings_MoodleNoticesTip` | `A moodle that comes on or changes shows its thought bubble by itself for a few seconds. Off: the bubble shows only when you point at the moodle.` | Options, ZeD setup: help band for the switch | - |
 | `UI_ZeD_Settings_SeeThrough` | `See-through` | Options > Mods > ZeD-GUI, and the window menu and the Select wheel: name of the See-through setting | - |
-| `UI_ZeD_Settings_SeeThroughTip` | `How much of the game shows through ZeD's windows: 100 is solid, 60 shows the most. Words, lines and controls stay solid.` | Options > Mods > ZeD-GUI: hover help of the See-through setting; 100 is solid, 60 is the most see-through | - |
+| `UI_ZeD_Settings_SeeThroughTip` | `How much of the game shows through ZeD's windows: 100 is solid, 60 shows the most. Words, lines and controls stay solid. Works in the Dark theme only: Light and High contrast are always solid.` | Options > Mods > ZeD-GUI: hover help of the See-through setting; 100 is solid, 60 is the most see-through; the last sentence: See-through does nothing in the Light and High contrast themes (use the theme names as UI_ZeD_Settings_Dark, _Light and _HighContrast have them) | - |
+| `UI_ZeD_Settings_SeeThroughDarkOnly` | `Dark theme only` | The Select wheel and the window menu: the second line on See-through (and its choices) while the Light or High contrast theme is on, where See-through does nothing; Dark as UI_ZeD_Settings_Dark has it | 24 |
 | `UI_ZeD_Settings_SeeThroughPct` | `%1%%` | Options > Mods > ZeD-GUI, the window menu and the Select wheel: a choice of See-through; %1 = the number, 100 down to 60 (keep the %% for the percent sign) | - |
 | `UI_ZeD_Settings_SolidInUse` | `Solid while in use` | Options > Mods > ZeD-GUI, and the window menu and the Select wheel: name of the Solid while in use setting (an on / off choice) | - |
 | `UI_ZeD_Settings_SolidInUseTip` | `A window turns solid while the pointer is over it or the controller is in it, and goes back to the See-through setting when you leave it.` | Options > Mods > ZeD-GUI: hover help of the Solid while in use setting | - |
