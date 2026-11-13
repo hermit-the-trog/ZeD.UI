@@ -84,19 +84,41 @@ local function carried(p)
 end
 L._carried = carried
 
---- A rod in p's bags that is not broken (for Equip rod), or nil.
-function L.rodInBags(p)
+-- The bait rows and the bag rod, kept for half a second per player. The tab asks every frame, and each answer walks
+-- every item in every bag (a few hundred items for someone out fishing); what p carries hardly changes in that time.
+-- The tab's Bait and Equip keys read fresh (fresh = true) before they act.
+L.CARRY_MS = 500
+local _carry = {}
+local function carryCache(p)
+    local key = p:getPlayerNum()
+    local c = _carry[key]
+    if not c then c = {}; _carry[key] = c end
+    return c
+end
+function L._resetCarry() _carry = {} end
+
+--- A rod in p's bags that is not broken (for Equip rod), or nil. fresh: walk the bags now, not the half-second copy.
+function L.rodInBags(p, fresh)
+    local c = carryCache(p)
+    local t = nowMs()
+    if not fresh and c.rodAt and t - c.rodAt < L.CARRY_MS then return c.rod end
+    local rod = nil
     for _, it in ipairs(carried(p)) do
-        if L.isRod(it) and not safe(function() return it:isBroken() end, false) then return it end
+        if L.isRod(it) and not safe(function() return it:isBroken() end, false) then rod = it; break end
     end
-    return nil
+    c.rod, c.rodAt = rod, t
+    return rod
 end
 
 --- The bait p carries, one row per kind, as the game's Add Bait menu finds it (a lure the game knows,
 --- not cooked): { type, name, n, where, item, lure (an artificial lure) }, in the order first met.
-function L.baits(p)
+--- fresh: walk the bags now, not the half-second copy.
+function L.baits(p, fresh)
+    if not (Fishing and Fishing.IsLure) then return {} end
+    local c = carryCache(p)
+    local t = nowMs()
+    if not fresh and c.baitsAt and t - c.baitsAt < L.CARRY_MS then return c.baits end
     local rows, byType = {}, {}
-    if not (Fishing and Fishing.IsLure) then return rows end
     for _, it in ipairs(carried(p)) do
         local ft = it:getFullType()
         if Fishing.IsLure(ft) and not (instanceof(it, "Food") and it:isCooked()) then
@@ -112,6 +134,7 @@ function L.baits(p)
             r.n = r.n + 1
         end
     end
+    c.baits, c.baitsAt = rows, t
     return rows
 end
 
@@ -234,12 +257,22 @@ function L.grade(ch)
     return L.GRADES[#L.GRADES].key
 end
 
---- The game's own record of the species p has landed (fishing_catchedFish), as a count.
+--- The game's own record of the species p has landed (fishing_catchedFish), as a count. The game writes junk
+--- into that record too (every pick-up, Seaweed and empty cans included), so only its species are counted.
 function L.caughtCount(p)
     local t = p and p:getModData().fishing_catchedFish
     local n = 0
-    if t then for _, v in pairs(t) do if v then n = n + 1 end end end
+    if t then
+        for _, cfg in ipairs((Fishing and Fishing.fishes) or {}) do
+            if t[cfg.itemType] then n = n + 1 end
+        end
+    end
     return n
+end
+
+--- How many species the game has (Fishing.fishes), without building L.species' list.
+function L.speciesCount()
+    return #((Fishing and Fishing.fishes) or {})
 end
 
 --- What bait type `bt` is worth to each species p has caught, from Fishing L.RATE_LV, as the game rates it:
@@ -352,6 +385,13 @@ function L.recent(p, n)
     return out
 end
 
+--- How many species have a plaque on the wall (the heaviest of each kind landed).
+function L.mountedCount(p)
+    local n = 0
+    for _ in pairs(L.data(p).best) do n = n + 1 end
+    return n
+end
+
 --- The wall's plaques. mode "top": the ten heaviest, each { rec, rank }. mode "each": one per species in the
 --- game's order, each { rec or nil, type }. Also the count of species mounted.
 function L.wall(p, mode)
@@ -371,10 +411,19 @@ end
 -- ---------------------------------------------------------------------------
 L.TRIP_GAP = 3   -- game hours with no cast or catch end a trip
 
+--- d's trip while it is still going at world age wa (game hours): a cast or a catch within L.TRIP_GAP hours.
+--- nil once it has gone quiet. A trip is only replaced at the next cast or catch, so the record outlives its trip;
+--- whatever shows "this trip" asks here first.
+function L.liveTrip(d, wa)
+    local tr = d and d.trip
+    if not tr or (wa or 0) - (tr.last or tr.wa0 or 0) > L.TRIP_GAP then return nil end
+    return tr
+end
+
 --- Starts a trip when there is none or the last one went quiet; d = L.data(p).
 function L.tripTouch(d, wa, lineCond)
-    local tr = d.trip
-    if not tr or (wa - (tr.last or 0)) > L.TRIP_GAP then
+    local tr = L.liveTrip(d, wa)
+    if not tr then
         tr = { wa0 = wa, landed = 0, junk = 0, gone = 0, total = 0, baits = {}, line0 = lineCond }
         d.trip = tr
     end
@@ -401,9 +450,11 @@ end
 -- reel and releaseLine still do the work.
 -- ---------------------------------------------------------------------------
 L._pull = nil
+local _pullRec = {}   -- (one record, renewed every frame while a key is held: no table per frame)
 --- Reel ("reel") or let out ("release") for ms milliseconds from now.
 function L.pull(kind, ms)
-    L._pull = { kind = kind, till = nowMs() + (ms or 600) }
+    _pullRec.kind, _pullRec.till = kind, nowMs() + (ms or 600)
+    L._pull = _pullRec
 end
 --- The pull asked for now, or nil.
 function L.pulling()

@@ -29,7 +29,8 @@
 --                              other window when it sits that way on screen
 --   A tap                    — fire focused element's onActivate (= LMB)
 --   A hold (>=350ms)         — fire onHoldActivate if defined (a list row: mark it and
---                              start a painted run)
+--                              start a painted run); Focus.holdingA(w) stays true until A
+--                              comes up, for a key that acts while A is held (Reel in)
 --   X tap                    — fire focused element's onContextMenu (= RMB);
 --                              else onReset if defined (3-option dialogs only)
 --   X hold (>=350ms)         — onHoldContextDrag drag mode (the D-pad drags, release
@@ -1916,6 +1917,13 @@ local function _btnDown(name, jid)
     if o ~= nil then return o end
     if jid == nil then return false end
     return JoypadButton[name]:isDown(jid)
+end
+
+--- True while an A press held past its hold on window w is still down: the hold fired the focused element's
+--- onHoldActivate (once, at A_HOLD_MS) and A has not come up since. A key that acts for as long as A is held
+--- (the Fishing tab's Reel in) reads this every frame. Driven by the same reads as the hold, QA's hook included.
+function Focus.holdingA(w)
+    return _aHeld and _aConsumed and (w == nil or (_aWindow or _focusedWindow) == w)
 end
 
 -- the Y, A and X holds: a tap on release, the hold at its threshold (A and X 350 ms; Y the
