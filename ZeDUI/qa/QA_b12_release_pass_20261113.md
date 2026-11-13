@@ -197,3 +197,8 @@ HEAD contained 14aec8ff3; the lock was free. One 4K launch with the real-mouse h
 4. "Exception thrown" from ZeD-GUI in console.txt: none (0; no "Exception thrown" at all).
 
 End state: options.ini restored whole (fullScreen=true, 3840x2160, fontSize=2, language=EN); ModOptions.ini matches its backup; zedqa.autoload 0; lock free; game closed; ZeD-QA mods.txt lists only ZeD_UI; the mouse helper stopped with its stop file; no background task left; scratch manifest deleted; only the report and this file committed, no pictures.
+
+### mech79 hover probe
+One 4K launch with the real-mouse helper (stopped after), the prelude and mech79 once (report ZeDUI/qa/regression/2026-11-13_b12rerun3_4k.md, WARN). `ZEDQA m79 hover probe: mode kbm | pointer 20,146 | row 0,126 395x42 | sortOpen nil`, followed by `ZEDQA m79 PASS hover on a row lights its part on the diagram (Muffler, lit Muffler)` and `ZEDQA m79 PASS hover never opens the card`; `ZEDQA m79 summary: 3 of 45 checks FAIL` (left: `Base.PickUpTruck: inspected, its tab on it`, `Base.PickUpTruck: a click on the diagram picks a part (nil)`, `Base.Trailer: hover on a row lights its part (Muffler, lit TireFrontLeft)`).
+Controller: no console.txt line at startup names a connected controller or joypad; the only match is ZeD's own `[ZeD] Overrides/Controllers: controllers joining and leaving go to Messages`.
+End state: options.ini and ModOptions.ini restored from my backup, autoload 0, lock free, game closed, no helper or background task left.
