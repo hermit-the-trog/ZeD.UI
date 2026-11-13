@@ -261,3 +261,52 @@ What it showed:
 ### List B (test trouble), Part 6
 - `ZEDQA sc ERR step 'B wait inspected' timed out` and the lines that follow from it: `ZEDQA sc B opened: no engine window` (62987 ms after the inspection), `ZEDQA sc ERR B: the World window not moved (1929)`, `ZEDQA sc ERR C: still open 5 s later` (no window to stay), `ZEDQA sc ERR D: the pointer on the engine window holds the tab`, `ZEDQA sc ERR E: Loot and back: still shut (the player's close lasts)`. The auto-open on inspecting the car never happened in this run, so B, C, D (hold) and E (Loot and back) read as failed; F onward opened it through the menu and passed. Unclear whether the auto-open is a real gap or the inspection step did not run; the "the reported bug" step C needs an open window to judge, so it was not judged.
 - Not run: step M (the wheels: `M outside wheel:` printed no result) and O (`skipped: no pad (the sim proves the hand-back)`).
+
+## Part 7. Lua Console 93 Professional Edition (CHECK_luaconsole93.md)
+
+Setup: built and staged with build_luaconsole93.py --stage (it rewrote three tracked files in products/LuaConsole93 to a fresh build, Molecules.lua, Scale.lua and Tokens.lua; I put those three back to their committed bytes, so the repo is untouched, but the staged mod in Zomboid/mods/LuaConsole93 is the fresh build). The sheet's LC93-QA save copy was not used: the director's rule is the ZeD-QA save only, so the three passes ran through zedqa_mods_run.ps1, which writes the ZeD-QA save's mod list for the run and puts the save back afterwards (its mods.txt reads only ZeD_UI now). For the alone pass the dev-only ZeDQAShim (a copy of the QA bridge, no ZeD-GUI) stood in the list so the bridge could run; the main menu's list (default.txt) was LuaConsole93 and ZeDQAShim for that pass, ZeD_UI and LuaConsole93 in each order for Run 2, and was put back after (reads ZeD_UI as before; its backup file removed). The staged mod was left in place, as the sheet says. The console was opened through the game's own console flag (not the console key) and lines went through the console's Run (the call the box's Enter makes); no keys were typed. Pictures: Zomboid/Screenshots/b12_round2_20261112/p7 (run1, run2a, run2b, with each run's console.txt). Reports: ZeDUI/qa/regression/2026-11-12_2151_mods_fullscreen4k.md (alone), _2153_ (order A: ZeD first), _2156_ (order B), and _2139_ (a first alone attempt that never loaded: default.txt lacked the bridge shim, run stopped by its own 5-minute timeout, nothing ran; the game process I started was stopped by its PID). A very first alone run (_2136_) ran with ZeD_UI still in the main menu's list, so its console.txt held ZeD lines; it is not the alone pass and I discarded its result.
+
+### Run 1: alone on the plain game (4K, -debug -nosteam)
+- Window opens in -debug: PASS. Title "Lua Console 93", on the Log page; the game's own console did not show.
+- The log: PASS. `print("hello")` and `print(LC93 ~= nil, ZeD == nil)` gave a "ran" row and the output `true true` (as the sheet expects: LC93 is there, ZeD is not).
+- Error row: FAIL against the sheet (see List A): the error run three times gave four rows (count 3 / 6 / 3 / 3), not one row with x3. The stack opens in place (PASS).
+- Export: PASS. File LuaConsole93_<date>_<time>.log, first line `Lua Console 93 | 2026-11-12_215242 | 65 of 65 | errors 4`, last line says the user name is taken out ("Your user name is taken out of this report. ..."), and no line in it names a Users folder.
+- Scratchpad: PASS for what it can run: a two-line snippet ran and printed rows `a` and `b` (from Console), and Save snippet wrote LuaConsole93_snippets.txt. Not checked: right-click rename, the swap back with one line.
+- Suggestions: not checked. Calling the console's complete with "getPl" returned nothing; the script cannot type into the box, so this needs a hand check (typing getPl and seeing getPlayer in the pull-down).
+- Commands and Help pages: both open and draw (pictures p7/run1/zqa_lc_x_4k_commands.png and _help.png): the commands list with the debug-menu way for each ("Debug menu > Cheats"), the Help page's folds (What runs where, Keys, Controller, Files). Not checked: picking /godmode opens the Cheats window; the four fold headers' open and shut.
+- Nothing refers to ZeD-GUI: PASS. console.txt of the alone run: no `[ZeD]` line and no ZeD-GUI line from the console or the mod; the only ZeD-named things are the dev shim's own `[ZeD.QA] bridge armed` lines (the test's bridge, not the product) and "loading ZeDQAShim". No `[Lua Console 93]` failure line.
+- console.txt: no error from a LuaConsole93 file except the deliberate ones I ran (the three `local t = nil; print(t.x)` runs, which the game logs as Lua errors by design). Beyond them the usual game noise (font page textures, sanitizing container names) as in every run.
+- Print rows: FAIL against the sheet's spirit (see List A): every print shows as two rows ("hello" appears twice; the scratchpad's `a` and `b` each twice, once from Console and once from Game).
+- Not run: step 12's Deck-size look (1280x800), step 13 (controller), step 14 (hand-back switch file), step 14a (Russian and Polish), the controller wheel, the 4K look at borders and dragging by eye beyond the pictures.
+
+### Run 2: both installed, each load order
+- Order A (ZeD_UI, then LuaConsole93): ZeD-GUI's console opens (title "Lua console"), never Lua Console 93's; LC93 is nil, ZeD is there (`globals: LC93=false ZeD=true`; the line `print(LC93 ~= nil, ZeD == nil)` I ran gave `false false`, which is the sheet's `LC93 == nil, ZeD ~= nil` = true true read the other way round). Export file: ZeD_console_<date>_<time>.log with first line `ZeD-GUI Lua console | ...`. console.txt holds `[Lua Console 93] ZeD-GUI is on: its console is used` exactly twice (the main menu's load and the save's load) and no other `[Lua Console 93]` line. PASS.
+- Order B (LuaConsole93, then ZeD_UI): the same answers, the same line twice. PASS.
+- Not checked in Run 2: the controller's Back wheel (no pad on the path); the scratchpad's snippets file (ZeD-GUI's own; not run).
+- The two-rows error issue below shows in ZeD-GUI's console too (four rows for the same error).
+
+### Run 3: the release check list
+- `build_luaconsole93.py --check`: FAIL. products/LuaConsole93 differs from a fresh build in 3 files: Molecules.lua, Scale.lua and Tokens.lua (under 42/media/lua/client/LuaConsole93/). A rebuild after the last console-related change in ZeD-GUI (punch list 178's row sizes) is needed before the upload. List A.
+- luaconsole93_sim: 272 checks, 0 failed. kahlua_guard on products/LuaConsole93: RESULT: PASS. The five console sims of ZeD-GUI: 0 failed (inside Part 1's 124 clean sims).
+- mod.info: name Lua Console 93 Professional Edition, id LuaConsole93, modversion 1.0.0, versionMin 42.17.0, url empty, poster.png and icon.png and LICENSE.txt beside it, no require= line. PASS.
+- The pictures: preview.png, poster.png and icon.png are byte-identical to ZeDUI/art/lua_console_93/'s. PASS.
+- "beta" anywhere a player reads: mod.info and README.txt hold no "beta"; workshop_description.bbcode was not at products/LuaConsole93/workshop/ (not found), the pictures not read by eye. Not checked.
+- "Runs 1 and 2 passed on 42.22": they ran on 42.22.2, with the two failures below.
+- The Workshop item and the upload folder: the director's step; not checked.
+
+### List A (real mod bugs), Part 7
+1. products/LuaConsole93 is behind a fresh build by three files (`build_luaconsole93.py --check`: "differs from a fresh build in 3 files": Molecules.lua, Scale.lua, Tokens.lua). Rebuild and commit before the release.
+2. One error run three times is four rows, not one with x3, in Lua Console 93 and in ZeD-GUI's console (two rows there). Lines (alone pass): `ZEDQA lc errrow n=3 box=3 f11=nil mod=#game msg=------------------------------------------------------------- stack=1`, `ZEDQA lc errrow n=6 box=6 f11=nil mod=Lua Console 93 Professional Edition msg=dumping Lua stack trace stack=9`, `ZEDQA lc errrow n=3 box=3 f11=2 mod=Lua Console 93 Professional Edition msg=attempted index: x of non-table: null stack=64`, `ZEDQA lc errrow n=3 box=3 f11=nil mod=Lua Console 93 Professional Edition msg=zombie.ui.UIDebugConsole.ProcessCommand(UIDebugConsole.java:391) stack=47`. Picture: p7/run1/zqa_lc_x_4k_error_stack.png. The game's own box lines (the separator, "dumping Lua stack trace", the Java exception) each become a row with a count, and the Lua error from the F11 list is a fourth; they are not merged.
+3. A print shows as two rows (the director's `print("a","b")` check, here on `print("hello")` and the scratchpad's prints): `ZEDQA lc row print | hello   (x2)`, `ZEDQA lc scratch print row: a mod=#console` with `ZEDQA lc scratch print row: a mod=#game`. Picture: p7/run1/zqa_lc_x_4k_prints.png (each line twice). The same doubling shows in ZeD-GUI's console in Part 4.
+Caveat for 2 and 3: both came through the console's Run route (the same ProcessCommand the box's Enter uses), not typed keys. If a typed line gives one row, the route is the difference; the director's own check by hand settles it.
+
+### List B (test trouble), Part 7
+- The first two alone attempts (above): setup, not the mod.
+- Suggestions read nil: the script cannot type; needs a hand look.
+
+### End of the check
+default.txt put back from its backup and the backup deleted; no LuaConsole93_off.txt existed; the LuaConsole93_* export, snippet and history files this check made in Zomboid/Lua were removed; the staged mod stays, as the sheet says.
+
+## End state confirmation
+- options.ini restored whole from my backup: fullScreen=true, 3840x2160, fontSize=2, language=EN. ModOptions.ini matches its backup. zedqa.autoload reads 0. zedqa.lock reads free. The game is closed. Game speed 1 (every script set it; the game is shut). The ZeD-QA save's mods.txt lists only ZeD_UI. Summer Car's copy removed from Zomboid/mods; LuaConsole93 stays staged on purpose. No background tasks left (the mouse helper was stopped with its stop file; no loops).
+- Committed: the runners' reports (ZeDUI/qa/regression/) and this file; no pictures. My scratch scripts and manifests (_b12r2_*) are not committed and were deleted from the checkout.
