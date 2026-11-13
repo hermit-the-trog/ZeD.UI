@@ -391,7 +391,9 @@ add(300, function()
 end)
 add(900, function() AT.bulkPress(W(), "milkable") end)
 add(900, function() AT.bulkPress(W(), "milk") end)
-waitFor(30000, function() return AQ.run ~= nil and queueNames():find("ISMilkAnimal") ~= nil end, "the milking to start")
+-- (the milking itself under way, its walk to the cow's side over: a walk ends itself on a stick move, so the run
+-- measures a walk-off only from where the walk ended)
+waitFor(30000, function() return AQ.run ~= nil and queueNames():find("^ISMilkAnimal") ~= nil end, "the milking to start")
 add(1500, function()
     E = { q = queueNames(), status = AQ.runStatus() }
     say("walking away from: " .. tostring(E.q) .. " / " .. tostring(E.status))
