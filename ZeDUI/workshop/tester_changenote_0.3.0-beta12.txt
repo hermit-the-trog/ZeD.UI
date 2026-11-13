@@ -27,6 +27,7 @@ Bug fixes
 - Recipes check every skill they need, not only the first.
 - Health's Overall never rounds up to 100%; the damage word has its own line.
 - The moodle note no longer sits over a window, and the moodles no longer block clicks on windows near them.
+- On a long recipe list, Category, Sort and Show open their lists; a recipe below the list no longer takes the click.
 - Fixed: the radio's CH down on channel 01, a placement turned below 0, Previous on an object card, the context strip after a fast scroll, the Tooltip Font option and the hen count in a pen.
 
 One set of rules
