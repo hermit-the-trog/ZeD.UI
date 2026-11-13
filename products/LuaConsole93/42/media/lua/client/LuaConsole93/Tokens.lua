@@ -830,6 +830,12 @@ function LC93.applyTheme(baseKey, accentKey, sizeKey)
     T.minWinW    = SP("minWinW")
     T.minWinH    = SP("minWinH")
 
+    local lineK = 77 / 64
+    local rowSc = size.scale or 1
+    local row1  = math.max(size.inputH, size.buttonH, size.fontF4.px * lineK)
+    T.stripH    = math.floor((row1 + 11 * rowSc) * root + 0.5)
+    T.sortBarH  = math.floor((size.fontF1.px * lineK + 7 * rowSc) * root + 0.5)
+
     T.tempCold = base.tempCold
     T.tempCool = base.tempCool
     T.tempNorm = base.tempNorm
@@ -847,6 +853,8 @@ function LC93.applyTheme(baseKey, accentKey, sizeKey)
 
     T.sp = {}
     for k, v in pairs(LC93.Spacing) do T.sp[k] = (type(v) == "number") and T.px(v) or v end
+    T.sp.tabHeaderH = T.stripH
+    T.sp.colHdrH    = T.sortBarH
     T.sp.figureW = LC93.Spacing.figureW * T.art
     T.sp.figureH = LC93.Spacing.figureH * T.art
     T.grooveH = 2 * T.hair
@@ -865,6 +873,18 @@ function LC93.applyTheme(baseKey, accentKey, sizeKey)
         T.fontF3H = tm:getFontHeight(T.fontF3)
         T.fontF4H = tm:getFontHeight(T.fontF4)
         T.fontF5H = tm:getFontHeight(T.fontF5)
+        if T.fontFallback then
+            T.stripH   = math.max(T.stripH, T.fontF4H + T.px(11))
+            T.sortBarH = math.max(T.sortBarH, T.fontF1H + T.px(7))
+            T.sp.tabHeaderH, T.sp.colHdrH = T.stripH, T.sortBarH
+        end
+    end
+    if LC93.currentSize == "large" then
+        T.sortFont   = T.fontF1
+        T.sortWidthK = (size.fontF1.px * 0.6) / (size.fontF5.px * 0.48)
+    else
+        T.sortFont   = T.fontF5
+        T.sortWidthK = 1
     end
     if LC93.Scale then LC93.Scale._appliedRoot = root end
 

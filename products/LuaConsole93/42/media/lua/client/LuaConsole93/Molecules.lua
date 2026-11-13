@@ -1,7 +1,7 @@
 -- LuaConsole93/42/media/lua/client/LuaConsole93/Molecules.lua
 -- ============================================================================================================
 -- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's Molecules.lua the console uses (44 of its
--- 234 statements).
+-- 233 statements).
 -- Made from ZeD-GUI's 42/media/lua/client/ZeD/Molecules.lua by ZeDUI/tools/products/build_luaconsole93.py. Do
 -- not edit it here: change ZeD-GUI's file and build again.
 -- ============================================================================================================
@@ -97,17 +97,18 @@ function LC93.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, co
     end
 
     local borderColor, textColor
-    if variant == "primary" then
+    if opts.disabled then
+        borderColor = T.borderS
+        textColor = T.text
+    elseif variant == "primary" then
         borderColor = T.accent
         textColor = T.accentText
     elseif variant == "danger" then
         borderColor = T.danger
         textColor = T.dangerText
-        if not opts.disabled then
-            local pulse = math.sin((getTimestampMs() or 0) / 400) * 0.5 + 0.5
-            local fillA = T.dangerPulseMin + pulse * (T.dangerPulseMax - T.dangerPulseMin)
-            A.fillRounded(panel, x, y, w, h, T.danger.r, T.danger.g, T.danger.b, fillA)
-        end
+        local pulse = math.sin((getTimestampMs() or 0) / 400) * 0.5 + 0.5
+        local fillA = T.dangerPulseMin + pulse * (T.dangerPulseMax - T.dangerPulseMin)
+        A.fillRounded(panel, x, y, w, h, T.danger.r, T.danger.g, T.danger.b, fillA)
     else
         borderColor = T.borderS
         textColor = T.text
@@ -123,9 +124,10 @@ function LC93.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, co
     elseif onFocus or (colors and colors.fill and (colors.fill.a or 1) >= 0.5) then
         textColor = T.textOnFocus
     end
+    if colors and colors.border then borderColor = colors.border end
     if onFocus then borderColor = T.textOnFocus end
 
-    if variant == "primary" or opts.default then
+    if not opts.disabled and (variant == "primary" or opts.default) then
         A.borderDoubleRounded(panel, x, y, w, h, borderColor.r, borderColor.g, borderColor.b, (borderColor.a or 1) * alpha)
     else
         A.borderRounded(panel, x, y, w, h, borderColor.r, borderColor.g, borderColor.b, (borderColor.a or 1) * alpha)

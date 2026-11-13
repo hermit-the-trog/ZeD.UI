@@ -1,6 +1,6 @@
 -- LuaConsole93/42/media/lua/client/LuaConsole93/Scale.lua
 -- ============================================================================================================
--- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's Scale.lua the console uses (38 of its 118
+-- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's Scale.lua the console uses (38 of its 127
 -- statements).
 -- Made from ZeD-GUI's 42/media/lua/shared/ZeD/Scale.lua by ZeDUI/tools/products/build_luaconsole93.py. Do not
 -- edit it here: change ZeD-GUI's file and build again.

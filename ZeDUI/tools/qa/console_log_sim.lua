@@ -594,6 +594,70 @@ do
 end
 
 -- ============================================================================
+-- 3b. an error typed into the console in -debug (QA b12 round 2): the box's block is the Lua dump and the Java frames
+--     with no "Exception:" line, the F11 list has the message; both at ZeD_DebugConsole.lua:266. Run 3 times: one row
+--     x3, "Errors: 3", whichever source comes first
+-- ============================================================================
+do
+    local CON_BOX = "ERROR: Lua          f:244> \tLua(Vanilla).console(console:1)\n"
+        .. "\tLua((MOD:ZeD-GUI)).pcall(ZeD_DebugConsole.lua:266)\n"
+        .. "\tLua((MOD:ZeD-GUI)).run(ZeD_DebugConsole.lua:266)\n"
+        .. "\tse.krka.kahlua.vm.KahluaThread.luaMainloop(KahluaThread.java:1108)\n"
+        .. "\tse.krka.kahlua.integration.LuaCaller.protectedCall(LuaCaller.java:109)\n"
+        .. "\tzombie.ui.UIDebugConsole.ProcessCommand(UIDebugConsole.java:391)\n"
+        .. "\tjava.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(Unknown Source)\n"
+        .. "\tzombie.GameWindow.logic(GameWindow.java:391)\n"
+        .. "\tjava.base/java.lang.Thread.run(Unknown Source)\n"
+    local function f11Con()
+        F11add("-----------------------------------------\nattempted index of non-table")
+        F11add("dumping Lua stack trace\n-----------------------------------------\nSTACK TRACE\n-----------------------------------------\n"
+            .. "Lua(Vanilla).console(console:1)\nLua((MOD:ZeD-GUI)).pcall(ZeD_DebugConsole.lua:266)\nLua((MOD:ZeD-GUI)).run(ZeD_DebugConsole.lua:266)")
+    end
+    check("message: a block of Java frames and Lua dump only has none", L.messageOf(CON_BOX) == "")
+    for order = 1, 3 do
+        L.reset(); L.forgetMods()
+        F11.n, F11.list = 0, {}
+        local box, ms = "", 9000
+        local function boxOnce() box = box .. CON_BOX .. P("ran " .. ms); L.feedText(box, ms) end
+        local function f11Once() f11Con(); L.feedErrors(getLuaDebuggerErrors(), getLuaDebuggerErrorCount(), ms) end
+        for i = 1, 3 do
+            ms = ms + 600
+            if order == 1 then boxOnce(); f11Once()
+            elseif order == 2 then f11Once(); boxOnce()
+            else boxOnce() end
+            L.tick(ms + L.FLUSH_MS)
+        end
+        if order == 3 then for i = 1, 3 do ms = ms + 600; f11Once(); L.tick(ms + L.FLUSH_MS) end end
+        local errs = rowsOf("error")
+        local tag = "console error x3 (" .. ({ "box first", "F11 first", "box all, then F11" })[order] .. "): "
+        check(tag .. "the rows shown and kept agree", select(2, L.counts()) == L.last - L.first + 1 and L.shownErr == 1)
+        check(tag .. "one row", #errs == 1, #errs .. " rows: " .. tostring(errs[1] and errs[1].msg) .. " / " .. tostring(errs[2] and errs[2].msg))
+        check(tag .. "counted 3", errs[1] and errs[1].n == 3, errs[1] and errs[1].n)
+        check(tag .. "Errors: 3", L.errTotal == 3, L.errTotal)
+        check(tag .. "the F11 list's message", errs[1] and errs[1].msg == "attempted index of non-table", errs[1] and errs[1].msg)
+        check(tag .. "its place", errs[1] and L.srcOf(errs[1]) == "ZeD_DebugConsole.lua:266" and errs[1].mod == "ZeD-GUI", errs[1] and L.srcOf(errs[1]))
+        check(tag .. "the search finds the message", L.setQuery("non-table") and L.counts() == 1)
+        L.setQuery("")
+    end
+    -- two different errors typed one after the other, at the same place: two rows, one each
+    L.reset(); L.forgetMods()
+    F11.n, F11.list = 0, {}
+    local box = CON_BOX .. P("one")
+    L.feedText(box, 12000); f11Con(); L.feedErrors(getLuaDebuggerErrors(), getLuaDebuggerErrorCount(), 12000)
+    L.tick(12000 + L.FLUSH_MS)
+    L.feedText(box .. CON_BOX .. P("two"), 12600)
+    F11add("-----------------------------------------\nattempt to call nil")
+    F11add("dumping Lua stack trace\nLua((MOD:ZeD-GUI)).pcall(ZeD_DebugConsole.lua:266)")
+    L.feedErrors(getLuaDebuggerErrors(), getLuaDebuggerErrorCount(), 12600)
+    L.tick(12600 + L.FLUSH_MS)
+    local errs = rowsOf("error")
+    check("two console errors at one place: two rows", #errs == 2 and errs[1].n == 1 and errs[2].n == 1 and L.errTotal == 2,
+        #errs .. " rows, total " .. L.errTotal)
+    check("two console errors: each its message", errs[2] and errs[1].msg == "attempted index of non-table" and errs[2].msg == "attempt to call nil",
+        errs[2] and errs[2].msg)
+end
+
+-- ============================================================================
 -- 4. filters and their counts; the search across message, mod, file and every stack line
 -- ============================================================================
 do

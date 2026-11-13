@@ -152,10 +152,15 @@ end
 
 local function isHeadLine(t)
     return t:find("^ERROR") or t:find("^SEVERE") or t:find("^%-%-%-%-") or t:find("^STACK TRACE") or t:find("^dumping")
-        or t:find("^Callframe") or t:find("^function:") or t:find("^Lua%(") or t:find("^se%.krka") or t:find("^at ")
+        or t:find("^Callframe") or t:find("^DEBUG%-MODE STACK TRACE") or t:find("^function:") or t:find("^Lua%(") or t:find("^se%.krka") or t:find("^at ")
+        -- a bare Java frame ("zombie.ui.UIDebugConsole.ProcessCommand(UIDebugConsole.java:391)") is a head line too
+        or t:find("%([%w_%$%.]+%.java:%d+%)$") or t:find("%(Unknown Source%)$") or t:find("%(Native Method%)$")
 end
 --- An error's message in the game's words: "attempted index: x of non-table: null", with the Java class in front and
 --- the "at KahluaThread.tableget(...)." behind taken off; a line that did not compile as the console said it.
+--- A text of head lines only (the box's block for an error typed into the console: Java frames and the Lua dump, no
+--- "Exception:" line) has no message: "" comes back, its first line second (what its row shows until the F11 list
+--- tells the message).
 function L.messageOf(text)
     text = tostring(text or "")
     for l in (text .. "\n"):gmatch("([^\n]*)\n") do
@@ -175,7 +180,7 @@ function L.messageOf(text)
             if not isHeadLine(t) then return t:sub(1, 300) end
         end
     end
-    return (first or ""):sub(1, 300)
+    return "", (first or ""):sub(1, 300)
 end
 
 -- the active mods by lower-case id and name, found once (a print's "[Tag]" or "Tag:" is matched against them)
@@ -256,7 +261,7 @@ end
 function L.clear()
     L.rows, L.first, L.last = {}, 1, 0
     L.vis, L.vfirst, L.vlast = {}, 1, 0
-    L.byKey = {}
+    L.byKey, L.byPlace = {}, {}
     L.cnt = { kind = {}, mod = {}, file = {} }
     L.all = { mod = {}, file = {} }
     L.mods, L.files = {}, {}
@@ -294,6 +299,7 @@ local function dropOldest()
         if r.kind == "error" then L.shownErr = L.shownErr - 1 end
     end
     if r.key and L.byKey[r.key] == r then L.byKey[r.key] = nil end
+    if r.place and L.byPlace[r.place] == r then L.byPlace[r.place] = nil end
     if r.kind == "error" then L.errTotal = L.errTotal - (r.n or 1) end
     r.vis = false
 end
@@ -392,17 +398,88 @@ local function splitLines(text)
     return out
 end
 
+-- the row an error at a place joins: the newest row at that file:line when it has no message yet (the box told it,
+-- the F11 list not yet), or, for an error told without a message, when the other source told it more often than this
+-- one (this source's twin not told yet)
+local function rowAtPlace(place, k, noMsg)
+    local r = place and L.byPlace[place]
+    if not r then return nil end
+    if r.noMsg then return r end
+    if not noMsg then return nil end
+    local other = k == "nF11" and "nBox" or "nF11"
+    if (r[k] or 0) < (r[other] or 0) then return r end
+    return nil
+end
+
+-- a row taken out of the log wherever it sits (a row without a message folded into its twin)
+local function removeRow(s)
+    local at = nil
+    for i = L.last, L.first, -1 do if L.rows[i] == s then at = i; break end end
+    if not at then return end
+    for i = at, L.last - 1 do L.rows[i] = L.rows[i + 1] end
+    L.rows[L.last] = nil
+    L.last = L.last - 1
+    if s.m then count(s, -1) end
+    dropName(L.mods, L.all.mod, s.mod)
+    dropName(L.files, L.all.file, s.file or "")
+    if s.vis then
+        for i = L.vlast, L.vfirst, -1 do
+            if L.vis[i] == s then
+                for j = i, L.vlast - 1 do L.vis[j] = L.vis[j + 1] end
+                L.vis[L.vlast] = nil
+                L.vlast = L.vlast - 1
+                L.shownErr = L.shownErr - 1
+                break
+            end
+        end
+    end
+    if L.byKey[s.key] == s then L.byKey[s.key] = nil end
+    if s.place and L.byPlace[s.place] == s then L.byPlace[s.place] = nil end
+    L.errTotal = L.errTotal - (s.n or 1)
+    s.vis = false
+end
+
+-- an error with its message that already has a row, while the box told it a moment ago without one (a row at the same
+-- place, no message, newer): that row is this sighting's box twin, so its sightings join the row and it goes
+local function foldTwin(r, place, k)
+    local s = place and L.byPlace[place]
+    if not s or s == r or not s.noMsg then return end
+    local other = k == "nF11" and "nBox" or "nF11"
+    if (r[k] or 0) < (r[other] or 0) then return end
+    removeRow(s)
+    r[other] = (r[other] or 0) + (s[other] or 0)
+    if #s.stack > #r.stack then r.stack, r.hay = s.stack, nil end
+end
+
 --- An error, told by a source ("box": the console's box, "f11": the error list), from its whole text. The same message
 --- from the same place is the same row: each source counts its own sightings and the row shows the larger count, so
---- one error both sources tell counts once.
+--- one error both sources tell counts once. The box tells an error typed into the console without its message (only
+--- Java frames and the Lua dump): that row is found by its place, and takes the message when the F11 list tells it.
 function L.addError(text, source, t)
-    local msg = L.messageOf(text)
+    local msg, first = L.messageOf(text)
     local mod, file, line = L.placeOf(text, msg)
+    local place = (file ~= nil and file ~= "" and line ~= nil) and (tostring(file) .. ":" .. tostring(line)) or nil
+    local noMsg = msg == "" and place ~= nil
+    if msg == "" and not noMsg then msg = first or "" end
     local key = msg .. "|" .. tostring(file) .. ":" .. tostring(line)
     local stack = splitLines(text)
+    local k = source == "f11" and "nF11" or "nBox"
     local r = L.byKey[key]
+    if not r or noMsg then r = rowAtPlace(place, k, noMsg) or r
+    elseif not noMsg then foldTwin(r, place, k) end
+    if r and r.noMsg and not noMsg then
+        -- the message at last: the row takes it and its key
+        if L.byKey[r.key] == r then L.byKey[r.key] = nil end
+        r.msg, r.key, r.noMsg, r.hay = msg, key, nil, nil
+        L.byKey[key] = r
+        local was = r.m
+        r.m = matches(r)
+        if was ~= r.m then L.refilter() end
+    end
     if r then
-        local k = source == "f11" and "nF11" or "nBox"
+        -- (a newer row still without its message keeps the place: the F11 list's word for it comes next)
+        local p = place and L.byPlace[place]
+        if place and not (p and p ~= r and p.noMsg) then L.byPlace[place] = r end
         r[k] = (r[k] or 0) + 1
         local n = math.max(r.nF11 or 0, r.nBox or 0)
         if n > r.n then
@@ -420,9 +497,11 @@ function L.addError(text, source, t)
         L.viewRev = L.viewRev + 1
         return r
     end
-    r = { t = t or L.clock(), kind = "error", msg = msg, mod = mod, file = file, line = line, stack = stack, key = key }
-    if source == "f11" then r.nF11 = 1 else r.nBox = 1 end
+    r = { t = t or L.clock(), kind = "error", msg = noMsg and (first or "") or msg, mod = mod, file = file, line = line,
+        stack = stack, key = key, place = place, noMsg = noMsg or nil }
+    r[k] = 1
     L.byKey[key] = r
+    if place then L.byPlace[place] = r end
     return add(r)
 end
 
