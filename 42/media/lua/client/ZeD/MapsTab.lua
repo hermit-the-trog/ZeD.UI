@@ -716,7 +716,7 @@ local function _openSharing(mp, sym, fromPad)
         ui.close = function(self2)
             ISWorldMapSharing.close(self2)
             if ZeD.Input and ZeD.Input.Focus and ZeD.Input.Focus.reclaimEngineFocus then
-                ZeD.Input.Focus.reclaimEngineFocus()
+                ZeD.Input.Focus.reclaimEngineFocus(pn)
             end
         end
     end

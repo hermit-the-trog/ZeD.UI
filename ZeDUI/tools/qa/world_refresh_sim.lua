@@ -408,14 +408,17 @@ local fmEnv = [[
 local Focus, ZeD, FS = ...
 local _focusSoon = FS.soon
 local _cuesOn
+local _st0 = { cues = false }
+local function _pnOf() return 0 end
 local function _zonePanel() return nil end
 local function _fireCb(n, fn, w, a) local ok, e = pcall(fn, w, a); if not ok then print("cb " .. tostring(e)) end end
 ]]
 local DET = { getMode = function() return FS.mode end }
 local ZF = { Input = { Detector = DET, Focus = Focus } }
 do
-    -- _cuesOn is FocusManager's local: the sim keeps it in step with FS.cues through a getter
-    local body = fmEnv .. table.concat(fmParts, "\n") .. "\nreturn _fresh, function(v) _cuesOn = v end"
+    -- the marks are FocusManager's local (_cuesOn before split-screen, player 1's record _st0 since): the sim
+    -- keeps both in step with FS.cues through a setter, so the harness runs on either FocusManager
+    local body = fmEnv .. table.concat(fmParts, "\n") .. "\nreturn _fresh, function(v) _cuesOn = v; _st0.cues = v end"
     local chunk, err = loadstring(body)
     check("STOPS: FocusManager's pieces compile", chunk ~= nil, err)
     if chunk then FS.fresh, FS.setCues = chunk(Focus, ZF, FS) end
