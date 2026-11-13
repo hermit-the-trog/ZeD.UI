@@ -102,6 +102,8 @@ at(170, function()
         if c == "Base.Bag_FishingSatchel" then it:getItemContainer():removeAllItems() end
         if c == "Base.JigLure" then p:getInventory():Remove(it) end
     end
+    -- (the tab reads the bags twice a second; the bait went all at once, so its copy is dropped for the next check)
+    if L._resetCarry then L._resetCarry() end
 end)
 at(200, function()
     local s = st() and st().s
