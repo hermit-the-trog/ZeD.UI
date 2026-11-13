@@ -1,6 +1,7 @@
 -- ZeDUI/tools/qa/fix_fishing_sim.lua (Nov 2026): the Fishing tab's fixes, checked with no game running.
 -- The engine stubs of fishing_tab_sim.lua (the game's fishing tables, its manager and rod, the player), plus counters
--- on the game calls that cost the most, a stand-in for the controller (ZeD.Input.Focus) and the real SpatialNav.lua.
+-- on the game calls that cost the most, a stand-in for the controller (ZeD.Input.Focus) and the real SpatialNav.lua;
+-- the pad scroll checks swap the stand-in for the real FocusManager.lua, so each D-pad press runs as in the game.
 -- The real FishingLog.lua, FishingWall.lua and FishingTab.lua run against them. Checks:
 --   species found     junk the game writes into its caught record is not counted as a species
 --   XP to the next    the Skills tab is asked with the perk's own (translated) name
@@ -10,7 +11,8 @@
 --   per frame         the bags, the shore test and the item names are not read again every frame
 --   hold A            A held on Reel in keeps the line coming in for as long as it is held
 --   pad scroll        at the Deck's size the D-pad brings every part of the list into view, the log's last rows and
---                     More detail's facts too, and walks the list's stops in order
+--                     More detail's facts too, and walks the list's stops in order; Up from a band key then Down
+--                     is that key again; with the list at its end Up from Cast reaches the fold in two presses
 -- Run from the repo root:  lua.exe ZeDUI/tools/qa/fix_fishing_sim.lua   (prints FAIL lines and a last summary line)
 -- An optional first argument is a folder to load the mod's Lua from instead (an older copy, to see the checks fail).
 
@@ -450,114 +452,198 @@ Fishing.ManagerInstances[0] = nil
 bob.fish = nil
 
 -- ---------------------------------------------------------------------------
--- PAD SCROLL: the D-pad as FocusManager runs it (the stop's own onDpadDir first, then back the way it came, then the
--- nearest stop that way by SpatialNav, lined up first) at the Deck's size
+-- PAD SCROLL: the D-pad as the real FocusManager.lua runs it (the stop's own onDpadDir first, then back the way it
+-- came, then the nearest stop that way by SpatialNav, lined up first) at the Deck's size. The sim plays the World
+-- window's part: every frame the tab's stops go in its "worldTabContent" zone, the focus kept on the same stop.
 -- ---------------------------------------------------------------------------
-local function move(w, dir)
-    local f = PAD.focus
-    if f and f.onDpadDir then
-        local r = f.onDpadDir(w, f, dir)
-        if r ~= false then settle(w); return "own" end
+local keepPrint = print
+-- (FocusManager logs every move)
+print = function(m, ...) if type(m) == "string" and m:find("[ZeD.Input]", 1, true) then return end; keepPrint(m, ...) end
+ZeD.Input.Focus = nil   -- (FocusManager builds on a table it finds there: the stand-in goes first)
+ZeD.Input.Detector = { getMode = function() return "gamepad" end }   -- (a claim in gamepad mode shows the marks)
+triggerEvent = function() end
+dofile(ROOT .. "42/media/lua/client/ZeD/Input/FocusManager.lua")
+local F = ZeD.Input.Focus
+ok(F and F.dispatchJoypadDir and F.focusWhere, "the real FocusManager loads")
+local ZONE = "worldTabContent"
+local function padFrame(w)
+    local okR, err = pcall(FT.render, panel(), w, 0, 0, TW, TH)
+    if not okR then ok(false, "the tab draws: " .. tostring(err)) end
+    local stops = FT.buildFocusables(w)
+    local z = w._focusRing[1]
+    local old, keep = z.elements[z.focusedElementIdx or 1], nil
+    if old and old.id then for i, e in ipairs(stops) do if e.id == old.id then keep = i end end end
+    F.setRingZoneElements(w, ZONE, stops, keep)
+    F.setZoneFocusable(w, ZONE, #stops > 0)
+end
+local function padSettle(w) padFrame(w); padFrame(w); padFrame(w) end
+-- the tab opened on its main action (the stop landOn names), as the World window lands it when the tab comes up
+local function padWin(fold)
+    local w = { _playerObj = p, _zedLabel = "world", _focusIdx = 1,
+                _focusRing = { { zone = ZONE, focusable = true, elements = {}, focusedElementIdx = 1 } } }
+    F.registerWindow(w)
+    F.claimFocus(w)
+    FT.state(w).fold = fold and true or false
+    padFrame(w)
+    local land = 1
+    for i, e in ipairs(w._focusRing[1].elements) do if e.id == WW.def.landOn(w) then land = i end end
+    F.setRingZoneElements(w, ZONE, w._focusRing[1].elements, land)
+    padSettle(w)
+    return w
+end
+local function cur(w) return F.getFocusedElement(w) end
+local function curId(w) local e = F.getFocusedElement(w); return e and e.id end
+local function stopIn(w, id) for _, e in ipairs(w._focusRing[1].elements) do if e.id == id then return e end end end
+-- the focus put on stop id as the window lands it (no move to go back along), then the list at pos if given
+local function focusOn(w, id, pos)
+    F.focusWhere(w, ZONE, function(e) return e.id == id end)
+    padSettle(w)
+    if pos then w._fishTab.scroll:setScrollPos(pos); padSettle(w) end
+end
+-- one D-pad press; true when the focus or the list moved
+local function press(w, dir)
+    local id0, pos0 = curId(w), w._fishTab.scroll.scrollPos
+    F.dispatchJoypadDir(w, dir)
+    padSettle(w)
+    return curId(w) ~= id0 or w._fishTab.scroll.scrollPos ~= pos0
+end
+-- the lowest of the list's stops wholly in view, worked out here from the stops' own rects
+local function lowestShown(w)
+    local tab, best = w._fishTab, nil
+    for _, e in ipairs(w._focusRing[1].elements) do
+        if e.listIdx and e.y >= tab.sy and e.y + e.h <= tab.sy + tab.sh and (not best or e.listIdx > best.listIdx) then best = e end
     end
-    local OPP = { up = "down", down = "up", left = "right", right = "left" }
-    if f and PAD.last and PAD.last.dir == OPP[dir] and PAD.last.to == f.id then
-        local e = byId(PAD.last.from)
-        if e then PAD.last = { from = f.id, to = e.id, dir = dir }; PAD.focus = e; settle(w); return "back" end
-    end
-    local best, bt, bc
-    for _, e in ipairs(PAD.stops) do
-        if e ~= f then
-            local t, c = N.cost(f, e, dir)
-            if t and (bt == nil or t < bt or (t == bt and c < bc)) then best, bt, bc = e, t, c end
-        end
-    end
-    if not best then return nil end
-    PAD.last = { from = f.id, to = best.id, dir = dir }
-    PAD.focus = best
-    settle(w)
-    return "spatial"
+    return best
 end
 -- every list row the pad brings fully into view, walking up to the top and down to the band from where it lands
 local function walk(label, opts)
-    local w = newWin()
-    frame(w)
+    local w = padWin(opts and opts.fold)
     local tab = w._fishTab
-    if opts and opts.fold then tab.fold = true; frame(w) end
-    local seen, path = {}, {}
+    local seen = {}
     local function record()
         for i, it in ipairs(tab.items) do
             if it.y >= tab.off and it.y + it.h <= tab.off + tab.sh then seen[i] = true end
         end
-        path[#path + 1] = tostring(PAD.focus and PAD.focus.id) .. "@" .. tostring(tab.off)
     end
-    PAD.focus = byId(WW.def.landOn(w))
-    settle(w); record()
+    focusOn(w, WW.def.landOn(w)); record()
     local ups = 0
-    for _ = 1, 60 do if not move(w, "up") then break end; ups = ups + 1; record() end
+    for _ = 1, 60 do if not press(w, "up") then break end; ups = ups + 1; record() end
     -- (Up ends on the list's first stop: it never goes round through the scroll bar again)
-    ok(ups < 60 and PAD.focus and PAD.focus.listIdx == 1, label .. ": Up comes to rest on the list's first stop (" .. tostring(PAD.focus and PAD.focus.id) .. ")")
-    for _ = 1, 120 do if not move(w, "down") then break end; record() end
+    ok(ups < 60 and cur(w) and cur(w).listIdx == 1, label .. ": Up comes to rest on the list's first stop (" .. tostring(curId(w)) .. ")")
+    for _ = 1, 120 do if not press(w, "down") then break end; record() end
     local never = {}
     for i, it in ipairs(tab.items) do if not seen[i] then never[#never + 1] = it.k .. "#" .. i end end
     ok(#never == 0, label .. ": every row comes into view (never: " .. table.concat(never, ",") .. ")")
-    return w, path
+    return w
 end
+-- Up from band key id, then Down: back on the key, the list where it was
+local function upAndBack(label, id, fold)
+    local w = padWin(fold)
+    focusOn(w, id)
+    local off0 = w._fishTab.off
+    press(w, "up")
+    local onto = curId(w)
+    press(w, "down")
+    ok(onto ~= id and curId(w) == id and w._fishTab.off == off0,
+       label .. ": Up from " .. id .. " (onto " .. tostring(onto) .. ") then Down is " .. id .. " again, the list where it was (" .. tostring(curId(w)) .. ")")
+end
+
 -- no rod in hand, twenty in the log
 p.prim = nil; p.inv = { rodItem("Base.Worm") }; resetCarry()
 L.clearLog(p)
 for i = 1, 20 do land(fishItem("Bluegill", 0.2 + i / 10), false) end
 L.data(p).trip = nil
 w = walk("no rod in hand, 20 in the log")
-ok(PAD.focus and PAD.focus.id == "fish:b:equip", "the walk down ends on the band's Equip rod (" .. tostring(PAD.focus and PAD.focus.id) .. ")")
+ok(curId(w) == "fish:b:equip", "the walk down ends on the band's Equip rod (" .. tostring(curId(w)) .. ")")
 ok(w._fishTab.scroll.scrollPos >= 1, "and the list was scrolled to its end on the way")
--- from the band, Up goes back onto the scroll bar; Up there scrolls the list back a row at a time
-ok(move(w, "up") and PAD.focus.id == "fish:scroll", "Up from the band: back on the scroll bar (" .. tostring(PAD.focus and PAD.focus.id) .. ")")
+-- from the band, Up goes back onto the scroll bar. The wall key has scrolled out of view, so Up there scrolls the list
+-- back a row at a time; Down then takes it down again before it goes on to the band.
+ok(press(w, "up") and curId(w) == "fish:scroll", "Up from the band: back on the scroll bar (" .. tostring(curId(w)) .. ")")
 local pos0 = w._fishTab.scroll.scrollPos
-move(w, "up")
-ok(PAD.focus.id == "fish:scroll" and w._fishTab.scroll.scrollPos < pos0, "Up on the scroll bar scrolls the list back")
+press(w, "up")
+ok(curId(w) == "fish:scroll" and w._fishTab.scroll.scrollPos < pos0, "Up on the scroll bar, no stop in view: the list scrolls back")
 marks = {}
-frame(w)
+padFrame(w)
 local sc = w._fishTab.scroll
 ok(#marks == 1 and marks[1].x == sc.x and marks[1].h == sc.height, "the controller's mark is on the scroll bar")
-ok(PAD.focus.extraPrompts and #PAD.focus.extraPrompts == 1, "the help line says D-pad Scroll")
+ok(cur(w).extraPrompts and #cur(w).extraPrompts == 1, "the help line says D-pad Scroll")
+press(w, "down")
+ok(curId(w) == "fish:scroll" and w._fishTab.scroll.scrollPos >= 1, "Down once the bar has scrolled: the list goes down again, the focus stays on the bar")
+press(w, "down")
+ok(curId(w) == "fish:b:equip", "Down at the list's end: Equip rod (" .. tostring(curId(w)) .. ")")
+-- a fresh tab: Up from Equip rod lands on the bar's foot, right above it, and Down is Equip rod again
+upAndBack("no rod in hand, a fresh tab", "fish:b:equip")
+-- the list at its end: Up from Equip rod onto the bar, then the bar scrolls until the wall key shows, then the wall key
+w = padWin()
+focusOn(w, "fish:b:equip", 1)
+local n = 0
+repeat press(w, "up"); n = n + 1 until (cur(w) and cur(w).listIdx) or n >= 20
+ok(curId(w) == "fish:wall" and w._fishTab.off < w._fishTab.maxOff, "no rod in hand, the list at its end: Up reaches the wall key once the bar has scrolled it into view (" .. n .. " presses)")
+
 -- the ready state: a worm, a cricket, twenty in the log; the fold opened
 p.prim = rodItem("Base.Worm"); p.inv = { item("Base.Worm"), item("Base.Cricket") }; resetCarry()
-local path
-w, path = walk("ready, 20 in the log", { fold = true })
-ok(PAD.focus and PAD.focus.id == "fish:b:cast", "the walk down ends on Cast (" .. tostring(PAD.focus and PAD.focus.id) .. ")")
--- from Cast with the list at its top, Up reaches the list's stops (the scroll bar first, lined up over Cast's end)
-w = newWin()
-frame(w)
-PAD.focus = byId("fish:b:cast")
-settle(w)
-move(w, "up")
-if PAD.focus and PAD.focus.id == "fish:scroll" then move(w, "up") end
-ok(PAD.focus and PAD.focus.listIdx ~= nil and w._fishTab.off == 0,
-   "Up from Cast reaches a list stop within two presses, the list still at its top (" .. tostring(PAD.focus and PAD.focus.id) .. ")")
+w = walk("ready, 20 in the log", { fold = true })
+ok(curId(w) == "fish:b:cast", "the walk down ends on Cast (" .. tostring(curId(w)) .. ")")
+-- a fresh tab: Up from Cast lands on the bar's foot, right above it, and Down is Cast again (the bar does not take the
+-- press back the way it came for a scroll); Up from Add bait into the list (the wall key), and Down is Add bait again
+upAndBack("a fresh tab", "fish:b:cast")
+upAndBack("a fresh tab, More detail open", "fish:b:cast", true)
+upAndBack("a fresh tab", "fish:b:bait")
+-- from Cast with the list at its top, Up reaches the list's stops within two presses (the scroll bar first)
+w = padWin()
+focusOn(w, "fish:b:cast")
+press(w, "up")
+if curId(w) == "fish:scroll" then press(w, "up") end
+ok(cur(w) and cur(w).listIdx ~= nil and w._fishTab.off == 0,
+   "Up from Cast reaches a list stop within two presses, the list still at its top (" .. tostring(curId(w)) .. ")")
+-- the list at its end (the mouse wheel took it there): Up from Cast reaches the fold within two presses, the bar
+-- going straight to the lowest stop in view instead of scrolling the list back to its top first
+for _, fold in ipairs({ false, true }) do
+    w = padWin(fold)
+    focusOn(w, "fish:b:cast", 1)
+    n = 0
+    repeat press(w, "up"); n = n + 1 until curId(w) == "fish:fold" or n >= 2
+    ok(curId(w) == "fish:fold" and w._fishTab.off == w._fishTab.maxOff,
+       "the list at its end" .. (fold and ", More detail open" or "") .. ": Up from Cast reaches the fold within two presses, the list unmoved (" .. tostring(curId(w)) .. ")")
+end
+-- the list halfway: from the bar, Up goes to the lowest stop in view, the list where it was
+w = padWin()
+focusOn(w, "fish:b:cast", 0.5)
+press(w, "up")
+local off0, low = w._fishTab.off, lowestShown(w)
+press(w, "up")
+ok(low ~= nil and curId(w) == low.id and w._fishTab.off == off0,
+   "the list halfway: Up from the bar lands on the lowest stop in view, the list where it was (" .. tostring(curId(w)) .. ", " .. tostring(low and low.id) .. ")")
 -- the list's stops in order: down from the wall key to the fold, though twenty rows apart
-w = newWin()
-frame(w)
-PAD.focus = byId("fish:bait:Base.Cricket")
-settle(w)
+w = padWin()
+focusOn(w, "fish:bait:Base.Cricket")
 marks = {}
-frame(w)
-ok(#marks == 1 and marks[1].y == PAD.focus.y, "the pad on a bait row: the mark on that row only, none on the log's rows (" .. #marks .. " marks)")
-PAD.focus = byId("fish:wall")
-settle(w)
-move(w, "down")
-ok(PAD.focus and PAD.focus.id == "fish:fold", "Down from the wall key: the fold, twenty rows on (" .. tostring(PAD.focus and PAD.focus.id) .. ")")
-move(w, "up")
-ok(PAD.focus and PAD.focus.id == "fish:wall", "Up from the fold: the wall key")
+padFrame(w)
+ok(#marks == 1 and marks[1].y == cur(w).y, "the pad on a bait row: the mark on that row only, none on the log's rows (" .. #marks .. " marks)")
+focusOn(w, "fish:wall")
+press(w, "down")
+ok(curId(w) == "fish:fold", "Down from the wall key: the fold, twenty rows on (" .. tostring(curId(w)) .. ")")
+press(w, "up")
+ok(curId(w) == "fish:wall", "Up from the fold: the wall key")
 -- the line in the water, More detail open: the bait rows locked, the wall key and the fold the list's stops
 mgr.fishingRod.rodItem = p.prim
 bob.fish = nil
 Fishing.ManagerInstances[0] = mgr
 w = walk("line in the water, More detail open", { fold = true })
-ok(w._fishTab.s.state == "wait" and PAD.focus and PAD.focus.id == "fish:b:reel", "the walk down ends on Reel in (" .. tostring(PAD.focus and PAD.focus.id) .. ")")
+ok(w._fishTab.s.state == "wait" and curId(w) == "fish:b:reel", "the walk down ends on Reel in (" .. tostring(curId(w)) .. ")")
+upAndBack("line in the water", "fish:b:reel", true)
 Fishing.ManagerInstances[0] = nil
 -- no bait: the log's rows under the wall key
 p.prim = rodItem(nil); p.inv = {}; resetCarry()
 walk("no bait, 3 in the log")
+-- the wall key is the no-bait list's only stop, at the foot of the view, and Up from Search lands on it. Its Down
+-- carries on onto the scroll bar: the way back from the first stop would leave the log's rows out of reach.
+w = padWin()
+press(w, "up")
+local fromSearch = curId(w)
+press(w, "down")
+ok(fromSearch == "fish:wall" and curId(w) == "fish:scroll",
+   "no bait: Up from Search onto the wall key, then Down goes on to the scroll bar (" .. tostring(fromSearch) .. ", " .. tostring(curId(w)) .. ")")
 -- a fresh game: the log empty, the fold opened, every fact of More detail
 p.prim = rodItem("Base.Worm"); p.inv = { item("Base.Worm"), item("Base.Cricket") }; resetCarry()
 L.clearLog(p)
@@ -565,13 +651,12 @@ L.data(p).trip = nil
 walk("ready, empty log, More detail open", { fold = true })
 -- a list that fits: no scroll stop, Down from the last stop goes straight to the band
 TH = math.floor(1400 * SCALE)
-w = newWin()
-frame(w)
-ok(byId("fish:scroll") == nil, "a list that fits has no scroll stop")
-PAD.focus = byId("fish:fold")
-settle(w)
-move(w, "down")
-ok(PAD.focus and PAD.focus.id:sub(1, 7) == "fish:b:", "Down from the last stop: the band (" .. tostring(PAD.focus and PAD.focus.id) .. ")")
+w = padWin()
+ok(stopIn(w, "fish:scroll") == nil, "a list that fits has no scroll stop")
+focusOn(w, "fish:fold")
+press(w, "down")
+ok(curId(w) and curId(w):sub(1, 7) == "fish:b:", "Down from the last stop: the band (" .. tostring(curId(w)) .. ")")
 
+print = keepPrint
 print(string.format("fix_fishing_sim: %d pass, %d fail", pass, fail))
 os.exit(fail == 0 and 0 or 1)

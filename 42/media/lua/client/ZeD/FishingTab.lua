@@ -1150,12 +1150,33 @@ end
 -- THE CONTROLLER IN THE LIST. Up and Down walk the list's stops in the list's own order, and follow() scrolls
 -- each one in. A spatial pick would not do: a stop scrolled out of sight below the list sits under the band on
 -- screen, so Down from the stop above it landed on the band and the rest of the list was out of reach. Past the
--- last stop Down goes on to the scroll bar while more of the list lies below; there Up and Down move the list a
--- row a press. At the bar's bottom end Down is the window's own move (to the band); at its top end Up goes back
--- to the lowest of the list's stops in view (the bar's rect sits below them all, so the window's move would find
--- nothing above). Left and Right, and Up from the first stop, are always the window's.
+-- last stop Down goes on to the scroll bar while more of the list lies below; there Down moves the list a row a
+-- press, and at the bar's bottom end Down is the window's own move (to the band). Up on the bar goes to the
+-- lowest of the list's stops in view; only while none is in view does it move the list back a row a press (at
+-- the top with none in view, the first stop: follow() brings it in). The way back comes first, as everywhere in
+-- the window: a press opposite to the window's own last move goes back where that move started. Up from Cast
+-- lands on the bar's foot, right above it, and Down is Cast again; Up from Add bait into the list, and Down is
+-- Add bait. On the bar that holds until the bar moves the list; on the first stop Down always carries on (listDir).
+-- Left and Right, and Up from the first stop, are always the window's.
 local FOCUS_ZONE = "worldTabContent"   -- (the World window's zone for a tab's stops)
 local function isScrollStop(e) return e.id == "fish:scroll" end
+-- The press goes back the way the focus came: the window's last move (FocusManager keeps it in w._navLast; a move
+-- made here through focusWhere leaves none) landed on el, and this press is its opposite. The stop then hands the
+-- press on, and FocusManager takes the focus back to where that move started.
+local OPP = { up = "down", down = "up", left = "right", right = "left" }
+local function wayBack(w, el, dir)
+    local last = w._navLast
+    return last ~= nil and last.toId == el.id and last.dir == OPP[dir]
+end
+-- the lowest of the list's stops wholly in view (its place in the list's order), or nil
+local function lowestInView(st)
+    local cys, hs, off, sh = st.listCy or {}, st.listH or {}, st.off or 0, st.sh or 0
+    for i = st.nList or 0, 1, -1 do
+        local cy, h = cys[i], hs[i]
+        if cy and h and cy >= off and cy + h <= off + sh then return i end
+    end
+    return nil
+end
 -- the focus onto the first stop pred takes, with the tick a D-pad move makes (focusWhere itself is silent)
 local function focusStop(w, pred)
     local Fo = ZeD.Input and ZeD.Input.Focus
@@ -1168,6 +1189,10 @@ local function listDir(w, el, dir)
     if dir ~= "up" and dir ~= "down" then return false end
     local st = w._fishTab
     if not (st and el.listIdx) then return false end
+    -- the way back, except Down from the first stop: with no stop above it to step to, a list entered there would
+    -- have no way on (at the Deck's size the no-bait list's one stop, the wall key, sits at the foot of the view
+    -- and takes the band's Up from both keys; its Down is the only way onto the scroll bar)
+    if wayBack(w, el, dir) and not (dir == "down" and el.listIdx == 1) then return false end
     local want = el.listIdx + ((dir == "down") and 1 or -1)
     if want < 1 then return false end
     if want > (st.nList or 0) then
@@ -1181,22 +1206,25 @@ local function scrollDir(w, el, dir)
     local st = w._fishTab
     local sc = st and st.scroll
     if not (sc and sc.visible) or (dir ~= "up" and dir ~= "down") then return false end
+    -- (the way back, until the bar moves the list: the bar's onFocus starts each visit with st.barMoved clear)
+    if wayBack(w, el, dir) and not st.barMoved then return false end
     local pos = sc.scrollPos or 0
-    if dir == "down" and pos >= 1 then return false end
-    if dir == "up" and pos <= 0 then
-        -- the top: the lowest list stop wholly in view, else the first (follow() brings it in)
-        local n, off, sh = st.nList or 0, st.off or 0, st.sh or 0
-        if n == 0 then return false end
-        local want = 1
-        for i = n, 1, -1 do
-            local cy, h = st.listCy[i], st.listH[i]
-            if cy and cy >= off and cy + h <= off + sh then want = i; break end
-        end
-        return focusListStop(w, want)
-    end
     local maxOff = st.maxOff or 0
     local step = (maxOff > 0) and (px(ROW_H) / maxOff) or 1
-    sc:setScrollPos(pos + ((dir == "down") and step or -step))
+    if dir == "down" then
+        if pos >= 1 then return false end
+        sc:setScrollPos(pos + step)
+    else
+        local want = lowestInView(st)
+        if want or pos <= 0 then
+            -- a stop in view, or the top with none: the stop (the first one at the top; follow() brings it in)
+            if not want and (st.nList or 0) > 0 then want = 1 end
+            if not want then return false end
+            return focusListStop(w, want)
+        end
+        sc:setScrollPos(pos - step)
+    end
+    st.barMoved = true
     return true
 end
 -- A held on Reel in / Let out line: the first pull now, then FT.drawBand keeps it going while A stays down
@@ -1223,7 +1251,8 @@ function FT.buildFocusables(win)
     local out = {}
     local sy, off, x0, cw = st.sy or 0, st.off or 0, st.x or 0, st.cw or 0
     -- (every stop, in view or not: Up and Down walk them in order and follow() scrolls each in. Where each one
-    -- sits in the list is kept for the scroll bar's top end, in two tables the tab keeps)
+    -- sits in the list is kept for the scroll bar's Up, which goes to the lowest one in view, in two tables the
+    -- tab keeps)
     local n = 0
     st.listCy, st.listH = st.listCy or {}, st.listH or {}
     local function clip(e)
@@ -1252,12 +1281,13 @@ function FT.buildFocusables(win)
     -- the scroll bar, while the list runs past its view (no `fish` mark: follow() leaves the list where it scrolled).
     -- Its rect for the D-pad is the bar below the last stop, a sliver at the bar's foot when that stop is lower: no
     -- stop of the list has the bar above it, so Up from the first stop never lands there. The mark covers the bar.
+    -- Landing on it clears st.barMoved: the press back the way the focus came is the window's until the bar scrolls.
     local sc = st.scroll
     if sc and sc.visible then
         local last = out[n]
         local top = math.max(sc.y, math.min(last and (last.y + last.h) or sc.y, sc.y + sc.height - 2))
         out[#out + 1] = { x = sc.x, y = top, w = sc.width, h = sc.y + sc.height - top, id = "fish:scroll", isGridScroll = true,
-                          extraPrompts = scrollPrompts(), onFocus = function() end, onDpadDir = scrollDir }
+                          extraPrompts = scrollPrompts(), onFocus = function() st.barMoved = nil end, onDpadDir = scrollDir }
     end
     for _, r in ipairs(st.band or {}) do
         local b = r.b
