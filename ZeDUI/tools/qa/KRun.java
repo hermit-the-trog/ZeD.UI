@@ -13,7 +13,8 @@ import java.nio.file.*;
 //   "<game>/jre64/bin/java" -Duser.dir="<game>" -cp "<dir>;<game>/projectzomboid.jar" KRun <sim, absolute> [args...]
 // (Kahlua loads its stdlib.lua from the working folder, which -Duser.dir points at the game's; so give every path
 // whole.) The sim gets arg[1..] and two globals: kread(path), the file's text (UTF-8) or nil, and kload(path), the
-// file compiled as a chunk (like loadfile). It sets KRUN_EXIT to the exit code it wants; an error exits 2.
+// file compiled as a chunk (like loadfile). It sets KRUN_EXIT to the exit code it wants; an error exits 2 (a Lua
+// error, a sim that does not compile or cannot be read, or no sim named).
 public class KRun {
     static Object env;
     static Method loadisReader;
@@ -72,7 +73,16 @@ public class KRun {
         Object argt = platC.getMethod("newTable").invoke(platform);
         for (int i = 1; i < args.length; i++) rawset.invoke(argt, (double) i, args[i]);
         rawset.invoke(env, "arg", argt);
-        Object c = compile(args[0]);
+        // (a sim that does not compile, or none named, is an error too: 2, never the 1 a sim sets for failed checks)
+        Object c;
+        try {
+            if (args.length == 0) throw new IllegalArgumentException("no sim named (KRun <sim, absolute> [args...])");
+            c = compile(args[0]);
+        } catch (Exception e) {
+            System.out.println("KRUN ERROR: " + ((e instanceof InvocationTargetException) ? e.getCause() : e));
+            System.exit(2);
+            return;
+        }
         Object[] res = (Object[]) threadC.getMethod("pcall", Object.class, Object[].class).invoke(thread, c, new Object[0]);
         if (res.length > 0 && Boolean.FALSE.equals(res[0])) {
             System.out.println("KRUN ERROR: " + (res.length > 1 ? res[1] : "?"));

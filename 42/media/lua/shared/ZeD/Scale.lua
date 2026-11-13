@@ -632,7 +632,8 @@ end
 -- past the font's table draws "?"). ZeD's font lists put two faces nothing else draws with on two
 -- slots: Noto Sans SC on Cred1 (ZeD's simplified Chinese face: a 32 px distance-field face,
 -- 42/media/fonts/sdf/notoSC.fnt, from ZeDUI/tools/fonts/bake_sdf_sc.py, with ASCII, Latin-1, the 3,755
--- GB2312 level-1 letters and CJK punctuation) and the game's Japanese face on DebugConsole. A string
+-- GB2312 level-1 letters, CJK punctuation and every other letter ZeD's and the game's Simplified Chinese
+-- strings use) and the game's Japanese face on DebugConsole. A string
 -- with a letter its face lacks is drawn and measured in whichever of those faces draws the most of its
 -- letters, at the face's letter size and on its baseline. Decided once per string (kept, two
 -- generations), glyphs probed once per face. One face draws a whole string, so a letter none of them
@@ -647,9 +648,11 @@ end
 --     game's Chinese face is Noto Sans TC, a traditional set with no simplified-only letters (U+72B6
 --     U+6001 "status", U+56FE "map", U+4EEC, U+8FD9 ...), so under Simplified Chinese most lines lost
 --     letters, with no gap where they were, until they drew in Noto Sans SC this way.
--- The game's own lists for those five languages reload Cred1 with its credits face, so ZeD ships copies
--- of them without that slot (42/media/fonts/CN, CH, JP, KO, TH/fonts.txt, the game's lists as they were,
--- minus Cred1): Noto Sans SC stays loaded in every language. The second Cred1 row below keeps the game's
+-- The game's own lists for Chinese, Traditional Chinese, Japanese and Korean reload Cred1 with its Latin-only
+-- credits face, so ZeD ships copies of them without that slot (42/media/fonts/CN, CH, JP, KO/fonts.txt, the
+-- game's lists as they were, minus Cred1): Noto Sans SC stays loaded in those languages. Thai keeps the game's
+-- list: its Cred1 is a Thai credits face (Niramit, 87 Thai letters) that the game's windows draw Thai in, and
+-- Noto Sans SC has no Thai. The second Cred1 row below keeps the game's
 -- Chinese face working if another mod's list names it there (one row per slot is taken).
 -- ---------------------------------------------------------------------------
 local SCRIPT_SLOTS = {
@@ -748,27 +751,65 @@ local function sfMetrics(font, e)
     return m
 end
 
+--- `str` cut at each line break: a list of its lines (an empty line is ""). A string drawn in a swapped face draws
+--- one line at a time, because the engine's zoomed draw steps down by the face's own unzoomed line height.
+function X.lines(str)
+    local out, i = {}, 1
+    while true do
+        local j = string.find(str, "\n", i, true)
+        if not j then
+            out[#out + 1] = string.sub(str, i)
+            return out
+        end
+        out[#out + 1] = string.sub(str, i, j - 1)
+        i = j + 1
+    end
+end
+
+-- Punctuation and symbols past ASCII: Latin-1's, General Punctuation (quote marks, the ellipsis, U+2027),
+-- CJK punctuation and the full-width forms' punctuation. Everything else past ASCII counts as a letter.
+local function sfPunct(c)
+    return (c >= 0xA0 and c <= 0xBF) or c == 0xD7 or c == 0xF7 or (c >= 0x2000 and c <= 0x206F)
+        or (c >= 0x3000 and c <= 0x303F) or (c >= 0xFF01 and c <= 0xFF0F) or (c >= 0xFF1A and c <= 0xFF20)
+        or (c >= 0xFF3B and c <= 0xFF40) or (c >= 0xFF5B and c <= 0xFF65)
+end
+
+-- Which face draws `str`: false for the face it is in (SF.zedFont), or the entry of the face with more of its
+-- letters. Letters count first and punctuation only breaks a tie. A line whose letters are all there but a quote
+-- mark is missing moves only to ZeD's own Noto Sans SC (sharp at any size, and the Chinese UI's own letterforms)
+-- and only when it has every letter: the game's Japanese face is a bitmap zoomed to the stand-in's size, soft and
+-- in Japanese letterforms, a poor trade for a quote mark.
 local function sfScan(str)
     local n = #str
     local zf = SF.zedFont
-    local wide, miss = 0, 0
+    local wide, miss, wideL, missL = 0, 0, 0, 0
     for i = 1, n do
         local c = string.byte(str, i)
         if c and c >= 128 then
+            local letter = not sfPunct(c)
             wide = wide + 1
-            if not sfHas(zf, c, str, i) then miss = miss + 1 end
+            if letter then wideL = wideL + 1 end
+            if not sfHas(zf, c, str, i) then
+                miss = miss + 1
+                if letter then missL = missL + 1 end
+            end
         end
     end
     if miss == 0 then return false end
-    local best, bestN = false, wide - miss
+    local best, bestL, bestN = false, wideL - missL, wide - miss
     for k = 1, #SF.fonts do
         local e = SF.fonts[k]
-        local got = 0
-        for i = 1, n do
-            local c = string.byte(str, i)
-            if c and c >= 128 and sfHas(e.font, c, str, i) then got = got + 1 end
+        if missL > 0 or e.own then
+            local got, gotL = 0, 0
+            for i = 1, n do
+                local c = string.byte(str, i)
+                if c and c >= 128 and sfHas(e.font, c, str, i) then
+                    got = got + 1
+                    if not sfPunct(c) then gotL = gotL + 1 end
+                end
+            end
+            if gotL > bestL or (gotL == bestL and got > bestN) then best, bestL, bestN = e, gotL, got end
         end
-        if got > bestN then best, bestN = e, got end
     end
     return best
 end
@@ -812,9 +853,19 @@ function X.standInSwap(str, font, z)
     return e.font, zz, z * a.base - b.base * zz
 end
 
---- Width in screen px of `str` in role font `font` at zoom z, in the face that draws it.
+--- Width in screen px of `str` in role font `font` at zoom z, in the face that draws it. While the game's faces
+--- stand in, a string of several lines is as wide as its widest line, each line in the face that draws it (the
+--- lines draw one at a time: Overrides/TextScale.lua).
 function X.roleWidth(font, str, z)
     local sf, zz
+    if X.fallback and string.find(str, "\n", 1, true) and X.standInSwap(str, font, z) then
+        local w, lines = 0, X.lines(str)
+        for k = 1, #lines do
+            local lw = X.roleWidth(font, lines[k], z)
+            if lw > w then w = lw end
+        end
+        return w
+    end
     if X.fallback then
         sf, zz = X.standInSwap(str, font, z)
     elseif z ~= 1 then
@@ -947,6 +998,84 @@ function TM:getFontFromEnum(font)
     S._fontProxy[font] = { z = z, real = real, proxy = proxy }
     return proxy
 end
+-- Java's String.split: pieces between each `sep` (plain), trailing empty pieces dropped.
+local function javaSplit(str, sep)
+    local out, i, n = {}, 1, #sep
+    while true do
+        local j = string.find(str, sep, i, true)
+        if not j then out[#out + 1] = string.sub(str, i); break end
+        out[#out + 1] = string.sub(str, i, j - 1)
+        i = j + n
+    end
+    if #out == 1 then return out end   -- (no separator: the string itself, even "")
+    while #out > 0 and out[#out] == "" do out[#out] = nil end
+    return out
+end
+--- WrapText(font, str, w, maxLines, suffix): `str` broken into lines no wider than w (at spaces; a word too wide
+--- for a line is cut into pieces ending "-"), cut to maxLines with `suffix` on the last when there are more.
+--- The engine's own does the work, except while the game's faces stand in and `str` draws in a swapped face:
+--- the engine would measure it in the stand-in, where a letter it lacks is 0 wide, and the line drawn in the
+--- swapped face would run past w by an em per such letter. Then this port of the engine's WrapText (42.22)
+--- measures through ZeD.TM, in the face each word draws in.
+function TM:WrapText(font, str, w, maxLines, suffix)
+    maxLines = maxLines or -1
+    suffix = suffix or ""
+    if not (X.fallback and type(str) == "string" and X.standInSwap(str, font, 1)) then
+        local real = X.realTM()
+        return real:WrapText(font, str, w, maxLines, suffix)
+    end
+    local out = {}
+    local space = TM:MeasureStringX(font, " ")
+    local paras = javaSplit((string.gsub(str, "\r\n", "\n")), "\n")
+    for p = 1, #paras do
+        local para = paras[p]
+        if TM:MeasureStringX(font, para) <= w then
+            out[#out + 1] = para
+        else
+            local words, cur, curW = javaSplit(para, " "), {}, 0
+            for i = 1, #words do
+                local word = words[i]
+                local ww = TM:MeasureStringX(font, word)
+                local t = curW + ww
+                if t > w then
+                    if #cur == 0 then
+                        local per = math.max(math.floor(w / t * #word) - 1, 5)
+                        local pieces = math.ceil(#word / per)
+                        for j = 0, pieces - 2 do
+                            out[#out + 1] = string.sub(word, j * per + 1, (j + 1) * per) .. "-"
+                        end
+                        local last = string.sub(word, (pieces - 1) * per + 1)
+                        cur[1] = last
+                        curW = TM:MeasureStringX(font, last) + space
+                    else
+                        out[#out + 1] = table.concat(cur, " ")
+                        cur = { word }
+                        curW = ww + space
+                    end
+                else
+                    cur[#cur + 1] = word
+                    curW = t + space
+                end
+                if i == #words then
+                    out[#out + 1] = table.concat(cur, " ")
+                    cur, curW = {}, 0
+                end
+            end
+        end
+    end
+    if maxLines > 0 and #out > maxLines then
+        local sw = TM:MeasureStringX(font, suffix)
+        local last = out[maxLines]
+        if w - TM:MeasureStringX(font, last) < sw then
+            out[maxLines] = string.sub(last, 1, math.max(#last - #suffix, 0)) .. suffix
+        else
+            out[maxLines] = last .. suffix
+        end
+        for k = #out, maxLines + 1, -1 do out[k] = nil end
+    end
+    return table.concat(out, "\n")
+end
+
 -- Any other method: wrapped once and cached on TM (the TextManager is a singleton; the wrapper
 -- re-fetches it per call so a Lua reload never holds a stale object). Plain values pass through.
 setmetatable(TM, { __index = function(t, k)

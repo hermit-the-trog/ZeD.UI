@@ -27,7 +27,16 @@
 --   KEEP     a line the face draws whole (Latin, or letters both Chinese faces share) takes the original call, as before
 --   PROBE    the byte string draws in the face it always did (no swap): its Latin-1 characters, the 0x80-0x9F ones as
 --            nothing, which is the mojibake the PC probe saw
---   LISTS    ZeD's CN, CH, JP, KO and TH font lists are the game's own minus Cred1
+--   PITCH    (Chinese) a swapped string of several lines draws one line at a time, a stand-in line apart, and
+--            measures as wide as its widest line
+--   WRAP     (Chinese) ZeD.TM:WrapText breaks a swapped line by the widths it draws at; other lines go to the engine's
+--   THAI     Thai keeps the game's list, so Cred1 is the Thai credits face and draws Thai
+--   KRUN     (Lua 5.1, with ZED_KRUN = the folder KRun.class is in) KRun exits 2 for a sim that does not compile
+--   WHOLE    (Chinese) every line of ZeD's CN strings draws with all its characters, in the stand-in or the face the
+--            swap picks (UI_ZeD_Cook_NoIngredients once lost U+6CA1 "not" and read as its opposite)
+--   PUNCT    (Traditional Chinese) a line missing only quote marks stays in the stand-in rather than move to the soft
+--            Japanese bitmap; (Chinese) quote marks round letters the stand-in has draw whole in Noto Sans SC
+--   LISTS    ZeD's CN, CH, JP and KO font lists are the game's own minus Cred1; ZeD ships no TH list
 -- With an older Scale.lua given (ZED_OLD_SCALE, or the third argument under Kahlua) it also shows that code drawing
 -- the line in the stand-in with two of its four letters.
 --
@@ -94,21 +103,40 @@ end
 
 -- strings the way the game makes them ------------------------------------------------------------------------------
 local CP   -- CP(s, i): the letter at i, as the game reads it (string.byte of a Java string's character)
+local poolReset   -- (Lua 5.1) poolReset(keep): start the private bytes over, every byte 0x80-0xFF but those in keep
+local poolFree    -- (Lua 5.1) how many private bytes are left
 if KAHLUA then
     CP = function(s, i) return string.byte(s, i) end
 else
-    local nativeChar, POOL, BACK, nextB = string.char, {}, {}, 0xC0
+    -- ZeD.Text reads a character past ASCII as punctuation or a letter by its code (Scale.lua's sfPunct), and under
+    -- Lua 5.1 it sees the private byte: so punctuation past U+00FF takes a byte in Latin-1's punctuation and a letter
+    -- one outside it.
+    local function punctByte(b) return (b >= 0xA0 and b <= 0xBF) or b == 0xD7 or b == 0xF7 end
+    local function punctCp(c)
+        return (c >= 0x2000 and c <= 0x206F) or (c >= 0x3000 and c <= 0x303F) or (c >= 0xFF01 and c <= 0xFF0F)
+            or (c >= 0xFF1A and c <= 0xFF20) or (c >= 0xFF3B and c <= 0xFF40) or (c >= 0xFF5B and c <= 0xFF65)
+    end
+    local nativeChar, POOL, BACK, FREE, FREEP = string.char, {}, {}, {}, {}
+    for b = 0xDF, 0xC0, -1 do if not punctByte(b) then FREE[#FREE + 1] = b end end
     local function map(cp)
         if cp < 256 then return cp end
         local b = POOL[cp]
         if not b then
-            if nextB > 0xDF then error("sim: more than 32 letters past U+00FF") end
-            b = nextB
-            nextB = nextB + 1
+            b = table.remove(punctCp(cp) and FREEP or FREE)
+            if not b then error("sim: out of private bytes for letters past U+00FF") end
             POOL[cp], BACK[b] = b, cp
         end
         return b
     end
+    poolReset = function(keep)
+        POOL, BACK, FREE, FREEP = {}, {}, {}, {}
+        for b = 0xFF, 0x80, -1 do
+            if not keep[b] then
+                if punctByte(b) then FREEP[#FREEP + 1] = b else FREE[#FREE + 1] = b end
+            end
+        end
+    end
+    poolFree = function(punct) return punct and #FREEP or #FREE end
     -- (Kahlua's string.char takes code points; the production code probes faces with it)
     string.char = function(...)
         local t = { ... }
@@ -134,29 +162,19 @@ local function fontAt(path)
     if f then return f end
     local t = readFile(path)
     if not t then error("sim: no font file " .. path) end
-    f = { path = path, text = t, sdf = false, g = {}, lh = 0 }
-    for id, h, y in string.gmatch(t, "char id=(%d+)[^\n]-height=(%d+)[^\n]-yoffset=(%-?%d+)") do
-        if id ~= "32" then
-            local r = tonumber(h) + tonumber(y)
-            if r > f.lh then f.lh = r end
-        end
+    f = { path = path, sdf = false, g = {}, lh = 0 }
+    -- (every letter read once: the corpus checks below look up thousands)
+    for id, w, h, y, adv in string.gmatch(t,
+        "char id=(%d+)%s+x=%-?%d+%s+y=%-?%d+%s+width=(%-?%d+)%s+height=(%-?%d+)%s+xoffset=%-?%d+%s+yoffset=(%-?%d+)%s+xadvance=(%-?%d+)") do
+        local g = { adv = tonumber(adv), w = tonumber(w), y = tonumber(y), h = tonumber(h) }
+        f.g[tonumber(id)] = g
+        if id ~= "32" and g.h + g.y > f.lh then f.lh = g.h + g.y end
     end
     FONTS[path] = f
     return f
 end
 local function glyph(f, cp)
-    local g = f.g[cp]
-    if g == nil then
-        g = false
-        local a = string.find(f.text, "\nchar id=" .. cp .. " ", 1, true)
-        if a then
-            local line = string.match(f.text, "[^\n]+", a + 1)
-            g = { adv = tonumber(string.match(line, "xadvance=(%-?%d+)")), w = tonumber(string.match(line, "width=(%-?%d+)")),
-                  y = tonumber(string.match(line, "yoffset=(%-?%d+)")), h = tonumber(string.match(line, "height=(%-?%d+)")) }
-        end
-        f.g[cp] = g
-    end
-    return g or nil
+    return f.g[cp]
 end
 
 UIFont = {}
@@ -213,6 +231,63 @@ function TMs:MeasureStringY(u, s) local n = 1; for _ in string.gmatch(tostring(s
 function TMs:getFontHeight(u) return slotFont(u).lh end
 function TMs:isSdf(u) return slotFont(u).sdf end
 function TMs:getFontFromEnum() return nil end
+-- TextManager.WrapText as 42.22.2 has it (javap): lines split at line breaks, a line too wide split at spaces, a word
+-- too wide cut into pieces ending "-", the rest past maxLines dropped and the suffix put on the last. It measures
+-- with the engine's own MeasureStringX, in the slot's face.
+local function jsplit(s, sep)
+    local out, i = {}, 1
+    while true do
+        local j = string.find(s, sep, i, true)
+        if not j then out[#out + 1] = string.sub(s, i); break end
+        out[#out + 1] = string.sub(s, i, j - 1)
+        i = j + #sep
+    end
+    if #out == 1 then return out end
+    while #out > 0 and out[#out] == "" do out[#out] = nil end
+    return out
+end
+TMs.wraps = 0
+function TMs:WrapText(u, s, w, maxLines, suffix)
+    TMs.wraps = TMs.wraps + 1
+    local out, sp = {}, self:MeasureStringX(u, " ")
+    for _, para in ipairs(jsplit(s, "\n")) do
+        if self:MeasureStringX(u, para) <= w then
+            out[#out + 1] = para
+        else
+            local words, cur, curW = jsplit(para, " "), {}, 0
+            for i, word in ipairs(words) do
+                local t = curW + self:MeasureStringX(u, word)
+                if t > w then
+                    if #cur == 0 then
+                        local per = math.max(math.floor(w / t * #word) - 1, 5)
+                        local pieces = math.ceil(#word / per)
+                        for j = 0, pieces - 2 do out[#out + 1] = string.sub(word, j * per + 1, (j + 1) * per) .. "-" end
+                        cur = { string.sub(word, (pieces - 1) * per + 1) }
+                        curW = self:MeasureStringX(u, cur[1]) + sp
+                    else
+                        out[#out + 1] = table.concat(cur, " ")
+                        cur = { word }
+                        curW = self:MeasureStringX(u, word) + sp
+                    end
+                else
+                    cur[#cur + 1] = word
+                    curW = t + sp
+                end
+                if i == #words then out[#out + 1] = table.concat(cur, " "); cur, curW = {}, 0 end
+            end
+        end
+    end
+    if maxLines > 0 and #out > maxLines then
+        local last = out[maxLines]
+        if w - self:MeasureStringX(u, last) < self:MeasureStringX(u, suffix) then
+            out[maxLines] = string.sub(last, 1, math.max(#last - #suffix, 0)) .. suffix
+        else
+            out[maxLines] = last .. suffix
+        end
+        for k = #out, maxLines + 1, -1 do out[k] = nil end
+    end
+    return table.concat(out, "\n")
+end
 
 -- the font lists, merged as TextManager.Init merges them ------------------------------------------------------------
 local function readList(path)
@@ -540,8 +615,285 @@ if OLD and OLD ~= "" then
     report("CN, old Scale.lua", d, LINE)
 end
 
--- LISTS: ZeD's copies are the game's own minus Cred1
-for _, L in ipairs({ "CN", "CH", "JP", "KO", "TH" }) do
+-- ZeD's translation files ------------------------------------------------------------------------------------------
+-- The text as code points: under Kahlua a Java string already is; under Lua 5.1 the UTF-8 is decoded.
+local function codepoints(t)
+    local out, n = {}, #t
+    if KAHLUA then
+        for i = 1, n do out[i] = string.byte(t, i) end
+        return out
+    end
+    local i = 1
+    while i <= n do
+        local c = string.byte(t, i)
+        local cp, len = c, 1
+        if c >= 0xF0 then cp, len = c % 8, 4
+        elseif c >= 0xE0 then cp, len = c % 16, 3
+        elseif c >= 0xC0 then cp, len = c % 32, 2 end
+        for k = 1, len - 1 do cp = cp * 64 + string.byte(t, i + k) % 64 end
+        out[#out + 1] = cp
+        i = i + len
+    end
+    return out
+end
+-- Every "key": "value" pair of a translation file: { key = the key, cps = the value's code points }, in file order.
+local function jsonPairs(path)
+    local t = readFile(path)
+    if not t then return nil end
+    local cps, out, i, n = codepoints(t), {}, 1, 0
+    n = #cps
+    local function str(at)   -- the string opening at cps[at] (a quote): its code points, and the index past it
+        local s, k = {}, at + 1
+        while k <= n and cps[k] ~= 34 do
+            local c = cps[k]
+            if c == 92 then
+                k = k + 1
+                local e = cps[k]
+                if e == 110 then c = 10 elseif e == 116 then c = 9 elseif e == 114 then c = 13
+                elseif e == 117 then
+                    c = 0
+                    for d = 1, 4 do
+                        local h = cps[k + d]
+                        c = c * 16 + ((h <= 57) and (h - 48) or ((h % 32) + 9))
+                    end
+                    k = k + 4
+                else c = e end
+            end
+            s[#s + 1] = c
+            k = k + 1
+        end
+        return s, k + 1
+    end
+    while i <= n do
+        if cps[i] == 34 then
+            local key, j = str(i)
+            while j <= n and (cps[j] == 32 or cps[j] == 9 or cps[j] == 13 or cps[j] == 10) do j = j + 1 end
+            if cps[j] == 58 then
+                j = j + 1
+                while j <= n and (cps[j] == 32 or cps[j] == 9 or cps[j] == 13 or cps[j] == 10) do j = j + 1 end
+                if cps[j] == 34 then
+                    local val, after = str(j)
+                    local kb = {}
+                    for q = 1, #key do kb[q] = string.char(key[q] < 128 and key[q] or 63) end
+                    out[#out + 1] = { key = table.concat(kb), cps = val }
+                    j = after
+                end
+            end
+            i = j
+        else
+            i = i + 1
+        end
+    end
+    return out
+end
+-- A list of code points as the game's string (one character each); under Lua 5.1 the private bytes start over
+-- first, so it can hold up to ~120 different letters. nil when it cannot.
+local function gameString(cps)
+    if not KAHLUA then
+        local keep = {}
+        for _, c in ipairs(cps) do if c < 256 then keep[c] = true end end
+        poolReset(keep)
+        local parts = {}
+        local ok = pcall(function() for k, c in ipairs(cps) do parts[k] = string.char(c) end end)
+        -- (6 bytes left over for the letters the faces are probed with)
+        if not ok or poolFree() < 6 then return nil end
+        return table.concat(parts)
+    end
+    local parts = {}
+    for k, c in ipairs(cps) do parts[k] = string.char(c) end
+    return table.concat(parts)
+end
+local function lineCps(cps)   -- a value's lines, each a list of code points
+    local lines, cur = {}, {}
+    for _, c in ipairs(cps) do
+        if c == 10 then lines[#lines + 1] = cur; cur = {} else cur[#cur + 1] = c end
+    end
+    lines[#lines + 1] = cur
+    return lines
+end
+local function hexOf(s, u)   -- the letters of s the face in slot u lacks, as U+XXXX
+    local f, miss = slotFont(u), {}
+    for i = 1, #s do
+        local c = CP(s, i)
+        if c ~= 32 and not glyph(f, c) then miss[#miss + 1] = string.format("U+%04X", c) end
+    end
+    return table.concat(miss, " ")
+end
+local function findPair(list, key)
+    for _, p in ipairs(list or {}) do if p.key == key then return p end end
+    return nil
+end
+
+-- PITCH: a swapped string of several lines draws one line at a time, a stand-in line apart (the engine's zoomed draw
+-- would step down by Noto Sans SC's own 58 px), and ZeD.TM measures it as wide as its widest line.
+do
+    local X, T = boot("CN")
+    local f2 = T.fontF2
+    local pitch = TMs:getFontHeight(f2)
+    local two = LINE .. "\n" .. LATIN
+    local jo, rec = javaRecorder()
+    local el = setmetatable({ javaObject = jo, isCollapsed = false }, { __index = ISUIElement })
+    el:drawText(two, 10, 20, 1, 1, 1, 1, f2)
+    check("PITCH two lines draw as two", #rec == 2 and rec[1].str == LINE and rec[2] and rec[2].str == LATIN, #rec)
+    if #rec == 2 then
+        local _, _, dy = X.standInSwap(LINE, f2, 1)
+        check("PITCH the first line in a face with all its letters", whole(rec[1].font, LINE), NAME_OF[rec[1].font])
+        check("PITCH the second line a stand-in line below the first", near(rec[2].y - (rec[1].y - dy), pitch),
+            (rec[2].y - (rec[1].y - dy)) .. " vs " .. pitch)
+        check("PITCH the Latin line takes the stand-in", rec[2].font == f2 and rec[2].native == true, NAME_OF[rec[2].font])
+    end
+    local w1 = ZeD.TM:MeasureStringX(f2, LINE)
+    local w2 = ZeD.TM:MeasureStringX(f2, LATIN)
+    local tw = ZeD.TM:MeasureStringX(f2, two)
+    check("PITCH ZeD.TM measures it as its widest line", near(tw, math.max(w1, w2)), tw .. " vs " .. math.max(w1, w2))
+    local rr
+    jo, rr = javaRecorder()
+    el = setmetatable({ javaObject = jo, isCollapsed = false }, { __index = ISUIElement })
+    el:drawTextRight(two, 300, 20, 1, 1, 1, 1, f2)
+    check("PITCH drawTextRight puts the block's right edge at x", rr[1] and near(rr[1].x + tw, 300), rr[1] and rr[1].x)
+end
+
+-- WRAP: ZeD.TM:WrapText breaks a swapped line by the widths it draws at (the engine's own measures in the stand-in,
+-- where a letter it lacks is 0 wide, and its lines ran an em per such letter past the limit). A line the stand-in
+-- draws whole still goes to the engine's own.
+do
+    local X, T = boot("CN")
+    local f2 = T.fontF2
+    local long = LINE .. LINE .. LINE .. LINE .. LINE .. LINE
+    local w = math.floor(ZeD.TM:MeasureStringX(f2, LINE .. LINE)) + 1
+    local before = TMs.wraps
+    local out = getTextManager():WrapText(f2, long, w, -1, "")
+    local lines = jsplit(out, "\n")
+    local widest, letters = 0, 0
+    for _, l in ipairs(lines) do
+        local lw = ZeD.TM:MeasureStringX(f2, l)
+        if lw > widest then widest = lw end
+        for i = 1, #l do if CP(l, i) ~= 45 then letters = letters + 1 end end
+    end
+    check("WRAP every line fits the width it was wrapped to", widest <= w, widest .. " > " .. w)
+    check("WRAP no letter lost", letters == #long, letters .. " of " .. #long)
+    local cut = getTextManager():WrapText(f2, long, w, 2, "...")
+    local cl = jsplit(cut, "\n")
+    check("WRAP two lines at most, the last ending in the suffix", #cl == 2 and string.sub(cl[2], -3) == "...", #cl)
+    check("WRAP a swapped line does not reach the engine's own", TMs.wraps == before, TMs.wraps - before)
+    getTextManager():WrapText(f2, "Condition 87% Condition 87% Condition 87%", 60, -1, "")
+    check("WRAP a Latin line still goes to the engine's own", TMs.wraps == before + 1, TMs.wraps - before)
+end
+
+-- THAI: the Thai list is the game's own (ZeD ships none): Cred1 stays the Thai credits face the game's windows draw
+-- Thai in (Noto Sans SC has no Thai).
+do
+    local X = boot("TH")
+    local cred = SLOTPATH[UIFont.Cred1] or ""
+    check("THAI Cred1 is the game's Thai credits face", string.find(cred, "TH/zombiefontcredits1.fnt", 1, true) ~= nil, cred)
+    local word = U(0x0E2A, 0x0E16, 0x0E32, 0x0E19, 0x0E30)   -- "status"
+    check("THAI Cred1 draws Thai letters", whole(UIFont.Cred1, word))
+    X.scriptFont("")
+    check("THAI the Japanese face is still found for Chinese and Japanese text", #X._scriptFonts.fonts >= 1, #X._scriptFonts.fonts)
+end
+
+-- KRUN: KRun.java exits 2 for a sim that does not compile (1 means checks failed). Lua 5.1 only, with ZED_KRUN set
+-- to the folder KRun.class is in.
+if not KAHLUA and os.getenv("ZED_KRUN") then
+    local cp = os.getenv("ZED_KRUN") .. ";" .. GAME .. "/projectzomboid.jar"
+    local java = GAME .. "/jre64/bin/java"
+    local tmp = (os.getenv("TEMP") or ".") .. "/krun_syntax_check.lua"
+    local f = io.open(tmp, "w")
+    f:write("local x = = 1\n")
+    f:close()
+    local function runK(extra)
+        local cmd = '""' .. java .. '" -Duser.dir="' .. GAME .. '" -cp "' .. cp .. '" KRun ' .. extra .. ' >nul 2>&1"'
+        return os.execute(cmd)
+    end
+    local code = runK('"' .. tmp .. '"')
+    os.remove(tmp)
+    check("KRUN a sim with a syntax error exits 2", code == 2, code)
+    code = runK("")
+    check("KRUN no sim named exits 2", code == 2, code)
+end
+
+-- WHOLE: under Simplified Chinese every line of ZeD's Chinese strings draws with all its characters, in the
+-- stand-in or in the face X.standInSwap picks. (The game measures a missing letter 0 wide and draws nothing; a
+-- letter neither face had dropped out of the line, and UI_ZeD_Cook_NoIngredients read as its opposite.)
+do
+    local X, T = boot("CN")
+    local f2 = T.fontF2
+    local files = { "UI", "ItemName", "Sandbox" }
+    local lines, broken, skipped, shown = 0, 0, 0, 0
+    for _, name in ipairs(files) do
+        local list = jsonPairs(ROOT .. "42/media/lua/shared/Translate/CN/" .. name .. ".json")
+        check("WHOLE the CN " .. name .. ".json reads", list ~= nil and #list > 0)
+        for _, p in ipairs(list or {}) do
+            for _, lc in ipairs(lineCps(p.cps)) do
+                local s = gameString(lc)
+                if s == nil then
+                    skipped = skipped + 1
+                elseif s ~= "" then
+                    if not KAHLUA then X._scriptReset() end   -- (the private bytes started over)
+                    local sf = X.standInSwap(s, f2, 1) or f2
+                    lines = lines + 1
+                    if not whole(sf, s) then
+                        broken = broken + 1
+                        if shown < 12 then
+                            shown = shown + 1
+                            print("  WHOLE " .. p.key .. ": " .. tostring(NAME_OF[sf]) .. " lacks " .. hexOf(s, sf))
+                        end
+                    end
+                end
+            end
+        end
+    end
+    check("WHOLE every line of ZeD's CN strings draws whole", broken == 0 and lines > 6000,
+        broken .. " of " .. lines .. " lines lose letters")
+    print(string.format("WHOLE: %d lines of ZeD's CN strings, %d lose letters%s", lines, broken,
+        skipped > 0 and (", " .. skipped .. " too long for Lua 5.1's stand-in strings (checked under Kahlua)") or ""))
+    -- the one that read as its opposite
+    local p = findPair(jsonPairs(ROOT .. "42/media/lua/shared/Translate/CN/UI.json"), "UI_ZeD_Cook_NoIngredients")
+    local s = p and gameString(p.cps)
+    if s and not KAHLUA then X._scriptReset() end
+    local sf = s and (X.standInSwap(s, f2, 1) or f2)
+    check("WHOLE UI_ZeD_Cook_NoIngredients draws all its letters (U+6CA1 \"not\" among them)", s ~= nil and whole(sf, s),
+        s and (NAME_OF[sf] .. " lacks " .. hexOf(s, sf)))
+end
+
+-- PUNCT: a missing quote mark alone never moves a line to the game's Japanese face (a bitmap zoomed to the stand-in's
+-- size, soft and in Japanese letterforms). Traditional Chinese: UI_ZeD_Desk_AskSave has two quote marks the
+-- stand-in lacks and a letter (U+5C0D) Noto Sans SC lacks: it stays in the stand-in. Simplified Chinese: a line with
+-- quote marks and letters the stand-in has moves to Noto Sans SC, which draws it whole.
+do
+    local X, T, fb = boot("CH")
+    local f2 = T.fontF2
+    check("PUNCT CH: the game's faces stand in", fb == true)
+    local p = findPair(jsonPairs(ROOT .. "42/media/lua/shared/Translate/CH/UI.json"), "UI_ZeD_Desk_AskSave")
+    check("PUNCT CH: UI_ZeD_Desk_AskSave is there", p ~= nil)
+    if p then
+        local cps = {}
+        for k = 1, #p.cps do
+            if p.cps[k] == 37 and p.cps[k + 1] == 49 then cps[#cps + 1] = 0x672A; cps[#cps + 1] = 0x547D; cps[#cps + 1] = 0x540D
+            elseif not (p.cps[k] == 49 and p.cps[k - 1] == 37) then cps[#cps + 1] = p.cps[k] end
+        end
+        local s = gameString(cps)
+        if not KAHLUA then X._scriptReset() end
+        local sf = X.standInSwap(s, f2, 1)
+        check("PUNCT CH: the save question stays in the stand-in (only its quote marks are missing)", sf == nil,
+            sf and (NAME_OF[sf] .. "; the stand-in lacks " .. hexOf(s, f2)))
+        local jo, rec = javaRecorder()
+        local el = setmetatable({ javaObject = jo, isCollapsed = false }, { __index = ISUIElement })
+        el:drawText(s, 10, 20, 1, 1, 1, 1, f2)
+        check("PUNCT CH: drawText takes the game's own call", rec[1] and rec[1].native and rec[1].font == f2,
+            rec[1] and NAME_OF[rec[1].font])
+    end
+    local X2, T2 = boot("CN")
+    local q = gameString({ 0x201C, 0x641C, 0x522E, 0x201D })
+    if not KAHLUA then X2._scriptReset() end
+    local sf = X2.standInSwap(q, T2.fontF2, 1)
+    check("PUNCT CN: quote marks round letters the stand-in has draw whole in Noto Sans SC",
+        sf == UIFont.Cred1 and whole(sf, q), sf and NAME_OF[sf])
+end
+
+-- LISTS: ZeD's copies are the game's own minus Cred1; Thai keeps the game's own
+check("LISTS TH: ZeD ships no Thai list", readList(ROOT .. "42/media/fonts/TH/fonts.txt") == nil)
+for _, L in ipairs({ "CN", "CH", "JP", "KO" }) do
     local mine = readList(ROOT .. "42/media/fonts/" .. L .. "/fonts.txt")
     local game = readList(GAME .. "/media/fonts/" .. L .. "/fonts.txt")
     check("LISTS " .. L .. ": ZeD ships the list", mine ~= nil)

@@ -41,15 +41,38 @@ end
 -- size, as ZeD.TM measures it (ZeD.Text.standInSwap). Every Lua text draw in the game's Small, Medium
 -- or Large takes this, the game's own windows' too, since they measure through ZeD.TM as well. align:
 -- nil (x is the left edge), "r" (x is the right edge) or "c" (x is the centre). True when it drew.
+-- A string of several lines draws one line at a time, each in the face that draws it, a stand-in line apart:
+-- the engine's zoomed draw would step down by the swapped face's own unzoomed line height (58 px for Noto Sans
+-- SC), not the stand-in's the layout left room for. The block is placed as the engine places one, by its widest
+-- line, and every line starts at its left edge.
 local function standInDraw(jo, font, str, x, y, r, g, b, a, align)
     if type(str) ~= "string" then return false end
-    local sf, zz, dy = X.standInSwap(str, font or UIFont.Small, 1)
+    font = font or UIFont.Small
+    local sf, zz, dy = X.standInSwap(str, font, 1)
     if not sf then return false end
+    if not string.find(str, "\n", 1, true) then
+        if align then
+            local w = X.realTM():MeasureStringX(sf, str) * zz
+            if align == "r" then x = x - w else x = x - w / 2 end
+        end
+        jo:DrawText(sf, str, x, y + dy, zz, r, g, b, a)
+        return true
+    end
     if align then
-        local w = X.realTM():MeasureStringX(sf, str) * zz
+        local w = X.roleWidth(font, str, 1)
         if align == "r" then x = x - w else x = x - w / 2 end
     end
-    jo:DrawText(sf, str, x, y + dy, zz, r, g, b, a)
+    local pitch = X.realTM():getFontHeight(font)
+    local lines = X.lines(str)
+    for k = 1, #lines do
+        local line = lines[k]
+        if line ~= "" then
+            local lf, lz, ly = X.standInSwap(line, font, 1)
+            if lf then jo:DrawText(lf, line, x, y + ly, lz, r, g, b, a)
+            else jo:DrawText(font, line, x, y, r, g, b, a) end
+        end
+        y = y + pitch
+    end
     return true
 end
 
