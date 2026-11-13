@@ -3355,6 +3355,7 @@
     "UI_ZeD_Animals_RunMilking": "擠奶中 %1/%2",
     "UI_ZeD_Animals_RunShearing": "剪毛中 %1/%2",
     "UI_ZeD_Animals_RunStopped": "已在 %1/%2 後停止。",
+    "UI_ZeD_Animals_RunFast": "已在 %1/%2 後停止：此遊戲速度下無法行走。",
     "UI_ZeD_Animals_RunFull": "%1 已滿：已擠奶 %2/%3。",
     "UI_ZeD_Animals_SelNothing": "已選 %1：沒有可擠奶或剪毛的",
     "UI_ZeD_Animals_Selected": "已選 %1",

@@ -722,12 +722,28 @@ local function finish(why, cause)
     if Events and Events.OnTick then Events.OnTick.Remove(onTick) end
 end
 
+--- True while the game runs faster than its walks allow (WalkToTimedAction:isValid wants getGameSpeed() <= 2):
+--- every walk the run hands over is dropped at once, so a run cut then says why.
+function AQ.tooFast()
+    if type(getGameSpeed) ~= "function" then return false end
+    local ok, sp = pcall(getGameSpeed)
+    return ok and type(sp) == "number" and sp > 2
+end
+
+-- "Stopped after n of m", or, when the game's speed is what cut it, the same with the reason (a stop the
+-- player asked for, or a new press, is no cut)
+local ASKED = { stop = true, replaced = true }
+local function stoppedWords(r, cause)
+    if not ASKED[cause] and AQ.tooFast() then return ZeD.tr("UI_ZeD_Animals_RunFast", r.done, #r.list) end
+    return ZeD.tr("UI_ZeD_Animals_RunStopped", r.done, #r.list)
+end
+
 -- Stop the run where it stands: the game's queue cleared (its own cancel, so nothing the run
 -- handed over is left waiting), the animal under way let go, "Stopped after n of m".
 local function halt(r, cause)
     if ISTimedActionQueue and ISTimedActionQueue.clear then pcall(ISTimedActionQueue.clear, r.player) end
     letGo(r.list[r.i])
-    finish(ZeD.tr("UI_ZeD_Animals_RunStopped", r.done, #r.list), cause)
+    finish(stoppedWords(r, cause), cause)
 end
 
 -- Hand the run's verb for animal i to the game and wait for it
@@ -840,7 +856,7 @@ function AQ.tick()
             -- hands it over wherever the animal stands now (the game's handler walks to its side
             -- from there); one that ended far off before it got there was cut short
             local d = distTo(p, a)
-            if not r.walked and d and d > 4 then letGo(a); finish(ZeD.tr("UI_ZeD_Animals_RunStopped", r.done, #r.list), "cut") return end
+            if not r.walked and d and d > 4 then letGo(a); finish(stoppedWords(r, "cut"), "cut") return end
             handOver(r, r.i)
             if AQ.run == r and r.approach then
                 ISTimedActionQueue.clear(p)
@@ -860,7 +876,7 @@ function AQ.tick()
         end
         if undone then
             letGo(a)
-            finish(ZeD.tr("UI_ZeD_Animals_RunStopped", r.done, #r.list), "undone")
+            finish(stoppedWords(r, "undone"), "undone")
             return
         end
         r.done = r.done + 1
@@ -881,6 +897,13 @@ onTick = function()
     local ok, err = pcall(AQ.tick)
     if not ok then
         print("[ZeD] Animals: the run stopped on an error: " .. tostring(err))
+        -- (the animal under way is let go and the run ends as a stop: one dropped here stayed held)
+        local r = AQ.run
+        if r then
+            pcall(letGo, r.list and r.list[r.i])
+            AQ.last = { verb = r.verb, done = r.done, total = r.list and #r.list or 0,
+                why = ZeD.tr("UI_ZeD_Animals_RunStopped", r.done, r.list and #r.list or 0), cause = "error", t = now() }
+        end
         AQ.run = nil
         if Events and Events.OnTick then Events.OnTick.Remove(onTick) end
     end

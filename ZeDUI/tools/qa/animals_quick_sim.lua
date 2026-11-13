@@ -465,6 +465,55 @@ check("RUN a cancelled step stops the run: Stopped after 1 of 3", AQ.run == nil 
 check("RUN D3 was never handed over", #CALLS == 2)
 check("RUN D2 lets go (it was held still for the milking)", d2._blocked == false)
 
+-- SPEED (Nov 12 2026): the game drops every walk above speed 2 (WalkToTimedAction:isValid), so a run cut then says why
+do
+    ISTimedActionQueue.queues = {}
+    local keepSpeed = getGameSpeed
+    getGameSpeed = function() return 3 end
+    local s1 = animal("S1", { milk = 4, milkable = true })
+    local s2 = animal("S2", { milk = 4, milkable = true })
+    CALLS = {}
+    AQ.start(p, "milk", { s1, s2 })
+    AQ.tick(); finishAction(p)   -- the game's walk was dropped at once: the queue is empty, S1 still has its milk
+    for _ = 1, 10 do AQ.tick() end
+    check("SPEED a run cut at speed 3 says why: RunFast 0 of 2", AQ.run == nil and AQ.last and AQ.last.why == "UI_ZeD_Animals_RunFast(0,2)",
+        AQ.last and AQ.last.why)
+    check("SPEED S1 let go", s1._blocked == false)
+    ISTimedActionQueue.queues = {}
+    AQ.start(p, "milk", { s2 })
+    AQ.stop()
+    check("SPEED a Stop the player asked for is a plain stop", AQ.last and AQ.last.why == "UI_ZeD_Animals_RunStopped(0,1)", AQ.last and AQ.last.why)
+    getGameSpeed = function() return 2 end
+    ISTimedActionQueue.queues = {}
+    AQ.start(p, "milk", { s2 })
+    AQ.tick(); finishAction(p); for _ = 1, 10 do AQ.tick() end
+    check("SPEED at speed 2 a cut is a plain stop", AQ.last and AQ.last.why == "UI_ZeD_Animals_RunStopped(0,1)", AQ.last and AQ.last.why)
+    getGameSpeed = keepSpeed
+    ISTimedActionQueue.queues = {}
+end
+
+-- ERROR (Nov 12 2026): a step that throws ends the run in the tick hook's pcall; the animal under way is let go
+do
+    ISTimedActionQueue.queues = {}
+    local x1 = animal("X1", { milk = 4, milkable = true })
+    CALLS = {}
+    AQ.start(p, "milk", { x1 })
+    check("ERROR X1 is held for its milking", x1._blocked == true, x1._blocked)
+    local keepDead = p.isDead
+    p.isDead = function() error("boom") end
+    local hook = next(hooks)
+    local keepPrint = print
+    print = function() end
+    if hook then hook() end
+    print = keepPrint
+    p.isDead = keepDead
+    check("ERROR the run is over and the hook off", AQ.run == nil and hookCount() == 0)
+    check("ERROR X1 let go", x1._blocked == false, x1._blocked)
+    check("ERROR the band says it stopped", AQ.last and AQ.last.cause == "error" and AQ.last.why == "UI_ZeD_Animals_RunStopped(0,1)",
+        AQ.last and AQ.last.why)
+    ISTimedActionQueue.queues = {}
+end
+
 -- the bucket runs out (the only one fills on E1, milk left in it)
 ISTimedActionQueue.queues = {}
 local e1 = animal("E1", { milk = 9, milkable = true })
@@ -1511,6 +1560,57 @@ end
 -- SOURCE ----------------------------------------------------------------------
 local TAB = readFile(Z .. "AnimalsTab.lua")
 local WW = readFile(Z .. "ZeD_WorldWindow.lua")
+
+-- RING (Nov 12 2026): the roster scrolls by whole rows, so its stops keep their count, ids and places while the
+-- animals on them change; the ring is rebuilt then too (a pad X after a mouse scroll ticked the row's old animal)
+do
+    local a1 = WW:find("function ZeD_WorldWindow._tabSnapAnimals(", 1, true)
+    local b1 = nil
+    if a1 then _, b1 = WW:find("\nend\n", WW:find("function ZeD_WorldWindow._tabSnapDirty(", 1, true) or a1, true) end
+    check("RING the snapshot keys on the animals (ZeD_WorldWindow._tabSnapAnimals / _tabSnapDirty)", a1 ~= nil and b1 ~= nil)
+    if a1 and b1 then
+        local env = setmetatable({ ZeD_WorldWindow = {} }, { __index = _G })
+        local chunk = assert(loadstring(WW:sub(a1, b1)))
+        setfenv(chunk, env)
+        chunk()
+        local WWs = env.ZeD_WorldWindow
+        local A1, A2, A3, A4 = {}, {}, {}, {}
+        local function els(x, y, z)
+            return { { id = "animals:sort", y = 0, h = 10 },
+                     { id = "animals:roster:1", y = 20, h = 30, isRoster = true, animal = x },
+                     { id = "animals:roster:2", y = 50, h = 30, isRoster = true, animal = y },
+                     { id = "animals:roster:3", y = 80, h = 30, isRoster = true, animal = z },
+                     { id = "animals:bulk:hungry", y = 200, h = 20 } }
+        end
+        local function snapOf(e)
+            return { tab = "animals", n = #e, firstId = e[1].id, lastId = e[#e].id, lastY = e[#e].y, lastH = e[#e].h,
+                     animals = WWs._tabSnapAnimals(e) }
+        end
+        local s = snapOf(els(A1, A2, A3))
+        check("RING the same rows: no rebuild", WWs._tabSnapDirty(s, "animals", els(A1, A2, A3)) == false)
+        check("RING a whole-row scroll (A2 A3 A4 on the same stops): rebuilt",
+            WWs._tabSnapDirty(s, "animals", els(A2, A3, A4)) == true)
+        check("RING another tab, another count: rebuilt", WWs._tabSnapDirty(s, "craft", els(A1, A2, A3)) == true
+            and WWs._tabSnapDirty(s, "animals", { els(A1, A2, A3)[1] }) == true)
+        check("RING no snapshot yet: rebuilt", WWs._tabSnapDirty(nil, "animals", {}) == true)
+        check("RING an empty tab stays empty: no rebuild", WWs._tabSnapDirty({ tab = "x", n = 0 }, "x", {}) == false)
+        -- the stop the pad is on after the rebuild names the animal now drawn there: X ticks that one
+        local after = els(A2, A3, A4)
+        check("RING X on the rebuilt second row ticks the animal it shows", after[3].animal == A3)
+    end
+    check("RING the frame's refresh asks it and keeps the animals in the snapshot",
+        WW:find("local dirty  = ZeD_WorldWindow._tabSnapDirty(snap, win._activeTab, newEls)", 1, true) ~= nil
+        and WW:find("animals = ZeD_WorldWindow._tabSnapAnimals(newEls),", 1, true) ~= nil)
+end
+
+-- C1 + D6 (Nov 12 2026): the Animals tab opens with its title in row 1, the sub-tab strip under it with a gap (the
+-- "Zones (1)" heading touched the strip), and its section heads are the one small mono line (no section-header band)
+check("TITLE the tab opens with its title (the tab's own name, row 1)",
+    TAB:find('local titleH = M.drawTabHeader(panel, x, y, w, ZeD.tr("UI_ZeD_World_TabAnimals"), false, false, true)', 1, true) ~= nil)
+check("TITLE a gap under the sub-tab strip, both ways in",
+    select(2, TAB:gsub("drawSubmodeStrip%(panel, win, x, y, w%) %+ T%.px%(STRIP_GAP_U%)", "")) == 2
+    and TAB:find("\nlocal STRIP_GAP_U = %d") ~= nil)
+check("D6 no section-header band left in the Animals tab", TAB:find("drawSectionHeader", 1, true) == nil)
 check("SOURCE the tab requires AnimalsQuick", TAB:find('require "ZeD/AnimalsQuick"', 1, true) ~= nil)
 check("SOURCE the alert row's verb button", TAB:find("QK().alertVerb(alert.alertType)", 1, true) ~= nil)
 check("SOURCE the verbs are the game's words", TAB:find('milk = "ContextMenu_Milk", shear = "ContextMenu_Shear", ["goto"] = "ContextMenu_Walk_to"', 1, true) ~= nil)

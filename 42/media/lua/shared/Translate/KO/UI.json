@@ -3355,6 +3355,7 @@
     "UI_ZeD_Animals_RunMilking": "착유 중 %1/%2",
     "UI_ZeD_Animals_RunShearing": "털깎기 중 %1/%2",
     "UI_ZeD_Animals_RunStopped": "%1/%2에서 중지됨.",
+    "UI_ZeD_Animals_RunFast": "%1/%2에서 중지됨: 이 게임 속도에서는 걸을 수 없습니다.",
     "UI_ZeD_Animals_RunFull": "%1 가득 참: %2/%3마리 착유함.",
     "UI_ZeD_Animals_SelNothing": "%1마리 선택: 착유하거나 털을 깎을 동물 없음",
     "UI_ZeD_Animals_Selected": "%1마리 선택",

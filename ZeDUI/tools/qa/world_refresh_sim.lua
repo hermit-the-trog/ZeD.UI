@@ -461,6 +461,15 @@ local function scenario(label, src, oldSrc, zoneName, builderName, tabs)
                     _focusIdx = 2, _craftState = { scroll = { scrollPos = 0 } }, _buildState = {}, _journalSubTab = 1 }
         local c = {}
         local ZW = { _extTabs = {} }
+        -- (the World window's snapshot test, Nov 12 2026: the real one, cut from the file)
+        local sa = string.find(src, "function ZeD_WorldWindow._tabSnapAnimals(", 1, true)
+        local sd = sa and string.find(src, "function ZeD_WorldWindow._tabSnapDirty(", sa, true)
+        local _, se = nil, nil
+        if sd then _, se = string.find(src, "\nend\n", sd, true) end
+        if se then
+            local cf = assert(loadstring("local ZeD_WorldWindow = ...\n" .. string.sub(src, sa, se)))
+            cf(ZW)
+        end
         local ZCW = { _extTabs = {}, extScrollKey = function() return nil end }
         local ZZ = { Input = { Focus = Focus, Detector = DET }, MechanicsTab = { focusTargetIndex = function(win, els)
             win._mechFocusTarget = nil; return 2 end }, IdentityTab = {} }

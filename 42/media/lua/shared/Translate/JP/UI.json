@@ -3355,6 +3355,7 @@
     "UI_ZeD_Animals_RunMilking": "搾乳中 %1/%2",
     "UI_ZeD_Animals_RunShearing": "毛刈り中 %1/%2",
     "UI_ZeD_Animals_RunStopped": "%1/%2で停止。",
+    "UI_ZeD_Animals_RunFast": "%1/%2で停止：このゲーム速度では歩けません。",
     "UI_ZeD_Animals_RunFull": "%1 が満杯：%2/%3 頭を搾乳。",
     "UI_ZeD_Animals_SelNothing": "%1頭選択：搾乳も毛刈りもできません",
     "UI_ZeD_Animals_Selected": "%1頭選択",
