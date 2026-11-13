@@ -37,7 +37,7 @@ if getGameSpeed() <= 0 then setGameSpeed(1) end
 local Q, qi, wait = {}, 0, 0
 local function step(n, fn) Q[#Q + 1] = { n = n, fn = fn } end
 local function waitFor(n, max, cond, fn) Q[#Q + 1] = { n = n, fn = fn, cond = cond, max = max } end
-local v, trailer, key, hovered
+local v, trailer, key, hovered, hovRow
 local made, animals = {}, {}
 local mechWas = p:getPerkLevel(Perks.Mechanics)
 local knewRecipe = true
@@ -132,6 +132,7 @@ step(10, function()
     end
     if not (z and w) then say("ERR no row in view"); return end
     hovered = z.part
+    hovRow = z
     local panel = s.panel
     -- the real cursor (release_check_mouse.ps1 "move"): a script-set Mouse does not make hover in 42.22
     pcall(function() local fw = getFileWriter("zedqa_click_done.txt", true, false); fw:write(""); fw:close() end)
@@ -146,6 +147,12 @@ waitFor(10, 600, function()
 end, function() end)
 step(30, function()
     local s = S()
+    -- (Nov 13 2026: what the hover rule sees: ZeD ignores mouse hover while the pad was the last input)
+    pcall(function()
+        local z = hovRow or {}
+        say("hover probe: mode " .. tostring(ZeD.Input.Detector.getMode()) .. " | pointer " .. tostring(s.panel:getMouseX()) .. "," .. tostring(s.panel:getMouseY())
+            .. " | row " .. tostring(z.x) .. "," .. tostring(z.y) .. " " .. tostring(z.w) .. "x" .. tostring(z.h) .. " | sortOpen " .. tostring(s.sortOpen))
+    end)
     check(s and s.hl ~= nil and s.hl == hovered, "hover on a row lights its part on the diagram (" .. tostring(hovered) .. ", lit " .. tostring(s and s.hl) .. ")")
     check(s and s.card == nil, "hover never opens the card")
     shot("2_hover_row")
