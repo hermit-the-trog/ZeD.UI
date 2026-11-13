@@ -169,7 +169,7 @@ function Z.finish(name)
             say("WARN " .. name .. ": a loot card is up (" .. tostring(wt.item and wt.item:getName()) .. "): the pointer is on a row")
         end
         local ml = ZeD.Moodles and ZeD.Moodles.getLayer and ZeD.Moodles.getLayer(0)
-        if ml and ml._chip then say(name .. ": moodle note up, over the windows " .. tostring(ml._raised == true)) end
+        if ml and ml._chip then say(name .. ": moodle note up, drawn from the note layer over the windows " .. tostring(ml._note ~= nil)) end
     else S.err(name, Z.sc.why) end
 end
 function Z.T(name, which, tab, settle, fn)

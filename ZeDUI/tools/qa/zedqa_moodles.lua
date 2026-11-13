@@ -113,6 +113,7 @@ for _, place in ipairs({ { 1, "right" }, { 2, "left" }, { 3, "bottom" } }) do
         if L._mode == "bottom" then lx, ly = s + 10 + s / 2, s / 2 end
         L.getMouseX = function() return lx end
         L.getMouseY = function() return ly end
+        L.isMouseOver = function() return true end   -- (nothing over the layer there: the engine's picking)
     end)
     -- (beta 10: the pointer's moodle shows a balloon after the shared hover pause, 0.45 s; up to 3 s allowed)
     waitFor(2, 3000, function() local L = MO.getLayer(pn); return L and L._chip and L._chip.idx == 2 and L._chip.balloon end, function()
@@ -151,7 +152,7 @@ for _, place in ipairs({ { 1, "right" }, { 2, "left" }, { 3, "bottom" } }) do
         end
         shot(place[2] .. "_hover")
     end)
-    step(2, function() local L = MO.getLayer(pn); L.getMouseX, L.getMouseY = nil, nil end)
+    step(2, function() local L = MO.getLayer(pn); L.getMouseX, L.getMouseY, L.isMouseOver = nil, nil, nil end)
 end
 -- nothing changing (the stats held), the box goes by itself
 waitFor(5, 20000, function() local L = MO.getLayer(pn); setStats(); return L and L._chip == nil end, function(ok)
