@@ -31,7 +31,11 @@ local function faceOf(font)
     local T = ZeD.T
     return (T and T.fontFace and T.fontFace[font]) or 64
 end
+local standInDraw
+-- (while the game's faces stand in, a role font drawn at a multiple of its size, ZeD.Text.withFontScale,
+-- still swaps a string its face lacks letters for: the same face and multiple ZeD.TM measures it at)
 local function roleDraw(jo, font, str, x, y, z, r, g, b, a)
+    if X.fallback and standInDraw(jo, font, str, x, y, r, g, b, a, nil, z) then return end
     local sf, zz, dy = X.scriptSwap(str, z, faceOf(font))
     if sf then jo:DrawText(sf, str, x, y + dy, zz, r, g, b, a)
     else jo:DrawText(font, str, x, y, z, r, g, b, a) end
@@ -44,11 +48,13 @@ end
 -- A string of several lines draws one line at a time, each in the face that draws it, a stand-in line apart:
 -- the engine's zoomed draw would step down by the swapped face's own unzoomed line height (58 px for Noto Sans
 -- SC), not the stand-in's the layout left room for. The block is placed as the engine places one, by its widest
--- line, and every line starts at its left edge.
-local function standInDraw(jo, font, str, x, y, r, g, b, a, align)
+-- line, and every line starts at its left edge. z: the zoom the font draws at (1 unless a multiple of its
+-- size is in force, ZeD.Text.withFontScale).
+standInDraw = function(jo, font, str, x, y, r, g, b, a, align, z)
     if type(str) ~= "string" then return false end
     font = font or UIFont.Small
-    local sf, zz, dy = X.standInSwap(str, font, 1)
+    z = z or 1
+    local sf, zz, dy = X.standInSwap(str, font, z)
     if not sf then return false end
     if not string.find(str, "\n", 1, true) then
         if align then
@@ -59,16 +65,17 @@ local function standInDraw(jo, font, str, x, y, r, g, b, a, align)
         return true
     end
     if align then
-        local w = X.roleWidth(font, str, 1)
+        local w = X.roleWidth(font, str, z)
         if align == "r" then x = x - w else x = x - w / 2 end
     end
-    local pitch = X.realTM():getFontHeight(font)
+    local pitch = X.realTM():getFontHeight(font) * z
     local lines = X.lines(str)
     for k = 1, #lines do
         local line = lines[k]
         if line ~= "" then
-            local lf, lz, ly = X.standInSwap(line, font, 1)
+            local lf, lz, ly = X.standInSwap(line, font, z)
             if lf then jo:DrawText(lf, line, x, y + ly, lz, r, g, b, a)
+            elseif z ~= 1 then jo:DrawText(font, line, x, y, z, r, g, b, a)
             else jo:DrawText(font, line, x, y, r, g, b, a) end
         end
         y = y + pitch

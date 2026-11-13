@@ -529,6 +529,54 @@ local function language(lang)
         check(tag .. "DRAW lean drawText F" .. i .. " in a face with all four letters", rl and whole(rl.font, LINE), rl and NAME_OF[rl.font])
         if i == 2 then report(tag .. "drawText F2", r, LINE) end
     end
+    -- MUL: a role font at a multiple of its size (ZeD.Text.withFontScale, the Tooltip Font option) still draws
+    -- the line in a face with all its letters, and measures, draws and steps lines at that same multiple
+    for i = 1, 5 do
+        local f = T["fontF" .. i]
+        local m = 1.3
+        local tw1 = ZeD.TM:MeasureStringX(f, LINE)
+        local h1 = ZeD.TM:getFontHeight(f)
+        local jo, rec = javaRecorder()
+        local el = setmetatable({ javaObject = jo, isCollapsed = false }, { __index = ISUIElement })
+        local h = X.withFontScale(f, m, function() return ZeD.TM:getFontHeight(f) end)
+        local tw = X.withFontScale(f, m, function()
+            el:drawText(LINE, 10, 20, 1, 1, 1, 1, f)
+            el:drawTextRight(LINE, 300, 20, 1, 1, 1, 1, f)
+            el:drawTextCentre(LINE, 300, 20, 1, 1, 1, 1, f)
+            ZeD.LeanDraw.drawText({ javaObject = jo, isCollapsed = false }, LINE, 10, 20, 1, 1, 1, 1, f)
+            return ZeD.TM:MeasureStringX(f, LINE)
+        end)
+        local t = tag .. "MUL F" .. i .. " "
+        check(t .. "measures at the multiple", near(tw, tw1 * m), tw .. " vs " .. tw1 * m)
+        check(t .. "line height at the multiple", near(h, h1 * m), h .. " vs " .. h1 * m)
+        check(t .. "the multiple is put back", near(ZeD.TM:MeasureStringX(f, LINE), tw1) and X._mulFont == nil)
+        local r, rr, rc, rl = rec[1], rec[2], rec[3], rec[4]
+        check(t .. "drawText in a face with all four letters", r and r.str == LINE and whole(r.font, LINE), r and NAME_OF[r.font])
+        check(t .. "drawText draws as wide as it measures", r and near(tw, X.realTM():MeasureStringX(r.font, LINE) * r.z),
+            r and (tw .. " vs " .. X.realTM():MeasureStringX(r.font, LINE) * r.z))
+        if fb then
+            local _, z1 = X.standInSwap(LINE, f, 1)
+            check(t .. "drawText the swapped face drawn at the multiple", r and z1 and r.font ~= f and near(r.z, z1 * m), r and r.z)
+        end
+        check(t .. "drawTextRight ends at x", rr and not rr.native and whole(rr.font, LINE) and near(rr.x + tw, 300), rr and rr.x)
+        check(t .. "drawTextCentre is centred on x", rc and not rc.native and whole(rc.font, LINE) and near(rc.x + tw / 2, 300), rc and rc.x)
+        check(t .. "lean drawText in a face with all four letters", rl and whole(rl.font, LINE) and near(rl.z, r and r.z or -1), rl and NAME_OF[rl.font])
+        if fb then
+            -- two lines: each in the face that draws it, a line of the multiplied stand-in apart
+            local jo2, rec2 = javaRecorder()
+            local el2 = setmetatable({ javaObject = jo2, isCollapsed = false }, { __index = ISUIElement })
+            local w2 = X.withFontScale(f, m, function()
+                el2:drawText(LINE .. "\n" .. LATIN, 10, 20, 1, 1, 1, 1, f)
+                return ZeD.TM:MeasureStringX(f, LINE .. "\n" .. LATIN)
+            end)
+            local a, b = rec2[1], rec2[2]
+            check(t .. "two lines draw one at a time", #rec2 == 2 and a.str == LINE and b.str == LATIN, #rec2)
+            check(t .. "the first in a face with all four letters", a and whole(a.font, LINE), a and NAME_OF[a.font])
+            check(t .. "the second in the stand-in at the multiple", b and b.font == f and near(b.z, m), b and b.z)
+            check(t .. "a multiplied stand-in line apart", a and b and near(b.y - 20, h), a and b and (b.y - 20) .. " vs " .. h)
+            check(t .. "the block as wide as its widest line", near(w2, math.max(tw, X.realTM():MeasureStringX(f, LATIN) * m)), w2)
+        end
+    end
     -- the pixel faces' stand-in words and the radio displays go through ZeD.Text.faceFor
     local sf = X.faceFor(T.fontF1, LINE, 1)
     check(tag .. "DRAW faceFor(F1) picks a face with all four letters", whole(sf, LINE), NAME_OF[sf])
