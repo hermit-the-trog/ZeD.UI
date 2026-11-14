@@ -526,7 +526,7 @@ local CL = ZeD.ConsoleLog
 local errRow
 for i = 1, CL.counts() do local r = CL.shownAt(i); if r.kind == "error" then errRow = r end end
 check("error: one row in the log", errRow ~= nil and CL.errTotal == 1, CL.errTotal)
-check("error: its stack is the block, to the console frame", errRow and errRow.stack[1]:find("^ERROR") ~= nil and errRow.stack[#errRow.stack]:find("function: console", 1, true) ~= nil)
+check("error: its stack is the block (the game's log tag off its first line, Nov 13 2026), to the console frame", errRow and errRow.stack[1] ~= "" and errRow.stack[1]:find("^ERROR%s*:") == nil and errRow.stack[#errRow.stack]:find("function: console", 1, true) ~= nil)
 check("error: its message without the Java class", errRow and errRow.msg:find("^java") == nil and errRow.msg:find("attempt to index", 1, true) ~= nil, errRow and errRow.msg)
 check("error: from the console", errRow and errRow.mod == CL.CONSOLE and errRow.file == "console" and errRow.line == 1)
 draw(win)

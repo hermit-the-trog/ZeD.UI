@@ -1510,11 +1510,21 @@ add(400, function()
     end
 end)
 
--- Repair (read only): a damaged wooden piece beside you, then the furniture's tile, where the game repairs nothing
+-- Repair (read only): a damaged wooden piece beside you, then a tile where the game repairs nothing. (Not the
+-- furniture's tile: the game's repair list takes any object with a health and a repairable material, damaged or
+-- not, so the wooden chair is listed there; the empty tile is the first nearby one whose list is empty.)
 add(100, function()
     if not S.fur then return end
     S.rep = Q.repairTarget(S.R)
     if S.rep then say("repair piece " .. S.rep.name .. " on " .. Q.sqName(S.R) .. " at half health") end
+    S.repEmpty = nil
+    for _, sq in ipairs({ S.C, S.O, S.T }) do
+        if sq and sq ~= S.R and not S.repEmpty and #Q.gameRepairList(sq) == 0 then S.repEmpty = sq end
+    end
+    if S.repEmpty then say("tile with nothing to repair " .. Q.sqName(S.repEmpty)) end
+    local onT = {}
+    for _, e in ipairs(Q.gameRepairList(S.T)) do onT[#onT + 1] = tostring(e.moveProps and e.moveProps.spriteName) end
+    say("the game's repair list on the furniture's tile: " .. (#onT > 0 and table.concat(onT, ", ") or "nothing"))
 end)
 Q.modeStep("repair")
 add(400, function()
@@ -1556,16 +1566,22 @@ add(400, function()
     if not S.fur then return end
     local cur = Q.cur()
     if not cur then check(false, "Repair: the cursor is still up", "nil", "a cursor"); return end
-    local c = Q.reread(S.T)
+    local sq = S.repEmpty
+    S.repN2 = nil
+    if not sq then
+        check(false, "Repair: a tile beside you holds nothing the game would repair, so the empty checks can run", "every tile tried lists something", "one")
+        return
+    end
+    local c = Q.reread(sq)
     local list = cur.objectListCache
     local n = type(list) == "table" and #list or 0
     S.repN2 = n
     if n > 0 then
-        check(false, "Repair: the furniture's tile holds nothing the game would repair (a plain object), so the empty checks can run", n .. " listed", "none")
+        check(false, "Repair: the tile picked as empty still holds nothing the game would repair when the cursor reads it", n .. " listed", "none")
         return
     end
-    check(c ~= nil and c.sq == S.T and c.mp == nil, "Repair: on a tile with nothing to repair (after one with a target) the tab shows no target",
-        tostring(c and c.mp and c.mp.spriteName or "none") .. " on " .. Q.sqName(c and c.sq), "none on " .. Q.sqName(S.T))
+    check(c ~= nil and c.sq == sq and c.mp == nil, "Repair: on a tile with nothing to repair (after one with a target) the tab shows no target",
+        tostring(c and c.mp and c.mp.spriteName or "none") .. " on " .. Q.sqName(c and c.sq), "none on " .. Q.sqName(sq))
 end)
 add(300, function()
     if not S.fur then return end
