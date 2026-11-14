@@ -407,7 +407,9 @@ function L.stackLines(text)
         local t = rest:gsub("^%s+", ""):gsub("%s+$", "")
         local divider = t == "" or t:find("^%-+$") or t == "STACK TRACE" or t:find("^DEBUG%-MODE STACK TRACE:?$")
             or t:find("^dumping Lua stack trace")
-        if not divider then out[#out + 1] = l end
+        -- (the game's log tag, "ERROR: General f:1110> ", is left off a line: the row already says error, and the
+        -- tag pushed the useful part off the right edge. QA, Nov 13 2026)
+        if not divider then out[#out + 1] = (rest ~= l) and t or l end
     end
     -- (a text of dividers only keeps its lines: a row always has a stack to open)
     if #out == 0 then return splitLines(text) end

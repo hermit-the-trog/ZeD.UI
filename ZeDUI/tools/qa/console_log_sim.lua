@@ -1191,6 +1191,10 @@ do
         end
     end
     check("an opened error's stack has no dividers (dump line, dashes, STACK TRACE)", noise == 0, noise)
+    local tagged = 0
+    for _, l in ipairs(tr_ and tr_.stack or {}) do if l:find("^ERROR%s*:") then tagged = tagged + 1 end end
+    check("an opened error's stack lines carry no game log tag (ERROR: General f:N>)", tagged == 0 and tr_ and tr_.stack[1]:find("^Lua%(%(MOD:Trail Markers%)%)") ~= nil,
+        tr_ and tr_.stack[1])
     -- the second error right after the first, no print between (QA, Nov 13: the lone Camp Stove error): its separator
     -- ends in dashes and must not join the first error, or its message line becomes a print
     L.reset(); L.forgetMods()

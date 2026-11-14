@@ -1,7 +1,7 @@
 -- LuaConsole93/42/media/lua/client/LuaConsole93/Tokens.lua
 -- ============================================================================================================
--- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's Tokens.lua the console uses (61 of its
--- 100 statements).
+-- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's Tokens.lua the console uses (64 of its
+-- 105 statements).
 -- Made from ZeD-GUI's 42/media/lua/shared/ZeD/Tokens.lua by ZeDUI/tools/products/build_luaconsole93.py. Do
 -- not edit it here: change ZeD-GUI's file and build again.
 -- ============================================================================================================
@@ -537,7 +537,7 @@ local function flatOver(world, s, c, ca)
     return { r = r, g = g, b = b }
 end
 
-function LC93.deriveReadable(P, baseKey)
+function LC93.deriveReadable(P, baseKey, statusKey)
     local base  = LC93.BaseThemes[baseKey] or LC93.BaseThemes.dark
     local up    = (baseKey ~= "light")
     local world = up and 1 or 0
@@ -596,7 +596,7 @@ function LC93.deriveReadable(P, baseKey)
         list[n + 1] = flatOver(world, s1, c, washA)
         return LC93.legible(c, 4.6, list, up)
     end
-    local st = LC93.statusSet(baseKey)
+    local st = LC93.statusSet(baseKey, statusKey or P.statusKey)
     P.textOnWarning, P.textOnDanger = LC93.textOn(st.warning), LC93.textOn(st.danger)
     local function statusText(seed, hue)
         list[n + 1] = flatOver(world, s1, hue, bw)
@@ -632,9 +632,9 @@ LC93.StatusColors = {
     },
 }
 LC93.currentStatus = "standard"
-function LC93.statusSet(baseKey)
+function LC93.statusSet(baseKey, statusKey)
     local base = LC93.BaseThemes[baseKey] or LC93.BaseThemes.dark
-    return (LC93.currentStatus == "cb" and LC93.StatusColors.cb[baseKey]) or base
+    return (((statusKey or LC93.currentStatus) == "cb") and LC93.StatusColors.cb[baseKey]) or base
 end
 
 LC93.DEFAULT_ACCENT = "teal"
@@ -648,26 +648,21 @@ function LC93.seeThroughWorks(baseKey)
     return (baseKey or LC93.currentBase) == "dark"
 end
 
-function LC93.applyTheme(baseKey, accentKey, sizeKey)
-    LC93.currentBase   = baseKey   or LC93.currentBase
-    LC93.currentAccent = accentKey or LC93.currentAccent
-    LC93.currentSize   = sizeKey   or LC93.currentSize
+function LC93.buildColors(P, baseKey, accentKey, statusKey, seePick)
+    local T = P
+    if not LC93.BaseThemes[baseKey] then baseKey = "dark" end
+    if not LC93.AccentColors[accentKey] then accentKey = LC93.DEFAULT_ACCENT end
+    if statusKey ~= "cb" then statusKey = "standard" end
+    T.baseKey, T.accentKey, T.statusKey = baseKey, accentKey, statusKey
+    local base   = LC93.BaseThemes[baseKey]
 
-    if not LC93.BaseThemes[LC93.currentBase]     then LC93.currentBase   = "dark"   end
-    if not LC93.AccentColors[LC93.currentAccent] then LC93.currentAccent = LC93.DEFAULT_ACCENT end
-    if LC93.currentSize == "medium" or not LC93.TextSizes[LC93.currentSize] then LC93.currentSize = "small" end
-    local base   = LC93.BaseThemes[LC93.currentBase]
-    local size   = LC93.TextSizes[LC93.currentSize]
-
-    local accentSet = LC93.AccentColors[LC93.currentAccent]
+    local accentSet = LC93.AccentColors[accentKey]
     local accentVariant
-    if LC93.currentBase == "light" then
+    if baseKey == "light" then
         accentVariant = accentSet.light
     else
         accentVariant = accentSet.dark
     end
-
-    local T = {}
 
     T.base     = base.base
     T.marks    = { add = base.markAdd, remove = base.markRemove }
@@ -676,16 +671,8 @@ function LC93.applyTheme(baseKey, accentKey, sizeKey)
     T.surf2    = base.surf2
     T.surf3    = base.surf3
     T.surf4    = base.surf4
-    local sa = LC93.surfaceAlpha
-    if LC93._seeForced and sa == 1 then sa = LC93._seePick end
-    if LC93.seeThroughWorks(LC93.currentBase) then
-        LC93._seeForced = nil
-        LC93.surfaceAlpha = sa
-    else
-        LC93._seePick, LC93._seeForced = sa, true
-        sa = 1
-        LC93.surfaceAlpha = 1
-    end
+    local sa = seePick
+    if not LC93.seeThroughWorks(baseKey) then sa = 1 end
     if type(sa) == "number" then
         if sa < 0.6 then sa = 0.6 elseif sa > 1 then sa = 1 end
         T.base  = LC93.colorAlpha(T.base, sa)
@@ -694,6 +681,7 @@ function LC93.applyTheme(baseKey, accentKey, sizeKey)
         T.surf3 = LC93.colorAlpha(T.surf3, sa)
         T.surf4 = LC93.colorAlpha(T.surf4, sa)
     end
+    T.surfaceAlpha = sa
     T.border   = base.border
     T.borderS  = base.borderS
     T.frameS   = base.frameS or base.borderS
@@ -705,7 +693,7 @@ function LC93.applyTheme(baseKey, accentKey, sizeKey)
     T.textDim  = base.textDim
     T.textHead = base.textHead
 
-    local st = LC93.statusSet(LC93.currentBase)
+    local st = LC93.statusSet(baseKey, statusKey)
     T.danger   = st.danger
     T.warning  = st.warning
     T.positive = st.positive
@@ -747,8 +735,8 @@ function LC93.applyTheme(baseKey, accentKey, sizeKey)
     T.hover        = accentVariant.hover
     T.textOnAccent = accentVariant.textOnAccent
 
-    if LC93.currentAccent ~= "mono" then
-        local isLight = LC93.currentBase == "light"
+    if accentKey ~= "mono" then
+        local isLight = baseKey == "light"
         local TINT = isLight and 0.10 or 0.03
         local ac = isLight and T.accentBright or T.accent
         local blend = LC93.colorBlend
@@ -768,8 +756,50 @@ function LC93.applyTheme(baseKey, accentKey, sizeKey)
     T.toneNorm = T.textHead
     T.arrow    = { r = T.toneNorm.r, g = T.toneNorm.g, b = T.toneNorm.b, a = 0.60 }
 
-    LC93.deriveReadable(T, LC93.currentBase)
+    LC93.deriveReadable(T, baseKey, statusKey)
     T.textCat  = T.textHead
+
+    T.tempCold = base.tempCold
+    T.tempCool = base.tempCool
+    T.tempNorm = base.tempNorm
+    T.tempWarm = base.tempWarm
+    T.tempHot  = base.tempHot
+
+    T.tempColdBadge = base.tempColdBadge
+    T.tempCoolBadge = base.tempCoolBadge
+    T.tempNormBadge = base.tempNormBadge
+    T.tempWarmBadge = base.tempWarmBadge
+    T.tempHotBadge  = base.tempHotBadge
+
+    T.iconWhite = {r = 1, g = 1, b = 1}
+    T.iconTone  = (baseKey == "light") and {r = 0, g = 0, b = 0} or {r = 1, g = 1, b = 1}
+
+    return T
+end
+
+function LC93.applyTheme(baseKey, accentKey, sizeKey)
+    LC93.currentBase   = baseKey   or LC93.currentBase
+    LC93.currentAccent = accentKey or LC93.currentAccent
+    LC93.currentSize   = sizeKey   or LC93.currentSize
+
+    if not LC93.BaseThemes[LC93.currentBase]     then LC93.currentBase   = "dark"   end
+    if not LC93.AccentColors[LC93.currentAccent] then LC93.currentAccent = LC93.DEFAULT_ACCENT end
+    if LC93.currentSize == "medium" or not LC93.TextSizes[LC93.currentSize] then LC93.currentSize = "small" end
+    local size   = LC93.TextSizes[LC93.currentSize]
+
+    local sa = LC93.surfaceAlpha
+    if LC93._seeForced and sa == 1 then sa = LC93._seePick end
+    LC93.surfacePick = sa
+    if LC93.seeThroughWorks(LC93.currentBase) then
+        LC93._seeForced = nil
+        LC93.surfaceAlpha = sa
+    else
+        LC93._seePick, LC93._seeForced = sa, true
+        LC93.surfaceAlpha = 1
+    end
+
+    local T = {}
+    LC93.buildColors(T, LC93.currentBase, LC93.currentAccent, LC93.currentStatus, sa)
 
     local SD = LC93.Font.sdf
     local roleEntries = { SD.sec, SD.body, SD.stat, SD.head, SD.title }
@@ -849,21 +879,6 @@ function LC93.applyTheme(baseKey, accentKey, sizeKey)
     T.stripH    = math.floor((row1 + 11 * rowSc) * root + 0.5)
     T.sortBarH  = math.floor((size.fontF1.px * lineK + 7 * rowSc) * root + 0.5)
 
-    T.tempCold = base.tempCold
-    T.tempCool = base.tempCool
-    T.tempNorm = base.tempNorm
-    T.tempWarm = base.tempWarm
-    T.tempHot  = base.tempHot
-
-    T.tempColdBadge = base.tempColdBadge
-    T.tempCoolBadge = base.tempCoolBadge
-    T.tempNormBadge = base.tempNormBadge
-    T.tempWarmBadge = base.tempWarmBadge
-    T.tempHotBadge  = base.tempHotBadge
-
-    T.iconWhite = {r = 1, g = 1, b = 1}
-    T.iconTone  = (LC93.currentBase == "light") and {r = 0, g = 0, b = 0} or {r = 1, g = 1, b = 1}
-
     T.sp = {}
     for k, v in pairs(LC93.Spacing) do T.sp[k] = (type(v) == "number") and T.px(v) or v end
     T.sp.tabHeaderH = T.stripH
@@ -878,6 +893,10 @@ function LC93.applyTheme(baseKey, accentKey, sizeKey)
 
     T.radio = LC93.Radio
 
+    LC93._sharedT = T
+    LC93._themeGen = (LC93._themeGen or 0) + 1
+    T.themeGen = LC93._themeGen
+    LC93._playerT = {}
     LC93.T = T
     if getTextManager and not (LC93.Text and LC93.Text.noFonts) then
         local tm = LC93.TM
@@ -905,6 +924,9 @@ function LC93.applyTheme(baseKey, accentKey, sizeKey)
         triggerEvent("OnLC93ThemeChanged")
     end
 end
+
+LC93.Theme = LC93.Theme or {}
+LC93._playerT = LC93._playerT or {}
 
 function LC93.colorAlpha(color, alpha)
     return {r = color.r, g = color.g, b = color.b, a = alpha}

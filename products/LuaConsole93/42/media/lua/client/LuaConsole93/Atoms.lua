@@ -1,6 +1,6 @@
 -- LuaConsole93/42/media/lua/client/LuaConsole93/Atoms.lua
 -- ============================================================================================================
--- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's Atoms.lua the console uses (48 of its 141
+-- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's Atoms.lua the console uses (51 of its 145
 -- statements).
 -- Made from ZeD-GUI's 42/media/lua/client/ZeD/Atoms.lua by ZeDUI/tools/products/build_luaconsole93.py. Do not
 -- edit it here: change ZeD-GUI's file and build again.
@@ -354,6 +354,32 @@ function LC93.Atoms.drawScrollArrow(panel, x, y, size, direction, state)
             local py = cy - (arrSz - 1 - col)
             panel:drawRect(px, py, 1, (arrSz - 1 - col) * 2 + 1, gc.a, gc.r, gc.g, gc.b)
         end
+    end
+end
+
+function LC93.playerRect(pn)
+    pn = pn or 0
+    local q = LC93._qaRect and LC93._qaRect[pn]
+    if q then return q[1], q[2], q[3], q[4] end
+    local core = getCore()
+    local sw, sh = core:getScreenWidth(), core:getScreenHeight()
+    local okW, w = pcall(getPlayerScreenWidth, pn)
+    local okH, h = pcall(getPlayerScreenHeight, pn)
+    if not (okW and okH and type(w) == "number" and type(h) == "number" and w > 0 and h > 0) then
+        return 0, 0, sw, sh
+    end
+    local okX, x = pcall(getPlayerScreenLeft, pn)
+    local okY, y = pcall(getPlayerScreenTop, pn)
+    return (okX and type(x) == "number") and x or 0, (okY and type(y) == "number") and y or 0, w, h
+end
+
+LC93.splitWindows = LC93.splitWindows or false
+do
+    local ok, r = pcall(getFileReader, "LC93_splitview_on.txt", false)
+    if ok and r then
+        LC93.splitWindows = true
+        pcall(function() r:close() end)
+        print("[Lua Console 93] split view: on (LC93_splitview_on.txt in Zomboid/Lua)")
     end
 end
 

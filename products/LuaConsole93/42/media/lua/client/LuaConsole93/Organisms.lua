@@ -1,7 +1,7 @@
 -- LuaConsole93/42/media/lua/client/LuaConsole93/Organisms.lua
 -- ============================================================================================================
--- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's Organisms.lua the console uses (94 of its
--- 147 statements).
+-- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's Organisms.lua the console uses (96 of its
+-- 150 statements).
 -- Made from ZeD-GUI's 42/media/lua/client/ZeD/Organisms.lua by ZeDUI/tools/products/build_luaconsole93.py. Do
 -- not edit it here: change ZeD-GUI's file and build again.
 -- ============================================================================================================
@@ -117,6 +117,18 @@ function LC93_Window:setPinned(on)
         self:setWindowShaded(false)
     end
 end
+local function pairWindows()
+    local out = {}
+    local CWm, WWm = LC93_CharacterWindow, LC93_WorldWindow
+    for pn = 0, 3 do
+        local cw = CWm and CWm.getWindow and CWm.getWindow(pn)
+        local ww = WWm and WWm.getWindow and WWm.getWindow(pn)
+        if cw then out[#out + 1] = cw end
+        if ww then out[#out + 1] = ww end
+    end
+    return out
+end
+
 function LC93_Window:_autoCollapse()
     if not self.autoCollapse or not self:getIsVisible() then return end
     if self._halves and LC93.Halves then return LC93.Halves.update(self) end
@@ -124,8 +136,7 @@ function LC93_Window:_autoCollapse()
     local pad = JoypadState and JoypadState.players and JoypadState.players[pn + 1] ~= nil
     local now = getTimestampMs()
     local itemDrag = false
-    for _, get in ipairs({ LC93_CharacterWindow and LC93_CharacterWindow.getWindow, LC93_WorldWindow and LC93_WorldWindow.getWindow }) do
-        local w = get and get()
+    for _, w in ipairs(pairWindows()) do
         local c = w and w._mainContent
         if c and c._drag and c._drag:isActive() then itemDrag = true end
         if w and w._equipDrag and w._equipDrag:isActive() then itemDrag = true end
@@ -224,6 +235,11 @@ function LC93_Window:footerHeight()
     return LC93.T.px(HELP_H)
 end
 
+function LC93_Window:addToUIManager()
+    if LC93.Theme and LC93.Theme.adopt then LC93.Theme.adopt(self, nil, true) end
+    return ISPanel.addToUIManager(self)
+end
+
 function LC93_Window:prerender()
     LC93.Safe.guard(self, LC93_Window._drawFrame)
 end
@@ -248,9 +264,8 @@ function LC93_Window:clearStencilRect()
 end
 
 local accentPalettes = {}
-local function windowAccentPalette(baseKey, accentKey)
-    local sa = LC93.surfaceAlpha
-    local ck = baseKey .. "|" .. accentKey .. "|" .. tostring(sa)
+local function windowAccentPalette(baseKey, accentKey, statusKey, sa)
+    local ck = baseKey .. "|" .. accentKey .. "|" .. tostring(statusKey) .. "|" .. tostring(sa)
     local p = accentPalettes[ck]
     if p then return p end
     local accentSet = LC93.AccentColors[accentKey]
@@ -285,7 +300,8 @@ local function windowAccentPalette(baseKey, accentKey)
         p.base, p.surf1, p.surf2 = ca(p.base, sa), ca(p.surf1, sa), ca(p.surf2, sa)
         p.surf3, p.surf4 = ca(p.surf3, sa), ca(p.surf4, sa)
     end
-    LC93.deriveReadable(p, baseKey)
+    p.statusKey = statusKey
+    LC93.deriveReadable(p, baseKey, statusKey)
     accentPalettes[ck] = p
     return p
 end
@@ -294,8 +310,8 @@ function LC93_Window:_inUse()
     if self:pointerOn() then return true end
     local I = LC93.Input
     local F, Det = I and I.Focus, I and I.Detector
-    if F and F.getFocusedWindow and F.getFocusedWindow() == self
-       and Det and Det.getMode and Det.getMode() == "gamepad" then
+    if F and F.getFocusedWindow and F.getFocusedWindow(self.playerNum) == self
+       and Det and Det.getMode and Det.getMode(self.playerNum) == "gamepad" then
         return true
     end
     local MM = LC93.MainMenu
@@ -616,8 +632,11 @@ end
 function LC93_Window:_drawFrame()
     local T = LC93.T
 
-    if self._accentKey and LC93.AccentColors[self._accentKey] and LC93.BaseThemes[LC93.currentBase] then
-        local pal = windowAccentPalette(LC93.currentBase, self._accentKey)
+    local bk = T.baseKey or LC93.currentBase
+    if self._accentKey and LC93.AccentColors[self._accentKey] and LC93.BaseThemes[bk] then
+        local sa = T.surfaceAlpha
+        if T.baseKey == nil then sa = LC93.surfaceAlpha end
+        local pal = windowAccentPalette(bk, self._accentKey, T.statusKey or LC93.currentStatus, sa)
         local s = self._accentStore
         if not s then s = {}; self._accentStore = s end
         s.accent       = T.accent
@@ -630,6 +649,7 @@ function LC93_Window:_drawFrame()
         s.border = T.border; s.borderS = T.borderS
         s.text = T.text; s.textHead = T.textHead
         self._savedAccent = s
+        self._accentT = T
         T.accent       = pal.accent
         T.accentBright = pal.accentBright
         T.hover        = pal.hover
@@ -730,8 +750,8 @@ function LC93_Window:_footerPrompts()
     end
     local I = LC93.Input
     local Focus, Det = I and I.Focus, I and I.Detector
-    if not (Det and Det.getMode and Det.getMode() == "gamepad") then return nil end
-    if not (Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == self) then return nil end
+    if not (Det and Det.getMode and Det.getMode(self.playerNum) == "gamepad") then return nil end
+    if not (Focus and Focus.getFocusedWindow and Focus.getFocusedWindow(self.playerNum) == self) then return nil end
     local el = Focus.getFocusedElement and Focus.getFocusedElement(self)
     local prompts = _promptsFor(el, self)
     pcall(_addListPrompts, self, prompts)
@@ -745,14 +765,14 @@ function LC93_Window:_footerPrompts()
 end
 
 local _pw, _pr, _pg = {}, {}, {}
-local function drawPrompts(p, prompts, x, y, h, maxX)
+local function drawPrompts(p, prompts, x, y, h, maxX, pn)
     local T = LC93.T
     local tm = LC93.TM
     local f2, f5 = T.fontF2, T.fontF5
     local pic = T.px(14)
     local gap, between = T.px(4), T.px(8)
     local PG = LC93.PadGlyphs
-    local set = PG and PG.set()
+    local set = PG and PG.set(pn)
     local k = PG and PG.k(pic) or 1
     local n = #prompts
     local total = 0
@@ -859,7 +879,7 @@ function LC93_Window:_drawHelpLine(p, w, h, lit)
         local maxX = w - grow - T.px(10)
         local prompts = self:_footerPrompts()
         if prompts and #prompts > 0 then
-            drawPrompts(p, prompts, x0, fY, fH, maxX)
+            drawPrompts(p, prompts, x0, fY, fH, maxX, self.playerNum)
         else
             if lit then text = LC93.tr("UI_LC93_Window_ResizeHelp") end
             if text and maxX > x0 then
@@ -926,7 +946,7 @@ local function drawPairGap(win, p, w, h)
     if not k then return end
     local CWm, WWm = LC93_CharacterWindow, LC93_WorldWindow
     local other
-    if k == "char" then other = WWm and WWm.getWindow and WWm.getWindow() else other = CWm and CWm.getWindow and CWm.getWindow() end
+    if k == "char" then other = WWm and WWm.getWindow and WWm.getWindow(win.playerNum) else other = CWm and CWm.getWindow and CWm.getWindow(win.playerNum) end
     if not (other and other:isVisible()) then return end
     local gap = other:getX() - (win:getX() + w)
     if gap <= 0 or gap > LC93.T.px(PAIR_GAP) then return end
@@ -959,7 +979,8 @@ function LC93_Window._drawTop(win)
 end
 
 function LC93_Window:_restoreAccent()
-    local T = LC93.T
+    local T = self._accentT or LC93.T
+    self._accentT = nil
     if self._savedAccent then
         local s = self._savedAccent
         T.accent       = s.accent
@@ -1158,14 +1179,21 @@ function LC93_Window:onMouseUpOutside(x, y)
 end
 
 function LC93.screenOf(w)
+    if LC93.splitWindows == true then
+        local pn = (type(w) == "number") and w or (type(w) == "table" and w.playerNum) or nil
+        if type(pn) == "number" then
+            local x, y, pw, ph = LC93.playerRect(pn)
+            return pw, ph, x, y
+        end
+    end
     local core = getCore()
     return core:getScreenWidth(), core:getScreenHeight(), 0, 0
 end
 
 function LC93_Window:pairKey()
-    local cw = LC93_CharacterWindow and LC93_CharacterWindow.getWindow and LC93_CharacterWindow.getWindow()
+    local cw = LC93_CharacterWindow and LC93_CharacterWindow.getWindow and LC93_CharacterWindow.getWindow(self.playerNum)
     if cw == self then return "char" end
-    local ww = LC93_WorldWindow and LC93_WorldWindow.getWindow and LC93_WorldWindow.getWindow()
+    local ww = LC93_WorldWindow and LC93_WorldWindow.getWindow and LC93_WorldWindow.getWindow(self.playerNum)
     if ww == self then return "world" end
     return nil
 end
@@ -1270,35 +1298,35 @@ end
 
 function LC93_Window:onJoypadDown(button, joypadData)
     if LC93 and LC93.Input and LC93.Input.Focus
-       and LC93.Input.Focus.getFocusedWindow() == self then
+       and LC93.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
         LC93.Input.Focus.dispatchJoypadDown(self, button, joypadData)
     end
 end
 
 function LC93_Window:onJoypadDirUp(joypadData)
     if LC93 and LC93.Input and LC93.Input.Focus
-       and LC93.Input.Focus.getFocusedWindow() == self then
+       and LC93.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
         LC93.Input.Focus.dispatchJoypadDir(self, "up", joypadData)
     end
 end
 
 function LC93_Window:onJoypadDirDown(joypadData)
     if LC93 and LC93.Input and LC93.Input.Focus
-       and LC93.Input.Focus.getFocusedWindow() == self then
+       and LC93.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
         LC93.Input.Focus.dispatchJoypadDir(self, "down", joypadData)
     end
 end
 
 function LC93_Window:onJoypadDirLeft(joypadData)
     if LC93 and LC93.Input and LC93.Input.Focus
-       and LC93.Input.Focus.getFocusedWindow() == self then
+       and LC93.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
         LC93.Input.Focus.dispatchJoypadDir(self, "left", joypadData)
     end
 end
 
 function LC93_Window:onJoypadDirRight(joypadData)
     if LC93 and LC93.Input and LC93.Input.Focus
-       and LC93.Input.Focus.getFocusedWindow() == self then
+       and LC93.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
         LC93.Input.Focus.dispatchJoypadDir(self, "right", joypadData)
     end
 end

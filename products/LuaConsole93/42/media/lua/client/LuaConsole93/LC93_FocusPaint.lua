@@ -178,17 +178,18 @@ function FP.isShowing(win, opts)
     opts = opts or NO_OPTS
     local F = LC93.Input and LC93.Input.Focus
     local pad = opts.pad
+    local pn = win and win.playerNum
     if pad == nil then
         if F and F.cuesVisible then
-            pad = F.cuesVisible()
+            pad = F.cuesVisible(pn)
         else
             local D = LC93.Input and LC93.Input.Detector
-            pad = (D and D.getMode and D.getMode() == "gamepad") or false
+            pad = (D and D.getMode and D.getMode(pn) == "gamepad") or false
         end
     end
     if not pad then return false end
     if opts.focused then return true end
-    return win ~= nil and F ~= nil and F.getFocusedWindow ~= nil and F.getFocusedWindow() == win
+    return win ~= nil and F ~= nil and F.getFocusedWindow ~= nil and F.getFocusedWindow(pn) == win
 end
 
 local _marks = {}

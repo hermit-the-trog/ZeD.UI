@@ -1,7 +1,7 @@
 -- LuaConsole93/42/media/lua/client/LuaConsole93/LC93_PadGlyphs.lua
 -- ============================================================================================================
--- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's ZeD_PadGlyphs.lua the console uses (36 of
--- its 48 statements).
+-- Lua Console 93 Professional Edition 1.0.0: the parts of ZeD-GUI's ZeD_PadGlyphs.lua the console uses (39 of
+-- its 51 statements).
 -- Made from ZeD-GUI's 42/media/lua/client/ZeD/ZeD_PadGlyphs.lua by
 -- ZeDUI/tools/products/build_luaconsole93.py. Do not edit it here: change ZeD-GUI's file and build again.
 -- ============================================================================================================
@@ -62,13 +62,41 @@ local NAMES = {
 
 local SETTING = { xbox = "xbox", ps = "ps", deck = "deck", nintendo = "nin" }
 local STYLE = { PS4 = "ps", STEAMDECK = "deck" }
-function G.set()
+local NAMED = { xbox = "xbox", playstation = "ps", nintendo = "nin" }
+local function padSetOf(pn)
+    local P = JoypadState and JoypadState.players
+    local jd = P and P[pn + 1]
+    local id = jd and jd.id
+    if type(id) ~= "number" then return nil end
+    local ok, name = pcall(function() return getControllerName(id) end)
+    if ok and name and string.find(string.lower(tostring(name)), "steam", 1, true) then return "deck" end
+    local D = LC93.Input and LC93.Input.Detector
+    local ok2, t = pcall(function() return D and D.getControllerType and D.getControllerType(id) end)
+    return (ok2 and t and NAMED[t]) or nil
+end
+
+function G.set(pn)
     local key = (LC93.Settings and LC93.Settings.glyphKey and LC93.Settings.glyphKey()) or "auto"
     if key == "auto" then
+        if type(pn) == "number" and pn > 0 then
+            local own = padSetOf(pn)
+            if own then return own end
+        end
         local ok, s = pcall(function() return getCore():getOptionControllerButtonStyleString() end)
         return (ok and STYLE[tostring(s)]) or "xbox"
     end
     return SETTING[key]
+end
+
+function G.playerOf(panel)
+    local o, hops = panel, 0
+    while type(o) == "table" and hops < 8 do
+        if type(o.playerNum) == "number" then return o.playerNum end
+        if type(o.player) == "number" then return o.player end
+        o = o.parent
+        hops = hops + 1
+    end
+    return nil
 end
 
 local function newGrid(w, h) return { w = w, h = h, cell = {} } end
@@ -231,7 +259,7 @@ local function isLight(T)
 end
 
 function G.draw(panel, roles, x, y, h, k, set, pal)
-    set = set or G.set()
+    set = set or G.set(G.playerOf(panel))
     if not (set and roles and panel and panel.drawRect) then return 0 end
     local T = pal or LC93.T
     local light = isLight(T)
