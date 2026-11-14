@@ -1681,6 +1681,182 @@ do
         and TABW:find("ZeD.Atoms.requestDetailCard(win, key, c, panel, rect, focused and _nowOpts or nil)", 1, true) ~= nil)
 end
 
+-- ZONEPAGE (Nov 13 2026, the director's eye, QA at 4K 1.75x): a zone with 8 feeding troughs drew its fifth trough
+-- straight over the tab band's "Milking 1 of 2" and Stop. The hutches and troughs were pinned under the info band and
+-- not clipped. Now everything under the info band (the structures, the Animals head with Sort and Help, the animal
+-- rows) scrolls as one region from under the info band to the bottom of the content area. This cuts the zone page's
+-- real functions out of AnimalsTab.lua, draws it over a fake panel that notes every part drawn and the clip it was
+-- drawn under, and checks no part shows outside the region. (Run on the old file, the troughs fail.)
+do
+    local SRC = readFile(Z .. "AnimalsTab.lua")
+    local function cutOpt(from)
+        local a = SRC:find(from, 1, true)
+        if not a then return "" end
+        local _, b = SRC:find("\nend\n", a, true)
+        return SRC:sub(a, b)
+    end
+    local parts = {
+        SRC:match("\n(local AROW_H%s*= %d+)") or "", SRC:match("\n(local STRUCT_H = %d+)") or "",
+        SRC:match("\n(local ZCAT_H = %d+)") or "",
+        cutOpt("local function zoneClipHas("), cutOpt("local function zoneStructGroups("),
+        cutOpt("local function zoneStructsLayout("), cutOpt("local function drawZoneStructs("),
+        cutOpt("local function zoneBodyFocusSpan("), cutOpt("local function drawZoneRosterHead("),
+        cutOpt("local function drawZoneBody("), cutOpt("local function renderRanchZone("),
+    }
+    local chunk = assert(loadstring(table.concat(parts, "\n") .. "\nreturn renderRanchZone"))
+
+    local function px(u) return math.floor(u * 1.75 + 0.5) end
+    local STRUCT = px(tonumber(SRC:match("\nlocal STRUCT_H = (%d+)")))
+    local AROW = px(tonumber(SRC:match("\nlocal AROW_H%s*= (%d+)")))
+    local BAND = 150            -- the zone info band's height
+    local drawn, bar, LIVE = {}, nil, nil
+    local SUMMARY, ANIMALS = nil, nil
+    local panel = { clip = nil }
+    function panel:setStencilRect(x, y, w, h) self.clip = { y = y, h = h } end
+    function panel:clearStencilRect() self.clip = nil end
+    function panel:getMouseX() return -9999 end
+    function panel:getMouseY() return -9999 end
+    function panel:drawRect() end
+    local function rec(kind, y, h) drawn[#drawn + 1] = { kind = kind, y = y, h = h, clip = panel.clip } end
+    local Z2 = {
+        T = { px = px, sp = { scrollbarW = 14 }, buttonH = 40, hover = { r = 1, g = 1, b = 1, a = 0.1 } },
+        Atoms = { mouseIn = function() return false end },
+        Molecules = {
+            getTabPad = function() return 10 end,
+            drawCategoryRow = function(p, x, y, w, t, n, e, o) local h = (o and o.h) or px(15); rec("head", y, h); return h end,
+            buttonW = function() return 120 end,
+            drawButton = function(p, x, y, w, h) rec("sort", y, h); return x, y, w, h end,
+            drawIconButton = function(p, x, y, s) rec("help", y, s); return x, y, s, s end,
+            scrollBar = function(p, win, key, x, y, w, h, scroll, total) bar = { key = key, y = y, h = h, total = total } end,
+        },
+        tr = function(k) return k end, TM = {}, Focus = { mark = function() return false end },
+        WorldRoutes = { zoneHelp = function() end },
+    }
+    local env = setmetatable({
+        ZeD = Z2, getText = function(k) return k end,
+        getState = function(win) return win._st end,
+        getZoneViewState = function(win) return win._zs end,
+        AD = function() return {} end,
+        AP = function() return { isReady = function() return true end, refreshCache = function() end,
+            getZoneSummary = function() return SUMMARY end, getAnimalsInZone = function() return ANIMALS end } end,
+        WPN = function() return 0 end, getSpecificPlayer = function() return {} end,
+        highlightZone = function() end, navigateBack = function() end,
+        drawZoneInfoBand = function(p, win, x, y) rec("info", y, BAND); return BAND end,
+        sortedRoster = function(zs, a) return a end,
+        focusFor = function() return nil end, isOn = function() return false end, liveEl = function() return LIVE end,
+        focusOpts = function() return nil end, help = function() end,
+        drawAnimalRow = function(p, x, y) rec("animal", y, AROW); return AROW, { hover = false } end,
+        animalRowModel = function() return {} end,
+        QK = function() return { isSelected = function() return false end } end,
+        zoneSelection = function() return {} end, SORT_LABELS = {},
+        catRow = function(p, win, x, y) rec("cat", y, px(15)); return px(15) end,
+        drawStructRow = function(p, win, x, y, w, kind, o, idx)
+            rec("struct", y, STRUCT)
+            win._animalsStructZones[#win._animalsStructZones + 1] = { x = x, y = y, w = w, h = STRUCT, kind = kind, idx = idx }
+            return STRUCT
+        end,
+    }, { __index = _G })
+    setfenv(chunk, env)
+    local render = chunk()
+
+    -- a short zone page: content from y 100, 500 tall; the info band takes 150, so the region is 350 (8 troughs need 506)
+    local Y, H = 100, 500
+    local TOP, BOT = Y + BAND, Y + H
+    local function zone(nTroughs, nAnimals)
+        local tr, an = {}, {}
+        for i = 1, nTroughs do tr[i] = { name = "T" .. i } end
+        for i = 1, nAnimals do an[i] = { name = "A" .. i } end
+        SUMMARY, ANIMALS = { hutches = {}, troughs = tr }, an
+    end
+    local win = { _st = { zoneName = "QA Quick2" }, _zs = { sortMode = "name", scrollY = 0 } }
+    local function draw()
+        drawn, bar = {}, nil
+        render(panel, win, 0, Y, 1617, H)
+    end
+    -- every part's shown piece (the part cut to its clip) lies inside the region; a part drawn with no clip must
+    -- lie inside it whole
+    local function allInside()
+        for _, d in ipairs(drawn) do
+            if d.kind ~= "info" then
+                local a, b = d.y, d.y + d.h
+                if d.clip then a, b = math.max(a, d.clip.y), math.min(b, d.clip.y + d.clip.h) end
+                if b > a and (a < TOP or b > BOT) then return false, d.kind .. " " .. a .. ".." .. b end
+            end
+        end
+        return true
+    end
+    local function zonesShown()
+        local zs = {}
+        for _, z in ipairs(win._animalsStructZones or {}) do zs[#zs + 1] = z end
+        for _, z in ipairs(win._animalsRosterZones or {}) do zs[#zs + 1] = z end
+        zs[#zs + 1] = win._animalsSortZone
+        zs[#zs + 1] = win._animalsZoneHelpZone
+        for _, z in ipairs(zs) do
+            if z.y + z.h <= TOP or z.y >= BOT then return false, z.y end
+        end
+        return true
+    end
+
+    zone(8, 4)
+    draw()
+    local ok, why = allInside()
+    check("ZONEPAGE 8 troughs, 4 animals: no trough, head or animal row shows over the tab band", ok, why)
+    ok, why = zonesShown()
+    check("ZONEPAGE only parts shown in the region take a press or the controller", ok, why)
+    check("ZONEPAGE one bar for the region, from under the info band to the content's bottom",
+        bar ~= nil and bar.key == "an:roster" and bar.y == TOP and bar.h == BOT - TOP,
+        bar and (bar.y .. " " .. bar.h) or "no bar")
+    check("ZONEPAGE the hidden troughs leave no zone", #(win._animalsStructZones or {}) < 8, #(win._animalsStructZones or {}))
+    check("ZONEPAGE the wheel scrolls the region", win._animalsRosterScroll ~= nil and win._animalsRosterScroll.needsScroll
+        and win._animalsRosterScroll.top == TOP and win._animalsRosterScroll.h == BOT - TOP)
+
+    -- scrolled to the end: the last animal row sits on the region's bottom, the first trough is gone
+    win._zs.scrollY = 100000
+    draw()
+    ok, why = allInside()
+    local rz = win._animalsRosterZones or {}
+    local last = rz[#rz]
+    check("ZONEPAGE scrolled to the end: still inside, the last animal on the region's bottom",
+        ok and last ~= nil and last.y + last.h == BOT, why or (last and (last.y + last.h)))
+    local firstGone = true
+    for _, z in ipairs(win._animalsStructZones or {}) do if z.idx == 1 then firstGone = false end end
+    check("ZONEPAGE scrolled to the end: the first trough takes no press", firstGone)
+
+    -- the controller on trough 8 from the top: the page follows it
+    win._zs.scrollY = 0
+    LIVE = { id = "animals:struct:trough:8", isStruct = true, structIdx = 8, kind = "trough" }
+    draw()
+    local t8 = nil
+    for _, z in ipairs(win._animalsStructZones or {}) do if z.idx == 8 then t8 = z end end
+    check("ZONEPAGE the controller on trough 8 brings it into view", t8 ~= nil and t8.y >= TOP and t8.y + t8.h <= BOT,
+        t8 and t8.y)
+    -- and on the last animal
+    LIVE = { id = "animals:roster:1", isRoster = true, animal = ANIMALS[4] }
+    draw()
+    rz = win._animalsRosterZones or {}
+    check("ZONEPAGE the controller on the last animal brings it into view",
+        rz[#rz] ~= nil and rz[#rz].animal == ANIMALS[4] and rz[#rz].y + rz[#rz].h <= BOT)
+    LIVE = nil
+
+    -- a short zone that fits: no bar, and every part where the pinned page put it
+    zone(1, 2)
+    win._zs.scrollY = 0
+    draw()
+    ok = allInside()
+    local s1 = (win._animalsStructZones or {})[1]
+    local hy = TOP + px(15) + STRUCT
+    check("ZONEPAGE a page that fits: no bar, the trough under its head, the Animals head and rows under it",
+        ok and bar == nil and s1 ~= nil and s1.y == TOP + px(15) and win._animalsSortZone ~= nil
+        and win._animalsSortZone.y == hy and #(win._animalsRosterZones or {}) == 2
+        and win._animalsRosterZones[1].y == hy + 40)
+
+    -- the clicks: a press is taken only inside the region
+    check("ZONEPAGE presses on structures, Sort and Help are gated to the region",
+        SRC:find("if win._animalsStructZones and inZoneBody then", 1, true) ~= nil
+        and SRC:find("if inZoneBody and hitZone(win._animalsSortZone, x, y) then", 1, true) ~= nil
+        and SRC:find("if inZoneBody and hitZone(win._animalsZoneHelpZone, x, y) then", 1, true) ~= nil)
+end
+
 -- SOURCE ----------------------------------------------------------------------
 local TAB = readFile(Z .. "AnimalsTab.lua")
 local WW = readFile(Z .. "ZeD_WorldWindow.lua")

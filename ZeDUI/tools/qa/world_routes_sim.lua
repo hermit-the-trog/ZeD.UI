@@ -624,8 +624,11 @@ check("HELP an untranslated key: no help line", WR.zoneNoteLead() == nil)
 getText = realGetText
 do
     local src = readFile(Z .. "AnimalsTab.lua")
-    local a = src:find("local function renderRanchZone(", 1, true)
+    -- (the zone page's Animals head, with Sort and Help, is drawn by drawZoneRosterHead since it scrolls with the page)
+    local a = src:find("local function drawZoneRosterHead(", 1, true)
+    local e = a and src:find("\nend\n", a, true)
     local b = a and src:find('"animals:zonehelp"', a, true)
+    b = b and e and b < e
     check("HELP the zone view draws the button", a and b)
     check("HELP a click asks for it", src:find("hitZone(win._animalsZoneHelpZone, x, y)", 1, true) ~= nil)
     check("HELP the button names itself with ZeD's Help", src:find('hint = ZeD.tr("UI_ZeD_Wheel_Help")', 1, true) ~= nil)

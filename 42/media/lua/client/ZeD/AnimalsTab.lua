@@ -1925,6 +1925,15 @@ local function openStruct(kind, o, pn)
     if not ok then print("[ZeD] AnimalsTab: open " .. kind .. " failed: " .. tostring(err)) end
 end
 
+-- True unless the zone page's scrolling region is being drawn and the pointer is outside it. A row half cut off by
+-- the region's edge must not light up (or set the help line) while the pointer is over the info band or the tab band.
+local function zoneClipHas(panel, win)
+    local c = win._animalsZoneClip
+    if not c then return true end
+    local my = panel:getMouseY()
+    return my >= c.top and my < c.top + c.h
+end
+
 -- focusId: the ring element for this row (default: animals:struct:<kind>:<idx>)
 local function drawStructRow(panel, win, x, y, w, kind, o, idx, player, focusId)
     local T = ZeD.T
@@ -1934,7 +1943,7 @@ local function drawStructRow(panel, win, x, y, w, kind, o, idx, player, focusId)
     local h = T.px(STRUCT_H)
 
     -- hover wash, then the controller's mark, both under the words
-    local hovered = A.mouseIn(panel, x, y, w, h)
+    local hovered = A.mouseIn(panel, x, y, w, h) and zoneClipHas(panel, win)
     if hovered then
         local hv = T.hover
         panel:drawRect(x, y, w, h, hv.a, hv.r, hv.g, hv.b)
@@ -1989,17 +1998,55 @@ local function drawStructRow(panel, win, x, y, w, kind, o, idx, player, focusId)
     return h
 end
 
--- the zone's hutches and troughs, pinned under the info band
-local function drawZoneStructs(panel, win, x, y, w, summary, player)
+-- catRow's head height in design units (the library's category row, drawn with no height of its own). The zone page
+-- adds up its height before drawing, so it needs this number up front.
+local ZCAT_H = 15
+
+-- the zone's two structure lists, hutches first: the order the rows are drawn and numbered in
+local function zoneStructGroups(summary)
+    return { { kind = "hutch", label = "UI_ZeD_Animals_SecHutches", list = summary.hutches or {} },
+             { kind = "trough", label = "UI_ZeD_Animals_SecTroughs", list = summary.troughs or {} } }
+end
+
+-- The hutches and troughs section, measured without drawing: its height, and how far down structure row `want`
+-- (its number in the ring) sits, or nil. Every part has a fixed height, so this matches what drawZoneStructs draws.
+local function zoneStructsLayout(summary, want)
+    local T = ZeD.T
+    local catH, rowH = T.px(ZCAT_H), T.px(STRUCT_H)
+    local y, idx, at = 0, 0, nil
+    for _, g in ipairs(zoneStructGroups(summary)) do
+        if #g.list > 0 then
+            y = y + catH
+            for _ = 1, #g.list do
+                idx = idx + 1
+                if idx == want then at = y end
+                y = y + rowH
+            end
+        end
+    end
+    return y, at
+end
+
+-- The zone's hutches and troughs, at the top of the zone page's scrolling region. A part wholly outside
+-- clipTop..clipBot is not drawn and leaves no click or focus zone (a hidden row must not take a press or the
+-- controller); the rows still count toward the height so the parts below keep their places.
+local function drawZoneStructs(panel, win, x, y, w, summary, player, clipTop, clipBot)
+    local T = ZeD.T
+    local catH, rowH = T.px(ZCAT_H), T.px(STRUCT_H)
     local y0 = y
     local idx = 0
-    for _, g in ipairs({ { kind = "hutch", label = "UI_ZeD_Animals_SecHutches", list = summary.hutches or {} },
-                         { kind = "trough", label = "UI_ZeD_Animals_SecTroughs", list = summary.troughs or {} } }) do
+    for _, g in ipairs(zoneStructGroups(summary)) do
         if #g.list > 0 then
-            y = y + catRow(panel, win, x, y, w, ZeD.tr(g.label), #g.list, true, true, nil, nil)
+            if y + catH > clipTop and y < clipBot then
+                catRow(panel, win, x, y, w, ZeD.tr(g.label), #g.list, true, true, nil, nil)
+            end
+            y = y + catH
             for _, o in ipairs(g.list) do
                 idx = idx + 1
-                y = y + drawStructRow(panel, win, x, y, w, g.kind, o, idx, player)
+                if y + rowH > clipTop and y < clipBot then
+                    drawStructRow(panel, win, x, y, w, g.kind, o, idx, player)
+                end
+                y = y + rowH
             end
         end
     end
@@ -2308,50 +2355,35 @@ local function highlightZone(win, player, zoneName)
     win._animalsZoneLit = { player = player, name = zoneName, zone = zoneObj, id = id, t = now }
 end
 
-local function renderRanchZone(panel, win, x, y, w, h)
+-- Where the controller's focus sits in the zone page, in page units (0 = the top of the scrolling region with no
+-- scroll): its top and height, or nil when the focus is elsewhere. The page follows it, so a stop the pad moves to is
+-- never left under the region's edge.
+local function zoneBodyFocusSpan(win, summary, sortedAnimals, structH, hdrH, rowH)
+    local el = liveEl(win)
+    if not el then return nil end
+    if el.isRoster then
+        for i = 1, #sortedAnimals do
+            if sortedAnimals[i] == el.animal then return structH + hdrH + (i - 1) * rowH, rowH end
+        end
+        return nil
+    end
+    if el.id == "animals:sort" or el.id == "animals:zonehelp" then return structH, hdrH end
+    if el.isStruct and el.structIdx then
+        local _, at = zoneStructsLayout(summary, el.structIdx)
+        if at then return at, ZeD.T.px(STRUCT_H) end
+    end
+    return nil
+end
+
+-- The Animals head of the zone page: its count, the Sort button and the Help icon, at secY. Click and focus zones
+-- are kept only when the head shows in the region (a hidden button must not take a press); inClip says whether the
+-- pointer is inside the region, so a button half under the region's edge does not light up through the band.
+local function drawZoneRosterHead(panel, win, x, secY, w, hdrH, rosterCount, inClip)
     local T = ZeD.T
     local A = ZeD.Atoms
     local M = ZeD.Molecules
-    local state = getState(win)
     local zs = getZoneViewState(win)
-    local ad = AD()
-    local ap = AP()
-    local tm = ZeD.TM
-
-    if not ap.isReady(WPN(win)) then ap.refreshCache(WPN(win)) end
-
-    -- Highlight this zone on the ground
-    local player = getSpecificPlayer(WPN(win))
-    highlightZone(win, player, state.zoneName)
-
-    local summary = state.zoneName and ap.getZoneSummary(state.zoneName, WPN(win))
-    if not summary then
-        -- Zone no longer exists — go back to overview
-        navigateBack(win)
-        return
-    end
-
     local pad = M.getTabPad()
-    local scrollW = T.sp.scrollbarW
-
-    -- Reset click zones
-    win._animalsRosterZones = {}
-    win._animalsSortZone = nil
-
-    -- ── ZONE INFO BAND (pinned at top) ──
-    local bandH = drawZoneInfoBand(panel, win, x, y, w, summary)
-
-    -- ── HUTCHES / FEEDING TROUGHS (pinned below the band) ──
-    win._animalsStructZones = {}
-    local structH = drawZoneStructs(panel, win, x, y + bandH, w, summary, player)
-
-    -- ── ROSTER SECTION HEADER (pinned below band) ──
-    local animals = ap.getAnimalsInZone(state.zoneName, WPN(win))
-    local sortedAnimals = sortedRoster(zs, animals, zs.sortMode, state.zoneName, WPN(win))
-    local rosterCount = #sortedAnimals
-
-    local secY = y + bandH + structH
-    local hdrH = T.buttonH
     M.drawCategoryRow(panel, x, secY, w, getText("IGUI_SearchMode_Categories_Animals"), rosterCount, true,
         { noArrow = true, h = hdrH })
 
@@ -2361,17 +2393,16 @@ local function renderRanchZone(panel, win, x, y, w, h)
     local sortW = M.buttonW(sortText)
     local sortX = x + w - pad - sortW
     local sbx, sby, sbw, sbh = M.drawButton(panel, sortX, secY, sortW, hdrH, sortText, "default", false, nil, {
-        compact = true, hover = A.mouseIn(panel, sortX, secY, sortW, hdrH), win = win,
+        compact = true, hover = inClip and A.mouseIn(panel, sortX, secY, sortW, hdrH), win = win,
         focus = focusFor(win, "animals:sort"), help = ZeD.tr("UI_ZeD_Animals_HelpSort") })
     win._animalsSortZone = { x = sbx, y = sby, w = sbw, h = sbh }
 
     -- Help: the game's first-time zone note on request, in its own words (WorldRoutes.zoneHelp); the
     -- help line says its opening sentence. The note never comes up on its own under ZeD's window.
-    win._animalsZoneHelpZone = nil
     local WR = ZeD.WorldRoutes
     if WR and WR.zoneHelp then
         local hx = sortX - T.px(6) - hdrH
-        local hHover = A.mouseIn(panel, hx, secY, hdrH, hdrH)
+        local hHover = inClip and A.mouseIn(panel, hx, secY, hdrH, hdrH)
         local hOn = isOn(win, "animals:zonehelp")
         local lead = WR.zoneNoteLead and WR.zoneNoteLead() or nil
         local hzx, hzy, hzw, hzh = M.drawIconButton(panel, hx, secY, hdrH, "help", {
@@ -2380,78 +2411,131 @@ local function renderRanchZone(panel, win, x, y, w, h)
         if (hHover or hOn) and lead and ZeD.Help and ZeD.Help.set then ZeD.Help.set(panel, lead) end
         win._animalsZoneHelpZone = { x = hzx, y = hzy, w = hzw, h = hzh }
     end
+end
 
-    -- ── SCROLLABLE ROSTER ──
-    local rosterTop = secY + hdrH
-    local rosterH = h - (rosterTop - y)
-    if rosterH <= 0 then return end
+-- The zone page under its info band. The hutches and troughs, the Animals head and the animal rows scroll together
+-- as one region from top to top + h (the bottom of the content area, which ends above the tab band), with one bar
+-- and one clip: ZeD's cards scroll as a whole, never in separate scrolling boxes. Before, the structures were pinned
+-- and unclipped, so a zone with 8 troughs drew its fifth trough over the band's "Milking 1 of 2" and Stop.
+-- The page's height is added up before drawing (every part has a fixed height), so the scroll and the
+-- controller's follow are right on the first frame. A page that fits draws exactly where the pinned one did.
+local function drawZoneBody(panel, win, x, top, w, h, summary, player)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local M = ZeD.Molecules
+    local state = getState(win)
+    local zs = getZoneViewState(win)
+    local pad = M.getTabPad()
+    local scrollW = T.sp.scrollbarW
+    local rowH = T.px(AROW_H)
+    local hdrH = T.buttonH
+    local bot = top + h
 
-    local totalContentH = rosterCount * T.px(AROW_H)
-    local maxScroll = math.max(0, totalContentH - rosterH)
+    local animals = AP().getAnimalsInZone(state.zoneName, WPN(win))
+    local sortedAnimals = sortedRoster(zs, animals, zs.sortMode, state.zoneName, WPN(win))
+    local rosterCount = #sortedAnimals
 
-    -- The controller's row: keep it in the viewport (it is drawn marked below).
-    local gpFocusAnimal = nil
-    do
-        local fe = liveEl(win)
-        if fe and fe.isRoster then gpFocusAnimal = fe.animal end
-    end
-    if gpFocusAnimal then
-        local idx = nil
-        for i = 1, #sortedAnimals do
-            if sortedAnimals[i] == gpFocusAnimal then idx = i; break end
-        end
-        if idx then
-            local itemTop = (idx - 1) * T.px(AROW_H)
-            local itemBot = itemTop + T.px(AROW_H)
-            if itemTop < zs.scrollY then
-                zs.scrollY = itemTop
-            elseif itemBot > zs.scrollY + rosterH then
-                zs.scrollY = itemBot - rosterH
-            end
+    -- the page: the structures, then the head, then a row per animal
+    local structH = zoneStructsLayout(summary, nil)
+    local totalH = structH + hdrH + rosterCount * rowH
+    local maxScroll = math.max(0, totalH - h)
+
+    -- the controller's stop: keep it in view
+    local cy, ch = zoneBodyFocusSpan(win, summary, sortedAnimals, structH, hdrH, rowH)
+    if cy then
+        if cy < zs.scrollY then
+            zs.scrollY = cy
+        elseif cy + ch > zs.scrollY + h then
+            zs.scrollY = cy + ch - h
         end
     end
     zs.scrollY = math.max(0, math.min(zs.scrollY, maxScroll))
 
-    local needsScroll = totalContentH > rosterH
+    local needsScroll = totalH > h
     local contentW = needsScroll and (w - scrollW) or w
+    local pageTop = top - zs.scrollY
 
-    panel:setStencilRect(x, rosterTop, contentW, rosterH)
+    -- everything below is clipped to the region; the clip is also what the rows' hover reads (zoneClipHas)
+    win._animalsZoneClip = { top = top, h = h }
+    local inClip = zoneClipHas(panel, win)
+    panel:setStencilRect(x, top, contentW, h)
 
-    local player = getSpecificPlayer(WPN(win))
-    local mx = panel:getMouseX()
-    local my = panel:getMouseY()
-    local rowY = rosterTop - zs.scrollY
+    drawZoneStructs(panel, win, x, pageTop, contentW, summary, player, top, bot)
+
+    local secY = pageTop + structH
+    if secY + hdrH > top and secY < bot then
+        drawZoneRosterHead(panel, win, x, secY, contentW, hdrH, rosterCount, inClip)
+    end
+
+    -- the controller's row is drawn marked
+    local gpFocusAnimal = nil
+    local fe = liveEl(win)
+    if fe and fe.isRoster then gpFocusAnimal = fe.animal end
+
+    local rowY = secY + hdrH
     local sel = zoneSelection(win, state.zoneName)
-
     for _, animal in ipairs(sortedAnimals) do
-        if rowY + T.px(AROW_H) > rosterTop and rowY < rosterTop + rosterH then
-            local isHovered = A.mouseIn(panel, x, rowY, contentW, T.px(AROW_H))
-                and my >= rosterTop and my < rosterTop + rosterH
+        if rowY + rowH > top and rowY < bot then
+            local isHovered = inClip and A.mouseIn(panel, x, rowY, contentW, rowH)
             -- the controller's mark goes under the row's words
             local onFocus = false
             if animal == gpFocusAnimal then
-                onFocus = ZeD.Focus.mark(panel, x + pad, rowY, contentW - pad * 2, T.px(AROW_H), focusOpts(win))
+                onFocus = ZeD.Focus.mark(panel, x + pad, rowY, contentW - pad * 2, rowH, focusOpts(win))
             end
             local _, cbr = drawAnimalRow(panel, x + pad, rowY, contentW - pad * 2, animalRowModel(zs, animal, player),
                 isHovered, onFocus, QK().isSelected(sel, animal))
             if isHovered then help(panel, cbr.hover and "UI_ZeD_Animals_HelpRowCheck" or "UI_ZeD_Animals_HelpAnimalRow") end
             table.insert(win._animalsRosterZones, {
-                x = x, y = rowY, w = contentW, h = T.px(AROW_H), animal = animal, cb = cbr
+                x = x, y = rowY, w = contentW, h = rowH, animal = animal, cb = cbr
             })
         end
-        rowY = rowY + T.px(AROW_H)
+        rowY = rowY + rowH
     end
 
     panel:clearStencilRect()
+    win._animalsZoneClip = nil
 
     if needsScroll then
-        ZeD.Molecules.scrollBar(panel, win, "an:roster", x + contentW + T.px(2), rosterTop, scrollW - T.px(2), rosterH,
-            zs.scrollY, totalContentH, function(v) zs.scrollY = v end, { step = T.px(AROW_H) })
+        M.scrollBar(panel, win, "an:roster", x + contentW + T.px(2), top, scrollW - T.px(2), h,
+            zs.scrollY, totalH, function(v) zs.scrollY = v end, { step = rowH })
     end
 
+    -- the region: the wheel scrolls it, and presses outside it reach no row (onClick, onRightClick)
     win._animalsRosterScroll = {
-        top = rosterTop, h = rosterH, maxScroll = maxScroll, needsScroll = needsScroll
+        top = top, h = h, maxScroll = maxScroll, needsScroll = needsScroll
     }
+end
+
+local function renderRanchZone(panel, win, x, y, w, h)
+    local state = getState(win)
+    local ap = AP()
+
+    if not ap.isReady(WPN(win)) then ap.refreshCache(WPN(win)) end
+
+    -- Highlight this zone on the ground
+    local player = getSpecificPlayer(WPN(win))
+    highlightZone(win, player, state.zoneName)
+
+    local summary = state.zoneName and ap.getZoneSummary(state.zoneName, WPN(win))
+    if not summary then
+        -- the zone no longer exists: back to the overview
+        navigateBack(win)
+        return
+    end
+
+    -- Reset click zones (only the parts drawn this frame take presses)
+    win._animalsRosterZones = {}
+    win._animalsSortZone = nil
+    win._animalsZoneHelpZone = nil
+
+    -- the zone info band stays pinned at the top
+    local bandH = drawZoneInfoBand(panel, win, x, y, w, summary)
+
+    -- the rest of the page scrolls under it
+    win._animalsStructZones = {}
+    local bodyH = h - bandH
+    if bodyH <= 0 then return end
+    drawZoneBody(panel, win, x, y + bandH, w, bodyH, summary, player)
 end
 
 -- ============================================================================
@@ -3581,6 +3665,7 @@ function ZeD.AnimalsTab.render(panel, win, x, y, w, h)
     if win._animalsScroll then win._animalsScroll.visible = false end   -- (the Ranch page's bar: it shows it)
     -- (only the view drawn this frame answers the wheel)
     win._animalsDetailScroll, win._animalsRosterScroll, win._animalsButcherScroll = nil, nil, nil
+    win._animalsZoneClip = nil   -- (the zone page sets it only while its region draws)
     win._animalsBreadcrumbZone = nil
 
     -- Zone create mode overrides everything
@@ -3637,6 +3722,12 @@ end
 -- ============================================================================
 -- CLICK HANDLER
 -- ============================================================================
+
+-- true when y is inside the zone page's scrolling region, or no zone page is drawn (the other views' rows)
+local function zoneBodyHas(win, y)
+    local rs = win._animalsRosterScroll
+    return not rs or (y >= rs.top and y < rs.top + rs.h)
+end
 
 function ZeD.AnimalsTab.onClick(win, x, y)
     -- Zone creation mode clicks (the band's buttons)
@@ -3744,8 +3835,10 @@ function ZeD.AnimalsTab.onClick(win, x, y)
         end
     end
 
-    -- Hutch / trough / hook rows: OPEN (or the whole row) opens the card
-    if win._animalsStructZones then
+    -- Hutch / trough / hook rows: OPEN (or the whole row) opens the card. On the zone page a row half under the
+    -- scrolling region's edge takes a press only on its shown part.
+    local inZoneBody = zoneBodyHas(win, y)
+    if win._animalsStructZones and inZoneBody then
         for _, sz in ipairs(win._animalsStructZones) do
             if hitZone(sz, x, y) then
                 openStruct(sz.kind, sz.obj, WPN(win))
@@ -3781,13 +3874,13 @@ function ZeD.AnimalsTab.onClick(win, x, y)
     end
 
     -- Sort cycle click (zone view) — test before section headers
-    if hitZone(win._animalsSortZone, x, y) then
+    if inZoneBody and hitZone(win._animalsSortZone, x, y) then
         cycleSortMode(win)
         return true
     end
 
     -- Help (zone view): the game's zone note, asked for
-    if hitZone(win._animalsZoneHelpZone, x, y) then
+    if inZoneBody and hitZone(win._animalsZoneHelpZone, x, y) then
         AT.zoneHelp(win)
         return true
     end
