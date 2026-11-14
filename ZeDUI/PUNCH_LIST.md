@@ -4809,3 +4809,5 @@ to be proposed.
    a. Down the World window's side tab strip, the D-pad stops at Animals; the Radio tab below it can't be focused.
    b. Inside the Radio tab: after going down into the channel list and picking a station, then back up into the face's
       buttons, the pad can't get up to the radio's header (the tab's top row) again.
+      Details (the director): Up stops at the face's Power button and goes no higher; Left or Right from there jumps out
+      to the next panel or the tab strip, so the header row above the face is never reached.
