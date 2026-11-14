@@ -215,7 +215,7 @@ local function openPair(playerNum)
     if not ZeD.windowsFor(playerNum or 0) then return false end
     if not (ZeD_CharacterWindow and ZeD_CharacterWindow.ensureBothOpenForGamepad) then return false end
     local ok = pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, playerNum or 0)
-    return ok and ZeD_CharacterWindow.isOpen and ZeD_CharacterWindow.isOpen() or false
+    return ok and ZeD_CharacterWindow.isOpen and ZeD_CharacterWindow.isOpen(playerNum or 0) or false   -- (the wheel's player's pair)
 end
 
 local function openWorldTab(playerNum, tabId)

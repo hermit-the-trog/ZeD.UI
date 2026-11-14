@@ -30,9 +30,9 @@ local RENAME_MAX = 28   -- vanilla's MAXIMUM_RENAME_LENGTH
 
 local function txt(key, fallback) return getTextOrNull(key) or fallback end
 
--- The World window's open container, if it is a real one (not the floor)
-local function worldActive()
-    local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+-- The World window's open container, if it is a real one (not the floor). pn: the menu's player (their own window)
+local function worldActive(pn)
+    local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn)
     if not (win and win:isVisible() and win._containers and win._activeContainer) then return nil end
     local e = win._containers[win._activeContainer]
     if not (e and e.inventory and not e.isFloor and not e.locked) then return nil end
@@ -40,7 +40,7 @@ local function worldActive()
 end
 
 local function floorInv(pn)
-    local f = ZeD_WorldWindow and ZeD_WorldWindow.getFloorContainer and ZeD_WorldWindow.getFloorContainer()
+    local f = ZeD_WorldWindow and ZeD_WorldWindow.getFloorContainer and ZeD_WorldWindow.getFloorContainer(pn)
     return f or (ISInventoryPage and ISInventoryPage.GetFloorContainer and ISInventoryPage.GetFloorContainer(pn))
 end
 
@@ -72,7 +72,7 @@ local function addMoveTo(context, playerObj, pn, items)
         if anyFav and not inv:isInCharacterInventory(playerObj) then return end
         if not allIn(items, inv) then dests[#dests + 1] = { name = name, inv = inv } end
     end
-    local wInv, wName = worldActive()
+    local wInv, wName = worldActive(pn)
     add(wName or txt("ContextMenu_MoveToContainer", "Container"), wInv)
     add(txt("ContextMenu_MoveToInventory", "Inventory"), playerObj:getInventory())
     local seen = {}
@@ -198,7 +198,7 @@ local function onFillInventory(pn, context, rawItems)
     if hadLoot and src then
         context:addOption(txt("IGUI_invpage_Loot_all", "Loot all"), playerObj, CT.takeAll, src, playerObj:getInventory())
     end
-    local wInv = worldActive()
+    local wInv = worldActive(pn)
     if hadXfer and src and (wInv or floorInv(pn)) then
         context:addOption(txt("IGUI_invpage_Transfer_all", "Transfer all"), playerObj, CT.transferAll, src, wInv or floorInv(pn))
     end

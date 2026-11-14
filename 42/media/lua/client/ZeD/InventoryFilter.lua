@@ -434,6 +434,7 @@ end
 
 local _chipFocus = {}
 --- Draws the bar on panel (its layout done). focusOf(id) gives the controller's mark opts for a stop, or nil.
+--- (focusOf also gets the panel's player number: in split view each player has a focused window of their own.)
 function IF.draw(panel, S, agg, focusOf)
     local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
     local tm = ZeD.TM
@@ -454,7 +455,7 @@ function IF.draw(panel, S, agg, focusOf)
             local Fo = ZeD.Input and ZeD.Input.Focus
             if not (Fo and Fo.cuesVisible and Fo.cuesVisible()) then pcall(function() f.input:focus() end) end
         end
-        local fo = focusOf and focusOf(fr.id)
+        local fo = focusOf and focusOf(fr.id, ZeD.playerNumOf(panel))
         if fo then ZeD.Focus.mark(panel, fr.x, fr.y, fr.w, fr.h, fo) end
     end
     -- the count
@@ -467,7 +468,7 @@ function IF.draw(panel, S, agg, focusOf)
     local cr = S.rects[2]
     M.drawButton(panel, cr.x, cr.y, cr.w, cr.h, ZeD.tr("UI_ZeD_Inv_FilterClear"), "default", false, nil, {
         compact = true, disabled = not active, hover = A.mouseIn(panel, cr.x, cr.y, cr.w, cr.h),
-        focus = focusOf and focusOf(cr.id), help = ZeD.tr("UI_ZeD_Inv_FilterClearHelp") })
+        focus = focusOf and focusOf(cr.id, ZeD.playerNumOf(panel)), help = ZeD.tr("UI_ZeD_Inv_FilterClearHelp") })
     -- the chips: solid accent while picked; a category with no name holding the text greys
     local f1 = T.fontF1
     local fh1 = tm:getFontHeight(f1)
@@ -479,7 +480,7 @@ function IF.draw(panel, S, agg, focusOf)
             local bg = c.on and T.accent or T.surf2
             panel:drawRect(r.x, r.y, r.w, r.h, bg.a or 1, bg.r, bg.g, bg.b)
             if hov and not c.on then local hv = T.hover; panel:drawRect(r.x, r.y, r.w, r.h, hv.a or 1, hv.r, hv.g, hv.b) end
-            local fo = focusOf and focusOf(r.id)
+            local fo = focusOf and focusOf(r.id, ZeD.playerNumOf(panel))
             local onF = false
             if fo then
                 _chipFocus.win, _chipFocus.zone, _chipFocus.solid = fo.win, fo.zone, c.on

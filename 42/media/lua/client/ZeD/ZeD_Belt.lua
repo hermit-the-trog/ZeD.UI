@@ -1601,7 +1601,7 @@ B._condRing = condRing
 -- so a pointer left resting on the belt never lights a second box beside the pad's.
 local function hoverWash(self, b, round)
     local F = ZeD.Input and ZeD.Input.Focus
-    if F and F.cuesVisible and F.cuesVisible() then return end
+    if F and F.cuesVisible and F.cuesVisible(self.playerNum) then return end   -- (this belt's player's marks)
     local hv = ZeD.T.hover
     if round then disc(self, b.x, b.y, b.w, hv.a or 0.2, hv)
     else self:drawRect(b.x, b.y, b.w, b.h, hv.a or 0.2, hv.r, hv.g, hv.b) end
@@ -2352,8 +2352,9 @@ function ZeD_BeltHUD:_finishOut(x, y)
         return true
     end
     -- into the bags (a ZeD inventory list): take it off the belt
-    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
-    local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    -- (this belt's player's windows)
+    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(self.playerNum)
+    local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(self.playerNum)
     for _, win in ipairs({ cw or false, ww or false }) do  -- (a closed window is false, not a nil hole that ends ipairs early)
         local c = win and win._contentPanel
         if c and c:isReallyVisible() and c:isMouseOver() then
@@ -2483,11 +2484,12 @@ end
 function ZeD_BeltHUD:_leavePad()
     self._gp = nil
     setJoypadFocus(self.playerNum, nil)
-    -- (ZeD's windows and their focus are the first player's: another player's pad goes back to their game)
-    if self.playerNum ~= 0 then return end
+    -- (a player whose windows are the game's own, ZeD.windowsFor: their pad goes back to their game; the others
+    -- back to their own focused ZeD window)
+    if type(self.playerNum) ~= "number" or not ZeD.windowsFor(self.playerNum) then return end
     local F = ZeD.Input and ZeD.Input.Focus
-    local fw = F and F.getFocusedWindow and F.getFocusedWindow()
-    if fw and fw:isVisible() and not fw.windowShaded then F.reclaimEngineFocus() end
+    local fw = F and F.getFocusedWindow and F.getFocusedWindow(self.playerNum)
+    if fw and fw:isVisible() and not fw.windowShaded then F.reclaimEngineFocus(self.playerNum) end
 end
 
 -- The belt must never be a trap on the pad (no press does

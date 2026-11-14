@@ -54,10 +54,23 @@ function C.drawTri(panel, x, y, up, col)
     else A.drawTriangleDown(panel, x, y, T.px(TRI_W), col) end
 end
 
+-- Every local player's Character and World windows, open ones only, the first player's pair first (split view: up to
+-- four pairs, one a player; with one player this is the first player's pair alone, as before)
+local function pairWindows()
+    local out = {}
+    local CWm, WWm = ZeD_CharacterWindow, ZeD_WorldWindow
+    for pn = 0, 3 do
+        local cw = CWm and CWm.getWindow and CWm.getWindow(pn)
+        local ww = WWm and WWm.getWindow and WWm.getWindow(pn)
+        if cw then out[#out + 1] = cw end
+        if ww then out[#out + 1] = ww end
+    end
+    return out
+end
+
 -- true while an item is being dragged in either main window (a drop on the tab is then possible)
 local function anyDragActive()
-    for _, get in ipairs({ ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow, ZeD_WorldWindow and ZeD_WorldWindow.getWindow }) do
-        local w = get and get()
+    for _, w in ipairs(pairWindows()) do
         local c = w and w._mainContent
         if c and c._drag and c._drag:isActive() then return true end
         if w and w._equipDrag and w._equipDrag:isActive() then return true end   -- an Equip row's drag
@@ -426,8 +439,7 @@ end
 
 --- A drop released over a rolled tab: that side's inventory, else nil.
 function C.dropTarget()
-    for _, get in ipairs({ ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow, ZeD_WorldWindow and ZeD_WorldWindow.getWindow }) do
-        local w = get and get()
+    for _, w in ipairs(pairWindows()) do
         local rod = w and w._rolled and w._rod
         if rod and rod:isVisible() and rod:isMouseOver() and inRect(rod._chip, rod:getMouseX(), rod:getMouseY()) then
             return w._curtain.dropInv()

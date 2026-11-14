@@ -483,13 +483,13 @@ local function watchdog()
     local now = getTimestampMs()
     if _wdAt and now - _wdAt < 250 then return end
     _wdAt = now
-    local open = ZeD_WorldWindow and ZeD_WorldWindow.isOpen and ZeD_WorldWindow.isOpen()
     for pn, _ in pairs(_bind) do
         local p = getSpecificPlayer(pn)
         if not p then
             _bind[pn] = nil
             ST.gen = ST.gen + 1
-        elseif not open then
+        -- each player's bench lock goes with that player's own World window
+        elseif not (ZeD_WorldWindow and ZeD_WorldWindow.isOpen and ZeD_WorldWindow.isOpen(pn)) then
             ST.unbind(p)
         else
             ST.validate(p)

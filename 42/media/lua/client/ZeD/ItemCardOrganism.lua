@@ -657,7 +657,8 @@ local function liveProbe(item, m, out)
     end
     if m.pAmmo then n = n + 1; out[n] = safeGet(item, "getCurrentAmmoCount") end
     if m.pRead then
-        local p = getPlayer and getPlayer()
+        -- (the card's own character: m.pn; with none, the game's player 1 as before)
+        local p = (m.pn and getSpecificPlayer and getSpecificPlayer(m.pn)) or (getPlayer and getPlayer())
         n = n + 1; out[n] = p and m.ft and safeGet(p, "getAlreadyReadPages", m.ft)
         n = n + 1; out[n] = safeGet(item, "getAlreadyReadPages")
     end

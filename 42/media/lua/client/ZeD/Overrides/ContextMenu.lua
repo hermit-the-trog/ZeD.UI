@@ -50,13 +50,14 @@ end
 -- as KBM, mouse MOVES don't), so it's the authoritative answer to "which
 -- device just triggered this menu?". Defensive nil-chain in case Detector
 -- hasn't loaded yet on some early frame.
-local function _isGamepadActive()
+-- pn: the menu's player (players 2-4 are always on a pad; the mouse is player 1's)
+local function _isGamepadActive(pn)
     local D = ZeD and ZeD.Input and ZeD.Input.Detector
     -- a mouse button went down a moment ago: this menu is the mouse's (a
     -- right-click on a window used to land at the item's inventory row or
     -- the bottom of the screen when the last input was the controller)
-    if D and D.msSinceMouseClick and D.msSinceMouseClick() < 1500 then return false end
-    return (D and D.getMode and D.getMode() == "gamepad") or false
+    if (pn == nil or pn == 0) and D and D.msSinceMouseClick and D.msSinceMouseClick() < 1500 then return false end
+    return (D and D.getMode and D.getMode(pn) == "gamepad") or false
 end
 
 -- Resolve a player's on-screen position (iso → screen coords). Used as the
@@ -89,10 +90,11 @@ end
 --   2. Fall back to yMap lookup on items[1] (mouse RMB with coincidentally
 --      matching item, or legacy callers).
 --   3. Nil → caller uses dock-bottom.
-local function _invRowScreenAnchor(items)
+-- pn: the menu's player (their own focused window and their own pair of windows)
+local function _invRowScreenAnchor(items, pn)
     -- Try focused-element anchor first (works for gamepad where focus is live).
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-    local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
+    local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow(pn) or nil
     if focWin and focWin._mainContent and Focus.getFocusedZone and Focus.getFocusedElement then
         local zone = Focus.getFocusedZone(focWin)
         local zid  = zone and zone.zone
@@ -130,11 +132,11 @@ local function _invRowScreenAnchor(items)
     if not firstItem then return nil, nil end
     local candidates = {}
     if ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow then
-        local cw = ZeD_CharacterWindow.getWindow()
+        local cw = ZeD_CharacterWindow.getWindow(pn)
         if cw then candidates[#candidates + 1] = cw end
     end
     if ZeD_WorldWindow and ZeD_WorldWindow.getWindow then
-        local ww = ZeD_WorldWindow.getWindow()
+        local ww = ZeD_WorldWindow.getWindow(pn)
         if ww then candidates[#candidates + 1] = ww end
     end
     for i = 1, #candidates do
@@ -196,7 +198,7 @@ function ISWorldObjectContextMenu.createMenu(player, worldobjects, x, y, test)
         -- Gamepad anchors at the PLAYER's screen position for world objects
         -- (instead of dock-bottom). Falls back to dock if we can't resolve
         -- the player's screen coords.
-        if _isGamepadActive() then
+        if _isGamepadActive(player) then
             local px, py = _playerScreenAnchor(player)
             if px and py then
                 menu._zedAnchorMode = "cursor"
@@ -232,12 +234,12 @@ function ISInventoryPaneContextMenu.createMenu(player, isInInv, items, x, y, ori
     local menu = origInvCreateMenu(player, isInInv, items, x, y, origin)
     if menu then
         menu._zedTarget = items
-        if _isGamepadActive() then
+        if _isGamepadActive(player) then
             -- a caller that names the spot (X on an Equip row, a belt row or
             -- a belt box) gets it; 0, 0 asks for the focused inventory row
             local ix, iy
             if x and y and (x > 0 or y > 0) then ix, iy = x, y
-            else ix, iy = _invRowScreenAnchor(items) end
+            else ix, iy = _invRowScreenAnchor(items, player) end
             if ix and iy then
                 menu._zedAnchorMode = "cursor"
                 menu._zedAnchorX = ix
@@ -291,7 +293,7 @@ function ZeD.ContextMenu.refreshInPlace(context, held)
     if context.addDefaultOptions then pcall(context.addDefaultOptions, context) end
     local okT, tree = pcall(function()
         local t = Registry.buildActionsFromVanilla(context.options, context._zedTarget, context)
-        Registry.applyPins(t, context._zedTarget)
+        Registry.applyPins(t, context._zedTarget, context.player)
         return t
     end)
     if not okT or type(tree) ~= "table" or #tree == 0 or context:isEmpty() then
@@ -365,7 +367,7 @@ function ISContextMenu:prerender()
     -- vanilla's own menu instead of leaving the player with no menu at all.
     local okT, tree = pcall(function()
         local t = Registry.buildActionsFromVanilla(self.options, target, self)
-        Registry.applyPins(t, target)
+        Registry.applyPins(t, target, self.player)   -- (the menu's own player's pins)
         return t
     end)
     if not okT then

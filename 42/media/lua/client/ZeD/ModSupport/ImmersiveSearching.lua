@@ -205,9 +205,11 @@ local function unsearchedInReach(po, skip)
             end
         end
     end
-    local ww = ZeD_WorldWindow and ZeD_WorldWindow.isOpen() and ZeD_WorldWindow.getWindow()
+    -- (po's own windows: in split view each player has a pair)
+    local pn = po and po:getPlayerNum() or 0
+    local ww = ZeD_WorldWindow and ZeD_WorldWindow.isOpen(pn) and ZeD_WorldWindow.getWindow(pn)
     if ww then add(ww._containers) end
-    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.isOpen and ZeD_CharacterWindow.isOpen() and ZeD_CharacterWindow.getWindow()
+    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.isOpen and ZeD_CharacterWindow.isOpen(pn) and ZeD_CharacterWindow.getWindow(pn)
     if cw then add(cw._containers) end
     return _all
 end
@@ -225,7 +227,7 @@ end
 function S.searchAll(po)
     if not po then return 0 end
     local wwSet = {}
-    local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(po:getPlayerNum())
     for _, e in ipairs(ww and ww._containers or {}) do if e.inventory then wwSet[e.inventory] = true end end
     local list = unsearchedInReach(po, nil)
     local only = cannotSearchForDark(po)

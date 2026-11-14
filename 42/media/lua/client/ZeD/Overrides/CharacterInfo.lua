@@ -62,12 +62,12 @@ function ZeD_CharacterWindow.openTab(playerNum, tabId, toggle)
     -- (split-screen: another player's page is the game's own window, which toggleView below falls back to)
     if not ZeD.windowsFor(playerNum) then return false end
     if not getSpecificPlayer(playerNum) then return false end
-    if not ZeD_CharacterWindow.isOpen() then
+    if not ZeD_CharacterWindow.isOpen(playerNum) then
         ZeD_CharacterWindow.toggleBothPaired(playerNum)
-        if not ZeD_CharacterWindow.isOpen() then return false end
+        if not ZeD_CharacterWindow.isOpen(playerNum) then return false end
         toggle = false
     end
-    local win = ZeD_CharacterWindow.getWindow()
+    local win = ZeD_CharacterWindow.getWindow(playerNum)   -- (the asking player's window)
     if not win then return false end
     -- (rolled up by the hover roll-up: down first, its roll-up counted again from now)
     if win.windowShaded then

@@ -47,9 +47,10 @@ local MAX_SAVED  = 20     -- saved dishes kept; past it the oldest goes (FIFO)
 local function now() return (getTimestampMs and getTimestampMs()) or 0 end
 local function hit(z, x, y) return z ~= nil and x >= z.x and x < z.x + z.w and y >= z.y and y < z.y + z.h end
 local function cased(s) return ZeD.textCase(tostring(s or "")) end
-local function isGamepad()
+-- win: the tab's window; its player's mode (players 2-4 are always on a controller, and the pointer is player 1's)
+local function isGamepad(win)
     local D = ZeD and ZeD.Input and ZeD.Input.Detector
-    return (D and D.getMode and D.getMode() == "gamepad") or false
+    return (D and D.getMode and D.getMode(win and win.playerNum) == "gamepad") or false
 end
 local function help(panel, key, ...)
     if ZeD.Help and ZeD.Help.set then ZeD.Help.set(panel, ZeD.tr(key, ...)) end
@@ -596,7 +597,7 @@ local function renderHeader(panel, s, x, y, w, chr)
     local mx, my = panel:getMouseX(), panel:getMouseY()
     local dl = s.dish and C.dishes[s.dish] and C.dishes[s.dish].label or "-"
     local dx = x + edge
-    local hovD = not isGamepad() and mx >= dx and mx < dx + dishW and my >= by and my < by + bh
+    local hovD = not isGamepad(s.win) and mx >= dx and mx < dx + dishW and my >= by and my < by + bh
     M.drawPopupMenu(panel, dx, by, dishW, bh, ZeD.tr("UI_ZeD_Cook_DishPick", dl), hovD or s.popup == "dish", focusFor(s, "cook:dish"), false, nil, false)
     stamp(s, "cook:dish", dx, by, dishW, bh, function() s.popup = (s.popup ~= "dish") and "dish" or nil end, { box = true })
     -- the dish list: your saved dishes first ("saved"), then every dish a base in reach makes
@@ -614,7 +615,7 @@ local function renderHeader(panel, s, x, y, w, chr)
     local b = curBase(s)
     local bx = dx + dishW + gap
     local bl = b and b.name or "-"
-    local hovB = not isGamepad() and mx >= bx and mx < bx + baseW and my >= by and my < by + bh
+    local hovB = not isGamepad(s.win) and mx >= bx and mx < bx + baseW and my >= by and my < by + bh
     M.drawPopupMenu(panel, bx, by, baseW, bh, ZeD.tr("UI_ZeD_Cook_BasePick", bl), hovB or s.popup == "base", focusFor(s, "cook:base"), false, nil, false)
     stamp(s, "cook:base", bx, by, baseW, bh, function() s.popup = (s.popup ~= "base") and "base" or nil end, { box = true })
     local bmodes = {}
@@ -955,7 +956,7 @@ local function renderBand(panel, win, s, x, y, w, chr)
     local sx = x + edge
     local by = y + T.px(5)
     local mx, my = panel:getMouseX(), panel:getMouseY()
-    local hov = not isGamepad() and mx >= sx and mx < sx + sw and my >= by and my < by + bh
+    local hov = not isGamepad(win) and mx >= sx and mx < sx + sw and my >= by and my < by + bh
     M.drawPopupMenu(panel, sx, by, sw, bh, label, hov or s.popup == "sort", focusFor(s, "cook:sort"), false, nil, tight)
     if hov then help(panel, "UI_ZeD_Craft_SortHelp") end
     stamp(s, "cook:sort", sx, by, sw, bh, function() s.popup = (s.popup ~= "sort") and "sort" or nil end, { footer = true, box = true })
@@ -971,7 +972,7 @@ local function renderPopup(panel, s, chr)
     if not g or #g.modes == 0 then s.popup = nil; return end
     local M = ZeD.Molecules
     local hoverId = nil
-    if not isGamepad() and s.popZones then
+    if not isGamepad(s.win) and s.popZones then
         local mx, my = panel:getMouseX(), panel:getMouseY()
         for _, z in ipairs(s.popZones) do if hit(z, mx, my) then hoverId = z.id end end
     end
@@ -1010,7 +1011,7 @@ function CK.render(panel, win, x, y, w, h)
     local s = st(win)
     s.zones, s.byId = {}, {}
     s.panel, s.win, s.gpId = panel, win, gpFocusedId(win)
-    local chr = win._playerObj or getSpecificPlayer(0)
+    local chr = win._playerObj or getSpecificPlayer(win.playerNum or 0)   -- (the window's own player)
     if not chr then return end
     scan(s, chr, false)
     -- the dish: kept while a base for it is in reach, else the first one something in reach goes into
@@ -1028,8 +1029,8 @@ function CK.render(panel, win, x, y, w, h)
     local rw = x + w - rx
     s.splitX = x + listW
     local mx, my = panel:getMouseX(), panel:getMouseY()
-    local inL = (not isGamepad()) and not s.popup and mx >= x and mx < x + listW and my >= top and my < top + bodyH
-    local inR = (not isGamepad()) and not s.popup and mx >= rx and mx < x + w and my >= top and my < top + bodyH
+    local inL = (not isGamepad(win)) and not s.popup and mx >= x and mx < x + listW and my >= top and my < top + bodyH
+    local inR = (not isGamepad(win)) and not s.popup and mx >= rx and mx < x + w and my >= top and my < top + bodyH
     -- The Character window clips its drawer with a stencil, and PZ stencils do not nest: a column's own
     -- clip, once cleared, leaves its rect marked apart from the drawer's, so what draws over it later
     -- (the open Dish and Sort lists) would be hidden there. After each column the drawer's clip is laid

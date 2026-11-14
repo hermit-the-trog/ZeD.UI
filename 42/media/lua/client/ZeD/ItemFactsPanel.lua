@@ -426,7 +426,7 @@ end
 -- ---------------------------------------------------------------------------
 -- ReadingFacts - books / magazines / recipe sources
 -- ---------------------------------------------------------------------------
-function M.ReadingFacts(item)
+function M.ReadingFacts(item, playerNum)
     if not item then return nil end
     if not (instanceof and instanceof(item, "Literature")) then return nil end
 
@@ -439,7 +439,8 @@ function M.ReadingFacts(item)
 
     -- The pages read live on the character (the game's tooltip reads them there);
     -- a book with none, such as a magazine, has no progress to show.
-    local player       = getPlayer and getPlayer()
+    -- (the card's character, playerNum; with none, the game's player 1 as before)
+    local player       = (playerNum and getSpecificPlayer and getSpecificPlayer(playerNum)) or (getPlayer and getPlayer())
     local fullType     = safeGet(item, "getFullType")
     local pagesRead    = nil
     if pages and pages > 0 then

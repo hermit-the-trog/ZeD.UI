@@ -65,6 +65,8 @@ getSoundManager = function() return { playUISound = function() end } end
 
 local function rgb(r, g, b, a) return { r = r, g = g, b = b, a = a or 1 } end
 ZeD = {}
+-- (Atoms.lua's: a window's player number, split view)
+ZeD.playerNumOf = function(w) local p = w and w._playerObj; return p and p.getPlayerNum and p:getPlayerNum() or 0 end
 ZeD._trGen = 1
 ZeD.T = {
     px = function(n) return n end, scale = 1, inputH = 22, buttonH = 24, hair = 1,

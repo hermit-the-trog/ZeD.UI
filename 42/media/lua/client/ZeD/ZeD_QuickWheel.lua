@@ -211,7 +211,7 @@ local function treat(playerObj)
     local tries = 0
     local function tick()
         tries = tries + 1
-        local win = ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
+        local win = ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(pn)   -- (this wheel's player's window)
         local strip = win and win._tabStripPanel
         local done = false
         if win and win._activeTab == "health" and win._drawerOpen then done = true

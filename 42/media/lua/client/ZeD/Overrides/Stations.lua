@@ -24,8 +24,8 @@ require "ZeD/Stations"
 local ST = ZeD.Stations
 
 -- Select a recipe and / or prefill the search in a CraftingCore tab once its
--- state exists (the tab creates it on its first frame).
-local function focusRecipe(stateKey, searchKey, recipe, itemString)
+-- state exists (the tab creates it on its first frame). pn: the player whose window opened the tab.
+local function focusRecipe(stateKey, searchKey, recipe, itemString, pn)
     local name = nil
     if recipe and recipe.getName then name = recipe:getName() end
     local text = nil
@@ -37,7 +37,7 @@ local function focusRecipe(stateKey, searchKey, recipe, itemString)
     end
     if not name and not text then return end
     local function apply()
-        local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+        local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn)
         local state = win and win[stateKey]
         if not state then return false end
         if text then
@@ -109,7 +109,7 @@ local function apply()
                 local plain = (recipe == nil) and (itemString == nil or itemString == "")
                 if not (ZeD_WorldWindow and ZeD_WorldWindow.openTab) then return false end
                 if not ZeD_WorldWindow.openTab(player:getPlayerNum(), "craft", plain) then return false end
-                focusRecipe("_craftState", "_craftSearch", recipe, itemString)
+                focusRecipe("_craftState", "_craftSearch", recipe, itemString, player:getPlayerNum())
                 return true
             end)
             if ok and handled then return end
@@ -125,7 +125,7 @@ local function apply()
                 local plain = (recipe == nil) and (itemString == nil or itemString == "")
                 if not (ZeD_WorldWindow and ZeD_WorldWindow.openTab) then return false end
                 if not ZeD_WorldWindow.openTab(player:getPlayerNum(), "build", plain) then return false end
-                focusRecipe("_buildState", "_buildSearch", recipe, itemString)
+                focusRecipe("_buildState", "_buildSearch", recipe, itemString, player:getPlayerNum())
                 return true
             end)
             if ok and handled then return end

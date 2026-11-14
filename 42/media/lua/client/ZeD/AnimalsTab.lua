@@ -58,6 +58,9 @@ local function AD() return ZeD.AnimalsData end
 local function SI() return ZeD.AnimalsStressInference end
 local function AP() return ZeD.AnimalsAlertPoller end
 local function QK() return ZeD.AnimalsQuick end
+-- The window's local player (split view: each player's World window reads and acts around their own
+-- character). 0, player 1, for a window that names none, as before.
+local function WPN(win) return (win and win.playerNum) or 0 end
 
 -- ============================================================================
 -- CONTROLLER FOCUS
@@ -235,7 +238,7 @@ local function navigateBack(win)
         -- the roster's ticked rows belong to the zone left behind
         if win._animalsZoneState then win._animalsZoneState.sel = nil end
         -- Clear zone highlight
-        local player = getSpecificPlayer(0)
+        local player = getSpecificPlayer(WPN(win))
         if player then
             player:resetSelectedZonesForHighlight()
             player:setSeeDesignationZone(false)
@@ -303,7 +306,7 @@ end
 -- Insertion sort — Kahlua-safe, no recursion.
 -- ============================================================================
 
-local function sortAnimals(animals, mode)
+local function sortAnimals(animals, mode, pn)
     local ad = AD()
     local ap = AP()
 
@@ -326,7 +329,7 @@ local function sortAnimals(animals, mode)
                 if rank < bestSev then bestSev = rank end
             end
             -- Also check alerts from poller for this animal
-            local alerts = ap.getAlerts()
+            local alerts = ap.getAlerts(pn)
             for _, alert in ipairs(alerts) do
                 if alert.animal == animal then
                     local rank = ({ danger = 1, warn = 2, info = 3 })[alert.severity] or 6
@@ -362,7 +365,7 @@ end
 -- result is kept for half a second and rebuilt at once when the sort mode,
 -- the zone or the animals themselves change.
 local SORT_CACHE_MS = 500
-local function sortedRoster(zs, animals, mode, zoneName)
+local function sortedRoster(zs, animals, mode, zoneName, pn)
     local t = getTimestampMs and getTimestampMs() or 0
     local c = zs._sortCache
     local n = #animals
@@ -375,7 +378,7 @@ local function sortedRoster(zs, animals, mode, zoneName)
     end
     local src = {}
     for i = 1, n do src[i] = animals[i] end
-    local list = sortAnimals(animals, mode)
+    local list = sortAnimals(animals, mode, pn)
     zs._sortCache = { mode = mode, zone = zoneName, n = n, t = t, src = src, list = list }
     return list
 end
@@ -523,7 +526,7 @@ local function startZoneCreate(win)
     zc.name = ZeD.tr("UI_ZeD_Animals_ZoneAutoName", num)
 
     -- Show existing zones
-    local player = getSpecificPlayer(0)
+    local player = getSpecificPlayer(WPN(win))
     if player then
         player:setSeeDesignationZone(true)
         zc.z = math.floor(player:getZ())
@@ -558,7 +561,7 @@ local function gpMoveCursor(win, dx, dy)
     if not zc.active then return end
     if zc.phase == "confirm" then return end  -- locked while confirming
     if zc.cursorX == nil then
-        local player = getSpecificPlayer(0)
+        local player = getSpecificPlayer(WPN(win))
         if player then
             zc.cursorX = math.floor(player:getX())
             zc.cursorY = math.floor(player:getY())
@@ -626,7 +629,7 @@ cancelZoneCreate = function(win)
     zc.endX = nil
     zc.endY = nil
 
-    local player = getSpecificPlayer(0)
+    local player = getSpecificPlayer(WPN(win))
     if player then player:setSeeDesignationZone(false) end
     ISWorldObjectContextMenu.disableWorldMenu = false
     AT._zoneDrawWin = nil
@@ -644,7 +647,7 @@ function AT.endZoneDraw()
         print("[ZeD] Animals: the zone drawing could not be ended cleanly: " .. tostring(err))
         -- whatever failed above, the world menu and the zones are handed back
         ISWorldObjectContextMenu.disableWorldMenu = false
-        local player = getSpecificPlayer(0)
+        local player = getSpecificPlayer(WPN(win))
         if player then pcall(player.setSeeDesignationZone, player, false) end
     end
 end
@@ -674,7 +677,7 @@ confirmZoneCreate = function(win)
     if sq then sq:flagForHotSave() end
 
     -- Refresh alert poller to pick up the new zone
-    AP().refreshCache()
+    AP().refreshCache(WPN(win))
 
     cancelZoneCreate(win)
 end
@@ -722,7 +725,7 @@ local function commitRename(win)
         if newName and #newName > 0 then
             zone:setName(newName)
             state.zoneName = newName  -- update stored name to match
-            AP().refreshCache()
+            AP().refreshCache(WPN(win))
         end
     end
     if entry then
@@ -752,7 +755,7 @@ local function confirmRemoveZone(win)
     if sq then sq:flagForHotSave() end
 
     DesignationZoneAnimal.removeZone(zone, true)
-    AP().refreshCache()
+    AP().refreshCache(WPN(win))
     win._animalsRemoveConfirm = false
     navigateBack(win)
 end
@@ -781,7 +784,7 @@ local function updateZoneCreateMouse(win)
     if not zc.active then return end
     if zc.phase == "confirm" then return end  -- don't track during confirm
 
-    local player = getSpecificPlayer(0)
+    local player = getSpecificPlayer(WPN(win))
     if not player then return end
     local cell = getCell()
     if not cell then return end
@@ -1198,7 +1201,7 @@ end
 -- when the game would not let you (the button is greyed then). The World window's
 -- controller ring calls this for A on an alert row.
 function AT.alertAct(win, animal, verb)
-    local player = getSpecificPlayer(0)
+    local player = getSpecificPlayer(WPN(win))
     if not (player and animal and verb) then return false end
     -- (milk and shear go as a run of one: the run walks up first to an animal further off,
     -- and a walk-off or Stop clears what it handed the game)
@@ -1436,14 +1439,14 @@ end
 
 local function renderRanchOverview(panel, win, x, y, w, h)
     -- Force cache refresh on first render
-    if not AP().isReady() then AP().refreshCache() end
+    if not AP().isReady(WPN(win)) then AP().refreshCache(WPN(win)) end
 
     -- Reset click zones (an empty overview must not keep last frame's)
     win._animalsZoneCardZones = {}
     win._animalsSectionZones = {}
     win._animalsAlertZones = {}
 
-    local zones = AP().getZoneList()
+    local zones = AP().getZoneList(WPN(win))
     if #zones == 0 then
         drawEmptyState(panel, win, x, y, w, h)
         return
@@ -1492,7 +1495,7 @@ local function renderRanchOverview(panel, win, x, y, w, h)
     local curY = top  -- header sits flush against tab strip bottom
 
     -- ── ALERTS SECTION ──
-    local alerts = AP().getAlerts()
+    local alerts = AP().getAlerts(WPN(win))
     if #alerts > 0 then
         local secY = curY
         local catH = catRow(panel, win, x, curY, w, ZeD.tr("UI_ZeD_Animals_SecAlerts"), #alerts,
@@ -1504,7 +1507,7 @@ local function renderRanchOverview(panel, win, x, y, w, h)
         curY = curY + catH
 
         if ovState.alertsExpanded then
-            local player = getSpecificPlayer(0)
+            local player = getSpecificPlayer(WPN(win))
             for i, alert in ipairs(alerts) do
                 local rh, btn = drawAlertRow(panel, x + pad, curY, w - pad * 2, alert, win, i, player)
                 table.insert(win._animalsAlertZones, { x = x + pad, y = curY, w = w - pad * 2, h = rh, i = i,
@@ -1525,7 +1528,7 @@ local function renderRanchOverview(panel, win, x, y, w, h)
             local ok, val = pcall(zone.getName, zone)
             if ok and val then zname = val end
         end
-        local summary = AP().getZoneSummary(zname)
+        local summary = AP().getZoneSummary(zname, WPN(win))
         if summary then
             local ch = drawZoneSummary(panel, x + pad, curY, w - pad * 2, summary, win)
             rows["animals:zonecard:" .. tostring(summary.name)] = { cy = curY - top, h = ch }
@@ -1534,7 +1537,7 @@ local function renderRanchOverview(panel, win, x, y, w, h)
     end
 
     -- ── TOTALS SECTION ──
-    local totals = AP().getTotals()
+    local totals = AP().getTotals(WPN(win))
     if totals and (totals.totalAnimals or 0) > 0 then
         local secY = curY
         local catH = catRow(panel, win, x, curY, w, ZeD.tr("UI_ZeD_Animals_SecTotals"), totals.totalAnimals,
@@ -1913,8 +1916,8 @@ local function structInfo(kind, o, player)
     return name, sub, badge, variant, prog
 end
 
-local function openStruct(kind, o)
-    local player = getSpecificPlayer(0)
+local function openStruct(kind, o, pn)
+    local player = getSpecificPlayer(pn or 0)   -- (pn: whose card; nil, player 1, for the World window's controller ring)
     local OC = ZeD.ObjectCards
     if not (player and OC and OC.openNear and o) then return end
     local sq = (kind == "hutch") and (ocall(o, "getEntrySq") or o:getSquare()) or o:getSquare()
@@ -2315,13 +2318,13 @@ local function renderRanchZone(panel, win, x, y, w, h)
     local ap = AP()
     local tm = ZeD.TM
 
-    if not ap.isReady() then ap.refreshCache() end
+    if not ap.isReady(WPN(win)) then ap.refreshCache(WPN(win)) end
 
     -- Highlight this zone on the ground
-    local player = getSpecificPlayer(0)
+    local player = getSpecificPlayer(WPN(win))
     highlightZone(win, player, state.zoneName)
 
-    local summary = state.zoneName and ap.getZoneSummary(state.zoneName)
+    local summary = state.zoneName and ap.getZoneSummary(state.zoneName, WPN(win))
     if not summary then
         -- Zone no longer exists — go back to overview
         navigateBack(win)
@@ -2343,8 +2346,8 @@ local function renderRanchZone(panel, win, x, y, w, h)
     local structH = drawZoneStructs(panel, win, x, y + bandH, w, summary, player)
 
     -- ── ROSTER SECTION HEADER (pinned below band) ──
-    local animals = ap.getAnimalsInZone(state.zoneName)
-    local sortedAnimals = sortedRoster(zs, animals, zs.sortMode, state.zoneName)
+    local animals = ap.getAnimalsInZone(state.zoneName, WPN(win))
+    local sortedAnimals = sortedRoster(zs, animals, zs.sortMode, state.zoneName, WPN(win))
     local rosterCount = #sortedAnimals
 
     local secY = y + bandH + structH
@@ -2414,7 +2417,7 @@ local function renderRanchZone(panel, win, x, y, w, h)
 
     panel:setStencilRect(x, rosterTop, contentW, rosterH)
 
-    local player = getSpecificPlayer(0)
+    local player = getSpecificPlayer(WPN(win))
     local mx = panel:getMouseX()
     local my = panel:getMouseY()
     local rowY = rosterTop - zs.scrollY
@@ -2882,7 +2885,7 @@ local function renderRanchAnimal(panel, win, x, y, w, h)
     local ds = getDetailViewState(win)
     local ad = AD()
     local animal = state.animalRef
-    local player = getSpecificPlayer(0)
+    local player = getSpecificPlayer(WPN(win))
 
     if not animal then
         local pad0 = M.getTabPad()
@@ -3107,9 +3110,9 @@ local function renderButcherOverview(panel, win, x, y, w, h)
     local bs = getButcherState(win)
 
     -- Ensure cache is ready
-    if not ap.isReady() then ap.refreshCache() end
+    if not ap.isReady(WPN(win)) then ap.refreshCache(WPN(win)) end
 
-    local allAnimals = ap.getAllAnimals()
+    local allAnimals = ap.getAllAnimals(WPN(win))
 
     -- Filter eligible + compute yields
     local eligible = {}
@@ -3306,9 +3309,9 @@ local function drawZoneBand(panel, win, x, y, w, state)
     local A = ZeD.Atoms
     local M = ZeD.Molecules
     local Q = QK()
-    local player = getSpecificPlayer(0)
+    local player = getSpecificPlayer(WPN(win))
     local zs = getZoneViewState(win)
-    local animals = AP().getAnimalsInZone(state.zoneName)
+    local animals = AP().getAnimalsInZone(state.zoneName, WPN(win))
     local sel = zoneSelection(win, state.zoneName)
     local selected = Q.prune(sel, animals)
     local lead, buttons, status, edge, gap = {}, {}, nil, nil, nil
@@ -3397,10 +3400,10 @@ end
 -- Returns false when nothing carried is food for them (the band has Feed greyed then).
 function AT.openFeedPicker(win, zoneName, sx, sy)
     local Q = QK()
-    local selected = Q.prune(zoneSelection(win, zoneName), AP().getAnimalsInZone(zoneName))
+    local selected = Q.prune(zoneSelection(win, zoneName), AP().getAnimalsInZone(zoneName, WPN(win)))
     Q.forgetChecks()
     -- (kept: the band's next frame asks for the same animals and reuses this answer)
-    local foods, _, hungry = Q.checkFeed(getSpecificPlayer(0), selected)
+    local foods, _, hungry = Q.checkFeed(getSpecificPlayer(WPN(win)), selected)
     if #foods == 0 then return false end
     closeFeedMenu()
     local rows = {}
@@ -3412,14 +3415,14 @@ function AT.openFeedPicker(win, zoneName, sx, sy)
             onFire = function()
                 -- the ticks as they are now: an animal that left the zone meanwhile is dropped
                 local sel = zoneSelection(win, zoneName)
-                if Q.start(getSpecificPlayer(0), "feed", Q.prune(sel, AP().getAnimalsInZone(zoneName)), name) then
+                if Q.start(getSpecificPlayer(WPN(win)), "feed", Q.prune(sel, AP().getAnimalsInZone(zoneName, WPN(win))), name) then
                     Q.clear(sel)
                     win._animalsNavFocusTarget, win._animalsNavFocusSince = bulkId("stop"), nil
                 end
             end,
         }
     end
-    local m = ZeD_ContextList:new(0, "cursor", sx, sy, nil, rows, nil)
+    local m = ZeD_ContextList:new(WPN(win), "cursor", sx, sy, nil, rows, nil)
     m.headText = getText("ContextMenu_Feed")
     m:initialise()
     m:open()
@@ -3449,7 +3452,7 @@ function AT.bulkPress(win, id)
         return AT.openFeedPicker(win, state.zoneName, sx, sy)
     end
     local Q = QK()
-    local animals = AP().getAnimalsInZone(state.zoneName)
+    local animals = AP().getAnimalsInZone(state.zoneName, WPN(win))
     local sel = zoneSelection(win, state.zoneName)
     local land
     if id == "hungry" or id == "milkable" then
@@ -3458,7 +3461,7 @@ function AT.bulkPress(win, id)
         Q.clear(sel)
         land = "hungry"
     elseif id == "milk" or id == "shear" then
-        local ok = Q.start(getSpecificPlayer(0), id, Q.prune(sel, animals))
+        local ok = Q.start(getSpecificPlayer(WPN(win)), id, Q.prune(sel, animals))
         if not ok then return false end
         Q.clear(sel)
         land = "stop"
@@ -3625,7 +3628,7 @@ function ZeD.AnimalsTab.render(panel, win, x, y, w, h)
             renderRanchAnimal(panel, win, x, curY, w, contentH)
         else
             -- HOOKS first (pinned), then the livestock roster
-            local hookH = drawHooks(panel, win, x, curY, w, getSpecificPlayer(0))
+            local hookH = drawHooks(panel, win, x, curY, w, getSpecificPlayer(WPN(win)))
             renderButcherOverview(panel, win, x, curY + hookH, w, contentH - hookH)
         end
     end
@@ -3745,7 +3748,7 @@ function ZeD.AnimalsTab.onClick(win, x, y)
     if win._animalsStructZones then
         for _, sz in ipairs(win._animalsStructZones) do
             if hitZone(sz, x, y) then
-                openStruct(sz.kind, sz.obj)
+                openStruct(sz.kind, sz.obj, WPN(win))
                 return true
             end
         end
@@ -3753,7 +3756,7 @@ function ZeD.AnimalsTab.onClick(win, x, y)
     if win._animalsHutchLink and hitZone(win._animalsHutchLink, x, y) then
         local sc = win._animalsDetailScroll
         if not sc or (y >= sc.top and y < sc.top + sc.h) then
-            openStruct("hutch", win._animalsHutchLink.obj)
+            openStruct("hutch", win._animalsHutchLink.obj, WPN(win))
             return true
         end
     end

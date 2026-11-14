@@ -57,19 +57,19 @@ function P.open(item, playerNum)
     if not (item and playerObj) then return false end
     -- the window the controller reads from, to go back to (another paper's: where that one came from)
     local Focus = ZeD.Input and ZeD.Input.Focus
-    local back = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
+    local back = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow(playerNum) or nil
     if back and back._isMapPopout then
-        local w0 = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+        local w0 = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(playerNum)
         back = w0 and w0._mapPaperBack or nil
     end
     if not (ZeD.MapsTab and ZeD.MapsTab.openPopout and ZeD_WorldWindow and ZeD_WorldWindow.getWindow) then return false end
-    local win = ZeD_WorldWindow.getWindow()
-    -- (one World window: another split-screen player's keeps it, and this player reads in the game's window)
+    local win = ZeD_WorldWindow.getWindow(playerNum)
+    -- (a window that is not this player's: this player reads in the game's window)
     if win and win._playerObj ~= playerObj then return false end
     local opened = false   -- (the World window opened here, only for the paper)
     if not win then
         if not pcall(ZeD_WorldWindow.open, playerNum) then return false end
-        win = ZeD_WorldWindow.getWindow()
+        win = ZeD_WorldWindow.getWindow(playerNum)
         opened = win ~= nil
     end
     if not (win and win._playerObj == playerObj) then return false end
@@ -81,12 +81,14 @@ function P.open(item, playerNum)
         if not ok then print("[ZeD] paper map: " .. tostring(err)) end
         if win._mapPopout then pcall(ZeD.MapsTab.closePopout, win, true) end
         -- (the game's window reads it: a World window opened for the paper goes again)
-        if owns and ZeD_WorldWindow.getWindow() == win and ZeD_WorldWindow.close then pcall(ZeD_WorldWindow.close) end
+        if owns and ZeD_WorldWindow.getWindow(playerNum) == win and ZeD_WorldWindow.close then
+            pcall(ZeD_WorldWindow.close, playerNum)
+        end
         return false
     end
     win._mapPaperOwnsWindow = owns or nil
     win._mapPaperBack = back
-    P._paperWin = win   -- (P.tick: a World window gone with the paper still up folds it)
+    P.setPaperWin(playerNum, win)   -- (P.tick: a World window gone with the paper still up folds it)
     -- the game's read (steps 2 and 4; 5 to 7 come with the map's drawing: instantiate, frame)
     local ok2, err2 = pcall(function()
         item:doBuildingStash()
@@ -106,8 +108,9 @@ function P.closed(win, pop, keepWorld)
     pcall(P.returnFocus, win, pop)
     if not owns or keepWorld then return false end
     if not (ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.close) then return false end
-    if ZeD_WorldWindow.getWindow() ~= win then return false end
-    ZeD_WorldWindow.close()
+    local pn = win.playerNum or 0   -- (the window's own player: split view gives each player one)
+    if ZeD_WorldWindow.getWindow(pn) ~= win then return false end
+    ZeD_WorldWindow.close(pn)
     return true
 end
 
@@ -222,14 +225,29 @@ end
 -- inventory, and a paper ZeD could not draw goes to the game's window. A World
 -- window that went without folding its paper (every close folds it:
 -- ZeD_WorldWindow's _closeWorldWindow) does not leave the paper up on its own.
+-- Each local player reads their own paper in their own World window (split view), so each is looked after on
+-- its own. Player 1's window keeps its old field, P._paperWin (the QA checks read it); players 2-4 are in P._paperWins.
+P._paperWins = P._paperWins or {}
+function P.paperWinOf(pn)
+    if pn == 0 then return P._paperWin end
+    return P._paperWins[pn]
+end
+function P.setPaperWin(pn, w)
+    if pn == 0 then P._paperWin = w else P._paperWins[pn] = w end
+end
+
 function P.tick()
-    local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
-    local last = P._paperWin
+    for pn = 0, 3 do P.tickPlayer(pn) end
+end
+
+function P.tickPlayer(pn)
+    local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn)
+    local last = P.paperWinOf(pn)
     if last and last ~= win then
-        P._paperWin = nil
+        P.setPaperWin(pn, nil)
         if last._mapPopout and last._mapPaperItem then pcall(ZeD.MapsTab.closePopout, last, true) end
     elseif last and not last._mapPaperItem then
-        P._paperWin = nil
+        P.setPaperWin(pn, nil)
     end
     if not win then return end
     local fail = win._mapPaperFail

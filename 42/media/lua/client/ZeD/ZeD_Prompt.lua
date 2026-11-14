@@ -1030,8 +1030,10 @@ local _bandSpec = { buttons = _bandBtns }
 
 function ZeD_Prompt:prerender()
     local T = ZeD.T
-    -- the player's questions wear the Character window's accent when it has its own
-    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
+    -- the player's questions wear the Character window's accent when it has its own (the asked player's window:
+    -- .player when it is a number, else .playerNum; neither, the first player's)
+    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow
+        and ZeD_CharacterWindow.getWindow(type(self.player) == "number" and self.player or self.playerNum)
     self._accentKey = cw and cw._accentKey or nil
     -- no minimum size: ZeD_Window.prerender sets the big windows' minimum every frame
     -- and the engine holds an element to it (ISUIElement:onResize)

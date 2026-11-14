@@ -365,9 +365,9 @@ local function windowTakes(dir, joypadData)
     -- a second split-screen player's D-pad moved the first player's window)
     if not ZeD.windowsFor(joypadData and joypadData.player or 0) then return false end
     local F = ZeD.Input and ZeD.Input.Focus
-    local fw = F and F.getFocusedWindow and F.getFocusedWindow()
+    local fw = F and F.getFocusedWindow and F.getFocusedWindow(joypadData and joypadData.player)   -- (the pad's own player's)
     if fw and fw:isVisible() and not fw.windowShaded then
-        F.reclaimEngineFocus()
+        F.reclaimEngineFocus(joypadData and joypadData.player)
         pcall(F.dispatchJoypadDir, fw, dir, joypadData)
         return true
     end
@@ -600,8 +600,9 @@ local function current(opt, labels)
     return i and labels[i] and tr(labels[i]) or nil
 end
 
-function Z.resetWindows()
-    if ZeD_Window and ZeD_Window.resetLayout then ZeD_Window.resetLayout() end
+-- (run by the wheel as run(p, pn): the pair of the player whose wheel it is)
+function Z.resetWindows(p, pn)
+    if ZeD_Window and ZeD_Window.resetLayout then ZeD_Window.resetLayout(nil, pn) end
 end
 
 -- safe mode, after the player says yes in a prompt that says how to come back
@@ -678,7 +679,7 @@ function H.charTab(p, pn, id)
     local tries = 0
     local function tick()
         tries = tries + 1
-        local win = ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
+        local win = ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(pn)
         local strip = win and win._tabStripPanel
         local done = false
         if win and win._activeTab == id and win._drawerOpen ~= false then done = true
@@ -706,7 +707,7 @@ function H.worldTab(p, pn, id)
         tries = tries + 1
         if tries < 3 then return end
         Events.OnTick.Remove(tick)
-        local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+        local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn)
         local F = ZeD.Input and ZeD.Input.Focus
         if win and F and F.claimFocus and JoypadState.players[pn + 1] then pcall(F.claimFocus, win) end
     end
@@ -878,7 +879,7 @@ end
 
 function C.tabs(p, pn)
     local out = {}
-    local win = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
+    local win = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(pn)   -- (the wheel's player's)
     for _, tab in ipairs(ZeD_CharacterWindow and ZeD_CharacterWindow.TABS or {}) do
       if not (tab.wheelHide and tab.wheelHide()) then
         local name = ZeD_CharacterWindow.tabLabel(tab)
@@ -999,7 +1000,7 @@ D.Wd = Wd
 
 function Wd.tabs(p, pn)
     local out = {}
-    local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn)   -- (the wheel's player's)
     for _, tab in ipairs(ZeD_WorldWindow and ZeD_WorldWindow.TABS or {}) do
       if not (tab.wheelHide and tab.wheelHide()) then
         local e = { name = ZeD_WorldWindow.tabLabel(tab), tab = tab.iconName, key = tab.id, run = function(pl, n) H.worldTab(pl, n, tab.id) end }

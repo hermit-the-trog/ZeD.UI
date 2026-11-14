@@ -114,9 +114,10 @@ local function thousands(n)
 end
 local function partName(id) return txt("IGUI_VehiclePart" .. tostring(id), tostring(id)) end
 local function catLabel(cat) return cased(txt("IGUI_VehiclePartCat" .. tostring(cat), tostring(cat))) end
-local function isGamepad()
+-- pn: the window's player (players 2-4 are always on a controller)
+local function isGamepad(pn)
     local D = ZeD and ZeD.Input and ZeD.Input.Detector
-    return (D and D.getMode and D.getMode() == "gamepad") or false
+    return (D and D.getMode and D.getMode(pn) == "gamepad") or false
 end
 local function mechLevel(chr) return chr:getPerkLevel(Perks.Mechanics) end
 
@@ -217,7 +218,7 @@ end
 function MT.refresh(win)
     if not win then return end
     local s = st(win)
-    local chr = win._playerObj or getSpecificPlayer(0)
+    local chr = win._playerObj or getSpecificPlayer(win.playerNum or 0)
     if not chr then return end
     local cur = currentEntry(s)
     local curId = cur and cur.id
@@ -1802,7 +1803,7 @@ local function renderCardBody(panel, win, s, x, top, w, bodyH, v, chr, cm)
     -- one pickable row: the radio, a selected wash, the controller's mark; returns the ink and the x after the radio
     local function pickRow(id, rowY, rh, sel, radioY, enabled, focusable)
         local rowX, rowW = x + pad, iw
-        local hov = enabled and (not isGamepad()) and A.mouseIn(panel, rowX, rowY, rowW, rh, clip)
+        local hov = enabled and (not isGamepad(ZeD.playerNumOf(win))) and A.mouseIn(panel, rowX, rowY, rowW, rh, clip)
         if sel then
             local ac = T.accent
             panel:drawRect(rowX, rowY, rowW, rh, T.selectionA, ac.r, ac.g, ac.b)
@@ -2025,7 +2026,7 @@ local function renderFooter(panel, win, s, x, y, w, v, chr, inspected, cm, barSh
                 local verb = b.id
                 stamp(s, "mech:verb:" .. verb, r.x, r.y, r.w, r.h, function() pressVerb(win, s, cm, verb, chr) end,
                       { verb = verb, footer = true, disabled = b.disabled })
-                if not isGamepad() and hit(r, panel:getMouseX(), panel:getMouseY()) then s.verb = verb end
+                if not isGamepad(ZeD.playerNumOf(win)) and hit(r, panel:getMouseX(), panel:getMouseY()) then s.verb = verb end
             else
                 stamp(s, "mech:" .. b.id, r.x, r.y, r.w, r.h, b.fn, { footer = true, disabled = b.disabled })
                 -- (a button's help comes under the mouse; a gray one says why under the controller's mark too)
@@ -2038,7 +2039,7 @@ local function renderFooter(panel, win, s, x, y, w, v, chr, inspected, cm, barSh
         local by = y + T.px(5)
         local sx = x + edge
         local mx, my = panel:getMouseX(), panel:getMouseY()
-        local hov = (not isGamepad()) and mx >= sx and mx < sx + sortW and my >= by and my < by + bh
+        local hov = (not isGamepad(ZeD.playerNumOf(win))) and mx >= sx and mx < sx + sortW and my >= by and my < by + bh
         M.drawPopupMenu(panel, sx, by, sortW, bh, sortLabel, hov or s.sortOpen == true, focusFor(s, "mech:sortMenu"), false,
             modes[cur].label, tight)
         if hov then ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Craft_SortHelp")) end
@@ -2056,7 +2057,7 @@ local function renderSortList(panel, s, chr)
     if not (s.sortOpen and g) then return end
     local M = ZeD.Molecules
     local hoverId = nil
-    if not isGamepad() and s.sortZones then
+    if not isGamepad(chr and chr:getPlayerNum()) and s.sortZones then
         local mx, my = panel:getMouseX(), panel:getMouseY()
         for _, z in ipairs(s.sortZones) do if hit(z, mx, my) then hoverId = z.id end end
     end
@@ -2108,7 +2109,7 @@ local function renderSplit(panel, win, s, x, y, w, h, v, chr, inspected)
     local gp = s.gpId
     _stripFocus.s = s
     _stripOpts.focus = gp and tonumber(gp:match("^mech:veh:(%d+)$") or "") or nil
-    _stripOpts.rightReserve, _stripOpts.noHover, _stripOpts.win = tagW, isGamepad(), win
+    _stripOpts.rightReserve, _stripOpts.noHover, _stripOpts.win = tagW, isGamepad(ZeD.playerNumOf(win)), win
     local _, tabZones = ZeD.SubTabs.draw(panel, x, y + headerH - T.tabH, w, items, s.idx, _stripOpts)
     if #s.vehicles > 1 then
         for _, z in ipairs(tabZones) do
@@ -2164,8 +2165,8 @@ local function renderSplit(panel, win, s, x, y, w, h, v, chr, inspected)
 
     -- what is lit: the controller's row, or the row or diagram part under the pointer
     local mx, my = panel:getMouseX(), panel:getMouseY()
-    local inList = (not isGamepad()) and mx >= x and mx < x + listW and my >= top and my < top + bodyH and not s.sortOpen
-    local inRight = (not isGamepad()) and mx >= rx and mx < x + w and my >= top and my < top + bodyH and not s.sortOpen
+    local inList = (not isGamepad(ZeD.playerNumOf(win))) and mx >= x and mx < x + listW and my >= top and my < top + bodyH and not s.sortOpen
+    local inRight = (not isGamepad(ZeD.playerNumOf(win))) and mx >= rx and mx < x + w and my >= top and my < top + bodyH and not s.sortOpen
     local gpId = s.gpId
     local hl = nil
     if gpId and gpId:sub(1, 9) == "mech:row:" then hl = gpId:sub(10) end
@@ -2226,7 +2227,7 @@ function MT.render(panel, win, x, y, w, h)
     s.zones, s.byId = {}, {}
     s.panel, s.gpId, s.win = panel, gpFocusedId(win), win
     local TR = ZeD.MechTrailer
-    local chr = win._playerObj or getSpecificPlayer(0)
+    local chr = win._playerObj or getSpecificPlayer(win.playerNum or 0)
     local e = currentEntry(s)
     if s.view ~= "animal" then TR.hideAvatar(s) end
     if not chr or not e or not e.vehicle or not e.vehicle:getSquare() then
@@ -2289,7 +2290,7 @@ end
 
 function MT.onRightClick(win, x, y)
     local s = st(win)
-    local chr = win._playerObj or getSpecificPlayer(0)
+    local chr = win._playerObj or getSpecificPlayer(win.playerNum or 0)
     local e = currentEntry(s)
     if not chr or not e or not INSP[e.id] or s.view == "animal" then return true end
     local id = nil
@@ -2327,7 +2328,7 @@ end
 function MT.buildFocusables(win)
     local s = win and win._mech
     if not s then return {} end
-    local chr = win._playerObj or getSpecificPlayer(0)
+    local chr = win._playerObj or getSpecificPlayer(win.playerNum or 0)
     local els = {}
     for _, z in ipairs(s.zones) do
         local zz = z
@@ -2417,11 +2418,11 @@ function MT.openFromAction(chr, vehicle, usedHood)
     local prev = INSP[vid]
     INSP[vid] = { vehicle = vehicle, hood = usedHood or (prev and prev.hood) }
     setMechOpen(vehicle, true, chr)
-    if not ZeD_WorldWindow.isOpen() then
+    if not ZeD_WorldWindow.isOpen(pn) then
         local ok = pcall(ZeD_WorldWindow.open, pn)
         if not ok then return false end
     end
-    local win = ZeD_WorldWindow.getWindow()
+    local win = ZeD_WorldWindow.getWindow(pn)
     if not win then return false end
     local s = st(win)
     s.pendingId = vid
@@ -2465,11 +2466,11 @@ function MT.openTrailer(chr, vehicle)
     if not chr or not vehicle then return false end
     if not (ZeD_WorldWindow and ZeD_WorldWindow.openTab and ZeD_WorldWindow.getWindow) then return false end
     PIN[vehicle:getId()] = vehicle
-    if not ZeD_WorldWindow.isOpen() then
+    if not ZeD_WorldWindow.isOpen(chr:getPlayerNum()) then
         local ok = pcall(ZeD_WorldWindow.open, chr:getPlayerNum())
         if not ok then return false end
     end
-    local win = ZeD_WorldWindow.getWindow()
+    local win = ZeD_WorldWindow.getWindow(chr:getPlayerNum())
     if not win then return false end
     local s = st(win)
     s.pendingId = vehicle:getId()
@@ -2486,7 +2487,8 @@ end
 -- Success / failure of an install or uninstall (vanilla flashes its window)
 if Events and Events.OnMechanicActionDone then
     Events.OnMechanicActionDone.Add(function(chr, success)
-        local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+        -- the window of the character whose action finished
+        local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(chr and chr:getPlayerNum())
         if not win then return end
         local s = st(win)
         s.flash = { ok = success and true or false, untilMs = now() + FLASH_MS }

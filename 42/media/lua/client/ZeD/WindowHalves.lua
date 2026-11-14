@@ -580,10 +580,24 @@ local function dragFrom(w)
     return (w and w._equipDrag and w._equipDrag:isActive()) and true or false
 end
 
+-- Every local player's Character and World windows, open ones only, the first player's pair first (split view: up to
+-- four pairs, one a player; with one player this is the first player's pair alone, as before)
+local function pairWindows()
+    local out = {}
+    local CWm, WWm = ZeD_CharacterWindow, ZeD_WorldWindow
+    for pn = 0, 3 do
+        local cw = CWm and CWm.getWindow and CWm.getWindow(pn)
+        local ww = WWm and WWm.getWindow and WWm.getWindow(pn)
+        if cw then out[#out + 1] = cw end
+        if ww then out[#out + 1] = ww end
+    end
+    return out
+end
+
 -- an item held in either window (the windows stay as they are until it drops)
 local function itemDragging()
-    for _, get in ipairs({ ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow, ZeD_WorldWindow and ZeD_WorldWindow.getWindow }) do
-        if get and dragFrom(get()) then return true end
+    for _, w in ipairs(pairWindows()) do
+        if dragFrom(w) then return true end
     end
     return false
 end

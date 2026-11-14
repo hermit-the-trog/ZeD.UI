@@ -47,6 +47,8 @@ getText = function(k) return k end
 
 local function rgb(r, g, b, a) return { r = r, g = g, b = b, a = a or 1 } end
 ZeD = {}
+-- (Atoms.lua's: a window's player number, split view)
+ZeD.playerNumOf = function(w) local p = w and w._playerObj; return p and p:getPlayerNum() or 0 end
 ZeD.T = {
     px = function(n) return n end, buttonH = 24,
     sp = { iconGap = 4 },
@@ -85,7 +87,7 @@ local function cutChunk(from, to, ret, name)
     check("cut " .. name, a ~= nil and b ~= nil)
     return assert(loadstring(IR:sub(a, b - 1) .. "\n" .. ret, name))()
 end
-cutChunk("local function gridStore()", "-- Double-click a row", "return true", "saved choice")
+cutChunk("local function gridStore(", "-- Double-click a row", "return true", "saved choice")
 cutChunk("local function filterOf(w)", "-- is this item the controller's focused element", "return true", "stops")
 local drawViewToggle, drawColumnHeading = cutChunk("local _viewOpts = {}", "-- The grid by category",
     "return drawViewToggle, drawColumnHeading", "heading")

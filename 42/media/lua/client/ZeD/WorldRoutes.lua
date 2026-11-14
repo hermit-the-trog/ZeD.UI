@@ -69,12 +69,13 @@ local function freeFor(win, chr)
 end
 WR.freeFor = freeFor
 
-local function worldWin()
-    return ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow() or nil
+-- player pn's windows (split view gives each local player their own; nil: the first player's)
+local function worldWin(pn)
+    return ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn) or nil
 end
 
-local function charWin()
-    return ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow() or nil
+local function charWin(pn)
+    return ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(pn) or nil
 end
 
 -- the pad goes to the window once the tab has been pressed (openTab presses it on a later tick)
@@ -85,7 +86,7 @@ function WR.padFollow(pn, getWin)
         tries = tries + 1
         if tries < 3 then return end
         Events.OnTick.Remove(tick)
-        local win = getWin()
+        local win = getWin(pn)
         local F = ZeD.Input and ZeD.Input.Focus
         if win and F and F.claimFocus then pcall(F.claimFocus, win) end
     end
@@ -242,14 +243,14 @@ local function radioItem(chr, item)
         RT._carried[pnOf(chr)] = item
         if not indexOf(RT.buildEquippedRadios(chr), item) then return false end
     end
-    if not freeFor(charWin(), chr) then return false end
     local pn = pnOf(chr)
+    if not freeFor(charWin(pn), chr) then return false end
     pairForPad(pn)
-    local win = charWin()
+    local win = charWin(pn)
     -- the list now, so the tab is on the strip for openTab's press (it rebuilds every 30 frames on its own)
     if win then win._radios = RT.buildEquippedRadios(chr) end
     if not ZeD_CharacterWindow.openTab(pn, "radio") then return false end
-    win = charWin()
+    win = charWin(pn)
     if not win then return false end
     win._radios = RT.buildEquippedRadios(chr)
     win._radioIdx = indexOf(win._radios, item) or 1
@@ -262,7 +263,7 @@ end
 local function worldDevice(chr, dev)
     local RT = ZeD.RadioTab
     if not (RT and RT.buildWorldRadios and ZeD_WorldWindow and ZeD_WorldWindow.openTab) then return false end
-    if not freeFor(worldWin(), chr) then return false end
+    if not freeFor(worldWin(pnOf(chr)), chr) then return false end
     -- another floor: nothing opens (the game's window would, as its reach reads x and y only)
     local okp, px = pcall(placeOf, dev)
     if okp and px and not WR.sameFloor(chr, dev) then return true end
@@ -270,10 +271,10 @@ local function worldDevice(chr, dev)
     WR.pin(chr, dev)
     local pn = pnOf(chr)
     pairForPad(pn)
-    if ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard() and ZeD_WorldWindow.closeObjectCard then
-        ZeD_WorldWindow.closeObjectCard()
+    if ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard(pn) and ZeD_WorldWindow.closeObjectCard then
+        ZeD_WorldWindow.closeObjectCard(pn)
     end
-    local win = worldWin()
+    local win = worldWin(pn)
     if win then
         -- the list now, so the tab is on the strip for openTab's press (it rebuilds every 30 frames on its own)
         win._radios = RT.buildWorldRadios(chr)
@@ -282,7 +283,7 @@ local function worldDevice(chr, dev)
         WR.unpin(chr)
         return false
     end
-    win = worldWin()
+    win = worldWin(pn)
     if not win then
         WR.unpin(chr)
         return false
@@ -325,14 +326,14 @@ end
 local function animalsTab(chr)
     local AT = ZeD.AnimalsTab
     if not (AT and ZeD_WorldWindow and ZeD_WorldWindow.openTab) then return nil end
-    if not freeFor(worldWin(), chr) then return nil end
     local pn = pnOf(chr)
+    if not freeFor(worldWin(pn), chr) then return nil end
     pairForPad(pn)
-    if ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard() and ZeD_WorldWindow.closeObjectCard then
-        ZeD_WorldWindow.closeObjectCard()
+    if ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard(pn) and ZeD_WorldWindow.closeObjectCard then
+        ZeD_WorldWindow.closeObjectCard(pn)
     end
     if not ZeD_WorldWindow.openTab(pn, "animals") then return nil end
-    return worldWin(), AT, pn
+    return worldWin(pn), AT, pn
 end
 
 -- the game's reach for its animal window (ISAnimalUI:prerender): 5 tiles from the animal (ISAnimalUI.maxDist),
@@ -463,7 +464,7 @@ end
 --- True: skip the game's note.
 function WR.skipZoneNote(pn, force)
     if force then return false end
-    local win = worldWin()
+    local win = worldWin(pn)
     if not win then return false end
     local chr = getSpecificPlayer and getSpecificPlayer(pn or 0) or nil
     return chr ~= nil and win._playerObj == chr

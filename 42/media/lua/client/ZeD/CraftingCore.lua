@@ -928,7 +928,7 @@ local function modeLabel(modes, id)
     return modes[1] and modes[1].label or ""
 end
 
-function CC.filterAndSort(data, state, config)
+function CC.filterAndSort(data, state, config, win)
     local recipes   = data.recipes
     local category  = state.activeCat or "all"
     local searchText = state.search or ""
@@ -1010,7 +1010,8 @@ function CC.filterAndSort(data, state, config)
     local sortMode = state.sort or "craftable"
     local playerObj = nil
     if sortMode == "freq" or sortMode == "recent" then
-        playerObj = getSpecificPlayer(0)
+        -- (the counts are the window's character's: split view has a window per player; no window, player 1)
+        playerObj = getSpecificPlayer((win and win.playerNum) or 0)
     end
     local countKey = config and config.countKey or "ZeD_CraftCount"
 
@@ -1324,8 +1325,8 @@ end
 --- to it: the card is the list's picked row, so a recipe the list no longer shows (another
 --- category, a search that leaves it out) closes its card. Show never hides the open card's
 --- recipe (filterAndSort keeps its row).
-function CC.refilter(data, state, config)
-    state.filteredCache, state.filteredCounts = CC.filterAndSort(data, state, config)
+function CC.refilter(data, state, config, win)
+    state.filteredCache, state.filteredCounts = CC.filterAndSort(data, state, config, win)
     state.filterDirty = false
     state._sectionsStale = true  -- sections depend on filteredCache
     local sel = state.selected
@@ -2896,7 +2897,7 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
     state.zones = {}
 
     -- Filter + sort (cached — only rebuild when dirty); the card follows the list
-    if state.filterDirty then CC.refilter(data, state, config) end
+    if state.filterDirty then CC.refilter(data, state, config, win) end
 
     -- Update split animation (real dt via getTimestampMs inside)
     CC.updateSplitAnimation(state)

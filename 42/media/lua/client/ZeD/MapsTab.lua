@@ -995,7 +995,7 @@ end
 local function _focusOwner(win)
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
     if not Focus or not win then return nil end
-    local fw = Focus.getFocusedWindow()
+    local fw = Focus.getFocusedWindow(win.playerNum or 0)   -- (the window's own player's pad)
     if fw == win then return win end
     if win._mapPopout and fw == win._mapPopout then return fw end
     return nil
@@ -2242,7 +2242,8 @@ end
 
 -- Every tick, while the map's canvas has the controller: the left stick moves
 -- the cursor (panning at the edges), the triggers zoom on it (RT in, LT out).
-local _pad = { t = 0, zoomAt = 0, rest = {} }
+-- (zoomAt is kept per local player: in split view each player's map zooms on its own pad)
+local _pad = { t = 0, zoomAt = {}, rest = {} }
 local function _triggerPull(cid, axis)
     local v = getControllerAxisValue(cid, axis) or 0
     local key = cid * 8 + axis
@@ -2251,20 +2252,18 @@ local function _triggerPull(cid, axis)
     local travel = (rest < -0.5) and 2 or 1          -- XInput triggers rest at -1 (see InputModeDetector)
     return (v - rest) / travel
 end
-local function _mapPadTick()
-    local now = getTimestampMs()
-    local dt = math.min(0.1, (now - _pad.t) / 1000)
-    _pad.t = now
+-- one local player's pad on the map their window shows (split view: each player steers their own)
+local function _mapPadPlayer(pn, now, dt)
     local Focus = ZeD.Input and ZeD.Input.Focus
     local Det = ZeD.Input and ZeD.Input.Detector
-    if not (Focus and Focus.getFocusedWindow and Det and Det.getMode and Det.getMode() == "gamepad") then return end
-    local fw = Focus.getFocusedWindow()
+    if not (Focus and Focus.getFocusedWindow and Det and Det.getMode and Det.getMode(pn) == "gamepad") then return end
+    local fw = Focus.getFocusedWindow(pn)
     local el = fw and Focus.getFocusedElement and Focus.getFocusedElement(fw)
     if not (el and el.isCanvasCursor and el.mapWin) then return end
     local win = el.mapWin
     local mp = win._worldMapPanel
     if not (mp and mp:isReallyVisible()) then return end
-    local jd = getJoypadData and getJoypadData(0)
+    local jd = getJoypadData and getJoypadData(pn)
     local cid = jd and jd.id
     if not cid then return end
     -- the left stick
@@ -2279,13 +2278,19 @@ local function _mapPadTick()
     -- the triggers
     local lt, rt = _triggerPull(cid, 4), _triggerPull(cid, 5)
     local dir = (rt > 0.3 and -1) or (lt > 0.3 and 1) or 0
-    if dir ~= 0 and now >= _pad.zoomAt then
+    if dir ~= 0 and now >= (_pad.zoomAt[pn] or 0) then
         ZeD.MapsTab.gpZoom(win, dir)
-        _pad.zoomAt = now + MAP_GP_ZOOM_EVERY_MS
+        _pad.zoomAt[pn] = now + MAP_GP_ZOOM_EVERY_MS
     elseif dir == 0 then
-        _pad.zoomAt = 0
+        _pad.zoomAt[pn] = 0
     end
     Ext.padTick(win, mp, cid)   -- an extension's tool: A down / held / up at the cursor
+end
+local function _mapPadTick()
+    local now = getTimestampMs()
+    local dt = math.min(0.1, (now - _pad.t) / 1000)
+    _pad.t = now
+    for pn = 0, 3 do _mapPadPlayer(pn, now, dt) end
 end
 if Events and Events.OnTick then Events.OnTick.Add(_mapPadTick) end
 

@@ -880,14 +880,15 @@ end
 
 -- ============================================================================
 -- PINNED ACTIONS
--- Kept in player 0's ModData under "ZeD_PinnedContextIds", as
+-- Kept in the menu's player's ModData (pn; missing: player 1) under "ZeD_PinnedContextIds", as
 -- { ["eat"] = true, ["disassemble"] = true, ... }. Matching is on
 -- ActionDef.id, which derives from the option name as the player's language
 -- writes it, so pins do not carry across languages.
 -- ============================================================================
 
-local function getPinsModData()
-    local player = getSpecificPlayer(0)
+local function getPinsModData(pn)
+    -- (a number only: split view hands in the menu's player; anything else is player 1, as before)
+    local player = getSpecificPlayer(type(pn) == "number" and pn or 0)
     if not player then return nil end
     local md = player:getModData()
     if not md.ZeD_PinnedContextIds then
@@ -897,17 +898,17 @@ local function getPinsModData()
 end
 
 --- The pinned ids ({ id = true }), straight from ModData.
-function Registry.getPinnedIds()
-    return getPinsModData() or {}
+function Registry.getPinnedIds(pn)
+    return getPinsModData(pn) or {}
 end
 
-function Registry.isPinned(actionId)
-    local pins = getPinsModData()
+function Registry.isPinned(actionId, pn)
+    local pins = getPinsModData(pn)
     return pins and pins[actionId] == true
 end
 
-function Registry.togglePin(actionId)
-    local pins = getPinsModData()
+function Registry.togglePin(actionId, pn)
+    local pins = getPinsModData(pn)
     if not pins or not actionId then return end
     if pins[actionId] then pins[actionId] = nil else pins[actionId] = true end
 end
@@ -917,8 +918,8 @@ end
 --- def.pinned = true so the cell can draw the pin mark without asking again.
 --- Lua's table.sort is not stable, so the order comes from buckets instead:
 --- pinned in input order, then the rest in input order.
-function Registry.applyPins(tree, _target)
-    local pins = getPinsModData() or {}
+function Registry.applyPins(tree, _target, pn)
+    local pins = getPinsModData(pn) or {}
     -- Mark pinned flags first
     for _, def in ipairs(tree) do
         if pins[def.id] then def.pinned = true end

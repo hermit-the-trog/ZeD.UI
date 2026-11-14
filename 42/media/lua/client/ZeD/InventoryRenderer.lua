@@ -359,8 +359,9 @@ local function containerKey(inv, playerObj)
 end
 ZeD.InventoryRenderer.containerKey = containerKey
 
-local function gridStore()
-    local p = getPlayer and getPlayer()
+-- p: whose choices (a window's own player; nil: the game's player 1, as before split view)
+local function gridStore(p)
+    p = p or (getPlayer and getPlayer())
     if not p then return nil end
     local md = p:getModData()
     md.ZeD_GridViews = md.ZeD_GridViews or {}
@@ -368,8 +369,8 @@ local function gridStore()
 end
 
 -- a container's own choice (its view button), else the ZeD option "Inventory"
-function ZeD.InventoryRenderer.isGridKey(key)
-    local s = key and gridStore()
+function ZeD.InventoryRenderer.isGridKey(key, playerObj)
+    local s = key and gridStore(playerObj)
     if s and s[key] ~= nil then return s[key] == true end
     local o = ZeD.Settings and ZeD.Settings.inventoryViewOption
     local ok, v = pcall(function() return o and o:getValue() end)
@@ -387,15 +388,15 @@ function ZeD.InventoryRenderer.capacityOf(inv, playerObj)
     return inv:getEffectiveCapacity(playerObj)
 end
 
-function ZeD.InventoryRenderer.setGridKey(key, on)
-    local s = key and gridStore()
+function ZeD.InventoryRenderer.setGridKey(key, on, playerObj)
+    local s = key and gridStore(playerObj)
     if s then s[key] = on and true or false end   -- (false: this one a list, whatever the option says)
 end
 
 -- the heading's view button, R3 and A on the button: the container goes to the other view, saved as its own choice
-function ZeD.InventoryRenderer.flipGridKey(key)
+function ZeD.InventoryRenderer.flipGridKey(key, playerObj)
     if not key then return false end
-    ZeD.InventoryRenderer.setGridKey(key, not ZeD.InventoryRenderer.isGridKey(key))
+    ZeD.InventoryRenderer.setGridKey(key, not ZeD.InventoryRenderer.isGridKey(key, playerObj), playerObj)
     pcall(function() getSoundManager():playUISound("UISelectListItem") end)
     return true
 end
@@ -441,9 +442,10 @@ function ZeD.InventoryRenderer.padView(win)
     if not cnt then return false end
     local idx = (cs and cs.containerIdx) or win._viewedContainer or win._activeContainer
     local c = idx and win._containers and win._containers[idx]
+    -- (a window always has its player; player 1 is only the fallback for one built without)
     local playerObj = win._playerObj or getSpecificPlayer(0)
     local key = c and c.inventory and containerKey(c.inventory, playerObj)
-    return ZeD.InventoryRenderer.flipGridKey(key)
+    return ZeD.InventoryRenderer.flipGridKey(key, playerObj)
 end
 
 -- the footer's words for the two, where the pad is in a list: L3 sorts, R3 shows what it switches to
@@ -453,7 +455,7 @@ function ZeD.InventoryRenderer.padPrompts(win)
     local idx = (cs and cs.containerIdx) or win._viewedContainer or win._activeContainer
     local c = idx and win._containers and win._containers[idx]
     local key = c and c.inventory and containerKey(c.inventory, win._playerObj or getSpecificPlayer(0))
-    local grid = key and ZeD.InventoryRenderer.isGridKey(key)
+    local grid = key and ZeD.InventoryRenderer.isGridKey(key, win._playerObj)
     return { { glyph = "L3", label = ZeD.tr("UI_ZeD_Prompt_Sort") },
              { glyph = "R3", label = ZeD.tr(grid and "UI_ZeD_Settings_ViewList" or "UI_ZeD_Settings_ViewGrid") } }
 end
@@ -474,7 +476,7 @@ function ZeD.InventoryRenderer.onViewZone(zid, content)
         else ZeD.InvFilter.act(S, key) end
         return
     end
-    if view == "flip" then ZeD.InventoryRenderer.flipGridKey(key) end
+    if view == "flip" then ZeD.InventoryRenderer.flipGridKey(key, content and content._playerObj) end
 end
 
 -- Double-click a row: vanilla's quick use. In your main inventory the item's
@@ -673,7 +675,7 @@ function ZeD.InventoryRenderer.toggleElements(rects)
                 id = "view:" .. r.view .. ":" .. tostring(r.key),
                 isViewToggle = true, view = r.view, key = r.key,
                 onFocus = function(w, el) end,
-                onActivate = function(w, el) ZeD.InventoryRenderer.flipGridKey(el.key) end,
+                onActivate = function(w, el) ZeD.InventoryRenderer.flipGridKey(el.key, w and w._playerObj) end,
             }
             if r.view == "filter" or r.view == "fbar" then filterElement(el) end
             els[#els + 1] = el
@@ -713,9 +715,10 @@ end
 -- while the controller is in use (Focus.liveZone): no mark in mouse mode.
 -- Returns the focus mark's opts ({ win, zone }) when it is, else false.
 local _itemFocus, _toggleFocus = {}, {}
-local function gpFocusedItem(item)
+-- pn: the drawing panel's player (in split view each player's pad focuses a window of their own)
+local function gpFocusedItem(item, pn)
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-    local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
+    local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow(pn) or nil
     local zone   = (focWin and Focus.liveZone) and Focus.liveZone(focWin) or nil
     local zname  = zone and zone.zone or ""
     local isInvZone = zname == "charMainInv" or zname == "worldMainInv"
@@ -727,9 +730,9 @@ local function gpFocusedItem(item)
     return _itemFocus
 end
 
-local function gpFocusedToggle(id)
+local function gpFocusedToggle(id, pn)
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-    local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
+    local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow(pn) or nil
     local focEl = (focWin and Focus.liveElement) and Focus.liveElement(focWin) or nil
     if not (focEl ~= nil and focEl.isViewToggle and focEl.id == id) then return nil end
     _toggleFocus.win = focWin
@@ -881,7 +884,7 @@ end
 local function gridState(self, inv, playerObj, colW, scrollW, padX, childParent)
     local T = ZeD.T
     local GV = { key = containerKeyOf(inv, playerObj), toggles = {}, child = childParent, player = playerObj or getSpecificPlayer(0) }
-    GV.on   = ZeD.InventoryRenderer.isGridKey(GV.key)
+    GV.on   = ZeD.InventoryRenderer.isGridKey(GV.key, GV.player)
     GV.cell = T.px(GRID_CELL)
     GV.gap  = T.px(GRID_GAP)
     GV.cols = math.max(1, math.floor((colW - scrollW - padX * 2 + GV.gap) / (GV.cell + GV.gap)))
@@ -923,7 +926,7 @@ local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
         local id = "view:filter:" .. GV.key
         local o = _viewOpts
         o.active, o.hover = S.open, ZeD.Atoms.mouseIn(self, tx, ty, bw, bw)
-        o.focus, o.hint, o.id = gpFocusedToggle(id), ZeD.tr("UI_ZeD_Inv_Filter"), id
+        o.focus, o.hint, o.id = gpFocusedToggle(id, ZeD.playerNumOf(self)), ZeD.tr("UI_ZeD_Inv_Filter"), id
         o.help = ZeD.tr("UI_ZeD_Inv_FilterHelp")
         o.iconSize = math.min(T.px(16), bw - T.px(6))
         M.drawIconButton(self, tx, ty, bw, "filter", o)   -- (the ZeD pixel funnel)
@@ -940,7 +943,7 @@ local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
     local id = "view:flip:" .. GV.key
     local o = _viewOpts
     o.active, o.hover = true, ZeD.Atoms.mouseIn(self, tx, ty, bw, bw)
-    o.focus, o.id = gpFocusedToggle(id), id
+    o.focus, o.id = gpFocusedToggle(id, ZeD.playerNumOf(self)), id
     o.hint = grid and ZeD.tr("UI_ZeD_Inv_GridView") or getText("IGUI_CraftingWindow_ListView")
     o.help = ZeD.tr(grid and "UI_ZeD_Inv_GridHelp" or "UI_ZeD_Inv_ListHelp")
     o.iconSize = math.min(T.px(16), bw - T.px(6))
@@ -1035,7 +1038,7 @@ local function drawGridCell(self, GV, item, cx, cy)
         local hv = T.hover
         self:drawRect(ax, cy, cell, cell, hv.a, hv.r, hv.g, hv.b)
     end
-    local fo = gpFocusedItem(item)
+    local fo = gpFocusedItem(item, ZeD.playerNumOf(self))
     if fo then ZeD.Focus.mark(self, ax, cy, cell, cell, fo) end
     local stackInfo = self._stacks and self._stacks[item]
     local count = (stackInfo and stackInfo.count) or 1
@@ -1716,7 +1719,7 @@ local function rowStates(self, item, isSelected, x, y, w, rowH, pointed)
         end
     end
     if item ~= self._gpFocusedRowItem then return false end
-    local fo = gpFocusedItem(item)
+    local fo = gpFocusedItem(item, ZeD.playerNumOf(self))
     if not fo then return false end
     return ZeD.Focus.mark(self, x, y, w, rowH, fo) and true or false
 end
@@ -2888,7 +2891,7 @@ local function titleBarDropTarget(win, srcWin)
     local cols = panel._colStates
     local last = cols and cols[#cols]
     local inv = last and last.inventory or panel._inventory
-    if inv and win.windowShaded and win == ZeD_WorldWindow.getWindow() and not ZeD_WorldWindow.inReach(inv) then return nil end
+    if inv and win.windowShaded and win == ZeD_WorldWindow.getWindow(ZeD.playerNumOf(win)) and not ZeD_WorldWindow.inReach(inv, ZeD.playerNumOf(win)) then return nil end
     return inv
 end
 
@@ -2923,7 +2926,7 @@ local function dragItems(content, items, srcInventory)
     local stacks = cs and cs.stacks or content._stacks
     if not stacks then return items end
     local open = (cs and cs.expandedStacks) or content._expandedStacks or {}
-    local grid = ZeD.InventoryRenderer.isGridKey(containerKeyOf(srcInventory or content._inventory, content._playerObj))
+    local grid = ZeD.InventoryRenderer.isGridKey(containerKeyOf(srcInventory or content._inventory, content._playerObj), content._playerObj)
     local out, seen = {}, {}
     for _, item in ipairs(items) do
         local stk = stacks[item]
@@ -3011,8 +3014,9 @@ local function handleDrop(content, items, srcInventory)
 
     -- Check cross-window ZeD drop (character <-> world)
     if not destContainer then
-        local charWin = ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
-        local worldWin = ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+        -- (the dragging player's own pair: in split view another player's windows are no drop target)
+        local charWin = ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(ZeD.playerNumOf(content))
+        local worldWin = ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(ZeD.playerNumOf(content))
 
         -- Content panel detection (main inventory area)
         local otherContent = nil

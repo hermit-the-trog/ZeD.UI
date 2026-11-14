@@ -791,7 +791,9 @@ end
 -- and the Identity photo wear what the slots show.
 if Events and Events.OnClothingUpdated then
     Events.OnClothingUpdated.Add(function(chr)
-        local w = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
+        -- (the dressed character's own window; a zombie or a character with no number reads as player 1, whose
+        -- window then fails the chr check below as before)
+        local w = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(call(chr, "getPlayerNum") or 0)
         if w and w._identityModel and chr == w._playerObj then w._identityModel._characterBound = false end
     end)
 end
@@ -988,7 +990,7 @@ end
 --- game's own action (ISHotbar:attachItem: the timed attach, out of a bag first,
 --- as the belt on the HUD takes it). True when it took the drop.
 function D.takeDrop(pn, items)
-    local win = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
+    local win = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(pn)   -- (the dropping player's)
     if not win then return false end
     if win._drawerMode ~= "tab" or win._activeTab ~= "equip" or win._equipSelected or (win._drawerEffW or 0) <= 0 then return false end
     if not (items and items[1]) then return false end

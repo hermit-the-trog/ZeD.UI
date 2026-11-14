@@ -101,12 +101,15 @@ hookActivate()
 -- at once. It doesn't switch to the tab or open the window.
 local function onEquipRadioAutoSwitch(player, item)
     if ZeD.Safe.on() then return end
-    if player == nil or player ~= getPlayer() then return end
+    -- only a player on this machine: their own Character window (split view gives each local player one);
+    -- anyone else (another player online, a zombie) is not ours to refresh
+    if player == nil or not instanceof(player, "IsoPlayer") then return end
+    if getSpecificPlayer(player:getPlayerNum()) ~= player then return end
     if item == nil or not instanceof(item, "Radio") then return end
     -- Refresh the radio list immediately so the predicate that gates the tab
     -- visibility sees the new radio without waiting for the 30-frame timer.
     local charWin = ZeD_CharacterWindow and ZeD_CharacterWindow.getInstance
-                    and ZeD_CharacterWindow.getInstance() or nil
+                    and ZeD_CharacterWindow.getInstance(player:getPlayerNum()) or nil
     if charWin == nil then return end
     if not charWin:isVisible() then return end
     if ZeD.RadioTab and ZeD.RadioTab.buildEquippedRadios then

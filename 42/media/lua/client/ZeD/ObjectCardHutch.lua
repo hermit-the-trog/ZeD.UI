@@ -128,10 +128,12 @@ end
 
 -- INFO: the bird in the Animals tab (its zone, then the animal view)
 local function showBird(p, animal)
-    local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
-    if ZeD_WorldWindow.closeObjectCard then ZeD_WorldWindow.closeObjectCard() end
-    if ZeD_WorldWindow.openTab then ZeD_WorldWindow.openTab(p:getPlayerNum(), "animals") end
-    win = ZeD_WorldWindow.getWindow()
+    -- the window of the player who pressed INFO
+    local pn = p:getPlayerNum()
+    local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn)
+    if ZeD_WorldWindow.closeObjectCard then ZeD_WorldWindow.closeObjectCard(pn) end
+    if ZeD_WorldWindow.openTab then ZeD_WorldWindow.openTab(pn, "animals") end
+    win = ZeD_WorldWindow.getWindow(pn)
     local AT = ZeD.AnimalsTab
     if win and AT and AT.showAnimal then AT.showAnimal(win, animal) end
 end

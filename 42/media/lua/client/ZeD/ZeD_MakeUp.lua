@@ -210,7 +210,7 @@ function MU.open(p, item)
     if not (p and ZeD_CharacterWindow and ZeD_CharacterWindow.openTab) then return false end
     local pn = p:getPlayerNum()
     if not ZeD_CharacterWindow.openTab(pn, "identity") then return false end
-    local win = ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
+    local win = ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(pn)   -- (the window openTab just opened)
     local HB = ZeD.HairBeard
     if not (win and HB and HB.showMakeUp) then return false end
     HB.showMakeUp(win, item)

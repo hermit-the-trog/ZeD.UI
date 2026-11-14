@@ -107,6 +107,8 @@ ZeD = {
     Safe = {},
     TabPx = {},
 }
+-- (Atoms.lua's: a window's player number, split view)
+ZeD.playerNumOf = function(w) local p = w and w._playerObj; return p and p.getPlayerNum and p:getPlayerNum() or 0 end
 
 local function panelStub()
     return setmetatable({ getMouseX = function() return mouse.x end, getMouseY = function() return mouse.y end,

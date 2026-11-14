@@ -208,6 +208,8 @@ do
 
     -- the belt, one a player: the real ZeD_Belt.lua on stubs
     ZeD = { Safe = { on = function() return false end }, tr = function(k) return k end, trDefaults = noop }
+    -- (the belt asks whose windows are ZeD's: Atoms.lua's gate, split view off)
+    ZeD.windowsFor = function(pn) return pn == nil or pn == 0 end
     local Panel = {}
     Panel.__index = Panel
     function Panel:derive() local c = {}; c.__index = c; return setmetatable(c, { __index = Panel }) end

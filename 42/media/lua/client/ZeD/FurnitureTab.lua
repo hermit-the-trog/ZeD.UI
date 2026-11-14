@@ -208,9 +208,10 @@ local function overWindow(w)
     return mx >= ax and my >= ay and mx < ax + w:getWidth() and my < ay + w:getHeight()
 end
 
-local function mouseOverZeD()
-    if ZeD_WorldWindow and ZeD_WorldWindow.getWindow and overWindow(ZeD_WorldWindow.getWindow()) then return true end
-    if ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and overWindow(ZeD_CharacterWindow.getWindow()) then return true end
+-- pn: the cursor's player, so the hold looks at that player's own windows
+local function mouseOverZeD(pn)
+    if ZeD_WorldWindow and ZeD_WorldWindow.getWindow and overWindow(ZeD_WorldWindow.getWindow(pn)) then return true end
+    if ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and overWindow(ZeD_CharacterWindow.getWindow(pn)) then return true end
     return false
 end
 
@@ -223,7 +224,7 @@ function FT.heldSquare(cur, sq)
         H.on = nil
         return sq
     end
-    if mouseOverZeD() then
+    if mouseOverZeD(cur.player) then
         if not H.on then H.on, H.sq = true, H.rest or cur.currentSquare end
         return H.sq or sq
     end
@@ -275,7 +276,7 @@ local function watch()
     if not (ZeD_WorldWindow and ZeD_WorldWindow.isTabShowing) then return end
     local pn = 0
     local cur = cursorOf(pn)
-    local showing = ZeD_WorldWindow.isOpen() and ZeD_WorldWindow.isTabShowing("furniture")
+    local showing = ZeD_WorldWindow.isOpen(pn) and ZeD_WorldWindow.isTabShowing("furniture", pn)
     local S = FT.state
     if showing then return end
     if S.active then

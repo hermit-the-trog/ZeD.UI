@@ -129,8 +129,9 @@ local function isFloor(inv) return inv ~= nil and inv:getType() == "floor" end
 -- any key in a set (Kahlua has no next())
 local function hasAny(t) for _ in pairs(t) do return true end return false end
 
-local function zedFloor()
-    return ZeD_WorldWindow and ZeD_WorldWindow.getFloorContainer and ZeD_WorldWindow.getFloorContainer() or nil
+-- pn: whose floor (each local player's World window has its own)
+local function zedFloor(pn)
+    return ZeD_WorldWindow and ZeD_WorldWindow.getFloorContainer and ZeD_WorldWindow.getFloorContainer(pn) or nil
 end
 
 -- A vanilla Title Case label as a button word ("Set Mode: Dryer" -> "Set mode: dryer").
@@ -202,7 +203,7 @@ function CT.moveItems(playerObj, items, dest)
     -- a mod's gate refuses things into this container (ContainerGates.lua: never searched)
     if not isFloor(dest) and ZeD.ContainerGates.refuses(dest, playerObj) then return end
     local pn = playerObj:getPlayerNum()
-    local floor = zedFloor()
+    local floor = zedFloor(pn)
     sortForTransfer(items)
     if isFloor(dest) then
         local drop = {}
@@ -330,12 +331,13 @@ end
 -- ----------------------------------------------------------------------------
 -- WHAT EACH ROW HOLDS
 -- ----------------------------------------------------------------------------
-local function charContent()
-    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.isOpen and ZeD_CharacterWindow.isOpen() and ZeD_CharacterWindow.getWindow()
+-- pn: whose windows (the content's own player; split view gives each player a pair)
+local function charContent(pn)
+    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.isOpen and ZeD_CharacterWindow.isOpen(pn) and ZeD_CharacterWindow.getWindow(pn)
     return cw and cw._mainContent or nil
 end
-local function worldWindow()
-    return ZeD_WorldWindow and ZeD_WorldWindow.isOpen and ZeD_WorldWindow.isOpen() and ZeD_WorldWindow.getWindow() or nil
+local function worldWindow(pn)
+    return ZeD_WorldWindow and ZeD_WorldWindow.isOpen and ZeD_WorldWindow.isOpen(pn) and ZeD_WorldWindow.getWindow(pn) or nil
 end
 
 -- The other side's container: what the other ZeD window shows. Your side's
@@ -343,16 +345,16 @@ end
 -- moves go into the Character window's container, else your inventory.
 local function otherInventory(content)
     if content._ccSide == "char" then
-        local ww = worldWindow()
+        local ww = worldWindow(ZeD.playerNumOf(content))
         local wc = ww and ww._mainContent
         return (wc and wc._ccEntry and wc._inventory) or nil
     end
-    local cc = charContent()
+    local cc = charContent(ZeD.playerNumOf(content))
     return (cc and cc._ccEntry and cc._inventory) or (content._playerObj and content._playerObj:getInventory())
 end
 
-local function nearbyContainers()
-    local ww = worldWindow()
+local function nearbyContainers(pn)
+    local ww = worldWindow(pn)
     local out = {}
     for _, e in ipairs(ww and ww._containers or {}) do
         if e.inventory and not e.locked then out[#out + 1] = e.inventory end
@@ -446,7 +448,7 @@ local function objectSpecs(content, inv, object)
                         icon = icon, hint = icon and title or nil, lit = lit,
                         run = function(ct, hit)
                             if jump and ZeD.ObjectCards and ZeD.ObjectCards.open(playerObj, "fire", object) then
-                                local ww = ZeD_WorldWindow.getWindow()
+                                local ww = ZeD_WorldWindow.getWindow(ZeD.playerNumOf(content))
                                 local card = ww and ww._objectCard
                                 if card then card._jumpTo = jump; card._pendingFocus = jump end
                                 return
@@ -595,11 +597,11 @@ local function buildChar(content)
             local d = otherInventory(ct)
             CT.moveItems(playerObj, (sameTypeItems(ct._inventory, d, keep)), d)
         end }
-    local _, nearSet = nearbyPlan(playerObj, inv, nearbyContainers())
+    local _, nearSet = nearbyPlan(playerObj, inv, nearbyContainers(ZeD.playerNumOf(content)))
     moves[#moves + 1] = { id = "near", label = ZeD.tr("UI_ZeD_Controls_SameTypeNearby"), enabled = hasAny(nearSet), marks = nearSet,
         icon = "same_nearby", hint = ZeD.tr("UI_ZeD_Controls_HintNearby"),
         run = function(ct)
-            for _, step in ipairs((nearbyPlan(playerObj, ct._inventory, nearbyContainers()))) do
+            for _, step in ipairs((nearbyPlan(playerObj, ct._inventory, nearbyContainers(ZeD.playerNumOf(ct))))) do
                 CT.moveItems(playerObj, step.items, step.dest)
             end
         end }

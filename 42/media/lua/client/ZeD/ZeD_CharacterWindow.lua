@@ -3253,7 +3253,7 @@ local function drawTabStrip(self, win)
             local el = Focus.liveElement(win)
             if el then gpFocusedTabId = el.tabId end
         end
-        cuesOn = Focus and Focus.cuesVisible and Focus.cuesVisible() or false
+        cuesOn = Focus and Focus.cuesVisible and Focus.cuesVisible(win.playerNum) or false   -- (this window's player's marks)
     end
 
     local needsScroll = totalTabH > h
@@ -3545,7 +3545,7 @@ local function drawContainerStrip(self, win, content)
             local el = Focus.liveElement(win)
             if el then gpFocusedCI = el.containerIdx end
         end
-        cuesOn = Focus and Focus.cuesVisible and Focus.cuesVisible() or false
+        cuesOn = Focus and Focus.cuesVisible and Focus.cuesVisible(win.playerNum) or false   -- (this window's player's marks)
     end
     local stripFocus = { win = win, zone = "charContainerStrip" }
     local selA = T.selectionA or 0.30
@@ -7295,9 +7295,10 @@ end)
 -- names are added to this big file's main chunk. The stash
 -- is taken after the listener above has closed the windows, so it holds their
 -- final layout, and is dropped on leaving to the main menu so it never reaches
--- a character in another save.
+-- a character in another save. One stash a local player (stash[pn]): in split
+-- view each player's respawn gets back their own layout, never another's.
 if not ZeD._winStateCarry then
-    ZeD._winStateCarry = { stash = nil }
+    ZeD._winStateCarry = { stash = {} }
     function ZeD._winStateCarry.copy(src)
         if type(src) ~= "table" then return src end
         local out = {}
@@ -7306,27 +7307,27 @@ if not ZeD._winStateCarry then
     end
     Events.OnPlayerDeath.Add(function(playerObj)
         pcall(function()
-            if playerObj:getPlayerNum() ~= 0 then return end
+            local pn = playerObj:getPlayerNum()
             local md = playerObj:getModData()
-            ZeD._winStateCarry.stash = md.ZeD_WinState and ZeD._winStateCarry.copy(md.ZeD_WinState) or nil
+            ZeD._winStateCarry.stash[pn] = md.ZeD_WinState and ZeD._winStateCarry.copy(md.ZeD_WinState) or nil
         end)
     end)
     Events.OnCreatePlayer.Add(function(playerNum)
-        if playerNum ~= 0 then return end
+        if type(playerNum) ~= "number" then return end
         pcall(function()
-            local stash = ZeD._winStateCarry.stash
+            local stash = ZeD._winStateCarry.stash[playerNum]
             if not stash then return end
-            local p = getSpecificPlayer(0)
+            local p = getSpecificPlayer(playerNum)
             if not p then return end
             local md = p:getModData()
             if md.ZeD_WinState == nil then
                 md.ZeD_WinState = ZeD._winStateCarry.copy(stash)
             end
-            ZeD._winStateCarry.stash = nil
+            ZeD._winStateCarry.stash[playerNum] = nil
         end)
     end)
     if Events.OnMainMenuEnter then
-        Events.OnMainMenuEnter.Add(function() ZeD._winStateCarry.stash = nil end)
+        Events.OnMainMenuEnter.Add(function() ZeD._winStateCarry.stash = {} end)
     end
 end
 
@@ -7362,19 +7363,26 @@ end)
 -- Taking over again hides those pages, as a world's first frame does;
 -- the windows stay closed until the inventory key opens them.
 local function _closeForSafeMode()
-    -- (the first player's window: the only one ZeD.windowsFor lets open)
-    if _charWins[0] then
-        local ok = pcall(ZeD_CharacterWindow.toggle, 0)
-        if not ok or _charWins[0] then
-            local w = _charWins[0]
-            _charWins[0] = nil
-            pcall(function()
-                if ZeD.Input and ZeD.Input.Focus then ZeD.Input.Focus.unregisterWindow(w) end
-            end)
-            pcall(w.removeFromUIManager, w)
+    -- (every local player's pair: with split view on, ZeD.windowsFor, players 2-4 may have theirs open too.
+    -- The first player's World window is always force-closed, as before; another player's only when open, so
+    -- nothing of theirs, such as the floor container, is cleared for a window they never had)
+    for pn = 0, 3 do
+        if _charWins[pn] then
+            local ok = pcall(ZeD_CharacterWindow.toggle, pn)
+            if not ok or _charWins[pn] then
+                local w = _charWins[pn]
+                _charWins[pn] = nil
+                pcall(function()
+                    if ZeD.Input and ZeD.Input.Focus then ZeD.Input.Focus.unregisterWindow(w) end
+                end)
+                pcall(w.removeFromUIManager, w)
+            end
+        end
+        if ZeD_WorldWindow and ZeD_WorldWindow.forceClose
+           and (pn == 0 or (ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn))) then
+            pcall(ZeD_WorldWindow.forceClose, pn)
         end
     end
-    if ZeD_WorldWindow and ZeD_WorldWindow.forceClose then pcall(ZeD_WorldWindow.forceClose) end
     -- (every player whose pages ZeD hid gets them back)
     for p = 0, 3 do
         if ZeD.windowsFor(p) then
@@ -7410,7 +7418,8 @@ Events.OnPostSave.Add(function()
         if _charWins[0] and _charWins[0]._accentKey then
             md.ZeD_Theme.charAccent = _charWins[0]._accentKey
         end
-        local worldWin = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+        -- (the first player's on purpose: the theme and the window accents are saved with player 1)
+        local worldWin = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(0)
         if worldWin and worldWin._accentKey then
             md.ZeD_Theme.worldAccent = worldWin._accentKey
         end

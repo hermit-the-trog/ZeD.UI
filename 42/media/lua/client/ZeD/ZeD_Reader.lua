@@ -691,8 +691,9 @@ local function raise(ui) pcall(function() ui:bringToTop() end) end
 local function keepAbove(self)
     local me = self.javaObject
     if not me then return end
-    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getInstance and ZeD_CharacterWindow.getInstance()
-    local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    -- (the reader's own player's windows: in split view another player's windows are not this reader's to stay over)
+    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getInstance and ZeD_CharacterWindow.getInstance(self.playerNum)
+    local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(self.playerNum)
     local cj, wj = cw and cw.javaObject, ww and ww.javaObject
     if not (cj or wj) then return end
     local uis = UIManager.getUI()
@@ -719,7 +720,8 @@ function ZeD_Reader:update()
     local h = self:hitAt(self:getMouseX(), self:getMouseY())
     -- the pointer's hover waits while the controller's mark shows (one cue at a time)
     local F = ZeD.Input and ZeD.Input.Focus
-    local quiet = F and F.cuesVisible and F.cuesVisible()
+    -- (this reader's player's mark: another player's pad cue never quiets this pointer)
+    local quiet = F and F.cuesVisible and F.cuesVisible(self.playerNum)
     self._hot = (not quiet) and h and h.fn and h.id or nil
     -- (kept as state: the help line stamps it on each frame drawn, ZeD_Window:_drawHelpLine)
     if h and h.help and not quiet and not self._updHelp then self._updHelp = h.help end

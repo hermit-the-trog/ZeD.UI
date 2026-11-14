@@ -408,8 +408,8 @@ function ZeD_Keyboard:prerender()
     local T = ZeD.T
     local e = self.textEntryBox
     if not (e and e:isReallyVisible()) then self:hide(); return end
-    -- (the Character window's accent, as the prompts wear it)
-    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
+    -- (the Character window's accent, as the prompts wear it: the typing player's window)
+    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(self.playerNum)
     self._accentKey = cw and cw._accentKey or nil
     -- no minimum size: ZeD_Window.prerender sets the big windows' minimum every frame, and the
     -- engine holds an element to it (as in ZeD_Prompt:prerender)

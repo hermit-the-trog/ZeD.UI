@@ -92,7 +92,7 @@ function ZeD_RestockPin:prerender()
     local nRows = run.done and 0 or math.min(MAX_ROWS, #self._rows)
     local status = nil
     if ZeD.EquipLoadout and ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow then
-        local win = ZeD_CharacterWindow.getWindow()
+        local win = ZeD_CharacterWindow.getWindow(self.pn)   -- (the pin's own player's window)
         if win then status = ZeD.EquipLoadout.statusText(win) end
     end
     status = status or run.notice or ""

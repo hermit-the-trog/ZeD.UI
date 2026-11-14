@@ -33,6 +33,19 @@ local CACHE = {
 
 AP.CACHE = CACHE
 
+-- One cache per local player (split view: each reads the animals around their own character). Player 1's is
+-- CACHE above, made at load as before; players 2-4 get one the first time their tab asks.
+local CACHES = { [0] = CACHE }
+local function cacheOf(pn)
+    pn = pn or 0
+    local c = CACHES[pn]
+    if not c then
+        c = { alerts = {}, zoneSummaries = {}, zoneList = {}, totals = {}, allAnimals = {}, lastTick = 0, ready = false }
+        CACHES[pn] = c
+    end
+    return c
+end
+
 -- ============================================================================
 -- ZONE DISCOVERY — the cell's animals in reach, grouped by the zones the game
 -- connects them to (getAnimalsConnected), getDZone() as the fallback
@@ -302,9 +315,11 @@ end
 -- ============================================================================
 
 --- Rebuild the whole cache now. The minute hook calls it; the tab calls it on open so the first frame has data.
-function AP.refreshCache()
-    local player = getSpecificPlayer(0)
+-- pn: whose (nil: the first player's).
+function AP.refreshCache(pn)
+    local player = getSpecificPlayer(pn or 0)
     if not player then return end
+    local CACHE = cacheOf(pn)
 
     local animals, zoneMap, zoneList = discoverPlayerAnimals(player)
 
@@ -331,25 +346,27 @@ end
 -- PUBLIC ACCESSORS
 -- ============================================================================
 
-function AP.getAlerts()       return CACHE.alerts end
-function AP.getZoneList()     return CACHE.zoneList end
-function AP.getTotals()       return CACHE.totals end
-function AP.getAllAnimals()    return CACHE.allAnimals end
-function AP.isReady()         return CACHE.ready end
+-- pn on each: whose cache (nil: the first player's).
+function AP.getAlerts(pn)       return cacheOf(pn).alerts end
+function AP.getZoneList(pn)     return cacheOf(pn).zoneList end
+function AP.getTotals(pn)       return cacheOf(pn).totals end
+function AP.getAllAnimals(pn)    return cacheOf(pn).allAnimals end
+function AP.isReady(pn)         return cacheOf(pn).ready end
 
 --- Get zone summary by name (stable key).
-function AP.getZoneSummary(zoneName)
-    return CACHE.zoneSummaries[zoneName]
+function AP.getZoneSummary(zoneName, pn)
+    return cacheOf(pn).zoneSummaries[zoneName]
 end
 
 --- The name of the zone the last refresh put this animal in (the zone rows' own count), or nil.
-function AP.getZoneNameOf(animal)
-    return CACHE.zoneOf and CACHE.zoneOf[animal] or nil
+function AP.getZoneNameOf(animal, pn)
+    local c = cacheOf(pn)
+    return c.zoneOf and c.zoneOf[animal] or nil
 end
 
 --- Get animals for a specific zone by name (from cache)
-function AP.getAnimalsInZone(zoneName)
-    local summary = CACHE.zoneSummaries[zoneName]
+function AP.getAnimalsInZone(zoneName, pn)
+    local summary = cacheOf(pn).zoneSummaries[zoneName]
     return summary and summary.animals or {}
 end
 
@@ -359,6 +376,12 @@ end
 
 local function onEveryOneMinute()
     AP.refreshCache()
+    -- (split view: players 2-4 whose tab has asked; a player who left takes their cache with them)
+    for pn = 1, 3 do
+        if CACHES[pn] then
+            if getSpecificPlayer(pn) then AP.refreshCache(pn) else CACHES[pn] = nil end
+        end
+    end
 end
 
 -- ============================================================================

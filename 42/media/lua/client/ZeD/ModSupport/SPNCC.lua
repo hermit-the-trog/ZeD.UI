@@ -608,7 +608,7 @@ end
 -- ---------------------------------------------------------------------------
 local function focusedEl(win)
     local Focus = ZeD.Input and ZeD.Input.Focus
-    if not (Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win and Focus.getFocusedElement) then return nil end
+    if not (Focus and Focus.getFocusedWindow and Focus.getFocusedWindow(ZeD.playerNumOf(win)) == win and Focus.getFocusedElement) then return nil end
     local el = Focus.getFocusedElement(win)
     if el and el.spn then return el end
     return nil
@@ -1188,11 +1188,11 @@ ZeD_CharacterWindow.addTab({
 function S.openTab(playerNum)
     playerNum = playerNum or 0
     if not ZeD.windowsFor(playerNum) then return end   -- (split-screen: ZeD's windows are the first player's)
-    if not ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggle(playerNum) end
+    if not ZeD_CharacterWindow.isOpen(playerNum) then ZeD_CharacterWindow.toggle(playerNum) end
     local tries = 0
     local function tick()
         tries = tries + 1
-        local win = ZeD_CharacterWindow.getWindow()
+        local win = ZeD_CharacterWindow.getWindow(playerNum)
         local strip = win and win._tabStripPanel
         local done = false
         if win and win._activeTab == TAB_ID and win._drawerOpen ~= false then done = true
@@ -1223,7 +1223,8 @@ local function hookOpen()
             return orig(player, hideCancelButton)
         end
         S.first = hideCancelButton and true or false
-        local win = ZeD_CharacterWindow.getWindow()
+        S.firstPn = player:getPlayerNum()   -- (whose window watchFirst waits on to close)
+        local win = ZeD_CharacterWindow.getWindow(S.firstPn)
         if win and win._spncc then win._spncc.face, win._spncc.savedKey, win._spncc.tick = nil, nil, 999 end
         if S.first then pause() end
         S.openTab(player:getPlayerNum())
@@ -1235,18 +1236,22 @@ hookOpen()
 
 -- the figures join the window before the UI draws (a child added while the window draws its
 -- children would upset the drawing)
+-- (every local player's Character window: split view gives each its own; one player: only player 1's exists)
 local function addModels()
-    local win = ZeD_CharacterWindow.getWindow()
-    local st = win and win._spncc
-    if not st then return end
-    if st.wantPreview and not st.preview then st.preview = makeModel(win, st, true) end
-    while #st.pool < (st.wantPool or 0) do st.pool[#st.pool + 1] = makeModel(win, st, false) end
+    for pn = 0, 3 do
+        local win = ZeD_CharacterWindow.getWindow(pn)
+        local st = win and win._spncc
+        if st then
+            if st.wantPreview and not st.preview then st.preview = makeModel(win, st, true) end
+            while #st.pool < (st.wantPool or 0) do st.pool[#st.pool + 1] = makeModel(win, st, false) end
+        end
+    end
 end
 Events.OnPreUIDraw.Add(addModels)
 
 -- the mod's window un-pauses when it closes: so does closing the Character window unsaved
 local function watchFirst()
-    if S.first and not ZeD_CharacterWindow.isOpen() then
+    if S.first and not ZeD_CharacterWindow.isOpen(S.firstPn) then
         S.first = false
         unpause()
     end

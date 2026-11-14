@@ -150,7 +150,7 @@ end
 -- its contents in the Loot pane (the container the World window already lists)
 local function openDoor(p, t)
     local c = call(t.obj, "getContainer")
-    if c and ZeD_WorldWindow and ZeD_WorldWindow.selectContainer then ZeD_WorldWindow.selectContainer(c, 120) end
+    if c and ZeD_WorldWindow and ZeD_WorldWindow.selectContainer then ZeD_WorldWindow.selectContainer(c, 120, p:getPlayerNum()) end
 end
 
 function def.refresh(t, player)
@@ -206,7 +206,7 @@ function def.onClose(t, card)
     local F = ZeD.Input and ZeD.Input.Focus
     if not (b and card and card._fid and F and F.focusSoon) then return end
     F.focusSoon(b.win, b.zone, function(e)
-        return e.id == b.id and not (ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard())
+        return e.id == b.id and not (ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard(card.playerNum))
     end, 1)
 end
 
@@ -440,7 +440,7 @@ function LD.rowSpec(playerObj, obj)
     return {
         id = id, label = label, enabled = true, icon = "gears", hint = label,
         run = function(ct, hit)
-            local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+            local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(playerObj and playerObj:getPlayerNum())
             LD.open(playerObj, obj, { win = win, zone = "worldCtl", id = "worldCtl:" .. id })
         end,
     }

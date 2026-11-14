@@ -424,13 +424,13 @@ local function openContainer(chr, v, part)
     if not v:isInArea(part:getArea(), chr) then
         ISTimedActionQueue.add(ISPathFindAction:pathToVehicleArea(chr, v, part:getArea()))
     end
-    if ZeD_WorldWindow and ZeD_WorldWindow.selectContainer then ZeD_WorldWindow.selectContainer(inv, 900) end
+    if ZeD_WorldWindow and ZeD_WorldWindow.selectContainer then ZeD_WorldWindow.selectContainer(inv, 900, chr:getPlayerNum()) end
 end
 
 local function showInfo(chr, a)
     if not (ZeD_WorldWindow and ZeD_WorldWindow.openTab) then return end
     ZeD_WorldWindow.openTab(chr:getPlayerNum(), "animals")
-    local win = ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    local win = ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(chr:getPlayerNum())
     local AT = ZeD.AnimalsTab
     if win and AT and AT.showAnimal then AT.showAnimal(win, a) end
 end
@@ -864,7 +864,7 @@ local function drawAnimalRow(panel, win, s, x, y, w, m, idx, clip, hovered)
     local ad = AD()
     local sex = m.baby and getText("IGUI_Animal_Baby") or (m.female and getText("IGUI_Animal_Female") or getText("IGUI_Animal_Male"))
     local sub = speciesLabel(m.atype) .. ", " .. sex
-    local age = ad.getAgeText(m.a, (win and win._playerObj) or getSpecificPlayer(0))
+    local age = ad.getAgeText(m.a, (win and win._playerObj) or getSpecificPlayer(win and win.playerNum or 0))
     if age and age ~= "" then sub = sub .. " " .. DOT .. " " .. age end
     local subMax = bx - T.px(6) - tx
     if TM:MeasureStringX(f1, sub) > subMax then sub = A.truncateText(sub, f1, math.max(T.px(20), subMax)) end

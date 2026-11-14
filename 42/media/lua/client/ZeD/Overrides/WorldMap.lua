@@ -37,11 +37,11 @@ local function _zedOpenUnfolded(playerNum)
     if not (ZeD_WorldWindow and ZeD_WorldWindow.open and ZeD_WorldWindow.getWindow) then return false end
     if not getSpecificPlayer(playerNum) then return false end
 
-    if not ZeD_WorldWindow.isOpen() then
+    if not ZeD_WorldWindow.isOpen(playerNum) then
         local ok = pcall(ZeD_WorldWindow.open, playerNum)
         if not ok then return false end
     end
-    local win = ZeD_WorldWindow.getWindow()
+    local win = ZeD_WorldWindow.getWindow(playerNum)
     if not win then return false end
     -- a paper map in the unfolded window (PaperMap.lua) is put away for the world map
     -- (the World window stays: the world map opens in it)
@@ -80,7 +80,7 @@ local function _centerWhenReady(playerNum, centerX, centerY, zoom)
     local tries = 0
     local function tick()
         tries = tries + 1
-        local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+        local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(playerNum)
         local mp = win and win._worldMapPanel
         if mp and mp.mapAPI then
             mp.mapAPI:centerOn(centerX, centerY)
@@ -120,7 +120,7 @@ end
 function ISWorldMap.HideWorldMap(playerNum)
     -- (split-screen: another player's map is the game's own, ZeD.windowsFor)
     if ZeD.Safe.on() or not ZeD.windowsFor(playerNum or 0) then return _origHide(playerNum) end
-    local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(playerNum)
     if win and win._mapPopout and not win._mapPaperItem and ZeD.MapsTab and ZeD.MapsTab.closePopout then
         ZeD.MapsTab.closePopout(win)
         return
@@ -130,7 +130,7 @@ end
 
 function ISWorldMap.ToggleWorldMap(playerNum)
     if ZeD.Safe.on() or not ZeD.windowsFor(playerNum or 0) then return _origToggle(playerNum) end
-    local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(playerNum)
     if win and win._mapPopout and not win._mapPaperItem then   -- (closing never waits on the light, as in vanilla)
         ZeD.MapsTab.closePopout(win)
         return

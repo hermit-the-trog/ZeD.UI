@@ -224,9 +224,9 @@ local function _pollReadingFallback(p)
                 elseif #litItems > 1 then
                     -- Multiple — pick the one the Character window cards (its drawerItem)
                     local carded = nil
-                    -- The window accessor is getWindow(); there is no .instance field.
+                    -- The window accessor is getWindow(pn); there is no .instance field. (pn: the reader's own window)
                     local cwin = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow
-                                 and ZeD_CharacterWindow.getWindow()
+                                 and ZeD_CharacterWindow.getWindow(pn)
                     if cwin and cwin._drawerItem then carded = cwin._drawerItem end
                     if carded then
                         for _, it in ipairs(litItems) do
@@ -297,10 +297,13 @@ local _cookTracked = {}   -- item -> last reported mode ("active"/"danger") whil
 
 local function _cardedItems()
     local out = {}
-    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
-    local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
-    if cw and cw._drawerItem then out[#out + 1] = cw._drawerItem end
-    if ww and ww._drawerItem then out[#out + 1] = ww._drawerItem end
+    -- every local player's pair (split view: up to four); one player: only player 1's windows exist
+    for pn = 0, 3 do
+        local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(pn)
+        local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn)
+        if cw and cw._drawerItem then out[#out + 1] = cw._drawerItem end
+        if ww and ww._drawerItem then out[#out + 1] = ww._drawerItem end
+    end
     return out
  end
 

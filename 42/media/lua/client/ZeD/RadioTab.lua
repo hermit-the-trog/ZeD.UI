@@ -2256,7 +2256,7 @@ function ZeD.RadioTab.buildFocusables(win)
                         local dd = curDD()
                         if dd == nil then return end
                         _channelStep(dd, stepDir)
-                        local jd = getJoypadData and getJoypadData(0)
+                        local jd = getJoypadData and getJoypadData(w.playerNum or 0)   -- (the window's own player's pad)
                         local jid = jd and jd.id or nil
                         local now = getTimestampMs()
                         w._radioSeekHold = {

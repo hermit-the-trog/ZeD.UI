@@ -909,7 +909,7 @@ FT.state = state
 -- the controller's focus kept in view; returns nothing
 local function follow(win, scroll, maxOff, sh)
     local Fo = ZeD.Input and ZeD.Input.Focus
-    local fe = Fo and Fo.getFocusedWindow and Fo.getFocusedWindow() == win and Fo.getFocusedElement and Fo.getFocusedElement(win)
+    local fe = Fo and Fo.getFocusedWindow and Fo.getFocusedWindow(win.playerNum) == win and Fo.getFocusedElement and Fo.getFocusedElement(win)
     if fe and fe.fish and fe.cy and maxOff > 0 then
         local off0 = math.floor(scroll.scrollPos * maxOff)
         local off1 = off0
@@ -925,7 +925,7 @@ local _bandSpec = { buttons = {}, lead = {} }
 function FT.render(panel, win, x, y, w, h)
     local T, M = ZeD.T, ZeD.Molecules
     local st = state(win)
-    local p = win._playerObj or getPlayer()
+    local p = win._playerObj or getSpecificPlayer(win.playerNum or 0)   -- (the window's player, not whoever the game draws for now)
     if not p then return end
     if st.msg and nowMs() - (st.msgAt or 0) > 6000 then st.msg = nil end
     if st.wall then
@@ -1024,7 +1024,7 @@ function FT.drawBand(panel, win, st, s, x, y, w)
     -- set st.padHold); the pull goes on while A stays down and the focus stays on that key.
     if st.padHold then
         local Fo = ZeD.Input and ZeD.Input.Focus
-        local fe = Fo and Fo.getFocusedWindow and Fo.getFocusedWindow() == win and Fo.getFocusedElement and Fo.getFocusedElement(win)
+        local fe = Fo and Fo.getFocusedWindow and Fo.getFocusedWindow(win.playerNum) == win and Fo.getFocusedElement and Fo.getFocusedElement(win)
         if fe and fe.id == st.padHoldId and Fo.holdingA and Fo.holdingA(win) then
             Log.pull(st.padHold, 250)
         else
@@ -1109,7 +1109,7 @@ FT.DO = DO
 --- Runs band key id (or the wall key) for the tab in win.
 function FT.press(win, id)
     local st = state(win)
-    local p = win._playerObj or getPlayer()
+    local p = win._playerObj or getSpecificPlayer(win.playerNum or 0)   -- (the window's player, not whoever the game draws for now)
     if not (p and DO[id]) then return end
     sound()
     local ok, err = pcall(DO[id], p, st, st.s or FT.snap(p, st), win)
@@ -1316,8 +1316,10 @@ end
 --- The line went out (FishingLog's cast hook): with the World window open, its Fishing tab comes up.
 --- With the window shut nothing opens.
 function FT.onCast(p)
-    if not (ZeD_WorldWindow and ZeD_WorldWindow.isOpen and ZeD_WorldWindow.isOpen()) then return false end
-    if ZeD_WorldWindow.isTabShowing and ZeD_WorldWindow.isTabShowing(FT.ID) then return false end
+    -- (the caster's own World window: split view has one per player)
+    if not p then return false end
+    if not (ZeD_WorldWindow and ZeD_WorldWindow.isOpen and ZeD_WorldWindow.isOpen(p:getPlayerNum())) then return false end
+    if ZeD_WorldWindow.isTabShowing and ZeD_WorldWindow.isTabShowing(FT.ID, p:getPlayerNum()) then return false end
     if not Log.visible(p) then return false end
     return ZeD_WorldWindow.openTab(p:getPlayerNum(), FT.ID) == true
 end
@@ -1336,7 +1338,7 @@ ZeD_WorldWindow.addTab({
     iconName = "fishing-tab-white",
     vkey = "IGUI_perks_Fishing",
     label = function() return getText("IGUI_perks_Fishing") end,
-    visible = function(win) return Log.visible((win and win._playerObj) or getPlayer()) end,
+    visible = function(win) return Log.visible((win and win._playerObj) or getSpecificPlayer((win and win.playerNum) or 0)) end,
     render = FT.render,
     scroll = function(win)
         local st = win._fishTab

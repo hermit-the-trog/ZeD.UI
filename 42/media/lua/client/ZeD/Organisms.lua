@@ -164,6 +164,20 @@ function ZeD_Window:setPinned(on)
         self:setWindowShaded(false)
     end
 end
+-- Every local player's Character and World windows, open ones only, the first player's pair first (split view: up to
+-- four pairs, one a player; with one player this is the first player's pair alone, as before)
+local function pairWindows()
+    local out = {}
+    local CWm, WWm = ZeD_CharacterWindow, ZeD_WorldWindow
+    for pn = 0, 3 do
+        local cw = CWm and CWm.getWindow and CWm.getWindow(pn)
+        local ww = WWm and WWm.getWindow and WWm.getWindow(pn)
+        if cw then out[#out + 1] = cw end
+        if ww then out[#out + 1] = ww end
+    end
+    return out
+end
+
 -- each update: roll up or down as the game's inventory does
 function ZeD_Window:_autoCollapse()
     if not self.autoCollapse or not self:getIsVisible() then return end
@@ -177,8 +191,7 @@ function ZeD_Window:_autoCollapse()
     -- drop as that list, rolled or not: InventoryRenderer.handleDrop). The game rolls every page down at any drag, ISInventoryPage:update; here only the window aimed at: a window that opens at
     -- every drag covers the world a floor drop was aimed at, and a release over a window never drops to the floor.)
     local itemDrag = false
-    for _, get in ipairs({ ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow, ZeD_WorldWindow and ZeD_WorldWindow.getWindow }) do
-        local w = get and get()
+    for _, w in ipairs(pairWindows()) do
         local c = w and w._mainContent
         if c and c._drag and c._drag:isActive() then itemDrag = true end
         if w and w._equipDrag and w._equipDrag:isActive() then itemDrag = true end   -- an Equip row's drag
@@ -1137,7 +1150,8 @@ local function drawPairGap(win, p, w, h)
     if not k then return end
     local CWm, WWm = ZeD_CharacterWindow, ZeD_WorldWindow
     local other
-    if k == "char" then other = WWm and WWm.getWindow and WWm.getWindow() else other = CWm and CWm.getWindow and CWm.getWindow() end
+    -- (the other half of this window's own player's pair)
+    if k == "char" then other = WWm and WWm.getWindow and WWm.getWindow(win.playerNum) else other = CWm and CWm.getWindow and CWm.getWindow(win.playerNum) end
     if not (other and other:isVisible()) then return end
     local gap = other:getX() - (win:getX() + w)
     if gap <= 0 or gap > ZeD.T.px(PAIR_GAP) then return end
@@ -1547,11 +1561,12 @@ function ZeD_Window.resetLayout(which, pn)
     if worldWin and ZeD_WorldWindow.syncRing then ZeD_WorldWindow.syncRing(worldWin) end
 end
 
--- "char" or "world" for the Character / World pair, nil for any other window
+-- "char" or "world" for the Character / World pair, nil for any other window (asked of this window's own player's
+-- pair: another player's Character window is a pair window too; a window with no player number asks the first player's)
 function ZeD_Window:pairKey()
-    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
+    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(self.playerNum)
     if cw == self then return "char" end
-    local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(self.playerNum)
     if ww == self then return "world" end
     return nil
 end
@@ -1579,7 +1594,7 @@ end
 -- any other window back to where it first opened, at the size it opened at
 function ZeD_Window:resetWindow()
     local k = self:pairKey()
-    if k then ZeD_Window.resetLayout(k); return end
+    if k then ZeD_Window.resetLayout(k, self.playerNum); return end   -- (this window's player's spread)
     if self.windowShaded then self:setWindowShaded(false) end
     -- a window that places itself (placeSelf) takes its own place again
     self._selfPlace, self._placeKept = nil, nil

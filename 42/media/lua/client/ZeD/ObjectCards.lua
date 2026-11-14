@@ -870,14 +870,15 @@ function ZeD_ObjectCard:zone(z) self._zones[#self._zones + 1] = z end
 
 function ZeD_ObjectCard:player() return getSpecificPlayer(self.playerNum) end
 
-local function worldWin()
-    return ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow() or nil
+-- pn: the card's player (the card sits in that player's World window)
+local function worldWin(pn)
+    return ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn) or nil
 end
 
 -- Focused gamepad element id when focus sits in the card's ring zone, the World window
 -- has the focus and the controller is the thing in use (a mouse press clears it).
-local function focusedId()
-    local win = worldWin()
+local function focusedId(pn)
+    local win = worldWin(pn)
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
     if not (win and Focus and Focus.isFocused and Focus.liveElement) then return nil end
     if not Focus.isFocused(win, "worldItemCard") then return nil end
@@ -893,7 +894,7 @@ function ZeD_ObjectCard:focusOf(fid)
 end
 
 function ZeD_ObjectCard:close()
-    if ZeD_WorldWindow and ZeD_WorldWindow.closeObjectCard then ZeD_WorldWindow.closeObjectCard() end
+    if ZeD_WorldWindow and ZeD_WorldWindow.closeObjectCard then ZeD_WorldWindow.closeObjectCard(self.playerNum) end
 end
 
 -- Run a verb: confirm first, or jump to a list, or act.
@@ -1288,8 +1289,8 @@ function ZeD_ObjectCard:prerender()
     local w, h = self:getWidth(), self:getHeight()
     self._lastZones = self._zones
     self._zones = {}
-    self._fid = focusedId()
-    local win = worldWin()
+    self._fid = focusedId(self.playerNum)
+    local win = worldWin(self.playerNum)
     local fm = self._fmark
     if not fm then fm = {}; self._fmark = fm end
     fm.win, fm.zone = win, "worldItemCard"
@@ -1521,16 +1522,16 @@ function ZeD_ObjectCard:pointerOver()
 end
 
 -- Keys for the open card: the World window passes key presses here while a
--- card that reads keys is up and the pointer is over it.
-function OC.cardTakesKey(key)
-    local card = ZeD_WorldWindow and ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard()
+-- card that reads keys is up and the pointer is over it. pn: whose window passed the key (nil: the first player's).
+function OC.cardTakesKey(key, pn)
+    local card = ZeD_WorldWindow and ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard(pn)
     local e = card and card.entry
     if not (e and e.def.onKey and card:pointerOver()) then return false end
     local ok, took = pcall(e.def.onKey, e.t, key, card, false)
     return ok and took == true
 end
-function OC.cardKey(key)
-    local card = ZeD_WorldWindow and ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard()
+function OC.cardKey(key, pn)
+    local card = ZeD_WorldWindow and ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard(pn)
     local e = card and card.entry
     if not (e and e.def.onKey and card:pointerOver()) then return end
     local ok, err = pcall(e.def.onKey, e.t, key, card, true)
@@ -1539,18 +1540,18 @@ end
 
 -- The World window asks for key events once a card that reads keys opens
 -- (UIManager offers keys only to top-level elements). Chains any handlers
--- the window already has.
-function OC.armKeys()
-    local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+-- the window already has. pn: the card's player (nil: the first player's).
+function OC.armKeys(pn)
+    local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn)
     if not win or win._ocKeysArmed then return end
     win._ocKeysArmed = true
     local prevPress, prevConsumed = win.onKeyPress, win.isKeyConsumed
     win.onKeyPress = function(self, key)
-        OC.cardKey(key)
+        OC.cardKey(key, self.playerNum)
         if prevPress then return prevPress(self, key) end
     end
     win.isKeyConsumed = function(self, key)
-        if OC.cardTakesKey(key) then return true end
+        if OC.cardTakesKey(key, self.playerNum) then return true end
         if prevConsumed then return prevConsumed(self, key) end
         return false
     end

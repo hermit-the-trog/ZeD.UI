@@ -595,9 +595,9 @@ local function _closeCardIfItemGone(win)
     win._goneTickPad = 0
     local di = win._drawerItem
     if not di or not win._updateDrawer then return end
-    -- (the controller only: the mouse's card stays as it always has)
+    -- (the controller only: the mouse's card stays as it always has; this window's player's input mode)
     local D = ZeD.Input and ZeD.Input.Detector
-    if not (D and D.getMode and D.getMode() == "gamepad") then return end
+    if not (D and D.getMode and D.getMode(win.playerNum) == "gamepad") then return end
     local ok, c = pcall(function() return di:getContainer() end)
     local here = false
     if ok and c then
@@ -1905,7 +1905,7 @@ local function drawWorldTabStrip(self, win)
     local mx, my = self:getMouseX(), self:getMouseY()
     -- the pointer's hover washes stay off while the controller's mark shows
     local Focus = ZeD.Input and ZeD.Input.Focus
-    local cuesOn = Focus and Focus.cuesVisible and Focus.cuesVisible() or false
+    local cuesOn = Focus and Focus.cuesVisible and Focus.cuesVisible(win.playerNum) or false   -- (this window's player's marks)
 
     -- The controller's focus on the strip, resolved once: only while this window
     -- has the focus and the controller is in use (Focus.liveZone), so the mark
@@ -2956,7 +2956,7 @@ local function drawWorldContainerStrip(self, win, content)
             local el = Focus.liveElement(win)
             if el then gpFocusedCI = el.containerIdx end
         end
-        cuesOn = Focus and Focus.cuesVisible and Focus.cuesVisible() or false
+        cuesOn = Focus and Focus.cuesVisible and Focus.cuesVisible(win.playerNum) or false   -- (this window's player's marks)
     end
     local stripFocus = { win = win, zone = "worldContainerStrip" }
     local selA = T.selectionA or 0.30
@@ -5353,9 +5353,9 @@ function ZeD_WorldWindow.toggle(playerNum)
                 win._focusPendingEntry = nil   -- (the card holds the focus now)
                 -- a card opened from the world menu (or after a walk, as 3D
                 -- placement does) finds no ZeD window focused: take focus, so
-                -- the controller is on the card without pressing RB first
+                -- the controller is on the card without pressing RB first (this window's player's pad and focus)
                 local D = ZeD.Input and ZeD.Input.Detector
-                if D and D.getMode and D.getMode() == "gamepad" and Focus.getFocusedWindow() ~= win then
+                if D and D.getMode and D.getMode(win.playerNum) == "gamepad" and Focus.getFocusedWindow(win.playerNum) ~= win then
                     Focus.claimFocus(win)
                 end
                 objCard._grabFocus = nil

@@ -40,7 +40,7 @@ function MC.canOpen(doctor)
     if not doctor then return false end
     if ZeD.Safe and ZeD.Safe.on("windows") then return false end
     if not (OC.kinds.medic and ZeD_WorldWindow and ZeD_WorldWindow.openObjectCard) then return false end
-    local win = ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    local win = ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(doctor:getPlayerNum())
     if win and win._playerObj and win._playerObj ~= doctor then return false end
     return true
 end
@@ -48,7 +48,7 @@ end
 function MC.open(doctor, patient)
     local ok = OC.open(doctor, "medic", patient)
     if ok then
-        local card = ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard()
+        local card = ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard(doctor:getPlayerNum())
         MC.current = card and card.entry and card.entry.t or nil
     end
     return ok
@@ -67,7 +67,8 @@ MC.ended = ended
 function MC.tick()
     local t = MC.current
     if not t then return end
-    local card = ZeD_WorldWindow and ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard()
+    -- the card on the doctor's own window
+    local card = ZeD_WorldWindow and ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard(t.doctor and t.doctor:getPlayerNum())
     local e = card and card.entry
     if not (e and e.t == t) then ended(t) end
 end

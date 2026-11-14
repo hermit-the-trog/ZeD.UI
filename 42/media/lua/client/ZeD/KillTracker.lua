@@ -58,9 +58,15 @@ local function now()
     return getTimestampMs()
 end
 
+-- Any character played on this machine (split view: up to four), each with its own kill table. One
+-- player: the same test as before, player 1 alone.
 local function isLocalPlayer(char)
-    local p = getSpecificPlayer(0)
-    return p and p == char
+    if not char then return false end
+    for i = 0, 3 do
+        local p = getSpecificPlayer(i)
+        if p and p == char then return true end
+    end
+    return false
 end
 
 -- One zombie's key across its hits and its death. Not tostring alone: that string
@@ -278,6 +284,7 @@ local function onHitZombie(victim, wielder, bodyPart, weapon)
         category    = getWeaponCategory(weapon),
         ts          = t,
         isExplosion = explosive,
+        who         = wielder,   -- (whose kill table the death goes to: split view has up to four)
     }
 end
 
@@ -304,11 +311,12 @@ local function onZombieDead(zombie)
     -- Check for double-fire (fire kill): same zombie died twice within 20s
     if deadLog[key] and (t - deadLog[key]) < STALE_TIMEOUT then
         -- Fire kill confirmed (the game counts no fire kill: nothing pending)
-        local kd = getKillData(player, 0)
+        -- (the burn goes to whoever hit or drove into it first; player 1 when neither is known)
+        local car = carLog[key]
+        local kd = getKillData((hit and hit.who) or (car and car.who) or player, 0)
         kd.fire = kd.fire + 1
         -- Take back a car or weapon credit given at the first death (one zombie
         -- counts once), unless the table was rebuilt since: the credit went with it
-        local car = carLog[key]
         if car and car.epoch == fixEpoch then
             kd.vehicle = math.max(0, kd.vehicle - 1)
         end
@@ -334,13 +342,14 @@ local function onZombieDead(zombie)
     -- Weapon kill: a recent hit of ours, unless the game names someone else as
     -- the killer (another player's blow, on a server). No such call: no veto.
     if hit and not hit.counted and (t - hit.ts) < STALE_TIMEOUT then
+        local who = hit.who or player   -- (the local player whose hit it was)
         local killer = zombie.getAttackedBy and zombie:getAttackedBy()
-        if not killer or killer == player then
+        if not killer or killer == who then
             -- the game counted it when we are the attacker (or no call can say), and
             -- for a death with no attacker that is not burning (a server client's
             -- late attacker); a burn's first death clears the attacker and counts none
-            local counted = (killer == player or not zombie.getAttackedBy or not fireMaybe) and 1 or 0
-            local kd = getKillData(player, counted)
+            local counted = (killer == who or not zombie.getAttackedBy or not fireMaybe) and 1 or 0
+            local kd = getKillData(who, counted)
             tally(kd, hit, 1)
             if fireMaybe then
                 hit.counted = fixEpoch   -- kept until stale, for the fire rollback above
@@ -359,15 +368,16 @@ local function onZombieDead(zombie)
         local target = zombie:getTarget()
         if target and instanceof(target, "IsoGameCharacter") then
             local vehicle = target:getVehicle()
-            if vehicle and vehicle:getDriver() == player then
+            local driver = vehicle and vehicle:getDriver()
+            if driver and isLocalPlayer(driver) then
                 -- onHitByVehicleApplyDamage has counted it: one pending; a burning
                 -- zombie on the ground that dies here with no attacker died of the burn,
                 -- which the game does not count
-                local kd = getKillData(player, fireMaybe and 0 or 1)
+                local kd = getKillData(driver, fireMaybe and 0 or 1)   -- (split view: the local player at the wheel)
                 kd.vehicle = kd.vehicle + 1
                 -- kept only for a death that may be a burn's first, for the
                 -- fire rollback above; same reason as the weapon kill
-                if fireMaybe then carLog[key] = { ts = t, epoch = fixEpoch } end
+                if fireMaybe then carLog[key] = { ts = t, epoch = fixEpoch, who = driver } end
                 return
             end
         end

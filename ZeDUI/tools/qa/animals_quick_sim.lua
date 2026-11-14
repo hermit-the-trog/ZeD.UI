@@ -1631,16 +1631,16 @@ check("SOURCE right-click on a row toggles", TAB:find("return AT.toggleSelected(
 check("SOURCE Feed is the game's word", TAB:find('feed = "ContextMenu_Feed"', 1, true) ~= nil)
 check("SOURCE Feed in the band opens the picker", TAB:find("return AT.openFeedPicker(win, state.zoneName, sx, sy)", 1, true) ~= nil)
 check("SOURCE the picker is ZeD's pull-down list (A picks, B cancels there), headed Feed",
-    TAB:find("ZeD_ContextList:new(0, \"cursor\", sx, sy, nil, rows, nil)", 1, true) ~= nil
+    TAB:find("ZeD_ContextList:new(WPN(win), \"cursor\", sx, sy, nil, rows, nil)", 1, true) ~= nil
     and TAB:find('m.headText = getText("ContextMenu_Feed")', 1, true) ~= nil
     and TAB:find("ISScrollingListBox", 1, true) == nil)
 check("SOURCE a food line: how many it suits, of how many hungry, how many carried",
     TAB:find('ZeD.tr("UI_ZeD_Animals_FeedNote", c.suits, hungry, c.have)', 1, true) ~= nil)
 check("SOURCE the food picker keeps its answer, so the band's next frame does not read the pack again",
-    TAB:find("local foods, _, hungry = Q.checkFeed(getSpecificPlayer(0), selected)", 1, true) ~= nil
+    TAB:find("local foods, _, hungry = Q.checkFeed(getSpecificPlayer(WPN(win)), selected)", 1, true) ~= nil
     and TAB:find("Q.feedChoices(", 1, true) == nil)
 check("SOURCE a pick starts the feeding run with the food's name",
-    TAB:find('Q.start(getSpecificPlayer(0), "feed", Q.prune(sel, AP().getAnimalsInZone(zoneName)), name)', 1, true) ~= nil)
+    TAB:find('Q.start(getSpecificPlayer(WPN(win)), "feed", Q.prune(sel, AP().getAnimalsInZone(zoneName, WPN(win))), name)', 1, true) ~= nil)
 local CL = readFile(Z .. "ZeD_ContextList.lua")
 check("SOURCE the list: A confirms, B cancels",
     CL:find("if button == Joypad.AButton then self:confirm()", 1, true) ~= nil
