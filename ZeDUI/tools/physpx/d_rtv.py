@@ -298,12 +298,205 @@ def round_speaker(p, cx, cy, r, on, ring_mat="chrome", cap_mat="rr_red"):
     d.dome(cx, cy, max(3, r * 0.22), max(3, r * 0.22), 1.6, cap_mat, polish=0.8, on=on)
 
 
+FULL_F = 320          # from this panel width a radio is on the full card and draws its full-card layout
+
+
+def full_scale(F):
+    """the two widest full cards get a bigger radio, not a longer one (the director, Nov 13 2026: "Column 3 and column
+    4 need to be taller. So just bigger radios in general. They're just too wide right now. They're not believable.")"""
+    k = F / 336.0
+    return k if k > 1.25 else 1.0
+
+
+def d_speaker(p, x, y, w, h, on, ring_mat="chrome", cap_mat="rr_red"):
+    """a D-shaped speaker (the red radio's sprite): flat toward the controls, round toward the end of the body; the
+    slotted grille in a bright rim, a cap at the round end's middle"""
+    d = p.d
+    R_ = min(h / 2, w - 8)                         # a narrow one is a D with flatter shoulders
+    cx, cy = x + w - R_, y + h / 2
+    def dm(i):
+        return (rbox(d, x + i, int(y + i), int(w - R_ - i), int(h - 2 * i))
+                | Mask(d.W, d.H).rrect(x + i, y + i, w - 2 * i, h - 2 * i, max(1, R_ - i)).get())
+    d.slab(dm(0), 1.6, ring_mat, bevel=1.4, polish=1.0, on=on)
+    d.well(dm(3), 1.6 + 1.4, "mesh", bevel=0.8)
+    inner = dm(5)
+    for yy in range(int(y) + 6, int(y + h) - 5, 4):
+        d.slab(inner & rbox(d, int(x), yy, int(w), 2), 1.2, "rr_cream", bevel=0.5, polish=0.5, on=on - 1.4)
+    cr = max(4, h * 0.11)
+    d.dome(max(cx - R_ * 0.15, x + cr + 6), cy, cr, cr, 1.6, cap_mat, polish=0.8, on=on)
+
+
+def chrome_btn(p, pid, cx, cy, r, on, cap=None, icon=None, ink="paint_k"):
+    """a round chrome push button (the red radio, the director, Nov 13 2026: "a retro radio inspired by like a 50s
+    radio. So let's make all the buttons round metal or chrome buttons"); what it does is printed on the face under it
+    (a word, a number or a symbol), the arrows engraved on the button itself"""
+    d = p.d
+    d.torus(cx, cy, r - 0.5, r + 1.0, 0.8, "steel", polish=0.7, on=on)          # its collar
+    d.dome(cx, cy, r, r, 2.2, "chrome", polish=1.0, on=on)
+    ty = int(cy + r + 3)
+    if icon == "up": arrow_icon(p, cx, cy, True, ink)
+    elif icon == "down": arrow_icon(p, cx, cy, False, ink)
+    elif icon == "eject":
+        arrow_icon(p, cx, ty + 1, True, ink, w=7, h=4)
+        d.paint(rbox(d, int(cx - 3), ty + 5, 7, 1), ink, flatlight=True)
+    elif icon == "play":
+        tri = Mask(d.W, d.H).poly([(cx - 6, ty), (cx - 6, ty + 5), (cx - 2, ty + 2.5)]).get(0.45)
+        d.paint(tri, ink, flatlight=True)
+        d.paint(rbox(d, int(cx - 1), ty, 1, 5), ink, flatlight=True)
+        d.paint(rbox(d, int(cx + 1), ty, 5, 5), ink, flatlight=True)
+    if cap: p.label(cap, int(cx), ty, ink, align="c", auto_ink=False)
+    p.hit(pid, int(cx - r - 2), int(cy - r - 2), 2 * r + 4, 2 * r + 11)
+
+
+def radio_red_full(W, worn_=True):
+    """the red radio on the full card (the director, Nov 13 2026: "full card width, not the half card, for the stereo
+    faces"): the same set, the same parts and ids. The controls are on the left (a third and a bit); the
+    speaker is the sprite's D, flat toward them and round toward the end of the body, the CD drawer the width of the top."""
+    F, T = W, ANT_H                                # the full card's faces are keyed by their own width, as the TVs are
+    k = full_scale(F)
+    BH = int(round(170 * k)); H = T + BH
+    p = Plate("radio_red", F, H, seed=301, title="Premium Technologies Radio")
+    d = p.d
+    R_ = 34
+    shell = Mask(F, H).rrect(0, T, F, BH, R_).get()
+    aerial(p, 34, 0, T + 4)
+    d.slab(shell, Z_FACE, "rr_red", bevel=3.4, polish=0.55)
+    d.grain_pebble(shell, 0.035, seed=302)
+    K = lambda v: int(round(v * k))
+    sx0 = 26; sw = F - 2 * sx0
+    sy, sh = T + K(6), K(9)
+    slot = Mask(F, H).rrect(sx0, sy, sw, sh, 3).get()
+    d.slab(slot, 0.8, "chrome", bevel=0.8, polish=1.0, on=Z_FACE)
+    d.well(Mask(F, H).rrect(sx0 + 3, sy + 2, sw - 6, sh - 4, 2).get(), 3.0, "rubber", bevel=0.6)
+    p.part("slotDisc", x=sx0 + 6, y=sy + sh // 2, w=sw - 12, color="#c6ccd2")
+    p.hit("slot", sx0, sy, sw, sh)
+    fr = Mask(F, H).rrect(6, T + K(19), F - 12, BH - K(19) - 6, R_ - 12).get()
+    d.slab(fr, 1.2, "rr_cream", bevel=1.0, polish=0.5, on=Z_FACE)
+    zf = Z_FACE + 1.2
+    # (the director, Nov 13 2026: "The radios only have a speaker on the left side. So the controls take up a little
+    # over a third, and the speaker grill takes up 2/3.")
+    # ("I don't like the two round speakers right next to each other ... The controls are on the left, and the
+    # speaker is D-shaped." As the tile's sprite.)
+    cw = min(int(F * 0.36), int(150 * k))
+    gy, gh = T + K(26), K(98)
+    cx0 = 18
+    gx = cx0 + cw + 10
+    gw = F - 16 - gx
+    d_speaker(p, gx, gy, gw, gh, zf)
+    oy = gy + 2
+    window_glass(p, cx0 - 1, oy - 1, cw + 2, 26, face="vfd", bezel="blackp", depth=1.6, on=zf, r=1, bezel_t=2, lens=True)
+    p.part("radioDisplay", kind="port", style="vfd", x=cx0, y=oy, w=cw, h=24)
+    # round chrome buttons, their names printed under them: power and mute, volume down and up, the knob beside them;
+    # along the foot the four presets, eject and play
+    # the buttons keep their grouping and grow with the set ("Can you keep the buttons grouped together the same? ...
+    # or make them bigger to keep up with the scale?"); what is left over sits evenly above and below the group
+    br = K(6)
+    step = K(23)
+    e = max(0, (gh - 26 - K(74)) // 2) if k > 1 else 0
+    kr = min(int(19 * k), (cw - int(58 * k)) // 2)
+    kcx, kcy = cx0 + cw - kr - 3, oy + 26 + K(5) + e + kr
+    ya = oy + 26 + K(5) + e + br; yb = ya + step; yc = yb + step
+    xa, xb = cx0 + int(17 * k), cx0 + int(39 * k)
+    power_lamp(p, cx0 + 3, ya, on=zf)
+    chrome_btn(p, "power", xa, ya, br, zf, cap="PWR")
+    chrome_btn(p, "mute", xb, ya, br, zf, cap="MUTE")
+    chrome_btn(p, "voldn", xa, yb, br, zf, icon="down")
+    chrome_btn(p, "volup", xb, yb, br, zf, icon="up")
+    p.label("VOL", (xa + xb) // 2, yb + br + 3, "paint_k", align="c", auto_ink=False)
+    fluted_knob(p, kcx, kcy, kr, on=zf, z=5.0, mat="rr_knob", skirt=2.0, ridges=28, dome=1.2)
+    p.part("ptr", src="tuneF", cx=kcx, cy=kcy, r0=kr * 0.3, r1=kr * 0.8, a0=-90, a1=270, color="#f4e9e0", w=1)
+    p.hit("tune", kcx - kr, kcy - kr, 2 * kr, 2 * kr, kind="turn")
+    p.label("TUNE", kcx, kcy + kr + 4, "paint_k", align="c", auto_ink=False)
+    pitch = min(int(22 * k), (cw - 2 * br - 2) // 5)
+    for i in range(4):
+        chrome_btn(p, f"p{i + 1}", cx0 + br + 1 + i * pitch, yc, br, zf, cap=str(i + 1))
+    chrome_btn(p, "eject", cx0 + cw - br - 1 - pitch, yc, br, zf, icon="eject")
+    chrome_btn(p, "play", cx0 + cw - br - 1, yc, br, zf, icon="play")
+    by = T + BH - K(27)
+    bx0 = 26
+    jack(p, bx0 + 6, by + 7, label=None)
+    p.label("PHONES", bx0 + 14, by + 5, "paint_k", auto_ink=False)
+    bw = 56; bx = F - 26 - bw
+    # no battery door on the front (the director, Nov 13 2026: the cells go in a plate on the back, "which we're not
+    # showing ... just leave the meter there"); the meter is still the click area for the batteries
+    p.label("BATT", bx + 17, by + 3, "paint_k", auto_ink=False)
+    level_bars(p, "batt", bx + 37, by + 4, 4, 3, 1, 7, 0, "#5fe36a")
+    p.hit("battery", bx, by, bw, 15)
+    if worn_:
+        WR.grime(d, d.solid, amount=0.22, seed=303)
+        WR.scuffs(d, WR.mat_mask(d, "rr_red"), 0.0012, seed=304, amount=0.10)
+    return p
+
+
+def radio_black_full(W, worn_=True):
+    """the black radio on the full card (the director, Nov 13 2026): the slatted speaker over the left two thirds; the amber
+    screen, the two keys, the big knob, the presets and volume on the right; the same parts and ids as the half card's."""
+    F, T = W, ANT_H                                # the full card's faces are keyed by their own width, as the TVs are
+    k = full_scale(F)
+    BH = int(round(170 * k)); H = T + BH
+    p = Plate("radio_black", F, H, seed=321, title="ValuTech Radio")
+    d = p.d
+    shell = Mask(F, H).rrect(0, T, F, BH, 6).get()
+    aerial(p, F - 24, 0, T + 4)
+    d.slab(shell, Z_FACE, "vt_black", bevel=3.0, polish=0.45)
+    d.grain_pebble(shell, 0.04, seed=322)
+    K = lambda v: int(round(v * k))
+    fr = Mask(F, H).rrect(6, T + 5, F - 12, BH - 5 - K(22), 3).get()
+    d.slab(fr, 1.2, "vt_grey", bevel=1.0, polish=0.5, on=Z_FACE)
+    d.grain_brushed(fr, 0.03, seed=323)
+    zf = Z_FACE + 1.2
+    cw = min(int(F * 0.36), int(150 * k))          # the controls: a little over a third (no wider than its keys can fill)
+    gx, gy, gh = 12, T + 11, K(108)
+    cx0 = F - 12 - cw
+    gw = cx0 - 8 - gx
+    louvres(p, gx, gy, gw, gh, zf, "vt_grey", pitch=int(9 * k), bar=int(5 * k))
+    oy = gy + 2
+    window_glass(p, cx0 - 1, oy - 1, cw + 2, 26, face="lens", bezel="blackp", depth=1.6, on=zf, r=1, bezel_t=2, lens=True)
+    p.part("radioDisplay", kind="fm", style="amber", x=cx0, y=oy, w=cw, h=24)
+    kh = int(11 * k)
+    key = lambda pid, x, y, w, lab=None, ic=None: PR.radio_key(p, pid, x, y, w, kh, lab, mat="blackp", lab_mat="paint_w", icon=ic, z=1.6)
+    kr = min(int(22 * k), int(cw * 0.19))
+    e = max(0, (gh - 33 - 2 * kr - K(12) - kh) // 2) if k > 1 else 0   # the bigger sets: the group sits in the middle of what is left
+    kcx, kcy = cx0 + cw - kr - 3, oy + 31 + e + kr
+    lb = cw - 2 * kr - 12
+    ka = min(int(34 * k), int((lb - 11) * 0.58)); kb = min(int(20 * k), lb - 11 - ka)
+    ky = kcy - kh - 1
+    power_lamp(p, cx0 + 3, ky + kh // 2, on=zf)
+    key("power", cx0 + 8, ky, ka, "PWR")
+    key("mute", cx0 + 8, ky + kh + 2, ka, "MUTE")
+    key("voldn", cx0 + 11 + ka, ky, kb, ic="down")
+    key("volup", cx0 + 11 + ka, ky + kh + 2, kb, ic="up")
+    p.label("VOL", cx0 + 11 + ka + kb // 2, ky + 2 * kh + 5, "paint_k", align="c", auto_ink=False)
+    fluted_knob(p, kcx, kcy, kr, on=zf, z=5.0, mat="blackp", skirt=None, ridges=28, dome=1.2)
+    p.part("ptr", src="tuneF", cx=kcx, cy=kcy, r0=kr * 0.3, r1=kr * 0.8, a0=-90, a1=270, color="#e8e8e8", w=1)
+    p.hit("tune", kcx - kr, kcy - kr, 2 * kr, 2 * kr, kind="turn")
+    p.label("TUNE", kcx, kcy + kr + 3, "paint_k", align="c", auto_ink=False)
+    py = kcy + kr + K(12)
+    pw = (cw - 6) // 4
+    for i in range(4):
+        key(f"p{i + 1}", cx0 + i * (pw + 2), py, pw, str(i + 1))
+    by = gy + gh + 6
+    jack(p, gx + 6, by + 7, label=None)
+    p.label("PHONES", gx + 14, by + 5, "paint_k", auto_ink=False)
+    bw = 56; bx = F - 12 - bw
+    # no battery door on the front (the director, Nov 13 2026: the cells go in a plate on the back, "which we're not
+    # showing ... just leave the meter there"); the meter is still the click area for the batteries
+    p.label("BATT", bx + 17, by + 3, "paint_k", auto_ink=False)
+    level_bars(p, "batt", bx + 37, by + 4, 4, 3, 1, 7, 0, "#5fe36a")
+    p.hit("battery", bx, by, bw, 15)
+    if worn_:
+        WR.grime(d, d.solid, amount=0.24, seed=324)
+        WR.scuffs(d, WR.mat_mask(d, "vt_black"), 0.0012, seed=325, amount=0.10)
+    return p
+
+
 def radio_red(W=180, worn_=True):
     """Premium Technologies Radio (Base.RadioRed): portable, batteries, plays CDs. Round 4 (the director, Nov 12 2026):
     a roundish boombox, "more round than square, but not quite as egg". From the sprite: the round body, the round
     speaker in its bright ring, the cream front. From the model: the red shell, the big red tuning knob, the aerial.
     One side is the speaker (two of them where the panel is wide enough), the other the screen, the keys and the knob.
     The CD drawer runs the width of the top; eject sits with play."""
+    if W >= FULL_F: return radio_red_full(W, worn_)
     F, T = W - 20, ANT_H
     BH = 132; H = T + BH
     p = Plate("radio_red", F, H, seed=301, title="Premium Technologies Radio")
@@ -324,50 +517,48 @@ def radio_red(W=180, worn_=True):
     fr = Mask(F, H).rrect(6, T + 19, F - 12, BH - 25, R_ - 12).get()
     d.slab(fr, 1.2, "rr_cream", bevel=1.0, polish=0.5, on=Z_FACE)
     zf = Z_FACE + 1.2
-    RC = 76 if F >= 150 else 66                  # the controls' side (the narrowest panel gives the speaker more)
-    gx, gy, gh = 14, T + 25, 54
-    gw = F - 14 - RC - 6 - gx
-    cx0 = gx + gw + 6; cw = RC
-    # the speaker side: one round speaker, two where they fit
-    r = max(12, min(gh, gw) // 2)
-    n = 2 if gw >= 4 * r + 8 else 1
-    for i in range(n):
-        scx = gx + (gw * (2 * i + 1)) / (2 * n)
-        round_speaker(p, scx, gy + gh / 2, r, zf)
+    # (the director, Nov 13 2026: "The controls are on the left, and the speaker is D-shaped"; "half card red radio
+    # should shift the controls and the D shape"; "let's make all the buttons round metal or chrome buttons".)
+    cw = 76 if F >= 150 else 66
+    gy, gh = T + 25, 50
+    cx0 = 14
+    gx = cx0 + cw + 6
+    gw = F - 14 - gx
+    d_speaker(p, gx, gy, gw, gh, zf)
     # the screen
     window_glass(p, cx0 - 1, gy - 1, cw + 2, 26, face="vfd", bezel="blackp", depth=1.6, on=zf, r=1, bezel_t=2, lens=True)
     p.part("radioDisplay", kind="port", style="vfd", x=cx0, y=gy, w=cw, h=24)
-    # power (its lamp) and mute, volume down and up, the big red knob
-    ky = gy + 30
-    power_lamp(p, cx0 + 3, ky + 5, on=zf)
-    port_key(p, "power", cx0 + 8, ky, 22, 11, "PWR")
-    port_key(p, "mute", cx0 + 8, ky + 13, 22, 11, "MUTE")
-    vw = 15 if F >= 150 else 13
-    port_key(p, "voldn", cx0 + 33, ky, vw, 11, icon="down")
-    port_key(p, "volup", cx0 + 33, ky + 13, vw, 11, icon="up")
-    kr = 12 if F >= 150 else 9
-    kcx, kcy = cx0 + cw - kr - 1, ky + 11
-    fluted_knob(p, kcx, kcy, kr, on=zf, z=5.0, mat="rr_knob", skirt=None, ridges=24, dome=1.2)
+    # power (its lamp) and mute, the red knob beside them
+    br = 5
+    ya = gy + 34
+    power_lamp(p, cx0 + 3, ya, on=zf)
+    chrome_btn(p, "power", cx0 + 15, ya, br, zf, cap="PWR")
+    chrome_btn(p, "mute", cx0 + 35, ya, br, zf, cap="MUTE")
+    kr = 11 if F >= 150 else 9
+    kcx, kcy = cx0 + cw - kr - 3, gy + 28 + kr + 2
+    fluted_knob(p, kcx, kcy, kr, on=zf, z=5.0, mat="rr_knob", skirt=2.0, ridges=24, dome=1.2)
     p.part("ptr", src="tuneF", cx=kcx, cy=kcy, r0=kr * 0.3, r1=kr * 0.8, a0=-90, a1=270, color="#f4e9e0", w=1)
     p.hit("tune", kcx - kr, kcy - kr, 2 * kr, 2 * kr, kind="turn")
-    # under them: the presets on the speaker side; VOL, eject and play, TUNE on the other
-    py = gy + gh + 5
-    pw = min(18, (gw - 6) // 4)
-    px0 = gx + (gw - (4 * pw + 6)) // 2
+    # one row along the foot of the front: volume down and up, the four presets, eject and play
+    yb = gy + gh + 11
+    x0b, x1b = cx0 + br + 1, F - 14 - br - 1
+    pitch = (x1b - x0b) / 7
+    bx_ = lambda k: int(round(x0b + k * pitch))
+    chrome_btn(p, "voldn", bx_(0), yb, br, zf, icon="down")
+    chrome_btn(p, "volup", bx_(1), yb, br, zf, icon="up")
+    p.label("VOL", (bx_(0) + bx_(1)) // 2, yb + br + 3, "paint_k", align="c", auto_ink=False)
     for i in range(4):
-        port_key(p, f"p{i + 1}", px0 + i * (pw + 2), py, pw, 11, str(i + 1))
-    port_key(p, "eject", cx0, py, 20, 11, icon="eject")
-    port_key(p, "play", cx0 + 22, py, 28, 11, icon="play")
-    p.label("TUNE", kcx, py + 3, "paint_k", align="c", auto_ink=False)
+        chrome_btn(p, f"p{i + 1}", bx_(2 + i), yb, br, zf, cap=str(i + 1))
+    chrome_btn(p, "eject", bx_(6), yb, br, zf, icon="eject")
+    chrome_btn(p, "play", bx_(7), yb, br, zf, icon="play")
+    bx0 = cx0
     # the foot: the headphone jack, left; the battery door with its level, right
-    by = T + BH - 27
-    bx0 = gx + 4
+    by = T + BH - 24
     jack(p, bx0 + 6, by + 7, label=None)
     p.label("PHONES", bx0 + 14, by + 5, "paint_k", auto_ink=False)
     bw = 56; bx = F - 16 - bw
-    door = Mask(F, H).rrect(bx, by, bw, 15, 2).get()
-    d.slab(door, 0.6, "rr_cream", bevel=0.8, polish=0.4, on=zf)
-    for xx in range(bx + 4, bx + 14, 3): d.well(Mask(F, H).rect(xx, by + 3, 1, 9).get(), 0.6, None, bevel=0.3)
+    # no battery door on the front (the director, Nov 13 2026: the cells go in a plate on the back, "which we're not
+    # showing ... just leave the meter there"); the meter is still the click area for the batteries
     p.label("BATT", bx + 17, by + 3, "paint_k", auto_ink=False)
     level_bars(p, "batt", bx + 37, by + 4, 4, 3, 1, 7, 0, "#5fe36a")
     p.hit("battery", bx, by, bw, 15)
@@ -427,6 +618,7 @@ def radio_black(W=180, worn_=True):
     like the model"). From the model: the black case, the grey face, the big slatted speaker over most of the front,
     the tuning scale with its orange needle, the two small keys, the one big black knob, the aerial. From the sprite:
     the row of keys along the foot. The tuning scale runs the width of the top, as the red radio's CD drawer does."""
+    if W >= FULL_F: return radio_black_full(W, worn_)
     F, T = W - 20, ANT_H
     BH = 132; H = T + BH
     p = Plate("radio_black", F, H, seed=321, title="ValuTech Radio")
@@ -472,9 +664,8 @@ def radio_black(W=180, worn_=True):
     jack(p, gx + 6, by + 7, label=None)
     p.label("PHONES", gx + 14, by + 5, "paint_k", auto_ink=False)
     bw = 56; bx = F - 12 - bw
-    door = Mask(F, H).rrect(bx, by, bw, 15, 2).get()
-    d.slab(door, 0.6, "vt_grey", bevel=0.8, polish=0.4, on=zf)
-    for xx in range(bx + 4, bx + 14, 3): d.well(Mask(F, H).rect(xx, by + 3, 1, 9).get(), 0.6, None, bevel=0.3)
+    # no battery door on the front (the director, Nov 13 2026: the cells go in a plate on the back, "which we're not
+    # showing ... just leave the meter there"); the meter is still the click area for the batteries
     p.label("BATT", bx + 17, by + 3, "paint_k", auto_ink=False)
     level_bars(p, "batt", bx + 37, by + 4, 4, 3, 1, 7, 0, "#5fe36a")
     p.hit("battery", bx, by, bw, 15)

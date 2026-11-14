@@ -91,6 +91,9 @@ ITEMS = {"Base.RadioBlack": "radio_black", "Base.RadioRed": "radio_red", "Base.R
          "Base.TvAntique": "tv_antique"}
 CLASSES = {"IsoClothingWasher": "washer", "IsoClothingDryer": "dryer", "IsoCombinationWasherDryer": "washer_dryer"}
 TVS = ("tv_widescreen", "tv_black", "tv_antique")
+# the radios are drawn for the full card too (the director, Nov 13 2026: "full card width, not the half card, for the
+# stereo faces"): their own layouts from face width 300 up, bigger sets at 450 and 562
+BOTH = ("radio_black", "radio_red", "radio_handbuilt")
 NARROW = {}
 FN = {}
 
@@ -112,6 +115,7 @@ def widths(pid):
     for spec in SPECS:
         if spec[0] == pid:
             ws = HALF if spec[2] == "half" else FULL
+            if pid in BOTH: ws = HALF + FULL
             return (180 if spec[2] == "half" else 336), tuple(w for w in ws if w not in SKIP.get(pid, ()))
     return _widths0(pid)
 

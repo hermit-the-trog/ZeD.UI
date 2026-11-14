@@ -21,6 +21,7 @@ from engine import add_ramp
 add_ramp("sc_orange", "#e2761c"); add_ramp("sc_brown", "#55301a"); add_ramp("sc_yellow", "#f8d438")   # the Spiffo Cell's jacket
 add_ramp("cone", "#4a4038")                    # a speaker's paper cone
 import wear as WR
+import numpy as np
 import handwire as H
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "hw"))
@@ -49,11 +50,12 @@ def tact_on(p, pid, x, y, w, h, label, on):
     p.hit(pid, x, y, w, h)
 
 
-def display_board(p, F):
+def display_board(p, F, x0=None, x1=None):
     """the salvaged display-and-keys board on four spacers along the top: the two-line character display, the four
     presets and MUTE, the controller chip and the ribbon header"""
     d = p.d
-    x0, y0, x1, y1 = 6, 5, F - 6, 47
+    y0, y1 = 5, 47
+    if x0 is None: x0, x1 = 6, F - 6
     body = Mask(d.W, d.H).rrect(x0, y0, x1 - x0, y1 - y0, 2).get()
     d.slab(body, ADD_Z, "pcb", bevel=1.0, polish=0.55)
     d.grain_pebble(body, 0.03, seed=371)
@@ -158,10 +160,11 @@ def speaker(B, cx, cy, r, pins):
     return m
 
 
-BIG_F = 230               # from this face width the board is wide enough for the large speaker
+BIG_F = 230
+FULL_F = 320               # from this face width the board is wide enough for the large speaker
 
 
-def big_speaker(B, cx, cy, r, pins):
+def big_speaker(B, cx, cy, r, pins, leads=False):
     """a large salvaged speaker screwed to the board: its pressed-steel basket, the surround, the paper cone and its
     dust cap; two tags on the rim soldered to holes"""
     import math as _m
@@ -183,7 +186,18 @@ def big_speaker(B, cx, cy, r, pins):
         kx, ky = B.fc(key)
         ex = min(max(kx, cx - r + 1), cx + r - 1); ey = min(max(ky, cy - r + 1), cy + r - 1)
         edge.append(((ex, ey), key))
-    H.tabs(B, "SPK", edge, w=1.6)
+    if leads:
+        # too far from its holes for tags: the speaker's own two insulated leads (red, black) run from its terminals
+        # across the bare board to the holes; they are the part's leads, as a tag is
+        for ((ex, ey), key), wm in zip(edge, ("w_red", "w_blk")):
+            hx, hy = B.fc(key)
+            lm = Mask(d.W, d.H).line([(ex - 3, ey), (hx, hy)], H.LW).get(0.5)
+            d.slab(lm, H.WIRE_Z, wm, bevel=1.4, polish=0.55, on=Z_FACE, power=0.6)
+            B.masks["lead"].setdefault("SPK", np.zeros_like(lm))
+            B.masks["lead"]["SPK"] |= lm
+            B.keep_line((hx, hy), (ex, ey), margin=0.5)
+    else:
+        H.tabs(B, "SPK", edge, w=1.6)
     B._body("SPK", sq); B.keep_mask(sq, 2)
     B.add_part("SPK", "spk", dict(pins))
     return sq
@@ -212,8 +226,9 @@ def jack(B, x, y, pins):
 
 
 def radio_make(W=180, worn_=True, switch_on=True, soft=False):
-    F = W - 20
+    F = W - 20 if W < FULL_F else W               # the full card's faces are keyed by their own width, as the TVs are
     rows = 33 if F >= BIG_F else 31              # the wide board is two rows deeper: the speaker's leads run under the battery
+    if F >= 420: rows = 33 + 8 * int(round((F / 336.0 - 1) / 0.34))   # the two widest full cards: a deeper board, a bigger speaker
     Hh = OY + 6 * (rows - 1) + 6
     p = Plate("radio_make", F, Hh, seed=341, title="Makeshift Radio")
     d = p.d
@@ -225,6 +240,16 @@ def radio_make(W=180, worn_=True, switch_on=True, soft=False):
     # little one was; the LM386 that drives it is taped AMP. Narrower panels keep the little speaker.
     big = F >= BIG_F
     dc = (F - 160) // 6 if big else max(0, (F - 160) // 12)
+    # the full card (the director, Nov 13 2026: "full card width, not the half card"): a much larger speaker beside
+    # the C cells, the whole set in the middle of the board with spare holes either side
+    full = F >= FULL_F
+    if full:
+        # ("The makeshift screen is way too wide. I don't think you could ever buy something like that in a part
+        # shop. We're thinking Radio Shack parts here ... Make the speaker bigger."): the display board is the 180
+        # panel's, over the circuit; the speaker takes the board's whole height beside it
+        fsr = min((Hh - 16) // 2, ((F - 162) // 6 * 6 - 64 - 14) // 2)
+        left = 2 * fsr + 14 + 64
+        dc = min(-(-left // 6) + max(0, F - 160 - left) // 12, (F - 162) // 6)
     X = 6 * dc                                   # the same move in pixels, for the parts placed by pixel
     cols = (F - OX - X - 2) // 6 + 1
     B = H.Board(p, OX + X, OY, cols, rows)
@@ -236,7 +261,8 @@ def radio_make(W=180, worn_=True, switch_on=True, soft=False):
             if 0 <= hx_ < F and B.board_mask[hy, hx_]:
                 d.seam(rbox(d, hx_, hy, 1, 1), 0.55); B.hole_px.append((hx_, hy))
     # the display board stands on four spacers screwed through the perforated board: keep wire off them
-    for (sx, sy) in ((10, 9), (F - 11, 9), (10, 44), (F - 11, 44)):
+    DX0, DX1 = (6 + X, 154 + X) if full else (6, F - 6)
+    for (sx, sy) in ((DX0 + 4, 9), (DX1 - 5, 9), (DX0 + 4, 44), (DX1 - 5, 44)):
         B.keep_box(sx - 3, sy - 3, sx + 3, sy + 3, margin=0)
 
     # ---------------- the receiver, right: the car board's layout moved (car column c -> c - 43, row r -> r + 8)
@@ -288,9 +314,15 @@ def radio_make(W=180, worn_=True, switch_on=True, soft=False):
         # the three AA cells and their holder are gone from the wide board
         sr = min(34, (X - 6) // 2)
         BTP, BTM = (0, 14), (0, 18)
-        c_cell_holder(B, OX + X - 5 - 52, Hh - 2 * sr - 6 - 4 - 47, 52, 47, BTP, BTM)
-        SPK1, SPK2 = (0, 31), (0, 32)
-        big_speaker(B, OX + X - sr - 7, Hh - sr - 6, sr, {"1": SPK1, "2": SPK2})
+        if full:
+            sr = fsr
+            c_cell_holder(B, OX + X - 5 - 52, 77, 52, 47, BTP, BTM)
+            SPK1, SPK2 = (0, 31), (0, 32)
+            big_speaker(B, OX + X - 64 - sr, Hh - sr - 6, sr, {"1": SPK1, "2": SPK2}, leads=True)
+        else:
+            c_cell_holder(B, OX + X - 5 - 52, Hh - 2 * sr - 6 - 4 - 47, 52, 47, BTP, BTM)
+            SPK1, SPK2 = (0, 31), (0, 32)
+            big_speaker(B, OX + X - sr - 7, Hh - sr - 6, sr, {"1": SPK1, "2": SPK2})
     else:
         battery_holder(B, 6 + X, 156, 40, 22, (0, 25), (5, 25))
         BTP = (0, 25)
@@ -353,12 +385,13 @@ def radio_make(W=180, worn_=True, switch_on=True, soft=False):
         B.wire(color, *keys, **kw)
     B.paint_wires()
     B.paint_joints()
-    body, hdr = display_board(p, F)
+    body, hdr = display_board(p, F, DX0, DX1)
     cx_ = (B.px((21, 8))[0] + B.px((23, 8))[0]) / 2 + 0.5
     H.ribbon_paint(B, "J1", (cx_, hdr[1]), (cx_, 47.5), 5, {"GND": (0, (21, 8)), "VP": (4, (23, 8))})
     H.tape(p, 7 + X, 84, 20, 8, "VOL")
     H.tape(p, 31 + X, 59, 22, 8, "PWR")
-    if big: H.tape(p, 8, 54, 22, 8, "AMP"); H.tape(p, 8, 64, 34, 8, "SPKR 8R")
+    if full: H.tape(p, OX + X - 56, 54, 22, 8, "AMP"); H.tape(p, OX + X - 56, 64, 34, 8, "SPKR 8R")
+    elif big: H.tape(p, 8, 54, 22, 8, "AMP"); H.tape(p, 8, 64, 34, 8, "SPKR 8R")
     B.cover_holes()
     if worn_:
         WR.grime(d, d.solid, amount=0.22, seed=343)

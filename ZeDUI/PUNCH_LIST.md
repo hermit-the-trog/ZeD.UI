@@ -4651,4 +4651,36 @@ to be proposed.
    Cooking: a heading and an icon, 28u) and the Animals back bar (a full-size button, 34u); their lines fall below
    the container strip's sort row.
 
-181. **Full-card faces for the radios and the CD player (the director, Nov 13 2026: "If it's a full card, it can only load a full card stereo").** A placed radio opens in the World window's full card, where today its half-card face sits centred with blank space either side (QA, zqa_rtv_4a_radio_red_placed.png). The director chose: design draws full-card faces (336 / 392 / 450 / 562) for radio_black, radio_red, radio_handbuilt and cd_player, ids unchanged. Handoff: ZeDUI/HANDOFF_build_full_card_radios_20261113.md. zedqa_rtv now fails a face that leaves more than about 20 px either side. open (design).
+181. **Full-card faces for the radios and the CD player (the director, Nov 13 2026: "If it's a full card, it can only load a full card stereo").** A placed radio opens in the World window's full card, where today its half-card face sits centred with blank space either side (QA, zqa_rtv_4a_radio_red_placed.png). The director chose: design draws full-card faces (336 / 392 / 450 / 562) for radio_black, radio_red, radio_handbuilt and cd_player, ids unchanged. Handoff: ZeDUI/HANDOFF_build_full_card_radios_20261113.md. zedqa_rtv now fails a face that leaves more than about 20 px either side. Design done: item 183 (the three radios; cd_player keeps its half-card face, the director).
+182. **Main menu desk: the Lua Console 93 box, and a stereo for the boombox (the director, Nov 13 2026, design).**
+   a. "I want to add Lua Console 93 box next to the Sims box on the right side of the Sims box. There's two blank books
+   there. Just remove the two books, put the Lua Console 93, the spine of the box ... software boxes were just, there
+   was no standard size ... So we can make this one taller." The spine from `ZeDUI/art/lua_console_93/`, taller than
+   the boxes beside it.
+   b. "Once we're done with the stereo faces, we're going to switch out the boombox for one of those stereos." The faces
+   are done (item 183). The director's pick, Nov 13 (corrected at once from the black radio): the homemade radio ("No black radio,
+   homemade radio, homemade radio.")
+   c. The desk lamp: "This is the lamp I want to replace the one that's currently on the desk in the main menu. So we
+   can edit that while we're editing in the Lua console 93 professional edition box." The game's blue-shaded table lamp
+   (teal-blue drum shade, thin dark stem, round base); references in `ZeD_design_refs/main_menu_refs_20261113/`.
+   Both pictures change (lamp lit and `desk_lampdim`).
+   **Drawn, Nov 13 (design): `ZeDUI/art/main_menu/v8/`** (both pictures, `README_v8.md`, the script). As the
+   director then ruled: a. the box is in, spine reading LUA CONSOLE 93 / PRO EDITION; b. the **black radio** after all
+   ("Let's go with the black radio"), the boombox's handle off the poster; c. **no lamp at all** ("Just get rid of the
+   lamp ... It blocks a poster"), the warm light kept as "a light from just off screen". For Build: the boombox's
+   meter needle (NEEDLE_C) has nowhere to be and should go. The Project Zomboid poster has a new picture of its own (a navy night: a
+   house, a zombie in silhouette stumbling toward it, two trees, the moon; original, not the game's box art).
+   **Approved by the director, Nov 13 ("Looks good, thank you."). Ready for Build.**
+   Then the soda can, redrawn the same day: a rim, a smaller lid on a tapered neck printed orange, the pull tab at
+   ten o'clock and its opening (after the director's photo), the label orange with no white strip, SODA gone, the
+   picture lower and ORANGE in white. The director: "it looks great. So, commit."
+   Art in `ZeDUI/art/main_menu/v8/` (replaces v7); goes into `42/` with item 174 once QA is clear.
+183. **Radio faces, round 5: the full card, and the red radio redrawn (the director, Nov 13 2026, via design).** Answers
+   `HANDOFF_build_full_card_radios_20261113.md`. `radio_black`, `radio_red` and `radio_handbuilt` now have
+   full-card faces at 336 / 392 / 450 / 562 (the face as wide as its key; bigger sets at 450 and 562). The red radio is
+   redrawn on both cards: controls left, one D-shaped speaker, round chrome buttons. No battery door on either store
+   radio (the meter stays and is the click area). Approved. Handoff:
+   `ZeDUI/HANDOFF_design_radio_faces_round5_full_card_20261113.md`; 30 plates and sheets in `ZeDUI/art/rtv_faces_r5/`;
+   designs and the pick table edited in `ZeDUI/tools/physpx/`. Replaces round 4's radio pictures (item 180); the
+   antique TV from round 4 stands. `cd_player` gets no full-card face, by the director (Nov 13: "The portable CD player is fine. It was the red
+   radio, the black radio, the radios that we just did."). Nothing in `42/` yet.
