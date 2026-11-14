@@ -44,11 +44,26 @@ local function blocked(cell, x, y)
     end)
     return why
 end
+-- (Build, Nov 13: where two animal zones cover one square the game counts the animal in the first it finds, the farm's,
+-- so the test's zone must not touch a zone already there, its edge included: one square of margin round the zone)
+local function farmZoneAt(x, y)
+    local z = nil
+    pcall(function() z = DesignationZoneAnimal and DesignationZoneAnimal.getZone(x, y, 0) end)
+    return z
+end
 local function zoneOpen(cell, cx, cy)
-    for dx = -HALF, HALF do
-        for dy = -HALF, HALF do
-            local why = blocked(cell, cx + dx, cy + dy)
-            if why then return false, why .. " at " .. (cx + dx) .. "," .. (cy + dy) end
+    for dx = -HALF - 1, HALF + 1 do
+        for dy = -HALF - 1, HALF + 1 do
+            local z = farmZoneAt(cx + dx, cy + dy)
+            if z then
+                local nm = "?"
+                pcall(function() nm = tostring(z:getName()) end)
+                return false, "the animal zone '" .. nm .. "' at " .. (cx + dx) .. "," .. (cy + dy)
+            end
+            if math.abs(dx) <= HALF and math.abs(dy) <= HALF then
+                local why = blocked(cell, cx + dx, cy + dy)
+                if why then return false, why .. " at " .. (cx + dx) .. "," .. (cy + dy) end
+            end
         end
     end
     return true
@@ -78,6 +93,7 @@ local function look()
     end
     if best then
         standAt(best[1] + 0.5, best[2] + 0.5)
+        FARM.zone = { best[1] - HALF, best[2] - HALF, best[1] + HALF, best[2] + HALF }
         say(string.format("open zone centre %d,%d (%.0f squares from the point); the zone %d,%d to %d,%d",
             best[1], best[2], math.sqrt(bestD), best[1] - HALF, best[2] - HALF, best[1] + HALF, best[2] + HALF))
     else
