@@ -4693,8 +4693,12 @@ to be proposed.
    For (c), Build found today that mods with an interlaced poster.png (CyesPushDoors 3807747522, EN_Newburbs 3520263838)
    log "unsupported interlace method" when picked in the Mods list; the game's own Mods screen does the same, so not
    ZeD's (the director). Replied on the Workshop asking for the items, the place and their mod list; waiting on them.
-186. **Controller: D-pad right from the Character window's container strip lands on Drop, not the World window's strip
+186. **Controller: D-pad right from the Character window's container strip lands on the World window's Take all button, not its container strip
    (the director, Nov 14 2026, playing).** open - logged only. With the inventory open, focus on a container icon in the
    Character window's strip, D-pad right should go to the nearest container icon in the World window's strip. Instead it
-   skips across the list and lands on the Drop button in the inventory footer. Breaks the pad rule "natural directions,
+   crosses to the World window but lands on its Take all button first (the director's correction, same day: not Drop). Breaks the pad rule "natural directions,
    land on the closest thing". Not reproduced by QA yet.
+
+187. **Controller: Start won't pause the game while the inventory is open (the director, Nov 14 2026, playing).** open -
+   logged only. With the inventory windows open, pressing Start does nothing; the pause menu doesn't come up. Likely the
+   open ZeD window's pad handling takes Start. Not reproduced by QA yet.
