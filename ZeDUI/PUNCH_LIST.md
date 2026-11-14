@@ -4702,3 +4702,9 @@ to be proposed.
 187. **Controller: Start won't pause the game while the inventory is open (the director, Nov 14 2026, playing).** open -
    logged only. With the inventory windows open, pressing Start does nothing; the pause menu doesn't come up. Likely the
    open ZeD window's pad handling takes Start. Not reproduced by QA yet.
+
+188. **Controller: the pause menu loses pad focus, and the D-pad opens the wheels behind it (the director, Nov 14 2026,
+   playing).** open - logged only. In the pause menu it is easy to end up with nothing selectable. While stuck that way,
+   the D-pad opens ZeD's D-pad wheels instead of moving up and down through the pause menu's buttons, so the only way out
+   is the mouse (Resume by hand). Likely the pause menu's pad focus is lost and ZeD's wheels take the D-pad while it is up.
+   Not reproduced by QA yet; may share a cause with 187 (Start with the inventory open).
