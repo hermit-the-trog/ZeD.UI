@@ -4716,3 +4716,9 @@ to be proposed.
    inventory): the character wears it, then unequips it and returns it to the container. Possibly ZeD queues the game's
    transfer-back after the wear (the "put it back" step meant for a cancelled action) or runs equip and a return in the
    wrong order. Not reproduced by QA yet; controller or mouse not noted.
+
+190. **Controller: the ID card (the director, Nov 14 2026, playing).** open - logged only. Two faults:
+   a. The pad can't reach the picture: the avatar and the photo button are never focused.
+   b. Hair and Beard are hard to move through. A press either closes or opens a disclosure, and the page jumps down to
+      the greyed-out hairstyle options instead of staying up where the radio buttons are. Breaks the pad rules (focus
+      stays where you are; disclosures first; no jumps). Not reproduced by QA yet.
