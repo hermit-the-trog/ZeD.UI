@@ -45,16 +45,16 @@
    {"p": "Choose the button pictures in *ZeD setup*, under *Controls*."}
   ],
   "prints": [
-   {"src": "zqa_padmap_options.png", "box": [80, 112, 1552, 1008], "scale": 0.375, "at": [1060, 480], "tape": ["l", "tr"], "resample": "nearest"}
+   {"src": "zqa_padmap_options.png", "box": [1440, 770, 2400, 1320], "scale": 0.575, "at": [1060, 480], "tape": ["l", "tr"]}
   ],
   "marks": [
-   {"text": "LT | RT: the game's own, aim and attack. On the map, zoom.", "pen": "blu", "at": [1096, 312], "maxw": 600, "to": [[0, 300, 235], [0, 1310, 235]]},
-   {"text": "LB: Character window. Quick actions: LB + a button.", "pen": "blu", "at": [1182, 356], "maxw": 140, "to": [0, 470, 284]},
-   {"text": "RB: World window. Quick actions: RB + a button.", "pen": "blu", "at": [1336, 356], "maxw": 150, "to": [0, 1100, 284]},
-   {"text": "Y: tap to open, hide or show both windows. Hold: close both.", "pen": "blu", "at": [1646, null], "maxw": 210, "to": [0, 1205, 475]},
-   {"text": "B: back. Close or back out.", "pen": "blu", "at": [1646, null], "maxw": 210, "to": [0, 1300, 572]},
-   {"text": "A: left click. Open, take, press.", "pen": "blu", "at": [1646, null], "maxw": 210, "to": [0, 1205, 668]},
-   {"text": "X: right click, the context menu.", "pen": "blu", "at": [1420, 850], "maxw": 200, "to": [0, 1108, 572]}
+   {"text": "LT | RT: the game's own, aim and attack. On the map, zoom.", "pen": "blu", "at": [1096, 312], "maxw": 600, "to": [[0, 1640, 818], [0, 2190, 818]]},
+   {"text": "LB: Character window. Quick actions: LB + a button.", "pen": "blu", "at": [1182, 356], "maxw": 140, "to": [0, 1690, 862]},
+   {"text": "RB: World window. Quick actions: RB + a button.", "pen": "blu", "at": [1336, 356], "maxw": 150, "to": [0, 2140, 862]},
+   {"text": "Y: tap to open, hide or show both windows. Hold: close both.", "pen": "blu", "at": [1646, null], "maxw": 210, "to": [0, 2161, 983]},
+   {"text": "B: back. Close or back out.", "pen": "blu", "at": [1646, null], "maxw": 210, "to": [0, 2222, 1043]},
+   {"text": "A: left click. Open, take, press.", "pen": "blu", "at": [1646, null], "maxw": 210, "to": [0, 2167, 1106]},
+   {"text": "X: right click, the context menu.", "pen": "blu", "at": [1420, 850], "maxw": 200, "to": [0, 2101, 1043]}
   ],
   "sticky": {"at": [1614, 846], "w": 246, "h": 184, "text": "Every mouse action has a button. In game: quick wheel, Help."}
  }
