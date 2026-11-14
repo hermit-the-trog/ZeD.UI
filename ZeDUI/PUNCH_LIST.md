@@ -4773,3 +4773,10 @@ to be proposed.
    side draws stretched about halfway down the screen for 1 or 2 frames before it settles. Likely the first frame draws
    before the window's height or roll-up state is set (a frame at the unrolled or default size). Too short for a still;
    a frame-by-frame capture or a per-frame height log on open would catch it.
+
+202. **Controller: D-pad right from the World window's floor container drops into the footer (the director, Nov 14 2026,
+   playtest).** open. With focus on the floor (Ground) icon in the World window's container strip, Right should stay in
+   that top row and reach the Filter or List/Grid button. Instead it goes down to the footer: the logger reads
+   "spatial right -> flat[9/12] (panel) zone=worldCtl [World]", then Right again goes "(cone)" to worldCtl 10/12 and
+   "back to worldCtl:take". The row's own buttons (filter, list/grid) aren't the nearest stop to the right in the
+   search, or aren't stops at all. Same family as 186 (the strip's neighbors).
