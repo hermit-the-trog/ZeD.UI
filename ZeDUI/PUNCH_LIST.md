@@ -4783,3 +4783,10 @@ to be proposed.
    Worse (the director, same day): with the container empty, there is no way at all to reach the header row with the
    Filter and List/Grid buttons on the pad. The stick clicks still work (L3 sorts, R3 switches List/Grid), so
    the functions are reachable; only D-pad navigation up to the header is missing.
+
+203. **Controller: Furniture tab's Pick up loses the chosen square when the windows come back (the director, Nov 14 2026,
+   playtest).** open. In the World window's Furniture tab, Pick up on the pad: you leave the window and move the cursor
+   with the D-pad to the square you want (normal). Then opening the inventory again (Y) snaps the target back to the
+   square the character stands on or faces, not the chosen one, so nothing can be picked up. The Furniture tab's cursor
+   needs to keep the square chosen while the windows were away, or the tab needs a way to confirm the pick from the
+   cursor without reopening the windows.
