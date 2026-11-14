@@ -20,6 +20,7 @@ Console
 - The same fixes are in Lua Console 93 Professional Edition.
 
 Bug fixes
+- The Furniture tab says a piece can be taken apart when the game agrees (with a hammer and a saw for wood, it said no).
 - New game > Challenges lists every challenge again, the game's and any a mod adds (the fix from 0.3.0-beta12a), and Back from a challenge's character creation returns to that list.
 
 Split screen
