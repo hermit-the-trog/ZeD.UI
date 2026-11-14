@@ -4780,3 +4780,5 @@ to be proposed.
    "spatial right -> flat[9/12] (panel) zone=worldCtl [World]", then Right again goes "(cone)" to worldCtl 10/12 and
    "back to worldCtl:take". The row's own buttons (filter, list/grid) aren't the nearest stop to the right in the
    search, or aren't stops at all. Same family as 186 (the strip's neighbors).
+   Worse (the director, same day): with the container empty, there is no way at all to reach the header row with the
+   Filter and List/Grid buttons on the pad.
