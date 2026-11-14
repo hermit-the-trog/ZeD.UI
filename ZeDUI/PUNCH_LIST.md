@@ -4845,3 +4845,11 @@ to be proposed.
    or lower their volume. ZeD already plays every click through its own calls (the game's UIActivateButton,
    UISelectListItem, UIActivateTab, UIToggleTickBox and so on, from about 90 places, mostly local sound() helpers), so
    one shared helper could read the setting; the default stays on, since the sounds matter to some players.
+
+212. **Bumpers cycle each window's tabs (the director, Nov 14 2026).** open, a change of design. Today LB focuses the
+   Character window and RB the World window (switching between them). The director: "it'd be better if the right bumper
+   cycled through the world window tabs and the left bumper cycled through the character window tabs." So LB steps
+   through the Character window's tabs and RB through the World window's tabs (presumably bringing that window's
+   focus with it). Replaces the Oct 23 bumper rule (LB Character, RB World); the controller map, hint strip and the
+   survival guide's pad pages change with it. Open questions for the director before building: wrap at the end or stop;
+   does the press also move focus into that window; how to cycle backwards.
