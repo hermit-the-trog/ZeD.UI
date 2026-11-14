@@ -1783,6 +1783,11 @@ function ZeD_Window:onJoypadDown(button, joypadData)
         joypadData.controller:onPauseButtonPressed()
         return
     end
+    -- (Nov 14 2026, punch list 184: a game cursor up (Place item, a build) while this window holds the pad: the
+    -- press is the cursor's, and the windows roll up as the game's inventory does)
+    local F = ZeD and ZeD.Input and ZeD.Input.Focus
+    local pn = joypadData and joypadData.player
+    if F and F.passToCursor and type(pn) == "number" and F.passToCursor(pn, button, joypadData) then return end
     if ZeD and ZeD.Input and ZeD.Input.Focus
        and ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
         ZeD.Input.Focus.dispatchJoypadDown(self, button, joypadData)

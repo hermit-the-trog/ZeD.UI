@@ -1829,6 +1829,26 @@ local function _hideAllWindows(reason, pn)
     Focus.releaseFocus(pn)
 end
 
+--- Player pn has a game cursor up that is not the Furniture tab's (Place item, a build, paint): the cursor, or nil.
+function Focus.gameCursor(pn)
+    local cell = getCell and getCell()
+    local d = cell and cell:getDrag(pn or 0)
+    if d and d.Type ~= "ISMoveableCursor" then return d end
+    return nil
+end
+
+--- (punch list 184) A pad press reached a ZeD window while a game cursor is up: roll the windows up, let the pad go,
+--- and hand this same press to the game as a press with no focus, which gives it to the cursor (A places).
+function Focus.passToCursor(pn, button, joypadData)
+    if not Focus.gameCursor(pn) then return false end
+    _hideAllWindows("cursor", pn)
+    local s = _S(pn)
+    s.dragSeen = Focus.gameCursor(pn)
+    local c = joypadData and joypadData.controller
+    if c and c.onPressButtonNoFocus then c:onPressButtonNoFocus(button) end
+    return true
+end
+
 -- Close every registered window of player pn (hard close). Copies them first
 -- because close() re-enters unregisterWindow and mutates the array mid-iteration.
 local function _closeAllWindows(pn)
@@ -2411,9 +2431,8 @@ local function _tickPlayer(pn, s)
     -- game lets go of the pad only for its own inventory; ZeD rolls its windows up and lets go too, once per
     -- cursor, as the right stick's aim does. The Furniture tab's cursor is driven from the open window: not that one.)
     do
-        local cell = getCell and getCell()
-        local d = cell and cell:getDrag(pn)
-        if d and d.Type ~= "ISMoveableCursor" then
+        local d = Focus.gameCursor(pn)
+        if d then
             if s.win and s.dragSeen ~= d then
                 s.dragSeen = d
                 _hideAllWindows("cursor", pn)
