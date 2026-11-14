@@ -1822,7 +1822,14 @@ end
 
 -- Floor container — vanilla's (ISInventoryPage.GetFloorContainer), fetched on the
 -- window's first container scan and refilled by it (see buildWorldContainers)
-local _floorContainer = nil
+-- (one per local player: split view; ISInventoryPage.GetFloorContainer is per player too)
+local _floorContainers = {}
+-- whether c is a floor container of any local player's World window
+local function _isFloor(c)
+    if not c then return false end
+    for p = 0, 3 do if _floorContainers[p] == c then return true end end
+    return false
+end
 
 -- Tab strip separator — TAB_SEP_H/TAB_SEP_MAR live up with the constants
 -- so _buildWorldTabBarElements can see them as upvalues. TAB_ARROW_ROW_H
@@ -2678,15 +2685,18 @@ local function buildWorldContainers(playerObj)
     -- with vanilla's hidden loot window, and a transfer queued from one would
     -- find its item gone. Sharing vanilla's lets floor moves be vanilla's own
     -- transfer action, which in multiplayer is the server's item transaction.
-    if not _floorContainer then
+    local floorPn = playerObj:getPlayerNum()
+    local floorC = _floorContainers[floorPn]
+    if not floorC then
         if ISInventoryPage and ISInventoryPage.GetFloorContainer then
-            _floorContainer = ISInventoryPage.GetFloorContainer(playerObj:getPlayerNum())
+            floorC = ISInventoryPage.GetFloorContainer(floorPn)
         else
-            _floorContainer = ItemContainer.new("floor", nil, nil)
+            floorC = ItemContainer.new("floor", nil, nil)
         end
+        _floorContainers[floorPn] = floorC
     end
-    _floorContainer:removeItemsFromProcessItems()
-    _floorContainer:clear()
+    floorC:removeItemsFromProcessItems()
+    floorC:clear()
 
     local cx = math.floor(playerObj:getX())
     local cy = math.floor(playerObj:getY())
@@ -2719,7 +2729,7 @@ local function buildWorldContainers(playerObj)
                         local o = wobs:get(i)
                         if o and o:getItem() then
                             local item = o:getItem()
-                            _floorContainer:AddItem(item)
+                            floorC:AddItem(item)
                             -- Item-containers on the ground (dropped backpacks)
                             if item:getCategory() == "Container" then
                                 containers[#containers + 1] = {
@@ -2878,7 +2888,7 @@ local function buildWorldContainers(playerObj)
 
     -- Floor container always last in the list (the strip draws it pinned at the top)
     containers[#containers + 1] = {
-        inventory = _floorContainer,
+        inventory = floorC,
         name = getTextOrNull("IGUI_ContainerTitle_floor") or "Floor",
         texture = resolveContainerIcon("floor"),
         isFloor = true,
@@ -3377,8 +3387,8 @@ function ZeD_WorldWindow.getWindow(pn)
 end
 
 --- Returns the virtual floor container (for identity checks from other modules).
-function ZeD_WorldWindow.getFloorContainer()
-    return _floorContainer
+function ZeD_WorldWindow.getFloorContainer(pn)
+    return _floorContainers[pn or 0]
 end
 
 --- Is this container in reach now? The list rebuilds as the strip draws, so a rolled window's is as old as the roll-up, and
@@ -3456,7 +3466,7 @@ local function _closeWorldWindow(w)
     w:removeFromUIManager()
     if _worldWins[w.playerNum or 0] == w then
         _worldWins[w.playerNum or 0] = nil
-        _floorContainer = nil
+        _floorContainers[w.playerNum or 0] = nil
     end
 end
 
@@ -4736,7 +4746,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         local T = ZeD.T
         -- Suppress vanilla loot panel if it re-shows (not once safe mode has handed
         -- it back: this window may draw one last frame after a trip)
-        local vl = getPlayerLoot(0)
+        local vl = getPlayerLoot(win.playerNum or 0)   -- (this window's own player's page: split view)
         if vl and vl:getIsVisible() and not ZeD.Safe.on("windows") then vl:setVisible(false) end
 
         closeCardIfItemGone(win, self)
@@ -5473,8 +5483,8 @@ function ZeD_WorldWindow.toggle(playerNum)
         local destInv = dropCs.inventory
         local srcContainer = srcInv or contentPanel._inventory
         if not destInv or destInv == srcContainer then return false end
-        local srcIsFloor  = (srcContainer == _floorContainer)
-        local destIsFloor = (destInv == _floorContainer)
+        local srcIsFloor  = _isFloor(srcContainer)
+        local destIsFloor = _isFloor(destInv)
         if not srcIsFloor and not destIsFloor then return false end
         doTransfer(contentPanel, items, srcContainer, destInv)
         return true
@@ -6201,7 +6211,7 @@ function ZeD_WorldWindow.forceClose(pn)
     if ok and not _worldWins[pn or 0] then return end
     local w = _worldWins[pn or 0]
     _worldWins[pn or 0] = nil
-    _floorContainer = nil
+    _floorContainers[pn or 0] = nil
     if not w then return end
     pcall(function()
         if ZeD.MapsTab and ZeD.MapsTab.closePopout then ZeD.MapsTab.closePopout(w, true) end
@@ -6266,16 +6276,17 @@ end
 -- for a moment after those the pages only hide, so the World window does not open by itself)
 local _lootGraceUntil = 0
 local function _lootGrace() _lootGraceUntil = getTimestampMs() + 3000 end
-local function _lootPadToWorld()
+local function _lootPadToWorld(pn)
+    pn = pn or 0
     local CW = ZeD_CharacterWindow
-    if CW and CW.ensureBothOpenForGamepad then pcall(CW.ensureBothOpenForGamepad, 0) end
-    local win = _worldWins[0]
+    if CW and CW.ensureBothOpenForGamepad then pcall(CW.ensureBothOpenForGamepad, pn) end
+    local win = _worldWins[pn]
     local F = ZeD.Input and ZeD.Input.Focus
     if not (win and F and F.claimFocus) then return end
     if win.windowShaded then win:setWindowShaded(false) end
     -- (claimFocus does nothing when ZeD already counts the World window as focused: the engine's focus is put back too)
-    if F.getFocusedWindow and F.getFocusedWindow() == win then
-        if F.reclaimEngineFocus then pcall(F.reclaimEngineFocus) end
+    if F.getFocusedWindow and F.getFocusedWindow(pn) == win then
+        if F.reclaimEngineFocus then pcall(F.reclaimEngineFocus, pn) end
     else
         pcall(F.claimFocus, win)
     end
@@ -6289,40 +6300,45 @@ end
 -- OnTickEvenPaused has fired), and the last look below runs on OnPreUIDraw, the engine's last step before it
 -- walks the UI list: whatever showed the page by whatever way, it never reaches a draw. The last look only
 -- hides (a window built inside the drawing pass is no good): _lootAsked keeps the request for the next watch.
-local _lootAsked = false
-local function _lootPageLastLook()
-    if not getSpecificPlayer(0) or ZeD.Safe.on("windows") then return end
-    local vi, vl = getPlayerInventory(0), getPlayerLoot(0)
+-- (each local player whose windows are ZeD's has their own pages: player 1, and with split view on players 2 to 4)
+local _lootAsked = {}
+local function _lootPageLastLookFor(pn)
+    if not getSpecificPlayer(pn) then return end
+    local vi, vl = getPlayerInventory(pn), getPlayerLoot(pn)
     if vi and vi:getIsVisible() then vi:setVisible(false) end
     if vl and vl:getIsVisible() then
         vl:setVisible(false)
-        _lootAsked = true
+        _lootAsked[pn] = true
     end
 end
-local function _lootPageWatch()
-    if not getSpecificPlayer(0) or ZeD.Safe.on("windows") then return end
-    local vi = getPlayerInventory(0)
-    local vl = getPlayerLoot(0)
+local function _lootPageLastLook()
+    if ZeD.Safe.on("windows") then return end
+    for pn = 0, 3 do if ZeD.windowsFor(pn) then _lootPageLastLookFor(pn) end end
+end
+local function _lootPageWatchFor(pn)
+    local p = getSpecificPlayer(pn)
+    if not p then return end
+    local vi = getPlayerInventory(pn)
+    local vl = getPlayerLoot(pn)
     -- (the controller's way in, ISButtonPrompt:cmdShowLoot, also hands the pad's focus to the page: a hidden page
     -- would hold it, so it goes to ZeD's World window instead, as RB does)
-    local jp = JoypadState and JoypadState.players and JoypadState.players[1]
+    local jp = JoypadState and JoypadState.players and JoypadState.players[pn + 1]
     local padOnPage = jp ~= nil and jp.focus ~= nil and (jp.focus == vl or jp.focus == vi)
     if vi and vi:getIsVisible() then vi:setVisible(false) end
-    if not (vl and (_lootAsked or vl:getIsVisible())) then
-        if padOnPage and getTimestampMs() >= _lootGraceUntil then _lootPadToWorld() end
+    if not (vl and (_lootAsked[pn] or vl:getIsVisible())) then
+        if padOnPage and getTimestampMs() >= _lootGraceUntil then _lootPadToWorld(pn) end
         return
     end
-    _lootAsked = false
+    _lootAsked[pn] = false
     vl:setVisible(false)
-    local p = getSpecificPlayer(0)
     local now = getTimestampMs()
     if p:isDead() or now < _lootGraceUntil then return end
-    if padOnPage then _lootPadToWorld() end
+    if padOnPage then _lootPadToWorld(pn) end
     -- (a vehicle's trunk opened names its container this way: ISOpenVehicleDoor)
     local inv = vl.inventory
     if vl.forceSelectedContainer and (vl.forceSelectedContainerTime or 0) > now then inv = vl.forceSelectedContainer end
-    if not _worldWins[0] then ZeD_WorldWindow.open(0) end
-    local win = _worldWins[0]
+    if not _worldWins[pn] then ZeD_WorldWindow.open(pn) end
+    local win = _worldWins[pn]
     if not win then return end
     if win.windowShaded then
         win._autoShaded = false
@@ -6331,7 +6347,12 @@ local function _lootPageWatch()
     -- (an unpinned window rolls up again a moment after the pointer is away: counted from the click, a little
     -- longer than the hover's wait, as the game's page counts from -30 after a click)
     win._outSince = now + 500
-    if inv then ZeD_WorldWindow.selectContainer(inv, 60) end
+    if inv then ZeD_WorldWindow.selectContainer(inv, 60, pn) end
+end
+local function _lootPageWatch()
+    if ZeD.Safe.on("windows") then return end
+    -- (four numbers each frame, paused too: cheap)
+    for pn = 0, 3 do if ZeD.windowsFor(pn) then _lootPageWatchFor(pn) end end
 end
 Events.OnTick.Add(_lootPageWatch)
 if Events.OnTickEvenPaused then Events.OnTickEvenPaused.Add(_lootPageWatch) end

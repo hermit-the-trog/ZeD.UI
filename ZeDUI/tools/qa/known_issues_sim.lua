@@ -1,4 +1,5 @@
 -- ZeDUI/tools/qa/known_issues_sim.lua  (Nov 7 2026, Build): the beta 7 known issues, with no game running. The real files
+_floorContainers = {}   -- (the World window's per-player floor containers, split view S2c: a cut function closes over it)
 -- run on Lua 5.1 stubs of the game. (ZeD picks on the Mods screen: mods_order_sim.lua; the dashes per player and the
 -- ash tray's client side: dash_odo_sim.lua, SPLIT and SERVER.)
 --   ASH     the server's side of the ash tray (ZeD_ServerDash.lua, DP.ASH): a press from anyone in the car; the

@@ -1,4 +1,5 @@
 -- ZeDUI/tools/qa/paper_map_sim.lua  (Nov 7 2026, Build): paper map items (vanilla windows list B2), with no game running.
+_floorContainers = {}   -- (the World window's per-player floor containers, split view S2c: a cut function closes over it)
 -- Read Map on a map item opens ZeD's map window on that paper (PaperMap.lua, hooked by Overrides/PaperMap.lua), and the
 -- game's read must stay the game's: the transfer first, doBuildingStash, addReadMap, the paper's Init, the reveal of its
 -- area (and the server's copy of it), the whole paper in view, closed when the map leaves the main inventory. The real

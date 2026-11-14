@@ -3925,13 +3925,20 @@ end
 -- VANILLA VISIBILITY GATE
 -- ============================================================================
 
-local function _hideVanilla()
+-- The game's inventory and loot pages of every local player whose windows are ZeD's (ZeD.windowsFor: player 1, and
+-- players 2 to 4 with split view on) are hidden, never removed: the game's timed actions and refreshes still read them
+-- (getPlayerData(pn)). pn: one player's only.
+local function _hideVanilla(pn)
     -- safe mode (SafeMode.lua): the game's own pages stay as they are
     if ZeD.Safe.on("windows") then return end
-    local vi = getPlayerInventory(0)
-    local vl = getPlayerLoot(0)
-    if vi then vi:setVisible(false) end
-    if vl then vl:setVisible(false) end
+    for p = (pn or 0), (pn or 3) do
+        if ZeD.windowsFor(p) then
+            local vi = getPlayerInventory(p)
+            local vl = getPlayerLoot(p)
+            if vi then vi:setVisible(false) end
+            if vl then vl:setVisible(false) end
+        end
+    end
 end
 
 -- Gamepad Y button vanilla takeover.
@@ -6134,8 +6141,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
         -- Suppress vanilla if another system re-showed it (not once safe mode has
         -- handed it back: this window may draw one last frame after a trip)
-        local vi = getPlayerInventory(0)
-        local vl = getPlayerLoot(0)
+        -- (this window's own player's pages: split view)
+        local vpn = win.playerNum or 0
+        local vi = getPlayerInventory(vpn)
+        local vl = getPlayerLoot(vpn)
         if vi and vi:getIsVisible() and not ZeD.Safe.on("windows") then vi:setVisible(false) end
         if vl and vl:getIsVisible() and not ZeD.Safe.on("windows") then vl:setVisible(false) end
 
@@ -7189,7 +7198,7 @@ local function _openOrStepAside(open, playerNum, where)
     local ok, err = pcall(open, playerNum)
     if ok then return true end
     ZeD.Safe.trip(where, err)
-    local vi = getPlayerInventory(0)
+    local vi = getPlayerInventory(playerNum or 0)
     if vi and not vi:getIsVisible() and (playerNum or 0) == 0 then
         pcall(_vanillaInvKeyPressed, getCore():getKey("Toggle Inventory"))
     end
@@ -7366,11 +7375,16 @@ local function _closeForSafeMode()
         end
     end
     if ZeD_WorldWindow and ZeD_WorldWindow.forceClose then pcall(ZeD_WorldWindow.forceClose) end
-    local vi, vl = getPlayerInventory(0), getPlayerLoot(0)
-    if vi then vi:setVisible(true) end
-    if vl then vl:setVisible(true) end
+    -- (every player whose pages ZeD hid gets them back)
+    for p = 0, 3 do
+        if ZeD.windowsFor(p) then
+            local vi, vl = getPlayerInventory(p), getPlayerLoot(p)
+            if vi then vi:setVisible(true) end
+            if vl then vl:setVisible(true) end
+        end
+    end
 end
-ZeD.Safe.register("windows", { leave = _closeForSafeMode, enter = _hideVanilla })
+ZeD.Safe.register("windows", { leave = _closeForSafeMode, enter = function() _hideVanilla() end })
 
 -- A resolution change keeps every open window on the new screen
 if Events.OnResolutionChange then
@@ -7433,7 +7447,8 @@ local function _armHideVanilla()
 end
 Events.OnGameStart.Add(_armHideVanilla)
 Events.OnCreatePlayer.Add(function(playerNum)
-    if playerNum == 0 then _armHideVanilla() end
+    -- (player 1, or with split view on any player whose windows are ZeD's)
+    if playerNum == 0 or ZeD.windowsFor(playerNum) then _armHideVanilla() end
 end)
 
 -- ----------------------------------------------------------------------------
