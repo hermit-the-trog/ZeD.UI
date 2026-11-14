@@ -9,7 +9,7 @@
 -- grep "ZEDQA farm".
 local TAG = "farm"
 local function say(s) print("ZEDQA " .. TAG .. " " .. tostring(s)) end
-local FARM = { x = 1625.5, y = 14221.5, z = 0 }
+local FARM = { x = 1635.5, y = 14221.5, z = 0 }   -- (the director: 10 squares further from the barn than their pick, 1625,14221)
 local HALF, SEARCH = 8, 24
 ZEDQA_FARM = FARM
 local p = getPlayer()
