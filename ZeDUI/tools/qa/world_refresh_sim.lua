@@ -14,8 +14,7 @@
 --            rebuilding them every frame did; builder calls counted
 --   GONE     (code flag 1) the World window's two item-gone checks keep their own counts: the mouse's check closes
 --            the card within 10 frames, the controller's still does with the pad
---   RADIO    (code flag 2) RadioTab.renderDrawer clears every module's click rects first: a ValuTech after a
---            Premium has no CD rects, a module the height leaves out has none
+--   (RADIO, code flag 2, the drawn chassis' click rects, went with the chassis, Nov 13 2026)
 --   LOCK     (bug flag) the strip's hold-A on a locked container opens its lock card, not the container
 -- What it can't show: the game's own timing (OnContainerUpdate's rate, the frame pacing), or how it feels in the game.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/world_refresh_sim.lua [old ZeD_WorldWindow.lua] [old ZeD_CharacterWindow.lua]
@@ -59,7 +58,6 @@ end
 local WW = readFile(Z .. "ZeD_WorldWindow.lua")
 local CW = readFile(Z .. "ZeD_CharacterWindow.lua")
 local FM = readFile(Z .. "Input/FocusManager.lua")
-local RT = readFile(Z .. "RadioTab.lua")
 local OLD_WW = arg and arg[1] and readFile(arg[1]) or nil
 local OLD_CW = arg and arg[2] and readFile(arg[2]) or nil
 
@@ -170,7 +168,7 @@ oldF = oldF and oldF(buildWorldContainers, ZeD, WREF, getTimestampMs)
 local function newWin()
     local list = truth()
     return { _playerObj = player, _containers = list, _activeContainer = #list, _containerTimer = 0,
-             _radios = {}, _radioIdx = 1, _radioWaveCache = {}, _mcSelected = {},
+             _radios = {}, _radioIdx = 1, _mcSelected = {},
              _containerAtMs = clock.ms, _containerDueMs = clock.ms + WREF.ms + WREF.phaseMs, _containerSq = player.sq,
              _sideScanAtMs = clock.ms, _sideScanSq = player.sq, _radioSq = player.sq }
 end
@@ -179,10 +177,6 @@ local function snapshot(win, content)
                 content._inventory and content._inventory.name or "-", content._lastClickedItem and "c" or "-" }
     for _, i in ipairs(win._mcSelected or {}) do t[#t + 1] = "m" .. i end
     for _, c in ipairs(win._containers or {}) do t[#t + 1] = c.inventory.name end
-    local keys = {}
-    for k in pairs(win._radioWaveCache or {}) do keys[#keys + 1] = k end
-    table.sort(keys)
-    for _, k in ipairs(keys) do t[#t + 1] = "w" .. k end
     return table.concat(t, "|")
 end
 
@@ -208,7 +202,6 @@ if newF and oldF then
             w._mcSelected = mc
             if math.random() < 0.3 then w._viewedContainer = math.random(1, #w._containers) end
             w._radioIdx = math.random(1, 3)
-            w._radioWaveCache = { a = 1, b = 1 }
             local c = { _selectedItems = { x = true }, _lastClickedItem = "x" }
             return w, c
         end
@@ -603,41 +596,6 @@ do
             for _ = 1, 30 do mouseF(win, content); padF(win) end
             check("GONE: with " .. m .. ", an item in a crate keeps its card", closed == 0, closed)
         end
-    end
-end
-
--- ---------------------------------------------------------------------------
-section("RADIO: the chassis' click rects start empty each frame (code flag 2)")
--- ---------------------------------------------------------------------------
-do
-    local rd = RT and cutTo(RT, "function renderDrawer(panel, x, y, w, h, win, radioEntry)", "\nend\n")
-    check("RADIO: renderDrawer found", rd ~= nil)
-    if rd then
-        local env = {}
-        local chunk, err = loadstring("local _safeGet, renderPremium, renderValutech = ...\n" .. rd .. "\nend\nreturn renderDrawer")
-        check("RADIO: renderDrawer compiles", chunk ~= nil, err)
-        local tall = true
-        local function premium(panel, x, y, w, h, win)
-            if not tall then return end      -- (the height leaves every module out)
-            win._radioPwrZone = { w = 1 }; win._radioSeekBtnZones = { { w = 1 }, { w = 1 } }
-            win._radioPresetZones = { { w = 1 } }; win._radioCDZones = { { w = 1 }, { w = 1 } }
-        end
-        local function valutech(panel, x, y, w, h, win)
-            win._radioPwrZone = { w = 1 }; win._radioPresetZones = { { w = 1 } }
-        end
-        local hi = true
-        local function safeGet() return hi end
-        local renderDrawer = chunk(safeGet, premium, valutech)
-        local win = {}
-        renderDrawer(nil, 0, 0, 100, 100, win, { deviceData = {} })
-        check("RADIO: a Premium has its CD rects", win._radioCDZones and #win._radioCDZones == 2)
-        hi = false
-        renderDrawer(nil, 0, 0, 100, 100, win, { deviceData = {} })
-        check("RADIO: a ValuTech browsed to after it has none", win._radioCDZones == nil and win._radioSeekBtnZones == nil)
-        check("RADIO: the ValuTech's own rects stay", win._radioPwrZone ~= nil and win._radioPresetZones ~= nil)
-        hi, tall = true, false
-        renderDrawer(nil, 0, 0, 100, 10, win, { deviceData = {} })
-        check("RADIO: modules the height leaves out have no rects", win._radioPwrZone == nil and win._radioPresetZones == nil and win._radioCDZones == nil)
     end
 end
 

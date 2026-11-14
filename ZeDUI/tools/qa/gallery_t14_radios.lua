@@ -99,7 +99,6 @@ end
 Z.step(10, function()
     if getGameSpeed() <= 0 then setGameSpeed(1) end
     if not ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggleBothPaired(pn) end
-    RT.useFaces = true
     say("look " .. tostring(ZeD.currentBase) .. " " .. tostring(ZeD.currentAccent) .. ", scale " .. tostring(ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root()))
 end)
 radio({ ft = "Base.RadioBlack", name = "g14_radio_black" })

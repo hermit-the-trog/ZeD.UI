@@ -11,7 +11,9 @@
 --      pad enters the tab and lands on power; A on the battery key (no battery in, none carried), the
 --      headphone jack (none carried) and the CD slot (a disc carried) each opens its list, and when the
 --      list closes the pad is back on that key in that window
---   3. faces off (ZeD.RadioTab.useFaces, punch list item 17 to come): the simple card (the chassis)
+--   3. the Simple version: with ZeD setup's Devices row on Simple (its reader stood in for, put back after) the
+--      radio draws the plain card (PlainFace); a radio with no face of its own (stood in for) draws the plain card
+--      too, with the black radio's controls, and its power switch works
 --   4. the grid: the QA world is past the shut-off, so the run turns the game's grid flag on and stands the
 --      character on a free square with free ROOM squares round it (grid power is only given inside a room; the
 --      Fossoil at West Point when no room is in reach). Three TVs and a radio are placed ON those squares
@@ -178,7 +180,6 @@ end
 step(10, function()
     if not ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggleBothPaired(pn) end
     hold(nil)
-    RT.useFaces = true
     pcall(function() Mouse.setXY(20, 20) end)
     say(string.format("screen %dx%d, root scale %.2f, plate zoom %d", getCore():getScreenWidth(), getCore():getScreenHeight(), root(), K))
     p:getInventory():AddItem("Base.Battery"); added[#added + 1] = p:getInventory():getFirstType("Base.Battery")
@@ -347,15 +348,53 @@ padKey(CW, "charTabContent", "slot", "cd_player", "2_pad_cd_player_disc_list")
 step(5, function() pcall(function() dd(cur.it):setHasBattery(true) end) end)
 padEnd()
 
--- ===================================================================== 3. faces off: the simple card
-step(5, function() RT.useFaces = false end)
+-- ===================================================================== 3. the Simple version: the plain card
+-- ZeD setup's Devices row on Simple draws the plain card (PlainFace.lua) in place of the face. The setting's reader is
+-- stood in for, as zedqa_cov_vehicles.lua does, so nothing is saved, and put back after. Then a radio with no face of
+-- its own (a modded one; stood in for by taking the CD player's type out of the faces' list for a moment) draws the
+-- plain card too, with Devices on Immersive, borrowing the black radio's controls; its power switch works.
+local simple = { pinned = false }
+local function pinSimple(on)
+    local S = ZeD.Settings
+    if not simple.pinned then simple.real, simple.pinned = S.devicesSimple, true end
+    simple.on = on
+    S.devicesSimple = function() return simple.on == true end
+end
+local function unpinSimple()
+    if simple.pinned then ZeD.Settings.devicesSimple = simple.real; simple.pinned = false end
+end
+local function unhideFace()
+    if simple.ft then ZeD.PhysPx.rtv.items[simple.ft] = simple.facePid; simple.ft = nil end
+end
+step(5, function() pinSimple(true) end)
 step(10, function()
-    check(tw(CW()) == nil and CW()._radioPwrZone ~= nil, "faces off: the simple card (the chassis) through drawSimple")
-    shot("3_simple_card")
-    RT.useFaces = true
+    local t = tw(CW())
+    check(t ~= nil and t.dev == cur.it and t.drv ~= nil and t.drv.plain == true and t.pid == cur.pid and hitOf(t, "power") ~= nil,
+        "Devices on Simple: the " .. tostring(cur.pid) .. " draws the plain card (PlainFace), with its power switch")
+    shot("3_plain_card")
+    pinSimple(false)
+    local items = ZeD.PhysPx.rtv.items
+    simple.ft = cur.it:getFullType()
+    simple.facePid = items[simple.ft]
+    items[simple.ft] = nil
 end)
 step(10, function()
-    check(tw(CW()) ~= nil, "faces on again: the face is back")
+    local t = tw(CW())
+    check(R.plateId(cur.it) == nil, "no face of its own: the CD player stands in for a modded radio")
+    check(t ~= nil and t.dev == cur.it and t.drv ~= nil and t.drv.plain == true and t.pid == R.FALLBACK_RADIO and hitOf(t, "power") ~= nil,
+        "no face of its own (Devices on Immersive): the plain card with the black radio's controls (" .. tostring(t and t.pid) .. ")")
+    simple.wasOn = dd(cur.it):getIsTurnedOn()
+    click(CW(), "power")
+end)
+step(10, function()
+    check(dd(cur.it):getIsTurnedOn() ~= simple.wasOn, "no face of its own: the plain card's power switch works")
+    shot("3_plain_card_no_face")
+    unhideFace()
+    unpinSimple()
+end)
+step(10, function()
+    local t = tw(CW())
+    check(t ~= nil and t.drv == R, "its face back, Devices on Immersive: the face is drawn again")
     hold(nil)
 end)
 
@@ -897,7 +936,8 @@ step(10, function()
     clearQueue()
     menuClose()
     ISContextMenu.get = ctxGet
-    RT.useFaces = true
+    unhideFace()
+    unpinSimple()
     removePlaced()
     unstash()
     pcall(function() Det.setLockedMode(Det.MODE_KBM); Det.setLockedMode(nil) end)

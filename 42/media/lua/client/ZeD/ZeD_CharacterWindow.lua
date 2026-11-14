@@ -3102,7 +3102,7 @@ _clearGpFocusState = function(w)
     w._healthReturnToMenu    = nil
     w._thermalReturnToMenu   = nil
     w._gpFocusedEquipSlot    = nil
-    w._gpFocusedRadioCtl     = nil  -- the radio drawer's focused chassis control id
+    w._gpFocusedRadioCtl     = nil  -- the radio tab's focused control id
     w._healthActivePart      = nil  -- Health's resolved part (pad focus over mouse hover)
     -- Clear the journal scroll-follow delta-gate pin so the next visit
     -- re-pins on first focus instead of inheriting the previous element's
@@ -3562,23 +3562,12 @@ local function drawContainerStrip(self, win, content)
         win._containerDueMs = nowMs + 500
         remapCharContainers(win, content, win._containers, buildContainers(win._playerObj))
 
-        -- Refresh equipped radios + clamp browse index. Wave cache
-        -- prunes against the new key set (entry.cacheKey is the equipped slot
-        -- tag — Primary/Secondary/Back — set in RadioTab.buildEquippedRadios).
+        -- Refresh equipped radios + clamp browse index.
         win._radios = ZeD.RadioTab.buildEquippedRadios(win._playerObj)
         if #win._radios == 0 then
             win._radioIdx = 1
         elseif win._radioIdx > #win._radios then
             win._radioIdx = #win._radios
-        end
-        if win._radioWaveCache then
-            local stillPresent = {}
-            for _, entry in ipairs(win._radios) do
-                if entry.cacheKey then stillPresent[entry.cacheKey] = true end
-            end
-            for k in pairs(win._radioWaveCache) do
-                if not stillPresent[k] then win._radioWaveCache[k] = nil end
-            end
         end
     end
 
@@ -4143,7 +4132,6 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._kind             = "char"
     win._radios           = ZeD.RadioTab.buildEquippedRadios(playerObj)
     win._radioIdx         = 1
-    win._radioWaveCache   = {}
 
     -- Multi-container state
     win._mcSelected = {}          -- ordered array of extra container indices (not main)

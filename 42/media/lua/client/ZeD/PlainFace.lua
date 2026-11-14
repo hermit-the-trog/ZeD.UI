@@ -286,6 +286,9 @@ PF.controlsFor = function(base, pid) return controlsFor(base, pid) end
 ctlOf = function(base, dev, id)
     if not (dev and id) then return nil end
     local pid = base.plateId and base.plateId(dev) or nil
+    -- a modded radio or TV has no plate of its own: the radio tab draws it with a borrowed one (RtvFace.fallbackPid),
+    -- so its presses look up the same one here, or they would find no control and do nothing
+    if not pid and base.fallbackPid then pid = base.fallbackPid(dev) end
     if not pid then return nil end
     local C = controlsFor(base, pid)
     local c = C.byId[id]

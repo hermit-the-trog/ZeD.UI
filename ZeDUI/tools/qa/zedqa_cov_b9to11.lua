@@ -41,11 +41,7 @@
 --   #148 Health percent: with injury rows staged in the model the tab draws (8 rows under the figure, then 1 row with
 --        the figure folded; the scrollbar state reported), every row's percent, "%" and all, lies inside its row and
 --        inside the tab's stencil (win._healthView), and every row ends inside it
---   #140 radio preset "+": a ValuTech radio in hand with the faces off (the drawn chassis): the + is filled with the
---        accent the window draws in, bordered in the bright accent, its glyph in textOnAccent, not beta 9's fixed
---        orange; a press where the + is drawn, through the drawer's own mouse handler (RadioTab.onClick behind it),
---        arms assign mode and the + lights in the bright accent; a second press disarms it; with the window's accent
---        switched the + follows it
+--   (#140, the radio's preset + on the drawn chassis, went with the chassis, Nov 13 2026)
 --   #134 Custom Map Labels on ZeD's map (pass a): the game's Show opens ZeD's map (the game's own stays shut), bound to
 --        the game's symbol store; a map mod's place label (text-place, the layer's color, not user defined, as Custom
 --        Map Labels writes them) and a player's note (text-note, red ink) staged in the store are read by ZeD's map; in
@@ -57,7 +53,7 @@
 --        Survey only), so today the Color label check FAILs: the director's call (show a map mod's labels over the Color
 --        picture, or hide them with the game's own names and make this check expect that)
 -- PUT BACK at the end, and after an error (the run goes straight to its last steps): the wrappers, the radio (taken
--- away) and the hands, the profession, the belt's form, the Identity and radio QA switches, the window accents, the
+-- away) and the hands, the profession, the belt's form, the Identity tab's QA switches, the window accents, the
 -- Health model, the two symbols, the map's style and pop-out, the UI scale, the window flags, each window's place and
 -- tab (ZeD's own Go to saved position path; the player's saved places are not written), the debug console, each window
 -- open or shut as the run found it, the game speed. Each is checked after it is put back.
@@ -130,7 +126,6 @@ end
 local L = {
     done = false, hooks = {}, wraps = {}, dbg = {}, at = {},
     prim = p:getPrimaryHandItem(), sec = p:getSecondaryHandItem(),
-    useFaces = RT.useFaces,
     qa = { prof = IT.qaProf, layout = IT.qaLayout, style = IT.qaStyle, trend = IT.qaTrend },
     override = SC.override, root0 = SC.root(), prof0 = profNow(), beltStyle0 = beltStyleNow(), speed0 = getGameSpeed(),
     charWasOpen = CWm.isOpen() and true or false, worldWasOpen = WWm.isOpen() and true or false,
@@ -461,8 +456,6 @@ local function restoreAll(why)
     pcall(function() Events.OnPreUIDraw.Remove(onPreUI) end)
     pcall(function() Events.OnPostUIDraw.Remove(onPostUI) end)
     pcall(function() IT.qaProf, IT.qaLayout, IT.qaStyle, IT.qaTrend = L.qa.prof, L.qa.layout, L.qa.style, L.qa.trend end)
-    pcall(function() RT.useFaces = L.useFaces end)
-    pcall(function() local w = CW(); if w then w._radioPresetAssignMode = false end end)
     pcall(restoreWinAccent)
     pcall(function()
         if L.radio then
@@ -1034,76 +1027,6 @@ local function analyzeHealth(tag, label, nWant)
 end
 
 -- ---------------------------------------------------------------------------------------------------------------
--- THE RADIO'S PRESET + (#140)
--- ---------------------------------------------------------------------------------------------------------------
-local OLD_ORANGE = { r = 0.85, g = 0.48, b = 0.12 }
--- the + as drawn in the frame read: the radio tab's one flat "+" on the Character window's drawer (the preset bank's
--- add button), found by what is drawn, not by the zone the click router keeps
-local function plusRec()
-    local w = CW()
-    local dr = w and w._drawerPanel
-    if not dr then return nil end
-    local hit = nil
-    for _, r in ipairs(CAP.btn) do
-        if r.variant == "flat" and r.el == dr then hit = r end
-    end
-    return hit
-end
--- a press where the + is drawn, through the drawer's own mouse handler: the drawer is the element the pointer presses,
--- and its onMouseDown sends the radio tab's presses to RadioTab.onClick, which hit-tests the zones the chassis stamped.
--- The point is the drawn button's middle on the screen, in the drawer's coordinates, so a zone stamped away from where
--- the button is drawn misses it. Returns whether the drawer took it, and how
-local function pressPlus()
-    local w = CW()
-    local dr = w and w._drawerPanel
-    local r = plusRec()
-    if not (dr and r) then return false, "no + drawn on the drawer to press" end
-    local lx = r.el:getAbsoluteX() + r.x + math.floor(r.w / 2) - dr:getAbsoluteX()
-    local ly = r.el:getAbsoluteY() + r.y + math.floor(r.h / 2) - dr:getAbsoluteY()
-    local effW = w._drawerEffW or dr:getWidth()
-    if not dr:isVisible() or lx < 0 or ly < 0 or lx >= effW or ly >= dr:getHeight() then
-        return false, "the + at " .. fi(lx) .. "," .. fi(ly) .. " lies outside the drawer's visible " .. fi(effW) .. " x " .. fi(dr:getHeight())
-    end
-    local took = dr:onMouseDown(lx, ly)
-    return took == true, "pressed at " .. fi(lx) .. "," .. fi(ly) .. ": the drawer's handler returned " .. tostring(took)
-end
-local function analyzePlus(tag, mode)
-    local nm = pre(tag) .. " #140"
-    local r = plusRec()
-    if not check(r ~= nil, nm .. " (" .. mode .. "): (presence) the drawn chassis draws its preset + button") then return end
-    local w = CW()
-    local key = (w and w._accentKey) or ZeD.currentAccent
-    if mode == "normal" then
-        L.plusBg = r.bg
-        check(near(r.bg, r.acc), nm .. ": the + is filled with the accent the window draws in (" .. tostring(key) .. ")", rgb(r.bg), rgb(r.acc))
-        check(near(r.border, r.accB), nm .. ": its border is the bright accent", rgb(r.border), rgb(r.accB))
-        check(near(r.text, r.on), nm .. ": its glyph is the ink that reads on the accent (textOnAccent)", rgb(r.text), rgb(r.on))
-        if key ~= "orange" then check(not near(r.bg, OLD_ORANGE), nm .. ": no longer beta 9's fixed orange", rgb(r.bg), "not " .. rgb(OLD_ORANGE)) end
-    elseif mode == "assign" then
-        check(near(r.bg, r.accB), nm .. ": armed for a slot, the + lights in the bright accent", rgb(r.bg), rgb(r.accB))
-    else
-        local v = variantOf(L.accTest)
-        check(v ~= nil and near(r.bg, v.accent), nm .. ": with the window's accent set to " .. tostring(L.accTest) .. ", the + follows it", rgb(r.bg), v and rgb(v.accent))
-        check(L.plusBg ~= nil and not near(r.bg, L.plusBg), nm .. ": and it changed from the + before", rgb(r.bg), "not " .. rgb(L.plusBg))
-    end
-end
-local function giveRadio()
-    if not L.radio then
-        local it = p:getInventory():AddItem("Base.RadioBlack")
-        if not it then error("could not make a Base.RadioBlack") end
-        L.radio, L.radioGiven = it, it
-        local dd = it:getDeviceData()
-        if dd then
-            if dd:getIsBatteryPowered() then dd:setHasBattery(true); dd:setPower(0.6) end
-            dd:setIsTurnedOn(false)
-        end
-    end
-    L.handsChanged = true
-    p:setPrimaryHandItem(nil); p:setSecondaryHandItem(nil)
-    p:setPrimaryHandItem(L.radio)
-end
-
--- ---------------------------------------------------------------------------------------------------------------
 -- #134: ZeD's map and a map mod's labels
 -- ---------------------------------------------------------------------------------------------------------------
 local ZOOM = 14.5
@@ -1161,10 +1084,10 @@ local function finalChecks()
         "radio " .. (radioGone and "gone" or "left") .. ", hands " .. itemName(p:getPrimaryHandItem()) .. " / " .. itemName(p:getSecondaryHandItem()),
         "gone, " .. itemName(L.prim) .. " / " .. itemName(L.sec))
     check(profNow() == L.prof0, "put back: the profession", profName(profNow()), profName(L.prof0))
-    check(IT.qaProf == L.qa.prof and IT.qaLayout == L.qa.layout and IT.qaStyle == L.qa.style and IT.qaTrend == L.qa.trend and RT.useFaces == L.useFaces,
-        "put back: the Identity tab's QA switches (profession, layout, style, trend) and the radio's faces switch",
-        tostring(IT.qaProf) .. "," .. tostring(IT.qaLayout) .. "," .. tostring(IT.qaStyle) .. "," .. tostring(IT.qaTrend) .. "," .. tostring(RT.useFaces),
-        tostring(L.qa.prof) .. "," .. tostring(L.qa.layout) .. "," .. tostring(L.qa.style) .. "," .. tostring(L.qa.trend) .. "," .. tostring(L.useFaces))
+    check(IT.qaProf == L.qa.prof and IT.qaLayout == L.qa.layout and IT.qaStyle == L.qa.style and IT.qaTrend == L.qa.trend,
+        "put back: the Identity tab's QA switches (profession, layout, style, trend)",
+        tostring(IT.qaProf) .. "," .. tostring(IT.qaLayout) .. "," .. tostring(IT.qaStyle) .. "," .. tostring(IT.qaTrend),
+        tostring(L.qa.prof) .. "," .. tostring(L.qa.layout) .. "," .. tostring(L.qa.style) .. "," .. tostring(L.qa.trend))
     check(beltStyleNow() == L.beltStyle0, "put back: the belt's form (the Belt option)", tostring(beltStyleNow()), tostring(L.beltStyle0))
     if L.acc0 then
         local ca, wa = effAccent(CW()), effAccent(WW())
@@ -1340,55 +1263,6 @@ local function pass(tag)
         if w and L.flags then w._healthFigureExpanded = L.flags.hf end
     end)
 
-    -- #140 the radio's preset +: a ValuTech radio in hand, the drawn chassis (faces off)
-    gstep(g, 1, giveRadio)
-    gwait(g, 150, function()
-        local w = CW()
-        local r = w and w._radios and w._radios[1]
-        return r ~= nil and r.radioInstance == L.radio
-    end, "the radio in hand to be listed", function(ok) check(ok, pre(tag) .. " #140 the Character window lists the radio in hand") end)
-    openCharTab(g, tag, "radio")
-    gstep(g, 1, function()
-        RT.useFaces = false
-        local w = CW()
-        if w then w._radioPresetAssignMode = false end   -- (a known start for the press: not armed)
-    end)
-    gwait(g, 90, function() local w = CW(); return w ~= nil and w._radioPresetAddZone ~= nil end, "the chassis' preset bank",
-        function(ok) check(ok, pre(tag) .. " #140 (presence) with the faces off the radio tab lays out the chassis and its preset bank") end)
-    whenStill(g, tag, "the radio's chassis (the drawer may change card)")
-    capture(g, { btn = true })
-    gstep(g, 1, function()
-        safe(pre(tag) .. " #140", analyzePlus, tag, "normal")
-        shot(tag .. "_radio_plus")
-        local ok, how = pressPlus()
-        check(ok, pre(tag) .. " #140 a press where the + is drawn reaches the drawer's mouse handler (the + inside the drawer's visible part)", how, "taken")
-    end)
-    gstep(g, 3, function()
-        local w = CW()
-        L.armed = check(w ~= nil and w._radioPresetAssignMode == true, pre(tag) .. " #140 the press arms the preset assign mode (RadioTab.onClick found the + under it)",
-            tostring(w and w._radioPresetAssignMode), "true")
-    end)
-    capture(g, { btn = true })
-    gstep(g, 1, function()
-        safe(pre(tag) .. " #140", analyzePlus, tag, "assign")
-        shot(tag .. "_radio_plus_armed")
-        pressPlus()
-    end)
-    gstep(g, 3, function()
-        local w = CW()
-        local what = pre(tag) .. " #140 a second press there disarms it"
-        if not L.armed then skip(what, "the first press did not arm it")
-        else check(w ~= nil and w._radioPresetAssignMode ~= true, what, tostring(w and w._radioPresetAssignMode), "false") end
-        setWinAccent(otherAccent())
-    end)
-    gstep(g, 3, function() end)
-    capture(g, { btn = true })
-    gstep(g, 1, function()
-        safe(pre(tag) .. " #140", analyzePlus, tag, "window accent")
-        shot(tag .. "_radio_plus_accent_" .. tostring(L.accTest))
-        restoreWinAccent()
-        RT.useFaces = L.useFaces
-    end)
     openCharTab(g, tag, "loot")
 end
 

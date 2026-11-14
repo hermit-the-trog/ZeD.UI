@@ -23,7 +23,7 @@
 --      marker follows the frequency, RANGE, the army set's 1..6 memories, the
 --      makeshift set's TALK / LISTEN toggle, AC on the grid (when the square
 --      has power), full view of a ham and it closing when the set is taken away
---   6. an AM/FM radio still shows the chassis
+--   6. an AM/FM radio keeps its own face (not a two-way set's)
 -- Everything made is taken away; the hands, the back and the full view's
 -- saved place are put back; both windows back on Loot.
 -- Screenshots/zqa_tw_*.png; grep "ZEDQA tw".
@@ -531,14 +531,15 @@ for i = 2, #PORTABLE do
     end
 end
 
--- ===================================================================== 6. an AM/FM radio with faces off keeps the chassis
--- (Oct 30 2026: the AM/FM radios have faces of their own now, zedqa_rtv.lua; the chassis is the simple card, shown
--- when ZeD.RadioTab.useFaces is off)
-step(5, function() RT.useFaces = false; hold(newRadio("Base.RadioRed", 0.6)) end)
+-- ===================================================================== 6. an AM/FM radio keeps its own face
+-- (the drawn chassis card from before the faces is gone, Nov 13 2026; the AM/FM faces and the plain card are checked
+-- in zedqa_rtv.lua: here only that an AM/FM radio is not drawn as a two-way set)
+step(5, function() hold(newRadio("Base.RadioRed", 0.6)) end)
 waitFor(5, 150, function() local r = CW()._radios and CW()._radios[1]; return r and r.radioInstance == p:getPrimaryHandItem() end, function() end)
 step(10, function()
-    check(tw(CW()) == nil and CW()._radioPwrZone ~= nil, "an AM/FM radio with faces off shows the chassis (the simple card)")
-    RT.useFaces = true
+    local t = tw(CW())
+    check(t ~= nil and t.dev == p:getPrimaryHandItem() and t.drv ~= TW and CW()._radioFullZone == nil,
+        "an AM/FM radio shows its own face (or plain card), not a two-way set's: no full view button")
     hold(nil)
 end)
 
@@ -754,7 +755,6 @@ step(10, function()
     F.close(pn)
     F.qaJoy = nil
     TW.nameChannel = nameWas
-    RT.useFaces = true
     closeBox()
     for _, obj in ipairs(placed) do
         local sq = obj:getSquare()

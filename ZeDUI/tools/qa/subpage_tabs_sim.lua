@@ -205,9 +205,8 @@ local win = { _radios = radios, _radioIdx = 1, _radioTabZones = {
 check("click on the third tab: taken", RT.onClick(win, 120, 15) == true)
 check("click on the third tab: that radio, followed", win._radioIdx == 3 and win._radioFollow == "c", win._radioIdx)
 check("click on the strip off a tab: taken, nothing changes", RT.onClick(win, 250, 15) == true and win._radioIdx == 3)
-win._radioPresetAssignMode = true
 RT.selectRadio(win, 1)
-check("another radio: the preset-assign mode goes", win._radioIdx == 1 and win._radioPresetAssignMode == false)
+check("selectRadio: that radio", win._radioIdx == 1, win._radioIdx)
 check("wheel over the strip: the next radio", RT.onWheel(win, 1, 100, 15) == true and win._radioIdx == 2, win._radioIdx)
 RT.onWheel(win, -1, 100, 15)
 check("wheel back: the previous radio", win._radioIdx == 1, win._radioIdx)

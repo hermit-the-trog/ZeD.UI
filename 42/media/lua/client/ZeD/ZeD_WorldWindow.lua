@@ -1289,7 +1289,7 @@ _clearGpFocusState = function(w)
     w._gpFocusedRowItem        = nil
     w._gpFocusedAnimalSubmode  = nil  -- nothing writes this any more
     w._gpFocusedAnimalRow      = nil  -- roster/butcher row focus
-    w._gpFocusedRadioCtl       = nil  -- radio drawer chassis control id
+    w._gpFocusedRadioCtl       = nil  -- the radio tab's focused control id
     w._invRowsForContainer     = nil
     -- CraftingCore scroll-follow delta-gate pins (one per prefix). A fresh
     -- tab visit must re-pin on first focus, not inherit the previous
@@ -3065,15 +3065,6 @@ local function drawWorldContainerStrip(self, win, content)
         elseif win._radioIdx > #win._radios then
             win._radioIdx = #win._radios
         end
-        if win._radioWaveCache then
-            local stillPresent = {}
-            for _, entry in ipairs(win._radios) do
-                if entry.cacheKey then stillPresent[entry.cacheKey] = true end
-            end
-            for k in pairs(win._radioWaveCache) do
-                if not stillPresent[k] then win._radioWaveCache[k] = nil end
-            end
-        end
     end
 
     local containers = win._containers
@@ -3562,7 +3553,6 @@ function ZeD_WorldWindow.toggle(playerNum)
     win._kind             = "world"
     win._radios           = ZeD.RadioTab.buildWorldRadios(playerObj)
     win._radioIdx         = 1
-    win._radioWaveCache   = {}
     if ZeD.MechanicsTab and ZeD.MechanicsTab.refresh then pcall(ZeD.MechanicsTab.refresh, win) end
 
     -- Drawer state

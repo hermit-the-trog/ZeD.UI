@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/RtvFace.lua
 -- ============================================================================
 -- THE ORDINARY RADIOS', THE CD PLAYER'S AND THE TVS' FACES — client; the
--- radio tab (RadioTab.lua) draws them in place of the drawn chassis.
+-- radio tab (RadioTab.lua) draws them, or the plain card over them (PlainFace.lua).
 -- One thing to know: ZeD.Rtv is a face driver with TwoWayFace.lua's
 -- interface (plateId, read, drawFace, hitAt, press, secondary, turn,
 -- holdable, holdTick, turnMult, slotW, PAD), so the radio tab and
@@ -17,8 +17,8 @@
 -- house wears the face of the item it turns into when picked up:
 -- a radio dropped on the floor by its item, a placed set by its tile's
 -- CustomItem, else by its tile: each item's WorldObjectSprite, the four turns of
--- a set being four tiles in a row. A radio with no face (a modded one) keeps
--- the simple card (RadioTab.drawSimple).
+-- a set being four tiles in a row. A radio with no face (a modded one) gets the
+-- plain card (PlainFace.lua) with an ordinary set's controls (R.fallbackPid).
 --
 -- The controls are vanilla's radio verbs, as the car radio and the walkies use
 -- them (ZeD_RadioOps: power, volume, mute, tuning, presets, play / stop at the
@@ -176,6 +176,22 @@ function R.plateId(dev, dd)
         end
     end
     if id and not X.plates[id] then return nil end
+    return id
+end
+
+--- The plate a radio or TV with no face of its own (a modded one) borrows for the plain card, nil for a two-way set
+--- (TwoWayFace.lua gives those a walkie or a ham set) or a device with no device data. Its plate is never drawn: the
+--- plain card only reads which controls it has. A radio takes the black radio's (radio_black: power, mute, the
+--- tuning, four presets, volume keys, headphones and the battery, what an ordinary radio has); a TV the black TV's
+--- (tv_black: power, the channel keys, volume, mute, headphones and the tape slot, the plainest set).
+R.FALLBACK_RADIO, R.FALLBACK_TV = "radio_black", "tv_black"
+function R.fallbackPid(dev, dd)
+    local X = ZeD.PhysPx
+    if not (X and X.plates and dev) then return nil end
+    dd = dd or _get(dev, "getDeviceData", nil)
+    if not dd or _get(dd, "getIsTwoWay", false) then return nil end
+    local id = _get(dd, "getIsTelevision", false) and R.FALLBACK_TV or R.FALLBACK_RADIO
+    if not X.plates[id] then return nil end
     return id
 end
 
