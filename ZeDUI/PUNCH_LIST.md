@@ -4781,4 +4781,5 @@ to be proposed.
    "back to worldCtl:take". The row's own buttons (filter, list/grid) aren't the nearest stop to the right in the
    search, or aren't stops at all. Same family as 186 (the strip's neighbors).
    Worse (the director, same day): with the container empty, there is no way at all to reach the header row with the
-   Filter and List/Grid buttons on the pad.
+   Filter and List/Grid buttons on the pad. The stick clicks still work (L3 sorts, R3 switches List/Grid), so
+   the functions are reachable; only D-pad navigation up to the header is missing.
