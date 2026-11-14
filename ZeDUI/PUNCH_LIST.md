@@ -4760,3 +4760,10 @@ to be proposed.
    times (11:45:28-11:45:48 in the logger: "press A | focus Character", no cursor, not paused). Nothing opened and the
    paper stayed unread. Picture: %USERPROFILE%\Zomboid\Screenshots\zqa_ptl_now2.png. The press reaches the Character
    window; its A on that button doesn't run the Read action.
+
+200. **Disassemble in the context menu shows letters, not the object's picture (the director, Nov 14 2026, playtest).**
+   open. The right-click menu's icon strip (ZeD_ContextMenu, on the pad) lists the objects that can be taken apart with
+   two-letter placeholder tiles: "ST" (Steel Counter), "CH" (Chrome Industrial Sink), "ST" again, where the game's own
+   icon (the object's sprite) should be. Picture: %USERPROFILE%\Zomboid\Screenshots\zqa_ptl_now5.png (the strip under
+   "Disassemble > Steel Counter", script name fixtures_counters_01_39). Likely the menu has no item icon for a world
+   object's option and falls back to letters; the object's sprite texture should be drawn instead.
