@@ -74,8 +74,11 @@ end
 -- Capture: vanilla builds its info box every frame through setInfoPanel; keep
 -- a copy of what it says (colours are 0..1 after setBodyText).
 -- ---------------------------------------------------------------------------
+-- The cursor's canCreate is any value the game treats as yes: Disassemble
+-- with a second tool set (wood: hammer and saw) leaves the second tool item
+-- there, not true (canScrapObject ends "canScrap and haveTool and haveTool2").
 function FT.capture(cur, sq, obj, mp, tex, panel)
-    local c = { sq = sq, obj = obj, mode = ISMoveableCursor.mode[cur.player], canCreate = cur.canCreate == true }
+    local c = { sq = sq, obj = obj, mode = ISMoveableCursor.mode[cur.player], canCreate = (cur.canCreate and true) or false }
     if mp then
         c.mp = mp
         c.tex = tex or mp.spriteName
