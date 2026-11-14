@@ -2101,7 +2101,7 @@ end
 local function settleCapPush(win)
     local pushed = win._drawerCapPush or 0
     if pushed > 0 then
-        local room = ZeD.screenOf(win) - (win:getX() + win:getWidth())
+        local room = ZeD.screenOf(win) + ZeD.screenLeftOf(win) - (win:getX() + win:getWidth())
         local back = math.max(0, math.min(pushed, room))
         if back > 0 then win:setX(win:getX() + back) end
     end
@@ -4101,7 +4101,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             mcItemCap = T.px(CONTAINER_STRIP_W) + baseInv + effectiveW + T.px(ACTION_TAB_STRIP_W)
         end
         local maxW = mcItemCap
-            or (mcActive and (screenW - win:getX() - T.px(10)))
+            or (mcActive and (screenW + ZeD.screenLeftOf(win) - win:getX() - T.px(10)))
             or (win._maxWinW or math.floor(screenW * 0.5))
 
         if drawerDelta ~= 0 then
@@ -4136,7 +4136,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             if drawerDelta > 0 then
                 pushed = pushed + math.max(0, xBefore - win:getX())
             elseif pushed > 0 then
-                local room = screenW - (win:getX() + win:getWidth())
+                local room = screenW + ZeD.screenLeftOf(win) - (win:getX() + win:getWidth())
                 local back = math.max(0, math.min(pushed, room))
                 if back > 0 then win:setX(win:getX() + back) end
                 pushed = pushed - back
@@ -6218,6 +6218,10 @@ end)
 -- A resolution change keeps every open window on the new screen
 if Events.OnResolutionChange then
     Events.OnResolutionChange.Add(function() for _, w in pairs(_worldWins) do fitWorldToScreen(w) end end)
+-- split view: refit on a player joining or leaving too (each player's part changes size; off until ZeD.splitWindows)
+local function _refitWorlds() if ZeD.splitWindows then for _, w in pairs(_worldWins) do fitWorldToScreen(w) end end end
+Events.OnCreatePlayer.Add(_refitWorlds)
+Events.OnPlayerDeath.Add(_refitWorlds)
 end
 
 -- A container changed (an item moved, a container opened or emptied): the container list reads afresh on the next

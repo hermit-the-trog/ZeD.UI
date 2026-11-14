@@ -4883,7 +4883,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
             win:setWidth(newW)
             local newX = win._anchorRightEdge - newW
             local pushed = 0
-            if newX < 0 then pushed = -newX; newX = 0 end
+            local lx = ZeD.screenLeftOf(win)   -- (the player's part's left edge: 0 but in split view)
+            if newX < lx then pushed = lx - newX; newX = lx end
             win._drawerCapPush = pushed
             win:setX(newX)
             win._lastSetX = newX
@@ -4930,7 +4931,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
             -- so the window lands back on it as the drawer narrows.
             local newX = win._anchorRightEdge - newW
             local pushed = 0
-            if newX < 0 then pushed = -newX; newX = 0 end
+            local lx = ZeD.screenLeftOf(win)   -- (the player's part's left edge: 0 but in split view)
+            if newX < lx then pushed = lx - newX; newX = lx end
             win._drawerCapPush = pushed
             win:setX(newX)
             win._lastSetX = newX
@@ -7373,6 +7375,11 @@ ZeD.Safe.register("windows", { leave = _closeForSafeMode, enter = _hideVanilla }
 -- A resolution change keeps every open window on the new screen
 if Events.OnResolutionChange then
     Events.OnResolutionChange.Add(function() for _, w in pairs(_charWins) do fitCharToScreen(w) end end)
+-- split view: a player joining or leaving resizes every player's part of the screen (player 1's halves when player 2
+-- joins), so each window refits to its own part then too (off until ZeD.splitWindows)
+local function _refitChars() if ZeD.splitWindows then for _, w in pairs(_charWins) do fitCharToScreen(w) end end end
+Events.OnCreatePlayer.Add(_refitChars)
+Events.OnPlayerDeath.Add(_refitChars)
 end
 
 -- Save state on game save (each window into its own character's modData)

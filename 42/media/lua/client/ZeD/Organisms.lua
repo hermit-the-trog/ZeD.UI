@@ -1406,11 +1406,25 @@ end
 
 --- The screen a ZeD window opens, fits, drags and slides its drawers on: width, height, left, top (screen px; the
 --- size comes first, since most callers want only that). w: the window, or a player number while the window is still
---- being built. Today every window has the whole screen. Split-screen windows will read their player's part here
---- (ZeD.playerRect, by win.playerNum), so this is the one place that has to change for them.
+--- being built. One player: the whole screen. With split view on (ZeD.splitWindows), a window with a player number
+--- (the Character and World windows set win.playerNum when built) has its player's part (ZeD.playerRect): player 1's
+--- part shrinks when another player joins. Windows without one (the main menu's) keep the whole screen.
 function ZeD.screenOf(w)
+    if ZeD.splitWindows then
+        local pn = (type(w) == "number") and w or (type(w) == "table" and w.playerNum) or nil
+        if type(pn) == "number" then
+            local x, y, pw, ph = ZeD.playerRect(pn)
+            return pw, ph, x, y
+        end
+    end
     local core = getCore()
     return core:getScreenWidth(), core:getScreenHeight(), 0, 0
+end
+
+--- The left edge of a window's screen (ZeD.screenOf): where a window pushed left stops. 0 but in split view.
+function ZeD.screenLeftOf(w)
+    local _, _, x = ZeD.screenOf(w)
+    return x
 end
 
 -- ---------------------------------------------------------------------------

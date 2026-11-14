@@ -1699,6 +1699,10 @@ end
 --- (no such player, a part with no size) is the whole screen.
 function ZeD.playerRect(pn)
     pn = pn or 0
+    -- (QA's stand-in for a second player, Nov 13 2026: a part set here is used as player pn's, so split view's fitting
+    -- can be tried with one player and no second controller: ZeD._qaRect[0] = { x, y, w, h })
+    local q = ZeD._qaRect and ZeD._qaRect[pn]
+    if q then return q[1], q[2], q[3], q[4] end
     local core = getCore()
     local sw, sh = core:getScreenWidth(), core:getScreenHeight()
     -- (the game's Java side can throw; pcall turns a crash into a nil we can test)
@@ -1718,8 +1722,12 @@ end
 -- by their pad: every way into ZeD's windows asks this first and, for them, answers nothing, so the game's own
 -- answers (the callers fall back to the game's when ZeD returns false or nil). Before, their presses opened, moved and
 -- closed the first player's windows. nil: the first player.
+-- Split view (beta 13, being built): with ZeD.splitWindows on, players 2 to 4 get ZeD's windows too, each on their own
+-- part of the screen (ZeD.screenOf). Off until every way in passes its player (docs/plans/SPLITSCREEN_PLAN_20261111.md).
+ZeD.splitWindows = ZeD.splitWindows or false
 function ZeD.windowsFor(pn)
-    return pn == nil or pn == 0
+    if pn == nil or pn == 0 then return true end
+    return ZeD.splitWindows == true and type(pn) == "number" and pn >= 1 and pn <= 3
 end
 
 -- The no-craft chip is vanilla's own

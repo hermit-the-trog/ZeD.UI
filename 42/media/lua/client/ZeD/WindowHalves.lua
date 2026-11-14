@@ -348,7 +348,8 @@ local function snapShut(win)
         if win._anchorRightEdge then
             local x = win._anchorRightEdge - newW
             local pushed = 0
-            if x < 0 then pushed = -x; x = 0 end
+            local lx = ZeD.screenLeftOf(win)   -- (the player's part's left edge: 0 but in split view)
+            if x < lx then pushed = lx - x; x = lx end
             win._drawerCapPush = pushed
             win:setX(x)
             win._lastSetX = x
