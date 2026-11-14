@@ -4829,3 +4829,13 @@ to be proposed.
       always close the pop-out wherever focus is.
    The only way out today (the director): walking far enough from the oven closes it. Aim-to-close doesn't work (205),
    so with the pop-out stuck there is no controller way to close it in place. Fixing 205 or giving B the close covers it.
+
+210. **Audio pops: short high-pitched clicks and noise during some navigation (the director, Nov 14 2026).** open. Heard
+   while playing and while QA ran tests; hard on the ears; not seen in vanilla play on streams, so likely ZeD. Not yet
+   tied to one action. QA measured (ZeDUI/tools/qa/zedqa_sound_count.lua, getSoundManager proxied): ZeD asks for exactly
+   one UISelectListItem per D-pad move, on the list, the tab strip, 10 fast presses, and the real pad's double dispatch
+   (onJoypadDown + onJoypadDirDown in one frame); never more than 1 sound in a frame. So it isn't ZeD stacking its own
+   clicks. Still to rule out: the game's own Java-side sounds playing at the same moment as ZeD's (two clicks at once),
+   sounds started and cut off in the same frame (stopSound / a sound per draw), or a non-UI cause (the radio's static,
+   the modem sound, an emitter on the windows). Needs the director's note of which actions pop, then a log of every
+   sound call around them.
