@@ -4720,5 +4720,6 @@ to be proposed.
 190. **Controller: the ID card (the director, Nov 14 2026, playing).** open - logged only. Two faults:
    a. The pad can't reach the picture: the avatar and the photo button are never focused.
    b. Hair and Beard are hard to move through. A press either closes or opens a disclosure, and the page jumps down to
-      the greyed-out hairstyle options instead of staying up where the radio buttons are. Breaks the pad rules (focus
+      the greyed-out hairstyle options instead of staying up where the radio buttons are. The trigger (the director, same day):
+      D-pad left or right from Hair and Beard is what makes the page jump. Breaks the pad rules (focus
       stays where you are; disclosures first; no jumps). Not reproduced by QA yet.
