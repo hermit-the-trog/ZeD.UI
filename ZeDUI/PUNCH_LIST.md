@@ -4736,3 +4736,7 @@ to be proposed.
 
 194. **Controller: the death screen can't be navigated (the director, Nov 14 2026, playing).** open - logged only. After
    the character dies, the pad can't move through or press anything on the death screen. Not reproduced by QA yet.
+
+195. **Controller: long cards make the footer hard to reach (the director, Nov 14 2026, playing).** open - logged only. On
+   a card with a lot of content, the pad has to step through every control or row to get down to the footer's actions.
+   Not reproduced by QA yet; which cards not noted.
