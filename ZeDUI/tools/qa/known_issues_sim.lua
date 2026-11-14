@@ -424,7 +424,7 @@ do
     -- the gate: only the first player opens ZeD's windows while split view's switch is off (beta 13 S2b added the
     -- switch, ZeD.splitWindows, off until every way in passes its player)
     local gate = fnOf(atoms, "function ZeD.windowsFor")
-    local G = { splitWindows = false }
+    local G = { splitWindows = false, partFits = function() return true end }   -- (a part big enough: the size rule is split_view_sim's)
     local okG, gfn = pcall(loadstring, "local ZeD = ...\n" .. (gate or "") .. "\nreturn ZeD.windowsFor")
     local wf = okG and gfn and gfn(G)
     check("the gate with the switch off: player 1 only", wf and wf(nil) and wf(0) and not wf(1) and not wf(3), gate)

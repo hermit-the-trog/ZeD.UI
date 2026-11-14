@@ -1735,9 +1735,18 @@ do
         print("[ZeD] split view: on (ZeD_splitview_on.txt in Zomboid/Lua)")
     end
 end
+-- The least room a player's part needs for ZeD's pair with a drawer open, in design units (the director, Nov 13 2026,
+-- choice A: below it that player gets the game's own windows). At the game's scale on a 1080p TV a half fits (960 x
+-- 1080) and a quarter (960 x 540) does not; a 4K TV's quarters fit at 1.75; the Steam Deck's halves (640 x 800) do not.
+ZeD.SPLIT_MIN_W, ZeD.SPLIT_MIN_H = 960, 600
+function ZeD.partFits(pn)
+    local _, _, w, h = ZeD.playerRect(pn)
+    local px = (ZeD.T and ZeD.T.px) or function(v) return v end
+    return w >= px(ZeD.SPLIT_MIN_W) and h >= px(ZeD.SPLIT_MIN_H)
+end
 function ZeD.windowsFor(pn)
     if pn == nil or pn == 0 then return true end
-    return ZeD.splitWindows == true and type(pn) == "number" and pn >= 1 and pn <= 3
+    return ZeD.splitWindows == true and type(pn) == "number" and pn >= 1 and pn <= 3 and ZeD.partFits(pn)
 end
 
 -- The no-craft chip is vanilla's own

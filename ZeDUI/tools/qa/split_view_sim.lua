@@ -24,6 +24,7 @@ getPlayerScreenWidth = function(pn) return PARTS[pn][3] end
 getPlayerScreenHeight = function(pn) return PARTS[pn][4] end
 
 cut("42/media/lua/client/ZeD/Atoms.lua", "(function ZeD%.playerRect%(pn%).-\nend%s)")
+cut("42/media/lua/client/ZeD/Atoms.lua", "(ZeD%.SPLIT_MIN_W, ZeD%.SPLIT_MIN_H = .-function ZeD%.partFits%(pn%).-\nend%s)")
 cut("42/media/lua/client/ZeD/Atoms.lua", "(function ZeD%.windowsFor%(pn%).-\nend%s)")
 cut("42/media/lua/client/ZeD/Organisms.lua", "(function ZeD%.screenOf%(w%).-\nend%s)")
 cut("42/media/lua/client/ZeD/Organisms.lua", "(function ZeD%.screenLeftOf%(w%).-\nend%s)")
@@ -48,6 +49,15 @@ w, h, x = ZeD.screenOf(1)
 check("on: a player number while a window is built", w == 960 and x == 960)
 w = ZeD.screenOf({})
 check("on: a window with no player (the main menu's) keeps the whole screen", w == 1920)
+-- the director's choice A (Nov 13 2026): a part too small for the pair gives that player the game's windows
+PARTS[1] = { 640, 0, 640, 800 }            -- a Steam Deck half
+check("A: a Deck half is too small: player 2 gets the game's", not ZeD.windowsFor(1))
+PARTS[1] = { 960, 540, 960, 540 }          -- a 1080p quarter
+check("A: a 1080p quarter is too small", not ZeD.windowsFor(1))
+PARTS[1] = { 1920, 0, 1920, 1080 }         -- a 4K quarter (at scale 1)
+check("A: a 4K quarter fits", ZeD.windowsFor(1))
+PARTS[1] = { 960, 0, 960, 1080 }
+check("A: player 1 keeps ZeD's windows whatever their part", ZeD.windowsFor(0))
 -- QA's stand-in: a part set for player 1 alone
 ZeD._qaRect = { [0] = { 0, 540, 960, 540 } }
 w, h, x, y = ZeD.screenOf({ playerNum = 0 })

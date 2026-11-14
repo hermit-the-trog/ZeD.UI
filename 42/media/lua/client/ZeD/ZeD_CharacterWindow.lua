@@ -7399,7 +7399,28 @@ if Events.OnResolutionChange then
     Events.OnResolutionChange.Add(function() for _, w in pairs(_charWins) do fitCharToScreen(w) end end)
 -- split view: a player joining or leaving resizes every player's part of the screen (player 1's halves when player 2
 -- joins), so each window refits to its own part then too (off until ZeD.splitWindows)
-local function _refitChars() if ZeD.splitWindows then for _, w in pairs(_charWins) do fitCharToScreen(w) end end end
+local function _refitChars()
+    if not ZeD.splitWindows then return end
+    for pn = 1, 3 do
+        -- (a player whose part became too small for ZeD's windows, a third player joining on a 1080p screen: their ZeD
+        -- windows close and the game's own take over, the director's choice A)
+        if getSpecificPlayer(pn) and not ZeD.windowsFor(pn) then
+            local w = _charWins[pn]
+            if w then
+                local ok = pcall(ZeD_CharacterWindow.toggle, pn)
+                if not ok or _charWins[pn] then
+                    _charWins[pn] = nil
+                    pcall(function() if ZeD.Input and ZeD.Input.Focus then ZeD.Input.Focus.unregisterWindow(w) end end)
+                    pcall(w.removeFromUIManager, w)
+                end
+            end
+            if ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn) then
+                pcall(ZeD_WorldWindow.forceClose, pn)
+            end
+        end
+    end
+    for _, w in pairs(_charWins) do fitCharToScreen(w) end
+end
 Events.OnCreatePlayer.Add(_refitChars)
 Events.OnPlayerDeath.Add(_refitChars)
 end
