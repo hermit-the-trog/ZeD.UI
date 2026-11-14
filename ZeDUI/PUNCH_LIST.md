@@ -4723,3 +4723,13 @@ to be proposed.
       the greyed-out hairstyle options instead of staying up where the radio buttons are. The trigger (the director, same day):
       D-pad left or right from Hair and Beard is what makes the page jump. Breaks the pad rules (focus
       stays where you are; disclosures first; no jumps). Not reproduced by QA yet.
+
+191. **Controller: the Journal's tab strip lags the first time (the director, Nov 14 2026, playing).** open - logged only.
+   D-pad left/right through the Journal tabs (Journal, Notebooks, Papers, Recipes, Loadouts) lags on the first pass, while
+   each tab builds; after that it's fine. The lag lets the press overshoot the wanted tab and land in the inventory.
+   Likely each tab's first build runs on the press. Not reproduced by QA yet.
+192. **Controller: Training materials' sub-items can't be reached (the director, Nov 14 2026, playing).** open - logged
+   only. Opening a group (Blacksmithing) shows its books, but D-pad down goes to the next group (Butchering), not the first
+   book (Blacksmithing 1). The opened group's rows aren't in the pad's list. Not reproduced by QA yet.
+193. **Moodles above the belt cover the button hints (the director, Nov 14 2026, playing).** open - logged only. With
+   the moodles placed above the belt, they sit over the controller button hints. Not reproduced by QA yet.
