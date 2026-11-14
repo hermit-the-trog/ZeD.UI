@@ -393,7 +393,12 @@ end)
 local function cowsHome()
     for _, c in ipairs({ A.c1, A.c2 }) do
         local h = O[c]
-        if h then pcall(function() c:setX(h[1]); c:setY(h[2]); c:setLastX(h[1]); c:setLastY(h[2]) end) end
+        if h then
+            pcall(function() c:setX(h[1]); c:setY(h[2]); c:setLastX(h[1]); c:setLastY(h[2]) end)
+            -- (Nov 13 2026, Build: the square too, or the game's milk isValid reads the player as far off and stops)
+            local sq = getCell():getGridSquare(math.floor(h[1]), math.floor(h[2]), 0)
+            if sq and not pcall(function() c:setCurrentSquare(sq) end) then pcall(function() c:setCurrent(sq) end) end
+        end
     end
 end
 -- e  walking away mid-milking. Kept at speed 1 on purpose: it is about real-time behavior (the run's reaction to the player

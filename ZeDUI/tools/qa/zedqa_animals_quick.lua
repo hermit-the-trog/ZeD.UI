@@ -224,6 +224,15 @@ local function backHome(a)
     local h = AT0[a]
     if not (a and h) then return end
     pcall(function() a:setX(h[1] + 0.5); a:setY(h[2] + 0.5); a:setLastX(h[1] + 0.5); a:setLastY(h[2] + 0.5) end)
+    -- (Nov 13 2026, Build: setX/setY leave the animal's square (IsoMovingObject.current) on the old one, so the game's
+    -- shear and milk isValid read the player as 3+ squares off and drop the act. Set the square too.)
+    local sq = getCell():getGridSquare(h[1], h[2], 0)
+    local how = "none"
+    if sq then
+        if pcall(function() a:setCurrentSquare(sq) end) then how = "setCurrentSquare"
+        elseif pcall(function() a:setCurrent(sq) end) then how = "setCurrent" end
+    end
+    if not ZEDQA_RESQ_SAID then ZEDQA_RESQ_SAID = true; say("an animal moved back gets its square by " .. how) end
 end
 local function inZone(a)
     for _, z in ipairs(AP.getAnimalsInZone(ZONE) or {}) do if z == a then return true end end
