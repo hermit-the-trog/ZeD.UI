@@ -4710,3 +4710,9 @@ to be proposed.
    The trigger (the director, same day): Start to open the pause menu, then Y. After Y the game is in mouse and
    keyboard mode and the controller is not recognized; the D-pad then opens the wheels. Y likely runs ZeD's Y (both
    windows) or switches the input mode while the pause menu is up. Not reproduced by QA yet; may share a cause with 187.
+
+189. **Wearing clothing straight from a world container puts it on, then takes it off and puts it back (the director,
+   Nov 14 2026, playing).** open - logged only. Equip on a garment that sits in a world container (not the character's
+   inventory): the character wears it, then unequips it and returns it to the container. Possibly ZeD queues the game's
+   transfer-back after the wear (the "put it back" step meant for a cancelled action) or runs equip and a return in the
+   wrong order. Not reproduced by QA yet; controller or mouse not noted.
