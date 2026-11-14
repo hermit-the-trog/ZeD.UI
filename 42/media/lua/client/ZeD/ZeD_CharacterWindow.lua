@@ -1515,7 +1515,7 @@ local function _trainingOnFocus(w, el)
     w._gpFocusedTraining = el.trainingId
 end
 local function _trainingOnActivate(w, el)
-    if not el.trainingId then return end
+    if not el.trainingId or el.trainingBook then return end
     w._trainingExpanded = w._trainingExpanded or {}
     w._trainingExpanded[el.trainingId] = not w._trainingExpanded[el.trainingId]
     w._skillsCache = nil  -- force scroll height recalc
@@ -1539,6 +1539,7 @@ local function _buildTrainingChevronFocusables(win)
                 x = z.x, y = z.y, w = z.w, h = z.h,
                 id = id,
                 trainingId = z.id,
+                trainingBook = z.book or nil,
                 onFocus = _trainingOnFocus,
                 onActivate = _trainingOnActivate,
             }
@@ -5547,7 +5548,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             -- Training materials expand/collapse click detection
             if win._activeTab == "skills" and win._trainingGroupZones then
                 for _, zone in ipairs(win._trainingGroupZones) do
-                    if x >= zone.x and x <= zone.x + zone.w
+                    if not zone.book and x >= zone.x and x <= zone.x + zone.w
                        and y >= zone.y and y <= zone.y + zone.h then
                         win._trainingExpanded = win._trainingExpanded or {}
                         win._trainingExpanded[zone.id] = not win._trainingExpanded[zone.id]

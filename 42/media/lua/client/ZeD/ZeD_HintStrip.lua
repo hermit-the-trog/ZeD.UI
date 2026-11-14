@@ -206,6 +206,9 @@ function ZeD_HintStripHUD:prerender()
     local y = getPlayerScreenTop(pn) + getPlayerScreenHeight(pn) - h - T.px(16)
     local belt = ZeD.Belt and ZeD.Belt.getHUD and ZeD.Belt.getHUD(pn)
     if belt and belt._drawn and belt:getIsVisible() then y = belt:getY() - h - T.px(6) end
+    -- (Nov 14 2026, punch list 193: moodles placed above the belt sit in the same band, so the strip goes above them)
+    local mr = ZeD.Moodles and ZeD.Moodles.rect and ZeD.Moodles.rect(pn)
+    if mr and mr.place == "bottom" and (mr.n or 0) > 0 then y = math.min(y, mr.y - h - T.px(6)) end
     if self:getX() ~= x then self:setX(x) end
     if self:getY() ~= y then self:setY(y) end
     if self:getWidth() ~= w then self:setWidth(w) end

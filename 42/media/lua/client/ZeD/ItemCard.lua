@@ -1742,6 +1742,7 @@ function ZeD_ItemCard:getActionStripElements()
             els[#els + 1] = {
                 x = r.x, y = r.y, w = r.w, h = r.h,
                 id = eid,
+                isFooter = true,   -- (the footer: Up from the top button at the card's top comes here)
                 onFocus = function() card._gpFocusedBtnId = eid end,
                 onActivate = function()
                     if not vactive then return end
@@ -1768,6 +1769,12 @@ function ZeD_ItemCard:gpDpad(w, e, dir, zoneName)
     if dir == "up" then
         if e and not e.isStrip and F and F.focusWhere then
             if F.focusWhere(w, zoneName, function(x) return x.isPrimary end) then return true end
+        end
+        -- (Nov 14 2026, punch list 195, the director's pick: on the top button with the card at its top, Up goes
+        -- to the footer's verbs, so Up switches between the two however long the card is)
+        local atTop = not (self._sb and self._sb.visible) or (self._scrollPixels or 0) <= 0
+        if e and e.isStrip and atTop and F and F.focusWhere then
+            if F.focusWhere(w, zoneName, function(x) return x.isFooter end) then return true end
         end
         self:scrollToPrevDisclosure()
         return true

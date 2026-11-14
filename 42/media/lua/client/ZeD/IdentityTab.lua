@@ -1660,6 +1660,17 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
         win._identityGridScrollZone = nil
     end
 
+    -- (Nov 14 2026, punch list 190: the scroll is kept as a fraction, so a fold of rows opening or shutting (Hair |
+    -- Beard switched with no tool) moved the same fraction to another place and the page jumped to the greyed
+    -- rows. When the content's height changes, the pixel offset stays where it was, unless something moved the
+    -- scroll on purpose since the last frame: the photo's switch, the make-up jump.)
+    if needsScroll and win._idLastH and win._idLastH ~= totalContentH and win._idOffPx
+       and scroll.scrollPos == win._idPosLast then
+        local range = math.max(1, totalContentH - scrollH)
+        scroll:setScrollPos(math.max(0, math.min(1, win._idOffPx / range)))
+    end
+    win._idLastH = totalContentH
+
     -- the controller's focus stays in view (once per newly focused stop); the
     -- disclosure takes the tab back to the top
     if needsScroll then ZeD.IdentityTab.followFocus(win, scroll, scrollY, scrollH, totalContentH) end
@@ -1672,6 +1683,8 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
         scrollOff = math.floor(scroll.scrollPos * math.max(0, totalContentH - scrollH))
     end
     win._identityScrollOff = scrollOff
+    win._idOffPx = scrollOff
+    win._idPosLast = scroll.scrollPos
     local drawY = scrollY - scrollOff
 
     -- ================================================================
@@ -1689,6 +1702,18 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
         if key and mx >= wa.x and mx < wa.x + wa.w and my >= wa.y
            and A.mouseIn(panel, wa.x, wa.y, wa.w, zoomLineH(ZeD.Font.sdf.head, wa.zoom), win._idView) then
             ZeD.Help.set(win, ZeD.tr(key))
+        end
+    end
+
+    -- (Nov 14 2026, punch list 190: the photo and the studio's camera are controller stops; their marks)
+    local F = ZeD.Input and ZeD.Input.Focus
+    if F and F.isFocused then
+        local pz0, cz = win._identityPhotoZone, ZeD.IdentityTab.cameraZone(win)
+        if pz0 and F.isFocused(win, nil, "identity:photo") then
+            ZeD.Focus.mark(panel, pz0.x, pz0.y, pz0.w, pz0.h, { win = win })
+            if ZeD.Help then ZeD.Help.set(win, ZeD.tr(win._identityPhotoExpanded and "UI_ZeD_Identity_HelpPhotoBack" or "UI_ZeD_Identity_HelpPhoto")) end
+        elseif cz and F.isFocused(win, nil, "identity:studio") then
+            ZeD.Focus.mark(panel, cz.x, cz.y, cz.w, cz.h, { win = win })
         end
     end
 
@@ -1787,10 +1812,45 @@ end
 
 local function traitOnFocus() end   -- (a trait is read, not pressed: one callback for every trait's stop)
 
+--- The studio camera's square in the tab's frame (the photo's bottom right corner, as the window places the
+--- button), or nil without the button.
+function ZeD.IdentityTab.cameraZone(win)
+    local cam, pr = win._studioBtn, win._identityPhotoRect
+    if not (cam and pr and ZeD.Studio and ZeD.Studio.available) then return nil end
+    local T = ZeD.T
+    local s = T.px(18)
+    local z = win._idCamZ or {}
+    win._idCamZ = z
+    z.x, z.y, z.w, z.h = pr.x + pr.w - s - T.px(4), pr.y + pr.h - s - T.px(4), s, s
+    return z
+end
+local function photoActivate(win)
+    win._identityPhotoExpanded = not win._identityPhotoExpanded
+    win._identityCustomZoom = 0
+    if win._identityScroll then win._identityScroll:setScrollPos(0) end
+end
+local function studioActivate(win)
+    local ST = ZeD.Studio
+    if ST and ST.available() and win._playerObj then
+        ST.open(win._playerObj)   -- (the dispatcher plays the press's sound)
+    end
+end
+
 --- The controller's stops below the disclosure: Hair and beard's, then each trait
 --- (ZeD_CharacterWindow's Identity aggregator puts the disclosure first).
 function ZeD.IdentityTab.focusables(win)
     local out = {}
+    -- (Nov 14 2026, punch list 190: the photo, A for full body or the bust, and the studio's camera)
+    local pz, v = win._identityPhotoZone, win._idView
+    if pz and (not v or (pz.y + pz.h > v.y and pz.y < v.y + v.h)) then
+        out[#out + 1] = { x = pz.x, y = pz.y, w = pz.w, h = pz.h, id = "identity:photo", onFocus = traitOnFocus,
+                          onActivate = function(w) photoActivate(w or win) end }
+        local cz = ZeD.IdentityTab.cameraZone(win)
+        if cz then
+            out[#out + 1] = { x = cz.x, y = cz.y, w = cz.w, h = cz.h, id = "identity:studio", onFocus = traitOnFocus,
+                              onActivate = function(w) studioActivate(w or win) end }
+        end
+    end
     if ZeD.HairBeard then
         for _, e in ipairs(ZeD.HairBeard.focusables(win)) do out[#out + 1] = e end
     end

@@ -323,6 +323,14 @@ function ISPostDeathUI:prerender()
     self.screenX, self.screenY = getPlayerScreenLeft(self.playerIndex), getPlayerScreenTop(self.playerIndex)
     self.screenWidth, self.screenHeight = getPlayerScreenWidth(self.playerIndex), getPlayerScreenHeight(self.playerIndex)
     if not self.waitOver then self.waitOver = getTimestamp() > (self.timeOfDeath or 0) + 3 end
+    -- (Nov 14 2026, punch list 194: a controller player's pad belongs to this screen once it shows. Closing the
+    -- windows on a death could hand the pad on after the game gave it here, and then no button answered.)
+    if self.waitOver and self:isReallyVisible() then
+        local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerIndex + 1]
+        if jd and jd.focus ~= self and not (jd.focus and jd.focus.isReallyVisible and jd.focus:isReallyVisible()) then
+            setJoypadFocus(self.playerIndex, self)
+        end
+    end
     self._hits = {}
     if not self.waitOver or not ZeD.T then
         -- (vanilla's three seconds: nothing yet, and nothing to click)

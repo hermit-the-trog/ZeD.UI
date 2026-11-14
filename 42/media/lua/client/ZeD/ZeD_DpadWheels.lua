@@ -412,6 +412,8 @@ local function apply()
             -- (split-screen: the wheels' slices open ZeD's windows, which are the first player's: another player
             -- has the game's own wheels, ZeD.windowsFor)
             if D.gameWheels() or not ZeD.windowsFor(joypadData and joypadData.player or 0) then return orig(joypadData) end
+            -- (Nov 14 2026, punch list 188: no wheel behind the pause menu)
+            if ZeD.Input and ZeD.Input.Focus and ZeD.Input.Focus.pauseMenuUp and ZeD.Input.Focus.pauseMenuUp() then return end
             if windowTakes(dir, joypadData) then return end
             if not G.freshPress(dir, joypadData) then return end   -- (the game's repeat of a held direction)
             -- paused: only Here and now opens (Game speed, Play stays in reach)

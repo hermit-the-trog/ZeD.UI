@@ -933,12 +933,13 @@ do
  3100 p0 engine focus world0
  3100 p0 ignore aim
  3100 p0 focus world0 <- char0
- 3100 p0 state world0 r1 cues=true mode=gamepad chord=IDLE slot=world0
- 3150 p0 state world0 r1 cues=true mode=gamepad chord=IDLE slot=world0
- 3200 p0 [ZeD.Input] Focus: spatial right -> flat[5/6] (cone) zone=btns [world0]
- 3200 p0 world0 b1 onFocus
- 3200 p0 state world0 b1 cues=true mode=gamepad chord=IDLE slot=world0
- 3250 p0 state world0 b1 cues=true mode=gamepad chord=IDLE slot=world0
+ 3100 p0 world0 r2 onFocus
+ 3100 p0 state world0 r2 cues=true mode=gamepad chord=IDLE slot=world0
+ 3150 p0 state world0 r2 cues=true mode=gamepad chord=IDLE slot=world0
+ 3200 p0 [ZeD.Input] Focus: spatial right -> flat[6/6] (cone) zone=btns [world0]
+ 3200 p0 world0 b2 onFocus
+ 3200 p0 state world0 b2 cues=true mode=gamepad chord=IDLE slot=world0
+ 3250 p0 state world0 b2 cues=true mode=gamepad chord=IDLE slot=world0
  3400 p0 pair
  3400 p0 [ZeD.Input] Focus: claim: world0 -> char0
  3400 p0 engine focus char0
@@ -983,10 +984,10 @@ do
  6100 p0 engine focus world0
  6100 p0 ignore aim
  6100 p0 focus world0 <- char0
- 6100 p0 state world0 b1 cues=true mode=gamepad chord=IDLE slot=world0
+ 6100 p0 state world0 b2 cues=true mode=gamepad chord=IDLE slot=world0
  6150 p0 game release RightBump
- 6150 p0 state world0 b1 cues=true mode=gamepad chord=IDLE slot=world0
- 6800 p0 state world0 b1 cues=true mode=gamepad chord=IDLE slot=world0
+ 6150 p0 state world0 b2 cues=true mode=gamepad chord=IDLE slot=world0
+ 6800 p0 state world0 b2 cues=true mode=gamepad chord=IDLE slot=world0
  6800 p0 [ZeD.Input] Focus: aiming-escape magSq=1 world0
  6800 p0 [ZeD.Input] Focus: hideAll (aim-RS)
  6800 p0 shade char0

@@ -1040,6 +1040,7 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
             local zn = nextZone(zones)
             zn.id, zn.x, zn.y, zn.w, zn.h = expandKey, startX, dy, colWidth, collapsedRowH
             zn.label = skillGroup.label   -- (the skill id: the Find text's stops read it)
+            zn.book = nil
 
             dy = dy + collapsedRowH + T.px(1)
 
@@ -1047,9 +1048,19 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
             if isExpanded then
                 local detailPad = startX + T.px(TM_DETAIL_PAD)
 
-                for _, bookItem in ipairs(skillGroup.items) do
+                for bookIdx, bookItem in ipairs(skillGroup.items) do
                     local def = TM_STATUS_MAP[bookItem.status] or TM_STATUS_MAP.missing
                     local dvis = (not view) or ((dy + detailRowH > view.y) and (dy < view.y + view.h))
+                    -- (Nov 14 2026, punch list 192: an open group's books are controller stops too, so Down from
+                    -- Blacksmithing reaches its first book, not Butchering; A on a book does nothing)
+                    local bkey = expandKey .. "#" .. bookIdx
+                    local bz = nextZone(zones)
+                    bz.id, bz.x, bz.y, bz.w, bz.h = bkey, startX, dy, colWidth, detailRowH
+                    bz.label, bz.book = skillGroup.label, true
+                    local btid = _trainIds[bkey]
+                    if not btid then btid = "training:" .. bkey; _trainIds[bkey] = btid end
+                    local bfo = win and focusOf(win, btid)
+                    if bfo then ZeD.Focus.mark(panel, startX, dy, colWidth, detailRowH, bfo) end
                     if dvis then
                     -- Color chip (same dot as collapsed row)
                     local chipX = detailPad

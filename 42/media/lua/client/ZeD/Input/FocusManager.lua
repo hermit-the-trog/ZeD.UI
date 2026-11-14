@@ -128,6 +128,16 @@ ZeD.Input.Focus = ZeD.Input.Focus or {}
 
 local Focus = ZeD.Input.Focus
 
+local STALL_MS, STALL_QUIET_MS = 120, 400   -- (punch list 191: a tick gap this long is a stall, not a hold)
+
+--- The game's pause menu is up over a game in progress (Start): ZeD leaves the pad to it (punch list 188).
+function Focus.pauseMenuUp()
+    local m = MainScreen and MainScreen.instance
+    if not m or not m.inGame then return false end
+    local ok, vis = pcall(function() return m:isReallyVisible() end)
+    return ok and vis == true
+end
+
 -- ---------------------------------------------------------------------------
 -- CONSTANTS
 -- ---------------------------------------------------------------------------
@@ -446,9 +456,11 @@ function Focus.unregisterWindow(w)
     -- a second player who died or left: their pad's slot is the post-death
     -- screen's now, so nothing is handed on or pushed there (the windows'
     -- death handler may close them before this file hears of the death)
-    if pn ~= 0 then
+    -- (Nov 14 2026, punch list 194: the first player too. The game hands the pad to its death screen before ZeD's
+    -- death handler closes the windows, and handing focus on from here took it back, so the pad could not use it.)
+    do
         local p = getSpecificPlayer and getSpecificPlayer(pn)
-        if p == nil or p:isDead() then
+        if (pn ~= 0 and p == nil) or (p ~= nil and p:isDead()) then
             s.win = nil
             s.dDir = nil
             _setBumperChordEnabled(true, pn)
@@ -497,6 +509,7 @@ end
 --- Does nothing while Focus.held().
 function Focus.claimFocus(w)
     if not w then return end
+    if Focus.pauseMenuUp() then return end   -- (punch list 188: never take the pad from the pause menu)
     local pn = _pnOf(w)
     local s = _S(pn)
     if s.win == w then return end
@@ -1024,6 +1037,29 @@ local function _pickBestWithFallback(elements, focusedIdx, dir, linedUpOnly)
     end
     if not bestIdx then return nil, nil end
     return bestIdx, (bestTier == 0) and "cone" or "half"
+end
+
+--- A move that crossed from window w into window other lands on other's nearest stop that way from src (one of
+--- w's flat stops), then that stop's zone's own landing rule (zone.landOn), as a move inside a window does.
+function Focus._landFrom(w, other, src, dir)
+    local els, loc = _collectFlat(other)
+    if #els == 0 then return end
+    local dx, dy = w:getX() - other:getX(), w:getY() - other:getY()
+    local probe = { x = src.x + dx, y = src.y + dy, w = src.w, h = src.h, zi = -1 }
+    els[#els + 1] = probe
+    local pick = _pickBestWithFallback(els, #els, dir, false)
+    els[#els] = nil
+    if not pick or not loc[pick] then return end
+    local zone = other._focusRing[loc[pick].zoneIdx]
+    if zone and zone.landOn then
+        local okL, ei = pcall(zone.landOn, other, zone, dir)
+        if okL and type(ei) == "number" and zone.elements and zone.elements[ei] then
+            for fi, l in ipairs(loc) do
+                if l.zoneIdx == loc[pick].zoneIdx and l.elementIdx == ei then pick = fi; break end
+            end
+        end
+    end
+    _applyFlatLanding(other, loc, nil, pick)
 end
 
 -- ---------------------------------------------------------------------------
@@ -1560,7 +1596,14 @@ local function _handleSpatialNav(w, dir)
                     return
                 end
                 print("[ZeD.Input] Focus: spatial " .. dir .. " -> window " .. _label(other) .. _who(_pnOf(w)))
+                -- (Nov 14 2026, punch list 186: land by position, the nearest stop that way from where the move
+                -- started, then that zone's own landing rule; the window's last focus could be Take all when its
+                -- list had emptied under it. Where the move started, in the other window's frame:)
+                local src = elements[_findCurrentFlatIdx(w, locator) or 0]
                 Focus.claimFocus(other)
+                if src and Focus.getFocusedWindow(_pnOf(other)) == other then
+                    pcall(Focus._landFrom, w, other, src, dir)
+                end
                 pcall(function() getSoundManager():playUISound("UISelectListItem") end)
             end
         end
@@ -2089,6 +2132,9 @@ function Focus.dispatchJoypadDir(w, dir, joypadData)
         s.dDir   = dir
         s.dStart = getTimestampMs()
         s.dLast  = s.dStart
+    elseif s.dStall and getTimestampMs() - s.dStall < STALL_QUIET_MS then
+        -- (punch list 191: the engine's own repeat of a press held through a slow frame is not a second move)
+        return
     end
 
     _handleSpatialNav(w, dir)
@@ -2339,6 +2385,30 @@ local function _tickPlayer(pn, s)
         _dropHolds(s)
         return
     end
+    -- (Nov 14 2026, punch list 188: the pause menu is the game's. Y read straight from the pad here unrolled the
+    -- windows and took the pad from the menu; a Y still down when the menu closes is not a new press)
+    if Focus.pauseMenuUp() then
+        _dropHolds(s)
+        s.prevY = true
+        return
+    end
+    -- (Nov 14 2026, punch list 184: a game cursor started (Place item, a build, paint) while a ZeD window held the
+    -- pad, so A went to the window and ended in the world's interact (a chair, a window) instead of placing. The
+    -- game lets go of the pad only for its own inventory; ZeD rolls its windows up and lets go too, once per
+    -- cursor, as the right stick's aim does. The Furniture tab's cursor is driven from the open window: not that one.)
+    do
+        local cell = getCell and getCell()
+        local d = cell and cell:getDrag(pn)
+        if d and d.Type ~= "ISMoveableCursor" then
+            if s.win and s.dragSeen ~= d then
+                s.dragSeen = d
+                _hideAllWindows("cursor", pn)
+                return
+            end
+        else
+            s.dragSeen = nil
+        end
+    end
 
     -- Never focus with nothing lit. A fresh window lands on its
     -- list's first row once the rows exist; focus left on a zone that went
@@ -2407,10 +2477,20 @@ local function _tickPlayer(pn, s)
         s.dDir   = dir
         s.dStart = getTimestampMs()
         s.dLast  = s.dStart
+        s.dTick  = s.dStart
         return
     end
 
     local now = getTimestampMs()
+    -- (Nov 14 2026, punch list 191: a slow frame (a Journal page building on its first show) let a tap still be
+    -- down past the hold's start, and the repeat walked on past the wanted tab into the inventory. A gap between
+    -- ticks is not holding: the hold starts again from now.)
+    local gap = now - (s.dTick or now)
+    s.dTick = now
+    if gap > STALL_MS then
+        s.dStart, s.dLast, s.dStall = now, now, now
+        return
+    end
     if (now - s.dStart) >= _holdInitialMs()
        and (now - s.dLast) >= _holdRepeatMs() then
         _handleSpatialNav(s.win, dir)

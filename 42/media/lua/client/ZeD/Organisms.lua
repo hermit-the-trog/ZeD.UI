@@ -1777,6 +1777,12 @@ end
 -- ============================================================================
 
 function ZeD_Window:onJoypadDown(button, joypadData)
+    -- (Nov 14 2026, punch list 187: Start pauses with a ZeD window holding the pad, as the game's own windows do;
+    -- the game routes every button to the focused window, and ZeD's dispatcher has no action for Start)
+    if button == Joypad.Start and joypadData and joypadData.controller and joypadData.controller.onPauseButtonPressed then
+        joypadData.controller:onPauseButtonPressed()
+        return
+    end
     if ZeD and ZeD.Input and ZeD.Input.Focus
        and ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
         ZeD.Input.Focus.dispatchJoypadDown(self, button, joypadData)

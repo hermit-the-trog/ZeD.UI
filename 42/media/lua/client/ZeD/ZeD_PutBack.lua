@@ -105,7 +105,12 @@ local function finish(run)
     for _, item in ipairs(run.order) do
         local m = run.moved[item]
         -- (what the run put on or hung on the belt was what it was for: it stays on)
-        local kept = chr:isEquippedClothing(item) or chr:isAttachedItem(item)
+        -- (Nov 14 2026, punch list 189: the run's own Wear or belt hang counts too. The queue calls this from the
+        -- action's perform(), and on 42.22 the garment goes on in complete(), after it, so isEquippedClothing was
+        -- still false and a shirt worn from a crate was taken off and put back.)
+        local mainA = run.main
+        local putOn = mainA and mainA.item == item and (mainA.Type == "ISWearClothing" or mainA.Type == "ISAttachItemHotbar")
+        local kept = putOn or chr:isEquippedClothing(item) or chr:isAttachedItem(item)
         if not run.gameBack[item] and not kept then
             if now[item] then backs[#backs + 1] = { item, m.src }
             elseif item:getContainer() == nil then gone[#gone + 1] = m end   -- (used up)
