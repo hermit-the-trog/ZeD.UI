@@ -4733,3 +4733,6 @@ to be proposed.
    book (Blacksmithing 1). The opened group's rows aren't in the pad's list. Not reproduced by QA yet.
 193. **Moodles above the belt cover the button hints (the director, Nov 14 2026, playing).** open - logged only. With
    the moodles placed above the belt, they sit over the controller button hints. Not reproduced by QA yet.
+
+194. **Controller: the death screen can't be navigated (the director, Nov 14 2026, playing).** open - logged only. After
+   the character dies, the pad can't move through or press anything on the death screen. Not reproduced by QA yet.
