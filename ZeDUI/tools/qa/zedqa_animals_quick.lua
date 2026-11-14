@@ -339,7 +339,18 @@ end)
 add(300, function()
     emptyGiven()
     AQ.forgetChecks()
-    A.far = spawn("cow", math.floor(p:getX()) - 35, math.floor(p:getY()))
+    -- (Nov 13 2026, the director's farm: 35 squares west was inside the barn and the character climbed in through a window.
+    -- The far cow goes on the first open outdoor square 35 squares off, east first, never indoors or on a blocked square.)
+    local fx, fy = math.floor(p:getX()), math.floor(p:getY())
+    local tx, ty = fx - 35, fy
+    for _, d in ipairs({ { 35, 0 }, { 0, 35 }, { 0, -35 }, { -35, 0 } }) do
+        local s = getCell():getGridSquare(fx + d[1], fy + d[2], 0)
+        local open = false
+        pcall(function() open = s ~= nil and s:getRoom() == nil and s:isFree(false) and not s:HasTree() end)
+        if open then tx, ty = fx + d[1], fy + d[2]; break end
+    end
+    say("the far cow's square: " .. tx .. "," .. ty)
+    A.far = spawn("cow", tx, ty)
     pcall(function() A.far:getData():setMaxMilkActual(6); A.far:getData():setMilkQuantity(6) end)
 end)
 add(1000, function()
