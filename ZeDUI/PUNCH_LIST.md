@@ -4839,3 +4839,9 @@ to be proposed.
    sounds started and cut off in the same frame (stopSound / a sound per draw), or a non-UI cause (the radio's static,
    the modem sound, an emitter on the windows). Needs the director's note of which actions pop, then a log of every
    sound call around them.
+
+211. **A ZeD setup choice for UI sounds: volume, or off (the director, Nov 14 2026).** open, a request. The director
+   doesn't like UI sounds but knows some players rely on them. Wanted: in ZeD setup, a way to turn ZeD's UI sounds off
+   or lower their volume. ZeD already plays every click through its own calls (the game's UIActivateButton,
+   UISelectListItem, UIActivateTab, UIToggleTickBox and so on, from about 90 places, mostly local sound() helpers), so
+   one shared helper could read the setting; the default stays on, since the sounds matter to some players.
