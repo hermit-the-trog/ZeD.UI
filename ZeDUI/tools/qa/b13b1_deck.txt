@@ -1,0 +1,6 @@
+# Nov 13 2026, QA: beta 13 batch 1 (b583953b6) at the Steam Deck's 1280x800: the screen fit and drawer pushes at the left
+# edge now read the window's part of the screen (the whole screen with the split switch off).
+#   $env:ZEDQA_NOSTEAM = "1"; pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Mode windowed -Width 1280 -Height 800 -Manifest b13b1_deck.txt -Report ZeDUI/qa/regression/2026-11-13_b13b1_deck.md
+zedqa_prelude.lua | pre | timeout=240
+zedqa_dual_pin.lua | dpn | timeout=960
+zedqa_world_pad_take.lua | wpt | timeout=300

@@ -1,0 +1,15 @@
+# Nov 13 2026, QA: beta 13 batch 1 (b583953b6) at 4K 1.75x. The split-view groundwork with the switch off: floor, containers,
+# trunk, the pad's loot path, vanilla pages never drawn, safe mode; the dash lettering (the 24-car pass).
+#   $env:ZEDQA_NOSTEAM = "1"; pwsh -File ZeDUI/tools/qa/release_check.ps1 -Manifest b13b1_4k.txt -Report ZeDUI/qa/regression/2026-11-13_b13b1_4k.md
+zedqa_prelude.lua | pre | timeout=120
+zedqa_release_check.lua | rel | timeout=240
+suite_verbs.lua | verbs
+zedqa_world_pad_take.lua | wpt | timeout=300
+zedqa_faiv.lua | fav | timeout=240
+zedqa_container_controls.lua | ct
+zedqa_container_bottom.lua | cb
+zedqa_equipdrag.lua | eqd | timeout=240
+zedqa_put_back.lua | pb | timeout=300
+zedqa_navmap.lua | nav
+zedqa_dashpx.lua | dpx | timeout=720
+zedqa_safemode.lua | safe | timeout=240
