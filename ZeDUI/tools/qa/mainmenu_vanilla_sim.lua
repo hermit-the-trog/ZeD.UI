@@ -992,5 +992,29 @@ bp:onBackButton()
 wsel:setVisible(true)
 check("safe mode: the game's world select shows", wsel:isVisible() and MM.view == "main")
 
+-- ============================================================================
+-- the corkboard's heading (Nov 14 2026): "BETA 13A" is wider than the paper, so a hotfix shows its beta's number
+-- ============================================================================
+if not (ZeD.PixelFonts and ZeD.PixelFonts["57"]) then dofile(ROOT .. "42/media/lua/client/ZeD/PixelFonts.lua") end
+local realVer = MM.zedVersion
+local function headRuns(v)
+    MM.zedVersion = function() return v end
+    MM._note = nil
+    MM.drawNote({ drawRect = function() end }, { s = 1, ox = 0, oy = 0 }, false)
+    local n, minX, maxX = 0, 999, -1
+    for _, r in ipairs(MM._note or {}) do
+        if r.y >= 17 and r.y < 24 then n = n + 1; minX = math.min(minX, r.x); maxX = math.max(maxX, r.x + r.w) end
+    end
+    return n, maxX - minX
+end
+local nA, wA = headRuns("0.3.0-beta13a")
+local n13, w13 = headRuns("0.3.0-beta13")
+check("note: a hotfix's heading too wide for the paper falls back to its beta's number", nA > 0 and nA == n13 and wA == w13, nA .. " runs " .. wA .. " px vs " .. n13 .. " " .. w13)
+check("note: BETA 13 fits the paper (40 px)", n13 > 0 and w13 <= 40, w13)
+local nR = headRuns("1.0.0")
+check("note: a release reads V1.0", nR > 0)
+MM.zedVersion = realVer
+MM._note = nil
+
 print("mainmenu_vanilla_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed == 0 and 0 or 1)

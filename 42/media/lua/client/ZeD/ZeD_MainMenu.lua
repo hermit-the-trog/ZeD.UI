@@ -499,9 +499,16 @@ MM._noteRuns = noteRuns
 local function noteWords()
     if MM._note then return MM._note end
     local out = {}
-    local head = {}
-    if noteRuns(head, "57", MM.noteHeading(MM.zedVersion()), NOTE_X, NOTE_HEAD_Y) - NOTE_X <= NOTE_HEAD_ROOM then
-        for _, r in ipairs(head) do out[#out + 1] = r end
+    -- the heading, or on a hotfix whose letter does not fit the paper ("BETA 13A" is 45 px, the room 40) the beta's
+    -- own number ("BETA 13"); nothing if even that is too wide
+    local words = MM.noteHeading(MM.zedVersion())
+    local tries = { words, (words:gsub("^(BETA %d+)%a+$", "%1")) }
+    for _, w in ipairs(tries) do
+        local head = {}
+        if noteRuns(head, "57", w, NOTE_X, NOTE_HEAD_Y) - NOTE_X <= NOTE_HEAD_ROOM then
+            for _, r in ipairs(head) do out[#out + 1] = r end
+            break
+        end
     end
     for i, y in ipairs(NOTE_LINE_Y) do
         local line = ZeD.MenuNote and ZeD.MenuNote[i]
