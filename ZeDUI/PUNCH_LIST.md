@@ -4820,3 +4820,10 @@ to be proposed.
    director found it). But the director wants it easier: choosing the oven and turning it on from the right-click menu
    should open the World window on the tab that holds the oven (the crafting / stations tab), so its controls are right
    there.
+
+209. **Controller: the oven's controls pop-out (the director, Nov 14 2026, playtest).** open. On the oven's controls
+   (Station > Oven > pop-out):
+   a. Up and Down move between the controls left and right (the direction doesn't match the layout).
+   b. On a control, Left/Right turns its dial (fine), but turning past the end makes the D-pad leave the controls
+      window, and then the pop-out can't be closed. A dial at its limit should keep the press (no exit), and B should
+      always close the pop-out wherever focus is.
