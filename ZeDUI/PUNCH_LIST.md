@@ -4790,3 +4790,11 @@ to be proposed.
    square the character stands on or faces, not the chosen one, so nothing can be picked up. The Furniture tab's cursor
    needs to keep the square chosen while the windows were away, or the tab needs a way to confirm the pick from the
    cursor without reopening the windows.
+
+204. **Controller: in the map, LT zooms out AND does the character's left-trigger action (the director, Nov 14 2026,
+   playtest).** open. RT zooms in cleanly. LT zooms out, but the character also plays the game's left-trigger world action
+   (the shove / push animation) at the same time. The map should take LT alone while it is open.
+205. **Controller: aiming no longer closes the inventory windows (the director, Nov 14 2026, playtest).** open. Aiming
+   with the stick while navigating the World window doesn't close the windows, though it should (the pad's "aim to
+   close"). Seen right after 204, in the same session; may share a cause (the windows or map not giving the pad's aim and
+   triggers back to the game, or vice versa).
