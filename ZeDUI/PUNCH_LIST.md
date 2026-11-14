@@ -4740,3 +4740,10 @@ to be proposed.
 195. **Controller: long cards make the footer hard to reach (the director, Nov 14 2026, playing).** open - logged only. On
    a card with a lot of content, the pad has to step through every control or row to get down to the footer's actions.
    Not reproduced by QA yet; which cards not noted.
+
+196. **Controller: the Safe mode dialog sticks open (the director, Nov 14 2026, live check).** open. The logger shows: Back
+   opened the game's Back wheel, then a ZeD_Prompt (the Safe mode dialog) took pad focus; Y while it was up moved focus
+   to the Character window and the dialog stayed on screen with nothing focused on it. Y should not leave a dialog: a
+   prompt keeps focus until it is answered or closed with B.
+197. **Controller: no way into or out of search mode from the D-pad wheels (the director, Nov 14 2026).** open. The
+   wheels (ISRadialMenu on the D-pad) have no slice to start or stop searching (the game's foraging search mode).
