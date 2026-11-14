@@ -4747,3 +4747,10 @@ to be proposed.
    prompt keeps focus until it is answered or closed with B.
 197. **Controller: no way into or out of search mode from the D-pad wheels (the director, Nov 14 2026).** open. The
    wheels (ISRadialMenu on the D-pad) have no slice to start or stop searching (the game's foraging search mode).
+
+198. **The Journal's Recipes "Sort" pull-up menu has no background; its text can't be read (the director, Nov 14 2026,
+   playtest).** open. With the Recipes tab's Sort box opened on the pad, the list that opens above it draws no panel:
+   only the dotted focus box of a row and a sliver of teal ("ab", a clipped label) show over the recipe list, and the
+   choices themselves can't be read. Picture: %USERPROFILE%\Zomboid\Screenshots\zqa_ptl_now.png (crop
+   zqa_ptl_sort_menu_crop.png), 4K. Likely the pull-up's background and rows aren't drawn (clipped by the tab's stencil
+   or drawn under the list) when it opens upward.
