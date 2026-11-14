@@ -572,7 +572,8 @@ end
 local _acc = { r = 0, g = 0, b = 0, a = 1 }
 local function kyAccent(win)
     local key = win and win._accentKey
-    local set = key and ZeD.AccentColors[key] or ZeD.AccentColors[ZeD.currentAccent]
+    -- (no accent of the window's own: the table in use, a split view player's own theme or the shared one)
+    local set = key and ZeD.AccentColors[key] or ZeD.AccentColors[(ZeD.T and ZeD.T.accentKey) or ZeD.currentAccent]
     local a = set and set.dark.accent or ZeD.T.accent
     _acc.r, _acc.g, _acc.b = a.r * 0.62, a.g * 0.62, a.b * 0.62
     return _acc

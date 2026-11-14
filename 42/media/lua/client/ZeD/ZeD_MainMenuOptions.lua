@@ -976,7 +976,7 @@ local function accentKeys() return (ZeD.Settings and ZeD.Settings.accentKeys) or
 local function accentColor(key)
     local set = ZeD.AccentColors and ZeD.AccentColors[key]
     if not set then return nil end
-    local v = (ZeD.currentBase == "light") and set.light or set.dark
+    local v = (((ZeD.T and ZeD.T.baseKey) or ZeD.currentBase) == "light") and set.light or set.dark
     return v and v.accent
 end
 

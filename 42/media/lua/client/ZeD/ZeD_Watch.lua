@@ -808,6 +808,8 @@ function W.install()
     if W._instance then return W._instance end
     local inst = ZeD_Watch:new(0)
     inst:initialise()
+    -- (the first player's: adopt leaves it as it is; there for the day other players get a watch, PlayerTheme.lua)
+    if ZeD.Theme and ZeD.Theme.adopt then ZeD.Theme.adopt(inst) end
     inst:addToUIManager()
     inst:setVisible(true)
     W._instance = inst

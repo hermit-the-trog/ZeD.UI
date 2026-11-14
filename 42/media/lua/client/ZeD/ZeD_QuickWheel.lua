@@ -278,6 +278,8 @@ function Q.openGroup(playerObj, gid)
     local jd = JoypadState.players[pn + 1]
     menu:addSlice(getText("IGUI_Emote_Back"), getTexture(BACK_TEX), ISDPadWheels.onDisplayRight, { player = pn, id = jd and jd.id or nil })
     centre(menu, pn)
+    -- (split view: the wheel of player 2 to 4 draws in that player's own theme, PlayerTheme.lua)
+    if ZeD.Theme and ZeD.Theme.adopt then ZeD.Theme.adopt(menu, pn or 0) end
     menu:addToUIManager()
     if JoypadState.players[pn + 1] then
         menu:setHideWhenButtonReleased(Joypad.DPadRight)

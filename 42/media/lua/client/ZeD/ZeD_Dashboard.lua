@@ -2419,6 +2419,8 @@ function D.install(pn)
     if have then return have end
     local inst = ZeD_Dashboard:new(pn)
     inst:initialise()
+    -- (split view: players 2 to 4 draw it in their own theme, PlayerTheme.lua; the first player's is left as it is)
+    if ZeD.Theme and ZeD.Theme.adopt then ZeD.Theme.adopt(inst) end
     inst:addToUIManager()
     inst:setVisible(false)
     D._instances[pn] = inst

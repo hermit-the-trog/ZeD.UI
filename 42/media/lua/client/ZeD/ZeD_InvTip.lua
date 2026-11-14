@@ -102,6 +102,11 @@ function IT.showLayer()
         a.x, a.y, a.w, a.h, a.below, a.noFlip = w.ox + w.ax, w.oy + w.ay, w.aw or 1, w.ah, nil, nil
         ZeD.Balloon.draw(self, w.content, a, w.pref or "right", { key = w.item, owner = self })
     end
+    -- (split view: the card draws in the theme of the player whose list asked for it, PlayerTheme.lua; one layer
+    -- serves every player, so the player is read each frame from the owner)
+    if ZeD.Theme and ZeD.Theme.adopt then
+        ZeD.Theme.adopt(Layer, function() return ZeD.Theme.ownerPn(IT._want and IT._want.owner) end)
+    end
     Layer:addToUIManager()
     Layer:setAlwaysOnTop(true)
     IT._layer = Layer

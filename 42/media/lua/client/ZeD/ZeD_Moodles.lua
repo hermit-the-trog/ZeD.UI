@@ -686,10 +686,14 @@ function M.install(playerNum)
     local shown = not ZeD.Safe.on("moodles")   -- safe mode: hidden until ZeD takes over again
     local layer = ZeD_MoodleLayer:new(playerNum)
     layer:initialise()
+    -- (split view: players 2 to 4 draw it in their own theme, PlayerTheme.lua; the first player's is left as it is)
+    if ZeD.Theme and ZeD.Theme.adopt then ZeD.Theme.adopt(layer) end
     layer:addToUIManager()
     layer:setVisible(shown)
     local note = ZeD_MoodleNote:new(layer)
     note:initialise()
+    -- (the note is its layer's player's: it has no player of its own)
+    if ZeD.Theme and ZeD.Theme.adopt and (playerNum or 0) > 0 then ZeD.Theme.adopt(note, playerNum) end
     note:addToUIManager()
     -- (the game's Java side can throw; pcall turns a crash into a note layer that stays in the list's order)
     pcall(function() note:setAlwaysOnTop(true) end)

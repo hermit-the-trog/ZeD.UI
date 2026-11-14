@@ -307,6 +307,14 @@ function ZeD_Window:footerHeight()
     return ZeD.T.px(HELP_H)
 end
 
+-- A window of player 2 to 4 draws in that player's own theme in split view (PlayerTheme.lua): the switch goes
+-- on as the window goes up, around everything the window draws. Read from self.playerNum each frame (the
+-- Character and World windows set it just after this); the first player's windows draw in the shared table.
+function ZeD_Window:addToUIManager()
+    if ZeD.Theme and ZeD.Theme.adopt then ZeD.Theme.adopt(self, nil, true) end
+    return ISPanel.addToUIManager(self)
+end
+
 -- The frame draws under pcall (SafeMode.lua): a failure counts towards safe
 -- mode's watchdog and is logged once, rather than throwing every frame
 function ZeD_Window:prerender()
@@ -332,12 +340,12 @@ function ZeD_Window:clearStencilRect()
     return ISPanel.clearStencilRect(self)
 end
 
--- The palette a window with its own accent draws in, built once per base theme, accent
--- and see-through value (the tables are fixed) rather than blended again every frame
+-- The palette a window with its own accent draws in, built once per base theme, accent, status set
+-- and see-through value (the tables are fixed) rather than blended again every frame. The base, status and
+-- alpha come from the table the window draws in (a split view player's own, PlayerTheme.lua, or the shared one).
 local accentPalettes = {}
-local function windowAccentPalette(baseKey, accentKey)
-    local sa = ZeD.surfaceAlpha
-    local ck = baseKey .. "|" .. accentKey .. "|" .. tostring(sa)
+local function windowAccentPalette(baseKey, accentKey, statusKey, sa)
+    local ck = baseKey .. "|" .. accentKey .. "|" .. tostring(statusKey) .. "|" .. tostring(sa)
     local p = accentPalettes[ck]
     if p then return p end
     local accentSet = ZeD.AccentColors[accentKey]
@@ -377,7 +385,8 @@ local function windowAccentPalette(baseKey, accentKey)
     end
     -- the readable text colours (accentText, toneHi/Lo, textSec, textDim, textOnAccent, textOnFocus,
     -- the status *Text variants) are solved against THIS palette's surfaces and accent
-    ZeD.deriveReadable(p, baseKey)
+    p.statusKey = statusKey
+    ZeD.deriveReadable(p, baseKey, statusKey)
     accentPalettes[ck] = p
     return p
 end
@@ -789,9 +798,14 @@ end
 function ZeD_Window:_drawFrame()
     local T = ZeD.T
 
-    -- Per-window accent override: swap ZeD.T accent + tinted surface fields for this render cycle
-    if self._accentKey and ZeD.AccentColors[self._accentKey] and ZeD.BaseThemes[ZeD.currentBase] then
-        local pal = windowAccentPalette(ZeD.currentBase, self._accentKey)
+    -- Per-window accent override: swap ZeD.T accent + tinted surface fields for this render cycle.
+    -- (ZeD.T is the table this window draws in: its player's own in split view, PlayerTheme.lua, which switched
+    -- it before this ran; the swap is made on that table and undone on it, self._accentT)
+    local bk = T.baseKey or ZeD.currentBase
+    if self._accentKey and ZeD.AccentColors[self._accentKey] and ZeD.BaseThemes[bk] then
+        local sa = T.surfaceAlpha
+        if T.baseKey == nil then sa = ZeD.surfaceAlpha end
+        local pal = windowAccentPalette(bk, self._accentKey, T.statusKey or ZeD.currentStatus, sa)
         -- the global values are kept in a table this window reuses (restored in _restoreAccent)
         local s = self._accentStore
         if not s then s = {}; self._accentStore = s end
@@ -805,6 +819,7 @@ function ZeD_Window:_drawFrame()
         s.border = T.border; s.borderS = T.borderS
         s.text = T.text; s.textHead = T.textHead
         self._savedAccent = s
+        self._accentT = T
         T.accent       = pal.accent
         T.accentBright = pal.accentBright
         T.hover        = pal.hover
@@ -1189,7 +1204,10 @@ end
 
 -- The global accent back after this window's render cycle (also when the draw failed)
 function ZeD_Window:_restoreAccent()
-    local T = ZeD.T
+    -- (onto the table the swap was made on: a theme applied during the draw leaves ZeD.T a new table, which must
+    -- not take this window's old values)
+    local T = self._accentT or ZeD.T
+    self._accentT = nil
     if self._savedAccent then
         local s = self._savedAccent
         T.accent       = s.accent

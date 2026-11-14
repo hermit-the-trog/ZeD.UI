@@ -2656,6 +2656,8 @@ function B.install(pn)
     if have then return have end
     local hud = ZeD_BeltHUD:new(pn)
     hud:initialise()
+    -- (split view: players 2 to 4 draw it in their own theme, PlayerTheme.lua; the first player's is left as it is)
+    if ZeD.Theme and ZeD.Theme.adopt then ZeD.Theme.adopt(hud) end
     hud:addToUIManager()
     hud:setVisible(true)
     B._huds[pn] = hud

@@ -737,6 +737,8 @@ function AB.install(playerNum)
     if AB._layers[playerNum] then return AB._layers[playerNum] end
     local layer = ZeD_ActionBarLayer:new(playerNum)
     layer:initialise()
+    -- (split view: players 2 to 4 draw it in their own theme, PlayerTheme.lua; the first player's is left as it is)
+    if ZeD.Theme and ZeD.Theme.adopt then ZeD.Theme.adopt(layer) end
     layer:addToUIManager()
     layer:setVisible(not ZeD.Safe.on())
     pcall(function() layer:backMost() end)

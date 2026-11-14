@@ -140,6 +140,8 @@ function ZeD_ContextMenu:open()
         end)
     end
     self:setWantKeyEvents(true)
+    -- (split view: the menu of player 2 to 4 draws in that player's own theme, PlayerTheme.lua)
+    if ZeD.Theme and ZeD.Theme.adopt then ZeD.Theme.adopt(self) end
     self:addToUIManager()
     -- setAlwaysOnTop doesn't exist on ISPanel; bringToTop is the right call.
     pcall(function() self:bringToTop() end)

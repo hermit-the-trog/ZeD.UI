@@ -125,8 +125,14 @@ end
 -- the choices
 -- ----------------------------------------------------------------------------
 -- the theme, the accent and the text size go through ZeD.applyTheme and back into the
--- mod options (as the Select wheel and ZeD setup)
-local function setTheme(base, accent, size)
+-- mod options (as the Select wheel and ZeD setup). pn: the window's player. In split view a theme or accent
+-- picked on a window of player 2 to 4 is that player's own (PlayerTheme.lua, saved with their character); the
+-- text size stays one for the whole screen, and outside split view every pick is the whole interface's.
+local function setTheme(base, accent, size, pn)
+    if not size and type(pn) == "number" and pn > 0 and ZeD.splitWindows == true and ZeD.Theme and ZeD.Theme.set then
+        ZeD.Theme.set(pn, base, accent)
+        return
+    end
     ZeD.applyTheme(base or ZeD.currentBase, accent or ZeD.currentAccent, size or ZeD.currentSize)
     local S = ZeD.Settings
     if S and S.syncToModOptions then S.syncToModOptions() end
@@ -162,10 +168,16 @@ function WM.build(win)
         if ok and type(extra) == "table" then for _, it in ipairs(extra) do items[#items + 1] = it end end
     end
 
+    -- (the window's player: their own theme in split view, PlayerTheme.lua; the check marks read what they draw in)
+    local pn = (ZeD.playerNumOf and ZeD.playerNumOf(win)) or win.playerNum or 0
+    local function keys()
+        if ZeD.Theme and ZeD.Theme.keysFor then return ZeD.Theme.keysFor(pn) end
+        return ZeD.currentBase, ZeD.currentAccent
+    end
     local theme = { name = tr("UI_ZeD_WinMenu_Theme"), category = "look", children = {} }
     for i, k in ipairs(S.baseKeys or {}) do
-        theme.children[#theme.children + 1] = leaf(tr(S.baseLabels[i]), function() setTheme(k, nil, nil) end,
-            function() return ZeD.currentBase == k end)
+        theme.children[#theme.children + 1] = leaf(tr(S.baseLabels[i]), function() setTheme(k, nil, nil, pn) end,
+            function() return (keys()) == k end)
     end
     items[#items + 1] = theme
 
@@ -178,8 +190,8 @@ function WM.build(win)
             fire = function() win._accentKey = k; S.syncWindowAccent(win) end
             chk = function() return win._accentKey == k end
         else
-            fire = function() setTheme(nil, k, nil) end
-            chk = function() return ZeD.currentAccent == k end
+            fire = function() setTheme(nil, k, nil, pn) end
+            chk = function() local _, a = keys(); return a == k end
         end
         accent.children[#accent.children + 1] = leaf(tr(S.accentLabels[i]), fire, chk)
     end
@@ -201,9 +213,9 @@ function WM.build(win)
         -- Dark only: in Light and High Contrast the windows are solid whatever it says, so the row is
         -- dimmed there and says why (ZeD.seeThroughWorks)
         local see = { name = tr("UI_ZeD_Settings_SeeThrough"), category = "look", children = {},
-                      disabled = function() return ZeD.seeThroughWorks ~= nil and not ZeD.seeThroughWorks() end,
+                      disabled = function() return ZeD.seeThroughWorks ~= nil and not ZeD.seeThroughWorks((keys())) end,
                       state = function()
-                          if ZeD.seeThroughWorks and not ZeD.seeThroughWorks() then return tr("UI_ZeD_Settings_SeeThroughDarkOnly") end
+                          if ZeD.seeThroughWorks and not ZeD.seeThroughWorks((keys())) then return tr("UI_ZeD_Settings_SeeThroughDarkOnly") end
                           return ""
                       end }
         for i, v in ipairs(S.seeThroughKeys) do

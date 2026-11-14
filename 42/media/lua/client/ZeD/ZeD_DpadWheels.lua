@@ -485,8 +485,12 @@ D.Z = Z
 local function inUse(on) return on and tr("UI_ZeD_Wheel_InUse") or nil end
 
 -- the theme, accent and text size go through ZeD.applyTheme and back into the
--- mod options, as the windows' footer controls do
-function Z.theme(base, accent, size)
+-- mod options, as the windows' footer controls do. pn: the pad's player. In split view a theme or accent picked
+-- on player 2 to 4's wheel is that player's own (PlayerTheme.lua, saved with their character); the text size
+-- stays one for the whole screen, and outside split view every pick is the whole interface's, as before.
+local function ownPick(pn) return type(pn) == "number" and pn > 0 and ZeD.splitWindows == true and ZeD.Theme and ZeD.Theme.set end
+function Z.theme(base, accent, size, pn)
+    if not size and ownPick(pn) then ZeD.Theme.set(pn, base, accent); return end
     ZeD.applyTheme(base or ZeD.currentBase, accent or ZeD.currentAccent, size or ZeD.currentSize)
     if ZeD.Settings and ZeD.Settings.syncToModOptions then ZeD.Settings.syncToModOptions() end
 end
@@ -501,22 +505,30 @@ end
 
 local function labelAt(list, i) return list and list[i] and tr(list[i]) or "?" end
 
-function Z.themeWheel()
+-- the base and accent player pn draws in (the shared ones for the first player and outside split view)
+local function keysOf(pn)
+    if ZeD.Theme and ZeD.Theme.keysFor then return ZeD.Theme.keysFor(pn) end
+    return ZeD.currentBase, ZeD.currentAccent
+end
+
+function Z.themeWheel(p, pn)
     local S, out = ZeD.Settings, {}
+    local curBase = keysOf(pn)
     for i, k in ipairs(S.baseKeys) do
-        out[#out + 1] = { name = labelAt(S.baseLabels, i), icon = "theme", detail = inUse(ZeD.currentBase == k),
-            run = function() Z.theme(k, nil, nil) end }
+        out[#out + 1] = { name = labelAt(S.baseLabels, i), icon = "theme", detail = inUse(curBase == k),
+            run = function() Z.theme(k, nil, nil, pn) end }
     end
     return out
 end
 
-function Z.accentWheel()
+function Z.accentWheel(p, pn)
     local S, out = ZeD.Settings, {}
-    local tone = (ZeD.currentBase == "light") and "light" or "dark"
+    local curBase, curAccent = keysOf(pn)
+    local tone = (curBase == "light") and "light" or "dark"
     for i, k in ipairs(S.accentKeys) do
         local c = ZeD.AccentColors and ZeD.AccentColors[k] and ZeD.AccentColors[k][tone]
-        out[#out + 1] = { name = labelAt(S.accentLabels, i), swatch = c and c.accent or nil, detail = inUse(ZeD.currentAccent == k),
-            run = function() Z.theme(nil, k, nil) end }
+        out[#out + 1] = { name = labelAt(S.accentLabels, i), swatch = c and c.accent or nil, detail = inUse(curAccent == k),
+            run = function() Z.theme(nil, k, nil, pn) end }
     end
     return out
 end
@@ -571,14 +583,15 @@ end
 -- the theme, as the window box's menu does). Dark only: in Light and High Contrast the windows are
 -- solid whatever it says, so its choices are off there and say why (ZeD.seeThroughWorks).
 local SEE_ICON, FOCUS_ICON = "seethrough", "focus"
-function Z.seeThroughOff()
-    if ZeD.seeThroughWorks and not ZeD.seeThroughWorks() then return tr("UI_ZeD_Settings_SeeThroughDarkOnly") end
+-- (pn: the pad's player; their own base theme decides, PlayerTheme.lua)
+function Z.seeThroughOff(pn)
+    if ZeD.seeThroughWorks and not ZeD.seeThroughWorks((keysOf(pn))) then return tr("UI_ZeD_Settings_SeeThroughDarkOnly") end
     return nil
 end
-function Z.seeThroughWheel()
+function Z.seeThroughWheel(p, pn)
     local S, out = ZeD.Settings, {}
     local cur = S.seeThroughIndex and S.seeThroughIndex()
-    local off = Z.seeThroughOff()
+    local off = Z.seeThroughOff(pn)
     for i, v in ipairs(S.seeThroughKeys or {}) do
         out[#out + 1] = { name = tr("UI_ZeD_Settings_SeeThroughPct", v), icon = SEE_ICON, detail = inUse(cur == i),
             run = function() S.setSeeThrough(i) end, off = off }
@@ -624,17 +637,19 @@ end
 D.B.zed = function(p, pn)
     local S = ZeD.Settings
     if not S then return {} end
-    local tone = (ZeD.currentBase == "light") and "light" or "dark"
-    local ac = ZeD.AccentColors and ZeD.AccentColors[ZeD.currentAccent]
+    -- (the pad's player's own theme in split view, PlayerTheme.lua; the shared one otherwise)
+    local curBase, curAccent = keysOf(pn)
+    local tone = (curBase == "light") and "light" or "dark"
+    local ac = ZeD.AccentColors and ZeD.AccentColors[curAccent]
     local function at(keys, labels, k) for i, x in ipairs(keys) do if x == k then return tr(labels[i]) end end return nil end
     local out = {
-        { name = tr("UI_ZeD_Settings_BaseTheme"), icon = "theme", detail = at(S.baseKeys, S.baseLabels, ZeD.currentBase), sub = Z.themeWheel },
+        { name = tr("UI_ZeD_Settings_BaseTheme"), icon = "theme", detail = at(S.baseKeys, S.baseLabels, curBase), sub = Z.themeWheel },
         { name = tr("UI_ZeD_Settings_AccentColor"), swatch = ac and ac[tone] and ac[tone].accent or nil,
-          detail = at(S.accentKeys, S.accentLabels, ZeD.currentAccent), sub = Z.accentWheel },
+          detail = at(S.accentKeys, S.accentLabels, curAccent), sub = Z.accentWheel },
         { name = tr("UI_ZeD_Settings_TextSize"), icon = "textsize", detail = at(S.sizeKeys, S.sizeLabels, ZeD.currentSize), sub = Z.sizeWheel },
         { name = tr("UI_ZeD_Settings_SeeThrough"), icon = SEE_ICON,
           detail = tr("UI_ZeD_Settings_SeeThroughPct", S.seeThrough and S.seeThrough() or 90), sub = Z.seeThroughWheel,
-          off = Z.seeThroughOff() },
+          off = Z.seeThroughOff(pn) },
         { name = tr("UI_ZeD_Settings_FocusStyle"), icon = FOCUS_ICON,
           detail = current(S.focusStyleOption, S.focusStyleLabels or {}), sub = Z.focusWheel },
         { name = tr("UI_ZeD_Settings_UiScale"), icon = "scale", sub = Z.scaleWheel },

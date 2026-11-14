@@ -7444,6 +7444,13 @@ Events.OnPostSave.Add(function()
         if worldWin and worldWin._accentKey then
             md.ZeD_Theme.worldAccent = worldWin._accentKey
         end
+        md.ZeD_Theme.own = nil   -- (the first player follows the options, PlayerTheme.lua)
+    end
+    -- players 2 to 4 (split view): each one's own theme pick onto their own character (PlayerTheme.lua)
+    if ZeD.Theme and ZeD.Theme.save then
+        for pn = 1, 3 do
+            if ZeD.Theme.choice[pn] then ZeD.Theme.save(pn) end
+        end
     end
 end)
 

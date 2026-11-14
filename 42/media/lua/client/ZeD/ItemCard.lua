@@ -701,6 +701,9 @@ function ZeD_ItemCard:new(x, y, width, height, mode, playerNum)
     o.mode      = mode or "drawer"
     o.playerNum = playerNum or 0
     o.pad = ZeD.T.sp.sm; o.colGap = ZeD.T.sp.sm; o.iconSz = ZeD.T.cardIconSz
+    -- (split view: a card of player 2 to 4 draws in that player's own theme also where it stands outside their
+    -- window, PlayerTheme.lua; inside the window it already does)
+    if ZeD.Theme and ZeD.Theme.adopt then ZeD.Theme.adopt(o) end
     -- Action strip state: toggle buttons (left) + verb buttons (right)
     o.toggleHover  = nil;  o.toggleWasDown  = false;  o.toggleRects = {}
     o.verbHover    = nil;  o.verbWasDown    = false;  o.verbRects   = {}

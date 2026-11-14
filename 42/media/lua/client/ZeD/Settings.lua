@@ -122,6 +122,9 @@ local function copyThemeToCharacter()
     md.ZeD_Theme.base   = ZeD.currentBase
     md.ZeD_Theme.accent = ZeD.currentAccent
     md.ZeD_Theme.size   = ZeD.currentSize
+    -- (the first player follows the options: a pick of their own from a time as player 2 to 4 is not theirs now,
+    -- PlayerTheme.lua)
+    md.ZeD_Theme.own    = nil
 end
 
 --- Sync current theme state back to ModOptions combo boxes (the window box
@@ -1122,6 +1125,21 @@ end
 function ZeD.Settings.syncWindowAccent(win)
     if not win then return end
     local key = win._accentKey
+    -- Player 2 to 4's Character and World windows (split view): their accent goes on their own character only;
+    -- the options page is the first player's
+    local pn = (type(win.playerNum) == "number") and win.playerNum or 0
+    if pn > 0 then
+        local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(pn)
+        local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn)
+        if win ~= cw and win ~= ww then return end
+        local p = getSpecificPlayer(pn)
+        if p then
+            local md = p:getModData()
+            md.ZeD_Theme = md.ZeD_Theme or {}
+            if win == cw then md.ZeD_Theme.charAccent = key else md.ZeD_Theme.worldAccent = key end
+        end
+        return
+    end
     -- Determine which window this is and sync the correct ModOption
     local charWin = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
     local worldWin = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()

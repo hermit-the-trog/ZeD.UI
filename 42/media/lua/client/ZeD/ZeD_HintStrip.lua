@@ -292,6 +292,8 @@ function H.install(pn)
     if H._huds[pn] then return end
     local hud = ZeD_HintStripHUD:new(pn)
     hud:initialise()
+    -- (split view: players 2 to 4 draw it in their own theme, PlayerTheme.lua; the first player's is left as it is)
+    if ZeD.Theme and ZeD.Theme.adopt then ZeD.Theme.adopt(hud) end
     hud:addToUIManager()
     pcall(function() hud:backMost() end)
     H._huds[pn] = hud

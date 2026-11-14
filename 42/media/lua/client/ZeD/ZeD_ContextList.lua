@@ -160,6 +160,8 @@ function ZeD_ContextList:open()
         pcall(function() if setJoypadFocus then setJoypadFocus(self.player, self) end end)
     end
     self:setWantKeyEvents(true)
+    -- (split view: the menu of player 2 to 4 draws in that player's own theme, PlayerTheme.lua)
+    if ZeD.Theme and ZeD.Theme.adopt then ZeD.Theme.adopt(self) end
     self:addToUIManager()
     pcall(function() self:bringToTop() end)
 end

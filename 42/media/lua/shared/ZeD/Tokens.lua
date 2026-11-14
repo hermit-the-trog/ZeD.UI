@@ -764,7 +764,7 @@ end
 
 --- P is a palette with accent, hover, text, surf1, surf2 (ZeD.T, or a window's own accent palette);
 --- the base theme supplies the rest. Writes the READABLE_KEYS fields onto P.
-function ZeD.deriveReadable(P, baseKey)
+function ZeD.deriveReadable(P, baseKey, statusKey)
     local base  = ZeD.BaseThemes[baseKey] or ZeD.BaseThemes.dark
     local up    = (baseKey ~= "light")                 -- dark and high contrast text moves toward white
     local world = up and 1 or 0                        -- worst-case backdrop behind a translucent surface
@@ -839,7 +839,8 @@ function ZeD.deriveReadable(P, baseKey)
         list[n + 1] = flatOver(world, s1, c, washA)
         return ZeD.legible(c, 4.6, list, up)
     end
-    local st = ZeD.statusSet(baseKey)                  -- (the status colors: the theme's or the color blind set)
+    -- (the status colors: the theme's or the color blind set; a split view player's own table carries its own key)
+    local st = ZeD.statusSet(baseKey, statusKey or P.statusKey)
     P.textOnWarning, P.textOnDanger = ZeD.textOn(st.warning), ZeD.textOn(st.danger)   -- label on a solid status fill
     -- positiveText and dangerText start from the base theme's design values (lighter / darker than the plain
     -- colors where those miss 4.5 : 1) and are moved like the others, on every surface above and on surface 2
@@ -895,10 +896,11 @@ ZeD.StatusColors = {
 }
 ZeD.currentStatus = "standard"    -- "standard" or "cb" (Settings.lua's Status colors)
 --- The status set a base theme draws with: the theme itself (its positive, warning, danger and the text seeds
---- positiveText / dangerText), or the color blind set for it
-function ZeD.statusSet(baseKey)
+--- positiveText / dangerText), or the color blind set for it. statusKey: "standard" or "cb" (default: the first
+--- player's, ZeD.currentStatus; split view passes another player's own)
+function ZeD.statusSet(baseKey, statusKey)
     local base = ZeD.BaseThemes[baseKey] or ZeD.BaseThemes.dark
-    return (ZeD.currentStatus == "cb" and ZeD.StatusColors.cb[baseKey]) or base
+    return (((statusKey or ZeD.currentStatus) == "cb") and ZeD.StatusColors.cb[baseKey]) or base
 end
 
 -- The accent a fresh install starts on, and the fallback for a saved key that names nothing.
@@ -917,36 +919,31 @@ function ZeD.seeThroughWorks(baseKey)
 end
 
 -- ---------------------------------------------------------------------------
--- APPLY THEME
--- Call this whenever a setting changes. Rebuilds ZeD.T from the three axes.
+-- BUILD COLORS
+-- Every color of a palette from a base theme, an accent, a status set and a see-through pick, written onto P.
+-- applyTheme runs it for the shared table (the first player's, and everyone's outside split view); ZeD.Tfor runs it
+-- over a copy of that table for a split view player with a theme of their own, so the sizes and the px closure stay
+-- the shared ones and only the colors differ (the director, Nov 13 2026: one text size for the whole screen).
+-- seePick: the See-through pick (0.6 to 1, or nil for the theme's own alpha); it takes in Dark only, Light and High
+-- Contrast draw solid (ZeD.seeThroughWorks), so one player's Light never turns another player's Dark solid.
 -- ---------------------------------------------------------------------------
-function ZeD.applyTheme(baseKey, accentKey, sizeKey)
-    -- Store current keys
-    ZeD.currentBase   = baseKey   or ZeD.currentBase
-    ZeD.currentAccent = accentKey or ZeD.currentAccent
-    ZeD.currentSize   = sizeKey   or ZeD.currentSize
-
-    -- A key that names nothing (an old or hand-edited save) falls back to the default
-    -- rather than throwing below
-    if not ZeD.BaseThemes[ZeD.currentBase]     then ZeD.currentBase   = "dark"   end
-    if not ZeD.AccentColors[ZeD.currentAccent] then ZeD.currentAccent = ZeD.DEFAULT_ACCENT end
-    -- a saved "medium" (a preset that is gone) falls back to small, as does any size that names nothing
-    if ZeD.currentSize == "medium" or not ZeD.TextSizes[ZeD.currentSize] then ZeD.currentSize = "small" end
-    local base   = ZeD.BaseThemes[ZeD.currentBase]
-    local size   = ZeD.TextSizes[ZeD.currentSize]
+function ZeD.buildColors(P, baseKey, accentKey, statusKey, seePick)
+    local T = P
+    if not ZeD.BaseThemes[baseKey] then baseKey = "dark" end
+    if not ZeD.AccentColors[accentKey] then accentKey = ZeD.DEFAULT_ACCENT end
+    if statusKey ~= "cb" then statusKey = "standard" end
+    T.baseKey, T.accentKey, T.statusKey = baseKey, accentKey, statusKey
+    local base   = ZeD.BaseThemes[baseKey]
 
     -- Determine which accent variant to use based on base theme
     -- High contrast uses dark accent values (same dark background family)
-    local accentSet = ZeD.AccentColors[ZeD.currentAccent]
+    local accentSet = ZeD.AccentColors[accentKey]
     local accentVariant
-    if ZeD.currentBase == "light" then
+    if baseKey == "light" then
         accentVariant = accentSet.light
     else
         accentVariant = accentSet.dark
     end
-
-    -- Build the active palette by merging all three axes
-    local T = {}
 
     -- Surface colors from base theme
     T.base     = base.base
@@ -959,23 +956,14 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     T.surf3    = base.surf3
     T.surf4    = base.surf4
     -- See-through (ZeD setup, a window's window box): one alpha for every window surface,
-    -- 0.6 to 1, set by Settings.lua as ZeD.surfaceAlpha. It replaces the theme's own (0.92
+    -- 0.6 to 1 (the pick, seePick). It replaces the theme's own (0.92
     -- dark, 0.97 light, 0.95 high contrast) here, before the accent tint (which keeps alpha)
     -- and before deriveReadable, which solves the text colours against these surfaces as
     -- translucent over the world. New tables: BaseThemes stays as written.
     -- Light and High Contrast always draw the bodies solid (the director, punch list 175f(5)): See-through works in
-    -- Dark only. The player's pick is kept aside while forced (ZeD._seePick) and comes back with Dark, so the readers of
-    -- ZeD.surfaceAlpha (the windows' own accent palettes) see the solid value too.
-    local sa = ZeD.surfaceAlpha
-    if ZeD._seeForced and sa == 1 then sa = ZeD._seePick end
-    if ZeD.seeThroughWorks(ZeD.currentBase) then
-        ZeD._seeForced = nil
-        ZeD.surfaceAlpha = sa
-    else
-        ZeD._seePick, ZeD._seeForced = sa, true
-        sa = 1
-        ZeD.surfaceAlpha = 1
-    end
+    -- Dark only (applyTheme keeps the pick aside for the shared table, ZeD._seePick).
+    local sa = seePick
+    if not ZeD.seeThroughWorks(baseKey) then sa = 1 end
     if type(sa) == "number" then
         if sa < 0.6 then sa = 0.6 elseif sa > 1 then sa = 1 end
         T.base  = ZeD.colorAlpha(T.base, sa)
@@ -984,6 +972,8 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
         T.surf3 = ZeD.colorAlpha(T.surf3, sa)
         T.surf4 = ZeD.colorAlpha(T.surf4, sa)
     end
+    -- the alpha this table's surfaces draw at (nil: the theme's own), for the windows' own accent palettes
+    T.surfaceAlpha = sa
     T.border   = base.border
     T.borderS  = base.borderS
     T.frameS   = base.frameS or base.borderS   -- the belt's slot frame: its keyline, and a light outer line where set
@@ -997,7 +987,7 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     T.textHead = base.textHead
 
     -- Status colors: the base theme's, or the color blind set (ZeD.statusSet)
-    local st = ZeD.statusSet(ZeD.currentBase)
+    local st = ZeD.statusSet(baseKey, statusKey)
     T.danger   = st.danger
     T.warning  = st.warning
     T.positive = st.positive
@@ -1050,8 +1040,8 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     -- Mono = pure grey (no tint). All others get subtle color personality.
     -- Dark/HiCon: stronger tint (dark surfaces need more to register)
     -- Light: use bright accent variant (more even luminance across colors), lighter touch
-    if ZeD.currentAccent ~= "mono" then
-        local isLight = ZeD.currentBase == "light"
+    if accentKey ~= "mono" then
+        local isLight = baseKey == "light"
         local TINT = isLight and 0.10 or 0.03
         local ac = isLight and T.accentBright or T.accent
         local blend = ZeD.colorBlend
@@ -1080,9 +1070,69 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     -- textSec / accentDim (stat labels, section labels, category rows), textDim, textOnAccent,
     -- textOnFocus (labels on the 0.55 focus wash) and the *Text variants of the status and soiled
     -- colours. Rebuilt here, on theme or accent change, never per frame.
-    ZeD.deriveReadable(T, ZeD.currentBase)
+    ZeD.deriveReadable(T, baseKey, statusKey)
     -- Category headers: same fontF1, neutral color (not accent)
     T.textCat  = T.textHead
+
+    -- Thermal spectrum (per-theme: dark vibrant, light darker for contrast)
+    T.tempCold = base.tempCold
+    T.tempCool = base.tempCool
+    T.tempNorm = base.tempNorm
+    T.tempWarm = base.tempWarm
+    T.tempHot  = base.tempHot
+
+    -- Thermal badge tints (per-theme)
+    T.tempColdBadge = base.tempColdBadge
+    T.tempCoolBadge = base.tempCoolBadge
+    T.tempNormBadge = base.tempNormBadge
+    T.tempWarmBadge = base.tempWarmBadge
+    T.tempHotBadge  = base.tempHotBadge
+
+    -- Neutral icon tint (theme-independent — used for texture rendering)
+    T.iconWhite = {r = 1, g = 1, b = 1}
+    -- Theme-aware icon tint: white on dark/hc, black on light
+    T.iconTone  = (baseKey == "light") and {r = 0, g = 0, b = 0} or {r = 1, g = 1, b = 1}
+
+    return T
+end
+
+-- ---------------------------------------------------------------------------
+-- APPLY THEME
+-- Call this whenever a setting changes. Rebuilds ZeD.T from the three axes.
+-- ---------------------------------------------------------------------------
+function ZeD.applyTheme(baseKey, accentKey, sizeKey)
+    -- Store current keys
+    ZeD.currentBase   = baseKey   or ZeD.currentBase
+    ZeD.currentAccent = accentKey or ZeD.currentAccent
+    ZeD.currentSize   = sizeKey   or ZeD.currentSize
+
+    -- A key that names nothing (an old or hand-edited save) falls back to the default
+    -- rather than throwing below
+    if not ZeD.BaseThemes[ZeD.currentBase]     then ZeD.currentBase   = "dark"   end
+    if not ZeD.AccentColors[ZeD.currentAccent] then ZeD.currentAccent = ZeD.DEFAULT_ACCENT end
+    -- a saved "medium" (a preset that is gone) falls back to small, as does any size that names nothing
+    if ZeD.currentSize == "medium" or not ZeD.TextSizes[ZeD.currentSize] then ZeD.currentSize = "small" end
+    local size   = ZeD.TextSizes[ZeD.currentSize]
+
+    -- See-through (ZeD setup, a window's window box): the player's pick is ZeD.surfaceAlpha, set by Settings.lua.
+    -- Light and High Contrast draw solid (the director, punch list 175f(5)); while forced the pick is kept aside
+    -- (ZeD._seePick) and comes back with Dark, so the readers of ZeD.surfaceAlpha see the solid value too.
+    -- ZeD.surfacePick keeps the pick itself for the split view players' own tables (ZeD.Tfor): a player on Dark keeps
+    -- See-through while the first player is on Light.
+    local sa = ZeD.surfaceAlpha
+    if ZeD._seeForced and sa == 1 then sa = ZeD._seePick end
+    ZeD.surfacePick = sa
+    if ZeD.seeThroughWorks(ZeD.currentBase) then
+        ZeD._seeForced = nil
+        ZeD.surfaceAlpha = sa
+    else
+        ZeD._seePick, ZeD._seeForced = sa, true
+        ZeD.surfaceAlpha = 1
+    end
+
+    -- Build the active palette: the colors first, then the sizes
+    local T = {}
+    ZeD.buildColors(T, ZeD.currentBase, ZeD.currentAccent, ZeD.currentStatus, sa)
 
     -- The five role fonts live on the distance-field slots (ZeD.Font.sdf). The preset
     -- keeps its px per role; the root scale multiplies at draw time (Overrides/TextScale.lua routes
@@ -1194,25 +1244,6 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     T.stripH    = math.floor((row1 + 11 * rowSc) * root + 0.5)
     T.sortBarH  = math.floor((size.fontF1.px * lineK + 7 * rowSc) * root + 0.5)
 
-    -- Thermal spectrum (per-theme: dark vibrant, light darker for contrast)
-    T.tempCold = base.tempCold
-    T.tempCool = base.tempCool
-    T.tempNorm = base.tempNorm
-    T.tempWarm = base.tempWarm
-    T.tempHot  = base.tempHot
-
-    -- Thermal badge tints (per-theme)
-    T.tempColdBadge = base.tempColdBadge
-    T.tempCoolBadge = base.tempCoolBadge
-    T.tempNormBadge = base.tempNormBadge
-    T.tempWarmBadge = base.tempWarmBadge
-    T.tempHotBadge  = base.tempHotBadge
-
-    -- Neutral icon tint (theme-independent — used for texture rendering)
-    T.iconWhite = {r = 1, g = 1, b = 1}
-    -- Theme-aware icon tint: white on dark/hc, black on light
-    T.iconTone  = (ZeD.currentBase == "light") and {r = 0, g = 0, b = 0} or {r = 1, g = 1, b = 1}
-
     -- Spacing is always available (doesn't change with theme)
     T.sp = {}   -- scaled copy; the static table stays the design-unit source
     for k, v in pairs(ZeD.Spacing) do T.sp[k] = (type(v) == "number") and T.px(v) or v end
@@ -1237,7 +1268,12 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     -- The first contextual drawer chassis, two tiers (Premium VFD / ValuTech LCD).
     T.radio = ZeD.Radio
 
-    -- Set the active palette
+    -- Set the active palette. It is also the shared table every split view player's own table is copied from:
+    -- a new generation drops those copies, so they are built again from this one (sizes and all) when next asked.
+    ZeD._sharedT = T
+    ZeD._themeGen = (ZeD._themeGen or 0) + 1
+    T.themeGen = ZeD._themeGen   -- (copied into the players' own tables: PlayerTheme.lua tells a table from before a new theme by it)
+    ZeD._playerT = {}
     ZeD.T = T
     -- Cached font heights, zoomed (ZeD.Text.zoomOf reads ZeD.T, so this runs after the palette is live)
     -- (a server has no fonts, and nothing there reads these heights)
@@ -1274,6 +1310,43 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     if Events and Events.OnZeDThemeChanged then
         triggerEvent("OnZeDThemeChanged")
     end
+end
+
+-- ---------------------------------------------------------------------------
+-- PER-PLAYER PALETTE (split view, the director, Nov 13 2026)
+-- In split view each local player may pick their own base theme, accent and status set (ZeD.Theme.choice[pn],
+-- client/ZeD/PlayerTheme.lua); the text size stays one for the whole screen. ZeD.Tfor(pn) is the table that player's
+-- panels draw in: the shared ZeD.T itself for the first player, outside split view, and for a player who follows the
+-- first player (no choice, or the same one); otherwise a copy of the shared table with that player's colors, built
+-- once and kept until the choice or the shared table changes (ZeD._themeGen). The keep is by the choice table itself
+-- (ZeD.Theme.set makes a new one), so asking every frame builds no string.
+-- ---------------------------------------------------------------------------
+ZeD.Theme = ZeD.Theme or {}
+ZeD.Theme.choice = ZeD.Theme.choice or {}
+ZeD._playerT = ZeD._playerT or {}
+
+function ZeD.Tfor(pn)
+    local S = ZeD._sharedT or ZeD.T
+    if pn == nil or pn == 0 or ZeD.splitWindows ~= true then return S end
+    local c = ZeD.Theme.choice[pn]
+    if not c then return S end
+    local gen = ZeD._themeGen or 0
+    local slot = ZeD._playerT[pn]
+    if slot and slot.gen == gen and slot.c == c then return slot.T end
+    local b, a, st = c.base, c.accent, c.status
+    if not ZeD.BaseThemes[b] then b = S.baseKey end
+    if not ZeD.AccentColors[a] then a = S.accentKey end
+    if st ~= "cb" and st ~= "standard" then st = S.statusKey end
+    local P = S
+    if b ~= S.baseKey or a ~= S.accentKey or st ~= S.statusKey then
+        -- (a shallow copy: the scale fields, the px, line and rect closures and the sp / ctx tables are the shared
+        -- ones; buildColors writes new color tables over the copy and never touches the shared ones)
+        P = {}
+        for k, v in pairs(S) do P[k] = v end
+        ZeD.buildColors(P, b, a, st, ZeD.surfacePick)
+    end
+    ZeD._playerT[pn] = { gen = gen, c = c, T = P }
+    return P
 end
 
 -- ---------------------------------------------------------------------------

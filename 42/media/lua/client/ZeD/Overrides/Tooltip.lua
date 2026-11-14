@@ -172,8 +172,9 @@ local function applyTooltipOverrides()
     local TIP_DARK = { r = 0.09, g = 0.09, b = 0.09 }
     local TIP_FOOT = { r = 0.72, g = 0.72, b = 0.72, a = 1 }
     local function tipSkin(T)
-        if ZeD.currentBase == "light" then
-            local set = ZeD.AccentColors[ZeD.currentAccent]
+        -- (the keys of the table in use: a split view player's own theme, PlayerTheme.lua, or the shared one)
+        if (T.baseKey or ZeD.currentBase) == "light" then
+            local set = ZeD.AccentColors[T.accentKey or ZeD.currentAccent]
             local title = set and set.dark and set.dark.bright or T.accentText
             return TIP_DARK, 1, title, TIP_FOOT, TIP_DARK
         end

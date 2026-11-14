@@ -512,7 +512,8 @@ end
 
 -- the grid and outline for this sex and theme base
 function ZeD_BodyFigure:_background()
-    local isLight = ZeD.currentBase == "light"
+    -- (the base of the table in use: a split view player's own theme draws their figure, PlayerTheme.lua)
+    local isLight = ((ZeD.T and ZeD.T.baseKey) or ZeD.currentBase) == "light"
     local key = (self.isFemale and "f" or "m") .. (isLight and "light" or "dark")
     if self._bgKey ~= key then
         self._bgTex = Texture.getSharedTexture(DIR .. "fig-bg-" .. (self.isFemale and "f" or "m") .. "-" ..

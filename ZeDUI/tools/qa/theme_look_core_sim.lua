@@ -241,12 +241,13 @@ section("OFF: the wheel, the window menu and ZeD setup show See-through off outs
 -- ---------------------------------------------------------------------------
 do
     local src = readFile(CDIR .. "ZeD_DpadWheels.lua") or ""
-    local offFn = cutFn(src, "function Z.seeThroughOff()")
-    local wheelFn = cutFn(src, "function Z.seeThroughWheel()")
+    local offFn = cutFn(src, "function Z.seeThroughOff(pn)")
+    local wheelFn = cutFn(src, "function Z.seeThroughWheel(p, pn)")
     check("the wheel has Z.seeThroughOff", offFn ~= nil)
     if offFn and wheelFn then
         local chunk, err = loadstring("local Z = {}\nlocal SEE_ICON = 'seethrough'\nlocal function tr(k, ...) return k end\n"
-            .. "local function inUse(on) return on and 'in use' or nil end\n" .. offFn .. wheelFn .. "\nreturn Z", "=ZeD_DpadWheels.lua (cut)")
+            .. "local function inUse(on) return on and 'in use' or nil end\n"
+            .. "local function keysOf(pn) return ZeD.currentBase end\n" .. offFn .. wheelFn .. "\nreturn Z", "=ZeD_DpadWheels.lua (cut)")
         check("the wheel's pieces load", chunk ~= nil, err)
         if chunk then
             local Z = chunk()
@@ -267,13 +268,13 @@ do
             S.seeThroughIndex, S.solidInUse = saved[1], saved[2]
         end
     end
-    check("the wheel's top See-through entry is off outside Dark", src:find("sub = Z.seeThroughWheel,\n          off = Z.seeThroughOff() }", 1, true) ~= nil)
+    check("the wheel's top See-through entry is off outside Dark", src:find("sub = Z.seeThroughWheel,\n          off = Z.seeThroughOff(pn) }", 1, true) ~= nil)
 
     local wm = readFile(CDIR .. "ZeD_WindowMenu.lua") or ""
     local a = wm:find('local see = { name = tr("UI_ZeD_Settings_SeeThrough")', 1, true)
     local blk = a and wm:sub(a, a + 600) or ""
     check("the window menu's See-through row: disabled outside Dark, with the Dark-only words",
-        blk:find("disabled = function() return ZeD.seeThroughWorks ~= nil and not ZeD.seeThroughWorks() end", 1, true) ~= nil
+        blk:find("disabled = function() return ZeD.seeThroughWorks ~= nil and not ZeD.seeThroughWorks((keys())) end", 1, true) ~= nil
         and blk:find("UI_ZeD_Settings_SeeThroughDarkOnly", 1, true) ~= nil)
 
     local mo = readFile(CDIR .. "ZeD_MainMenuOptions.lua") or ""
