@@ -225,7 +225,7 @@ check("pad: A on a tab shows that radio", win._radioIdx == 2, win._radioIdx)
 local one = { _radios = { radios[1] }, _radioIdx = 1, _radioTabZones = { { x = 10, y = 10, w = 50, h = 22, idx = 1 } } }
 local n1 = 0
 for _, e in ipairs(RT.buildFocusables(one)) do if tostring(e.id):match("^radio:tab:") then n1 = n1 + 1 end end
-check("pad: one radio, no tab stop", n1 == 0, n1)
+check("pad: one radio, its tab is a stop (punch list 207b: Up from the face reaches the header)", n1 == 1, n1)
 local rsrc = read(SRC .. "RadioTab.lua")
 check("Radio: no pager header", not has(rsrc, "drawDrawerInternalHeader"))
 check("Radio: render draws the strip", has(rsrc, "ZeD.SubTabs.draw(panel, x, y + headerH - T.tabH, w, items, idx, _stripOpts)"))

@@ -1152,6 +1152,21 @@ function FT.install()
             return origRn(self, x, y, z, sq)
         end
     end
+    -- (Nov 14 2026, punch list 203: with no focus the game hands Y to the cursor, which puts its
+    -- target back under the character, while the same Y brings ZeD's windows back: with the tab
+    -- up the target stays where it was)
+    if ISMoveableCursor and ISMoveableCursor.onJoypadPressButton and not ISMoveableCursor._zedFurnitureY then
+        ISMoveableCursor._zedFurnitureY = true
+        local origP = ISMoveableCursor.onJoypadPressButton
+        ISMoveableCursor.onJoypadPressButton = function(self, joypadIndex, joypadData, button, ...)
+            local keep = button == Joypad.YButton and joypadData and FT.active(joypadData.player)
+            if not keep then return origP(self, joypadIndex, joypadData, button, ...) end
+            local x, y, z = self.xJoypad, self.yJoypad, self.zJoypad
+            local r = origP(self, joypadIndex, joypadData, button, ...)
+            self.xJoypad, self.yJoypad, self.zJoypad = x, y, z
+            return r
+        end
+    end
     if ISMoveableInfoWindow and not ISMoveableInfoWindow._zedFurnitureHooked then
         ISMoveableInfoWindow._zedFurnitureHooked = true
         local origR = ISMoveableInfoWindow.render

@@ -643,6 +643,32 @@ local function plainTip(s)
     return (s:gsub("^%s+", ""):gsub("%s+$", ""))
 end
 
+-- (Nov 14 2026, punch list 200: the last way to a picture when nothing above gave one, so the
+-- strip shows the thing (Disassemble's furniture) instead of a letter: the tooltip's picture,
+-- else the sprite of the world object in the option's target or parameters. Item and world
+-- sprites are already colored: never tinted.)
+local function objectIconOf(option)
+    local tt = option.toolTip
+    local ok, tex = pcall(function() return tt and tt.texture end)
+    if ok and tex then return tex end
+    local cands = { option.target, option.param1, option.param2, option.param3 }
+    for i = 1, 4 do
+        local c = cands[i]
+        local ok2, t = pcall(function()
+            if type(c) == "table" and c.moveProps and c.moveProps.spriteName then
+                return getTexture(c.moveProps.spriteName)
+            end
+            local obj = c
+            if type(c) == "table" and c.object then obj = c.object end
+            if obj and instanceof(obj, "IsoObject") and obj:getSprite() then
+                return getTexture(obj:getSprite():getName())
+            end
+        end)
+        if ok2 and t then return t end
+    end
+    return nil
+end
+
 -- Translate a single vanilla option into an ActionDef
 local function makeActionDef(option, index, vanillaMenu, target)
     local def = {}
@@ -676,6 +702,7 @@ local function makeActionDef(option, index, vanillaMenu, target)
     if option.zedPx and ZeD.PxIcon and ZeD.PxIcon.has(option.zedPx) then
         def.iconTexture, def.pxIcon, def.iconTintable = ZeD.PxIcon.tex(option.zedPx, 16), option.zedPx, true
     end
+    if not def.iconTexture then def.iconTexture = objectIconOf(option) end   -- (punch list 200; untinted)
     if option.zedCategory then def.category = option.zedCategory end
     if option.zedCheck ~= nil then def.check = option.zedCheck and true or false end
 

@@ -1514,7 +1514,12 @@ end
 _buildWorldInvRowFocusables = function(win)
     local c = win and win._mainContent
     local items = c and c._invRowItems
-    if not items or #items == 0 then return {} end
+    if not c then return {} end
+    -- (Nov 14 2026, punch list 202: an empty container still has its column's view button and Filter: no rows,
+    -- but those stops stay, so Right from the strip lands on them and not on the footer's Take all)
+    if not items or #items == 0 then
+        return ZeD.InventoryRenderer.toggleElements(c._viewToggleRects)
+    end
     local elements = {}
     -- Bounds must be distinct per element so the cone-nav algorithm can
     -- pick neighbors. Prefer the renderer-stamped Y from _itemRenderYMap;
@@ -3065,6 +3070,19 @@ local function drawWorldContainerStrip(self, win, content)
         elseif win._radioIdx > #win._radios then
             win._radioIdx = #win._radios
         end
+        -- (Nov 14 2026, punch list 207a: the side strip's stops were built once with the ring, so a tab that shows
+        -- later (Radio, Vehicle) had no stop and Down stopped at Animals. Rebuild them when the shown tabs change.)
+        local key = ""
+        if WORLD_TABS and isTabVisible then
+            for _, tab in ipairs(WORLD_TABS) do if isTabVisible(tab, win) then key = key .. tab.id .. "," end end
+        end
+        if key ~= "" and key ~= win._tabBarKey and win._focusRing and _buildWorldTabBarElements
+           and ZeD.Input and ZeD.Input.Focus then
+            win._tabBarKey = key
+            local els = _buildWorldTabBarElements(win)
+            _attachWorldTabBarCallbacks(win, els)
+            pcall(ZeD.Input.Focus.setRingZoneElementsKeepId, win, "worldTabBar", els)
+        end
     end
 
     local containers = win._containers
@@ -3768,7 +3786,9 @@ function ZeD_WorldWindow.toggle(playerNum)
         win._focusEntryZone    = "worldMainInv"
         win._focusPendingEntry = true
 
-        Focus.claimFocus(win)
+        -- (Nov 14 2026, punch list: not while the pair opens with the pad already on a ZeD window)
+        if not (ZeD_CharacterWindow and ZeD_CharacterWindow.pairKeepsPad
+                and ZeD_CharacterWindow.pairKeepsPad(win.playerNum)) then Focus.claimFocus(win) end
     end
 
     -- Body geometry
@@ -3785,6 +3805,9 @@ function ZeD_WorldWindow.toggle(playerNum)
     local containerStrip = ZeD_Panel:new(0, bodyY, T.px(CONTAINER_STRIP_W), bodyH)
     containerStrip._zedLabel = "world container strip"   -- its own name in console.txt and safe mode's watchdog
     containerStrip.anchorRight = false
+    -- (Nov 14 2026, punch list 201: nor the height; the drawer's layout sets it. Anchored, a quick
+    -- Y unhide stretched the strip and the list for a frame or two before that layout ran)
+    containerStrip.anchorBottom = false
     containerStrip:initialise()
     win:addChild(containerStrip)
     win._containerStrip = containerStrip
@@ -3876,9 +3899,19 @@ function ZeD_WorldWindow.toggle(playerNum)
     content = ZeD_Panel:new(T.px(CONTAINER_STRIP_W), bodyY, winW - T.px(CONTAINER_STRIP_W) - T.px(ACTION_TAB_STRIP_W), bodyH)
     content._zedLabel = "world content"   -- its own name in console.txt and safe mode's watchdog
     content.anchorRight = false  -- drawer prerender controls width, not ISPanel auto-resize
+    content.anchorBottom = false  -- (Nov 14 2026, punch list 201: and height, as the container strip's)
     content:initialise()
     win:addChild(content)
     win._contentPanel = content
+    -- (Nov 14 2026, punch list 201: the strip and the list draw before the drawer's layout in a
+    -- frame, so the first frame after an unhide gets their top and height here, at once)
+    win.setWindowShaded = function(self, shaded)
+        ZeD_Window.setWindowShaded(self, shaded)
+        if shaded or self.windowShaded then return end
+        local by, bh = self:getBodyY(), self:getBodyHeight()
+        containerStrip:setY(by); containerStrip:setHeight(bh)
+        content:setY(by); content:setHeight(bh)
+    end
     -- Expose the content panel to gamepad focus callbacks set earlier
     -- in toggle(). Closures look up `win._mainContent` at fire time, so it's
     -- fine that this assignment happens after the focus context was pushed.

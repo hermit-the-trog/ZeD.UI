@@ -84,6 +84,8 @@ Registry = { categorize = function() return "ACTION" end }
 idFromName = function(name) return name end
 resolveIconForName = function() return nil end
 plainTip = assert(loadstring(cut(reg, "local function plainTip(s)"):gsub("^local function plainTip%(s%)", "return function(s)", 1)))()
+-- (Nov 14 2026, punch list 200: makeActionDef's last icon fallback, loaded as plainTip is)
+objectIconOf = assert(loadstring(cut(reg, "local function objectIconOf(option)"):gsub("^local function objectIconOf%(", "return function(", 1)))()
 makeActionDef = assert(loadstring(cut(reg, "local function makeActionDef(option, index, vanillaMenu, target)")
     :gsub("^local function makeActionDef%(", "return function(", 1)))()
 ZeD.Molecules = {}

@@ -1597,7 +1597,12 @@ end
 _buildInvRowFocusables = function(win)
     local c = win and win._mainContent
     local items = c and c._invRowItems
-    if not items or #items == 0 then return {} end
+    if not c then return {} end
+    -- (Nov 14 2026, punch list 202: an empty container still has its column's view button and Filter: no rows,
+    -- but those stops stay, so Right from the strip lands on them and not on the footer's Take all)
+    if not items or #items == 0 then
+        return ZeD.InventoryRenderer.toggleElements(c._viewToggleRects)
+    end
     local elements = {}
     -- Bounds must be distinct per element so the cone-nav algorithm can
     -- pick neighbors. Prefer the renderer-stamped Y from _itemRenderYMap
@@ -4277,7 +4282,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
         win._focusEntryZone    = "charMainInv"
         win._focusPendingEntry = true
 
-        Focus.claimFocus(win)
+        -- (Nov 14 2026, punch list: not while the pair opens with the pad already on a ZeD window)
+        if not ZeD_CharacterWindow.pairKeepsPad(win.playerNum) then Focus.claimFocus(win) end
     end
 
     -- Health tab state
@@ -7253,13 +7259,31 @@ function ZeD_CharacterWindow.ensureBothOpenForGamepad(playerNum)
     if tostring(getCore():getGameMode()) == "Tutorial" then return end
     if ZeD.Safe.on("windows") then return end   -- safe mode: no ZeD windows (SafeMode.lua)
 
-    if not ZeD_CharacterWindow.isOpen(playerNum) then
-        if not _openOrStepAside(ZeD_CharacterWindow.toggle, playerNum, "the Character window failed to open") then return end
-    end
-    if ZeD_WorldWindow and not ZeD_WorldWindow.isOpen(playerNum) then
-        if ZeD_WorldWindow.open and not _openOrStepAside(ZeD_WorldWindow.open, playerNum, "the World window failed to open") then return end
-    end
-    _hideVanilla()
+    -- (Nov 14 2026, punch list: while the pair opens, a window being built takes the pad only
+    -- when no ZeD window holds it yet, so one Y gives one claim (Character), not three)
+    ZeD_CharacterWindow._pairOpening[playerNum] = true
+    local ok, done = pcall(function()
+        if not ZeD_CharacterWindow.isOpen(playerNum) then
+            if not _openOrStepAside(ZeD_CharacterWindow.toggle, playerNum, "the Character window failed to open") then return false end
+        end
+        if ZeD_WorldWindow and not ZeD_WorldWindow.isOpen(playerNum) then
+            if ZeD_WorldWindow.open and not _openOrStepAside(ZeD_WorldWindow.open, playerNum, "the World window failed to open") then return false end
+        end
+        return true
+    end)
+    ZeD_CharacterWindow._pairOpening[playerNum] = nil
+    if not ok then error(done) end
+    if done then _hideVanilla() end
+end
+ZeD_CharacterWindow._pairOpening = {}
+
+--- True while ensureBothOpenForGamepad is opening player pn's pair and a ZeD
+--- window already holds that player's pad: a window being built leaves it there.
+function ZeD_CharacterWindow.pairKeepsPad(pn)
+    pn = pn or 0
+    local F = ZeD.Input and ZeD.Input.Focus
+    return ZeD_CharacterWindow._pairOpening[pn] == true
+        and F ~= nil and F.getFocusedWindow ~= nil and F.getFocusedWindow(pn) ~= nil
 end
 
 -- On death both windows close (vanilla destroys its inventory pages too). They

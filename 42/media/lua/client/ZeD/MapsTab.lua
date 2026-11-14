@@ -2285,12 +2285,25 @@ local function _mapPadPlayer(pn, now, dt)
         _pad.zoomAt[pn] = 0
     end
     Ext.padTick(win, mp, cid)   -- an extension's tool: A down / held / up at the cursor
+    return true
+end
+-- (Nov 14 2026, punch list 204: while the map's canvas has the pad, the game must not also
+-- read the triggers (LT shoved as it zoomed out). As the game's own world map does, the
+-- player stops moving and the pad's aim/attack is ignored; set once when the map takes
+-- the pad, cleared once when it lets go, which includes the map closing.)
+_pad.held = {}
+local function _mapPadHold(pn, on)
+    if (_pad.held[pn] or false) == on then return end
+    _pad.held[pn] = on or nil
+    local p = getSpecificPlayer(pn)
+    if p then pcall(p.setBlockMovement, p, on) end
+    if setJoypadIgnoreAim then pcall(setJoypadIgnoreAim, pn, on) end
 end
 local function _mapPadTick()
     local now = getTimestampMs()
     local dt = math.min(0.1, (now - _pad.t) / 1000)
     _pad.t = now
-    for pn = 0, 3 do _mapPadPlayer(pn, now, dt) end
+    for pn = 0, 3 do _mapPadHold(pn, _mapPadPlayer(pn, now, dt) == true) end
 end
 if Events and Events.OnTick then Events.OnTick.Add(_mapPadTick) end
 

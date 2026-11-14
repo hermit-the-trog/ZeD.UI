@@ -216,10 +216,28 @@ function ZeD_StationPopout:move(d)
     getSoundManager():playUISound("UISelectListItem")
 end
 
+-- (Nov 14 2026, punch list 209: the D-pad goes to the control that lies that way on the face, as everywhere else;
+-- nothing that way, it stays put)
+function ZeD_StationPopout:moveDir(dir)
+    local c = self:controls()
+    local N = ZeD.SpatialNav
+    local from = c[math.max(1, math.min(#c, self.fi))]
+    if not (from and N and from.x and from.w) then return self:move((dir == "up" or dir == "left") and -1 or 1) end
+    local best, bt, bc = nil, nil, nil
+    for i, z in ipairs(c) do
+        if z ~= from and z.x and z.w then
+            local t, cost = N.cost(from, z, dir)
+            if t and (bt == nil or t < bt or (t == bt and cost < bc)) then best, bt, bc = i, t, cost end
+        end
+    end
+    if best then self.fi = best; getSoundManager():playUISound("UISelectListItem") end
+end
+
 function ZeD_StationPopout:turnOrMove(d)
     local c = self:controls()
     local z = c[math.max(1, math.min(#c, self.fi))]
-    if z and z.kind == "turn" then SA.act(getSpecificPlayer(self.playerNum), self.st, z, d) else self:move(d) end
+    -- (a dial keeps the press at its end too: punch list 209)
+    if z and z.kind == "turn" then SA.act(getSpecificPlayer(self.playerNum), self.st, z, d) else self:moveDir(d < 0 and "left" or "right") end
 end
 
 function ZeD_StationPopout:onJoypadDown(button, joypadData)
@@ -229,8 +247,8 @@ function ZeD_StationPopout:onJoypadDown(button, joypadData)
     local z = c[math.max(1, math.min(#c, self.fi))]
     if z then SA.act(getSpecificPlayer(self.playerNum), self.st, z, 1) end
 end
-function ZeD_StationPopout:onJoypadDirUp() self:move(-1) end
-function ZeD_StationPopout:onJoypadDirDown() self:move(1) end
+function ZeD_StationPopout:onJoypadDirUp() self:moveDir("up") end
+function ZeD_StationPopout:onJoypadDirDown() self:moveDir("down") end
 function ZeD_StationPopout:onJoypadDirLeft() self:turnOrMove(-1) end
 function ZeD_StationPopout:onJoypadDirRight() self:turnOrMove(1) end
 

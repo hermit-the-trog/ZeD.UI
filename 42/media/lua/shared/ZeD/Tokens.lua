@@ -596,7 +596,9 @@ ZeD.Gp = {
     -- focus is released so gameplay input resumes instantly. Threshold is in
     -- squared magnitude units (|v|² = x² + y²) to avoid a sqrt call per tick.
     -- 0.81 ≈ 90% of full deflection on a unit-circle stick.
-    aimingThresholdSq = 0.81,
+    -- (Nov 14 2026, punch list 205: 0.81 asked for a full push before the windows
+    -- rolled up; 0.45 is about two thirds of the way out)
+    aimingThresholdSq = 0.45,
 
     -- HOLD DETECTION — B-HOLD and Y-HOLD (the tap/hold dismiss) --------------
     -- Shared threshold for `cancel` (B) and `window_control` (Y) hold actions.

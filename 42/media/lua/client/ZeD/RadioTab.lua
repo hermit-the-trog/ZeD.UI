@@ -944,7 +944,8 @@ local function _tabActivate(w, el) ZeD.RadioTab.selectRadio(w, el.radioIdx); w._
 local function _tabFocus(w, el) w._gpFocusedRadioCtl = el.id end
 local function _addTabStops(win, elements)
     local zs = win._radioTabZones
-    if not (zs and win._radios and #win._radios > 1) then return end
+    -- (Nov 14 2026, punch list 207b: one radio's tab is a stop too, so Up from the face's Power reaches the header)
+    if not (zs and #zs > 0) then return end
     for _, z in ipairs(zs) do
         elements[#elements + 1] = { x = z.x, y = z.y, w = z.w, h = z.h, id = "radio:tab:" .. z.idx, radioIdx = z.idx,
             onFocus = _tabFocus, onActivate = _tabActivate }

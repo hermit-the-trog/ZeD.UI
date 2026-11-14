@@ -156,7 +156,7 @@ local AXIS_RSTICK_Y = 3
 local function _holdInitialMs()     return (ZeD.T and ZeD.T.gp and ZeD.T.gp.holdInitMs)        or 250 end
 local function _holdRepeatMs()      return (ZeD.T and ZeD.T.gp and ZeD.T.gp.holdRepeatMs)      or 120 end
 local function _holdMs()            return (ZeD.T and ZeD.T.gp and ZeD.T.gp.holdMs)            or 400 end
-local function _aimingThresholdSq() return (ZeD.T and ZeD.T.gp and ZeD.T.gp.aimingThresholdSq) or 0.81 end
+local function _aimingThresholdSq() return (ZeD.T and ZeD.T.gp and ZeD.T.gp.aimingThresholdSq) or 0.45 end   -- (Nov 14 2026, punch list 205: matches the token)
 
 -- ---------------------------------------------------------------------------
 -- FILE-LOCAL STATE
@@ -2490,14 +2490,18 @@ local function _tickPlayer(pn, s)
     end
 
     -- Edge latch bookkeeping: latch when aiming-active, unlatch when in deadzone.
+    -- (Nov 14 2026, punch list 205: latch only outside the grace, so a stick held through
+    -- the grace after a claim still fires once when the grace ends)
     if aimingActive then
-        s.wsLatched = true
+        if not graceActive then s.wsLatched = true end
     else
         s.wsLatched = false
     end
 
     -- (E) D-pad hold-to-repeat (only if still focused after aiming-escape path).
-    if not s.win then
+    -- (Nov 14 2026, punch list 209: nor when something else holds the pad, the oven's controls pop-out: a held
+    -- Right on its dial walked the World window behind it and then took the pad to the Character window)
+    if not s.win or (getJoypadFocus and getJoypadFocus(pn) ~= s.win) then
         if s.dDir then s.dDir = nil end
         return
     end
