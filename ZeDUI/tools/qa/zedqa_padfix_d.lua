@@ -28,7 +28,7 @@ local function go(pred) local s = find(pred); if s then Focus.focusWhere(w, s.zo
 local function list(pat, max) local t = {}; for _, s in ipairs(Focus.flatElements(w)) do local id = tostring(s.id); if id:find(pat) then t[#t + 1] = id end end; return table.concat(t, " | ", 1, math.min(#t, max or 30)) end
 local function dir(d) Focus.dispatchJoypadDir(w, d, jd) end
 local releaseAt = nil
-local function A() Focus.qaButton("A", true, 0); pcall(function() Focus.dispatchJoypadDown(w, Joypad.AButton, jd) end); releaseAt = getTimestampMs() + 120 end
+local function A() local e = Focus.getFocusedElement(w); if e and e.onActivate then local ok, er = pcall(e.onActivate, w, e); if not ok then say("onActivate ERR " .. tostring(er)) end else say("no onActivate on " .. tostring(e and e.id)) end end
 local function B() Focus.dispatchJoypadDown(w, Joypad.BButton, jd) end
 local function shot(n) pcall(function() getCore():TakeFullScreenshot(n) end) end
 -- staging: no scissors or razor (190b), two Blacksmithing books (192), a newspaper (199)
@@ -80,10 +80,10 @@ end)
 at(7600, function() say("198 after A: " .. el()); shot("zqa_pfd2_recipes_sort.png") end)
 at(8000, function() B() end)
 -- 199 Papers: open the newspaper, Read with A, the queue after
-at(8600, function() go(function(id) return id == "jtab:3" end); A() end)
+at(8600, function() pcall(function() w._jrecipeState.sortMenuOpen = false; w._jrecipeState.showMenuOpen = false end); w._journalSubTab = 3; say("199 page set to 3") end)
 at(9800, function()
     say("199 papers stops: " .. list("^jr:", 15) .. " || " .. list("[Pp]aper", 10))
-    local s = go(function(id) local l = id:lower(); return l:find("newspaper") or l:find("knox") or l:find("piece") or l:find("^jr:row") end)
+    local s = go(function(id) local l = id:lower(); return l:find("^jr:paper:knox") end)
     say("199 on " .. el())
     if s then A() end
 end)
@@ -125,9 +125,13 @@ end)
 at(15300, function()
     local ok, e = pcall(function() ZeD_WorldWindow.openTab(0, "building") end)
     if not ok then say("198 World openTab failed: " .. tostring(e)) end
-    w = ZeD.windowsFor and ZeD.windowsFor(0) and ZeD.windowsFor(0)[2] or ZeD_WorldWindow.getInstance(0)
+    w = nil; for _, x in ipairs(ZeD.windowsFor(0) or {}) do if x._buildState then w = x end end
+    if not w then pcall(function() for _, x in pairs(ZeD.windowsFor(0)) do if type(x) == "table" and x._buildState then w = x end end end) end
+    say("198 world window " .. tostring(w and w._zedLabel) .. " buildState " .. tostring(w and w._buildState ~= nil))
+    pcall(function() ZeD.CraftingCore.openPopMenu(w._buildState, "show") end)
 end)
 at(16600, function()
+    if true then return end
     Focus.claimFocus(w)
     say("198 building stops with show/sort: " .. list("[Ss]how", 10) .. " || " .. list("[Ss]ort", 10))
     local s = go(function(id) return id:lower():find("show") ~= nil end)
