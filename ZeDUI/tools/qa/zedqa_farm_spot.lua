@@ -1,4 +1,4 @@
--- ZeDUI/tools/qa/zedqa_farm_spot.lua  (Nov 13 2026, QA): the animals checks' farm field (the director's pick, 1568,14337).
+-- ZeDUI/tools/qa/zedqa_farm_spot.lua  (Nov 13 2026, QA): the animals checks' farm field (the director's pick, 1625,14221; was 1568,14337).
 -- Run after the prelude (which puts the character on the drag strip) and before zedqa_animals_restore / aq / aq2: it moves
 -- the character to the field, waits for the cells to load, and reports the ground round it (indoors or not, the floor,
 -- fences and walls within 8 squares, which the animal zone of 17 x 17 squares round the character would hold), then one
@@ -6,7 +6,7 @@
 -- grep "ZEDQA farm".
 local TAG = "farm"
 local function say(s) print("ZEDQA " .. TAG .. " " .. tostring(s)) end
-local FARM = { x = 1568.5, y = 14337.5, z = 0 }
+local FARM = { x = 1625.5, y = 14221.5, z = 0 }
 ZEDQA_FARM = FARM
 local p = getPlayer()
 if not p then say("ERR no player"); say("DONE"); return end
