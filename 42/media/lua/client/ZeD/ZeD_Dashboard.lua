@@ -2395,7 +2395,7 @@ function ZeD_Dashboard:_claim()
 end
 function ZeD_Dashboard:_release()
     local Focus = ZeD.Input and ZeD.Input.Focus; if not Focus then return end
-    if Focus.getFocusedWindow() == self then Focus.releaseFocus() end
+    if Focus.getFocusedWindow(self.playerNum) == self then Focus.releaseFocus(self.playerNum) end
 end
 function ZeD_Dashboard:_unregister()
     self._reg = nil
@@ -2450,8 +2450,9 @@ end
 -- the driver's dash, shown (the World wheel's Vehicle > Dashboard asks)
 function D.canTakePad(character)
     local pn = character and character.getPlayerNum and character:getPlayerNum() or 0
-    -- (the focus follows the first player's pad only: another player's dash is drawn and counts, its controls by mouse)
-    if pn ~= 0 then return false end
+    -- (the focus is per player now; another player's dash takes their pad once their windows are ZeD's too, split view's
+    -- switch: until then it is drawn and counts, its controls by mouse)
+    if pn ~= 0 and not (ZeD.windowsFor and ZeD.windowsFor(pn)) then return false end
     local inst = D._instances[pn]
     local vehicle = character and character:getVehicle()
     if not (inst and inst:isVisible() and vehicle) then return false end
@@ -2475,7 +2476,7 @@ end
 local CLIMATE_FOCUS = { "heat", "off", "temp", "fan", "ac", "def", "tempup", "fanup" }
 function D.canHeater(character)
     if ZeD.Safe.on("dashboard") then return false end
-    local inst = D._instance
+    local inst = character and (D._instances[character:getPlayerNum()] or (character:getPlayerNum() == 0 and D._instance))   -- (the character's own dash: split view)
     local vehicle = character and character:getVehicle()
     if not (inst and vehicle and inst:isVisible() and inst.vehicle == vehicle) then return false end
     if inst.playerNum ~= character:getPlayerNum() then return false end
@@ -2483,7 +2484,7 @@ function D.canHeater(character)
 end
 function D.heater(character)
     if not D.canHeater(character) then return false end
-    local inst = D._instance
+    local inst = D._instances[character:getPlayerNum()] or D._instance
     local v = character:getVehicle()
     pcall(function() character:playSound("VehicleACButton") end)
     local st = _state(v, character)

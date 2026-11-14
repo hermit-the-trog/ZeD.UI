@@ -312,11 +312,11 @@ function G.swap(pn, dir, jd)
 end
 
 -- the windows behind a bumper: LB the Character window, RB the World window, as in a window
--- (the window pair is player 1's: another player's bumper only closes that player's wheel)
+-- (each player's own pair: a player whose windows are still the game's, split view's switch off, only closes the wheel)
 local function openWindows(pn, name)
-    if pn ~= 0 then return end
+    if not ZeD.windowsFor(pn) then return end
     local F = ZeD.Input and ZeD.Input.Focus
-    if F and F.openSide then F.openSide((name == "LB") and "char" or "world") end
+    if F and F.openSide then F.openSide((name == "LB") and "char" or "world", pn) end
 end
 
 -- ---------------------------------------------------------------------------
