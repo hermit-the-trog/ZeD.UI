@@ -4754,3 +4754,9 @@ to be proposed.
    choices themselves can't be read. Picture: %USERPROFILE%\Zomboid\Screenshots\zqa_ptl_now.png (crop
    zqa_ptl_sort_menu_crop.png), 4K. Likely the pull-up's background and rows aren't drawn (clipped by the tab's stencil
    or drawn under the list) when it opens upward.
+
+199. **Controller: A on a paper's Read button does nothing (the director, Nov 14 2026, playtest).** open. Journal > Papers
+   > Knox Knews - July 2 1993 (Read: Not yet): the pad's focus mark is on the Read button, and A was pressed about 20
+   times (11:45:28-11:45:48 in the logger: "press A | focus Character", no cursor, not paused). Nothing opened and the
+   paper stayed unread. Picture: %USERPROFILE%\Zomboid\Screenshots\zqa_ptl_now2.png. The press reaches the Character
+   window; its A on that button doesn't run the Read action.
