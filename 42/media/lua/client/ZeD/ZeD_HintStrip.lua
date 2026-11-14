@@ -200,7 +200,7 @@ function ZeD_HintStripHUD:prerender()
     if not ok or not p then return end
     local G = ZeD.PadGlyphs
     local pn = self.playerNum
-    local w = math.min(math.ceil(G.stripW(p)) + 4, getPlayerScreenWidth(pn) - T.px(40))
+    local w = math.min(math.ceil(G.stripW(p, pn)) + 4, getPlayerScreenWidth(pn) - T.px(40))
     local h = G.stripH()
     local x = getPlayerScreenLeft(pn) + math.floor((getPlayerScreenWidth(pn) - w) / 2)
     local y = getPlayerScreenTop(pn) + getPlayerScreenHeight(pn) - h - T.px(16)

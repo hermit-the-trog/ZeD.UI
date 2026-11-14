@@ -2393,7 +2393,7 @@ function D.cardScroll(win, t, x, w, sy, sh, listH)
     scroll.x, scroll.y, scroll.height = x + w - T.sp.scrollbarW, sy, sh
     scroll:setBarSize(sh / math.max(1, listH))
     local Fo = ZeD.Input and ZeD.Input.Focus
-    local fe = Fo and Fo.getFocusedWindow and Fo.getFocusedWindow() == win and Fo.liveElement and Fo.liveElement(win)   -- (nil under the mouse)
+    local fe = Fo and Fo.getFocusedWindow and Fo.getFocusedWindow(win.playerNum) == win and Fo.liveElement and Fo.liveElement(win)   -- (nil under the mouse)
     local field = D.typing(win, t)
     if field then
         fe = { tkc = true, cy = field.y, h = field.h }

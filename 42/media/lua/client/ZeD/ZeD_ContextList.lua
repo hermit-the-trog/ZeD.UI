@@ -149,8 +149,9 @@ function ZeD_ContextList:open()
     top.sel = self:_firstLive(top, 1, 1) or 1
     self._levels = { top }
     -- opened by the pad, the first row is marked at once; with the mouse, only the row it is on
+    -- (the list's own player's input: in split screen each player's is their own)
     local D = ZeD.Input and ZeD.Input.Detector
-    self._nav = (D and D.getMode and D.getMode() == "gamepad") and "pad" or "mouse"
+    self._nav = (D and D.getMode and D.getMode(self.player) == "gamepad") and "pad" or "mouse"
     self._lastMx, self._lastMy = getMouseX(), getMouseY()   -- (the panel covers the screen: its mouse is the screen's)
     self:_notePress()
     if JoypadState and JoypadState.players and JoypadState.players[self.player + 1] then
@@ -526,7 +527,7 @@ function ZeD_ContextList:update()
     if self._lastMx == nil then
         -- (a list that did not come through :open, the window box's menu: who opened it)
         local D = ZeD.Input and ZeD.Input.Detector
-        self._nav = (self._joyfocus and D and D.getMode and D.getMode() == "gamepad") and "pad" or "mouse"
+        self._nav = (self._joyfocus and D and D.getMode and D.getMode(self.player) == "gamepad") and "pad" or "mouse"
         self._lastMx, self._lastMy = mx, my
     end
     if mx == self._lastMx and my == self._lastMy then

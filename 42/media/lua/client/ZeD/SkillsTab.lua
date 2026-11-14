@@ -1128,7 +1128,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     do
         local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
         if Focus and Focus.getFocusedWindow and Focus.getFocusedElement
-           and Focus.getFocusedWindow() == win then
+           and Focus.getFocusedWindow(win.playerNum) == win then
             local el = Focus.getFocusedElement(win)
             if el then
                 focusedSkillName   = el.skillName

@@ -270,7 +270,7 @@ end
 -- the controller's focus kept in view; returns the offset
 local function follow(win, scroll, maxOff, sh)
     local Fo = ZeD.Input and ZeD.Input.Focus
-    local fe = Fo and Fo.getFocusedWindow and Fo.getFocusedWindow() == win and Fo.getFocusedElement and Fo.getFocusedElement(win)
+    local fe = Fo and Fo.getFocusedWindow and Fo.getFocusedWindow(win.playerNum) == win and Fo.getFocusedElement and Fo.getFocusedElement(win)
     if fe and fe.adm and fe.cy and maxOff > 0 then
         local off0 = math.floor(scroll.scrollPos * maxOff)
         local off1 = off0

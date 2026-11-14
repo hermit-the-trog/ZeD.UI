@@ -441,7 +441,7 @@ function S.render(panel, win, x, y, w, h)
     end
     -- the controller's focus kept in view
     local Fo = ZeD.Input and ZeD.Input.Focus
-    local fe = Fo and Fo.getFocusedWindow and Fo.getFocusedWindow() == win and Fo.getFocusedElement and Fo.getFocusedElement(win)
+    local fe = Fo and Fo.getFocusedWindow and Fo.getFocusedWindow(win.playerNum) == win and Fo.getFocusedElement and Fo.getFocusedElement(win)
     if needs and fe and fe.srv and fe.cy then
         local off0 = math.floor(scroll.scrollPos * maxOff)
         local top, bot = fe.cy, fe.cy + (fe.h or 0)

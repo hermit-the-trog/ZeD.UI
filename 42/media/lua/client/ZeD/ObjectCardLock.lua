@@ -32,9 +32,10 @@ local LK = ZeD.ObjectCardLock
 local function txt(k, fb) local s = getTextOrNull and getTextOrNull(k) return s or fb or k end
 local function col(c) return c.r, c.g, c.b end
 local function now() return getTimestampMs and getTimestampMs() or 0 end
-local function isGamepad()
+-- pn: the card's player (each split-screen player's input is their own)
+local function isGamepad(pn)
     local D = ZeD.Input and ZeD.Input.Detector
-    return (D and D.getMode and D.getMode() == "gamepad") or false
+    return (D and D.getMode and D.getMode(pn) == "gamepad") or false
 end
 -- 319 -> "3 1 9"
 local function spaced(code)
@@ -464,7 +465,7 @@ local function drawPadlock(card, x, y, t, key)
     local total = wheelW * 3 + gap * 2
     local wx0 = winX + math.floor((winW - total) / 2)
     local wy = winY + math.floor((winH - wheelH) / 2)
-    local cursorOn = card:pointerOver() and not isGamepad()
+    local cursorOn = card:pointerOver() and not isGamepad(card.playerNum)
     for i = 1, 3 do
         local wx = wx0 + (i - 1) * (wheelW + gap)
         local fid = "lk:wheel:" .. tostring(i)
@@ -494,7 +495,7 @@ local function drawPadlock(card, x, y, t, key)
             run = function(c)
                 -- A on a wheel presses the card's verb (LOCK / REMOVE PADLOCK)
                 local v1 = t.verbs and t.verbs[1]
-                if isGamepad() then
+                if isGamepad(c.playerNum) then
                     if v1 then c:press(v1) end
                 else
                     t.cursor = ii

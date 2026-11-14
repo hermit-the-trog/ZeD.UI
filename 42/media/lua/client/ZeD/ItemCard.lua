@@ -1827,7 +1827,7 @@ function ZeD_ItemCard:focusFor(id)
     local backStop = (id == "back" and self._gpZone ~= nil)
     if not backStop and self._gpFocusedBtnId ~= id then return nil end
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-    local w     = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow()
+    local w     = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow(self.playerNum)   -- (the card's own player's window)
     local zone  = (w and Focus.liveZone) and Focus.liveZone(w) or nil
     if not zone then return nil end
     if self._gpZone then

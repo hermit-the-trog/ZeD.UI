@@ -2207,13 +2207,14 @@ function ZeD_Dashboard:prerender()
     if designId == "taxi" then self:_hula(vehicle, st, now, dt) else st.hula = 0 end
     local Focus = ZeD.Input and ZeD.Input.Focus
     local DetM = ZeD.Input and ZeD.Input.Detector
-    local gamepad = DetM and DetM.getMode and DetM.getMode() == "gamepad"
+    -- (the dash's own player's input and focus: in split screen each player's are their own)
+    local gamepad = DetM and DetM.getMode and DetM.getMode(self.playerNum) == "gamepad"
     self._pad = gamepad and true or false      -- the controller prompts' words are looked up only while a pad plays
     -- the focus cue is a gamepad affordance: the dash still holds focus for the ring under mouse play, but paints nothing
-    self._focEl = (gamepad and Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == self) and Focus.getFocusedElement(self) or nil
+    self._focEl = (gamepad and Focus and Focus.getFocusedWindow and Focus.getFocusedWindow(self.playerNum) == self) and Focus.getFocusedElement(self) or nil
     -- (the pad went to a window (LB / RB): the dash leaves the window list, so closing
     -- that window never hands the D-pad back to the dash)
-    if self._reg and Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() ~= self then self:_unregister() end
+    if self._reg and Focus and Focus.getFocusedWindow and Focus.getFocusedWindow(self.playerNum) ~= self then self:_unregister() end
     self._hit = {}; self._elements = {}
     self._consoleRect = des.console   -- the radio and siren props up close line up on the console (plate pixels; _s = k)
     if plain then
@@ -2250,10 +2251,10 @@ function ZeD_Dashboard:prerender()
     end
 
     local Det = ZeD.Input and ZeD.Input.Detector
-    if Det and Det.getMode and Det.getMode() == "gamepad" and self._driver then
+    if Det and Det.getMode and Det.getMode(self.playerNum) == "gamepad" and self._driver then
         local hint
         local PG = ZeD.PadGlyphs
-        local set = PG and PG.set()
+        local set = PG and PG.set(self.playerNum)   -- the driver's own pad's pictures
         local ink, shadow = P.color(des.hintInk or "#ece8dc"), (not des.hintInk) and "#101010" or nil
         if self._focEl and set then
             -- the buttons as their small pictures, each before its word, right-aligned at DashPx.hintRight

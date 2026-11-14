@@ -298,7 +298,9 @@ end
 local function glyphW(k)
     local T = ZeD.T
     local PG, roles = padRoles(k)
-    if roles then return PG.width(roles, PG.k(T.px(12))) end
+    -- (measured with the pad of the player typing, as the key draws it: ZeD_PadGlyphs.draw reads the panel's player)
+    local inst = KB.instance
+    if roles then return PG.width(roles, PG.k(T.px(12)), PG.set(inst and inst.playerNum)) end
     return math.max(T.px(12), ZeD.TM:MeasureStringX(T.fontF5, k.glyph) + T.px(4))
 end
 

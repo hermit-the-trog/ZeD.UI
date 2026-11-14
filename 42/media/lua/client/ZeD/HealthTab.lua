@@ -1766,7 +1766,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     if needsScroll then
         local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
         local el = Focus and Focus.getFocusedWindow and Focus.getFocusedElement
-                   and Focus.getFocusedWindow() == win
+                   and Focus.getFocusedWindow(win.playerNum) == win   -- (the window's own player's focus)
                    and Focus.getFocusedElement(win) or nil
         local focKey = el and (el.injuryKey or el.partName or el.isDisclosure or el.fillStop) and el.id or nil
         if focKey and focKey ~= win._lastPinnedInjuryKey then

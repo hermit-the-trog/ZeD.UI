@@ -77,7 +77,7 @@ end
 local function drawButton(panel, roles, x, y, h)
     local T = ZeD.T
     local PG = ZeD.PadGlyphs
-    local set = PG and PG.set()
+    local set = PG and PG.set(PG.playerOf(panel))   -- (the pad of the map's own player)
     if PG and set then
         local k = PG.k(h)
         return PG.draw(panel, roles, x, y, h, k, set)
@@ -149,7 +149,7 @@ function ZeD_ControllerMap:prerender()
     self:setStencilRect(0, tbH, w, bodyH)
     local y = tbH + margin - self.scroll
     local PG = ZeD.PadGlyphs
-    PF.draw(self, margin + math.floor((inner - padW) / 2), y, padK, (PG and PG.set()) or "xbox", nil)
+    PF.draw(self, margin + math.floor((inner - padW) / 2), y, padK, (PG and PG.set(self.playerNum)) or "xbox", nil)
     y = y + padH + T.px(10)
     local A = ZeD.Atoms
     if A and A.drawDividerH then A.drawDividerH(self, margin, y - T.px(5), inner, false) end

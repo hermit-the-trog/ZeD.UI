@@ -950,14 +950,15 @@ end
 -- name in a box with the glyph setting on Keyboard/mouse or Off, then its label in F2.
 -- Too long for the line: the leftmost go first (an item list's L3 / R3 lead the list).
 local _pw, _pr, _pg = {}, {}, {}
-local function drawPrompts(p, prompts, x, y, h, maxX)
+-- pn: the window's player, so a split-screen player's own pad names the pictures
+local function drawPrompts(p, prompts, x, y, h, maxX, pn)
     local T = ZeD.T
     local tm = ZeD.TM
     local f2, f5 = T.fontF2, T.fontF5
     local pic = T.px(14)
     local gap, between = T.px(4), T.px(8)
     local PG = ZeD.PadGlyphs
-    local set = PG and PG.set()
+    local set = PG and PG.set(pn)
     local k = PG and PG.k(pic) or 1
     local n = #prompts
     local total = 0
@@ -1073,7 +1074,7 @@ function ZeD_Window:_drawHelpLine(p, w, h, lit)
         local maxX = w - grow - T.px(10)
         local prompts = self:_footerPrompts()
         if prompts and #prompts > 0 then
-            drawPrompts(p, prompts, x0, fY, fH, maxX)
+            drawPrompts(p, prompts, x0, fY, fH, maxX, self.playerNum)
         else
             if lit then text = ZeD.tr("UI_ZeD_Window_ResizeHelp") end
             if text and maxX > x0 then

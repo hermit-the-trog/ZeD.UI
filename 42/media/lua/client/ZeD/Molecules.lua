@@ -4440,6 +4440,8 @@ function ZeD.Molecules.drawContextBalloon(panel, centerX, apexY, state, T)
         .. "\1" .. tostring(state.labelPads and state.labelPads[1]) .. tostring(state.labelPads and state.labelPads[2])
     if not c or panel._zedBalloonSig ~= sig then
         c = { kind = "rich", title = label, path = state.parentChain, pads = state.labelPads }
+        -- (a chord's button pictures are the wheel's own player's pad: ZeD_PadGlyphs)
+        if c.pads and ZeD.PadGlyphs and ZeD.PadGlyphs.playerOf then c.pn = ZeD.PadGlyphs.playerOf(panel) end
         if state.bodyRich then
             c.req = state.bodyRich
             c.pic = state.pic
@@ -4651,7 +4653,7 @@ function ZeD.Molecules.drawGlyphPrompts(panel, x, y, h, prompts)
     local textY = y + math.floor((h - fh) / 2)
     local bs, tc, td = T.borderS, T.text, T.textDim
     local PG = ZeD.PadGlyphs
-    local set = PG and PG.set()
+    local set = PG and PG.set(PG.playerOf(panel))   -- (the pad of the panel's own player)
     local k = PG and PG.k(box) or 1
     for _, p in ipairs(prompts or {}) do
         local roles = (type(p) == "table" and set) and (p.pad or PG.roles(p.glyph)) or nil

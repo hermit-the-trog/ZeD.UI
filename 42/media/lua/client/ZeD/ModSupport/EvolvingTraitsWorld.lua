@@ -1276,7 +1276,7 @@ end
 
 local function focusedEl(win)
     local Fo = ZeD.Input and ZeD.Input.Focus
-    if not (Fo and Fo.getFocusedWindow and Fo.getFocusedWindow() == win and Fo.getFocusedElement) then return nil end
+    if not (Fo and Fo.getFocusedWindow and Fo.getFocusedWindow(win.playerNum) == win and Fo.getFocusedElement) then return nil end
     local el = Fo.getFocusedElement(win)
     if el and el.etw then return el end
     return nil

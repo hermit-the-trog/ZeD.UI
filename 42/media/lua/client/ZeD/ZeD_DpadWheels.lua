@@ -181,10 +181,12 @@ local function chordPads(chord)
     local b, f = chord:match("^(%a+)%+(%w+)$")
     return b and { b, f } or nil
 end
-local function chordWords(chord)
+-- pn: the wheel's player, whose own pad names the buttons
+local function chordWords(chord, pn)
     local PG = ZeD.PadGlyphs
     local b, f = chord:match("^(%a+)%+(%w+)$")
-    if PG and PG.set() then return PG.name(b) .. " + " .. PG.name(f) end
+    local set = PG and PG.set(pn)
+    if set then return PG.name(b, set) .. " + " .. PG.name(f, set) end
     return b .. " + " .. f
 end
 
@@ -205,7 +207,7 @@ function D.assign(pn, menu, chord)
     end
     local was, wasWords = Qc.get(chord)
     Qc.set(chord, path, D.wordsOf(st, e))
-    local note = ZeD.tr("UI_ZeD_Chord_NowOn", chordWords(chord))
+    local note = ZeD.tr("UI_ZeD_Chord_NowOn", chordWords(chord, menu.playerNum))
     if was and was ~= path and wasWords and #wasWords > 0 then note = note .. " " .. ZeD.tr("UI_ZeD_Chord_Replaces", wasWords[#wasWords]) end
     -- (the slice that had this chord before shows none now; this one shows it, and says so)
     for _, x in ipairs(menu.slices or {}) do

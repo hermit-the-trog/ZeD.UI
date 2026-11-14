@@ -225,17 +225,19 @@ function FP.isShowing(win, opts)
     opts = opts or NO_OPTS
     local F = ZeD.Input and ZeD.Input.Focus
     local pad = opts.pad
+    -- the window's own player (split screen: each player's cues follow their own input); nil reads as player 1
+    local pn = win and win.playerNum
     if pad == nil then
         if F and F.cuesVisible then
-            pad = F.cuesVisible()
+            pad = F.cuesVisible(pn)
         else
             local D = ZeD.Input and ZeD.Input.Detector
-            pad = (D and D.getMode and D.getMode() == "gamepad") or false
+            pad = (D and D.getMode and D.getMode(pn) == "gamepad") or false
         end
     end
     if not pad then return false end
     if opts.focused then return true end
-    return win ~= nil and F ~= nil and F.getFocusedWindow ~= nil and F.getFocusedWindow() == win
+    return win ~= nil and F ~= nil and F.getFocusedWindow ~= nil and F.getFocusedWindow(pn) == win
 end
 
 local _marks = {}   -- [win] = { x, y, w, h (screen), solid, zone, t, panel }

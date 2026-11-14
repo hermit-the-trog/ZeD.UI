@@ -198,7 +198,7 @@ function F.drawCard(mp)
     local p = nil
     local pad = false
     local D = ZeD.Input and ZeD.Input.Detector
-    local padMode = D and D.getMode and D.getMode() == "gamepad"
+    local padMode = D and D.getMode and D.getMode(mp.playerNum) == "gamepad"   -- the map's own player's input
     if padMode and mp._gpCursorX and mp._gpCursorLive then
         p = F.hit(mp, mp._gpCursorX, mp._gpCursorY); pad = p ~= nil
     end

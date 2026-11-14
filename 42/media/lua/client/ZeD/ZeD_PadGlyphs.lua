@@ -20,7 +20,7 @@
 -- A Nintendo picture names the button in that place on its pad: role A
 -- reads B.
 --
---   G.set()                      the set in use: "xbox" | "ps" | "deck" | "nin", nil = lettered boxes
+--   G.set(pn)                    the set in use for player pn (nil: player 1): "xbox" | "ps" | "deck" | "nin", nil = lettered boxes
 --   G.roles(text)                a prompt's glyph text as roles ("RT LT" -> { "RT", "LT" }), nil if not a button
 --   G.k(h)                       the whole pixel multiple for a picture about h px tall
 --   G.width(roles, k)            the pictures' width side by side
@@ -77,16 +77,51 @@ local NAMES = {
 -- ---------------------------------------------------------------------------
 local SETTING = { xbox = "xbox", ps = "ps", deck = "deck", nintendo = "nin" }
 local STYLE = { PS4 = "ps", STEAMDECK = "deck" }   -- the game's file prefixes (JoyPadSetup: initControllerButtonStyle)
+-- The set a split-screen player's own pad names (players 2-4 each hold their own controller, and
+-- the game's button style is one option for the whole screen, so it speaks for player 1's pad).
+-- nil when the pad is not bound or its name says nothing we know; the caller then falls back.
+local NAMED = { xbox = "xbox", playstation = "ps", nintendo = "nin" }
+local function padSetOf(pn)
+    local P = JoypadState and JoypadState.players
+    local jd = P and P[pn + 1]
+    local id = jd and jd.id
+    if type(id) ~= "number" then return nil end
+    local ok, name = pcall(function() return getControllerName(id) end)
+    if ok and name and string.find(string.lower(tostring(name)), "steam", 1, true) then return "deck" end
+    local D = ZeD.Input and ZeD.Input.Detector
+    local ok2, t = pcall(function() return D and D.getControllerType and D.getControllerType(id) end)
+    return (ok2 and t and NAMED[t]) or nil
+end
+
 --- The picture set in use: "xbox" | "ps" | "deck" | "nin", or nil when the
 --- setting is Keyboard/mouse or Off (buttons then show as lettered boxes).
 --- Auto follows the game's controller button style, Xbox when it names none.
-function G.set()
+--- pn (optional): the local player whose prompts these are. Players 2-4 on
+--- Auto get their own pad's pictures; player 1 (or nil) reads as before.
+function G.set(pn)
     local key = (ZeD.Settings and ZeD.Settings.glyphKey and ZeD.Settings.glyphKey()) or "auto"
     if key == "auto" then
+        if type(pn) == "number" and pn > 0 then
+            local own = padSetOf(pn)
+            if own then return own end
+        end
         local ok, s = pcall(function() return getCore():getOptionControllerButtonStyleString() end)
         return (ok and STYLE[tostring(s)]) or "xbox"
     end
     return SETTING[key]
+end
+
+--- The local player a panel draws for: a window's playerNum, a list's player, or the
+--- window it sits in. nil (player 1's pictures) when it names none.
+function G.playerOf(panel)
+    local o, hops = panel, 0
+    while type(o) == "table" and hops < 8 do
+        if type(o.playerNum) == "number" then return o.playerNum end
+        if type(o.player) == "number" then return o.player end
+        o = o.parent
+        hops = hops + 1
+    end
+    return nil
 end
 
 -- ---------------------------------------------------------------------------
@@ -271,7 +306,7 @@ end
 --- ink, paper and rim (text, surf3, surf1, base), ZeD.T when nil (the survival guide's book passes its ink on paper).
 --- Returns the width drawn.
 function G.draw(panel, roles, x, y, h, k, set, pal)
-    set = set or G.set()
+    set = set or G.set(G.playerOf(panel))   -- (no set given: the pad of the panel's own player)
     if not (set and roles and panel and panel.drawRect) then return 0 end
     local T = pal or ZeD.T
     local light = isLight(T)
@@ -299,17 +334,17 @@ end
 -- in F2, 8u between prompts. A plain string is a dim note. When the prompts do not fit the strip,
 -- the leftmost go first, as in the help line. The callers show it only while the pad has the prop.
 --   G.stripH()                                the strip's height (22u, the help line's)
---   G.stripW(prompts)                         the width the prompts need, margins included
+--   G.stripW(prompts, pn)                     the width the prompts need, margins included
 --   G.drawStrip(panel, x, y, w, prompts)      prompts = { "D-PAD Move", { glyph = "A", label = "Press" }, ... }
 -- ---------------------------------------------------------------------------
 local STRIP_H, PIC_H = 22, 14
 function G.stripH() return ZeD.T.px(STRIP_H) end
 --- The width drawStrip needs for these prompts (its 10u margins included).
-function G.stripW(prompts)
+function G.stripW(prompts, pn)
     local T, tm = ZeD.T, ZeD.TM
     local f2, f5 = T.fontF2, T.fontF5
     local pic, gap, between = T.px(PIC_H), T.px(4), T.px(8)
-    local set = G.set()
+    local set = G.set(pn)
     local k = G.k(pic)
     local total = 0
     for i, pr in ipairs(prompts) do
@@ -336,7 +371,7 @@ function G.drawStrip(panel, x, y, w, prompts)
     panel:drawRect(x, y, w, T.hair, bs.a or 1, bs.r, bs.g, bs.b)
     local f2, f5 = T.fontF2, T.fontF5
     local pic, gap, between = T.px(PIC_H), T.px(4), T.px(8)
-    local set = G.set()
+    local set = G.set(G.playerOf(panel))   -- the pictures of the pad that owns this panel
     local k = G.k(pic)
     local n = #prompts
     local total = 0

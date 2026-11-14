@@ -1422,7 +1422,7 @@ end
 -- the controller's focused element, when it is one of this window's
 local function focusedId(win)
     local Focus = ZeD.Input and ZeD.Input.Focus
-    if not (Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win and Focus.getFocusedElement) then return nil end
+    if not (Focus and Focus.getFocusedWindow and Focus.getFocusedWindow(win.playerNum) == win and Focus.getFocusedElement) then return nil end
     local el = Focus.getFocusedElement(win)
     return el and el.id or nil
 end

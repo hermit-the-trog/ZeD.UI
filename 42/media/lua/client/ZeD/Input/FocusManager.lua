@@ -2000,7 +2000,7 @@ end
 -- The mouse and keyboard are player 1's: another player's window is always on a pad, so its stops never wait.
 function Focus.stopsMayWait(w)
     local D = ZeD.Input.Detector
-    if not (w and D and D.getMode and D.getMode() == "kbm") then return false end
+    if not (w and D and D.getMode and D.getMode(_pnOf(w)) == "kbm") then return false end
     if _pnOf(w) ~= 0 then return false end
     if ZEDQA_FRESH_STOPS then return false end   -- (QA scripts read w._focusRing directly: the QA prelude keeps the stops fresh)
     if _st0.cues or Focus.soonPending(w) then return false end

@@ -307,7 +307,7 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     win._thermalBodyRect = { x = x, y = scrollY, w = contentW, h = scrollH }   -- (its own name: _thermalView is the chosen view, 1..7)
     if needsScroll then
         local Focus = ZeD.Input and ZeD.Input.Focus
-        local el = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win
+        local el = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow(win.playerNum) == win
                    and Focus.getFocusedElement(win) or nil
         local key = el and (el.partName or el.fillStop) and el.id or nil
         if key and key ~= win._thermalPinned and type(el.y) == "number" then

@@ -161,6 +161,8 @@ local function sigOf(c)
     if c.req then p[#p + 1] = "\4" .. (c.req.sig or tostring(c.req)) end
     if c.pic then p[#p + 1] = "\5pic" end
     if c.pads then p[#p + 1] = "\6" .. tostring(c.pads[1]) .. "+" .. tostring(c.pads[2]) end
+    -- (another player's chord pictures may be another pad's: a layout of their own)
+    if c.pads and type(c.pn) == "number" and c.pn ~= 0 then p[#p + 1] = "\6p" .. tostring(c.pn) end
     if c.body then p[#p + 1] = "\7" .. tostring(c.body.sig or c.body) end
     return table.concat(p)
 end
@@ -252,7 +254,7 @@ function B._layout(c)
 
     local padsW = 0
     local PG = ZeD.PadGlyphs
-    local padSet = c.pads and PG and PG.set and PG.set()
+    local padSet = c.pads and PG and PG.set and PG.set(c.pn)   -- (c.pn: whose pad, for split screen)
     if c.pads then
         if padSet then
             local k = PG.k(fh("F2"))
