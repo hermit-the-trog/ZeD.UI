@@ -867,6 +867,8 @@ do
 
     -- player 1's run before split-screen's input per player (taken from the files as they were; ZEDQA_S1_DUMP=1
     -- prints the run as it is now)
+    -- (Nov 14 2026, punch list 212: LB at 3400 and RB at 6100 now take the pad to their window on the release, at
+    -- 3450 and 6150, as a tab step; the presses alone change nothing. Only those lines moved.)
     local GOLDEN = [[
     0 p0 [ZeD.Input] ActionMap loaded - 18 actions registered
     0 p0 [ZeD.Input] BumperChord loaded - no arming timeout, hold-and-tap model
@@ -940,14 +942,14 @@ do
  3200 p0 world0 b2 onFocus
  3200 p0 state world0 b2 cues=true mode=gamepad chord=IDLE slot=world0
  3250 p0 state world0 b2 cues=true mode=gamepad chord=IDLE slot=world0
- 3400 p0 pair
- 3400 p0 [ZeD.Input] Focus: claim: world0 -> char0
- 3400 p0 engine focus char0
- 3400 p0 ignore aim
- 3400 p0 focus char0 <- world0
- 3400 p0 state char0 b2 cues=true mode=gamepad chord=IDLE slot=char0
+ 3400 p0 state world0 b2 cues=true mode=gamepad chord=IDLE slot=world0
  3450 p0 game release LeftBump
- 3450 p0 state char0 b2 cues=true mode=gamepad chord=IDLE slot=char0
+ 3450 p0 state world0 b2 cues=true mode=gamepad chord=IDLE slot=world0
+ 3450 p0 pair
+ 3450 p0 [ZeD.Input] Focus: claim: world0 -> char0
+ 3450 p0 engine focus char0
+ 3450 p0 ignore aim
+ 3450 p0 focus char0 <- world0
  3500 p0 [ZeD.Input] Focus: spatial left -> back to r4 [char0]
  3500 p0 char0 r4 onFocus
  3500 p0 state char0 r4 cues=true mode=gamepad chord=IDLE slot=char0
@@ -979,14 +981,14 @@ do
  5900 p0 state char0 r4 cues=true mode=gamepad chord=IDLE slot=char0
  5950 p0 game release B
  5950 p0 state char0 r4 cues=true mode=gamepad chord=IDLE slot=char0
- 6100 p0 pair
- 6100 p0 [ZeD.Input] Focus: claim: char0 -> world0
- 6100 p0 engine focus world0
- 6100 p0 ignore aim
- 6100 p0 focus world0 <- char0
- 6100 p0 state world0 b2 cues=true mode=gamepad chord=IDLE slot=world0
+ 6100 p0 state char0 r4 cues=true mode=gamepad chord=IDLE slot=char0
  6150 p0 game release RightBump
- 6150 p0 state world0 b2 cues=true mode=gamepad chord=IDLE slot=world0
+ 6150 p0 state char0 r4 cues=true mode=gamepad chord=IDLE slot=char0
+ 6150 p0 pair
+ 6150 p0 [ZeD.Input] Focus: claim: char0 -> world0
+ 6150 p0 engine focus world0
+ 6150 p0 ignore aim
+ 6150 p0 focus world0 <- char0
  6800 p0 state world0 b2 cues=true mode=gamepad chord=IDLE slot=world0
  6800 p0 [ZeD.Input] Focus: aiming-escape magSq=1 world0
  6800 p0 [ZeD.Input] Focus: hideAll (aim-RS)

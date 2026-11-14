@@ -18,12 +18,15 @@
 --
 -- Windows store their focusable controls in zones (per-tab builders call
 -- setRingZoneElements / setZoneFocusable), but D-pad nav is FLAT across every
--- focusable zone of the focused window. Bumpers don't cycle zones; they pick
--- one of the two always-paired windows (LB Character, RB World).
+-- focusable zone of the focused window. Bumpers don't cycle zones; LB steps
+-- the Character window's tabs and RB the World window's, the pad going with them.
 --
 -- NAV MODEL:
---   LB                       — focus the Character window (absolute: on it already, a no-op)
---   RB                       — focus the World window (absolute)
+--   LB tap                   — the Character window's next shown tab, on release (the last wraps to
+--                              the first); from the World window the pad moves over and steps too
+--   RB tap                   — the same for the World window's tabs (Radio and Vehicle only when shown)
+--   LB / RB hold (>=350ms)   — one tab back, then one more every 400 ms while held
+--                              (both bumpers down: no step)
 --   D-pad up/down/left/right — spatial nav across ALL focusable zones in the focused window;
 --                              with nothing more that way, Left / Right go on to the
 --                              other window when it sits that way on screen
@@ -79,7 +82,7 @@
 --   crosses a zone boundary, so chrome can refresh.
 --
 -- BUMPERCHORD INTEGRATION:
---   On claimFocus → Chord.setEnabled(false) so LB/RB pick a window
+--   On claimFocus → Chord.setEnabled(false) so LB/RB step the windows' tabs
 --   On releaseFocus → Chord.setEnabled(true) so LB/RB route to zoom chord
 --
 -- SPLIT-SCREEN: one record of focus state a local player (pn 0-3, 0 = player
@@ -168,6 +171,8 @@ local _windowRegistry = {}   -- every window the pads can reach, all players' (e
 -- (tap) or this long held (hold); see the A and X notes in the record below.
 local A_HOLD_MS     = 350
 local X_HOLD_MS     = 350
+-- (Nov 14 2026, punch list 212: a bumper held this long steps its window's tabs back, then again every BUMP_REPEAT_MS)
+local BUMP_HOLD_MS, BUMP_REPEAT_MS = 350, 400
 
 -- ---------------------------------------------------------------------------
 -- PER-PLAYER STATE (split-screen)
@@ -187,7 +192,10 @@ local X_HOLD_MS     = 350
 --                          fires onHoldContextRelease. An element with onHoldContext gets that
 --                          once at the threshold instead (no drag). xEl is captured at the press
 --                          and locked through the release
---   prevY                  Y's level last tick while no window is focused (the Y that opens the pair)
+--   bHeld, bStart, bLast, bCancel   a bumper down ("char" LB, "world" RB): a tap steps on release,
+--                          a hold steps back (bLast: the last step, 0 none yet); bCancel: both
+--                          bumpers went down, no step (punch list 212)
+--   prevY                 Y's level last tick while no window is focused (the Y that opens the pair)
 --   wsLatched, wsGrace     the aiming escape's edge latch, and the end of its grace after a claim
 --   cues, cueSince         the focus marks show (CUES below); players 2-4 have no mouse to hide them
 --   qa, qaN                Focus.qaButton's held buttons for this player's pad, and how many
@@ -208,6 +216,7 @@ local function _S(pn)
               yHeld = false, yStart = 0, yUsed = false,
               aHeld = false, aStart = 0, aUsed = false, aWin = nil,
               xHeld = false, xStart = 0, xUsed = false, xWin = nil, xEl = nil,
+              bHeld = nil, bStart = 0, bLast = 0, bCancel = false,
               prevY = false,
               wsLatched = false, wsGrace = 0,
               cues = (pn ~= 0), cueSince = 0,
@@ -544,7 +553,7 @@ function Focus.claimFocus(w)
     _pushEngineFocus(w, pn)
     _maybeIgnoreAim(pn)
 
-    -- Bumpers become window-swap while we hold focus. Disable the zoom chord.
+    -- Bumpers step the windows' tabs while we hold focus (punch list 212). Disable the zoom chord.
     _setBumperChordEnabled(false, pn)
 
     -- Start grace window against stick-drift / trigger-pressure aiming-escape.
@@ -1250,8 +1259,9 @@ end
 -- DISPATCH HANDLERS
 -- ---------------------------------------------------------------------------
 
--- LB/RB: claim focus on a specific window of player pn (LB = Character, RB = World).
--- Absolute, not toggle — pressing LB while already on Character is a no-op
+-- Claim focus on a specific window of player pn ("char" = Character, "world" = World): LB / RB's
+-- tab step (_stepTab below) and a bumper tapped on a D-pad wheel (Focus.openSide).
+-- Absolute, not toggle — on that window already, a no-op
 -- (Focus.claimFocus early-exits when target is already focused). On gamepad
 -- both windows are guaranteed open by the window-pair invariant; if one is
 -- somehow missing (transition / boot), call ensureBothOpenForGamepad first.
@@ -1275,6 +1285,37 @@ local function _focusWindow(side, pn)
     Focus.showWin(target)
 
     Focus.claimFocus(target)
+end
+
+-- (Nov 14 2026, punch list 212, the director: LB cycles the Character window's tabs and RB the World window's,
+-- replacing LB = go to Character, RB = go to World.) The pad goes to that window and its tab delta (1 next, -1
+-- back) opens, wrapping at either end. Only the tabs on the strip count: the window's tab-bar stops are its shown
+-- tabs (Radio and Vehicle only while there), and each stop's onActivate is A on that tab. The pad lands on the tab.
+local TAB_ZONE = { char = "charTabBar", world = "worldTabBar" }
+local function _stepTab(side, pn, delta)
+    _focusWindow(side, pn)
+    local M = (side == "char") and ZeD_CharacterWindow or ZeD_WorldWindow
+    local w = M and M.getWindow and M.getWindow(pn)
+    if not w then return end
+    _fresh(w)
+    local tabs = nil
+    for _, z in ipairs(w._focusRing or {}) do
+        if z.zone == TAB_ZONE[side] then tabs = z.elements; break end
+    end
+    local n = tabs and #tabs or 0
+    if n == 0 then return end
+    local at = 0
+    for i = 1, n do
+        if tabs[i].tabId == w._activeTab then at = i; break end
+    end
+    local pick
+    if at == 0 then pick = (delta > 0) and 1 or n
+    else pick = ((at - 1 + delta + n) % n) + 1 end   -- (never negative: Kahlua's % keeps the sign)
+    local el = tabs[pick]
+    if not el or pick == at then return end   -- (one tab shown: nothing to step to)
+    pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+    _fireCb("tab.onActivate", el.onActivate, w, el)
+    Focus.focusByIdSoon(w, TAB_ZONE[side], el.id)
 end
 
 --- A window brought back to view: a window with halves (WindowHalves.lua) brings down
@@ -1966,7 +2007,7 @@ end
 --- A pad button went down while w holds the pad (w's onJoypadDown stub calls
 --- this). Shows the focus marks, names the button through ActionMap and
 --- routes it: A, X and Y arm their tap-vs-hold timers (settled on the tick),
---- LB / RB pick a window, B cancels, L3 / R3 change the list's view.
+--- LB / RB arm their tab steps (settled on the tick), B cancels, L3 / R3 change the list's view.
 --- The press is worked on the record of w's player; a press from another
 --- player's pad (its slot's engine focus left on w) is dropped.
 function Focus.dispatchJoypadDown(w, button, joypadData)
@@ -2009,10 +2050,16 @@ function Focus.dispatchJoypadDown(w, button, joypadData)
                 s.xEl    = Focus.getFocusedElement(w)
             end
             return
-        elseif aid == "window_prev" then
-            _focusWindow("char", pn); return    -- LB → Character (absolute)
-        elseif aid == "window_next" then
-            _focusWindow("world", pn); return   -- RB → World (absolute)
+        elseif aid == "window_prev" or aid == "window_next" then
+            -- LB (window_prev) the Character window's tabs, RB the World window's: tap-vs-hold, settled
+            -- on the tick (C4). The other bumper going down as well cancels the step (punch list 212).
+            local side = (aid == "window_prev") and "char" or "world"
+            if s.bHeld then
+                if s.bHeld ~= side then s.bCancel = true end
+            else
+                s.bHeld, s.bStart, s.bLast, s.bCancel = side, getTimestampMs(), 0, false
+            end
+            return
         elseif aid == "cancel" then
             -- B is immediate (no hold): a purely contextual cancel.
             _handleBContextual(pn); return
@@ -2186,6 +2233,7 @@ end
 --   (C) Y hold-timer release / threshold
 --   (C2) A tap-vs-hold resolver
 --   (C3) X tap-vs-hold resolver
+--   (C4) LB / RB tab step: tap forward, hold back and repeat
 --   (D) Aiming escape (right stick magnitude² > T.gp.aimingThresholdSq)
 --   (E) D-pad hold-to-repeat
 -- ---------------------------------------------------------------------------
@@ -2237,6 +2285,7 @@ local function _dropHolds(s)
     if s.wsLatched then s.wsLatched = false end
     if s.aHeld     then if s.aWin then s.aWin._gpPaint = nil end; s.aHeld = false; s.aUsed = false; s.aWin = nil end
     if s.xHeld     then s.xHeld = false; s.xUsed = false; s.xWin = nil; s.xEl = nil end
+    if s.bHeld     then s.bHeld = nil; s.bLast = 0; s.bCancel = false end
 end
 
 -- A player's pad id to read, or nil: a slot with no pad, one that lost its
@@ -2378,6 +2427,25 @@ local function _holdTicks(s, jid, pn)
             s.xUsed  = false
             s.xWin   = nil
             s.xEl    = nil
+        end
+    end
+
+    -- (C4) LB / RB tap-vs-hold (Nov 14 2026, punch list 212). Tap: the bumper's window, its next tab, on release.
+    -- Hold past BUMP_HOLD_MS: a tab back, then another every BUMP_REPEAT_MS while held. Both bumpers down: no step.
+    -- Only while a window still has this player's pad: windows hidden or closed mid-press stay that way.
+    if s.bHeld then
+        local side = s.bHeld
+        if _btnDown((side == "char") and "RightBump" or "LeftBump", jid, s) then s.bCancel = true end
+        if _btnDown((side == "char") and "LeftBump" or "RightBump", jid, s) then
+            local t = getTimestampMs()
+            if s.win and not s.bCancel and t - s.bStart >= BUMP_HOLD_MS
+               and (s.bLast == 0 or t - s.bLast >= BUMP_REPEAT_MS) then
+                s.bLast = t
+                _stepTab(side, pn, -1)
+            end
+        else
+            if s.win and not s.bCancel and s.bLast == 0 then _stepTab(side, pn, 1) end
+            s.bHeld, s.bStart, s.bLast, s.bCancel = nil, 0, 0, false
         end
     end
 end
@@ -2670,5 +2738,5 @@ Events.OnGameStart.Add(function()
             end
         end
     end
-    print("[ZeD.Input] FocusManager loaded - S113 FLAT FREE-NAV (LB=Char, RB=World, D-pad=flat cone-nav, Y=pair toggle, F9=debug overlay)")
+    print("[ZeD.Input] FocusManager loaded - S113 FLAT FREE-NAV (LB=Char tabs, RB=World tabs, D-pad=flat cone-nav, Y=pair toggle, F9=debug overlay)")
 end)

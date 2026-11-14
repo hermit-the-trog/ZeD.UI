@@ -59,8 +59,8 @@ ZeD.Input.Actions = {
     },
 
     -- D-pad = flat spatial nav (SpatialNav) across ALL focusable zones in the
-    -- focused window. Bumpers do not cycle zones; they pick one of the two
-    -- paired windows. The engine fires a direction callback as well as the
+    -- focused window. Bumpers do not cycle zones; they step the two paired
+    -- windows' tabs. The engine fires a direction callback as well as the
     -- button for one D-pad press; FocusManager moves on the direction and
     -- ignores these ids, or every press would step twice.
     nav_up    = { kbm = "Up",    gamepad = "DPadUp"    },
@@ -69,15 +69,16 @@ ZeD.Input.Actions = {
     nav_right = { kbm = "Right", gamepad = "DPadRight" },
 
     -- ----- WINDOW SELECT ----------------------------------------------------
-    -- LB = Character, RB = World (absolute — pressing LB while already on
-    -- Character is a no-op, not a toggle). Always-paired on gamepad so the
+    -- (Nov 14 2026, punch list 212) LB steps the Character window's tabs, RB
+    -- the World window's, the pad going to that window: a tap the next tab,
+    -- a hold back (FocusManager's C4). Always-paired on gamepad so the
     -- target window is guaranteed to exist. Only dispatched while a ZeD window
     -- is focused; BumperChord is disabled during focus so LB/RB route here.
     -- When no window is focused, BumperChord reclaims bumpers for zoom chord.
     -- The names date from an older symmetric prev/next toggle semantic and
     -- stay for reverse-map continuity.
-    window_prev = { kbm = nil, gamepad = "LB" },  -- LB → Character
-    window_next = { kbm = nil, gamepad = "RB" },  -- RB → World
+    window_prev = { kbm = nil, gamepad = "LB" },  -- LB → Character tabs
+    window_next = { kbm = nil, gamepad = "RB" },  -- RB → World tabs
 
     -- ----- WINDOW CONTROL (paired semantics) ---------------------------------
     -- Single button serves four roles based on state and tap/hold:
@@ -152,7 +153,7 @@ ZeD.Input.Actions = {
 --                          NO ZeD window has focus. When a window IS focused,
 --                          FocusManager calls Chord.setEnabled(false) and the
 --                          bumpers route here as window_prev / window_next above
---                          (LB the Character window, RB the World window).
+--                          (LB the Character window's tabs, RB the World window's).
 --                          Single physical button, two roles, gated by focus.
 --   * LS / RS click  — no state-changing jobs on stick clicks. They fire too
 --                      readily under combat tension and the cost of a phantom
@@ -166,7 +167,8 @@ ZeD.Input.Actions = {
 --     prev_tab       — tabs are controls like any other: D-pad up/down walk
 --                      the tab column, A opens the focused tab, and a move
 --                      into the column lands on the active tab (FocusManager).
---                      Not exposed as a separate logical action.
+--                      Not exposed as a separate logical action: the bumpers'
+--                      tab steps ride window_prev / window_next above.
 --   * "secondary" /
 --     "tertiary"     — removed: no ZeD-UI surface ever referenced them, and
 --                      the Y and X buttons they claimed went to

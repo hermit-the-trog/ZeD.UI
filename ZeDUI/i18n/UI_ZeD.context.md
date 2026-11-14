@@ -2876,7 +2876,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Options_MootCycleContainer` | `ZeD's container column doesn't cycle containers by key and wheel.` | Options screen (groups): reason for the Cycle container key setting | - |
 | `UI_ZeD_Options_MootHelp` | `Does nothing with ZeD active. %1` | Options screen: help band for a setting ZeD makes moot. %1 is the reason (a sentence) | - |
 | `UI_ZeD_Options_MootInventoryFont` | `ZeD's lists draw in ZeD's text: use Text size in ZeD setup.` | Options screen (groups): reason under a setting that does nothing with ZeD (the Inventory font setting). 'Text size' and 'ZeD setup' are names shown elsewhere | - |
-| `UI_ZeD_Options_MootShoulderButtons` | `LB and RB open ZeD's Character and World windows.` | Options screen (groups): reason for the shoulder button container switch setting | - |
+| `UI_ZeD_Options_MootShoulderButtons` | `LB and RB step through the tabs of ZeD's Character and World windows.` | Options screen (groups): reason for the shoulder button container switch setting | - |
 | `UI_ZeD_Options_MootUnder` | `Does nothing with ZeD active` | Options screen: small line under the name of a setting ZeD makes moot | 40 |
 | `UI_ZeD_Options_NoKey` | `No key` | Options screen: strip button that leaves the action with no key | 12 |
 | `UI_ZeD_Options_NoMatch` | `No option matches` | Options screen: empty list while Find matches nothing | - |
@@ -5939,13 +5939,13 @@ Staff-only cards that take over the game's admin windows. Button and tag lengths
 | `UI_ZeD_Lists_EmptySec` | `Nothing here yet. Add what you carry, or open an item's menu: Save to loadout.` | Character window, Journal tab, Lists: the one dim line in a loadout's empty section. After the colon, the item menu's option as `UI_ZeD_Lists_SaveToLoadout` has it. No mouse words: a controller opens the item's menu too | - |
 | `UI_ZeD_Lists_EmptyWorn` | `Nothing here yet. Add what you wear, or open a piece's menu: Save to outfit.` | Character window, Journal tab, Lists: the one dim line in an outfit's empty section. After the colon, the menu's option as `UI_ZeD_Lists_SaveToOutfit` has it. No mouse words | - |
 | `UI_ZeD_PadFig_RoleLT` | `Map: zoom out` | Options > Controls > Button map and test: the left trigger's label, what ZeD does with it (zooms the map out) | 22 |
-| `UI_ZeD_PadFig_RoleLB` | `Character window` | Button map and test: the left bumper's label (it opens the Character window) | 22 |
+| `UI_ZeD_PadFig_RoleLB` | `Character tabs` | Button map and test: the left bumper's label (it steps through the Character window's tabs) | 22 |
 | `UI_ZeD_PadFig_RoleDPad` | `Move, or a wheel` | Button map and test: the D-pad's label (moves between controls in a window; with no window open a tap opens a wheel) | 22 |
 | `UI_ZeD_PadFig_RoleLS` | `Walk \| click: sort` | Button map and test: the left stick's label (walk; a click of the stick sorts a list). The \| is a separator | 22 |
 | `UI_ZeD_PadFig_RoleView` | `Layout \| ZeD wheel` | Button map and test: the View (Create) button's label (a window's layout; with no window open, the ZeD wheel) | 22 |
 | `UI_ZeD_PadFig_RoleMenu` | `Pause menu` | Button map and test: the Menu (Options) button's label (the game's pause menu) | 22 |
 | `UI_ZeD_PadFig_RoleRT` | `Map: zoom in` | Button map and test: the right trigger's label (zooms the map in) | 22 |
-| `UI_ZeD_PadFig_RoleRB` | `World window` | Button map and test: the right bumper's label (it opens the World window) | 22 |
+| `UI_ZeD_PadFig_RoleRB` | `World tabs` | Button map and test: the right bumper's label (it steps through the World window's tabs) | 22 |
 | `UI_ZeD_PadFig_RoleY` | `Both windows` | Button map and test: the Y (Triangle) button's label (opens, hides or shows both windows) | 22 |
 | `UI_ZeD_PadFig_RoleB` | `Back` | Button map and test: the B (Circle) button's label (backs out, closes) | 22 |
 | `UI_ZeD_PadFig_RoleA` | `Left click` | Button map and test: the A (Cross) button's label (acts as the left mouse button) | 22 |
@@ -5959,8 +5959,8 @@ Staff-only cards that take over the game's admin windows. Button and tag lengths
 | `UI_ZeD_PadFig_ArmDown` | `down %1` | Button map and test: the D-pad's label, the game's actions on its down arm. %1 the action names | - |
 | `UI_ZeD_PadFig_ArmLeft` | `left %1` | Button map and test: the D-pad's label, the game's actions on its left arm. %1 the action names | - |
 | `UI_ZeD_PadFig_ArmRight` | `right %1` | Button map and test: the D-pad's label, the game's actions on its right arm. %1 the action names | - |
-| `UI_ZeD_PadFig_HelpLB` | `The Character window. No window open: %1 + %2 zooms out. Quick actions: %1 + a button.` | Button map and test: the help line over the left bumper's label. %1 the left bumper's name on this pad (LB, L1), %2 the right bumper's | - |
-| `UI_ZeD_PadFig_HelpRB` | `The World window. No window open: %1 + %2 zooms in. Quick actions: %1 + a button.` | Button map and test: the help line over the right bumper's label. %1 the right bumper's name on this pad (RB, R1), %2 the left bumper's | - |
+| `UI_ZeD_PadFig_HelpLB` | `The Character window's tabs: tap for the next, hold to go back. No window open: %1 + %2 zooms in. Quick actions: %1 + a button.` | Button map and test: the help line over the left bumper's label. %1 the left bumper's name on this pad (LB, L1), %2 the right bumper's | - |
+| `UI_ZeD_PadFig_HelpRB` | `The World window's tabs: tap for the next, hold to go back. No window open: %1 + %2 zooms out. Quick actions: %1 + a button.` | Button map and test: the help line over the right bumper's label. %1 the right bumper's name on this pad (RB, R1), %2 the left bumper's | - |
 | `UI_ZeD_PadFig_EditClick` | `Click: add or take off the game's actions on it.` | Button map and test: the help line's second sentence over a label, with the mouse | - |
 | `UI_ZeD_PadFig_EditPad` | `%1: add or take off the game's actions on it.` | Button map and test: the help line's second sentence over a label, on a controller. %1 the A button's name on this pad (A, Cross) | - |
 | `UI_ZeD_PadFig_HelpMenu` | `Ticked: on this part now. A pick adds the action or takes it off; Apply keeps it.` | Button map and test: the help line while a label's pull-down of actions is open. Apply is the band's Apply button | - |
