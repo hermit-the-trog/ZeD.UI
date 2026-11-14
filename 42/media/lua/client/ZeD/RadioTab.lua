@@ -335,7 +335,10 @@ end
 local function _simple()
     return ZeD.PlainFace ~= nil and ZeD.Settings ~= nil and ZeD.Settings.devicesSimple ~= nil and ZeD.Settings.devicesSimple() == true
 end
-function ZeD.RadioTab.faceFor(entry)
+-- fullCard: the face goes on the full card. A radio there (not a TV, not the CD player, a half-card device) draws
+-- a full-card face or, where none fits, the plain card: never its half face (the director, Nov 13: "If it's a full
+-- card, it can only load a full card stereo").
+function ZeD.RadioTab.faceFor(entry, fullCard)
     local pid, des = ZeD.TwoWay.plateFor(entry)
     if des then
         if _simple() then return ZeD.PlainFace.wrap(ZeD.TwoWay), pid, ZeD.PlainFace.des(ZeD.TwoWay, pid) end
@@ -344,6 +347,12 @@ function ZeD.RadioTab.faceFor(entry)
     pid, des = ZeD.Rtv.plateFor(entry)
     if des then
         if _simple() then return ZeD.PlainFace.wrap(ZeD.Rtv), pid, ZeD.PlainFace.des(ZeD.Rtv, pid) end
+        if fullCard and ZeD.PlainFace then
+            local Sc = ZeD.Scale
+            if ZeD.Rtv.noFullFace(pid, ZeD.Px.k((Sc and Sc.root and Sc.root()) or 1)) then
+                return ZeD.PlainFace.wrap(ZeD.Rtv), pid, ZeD.PlainFace.des(ZeD.Rtv, pid)
+            end
+        end
         return ZeD.Rtv, pid, des
     end
     pid = (entry and ZeD.PlainFace and ZeD.Rtv.fallbackPid) and ZeD.Rtv.fallbackPid(entry.radioInstance, entry.deviceData) or nil
@@ -444,7 +453,9 @@ end
 --- full card (the hand-built radio at 0.75 and 1.5); the TVs: the full card (RtvFace.wantW).
 function ZeD.RadioTab.wantW(win, base, limit)
     local r = win and win._radios and win._radios[win._radioIdx or 1]
-    local drv, pid, des = ZeD.RadioTab.faceFor(r)
+    -- (asked as for the half card, fullCard false: the face's own card is the question here; a radio that needs
+    -- the full card gets it from Rtv.wantW, and render then asks faceFor for the full card's face)
+    local drv, pid, des = ZeD.RadioTab.faceFor(r, false)
     if not des then return nil end
     if drv.plain then return drv.wantW(pid, des) end      -- the plain card: the half card, a TV's the full card
     local T, Sc = ZeD.T, ZeD.Scale
@@ -459,6 +470,17 @@ function ZeD.RadioTab.wantW(win, base, limit)
     local wide = des.w * k + T.sp.scrollbarW
     if limit and wide > limit and ZeD.TwoWay.narrowOf(pid) then return panel end
     return wide
+end
+
+--- True when the radio the tab is on is a half-card device whose face fits the half card (the CD player, the
+--- director Nov 14: "CD player is half card like walkie talkies"): the World window gives it the half card
+--- where every other radio gets the full card (ZeD_WorldWindow.tabCardW).
+function ZeD.RadioTab.halfCard(win, half)
+    local r = win and win._radios and win._radios[win._radioIdx or 1]
+    local pid = r and ZeD.Rtv.plateFor(r)
+    if not (pid and ZeD.Rtv.halfOnly(pid)) then return false end
+    local want = ZeD.RadioTab.wantW(win, half, half)
+    return want ~= nil and want <= half
 end
 
 -- the full view button at the header's right end: an icon button (square, the standard
@@ -748,7 +770,9 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     -- Standard ZeD drawer-header strip height — sourced from the spacing token.
     local headerH = T.stripH   -- row 1
     -- a radio with a face: its own face (renderTwoWay above); a two-way set's full view button in the header
-    local fDrv, twPid, twDes = ZeD.RadioTab.faceFor(current)
+    -- (the full card: a radio draws a full-card face there, or the plain card where it has none; RtvFace.pickFace)
+    local fullCard = w >= T.px(ZeD.Rtv.FULL_W)
+    local fDrv, twPid, twDes = ZeD.RadioTab.faceFor(current, fullCard)
     local isTw = fDrv == ZeD.TwoWay
     if not twDes then win._radioTw, win._radioFullZone = nil, nil end
     if not isTw then win._radioFullZone = nil end
@@ -760,7 +784,9 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
         local Sc = ZeD.Scale
         local k0 = ZeD.Px.k((Sc and Sc.root and Sc.root()) or 1)
         if not isTw then
-            twPid, twDes = ZeD.Rtv.pickFace(twPid, w - T.sp.scrollbarW, k0)
+            local rPid, rDes = ZeD.Rtv.pickFace(twPid, w - T.sp.scrollbarW, k0, fullCard)
+            if rDes then twPid, twDes = rPid, rDes
+            elseif ZeD.PlainFace then fDrv, twDes = ZeD.PlainFace.wrap(ZeD.Rtv), ZeD.PlainFace.des(ZeD.Rtv, twPid) end
         elseif twDes.w < ZeD.TwoWay.PANEL_W then
             local hPid, hDes = ZeD.TwoWay.halfFace(twPid, k0)
             if hDes then twPid, twDes = hPid, hDes end

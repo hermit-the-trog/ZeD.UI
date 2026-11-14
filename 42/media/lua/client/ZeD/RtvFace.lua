@@ -74,6 +74,8 @@ local _get = TW._get
 R.PAD = 10                -- the space round a half-card face (plate px)
 R.HALF_W = 220            -- the half card (units)
 R.FULL_W = 480            -- the full card (units)
+R.FULL_MIN = 320          -- a radio's full-card widths are its keys from here up (336, 392, 450, 562; plate px)
+R.HALF_ONLY = { cd_player = true }   -- the half card everywhere, as the walkies (R.halfOnly)
 R.PRESS_SHADE = 0.35      -- a held key's shade
 R.SNOW_MS = 125           -- the snow's three frames, about 8 a second
 R.ZAP_MS = 450            -- the snow between channels
@@ -203,29 +205,69 @@ function R.plateFor(entry)
     return id, ZeD.PhysPx.plates[id]
 end
 
--- a radio's face for the half card: the widest of its widths whose
--- PANEL at zoom k fits the half card's room (220 units less the scrollbar); its id, plate and panel width (plate
--- px), nil when none fits (the hand-built radio at 0.75 and 1.5: no 154 face)
+-- the widest of a plate's half-card widths (full: its full-card widths, keys from R.FULL_MIN up) whose key at zoom
+-- k fits roomPx: its id, plate and key, nil when none does
+local function _widest(pid, roomPx, k, full)
+    local X = ZeD.PhysPx
+    local t = X and X.widths and X.widths[P.baseId(pid)]
+    if not t then return nil, nil, nil end
+    local best, bestW = nil, nil
+    for w, key in pairs(t) do
+        if (w >= R.FULL_MIN) == (full == true) and w * k <= roomPx and (not bestW or w > bestW) and X.plates[key] then
+            best, bestW = key, w
+        end
+    end
+    if not best then return nil, nil, nil end
+    return best, X.plates[best], bestW
+end
+
+-- a radio's face for the half card: the widest of its half-card widths (keys under R.FULL_MIN: a full face never
+-- goes on the half card) whose PANEL at zoom k fits the half card's room (220 units less the scrollbar); its id,
+-- plate and panel width (plate px), nil when none fits (the hand-built radio at 0.75 and 1.5: no 154 face)
 function R.halfFace(pid, k)
     local T = ZeD.T
-    local id, pw = P.pickWidth(pid, T.px(R.HALF_W) - T.sp.scrollbarW, k)
-    if not pw then return nil, nil, nil end
-    return id, ZeD.PhysPx.plates[id], pw
+    return _widest(pid, T.px(R.HALF_W) - T.sp.scrollbarW, k, false)
+end
+
+--- A radio's face for the full card (round 5, punch list 183): the widest of its full-card widths (keys from
+--- R.FULL_MIN up: 336, 392, 450, 562, the face as wide as its key) whose key at zoom k fits roomPx; its id, plate
+--- and key, nil when it has none or none fits. (The director, Nov 13: "If it's a full card, it can only load a
+--- full card stereo": the full card never draws a half face; with no full face it is the plain card.)
+function R.fullFace(pid, roomPx, k) return _widest(pid, roomPx, k, true) end
+
+--- A device that is the half card everywhere, the World window's radio tab too (the director, Nov 14: "CD player
+--- is half card like walkie talkies"); it has no full-card face (round 5: "The portable CD player is fine").
+function R.halfOnly(pid) return pid ~= nil and R.HALF_ONLY[P.baseId(pid)] == true end
+
+--- True when a radio on the full card has no full face to draw there (it is then the plain card): a radio (not a
+--- TV, not a half-card device) none of whose full widths fits the full card at zoom k.
+function R.noFullFace(pid, k)
+    if not pid or R.isTv(pid) or R.halfOnly(pid) then return false end
+    local T = ZeD.T
+    local id = R.fullFace(pid, T.px(R.FULL_W) - T.sp.scrollbarW, k)
+    return id == nil
 end
 
 --- The face to draw in the tab: a TV the widest that fits roomPx (its narrow face where the main one does not); a
---- radio its half-card face, else (no face fits the half card) the widest that fits the full card.
-function R.pickFace(pid, roomPx, k)
+--- radio on the full card (fullCard) its widest full face that fits roomPx (nil, nil where none does: the caller
+--- draws the plain card, RadioTab.faceFor); on the half card its half-card face, else (no face fits the half card)
+--- the widest that fits the full card. A half-card device (the CD player) goes the half card's way on either card.
+function R.pickFace(pid, roomPx, k, fullCard)
     local X = ZeD.PhysPx
     if R.isTv(pid) then
         local des, id = P.pick(pid, roomPx)
         return id, des
     end
+    if fullCard and not R.halfOnly(pid) then
+        local fid, fdes = R.fullFace(pid, roomPx, k)
+        return fid, fdes
+    end
     local id, des = R.halfFace(pid, k)
     if des then return id, des end
+    -- (no half face fits the half card: the widest of its half-card widths that fits the full card's room)
     local T = ZeD.T
-    local fid, fw = P.pickWidth(pid, T.px(R.FULL_W) - T.sp.scrollbarW, k)
-    if fw then return fid, X.plates[fid] end
+    local fid, fdes = _widest(pid, T.px(R.FULL_W) - T.sp.scrollbarW, k, false)
+    if fdes then return fid, fdes end
     return pid, X.plates[pid]
 end
 
