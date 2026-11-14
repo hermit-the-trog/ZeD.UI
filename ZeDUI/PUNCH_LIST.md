@@ -4767,3 +4767,9 @@ to be proposed.
    icon (the object's sprite) should be. Picture: %USERPROFILE%\Zomboid\Screenshots\zqa_ptl_now5.png (the strip under
    "Disassemble > Steel Counter", script name fixtures_counters_01_39). Likely the menu has no item icon for a world
    object's option and falls back to letters; the object's sprite texture should be drawn instead.
+
+201. **Y opens the windows with a one-frame stretch on the World window (the director, Nov 14 2026, playtest).** open.
+   Pressing Y to open the inventory, most times (not every time, more with quick presses), the World window's inventory
+   side draws stretched about halfway down the screen for 1 or 2 frames before it settles. Likely the first frame draws
+   before the window's height or roll-up state is set (a frame at the unrolled or default size). Too short for a still;
+   a frame-by-frame capture or a per-frame height log on open would catch it.
