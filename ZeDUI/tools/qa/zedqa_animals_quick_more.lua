@@ -378,6 +378,14 @@ waitFor(120000, function()
         -- (the game makes milk with game time: at speed 3 a cow just milked dry can read a hair above the 0.1 L the game
         -- counts as "has milk" a tick later, so the first cow is judged by what is left in her, a quarter litre at most)
         V.c1Q = A.c1:getData():getMilkQuantity()
+        -- (Nov 13 2026, Build's ask: the first cow's milk and the bucket's fill at the moment the run moves on)
+        pcall(function()
+            local fill = "?"
+            for _, it in ipairs(LG.added) do
+                if it:getFullType() == "Base.Bucket" then local fc = it:getFluidContainer(); fill = tostring(fc and fc:getAmount()) .. " of " .. tostring(fc and fc:getCapacity()) end
+            end
+            say(string.format("d hand-over: done %s, the first cow's milk %.2f L, the bucket %s, queue %s", tostring(r.done), V.c1Q, fill, q))
+        end)
     end
     return false
 end, "the two-cow milking run", true)
