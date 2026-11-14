@@ -1,4 +1,5 @@
 -- ZeDUI/tools/qa/zedqa_animals_quick_more.lua  (Nov 11 2026, QA, punch list 169): the checks zedqa_animals_quick.lua leaves out.
+local setGameSpeed = ZEDQA_SPEED or setGameSpeed   -- (Nov 13 2026: the prelude's speed sets the time multiplier too; see zedqa_prelude.lua)
 -- QA save only (Saves/Sandbox/ZeD-QA), the character on open ground. grep console.txt for "ZEDQA aq2". Pictures zqa_aq2_*.png.
 -- Run at 4K 1.75x, at the Deck (1280x800, Auto) and in German (options.ini language=DE) at 4K; each run also switches to Large text.
 --   a  two milk cows, an ewe and a hungry cow, a zone over them, no bucket and no shears

@@ -1,4 +1,5 @@
 -- ZeDUI/tools/qa/zedqa_fishing_tab_live.lua  (Nov 11 2026, QA, punch list 167; built on zedqa_fish_smoke.lua)
+local setGameSpeed = ZEDQA_SPEED or setGameSpeed   -- (Nov 13 2026: the prelude's speed sets the time multiplier too; see zedqa_prelude.lua)
 -- The World window's Fishing tab checked live, with ZeD on and a real cast and catch at the shore 13913,4555 facing east.
 -- Needs the real mouse (release_check_mouse.ps1) running beside the game, as zedqa_fish_smoke.lua does. grep "ZEDQA ftl".
 -- Pictures zqa_ftl_on_<n>.png. Run: zedqa_run.ps1 -Mode fullscreen4k -Manifest zedqa_fishing_tab_live.txt (then the manifest's second

@@ -1,4 +1,5 @@
 -- ZeDUI/tools/qa/zedqa_animals_quick.lua  (Nov 11 2026, Build): the Animals tab's quick actions and the roster's bulk
+local setGameSpeed = ZEDQA_SPEED or setGameSpeed   -- (Nov 13 2026: the prelude's speed sets the time multiplier too; see zedqa_prelude.lua)
 -- select in game, with real animals. QA save only (Saves/Sandbox/ZeD-QA), the character on open ground (the drag strip).
 -- Copy to Zomboid/Lua/zedqa.lua, bump zedqa.go, grep console.txt for "ZEDQA aq". PASS / FAIL lines, ending DONE.
 -- Screenshots/zqa_aq_*.png (take the set at 4K 1.75x and again at the Deck size; the script does not resize).

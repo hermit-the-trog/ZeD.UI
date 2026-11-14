@@ -1,4 +1,5 @@
 -- ZeDUI/tools/qa/gallery_journal_kills.lua  (Oct 22 2026)
+local setGameSpeed = ZEDQA_SPEED or setGameSpeed   -- (Nov 13 2026: the prelude's speed sets the time multiplier too; see zedqa_prelude.lua)
 -- Gallery shot: the Character window's Journal tab with the ZOMBIES KILLED
 -- section expanded and filled. In game on the ZeD-QA save (run with
 -- zedqa_prelude.lua before it, at fullscreen 3840x2160).

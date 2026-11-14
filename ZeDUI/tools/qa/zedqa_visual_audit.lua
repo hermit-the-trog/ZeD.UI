@@ -1,4 +1,5 @@
 -- ZeDUI/tools/qa/zedqa_visual_audit.lua  (Oct 20 2026)
+local setGameSpeed = ZEDQA_SPEED or setGameSpeed   -- (Nov 13 2026: the prelude's speed sets the time multiplier too; see zedqa_prelude.lua)
 -- The visual audit walk: screenshots of every ZeD panel in every theme, at both
 -- text sizes, and every accent, with every scrolling panel taken at its top AND
 -- scrolled to its bottom. In game on the ZeD-QA save (unpaused). Not in

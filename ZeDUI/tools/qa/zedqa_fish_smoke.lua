@@ -1,4 +1,5 @@
 -- ZeDUI/tools/qa/zedqa_fish_smoke.lua  (Nov 11 2026, QA; "I don't even know if people can fish right now")
+local setGameSpeed = ZEDQA_SPEED or setGameSpeed   -- (Nov 13 2026: the prelude's speed sets the time multiplier too; see zedqa_prelude.lua)
 -- A fishing smoke test, run as a player plays it, with ZeD on (zedqa_run.ps1 -Mode fullscreen4k -Manifest
 -- zedqa_fish_smoke.txt) and with ZeD off (zedqa_mods_run.ps1 -ModList zedqa_fish_smoke_mods.txt -NoZeD -Mode
 -- fullscreen4k -Manifest zedqa_fish_smoke.txt). Needs the real mouse (release_check_mouse.ps1) running beside the

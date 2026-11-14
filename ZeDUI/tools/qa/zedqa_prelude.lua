@@ -15,6 +15,25 @@ local function say(s) print("ZEDQA pre " .. tostring(s)) end
 -- QA scripts read w._focusRing directly, so keep them fresh every frame. Set it to nil to test the waiting itself.
 ZEDQA_FRESH_STOPS = true
 
+-- (Nov 13 2026, Build and the director: "It didn't look like things were in fast forward". setGameSpeed only moves the speed
+-- index; the game's time multiplier stayed 1, so a script's fast-forward ran at normal speed. The game's own buttons set
+-- both. ZEDQA_SPEED(n) does what its buttons do: 0 paused, 1 x1, 2 x5, 3 x20, 4 x40, and logs the true multiplier the first
+-- time a fast speed takes. Scripts that speed up shadow setGameSpeed with it ("local setGameSpeed = ZEDQA_SPEED or
+-- setGameSpeed"). Walks still run at speed 2 or less: the game drops a walk above game speed 2.)
+local ZEDQA_MULT = { [0] = 1, [1] = 1, [2] = 5, [3] = 20, [4] = 40 }
+local realSetGameSpeed = setGameSpeed
+function ZEDQA_SPEED(n)
+    if not realSetGameSpeed then return end
+    realSetGameSpeed(n)
+    pcall(function() getGameTime():setMultiplier(ZEDQA_MULT[n] or 1) end)
+    if (n or 0) > 1 and not ZEDQA_SPEED_SAID then
+        ZEDQA_SPEED_SAID = true
+        local tm = "?"
+        pcall(function() tm = tostring(getGameTime():getTrueMultiplier()) end)
+        print("ZEDQA ff speed " .. tostring(n) .. ": time multiplier " .. tostring(ZEDQA_MULT[n]) .. ", true multiplier " .. tm)
+    end
+end
+
 -- (punch list 47, Nov 2 2026) the vehicle probe for the 1280x720 bisect: where the character stands, how wide
 -- the loaded chunk grid is and what it covers, and whether a spawn square and its car lie inside it. The
 -- vehicle scripts call it right after their spawn when it exists (a script run alone skips it). One line
@@ -418,7 +437,7 @@ function ZEDQA_CAR_WAIT(script, tag, onReady, onFail, capMs)
 end
 
 local ok, e = pcall(function()
-    if getGameSpeed and getGameSpeed() == 0 and setGameSpeed then setGameSpeed(1) end
+    if getGameSpeed and getGameSpeed() == 0 then ZEDQA_SPEED(1) end
     if p then p:setGodMod(true) end
     if p and p:getVehicle() then p:getVehicle():exit(p) end
     if p and (math.abs(p:getX() - HOME.x) > 3 or math.abs(p:getY() - HOME.y) > 3 or math.floor(p:getZ()) ~= HOME.z) then
@@ -437,7 +456,7 @@ local ok, e = pcall(function()
     end)
     if not okC then say("no debug console to close") end
     -- (and a speed left above 1 by an earlier script)
-    if getGameSpeed and getGameSpeed() > 1 and setGameSpeed then setGameSpeed(1); say("speed was above 1: set to 1") end
+    if getGameSpeed and getGameSpeed() > 1 then ZEDQA_SPEED(1); say("speed was above 1: set to 1") end
     local cw = ZeD_CharacterWindow.getWindow()
     if not (cw and cw:isVisible()) then ZeD_CharacterWindow.toggleBothPaired(0) end
 end)

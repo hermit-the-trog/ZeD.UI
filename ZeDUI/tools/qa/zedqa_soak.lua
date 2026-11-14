@@ -1,4 +1,5 @@
 -- ZeDUI/tools/qa/zedqa_soak.lua  (Oct 16 2026)
+local setGameSpeed = ZEDQA_SPEED or setGameSpeed   -- (Nov 13 2026: the prelude's speed sets the time multiplier too; see zedqa_prelude.lua)
 -- A long session in a few minutes, on the ZeD-QA save: both windows open, the
 -- game at its fastest speed, every tab of both windows in turn (the Journal's
 -- four sub-tabs too), the full reader opened and closed on a carried paper,

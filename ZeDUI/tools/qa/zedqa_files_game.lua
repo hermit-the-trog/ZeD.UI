@@ -1,4 +1,5 @@
 -- ZeDUI/tools/qa/zedqa_files_game.lua  (Nov 11 2026, QA, punch list 170, check file CHECK_pl170_files_tab.md, part 1: the game)
+local setGameSpeed = ZEDQA_SPEED or setGameSpeed   -- (Nov 13 2026: the prelude's speed sets the time multiplier too; see zedqa_prelude.lua)
 -- In game on the ZeD-QA save with Bandits, Bandits Week One, Ladders!? and ZeD picks on (zedqa_files_run.ps1 copies them in).
 -- Waits for Bandits Week One's scheduler to error (a save not started with it), then checks the plain-words error cards:
 -- one place BWOScheduler.lua line 42, its count rising on the same card, the plain words, the copy without a user name,

@@ -1,4 +1,5 @@
 -- ZeDUI/tools/qa/zedqa_simple_watch.lua  (Nov 2 2026, QA; punch list 60, the Simple watch, build 5807c1a1)
+local setGameSpeed = ZEDQA_SPEED or setGameSpeed   -- (Nov 13 2026: the prelude's speed sets the time multiplier too; see zedqa_prelude.lua)
 -- In game at 4K, ZeD setup's Watch set to Simple. Pictures for the director and the buttons' work:
 --   1. the corner watch with a worn digital watch: the time large, weekday and date, temperature, speed, alarm, and
 --      Start/Pause, Speed, Alarm, Set (zqa_sw_1_worn). Start pauses and runs the game, Speed steps it, Alarm sets and

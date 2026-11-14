@@ -1,4 +1,5 @@
 -- ZeDUI/tools/qa/zedqa_faiv.lua  (Nov 6 2026, QA; FAIV's three reports): each bug's own reproduction in the game, by state.
+local setGameSpeed = ZEDQA_SPEED or setGameSpeed   -- (Nov 13 2026: the prelude's speed sets the time multiplier too; see zedqa_prelude.lua)
 -- It steps on OnTickEvenPaused, so it keeps going while the game is paused. grep "ZEDQA fav". Each check prints PASS or FAIL.
 --   FLASH  the game's loot page must never reach a draw. Its draws are counted on the instance, never the ISInventoryPage
 --          class: vl.prerender, which the engine looks up on every draw, set back to nil after. A control shows the page
