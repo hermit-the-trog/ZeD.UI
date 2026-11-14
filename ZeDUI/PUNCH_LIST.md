@@ -4798,3 +4798,8 @@ to be proposed.
    with the stick while navigating the World window doesn't close the windows, though it should (the pad's "aim to
    close"). Seen right after 204, in the same session; may share a cause (the windows or map not giving the pad's aim and
    triggers back to the game, or vice versa).
+
+206. **Design: ZeD-style replacements for the search mode graphics (the director, Nov 14 2026, playtest).** open, for
+   design. When search mode is on, the game draws its own markers: the target graphic, the pin icon, the arrow, and the
+   eyeball over the player's head. The director: "That icon and those graphics we need to create replacements for that
+   match our style." Needs a design pass (pixel icons in the ZeD set), then Build wires them in place of the game's.
