@@ -4815,7 +4815,8 @@ to be proposed.
       Details (the director): Up stops at the face's Power button and goes no higher; Left or Right from there jumps out
       to the next panel or the tab strip, so the header row above the face is never reached.
 
-208. **Controller: the oven's controls in the World window can't be reached (the director, Nov 14 2026, playtest).** open.
-   Standing at an oven, the right-click menu turns it on, but on the pad there is no way to select the oven from a World
-   window tab to reach its card and controls (the stove plate / burner and oven knobs). Either the tab that shows the
-   oven isn't reachable on the D-pad (like 207's Radio tab), or the oven's row or plate has no controller stop.
+208. **Turning on an oven from the right-click menu should open its tab (the director, Nov 14 2026, playtest).** open,
+   a request. Not a bug after all: the oven's controls are reachable on the pad from the inventory window's footer (the
+   director found it). But the director wants it easier: choosing the oven and turning it on from the right-click menu
+   should open the World window on the tab that holds the oven (the crafting / stations tab), so its controls are right
+   there.
