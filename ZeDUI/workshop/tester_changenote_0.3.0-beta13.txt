@@ -1,0 +1,26 @@
+0.3.0-beta13
+
+This beta redraws four radio and TV faces, makes the dashboards easier to read, fixes animal care and the console's log, and lays groundwork for split screen. The last daily update; from here the focus is bug fixes.
+
+Radios and TVs
+- The black radio, the red radio, the makeshift radio and the antique TV are redrawn against the game's models: the black radio loses its analog dial, both radios have an aerial, the makeshift radio at its widest has a large speaker and two C cells, and the antique TV's controls are black in a chrome frame.
+- The old drawn radio card is gone. Every radio shows its face, or the plain card when ZeD setup > Devices is on Simple. A radio or TV from another mod with no face of its own gets the plain card, and its controls work.
+
+Dashboards
+- Printed words on a dash take the ink that reads best on its cabin color: near-white on the grey, brown and wood cabins.
+- The D-pad hint at the top of every dash sits on a dark strip, so it reads on every cabin.
+
+Animals
+- Walk to goes to where the animal is now, not where it was.
+- A zone's page scrolls as one under the zone's details, so a long list of hutches and troughs no longer runs over the buttons at the foot.
+
+Console
+- An error thrown in a mod's event handler is one row with its count, not several; nothing of it shows as a print.
+- An opened error lists the error and its frames, without the game's dividers and log tags.
+- The same fixes are in Lua Console 93 Professional Edition.
+
+Bug fixes
+- New game > Challenges lists every challenge again, the game's and any a mod adds (the fix from 0.3.0-beta12a), and Back from a challenge's character creation returns to that list.
+
+Split screen
+- Groundwork only, switched off for now: ZeD's windows, focus, hints and themes can follow each local player. Players 2 to 4 still get the game's own windows.
