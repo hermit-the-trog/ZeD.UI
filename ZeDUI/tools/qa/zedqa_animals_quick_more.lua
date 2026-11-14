@@ -337,6 +337,17 @@ add(1500, function()
 end)
 add(1200, function()
     local b = bulk("milk")
+    -- (Nov 13 2026, Build's ask: is the given bucket empty and in the main inventory? if so a greyed Milk is a real bug)
+    pcall(function()
+        for _, it in ipairs(LG.added) do
+            if it:getFullType() == "Base.Bucket" then
+                local fc = it:getFluidContainer()
+                local cont = it:getContainer()
+                say("c bucket: in " .. tostring(cont and cont:getType()) .. ", main inventory " .. tostring(cont == getPlayer():getInventory())
+                    .. ", fluid " .. tostring(fc and fc:getAmount()) .. " of " .. tostring(fc and fc:getCapacity()))
+            end
+        end
+    end)
     check(b ~= nil and not b.disabled, "c with a bucket, Milk (2) is live", b and (tostring(b.disabled) .. " " .. tostring(b.why)))
     focusOn("animals:bulk:milk")
 end)
