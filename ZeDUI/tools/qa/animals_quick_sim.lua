@@ -1557,6 +1557,130 @@ do
         and readFile(Z .. "AnimalsData.lua"):find("if AD.hasWool(animal) then", 1, true) ~= nil)
 end
 
+-- LEAD (Nov 13 2026, QA 169 on a farm: Shear and Feed "Stopped after 0 of 1", the wool and the hunger unchanged).
+-- The game's handlers queue lead actions before the act itself: the walk beside it, then the shears or the food to
+-- hand (ISEquipWeaponAction). The run waits through every one of them, longer than its start grace and its stall
+-- count, and decides only once the queue is empty. When the queue empties with the act never begun (the game dropped
+-- it on the way), the run is a stop that keeps which lead step was last (AQ.last.began false, AQ.last.lead) and says
+-- so on the console; one whose act ran keeps began true.
+do
+    local keepShear, keepFeed = AnimalContextMenu.onShearAnimal, AnimalContextMenu.onFeedAnimalFood
+    AnimalContextMenu.onShearAnimal = function(an, chr, sh)
+        rec("shear:" .. an._name)
+        local q = Q(chr).queue
+        local s = action("ISShearAnimal"); s.animal = an
+        q[#q + 1] = action("ISWalkToTimedActionF"); q[#q + 1] = action("ISEquipWeaponAction"); q[#q + 1] = s
+    end
+    AnimalContextMenu.onFeedAnimalFood = function(chr, an, food)
+        rec("feed:" .. an._name)
+        local q = Q(chr).queue
+        local f = action("ISFeedAnimalFromHand"); f.animal = an
+        q[#q + 1] = action("ISWalkToTimedAction"); q[#q + 1] = action("ISWalkToTimedActionF")
+        q[#q + 1] = action("ISEquipWeaponAction"); q[#q + 1] = f
+    end
+    local pl = player()
+    pl._shears = { shears("Manual") }
+    local ram = animal("RamL", { wool = 5, shearable = true })
+    ISTimedActionQueue.queues = {}
+    AQ.forgetChecks()
+    CALLS = {}
+    AQ.start(pl, "shear", { ram })
+    for _ = 1, 5 do AQ.tick() end
+    walkDone(pl)
+    for _ = 1, AQ.START_GRACE + AQ.STALL_TICKS + 10 do AQ.tick() end
+    check("LEAD shear: the run waits through the walk and the shears to hand", AQ.run ~= nil and #CALLS == 1,
+        AQ.last and AQ.last.cause)
+    table.remove(Q(pl).queue, 1)
+    AQ.tick()
+    ram._wool = 0.5; Q(pl).queue = {}; AQ.tick()
+    check("LEAD shear: the shearing ran and took the wool: Done 1 of 1, the act began",
+        AQ.run == nil and AQ.last.cause == "done" and AQ.last.began == true, AQ.last and tostring(AQ.last.cause) .. " " .. tostring(AQ.last.began))
+
+    ram._wool = 5
+    ISTimedActionQueue.queues = {}
+    CALLS = {}
+    AQ.start(pl, "shear", { ram })
+    AQ.tick(); walkDone(pl); AQ.tick()
+    Q(pl).queue = {}
+    AQ.tick()
+    check("LEAD shear: dropped while the shears went to hand: a stop that keeps the act never began and the last step",
+        AQ.run == nil and AQ.last.why == "UI_ZeD_Animals_RunStopped(0,1)" and AQ.last.began == false
+        and AQ.last.lead == "ISEquipWeaponAction" and ram._blocked == false,
+        AQ.last and tostring(AQ.last.began) .. " " .. tostring(AQ.last.lead))
+
+    local fl = player()
+    fl._food = { carrot() }
+    local cowL = animal("CowL", { hunger = 90, eats = { "Vegetables" } })
+    ISTimedActionQueue.queues = {}
+    AQ.forgetChecks()
+    CALLS = {}
+    AQ.start(fl, "feed", { cowL }, "Carrot")
+    AQ.tick(); walkDone(fl)
+    for _ = 1, AQ.START_GRACE + AQ.STALL_TICKS + 10 do AQ.tick() end
+    check("LEAD feed: the run waits through both walks and the food to hand", AQ.run ~= nil and #CALLS == 1, AQ.last and AQ.last.cause)
+    table.remove(Q(fl).queue, 1)
+    AQ.tick()
+    cowL._hunger = 50; Q(fl).queue = {}; AQ.tick()
+    check("LEAD feed: the feeding ran: Done 1 of 1, the act began", AQ.run == nil and AQ.last.cause == "done" and AQ.last.began == true,
+        AQ.last and tostring(AQ.last.cause))
+
+    cowL._hunger = 90
+    fl._food = { carrot() }
+    ISTimedActionQueue.queues = {}
+    AQ.forgetChecks()
+    AQ.start(fl, "feed", { cowL }, "Carrot")
+    AQ.tick()
+    Q(fl).queue = {}
+    AQ.tick()
+    check("LEAD feed: dropped on the first walk: a stop, the act never began, the walk the last step",
+        AQ.run == nil and AQ.last.began == false and AQ.last.lead == "ISWalkToTimedAction",
+        AQ.last and tostring(AQ.last.began) .. " " .. tostring(AQ.last.lead))
+    AnimalContextMenu.onShearAnimal, AnimalContextMenu.onFeedAnimalFood = keepShear, keepFeed
+    ISTimedActionQueue.queues = {}
+end
+
+-- SQUARE (Nov 13 2026, QA 169: an alert's Walk to queued nothing): the walk goes to the square the animal stands on
+-- now, read from its position. Its getSquare() is the square its own last update left it on, so one just moved names
+-- the old one (there, beside the player, the game does no walk at all). An animal whose position has no loaded square
+-- falls back to getSquare().
+do
+    local keepCell = getCell
+    getCell = function()
+        return { getGridSquare = function(_, x, y, z) return { id = "pos:" .. x .. "," .. y .. "," .. z } end }
+    end
+    local pw = player()
+    local moved = animal("Moved", { hunger = 90 })
+    moved._sq = { id = "Moved@old" }
+    moved.getX = function() return 1571.5 end
+    moved.getY = function() return 14334.5 end
+    moved.getZ = function() return 0 end
+    ISTimedActionQueue.queues = {}
+    CALLS = {}
+    ok = AQ.act("goto", pw, moved)
+    check("SQUARE Walk to goes to the square at the animal's position, not the one its last update left",
+        ok and CALLS[1] == "walk:pos:1571,14334,0", CALLS[1])
+    getCell = function() return { getGridSquare = function() return nil end } end
+    CALLS = {}
+    AQ.act("goto", pw, moved)
+    check("SQUARE no loaded square at its position: its own square", CALLS[1] == "walk:Moved@old", CALLS[1])
+    getCell = keepCell
+    ISTimedActionQueue.queues = {}
+end
+
+-- PADWHY (Nov 13 2026, QA 169 aq2 b): a greyed band button's reason shows at once for the controller's focus, which
+-- shows only after a pad press reaches the window (FocusManager _showCues). The QA script's focusOn moved the focus
+-- with no press (claimFocus does nothing to a window that already holds the claim), so the balloon was never asked;
+-- it presses a button bound to nothing after the move, as zedqa_cohesion_walk.lua's padTouch does.
+do
+    local AQ2 = readFile(ROOT .. "ZeDUI/tools/qa/zedqa_animals_quick_more.lua")
+    check("PADWHY the aq2 script's focusOn presses the pad after the move",
+        AQ2:find('if z then Focus.focusWhere(W(), z.zone, function(e) return e.id == id end) end\n    pcall(Focus.dispatchJoypadDown, W(), "QA")', 1, true) ~= nil)
+    local TABW = readFile(Z .. "AnimalsTab.lua")
+    check("PADWHY the band asks the reason balloon at once while its button has the focus",
+        TABW:find("whyBalloon(panel, win, bulkId(spec.id), spec.label, spec.why, rect, on)", 1, true) ~= nil
+        and TABW:find("ZeD.Atoms.requestDetailCard(win, key, c, panel, rect, focused and _nowOpts or nil)", 1, true) ~= nil)
+end
+
 -- SOURCE ----------------------------------------------------------------------
 local TAB = readFile(Z .. "AnimalsTab.lua")
 local WW = readFile(Z .. "ZeD_WorldWindow.lua")

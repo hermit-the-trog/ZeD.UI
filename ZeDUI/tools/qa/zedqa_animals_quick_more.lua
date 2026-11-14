@@ -183,9 +183,14 @@ local function ringFind(id)
     end
 end
 local function focusId() local e = Focus.getFocusedElement(W()); return e and e.id end
+-- the pad's focus onto a stop, then a pad press: the controller's marks and the balloons that go with them show
+-- only after a pad press reaches the window (FocusManager _showCues). claimFocus shows them only when it changes the
+-- claim, and the World window may hold the claim already from an earlier script, so it alone is no press. A button
+-- name bound to nothing ("QA") shows the marks without doing anything (zedqa_cohesion_walk.lua's padTouch).
 local function focusOn(id)
     local z = ringFind(id)
     if z then Focus.focusWhere(W(), z.zone, function(e) return e.id == id end) end
+    pcall(Focus.dispatchJoypadDown, W(), "QA")
 end
 local function sel() return AT.getZoneViewState(W()).sel end
 

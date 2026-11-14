@@ -458,6 +458,18 @@ local function distTo(player, animal)
     return math.sqrt((px - ax) * (px - ax) + (py - ay) * (py - ay))
 end
 
+-- The square the animal stands on now, read from its position. Its getSquare() is the square its own last
+-- update left it on, so an animal moved by other means (set down, carried off, a script) names the old one
+-- until it next updates. A walk aimed there goes where it was, or nowhere at all when that was beside the
+-- player (the game does no walk to a square within 1.6 of you). The getSquare() answer when the position
+-- has no loaded square.
+local function squareOf(animal)
+    local x, y, z = ocall(animal, "getX"), ocall(animal, "getY"), ocall(animal, "getZ")
+    local cell = x and y and getCell and getCell()
+    local sq = cell and ocall(cell, "getGridSquare", math.floor(x), math.floor(y), math.floor(z or 0))
+    return sq or ocall(animal, "getSquare")
+end
+
 -- Hold the animal still (true) or let it go (false). The game's menu holds it from the moment
 -- it is picked and its actions let go when they end; one that never started never lets go, so
 -- the run does. (A hold nobody lets go of wears off by itself after a while: the game counts
@@ -480,7 +492,7 @@ function AQ.act(verb, player, animal, food)
     if not ok then return false, why end
     AQ.forgetChecks()
     if not pointsKnown(verb, animal) then
-        if not luautils.walkAdj(player, animal:getSquare()) then
+        if not luautils.walkAdj(player, squareOf(animal)) then
             return false, ZeD.tr("UI_ZeD_Animals_OutOfReach")
         end
         -- (held from the press, as the game's own menu does: an animal left to graze while the
@@ -497,8 +509,8 @@ function AQ.act(verb, player, animal, food)
     elseif verb == "shear" then
         AnimalContextMenu.onShearAnimal(animal, player, tool)
     elseif verb == "goto" then
-        -- the game's walk to the nearest free square beside it; false when none is free
-        if not luautils.walkAdj(player, animal:getSquare()) then
+        -- the game's walk to the nearest free square beside the one it stands on now; false when none is free
+        if not luautils.walkAdj(player, squareOf(animal)) then
             return false, ZeD.tr("UI_ZeD_Animals_OutOfReach")
         end
     end
@@ -598,8 +610,10 @@ end
 --            stall (ticks the queue sat stuck), spent (ms the game ran since the hand-over),
 --            lastT (the last tick's ms), tool (the bucket, shears or food handed over),
 --            milking (milk: the game's ISMilkAnimal handed over; its bucket is the container it
---            is filling, which it changes by itself when one fills) }
--- AQ.last = { verb, done, total, why } when a run has ended (the band says how it went)
+--            is filling, which it changes by itself when one fills),
+--            began (the act itself, not just the walk and the tool to hand before it, was the game's
+--            current action), lead (the last of those lead actions seen current, by its Type) }
+-- AQ.last = { verb, done, total, why, cause, began, lead } when a run has ended (the band says how it went)
 -- ============================================================================
 
 AQ.run = nil
@@ -682,6 +696,25 @@ local function walking(player)
     return type(cur) == "table" and WALKS[cur.Type] == true
 end
 
+-- The game's own action for each verb, the one its handler queues last (after the walk to the animal's side and,
+-- for shears and food, the move to the hands)
+local ACT_TYPE = { milk = "ISMilkAnimal", shear = "ISShearAnimal", feed = "ISFeedAnimalFromHand" }
+
+-- Notes what the game is doing for the animal under way: whether its act itself got under way, and the last lead
+-- action seen before it. When the queue empties with the act never begun, the game dropped it on the way (a walk
+-- with no path, a tool that left the inventory, a stick move): the band says "Stopped" as for any cut, and the
+-- console says which step it was, for a bug report.
+local function noteCurrent(r, a)
+    local q = ISTimedActionQueue and ISTimedActionQueue.queues and ISTimedActionQueue.queues[r.player]
+    local cur = q and q.queue and q.queue[1]
+    if type(cur) ~= "table" then return end
+    if cur.Type == ACT_TYPE[r.verb] and (cur.animal == nil or cur.animal == a) then
+        r.began = true
+    elseif not r.began then
+        r.lead = cur.Type
+    end
+end
+
 -- The game calls this when the walk up reaches its square (not when a stick move, a cancel
 -- or a missing path ends it first)
 local function arrived(r)
@@ -717,7 +750,8 @@ local onTick
 local function finish(why, cause)
     local r = AQ.run
     if not r then return end
-    AQ.last = { verb = r.verb, done = r.done, total = #r.list, why = why, cause = cause, t = now() }
+    AQ.last = { verb = r.verb, done = r.done, total = #r.list, why = why, cause = cause, t = now(),
+                began = r.began == true, lead = r.lead }
     AQ.run = nil
     if Events and Events.OnTick then Events.OnTick.Remove(onTick) end
 end
@@ -759,7 +793,7 @@ local function handOver(r, i)
     if not ok and toolFull(r) then finish(fullWords(r), "full") return end
     if not ok then finish(why, "refused") return end
     r.phase, r.seen, r.ticks, r.stall, r.tool = "wait", false, 0, 0, tool
-    r.approach, r.walked, r.milking = how == "approach", false, nil
+    r.approach, r.walked, r.milking, r.began, r.lead = how == "approach", false, nil, false, nil
     if r.approach then onArrival(r) elseif r.verb == "milk" then r.milking = milkingOf(r.player, a) end
     r.near, r.spent, r.lastT = distTo(r.player, a), 0, now()
 end
@@ -846,7 +880,11 @@ function AQ.tick()
         local cause = gaveUp(r, a)
         if cause then halt(r, cause) return end
         local busy = queueBusy(p)
-        if busy then r.seen = true; return end
+        if busy then
+            r.seen = true
+            if not r.approach then noteCurrent(r, a) end
+            return
+        end
         if not r.seen then
             r.ticks = r.ticks + 1
             if r.ticks < AQ.START_GRACE then return end
@@ -876,6 +914,10 @@ function AQ.tick()
         end
         if undone then
             letGo(a)
+            if not r.began then
+                print("[ZeD] Animals: the game dropped the " .. tostring(ACT_TYPE[r.verb]) .. " before it began; the last step was "
+                    .. tostring(r.lead or "none"))
+            end
             finish(stoppedWords(r, "undone"), "undone")
             return
         end
