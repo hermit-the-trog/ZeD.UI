@@ -1,0 +1,10 @@
+# Nov 13 2026: the beta 13 Farm and Ranch pictures at the director's farm (zedqa_farm_spot.lua after the prelude), Teal, 4K.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_farm_spot.lua | farm | timeout=120
+gallery_b11_look.lua | g14l | timeout=60
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_farm_pre.lua | gfp | timeout=20
+zedqa_animals.lua | an | timeout=60 | end=setup done
+gallery_farm_ranch.lua | gfr | timeout=150
+gallery_t14_end.lua | g14e | timeout=60
