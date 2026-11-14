@@ -418,9 +418,15 @@ do
     check("both open where the screen they live on says (ZeD.screenOf by the player's number)",
         cwToggle:find("ZeD.screenOf(playerNum)", 1, true) ~= nil and wwToggle:find("ZeD.screenOf(playerNum)", 1, true) ~= nil)
 
-    -- the gate, word for word as it was: only the first player opens ZeD's windows
+    -- the gate: only the first player opens ZeD's windows while split view's switch is off (beta 13 S2b added the
+    -- switch, ZeD.splitWindows, off until every way in passes its player)
     local gate = fnOf(atoms, "function ZeD.windowsFor")
-    check("the gate is unchanged", gate == "function ZeD.windowsFor(pn)\n    return pn == nil or pn == 0\nend\n", gate)
+    local G = { splitWindows = false }
+    local okG, gfn = pcall(loadstring, "local ZeD = ...\n" .. (gate or "") .. "\nreturn ZeD.windowsFor")
+    local wf = okG and gfn and gfn(G)
+    check("the gate with the switch off: player 1 only", wf and wf(nil) and wf(0) and not wf(1) and not wf(3), gate)
+    G.splitWindows = true
+    check("the gate with the switch on: players 1 to 4", wf and wf(1) and wf(3) and not wf(4))
 end
 
 -- ---------------------------------------------------------------------------

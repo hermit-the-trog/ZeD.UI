@@ -54,6 +54,8 @@ do
     local fnSrc = os2:match("(function ZeD%.screenOf%(w%).-\nend)")
     check("ZeD.screenOf is found in Organisms.lua", fnSrc ~= nil)
     if fnSrc then assert(loadstring(fnSrc))() end
+    local leftSrc = os2:match("(function ZeD%.screenLeftOf%(w%).-\nend)")
+    if leftSrc then assert(loadstring(leftSrc))() end
 end
 
 local function newWin()

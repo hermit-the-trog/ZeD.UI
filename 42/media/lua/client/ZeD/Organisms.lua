@@ -1410,7 +1410,7 @@ end
 --- (the Character and World windows set win.playerNum when built) has its player's part (ZeD.playerRect): player 1's
 --- part shrinks when another player joins. Windows without one (the main menu's) keep the whole screen.
 function ZeD.screenOf(w)
-    if ZeD.splitWindows then
+    if ZeD.splitWindows == true then
         local pn = (type(w) == "number") and w or (type(w) == "table" and w.playerNum) or nil
         if type(pn) == "number" then
             local x, y, pw, ph = ZeD.playerRect(pn)
