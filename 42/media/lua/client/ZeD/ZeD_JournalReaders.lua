@@ -412,8 +412,14 @@ end
 local function readPiece(win, e)
     local pn = win._playerObj:getPlayerNum()
     sound("UIActivateButton")
-    -- vanilla's own Read (Inspect): its checks, its time; the reader opens when it ends
-    ISInventoryPaneContextMenu.onLiteratureItems({ e.item }, pn)
+    -- vanilla's own Read (Inspect): its time, its transfer and return; the reader opens when it ends.
+    -- (Nov 14 2026, punch list 199: onLiteratureItems drops anything tagged UNINTERESTING, and the game tags
+    -- newspapers and fliers so: A on Read queued nothing. Its readItem step is the same read without that filter.)
+    if ISInventoryPaneContextMenu.readItem then
+        ISInventoryPaneContextMenu.readItem(e.item, pn)
+    else
+        ISInventoryPaneContextMenu.onLiteratureItems({ e.item }, pn)
+    end
 end
 
 -- a section head, not folding: the one section style (the small mono line of the fold heads, as Moodles, Fitness and
