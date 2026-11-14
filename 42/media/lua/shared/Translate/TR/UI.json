@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "Test etmek için bir kumanda seç: sayfa, testten çıkana kadar düğmelere dokunmaz.",
     "UI_ZeD_PadFig_HelpIdle": "Kumandanda bir düğmeye bas: çizimde yanar.",
     "UI_ZeD_PadFig_PromptExitTest": "Testten çık (ikisini basılı tut)",
-    "UI_ZeD_PadFig_StickClick": "%1 (çubuğun tıklanması)"
+    "UI_ZeD_PadFig_StickClick": "%1 (çubuğun tıklanması)",
+    "UI_ZeD_Settings_UiSounds": "Arayüz sesleri",
+    "UI_ZeD_Settings_UiSoundsTip": "ZeD'in pencere ve menülerindeki kendi tıklama seslerinin ne kadar yüksek çalacağı. Kısık daha yumuşak çalar; Kapalı hiç çalmaz. Oyunun kendi sesleri ve ses düzeyi ayarları olduğu gibi kalır.",
+    "UI_ZeD_Settings_UiSoundsFull": "Tam",
+    "UI_ZeD_Settings_UiSoundsQuiet": "Kısık"
 }

@@ -1018,7 +1018,7 @@ local function _applyFlatLanding(w, locator, oldFlatIdx, newFlatIdx)
     end
     -- Audible focus tick (vanilla list-select sound) so D-pad moves are
     -- felt without looking for the cue. Mouse hover never routes here.
-    pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+    pcall(function() ZeD.uiSound("UISelectListItem") end)
 
     if newZoneIdx ~= oldZoneIdx and w.onFocusZoneChanged then
         _fireCb("window.onFocusZoneChanged", w.onFocusZoneChanged, w,
@@ -1313,7 +1313,7 @@ local function _stepTab(side, pn, delta)
     else pick = ((at - 1 + delta + n) % n) + 1 end   -- (never negative: Kahlua's % keeps the sign)
     local el = tabs[pick]
     if not el or pick == at then return end   -- (one tab shown: nothing to step to)
-    pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+    pcall(function() ZeD.uiSound("UIActivateButton") end)
     _fireCb("tab.onActivate", el.onActivate, w, el)
     Focus.focusByIdSoon(w, TAB_ZONE[side], el.id)
 end
@@ -1354,7 +1354,7 @@ local function _handleConfirm(w)
     if not el then return end
     -- (the Character window while paused is for looking: ZeD_PausedLook.lua)
     if ZeD.PausedLook and ZeD.PausedLook.blocks(w, el) then return end
-    if el.onActivate then pcall(function() getSoundManager():playUISound("UIActivateButton") end) end
+    if el.onActivate then pcall(function() ZeD.uiSound("UIActivateButton") end) end
     _fireCb("element.onActivate", el.onActivate, w, el)
 end
 
@@ -1391,7 +1391,7 @@ local function _handleBContextual(pn)
     local el = Focus.getFocusedElement(w)
     if not el or not el.onCancel then return end
     local took = _fireCbR("element.onCancel", el.onCancel, w, el)
-    if took ~= false then pcall(function() getSoundManager():playUISound("UIToggleTickBox") end) end
+    if took ~= false then pcall(function() ZeD.uiSound("UIToggleTickBox") end) end
     -- Beyond the sound, the return value is ignored — B has no fall-through path.
 end
 
@@ -1471,7 +1471,7 @@ local function _menuNav(w, dir)
     w._navLast = nil
     local el = els[pick]
     if el and el.onFocus then _fireCb("element.onFocus", el.onFocus, w, el) end
-    pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+    pcall(function() ZeD.uiSound("UISelectListItem") end)
     if zi ~= oldZoneIdx and w.onFocusZoneChanged then
         _fireCb("window.onFocusZoneChanged", w.onFocusZoneChanged, w, { new = z, old = ring[oldZoneIdx] })
     end
@@ -1656,10 +1656,13 @@ local function _handleSpatialNav(w, dir)
                 -- list had emptied under it. Where the move started, in the other window's frame:)
                 local src = elements[_findCurrentFlatIdx(w, locator) or 0]
                 Focus.claimFocus(other)
+                -- (punch list 210: a landing plays its own click (_applyFlatLanding); a second one here made two at once)
+                local landed = false
                 if src and Focus.getFocusedWindow(_pnOf(other)) == other then
-                    pcall(Focus._landFrom, w, other, src, dir)
+                    local okL = pcall(Focus._landFrom, w, other, src, dir)
+                    landed = okL
                 end
-                pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+                if not landed then pcall(function() ZeD.uiSound("UISelectListItem") end) end
             end
         end
         return

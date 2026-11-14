@@ -691,6 +691,18 @@ runSneak:addItem(getText("UI_On"), false)   -- (item 1 Off, item 2 On: ZeD setup
 ZeD.Settings.runSneakOption = runSneak
 ZeD.Settings.runSneakOn = function() return (liveIdx(runSneak) or 1) == 2 end
 
+-- ----- UI SOUNDS (Nov 14 2026, punch list 211) -----
+-- How loud ZeD's own clicks play: Full (the default, as before), Quiet or Off. ZeD.uiSound (shared/ZeD/Tokens.lua)
+-- reads this on every click, the live pick while the options screen is open, so a pick is heard at once. The game's
+-- own sounds and volume settings are left alone. Not an addition: the presets leave it.
+local uiSoundKeys = { 1, 0.4, 0 }
+local uiSounds = opts:addComboBox("uiSounds", ZeD.tr("UI_ZeD_Settings_UiSounds"), ZeD.tr("UI_ZeD_Settings_UiSoundsTip"))
+uiSounds:addItem(ZeD.tr("UI_ZeD_Settings_UiSoundsFull"), true)   -- default
+uiSounds:addItem(ZeD.tr("UI_ZeD_Settings_UiSoundsQuiet"), false)
+uiSounds:addItem(getText("UI_Off"), false)
+ZeD.Settings.uiSoundsOption = uiSounds
+ZeD.Settings.uiSoundVolume = function() return uiSoundKeys[liveIdx(uiSounds) or 1] or 1 end
+
 -- ----- THE KEYS OF THE OPTION NAMES -----
 -- ModOptions keeps each name as the text the option was made with, which is read once, here at
 -- file load, so the test language could never stretch it. Each option also keeps the key of its
@@ -726,6 +738,7 @@ do
         wheelOpen = "UI_ZeD_Settings_WheelOpen", wheelCommit = "UI_ZeD_Settings_WheelCommit",
         wheelToggle = "UI_ZeD_Settings_WheelToggle", wheelDeadZone = "UI_ZeD_Settings_WheelDeadZone",
         autoLearn = "UI_ZeD_Settings_AutoLearn", runSneak = "UI_ZeD_Settings_RunSneak",
+        uiSounds = "UI_ZeD_Settings_UiSounds",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]

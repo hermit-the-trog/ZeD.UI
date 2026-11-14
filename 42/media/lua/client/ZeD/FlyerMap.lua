@@ -265,7 +265,7 @@ end
 --- Opens the pinned piece in the reader.
 function F.open(mp, p)
     if not (p and mp.playerObj and ZeD.Reader and ZeD.Reader.openPrintId) then return false end
-    pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+    pcall(function() ZeD.uiSound("UIActivateButton") end)
     return ZeD.Reader.openPrintId(mp.playerObj, p.id)
 end
 

@@ -1857,7 +1857,7 @@ function ZeD_ItemCard:openListsPopup()
     local r = self._listsRect
     local LU = ZeD.ListsUI
     if not (r and LU and self.item) then return end
-    pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+    pcall(function() ZeD.uiSound("UIActivateButton") end)
     LU.openPopup(self.playerNum or 0, self.item, r.x - ZeD.T.px(4), r.y + r.h + ZeD.T.px(4))
 end
 

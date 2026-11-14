@@ -831,7 +831,7 @@ local function focusAt(w, zi, zone, j)
     zone.focusedElementIdx = j
     local e = zone.elements[j]
     if e.onFocus then e.onFocus(w, e) end
-    pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+    pcall(function() ZeD.uiSound("UISelectListItem") end)
     return true
 end
 

@@ -849,7 +849,7 @@ end
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
 
 function ZeD_ChatWindow:closeAction()
-    pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+    pcall(function() ZeD.uiSound("UIActivateButton") end)
     self:close()
 end
 function ZeD_ChatWindow:close()
@@ -866,7 +866,7 @@ function ZeD_ChatWindow:pickTab(id)
     C.tab = id
     self.scroll = 0
     self.picked, self.cur = nil, nil
-    pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+    pcall(function() ZeD.uiSound("UISelectListItem") end)
 end
 
 function ZeD_ChatWindow:onMouseDown(x, y)
@@ -901,7 +901,7 @@ function ZeD_ChatWindow:_pressLines(x, y)
     for _, h in ipairs(self._rowHits or {}) do
         if y >= h.y and y < h.y + h.h then
             self.picked = (self.picked ~= h.ln) and h.ln or nil
-            pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+            pcall(function() ZeD.uiSound("UISelectListItem") end)
             return true
         end
     end
@@ -909,7 +909,7 @@ function ZeD_ChatWindow:_pressLines(x, y)
 end
 
 function ZeD_ChatWindow:_runAction(b)
-    pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+    pcall(function() ZeD.uiSound("UIActivateButton") end)
     local ok, err = pcall(b.run, self)
     if not ok then ZeD.logOnce("chat action " .. tostring(b.id), err) end
 end
@@ -1018,11 +1018,11 @@ function ZeD_ChatWindow:_padStep(dir)
             self.zone, self.picked = "lines", nil
             self:_padLines(dir)
         end
-        pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+        pcall(function() ZeD.uiSound("UISelectListItem") end)
         return
     end
     if self.zone == "lines" and (dir == "up" or dir == "down") and self:_padLines(dir) then
-        pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+        pcall(function() ZeD.uiSound("UISelectListItem") end)
         return
     end
     if self.zone == "tabs" and (dir == "left" or dir == "right") then
@@ -1048,7 +1048,7 @@ function ZeD_ChatWindow:_padStep(dir)
         elseif self.zone == "lines" and self.scroll > 0 then self.scroll = math.max(0, self.scroll - lh * 3)
         elseif self.zone == "lines" then self.zone, self.cur = "input", nil end
     end
-    pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+    pcall(function() ZeD.uiSound("UISelectListItem") end)
 end
 function ZeD_ChatWindow:onJoypadDirUp() self:_padStep("up") end
 function ZeD_ChatWindow:onJoypadDirDown() self:_padStep("down") end

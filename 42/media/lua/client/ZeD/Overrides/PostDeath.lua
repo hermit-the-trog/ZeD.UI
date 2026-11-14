@@ -471,7 +471,7 @@ function ISPostDeathUI:onMouseUp(x, y)
     self._down = nil
     local h = hitAt(self, x, y)
     if h and h.fn and h.id == down then
-        pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+        pcall(function() ZeD.uiSound("UIActivateButton") end)
         h.fn()
     end
     return true

@@ -210,12 +210,12 @@ function ZeD_CurtainRod:onMouseUp(x, y)
     if not self._pressed then return true end
     self._pressed = false
     if inRect(self._closeRect, x, y) then
-        getSoundManager():playUISound("UIActivateButton")
+        pcall(function() ZeD.uiSound("UIActivateButton") end)
         self.win:close()
     elseif inRect(self._pinRect, x, y) and ZeD.Halves then
         ZeD.Halves.togglePin(self.win, "inv")
     elseif inRect(self._chip, x, y) then
-        getSoundManager():playUISound("UIActivateTab")
+        pcall(function() ZeD.uiSound("UIActivateTab") end)
         C.unroll(self.win)
     end
     return true
@@ -235,7 +235,7 @@ function C.attach(win, spec)
     local baseDown = win.onMouseDown
     win.onMouseDown = function(self, x, y)
         if not self._rolled and inRect(self._rollBtn, x, y) and self._curtain.canRoll() then
-            getSoundManager():playUISound("UIActivateTab")
+            pcall(function() ZeD.uiSound("UIActivateTab") end)
             C.roll(self)
             return true
         end

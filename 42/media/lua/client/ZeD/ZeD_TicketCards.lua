@@ -112,7 +112,7 @@ local function tr(k, ...) return ZeD.tr(k, ...) end
 local function px(n) return ZeD.T.px(n) end
 local function now() return getTimestampMs() end
 local function inside(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
-local function sound(n) pcall(function() getSoundManager():playUISound(n or "UIActivateButton") end) end
+local function sound(n) pcall(function() ZeD.uiSound(n or "UIActivateButton") end) end
 
 -- ---------------------------------------------------------------------------
 -- STATE: one table per tab, st.tk

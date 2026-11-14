@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "Válassz egy kontrollert a teszteléshez: az oldal ezután békén hagyja a gombokat, amíg ki nem lépsz a tesztből.",
     "UI_ZeD_PadFig_HelpIdle": "Nyomj meg egy gombot a kontrolleren: felvillan a rajzon.",
     "UI_ZeD_PadFig_PromptExitTest": "Kilépés a tesztből (tartsd mindkettőt)",
-    "UI_ZeD_PadFig_StickClick": "%1 (a kar lenyomása)"
+    "UI_ZeD_PadFig_StickClick": "%1 (a kar lenyomása)",
+    "UI_ZeD_Settings_UiSounds": "Felület hangjai",
+    "UI_ZeD_Settings_UiSoundsTip": "Milyen hangosan szólnak a ZeD saját kattintásai az ablakaiban és menüiben. Halk: halkabban szólnak; Ki: egyik sem szól. A játék saját hangjai és hangerő-beállításai változatlanok maradnak.",
+    "UI_ZeD_Settings_UiSoundsFull": "Teljes",
+    "UI_ZeD_Settings_UiSoundsQuiet": "Halk"
 }

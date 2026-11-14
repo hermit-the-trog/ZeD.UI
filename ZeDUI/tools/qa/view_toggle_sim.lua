@@ -47,6 +47,8 @@ getText = function(k) return k end
 
 local function rgb(r, g, b, a) return { r = r, g = g, b = b, a = a or 1 } end
 ZeD = {}
+-- (Nov 14 2026, punch list 211: ZeD's clicks go through ZeD.uiSound, shared/ZeD/Tokens.lua; at Full it is playUISound)
+ZeD.uiSound = function(n) return getSoundManager():playUISound(n) end
 -- (Atoms.lua's: a window's player number, split view)
 ZeD.playerNumOf = function(w) local p = w and w._playerObj; return p and p:getPlayerNum() or 0 end
 ZeD.T = {

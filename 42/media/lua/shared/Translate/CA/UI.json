@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "Tria un comandament per provar-lo: la pàgina deixa els botons tranquils fins que surts de la prova.",
     "UI_ZeD_PadFig_HelpIdle": "Prem un botó del comandament: s'il·lumina al dibuix.",
     "UI_ZeD_PadFig_PromptExitTest": "Surt de la prova (mantén-los tots dos)",
-    "UI_ZeD_PadFig_StickClick": "%1 (el clic de la palanca)"
+    "UI_ZeD_PadFig_StickClick": "%1 (el clic de la palanca)",
+    "UI_ZeD_Settings_UiSounds": "Sons de la interfície",
+    "UI_ZeD_Settings_UiSoundsTip": "Com de forts sonen els clics propis de ZeD a les seves finestres i menús. Baix els fa sonar més fluixos; Apagat no en fa sonar cap. Els sons del joc i els seus ajustos de volum queden com estan.",
+    "UI_ZeD_Settings_UiSoundsFull": "Complet",
+    "UI_ZeD_Settings_UiSoundsQuiet": "Baix"
 }

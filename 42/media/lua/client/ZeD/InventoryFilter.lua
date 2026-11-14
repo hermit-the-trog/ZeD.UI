@@ -520,6 +520,6 @@ function IF.act(S, what, win)
     elseif what == "field" then IF.editField(S, win)
     elseif type(what) == "string" and string.sub(what, 1, 5) == "chip:" then IF.toggleCat(S, string.sub(what, 6))
     else return false end
-    pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+    pcall(function() ZeD.uiSound("UISelectListItem") end)
     return true
 end

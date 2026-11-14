@@ -35,7 +35,7 @@ local function tr(k, ...) return ZeD.tr(k, ...) end
 local function px(n) return ZeD.T.px(n) end
 local function fh(font) return ZeD.TM:getFontHeight(font) end
 local function inRect(r, x, y) return r ~= nil and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
-local function sound(name) pcall(function() getSoundManager():playUISound(name or "UISelectListItem") end) end
+local function sound(name) pcall(function() ZeD.uiSound(name or "UISelectListItem") end) end
 local function btn(s) return ZeD.btnCase and ZeD.btnCase(s) or s end
 
 -- ---------------------------------------------------------------------------

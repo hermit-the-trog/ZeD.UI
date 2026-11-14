@@ -761,7 +761,7 @@ end
 function ZeD_Watch:onMouseDown(x, y)
     for _, hr in ipairs(self._hit or {}) do
         if x >= hr.x and x < hr.x + hr.w and y >= hr.y and y < hr.y + hr.h then
-            pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+            pcall(function() ZeD.uiSound("UIActivateButton") end)
             local ok, err = pcall(self._act, self, hr.id)
             if not ok then print("[ZeD] Watch: action " .. tostring(hr.id) .. " failed: " .. tostring(err)) end
             self._popTouched = getTimestampMs()

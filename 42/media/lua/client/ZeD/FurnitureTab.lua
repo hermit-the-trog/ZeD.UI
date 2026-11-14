@@ -497,7 +497,7 @@ local function setFacing(cur, mode, fi, idx)
     else
         cur:setCursorFacing(idx)
     end
-    pcall(function() getSoundManager():playUISound("UIObjectMenuObjectRotateOutline") end)
+    pcall(function() ZeD.uiSound("UIObjectMenuObjectRotateOutline") end)
 end
 
 -- facing: one of four, so System 7 radio buttons (the compass letter beside each)
@@ -901,7 +901,7 @@ function FT.onClick(win, x, y)
     for i = #s.zones, 1, -1 do
         local z = s.zones[i]
         if hit(z, x, y) and z.fn then
-            pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+            pcall(function() ZeD.uiSound("UIActivateButton") end)
             z.fn()
             return true
         end

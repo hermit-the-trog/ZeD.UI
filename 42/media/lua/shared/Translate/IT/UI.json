@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "Scegli un controller da provare: la pagina lascia stare i pulsanti finché non esci dal test.",
     "UI_ZeD_PadFig_HelpIdle": "Premi un pulsante del controller: si illumina sul disegno.",
     "UI_ZeD_PadFig_PromptExitTest": "Esci dal test (tieni entrambi)",
-    "UI_ZeD_PadFig_StickClick": "%1 (il clic della levetta)"
+    "UI_ZeD_PadFig_StickClick": "%1 (il clic della levetta)",
+    "UI_ZeD_Settings_UiSounds": "Suoni dell'interfaccia",
+    "UI_ZeD_Settings_UiSoundsTip": "Quanto forte suonano i clic propri di ZeD nelle sue finestre e nei menu. Basso li suona più piano; Disattiva non ne suona nessuno. I suoni del gioco e le sue impostazioni del volume restano come sono.",
+    "UI_ZeD_Settings_UiSoundsFull": "Completo",
+    "UI_ZeD_Settings_UiSoundsQuiet": "Basso"
 }

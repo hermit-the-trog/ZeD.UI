@@ -70,7 +70,7 @@ end
 R.plateFor = plateFor
 local function plateTex(name) return P.tex(ZeD.PhysPx.texdir .. name .. ".png") end
 local function now() return getTimestampMs() end
-local function sound(name) pcall(function() getSoundManager():playUISound(name) end) end
+local function sound(name) pcall(function() ZeD.uiSound(name) end) end
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
 
 -- what a button does on a press, and on X / a hold (nil = nothing)

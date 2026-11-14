@@ -691,12 +691,12 @@ function HB.run(win, key)
         st.busy, st.sel = nil, nil
         st.done = tr("UI_ZeD_Hair_DoneMakeUpOff", r.label)
         refresh(win, st, p, true)
-        getSoundManager():playUISound("UIActivateButton")
+        pcall(function() ZeD.uiSound("UIActivateButton") end)
         return true
     end
     st.busy = { verb = r.verb, part = r.part, t0 = getTimestampMs(), label = r.label }
     st.done, st.sel = nil, nil
-    getSoundManager():playUISound("UIActivateButton")
+    pcall(function() ZeD.uiSound("UIActivateButton") end)
     return true
 end
 
@@ -1821,7 +1821,7 @@ function HB.onClick(win, x, y)
                 local i = math.floor((x - (it.x + st.x)) / (it.w / #parts)) + 1
                 HB.setPart(win, parts[math.max(1, math.min(#parts, i))])
             end
-            getSoundManager():playUISound("UIActivateButton")
+            pcall(function() ZeD.uiSound("UIActivateButton") end)
             return true
         end
     end

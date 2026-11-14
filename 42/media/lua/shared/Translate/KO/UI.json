@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "테스트할 컨트롤러를 고르세요: 테스트를 끝낼 때까지 이 페이지는 버튼에 반응하지 않습니다.",
     "UI_ZeD_PadFig_HelpIdle": "컨트롤러의 버튼을 누르면 그림에서 불이 켜집니다.",
     "UI_ZeD_PadFig_PromptExitTest": "테스트 종료 (둘 다 누르기)",
-    "UI_ZeD_PadFig_StickClick": "%1 (스틱 클릭)"
+    "UI_ZeD_PadFig_StickClick": "%1 (스틱 클릭)",
+    "UI_ZeD_Settings_UiSounds": "UI 소리",
+    "UI_ZeD_Settings_UiSoundsTip": "ZeD 창과 메뉴에서 나는 ZeD 자체 클릭 소리의 크기입니다. 작게: 더 조용히 재생합니다. 끄기: 재생하지 않습니다. 게임 자체 소리와 음량 설정은 그대로입니다.",
+    "UI_ZeD_Settings_UiSoundsFull": "최대",
+    "UI_ZeD_Settings_UiSoundsQuiet": "작게"
 }

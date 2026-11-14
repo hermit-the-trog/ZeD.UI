@@ -52,7 +52,7 @@ local function twFull(font, s) return tw(font, s .. "x") - tw(font, "x") end
 -- vowel mark the "x" trick comes out 2 px short of the run measured as drawn)
 local function twFit(font, s) return math.max(tw(font, s), twFull(font, s)) end
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
-local function sound(name) pcall(function() getSoundManager():playUISound(name or "UIActivateButton") end) end
+local function sound(name) pcall(function() ZeD.uiSound(name or "UIActivateButton") end) end
 local function tr(k, ...) return ZeD.tr(k, ...) end
 local function btnLabel(s) return ZeD.btnCase and ZeD.btnCase(s) or s end
 

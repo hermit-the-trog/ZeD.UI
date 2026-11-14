@@ -108,7 +108,7 @@ local DESK = { r = 0.0, g = 0.0, b = 0.0, a = 0.62 }
 local function tr(k, ...) return ZeD.tr(k, ...) end
 local function upper(s) return ZeD.upper and ZeD.upper(s) or string.upper(s) end
 local function realTM() return (ZeD.Text and ZeD.Text.realTM and ZeD.Text.realTM()) or getTextManager() end
-local function sound(name) pcall(function() getSoundManager():playUISound(name or "UIActivateButton") end) end
+local function sound(name) pcall(function() ZeD.uiSound(name or "UIActivateButton") end) end
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
 
 -- ---------------------------------------------------------------------------

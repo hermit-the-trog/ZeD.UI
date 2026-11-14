@@ -720,7 +720,7 @@ function F.clear(win, tab)
     local KB = ZeD.Keyboard
     if KB and KB.instance and f and KB.instance.textEntryBox == f.input then KB.hide() end
     win._findLand = { tab = tab, to = "field" }
-    pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+    pcall(function() ZeD.uiSound("UIActivateButton") end)
 end
 
 --- The keyboard's Accept (RT): the hand lands on the first match.
@@ -882,7 +882,7 @@ function F.focusId(w, id, quiet)
                     w._focusIdx = zi
                     z.focusedElementIdx = j
                     if e.onFocus then e.onFocus(w, e) end
-                    if not quiet then pcall(function() getSoundManager():playUISound("UISelectListItem") end) end
+                    if not quiet then pcall(function() ZeD.uiSound("UISelectListItem") end) end
                     return true
                 end
             end

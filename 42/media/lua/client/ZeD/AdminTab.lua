@@ -394,7 +394,7 @@ end
 -- ---------------------------------------------------------------------------
 -- INPUT
 -- ---------------------------------------------------------------------------
-local function sound(n) pcall(function() getSoundManager():playUISound(n or "UIActivateButton") end) end
+local function sound(n) pcall(function() ZeD.uiSound(n or "UIActivateButton") end) end
 
 local function choose(st, it)
     if it.house then

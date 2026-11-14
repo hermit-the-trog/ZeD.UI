@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "Wybierz kontroler do testu: strona zostawia wtedy przyciski w spokoju, aż wyjdziesz z testu.",
     "UI_ZeD_PadFig_HelpIdle": "Naciśnij przycisk na kontrolerze: zaświeci się na rysunku.",
     "UI_ZeD_PadFig_PromptExitTest": "Wyjdź z testu (przytrzymaj oba)",
-    "UI_ZeD_PadFig_StickClick": "%1 (kliknięcie gałki)"
+    "UI_ZeD_PadFig_StickClick": "%1 (kliknięcie gałki)",
+    "UI_ZeD_Settings_UiSounds": "Dźwięki interfejsu",
+    "UI_ZeD_Settings_UiSoundsTip": "Jak głośno grają własne kliknięcia ZeD w jego oknach i menu. Ciche gra je słabiej; Wyłączony nie gra żadnych. Dźwięki samej gry i jej ustawienia głośności zostają bez zmian.",
+    "UI_ZeD_Settings_UiSoundsFull": "Pełne",
+    "UI_ZeD_Settings_UiSoundsQuiet": "Ciche"
 }

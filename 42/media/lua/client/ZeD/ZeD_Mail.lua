@@ -111,7 +111,7 @@ end
 function M.ring()
     if M.rang then return end
     M.rang = true
-    pcall(function() getSoundManager():playUISound("ZeDModemDial") end)
+    pcall(function() ZeD.uiSound("ZeDModemDial") end)
 end
 function M.connectNote(sending, receiving)
     local text = ZeD.tr("UI_ZeD_Mail_Connecting", sending or 0, receiving or 0)

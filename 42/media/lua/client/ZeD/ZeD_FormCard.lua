@@ -44,7 +44,7 @@ local function px(n) return ZeD.T.px(n) end
 local function fh(f) return ZeD.TM:getFontHeight(f) end
 local function tw(f, s) return ZeD.TM:MeasureStringX(f, s) end
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
-local function sound(n) pcall(function() getSoundManager():playUISound(n or "UIActivateButton") end) end
+local function sound(n) pcall(function() ZeD.uiSound(n or "UIActivateButton") end) end
 local function stoppable(r) return (r.k == "radio" or r.k == "check" or r.k == "field" or r.k == "swatch") and not r.disabled end
 
 ZeD_FormCard = ZeD_Window:derive("ZeD_FormCard")

@@ -57,7 +57,7 @@ local FILTERS = {
 local function fh(f) return ZeD.TM:getFontHeight(f) end
 local function tw(f, s) return ZeD.TM:MeasureStringX(f, s) end
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
-local function sound(n) pcall(function() getSoundManager():playUISound(n or "UIActivateButton") end) end
+local function sound(n) pcall(function() ZeD.uiSound(n or "UIActivateButton") end) end
 local function trunc(s, f, w) return ZeD.Atoms.truncateText(s, f, w) end
 
 -- the tab's own state on the window

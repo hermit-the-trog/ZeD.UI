@@ -284,7 +284,7 @@ function TW.press(chr, dev, id, dx)
     elseif id == "mic" then O.mic(chr, dev)
     elseif id == "mute" then O.mute(chr, dev)
     elseif id == "scan" then if st.on then O.scanToggle(chr, dev) end
-    elseif id == "lamp" then O.lamp(dev); pcall(function() getSoundManager():playUISound("UIActivateButton") end) end
+    elseif id == "lamp" then O.lamp(dev); pcall(function() ZeD.uiSound("UIActivateButton") end) end
 end
 
 --- The second meaning (X, a hold, a right-click); owner = what the naming box answers to.

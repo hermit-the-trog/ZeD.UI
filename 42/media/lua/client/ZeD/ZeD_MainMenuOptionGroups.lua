@@ -183,7 +183,7 @@ G.ZED_GROUPS = {
         { "sandboxInGame", "onoff", under = "UI_ZeD_Options_UnderSandboxIG" }, { "hiddenFacts", "radio" }, { "autoLearn", "onoff" }, { "loadouts", "onoff" },
         -- (Restock works only with a loadout, so its row dims and goes inert while Loadouts is off)
         { "restock", "radio", needs = "loadouts", needsWhy = "UI_ZeD_Options_NeedsLoadouts" } } },
-    { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "contextStyle", "radio" }, { "equipView", "radio" }, { "modsStyle", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "hiddenActions" } } },
+    { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "contextStyle", "radio" }, { "equipView", "radio" }, { "modsStyle", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "uiSounds", "radio" }, { "hiddenActions" } } },
     { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio" }, { "actionBar", "radio" } } },
     -- (how the wheels are worked; Toggle mode overrides open and commit, so they dim while it is on; then the Run
     -- button that also crouches, Input/RunSneak.lua)

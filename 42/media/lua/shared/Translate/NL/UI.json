@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "Kies een controller om te testen: de pagina laat de knoppen dan met rust tot je de test verlaat.",
     "UI_ZeD_PadFig_HelpIdle": "Druk op een knop van je controller: hij licht op in de tekening.",
     "UI_ZeD_PadFig_PromptExitTest": "Test verlaten (beide vasthouden)",
-    "UI_ZeD_PadFig_StickClick": "%1 (de klik van de stick)"
+    "UI_ZeD_PadFig_StickClick": "%1 (de klik van de stick)",
+    "UI_ZeD_Settings_UiSounds": "Interfacegeluiden",
+    "UI_ZeD_Settings_UiSoundsTip": "Hoe hard ZeD's eigen klikken klinken in zijn vensters en menu's. Zacht speelt ze zachter af; Uit speelt er geen. De eigen geluiden van het spel en de volume-instellingen blijven zoals ze zijn.",
+    "UI_ZeD_Settings_UiSoundsFull": "Volledig",
+    "UI_ZeD_Settings_UiSoundsQuiet": "Zacht"
 }

@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "テストするコントローラーを選びます: テストを終えるまで、このページはボタンに反応しません。",
     "UI_ZeD_PadFig_HelpIdle": "コントローラーのボタンを押すと、図の上で光ります。",
     "UI_ZeD_PadFig_PromptExitTest": "テストを終了（両方を押し続ける）",
-    "UI_ZeD_PadFig_StickClick": "%1（スティックの押し込み）"
+    "UI_ZeD_PadFig_StickClick": "%1（スティックの押し込み）",
+    "UI_ZeD_Settings_UiSounds": "UIサウンド",
+    "UI_ZeD_Settings_UiSoundsTip": "ZeDのウィンドウとメニューでのクリック音の大きさ。小：音を小さくします。OFF：鳴らしません。ゲーム本来の音と音量設定はそのままです。",
+    "UI_ZeD_Settings_UiSoundsFull": "フル",
+    "UI_ZeD_Settings_UiSoundsQuiet": "小"
 }

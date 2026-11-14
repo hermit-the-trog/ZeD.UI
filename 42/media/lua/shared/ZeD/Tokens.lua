@@ -1488,6 +1488,29 @@ function ZeD.btnCase(s)
     return out
 end
 
+-- (Nov 14 2026, punch list 211: every ZeD UI click goes through here, at ZeD setup's UI sounds level.
+-- playUISound plays on the game's UI emitter and returns that sound's id, so the emitter can set its
+-- volume, as vanilla's CharacterCreationMain sets its voice demo's parameters; tick applies it at once.)
+--- Play a UI sound at ZeD setup's UI sounds level; nothing when it is Off. Returns the sound's id, or nil.
+function ZeD.uiSound(name)
+    local vol = 1
+    local S = ZeD.Settings
+    if S and S.uiSoundVolume then
+        local okV, v = pcall(S.uiSoundVolume)
+        if okV and type(v) == "number" then vol = v end
+    end
+    if vol <= 0 then return nil end
+    local ok, id = pcall(function() return getSoundManager():playUISound(name) end)
+    if not ok or not id or id == 0 then return nil end
+    if vol < 1 then
+        pcall(function()
+            local em = getSoundManager():getUIEmitter()
+            if em then em:setVolume(id, vol); em:tick() end
+        end)
+    end
+    return id
+end
+
 --- Words that arrive in capitals at draw time (a heading, a column head, a status word
 --- written in caps somewhere upstream) read in sentence case in the windows, by the same
 --- rules as the buttons: initials, words with a digit and anything already in mixed case

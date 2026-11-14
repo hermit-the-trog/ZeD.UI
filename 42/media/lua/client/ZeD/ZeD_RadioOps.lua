@@ -397,7 +397,7 @@ function O.store(chr, part, i)
         l:add(PresetEntry.new(name, hz))
     end
     pcall(function() dd:transmitPresets() end)
-    pcall(function() getSoundManager():playUISound("VehicleRadioButton") end)
+    pcall(function() ZeD.uiSound("VehicleRadioButton") end)
     O.flash(part, ZeD.tr("UI_ZeD_Radio_Store", idx), 1400, "P" .. idx)
     return idx
 end
@@ -427,7 +427,7 @@ function O.memAdd(chr, part)
     if l:size() >= _get(pc, "getMaxPresets", 10) then O.flash(part, ZeD.tr("UI_ZeD_Radio_MemFull"), 1600); return nil end
     l:add(PresetEntry.new(storedName(hz, true), hz))
     pcall(function() dd:transmitPresets() end)
-    pcall(function() getSoundManager():playUISound("VehicleRadioButton") end)
+    pcall(function() ZeD.uiSound("VehicleRadioButton") end)
     O.flash(part, ZeD.tr("UI_ZeD_Radio_ChStored", string.format("%02d", l:size())), 1400)
     return l:size()
 end

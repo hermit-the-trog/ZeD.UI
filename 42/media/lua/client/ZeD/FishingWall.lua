@@ -436,7 +436,7 @@ end
 -- ---------------------------------------------------------------------------
 -- INPUT
 -- ---------------------------------------------------------------------------
-local function sound(n) pcall(function() getSoundManager():playUISound(n or "UIActivateButton") end) end
+local function sound(n) pcall(function() ZeD.uiSound(n or "UIActivateButton") end) end
 local function inside(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
 
 function FW.setMode(st, mode)

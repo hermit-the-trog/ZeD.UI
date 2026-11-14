@@ -626,7 +626,7 @@ function ZeD.MapsTab.setStyle(win, style)
     local md = win._playerObj and win._playerObj:getModData()
     if md then md.ZeD_MapStyle = style; md.ZeD_MapPaper = nil end
     mp:requestStyle(style)
-    getSoundManager():playUISound("UIActivateTab")
+    pcall(function() ZeD.uiSound("UIActivateTab") end)
 end
 function ZeD.MapsTab.setPaper(win, paper) ZeD.MapsTab.setStyle(win, paper and "paper" or "survey") end
 
@@ -2483,7 +2483,7 @@ function ZeD.MapsTab.openPopout(win, paperItem)
     if paperItem then
         pcall(function() win._playerObj:playSoundLocal("MapOpen") end)   -- (vanilla's paper map sound: ISMapWrapper)
     else
-        pcall(function() getSoundManager():playUISound("UIActivateTab") end)
+        pcall(function() ZeD.uiSound("UIActivateTab") end)
     end
 end
 
@@ -2522,7 +2522,7 @@ function ZeD.MapsTab.closePopout(win, keepWorld)
         if ZeD.PaperMap and ZeD.PaperMap.closed then pcall(ZeD.PaperMap.closed, win, pop, keepWorld) end
         return
     end
-    pcall(function() getSoundManager():playUISound("UIActivateTab") end)
+    pcall(function() ZeD.uiSound("UIActivateTab") end)
     -- the controller lands back on the unfold button it left from, not on
     -- the tab column
     if Focus and Focus.focusByIdSoon then

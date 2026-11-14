@@ -246,6 +246,8 @@ local function clientJoin(p)
     function Ch.setMuted(name, on) Ch.myMutes[string.lower(name)] = on and true or nil; W.mutes[p.name] = Ch.myMutes end
     c.sounds = {}
     env.getSoundManager = function() return { playUISound = function(_, n) c.sounds[#c.sounds + 1] = n end } end
+    -- (Nov 14 2026, punch list 211: ZeD's clicks go through ZeD.uiSound, shared/ZeD/Tokens.lua; at Full it is playUISound)
+    env.ZeD.uiSound = function(n) return env.getSoundManager():playUISound(n) end
     env.ISAdminMessage = { AddAdminMessage = function() end }
     env.getTickets, env.addTicket = function() end, function() end
     env.sendClientCommand = function(pl, module, command, args)

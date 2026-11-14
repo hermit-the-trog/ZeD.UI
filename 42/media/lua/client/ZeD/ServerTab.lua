@@ -505,7 +505,7 @@ end
 local function press(win, id)
     local p = win._playerObj
     if not p or not OPEN[id] then return end
-    pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+    pcall(function() ZeD.uiSound("UIActivateButton") end)
     local ok, err = pcall(OPEN[id], p, win)
     if not ok then ZeD.logOnce("server tab " .. id, err) end
 end

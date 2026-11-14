@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "Pilih controller untuk dites: halaman lalu membiarkan tombol sampai kamu keluar dari tes.",
     "UI_ZeD_PadFig_HelpIdle": "Tekan tombol di controller-mu: ia menyala di gambar.",
     "UI_ZeD_PadFig_PromptExitTest": "Keluar dari tes (tahan keduanya)",
-    "UI_ZeD_PadFig_StickClick": "%1 (klik stik)"
+    "UI_ZeD_PadFig_StickClick": "%1 (klik stik)",
+    "UI_ZeD_Settings_UiSounds": "Suara antarmuka",
+    "UI_ZeD_Settings_UiSoundsTip": "Seberapa keras klik milik ZeD sendiri berbunyi di jendela dan menunya. Pelan memainkannya lebih lembut; Off tidak memainkan sama sekali. Suara game sendiri dan pengaturan volumenya tetap seperti semula.",
+    "UI_ZeD_Settings_UiSoundsFull": "Penuh",
+    "UI_ZeD_Settings_UiSoundsQuiet": "Pelan"
 }

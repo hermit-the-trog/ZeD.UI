@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "Valitse testattava ohjain: sivu jättää painikkeet rauhaan, kunnes poistut testistä.",
     "UI_ZeD_PadFig_HelpIdle": "Paina ohjaimesi painiketta: se syttyy kuvassa.",
     "UI_ZeD_PadFig_PromptExitTest": "Poistu testistä (pidä molempia)",
-    "UI_ZeD_PadFig_StickClick": "%1 (tikun napsautus)"
+    "UI_ZeD_PadFig_StickClick": "%1 (tikun napsautus)",
+    "UI_ZeD_Settings_UiSounds": "Käyttöliittymän äänet",
+    "UI_ZeD_Settings_UiSoundsTip": "Kuinka kovaa ZeD:n omat napsautukset soivat sen ikkunoissa ja valikoissa. Hiljainen soittaa ne vaimeammin; Pois ei soita yhtään. Pelin omat äänet ja äänenvoimakkuusasetukset pysyvät ennallaan.",
+    "UI_ZeD_Settings_UiSoundsFull": "Täysi",
+    "UI_ZeD_Settings_UiSoundsQuiet": "Hiljainen"
 }

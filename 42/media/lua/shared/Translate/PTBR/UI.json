@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "Escolha um controle para testá-lo: a página deixa os botões em paz até você sair do teste.",
     "UI_ZeD_PadFig_HelpIdle": "Aperte um botão do seu controle: ele acende no desenho.",
     "UI_ZeD_PadFig_PromptExitTest": "Sair do teste (segure os dois)",
-    "UI_ZeD_PadFig_StickClick": "%1 (o clique do analógico)"
+    "UI_ZeD_PadFig_StickClick": "%1 (o clique do analógico)",
+    "UI_ZeD_Settings_UiSounds": "Sons da interface",
+    "UI_ZeD_Settings_UiSoundsTip": "O volume dos cliques próprios do ZeD em suas janelas e menus. Baixo toca mais suave; Desligado não toca nenhum. Os sons do próprio jogo e suas configurações de volume ficam como estão.",
+    "UI_ZeD_Settings_UiSoundsFull": "Completo",
+    "UI_ZeD_Settings_UiSoundsQuiet": "Baixo"
 }

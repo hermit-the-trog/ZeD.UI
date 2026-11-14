@@ -37,7 +37,7 @@ local REACH_EVERY = 10         -- frames between the out-of-reach checks
 local SHADOW_A = 0.5           -- the face stands up over the world: System 7's hard shadow of its own shape, 1u right and down
 
 local function now() return getTimestampMs() end
-local function sound(name) pcall(function() getSoundManager():playUISound(name) end) end
+local function sound(name) pcall(function() ZeD.uiSound(name) end) end
 local function zoom() local Sc = ZeD.Scale; return P.k((Sc and Sc.root and Sc.root()) or 1) end
 
 ZeD_TwoWayFull = ISPanel:derive("ZeD_TwoWayFull")

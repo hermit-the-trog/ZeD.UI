@@ -834,7 +834,7 @@ function P.classes()
         local t = TC.qaState(self.joinSt)
         for _, r in ipairs(t.footRects or {}) do
             if r.b.id == id and r.b.run then
-                pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+                pcall(function() ZeD.uiSound("UIActivateButton") end)
                 r.b.run(self)
                 return
             end

@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "Виберіть контролер для перевірки: сторінка не чіпає кнопки, доки ви не вийдете з тесту.",
     "UI_ZeD_PadFig_HelpIdle": "Натисніть кнопку на контролері: вона засвітиться на малюнку.",
     "UI_ZeD_PadFig_PromptExitTest": "Вийти з тесту (утримуйте обидві)",
-    "UI_ZeD_PadFig_StickClick": "%1 (натискання стіка)"
+    "UI_ZeD_PadFig_StickClick": "%1 (натискання стіка)",
+    "UI_ZeD_Settings_UiSounds": "Звуки інтерфейсу",
+    "UI_ZeD_Settings_UiSoundsTip": "Наскільки гучно звучать власні клацання ZeD у його вікнах і меню. Тихо: тихіше; Вимк.: без звуку. Звуки самої гри та її налаштування гучності не змінюються.",
+    "UI_ZeD_Settings_UiSoundsFull": "Повна",
+    "UI_ZeD_Settings_UiSoundsQuiet": "Тихо"
 }

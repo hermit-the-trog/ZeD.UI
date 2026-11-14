@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "Vyber ovladač k otestování: stránka pak nechá tlačítka být, dokud test neukončíš.",
     "UI_ZeD_PadFig_HelpIdle": "Stiskni tlačítko na ovladači: rozsvítí se na obrázku.",
     "UI_ZeD_PadFig_PromptExitTest": "Ukončit test (podrž obě)",
-    "UI_ZeD_PadFig_StickClick": "%1 (stisk páčky)"
+    "UI_ZeD_PadFig_StickClick": "%1 (stisk páčky)",
+    "UI_ZeD_Settings_UiSounds": "Zvuky rozhraní",
+    "UI_ZeD_Settings_UiSoundsTip": "Jak hlasitě hrají vlastní kliknutí ZeD v jeho oknech a nabídkách. Tiché je hraje slaběji; Vypnuto nehraje žádné. Vlastní zvuky hry a její nastavení hlasitosti zůstávají, jak jsou.",
+    "UI_ZeD_Settings_UiSoundsFull": "Plné",
+    "UI_ZeD_Settings_UiSoundsQuiet": "Tiché"
 }

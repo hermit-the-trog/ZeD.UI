@@ -252,7 +252,7 @@ function F.onClick(win, key, x, y)
         if x >= z.x and x < z.x + z.w and y >= z.y and y < z.y + z.h then
             if z.fn then
                 z.fn()
-                pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+                pcall(function() ZeD.uiSound("UISelectListItem") end)
             end
             return true
         end

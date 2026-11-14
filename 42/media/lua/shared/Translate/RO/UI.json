@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "Alege un controler ca să-l testezi: pagina lasă apoi butoanele în pace până ieși din test.",
     "UI_ZeD_PadFig_HelpIdle": "Apasă un buton pe controler: se aprinde pe desen.",
     "UI_ZeD_PadFig_PromptExitTest": "Ieși din test (ține-le pe ambele)",
-    "UI_ZeD_PadFig_StickClick": "%1 (clicul stick-ului)"
+    "UI_ZeD_PadFig_StickClick": "%1 (clicul stick-ului)",
+    "UI_ZeD_Settings_UiSounds": "Sunetele interfeței",
+    "UI_ZeD_Settings_UiSoundsTip": "Cât de tare sună clicurile proprii ZeD în ferestrele și meniurile lui. Încet le redă mai slab; Oprit nu redă niciunul. Sunetele jocului și setările lui de volum rămân cum sunt.",
+    "UI_ZeD_Settings_UiSoundsFull": "Complet",
+    "UI_ZeD_Settings_UiSoundsQuiet": "Încet"
 }

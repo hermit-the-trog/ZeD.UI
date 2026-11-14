@@ -2304,19 +2304,19 @@ function ZeD_BeltHUD:onMouseDown(x, y)
     local b = self:boxAt(x, y)
     if not b then return false end
     if b.kind == "lamp" then
-        pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+        pcall(function() ZeD.uiSound("UIActivateButton") end)
         ZeD.Messages.open()
         return true
     end
     if b.kind == "chat" or b.kind == "pvp" then
-        pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+        pcall(function() ZeD.uiSound("UIActivateButton") end)
         B.tailAct(b.kind)
         return true
     end
     if b.kind == "watch" then
         local id = ZeD.WatchMini.hit(b.plate, x - b.x, y - b.y)
         if id then
-            pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+            pcall(function() ZeD.uiSound("UIActivateButton") end)
             ZeD.Watch.act(id)
         end
         return true
@@ -2375,11 +2375,11 @@ function ZeD_BeltHUD:onMouseUp(x, y)
     local b = self:boxAt(x, y)
     if not (pr and b and sameBox(pr.b, b)) then return b ~= nil end
     if b.kind == "slot" then
-        pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+        pcall(function() ZeD.uiSound("UIActivateButton") end)
         B.activate(self.playerNum, b.i)
     elseif b.kind == "extra" then
         -- another mod's box: its menu, on the release (a menu opened on the press could take the release)
-        pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+        pcall(function() ZeD.uiSound("UIActivateButton") end)
         self:_extraMenu(b, false)
     end
     return true

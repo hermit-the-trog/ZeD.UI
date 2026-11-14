@@ -193,9 +193,10 @@ local _hoverSound = nil
 local function hoverSound()
     local sm = getSoundManager()
     if _hoverSound then sm:stopUISound(_hoverSound) end
-    _hoverSound = sm:playUISound("UIHighlightMainMenuItem")
+    local ok, id = pcall(function() return ZeD.uiSound("UIHighlightMainMenuItem") end)
+    _hoverSound = ok and id or nil   -- (nil when ZeD setup's UI sounds is Off)
 end
-local function clickSound() getSoundManager():playUISound("UIActivateMainMenuItem") end
+local function clickSound() pcall(function() ZeD.uiSound("UIActivateMainMenuItem") end) end
 
 local function textW(font, s) return ZeD.TM:MeasureStringX(font, s) end
 local function fontH(font) return ZeD.TM:getFontHeight(font) end

@@ -42,7 +42,7 @@ end
 
 local function clamp(v, lo, hi) if v < lo then return lo end if v > hi then return hi end return v end
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
-local function sound(name) pcall(function() getSoundManager():playUISound(name or "UISelectListItem") end) end
+local function sound(name) pcall(function() ZeD.uiSound(name or "UISelectListItem") end) end
 
 -- ---------------------------------------------------------------------------
 -- the keys (vanilla's layout)

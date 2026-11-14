@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "選擇要測試的手把：退出測試前，此頁面不會回應按鈕。",
     "UI_ZeD_PadFig_HelpIdle": "按下手把上的按鈕：圖上就會亮起。",
     "UI_ZeD_PadFig_PromptExitTest": "退出測試（同時按住）",
-    "UI_ZeD_PadFig_StickClick": "%1（搖桿按下）"
+    "UI_ZeD_PadFig_StickClick": "%1（搖桿按下）",
+    "UI_ZeD_Settings_UiSounds": "介面音效",
+    "UI_ZeD_Settings_UiSoundsTip": "ZeD 自己的視窗與選單點擊聲有多大聲。低：播得較輕；關：完全不播。遊戲本身的音效與音量設定維持原樣。",
+    "UI_ZeD_Settings_UiSoundsFull": "完整",
+    "UI_ZeD_Settings_UiSoundsQuiet": "低"
 }

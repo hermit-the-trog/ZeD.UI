@@ -2263,7 +2263,7 @@ function MT.onClick(win, x, y)
         for i = #s.zones, 1, -1 do
             local z = s.zones[i]
             if (z.sortRow or z.id == "mech:sortMenu") and hit(z, x, y) then
-                pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+                pcall(function() ZeD.uiSound("UIActivateButton") end)
                 z.fn()
                 return true
             end
@@ -2274,7 +2274,7 @@ function MT.onClick(win, x, y)
     for i = #s.zones, 1, -1 do
         local z = s.zones[i]
         if hit(z, x, y) and (not z.clip or hit(z.clip, x, y)) then
-            if not z.disabled then pcall(function() getSoundManager():playUISound("UIActivateButton") end) end
+            if not z.disabled then pcall(function() ZeD.uiSound("UIActivateButton") end) end
             z.fn()
             return true
         end

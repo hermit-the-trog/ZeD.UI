@@ -380,7 +380,7 @@ function ZeD_StudioRoom:onMouseUp(x, y)
     elseif id:sub(1, 5) == "turn:" then self:turn(tonumber(id:sub(6)))
     elseif id == "photo" then self:photo()
     elseif id == "leave" then ST.close() end
-    pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+    pcall(function() ZeD.uiSound("UIActivateButton") end)
     return true
 end
 function ZeD_StudioRoom:onMouseWheel(del) self:frameBy(del * 0.08); return true end
@@ -423,7 +423,7 @@ local function afterDraw()
     end
     if p.shoot == 3 then
         p.saved, p.flashAt, p.shoot = p.shotName, getTimestampMs(), nil
-        pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+        pcall(function() ZeD.uiSound("UIActivateButton") end)
     end
 end
 if Events and Events.OnPostUIDraw and not ST._hooked then
@@ -512,7 +512,7 @@ function ST.newCamButton(win)
     b.onMouseDown = function() return true end
     b.onMouseUp = function(self)
         if ST.available() and win._playerObj then
-            pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+            pcall(function() ZeD.uiSound("UIActivateButton") end)
             ST.open(win._playerObj)
         end
         return true

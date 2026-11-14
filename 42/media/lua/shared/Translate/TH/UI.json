@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "เลือกคอนโทรลเลอร์เพื่อทดสอบ: หน้านี้จะไม่ตอบสนองปุ่มจนกว่าคุณจะออกจากการทดสอบ",
     "UI_ZeD_PadFig_HelpIdle": "กดปุ่มบนคอนโทรลเลอร์: จะสว่างบนภาพ",
     "UI_ZeD_PadFig_PromptExitTest": "ออกจากการทดสอบ (กดค้างทั้งสอง)",
-    "UI_ZeD_PadFig_StickClick": "%1 (การกดสติ๊ก)"
+    "UI_ZeD_PadFig_StickClick": "%1 (การกดสติ๊ก)",
+    "UI_ZeD_Settings_UiSounds": "เสียงอินเทอร์เฟซ",
+    "UI_ZeD_Settings_UiSoundsTip": "ความดังของเสียงคลิกของ ZeD เองในหน้าต่างและเมนู เบา: เล่นเสียงเบาลง ปิด: ไม่เล่นเลย เสียงของเกมเองและการตั้งค่าระดับเสียงยังคงเดิม",
+    "UI_ZeD_Settings_UiSoundsFull": "เต็ม",
+    "UI_ZeD_Settings_UiSoundsQuiet": "เบา"
 }

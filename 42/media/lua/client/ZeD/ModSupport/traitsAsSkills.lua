@@ -884,7 +884,7 @@ function S.onClick(win, x, y)
     for _, o in ipairs(st.only or {}) do
         local oy = o.y
         if x >= o.x and x < o.x + o.w and y >= oy and y < oy + o.h then
-            setOnly(st, o.val); getSoundManager():playUISound("UIActivateButton"); return
+            setOnly(st, o.val); pcall(function() ZeD.uiSound("UIActivateButton") end); return
         end
     end
     for _, z in ipairs(st.zones or {}) do
@@ -897,7 +897,7 @@ function S.onClick(win, x, y)
                 local id = ZeD.TraitsTab.click(win, it)
                 if id then st.sel = id end
             end
-            getSoundManager():playUISound("UIActivateButton")
+            pcall(function() ZeD.uiSound("UIActivateButton") end)
             return
         end
     end

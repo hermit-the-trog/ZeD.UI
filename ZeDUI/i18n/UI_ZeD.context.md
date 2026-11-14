@@ -5930,6 +5930,10 @@ Staff-only cards that take over the game's admin windows. Button and tag lengths
 | `UI_ZeD_Inv_PromptType` | `Type` | Controller prompt on the Filter field: A opens the on-screen keyboard | 10 |
 | `UI_ZeD_Settings_RunSneak` | `Run button also sneaks` | ZeD setup > Controls: a setting's name (a checkbox). "Run" is the game's controller binding (Options > Controller), in the game's word for it | 32 |
 | `UI_ZeD_Settings_RunSneakTip` | `Works when the game's Run is on a button, as in the Original controller layout (Run on the right trigger, RT); does nothing when Run is a full push of the stick (the Default layout) or on LB or RB, which ZeD keeps for its quick actions. Standing still, hold Run to crouch and hold it again to stand. Moving, Run runs as always; crouched, the hold stands you up first. A quick tap does what it always did.` | ZeD setup > Controls: the help line under it. Run is the game's controller-binding word, Original and Default its two controller layouts (Options > Controller), in the game's words; quick actions as UI_ZeD_Options_ZedChords has them; RT, LB and RB stay as written | - |
+| `UI_ZeD_Settings_UiSounds` | `UI sounds` | ZeD setup > Windows: a setting's name (three radio buttons): how loud ZeD's own clicks play (Nov 14 2026) | 24 |
+| `UI_ZeD_Settings_UiSoundsTip` | `How loud ZeD's own clicks play in its windows and menus. Quiet plays them softer; Off plays none. The game's own sounds and volume settings are left as they are.` | ZeD setup > Windows: the help line under UI sounds. Quiet is UI_ZeD_Settings_UiSoundsQuiet; Off is the game's own UI_Off, in the game's word | - |
+| `UI_ZeD_Settings_UiSoundsFull` | `Full` | ZeD setup > Windows, UI sounds: the first choice, the clicks at full volume (the default) | 12 |
+| `UI_ZeD_Settings_UiSoundsQuiet` | `Quiet` | ZeD setup > Windows, UI sounds: the second choice, the clicks played softer | 12 |
 | `UI_ZeD_Inv_PromptType` | `Type` | Controller prompt on the Filter field and on the Skills and Equipment tabs' Find fields: A opens the on-screen keyboard | 10 |
 
 ## Lists (the Journal's loadouts and outfits)

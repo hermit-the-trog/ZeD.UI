@@ -1482,14 +1482,14 @@ function S.onClick(win, x, y)
     end
     for _, o in ipairs(hs.only or {}) do
         if x >= o.x and x < o.x + o.w and y >= o.y and y < o.y + o.h then
-            setOnly(hs, o.val); getSoundManager():playUISound("UIActivateButton"); return
+            setOnly(hs, o.val); pcall(function() ZeD.uiSound("UIActivateButton") end); return
         end
     end
     for _, z in ipairs(hs.zones or {}) do
         if inRect(z, x, y) then
             local id = SRC.click(win, z.item)
             if id then hs.sel = id end
-            getSoundManager():playUISound("UIActivateButton")
+            pcall(function() ZeD.uiSound("UIActivateButton") end)
             return
         end
     end

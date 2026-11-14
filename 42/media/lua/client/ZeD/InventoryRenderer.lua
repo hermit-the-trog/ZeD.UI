@@ -397,7 +397,7 @@ end
 function ZeD.InventoryRenderer.flipGridKey(key, playerObj)
     if not key then return false end
     ZeD.InventoryRenderer.setGridKey(key, not ZeD.InventoryRenderer.isGridKey(key, playerObj), playerObj)
-    pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+    pcall(function() ZeD.uiSound("UISelectListItem") end)
     return true
 end
 
@@ -432,7 +432,7 @@ function ZeD.InventoryRenderer.padSort(win)
         cnt._sortCol, cnt._sortAsc = nxt, true
         if cnt._scroll then cnt._scroll:setScrollPos(0) end
     end
-    pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+    pcall(function() ZeD.uiSound("UISelectListItem") end)
     return true
 end
 

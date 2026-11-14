@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "Wähle einen Controller zum Testen: Die Seite lässt die Tasten dann in Ruhe, bis du den Test beendest.",
     "UI_ZeD_PadFig_HelpIdle": "Drücke eine Taste auf deinem Controller: Sie leuchtet auf der Zeichnung.",
     "UI_ZeD_PadFig_PromptExitTest": "Test beenden (beide halten)",
-    "UI_ZeD_PadFig_StickClick": "%1 (Klick des Sticks)"
+    "UI_ZeD_PadFig_StickClick": "%1 (Klick des Sticks)",
+    "UI_ZeD_Settings_UiSounds": "Oberflächengeräusche",
+    "UI_ZeD_Settings_UiSoundsTip": "Wie laut ZeDs eigene Klicks in seinen Fenstern und Menüs sind. Leise spielt sie gedämpft; Aus spielt keine. Die Geräusche des Spiels und seine Lautstärke-Einstellungen bleiben, wie sie sind.",
+    "UI_ZeD_Settings_UiSoundsFull": "Voll",
+    "UI_ZeD_Settings_UiSoundsQuiet": "Leise"
 }

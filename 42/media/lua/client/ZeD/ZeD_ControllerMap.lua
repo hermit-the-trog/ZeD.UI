@@ -214,7 +214,7 @@ function ZeD_ControllerMap:onMouseUp(x, y)
     self._down = nil
     if down == "close" then
         local cb = self:closeRect()
-        if cb and inRect(cb, x, y) then getSoundManager():playUISound("UIActivateButton") end
+        if cb and inRect(cb, x, y) then pcall(function() ZeD.uiSound("UIActivateButton") end) end
     end
     return true
 end

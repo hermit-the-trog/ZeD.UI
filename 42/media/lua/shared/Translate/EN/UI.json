@@ -6796,5 +6796,9 @@
     "UI_ZeD_PadFig_HelpTest": "Pick a controller to test it: the page then leaves the buttons alone until you exit the test.",
     "UI_ZeD_PadFig_HelpIdle": "Press a button on your controller: it lights on the pad.",
     "UI_ZeD_PadFig_PromptExitTest": "Exit the test (hold both)",
-    "UI_ZeD_PadFig_StickClick": "%1 (the stick's click)"
+    "UI_ZeD_PadFig_StickClick": "%1 (the stick's click)",
+    "UI_ZeD_Settings_UiSounds": "UI sounds",
+    "UI_ZeD_Settings_UiSoundsTip": "How loud ZeD's own clicks play in its windows and menus. Quiet plays them softer; Off plays none. The game's own sounds and volume settings are left as they are.",
+    "UI_ZeD_Settings_UiSoundsFull": "Full",
+    "UI_ZeD_Settings_UiSoundsQuiet": "Quiet"
 }

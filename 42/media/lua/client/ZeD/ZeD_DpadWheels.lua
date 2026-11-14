@@ -215,7 +215,7 @@ function D.assign(pn, menu, chord)
     end
     s._zedChord = chordPads(chord)
     s._zedNote = note   -- (the bubble's second line while this wheel is open: ZeD_Wheel)
-    pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+    pcall(function() ZeD.uiSound("UIActivateButton") end)
 end
 
 local function addEntry(menu, pn, e, st, n)

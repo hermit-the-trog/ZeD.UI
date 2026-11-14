@@ -234,7 +234,7 @@ local function save(win, st)
     end
     st.face, st.savedKey, st.previewKey = nil, nil, nil
     if S.first then S.first = false; unpause() end
-    getSoundManager():playUISound("UIActivateButton")
+    pcall(function() ZeD.uiSound("UIActivateButton") end)
 end
 
 local function cancel(st)
@@ -1063,7 +1063,7 @@ function S.activate(win, st, it)
             if not st.canDet then return end
             toggleDetail(st, it.opt)
         end
-        getSoundManager():playUISound("UIActivateButton")
+        pcall(function() ZeD.uiSound("UIActivateButton") end)
     elseif k == "fbtn" then
         local m = st.preview
         if it.act == "zoomIn" then st.zoom = math.min(ZOOM_STEPS, st.zoom + 1); st.camKey = nil
@@ -1078,13 +1078,13 @@ function S.activate(win, st, it)
         shave(win, st, it.key)
     elseif k == "check" then
         st[it.key] = not st[it.key]
-        getSoundManager():playUISound("UIActivateButton")
+        pcall(function() ZeD.uiSound("UIActivateButton") end)
     elseif k == "subh" then
         -- (a tile under the pointer goes with the fold, and the head stays where it is, holdFold, for the mouse and the controller)
         S.closed[it.fold] = not S.closed[it.fold]
         st.hover, st.lastPinned = nil, nil
         st.foldAnchor = { fold = it.fold, y = it.y - (st.off or 0) }
-        getSoundManager():playUISound("UIActivateButton")
+        pcall(function() ZeD.uiSound("UIActivateButton") end)
     end
 end
 
@@ -1099,7 +1099,7 @@ function S.onClick(win, x, y)
         return
     end
     for _, t in ipairs(st.toggles or {}) do
-        if inRect(t, x, y) then S.view = t.view; getSoundManager():playUISound("UIActivateButton"); return end
+        if inRect(t, x, y) then S.view = t.view; pcall(function() ZeD.uiSound("UIActivateButton") end); return end
     end
     for _, b in ipairs(st.btns or {}) do
         if inRect(b, x, y) then

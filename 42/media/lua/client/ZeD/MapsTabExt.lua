@@ -736,7 +736,7 @@ function E.onClick(win, x, y)
             end
             if z.activate then
                 z.activate(win)
-                pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+                pcall(function() ZeD.uiSound("UIActivateButton") end)
             end
             return true
         end

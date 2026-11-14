@@ -45,7 +45,7 @@ ZeD.trDefaults({
 local function plate() local X = ZeD.PhysPx; return X and X.plates.siren or nil end
 local function plateTex(name) return P.tex(ZeD.PhysPx.texdir .. name .. ".png") end
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
-local function sound(name) pcall(function() getSoundManager():playUISound(name) end) end
+local function sound(name) pcall(function() ZeD.uiSound(name) end) end
 
 -- ---------------------------------------------------------------------------
 -- ZeD_SirenController

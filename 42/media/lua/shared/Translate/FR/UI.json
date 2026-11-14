@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "Choisissez une manette à tester : la page laisse alors les boutons tranquilles jusqu'à ce que vous quittiez le test.",
     "UI_ZeD_PadFig_HelpIdle": "Appuyez sur un bouton de votre manette : il s'allume sur le dessin.",
     "UI_ZeD_PadFig_PromptExitTest": "Quitter le test (maintenir les deux)",
-    "UI_ZeD_PadFig_StickClick": "%1 (le clic du stick)"
+    "UI_ZeD_PadFig_StickClick": "%1 (le clic du stick)",
+    "UI_ZeD_Settings_UiSounds": "Sons de l'interface",
+    "UI_ZeD_Settings_UiSoundsTip": "Le volume des clics propres à ZeD dans ses fenêtres et menus. Faible les joue plus doucement ; Désactivé n'en joue aucun. Les sons du jeu et ses réglages de volume restent tels quels.",
+    "UI_ZeD_Settings_UiSoundsFull": "Complet",
+    "UI_ZeD_Settings_UiSoundsQuiet": "Faible"
 }

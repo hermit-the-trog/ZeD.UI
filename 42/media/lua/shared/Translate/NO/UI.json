@@ -6804,5 +6804,9 @@
     "UI_ZeD_PadFig_HelpTest": "Velg en kontroller for å teste den: siden lar knappene være i fred til du avslutter testen.",
     "UI_ZeD_PadFig_HelpIdle": "Trykk på en knapp på kontrolleren: den lyser opp på tegningen.",
     "UI_ZeD_PadFig_PromptExitTest": "Avslutt testen (hold begge)",
-    "UI_ZeD_PadFig_StickClick": "%1 (stikkens klikk)"
+    "UI_ZeD_PadFig_StickClick": "%1 (stikkens klikk)",
+    "UI_ZeD_Settings_UiSounds": "Grensesnittlyder",
+    "UI_ZeD_Settings_UiSoundsTip": "Hvor høyt ZeDs egne klikk spilles i vinduene og menyene. Lav spiller dem svakere; Av spiller ingen. Spillets egne lyder og volumvalg blir som de er.",
+    "UI_ZeD_Settings_UiSoundsFull": "Full",
+    "UI_ZeD_Settings_UiSoundsQuiet": "Lav"
 }

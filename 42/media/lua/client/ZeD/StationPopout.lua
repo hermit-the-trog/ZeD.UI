@@ -184,7 +184,7 @@ function ZeD_StationPopout:onMouseUp(x, y)
     self._down = nil
     if down == "close" then
         local cb = self:closeRect()
-        if cb and inRect(cb, x, y) then getSoundManager():playUISound("UIActivateButton") end
+        if cb and inRect(cb, x, y) then pcall(function() ZeD.uiSound("UIActivateButton") end) end
     end
     return true
 end
@@ -213,7 +213,7 @@ function ZeD_StationPopout:move(d)
     -- (Up on the first control wraps to the last, as Down on the last wraps to the first: Kahlua's % keeps
     -- a negative dividend's sign, so the count goes in first)
     self.fi = ((math.max(1, math.min(n, self.fi)) - 1 + d + n) % n) + 1
-    getSoundManager():playUISound("UISelectListItem")
+    pcall(function() ZeD.uiSound("UISelectListItem") end)
 end
 
 -- (Nov 14 2026, punch list 209: the D-pad goes to the control that lies that way on the face, as everywhere else;
@@ -230,7 +230,7 @@ function ZeD_StationPopout:moveDir(dir)
             if t and (bt == nil or t < bt or (t == bt and cost < bc)) then best, bt, bc = i, t, cost end
         end
     end
-    if best then self.fi = best; getSoundManager():playUISound("UISelectListItem") end
+    if best then self.fi = best; pcall(function() ZeD.uiSound("UISelectListItem") end) end
 end
 
 function ZeD_StationPopout:turnOrMove(d)

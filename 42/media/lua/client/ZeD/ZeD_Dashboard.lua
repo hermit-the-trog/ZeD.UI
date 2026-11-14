@@ -541,7 +541,7 @@ ACT.fandn  = function(chr, v, st) local f = math.max(0, st.fan - 1); if f == 0 t
 ACT.fan    = function(chr, v, st, secondary) if secondary then ACT.fandn(chr, v, st) else ACT.fanup(chr, v, st) end end
 ACT.mode   = function() end
 ACT.lbar   = function(chr, v) sendClientCommand(chr, "vehicle", "setLightbarLightsMode", { mode = (v:getLightbarLightsMode() + 1) % 4 }) end
-ACT.siren  = function(chr, v) pcall(function() getSoundManager():playUISound("VehicleSetSiren") end); sendClientCommand(chr, "vehicle", "setLightbarSirenMode", { mode = (v:getLightbarSirenMode() + 1) % 4 }) end
+ACT.siren  = function(chr, v) pcall(function() ZeD.uiSound("VehicleSetSiren") end); sendClientCommand(chr, "vehicle", "setLightbarSirenMode", { mode = (v:getLightbarSirenMode() + 1) % 4 }) end
 -- radio: the same calls as the radio up close (vanilla's radio action code, vanilla's presets)
 local function _rp(st) return st.radio and st.radioPart end
 -- the makeshift sets switch on with their rocker (pwr); their volume control is a plain knob
