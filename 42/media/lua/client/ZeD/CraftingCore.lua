@@ -2973,6 +2973,18 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
         CC.renderCraftCard(panel, cardX + T.px(1), curY, cardW - T.px(1), panesH, state, config, selRd, win._playerObj)
     end
 
+    -- (Nov 14 2026, punch list 198: the panes' own clips leave their area one stencil level up when they clear
+    -- inside the drawer's clip (PZ's clear lowers the test, not the buffer), so the band's pop-up lists and the
+    -- Category overlay failed the test over the panes and drew only in the gap between them. Put the panes' area
+    -- back to the drawer's level, inside what an item card leaves showing.)
+    if panel.repaintStencilRect then
+        local rx, rr = x, x + w
+        if panel._coverX then rr = math.min(rr, panel._coverX) end   -- (Character: a card on the right)
+        if panel._coverL then rx = math.max(rx, panel._coverL) end   -- (World: a card on the left)
+        if panel._coverR then rr = math.min(rr, panel._coverR) end
+        if rr > rx then pcall(function() panel:repaintStencilRect(rx, curY, rr - rx, panesH) end) end
+    end
+
     -- The band, full card width under both panes
     CC.renderBand(panel, x, y + h - bandH, w, state, config, selRd)
 

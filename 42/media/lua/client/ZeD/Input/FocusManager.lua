@@ -2265,7 +2265,9 @@ end
 -- 350 ms; Y the gp.holdMs token, 400). jid may be nil (no pad bound) only while QA's hook holds
 -- a button of this player (Focus.qaButton): a nil pad reads as every button up.
 local function _holdTicks(s, jid, pn)
-    if Focus.held() then
+    -- (Nov 14 2026, punch list 184, the director's playtest: with a game cursor up, Y is the cursor's (Place item's
+    -- fine aim), never ZeD's windows; a tap hid the pair and a hold closed it while the game took the same press)
+    if Focus.held() or (not s.win and Focus.gameCursor(pn)) then
         s.yHeld, s.yUsed = false, false
         s.prevY = _btnDown("Y", jid, s)
         return
