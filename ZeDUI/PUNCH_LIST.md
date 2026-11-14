@@ -4754,6 +4754,9 @@ to be proposed.
    choices themselves can't be read. Picture: %USERPROFILE%\Zomboid\Screenshots\zqa_ptl_now.png (crop
    zqa_ptl_sort_menu_crop.png), 4K. Likely the pull-up's background and rows aren't drawn (clipped by the tab's stencil
    or drawn under the list) when it opens upward.
+   Not only Recipes (the director, same day): the World window's sort pull-up menus have the same fault, black text on
+   a black background, unreadable. Picture: zqa_ptl_sort2.png. So it is the shared pull-up (dropdown) itself, likely
+   its background or text color on the pad / upward path, not one tab.
 
 199. **Controller: A on a paper's Read button does nothing (the director, Nov 14 2026, playtest).** open. Journal > Papers
    > Knox Knews - July 2 1993 (Read: Not yet): the pad's focus mark is on the Read button, and A was pressed about 20
