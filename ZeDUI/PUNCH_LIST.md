@@ -4684,3 +4684,12 @@ to be proposed.
    designs and the pick table edited in `ZeDUI/tools/physpx/`. Replaces round 4's radio pictures (item 180); the
    antique TV from round 4 stands. `cd_player` gets no full-card face, by the director (Nov 13: "The portable CD player is fine. It was the red
    radio, the black radio, the radios that we just did."). Nothing in `42/` yet.
+184. **Controller: A won't place an item (the director, Nov 14 2026, playing).** open - logged only, no work yet (the
+   director: "just mark these down as bugs, not to do anything yet"). With an item in place mode (the game's placement
+   outline), A does the nearest world action instead: sits on a chair, opens a window. The item can't be placed with the
+   pad at all. Likely ZeD's A handling takes the press before the game's placement cursor. Not reproduced by QA yet.
+185. **Sardines' Workshop comment (Nov 14 2026): three reports, no details yet.** open - logged only. (a) some clothing
+   not recognized (doll / Equip tab?); (b) "optimisation issues", no place named; (c) an error "concerning the mod menu".
+   For (c), Build found today that mods with an interlaced poster.png (CyesPushDoors 3807747522, EN_Newburbs 3520263838)
+   log "unsupported interlace method" when picked in the Mods list; the game's own Mods screen does the same, so not
+   ZeD's (the director). Replied on the Workshop asking for the items, the place and their mod list; waiting on them.
