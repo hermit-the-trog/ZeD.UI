@@ -4707,4 +4707,6 @@ to be proposed.
    playing).** open - logged only. In the pause menu it is easy to end up with nothing selectable. While stuck that way,
    the D-pad opens ZeD's D-pad wheels instead of moving up and down through the pause menu's buttons, so the only way out
    is the mouse (Resume by hand). Likely the pause menu's pad focus is lost and ZeD's wheels take the D-pad while it is up.
-   Not reproduced by QA yet; may share a cause with 187 (Start with the inventory open).
+   The trigger (the director, same day): Start to open the pause menu, then Y. After Y the game is in mouse and
+   keyboard mode and the controller is not recognized; the D-pad then opens the wheels. Y likely runs ZeD's Y (both
+   windows) or switches the input mode while the pause menu is up. Not reproduced by QA yet; may share a cause with 187.
