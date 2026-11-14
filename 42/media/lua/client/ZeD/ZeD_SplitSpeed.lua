@@ -179,6 +179,18 @@ local function _tick()
 end
 Events.OnTick.Add(_tick)
 if Events.OnTickEvenPaused then Events.OnTickEvenPaused.Add(_tick) end
+-- With more than one player the game puts its speed controls back under the clock every frame (UIManager: Y from the
+-- clock, bottom of the screen in split-screen), after the tick and before the drawing, so parking them in the strip's
+-- own prerender came a frame too late and they still drew at player 1's corner (QA, Nov 13 2026). OnPreUIDraw is the
+-- engine's last step before it walks the UI list: parked there, they never reach a draw.
+local function _parkLast()
+    if not S.wanted() then return end
+    local sc = UIManager.getSpeedControls and UIManager.getSpeedControls()
+    if not sc then return end
+    local sy = sc:getY()
+    if sy >= 0 then S._gameY = sy; pcall(sc.setY, sc, -4000) end
+end
+if Events.OnPreUIDraw then Events.OnPreUIDraw.Add(_parkLast) end
 Events.OnMainMenuEnter.Add(function()
     local inst = S._instance
     if inst then pcall(inst.removeFromUIManager, inst) end

@@ -447,5 +447,17 @@ Events.OnRenderTick.Add(pollMouseButtons)
 Events.OnGamepadConnect.Add(onGamepadConnect)
 Events.OnGamepadDisconnect.Add(onGamepadDisconnect)
 
+-- A second player joining on a pad: the Start press that brought them in counted for player 1 (a pad with no player
+-- yet speaks for player 1, see othersPad), so player 1, on keyboard and mouse, was left showing pad pictures until
+-- their next click or key (QA's split view check, Nov 13 2026: mouse movement never switches the mode). Once that
+-- pad has its player, and player 1 holds no pad of their own, player 1 is back on keyboard and mouse.
+Events.OnCreatePlayer.Add(function(pn)
+    if type(pn) ~= "number" or pn == 0 then return end
+    if _lockedMode or _mode ~= Detector.MODE_GAMEPAD then return end
+    local P = JoypadState and JoypadState.players
+    if P and P[1] then return end
+    switchMode(Detector.MODE_KBM)
+end)
+
 -- One greppable line so the console confirms the module loaded.
 print("[ZeD.Input] InputModeDetector loaded - awaiting first input event")
