@@ -1485,7 +1485,9 @@ local MARK_GAP = 6
 --- The dark strip the gamepad hint sits on (art pixels x0..x1 across the top edge, the 5-row letters at y 2 with two
 --- rows over and under): near-black like label tape, so the cream letters read on any cabin color.
 function D.hintTape(cv, x0, x1)
-    P.rect(cv, x0 - 3, 0, (x1 - x0) + 6, 9, P.color("#101010"), 0.9)
+    -- (one pixel past the letters on the right, not three: the plain room ends at DashPx.hintRight, and on the Mercia
+    -- the wood top band's corner is right after it; QA, Nov 13 2026)
+    P.rect(cv, x0 - 3, 0, (x1 - x0) + 4, 9, P.color("#101010"), 0.9)
 end
 
 function D.extraMarks(cv, xs, x, y, ink, shadow)

@@ -4142,6 +4142,11 @@ function ZeD_WorldWindow.toggle(playerNum)
             -- its place as well as its width (a drag by the player is not a push: it is kept).
             local xBefore = win:getX()
             win:setWidth(newW)
+            -- (the engine keeps a panel on the whole screen only; on a player's part in split view the window is
+            -- pushed left inside its part here, the same push: QA's half-screen stand-in, Nov 13 2026)
+            if drawerDelta > 0 and win:getX() + win:getWidth() > screenW + ZeD.screenLeftOf(win) then
+                win:setX(math.max(ZeD.screenLeftOf(win), screenW + ZeD.screenLeftOf(win) - win:getWidth()))
+            end
             local pushed = win._drawerCapPush or 0
             if drawerDelta > 0 then
                 pushed = pushed + math.max(0, xBefore - win:getX())
