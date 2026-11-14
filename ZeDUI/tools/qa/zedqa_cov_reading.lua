@@ -1252,6 +1252,13 @@ add(300, function()
     LG.readerOpened = true
     N.act:displayPrintMedia()
 end)
+-- (Nov 14 2026: the paper checks above can make one long frame, and the step's 900 ms then ran out inside it, so the
+-- checks below read the reader before its first draw: no canvas, no band. Wait for the first draw, then check.)
+waitFor(5000, function()
+    if SEC["the reader"] then return true end
+    local r = RD.get(pn)
+    return r == nil or not r:isVisible() or r._g ~= nil
+end, "the reader drew once")
 add(900, function()
     if SEC["the reader"] then return end
     local r = RD.get(pn)
