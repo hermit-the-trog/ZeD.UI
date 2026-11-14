@@ -370,6 +370,16 @@ AQ.forgetChecks()
 local ok3, why3 = AQ.check("milk", p, bessie)
 check("CACHE forgotten: the fresh answer", ok3 == false and why3 == "UI_ZeD_Animals_NeedMilkContainer", why3)
 p._buckets = { bucket("Bucket1") }
+-- (Nov 13 2026, QA aq2 c: an empty bucket given while "no bucket" is kept, then forgotten as the QA step does: the very
+-- next ask is live, and so is the band's Milk; no stale answer survives forgetChecks)
+local ok4, why4 = AQ.check("milk", p, bessie)
+check("CACHE a bucket given while 'no bucket' is kept: still the kept answer before forgetChecks", ok4 == false, why4)
+AQ.forgetChecks()
+ok4, why4 = AQ.check("milk", p, bessie)
+check("CACHE a bucket given, then forgotten: Milk is live at once", ok4 == true and why4 == nil, why4)
+local bandMilk
+for _, v in ipairs(AQ.selectionVerbs(p, { bessie })) do if v.id == "milk" then bandMilk = v end end
+check("CACHE a bucket given, then forgotten: the band's Milk is live", bandMilk ~= nil and bandMilk.ok == true, bandMilk and bandMilk.why)
 AQ.forgetChecks()
 
 -- SELECT ----------------------------------------------------------------------
@@ -1947,6 +1957,14 @@ check("SOURCE the list: A confirms, B cancels",
     and CL:find("elseif button == Joypad.BButton then self:cancel() end", 1, true) ~= nil)
 local AQS = readFile(Z .. "AnimalsQuick.lua")
 check("SOURCE the act is the game's onFeedAnimalFood", AQS:find("AnimalContextMenu.onFeedAnimalFood(player, animal, tool)", 1, true) ~= nil)
+-- (Nov 13 2026: two false FAILs in the farm pass were the script's reading, not the mod. d judged the cow made first,
+-- but the run goes in the zone's order: the first cow is the run's r.list[1]. c read the band one frame after the
+-- bucket was given, before the band was drawn again: it waits for the redraw now.)
+local QM = readFile(ROOT .. "ZeDUI/tools/qa/zedqa_animals_quick_more.lua")
+check("SOURCE QA d judges the run's own first animal, not the cow made first",
+    QM:find("local first = r.list[1]", 1, true) ~= nil and QM:find("V.c1Q = A.c1:getData()", 1, true) == nil)
+check("SOURCE QA c waits for the band's redraw after the bucket is given",
+    QM:find('waitFor(3000, function() local b = bulk("milk"); return b ~= nil and not b.disabled end', 1, true) ~= nil)
 
 print(string.format("animals_quick_sim: %d checks, %d failed", checks, failed))
 if failed > 0 then os.exit(1) end

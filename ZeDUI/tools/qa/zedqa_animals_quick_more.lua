@@ -336,7 +336,12 @@ add(1500, function()
     give("Base.Bucket"); give("Base.SheepShears")
     AQ.forgetChecks()
 end)
-add(1200, function()
+-- (Nov 13 2026: the band's buttons are what its last draw left in win._animalsBulkBtns. The shot above can take longer
+-- than a fixed 1.2 s wait, so the check ran one frame after the give (f:10841 -> f:10842), before the band was drawn
+-- again, and read the greyed Milk from before the bucket. Wait for a redraw instead; 3 s at most, so a Milk that stays
+-- greyed still fails below.)
+waitFor(3000, function() local b = bulk("milk"); return b ~= nil and not b.disabled end, "the band redrawn with the bucket")
+add(0, function()
     local b = bulk("milk")
     -- (Nov 13 2026, Build's ask: is the given bucket empty and in the main inventory? if so a greyed Milk is a real bug)
     pcall(function()
@@ -374,17 +379,22 @@ waitFor(120000, function()
     if r.i == 2 and not V.seen2 then
         V.seen2 = true
         V.doneAtHandover = r.done
-        V.c1Milk = AQ.hasMilk(A.c1)
+        -- (Nov 13 2026: the run goes in the zone's order, not the order the cows were made. The first animal is the
+        -- run's own r.list[1]: judging A.c1 read the second cow, still full, as "the first cow left with milk")
+        local first = r.list[1]
+        V.firstIsC1 = first == A.c1
+        V.c1Milk = AQ.hasMilk(first)
         -- (the game makes milk with game time: at speed 3 a cow just milked dry can read a hair above the 0.1 L the game
         -- counts as "has milk" a tick later, so the first cow is judged by what is left in her, a quarter litre at most)
-        V.c1Q = A.c1:getData():getMilkQuantity()
+        V.c1Q = first:getData():getMilkQuantity()
         -- (Nov 13 2026, Build's ask: the first cow's milk and the bucket's fill at the moment the run moves on)
         pcall(function()
             local fill = "?"
             for _, it in ipairs(LG.added) do
                 if it:getFullType() == "Base.Bucket" then local fc = it:getFluidContainer(); fill = tostring(fc and fc:getAmount()) .. " of " .. tostring(fc and fc:getCapacity()) end
             end
-            say(string.format("d hand-over: done %s, the first cow's milk %.2f L, the bucket %s, queue %s", tostring(r.done), V.c1Q, fill, q))
+            say(string.format("d hand-over: done %s, the first cow (%s) milk %.2f L, the bucket %s, queue %s", tostring(r.done),
+                V.firstIsC1 and "c1" or "c2", V.c1Q, fill, q))
         end)
     end
     return false
