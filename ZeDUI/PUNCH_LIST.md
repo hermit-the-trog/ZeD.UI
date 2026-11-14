@@ -4814,3 +4814,8 @@ to be proposed.
       buttons, the pad can't get up to the radio's header (the tab's top row) again.
       Details (the director): Up stops at the face's Power button and goes no higher; Left or Right from there jumps out
       to the next panel or the tab strip, so the header row above the face is never reached.
+
+208. **Controller: the oven's controls in the World window can't be reached (the director, Nov 14 2026, playtest).** open.
+   Standing at an oven, the right-click menu turns it on, but on the pad there is no way to select the oven from a World
+   window tab to reach its card and controls (the stove plate / burner and oven knobs). Either the tab that shows the
+   oven isn't reachable on the D-pad (like 207's Radio tab), or the oven's row or plate has no controller stop.
