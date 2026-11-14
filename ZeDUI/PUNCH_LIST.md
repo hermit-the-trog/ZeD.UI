@@ -4650,3 +4650,5 @@ to be proposed.
    Kept their own height on purpose, not row 2, so not a fault: the station band under the station select (Craft,
    Cooking: a heading and an icon, 28u) and the Animals back bar (a full-size button, 34u); their lines fall below
    the container strip's sort row.
+
+181. **Full-card faces for the radios and the CD player (the director, Nov 13 2026: "If it's a full card, it can only load a full card stereo").** A placed radio opens in the World window's full card, where today its half-card face sits centred with blank space either side (QA, zqa_rtv_4a_radio_red_placed.png). The director chose: design draws full-card faces (336 / 392 / 450 / 562) for radio_black, radio_red, radio_handbuilt and cd_player, ids unchanged. Handoff: ZeDUI/HANDOFF_build_full_card_radios_20261113.md. zedqa_rtv now fails a face that leaves more than about 20 px either side. open (design).

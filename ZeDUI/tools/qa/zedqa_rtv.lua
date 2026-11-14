@@ -165,6 +165,9 @@ local function faceChecks(w, pid, tag)
         -- (Nov 12 2026) centred in the card: the gap on its left and on its right are within 1 px of each other
         local gl, gr = t.face.x, t.view.w - (t.face.x + des.w * t.k)
         check(math.abs(gl - gr) <= 1, tag .. ": centred in the card, left gap " .. gl .. ", right gap " .. gr)
+        -- (Nov 13 2026, the director: a full card loads a full-card face, a half card a half-card face, never a
+        -- small face with blank space either side) the face fills its card: at most ~20 px of gap each side
+        check(gl <= TT.px(20) + 1 and gr <= TT.px(20) + 1, tag .. ": the face fills the card (gaps " .. gl .. " / " .. gr .. ", at most " .. TT.px(20) .. ")")
     end
     check(w._radioFullZone == nil, tag .. ": no full view button (a two-way set's)")
     local want = #des.hits - (R.factsOf(des).volPower and 1 or 0)
