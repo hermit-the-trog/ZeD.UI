@@ -1725,6 +1725,16 @@ end
 -- Split view (beta 13, being built): with ZeD.splitWindows on, players 2 to 4 get ZeD's windows too, each on their own
 -- part of the screen (ZeD.screenOf). Off until every way in passes its player (docs/plans/SPLITSCREEN_PLAN_20261111.md).
 ZeD.splitWindows = ZeD.splitWindows or false
+-- (the director's test, Nov 13 2026: an empty file named ZeD_splitview_on.txt in Zomboid/Lua turns split view on from
+-- the next game start, so it can be tried on keyboard and mouse plus one controller without the debug console)
+do
+    local ok, r = pcall(getFileReader, "ZeD_splitview_on.txt", false)
+    if ok and r then
+        ZeD.splitWindows = true
+        pcall(function() r:close() end)
+        print("[ZeD] split view: on (ZeD_splitview_on.txt in Zomboid/Lua)")
+    end
+end
 function ZeD.windowsFor(pn)
     if pn == nil or pn == 0 then return true end
     return ZeD.splitWindows == true and type(pn) == "number" and pn >= 1 and pn <= 3

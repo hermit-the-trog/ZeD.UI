@@ -24,7 +24,7 @@ getPlayerScreenWidth = function(pn) return PARTS[pn][3] end
 getPlayerScreenHeight = function(pn) return PARTS[pn][4] end
 
 cut("42/media/lua/client/ZeD/Atoms.lua", "(function ZeD%.playerRect%(pn%).-\nend%s)")
-cut("42/media/lua/client/ZeD/Atoms.lua", "(ZeD%.splitWindows = ZeD%.splitWindows or false.-\nend%s)")
+cut("42/media/lua/client/ZeD/Atoms.lua", "(function ZeD%.windowsFor%(pn%).-\nend%s)")
 cut("42/media/lua/client/ZeD/Organisms.lua", "(function ZeD%.screenOf%(w%).-\nend%s)")
 cut("42/media/lua/client/ZeD/Organisms.lua", "(function ZeD%.screenLeftOf%(w%).-\nend%s)")
 
