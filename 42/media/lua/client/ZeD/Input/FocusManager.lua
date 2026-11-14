@@ -499,7 +499,21 @@ end
 --- it. It holds the pad itself (ZeD_JoinWindow:update) and hands it back when it closes.
 function Focus.held()
     local CM = ZeD.CommunityCards
-    return CM ~= nil and CM.joinWin ~= nil
+    if CM ~= nil and CM.joinWin ~= nil then return true end
+    -- (Nov 14 2026, punch list 196: a ZeD dialog (the Safe mode question and every other ZeD_Prompt) holding a pad
+    -- keeps it until it is answered or closed with B: Y read from the pad here took the pad to the Character
+    -- window and left the dialog up with nothing on it)
+    local P = JoypadState and JoypadState.players
+    if P then
+        for i = 1, 4 do
+            local f = P[i] and P[i].focus
+            if f and f.Type == "ZeD_Prompt" then
+                local ok, vis = pcall(function() return f:isReallyVisible() end)
+                if ok and vis then return true end
+            end
+        end
+    end
+    return false
 end
 
 --- Give w the pad of its player (w.playerNum): it becomes that player's
