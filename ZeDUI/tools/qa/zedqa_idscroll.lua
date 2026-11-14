@@ -39,12 +39,13 @@ at(1500, function()
     end
     say("before Right, on " .. tostring(Focus.getFocusedElement(w) and Focus.getFocusedElement(w).id) .. " | " .. state())
 end)
-at(2300, function()
+at(2600, function() ZEDQA_IDS_BASE = w._idOffPx; say("settled before Right | " .. state()); pcall(function() getCore():TakeFullScreenshot("zqa_ids_before.png") end) end)
+at(3200, function()
     frames = 0
     Focus.dispatchJoypadDir(w, "right", jd)
     say("Right sent; on " .. tostring(Focus.getFocusedElement(w) and Focus.getFocusedElement(w).id) .. " | " .. state())
 end)
-at(3500, function() say("DONE") end)
+at(4500, function() local ok = w._idOffPx == ZEDQA_IDS_BASE; say((ok and "PASS" or "FAIL") .. " 190b the page stays put across Right on hb:part (" .. tostring(ZEDQA_IDS_BASE) .. " -> " .. tostring(w._idOffPx) .. ")"); pcall(function() getCore():TakeFullScreenshot("zqa_ids_after.png") end); say("DONE") end)
 local function tick()
     local now = getTimestampMs()
     if not t0 then t0 = now end
