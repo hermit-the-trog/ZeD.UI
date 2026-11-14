@@ -4827,3 +4827,5 @@ to be proposed.
    b. On a control, Left/Right turns its dial (fine), but turning past the end makes the D-pad leave the controls
       window, and then the pop-out can't be closed. A dial at its limit should keep the press (no exit), and B should
       always close the pop-out wherever focus is.
+   The only way out today (the director): walking far enough from the oven closes it. Aim-to-close doesn't work (205),
+   so with the pop-out stuck there is no controller way to close it in place. Fixing 205 or giving B the close covers it.
