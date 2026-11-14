@@ -2044,10 +2044,11 @@ end
 
 --- A tab's card in the World window: the half card or the full card, never a width between
 --- (want: the tab's own width; heldIn: the window cannot hold the full card beside the
---- inventory). The radio tab is the full card wherever it fits.
-function ZeD_WorldWindow.tabCardW(tabId, want, half, full, heldIn)
+--- inventory). The radio tab is the full card wherever it fits, but for a half-card device
+--- (halfDev: the CD player, RadioTab.halfCard), which is the half card.
+function ZeD_WorldWindow.tabCardW(tabId, want, half, full, heldIn, halfDev)
     if heldIn then return half end
-    if tabId == "radio" then return full end
+    if tabId == "radio" then return halfDev and half or full end
     return (want <= half) and half or full
 end
 
@@ -2083,7 +2084,10 @@ local function getWorldTargetDrawerW(win)
             -- in it, RadioTab's renderTwoWay), the half card only where the drawer is held in.
             -- (a table radio once asked for the half card and left the World window's side half
             -- empty; the Character window's radio keeps the face's own width)
-            base = ZeD_WorldWindow.tabCardW(win._activeTab, base, half, full, heldIn)
+            -- The CD player is the half card (the director, Nov 14: "CD player is half card like walkie talkies").
+            local halfDev = win._activeTab == "radio" and ZeD.RadioTab and ZeD.RadioTab.halfCard
+                and ZeD.RadioTab.halfCard(win, half) or false
+            base = ZeD_WorldWindow.tabCardW(win._activeTab, base, half, full, heldIn, halfDev)
         end
         -- the object card needs the full card, over a tab or on its own
         -- (a kind marked half, the recipe preview, is the half card over the tab's card like an item card)

@@ -160,7 +160,9 @@ local function faceChecks(w, pid, tag)
             local maxW = w._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
             heldIn = maxW - TT.px(36) - TT.px(36) - TT.px(180) < TT.px(480)
         end
-        local halfHere = hid and (not inWorld or heldIn)
+        -- (Nov 14 2026, the director: "CD player is half card like walkie talkies": the CD player is the half
+        -- card in the World window too, R.halfOnly)
+        local halfHere = hid and (not inWorld or heldIn or R.halfOnly(pid))
         local want = halfHere and TT.px(220) or TT.px(480)
         check(math.abs(dw - want) <= 1, tag .. ": " .. (inWorld and "the World window's full card (the half card only held in)" or "the half card where a width fits, else the full") .. " (" .. dw .. " px, want " .. want .. ")")
         if halfHere then check(t.pid == hid, tag .. ": the width that fills the half card (" .. tostring(hid) .. ", got " .. t.pid .. ")") end

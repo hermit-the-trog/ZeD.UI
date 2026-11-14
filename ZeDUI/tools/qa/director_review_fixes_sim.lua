@@ -171,8 +171,13 @@ do
         check("radio held in (the Deck): the half card", W("radio", 480, 220, 480, true) == 220)
         check("another full tab stays full", W("maps", 480, 220, 480, false) == 480)
         check("a half tab stays half", W("loot", 220, 220, 480, false) == 220)
+        -- (Nov 14 2026, the director: "CD player is half card like walkie talkies")
+        check("radio, a half-card device (the CD player): the half card", W("radio", 220, 220, 480, false, true) == 220)
+        check("radio, any other set: the full card", W("radio", 220, 220, 480, false, false) == 480)
         local src = readFile("42/media/lua/client/ZeD/ZeD_WorldWindow.lua") or ""
-        check("the drawer width goes through tabCardW", src:find("base = ZeD_WorldWindow.tabCardW(win._activeTab, base, half, full, heldIn)", 1, true) ~= nil)
+        -- (Nov 14 2026: the call passes halfDev, RadioTab.halfCard; the old string had no sixth argument)
+        check("the drawer width goes through tabCardW", src:find("base = ZeD_WorldWindow.tabCardW(win._activeTab, base, half, full, heldIn, halfDev)", 1, true) ~= nil)
+        check("halfDev asks RadioTab.halfCard", src:find("ZeD.RadioTab.halfCard(win, half)", 1, true) ~= nil)
         local cw = readFile("42/media/lua/client/ZeD/ZeD_CharacterWindow.lua") or ""
         check("the Character window's radio still asks the face (wantW)", cw:find("ZeD.RadioTab.wantW(win, want", 1, true) ~= nil)
     end
