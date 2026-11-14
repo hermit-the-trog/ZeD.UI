@@ -17,6 +17,9 @@ import os
 import sys
 
 from physlib import *            # noqa: F401,F403
+from engine import add_ramp
+add_ramp("sc_orange", "#e2761c"); add_ramp("sc_brown", "#55301a"); add_ramp("sc_yellow", "#f8d438")   # the Spiffo Cell's jacket
+add_ramp("cone", "#4a4038")                    # a speaker's paper cone
 import wear as WR
 import handwire as H
 
@@ -103,6 +106,40 @@ def battery_holder(B, x, y, w, h, plus, minus):
     return m
 
 
+def c_cell_holder(B, x, y, w, h, plus, minus):
+    """two C cells lying in a black holder screwed to the board, head to tail (in series), its two tabs soldered to
+    holes at its right edge; the click area takes the batteries out and puts them in"""
+    p, d = B.p, B.d
+    m = Mask(d.W, d.H).rrect(x, y, w, h, 2).get()
+    d.slab(m, 2.0, "blackp", bevel=0.9, polish=0.4, on=Z_FACE)
+    ch = (h - 5) / 2
+    for i in range(2):
+        cy = y + 2 + i * (ch + 1)
+        bx, bw = x + 6, w - 12
+        # a true cylinder lying on its side: square ends, a half-round section top to bottom
+        d.cyl(bx, cy, bw, ch, ch / 2, "alu", axis="h", polish=0.9, on=Z_FACE + 2.0)
+        # its printed jacket (the director: "orange and brown with yellow letters"): brown, an orange band at the + end
+        d.cyl(bx + 3, cy, bw - 6, ch, ch / 2 + 0.2, "sc_brown", axis="h", polish=0.6, on=Z_FACE + 2.0)
+        ob = 9
+        d.cyl(bx + bw - 3 - ob if i == 0 else bx + 3, cy, ob, ch, ch / 2 + 0.2, "sc_orange", axis="h", polish=0.6, on=Z_FACE + 2.0)
+        tcx = bx + 3 + (bw - 6 - ob) / 2 + (0 if i == 0 else ob)
+        # the director: "Name them Spiffo Cell."; "C batteries are stubby": about twice as long as thick, the name on two lines
+        d.text("SPIFFO", int(tcx), int(cy + ch / 2 - 6), "sc_yellow", align="c", flatlight=True)
+        d.text("CELL", int(tcx), int(cy + ch / 2 + 1), "sc_yellow", align="c", flatlight=True)
+        nx = bx + bw if i == 0 else bx - 2                                 # the + nub, opposite ends
+        d.slab(Mask(d.W, d.H).rect(nx, cy + ch / 2 - 2, 2, 4).get(), 2.6, "chrome", bevel=0.6, polish=0.9, on=Z_FACE + 2.0)
+        sx = x + 2 if i == 0 else x + w - 5                                # the spring at the flat end
+        d.slab(Mask(d.W, d.H).rect(sx, cy + 3, 3, ch - 6).get(), 1.4, "steel", bevel=0.5, polish=0.8, on=Z_FACE + 2.0)
+    def edge_pt(key):
+        kx, ky = B.fc(key)
+        return (x + w - 1.5, min(max(ky, y + 2), y + h - 2))
+    H.tabs(B, "BT1", [(edge_pt(plus), plus), (edge_pt(minus), minus)], w=2.0)
+    B._body("BT1", m); B.keep_mask(m, 2)
+    B.add_part("BT1", "batt", {"+": plus, "-": minus})
+    p.hit("battery", x, y, w, h)
+    return m
+
+
 def speaker(B, cx, cy, r, pins):
     p, d = B.p, B.d
     m = disc(d, cx, cy, r)
@@ -119,6 +156,37 @@ def speaker(B, cx, cy, r, pins):
     B._body("SPK", m); B.keep_mask(m, 2)
     B.add_part("SPK", "spk", dict(pins))
     return m
+
+
+BIG_F = 230               # from this face width the board is wide enough for the large speaker
+
+
+def big_speaker(B, cx, cy, r, pins):
+    """a large salvaged speaker screwed to the board: its pressed-steel basket, the surround, the paper cone and its
+    dust cap; two tags on the rim soldered to holes"""
+    import math as _m
+    p, d = B.p, B.d
+    sq = Mask(d.W, d.H).rrect(cx - r, cy - r, 2 * r, 2 * r, 9).get()
+    d.slab(sq, 1.4, "steel", bevel=1.0, polish=0.6, on=Z_FACE)
+    for sx, sy in ((cx - r + 5, cy - r + 5), (cx + r - 5, cy - r + 5), (cx - r + 5, cy + r - 5), (cx + r - 5, cy + r - 5)):
+        screw(p, sx, sy, on=Z_FACE + 1.4, mat="steel")
+    d.torus(cx, cy, r - 5, r - 1, 1.2, "steel", polish=0.8, on=Z_FACE + 1.4)       # the basket's rim
+    d.torus(cx, cy, r - 9, r - 5, 1.0, "rubber", polish=0.3, on=Z_FACE + 1.0)      # the surround
+    d.dome(cx, cy, r - 9, r - 9, -3.2, "cone", polish=0.2, on=Z_FACE + 1.6)        # the paper cone, dished
+    for a in range(0, 360, 30):                                                     # its ribs, faint
+        m = Mask(d.W, d.H).line([(cx + _m.cos(_m.radians(a)) * (r * 0.28), cy + _m.sin(_m.radians(a)) * (r * 0.28)),
+                                 (cx + _m.cos(_m.radians(a)) * (r - 10), cy + _m.sin(_m.radians(a)) * (r - 10))], 1, caps=False).get(0.5)
+        d.seam(m, 0.18)
+    d.dome(cx, cy, r * 0.26, r * 0.26, 2.2, "blackp", polish=0.5, on=Z_FACE - 1.4)  # the dust cap
+    edge = []
+    for key in pins.values():
+        kx, ky = B.fc(key)
+        ex = min(max(kx, cx - r + 1), cx + r - 1); ey = min(max(ky, cy - r + 1), cy + r - 1)
+        edge.append(((ex, ey), key))
+    H.tabs(B, "SPK", edge, w=1.6)
+    B._body("SPK", sq); B.keep_mask(sq, 2)
+    B.add_part("SPK", "spk", dict(pins))
+    return sq
 
 
 def jack(B, x, y, pins):
@@ -145,19 +213,24 @@ def jack(B, x, y, pins):
 
 def radio_make(W=180, worn_=True, switch_on=True, soft=False):
     F = W - 20
-    rows = 31
+    rows = 33 if F >= BIG_F else 31              # the wide board is two rows deeper: the speaker's leads run under the battery
     Hh = OY + 6 * (rows - 1) + 6
     p = Plate("radio_make", F, Hh, seed=341, title="Makeshift Radio")
     d = p.d
     # wider panels: the circuit moves right by whole columns so it sits in the middle of the board, the board's spare
     # holes either side of it (the layout itself is the 180 one, unchanged)
-    dc = max(0, (F - 160) // 12)
+    # (the director, Nov 12 2026: "The makeshift just needs a wider board and a large speaker added to the left side.
+    # With like a crossover or preamp or whatever for the speaker. Amplifier.") From BIG_F up the circuit sits at the
+    # right of a wider board and a large salvaged speaker takes the left, soldered to the amplifier's output where the
+    # little one was; the LM386 that drives it is taped AMP. Narrower panels keep the little speaker.
+    big = F >= BIG_F
+    dc = (F - 160) // 6 if big else max(0, (F - 160) // 12)
     X = 6 * dc                                   # the same move in pixels, for the parts placed by pixel
     cols = (F - OX - X - 2) // 6 + 1
     B = H.Board(p, OX + X, OY, cols, rows)
     B.soft = soft
     B.paint_board(0, 0, F, Hh)
-    for i in range(-dc, 0):                      # the spare holes left of the circuit's lattice
+    for i in range(-dc, 0):     # the spare holes left of the circuit's lattice
         for j in range(rows):
             hx_, hy = B.px((i, j))
             if 0 <= hx_ < F and B.board_mask[hy, hx_]:
@@ -209,9 +282,20 @@ def radio_make(W=180, worn_=True, switch_on=True, soft=False):
     H.resistor(B, "RL", (9, 21), (9, 24), "22k")
     H.two_lead(B, "C2", (11, 21), (11, 24), "disc", "1n8", pins=("1", "2"))
     # ---------------- along the bottom: the battery holder, the headphone jack, the speaker
-    battery_holder(B, 6 + X, 156, 40, 22, (0, 25), (5, 25))
     jack(B, 50 + X, 160, {"S": (8, 25), "TN": (10, 25), "T": (10, 29)})
-    speaker(B, 97.5 + X, 166.5, 10, {"1": (15, 25), "2": (17, 25)})
+    if big:
+        # (the director, Nov 12 2026: "Put 2 C-cell batteries above the speaker.") They are the set's battery here:
+        # the three AA cells and their holder are gone from the wide board
+        sr = min(34, (X - 6) // 2)
+        BTP, BTM = (0, 14), (0, 18)
+        c_cell_holder(B, OX + X - 5 - 52, Hh - 2 * sr - 6 - 4 - 47, 52, 47, BTP, BTM)
+        SPK1, SPK2 = (0, 31), (0, 32)
+        big_speaker(B, OX + X - sr - 7, Hh - sr - 6, sr, {"1": SPK1, "2": SPK2})
+    else:
+        battery_holder(B, 6 + X, 156, 40, 22, (0, 25), (5, 25))
+        BTP = (0, 25)
+        SPK1, SPK2 = (15, 25), (17, 25)
+        speaker(B, 97.5 + X, 166.5, 10, {"1": SPK1, "2": SPK2})
     # ---------------- the display board's ribbon lands on the supply and ground, 10n across them
     # the ribbon comes straight down over the 10n: its outer two conductors land in the 10n's own holes
     B.add_part("J1", "ribbon", {"VP": (23, 8), "GND": (21, 8)})
@@ -239,7 +323,7 @@ def radio_make(W=180, worn_=True, switch_on=True, soft=False):
         ("black", (R(64, 4), (21, 8)), {}),                # ... and pin 16 beside it
         ("orange", (R(61, 2), ant), {"via": [(36, 14)]}),
         # ---- the supply: the battery's + straight up the left edge to the switch; the switch to pin 6; on to the bus
-        ("red", ((0, 25), (1, 12)), {}),
+        ("red", (BTP, (1, 12)), {}),
         ("red", ((3, 12), (7, 12)), {}),
         ("red", ((7, 12), R(59, 1)), {"via": [(14, 14)]}),
         ("red", ((23, 8), R(66, 1)), {}),
@@ -260,9 +344,10 @@ def radio_make(W=180, worn_=True, switch_on=True, soft=False):
         ("black", ((9, 24), (11, 24)), {}),
         ("black", ((9, 24), (8, 25)), {}),                            # the jack's sleeve
         ("black", ((8, 25), (5, 25)), {}),                            # and the battery's -
-        ("black", ((11, 24), (17, 25)), {}),                          # the speaker's other side
+    ] + ([("black", ((5, 25), BTM), {})] if big else []) + [
+        ("black", ((11, 24), SPK2), {"via": [(28, 48), (28, 64)]} if big else {}),   # the speaker's other side
         # ---- the jack's break contact on to the speaker
-        ("white", ((10, 25), (15, 25)), {}),
+        ("white", ((10, 25), SPK1), {"via": [(26, 50), (26, 62)]} if big else {}),
     ]
     for color, keys, kw in rw:
         B.wire(color, *keys, **kw)
@@ -273,6 +358,7 @@ def radio_make(W=180, worn_=True, switch_on=True, soft=False):
     H.ribbon_paint(B, "J1", (cx_, hdr[1]), (cx_, 47.5), 5, {"GND": (0, (21, 8)), "VP": (4, (23, 8))})
     H.tape(p, 7 + X, 84, 20, 8, "VOL")
     H.tape(p, 31 + X, 59, 22, 8, "PWR")
+    if big: H.tape(p, 8, 54, 22, 8, "AMP"); H.tape(p, 8, 64, 34, 8, "SPKR 8R")
     B.cover_holes()
     if worn_:
         WR.grime(d, d.solid, amount=0.22, seed=343)
