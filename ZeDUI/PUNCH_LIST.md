@@ -4803,3 +4803,9 @@ to be proposed.
    design. When search mode is on, the game draws its own markers: the target graphic, the pin icon, the arrow, and the
    eyeball over the player's head. The director: "That icon and those graphics we need to create replacements for that
    match our style." Needs a design pass (pixel icons in the ZeD set), then Build wires them in place of the game's.
+
+207. **Controller: the World window's Radio tab can't be reached with the D-pad, and the radio's header can't be
+   reached back (the director, Nov 14 2026, playtest).** open. Two faults:
+   a. Down the World window's side tab strip, the D-pad stops at Animals; the Radio tab below it can't be focused.
+   b. Inside the Radio tab: after going down into the channel list and picking a station, then back up into the face's
+      buttons, the pad can't get up to the radio's header (the tab's top row) again.
