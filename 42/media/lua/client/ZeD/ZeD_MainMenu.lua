@@ -17,7 +17,7 @@
 -- screen too small for the 1080p menu (a Steam Deck, 720p) the desk leaning
 -- in. The wallpaper is vanilla's old painting, or Build 42's title video (a
 -- choice in Settings). Small life on the desk: the hard disk light, the floppy
--- light, the boombox needle, the lamp, lightning in the painting. None of it
+-- light, the warm light from off screen, lightning in the painting. None of it
 -- does anything; the case's power button is Quit. The same room comes back
 -- after a death (Overrides/Respawn.lua) and after a kick or a lost connection
 -- (ZeD_LeftScreen.lua).
@@ -61,20 +61,19 @@ local DESK_W, DESK_H = 480, 270
 local TUBE_X, TUBE_Y, TUBE_W, TUBE_H = 120, 30, 240, 180   -- the CRT's screen
 local EDGE_ROW = 184             -- the desktop's front edge row at the picture's sides
 -- margins (only where the tube forces a smaller multiple, e.g. ultrawide): the night room's
--- edges differ by side (the lamp is on the left), so each half of the screen gets its own
+-- edges differ by side (the warm light is on the left), so each half of the screen gets its own
 -- (measured from the desk render, which is graded to Build 42's night room)
-local WALL_L = { r = 0x00 / 255, g = 0x04 / 255, b = 0x13 / 255 }
+local WALL_L = { r = 0x00 / 255, g = 0x06 / 255, b = 0x13 / 255 }
 local WALL_R = { r = 0x00 / 255, g = 0x07 / 255, b = 0x12 / 255 }
-local DESK_L = { r = 0x03 / 255, g = 0x03 / 255, b = 0x11 / 255 }
+local DESK_L = { r = 0x0a / 255, g = 0x06 / 255, b = 0x11 / 255 }
 local DESK_R = { r = 0x00 / 255, g = 0x03 / 255, b = 0x12 / 255 }
 -- lights and moving parts: { x, y, w, h } in native pixels
 local HDD      = { 146, 246, 3, 2 }    -- orange hard disk light (drawn lit in the picture)
 local FLOPPY   = { 300, 262, 3, 2 }    -- green floppy light (drawn lit in the picture)
 local HDD_OFF    = { r = 0x01 / 255, g = 0x07 / 255, b = 0x0e / 255 }   -- dark lens plastic in the room's light
 local FLOPPY_OFF = { r = 0x00 / 255, g = 0x0c / 255, b = 0x14 / 255 }
-local DIAL     = { 416, 120, 7, 10 }   -- the boombox dial without its needle (dial_clean.png)
-local NEEDLE   = { 419, 121, 1, 8 }    -- the red tuning needle
-local NEEDLE_C = { r = 0x3c / 255, g = 0x0e / 255, b = 0x0f / 255 }   -- equals the baked needle (it must not change colour when it drifts)
+-- (desk v8, Nov 14 2026: the black radio stands where the boombox was and has no meter, so the drifting tuning
+-- needle and its dial picture are gone)
 local POWER    = { 126, 243, 10, 10 }  -- the case's power button: Quit
 -- the change note on the corkboard: the paper is in the picture, the words are written on it (MM.drawNote)
 local NOTE_INK     = { r = 0x00 / 255, g = 0x0f / 255, b = 0x34 / 255 }   -- the note's ballpoint, measured from the render
@@ -162,7 +161,7 @@ end
 -- loose textures, and the menu stays dark until these are in (ZeD_MMWake). Asked for once
 -- here and not cached, so a texture system not yet ready cannot leave a "missing" behind.
 pcall(function()
-    for _, n in ipairs({ "desk.png", "desk_lampdim.png", "dial_clean.png" }) do Texture.getSharedTexture(TEX .. n, NEAREST) end
+    for _, n in ipairs({ "desk.png", "desk_lampdim.png" }) do Texture.getSharedTexture(TEX .. n, NEAREST) end
     for i = 1, 4 do getTexture(WALL_TILES[i]); getTexture(WALL_ZAP_TILES[i]) end
 end)
 
@@ -303,7 +302,7 @@ function MM.wantFraming()
     return "lean"
 end
 
---- The framing in use: everything on the desk reads it (the picture, the lights, the needle, the dial, the
+--- The framing in use: everything on the desk reads it (the picture, the lights, the
 --- power button, the bar, the windows, the pop-ups, the glass). It changes only at the bottom of a dip.
 function MM.layout()
     if MM._framing == "lean" then return MM.leanLayout() or MM.roomLayout() end
@@ -377,15 +376,6 @@ local function lifeTick(t)
     elseif t >= f.nextAt then
         f.stopAt = t + rnd(700, 1600)
     end
-    -- boombox: the needle drifts a pixel either way, slowly
-    local n = life.needle
-    if not n then n = { dx = 0, nextAt = t + rnd(3000, 7000) }; life.needle = n end
-    if t >= n.nextAt then
-        local step = (ZombRand(2) == 0) and -1 or 1
-        if n.dx + step < -1 or n.dx + step > 1 then step = -step end
-        n.dx = n.dx + step
-        n.nextAt = t + rnd(2500, 8000)
-    end
     -- lamp: a few dim / lit beats every so often (odd beats are dim)
     local l = life.lamp
     if not l then l = { nextAt = t + rnd(6000, 15000) }; life.lamp = l end
@@ -425,7 +415,7 @@ end
 -- DRAWING THE DESK, THE WALLPAPER, THE GLASS
 -- ---------------------------------------------------------------------------
 --- The room into panel p at layout L, time t: the margins, the desk picture (dipped on a lamp beat), the
---- change note, the lights and the needle. Also ticks the small life (ZeD_LeftScreen.lua draws the room too).
+--- change note and the lights. Also ticks the small life (ZeD_LeftScreen.lua draws the room too).
 function MM.drawDesk(p, L, t)
     local s = L.s
     -- margins (a screen wider or taller than the picture): wall above the desk's edge, desktop
@@ -455,15 +445,6 @@ function MM.drawDesk(p, L, t)
     if not life.floppy.stopAt then
         local x, y, w, h = nat(L, FLOPPY)
         p:drawRect(x, y, w, h, 1, FLOPPY_OFF.r, FLOPPY_OFF.g, FLOPPY_OFF.b)
-    end
-    if life.needle.dx ~= 0 then
-        local dial = tex(TEX .. "dial_clean.png")
-        if dial then
-            local x, y, w, h = nat(L, DIAL)
-            p:drawTextureScaledAspect(dial, x, y, w, h, 1, 1, 1, 1)
-            local nx, ny, nw, nh = nat(L, NEEDLE)
-            p:drawRect(nx + life.needle.dx * s, ny, nw, nh, 1, NEEDLE_C.r, NEEDLE_C.g, NEEDLE_C.b)
-        end
     end
 end
 
@@ -1938,7 +1919,7 @@ end
 -- (other files add pictures to wait for: MM.readyChecks, functions that return false while not in)
 MM.readyChecks = MM.readyChecks or {}
 function MM.assetsReady()
-    if not (texReady(TEX .. "desk.png") and texReady(TEX .. "desk_lampdim.png") and texReady(TEX .. "dial_clean.png")) then return false end
+    if not (texReady(TEX .. "desk.png") and texReady(TEX .. "desk_lampdim.png")) then return false end
     for i = 1, 4 do
         if not (texReady(WALL_TILES[i], true) and texReady(WALL_ZAP_TILES[i], true)) then return false end
     end

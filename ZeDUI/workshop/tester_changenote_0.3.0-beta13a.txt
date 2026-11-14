@@ -1,0 +1,7 @@
+0.3.0-beta13a
+
+A small update to beta 13: the main menu's new desk.
+
+- The lamp is gone, and the Project Zomboid poster behind it has a picture of its own: a house at night.
+- A black radio stands where the boombox was, and Lua Console 93's box is on the shelf.
+- The soda can has a rim and a new label.
