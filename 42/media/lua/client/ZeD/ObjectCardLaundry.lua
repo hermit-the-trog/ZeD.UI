@@ -187,6 +187,8 @@ function def.pill(t)
 end
 --- The controller lands on the switch.
 function def.openFocus(t) return "ldy:power" end
+--- The header's pop-out button: while the face is drawn (Nov 15 2026, pop-outs; not on the plain card).
+function def.popOut(t) return not ZeD.ObjectCardPlain.on() end
 
 --- What keeps it from running, in vanilla's words (the band shows only then).
 function def.status(t)
@@ -307,6 +309,31 @@ local function control(t, d, id)
     return nil, nil
 end
 
+--- The face on its own at (px0, y), zoom k (des: the plate picked), its controls stamped as the card's zones. The
+--- card draws it (drawFace below) and so does the face's pop-out, standing in for the card (FacePop.lua; Nov 15
+--- 2026, pop-outs). card: anything with zone(z), focusOf(fid) and _hoverFid, and the panel's drawing.
+function LD.face(card, px0, y, k, des, t)
+    local d = t.d
+    local cv = P.canvas(card, px0, y, k)
+    local st = plateState(t, d)
+    t._st = st
+    PL.draw(cv, des, st, { tex = plateTex, now = getTimestampMs() })
+    for _, c in ipairs(PL.controls(des, st)) do
+        local fid = "ldy:" .. c.id
+        local fn, help = control(t, d, c.id)
+        -- every control a key: the pointer's wash while it can act, the controller's mark always
+        if fn and UI.hovered(card, fid) then PL.hoverKey(cv, c) end
+        local fm = card:focusOf(fid)
+        if fm then PL.markKey(card, c, px0, y, k, fm) end
+        card:zone({ fid = fid, x = px0 + c.x * k, y = y + c.y * k, w = c.w * k, h = c.h * k, body = true,
+            primary = (c.id == "power") or nil, help = help,
+            run = fn and function(cc, p) fn(p, t) end or nil })
+    end
+end
+
+--- The laundry kind (FacePop.lua opens the pop-out on the same target the card works on).
+LD.def = def
+
 -- the face (whole zoom, centred), its controls as zones, and the line under it
 local function drawFace(card, x, y, w, t)
     local T = ZeD.T
@@ -323,21 +350,8 @@ local function drawFace(card, x, y, w, t)
     local k = P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, room)   -- whole zoom, inside the card
     t._k = k
     local px0 = x + PL.centre(w, des.w, k)
-    local cv = P.canvas(card, px0, y, k)
-    local st = plateState(t, d)
-    t._st = st
-    PL.draw(cv, des, st, { tex = plateTex, now = getTimestampMs() })
-    for _, c in ipairs(PL.controls(des, st)) do
-        local fid = "ldy:" .. c.id
-        local fn, help = control(t, d, c.id)
-        -- every control a key: the pointer's wash while it can act, the controller's mark always
-        if fn and UI.hovered(card, fid) then PL.hoverKey(cv, c) end
-        local fm = card:focusOf(fid)
-        if fm then PL.markKey(card, c, px0, y, k, fm) end
-        card:zone({ fid = fid, x = px0 + c.x * k, y = y + c.y * k, w = c.w * k, h = c.h * k, body = true,
-            primary = (c.id == "power") or nil, help = help,
-            run = fn and function(cc, p) fn(p, t) end or nil })
-    end
+    OC.faceZone(card, px0, y, des.w * k, des.h * k, t.obj)   -- (a click away from the controls pops the face out)
+    LD.face(card, px0, y, k, des, t)
     local h = des.h * k + T.px(6)
     local water = (d.cap > 0) and ZeD.tr("UI_ZeD_Laundry_WaterOf", string.format("%.1f", d.fluid), math.floor(d.cap + 0.5))
         or ZeD.tr("UI_ZeD_Laundry_WaterL", string.format("%.1f", d.fluid))
