@@ -12,6 +12,6 @@
 -- ============================================================================
 
 ZeD = ZeD or {}
-ZeD.MenuNote = { "BUG FIXES" }
+ZeD.MenuNote = { "CONTROLLER", "BUG FIXES" }
 
 return ZeD.MenuNote

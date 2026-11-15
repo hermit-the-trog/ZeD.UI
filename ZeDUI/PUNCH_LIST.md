@@ -5079,3 +5079,32 @@ to be proposed.
    **QA, Nov 14 2026, on 6088f4757 (zedqa_padfix_i.lua, 4K): passes.** On the Equip list's Find keyboard, typed "qa"; the
    help line reads "B Back"; B closed the keyboard with no question, the field kept "qa", the pad went back to the
    Character window.
+
+## Beta 15: the director's beta 14 playtest (Nov 15 2026, relayed by QA)
+
+Notes 11 and 15 of the playtest went on 184 and 228k. The rest:
+
+236. **Controller: the Messages window's list can't be reached.** open. Everything else in the window navigates. The
+   director's design: the D-pad moves around the window; A on a panel makes it active and the D-pad scrolls it; B
+   leaves the panel; B again leaves the window.
+237. **Aiming hides every window, the Messages window included.** open. (Notes 2 and 3.)
+238. **Character creation, controller: the clothing color tiles can't be reached.** open.
+239. **Character creation, the hair color list: Up and Down don't move between rows.** open. Only Left and Right
+   move through it.
+240. **Hide the mouse pointer while the controller is in use.** open. (The director: "can the cursor hide?")
+241. **ZeD setup opened from the controller wheel doesn't take the pad.** open. The foot shows no button hints and
+   only the mouse can close it.
+242. **A paused notice.** open. With the game paused and a window over the middle of the screen (Options, the
+   Survival Guide), show a clear notice that the game is paused; it needn't be big. The watch and time buttons are
+   not enough.
+243. **Question: the "click to start" screen after loading.** open. The loader can't change; can ZeD do anything
+   with that screen? An answer, not necessarily a change.
+244. **A stack of 3 rags: the tooltip and the inventory row write the name and count differently.** open.
+245. **Expanded stacks: the first item has no row of its own.** open. The stack's header row stands for item 1 and
+   the open list starts at item 2, so the first flyer could only be read by moving the others out. The director's
+   decision: keep stacking by type, and the first item gets its own row in the open list.
+246. **World window, pad: walking away until only the ground is left moves focus up to the Filter button.** open. It
+   should land on the ground container.
+247. **The action bubble goes stale.** open. After smoking, walking about 20 tiles and hopping a short fence with B,
+   the bubble said "Done smoking a cigarette", and again later climbing through a window. The director: hopping a
+   short fence probably needs no bubble at all.
