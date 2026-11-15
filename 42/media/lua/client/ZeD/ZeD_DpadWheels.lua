@@ -1027,6 +1027,11 @@ function Wd.tabs(p, pn)
         if tab.id == "radio" then
             local list = ZeD.RadioTab and ZeD.RadioTab.buildWorldRadios and safe(ZeD.RadioTab.buildWorldRadios, p)
             if not (list and #list > 0) then e.off = tr("UI_ZeD_Wheel_NoRadioInReach") end
+            -- (Nov 14 2026, punch list 216: a TV set showing on the tab names the slice Television, with the TV icon)
+            if list and #list > 0 and ZeD_WorldWindow.tabIcon then
+                local _, iconName = ZeD_WorldWindow.tabIcon(tab, win, list)
+                e.name, e.tab = ZeD_WorldWindow.tabLabel(tab, win, list), iconName
+            end
         elseif tab.id == "vehicle" then
             local list = ZeD.MechanicsTab and ZeD.MechanicsTab.buildVehicles and safe(ZeD.MechanicsTab.buildVehicles, p)
             if not (list and #list > 0) then e.off = tr("UI_ZeD_Wheel_NoVehicle") end

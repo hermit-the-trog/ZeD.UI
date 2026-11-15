@@ -4352,6 +4352,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_World_TabBuilding` | `Building` | World window: tab name | 12 |
 | `UI_ZeD_World_TabLoot` | `Loot` | World window: tab name (hover title and drawer title) | 12 |
 | `UI_ZeD_World_TabMaps` | `Maps` | World window: tab name | 12 |
+| `UI_ZeD_World_TabTelevision` | `Television` | World window: the Radio tab's name while a TV set is the device showing on it (a television, the household set) | 12 |
 | `UI_ZeD_World_TabVehicle` | `Vehicle` | World window: tab name (shown only near a vehicle) | 12 |
 | `UI_ZeD_World_Title` | `World` | World window: title bar text, and the window-rolled tab's fallback name | 16 |
 | `UI_ZeD_World_TabHelp` | `%1: press to open this tab` | World window: help line over a tab name; %1 = the tab's name | - |

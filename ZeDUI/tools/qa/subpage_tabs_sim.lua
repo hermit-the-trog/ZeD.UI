@@ -232,6 +232,59 @@ check("Radio: render draws the strip", has(rsrc, "ZeD.SubTabs.draw(panel, x, y +
 check("Radio: the strip uses the library's tab", has(rsrc, "M.drawTab(panel, tabX, y, _stLab[i], isActive, hovered, false, o)"))
 
 -- ===========================================================================
+-- (Nov 14 2026, punch list 216: "Follow what's open": the World window's Radio tab reads Television with the TV icon
+-- while a TV set is the device showing on it; Radio and the radio icon otherwise. The tab's definition, tabLabel and
+-- tabIcon run from the real ZeD_WorldWindow.lua source against the real RadioTab.lua loaded above.)
+section("World Radio tab: names what is showing (punch list 216)")
+local function tvDev(name) return { getDeviceName = function() return name end, getIsTelevision = function() return true end } end
+local radioE = { radioInstance = "r", deviceData = dev("Premium Radio"), locationTag = "Floor" }
+local tvE = { radioInstance = "t", deviceData = tvDev("ValuTech Television"), locationTag = "Floor" }
+check("isTV: a TV set", RT.isTV and RT.isTV(tvE) == true)
+check("isTV: a radio is not", RT.isTV and RT.isTV(radioE) == false)
+local wsrc = read(SRC .. "ZeD_WorldWindow.lua")
+local defSrc = wsrc:match('(%{ id = "radio",.-\r?\n      end %})')
+local lblSrc = wsrc:match("(function ZeD_WorldWindow%.tabLabel.-\r?\nend)\r?\n")
+local icoSrc = wsrc:match("(function ZeD_WorldWindow%.tabIcon.-\r?\nend)\r?\n")
+check("World: the Radio tab's definition, tabLabel and tabIcon found", defSrc and lblSrc and icoSrc)
+if defSrc and lblSrc and icoSrc then
+    ZeD_WorldWindow = {}
+    loadstring(lblSrc)()
+    loadstring(icoSrc)()
+    local rtab = loadstring("return " .. defSrc)()
+    local WL, WI = ZeD_WorldWindow.tabLabel, ZeD_WorldWindow.tabIcon
+    local ww = { _radios = { radioE, tvE }, _radioIdx = 1 }
+    local px, icon = WI(rtab, ww)
+    check("radio showing: label Radio", WL(rtab, ww) == getText("IGUI_ItemType_Radio"), WL(rtab, ww))
+    check("radio showing: the radio's strip picture and wheel icon", px == "radio" and icon == "radio-tab-white", tostring(px) .. " " .. tostring(icon))
+    RT.selectRadio(ww, 2)
+    px, icon = WI(rtab, ww)
+    check("TV showing: label Television", WL(rtab, ww) == "Television", WL(rtab, ww))
+    check("TV showing: the TV's strip picture and wheel icon", px == "tv" and icon == "tv-tab-white", tostring(px) .. " " .. tostring(icon))
+    ww._radios = { tvE, radioE }
+    check("TV showing, the list re-sorted: it follows the TV", WL(rtab, ww) == "Television", WL(rtab, ww))
+    RT.selectRadio(ww, 2)
+    check("both in reach, the radio picked: Radio again", WL(rtab, ww) == getText("IGUI_ItemType_Radio"), WL(rtab, ww))
+    local tvOnly = { _radios = { tvE }, _radioIdx = 1 }
+    check("a TV alone (no pick yet): Television", WL(rtab, tvOnly) == "Television", WL(rtab, tvOnly))
+    check("no window: the tab's own name", WL(rtab) == getText("IGUI_ItemType_Radio"), WL(rtab))
+    check("the wheel's fresh list, a TV first, window shut: Television", WL(rtab, nil, { tvE, radioE }) == "Television")
+    check("the wheel's fresh list follows the window's pick", WL(rtab, ww, { tvE, radioE }) == getText("IGUI_ItemType_Radio"))
+end
+check("World: the strip draws tabIcon's picture", has(wsrc, "local pxId = tab.tv and ZeD_WorldWindow.tabIcon(tab, win) or tab.id"))
+check("World: the title and the help name what is showing", has(wsrc, "sub = ZeD_WorldWindow.tabLabel(tab, win)")
+    and has(wsrc, 'ZeD.tr("UI_ZeD_World_TabHelp", ZeD_WorldWindow.tabLabel(tab, win))'))
+check("Wheel: the World Radio slice follows what is showing", has(read(SRC .. "ZeD_DpadWheels.lua"), "e.name, e.tab = ZeD_WorldWindow.tabLabel(tab, win, list), iconName"))
+check("Wheel: tv-tab-white maps to the tv icon", has(read(SRC .. "ZeD_Wheel.lua"), '["tv-tab-white"] = "tv"'))
+check("TabPx: tv has a lit picture", has(read(SRC .. "ZeD_TabPx.lua"), "tv = true }"))
+for _, t in ipairs({ "w", "l", "m", "d", "k", "sh" }) do
+    check("TabPx: tv_" .. t .. ".png exported", read(ROOT .. "42/media/textures/ZeD/TabIcons/px/tv_" .. t .. ".png") ~= "")
+end
+for _, s in ipairs({ 16, 24, 32, 48 }) do
+    check("wheel: zw_tv.png at " .. s, read(ROOT .. "42/media/textures/ZeD/wheel/" .. s .. "/zw_tv.png") ~= "")
+end
+check("EN: UI_ZeD_World_TabTelevision", EN.UI_ZeD_World_TabTelevision == "Television", EN.UI_ZeD_World_TabTelevision)
+
+-- ===========================================================================
 section("Vehicle: a tab per vehicle")
 local msrc = read(SRC .. "MechanicsTab.lua")
 check("Vehicle: no pager header", not has(msrc, "drawDrawerInternalHeader"))

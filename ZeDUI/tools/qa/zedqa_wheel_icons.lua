@@ -132,6 +132,7 @@ local TABS = {
     ["forage-tab-white"] = "magnifier", ["farm-tab-white"] = "cow", ["vehicle-tab-white"] = "car",
     ["appearance-tab-white"] = "mirror", ["traits-tab-white"] = "traits",
     ["fishing-tab-white"] = "rod",   -- (Nov 12 2026, one fix from Build's triage: the Fishing tab's entry was missing here; W.TAB_ICONS' own key)
+    ["tv-tab-white"] = "tv",   -- (Nov 14 2026, punch list 216: the World Radio tab while a TV set shows on it)
 }
 -- ZeD's own wheels: { wheel, slice key(s), id(s) }
 local ZED = {

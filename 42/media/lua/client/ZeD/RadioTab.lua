@@ -435,6 +435,35 @@ function ZeD.RadioTab.tabItems(radios)
     return _tabItems
 end
 
+--- The entry showing on the tab: the one it follows (opened on or browsed to), else the one at its index (clamped),
+--- else the first. list: a fresh list to look in (the D-pad wheel's, the window's is stale while it is shut), else
+--- the window's own. Nil with no radios. (Nov 14 2026, punch list 216: the tab names what is showing.)
+function ZeD.RadioTab.showingEntry(win, list)
+    local own = win and win._radios
+    list = list or own
+    if not (list and #list > 0) then return nil end
+    local at = win and win._radioFollow and ZeD.RadioTab.indexOf(list, win._radioFollow)
+    if at then return list[at] end
+    if list == own then
+        local idx = win._radioIdx or 1
+        if idx < 1 then idx = 1 end
+        if idx > #list then idx = #list end
+        return list[idx]
+    end
+    return list[1]
+end
+
+--- True when a radio tab entry is a TV set (its device data says television, as RtvFace's fallbackPid reads it).
+function ZeD.RadioTab.isTV(entry)
+    return entry ~= nil and _safeGet(entry.deviceData, "getIsTelevision", false) == true
+end
+
+--- True when the device showing on the tab is a TV set: the World window's tab then reads "Television" with the
+--- TV icon (ZeD_WorldWindow.tabLabel / tabPxId; the director, Nov 14 2026, punch list 216: "Follow what's open").
+function ZeD.RadioTab.showingTV(win, list)
+    return ZeD.RadioTab.isTV(ZeD.RadioTab.showingEntry(win, list))
+end
+
 --- Show the radio at idx (a tab's press, or A on it).
 function ZeD.RadioTab.selectRadio(win, i)
     local r = win and win._radios

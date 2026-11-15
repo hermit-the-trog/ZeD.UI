@@ -186,6 +186,7 @@ TABS = [   # the window tabs' slices (C.tabs, Wd.tabs and the rest name a tab by
     ("forage-tab-white", "magnifier"), ("farm-tab-white", "cow"), ("vehicle-tab-white", "car"),
     ("appearance-tab-white", "mirror"), ("traits-tab-white", "traits"),
     ("server-tab-white", "tower"), ("admin-tab-white", "badge"),
+    ("tv-tab-white", "tv"),   # (Nov 14 2026, punch list 216: the World Radio tab while a TV set shows on it)
 ]
 
 

@@ -138,6 +138,13 @@ local WORLD_TABS = {
     -- is reachable in the player's 3x3 grid. Same predicate model as Foraging.
     { id = "radio",  vkey = "IGUI_ItemType_Radio", group = 2, glyph = "R",
       iconName = "radio-tab-white",
+      -- (Nov 14 2026, punch list 216: "Follow what's open": while the device showing on the tab is a TV set the tab
+      -- reads Television with the TV icon, its strip picture, its help, the title and the wheel's slice alike;
+      -- ZeD.RadioTab.showingTV picks the one showing when both a radio and a TV are in reach)
+      tv = { key = "UI_ZeD_World_TabTelevision", px = "tv", iconName = "tv-tab-white" },
+      isTV = function(win, list)
+          return ZeD.RadioTab ~= nil and ZeD.RadioTab.showingTV ~= nil and ZeD.RadioTab.showingTV(win, list) == true
+      end,
       visible = function(win)
           return win and win._radios and #win._radios > 0
       end },
@@ -152,10 +159,20 @@ local WORLD_TABS = {
 
 --- A tab's name in the player's language: its label() if it has one, else
 --- vanilla's word (vkey), else ZeD's (key). The D-pad wheels read it too.
-function ZeD_WorldWindow.tabLabel(tab)
+--- win (optional), list (optional, the wheel's fresh radio list): a tab that follows what is open on it names that
+--- (the Radio tab with a TV showing: Television; Nov 14 2026, punch list 216).
+function ZeD_WorldWindow.tabLabel(tab, win, list)
+    if tab.tv and (win or list) and tab.isTV(win, list) then return ZeD.tr(tab.tv.key) end
     if tab.label then return tab.label() end
     if tab.vkey then return getText(tab.vkey) end
     return ZeD.tr(tab.key)
+end
+
+--- A tab's lit strip picture (ZeD.TabPx id) and its wheel icon name (W.TAB_ICONS key): its own, or the TV's while a
+--- TV set shows on the Radio tab (Nov 14 2026, punch list 216).
+function ZeD_WorldWindow.tabIcon(tab, win, list)
+    if tab.tv and (win or list) and tab.isTV(win, list) then return tab.tv.px, tab.tv.iconName end
+    return tab.id, tab.iconName
 end
 
 -- The title: the container's name (win._titleBase, set by the inventory side), then the
@@ -172,7 +189,7 @@ local function composeWorldTitle(win)
     if tabId then
         for _, tab in ipairs(WORLD_TABS) do
             if tab.id == tabId then
-                sub = ZeD_WorldWindow.tabLabel(tab)
+                sub = ZeD_WorldWindow.tabLabel(tab, win)
                 break
             end
         end
@@ -2013,11 +2030,13 @@ local function drawWorldTabStrip(self, win)
             -- the character window. The pointer's hover is the T.hover wash; the
             -- controller's focus is the player's focus mark, on the active tab too.
             -- Every tab id has a lit icon.
+            -- (the Radio tab draws the TV's picture while a TV set shows on it: tabIcon, punch list 216)
             local TPX = ZeD.TabPx
-            if TPX and TPX.has(tab.id) then
+            local pxId = tab.tv and ZeD_WorldWindow.tabIcon(tab, win) or tab.id
+            if TPX and TPX.has(pxId) then
                 tabDrawOpts.focus = (gpFocusedTabId == tab.id) and tabFocusOpts or nil
-                tabDrawOpts.help = (isHover and my < tabAreaH) and ZeD.tr("UI_ZeD_World_TabHelp", ZeD_WorldWindow.tabLabel(tab)) or nil
-                TPX.drawTab(self, T.px(1), curY, w - T.px(1), T.stripH - T.px(1), tab.id, isActive,
+                tabDrawOpts.help = (isHover and my < tabAreaH) and ZeD.tr("UI_ZeD_World_TabHelp", ZeD_WorldWindow.tabLabel(tab, win)) or nil
+                TPX.drawTab(self, T.px(1), curY, w - T.px(1), T.stripH - T.px(1), pxId, isActive,
                     isHover and not cuesOn and not isActive, T.px(1), tabDrawOpts)
             end
 
@@ -2030,11 +2049,11 @@ local function drawWorldTabStrip(self, win)
                 -- the tab's name in a balloon beside it: after the pause for the mouse, at once for the
                 -- controller's focus
                 if isHover and my < tabAreaH and (not self.isMouseOver or self:isMouseOver()) then
-                    win._tabHintCand = { key = "tab:" .. tab.id, text = ZeD_WorldWindow.tabLabel(tab),
+                    win._tabHintCand = { key = "tab:" .. tab.id, text = ZeD_WorldWindow.tabLabel(tab, win),
                                          x = self:getX(), y = self:getY() + curY, w = w, h = T.stripH, side = "l" }
                     ZeD.Atoms.syncHintLayer(win, win._tabHintLayer)
                 elseif cuesOn and gpFocusedTabId == tab.id and not win._tabHintCand then
-                    win._tabHintCand = { key = "tab:" .. tab.id, text = ZeD_WorldWindow.tabLabel(tab),
+                    win._tabHintCand = { key = "tab:" .. tab.id, text = ZeD_WorldWindow.tabLabel(tab, win),
                                          x = self:getX(), y = self:getY() + curY, w = w, h = T.stripH, side = "l", now = true }
                     ZeD.Atoms.syncHintLayer(win, win._tabHintLayer)
                 end
@@ -5431,7 +5450,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             return e and e.inventory
         end,
         title = function()
-            for _, tab in ipairs(WORLD_TABS) do if tab.id == win._activeTab then return ZeD_WorldWindow.tabLabel(tab) end end
+            for _, tab in ipairs(WORLD_TABS) do if tab.id == win._activeTab then return ZeD_WorldWindow.tabLabel(tab, win) end end
             return ZeD.tr("UI_ZeD_World_Title")
         end,
         onChange = function(rolled)

@@ -34,7 +34,9 @@ TP.DIR = "media/textures/ZeD/TabIcons/px/"
 -- their own id here when they load.
 TP.ICONS = { loot = true, equip = true, health = true, thermal = true, identity = true, journal = true, skills = true,
              radio = true, craft = true, build = true, furniture = true, maps = true, forage = true, animals = true,
-             vehicle = true }
+             vehicle = true,
+             -- (Nov 14 2026, punch list 216: not a tab of its own: the World Radio tab draws it while a TV set shows on it)
+             tv = true }
 local TONES = { "w", "l", "m", "d", "k" }
 
 --- True when this tab id has a lit icon; the windows draw a tab only then.

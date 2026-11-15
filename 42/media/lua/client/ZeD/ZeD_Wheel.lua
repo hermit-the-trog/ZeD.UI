@@ -85,6 +85,7 @@ W.TAB_ICONS = {
     ["appearance-tab-white"] = "mirror", ["traits-tab-white"] = "traits", ["cooking-tab-white"] = "pot",
     ["fishing-tab-white"] = "rod",
     ["server-tab-white"] = "tower", ["admin-tab-white"] = "badge",   -- (multiplayer-only tabs)
+    ["tv-tab-white"] = "tv",   -- (Nov 14 2026, punch list 216: the World Radio tab while a TV set shows on it)
 }
 
 -- the slice's words first: several vanilla slices share one picture

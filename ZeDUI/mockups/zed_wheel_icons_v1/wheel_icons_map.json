@@ -775,6 +775,11 @@
    "means": "a lawman's badge, a five-point star in a ring: the Admin tab",
    "mapped": true
   },
+  "tv": {
+   "group": "tab",
+   "means": "a CRT television set, two rabbit-ear antennas, the screen and two knobs: the radio tab on a TV",
+   "mapped": true
+  },
   "tray_in": {
    "group": "row",
    "means": "an arrow down into an open tray: take all",
@@ -3116,6 +3121,10 @@
   {
    "tab": "admin-tab-white",
    "id": "badge"
+  },
+  {
+   "tab": "tv-tab-white",
+   "id": "tv"
   }
  ],
  "ROW": [

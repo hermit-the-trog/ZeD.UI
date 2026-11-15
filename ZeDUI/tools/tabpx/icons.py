@@ -388,6 +388,25 @@ ICONS = {
     "................",
     "................",
     "................"],
+# TV (Nov 14 2026, punch list 216): a CRT set, rabbit-ear antennas, the glass dark with a glint, two knobs at the right.
+# Not a tab of its own: the World window's Radio tab draws it while a TV set is the device showing on it
+"tv": [
+    "..w.........d...",
+    "...l.......d....",
+    "....l.....d.....",
+    ".....l...d......",
+    "......lmd.......",
+    "..wlllllllllll..",
+    ".wlmmmmmmmmmmmd.",
+    ".lmmkkkkkkmmmmd.",
+    ".lmkwlkkkkkmwmd.",
+    ".lmklkkkkkkmdmd.",
+    ".lmkkkkkkkkmmmd.",
+    ".lmkkkkkkkkmlmd.",
+    ".lmmkkkkkkmmdmd.",
+    "..dddddddddddk..",
+    "..kk........kk..",
+    "................"],
 }
 
 TONES = "wlmdk"
