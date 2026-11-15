@@ -4884,3 +4884,12 @@ to be proposed.
    clearly a TV. The tab's name and icon should follow what is open: Television (a TV icon) for TV sets, Radio for
    radios; or one name that covers both (the game's "Radio / TV"?) if the tab holds both kinds. Picture:
    zqa_ptl_tvtab.png.
+
+217. **A lag spike on closing the inventory (the director, Nov 14 2026, playtest).** open. Closing the windows (Y tap,
+   "hide pair") gave one large hitch. A frame logger (over 60 ms, with focus and window visibility) is running in the
+   playtest to time it.
+218. **Controller: A doesn't open a door or a window though the prompt says A (the director, Nov 14 2026, playtest).**
+   open. Standing at a door (and a window), the button prompt at the bottom reads A (open), but A does nothing. The
+   logger: every A is "focus nil | cursor nil | paused false", then the no-focus path, so the press reaches the game's
+   button prompt route (buts:onAPress) with no ZeD window holding the pad; still nothing opens. Suspect ZeD's wrap of
+   the prompt's A (the hint strip counts uses then calls the game's onAPress) or a stale prompt target.
