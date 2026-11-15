@@ -11,7 +11,7 @@
 --      a right-click, MEM (store; X names in the naming box), CH up / down
 --      through the memories, push to talk (the TX lamp and TX OK / MIC OFF);
 --      on the Tactical MUTE, SCAN and LAMP (5 s); the toy has no memories
---   3. full view: the header button opens it centre right, frameless, the
+--   3. full view: the header button opens it beside the player, frameless, the
 --      controls work in it, MEM held names, it drags and keeps its place
 --      (modData), a click on the face away from the controls opens it, the
 --      button, B and Escape close it, and so does the radio leaving the hands
@@ -330,13 +330,14 @@ step(20, function()
     if not v then return end
     local des = ZeD.PhysPx.plates.walkie_valutech
     check(v.background == false and v.Type == "ZeD_TwoWayFull", "full view is the face alone, no window frame")
-    -- (Nov 15 2026, 228k: while it holds the pad a hint strip sits under the plate, 4 px below it)
-    local stripH = v.joyfocus and ZeD.PadGlyphs.stripH() or 0
-    local wantH = des.h * K + ZeD.T.hair + (stripH > 0 and (ZeD.T.px(4) + stripH) or 0)
+    -- (Nov 15 2026, pop-outs: the strip sits under the plate always, 3u below it: the controller's prompts, or the
+    -- mouse's help line)
+    local stripH = ZeD.PadGlyphs.stripH()
+    local wantH = des.h * K + ZeD.T.hair + ZeD.T.px(3) + stripH
     check(v:getWidth() == des.w * K + ZeD.T.hair and v:getHeight() == wantH, "full view is the plate at the plate scale, room for its 1u hard shadow (" .. v:getWidth() .. "x" .. v:getHeight() .. ")")
-    local sw = getPlayerScreenWidth(pn)
-    local cx = v:getX() + v:getWidth() / 2
-    check(math.abs(cx - (getPlayerScreenLeft(pn) + sw * 0.75)) <= 2, "the first time it sits centre right of the play area (centre x " .. cx .. ")")
+    -- (Nov 15 2026, pop-outs: the first time it sits beside the player, clear of them: was centre right)
+    local px = isoToScreenX(pn, p:getX(), p:getY(), p:getZ())
+    check(v:getX() > px or v:getX() + v:getWidth() < px, "the first time it sits beside the player, clear of them (x " .. v:getX() .. ", player " .. px .. ")")
     check(#v._hits == #des.hits, "every control is on it (" .. #v._hits .. ")")
     shot("3a_valutech_full_view")                -- (the picture is taken as the frame draws: nothing changes in this step)
 end)

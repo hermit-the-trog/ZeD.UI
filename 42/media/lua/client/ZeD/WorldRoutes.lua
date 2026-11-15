@@ -315,7 +315,17 @@ function WR.radio(chr, dev)
         if carRadio(chr, dev) then return true end
         return worldDevice(chr, dev)
     end
-    if instanceof(dev, "IsoWaveSignal") then return worldDevice(chr, dev) end
+    if instanceof(dev, "IsoWaveSignal") then
+        -- (Nov 15 2026, pop-outs: with faces on, a set in the world with a face pops it out on its own beside the
+        -- player (FacePop.lua) in place of the World window's Radio tab; a click on it in the world was already
+        -- handled there. Faces off, or a set with no face: the tab, as before.)
+        local FPm = ZeD.FacePop
+        if FPm and FPm.takeRadio then
+            if not WR.sameFloor(chr, dev) then return true end   -- (another floor opens nothing, as below)
+            if WR.inReach(chr, dev) and FPm.takeRadio(chr, dev) then return true end
+        end
+        return worldDevice(chr, dev)
+    end
     return false
 end
 
