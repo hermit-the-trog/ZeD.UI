@@ -4792,6 +4792,9 @@ to be proposed.
    the functions are reachable; only D-pad navigation up to the header is missing.
    Other direction too (the director, playtest, Nov 14 2026, on b529d4b56): with the container empty, Down from the
    header doesn't reach the footer. That matters most for the oven's controls, which sit in the footer.
+   Still failing after f0710337c (the director, playtest): the microwave as the World window's container, empty; on
+   its header, Down does nothing, though the footer has the microwave's settings and On buttons. The logger: a dozen
+   "press DPadDown | focus World" with no "spatial down" line at all, so the move found no stop.
 
 203. **Controller: Furniture tab's Pick up loses the chosen square when the windows come back (the director, Nov 14 2026,
    playtest).** open. In the World window's Furniture tab, Pick up on the pad: you leave the window and move the cursor
