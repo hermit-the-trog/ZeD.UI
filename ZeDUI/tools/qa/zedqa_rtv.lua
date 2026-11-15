@@ -788,32 +788,38 @@ local function tvPad(pid)
     else
         step(5, function()
             local e = Focus.getFocusedElement(WW())
-            if e and e.onActivate then e.onActivate(WW(), e) end                 -- A: pushed
+            if e and e.onContextMenu then e.onContextMenu(WW(), e) end           -- X: pushed for power (Nov 14 2026, 228k: A grabs, X pushes)
         end)
         step(10, function()
             local o = objs[pid]
             if not o then return end
-            check(dd(o):getIsTurnedOn(), pid .. ": pad: A on the knob powers it")
+            check(dd(o):getIsTurnedOn(), pid .. ": pad: X on the knob powers it")
             volWas = dd(o):getDeviceVolume()
+            local e = Focus.getFocusedElement(WW())
+            if e and e.onActivate then e.onActivate(WW(), e) end                 -- A: grab the knob
             Focus.dispatchJoypadDir(WW(), "up")
         end)
         step(5, function()
             local o = objs[pid]
             if not o then return end
-            check(dd(o):getDeviceVolume() > volWas + 0.01 and dd(o):getIsTurnedOn(), pid .. ": pad: up on the knob turns the volume, the set stays on")
+            check(dd(o):getDeviceVolume() > volWas + 0.01 and dd(o):getIsTurnedOn(), pid .. ": pad: A grabs the knob and up turns the volume, the set stays on")
             O.setChannel(p, o, R.stops()[3].freq)
             Focus.focusWhere(WW(), "worldTabContent", function(x) return x.id == "radio:tw:channel" end)
         end)
-        step(8, function() Focus.dispatchJoypadDir(WW(), "up") end)
+        step(8, function()
+            local e = Focus.getFocusedElement(WW())
+            if e and e.onActivate then e.onActivate(WW(), e) end                 -- A: grab the dial
+            Focus.dispatchJoypadDir(WW(), "up")
+        end)
         step(5, function()
             local o = objs[pid]
-            if o then check(stopI(o) == 4, pid .. ": pad: up on the dial: a stop up (" .. stopI(o) .. ")") end
+            if o then check(stopI(o) == 4, pid .. ": pad: A grabs the dial and up turns it a stop up (" .. stopI(o) .. ")") end
             local e = Focus.focusWhere(WW(), "worldTabContent", function(x) return x.id == "radio:tw:volpwr" end)
-            if e and e.onActivate then e.onActivate(WW(), e) end                 -- A: off
+            if e and e.onContextMenu then e.onContextMenu(WW(), e) end           -- X: off
         end)
         step(10, function()
             local o = objs[pid]
-            if o then check(not dd(o):getIsTurnedOn(), pid .. ": pad: A on the knob again: off") end
+            if o then check(not dd(o):getIsTurnedOn(), pid .. ": pad: X on the knob again: off") end
         end)
     end
     padEnd()

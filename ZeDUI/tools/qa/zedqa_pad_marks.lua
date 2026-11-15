@@ -426,7 +426,7 @@ local function queueMarks(tag, shotName)
             local ok = true
             for j = i, i + 3 do
                 local e = els[j]
-                if not (e.item and #stackItems(L, e.item) == 1 and not instanceof(e.item, "Food")) then ok = false end   -- (225: a held A eats food, so the painted run is non-food)
+                if not (e.item and #stackItems(L, e.item) == 1 and not ZeD.InventoryRenderer.padIsFood(e.item) and not ZeD.InventoryRenderer.padIsUse(e.item)) then ok = false end   -- (225 / pills: a held A eats or uses these, so the painted run skips them)   -- (225: a held A eats food, so the painted run is non-food)
             end
             if ok then S.run = { els[i].item, els[i + 1].item, els[i + 2].item, els[i + 3].item }; break end
         end
