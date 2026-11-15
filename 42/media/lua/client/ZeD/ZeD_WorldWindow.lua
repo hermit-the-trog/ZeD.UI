@@ -1607,6 +1607,7 @@ _buildWorldInvRowFocusables = function(win)
                 if stk and stk.count > 1 then
                     cnt._expandedStacks = cnt._expandedStacks or {}
                     cnt._expandedStacks[stk.key] = not cnt._expandedStacks[stk.key]
+                    print("[ZeD.Input] Focus: stack row " .. tostring(stk.key) .. " -> " .. tostring(cnt._expandedStacks[stk.key]) .. " (table " .. tostring(cnt._expandedStacks) .. ")")
                     return
                 end
                 if cnt and w._updateDrawer then

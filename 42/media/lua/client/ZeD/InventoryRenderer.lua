@@ -792,6 +792,9 @@ local function headToggle(w, el)
     local cs = el.colIdx and cnt and cnt._colStates and cnt._colStates[el.colIdx] or nil
     local exp = cs and cs.expandedStacks or (cnt and cnt._expandedStacks)
     if exp then exp[el.stackKey] = not exp[el.stackKey] end
+    -- (QA, Nov 15 2026: A on a header left a stack open that A had opened; the log says which table it turned)
+    print("[ZeD.Input] Focus: stack header " .. tostring(el.stackKey) .. " col " .. tostring(el.colIdx) .. " -> "
+        .. tostring(exp and exp[el.stackKey]) .. " (table " .. tostring(exp) .. ", list's " .. tostring(cnt and cnt._expandedStacks) .. ")")
 end
 local function headMove(w, el)
     local cnt = w and w._mainContent

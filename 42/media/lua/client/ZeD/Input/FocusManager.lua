@@ -2180,17 +2180,34 @@ end
 -- (Nov 15 2026, punch list 237, the director: every window hides when the player aims, the Messages window too, not
 -- only while a ZeD window holds the pad.) What aiming hides for player pn: true when something was up to hide.
 local function _aimHide(pn, held, note)
-    local hid = held == true   -- (a ZeD window holding the pad: as before, it always rolls up)
+    -- the windows to roll up: player pn's registered ones, and the pair by name (QA, Nov 15 2026: with no window
+    -- holding the pad the pair may be up and not counted, and the roll-up below it returned at once)
+    local list, seen = {}, {}
     for _, w in ipairs(_windowRegistry) do
-        if hid then break end
+        if _pnOf(w) == pn and not seen[w] then seen[w] = true; list[#list + 1] = w end
+    end
+    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getInstance and ZeD_CharacterWindow.getInstance(pn)
+    local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn)
+    if cw and not seen[cw] then seen[cw] = true; list[#list + 1] = cw end
+    if ww and not seen[ww] then seen[ww] = true; list[#list + 1] = ww end
+    local hid = held == true   -- (a ZeD window holding the pad: as before, it always rolls up)
+    for _, w in ipairs(list) do
         local up = _shown(w) or (w.isVisible ~= nil and w:isVisible() == true)
-        if _pnOf(w) == pn and up and not w.windowShaded then hid = true end
+        if up and not w.windowShaded then hid = true end
     end
     local MW = ZeD.MessagesWindow
     local mw = MW and MW.get and MW.get(pn)
     local msg = mw ~= nil and _shown(mw) and not mw.guestJoy
     if (hid or msg) and note then print(note) end
-    if hid then _hideAllWindows("aim-RS", pn) end
+    if hid then
+        _hideAllWindows("aim-RS", pn)
+        for _, w in ipairs(list) do   -- (any the registry did not hold)
+            if _indexOf(w) == nil then
+                if w._halves and ZeD.Halves then ZeD.Halves.aim(w)
+                elseif w.setWindowShaded and not w.windowShaded then w:setWindowShaded(true) end
+            end
+        end
+    end
     if msg then pcall(mw.close, mw) end
     return hid or msg
 end
