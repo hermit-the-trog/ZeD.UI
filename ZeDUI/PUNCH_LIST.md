@@ -4944,3 +4944,8 @@ to be proposed.
    character ate raw crayfish while already sick. A tap of A as Eat is risky for raw, rotten or poisonous food. Options
    for the director: Eat stays the primary but asks or is skipped when the food is raw / unsafe; or A opens the card
    and Eat moves to a hold. 223's quick move would also have helped here.
+
+226. **Desk notes: B saves and closes, not cancel (the director, Nov 14 2026).** open, a design change. On the on-screen
+   keyboard for a Pasties note, B should save the note and exit, not cancel. If a cancel or reset is kept at all it
+   goes on another button; the director doubts it is needed ("It's a post-it note ... people can just delete. It's not
+   going to be that many lines."). Follows 221.
