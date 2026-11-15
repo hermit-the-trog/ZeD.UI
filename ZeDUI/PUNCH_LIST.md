@@ -4903,3 +4903,6 @@ to be proposed.
    request. 184 is confirmed: A places on a controller, the vanilla way: an item in a container is first moved to the
    inventory, the action stops, and Place has to be chosen again. That is right for the normal mode. In Access mode
    the director wants the move and the place done in one go. "We'll work on that at another time, unless it's easy."
+   PARKED (Build, Nov 14 2026). Lead: vanilla's ISPlace3DItemCursor:create already queues the transfer and the drop
+   together (transferIfNeeded, then ISDropWorldItemAction), so something drops the second action once the first
+   finishes; possibly ZeD (Put things back, the queue handling). Needs a game run with the timed-action queue logged.
