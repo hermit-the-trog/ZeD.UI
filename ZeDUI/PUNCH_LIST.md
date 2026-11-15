@@ -5022,6 +5022,8 @@ to be proposed.
    the row. The trait still fails: on Brave, the last row above the window's foot, the balloon sits beside the row and
    its description ("Less prone to becoming panicked.") is under the window's footer ("87 items"); it doesn't flip
    above. The ID card's balloon may not come from the overlay path c8945162e changed.
+   **QA re-check, on 7a4e4d298: passes.** On Brave the balloon now sits higher, its bottom inside the window above the
+   footer, and the description line shows whole.
 
 231. **Controller: the Rename box from the item menu doesn't take the pad and gets stuck (the director, Nov 14 2026,
    playtest).** open. Rename from an item's context menu opens the name box, but the pad isn't on it; the box stays on
