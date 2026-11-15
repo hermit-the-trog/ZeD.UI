@@ -108,7 +108,17 @@ local function hookKeyboard()
             local ok, k = pcall(function()
                 local kb = ZeD.Keyboard.get()
                 OnScreenKeyboard.instance = kb
-                return kb:show(playerNum, textEntryBox, joypadData)
+                local shown = kb:show(playerNum, textEntryBox, joypadData)
+                -- (Nov 14 2026, punch list 215: the inventory's Filter field opened the keyboard and left the pad
+                -- on the window, so no key could be typed and B never closed it. The keyboard takes the pad when
+                -- it opens, as vanilla's does; its hide gives the pad back to what had it.)
+                local jd = joypadData or (JoypadState and JoypadState.players and JoypadState.players[(playerNum or 0) + 1])
+                if shown and jd and jd.focus ~= shown then
+                    shown.prevFocus = jd.focus
+                    jd.focus = shown
+                    if updateJoypadFocus then updateJoypadFocus(jd) end
+                end
+                return shown
             end)
             if ok and k then return k end
             print("[ZeD] Prompts: keyboard kept vanilla's: " .. tostring(k))

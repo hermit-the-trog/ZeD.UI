@@ -21,6 +21,7 @@ local function apply()
     function ISPlace3DItemCursor:onJoypadPressButton(joypadIndex, joypadData, button)
         if button == Joypad.AButton and not self.joypadPositionActive and self.canBeBuild then
             self.build = true
+            print("[ZeD] PlaceItemPad: A sets build")
             return
         end
         if orig then return orig(self, joypadIndex, joypadData, button) end
@@ -28,5 +29,9 @@ local function apply()
     print("[ZeD] PlaceItemPad: A places with the game's Place Item cursor on a controller")
 end
 
+-- (ISPlace3DItemCursor is server Lua, which loads with the save, after the client files and after
+-- OnGameBoot: the playtest found the wrap never on. It goes on when the game starts, or a player is made.)
 Events.OnGameBoot.Add(apply)
+Events.OnGameStart.Add(apply)
+Events.OnCreatePlayer.Add(apply)
 apply()
