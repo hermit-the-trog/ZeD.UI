@@ -1315,6 +1315,11 @@ end
 --- A move that crossed from window w into window other lands on other's nearest stop that way from src (one of
 --- w's flat stops), then that stop's zone's own landing rule (zone.landOn), as a move inside a window does.
 function Focus._landFrom(w, other, src, dir)
+    -- (Nov 15 2026, the director: a window may name its own landing from the side, the World window its containers)
+    if other._padLandFromSide then
+        local okH, done = pcall(other._padLandFromSide, other, dir)
+        if okH and done then return end
+    end
     local els, loc = _collectFlat(other)
     if #els == 0 then return end
     local dx, dy = w:getX() - other:getX(), w:getY() - other:getY()

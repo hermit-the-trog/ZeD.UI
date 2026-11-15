@@ -3838,6 +3838,25 @@ function ZeD_WorldWindow.toggle(playerNum)
         -- it has rows (the rows draw a frame after the window opens); see
         -- Focus.ensureEntry
         win._focusEntryZone    = "worldMainInv"
+        -- (Nov 15 2026, the director: Right from the Character window is "probably where they want to go": the
+        -- container buttons, on a container other than the floor when there is one (the one showing, else the first),
+        -- the floor when it is the only one. It saves the press over and then down. Focus only: A still opens it.)
+        win._padLandFromSide = function(w, dir)
+            if dir ~= "right" then return false end
+            local F = ZeD.Input and ZeD.Input.Focus
+            local cnts = w._containers or {}
+            local function isFloor(i) return cnts[i] ~= nil and cnts[i].isFloor == true end
+            local want = nil
+            if w._activeContainer and cnts[w._activeContainer] and not isFloor(w._activeContainer) then want = w._activeContainer end
+            local pick = function(e)
+                if want then return e.containerIdx == want end
+                return e.containerIdx ~= nil and not isFloor(e.containerIdx)
+            end
+            local got = F and F.focusWhere(w, "worldContainerStrip", pick)
+            if not got and F then got = F.focusWhere(w, "worldContainerStrip", function(e) return e.containerIdx ~= nil end) end
+            if got then pcall(function() ZeD.uiSound("UISelectListItem") end) end
+            return got ~= nil
+        end
         win._focusPendingEntry = true
 
         -- (Nov 14 2026, punch list: not while the pair opens with the pad already on a ZeD window)
