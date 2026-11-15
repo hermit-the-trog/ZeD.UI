@@ -5050,7 +5050,7 @@ to be proposed.
    prompt uses (ISEntityUI.OpenHandcraftWindow) put the World window on Craft with the pad, on the tab's first stop
    (craft:stDrop). A real station prompt goes on the director's next playtest list.
 
-234. **Controller: Rename opens two name boxes; the second is left stuck (the director, Nov 14 2026, playtest).** open.
+234. **Controller: Rename opens two name boxes; the second is left stuck (the director, Nov 14 2026, playtest).** done.
    Renaming the key ring: the X menu's Rename; then the director had to D-pad down into the item card's header before
    the rename box appeared; A on its field, typed on the keyboard, B (the keyboard closed and the box showed "keys"),
    then closed the box. The name changed. But a second, identical "change item name" box was left behind with the old
@@ -5061,6 +5061,7 @@ to be proposed.
    **QA, Nov 14 2026, on 6088f4757 (zedqa_padfix_i.lua, 4K): passes.** Rename run twice for one bag leaves one box
    (visible, x 1622 y 932, not dead) holding the pad; closing it leaves none. The "D-pad into the header first" part
    didn't show in script: the box was up right away. Next playtest to confirm.
+   **Confirmed by the director, Nov 15 2026, playtest on beta 14: Rename works.**
 
 235. **Keyboards: B saves and closes, no question (the director, Nov 14 2026, playtest).** open, a design change to
    226. The "Close the keyboard? Your changes will be saved." question was too many steps: with Cancel focused the hint
