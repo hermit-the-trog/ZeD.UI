@@ -12,7 +12,7 @@
 --   ON       faces off (Simple) or safe mode: nothing pops out
 --   CLICK    a world click: not while aiming, within 3 tiles; the radio route the game's click sets off is taken
 --   PROMPT   A at a machine: its name, Close when it shows; takes the oven's Turn on, never a door's prompt
---   WIRED    the ways in: Device Options, Stove settings, Turn on, Generator info, the cards' buttons and faces
+--   WIRED    the ways in: Device Options, Stove settings, Turn on, the cards' buttons and faces
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/face_popouts_sim.lua
 -- It prints FAIL lines and a last line "face_popouts_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -453,7 +453,7 @@ do
     local _, n = st:gsub("ZeD.FacePop.open%(", "")
     check("WIRED Stove settings and Turn on ask the pop-out first", n >= 2, n)
     local ic = readFile(Z .. "Overrides/InfoCards.lua")
-    check("WIRED Generator info and the grill's info ask the pop-out first", ic:find("ZeD.FacePop.open, player, obj", 1, true) ~= nil)
+    check("WIRED Generator info and the grill's info open the card (the director, Nov 15 2026), not the pop-out", ic:find("ZeD.FacePop.open, player, obj", 1, true) == nil)
     local rt = readFile(Z .. "RadioTab.lua")
     check("WIRED every radio face has the button (not the plain card)", rt:find("local canPop = twDes ~= nil and not fDrv.plain", 1, true) ~= nil)
     check("WIRED a click on the face toggles it", rt:find("if canPop and _hitZone(tw.face, x, y) then ZeD.TwoWayFull.toggle", 1, true) ~= nil)

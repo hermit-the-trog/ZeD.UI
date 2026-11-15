@@ -22,12 +22,8 @@ require "ZeD/ObjectCardFarm"
 local OC = ZeD.ObjectCards
 
 local function route(label, player, kind, obj)
-    -- (Nov 15 2026, pop-outs: with faces on, Generator info and the propane grill's info pop the face out beside the
-    -- player (FacePop.lua); a campfire, a charcoal barbecue or a fireplace has no face and opens its card)
-    if (kind == "generator" or kind == "fire") and ZeD.FacePop and ZeD.FacePop.open then
-        local okF, took = pcall(ZeD.FacePop.open, player, obj)
-        if okF and took then return true end
-    end
+    -- (Nov 15 2026, the director: Info keeps opening the card, with the fuel, the condition and what it powers; a click
+    -- on the machine or A at it pops the face out, FacePop.lua)
     local ok, handled = pcall(OC.open, player, kind, obj)
     if not ok then print("[ZeD] InfoCards: " .. label .. " route failed: " .. tostring(handled)) end
     return ok and handled
