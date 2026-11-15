@@ -72,7 +72,7 @@ Rules that go with it:
 - Every window has the same edges: Up from the top reaches its title bar, and Left/Right off the side reaches the next window.
 - Knobs and dials all turn the same way (Left/Right), so Up/Down always moves.
 
-**A choice for you on Y:** today Y opens and closes the windows. Some games use Y for "more about this thing" (details, or the full menu). We can keep Y as it is, which I recommend since it's learned already, and put "more" on hold A or on the card's More button (227). Or we can move things around. Your call.
+**Y, decided (the director, Nov 14 2026): keep Y as the windows button**, like the vanilla game. Was: today Y opens and closes the windows. Some games use Y for "more about this thing" (details, or the full menu). We can keep Y as it is, which I recommend since it's learned already, and put "more" on hold A or on the card's More button (227). Or we can move things around. Your call.
 
 ## Is a controller as quick as a mouse?
 
