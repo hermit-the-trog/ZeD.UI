@@ -5035,3 +5035,11 @@ to be proposed.
    claim at all (focus stays nil) until the director pressed Y, which claimed the Character window instead. Every
    route that opens a ZeD window or tab from the world (station prompts, the X menu's open options, 208's oven) should
    claim the pad for that window, on its opened tab's first stop.
+
+234. **Controller: Rename opens two name boxes; the second is left stuck (the director, Nov 14 2026, playtest).** open.
+   Renaming the key ring: the X menu's Rename; then the director had to D-pad down into the item card's header before
+   the rename box appeared; A on its field, typed on the keyboard, B (the keyboard closed and the box showed "keys"),
+   then closed the box. The name changed. But a second, identical "change item name" box was left behind with the old
+   name, and the pad can't reach or close it. The probe found one ZeD_Prompt up (plus an ISPanel) with the pad on the
+   Character window; QA handed the pad to the prompt through the bridge. Looks like Rename runs twice (the menu's
+   option and the card's own path, or 231's re-take loop) and opens two boxes, and only one is answered.
