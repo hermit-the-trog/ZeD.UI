@@ -631,6 +631,8 @@ end
 function ZeD.InventoryRenderer.padPromptHold(w, el)
     -- (Nov 14 2026, punch list 225: on food, hold A eats: "Eat (hold)", the card's own word for it)
     if el and ZeD.InventoryRenderer.padIsFood(el.item) then return ZeD.InventoryRenderer.padEatWord(el.item) end
+    -- (Nov 14 2026, punch list 228q: on a drink, hold A drinks: "Drink (hold)")
+    if el and ZeD.InventoryRenderer.padIsDrink(el.item) then return ZeD.InventoryRenderer.padDrinkWord(el.item) end
     local sel = padSel(w, el)
     local marked = sel and el and el.item and sel[el.item]
     return ZeD.tr(marked and "UI_ZeD_Inv_PromptUnmark" or "UI_ZeD_Inv_PromptMark")
@@ -668,6 +670,34 @@ function ZeD.InventoryRenderer.padEat(w, el)
     if playerObj.isAsleep and playerObj:isAsleep() then return end
     if ISInventoryPaneContextMenu and ISInventoryPaneContextMenu.eatItem then ISInventoryPaneContextMenu.eatItem(item, 1, pn) end
 end
+-- (Nov 14 2026, punch list 228q: a drink is a hold too. A bottle, a can of pop, a canteen: the card's test for its
+-- Drink (ItemCardOrganism's headerVerbsForContext: fluid in it, not empty, not sealed); A, A on the row drank it,
+-- bleach and petrol included, since the card's Drink was a tap)
+function ZeD.InventoryRenderer.padIsDrink(item)
+    if not item then return false end
+    local okF, fc = pcall(function() return item:getFluidContainer() end)
+    if not (okF and fc) then return false end
+    local okE, empty = pcall(function() return fc:isEmpty() end)
+    if okE and empty then return false end
+    local okS, sealed = pcall(function() return item:isSealed() end)
+    return not (okS and sealed)
+end
+-- the card's Drink word: the game's own verb when the drink has one, else Drink
+function ZeD.InventoryRenderer.padDrinkWord(item)
+    local ok, own = pcall(function() return item:getCustomMenuOption() end)
+    if ok and own and own ~= "" then return tostring(own) end
+    return getText("ContextMenu_Drink")
+end
+-- the card's DRINK (ZeD_ItemCard:_dispatchHeaderVerb): the game's drink, which brings the bottle over first
+function ZeD.InventoryRenderer.padDrink(w, el)
+    local item = el and el.item
+    local pn = ZeD.playerNumOf(w)
+    local playerObj = getSpecificPlayer(pn)
+    if not (item and playerObj and item:getContainer()) then return end
+    if playerObj.isAsleep and playerObj:isAsleep() then return end
+    local CM = ISInventoryPaneContextMenu
+    if CM and CM.onDrinkFluid then CM.onDrinkFluid(item, 1, playerObj, nil, item) end
+end
 -- a stack header with more than one in it (A on it folds or opens the stack)
 local function padIsStack(w, el)
     local _, cnt, cs = padSel(w, el)
@@ -703,6 +733,7 @@ function ZeD.InventoryRenderer.padItemButtons(el)
     el.onContextMenu = ZeD.InventoryRenderer.padMove
     el.onHoldActivate = function(w, e)
         if ZeD.InventoryRenderer.padIsFood(e.item) then return ZeD.InventoryRenderer.padEat(w, e) end
+        if ZeD.InventoryRenderer.padIsDrink(e.item) then return ZeD.InventoryRenderer.padDrink(w, e) end   -- (punch list 228q)
         if mark then return mark(w, e) end
     end
     el.promptA = function(w, e)

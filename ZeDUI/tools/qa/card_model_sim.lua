@@ -508,6 +508,20 @@ if haveBase then
         c = string.sub(c, 1, co - 1) .. string.sub(nc, ca, cb) .. string.sub(c, co + #ctxOld)
         oldSrc[1].src = c
     end
+    -- (Nov 14 2026, punch list 227 follow-up, the design lead's "Show it": a thing on the floor shows Grab, its main
+    -- action, More, as in a crate; on purpose, so the old card is given it too)
+    local og = oldSrc[2].src
+    local gr = '    if ctx == "ground" then\n        return {{id = "TAKE", label = VT("TAKE"), primary = true}, more}\n    end\n'
+    local cn = '    if ctx == "container" then\n        table.insert(verbs, 1, {id = "TAKE"'
+    local g1, c1 = string.find(og, gr, 1, true), string.find(og, cn, 1, true)
+    check("227: the old card's floor verbs found", g1 and c1)
+    if g1 and c1 then
+        og = string.sub(og, 1, g1 - 1) .. string.sub(og, g1 + #gr)
+        c1 = string.find(og, cn, 1, true)
+        og = string.sub(og, 1, c1 - 1) .. '    if ctx == "container" or ctx == "ground" then\n        table.insert(verbs, 1, {id = "TAKE"'
+            .. string.sub(og, c1 + #cn)
+        oldSrc[2].src = og
+    end
 end
 local OLD
 if haveBase then

@@ -141,6 +141,13 @@ ZeD.selectDefault = KB.selectDefault
 --- Opens the keyboard on textEntryBox for playerNum, joypadData's controller holding it. Returns
 --- itself (Overrides/Prompts.lua's OnScreenKeyboard.Show hands it back).
 function ZeD_Keyboard:show(playerNum, textEntryBox, joypadData)
+    -- (Nov 14 2026, punch list 228b: shown again while it is up (another field), the stand-still it set is still its
+    -- own; read before anything changes, so hide lets the character move again)
+    local blocking = self.setBlockMovement and self.textEntryBox ~= nil and self.playerNum == playerNum
+    if self.setBlockMovement and not blocking then
+        local p0 = self.playerNum and getSpecificPlayer(self.playerNum)
+        if p0 then p0:setBlockMovement(false) end
+    end
     self.playerNum = playerNum
     self.textEntryBox = textEntryBox
     self.joypadData = joypadData
@@ -163,9 +170,9 @@ function ZeD_Keyboard:show(playerNum, textEntryBox, joypadData)
     self:setAlwaysOnTop(true)
     self:layout()
     -- in game, the character stands still while typing (vanilla)
-    self.setBlockMovement = false
+    self.setBlockMovement = blocking and true or false
     local ms = MainScreen and MainScreen.instance
-    if ms and ms.inGame then
+    if ms and ms.inGame and not blocking then
         local p = playerNum and getSpecificPlayer(playerNum)
         if p and not p:isBlockMovement() then
             self.setBlockMovement = true
@@ -214,8 +221,8 @@ end
 --- Puts the keyboard away: the character may move again, the field is focused again, and the
 --- controller goes back to what held it before (or to the field).
 function ZeD_Keyboard:hide()
-    local ms = MainScreen and MainScreen.instance
-    if ms and ms.inGame and self.setBlockMovement then
+    -- (Nov 14 2026, punch list 228b: the stand-still it set always goes, whatever the screen is now)
+    if self.setBlockMovement then
         local p = self.playerNum and getSpecificPlayer(self.playerNum)
         if p then p:setBlockMovement(false) end
     end

@@ -2055,7 +2055,7 @@ do
     local src = f:read("*a")
     f:close()
     local at = string.find(src, "function ZeD_CharacterWindow.ensureBothOpenForGamepad", 1, true)
-    check("the pair's own opener stops for the screen", at ~= nil and string.find(string.sub(src, at, at + 200), "Focus.held()", 1, true) ~= nil)
+    check("the pair's own opener stops for the screen", at ~= nil and string.find(string.sub(src, at, at + 200), "Focus.modalUp()", 1, true) ~= nil)   -- (punch list 228a: modalUp is the old held)
     -- (punch list 97: as the World window does, the drawer takes off what a tab left on, counting coverClear's clips)
     check("the Character window's drawer clears the clips a tab left on",
         string.find(src, "p._coverClears = (p._coverClears or 0) + 1", 1, true) ~= nil

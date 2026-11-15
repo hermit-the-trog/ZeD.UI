@@ -154,21 +154,21 @@ end
 function ZeD_ContextMenu:close()
     self._ctx.open = false
     ZeD.ContextMenu.Registry.highlight(self, nil)   -- the outline goes with the menu
-    -- Release gamepad focus
-    if self._joyfocus and setJoypadFocus then
-        pcall(setJoypadFocus, self.player, nil)
-    end
-    self._joyfocus = false
-
-    -- Return engine focus to FocusManager's tracked window so gamepad
-    -- dispatch resumes after context menu dismissal. Without this, engine
-    -- focus stays nil and D-pad goes nowhere until a new window is opened.
+    -- Hand the pad back: to what opened the menu (its origin: the belt, the car radio's CD list ...), else to
+    -- FocusManager's tracked window so gamepad dispatch resumes after the menu. Without this, engine focus stays
+    -- nil and D-pad goes nowhere until a new window is opened. An option that gave the pad to something new (a
+    -- prompt, the keyboard) keeps it there. (Nov 14 2026, punch list 228c: Focus.menuClosed; the menu used to
+    -- clear the pad and hand it only to the window.)
     -- Defensive nil-check chain: context menu loads before FocusManager in
     -- alphabetical order, so ZeD.Input.Focus may not exist yet on first load.
-    if ZeD and ZeD.Input and ZeD.Input.Focus
-       and ZeD.Input.Focus.reclaimEngineFocus then
-        ZeD.Input.Focus.reclaimEngineFocus(self.player)   -- (the menu's own player's pad)
+    local Fo = ZeD and ZeD.Input and ZeD.Input.Focus
+    if Fo and Fo.menuClosed then
+        Fo.menuClosed(self, self.player)   -- (the menu's own player's pad)
+    else
+        if self._joyfocus and setJoypadFocus then pcall(setJoypadFocus, self.player, nil) end
+        if Fo and Fo.reclaimEngineFocus then Fo.reclaimEngineFocus(self.player) end
     end
+    self._joyfocus = false
 
     -- CRITICAL: do NOT removeFromUIManager on the vanilla menu. It's a cached
     -- per-player singleton (getPlayerContextMenu); removing it breaks the

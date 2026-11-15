@@ -503,10 +503,59 @@ end
 -- FOCUS CLAIM / RELEASE / READ
 -- ---------------------------------------------------------------------------
 
+-- whether ui is up on screen (a holder the game forgot to clear is not)
+local function _shown(ui)
+    if type(ui) ~= "table" or not ui.isReallyVisible then return false end
+    local ok, vis = pcall(function() return ui:isReallyVisible() end)
+    return ok and vis == true
+end
+
+--- What holds player pn's pad (pn missing: player 1's) that is not one of ZeD's registered windows nor a part of
+--- one, while it is up: the keyboard, a ZeD menu (strip or list), the oven's pop-out, the reader, the seat chooser,
+--- the car radio, the siren, the two-way's full view, Messages, chat, the controller map, the guide, the paper
+--- map, the belt, a prompt, the game's own menus and dialogs. nil when the pad is a ZeD window's or the game's.
+--- (Nov 14 2026, punch list 228a: the engine's joypad focus says who holds it; the registry says whose it is)
+function Focus.foreignHolder(pn)
+    if type(pn) ~= "number" then pn = 0 end
+    if not getJoypadFocus then return nil end
+    local ok, f = pcall(getJoypadFocus, pn)
+    if not (ok and _shown(f)) then return nil end
+    local o, n = f, 0
+    while type(o) == "table" and n < 32 do
+        if _indexOf(o) then return nil end
+        o, n = o.parent, n + 1
+    end
+    return f
+end
+
+-- the join screen or a ZeD prompt holding a pad: nothing takes the pad from these, not even a window opening
+-- (the old Focus.held, which claimFocus and the pair's opening still read)
+function Focus.modalUp()
+    local CM = ZeD.CommunityCards
+    if CM ~= nil and CM.joinWin ~= nil then return true end
+    local P = JoypadState and JoypadState.players
+    if P then
+        for i = 1, 4 do
+            local f = P[i] and P[i].focus
+            if f and f.Type == "ZeD_Prompt" and _shown(f) then return true end
+        end
+    end
+    return false
+end
+
 --- A window that keeps the pad to itself is up (the join screen,
 --- ZeD_CommunityCards.lua): nothing here opens a window or takes the pad under
 --- it. It holds the pad itself (ZeD_JoinWindow:update) and hands it back when it closes.
-function Focus.held()
+--- (Nov 14 2026, punch list 228a: and anything else holding player pn's pad that is not a ZeD window, Focus.foreignHolder:
+--- Y opened the pair over the keyboard, a menu, the oven's pop-out, the reader ... and left them up with no pad.
+--- pn missing: any player's. claimFocus and ensureBothOpenForGamepad read Focus.modalUp instead, so a window a menu
+--- option or a wheel opens still takes the pad as the menu lets it go.)
+function Focus.held(pn)
+    if type(pn) == "number" then
+        if Focus.foreignHolder(pn) then return true end
+    else
+        for i = 0, 3 do if Focus.foreignHolder(i) then return true end end
+    end
     local CM = ZeD.CommunityCards
     if CM ~= nil and CM.joinWin ~= nil then return true end
     -- (Nov 14 2026, punch list 196: a ZeD dialog (the Safe mode question and every other ZeD_Prompt) holding a pad
@@ -529,14 +578,14 @@ end
 --- focused window, lands on something lit (Focus.ensureEntry), takes the
 --- engine's joypad focus on that player's slot, and their bumpers leave the
 --- zoom chord for the window pair; ZeD_FocusChanged fires.
---- Does nothing while Focus.held().
+--- Does nothing while Focus.modalUp() (the join screen, a ZeD prompt).
 function Focus.claimFocus(w)
     if not w then return end
     if Focus.pauseMenuUp() then return end   -- (punch list 188: never take the pad from the pause menu)
     local pn = _pnOf(w)
     local s = _S(pn)
     if s.win == w then return end
-    if Focus.held() then return end
+    if Focus.modalUp() then return end   -- (punch list 228a: Focus.held's wider test is for the pad's own Y)
 
     local old = s.win
     s.win = w
@@ -574,7 +623,9 @@ function Focus.releaseFocus(pn)
     s.win  = nil
     s.dDir = nil
 
-    _pushEngineFocus(nil, pn)
+    -- (Nov 14 2026, punch list 228b: the engine's focus clears only when it is not on something else that holds the
+    -- pad, a prompt, the keyboard, the oven's pop-out: clearing it left them up with no pad)
+    if not Focus.foreignHolder(pn) then _pushEngineFocus(nil, pn) end
     _setBumperChordEnabled(true, pn)
 
     print("[ZeD.Input] Focus: release: " .. _label(old) .. " -> nil" .. _who(pn))
@@ -800,6 +851,37 @@ function Focus.reclaimEngineFocus(pn)
     if s and s.win and setJoypadFocus then
         pcall(setJoypadFocus, pn, s.win)
     end
+end
+
+--- A ZeD menu (ZeD_ContextMenu, the strip; ZeD_ContextList, the list) of player pn has closed: the pad goes back
+--- where it came from, as the game's own menu does (ISContextMenu:closeAll): to the menu's origin (the game's menu
+--- it stood in for carries it: the belt, the car radio's CD list, a radio face, a mod's panel) while that is still up,
+--- else to the focused ZeD window. An option that handed the pad on (a prompt, the keyboard, another menu) keeps it.
+--- (Nov 14 2026, punch list 228c: the menus let the pad go to nothing, or to the window, never to the belt; the
+--- origin is used once: the game's menu is one per player and keeps the field from one opening to the next)
+function Focus.menuClosed(menu, pn)
+    if type(pn) ~= "number" then pn = 0 end
+    local vm = menu and menu.vanillaMenu
+    local origin = (menu and menu.origin) or (vm and vm.origin) or nil
+    if menu then menu.origin = nil end
+    if vm then vm.origin = nil end
+    -- (no pad on this player: the mouse's menu, as before)
+    if not (JoypadState and JoypadState.players and JoypadState.players[pn + 1]) then
+        Focus.reclaimEngineFocus(pn)
+        return
+    end
+    local holder = nil
+    if getJoypadFocus then
+        local ok, f = pcall(getJoypadFocus, pn)
+        if ok then holder = f end
+    end
+    if holder ~= nil and holder ~= menu and holder ~= vm and _shown(holder) then return end
+    if origin ~= nil and origin ~= menu and origin ~= vm and _shown(origin) then
+        _pushEngineFocus(origin, pn)
+        return
+    end
+    if holder == menu or holder == vm then _pushEngineFocus(nil, pn) end
+    Focus.reclaimEngineFocus(pn)
 end
 
 -- ---------------------------------------------------------------------------
@@ -1905,7 +1987,9 @@ end
 function Focus.gameCursor(pn)
     local cell = getCell and getCell()
     local d = cell and cell:getDrag(pn or 0)
-    if d and d.Type ~= "ISMoveableCursor" then return d end
+    -- (Nov 14 2026, punch list 228o: the Furniture tab drives player 1's furniture cursor only (it opens itself for
+    -- one a menu's Pick up / Place / Rotate / Scrap starts, FurnitureTab.lua's watch); another player's is the game's)
+    if d and (d.Type ~= "ISMoveableCursor" or (pn or 0) ~= 0) then return d end
     return nil
 end
 
@@ -2347,7 +2431,7 @@ end
 local function _holdTicks(s, jid, pn)
     -- (Nov 14 2026, punch list 184, the director's playtest: with a game cursor up, Y is the cursor's (Place item's
     -- fine aim), never ZeD's windows; a tap hid the pair and a hold closed it while the game took the same press)
-    if Focus.held() or (not s.win and Focus.gameCursor(pn)) then
+    if Focus.held(pn) or (not s.win and Focus.gameCursor(pn)) then
         s.yHeld, s.yUsed = false, false
         s.prevY = _btnDown("Y", jid, s)
         return
@@ -2534,7 +2618,9 @@ local function _tickPlayer(pn, s)
     do
         local d = Focus.gameCursor(pn)
         if d then
-            if s.win and s.dragSeen ~= d then
+            -- (Nov 14 2026, punch list 228b: only while a ZeD window holds the pad; over a prompt, the keyboard or a
+            -- pop-out it waits until they let go)
+            if s.win and s.dragSeen ~= d and not Focus.foreignHolder(pn) then
                 s.dragSeen = d
                 _hideAllWindows("cursor", pn)
                 return
@@ -2577,8 +2663,10 @@ local function _tickPlayer(pn, s)
     local maxMagSq = _aimMagSq(pn, jid)
     local aimingActive = (maxMagSq > _aimingThresholdSq())
     local graceActive  = (getTimestampMs() < s.wsGrace)
+    -- (Nov 14 2026, punch list 228b: only while a ZeD window holds the pad, not the keyboard, a prompt or a pop-out
+    -- over it, which the escape left up with no pad)
     local canFire = aimingActive and s.win and (not s.wsLatched)
-                    and (not graceActive)
+                    and (not graceActive) and not Focus.foreignHolder(pn)
 
     if canFire then
         s.wsLatched = true

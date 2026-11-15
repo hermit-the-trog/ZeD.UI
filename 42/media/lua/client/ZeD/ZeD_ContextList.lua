@@ -131,6 +131,19 @@ function ZeD_ContextList:_firstLive(lv, from, dir)
     return nil
 end
 
+-- (Nov 14 2026, punch list 228d: 220's rules, as the strip has them (ZeD_ContextMenu:update). The list closes once the
+-- player has walked more than this many tiles from where it opened, or changed floor; and a pad player's list left
+-- with no pad focus takes the pad back, so B always reaches it.)
+local WALK_OFF_TILES = 2
+
+-- where the player stands now: {x, y, z}, or nil
+local function standAt(pn)
+    local p = getSpecificPlayer and getSpecificPlayer(pn)
+    if not p then return nil end
+    local ok, at = pcall(function() return { x = p:getX(), y = p:getY(), z = p:getZ() } end)
+    return ok and at or nil
+end
+
 function ZeD_ContextList:open()
     self._ctx.open = true
     local top = { items = self._ctx.actions, head = not self.noHead }
@@ -154,6 +167,7 @@ function ZeD_ContextList:open()
     self._nav = (D and D.getMode and D.getMode(self.player) == "gamepad") and "pad" or "mouse"
     self._lastMx, self._lastMy = getMouseX(), getMouseY()   -- (the panel covers the screen: its mouse is the screen's)
     self:_notePress()
+    self._openAt = standAt(self.player)   -- (where the player stood when it opened: walking away closes it, punch list 228d)
     if JoypadState and JoypadState.players and JoypadState.players[self.player + 1] then
         self._joyfocus = true
         pcall(function() if setJoypadIgnoreAimUntilCentered then setJoypadIgnoreAimUntilCentered(self.player, true) end end)
@@ -170,11 +184,16 @@ function ZeD_ContextList:close()
     if not self._ctx.open then return end
     self._ctx.open = false
     ZeD.ContextMenu.Registry.highlight(self, nil)   -- the outline goes with the menu
-    if self._joyfocus and setJoypadFocus then pcall(setJoypadFocus, self.player, nil) end
-    self._joyfocus = false
-    if ZeD and ZeD.Input and ZeD.Input.Focus and ZeD.Input.Focus.reclaimEngineFocus then
-        ZeD.Input.Focus.reclaimEngineFocus(self.player)
+    -- (Nov 14 2026, punch list 228c: the pad goes back to what opened the menu (its origin), else to the focused
+    -- ZeD window; an option that gave it to something new keeps it there. Focus.menuClosed.)
+    local Fo = ZeD and ZeD.Input and ZeD.Input.Focus
+    if Fo and Fo.menuClosed then
+        Fo.menuClosed(self, self.player)
+    else
+        if self._joyfocus and setJoypadFocus then pcall(setJoypadFocus, self.player, nil) end
+        if Fo and Fo.reclaimEngineFocus then Fo.reclaimEngineFocus(self.player) end
     end
+    self._joyfocus = false
     -- the vanilla menu is a cached per-player singleton: hide it, never remove it
     if self.vanillaMenu then
         pcall(function() self.vanillaMenu:setVisible(false) end)
@@ -523,9 +542,26 @@ local function rowAt(self, x, y)
     return nil
 end
 
+-- true when the list's player walked off from where it opened (punch list 228d)
+function ZeD_ContextList:_walkedOff()
+    local now = standAt(self.player)
+    if not now then return false end
+    local at = self._openAt
+    if not at then self._openAt = now; return false end   -- (a list that did not come through :open: from here)
+    local dx, dy = now.x - at.x, now.y - at.y
+    return dx * dx + dy * dy > WALK_OFF_TILES * WALK_OFF_TILES or math.floor(now.z) ~= math.floor(at.z)
+end
+
 function ZeD_ContextList:update()
     ZeD_Panel.update(self)
     if not self._ctx.open then return end
+    if self:_walkedOff() then
+        self:close()
+        return
+    end
+    if self._joyfocus and getJoypadFocus and getJoypadFocus(self.player) == nil and self:isReallyVisible() then
+        pcall(setJoypadFocus, self.player, self)
+    end
     local mx, my = self:getMouseX(), self:getMouseY()
     if self._lastMx == nil then
         -- (a list that did not come through :open, the window box's menu: who opened it)

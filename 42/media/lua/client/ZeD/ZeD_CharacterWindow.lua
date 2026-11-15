@@ -3248,6 +3248,20 @@ local function drawTabStrip(self, win)
             end
         end
     end
+    -- (Nov 14 2026, punch list 228h: 207a on this window. The strip's stops were built once with the ring, so a tab
+    -- that shows later (Radio, when a radio is picked up with the windows open) had no stop and Down stopped at
+    -- Skills. Rebuilt when the shown tabs change, as the World window's are.)
+    do
+        local key = ""
+        for _, t in ipairs(CHAR_TABS) do if isTabVisible(t, win) then key = key .. t.id .. "," end end
+        local F = ZeD.Input and ZeD.Input.Focus
+        if key ~= "" and key ~= win._tabBarKey and win._focusRing and F and F.setRingZoneElementsKeepId then
+            win._tabBarKey = key
+            local els = _buildTabBarElements(win)
+            _attachTabBarCallbacks(win, els)
+            pcall(F.setRingZoneElementsKeepId, win, "charTabBar", els)
+        end
+    end
     -- The controller's focus on the strip, resolved once: only while this window
     -- has the focus and the controller is in use (Focus.liveZone), so the mark
     -- never lingers in the other window or under the mouse. The active tab shows
@@ -7253,7 +7267,7 @@ end
 --- gamepad-only and is gated by callers, not internally.
 function ZeD_CharacterWindow.ensureBothOpenForGamepad(playerNum)
     playerNum = playerNum or 0
-    if ZeD.Input and ZeD.Input.Focus and ZeD.Input.Focus.held and ZeD.Input.Focus.held() then return end   -- (the join screen)
+    if ZeD.Input and ZeD.Input.Focus and ZeD.Input.Focus.modalUp and ZeD.Input.Focus.modalUp() then return end   -- (the join screen, a prompt; punch list 228a: Focus.held is the pad's own Y)
     if not ZeD.windowsFor(playerNum) then return end   -- (split-screen: the game's own, ZeD.windowsFor)
     if not getSpecificPlayer(playerNum) then return end
     if getSpecificPlayer(playerNum):isDead() then return end

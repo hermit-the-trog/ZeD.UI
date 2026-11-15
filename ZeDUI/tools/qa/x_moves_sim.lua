@@ -13,6 +13,10 @@
 --   OTHER   X tapped on a stop that is not an item row still runs its own onContextMenu
 --   FOOD    A tapped on a food row or on the card's Eat never eats; A held does (the game's eat); hold A on other
 --           rows still marks; the prompts say Eat (hold)
+--   DRINK   (punch list 228q) the same for a drink: A tapped on a water bottle's row or on the card's Drink never
+--           drinks; A held does (the game's drink); the card's Use (the game's double-click: pills) is a hold too
+--   FLOOR   (punch list 227, "Show it") a thing on the floor shows Grab, its main action, More, as in a crate; the
+--           action runs the game's own handler on the floor item (it brings the item over itself); food still holds
 --   WIRED   both windows' list and column builders hand their item stops to padItemButtons
 -- What it can't show: the game's timed actions really running. Run from the repo root:
 --   lua51 ZeDUI/tools/qa/x_moves_sim.lua
@@ -87,6 +91,7 @@ local function item(name, where, opts)
     return { name = name, heavy = opts.heavy, getContainer = function() return where end,
              getCategory = function() return opts.cat or "Item" end,
              getFluidContainer = function() return opts.fluid end,
+             isSealed = function() return opts.sealed == true end,
              getCustomMenuOption = function() return opts.own end }
 end
 isForceDropHeavyItem = function(it) return it.heavy == true end
@@ -95,6 +100,8 @@ ISInventoryPaneContextMenu = {
     createMenu = function(pn, mine, items) log[#log + 1] = { kind = "menu", items = items } end,
     -- (the game's eat queues ISEatFoodAction)
     eatItem = function(it) log[#log + 1] = { kind = "ISEatFoodAction", item = it } end,
+    -- (the game's drink queues ISDrinkFluidAction)
+    onDrinkFluid = function(it) log[#log + 1] = { kind = "ISDrinkFluidAction", item = it } end,
     equipHeavyItem = function(p, it) log[#log + 1] = { kind = "heavy", item = it } end,
 }
 
@@ -276,6 +283,22 @@ focus(charW, itemStop(shirt))
 hold(charW, Joypad.AButton)
 check("FOOD: A held on a row that is not food still marks", #logged("mark") == 1 and #logged("ISEatFoodAction") == 0)
 
+-- DRINK (punch list 228q)
+local WATER = { isEmpty = function() return false end }
+local bottle = item("water bottle", MAIN, { fluid = WATER })
+check("DRINK: a bottle with water in it is a drink", IR.padIsDrink(bottle) == true)
+check("DRINK: ... an empty one is not", not IR.padIsDrink(item("empty", MAIN, { fluid = { isEmpty = function() return true end } })))
+check("DRINK: ... nor a sealed one (the card has no Drink for it)", not IR.padIsDrink(item("sealed", MAIN, { fluid = WATER, sealed = true })))
+focus(charW, itemStop(bottle))
+tap(charW, Joypad.AButton)
+check("DRINK: A tapped on a water bottle's row never drinks", #logged("ISDrinkFluidAction") == 0)
+check("DRINK: ... it opens the card", #logged("card") == 1)
+hold(charW, Joypad.AButton)
+check("DRINK: A held on a water bottle's row drinks (the game's drink)", #logged("ISDrinkFluidAction") == 1)
+check("DRINK: ... and marks nothing", #logged("mark") == 0)
+el = charW._focusRing[1].elements[1]
+check("DRINK: the hold's word is the card's Drink", el.promptHold(charW, el) == "ContextMenu_Drink", el.promptHold(charW, el))
+
 -- FOOD on the card, and the card's header verbs (punch list 227)
 -- the card's model: VERB_KEYS, safeGet, categoryOf, headerVerbsForContext and compactVerbs, cut from ItemCardOrganism.lua
 instanceof = function(o, cls) return false end
@@ -327,6 +350,16 @@ if VERBS then
     check("CARD: ... the narrow card: Eat, More", ids == "EAT,MORE", ids)
     ids = VERBS("container", item("nail", CRATE))
     check("CARD: a thing with no verb of its own in a crate: Grab, More", ids == "TAKE,MORE", ids)
+    -- FLOOR (punch list 227, the design lead's "Show it")
+    ids, v = VERBS("ground", crayfish)
+    check("FLOOR: food on the floor: Grab, Eat, More", ids == "TAKE,EAT,MORE", ids)
+    check("FLOOR: ... the pad lands on Eat, not Grab", v[2].primary == true and not v[1].primary)
+    ids = VERBS("ground", item("nail", FLOOR))
+    check("FLOOR: a thing with no verb of its own on the floor: Grab, More", ids == "TAKE,MORE", ids)
+    ids, v = VERBS("ground", item("book", FLOOR, { cat = "Literature" }))
+    check("FLOOR: a book on the floor: Grab, Read, More", ids == "TAKE,READ,MORE", ids)
+    ids = VERBS("container", bottle)
+    check("DRINK: a bottle in a crate: Grab, Drink, More", ids == "TAKE,DRINK,MORE", ids)
 end
 
 local ICS = readFile(Z .. "ItemCard.lua") or ""
@@ -337,7 +370,9 @@ local ctxSrc = cut(ICS, "function ZeD_ItemCard:_effectiveContext()", "\nend")
 check("WIRED: the card's stops, dispatch, marks and context are found", cardSrc and dispSrc and markSrc and ctxSrc)
 if cardSrc and dispSrc and markSrc and ctxSrc then
     ZeD_ItemCard = {}
-    local fn, e = loadstring("local VERB_DISPATCH = {}\n" .. cardSrc .. dispSrc .. markSrc .. ctxSrc, "card stops")
+    local holdLine = ICS:match("(local HOLD_VERBS = [^\n]*\n)")
+    check("WIRED: the card's hold verbs are found", holdLine ~= nil)
+    local fn, e = loadstring("local VERB_DISPATCH = {}\n" .. (holdLine or "") .. cardSrc .. dispSrc .. markSrc .. ctxSrc, "card stops")
     check("the card's stops compile", fn ~= nil, e)
     if fn then fn() end
     getMouseX = function() return 0 end
@@ -390,6 +425,44 @@ if cardSrc and dispSrc and markSrc and ctxSrc then
     end
     card = makeCard(box, {})
     check("CARD: a thing in the world's crate is the container context (Grab shows)", card:_effectiveContext() == "container")
+    -- DRINK on the card
+    local wcard = makeCard(bottle, { { id = "DRINK", label = "ContextMenu_Drink", primary = true },
+        { id = "USE", label = "Use" }, { id = "MORE", label = "More", isMore = true } })
+    local okD, dels = pcall(wcard.getActionStripElements, wcard)
+    check("DRINK: the card's stops build", okD, dels)
+    if okD then
+        check("DRINK: the card's Drink is still where the pad lands", dels[1].isPrimary == true)
+        focus(charW, dels[1])
+        tap(charW, Joypad.AButton)
+        check("DRINK: A tapped on the card's Drink never drinks (A, A on a bottle)", #logged("ISDrinkFluidAction") == 0)
+        hold(charW, Joypad.AButton)
+        check("DRINK: A held on the card's Drink drinks", #logged("ISDrinkFluidAction") == 1)
+        check("DRINK: the card's Drink says its word for the hold prompt", dels[1].promptHold == "ContextMenu_Drink")
+        check("DRINK: the card's Use (the game's double-click: pills, smokes) is a hold too",
+            dels[2].onActivate == nil and dels[2].onHoldActivate ~= nil)
+    end
+    -- FLOOR on the card: the floor container's thing, Grab then Eat (a hold) then More
+    local onFloor = item("crayfish3", FLOOR, { cat = "Food" })
+    card = makeCard(onFloor, {})
+    check("FLOOR: a thing in the floor container is the ground context", card:_effectiveContext() == "ground")
+    card = makeCard(onFloor, { { id = "TAKE", label = "ContextMenu_Grab" }, { id = "EAT", label = "Eat", primary = true },
+        { id = "MORE", label = "More", isMore = true } })
+    local okG, gels = pcall(card.getActionStripElements, card)
+    check("FLOOR: the card's stops build", okG, gels)
+    if okG then
+        focus(worldW, gels[2])
+        tap(worldW, Joypad.AButton)
+        check("FLOOR: A tapped on the floor card's Eat never eats", #logged("ISEatFoodAction") == 0)
+        hold(worldW, Joypad.AButton)
+        local eats = logged("ISEatFoodAction")
+        check("FLOOR: A held on it runs the game's eat on the floor item itself (it brings it over first)",
+            #eats == 1 and eats[1].item == onFloor)
+        check("FLOOR: ... with no move of ZeD's queued before it", #logged("move") == 0)
+        focus(worldW, gels[1])
+        tap(worldW, Joypad.AButton)
+        local mv = logged("move")
+        check("FLOOR: Grab (a tap) takes it into your inventory", mv[1] and mv[1].dest == MAIN and mv[1].items[1] == onFloor)
+    end
     local inBag = item("apple", BAG, { cat = "Food" })
     inBag.carried = true
     card = makeCard(inBag, {})

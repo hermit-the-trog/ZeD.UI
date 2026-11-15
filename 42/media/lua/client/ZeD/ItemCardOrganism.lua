@@ -419,12 +419,11 @@ local function headerVerbsForContext(ctx, item)
         }
     end
 
-    if ctx == "ground" then
-        return {{id = "TAKE", label = VT("TAKE"), primary = true}, more}
-    end
-
-    -- inventory + container share the same primary verb logic, modulo TAKE
-    -- being needed when source is a non-player container.
+    -- inventory, container and ground share the same primary verb logic, modulo TAKE
+    -- being needed when source is a non-player container or the floor.
+    -- (Nov 14 2026, punch list 227, the design lead's "Show it": a thing on the floor shows Grab, its main action,
+    -- More, as in a crate. The game's own handlers the verbs run (eat, wear, equip, read, drink) bring a floor item
+    -- over first themselves, from the floor container the World window shares, as the game's context menu does.)
     local primary
     if cat == "Clothing" then
         primary = {id = "EQUIP", label = VT("EQUIP"), primary = true}
@@ -457,7 +456,7 @@ local function headerVerbsForContext(ctx, item)
     if primary then verbs[#verbs + 1] = primary end
     -- OFF HAND: equips the second hand, which otherwise only the context menu could
     if cat == "Weapon" or cat == "Firearm" then verbs[#verbs + 1] = {id = "OFF HAND", label = VT("OFF HAND"), primary = false} end
-    if ctx == "container" then
+    if ctx == "container" or ctx == "ground" then
         table.insert(verbs, 1, {id = "TAKE", label = VT("TAKE"), primary = (primary == nil)})
     elseif ctx == "inventory" then
         verbs[#verbs + 1] = {id = "DROP", label = VT("DROP"), primary = false}

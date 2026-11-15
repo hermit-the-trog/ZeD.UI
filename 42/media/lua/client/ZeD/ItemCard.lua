@@ -281,6 +281,10 @@ end
 -- recipe and wash (see each below).
 -- ---------------------------------------------------------------------------
 local VERB_DISPATCH = {}
+-- the header verbs a controller runs on A held, never a tap (punch lists 225 and 228q): the ones that eat, drink,
+-- smoke or take a pill (USE is the game's double-click, which takes pills and smokes)
+local HOLD_VERBS = { EAT = true, DRINK = true, USE = true }
+ZeD_ItemCard.HOLD_VERBS = HOLD_VERBS
 
 -- a word over the character's head when a verb can't run (vanilla's halo note)
 local function note(player, text) pcall(function() player:setHaloNote(text) end) end
@@ -1681,7 +1685,10 @@ function ZeD_ItemCard:getActionStripElements()
                 }
                 -- (Nov 14 2026, punch list 225, the design lead's "Eat on a hold": a controller eats on A held,
                 -- never a tap, so the press that opened the card can't eat; the footer says "Eat (hold)")
-                if label == "EAT" then
+                -- (Nov 14 2026, punch list 228q: every verb that puts something in the character is a hold: Drink (a
+                -- bottle at A, A drank bleach or petrol), and Use, the game's double-click, which takes pills and
+                -- smokes; HOLD_VERBS)
+                if HOLD_VERBS[label] then
                     local e = els[#els]
                     e.onActivate, e.onHoldActivate, e.promptHold = nil, run, v.label
                 end
