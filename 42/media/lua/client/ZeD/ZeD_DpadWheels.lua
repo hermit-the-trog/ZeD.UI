@@ -1598,7 +1598,7 @@ end
 function H.openSetup(p, pn)
     local MM = ZeD.MainMenu
     if not (MM and MM.openOptions) then return end
-    if not (MainScreen and MainScreen.instance and MainScreen.instance:isVisible()) then ToggleEscapeMenu(getCore():getKey(KeybindId.MAIN_MENU)) end
+    if not (MainScreen and MainScreen.instance and MainScreen.instance:isVisible()) then ZeD.openPauseScreen() end
     nextFrame(function()
         MM.openOptions()
         if MM.pauseOpts then MM.pauseOpts.pageIdx = 1; MM.pauseOpts.scroll = 0 end
@@ -1627,7 +1627,7 @@ function H.players(p, pn)
     local MM = ZeD.MainMenu
     if not (MM and MM.act and MM.act.players) then return nil end
     return { detail = tr("UI_ZeD_Wheel_PlayersDetail"), run = function()
-        if not (MainScreen and MainScreen.instance and MainScreen.instance:isVisible()) then ToggleEscapeMenu(getCore():getKey(KeybindId.MAIN_MENU)) end
+        if not (MainScreen and MainScreen.instance and MainScreen.instance:isVisible()) then ZeD.openPauseScreen() end
         nextFrame(function() MM.act.players(); padToPause(pn) end, 3)   -- (the pad too: punch list 241)
     end }
 end

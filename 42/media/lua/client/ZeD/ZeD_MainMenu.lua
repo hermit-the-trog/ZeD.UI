@@ -1051,7 +1051,7 @@ function MM.openPauseMods(name, file)
     end
     local m = MainScreen and MainScreen.instance
     if m and m:isVisible() then show(); return true end
-    local ok = pcall(function() ToggleEscapeMenu(getCore():getKey(KeybindId.MAIN_MENU)) end)
+    local ok = pcall(function() ZeD.openPauseScreen() end)   -- (punch list 241: past the Escape takers)
     if not ok then return false end
     local n = 0
     local function tick()

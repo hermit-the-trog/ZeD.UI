@@ -164,6 +164,15 @@ local function onKey(key)
     if previousToggle then return previousToggle(key) end
 end
 
+-- (Nov 15 2026, punch list 241, QA: ZeD setup from the controller wheel with Messages or the Survival Guide open only
+-- closed that window: the wheel's way to the pause screen came through here and the Escape takers had it first.) The
+-- pause screen itself, as the game opens it, with nothing of ZeD's in between: for a menu choice, not a key.
+function ZeD.openPauseScreen()
+    local key = getCore():getKey(KeybindId.MAIN_MENU)
+    if previousToggle then return previousToggle(key) end
+    if ToggleEscapeMenu then return ToggleEscapeMenu(key) end
+end
+
 -- ZeD's handler becomes ToggleEscapeMenu itself, with the one that was current
 -- behind it. A mod that loads later and wraps the global in the usual way
 -- (remove it from the event, replace it, add the wrapper) then wraps ZeD's
