@@ -10,8 +10,9 @@
 -- mod's notes as pop-ups, Delete, Mark all read) and the window's help line under
 -- it (the plain words for what the pointer is over, the controller's prompts).
 -- Mouse and controller (D-pad between the list, the cards' buttons and the band;
--- A presses, B closes). Its notices are speech balloons out of the Messages
--- note on the belt for six seconds, so every notice comes out of the one place
+-- A presses, B closes; the cards are a panel A takes and the D-pad scrolls, B lets
+-- go). Its notices are speech balloons out of the Messages note on the belt for
+-- six seconds, so every notice comes out of the one place
 -- (they were corner toasts once; ZeD_Bubbles.layoutNoticeBalloons); a click
 -- opens the window on that source.
 -- ============================================================================
@@ -51,6 +52,13 @@ local _fo = {}
 local function focusOpts(win)
     _fo.win, _fo.focused, _fo.pad = win, true, true
     return _fo
+end
+-- the cards' panel as a whole: solid, so the mark rings it and never washes over its words
+-- (Nov 15 2026, punch list 236)
+local _po = { solid = true }
+local function panelOpts(win)
+    _po.win, _po.focused, _po.pad = win, true, true
+    return _po
 end
 
 -- the text of a message as blocks: rich text read as the prompts read it, plain text as paragraphs
@@ -135,7 +143,7 @@ function ZeD_MessagesWindow:rows()
 end
 
 function ZeD_MessagesWindow:choose(name)
-    if self.sel ~= name then self.scroll = 0; self.cardFocus = 1; self.asking = nil end
+    if self.sel ~= name then self.scroll = 0; self.cardFocus = 1; self.cardsGrab = nil; self.asking = nil end
     self.sel = name
     if name then MS.markRead(name) end
 end
@@ -437,6 +445,12 @@ function ZeD_MessagesWindow:prerender()
 
     -- the cards (clipped to their area)
     local ca = g.cardsArea
+    -- (the controller on the panel: its mark; taken with no button in view focused, a ring. Nov 15 2026, punch
+    -- list 236)
+    if joy and self.zone == "cards" then
+        if not self.cardsGrab then ZeD.Focus.mark(self, ca.x, ca.y, ca.w, ca.h, panelOpts(self), nil)
+        elseif not self:padButton() then A.frame(self, ca.x, ca.y, ca.w, ca.h, ac, 1, T.line(2)) end
+    end
     self:setStencilRect(ca.x, ca.y, ca.w, ca.h)
     for _, c in ipairs(g.cards) do
         if c.y + c.h >= ca.y and c.y <= ca.y + ca.h then
@@ -468,7 +482,7 @@ function ZeD_MessagesWindow:prerender()
             end
             -- the mod's own buttons
             for bi, b in ipairs(c.btns) do
-                local focused = joy and self.zone == "cards" and self:cardButtons()[self.cardFocus] == b
+                local focused = joy and self:padButton() == b
                 local hov = (not joy) and self._hover and self._hover.btn == b
                 local o = _cardBtn
                 o.hover, o.focus, o.win = hov, focused and focusOpts(self) or nil, self
@@ -527,6 +541,18 @@ function ZeD_MessagesWindow:getFooterPrompts()
     if not self.joyfocus then return nil end
     local P = ZeD.Prompt
     local move = P and P.padNote and P.padNote(tr("UI_ZeD_Msg_DpadMove")) or tr("UI_ZeD_Msg_DpadMove")
+    -- (the cards' panel, Nov 15 2026, punch list 236: on it, A takes it; taken, the D-pad scrolls, A presses the
+    -- button in view and B lets go)
+    if self.zone == "cards" and not self.asking then
+        if not self.cardsGrab then
+            return { move, { glyph = "A", label = tr("UI_ZeD_Terms_PromptScroll") }, { glyph = "B", label = getText("UI_Close") } }
+        end
+        local scroll = P and P.padNote and P.padNote(tr("UI_ZeD_Prompt_DPadScroll")) or tr("UI_ZeD_Prompt_DPadScroll")
+        local out = { scroll }
+        if self:padButton() then out[#out + 1] = { glyph = "A", label = tr("UI_ZeD_Msg_Choose") } end
+        out[#out + 1] = { glyph = "B", label = tr("UI_ZeD_Prompt_Back") }
+        return out
+    end
     -- (B answers a Delete question with No before it closes the window)
     return { move, { glyph = "A", label = tr("UI_ZeD_Msg_Choose") }, { glyph = "B", label = self.asking and tr("UI_Cancel") or getText("UI_Close") } }
 end
@@ -753,15 +779,73 @@ local function showButton(self, b)
     elseif b.y + b.h > ca.y + ca.h then self.scroll = self.scroll + (b.y + b.h - (ca.y + ca.h)) + ZeD.T.px(U.PAD) end
 end
 
+-- The cards are a panel (Nov 15 2026, punch list 236): the D-pad moves onto it like any other part; A takes it
+-- (cardsGrab) and then Up / Down scroll it, landing on the cards' buttons as they come into view; B lets it go and
+-- B again closes the window. The knobs' "A grabs, D-pad turns, B lets go" (Focus.knobStop), for a scroll.
+local function visibleBtn(self, b)
+    local ca = self._g and self._g.cardsArea
+    return ca ~= nil and b ~= nil and b.y >= ca.y and b.y + b.h <= ca.y + ca.h
+end
+
+-- the focused button when it is in view, else nil
+function ZeD_MessagesWindow:padButton()
+    if not (self.zone == "cards" and self.cardsGrab) then return nil end
+    local b = self:cardButtons()[self.cardFocus]
+    if visibleBtn(self, b) then return b end
+    return nil
+end
+
+function ZeD_MessagesWindow:grabCards(on)
+    self.cardsGrab = on and true or nil
+    if not on then return end
+    -- (the first button in view, if any)
+    self.cardFocus = 0
+    for i, b in ipairs(self:cardButtons()) do if visibleBtn(self, b) then self.cardFocus = i; break end end
+end
+
+-- a grabbed panel's Up / Down: the next button when it is in view or one step away, else a step of scroll
+local function padScroll(self, dir)
+    local g = self._g
+    if not g then return end
+    local ca = g.cardsArea
+    local step = ZeD.T.px(60)
+    local btns = self:cardButtons()
+    local cur = btns[self.cardFocus]
+    local idx
+    if visibleBtn(self, cur) then idx = self.cardFocus + dir
+    elseif dir > 0 then
+        for i, b in ipairs(btns) do if b.y >= ca.y then idx = i; break end end
+    else
+        for i = #btns, 1, -1 do if btns[i].y + btns[i].h <= ca.y + ca.h then idx = i; break end end
+    end
+    local nb = idx and btns[idx]
+    if nb and ((dir > 0 and nb.y + nb.h <= ca.y + ca.h + step) or (dir < 0 and nb.y >= ca.y - step)) then
+        self.cardFocus = idx
+        showButton(self, nb)
+        sound("UISelectListItem")
+        return
+    end
+    local maxS = self._maxS or 0
+    local s = math.max(0, math.min(maxS, self.scroll + dir * step))
+    if s ~= self.scroll then self.scroll = s; sound("UISelectListItem") end
+end
+
 function ZeD_MessagesWindow:onJoypadDown(button, joypadData)
     if button == Joypad.BButton then
-        if self.asking then self:cancelAsk() else self:close() end
+        if self.asking then self:cancelAsk()
+        elseif self.zone == "cards" and self.cardsGrab then self:grabCards(false); sound("UISelectListItem")
+        else self:close() end
         return
     end
     if button ~= Joypad.AButton then return end
-    if self.zone == "cards" then self:pressCard(self:cardButtons()[self.cardFocus])
+    if self.zone == "cards" then
+        if not self.cardsGrab then self:grabCards(true); sound("UISelectListItem")
+        else
+            local b = self:padButton()
+            if b then self:pressCard(b) else self:grabCards(false); sound("UISelectListItem") end
+        end
     elseif self.zone == "foot" then self:pressFoot(self._g and self._g.foot[self.footFocus])
-    elseif self.zone == "list" and #self:cardButtons() > 0 then self.zone = "cards"; self.cardFocus = 1; sound("UISelectListItem") end
+    elseif self.zone == "list" and self._g and #self._g.cards > 0 then self.zone = "cards"; self:grabCards(true); sound("UISelectListItem") end
 end
 
 function ZeD_MessagesWindow:onJoypadDirUp()
@@ -769,9 +853,9 @@ function ZeD_MessagesWindow:onJoypadDirUp()
         local s = sourcesInOrder(self)
         for i, n in ipairs(s) do if n == self.sel and i > 1 then self:choose(s[i - 1]); sound("UISelectListItem"); return end end
     elseif self.zone == "cards" then
-        if self.cardFocus > 1 then self.cardFocus = self.cardFocus - 1; showButton(self, self:cardButtons()[self.cardFocus]); sound("UISelectListItem") end
+        if self.cardsGrab then padScroll(self, -1) end
     elseif self.zone == "foot" then
-        if #self:cardButtons() > 0 then self.zone = "cards"; self.cardFocus = #self:cardButtons() else self.zone = "list" end
+        if self._g and #self._g.cards > 0 then self.zone = "cards"; self.cardsGrab = nil else self.zone = "list" end
         sound("UISelectListItem")
     end
 end
@@ -787,20 +871,28 @@ function ZeD_MessagesWindow:onJoypadDirDown()
         end
         self.zone = "foot"; self.footFocus = 1
     elseif self.zone == "cards" then
-        local n = #self:cardButtons()
-        if self.cardFocus < n then self.cardFocus = self.cardFocus + 1; showButton(self, self:cardButtons()[self.cardFocus])
-        else self.zone = "foot"; self.footFocus = 1 end
-        sound("UISelectListItem")
+        if self.cardsGrab then padScroll(self, 1)
+        else self.zone = "foot"; self.footFocus = 1; sound("UISelectListItem") end
     end
 end
 
+-- (a grabbed panel: Left / Right between the buttons of one card)
+local function sameRow(self, dir)
+    local btns = self:cardButtons()
+    local b, nb = self:padButton(), btns[self.cardFocus + dir]
+    if b and nb and nb.y == b.y then self.cardFocus = self.cardFocus + dir; sound("UISelectListItem"); return true end
+    return false
+end
+
 function ZeD_MessagesWindow:onJoypadDirRight()
-    if self.zone == "list" and #self:cardButtons() > 0 then self.zone = "cards"; self.cardFocus = 1; sound("UISelectListItem")
+    if self.zone == "list" and self._g and #self._g.cards > 0 then self.zone = "cards"; self.cardsGrab = nil; sound("UISelectListItem")
+    elseif self.zone == "cards" and self.cardsGrab then sameRow(self, 1)
     elseif self.zone == "foot" and self._g and self.footFocus < #self._g.foot then self.footFocus = self.footFocus + 1; sound("UISelectListItem") end
 end
 
 function ZeD_MessagesWindow:onJoypadDirLeft()
-    if self.zone == "cards" then self.zone = "list"; sound("UISelectListItem")
+    if self.zone == "cards" then
+        if self.cardsGrab then sameRow(self, -1) else self.zone = "list"; sound("UISelectListItem") end
     elseif self.zone == "foot" and self.footFocus > 1 then self.footFocus = self.footFocus - 1; sound("UISelectListItem") end
 end
 
@@ -822,7 +914,7 @@ function W.open(pn, name)
         win:addToUIManager()
         win:setAlwaysOnTop(true)
     end
-    win.zone = "list"
+    win.zone, win.cardsGrab = "list", nil
     MS.toasts = {}
     local jd = JoypadState.players[pn + 1]
     if jd then
@@ -853,8 +945,8 @@ function W.openGuest(joypadData, name)
     MS.toasts = {}
     win.guestJoy = joypadData
     -- the pad starts on the note's first choice when there is one
-    win.zone = "list"
-    if #win:cardButtons() > 0 then win.zone, win.cardFocus = "cards", 1 end
+    win.zone, win.cardsGrab = "list", nil
+    if #win:cardButtons() > 0 then win.zone, win.cardFocus, win.cardsGrab = "cards", 1, true end
     joypadData.focus = win
     joypadData.activeWhilePaused = true
     updateJoypadFocus(joypadData)

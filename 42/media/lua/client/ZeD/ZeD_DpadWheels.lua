@@ -1581,6 +1581,19 @@ function H.dashSlice(p, pn)
         run = function(pl) nextFrame(function() Dash.takePad(pl) end) end })
 end
 
+-- The pause screen, opened from the wheel, worked by the wheel's controller (Nov 15 2026, punch list 241). The
+-- Escape key's way in (ToggleEscapeMenu) hands the pause screen only to a controller already in the menu, so the
+-- wheel's pad was left out: no prompts on the foot, no B. The Start button's way (vanilla's onPauseButtonPressed)
+-- puts that pad on the pause screen; done here once the wheel has let go of it.
+local function padToPause(pn)
+    local m = MainScreen and MainScreen.instance
+    local jd = JoypadState and JoypadState.players and JoypadState.players[(pn or 0) + 1]
+    if not (m and m.inGame and m:isVisible() and jd) then return end
+    jd.inMainMenu = true
+    jd.focus = m
+    if updateJoypadFocus then updateJoypadFocus(jd) end
+end
+
 -- Options, on ZeD setup: the pause screen first (Options live in it), then ZeD's Options on its first page
 function H.openSetup(p, pn)
     local MM = ZeD.MainMenu
@@ -1589,6 +1602,7 @@ function H.openSetup(p, pn)
     nextFrame(function()
         MM.openOptions()
         if MM.pauseOpts then MM.pauseOpts.pageIdx = 1; MM.pauseOpts.scroll = 0 end
+        padToPause(pn)
     end, 3)
 end
 
@@ -1614,7 +1628,7 @@ function H.players(p, pn)
     if not (MM and MM.act and MM.act.players) then return nil end
     return { detail = tr("UI_ZeD_Wheel_PlayersDetail"), run = function()
         if not (MainScreen and MainScreen.instance and MainScreen.instance:isVisible()) then ToggleEscapeMenu(getCore():getKey(KeybindId.MAIN_MENU)) end
-        nextFrame(function() MM.act.players() end, 3)
+        nextFrame(function() MM.act.players(); padToPause(pn) end, 3)   -- (the pad too: punch list 241)
     end }
 end
 
