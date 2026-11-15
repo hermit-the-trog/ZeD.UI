@@ -5013,6 +5013,11 @@ to be proposed.
    the Equip tab's equipped panel shows no hover tooltips at all, with the mouse or the pad. Wanted: every stop that has
    a mouse tooltip shows the same one when the pad rests on it (one shared rule, not per surface), and the Equip panel's
    tooltips work.
+   **QA, Nov 14 2026, on c8945162e (zedqa_padfix_h.lua, 4K, pictures zqa_pfh_*_tip.png):** the Equip tab's worn rows
+   pass: the pad on Tank Top (equipslot:INR) shows its balloon (name, Condition 100%, Weight 1.0 kg / 0.3 worn) beside
+   the row. The trait still fails: on Brave, the last row above the window's foot, the balloon sits beside the row and
+   its description ("Less prone to becoming panicked.") is under the window's footer ("87 items"); it doesn't flip
+   above. The ID card's balloon may not come from the overlay path c8945162e changed.
 
 231. **Controller: the Rename box from the item menu doesn't take the pad and gets stuck (the director, Nov 14 2026,
    playtest).** open. Rename from an item's context menu opens the name box, but the pad isn't on it; the box stays on

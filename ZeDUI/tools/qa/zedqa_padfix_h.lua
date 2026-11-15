@@ -49,7 +49,7 @@ at(2800, function() ZeD_CharacterWindow.openTab(0, "identity") end)
 at(4000, function()
     Focus.claimFocus(cw)
     local found
-    for _, s in ipairs(Focus.flatElements(cw)) do local id = tostring(s.id):lower(); if id:find("trait") then found = s; break end end
+    for _, s in ipairs(Focus.flatElements(cw)) do local id = tostring(s.id):lower(); if id:find("trait") and (not found or id:find("brave")) then found = s end end
     say("230 trait stop: " .. tostring(found and found.id))
     if found then Focus.focusWhere(cw, found.zone, function(e) return tostring(e.id) == tostring(found.id) end) end
 end)
@@ -59,7 +59,9 @@ at(5400, function() ZeD_CharacterWindow.openTab(0, "equip") end)
 at(6600, function()
     Focus.claimFocus(cw)
     local found
-    for _, s in ipairs(Focus.flatElements(cw)) do if s.zone == "charTabContent" and tostring(s.id):lower():find("equip") then found = s; break end end
+    local ids = {}
+    for _, s in ipairs(Focus.flatElements(cw)) do if s.zone == "charTabContent" then ids[#ids + 1] = tostring(s.id); if not found and tostring(s.id):find("^equipslot:") and s.el and s.el.item then found = s end end end
+    say("230 Equip stops: " .. table.concat(ids, ", "))
     say("230 Equip stop: " .. tostring(found and found.id))
     if found then Focus.focusWhere(cw, found.zone, function(e) return tostring(e.id) == tostring(found.id) end) end
 end)
