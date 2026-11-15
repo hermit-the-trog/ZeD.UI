@@ -5049,3 +5049,6 @@ to be proposed.
    226. The "Close the keyboard? Your changes will be saved." question was too many steps: with Cancel focused the hint
    strip still offered B Cancel, so there were three ways to cancel and one to confirm. The director's answer: B saves
    and closes the keyboard, no question. (The Rename box keeps its own OK / Cancel; that's fine.)
+   Refined the same evening (the director): B on the keyboard reads "Back": it only leaves the keyboard, keeping the
+   typed text in the field. What owns the field decides saving: a box with OK / Cancel (Rename) asks there; a desk note
+   just keeps the text (no dialog).
