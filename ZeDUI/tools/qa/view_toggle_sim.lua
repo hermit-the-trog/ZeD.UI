@@ -216,8 +216,10 @@ check("WINDOWS: the Character window builds its stops from the renderer's rects 
 check("WINDOWS: the World window builds its stops from the renderer's rects (main list and columns)",
     count(WW, "ZeD%.InventoryRenderer%.toggleElements%(") >= 2)
 check("WINDOWS: both hand a heading click to onViewZone", CW:find("onViewZone(zid, self)", 1, true) ~= nil and WW:find("onViewZone(zid, self)", 1, true) ~= nil)
-check("WINDOWS: both keep the focus on a view stop across a rebuild", CW:find("fe.isViewToggle then keepId = fe.id", 1, true) ~= nil
-    and WW:find("fe.isViewToggle then keepId = fe.id", 1, true) ~= nil)
+-- (Nov 15 2026, punch list 245: the same line keeps an open stack's header stop too)
+local KEEP = "(fe.isViewToggle or fe.isStackHead) then keepId = fe.id"
+check("WINDOWS: both keep the focus on a view stop across a rebuild", CW:find(KEEP, 1, true) ~= nil
+    and WW:find(KEEP, 1, true) ~= nil)
 local stale = {}
 for _, f in ipairs({ "InventoryRenderer.lua", "ZeD_CharacterWindow.lua", "ZeD_WorldWindow.lua", "Input/FocusManager.lua", "InventoryFilter.lua" }) do
     local s = readFile("42/media/lua/client/ZeD/" .. f)

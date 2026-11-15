@@ -774,6 +774,71 @@ function ZeD.InventoryRenderer.padItemButtons(el)
     return el
 end
 
+-- (Nov 15 2026, punch list 245) An open stack's header row as a controller stop. It is the stack, not an item:
+-- A shuts the stack (as A on its row opened it), X moves the whole stack (or the marked rows), hold A marks or
+-- unmarks every item in it, B clears the marks. It carries no .item; the window's remembered row is the stack's
+-- first item, so focus lands on the shut stack's row after A, and the list's scroll follows "stackhead:<key>".
+local function headFocus(w, el)
+    local cnt = w._mainContent
+    if cnt then cnt._gpFocusedRowItem = el.yKey end
+    if el.colIdx then
+        w._gpFocusedMCItem, w._gpFocusedMCColIdx = el.rep, el.colIdx
+    else
+        w._gpFocusedRowItem = el.rep
+    end
+end
+local function headToggle(w, el)
+    local cnt = w._mainContent
+    local cs = el.colIdx and cnt and cnt._colStates and cnt._colStates[el.colIdx] or nil
+    local exp = cs and cs.expandedStacks or (cnt and cnt._expandedStacks)
+    if exp then exp[el.stackKey] = not exp[el.stackKey] end
+end
+local function headMove(w, el)
+    local cnt = w and w._mainContent
+    local CT = ZeD.ContainerControls
+    if not (cnt and CT and CT.moveToOther) then return end
+    local marked = ZeD.InventoryRenderer.padMarkedAll(cnt)
+    if CT.moveToOther(cnt, marked or el.stack.items) and marked then
+        wipeMarks(cnt)
+        padRefresh(w, cnt)
+    end
+end
+local function headMark(w, el)
+    local sel, cnt = padSel(w, el)
+    if not sel then return end
+    local adding = false
+    for _, it in ipairs(el.stack.items) do if not sel[it] then adding = true end end
+    for _, it in ipairs(el.stack.items) do sel[it] = adding or nil end
+    cnt._padMarks = true
+    padRefresh(w, cnt)
+end
+--- The stops for a list's open stack headers (heads: the renderer's _openHeads / a column's openHeads; yMap: its
+--- row places; x, w: the rows' span; view: its _rowView; colIdx: the column's slot, nil for a window's main list;
+--- inv: the list's container). Appended to the item rows' stops by each list's builder.
+function ZeD.InventoryRenderer.headElements(heads, yMap, x, w, view, colIdx, containerIdx, inv)
+    local els = {}
+    local T = ZeD.T
+    local rowH = (T and T.rowH) or 26
+    for _, s in ipairs(heads or {}) do
+        local yKey = "stackhead:" .. s.key
+        local y = yMap and yMap[yKey]
+        if y then
+            els[#els + 1] = {
+                x = x, y = y, w = w, h = rowH,
+                id = "stackhead:" .. tostring(colIdx or 0) .. ":" .. s.key,
+                isStackHead = true, stackKey = s.key, stackInv = inv, stack = s, rep = s.items[1], yKey = yKey,
+                colIdx = colIdx, mcSlot = colIdx, containerIdx = containerIdx,
+                -- (out of the list's view: a stop for its own list's Up / Down only, as Focus.markOffscreen marks rows)
+                offscreen = (view and view.top and view.bottom and (y + rowH <= view.top or y >= view.bottom)) or nil,
+                onFocus = headFocus, onActivate = headToggle, onContextMenu = headMove, onHoldActivate = headMark,
+                onCancel = ZeD.InventoryRenderer.padCancel, promptB = ZeD.InventoryRenderer.padPromptB,
+                promptX = ZeD.InventoryRenderer.padPromptX, promptHold = ZeD.InventoryRenderer.padPromptHold,
+            }
+        end
+    end
+    return els
+end
+
 -- The quick use itself, for the double-click and the controller's hold X on
 -- a row. Vanilla's basic action does nothing for a thing in a crate, so, as
 -- vanilla's double-click does, a thing elsewhere comes over first.
@@ -852,7 +917,8 @@ function ZeD.InventoryRenderer.keepToggleIdx(win, zoneName, els, idx)
     for _, z in ipairs(ring) do
         if z.zone == zoneName then
             local fe = z.elements and z.elements[z.focusedElementIdx or 1]
-            if fe and fe.isViewToggle then
+            -- (an open stack's header too, punch list 245: it carries no item either)
+            if fe and (fe.isViewToggle or fe.isStackHead) then
                 for i, el in ipairs(els) do if el.id == fe.id then return i end end
             end
             return idx
@@ -906,6 +972,18 @@ local function gpFocusedToggle(id, pn)
     if not (focEl ~= nil and focEl.isViewToggle and focEl.id == id) then return nil end
     _toggleFocus.win = focWin
     return _toggleFocus
+end
+
+-- (Nov 15 2026, punch list 245) is the controller on this list's open stack header (key: the stack's)? The focus
+-- mark's opts when it is, else false. Headers carry no item, so the stop names its stack and its container.
+local function gpFocusedHead(key, inv, pn)
+    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow(pn) or nil
+    local focEl = (focWin and Focus.liveElement) and Focus.liveElement(focWin) or nil
+    if not (focEl ~= nil and focEl.isStackHead and focEl.stackKey == key and focEl.stackInv == inv) then return false end
+    local zone = Focus.liveZone and Focus.liveZone(focWin) or nil
+    _itemFocus.win, _itemFocus.zone = focWin, zone and zone.zone or ""
+    return _itemFocus
 end
 
 -- the pointer's hover is off while the controller's mark shows (the mouse
@@ -1698,6 +1776,8 @@ local function sortItems(list, col, asc)
     for i = 1, n do list[i] = recs[i].it end
 end
 
+local NO_OPEN = {}   -- (no stack open: the grid's model, punch list 245)
+
 local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, collapsed, expandedStacks)
     local groups, catOrder, flatItems = {}, {}, {}
     local catOf = {}   -- item -> its category key (the rows draw it every frame)
@@ -1741,8 +1821,11 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
     end
 
     local useGroups = (sortCol == "cat")   -- only Sort by Category has category headers; the rest is one flat list
-    local stacks = {}          -- rep item → stack info
+    local stacks = {}          -- rep item → stack info (a closed stack's row, or a single thing's)
     local childParent = {}     -- child item → stack info
+    -- (Nov 15 2026, punch list 245) an open stack's header is the stack, no item's row: heads lists them in order,
+    -- headOf names the one drawn just above its first item's row
+    local heads, headOf = {}, {}
 
     -- Build one stack per (cat, fullType); emit representative + optional
     -- children into flatItems in render order. Expanded stacks show their
@@ -1772,13 +1855,19 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
             end)
         end
         for _, s in ipairs(ordered) do
-            flatItems[#flatItems + 1] = s.rep
-            stacks[s.rep] = s
             if s.count > 1 and expandedStacks[s.key] then
-                for ci = 2, #s.items do
+                -- (Nov 15 2026, punch list 245: the header row stood for the first item, so the first flyer of a stack
+                -- had no row of its own while the stack was open. Now every item has its row under the header, the
+                -- first too, as vanilla's pane lists them; the header is drawn from heads, not from flatItems)
+                heads[#heads + 1] = s
+                headOf[s.items[1]] = s
+                for ci = 1, #s.items do
                     flatItems[#flatItems + 1] = s.items[ci]
                     childParent[s.items[ci]] = s
                 end
+            else
+                flatItems[#flatItems + 1] = s.rep
+                stacks[s.rep] = s
             end
         end
     end
@@ -1794,9 +1883,9 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
         for _, cat in ipairs(catOrder) do
             sortItems(groups[cat], sortCol, sortAsc)
             if not (collapsed and collapsed[cat]) then
-                local before = #flatItems
+                local before, headsBefore = #flatItems, #heads
                 emitStacks(groups[cat])
-                catRowCount[cat] = #flatItems - before
+                catRowCount[cat] = #flatItems - before + #heads - headsBefore   -- (an open stack's header is a row too)
                 -- Snapshot the stacked rows for this category so the draw
                 -- loop can iterate per-cat without using the unstacked source.
                 local catRows = {}
@@ -1825,6 +1914,7 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
         groups = groups, catOrder = catOrder, flatItems = flatItems, useGroups = useGroups,
         stacks = stacks, childParent = childParent, stackedGroups = stackedGroups,
         catRowCount = catRowCount, catOf = catOf, nShown = nShown,
+        heads = heads, headOf = headOf,
     }
 end
 
@@ -1918,19 +2008,21 @@ local function rowStates(self, item, isSelected, x, y, w, rowH, pointed)
         local hv = T.hover
         self:drawRect(x, y, w, rowH, hv.a, hv.r, hv.g, hv.b)
     end
+    local si = self._stacks and self._stacks[item]
     if hover then
         ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelpLoot", item:getName() or ""))
         -- the loot card at once, by the pointer; Alt: the game's tooltip (punch list 146: ZeD_InvTip.lua)
+        -- (Nov 15 2026, punch list 244: a stack's count too, so the card's title reads as the row, "Rag x3"; the
+        -- pointer's card said "Rag" while the pad's said the count)
         if ZeD.InvTip then
             local r = _tipRect
             r.x, r.y, r.w, r.h = x, y, w, rowH
-            ZeD.InvTip.want(self, item, r)
+            ZeD.InvTip.want(self, item, r, si and si.count or 1)
         end
     end
     if item ~= self._gpFocusedRowItem then return false end
     local fo = gpFocusedItem(item, ZeD.playerNumOf(self))
     if not fo then return false end
-    local si = self._stacks and self._stacks[item]
     padTip(self, item, x, y, w, rowH, si and si.count or 1)
     return ZeD.Focus.mark(self, x, y, w, rowH, fo) and true or false
 end
@@ -2109,7 +2201,10 @@ local function renderItemList(self)
     -- Item stacking: identical items collapse into one row with their count
     -- ("Apple x6"). The rows are built in itemModel, only when the container changes.
     self._expandedStacks = self._expandedStacks or {}
-    local M = itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, collapsed, self._expandedStacks)
+    -- (Nov 15 2026, punch list 245: the grid opens no stacks, a stack is one cell; its model is built as if every
+    -- stack were shut, so an open one in the list never takes its cell away)
+    local M = itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, collapsed,
+        ZeD.InventoryRenderer.isGridKey(containerKeyOf(inv, playerObj), playerObj or getSpecificPlayer(0)) and NO_OPEN or self._expandedStacks)
     -- a container this list starts showing while on screen: a mod's pick hook (ContainerGates.seen)
     ZeD.ContainerGates.seen(self, inv, playerObj)
     filterColumn(self, M)   -- (this list's matches, kept until the filter or the model changes)
@@ -2127,6 +2222,8 @@ local function renderItemList(self)
     self._stacks         = stacks
     self._childParent    = childParent
     self._catOf          = M.catOf
+    self._openHeads      = M.heads    -- (punch list 245: an open stack's header rows, the pad's stops for them)
+    self._headOf         = M.headOf
 
     -- GRID: this container's view, and the cells' layout (a stack is one cell;
     -- its children are never shown apart, as the card covers the stack)
@@ -2145,7 +2242,7 @@ local function renderItemList(self)
             end
         end
     else
-        totalContentH = self._gv.on and gridH(self._gv, gridCount(self._gv, flatItems)) or (#flatItems * rowH)
+        totalContentH = self._gv.on and gridH(self._gv, gridCount(self._gv, flatItems)) or ((#flatItems + #M.heads) * rowH)
     end
 
     local contentTop = hdrY + colHdrH
@@ -2384,6 +2481,52 @@ local function renderItemList(self)
 
     -- Shared row drawing function
     local function drawItemRow(item)
+        -- (Nov 15 2026, punch list 245) an open stack's header, drawn just above its first item's row: the stack
+        -- itself (its icon, name and count, its total weight), no item's row. A press anywhere on it shuts the
+        -- stack (as a category row folds), the right button gives the whole stack's menu. Its place is stamped
+        -- under "stackhead:<key>" for the pad's stop and the scroll's follow.
+        local hs = self._headOf and self._headOf[item]
+        if hs then
+            local hk = "stackhead:" .. hs.key
+            itemRenderYMap[hk] = y
+            if y + rowH > contentTop and y < h then
+                if rowIdx % 2 == 1 then dR(0, y, scrollX, rowH, st.a, st.r, st.g, st.b) end
+                local hfo = gpFocusedHead(hs.key, self._inventory, ZeD.playerNumOf(self))
+                if not hfo and not cuesOn() and mouseInCol and my >= y and my < y + rowH and my >= contentTop
+                   and my < contentTop + visibleH and localMx < scrollX then
+                    local hv = T.hover
+                    dR(0, y, scrollX, rowH, hv.a, hv.r, hv.g, hv.b)
+                    if ZeD.InvTip then   -- (the loot card names the stack as its row does: "Rag x3")
+                        local r = _tipRect
+                        r.x, r.y, r.w, r.h = xOff, y, scrollX, rowH
+                        ZeD.InvTip.want(self, hs.rep, r, hs.count)
+                    end
+                end
+                if hfo then ZeD.Focus.mark(self, xOff, y, scrollX, rowH, hfo) end
+                local htc = hfo and (T.textOnFocus or T.toneNorm) or nil
+                local htex = hs.rep:getTex()
+                if htex then dTS(htex, padX, y + math.floor((rowH - iconW) / 2), iconW, iconW, 1, 1, 1, 1) end
+                local tri = math.min(T.px(8), rowH - T.px(4))
+                A.drawTriangleDown(self, xOff + nameX, y + math.floor((rowH - tri) / 2), tri, htc or T.toneLo or T.textDim)
+                local hsuf = " x" .. tostring(hs.count)
+                local hroom = nameW - tri - T.px(6)
+                local hname = truncateText(hs.rep:getName() or "???", T.fontF2, hroom - ZeD.TM:MeasureStringX(T.fontF2, hsuf)) .. hsuf
+                local hc = htc or T.toneNorm
+                dT(hname, nameX + tri + T.px(6), y + math.floor((rowH - bodyFH) / 2), hc.r, hc.g, hc.b, hc.a or 1, T.fontF2)
+                if showCat then
+                    local hcat = truncateText(ZeD.InventoryRenderer.catLabel(self._catOf[hs.rep] or ZeD.InventoryRenderer.catKey(hs.rep)),
+                        T.fontF1, catColW - padX * 2)
+                    local cc = htc or T.toneHi
+                    dT(hcat, catX + padX, y + math.floor((rowH - secFH) / 2), cc.r, cc.g, cc.b, cc.a, T.fontF1)
+                end
+                A.drawTextRight(self, weightText(hs.rep, hs, T.fontF3, wtColW - padX * 2), xOff + wtX + wtColW - padX,
+                    y + math.floor((rowH - statFH) / 2), T.fontF3, htc or T.toneHi)
+                hZ("stack:" .. hs.key, 0, y, scrollX, rowH)
+            end
+            y      = y + rowH
+            rowIdx = rowIdx + 1
+        end
+
         -- Stamp the row's render Y into the panel-level map for scroll-follow
         -- (read next frame). Stamp BEFORE the visibility cull so items that
         -- just scrolled off-screen still have a valid entry for the follow
@@ -2413,8 +2556,9 @@ local function renderItemList(self)
         local focusTxt = onFocus and (T.textOnFocus or T.toneNorm) or nil
 
         -- Stacking: this row's role in a stack. A stack's head shows a
-        -- triangle and its count; an open stack's other rows are drawn
-        -- indented; a single item draws as a plain row.
+        -- triangle and its count; an open stack's rows (every item, the first
+        -- too: punch list 245) are drawn indented under its header; a single
+        -- item draws as a plain row.
         local stackInfo   = self._stacks and self._stacks[item]
         local childParent = self._childParent and self._childParent[item]
         local isStackHead = stackInfo and stackInfo.count > 1
@@ -2880,6 +3024,7 @@ local function renderMultiColumnContent(self)
             cs.lastClickedItem = self._lastClickedItem
             cs.stacks          = self._stacks
             cs.childParent     = self._childParent
+            cs.openHeads       = self._openHeads   -- (punch list 245: its open stacks' header rows)
         else
             renderItemList(self)
         end
@@ -2975,6 +3120,7 @@ local function renderMultiColumnContent(self)
             cs.lastClickedItem = self._lastClickedItem
             cs.stacks          = self._stacks
             cs.childParent     = self._childParent
+            cs.openHeads       = self._openHeads   -- (punch list 245: its open stacks' header rows)
             -- Each column keeps its own row-Y map, so the per-column controller
             -- zones (charMC1.., worldMC1..) can read each row's y to move between
             -- rows. Each column's renderItemList call writes to

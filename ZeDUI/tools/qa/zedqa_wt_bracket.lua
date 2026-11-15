@@ -210,8 +210,14 @@ local function checkOpen(k, tag)
     local col = c and colFor(c, invOf(k))
     if not col then fail(tag .. " " .. k .. ": the container is not shown"); return end
     local n, total = expectFor(invOf(k), stackT[k])
-    local rep = repOf(col, stackT[k])
-    local w = rep and drawnFor(k, col, rep, false)
+    -- (Nov 15 2026, punch list 245: an open stack's header is no item's row; the renderer stamps its place under
+    -- "stackhead:<type>", and every item, the first too, has a row under it)
+    local hy = col.ymap and col.ymap["stackhead:" .. stackT[k]]
+    local w = nil
+    local x0 = col.renderX or 0
+    for _, e in ipairs(hy and cap[k] or {}) do
+        if e.y >= hy and e.y < hy + ZeD.T.rowH and e.x >= x0 - 1 and e.x < x0 + col.renderW and isWt(e.s) then w = e end
+    end
     local full = "(" .. f1(total) .. ")"
     if not (w and w.s == full) then fail(tag .. " " .. k .. ": the open stack's row drew " .. tostring(w and w.s) .. ", not " .. full) end
     local kids, own = 0, 0
@@ -224,7 +230,7 @@ local function checkOpen(k, tag)
         end
     end
     say(string.format("%s %s: the row \"%s\", %d rows under it, %d with their own weight", tag, k, tostring(w and w.s), kids, own))
-    if kids ~= n - 1 then fail(tag .. " " .. k .. ": " .. kids .. " rows under the stack, " .. (n - 1) .. " expected") end
+    if kids ~= n then fail(tag .. " " .. k .. ": " .. kids .. " rows under the stack, " .. n .. " expected") end
 end
 
 -- ---- views and columns

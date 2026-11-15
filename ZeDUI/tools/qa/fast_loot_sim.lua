@@ -416,7 +416,8 @@ end
 -- ---------------------------------------------------------------------------
 local function read(name) local f = io.open(CDIR .. name, "rb"); local s = f:read("*a"); f:close(); return s end
 local ir = read("InventoryRenderer.lua")
-local _, w1 = ir:gsub("ZeD%.InvTip%.want%(self, item, r%)", "")
+-- (Nov 15 2026, punch list 244: a list row hands its stack's count too, so the card's title reads as the row)
+local _, w1 = ir:gsub("ZeD%.InvTip%.want%(self, item, r, si and si%.count or 1%)", "")
 local _, w2 = ir:gsub("ZeD%.InvTip%.want%(self, item, r, count, true%)", "")
 check("WIRED: a row hands the card its name's end", ir:find("ZeD.InvTip.nameEnd(self, item, xOff + afterName)", 1, true) ~= nil)
 check("WIRED: list rows and grid cells ask for the card, with their place", w1 == 1 and w2 == 1, w1 .. "/" .. w2)

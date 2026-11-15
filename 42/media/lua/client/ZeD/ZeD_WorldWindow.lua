@@ -1284,6 +1284,10 @@ _buildWorldMCColumnFocusables = function(win, slot)
         }
         ZeD.InventoryRenderer.padItemButtons(elements[#elements])   -- (Nov 14 2026, punch list 223: X moves, A on an open card is the menu; 225: hold A on food eats)
     end
+    -- an open stack's header row: a stop of its own (Nov 15 2026, punch list 245; A on it shuts the stack)
+    for _, e in ipairs(ZeD.InventoryRenderer.headElements(cs.openHeads, yMap, colX, colW, cs.rowView, slot, cs.containerIdx, cs.inventory)) do
+        elements[#elements + 1] = e
+    end
     -- rows out of the column's view: for the column's own Up / Down only
     ZeD.Input.Focus.markOffscreen(elements, cs.rowView)
     -- the column's view button
@@ -1646,6 +1650,10 @@ _buildWorldInvRowFocusables = function(win)
             end,
         }
         ZeD.InventoryRenderer.padItemButtons(elements[#elements])   -- (Nov 14 2026, punch list 223: X moves, A on an open card is the menu; 225: hold A on food eats)
+    end
+    -- an open stack's header row: a stop of its own (Nov 15 2026, punch list 245; A on it shuts the stack)
+    for _, e in ipairs(ZeD.InventoryRenderer.headElements(c._openHeads, yMap, 0, T.px(200), c._rowView, nil, nil, c._inventory)) do
+        elements[#elements + 1] = e
     end
     -- seed only when nothing is remembered: a rebuild (scroll, an item gone) must not
     -- send focus back to the first row
@@ -2254,7 +2262,7 @@ local function _worldRmbMenuItems(content, x, y, colIdx, colCs)
     local stacksTbl = (colCs and colCs.stacks) or content._stacks
     local zone = content:hitZoneAt(x, y)
     local zid = zone and zone.id
-    local rep, clicked
+    local rep, clicked, whole
     if type(zid) == "string" then
         if zid:sub(1, 6) == "stack:" then
             -- stacks are keyed by their main item, not by the key string
@@ -2263,6 +2271,12 @@ local function _worldRmbMenuItems(content, x, y, colIdx, colCs)
                 if info and info.key == key then
                     rep, clicked = info.rep or (info.items and info.items[1]), info.items
                     break
+                end
+            end
+            -- (Nov 15 2026, punch list 245: an open stack's header is no item's row; the stack is picked whole)
+            if not rep then
+                for _, info in ipairs((colCs and colCs.openHeads) or content._openHeads or {}) do
+                    if info.key == key then rep, clicked, whole = info.items[1], info.items, true; break end
                 end
             end
         end
@@ -2291,6 +2305,7 @@ local function _worldRmbMenuItems(content, x, y, colIdx, colCs)
     -- Select the clicked row (same bookkeeping as a plain left-click)
     for k in pairs(sel) do sel[k] = nil end
     sel[rep] = true
+    if whole then for _, it in ipairs(clicked) do sel[it] = true end end
     if colCs then
         colCs.lastClickedItem = rep
         content._selectedItems = sel
@@ -5220,7 +5235,8 @@ function ZeD_WorldWindow.toggle(playerNum)
                     for _, z in ipairs(win._focusRing or {}) do
                         if z.zone == "worldMainInv" then
                             local fe = z.elements and z.elements[z.focusedElementIdx or 1]
-                            if fe and fe.isViewToggle then keepId = fe.id end
+                            -- (an open stack's header too: no item; punch list 245)
+                            if fe and (fe.isViewToggle or fe.isStackHead) then keepId = fe.id end
                         end
                     end
 
@@ -5308,8 +5324,9 @@ function ZeD_WorldWindow.toggle(playerNum)
                             if focItem and not keepId then ZeD_WorldWindow._groundIfNoRows(win, Focus, newEls) end
                             local resolvedEl = newEls[preserveIdx]
                             if resolvedEl then
-                                win._gpFocusedRowItem = resolvedEl.item
-                                self._gpFocusedRowItem = resolvedEl.item
+                                -- (a stack's header: its first item, and its row's place for the scroll; punch list 245)
+                                win._gpFocusedRowItem = resolvedEl.item or resolvedEl.rep
+                                self._gpFocusedRowItem = resolvedEl.item or resolvedEl.yKey
                             end
                         end
                     end

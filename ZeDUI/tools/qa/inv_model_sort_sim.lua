@@ -406,19 +406,40 @@ local function ids(t)
     for i, it in ipairs(t or {}) do o[i] = type(it) == "table" and tostring(it.id or it) or tostring(it) end
     return table.concat(o, ",")
 end
-local function sameModel(mo, mn)
+-- (Nov 15 2026, punch list 245: an open stack's header is no longer its first item's row. The reference still makes
+-- the first item stand for the header; the rows come out in the same order (the header, drawn from heads, is not in
+-- flatItems), but the open stack moves from stacks to heads / headOf, its first item becomes a child row, and each
+-- category counts one row more per open stack, its header. open: the open stacks' keys.)
+local function sameModel(mo, mn, open)
+    open = open or {}
+    local isOpen = function(s) return s.count > 1 and open[s.key] end
     if ids(mo.catOrder) ~= ids(mn.catOrder) then return false, "catOrder" end
     if ids(mo.flatItems) ~= ids(mn.flatItems) then return false, "flatItems" end
     if mo.useGroups ~= mn.useGroups then return false, "useGroups" end
     for _, c in ipairs(mo.catOrder) do
         if ids(mo.groups[c]) ~= ids(mn.groups[c]) then return false, "groups " .. c end
         if ids(mo.stackedGroups[c]) ~= ids(mn.stackedGroups[c]) then return false, "stackedGroups " .. c end
-        if mo.catRowCount[c] ~= mn.catRowCount[c] then return false, "catRowCount " .. c end
+        local nOpen = 0
+        for _, it in ipairs(mo.stackedGroups[c] or {}) do
+            local s = mo.stacks[it]
+            if s and isOpen(s) then nOpen = nOpen + 1 end
+        end
+        if (mo.catRowCount[c] or 0) + nOpen ~= (mn.catRowCount[c] or 0) then return false, "catRowCount " .. c end
     end
+    local nHeads = 0
     for it, s in pairs(mo.stacks) do
-        local s2 = mn.stacks[it]
-        if not s2 or s2.count ~= s.count or s2.key ~= s.key or ids(s2.items) ~= ids(s.items) then return false, "stack " .. it.id end
+        if isOpen(s) then
+            nHeads = nHeads + 1
+            local h = mn.headOf and mn.headOf[it]
+            if mn.stacks[it] ~= nil then return false, "open stack still a row " .. it.id end
+            if not h or h.count ~= s.count or h.key ~= s.key or ids(h.items) ~= ids(s.items) then return false, "head " .. it.id end
+            if mn.childParent[it] ~= h then return false, "first item not a child row " .. it.id end
+        else
+            local s2 = mn.stacks[it]
+            if not s2 or s2.count ~= s.count or s2.key ~= s.key or ids(s2.items) ~= ids(s.items) then return false, "stack " .. it.id end
+        end
     end
+    if #(mn.heads or {}) ~= nHeads then return false, "heads " .. #(mn.heads or {}) .. " vs " .. nHeads end
     for it in pairs(mn.stacks) do if not mo.stacks[it] then return false, "extra stack" end end
     for it, s in pairs(mo.childParent) do if mn.childParent[it] == nil then return false, "child" end end
     for it, c in pairs(mo.catOf) do if mn.catOf[it] ~= c then return false, "catOf" end end
@@ -444,7 +465,7 @@ for _, prov in ipairs({ false, true }) do
                     GETS, CMP_GETS, CMPS = 0, 0, 0
                     local mn = newBuild(iv[2], player, iv[3], col, asc, fo[2], fo[3])
                     local g2, cg2, c2 = GETS, CMP_GETS, CMPS
-                    local ok, why = sameModel(mo, mn)
+                    local ok, why = sameModel(mo, mn, fo[3])
                     local tag = (prov and "groups" or "no groups") .. " | " .. iv[1] .. " | " .. fo[1] .. " | " .. col .. (asc and " A-Z" or " Z-A")
                     check("same model: " .. tag, ok, why)
                     check("same comparisons: " .. tag, c1 == c2, c1 .. " vs " .. c2)
@@ -464,6 +485,24 @@ check("the hidden things are out", (function()
     local m = newBuild(main, player, true, "name", true, {}, {})
     for _, it in ipairs(m.flatItems) do if it.id % 29 == 0 then return false end end
     return true
+end)())
+-- (Nov 15 2026, punch list 245) an open stack: a header (heads) and a row for every item under it, the first too
+check("an open stack has a row for every item, the first too", (function()
+    PROVIDER = false
+    local shut = newBuild(main, player, false, "name", true, {}, {})
+    local s = nil
+    for _, st in pairs(shut.stacks) do if st.count > 2 then s = st; break end end
+    if not s then return false end
+    local m = newBuild(main, player, false, "name", true, {}, { [s.key] = true })
+    local h = m.headOf[s.items[1]]
+    if not h or m.stacks[s.items[1]] ~= nil or #m.heads ~= 1 then return false end
+    local at = nil
+    for i, it in ipairs(m.flatItems) do if it == s.items[1] then at = i; break end end
+    if not at then return false end
+    for k = 1, s.count do
+        if m.flatItems[at + k - 1] ~= s.items[k] or m.childParent[s.items[k]] ~= h then return false end
+    end
+    return #m.flatItems == #shut.flatItems + s.count - 1
 end)())
 check("worn and held things out of the player's own list, in loot", (function()
     PROVIDER = false
