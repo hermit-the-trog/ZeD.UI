@@ -4877,6 +4877,8 @@ to be proposed.
    inside the Character or World window itself (unless the game simply isn't built that way), and also a second way
    through a context menu or the radial wheel. So: the title bar's menu needs a pad stop next to the pins, and an audit
    of what is wheel-only or window-only would follow the same rule.
+   After 3cbe32515 (the director, playtest): the window box stop works (Up reaches it, A opens the menu, B closes it,
+   Left goes to the pin), but it draws no focus mark: nothing shows it is selected, though the hint strip offers A.
 
 215. **Controller: the on-screen keyboard from the inventory filter takes no input (the director, Nov 14 2026, playtest).**
    open. A on the inventory's filter field (view:fbar:field) brings up the on-screen keyboard, but nothing on it can be
