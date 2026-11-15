@@ -4843,6 +4843,11 @@ to be proposed.
    sounds started and cut off in the same frame (stopSound / a sound per draw), or a non-UI cause (the radio's static,
    the modem sound, an emitter on the windows). Needs the director's note of which actions pop, then a log of every
    sound call around them.
+   Vanilla too (the director found it, Nov 14 2026): the game's own Bug Reports forum has "[Windows 11] Critical audio
+   bug - random blips & extreme volume spikes" (Steam discussion 846244042087945229, Dec 2025): random digital blips, cut-outs
+   and loud returns in plain solo play, on some Windows 11 systems, suspected in the game's Java audio backend. That fits
+   the two playtest pops with no Lua sound at all. ZeD's part is the quick-repeat click (one pop lined up with clicks
+   about 230 ms apart) and the double click on a window switch (fixed in 3484759bc).
 
 211. **A ZeD setup choice for UI sounds: volume, or off (the director, Nov 14 2026).** open, a request. The director
    doesn't like UI sounds but knows some players rely on them. Wanted: in ZeD setup, a way to turn ZeD's UI sounds off
