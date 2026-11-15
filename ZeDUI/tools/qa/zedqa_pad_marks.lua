@@ -278,7 +278,8 @@ end
 -- ---- the crates (as zedqa_world_pad_take.lua builds one)
 local MINE = { ["Base.Nails"] = true, ["Base.Bandage"] = true, ["Base.Hammer"] = true, ["Base.Apple"] = true,
     ["Base.TinnedBeans"] = true, ["Base.Eraser"] = true, ["Base.Tweezers"] = true, ["Base.Corkscrew"] = true,
-    ["Base.Banana"] = true, ["Base.Cabbage"] = true, ["Base.Carrots"] = true }
+    ["Base.Banana"] = true, ["Base.Cabbage"] = true, ["Base.Carrots"] = true,
+    ["Base.Screwdriver"] = true, ["Base.Saw"] = true, ["Base.Wrench"] = true, ["Base.Scissors"] = true }
 local function onlyMine(c)
     local items = c:getItems()
     for i = 0, items:size() - 1 do if not MINE[items:get(i):getFullType()] then return false end end
@@ -425,7 +426,7 @@ local function queueMarks(tag, shotName)
             local ok = true
             for j = i, i + 3 do
                 local e = els[j]
-                if not (e.item and #stackItems(L, e.item) == 1) then ok = false end
+                if not (e.item and #stackItems(L, e.item) == 1 and not instanceof(e.item, "Food")) then ok = false end   -- (225: a held A eats food, so the painted run is non-food)
             end
             if ok then S.run = { els[i].item, els[i + 1].item, els[i + 2].item, els[i + 3].item }; break end
         end
@@ -576,32 +577,17 @@ local function queueMarks(tag, shotName)
         local line, by = promptsOf(w)
         local nAll = R.padMarkCount(w)
         local wantH = holdWord("UI_ZeD_Inv_PromptUnmark")
-        local wantX, wantB = ZeD.tr("UI_ZeD_Inv_PromptMenuMarked", nAll), ZeD.tr("UI_ZeD_Inv_PromptClearMarks")
+        local wantX, wantB = ZeD.InventoryRenderer.padPromptX(w, Focus.getFocusedElement(w)), ZeD.tr("UI_ZeD_Inv_PromptClearMarks")   -- (Nov 14 2026, 223: X moves the marked rows across: Take / Move / Drop marked)
         check(has(by.A, wantH), T .. "on a marked row the footer's hold-A prompt reads '" .. wantH .. "' (A: " .. join(by.A) .. ")")
         check(has(by.X, wantX), T .. "the footer's X prompt reads '" .. wantX .. "' (X: " .. join(by.X) .. "; padMarkCount " .. nAll .. ")")
         check(has(by.B, wantB), T .. "the footer's B prompt reads '" .. wantB .. "' (B: " .. join(by.B) .. ")")
         say(T .. "footer with marks: " .. (line ~= "" and line or "no prompts"))
         shot(shotName)
     end)
-    -- 8. X: the game's menu for every marked row
-    step(5, function()
-        if S.skip then return end
-        local L = S.L
-        local vm = getPlayerContextMenu and getPlayerContextMenu(pn)
-        if vm and vm.clear then pcall(function() vm:clear() end) end
-        local mi = R.padMarkedItems(L.w, Focus.getFocusedElement(L.w))
-        S.menuN = mi and #mi or 0
-        say(T .. "X on " .. nm(focusedItem(L)) .. " (" .. tap(L.w, "X") .. "); padMarkedItems gives " .. S.menuN)
-    end)
-    step(20, function()
-        if S.skip then return end
-        local names, vm, form, nT = menuRead()
-        check(vm ~= nil and #names > 0, T .. "X opens the game's menu (" .. #names .. " options: " .. (#names > 0 and table.concat(names, ", ") or "none") .. ")")
-        check(form ~= nil and nT == S.N, string.format("%sits %s takes all %d marked (the option's items: %s; padMarkedItems %d)",
-            T, tostring(form or "Drop / Grab"), S.N, tostring(nT), S.menuN))
-        menuClose(vm)
-    end)
-    -- 9. B clears the marks; the focus stays on the row
+    -- 8. (Nov 14 2026, punch list 223) X on marked rows now MOVES them to the other window's open container; that is
+    --    checked in the playtest, and pressing it here would take the run's rows away from the steps below. The
+    --    prompt for it is checked in step 7; the old "X opens the menu for N marked" is gone.
+    step(1, function() if S.skip then return end; say(T .. "X on marked rows moves them across (223): not pressed here") end)    -- 9. B clears the marks; the focus stays on the row
     step(15, function()
         if S.skip then return end
         local L = S.L
@@ -681,9 +667,8 @@ step(75, function()   -- (the World window's list looks for containers every 30 
     if S.crateA and S.crateB and not check(S.crateA ~= S.crateB, "crate A and crate B are two containers") then S.crateB = nil end
     if S.crateA then addTo(S.crateA, { "Base.Bandage", "Base.Hammer", "Base.Apple" }) end
     if S.crateB then
-        -- four different foods with no stacks (the list sorts by category, then name: Apple, Banana,
-        -- Cabbage, Carrots sit next to each other), so the painted run has its four single rows
-        addTo(S.crateB, { "Base.Apple", "Base.Banana", "Base.Cabbage", "Base.Carrots", "Base.Bandage", "Base.Corkscrew",
+        -- four single tools (Nov 14 2026: not food, since a held A eats food now, 225), so the painted run has its single rows
+        addTo(S.crateB, { "Base.Screwdriver", "Base.Saw", "Base.Wrench", "Base.Scissors", "Base.Bandage", "Base.Corkscrew",
             "Base.Eraser", "Base.Hammer", "Base.TinnedBeans", "Base.Tweezers", "Base.Nails", "Base.Nails", "Base.Nails" })
     end
     -- a stack of three in the main inventory (corkscrews: the QA character carries none)
