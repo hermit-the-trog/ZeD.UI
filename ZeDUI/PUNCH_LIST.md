@@ -4790,6 +4790,8 @@ to be proposed.
    Worse (the director, same day): with the container empty, there is no way at all to reach the header row with the
    Filter and List/Grid buttons on the pad. The stick clicks still work (L3 sorts, R3 switches List/Grid), so
    the functions are reachable; only D-pad navigation up to the header is missing.
+   Other direction too (the director, playtest, Nov 14 2026, on b529d4b56): with the container empty, Down from the
+   header doesn't reach the footer. That matters most for the oven's controls, which sit in the footer.
 
 203. **Controller: Furniture tab's Pick up loses the chosen square when the windows come back (the director, Nov 14 2026,
    playtest).** open. In the World window's Furniture tab, Pick up on the pad: you leave the window and move the cursor
