@@ -4949,3 +4949,8 @@ to be proposed.
    keyboard for a Pasties note, B should save the note and exit, not cancel. If a cancel or reset is kept at all it
    goes on another button; the director doubts it is needed ("It's a post-it note ... people can just delete. It's not
    going to be that many lines."). Follows 221.
+
+227b. **Controller: no item tooltip on the selected row (the director, Nov 14 2026).** open, a request. With the mouse,
+   hovering a row shows the item's tooltip for a quick glance; on the pad, the selected row shows nothing, so seeing any
+   detail means opening the item card. Wanted: the same tooltip shown for the pad's selected row (after a short pause
+   on it, as hover does), so a glance works on the controller too. (Numbered 227b: Build's 227 is the card header.)
