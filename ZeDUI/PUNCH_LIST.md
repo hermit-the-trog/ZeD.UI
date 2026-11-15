@@ -4795,6 +4795,10 @@ to be proposed.
    Still failing after f0710337c (the director, playtest): the microwave as the World window's container, empty; on
    its header, Down does nothing, though the footer has the microwave's settings and On buttons. The logger: a dozen
    "press DPadDown | focus World" with no "spatial down" line at all, so the move found no stop.
+   **QA, Nov 14 2026, on 80f1fa114 (zedqa_stops_202.lua, 4K): passes.** An empty microwave as the World container (not
+   powered: the drag strip is outdoors, so the foot had take / same / floor only). Down from the header's Filter now
+   lands on worldCtl:floor, the nearest foot control; Up from there goes back to the Filter. Before the fix (6088f4757)
+   the same Down stayed on the Filter. A powered microwave's own foot controls go on the director's playtest list.
 
 203. **Controller: Furniture tab's Pick up loses the chosen square when the windows come back (the director, Nov 14 2026,
    playtest).** open. In the World window's Furniture tab, Pick up on the pad: you leave the window and move the cursor
