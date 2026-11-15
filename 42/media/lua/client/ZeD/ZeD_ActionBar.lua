@@ -75,6 +75,50 @@ local NO_BUBBLE = { ISClimbOverFence = true, ISClimbThroughWindow = true }
 AB.NO_BUBBLE = NO_BUBBLE
 
 -- ---------------------------------------------------------------------------
+-- (Nov 15 2026, the director: "Actions that just have a status bar that spins or just keeps cycling ... That should
+-- just not even have a status bar, and that should have that actions icon instead.") An action with no end draws its
+-- icon, ZeD's own pixel icon (the wheels' set), in place of the sweeping bar: by its kind here, else the item it is
+-- done with, else the wait icon.
+-- ---------------------------------------------------------------------------
+AB.ICONS = {
+    ISRestAction = "bed", ISGetOnBedAction = "bed", ISSitOnGround = "sit_ground", ISWaitWhileGettingUp = "stand",
+    ISWalkToTimedAction = "walk", ISWalkToTimedActionF = "walk", ISPathFindAction = "walk",
+    ISFishingAction = "rod", ISScything = "scythe", ISRemoveGrass = "scythe", ISRemoveBush = "saw",
+    ISChopTreeAction = "saw", ISShovelGround = "shovel", ISShovelAction = "shovel", ISPlowAction = "shovel",
+    ISDigStairsAction = "shovel", ISReadABook = "book", ISReadWorldMap = "map", ISWriteSomething = "pencil",
+    ISEatFoodAction = "eat", ISDrinkFromBottle = "cup", ISDrinkFluidAction = "cup", ISTakeWaterAction = "cup",
+    ISWashClothing = "wash", ISWashYourself = "wash_hands", ISCleanBlood = "broom", ISCleanGraffiti = "spray",
+    ISBarricadeAction = "barricade", ISUnbarricadeAction = "hammer", ISBuildAction = "hammer", ISMultiStageBuild = "hammer",
+    ISDismantleAction = "wrench", ISDestroyStuffAction = "sledge", ISMedicalCheckAction = "stethoscope",
+}
+AB.ICON_U = 16   -- the icon's box, design units
+-- what an action with no end draws: a ZeD icon id (kind "px"), or an item's own picture (kind "tex")
+function AB.iconOf(a)
+    local id = a and AB.ICONS[a.Type]
+    if id and ZeD.PxIcon and ZeD.PxIcon.has(id) then return { kind = "px", id = id } end
+    local it = a and (a.item or a.axe or a.handItem or a.tool)
+    local ok, tex = pcall(function() return it and it.getTex and it:getTex() end)
+    if ok and tex then return { kind = "tex", tex = tex } end
+    return { kind = "px", id = "wait" }
+end
+-- the icon at (x, y) units, ICON_U square, tinted c (a ZeD icon; an item's picture keeps its own colours)
+function AB.drawIcon(cv, ic, x, y, c, a, u)
+    if not ic then return end
+    local k = cv.k
+    local box = (u or AB.ICON_U) * k
+    local sx, sy = cv.ox + x * k, cv.oy + y * k
+    if ic.kind == "tex" then
+        pcall(function() cv.el:drawTextureScaledAspect(ic.tex, sx, sy, box, box, a, 1, 1, 1) end)
+        return
+    end
+    local tex, sz = ZeD.PxIcon.tex(ic.id, box)
+    if not tex then return end
+    local d = math.min(sz, box)
+    local off = math.floor((box - d) / 2)
+    pcall(function() cv.el:drawTextureScaled(tex, sx + off, sy + off, d, d, (c.a or 1) * a, c.r, c.g, c.b) end)
+end
+
+-- ---------------------------------------------------------------------------
 -- labels: what the character is doing, in the 5 x 7 face (capitals, digits)
 -- ---------------------------------------------------------------------------
 AB.LABELS = {
@@ -398,7 +442,7 @@ function AB.state(chr, pn)
         local job = AB._jobs[pn]
         if job then job.walkFor = cur end
         return { phase = "walk", label = AB.label(cur), next = nextA and AB.label(nextA) or nil, item = "", noend = true,
-                 frac = 0, qi = 0, qn = 1, el = 0 }
+                 frac = 0, qi = 0, qn = 1, el = 0, icon = AB.iconOf(cur) }
     end
     if not shows(cur) or not cur.action then return nil end
     -- an instant action (maxTime 0 or 1) never shows
@@ -421,7 +465,7 @@ function AB.state(chr, pn)
     local st = { phase = "work", label = AB.label(cur), item = AB.itemName(cur), noend = noEnd(cur),
                  frac = delta(cur), qi = done, qn = math.max(1, job.total), el = (now - (cur._zedStartMs or job.startMs)) / 1000,
                  act = cur }
-    if st.noend then st.frac = 0; st.qn = 1; st.qi = 0 end
+    if st.noend then st.frac = 0; st.qn = 1; st.qi = 0; st.icon = AB.iconOf(cur) end
     return st
 end
 
@@ -516,6 +560,11 @@ local function overall(st) return st.qn > 1 and (st.qi + st.frac) / st.qn or st.
 function AB.drawSimple(cv, T, st, a, ms)
     local n, sw, sh, gap = 10, 4, 5, 1
     local W, H = AB.sizeSimple()
+    if st.noend and st.icon then
+        -- (no end: no box and no segments, only the action's icon, the bar's height, centred; the director, Nov 15 2026)
+        AB.drawIcon(cv, st.icon, math.floor((W - H) / 2), 0, (st.phase == "walk" or st.phase == "stopped") and AB._dim or T.accent, a, H)
+        return
+    end
     local S = ZeD.Bubbles.solid   -- (HUD: opaque whatever the See-through setting is)
     R(cv, 0, 0, W, H, S.base, a); R(cv, 1, 1, W - 2, H - 2, S.surf1, a)
     local function sx(i) return 2 + i * (sw + gap) end
@@ -546,7 +595,8 @@ function AB.verboseWidth(st)
     local L1, R1, L2, R2 = AB.verboseText(st)
     local w1 = P.textWidth(L1, "57t", 1) + (R1 ~= "" and 6 + P.textWidth(R1, "57t", 1) or 0)
     local w2 = P.textWidth(L2, "35t", 1) + (R2 ~= "" and 6 + P.textWidth(R2, "35t", 1) or 0)
-    return math.max(60, math.max(w1, w2))
+    local iw = (st.noend and st.icon) and (AB.ICON_U + 4) or 0   -- (no end: its icon before the words)
+    return math.max(60, iw + math.max(w1, w2))
 end
 
 -- the plain box, no thought bubble: nothing in the game draws it; ZeDUI/tools/qa/test_actionbar.py
@@ -577,10 +627,18 @@ function AB.drawVerboseBody(cv, T, st, a, ms, px, py, bw)
         P.text(cv, s, x, y, c, font, 1, align, nil, nil)
         cv.el._zedAlpha = 1
     end
-    txt(L1, px, py, c1, "57t")
+    -- (no end: the action's icon on the left, the words beside it, and no bar)
+    local iconed = st.noend and st.icon ~= nil
+    local tx = px
+    if iconed then
+        AB.drawIcon(cv, st.icon, px, py + 1, (st.phase == "walk" or st.phase == "stopped") and AB._dim or T.accent, a)
+        tx = px + AB.ICON_U + 4
+    end
+    txt(L1, tx, py, c1, "57t")
     txt(R1, px + bw, py, rc, "57t", "r")
-    txt(L2, px, py + 11, lc, "35t")
+    txt(L2, tx, py + 11, lc, "35t")
     txt(R2, px + bw, py + 11, lc, "35t", "r")
+    if iconed then return end
     local bh = AB.BAR_H
     local bx, by = px, py + 18
     local fx, fy, fwid, fh = bx + 1, by + 1, bw - 2, bh - 2      -- inside the frame
