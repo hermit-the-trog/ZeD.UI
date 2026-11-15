@@ -2187,6 +2187,8 @@
     "UI_ZeD_Prompt_Hold": "%1 (pidä)",
     "UI_ZeD_Prompt_Hour": "Tunti",
     "UI_ZeD_Prompt_Keyboard": "Näppäimistö",
+    "UI_ZeD_Prompt_KnobGrab": "Tartu",
+    "UI_ZeD_Prompt_KnobLetGo": "Päästä irti",
     "UI_ZeD_Prompt_Menu": "Valikko",
     "UI_ZeD_Prompt_Minute": "Minuutti",
     "UI_ZeD_Prompt_Pin": "Kiinnitä",

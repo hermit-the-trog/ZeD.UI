@@ -833,6 +833,18 @@ function PL.cue(cv, h, c, a)
     end
 end
 
+--- A knob the controller has grabbed (Nov 14 2026, punch list 228k, "A grabs, D-pad turns"): the knob shaded as a
+--- held key is (P.BLACK at the face's press shade), under the controller's ring (the focus cue), so it reads as held.
+function PL.grabCue(cv, h, c, shade)
+    if h.kind == "turn" then
+        local r = math.min(h.w, h.h) / 2
+        P.ring(cv, h.x + h.w / 2, h.y + h.h / 2, 0, r, P.BLACK, shade or 0.35)
+    else
+        P.rect(cv, h.x, h.y, h.w, h.h, P.BLACK, shade or 0.35)
+    end
+    PL.cue(cv, h, c, 0.55)
+end
+
 --- The pointer over a key: the library's hover wash (T.hover). A knob keeps its ring.
 function PL.hoverKey(cv, h)
     local hv = ZeD.T.hover

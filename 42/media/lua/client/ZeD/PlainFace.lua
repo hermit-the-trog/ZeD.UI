@@ -510,10 +510,12 @@ local function drawStepper(panel, panelMx, cx, cy, ch, c, face, fo)
     local leftHalf = panelMx < cx + kw + math.floor(gap / 2)
     local o = _bo
     o.focus, o.disabled, o.help, o.win = nil, nil, nil, nil
+    -- (Nov 14 2026, punch list 228k: grabbed by the controller's A, both its keys show pressed under the focus mark)
+    local held = face.grabId ~= nil and face.grabId == c.id
     o.hover = hov and leftHalf
-    ZeD.Molecules.drawButton(panel, cx, cy, kw, ch, "-", "default", false, colors, o)
+    ZeD.Molecules.drawButton(panel, cx, cy, kw, ch, "-", "default", held, colors, o)
     o.hover = hov and not leftHalf
-    ZeD.Molecules.drawButton(panel, cx + kw + gap, cy, kw, ch, "+", "default", false, colors, o)
+    ZeD.Molecules.drawButton(panel, cx + kw + gap, cy, kw, ch, "+", "default", held, colors, o)
 end
 
 -- ---------------------------------------------------------------------------
@@ -755,7 +757,7 @@ function PF.height(base, dev, pid, w)
 end
 
 -- the card at (x, y), w wide: returns this frame's hits (panel px) and the read state
---   face = { dev, pid, des, w, minH, focusId, hoverId, pressId, win, ownFocus (true: a prop that keeps its own focus,
+--   face = { dev, pid, des, w, minH, focusId, hoverId, pressId, grabId (a stepper the controller's A grabbed), win, ownFocus (true: a prop that keeps its own focus,
 --            ZeD.Focus.mark's opts.focused) }
 function PF.draw(base, panel, x0, y0, face)
     local x = ctxOf(base, face.dev, face.pid)

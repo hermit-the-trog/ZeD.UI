@@ -2187,6 +2187,8 @@
     "UI_ZeD_Prompt_Hold": "%1 (tartva)",
     "UI_ZeD_Prompt_Hour": "Óra",
     "UI_ZeD_Prompt_Keyboard": "Billentyűzet",
+    "UI_ZeD_Prompt_KnobGrab": "Megfog",
+    "UI_ZeD_Prompt_KnobLetGo": "Elenged",
     "UI_ZeD_Prompt_Menu": "Menü",
     "UI_ZeD_Prompt_Minute": "Perc",
     "UI_ZeD_Prompt_Pin": "Kitűz",

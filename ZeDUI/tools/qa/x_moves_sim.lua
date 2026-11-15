@@ -15,6 +15,8 @@
 --           rows still marks; the prompts say Eat (hold)
 --   DRINK   (punch list 228q) the same for a drink: A tapped on a water bottle's row or on the card's Drink never
 --           drinks; A held does (the game's drink); the card's Use (the game's double-click: pills) is a hold too
+--   USE     (punch list 228q follow-up, "Yes, hold uses it") hold A on a row whose card's main verb is Use (pills,
+--           smokes: a drainable) uses it, the game's double-click; a tap never does; marking it is a painted run
 --   FLOOR   (punch list 227, "Show it") a thing on the floor shows Grab, its main action, More, as in a crate; the
 --           action runs the game's own handler on the floor item (it brings the item over itself); food still holds
 --   WIRED   both windows' list and column builders hand their item stops to padItemButtons
@@ -322,10 +324,11 @@ end
 ZeD.ItemCard = {}
 local VERBS
 do
-    local fn, e = loadstring(orgSrc .. "\nreturn headerVerbsForContext, compactVerbs\n", "card verbs")
+    local fn, e = loadstring(orgSrc .. "\nreturn headerVerbsForContext, compactVerbs, categoryOf\n", "card verbs")
     check("the card's verb model compiles", fn ~= nil, e)
     if fn then
-        local hv, cv = fn()
+        local hv, cv, cat = fn()
+        ZeD.ItemCard.categoryOf = cat
         VERBS = function(ctx, it, w)
             local v = hv(ctx, it)
             if w and #v > 1 then v = cv(v, w) end
@@ -360,6 +363,36 @@ if VERBS then
     check("FLOOR: a book on the floor: Grab, Read, More", ids == "TAKE,READ,MORE", ids)
     ids = VERBS("container", bottle)
     check("DRINK: a bottle in a crate: Grab, Drink, More", ids == "TAKE,DRINK,MORE", ids)
+end
+
+-- USE (punch list 228q follow-up)
+do
+    ISInventoryPane = { doContextualDblClick = function(stub, it) log[#log + 1] = { kind = "dblclick", item = it, pn = stub.player } end }
+    local oldInst = instanceof
+    instanceof = function(o, cls) return cls == "DrainableComboItem" and type(o) == "table" and o.drainable == true end
+    local pills = item("pills", MAIN)
+    pills.drainable = true
+    check("USE: pills (a drainable: the card's main verb is Use) are a use", IR.padIsUse(pills) == true)
+    check("USE: ... a shirt is not", not IR.padIsUse(shirt))
+    if VERBS then check("USE: ... and the card's own main verb for them is Use", VERBS("inventory", pills) == "USE,DROP,MORE", VERBS("inventory", pills)) end
+    focus(charW, itemStop(pills))
+    tap(charW, Joypad.AButton)
+    check("USE: A tapped on a pills row never takes one", #logged("dblclick") == 0)
+    check("USE: ... it opens the card", #logged("card") == 1)
+    hold(charW, Joypad.AButton)
+    local dc = logged("dblclick")
+    check("USE: A held on it uses it (the game's double-click, the player's own)", #dc == 1 and dc[1].item == pills and dc[1].pn == 0)
+    check("USE: ... and marks nothing", #logged("mark") == 0)
+    el = charW._focusRing[1].elements[1]
+    check("USE: the hold's word is the card's Use", el.promptHold(charW, el) == "UI_ZeD_Card_VerbUse", el.promptHold(charW, el))
+    -- marking it: a painted run started on another row
+    charW._mainContent._selectedItems = {}
+    IR.padMark(charW, { item = shirt })
+    IR.padPaint(charW, { item = pills }, charW._gpPaint)
+    check("USE: a painted run started on another row still marks it", charW._mainContent._selectedItems[pills] == true)
+    charW._mainContent._selectedItems = {}
+    charW._gpPaint = nil
+    instanceof = oldInst
 end
 
 local ICS = readFile(Z .. "ItemCard.lua") or ""

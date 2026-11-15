@@ -4,8 +4,11 @@
 --   HELD     (228a) Focus.held(pn) is true while something that is not a ZeD window holds the pad (the keyboard, a
 --            menu, the oven's pop-out), false for a ZeD window, a part of one, or a holder that is no longer up; Y
 --            opens nothing over it; a window a menu option opens still takes the pad (claimFocus reads modalUp)
---   ESCAPE   (228b) the right stick's aim escape and the game-cursor roll-up leave a pad held by something else alone;
---            releaseFocus never clears a holder that is not a ZeD window
+--   ESCAPE   (228b) the right stick's aim escape leaves a pad held by something else alone; releaseFocus never
+--            clears a holder that is not a ZeD window; the game-cursor roll-up always runs (QA's regression: Place item
+--            from a menu kept the pad on the Character window), the keyboard keeping its pad
+--   TVLIST   (QA's regression on 228c) a radio face's list hands the pad back to the window the face is in, even
+--            with a prompt left up from before holding the pad's focus; the window can take the pad again after
 --   KEYS     (228b) the keyboard shown again over a field while up, then put away: the character may move again
 --   ORIGIN   (228c) a ZeD menu closing hands the pad to its origin (the belt) when that is up, else the focused
 --            window; an option that gave the pad to something new keeps it there; the origin is used once
@@ -161,9 +164,26 @@ STICK = 0
 tick()
 DRAG = { Type = "ISPlaceItemCursor" }
 tick(); tick()
-check("ESCAPE: a game cursor under the keyboard rolls nothing up", win.windowShaded == false and JD.focus == kb)
+check("ESCAPE: a game cursor up rolls the windows up, under the keyboard too", win.windowShaded == true and Focus.getFocusedWindow(0) == nil)
+check("ESCAPE: ... and the keyboard keeps its pad", JD.focus == kb)
 DRAG = nil
 tick()
+win.windowShaded = false
+-- (184) Place item from a menu: the menu that started the cursor is still the pad's holder on the next tick
+JD.focus = nil
+Focus.claimFocus(win)
+local closing = ui("ZeD_ContextMenu")
+closing.Type = "ZeD_ContextMenu"
+JD.focus = closing
+DRAG = { Type = "ISPlace3DItemCursor" }
+tick(); tick()
+check("ESCAPE: Place item from a menu: the cursor's roll-up lets the window go (184)", win.windowShaded == true and Focus.getFocusedWindow(0) == nil)
+DRAG = nil
+tick()
+win.windowShaded = false
+JD.focus = nil
+Focus.claimFocus(win)
+JD.focus = kb
 Focus.releaseFocus(0)
 check("ESCAPE: releaseFocus never clears a holder that is not a ZeD window", JD.focus == kb)
 check("ESCAPE: ... while the window is let go", Focus.getFocusedWindow(0) == nil)
@@ -207,6 +227,51 @@ JD.focus = m1
 Focus.menuClosed(m1, 0)
 check("ORIGIN: an origin no longer up: the focused window", JD.focus == win)
 belt.shown = true
+
+-- TVLIST (QA's regression on 228c): a radio face's list (RtvFace.lua's listMenu, cut) over a stale prompt
+do
+    local src = (function()
+        local f = io.open(Z .. "RtvFace.lua", "rb")
+        if not f then return "" end
+        local t = f:read("*a"); f:close(); return (t:gsub("\r\n", "\n"))
+    end)()
+    local a = src:find("local function listMenu(chr, at, items, emptyKey, onPick, target)", 1, true)
+    local b = nil
+    if a then local _; _, b = src:find("\nend\n", a, true) end
+    check("TVLIST: the face's list is found", a ~= nil and b ~= nil)
+    if a and b then
+        local CTX = { addOption = function() return {} end }
+        ISContextMenu = { get = function() return CTX end }
+        getMouseX, getMouseY = function() return 0 end, function() return 0 end
+        local fn, e = loadstring(src:sub(a, b) .. "\nreturn listMenu\n", "listMenu")
+        check("TVLIST: the face's list compiles", fn ~= nil, e)
+        if fn then
+            local listMenu = fn()
+            JD.focus = nil
+            Focus.claimFocus(win)
+            local stale = ui("prompt left up")
+            stale.Type = "ZeD_Prompt"
+            JD.focus = stale
+            local chr = { getPlayerNum = function() return 0 end }
+            listMenu(chr, { x = 0, y = 0 }, {}, "UI_ZeD_Radio_NoTapes", noop, nil)
+            check("TVLIST: the list takes the pad", JD.focus == CTX)
+            check("TVLIST: its origin is the window the face is in, not the prompt", CTX.origin == win)
+            local zm = ui("ZeD_ContextMenu")
+            zm.vanillaMenu = CTX
+            JD.focus = zm
+            Focus.menuClosed(zm, 0)
+            check("TVLIST: the list closed, the pad is back on the window (on the face's key)", JD.focus == win)
+            check("TVLIST: ... and nothing modal holds it: the window can take the pad again", Focus.modalUp() == false)
+            -- a prop holding the pad itself (the car radio) stays the origin
+            local car = ui("car radio")
+            car.Type = "ZeD_CarRadio"
+            JD.focus = car
+            listMenu(chr, { x = 0, y = 0 }, {}, "UI_ZeD_Radio_NoTapes", noop, nil)
+            check("TVLIST: from the car radio the origin is the car radio", CTX.origin == car)
+            JD.focus = win
+        end
+    end
+end
 
 -- KEYS (228b): the keyboard's show / hide, cut from ZeD_Keyboard.lua
 do

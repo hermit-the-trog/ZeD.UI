@@ -2187,6 +2187,8 @@
     "UI_ZeD_Prompt_Hold": "%1 (mantener)",
     "UI_ZeD_Prompt_Hour": "Hora",
     "UI_ZeD_Prompt_Keyboard": "Teclado",
+    "UI_ZeD_Prompt_KnobGrab": "إمساك",
+    "UI_ZeD_Prompt_KnobLetGo": "إفلات",
     "UI_ZeD_Prompt_Menu": "Menú",
     "UI_ZeD_Prompt_Minute": "Minuto",
     "UI_ZeD_Prompt_Pin": "Fijar",

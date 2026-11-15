@@ -633,6 +633,8 @@ function ZeD.InventoryRenderer.padPromptHold(w, el)
     if el and ZeD.InventoryRenderer.padIsFood(el.item) then return ZeD.InventoryRenderer.padEatWord(el.item) end
     -- (Nov 14 2026, punch list 228q: on a drink, hold A drinks: "Drink (hold)")
     if el and ZeD.InventoryRenderer.padIsDrink(el.item) then return ZeD.InventoryRenderer.padDrinkWord(el.item) end
+    -- (Nov 14 2026, punch list 228q follow-up: on pills, smokes and the rest the card Uses, hold A uses: "Use (hold)")
+    if el and ZeD.InventoryRenderer.padIsUse(el.item) then return ZeD.InventoryRenderer.padUseWord() end
     local sel = padSel(w, el)
     local marked = sel and el and el.item and sel[el.item]
     return ZeD.tr(marked and "UI_ZeD_Inv_PromptUnmark" or "UI_ZeD_Inv_PromptMark")
@@ -698,6 +700,32 @@ function ZeD.InventoryRenderer.padDrink(w, el)
     local CM = ISInventoryPaneContextMenu
     if CM and CM.onDrinkFluid then CM.onDrinkFluid(item, 1, playerObj, nil, item) end
 end
+-- (Nov 14 2026, punch list 228q follow-up, the design lead's "Yes, hold uses it": a thing whose card's main verb is
+-- Use (a drainable: pills, cigarettes, anything the game uses by its double-click) is a hold too, as food and drinks are;
+-- marking it is a painted run started on another row)
+function ZeD.InventoryRenderer.padIsUse(item)
+    if not item then return false end
+    local IC = ZeD.ItemCard
+    if not (IC and IC.categoryOf) then return false end
+    local ok, cat = pcall(IC.categoryOf, item)
+    return ok and cat == "Drainable"
+end
+-- the card's Use word
+function ZeD.InventoryRenderer.padUseWord()
+    local IC = ZeD.ItemCard
+    if IC and IC.verbText then return IC.verbText("USE") end
+    return ZeD.tr("UI_ZeD_Card_VerbUse")
+end
+-- the card's USE (ZeD_ItemCard:_dispatchHeaderVerb): the game's double-click, which takes a pill or smokes, bringing
+-- the thing over first
+function ZeD.InventoryRenderer.padUse(w, el)
+    local item = el and el.item
+    local pn = ZeD.playerNumOf(w)
+    local playerObj = getSpecificPlayer(pn)
+    if not (item and playerObj and item:getContainer()) then return end
+    if playerObj.isAsleep and playerObj:isAsleep() then return end
+    if ISInventoryPane and ISInventoryPane.doContextualDblClick then ISInventoryPane.doContextualDblClick({ player = pn }, item) end
+end
 -- a stack header with more than one in it (A on it folds or opens the stack)
 local function padIsStack(w, el)
     local _, cnt, cs = padSel(w, el)
@@ -734,6 +762,7 @@ function ZeD.InventoryRenderer.padItemButtons(el)
     el.onHoldActivate = function(w, e)
         if ZeD.InventoryRenderer.padIsFood(e.item) then return ZeD.InventoryRenderer.padEat(w, e) end
         if ZeD.InventoryRenderer.padIsDrink(e.item) then return ZeD.InventoryRenderer.padDrink(w, e) end   -- (punch list 228q)
+        if ZeD.InventoryRenderer.padIsUse(e.item) then return ZeD.InventoryRenderer.padUse(w, e) end
         if mark then return mark(w, e) end
     end
     el.promptA = function(w, e)

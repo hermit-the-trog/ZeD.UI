@@ -372,6 +372,7 @@ end
 -- ---------------------------------------------------------------------------
 -- DRAWING: the face at (x, y) on a panel at zoom k, with its cues; returns this frame's controls in panel px
 --   face = { dev, pid, des, focusId (the controller's), hoverId (the mouse's), pressId (a key held down),
+--            grabId (a knob the controller's A grabbed),
 --            own (a prop with a focus model of its own, the full view; not a ZeD window's tab) }
 -- A key wears the library's looks (the pointer's wash, the controller's focus mark); a knob keeps its
 -- ring, which is the knob's own light.
@@ -391,7 +392,9 @@ function TW.drawFace(panel, x, y, k, face)
         local knob = c.kind == "turn"
         hits[#hits + 1] = { id = c.id, kind = c.kind, knob = knob, x = x + c.x * k, y = y + c.y * k, w = c.w * k, h = c.h * k }
         if not knob and face.pressId == c.id then PL.cue(cv, c, P.BLACK, TW.PRESS_SHADE) end
-        if face.focusId == c.id then
+        if knob and face.grabId == c.id then
+            PL.grabCue(cv, c, ac, TW.PRESS_SHADE)   -- (punch list 228k: grabbed by the controller's A)
+        elseif face.focusId == c.id then
             if knob then PL.cue(cv, c, ac, 0.55) else PL.markKey(panel, c, x, y, k, face.own and OWN_FOCUS or nil) end
         elseif face.hoverId == c.id then
             if knob then PL.cue(cv, c, ac, 0.30) else PL.hoverKey(cv, c) end

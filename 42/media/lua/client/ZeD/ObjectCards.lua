@@ -40,7 +40,10 @@
 -- hint what it would let you do ("light it").
 -- Zones may carry wheel(del) (the mouse wheel over them), nofocus = true
 -- (clickable, but not a controller stop) and help (the window footer's line
--- while the pointer is over them).
+-- while the pointer is over them). knob(delta) makes the zone a dial on the
+-- controller (punch list 228l): A grabs it, the D-pad turns it (+1 / -1), A or B
+-- lets go; canTurn() false lets it go and the D-pad moves on (Focus.knobStop).
+-- The card's _knobGrab names the grabbed zone's fid, for its drawing.
 -- ============================================================================
 
 require "ZeD/Molecules"
@@ -1588,6 +1591,12 @@ function ZeD_ObjectCard:buildFocusables(win)
                 end or nil,
                 promptB = confirming and getText("UI_Cancel") or ZeD.tr("UI_ZeD_ObjCard_CloseCard"),
             }
+            local F = ZeD.Input and ZeD.Input.Focus
+            if zz.knob and F and F.knobStop then
+                F.knobStop(out[#out], function(w, el, d) zz.knob(d) end, {
+                    holder = function() return card end,
+                    canTurn = zz.canTurn and function() return zz.canTurn() end or nil })
+            end
         end
     end
     return out

@@ -2187,6 +2187,8 @@
     "UI_ZeD_Prompt_Hold": "%1 (halten)",
     "UI_ZeD_Prompt_Hour": "Stunde",
     "UI_ZeD_Prompt_Keyboard": "Tastatur",
+    "UI_ZeD_Prompt_KnobGrab": "Greifen",
+    "UI_ZeD_Prompt_KnobLetGo": "Loslassen",
     "UI_ZeD_Prompt_Menu": "Menü",
     "UI_ZeD_Prompt_Minute": "Minute",
     "UI_ZeD_Prompt_Pin": "Anheften",

@@ -2187,6 +2187,8 @@
     "UI_ZeD_Prompt_Hold": "%1 (basılı tut)",
     "UI_ZeD_Prompt_Hour": "Saat",
     "UI_ZeD_Prompt_Keyboard": "Klavye",
+    "UI_ZeD_Prompt_KnobGrab": "Tut",
+    "UI_ZeD_Prompt_KnobLetGo": "Bırak",
     "UI_ZeD_Prompt_Menu": "Menü",
     "UI_ZeD_Prompt_Minute": "Dakika",
     "UI_ZeD_Prompt_Pin": "Sabitle",

@@ -2187,6 +2187,8 @@
     "UI_ZeD_Prompt_Hold": "%1 (удерж.)",
     "UI_ZeD_Prompt_Hour": "Час",
     "UI_ZeD_Prompt_Keyboard": "Клавиатура",
+    "UI_ZeD_Prompt_KnobGrab": "Взять",
+    "UI_ZeD_Prompt_KnobLetGo": "Отпустить",
     "UI_ZeD_Prompt_Menu": "Меню",
     "UI_ZeD_Prompt_Minute": "Минута",
     "UI_ZeD_Prompt_Pin": "Закрепить",

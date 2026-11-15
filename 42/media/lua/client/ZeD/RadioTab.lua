@@ -739,6 +739,7 @@ local function renderTwoWay(panel, win, x, y, w, h, current, pid, des, drv)
     local hov = TW.hitAt(tw.hits, panel:getMouseX(), panel:getMouseY())
     local hits = TW.drawFace(panel, fx, fy, k, { dev = dev, pid = pid, des = des, focusId = fctl,
         hoverId = (not fctl) and hov and hov.id or nil, pressId = tw.press and tw.press.id or nil,
+        grabId = (fid and win._knobGrab == fid) and fctl or nil,   -- (punch list 228k: the knob A grabbed)
         w = faceW, minH = (needs or fillH > 0) and 0 or h, win = win })
     -- the footer: at the drawer's foot, or under the face when the body scrolls or the fill blocks follow it
     local footY = fy + faceH + pad
@@ -1019,10 +1020,28 @@ local function _addFillStops(win, elements)
     end
 end
 
+-- (Nov 14 2026, punch list 228k, the design lead's "A grabs, D-pad turns": a knob, or a plain card's stepper, is a stop
+-- the D-pad moves onto and off like any other. A grabs it (the face draws it held: the window's _knobGrab), then Left /
+-- Down turn it down and Right / Up up, the tuning faster while held (the D-pad's own repeat); A or B lets go. A volume
+-- knob that pushes for power pushes on X. Focus.knobStop; the turn is the driver's, as the wheel's and the mouse's.)
+local function _knob(el, drv, dev, id, tw, push)
+    local F = ZeD.Input and ZeD.Input.Focus
+    if not (F and F.knobStop) then return el end
+    local opts = nil
+    if push then
+        opts = { press = function(w) drv.press(w._playerObj, dev, id) end, pressWord = ZeD.tr("IGUI_RadioPower") }
+    end
+    return F.knobStop(el, function(w, e, d)
+        w._radioPadTurn = w._radioPadTurn or { t = 0, streak = 0 }
+        local n = _turnStreak(w._radioPadTurn, 260)
+        drv.turn(w._playerObj, dev, id, d, (id == "tune") and drv.turnMult(tw.pid, n) or 1)
+    end, opts)
+end
+
 -- An ordinary radio's or a TV's face: its controls first, power first (the pad rule: focus lands on
 -- the primary control), then the rest in reading order, then the radios'
 -- tabs. A presses (a list opens under the key, and the focus comes back to the key when it closes), held (or
--- X) a preset stores; up / down on a knob turns it, left / right walk on. The focus stays on the key it pressed.
+-- X) a preset stores; A grabs a knob and the D-pad turns it (_knob). The focus stays on the key it pressed.
 local function _rtvFocusables(win, tw)
     local R = ZeD.Rtv
     local dev = tw.dev
@@ -1032,14 +1051,7 @@ local function _rtvFocusables(win, tw)
         local id = h.id
         local el = { x = h.x, y = h.y, w = h.w, h = h.h, id = "radio:tw:" .. id, onFocus = onFocus }
         if h.knob then
-            if id == "volpwr" then el.onActivate = function(w) R.press(w._playerObj, dev, "volpwr") end end
-            el.onDpadDir = function(w, e, dir)
-                if dir ~= "up" and dir ~= "down" then return false end
-                w._radioPadTurn = w._radioPadTurn or { t = 0, streak = 0 }
-                local n = _turnStreak(w._radioPadTurn, 260)
-                R.turn(w._playerObj, dev, id, dir == "up" and 1 or -1, (id == "tune") and R.turnMult(tw.pid, n) or 1)
-                return true
-            end
+            _knob(el, R, dev, id, tw, id == "volpwr")
         else
             el.onActivate = function(w)
                 local t = w._radioTw
@@ -1060,8 +1072,7 @@ end
 
 -- The plain card (PlainFace.lua: Devices on Simple, or a radio with no face of its own): its controls in the order it draws them (the face's order: power
 -- first, top to bottom, then the footer band), then the radios' tabs. A presses (a list opens under the key);
--- held (or X) a preset key stores and MEM names. A stepper is one stop: left / right turn it (the tuning faster
--- while held), up / down move on, since the card is a column.
+-- held (or X) a preset key stores and MEM names. A stepper is one stop: A grabs it and the D-pad turns it (_knob).
 local function _plainFocusables(win, tw)
     local D = tw.drv
     local dev = tw.dev
@@ -1071,13 +1082,7 @@ local function _plainFocusables(win, tw)
         local id = h.id
         local el = { x = h.x, y = h.y, w = h.w, h = h.h, id = "radio:tw:" .. id, onFocus = onFocus }
         if h.knob then
-            el.onDpadDir = function(w, e, dir)
-                if dir ~= "left" and dir ~= "right" then return false end
-                w._radioPadTurn = w._radioPadTurn or { t = 0, streak = 0 }
-                local n = _turnStreak(w._radioPadTurn, 260)
-                D.turn(w._playerObj, dev, id, dir == "right" and 1 or -1, (id == "tune") and D.turnMult(tw.pid, n) or 1)
-                return true
-            end
+            _knob(el, D, dev, id, tw, false)
         else
             el.onActivate = function(w)
                 local t = w._radioTw
@@ -1126,7 +1131,7 @@ function ZeD.RadioTab.buildFocusables(win)
     _addTabStops(win, elements)
 
     -- ---- A two-way face: the full view button, then the face's controls in reading order. A presses, held (or
-    -- X) MEM names and the army set's 1..6 store; up / down on a knob turns it, left / right walk on.
+    -- X) MEM names and the army set's 1..6 store; A grabs a knob and the D-pad turns it (_knob; VOL pushes on X).
     local tw = win._radioTw
     local cur = win._radios and win._radios[win._radioIdx or 1]
     if tw and cur and cur.radioInstance == tw.dev and tw.hits then
@@ -1138,14 +1143,7 @@ function ZeD.RadioTab.buildFocusables(win)
             local el = { x = h.x, y = h.y, w = h.w, h = h.h, id = "radio:tw:" .. id,
                          onFocus = function(w, e) w._gpFocusedRadioCtl = e.id end }
             if h.knob then
-                if id == "vol" then el.onActivate = function(w) TW.press(w._playerObj, dev, "vol") end end
-                el.onDpadDir = function(w, e, dir)
-                    if dir ~= "up" and dir ~= "down" then return false end
-                    w._radioPadTurn = w._radioPadTurn or { t = 0, streak = 0 }
-                    local n = _turnStreak(w._radioPadTurn, 260)
-                    TW.turn(w._playerObj, dev, id, dir == "up" and 1 or -1, (id == "tune") and TW.turnMult(tw.pid, n) or 1)
-                    return true
-                end
+                _knob(el, TW, dev, id, tw, id == "vol")
             else
                 el.onActivate = function(w) TW.press(w._playerObj, dev, id) end
                 if TW.holdable(id) then

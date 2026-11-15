@@ -124,6 +124,7 @@ function ZeD_CarRadio:new(character, part)
     o._hits = {}
     o._hover = nil
     o._press = nil         -- { id, t0, fired } while a button is held down
+    o._grab = false        -- the focused knob is grabbed (the controller's A: the D-pad turns it; punch list 228k)
     o._wheel = { t = 0, streak = 0 }
     return o
 end
@@ -287,7 +288,9 @@ function ZeD_CarRadio:prerender()
         local focused = joy and self.focusId == c.id
         local hovered = (not joy) and self._hover == c.id
         if not c.knob and self._press and self._press.id == c.id then PL.cue(cv, c, P.BLACK, PRESS_SHADE) end
-        if focused then
+        if focused and c.knob and self._grab then
+            PL.grabCue(cv, c, ac, PRESS_SHADE)   -- (punch list 228k: grabbed by the controller's A)
+        elseif focused then
             if c.knob then PL.cue(cv, c, ac, 0.55) else PL.markKey(self, c, 0, 0, s, OWN_FOCUS) end
         elseif hovered then
             if c.knob then PL.cue(cv, c, ac, 0.30) else PL.hoverKey(cv, c) end
@@ -304,7 +307,12 @@ end
 -- the controller's strip under the radio: the help line's look (pictures at 14u, F2 words)
 function ZeD_CarRadio:drawPadStrip()
     if not (self._stripH and self._stripH > 0) then return end
-    local items = { { glyph = "D-PAD", label = ZeD.tr("UI_ZeD_RadioPrompt_Move") } }
+    -- (Nov 14 2026, punch list 228k: a grabbed knob says D-pad Turn, A / B Let go; else the D-pad only moves)
+    if self:knobGrabbed() then
+        ZeD.PadGlyphs.drawStrip(self, 0, self.height - self._stripH, self.width, ZeD.Input.Focus.knobPrompts())
+        return
+    end
+    local items = { { glyph = "D-PAD", label = ZeD.tr("UI_ZeD_Map_PadMove") } }
     local la = self:labelA()
     if la then items[#items + 1] = { glyph = "A", label = la } end
     local lx = self:labelX()
@@ -320,6 +328,7 @@ function ZeD_CarRadio:hasHit(id)
 end
 
 function ZeD_CarRadio:labelA()
+    if self:isKnobFocused() then return ZeD.tr("UI_ZeD_Prompt_KnobGrab") end   -- (punch list 228k: A grabs a knob)
     if self._plain then return self:plainLabelA() end
     local id = self.focusId or "vol"
     if id == "tune" or (id == "vol" and (self.kind == "makeshift" or self.kind == "hammake")) then return nil end   -- a knob only turns
@@ -329,6 +338,7 @@ end
 function ZeD_CarRadio:labelX()
     if self._plain then return self:plainLabelX() end
     local id = self.focusId or ""
+    if self:pushKnob() then return ZeD.tr("IGUI_RadioPower") end   -- (punch list 228k: the volume knob's push, on X)
     if id:match("^p%d$") then return ZeD.tr("UI_ZeD_RadioPrompt_Store") end
     if id == "mem" then return ZeD.tr("UI_ZeD_RadioPrompt_NameChannel") end
     if id == "seek" then return ZeD.tr("UI_ZeD_RadioPrompt_SeekBack") end
@@ -574,10 +584,10 @@ function ZeD_CarRadio:moveFocus(dx, dy)
             end
         end
     end
-    if best then self.focusId = best.id; sound("UISelectListItem") end
+    if best then self.focusId = best.id; self._grab = false; sound("UISelectListItem") end
 end
 
--- up / down on a knob turns it (held, the DIAL speeds up)
+-- a grabbed knob turns one click (dir +1 / -1; the D-pad's repeat: held, the DIAL speeds up)
 function ZeD_CarRadio:dirTurn(dir)
     local t = now()
     local k = self._padTurn or { t = 0, streak = 0 }
@@ -592,7 +602,16 @@ function ZeD_CarRadio:dirTurn(dir)
 end
 
 function ZeD_CarRadio:onJoypadDown(button, joypadData)
-    if button == Joypad.BButton then self:close()
+    -- (Nov 14 2026, punch list 228k, the design lead's "A grabs, D-pad turns": A on a knob grabs it, A or B lets go;
+    -- B on a grabbed knob only lets go. The volume knob's push (power) is X.)
+    if button == Joypad.BButton then
+        if self:knobGrabbed() then self._grab = false; sound("UISelectListItem"); return end
+        self:close()
+    elseif button == Joypad.AButton and self:isKnobFocused() then
+        self._grab = not self._grab
+        sound("UISelectListItem")
+    elseif button == Joypad.XButton and self:pushKnob() then
+        self:press(self.focusId)
     elseif self._plain then self:plainJoypad(button)
     elseif button == Joypad.AButton then
         local id = self.focusId or "vol"
@@ -604,12 +623,22 @@ function ZeD_CarRadio:onJoypadDown(button, joypadData)
         if id:match("^p%d$") or id == "mem" or id == "seek" then self:secondary(id) end
     end
 end
-function ZeD_CarRadio:isKnobFocused() local f = self:focused(); return f and f.c and f.c.knob end
--- (the plain card is a column: up / down move on, left / right turn a stepper)
-function ZeD_CarRadio:onJoypadDirLeft() if self._plain and self:isKnobFocused() then self:dirTurn(-1) else self:moveFocus(-1, 0) end end
-function ZeD_CarRadio:onJoypadDirRight() if self._plain and self:isKnobFocused() then self:dirTurn(1) else self:moveFocus(1, 0) end end
-function ZeD_CarRadio:onJoypadDirUp() if not self._plain and self:isKnobFocused() then self:dirTurn(1) else self:moveFocus(0, -1) end end
-function ZeD_CarRadio:onJoypadDirDown() if not self._plain and self:isKnobFocused() then self:dirTurn(-1) else self:moveFocus(0, 1) end end
+function ZeD_CarRadio:isKnobFocused() local f = self:focused(); return (f and f.c and f.c.knob) and true or false end
+--- The focused knob is grabbed (A): the D-pad turns it.
+function ZeD_CarRadio:knobGrabbed() return self._grab == true and self:isKnobFocused() end
+--- The focused control is the face's volume knob that also pushes for power (not the makeshift sets', whose power is a
+--- button of its own): X pushes it.
+function ZeD_CarRadio:pushKnob()
+    return (not self._plain) and self.focusId == "vol" and self:isKnobFocused() and not hasPwrButton(self.kind)
+end
+-- the D-pad: a grabbed knob turns (Left / Down down, Right / Up up); anything else moves on, on the face and the card
+local function dirPad(self, dx, dy, d)
+    if self:knobGrabbed() then self:dirTurn(d) else self:moveFocus(dx, dy) end
+end
+function ZeD_CarRadio:onJoypadDirLeft() dirPad(self, -1, 0, -1) end
+function ZeD_CarRadio:onJoypadDirRight() dirPad(self, 1, 0, 1) end
+function ZeD_CarRadio:onJoypadDirUp() dirPad(self, 0, -1, 1) end
+function ZeD_CarRadio:onJoypadDirDown() dirPad(self, 0, 1, -1) end
 
 -- ---------------------------------------------------------------------------
 -- THE PLAIN CARD (Devices: Simple): the radio tab's plain card (PlainFace.lua) over this radio's driver
@@ -749,6 +778,7 @@ function ZeD_CarRadio:prerenderPlain(part, st)
     face.focusId = joy and self.focusId or nil
     face.hoverId = (not joy) and self._hover or nil
     face.pressId = self._press and self._press.id or nil
+    face.grabId = self:knobGrabbed() and self.focusId or nil   -- (punch list 228k)
     face.win, face.ownFocus = self, true
     local hits = PF.draw(CB, self, 0, headH, face)
     for _, h in ipairs(hits) do h.c = h end                   -- (the face's walk and wheel read h.c.knob)
@@ -844,6 +874,7 @@ function R.toggle(character, part)
     prop.part = part
     prop.kind = st.kind
     prop.focusId = simpleOn() and "power" or faceFocus(st.kind)    -- (the plain card's first row: its power switch)
+    prop._grab = false
     prop:setVisible(true)
     prop:addToUIManager()
     prop:setAlwaysOnTop(true)

@@ -485,6 +485,9 @@ local function drawPadlock(card, x, y, t, key)
         digit(card, tostring((v + 9) % 10), cx, wy + p(10), 11, INK_DIM, 0.6)
         digit(card, tostring(v), cx, wy + math.floor(wheelH / 2), 26, INK, 1)
         digit(card, tostring((v + 1) % 10), cx, wy + wheelH - p(10), 11, INK_DIM, 0.6)
+        -- (Nov 14 2026, punch list 228l: a wheel the controller's A grabbed shows held, the press shade a held key
+        -- has under the focus mark; the D-pad turns it then)
+        if focused and card._knobGrab == fid then card:drawRect(wx, wy, wheelW, wheelH, 0.35, 0, 0, 0) end
         if focused then card:drawRect(wx, wy, wheelW, wheelH, 0.55, col(T.accent)) end
         -- the typing cursor (keyboard): a bar under the wheel the next digit lands on
         if cursorOn and t.cursor == i and not busy then
@@ -501,13 +504,12 @@ local function drawPadlock(card, x, y, t, key)
                     t.cursor = ii
                 end
             end,
-            dpad = function(dir)
-                -- while an action runs the D-pad moves on (to STOP)
-                if t.d and t.d.busy then return false end
-                if dir == "up" then turn(t, ii, 1); return true end
-                if dir == "down" then turn(t, ii, -1); return true end
-                return false
-            end,
+            -- (Nov 14 2026, punch list 228l, the design lead's "A grabs, D-pad turns": on the controller a wheel is
+            -- a stop the D-pad moves onto and off; A grabs it, then Right / Up turn it up and Left / Down down, A or B
+            -- lets go. While an action runs it lets go and the D-pad moves on (to STOP). The card's LOCK / REMOVE is
+            -- its own button.)
+            knob = function(d) turn(t, ii, d) end,
+            canTurn = function() return not (t.d and t.d.busy) end,
             wheel = function(del) turn(t, ii, del < 0 and 1 or -1) end })
         local ch = p(CHEV_H)
         chevron(card, wx, bodyY + p(12), wheelW, ch, true, focused, busy)

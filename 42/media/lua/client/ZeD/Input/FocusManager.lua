@@ -885,6 +885,88 @@ function Focus.menuClosed(menu, pn)
 end
 
 -- ---------------------------------------------------------------------------
+-- KNOBS (Nov 14 2026, punch list 228k / l, the design lead's "A grabs, D-pad turns")
+-- A knob or a dial is a stop like any other: the D-pad moves onto it and off it, never turns it. A grabs it (its
+-- holder's _knobGrab names it: the face draws it held), then Left / Down turn it down and Right / Up up, with the
+-- D-pad's own hold-repeat; A or B lets go (B only lets go, it never leaves the card). Landing on it again starts
+-- with it let go. A knob that also pushes (a radio's power on its volume knob) pushes on X. The mouse is untouched:
+-- these are the controller's stops only.
+-- ---------------------------------------------------------------------------
+local _knobPrompts = nil
+--- The prompts a grabbed knob adds to the help line: D-pad Turn, A / B Let go.
+function Focus.knobPrompts()
+    if not _knobPrompts then
+        _knobPrompts = { { glyph = "D-PAD", label = ZeD.tr("UI_ZeD_Looks_PromptTurn") },
+                         { glyph = "A B", label = ZeD.tr("UI_ZeD_Prompt_KnobLetGo") } }
+    end
+    return _knobPrompts
+end
+
+--- Make el (a stop) a knob. turn(w, e, delta) turns it one step (delta +1 up, -1 down). opts (all optional):
+---   holder(w, e)   the table that keeps the grab (_knobGrab = the stop's id): w itself when missing
+---   canTurn(w, e)  false: it lets go, and the D-pad moves on (a lock busy with its action)
+---   press(w, e)    a knob that also pushes: X pushes it; pressWord its X prompt
+--- The stop's own onFocus, onCancel and promptB still answer when it is not grabbed. Returns el.
+function Focus.knobStop(el, turn, opts)
+    if not el then return el end
+    opts = opts or {}
+    local holderOf = opts.holder or function(w) return w end
+    local function grabbed(w, e)
+        local h = holderOf(w, e)
+        return h ~= nil and h._knobGrab ~= nil and h._knobGrab == e.id
+    end
+    local function letGo(w, e)
+        local h = holderOf(w, e)
+        if h then h._knobGrab = nil end
+    end
+    local prevFocus, prevCancel, prevB = el.onFocus, el.onCancel, el.promptB
+    el.isKnob = true
+    el.onFocus = function(w, e)
+        letGo(w, e)   -- (landing on it again: let go)
+        if prevFocus then return prevFocus(w, e) end
+    end
+    el.onActivate = function(w, e)
+        local h = holderOf(w, e)
+        if not h then return end
+        if h._knobGrab == e.id then h._knobGrab = nil else h._knobGrab = e.id end
+    end
+    el.promptA = function(w, e)
+        if grabbed(w, e) then return false end   -- (A / B Let go is one prompt, below)
+        return ZeD.tr("UI_ZeD_Prompt_KnobGrab")
+    end
+    el.onCancel = function(w, e)
+        if grabbed(w, e) then letGo(w, e); return true end
+        if prevCancel then return prevCancel(w, e) end
+        return false
+    end
+    el.promptB = function(w, e)
+        if grabbed(w, e) or not prevCancel then return false end
+        if type(prevB) == "function" then return prevB(w, e) end
+        return prevB
+    end
+    el.onDpadDir = function(w, e, dir)
+        if not grabbed(w, e) then return false end
+        if opts.canTurn and not opts.canTurn(w, e) then letGo(w, e); return false end
+        turn(w, e, (dir == "up" or dir == "right") and 1 or -1)
+        return true
+    end
+    el.extraPrompts = function(w, e)
+        if grabbed(w, e) then return Focus.knobPrompts() end
+        return nil
+    end
+    if opts.press then
+        el.onContextMenu = opts.press
+        el.promptX = opts.pressWord
+    end
+    return el
+end
+
+--- Whether the stop id is grabbed in holder (a face drawing its knob held).
+function Focus.knobGrabbed(holder, id)
+    return holder ~= nil and id ~= nil and holder._knobGrab == id
+end
+
+-- ---------------------------------------------------------------------------
 -- WHERE FOCUS LANDS — two helpers that keep a window from putting the focus
 -- on nothing visible when it is entered, and let an opened info card land
 -- it on its action strip.
@@ -2618,9 +2700,11 @@ local function _tickPlayer(pn, s)
     do
         local d = Focus.gameCursor(pn)
         if d then
-            -- (Nov 14 2026, punch list 228b: only while a ZeD window holds the pad; over a prompt, the keyboard or a
-            -- pop-out it waits until they let go)
-            if s.win and s.dragSeen ~= d and not Focus.foreignHolder(pn) then
+            -- (Nov 14 2026, punch list 228b, then QA's regression on it: the roll-up always runs once a cursor is up,
+            -- as before. Waiting for no other holder kept the pad on the Character window after Place item from a menu
+            -- (184 again): the menu that started the cursor still counted as one. What 228b needed is releaseFocus's:
+            -- something else that holds the pad, a prompt or the keyboard, keeps it while the windows roll up.)
+            if s.win and s.dragSeen ~= d then
                 s.dragSeen = d
                 _hideAllWindows("cursor", pn)
                 return

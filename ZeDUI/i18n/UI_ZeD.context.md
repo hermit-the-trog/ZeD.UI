@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Only the pixel-face words are capitals: the action bar labels (READING, CHEWING) and the marks on the dash, watch and radio. They stay capitals in your language. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey), for headings, column heads, tags, buttons and status words alike; write yours the way your language writes a heading or a button, not in capitals.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head arrives in whatever case the game text has, and ZeD sets it in sentence case.
 
-Total keys: 5302.
+Total keys: 5304.
 
 ## Areas
 
@@ -79,7 +79,7 @@ Total keys: 5302.
 - [Power](#power) (47)
 - [Print](#print) (2)
 - [Progress](#progress) (1)
-- [Prompt](#prompt) (38)
+- [Prompt](#prompt) (40)
 - [Radio](#radio) (38)
 - [RadioPrompt](#radioprompt) (18)
 - [Read](#read) (18)
@@ -3066,6 +3066,8 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Prompt_Hold` | `%1 (hold)` | Controller button legend, hold-A prompt; %1 is the action word (Use) | 18 |
 | `UI_ZeD_Prompt_Hour` | `Hour` | Alarm clock dialog, label of the hour stepper row | 10 |
 | `UI_ZeD_Prompt_Keyboard` | `Keyboard` | Pop-up prompt controller legend, A prompt on a text field (opens the on-screen keyboard) | 12 |
+| `UI_ZeD_Prompt_KnobGrab` | `Grab` | Controller button legend, A prompt on a knob or a lock's number wheel (radio, TV, two-way and car radio faces, their plain cards, padlock dials): takes hold of it so the D-pad turns it. To grip, not to pick up | 12 |
+| `UI_ZeD_Prompt_KnobLetGo` | `Let go` | Controller button legend while a knob is held, beside the A and B pictures: lets go of the knob, so the D-pad moves on again | 12 |
 | `UI_ZeD_Prompt_Menu` | `Menu` | Controller button legend, X prompt (opens the context menu) | 12 |
 | `UI_ZeD_Prompt_Minute` | `Minute` | Alarm clock dialog, label of the minute stepper row | 10 |
 | `UI_ZeD_Prompt_Pin` | `Pin` | Controller button legend, X prompt on a map grid tool or a skill row | 12 |

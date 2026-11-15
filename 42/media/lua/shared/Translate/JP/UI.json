@@ -2187,6 +2187,8 @@
     "UI_ZeD_Prompt_Hold": "%1 (長押し)",
     "UI_ZeD_Prompt_Hour": "時",
     "UI_ZeD_Prompt_Keyboard": "キーボード",
+    "UI_ZeD_Prompt_KnobGrab": "つかむ",
+    "UI_ZeD_Prompt_KnobLetGo": "離す",
     "UI_ZeD_Prompt_Menu": "メニュー",
     "UI_ZeD_Prompt_Minute": "分",
     "UI_ZeD_Prompt_Pin": "ピン",

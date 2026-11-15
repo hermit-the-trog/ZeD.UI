@@ -686,7 +686,8 @@ end
 
 -- ---------------------------------------------------------------------------
 -- DRAWING: the face at (x, y) on a panel at zoom k, with its cues; returns this frame's controls in panel px
---   face = { dev, pid, des, focusId (the controller's), hoverId (the mouse's), pressId (a key held down) }
+--   face = { dev, pid, des, focusId (the controller's), hoverId (the mouse's), pressId (a key held down), grabId (a knob the
+--            controller's A grabbed) }
 -- The antique set's power and volume share the knob: one control, "volpwr" (pressed: power; turned: volume).
 -- ---------------------------------------------------------------------------
 --- Draw the face as above; returns its controls (hits) and the state it read, or {} and nil with no device data.
@@ -708,7 +709,9 @@ function R.drawFace(panel, x, y, k, face)
             local knob = c.kind == "turn"
             hits[#hits + 1] = { id = c.id, kind = c.kind, knob = knob, x = x + c.x * k, y = y + c.y * k, w = c.w * k, h = c.h * k }
             if not knob and face.pressId == c.id then PL.cue(cv, c, P.BLACK, R.PRESS_SHADE) end
-            if face.focusId == c.id then
+            if knob and face.grabId == c.id then
+                PL.grabCue(cv, c, ac, R.PRESS_SHADE)   -- (punch list 228k: grabbed by the controller's A)
+            elseif face.focusId == c.id then
                 if knob then PL.cue(cv, c, ac, 0.55) else PL.markKey(panel, c, x, y, k, nil) end
             elseif face.hoverId == c.id then
                 if knob then PL.cue(cv, c, ac, 0.30) else PL.hoverKey(cv, c) end
@@ -769,7 +772,16 @@ local function listMenu(chr, at, items, emptyKey, onPick, target)
     end
     local jd = JoypadState.players[pn + 1]
     if jd then
-        context.origin = jd.focus
+        -- (Nov 14 2026, QA's regression on punch list 228c: the list hands the pad back to its origin when it closes,
+        -- so the origin is the face's own holder: a prop holding the pad itself (the car radio, the two-way's full
+        -- view), else the ZeD window the face is drawn in. The pad's focus left on something else, a prompt still up
+        -- from before, got the pad back from the list and the window never had it again.)
+        local origin = jd.focus
+        local Fo = ZeD.Input and ZeD.Input.Focus
+        local fw = Fo and Fo.getFocusedWindow and Fo.getFocusedWindow(pn)
+        local own = origin and (origin.Type == "ZeD_CarRadio" or origin.Type == "ZeD_TwoWayFull")
+        if fw and origin ~= fw and not own then origin = fw end
+        context.origin = origin
         context.mouseOver = 1
         setJoypadFocus(pn, context)
     end

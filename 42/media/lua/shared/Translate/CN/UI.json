@@ -2187,6 +2187,8 @@
     "UI_ZeD_Prompt_Hold": "%1（按住）",
     "UI_ZeD_Prompt_Hour": "时",
     "UI_ZeD_Prompt_Keyboard": "键盘",
+    "UI_ZeD_Prompt_KnobGrab": "握住",
+    "UI_ZeD_Prompt_KnobLetGo": "松开",
     "UI_ZeD_Prompt_Menu": "菜单",
     "UI_ZeD_Prompt_Minute": "分",
     "UI_ZeD_Prompt_Pin": "固定",

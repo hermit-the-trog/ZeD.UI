@@ -2187,6 +2187,8 @@
     "UI_ZeD_Prompt_Hold": "%1 (길게)",
     "UI_ZeD_Prompt_Hour": "시",
     "UI_ZeD_Prompt_Keyboard": "키보드",
+    "UI_ZeD_Prompt_KnobGrab": "잡기",
+    "UI_ZeD_Prompt_KnobLetGo": "놓기",
     "UI_ZeD_Prompt_Menu": "메뉴",
     "UI_ZeD_Prompt_Minute": "분",
     "UI_ZeD_Prompt_Pin": "고정",

@@ -2187,6 +2187,8 @@
     "UI_ZeD_Prompt_Hold": "%1 (ค้างไว้)",
     "UI_ZeD_Prompt_Hour": "ชั่วโมง",
     "UI_ZeD_Prompt_Keyboard": "คีย์บอร์ด",
+    "UI_ZeD_Prompt_KnobGrab": "จับ",
+    "UI_ZeD_Prompt_KnobLetGo": "ปล่อย",
     "UI_ZeD_Prompt_Menu": "เมนู",
     "UI_ZeD_Prompt_Minute": "นาที",
     "UI_ZeD_Prompt_Pin": "ปักหมุด",

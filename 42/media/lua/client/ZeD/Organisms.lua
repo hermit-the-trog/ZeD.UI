@@ -935,7 +935,9 @@ local function _promptsFor(el, win)
     elseif el.onReset    then out[#out + 1] = { glyph = "X", label = ZeD.tr("UI_ZeD_Prompt_Reset") } end
     if el.onCancel       and pB ~= false then out[#out + 1] = { glyph = "B", label = pB or ZeD.tr(labels.b or "UI_ZeD_Prompt_Back") } end
     -- controls the element answers to beyond the face buttons (the map: the triggers zoom, the stick moves)
-    if el.extraPrompts then for _, p in ipairs(el.extraPrompts) do out[#out + 1] = p end end
+    -- (a function of (win, el), read each frame: a grabbed knob's D-pad Turn, A / B Let go, punch list 228k)
+    local ex = _pv(el.extraPrompts, win, el)
+    if type(ex) == "table" then for _, p in ipairs(ex) do out[#out + 1] = p end end
     out[#out + 1] = { glyph = "Y", label = ZeD.tr("UI_ZeD_Prompt_Windows") }
     return out
 end

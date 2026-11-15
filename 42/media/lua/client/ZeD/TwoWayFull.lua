@@ -14,9 +14,10 @@
 -- It closes with the tab's button, B or Escape, and by itself when the radio
 -- goes out of reach (dropped, taken, walked away from). It does not tuck away
 -- on a timer as the watch does: a radio is listened to.
--- Controller: it takes focus while open. The D-pad walks the controls (up /
--- down on a knob turns it), A presses, X stores or names, B closes and gives
--- focus back to the window it was opened from.
+-- Controller: it takes focus while open. The D-pad walks the controls, A presses,
+-- X stores or names, B closes and gives focus back to the window it was opened
+-- from. A knob is grabbed with A, then the D-pad turns it; A or B lets go, and
+-- the volume knob's push (power) is X (punch list 228k).
 -- The drawing and every verb live in TwoWayFace.lua; this file places the
 -- face, passes input to it and closes it.
 -- ============================================================================
@@ -136,16 +137,22 @@ function ZeD_TwoWayFull:prerender()
     if tex then self:drawTextureScaled(tex, sh, sh, des.w * k, des.h * k, SHADOW_A, 0, 0, 0) end
     local joy = self.joyfocus ~= nil
     local hits, st = TW.drawFace(self, 0, 0, k, { dev = self.dev, pid = pid, des = des, focusId = joy and self.focusId or nil,
-        hoverId = (not joy) and self._hover or nil, pressId = self._press and self._press.id or nil, own = true })
+        hoverId = (not joy) and self._hover or nil, pressId = self._press and self._press.id or nil, own = true,
+        grabId = (joy and self:knobGrabbed()) and self.focusId or nil })
     self._hits = hits
     self.st = st
     -- (the controller starts on the first control in reading order)
     if joy and not self:focused() and hits[1] then self.focusId = TW.readingOrder(hits, k)[1].id end
-    if stripH > 0 then
-        local items = { { glyph = "D-PAD", label = ZeD.tr("UI_ZeD_RadioPrompt_Move") } }
+    if stripH > 0 and self:knobGrabbed() then
+        -- (Nov 14 2026, punch list 228k: a grabbed knob says D-pad Turn, A / B Let go)
+        PG.drawStrip(self, 0, self.height - stripH, des.w * k, ZeD.Input.Focus.knobPrompts())
+    elseif stripH > 0 then
+        local items = { { glyph = "D-PAD", label = ZeD.tr("UI_ZeD_Map_PadMove") } }
         local la = TW.labelA(self.focusId)
+        if self:isKnobFocused() then la = ZeD.tr("UI_ZeD_Prompt_KnobGrab") end
         if la then items[#items + 1] = { glyph = "A", label = la } end
         local lx = TW.labelX(self.focusId)
+        if self:isKnobFocused() and self.focusId == "vol" then lx = getText("IGUI_RadioPower") end
         if lx then items[#items + 1] = { glyph = "X", label = lx } end
         items[#items + 1] = { glyph = "B", label = ZeD.tr("UI_ZeD_Close") }
         PG.drawStrip(self, 0, self.height - stripH, des.w * k, items)
@@ -262,10 +269,10 @@ function ZeD_TwoWayFull:onLoseJoypadFocus(joypadData) self.joyfocus = nil end
 
 function ZeD_TwoWayFull:moveFocus(dx, dy)
     local best = TW.nearest(self._hits, self:focused(), dx, dy)
-    if best then self.focusId = best.id; sound("UISelectListItem") end
+    if best then self.focusId = best.id; self._grab = false; sound("UISelectListItem") end
 end
 
--- up / down on a knob: presses under 260 ms apart build a streak, so a held
+-- a grabbed knob turned one click: presses under 260 ms apart build a streak, so a held
 -- D-pad spins the tuning knob faster
 function ZeD_TwoWayFull:dirTurn(dir)
     local t = now()
@@ -277,21 +284,35 @@ function ZeD_TwoWayFull:dirTurn(dir)
     TW.turn(self.character, self.dev, self.focusId, dir, mult)
 end
 
+-- (Nov 14 2026, punch list 228k, the design lead's "A grabs, D-pad turns": A on a knob grabs it, A or B lets go (B on
+-- a grabbed knob only lets go, the view stays); the volume knob's push (power) is X)
 function ZeD_TwoWayFull:onJoypadDown(button, joypadData)
-    if button == Joypad.BButton then self:close()
+    if button == Joypad.BButton then
+        if self:knobGrabbed() then self._grab = false; sound("UISelectListItem"); return end
+        self:close()
+    elseif button == Joypad.AButton and self:isKnobFocused() then
+        self._grab = not self._grab
+        sound("UISelectListItem")
     elseif button == Joypad.AButton then
         local id = self.focusId
-        if id and id ~= "tune" then TW.press(self.character, self.dev, id) end
+        if id then TW.press(self.character, self.dev, id) end
     elseif button == Joypad.XButton then
         local id = self.focusId or ""
-        if TW.labelX(id) then TW.secondary(self.character, self.dev, id, self) end
+        if self:isKnobFocused() and id == "vol" then TW.press(self.character, self.dev, id)
+        elseif TW.labelX(id) then TW.secondary(self.character, self.dev, id, self) end
     end
 end
-function ZeD_TwoWayFull:isKnobFocused() local f = self:focused(); return f and f.knob end
-function ZeD_TwoWayFull:onJoypadDirLeft() self:moveFocus(-1, 0) end
-function ZeD_TwoWayFull:onJoypadDirRight() self:moveFocus(1, 0) end
-function ZeD_TwoWayFull:onJoypadDirUp() if self:isKnobFocused() then self:dirTurn(1) else self:moveFocus(0, -1) end end
-function ZeD_TwoWayFull:onJoypadDirDown() if self:isKnobFocused() then self:dirTurn(-1) else self:moveFocus(0, 1) end end
+function ZeD_TwoWayFull:isKnobFocused() local f = self:focused(); return (f and f.knob) and true or false end
+--- The focused knob is grabbed (A): the D-pad turns it.
+function ZeD_TwoWayFull:knobGrabbed() return self._grab == true and self:isKnobFocused() end
+-- the D-pad: a grabbed knob turns (Left / Down down, Right / Up up); anything else moves on
+local function dirPad(self, dx, dy, d)
+    if self:knobGrabbed() then self:dirTurn(d) else self:moveFocus(dx, dy) end
+end
+function ZeD_TwoWayFull:onJoypadDirLeft() dirPad(self, -1, 0, -1) end
+function ZeD_TwoWayFull:onJoypadDirRight() dirPad(self, 1, 0, 1) end
+function ZeD_TwoWayFull:onJoypadDirUp() dirPad(self, 0, -1, 1) end
+function ZeD_TwoWayFull:onJoypadDirDown() dirPad(self, 0, 1, -1) end
 
 -- ---------------------------------------------------------------------------
 -- ENTRY
@@ -318,6 +339,7 @@ function F.open(character, dev, win)
         F.views[pn] = v
     end
     v.dev, v.returnWin, v._tick, v.focusId = dev, win, 0, nil
+    v._grab = false
     if not v:isReallyVisible() then
         v:setVisible(true)
         v:addToUIManager()
