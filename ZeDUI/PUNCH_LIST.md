@@ -5044,3 +5044,8 @@ to be proposed.
    Character window; QA handed the pad to the prompt through the bridge. Looks like Rename runs twice (the menu's
    option and the card's own path, or 231's re-take loop) and opens two boxes, and only one is answered.
    Confirmed by the director: two instances open. Choosing Rename again from the X menu got into the stuck one.
+
+235. **Keyboards: B saves and closes, no question (the director, Nov 14 2026, playtest).** open, a design change to
+   226. The "Close the keyboard? Your changes will be saved." question was too many steps: with Cancel focused the hint
+   strip still offered B Cancel, so there were three ways to cancel and one to confirm. The director's answer: B saves
+   and closes the keyboard, no question. (The Rename box keeps its own OK / Cancel; that's fine.)
