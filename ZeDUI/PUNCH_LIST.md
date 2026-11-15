@@ -5035,6 +5035,9 @@ to be proposed.
    claim at all (focus stays nil) until the director pressed Y, which claimed the Character window instead. Every
    route that opens a ZeD window or tab from the world (station prompts, the X menu's open options, 208's oven) should
    claim the pad for that window, on its opened tab's first stop.
+   **QA, Nov 14 2026, on 6088f4757 (zedqa_padfix_i.lua, 4K): passes.** With nothing holding the pad, the station open the
+   prompt uses (ISEntityUI.OpenHandcraftWindow) put the World window on Craft with the pad, on the tab's first stop
+   (craft:stDrop). A real station prompt goes on the director's next playtest list.
 
 234. **Controller: Rename opens two name boxes; the second is left stuck (the director, Nov 14 2026, playtest).** open.
    Renaming the key ring: the X menu's Rename; then the director had to D-pad down into the item card's header before
@@ -5044,6 +5047,9 @@ to be proposed.
    Character window; QA handed the pad to the prompt through the bridge. Looks like Rename runs twice (the menu's
    option and the card's own path, or 231's re-take loop) and opens two boxes, and only one is answered.
    Confirmed by the director: two instances open. Choosing Rename again from the X menu got into the stuck one.
+   **QA, Nov 14 2026, on 6088f4757 (zedqa_padfix_i.lua, 4K): passes.** Rename run twice for one bag leaves one box
+   (visible, x 1622 y 932, not dead) holding the pad; closing it leaves none. The "D-pad into the header first" part
+   didn't show in script: the box was up right away. Next playtest to confirm.
 
 235. **Keyboards: B saves and closes, no question (the director, Nov 14 2026, playtest).** open, a design change to
    226. The "Close the keyboard? Your changes will be saved." question was too many steps: with Cancel focused the hint
@@ -5052,3 +5058,6 @@ to be proposed.
    Refined the same evening (the director): B on the keyboard reads "Back": it only leaves the keyboard, keeping the
    typed text in the field. What owns the field decides saving: a box with OK / Cancel (Rename) asks there; a desk note
    just keeps the text (no dialog).
+   **QA, Nov 14 2026, on 6088f4757 (zedqa_padfix_i.lua, 4K): passes.** On the Equip list's Find keyboard, typed "qa"; the
+   help line reads "B Back"; B closed the keyboard with no question, the field kept "qa", the pad went back to the
+   Character window.
