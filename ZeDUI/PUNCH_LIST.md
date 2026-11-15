@@ -5003,3 +5003,10 @@ to be proposed.
    nothing on screen says which button does what; the director couldn't tell what X does. It needs the hint strip (or
    its own prompt line) listing every button it answers: A Take photo, Y Backdrop, X (whatever it is), the zoom and
    rotate controls, B Back.
+
+230. **Tooltips: the pad gets none outside item rows, and the Equip tab has none at all (the director, Nov 14 2026,
+   playtest).** open. 227b gives the pad's resting row an item tooltip, but nothing else: a trait (ID card), and
+   "pretty much everything" else that shows a tooltip on mouse hover shows nothing when the pad rests on it. Separately,
+   the Equip tab's equipped panel shows no hover tooltips at all, with the mouse or the pad. Wanted: every stop that has
+   a mouse tooltip shows the same one when the pad rests on it (one shared rule, not per surface), and the Equip panel's
+   tooltips work.
