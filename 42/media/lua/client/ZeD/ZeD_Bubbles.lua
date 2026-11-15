@@ -526,17 +526,74 @@ function B.note(pn, text, tone)
     return n
 end
 
+-- (Nov 15 2026, the director: "anything other than normal speed gets its drawn speed in a bubble above the player.
+-- Same with pause.") The game's speed as a note that stays while it lasts: the speed buttons' own drawing, two bars
+-- paused, one arrow a step past normal (two, three). Nearest the head, under the other notes. 0 = paused.
+local function speedNow()
+    local paused = false
+    pcall(function() paused = isGamePaused() end)
+    if paused then return 0 end
+    local s = 1
+    pcall(function() s = getGameSpeed() end)
+    if s == 0 then return 0 end
+    return s
+end
+B.SPEED_ARROW_W, B.SPEED_GAP = 4, 1
+-- the drawing's width in units for speed s
+function B.speedGlyphW(s)
+    if s == 0 then return 6 end
+    local n = math.max(1, s - 1) + 1   -- (speed 2: two arrows, 3: three, 4: four, as the buttons count them)
+    return n * B.SPEED_ARROW_W + (n - 1) * B.SPEED_GAP
+end
+B._speedNote = B._speedNote or {}   -- playerNum -> the speed's note (kept, so nothing is made each frame)
+B._noteOut = B._noteOut or {}       -- playerNum -> the list drawn this frame
+local function speedNote(pn)
+    local s = speedNow()
+    if s == 1 then return nil end
+    local n = B._speedNote[pn]
+    if not n then n = { lines = { "" }, a = 1 }; B._speedNote[pn] = n end
+    if n.speed ~= s then n.speed = s; n.tw = B.speedGlyphW(s) end
+    return n
+end
+
 -- the notes to draw for a player now (each with .a, its alpha), or nil
 function B.notes(pn, ms)
     local list = B._notes[pn]
-    if not list or #list == 0 then return nil end
-    for i = #list, 1, -1 do
-        local t = ms - list[i].ms
-        if t >= B.NOTE_MS + B.NOTE_FADE_MS then table.remove(list, i)
-        else list[i].a = (t > B.NOTE_MS) and (1 - (t - B.NOTE_MS) / B.NOTE_FADE_MS) or 1 end
+    if list then
+        for i = #list, 1, -1 do
+            local t = ms - list[i].ms
+            if t >= B.NOTE_MS + B.NOTE_FADE_MS then table.remove(list, i)
+            else list[i].a = (t > B.NOTE_MS) and (1 - (t - B.NOTE_MS) / B.NOTE_FADE_MS) or 1 end
+        end
     end
-    if #list == 0 then return nil end
-    return list
+    local sn = speedNote(pn)
+    if not sn then
+        if not list or #list == 0 then return nil end
+        return list
+    end
+    local out = B._noteOut[pn] or {}
+    B._noteOut[pn] = out
+    for i = #out, 1, -1 do out[i] = nil end
+    for i = 1, (list and #list or 0) do out[i] = list[i] end
+    out[#out + 1] = sn   -- (the newest place: nearest the head)
+    return out
+end
+
+-- the speed's drawing at (x, y) units, y where a line's capitals start: two bars, or arrows pointing right
+function B.drawSpeedGlyph(cv, s, x, y, c, a)
+    if s == 0 then
+        rectA(cv, x, y, 2, 7, c, a)
+        rectA(cv, x + 4, y, 2, 7, c, a)
+        return
+    end
+    local n = math.max(1, s - 1) + 1
+    for i = 0, n - 1 do
+        local ax = x + i * (B.SPEED_ARROW_W + B.SPEED_GAP)
+        for r = 0, 6 do
+            local w = (r <= 3) and (r + 1) or (7 - r)
+            rectA(cv, ax, y + r, w, 1, c, a)
+        end
+    end
 end
 
 -- the notes' boxes above what B.layout placed (or above the head), the newest nearest; grows L's box.
@@ -580,8 +637,12 @@ function B.drawNotes(cv, T, L)
             rectA(cv, tx, n.y + B.PAD + 3, B.NOTE_DOT, B.NOTE_DOT, c, a)
             tx = tx + B.NOTE_DOT * 2
         end
-        for j = 1, #n.lines do
-            B.drawLine(cv, n.lines[j], tx, n.y + B.PAD + (j - 1) * B.LINE, T.text, a * (T.text.a or 1), "l", "body")
+        if n.speed then
+            B.drawSpeedGlyph(cv, n.speed, tx, n.y + B.PAD, T.text, a)
+        else
+            for j = 1, #n.lines do
+                B.drawLine(cv, n.lines[j], tx, n.y + B.PAD + (j - 1) * B.LINE, T.text, a * (T.text.a or 1), "l", "body")
+            end
         end
     end
 end
