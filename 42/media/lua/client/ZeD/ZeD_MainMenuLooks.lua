@@ -79,6 +79,15 @@ local function nearest(colors, r, g, b)
     return nil
 end
 
+-- Nov 15 2026, punch list 238: a clothing row's controls left to right, the ones it shows: the item,
+-- its tint (when the item takes one), its fabric type (when there is a choice)
+local function clothCols(r)
+    local cols = { "item" }
+    if r.tint and r.tint:isVisible() then cols[#cols + 1] = "tint" end
+    if r.tex and r.tex:isVisible() and #(r.tex.options or {}) > 1 then cols[#cols + 1] = "tex" end
+    return cols
+end
+
 -- ============================================================================
 ZeD_MMLooks = ZeD_MMOptions:derive("ZeD_MMLooks")
 
@@ -127,6 +136,7 @@ function ZeD_MMLooks:onShow()
     self.field:setVisible(false)
     self.scroll = 0
     self.focusId = nil
+    self._swMem, self._clothFor = {}, nil   -- (the controller's place in each swatch grid and clothing row, fresh per character)
     if not v then return end
     -- what vanilla's setVisible(true) does: dress for the occupation and traits, clothing lists
     if desc() then
@@ -221,6 +231,7 @@ function ZeD_MMLooks:rowHeight(r, cw)
         local per = math.max(1, math.floor((cw + T.px(SW_GAP)) / (T.px(SW) + T.px(SW_GAP))))
         per = math.min(per, 10)
         local lines = math.max(1, math.ceil(#r.colors / per))
+        r._per = per   -- (Nov 15 2026, punch list 239: the D-pad's Up and Down step a line of this many)
         return math.max(T.px(ROW_H), lines * (T.px(SW) + T.px(SW_GAP)) + T.px(10))
     end
     return ZeD_MMOptions.rowHeight(self, r, cw)
@@ -259,18 +270,23 @@ function ZeD_MMLooks:drawControl(r, cx, ry, cw, rh, rowId, clip)
         local per = math.min(10, math.max(1, math.floor((cw + g) / (s + g))))
         local bs = T.borderS
         local y0 = ry + T.px(6)
+        -- (Nov 15 2026, punch list 239: the controller's cursor in this grid, when the row has the focus)
+        local at = (MM.gamepad() and self:focusedRow() == r) and self:swatchAt(r) or nil
         for i, c in ipairs(r.colors) do
             local col, line = (i - 1) % per, math.floor((i - 1) / per)
             local x = cx + col * (s + g)
             local y = y0 + line * (s + g)
             local id = rowId .. ":sw" .. i
             -- colour wells, as System 7 has them in the Color control panel: the chosen one in a 2u frame,
-            -- the one under the pointer in a 1u frame
+            -- the one under the pointer (or the controller's cursor) in a 1u frame; the cursor on the chosen one
+            -- in a 1u frame outside its 2u one
             self:drawRect(x, y, s, s, 1, c.r, c.g, c.b)
             ZeD.Atoms.frame(self, x, y, s, s, bs)
             local th = T.textHead
-            if i == r.cur then ZeD.Atoms.frame(self, x - T.px(3), y - T.px(3), s + 2 * T.px(3), s + 2 * T.px(3), th, 1, T.px(2))
-            elseif MM.ctx.hot == self.kind .. ":" .. id then ZeD.Atoms.frame(self, x - T.px(2), y - T.px(2), s + 2 * T.px(2), s + 2 * T.px(2), th) end
+            if i == r.cur then
+                ZeD.Atoms.frame(self, x - T.px(3), y - T.px(3), s + 2 * T.px(3), s + 2 * T.px(3), th, 1, T.px(2))
+                if i == at then ZeD.Atoms.frame(self, x - T.px(5), y - T.px(5), s + 2 * T.px(5), s + 2 * T.px(5), th) end
+            elseif i == at or MM.ctx.hot == self.kind .. ":" .. id then ZeD.Atoms.frame(self, x - T.px(2), y - T.px(2), s + 2 * T.px(2), s + 2 * T.px(2), th) end
             local top, bot = math.max(y, clip.y), math.min(y + s, clip.y + clip.h)
             if bot > top then
                 self._hits[#self._hits + 1] = { id = self.kind .. ":" .. id, x = ax + x, y = ay + top, w = s, h = bot - top, sound = true,
@@ -281,13 +297,23 @@ function ZeD_MMLooks:drawControl(r, cx, ry, cw, rh, rowId, clip)
     elseif r.kind == "cloth" then
         local bh = T.px(24)
         local by = midY - math.floor(bh / 2)
-        local tint = r.tint and r.tint:isVisible()
-        local tex = r.tex and r.tex:isVisible() and #(r.tex.options or {}) > 1
+        local cols = clothCols(r)
+        local tint, tex = false, false
+        for _, k in ipairs(cols) do if k == "tint" then tint = true elseif k == "tex" then tex = true end end
         local right = 0
         if tint then right = right + T.px(TINT_W) + T.px(8) end
         if tex then right = right + T.px(TEX_W) + T.px(8) end
         local iw = math.max(T.px(80), math.min(T.px(280), cw) - right)
+        -- (Nov 15 2026, punch list 238: on a controller the focused row's chosen control wears a 1u frame, as the
+        -- pointer's does; each control's place is kept so A opens its list or palette there)
+        local padCol = (MM.gamepad() and self:focusedRow() == r) and self:clothCol(r) or nil
+        local function ring(rx, rw)
+            local o = T.px(2)
+            ZeD.Atoms.frame(self, rx - o, by - o, rw + 2 * o, bh + 2 * o, T.textHead)
+        end
         self:drawBox(r.control, cx, by, iw, bh, rowId .. ":item", clip)
+        r._itemAt = { x = ax + cx, y = ay + by, w = iw, h = bh }
+        if padCol == "item" then ring(cx, iw) end
         local x = cx + iw + T.px(8)
         if tint then
             local b = r.tint.backgroundColor or { r = 1, g = 1, b = 1 }
@@ -296,9 +322,8 @@ function ZeD_MMLooks:drawControl(r, cx, ry, cw, rh, rowId, clip)
             self:drawRect(x, by, sw, bh, 1, b.r or 1, b.g or 1, b.b or 1)
             ZeD.Atoms.frame(self, x, by, sw, bh, bs)
             local id = rowId .. ":tint"
-            if MM.ctx.hot == self.kind .. ":" .. id then
-                ZeD.Atoms.frame(self, x - T.px(2), by - T.px(2), sw + 2 * T.px(2), bh + 2 * T.px(2), T.textHead)
-            end
+            if MM.ctx.hot == self.kind .. ":" .. id or padCol == "tint" then ring(x, sw) end
+            r._tintAt = { x = ax + x, y = ay + by, w = sw, h = bh }
             local top, bot = math.max(by, clip.y), math.min(by + bh, clip.y + clip.h)
             local loc, btn = r.loc, r.tint
             if bot > top then
@@ -308,7 +333,11 @@ function ZeD_MMLooks:drawControl(r, cx, ry, cw, rh, rowId, clip)
             end
             x = x + sw + T.px(8)
         end
-        if tex then self:drawBox(r.tex, x, by, T.px(TEX_W), bh, rowId .. ":tex", clip) end
+        if tex then
+            self:drawBox(r.tex, x, by, T.px(TEX_W), bh, rowId .. ":tex", clip)
+            r._texAt = { x = ax + x, y = ay + by, w = T.px(TEX_W), h = bh }
+            if padCol == "tex" then ring(x, T.px(TEX_W)) end
+        end
         return
     end
     ZeD_MMOptions.drawControl(self, r, cx, ry, cw, rh, rowId, clip)
@@ -565,8 +594,64 @@ function ZeD_MMLooks:buildStrip(stripY, stripH, w)
 end
 
 -- ROWS ON A CONTROLLER ---------------------------------------------------------------------
--- A on a row: a name brings up the on-screen keyboard, a swatch row takes its chosen colour, a
--- clothing row opens its list; the rest as in Options
+-- Nov 15 2026, punch lists 238 and 239: a swatch row is a grid the D-pad walks (a swatch left and right, a
+-- line up and down; Up off its top line or Down off its bottom one leaves the row) and A takes the swatch under
+-- the cursor. A clothing row's controls (item, tint, fabric type) are walked with left and right; A opens the
+-- one with the cursor. The cursor in each grid stays where it was left, so coming back lands on it again.
+
+-- the controller's cursor in a swatch row: where it was left, else the chosen swatch
+function ZeD_MMLooks:swatchAt(r)
+    local n = #r.colors
+    local mem = self._swMem or {}
+    local i = mem[r.key or r.label] or r.cur or 1
+    return math.max(1, math.min(math.max(n, 1), i))
+end
+
+-- a D-pad press in a swatch row's grid; false when the press leaves the row (Up off the top line, Down
+-- off the bottom one)
+function ZeD_MMLooks:swatchDir(r, dir)
+    local n = #r.colors
+    if n == 0 then return false end
+    local per = math.max(1, r._per or n)
+    local i = self:swatchAt(r)
+    local j = i
+    if dir == "left" then j = math.max(1, i - 1)
+    elseif dir == "right" then j = math.min(n, i + 1)
+    elseif dir == "up" then
+        if i - per < 1 then return false end
+        j = i - per
+    else
+        -- (down from past the end of a short last line lands on its last swatch)
+        if math.floor((i - 1) / per) >= math.floor((n - 1) / per) then return false end
+        j = math.min(n, i + per)
+    end
+    if j ~= i then
+        self._swMem = self._swMem or {}
+        self._swMem[r.key or r.label] = j
+        MM.hoverSound()
+    end
+    return true
+end
+
+-- the controller's control in a clothing row (the item when the row has just taken the focus)
+function ZeD_MMLooks:clothCol(r)
+    local cols = clothCols(r)
+    if self._clothFor ~= self.focusId then self._clothFor, self._clothIdx = self.focusId, 1 end
+    local i = math.max(1, math.min(#cols, self._clothIdx or 1))
+    return cols[i], i, cols
+end
+
+-- Up and Down in a swatch grid move by a line before they leave the row
+function ZeD_MMLooks:joyDir(dir)
+    if not self._palette and not self.confirm and (dir == "up" or dir == "down") then
+        local r = self:focusedRow()
+        if r and r.kind == "swatch" and self:swatchDir(r, dir) then return end
+    end
+    ZeD_MMOptions.joyDir(self, dir)
+end
+
+-- A on a row: a name brings up the on-screen keyboard, a swatch row takes the swatch under the cursor, a
+-- clothing row opens the list or palette of the control the cursor is on; the rest as in Options
 function ZeD_MMLooks:activateRow(r)
     local T = ZeD.T
     local anchor = { x = self:getAbsoluteX() + self.width / 2, y = self:getAbsoluteY() + self.height / 3, w = T.px(280), h = T.px(24) }
@@ -578,26 +663,34 @@ function ZeD_MMLooks:activateRow(r)
         end
         r.entry:focus()
     elseif r.kind == "swatch" then
-        local i = r.cur or 1
-        if r.colors[i] then r.pick(i) end
+        local i = self:swatchAt(r)
+        if r.colors[i] then r.pick(i); MM.clickSound() end
     elseif r.kind == "cloth" then
-        self:openCombo({ control = r.control }, anchor)
+        local col = self:clothCol(r)
+        if col == "tint" then
+            -- (the palette opens by the tint swatch, as the pointer's click opens it)
+            local loc, btn = r.loc, r.tint
+            self:openPalette({ control = btn, onColor = function(c) looks():onClothingColorPicked(c, true, loc) end }, r._tintAt or anchor)
+        elseif col == "tex" then
+            self:openCombo({ control = r.tex }, r._texAt or anchor)
+        else
+            self:openCombo({ control = r.control }, anchor)
+        end
     else
         ZeD_MMOptions.activateRow(self, r)
     end
 end
 
--- left / right on a row: the next swatch, or the next item in a clothing slot; a name takes no nudge
+-- left / right on a row: the cursor to the next swatch, or to the clothing row's next control (it stops at
+-- the ends, so a press never drops out of the window); a name takes no nudge
 function ZeD_MMLooks:nudge(r, dir)
     if r.kind == "swatch" then
-        local i = math.max(1, math.min(#r.colors, (r.cur or 1) + dir))
-        if r.colors[i] and i ~= r.cur then r.pick(i); MM.hoverSound() end
+        self:swatchDir(r, dir < 0 and "left" or "right")
         return true
     elseif r.kind == "cloth" then
-        local c = r.control
-        local n = #(c.options or {})
-        local i = math.max(1, math.min(n, (c.selected or 1) + dir))
-        if i ~= c.selected then c.selected = i; c.onChange(c.target, c, c.onChangeArgs and c.onChangeArgs[1], c.onChangeArgs and c.onChangeArgs[2]); MM.hoverSound() end
+        local _, i, cols = self:clothCol(r)
+        local j = math.max(1, math.min(#cols, i + dir))
+        if j ~= i then self._clothIdx = j; MM.hoverSound() end
         return true
     elseif r.kind == "name" then
         return false
@@ -616,10 +709,11 @@ function ZeD_MMLooks:joyY() if not self.confirm then self:openOutfits() end end
 
 function ZeD_MMLooks:getFooterPrompts()
     if not MM.gamepad() then return nil end
-    if self.confirm then return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = getText("UI_Cancel") } } end
+    if self.confirm or self._palette then return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = getText("UI_Cancel") } } end
     local t = {}
     local r = self:focusedRow()
-    if r and (r.kind == "combo" or r.kind == "cloth" or r.kind == "swatch" or r.kind == "slider") then t[#t + 1] = { glyph = "<>", label = ZeD.tr("UI_ZeD_Options_PromptChange") } end
+    -- (Nov 15 2026, punch lists 238/239: left and right on a swatch or clothing row move the cursor, they change nothing)
+    if r and (r.kind == "combo" or r.kind == "slider") then t[#t + 1] = { glyph = "<>", label = ZeD.tr("UI_ZeD_Options_PromptChange") } end
     t[#t + 1] = { glyph = "A", label = ZeD.tr((r and r.onFold) and "UI_ZeD_Options_PromptToggle" or "UI_ZeD_MainMenu_PromptSelect") }
     t[#t + 1] = { glyph = "LB", label = "" }
     t[#t + 1] = { glyph = "RB", label = ZeD.tr("UI_ZeD_Looks_PromptTurn") }

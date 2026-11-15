@@ -1679,8 +1679,45 @@ end
 
 -- vanilla's palette as a pop-up of swatches (a ZeD drop with colour rows would not read)
 function ZeD_MMOptions:openPalette(r, anchor)
-    self._palette = { row = r, anchor = anchor }
+    -- (Nov 15 2026, punch list 238: the controller's cursor in the palette starts on the color in use)
+    local at = 1
+    local cur = r and r.control and r.control.backgroundColor
+    if cur then
+        for i, code in ipairs(PALETTE) do
+            local col = paletteColor(code)
+            if math.abs((cur.r or -1) - col.r) < 0.02 and math.abs((cur.g or -1) - col.g) < 0.02 and math.abs((cur.b or -1) - col.b) < 0.02 then at = i; break end
+        end
+    end
+    self._palette = { row = r, anchor = anchor, at = at }
     MM.clickSound()
+end
+
+-- the palette's grid: 14 swatches to a line (render draws it so)
+local PAL_COLS = 14
+
+-- Nov 15 2026, punch list 238: the D-pad walks the open palette as a grid, a swatch at a time
+-- left and right, a line at a time up and down; it stops at the edges
+function ZeD_MMOptions:paletteDir(dir)
+    local p = self._palette
+    local n = #PALETTE
+    local i = p.at or 1
+    local j = i
+    if dir == "left" then j = math.max(1, i - 1)
+    elseif dir == "right" then j = math.min(n, i + 1)
+    elseif dir == "up" then if i - PAL_COLS >= 1 then j = i - PAL_COLS end
+    elseif i + PAL_COLS <= n then j = i + PAL_COLS end
+    if j ~= i then p.at = j; MM.hoverSound() end
+end
+
+-- A with the palette open picks the swatch under the controller's cursor; else the focused stop
+function ZeD_MMOptions:joyA()
+    local p = self._palette
+    if p then
+        local code = PALETTE[p.at or 1]
+        if code then self:pickColor(paletteColor(code)) end
+        return
+    end
+    ZeD_MMWindow.joyA(self)
 end
 
 function ZeD_MMOptions:pickColor(col)
@@ -1725,6 +1762,8 @@ function ZeD_MMOptions:render()
         if isCur or self:pctx().hot == self.kind .. ":pal:" .. i then
             ZeD.Atoms.frame(self, cx, cy, cell, cell, T.text)
         end
+        -- (Nov 15 2026, punch list 238: the controller's cursor, a 2u frame)
+        if MM.gamepad() and i == (p.at or 1) then ZeD.Atoms.frame(self, cx, cy, cell, cell, T.textHead, 1, T.px(2)) end
         self._hits[#self._hits + 1] = { id = self.kind .. ":pal:" .. i, x = ax + cx, y = ay + cy, w = cell, h = cell, fn = function() self:pickColor(col) end }
     end
     -- anywhere else closes it
@@ -1903,7 +1942,7 @@ function ZeD_MMOptions:focusedRow()
 end
 
 function ZeD_MMOptions:joyDir(dir)
-    if self._palette then return end
+    if self._palette then self:paletteDir(dir); return end
     if dir == "left" or dir == "right" then
         local r = self:focusedRow()
         if r and self:nudge(r, dir == "left" and -1 or 1) then return end
@@ -1945,7 +1984,7 @@ end
 
 function ZeD_MMOptions:getFooterPrompts()
     if not MM.gamepad() then return nil end
-    if self.confirm then return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = getText("UI_Cancel") } } end
+    if self.confirm or self._palette then return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = getText("UI_Cancel") } } end
     local r = self:focusedRow()
     local t = {}
     if r then
