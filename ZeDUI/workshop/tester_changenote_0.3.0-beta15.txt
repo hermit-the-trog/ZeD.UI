@@ -1,0 +1,21 @@
+0.3.0-beta15
+
+A bug fix update, mostly for the controller, from the beta 14 playtest.
+
+Controller
+- Aiming hides every window, held by the controller or not, and closes Messages. A window half you've pinned stays up.
+- The mouse pointer hides while you play with the controller and comes back when the mouse moves.
+- Messages: the D-pad moves around the window; A on the messages makes them active and the D-pad scrolls them; B leaves them, B again leaves the window.
+- ZeD setup opened from the controller wheel takes the controller, with its hints at the foot and B to go back. With Messages or the Survival Guide open, it now opens instead of only closing that window.
+- Character creation: the clothing color tiles and the color palette can be reached. Hair and skin colors are a grid: the D-pad moves by line and color, A takes one.
+- A TV's knobs show the pointing hand when selected, and Up from the knobs reaches the top of the set.
+- Walking away from containers until only the ground is left keeps the focus on the ground, never on Filter.
+- Placing an item next to a window no longer opens the window.
+
+Inventory
+- An open stack lists every item as its own row, the first one included, under a header for the whole stack. A or a click on the header closes it.
+- Counts read as the game's: "Rag (3)", in rows, the grid, tooltips and cards.
+
+Other
+- When the game is paused and a window covers the middle of the screen, a small balloon at the top says the game is paused.
+- The action bubble no longer shows an old "Done" after hopping a fence or climbing through a window, and those get no bubble at all.
