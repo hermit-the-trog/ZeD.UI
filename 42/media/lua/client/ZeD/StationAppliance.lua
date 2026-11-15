@@ -463,12 +463,15 @@ local function contents(st)
                 local ct = call(it, "getCookingTime") or 0
                 local toCook = call(it, "getMinutesToCook") or 0
                 local toBurn = call(it, "getMinutesToBurn") or 0
+                -- (punch list 224: Cooking / Burning by the food's own heat, the game's test: an oven on with no power
+                -- or gas reads Activated but heats nothing)
+                local hot = on and not call(it, "isFrozen") and (call(it, "getHeat") or 0) > 1.6
                 if call(it, "isBurnt") then
                     row.tag, row.mode, row.p = "IGUI_invpanel_Burnt", "danger", 1
                 elseif call(it, "isCooked") or (toCook > 0 and ct >= toCook) then
                     local span = math.max(1, toBurn - toCook)
                     row.p = math.max(0, math.min(1, (ct - toCook) / span))
-                    if on then
+                    if hot then
                         row.tag, row.mode = "IGUI_invpanel_Burning", "danger"
                     else
                         row.tag, row.mode, row.p = "Tooltip_food_Cooked", "pos", nil   -- done and safe: no bar
@@ -476,7 +479,7 @@ local function contents(st)
                     row.left = math.max(0, math.ceil(toBurn - ct))
                 else
                     row.p = toCook > 0 and math.max(0, math.min(1, ct / toCook)) or 0
-                    row.tag, row.mode = on and "IGUI_invpanel_Cooking" or "UI_ZeD_Appliance_Raw", on and "warn" or "dim"
+                    row.tag, row.mode = hot and "IGUI_invpanel_Cooking" or "UI_ZeD_Appliance_Raw", hot and "warn" or "dim"
                     row.left = math.max(0, math.ceil(toCook - ct))
                 end
             end

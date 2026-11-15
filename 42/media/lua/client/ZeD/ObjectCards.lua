@@ -604,10 +604,12 @@ function UI.cookRows(card, x, y, w, container, on)
                 local ct = call(it, "getCookingTime") or 0
                 local toCook = call(it, "getMinutesToCook") or 0
                 local toBurn = call(it, "getMinutesToBurn") or 0
+                -- (punch list 224: by the food's own heat, the game's test; an oven on with no power or gas heats nothing)
+                local hot = on and not call(it, "isFrozen") and (call(it, "getHeat") or 0) > 1.6
                 if call(it, "isBurnt") then
                     tag, mode, p = ZeD.tr("IGUI_invpanel_Burnt"), "dng", 1
                 elseif call(it, "isCooked") or (toCook > 0 and ct >= toCook) then
-                    if on then
+                    if hot then
                         tag, mode = ZeD.tr("IGUI_invpanel_Burning"), "dng"
                         p = math.max(0, math.min(1, (ct - toCook) / math.max(1, toBurn - toCook)))
                         left = math.max(0, math.ceil(toBurn - ct))
@@ -616,8 +618,8 @@ function UI.cookRows(card, x, y, w, container, on)
                     end
                 else
                     p = toCook > 0 and math.max(0, math.min(1, ct / toCook)) or 0
-                    tag, mode = on and ZeD.tr("IGUI_invpanel_Cooking") or ZeD.tr("UI_ZeD_ObjCard_TagRaw"), on and "acc" or "dim"
-                    left = on and math.max(0, math.ceil(toCook - ct)) or nil
+                    tag, mode = hot and ZeD.tr("IGUI_invpanel_Cooking") or ZeD.tr("UI_ZeD_ObjCard_TagRaw"), hot and "acc" or "dim"
+                    left = hot and math.max(0, math.ceil(toCook - ct)) or nil
                 end
             end
             local isz = T.px(16)

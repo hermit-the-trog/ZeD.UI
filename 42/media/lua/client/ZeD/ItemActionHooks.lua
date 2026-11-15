@@ -307,13 +307,11 @@ local function _cardedItems()
     return out
  end
 
+-- (Nov 14 2026, punch list 224: an oven on with no power or gas read Activated and its fish sticks said Cooking
+-- forever. Heating is the game's own test, as its inventory pane reads it: not frozen, the food's heat above 1.6.)
 local function _heatActive(item)
-    local ok, cnt = pcall(function() return item:getContainer() end)
-    if not ok or not cnt then return false end
-    local ok2, parent = pcall(function() return cnt:getParent() end)
-    if not ok2 or not parent or not parent.Activated then return false end
-    local ok3, act = pcall(parent.Activated, parent)
-    return ok3 and act == true
+    local ok, hot = pcall(function() return (not item:isFrozen()) and (item:getHeat() or 0) > 1.6 end)
+    return ok and hot == true
 end
 
 local function _pollCooking()

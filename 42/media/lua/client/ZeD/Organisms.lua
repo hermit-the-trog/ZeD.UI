@@ -780,7 +780,14 @@ function ZeD_Window:_drawTitleBar(w, tbH)
         local cb = self:closeRect()
         ZeD.Atoms.drawCloseBox(self, cb.x, cb.y, cb.w, self._closeHover)
     end
-    if box then drawWindowBox(self, box.x, box.y, box.w, self._wboxHover or self._wboxOpen) end
+    if box then
+        drawWindowBox(self, box.x, box.y, box.w, self._wboxHover or self._wboxOpen)
+        -- (Nov 14 2026, punch list 214: the window box is a pad stop (WindowHalves padElements); its focus mark, as the pins')
+        local F = ZeD.Input and ZeD.Input.Focus
+        if F and F.isFocused and F.isFocused(self, nil, "windowbox") and ZeD.Focus and ZeD.Focus.mark then
+            ZeD.Focus.mark(self, box.x, box.y, box.w, box.h, { win = self })
+        end
+    end
     if self._halves and ZeD.Halves then
         ZeD.Halves.drawTitlePins(self)
     elseif pinR then
