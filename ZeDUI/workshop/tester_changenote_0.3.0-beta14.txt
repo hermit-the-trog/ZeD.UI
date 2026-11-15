@@ -1,0 +1,50 @@
+0.3.0-beta14
+
+A bug fix update, almost all of it for the controller, from a day of playtesting.
+
+Controller: the windows
+- LB cycles the Character window's tabs and RB the World window's. Tap for the next tab, hold to go back.
+- X moves the selected item, a stack or every marked item to the open container in the other window, as the game's own inventory does. Hold X is still the quick use.
+- A opens an item's card. A again on that row opens its menu.
+- Eat, drink, smoke and take pills by holding A, on the row or on the card. A tap never eats or drinks.
+- The item card's buttons are Grab (for things in a container or on the floor), the main action, then More, which opens the full menu.
+- Resting on an item row or anything with a tooltip shows that tooltip after a moment, as the mouse does.
+- B with nothing left to back out of cancels the action you are doing.
+- Down from the list's header over an empty container reaches the buttons at the window's foot (an oven's or a microwave's).
+- Right from the Character window's bags goes straight to the World window's Ground, and crossing between the windows lands where the move points.
+- The title bar's menu button can be reached with the D-pad.
+- The ID card's photo and studio buttons, the skill books and the item card's buttons can all be reached.
+- Y no longer opens the windows over the keyboard, a menu, the oven's controls, the reader or a dialog, and aiming no longer takes the controller from them.
+- A station opened from the world (the A prompt on a coffee maker, a menu option) gets the controller.
+- Start pauses the game with the windows open, and the pause menu keeps the controller.
+- The hint strip sits above the moodles.
+
+Controller: knobs and keyboards
+- Every knob works the same way: A grabs it, the D-pad turns it, A or B lets go. Radios, TVs, two-ways, car radios, lock dials, the siren and the oven and microwave. A volume knob that also switches a set on does that with X.
+- B on the on-screen keyboard is Back: it closes the keyboard and keeps what you typed.
+- The keyboard takes the controller when it opens, so the inventory's Filter and the desk's notes can be typed in.
+- Rename opens one box, and it has the controller.
+
+Controller: other screens
+- The main menu desk: push the D-pad past a window's top for the menu bar, past its side for the desktop icons. B closes a window, never the main one.
+- A places items with the game's Place item cursor.
+- The menu opened with X closes when you walk away, and B always closes it.
+- The photo studio shows its buttons.
+- After a death, the controller works on the death screen.
+
+Radios and TVs
+- The full card shows the full-size faces, and the CD player takes the half card like the walkie-talkies.
+- A television's tab and title say Television, with a TV icon.
+
+Sounds
+- ZeD setup > Windows has UI sounds: Full, Quiet or Off.
+- Switching between the windows plays one click instead of two.
+
+Bug fixes
+- Food cooking shows a bar on its row, Cooking then Burning, read from the food's own heat: an oven switched on with no power or gas no longer says Cooking.
+- Turn on from an oven's menu opens its controls once you reach it.
+- The Equip tab's rows and figure show the item card on hover.
+- Disassemble's furniture pictures fill their slots.
+- Read on the Papers page reads newspapers and fliers.
+- The craft and build band's lists draw over the recipe panes.
+- Tooltips near a window's foot open upward instead of running under it.
