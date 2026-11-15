@@ -349,6 +349,8 @@ win.focusId = "newgame"
 local steps = 0
 while MM.deskAt == nil and steps < 8 do joy("left"); steps = steps + 1 end
 check("Left past the window's side lands on the icons", MM.deskAt == "icons", steps)
+check("straight to the icons: Left from New Game (full width) in one press", steps == 1, steps)
+check("the window keeps New Game", win.focusId == "newgame", win.focusId)
 local lid = root.icons.focusId
 local lc = cell(lid or "")
 check("on an icon left of the window", lc and lc.x + lc.w / 2 < win.x, lid)
@@ -366,6 +368,7 @@ check("on the control it left", win.focusId == wasFocus, win.focusId)
 steps = 0
 while MM.deskAt == nil and steps < 8 do joy("right"); steps = steps + 1 end
 check("Right past the window's side lands on the icons", MM.deskAt == "icons", steps)
+check("straight to the icons: Right from New Game in one press", steps == 1 and win.focusId == "newgame", steps)
 local rc = cell(root.icons.focusId or "")
 check("on an icon right of the window", rc and rc.x >= win.x + win.width, root.icons.focusId)
 check("an icon in reach of the window's row (lined up)", rc and rc.y < win.y + win.height, root.icons.focusId)
@@ -387,6 +390,31 @@ end
 -- B on the icons: back to the window
 press(Joypad.BButton)
 check("B on the icons returns to the window", MM.deskAt == nil and MM.view == "main")
+
+-- ---------------------------------------------------------------------------
+section("straight to the icons: only from a full-width button")
+MM.showView("main"); frame()
+win.focusId = "tutorial"
+joy("down")
+local bandStop = nil
+for _, sp in ipairs(win._specs) do if sp.id == win.focusId then bandStop = sp end end
+check("Down from the last big button still reaches the foot band", bandStop and bandStop.band == true and MM.deskAt == nil, win.focusId)
+local bf = win.focusId
+joy("right")
+check("Right in the band walks the band (not off to the icons)", MM.deskAt == nil and win.focusId ~= bf, win.focusId)
+win.focusId = "load"
+joy("left")
+check("Left from Load Game, full width too, goes straight to the left icons", MM.deskAt == "icons" and cell(root.icons.focusId).x < win.x, root.icons.focusId)
+MM.showView("main"); frame()
+-- the Continue card's button (narrower, but the card's: marked wide)
+MM._cont = { title = "Save", where = "Sandbox | Muldraugh", info = true }
+frame()
+check("Continue shows with a save", win.focusId ~= nil and (function() for _, sp in ipairs(win._specs) do if sp.id == "continue" then return sp.wide == true end end end)())
+win.focusId = "continue"
+joy("right")
+check("Right from Continue goes straight to the right icons", MM.deskAt == "icons" and cell(root.icons.focusId).x >= win.x + win.width, root.icons.focusId)
+MM._cont = false
+MM.showView("main"); frame()
 
 -- ---------------------------------------------------------------------------
 section("A on an icon opens what a click opens")

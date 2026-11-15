@@ -2208,7 +2208,7 @@ function ZeD_MMWindow:build()
             self._card = { x = pad, y = y, w = w - pad * 2, h = cardH, info = cont }
             local bw = textW(f3, getText("UI_mainscreen_continue")) + T.px(BIG_PAD_X) * 2
             row = row + 1
-            add({ id = "continue", text = getText("UI_mainscreen_continue"), variant = "primary", fn = A.continue, row = row, col = 1, help = bigHelp("continue"),
+            add({ id = "continue", text = getText("UI_mainscreen_continue"), variant = "primary", fn = A.continue, row = row, col = 1, help = bigHelp("continue"), wide = true,
                   x = pad + T.px(CARD_PAD) + T.px(THUMB) + T.px(CARD_GAP), y = y + T.px(CARD_PAD) + T.px(THUMB) - T.px(WIDE_H),
                   w = bw, h = T.px(WIDE_H) })
             y = y + cardH + gap
@@ -2418,6 +2418,14 @@ function ZeD_MMWindow:joyDir(dir)
     if not ri then self._edge = dir; return end
     local cur = rows[ri][ci]
     local fr = self:specRect(cur)
+    -- (Nov 14 2026, punch list 213, the design lead's "Straight to the icons": on a desk window Left or Right from a
+    -- button as wide as the window's content, New Game to Tutorial, or the Continue card's button, leaves the window at
+    -- once for the icons that side; the band at the foot is Down. Not a list's row, a pane's control or a slider.)
+    if (dir == "left" or dir == "right") and fr and self.kind ~= "pause" and not self:listOf(cur) and not cur.band
+        and (cur.wide or fr.w >= self.width - ZeD.T.px(STACK_PAD) * 2 - ZeD.T.px(4)) then
+        self._edge = dir
+        return
+    end
     if fr and ZeD.SpatialNav then
         local cands = {}
         for _, s in ipairs(self._specs or {}) do
