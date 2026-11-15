@@ -131,9 +131,13 @@ step(20, function()
 end)
 step(10, function()
     check(calls.coll == 1 and calls.note == 0 and calls.rich == 0, "OK ran that mod's callback once (" .. calls.coll .. "/" .. calls.note .. "/" .. calls.rich .. ")")
-    -- the controller: into the cards, A on the next OK
+    -- the controller: into the cards (236: Right lands on the cards panel, A takes it), then A on the next OK
     MW.qaJoy = true
     win:onJoypadDirRight()
+    win:onJoypadDown(Joypad.AButton)
+end)
+step(10, function()
+    check(calls.rich + calls.note == 0, "A on the cards panel takes it and presses nothing yet (236)")
     win:onJoypadDown(Joypad.AButton)
 end)
 step(10, function()

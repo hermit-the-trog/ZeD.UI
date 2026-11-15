@@ -1,0 +1,7 @@
+# ZeDUI/tools/qa/b15.txt  (Nov 15 2026, QA): beta 15's fixes for the director's beta 14 notes
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/b15.txt -Mode fullscreen4k
+zedqa_prelude.lua | pre                                  # opens both windows, unpauses, god mode
+zedqa_b15.lua | b15 | timeout=180                        # 245 stack rows and header, 184 cursor holds A, 246 ground focus, 242 paused balloon, 240 pointer, 237 aim hides, 241 setup takes the pad
+zedqa_messages.lua | msg | timeout=300 | expect=qaMessagesError   # 236: the cards panel taken with A, then A on a card's OK
+zedqa_wt_bracket.lua | wtb | timeout=240                 # 245: the open stack's header weight and every item's row
+zedqa_twoway.lua | tw | timeout=600                      # 228k: knobs grabbed, turned, let go

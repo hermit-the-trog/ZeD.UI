@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/b15_rerun.txt  (Nov 15 2026, QA): zedqa_b15.lua again after its test fixes
+zedqa_prelude.lua | pre
+zedqa_b15.lua | b15 | timeout=180

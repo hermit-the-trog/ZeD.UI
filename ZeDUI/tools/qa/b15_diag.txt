@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/b15_diag.txt  (Nov 15 2026, QA): why three zedqa_b15 checks missed
+zedqa_prelude.lua | pre
+zedqa_b15_diag.lua | b15d | timeout=120
