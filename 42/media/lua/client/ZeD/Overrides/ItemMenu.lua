@@ -141,7 +141,8 @@ local function boxOpen(box)
 end
 
 local function cancelBox(box)
-    if not boxOpen(box) then return end
+    -- (punch list 234: a box not yet showing still goes; one left behind stayed up, out of the pad's reach)
+    if not box or box._dead then return end
     if box.answerCancel then pcall(box.answerCancel, box) else pcall(box.close, box) end
 end
 
@@ -171,6 +172,14 @@ local function watchRename()
 end
 
 local function onRename(item, pn, card)
+    -- (Nov 14 2026, punch list 234: Rename ran twice for one choice and left two boxes. A box already up for this
+    -- item is the one: it comes to the front and takes the pad, and no second one opens.)
+    local l = live
+    if l and l.item == item and l.box and not l.box._dead then
+        pcall(function() l.box:setVisible(true); l.box:bringToTop() end)
+        if JoypadState.players[pn + 1] then setJoypadFocus(pn, l.box) end
+        return
+    end
     closeRename()
     local box = ISTextBox:new(0, 0, 280, 180, ZeD.tr("UI_ZeD_ItemMenu_NameThis"), item:getName(), nil, onRenameClick, pn, getSpecificPlayer(pn), item)
     box:initialise()

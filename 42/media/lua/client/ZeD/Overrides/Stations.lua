@@ -117,6 +117,18 @@ local function apply()
         -- The crafting key, the controller wheel, "craft" entries in item menus
         -- and recipe books. A plain open (no recipe, no item) toggles like the
         -- vanilla key does.
+        -- (Nov 14 2026, punch list 233: a station opened from the world on a controller (the A prompt "Coffee Machine",
+        -- a menu's open option) showed its tab but left the pad outside the window. The World window takes the pad,
+        -- on the tab's first stop, when the tab is up and nothing else holds the pad.)
+        local function padTake(pn, plain)
+            if not (JoypadState and JoypadState.players and JoypadState.players[pn + 1]) then return end
+            local F = ZeD.Input and ZeD.Input.Focus
+            local win = ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn)
+            if not (F and win and win:isVisible()) then return end
+            if F.modalUp and F.modalUp(pn) then return end
+            if F.getFocusedWindow(pn) ~= win then F.claimFocus(win) end
+            if plain and F.focusSoon then F.focusSoon(win, "worldTabContent", function() return true end, 1) end   -- (a recipe asked for: focusRecipe lands on it)
+        end
         local origHandcraft = ISEntityUI.OpenHandcraftWindow
         ISEntityUI.OpenHandcraftWindow = function(player, isoObject, queryOverride, ignoreFindSurface, recipe, itemString)
             if ZeD.Safe.on() then return origHandcraft(player, isoObject, queryOverride, ignoreFindSurface, recipe, itemString) end
@@ -129,6 +141,7 @@ local function apply()
                 local plain = (recipe == nil) and (itemString == nil or itemString == "")
                 if not (ZeD_WorldWindow and ZeD_WorldWindow.openTab) then return false end
                 if not ZeD_WorldWindow.openTab(player:getPlayerNum(), "craft", plain) then return false end
+                padTake(player:getPlayerNum(), plain)
                 focusRecipe("_craftState", "_craftSearch", recipe, itemString, player:getPlayerNum())
                 return true
             end)
@@ -145,6 +158,7 @@ local function apply()
                 local plain = (recipe == nil) and (itemString == nil or itemString == "")
                 if not (ZeD_WorldWindow and ZeD_WorldWindow.openTab) then return false end
                 if not ZeD_WorldWindow.openTab(player:getPlayerNum(), "build", plain) then return false end
+                padTake(player:getPlayerNum(), plain)
                 focusRecipe("_buildState", "_buildSearch", recipe, itemString, player:getPlayerNum())
                 return true
             end)

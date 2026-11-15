@@ -78,7 +78,7 @@ local function buildRows(multi, masked)
     local r5 = {}
     if masked then r5[#r5 + 1] = fn("show", ZeD.tr("UI_ZeD_Keyboard_Show"), nil) end
     append(r5, fn("space", getText("IGUI_Keyboard_Space"), "Y", { wide = true }), fn("left", "<", "LB"), fn("right", ">", "RB"),
-        fn("cancel", getText("IGUI_Keyboard_Cancel"), "B"))
+        fn("back", ZeD.tr("UI_ZeD_Prompt_Back"), "B"))   -- (punch list 235: Back keeps the text; the field's owner saves)
     return { r1, r2, r3, r4, r5 }
 end
 
@@ -293,7 +293,7 @@ function ZeD_Keyboard:pressKey(k)
     if id == "space" then return self:typeChar(" ") end
     if id == "left" then return self:keyCode(Keyboard.KEY_LEFT) end
     if id == "right" then return self:keyCode(Keyboard.KEY_RIGHT) end
-    if id == "cancel" then return self:cancel() end
+    if id == "back" or id == "cancel" then return self:accept() end
     if id == "show" then self._showPlain = not self._showPlain; return end
 end
 
@@ -615,7 +615,7 @@ function ZeD_Keyboard:getFooterPrompts()
     return { move,
         { glyph = "A", label = ZeD.tr("UI_ZeD_Prompt_Press") },
         { glyph = "RT", label = ZeD.btnCase(getText(self._multi and "IGUI_Keyboard_Enter" or "IGUI_Keyboard_Accept")) },
-        { glyph = "B", label = ZeD.btnCase(getText("UI_Close")) } }
+        { glyph = "B", label = ZeD.tr("UI_ZeD_Prompt_Back") } }
 end
 
 function ZeD_Keyboard:onGainJoypadFocus(joypadData) self.joyfocus = joypadData end
@@ -637,9 +637,10 @@ function ZeD_Keyboard:onJoypadDown(button, joypadData)
         self:pressKey(row and row[self._focus[2]])
         return
     end
-    -- (Nov 14 2026, punch list 226, the director: B saves and closes, after a question; there is no cancel, what is
-    -- typed is kept and the player deletes what they don't want)
-    if button == Joypad.BButton then return self:askClose(joypadData) end
+    -- (Nov 14 2026, punch list 235, the director, replacing 226's question: B is Back. It leaves the keyboard and
+    -- keeps what was typed in the field; whatever owns the field decides saving (a box with OK / Cancel asks there,
+    -- a desk note keeps it). No question, no cancel.)
+    if button == Joypad.BButton then return self:accept() end
     if button == Joypad.XButton then sound(); return self:keyCode(Keyboard.KEY_BACK) end
     if button == Joypad.YButton then sound(); return self:typeChar(" ") end
     if button == Joypad.LBumper then return self:keyCode(Keyboard.KEY_LEFT) end
