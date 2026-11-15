@@ -4997,3 +4997,9 @@ to be proposed.
       ItemCardOrganism.lua 444-447; padIsFood leaves fluids out). Bleach, gasoline or tainted water at two taps.
    r. [low-med] Use on drainables is a tap (ItemCard.lua 966-971).
    Checked fine: no other server-side class is hooked early; Trash's Remove all already asks.
+
+229. **Controller: the Photo Studio has no button hints (the director, Nov 14 2026, playtest).** open. The ID card's
+   Photo Studio works on the pad (A takes the picture, Y changes the backdrop, zoom and rotate the character work), but
+   nothing on screen says which button does what; the director couldn't tell what X does. It needs the hint strip (or
+   its own prompt line) listing every button it answers: A Take photo, Y Backdrop, X (whatever it is), the zoom and
+   rotate controls, B Back.
