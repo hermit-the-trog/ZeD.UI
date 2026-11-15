@@ -1090,18 +1090,24 @@ step(2, function()
     if S.noWin then return end
     local cw = CWm.getWindow()
     if Focus.getFocusedWindow() ~= cw then say("INFO the Character window did not take the pad: " .. label(Focus.getFocusedWindow())) end
+    -- (Nov 14 2026, punch list 212: a bumper settles on its release in Focus's tick, gamepad mode only)
+    Det.setLockedMode(Det.MODE_GAMEPAD); Focus.qaButton("RightBump", true)
     cw:onJoypadDown(Joypad.RBumper, nil)
 end)
-step(2, function()
+step(3, function() if not S.noWin then Focus.qaButton("RightBump", false) end end)
+step(5, function()
     if S.noWin then return end
+    Focus.qaButton("RightBump", nil)
     local ww = WWm.getWindow()
     check(Focus.getFocusedWindow() == ww, "pad path: RB on the focused Character window moves the pad to the World window (window_next)",
         label(Focus.getFocusedWindow()), "World")
     shot("pad_world")
-    ww:onJoypadDown(Joypad.LBumper, nil)
+    Focus.qaButton("LeftBump", true); ww:onJoypadDown(Joypad.LBumper, nil)
 end)
-step(2, function()
+step(3, function() if not S.noWin then Focus.qaButton("LeftBump", false) end end)
+step(5, function()
     if S.noWin then return end
+    Focus.qaButton("LeftBump", nil)
     local cw, ww = CWm.getWindow(), WWm.getWindow()
     check(Focus.getFocusedWindow() == cw, "pad path: LB moves it back to the Character window (window_prev)", label(Focus.getFocusedWindow()), "Character")
     ww:onJoypadDown(Joypad.RBumper, nil)   -- (the World window does not hold the pad)

@@ -419,11 +419,13 @@ step(10, function()
     local e = Focus.focusWhere(CW(), "charTabContent", function(x) return x.id == "radio:tw:vol" end)
     check(e ~= nil, "pad: the face's VOL is a stop in the tab")
     volWas = dd(valu):getDeviceVolume()
+    if e and e.onActivate then e.onActivate(CW(), e) end   -- A grabs the knob (Nov 14 2026, 228k: A grabs, the D-pad turns, A or B lets go)
     Focus.dispatchJoypadDir(CW(), "up")
 end)
 step(5, function()
     check(dd(valu):getDeviceVolume() > volWas + 0.05, "pad: up on VOL turns it up")
     shot("4a_pad_tab_vol")
+    local e = el(CW()); if e and e.onActivate then e.onActivate(CW(), e) end   -- A lets go
 end)
 step(5, function() Focus.dispatchJoypadDir(CW(), "right") end)
 step(5, function()
@@ -455,10 +457,12 @@ waitFor(2, 90, function() return v:getHeight() > ZeD.PhysPx.plates.walkie_valute
     check(v.focusId ~= nil, "pad: full view lands on a control (" .. tostring(v.focusId) .. ")")
     v.focusId = "vol"
     volWas = dd(valu):getDeviceVolume()
+    v:onJoypadDown(Joypad.AButton)   -- A grabs VOL
     v:onJoypadDirDown()
 end)
 step(5, function()
     check(dd(valu):getDeviceVolume() < volWas - 0.05, "pad: down on VOL in full view turns it down")
+    v:onJoypadDown(Joypad.AButton)   -- A lets go
     v:onJoypadDirRight()
 end)
 step(5, function()

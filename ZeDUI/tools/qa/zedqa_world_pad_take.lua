@@ -236,12 +236,24 @@ step(60, function()
 end)
 
 -- ---------------------------------------------------------------- 1. into the World window
-step(10, function() btn(Joypad.RBumper) end)
+-- (Nov 14 2026, punch list 212: a bumper settles on its release in Focus's tick, gamepad mode only; held and let go
+-- through Focus.qaButton)
+local tabsWas = {}
+local function tabsSave() tabsWas.w, tabsWas.c = ww()._activeTab, cw()._activeTab end
+local function tabsBack()   -- (a bumper tap steps its window's tab too: each window back on the tab it was on)
+    if tabsWas.w and ww()._activeTab ~= tabsWas.w then ZeD_WorldWindow.openTab(pn, tabsWas.w) end
+    if tabsWas.c and cw()._activeTab ~= tabsWas.c then ZeD_CharacterWindow.openTab(pn, tabsWas.c) end
+end
+step(10, function() Det.setLockedMode(Det.MODE_GAMEPAD); tabsSave(); Focus.qaButton("RightBump", true); btn(Joypad.RBumper) end)
+step(3, function() Focus.qaButton("RightBump", false) end)
 step(10, function()
+    Focus.qaButton("RightBump", nil)
     local w = fw(); where("1 after RB")
     check(w == ww() and lit(w), "RB lands in the World window on a lit element")
-    btn(Joypad.LBumper)
+    Focus.qaButton("LeftBump", true); btn(Joypad.LBumper)
 end)
+step(3, function() Focus.qaButton("LeftBump", false) end)
+step(3, function() Focus.qaButton("LeftBump", nil); tabsBack() end)
 step(10, function()
     -- the D-pad across: from the Character window's container strip, Right
     local c = cw()
@@ -440,12 +452,20 @@ end)
 step(10, function()
     local w = fw(); where("6 Left from the World window's strip")
     check(w == cw() and lit(w), "the D-pad across from the World window lands in the Character window, lit")
-    btn(Joypad.RBumper)
+    tabsSave(); Focus.qaButton("RightBump", true); btn(Joypad.RBumper)
 end)
-step(5, function() btn(Joypad.LBumper) end)
+step(3, function() Focus.qaButton("RightBump", false) end)
+step(5, function() Focus.qaButton("RightBump", nil); Focus.qaButton("LeftBump", true); btn(Joypad.LBumper) end)
+step(3, function() Focus.qaButton("LeftBump", false) end)
 step(20, function()
+    Focus.qaButton("LeftBump", nil)
     local w = fw(); where("6 LB")
     check(w == cw() and lit(w), "LB lands in the Character window on a lit element")
+    tabsBack()
+end)
+step(15, function()   -- (the tab put back and drawn before the D-pad walk)
+    local w = cw()
+    Focus.claimFocus(w)
     local row = rowOf(w, "charMainInv", "Base.Eraser")
     Focus.focusWhere(w, "charMainInv", function(x) return x == row end)
     dir("right")
@@ -500,7 +520,9 @@ step(20, function()
 end)
 
 -- ---------------------------------------------------------------- 8. focus returns to the start (director's rule 1)
--- X (context menu) then B: back on the same row
+-- (Nov 14 2026, punch list 223, "Match the game": X tapped on a row is the game's grab, it moves the row to the other
+-- window's container; the menu is A on a row whose card is open. Was: X opened the menu, hold X moved.)
+-- X on the crate's row: the thing goes to the bag; focus stays in the list, on a neighbour
 local walk = {}
 step(10, function()
     local w = ww()
@@ -508,35 +530,16 @@ step(10, function()
     local row = rowOf(w, "worldMainInv", "Base.Corkscrew")
     Focus.focusWhere(w, "worldMainInv", function(x) return x == row end)
     if not row then say("8 no corkscrew row in the World window's list: " .. ringSay(w)) end
-    walk.ctxRow = row and row.item
-    if row and row.onContextMenu then row.onContextMenu(w, row) end
-end)
-step(20, function()
-    local vm = getPlayerContextMenu and getPlayerContextMenu(pn)
-    local zm = vm and vm._zedMenu
-    check(zm ~= nil, "8 X on a row opens the context menu")
-    if zm and zm.onJoypadDown then zm:onJoypadDown(Joypad.BButton) elseif vm then vm:setVisible(false) end
-end)
-step(10, function()
-    local w, z, e = cur(); where("8 after the menu's B")
-    check(w == ww() and z and z.zone == "worldMainInv" and e and e.item == walk.ctxRow and lit(w), "8 the menu closed: focus is back on the same row, lit")
-end)
--- hold X (vanilla's double-click, the quick use, since punch list 44 on Nov 1 2026; hold A marks the row now): the thing
--- goes to the bag; focus stays in the list, on a neighbour
-step(5, function()
-    local w = ww()
-    local row = rowOf(w, "worldMainInv", "Base.Corkscrew")
     walk.moved = row and row.item
-    Focus.focusWhere(w, "worldMainInv", function(x) return x == row end)
-    if row and row.onHoldContext then row.onHoldContext(w, row) end
+    if row and row.onContextMenu then row.onContextMenu(w, row) end
 end)
 local holdWait = 0
 local function waitHold()
     holdWait = holdWait + 1
     local moved = walk.moved and walk.moved:getContainer() ~= crateInv
     if moved or holdWait > 60 then
-        local w, z, e = cur(); where("8 after hold X")
-        check(moved, "8 hold X moved the thing out of the crate")
+        local w, z, e = cur(); where("8 after X")
+        check(moved, "8 X on a crate row moves the thing out of the crate (223)")
         insertNext(20, function()
             local w2, z2, e2 = cur(); where("8 a moment later")
             check(w2 == ww() and z2 and (z2.zone == "worldMainInv" or z2.zone == "worldCtl") and e2 and lit(w2),
