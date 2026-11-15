@@ -330,7 +330,10 @@ step(20, function()
     if not v then return end
     local des = ZeD.PhysPx.plates.walkie_valutech
     check(v.background == false and v.Type == "ZeD_TwoWayFull", "full view is the face alone, no window frame")
-    check(v:getWidth() == des.w * K + ZeD.T.hair and v:getHeight() == des.h * K + ZeD.T.hair, "full view is the plate at the plate scale, room for its 1u hard shadow (" .. v:getWidth() .. "x" .. v:getHeight() .. ")")
+    -- (Nov 15 2026, 228k: while it holds the pad a hint strip sits under the plate, 4 px below it)
+    local stripH = v.joyfocus and ZeD.PadGlyphs.stripH() or 0
+    local wantH = des.h * K + ZeD.T.hair + (stripH > 0 and (ZeD.T.px(4) + stripH) or 0)
+    check(v:getWidth() == des.w * K + ZeD.T.hair and v:getHeight() == wantH, "full view is the plate at the plate scale, room for its 1u hard shadow (" .. v:getWidth() .. "x" .. v:getHeight() .. ")")
     local sw = getPlayerScreenWidth(pn)
     local cx = v:getX() + v:getWidth() / 2
     check(math.abs(cx - (getPlayerScreenLeft(pn) + sw * 0.75)) <= 2, "the first time it sits centre right of the play area (centre x " .. cx .. ")")

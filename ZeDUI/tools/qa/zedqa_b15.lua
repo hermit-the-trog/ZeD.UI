@@ -204,9 +204,9 @@ at(15800, function()
     local mw = MW.get and MW.get(0)
     say("237 before: Character " .. tostring(upState(cw)) .. ", World " .. tostring(upState(ww)) .. ", Messages " .. tostring(mw and mw:isVisible()) .. ", pad on " .. desc(getJoypadFocus(0)))
     shot("before_aim")
-    aimStub(true)
+    Det.setLockedMode(Det.MODE_GAMEPAD); aimStub(true)   -- (aiming counts on the pad: the mode the director plays in)
 end)
-at(16400, function() aimStub(false) end)
+at(16400, function() aimStub(false); Det.setLockedMode(nil) end)
 at(17600, function()
     local mw = MW.get and MW.get(0)
     check(not upState(cw), "237 aiming hides the Character window (shaded " .. tostring(cw and cw.windowShaded) .. ", visible " .. tostring(cw and cw:isVisible()) .. ")")
@@ -241,12 +241,17 @@ at(21400, function()
     say("passed " .. nPass .. ", failed " .. nFail)
     say("DONE")
 end)
+-- (one step a frame, each waiting its gap after the step before it actually ran: when the game stalls (the Guide
+-- opening, a cursor going up) the steps behind keep their gaps instead of all firing in the same frame)
+local lastAt, lastMs = nil, 0
 local function tick()
     local now = getTimestampMs()
-    if not t0 then t0 = now end
-    while steps[i + 1] and now - t0 >= steps[i + 1].ms do
+    if not lastAt then lastAt = now end
+    local nxt = steps[i + 1]
+    if nxt and now - lastAt >= nxt.ms - lastMs then
         i = i + 1
-        local ok, e = pcall(steps[i].fn)
+        lastAt, lastMs = now, nxt.ms
+        local ok, e = pcall(nxt.fn)
         if not ok then say("ERR step " .. i .. " " .. tostring(e)) end
     end
     if i >= #steps then Events.OnRenderTick.Remove(tick) end
