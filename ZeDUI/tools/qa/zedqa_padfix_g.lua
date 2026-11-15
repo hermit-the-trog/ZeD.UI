@@ -25,7 +25,7 @@ local cw
 local steps, t0, i = {}, nil, 0
 local function at(ms, fn) steps[#steps + 1] = { ms = ms, fn = fn } end
 at(300, function()
-    local items = ArrayList.new(); items:add(pan)
+    local items = { pan }
     ISInventoryPaneContextMenu.onPlaceItemOnGround(items, p)
 end)
 at(1300, function()

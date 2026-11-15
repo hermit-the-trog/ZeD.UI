@@ -46,7 +46,7 @@ local function tick()
         local w = ZeD.charWin or (ZeD.windowsFor and ZeD.windowsFor(0) and ZeD.windowsFor(0)[1])
         if w then pcall(function() setJoypadFocus(0, w) end) end
         say("focus before place: " .. desc(jd.focus))
-        local items = ArrayList.new(); items:add(item)
+        local items = { item }
         ISInventoryPaneContextMenu.onPlaceItemOnGround(items, p)
         say("after onPlaceItemOnGround: focus " .. desc(jd.focus) .. " | drag " .. tostring(getCell():getDrag(0) and (getCell():getDrag(0).Type or getCell():getDrag(0))))
     elseif n == 120 then
