@@ -5043,3 +5043,4 @@ to be proposed.
    name, and the pad can't reach or close it. The probe found one ZeD_Prompt up (plus an ISPanel) with the pad on the
    Character window; QA handed the pad to the prompt through the bridge. Looks like Rename runs twice (the menu's
    option and the card's own path, or 231's re-take loop) and opens two boxes, and only one is answered.
+   Confirmed by the director: two instances open. Choosing Rename again from the X menu got into the stuck one.
