@@ -4954,3 +4954,44 @@ to be proposed.
    hovering a row shows the item's tooltip for a quick glance; on the pad, the selected row shows nothing, so seeing any
    detail means opening the item card. Wanted: the same tooltip shown for the pad's selected row (after a short pause
    on it, as hover does), so a glance works on the controller too. (Numbered 227b: Build's 227 is the card header.)
+
+228. **Controller pattern audit (QA, Nov 14 2026, code read after the playtest).** open. Places where today's six
+   patterns are probably still present. Paths under 42/media/lua/client/ZeD/. Confidence in brackets.
+   Wrong focus:
+   a. [high] Focus.held() (Input/FocusManager.lua:509-526) knows only the join window and ZeD_Prompt; with no window
+      focused, Y (2350-2368) opens the pair over any other overlay (keyboard, X menu / list, oven pop-out, reader, seat
+      chooser, car radio, siren, two-way, Messages, chat, controller map, guide, paper map, belt) and leaves it unfocused.
+   b. [high] the aim escape (2580-2587) and the cursor auto-hide (2539) release the pad without checking what holds it:
+      a prompt, keyboard (which also blocks movement, ZeD_Keyboard.lua ~165, update 542) or oven pop-out is orphaned.
+   c. [high] ZeD_ContextMenu (154-170) and ZeD_ContextList (169-177) never return the pad to menu.origin as vanilla
+      does: the belt's menus (ZeD_Belt.lua 2561, 2591), the car radio's CD list (ZeD_CarRadio.lua 444-446),
+      RtvFace.lua 772, ModSupport/WoundsOverhaul.lua 188 lose the pad after the menu.
+   d. [med-high] the List-style context menu (ZeD_ContextList:update 526) has none of 220's fixes.
+   e. [med] prompts with no pad or no way back: VIF_DualRender_B42.lua 217-224 askName; Rename (Overrides/ItemMenu.lua 178)
+      and ZeD_DpadWheels.lua 636 set no prevFocus.
+   f. [med-low] Messages, seat chooser, siren, car radio and reader close to nil, not back to what opened them.
+   g. [low] ZeD_Keyboard.lua 233 falls back to the bare text box.
+   Unreachable or unmarked:
+   h. [med-high] the Character window's Radio tab stops are built once (ZeD_CharacterWindow.lua 4185): 207a on that
+      window (pick up a radio with the windows open: Down stops at Skills).
+   i. [med] only Character and World got 214's window box stop; every other ZeD window's box (Messages, chat, reader,
+      guide, controller map, seat chooser, console, form card, oven pop-out, keyboard, prompt, map) is mouse-only.
+   j. [med] chat's name color is reachable only from that box (ZeD_Chat.lua 544).
+   Directions:
+   k. [med] radio knobs turn on Up/Down (RadioTab.lua 1036-1042, 1142-1148), blocking vertical moves; D faces use
+      Left/Right (1074-1080), so knobs differ between faces. Car radio the same split by look (ZeD_CarRadio.lua 609-612).
+   l. [med-low] lock dials trap Up/Down (ObjectCardLock.lua 504-510).
+   m. [low] the hair-type strip lets Left/Right fall out at its ends (ZeD_HairBeard.lua 1844-1850).
+   n. [low] Messages: Up from the first card button goes nowhere; footer Up jumps to the last button (767-777).
+      Seat chooser assumes two seats a row (ZeD_SeatChooser.lua 629-634).
+   Game code:
+   o. [med-low] every furniture cursor counts as the Furniture tab's (FocusManager.lua 1905-1909, FurnitureTab.lua 62):
+      a vanilla Pick up / Place / Rotate / Scrap from a menu with a window holding the pad never gets A (like 184).
+   One way in only (the two-ways rule):
+   p. Copy bug report and the controller map are wheel-only (ZeD_DpadWheels.lua 667-668, 1212-1214); Hide interface is
+      wheel-only on a pad; the window placement choices (ZeD_WindowMenu.lua 240-255) only in the window box.
+   Risky taps:
+   q. [high] A, A on a bottle drinks it: the card's primary for a fluid container is Drink and still a tap (ItemCard /
+      ItemCardOrganism.lua 444-447; padIsFood leaves fluids out). Bleach, gasoline or tainted water at two taps.
+   r. [low-med] Use on drainables is a tap (ItemCard.lua 966-971).
+   Checked fine: no other server-side class is hooked early; Trash's Remove all already asks.
