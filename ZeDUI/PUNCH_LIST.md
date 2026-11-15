@@ -5010,3 +5010,10 @@ to be proposed.
    the Equip tab's equipped panel shows no hover tooltips at all, with the mouse or the pad. Wanted: every stop that has
    a mouse tooltip shows the same one when the pad rests on it (one shared rule, not per surface), and the Equip panel's
    tooltips work.
+
+231. **Controller: the Rename box from the item menu doesn't take the pad and gets stuck (the director, Nov 14 2026,
+   playtest).** open. Rename from an item's context menu opens the name box, but the pad isn't on it; the box stays on
+   screen, and aiming doesn't clear it. The director escaped through the pause menu. 228e had named this one (Rename,
+   Overrides/ItemMenu.lua 178, sets the pad with no prevFocus) and it was judged not a bug; live, the box never gets the
+   pad at all. Needs: the box takes the pad when it opens (and the on-screen keyboard if typing), B closes it, the pad
+   goes back to the window after.
