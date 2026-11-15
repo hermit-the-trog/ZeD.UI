@@ -44,14 +44,24 @@ at(3000, function()
 end)
 at(4200, function()
     Focus.claimFocus(cw)
-    local found
-    for _, s in ipairs(Focus.flatElements(cw)) do if tostring(s.id) == "view:fbar:field" then found = s end end
-    if not found then say("no view:fbar:field stop"); return end
-    Focus.focusWhere(cw, found.zone, function(e) return tostring(e.id) == "view:fbar:field" end)
-    local e = Focus.getFocusedElement(cw)
-    if e and e.onActivate then e.onActivate(cw, e) end
+    local panel
+    local function walk(o, depth)
+        if panel or depth > 6 or type(o) ~= "table" then return end
+        if o._zedFilter ~= nil then panel = o; return end
+        local ok, kids = pcall(function() return o:getChildren() end)
+        if ok and kids then for _, k in pairs(kids) do walk(k, depth + 1) end end
+    end
+    walk(cw, 0)
+    if not panel then pcall(function() panel = cw._mainContent and (cw._mainContent.list or cw._mainContent.listPanel) end) end
+    say("215 list panel " .. tostring(panel))
+    if not panel then return end
+    local S = ZeD.InvFilter.of(panel)
+    if not S.open then ZeD.InvFilter.toggleOpen(S) end
+    ZEDQA_PFG_S = S
 end)
-at(5200, function()
+at(4700, function()
+    if ZEDQA_PFG_S then local ok, e = pcall(ZeD.InvFilter.editField, ZEDQA_PFG_S, cw); say("215 editField ok " .. tostring(ok) .. " " .. tostring(e)) end
+end)at(5200, function()
     local f = getJoypadFocus(0)
     say("215 pad focus with the keyboard up: " .. desc(f))
     ZEDQA_PFG_KB = f
