@@ -320,15 +320,17 @@ end
 -- under Simplified Chinese draws in Noto Sans SC, since the game's Chinese stand-in has no simplified-only letters.
 -- A line is wrapped at its spaces only, so Chinese, written without them, stays one line however long. Without
 -- ZeD.Text (a sim, or before it loads) the 5 x 7 face measures and draws, as before.
-local function face()
+-- (Nov 15 2026, the director: the words read as they do in Messages: talking, the speech balloon, in Fira Mono; a
+-- note over the head and a notice, information, in Fira Sans, the menus' face. kind "body" for those; nil is speech.)
+local function face(kind)
     local X, F = ZeD.Text, ZeD.Font
-    local f = F and F.sdf and F.sdf.stat
+    local f = F and F.sdf and ((kind == "body" and F.sdf.body) or F.sdf.stat)
     if f and X and X.width and X.draw and X.realTM then return f, X end
     return nil
 end
 -- a line's width in units
-function B.textW(str)
-    local f, X = face()
+function B.textW(str, kind)
+    local f, X = face(kind)
     if f then
         local ok, w = pcall(X.width, f, str, B.FONT_PX / (f.face or 64))
         if ok and type(w) == "number" then return math.ceil(w) end
@@ -338,8 +340,8 @@ end
 -- a balloon's height for n lines
 function B.boxH(n) return n * B.LINE + (B.PAD - B.TRIM) * 2 end
 -- a line drawn at (x, y) units, y where its capitals start (align "l" | "c"), alpha a
-function B.drawLine(cv, str, x, y, c, a, align)
-    local f, X = face()
+function B.drawLine(cv, str, x, y, c, a, align, kind)
+    local f, X = face(kind)
     if f then
         local k = cv.k
         local ok = pcall(X.draw, cv.el, f, str, cv.ox + x * k, cv.oy + (y - B.TRIM) * k, B.FONT_PX * k / (f.face or 64),
@@ -353,8 +355,8 @@ function B.drawLine(cv, str, x, y, c, a, align)
 end
 -- words to lines no wider than maxw (a word wider than that stands alone); the widest line's width
 -- (pixel: measure in the 5 x 7 face, for a caller that draws in it: RtvFace's screens)
-function B.wrap(text, maxw, pixel)
-    local tw = pixel and function(t) return P.textWidth(t, "57", 1) end or B.textW
+function B.wrap(text, maxw, pixel, kind)
+    local tw = pixel and function(t) return P.textWidth(t, "57", 1) end or function(t) return B.textW(t, kind) end
     local lines, cur = {}, ""
     for w in string.gmatch(text, "%S+") do
         local nxt = (cur == "") and w or (cur .. " " .. w)
@@ -517,7 +519,7 @@ function B.note(pn, text, tone)
             return n
         end
     end
-    local lines, tw = B.wrap(t, B.NOTE_MAXW)
+    local lines, tw = B.wrap(t, B.NOTE_MAXW, false, "body")
     local n = { text = t, lines = lines, tw = tw, tone = tone, ms = ms }
     list[#list + 1] = n
     while #list > B.NOTE_N do table.remove(list, 1) end
@@ -579,7 +581,7 @@ function B.drawNotes(cv, T, L)
             tx = tx + B.NOTE_DOT * 2
         end
         for j = 1, #n.lines do
-            B.drawLine(cv, n.lines[j], tx, n.y + B.PAD + (j - 1) * B.LINE, T.text, a * (T.text.a or 1), "l")
+            B.drawLine(cv, n.lines[j], tx, n.y + B.PAD + (j - 1) * B.LINE, T.text, a * (T.text.a or 1), "l", "body")
         end
     end
 end
@@ -607,7 +609,7 @@ function B.noticeLines(head, body, long)
     for _, part in ipairs({ head or "", body or "" }) do
         local t = B.clean(part)
         if t ~= "" then
-            local ls = B.wrap(t, maxW)
+            local ls = B.wrap(t, maxW, false, "body")
             for i = 1, #ls do lines[#lines + 1] = ls[i] end
         end
     end
@@ -615,7 +617,7 @@ function B.noticeLines(head, body, long)
         while #lines > maxLines do table.remove(lines) end
         lines[#lines] = lines[#lines] .. "..."
     end
-    for i = 1, #lines do tw = math.max(tw, B.textW(lines[i])) end
+    for i = 1, #lines do tw = math.max(tw, B.textW(lines[i], "body")) end
     return lines, tw
 end
 
@@ -667,7 +669,7 @@ function B.drawNoticeBalloons(cv, T, list, tail, a)
             tx = tx + B.NOTE_DOT * 2
         end
         for j = 1, #n.lines do
-            B.drawLine(cv, n.lines[j], tx, n.y + B.PAD + (j - 1) * B.LINE, T.text, a * (T.text.a or 1), "l")
+            B.drawLine(cv, n.lines[j], tx, n.y + B.PAD + (j - 1) * B.LINE, T.text, a * (T.text.a or 1), "l", "body")
         end
     end
 end
