@@ -1428,6 +1428,13 @@ function ZeD.Atoms.drawPendingHover(ov, win, noAuto)
     local bd = st.bd
     if not bd then bd = {}; st.bd = bd end
     bd.x, bd.y, bd.w, bd.h = win:getAbsoluteX(), win:getAbsoluteY(), win:getWidth(), win:getHeight()
+    -- (and up and down within the panel that asked: the window's foot strip draws over anything below it, QA's
+    -- run: the Brave card's words went under "87 items")
+    if r.panel and r.panel ~= win and r.panel.getAbsoluteY then
+        local py, ph = r.panel:getAbsoluteY(), r.panel:getHeight()
+        local top, bot = math.max(bd.y, py), math.min(bd.y + bd.h, py + ph)
+        if bot - top > 0 then bd.y, bd.h = top, bot - top end
+    end
     Bn.draw(ov, c, a, r.side or "above", { key = r.key, since = st.since, owner = win, bounds = bd })
 end
 
