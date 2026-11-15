@@ -807,7 +807,6 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     local fDrv, twPid, twDes = ZeD.RadioTab.faceFor(current, fullCard)
     local isTw = fDrv == ZeD.TwoWay
     if not twDes then win._radioTw, win._radioFullZone = nil, nil end
-    if not isTw then win._radioFullZone = nil end
     -- the width that fills the card: a walkie's for the half card
     -- (the drawer is that card wherever one fits; centred in the drawer, its margins its own); a ham set's for
     -- the drawer as a machine plate's. A ham set the tab cannot hold at the plates' whole zoom: its narrow face
@@ -834,12 +833,17 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     -- press (or A on it) shows that radio; the pointer on it names the radio and where it is in the help line.
     -- (the button sits 10 from the right edge (_drawFullButton): the strip keeps clear of all of it and 4 more, so a press
     -- on the button's left edge is the button's, not the strip's; QA Nov 13, twoway)
-    local fullW = isTw and (T.buttonH + T.px(14)) or 0
+    -- (Nov 15 2026, pop-outs: every face pops out now, the ordinary radios, the CD player and the TVs as the two-way
+    -- sets; the plain card does not: with faces off nothing pops out)
+    local canPop = twDes ~= nil and not fDrv.plain
+    if not canPop then win._radioFullZone = nil end
+    win._radioCanPop = canPop
+    local fullW = canPop and (T.buttonH + T.px(14)) or 0
     local items = ZeD.RadioTab.tabItems(radios)
     local hfid = _twFocusId(win)
     local fIdx = hfid and tonumber(hfid:match("^radio:tab:(%d+)$") or "") or nil
     _stripOpts.win, _stripOpts.focus = win, fIdx
-    _stripOpts.rightReserve = (twDes and isTw) and fullW or 0
+    _stripOpts.rightReserve = canPop and fullW or 0
     _stripOpts.noHover = _cuesOn()
     _stripFocus.idx = fIdx
     _browseMark.win = win
@@ -850,7 +854,7 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
 
     -- 2. Below the header: the face, or the plain card (faceFor gives one for every radio with device data)
     if twDes then
-        if isTw then
+        if canPop then
             local pn = win._playerObj and win._playerObj:getPlayerNum() or 0
             local open = ZeD.TwoWayFull.showing(pn) == current.radioInstance
             win._radioFullZone = _drawFullButton(panel, win, x, y, w, headerH, open, _twFocusId(win))
@@ -910,8 +914,9 @@ function ZeD.RadioTab.onClick(win, x, y)
     local cur = win._radios and win._radios[win._radioIdx or 1]
     if tw and cur and cur.radioInstance == tw.dev then
         local TW, chr = tw.drv or ZeD.TwoWay, win._playerObj
-        local isTw = TW == ZeD.TwoWay
-        if isTw and _hitZone(win._radioFullZone, x, y) then ZeD.TwoWayFull.toggle(chr, tw.dev, win); return true end
+        -- (Nov 15 2026, pop-outs: every face's button and face click, not only a two-way set's; the plain card has none)
+        local canPop = win._radioCanPop == true and not TW.plain
+        if canPop and _hitZone(win._radioFullZone, x, y) then ZeD.TwoWayFull.toggle(chr, tw.dev, win); return true end
         local sc = win._radioScroll
         if sc and sc.visible and x >= sc.x and x < sc.x + sc.width and y >= sc.y and y < sc.y + sc.height then
             sc:handleMouseDown(y - sc.y); return true
@@ -930,7 +935,8 @@ function ZeD.RadioTab.onClick(win, x, y)
             end
             return true
         end
-        if isTw and _hitZone(tw.face, x, y) then ZeD.TwoWayFull.open(chr, tw.dev, win) end
+        -- (a click on the face away from its controls: the pop-out, or put away when it shows this one; the design's rule)
+        if canPop and _hitZone(tw.face, x, y) then ZeD.TwoWayFull.toggle(chr, tw.dev, win) end
         return true
     end
 
@@ -1072,6 +1078,12 @@ local function _rtvFocusables(win, tw)
     local scr = tw.hits and tw.hits.screen
     if scr then
         elements[#elements + 1] = { x = scr.x, y = scr.y, w = scr.w, h = scr.h, id = "radio:tw:screen", onFocus = onFocus }
+    end
+    -- (Nov 15 2026, pop-outs: the header's pop-out button, after the face so focus still lands on power)
+    local fz = win._radioFullZone
+    if fz and fz.w > 0 then
+        elements[#elements + 1] = { x = fz.x, y = fz.y, w = fz.w, h = fz.h, id = "radio:full", onFocus = onFocus,
+            onActivate = function(w) ZeD.TwoWayFull.toggle(w._playerObj, dev, w) end }
     end
     _addTabStops(win, elements)
     _addFillStops(win, elements)

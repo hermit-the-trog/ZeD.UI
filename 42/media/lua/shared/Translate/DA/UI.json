@@ -2969,6 +2969,7 @@
     "UI_ZeD_CMap_X": "RMB: den åbner højreklik-menuen.",
     "UI_ZeD_CMap_Y": "Tryk kort: åbn, skjul eller vis begge vinduer. Hold: luk begge.",
     "UI_ZeD_Close": "Luk",
+    "UI_ZeD_FacePop_Hint": "Klik på en knap.  Esc lukker.",
     "UI_ZeD_TIYL_OriginTrait": "Oprindelsesegenskab: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "Kagesalg",
     "UI_ZeD_TIYL_StoryCarFixation": "Bilfiksering",

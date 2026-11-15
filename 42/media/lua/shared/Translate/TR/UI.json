@@ -2969,6 +2969,7 @@
     "UI_ZeD_CMap_X": "Sağ tık: bağlam menüsünü açar.",
     "UI_ZeD_CMap_Y": "Dokun: iki pencereyi açar, gizler ya da gösterir. Basılı tut: ikisini de kapatır.",
     "UI_ZeD_Close": "Kapat",
+    "UI_ZeD_FacePop_Hint": "Bir denetime tıklayın.  Esc kapatır.",
     "UI_ZeD_TIYL_OriginTrait": "Köken özelliği: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "Kermes",
     "UI_ZeD_TIYL_StoryCarFixation": "Araba tutkusu",

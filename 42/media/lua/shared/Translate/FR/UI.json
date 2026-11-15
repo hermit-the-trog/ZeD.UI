@@ -2969,6 +2969,7 @@
     "UI_ZeD_CMap_X": "RMB : il ouvre le menu contextuel.",
     "UI_ZeD_CMap_Y": "Appui court : ouvrir, masquer ou afficher les deux fenêtres. Maintenu : fermer les deux.",
     "UI_ZeD_Close": "Fermer",
+    "UI_ZeD_FacePop_Hint": "Cliquez sur une commande.  Échap ferme.",
     "UI_ZeD_TIYL_OriginTrait": "Trait d'origine : %1",
     "UI_ZeD_TIYL_StoryBakeSale": "Vente de gâteaux",
     "UI_ZeD_TIYL_StoryCarFixation": "Fixette des voitures",

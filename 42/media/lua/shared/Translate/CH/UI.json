@@ -2969,6 +2969,7 @@
     "UI_ZeD_CMap_X": "右鍵：開啟右鍵選單。",
     "UI_ZeD_CMap_Y": "輕按：開啟、隱藏或顯示兩個視窗。按住：關閉兩個視窗。",
     "UI_ZeD_Close": "關閉",
+    "UI_ZeD_FacePop_Hint": "點擊一個控制項。  Esc 關閉。",
     "UI_ZeD_TIYL_OriginTrait": "出身特質：%1",
     "UI_ZeD_TIYL_StoryBakeSale": "烘焙義賣",
     "UI_ZeD_TIYL_StoryCarFixation": "汽車迷",

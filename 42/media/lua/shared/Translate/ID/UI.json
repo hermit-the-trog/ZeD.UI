@@ -2969,6 +2969,7 @@
     "UI_ZeD_CMap_X": "RMB: membuka menu konteks.",
     "UI_ZeD_CMap_Y": "Ketuk: buka, sembunyikan, atau tampilkan kedua jendela. Tahan: tutup keduanya.",
     "UI_ZeD_Close": "Tutup",
+    "UI_ZeD_FacePop_Hint": "Klik sebuah kontrol.  Esc menutup.",
     "UI_ZeD_TIYL_OriginTrait": "Trait asal: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "Bazar kue",
     "UI_ZeD_TIYL_StoryCarFixation": "Tergila-gila mobil",

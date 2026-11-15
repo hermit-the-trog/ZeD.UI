@@ -2969,6 +2969,7 @@
     "UI_ZeD_CMap_X": "우클릭: 컨텍스트 메뉴를 엽니다.",
     "UI_ZeD_CMap_Y": "짧게 누르기: 두 창 열기, 숨기기, 표시. 길게: 두 창 닫기.",
     "UI_ZeD_Close": "닫기",
+    "UI_ZeD_FacePop_Hint": "조작부를 클릭하세요.  Esc로 닫기.",
     "UI_ZeD_TIYL_OriginTrait": "출신 특성: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "빵 바자회",
     "UI_ZeD_TIYL_StoryCarFixation": "차 집착",

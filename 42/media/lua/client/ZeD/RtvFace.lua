@@ -690,6 +690,9 @@ end
 --            controller's A grabbed) }
 -- The antique set's power and volume share the knob: one control, "volpwr" (pressed: power; turned: volume).
 -- ---------------------------------------------------------------------------
+-- (Nov 15 2026, pop-outs: face.own, a face popped out on its own (TwoWayFull.lua), keeps its own focus, so the mark
+-- takes the control as focused, as the two-way faces' does)
+local OWN_FOCUS = { focused = true }
 --- Draw the face as above; returns its controls (hits) and the state it read, or {} and nil with no device data.
 function R.drawFace(panel, x, y, k, face)
     local T = ZeD.T
@@ -714,7 +717,7 @@ function R.drawFace(panel, x, y, k, face)
             elseif face.focusId == c.id then
                 -- (Nov 15 2026, punch list 228k: a knob takes the controller's mark too, the pointing hand, over its tint)
                 if knob then PL.cue(cv, c, ac, 0.55) end
-                PL.markKey(panel, c, x, y, k, nil)
+                PL.markKey(panel, c, x, y, k, face.own and OWN_FOCUS or nil)
             elseif face.hoverId == c.id then
                 if knob then PL.cue(cv, c, ac, 0.30) else PL.hoverKey(cv, c) end
             end
@@ -725,7 +728,7 @@ function R.drawFace(panel, x, y, k, face)
     local scr = factsOf(des).screen
     if scr then
         hits.screen = { id = "screen", x = x + scr.x * k, y = y + scr.y * k, w = scr.w * k, h = scr.h * k }
-        if face.focusId == "screen" then PL.markKey(panel, scr, x, y, k, nil) end
+        if face.focusId == "screen" then PL.markKey(panel, scr, x, y, k, face.own and OWN_FOCUS or nil) end
     end
     return hits, st
 end
@@ -912,5 +915,65 @@ end
 function R.turnMult(pid, streak)
     return (streak >= 8 and 5) or 1
 end
+
+-- ---------------------------------------------------------------------------
+-- THE POP-OUT (Nov 15 2026, pop-outs): what the face pops out with on its own (TwoWayFull.lua drives ZeD.Rtv as its
+-- driver, as it drives ZeD.TwoWay)
+-- ---------------------------------------------------------------------------
+--- The plate a radio or TV pops out with, and its zoom: the full card's pick (a TV the widest that fits the full card,
+--- a radio its widest full-card face), the CD player its widest half-card face (it has no full-card one: @257); a
+--- radio with no full face that fits takes its widest half-card face too. Nil with no face.
+function R.popFace(dev, k)
+    local pid = R.plateId(dev)
+    if not pid then return nil, nil, k end
+    local T = ZeD.T
+    local room = T.px(R.FULL_W) - T.sp.scrollbarW            -- (the full card's room, as RadioTab draws it)
+    local id, des
+    if R.isTv(pid) then
+        des, id = P.pick(pid, room)
+    elseif not R.halfOnly(pid) then
+        id, des = R.fullFace(pid, room, k)
+    end
+    if not des then id, des = _widest(pid, 1e9, k, false) end    -- (any room: the widest half-card face)
+    if not des then id, des = pid, ZeD.PhysPx.plates[pid] end
+    if not des then return nil, nil, k end
+    return id, des, k     -- (the picks above are made for the plate scale k: the face is the card's, at its size)
+end
+
+--- The set in the world (the pop-out keeps its reach: FacePop's leash), nil for a radio carried.
+function R.objOf(dev)
+    if dev and not instanceof(dev, "InventoryItem") and instanceof(dev, "IsoObject") then return dev end
+    return nil
+end
+
+--- A radio carried: in the hands, on the back or anywhere in the player's bags.
+function R.inReach(chr, dev)
+    if not (chr and dev) then return false end
+    if TW.inReach(chr, dev) then return true end
+    local ok, mine = pcall(function()
+        local c = dev:getContainer()
+        return c ~= nil and c:isInCharacterInventory(chr)
+    end)
+    return ok and mine == true
+end
+
+-- each control's name: the prompt's word (A and the name) and the pop-out's help line
+local LABEL = { power = "IGUI_RadioPower", volpwr = "IGUI_RadioPower", vol = "IGUI_RadioVolume", tune = "UI_ZeD_RadioPrompt_Tune",
+    mute = "UI_ZeD_RadioPrompt_Mute", voldn = "IGUI_RadioVolDown", volup = "IGUI_RadioVolUp", chup = "UI_ZeD_RadioPrompt_ChannelUp",
+    chdn = "UI_ZeD_RadioPrompt_ChannelDown", channel = "IGUI_RadioChannel", phones = "UI_ZeD_Plain_Headphones",
+    battery = "IGUI_VehiclePartBattery", slot = "IGUI_RadioMedia", eject = "UI_ZeD_RadioPrompt_Eject", play = "UI_ZeD_RadioPrompt_PlayStop" }
+function R.labelA(id)
+    if not id then return nil end
+    if id:match("^p%d$") then return ZeD.tr("UI_ZeD_RadioPrompt_Listen") end
+    local key = LABEL[id]
+    return key and ZeD.tr(key) or nil
+end
+--- What X does: a preset key stores the channel.
+function R.labelX(id)
+    if id and id:match("^p%d$") then return ZeD.tr("UI_ZeD_RadioPrompt_Store") end
+    return nil
+end
+--- The knob X pushes: the antique set's volume knob is its power.
+function R.knobPush(id) return id == "volpwr" end
 
 return R

@@ -2969,6 +2969,7 @@
     "UI_ZeD_CMap_X": "คลิกขวา: เปิดเมนูคลิกขวา",
     "UI_ZeD_CMap_Y": "แตะ: เปิด ซ่อน หรือแสดงหน้าต่างทั้งสอง กดค้าง: ปิดทั้งสอง",
     "UI_ZeD_Close": "ปิด",
+    "UI_ZeD_FacePop_Hint": "คลิกที่ปุ่มควบคุม  Esc เพื่อปิด",
     "UI_ZeD_TIYL_OriginTrait": "คุณลักษณะต้นกำเนิด: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "งานขายขนมอบ",
     "UI_ZeD_TIYL_StoryCarFixation": "หลงใหลรถ",

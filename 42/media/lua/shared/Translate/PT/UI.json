@@ -2969,6 +2969,7 @@
     "UI_ZeD_CMap_X": "RMB: abre o menu de contexto.",
     "UI_ZeD_CMap_Y": "Toque: abre, esconde ou mostra as duas janelas. Mantém premido: fecha as duas.",
     "UI_ZeD_Close": "Fechar",
+    "UI_ZeD_FacePop_Hint": "Clique num comando.  Esc fecha.",
     "UI_ZeD_TIYL_OriginTrait": "Traço de origem: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "Venda de bolos",
     "UI_ZeD_TIYL_StoryCarFixation": "Fixação por carros",

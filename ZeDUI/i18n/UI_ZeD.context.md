@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Only the pixel-face words are capitals: the action bar labels (READING, CHEWING) and the marks on the dash, watch and radio. They stay capitals in your language. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey), for headings, column heads, tags, buttons and status words alike; write yours the way your language writes a heading or a button, not in capitals.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head arrives in whatever case the game text has, and ZeD sets it in sentence case.
 
-Total keys: 5304.
+Total keys: 5305.
 
 ## Areas
 
@@ -115,7 +115,7 @@ Total keys: 5304.
 - [Workshop](#workshop) (51)
 - [World](#world) (19)
 - [XR](#xr) (3)
-- [General](#general) (5)
+- [General](#general) (6)
 
 ## Accent
 
@@ -4378,6 +4378,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | Key | English | Where it shows | Max |
 |---|---|---|---|
 | `UI_ZeD_Close` | `Close` | Close button text. | 12 |
+| `UI_ZeD_FacePop_Hint` | `Click a control.  Esc closes.` | A machine's face popped out on its own (a TV, a radio, an oven, a washer...): the line under it while the mouse is not on a control. Two spaces between the sentences. | 40 |
 | `UI_ZeD_ModDesc` | `Total UI overhaul for Project Zomboid` | The mod list: the mod's one-line description. | 60 |
 | `UI_ZeD_ModName` | `ZeD-GUI` | The mod list: the mod's name. | 12 |
 | `UI_ZeD_NoResults` | `No results` | Empty list line when a search finds nothing. | 24 |

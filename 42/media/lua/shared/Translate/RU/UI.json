@@ -2969,6 +2969,7 @@
     "UI_ZeD_CMap_X": "ПКМ: открывает контекстное меню.",
     "UI_ZeD_CMap_Y": "Нажатие: открыть, скрыть или показать оба окна. Удержание: закрыть оба.",
     "UI_ZeD_Close": "Закрыть",
+    "UI_ZeD_FacePop_Hint": "Нажмите на орган управления.  Esc закрывает.",
     "UI_ZeD_TIYL_OriginTrait": "Черта происхождения: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "Продажа выпечки",
     "UI_ZeD_TIYL_StoryCarFixation": "Одержимость машинами",

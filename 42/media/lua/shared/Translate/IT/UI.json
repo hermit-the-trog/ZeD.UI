@@ -2969,6 +2969,7 @@
     "UI_ZeD_CMap_X": "RMB: apre il menu contestuale.",
     "UI_ZeD_CMap_Y": "Tocca: apre, nasconde o mostra entrambe le finestre. Tieni: le chiude entrambe.",
     "UI_ZeD_Close": "Chiudi",
+    "UI_ZeD_FacePop_Hint": "Fai clic su un comando.  Esc chiude.",
     "UI_ZeD_TIYL_OriginTrait": "Tratto d'origine: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "Vendita di dolci",
     "UI_ZeD_TIYL_StoryCarFixation": "Fissa per le auto",

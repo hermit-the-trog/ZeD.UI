@@ -2969,6 +2969,7 @@
     "UI_ZeD_CMap_X": "RMB: obre el menú contextual.",
     "UI_ZeD_CMap_Y": "Toc: obre, amaga o mostra les dues finestres. Mantenir: tanca les dues.",
     "UI_ZeD_Close": "Tancar",
+    "UI_ZeD_FacePop_Hint": "Fes clic en un control.  Esc tanca.",
     "UI_ZeD_TIYL_OriginTrait": "Tret d'origen: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "Venda de pastissos",
     "UI_ZeD_TIYL_StoryCarFixation": "Fixació pels cotxes",
