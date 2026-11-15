@@ -154,6 +154,8 @@ local HAVE = { "Carpentry", "Ball-peen Hammer", "Claw Hammer", "Smithing Hammer"
 local MISSING = { "Hacksaw", "Simple Wood Saw", "Wood Saw", "Has items in container." }
 local VALUES = { "Carpentry", "Ball-peen Hammer", "Claw Hammer", "Smithing Hammer", "Stone Hammer", "Hacksaw", "Simple Wood Saw", "Wood Saw" }
 local T = ZeD.T
+-- (Nov 15 2026: every balloon draws in its light palette; the colors below are its)
+local BT = setmetatable({}, { __index = function(_, k) return ZeD.Balloon.LIGHT[k] or T[k] end })
 local function same(c, t) return c and c.r == t.r and c.g == t.g and c.b == t.b end
 
 for _, look in ipairs({ { "strip", strip }, { "list", list } }) do
@@ -164,9 +166,9 @@ for _, look in ipairs({ { "strip", strip }, { "list", list } }) do
     ok(#find(p, "- Has items in container.") == 0, name .. " ONCE no dash")
     ok(#find(p, "Tool needed") == 2, name .. " ONCE the two Tool needed labels")
     ok(#find(p, "Name") == 0 and #find(p, "Mahogany") == 1, name .. " ONCE the Name row left out, the title drawn once")
-    for _, s in ipairs(HAVE) do ok(same(find(p, s)[1], T.positiveText), name .. " COLOR have " .. s) end
-    for _, s in ipairs(MISSING) do ok(same(find(p, s)[1], T.dangerText), name .. " COLOR missing " .. s) end
-    ok(same(find(p, "Skill")[1], T.text), name .. " COLOR the label in the text color")
+    for _, s in ipairs(HAVE) do ok(same(find(p, s)[1], BT.positiveText), name .. " COLOR have " .. s) end
+    for _, s in ipairs(MISSING) do ok(same(find(p, s)[1], BT.dangerText), name .. " COLOR missing " .. s) end
+    ok(same(find(p, "Skill")[1], BT.text), name .. " COLOR the label in the text color")
     local x0 = find(p, "Carpentry")[1]
     x0 = x0 and x0.x
     for _, s in ipairs(VALUES) do
@@ -187,7 +189,7 @@ for _, look in ipairs({ { "strip", strip }, { "list", list } }) do
         ok(pl.side == "right" and pl.tipY >= 200 and pl.tipY < 224, name .. " TAIL the tip at the row's height, beside it")
     end
     -- the path in textSec, the title in textHead
-    ok(same(find(p, "Disassemble")[1] or (name == "list" and { r = T.textSec.r, g = T.textSec.g, b = T.textSec.b }), T.textSec), name .. " the path in textSec")
+    ok(same(find(p, "Disassemble")[1] or (name == "list" and { r = BT.textSec.r, g = BT.textSec.g, b = BT.textSec.b }), BT.textSec), name .. " the path in textSec")
 end
 
 -- DEBUG: with debug on the game adds "SCRIPT NAME:" and the sprite's name in magenta (ISMoveableSpriteProps
@@ -217,11 +219,11 @@ do
     for _, look in ipairs({ { "strip", strip }, { "list", list } }) do
         local p = look[2](dd)
         local hits = find(p, "SCRIPT NAME: furniture_storage_02_0")
-        ok(#hits == 1 and same(hits[1], T.text), "DEBUG " .. look[1] .. ": drawn once, plain, in the text color")
+        ok(#hits == 1 and same(hits[1], BT.text), "DEBUG " .. look[1] .. ": drawn once, plain, in the text color")
         local markY = hits[1] and hits[1].y
         local marked = false
         for _, r in ipairs(p.rects) do
-            if markY and r.y >= markY and r.y < markY + 15 and (same(r, T.dangerText) or same(r, T.positiveText)) then marked = true end
+            if markY and r.y >= markY and r.y < markY + 15 and (same(r, BT.dangerText) or same(r, BT.positiveText)) then marked = true end
         end
         ok(not marked, "DEBUG " .. look[1] .. ": no check or cross on it")
     end
@@ -239,7 +241,7 @@ for _, gated in ipairs({ false, true }) do
         ok(n == 1, "PLAIN " .. look[1] .. " drawn once (gated " .. tostring(gated) .. ", drawn " .. n .. "x)")
         local hit
         for _, c in ipairs(p.calls) do if c.s:find("opener", 1, true) then hit = c end end
-        ok(same(hit, T.text), "PLAIN " .. look[1] .. " in the text color (gated " .. tostring(gated) .. ")")
+        ok(same(hit, BT.text), "PLAIN " .. look[1] .. " in the text color (gated " .. tostring(gated) .. ")")
     end
 end
 
