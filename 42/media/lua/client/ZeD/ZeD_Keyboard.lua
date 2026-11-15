@@ -565,6 +565,42 @@ end
 -- CONTROLLER
 -- ---------------------------------------------------------------------------
 -- the help line's prompts while a controller holds the keyboard (the keys name the rest)
+--- B on a controller (punch list 226): "Close the keyboard? Your changes will be saved." Close (the default) keeps
+--- the text and closes, as RT does; Cancel (or B) goes back to typing. Without a ZeD prompt it just saves and closes.
+function ZeD_Keyboard:askClose(joypadData)
+    if self._asking and not self._asking._dead then return end
+    local jd = joypadData or self.joyfocus or self.joypadData
+    local ok, o = pcall(function()
+        local core = getCore()
+        local w, h = 460, 170
+        return ISModalRichText:new((core:getScreenWidth() - w) / 2, (core:getScreenHeight() - h) / 2, w, h,
+            ZeD.tr("UI_ZeD_Keyboard_CloseAsk"), true, self, ZeD_Keyboard.onCloseAnswer, self.playerNum)
+    end)
+    if not (ok and o and o.kind == "rich") then return self:accept() end
+    o.yesText, o.noText = "UI_Close", "UI_Cancel"
+    o:initialise()
+    o:addToUIManager()
+    pcall(function() o:setAlwaysOnTop(true); o:bringToTop() end)
+    self._asking = o
+    if jd then
+        o.prevFocus, o.joyfocus = self, jd
+        jd.focus = o
+        if updateJoypadFocus then updateJoypadFocus(jd) end
+    end
+end
+
+--- The question's answer: Close saves and closes; anything else is back to the keys.
+function ZeD_Keyboard.onCloseAnswer(self, button)
+    self._asking = nil
+    local jd = self.joyfocus or self.joypadData
+    if jd then jd.focus = self end   -- (so the hide below hands the pad back to what had it before the keyboard)
+    if button and button.isYes then
+        self:accept()
+    elseif jd and updateJoypadFocus then
+        updateJoypadFocus(jd)
+    end
+end
+
 function ZeD_Keyboard:getFooterPrompts()
     if not self.joyfocus then return nil end
     local P = ZeD.Prompt
@@ -572,7 +608,7 @@ function ZeD_Keyboard:getFooterPrompts()
     return { move,
         { glyph = "A", label = ZeD.tr("UI_ZeD_Prompt_Press") },
         { glyph = "RT", label = ZeD.btnCase(getText(self._multi and "IGUI_Keyboard_Enter" or "IGUI_Keyboard_Accept")) },
-        { glyph = "B", label = ZeD.btnCase(getText("IGUI_Keyboard_Cancel")) } }
+        { glyph = "B", label = ZeD.btnCase(getText("UI_Close")) } }
 end
 
 function ZeD_Keyboard:onGainJoypadFocus(joypadData) self.joyfocus = joypadData end
@@ -594,7 +630,9 @@ function ZeD_Keyboard:onJoypadDown(button, joypadData)
         self:pressKey(row and row[self._focus[2]])
         return
     end
-    if button == Joypad.BButton then return self:cancel() end
+    -- (Nov 14 2026, punch list 226, the director: B saves and closes, after a question; there is no cancel, what is
+    -- typed is kept and the player deletes what they don't want)
+    if button == Joypad.BButton then return self:askClose(joypadData) end
     if button == Joypad.XButton then sound(); return self:keyCode(Keyboard.KEY_BACK) end
     if button == Joypad.YButton then sound(); return self:typeChar(" ") end
     if button == Joypad.LBumper then return self:keyCode(Keyboard.KEY_LEFT) end

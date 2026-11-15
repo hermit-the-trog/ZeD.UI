@@ -1646,12 +1646,15 @@ _buildInvRowFocusables = function(win)
             -- A tap = LMB = SELECT item (opens the card drawer for it,
             -- mouse-click parity). On a stack rep (count > 1), A toggles
             -- the stack expand/collapse instead (= LMB on the chevron).
-            -- X = RMB = open vanilla context menu (Drop, Grab, Move-To,
+            -- (Nov 14 2026, punch list 223, "Match the game": InventoryRenderer.padItemButtons
+            -- wraps these: A on the row whose card is open opens onContextMenu's menu below,
+            -- X tapped moves the row to the World window's container, the game's grab.)
+            -- The menu: vanilla's context menu (Drop, Grab, Move-To,
             -- etc.); for stack reps the menu receives ALL stack items so
             -- "Grab one / half / all" variants surface. X hold = double-LMB
             -- (InventoryRenderer.quickUse: a thing in a bag to the main
             -- inventory, else eat/wear/equip via vanilla
-            -- ISInventoryPane:doContextualDblClick). A hold marks (below).
+            -- ISInventoryPane:doContextualDblClick). A hold marks (below; on food it eats).
             onActivate = function(w, el)
                 if not el.item then return end
                 local cnt = w._mainContent
@@ -1693,8 +1696,6 @@ _buildInvRowFocusables = function(win)
             end,
             onCancel   = ZeD.InventoryRenderer.padCancel,      -- B clears the marks (nothing without them)
             promptB    = ZeD.InventoryRenderer.padPromptB,     -- the footer reads these each frame (functions)
-            promptX    = ZeD.InventoryRenderer.padPromptX,
-            promptHold = ZeD.InventoryRenderer.padPromptHold,
             onContextMenu = function(w, el)
                 if not el.item then return end
                 if ISInventoryPaneContextMenu and ISInventoryPaneContextMenu.createMenu then
@@ -1705,6 +1706,7 @@ _buildInvRowFocusables = function(win)
                 end
             end,
         }
+        ZeD.InventoryRenderer.padItemButtons(elements[#elements])   -- (Nov 14 2026, punch list 223: X moves, A on an open card is the menu; 225: hold A on food eats)
     end
     -- Seed first-item focus so accent paints immediately on section enter
     -- (before D-pad fires its first onFocus).
@@ -1790,8 +1792,10 @@ _buildCharacterMCColumnFocusables = function(win, slot)
                 end
             end,
             -- A = LMB. Stack rep → toggle expand/collapse; non-stack
-            -- item → select (open card drawer). X = RMB = vanilla context
+            -- item → select (open card drawer). onContextMenu = vanilla context
             -- menu (Drop/Grab/etc.); hold X = double-LMB use; hold A marks.
+            -- (Nov 14 2026, punch list 223: padItemButtons puts the menu on A over an open
+            -- card and X on the move; 225: hold A on food eats)
             onActivate = function(w, el)
                 if not el.item then return end
                 local cnt = w._mainContent
@@ -1830,8 +1834,6 @@ _buildCharacterMCColumnFocusables = function(win, slot)
             end,
             onCancel   = ZeD.InventoryRenderer.padCancel,      -- B clears the marks (nothing without them)
             promptB    = ZeD.InventoryRenderer.padPromptB,     -- the footer reads these each frame (functions)
-            promptX    = ZeD.InventoryRenderer.padPromptX,
-            promptHold = ZeD.InventoryRenderer.padPromptHold,
             onContextMenu = function(w, el)
                 if not el.item then return end
                 if ISInventoryPaneContextMenu and ISInventoryPaneContextMenu.createMenu then
@@ -1843,6 +1845,7 @@ _buildCharacterMCColumnFocusables = function(win, slot)
                 end
             end,
         }
+        ZeD.InventoryRenderer.padItemButtons(elements[#elements])   -- (Nov 14 2026, punch list 223: X moves, A on an open card is the menu; 225: hold A on food eats)
     end
     -- rows out of the column's view: for the column's own Up / Down only
     ZeD.Input.Focus.markOffscreen(elements, cs.rowView)

@@ -1648,14 +1648,21 @@ function ZeD_ItemCard:getActionStripElements()
             local v = self._lastHeaderVerbs[i]
             if r and r.x and v and v.label then
                 local eid, label = "hverb_" .. i, (v.id or v.label)
+                local run = function() card:_dispatchHeaderVerb(label) end
                 els[#els + 1] = {
                     x = ax + r.x, y = ay + r.y, w = r.w, h = r.h,
                     id = eid,
                     isStrip = true,
                     isPrimary = v.primary and true or nil,
                     onFocus    = function() card._gpFocusedBtnId = eid end,
-                    onActivate = function() card:_dispatchHeaderVerb(label) end,
+                    onActivate = run,
                 }
+                -- (Nov 14 2026, punch list 225, the design lead's "Eat on a hold": a controller eats on A held,
+                -- never a tap, so the press that opened the card can't eat; the footer says "Eat (hold)")
+                if label == "EAT" then
+                    local e = els[#els]
+                    e.onActivate, e.onHoldActivate, e.promptHold = nil, run, v.label
+                end
                 firstStrip = firstStrip or els[#els]
                 if v.primary then anyPrimary = true end
             end

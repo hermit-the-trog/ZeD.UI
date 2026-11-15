@@ -2024,6 +2024,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | Key | English | Where it shows | Max |
 |---|---|---|---|
 | `UI_ZeD_Keyboard_Show` | `Show` | On-screen keyboard, key that reveals a masked (password) field | 8 |
+| `UI_ZeD_Keyboard_CloseAsk` | `Close the keyboard? Your changes will be saved.` | On-screen keyboard, controller B: the question before it closes; answers Close (keeps the text) and Cancel (back to typing) | - |
 | `UI_ZeD_Keyboard_HelpChar` | `Type %1.` | On-screen keyboard: help line over a letter, digit or sign key; %1 = the character it types | - |
 | `UI_ZeD_Keyboard_HelpDelete` | `Delete the character before the caret.` | On-screen keyboard: help line over the delete key | - |
 | `UI_ZeD_Keyboard_HelpCaps` | `Keep typing capital letters until you press it again.` | On-screen keyboard: help line over the caps lock key | - |
@@ -5929,6 +5930,7 @@ Staff-only cards that take over the game's admin windows. Button and tag lengths
 | `UI_ZeD_Inv_FilterChipHelp` | `%1: only things in it stay bright; pick several to see more` | Inventory Filter bar: help line over a category chip that is not picked. %1 the category's name (the game's word) | - |
 | `UI_ZeD_Inv_FilterChipOffHelp` | `%1: press again to unpick` | Inventory Filter bar: help line over a picked category chip. %1 the category's name | - |
 | `UI_ZeD_Inv_PromptType` | `Type` | Controller prompt on the Filter field: A opens the on-screen keyboard | 10 |
+| `UI_ZeD_Inv_PromptMove` | `Move` | Controller prompt (X) on an item row in the Character window: moves the thing into the container the World window shows (the game's grab, the other way). A verb for moving things, not for walking or a cursor; one short word (Nov 14 2026) | 10 |
 | `UI_ZeD_Settings_RunSneak` | `Run button also sneaks` | ZeD setup > Controls: a setting's name (a checkbox). "Run" is the game's controller binding (Options > Controller), in the game's word for it | 32 |
 | `UI_ZeD_Settings_RunSneakTip` | `Works when the game's Run is on a button, as in the Original controller layout (Run on the right trigger, RT); does nothing when Run is a full push of the stick (the Default layout) or on LB or RB, which ZeD keeps for its quick actions. Standing still, hold Run to crouch and hold it again to stand. Moving, Run runs as always; crouched, the hold stands you up first. A quick tap does what it always did.` | ZeD setup > Controls: the help line under it. Run is the game's controller-binding word, Original and Default its two controller layouts (Options > Controller), in the game's words; quick actions as UI_ZeD_Options_ZedChords has them; RT, LB and RB stay as written | - |
 | `UI_ZeD_Settings_UiSounds` | `UI sounds` | ZeD setup > Windows: a setting's name (three radio buttons): how loud ZeD's own clicks play (Nov 14 2026) | 24 |

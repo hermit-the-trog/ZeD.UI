@@ -1216,8 +1216,9 @@ _buildWorldMCColumnFocusables = function(win, slot)
             end,
             -- A = LMB. Stack rep → toggle expand/collapse; non-stack
             -- item → select (open card drawer). Hold X = double-LMB use.
-            -- X = RMB = vanilla context menu (Take/Move-To via floor-routing
-            -- inside ContextMenuRegistry).
+            -- onContextMenu = vanilla context menu (Take/Move-To via floor-routing
+            -- inside ContextMenuRegistry). (Nov 14 2026, punch list 223: padItemButtons
+            -- puts the menu on A over an open card and X on the game's grab; 225: hold A on food eats)
             onActivate = function(w, el)
                 if not el.item then return end
                 local cnt = w._mainContent
@@ -1256,8 +1257,6 @@ _buildWorldMCColumnFocusables = function(win, slot)
             end,
             onCancel   = ZeD.InventoryRenderer.padCancel,      -- B clears the marks (nothing without them)
             promptB    = ZeD.InventoryRenderer.padPromptB,     -- the footer reads these each frame (functions)
-            promptX    = ZeD.InventoryRenderer.padPromptX,
-            promptHold = ZeD.InventoryRenderer.padPromptHold,
             onContextMenu = function(w, el)
                 if not el.item then return end
                 if ISInventoryPaneContextMenu and ISInventoryPaneContextMenu.createMenu then
@@ -1269,6 +1268,7 @@ _buildWorldMCColumnFocusables = function(win, slot)
                 end
             end,
         }
+        ZeD.InventoryRenderer.padItemButtons(elements[#elements])   -- (Nov 14 2026, punch list 223: X moves, A on an open card is the menu; 225: hold A on food eats)
     end
     -- rows out of the column's view: for the column's own Up / Down only
     ZeD.Input.Focus.markOffscreen(elements, cs.rowView)
@@ -1576,7 +1576,9 @@ _buildWorldInvRowFocusables = function(win)
             -- A tap = LMB = SELECT item (opens card drawer for it).
             -- On a stack rep (count > 1), A toggles stack expand/collapse
             -- (= LMB on chevron). X hold = double-LMB (InventoryRenderer
-            -- quickUse: to the main inventory). X = RMB = open vanilla context menu —
+            -- quickUse: to the main inventory). (Nov 14 2026, punch list 223: padItemButtons
+            -- puts onContextMenu's menu on A over an open card and X on the game's grab;
+            -- 225: hold A on food eats.) onContextMenu = vanilla context menu —
             -- the menu's "Take" / "Move To" entries handle floor items via
             -- their own paths (floor-routing happens inside
             -- ContextMenuRegistry.makeActionDef.onFire, before the transfer).
@@ -1619,8 +1621,6 @@ _buildWorldInvRowFocusables = function(win)
             end,
             onCancel   = ZeD.InventoryRenderer.padCancel,      -- B clears the marks (nothing without them)
             promptB    = ZeD.InventoryRenderer.padPromptB,     -- the footer reads these each frame (functions)
-            promptX    = ZeD.InventoryRenderer.padPromptX,
-            promptHold = ZeD.InventoryRenderer.padPromptHold,
             onContextMenu = function(w, el)
                 if not el.item then return end
                 if ISInventoryPaneContextMenu and ISInventoryPaneContextMenu.createMenu then
@@ -1631,6 +1631,7 @@ _buildWorldInvRowFocusables = function(win)
                 end
             end,
         }
+        ZeD.InventoryRenderer.padItemButtons(elements[#elements])   -- (Nov 14 2026, punch list 223: X moves, A on an open card is the menu; 225: hold A on food eats)
     end
     -- seed only when nothing is remembered: a rebuild (scroll, an item gone) must not
     -- send focus back to the first row

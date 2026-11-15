@@ -499,8 +499,8 @@ end
 -- CONTROLLER MARKS
 -- Hold A on a row MARKS it (the row's wash, as Ctrl-click); hold A on a marked row unmarks it; while A
 -- stays held, Up and Down mark the rows passed (Shift-click's run, painted; FocusManager fires onPaint on
--- the row landed on). With marks on the list the card hides (as with the mouse), X opens the game's menu
--- for every marked row, the band's Take / Drop / Move act on them, and B clears the marks and leaves the
+-- the row landed on). With marks on the list the card hides (as with the mouse), X moves every marked row
+-- (punch list 223, below), the band's Take / Drop / Move act on them, and B clears the marks and leaves the
 -- focus where it is. Tap A on a marked row opens its card and drops the marks (the plain click's way).
 -- Hold X on a row is the quick use (a double-click). Marks belong to one list: a stack header marks its
 -- whole stack; a mark in another column or container is another list (the column's own selection).
@@ -611,15 +611,107 @@ function ZeD.InventoryRenderer.padPromptB(w, el)
     if ZeD.InventoryRenderer.padMarkCount(w) == 0 then return false end
     return ZeD.tr("UI_ZeD_Inv_PromptClearMarks")
 end
+-- (Nov 14 2026, punch list 223: X is the game's grab, so its word says where the row goes: Grab from the World
+-- window, Drop onto the floor, Move into a container; the marked words of the band's own button with marks.
+-- Nowhere to go (your side with no container across): no X.)
 function ZeD.InventoryRenderer.padPromptX(w, el)
-    local n = ZeD.InventoryRenderer.padMarkCount(w)
-    if n == 0 then return nil end
-    return ZeD.tr("UI_ZeD_Inv_PromptMenuMarked", n)
+    local cnt = w and w._mainContent
+    local CT = ZeD.ContainerControls
+    local dest = cnt and CT and CT.otherInventory and CT.otherInventory(cnt)
+    if not dest then return false end
+    local toFloor = dest:getType() == "floor"
+    local mine = cnt._ccSide == "char"
+    if ZeD.InventoryRenderer.padMarkCount(w) > 0 then
+        if not mine then return ZeD.tr("UI_ZeD_Controls_TakeMarked") end
+        return ZeD.tr(toFloor and "UI_ZeD_Controls_DropMarked" or "UI_ZeD_Controls_MoveMarked")
+    end
+    if not mine then return getText("ContextMenu_Grab") end
+    return toFloor and getText("ContextMenu_Drop") or ZeD.tr("UI_ZeD_Inv_PromptMove")
 end
 function ZeD.InventoryRenderer.padPromptHold(w, el)
+    -- (Nov 14 2026, punch list 225: on food, hold A eats: "Eat (hold)", the card's own word for it)
+    if el and ZeD.InventoryRenderer.padIsFood(el.item) then return ZeD.InventoryRenderer.padEatWord(el.item) end
     local sel = padSel(w, el)
     local marked = sel and el and el.item and sel[el.item]
     return ZeD.tr(marked and "UI_ZeD_Inv_PromptUnmark" or "UI_ZeD_Inv_PromptMark")
+end
+
+-- ============================================================================
+-- THE GAME'S CONTROLLER INVENTORY (Nov 14 2026, punch list 223, the design lead's "Match the game"; punch list 225,
+-- "Eat on a hold")
+-- X tapped on a row moves it to the other window's container, as the game's own X (doGrabOnJoypadSelected): a
+-- stack header takes its whole stack (the game's grab of a folded stack), marked rows all go (the band's Move /
+-- Take marked). A on a row whose card is already open is the game's menu (X's old job); A on any other row opens
+-- the card as before. Hold X stays the quick use. On food, hold A eats (never a tap); hold A elsewhere marks.
+-- Each list's builder hands its item elements to padItemButtons once they are made.
+-- ============================================================================
+-- the card's test for food (ItemCardOrganism's categoryOf: a thing with fluid in it is a drink, not food)
+function ZeD.InventoryRenderer.padIsFood(item)
+    if not item then return false end
+    local ok, cat = pcall(function() return item:getCategory() end)
+    if not (ok and cat == "Food") then return false end
+    local okF, fc = pcall(function() return item:getFluidContainer() end)
+    return not (okF and fc)
+end
+-- the card's Eat word: the game's own verb when the food has one (Smoke, Drink, Chew ...), else Eat
+function ZeD.InventoryRenderer.padEatWord(item)
+    local ok, own = pcall(function() return item:getCustomMenuOption() end)
+    if ok and own and own ~= "" then return tostring(own) end
+    return getText("ContextMenu_Eat")
+end
+-- the card's EAT (ZeD_ItemCard:_dispatchHeaderVerb): the game's eat, which brings the food over first
+function ZeD.InventoryRenderer.padEat(w, el)
+    local item = el and el.item
+    local pn = ZeD.playerNumOf(w)
+    local playerObj = getSpecificPlayer(pn)
+    if not (item and playerObj and item:getContainer()) then return end
+    if playerObj.isAsleep and playerObj:isAsleep() then return end
+    if ISInventoryPaneContextMenu and ISInventoryPaneContextMenu.eatItem then ISInventoryPaneContextMenu.eatItem(item, 1, pn) end
+end
+-- a stack header with more than one in it (A on it folds or opens the stack)
+local function padIsStack(w, el)
+    local _, cnt, cs = padSel(w, el)
+    return #padStackItems(cnt, cs, el.item) > 1
+end
+-- the row's card is the one open in the drawer (the second A is the menu)
+function ZeD.InventoryRenderer.padCardOpen(w, el)
+    return el and el.item ~= nil and w and w._drawerItem == el.item and not padIsStack(w, el)
+end
+-- X tapped: the row (its stack, or every marked row) to the other window's container
+function ZeD.InventoryRenderer.padMove(w, el)
+    if not (el and el.item) then return end
+    local cnt = w and w._mainContent
+    local CT = ZeD.ContainerControls
+    if not (cnt and CT and CT.moveToOther) then return end
+    local marked = ZeD.InventoryRenderer.padMarkedAll(cnt)
+    local _, _, cs = padSel(w, el)
+    local items = marked or padStackItems(cnt, cs, el.item)
+    if CT.moveToOther(cnt, items) and marked then
+        wipeMarks(cnt)
+        padRefresh(w, cnt)
+    end
+end
+-- an item row's or cell's controller buttons, on top of what its builder gave it: the builder's onContextMenu
+-- (the game's menu) moves to A on an open card, X becomes the move, hold A on food eats
+function ZeD.InventoryRenderer.padItemButtons(el)
+    local tap, menu, mark = el.onActivate, el.onContextMenu, el.onHoldActivate
+    el.onItemMenu = menu
+    el.onActivate = function(w, e)
+        if menu and ZeD.InventoryRenderer.padCardOpen(w, e) then return menu(w, e) end
+        if tap then return tap(w, e) end
+    end
+    el.onContextMenu = ZeD.InventoryRenderer.padMove
+    el.onHoldActivate = function(w, e)
+        if ZeD.InventoryRenderer.padIsFood(e.item) then return ZeD.InventoryRenderer.padEat(w, e) end
+        if mark then return mark(w, e) end
+    end
+    el.promptA = function(w, e)
+        if menu and ZeD.InventoryRenderer.padCardOpen(w, e) then return ZeD.tr("UI_ZeD_Prompt_Menu") end
+        return nil
+    end
+    el.promptX = ZeD.InventoryRenderer.padPromptX
+    el.promptHold = ZeD.InventoryRenderer.padPromptHold
+    return el
 end
 
 -- The quick use itself, for the double-click and the controller's hold X on
@@ -751,11 +843,47 @@ local _tipRect = { x = 0, y = 0, w = 0, h = 0 }   -- (the hovered row or cell, h
 -- An item waiting to move (punch list 146, after the streamer's clips: vanilla's rows say "Moving to container" with
 -- a bar while he reads on): "Moving" in the category column (wordW > 0) and a thin bar along the row's or cell's
 -- foot, filling as it goes. True when the item is waiting.
+-- (Nov 14 2026, punch list 222, the director ate a raw pork chop: nothing on its row said it was still cooking.)
+-- Food on a lit stove, oven or fire: how far along (0..1) and whether it is now burning; nil when not cooking.
+-- Read only for Food rows; heating is the food's own heat above 1.6, the game's test (ISInventoryPane).
+local function cookState(item)
+    if not (instanceof and instanceof(item, "Food")) then return nil end
+    local ok, p, burning = pcall(function()
+        if not item:isCookable() or item:isBurnt() then return nil end
+        -- (punch list 224: heating is the game's own test, the food's heat, as its inventory pane reads it: an
+        -- oven switched on with no power or gas reads Activated, yet cooks nothing)
+        if item:isFrozen() or (item:getHeat() or 0) <= 1.6 then return nil end
+        local ct, toCook, toBurn = item:getCookingTime() or 0, item:getMinutesToCook() or 0, item:getMinutesToBurn() or 0
+        if item:isCooked() or (toCook > 0 and ct >= toCook) then
+            return math.max(0, math.min(1, (ct - toCook) / math.max(1, toBurn - toCook))), true
+        end
+        return (toCook > 0) and math.max(0, math.min(1, ct / toCook)) or 0, false
+    end)
+    if not ok or p == nil then return nil end
+    return p, burning
+end
+
 local function queueMark(self, item, wordX, wordY, wordW, rx, ry, rw, rh)
     local IT = ZeD.InvTip
     local d = IT and IT.queued and IT.queued(self, item)
-    if d == nil then return false end
     local T = ZeD.T
+    if d == nil then
+        -- cooking: the same thin bar along the foot, the accent while it cooks, danger once it burns, and the
+        -- game's word for it in the category column
+        local p, burning = cookState(item)
+        if p == nil then return false end
+        local c = burning and T.danger or T.accent
+        local base = T.base
+        local bh = T.px(2)
+        self:drawRect(rx, ry + rh - bh, rw, bh, 1, base.r, base.g, base.b)
+        if p > 0 then self:drawRect(rx, ry + rh - bh, math.max(1, math.floor(rw * p)), bh, 1, c.r, c.g, c.b) end
+        if wordW and wordW > 0 then
+            local s = ZeD.Atoms.truncateText(ZeD.textCase(getText(burning and "IGUI_invpanel_Burning" or "IGUI_invpanel_Cooking")), T.fontF1, wordW)
+            local tc = burning and T.danger or (T.accentText or T.accent)
+            self:drawText(s, wordX, wordY, tc.r, tc.g, tc.b, 1, T.fontF1)
+        end
+        return true
+    end
     local ac, base = T.accent, T.base
     local bh = T.px(2)
     self:drawRect(rx, ry + rh - bh, rw, bh, 1, base.r, base.g, base.b)

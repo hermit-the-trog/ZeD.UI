@@ -352,6 +352,28 @@ local function otherInventory(content)
     local cc = charContent(ZeD.playerNumOf(content))
     return (cc and cc._ccEntry and cc._inventory) or (content._playerObj and content._playerObj:getInventory())
 end
+CT.otherInventory = otherInventory
+
+--- (Nov 14 2026, punch list 223: the controller's X on a row is the game's grab, ISInventoryPane:doGrabOnJoypadSelected)
+--- The items go to the other window's container by the band's own move (CT.moveItems: the game's transfer actions,
+--- the floor's rules, a gate's refusal). From the World window: walk to the container first, as Take does, and a
+--- heavy thing alone is picked up in the hands (the game's grab). False when there is nowhere to put them.
+function CT.moveToOther(content, items)
+    local playerObj = content and content._playerObj
+    local dest = content and otherInventory(content)
+    if not (playerObj and dest and items and #items > 0) then return false end
+    if playerObj.isAsleep and playerObj:isAsleep() then return false end
+    if content._ccSide ~= "char" then
+        local src = items[1]:getContainer()
+        if src and src ~= dest and not isFloor(src) and not luautils.walkToContainer(src, playerObj:getPlayerNum()) then return false end
+        if #items == 1 and isForceDropHeavyItem and isForceDropHeavyItem(items[1]) then
+            ISInventoryPaneContextMenu.equipHeavyItem(playerObj, items[1])
+            return true
+        end
+    end
+    CT.moveItems(playerObj, items, dest)
+    return true
+end
 
 local function nearbyContainers(pn)
     local ww = worldWindow(pn)
