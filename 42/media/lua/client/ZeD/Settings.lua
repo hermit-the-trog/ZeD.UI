@@ -703,6 +703,14 @@ uiSounds:addItem(getText("UI_Off"), false)
 ZeD.Settings.uiSoundsOption = uiSounds
 ZeD.Settings.uiSoundVolume = function() return uiSoundKeys[liveIdx(uiSounds) or 1] or 1 end
 
+-- ----- ADDITIONAL APPLIANCE SUPPORT (Nov 15 2026, appliances) -----
+-- Makes more of the game's appliances work, the espresso machine first (Appliances.lua reads it each time a menu or
+-- the A prompt is built, so a change applies at once). An addition, shown with Restock in ZeD setup, and off in every
+-- preset, Vanilla Plus included: a player gets it only by switching it on. Off, ZeD adds nothing to any appliance.
+local appliances = onSwitch("appliances", "UI_ZeD_Settings_Appliances", "UI_ZeD_Settings_AppliancesTip")
+ZeD.Settings.appliancesOption = appliances
+ZeD.Settings.appliancesOn = function() return (appliances:getValue() or 1) == 2 end
+
 -- ----- THE KEYS OF THE OPTION NAMES -----
 -- ModOptions keeps each name as the text the option was made with, which is read once, here at
 -- file load, so the test language could never stretch it. Each option also keeps the key of its
@@ -739,6 +747,7 @@ do
         wheelToggle = "UI_ZeD_Settings_WheelToggle", wheelDeadZone = "UI_ZeD_Settings_WheelDeadZone",
         autoLearn = "UI_ZeD_Settings_AutoLearn", runSneak = "UI_ZeD_Settings_RunSneak",
         uiSounds = "UI_ZeD_Settings_UiSounds",
+        appliances = "UI_ZeD_Settings_Appliances",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]
@@ -772,7 +781,7 @@ local function setUpAdditions()
     -- every addition a preset sets, by option id (restock: 1 Hardcore, 2 Casual, 3 Accessible)
     local IDS = { "ammoBox", "readMarks", "readNext", "dimRead", "dashLamps", "moodleNotices",
                   "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "loadouts", "restock", "devicesStyle", "watchStyle", "dashStyle",
-                  "guideStyle", "modsStyle", "identityStyle", "haloBubble", "hiddenFacts", "autoLearn" }
+                  "guideStyle", "modsStyle", "identityStyle", "haloBubble", "hiddenFacts", "autoLearn", "appliances" }
     -- THE PRESETS, by the preset's item: the item each addition is set to. An id a preset leaves out is left as
     -- it is and does not count when the values are matched to a preset (Vanilla leaves Restock: it does nothing
     -- while Loadouts is off). A new addition joins by putting its id in IDS and a row in each preset,
@@ -781,17 +790,17 @@ local function setUpAdditions()
         -- 1 Vanilla: every addition off
         { ammoBox = OFF, readMarks = OFF, readNext = OFF, dimRead = OFF, dashLamps = OFF, moodleNotices = OFF,
           messagesCatch = OFF, messagesToast = OFF, putBack = OFF, sandboxInGame = OFF, loadouts = OFF, haloBubble = OFF,
-          hiddenFacts = 1, autoLearn = OFF },
-        -- 2 Vanilla Plus: every addition on, Restock Casual
+          hiddenFacts = 1, autoLearn = OFF, appliances = OFF },
+        -- 2 Vanilla Plus: every addition on, Restock Casual (Additional appliance support stays off: Nov 15 2026, appliances)
         { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
           messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 2,
           devicesStyle = 1, watchStyle = 1, dashStyle = 1, guideStyle = 1, modsStyle = 1, identityStyle = 1, haloBubble = ON,
-          hiddenFacts = 1, autoLearn = OFF },
-        -- 3 Vanilla Accessible: every addition on, Restock Accessible
+          hiddenFacts = 1, autoLearn = OFF, appliances = OFF },
+        -- 3 Vanilla Accessible: every addition on, Restock Accessible (Additional appliance support off, as in every preset)
         { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
           messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 3,
           devicesStyle = 2, watchStyle = 2, dashStyle = 2, guideStyle = 2, modsStyle = 2, identityStyle = 2, haloBubble = ON,
-          hiddenFacts = 2, autoLearn = ON },
+          hiddenFacts = 2, autoLearn = ON, appliances = OFF },
     }
     ZeD.Settings.ADDITION_IDS = IDS
     ZeD.Settings.ADDITION_PRESETS = PRESETS

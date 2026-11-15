@@ -182,7 +182,9 @@ G.ZED_GROUPS = {
         { "moodleNotices", "onoff" }, { "messagesCatch", "onoff" }, { "messagesToast", "onoff" }, { "haloBubble", "onoff" }, { "hintStrip", "radio" }, { "putBack", "onoff" },
         { "sandboxInGame", "onoff", under = "UI_ZeD_Options_UnderSandboxIG" }, { "hiddenFacts", "radio" }, { "autoLearn", "onoff" }, { "loadouts", "onoff" },
         -- (Restock works only with a loadout, so its row dims and goes inert while Loadouts is off)
-        { "restock", "radio", needs = "loadouts", needsWhy = "UI_ZeD_Options_NeedsLoadouts" } } },
+        { "restock", "radio", needs = "loadouts", needsWhy = "UI_ZeD_Options_NeedsLoadouts" },
+        -- (Nov 15 2026, appliances: Additional appliance support, Appliances.lua)
+        { "appliances", "onoff" } } },
     { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "contextStyle", "radio" }, { "equipView", "radio" }, { "modsStyle", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "uiSounds", "radio" }, { "hiddenActions" } } },
     { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio" }, { "actionBar", "radio" } } },
     -- (how the wheels are worked; Toggle mode overrides open and commit, so they dim while it is on; then the Run
