@@ -1899,8 +1899,22 @@ local function _handleSpatialNav(w, dir)
         -- could not be reached. Up / Down from a list header's button take the nearest stop that way at any angle.)
         if not newPickIdx and (dir == "up" or dir == "down") then
             local fe = elements[fromIdx]
-            if fe and fe.isViewToggle then
-                newPickIdx, pass = _pickBestWithFallback(searchEls, fromIdx, dir, false)
+            if fe and (fe.isViewToggle or (fe._origRef and fe._origRef.isViewToggle)) then   -- (the flat copy keeps only bounds and id: punch list 202, QA's stop dump)
+                -- (not the side columns, the tab bar and the bag strip: lying lower beside the list, they are nearer
+                -- than the foot's controls but are Left's or Right's)
+                local subEls, subLoc, subFrom = { searchEls[fromIdx] }, { searchLoc[fromIdx] }, 1
+                for i, loc in ipairs(searchLoc) do
+                    local zn = w._focusRing[loc.zoneIdx] and w._focusRing[loc.zoneIdx].zone or ""
+                    if i ~= fromIdx and zn:sub(-6) ~= "TabBar" and zn:sub(-14) ~= "ContainerStrip" and zn:sub(-9) ~= "TitlePins" then
+                        subEls[#subEls + 1] = searchEls[i]
+                        subLoc[#subLoc + 1] = loc
+                    end
+                end
+                local pk, ps = _pickBestWithFallback(subEls, subFrom, dir, false)
+                if pk then
+                    local picked = subLoc[pk]
+                    for i, loc in ipairs(searchLoc) do if loc == picked then newPickIdx, pass = i, ps; break end end
+                end
             end
         end
     end
