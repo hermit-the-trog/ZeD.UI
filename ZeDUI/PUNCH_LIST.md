@@ -5017,3 +5017,11 @@ to be proposed.
    Overrides/ItemMenu.lua 178, sets the pad with no prevFocus) and it was judged not a bug; live, the box never gets the
    pad at all. Needs: the box takes the pad when it opens (and the on-screen keyboard if typing), B closes it, the pad
    goes back to the window after.
+
+232. **Controller: no way to cancel a running action with the windows open (the director, Nov 14 2026, playtest).**
+   open. Eating and drinking work, but while the action runs there is no pad way to stop it. The logger: the director
+   pressed B about 15 times, every one "focus Character", so B went to the window (backing out levels) and never
+   reached the game's Cancel Action. In vanilla, B with no panel open cancels the action (the pad map lists B as
+   "Sprint, Cancel Action, Close Panel ..."). Options: B at the window's top level (nothing left to back out of)
+   cancels the running action; or the progress band gets a Cancel stop / hint; under the button grammar, B = back out,
+   so cancelling the action fits as the last "back".
