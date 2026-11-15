@@ -362,14 +362,24 @@ function CT.moveToOther(content, items)
     local playerObj = content and content._playerObj
     local dest = content and otherInventory(content)
     if not (playerObj and dest and items and #items > 0) then return false end
+    if content._ccSide ~= "char" then return CT.grabItems(playerObj, items, dest) end
     if playerObj.isAsleep and playerObj:isAsleep() then return false end
-    if content._ccSide ~= "char" then
-        local src = items[1]:getContainer()
-        if src and src ~= dest and not isFloor(src) and not luautils.walkToContainer(src, playerObj:getPlayerNum()) then return false end
-        if #items == 1 and isForceDropHeavyItem and isForceDropHeavyItem(items[1]) then
-            ISInventoryPaneContextMenu.equipHeavyItem(playerObj, items[1])
-            return true
-        end
+    CT.moveItems(playerObj, items, dest)
+    return true
+end
+
+--- The game's grab out of the world (X on a World window row; the card's Grab, punch list 227): walk to the
+--- container first (not the floor), a heavy thing alone into the hands, else the band's move into dest (nil: your
+--- inventory). False when nothing could be done.
+function CT.grabItems(playerObj, items, dest)
+    if not (playerObj and items and #items > 0) then return false end
+    if playerObj.isAsleep and playerObj:isAsleep() then return false end
+    dest = dest or playerObj:getInventory()
+    local src = items[1]:getContainer()
+    if src and src ~= dest and not isFloor(src) and not luautils.walkToContainer(src, playerObj:getPlayerNum()) then return false end
+    if #items == 1 and isForceDropHeavyItem and isForceDropHeavyItem(items[1]) then
+        ISInventoryPaneContextMenu.equipHeavyItem(playerObj, items[1])
+        return true
     end
     CT.moveItems(playerObj, items, dest)
     return true

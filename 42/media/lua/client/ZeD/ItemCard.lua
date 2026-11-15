@@ -940,11 +940,12 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
     elseif label == "DROP" then
         if CM.onDropItems then CM.onDropItems(items, playerNum) end
     elseif label == "TAKE" then
-        -- Floor items go through ZeD_WorldWindow.transferFromFloor (vanilla's transfer from the shared floor container).
-        local cnt = item.getContainer and item:getContainer() or nil
-        if ZeD_WorldWindow and ZeD_WorldWindow.transferFromFloor and cnt
-           and cnt.getType and cnt:getType() == "floor" then
-            ZeD_WorldWindow.transferFromFloor(player, item, player:getInventory())
+        -- (Nov 14 2026, punch list 227: the button reads Grab, the game's word, and is the same move as X on a World
+        -- window row: ContainerControls.grabItems walks over, a heavy thing alone goes in the hands, the floor's
+        -- things go by ZeD_WorldWindow.transferFromFloor, all into your inventory)
+        local CT = ZeD.ContainerControls
+        if CT and CT.grabItems then
+            CT.grabItems(player, items, player:getInventory())
         elseif CM.onGrabItems then
             CM.onGrabItems(items, playerNum)
         end
@@ -986,8 +987,26 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
         end
         local inv = player:getInventory()
         local mine = inv and item.getContainer and item:getContainer() and inv:containsRecursive(item) or false
-        CM.createMenu(playerNum, mine, items, x, y)
+        -- (Nov 14 2026, punch list 227: with rows marked and this card up for one of them, the menu is for every
+        -- marked row, as A again on the row opens it)
+        CM.createMenu(playerNum, mine, self:_markedWith(item) or items, x, y)
     end
+end
+
+-- The rows marked in either of this player's windows, when item is one of them and not the only one; else nil
+-- (the card's More then takes them all; punch list 227)
+function ZeD_ItemCard:_markedWith(item)
+    local IR = ZeD.InventoryRenderer
+    if not (IR and IR.padMarkedAll and item) then return nil end
+    local pn = self.playerNum or 0
+    for _, W in ipairs({ ZeD_CharacterWindow, ZeD_WorldWindow }) do
+        local w = W and W.getWindow and W.getWindow(pn)
+        local all = w and IR.padMarkedAll(w._mainContent)
+        if all and #all > 1 then
+            for _, it in ipairs(all) do if it == item then return all end end
+        end
+    end
+    return nil
 end
 
 -- ---------------------------------------------------------------------------
@@ -1018,6 +1037,9 @@ function ZeD_ItemCard:_effectiveContext()
     -- Java object identity survives the Kahlua bridge; vanilla relies on the
     -- same comparison (item:getContainer() ~= playerObj:getInventory()).
     if cnt == player:getInventory() then return "inventory" end
+    -- (Nov 14 2026, punch list 227: a bag you carry is your inventory too; Grab shows only for the world's containers)
+    local okR, carried = pcall(function() return player:getInventory():containsRecursive(item) end)
+    if okR and carried then return "inventory" end
 
     local okT, t = pcall(function() return cnt:getType() end)
     if okT and t == "floor" then return "ground" end

@@ -123,8 +123,8 @@ ZeD.ContainerControls = CT
 -- ---------------------------------------------------------------------------
 local CC = readFile(Z .. "ContainerControls.lua") or ""
 check("WIRED: ContainerControls.lua hands out otherInventory", CC:find("CT.otherInventory = otherInventory", 1, true) ~= nil)
-local moveSrc = cut(CC, "function CT.moveToOther(content, items)", "\nend")
-check("WIRED: CT.moveToOther is found", moveSrc ~= nil)
+local moveSrc = cut(CC, "function CT.moveToOther(content, items)", "\nend", "function CT.grabItems(")
+check("WIRED: CT.moveToOther and CT.grabItems are found", moveSrc ~= nil)
 if moveSrc then
     local fn, e = loadstring("local CT, isFloor = ...\nlocal otherInventory = CT.otherInventory\n" .. moveSrc, "moveToOther")
     check("CT.moveToOther compiles", fn ~= nil, e)
@@ -276,25 +276,84 @@ focus(charW, itemStop(shirt))
 hold(charW, Joypad.AButton)
 check("FOOD: A held on a row that is not food still marks", #logged("mark") == 1 and #logged("ISEatFoodAction") == 0)
 
--- FOOD on the card
+-- FOOD on the card, and the card's header verbs (punch list 227)
+-- the card's model: VERB_KEYS, safeGet, categoryOf, headerVerbsForContext and compactVerbs, cut from ItemCardOrganism.lua
+instanceof = function(o, cls) return false end
+ZeD.T = { px = function(n) return n end, buttonH = 24, fontF3 = "F3" }
+-- (7 units a letter; a game key measures as its English word, the part after the last "_")
+ZeD.TM = { MeasureStringX = function(self, f, s) return #(s:match("_([^_]+)$") or s) * 7 end }
+ZeD.btnCase = function(s) return s end
+local ORG = readFile(Z .. "ItemCardOrganism.lua") or ""
+local orgParts = {
+    cut(ORG, "ZeD.ItemCard.VERB_KEYS = {", "\nend", "function ZeD.ItemCard.verbText"),
+    cut(ORG, "local function safeGet(item, m, ...)", "\nend"),
+    cut(ORG, "local function categoryOf(item)", "\nend"),
+    cut(ORG, "local function headerVerbsForContext(ctx, item)", "\nend"),
+    cut(ORG, "local function compactVerbs(verbs, w)", "\nend"),
+}
+local orgSrc = ""
+for i = 1, 5 do
+    check("WIRED: the card's verb model piece " .. i .. " is found", orgParts[i] ~= nil)
+    orgSrc = orgSrc .. (orgParts[i] or "")
+end
+ZeD.ItemCard = {}
+local VERBS
+do
+    local fn, e = loadstring(orgSrc .. "\nreturn headerVerbsForContext, compactVerbs\n", "card verbs")
+    check("the card's verb model compiles", fn ~= nil, e)
+    if fn then
+        local hv, cv = fn()
+        VERBS = function(ctx, it, w)
+            local v = hv(ctx, it)
+            if w and #v > 1 then v = cv(v, w) end
+            local ids = {}
+            for i, x in ipairs(v) do ids[i] = x.id end
+            return table.concat(ids, ","), v
+        end
+    end
+end
+if VERBS then
+    local ids, v = VERBS("container", crayfish)
+    check("CARD: food in the world's container: Grab, Eat, More", ids == "TAKE,EAT,MORE", ids)
+    check("CARD: ... Grab reads the game's word", v[1].label == "ContextMenu_Grab", v[1].label)
+    check("CARD: ... and the pad lands on Eat, not Grab", v[2].primary == true and not v[1].primary)
+    ids = VERBS("container", crayfish, 220)
+    check("CARD: the narrow card keeps Grab, Eat, More where they fit", ids == "TAKE,EAT,MORE", ids)
+    ids = VERBS("container", crayfish, 120)
+    check("CARD: ... and drops Grab first where they don't", ids == "EAT,MORE", ids)
+    ids = VERBS("inventory", crayfish)
+    check("CARD: food in your inventory: Eat, Drop, More (two verbs kept)", ids == "EAT,DROP,MORE", ids)
+    ids = VERBS("inventory", crayfish, 220)
+    check("CARD: ... the narrow card: Eat, More", ids == "EAT,MORE", ids)
+    ids = VERBS("container", item("nail", CRATE))
+    check("CARD: a thing with no verb of its own in a crate: Grab, More", ids == "TAKE,MORE", ids)
+end
+
 local ICS = readFile(Z .. "ItemCard.lua") or ""
 local cardSrc = cut(ICS, "function ZeD_ItemCard:getActionStripElements()", "\nend")
-check("WIRED: the card's stops are found", cardSrc ~= nil)
-if cardSrc then
+local dispSrc = cut(ICS, "function ZeD_ItemCard:_dispatchHeaderVerb(label)", "\nend")
+local markSrc = cut(ICS, "function ZeD_ItemCard:_markedWith(item)", "\nend")
+local ctxSrc = cut(ICS, "function ZeD_ItemCard:_effectiveContext()", "\nend")
+check("WIRED: the card's stops, dispatch, marks and context are found", cardSrc and dispSrc and markSrc and ctxSrc)
+if cardSrc and dispSrc and markSrc and ctxSrc then
     ZeD_ItemCard = {}
-    local fn, e = loadstring("local VERB_DISPATCH = {}\n" .. cardSrc, "card stops")
+    local fn, e = loadstring("local VERB_DISPATCH = {}\n" .. cardSrc .. dispSrc .. markSrc .. ctxSrc, "card stops")
     check("the card's stops compile", fn ~= nil, e)
     if fn then fn() end
-    local card = setmetatable({ item = crayfish, playerNum = 0,
-        _backBarRects = { verbs = { { x = 0, y = 0, w = 40, h = 20 }, { x = 50, y = 0, w = 40, h = 20 } } },
-        _lastHeaderVerbs = { { id = "EAT", label = "Eat", primary = true }, { id = "MORE", label = "More", isMore = true } },
-    }, { __index = ZeD_ItemCard })
-    function card:getAbsoluteX() return 0 end
-    function card:getAbsoluteY() return 0 end
-    function card:_dispatchHeaderVerb(label)
-        -- (the real dispatch: EAT is the game's eatItem)
-        if label == "EAT" then ISInventoryPaneContextMenu.eatItem(self.item) else log[#log + 1] = { kind = "verb", label = label } end
+    getMouseX = function() return 0 end
+    getMouseY = function() return 0 end
+    MAIN.containsRecursive = function(self, it) return it.carried or it:getContainer() == self end
+    ZeD_CharacterWindow = { getWindow = function() return charW end }
+    ZeD_WorldWindow = { getWindow = function() return worldW end }
+    local function makeCard(it, verbs)
+        local c = setmetatable({ item = it, playerNum = 0,
+            _backBarRects = { verbs = {} }, _lastHeaderVerbs = verbs }, { __index = ZeD_ItemCard })
+        for i = 1, #verbs do c._backBarRects.verbs[i] = { x = 50 * i, y = 0, w = 40, h = 20 } end
+        function c:getAbsoluteX() return 0 end
+        function c:getAbsoluteY() return 0 end
+        return c
     end
+    local card = makeCard(crayfish, { { id = "EAT", label = "Eat", primary = true }, { id = "MORE", label = "More", isMore = true } })
     local ok, els = pcall(card.getActionStripElements, card)
     check("the card's stops build", ok, els)
     if ok then
@@ -308,8 +367,33 @@ if cardSrc then
         check("FOOD: the card's Eat says its word for the hold prompt (Eat (hold))", eat.promptHold == "Eat")
         focus(charW, more)
         tap(charW, Joypad.AButton)
-        check("FOOD: the card's other buttons still answer a tap", #logged("verb") == 1)
+        local menus = logged("menu")
+        check("CARD: More (a tap) opens the item's menu", #menus == 1 and menus[1].items[1] == crayfish and #menus[1].items == 1)
+        charW._mainContent._selectedItems = { [crayfish] = true, [shirt] = true }
+        tap(charW, Joypad.AButton)
+        menus = logged("menu")
+        check("CARD: with rows marked and the card up for one, More's menu takes every marked row",
+            #menus == 1 and #menus[1].items == 2, menus[1] and #menus[1].items)
+        charW._mainContent._selectedItems = {}
     end
+    local box = item("crayfish2", CRATE, { cat = "Food" })
+    card = makeCard(box, { { id = "TAKE", label = "ContextMenu_Grab" }, { id = "EAT", label = "Eat", primary = true },
+        { id = "MORE", label = "More", isMore = true } })
+    ok, els = pcall(card.getActionStripElements, card)
+    if ok then
+        focus(worldW, els[1])
+        tap(worldW, Joypad.AButton)
+        local mv = logged("move")
+        check("CARD: Grab (a tap) is X's move: into your inventory", mv[1] and mv[1].dest == MAIN and mv[1].items[1] == box)
+        check("CARD: ... walking to the crate first", #logged("walk") == 1)
+        check("CARD: ... and the Eat beside it still wants A held", els[2].onActivate == nil and els[2].onHoldActivate ~= nil)
+    end
+    card = makeCard(box, {})
+    check("CARD: a thing in the world's crate is the container context (Grab shows)", card:_effectiveContext() == "container")
+    local inBag = item("apple", BAG, { cat = "Food" })
+    inBag.carried = true
+    card = makeCard(inBag, {})
+    check("CARD: a thing in a bag you carry is your inventory (no Grab)", card:_effectiveContext() == "inventory")
 end
 
 -- WIRED

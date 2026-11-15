@@ -822,6 +822,23 @@ local function gpFocusedItem(item, pn)
     return _itemFocus
 end
 
+-- (Nov 14 2026, punch list 227b, the director: the pointer's quick look at a row, the loot card, on the controller's
+-- row too.) The row or cell the pad rests on asks for the card once it has rested PAD_TIP_MS, as a pointer resting on
+-- it would; it stands beside the row (there is no pointer to stand by). Moving on starts the wait again.
+local PAD_TIP_MS = 400
+local _padTipRect = { x = 0, y = 0, w = 0, h = 0 }
+local function padTip(self, item, x, y, w, h, count)
+    if not ZeD.InvTip then return end
+    local now = getTimestampMs()
+    local f = ZeD.InvTip._frame or 0
+    local fresh = self._padTipItem ~= item or (self._padTipFrame or -9) < f - 1   -- (moved on, or came back after a while)
+    self._padTipFrame = f
+    if fresh then self._padTipItem, self._padTipSince = item, now; return end
+    if now - (self._padTipSince or now) < PAD_TIP_MS then return end
+    _padTipRect.x, _padTipRect.y, _padTipRect.w, _padTipRect.h = x, y, w, h
+    ZeD.InvTip.want(self, item, _padTipRect, count, true)
+end
+
 local function gpFocusedToggle(id, pn)
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
     local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow(pn) or nil
@@ -1167,7 +1184,11 @@ local function drawGridCell(self, GV, item, cx, cy)
         self:drawRect(ax, cy, cell, cell, hv.a, hv.r, hv.g, hv.b)
     end
     local fo = gpFocusedItem(item, ZeD.playerNumOf(self))
-    if fo then ZeD.Focus.mark(self, ax, cy, cell, cell, fo) end
+    if fo then
+        ZeD.Focus.mark(self, ax, cy, cell, cell, fo)
+        local si = self._stacks and self._stacks[item]
+        padTip(self, item, ax, cy, cell, cell, si and si.count or 1)
+    end
     local stackInfo = self._stacks and self._stacks[item]
     local count = (stackInfo and stackInfo.count) or 1
     local tex = item:getTex()
@@ -1849,6 +1870,8 @@ local function rowStates(self, item, isSelected, x, y, w, rowH, pointed)
     if item ~= self._gpFocusedRowItem then return false end
     local fo = gpFocusedItem(item, ZeD.playerNumOf(self))
     if not fo then return false end
+    local si = self._stacks and self._stacks[item]
+    padTip(self, item, x, y, w, rowH, si and si.count or 1)
     return ZeD.Focus.mark(self, x, y, w, rowH, fo) and true or false
 end
 

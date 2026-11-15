@@ -216,7 +216,7 @@ local function makeT(tint, fontH)
         px = function(n) return n end, line = function(n) return n end, hair = 1, borderW = 1,
         fontF1 = "f1", fontF2 = "f2", fontF3 = "f3", fontF4 = "f4",
         fontF1H = fontH, fontF2H = fontH, fontF4H = fontH + 4, fillBarH = 6, rowH = 20, inputH = 18,
-        iconSm = 16, cardIconSz = 32,
+        iconSm = 16, cardIconSz = 32, buttonH = 24,
         sp = setmetatable({}, { __index = function() return 4 end }),
     }
     return setmetatable(T, { __index = function(_, k)
@@ -472,6 +472,42 @@ if haveBase then
         oldSrc[2].src = o
     end
     oldSrc[3].src = newSrc[3].src
+end
+-- (Nov 14 2026, punch list 227, the design lead) the card's header buttons: Take reads Grab (the game's word), the
+-- narrow card keeps Grab beside its main verb and More (compactVerbs), and a bag you carry is your inventory (no Grab):
+-- changes made on purpose, so the old card is given them and the comparison stays on the model
+if haveBase then
+    local o, n = oldSrc[2].src, newSrc[2].src
+    local tk = '    TAKE = "ContextMenu_Take", EAT = "ContextMenu_Eat", READ = "ContextMenu_Read",'
+    local oldCompact = "    if compact and #headerVerbs > 1 then\n        local primary\n"
+    local oc = string.find(o, oldCompact, 1, true)
+    local oce = oc and string.find(o, "\n    end\n", oc + #oldCompact, true)
+    local hs = string.find(n, "local function compactVerbs(verbs, w)", 1, true)
+    local he = hs and string.find(n, "\nend\n", hs, true)
+    local ha = string.find(o, "local VERB_HELP = {", 1, true)
+    local okTk = string.find(o, tk, 1, true)
+    check("227: the old card's Take word, narrow verbs and helper's place found", okTk and oc and oce and hs and he and ha)
+    if okTk and oc and oce and hs and he and ha then
+        local helper = string.sub(n, hs, he + 4) .. "\n"
+        o = string.sub(o, 1, oc - 1) .. "    if compact and #headerVerbs > 1 then headerVerbs = compactVerbs(headerVerbs, w) end"
+            .. string.sub(o, oce + 8)
+        ha = string.find(o, "local VERB_HELP = {", 1, true)
+        o = string.sub(o, 1, ha - 1) .. helper .. string.sub(o, ha)
+        local at = string.find(o, tk, 1, true)
+        o = string.sub(o, 1, at - 1) .. (tk:gsub("ContextMenu_Take", "ContextMenu_Grab")) .. string.sub(o, at + #tk)
+        oldSrc[2].src = o
+    end
+    local c = oldSrc[1].src
+    local ctxOld = '    if cnt == player:getInventory() then return "inventory" end\n'
+    local nc = newSrc[1].src
+    local ca = string.find(nc, ctxOld, 1, true)
+    local cb = ca and string.find(nc, "\n\n", ca + #ctxOld, true)
+    local co = string.find(c, ctxOld, 1, true)
+    check("227: the old card's context gets the carried bag", ca and cb and co)
+    if ca and cb and co then
+        c = string.sub(c, 1, co - 1) .. string.sub(nc, ca, cb) .. string.sub(c, co + #ctxOld)
+        oldSrc[1].src = c
+    end
 end
 local OLD
 if haveBase then

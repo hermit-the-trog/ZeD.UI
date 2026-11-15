@@ -27,7 +27,7 @@ ZeD.ItemCard = ZeD.ItemCard or {}
 -- vanilla has them.
 ZeD.ItemCard.VERB_KEYS = {
     EQUIP = "UI_ZeD_Card_VerbEquip", UNEQUIP = "ContextMenu_Unequip", DROP = "ContextMenu_Drop",
-    TAKE = "ContextMenu_Take", EAT = "ContextMenu_Eat", READ = "ContextMenu_Read",
+    TAKE = "ContextMenu_Grab", EAT = "ContextMenu_Eat", READ = "ContextMenu_Read",   -- (TAKE reads Grab: punch list 227)
     USE = "UI_ZeD_Card_VerbUse", DRINK = "ContextMenu_Drink", WEAR = "ContextMenu_Wear",
     ["OFF HAND"] = "UI_ZeD_Card_VerbOffHand", MORE = "ContextMenu_More",
     WASH = "ContextMenu_Wash", REPAIR = "ContextMenu_Repair",
@@ -1123,6 +1123,34 @@ local function renderGenericBody(card, item, x, y, w, compact, scrollOff, conten
 end
 
 -- ---------------------------------------------------------------------------
+-- The narrow card's header verbs: its main verb and MORE (everything else is in MORE's menu), with Grab before
+-- them when the thing is in the world's container (Nov 14 2026, punch list 227, the design lead: "the top two
+-- options ... up there for controller"; Grab is not one of the two). Grab gives way when the three would not fit
+-- beside the close key (drawCardBackBar's compact sizes; X on the row still grabs).
+-- ---------------------------------------------------------------------------
+local function compactVerbs(verbs, w)
+    local primary
+    for _, v in ipairs(verbs) do
+        if v.primary then primary = v; break end
+    end
+    local moreV = verbs[#verbs].isMore and verbs[#verbs] or nil
+    local out = primary and {primary} or {verbs[1]}
+    if moreV and out[1] ~= moreV then out[#out + 1] = moreV end
+    local grab = verbs[1].id == "TAKE" and verbs[1] ~= out[1] and verbs[1] or nil
+    if grab then
+        local T = ZeD.T
+        local gap, pad = T.px(4), T.px(8)
+        local room = w - T.px(4) * 2 - (T.buttonH - T.px(4)) - gap
+        local need = 0
+        for _, v in ipairs({ grab, out[1], out[2] }) do
+            need = need + ZeD.TM:MeasureStringX(T.fontF3, ZeD.btnCase(v.label or "")) + pad * 2 + gap
+        end
+        if need <= room then table.insert(out, 1, grab) end
+    end
+    return out
+end
+
+-- ---------------------------------------------------------------------------
 -- The help line's words for a card verb (by its id; the label is its button word)
 -- ---------------------------------------------------------------------------
 local VERB_HELP = {
@@ -1326,16 +1354,7 @@ function ZeD_ItemCard:renderBody(ctx)
     -- its own full-width row below so long names don't truncate and the
     -- row can host a rename input in a future iteration.
     local headerVerbs = model.verbs
-    if compact and #headerVerbs > 1 then
-        local primary
-        for _, v in ipairs(headerVerbs) do
-            if v.primary then primary = v; break end
-        end
-        -- the narrow card keeps its main verb and MORE (everything else is in MORE's menu)
-        local moreV = headerVerbs[#headerVerbs].isMore and headerVerbs[#headerVerbs] or nil
-        headerVerbs = primary and {primary} or {headerVerbs[1]}
-        if moreV and headerVerbs[1] ~= moreV then headerVerbs[#headerVerbs + 1] = moreV end
-    end
+    if compact and #headerVerbs > 1 then headerVerbs = compactVerbs(headerVerbs, w) end
     local displayName = safeGet(item, "getDisplayName") or "???"
     -- each verb's help line words and, on the one the controller is on, its focus mark
     for i, v in ipairs(headerVerbs) do
