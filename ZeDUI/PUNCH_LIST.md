@@ -5089,7 +5089,9 @@ to be proposed.
 
 Notes 11 and 15 of the playtest went on 184 and 228k. The rest:
 
-236. **Controller: the Messages window's list can't be reached.** open. Everything else in the window navigates. The
+236. **Controller: the Messages window's list can't be reached.** open.
+   Fix (Nov 15 2026, 2040cfbd4): the cards panel is a stop; A takes it, Up / Down scroll, A presses a card's button in
+   view, B lets go, B again closes. 241 in the same commit: ZeD setup from the wheel takes the pad. Everything else in the window navigates. The
    director's design: the D-pad moves around the window; A on a panel makes it active and the D-pad scrolls it; B
    leaves the panel; B again leaves the window.
 237. **Aiming hides every window, the Messages window included.** open. (Notes 2 and 3.)
@@ -5097,6 +5099,9 @@ Notes 11 and 15 of the playtest went on 184 and 228k. The rest:
    own aiming (the trigger), and closes the Messages window too (Input/FocusManager.lua _aimHide). Still waits while the
    keyboard, a menu or a prompt holds the pad.
 238. **Character creation, controller: the clothing color tiles can't be reached.** open.
+   Fix (Nov 15 2026, 9b7cede28, with 239): Left / Right move across item, tint and fabric, A opens it; the palette
+   works on the D-pad; swatches are a grid (Up / Down by line), A takes the color. Design changes for the director:
+   no live recolor while moving, and Left / Right no longer cycle the clothing item.
 239. **Character creation, the hair color list: Up and Down don't move between rows.** open. Only Left and Right
    move through it.
 240. **Hide the mouse pointer while the controller is in use.** open. (The director: "can the cursor hide?")
@@ -5116,9 +5121,13 @@ Notes 11 and 15 of the playtest went on 184 and 228k. The rest:
    interface runs; mods get no hook into it while it waits (no Lua reaches it, no event fires until the click). The
    pad's version reads "Press A to start". ZeD can't change, restyle or skip it.
 244. **A stack of 3 rags: the tooltip and the inventory row write the name and count differently.** open.
+   Fix (Nov 15 2026, 493d84e71): both loot cards say "Rag x3" as the row does (the pad's card had a sign Kahlua
+   garbles, the mouse's card no count).
 245. **Expanded stacks: the first item has no row of its own.** open. The stack's header row stands for item 1 and
    the open list starts at item 2, so the first flyer could only be read by moving the others out. The director's
    decision: keep stacking by type, and the first item gets its own row in the open list.
+   Fix (Nov 15 2026, 493d84e71): an open stack lists every item as its own row under a header; the header closes the
+   stack (click or A), X moves the whole stack, hold A marks it, right-click gives the stack's menu.
 246. **World window, pad: walking away until only the ground is left moves focus up to the Filter button.** open. It
    should land on the ground container.
    Fix (Nov 15 2026): when the row the focus was on goes with its container and the list has no rows left, the focus
@@ -5127,3 +5136,5 @@ Notes 11 and 15 of the playtest went on 184 and 228k. The rest:
 247. **The action bubble goes stale.** open. After smoking, walking about 20 tiles and hopping a short fence with B,
    the bubble said "Done smoking a cigarette", and again later climbing through a window. The director: hopping a
    short fence probably needs no bubble at all.
+   Fix (Nov 15 2026, 622a831c5): "Done" flashes only for the action it was drawn from; fence hops and window climbs
+   get no bubble. 184's window opening while placing is fixed in the same commit.
