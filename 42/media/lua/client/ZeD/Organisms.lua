@@ -934,6 +934,11 @@ local function _promptsFor(el, win)
     if el.onContextMenu  then if pX ~= false then out[#out + 1] = { glyph = "X", label = pX or ZeD.tr(labels.x or "UI_ZeD_Prompt_Menu") } end
     elseif el.onReset    then out[#out + 1] = { glyph = "X", label = ZeD.tr("UI_ZeD_Prompt_Reset") } end
     if el.onCancel       and pB ~= false then out[#out + 1] = { glyph = "B", label = pB or ZeD.tr(labels.b or "UI_ZeD_Prompt_Back") } end
+    -- (punch list 232: nothing to back out of, an action running: B cancels it, as the game's B does)
+    if not (el.onCancel and pB ~= false) then
+        local F = ZeD.Input and ZeD.Input.Focus
+        if F and F.actionToCancel and F.actionToCancel(win and win.playerNum or 0) then out[#out + 1] = { glyph = "B", label = getText("UI_Cancel") } end
+    end
     -- controls the element answers to beyond the face buttons (the map: the triggers zoom, the stick moves)
     -- (a function of (win, el), read each frame: a grabbed knob's D-pad Turn, A / B Let go, punch list 228k)
     local ex = _pv(el.extraPrompts, win, el)

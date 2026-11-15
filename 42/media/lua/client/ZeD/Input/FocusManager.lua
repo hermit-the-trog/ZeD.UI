@@ -1623,14 +1623,32 @@ end
 -- fire it. If not, NO-OP (no shade-all fallback): B does nothing when there's
 -- nothing to cancel; the player presses Y to hide, or flicks the right stick
 -- for the aiming escape, to dismiss the windows.
+--- (Nov 14 2026, punch list 232, the director: "B at the top cancels") True when player pn is doing something the
+--- game's B would cancel (its own test, as its button prompt reads it).
+function Focus.actionToCancel(pn)
+    local p = getSpecificPlayer and getSpecificPlayer(pn or 0)
+    if not (p and isPlayerDoingActionThatCanBeCancelled) then return false end
+    local ok, yes = pcall(isPlayerDoingActionThatCanBeCancelled, p)
+    return ok and yes == true
+end
+
+-- B with nothing left to back out of: the running action stops, as the game's B with no panel open does
+local function _cancelAction(pn)
+    if not Focus.actionToCancel(pn) then return false end
+    local p = getSpecificPlayer(pn or 0)
+    local ok = pcall(stopDoingActionThatCanBeCancelled, p)
+    if ok then pcall(function() ZeD.uiSound("UIToggleTickBox") end) end
+    return ok
+end
+
 local function _handleBContextual(pn)
     local w = _S(pn).win
     if not w then return end
     local el = Focus.getFocusedElement(w)
-    if not el or not el.onCancel then return end
+    if not el or not el.onCancel then _cancelAction(pn); return end
     local took = _fireCbR("element.onCancel", el.onCancel, w, el)
-    if took ~= false then pcall(function() ZeD.uiSound("UIToggleTickBox") end) end
-    -- Beyond the sound, the return value is ignored — B has no fall-through path.
+    if took ~= false then pcall(function() ZeD.uiSound("UIToggleTickBox") end)
+    else _cancelAction(pn) end
 end
 
 -- The registered window of w's player lying `dir` of w on screen (visible,
