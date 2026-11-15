@@ -355,7 +355,33 @@ function ZeD_StudioRoom:drawTray(barY)
     end
 end
 
+-- (Nov 14 2026, punch list 229: the controller's buttons here had no words on screen; the director could not tell
+-- what X did (nothing). A strip of every button the room answers, at its foot, while a controller drives it.)
+local _studioPrompts = nil
+local function studioPrompts()
+    if not _studioPrompts then
+        _studioPrompts = {
+            { glyph = "A", label = tr("UI_ZeD_Studio_Photo") },
+            { glyph = "Y", label = tr("UI_ZeD_Studio_Backdrop") },
+            { glyph = "LB", label = tr("UI_ZeD_Studio_TurnL") },
+            { glyph = "RB", label = tr("UI_ZeD_Studio_TurnR") },
+            { glyph = "\226\134\145 \226\134\147", label = tr("UI_ZeD_Reader_PromptZoom") },
+            { glyph = "B", label = tr("UI_ZeD_Studio_Leave") },
+        }
+    end
+    return _studioPrompts
+end
+
 function ZeD_StudioRoom:render()
+    local G = ZeD.PadGlyphs
+    local pn = (self.chr and self.chr.getPlayerNum and self.chr:getPlayerNum()) or 0
+    if G and G.drawStrip and JoypadState and JoypadState.players and JoypadState.players[pn + 1] and not self.shoot then
+        pcall(function()
+            local p = studioPrompts()
+            local w = math.min(self.width, G.stripW(p, pn))
+            G.drawStrip(self, math.floor((self.width - w) / 2), self.height - G.stripH() - ZeD.T.px(12), w, p)
+        end)
+    end
     -- the flash after a photo: white, fading over a third of a second
     if self.flashAt then
         local a = 1 - (getTimestampMs() - self.flashAt) / 350

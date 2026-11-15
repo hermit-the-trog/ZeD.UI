@@ -175,7 +175,26 @@ local function onRename(item, pn, card)
     local box = ISTextBox:new(0, 0, 280, 180, ZeD.tr("UI_ZeD_ItemMenu_NameThis"), item:getName(), nil, onRenameClick, pn, getSpecificPlayer(pn), item)
     box:initialise()
     box:addToUIManager()
-    if JoypadState.players[pn + 1] then setJoypadFocus(pn, box) end
+    local jd = JoypadState.players[pn + 1]
+    if jd then
+        -- (Nov 14 2026, punch list 231: live, the box never had the pad: the menu that ran this option closes after
+        -- it and hands the pad on before the box shows. The box takes it now, again for its first few ticks if
+        -- something took it, and gives it back to the window that had it when it closes.)
+        local back = getJoypadFocus and getJoypadFocus(pn) or nil
+        if back and back.vanillaMenu ~= nil then back = nil end   -- (the closing menu itself: no)
+        local F = ZeD.Input and ZeD.Input.Focus
+        box.prevFocus = back or (F and F.getFocusedWindow and F.getFocusedWindow(pn)) or nil
+        setJoypadFocus(pn, box)
+        local ticks = 0
+        local function hold()
+            ticks = ticks + 1
+            if ticks > 5 or not boxOpen(box) then Events.OnTick.Remove(hold); return end
+            if getJoypadFocus(pn) ~= box and not (OnScreenKeyboard and OnScreenKeyboard.IsVisible and OnScreenKeyboard.IsVisible()) then
+                setJoypadFocus(pn, box)
+            end
+        end
+        Events.OnTick.Add(hold)
+    end
     live = { box = box, item = item, card = card, misses = 0 }
 end
 

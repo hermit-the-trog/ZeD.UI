@@ -1820,6 +1820,15 @@ local function _handleSpatialNav(w, dir)
         searchEls, searchLoc = elements, locator
         fromIdx = _findCurrentFlatIdx(w, locator) or 1
         newPickIdx, pass = _pickBestWithFallback(searchEls, fromIdx, dir, dir == "up" or dir == "down")
+        -- (Nov 14 2026, punch list 202, the other way: with the list empty, Down from its header's buttons (Filter,
+        -- the view button) found nothing lined up under them, so the controls at the window's foot (the oven's)
+        -- could not be reached. Up / Down from a list header's button take the nearest stop that way at any angle.)
+        if not newPickIdx and (dir == "up" or dir == "down") then
+            local fe = elements[fromIdx]
+            if fe and fe.isViewToggle then
+                newPickIdx, pass = _pickBestWithFallback(searchEls, fromIdx, dir, false)
+            end
+        end
     end
     -- (Nov 14 2026, punch list 186 again: once the window box became a stop (214), Right from the Character window's
     -- bag strip went up into the title bar, off to the side, instead of across to the World window's Ground. The
