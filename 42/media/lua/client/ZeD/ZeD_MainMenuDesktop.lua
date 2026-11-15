@@ -184,7 +184,56 @@ function ZeD_MMIcons:new()
     o._hits = {}
     o.focusId = nil      -- the selected icon (the controller's focus is the selection)
     o._lastClick = nil   -- { id, at } for the second click
+    o.deskOwn = true     -- (its focus mark shows while the controller is on it beside a window: MM.focusOpts)
     return o
+end
+
+-- THE ICONS BESIDE A WINDOW (Nov 14 2026, punch list 213: the desk is one screen). With a window up, the D-pad
+-- reaches the icons off the window's left or right edge (MM.offEdge, ZeD_MainMenu.lua); an icon under the window is
+-- out of reach, and a move stays on the window's side of the screen: pushing toward the window goes back into it.
+-- The window the icons lie beside while the controller is on them, else nil (the bare desktop: they are the view).
+function ZeD_MMIcons:deskWindow()
+    if MM.deskAt ~= "icons" then return nil end
+    local w = MM.activeWindow and MM.activeWindow()
+    if not w or w == self or not w:isVisible() then return nil end
+    return w
+end
+
+local function winRect(w) return { x = w:getAbsoluteX(), y = w:getAbsoluteY(), w = w.width, h = w.height } end
+-- a cell whose middle lies under the window's rectangle
+local function underWin(c, r)
+    local cx, cy = c.x + c.w / 2, c.y + c.h / 2
+    return cx >= r.x and cx < r.x + r.w and cy >= r.y and cy < r.y + r.h
+end
+-- which side of the window a cell is on (true: its left)
+local function leftOf(c, r) return c.x + c.w / 2 < r.x + r.w / 2 end
+
+--- Can the controller land on this cell (not gray, and with a window up not under it)?
+function ZeD_MMIcons:reachable(c, wr)
+    if c.item.off and c.item.off() then return false end
+    return not (wr and underWin(c, wr))
+end
+
+--- Off a window's left or right edge: the nearest icon that side of it from the window's focused control (fromRect,
+--- screen px; wr: the window's rectangle). True when one took the controller.
+function ZeD_MMIcons:enterFrom(fromRect, wr, dir)
+    local cands = {}
+    for _, c in ipairs(self._cells or {}) do
+        local cx = c.x + c.w / 2
+        local side = (dir == "left" and cx < wr.x) or (dir == "right" and cx >= wr.x + wr.w)
+        if side and self:reachable(c, wr) then cands[#cands + 1] = c end
+    end
+    local best = ZeD.SpatialNav.pick(fromRect, cands, dir)
+    if not best then return false end
+    self.focusId = best.item.id
+    return true
+end
+
+--- Do the icons hold the controller now (the bare desktop's view, or reached off a window's edge)?
+function ZeD_MMIcons:padHere()
+    if not MM.gamepad() then return false end
+    if MM.deskAt == "icons" then return true end
+    return MM.view == "desktop" and MM.deskAt == nil
 end
 
 function ZeD_MMIcons:onShow()
@@ -251,10 +300,15 @@ function ZeD_MMIcons:prerender()
     self._cells = list
     local f2 = T.fontF2
     local ac, tc, onAc = T.accent, T.text, T.textOnAccent
+    -- (Nov 14 2026, punch list 213: the controller's icon carries the mark a window's focused button does, under the
+    -- picture; the overlay part, the hand or the corners, after every icon)
+    local F = ZeD.Focus
+    local padOn = F ~= nil and F.mark ~= nil and self:padHere()
     for _, c in ipairs(list) do
         local it = c.item
         local off = it.off and it.off()
         local sel = self.focusId == it.id
+        if sel and padOn then F.mark(self, c.x, c.y, c.w, c.h, MM.focusOpts(self)) end
         local tex = icon(it.icon or it.id)
         local ready = iconReady(tex)
         if it.draw then                                   -- (an item that draws itself: a Pastie)
@@ -286,6 +340,7 @@ function ZeD_MMIcons:prerender()
         end
     end
     self:framePress()
+    if padOn and F.drawOverlay then F.drawOverlay(self, self) end
     -- the controller's prompts along the screen's foot (the bare desktop only)
     if MM.view == "desktop" and MM.gamepad() then
         local h = T.sp.scrollbarW
@@ -434,10 +489,21 @@ function ZeD_MMIcons:joyDir(dir)
     end
     local cur = self:find(self.focusId or "pz")
     if not cur then self.focusId = "pz"; return end
+    -- (Nov 14 2026, punch list 213: beside a window, only the icons on this side of it and out from under it; pushing
+    -- toward the window lands back in it, MM.deskReturn. Nothing that way: self._edge = dir, and Up from the top icon
+    -- goes on to the menu bar, MM.joyDir / MM.deskDir.)
+    local win = self:deskWindow()
+    local wr = win and winRect(win) or nil
+    local side = wr and leftOf(cur, wr)
     local cands = {}
-    for _, c in ipairs(self._cells or {}) do if c ~= cur and not (c.item.off and c.item.off()) then cands[#cands + 1] = c end end
+    for _, c in ipairs(self._cells or {}) do
+        if c ~= cur and self:reachable(c, wr) and (not wr or leftOf(c, wr) == side) then cands[#cands + 1] = c end
+    end
+    if wr and (dir == "left" or dir == "right") then cands[#cands + 1] = { toWindow = true, x = wr.x, y = wr.y, w = wr.w, h = wr.h } end
     local best = ZeD.SpatialNav.pick(cur, cands, dir)
-    if best then self.focusId = best.item.id; MM.hoverSound() end
+    if best and best.toWindow then MM.deskReturn(); return end
+    if best then self.focusId = best.item.id; MM.hoverSound()
+    else self._edge = dir end
 end
 function ZeD_MMIcons:joyA()
     local q = self:movable()

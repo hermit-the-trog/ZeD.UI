@@ -1252,8 +1252,11 @@ end
 local _focusO = { focused = true }
 --- the ZeD.Focus.mark opts of the menu's focused element (win: the window, when the panel
 --- drawing is not itself inside it; solid: the element is already solid accent)
+--- (Nov 14 2026, punch list 213: while the controller is on the menu bar or the desktop's icons, MM.deskAt, the
+--- window under them shows no mark of its own; only the bar, its pull-down and the icons, deskOwn, draw theirs)
 function MM.focusOpts(win, solid)
-    _focusO.win, _focusO.pad, _focusO.solid = win, MM.gamepad(), solid
+    local away = MM.deskAt ~= nil and not (win and win.deskOwn)
+    _focusO.win, _focusO.pad, _focusO.solid = win, MM.gamepad() and not away, solid
     return _focusO
 end
 
@@ -1592,6 +1595,7 @@ function ZeD_MMBar:new()
     o.borderColor = { r = 0, g = 0, b = 0, a = 0 }
     o._hits = {}
     o.pos = {}
+    o.deskOwn = true   -- (its focus mark shows while the controller is on it: MM.focusOpts)
     return o
 end
 
@@ -1610,18 +1614,23 @@ function ZeD_MMBar:prerender()
     local x = T.px(BAR_PAD)
     local font, logoFont = T.fontF2, T.fontF1
     local markSz = T.px(12)
-    for _, m in ipairs(MM.menus()) do
+    -- (Nov 14 2026, punch list 213: the controller's title, MM.ctx.barFocus, carries the mark a window's focused button does)
+    local gp = MM.gamepad()
+    local padOn = gp and MM.deskAt == "bar" and not MM.ctx.open
+    for i, m in ipairs(MM.menus()) do
         local tw = m.logo and (markSz + T.px(6) + textW(logoFont, "ZeD")) or textW(font, m.title)
         local iw = tw + T.px(BAR_ITEM_PAD) * 2
         local open = MM.ctx.open == m.key
         if open then self:drawRect(x, 0, iw, h - T.px(1), 1, T.accent.r, T.accent.g, T.accent.b) end
+        local onFocus = false
+        if padOn and i == (MM.ctx.barFocus or 1) then onFocus = ZeD.Focus.mark(self, x, 0, iw, h - T.px(1), MM.focusOpts(self)) end
         local tx = x + T.px(BAR_ITEM_PAD)
         if m.logo then
-            local c = open and T.textOnAccent or T.accentText
+            local c = open and T.textOnAccent or (onFocus and T.textOnFocus or T.accentText)
             drawMark(self, tx, math.floor((h - markSz) / 2), markSz, c)
             self:drawText("ZeD", tx + markSz + T.px(6), math.floor((h - fontH(logoFont)) / 2), c.r, c.g, c.b, c.a or 1, logoFont)
         else
-            local c = open and T.textOnAccent or T.text
+            local c = open and T.textOnAccent or (onFocus and T.textOnFocus or T.text)
             self:drawText(m.title, tx, math.floor((h - fontH(font)) / 2), c.r, c.g, c.b, c.a or 1, font)
         end
         self.pos[m.key] = { x = x, w = iw }
@@ -1633,6 +1642,8 @@ function ZeD_MMBar:prerender()
     local f3 = T.fontF3
     local d = T.textDim
     self:drawText(right, w - T.px(12) - textW(f3, right), math.floor((h - fontH(f3)) / 2), d.r, d.g, d.b, d.a or 1, f3)
+    -- (the bar is a panel of the desk, not a window: it draws its own mark pass, as the pull-down does)
+    if padOn then ZeD.Focus.drawOverlay(self, self) end
 end
 
 -- ============================================================================
@@ -1648,6 +1659,7 @@ function ZeD_MMDrop:new()
     o.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
     o.borderColor = { r = 0, g = 0, b = 0, a = 0 }
     o._hits = {}
+    o.deskOwn = true   -- (a pull-down opened from the menu bar keeps its mark: MM.focusOpts)
     return o
 end
 
@@ -2396,12 +2408,14 @@ end
 
 -- D-pad: spatial (ZeD.SpatialNav: the nearest control lined up that way, else
 -- the nearest that way at all); the old row grid only where controls have no
--- rectangles (the New Game icon grid, the server pick lists)
+-- rectangles (the New Game icon grid, the server pick lists).
+-- (Nov 14 2026, punch list 213: a press that finds nothing that way leaves self._edge = dir: on the desk MM.joyDir
+-- takes it off the window's edge, Up to the menu bar, Left or Right to the desktop's icons)
 function ZeD_MMWindow:joyDir(dir)
     local pg = MM.pageOf(self)
     if pg and pg.joyDir and pg.joyDir(self, dir) then return end
     local rows, ri, ci = self:focusPos()
-    if not ri then return end
+    if not ri then self._edge = dir; return end
     local cur = rows[ri][ci]
     local fr = self:specRect(cur)
     if fr and ZeD.SpatialNav then
@@ -2424,13 +2438,13 @@ function ZeD_MMWindow:joyDir(dir)
     end
     if dir == "up" or dir == "down" then
         local nr = ri + (dir == "up" and -1 or 1)
-        if nr < 1 or nr > #rows then return end
+        if nr < 1 or nr > #rows then self._edge = dir; return end
         -- landing in the band from above starts at its first button; leaving it goes to the row's only button
         local nc = math.min(ci, #rows[nr])
         self.focusId = rows[nr][nc].id
     else
         local nc = ci + (dir == "left" and -1 or 1)
-        if nc < 1 or nc > #rows[ri] then return end
+        if nc < 1 or nc > #rows[ri] then self._edge = dir; return end
         self.focusId = rows[ri][nc].id
     end
     hoverSound()
@@ -2444,13 +2458,17 @@ function ZeD_MMWindow:joyA()
     end
 end
 
--- B: answer No to a question; in game, otherwise resume
+-- B: answer No to a question; in game, otherwise resume.
+-- (Nov 14 2026, punch list 213: on the desk, a window with nothing left to back out of closes on B, as its close box
+-- does; every desk window's own joyB already ends in its close or Back, this is the rule for one that has none. The
+-- main window, Continue to Quit, never closes on B.)
 function ZeD_MMWindow:joyB()
     if self.confirm then self:setConfirm(false); return end
     local pg = MM.pageOf(self)
     if pg and pg.cancel and pg.cancel(self) then clickSound(); return end   -- (a page's own question: B is its Cancel)
     if self.page then MM.leavePage(self); clickSound(); return end   -- (the pause window's own pages)
-    if self.kind == "pause" then MM.act.resume() end
+    if self.kind == "pause" then MM.act.resume(); return end
+    if self.kind ~= "main" and self.close ~= ZeD_MMWindow.close then self:close() end
 end
 
 function ZeD_MMWindow:getFooterPrompts()
@@ -2752,6 +2770,7 @@ function MM.showView(view, joypadData)
     local was = MM.activeWindow()
     MM.view = view
     MM.ctx.open, MM.ctx.hot, MM.ctx.press = nil, nil, nil
+    MM.deskAt, MM.deskBack = nil, nil   -- (a view put up takes the controller: off the menu bar and the icons)
     local w = MM.activeWindow()
     if was and was ~= w then MM.unfocusEntries(was) end
     -- (the Mods screen left: the Files tab's open file is shut, or it stays open for the whole session)
@@ -2903,6 +2922,112 @@ function MM.window(m)
     return MM.activeWindow()
 end
 
+-- ---------------------------------------------------------------------------
+-- THE DESK AS ONE SCREEN (Nov 14 2026, punch list 213: the design lead's "D-pad off the edge"). The controller
+-- is not shut in the window on the monitor: Up past the top of its controls goes to the menu bar, Left or Right
+-- past its side to the desktop's icons on that side. MM.deskAt says where it is ("bar", "icons", or nil: the
+-- window); MM.ctx.barFocus is the bar's title (its index in MM.menus()); MM.deskBack = "icons" when the bar was
+-- reached from the icons. On the bar Left and Right walk the titles, A opens the pull-down (as a click on the
+-- title does), Down or B goes back. On the icons the D-pad moves between them, A opens one (as a double-click
+-- does), and pushing back toward the window, or B, returns to it. Not in game (the pause window has no desk).
+-- ---------------------------------------------------------------------------
+--- Is the desk's menu bar up for this controller (the main menu, or the desk after a death)?
+function MM.deskOn(m)
+    return (not m.inGame) and MM.root ~= nil and MM.root.bar ~= nil
+end
+
+--- The controller onto the menu bar (back: "icons" when it came from the icons).
+function MM.toBar(back)
+    local n = #MM.menus()
+    local i = MM.ctx.barFocus or 1
+    if i > n then i = n end
+    if i < 1 then i = 1 end
+    MM.ctx.barFocus = i
+    MM.deskAt, MM.deskBack = "bar", back
+    hoverSound()
+end
+
+--- The controller back where it came from: off the bar to the icons it left, else to the view's window.
+function MM.deskReturn()
+    local icons = MM.root and MM.root.icons
+    if MM.deskAt == "bar" and MM.deskBack == "icons" and icons and MM.activeWindow() ~= icons then
+        MM.deskAt, MM.deskBack = "icons", nil
+    else
+        MM.deskAt, MM.deskBack = nil, nil
+    end
+    hoverSound()
+end
+
+--- A window's focused control in screen px (else the whole window): where a move onto the icons starts.
+local function focusRect(w)
+    local ax, ay = w:getAbsoluteX(), w:getAbsoluteY()
+    if w.focusPos and w.specRect then
+        local rows, ri, ci = w:focusPos()
+        local s = ri and rows[ri][ci]
+        local r = s and w:specRect(s)
+        if r then return { x = ax + r.x, y = ay + r.y, w = r.w, h = r.h } end
+    end
+    return { x = ax, y = ay, w = w.width, h = w.height }
+end
+
+--- The window's D-pad found nothing that way: off its edge (Up: the menu bar; Left / Right: the icons that side).
+function MM.offEdge(m, w, dir)
+    local icons = MM.root.icons
+    if dir == "up" then MM.toBar(nil); return end
+    if (dir == "left" or dir == "right") and icons and w ~= icons and icons.enterFrom then
+        local wr = { x = w:getAbsoluteX(), y = w:getAbsoluteY(), w = w.width, h = w.height }
+        if icons:enterFrom(focusRect(w), wr, dir) then
+            MM.deskAt, MM.deskBack = "icons", nil
+            hoverSound()
+        end
+    end
+end
+
+--- The D-pad while the controller is on the bar or the icons.
+function MM.deskDir(m, dir)
+    local icons = MM.root.icons
+    if MM.deskAt == "bar" then
+        if dir == "down" then MM.deskReturn(); return end
+        if dir == "left" or dir == "right" then
+            local i = (MM.ctx.barFocus or 1) + (dir == "left" and -1 or 1)
+            if i >= 1 and i <= #MM.menus() then MM.ctx.barFocus = i; hoverSound() end
+        end
+        return
+    end
+    -- on the icons (the window gone from under them: they are the view's own now)
+    if not icons or MM.activeWindow() == icons then MM.deskAt, MM.deskBack = nil, nil; return end
+    icons._edge = nil
+    icons:joyDir(dir)   -- (moves between them; back toward the window it calls MM.deskReturn)
+    if icons._edge == "up" and MM.deskAt == "icons" then MM.toBar("icons") end
+end
+
+--- A button while the controller is on the bar or the icons.
+function MM.deskButton(m, button)
+    if MM.deskAt == "bar" then
+        if button == Joypad.AButton then
+            local t = MM.menus()[MM.ctx.barFocus or 1]
+            if t then
+                -- (as a click on the title: MM.pointer's ctx.open; the controller on its first row)
+                MM.ctx.open = t.key
+                MM.ctx.dropFocus, MM.ctx.dropScroll = 1, 0
+                clickSound()
+            end
+        elseif button == Joypad.BButton then
+            MM.deskReturn()
+        end
+        return
+    end
+    local icons = MM.root.icons
+    if not icons or MM.activeWindow() == icons then MM.deskAt, MM.deskBack = nil, nil; return end
+    if button == Joypad.AButton then icons:joyA()
+    elseif button == Joypad.BButton then
+        -- (a note carried or asking keeps its own B; else back to the window)
+        local q = icons:movable()
+        if icons._carry or (q and q.item.asking and q.item.asking()) then icons:joyB() else MM.deskReturn() end
+    elseif button == Joypad.XButton then icons:joyX()
+    elseif button == Joypad.YButton then icons:joyY() end
+end
+
 --- A controller button: an open pull-down takes A and B, else MM.window(m)'s joy handlers do.
 function MM.joyDown(m, button)
     if MM.ctx.open then
@@ -2910,6 +3035,8 @@ function MM.joyDown(m, button)
         if button == Joypad.AButton then
             local it = live[MM.ctx.dropFocus or 1]
             MM.ctx.open = nil
+            -- (a pick from a menu bar title hands the controller back to the window, as a Mac menu does)
+            if it and MM.deskAt == "bar" then MM.deskAt, MM.deskBack = nil, nil end
             if it and it.fn then it.fn() end
         elseif button == Joypad.BButton then
             -- (a pull-down opened from another goes back to that one: MM.popup.back)
@@ -2920,6 +3047,7 @@ function MM.joyDown(m, button)
         end
         return
     end
+    if MM.deskAt and MM.deskOn(m) then MM.deskButton(m, button); return end
     local w = MM.window(m)
     if not w then return end
     if button == Joypad.AButton then w:joyA()
@@ -2936,7 +3064,8 @@ function MM.joyDown(m, button)
 end
 
 --- A D-pad press ("up" / "down" / "left" / "right"): an open pull-down takes up and down (its rows wrap
---- round), else the window moves its focus.
+--- round; a menu bar title's takes left and right to the next title's), else the window moves its focus, and
+--- on the desk a press past its edge leaves it (MM.offEdge).
 function MM.joyDir(m, dir)
     if MM.ctx.open then
         local n = #MM.dropLive()
@@ -2945,15 +3074,34 @@ function MM.joyDir(m, dir)
             if f < 1 then f = n elseif f > n then f = 1 end
             MM.ctx.dropFocus = f
             hoverSound()
+        elseif (dir == "left" or dir == "right") and MM.deskOn(m) then
+            local menus = MM.menus()
+            for i, t in ipairs(menus) do
+                if t.key == MM.ctx.open then
+                    local ni = i + (dir == "left" and -1 or 1)
+                    if ni >= 1 and ni <= #menus then
+                        MM.ctx.open, MM.ctx.barFocus = menus[ni].key, ni
+                        MM.ctx.dropFocus, MM.ctx.dropScroll = 1, 0
+                        hoverSound()
+                    end
+                    break
+                end
+            end
         end
         return
     end
+    if MM.deskAt and MM.deskOn(m) then MM.deskDir(m, dir); return end
     local w = MM.window(m)
-    if w then w:joyDir(dir) end
+    if not w then return end
+    w._edge = nil
+    w:joyDir(dir)
+    if w._edge == dir and MM.deskOn(m) then MM.offEdge(m, w, dir) end
+    w._edge = nil
 end
 
 --- the controller starts on the window's first button
 function MM.joyFocus(m)
+    MM.deskAt, MM.deskBack = nil, nil
     local w = MM.window(m)
     if w then w.focusId = nil end
 end
