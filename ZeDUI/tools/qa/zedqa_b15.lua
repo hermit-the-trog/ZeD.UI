@@ -192,13 +192,32 @@ local function aimStub(on)
     if on then getControllerAxisValue = function(c, a) if a == 2 then return 0.9 end return realAxis(c, a) end
     else getControllerAxisValue = realAxis end
 end
-local function upState(w) return w ~= nil and w:isVisible() and not w.windowShaded end
+-- (a window in halves hides by rolling its halves, not by its own shade)
+local function upState(w)
+    if w == nil or not w:isVisible() or w.windowShaded then return false end
+    local s = w._halves
+    if s and s.inv and s.drawer and s.inv.rolled and s.drawer.rolled then return false end
+    return true
+end
 local MW = ZeD.MessagesWindow
 at(14800, function()
     ZeD_CharacterWindow.openTab(0, "equip"); ZeD_WorldWindow.openTab(0, "loot")
     pcall(function() Focus.releaseFocus(0) end)
     setJoypadFocus(0, nil)
     pcall(function() MW.open(0) end)
+    -- (the QA save's halves are pinned, and a pinned half stays up on aim by design: unpinned here, put back after)
+    for _, w in ipairs({ cw, ww }) do
+        local s = w and w._halves
+        if s then
+            w._qaPins = { inv = s.inv and s.inv.pinned, drawer = s.drawer and s.drawer.pinned, win = w.pinned }
+            if s.inv then s.inv.pinned = false end
+            if s.drawer then s.drawer.pinned = false end
+        else
+            w._qaPins = { win = w.pinned }
+        end
+        w.pinned = false
+        say("237 unpinned " .. desc(w) .. " (was inv " .. tostring(w._qaPins.inv) .. ", drawer " .. tostring(w._qaPins.drawer) .. ", window " .. tostring(w._qaPins.win) .. ")")
+    end
 end)
 at(15800, function()
     local mw = MW.get and MW.get(0)
@@ -213,6 +232,15 @@ at(17600, function()
     check(not upState(ww), "237 aiming hides the World window (shaded " .. tostring(ww and ww.windowShaded) .. ", visible " .. tostring(ww and ww:isVisible()) .. ")")
     check(not (mw and mw:isVisible()), "237 aiming closes Messages")
     shot("after_aim")
+    for _, w in ipairs({ cw, ww }) do
+        local s, k = w and w._halves, w and w._qaPins
+        if k then
+            if s and s.inv then s.inv.pinned = k.inv end
+            if s and s.drawer then s.drawer.pinned = k.drawer end
+            w.pinned = k.win; w._qaPins = nil
+        end
+        pcall(function() if ZeD.Halves and w._halves then ZeD.Halves.showAll(w) end end)
+    end
 end)
 
 -- 241: ZeD setup from the wheel puts the pad on the pause screen
