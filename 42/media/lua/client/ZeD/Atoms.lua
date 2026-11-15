@@ -1424,7 +1424,11 @@ function ZeD.Atoms.drawPendingHover(ov, win, noAuto)
         a.x, a.y, a.w, a.h, a.below, a.noFlip = st.px or 0, st.py or 0, 1, 1, nil, nil
     end
     if r.below then a.below = p:getAbsoluteY() + r.below end
-    Bn.draw(ov, c, a, r.side or "above", { key = r.key, since = st.since, owner = win })
+    -- (the window's overlay clips at the window's edges: the balloon is kept inside them, punch list 230)
+    local bd = st.bd
+    if not bd then bd = {}; st.bd = bd end
+    bd.x, bd.y, bd.w, bd.h = win:getAbsoluteX(), win:getAbsoluteY(), win:getWidth(), win:getHeight()
+    Bn.draw(ov, c, a, r.side or "above", { key = r.key, since = st.since, owner = win, bounds = bd })
 end
 
 -- ----------------------------------------------------------------------------

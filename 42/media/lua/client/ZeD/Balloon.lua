@@ -685,7 +685,10 @@ function B.draw(p, c, a, pref, opts)
     if not opts.noClaim and not B.claim(key, opts.prio, opts.since) then return nil end
     if DIS.key ~= nil and DIS.key ~= key and (opts.prio or 1) < 2 then DIS.key = nil end   -- (the pointer or focus moved on)
     local lay = B.layout(c)
-    local pl = B.place(lay, a, pref or "above")
+    -- (opts.bounds { x, y, w, h }, screen px: the box stays inside them, as a window's overlay clips at its edges;
+    -- punch list 230, a trait's card at the ID card's foot was cut off by the window's lower edge)
+    local bd = opts.bounds
+    local pl = bd and B.place(lay, a, pref or "above", bd.x, bd.y, bd.w, bd.h) or B.place(lay, a, pref or "above")
     local ox, oy = p:getAbsoluteX(), p:getAbsoluteY()
     local x, y = pl.x - ox, pl.y - oy
     B.drawBox(p, c, x, y, lay)
