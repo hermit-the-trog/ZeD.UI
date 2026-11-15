@@ -5028,3 +5028,10 @@ to be proposed.
    "Sprint, Cancel Action, Close Panel ..."). Options: B at the window's top level (nothing left to back out of)
    cancels the running action; or the progress band gets a Cancel stop / hint; under the button grammar, B = back out,
    so cancelling the action fits as the last "back".
+
+233. **Controller: opening a station from the world prompt doesn't give the World window the pad (the director, Nov
+   14 2026, playtest).** open. Facing a coffee maker, the prompt reads "A Coffee Machine"; A opens the World window on
+   its crafting tab, but the pad stays outside the window. The logger: "prompt A | aPrompt Coffee Machine", then no
+   claim at all (focus stays nil) until the director pressed Y, which claimed the Character window instead. Every
+   route that opens a ZeD window or tab from the world (station prompts, the X menu's open options, 208's oven) should
+   claim the pad for that window, on its opened tab's first stop.
