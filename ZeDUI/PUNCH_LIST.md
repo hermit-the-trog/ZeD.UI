@@ -4928,3 +4928,8 @@ to be proposed.
    cooking in an oven, the inventory list gives no sign it is cooking or how far along it is; only the item card shows
    it. Wanted: a progress bar on the row, like the bar shown while an item is being moved. (The director ate a raw
    pork chop because nothing showed it wasn't cooked.)
+
+223. **Controller: a one-button transfer between the two windows' open containers (the director, Nov 14 2026,
+   playtest).** open, a request. Wanted: a quick action that moves the selected item(s) from the active container in
+   one window to the active container in the other, with a single button. (The windows already have a transfer control,
+   charCtl:xfer, reached by navigating; this asks for a direct button or chord, under the two-ways rule.)
