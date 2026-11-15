@@ -4688,6 +4688,8 @@ to be proposed.
    director: "just mark these down as bugs, not to do anything yet"). With an item in place mode (the game's placement
    outline), A does the nearest world action instead: sits on a chair, opens a window. The item can't be placed with the
    pad at all. Likely ZeD's A handling takes the press before the game's placement cursor. Not reproduced by QA yet.
+   **The director, Nov 15 2026, playtest on beta 14:** placing an item now works. Still wrong: placing it next to something
+   with its own action, like a window, also does that action (the window opened). Logged only, no work yet.
 185. **Sardines' Workshop comment (Nov 14 2026): three reports, no details yet.** open - logged only. (a) some clothing
    not recognized (doll / Equip tab?); (b) "optimisation issues", no place named; (c) an error "concerning the mod menu".
    For (c), Build found today that mods with an interlaced poster.png (CyesPushDoors 3807747522, EN_Newburbs 3520263838)
