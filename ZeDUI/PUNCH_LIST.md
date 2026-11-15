@@ -4933,3 +4933,14 @@ to be proposed.
    playtest).** open, a request. Wanted: a quick action that moves the selected item(s) from the active container in
    one window to the active container in the other, with a single button. (The windows already have a transfer control,
    charCtl:xfer, reached by navigating; this asks for a direct button or chord, under the two-ways rule.)
+
+224. **An oven shows food as "Cooking" but it doesn't cook (the director, Nov 14 2026, playtest).** open. In the
+   restaurant kitchen, one oven was on and the fish sticks in it read "Cooking" in their condition, but they never
+   cooked. Moved to the other oven, turned it on: that one cooked, with 222's bar showing. Check whether the first oven
+   truly had heat (power, gas, the right "on" state) and whether ZeD reads "on" from the wrong field (the plate or the
+   row saying Cooking while the game's oven isn't heating).
+225. **Controller: a quick A on a food row eats it, raw or not (the director, Nov 14 2026, playtest).** open, a design
+   question. Looking for a menu, the director pressed A twice; the first A ran the row's primary action, Eat, and the
+   character ate raw crayfish while already sick. A tap of A as Eat is risky for raw, rotten or poisonous food. Options
+   for the director: Eat stays the primary but asks or is skipped when the food is raw / unsafe; or A opens the card
+   and Eat moves to a hold. 223's quick move would also have helped here.
