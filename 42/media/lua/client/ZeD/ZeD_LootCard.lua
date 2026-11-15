@@ -219,6 +219,7 @@ local function makeBody(f)
     local h = (tagH > 0 and (tagH + T.px(4)) or 0) + n * lineH - lead
     local body = { w = w, h = h }
     body.draw = function(p, x, y)
+        local T = ZeD.T   -- (read as it draws: the balloon's light palette, the director's Nov 15 2026 light tooltips)
         local tc, sc = T.text, T.textSec or T.textDim
         local cy = y
         if tagH > 0 then

@@ -46,7 +46,55 @@ local CHECK = { "......#", ".....##", "#...##.", "##.##..", ".###...", "..#...."
 local CROSS = { "#.....#", "##...##", ".##.##.", "..###..", ".##.##.", "##...##", "#.....#" }
 B.CHECK, B.CROSS = CHECK, CROSS
 
-local function T_() return ZeD.T end
+-- (Nov 15 2026, the director: "Can you make all tooltips regardless of theme light? The black tooltips ... hide too
+-- easy.") Every balloon draws in one light palette whatever the theme: the Light theme's near-black words on a light
+-- grey, framed in its strongest line. Everything else (sizes, faces, the scale) is the live theme's. While a balloon
+-- draws, ZeD.T is this palette, so a body that draws itself (the loot card's) reads it too.
+local LIGHT = {
+    surf1 = { r = 0.80, g = 0.80, b = 0.80, a = 1 },
+    surf2 = { r = 0.84, g = 0.84, b = 0.84, a = 1 },
+    surf3 = { r = 0.76, g = 0.76, b = 0.76, a = 1 },
+    border = { r = 0.46, g = 0.46, b = 0.46, a = 1 },
+    borderS = { r = 0.26, g = 0.26, b = 0.26, a = 1 },
+    text = { r = 0.047, g = 0.047, b = 0.047, a = 0.95 },
+    textHead = { r = 0.02, g = 0.02, b = 0.02, a = 1 },
+    textSec = { r = 0.047, g = 0.047, b = 0.047, a = 0.72 },
+    textDim = { r = 0.047, g = 0.047, b = 0.047, a = 0.72 },
+    positive = { r = 0x2A / 255, g = 0x55 / 255, b = 0x11 / 255, a = 1 },
+    positiveText = { r = 0x20 / 255, g = 0x4A / 255, b = 0x0C / 255, a = 1 },
+    danger = { r = 0x7A / 255, g = 0x2A / 255, b = 0x11 / 255, a = 1 },
+    dangerText = { r = 0x7A / 255, g = 0x2A / 255, b = 0x11 / 255, a = 1 },
+    warning = { r = 0x6B / 255, g = 0x55 / 255, b = 0x10 / 255, a = 1 },
+    info = { r = 0x1A / 255, g = 0x55 / 255, b = 0x66 / 255, a = 1 },
+}
+B.LIGHT = LIGHT
+local _live = nil   -- (the theme's own tokens while a balloon draws)
+local LT = setmetatable({}, { __index = function(_, k)
+    local v = LIGHT[k]
+    if v ~= nil then return v end
+    local src = _live or ZeD.T
+    return src and src[k]
+end })
+local function T_() return (_live ~= nil) and LT or ZeD.T end
+-- a color a caller took from the live theme (a line's T.textDim) is drawn as the palette's own
+local function lightOf(c)
+    local src = _live
+    if not (src and c) then return c end
+    for k, v in pairs(LIGHT) do if src[k] == c then return v end end
+    return c
+end
+-- run fn with the palette in place of ZeD.T (nested calls keep the outer swap)
+local function inLight(fn, ...)
+    if _live ~= nil then return fn(...) end
+    _live = ZeD.T
+    ZeD.T = LT
+    local ok, a, b, c, d = pcall(fn, ...)
+    ZeD.T = _live
+    _live = nil
+    if not ok then print("[ZeD] Balloon: " .. tostring(a)); return nil end
+    return a, b, c, d
+end
+B.inLight = inLight
 local function px(n) return ZeD.T.px(n) end
 local function fontOf(k) return ZeD.T["font" .. k] or ZeD.T.fontF2 end
 local function fh(k) return ZeD.TM:getFontHeight(fontOf(k)) end
@@ -481,7 +529,7 @@ function B.drawMark(p, kind, x, y, c)
 end
 
 -- the tail on box (panel px, with the screen's placement shifted by ox, oy)
-local function drawTail(p, box, pl, ox, oy)
+local function drawTailRaw(p, box, pl, ox, oy)
     local T = T_()
     local fill, edge = T.surf2, T.borderS
     local cell, n = pl.cell, B.TAIL
@@ -533,7 +581,7 @@ end
 
 --- Draw the box and its words at (x, y) in panel px, with no tail (ZeD_Tooltip, and the body of every
 --- balloon). Returns the layout.
-function B.drawBox(p, c, x, y, lay)
+local function drawBoxRaw(p, c, x, y, lay)
     local T = T_()
     lay = lay or B.layout(c)
     local w, h = lay.w, lay.h
@@ -543,6 +591,10 @@ function B.drawBox(p, c, x, y, lay)
     B.drawWords(p, c, x, y, lay)
     return lay
 end
+
+-- (the palette in place while they draw: the director's light tooltips, above)
+local function drawTail(p, box, pl, ox, oy) return inLight(drawTailRaw, p, box, pl, ox, oy) end
+function B.drawBox(p, c, x, y, lay) return inLight(drawBoxRaw, p, c, x, y, lay) end
 
 function B.drawWords(p, c, x, y, lay)
     local T = T_()
@@ -580,7 +632,7 @@ function B.drawWords(p, c, x, y, lay)
         if above then cy = cy + lay.gapT end
         for _, ln in ipairs(lay.lines) do
             local src = c.lines and c.lines[ln.src]
-            local col = (type(src) == "table" and src.color) or T.text
+            local col = lightOf((type(src) == "table" and src.color)) or T.text
             text(p, ln.s, x + lay.padX, cy, col, ln.k)
             cy = cy + fh(ln.k) + lay.lead
         end

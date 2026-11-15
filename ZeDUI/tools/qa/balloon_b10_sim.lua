@@ -250,7 +250,7 @@ do
                     ok(x + w <= a.x, tag .. ": the box does not cover the row")
                 end
                 -- the frame is opened under the tail's base (filled with surface 2)
-                local s2 = ZeD.T.surf2
+                local s2 = ZeD.Balloon.LIGHT.surf2   -- (Nov 15 2026: every balloon in the light palette)
                 local opened = false
                 for _, r in ipairs(p.rects) do
                     if r.r == s2.r and r.g == s2.g and r.b == s2.b and (r.h == T.line(T.borderW) or r.w == T.line(T.borderW)) and r.w ~= w then opened = true end
@@ -415,7 +415,7 @@ for _, size in ipairs({ "small", "large" }) do
                 ok(once, tag .. ": every value drawn")
                 ok(not counts[L.drawers] or counts[L.drawers] == 1, tag .. ": the Name row is not drawn (the title says it)")
                 -- colors: the saws in dangerText, the hammers in positiveText, labels in text
-                local pos, dan, txt = T.positiveText, T.dangerText, T.text
+                local pos, dan, txt = ZeD.Balloon.LIGHT.positiveText, ZeD.Balloon.LIGHT.dangerText, ZeD.Balloon.LIGHT.text
                 local function colOf(s) for _, t in ipairs(p.texts) do if t.s == s then return t end end end
                 local h1, s1, lb = colOf(L.hammers[1]), colOf(L.saws[1]), colOf(L.skill)
                 ok(h1 and h1.r == pos.r and h1.g == pos.g and h1.b == pos.b, tag .. ": a met value in positiveText")
