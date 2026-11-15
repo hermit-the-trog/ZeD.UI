@@ -702,7 +702,10 @@ local function makeActionDef(option, index, vanillaMenu, target)
     if option.zedPx and ZeD.PxIcon and ZeD.PxIcon.has(option.zedPx) then
         def.iconTexture, def.pxIcon, def.iconTintable = ZeD.PxIcon.tex(option.zedPx, 16), option.zedPx, true
     end
-    if not def.iconTexture then def.iconTexture = objectIconOf(option) end   -- (punch list 200; untinted)
+    if not def.iconTexture then   -- (punch list 200; untinted, cropped to its drawn pixels)
+        def.iconTexture = objectIconOf(option)
+        def.iconTrim = def.iconTexture ~= nil
+    end
     if option.zedCategory then def.category = option.zedCategory end
     if option.zedCheck ~= nil then def.check = option.zedCheck and true or false end
 

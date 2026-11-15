@@ -1788,38 +1788,33 @@ function ZeD_Window:onJoypadDown(button, joypadData)
     local F = ZeD and ZeD.Input and ZeD.Input.Focus
     local pn = joypadData and joypadData.player
     if F and F.passToCursor and type(pn) == "number" and F.passToCursor(pn, button, joypadData) then return end
-    if ZeD and ZeD.Input and ZeD.Input.Focus
-       and ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
-        ZeD.Input.Focus.dispatchJoypadDown(self, button, joypadData)
-    end
+    -- (punch list 212: a press left on this window while the pair's other window holds the pad is that window's)
+    local to = F and F.padTarget and F.padTarget(self, joypadData)
+    if to then F.dispatchJoypadDown(to, button, joypadData) end
 end
 
 function ZeD_Window:onJoypadDirUp(joypadData)
-    if ZeD and ZeD.Input and ZeD.Input.Focus
-       and ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
-        ZeD.Input.Focus.dispatchJoypadDir(self, "up", joypadData)
-    end
+    local F = ZeD and ZeD.Input and ZeD.Input.Focus
+    local to = F and F.padTarget and F.padTarget(self, joypadData)
+    if to then F.dispatchJoypadDir(to, "up", joypadData) end
 end
 
 function ZeD_Window:onJoypadDirDown(joypadData)
-    if ZeD and ZeD.Input and ZeD.Input.Focus
-       and ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
-        ZeD.Input.Focus.dispatchJoypadDir(self, "down", joypadData)
-    end
+    local F = ZeD and ZeD.Input and ZeD.Input.Focus
+    local to = F and F.padTarget and F.padTarget(self, joypadData)
+    if to then F.dispatchJoypadDir(to, "down", joypadData) end
 end
 
 function ZeD_Window:onJoypadDirLeft(joypadData)
-    if ZeD and ZeD.Input and ZeD.Input.Focus
-       and ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
-        ZeD.Input.Focus.dispatchJoypadDir(self, "left", joypadData)
-    end
+    local F = ZeD and ZeD.Input and ZeD.Input.Focus
+    local to = F and F.padTarget and F.padTarget(self, joypadData)
+    if to then F.dispatchJoypadDir(to, "left", joypadData) end
 end
 
 function ZeD_Window:onJoypadDirRight(joypadData)
-    if ZeD and ZeD.Input and ZeD.Input.Focus
-       and ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
-        ZeD.Input.Focus.dispatchJoypadDir(self, "right", joypadData)
-    end
+    local F = ZeD and ZeD.Input and ZeD.Input.Focus
+    local to = F and F.padTarget and F.padTarget(self, joypadData)
+    if to then F.dispatchJoypadDir(to, "right", joypadData) end
 end
 
 

@@ -389,7 +389,8 @@ function ZeD_ContextList:prerender()
                     A.drawPxIcon(self, def.pxIcon, ix, cy + math.floor((rowH - isz) / 2), isz, a, tc, (not pointed and not openParent) and T.marks or nil)
                 elseif def.iconTexture then
                     local tint = def.iconTintable and tc or { r = 1, g = 1, b = 1 }
-                    A.drawIcon(self, def.iconTexture, ix, cy + math.floor((rowH - isz) / 2), isz, a, tint)
+                    local draw = def.iconTrim and A.drawIconTrim or A.drawIcon   -- (punch list 200: world sprites cropped)
+                    draw(self, def.iconTexture, ix, cy + math.floor((rowH - isz) / 2), isz, a, tint)
                 end
                 local tx = ix + isz + T.px(8)
                 local hasKids = (def.children and #def.children > 0) or def.subOption

@@ -371,6 +371,26 @@ function ZeD.Atoms.drawIcon(panel, texture, x, y, size, alpha, tint)
     panel:drawTextureScaledAspect(texture, x, y, size, size, a, r, g, b)
 end
 
+--- drawIcon for a world sprite (Nov 14 2026, punch list 200): a tile's picture fills only part of its tile (a
+--- coffee table is a low thing in a tall tile), so the drawn pixels (the texture's offset and size in its sheet) are
+--- scaled to fill the box, centered. The whole tile is drawn at that scale: the game places the drawn part inside it.
+function ZeD.Atoms.drawIconTrim(panel, texture, x, y, size, alpha, tint)
+    if not texture then return end
+    local ok, ox, oy, tw, th, ow, oh = pcall(function()
+        return texture:getOffsetX(), texture:getOffsetY(), texture:getWidth(), texture:getHeight(),
+            texture:getWidthOrig(), texture:getHeightOrig()
+    end)
+    if not ok or not (tw and th and ow and oh) or tw <= 0 or th <= 0 or ow <= 0 or oh <= 0 then
+        return ZeD.Atoms.drawIcon(panel, texture, x, y, size, alpha, tint)
+    end
+    local r, g, b = 1, 1, 1
+    if tint then r, g, b = tint.r, tint.g, tint.b end
+    local k = math.min(size / tw, size / th)
+    local dx = x + (size - tw * k) / 2 - ox * k
+    local dy = y + (size - th * k) / 2 - oy * k
+    panel:drawTextureScaled(texture, dx, dy, ow * k, oh * k, alpha or 1.0, r, g, b)
+end
+
 -- ============================================================================
 -- 04. FILL BAR (draw helper)
 -- A horizontal bar showing a value as a proportion of a maximum: separate segments in the framed strip, ten for an

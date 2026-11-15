@@ -4093,6 +4093,8 @@ function ZeD.Molecules.drawContextCell(panel, x, y, def, flags, T)
         -- paper its mark (a pair's plus or minus, arrow or strike) takes its color (punch list 138)
         if def.pxIcon then
             A.drawPxIcon(panel, def.pxIcon, iconX, iconY, ctx.iconPx, alpha, tint, def.iconTintable and not flags.isActive)
+        elseif def.iconTrim then
+            A.drawIconTrim(panel, def.iconTexture, iconX, iconY, ctx.iconPx, alpha, tint)
         else
             A.drawIcon(panel, def.iconTexture, iconX, iconY, ctx.iconPx, alpha, tint)
         end

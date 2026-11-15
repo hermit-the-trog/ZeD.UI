@@ -277,6 +277,17 @@ function H.padElements(win)
         local ox = (s.side == "left") and win:getWidth() or -(win._rollW or 0)
         out[#out + 1] = pinElement("inv", ox + rr.x, rr.y, rr.w, rr.h)
     end
+    -- (Nov 14 2026, punch list 214: the window box's menu had no stop; its choices were the wheel's only.
+    -- The director's rule: two ways to do everything, both on the pad)
+    local box = win.windowBoxRect and win:windowBoxRect()
+    if box then
+        out[#out + 1] = {
+            x = box.x, y = box.y, w = box.w, h = box.h, id = "windowbox",
+            promptA = function() return ZeD.tr("UI_ZeD_Prompt_Menu") end,
+            onFocus = function() end,
+            onActivate = function(ww) if ww.openWindowMenu then ww:openWindowMenu() end end,
+        }
+    end
     table.sort(out, function(a, b) return a.x < b.x end)
     return out
 end

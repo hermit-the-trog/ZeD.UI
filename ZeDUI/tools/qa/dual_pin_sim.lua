@@ -613,8 +613,9 @@ do
     for _, z in ipairs(WW._focusRing) do if z.zone == "worldTitlePins" then zone = z end end
     check("PAD: World has its pins' zone", zone ~= nil)
     local els = zone and zone.elements or {}
-    check("PAD: rolled: two stops, the containers' on its rod (left of the window), the drawer's on the bar",
-        #els == 2 and els[1].id == "halfpin:inv" and els[1].x < 0 and els[2].id == "halfpin:drawer", #els)
+    check("PAD: rolled: three stops, the containers' pin on its rod (left of the window), the drawer's on the bar, the window box",
+        #els == 3 and els[1].id == "halfpin:inv" and els[1].x < 0 and els[2].id == "halfpin:drawer" and els[3].id == "windowbox", #els)
+    check("PAD: the window box's stop says Menu (punch list 214)", els[3] and els[3].promptA(WW) == "UI_ZeD_Prompt_Menu")
     check("PAD: A on the drawer's pin says Unpin", els[2] and els[2].promptA(WW) == "UI_ZeD_Cm_Unpin")
     if els[2] then els[2].onActivate(WW) end
     check("PAD: A toggles that pin", not H.isPinned(WW, "drawer") and PLAYER.md.ZeD_WinPinned.worldTabs == false)
@@ -622,8 +623,9 @@ do
     local cz
     for _, z in ipairs(CW._focusRing) do if z.zone == "charTitlePins" then cz = z end end
     local ce = cz and cz.elements or {}
-    check("PAD: Character down: two stops on its bar, left to right drawer then inventory",
-        #ce == 2 and ce[1].id == "halfpin:drawer" and ce[2].id == "halfpin:inv" and cz.focusable, #ce)
+    check("PAD: Character down: three stops on its bar, the drawer pin first, the inventory pin and the window box (this sim's strip stands past the box)",
+        #ce == 3 and ce[1].id == "halfpin:drawer" and cz.focusable
+        and ((ce[2].id == "halfpin:inv" and ce[3].id == "windowbox") or (ce[2].id == "windowbox" and ce[3].id == "halfpin:inv")), #ce)
     away(); CW:setWindowShaded(true); tick(1)
     check("PAD: a rolled window offers no stops", cz and (#cz.elements == 0 and not cz.focusable))
 end

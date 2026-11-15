@@ -140,5 +140,27 @@ up(Joypad.LBumper)
 check("GONE: windows let go of the pad mid-press: no step", charWin.opened + worldWin.opened == before)
 check("GONE: ... and nothing took the pad back", Focus.getFocusedWindow(0) == nil)
 
+-- STALE (playtest, Nov 14): the engine's joypad focus left on the Character window while ZeD's is on the World
+-- window. Its stubs ask Focus.padTarget: the press goes to the World window and the engine's focus goes back on it.
+local engineFocus = "unset"
+setJoypadFocus = function(pn, w) engineFocus = w end
+Focus.registerWindow(charWin); Focus.registerWindow(worldWin)
+Focus.claimFocus(worldWin)
+engineFocus = charWin
+check("STALE: a press on the Character window is the World window's",
+    Focus.padTarget(charWin, { player = 0 }) == worldWin)
+check("STALE: ... and the engine's focus is back on the World window", engineFocus == worldWin)
+check("STALE: the focused window's own press is its own", Focus.padTarget(worldWin, { player = 0 }) == worldWin)
+local stray = makeWin("Stray", "strayBar", { "a" })
+check("STALE: a window ZeD never registered gets nothing", Focus.padTarget(stray, { player = 0 }) == nil)
+
+worldWin._activeTab = "craft"
+Focus.qaButton("RightBump", true); Focus.dispatchJoypadDown(Focus.padTarget(charWin, { player = 0 }), Joypad.RBumper, { player = 0 }); tick()
+Focus.qaButton("RightBump", false); tick(); Focus.qaButton("RightBump", nil)
+check("STALE: RB pressed on the stale Character window still steps the World window's tab",
+    worldWin._activeTab == "build", worldWin._activeTab)
+Focus.releaseFocus(0)
+check("STALE: no window holds the pad: a press is nobody's", Focus.padTarget(charWin, { player = 0 }) == nil)
+
 print("bumper_tabs_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end

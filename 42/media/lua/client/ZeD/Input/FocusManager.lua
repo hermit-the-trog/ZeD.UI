@@ -588,6 +588,21 @@ function Focus.getFocusedWindow(pn)
     return s and s.win
 end
 
+--- The window a pad press that reached w (one of its stubs) is for, or nil: w itself while it holds the pad.
+--- (Nov 14 2026, punch list 212 playtest: the engine's joypad focus went back to the Character window while ZeD's
+--- was on the World window, and every press after, the bumpers too, reached the Character window and was dropped.)
+--- A press on another of the same player's windows while one of theirs holds the pad is the focused window's: the
+--- engine's focus goes back on it, and the press is handed to it.
+function Focus.padTarget(w, joypadData)
+    local pn = joypadData and joypadData.player
+    local fw = Focus.getFocusedWindow(pn)
+    if fw == nil or fw == w then return fw end
+    if _pnOf(w) ~= _pnOf(fw) or not fw:isVisible() or not _indexOf(w) then return nil end
+    print("[ZeD.Input] Focus: pad resync: " .. _label(w) .. " -> " .. _label(fw) .. _who(_pnOf(fw)))
+    _pushEngineFocus(fw, _pnOf(fw))
+    return fw
+end
+
 --- Always false: Y-hold closes the pair now instead of toggling a windowshade
 --- lock. The reader stays so an old caller can't blow up.
 function Focus.isLocked()
