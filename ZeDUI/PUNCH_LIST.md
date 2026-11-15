@@ -4864,3 +4864,11 @@ to be proposed.
    Settings, Debug), the desktop icons (Pasties, CletusWorks, ProtoPOP3 Mail, Documents, Project Zomboid, New game,
    Load game, Join a server, Options, Mods, Trash) and a window's close box. The desktop needs pad stops and a way to
    move between the menu bar, the icons and the open windows (and B or a close stop to shut a window).
+
+214. **Controller: the Character and World windows' title-bar menu can't be reached (the director, Nov 14 2026,
+   playtest).** open. On the pad the title bar's pins are stops (charTitlePins), but the window's options drop-down
+   (the menu button at the title bar's right, "Z options") is not, so its choices are only reachable through the
+   radial wheel. The director's rule (saved as a design rule): two ways to do everything. Every action must be doable
+   inside the Character or World window itself (unless the game simply isn't built that way), and also a second way
+   through a context menu or the radial wheel. So: the title bar's menu needs a pad stop next to the pins, and an audit
+   of what is wheel-only or window-only would follow the same rule.
