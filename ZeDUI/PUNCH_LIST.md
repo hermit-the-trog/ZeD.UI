@@ -4878,3 +4878,9 @@ to be proposed.
    used and B doesn't dismiss it; only an aim escape clears it. The logger shows every press while it was up still
    going to "focus Character" (D-pad moves in charMainInv, B twice with no effect): the keyboard never takes the pad.
    It needs the pad focus when it opens (and to give it back to the field on close), with B closing it.
+
+216. **The World window's tab for a TV says "Radio" with a radio icon (the director, Nov 14 2026, playtest).** open. With
+   a television open in the World window, the side tab and its label read Radio and show the radio icon, though it is
+   clearly a TV. The tab's name and icon should follow what is open: Television (a TV icon) for TV sets, Radio for
+   radios; or one name that covers both (the game's "Radio / TV"?) if the tab holds both kinds. Picture:
+   zqa_ptl_tvtab.png.
