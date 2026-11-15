@@ -2966,6 +2966,7 @@
     "UI_ZeD_CMap_X": "RMB: it opens the context menu.",
     "UI_ZeD_CMap_Y": "Tap: open, hide or show both windows. Hold: close both.",
     "UI_ZeD_Close": "Close",
+    "UI_ZeD_FacePop_Hint": "Click a control.  Esc closes.",
     "UI_ZeD_TIYL_OriginTrait": "Origin trait: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "Bake sale",
     "UI_ZeD_TIYL_StoryCarFixation": "Car fixation",

@@ -2974,6 +2974,7 @@
     "UI_ZeD_CMap_X": "RMB: megnyitja a helyi menüt.",
     "UI_ZeD_CMap_Y": "Koppintás: mindkét ablak megnyitása, elrejtése vagy mutatása. Tartás: mindkettő bezárása.",
     "UI_ZeD_Close": "Bezárás",
+    "UI_ZeD_FacePop_Hint": "Kattints egy kezelőszervre.  Az Esc bezárja.",
     "UI_ZeD_TIYL_OriginTrait": "Származási tulajdonság: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "Süteményvásár",
     "UI_ZeD_TIYL_StoryCarFixation": "Autóőrület",

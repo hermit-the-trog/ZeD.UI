@@ -2974,6 +2974,7 @@
     "UI_ZeD_CMap_X": "RMB: deschide meniul contextual.",
     "UI_ZeD_CMap_Y": "Atingere: deschide, ascunde sau arată ambele ferestre. Ține apăsat: le închide pe ambele.",
     "UI_ZeD_Close": "Închide",
+    "UI_ZeD_FacePop_Hint": "Dă clic pe o comandă.  Esc închide.",
     "UI_ZeD_TIYL_OriginTrait": "Trăsătură de origine: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "Vânzare de prăjituri",
     "UI_ZeD_TIYL_StoryCarFixation": "Obsesie pentru mașini",

@@ -2974,6 +2974,7 @@
     "UI_ZeD_CMap_X": "RMB: otevře kontextové menu.",
     "UI_ZeD_CMap_Y": "Klepnutí: otevře, skryje nebo ukáže obě okna. Podržení: zavře obě.",
     "UI_ZeD_Close": "Zavřít",
+    "UI_ZeD_FacePop_Hint": "Klikněte na ovládací prvek.  Esc zavře.",
     "UI_ZeD_TIYL_OriginTrait": "Trait původu: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "Koláčový bazar",
     "UI_ZeD_TIYL_StoryCarFixation": "Posedlost auty",

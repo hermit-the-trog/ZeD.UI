@@ -2974,6 +2974,7 @@
     "UI_ZeD_CMap_X": "RMB: den åpner hurtigmenyen.",
     "UI_ZeD_CMap_Y": "Trykk: åpne, skjul eller vis begge vinduer. Hold: lukk begge.",
     "UI_ZeD_Close": "Lukk",
+    "UI_ZeD_FacePop_Hint": "Klikk på en knapp.  Esc lukker.",
     "UI_ZeD_TIYL_OriginTrait": "Opprinnelsesegenskap: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "Kakesalg",
     "UI_ZeD_TIYL_StoryCarFixation": "Bilfiksering",

@@ -2974,6 +2974,7 @@
     "UI_ZeD_CMap_X": "RMB: öffnet das Kontextmenü.",
     "UI_ZeD_CMap_Y": "Antippen: beide Fenster öffnen, ausblenden oder zeigen. Halten: beide schließen.",
     "UI_ZeD_Close": "Schließen",
+    "UI_ZeD_FacePop_Hint": "Klicke auf ein Bedienelement.  Esc schließt.",
     "UI_ZeD_TIYL_OriginTrait": "Herkunftseigenschaft: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "Kuchenverkauf",
     "UI_ZeD_TIYL_StoryCarFixation": "Autofimmel",

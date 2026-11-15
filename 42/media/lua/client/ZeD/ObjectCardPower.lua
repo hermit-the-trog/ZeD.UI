@@ -439,6 +439,9 @@ function def.refresh(t, player)
 end
 
 function def.title(t) return t.d and t.d.name or getText("ContextMenu_Generator") end
+--- The header's pop-out button: while the face is drawn (Nov 15 2026, pop-outs; not on the plain card).
+function def.popOut(t) return not OP.on() end
+ZeD.ObjectCardPower.def = def   -- (FacePop.lua opens the pop-out on the same target the card works on)
 function def.icon(t) return t.d and t.d.tex or nil end
 -- the state tag: its words, and the colour of its square mark (none for a plain tag)
 function def.pill(t)
@@ -506,19 +509,12 @@ end
 
 ZeD.ObjectCardPower.plateState = plateState
 
--- the plate (fixed size, centred), its two controls, and the line under it
-local function drawPlate(card, x, y, w, t)
+--- The plate on its own at (px0, y), zoom k (des: the plate picked), its two controls stamped as the card's zones.
+--- The card draws it (drawPlate below) and so does the face's pop-out, standing in for the card (FacePop.lua; Nov 15
+--- 2026, pop-outs).
+function ZeD.ObjectCardPower.face(card, px0, y, k, des, t)
     local T = ZeD.T
     local d = t.d
-    local des, pid = plateFor(d)
-    if not des then return 0 end
-    -- the width that fills the card, else the narrow face where the main face at the whole zoom does not fit it
-    -- (the card's plate room, the same with or without its scrollbar)
-    local room = card._plateRoom or w
-    des = P.pick(pid, room) or des
-    local Sc = ZeD.Scale
-    local k = P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, room)   -- whole zoom, inside the card
-    local px0 = x + PL.centre(w, des.w, k)
     local cv = P.canvas(card, px0, y, k)
     local st = plateState(d)
     PL.draw(cv, des, st, { tex = plateTex, now = getTimestampMs() })
@@ -539,6 +535,25 @@ local function drawPlate(card, x, y, w, t)
             help = (c.id == "engine" and ZeD.tr("UI_ZeD_Power_HelpEngine")) or (c.id == "outlet" and ZeD.tr("UI_ZeD_Power_HelpOutlet")) or nil,
             run = fn and function(cc, p) fn(p, t) end or nil })
     end
+end
+--- The plate for a generator's data and its id (by its item, else the one a modded set borrows).
+ZeD.ObjectCardPower.plateFor = plateFor
+
+-- the plate (fixed size, centred), its two controls, and the line under it
+local function drawPlate(card, x, y, w, t)
+    local T = ZeD.T
+    local d = t.d
+    local des, pid = plateFor(d)
+    if not des then return 0 end
+    -- the width that fills the card, else the narrow face where the main face at the whole zoom does not fit it
+    -- (the card's plate room, the same with or without its scrollbar)
+    local room = card._plateRoom or w
+    des = P.pick(pid, room) or des
+    local Sc = ZeD.Scale
+    local k = P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, room)   -- whole zoom, inside the card
+    local px0 = x + PL.centre(w, des.w, k)
+    OC.faceZone(card, px0, y, des.w * k, des.h * k, t.obj)   -- (a click away from the controls pops the face out)
+    ZeD.ObjectCardPower.face(card, px0, y, k, des, t)
     local h = des.h * k + T.px(6)
     local hrs, unitKey = runTime(d)
     h = h + UI.pair(card, x, y + h, w, ZeD.tr("UI_ZeD_Power_RunTimeLeft"), ZeD.tr(unitKey, hrs), ZeD.tr("UI_ZeD_Power_Fuel"),

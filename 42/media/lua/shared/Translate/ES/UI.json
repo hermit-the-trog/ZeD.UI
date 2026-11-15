@@ -2974,6 +2974,7 @@
     "UI_ZeD_CMap_X": "RMB: abre el menú contextual.",
     "UI_ZeD_CMap_Y": "Toque: abre, oculta o muestra ambas ventanas. Mantener: cierra ambas.",
     "UI_ZeD_Close": "Cerrar",
+    "UI_ZeD_FacePop_Hint": "Haz clic en un control.  Esc cierra.",
     "UI_ZeD_TIYL_OriginTrait": "Rasgo de origen: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "Venta de pasteles",
     "UI_ZeD_TIYL_StoryCarFixation": "Obsesión por los coches",

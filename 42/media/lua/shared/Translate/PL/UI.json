@@ -2974,6 +2974,7 @@
     "UI_ZeD_CMap_X": "PPM: otwiera menu kontekstowe.",
     "UI_ZeD_CMap_Y": "Stuknięcie: otwiera, chowa lub pokazuje oba okna. Przytrzymanie: zamyka oba.",
     "UI_ZeD_Close": "Zamknij",
+    "UI_ZeD_FacePop_Hint": "Kliknij element sterowania.  Esc zamyka.",
     "UI_ZeD_TIYL_OriginTrait": "Cecha pochodzenia: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "Kiermasz ciast",
     "UI_ZeD_TIYL_StoryCarFixation": "Fiksacja na punkcie aut",

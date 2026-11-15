@@ -490,6 +490,39 @@ local function propanePlain(card, x, y, w, t)
     return y - y0
 end
 
+--- The propane grill's face on its own at (px0, y), zoom k (des: the plate picked), its controls stamped as the
+--- card's zones. The card draws it (propaneBody below) and so does the face's pop-out, standing in for the card
+--- (FacePop.lua; Nov 15 2026, pop-outs).
+ZeD.ObjectCardFire = ZeD.ObjectCardFire or {}
+local GRILL_HELP = { burner = "UI_ZeD_Fire_HelpBurner", ignite = "UI_ZeD_Fire_HelpIgnite", tank = "UI_ZeD_Fire_HelpTankPart" }
+function ZeD.ObjectCardFire.grillFace(card, px0, y, k, des, t)
+    local T = ZeD.T
+    local d = t.d
+    local cv = P.canvas(card, px0, y, k)
+    local st = grillState(t, d)
+    PL.draw(cv, des, st, { tex = plateTex, now = getTimestampMs() })
+    -- the centre knob turns it on or off; the igniter lights it; the cart takes a tank or gives it back
+    for _, c in ipairs(PL.controls(des, st)) do
+        local fid = "bbq:" .. c.id
+        local fn = nil
+        if c.id == "burner" then fn = t.toggle
+        elseif c.id == "ignite" then fn = (not d.lit and t.toggle) and ignite or nil
+        elseif c.id == "tank" then fn = (d.tank or d.spare) and tankFn or nil end
+        -- a key (the igniter, the cart) takes the pointer's wash and the controller's mark; the
+        -- burner knob keeps its own lit ring
+        if c.kind == "turn" then
+            if card._fid == fid then PL.cue(cv, c, T.accent, 0.55) end
+        else
+            if UI.hovered(card, fid) then PL.hoverKey(cv, c) end
+            local fm = card:focusOf(fid)
+            if fm then PL.markKey(card, c, px0, y, k, fm) end
+        end
+        card:zone({ fid = fid, x = px0 + c.x * k, y = y + c.y * k, w = c.w * k, h = c.h * k, body = true,
+            help = GRILL_HELP[c.id] and ZeD.tr(GRILL_HELP[c.id]) or nil,
+            run = fn and function(cc, p) fn(p, t) end or nil })
+    end
+end
+
 local function propaneBody(card, x, y, w, t, player)
     local T = ZeD.T
     local d = t.d
@@ -508,30 +541,8 @@ local function propaneBody(card, x, y, w, t, player)
             local Sc = ZeD.Scale
             local k = P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, room)   -- whole zoom, inside the card
             local px0 = x + PL.centre(w, des.w, k)
-            local cv = P.canvas(card, px0, y, k)
-            local st = grillState(t, d)
-            PL.draw(cv, des, st, { tex = plateTex, now = getTimestampMs() })
-            -- the centre knob turns it on or off; the igniter lights it; the cart takes a tank or gives it back
-            local helpKey = { burner = "UI_ZeD_Fire_HelpBurner", ignite = "UI_ZeD_Fire_HelpIgnite", tank = "UI_ZeD_Fire_HelpTankPart" }
-            for _, c in ipairs(PL.controls(des, st)) do
-                local fid = "bbq:" .. c.id
-                local fn = nil
-                if c.id == "burner" then fn = t.toggle
-                elseif c.id == "ignite" then fn = (not d.lit and t.toggle) and ignite or nil
-                elseif c.id == "tank" then fn = (d.tank or d.spare) and tankFn or nil end
-                -- a key (the igniter, the cart) takes the pointer's wash and the controller's mark; the
-                -- burner knob keeps its own lit ring
-                if c.kind == "turn" then
-                    if card._fid == fid then PL.cue(cv, c, T.accent, 0.55) end
-                else
-                    if UI.hovered(card, fid) then PL.hoverKey(cv, c) end
-                    local fm = card:focusOf(fid)
-                    if fm then PL.markKey(card, c, px0, y, k, fm) end
-                end
-                card:zone({ fid = fid, x = px0 + c.x * k, y = y + c.y * k, w = c.w * k, h = c.h * k, body = true,
-                    help = helpKey[c.id] and ZeD.tr(helpKey[c.id]) or nil,
-                    run = fn and function(cc, p) fn(p, t) end or nil })
-            end
+            OC.faceZone(card, px0, y, des.w * k, des.h * k, t.obj)   -- (a click away from the controls pops the face out)
+            ZeD.ObjectCardFire.grillFace(card, px0, y, k, des, t)
             y = y + des.h * k + T.px(6)
         end
         y = y + UI.pair(card, x, y, w, ZeD.tr("UI_ZeD_Fire_GasLeft"), ZeD.tr("UI_ZeD_Fire_Hrs", gasText(d)), ZeD.tr("UI_ZeD_Fire_Tank"), d.tank and ZeD.tr("UI_ZeD_Fire_TankIn") or ZeD.tr("IGUI_None")) + gap
@@ -544,6 +555,11 @@ local function propaneBody(card, x, y, w, t, player)
     end
     return y - y0
 end
+
+--- The header's pop-out button: on the propane grill while its face is drawn (Nov 15 2026, pop-outs; not on the
+--- plain card, nor a campfire, a charcoal barbecue or a fireplace, which have no face).
+function def.popOut(t) return t.kind == "propane" and not ZeD.ObjectCardPlain.on() end
+ZeD.ObjectCardFire.def = def   -- (FacePop.lua opens the pop-out on the same target the card works on)
 
 function def.body(card, x, y, w, t, player)
     if not t.d then return 0 end

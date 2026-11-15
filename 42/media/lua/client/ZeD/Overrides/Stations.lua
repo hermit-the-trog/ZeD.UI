@@ -88,6 +88,8 @@ local function openMarkedOven(playerObj, obj)
     if not m then return end
     pendingOven[pn] = nil
     if m.obj ~= obj or getTimestampMs() - m.at > OVEN_MARK_MS then return end
+    -- (Nov 15 2026, pop-outs: with faces on, the oven's face pops out beside the player instead of the Craft tab)
+    if ZeD.FacePop and ZeD.FacePop.open(playerObj, obj) then return end
     ST.open(playerObj, obj)
 end
 
@@ -175,7 +177,12 @@ local function apply()
         function ISOvenUITimedAction:perform()
             if ZeD.Safe.on() then return origPerform(self) end
             local obj = self.mcwave or self.stove
-            local ok, handled = pcall(function() return ST.open(self.character, obj) end)
+            -- (Nov 15 2026, pop-outs: with faces on, Stove settings pops the face out beside the player (FacePop.lua);
+            -- faces off: the Craft tab, as before)
+            local ok, handled = pcall(function()
+                if ZeD.FacePop and ZeD.FacePop.open(self.character, obj) then return true end
+                return ST.open(self.character, obj)
+            end)
             if ok and handled then
                 ISBaseTimedAction.perform(self)
                 return

@@ -2974,6 +2974,7 @@
     "UI_ZeD_CMap_X": "RMB: opent het contextmenu.",
     "UI_ZeD_CMap_Y": "Tikken: beide vensters openen, verbergen of tonen. Vasthouden: beide sluiten.",
     "UI_ZeD_Close": "Sluiten",
+    "UI_ZeD_FacePop_Hint": "Klik op een knop.  Esc sluit.",
     "UI_ZeD_TIYL_OriginTrait": "Herkomst: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "Taartenverkoop",
     "UI_ZeD_TIYL_StoryCarFixation": "Autofixatie",

@@ -1010,6 +1010,59 @@ local function plateTex(name)
     return P.tex((X and X.texdir or "media/textures/ZeD/physpx/") .. name .. ".png")
 end
 
+--- The plate on its own at (px0, y), zoom k, its controls stamped into zones as the view's ("plate" zones, fid
+--- craft:a:<id>). The Craft tab's view draws it (render below) and so does the face's pop-out (FacePop.lua, Nov 15
+--- 2026, pop-outs). o (all optional): fid the controller's focused id, grabId the knob its A grabbed, markOpts the
+--- focus mark's opts, noHover no pointer wash (a list is open over it), r / pad the reading and the keypad's memory
+--- (read here when missing). Returns zones.
+function SA.drawPlate(panel, px0, y, k, st, des, pid, zones, o)
+    local T = ZeD.T
+    o = o or {}
+    local r, pad = o.r or read(st), o.pad or padOf(st)
+    local fid, grabId = o.fid, o.grabId
+    local cv = P.canvas(panel, px0, y, k)
+    local pst = plateState(st, pid, r, pad)
+    PL.draw(cv, des, pst, { tex = plateTex, now = now() })
+    -- the controls: focus cue, a key's press, the click areas (panel px). A knob keeps its
+    -- own light as the focus cue (it is the hardware's); a key takes the controller's mark.
+    local list = PL.controls(des, pst)
+    local held = pad.pressId and (now() - (pad.pressT or 0) < PRESS_MS) and pad.pressId or nil
+    for _, c in ipairs(list) do
+        local cfid = "craft:a:" .. c.id
+        if c.enabled then
+            local zx, zy, zw, zh = px0 + c.x * k, y + c.y * k, c.w * k, c.h * k
+            if held == c.id and c.kind ~= "turn" then PL.cue(cv, c, P.BLACK, 0.30) end
+            -- the pointer over a key: the library's hover wash (a knob keeps its ring)
+            if c.kind ~= "turn" and ZeD.Atoms.mouseIn(panel, zx, zy, zw, zh) and not o.noHover then
+                PL.hoverKey(cv, c)
+            end
+            if fid == cfid and c.kind == "turn" and grabId == cfid then
+                PL.grabCue(cv, c, T.accent, 0.30)   -- (grabbed: the press shade a held key has, under the ring)
+            elseif fid == cfid then
+                if c.kind == "turn" then PL.cue(cv, c, T.accent, 0.55)
+                else PL.markKey(panel, c, px0, y, k, o.markOpts) end
+            end
+            zones[#zones + 1] = { type = "plate", fid = cfid, id = c.id, kind = c.kind, pid = pid,
+                                  x = zx, y = zy, w = zw, h = zh }
+        end
+    end
+    return zones
+end
+
+-- each control's name (Nov 15 2026, pop-outs: the pop-out's prompt, A and the name, and its help line); nil = "Press"
+local NAME = { on = "UI_On", off = "UI_Off", onoff = "IGUI_RadioPower", start = "UI_ZeD_PlainStation_Start",
+    heat = "IGUI_Temperature", power = "UI_ZeD_PlainStation_PowerLevel", timer = "IGUI_Timer",
+    bake = "UI_ZeD_PlainStation_Bake", broil = "UI_ZeD_PlainStation_Broil", timecook = "UI_ZeD_PlainStation_TimeCook",
+    clearoff = "UI_ZeD_PlainStation_ClearOff", cancel = "UI_Cancel", stop = "UI_ZeD_PlainStation_StopClear",
+    up = "UI_ZeD_PlainStation_Adjust", down = "UI_ZeD_PlainStation_Adjust" }
+function SA.controlName(id)
+    if not id then return nil end
+    local dg = id:match("^d(%d)$")
+    if dg then return dg end
+    local key = NAME[id]
+    return key and ZeD.tr(key) or nil
+end
+
 -- the pop-out window (StationPopout.lua): which station each player has in its own window
 SA.popped = SA.popped or {}
 function SA.isPopped(player, st)
@@ -1028,6 +1081,7 @@ function SA.render(panel, win, x, y, w, h, state, st, opts)
     local player = win._playerObj
     state._lastZones = state.zones
     state.zones = {}
+    state._plateRect = nil
     if opts then state._gpFocusedId = opts.fid else state._gpFocusedId = ST.focusedId(win) end
     local fid = state._gpFocusedId
     -- (Nov 14 2026, punch list 228k on the stations: the knob the controller's A grabbed: the pop-out's, else the
@@ -1120,39 +1174,20 @@ function SA.render(panel, win, x, y, w, h, state, st, opts)
         cyy = cyy + cardH + T.px(10)
     elseif des then
         local px0 = x + PL.centre(cw, des.w, k)
-        local cv = P.canvas(panel, px0, cyy, k)
-        local pst = plateState(st, pid, r, pad)
-        PL.draw(cv, des, pst, { tex = plateTex, now = now() })
-        -- the controls: focus cue, a key's press, the click areas (panel px). A knob keeps its
-        -- own light as the focus cue (it is the hardware's); a key takes the controller's mark.
-        local list = PL.controls(des, pst)
-        local held = pad.pressId and (now() - (pad.pressT or 0) < PRESS_MS) and pad.pressId or nil
-        for _, c in ipairs(list) do
-            local cfid = "craft:a:" .. c.id
-            if c.enabled then
-                local zx, zy, zw, zh = px0 + c.x * k, cyy + c.y * k, c.w * k, c.h * k
-                if held == c.id and c.kind ~= "turn" then PL.cue(cv, c, P.BLACK, 0.30) end
-                -- the pointer over a key: the library's hover wash (a knob keeps its ring)
-                if c.kind ~= "turn" and ZeD.Atoms.mouseIn(panel, zx, zy, zw, zh) and not (state.stDropdownOpen) then
-                    PL.hoverKey(cv, c)
-                end
-                if fid == cfid and c.kind == "turn" and grabId == cfid then
-                    PL.grabCue(cv, c, T.accent, 0.30)   -- (grabbed: the press shade a held key has, under the ring)
-                elseif fid == cfid then
-                    if c.kind == "turn" then PL.cue(cv, c, T.accent, 0.55)
-                    else PL.markKey(panel, c, px0, cyy, k, opts and opts.markOpts or nil) end
-                end
-                zones[#zones + 1] = { type = "plate", fid = cfid, id = c.id, kind = c.kind, pid = pid,
-                                      x = zx, y = zy, w = zw, h = zh }
-            end
-        end
+        SA.drawPlate(panel, px0, cyy, k, st, des, pid, zones,
+            { fid = fid, grabId = grabId, markOpts = opts and opts.markOpts or nil, noHover = state.stDropdownOpen, r = r, pad = pad })
+        -- (Nov 15 2026, pop-outs: the plate's rect, for a click on it away from its controls)
+        state._plateRect = { x = px0, y = cyy, w = des.w * k, h = des.h * k }
         cyy = cyy + plH + T.px(6)
-        -- in the tab: open it in its own window (an icon button at the plate's top right, its hint on hover)
+        -- in the tab: the face popped out on its own (an icon button at the plate's top right, its hint on hover; Nov 15
+        -- 2026, pop-outs: the radio tab's full view button, expand, or contract while it shows)
         if not opts then
             local bs = T.buttonH
             local bx, by = x + cw - bs - T.px(6), viewY + T.px(8) - off
-            local hint = ZeD.tr("UI_ZeD_Appliance_PopOut")
-            ZeD.Molecules.drawIconButton(panel, bx, by, bs, POP_ICON,
+            local TF = ZeD.TwoWayFull
+            local shown = TF and TF.showingObj and player and TF.showingObj(player:getPlayerNum(), st.obj) or false
+            local hint = ZeD.tr(shown and "UI_ZeD_Radio_CloseFullView" or "UI_ZeD_Radio_FullView")
+            ZeD.Molecules.drawIconButton(panel, bx, by, bs, shown and "contract" or "expand",
                 { hover = A.mouseIn(panel, bx, by, bs, bs), focus = (fid == "craft:a:popout") or nil,
                   hint = hint, help = hint, id = "craft:a:popout" })
             zones[#zones + 1] = { type = "popout", fid = "craft:a:popout", x = bx, y = by, w = bs, h = bs }
@@ -1227,6 +1262,12 @@ local function hit(z, x, y) return x >= z.x and x < z.x + z.w and y >= z.y and y
 --- clicked, a key presses; the tab's pop-out button opens the station in its own window, its "bring it
 --- back" closes that window.
 local function act(player, st, z, dir)
+    -- (Nov 15 2026, pop-outs: with faces on, the button pops the face out on its own, frameless (FacePop.lua), and puts
+    -- it away again; with faces off the plain card opens in its own window, as before)
+    if z.type == "popout" and not devicesSimple() and ZeD.FacePop and ZeD.FacePop.toggle then
+        ZeD.FacePop.toggle(player, st.obj, nil, st)
+        return
+    end
     if z.type == "popout" then if ZeD.StationPopout then ZeD.StationPopout.open(player, st) end; return end
     if z.type == "popin" then if ZeD.StationPopout then ZeD.StationPopout.close(player) end; return end
     if z.kind == "turn" then SA.turn(player, st, z.pid, z.id, dir or 1)
@@ -1244,6 +1285,11 @@ function SA.onClick(win, state, st, x, y)
             act(player, st, z, (x < z.x + z.w / 2) and -1 or 1)   -- knobs: left half down, right half up
             return true
         end
+    end
+    -- (Nov 15 2026, pop-outs: a click on the plate away from its controls pops the face out, or puts it away)
+    local pr = state._plateRect
+    if pr and hit(pr, x, y) and not devicesSimple() and ZeD.FacePop and ZeD.FacePop.toggle then
+        ZeD.FacePop.toggle(player, st.obj, nil, st)
     end
     return true
 end

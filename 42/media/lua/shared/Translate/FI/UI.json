@@ -2974,6 +2974,7 @@
     "UI_ZeD_CMap_X": "RMB: avaa kontekstivalikon.",
     "UI_ZeD_CMap_Y": "Napautus: avaa, piilottaa tai näyttää molemmat ikkunat. Pito: sulkee molemmat.",
     "UI_ZeD_Close": "Sulje",
+    "UI_ZeD_FacePop_Hint": "Napsauta säädintä.  Esc sulkee.",
     "UI_ZeD_TIYL_OriginTrait": "Alkuperäpiirre: %1",
     "UI_ZeD_TIYL_StoryBakeSale": "Leivontamyynti",
     "UI_ZeD_TIYL_StoryCarFixation": "Autohulluus",
