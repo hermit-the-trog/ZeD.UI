@@ -4923,3 +4923,8 @@ to be proposed.
    but the pad never went back to the note (or the desk), the same family as 215 on the desk path; and the note came
    back blank, so the typed text may not have reached it. QA handed the pad back to MainScreen through the bridge to
    free the director.
+
+222. **Cooking progress on the inventory row (the director, Nov 14 2026, playtest).** open, a request. With food
+   cooking in an oven, the inventory list gives no sign it is cooking or how far along it is; only the item card shows
+   it. Wanted: a progress bar on the row, like the bar shown while an item is being moved. (The director ate a raw
+   pork chop because nothing showed it wasn't cooked.)
