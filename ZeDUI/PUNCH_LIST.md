@@ -4872,3 +4872,9 @@ to be proposed.
    inside the Character or World window itself (unless the game simply isn't built that way), and also a second way
    through a context menu or the radial wheel. So: the title bar's menu needs a pad stop next to the pins, and an audit
    of what is wheel-only or window-only would follow the same rule.
+
+215. **Controller: the on-screen keyboard from the inventory filter takes no input (the director, Nov 14 2026, playtest).**
+   open. A on the inventory's filter field (view:fbar:field) brings up the on-screen keyboard, but nothing on it can be
+   used and B doesn't dismiss it; only an aim escape clears it. The logger shows every press while it was up still
+   going to "focus Character" (D-pad moves in charMainInv, B twice with no effect): the keyboard never takes the pad.
+   It needs the pad focus when it opens (and to give it back to the field on close), with B closing it.
