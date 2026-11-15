@@ -113,6 +113,7 @@ local function hookKeyboard()
                 -- on the window, so no key could be typed and B never closed it. The keyboard takes the pad when
                 -- it opens, as vanilla's does; its hide gives the pad back to what had it.)
                 local jd = joypadData or (JoypadState and JoypadState.players and JoypadState.players[(playerNum or 0) + 1])
+                if shown then shown._zedPrev = jd and jd.focus ~= shown and jd.focus or nil end
                 if shown and jd and jd.focus ~= shown then
                     shown.prevFocus = jd.focus
                     jd.focus = shown

@@ -226,7 +226,11 @@ function ZeD_Keyboard:hide()
     if e then e:focus() end
     local jd = self.joyfocus or self.joypadData
     if jd and jd.focus == self then
-        jd.focus = self.prevFocus or e
+        -- (Nov 14 2026, punch list 221: the keyboard now takes the pad itself as it opens (215), so an opener that
+        -- then sets prevFocus = jd.focus names the keyboard; it falls back to what held the pad before it opened)
+        local back = self.prevFocus
+        if back == self then back = self._zedPrev end
+        jd.focus = back or e
         if updateJoypadFocus then updateJoypadFocus(jd) end
     end
     self.joyfocus = nil
@@ -575,6 +579,15 @@ function ZeD_Keyboard:onGainJoypadFocus(joypadData) self.joyfocus = joypadData e
 function ZeD_Keyboard:onLoseJoypadFocus(joypadData) end
 
 function ZeD_Keyboard:onJoypadDown(button, joypadData)
+    -- (punch list 221: a keyboard already put away never answers a press; a B on it put the field's old text back)
+    if not self:isVisible() then
+        local jd = joypadData or self.joypadData
+        if jd and jd.focus == self then
+            jd.focus = self._zedPrev
+            if updateJoypadFocus then updateJoypadFocus(jd) end
+        end
+        return
+    end
     self.joyfocus = self.joyfocus or joypadData
     if button == Joypad.AButton then
         local row = self._rows and self._rows[self._focus[1]]
