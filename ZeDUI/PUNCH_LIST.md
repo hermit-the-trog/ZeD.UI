@@ -4770,6 +4770,10 @@ to be proposed.
    icon (the object's sprite) should be. Picture: %USERPROFILE%\Zomboid\Screenshots\zqa_ptl_now5.png (the strip under
    "Disassemble > Steel Counter", script name fixtures_counters_01_39). Likely the menu has no item icon for a world
    object's option and falls back to letters; the object's sprite texture should be drawn instead.
+   After 9ba39ad3e (the director, playtest): the sprites show now, but tiny. A tile picture fills only part of its tile
+   (a coffee table sits low in a tall tile), so drawn at tile size most of the slot is empty. Dim is right when the
+   tools are missing. Wanted: trim each sprite to its drawn pixels (the texture's own offset and size) and scale that up
+   to fill the slot. Picture: zqa_ptl_disassemble.png.
 
 201. **Y opens the windows with a one-frame stretch on the World window (the director, Nov 14 2026, playtest).** open.
    Pressing Y to open the inventory, most times (not every time, more with quick presses), the World window's inventory
