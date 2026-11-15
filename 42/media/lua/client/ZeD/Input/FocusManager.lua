@@ -1087,7 +1087,10 @@ function Focus._landFrom(w, other, src, dir)
     els[#els + 1] = probe
     local pick = _pickBestWithFallback(els, #els, dir, false)
     els[#els] = nil
-    if not pick or not loc[pick] then return end
+    if not pick or not loc[pick] then
+        print("[ZeD.Input] Focus: landing found nothing that way in " .. _label(other) .. " (" .. #els .. " stops)")
+        return
+    end
     local zone = other._focusRing[loc[pick].zoneIdx]
     if zone and zone.landOn then
         local okL, ei = pcall(zone.landOn, other, zone, dir)
@@ -1654,6 +1657,15 @@ local function _handleSpatialNav(w, dir)
         fromIdx = _findCurrentFlatIdx(w, locator) or 1
         newPickIdx, pass = _pickBestWithFallback(searchEls, fromIdx, dir, dir == "up" or dir == "down")
     end
+    -- (Nov 14 2026, punch list 186 again: once the window box became a stop (214), Right from the Character window's
+    -- bag strip went up into the title bar, off to the side, instead of across to the World window's Ground. The
+    -- title bar's stops are reached by Up or lined up only; off to the side, Left / Right go on past them.)
+    if newPickIdx and pass == "half" and (dir == "left" or dir == "right") then
+        local tl, fl = searchLoc[newPickIdx], locator[_findCurrentFlatIdx(w, locator) or 0]
+        local tz = tl and w._focusRing[tl.zoneIdx] and w._focusRing[tl.zoneIdx].zone
+        local fz = fl and w._focusRing[fl.zoneIdx] and w._focusRing[fl.zoneIdx].zone
+        if type(tz) == "string" and tz:sub(-9) == "TitlePins" and tz ~= fz then newPickIdx = nil end
+    end
     if not newPickIdx then
         -- nothing more that way in this window: Left / Right go on to the
         -- other window when it sits that way on screen (the pair side by
@@ -1674,8 +1686,9 @@ local function _handleSpatialNav(w, dir)
                 -- (punch list 210: a landing plays its own click (_applyFlatLanding); a second one here made two at once)
                 local landed = false
                 if src and Focus.getFocusedWindow(_pnOf(other)) == other then
-                    local okL = pcall(Focus._landFrom, w, other, src, dir)
+                    local okL, errL = pcall(Focus._landFrom, w, other, src, dir)
                     landed = okL
+                    if not okL then print("[ZeD.Input] Focus: landing failed: " .. tostring(errL)) end
                 end
                 if not landed then pcall(function() ZeD.uiSound("UISelectListItem") end) end
             end

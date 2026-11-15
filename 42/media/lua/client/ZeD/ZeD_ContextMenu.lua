@@ -139,6 +139,10 @@ function ZeD_ContextMenu:open()
             if setJoypadFocus then setJoypadFocus(self.player, self) end
         end)
     end
+    -- where the player stood when it opened (update: walking away closes it, punch list 220)
+    local p = getSpecificPlayer and getSpecificPlayer(self.player)
+    local okAt, at = pcall(function() return { x = p:getX(), y = p:getY(), z = p:getZ() } end)
+    self._openAt = (p and okAt) and at or nil
     self:setWantKeyEvents(true)
     -- (split view: the menu of player 2 to 4 draws in that player's own theme, PlayerTheme.lua)
     if ZeD.Theme and ZeD.Theme.adopt then ZeD.Theme.adopt(self) end
@@ -735,8 +739,29 @@ end
 -- UPDATE — runs every frame. Handles settle timer + outside-click detection.
 -- ============================================================================
 
+-- (Nov 14 2026, punch list 220, the director: the menu was "too easy for it to get stuck open". It closes once the
+-- player has walked more than this many tiles from where it opened (or changed floor), as the game's own menu goes
+-- when you walk off; and a pad player's menu left with no pad focus takes the pad back, so B always reaches it.)
+local WALK_OFF_TILES = 2
+
 function ZeD_ContextMenu:update()
     ZeD_Panel.update(self)
+    if not self._ctx.open then return end
+    local p = getSpecificPlayer and getSpecificPlayer(self.player)
+    local at = self._openAt
+    if p and at then
+        local okOff, off = pcall(function()
+            local dx, dy = p:getX() - at.x, p:getY() - at.y
+            return dx * dx + dy * dy > WALK_OFF_TILES * WALK_OFF_TILES or math.floor(p:getZ()) ~= math.floor(at.z)
+        end)
+        if okOff and off then
+            self:close()
+            return
+        end
+    end
+    if self._joyfocus and getJoypadFocus and getJoypadFocus(self.player) == nil and self:isReallyVisible() then
+        pcall(setJoypadFocus, self.player, self)
+    end
 
     -- Settle timer (truncating mode only)
     if self._settleAt and getTimestampMs() >= self._settleAt then
