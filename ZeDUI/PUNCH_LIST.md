@@ -4898,3 +4898,8 @@ to be proposed.
    logger: every A is "focus nil | cursor nil | paused false", then the no-focus path, so the press reaches the game's
    button prompt route (buts:onAPress) with no ZeD window holding the pad; still nothing opens. Suspect ZeD's wrap of
    the prompt's A (the hint strip counts uses then calls the game's onAPress) or a stale prompt target.
+
+219. **Access mode: Place item from a container in one go (the director, Nov 14 2026, playtest).** open, a later
+   request. 184 is confirmed: A places on a controller, the vanilla way: an item in a container is first moved to the
+   inventory, the action stops, and Place has to be chosen again. That is right for the normal mode. In Access mode
+   the director wants the move and the place done in one go. "We'll work on that at another time, unless it's easy."
