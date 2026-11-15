@@ -69,6 +69,11 @@ AB.WALKS = WALKS
 -- vanilla actions that switch their own bar off once started (in start(), after create)
 local SELF_HIDDEN = { ISForageAction = true, ISFitnessAction = true }
 
+-- quick hops get no bubble at all, neither while they run nor when they end (Nov 15 2026, punch list 247:
+-- the director, hopping a short fence "probably needs no bubble at all"; climbing through a window the same)
+local NO_BUBBLE = { ISClimbOverFence = true, ISClimbThroughWindow = true }
+AB.NO_BUBBLE = NO_BUBBLE
+
 -- ---------------------------------------------------------------------------
 -- labels: what the character is doing, in the 5 x 7 face (capitals, digits)
 -- ---------------------------------------------------------------------------
@@ -304,7 +309,7 @@ if not AB._hooked then
     ISBaseTimedAction.create = function(self, ...)
         local r = origCreate(self, ...)
         -- vanilla's own choice first: a table field false (or a self-hiding class) means no bar anywhere
-        local wanted = self.useProgressBar ~= false and not SELF_HIDDEN[self.Type]
+        local wanted = self.useProgressBar ~= false and not SELF_HIDDEN[self.Type] and not NO_BUBBLE[self.Type]
         self._zedBar = wanted
         self._zedStartMs = getTimestampMs()
         -- safe mode: the game's own bar stays on, ours is hidden
@@ -412,8 +417,10 @@ function AB.state(chr, pn)
     end
     job.lastRem = rem
     local done = math.max(0, job.total - rem)
+    -- (act: the action this state was drawn from, so its end is told apart from another's; punch list 247)
     local st = { phase = "work", label = AB.label(cur), item = AB.itemName(cur), noend = noEnd(cur),
-                 frac = delta(cur), qi = done, qn = math.max(1, job.total), el = (now - (cur._zedStartMs or job.startMs)) / 1000 }
+                 frac = delta(cur), qi = done, qn = math.max(1, job.total), el = (now - (cur._zedStartMs or job.startMs)) / 1000,
+                 act = cur }
     if st.noend then st.frac = 0; st.qn = 1; st.qi = 0 end
     return st
 end
@@ -427,6 +434,14 @@ function AB.onEnded(action, kind)
     if pn == nil then return end
     local last = AB._last[pn]
     if not last then return end
+    -- The last state drawn is kept until something else draws, so it can be long stale: an action that never
+    -- showed (an instant one) ended and flashed "DONE SMOKING" minutes after the cigarette. The end belongs to
+    -- the action the state was drawn from, or to the next one of the same running job (one too quick to be drawn).
+    -- (Nov 15 2026, punch list 247)
+    local job = AB._jobs[pn]
+    if last.act ~= action and not (job and job.type == action.Type and last.act and last.act.Type == action.Type) then
+        return
+    end
     if kind == "done" then
         local q = queueOf(chr)
         local list = q and q.queue or {}
