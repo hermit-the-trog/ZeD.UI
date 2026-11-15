@@ -138,7 +138,9 @@ local function drawnFor(k, col, item, grid)
     local nm = string.sub(item:getName() or "", 1, 3)
     for _, e in ipairs(cap[k]) do
         if e.y >= y0 and e.y < y1 and e.x >= x0 - 1 and e.x < x1 then
-            if isWt(e.s) then wt = e
+            -- (a grid cell draws its weight at the top and, since Nov 15 2026, its count as "(5)"
+            -- at the foot: the cell's weight is the topmost bracket)
+            if isWt(e.s) then if not (grid and wt and e.y > wt.y) then wt = e end
             elseif not grid and nm ~= "" and string.sub(e.s, 1, 3) == nm then
                 nameR = e.x + ZeD.TM:MeasureStringX(e.font or ZeD.T.fontF2, e.s)
             end

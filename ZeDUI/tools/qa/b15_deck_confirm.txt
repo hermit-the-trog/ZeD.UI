@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/b15_deck_confirm.txt  (Nov 15 2026, QA): the release pass's two new Deck warnings, once more
+zedqa_prelude.lua | pre
+zedqa_wt_bracket.lua | wtb | timeout=300
+zedqa_world_pad_take.lua | wpt | timeout=300
