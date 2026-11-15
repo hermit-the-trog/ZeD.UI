@@ -4906,3 +4906,10 @@ to be proposed.
    PARKED (Build, Nov 14 2026). Lead: vanilla's ISPlace3DItemCursor:create already queues the transfer and the drop
    together (transferIfNeeded, then ISDropWorldItemAction), so something drops the second action once the first
    finishes; possibly ZeD (Put things back, the queue handling). Needs a game run with the timed-action queue logged.
+
+220. **Controller: the action-strip context menu gets stuck open when you walk away (the director, Nov 14 2026,
+   playtest).** open. Opening the right-click / X menu (the icon strip) and then moving around in the world without
+   choosing leaves the menu up; it is too easy to end up with it stuck open. Staying open while you step away isn't the
+   problem in itself; being left with a menu you can't easily get rid of is. Likely fix: close it when the player walks
+   out of reach of its target (as vanilla's context menu does) or when the left stick moves the character while it is
+   up, and make sure B always closes it.
