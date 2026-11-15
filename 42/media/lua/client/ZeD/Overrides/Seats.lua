@@ -16,6 +16,7 @@
 
 require "ZeD/SafeMode"
 require "ZeD/ZeD_SeatChooser"
+require "ZeD/ZeD_SeatPopout"   -- (Nov 15 2026, seat pop-out: the Immersive style's cabin)
 require "ZeD/ZeD_SirenController"
 
 -- safe mode turning on: the chooser and the controller go away (Escape no
@@ -24,6 +25,10 @@ local function putAway()
     local seats = ZeD.Seats and ZeD.Seats.windows or {}
     for _, w in pairs(seats) do
         if w and w:isReallyVisible() then pcall(w.close, w) end
+    end
+    -- (Nov 15 2026, seat pop-out: the cabin too)
+    for _, p in pairs(ZeD.Seats and ZeD.Seats.popouts or {}) do
+        if p and p:isReallyVisible() then pcall(p.close, p) end
     end
     local props = ZeD.Siren and ZeD.Siren.props or {}
     for _, p in pairs(props) do

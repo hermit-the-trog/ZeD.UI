@@ -115,6 +115,30 @@ local function drawHand(p, x, y, h, minTop)
     end
 end
 
+--- The pointing hand at a pixel size of the caller's (Nov 15 2026, seat pop-out: the seat picker's hand sits outside
+--- its cabin at the cabin's own pixel size, and points left from the right side). The fingertip touches tipX and the
+--- hand is centred on the rect y .. y + h; mirror = true points it left (the tip at tipX, the hand to its right).
+--- Returns the hand's width in px.
+function FP.drawHandAt(p, tipX, y, h, k, mirror)
+    k = math.max(1, math.floor(k or artK()))
+    local ay = y + math.floor((h - HAND_H * k) / 2)
+    local W = HAND_W * k
+    local function rx(c0, n) if mirror then return tipX + W - (c0 + n) * k end; return tipX - W + c0 * k end
+    for r = 1, HAND_H do
+        local s = _handSil[r]
+        -- (the shadow falls 1 art px right and down either way: the light stays top left)
+        if s then p:drawRect(rx(s[1], s[2]) + k, ay + r * k, s[2] * k, k, SHADOW_A, 0, 0, 0) end
+    end
+    for r = 1, HAND_H do
+        local ry = ay + (r - 1) * k
+        for _, run in ipairs(_handRuns[r]) do
+            local v = run[3] and 0 or 1
+            p:drawRect(rx(run[1], run[2]), ry, run[2] * k, k, 1, v, v, v)
+        end
+    end
+    return W
+end
+
 -- four L marks 3u outside the corners: arms 6u long, 2u thick, accentBright
 -- with a 1u black edge
 local _arms = {}

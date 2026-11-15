@@ -4,6 +4,9 @@
 -- organism (ZeD_SeatChooser, a ZeD_Window). The hook is Overrides/Seats.lua
 -- (ISVehicleMenu.onShowSeatUI: the wheel's Switch Seat and Enter Vehicle, the
 -- seat key).
+-- Nov 15 2026, seat pop-out: this window is the Simple style's (ZeD setup's
+-- Dashboard row on Simple). The Immersive style pops the car's cabin out instead
+-- (ZeD_SeatPopout.lua), and borrows this file's rules and actions unchanged.
 --
 -- It sits where vanilla's does (the middle of the player's screen, re-centred
 -- every frame), at the same size. The car is vanilla's own seat-chooser outline,
@@ -158,6 +161,7 @@ function ZeD_SeatChooser:readSeats()
         if inside then
             local off = inside:getOffset()
             st.dx, st.dy = -off:get(0) * scale + ox, -off:get(2) * scale + oy
+            st.ox, st.oz = off:get(0), off:get(2)   -- (the raw offsets: the pop-out groups its rows by them, Nov 15 2026)
         end
         local occupied = v:isSeatOccupied(i)
         local who = v:getCharacter(i)
@@ -192,7 +196,7 @@ function ZeD_SeatChooser:readSeats()
             local outside = pngr and pngr:getPositionById("outside")
             if can and outside then
                 local off = outside:getOffset()
-                doors[n] = { n = n, i = i, dx = -off:get(0) * scale, dy = -off:get(2) * scale + oy }
+                doors[n] = { n = n, i = i, dx = -off:get(0) * scale, dy = -off:get(2) * scale + oy, ox = off:get(0), oz = off:get(2) }
             end
         end
     end
@@ -642,6 +646,10 @@ function S.toggle(playerObj, vehicle)
     if speed and speed:getCurrentGameSpeed() == 0 then return end   -- vanilla: not while paused
     local pn = playerObj:getPlayerNum()
     local win = S.windows[pn]
+    -- (Nov 15 2026, seat pop-out: in the Immersive style the cabin pops out instead, ZeD_SeatPopout.lua; a car it
+    -- can't lay out as rows gets this window. The Simple style keeps this window.)
+    local shown = win and win.character == playerObj and win:isReallyVisible()
+    if not shown and S.popToggle and S.immersive and S.immersive() and S.popToggle(playerObj, vehicle) then return end
     if not win or win.character ~= playerObj then
         win = ZeD_SeatChooser:new(playerObj)
         win:initialise()
@@ -666,6 +674,10 @@ end
 function S.takeEscape()
     for _, win in pairs(S.windows) do
         if win and win:isReallyVisible() then win:close(); return true end
+    end
+    -- (Nov 15 2026, seat pop-out: and the cabin, ZeD_SeatPopout.lua)
+    for _, p in pairs(S.popouts or {}) do
+        if p and p:isReallyVisible() then p:close(); return true end
     end
     return false
 end
