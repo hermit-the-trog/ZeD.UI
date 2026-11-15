@@ -15,7 +15,8 @@
 --
 -- Mouse: click a word to turn the switch there, click the knob to step it,
 -- the wheel turns it. Controller: left / right picks a switch (a ring round
--- its knob), up / down turns it, A steps it, B puts it away. Every change is
+-- its knob); A grabs it, then the D-pad turns it, A or B lets go (punch list
+-- 228k); X steps it, B puts it away. Every change is
 -- vanilla's own command (setLightbarLightsMode / setLightbarSirenMode) with
 -- vanilla's sounds, so it works the same in multiplayer. With the simple dash
 -- it is a plain card instead (THE SIMPLE FORM, below).
@@ -64,6 +65,7 @@ function ZeD_SirenController:new(character)
     o.character = character
     o.playerNum = character:getPlayerNum()
     o.focus = 1          -- the controller's switch: 1 lights, 2 siren
+    o._grab = false      -- that switch's knob is grabbed (A): the D-pad turns it
     o._hits = {}
     o._hover = nil
     return o
@@ -187,7 +189,8 @@ function ZeD_SirenController:prerender()
         local cue = knob and { x = c.x, y = c.y, w = c.w, h = c.h, kind = "turn" } or c   -- a knob's cue is a ring round it
         hits[#hits + 1] = { id = c.id, x = c.x * s, y = c.y * s, w = c.w * s, h = c.h * s, group = group, knob = knob,
                             mode = (not knob) and tonumber(what) or nil }
-        if c.id == focusKnob then PL.cue(cv, cue, ac, 0.55)
+        if c.id == focusKnob and self._grab then PL.grabCue(cv, cue, ac, 0.35)   -- (grabbed: punch list 228k)
+        elseif c.id == focusKnob then PL.cue(cv, cue, ac, 0.55)
         elseif self._hover == c.id and not self.joyfocus then
             if knob then PL.cue(cv, cue, ac, 0.30) else PL.hoverKey(cv, c) end
         end
@@ -195,10 +198,7 @@ function ZeD_SirenController:prerender()
     self._hits = hits
     -- the controller's strip under the faceplate: the help line's look (pictures at 14u, F2 words)
     if self._stripH > 0 then
-        ZeD.PadGlyphs.drawStrip(self, 0, self.height - self._stripH, self.width, {
-            { glyph = "<>", label = ZeD.tr("UI_ZeD_Siren_PromptSwitch") },
-            { glyph = "^v", pad = { "DUD" }, label = ZeD.tr("UI_ZeD_Siren_PromptTurn") },
-            { glyph = "A", label = ZeD.tr("UI_ZeD_Siren_Step") }, { glyph = "B", label = ZeD.tr("UI_ZeD_Hud_PutAway") } })
+        ZeD.PadGlyphs.drawStrip(self, 0, self.height - self._stripH, self.width, self:padItems())
     end
 end
 
@@ -253,7 +253,8 @@ function ZeD_SirenController:_plain()
         local o = _btnO
         o.hover = (self._hover == kid and not self.joyfocus) and true or false
         o.focus = (self.joyfocus and self.focus == gi) and _markO or nil
-        ZeD.Molecules.drawButton(self, x, y, colW, bh, ZeD.tr(SWITCH_KEYS[group]), "default", o.hover and isMouseButtonDown(0), nil, o)
+        local held = (o.hover and isMouseButtonDown(0)) or (o.focus ~= nil and self._grab == true)   -- (grabbed: pressed)
+        ZeD.Molecules.drawButton(self, x, y, colW, bh, ZeD.tr(SWITCH_KEYS[group]), "default", held, nil, o)
         hits[#hits + 1] = { id = kid, x = x, y = y, w = colW, h = bh, group = group, knob = true }
         for m = 3, 0, -1 do
             y = y + bh + gap
@@ -266,10 +267,7 @@ function ZeD_SirenController:_plain()
     end
     self._hits = hits
     if stripH > 0 then
-        ZeD.PadGlyphs.drawStrip(self, 0, bodyH, w, {
-            { glyph = "<>", label = ZeD.tr("UI_ZeD_Siren_PromptSwitch") },
-            { glyph = "^v", pad = { "DUD" }, label = ZeD.tr("UI_ZeD_Siren_PromptTurn") },
-            { glyph = "A", label = ZeD.tr("UI_ZeD_Siren_Step") }, { glyph = "B", label = ZeD.tr("UI_ZeD_Hud_PutAway") } })
+        ZeD.PadGlyphs.drawStrip(self, 0, bodyH, w, self:padItems())
     end
 end
 
@@ -319,14 +317,32 @@ end
 function ZeD_SirenController:onGainJoypadFocus(joypadData) self.joyfocus = joypadData end
 function ZeD_SirenController:onLoseJoypadFocus(joypadData) self.joyfocus = nil end
 local function gid(self) return GROUPS[self.focus] end
-function ZeD_SirenController:onJoypadDown(button, joypadData)
-    if button == Joypad.BButton then self:close()
-    elseif button == Joypad.AButton then self:step(gid(self), 0) end
+-- (Nov 14 2026, punch list 228k, the design lead's "Yes, all knobs": the D-pad moves between the two knobs; A grabs
+-- the focused one, then Right / Up turn it up and Left / Down down (held: again and again), A or B lets go (B on a
+-- grabbed knob only lets go). Its push, a step round its positions, is X.)
+--- The controller's strip: on a knob, Switch, A Grab, X Step, B Put away; grabbed, D-pad Turn, A / B Let go.
+function ZeD_SirenController:padItems()
+    if self._grab then return ZeD.Input.Focus.knobPrompts() end
+    return {
+        { glyph = "<>", label = ZeD.tr("UI_ZeD_Siren_PromptSwitch") },
+        { glyph = "A", label = ZeD.tr("UI_ZeD_Prompt_KnobGrab") },
+        { glyph = "X", label = ZeD.tr("UI_ZeD_Siren_Step") },
+        { glyph = "B", label = ZeD.tr("UI_ZeD_Hud_PutAway") } }
 end
-function ZeD_SirenController:onJoypadDirLeft() if self.focus > 1 then self.focus = self.focus - 1; sound("UISelectListItem") end end
-function ZeD_SirenController:onJoypadDirRight() if self.focus < #GROUPS then self.focus = self.focus + 1; sound("UISelectListItem") end end
-function ZeD_SirenController:onJoypadDirUp() self:step(gid(self), 1) end
-function ZeD_SirenController:onJoypadDirDown() self:step(gid(self), -1) end
+function ZeD_SirenController:onJoypadDown(button, joypadData)
+    if button == Joypad.BButton then
+        if self._grab then self._grab = false; sound("UISelectListItem"); return end
+        self:close()
+    elseif button == Joypad.AButton then self._grab = not self._grab; sound("UISelectListItem")
+    elseif button == Joypad.XButton then self:step(gid(self), 0) end
+end
+local function moveTo(self, i)
+    if i >= 1 and i <= #GROUPS and i ~= self.focus then self.focus = i; self._grab = false; sound("UISelectListItem") end
+end
+function ZeD_SirenController:onJoypadDirLeft() if self._grab then self:step(gid(self), -1) else moveTo(self, self.focus - 1) end end
+function ZeD_SirenController:onJoypadDirRight() if self._grab then self:step(gid(self), 1) else moveTo(self, self.focus + 1) end end
+function ZeD_SirenController:onJoypadDirUp() if self._grab then self:step(gid(self), 1) end end
+function ZeD_SirenController:onJoypadDirDown() if self._grab then self:step(gid(self), -1) end end
 
 -- ---------------------------------------------------------------------------
 -- ENTRY (the wheel's Lightbar slice, through vanilla's timed action)
@@ -347,6 +363,7 @@ function S.toggle(character)
         S.props[pn] = prop
     end
     prop.focus = 1
+    prop._grab = false
     prop:setVisible(true)
     prop:addToUIManager()
     prop:setAlwaysOnTop(true)

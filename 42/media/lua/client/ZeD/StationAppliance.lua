@@ -811,7 +811,8 @@ end
 local function hovered(panel, x, bx, by, bw, bh)
     return x.hoverOK and ZeD.Atoms.mouseIn(panel, bx, by, bw, bh) or false
 end
-local function pressedOf(x, id) return x.held == id end
+-- (a stepper the controller's A grabbed shows pressed, under the focus mark: punch list 228k on the stations)
+local function pressedOf(x, id) return x.held == id or (x.grab ~= nil and x.grab == "craft:a:" .. id) end
 -- one push button (hover, focus, the pressed shade, selected, disabled while there is no power)
 local function pButton(panel, x, bx, by, bw, bh, text, id, selected, colors, noFocus)
     local o = _bo
@@ -1019,7 +1020,7 @@ local POP_ICON = "pop_out"   -- a ZeD pixel icon
 
 --- The view's frame: the header, the plate (or the plain card), its line and what is inside, as one scroll;
 --- returns the body's height (nothing while the station is popped out). opts: the pop-out window's draw
---- { noHeader = true, k = whole zoom, fid = focused id }; nil in the tab.
+--- { noHeader = true, k = whole zoom, fid = focused id, grabId = the knob grabbed }; nil in the tab.
 function SA.render(panel, win, x, y, w, h, state, st, opts)
     local T  = ZeD.T
     local A  = ZeD.Atoms
@@ -1029,6 +1030,10 @@ function SA.render(panel, win, x, y, w, h, state, st, opts)
     state.zones = {}
     if opts then state._gpFocusedId = opts.fid else state._gpFocusedId = ST.focusedId(win) end
     local fid = state._gpFocusedId
+    -- (Nov 14 2026, punch list 228k on the stations: the knob the controller's A grabbed: the pop-out's, else the
+    -- window's (Focus.knobStop keeps it there))
+    local grabId = nil
+    if opts then grabId = opts.grabId elseif fid and win and win._knobGrab == fid then grabId = fid end
     local zones = state.zones
     local mw = st.kind == "micro"
 
@@ -1097,6 +1102,7 @@ function SA.render(panel, win, x, y, w, h, state, st, opts)
     if simple then
         -- the plain card, centred, its zones the face's
         px_.zones, px_.fid, px_.markOpts, px_.win = zones, fid, opts and opts.markOpts or nil, opts and panel or nil
+        px_.grab = grabId
         px_.hoverOK = not state.stDropdownOpen
         px_.held = pad.pressId and (now() - (pad.pressT or 0) < PRESS_MS) and pad.pressId or nil
         local cx0 = x + math.floor((cw - cardW) / 2)
@@ -1130,7 +1136,9 @@ function SA.render(panel, win, x, y, w, h, state, st, opts)
                 if c.kind ~= "turn" and ZeD.Atoms.mouseIn(panel, zx, zy, zw, zh) and not (state.stDropdownOpen) then
                     PL.hoverKey(cv, c)
                 end
-                if fid == cfid then
+                if fid == cfid and c.kind == "turn" and grabId == cfid then
+                    PL.grabCue(cv, c, T.accent, 0.30)   -- (grabbed: the press shade a held key has, under the ring)
+                elseif fid == cfid then
                     if c.kind == "turn" then PL.cue(cv, c, T.accent, 0.55)
                     else PL.markKey(panel, c, px0, cyy, k, opts and opts.markOpts or nil) end
                 end
@@ -1253,8 +1261,10 @@ function SA.onMouseWheel(win, state, st, del, x, y)
     return true
 end
 
---- The controller's stops: the station select first, then every stamped control (a knob turns on left /
---- right); B on any of them leaves the station. An open list's own stops instead while it is open.
+--- The controller's stops: the station select first, then every stamped control; B on any of them leaves the
+--- station. An open list's own stops instead while it is open. (Nov 14 2026, punch list 228k on the stations, the
+--- design lead's "Yes, all knobs": a knob is a stop the D-pad moves onto and off; A grabs it, the D-pad turns it
+--- (Right / Up up, Left / Down down, with the D-pad's repeat), A or B lets go; B not grabbed still leaves.)
 function SA.buildFocusables(win, state, st)
     if state.stDropdownOpen then return ST.dropdownFocusables(state, win._playerObj, "craft") end
     local out = {}
@@ -1267,18 +1277,19 @@ function SA.buildFocusables(win, state, st)
                 onFocus = function(w, e) end,
                 onActivate = function(w, e) act(w._playerObj, st, e.zone, 1) end,
             }
-            if z.kind == "turn" then
-                -- D-pad left / right turns the knob one stop; up / down navigates
-                el.onDpadDir = function(w, e, dir)
-                    if dir == "left" then act(w._playerObj, st, e.zone, -1); return true end
-                    if dir == "right" then act(w._playerObj, st, e.zone, 1); return true end
-                    return false
-                end
-            end
             out[#out + 1] = el
         end
     end
     ST.addLeaveCancel(out, win, "craft")
+    -- (the knobs last, so a grabbed knob's B lets go and a free one's still leaves: knobStop keeps that B)
+    local F = ZeD.Input and ZeD.Input.Focus
+    if F and F.knobStop then
+        for _, el in ipairs(out) do
+            if el.craftKind == "turn" then
+                F.knobStop(el, function(w, e, d) act(w._playerObj, st, e.zone, d) end)
+            end
+        end
+    end
     return out
 end
 

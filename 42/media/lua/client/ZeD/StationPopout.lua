@@ -9,8 +9,11 @@
 -- with its close box, B or Escape, and by itself when the station is no longer
 -- the one in use (walking away releases it, as in the tab).
 -- Mouse: as in the tab (a knob's left half turns it down, the right half up;
--- the wheel turns it). Controller: up / down walk the controls in reading
--- order, left / right turn a knob (or walk), A presses, B closes.
+-- the wheel turns it). Controller: the D-pad walks the controls, A presses a key,
+-- B closes. A grabs a knob, then the D-pad turns it (Right / Up up, Left / Down
+-- down, held: again and again); A or B lets go (punch list 228k on the stations).
+-- The window keeps the pad meanwhile, so a held direction never walks the window
+-- behind it (209).
 -- With ZeD setup's Devices row on Simple the window holds the plain card
 -- (StationAppliance.lua) at ZeD's own size; its controls are the face's, so
 -- the mouse, the wheel and the controller work on it unchanged.
@@ -41,6 +44,7 @@ function ZeD_StationPopout:new(playerNum)
     o.playerNum = playerNum or 0
     o.state = { zones = {}, scroll = stubScroll() }
     o.fi = 1             -- controller: the focused control, in reading order
+    o._grab = false      -- the focused knob is grabbed (A): the D-pad turns it
     o._down = nil
     -- the focus mark: this window keeps its own focus (joypad focus on it), so the mark
     -- is told the element has it and the pad is in use (fid is only set with joypad focus)
@@ -125,7 +129,8 @@ function ZeD_StationPopout:prerender()
     self.minimumWidth, self.minimumHeight = 0, 0
     -- a draw that fails logs once and closes the window, instead of failing every frame
     local ok, total = pcall(SA.render, self, { _playerObj = p }, margin, tbH, w - 2 * margin, bodyH, self.state, cur,
-        { noHeader = true, k = k, fid = self:focusId(), markOpts = self._markOpts })
+        { noHeader = true, k = k, fid = self:focusId(), markOpts = self._markOpts,
+          grabId = self:knobGrabbed() and self:focusId() or nil })
     if not ok then ZeD.logOnce("station pop-out", total); self:close(); return end
     -- the view returns the height its content needs; the next frame sizes the window to it
     if total and total ~= self._bodyH then self._bodyH = total end
@@ -134,14 +139,15 @@ end
 function ZeD_StationPopout:render() ZeD_Window.render(self) end
 
 -- The help line's prompts while the controller is on this window (nil with the mouse:
--- the line then shows the help words). A knob turns with left / right and A; a key presses.
+-- the line then shows the help words). A grabs a knob (then D-pad Turn, A / B Let go); a key presses.
 function ZeD_StationPopout:getFooterPrompts()
     if not self.joyfocus then return nil end
+    if self:knobGrabbed() then return ZeD.Input.Focus.knobPrompts() end
     local c = self:controls()
     local z = c[math.max(1, math.min(#c, self.fi))]
     local out = {}
     if z and z.kind == "turn" then
-        out[#out + 1] = { glyph = "<>", label = ZeD.tr("UI_ZeD_Looks_PromptTurn") }
+        out[#out + 1] = { glyph = "A", label = ZeD.tr("UI_ZeD_Prompt_KnobGrab") }
     elseif z then
         out[#out + 1] = { glyph = "A", label = ZeD.tr("UI_ZeD_Prompt_Press") }
     end
@@ -230,27 +236,46 @@ function ZeD_StationPopout:moveDir(dir)
             if t and (bt == nil or t < bt or (t == bt and cost < bc)) then best, bt, bc = i, t, cost end
         end
     end
-    if best then self.fi = best; pcall(function() ZeD.uiSound("UISelectListItem") end) end
+    if best then self.fi = best; self._grab = false; pcall(function() ZeD.uiSound("UISelectListItem") end) end
 end
 
-function ZeD_StationPopout:turnOrMove(d)
+-- the focused control (a zone), or nil
+function ZeD_StationPopout:focusedZone()
     local c = self:controls()
-    local z = c[math.max(1, math.min(#c, self.fi))]
-    -- (a dial keeps the press at its end too: punch list 209)
-    if z and z.kind == "turn" then SA.act(getSpecificPlayer(self.playerNum), self.st, z, d) else self:moveDir(d < 0 and "left" or "right") end
+    return c[math.max(1, math.min(#c, self.fi))]
+end
+--- The focused knob is grabbed (A): the D-pad turns it.
+function ZeD_StationPopout:knobGrabbed()
+    local z = self:focusedZone()
+    return self._grab == true and z ~= nil and z.kind == "turn"
+end
+
+-- (Nov 14 2026, punch list 228k on the stations, the design lead's "Yes, all knobs": a grabbed knob turns, Right /
+-- Up up and Left / Down down; anything else moves to the control that way (209). The window keeps the pad either way,
+-- so a held direction never walks the window behind it.)
+function ZeD_StationPopout:dirPad(dir, d)
+    if self:knobGrabbed() then SA.act(getSpecificPlayer(self.playerNum), self.st, self:focusedZone(), d)
+    else self:moveDir(dir) end
 end
 
 function ZeD_StationPopout:onJoypadDown(button, joypadData)
-    if button == Joypad.BButton then self:close(); return end
+    local z = self:focusedZone()
+    if button == Joypad.BButton then
+        if self:knobGrabbed() then self._grab = false; pcall(function() ZeD.uiSound("UISelectListItem") end); return end
+        self:close(); return
+    end
     if button ~= Joypad.AButton then return end
-    local c = self:controls()
-    local z = c[math.max(1, math.min(#c, self.fi))]
-    if z then SA.act(getSpecificPlayer(self.playerNum), self.st, z, 1) end
+    if z and z.kind == "turn" then
+        self._grab = not self._grab
+        pcall(function() ZeD.uiSound("UISelectListItem") end)
+    elseif z then
+        SA.act(getSpecificPlayer(self.playerNum), self.st, z, 1)
+    end
 end
-function ZeD_StationPopout:onJoypadDirUp() self:moveDir("up") end
-function ZeD_StationPopout:onJoypadDirDown() self:moveDir("down") end
-function ZeD_StationPopout:onJoypadDirLeft() self:turnOrMove(-1) end
-function ZeD_StationPopout:onJoypadDirRight() self:turnOrMove(1) end
+function ZeD_StationPopout:onJoypadDirUp() self:dirPad("up", 1) end
+function ZeD_StationPopout:onJoypadDirDown() self:dirPad("down", -1) end
+function ZeD_StationPopout:onJoypadDirLeft() self:dirPad("left", -1) end
+function ZeD_StationPopout:onJoypadDirRight() self:dirPad("right", 1) end
 
 -- ---------------------------------------------------------------------------
 -- ENTRY
@@ -267,7 +292,7 @@ function SP.open(player, st)
         win:instantiate()
         SP.windows[pn] = win
     end
-    win.st, win.fi, win._bodyH = st, 1, nil
+    win.st, win.fi, win._bodyH, win._grab = st, 1, nil, false
     SA.popped[pn] = st
     if not win:isReallyVisible() then
         win:setVisible(true)

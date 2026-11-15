@@ -10,6 +10,8 @@
 --   PROMPTS  on a knob: A Grab; grabbed: D-pad Turn, A / B Let go (and no A or B of their own)
 --   CAR      the car radio and the two-way full view (their own controller code): the same, face and plain card
 --   LOCK     a padlock's number wheel (a card zone with knob): the same through the card's stops
+--   STATION  ("Yes, all knobs") the Craft tab's oven / microwave knobs (StationAppliance's stops: B not grabbed still
+--            leaves the station), the oven's own window (StationPopout: it keeps the pad, 209) and the siren controller
 --   WIRED    the radio tab's faces, plain card and two-way face all make their knobs this way; no knob turns on a
 --            bare D-pad any more
 -- Run from the repo root: lua51 ZeDUI/tools/qa/knob_grab_sim.lua
@@ -386,6 +388,144 @@ do
         check("WIRED: " .. f .. " draws a grabbed knob held", s:find("face.grabId == c.id", 1, true) ~= nil and s:find("PL.grabCue", 1, true) ~= nil)
     end
     check("WIRED: the plain card draws a grabbed stepper pressed", (slurp(Z .. "PlainFace.lua") or ""):find("local held = face.grabId ~= nil and face.grabId == c.id", 1, true) ~= nil)
+end
+
+
+-- ---------------------------------------------------------------------------
+-- STATION: the Craft tab's appliance stops, the pop-out window, the siren controller
+-- ---------------------------------------------------------------------------
+do
+    local src = slurp(Z .. "StationAppliance.lua") or ""
+    local piece = cut(src, "function SA.buildFocusables(win, state, st)")
+    check("WIRED: the appliance's stops are found", piece ~= nil)
+    local acts, left = {}, 0
+    local ST = {
+        selectFocusable = function() return nil end,
+        dropdownFocusables = function() return {} end,
+        addLeaveCancel = function(out)
+            for _, el in ipairs(out) do
+                if not el.onCancel then el.onCancel = function() left = left + 1 end; el.promptB = "UI_ZeD_Station_Leave" end
+            end
+        end }
+    local act = function(p, st, z, d) acts[#acts + 1] = z.id .. ":" .. tostring(d) end
+    local fn, e = loadstring("local SA, ST, act = ...\n" .. (piece or ""), "appliance stops")
+    check("STATION: the appliance's stops compile", fn ~= nil, e)
+    if fn then
+        local SA = {}
+        fn(SA, ST, act)
+        local w = { _playerObj = PLAYER }
+        local state = { zones = {
+            { type = "plate", fid = "craft:a:heat", id = "heat", kind = "turn", x = 0, y = 0, w = 10, h = 10 },
+            { type = "plate", fid = "craft:a:start", id = "start", kind = "press", x = 0, y = 20, w = 10, h = 10 } } }
+        local els = SA.buildFocusables(w, state, {})
+        local knob, key = els[1], els[2]
+        check("STATION: the oven's knob is a knob stop, its key is not", knob.isKnob == true and key.isKnob == nil)
+        check("STATION: not grabbed, the D-pad moves on", knob.onDpadDir(w, knob, "right") == false and #acts == 0)
+        knob.onActivate(w, knob)
+        check("STATION: A grabs the knob (no turn on the press)", w._knobGrab == "craft:a:heat" and #acts == 0)
+        knob.onDpadDir(w, knob, "up"); knob.onDpadDir(w, knob, "left")
+        check("STATION: grabbed, Up turns it up and Left down", table.concat(acts, ",") == "heat:1,heat:-1", table.concat(acts, ","))
+        knob.onCancel(w, knob)
+        check("STATION: B lets go and stays at the station", w._knobGrab == nil and left == 0)
+        knob.onCancel(w, knob)
+        check("STATION: B not grabbed leaves the station, as before", left == 1)
+        acts = {}
+        key.onActivate(w, key)
+        check("STATION: A on a key still presses it", acts[1] == "start:1")
+    end
+
+    -- the pop-out window
+    local ps = slurp(Z .. "StationPopout.lua") or ""
+    local heads = { "function ZeD_StationPopout:focusedZone()", "function ZeD_StationPopout:knobGrabbed()",
+        "function ZeD_StationPopout:dirPad(dir, d)", "function ZeD_StationPopout:onJoypadDown(button, joypadData)",
+        "function ZeD_StationPopout:getFooterPrompts()" }
+    local body = ""
+    for i, h in ipairs(heads) do
+        local pc = cut(ps, h)
+        check("WIRED: the pop-out's piece " .. i .. " is found", pc ~= nil, h)
+        body = body .. (pc or "")
+    end
+    for _, d in ipairs({ "Up", "Down", "Left", "Right" }) do
+        local pc = cut(ps, "function ZeD_StationPopout:onJoypadDir" .. d .. "()", "\n")
+        check("WIRED: the pop-out's " .. d, pc ~= nil)
+        body = body .. (pc or "")
+    end
+    ZeD_StationPopout = {}
+    local pacts = {}
+    local fn2, e2 = loadstring("local SA = ...\n" .. body, "pop-out")
+    check("STATION: the pop-out's controller code compiles", fn2 ~= nil, e2)
+    if fn2 then
+        fn2({ act = function(p, st, z, d) pacts[#pacts + 1] = z.id .. ":" .. tostring(d) end })
+        local o = setmetatable({ fi = 1, _grab = false, joyfocus = true, log = {} }, { __index = ZeD_StationPopout })
+        local zs = { { id = "heat", kind = "turn", fid = "craft:a:heat" }, { id = "start", kind = "press", fid = "craft:a:start" } }
+        function o:controls() return zs end
+        function o:moveDir(dir) self.log[#self.log + 1] = "move:" .. dir end
+        function o:close() self.log[#self.log + 1] = "close" end
+        o:onJoypadDirRight()
+        check("STATION (pop-out): Right on a knob not grabbed moves (209's walk), turns nothing", o.log[1] == "move:right" and #pacts == 0)
+        local function labels(ps2) local t = {}; for _, p in ipairs(ps2 or {}) do t[#t + 1] = p.glyph .. "=" .. p.label end; return table.concat(t, ",") end
+        check("STATION (pop-out): on a knob the line says A Grab", labels(o:getFooterPrompts()) == "A=UI_ZeD_Prompt_KnobGrab,B=UI_ZeD_Close", labels(o:getFooterPrompts()))
+        o.log = {}
+        o:onJoypadDown(Joypad.AButton)
+        o:onJoypadDirUp(); o:onJoypadDirLeft(); o:onJoypadDirRight(); o:onJoypadDirDown()
+        check("STATION (pop-out): A grabs, then Up / Right up and Left / Down down", table.concat(pacts, ",") == "heat:1,heat:-1,heat:1,heat:-1"
+            and #o.log == 0, table.concat(pacts, ","))
+        check("STATION (pop-out): grabbed, the line says D-pad Turn, A / B Let go",
+            labels(o:getFooterPrompts()) == "D-PAD=UI_ZeD_Looks_PromptTurn,A B=UI_ZeD_Prompt_KnobLetGo", labels(o:getFooterPrompts()))
+        o:onJoypadDown(Joypad.BButton)
+        check("STATION (pop-out): B lets go, the window stays", not o:knobGrabbed() and #o.log == 0)
+        o:onJoypadDown(Joypad.BButton)
+        check("STATION (pop-out): B not grabbed closes it", o.log[1] == "close")
+        pacts = {}
+        o.fi = 2
+        o:onJoypadDown(Joypad.AButton)
+        check("STATION (pop-out): A on a key still presses it", pacts[1] == "start:1" and not o:knobGrabbed())
+    end
+    check("WIRED: the appliance's face draws a grabbed knob held", src:find("PL.grabCue(cv, c, T.accent, 0.30)", 1, true) ~= nil
+        and src:find('x.grab == "craft:a:" .. id', 1, true) ~= nil)
+
+    -- the siren controller
+    local ss = slurp(Z .. "ZeD_SirenController.lua") or ""
+    local sh = { "function ZeD_SirenController:padItems()", "function ZeD_SirenController:onJoypadDown(button, joypadData)",
+        "local function moveTo(self, i)" }
+    local sbody = ""
+    for i, h in ipairs(sh) do
+        local pc = cut(ss, h)
+        check("WIRED: the siren's piece " .. i .. " is found", pc ~= nil, h)
+        sbody = sbody .. (pc or "")
+    end
+    for _, d in ipairs({ "Left", "Right", "Up", "Down" }) do
+        local pc = cut(ss, "function ZeD_SirenController:onJoypadDir" .. d .. "()", "\n")
+        check("WIRED: the siren's " .. d, pc ~= nil)
+        sbody = sbody .. (pc or "")
+    end
+    ZeD_SirenController = {}
+    local fn3, e3 = loadstring('local GROUPS = { "lights", "siren" }\nlocal function sound() end\nlocal function gid(self) return GROUPS[self.focus] end\n' .. sbody, "siren")
+    check("STATION (siren): the controller code compiles", fn3 ~= nil, e3)
+    if fn3 then
+        fn3()
+        local o = setmetatable({ focus = 1, _grab = false, log = {} }, { __index = ZeD_SirenController })
+        function o:step(g, d) self.log[#self.log + 1] = g .. ":" .. d end
+        function o:close() self.log[#self.log + 1] = "close" end
+        o:onJoypadDirUp()
+        check("STATION (siren): Up on a knob not grabbed turns nothing", #o.log == 0)
+        o:onJoypadDirRight()
+        check("STATION (siren): Right moves to the siren's knob", o.focus == 2 and #o.log == 0)
+        o:onJoypadDown(Joypad.AButton)
+        o:onJoypadDirUp(); o:onJoypadDirRight(); o:onJoypadDirLeft(); o:onJoypadDirDown()
+        check("STATION (siren): A grabs, then Up / Right up and Left / Down down, the focus staying",
+            table.concat(o.log, ",") == "siren:1,siren:1,siren:-1,siren:-1" and o.focus == 2, table.concat(o.log, ","))
+        o.log = {}
+        o:onJoypadDown(Joypad.BButton)
+        check("STATION (siren): B lets go, the controller stays up", o._grab == false and #o.log == 0)
+        o:onJoypadDown(Joypad.XButton)
+        check("STATION (siren): X steps it (the old A)", o.log[1] == "siren:0")
+        o:onJoypadDown(Joypad.BButton)
+        check("STATION (siren): B not grabbed puts it away", o.log[2] == "close")
+        local items = o:padItems()
+        check("STATION (siren): the strip says Switch, A Grab, X Step, B Put away",
+            items[2].glyph == "A" and items[2].label == "UI_ZeD_Prompt_KnobGrab" and items[3].glyph == "X")
+    end
 end
 
 print("knob_grab_sim: " .. checks .. " checks, " .. failed .. " failed")
