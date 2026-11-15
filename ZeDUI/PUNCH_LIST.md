@@ -4857,3 +4857,10 @@ to be proposed.
    focus with it). Replaces the Oct 23 bumper rule (LB Character, RB World); the controller map, hint strip and the
    survival guide's pad pages change with it. Open questions for the director before building: wrap at the end or stop;
    does the press also move focus into that window; how to cycle backwards.
+
+213. **Controller: the main menu desk can't be navigated outside the Main menu window (the director, Nov 14 2026).** open.
+   On the pad, the Main menu window's list works (Continue, New game, Load game, Join a server, Host a game, Tutorial,
+   Options, Mods, Credits, Quit). Nothing else on the desk can be reached: the menu bar (ZeD, File, Multiplayer,
+   Settings, Debug), the desktop icons (Pasties, CletusWorks, ProtoPOP3 Mail, Documents, Project Zomboid, New game,
+   Load game, Join a server, Options, Mods, Trash) and a window's close box. The desktop needs pad stops and a way to
+   move between the menu bar, the icons and the open windows (and B or a close stop to shut a window).
