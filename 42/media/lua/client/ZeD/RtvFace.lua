@@ -712,11 +712,20 @@ function R.drawFace(panel, x, y, k, face)
             if knob and face.grabId == c.id then
                 PL.grabCue(cv, c, ac, R.PRESS_SHADE)   -- (punch list 228k: grabbed by the controller's A)
             elseif face.focusId == c.id then
-                if knob then PL.cue(cv, c, ac, 0.55) else PL.markKey(panel, c, x, y, k, nil) end
+                -- (Nov 15 2026, punch list 228k: a knob takes the controller's mark too, the pointing hand, over its tint)
+                if knob then PL.cue(cv, c, ac, 0.55) end
+                PL.markKey(panel, c, x, y, k, nil)
             elseif face.hoverId == c.id then
                 if knob then PL.cue(cv, c, ac, 0.30) else PL.hoverKey(cv, c) end
             end
         end
+    end
+    -- (Nov 15 2026, punch list 228k: a TV's screen is a stop the controller can rest on, so Up from the knobs reaches
+    -- the top of the set before the tabs; it acts on nothing. Kept on the list by name: the press code never sees it.)
+    local scr = factsOf(des).screen
+    if scr then
+        hits.screen = { id = "screen", x = x + scr.x * k, y = y + scr.y * k, w = scr.w * k, h = scr.h * k }
+        if face.focusId == "screen" then PL.markKey(panel, scr, x, y, k, nil) end
     end
     return hits, st
 end

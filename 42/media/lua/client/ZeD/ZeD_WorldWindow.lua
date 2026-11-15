@@ -575,6 +575,20 @@ end
 -- stop went on pointing at the floor's old place in the list (A on it
 -- opened another container). Rebuilt here whenever the list, its order or its
 -- scroll changes; the focus stays on the same container (by inventory).
+-- (Nov 15 2026, punch list 246, the director: walking away from a group of containers until only the ground was left
+-- moved the controller's focus up to the list's Filter button. The row it was on went with its container, and with no
+-- rows left the list's first stop is its view button or Filter. The focus goes to the container buttons instead, onto
+-- the one showing (the ground), as when the list empties. A field, not a local: this file is near Kahlua's limit.)
+function ZeD_WorldWindow._groundIfNoRows(win, Focus, els)
+    for _, e in ipairs(els or {}) do if e.item then return end end
+    local z = win._focusRing and win._focusRing[win._focusIdx or 1]
+    if not (z and z.zone == "worldMainInv") then return end
+    win._gpFocusedRowItem = nil
+    if not Focus.focusWhere(win, "worldContainerStrip", function(e) return e.containerIdx == win._activeContainer end) then
+        Focus.focusWhere(win, "worldContainerStrip")
+    end
+end
+
 local function _refreshWorldStripFocus(win, Focus)
     local L = win._stripLay
     local cnts = win._containers
@@ -5290,6 +5304,8 @@ function ZeD_WorldWindow.toggle(playerNum)
 
                             Focus.setRingZoneElements(win, "worldMainInv", newEls, preserveIdx)
                             Focus.setZoneFocusable   (win, "worldMainInv", true)
+                            -- (punch list 246: the row it was on gone and no rows left: the ground's button, not Filter)
+                            if focItem and not keepId then ZeD_WorldWindow._groundIfNoRows(win, Focus, newEls) end
                             local resolvedEl = newEls[preserveIdx]
                             if resolvedEl then
                                 win._gpFocusedRowItem = resolvedEl.item

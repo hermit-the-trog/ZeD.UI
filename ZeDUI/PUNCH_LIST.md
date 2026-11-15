@@ -5010,6 +5010,11 @@ to be proposed.
       ItemCardOrganism.lua 444-447; padIsFood leaves fluids out). Bleach, gasoline or tainted water at two taps.
    r. [low-med] Use on drainables is a tap (ItemCard.lua 966-971).
    Checked fine: no other server-side class is hooked early; Trash's Remove all already asks.
+      Fix (Nov 15 2026): a focused knob takes the pointing hand like any key (it had only a faint tint); a TV's screen
+      is a stop, so Up from the knobs reaches the top of the set before the tabs, scrolling it into view; a landing
+      announced again on the knob already held no longer lets go of it; and the log says each grab, let go and "not
+      held" with what was held, so the next playtest shows why the D-pad moved instead of turning. The scripted pass
+      already turned it, so the real-pad cause is not proven yet.
 
 229. **Controller: the Photo Studio has no button hints (the director, Nov 14 2026, playtest).** open. The ID card's
    Photo Studio works on the pad (A takes the picture, Y changes the backdrop, zoom and rotate the character work), but
@@ -5088,23 +5093,37 @@ Notes 11 and 15 of the playtest went on 184 and 228k. The rest:
    director's design: the D-pad moves around the window; A on a panel makes it active and the D-pad scrolls it; B
    leaves the panel; B again leaves the window.
 237. **Aiming hides every window, the Messages window included.** open. (Notes 2 and 3.)
+   Fix (Nov 15 2026): the aim escape fires whether or not a ZeD window holds the pad, on the right stick or the game's
+   own aiming (the trigger), and closes the Messages window too (Input/FocusManager.lua _aimHide). Still waits while the
+   keyboard, a menu or a prompt holds the pad.
 238. **Character creation, controller: the clothing color tiles can't be reached.** open.
 239. **Character creation, the hair color list: Up and Down don't move between rows.** open. Only Left and Right
    move through it.
 240. **Hide the mouse pointer while the controller is in use.** open. (The director: "can the cursor hide?")
+   Fix (Nov 15 2026): the pointer hides when the input turns to the pad or a pad press reaches a ZeD window, and comes
+   back when the mouse moves or clicks; shown, it follows the game's Display cursor option (FocusManager _watchPointer).
 241. **ZeD setup opened from the controller wheel doesn't take the pad.** open. The foot shows no button hints and
    only the mouse can close it.
 242. **A paused notice.** open. With the game paused and a window over the middle of the screen (Options, the
    Survival Guide), show a clear notice that the game is paused; it needn't be big. The watch and time buttons are
    not enough.
+   Fix (Nov 15 2026): ZeD_PausedNotice.lua, a small balloon at the top middle of the screen with the game's own
+   "Game Paused" words, over every window, while the game is paused (not the pause menu itself) and something covers
+   the screen's middle. Takes no clicks.
 243. **Question: the "click to start" screen after loading.** open. The loader can't change; can ZeD do anything
    with that screen? An answer, not necessarily a change.
+   Answer (Nov 15 2026): no. The screen is the game's loading state, drawn by the game itself (Java) before any mod's
+   interface runs; mods get no hook into it while it waits (no Lua reaches it, no event fires until the click). The
+   pad's version reads "Press A to start". ZeD can't change, restyle or skip it.
 244. **A stack of 3 rags: the tooltip and the inventory row write the name and count differently.** open.
 245. **Expanded stacks: the first item has no row of its own.** open. The stack's header row stands for item 1 and
    the open list starts at item 2, so the first flyer could only be read by moving the others out. The director's
    decision: keep stacking by type, and the first item gets its own row in the open list.
 246. **World window, pad: walking away until only the ground is left moves focus up to the Filter button.** open. It
    should land on the ground container.
+   Fix (Nov 15 2026): when the row the focus was on goes with its container and the list has no rows left, the focus
+   goes to the container buttons, onto the one showing (the ground), not the list's view button or Filter
+   (ZeD_WorldWindow._groundIfNoRows).
 247. **The action bubble goes stale.** open. After smoking, walking about 20 tiles and hopping a short fence with B,
    the bubble said "Done smoking a cigarette", and again later climbing through a window. The director: hopping a
    short fence probably needs no bubble at all.

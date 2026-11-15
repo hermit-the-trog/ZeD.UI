@@ -350,6 +350,11 @@ end
 -- Fire a callback wrapped in pcall. A bug in zone.onActivate shouldn't wedge
 -- the dispatch loop — log and continue. `fnName` is a string tag for the log.
 local function _fireCb(fnName, fn, w, arg)
+    -- (Nov 15 2026, punch list 228k: every landing is noted, the one before it kept, so a knob can tell a landing
+    -- announced again from a move back onto it)
+    if fnName == "element.onFocus" and type(w) == "table" and type(arg) == "table" then
+        w._landPrevId, w._landId = w._landId, arg.id
+    end
     if not fn then return end
     local ok, err = pcall(fn, w, arg)
     if not ok then
@@ -962,20 +967,24 @@ function Focus.knobStop(el, turn, opts)
     local prevFocus, prevCancel, prevB = el.onFocus, el.onCancel, el.promptB
     el.isKnob = true
     el.onFocus = function(w, e)
-        letGo(w, e)   -- (landing on it again: let go)
+        -- (landing on it again: let go. Nov 15 2026, punch list 228k: but not when the landing is only announced again
+        -- on the knob already held; the director's TV let go between A and the D-pad on a real pad.)
+        local h = holderOf(w, e)
+        if h and h._knobGrab ~= nil and not (h._knobGrab == e.id and w._landPrevId == e.id) then letGo(w, e) end
         if prevFocus then return prevFocus(w, e) end
     end
     el.onActivate = function(w, e)
         local h = holderOf(w, e)
         if not h then return end
         if h._knobGrab == e.id then h._knobGrab = nil else h._knobGrab = e.id end
+        print("[ZeD.Input] Focus: knob " .. tostring(e.id) .. (h._knobGrab and " grabbed" or " let go"))
     end
     el.promptA = function(w, e)
         if grabbed(w, e) then return false end   -- (A / B Let go is one prompt, below)
         return ZeD.tr("UI_ZeD_Prompt_KnobGrab")
     end
     el.onCancel = function(w, e)
-        if grabbed(w, e) then letGo(w, e); return true end
+        if grabbed(w, e) then letGo(w, e); print("[ZeD.Input] Focus: knob " .. tostring(e.id) .. " let go (B)"); return true end
         if prevCancel then return prevCancel(w, e) end
         return false
     end
@@ -985,7 +994,13 @@ function Focus.knobStop(el, turn, opts)
         return prevB
     end
     el.onDpadDir = function(w, e, dir)
-        if not grabbed(w, e) then return false end
+        if not grabbed(w, e) then
+            local h = holderOf(w, e)
+            if h then   -- (what the holder keeps, for the next playtest: nil, or a grab on another stop)
+                print("[ZeD.Input] Focus: knob " .. tostring(e.id) .. " not held (held: " .. tostring(h._knobGrab) .. ", " .. tostring(h.Type or h) .. ")")
+            end
+            return false
+        end
         if opts.canTurn and not opts.canTurn(w, e) then letGo(w, e); return false end
         turn(w, e, (dir == "up" or dir == "right") and 1 or -1)
         return true
@@ -1038,7 +1053,7 @@ function Focus.focusWhere(w, zoneName, pred)
                     z.focusedElementIdx = ei
                     w._navLast = nil
                     w._focusPendingEntry = nil
-                    if e.onFocus then _fireCb("element.onFocus", e.onFocus, w, e) end
+                    _fireCb("element.onFocus", e.onFocus, w, e)
                     return e
                 end
             end
@@ -1085,7 +1100,7 @@ function Focus.ensureEntry(w)
         w._navLast = nil
         w._focusPendingEntry = nil
         el = zone.elements[zone.focusedElementIdx]
-        if el and el.onFocus then _fireCb("element.onFocus", el.onFocus, w, el) end
+        if el then _fireCb("element.onFocus", el.onFocus, w, el) end
         return
     end
     if live then return end   -- (the list has no rows yet: keep what is lit)
@@ -1094,7 +1109,7 @@ function Focus.ensureEntry(w)
             w._focusIdx = i
             z.focusedElementIdx = _clampIdx(z.focusedElementIdx, z.elements)
             local e = z.elements[z.focusedElementIdx]
-            if e and e.onFocus then _fireCb("element.onFocus", e.onFocus, w, e) end
+            if e then _fireCb("element.onFocus", e.onFocus, w, e) end
             return
         end
     end
@@ -1248,7 +1263,7 @@ local function _applyFlatLanding(w, locator, oldFlatIdx, newFlatIdx)
     w._focusPendingEntry      = nil   -- the player put focus somewhere: no entry seed after this
 
     local newEl = newZone.elements[newLoc.elementIdx]
-    if newEl and newEl.onFocus then
+    if newEl then   -- (every landing, a handler or not: the landing note, punch list 228k)
         _fireCb("element.onFocus", newEl.onFocus, w, newEl)
     end
     -- Audible focus tick (vanilla list-select sound) so D-pad moves are
@@ -1726,7 +1741,7 @@ local function _menuNav(w, dir)
     w._focusPendingEntry = nil
     w._navLast = nil
     local el = els[pick]
-    if el and el.onFocus then _fireCb("element.onFocus", el.onFocus, w, el) end
+    if el then _fireCb("element.onFocus", el.onFocus, w, el) end
     pcall(function() ZeD.uiSound("UISelectListItem") end)
     if zi ~= oldZoneIdx and w.onFocusZoneChanged then
         _fireCb("window.onFocusZoneChanged", w.onFocusZoneChanged, w, { new = z, old = ring[oldZoneIdx] })
@@ -2160,6 +2175,24 @@ local function _hideAllWindows(reason, pn)
         end
     end
     Focus.releaseFocus(pn)
+end
+
+-- (Nov 15 2026, punch list 237, the director: every window hides when the player aims, the Messages window too, not
+-- only while a ZeD window holds the pad.) What aiming hides for player pn: true when something was up to hide.
+local function _aimHide(pn, held, note)
+    local hid = held == true   -- (a ZeD window holding the pad: as before, it always rolls up)
+    for _, w in ipairs(_windowRegistry) do
+        if hid then break end
+        local up = _shown(w) or (w.isVisible ~= nil and w:isVisible() == true)
+        if _pnOf(w) == pn and up and not w.windowShaded then hid = true end
+    end
+    local MW = ZeD.MessagesWindow
+    local mw = MW and MW.get and MW.get(pn)
+    local msg = mw ~= nil and _shown(mw) and not mw.guestJoy
+    if (hid or msg) and note then print(note) end
+    if hid then _hideAllWindows("aim-RS", pn) end
+    if msg then pcall(mw.close, mw) end
+    return hid or msg
 end
 
 --- Player pn has a game cursor up that is not the Furniture tab's (Place item, a build, paint): the cursor, or nil.
@@ -2842,19 +2875,24 @@ local function _tickPlayer(pn, s)
     -- (the Y-hold lock is gone); it fires whenever active, outside the grace
     -- after a claim.
     local maxMagSq = _aimMagSq(pn, jid)
-    local aimingActive = (maxMagSq > _aimingThresholdSq())
+    -- (punch list 237: the game's own aiming too, the trigger held, as well as the right stick)
+    local aimP = getSpecificPlayer and getSpecificPlayer(pn)
+    local aimingActive = (maxMagSq > _aimingThresholdSq()) or (aimP ~= nil and aimP.isAiming ~= nil and aimP:isAiming() == true)
     local graceActive  = (getTimestampMs() < s.wsGrace)
     -- (Nov 14 2026, punch list 228b: only while a ZeD window holds the pad, not the keyboard, a prompt or a pop-out
     -- over it, which the escape left up with no pad)
-    local canFire = aimingActive and s.win and (not s.wsLatched)
-                    and (not graceActive) and not Focus.foreignHolder(pn)
+    -- (punch list 237: with or without the pad on a window; the Messages window holding it counts as no holder, it hides)
+    local holder = Focus.foreignHolder(pn)
+    if holder and ZeD.MessagesWindow and ZeD.MessagesWindow.get and holder == ZeD.MessagesWindow.get(pn) then holder = nil end
+    local canFire = aimingActive and (not s.wsLatched)
+                    and (not graceActive) and not holder
 
     if canFire then
         s.wsLatched = true
-        print("[ZeD.Input] Focus: aiming-escape magSq=" .. tostring(maxMagSq)
-           .. " " .. _label(s.win) .. _who(pn))
-        _hideAllWindows("aim-RS", pn)
-        return
+        if _aimHide(pn, s.win ~= nil, "[ZeD.Input] Focus: aiming-escape magSq=" .. tostring(maxMagSq)
+               .. " " .. _label(s.win) .. _who(pn)) then
+            return
+        end
     end
 
     -- Edge latch bookkeeping: latch when aiming-active, unlatch when in deadzone.
@@ -2964,6 +3002,37 @@ if Events.OnRenderTick then
     end)
 end
 if Events.OnRenderTick then Events.OnRenderTick.Add(_watchCueMouse) end
+
+-- (Nov 15 2026, punch list 240, the director: "can the cursor hide?") The mouse pointer hides while player 1 plays
+-- with the controller: from the moment the input turns to the pad or a pad press reaches a ZeD window, until the mouse
+-- moves or clicks. Shown, it is the game's own setting (Display cursor). Player 1's only: the others have no mouse.
+local PTR = { hidden = false, mode = nil, x = nil, y = nil, since = 0 }
+local function _watchPointer()
+    if not (Mouse and Mouse.setCursorVisible and getMouseX) then return end
+    local D = ZeD.Input.Detector
+    local mode = D and D.getMode and D.getMode(0) or "kbm"
+    local mx, my = getMouseX(), getMouseY()
+    local hide = PTR.hidden
+    if mode == "gamepad" and (PTR.mode ~= "gamepad" or (_st0.cues and (_st0.cueSince or 0) > PTR.since)) then
+        hide = true
+        PTR.since = _st0.cueSince or 0
+    end
+    if mode ~= "gamepad" then hide = false end
+    if hide and PTR.x ~= nil then
+        local T = ZeD.T
+        local th = (T and T.px) and T.px(CUE_MOUSE_U) or CUE_MOUSE_U
+        if math.abs(mx - PTR.x) > th or math.abs(my - PTR.y) > th then hide = false end
+        if D and D.msSinceMouseClick and D.msSinceMouseClick() < 250 then hide = false end
+    end
+    PTR.mode = mode
+    if hide ~= PTR.hidden or not hide then PTR.x, PTR.y = mx, my end
+    if hide == PTR.hidden then return end
+    PTR.hidden = hide
+    local show = true
+    pcall(function() show = getCore():isDisplayCursor() end)
+    pcall(Mouse.setCursorVisible, (not hide) and show)
+end
+if Events.OnRenderTick then Events.OnRenderTick.Add(_watchPointer) end
 
 -- A player's number can come back with another pad and another character (a
 -- respawn, or a new player in a dead player's number). Players 2-4 start over

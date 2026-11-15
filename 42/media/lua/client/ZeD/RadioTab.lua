@@ -706,7 +706,9 @@ local function renderTwoWay(panel, win, x, y, w, h, current, pid, des, drv)
     local fctl = fid and fid:match("^radio:tw:(.+)$")
     if needs and fctl and tw.follow ~= fid then
         tw.follow = fid
-        for _, hh in ipairs(tw.hits or {}) do
+        -- (Nov 15 2026, punch list 228k: a TV's screen stop, kept off the hits' list, scrolls the set's top into view)
+        local scr = tw.hits and tw.hits.screen
+        for _, hh in ipairs((fctl == "screen" and scr) and { scr } or tw.hits or {}) do
             if hh.id == fctl then
                 local cy = hh.y - (tw.fy or fy0) + pad                  -- its top within the body
                 local newOff = off
@@ -1063,6 +1065,13 @@ local function _rtvFocusables(win, tw)
             end
         end
         elements[#elements + 1] = el
+    end
+    -- (Nov 15 2026, punch list 228k, the director: Up from a TV's knobs reaches the top of the set, its screen, before
+    -- the tabs. A look-only stop: no A, it only brings the screen into view. After the controls, so focus still lands
+    -- on power first.)
+    local scr = tw.hits and tw.hits.screen
+    if scr then
+        elements[#elements + 1] = { x = scr.x, y = scr.y, w = scr.w, h = scr.h, id = "radio:tw:screen", onFocus = onFocus }
     end
     _addTabStops(win, elements)
     _addFillStops(win, elements)
