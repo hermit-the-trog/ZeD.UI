@@ -4913,3 +4913,11 @@ to be proposed.
    problem in itself; being left with a menu you can't easily get rid of is. Likely fix: close it when the player walks
    out of reach of its target (as vanilla's context menu does) or when the left stick moves the character while it is
    up, and make sure B always closes it.
+
+221. **Controller: the desk's Pasties note leaves the pad on a hidden keyboard (the director, Nov 14 2026, playtest).**
+   open. At the main menu desk: a Pasties note picked up, moved and put down fine; X to type opened the on-screen
+   keyboard; typed WOW, RT for Enter, then B closed the keyboard. After that the director was stuck in a blank note.
+   The probe: pad focus was ISOnScreenKeyboard (hidden), inMainMenu true, only MainScreen up. So B hid the keyboard
+   but the pad never went back to the note (or the desk), the same family as 215 on the desk path; and the note came
+   back blank, so the typed text may not have reached it. QA handed the pad back to MainScreen through the bridge to
+   free the director.
