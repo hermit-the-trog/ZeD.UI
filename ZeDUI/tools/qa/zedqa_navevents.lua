@@ -64,9 +64,9 @@ at(170, function() stripTab(cw(), cw()._tabStripPanel, "loot") end)
 -- 4. RB to the World window, LB back
 at(190, function() focusEl(cw(), "charMainInv", function(e) return e.item == nail end); where("4 on the screwdriver") end)
 at(195, function() Focus.dispatchJoypadDown(fw(), Joypad.RBumper) end)
-at(205, function() where("4 after RB (World)") end)
+at(205, function() where("4 after RB (Nov 14 2026, 212: RB steps the World tabs on release, in gamepad mode only; a scripted press leaves focus where it was)") end)
 at(210, function() Focus.dispatchJoypadDown(fw(), Joypad.LBumper) end)
-at(220, function() where("4 after LB (expect back on the screwdriver)") end)
+at(220, function() where("4 after LB (expect still on the screwdriver)") end)
 -- 5. the focused item goes away
 at(230, function() focusEl(cw(), "charMainInv", function(e) return e.item == hammer end); where("5 on the hammer") end)
 at(235, function() p:getInventory():Remove(hammer) end)
