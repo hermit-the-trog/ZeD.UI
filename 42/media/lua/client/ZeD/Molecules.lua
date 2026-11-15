@@ -1385,7 +1385,7 @@ function ZeD_DragState:drawGhost(panel)
     if self.ghostCount > 1 then
         -- the count is what a row carries, so a crate of nails dragged as one row can run past 999: it reads 999+,
         -- and the weight gives way when the count would reach it (the count is the reading then)
-        local qty = self.ghostCount > 999 and "x999+" or ("x" .. tostring(self.ghostCount))
+        local qty = self.ghostCount > 999 and "(999+)" or ("(" .. tostring(self.ghostCount) .. ")")
         panel:drawText(qty, lx + pad, ty, tc.r, tc.g, tc.b, 0.85, T.fontF3)
         if lx + pad + ZeD.TM:MeasureStringX(T.fontF3, qty) + T.px(2) > wx then wt = nil end
     end

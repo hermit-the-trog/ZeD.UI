@@ -272,7 +272,7 @@ function Q.openGroup(playerObj, gid)
     for i, k in ipairs(Q.collect(playerObj, g)) do
         if i > MAX_ITEMS then break end
         local name = _safe(function() return k.item:getDisplayName() end, "?")
-        if k.n > 1 then name = name .. "  x" .. k.n end
+        if k.n > 1 then name = name .. " (" .. k.n .. ")" end
         menu:addSlice(name, _safe(function() return k.item:getTex() end, nil), g.act, playerObj, k.item)
     end
     local jd = JoypadState.players[pn + 1]

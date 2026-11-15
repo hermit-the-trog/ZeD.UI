@@ -272,7 +272,7 @@ function SG.render(panel, win, x, y, w, h, state, st)
     local function itemLine(g, room)
         local isz = T.px(16)
         if g.tex then panel:drawTextureScaledAspect(g.tex, lx, cy + math.floor((rowH - isz) / 2), isz, isz, 1, 1, 1, 1) end
-        local s = ZeD.CraftingCore.truncText(g.name .. "  x" .. tostring(#g.items), f2, room - isz - T.px(6))
+        local s = ZeD.CraftingCore.truncText(g.name .. " (" .. tostring(#g.items) .. ")", f2, room - isz - T.px(6))
         panel:drawText(s, lx + isz + T.px(6), mid(f2), tc.r, tc.g, tc.b, tc.a or 1, f2)
     end
 

@@ -195,8 +195,8 @@ function Q.chordFor(path)
     return nil
 end
 
---- A slice's name without the wheel's count ("Canned Corn  x3").
-function Q.cleanName(s) return (tostring(s or ""):gsub("%s+x%d+$", "")) end
+--- A slice's name without the wheel's count ("Canned Corn (3)"; the older "  x3" too).
+function Q.cleanName(s) return (tostring(s or ""):gsub("%s+x%d+$", ""):gsub("%s+%(%d+%)$", "")) end
 
 -- ---------------------------------------------------------------------------
 -- finding the action again, and doing it

@@ -1359,7 +1359,7 @@ local function drawGridCell(self, GV, item, cx, cy)
     self:drawText(wtStr, ax + cell - wtw - T.px(3), cy + T.px(1), th.r, th.g, th.b, th.a or 1, f5)
     -- the count, bottom right (above the condition strip)
     if count > 1 then
-        local cs = "x" .. count
+        local cs = "(" .. count .. ")"   -- (Nov 15 2026, the director: counts read as the game's, "(3)", like the totals' weight)
         local f1 = T.fontF1
         local cw2 = ZeD.TM:MeasureStringX(f1, cs)
         local cy2 = math.min(cy + cell - GV.secFH - T.px(4), condTop - GV.secFH - T.px(1))
@@ -1386,7 +1386,7 @@ local function drawGridCell(self, GV, item, cx, cy)
     queueMark(self, item, nil, nil, 0, ax, cy, cell, cell)   -- (waiting to move: the bar along its foot)
     if over then
         local nm = item:getName() or "?"
-        if count > 1 then nm = nm .. " x" .. count end
+        if count > 1 then nm = nm .. " (" .. count .. ")" end
         self._gridHintCand = { key = item, text = nm, read = rs, x = ax, y = cy, w = cell, h = cell }
         if ZeD.InvTip and not cuesOn() then   -- (the loot card, Alt the game's tooltip: punch list 146)
             local r = _tipRect
@@ -2508,7 +2508,7 @@ local function renderItemList(self)
                 if htex then dTS(htex, padX, y + math.floor((rowH - iconW) / 2), iconW, iconW, 1, 1, 1, 1) end
                 local tri = math.min(T.px(8), rowH - T.px(4))
                 A.drawTriangleDown(self, xOff + nameX, y + math.floor((rowH - tri) / 2), tri, htc or T.toneLo or T.textDim)
-                local hsuf = " x" .. tostring(hs.count)
+                local hsuf = " (" .. tostring(hs.count) .. ")"
                 local hroom = nameW - tri - T.px(6)
                 local hname = truncateText(hs.rep:getName() or "???", T.fontF2, hroom - ZeD.TM:MeasureStringX(T.fontF2, hsuf)) .. hsuf
                 local hc = htc or T.toneNorm
@@ -2595,7 +2595,7 @@ local function renderItemList(self)
             local tx, ty = xOff + nameX + childIndent, y + math.floor((rowH - tri) / 2)
             if expanded then A.drawTriangleDown(self, tx, ty, tri, tcol) else A.drawTriangleRight(self, tx, ty, tri, tcol) end
             chevW = tri + T.px(6)
-            suffix = " x" .. tostring(stackInfo.count)
+            suffix = " (" .. tostring(stackInfo.count) .. ")"
         end
         -- a cut name keeps its end: a stack's count survives ("Apple (Fr... x6"), at Large text too
         local avail = nameW - childIndent - chevW

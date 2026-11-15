@@ -757,7 +757,7 @@ function H.quick(p, gid)
     local out = {}
     for _, k in ipairs(Q.collect(p, g)) do
         local name = safe(function() return k.item:getDisplayName() end) or "?"
-        if k.n > 1 then name = name .. "  x" .. k.n end
+        if k.n > 1 then name = name .. " (" .. k.n .. ")" end
         local item = k.item
         out[#out + 1] = { name = name, tex = safe(function() return item:getTex() end), detail = H.itemDetail(p, item, gid),
             key = safe(function() return item:getFullType() end), run = function(pl) g.act(pl, item) end }
@@ -804,7 +804,7 @@ function H.weapons(p)
     local out = {}
     for _, k in ipairs(order) do
         local it = k.item
-        local name = it:getDisplayName() .. ((k.n > 1) and ("  x" .. k.n) or "")
+        local name = it:getDisplayName() .. ((k.n > 1) and (" (" .. k.n .. ")") or "")
         local where
         if p:getPrimaryHandItem() == it or p:getSecondaryHandItem() == it then where = tr("UI_ZeD_Wheel_InYourHands")
         elseif hb and safe(function() return hb:isItemAttached(it) end) then

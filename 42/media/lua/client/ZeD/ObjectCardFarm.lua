@@ -193,7 +193,7 @@ local function seedRows(player, skill)
                 local si = getScriptManager():FindItem(seedName)
                 local row = {
                     typeOfSeed = typeOfSeed, seedName = seedName, count = n,
-                    name = ((si and si:getDisplayName()) or seedName) .. " x" .. tostring(n),
+                    name = ((si and si:getDisplayName()) or seedName) .. " (" .. tostring(n) .. ")",
                     tex = si and call(si, "getNormalTexture") or nil,
                 }
                 local knows = skill >= 6 or (props.seasonRecipe and player:isRecipeActuallyKnown(props.seasonRecipe))

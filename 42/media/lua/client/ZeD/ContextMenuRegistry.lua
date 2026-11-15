@@ -1019,7 +1019,7 @@ local function formatFoodMeta(item)
     if not item or not item.getFreshness and not item.getHungerChange then return nil end
     local parts = {}
     local count = safeCall(item, "getCount") or safeCall(item, "getCurrentUses")
-    if count and count > 1 then parts[#parts + 1] = "x" .. tostring(count) end
+    if count and count > 1 then parts[#parts + 1] = "(" .. tostring(count) .. ")" end
     local hunger = safeCall(item, "getHungerChange")
     if hunger then
         parts[#parts + 1] = ZeD.tr("UI_ZeD_Meta_Hunger", string.format("%+d", math.floor(hunger * 100 + 0.5)))

@@ -97,7 +97,7 @@ local front = false
 for _, it in ipairs(d.ghostBehind) do if it == a then front = true end end
 ok(not front, "MANY: the front item is never behind itself")
 local count = false
-for _, e in ipairs(P.draws) do if e.k == "text" and e.s == "x6" then count = true end end
+for _, e in ipairs(P.draws) do if e.k == "text" and e.s == "(6)" then count = true end end
 ok(count, "MANY: the front chip keeps the count (x6)")
 
 -- a stack of one kind: still shows as several
@@ -126,7 +126,7 @@ local function content(key, stacks, open)
     return c
 end
 local function countText()
-    for _, e in ipairs(P.draws) do if e.k == "text" and e.s:sub(1, 1) == "x" then return e.s end end
+    for _, e in ipairs(P.draws) do if e.k == "text" and e.s:sub(1, 1) == "(" then return e.s end end
     return nil
 end
 local function dragRows(c, rows, front)
@@ -145,7 +145,7 @@ local c1 = content("list", { nails })
 d, boxes = dragRows(c1, { nails.rep }, nails.rep)
 ok(d.ghostCount == 50, "STACK ROW: a closed stack's row counts its 50 nails (" .. tostring(d.ghostCount) .. ")")
 ok(boxes == 3 and #d.ghostBehind == 2, "STACK ROW: two chips behind the front chip")
-ok(countText() == "x50", "STACK ROW: the front chip reads x50 (" .. tostring(countText()) .. ")")
+ok(countText() == "(50)", "STACK ROW: the front chip reads x50 (" .. tostring(countText()) .. ")")
 ok(#d.items == 1 and d.items[1] == nails.rep, "STACK ROW: the drag's items stay the one row (the doll and the belt take one)")
 
 local c2 = content("grid", { nails }, { [nails.key] = true })
@@ -159,19 +159,19 @@ ok(d.ghostCount == 1 and boxes == 1 and countText() == nil, "OPEN STACK: its hea
 local planks, rope = stackOf("Plank", 50), stackOf("Rope", 50)
 local c4 = content("list", { nails, planks, rope })
 d, boxes = dragRows(c4, { nails.rep, planks.rep, rope.rep }, nails.rep)
-ok(d.ghostCount == 150 and countText() == "x150", "THREE STACKS: three closed stacks of 50 read x150 (" .. tostring(countText()) .. ")")
+ok(d.ghostCount == 150 and countText() == "(150)", "THREE STACKS: three closed stacks of 50 read x150 (" .. tostring(countText()) .. ")")
 ok(d.ghostBehind[1].kind == "Plank" and d.ghostBehind[2].kind == "Rope", "THREE STACKS: the other kinds behind")
 
 -- A long count (Nov 12 2026, review): a crate of 1000+ nails dragged as one row. The count and the weight share the
 -- 58u chip's foot (count from the left, weight right-aligned): the count caps at 999+ and the weight gives way
 -- when the two would meet, so they never draw over each other.
 local function weightText()
-    for _, e in ipairs(P.draws) do if e.k == "text" and e.s:sub(1, 1) ~= "x" then return e end end
+    for _, e in ipairs(P.draws) do if e.k == "text" and e.s:sub(1, 1) ~= "(" then return e end end
     return nil
 end
 local function footClear()
     local q, w = nil, weightText()
-    for _, e in ipairs(P.draws) do if e.k == "text" and e.s:sub(1, 1) == "x" then q = e end end
+    for _, e in ipairs(P.draws) do if e.k == "text" and e.s:sub(1, 1) == "(" then q = e end end
     if not (q and w) then return true end
     return q.x + ZeD.TM:MeasureStringX(T.fontF3, q.s) < w.x
 end
@@ -179,7 +179,7 @@ d, boxes = dragRows(c1, { nails.rep }, nails.rep)
 ok(weightText() ~= nil and footClear(), "SHORT COUNT: x50 keeps the weight beside it, clear of it")
 local crate = stackOf("Nails", 1200)
 d, boxes = dragRows(content("list", { crate }), { crate.rep }, crate.rep)
-ok(d.ghostCount == 1200 and countText() == "x999+", "LONG COUNT: 1200 nails read x999+ (" .. tostring(countText()) .. ")")
+ok(d.ghostCount == 1200 and countText() == "(999+)", "LONG COUNT: 1200 nails read x999+ (" .. tostring(countText()) .. ")")
 ok(footClear(), "LONG COUNT: the count and the weight never overlap")
 ok(weightText() == nil, "LONG COUNT: the weight gives way to the count")
 

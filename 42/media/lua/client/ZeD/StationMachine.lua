@@ -484,7 +484,7 @@ function SM.render(panel, win, x, y, w, h, state, st)
         local where = g.where or ""
         local whereW = tm:MeasureStringX(T.fontF1, where)
         local nameMax = rx - addW - T.px(8) - whereW - T.px(8) - (lx + isz + T.px(6))
-        local nstr = ZeD.CraftingCore.truncText(g.name .. "  x" .. tostring(#g.items), T.fontF2, nameMax)
+        local nstr = ZeD.CraftingCore.truncText(g.name .. " (" .. tostring(#g.items) .. ")", T.fontF2, nameMax)
         panel:drawText(nstr, lx + isz + T.px(6), cy + math.floor((rowH - tm:getFontHeight(T.fontF2)) / 2),
             T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
         A.drawTextRight(panel, where, rx - addW - T.px(8), cy + math.floor((rowH - tm:getFontHeight(T.fontF1)) / 2), T.fontF1, T.textDim)

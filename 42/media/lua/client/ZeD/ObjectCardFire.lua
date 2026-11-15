@@ -133,7 +133,7 @@ local function fuelRows(info, current, max, player)
         totalN = totalN + count
         totalDur = totalDur + dur * count
         rows[#rows + 1] = {
-            item = it, fullType = it:getFullType(), name = it:getName() .. (count > 1 and (" x" .. tostring(count)) or ""),
+            item = it, fullType = it:getFullType(), name = it:getName() .. (count > 1 and (" (" .. tostring(count) .. ")") or ""),
             baseName = it:getName(),
             tex = it:getTex(), where = OC.whereOf(it, player), dur = dur, count = count,
             fits = current + dur <= max,
@@ -157,7 +157,7 @@ local function lightRows(info, hasFuel, player)
     if starter then
         for _, v in ipairs(info.tinder or {}) do
             local count = info.itemCount[v:getName()] or 1
-            rows[#rows + 1] = { method = "tinder", name = v:getName() .. (count > 1 and (" x" .. tostring(count)) or ""), with = starter:getName(),
+            rows[#rows + 1] = { method = "tinder", name = v:getName() .. (count > 1 and (" (" .. tostring(count) .. ")") or ""), with = starter:getName(),
                 tex = v:getTex(), where = OC.whereOf(v, player), starter = starter, tinderType = v:getFullType(),
                 dur = ISCampingMenu.getFuelDurationForItem(v) }
         end

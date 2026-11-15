@@ -283,7 +283,7 @@ function LC.content(item, chr, count)
     local name = safe(item, "getName") or "?"
     -- (Nov 15 2026, punch list 244: the count as the inventory row writes it, "Rag x3"; this said "Rag " and a
     -- multiplication sign, a non-ASCII literal Kahlua does not keep whole)
-    if count and count > 1 then name = name .. " x" .. tostring(count) end
+    if count and count > 1 then name = name .. " (" .. tostring(count) .. ")" end   -- (Nov 15 2026: the game's "(3)")
     local f = LC.facts(item, chr)
     local c = { kind = "card", title = name, body = makeBody(f) }
     if e and e.c and e.c.title == c.title and e.c.body and e.c.body.sig == c.body.sig then c = e.c end   -- (the same table while it shows the same)
