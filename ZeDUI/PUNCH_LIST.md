@@ -4991,6 +4991,8 @@ to be proposed.
    Directions:
    k. [med] radio knobs turn on Up/Down (RadioTab.lua 1036-1042, 1142-1148), blocking vertical moves; D faces use
       Left/Right (1074-1080), so knobs differ between faces. Car radio the same split by look (ZeD_CarRadio.lua 609-612).
+      **The director, Nov 15 2026, playtest on beta 14 (a TV):** A grabs a knob, but the D-pad doesn't turn it. And Up
+      can't reach the top of the TV: it goes to the tab strip instead. Logged only, no work yet.
    l. [med-low] lock dials trap Up/Down (ObjectCardLock.lua 504-510).
    m. [low] the hair-type strip lets Left/Right fall out at its ends (ZeD_HairBeard.lua 1844-1850).
    n. [low] Messages: Up from the first card button goes nowhere; footer Up jumps to the last button (767-777).
