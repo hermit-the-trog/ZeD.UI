@@ -242,10 +242,16 @@ end
 -- ---------------------------------------------------------------------------
 -- The controller's stops
 -- ---------------------------------------------------------------------------
-local function pinElement(half, x, y, w, h)
+-- box = the pin's own box (window-local) where the stop is wider than it: the pad's balloon points at the box.
+-- (Nov 14 2026, punch list 230: the help words the pointer reads in the help line, beside the pin once the pad has
+-- rested on it: ZeD.Atoms' pad rule reads tip and tipRect)
+local function pinElement(half, x, y, w, h, box)
     return {
         x = x, y = y, w = w, h = h,
         id = "halfpin:" .. half,
+        tip = function(ww) return H.help(ww, half) end,
+        tipRect = box and { x = box.x, y = box.y, w = box.w, h = box.h } or nil,
+        tipSide = "below",
         promptA = function(ww) return ZeD.tr(H.isPinned(ww, half) and "UI_ZeD_Cm_Unpin" or "UI_ZeD_Prompt_Pin") end,
         onFocus = function() end,
         onActivate = function(ww) H.togglePin(ww, half) end,
@@ -268,7 +274,7 @@ function H.padElements(win)
             local strip = (half == "drawer") and win[s.strip] or win._containerStrip
             local x, w = r.x, r.w
             if strip and strip:isVisible() and strip:getWidth() > 0 then x, w = strip:getX(), strip:getWidth() end
-            out[#out + 1] = pinElement(half, x, r.y, w, r.h)
+            out[#out + 1] = pinElement(half, x, r.y, w, r.h, r)
         end
     end
     local rod = win._rod
@@ -283,6 +289,7 @@ function H.padElements(win)
     if box then
         out[#out + 1] = {
             x = box.x, y = box.y, w = box.w, h = box.h, id = "windowbox",
+            tip = ZeD.tr("UI_ZeD_WinMenu_Help"), tipSide = "below",   -- (punch list 230: the pointer's help words)
             promptA = function() return ZeD.tr("UI_ZeD_Prompt_Menu") end,
             onFocus = function() end,
             onActivate = function(ww) if ww.openWindowMenu then ww:openWindowMenu() end end,

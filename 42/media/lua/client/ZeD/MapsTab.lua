@@ -1247,6 +1247,7 @@ end
 -- mark in a 2u ring round it, the ink (greyed without its pen), a 1u edge, and a
 -- 1u ring in the text colour round the ink in use. Its zone goes in win._mapColorZones.
 local _swR = {}   -- (the swatch the hint's balloon points at)
+local SW_PAD = { pad = true }   -- (the controller's focus: punch list 230)
 local function _swatch(panel, win, ci, sx, sy, sz, ink, focId, hov)
     local T, A = ZeD.T, ZeD.Atoms
     local c, pen = MAP_COLORS[ci], MAP_COLOR_PENS[ci]
@@ -1267,6 +1268,9 @@ local function _swatch(panel, win, ci, sx, sy, sz, ink, focId, hov)
         local name = pen and (getItemNameFromFullType("Base." .. pen.item) or pen.item) or ""
         ZeD.Help.set(panel, has and ZeD.tr("UI_ZeD_Map_HelpInk", name)
             or ZeD.tr("UI_ZeD_Map_HelpCant", name, getText(pen and pen.need or "Tooltip_Map_CantWrite")))
+        -- (Nov 14 2026, punch list 230: the ink's name the pointer gets, once the pad has rested on the swatch)
+        _swR.x, _swR.y, _swR.w, _swR.h = rx, ry, rs, rs
+        A.requestHint(A.windowOf(panel), COLOR_FIDS[ci], name, panel, _swR, SW_PAD)
     end
     local a = has and 1 or T.disabledAlpha
     panel:drawRect(sx, sy, sz, sz, a, c.r, c.g, c.b)

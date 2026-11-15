@@ -1711,7 +1711,9 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
         local pz0, cz = win._identityPhotoZone, ZeD.IdentityTab.cameraZone(win)
         if pz0 and F.isFocused(win, nil, "identity:photo") then
             ZeD.Focus.mark(panel, pz0.x, pz0.y, pz0.w, pz0.h, { win = win })
-            if ZeD.Help then ZeD.Help.set(win, ZeD.tr(win._identityPhotoExpanded and "UI_ZeD_Identity_HelpPhotoBack" or "UI_ZeD_Identity_HelpPhoto")) end
+            local ph = ZeD.tr(win._identityPhotoExpanded and "UI_ZeD_Identity_HelpPhotoBack" or "UI_ZeD_Identity_HelpPhoto")
+            if ZeD.Help then ZeD.Help.set(win, ph) end
+            A.padHelp(panel, ph, pz0, "right")   -- (Nov 14 2026, punch list 230: the pad's rest shows it beside the photo)
         elseif cz and F.isFocused(win, nil, "identity:studio") then
             ZeD.Focus.mark(panel, cz.x, cz.y, cz.w, cz.h, { win = win })
         end
@@ -1760,13 +1762,13 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     end
 
     -- hover cards last: a hair row's hint (asked of the window's overlay), a trait's
-    -- description (hover) and the controller's focused one (drawn here, beside it)
+    -- description (hover) and the controller's focused one (asked the same way)
     if HB then HB.drawHints(panel, win) end
     ZeD.IdentityTab.drawTraitHint(panel, win, x, scrollY, contentW, scrollH)
 end
 
 -- a trait's description: on hover (the shared detail card, after its pause) and on
--- controller focus (at once, under the trait)
+-- controller focus (once the pad has rested on it, beside it: punch list 230)
 function ZeD.IdentityTab.drawTraitHint(panel, win, vx, vy, vw, vh)
     local zones = win._idTraitZones
     if not zones then return end

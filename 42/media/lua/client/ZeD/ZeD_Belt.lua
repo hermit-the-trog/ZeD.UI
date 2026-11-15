@@ -65,7 +65,7 @@ local AMMO_W = 100         -- the ammo tab's words and rounds, one segment per r
                            -- attached to the belt
 local AMMO_ICON = 24       -- the ammo's picture in the tab
 local AMMO_MS = 250        -- how often the rounds and magazines carried are counted again
-local HINT_NOW = { now = true }   -- the controller's focus gets a box's balloon without the pause
+local HINT_NOW = { now = true }   -- the controller's focus: a box's balloon once the pad has rested on it (punch list 230)
 local LIST_ROW_H, LIST_W = 26, 290
 
 local DOT = "|"   -- the separator: ZeD OS's pipe, never a middle dot
@@ -2189,8 +2189,8 @@ function ZeD_BeltHUD:_prerender()
         local l1, l2 = B.ammoLines(am)
         local card = { title = l1, lines = { l2 }, anchor = ab, key = "ammo" }
         tipUp = ZeD.Balloon and ZeD.Balloon.stackHeight(ZeD.Molecules.cardContent(card)) or nil
-        if hv then A.requestDetailCard(self, "ammo", card, self, ab)
-        else ZeD.Molecules.drawDetailCard(self, ab.x, ab.y, card) end   -- the controller has no pointer to rest: at once
+        -- (the controller's focus: once the pad has rested on the hand, punch list 230's one rule for the pad)
+        A.requestDetailCard(self, "ammo", card, self, ab, (not hv) and HINT_NOW or nil)
     elseif hv and hv.b.kind == "slot" then
         local s = hv.b.s
         hintKey, hintText = "slot" .. hv.b.i, s.key and ZeD.tr("UI_ZeD_Belt_SlotKey", s.name, s.key) or s.name
@@ -2220,7 +2220,7 @@ function ZeD_BeltHUD:_prerender()
             or name
         hintKey, hintText = "watch" .. tostring(id), lbl
     elseif not hv and gpTarget and gpTarget.kind == "slot" and gpTarget.s then
-        -- the controller's focus on a slot or a hand: the same balloon, at once
+        -- the controller's focus on a slot or a hand: the same balloon, once the pad has rested on it
         local s = gpTarget.s
         hintKey, hintText = "slot" .. gpTarget.i, s.key and ZeD.tr("UI_ZeD_Belt_SlotKey", s.name, s.key) or s.name
     elseif not hv and gpTarget and gpTarget.kind == "hand" then

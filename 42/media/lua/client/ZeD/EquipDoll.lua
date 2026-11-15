@@ -431,6 +431,7 @@ end
 -- layer count or the belt key; empty boxes dashed. The pointer's hover wash and
 -- the controller's focus mark go under the picture. bx, by, b = the box in
 -- panel coords.
+local _boxR = {}
 local function drawBox(panel, win, bx, by, b, item, nLayers, key, beltKey, label, mx, my)
     local T, tm = ZeD.T, ZeD.TM
     local ac = T.accent
@@ -487,13 +488,18 @@ local function drawBox(panel, win, bx, by, b, item, nLayers, key, beltKey, label
     elseif hover then
         ZeD.Help.set(panel, item and ZeD.tr("UI_ZeD_Doll_SlotHelp", call(item, "getDisplayName") or label)
             or ZeD.tr("UI_ZeD_Doll_EmptyHelp", label))
+    elseif fo and not item and not beltKey then
+        -- (punch list 230: an empty slot's help words, beside it once the pad has rested on it; a thing's box shows
+        -- its loot card instead, D.draw)
+        _boxR.x, _boxR.y, _boxR.w, _boxR.h = bx, by, b, b
+        ZeD.Atoms.padHelp(panel, ZeD.tr("UI_ZeD_Doll_EmptyHelp", label), _boxR)
     end
     -- the label, centred under the box (an empty slot's at the disabled alpha)
     local lc = T.textDim
     local la = (lc.a or 1) * (item and 1 or T.disabledAlpha)
     local lw = tm:MeasureStringX(f1, label)
     panel:drawText(label, bx + math.floor((b - lw) / 2), by + b + T.px(3), lc.r, lc.g, lc.b, la, f1)
-    return over
+    return over, fo and true or false
 end
 
 -- one small slot: a big slot's box at 20 units (the stripe fill and the strong frame; the item's
@@ -555,7 +561,7 @@ local function drawSmall(panel, win, bx, by, b, item, nLayers, key, letter, plac
         ZeD.Help.set(panel, item and ZeD.tr("UI_ZeD_Doll_SlotHelp", call(item, "getDisplayName") or place)
             or ZeD.tr("UI_ZeD_Doll_EmptyHelp", place))
     end
-    return over
+    return over, fo and true or false
 end
 
 -- The doll's words (the slots' labels, the groups' names, the places), kept by what they are
@@ -595,6 +601,14 @@ local function slotBox(list, x, y, w, h)
     return t
 end
 local function trimList(l) for i = l.n + 1, #l do l[i] = nil end end
+
+-- (Nov 14 2026, punch list 230b: a box with a thing in it shows the loot card the inventory rows show, to the pointer
+-- and once the pad has rested on it (ZeD.EquipmentTab.itemTip); it named the thing in a one-line hint before, and the
+-- pad's name came at once. An empty box keeps its hint.)
+local function itemTip(panel, win, item, bx, by, b, over, focused)
+    local ET = ZeD.EquipmentTab
+    if ET and ET.itemTip then ET.itemTip(panel, win, item, bx, by, b, b, over, focused) end
+end
 
 --- Draws the doll at (x, y) in a drawer w wide with viewH of viewport. Stamps
 --- win._equipSlotZones (filled slots: the card), win._equipBeltZones (empty
@@ -674,17 +688,13 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         local key = "doll:" .. def.id
         local label = wd.label[def]
         if not label then label = ZeD.textCase(ZeD.tr(def.key)); wd.label[def] = label end
-        local over = drawBox(panel, win, bx, by, b, item, #items, key, nil, label, mx, my)
+        local over, foc = drawBox(panel, win, bx, by, b, item, #items, key, nil, label, mx, my)
         if not item and ghosts and ghosts[def.id] then EL.drawGhost(panel, bx, by, b, ghosts[def.id]) end
         if found and not found.hit[key] then TF.dim(panel, bx, by, b, b + win._findDollLabelH) end
         slotBox(rects, bx, by, b, b).id = def.id
         if item then
             local zb = slotBox(zones, bx, by, b, b); zb.type, zb.item = key, item
-            if over then
-                local t = call(item, "getDisplayName") or "?"
-                if #items > 1 then t = ZeD.tr("UI_ZeD_Doll_Under", t, #items - 1) end
-                hint = { key = key, text = t, x = bx, y = by, w = b }
-            end
+            itemTip(panel, win, item, bx, by, b, over, foc)
         else
             -- an empty slot is still a stop for the pad, so D-pad moves keep to
             -- the doll's columns and rows (nothing happens on A)
@@ -711,7 +721,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
             local sbx, sby = ox + P(sm.x) + S(sm.x) + (sm.col - 1) * stepX, y + P(sm.y)
             local place = wd.place[sm]
             if not place then place = ZeD.tr(sm.place); wd.place[sm] = place end
-            local over = drawSmall(panel, win, sbx, sby, ss, item, #items, key, sm.letter, place, mx, my, k)
+            local over, foc = drawSmall(panel, win, sbx, sby, ss, item, #items, key, sm.letter, place, mx, my, k)
             if not item and ghosts and ghosts[sm.id] then EL.drawGhost(panel, sbx, sby, ss, ghosts[sm.id]) end
             if found and not found.hit[key] then TF.dim(panel, sbx, sby, ss, ss) end
             slotBox(rects, sbx, sby, ss, ss).id = sm.id
@@ -719,14 +729,10 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
             if not ptext then ptext = ZeD.textCase(place); wd.ptext[sm] = ptext end
             if item then
                 local zb = slotBox(zones, sbx, sby, ss, ss); zb.type, zb.item = key, item
-                if over then
-                    local t = call(item, "getDisplayName") or "?"
-                    if #items > 1 then t = ZeD.tr("UI_ZeD_Doll_Under", t, #items - 1) end
-                    hint = { key = key, text = t .. " | " .. ptext, x = sbx, y = sby, w = ss }
-                end
+                itemTip(panel, win, item, sbx, sby, ss, over, foc)
             else
                 slotBox(empties, sbx, sby, ss, ss).type = key
-                if over then hint = { key = key, text = ptext, x = sbx, y = sby, w = ss } end
+                if over or foc then hint = { key = key, text = ptext, x = sbx, y = sby, w = ss, now = not over } end
             end
             win._equipSlotYMap[key] = sby
         end
@@ -735,7 +741,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
     -- the row below: the hands, then the belt's slots (three to a row)
     local function below(key, label, item, bx0, by0, beltKey, beltSlot)
         local bx, by = ox + P(bx0 + off + BOX_IN) + belowS, y + P(by0)
-        local over = drawBox(panel, win, bx, by, b, item, 1, key, beltKey, label, mx, my)
+        local over, foc = drawBox(panel, win, bx, by, b, item, 1, key, beltKey, label, mx, my)
         local gid = beltSlot and ("belt" .. tostring(beltSlot.i)) or (key and key:sub(6))
         if not item and ghosts and gid and ghosts[gid] then EL.drawGhost(panel, bx, by, b, ghosts[gid]) end
         local fd = win._findDollRes
@@ -743,7 +749,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         win._equipSlotYMap[key] = by
         if item then
             local zb = slotBox(zones, bx, by, b, b); zb.type, zb.item = key, item
-            if over then hint = { key = key, text = call(item, "getDisplayName") or "?", x = bx, y = by, w = b } end
+            itemTip(panel, win, item, bx, by, b, over, foc)
         elseif not beltSlot then
             slotBox(empties, bx, by, b, b).type = key
         elseif beltSlot then
@@ -752,7 +758,10 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
             beltZones[#beltZones + 1] = { x = bx, y = by, w = b, h = b, i = beltSlot.i, item = nil, action = "attach",
                                           btn = { x = bx, y = by, w = b, h = b }, fid = fid }
             win._equipSlotYMap[fid] = by
-            if over then hint = { key = fid, text = ZeD.tr("UI_ZeD_Doll_EmptyHint", (ZeD.Belt and ZeD.Belt.slotName(beltSlot.slot)) or label), x = bx, y = by, w = b } end
+            if over or foc then
+                hint = { key = fid, text = ZeD.tr("UI_ZeD_Doll_EmptyHint", (ZeD.Belt and ZeD.Belt.slotName(beltSlot.slot)) or label),
+                         x = bx, y = by, w = b, now = not over }
+            end
         end
     end
     below("doll:main", ZeD.tr("UI_ZeD_Doll_Main"), data.main, HANDS_X[1], BELOW_Y)
@@ -772,16 +781,6 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
     win._equipDollLines = {}   -- (no leader lines any more: the line layer draws only the hint)
     win._equipDollAll = rects
     win._equipDollDot = math.max(2, P(2.5))
-    -- the controller's focus on a box with an item: its name at once, the same balloon the pointer gets
-    local fk = win._gpFocusedEquipSlot
-    if not hint and fk and gpFocused(win, fk) then
-        for _, z in ipairs(zones) do
-            if z.type == fk and z.item then
-                hint = { key = fk, text = call(z.item, "getDisplayName") or "?", x = z.x, y = z.y, w = z.w, now = true }
-                break
-            end
-        end
-    end
     win._equipDollHintCand = hint
     return math.floor(baseH(nBelt) * k + 0.5)
 end

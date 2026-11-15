@@ -1758,25 +1758,47 @@ end
 --- for it (it appears after the shared pause); focused (the controller's focus) draws it at
 --- once. Either way its balloon points at the element from beside it (rect = its place on panel).
 --- body is a line of words, or a list of lines.
+-- (Nov 14 2026, punch list 230, the director: a trait on the ID card showed the pad nothing. The focused one was
+-- drawn at once on the drawer, where the window's later children covered it; it is asked of the window's overlay now,
+-- as the pointer's is, and shows once the pad has rested on it: ZeD.Atoms' pad rule.)
 local HB_SIDE = { side = "right" }
+local HB_SIDE_PAD = { side = "right", pad = true }
 function HB.hoverCard(panel, win, key, title, body, rect, focused)
     local lines = nil
     if type(body) == "table" then lines = body
     elseif body and body ~= "" then lines = { body } end
-    local card = { title = title, lines = lines, anchor = rect, side = "right", key = key }
-    if focused then
-        ZeD.Molecules.drawDetailCard(panel, 0, 0, card)
-    else
-        ZeD.Atoms.requestDetailCard(win, key, card, panel, rect, HB_SIDE)
+    local cards = win._hbCards
+    if not cards then cards = {}; win._hbCards = cards end
+    local card = cards[key]
+    if not card or card.title ~= title or card._body ~= body then
+        card = { title = title, lines = lines, side = "right", key = key, _body = body }
+        cards[key] = card
     end
+    ZeD.Atoms.requestDetailCard(win, key, card, panel, rect, focused and HB_SIDE_PAD or HB_SIDE)
 end
 
 --- The hover card for the row under the mouse: why it is out of reach (the game's own reason
 --- where it gave one), or the tool it would use.
 function HB.drawHints(panel, win)
     local st = state(win)
-    local hv = st.hover
-    if not hv then return end
+    local hv, focused = st.hover, false
+    if not hv then
+        -- (Nov 14 2026, punch list 230: the row the pad is on gets the same card, once the pad has rested on it)
+        local F = ZeD.Input and ZeD.Input.Focus
+        local el = F and F.liveElement and F.liveElement(win)
+        local id = el and el.id
+        if type(id) ~= "string" or id:sub(1, 7) ~= "hb:row:" then return end
+        for _, z in ipairs(st.zones or {}) do
+            if z.item and z.item.kind == "row" and "hb:row:" .. tostring(z.item.row.key) == id then
+                local ph = st.padHv or {}
+                st.padHv = ph
+                ph.key, ph.x, ph.y, ph.w, ph.h = z.item.row.key, z.x, z.y, z.w, z.h
+                hv, focused = ph, true
+                break
+            end
+        end
+        if not hv then return end
+    end
     local r = findRow(st, hv.key)
     if not r then return end
     local body
@@ -1791,7 +1813,7 @@ function HB.drawHints(panel, win)
             or (r.req == "sp" and tl.spray) or (r.req == "g" and tl.gel) or tl.hairdo
         body = t and tr("UI_ZeD_Hair_YouHave", itemName(t)) or nil
     end
-    HB.hoverCard(panel, win, "hb:" .. hv.key, r.label, body, hv, false)
+    HB.hoverCard(panel, win, "hb:" .. hv.key, r.label, body, hv, focused)
 end
 
 -- ---------------------------------------------------------------------------

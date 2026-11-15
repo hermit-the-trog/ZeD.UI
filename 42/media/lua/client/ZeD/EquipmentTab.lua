@@ -176,6 +176,25 @@ local function eqHover(panel, win, x, y, w, h)
     return ZeD.Atoms.mouseIn(panel, x, y, w, h)
 end
 
+-- (Nov 14 2026, punch list 230b, the director: the Equip tab showed no tooltip at all, to the pointer or the pad.
+-- Its rows and the doll's boxes never asked for one: the loot card (ZeD.InvTip.want, punch list 146) was wired into
+-- the inventory lists alone, and the rows here only stamped the help line.) An equipped thing's row or box asks for
+-- the same loot card the inventory rows show: under the pointer (not while the pad's marks show, as the lists), or
+-- once the pad has rested on it (ZeD.Input.Focus.padRested), beside it. Not while a thing is dragged.
+local _tipR = { x = 0, y = 0, w = 0, h = 0 }
+function ZeD.EquipmentTab.itemTip(panel, win, item, x, y, w, h, over, focused)
+    local IT = ZeD.InvTip
+    if not (item and IT and IT.want) then return end
+    if ZeD.EquipmentTab.draggedItem(win) ~= nil then return end
+    local F = ZeD.Input and ZeD.Input.Focus
+    local cues = F and F.cuesVisible and F.cuesVisible(win and win.playerNum) or false
+    local pad = false
+    if focused and cues then pad = F.padRested and F.padRested(win) or false end
+    if not (pad or (over and not cues)) then return end
+    _tipR.x, _tipR.y, _tipR.w, _tipR.h = x, y, w, h
+    IT.want(panel, item, _tipR, nil, pad)
+end
+
 -- A row's condition: the framed strip (ZeD.Atoms.drawFillBar, five segments) at the list
 -- rows' compact height, its middle at cy, in the condition's colours. True while the
 -- pointer is on it (its help line: "Condition 64%")
@@ -800,6 +819,10 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win, why, q)
 
     local fo = eqFocus(win, slot.type)
     local washed = fo and ZeD.Focus.mark(panel, x, y, w, rowH, fo) or false
+    -- the loot card, as the inventory rows show it (punch list 230b)
+    if slot.item then
+        ZeD.EquipmentTab.itemTip(panel, win, slot.item, x, y, w, rowH, eqHover(panel, win, x, y, w, rowH), fo ~= nil)
+    end
 
     -- Column layout: NAME SLOT COND BITE SCR BUL WT
     local c = calcEquipColumns(w, win)
@@ -1022,6 +1045,8 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
         end
         local condHov = f and eqCondition(panel, x + c.condX + T.px(2), ty + math.floor(f2h / 2), c.condColW - T.px(4), f, mk)
         local btnHover = rowHover and A.mouseIn(panel, bx, by, bw, bh)
+        -- the loot card for the row's thing, not over its button (punch list 230b)
+        if s.item then ZeD.EquipmentTab.itemTip(panel, win, s.item, x, y, w, rowH, rowHover and not btnHover, foB ~= nil) end
         if rowHover and not condHov then   -- (on the strip the help line keeps its condition)
             ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Equip_BeltRowHelp", s.item and (safeGet(s.item, "getDisplayName") or "?") or ZeD.tr("UI_ZeD_Equip_Empty"), ZeD.btnCase(label)))
         end

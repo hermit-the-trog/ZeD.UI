@@ -1154,7 +1154,20 @@ ZeD.Atoms.Tooltip = ZeD_Tooltip
 -- lines) are both the balloon (Balloon.lua), anchored to the control: above a
 -- row of controls, beside a column. The mouse sees it after ZeD.HINT_DELAY_MS
 -- of rest (at once when a balloon was just up: moving along a row reads each
--- name); the controller's focus sees it at once (opts.now).
+-- name); the controller's focus sees it once the pad has rested on the stop
+-- PAD_TIP_MS (opts.pad, or opts.now as older callers say it).
+--
+-- (Nov 14 2026, punch list 230, the director: a trait on the ID card, and "pretty
+-- much everything" with a balloon for the pointer, showed the pad nothing.) The
+-- pad's rule, one for every surface: a stop whose surface shows the pointer a
+-- balloon shows the same one once the pad has rested on it PAD_TIP_MS (the wait is
+-- ZeD.Input.Focus.restedMs), beside the stop, through this same overlay pass (a
+-- card drawn by the surface itself stayed under the drawer's later siblings). A
+-- stop with no request of its own gets one here: its element's tip (el.tip = words,
+-- a detail card, or a function(win, el) giving either; el.tipRect = where it points,
+-- window-local), else the help words its surface stamped for the pad this frame
+-- (padHelp: the words the help line gives the pointer, which the pad never sees,
+-- the help line showing its buttons instead).
 --
 -- A balloon must sit above everything in its window, so a control does not draw
 -- it itself: it asks for it each frame it is hovered or focused (requestHint /
@@ -1247,17 +1260,84 @@ local function hoverRequest(owner, key, panel, rect, opts)
         r.rx = nil
     end
     r.side = opts and opts.side or nil
-    r.now = opts and opts.now or false
+    r.pad = opts and (opts.pad or opts.now) or false
     r.below = opts and opts.below or nil
     return r
 end
+
+-- THE PAD'S WAIT (punch list 230). since = when this key's request began; true once the pad has rested PAD_TIP_MS:
+-- on win's focused stop as ZeD.Input.Focus reads it, or (a surface with a focus of its own: the belt, the menus)
+-- on the key.
+ZeD.Atoms.PAD_TIP_MS = 400
+local function padReady(win, since, now)
+    local F = ZeD.Input and ZeD.Input.Focus
+    local ms = F and F.restedMs and F.restedMs(win) or nil
+    if ms ~= nil then return ms >= (F.PAD_TIP_MS or ZeD.Atoms.PAD_TIP_MS) end
+    return now - (since or now) >= ZeD.Atoms.PAD_TIP_MS
+end
+ZeD.Atoms._padReady = padReady
+
+local _padHelp = {}   -- [win] = { text, panel, x, y, w, h, side, t }: the pad's help words this frame
+
+--- The help words of the stop the controller is on (what ZeD.Help.set gives the pointer), for the pad's balloon
+--- beside it: call it each frame the stop is focused. rect = the stop in panel's space ({ x, y, w, h }; nil: the
+--- focused stop's own bounds); side as requestHint. A balloon the surface asks for itself wins over these words.
+function ZeD.Atoms.padHelp(panel, text, rect, side)
+    if not panel or not text or text == "" then return end
+    local win = ZeD.Atoms.windowOf and ZeD.Atoms.windowOf(panel) or panel
+    local h = _padHelp[win]
+    if not h then h = {}; _padHelp[win] = h end
+    h.text, h.panel, h.side, h.t = tostring(text), panel, side, getTimestampMs()
+    if rect then h.x, h.y, h.w, h.h = rect.x, rect.y, rect.w or 1, rect.h or rect.w or 1 else h.x = nil end
+end
+
+local PAD_OPTS = {}
+-- the focused stop's own balloon when its surface asked for none this frame: its tip, else its help words
+local function autoRequest(win)
+    local F = ZeD.Input and ZeD.Input.Focus
+    local el = F and F.liveElement and F.liveElement(win) or nil
+    if not el then return nil end
+    if F.restedMs then F.restedMs(win) end   -- (asked every frame drawn, so the stop's wait runs whoever asks later)
+    local tip, key = el.tip, nil
+    if type(tip) == "function" then
+        local ok, v = pcall(tip, win, el)
+        tip = ok and v or nil
+    end
+    local panel, rect = win, nil
+    local h = _padHelp[win]
+    if (tip == nil or tip == "") and h and getTimestampMs() - (h.t or 0) <= HOVER_STALE_MS then
+        tip, panel = h.text, h.panel
+        if h.x then rect = h end
+        PAD_OPTS.side = h.side
+    else
+        PAD_OPTS.side = el.tipSide
+    end
+    if tip == nil or tip == "" then return nil end
+    if not rect then
+        rect = F.elementRect and F.elementRect(win, el) or nil
+        panel = win
+        if not rect then return nil end
+    end
+    key = "pad:" .. tostring(el.id or el.item or el.slotType or (tostring(el.x) .. ":" .. tostring(el.y)))
+    PAD_OPTS.pad = true
+    local r
+    if type(tip) == "table" then
+        r = hoverRequest(win, key, panel, rect, PAD_OPTS)
+        r.kind, r.text, r.card = "card", nil, tip
+    else
+        r = hoverRequest(win, key, panel, rect, PAD_OPTS)
+        r.kind, r.text, r.card = "hint", tostring(tip), nil
+    end
+    return r
+end
+ZeD.Atoms._autoRequest = autoRequest
 
 --- Ask for the hint over `owner` (the window, or a HUD panel) this frame.
 -- key names the hovered control (its id); panel = the control's panel (lets an
 -- overlay of a window the owner sits in find the request); rect = the control in
 -- panel's space { x, y, w, h }, which the balloon points at; opts = { side =
--- "above" (default) | "right" | "left" | "below", now = true (the controller's
--- focus: no pause) }.
+-- "above" (default) | "right" | "left" | "below", pad = true (or now = true: the
+-- controller's focus, shown once the pad has rested PAD_TIP_MS) }.
 function ZeD.Atoms.requestHint(owner, key, text, panel, rect, opts)
     if not owner or not text or text == "" then return end
     local r = hoverRequest(owner, key or text, panel, rect, opts)
@@ -1296,7 +1376,8 @@ end
 --- Draw the balloon asked for in `win` this frame, pointing at its control, once the
 -- delay has passed. Called by the window's overlay pass (ZeD.Focus.drawOverlay)
 -- and by the windows' hint layers; whichever runs first in a frame draws it.
-function ZeD.Atoms.drawPendingHover(ov, win)
+-- noAuto: a hint layer's call (the overlay pass alone gives the pad's stop its own balloon: autoRequest)
+function ZeD.Atoms.drawPendingHover(ov, win, noAuto)
     win = win or ov
     local owner, r = win, _hoverReq[win]
     if not r then
@@ -1304,6 +1385,7 @@ function ZeD.Atoms.drawPendingHover(ov, win)
             if rr.panel and ZeD.Atoms.isAncestor(win, rr.panel) then owner, r = o, rr; break end
         end
     end
+    if not r and not noAuto then r = autoRequest(win) end
     local st = _hoverSt[win]
     if not st then st = {}; _hoverSt[win] = st end
     local now = getTimestampMs()
@@ -1319,11 +1401,15 @@ function ZeD.Atoms.drawPendingHover(ov, win)
     st.lastT = r.t
     if st.key ~= r.key then
         st.key, st.since = r.key, now
-        st.warm = r.now or (Bn and Bn.warm()) or false
+        -- (the pad waits its rest every time: no warm hand-on from the balloon before, punch list 230)
+        st.warm = (not r.pad) and Bn and Bn.warm() or false
         -- (the place the pointer was when the hover began, for a caller that gave no rectangle)
         st.px, st.py = getMouseX(), getMouseY()
     end
-    if not st.warm and now - (st.since or now) < ZeD.HINT_DELAY_MS then
+    local waiting
+    if r.pad then waiting = not padReady(win, st.since, now)
+    else waiting = not st.warm and now - (st.since or now) < ZeD.HINT_DELAY_MS end
+    if waiting then
         if Bn then Bn.redrawHeld(win, ov) end
         return
     end
@@ -1348,7 +1434,7 @@ end
 -- stamps win[field] = { key, text, x, y, w, h, side = "r"|"l", now } (window
 -- space, the control's rect) while the pointer rests on it or the controller's
 -- focus is on it, and the layer draws the balloon beside it after
--- ZeD.HINT_DELAY_MS (at once for the focus). Nothing stamped = no hint (the
+-- ZeD.HINT_DELAY_MS (the focus: once the pad has rested PAD_TIP_MS). Nothing stamped = no hint (the
 -- stamp is consumed). The layer also draws any hover box the library's
 -- controls asked for in this window (drawPendingHover).
 -- ----------------------------------------------------------------------------
@@ -1370,7 +1456,7 @@ function ZeD.Atoms.newHintLayer(win, field)
     layer.onRightMouseDown = function() return false end
     layer.onRightMouseUp = function() return false end
     layer.render = function(self)
-        ZeD.Atoms.drawPendingHover(self, win)
+        ZeD.Atoms.drawPendingHover(self, win, true)
         local c = win[field]
         win[field] = nil
         local kf, sf, wf = field .. "Key", field .. "Since", field .. "Warm"
@@ -1381,8 +1467,11 @@ function ZeD.Atoms.newHintLayer(win, field)
             return
         end
         local now = getTimestampMs()
-        if win[kf] ~= c.key then win[kf], win[sf], win[wf] = c.key, now, c.now or (Bn and Bn.warm()) or false end
-        if not win[wf] and now - (win[sf] or now) < ZeD.HINT_DELAY_MS then return end
+        -- (c.now: the controller's focus, which waits the pad's rest: punch list 230)
+        if win[kf] ~= c.key then win[kf], win[sf], win[wf] = c.key, now, (not c.now) and Bn and Bn.warm() or false end
+        if c.now then
+            if not padReady(win, win[sf], now) then return end
+        elseif not win[wf] and now - (win[sf] or now) < ZeD.HINT_DELAY_MS then return end
         if not Bn then return end
         local a = _layerA
         a.x, a.y = win:getAbsoluteX() + (c.x or 0), win:getAbsoluteY() + (c.y or 0)

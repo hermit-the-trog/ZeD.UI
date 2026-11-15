@@ -751,6 +751,46 @@ function Focus.isFocused(w, zoneName, elementId)
     return true
 end
 
+-- ---------------------------------------------------------------------------
+-- THE PAD'S REST: how long the controller has stayed on one stop
+-- (Nov 14 2026, punch list 230, the director: a trait on the ID card, and "pretty much everything" that shows the
+-- pointer a balloon, showed the pad nothing.) One rule for every surface: a stop whose surface shows the pointer a
+-- balloon (or help words) shows the same one once the pad has rested on it PAD_TIP_MS, beside the stop. The wait is
+-- read here, as the marks read the focus: a stop is "the same" while its zone and its id (its item or slot, else its
+-- place) stay; a stop nobody asked about for REST_GAP_MS (the mouse took over, the window was hidden, the pad came back)
+-- starts its wait again. ZeD.Atoms.drawPendingHover asks it each frame for the pad's balloons.
+-- ---------------------------------------------------------------------------
+Focus.PAD_TIP_MS = 400
+local REST_GAP_MS = 250
+
+--- How many ms player w.playerNum's pad has rested on w's focused stop, or nil when no focus mark shows in w
+--- (w is not the focused window, or the mouse is in use).
+function Focus.restedMs(w)
+    local z = Focus.liveZone(w)
+    if not z then return nil end
+    local el = Focus.getFocusedElement(w)
+    if not el then return nil end
+    local s = (w == _st0.win) and _st0 or _st[w.playerNum or 0]
+    if not s then return nil end
+    -- (a stop list rebuilt as its tab scrolls makes new tables: the key is what names the stop, else where it is)
+    local key = el.id
+    if key == nil then key = el.item or el.slotType end
+    if key == nil then key = tostring(el.x) .. ":" .. tostring(el.y) end
+    local t = getTimestampMs() or 0
+    if s.restWin ~= w or s.restZone ~= z.zone or s.restKey ~= key or t - (s.restSeen or -1e9) > REST_GAP_MS then
+        s.restWin, s.restZone, s.restKey, s.restSince = w, z.zone, key, t
+    end
+    s.restSeen = t
+    return t - (s.restSince or t)
+end
+
+--- True once the pad has rested on w's focused stop PAD_TIP_MS (with id: on the stop with that id).
+function Focus.padRested(w, id)
+    if id ~= nil and not Focus.isFocused(w, nil, id) then return false end
+    local ms = Focus.restedMs(w)
+    return ms ~= nil and ms >= Focus.PAD_TIP_MS
+end
+
 --- Marks a list's rows (the stops that carry .item) that lie out of the
 --- list's view: el.offscreen = true when the row ends above view.top or
 --- starts at or below view.bottom (view = the renderer's _rowView, the same
@@ -1118,6 +1158,22 @@ local function _zoneOffset(w, zoneName)
     if not ok1 then ox = 0 end
     if not ok2 then oy = 0 end
     return ox or 0, oy or 0
+end
+
+--- (Nov 14 2026, punch list 230) The focused stop's rectangle in w's own space, for the pad's balloon beside it:
+--- el.tipRect (already window-local) when the stop names one, else its bounds moved by its zone's panel. Or nil.
+local _elRect = {}
+function Focus.elementRect(w, el)
+    local z = Focus.getFocusedZone(w)
+    el = el or Focus.getFocusedElement(w)
+    if not (z and el) then return nil end
+    local r = el.tipRect
+    if type(r) == "function" then r = r(w, el) end
+    if type(r) == "table" and type(r.x) == "number" then return r end
+    if type(el.x) ~= "number" or type(el.y) ~= "number" then return nil end
+    local ox, oy = _zoneOffset(w, z.zone)
+    _elRect.x, _elRect.y, _elRect.w, _elRect.h = el.x + ox, el.y + oy, el.w or 1, el.h or 1
+    return _elRect
 end
 
 -- Returns (elements, locator) where:

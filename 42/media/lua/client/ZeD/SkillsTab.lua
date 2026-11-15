@@ -62,6 +62,13 @@ local function focusOf(win, id)
     return nil
 end
 
+-- the pad's help balloon's row (ZeD.Atoms.padHelp; one table, refilled)
+local _padR = {}
+local function padRect(x, y, w, h)
+    _padR.x, _padR.y, _padR.w, _padR.h = x, y, w, h
+    return _padR
+end
+
 -- the footer help line's words for what the pointer is over
 local function help(win, text)
     if ZeD.Help and ZeD.Help.set then ZeD.Help.set(win, text) end
@@ -723,41 +730,11 @@ local function skillCard(win, skill)
 end
 ZeD.SkillsTab._skillCard = skillCard   -- (the QA sims read it: ZeDUI/tools/qa/compat_r6_sim.lua)
 
--- The card layer: a click-through panel kept as the window's last child (as
--- ZeD.Atoms.newHintLayer), for the controller's focused row, whose card is drawn at
--- once beside the row (the mouse's card is asked of the window's overlay instead, after
--- the shared pause). The Skills tab stamps win._skillCardStamp each frame a card is up.
-local SKILL_SIDE = { side = "right" }   -- (a skill's card sits beside its row: the rows are a column)
-function ZeD.SkillsTab.cardLayer(win)
-    local layer = win._skillCardLayer
-    if not layer then
-        layer = ISPanel:new(0, 0, win:getWidth(), win:getHeight())
-        layer:initialise()
-        layer:instantiate()
-        layer.background = false
-        layer.javaObject:setConsumeMouseEvents(false)
-        layer.prerender = function(self) end
-        layer.onMouseDown = function() return false end
-        layer.onMouseUp = function() return false end
-        layer.onMouseWheel = function() return false end
-        layer.onRightMouseDown = function() return false end   -- (42.22: a handler that returns nothing takes the click)
-        layer.onRightMouseUp = function() return false end
-        layer.render = function(self)
-            local c = win._skillCardStamp
-            win._skillCardStamp = nil
-            if not c then return end
-            local ok, err = pcall(ZeD.Molecules.drawDetailCard, self, c.ax, c.ay, c.card)
-            if not ok then ZeD.logOnce("skills card", err) end
-        end
-        win:addChild(layer)
-        win._skillCardLayer = layer
-    end
-    if layer:getWidth() ~= win:getWidth() or layer:getHeight() ~= win:getHeight() then
-        layer:setWidth(win:getWidth())
-        layer:setHeight(win:getHeight())
-    end
-    return layer
-end
+-- A row extra's card points at its row from beside it (the rows are a column). (Nov 14 2026, punch list 230: the
+-- controller's focused row asks the window's overlay too, after the pad's rest; the card layer that drew it at once
+-- on the window is gone.)
+local SKILL_SIDE = { side = "right" }
+local SKILL_SIDE_PAD = { side = "right", pad = true }
 
 -- ============================================================================
 -- COLUMN HEIGHT MEASUREMENT
@@ -993,7 +970,12 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
             local tid = _trainIds[expandKey]
             if not tid then tid = "training:" .. expandKey; _trainIds[expandKey] = tid end
             local fo = win and focusOf(win, tid)
-            if fo then onFocus = ZeD.Focus.mark(panel, startX, dy, colWidth, collapsedRowH, fo) end
+            if fo then
+                onFocus = ZeD.Focus.mark(panel, startX, dy, colWidth, collapsedRowH, fo)
+                -- (Nov 14 2026, punch list 230: the pointer's help words, beside the row once the pad rests on it)
+                A.padHelp(panel, ZeD.tr(isExpanded and "UI_ZeD_Skills_HelpBooksHide" or "UI_ZeD_Skills_HelpBooksShow", dispName),
+                    padRect(startX, dy, colWidth, collapsedRowH), "right")
+            end
 
             if vis then
             -- Chevron icon (scaled smaller than font height for visual balance)
@@ -1402,7 +1384,12 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                 local fid = rowIds[skill.name]
                 if not fid then fid = "skill:" .. tostring(skill.name); rowIds[skill.name] = fid end
                 local fo = focusOf(win, fid)
-                if fo then onFocus = ZeD.Focus.mark(panel, startX, cy, colWidth, rowH, fo) end
+                if fo then
+                    onFocus = ZeD.Focus.mark(panel, startX, cy, colWidth, rowH, fo)
+                    -- (Nov 14 2026, punch list 230: what the pointer reads on the level bar, the XP to the next level,
+                    -- beside the row once the pad rests on it)
+                    A.padHelp(panel, ZeD.SkillsTab.barHelp(skill), padRect(startX, cy, colWidth, rowH), "right")
+                end
 
                 if vis then
                     -- Level badge
@@ -1538,7 +1525,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
 
     -- A row extra's hover card (ZeD.SkillsTab.addExtras): the row under the pointer
     -- (asked of the window's overlay: the shared detail card, after its pause), or the
-    -- controller's focused row (drawn at once, on the window's card layer)
+    -- controller's focused row (asked the same way, shown once the pad has rested on it)
     if gridExpanded and #ZeD.SkillsTab.extras > 0 then
         local F = ZeD.Input and ZeD.Input.Focus
         local live = F and F.liveElement and F.liveElement(win)
@@ -1563,19 +1550,11 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
         if hz and hz.y + hz.h > scrollY and hz.y < scrollY + scrollH then
             local card = skillCard(win, hz.skill)
             if card then
-                if padMode then
-                    -- stamped for the window's card layer (drawn above the drawer's siblings: a
-                    -- card drawn on the drawer itself stayed under them); its balloon points at
-                    -- the row from beside it, at once
-                    local ox = panel:getAbsoluteX() - win:getAbsoluteX()
-                    local oy = panel:getAbsoluteY() - win:getAbsoluteY()
-                    card.anchor = { x = hz.x + ox, y = hz.y + oy, w = hz.w, h = hz.h }
-                    card.side, card.key = "right", "skill:" .. tostring(hz.name)
-                    win._skillCardStamp = { ax = 0, ay = 0, card = card }
-                    ZeD.SkillsTab.cardLayer(win)
-                else
-                    ZeD.Atoms.requestDetailCard(win, "skill:" .. tostring(hz.name), card, panel, hz, SKILL_SIDE)
-                end
+                -- (Nov 14 2026, punch list 230: the focused row's card is asked of the window's overlay too, above
+                -- the drawer's siblings, and shows once the pad has rested on the row: ZeD.Atoms' pad rule. The
+                -- card layer, which drew it at once, is no longer used.)
+                ZeD.Atoms.requestDetailCard(win, "skill:" .. tostring(hz.name), card, panel, hz,
+                    padMode and SKILL_SIDE_PAD or SKILL_SIDE)
             end
         end
     end

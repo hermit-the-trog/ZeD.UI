@@ -117,6 +117,7 @@ local function withAlpha(out, c, a)
     return out
 end
 
+local _btnHelpR = {}
 function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, colors, opts)
     local T = ZeD.T
     local A = ZeD.Atoms
@@ -229,7 +230,16 @@ function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, col
     if pressed and not opts.disabled then tx = tx + T.px(1); ty = ty + T.px(1) end
     panel:drawText(text, tx, ty, textColor.r, textColor.g, textColor.b, (textColor.a or 1) * alpha, font)
 
-    if opts.hover then giveHelp(panel, opts) end
+    if opts.hover then giveHelp(panel, opts)
+    elseif opts.focus and opts.help and A.padHelp then
+        -- (Nov 14 2026, punch list 230: the help words the pointer reads in the help line, beside the button once the
+        -- pad has rested on it: ZeD.Atoms.padHelp)
+        local f = focusOptsOf(opts)
+        if f and ZeD.Focus and (ZeD.Focus.isShowing == nil or ZeD.Focus.isShowing(f.win or opts.win or A.windowOf(panel), f)) then
+            _btnHelpR.x, _btnHelpR.y, _btnHelpR.w, _btnHelpR.h = x, y, w, h
+            A.padHelp(panel, opts.help, _btnHelpR)
+        end
+    end
     return x, y, w, h
 end
 
@@ -279,6 +289,7 @@ function ZeD.Molecules.drawIconButton(panel, x, y, size, icon, opts)
         A.fillRounded(panel, x, y, size, size, hv.r, hv.g, hv.b, hv.a or 1)
     end
     local onFocus = false
+    local focusShows = false   -- (the mark shows: onFocus is only the words' swap, true in the wash style alone)
     if opts.focus and ZeD.Focus and ZeD.Focus.mark then
         local f = focusOptsOf(opts)
         if f then
@@ -286,6 +297,7 @@ function ZeD.Molecules.drawIconButton(panel, x, y, size, icon, opts)
             local m = _icFocus
             m.win, m.zone, m.focused, m.pad, m.solid = f.win, f.zone, f.focused, f.pad, active or f.solid
             onFocus = ZeD.Focus.mark(panel, x, y, size, size, m, true)
+            focusShows = ZeD.Focus.isShowing == nil or ZeD.Focus.isShowing(m.win or A.windowOf(panel), m)
         end
     end
     local bc = active and T.accent or (onFocus and T.textOnFocus or T.borderS)
@@ -305,19 +317,25 @@ function ZeD.Molecules.drawIconButton(panel, x, y, size, icon, opts)
         A.drawIcon(panel, icon, ix, iy, isz, (ic.a or 1) * alpha, ic)
     end
 
-    -- the hint points at the button: after the pause for the mouse, at once for the controller's focus
+    -- the hint points at the button: after the pause for the mouse, once the pad has rested on it for the
+    -- controller's focus (Nov 14 2026, punch list 230: it asked only when the mark swapped the words, the wash style
+    -- alone, so the default hand never got the name; and a button with help words and no hint gives the pad those)
     local hintRect = nil
-    if (opts.hover or onFocus) and opts.hint and A.requestHint then
+    if (opts.hover or focusShows) and (opts.hint or opts.help) and A.requestHint then
         hintRect = _icHint
         hintRect.x, hintRect.y, hintRect.w, hintRect.h = x, y, size, size
     end
     if opts.hover then
         giveHelp(panel, opts)
-        if hintRect then
+        if hintRect and opts.hint then
             A.requestHint(opts.win or A.windowOf(panel), opts.id or opts.hint, opts.hint, panel, hintRect, opts.hintSide and _icSide[opts.hintSide])
         end
-    elseif onFocus and hintRect then
-        A.requestHint(opts.win or A.windowOf(panel), opts.id or opts.hint, opts.hint, panel, hintRect, _icNow[opts.hintSide or "above"])
+    elseif focusShows and hintRect then
+        if opts.hint then
+            A.requestHint(opts.win or A.windowOf(panel), opts.id or opts.hint, opts.hint, panel, hintRect, _icNow[opts.hintSide or "above"])
+        elseif A.padHelp then
+            A.padHelp(panel, opts.help, hintRect, opts.hintSide)
+        end
     end
     return x, y, size, size
 end

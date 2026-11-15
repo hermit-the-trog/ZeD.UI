@@ -1350,7 +1350,8 @@ function ZeD.HealthTab._renderBand(panel, win, x, y, w)
     sb.label, sb.variant, sb.disabled, sb.id, sb.w = startLbl, "primary", not enabled, "start", startW
     sb.hover = (not open) and A.mouseIn(panel, startX, by, startW, bh)
     sb.focus = focusOf(win, "health:start")
-    sb.help = sb.hover and startHelp(win._playerObj, sel, mins, enabled) or nil
+    -- (Nov 14 2026, punch list 230: the focused Start's words too, beside it once the pad rests on it)
+    sb.help = (sb.hover or sb.focus) and startHelp(win._playerObj, sel, mins, enabled) or nil
     _bandSpec.win = win
     M.drawBand(panel, x, y, w, _bandSpec)
     setRect(bz.start, startX, by, startW, bh)
@@ -1397,10 +1398,12 @@ function ZeD.HealthTab._renderBand(panel, win, x, y, w)
     -- the exercise pop-up: the box ("Exercise: Squats"); its list opens upward (_renderMenu)
     local hov = (not open) and A.mouseIn(panel, boxX, by, boxW, bh)
     if hov and ZeD.Help then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Health_HelpPick")) end
+    local boxFo = focusOf(win, "health:exercise")
     M.drawPopupMenu(panel, boxX, by, boxW, bh,
         ZeD.tr("UI_ZeD_Health_ExercisePick", exName),
-        hov or open, focusOf(win, "health:exercise"), false, exName)   -- (the name alone when both do not fit)
+        hov or open, boxFo, false, exName)   -- (the name alone when both do not fit)
     setRect(bz.box, boxX, by, boxW, bh)
+    if boxFo and not open then A.padHelp(panel, ZeD.tr("UI_ZeD_Health_HelpPick"), bz.box) end   -- (punch list 230)
 end
 
 local _menuModes = {}
@@ -1428,12 +1431,20 @@ function ZeD.HealthTab._renderMenu(panel, win)
     local F = ZeD.Input and ZeD.Input.Focus
     local el = F and F.liveElement and F.liveElement(win)
     if el and el.menuRowId then o.focusId = el.menuRowId end
+    -- (Nov 14 2026, punch list 230: the focused exercise's help words, beside it once the pad rests on it)
+    local tipId = hoverId or o.focusId
     local gy = math.max(0, bz.box.y - M.popupListH(n))
     local _, _, zs = M.drawSortMenuList(panel, bz.box.x, gy, _menuModes, ZeD.HealthTab.selectedExercise(win), hoverId, o)
     win._healthMenuZones = zs
-    if hoverId and ZeD.Help then
-        ZeD.Help.set(win, ZeD.tr("UI_ZeD_Health_HelpExercise", ZeD.HealthTab.exerciseLabel(hoverId),
-            ZeD.HealthTab.getExerciseMinutes(win)))
+    if tipId and ZeD.Help then
+        local words = ZeD.tr("UI_ZeD_Health_HelpExercise", ZeD.HealthTab.exerciseLabel(tipId),
+            ZeD.HealthTab.getExerciseMinutes(win))
+        if hoverId then ZeD.Help.set(win, words)
+        else
+            for _, z in ipairs(zs or {}) do
+                if z.id == tipId then A.padHelp(panel, words, z, "right"); break end
+            end
+        end
     end
 end
 

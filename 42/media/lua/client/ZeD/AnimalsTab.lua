@@ -1105,8 +1105,8 @@ local VERB_LABEL = { milk = "ContextMenu_Milk", shear = "ContextMenu_Shear", ["g
 local VERB_HELP  = { milk = "UI_ZeD_Animals_HelpMilkOne", shear = "UI_ZeD_Animals_HelpShearOne", ["goto"] = "UI_ZeD_Animals_HelpGoTo" }
 local function verbLabel(v) return getText(VERB_LABEL[v] or "ContextMenu_Walk_to") end
 
--- A greyed button's reason, as a balloon over it: after the pause for the pointer, at
--- once for the controller's focus. One card per button, rebuilt only when its words
+-- A greyed button's reason, as a balloon over it: after the pause for the pointer, once
+-- the pad has rested on it for the controller's focus (punch list 230). One card per button, rebuilt only when its words
 -- change (the balloon keeps showing the card it already has).
 local _whyCards = {}
 local _nowOpts = { now = true }
