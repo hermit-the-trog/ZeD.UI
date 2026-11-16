@@ -218,26 +218,41 @@ boxCheck("252 Craft search", ww, "craft:search", function() ZeD_WorldWindow.open
 boxCheck("252 Build search", ww, "build:search", function() ZeD_WorldWindow.openTab(pn, "build") end,
     function() return ww()._buildState and ww()._buildState._searchField end, true)
 
--- 254: Into (the notebook carried): A steps the log only -> the notebook -> the log only; its width follows its label
+-- 254: Into cycles the log only, then each carried book the character can write in (ZeD_JournalReaders.lua's scan:
+-- Literature with canBeWrite, bags included; the character's own notebooks and journals count too), then the log
+-- only again. A is pressed books + 1 times; its width follows its label.
 local function intoW() local z = cw()._journalIntoZone; return z and z.w end
+local function countBooks(inv)
+    local n, items = 0, inv:getItems()
+    for i = 0, items:size() - 1 do
+        local it = items:get(i)
+        local isMedia = ZeD.Print and ZeD.Print.media and ZeD.Print.media(it)
+        if not (isMedia and isMedia.id) and it:getCategory() == "Literature" and it:canBeWrite() then n = n + 1 end
+        if instanceof(it, "InventoryContainer") then n = n + countBooks(it:getInventory()) end
+    end
+    return n
+end
 step(30, page(1))
 step(20, function()
     S.into = focusOn(cw(), byId("jr:into")) ~= nil
     if not check(S.into, "254: Into is a controller stop on the Journal page (a notebook carried)") then return end
-    S.intoW0 = intoW()
+    S.intoN, S.intoW0, S.intoPress, S.intoStay, S.intoSeen = countBooks(p:getInventory()), intoW(), 1, true, { tostring(intoW()) }
+    say("254: " .. S.intoN .. " books to write in carried (the given notebook and the character's own)")
     A(cw())
 end)
-step(20, function()
-    if not S.into then return end
-    S.intoW1 = intoW()
-    check(curId(cw()) == "jr:into", "254: the pad stays on Into after A")
-    check(S.intoW1 ~= S.intoW0, "254: A steps Into to the notebook (width " .. tostring(S.intoW0) .. " -> " .. tostring(S.intoW1) .. ")")
-    A(cw())
-end)
-step(20, function()
-    if not S.into then return end
-    check(intoW() == S.intoW0, "254: A again steps back to the log only (width " .. tostring(intoW()) .. ")")
-end)
+for _ = 1, 10 do
+    step(20, function()
+        if not S.into or S.intoDone then return end
+        if curId(cw()) ~= "jr:into" then S.intoStay = false end
+        S.intoSeen[#S.intoSeen + 1] = tostring(intoW())
+        if S.intoPress < S.intoN + 1 and S.intoPress < 10 then S.intoPress = S.intoPress + 1; A(cw()); return end
+        S.intoDone = true
+        say("254: widths through the cycle " .. table.concat(S.intoSeen, " -> "))
+        check(S.intoStay, "254: the pad stays on Into for each of the " .. S.intoPress .. " presses")
+        check(S.intoSeen[2] ~= S.intoSeen[1], "254: the first A steps Into off the log only")
+        check(intoW() == S.intoW0, "254: after " .. S.intoPress .. " presses (the log only + " .. S.intoN .. " books) Into is back on the log only")
+    end)
+end
 
 -- ===================================================================== 253 animal zones
 local function zoneObj() local z; pcall(function() z = DesignationZoneAnimal.getZoneByName(S.ZONE) end); return z end
@@ -261,26 +276,45 @@ step(10, function()
     end
     S.zoneMine = zoneObj() ~= nil
     if not S.zoneMine then say("not run: 253 (no clear 5x5 spot for a zone near the character)"); return end
+    -- (the tab reads zones from AnimalsAlertPoller's cache, rebuilt each game minute: a zone made a moment ago has
+    -- no card and its page goes straight back to the overview (no summary) until the cache is rebuilt)
+    local okR, eR = pcall(ZeD.AnimalsAlertPoller.refreshCache, pn)
+    if not okR then say("ERR animals cache: " .. tostring(eR)) end
     local st = aState()
-    S.aWas = { view = st.view, zoneName = st.zoneName, animalRef = st.animalRef, prevView = st.prevView }
+    S.aWas = { view = st.view, zoneName = st.zoneName, animalRef = st.animalRef, prevView = st.prevView, submode = st.submode }
     ZeD_WorldWindow.openTab(pn, "animals")
-    st.view = "overview"
+    st.submode, st.view = "ranch", "overview"
 end)
-step(40, function()
+-- the overview scrolled to the zone's card (its place in the page, last frame's _animalsOvRows; as ovFollow does)
+step(30, function()
     if not S.zoneMine then return end
-    S.menu = nil
-    if focusOn(ww(), byId("animals:zonecard:" .. S.ZONE)) then X(ww())
-    else say("not run: 253 X on the zone's card (its card is not on screen in the overview)") end
+    local w = ww()
+    local r = w._animalsOvRows and w._animalsOvRows["animals:zonecard:" .. S.ZONE]
+    local clip, listH, sc = w._animalsOvClip, w._animalsOvH or 0, w._animalsScroll
+    local maxOff = clip and (listH - clip.h) or 0
+    say("253: the card in the overview " .. tostring(r ~= nil) .. (r and (" at " .. math.floor(r.cy) .. " of " .. math.floor(listH)) or ""))
+    if r and sc and maxOff > 0 then sc:setScrollPos(math.min(r.cy, maxOff) / maxOff) end
 end)
 step(20, function()
     if not S.zoneMine then return end
-    if S.menu then check(S.menu._ctx.open and S.menu.headText == S.ZONE, "253: X on the zone's card opens the zone's menu (" .. tostring(S.menu.headText) .. ")") end
+    S.menu = nil
+    S.card = focusOn(ww(), byId("animals:zonecard:" .. S.ZONE)) ~= nil
+    if check(S.card, "253: the zone's card is a controller stop in the overview") then X(ww()) end
+end)
+step(20, function()
+    if not S.zoneMine then return end
+    if S.card then check(S.menu and S.menu._ctx.open and S.menu.headText == S.ZONE, "253: X on the zone's card opens the zone's menu (" .. tostring(S.menu and S.menu.headText) .. ")") end
     menuShut()
-    AT.navigate(ww(), "zone", S.ZONE, nil)
+end)
+step(10, function()
+    if not S.zoneMine then return end
+    -- A on the card, as the pad opens a zone's page (ZeD_WorldWindow.lua's zone card stop: AT.navigate to "zone")
+    if S.card and focusOn(ww(), byId("animals:zonecard:" .. S.ZONE)) then A(ww())
+    else say("253: the card not reachable: the zone's page opened with AT.navigate"); AT.navigate(ww(), "zone", S.ZONE, nil) end
 end)
 step(40, function()
     if not S.zoneMine then return end
-    check(aState().view == "zone" and aState().zoneName == S.ZONE, "253: the zone's page is open")
+    check(aState().view == "zone" and aState().zoneName == S.ZONE, "253: the zone's page is open (" .. tostring(aState().view) .. ")")
     S.z253 = focusOn(ww(), byId("animals:zone:remove")) ~= nil
     if check(S.z253, "253: Remove zone is a controller stop") then A(ww()) end
 end)
@@ -458,7 +492,7 @@ step(20, function()
     if z then pcall(function() DesignationZoneAnimal.removeZone(z, true) end) end
     if S.aWas then
         local st = aState()
-        st.view, st.zoneName, st.animalRef, st.prevView = S.aWas.view, S.aWas.zoneName, S.aWas.animalRef, S.aWas.prevView
+        st.view, st.zoneName, st.animalRef, st.prevView, st.submode = S.aWas.view, S.aWas.zoneName, S.aWas.animalRef, S.aWas.prevView, S.aWas.submode or st.submode
         ww()._animalsRenaming, ww()._animalsRemoveConfirm = false, false
     end
     -- the list's sort and folds

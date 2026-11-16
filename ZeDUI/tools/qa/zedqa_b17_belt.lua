@@ -119,15 +119,13 @@ local function wheelClose()
     local m = getPlayerRadialMenu(pn)
     if m and m:isReallyVisible() then pcall(m.undisplay, m) end
 end
+-- (the slices from the wheel's own builder, D.B.character, which D.open puts on the wheel: no pad needed to read them)
 local function wheelCount(tag, want)
-    wheelOpen()
-    local st = Dw.state[pn]
-    local es = st and st.path[1].entries or {}
+    local es = Dw.B.character(p, pn) or {}
     local last = es[#es]
-    local m = st and st.menu
     check(#es == want and last and last.key == "belt", string.format("250 %s: the Character wheel has %d slices (want %d), the last %s",
         tag, #es, want, tostring(last and last.name)))
-    say("  slices drawn " .. tostring(m and m.slices and #m.slices) .. ", Belt off: " .. tostring(last and last.off))
+    say("  Belt off: " .. tostring(last and last.off))
     return last
 end
 step(5, function()
@@ -137,9 +135,14 @@ step(5, function()
     ZeD.Settings.loadoutsOption:setValue(2)
 end)
 step(5, function()
-    local e = wheelCount("Loadouts on", 10)
-    if not jd then say("not run: the pad on the belt (no controller bound)"); wheelClose(); return end
-    if e then Dw.take(pn, e) else wheelClose() end
+    wheelCount("Loadouts on", 10)
+    if not jd then say("not run: the pad on the belt (no controller bound: setJoypadFocus needs one)"); return end
+    -- (the slice taken from the opened wheel, as the pad takes it)
+    wheelOpen()
+    local st = Dw.state[pn]
+    local es = st and st.path[1].entries or {}
+    local e = es[#es]
+    if e and e.key == "belt" then Dw.take(pn, e) else say("not run: taking the slice (the wheel did not open)"); wheelClose() end
 end)
 step(8, function()   -- (the slice's claim waits two frames)
     if not jd then return end
@@ -438,6 +441,10 @@ step(5, function()
     end
     S.vol0 = vol()
     S.on0 = dd() and dd():getIsTurnedOn()
+    -- (the volume moves only on a set that is on and has power, ISRadioAction:isValidSetVolume; set up straight
+    -- on the radio, not through the knob: on, at half, the game running)
+    pcall(function() dd():setIsTurnedOn(true); dd():setDeviceVolume(0.5) end)
+    if speed() == 0 then setGameSpeed(1) end
     tap("A", Joypad.AButton)
 end)
 step(4, function()
@@ -445,17 +452,26 @@ step(4, function()
     Focus.qaButton("A", nil)
     check(Focus.knobGrabbed(S.dash, "dash:vol"), "265 tap A grabs the knob")
     S.turns = 0
+    S.onSet = dd() and dd():getIsTurnedOn()
+    say(string.format("  before the turns: speed %s, driver %s, set on %s, power %s, volume %s", tostring(getGameSpeed()),
+        tostring(S.dash._driver), tostring(S.onSet), tostring(dd() and dd():getPower()), tostring(vol())))
 end)
 step(20, function() if S.dash then shot("dash_knob") end end)
-step(2, function()   -- (one Right a frame, 12 in all: from any volume to full and past it)
+step(4, function()
     if not S.dash then return end
+    if getGameSpeed() == 0 then setGameSpeed(1) end
+    Focus.dispatchJoypadDir(S.dash, "right")
+end)
+step(4, function()   -- (then one Right a frame, 8 in all: from 0.6 to full and past it; the turn lands on the press)
+    if not S.dash then return end
+    if S.turns == 0 then check(math.abs(vol() - 0.6) < 0.01, "265 Right turns up from half (volume " .. vol() .. ")") end
     Focus.dispatchJoypadDir(S.dash, "right")
     S.turns = S.turns + 1
-    if S.turns < 12 then return "again" end
+    if S.turns < 8 then return "again" end
 end)
 step(5, function()
     if not S.dash then return end
-    check(math.abs(vol() - 1) < 0.01, "265 Right turns up and stops at full, no wrap (volume " .. vol() .. ", was " .. tostring(S.vol0) .. ")")
+    check(math.abs(vol() - 1) < 0.01, "265 Right stops at full, no wrap (volume " .. vol() .. ")")
     Focus.dispatchJoypadDir(S.dash, "left")
 end)
 step(5, function()
@@ -476,14 +492,14 @@ step(10, function()
     Focus.qaButton("X", nil)
     if S.xTried then
         local on = dd() and dd():getIsTurnedOn()
-        check(on ~= S.on0, "265 X is power (" .. tostring(S.on0) .. " -> " .. tostring(on) .. ")")
-        if on ~= S.on0 then tap("X", Joypad.XButton) end
+        check(on ~= S.onSet, "265 X is power (" .. tostring(S.onSet) .. " -> " .. tostring(on) .. ")")
     end
 end)
 step(10, function()
     if not S.dash then return end
     Focus.qaButton("X", nil)
-    if S.vol0 and S.vol0 >= 0 then pcall(ZeD.RadioOps.run, "SetVolume", p, S.dash._st.radioPart, S.vol0) end
+    -- (put back straight on the radio: the volume and the power it had)
+    pcall(function() if S.vol0 and S.vol0 >= 0 then dd():setDeviceVolume(S.vol0) end; dd():setIsTurnedOn(S.on0 == true) end)
     startOn("car dash", S.dash)
     if ZeD.CarRadio then pcall(ZeD.CarRadio.toggle, p) end
 end)

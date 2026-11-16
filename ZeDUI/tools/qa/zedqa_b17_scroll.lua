@@ -40,6 +40,14 @@ local SH = getCore():getScreenHeight()
 -- what the run changes, kept to put back
 local K = { placed = {}, added = {}, prim = p:getPrimaryHandItem(), sec = p:getSecondaryHandItem(), speed = getGameSpeed() }
 local O = {}   -- the placed objects by name
+-- the character back where the run found it (moved beside the car for Mechanics)
+local function goHome()
+    local h = K.home
+    if not h then return end
+    K.home = nil
+    pcall(function() p:teleportTo(h.x, h.y, h.z) end)
+    pcall(function() p:setX(h.x); p:setY(h.y); p:setZ(h.z); p:setLastX(h.x); p:setLastY(h.y); p:setLastZ(h.z) end)
+end
 
 local function fid(w) local e = w and Focus.getFocusedElement(w); return e and e.id end
 local function fzone(w) local z = w and Focus.getFocusedZone(w); return z and z.zone end
@@ -134,6 +142,40 @@ local function faceWalk(tag, o)
             if W.t < 60 then return true end
             say("not run: " .. tag .. " (" .. (ok and "its face never showed" or ("ERR " .. tostring(r))) .. ")"); W.skip = true; return
         end
+        -- the face's height, top stop to lowest control, read off its stops (window px, the scroll at 0)
+        local w = o.win()
+        local top, bot = nil, nil
+        local ok2, flat = pcall(Focus.flatElements, w)
+        for _, f in ipairs(ok2 and flat or {}) do
+            if f.zone == o.zone and inFace(o, f.id) then
+                if not top or f.y < top then top = f.y end
+                if not bot or f.y + (f.h or 0) > bot then bot = f.y + (f.h or 0) end
+            end
+        end
+        W.span = (top and bot) and (bot - top) or 0
+        W.h0 = w:getHeight()
+        say(tag .. ": face " .. math.floor(W.span) .. " px top stop to lowest control; window " .. W.h0 .. " px")
+        W.n = 0
+    end)
+    -- (Nov 16 2026, the 4K run: at 45% of the screen every face fit) the window shrinks a step at a time until the
+    -- face's view is under 0.6 of the face (read from its scrollbar's height), or the window stops getting shorter
+    step(4, function()
+        if W.skip or W.span <= 0 then return end
+        local w = o.win()
+        local sc = o.scroll()
+        local viewH = (sc and sc.visible) and sc.height or nil
+        local h = w:getHeight()
+        W.n = W.n + 1
+        if (not viewH or viewH > W.span * 0.6) and h > T.px(160) and W.n <= 40 and h ~= W.hLast then
+            W.hLast = h
+            w:setHeight(math.max(T.px(160), h - T.px(30)))
+            return true
+        end
+        say(tag .. ": window " .. h .. " px, face view " .. tostring(viewH and math.floor(viewH)) .. " px for a "
+            .. math.floor(W.span) .. " px face (" .. (W.n - 1) .. " steps)")
+    end)
+    step(4, function()
+        if W.skip then return end
         local w = o.win()
         Focus.claimFocus(w)
         local e = focusAny(w, function(x, zn) return zn == o.zone and inFace(o, x.id) end)
@@ -163,7 +205,7 @@ local function faceWalk(tag, o)
         if W.n <= 25 and r and r.zone == o.zone and inFace(o, r.id) and r.id ~= fid(w) then Focus.dispatchJoypadDir(w, "up"); return true end
     end)
     step(6, function()
-        if W.skip then if o.close then pcall(o.close) end; return end
+        if W.skip then if o.close then pcall(o.close) end; if W.h0 then o.win():setHeight(W.h0) end; return end
         local sc = o.scroll()
         local pos = sc and sc.scrollPos or 0
         if (W.low or 0) > 0.001 then
@@ -174,6 +216,7 @@ local function faceWalk(tag, o)
         end
         shot(tag .. "_top")
         if o.close then pcall(o.close) end
+        if W.h0 then o.win():setHeight(W.h0) end
     end)
 end
 -- the World window's Radio tab on a placed set
@@ -338,6 +381,7 @@ MC.close = function()
     local e = Focus.getFocusedElement(WW())
     if e and e.onCancel then e.onCancel(WW(), e) end
     ZeD_WorldWindow.openTab(pn, "loot")
+    goHome()
 end
 step(5, function()
     local px, py, pz = math.floor(p:getX()), math.floor(p:getY()), math.floor(p:getZ())
@@ -348,11 +392,32 @@ step(5, function()
     end end
     if not MC.car and ZEDQA_CAR_SPAWN then MC.car = ZEDQA_CAR_SPAWN("Base.CarNormal", "b17s"); K.car = MC.car end
     if not MC.car then say("not run: Mechanics (no car within 8 tiles and no prelude to spawn one)"); MC.skip = true; return end
+    -- (Nov 16 2026, the 4K run found no part rows: the Vehicle tab offers a car within 4.5 tiles of its centre and
+    -- ends an inspection past 6 (MechanicsTab.lua REACH_TILES / KEEP_TILES); the car found or spawned stood further
+    -- off, so the list never drew. The character stands 2 tiles beside the car for this part, then goes back.)
+    local dx, dy = MC.car:getX() - p:getX(), MC.car:getY() - p:getY()
+    local d = math.sqrt(dx * dx + dy * dy)
+    if d > 3.5 then
+        K.home = { x = p:getX(), y = p:getY(), z = p:getZ() }
+        local x, y = MC.car:getX() + 2.5, MC.car:getY()
+        pcall(function() p:teleportTo(x, y, pz) end)
+        pcall(function() p:setX(x); p:setY(y); p:setLastX(x); p:setLastY(y) end)
+    end
+    local ex, ey = MC.car:getX() - p:getX(), MC.car:getY() - p:getY()
+    say(string.format("mechanics: car %s %.1f tiles off, now %.1f", tostring(MC.car:getScript() and MC.car:getScript():getName()), d,
+        math.sqrt(ex * ex + ey * ey)))
+end)
+step(10, function()
+    if MC.skip then return end
     ZeD.MechanicsTab.openFromAction(p, MC.car, false)
 end)
 step(40, function()
     if MC.skip then return end
     local s = WW()._mech
+    local rows = 0
+    for _, z in ipairs(s and s.zones or {}) do if string.sub(tostring(z.id), 1, 9) == "mech:row:" then rows = rows + 1 end end
+    say("mechanics: tab " .. tostring(WW()._activeTab) .. ", " .. #(s and s.vehicles or {}) .. " cars offered, view "
+        .. tostring(s and s.view) .. ", " .. rows .. " part rows")
     local part
     for _, z in ipairs(s and s.zones or {}) do
         local id = string.match(tostring(z.id), "^mech:row:(.+)$")
@@ -555,6 +620,7 @@ step(10, function()
         pcall(function() local ct = it:getContainer(); if ct then ct:Remove(it) end end)
     end
     pcall(function() triggerEvent("OnClothingUpdated", p) end)
+    goHome()
     if K.car and ZEDQA_CAR_AWAY then pcall(ZEDQA_CAR_AWAY, K.car) end
     if K.hW and w then w:setHeight(K.hW) end
     if K.hC and c then c:setHeight(K.hC) end
