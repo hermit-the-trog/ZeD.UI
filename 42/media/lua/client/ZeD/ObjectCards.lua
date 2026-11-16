@@ -1042,8 +1042,24 @@ function ZeD_ObjectCard:drawHeader(e, hh, win)
         if px then A.drawPxIcon(self, px, cx + T.px(2), iy + T.px(2), isz - 2 * T.px(2)) end
     end
     cx = cx + isz + T.px(8)
-    -- browse (right)
     local rightX = w - T.px(8)
+    -- (Nov 15 2026, pop-outs) a machine's face pops out on its own: the button the radio tab has (expand, or contract
+    -- while it shows). (Nov 15 2026, punch list 248, the director: in the header's top right corner, right of the
+    -- browse arrows, so the controller always has a stop at the top of a face, as the radio tab and the craft tab's
+    -- stations have)
+    if def.popOut and kindCall(e, def.popOut, t) and t.obj then
+        local TF = ZeD.TwoWayFull
+        local open = TF and TF.showingObj and TF.showingObj(self.playerNum, t.obj) or false
+        local popX = rightX - bsz
+        local hint = ZeD.tr(open and "UI_ZeD_Radio_CloseFullView" or "UI_ZeD_Radio_FullView")
+        M.drawIconButton(self, popX, by, bsz, open and "contract" or "expand", { hover = hv == "oc:pop", focus = self:focusOf("oc:pop"),
+            hint = hint, id = "oc:pop", win = win })
+        local obj = t.obj
+        self:zone({ fid = "oc:pop", x = popX, y = by, w = bsz, h = bsz, help = hint,
+            run = function(cc, p) if ZeD.FacePop and ZeD.FacePop.toggle then ZeD.FacePop.toggle(p, obj) end end })
+        rightX = popX - T.px(10)
+    end
+    -- browse (right, left of the pop-out button)
     if e.list and #e.list > 1 then
         local f3 = T.fontF3
         local txt = tostring(e.idx or 1) .. " / " .. tostring(#e.list)
@@ -1061,20 +1077,6 @@ function ZeD_ObjectCard:drawHeader(e, hh, win)
         self:zone({ fid = "oc:prev", x = prevX, y = by, w = bsz, h = bsz, help = ZeD.tr("UI_ZeD_ObjCard_HelpPrev"),
             run = function() OC.browse(e, -1); self._confirm = nil; self.scroll:setScrollPos(0) end })
         rightX = prevX - T.px(10)
-    end
-    -- (Nov 15 2026, pop-outs) a machine's face pops out on its own: the button the radio tab has (expand, or contract
-    -- while it shows), at the header's right, left of the browse arrows
-    if def.popOut and kindCall(e, def.popOut, t) and t.obj then
-        local TF = ZeD.TwoWayFull
-        local open = TF and TF.showingObj and TF.showingObj(self.playerNum, t.obj) or false
-        local popX = rightX - bsz
-        local hint = ZeD.tr(open and "UI_ZeD_Radio_CloseFullView" or "UI_ZeD_Radio_FullView")
-        M.drawIconButton(self, popX, by, bsz, open and "contract" or "expand", { hover = hv == "oc:pop", focus = self:focusOf("oc:pop"),
-            hint = hint, id = "oc:pop", win = win })
-        local obj = t.obj
-        self:zone({ fid = "oc:pop", x = popX, y = by, w = bsz, h = bsz, help = hint,
-            run = function(cc, p) if ZeD.FacePop and ZeD.FacePop.toggle then ZeD.FacePop.toggle(p, obj) end end })
-        rightX = popX - T.px(10)
     end
     local pillTxt, pillC, pillMark = kindCall(e, def.pill, t)
     local mark = pillTxt and tagMark(pillC, pillMark) or nil
