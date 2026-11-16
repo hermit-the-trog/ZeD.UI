@@ -22,6 +22,8 @@ require "ZeD/ReadMarks"
 require "ZeD/ContainerGates"   -- (a mod that hides a container's things until searched: ModSupport files)
 require "ZeD/ContainerGroups"  -- (a mod that files things into groups of its own: ModSupport files)
 require "ZeD/InventoryFilter"  -- (the window's Filter: its state, matching and bar)
+require "ZeD/GridLayout"       -- (Nov 15 2026, add-on hooks: an add-on's grid layout, item spans and placing)
+require "ZeD/ItemRules"        -- (Nov 15 2026, add-on hooks: an add-on's rule about what may go where)
 
 ZeD = ZeD or {}
 
@@ -771,6 +773,9 @@ function ZeD.InventoryRenderer.padItemButtons(el)
     end
     el.promptX = ZeD.InventoryRenderer.padPromptX
     el.promptHold = ZeD.InventoryRenderer.padPromptHold
+    -- (Nov 15 2026, add-on hooks: with an add-on's grid layout on, X held on a cell of its grid places the thing,
+    -- GridLayout.lua; elsewhere, and without an add-on, X held stays the quick use)
+    ZeD.GridLayout.padButtons(el)
     return el
 end
 
@@ -1242,14 +1247,17 @@ end
 -- icon: its condition in a status bar's five segments, or how full it is in the fill bar's ten (ItemMeter.lua,
 -- punch list 152). Returns its top (or the cell's bottom when there is none) and true while the pointer is on it
 -- (its help line: "Condition 64%", "Remaining 50%"). 52 units less 6: 34 px at 0.75.
-local function drawCellCondition(self, item, ax, cy, cell, stackInfo)
+-- (Nov 15 2026, add-on hooks: cell is the cell's width; ch its height, nil for a square cell. A cell an add-on's
+-- layout spans over several squares (GridLayout.lua) is wider or taller than it is the other way.)
+local function drawCellCondition(self, item, ax, cy, cell, stackInfo, ch)
     local T = ZeD.T
     local IM = ZeD.ItemMeter
+    ch = ch or cell   -- (a square cell: as tall as it is wide, as every cell was before)
     local kind, f = IM.ofStack(item, stackInfo and stackInfo.count > 1 and stackInfo.items or nil)   -- (162)
-    if kind == nil or kind == "hidden" then return cy + cell, false end
+    if kind == nil or kind == "hidden" then return cy + ch, false end
     local fc, graduated = IM.style(kind)
     local bh = T.px(5)
-    local by = cy + cell - T.px(3) - bh
+    local by = cy + ch - T.px(3) - bh
     local hov = ZeD.Atoms.drawFillBar(self, ax + T.px(3), by, cell - T.px(6), f, graduated, fc, bh, IM.label(kind))
     return by, hov
 end
@@ -1302,48 +1310,56 @@ end
 -- condition strip along the bottom, a BELT n key square; hover T.hover, selected
 -- the T.selectionA wash, the controller's focus mark under the icon. Its hit zone
 -- is the item itself, as a row's is.
-local function drawGridCell(self, GV, item, cx, cy)
+-- (Nov 15 2026, add-on hooks: cw, ch are the cell's width and height in px, nil for ZeD's own square cell. An add-on's
+-- layout (GridLayout.lua) spans a cell over several squares: everything below is drawn on the span, the hit zone is
+-- the whole span, and the icon grows to fit it, up to twice its square size. With cw and ch nil every number below
+-- is the one it was before.)
+local function drawGridCell(self, GV, item, cx, cy, cw, ch)
     local T = ZeD.T
     local cell, xOff = GV.cell, GV.xOff
+    cw, ch = cw or cell, ch or cell   -- (a square cell when no span is given)
     GV.ymap[item] = cy
     GV.xmap[item] = xOff + cx
-    if cy + cell <= GV.top or cy >= GV.h then return end
+    if cy + ch <= GV.top or cy >= GV.h then return end
     local ax = xOff + cx
     local ac, bs = T.accent, T.borderS
     local st = T.stripe
-    self:drawRect(ax, cy, cell, cell, st.a, st.r, st.g, st.b)
-    self:drawRectBorder(ax, cy, cell, cell, bs.a or 1, bs.r, bs.g, bs.b)
+    self:drawRect(ax, cy, cw, ch, st.a, st.r, st.g, st.b)
+    self:drawRectBorder(ax, cy, cw, ch, bs.a or 1, bs.r, bs.g, bs.b)
     local isSelected = GV.sel and GV.sel[item]
     -- the pointer (its name in a hint, and the help line) / the controller
-    local over = GV.mouseIn and not cuesOn() and GV.lmx >= cx and GV.lmx < cx + cell and GV.my >= cy and GV.my < cy + cell
+    local over = GV.mouseIn and not cuesOn() and GV.lmx >= cx and GV.lmx < cx + cw and GV.my >= cy and GV.my < cy + ch
                  and GV.my >= GV.top and GV.my < GV.top + GV.visH
     if isSelected then
-        self:drawRect(ax, cy, cell, cell, T.selectionA, ac.r, ac.g, ac.b)
+        self:drawRect(ax, cy, cw, ch, T.selectionA, ac.r, ac.g, ac.b)
     elseif over or (self._ccMarks and ccMarked(self, item)) then
         -- (rows a pointed-at Same type button would move read as pointed at too)
         local hv = T.hover
-        self:drawRect(ax, cy, cell, cell, hv.a, hv.r, hv.g, hv.b)
+        self:drawRect(ax, cy, cw, ch, hv.a, hv.r, hv.g, hv.b)
     end
     local fo = gpFocusedItem(item, ZeD.playerNumOf(self))
     if fo then
-        ZeD.Focus.mark(self, ax, cy, cell, cell, fo)
+        ZeD.Focus.mark(self, ax, cy, cw, ch, fo)
         local si = self._stacks and self._stacks[item]
-        padTip(self, item, ax, cy, cell, cell, si and si.count or 1)
+        padTip(self, item, ax, cy, cw, ch, si and si.count or 1)
     end
     local stackInfo = self._stacks and self._stacks[item]
     local count = (stackInfo and stackInfo.count) or 1
     local tex = item:getTex()
     local isz = math.floor(cell * 32 / 52)
+    -- (the icon's box on a span: the same share of the span as of a square, at most twice the square's icon; the
+    -- texture keeps its own shape inside it. On a square cell both are isz, as before.)
+    local iw, ih = math.min(math.floor(cw * 32 / 52), isz * 2), math.min(math.floor(ch * 32 / 52), isz * 2)
     -- the read mark (ReadMarks.lua): read items faded when "Dim read items" is on
     local rs = ZeD.ReadMarks.state(GV.player, item)
     if tex then
         local ia = (rs and rs.st == "r" and ZeD.ReadMarks.dimOn()) and 0.5 or 1
-        self:drawTextureScaledAspect(tex, ax + math.floor((cell - isz) / 2), cy + math.floor((cell - isz) / 2), isz, isz, ia, 1, 1, 1)
+        self:drawTextureScaledAspect(tex, ax + math.floor((cw - iw) / 2), cy + math.floor((ch - ih) / 2), iw, ih, ia, 1, 1, 1)
     end
     -- condition, the framed strip along the bottom (the list's colours); a readable
     -- item shows its read mark instead, as the list's COND column does
-    local condTop, condHov = cy + cell, false
-    if not rs then condTop, condHov = drawCellCondition(self, item, ax, cy, cell, stackInfo) end
+    local condTop, condHov = cy + ch, false
+    if not rs then condTop, condHov = drawCellCondition(self, item, ax, cy, cw, stackInfo, ch) end
     -- on the belt: its key, top left (the list's BELT n tag), drawn below; measured here for the weight's room
     local f5 = T.fontF5
     local okAS, aslot = pcall(function() return item:getAttachedSlot() end)
@@ -1352,23 +1368,23 @@ local function drawGridCell(self, GV, item, cx, cy)
     -- the weight, top right: the item's own, a stack's total in brackets (the grid opens no
     -- stacks: the card has each one's own); short of the key or the next level's arrow (ReadMarks.drawUp, 5 x 4)
     local leftW = (kw > 0 and kw + T.px(2) or 0) + ((rs and rs.next and ZeD.ReadMarks.nextOn()) and T.px(9) or 0)
-    local wtStr = weightText(item, stackInfo, f5, cell - T.px(6) - leftW)
+    local wtStr = weightText(item, stackInfo, f5, cw - T.px(6) - leftW)
     local wtw = ZeD.TM:MeasureStringX(f5, wtStr)
     -- (the chips fill from the window's surface token, at the see-through value like the rest of
     -- the window: no literal alpha; they are small and sit over the cell, so they are not claimed)
     local s1 = T.surf1
-    self:drawRect(ax + cell - wtw - T.px(5), cy + T.px(1), wtw + T.px(4), GV.f5FH, s1.a or 1, s1.r, s1.g, s1.b)
+    self:drawRect(ax + cw - wtw - T.px(5), cy + T.px(1), wtw + T.px(4), GV.f5FH, s1.a or 1, s1.r, s1.g, s1.b)
     local th = T.accentText or T.text
-    self:drawText(wtStr, ax + cell - wtw - T.px(3), cy + T.px(1), th.r, th.g, th.b, th.a or 1, f5)
+    self:drawText(wtStr, ax + cw - wtw - T.px(3), cy + T.px(1), th.r, th.g, th.b, th.a or 1, f5)
     -- the count, bottom right (above the condition strip)
     if count > 1 then
         local cs = "(" .. count .. ")"   -- (Nov 15 2026, the director: counts read as the game's, "(3)", like the totals' weight)
         local f1 = T.fontF1
         local cw2 = ZeD.TM:MeasureStringX(f1, cs)
-        local cy2 = math.min(cy + cell - GV.secFH - T.px(4), condTop - GV.secFH - T.px(1))
-        self:drawRect(ax + cell - cw2 - T.px(5), cy2, cw2 + T.px(4), GV.secFH, s1.a or 1, s1.r, s1.g, s1.b)
+        local cy2 = math.min(cy + ch - GV.secFH - T.px(4), condTop - GV.secFH - T.px(1))
+        self:drawRect(ax + cw - cw2 - T.px(5), cy2, cw2 + T.px(4), GV.secFH, s1.a or 1, s1.r, s1.g, s1.b)
         local tc = T.text
-        self:drawText(cs, ax + cell - cw2 - T.px(3), cy2, tc.r, tc.g, tc.b, tc.a or 1, f1)
+        self:drawText(cs, ax + cw - cw2 - T.px(3), cy2, tc.r, tc.g, tc.b, tc.a or 1, f1)
     end
     -- the belt key (measured above)
     if k then
@@ -1383,17 +1399,17 @@ local function drawGridCell(self, GV, item, cx, cy)
     if rs then
         local RM = ZeD.ReadMarks
         local ms = RM.markSize()
-        RM.drawMark(self, ax + T.px(3), cy + cell - ms - T.px(3), rs.st)
+        RM.drawMark(self, ax + T.px(3), cy + ch - ms - T.px(3), rs.st)
         if rs.next and RM.nextOn() then RM.drawUp(self, ax + T.px(2) + (GV._beltW > 0 and GV._beltW + T.px(2) or 0), cy + T.px(2)) end
     end
-    queueMark(self, item, nil, nil, 0, ax, cy, cell, cell)   -- (waiting to move: the bar along its foot)
+    queueMark(self, item, nil, nil, 0, ax, cy, cw, ch)   -- (waiting to move: the bar along its foot)
     if over then
         local nm = item:getName() or "?"
         if count > 1 then nm = nm .. " (" .. count .. ")" end
-        self._gridHintCand = { key = item, text = nm, read = rs, x = ax, y = cy, w = cell, h = cell }
+        self._gridHintCand = { key = item, text = nm, read = rs, x = ax, y = cy, w = cw, h = ch }
         if ZeD.InvTip and not cuesOn() then   -- (the loot card, Alt the game's tooltip: punch list 146)
             local r = _tipRect
-            r.x, r.y, r.w, r.h = ax, cy, cell, cell
+            r.x, r.y, r.w, r.h = ax, cy, cw, ch
             ZeD.InvTip.want(self, item, r, count, true)   -- (beside the cell, not over it)
         end
         if not condHov then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelpLoot", nm)) end   -- (on the strip: its condition)
@@ -1403,12 +1419,12 @@ local function drawGridCell(self, GV, item, cx, cy)
     local fr = self._fres
     if fr then
         if fr.match[item] then
-            if fr.ql ~= "" then ZeD.Atoms.frame(self, ax, cy, cell, cell, T.accent) end
+            if fr.ql ~= "" then ZeD.Atoms.frame(self, ax, cy, cw, ch, T.accent) end
         elseif not fo then
-            filterDim(self, ax, cy, cell, cell)
+            filterDim(self, ax, cy, cw, ch)
         end
     end
-    self:addHitZone(item, ax, cy, cell, cell)
+    self:addHitZone(item, ax, cy, cw, ch)
 end
 
 -- A list of items as cells from y; returns the y after them
@@ -1436,7 +1452,8 @@ local function drawColumnHeading(self, GV, xOff, colW, barH, hdrY, padX, secFH, 
     local T = ZeD.T
     local infoAreaH = hdrY - barH - (self._fbarH or 0)   -- (the Filter bar, while open, sits under the heading)
     local wtStr  = ci.stats or ""
-    local cntStr = ci.count  or ""
+    -- (Nov 15 2026, add-on hooks: an add-on's layout may word this line itself, "15 / 30 squares", GridLayout.lua)
+    local cntStr = (GV.L and GV.L.headLine) or ci.count  or ""
     local wtW    = ZeD.TM:MeasureStringX(T.fontF1, wtStr)
     local cntW   = ZeD.TM:MeasureStringX(T.fontF5, cntStr)
     local gap    = T.px(2)
@@ -2206,7 +2223,9 @@ local function renderItemList(self)
     self._expandedStacks = self._expandedStacks or {}
     -- (Nov 15 2026, punch list 245: the grid opens no stacks, a stack is one cell; its model is built as if every
     -- stack were shut, so an open one in the list never takes its cell away)
-    local M = itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, collapsed,
+    -- (Nov 15 2026, add-on hooks: with an add-on's grid layout on, the grid's model ignores the folds, so the add-on
+    -- is handed every item; GridLayout.modelFolds hands the folds back untouched otherwise)
+    local M = itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, ZeD.GridLayout.modelFolds(collapsed, inv, playerObj, self),
         ZeD.InventoryRenderer.isGridKey(containerKeyOf(inv, playerObj), playerObj or getSpecificPlayer(0)) and NO_OPEN or self._expandedStacks)
     -- a container this list starts showing while on screen: a mod's pick hook (ContainerGates.seen)
     ZeD.ContainerGates.seen(self, inv, playerObj)
@@ -2233,9 +2252,15 @@ local function renderItemList(self)
     -- (one table: renderItemList sits near Kahlua's 200-local limit; the grid's
     -- drawing lives in drawGridList / drawViewToggle, outside this function)
     self._gv = gridState(self, inv, playerObj, colW, scrollW, padX, childParent)
+    -- (Nov 15 2026, add-on hooks: an add-on's layout for this grid, GridLayout.lua: kept until the model rebuilds, it
+    -- sets self._gv.L and the rows the pad and the drag read; nothing without an add-on. No new locals here: this
+    -- function sits near Kahlua's 200-local limit)
+    ZeD.GridLayout.attach(self, self._gv, M, inv, playerObj, useGroups, catHdrH, colW - scrollW - padX * 2)
 
     local totalContentH = 0
-    if useGroups then
+    if self._gv.L then
+        totalContentH = self._gv.L.totalH   -- (the add-on's grid: its height worked out with the layout)
+    elseif useGroups then
         for _, cat in ipairs(catOrder) do
             totalContentH = totalContentH + catHdrH
             if self._gv.on then
@@ -2439,6 +2464,8 @@ local function renderItemList(self)
         end
         self._lastPinnedRowItem = self._gpFocusedRowItem
     end
+    -- (Nov 15 2026, add-on hooks: the pad's place mode keeps its ghost in view the same way, GridLayout.lua)
+    ZeD.GridLayout.followPad(self, inv, scroll, totalContentH, visibleH, contentTop)
     -- Fresh map for this frame's stamps (cleared each frame so stale items
     -- don't accumulate).
     itemRenderYMap = {}
@@ -2695,7 +2722,10 @@ local function renderItemList(self)
 
 
     if self._gv.on then
-        if useGroups then
+        if self._gv.L then
+            -- (Nov 15 2026, add-on hooks: the add-on's layout draws its cells, spans and strips, GridLayout.lua)
+            y = ZeD.GridLayout.draw(self, self._gv, y, scrollX, catHdrH)
+        elseif useGroups then
             y = drawGridGroups(self, self._gv, catOrder, groups, collapsed, stackedGroups, y, scrollX, catHdrH)
         else
             y = drawGridList(self, self._gv, flatItems, y)
@@ -2755,6 +2785,9 @@ local function renderItemList(self)
 
     -- a grid cell (its item's name) or the view button names itself
     drawGridHint(self, self._gv, xOff, colW, contentTop)
+    -- (Nov 15 2026, add-on hooks: a drag over this list that an add-on's rule refuses says why on the help line,
+    -- ItemRules.lua; nothing without a rule)
+    ZeD.ItemRules.dragOver(self, inv)
 end
 
 -- ============================================================================
@@ -3141,6 +3174,10 @@ local function renderMultiColumnContent(self)
             cs.itemRenderXMap  = self._itemRenderXMap
             cs.gridCell        = self._gridCell
             cs.viewToggleRects = self._viewToggleRects
+            -- (Nov 15 2026, add-on hooks: an add-on's spans and its layout's number, GridLayout.lua; nil without one)
+            cs.itemRenderWMap  = self._itemRenderWMap
+            cs.itemRenderHMap  = self._itemRenderHMap
+            cs.gridLayoutGen   = self._gridLayoutGen
         end
     end
 
@@ -3328,6 +3365,10 @@ local function handleDrop(content, items, srcInventory)
     -- above take the one thing). An Equip slot's drag is no list's (no source set).
     if content._dragSourceInv ~= nil then items = dragItems(content, items, srcContainer) end
 
+    -- (Nov 15 2026, add-on hooks: released over an add-on's grid, GridLayout.lua: its drop goes first; a place it
+    -- refused, or a move inside the one container it took, ends the drop here)
+    if ZeD.GridLayout.takeDrop(content, items, srcContainer) then return end
+
     -- A rolled-up side's tab (WindowCurtain) takes the drop for its container;
     -- otherwise: is the mouse over a different column (multi-column transfer)
     local destContainer = ZeD.Curtain and ZeD.Curtain.dropTarget and ZeD.Curtain.dropTarget() or nil
@@ -3425,6 +3466,10 @@ local function handleDrop(content, items, srcInventory)
     -- Searching's never-searched container, as its hasRoomFor refuses them in vanilla's lists)
     if destContainer and not destIsFloor and ZeD.ContainerGates.refuses(destContainer, playerObj) then return end
 
+    -- (Nov 15 2026, add-on hooks: things an add-on's rule refuses stay where they are; the first reason shows once in
+    -- the notice over the head, ItemRules.lua. Without a rule the same list comes back)
+    items = ZeD.ItemRules.filter(items, destContainer, playerObj, srcContainer)
+
     for _, item in ipairs(items) do
         local cur = item:getContainer()
         if not (cur == srcContainer or (srcIsFloor and cur ~= nil and cur:getType() == "floor")) then
@@ -3469,3 +3514,7 @@ ZeD.InventoryRenderer.getColumnAtX               = getColumnAtX
 ZeD.InventoryRenderer.MIN_COL_W                  = MIN_COL_W
 ZeD.InventoryRenderer.COMFORT_COL_W              = COMFORT_COL_W
 ZeD.InventoryRenderer.getXferW                   = getXferW
+-- (Nov 15 2026, add-on hooks: GridLayout.lua draws an add-on's cells and headings with the grid's own parts)
+ZeD.InventoryRenderer._drawGridCell              = drawGridCell
+ZeD.InventoryRenderer._drawCatRow                = drawCatRow
+ZeD.InventoryRenderer._containerKeyOf            = containerKeyOf

@@ -141,6 +141,8 @@ if moveSrc then
 end
 
 local IRS = readFile(Z .. "InventoryRenderer.lua") or ""
+-- (Nov 15 2026, add-on hooks: padItemButtons hands each stop to GridLayout.padButtons; the real file, no add-on)
+check("GridLayout.lua loads", (pcall(dofile, Z .. "GridLayout.lua")))
 local irSrc = cut(IRS, "local function padSel(w, el)", "\nend", "function ZeD.InventoryRenderer.padItemButtons(el)")
 check("WIRED: the pad's marks and padItemButtons are found", irSrc ~= nil)
 if irSrc then

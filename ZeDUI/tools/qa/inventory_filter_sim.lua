@@ -315,8 +315,9 @@ for _, item in ipairs(ME.flatItems) do
 end
 check("GRID: a cell (a stack's head) matches exactly when its whole stack does", okCells and cells > 0, cells)
 check("GRID: the cells are wired to the same test (edge on a match, faded otherwise, not under the pad's mark)",
-    IR:find("if fr.ql ~= \"\" then ZeD.Atoms.frame(self, ax, cy, cell, cell, T.accent) end", 1, true) ~= nil
-    and IR:find("elseif not fo then\n            filterDim(self, ax, cy, cell, cell)", 1, true) ~= nil)
+    -- (Nov 15 2026, add-on hooks: the cell's width and height, cw and ch, are the square's own without an add-on)
+    IR:find("if fr.ql ~= \"\" then ZeD.Atoms.frame(self, ax, cy, cw, ch, T.accent) end", 1, true) ~= nil
+    and IR:find("elseif not fo then\n            filterDim(self, ax, cy, cw, ch)", 1, true) ~= nil)
 check("LIST: the rows are wired to the marks", IR:find("filterRowMarks(self, self._fres, item, xOff + nameX + childIndent + chevW, textY, displayName", 1, true) ~= nil)
 
 section("CLEAR")

@@ -1624,7 +1624,11 @@ _buildInvRowFocusables = function(win)
         local item = items[i]
         local yCoord = yMap[item] or (i * rowH)
         elements[#elements + 1] = {
-            x = (xMap[item] or 0), y = yCoord, w = gcell or T.px(200), h = gcell or rowH,
+            -- (Nov 15 2026, add-on hooks: a cell an add-on's layout spans over several squares has its own size,
+            -- GridLayout.lua; without one the maps are nil and every cell is gcell square, as before)
+            x = (xMap[item] or 0), y = yCoord,
+            w = (c._itemRenderWMap and c._itemRenderWMap[item]) or gcell or T.px(200),
+            h = (c._itemRenderHMap and c._itemRenderHMap[item]) or gcell or rowH,
             id = "invrow:" .. tostring(i),
             item = item,
             itemIndex = i,
@@ -1782,7 +1786,10 @@ _buildCharacterMCColumnFocusables = function(win, slot)
         local item = items[i]
         local yCoord = yMap[item] or (i * rowH)
         elements[#elements + 1] = {
-            x = (xMap[item] or colX), y = yCoord, w = gcell or colW, h = gcell or rowH,
+            -- (Nov 15 2026, add-on hooks: a spanned cell's own size, GridLayout.lua; nil maps without one)
+            x = (xMap[item] or colX), y = yCoord,
+            w = (cs.itemRenderWMap and cs.itemRenderWMap[item]) or gcell or colW,
+            h = (cs.itemRenderHMap and cs.itemRenderHMap[item]) or gcell or rowH,
             id = "mcrow:" .. slot .. ":" .. tostring(i),
             item = item,
             itemIndex = i,
@@ -1905,6 +1912,7 @@ local function _charMCColumnDirty(win, slot, cs)
     local nToggles = (cs.viewToggleRects and #cs.viewToggleRects or 0) + 4096 * ZeD.InventoryRenderer.filterGen(win._mainContent)   -- (the Filter's stops move)
     if snap and snap.n == n and snap.scrollPos == scrollPos and snap.y1 == y1
        and snap.gridCell == cs.gridCell and snap.renderX == cs.renderX
+       and snap.glg == cs.gridLayoutGen   -- (Nov 15 2026, add-on hooks: a new add-on layout moves the cells)
        and snap.renderW == cs.renderW and snap.rowH == ZeD.T.rowH
        and snap.containerIdx == cs.containerIdx and snap.nToggles == nToggles
        and snap.vb == (cs.rowView and cs.rowView.bottom) then   -- (the view: which rows are out of it)
@@ -1919,7 +1927,7 @@ local function _charMCColumnDirty(win, slot, cs)
     for i = 1, n do copy[i] = items[i] end
     win._lastMCSnap[slot] = {
         n = n, items = copy, scrollPos = scrollPos, y1 = y1,
-        gridCell = cs.gridCell, renderX = cs.renderX, renderW = cs.renderW,
+        gridCell = cs.gridCell, renderX = cs.renderX, renderW = cs.renderW, glg = cs.gridLayoutGen,
         rowH = ZeD.T.rowH, containerIdx = cs.containerIdx, nToggles = nToggles,
         vb = cs.rowView and cs.rowView.bottom,
     }
@@ -6527,7 +6535,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     -- The rows' places change with the scroll, the
                     -- list or grid view and the column's width too; the targets
                     -- kept last build's places, so the pad picked by stale rows
-                    local geo = tostring(self._scroll and self._scroll.scrollPos) .. ":" .. tostring(self._gridCell)
+                    -- (Nov 15 2026, add-on hooks: and an add-on layout's number, GridLayout.lua: a new layout moves the cells)
+                    local geo = tostring(self._scroll and self._scroll.scrollPos) .. ":" .. tostring(self._gridCell) .. ":" .. tostring(self._gridLayoutGen)
                         .. ":" .. tostring(self._renderW or self:getWidth()) .. ":" .. #(self._viewToggleRects or {}) .. ":" .. ZeD.InventoryRenderer.filterGen(self)
                         .. ":" .. tostring(self._rowView and self._rowView.bottom)   -- (the list's view: which rows are out of it)
                     if win._lastInvRowGeo ~= geo then win._lastInvRowGeo = geo; dirty = true end
@@ -7196,6 +7205,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
     end
 
     content.onMouseWheel = function(self, del)
+        -- (Nov 15 2026, add-on hooks: during a drag over an add-on's grid the wheel turns the dragged thing,
+        -- GridLayout.lua; nothing without one)
+        if ZeD.GridLayout.dragTurn() then return true end
         -- over the container buttons' ribbon: it scrolls sideways
         if ZeD.ContainerControls and ZeD.ContainerControls.wheel(self, del) then return true end
         -- Multi-container: scroll the column under the mouse

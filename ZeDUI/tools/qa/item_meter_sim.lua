@@ -155,7 +155,7 @@ local fis = io.open(CDIR .. "InventoryRenderer.lua", "rb"); local irs = fis:read
 check("STACK the list's row and the grid's cell read the stack's bar",
       irs:find("IM.ofStack(item, stackInfo and stackInfo.count > 1 and stackInfo.items or nil)", 1, true) ~= nil
       and select(2, irs:gsub("IM%.ofStack%(item, stackInfo", "")) == 2
-      and irs:find("rowH, stackInfo)", 1, true) ~= nil and irs:find("cell, stackInfo) end", 1, true) ~= nil)
+      and irs:find("rowH, stackInfo)", 1, true) ~= nil and irs:find("cw, stackInfo, ch) end", 1, true) ~= nil)   -- (Nov 15 2026, add-on hooks: the cell's width and height)
 -- (from zedqa_b11_notes.lua 162) four bottles, empty, 0.3, 0.6 and full, in both orders of the Cond sort: whichever
 -- item heads the stack, its bar is the empty one's; opened, a child row has no stack of its own (only the head is in
 -- the model's stacks) and so reads its own bottle

@@ -1763,7 +1763,9 @@ end
 -- element's drag handler (see the intercept below). True when it did.
 local function _xDragMove(w, dir)
     local s = _st[_pnOf(w)]
-    if not (s and s.xHeld and s.xUsed and s.xEl and s.xEl.onHoldContextDrag) then return false end
+    -- (Nov 15 2026, add-on hooks: s.xDrag, only once the hold armed a drag; a hold that became the quick use, holdDragIf
+    -- said no, leaves the D-pad to move the focus as before)
+    if not (s and s.xHeld and s.xUsed and s.xDrag and s.xEl and s.xEl.onHoldContextDrag) then return false end
     local el = s.xEl
     _fireCb("element.onHoldContextDrag(dir)",
         function(ww, ee) el.onHoldContextDrag(ww, ee, dir) end,
@@ -2366,6 +2368,9 @@ function Focus.dispatchJoypadDown(w, button, joypadData)
     local s = _S(pn)
     _fresh(w)
     _showCues(s)
+    -- (Nov 15 2026, add-on hooks: while X holds a thing in place mode, GridLayout.lua, A turns it and B cancels;
+    -- nothing else sees those presses. Nothing without an add-on's grid layout)
+    if ZeD.GridLayout and ZeD.GridLayout.padButton(pn, button) then return end
     -- B also hides the balloon that is up until the focus moves on (B still does its own job)
     if button == Joypad.BButton and ZeD.Balloon and ZeD.Balloon.dismiss then ZeD.Balloon.dismiss() end
     local actions = ZeD.Input.Action and ZeD.Input.Action.fromGamepadButton
@@ -2634,6 +2639,8 @@ local function _dropHolds(s)
     if s.wsLatched then s.wsLatched = false end
     if s.aHeld     then if s.aWin then s.aWin._gpPaint = nil end; s.aHeld = false; s.aUsed = false; s.aWin = nil end
     if s.xHeld     then s.xHeld = false; s.xUsed = false; s.xWin = nil; s.xEl = nil end
+    -- (Nov 15 2026, add-on hooks: a place mode cut short places nothing, GridLayout.lua)
+    if s.xDrag     then s.xDrag = nil; if ZeD.GridLayout then ZeD.GridLayout.padCancel(s.pn) end end
     if s.bHeld     then s.bHeld = nil; s.bLast = 0; s.bCancel = false end
 end
 
@@ -2746,11 +2753,15 @@ local function _holdTicks(s, jid, pn)
         if stillDown then
             if (not s.xUsed) and (getTimestampMs() - s.xStart) >= X_HOLD_MS then
                 local el = s.xEl
-                if el and el.onHoldContextDrag then
+                -- (Nov 15 2026, add-on hooks: an element may say at the hold whether it drags, holdDragIf(w, el): an
+                -- item cell with an add-on's grid layout places, GridLayout.padCan; where it says no the hold falls
+                -- to onHoldContext, the quick use. Elements without holdDragIf drag as before)
+                if el and el.onHoldContextDrag and (not el.holdDragIf or el.holdDragIf(s.xWin or s.win, el)) then
                     _fireCb("element.onHoldContextDrag(arm)",
                         function(w, e) el.onHoldContextDrag(w, e, nil) end,
                         s.xWin or s.win, el)
                     s.xUsed = true
+                    s.xDrag = true
                 elseif el and el.onHoldContext then
                     -- a one-shot hold with no drag (hold X on a row is the quick use)
                     _fireCb("element.onHoldContext", el.onHoldContext, s.xWin or s.win, el)
@@ -2774,6 +2785,7 @@ local function _holdTicks(s, jid, pn)
             s.xHeld  = false
             s.xStart = 0
             s.xUsed  = false
+            s.xDrag  = nil
             s.xWin   = nil
             s.xEl    = nil
         end
