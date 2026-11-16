@@ -269,7 +269,7 @@ function OC.tick(e, player)
     local sq = t.sq
     local leash = def.leash or OC.LEASH
     if sq and (math.floor(player:getZ()) ~= sq:getZ() or OC.squareDist(player, sq) > leash + 0.5) then
-        OC.closeWhy = "out of reach (leash)"
+        OC.closeWhy = string.format("out of reach (leash): %.2f tiles of %s, player z %.3f, square z %d, player at %.2f,%.2f", OC.squareDist(player, sq), tostring(leash), player:getZ(), sq:getZ(), player:getX(), player:getY())
         return false
     end
     local now = getTimestampMs()
