@@ -50,6 +50,7 @@ require "ZeD/Tr"
 require "ZeD/ObjectCards"
 require "ZeD/ObjectCardLaundry"
 require "ZeD/ContainerGates"
+require "ZeD/ItemRules"        -- (Nov 15 2026, add-on hooks: an add-on's rule about what may go where)
 
 ZeD = ZeD or {}
 ZeD.ContainerControls = ZeD.ContainerControls or {}
@@ -204,6 +205,11 @@ function CT.moveItems(playerObj, items, dest)
     if not isFloor(dest) and ZeD.ContainerGates.refuses(dest, playerObj) then return end
     local pn = playerObj:getPlayerNum()
     local floor = zedFloor(pn)
+    -- (Nov 15 2026, add-on hooks: things an add-on's rule refuses stay where they are, the first reason once over the
+    -- head, ItemRules.lua; every move below comes through here: Take all, Transfer all, Same type, the pad's X grab.
+    -- Without a rule the same list comes back.)
+    items = ZeD.ItemRules.filter(items, dest, playerObj, nil)
+    if #items == 0 then return end
     sortForTransfer(items)
     if isFloor(dest) then
         local drop = {}
@@ -691,6 +697,8 @@ local function buildWorld(content)
                 local items = {}
                 local it = src:getItems()
                 for i = 0, it:size() - 1 do items[#items + 1] = it:get(i) end
+                -- (Nov 15 2026, add-on hooks: what an add-on's rule refuses stays, ItemRules.lua)
+                items = ZeD.ItemRules.filter(items, ISInventoryPage.GetFloorContainer(pn), playerObj, src)
                 if #items > 0 then
                     ISInventoryPaneContextMenu.onMoveItemsTo(items, ISInventoryPage.GetFloorContainer(pn), pn)
                 end

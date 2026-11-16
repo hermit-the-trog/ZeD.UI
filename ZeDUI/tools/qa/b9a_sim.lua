@@ -47,6 +47,10 @@ do
     ISPanel = { derive = function() return setmetatable({}, { __index = stub }) end }
     local okL, errL = load(CLIENT .. "InventoryRenderer.lua")
     check("DROP: InventoryRenderer.lua loads on the stubs", okL, errL)
+    -- (Nov 15 2026, add-on hooks: the drop asks GridLayout and ItemRules, the real files, with no add-on registered)
+    rawset(ZeD, "GridLayout", {}); rawset(ZeD, "ItemRules", {})
+    check("DROP: GridLayout.lua loads", (load(CLIENT .. "GridLayout.lua")))
+    check("DROP: ItemRules.lua loads", (load(CLIENT .. "ItemRules.lua")))
     local IR = ZeD.InventoryRenderer
     local handleDrop = okL and rawget(ZeD, "InventoryRenderer") and IR.handleDrop
     if handleDrop then

@@ -959,6 +959,10 @@ function ZeD_Window:_footerPrompts()
     local Focus, Det = I and I.Focus, I and I.Detector
     if not (Det and Det.getMode and Det.getMode(self.playerNum) == "gamepad") then return nil end
     if not (Focus and Focus.getFocusedWindow and Focus.getFocusedWindow(self.playerNum) == self) then return nil end
+    -- (Nov 15 2026, add-on hooks: while X holds a thing in place mode, GridLayout.lua, the line reads its own buttons:
+    -- D-pad Move, A Turn, X Place (let go), B Cancel)
+    local placing = ZeD.GridLayout and ZeD.GridLayout.padPrompts(self.playerNum)
+    if placing then return placing end
     local el = Focus.getFocusedElement and Focus.getFocusedElement(self)
     local prompts = _promptsFor(el, self)
     pcall(_addListPrompts, self, prompts)
