@@ -42,6 +42,7 @@ require "ZeD/Molecules"
 require "ZeD/ZeD_SeatChooser"
 require "ZeD/ZeD_PadGlyphs"
 require "ZeD/ZeD_FocusPaint"
+require "ZeD/PopClear"
 ZeD.trDefaults({
     UI_ZeD_Seat_KeysSit = "%1 Sit", UI_ZeD_Seat_KeysOut = "Shift+%1 Get out there", UI_ZeD_Seat_KeysClose = "Esc Close",
     UI_ZeD_Seat_FreeSit = "Free. Press %1 to sit here.", UI_ZeD_Seat_FreeSlide = "Free. Press %1 to slide over.",
@@ -183,7 +184,40 @@ end
 
 -- vanilla's rules and actions: the window's own, unchanged (ZeD_SeatChooser.lua)
 ZeD_SeatPopout.setVehicle  = ZeD_SeatChooser.setVehicle
-ZeD_SeatPopout.readSeats   = ZeD_SeatChooser.readSeats
+-- (Nov 15 2026, QA's beta 16 pass: a smashed or burnt car's script copies the car's template, which names the seats
+-- but not where they are; the whole car's own script adds the places. So a seat with no place takes it from the
+-- whole car: Base.CarNormalSmashedFront from Base.CarNormal, Base.TaxiBurnt from Base.Taxi. No whole car found: the
+-- seat stays without a place and the pop-out falls back to the window, as before.)
+local function wholeCarScript(v)
+    local name = v and v:getScriptName()
+    if type(name) ~= "string" then return nil end
+    local base = name:gsub("Smashed%a*$", "")
+    base = base:gsub("Burnt$", "")
+    if base == name then return nil end
+    local sm = getScriptManager and getScriptManager()
+    if not sm then return nil end
+    local ok, s = pcall(function() return sm:getVehicle(base) end)
+    if not (ok and s) then ok, s = pcall(function() return sm:getVehicle((base:gsub("^Base%.", ""))) end) end
+    return ok and s or nil
+end
+function ZeD_SeatPopout:readSeats()
+    ZeD_SeatChooser.readSeats(self)
+    local missing = false
+    for _, st in ipairs(self._seats or {}) do if st.oz == nil then missing = true end end
+    if not missing then return end
+    local s = wholeCarScript(self.vehicle)
+    if not s then return end
+    for _, st in ipairs(self._seats) do
+        if st.oz == nil then
+            local pg = s:getPassenger(st.i)
+            local inside = pg and pg:getPositionById("inside")
+            if inside then
+                local off = inside:getOffset()
+                st.ox, st.oz = off:get(0), off:get(2)
+            end
+        end
+    end
+end
 ZeD_SeatPopout.reason      = ZeD_SeatChooser.reason
 ZeD_SeatPopout.useSeat     = ZeD_SeatChooser.useSeat
 ZeD_SeatPopout.exitSeat    = ZeD_SeatChooser.exitSeat
@@ -331,6 +365,12 @@ function ZeD_SeatPopout:place(w, h)
             local a = self._anchor
             x = a.right and a.edge or (a.edge - w)
             y = a.cy - math.floor(h / 2)
+            -- (clear of the Character and World windows, PopClear.lua: worked out once per size, not every frame)
+            if ZeD.PopClear and (a.clearW ~= w or a.clearH ~= h) then
+                a.clearW, a.clearH = w, h
+                a.clearX, a.clearY = ZeD.PopClear.spot(self.playerNum, x, y, w, h)
+            end
+            if a.clearX then x, y = a.clearX, a.clearY end
         end
     end
     local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()

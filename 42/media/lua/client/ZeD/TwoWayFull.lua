@@ -54,6 +54,7 @@ require "ZeD/Tr"
 require "ZeD/Tokens"
 require "ZeD/Molecules"
 require "ZeD/TwoWayFace"
+require "ZeD/PopClear"
 
 ZeD = ZeD or {}
 ZeD.TwoWayFull = ZeD.TwoWayFull or {}
@@ -153,6 +154,8 @@ function ZeD_TwoWayFull:place(w, h)
         else
             if not self._home then
                 local hx, hy = self:besidePlayer(w, h)
+                -- (clear of the Character and World windows, PopClear.lua; Nov 15 2026, QA's beta 16 pass)
+                if hx and ZeD.PopClear then hx, hy = ZeD.PopClear.spot(pn, hx, hy, w, h) end
                 if hx then self._home = { x = hx, y = hy } end
             end
             if self._home then
