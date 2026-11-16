@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/b17.txt  (Nov 16 2026, QA): beta 17's controller and mouse reach fixes (punch list 249-268) in game:
+# the belt, the watch, Start and the dash knob; the inventory questions, text boxes, sort and folds; faces and long views scrolled
+zedqa_prelude.lua | pre
+zedqa_b17_belt.lua | b17b | timeout=300
+zedqa_b17_inv.lua | b17i | timeout=360
+zedqa_b17_scroll.lua | b17s | timeout=420
