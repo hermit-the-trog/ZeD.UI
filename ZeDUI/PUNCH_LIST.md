@@ -5138,3 +5138,11 @@ Notes 11 and 15 of the playtest went on 184 and 228k. The rest:
    short fence probably needs no bubble at all.
    Fix (Nov 15 2026, 622a831c5): "Done" flashes only for the action it was drawn from; fence hops and window climbs
    get no bubble. 184's window opening while placing is fixed in the same commit.
+
+248. **Every face keeps a stop at its top: the pop-out button, top right.** open. The director (Nov 15 2026): while using a
+   controller, put the pop-out button in the top right corner of every face (TV, radio, two-way, appliances, the craft
+   tab's oven, object cards), so Up always has something to select at the top and the pad never gets stuck partway down
+   a face with its top scrolled away (the shape of 228k's "Up skips the top of the TV").
+   QA's read of a531eee3d: the radio tab already draws the header's pop-out button (RadioTab.lua:860) and adds it as a
+   stop (RadioTab.lua:1082), and beta 15 added the TV's screen as a look-only stop. To check: the same button is the
+   topmost stop on every face that can pop out, and the pad reaches it with Up from the face's lowest control.
