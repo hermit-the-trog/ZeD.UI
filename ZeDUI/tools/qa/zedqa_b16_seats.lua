@@ -25,7 +25,7 @@ end
 local CARS = {
     { script = "Base.CarNormal", tag = "sedan", cabin = true },
     { script = "Base.PickUpTruck", tag = "pickup", cabin = true },
-    { script = "Base.CarNormalSmashedFront", tag = "sedan_smashed", cabin = true },
+    { script = "Base.CarNormalSmashedFront", tag = "sedan_smashed", cabin = false },   -- (a wreck has no seats in the game's scripts: the seat key opens nothing, edc642878)
 }
 for _, c in ipairs(CARS) do
     local car
@@ -39,12 +39,23 @@ for _, c in ipairs(CARS) do
     end)
     step(30, function()
         if not car then return end
-        local ok, opened = pcall(S.popToggle, p, car)
-        if not ok then say("ERR " .. c.tag .. ": " .. tostring(opened)) end
-        check(ok and opened == true, c.tag .. ": the seat picker pops out as the car's cabin" ..
-            ((ok and not opened) and " (it fell back to the window: see the [ZeD] SeatPopout line)" or ""))
+        -- (the seat key's own route: S.toggle picks the cabin, the window, or nothing for a car with no seats)
+        local ok, err = pcall(S.toggle, p, car)
+        if not ok then say("ERR " .. c.tag .. ": " .. tostring(err)) end
     end)
-    step(40, function()
+    step(10, function()   -- (a frame later: a pop-out added this frame is not yet "really visible")
+        if not car then return end
+        local sp = S.getPopout and S.getPopout(pn)
+        local popUp = sp ~= nil and sp:isReallyVisible()
+        local win = S.windows and S.windows[pn]
+        local winUp = win ~= nil and win:isReallyVisible()
+        if c.cabin then
+            check(popUp, c.tag .. ": the seat key pops out the car's cabin" .. (winUp and " (the window came instead: see the [ZeD] SeatPopout line)" or ""))
+        else
+            check(not popUp and not winUp, c.tag .. ": a wreck with no seats: the seat key opens nothing")
+        end
+    end)
+    step(30, function()
         if not car then return end
         local sp = S.getPopout and S.getPopout(pn)
         if sp and sp:isReallyVisible() then
@@ -52,7 +63,7 @@ for _, c in ipairs(CARS) do
             sp:close()
         else
             shot(c.tag .. "_window")
-            pcall(function() if ISVehicleSeatUI and ISVehicleSeatUI.windows and ISVehicleSeatUI.windows[pn] then ISVehicleSeatUI.windows[pn]:close() end end)
+            pcall(function() local win = S.windows and S.windows[pn]; if win and win:isReallyVisible() then win:close() end end)
         end
     end)
     step(20, function()
