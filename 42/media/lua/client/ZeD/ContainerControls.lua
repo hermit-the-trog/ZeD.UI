@@ -1185,6 +1185,19 @@ function CT.syncFocus(win, content)
             onCancel = (cc and cc.ask) and function() CT.cancelAsk(content) end or nil,
         }
     end
-    F.setRingZoneElements(win, zn, els)
+    -- (Nov 16 2026, QA's audit: a second A on "Remove all" emptied the trash.) A question opening lands the focus on
+    -- Cancel, never on the answer that acts; when it closes the focus goes back to the button that asked.
+    local seat
+    local asking = cc and cc.ask ~= nil
+    if asking and not cc.askSeated then
+        local old = zone.elements and zone.elements[zone.focusedElementIdx or 1]
+        cc.askFrom = old and old.ccKey
+        for i, e in ipairs(els) do if e.ccKey == "no" then seat = i; break end end
+        cc.askSeated = seat ~= nil   -- the band not drawn yet: seat it on the frame it is
+    elseif cc and not asking and cc.askSeated then
+        for i, e in ipairs(els) do if e.ccKey == cc.askFrom then seat = i; break end end
+        cc.askSeated, cc.askFrom = nil, nil
+    end
+    F.setRingZoneElements(win, zn, els, seat)
     F.setZoneFocusable(win, zn, #els > 0)
 end
