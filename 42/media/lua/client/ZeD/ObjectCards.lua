@@ -247,7 +247,7 @@ function OC.tick(e, player)
     local def, t = e.def, e.t
     if not (t and def.valid(t)) then
         -- a kind that keeps going (farm plots) steps to the next one in reach
-        if not def.keepOnLoss then return false end
+        if not def.keepOnLoss then OC.closeWhy = "the object is gone (valid false)"; return false end
         local ok, list = pcall(def.nearby, player)
         if not (ok and list) then return false end
         local live = {}
@@ -263,12 +263,13 @@ function OC.tick(e, player)
         e._browseT = 0
         t = e.t
     end
-    if (player:getVehicle() and not def.vehicleOk) or player:isDead() then return false end
+    if (player:getVehicle() and not def.vehicleOk) or player:isDead() then OC.closeWhy = "in a vehicle or dead"; return false end
     -- the leash applies to a card about a tile (a fluid card about your own
     -- bottles has none)
     local sq = t.sq
     local leash = def.leash or OC.LEASH
     if sq and (math.floor(player:getZ()) ~= sq:getZ() or OC.squareDist(player, sq) > leash + 0.5) then
+        OC.closeWhy = "out of reach (leash)"
         return false
     end
     local now = getTimestampMs()
@@ -909,6 +910,7 @@ function ZeD_ObjectCard:focusOf(fid)
 end
 
 function ZeD_ObjectCard:close()
+    if ZeD_WorldWindow and not ZeD_WorldWindow._closeWhy then ZeD_WorldWindow._closeWhy = "the card's close (close key, B or a verb)" end
     if ZeD_WorldWindow and ZeD_WorldWindow.closeObjectCard then ZeD_WorldWindow.closeObjectCard(self.playerNum) end
 end
 
@@ -1313,6 +1315,8 @@ function ZeD_ObjectCard:prerender()
     local okT, alive = pcall(OC.tick, e, player)
     if not okT then ZeD.logOnce("ObjectCards tick " .. tostring(e.def and e.def.id), alive) end
     if not (okT and alive) then
+        if ZeD_WorldWindow then ZeD_WorldWindow._closeWhy = "card tick: " .. tostring(okT and OC.closeWhy or alive) end
+        OC.closeWhy = nil
         self:close()
         return
     end

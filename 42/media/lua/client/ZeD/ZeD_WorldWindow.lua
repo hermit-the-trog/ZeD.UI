@@ -102,8 +102,12 @@ end
 
 -- Drop the object card from the drawer. Declared above all its consumers
 -- (tab switches, MC entry, item selection, the public close).
-local function dropObjectCard(win)
+local function dropObjectCard(win, why)
     if not win or not win._drawerObject then return end
+    -- (Nov 15 2026, QA's beta 16 pass, p336: the grill's card closed under the test with no word why; each drop now
+    -- says which path took it, one line per close, not per frame)
+    print("[ZeD] WorldWindow: object card dropped (" .. tostring(why or ZeD_WorldWindow._closeWhy or "?") .. ")")
+    ZeD_WorldWindow._closeWhy = nil
     -- a pinned card (the trade) stays through tab switches, item cards and the
     -- like; only its own close (closeObjectCard: the close key, B, Cancel) takes it away
     local pd = win._drawerObject.def
@@ -2320,7 +2324,7 @@ end
 -- The first extra column opens: the object card (unless pinned) and an item
 -- card close (a tab's drawer stays), the selection clears, the inventory shows.
 local function enterWorldMC(win, content)
-    dropObjectCard(win)
+    dropObjectCard(win, "a second column opened")
     if win._drawerMode == "item" then
         win._drawerItem = nil
         win._tabUnder = nil
@@ -2374,7 +2378,7 @@ _switchWorldTabForNav = function(win, content, tabId)
         return false
     end
     local T = ZeD.T
-    dropObjectCard(win)
+    dropObjectCard(win, "tab switch " .. tostring(tabId))
 
     if tabId == "loot" then
         -- (a rolled side comes down first: the snap below measures the whole window)
@@ -4654,7 +4658,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             -- switches as usual.
             if win._drawerObject then
                 local overTab = win._drawerMode == "tab" and win._drawerOpen and tabId == win._activeTab
-                dropObjectCard(win)
+                dropObjectCard(win, "tab clicked " .. tostring(tabId))
                 if overTab then
                     if _syncWorldRingZones then _syncWorldRingZones(win, content) end
                     return true
@@ -6170,7 +6174,7 @@ function ZeD_WorldWindow.closeObjectCard(pn)
     -- (the card's own close: a pinned card goes too, and its kind hears it was the player's close)
     win._forceDrop = true
     ZeD_WorldWindow._closingCard = true
-    local ok, err = pcall(dropObjectCard, win)
+    local ok, err = pcall(dropObjectCard, win, ZeD_WorldWindow._closeWhy or "closeObjectCard, from outside the card (a route, a tab, a trade)")
     win._forceDrop = nil
     ZeD_WorldWindow._closingCard = nil
     if not ok then print("[ZeD] WorldWindow: closing the card failed: " .. tostring(err)) end
