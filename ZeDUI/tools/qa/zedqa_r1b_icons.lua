@@ -19,9 +19,9 @@ local function give(full) local x = inv:AddItem(full); if x then gave[#gave + 1]
 
 local function zm()
     local m
-    pcall(function() m = (ZeD.ContextMenu and ZeD.ContextMenu.current and ZeD.ContextMenu.current(pn)) end)
+    pcall(function() local v = getPlayerContextMenu(pn); m = v and v._zedMenu end)
     if m then return m end
-    pcall(function() m = getPlayerContextMenu(pn) end)
+    if not m then pcall(function() m = getPlayerContextMenu(pn) end) end
     return m
 end
 local function closeMenu()
@@ -39,6 +39,7 @@ local function closeWheel()
     pcall(function()
         local st = D and D.state and D.state[pn]
         if st and st.menu and st.menu.undisplay then st.menu:undisplay() end
+        local rm = getPlayerRadialMenu(pn); if rm and rm:isReallyVisible() then rm:undisplay() end
         if D and D.state then D.state[pn] = nil end
     end)
     if W then W.qaPoint = nil end
@@ -51,7 +52,7 @@ step(10, function()
     give("Base.Bag_DuffelBag")
     items.hammer = give("Base.Hammer")
     give("Base.KitchenKnife")
-    items.carrot = give("Base.Carrot")
+    items.carrot = give("Base.Carrots")
     items.potato = give("Base.Potato")
     say("given: bag " .. tostring(items.bag ~= nil) .. ", hammer " .. tostring(items.hammer ~= nil) .. ", carrot " .. tostring(items.carrot ~= nil) .. ", potato " .. tostring(items.potato ~= nil))
 end)
@@ -69,12 +70,18 @@ for _, base in ipairs({ "dark", "light" }) do
     -- the Character wheel: at rest, then each slice pointed
     local n = 0
     step(10, function()
-        closeWheel()
+        closeMenu(); closeWheel()
+        -- (with a window holding the pad, D-pad Left stays in the window: the windows go away for the wheel)
+        local cw = ZeD_CharacterWindow.getWindow()
+        if cw and cw:isVisible() then pcall(ZeD_CharacterWindow.toggleBothPaired, 0) end
+        pcall(function() setJoypadFocus(pn, nil) end)
+    end)
+    step(10, function()
         pcall(function() ISDPadWheels.onDisplayLeft({ player = pn, id = nil }) end)
     end)
     step(20, function()
         local st = D and D.state and D.state[pn]
-        local m = st and st.menu
+        local m = getPlayerRadialMenu(pn)
         local names = {}
         for i, s in ipairs((m and m.slices) or {}) do names[#names + 1] = i .. ":" .. tostring(s.text):gsub("\n", " ") end
         n = #names
@@ -86,6 +93,10 @@ for _, base in ipairs({ "dark", "light" }) do
         step(12, function() if i <= n then shot(base .. "_wheel_point_" .. i) end end)
     end
     step(5, closeWheel)
+    step(5, function()
+        local cw = ZeD_CharacterWindow.getWindow()
+        if not (cw and cw:isVisible()) then pcall(ZeD_CharacterWindow.toggleBothPaired, 0) end
+    end)
 end
 
 step(10, function()
