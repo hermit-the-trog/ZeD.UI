@@ -1,4 +1,4 @@
-﻿#Requires -Version 7.0
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Unattended ZeD-UI regression run through the QA bridge (Oct 19 2026).
@@ -401,7 +401,10 @@ function Read-Manifest([string]$Path) {
         }
         $full = [System.IO.Path]::GetFullPath((Join-Path $QaDir $rel))
         $name = [System.IO.Path]::GetFileName($full)
-        if (-not $full.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) { $problems.Add("line ${no}: $rel is outside $QaDir"); continue }
+        # (Nov 15 2026) ZEDQA_EXTRA_QADIR: an add-on's own tests folder (stage_branch_run.ps1 -ExtraQaDir); a manifest line may name a script there by its full path
+        $extraRoot = $(if ($env:ZEDQA_EXTRA_QADIR) { [System.IO.Path]::GetFullPath($env:ZEDQA_EXTRA_QADIR).TrimEnd("\") + "\" } else { $null })
+        if ($extraRoot -and [System.IO.Path]::IsPathRooted($rel)) { $full = [System.IO.Path]::GetFullPath($rel); $name = [System.IO.Path]::GetFileName($full) }
+        if (-not ($full.StartsWith($root, [StringComparison]::OrdinalIgnoreCase) -or ($extraRoot -and $full.StartsWith($extraRoot, [StringComparison]::OrdinalIgnoreCase)))) { $problems.Add("line ${no}: $rel is outside $QaDir"); continue }
         if ($name -notmatch '\.lua$') { $problems.Add("line ${no}: $rel is not a .lua script"); continue }
         if (-not (Test-Path -LiteralPath $full)) { $problems.Add("line ${no}: $rel not found"); continue }
         $bad = @($NeverRun | Where-Object { $name.ToLowerInvariant() -match $_ })

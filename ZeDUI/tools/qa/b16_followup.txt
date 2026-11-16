@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/b16_followup.txt  (Nov 15 2026, QA): the seat pop-out again, and tw / rtv with beta 16's pop-out button
+zedqa_prelude.lua | pre
+zedqa_b16.lua | b16 | timeout=300
+zedqa_twoway.lua | tw | timeout=600
+zedqa_rtv.lua | rtv | timeout=600
+

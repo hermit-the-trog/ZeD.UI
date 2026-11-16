@@ -13,6 +13,7 @@ param(
     [Parameter(Mandatory)] [string]$ZedDir,       # the worktree (holds 42\ and mod.info under it)
     [string]$ExtraMod = "",                       # another mod's folder (holds 42\), optional
     [string]$ExtraId = "",                        # that mod's id from its 42\mod.info
+    [string]$ExtraQaDir = "",                    # the add-on's own tests folder: its manifest may name scripts there by full path
     [Parameter(Mandatory)] [string]$Manifest,
     [Parameter(Mandatory)] [string]$Report,
     [string]$Mode = "fullscreen4k",
@@ -62,11 +63,13 @@ try {
 
     $env:ZEDQA_NOSTEAM = "1"
     $env:ZEDQA_ZDIR = $Stg
+    if ($ExtraQaDir) { $env:ZEDQA_EXTRA_QADIR = $ExtraQaDir }
     $runArgs = @{ Manifest = $Manifest; Mode = $Mode; Report = $Report }
     if ($Width -gt 0) { $runArgs.Width = $Width; $runArgs.Height = $Height }
     & "$Qa\zedqa_run.ps1" @runArgs
 } finally {
     Remove-Item Env:\ZEDQA_ZDIR -ErrorAction SilentlyContinue
+    Remove-Item Env:\ZEDQA_EXTRA_QADIR -ErrorAction SilentlyContinue
     Set-Content $Lock "free" -NoNewline
     "screenshots: $Stg\Screenshots | console: $Stg\console.txt | lock: free"
 }

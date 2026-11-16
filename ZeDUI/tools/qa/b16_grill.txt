@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/b16_grill.txt  (Nov 15 2026, QA): the grill's burner on the card after Build's fix (61ab7bc99)
+zedqa_prelude.lua | pre
+zedqa_plates_336.lua | p336 | timeout=600
+

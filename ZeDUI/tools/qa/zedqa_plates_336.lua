@@ -374,6 +374,12 @@ local function objectPhase()
         say(string.format("grill: before the burner knob: fuel %s, hasFuel %s, tank %s, lit %s, an action running %s, character at %.1f,%.1f (grill %d,%d)",
             tostring(bbq:getFuelAmount()), tostring(bbq:hasFuel()), tostring(bbq:hasPropaneTank()), tostring(bbq:isLit()), tostring(actionBusy()),
             p:getX(), p:getY(), bbq:getSquare():getX(), bbq:getSquare():getY()))
+        -- (Nov 15 2026, beta 16, Build's ask: is the card still up, and what did it last read of the grill)
+        local c = WW() and WW()._objectCard
+        local et = c and c.entry and c.entry.t
+        say(string.format("grill: the card before the burner: up %s, visible %s, entry %s, hasFuel read %s, refreshed at %s",
+            tostring(c ~= nil), tostring(c and c:isVisible()), tostring(c and c.entry ~= nil),
+            tostring(et and et.d and et.d.hasFuel), tostring(et and et._refreshT)))
         cardRun("bbq:burner", "grill")
     end)
     waitFor(10, 3000, function() return acted(function() return bbq:isLit() end) end, function()
