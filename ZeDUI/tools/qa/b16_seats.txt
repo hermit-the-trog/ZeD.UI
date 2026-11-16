@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/b16_seats.txt  (Nov 15 2026, QA): the seat picker pop-out in a sedan, a pickup and a smashed sedan
+zedqa_prelude.lua | pre
+zedqa_b16_seats.lua | b16s | timeout=300
+
