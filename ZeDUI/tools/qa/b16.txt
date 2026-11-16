@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/b16.txt  (Nov 15 2026, QA): beta 16's new pieces with pictures (zedqa_b16.lua), then the two-way and appliance faces again
+zedqa_prelude.lua | pre
+zedqa_b16.lua | b16 | timeout=300

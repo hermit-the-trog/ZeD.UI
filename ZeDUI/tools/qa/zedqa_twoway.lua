@@ -546,8 +546,8 @@ step(5, function() hold(newRadio("Base.RadioRed", 0.6)) end)
 waitFor(5, 150, function() local r = CW()._radios and CW()._radios[1]; return r and r.radioInstance == p:getPrimaryHandItem() end, function() end)
 step(10, function()
     local t = tw(CW())
-    check(t ~= nil and t.dev == p:getPrimaryHandItem() and t.drv ~= TW and CW()._radioFullZone == nil,
-        "an AM/FM radio shows its own face (or plain card), not a two-way set's: no full view button")
+    check(t ~= nil and t.dev == p:getPrimaryHandItem() and t.drv ~= TW,
+        "an AM/FM radio shows its own face (or plain card), not a two-way set's")   -- (beta 16: its pop-out button is checked in zedqa_rtv.lua)
     hold(nil)
 end)
 

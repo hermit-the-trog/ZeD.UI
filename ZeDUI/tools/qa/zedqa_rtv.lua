@@ -173,7 +173,8 @@ local function faceChecks(w, pid, tag)
         -- small face with blank space either side) the face fills its card: at most ~20 px of gap each side
         check(gl <= TT.px(20) + 1 and gr <= TT.px(20) + 1, tag .. ": the face fills the card (gaps " .. gl .. " / " .. gr .. ", at most " .. TT.px(20) .. ")")
     end
-    check(w._radioFullZone == nil, tag .. ": no full view button (a two-way set's)")
+    -- (Nov 15 2026, beta 16 pop-outs: every face has the header's pop-out button now, not only a two-way set)
+    check(w._radioFullZone ~= nil, tag .. ": the pop-out button in the header (beta 16: every face pops out)")
     local want = #des.hits - (R.factsOf(des).volPower and 1 or 0)
     check(#t.hits == want, tag .. ": every control on the face (" .. #t.hits .. " of " .. want .. ")")
 end
