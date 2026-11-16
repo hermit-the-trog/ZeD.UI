@@ -4,7 +4,7 @@
 --
 -- An add-on with a rule about what may go where (ZeD Multi-Slot: a thing goes in only where its shape fits) tells
 -- ZeD the rule, so ZeD can say why before a move is tried. The add-on still enforces the rule itself, in the game's
--- own transfer action (shared code, so a server checks it too); this is only ZeD showing the reason in time.
+-- own transfer action, in each player's game (client code in 42.22, not shared: a server does not check it); this is only ZeD showing the reason in time.
 --
 --   ZeD.ItemRules.register(id, rule)                  rule.canPut(item, dest, player, src) -> ok, reason
 --   ZeD.ItemRules.unregister(id)
