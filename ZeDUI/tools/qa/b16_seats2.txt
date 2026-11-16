@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/b16_seats2.txt  (Nov 15 2026, QA): the seat pop-out and face pop-outs again after 3a144ec09 (smashed cars, clear of the windows)
+zedqa_prelude.lua | pre
+zedqa_b16.lua | b16 | timeout=300
+zedqa_b16_seats.lua | b16s | timeout=300
+
