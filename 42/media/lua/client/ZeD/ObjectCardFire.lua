@@ -441,7 +441,12 @@ local function tankFn(p, tt)
         if tank then ISBBQMenu.onInsertPropaneTank(nil, p:getPlayerNum(), tt.obj, tank) end
     end
 end
-local function ignite(p, tt) if not tt.obj:isLit() and tt.toggle then tt.toggle(p, tt) end end
+-- (Nov 15 2026, QA's beta 16 pass, p336: the burner and the igniter ask the grill itself for gas when pressed, not
+-- the card's last read of it, so a tank that just went in lights at once rather than after the next refresh)
+local function liveToggle(p, tt)
+    if call(tt.obj, "hasFuel") == true then ISBBQMenu.onToggle(nil, p:getPlayerNum(), tt.obj) end
+end
+local function ignite(p, tt) if not tt.obj:isLit() then liveToggle(p, tt) end end
 
 -- the gas left as hours and minutes ("12:30"; "0:00" with no tank)
 local function gasText(d)
@@ -501,12 +506,16 @@ function ZeD.ObjectCardFire.grillFace(card, px0, y, k, des, t)
     local cv = P.canvas(card, px0, y, k)
     local st = grillState(t, d)
     PL.draw(cv, des, st, { tex = plateTex, now = getTimestampMs() })
+    -- (Nov 15 2026, QA's beta 16 pass, p336: the grill's gas read live, one cheap Java call a frame; when it differs
+    -- from the card's last read, the card reads everything again on its next frame)
+    local gas = call(t.obj, "hasFuel") == true
+    if gas ~= (d.hasFuel == true) then t._refreshT = OC.REFRESH end
     -- the centre knob turns it on or off; the igniter lights it; the cart takes a tank or gives it back
     for _, c in ipairs(PL.controls(des, st)) do
         local fid = "bbq:" .. c.id
         local fn = nil
-        if c.id == "burner" then fn = t.toggle
-        elseif c.id == "ignite" then fn = (not d.lit and t.toggle) and ignite or nil
+        if c.id == "burner" then fn = gas and liveToggle or nil
+        elseif c.id == "ignite" then fn = (gas and not d.lit) and ignite or nil
         elseif c.id == "tank" then fn = (d.tank or d.spare) and tankFn or nil end
         -- a key (the igniter, the cart) takes the pointer's wash and the controller's mark; the
         -- burner knob keeps its own lit ring
