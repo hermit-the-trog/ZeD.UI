@@ -201,11 +201,14 @@ local function wholeCarScript(v)
     return ok and s or nil
 end
 function ZeD_SeatPopout:readSeats()
+    self._filledFrom = nil
     ZeD_SeatChooser.readSeats(self)
     local missing = false
     for _, st in ipairs(self._seats or {}) do if st.oz == nil then missing = true end end
     if not missing then return end
     local s = wholeCarScript(self.vehicle)
+    -- (what was tried, for the fallback line: the whole car's script name, or none found)
+    self._filledFrom = s and tostring(s.getFullName and s:getFullName() or s) or "none found"
     if not s then return end
     for _, st in ipairs(self._seats) do
         if st.oz == nil then
@@ -249,11 +252,12 @@ local function byFront(a, b)
 end
 
 function ZeD_SeatPopout:plan()
+    self._planWhy = nil
     local seats = self._seats
     if not seats or #seats == 0 then return nil end
     local list = {}
     for _, st in ipairs(seats) do
-        if st.oz == nil then return nil end
+        if st.oz == nil then self._planWhy = "seat " .. tostring(st.n) .. " has no place"; return nil end
         list[#list + 1] = st
     end
     table.sort(list, byFront)
@@ -266,11 +270,11 @@ function ZeD_SeatPopout:plan()
         end
         r.seats[#r.seats + 1] = st
     end
-    if #rows > #BOX_H then return nil end
+    if #rows > #BOX_H then self._planWhy = #rows .. " rows, " .. #BOX_H .. " at most"; return nil end
     local places = {}
     for ri, r in ipairs(rows) do
         local s = r.seats
-        if #s > 2 then return nil end
+        if #s > 2 then self._planWhy = "row " .. ri .. " has " .. #s .. " seats"; return nil end
         -- (screen left is the car's +x, as vanilla draws it: the driver on the left)
         if #s == 2 then
             local a, b = s[1], s[2]
@@ -778,6 +782,14 @@ function S.popToggle(playerObj, vehicle)
         -- (Nov 15 2026, QA's beta 16 pass: a smashed sedan fell back to the window with no word why; say which test
         -- failed, once per car type, so the log tells the seats, the rows and the art apart)
         local why = (not ok) and ("seats unread: " .. tostring(err)) or (not planned) and "seats not in rows" or ("no art floor/" .. tostring(p._cabin) .. "_1")
+        -- (the detail: which rows test failed, the whole car the places came from, and each seat's place, x and z)
+        if ok and not planned then
+            local parts = {}
+            for _, st in ipairs(p._seats or {}) do
+                parts[#parts + 1] = tostring(st.n) .. ":" .. (st.ox and string.format("%.3f,%.3f", st.ox, st.oz) or "none")
+            end
+            why = why .. " (" .. tostring(p._planWhy) .. "; filled from " .. tostring(p._filledFrom or "not needed") .. "; seats " .. table.concat(parts, " ") .. ")"
+        end
         -- (a plain print, not ZeD.logOnce: that one counts toward safe mode's watchdog, and a fallback is no fault)
         local name = tostring(vehicle and vehicle:getScriptName())
         S._fellBack = S._fellBack or {}
