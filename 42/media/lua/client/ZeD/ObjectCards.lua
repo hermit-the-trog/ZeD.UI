@@ -241,6 +241,11 @@ local function browsePhase(e)
     return e._zedPhase
 end
 
+-- (Nov 15 2026, QA's beta 16 pass, p336: "put the tank in" from the grill's card walked a path that swung 6.5
+-- tiles out and back, and the leash closed the card on the way.) Whatever the character starts while the card is
+-- open (a press on the card, its pop-out, a key) holds the leash: from the frame the action queue goes from empty
+-- to busy until it is empty again (the walk, then the action). Then the leash applies as before (OC.tick).
+
 -- Per-frame upkeep for the open entry: validity, leash, data and browse list.
 -- Returns false when the card should close.
 function OC.tick(e, player)
@@ -268,7 +273,15 @@ function OC.tick(e, player)
     -- bottles has none)
     local sq = t.sq
     local leash = def.leash or OC.LEASH
-    if sq and (math.floor(player:getZ()) ~= sq:getZ() or OC.squareDist(player, sq) > leash + 0.5) then
+    -- (the hold: busy now, and either it began while the card was open or the hold is already on)
+    -- (read in place, no helper and no closure: it runs every frame the card is open)
+    local TAQ = ISTimedActionQueue
+    local okQ, q = false, nil
+    if TAQ then okQ, q = pcall(TAQ.getTimedActionQueue, player) end
+    local busy = okQ and q ~= nil and type(q.queue) == "table" and #q.queue > 0
+    if busy and (e._wasIdle or e._held) then e._held = true else e._held = nil end
+    e._wasIdle = not busy
+    if sq and not e._held and (math.floor(player:getZ()) ~= sq:getZ() or OC.squareDist(player, sq) > leash + 0.5) then
         OC.closeWhy = string.format("out of reach (leash): %.2f tiles of %s, player z %.3f, square z %d, player at %.2f,%.2f", OC.squareDist(player, sq), tostring(leash), player:getZ(), sq:getZ(), player:getX(), player:getY())
         return false
     end
