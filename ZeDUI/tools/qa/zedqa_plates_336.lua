@@ -386,6 +386,22 @@ local function objectPhase()
         if not bbq:isLit() then say(string.format("grill: not lit: fuel %s, hasFuel %s, tank %s, an action running %s, character at %.1f,%.1f", tostring(bbq:getFuelAmount()), tostring(bbq:hasFuel()), tostring(bbq:hasPropaneTank()), tostring(actionBusy()), p:getX(), p:getY())) end
         check(bbq:isLit(), "grill: the burner knob lights it (" .. (bbq:isLit() and "lit" or "the light was queued and never finished") .. ")")
         if bbq:isLit() then pcall(function() bbq:setLit(false) end) end
+    end)
+    -- (Nov 15 2026, beta 16, 3e8cc028b: the leash waits while the character's own action runs; walking away with
+    -- nothing queued still drops the card) the card open, the character set 8 tiles south, nothing queued
+    local back
+    step(10, function()
+        if not (WW() and WW()._objectCard and WW()._objectCard:isVisible()) then openCard("fire", bbq) end
+    end)
+    step(30, function()
+        stopActions()
+        back = { x = p:getX(), y = p:getY(), z = p:getZ() }
+        moveTo(back.x, back.y + 8, back.z)
+    end)
+    step(120, function()
+        local c = WW() and WW()._objectCard
+        check(not (c and c:isVisible() and c.entry), "grill: walking 8 tiles away with nothing queued closes the card")
+        moveTo(back.x, back.y, back.z)
         if ZeD_WorldWindow.closeObjectCard then ZeD_WorldWindow.closeObjectCard() end
     end)
 end
