@@ -328,7 +328,8 @@ local function needsOff(r)
     if seeOff(r) then return true end
     local id = r.zedNeeds or r.zedNeedsNot   -- (needsNot: the same row, dim while that switch is On)
     if not id then return false end
-    local zo = PZAPI and PZAPI.ModOptions and PZAPI.ModOptions:getOptions("ZeD_UI")
+    -- (Nov 15 2026, add-on hooks: an add-on's row, ZeD.Options.addGroup, names a switch among its own options)
+    local zo = PZAPI and PZAPI.ModOptions and PZAPI.ModOptions:getOptions(r.zedOwner or "ZeD_UI")
     local o = zo and zo:getOption(id)
     if not o then return false end
     local el = o.element
@@ -352,6 +353,8 @@ local function help(r)
         end
     end)
     if r.zedTipKey then t = ZeD.tr(r.zedTipKey) end   -- ZeD's own options (ZeD_MainMenuOptionGroups)
+    -- (Nov 15 2026, add-on hooks: an add-on's row without a tipKey carries its option's own tooltip, as passed)
+    if r.zedTip and not r.zedTipKey then t = r.zedTip end
     if r.kind == "chord" then
         -- what the chord does, in the pad's own names (ZeD_PadGlyphs)
         local PG = ZeD.PadGlyphs
@@ -546,8 +549,11 @@ function ZeD_MMOptions:rowsFor(page)
     if not page then return {} end
     local now = MM.now()
     local gc = self._groupCache
-    if not (gc and now - gc.at < 2000) then
-        gc = { at = now, rows = MM.optionGroups.build(self:vpages(), function(p) return self:vrowsFor(p) end) }
+    -- (Nov 15 2026, add-on hooks: rev goes up each time an add-on adds a group, ZeD.Options.addGroup, so a group
+    -- added while the window is open shows at once; with none added it stays 0 and only the two seconds count)
+    local rev = (ZeD.Options and ZeD.Options.rev) or 0
+    if not (gc and now - gc.at < 2000 and gc.rev == rev) then
+        gc = { at = now, rev = rev, rows = MM.optionGroups.build(self:vpages(), function(p) return self:vrowsFor(p) end) }
         self._groupCache = gc
     end
     local rows = gc.rows[page.raw] or {}
@@ -999,6 +1005,8 @@ local function scaleReadout(r)
     local c = r.control
     if isSeeRow(r) then return seeText(c.selected or 2) end
     if r.labelKey == "UI_ZeD_Settings_WheelDeadZone" then return comboText(c, c.selected) end   -- (no Auto: the number)
+    -- (Nov 15 2026, add-on hooks: an add-on's slider is no UI scale; its readout is the item picked, in its own words)
+    if r.zedOwner then return comboText(c, c.selected) end
     if (c.selected or 1) == 1 then
         local root = ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root() or 1
         return ZeD.tr("UI_ZeD_Options_ScaleAutoNow", scaleText(root))

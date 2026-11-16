@@ -13,6 +13,8 @@
 --   * only: still works, with a note on where or how ("Multiplayer only", "Item and ZeD tooltips")
 -- and builds ZeD setup: ZeD's own options and the game settings ZeD's look
 -- depends on, the same controls (one value, two places to reach it).
+-- (Nov 15 2026, add-on hooks) An add-on's own options can join ZeD setup as a
+-- group of their own: ZeD.Options.addGroup, shared/ZeD/AddonOptions.lua.
 --
 -- An option this table doesn't name (a new vanilla option, a mod's control on
 -- a vanilla page) lands in its old page's group under "Other": nothing is lost.
@@ -221,6 +223,75 @@ local function copyRow(r, under, why)
     return c
 end
 
+-- a ZeD setup copy takes its drawing from its G.ZED_GROUPS entry e (or an add-on's row, which has
+-- the same shape): the control, the line under it, the shorter words, what it needs
+local function styleRow(c, e)
+    c.zedStyle, c.under, c.zedShort = e[2], e.under, e.short
+    c.zedNeeds, c.zedNeedsWhy, c.zedNeedsNot = e.needs, e.needsWhy, e.needsNot
+    c.zedBack = e.back   -- (a ZeD screen a mod can take: ZeD_StepAside.lua names it under the switch)
+end
+
+-- ----------------------------------------------------------------------------
+-- AN ADD-ON'S GROUP (Nov 15 2026, add-on hooks: ZeD.Options.addGroup, in
+-- shared/ZeD/AddonOptions.lua, keeps the list; this turns one entry into rows)
+-- ----------------------------------------------------------------------------
+
+-- an option's tooltip as vanilla would show it: a translation key read in the player's
+-- language, plain words as they are (getTextOrNull answers nil for words that are no key)
+local function tipText(tt)
+    if type(tt) ~= "string" or tt == "" then return nil end
+    local t = getTextOrNull and getTextOrNull(tt)
+    return t or tt
+end
+
+--- The ZeD setup rows for one add-on group a (ZeD.Options.groups' entry), from the Mods page's
+--- rows (mods), built exactly as ZeD's own: the Mods page row is marked as ZeD's own (Find shows
+--- it on ZeD setup only), and a copy takes the group's drawing. An owner or option ZeD cannot
+--- find is logged once and left out.
+local function addonRows(a, mods)
+    local AO = ZeD.Options
+    local list = {}
+    -- (the colon call: getOptions is a method of PZAPI.ModOptions, as ZeD's own lookup above uses it)
+    local zo = PZAPI and PZAPI.ModOptions and PZAPI.ModOptions:getOptions(a.owner)
+    if not zo then
+        AO.logOnce("owner:" .. a.owner, "no ModOptions with the id " .. a.owner .. ": its group on ZeD setup is left out")
+        return list
+    end
+    local seen = {}   -- option id -> true once placed (a row named twice shows once)
+    for _, e in ipairs(a.rows) do
+        local id = e[1]
+        local opt = zo.dict and zo.dict[id]
+        if not opt then
+            AO.logOnce("option:" .. a.owner .. ":" .. id, a.owner .. " has no option " .. id .. ": its row on ZeD setup is skipped")
+        elseif opt.element and not seen[id] then
+            -- (no element yet: vanilla has not built the Mods page; ZeD's own rows wait the same way)
+            for _, r in ipairs(mods) do
+                if r.control == opt.element then
+                    -- the name: the add-on's key through ZeD.tr each frame, else the Mods page's words (r.label)
+                    r.labelKey = e.nameKey
+                    -- the help: the add-on's key through ZeD.tr, else the option's own tooltip (vanilla
+                    -- never hands a mod's drop-down its tooltip, so the band would read nothing)
+                    r.zedTipKey = e.tipKey
+                    r.zedTip = (not e.tipKey) and tipText(opt.tooltip) or nil
+                    r.zedOwn = true      -- (Find shows it on ZeD setup, not twice: G.findRows)
+                    r.zedOwner = a.owner -- (whose options its needs = name: ZeD_MainMenuOptions' needsOff)
+                    local c = copyRow(r, nil)
+                    -- Reset to defaults: only a combo's item can be put back (ZeD_MMOptions:zedDefaults)
+                    if opt.type == "combobox" then
+                        local MO = ZeD.ModOptionsOwners
+                        c.zedDefault = e.default or (MO and MO.default and MO.default(a.owner, id)) or nil
+                        styleRow(c, e)
+                    end
+                    c.zedBack = nil   -- (screens a mod can take are ZeD's own; an add-on row names none)
+                    list[#list + 1] = c
+                    seen[id] = true
+                end
+            end
+        end
+    end
+    return list
+end
+
 --- Build every group's rows. pages = vanilla's pages ({ title, raw, view, keys });
 --- rowsOf(page) = that page's rows (ZeD_MainMenuOptions' discovery, cached).
 --- Returns { [groupId] = rows }.
@@ -329,7 +400,35 @@ function G.build(pages, rowsOf)
         end
     end
     local placed = {}
+    -- (Nov 15 2026, add-on hooks) the add-ons' groups (ZeD.Options.addGroup) go in among ZeD's:
+    -- after the group their `after` names, else just before Trouble. With none added, addons is
+    -- empty and every line below that touches it does nothing.
+    local addons = (ZeD.Options and ZeD.Options.groups) or {}
+    local known = {}   -- ZeD's group title keys, so an `after` ZeD has no group for falls back
+    for _, grp in ipairs(G.ZED_GROUPS) do known[grp[1]] = true end
+    -- put the add-on groups whose place is slot (a ZeD group's title key; nil: the default place)
+    local function emitAddons(slot)
+        for _, a in ipairs(addons) do
+            local want = a.after
+            if want ~= nil and not known[want] then
+                ZeD.Options.logOnce("after:" .. a.owner .. ":" .. tostring(want),
+                    a.owner .. ": no ZeD group " .. tostring(want) .. " to follow; its group goes before Trouble")
+                want = nil
+            end
+            if want == slot then
+                local list = addonRows(a, mods)
+                if #list > 0 then
+                    -- (the title through ZeD.tr: an add-on's key, the test language too; plain words
+                    -- come back as they are, since ZeD.tr hands back a key it cannot find)
+                    setup[#setup + 1] = { kind = "header", text = ZeD.tr(a.title) }
+                    for _, c in ipairs(list) do setup[#setup + 1] = c end
+                end
+            end
+        end
+    end
+    local defaultDone = false   -- the default place came up (it is before Trouble)
     for _, grp in ipairs(G.ZED_GROUPS) do
+        if grp[1] == "UI_ZeD_Options_ZedTrouble" and #addons > 0 then emitAddons(nil); defaultDone = true end
         local list = {}
         if grp.chords then
             -- the quick action chords: a row each (ZeD_MainMenuOptions draws a "chord" row)
@@ -338,9 +437,7 @@ function G.build(pages, rowsOf)
         for _, e in ipairs(grp[2]) do
             local c = zrow[e[1]]
             if c and not placed[e[1]] then
-                c.zedStyle, c.under, c.zedShort = e[2], e.under, e.short
-                c.zedNeeds, c.zedNeedsWhy, c.zedNeedsNot = e.needs, e.needsWhy, e.needsNot
-                c.zedBack = e.back   -- (a ZeD screen a mod can take: ZeD_StepAside.lua names it under the switch)
+                styleRow(c, e)
                 list[#list + 1] = c
                 placed[e[1]] = true
             end
@@ -349,7 +446,10 @@ function G.build(pages, rowsOf)
             setup[#setup + 1] = { kind = "header", text = G.text(grp[1]) }
             for _, c in ipairs(list) do setup[#setup + 1] = c end
         end
+        if #addons > 0 then emitAddons(grp[1]) end
     end
+    -- (no Trouble group, should one ever be cut: the default place is the end of ZeD's groups)
+    if #addons > 0 and not defaultDone then emitAddons(nil) end
     local rest = {}
     for _, id in ipairs(zorder) do if not placed[id] then rest[#rest + 1] = zrow[id] end end
     if #rest > 0 then
