@@ -28,6 +28,7 @@ if not (W and W.iconTex and D and D.pictureOf) then say("ERR the wheel icons are
 
 -- every icon id (151)
 local IDS = {
+    "holster",   -- (beta 17: the Character wheel's Belt slice, punch list 250; wheel/<size>/zw_holster.png)
     "knife", "apple", "glass", "medkit", "bandage", "bed", "shirt", "backpack", "view_list", "hanger", "hand", "cigarette", "book", "watch",
     "walkie", "map", "minimap", "pin", "car", "cow", "toolbox", "magnifier", "magnifier_off", "bulb_on", "bulb_off",
     "fence", "eye", "eye_off", "box_up", "box_down", "rotate", "screwdriver", "wrench", "generator", "campfire", "pot",

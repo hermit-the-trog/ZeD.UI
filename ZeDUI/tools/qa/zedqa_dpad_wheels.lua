@@ -263,10 +263,12 @@ step(30, function()
     local cnt = win._mainContent
     local sort0, asc0 = cnt._sortCol, cnt._sortAsc
     F.dispatchJoypadDown(win, Joypad.LStickButton, { player = pn, id = nil })
-    local sort1 = cnt._sortCol
+    local sort1, asc1 = cnt._sortCol, cnt._sortAsc
     F.dispatchJoypadDown(win, Joypad.LStickButton, { player = pn, id = nil })
-    local sort2 = cnt._sortCol
-    check(sort1 ~= (sort0 or "name") and sort2 ~= sort1, string.format("L3 steps the sort (%s, %s, %s)", tostring(sort0), tostring(sort1), tostring(sort2)))
+    local sort2, asc2 = cnt._sortCol, cnt._sortAsc
+    -- (beta 17, punch list 255: a second L3 on the same column reverses it, so each press changes the column or the order)
+    local k0, k1, k2 = tostring(sort0 or "name") .. tostring(asc0 ~= false), tostring(sort1) .. tostring(asc1 ~= false), tostring(sort2) .. tostring(asc2 ~= false)
+    check(k1 ~= k0 and k2 ~= k1, string.format("L3 steps the sort (%s, %s, %s)", k0, k1, k2))
     cnt._sortCol, cnt._sortAsc = sort0, asc0
     local R = ZeD.InventoryRenderer
     local key = R.containerKey(p:getInventory(), p)
