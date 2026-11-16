@@ -4684,29 +4684,29 @@ to be proposed.
    designs and the pick table edited in `ZeDUI/tools/physpx/`. Replaces round 4's radio pictures (item 180); the
    antique TV from round 4 stands. `cd_player` gets no full-card face, by the director (Nov 13: "The portable CD player is fine. It was the red
    radio, the black radio, the radios that we just did."). Nothing in `42/` yet.
-184. **Controller: A won't place an item (the director, Nov 14 2026, playing).** open - logged only, no work yet (the
+184. **Controller: A won't place an item (the director, Nov 14 2026, playing).** (Nov 16 2026, QA: done: built in beta 14-15, QA checked in game and the director confirmed.) Was: open - logged only, no work yet (the
    director: "just mark these down as bugs, not to do anything yet"). With an item in place mode (the game's placement
    outline), A does the nearest world action instead: sits on a chair, opens a window. The item can't be placed with the
    pad at all. Likely ZeD's A handling takes the press before the game's placement cursor. Not reproduced by QA yet.
    **The director, Nov 15 2026, playtest on beta 14:** placing an item now works. Still wrong: placing it next to something
    with its own action, like a window, also does that action (the window opened). Logged only, no work yet.
-185. **Sardines' Workshop comment (Nov 14 2026): three reports, no details yet.** open - logged only. (a) some clothing
+185. **Sardines' Workshop comment (Nov 14 2026): three reports, no details yet.** (Nov 16 2026, QA: question: waiting on Sardines' reply.) Was: open - logged only. (a) some clothing
    not recognized (doll / Equip tab?); (b) "optimisation issues", no place named; (c) an error "concerning the mod menu".
    For (c), Build found today that mods with an interlaced poster.png (CyesPushDoors 3807747522, EN_Newburbs 3520263838)
    log "unsupported interlace method" when picked in the Mods list; the game's own Mods screen does the same, so not
    ZeD's (the director). Replied on the Workshop asking for the items, the place and their mod list; waiting on them.
 186. **Controller: D-pad right from the Character window's container strip lands on the World window's Take all button, not its container strip
-   (the director, Nov 14 2026, playing).** open - logged only. With the inventory open, focus on a container icon in the
+   (the director, Nov 14 2026, playing).** (Nov 16 2026, QA: built in beta 14, QA checked in game (wpt).) Was: open - logged only. With the inventory open, focus on a container icon in the
    Character window's strip, D-pad right should go to the nearest container icon in the World window's strip. Instead it
    crosses to the World window but lands on its Take all button first (the director's correction, same day: not Drop). Breaks the pad rule "natural directions,
    land on the closest thing". Not reproduced by QA yet.
 
-187. **Controller: Start won't pause the game while the inventory is open (the director, Nov 14 2026, playing).** open -
+187. **Controller: Start won't pause the game while the inventory is open (the director, Nov 14 2026, playing).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass); beta 17's 263 widened it, checked.) Was: open -
    logged only. With the inventory windows open, pressing Start does nothing; the pause menu doesn't come up. Likely the
    open ZeD window's pad handling takes Start. Not reproduced by QA yet.
 
 188. **Controller: the pause menu loses pad focus, and the D-pad opens the wheels behind it (the director, Nov 14 2026,
-   playing).** open - logged only. In the pause menu it is easy to end up with nothing selectable. While stuck that way,
+   playing).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open - logged only. In the pause menu it is easy to end up with nothing selectable. While stuck that way,
    the D-pad opens ZeD's D-pad wheels instead of moving up and down through the pause menu's buttons, so the only way out
    is the mouse (Resume by hand). Likely the pause menu's pad focus is lost and ZeD's wheels take the D-pad while it is up.
    The trigger (the director, same day): Start to open the pause menu, then Y. After Y the game is in mouse and
@@ -4714,44 +4714,44 @@ to be proposed.
    windows) or switches the input mode while the pause menu is up. Not reproduced by QA yet; may share a cause with 187.
 
 189. **Wearing clothing straight from a world container puts it on, then takes it off and puts it back (the director,
-   Nov 14 2026, playing).** open - logged only. Equip on a garment that sits in a world container (not the character's
+   Nov 14 2026, playing).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open - logged only. Equip on a garment that sits in a world container (not the character's
    inventory): the character wears it, then unequips it and returns it to the container. Possibly ZeD queues the game's
    transfer-back after the wear (the "put it back" step meant for a cancelled action) or runs equip and a return in the
    wrong order. Not reproduced by QA yet; controller or mouse not noted.
 
-190. **Controller: the ID card (the director, Nov 14 2026, playing).** open - logged only. Two faults:
+190. **Controller: the ID card (the director, Nov 14 2026, playing).** (Nov 16 2026, QA: built in beta 14, QA checked in game.) Was: open - logged only. Two faults:
    a. The pad can't reach the picture: the avatar and the photo button are never focused.
    b. Hair and Beard are hard to move through. A press either closes or opens a disclosure, and the page jumps down to
       the greyed-out hairstyle options instead of staying up where the radio buttons are. The trigger (the director, same day):
       D-pad left or right from Hair and Beard is what makes the page jump. Breaks the pad rules (focus
       stays where you are; disclosures first; no jumps). Not reproduced by QA yet.
 
-191. **Controller: the Journal's tab strip lags the first time (the director, Nov 14 2026, playing).** open - logged only.
+191. **Controller: the Journal's tab strip lags the first time (the director, Nov 14 2026, playing).** (Nov 16 2026, QA: built in beta 14, QA checked in game.) Was: open - logged only.
    D-pad left/right through the Journal tabs (Journal, Notebooks, Papers, Recipes, Loadouts) lags on the first pass, while
    each tab builds; after that it's fine. The lag lets the press overshoot the wanted tab and land in the inventory.
    Likely each tab's first build runs on the press. Not reproduced by QA yet.
-192. **Controller: Training materials' sub-items can't be reached (the director, Nov 14 2026, playing).** open - logged
+192. **Controller: Training materials' sub-items can't be reached (the director, Nov 14 2026, playing).** (Nov 16 2026, QA: built in beta 14, QA checked in game.) Was: open - logged
    only. Opening a group (Blacksmithing) shows its books, but D-pad down goes to the next group (Butchering), not the first
    book (Blacksmithing 1). The opened group's rows aren't in the pad's list. Not reproduced by QA yet.
-193. **Moodles above the belt cover the button hints (the director, Nov 14 2026, playing).** open - logged only. With
+193. **Moodles above the belt cover the button hints (the director, Nov 14 2026, playing).** (Nov 16 2026, QA: built in beta 14; needs the director's eye (QA never saw it).) Was: open - logged only. With
    the moodles placed above the belt, they sit over the controller button hints. Not reproduced by QA yet.
 
-194. **Controller: the death screen can't be navigated (the director, Nov 14 2026, playing).** open - logged only. After
+194. **Controller: the death screen can't be navigated (the director, Nov 14 2026, playing).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open - logged only. After
    the character dies, the pad can't move through or press anything on the death screen. Not reproduced by QA yet.
 
-195. **Controller: long cards make the footer hard to reach (the director, Nov 14 2026, playing).** open - logged only. On
+195. **Controller: long cards make the footer hard to reach (the director, Nov 14 2026, playing).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open - logged only. On
    a card with a lot of content, the pad has to step through every control or row to get down to the footer's actions.
    Not reproduced by QA yet; which cards not noted.
 
-196. **Controller: the Safe mode dialog sticks open (the director, Nov 14 2026, live check).** open. The logger shows: Back
+196. **Controller: the Safe mode dialog sticks open (the director, Nov 14 2026, live check).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open. The logger shows: Back
    opened the game's Back wheel, then a ZeD_Prompt (the Safe mode dialog) took pad focus; Y while it was up moved focus
    to the Character window and the dialog stayed on screen with nothing focused on it. Y should not leave a dialog: a
    prompt keeps focus until it is answered or closed with B.
-197. **Controller: no way into or out of search mode from the D-pad wheels (the director, Nov 14 2026).** open. The
+197. **Controller: no way into or out of search mode from the D-pad wheels (the director, Nov 14 2026).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open. The
    wheels (ISRadialMenu on the D-pad) have no slice to start or stop searching (the game's foraging search mode).
 
 198. **The Journal's Recipes "Sort" pull-up menu has no background; its text can't be read (the director, Nov 14 2026,
-   playtest).** open. With the Recipes tab's Sort box opened on the pad, the list that opens above it draws no panel:
+   playtest).** (Nov 16 2026, QA: built in beta 14, QA checked in game.) Was: open. With the Recipes tab's Sort box opened on the pad, the list that opens above it draws no panel:
    only the dotted focus box of a row and a sliver of teal ("ab", a clipped label) show over the recipe list, and the
    choices themselves can't be read. Picture: %USERPROFILE%\Zomboid\Screenshots\zqa_ptl_now.png (crop
    zqa_ptl_sort_menu_crop.png), 4K. Likely the pull-up's background and rows aren't drawn (clipped by the tab's stencil
@@ -4760,13 +4760,13 @@ to be proposed.
    a black background, unreadable. Picture: zqa_ptl_sort2.png. So it is the shared pull-up (dropdown) itself, likely
    its background or text color on the pad / upward path, not one tab.
 
-199. **Controller: A on a paper's Read button does nothing (the director, Nov 14 2026, playtest).** open. Journal > Papers
+199. **Controller: A on a paper's Read button does nothing (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open. Journal > Papers
    > Knox Knews - July 2 1993 (Read: Not yet): the pad's focus mark is on the Read button, and A was pressed about 20
    times (11:45:28-11:45:48 in the logger: "press A | focus Character", no cursor, not paused). Nothing opened and the
    paper stayed unread. Picture: %USERPROFILE%\Zomboid\Screenshots\zqa_ptl_now2.png. The press reaches the Character
    window; its A on that button doesn't run the Read action.
 
-200. **Disassemble in the context menu shows letters, not the object's picture (the director, Nov 14 2026, playtest).**
+200. **Disassemble in the context menu shows letters, not the object's picture (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: built in beta 14; needs the director's eye.) Was:
    open. The right-click menu's icon strip (ZeD_ContextMenu, on the pad) lists the objects that can be taken apart with
    two-letter placeholder tiles: "ST" (Steel Counter), "CH" (Chrome Industrial Sink), "ST" again, where the game's own
    icon (the object's sprite) should be. Picture: %USERPROFILE%\Zomboid\Screenshots\zqa_ptl_now5.png (the strip under
@@ -4777,14 +4777,14 @@ to be proposed.
    tools are missing. Wanted: trim each sprite to its drawn pixels (the texture's own offset and size) and scale that up
    to fill the slot. Picture: zqa_ptl_disassemble.png.
 
-201. **Y opens the windows with a one-frame stretch on the World window (the director, Nov 14 2026, playtest).** open.
+201. **Y opens the windows with a one-frame stretch on the World window (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: built in beta 14; needs the director's eye (too short for a picture).) Was: open.
    Pressing Y to open the inventory, most times (not every time, more with quick presses), the World window's inventory
    side draws stretched about halfway down the screen for 1 or 2 frames before it settles. Likely the first frame draws
    before the window's height or roll-up state is set (a frame at the unrolled or default size). Too short for a still;
    a frame-by-frame capture or a per-frame height log on open would catch it.
 
 202. **Controller: D-pad right from the World window's floor container drops into the footer (the director, Nov 14 2026,
-   playtest).** open. With focus on the floor (Ground) icon in the World window's container strip, Right should stay in
+   playtest).** (Nov 16 2026, QA: built in beta 14, QA checked in game.) Was: open. With focus on the floor (Ground) icon in the World window's container strip, Right should stay in
    that top row and reach the Filter or List/Grid button. Instead it goes down to the footer: the logger reads
    "spatial right -> flat[9/12] (panel) zone=worldCtl [World]", then Right again goes "(cone)" to worldCtl 10/12 and
    "back to worldCtl:take". The row's own buttons (filter, list/grid) aren't the nearest stop to the right in the
@@ -4803,40 +4803,40 @@ to be proposed.
    the same Down stayed on the Filter. A powered microwave's own foot controls go on the director's playtest list.
 
 203. **Controller: Furniture tab's Pick up loses the chosen square when the windows come back (the director, Nov 14 2026,
-   playtest).** open. In the World window's Furniture tab, Pick up on the pad: you leave the window and move the cursor
+   playtest).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open. In the World window's Furniture tab, Pick up on the pad: you leave the window and move the cursor
    with the D-pad to the square you want (normal). Then opening the inventory again (Y) snaps the target back to the
    square the character stands on or faces, not the chosen one, so nothing can be picked up. The Furniture tab's cursor
    needs to keep the square chosen while the windows were away, or the tab needs a way to confirm the pick from the
    cursor without reopening the windows.
 
 204. **Controller: in the map, LT zooms out AND does the character's left-trigger action (the director, Nov 14 2026,
-   playtest).** open. RT zooms in cleanly. LT zooms out, but the character also plays the game's left-trigger world action
+   playtest).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open. RT zooms in cleanly. LT zooms out, but the character also plays the game's left-trigger world action
    (the shove / push animation) at the same time. The map should take LT alone while it is open.
-205. **Controller: aiming no longer closes the inventory windows (the director, Nov 14 2026, playtest).** open. Aiming
+205. **Controller: aiming no longer closes the inventory windows (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: built in beta 14, redone in beta 15 as 237, QA checked in game.) Was: open. Aiming
    with the stick while navigating the World window doesn't close the windows, though it should (the pad's "aim to
    close"). Seen right after 204, in the same session; may share a cause (the windows or map not giving the pad's aim and
    triggers back to the game, or vice versa).
 
-206. **Design: ZeD-style replacements for the search mode graphics (the director, Nov 14 2026, playtest).** open, for
+206. **Design: ZeD-style replacements for the search mode graphics (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: open, waiting on Design's pictures and the director.) Was: open, for
    design. When search mode is on, the game draws its own markers: the target graphic, the pin icon, the arrow, and the
    eyeball over the player's head. The director: "That icon and those graphics we need to create replacements for that
    match our style." Needs a design pass (pixel icons in the ZeD set), then Build wires them in place of the game's.
 
 207. **Controller: the World window's Radio tab can't be reached with the D-pad, and the radio's header can't be
-   reached back (the director, Nov 14 2026, playtest).** open. Two faults:
+   reached back (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open. Two faults:
    a. Down the World window's side tab strip, the D-pad stops at Animals; the Radio tab below it can't be focused.
    b. Inside the Radio tab: after going down into the channel list and picking a station, then back up into the face's
       buttons, the pad can't get up to the radio's header (the tab's top row) again.
       Details (the director): Up stops at the face's Power button and goes no higher; Left or Right from there jumps out
       to the next panel or the tab strip, so the header row above the face is never reached.
 
-208. **Turning on an oven from the right-click menu should open its tab (the director, Nov 14 2026, playtest).** open,
+208. **Turning on an oven from the right-click menu should open its tab (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open,
    a request. Not a bug after all: the oven's controls are reachable on the pad from the inventory window's footer (the
    director found it). But the director wants it easier: choosing the oven and turning it on from the right-click menu
    should open the World window on the tab that holds the oven (the crafting / stations tab), so its controls are right
    there.
 
-209. **Controller: the oven's controls pop-out (the director, Nov 14 2026, playtest).** open. On the oven's controls
+209. **Controller: the oven's controls pop-out (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open. On the oven's controls
    (Station > Oven > pop-out):
    a. Up and Down move between the controls left and right (the direction doesn't match the layout).
    b. On a control, Left/Right turns its dial (fine), but turning past the end makes the D-pad leave the controls
@@ -4845,7 +4845,7 @@ to be proposed.
    The only way out today (the director): walking far enough from the oven closes it. Aim-to-close doesn't work (205),
    so with the pop-out stuck there is no controller way to close it in place. Fixing 205 or giving B the close covers it.
 
-210. **Audio pops: short high-pitched clicks and noise during some navigation (the director, Nov 14 2026).** open. Heard
+210. **Audio pops: short high-pitched clicks and noise during some navigation (the director, Nov 14 2026).** (Nov 16 2026, QA: partly done (the double click, beta 14); the rest is the game's own audio bug: question to the director, close?.) Was: open. Heard
    while playing and while QA ran tests; hard on the ears; not seen in vanilla play on streams, so likely ZeD. Not yet
    tied to one action. QA measured (ZeDUI/tools/qa/zedqa_sound_count.lua, getSoundManager proxied): ZeD asks for exactly
    one UISelectListItem per D-pad move, on the list, the tab strip, 10 fast presses, and the real pad's double dispatch
@@ -4860,13 +4860,13 @@ to be proposed.
    the two playtest pops with no Lua sound at all. ZeD's part is the quick-repeat click (one pop lined up with clicks
    about 230 ms apart) and the double click on a window switch (fixed in 3484759bc).
 
-211. **A ZeD setup choice for UI sounds: volume, or off (the director, Nov 14 2026).** open, a request. The director
+211. **A ZeD setup choice for UI sounds: volume, or off (the director, Nov 14 2026).** (Nov 16 2026, QA: built in beta 14, QA checked in game.) Was: open, a request. The director
    doesn't like UI sounds but knows some players rely on them. Wanted: in ZeD setup, a way to turn ZeD's UI sounds off
    or lower their volume. ZeD already plays every click through its own calls (the game's UIActivateButton,
    UISelectListItem, UIActivateTab, UIToggleTickBox and so on, from about 90 places, mostly local sound() helpers), so
    one shared helper could read the setting; the default stays on, since the sounds matter to some players.
 
-212. **Bumpers cycle each window's tabs (the director, Nov 14 2026).** open, a change of design. Today LB focuses the
+212. **Bumpers cycle each window's tabs (the director, Nov 14 2026).** (Nov 16 2026, QA: built in beta 14; needs the director's hands with a controller.) Was: open, a change of design. Today LB focuses the
    Character window and RB the World window (switching between them). The director: "it'd be better if the right bumper
    cycled through the world window tabs and the left bumper cycled through the character window tabs." So LB steps
    through the Character window's tabs and RB through the World window's tabs (presumably bringing that window's
@@ -4874,7 +4874,7 @@ to be proposed.
    survival guide's pad pages change with it. Open questions for the director before building: wrap at the end or stop;
    does the press also move focus into that window; how to cycle backwards.
 
-213. **Controller: the main menu desk can't be navigated outside the Main menu window (the director, Nov 14 2026).** open.
+213. **Controller: the main menu desk can't be navigated outside the Main menu window (the director, Nov 14 2026).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open.
    On the pad, the Main menu window's list works (Continue, New game, Load game, Join a server, Host a game, Tutorial,
    Options, Mods, Credits, Quit). Nothing else on the desk can be reached: the menu bar (ZeD, File, Multiplayer,
    Settings, Debug), the desktop icons (Pasties, CletusWorks, ProtoPOP3 Mail, Documents, Project Zomboid, New game,
@@ -4882,7 +4882,7 @@ to be proposed.
    move between the menu bar, the icons and the open windows (and B or a close stop to shut a window).
 
 214. **Controller: the Character and World windows' title-bar menu can't be reached (the director, Nov 14 2026,
-   playtest).** open. On the pad the title bar's pins are stops (charTitlePins), but the window's options drop-down
+   playtest).** (Nov 16 2026, QA: built in beta 14 for the Character and World windows; other windows still open (228i, beta 18).) Was: open. On the pad the title bar's pins are stops (charTitlePins), but the window's options drop-down
    (the menu button at the title bar's right, "Z options") is not, so its choices are only reachable through the
    radial wheel. The director's rule (saved as a design rule): two ways to do everything. Every action must be doable
    inside the Character or World window itself (unless the game simply isn't built that way), and also a second way
@@ -4891,28 +4891,28 @@ to be proposed.
    After 3cbe32515 (the director, playtest): the window box stop works (Up reaches it, A opens the menu, B closes it,
    Left goes to the pin), but it draws no focus mark: nothing shows it is selected, though the hint strip offers A.
 
-215. **Controller: the on-screen keyboard from the inventory filter takes no input (the director, Nov 14 2026, playtest).**
+215. **Controller: the on-screen keyboard from the inventory filter takes no input (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: built in beta 14, QA checked in game.) Was:
    open. A on the inventory's filter field (view:fbar:field) brings up the on-screen keyboard, but nothing on it can be
    used and B doesn't dismiss it; only an aim escape clears it. The logger shows every press while it was up still
    going to "focus Character" (D-pad moves in charMainInv, B twice with no effect): the keyboard never takes the pad.
    It needs the pad focus when it opens (and to give it back to the field on close), with B closing it.
 
-216. **The World window's tab for a TV says "Radio" with a radio icon (the director, Nov 14 2026, playtest).** open. With
+216. **The World window's tab for a TV says "Radio" with a radio icon (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open. With
    a television open in the World window, the side tab and its label read Radio and show the radio icon, though it is
    clearly a TV. The tab's name and icon should follow what is open: Television (a TV icon) for TV sets, Radio for
    radios; or one name that covers both (the game's "Radio / TV"?) if the tab holds both kinds. Picture:
    zqa_ptl_tvtab.png.
 
-217. **A lag spike on closing the inventory (the director, Nov 14 2026, playtest).** open. Closing the windows (Y tap,
+217. **A lag spike on closing the inventory (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: open (beta 18): only the frame logger exists, no cause found yet.) Was: open. Closing the windows (Y tap,
    "hide pair") gave one large hitch. A frame logger (over 60 ms, with focus and window visibility) is running in the
    playtest to time it.
-218. **Controller: A doesn't open a door or a window though the prompt says A (the director, Nov 14 2026, playtest).**
+218. **Controller: A doesn't open a door or a window though the prompt says A (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: open (beta 18): only the logging exists, no fix yet.) Was:
    open. Standing at a door (and a window), the button prompt at the bottom reads A (open), but A does nothing. The
    logger: every A is "focus nil | cursor nil | paused false", then the no-focus path, so the press reaches the game's
    button prompt route (buts:onAPress) with no ZeD window holding the pad; still nothing opens. Suspect ZeD's wrap of
    the prompt's A (the hint strip counts uses then calls the game's onAPress) or a stale prompt target.
 
-219. **Access mode: Place item from a container in one go (the director, Nov 14 2026, playtest).** open, a later
+219. **Access mode: Place item from a container in one go (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: open, parked: a question to the director (later, unless easy).) Was: open, a later
    request. 184 is confirmed: A places on a controller, the vanilla way: an item in a container is first moved to the
    inventory, the action stops, and Place has to be chosen again. That is right for the normal mode. In Access mode
    the director wants the move and the place done in one go. "We'll work on that at another time, unless it's easy."
@@ -4921,13 +4921,13 @@ to be proposed.
    finishes; possibly ZeD (Put things back, the queue handling). Needs a game run with the timed-action queue logged.
 
 220. **Controller: the action-strip context menu gets stuck open when you walk away (the director, Nov 14 2026,
-   playtest).** open. Opening the right-click / X menu (the icon strip) and then moving around in the world without
+   playtest).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open. Opening the right-click / X menu (the icon strip) and then moving around in the world without
    choosing leaves the menu up; it is too easy to end up with it stuck open. Staying open while you step away isn't the
    problem in itself; being left with a menu you can't easily get rid of is. Likely fix: close it when the player walks
    out of reach of its target (as vanilla's context menu does) or when the left stick moves the character while it is
    up, and make sure B always closes it.
 
-221. **Controller: the desk's Pasties note leaves the pad on a hidden keyboard (the director, Nov 14 2026, playtest).**
+221. **Controller: the desk's Pasties note leaves the pad on a hidden keyboard (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was:
    open. At the main menu desk: a Pasties note picked up, moved and put down fine; X to type opened the on-screen
    keyboard; typed WOW, RT for Enter, then B closed the keyboard. After that the director was stuck in a blank note.
    The probe: pad focus was ISOnScreenKeyboard (hidden), inMainMenu true, only MainScreen up. So B hid the keyboard
@@ -4935,38 +4935,38 @@ to be proposed.
    back blank, so the typed text may not have reached it. QA handed the pad back to MainScreen through the bridge to
    free the director.
 
-222. **Cooking progress on the inventory row (the director, Nov 14 2026, playtest).** open, a request. With food
+222. **Cooking progress on the inventory row (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open, a request. With food
    cooking in an oven, the inventory list gives no sign it is cooking or how far along it is; only the item card shows
    it. Wanted: a progress bar on the row, like the bar shown while an item is being moved. (The director ate a raw
    pork chop because nothing showed it wasn't cooked.)
 
 223. **Controller: a one-button transfer between the two windows' open containers (the director, Nov 14 2026,
-   playtest).** open, a request. Wanted: a quick action that moves the selected item(s) from the active container in
+   playtest).** (Nov 16 2026, QA: built in beta 14, QA checked in game.) Was: open, a request. Wanted: a quick action that moves the selected item(s) from the active container in
    one window to the active container in the other, with a single button. (The windows already have a transfer control,
    charCtl:xfer, reached by navigating; this asks for a direct button or chord, under the two-ways rule.)
 
-224. **An oven shows food as "Cooking" but it doesn't cook (the director, Nov 14 2026, playtest).** open. In the
+224. **An oven shows food as "Cooking" but it doesn't cook (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open. In the
    restaurant kitchen, one oven was on and the fish sticks in it read "Cooking" in their condition, but they never
    cooked. Moved to the other oven, turned it on: that one cooked, with 222's bar showing. Check whether the first oven
    truly had heat (power, gas, the right "on" state) and whether ZeD reads "on" from the wrong field (the plate or the
    row saying Cooking while the game's oven isn't heating).
-225. **Controller: a quick A on a food row eats it, raw or not (the director, Nov 14 2026, playtest).** open, a design
+225. **Controller: a quick A on a food row eats it, raw or not (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open, a design
    question. Looking for a menu, the director pressed A twice; the first A ran the row's primary action, Eat, and the
    character ate raw crayfish while already sick. A tap of A as Eat is risky for raw, rotten or poisonous food. Options
    for the director: Eat stays the primary but asks or is skipped when the food is raw / unsafe; or A opens the card
    and Eat moves to a hold. 223's quick move would also have helped here.
 
-226. **Desk notes: B saves and closes, not cancel (the director, Nov 14 2026).** open, a design change. On the on-screen
+226. **Desk notes: B saves and closes, not cancel (the director, Nov 14 2026).** (Nov 16 2026, QA: obsolete: replaced by 235.) Was: open, a design change. On the on-screen
    keyboard for a Pasties note, B should save the note and exit, not cancel. If a cancel or reset is kept at all it
    goes on another button; the director doubts it is needed ("It's a post-it note ... people can just delete. It's not
    going to be that many lines."). Follows 221.
 
-227b. **Controller: no item tooltip on the selected row (the director, Nov 14 2026).** open, a request. With the mouse,
+227b. **Controller: no item tooltip on the selected row (the director, Nov 14 2026).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open, a request. With the mouse,
    hovering a row shows the item's tooltip for a quick glance; on the pad, the selected row shows nothing, so seeing any
    detail means opening the item card. Wanted: the same tooltip shown for the pad's selected row (after a short pause
    on it, as hover does), so a glance works on the controller too. (Numbered 227b: Build's 227 is the card header.)
 
-228. **Controller pattern audit (QA, Nov 14 2026, code read after the playtest).** open. Places where today's six
+228. **Controller pattern audit (QA, Nov 14 2026, code read after the playtest).** (Nov 16 2026, QA: partly done: a-d, h, k, o, q, r built in beta 14; j, p, f (seat) in beta 17; e, f (Messages, siren, car radio, reader), g, i, l, m, n, p (controller map, Hide interface) open for beta 18.) Was: open. Places where today's six
    patterns are probably still present. Paths under 42/media/lua/client/ZeD/. Confidence in brackets.
    Wrong focus:
    a. [high] Focus.held() (Input/FocusManager.lua:509-526) knows only the join window and ZeD_Prompt; with no window
@@ -5016,14 +5016,14 @@ to be proposed.
       held" with what was held, so the next playtest shows why the D-pad moved instead of turning. The scripted pass
       already turned it, so the real-pad cause is not proven yet.
 
-229. **Controller: the Photo Studio has no button hints (the director, Nov 14 2026, playtest).** open. The ID card's
+229. **Controller: the Photo Studio has no button hints (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: built in beta 14, not yet checked in game (QA, beta 18 pass).) Was: open. The ID card's
    Photo Studio works on the pad (A takes the picture, Y changes the backdrop, zoom and rotate the character work), but
    nothing on screen says which button does what; the director couldn't tell what X does. It needs the hint strip (or
    its own prompt line) listing every button it answers: A Take photo, Y Backdrop, X (whatever it is), the zoom and
    rotate controls, B Back.
 
 230. **Tooltips: the pad gets none outside item rows, and the Equip tab has none at all (the director, Nov 14 2026,
-   playtest).** open. 227b gives the pad's resting row an item tooltip, but nothing else: a trait (ID card), and
+   playtest).** (Nov 16 2026, QA: built in beta 14, QA checked in game.) Was: open. 227b gives the pad's resting row an item tooltip, but nothing else: a trait (ID card), and
    "pretty much everything" else that shows a tooltip on mouse hover shows nothing when the pad rests on it. Separately,
    the Equip tab's equipped panel shows no hover tooltips at all, with the mouse or the pad. Wanted: every stop that has
    a mouse tooltip shows the same one when the pad rests on it (one shared rule, not per surface), and the Equip panel's
@@ -5037,13 +5037,13 @@ to be proposed.
    footer, and the description line shows whole.
 
 231. **Controller: the Rename box from the item menu doesn't take the pad and gets stuck (the director, Nov 14 2026,
-   playtest).** open. Rename from an item's context menu opens the name box, but the pad isn't on it; the box stays on
+   playtest).** (Nov 16 2026, QA: built in beta 14, the director confirmed Rename works.) Was: open. Rename from an item's context menu opens the name box, but the pad isn't on it; the box stays on
    screen, and aiming doesn't clear it. The director escaped through the pause menu. 228e had named this one (Rename,
    Overrides/ItemMenu.lua 178, sets the pad with no prevFocus) and it was judged not a bug; live, the box never gets the
    pad at all. Needs: the box takes the pad when it opens (and the on-screen keyboard if typing), B closes it, the pad
    goes back to the window after.
 
-232. **Controller: no way to cancel a running action with the windows open (the director, Nov 14 2026, playtest).**
+232. **Controller: no way to cancel a running action with the windows open (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: built in beta 14, QA checked in game.) Was:
    open. Eating and drinking work, but while the action runs there is no pad way to stop it. The logger: the director
    pressed B about 15 times, every one "focus Character", so B went to the window (backing out levels) and never
    reached the game's Cancel Action. In vanilla, B with no panel open cancels the action (the pad map lists B as
@@ -5052,7 +5052,7 @@ to be proposed.
    so cancelling the action fits as the last "back".
 
 233. **Controller: opening a station from the world prompt doesn't give the World window the pad (the director, Nov
-   14 2026, playtest).** open. Facing a coffee maker, the prompt reads "A Coffee Machine"; A opens the World window on
+   14 2026, playtest).** (Nov 16 2026, QA: built in beta 14, QA checked in game.) Was: open. Facing a coffee maker, the prompt reads "A Coffee Machine"; A opens the World window on
    its crafting tab, but the pad stays outside the window. The logger: "prompt A | aPrompt Coffee Machine", then no
    claim at all (focus stays nil) until the director pressed Y, which claimed the Character window instead. Every
    route that opens a ZeD window or tab from the world (station prompts, the X menu's open options, 208's oven) should
@@ -5061,7 +5061,7 @@ to be proposed.
    prompt uses (ISEntityUI.OpenHandcraftWindow) put the World window on Craft with the pad, on the tab's first stop
    (craft:stDrop). A real station prompt goes on the director's next playtest list.
 
-234. **Controller: Rename opens two name boxes; the second is left stuck (the director, Nov 14 2026, playtest).** done.
+234. **Controller: Rename opens two name boxes; the second is left stuck (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: built in beta 14, QA checked in game.) Was: done.
    Renaming the key ring: the X menu's Rename; then the director had to D-pad down into the item card's header before
    the rename box appeared; A on its field, typed on the keyboard, B (the keyboard closed and the box showed "keys"),
    then closed the box. The name changed. But a second, identical "change item name" box was left behind with the old
@@ -5074,7 +5074,7 @@ to be proposed.
    didn't show in script: the box was up right away. Next playtest to confirm.
    **Confirmed by the director, Nov 15 2026, playtest on beta 14: Rename works.**
 
-235. **Keyboards: B saves and closes, no question (the director, Nov 14 2026, playtest).** open, a design change to
+235. **Keyboards: B saves and closes, no question (the director, Nov 14 2026, playtest).** (Nov 16 2026, QA: built in beta 14, QA checked in game.) Was: open, a design change to
    226. The "Close the keyboard? Your changes will be saved." question was too many steps: with Cancel focused the hint
    strip still offered B Cancel, so there were three ways to cancel and one to confirm. The director's answer: B saves
    and closes the keyboard, no question. (The Rename box keeps its own OK / Cancel; that's fine.)
@@ -5089,57 +5089,57 @@ to be proposed.
 
 Notes 11 and 15 of the playtest went on 184 and 228k. The rest:
 
-236. **Controller: the Messages window's list can't be reached.** open.
+236. **Controller: the Messages window's list can't be reached.** (Nov 16 2026, QA: built in beta 15, QA checked in game.) Was: open.
    Fix (Nov 15 2026, 2040cfbd4): the cards panel is a stop; A takes it, Up / Down scroll, A presses a card's button in
    view, B lets go, B again closes. 241 in the same commit: ZeD setup from the wheel takes the pad. Everything else in the window navigates. The
    director's design: the D-pad moves around the window; A on a panel makes it active and the D-pad scrolls it; B
    leaves the panel; B again leaves the window.
-237. **Aiming hides every window, the Messages window included.** open. (Notes 2 and 3.)
+237. **Aiming hides every window, the Messages window included.** (Nov 16 2026, QA: built in beta 15, QA checked in game.) Was: open. (Notes 2 and 3.)
    Fix (Nov 15 2026): the aim escape fires whether or not a ZeD window holds the pad, on the right stick or the game's
    own aiming (the trigger), and closes the Messages window too (Input/FocusManager.lua _aimHide). Still waits while the
    keyboard, a menu or a prompt holds the pad.
-238. **Character creation, controller: the clothing color tiles can't be reached.** open.
+238. **Character creation, controller: the clothing color tiles can't be reached.** (Nov 16 2026, QA: built in beta 15; needs the director's hands with a controller.) Was: open.
    Fix (Nov 15 2026, 9b7cede28, with 239): Left / Right move across item, tint and fabric, A opens it; the palette
    works on the D-pad; swatches are a grid (Up / Down by line), A takes the color. Design changes for the director:
    no live recolor while moving, and Left / Right no longer cycle the clothing item.
-239. **Character creation, the hair color list: Up and Down don't move between rows.** open. Only Left and Right
+239. **Character creation, the hair color list: Up and Down don't move between rows.** (Nov 16 2026, QA: built in beta 15; needs the director's hands with a controller.) Was: open. Only Left and Right
    move through it.
-240. **Hide the mouse pointer while the controller is in use.** open. (The director: "can the cursor hide?")
+240. **Hide the mouse pointer while the controller is in use.** (Nov 16 2026, QA: built in beta 15, QA checked in game.) Was: open. (The director: "can the cursor hide?")
    Fix (Nov 15 2026): the pointer hides when the input turns to the pad or a pad press reaches a ZeD window, and comes
    back when the mouse moves or clicks; shown, it follows the game's Display cursor option (FocusManager _watchPointer).
-241. **ZeD setup opened from the controller wheel doesn't take the pad.** open. The foot shows no button hints and
+241. **ZeD setup opened from the controller wheel doesn't take the pad.** (Nov 16 2026, QA: built in beta 15, QA checked in game.) Was: open. The foot shows no button hints and
    only the mouse can close it.
-242. **A paused notice.** open. With the game paused and a window over the middle of the screen (Options, the
+242. **A paused notice.** (Nov 16 2026, QA: built in beta 15, QA checked in game.) Was: open. With the game paused and a window over the middle of the screen (Options, the
    Survival Guide), show a clear notice that the game is paused; it needn't be big. The watch and time buttons are
    not enough.
    Fix (Nov 15 2026): ZeD_PausedNotice.lua, a small balloon at the top middle of the screen with the game's own
    "Game Paused" words, over every window, while the game is paused (not the pause menu itself) and something covers
    the screen's middle. Takes no clicks.
-243. **Question: the "click to start" screen after loading.** open. The loader can't change; can ZeD do anything
+243. **Question: the "click to start" screen after loading.** (Nov 16 2026, QA: answered: the game's loading screen can't be changed; close.) Was: open. The loader can't change; can ZeD do anything
    with that screen? An answer, not necessarily a change.
    Answer (Nov 15 2026): no. The screen is the game's loading state, drawn by the game itself (Java) before any mod's
    interface runs; mods get no hook into it while it waits (no Lua reaches it, no event fires until the click). The
    pad's version reads "Press A to start". ZeD can't change, restyle or skip it.
-244. **A stack of 3 rags: the tooltip and the inventory row write the name and count differently.** open.
+244. **A stack of 3 rags: the tooltip and the inventory row write the name and count differently.** (Nov 16 2026, QA: built in beta 15, QA checked in game.) Was: open.
    Fix (Nov 15 2026, 493d84e71): both loot cards say "Rag x3" as the row does (the pad's card had a sign Kahlua
    garbles, the mouse's card no count).
-245. **Expanded stacks: the first item has no row of its own.** open. The stack's header row stands for item 1 and
+245. **Expanded stacks: the first item has no row of its own.** (Nov 16 2026, QA: built in beta 15, QA checked in game.) Was: open. The stack's header row stands for item 1 and
    the open list starts at item 2, so the first flyer could only be read by moving the others out. The director's
    decision: keep stacking by type, and the first item gets its own row in the open list.
    Fix (Nov 15 2026, 493d84e71): an open stack lists every item as its own row under a header; the header closes the
    stack (click or A), X moves the whole stack, hold A marks it, right-click gives the stack's menu.
-246. **World window, pad: walking away until only the ground is left moves focus up to the Filter button.** open. It
+246. **World window, pad: walking away until only the ground is left moves focus up to the Filter button.** (Nov 16 2026, QA: built in beta 15, QA checked in game.) Was: open. It
    should land on the ground container.
    Fix (Nov 15 2026): when the row the focus was on goes with its container and the list has no rows left, the focus
    goes to the container buttons, onto the one showing (the ground), not the list's view button or Filter
    (ZeD_WorldWindow._groundIfNoRows).
-247. **The action bubble goes stale.** open. After smoking, walking about 20 tiles and hopping a short fence with B,
+247. **The action bubble goes stale.** (Nov 16 2026, QA: built in beta 15, not yet checked in game (QA, beta 18 pass).) Was: open. After smoking, walking about 20 tiles and hopping a short fence with B,
    the bubble said "Done smoking a cigarette", and again later climbing through a window. The director: hopping a
    short fence probably needs no bubble at all.
    Fix (Nov 15 2026, 622a831c5): "Done" flashes only for the action it was drawn from; fence hops and window climbs
    get no bubble. 184's window opening while placing is fixed in the same commit.
 
-248. **Every face keeps a stop at its top: the pop-out button, top right.** open. The director (Nov 15 2026): while using a
+248. **Every face keeps a stop at its top: the pop-out button, top right.** (Nov 16 2026, QA: built in beta 16-17 (with 257), QA checked in game; needs the director's hands with a controller.) Was: open. The director (Nov 15 2026): while using a
    controller, put the pop-out button in the top right corner of every face (TV, radio, two-way, appliances, the craft
    tab's oven, object cards), so Up always has something to select at the top and the pad never gets stuck partway down
    a face with its top scrolled away (the shape of 228k's "Up skips the top of the TV").
