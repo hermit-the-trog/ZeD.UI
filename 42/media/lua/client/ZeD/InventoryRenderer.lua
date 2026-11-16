@@ -2464,6 +2464,8 @@ local function renderItemList(self)
         end
         self._lastPinnedRowItem = self._gpFocusedRowItem
     end
+    -- (Nov 15 2026, add-on hooks: the pad's place mode keeps its ghost in view the same way, GridLayout.lua)
+    ZeD.GridLayout.followPad(self, inv, scroll, totalContentH, visibleH, contentTop)
     -- Fresh map for this frame's stamps (cleared each frame so stale items
     -- don't accumulate).
     itemRenderYMap = {}

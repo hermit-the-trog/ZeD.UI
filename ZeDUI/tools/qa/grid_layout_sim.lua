@@ -691,6 +691,25 @@ FRAMES = {}
 GL.draw(cnt, gp, 0, 300, 24)
 gh = FRAMES[#FRAMES]
 check("PAD: the ghost on the column", gh and gh.x == 10 + 4 * 56 and gh.c == ZeD.T.positive)
+-- (Nov 15 2026, the add-on's first run: the list scrolls to keep the ghost in view, pinning only when it moved)
+local SC = { scrollPos = 0 }
+function SC:setScrollPos(v) self.scrollPos = v end
+GL.followPad(cnt, BAG, SC, 2000, 60, 0)
+local gBottom = S.gridY + S.h * S.L.cell + (S.h - 1) * S.L.gap
+check("PAD: follow: a ghost below the view scrolls it into view", SC.scrollPos > 0 and math.abs(SC.scrollPos * 1940 - (gBottom - 60)) < 1,
+    tostring(SC.scrollPos * 1940) .. " want " .. tostring(gBottom - 60))
+SC.scrollPos = 0
+GL.followPad(cnt, BAG, SC, 2000, 60, 0)
+check("PAD: follow: no re-pin while the ghost stays put (a wheel past it is not pulled back)", SC.scrollPos == 0)
+GL.followPad(cnt, CRATE2, SC, 2000, 60, 0)
+check("PAD: follow: another column's list is left alone", SC.scrollPos == 0)
+-- (scrolled to the end, the ghost last drew 500 px above the view's top)
+S.pinX, S.gridY = nil, -500
+SC.scrollPos = 1
+GL.followPad(cnt, BAG, SC, 2000, 60, 0)
+check("PAD: follow: a ghost above the view scrolls up to it", math.abs(SC.scrollPos * 1940 - (1940 - 500)) < 1, tostring(SC.scrollPos * 1940))
+check("PAD: the renderer asks GridLayout to follow the ghost beside the row's follow",
+    IR:find("ZeD.GridLayout.followPad(self, inv, scroll, totalContentH, visibleH, contentTop)", 1, true) ~= nil)
 -- B cancels
 check("PAD: B cancels", GL.padButton(0, Joypad.BButton) == true and GL._pad[0] == nil and GL.padPrompts(0) == nil)
 local nd = #DROPS

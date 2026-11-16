@@ -715,6 +715,27 @@ function GL.padDrag(w, el, dir)
     padAsk(S)
 end
 
+--- The column keeps the place mode's ghost in view (InventoryRenderer's renderItemList, beside its scroll-follow
+--- for the focused row; Nov 15 2026, add-on hooks: the add-on's first run found the ghost scrolled away below a long
+--- list). As the row's follow, it pins only when the ghost has moved (or place mode has just started), so a
+--- wheel scrolled past it is not pulled back. top: the rows' top on screen; totalH / visH: the list's and the
+--- view's heights. Works from where the grid drew last frame (S.gridY), as the row's follow does.
+function GL.followPad(panel, inv, scroll, totalH, visH, top)
+    local S = _pad[ZeD.playerNumOf(panel)]
+    if not (S and S.cnt == panel and S.gridY and S.drawnL == S.L and S.L.ctx.inv == inv) then return end
+    if not (scroll and totalH > visH) then return end
+    if S.pinX == S.x and S.pinY == S.y and S.pinL == S.L then return end
+    S.pinX, S.pinY, S.pinL = S.x, S.y, S.L
+    local L = S.L
+    local span = totalH - visH
+    local old = math.floor(scroll.scrollPos * span)
+    -- the ghost's top in the list's own space (screen y less the rows' top, plus the scroll it was drawn at)
+    local gy = S.gridY - top + old + S.y * (L.cell + L.gap)
+    local gh = S.h * L.cell + (S.h - 1) * L.gap
+    if gy < old then scroll:setScrollPos(math.max(0, gy) / span)
+    elseif gy + gh > old + visH then scroll:setScrollPos(math.min(span, gy + gh - visH) / span) end
+end
+
 -- the place mode ends: B, a release, a provider gone
 local function padEnd(pn) _pad[pn] = nil end
 --- Ends pn's place mode without placing (FocusManager: the hold was dropped, the mouse took over or the pad went).
@@ -862,6 +883,8 @@ function GL.draw(panel, GV, y0, scrollX, hh)
             -- so its drop and canPlace get the add-on's current ctx)
             if S.L ~= L then S.L = L end
             drawGhost(panel, GV, L, y0 + L.gridTop, S.x, S.y, S.w, S.h, S.ok)
+            -- (where this layout's grid starts on screen this frame, for GL.followPad's scroll on the next one)
+            S.gridY, S.drawnL = y0 + L.gridTop + L.gap, L
             if S.reason then ZeD.Help.set(panel, S.reason) end
         end
     end
