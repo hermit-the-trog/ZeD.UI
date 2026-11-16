@@ -765,6 +765,7 @@ function ZeD_Reader:onJoypadNotebook(button)
     elseif button == Joypad.Back then self:toggleLock() end
 end
 function ZeD_Reader:onJoypadDown(button, joypadData)
+    if ZeD.padStart and ZeD.padStart(button, joypadData, self.playerNum) then return end   -- (Start pauses: punch list 263)
     if self.mode == "notebook" then return self:onJoypadNotebook(button) end
     if button == Joypad.BButton then self:close()
     elseif button == Joypad.LBumper or button == Joypad.RBumper then

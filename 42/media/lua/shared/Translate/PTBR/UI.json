@@ -2972,6 +2972,7 @@
     "UI_ZeD_CMap_Scroll": "Rolar",
     "UI_ZeD_CMap_Triggers": "Do próprio jogo: mirar e atacar. No mapa, zoom.",
     "UI_ZeD_CMap_View": "Numa janela: layout. Sem janela aberta: segure para a roda do ZeD.",
+    "UI_ZeD_CMap_SelWheel": "Sem janela aberta: segure para a roda do ZeD.",
     "UI_ZeD_CMap_X": "RMB: abre o menu de contexto.",
     "UI_ZeD_CMap_Y": "Toque: abre, esconde ou mostra as duas janelas. Segure: fecha as duas.",
     "UI_ZeD_Close": "Fechar",

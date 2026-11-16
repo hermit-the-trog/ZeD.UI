@@ -1766,6 +1766,7 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     vh = vh - helpH
     self._helpEntry = nil
     self._detail = { x = x, y = vy, w = w, h = vh }
+    local padI0 = #self._specs + 1   -- (punch list 258: the pane's own stops start here, MM.panePad)
     self:setStencilRect(x + T.px(1), vy + T.px(1), w - T.px(2), vh - T.px(2))
     local cy = vy + pad - self.dscroll
     -- the picture, then the name, author, the verbs
@@ -1845,6 +1846,8 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     local contentH = cy + self.dscroll - vy + pad
     self._detail.contentH = contentH
     self.dscroll = math.max(0, math.min(self.dscroll, math.max(0, contentH - vh)))
+    MM.panePad(self, padI0, MM.paneView("mods:detail", vy, vh, self.dscroll, contentH, function(n) self.dscroll = n end),
+        self._detail, function(s) return s.paneStop or s.clipTop ~= nil end)
     if helpH > 0 then self:drawHelpBand(x, vy + vh, w, helpH) end
 end
 
@@ -2083,6 +2086,7 @@ function ZeD_MMMods:drawWsDetail(x, vy, w, vh)
     local pad = T.px(DETAIL_PAD)
     local ix, iw = x + pad, w - pad * 2
     self._detail = { x = x, y = vy, w = w, h = vh }
+    local padI0 = #self._specs + 1   -- (punch list 258: the pane's own stops start here, MM.panePad)
     self:setStencilRect(x + T.px(1), vy + T.px(1), w - T.px(2), vh - T.px(2))
     local cy = vy + pad - self.dscroll
     local hf = ZeD.Font.sdf.head
@@ -2120,6 +2124,8 @@ function ZeD_MMMods:drawWsDetail(x, vy, w, vh)
     local contentH = cy + self.dscroll - vy + pad
     self._detail.contentH = contentH
     self.dscroll = math.max(0, math.min(self.dscroll, math.max(0, contentH - vh)))
+    MM.panePad(self, padI0, MM.paneView("mods:detail", vy, vh, self.dscroll, contentH, function(n) self.dscroll = n end),
+        self._detail, function(s) return s.paneStop or s.clipTop ~= nil end)
 end
 
 -- the Profiles page: the profiles on the left, what loading the picked one would do on the right
@@ -2184,6 +2190,7 @@ function ZeD_MMMods:drawProfiles(x, y, w, h)
     local bs = T.borderS
     ZeD.Atoms.frame(self, px0, y, pw0, h, bs)
     self._detail = { x = px0, y = y, w = pw0, h = h }
+    local padI0 = #self._specs + 1   -- (punch list 258: the pane's own stops start here, MM.panePad)
     local pad = T.px(DETAIL_PAD)
     local ix, iw = px0 + pad, pw0 - pad * 2
     self:setStencilRect(px0 + T.px(1), y + T.px(1), pw0 - T.px(2), h - T.px(2))
@@ -2312,6 +2319,8 @@ function ZeD_MMMods:drawProfiles(x, y, w, h)
     local contentH = cy + self.dscroll - y + pad
     self._detail.contentH = contentH
     self.dscroll = math.max(0, math.min(self.dscroll, math.max(0, contentH - h)))
+    MM.panePad(self, padI0, MM.paneView("mods:detail", y, h, self.dscroll, contentH, function(n) self.dscroll = n end),
+        self._detail, function(s) return s.paneStop or s.clipTop ~= nil end)
 end
 
 -- a click picks the profile; a second click on it soon after loads it
@@ -2343,7 +2352,10 @@ function ZeD_MMMods:joyDir(dir)
             end
         end
     end
+    local before = self.focusId
     ZeD_MMWindow.joyDir(self, dir)
+    -- (Nov 16 2026, punch list 258: a press the pane's pad scroll kept (MM.panePad) moved no focus: nothing to follow)
+    if self.focusId == before then return end
     for _, b in ipairs(self._specs) do
         -- a stop in the info pane (its tabs, option rows): the pane scrolls to show it
         -- (the picker's two choice cards are stops too: nothing scrolls for them)

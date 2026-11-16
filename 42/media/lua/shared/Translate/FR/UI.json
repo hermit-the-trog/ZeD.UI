@@ -2972,6 +2972,7 @@
     "UI_ZeD_CMap_Scroll": "Défiler",
     "UI_ZeD_CMap_Triggers": "Celui du jeu : viser et attaquer. Sur la carte, zoom.",
     "UI_ZeD_CMap_View": "Dans une fenêtre : disposition. Sans fenêtre ouverte : maintenez pour la roue ZeD.",
+    "UI_ZeD_CMap_SelWheel": "Sans fenêtre ouverte : maintenez pour la roue ZeD.",
     "UI_ZeD_CMap_X": "RMB : il ouvre le menu contextuel.",
     "UI_ZeD_CMap_Y": "Appui court : ouvrir, masquer ou afficher les deux fenêtres. Maintenu : fermer les deux.",
     "UI_ZeD_Close": "Fermer",

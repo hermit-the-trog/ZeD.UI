@@ -49,6 +49,7 @@ function ZeD_RestockPin:new(pn)
     setmetatable(o, self)
     self.__index = self
     o.pn = pn
+    o.playerNum = pn   -- (the controller strip draws this player's pad: ZeD_PadGlyphs.playerOf)
     o.background = false
     o.moveWithMouse = false
     o._rows = {}
@@ -97,7 +98,12 @@ function ZeD_RestockPin:prerender()
     end
     status = status or run.notice or ""
     local lines = A.wrapText(status, f1, w - pad * 2 - T.px(12))
-    local h = titleH + nRows * T.px(ROW_H) + (nRows > 0 and T.px(4) or 0) + #lines * (fh(f1) + T.px(2)) + pad
+    -- on a controller, a strip at the foot says what stops the run: any of its buttons (ZeD_Restock.lua)
+    local Det = ZeD.Input and ZeD.Input.Detector
+    local PG = ZeD.PadGlyphs
+    local padStrip = (not run.done) and PG ~= nil and Det ~= nil and Det.getMode ~= nil and Det.getMode(self.pn) == "gamepad"
+    local stripH = padStrip and PG.stripH() or 0
+    local h = titleH + nRows * T.px(ROW_H) + (nRows > 0 and T.px(4) or 0) + #lines * (fh(f1) + T.px(2)) + pad + stripH
     if self:getWidth() ~= w or self:getHeight() ~= h then self:setWidth(w); self:setHeight(h) end
     -- the panel: surface 1, its frame, the title band on surface 2
     A.surfaceFill(self, 0, 0, w, h, "surf1")
@@ -131,6 +137,11 @@ function ZeD_RestockPin:prerender()
         A.drawStatusHollow(self, pad, y + math.floor((fh(f1) - T.px(6)) / 2), T.textDim, T.px(6))
         self:drawText(ln, pad + T.px(12), y, tc.r, tc.g, tc.b, tc.a or 1, f1)
         y = y + fh(f1) + T.px(2)
+    end
+    if padStrip then
+        P._anyStop = P._anyStop or { { glyph = "A B X Y", label = "" } }
+        P._anyStop[1].label = ZeD.tr("UI_ZeD_Pin_Stop")
+        PG.drawStrip(self, 0, h - stripH, w, P._anyStop)
     end
 end
 

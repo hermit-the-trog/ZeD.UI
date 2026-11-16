@@ -1815,14 +1815,51 @@ function ZeD_ItemCard:gpDpad(w, e, dir, zoneName)
         self:scrollToPrevDisclosure()
         return true
     end
+    -- (Nov 16 2026, punch list 258: the footer's verbs wait until the card is read to its foot. Down goes to the next
+    -- control of the card's own below; with none, the card scrolls on, a section or else a step (the pad scroll's,
+    -- FocusManager.lua), and only once its foot shows does Down go on to the verbs.)
+    local maxScroll = 0
+    if self._sb and self._sb.visible then maxScroll = math.max(0, (self._contentH or 0) - self:viewH()) end
+    local cur = self._scrollPixels or 0
+    local more = cur < maxScroll - 0.5
     local z = F and F.getFocusedZone and F.getFocusedZone(w)
     local N = ZeD.SpatialNav
     if e and z and z.elements and N then
+        -- (a control the reading scrolled out above the card's head lies over the action strip: from there the
+        -- strip is no move down, the next control under it is, picked here as the spatial move would)
+        local hidden = false
         for _, x in ipairs(z.elements) do
-            if x ~= e and N.cost(e, x, "down") then return false end
+            if x.isStrip and x ~= e and not e.isStrip and N.cost(e, x, "down") then hidden = true end
+        end
+        local best, bt, bc = nil, nil, nil
+        for _, x in ipairs(z.elements) do
+            if x ~= e and not (more and x.isFooter) and not (hidden and x.isStrip) then
+                local t, c = N.cost(e, x, "down")
+                if t then
+                    if not hidden then return false end
+                    if not bt or t < bt or (t == bt and c < bc) then best, bt, bc = x, t, c end
+                end
+            end
+        end
+        if best and F and F.focusWhere then
+            if F.focusWhere(w, zoneName, function(x) return x == best end) then
+                pcall(function() ZeD.uiSound("UISelectListItem") end)
+                return true
+            end
+            return false
         end
     end
+    if not more then return false end
     self:scrollToNextDisclosure()
+    if (self._scrollPixels or 0) <= cur + 0.5 and F and F.padScroll then
+        local card = self
+        F.padScroll(F.scrollView("itemcard", 0, self:viewH(), cur, maxScroll, function(n)
+            card._scrollPixels = n
+            card._sb:setScrollPos(n / maxScroll)
+        end), "down")
+    else
+        pcall(function() ZeD.uiSound("UISelectListItem") end)
+    end
     return true
 end
 

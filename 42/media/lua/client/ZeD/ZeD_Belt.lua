@@ -1753,7 +1753,13 @@ function B.tailAct(kind, pad)
         if ZeD.Chat and ZeD.Chat.toggle then ZeD.Chat.toggle(pad) end
     elseif kind == "pvp" then
         -- the marker is a marker: the switch is in the Server tab, which it opens
-        if ZeD_CharacterWindow and ZeD_CharacterWindow.openTab then pcall(ZeD_CharacterWindow.openTab, 0, "server") end
+        if ZeD_CharacterWindow and ZeD_CharacterWindow.openTab then
+            local ok, shown = pcall(ZeD_CharacterWindow.openTab, 0, "server")
+            -- (pressed on the controller: the pad goes to the Server tab, where the switch is)
+            if pad and ok and shown and ZeD.AdminTab and ZeD.AdminTab.padFollow and ZeD_CharacterWindow.getWindow then
+                ZeD.AdminTab.padFollow(ZeD_CharacterWindow.getWindow(0), true)
+            end
+        end
     end
 end
 
@@ -2097,7 +2103,10 @@ function ZeD_BeltHUD:_prerender()
     local dragging = (not self._out) and draggedItems() or nil
     local pri, sec = p:getPrimaryHandItem(), p:getSecondaryHandItem()
     local two = pri ~= nil and pri == sec
-    local gpTarget = self._gp and not self._gp.inList and self:_gpBox() or nil
+    -- (the pad's place is kept while the full watch has the pad: no mark here then, only where the pad is)
+    local jdHere = JoypadState and JoypadState.players and JoypadState.players[(self.playerNum or 0) + 1]
+    local padHere = self._gp ~= nil and not (jdHere and jdHere.focus ~= self)
+    local gpTarget = padHere and not self._gp.inList and self:_gpBox() or nil
     self._hover = nil
     -- the ammo tab first: it comes out from under the main hand
     for _, b in ipairs(self._boxes) do
@@ -2225,6 +2234,9 @@ function ZeD_BeltHUD:_prerender()
         hintKey, hintText = "slot" .. gpTarget.i, s.key and ZeD.tr("UI_ZeD_Belt_SlotKey", s.name, s.key) or s.name
     elseif not hv and gpTarget and gpTarget.kind == "hand" then
         hintKey, hintText = "hand" .. gpTarget.which, B.handName(gpTarget.which)
+    elseif not hv and gpTarget and gpTarget.kind == "watch" then
+        -- (the pad on the watch: A opens the full watch, punch list 250)
+        hintKey, hintText = "watchpad", ZeD.tr("UI_ZeD_Belt_WatchFull", call(gpTarget.item, "getDisplayName") or ZeD.tr("UI_ZeD_Belt_Watch"))
     end
     -- the hint's balloon stands above its box; the game's item box stands above the balloon
     local hb = (hv and hv.b) or (hintText and gpTarget) or nil
@@ -2249,7 +2261,7 @@ function ZeD_BeltHUD:_prerender()
             self:drawTextureScaledAspect(tex, mx + T.px(10), my - T.px(4), isz, isz, 0.85, 1, 1, 1)
         end
     end
-    if self._gp then self:_drawPadList() end
+    if padHere then self:_drawPadList() end
     -- the controller's mark (the hand, corners or ants) and the hover box, last, so nothing covers them
     ZeD.Focus.drawOverlay(self, self)
 end
@@ -2455,7 +2467,10 @@ function B.boxScreen(i, pn)
 end
 
 -- ----------------------------------------------------------------------------
--- Controller: D-pad Left focuses the belt (Overrides/Belt.lua routes it)
+-- Controller: the Character wheel's Belt slice gives the belt the pad (ZeD_DpadWheels.lua, H.beltSlice; D-pad Left
+-- opens the wheel since beta 6). Punch list 250 (Nov 16 2026): it lands on the first slot; Left / Right walk the
+-- boxes, Up opens IN YOUR BAGS; B, or a direction with nowhere to go, gives the pad back to the game. On the watch
+-- A opens the full watch with the pad on it (B there comes back here, on the watch), X starts or pauses, Y lights it.
 -- ----------------------------------------------------------------------------
 function ZeD_BeltHUD:_gpBox()
     local g = self._gp
@@ -2483,6 +2498,10 @@ end
 -- (control returns to the spot it came from)
 function ZeD_BeltHUD:_leavePad()
     self._gp = nil
+    -- (the full watch opened from here holds the pad: it is the watch's to give back, never taken from it here)
+    local jd = JoypadState and JoypadState.players and JoypadState.players[(self.playerNum or 0) + 1]
+    local wi = ZeD.Watch and ZeD.Watch.getInstance and ZeD.Watch.getInstance()
+    if jd and wi and jd.focus == wi then return end
     setJoypadFocus(self.playerNum, nil)
     -- (a player whose windows are the game's own, ZeD.windowsFor: their pad goes back to their game; the others
     -- back to their own focused ZeD window)
@@ -2527,7 +2546,8 @@ function ZeD_BeltHUD:onJoypadDirDown()
     if g.row < #g.list then g.row = g.row + 1 else g.inList = false end
 end
 
-function ZeD_BeltHUD:onJoypadDown(button)
+function ZeD_BeltHUD:onJoypadDown(button, joypadData)
+    if ZeD.padStart and ZeD.padStart(button, joypadData, self.playerNum) then return end   -- (Start pauses: punch list 263)
     local g = self._gp
     if not g then return end
     local p = self:player()
@@ -2550,7 +2570,7 @@ function ZeD_BeltHUD:onJoypadDown(button)
         return
     end
     if b.kind == "chat" or b.kind == "pvp" then
-        if button == Joypad.AButton then B.tailAct(b.kind, true) end
+        if button == Joypad.AButton then B.tailAct(b.kind, self.playerNum or true) end
         return
     end
     if b.kind == "extra" then
@@ -2566,8 +2586,10 @@ function ZeD_BeltHUD:onJoypadDown(button)
         return
     end
     if b.kind == "watch" then
-        if button == Joypad.AButton then ZeD.Watch.act("start")
-        elseif button == Joypad.XButton then ZeD.Watch.act("speed")
+        -- A: the full watch, the pad on it (its setting, speed and alarm; B there comes back to this box)
+        if button == Joypad.AButton then
+            if not (ZeD.Watch.padOpen and ZeD.Watch.padOpen(self.playerNum, self)) then ZeD.Watch.act("face") end
+        elseif button == Joypad.XButton then ZeD.Watch.act("start")
         elseif button == Joypad.YButton and ZeD.Watch.hasLight(b.plate) then ZeD.Watch.act("light") end   -- Timez glow, CaZio bulb
         return
     end
@@ -2597,11 +2619,19 @@ end
 
 function ZeD_BeltHUD:onLoseJoypadFocus(joypadData)
     -- a context menu opened from X takes focus; come back to the belt after it
+    -- (and the full watch opened from the belt's watch: the belt keeps its place for the pad's way back)
     local ctx = getPlayerContextMenu(self.playerNum)
-    if not (ctx and ctx:isAnyVisible()) then self._gp = nil end
+    if not (ctx and ctx:isAnyVisible()) and not self._padHandoff then self._gp = nil end
+    self._padHandoff = nil
 end
 function ZeD_BeltHUD:onGainJoypadFocus(joypadData)
     if not self._gp then self._gp = { idx = self:_firstSlotIdx(), inList = false, row = 1, list = B.otherWeapons(self:player()) } end
+end
+--- The pad back from what the belt opened (the full watch): true when the belt took it, on the box it left from.
+function ZeD_BeltHUD:padReturn()
+    if not (self._gp and self:wanted() and self._drawn) then self._gp = nil; return false end
+    setJoypadFocus(self.playerNum, self)
+    return true
 end
 
 -- IN YOUR BAGS: the rest of vanilla's D-pad Left wheel, above the belt

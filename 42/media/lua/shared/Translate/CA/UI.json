@@ -2972,6 +2972,7 @@
     "UI_ZeD_CMap_Scroll": "Desplaçar",
     "UI_ZeD_CMap_Triggers": "Del joc: apuntar i atacar. Al mapa, zoom.",
     "UI_ZeD_CMap_View": "En una finestra: disposició. Sense cap finestra oberta: mantén per a la roda de ZeD.",
+    "UI_ZeD_CMap_SelWheel": "Sense cap finestra oberta: mantén per a la roda de ZeD.",
     "UI_ZeD_CMap_X": "RMB: obre el menú contextual.",
     "UI_ZeD_CMap_Y": "Toc: obre, amaga o mostra les dues finestres. Mantenir: tanca les dues.",
     "UI_ZeD_Close": "Tancar",

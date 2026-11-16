@@ -921,6 +921,12 @@ function ST.followFocus(state, scroll, focusId, viewY, viewH, totalH)
     if not (focusId and scroll and totalH > viewH) then return end
     if state._followId == focusId then return end
     state._followId = focusId
+    -- (Nov 16 2026, punch list 257: the station select in the header is a top stop as the pop-out button is: landing
+    -- on it scrolls the view to the very top)
+    if focusId == "craft:stDrop" then
+        if scroll.scrollPos > 0 then scroll:setScrollPos(0) end
+        return
+    end
     for _, z in ipairs(state._lastZones or {}) do
         if z.fid == focusId then
             local span = math.max(1, totalH - viewH)

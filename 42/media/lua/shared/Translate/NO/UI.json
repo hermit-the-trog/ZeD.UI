@@ -2972,6 +2972,7 @@
     "UI_ZeD_CMap_Scroll": "Rull",
     "UI_ZeD_CMap_Triggers": "Spillets egen: sikt og angrep. På kartet, zoom.",
     "UI_ZeD_CMap_View": "I et vindu: oppsett. Uten åpent vindu: hold for ZeD-hjulet.",
+    "UI_ZeD_CMap_SelWheel": "Uten åpent vindu: hold for ZeD-hjulet.",
     "UI_ZeD_CMap_X": "RMB: den åpner hurtigmenyen.",
     "UI_ZeD_CMap_Y": "Trykk: åpne, skjul eller vis begge vinduer. Hold: lukk begge.",
     "UI_ZeD_Close": "Lukk",

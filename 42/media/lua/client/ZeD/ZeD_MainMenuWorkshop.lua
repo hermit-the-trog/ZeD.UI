@@ -470,26 +470,56 @@ function ZeD_MMWorkshop:drawFolders(x, y, w, h)
     if #self.items == 0 then
         ZeD.Molecules.drawEmptyLine(self, x + T.px(10), vy, w - T.px(20), ZeD.tr("UI_ZeD_Workshop_NoFolders"))
     end
+    -- (Nov 16 2026, punch list 260) The folders scroll: the wheel over them, their bar, and the controller (a row
+    -- below or above the ones in sight is a stop for the list's own Up and Down, and the list follows the focus).
+    -- Folders past the foot were out of reach of both before.
+    local vh = y + h - T.px(1) - vy
+    local total = #self.items * rh
+    local sbW = T.sp.scrollbarW
+    local over = total > vh
+    local most = math.max(0, total - vh)
+    if gp and self.focusId ~= self._rowFollow then
+        self._rowFollow = self.focusId
+        local fi = tonumber(string.match(tostring(self.focusId), "^frow:(%d+)$"))
+        if fi then
+            local r0 = (fi - 1) * rh
+            if r0 < (self.scroll or 0) then self.scroll = r0
+            elseif r0 + rh > (self.scroll or 0) + vh then self.scroll = r0 + rh - vh end
+        end
+    end
+    self.scroll = math.max(0, math.min(self.scroll or 0, most))
+    if over then w = w - sbW end
+    self._folderBox = { x = x, y = vy, w = w + (over and sbW or 0), h = vh }
+    local clip = { y = vy, h = vh }
+    self:setStencilRect(x + T.px(1), vy, w - T.px(1), vh)
     for i, it in ipairs(self.items) do
-        local ry = vy + (i - 1) * rh
-        if ry + rh > y + h then break end
+        local ry = vy + (i - 1) * rh - self.scroll
         local rid = "frow:" .. i
-        self._specs[#self._specs + 1] = { id = rid, listRow = true, row = i, col = 1, x = x + T.px(1), y = ry, w = w - T.px(2), h = rh,
+        self._specs[#self._specs + 1] = { id = rid, listRow = true, listId = "wsfolders", clip = clip, row = i, col = 1, x = x + T.px(1), y = ry, w = w - T.px(2), h = rh,
                                           chosen = (i == self.sel), fn = function() self:pick(i) end }
-        local onFocus = MM.rowLook(self, x + T.px(1), ry, w - 2 * T.px(1), rh, i == self.sel, (not gp) and MM.ctx.hot == "ws:row:" .. i, gp and self.focusId == rid)
-        if (not gp) and MM.ctx.hot == "ws:row:" .. i then ZeD.Help.set(self, ZeD.tr("UI_ZeD_MMHelp_WsFolder")) end
-        self:drawRect(x + T.px(1), ry + rh - T.px(1), w - T.px(2), T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
-        local title = (i == self.sel) and BB.trim(self.titleE:getText()) or BB.trim(tostring(it:getTitle() or ""))
-        if title == "" then title = tostring(it:getFolderName()) end
-        local tx = x + T.px(10)
-        local tc = onFocus and T.textOnFocus or T.textHead
-        local dm = onFocus and T.textOnFocus or dim
-        self:drawText(ZeD.Atoms.truncateText(title, f2, w - T.px(20)), tx, ry + T.px(6), tc.r, tc.g, tc.b, tc.a or 1, f2)
-        local id = it:getID()
-        local sub = id and ZeD.tr("UI_ZeD_Workshop_OnWorkshop", tostring(id)) or ZeD.tr("UI_ZeD_Workshop_NotOnWorkshop")
-        if self.unsaved[it:getFolderName()] then sub = sub .. MM.DOT .. ZeD.tr("UI_ZeD_Workshop_NotSaved") end
-        self:drawText(ZeD.Atoms.truncateText(sub, f3, w - T.px(20)), tx, ry + rh - T.px(6) - MM.fontH(f3), dm.r, dm.g, dm.b, dm.a or 1, f3)
-        self._hits[#self._hits + 1] = { id = "ws:row:" .. i, x = ax + x, y = ay + ry, w = w, h = rh, fn = function() self:pick(i); self.focusId = rid end }
+        if ry + rh > vy and ry < vy + vh then
+            local onFocus = MM.rowLook(self, x + T.px(1), ry, w - 2 * T.px(1), rh, i == self.sel, (not gp) and MM.ctx.hot == "ws:row:" .. i, gp and self.focusId == rid)
+            if (not gp) and MM.ctx.hot == "ws:row:" .. i then ZeD.Help.set(self, ZeD.tr("UI_ZeD_MMHelp_WsFolder")) end
+            self:drawRect(x + T.px(1), ry + rh - T.px(1), w - T.px(2), T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
+            local title = (i == self.sel) and BB.trim(self.titleE:getText()) or BB.trim(tostring(it:getTitle() or ""))
+            if title == "" then title = tostring(it:getFolderName()) end
+            local tx = x + T.px(10)
+            local tc = onFocus and T.textOnFocus or T.textHead
+            local dm = onFocus and T.textOnFocus or dim
+            self:drawText(ZeD.Atoms.truncateText(title, f2, w - T.px(20)), tx, ry + T.px(6), tc.r, tc.g, tc.b, tc.a or 1, f2)
+            local id = it:getID()
+            local sub = id and ZeD.tr("UI_ZeD_Workshop_OnWorkshop", tostring(id)) or ZeD.tr("UI_ZeD_Workshop_NotOnWorkshop")
+            if self.unsaved[it:getFolderName()] then sub = sub .. MM.DOT .. ZeD.tr("UI_ZeD_Workshop_NotSaved") end
+            self:drawText(ZeD.Atoms.truncateText(sub, f3, w - T.px(20)), tx, ry + rh - T.px(6) - MM.fontH(f3), dm.r, dm.g, dm.b, dm.a or 1, f3)
+            -- (the part of the row in sight takes the press)
+            local hy = math.max(ry, vy)
+            self._hits[#self._hits + 1] = { id = "ws:row:" .. i, x = ax + x, y = ay + hy, w = w, h = math.min(ry + rh, vy + vh) - hy,
+                                            fn = function() self:pick(i); self.focusId = rid end }
+        end
+    end
+    self:clearStencilRect()
+    if over then
+        MM.scrollBar(self, "ws:ftrack", x + w, vy, sbW - T.px(1), vh, self.scroll, total, function(v) self.scroll = v end, { step = rh })
     end
 end
 
@@ -564,12 +594,29 @@ function ZeD_MMWorkshop:drawForm(x, y, w, h)
         return
     end
     self:setStencilRect(x + T.px(1), top + T.px(1), w - T.px(2), y + h - top - T.px(2))
+    local padI0 = #self._specs + 1   -- (punch list 258: the form's own stops start here)
     local cy = top + pad - self.fscroll
     cy = self:formTop(it, ix, iw, cy)
     cy = self:formBottom(it, ix, iw, cy)
     self:clearStencilRect()
     local contentH = cy + self.fscroll - top + pad
-    self.fscroll = math.max(0, math.min(self.fscroll, math.max(0, contentH - (y + h - top))))
+    local vh = y + h - top
+    self.fscroll = math.max(0, math.min(self.fscroll, math.max(0, contentH - vh)))
+    -- (Nov 16 2026, punch list 258: the form is one scrolled view for the pad: a control the focus lands on is
+    -- scrolled into sight once, and Up and Down read the words above the first control and below the last
+    -- (MM.panePad))
+    if MM.gamepad() and self.focusId ~= self._formFollow then
+        self._formFollow = self.focusId
+        for i = padI0, #self._specs do
+            local s = self._specs[i]
+            if s.id == self.focusId and s.clipTop and s.y and s.h then
+                if s.y < top then self.fscroll = math.max(0, self.fscroll - (top - s.y) - T.px(8))
+                elseif s.y + s.h > top + vh then self.fscroll = math.min(math.max(0, contentH - vh), self.fscroll + (s.y + s.h - top - vh) + T.px(8)) end
+            end
+        end
+    end
+    MM.panePad(self, padI0, MM.paneView("ws:form", top, vh, self.fscroll, contentH, function(n) self.fscroll = n end),
+        self._fv, function(s) return s.clipTop ~= nil end)
 end
 
 local function label(self, text, x, y, h)
@@ -820,6 +867,12 @@ function ZeD_MMWorkshop:wheel(del)
     local T = ZeD.T
     local fv = self._fv
     local mx, my = getMouseX() - self:getAbsoluteX(), getMouseY() - self:getAbsoluteY()
+    -- (punch list 260: the folder list, a row a tick)
+    local fb = self._folderBox
+    if fb and mx >= fb.x and mx <= fb.x + fb.w and my >= fb.y and my <= fb.y + fb.h then
+        self.scroll = math.max(0, (self.scroll or 0) + del * T.px(ROW_H))
+        return true
+    end
     if fv and mx >= fv.x and mx <= fv.x + fv.w and my >= fv.y and my <= fv.y + fv.h then
         self.fscroll = self.fscroll + del * T.px(40)
         return true

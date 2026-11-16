@@ -237,6 +237,10 @@ function S.openOptionsFor(p)
     if not (p and ZeD_CharacterWindow and ZeD_CharacterWindow.openTab) then return false end
     if not ZeD_CharacterWindow.openTab(p:getPlayerNum(), TAB_ID) then return false end
     S.openNext = "options"
+    -- (from the Admin tab in the World window: the pad comes along to the card)
+    if ZeD.AdminTab and ZeD.AdminTab.padFollow and ZeD_CharacterWindow.getWindow then
+        ZeD.AdminTab.padFollow(ZeD_CharacterWindow.getWindow(p:getPlayerNum()))
+    end
     return true
 end
 
@@ -442,7 +446,11 @@ function S.render(panel, win, x, y, w, h)
     -- the controller's focus kept in view
     local Fo = ZeD.Input and ZeD.Input.Focus
     local fe = Fo and Fo.getFocusedWindow and Fo.getFocusedWindow(win.playerNum) == win and Fo.getFocusedElement and Fo.getFocusedElement(win)
-    if needs and fe and fe.srv and fe.cy then
+    -- (Nov 16 2026, punch list 258: once, as the focus lands, so the pad scroll (FocusManager.lua) can read on past
+    -- the last stop, the Players list and the PvP line, without the follow pulling the view back)
+    if not (fe and fe.srv and fe.cy) then st._followId = nil end
+    if needs and fe and fe.srv and fe.cy and st._followId ~= fe.id then
+        st._followId = fe.id
         local off0 = math.floor(scroll.scrollPos * maxOff)
         local top, bot = fe.cy, fe.cy + (fe.h or 0)
         local off1 = off0
@@ -451,6 +459,7 @@ function S.render(panel, win, x, y, w, h)
     end
     local off = needs and math.floor(scroll.scrollPos * maxOff) or 0
     st.off, st.sy, st.x, st.w = off, sy, x, w
+    st.sh, st.maxOff = sh, needs and maxOff or 0
     local mx, my = panel:getMouseX(), panel:getMouseY()
     if not (mx >= x and mx < x + w and my >= sy and my < sy + sh) or (Fo and Fo.cuesVisible and Fo.cuesVisible()) then mx, my = nil, nil end
     local cw = w - (needs and T.sp.scrollbarW or 0)
@@ -551,6 +560,13 @@ function S.buildFocusables(win)
         elseif it.k == "cl" then
             ZeD.ClaimCards.itemStops(out, st, it, (st.x or 0) + px(PAD), sy + it.y - off, st.w or 0, "srv")
         end
+    end
+    -- (Nov 16 2026, punch list 258: the list is one scrolled view: Down past the last stop reads on to the end)
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    local span = st.maxOff or 0
+    if Fo and Fo.scrollView and Fo.tagScroll and span > 0 then
+        local sc = st.scroll
+        Fo.tagScroll(out, Fo.scrollView("srv", sy, st.sh or 0, off, span, function(n) sc:setScrollPos(n / span) end))
     end
     return out
 end

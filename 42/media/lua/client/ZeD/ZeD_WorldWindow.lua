@@ -810,8 +810,8 @@ end
 -- Submode pills: focus paints, A switches. Disclosures toggle via A
 -- (onActivate) AND L/R tree-nav. Rosters + zone cards navigate via
 -- AT.navigate. Alerts stay readout-only. Zone creation collapses the ring to
--- one zone-draw stop (below); the zone rename / remove confirmation footers
--- get no stops here — they take the mouse.
+-- one zone-draw stop (below); the zone's rename and remove, and their answers,
+-- are stops from AT.zoneStops (punch list 253).
 local function _buildAnimalsFocusables(win)
     if not win then return {} end
     local AT = ZeD and ZeD.AnimalsTab
@@ -988,6 +988,12 @@ local function _buildAnimalsFocusables(win)
                         -- user mid-ring (on the sort button, for one).
                         w._animalsNavFocusTarget = "breadcrumb"
                     end,
+                    -- X: the zone's menu, Rename and Remove zone (punch list 253)
+                    sx = zc.sx, sy = zc.sy,
+                    onContextMenu = function(w, el)
+                        if AT.zoneMenu then AT.zoneMenu(w, el.zoneName, el.sx, el.sy, true, el.id) end
+                    end,
+                    promptX = ZeD.tr("UI_ZeD_Prompt_Menu"),
                 }
             end
         end
@@ -1066,6 +1072,12 @@ local function _buildAnimalsFocusables(win)
                     if AT.bulkPress then AT.bulkPress(w, el.bulkId) end
                 end,
             }
+        end
+        -- (Nov 16 2026, punch list 253) The zone's own controls: its name (A renames, X the zone's menu), the band's
+        -- Rename and Remove zone; while a rename is open its box (A: the keyboard) with Reset, Cancel and Save; while
+        -- the remove question is open its Cancel and Remove. B on the rename or the question is Cancel.
+        if AT.zoneStops then
+            for _, e in ipairs(AT.zoneStops(win)) do elements[#elements + 1] = e end
         end
     elseif state.submode == "butcher" then
         -- Butcher roster rows (the overview); a row opens the animal view,
@@ -1293,6 +1305,10 @@ _buildWorldMCColumnFocusables = function(win, slot)
     end
     -- an open stack's header row: a stop of its own (Nov 15 2026, punch list 245; A on it shuts the stack)
     for _, e in ipairs(ZeD.InventoryRenderer.headElements(cs.openHeads, yMap, colX, colW, cs.rowView, slot, cs.containerIdx, cs.inventory)) do
+        elements[#elements + 1] = e
+    end
+    -- a category's heading: a stop of its own (Nov 16 2026, punch list 256; A folds or opens it)
+    for _, e in ipairs(ZeD.InventoryRenderer.catElements(cs.catHeads, cs.catGroups, yMap, colX, colW, cs.rowView, slot, cs.containerIdx, cs.inventory)) do
         elements[#elements + 1] = e
     end
     -- rows out of the column's view: for the column's own Up / Down only
@@ -1561,7 +1577,11 @@ _buildWorldInvRowFocusables = function(win)
     -- (Nov 14 2026, punch list 202: an empty container still has its column's view button and Filter: no rows,
     -- but those stops stay, so Right from the strip lands on them and not on the footer's Take all)
     if not items or #items == 0 then
-        return ZeD.InventoryRenderer.toggleElements(c._viewToggleRects)
+        -- (punch list 256: every category folded leaves no rows, but their headings stay stops to open them by)
+        local els = ZeD.InventoryRenderer.catElements(c._useGroups and c._catOrder or nil, c._stackedGroups, c._itemRenderYMap,
+            0, ZeD.T.px(200), c._rowView, nil, nil, c._inventory)
+        for _, e in ipairs(ZeD.InventoryRenderer.toggleElements(c._viewToggleRects)) do els[#els + 1] = e end
+        return els
     end
     local elements = {}
     -- Bounds must be distinct per element so the cone-nav algorithm can
@@ -1666,6 +1686,10 @@ _buildWorldInvRowFocusables = function(win)
     end
     -- an open stack's header row: a stop of its own (Nov 15 2026, punch list 245; A on it shuts the stack)
     for _, e in ipairs(ZeD.InventoryRenderer.headElements(c._openHeads, yMap, 0, T.px(200), c._rowView, nil, nil, c._inventory)) do
+        elements[#elements + 1] = e
+    end
+    -- a category's heading: a stop of its own (Nov 16 2026, punch list 256; A folds or opens it)
+    for _, e in ipairs(ZeD.InventoryRenderer.catElements(c._useGroups and c._catOrder or nil, c._stackedGroups, yMap, 0, T.px(200), c._rowView, nil, nil, c._inventory)) do
         elements[#elements + 1] = e
     end
     -- seed only when nothing is remembered: a rebuild (scroll, an item gone) must not
@@ -5269,7 +5293,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                         if z.zone == "worldMainInv" then
                             local fe = z.elements and z.elements[z.focusedElementIdx or 1]
                             -- (an open stack's header too: no item; punch list 245)
-                            if fe and (fe.isViewToggle or fe.isStackHead) then keepId = fe.id end
+                            if fe and (fe.isViewToggle or fe.isStackHead or fe.isCatHead) then keepId = fe.id end
                         end
                     end
 

@@ -602,6 +602,7 @@ function ZeD_CarRadio:dirTurn(dir)
 end
 
 function ZeD_CarRadio:onJoypadDown(button, joypadData)
+    if ZeD.padStart and ZeD.padStart(button, joypadData, self.playerNum) then return end   -- (Start pauses: punch list 263)
     -- (Nov 14 2026, punch list 228k, the design lead's "A grabs, D-pad turns": A on a knob grabs it, A or B lets go;
     -- B on a grabbed knob only lets go. The volume knob's push (power) is X.)
     if button == Joypad.BButton then

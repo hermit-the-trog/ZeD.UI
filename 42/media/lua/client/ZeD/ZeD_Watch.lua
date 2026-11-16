@@ -634,7 +634,7 @@ function ZeD_Watch:prerender()
     if item ~= self._item then self._setOpen = false; self._litUntil = 0 end   -- a different watch: nothing carries over
     self._item = item
 
-    if not item and W.simple() then pcall(self._plain, self, player, nil, speed, false, 6); return end
+    if not item and W.simple() then pcall(self._plain, self, player, nil, speed, false, 6); self:_padDraw(speed); return end
     if not item then
         -- no watch: the tape deck keys, the key for the game's speed sitting down
         local X = ZeD.PhysPx
@@ -649,6 +649,7 @@ function ZeD_Watch:prerender()
         local okD, eD = pcall(PLT.draw, self:_canvas(k), des, st, ctx)
         if not okD then ZeD.logOnce("watch plate", eD); return end
         self:_hitsFrom(des, st, k)
+        self:_padDraw(speed)
         return
     end
 
@@ -661,26 +662,29 @@ function ZeD_Watch:prerender()
         -- tucked: the small one on the belt is the watch
         if self:getWidth() ~= 0 then self:setWidth(0); self:setHeight(0) end
         for i = #self._hit, 1, -1 do self._hit[i] = nil end
+        if self:padOn() then self:padLeave() end   -- (tucked away while the pad was on it: the pad goes back)
         return
     end
     if not self._belt then self._popped = false end
+    local padOn = self:padOn()   -- (the pad on it keeps a popped watch up, as the pointer does)
     if W.simple() then
         local armedS = _callOr(item, "isAlarmSet", false) and true or false
         local hourS = _callOr(item, "getHour", 6) or 6
         if self._belt then
             local now = getTimestampMs()
-            if self:isMouseOver() or self._dragAt or self._setOpen then self._popTouched = now
+            if self:isMouseOver() or self._dragAt or self._setOpen or padOn then self._popTouched = now
             elseif now - (self._popTouched or now) > W.POP_IDLE_MS then W.togglePop(false); return end
         end
         local okP, eP = pcall(self._plain, self, player, item, speed, armedS, hourS)
         if not okP then ZeD.logOnce("watch plain", eP) end
+        self:_padDraw(speed)
         return
     end
     self:_layout(des.w, des.h, k); self._s = k
     if self._belt then
         self:_placePopped(des.w * k, des.h * k)
         local now = getTimestampMs()
-        if self:isMouseOver() or self._dragAt or self._setOpen then self._popTouched = now
+        if self:isMouseOver() or self._dragAt or self._setOpen or padOn then self._popTouched = now
         elseif now - (self._popTouched or now) > W.POP_IDLE_MS then W.togglePop(false); return end
     end
 
@@ -707,6 +711,7 @@ function ZeD_Watch:prerender()
     local okD, eD = pcall(PLT.draw, self:_canvas(k), des, st, ctx)
     if not okD then ZeD.logOnce("watch plate " .. tostring(def and def.id), eD); return end
     self:_hitsFrom(des, st, k)
+    self:_padDraw(speed)
 end
 function ZeD_Watch:render() end   -- (everything draws in prerender)
 
@@ -799,6 +804,208 @@ function ZeD_Watch:onMouseUp(x, y)
     return true
 end
 function ZeD_Watch:onMouseUpOutside(x, y) self:onMouseUp(x, y) end
+
+-- ---------------------------------------------------------------------------
+-- CONTROLLER (Nov 16 2026, punch list 251): the machine faces' "A grabs, D-pad turns" (TwoWayFull.lua). The D-pad
+-- walks the watch's controls; A presses a key (Start, Alarm, Light, the set mode's - and +, the tape deck keys).
+-- The setting key (SET, or the crown) and SPEED are grabbed with A: the D-pad then sets the alarm hour (Up / Right
+-- one hour on, Down / Left one back; past 23 or before 0 is OFF) or the game speed (Up / Right faster, Down / Left
+-- slower); A or B lets go, and letting go of the setting key closes the setting. B (nothing grabbed) gives the pad
+-- back where it came from (the belt's watch, else the game) and tucks a popped watch away; Start pauses.
+-- Ways in: the belt's watch (A) and the Character wheel's Use, Watch, Open the watch.
+-- ---------------------------------------------------------------------------
+local PAD_GRAB = { set = true, crown = true, speed = true }   -- the controls A grabs
+local PAD_LAND = { "start", "speed0", "set", "crown" }       -- where the pad lands first: the first of these there is
+W.PAD_GRAB = PAD_GRAB
+
+--- The pad of this watch's player is on it.
+function ZeD_Watch:padOn()
+    local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
+    return jd ~= nil and jd.focus == self
+end
+
+-- the focused control's click area this frame, nil when it is not there
+function ZeD_Watch:_padHit()
+    local id = self._padId
+    if not id then return nil end
+    for _, h in ipairs(self._hit or {}) do if h.id == id then return h end end
+    return nil
+end
+
+-- the focus on a control that is there (a set mode's keys come and go; another watch has other controls)
+function ZeD_Watch:_padSettle()
+    if self:_padHit() then return end
+    self._grab = false
+    self._padId = nil
+    local hits = self._hit or {}
+    for _, id in ipairs(PAD_LAND) do
+        for _, h in ipairs(hits) do if h.id == id then self._padId = id; return end end
+    end
+    if hits[1] then self._padId = hits[1].id end
+end
+
+--- The focused control is grabbed: the D-pad turns it.
+function ZeD_Watch:padGrabbed() return self._grab == true and self._padId ~= nil and PAD_GRAB[self._padId] == true end
+
+-- a grabbed control turned one step (d: +1 on, -1 back)
+function ZeD_Watch:_padTurn(d)
+    local id = self._padId
+    if id == "speed" then
+        local sp = _speed()
+        if sp == 0 or _serverTime() then return end   -- (paused: Start runs it; a server sets the time)
+        local n = math.max(1, math.min(SPEED_TOP, sp + d))
+        if n ~= sp then W._lastRun = n; _setSpeed(n) end
+        return
+    end
+    if self._item then _alarmStep(self._item, d) end
+end
+
+local function padSound() pcall(function() ZeD.uiSound("UISelectListItem") end) end
+
+-- the D-pad: a grabbed control turns; anything else moves to the nearest control that way
+function ZeD_Watch:_padDir(dx, dy, d)
+    self._popTouched = getTimestampMs()
+    if self:padGrabbed() then self:_padTurn(d); return end
+    self:_padSettle()
+    local TW = ZeD.TwoWay
+    local best = TW and TW.nearest and TW.nearest(self._hit, self:_padHit(), dx, dy)
+    if best then self._padId = best.id; self._grab = false; padSound() end
+end
+function ZeD_Watch:onJoypadDirLeft() self:_padDir(-1, 0, -1) end
+function ZeD_Watch:onJoypadDirRight() self:_padDir(1, 0, 1) end
+function ZeD_Watch:onJoypadDirUp() self:_padDir(0, -1, 1) end
+function ZeD_Watch:onJoypadDirDown() self:_padDir(0, 1, -1) end
+
+function ZeD_Watch:onJoypadDown(button, joypadData)
+    if ZeD.padStart and ZeD.padStart(button, joypadData, self.playerNum) then return end   -- (Start pauses: punch list 263)
+    self._popTouched = getTimestampMs()
+    if button == Joypad.BButton then
+        if self:padGrabbed() then self:_padLetGo(); padSound(); return end
+        self:padLeave()
+        return
+    end
+    if button ~= Joypad.AButton then return end
+    self:_padSettle()
+    local id = self._padId
+    if not id then return end
+    if self:padGrabbed() then self:_padLetGo(); padSound(); return end
+    -- (the setting already open, by the mouse: its key closes it, as a click does)
+    if PAD_GRAB[id] and not (id ~= "speed" and self._setOpen) then
+        self._grab = true
+        -- (the setting key grabbed opens the setting; it closes again on letting go)
+        if id ~= "speed" and not self._setOpen then self._setOpen = true; self._grabOpened = true end
+        padSound()
+        return
+    end
+    pcall(function() ZeD.uiSound("UIActivateButton") end)
+    local ok, err = pcall(self._act, self, id)
+    if not ok then print("[ZeD] Watch: pad action " .. tostring(id) .. " failed: " .. tostring(err)) end
+end
+
+-- let go of the grabbed control (the setting it opened closes)
+function ZeD_Watch:_padLetGo()
+    if self._grabOpened then self._setOpen = false end
+    self._grab, self._grabOpened = false, nil
+end
+
+function ZeD_Watch:onGainJoypadFocus(joypadData) self._popTouched = getTimestampMs() end
+function ZeD_Watch:onLoseJoypadFocus(joypadData)
+    if self:padGrabbed() then self:_padLetGo() end
+    self._grab = false
+end
+
+--- The pad leaves the watch: back where it came from (the belt, from its watch), else to the game; a popped watch
+--- tucks back onto the belt.
+function ZeD_Watch:padLeave()
+    if self._grab then self:_padLetGo() end
+    local from = self._padFrom
+    self._padFrom, self._padId = nil, nil
+    if self._belt and self._popped then W.togglePop(false) end
+    if not self:padOn() then return end
+    if from and from.padReturn and from:padReturn() then return end
+    setJoypadFocus(self.playerNum, nil)
+end
+
+--- Give the pad to the watch (the first player's): a belt watch pops up first. from: the element the pad came
+--- from (the belt), which gets it back on B; nil: the game. Returns true when the watch took the pad.
+function W.padOpen(pn, from)
+    local inst = W._instance
+    pn = pn or 0
+    if not inst or pn ~= inst.playerNum or not (JoypadState and JoypadState.players and JoypadState.players[pn + 1]) then return false end
+    if not inst:isVisible() then return false end
+    local p = getSpecificPlayer(pn)
+    if p and W.beltWatch(p) then W.togglePop(true) end
+    inst._padFrom = from
+    inst._padId, inst._grab, inst._grabOpened = nil, false, nil
+    if from then from._padHandoff = true end   -- (the belt keeps its place while the watch has the pad)
+    setJoypadFocus(pn, inst)
+    if p then pcall(function() p:setJoypadIgnoreAimUntilCentered(true) end) end
+    return true
+end
+
+-- the words for a control on the controller strip
+function W.padLabel(id, speed)
+    if id == "start" then return ZeD.tr((speed or 1) == 0 and "UI_ZeD_WatchPlain_Start" or "UI_ZeD_WatchPlain_Pause") end
+    if id == "speed" then return ZeD.tr("UI_ZeD_WatchPlain_SpeedBtn") end
+    if id == "alarm" then return ZeD.tr("UI_ZeD_WatchPlain_AlarmBtn") end
+    if id == "alarmtoggle" then return ZeD.tr("UI_ZeD_WatchPlain_AlarmOnOff") end
+    if id == "set" or id == "crown" then return ZeD.tr("UI_ZeD_WatchPlain_Set") end
+    if id == "light" then return ZeD.tr("UI_ZeD_Belt_WatchLight") end
+    if id == "setdn" then return "-" end
+    if id == "setup" then return "+" end
+    local n = id and id:match("^speed(%d)$")
+    if n then return ZeD.tr("UI_ZeD_WatchPlain_Speed" .. n) end
+    return nil
+end
+
+-- the strip's prompts: the focused control (A and its name, or Grab; grabbed: the D-pad and its name, A / B Let go),
+-- then B Close (one table, refilled each frame)
+local _padItems, _pA, _pB, _pTurn, _pLetGo = {}, { glyph = "A" }, { glyph = "B" }, { pad = { "DU", "DD" } }, { glyph = "A B" }
+function ZeD_Watch:padItems(speed)
+    for i = #_padItems, 1, -1 do _padItems[i] = nil end
+    local id = self._padId
+    if self:padGrabbed() then
+        _pTurn.label = (id == "speed") and ZeD.tr("UI_ZeD_WatchPlain_SpeedBtn") or ZeD.tr("UI_ZeD_WatchPlain_AlarmBtn")
+        _pLetGo.label = ZeD.tr("UI_ZeD_Prompt_KnobLetGo")
+        _padItems[1], _padItems[2] = _pTurn, _pLetGo
+        return _padItems
+    end
+    if id then
+        _pA.label = PAD_GRAB[id] and ZeD.tr("UI_ZeD_Prompt_KnobGrab") or (W.padLabel(id, speed) or ZeD.tr("UI_ZeD_RadioPrompt_Press"))
+        _padItems[1] = _pA
+    end
+    _pB.label = ZeD.tr("UI_ZeD_Close")
+    _padItems[#_padItems + 1] = _pB
+    return _padItems
+end
+
+-- the pad's mark on its control and the strip (above a watch popped over the belt, below one in the corner); last
+-- in prerender, so nothing covers them
+local _markOpts, _markGrab = { focused = true }, { focused = true, solid = true }
+function ZeD_Watch:_padDraw(speed)
+    if not self:padOn() then return end
+    self:_padSettle()
+    local h = self:_padHit()
+    if h then
+        local o = self:padGrabbed() and _markGrab or _markOpts
+        o.win = self
+        ZeD.Focus.mark(self, h.x, h.y, h.w, h.h, o)
+    end
+    local PG = ZeD.PadGlyphs
+    if PG and PG.drawStrip then
+        local T = ZeD.T
+        local items = self:padItems(speed)
+        local w = self:getWidth()
+        local sw = math.max(w, PG.stripW and PG.stripW(items, self.playerNum) or w)
+        local sh, gap = PG.stripH(), T.px(3)
+        local sy = (self._belt and self._popped) and (-gap - sh) or (self:getHeight() + gap)
+        local sx = w - sw   -- (right edges lined up: the corner watch sits at the screen's right)
+        local ax = self:getAbsoluteX() + sx
+        if ax < 0 then sx = sx - ax end
+        PG.drawStrip(self, sx, sy, sw, items)
+    end
+    if ZeD.Focus.drawOverlay then ZeD.Focus.drawOverlay(self, self) end
+end
 
 -- ---------------------------------------------------------------------------
 -- Lifecycle

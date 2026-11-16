@@ -535,7 +535,7 @@ function ZeD_ChatWindow:new(x, y, w, h)
     o.moveWithMouse = false
     o.playerNum = 0
     o.scroll = 0           -- px up from the newest line (0: at the bottom)
-    o.zone = "lines"       -- controller: "tabs" | "lines" | "acts" | "input"
+    o.zone = "lines"       -- controller: "box" (the window box's menu) | "tabs" | "lines" | "acts" | "input"
     o.picked = nil         -- the line whose buttons are open
     o.cur = nil            -- controller: the line under the cursor
     o.actI = 1             -- controller: the button under the cursor
@@ -694,6 +694,11 @@ function ZeD_ChatWindow:_drawBody()
         local tw = M.drawTab(self, tx, ty, label, C.tab == t.id, hov, false, { focus = foc })
         self._tabHits[#self._tabHits + 1] = { x = tx, y = ty, w = tw, h = T.tabH, id = t.id }
         tx = tx + tw + px(2)
+    end
+    -- the window box (its menu: Name color, Theme, Accent...) has the controller: Up from the tabs
+    if self.joyfocus and self.zone == "box" and ZeD.Focus and ZeD.Focus.mark then
+        local b = self:windowBoxRect()
+        if b then ZeD.Focus.mark(self, b.x, b.y, b.w, b.h, { win = self }) end
     end
     -- the line to type in, and Send, at the foot
     local ih = T.inputH
@@ -943,6 +948,7 @@ end
 function ZeD_ChatWindow:onGainJoypadFocus(jd) self.joyfocus = jd end
 function ZeD_ChatWindow:onLoseJoypadFocus(jd) self.joyfocus = nil end
 function ZeD_ChatWindow:onJoypadDown(button, jd)
+    if ZeD.padStart and ZeD.padStart(button, jd, self.playerNum) then return end   -- (Start pauses: punch list 263)
     if button == Joypad.BButton then
         if self.zone == "acts" then
             self.zone, self.picked = "lines", nil
@@ -961,6 +967,13 @@ function ZeD_ChatWindow:onJoypadDown(button, jd)
         if not b then return end
         if b.live then b.live(b) end
         if b.disabled then C.note(b.why) else self:_runAction(b) end
+        return
+    end
+    if button == Joypad.AButton and self.zone == "box" then
+        -- the window box's menu, as a click on it; B or a choice gives the pad back here (the menu's origin)
+        self:openWindowMenu()
+        local WM = ZeD.WindowMenu
+        if WM and WM.current and WM.current.win == self then WM.current.origin = self end
         return
     end
     if button == Joypad.AButton and self.zone == "input" then
@@ -1035,8 +1048,14 @@ function ZeD_ChatWindow:_padStep(dir)
         end
     end
     local lh = ZeD.TM:getFontHeight(ZeD.T.fontF2) + px(U.LINE_GAP)
+    if self.zone == "box" then
+        if dir == "down" then self.zone = "tabs" end
+        pcall(function() ZeD.uiSound("UISelectListItem") end)
+        return
+    end
     if dir == "up" then
-        if self.zone == "input" then
+        if self.zone == "tabs" and self:windowBoxRect() then self.zone = "box"
+        elseif self.zone == "input" then
             self.zone = "lines"
             self:_padLines("up")
         elseif self.zone == "lines" and self.scroll < (self._maxScroll or 0) then self.scroll = math.min(self._maxScroll or 0, self.scroll + lh * 3)
@@ -1067,6 +1086,7 @@ function ZeD_ChatWindow:getFooterPrompts()
     end
     if note then P[1] = note end
     if self.zone == "input" then P[#P + 1] = { glyph = "A", label = tr("UI_ZeD_Chat_PadType") } end
+    if self.zone == "box" then P[#P + 1] = { glyph = "A", label = tr("UI_ZeD_Prompt_Menu") } end
     if (self.zone == "lines" and self.cur) or self.zone == "acts" then P[#P + 1] = { glyph = "A", label = tr("UI_ZeD_Chat_PadPick") } end
     P[#P + 1] = { glyph = "B", label = self.zone == "acts" and tr("UI_ZeD_Tk_PromptBack") or getText("UI_Close") }
     return P
@@ -1129,9 +1149,17 @@ function C.open(typing, pad)
     win._usedAt = getTimestampMs()
     C.unreadN = 0
     if pad then
-        local jd = JoypadState.players[1]
-        if jd then win.zone = "lines"; jd.focus = win; updateJoypadFocus(jd) end
+        -- pad: true (player 1's) or the player's number, so players 2-4 open it on their own pads; the window is one,
+        -- and the player who opened it last holds it
+        local pn = (type(pad) == "number") and pad or 0
+        local jd = JoypadState.players[pn + 1]
+        if jd then
+            if win.playerNum ~= pn and win.joyfocus then setJoypadFocus(win.playerNum, nil) end
+            win.playerNum = pn
+            win.zone = "lines"; jd.focus = win; updateJoypadFocus(jd)
+        end
     elseif typing and win.input then
+        win.playerNum = 0   -- (the keyboard is player 1's)
         win.zone = "input"
         win:focusInput()
     end

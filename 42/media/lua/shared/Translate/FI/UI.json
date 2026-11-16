@@ -2972,6 +2972,7 @@
     "UI_ZeD_CMap_Scroll": "Vieritä",
     "UI_ZeD_CMap_Triggers": "Pelin oma: tähtää ja hyökkää. Kartalla zoomaa.",
     "UI_ZeD_CMap_View": "Ikkunassa: asettelu. Kun ikkunaa ei ole auki: pidä pohjassa ZeD-pyörää varten.",
+    "UI_ZeD_CMap_SelWheel": "Kun ikkunaa ei ole auki: pidä pohjassa ZeD-pyörää varten.",
     "UI_ZeD_CMap_X": "RMB: avaa kontekstivalikon.",
     "UI_ZeD_CMap_Y": "Napautus: avaa, piilottaa tai näyttää molemmat ikkunat. Pito: sulkee molemmat.",
     "UI_ZeD_Close": "Sulje",

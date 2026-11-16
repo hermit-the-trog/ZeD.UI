@@ -780,6 +780,7 @@ function P.classes()
         o.playerNum = 0
         o.pick = "agree"
         o.joinSt = { card = { kind = "cmjoin", view = view } }
+        o:setWantKeyEvents(true)
         return o
     end
 
@@ -827,7 +828,40 @@ function P.classes()
             setJoypadFocus(0, self)
         end
         self.joyfocus = (jd and jd.focus == self) and jd or nil
-        self._padId = self.joyfocus and ("tk:" .. self.pick) or nil
+        -- (the keyboard's pick shows as the pad's does, until the pointer moves)
+        if self._keyPick and (self:getMouseX() ~= self._keyPick.x or self:getMouseY() ~= self._keyPick.y) then self._keyPick = nil end
+        self._padId = (self.joyfocus or self._keyPick) and ("tk:" .. self.pick) or nil
+    end
+
+    -- The keyboard, as ZeD's other dialogs: Enter presses the picked answer (I agree, first), Left / Right or Tab move
+    -- between Leave and I agree, Up / Down and Page Up / Page Down scroll. Escape picks Leave and does not press it: leaving
+    -- the server is never one key by accident (as B answers nothing on the pad); Enter then leaves.
+    local JOIN_KEYS = nil
+    local function joinKeys()
+        if not JOIN_KEYS and Keyboard then
+            JOIN_KEYS = {}
+            for _, k in ipairs({ "KEY_RETURN", "KEY_NUMPADENTER", "KEY_ESCAPE", "KEY_LEFT", "KEY_RIGHT", "KEY_TAB", "KEY_UP",
+                "KEY_DOWN", "KEY_PRIOR", "KEY_NEXT", "KEY_SPACE" }) do
+                if Keyboard[k] then JOIN_KEYS[Keyboard[k]] = k end
+            end
+        end
+        return JOIN_KEYS or {}
+    end
+    function ZeD_JoinWindow:isKeyConsumed(key) return not self.done and joinKeys()[key] ~= nil end
+    function ZeD_JoinWindow:onKeyPress(key)
+        if self.done then return end
+        local k = joinKeys()[key]
+        if not k then return end
+        self._keyPick = { x = self:getMouseX(), y = self:getMouseY() }
+        if k == "KEY_RETURN" or k == "KEY_NUMPADENTER" or k == "KEY_SPACE" then self:press(self.pick)
+        elseif k == "KEY_ESCAPE" or k == "KEY_LEFT" then self.pick = "leave"
+        elseif k == "KEY_RIGHT" then self.pick = "agree"
+        elseif k == "KEY_TAB" then self.pick = (self.pick == "agree") and "leave" or "agree"
+        elseif k == "KEY_UP" then self:padScroll(-1)
+        elseif k == "KEY_DOWN" then self:padScroll(1)
+        elseif k == "KEY_PRIOR" then self:padScroll(-4)
+        elseif k == "KEY_NEXT" then self:padScroll(4) end
+        if GameKeyboard and GameKeyboard.eatKeyPress then pcall(GameKeyboard.eatKeyPress, key) end
     end
 
     function ZeD_JoinWindow:press(id)

@@ -458,6 +458,7 @@ end
 -- a grabbed knob only lets go, the view stays); a volume knob's push (power) is X: the two-way's "vol", or the
 -- knob the driver names (knobPush: the antique TV's "volpwr"))
 function ZeD_TwoWayFull:onJoypadDown(button, joypadData)
+    if ZeD.padStart and ZeD.padStart(button, joypadData, self.playerNum) then return end   -- (Start pauses: punch list 263)
     local D = self.drv or TW
     if button == Joypad.BButton then
         if self:knobGrabbed() then self._grab = false; sound("UISelectListItem"); return end

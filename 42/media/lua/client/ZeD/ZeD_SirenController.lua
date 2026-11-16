@@ -330,6 +330,7 @@ function ZeD_SirenController:padItems()
         { glyph = "B", label = ZeD.tr("UI_ZeD_Hud_PutAway") } }
 end
 function ZeD_SirenController:onJoypadDown(button, joypadData)
+    if ZeD.padStart and ZeD.padStart(button, joypadData, self.playerNum) then return end   -- (Start pauses: punch list 263)
     if button == Joypad.BButton then
         if self._grab then self._grab = false; sound("UISelectListItem"); return end
         self:close()

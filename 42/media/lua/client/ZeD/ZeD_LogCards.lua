@@ -372,6 +372,7 @@ function P.pager(items, card, page)
     if of < 2 then return end
     local function go(to)
         card.page, card.sel = to, nil
+        card.toTop = true   -- (the new page opens at its top, the controller on its first line: P.items)
         Lm.bump()
     end
     F.flow(items, { { id = "lpage", style = "text", text = tr("UI_ZeD_Tk_PageOf", n, of) },
@@ -403,6 +404,12 @@ function P.items(win, st, t, card, page)
         end
         P.pager(items, card, page)
         B.sub(items, P.footWords(page))
+        -- Next / Prev page: once the asked-for page is here, the view goes to its top and the controller to its first line
+        if card.toTop and (page.page or 1) == (card.page or 1) then
+            card.toTop = nil
+            if st.tk and st.tk.scroll then st.tk.scroll:setScrollPos(0) end
+            if rows[1] then D.focusId(win, st, "tk:l:" .. tostring(rows[1].s)) end
+        end
     else
         B.sub(items, tr("UI_ZeD_Tk_Loading"))
     end

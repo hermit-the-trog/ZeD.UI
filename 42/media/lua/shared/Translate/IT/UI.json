@@ -2972,6 +2972,7 @@
     "UI_ZeD_CMap_Scroll": "Scorri",
     "UI_ZeD_CMap_Triggers": "Quelli del gioco: mira e attacca. Sulla mappa, zoom.",
     "UI_ZeD_CMap_View": "In una finestra: disposizione. Nessuna finestra aperta: tieni per la ruota ZeD.",
+    "UI_ZeD_CMap_SelWheel": "Nessuna finestra aperta: tieni per la ruota ZeD.",
     "UI_ZeD_CMap_X": "RMB: apre il menu contestuale.",
     "UI_ZeD_CMap_Y": "Tocca: apre, nasconde o mostra entrambe le finestre. Tieni: le chiude entrambe.",
     "UI_ZeD_Close": "Chiudi",

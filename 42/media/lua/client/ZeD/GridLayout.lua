@@ -845,6 +845,7 @@ function GL.draw(panel, GV, y0, scrollX, hh)
     for i = 1, #L.heads do
         local hd = L.heads[i]
         local y = y0 + hd.y
+        if GV.ymap then GV.ymap["cat:" .. hd.cat] = y end   -- (the heading's place: its pad stop, punch list 256)
         if y + hh > GV.top and y < GV.h then
             local hover = GV.mouseIn and GV.my >= y and GV.my < y + hh and GV.lmx < scrollX
             R._drawCatRow(panel, GV.xOff, y, scrollX, hh, hd.cat, hd.n, hd.closed, hover, GV.padX + T.px(2))

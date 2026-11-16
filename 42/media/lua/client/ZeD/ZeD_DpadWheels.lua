@@ -1008,6 +1008,9 @@ D.B.character = function(p, pn)
         ring[#ring + 1] = { name = tr("UI_ZeD_Wheel_Loadouts"), icon = ZeD.Lists.icon("loadout"), detail = tr("UI_ZeD_Wheel_LoadoutsDetail"),
           sub = C.loadouts, off = (#ZeD.Lists.all(p, "loadout") == 0) and tr("UI_ZeD_Wheel_NoLoadouts") or nil }
     end
+    -- the belt last, so no slice before it moves (punch list 250: the pad onto the belt, H.belt)
+    local belt = ask("belt", p, pn)
+    if belt then ring[#ring + 1] = belt end
     return ring
 end
 
@@ -1381,8 +1384,14 @@ function H.watch(p, pn)
     local belt = Wt.beltMode and Wt.beltMode()
     local alarm = safe(function() return string.format("%d:00 | %s", item:getHour(), getText(item:isAlarmSet() and "UI_On" or "UI_Off")) end)
     return {
-        { name = tr("UI_ZeD_Wheel_OpenWatch"), icon = "watch", detail = item:getDisplayName(), run = function() Wt.togglePop(true) end,
-          off = (not belt) and tr("UI_ZeD_Wheel_WatchAlwaysOpen") or nil },
+        -- (punch list 251: the pad goes onto the watch, popped up on the belt or in its corner; B gives it back to
+        -- the game. Its claim waits for the wheel to let go of the pad, as the Dashboard slice's)
+        { name = tr("UI_ZeD_Wheel_OpenWatch"), icon = "watch", detail = item:getDisplayName(),
+          run = function(pl, n)
+              D.nextFrame(function()
+                  if not (Wt.padOpen and Wt.padOpen(n)) and belt then Wt.togglePop(true) end
+              end)
+          end },
         { name = tr("UI_ZeD_Wheel_WatchLight"), icon = "bulb_on", run = function() Wt.act("light") end,
           off = not (Wt.hasLight and Wt.hasLight(inst._def)) and tr("UI_ZeD_Wheel_WatchNoLight") or nil },
         { name = tr("UI_ZeD_Wheel_WatchAlarm"), icon = "alarm", detail = alarm, run = function() Wt.act("alarm") end },
@@ -1569,6 +1578,22 @@ local function nextFrame(fn, frames)
     end
     Events.OnPreUIDraw.Add(f)
 end
+D.nextFrame = nextFrame   -- (the helpers above it reach it here: H.watch)
+
+-- (Nov 16 2026, punch list 250) The belt on the pad again: since D-pad Left opens the Character wheel, its Belt
+-- slice is the way onto the belt's boxes (the slots, the hands, the wrist watch, other mods' boxes). The belt's own
+-- rules then: B or a direction with nowhere to go gives the pad back to the game (ZeD_Belt.lua, B.focus). Its claim
+-- waits a frame, so the wheel's own close does not take the pad back. Keyed "belt", so a quick action chord on it
+-- keeps finding it whether Loadouts is on or not.
+function H.belt(p, pn)
+    local Bt = ZeD.Belt
+    if not (Bt and Bt.focus and Bt.getHUD) then return nil end
+    local hud = Bt.getHUD(pn)
+    local can = hud and hud:wanted() and hud._drawn
+    return { name = getText("UI_ClothingType_Belt"), icon = "holster", key = "belt",
+        run = function(pl, n) nextFrame(function() Bt.focus(n) end) end,
+        off = (not can) and tr("UI_ZeD_Wheel_NotNow") or nil }
+end
 
 -- In the driver's seat, after the game's vehicle slices: Dashboard, the pad on the dash's
 -- controls until B (the dash never takes the D-pad on sitting down: this slice is the
@@ -1610,7 +1635,7 @@ end
 function H.chat(p, pn)
     -- ZeD's chat window on a server (ZeD_Chat.lua: the pad reads first, A on the line to type); the game's box otherwise
     if ZeD.Chat and ZeD.Chat.active and ZeD.Chat.active() then
-        return { detail = tr("UI_ZeD_Wheel_ChatDetail"), run = function() ZeD.Chat.open(false, true) end }
+        return { detail = tr("UI_ZeD_Wheel_ChatDetail"), run = function() ZeD.Chat.open(false, pn or true) end }   -- (the wheel's player's pad: players 2-4 too)
     end
     if not (ISChat and ISChat.instance) then return nil end
     return { detail = tr("UI_ZeD_Wheel_ChatDetail"), run = function() ISChat.instance:focus() end }

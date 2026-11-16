@@ -2972,6 +2972,7 @@
     "UI_ZeD_CMap_Scroll": "Scrollen",
     "UI_ZeD_CMap_Triggers": "Vom Spiel selbst: zielen und angreifen. Auf der Karte: zoomen.",
     "UI_ZeD_CMap_View": "In einem Fenster: Layout. Ohne offenes Fenster: halten für das ZeD-Rad.",
+    "UI_ZeD_CMap_SelWheel": "Ohne offenes Fenster: halten für das ZeD-Rad.",
     "UI_ZeD_CMap_X": "RMB: öffnet das Kontextmenü.",
     "UI_ZeD_CMap_Y": "Antippen: beide Fenster öffnen, ausblenden oder zeigen. Halten: beide schließen.",
     "UI_ZeD_Close": "Schließen",

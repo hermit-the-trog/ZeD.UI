@@ -2972,6 +2972,7 @@
     "UI_ZeD_CMap_Scroll": "Scrollen",
     "UI_ZeD_CMap_Triggers": "Van het spel zelf: mikken en aanvallen. Op de kaart: zoomen.",
     "UI_ZeD_CMap_View": "In een venster: indeling. Zonder open venster: vasthouden voor het ZeD-wiel.",
+    "UI_ZeD_CMap_SelWheel": "Zonder open venster: vasthouden voor het ZeD-wiel.",
     "UI_ZeD_CMap_X": "RMB: opent het contextmenu.",
     "UI_ZeD_CMap_Y": "Tikken: beide vensters openen, verbergen of tonen. Vasthouden: beide sluiten.",
     "UI_ZeD_Close": "Sluiten",

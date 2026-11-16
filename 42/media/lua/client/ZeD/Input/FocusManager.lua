@@ -644,6 +644,20 @@ function Focus.getFocusedWindow(pn)
     return s and s.win
 end
 
+--- A card opened in the other window by a press (the Admin tab's Open safehouse, a ticket's Player card, View
+--- safehouse, the PvP marker): on a controller the pad goes with it to w, so the card's landing is where the pad is.
+--- Only when another of the player's windows holds the pad (fromPad: the press was the pad's, whatever holds it).
+--- Nothing on the mouse and keyboard.
+function Focus.follow(w, fromPad)
+    if not w then return end
+    local pn = _pnOf(w)
+    local s = _st[pn]
+    if s and s.win == w then return end
+    if not (fromPad or (s and s.win)) then return end
+    if _modeOf(pn) ~= "gamepad" then return end
+    Focus.claimFocus(w)
+end
+
 --- The window a pad press that reached w (one of its stubs) is for, or nil: w itself while it holds the pad.
 --- (Nov 14 2026, punch list 212 playtest: the engine's joypad focus went back to the Character window while ZeD's
 --- was on the World window, and every press after, the bumpers too, reached the Character window and was dropped.)
@@ -1773,6 +1787,85 @@ local function _xDragMove(w, dir)
     return true
 end
 
+-- ---------------------------------------------------------------------------
+-- PAD SCROLL (Nov 16 2026, punch list 258): the shared rule for a scrolled view.
+-- Scrolling used to follow the focus only, so words above a view's first stop or
+-- below its last (a long item card, a letter, a part card's lines) never came
+-- into view by pad. The rule, the one Messages, the Reader and the Prompt kept:
+-- Up or Down from a stop inside a scrolled view with more of it that way moves
+-- to the next stop when that stop shows or is one step away; else the view
+-- scrolls one step and the focus stays. The move leaves the view only once its
+-- end shows. A surface opts in by giving its stops a scrollView (a table, or a
+-- function (w, el) that returns one), made by Focus.scrollView:
+--   { key, y, h, off, span, set = function(newOff), step? }
+-- key names the view (stops with the same key are in it); y / h are its shown
+-- part in the same space as its stops' y; off the scroll now and span the most
+-- it can scroll (px); set scrolls it. A stop that scrolls with the view and has
+-- gone out of sight moves as if at the view's edge; one fixed outside the view
+-- that reads it too (a card's back key, a band's verb) says scrollFixed = true.
+-- The main menu's windows use the same rule through Focus.padScroll.
+-- ---------------------------------------------------------------------------
+
+--- A scrolled view for stops' scrollView (see PAD SCROLL above). Nil when it does not scroll.
+function Focus.scrollView(key, y, h, off, span, set, step)
+    if not (type(span) == "number" and span > 0.5 and type(set) == "function") then return nil end
+    return { key = key, y = y or 0, h = h or 0, off = off or 0, span = span, set = set, step = step }
+end
+
+--- Give every stop in els that has no view of its own the view v (nil v: nothing). Returns els.
+function Focus.tagScroll(els, v)
+    if type(els) ~= "table" or type(v) ~= "table" then return els end
+    for _, el in ipairs(els) do
+        if type(el) == "table" and el.scrollView == nil then el.scrollView = v end
+    end
+    return els
+end
+
+-- the step of a view: its own, else 60 (scaled), never more than half the view
+local function _scrollStep(v)
+    if type(v.step) == "number" and v.step > 0 then return v.step end
+    local s = (ZeD.T and ZeD.T.px) and ZeD.T.px(60) or 60
+    local half = math.floor((v.h or 0) / 2)
+    if half > 0 and s > half then s = half end
+    return math.max(1, s)
+end
+
+--- The rule itself: v the view of the stop the move starts from, dir the D-pad's way, tv the view of the stop the
+--- move would land on (nil: none, or outside any view), tr its rectangle ({ y, h }, in v's space; nil: none). Scrolls
+--- v a step and returns true when the view keeps the press; false lets the move go on.
+function Focus.padScroll(v, dir, tv, tr)
+    if type(v) ~= "table" or type(v.set) ~= "function" or not (dir == "up" or dir == "down") then return false end
+    local off, span = v.off or 0, v.span or 0
+    if span <= 0.5 then return false end
+    local more = (dir == "down" and off < span - 0.5) or (dir == "up" and off > 0.5)
+    if not more then return false end
+    local step = _scrollStep(v)
+    if type(tv) == "table" and tv.key ~= nil and tv.key == v.key and type(tr) == "table"
+       and type(tr.y) == "number" then
+        -- the next stop in the same view, in sight or a step away: the move goes there (its follow brings it in)
+        local th = tr.h or 0
+        if dir == "down" and tr.y + th <= v.y + v.h + step then return false end
+        if dir == "up" and tr.y >= v.y - step then return false end
+    end
+    local n = off + ((dir == "down") and step or -step)
+    if n < 0 then n = 0 elseif n > span then n = span end
+    local ok, err = pcall(v.set, n)
+    if not ok then print("[ZeD.Input] Focus: padScroll set failed: " .. tostring(err)); return false end
+    pcall(function() ZeD.uiSound("UISelectListItem") end)
+    return true
+end
+
+-- a stop's scrollView, read (a function gives it fresh)
+local function _viewOf(w, el)
+    local v = el and el.scrollView
+    if type(v) == "function" then
+        local ok, r = pcall(v, w, el)
+        v = ok and r or nil
+    end
+    if type(v) == "table" then return v end
+    return nil
+end
+
 local function _handleSpatialNav(w, dir)
     _fresh(w)
     if not w or not w._focusRing then return end
@@ -1806,6 +1899,23 @@ local function _handleSpatialNav(w, dir)
         end
     end
 
+    -- PAD SCROLL (punch list 258, above): a stop in a scrolled view with more of it this way scrolls the view a
+    -- step unless the move lands on a stop of the same view in sight or a step away. (The dry run below finds where
+    -- the move would land; it sees _preview set, so it never comes back in here.)
+    if not _preview and (dir == "up" or dir == "down") and focEl and focEl.scrollView then
+        local v = _viewOf(w, focEl)
+        if v then
+            local r = Focus.previewMove(w, dir)
+            local te = r and r.el
+            local tv = te and _viewOf(w, te) or nil
+            local tr = te and type(te.y) == "number" and { y = te.y, h = te.h or 0 } or nil
+            if Focus.padScroll(v, dir, tv, tr) then
+                print("[ZeD.Input] Focus: pad scroll " .. dir .. " (" .. tostring(v.key) .. ") [" .. _label(w) .. "]" .. _who(_pnOf(w)))
+                return
+            end
+        end
+    end
+
     -- Generic flat spatial nav. Collect every element from focusable zones,
     -- find the focused element's flat position, then run the two-tier picker
     -- (lined up, else off to the side) through the rules below.
@@ -1813,6 +1923,21 @@ local function _handleSpatialNav(w, dir)
     if #elements == 0 then return end
 
     local fromIdx = _findCurrentFlatIdx(w, locator) or 1
+
+    -- (PAD SCROLL, punch list 258) A stop its view has scrolled out of sight (the pad scroll read on past it) moves
+    -- as if it sat at the view's edge it went out by: Down at the end of a long card then reaches the foot under it,
+    -- not the header the stop now lies above. Only the picker's copy moves. (A stop fixed outside the view that
+    -- reads it too, a card's back key or a band's verb, says scrollFixed: it moves from where it is.)
+    if focEl and focEl.scrollView and not focEl.scrollFixed and elements[fromIdx] and type(focEl.y) == "number" then
+        local v = _viewOf(w, focEl)
+        local fe = elements[fromIdx]
+        if v and fe._origRef == focEl then
+            local oy = fe.y - focEl.y
+            local top, bot, fh = v.y + oy, v.y + v.h + oy, fe.h or 0
+            if fe.y + fh <= top then fe.y = top
+            elseif fe.y >= bot then fe.y = math.max(top, bot - fh) end
+        end
+    end
 
     -- Back the way you came. The press opposite
     -- to the last move returns to the control that move left, wherever the
@@ -1831,6 +1956,7 @@ local function _handleSpatialNav(w, dir)
             if z and e and z.zone == last.fromZone and e.id == last.fromId then
                 if _preview then
                     _preview.zone, _preview.id, _preview.pass = z.zone, e.id, "back"
+                    _preview.el = e
                     return
                 end
                 w._navLast = { fromZone = fromNow.zone, fromId = fromNowEl.id, dir = dir, toZone = z.zone, toId = e.id }
@@ -2129,6 +2255,7 @@ local function _handleSpatialNav(w, dir)
         local z = w._focusRing[locator[newFlatIdx].zoneIdx]
         local e = z and z.elements and z.elements[locator[newFlatIdx].elementIdx]
         _preview.zone, _preview.id, _preview.pass = z and z.zone, e and e.id, pass
+        _preview.el = e   -- (the stop itself: the pad scroll's dry run reads its view and place)
         return
     end
     -- remember this move, for the way back (above)

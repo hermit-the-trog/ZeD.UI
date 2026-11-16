@@ -2395,6 +2395,14 @@ function D.cardScroll(win, t, x, w, sy, sh, listH)
     local Fo = ZeD.Input and ZeD.Input.Focus
     local fe = Fo and Fo.getFocusedWindow and Fo.getFocusedWindow(win.playerNum) == win and Fo.liveElement and Fo.liveElement(win)   -- (nil under the mouse)
     local field = D.typing(win, t)
+    -- (Nov 16 2026, punch list 258: the controller's focus is followed once, as it lands, so the pad scroll
+    -- (FocusManager.lua) can read a letter or a message longer than the view to its end; the field being typed in
+    -- is still kept in view every frame)
+    if fe and fe.tkc and fe.cy and not field then
+        if t._followId == fe.id then fe = nil else t._followId = fe.id end
+    elseif not field then
+        t._followId = nil
+    end
     if field then
         fe = { tkc = true, cy = field.y, h = field.h }
     end
@@ -2696,6 +2704,16 @@ function TC.cardStops(win, st)
             e.promptA = false
             out[#out + 1] = e
         end
+    end
+    -- (Nov 16 2026, punch list 258: the body's stops are one scrolled view: Up and Down read a long letter or
+    -- message, and the words above the first stop or below the last, to its ends before going on (FocusManager.lua's
+    -- pad scroll). The back key reads it too, for a card with no stop in its body; the foot is outside it.)
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    local span = math.max(0, (t.listH or 0) - (t.csh or 0))
+    if Fo and Fo.scrollView and Fo.tagScroll and span > 0 and t.scroll then
+        local sc = t.scroll
+        Fo.tagScroll(out, Fo.scrollView("tk", sy, t.csh or 0, off, span, function(n) sc:setScrollPos(n / span) end))
+        if r and out[1] then out[1].scrollFixed = true end   -- (the back key stays where it is)
     end
     -- the foot's stops are said to lie under the list, or a stop under the fold could not be reached with Down
     local listEnd = sy + (t.listH or 0) - off

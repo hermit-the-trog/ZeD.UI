@@ -1572,11 +1572,15 @@ function CC.hookWorld()
         local n = p and p.getPlayerNum and p:getPlayerNum() or 0
         if mine and ZeD_CharacterWindow and ZeD_CharacterWindow.openTab and ZeD_CharacterWindow.openTab(n, "server") then
             C.openNext = "safe"
+            -- (picked on a controller: the pad goes to the card)
+            if ZeD.AdminTab and ZeD.AdminTab.padFollow and ZeD_CharacterWindow.getWindow then
+                ZeD.AdminTab.padFollow(ZeD_CharacterWindow.getWindow(n), true)
+            end
             return
         end
         -- someone else's: its staff card in the Admin tab, for a role that can manage it (the game's window otherwise)
         if not mine and C.cap("CanSetupSafehouses") and ZeD.AdminTab and ZeD.AdminTab.openNext
-            and ZeD.AdminTab.openNext({ kind = "osafe", obj = safehouse }, n) then
+            and ZeD.AdminTab.openNext({ kind = "osafe", obj = safehouse }, n, true) then
             return
         end
         return base(worldobjects, safehouse, player)

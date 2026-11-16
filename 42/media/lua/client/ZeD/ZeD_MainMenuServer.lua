@@ -200,6 +200,14 @@ function ZeD_MMServer:createChildren()
     self.pointEntry = entry()    -- a spawn point x,y,z to add
     self.pointEntry.onCommandEntered = function() self._enterAt = MM.now(); self:addPoint() end
     self._extra = { self.nameEntry, self.regName, self.regFile, self.spawnPt, self.other, self.pointEntry }
+    -- each field's controller stop (punch list 252): { id, row, col, submit }. A opens the pad keyboard; the map /
+    -- Workshop / occupation field and the spawn point field add what was typed when the keyboard closes (Return is
+    -- their only "add"). Rows order the old grid only: the name ahead of the band, the rest under the pages' buttons.
+    self._stopOf = {
+        [self.nameEntry] = { "field:name", 50, 1 }, [self.regName] = { "field:regName", 610, 1 },
+        [self.regFile] = { "field:regFile", 611, 1 }, [self.spawnPt] = { "field:spawnPt", 620, 1 },
+        [self.other] = { "field:other", 700, 1, true }, [self.pointEntry] = { "field:point", 700, 2, true },
+    }
 end
 
 -- WHICH PAGE VANILLA IS ON -----------------------------------------------------------
@@ -488,6 +496,9 @@ function ZeD_MMServer:place(e, x, y, w)
     self._shown[e] = true
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     self._hits[#self._hits + 1] = { id = "srvset:f:" .. tostring(e), x = ax + x, y = ay + y, w = w, h = h, fn = function() e:focus() end }
+    -- the controller's stop on it: A opens the pad keyboard (punch list 252)
+    local st = self._stopOf and self._stopOf[e]
+    if st and UI.fieldStop then UI.fieldStop(self, e, st[1], x, y, w, h, st[2], st[3], st[4] and { submit = true } or nil) end
 end
 
 function ZeD_MMServer:prerender()

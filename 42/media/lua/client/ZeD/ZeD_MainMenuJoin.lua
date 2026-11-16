@@ -99,6 +99,14 @@ function ZeD_MMJoin:createChildren()
     self.field.onCommandEntered = function() self._enterAt = MM.now(); self:answerPassword() end
     self.field.onEscape = function() self:setConfirm(false) end
     self._fields = { self.find, self.fName, self.fAddr, self.fPort, self.fSrvPwd, self.fUser, self.fPwd, self.field }
+    -- each field's controller stop: its id and its place in the old row grid (punch list 252). Find comes after the
+    -- list's rows, so the hand still lands on a server; a form's fields go top to bottom; the band's question
+    -- field sits left of its buttons.
+    self._stopOf = {
+        [self.find] = { "field:find", 999 }, [self.fName] = { "field:name", 101 }, [self.fAddr] = { "field:addr", 102 },
+        [self.fPort] = { "field:port", 103 }, [self.fSrvPwd] = { "field:srvpwd", 104 }, [self.fUser] = { "field:user", 101 },
+        [self.fPwd] = { "field:pwd", 102 },
+    }
 end
 
 function ZeD_MMJoin:onShow()
@@ -359,6 +367,9 @@ function ZeD_MMJoin:setConfirm(mode)
         if self.field:isFocused() then self.field:unfocus() end
     end
     self.focusId = mode and (SAFE_ANSWER[mode] or "confirm:yes") or self.focusId
+    -- (with a controller a password question lands on its field: its Connect / OK waits for the password, and A
+    -- there opens the pad keyboard; punch list 252)
+    if (mode == "pwd" or mode == "srvpwd") and MM.gamepad() then self.focusId = "field:band" end
 end
 
 -- FORMS ------------------------------------------------------------------------------
@@ -543,6 +554,9 @@ function ZeD_MMJoin:place(e, x, y, w, h)
     self._shown[e] = true
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     self._hits[#self._hits + 1] = { id = "join:f:" .. tostring(e.ID or e), x = ax + x, y = ay + y, w = w, h = h, fn = function() e:focus() end }
+    -- the controller's stop on it: A opens the pad keyboard (punch list 252)
+    local st = self._stopOf and self._stopOf[e]
+    if st and UI.fieldStop then UI.fieldStop(self, e, st[1], x, y, w, h, st[2]) end
 end
 
 -- a tick with its label; returns its width
@@ -914,8 +928,11 @@ function ZeD_MMJoin:buildStrip(stripY, stripH, w)
         local firstBtn = w
         for _, b in ipairs(self._specs) do if b.row == row then firstBtn = math.min(firstBtn, b.x) end end
         local fh = T.px(24)
-        UI.styleEntry(self.field, fx, stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx), fh)
+        local fy, fw = stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx)
+        UI.styleEntry(self.field, fx, fy, fw, fh)
         self._shown[self.field] = true
+        -- the controller's stop on it, left of the buttons: A opens the pad keyboard (punch list 252)
+        if UI.fieldStop then UI.fieldStop(self, self.field, "field:band", fx, fy, fw, fh, row, 0) end
     end
     if self.confirm == "pwd" then
         local ask = ZeD.tr("UI_ZeD_Join_AskPassword", s(self._pwdFor and self._pwdFor.account:getUserName()))

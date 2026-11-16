@@ -346,6 +346,8 @@ function ZeD_MMTraits:drawColumn(c, x, y, w, h, rows)
     self.scroll[c] = math.max(0, math.min(self.scroll[c] or 0, math.max(0, total - vh)))
     self._colBox = self._colBox or {}
     self._colBox[c] = { x = x, y = vy, w = w, h = vh }
+    self._colTotal = self._colTotal or {}
+    self._colTotal[c] = total   -- (the column's whole height: the pad scroll, joyDir)
     local gp = MM.gamepad()
     local mx, my = getMouseX() - ax, getMouseY() - ay
     self:setStencilRect(x + T.px(1), vy, w - T.px(2), vh)
@@ -538,6 +540,22 @@ function ZeD_MMTraits:joyDir(dir)
         return ZeD_MMWindow.joyDir(self, dir)
     end
     if not self.focusId then self:setJoy(self.jcol, self.jidx); return end
+    -- (Nov 16 2026, punch list 258: the pad scroll, FocusManager.lua's rule: a column with more of it that way scrolls a
+    -- step unless the next row is in sight or a step away, so the starting skills under the chosen traits, and any
+    -- words above the first row, are read before Down goes on to the band)
+    if dir == "up" or dir == "down" then
+        local Fo = ZeD.Input and ZeD.Input.Focus
+        local c = self.jcol
+        local box = self._colBox and self._colBox[c]
+        local list = self._colFocus and self._colFocus[c] or {}
+        local total = self._colTotal and self._colTotal[c] or 0
+        if Fo and Fo.scrollView and Fo.padScroll and box then
+            local v = Fo.scrollView("traits:" .. c, self.scroll[c] or 0, box.h, self.scroll[c] or 0, total - box.h,
+                function(n) self.scroll[c] = n end)
+            local nf = list[self.jidx + ((dir == "up") and -1 or 1)]
+            if v and Fo.padScroll(v, dir, nf and v or nil, nf and { y = nf.ry, h = nf.rh } or nil) then return end
+        end
+    end
     if dir == "up" then self:setJoy(self.jcol, self.jidx - 1)
     elseif dir == "down" then
         if self.jidx >= #(self._colFocus[self.jcol] or {}) then self.focusId = "next"; MM.hoverSound()

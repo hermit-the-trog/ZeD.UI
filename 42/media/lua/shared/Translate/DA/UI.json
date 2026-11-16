@@ -2972,6 +2972,7 @@
     "UI_ZeD_CMap_Scroll": "Rul",
     "UI_ZeD_CMap_Triggers": "Spillets egen: sigt og angrib. På kortet: zoom.",
     "UI_ZeD_CMap_View": "I et vindue: layout. Intet vindue åbent: hold for ZeD-hjulet.",
+    "UI_ZeD_CMap_SelWheel": "Intet vindue åbent: hold for ZeD-hjulet.",
     "UI_ZeD_CMap_X": "RMB: den åbner højreklik-menuen.",
     "UI_ZeD_CMap_Y": "Tryk kort: åbn, skjul eller vis begge vinduer. Hold: luk begge.",
     "UI_ZeD_Close": "Luk",

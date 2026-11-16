@@ -18,6 +18,7 @@
 --   Reset this window (and Reset both windows on the Character / World pair)
 --   Save position, Go to saved position (greyed while nothing is saved)
 --   ----
+--   Bug report (the Select wheel's: caught errors onto the clipboard)
 --   ZeD setup...
 --
 -- Before touching it: every choice calls what ZeD setup and the Select wheel
@@ -252,6 +253,12 @@ function WM.build(win)
                                   disabled = function() return not WP.has(win) end,
                                   state = function() return WP.has(win) and "" or tr("UI_ZeD_WinMenu_NoSaved") end }
         end
+    end
+    -- the Select wheel's Bug report, for the mouse too: every caught error with ZeD's version and the mod list onto
+    -- the clipboard (ZeD_Messages.lua), then a note saying so
+    local MS = ZeD.Messages
+    if MS and MS.copyBugReport then
+        items[#items + 1] = { name = tr("UI_ZeD_Msg_BugReport"), category = "setup", onFire = function() MS.copyBugReport(pn) end }
     end
     items[#items + 1] = { name = tr("UI_ZeD_WinMenu_Setup"), category = "setup", onFire = function() WM.openSetup(win) end }
     return items

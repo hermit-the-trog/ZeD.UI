@@ -264,7 +264,7 @@ local PAD_PARTS = {
     { id = "LB",    roles = { "LB" },                   words = "UI_ZeD_PadFig_RoleLB",   help = "UI_ZeD_PadFig_HelpLB", names = { "LB", "RB" } },
     { id = "DPAD",  roles = { "DU", "DD", "DL", "DR" }, words = "UI_ZeD_PadFig_RoleDPad", help = "UI_ZeD_CMap_DPad" },
     { id = "LS",    roles = { "LS", "L3" },             words = "UI_ZeD_PadFig_RoleLS",   help = "UI_ZeD_CMap_LS", dial = "ls", click = "L3" },
-    { id = "SEL",   roles = { "SEL" },                  words = "UI_ZeD_PadFig_RoleView", help = "UI_ZeD_CMap_View" },
+    { id = "SEL",   roles = { "SEL" },                  words = "UI_ZeD_PadFig_RoleView", help = "UI_ZeD_CMap_SelWheel" },   -- (punch list 262)
     { id = "START", roles = { "START" },                words = "UI_ZeD_PadFig_RoleMenu", help = "UI_ZeD_CMap_Menu" },
     { id = "RT",    roles = { "RT" },                   words = "UI_ZeD_PadFig_RoleRT",   help = "UI_ZeD_CMap_Triggers", pct = "rt" },
     { id = "RB",    roles = { "RB" },                   words = "UI_ZeD_PadFig_RoleRB",   help = "UI_ZeD_PadFig_HelpRB", names = { "RB", "LB" } },

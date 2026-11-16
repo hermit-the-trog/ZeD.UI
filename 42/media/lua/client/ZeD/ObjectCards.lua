@@ -1426,12 +1426,24 @@ function ZeD_ObjectCard:prerender()
     -- jump / follow focus inside the body
     local target = self._jumpTo or self._fid
     if target and needs and target ~= self._followId then
+        -- (Nov 16 2026, punch list 257: the topmost stop is the card's top: a stop in the fixed header over the body
+        -- (the pop-out button) or the body's highest one scrolls the body to the very top, the art over it with it)
+        local topY
         for _, z in ipairs(self._zones) do
+            if z.fid and z.body and not z.nofocus and (not topY or z.y < topY) then topY = z.y end
+        end
+        for _, z in ipairs(self._zones) do
+            if z.fid == target and not z.body and z.y + (z.h or 0) <= viewY + 1 then
+                if off > 0 then scroll:setScrollPos(0) end
+                self._followId = target
+                break
+            end
             if z.fid == target and z.body then
                 local span = math.max(1, totalH - viewH)
                 local cy = z.y - viewY + off
                 local newOff = off
-                if cy < off + T.px(8) then newOff = cy - T.px(8)
+                if topY and z.y <= topY + 1 and cy + z.h <= viewH - T.px(8) then newOff = 0
+                elseif cy < off + T.px(8) then newOff = cy - T.px(8)
                 elseif cy + z.h > off + viewH - T.px(8) then newOff = cy + z.h - viewH + T.px(8) end
                 newOff = math.max(0, math.min(span, newOff))
                 if newOff ~= off then scroll:setScrollPos(newOff / span) end

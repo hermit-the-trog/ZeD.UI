@@ -259,6 +259,7 @@ function ZeD_StationPopout:dirPad(dir, d)
 end
 
 function ZeD_StationPopout:onJoypadDown(button, joypadData)
+    if ZeD.padStart and ZeD.padStart(button, joypadData, self.playerNum) then return end   -- (Start pauses: punch list 263)
     local z = self:focusedZone()
     if button == Joypad.BButton then
         if self:knobGrabbed() then self._grab = false; pcall(function() ZeD.uiSound("UISelectListItem") end); return end

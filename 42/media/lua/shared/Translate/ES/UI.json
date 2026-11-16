@@ -2972,6 +2972,7 @@
     "UI_ZeD_CMap_Scroll": "Desplazar",
     "UI_ZeD_CMap_Triggers": "Del propio juego: apuntar y atacar. En el mapa, zoom.",
     "UI_ZeD_CMap_View": "En una ventana: disposición. Sin ventana abierta: mantenlo para la rueda de ZeD.",
+    "UI_ZeD_CMap_SelWheel": "Sin ventana abierta: mantenlo para la rueda de ZeD.",
     "UI_ZeD_CMap_X": "RMB: abre el menú contextual.",
     "UI_ZeD_CMap_Y": "Toque: abre, oculta o muestra ambas ventanas. Mantener: cierra ambas.",
     "UI_ZeD_Close": "Cerrar",

@@ -240,7 +240,7 @@ function ZeD_SeatPopout:close()
     self._drag = nil
     self:setVisible(false)
     self:removeFromUIManager()
-    if JoypadState.players[self.playerNum + 1] then setJoypadFocus(self.playerNum, nil) end
+    S.padBack(self)   -- (the pad goes back where it came from: ZeD_SeatChooser.lua)
 end
 
 -- ---------------------------------------------------------------------------
@@ -803,6 +803,7 @@ function S.popToggle(playerObj, vehicle)
     p:addToUIManager()
     p:setAlwaysOnTop(true)
     if JoypadState.players[pn + 1] then
+        S.padFrom(p, pn)
         JoypadState.players[pn + 1].focus = p
         updateJoypadFocus(JoypadState.players[pn + 1])
     end

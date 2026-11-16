@@ -2972,6 +2972,7 @@
     "UI_ZeD_CMap_Scroll": "Przewijanie",
     "UI_ZeD_CMap_Triggers": "Własne gry: celowanie i atak. Na mapie przybliżanie.",
     "UI_ZeD_CMap_View": "W oknie: układ. Bez otwartego okna: przytrzymaj dla koła ZeD.",
+    "UI_ZeD_CMap_SelWheel": "Bez otwartego okna: przytrzymaj dla koła ZeD.",
     "UI_ZeD_CMap_X": "PPM: otwiera menu kontekstowe.",
     "UI_ZeD_CMap_Y": "Stuknięcie: otwiera, chowa lub pokazuje oba okna. Przytrzymanie: zamyka oba.",
     "UI_ZeD_Close": "Zamknij",

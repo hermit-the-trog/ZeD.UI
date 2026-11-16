@@ -1124,10 +1124,15 @@ step(1, function()
     local sb = (cs and cs.scroll) or cnt._scroll
     S.sortSave = { cnt = cnt, cs = cs, col = cnt._sortCol, asc = cnt._sortAsc, cscol = cs and cs.sortCol, csasc = cs and cs.sortAsc,
                    sb = sb, pos = sb and sb.scrollPos }
-    local before = (cs and cs.sortCol) or cnt._sortCol or "name"
+    -- (L3 reverses an A-Z sort first, then the press after goes on to the next column: either counts)
+    local function sortNow()
+        if cs then return tostring(cs.sortCol or "name") .. (cs.sortAsc == false and " desc" or " asc") end
+        return tostring(cnt._sortCol or "name") .. (cnt._sortAsc == false and " desc" or " asc")
+    end
+    local before = sortNow()
     cw:onJoypadDown(Joypad.LStickButton, nil)
-    local after = (cs and cs.sortCol) or cnt._sortCol or "name"
-    check(after ~= before, "pad path: L3 steps the list's sort (list_sort)", tostring(before) .. " -> " .. tostring(after), "the next column")
+    local after = sortNow()
+    check(after ~= before, "pad path: L3 steps the list's sort (list_sort)", before .. " -> " .. after, "reversed or the next column")
     restoreSort()
 end)
 

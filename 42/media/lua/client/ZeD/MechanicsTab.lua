@@ -2187,14 +2187,21 @@ local function renderSplit(panel, win, s, x, y, w, h, v, chr, inspected)
     end
 
     -- gamepad scroll-follow, in the column the focused element is in
+    if not (gpId and s.byId[gpId] and s.byId[gpId].pane == "right") then s._followRight = nil end
     if gpId then
         local z = s.byId[gpId]
         if z and z.clip then
             local c = z.clip
             if z.pane == "right" then
-                if z.y < c.y then s.cardScroll = math.max(0, s.cardScroll - (c.y - z.y))
-                elseif z.y + z.h > c.y + c.h then s.cardScroll = math.min(s.maxRight or 0, s.cardScroll + (z.y + z.h - (c.y + c.h))) end
+                -- (Nov 16 2026, punch list 258: once, as the focus lands, so the pad scroll (FocusManager.lua) can
+                -- bring the lines above the first verb into view without this pulling the card back)
+                if s._followRight ~= gpId then
+                    s._followRight = gpId
+                    if z.y < c.y then s.cardScroll = math.max(0, s.cardScroll - (c.y - z.y))
+                    elseif z.y + z.h > c.y + c.h then s.cardScroll = math.min(s.maxRight or 0, s.cardScroll + (z.y + z.h - (c.y + c.h))) end
+                end
             else
+                s._followRight = nil
                 if z.y < c.y then s.scrollY = math.max(0, s.scrollY - (c.y - z.y))
                 elseif z.y + z.h > c.y + c.h then s.scrollY = math.min(s.maxScroll or 0, s.scrollY + (z.y + z.h - (c.y + c.h))) end
             end
@@ -2358,6 +2365,18 @@ function MT.buildFocusables(win)
                     local e = currentEntry(s)
                     if e and chr and s.card then partContextMenu(e.vehicle:getPartById(s.card), chr) end
                 end
+            end
+            -- (Nov 16 2026, punch list 258: the right column, the part card or the diagram, is one scrolled view:
+            -- Up from its first verb shows the lines above it, Down past its last reads on (FocusManager.lua))
+            -- (the card's verbs in the band read it too, for a card with no stop of its own in the column)
+            local rc = (zz.pane == "right" and zz.clip)
+                or (s.card and type(zz.id) == "string" and zz.id:sub(1, 10) == "mech:verb:" and s.rightClip) or nil
+            if rc and not s.sortOpen and (s.maxRight or 0) > 0 then
+                local Fo = ZeD.Input and ZeD.Input.Focus
+                local c = rc
+                el.scrollView = Fo and Fo.scrollView and Fo.scrollView("mech:right", c.y, c.h, s.cardScroll or 0, s.maxRight,
+                    function(n) s.cardScroll = n end) or nil
+                el.scrollFixed = (zz.pane ~= "right") or nil   -- (a verb in the band stays where it is)
             end
             els[#els + 1] = el
         end

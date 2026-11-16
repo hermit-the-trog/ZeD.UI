@@ -97,7 +97,10 @@ ZeD.Input.Actions = {
 
     -- ----- LAYOUT MODE (View/Share/Select button) ---------------------------
     -- Reserved: a modal layout-edit toggle on the focused window. Nothing
-    -- dispatches it yet. KBM has no binding; layout editing is a gamepad UX.
+    -- dispatches it, and what it would do was never designed, so the
+    -- Controller map no longer offers it (punch list 262, Nov 16 2026: Select
+    -- in a window does nothing; with no window it opens the ZeD wheel, the
+    -- D-pad wheels' own handling). KBM has no binding.
     layout_mode = {
         kbm = nil,
         gamepad = "Back",

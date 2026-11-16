@@ -280,6 +280,13 @@ function ZeD_MMSandbox:startCell(r)
     self.cell:focus()
     pcall(function() self.cell:selectAll() end)   -- typing replaces the number, as in a spreadsheet cell
     MM.clickSound()
+    -- with a controller the pad keyboard opens on the cell (punch list 252); closing it keeps a valid number, as a
+    -- click elsewhere does, and the hand stays on the row
+    local KB = ZeD.Keyboard
+    if MM.gamepad() and KB and KB.edit then
+        local jd = MM.joypad and MM.joypad() or nil
+        KB.edit(self.cell, jd and jd.player or 0, { jd = jd, onAccept = function() self:commitCell() end })
+    end
 end
 
 function ZeD_MMSandbox:cellValid()
@@ -638,7 +645,10 @@ function ZeD_MMSandbox:buildStrip(stripY, stripH, w)
         local firstBtn = w
         for _, b in ipairs(self._specs) do if b.row == row then firstBtn = math.min(firstBtn, b.x) end end
         local fh = T.px(24)
-        UI.styleEntry(self.field, fx, stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx), fh)
+        local fy, fw = stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx)
+        UI.styleEntry(self.field, fx, fy, fw, fh)
+        -- the preset name's controller stop, left of the buttons: A opens the pad keyboard (punch list 252)
+        if UI.fieldStop then UI.fieldStop(self, self.field, "field:band", fx, fy, fw, fh, row, 0) end
     else
         UI.stripSpecs(self, stripY, w, row,
             { { "back", getText("UI_btn_back"), function() self:back() end } },

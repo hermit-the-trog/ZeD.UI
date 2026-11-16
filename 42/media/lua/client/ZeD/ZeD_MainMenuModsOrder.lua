@@ -1139,19 +1139,40 @@ function ZeD_MMMods:orderDetailItems(items, rw, finding)
     addText(items, rw, ZeD.tr("UI_ZeD_Order_DetKeptText"), nil, true)
 end
 
+-- (Nov 16 2026, punch list 259) The pane scrolls as one unit: the wheel over it, its bar, and the controller (Up or
+-- Down past its last control in sight scrolls it, MM.paneView; a control the pad lands on is brought into view,
+-- orderPaneFollow). A separator with many mods kept "Delete separator" and "Start separators from folders" out of
+-- reach of both before: the pane stopped drawing at its foot and made no buttons below it.
+-- the pane's scroll for this frame: back to the top for another pick, kept inside what there is to scroll
+local function paneOff(self, vh)
+    local key = tostring(self.page) .. ":" .. tostring(self.oSel) .. ":" .. tostring(self.oSepSel) .. ":" .. tostring(self.oHeldSel)
+    if self._oDetKey ~= key then self._oDetKey, self.oDscroll = key, 0 end
+    local most = math.max(0, (self._oDetH or 0) - vh)
+    local off = math.max(0, math.min(self.oDscroll or 0, most))
+    self.oDscroll = off
+    return off, most
+end
+
 function ZeD_MMMods:drawOrderDetail(px0, y, pw0, h, modal)
     local T = ZeD.T
     ZeD.Atoms.frame(self, px0, y, pw0, h, T.borderS)
+    local vy, vh = y + T.px(1), h - 2 * T.px(1)
+    local vbot = vy + vh
+    local off, most = paneOff(self, vh)
+    local sbW = T.sp.scrollbarW
+    local over = most > 0
     local rx = px0 + T.px(DETAIL_PAD)
-    local rw = pw0 - T.px(DETAIL_PAD) * 2
-    local bottom = y + h - T.px(DETAIL_PAD)
-    local cy = y + T.px(DETAIL_PAD)
+    local rw = pw0 - T.px(DETAIL_PAD) * 2 - (over and sbW or 0)
+    local top = y + T.px(DETAIL_PAD) - off
+    local cy = top
     local f1, f2 = T.fontF1, T.fontF2
     local lh = MM.fontH(f2) + T.px(3)
     local bh = T.buttonH
     local rowN = 500
+    local i0 = #self._specs + 1
+    self._oDetBox = { x = px0, y = vy, w = pw0, h = vh }
+    self:setStencilRect(px0 + T.px(1), vy, pw0 - 2 * T.px(1), vh)
     for _, it in ipairs(self:orderDetailModel(rw).items) do
-        if cy > bottom then break end
         if it.t == "title" then
             local hf = ZeD.Font.sdf.head
             local z = 20 * (T.scale or 1) / (hf.face or 64)
@@ -1179,7 +1200,7 @@ function ZeD_MMMods:drawOrderDetail(px0, y, pw0, h, modal)
             -- a separator's label swatches (ZeD_MainMenuModsFolders: labelSwatches)
             rowN = rowN + 1
             local uid = it.uid
-            cy = self:labelSwatches(rx, cy + T.px(2), it.sp.label, function(k) self:sepSetLabel(uid, k) end, rowN, y, bottom - y, "slabel", modal) + T.px(8)
+            cy = self:labelSwatches(rx, cy + T.px(2), it.sp.label, function(k) self:sepSetLabel(uid, k) end, rowN, vy, vh, "slabel", modal) + T.px(8)
         elseif it.t == "btns" then
             local bx = rx
             rowN = rowN + 1
@@ -1187,7 +1208,9 @@ function ZeD_MMMods:drawOrderDetail(px0, y, pw0, h, modal)
                 local bw = ZeD.Molecules.buttonW(b.text)
                 if bx + bw > rx + rw and bx > rx then bx = rx; cy = cy + bh + T.px(6); rowN = rowN + 1 end
                 b.x, b.y, b.w, b.h, b.row, b.col = bx, cy, bw, bh, rowN, ci
-                if not modal and cy + bh <= bottom then self._specs[#self._specs + 1] = b end
+                -- (out of the pane's view it is a stop for the pane's own moves only, and draws and clicks once in view)
+                b.clipTop, b.clipBot = vy, vbot
+                if not modal then self._specs[#self._specs + 1] = b end
                 bx = bx + bw + T.px(6)
             end
             cy = cy + bh + T.px(8)
@@ -1200,7 +1223,7 @@ function ZeD_MMMods:drawOrderDetail(px0, y, pw0, h, modal)
                 ZeD.Atoms.drawStatusDot(self, rx, cy + math.floor((MM.fontH(f2) - dsz) / 2), it.dot, dsz)
             end
             for _, l in ipairs(it.lines) do
-                self:drawText(l, tx, ly, c.r, c.g, c.b, c.a or 1, f2)
+                if ly + lh > vy and ly < vbot then self:drawText(l, tx, ly, c.r, c.g, c.b, c.a or 1, f2) end
                 ly = ly + lh
             end
             if it.t == "rule" then
@@ -1208,12 +1231,59 @@ function ZeD_MMMods:drawOrderDetail(px0, y, pw0, h, modal)
                 local b = it.btn
                 b.w, b.h = ZeD.Molecules.buttonW(b.text), bh
                 b.x, b.y, b.row, b.col = rx + rw - b.w, cy, rowN, 1
-                if not modal and cy + bh <= bottom then self._specs[#self._specs + 1] = b end
+                b.clipTop, b.clipBot = vy, vbot
+                if not modal then self._specs[#self._specs + 1] = b end
                 ly = math.max(ly, cy + bh + T.px(4))
             end
             cy = ly + T.px(2)
         end
     end
+    self:clearStencilRect()
+    -- the whole of it, for the next frame's scroll; its bar; the pad's view of it (its controls, else a read stop)
+    self._oDetH = (cy - top) + T.px(DETAIL_PAD) * 2
+    if over then
+        MM.scrollBar(self, "mods:odet", px0 + pw0 - T.px(1) - sbW, vy, sbW, vh, off, self._oDetH,
+            function(v) self.oDscroll = v end, { step = T.px(40), noHit = self.pick and true or nil })
+    end
+    for i = i0, #self._specs do self._specs[i].oPane = true end
+    if not modal and MM.panePad and MM.paneView then
+        MM.panePad(self, i0, MM.paneView("mods:odet", vy, vh, off, self._oDetH, function(n) self.oDscroll = n end),
+            { x = px0, y = vy, w = pw0, h = vh }, nil, "odet:read")
+    end
+end
+
+--- The pad's follow in the pane: a control of it the focus lands on comes into view (kept a little clear of the
+--- edge). Run after each D-pad move on the load order and map order pages.
+function ZeD_MMMods:orderPaneFollow()
+    local box = self._oDetBox
+    if not box then return end
+    for _, b in ipairs(self._specs or EMPTY) do
+        if b.id == self.focusId and b.oPane and b.y and b.h then
+            local m = ZeD.T.px(8)
+            if b.y < box.y then self.oDscroll = math.max(0, (self.oDscroll or 0) - (box.y - b.y) - m)
+            elseif b.y + b.h > box.y + box.h then self.oDscroll = (self.oDscroll or 0) + (b.y + b.h - box.y - box.h) + m end
+            return
+        end
+    end
+end
+
+-- the wheel over the pane scrolls it; the D-pad's moves bring its controls into view
+local _orderWheel = ZeD_MMMods.wheel
+function ZeD_MMMods:wheel(del)
+    local d = self._oDetBox
+    if (self.page == "order" or self.page == "maps") and d and not self.pick then
+        local mx, my = getMouseX() - self:getAbsoluteX(), getMouseY() - self:getAbsoluteY()
+        if mx >= d.x and mx <= d.x + d.w and my >= d.y and my <= d.y + d.h then
+            self.oDscroll = math.max(0, (self.oDscroll or 0) + del * ZeD.T.px(40))
+            return true
+        end
+    end
+    return _orderWheel(self, del)
+end
+local _orderJoyDir = ZeD_MMMods.joyDir
+function ZeD_MMMods:joyDir(dir)
+    _orderJoyDir(self, dir)
+    if self.page == "order" or self.page == "maps" then self:orderPaneFollow() end
 end
 
 -- ----------------------------------------------------------------------------

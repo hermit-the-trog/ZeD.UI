@@ -137,7 +137,32 @@ end
 function ZeD_SeatChooser:close()
     self:setVisible(false)
     self:removeFromUIManager()
-    if JoypadState.players[self.playerNum + 1] then setJoypadFocus(self.playerNum, nil) end
+    S.padBack(self)
+end
+
+--- The chooser (or the seat pop-out) closed: the pad goes back where it came from (self.origin, what held it when it
+--- opened: the car's dash, a ZeD window) while that is still up, else to the focused ZeD window, else to the game, as
+--- a ZeD menu does (Focus.menuClosed).
+function S.padBack(self)
+    local pn = self.playerNum or 0
+    if not JoypadState.players[pn + 1] then return end
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    if Fo and Fo.menuClosed then
+        local ok = pcall(Fo.menuClosed, self, pn)
+        if ok then return end
+    end
+    setJoypadFocus(pn, nil)
+end
+
+--- What holds player pn's pad as the chooser (or the pop-out) w opens: where B or a seat taken gives it back.
+function S.padFrom(w, pn)
+    local jp = JoypadState.players[pn + 1]
+    local f = jp and jp.focus or nil
+    -- (a ZeD window holding the pad, the dash among them, gets it back through ZeD's own focus, which knows if it
+    -- still wants it: the dash lets go when you leave the driver's seat)
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    if f and Fo and Fo.getFocusedWindow and Fo.getFocusedWindow(pn) == f then f = nil end
+    w.origin = (f ~= w) and f or nil
 end
 
 -- ---------------------------------------------------------------------------
@@ -624,6 +649,7 @@ function ZeD_SeatChooser:onLoseJoypadFocus(joypadData) self.joyfocus = nil end
 
 -- the D-pad arrives as onJoypadDir* (and as onJoypadDown too): only the Dir path moves
 function ZeD_SeatChooser:onJoypadDown(button, joypadData)
+    if ZeD.padStart and ZeD.padStart(button, joypadData, self.playerNum) then return end   -- (Start pauses: punch list 263; the seat pop-out shares this)
     if button == Joypad.AButton then self:useSeat(self.joypadSeat - 1)
     elseif button == Joypad.XButton then self:exitSeat(self.joypadSeat - 1)
     elseif button == Joypad.BButton then self:close() end
@@ -670,6 +696,7 @@ function S.toggle(playerObj, vehicle)
     win:addToUIManager()
     win:setAlwaysOnTop(true)
     if JoypadState.players[pn + 1] then
+        S.padFrom(win, pn)
         JoypadState.players[pn + 1].focus = win
         updateJoypadFocus(JoypadState.players[pn + 1])
     end

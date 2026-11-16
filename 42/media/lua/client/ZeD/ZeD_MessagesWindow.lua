@@ -831,6 +831,7 @@ local function padScroll(self, dir)
 end
 
 function ZeD_MessagesWindow:onJoypadDown(button, joypadData)
+    if ZeD.padStart and ZeD.padStart(button, joypadData, self.playerNum) then return end   -- (Start pauses: punch list 263)
     if button == Joypad.BButton then
         if self.asking then self:cancelAsk()
         elseif self.zone == "cards" and self.cardsGrab then self:grabCards(false); sound("UISelectListItem")

@@ -977,6 +977,10 @@ local function renderJournal(panel, win, x, y, w, h)
         -- (Save is in the band, which does not scroll)
         if gpFocusedId == "journal:__kills" and win._journalKillsZone then
             ty, th = win._journalKillsZone.y, win._journalKillsZone.h
+        elseif gpFocusedId == "journal:__write" and win._journalWriteZone then
+            ty, th = win._journalWriteZone.y, win._journalWriteZone.h
+        elseif gpFocusedId == "jr:into" and win._journalIntoZone then
+            ty, th = win._journalIntoZone.y, win._journalIntoZone.h
         elseif win._journalGroupZones then
             for _, z in ipairs(win._journalGroupZones) do
                 if ("journal:group:" .. tostring(z.id)) == gpFocusedId then
@@ -1080,14 +1084,26 @@ local function renderJournal(panel, win, x, y, w, h)
         local _, entryR = M.bandRoom(panel, x, drawW, T.px(80))
         entryBox:setWidth(entryR - x)
         entryBox:setHeight(T.px(ENTRY_INPUT_H))
+        -- the controller's stop on it (punch list 252: A opens the pad keyboard) and its mark
+        local wz = win._journalWriteZone or {}
+        win._journalWriteZone = wz
+        wz.x, wz.y, wz.w, wz.h = x, curY, entryR - x, T.px(ENTRY_INPUT_H)
+        local wf = focusOf(win, "journal:__write")
+        if wf and ZeD.Focus and ZeD.Focus.mark then ZeD.Focus.mark(panel, wz.x, wz.y, wz.w, wz.h, wf) end
         curY = curY + T.px(ENTRY_INPUT_H) + T.sp.xs
     end
     -- the tag picks under it (ticked ones go with the entry on Save)
     curY = curY + drawPicks(panel, win, x, curY, drawW, y, y + h) + T.sp.xs
+    win._journalIntoZone = nil
     if intoShown then
         -- Into: the log only, or a carried notebook the character writes it in too (it stays
-        -- with the write box)
-        ZeD.JournalReaders.drawLogInto(panel, win, x, curY, drawW, T.buttonH)
+        -- with the write box); its place for the controller's scroll-follow (punch list 254)
+        local iw = ZeD.JournalReaders.drawLogInto(panel, win, x, curY, drawW, T.buttonH)
+        if iw and iw > 0 then
+            local iz = win._journalIntoKeep or {}
+            win._journalIntoKeep, win._journalIntoZone = iz, iz
+            iz.x, iz.y, iz.w, iz.h = x, curY, iw, T.buttonH
+        end
         curY = curY + T.buttonH + T.sp.sm
     end
 
@@ -1291,6 +1307,8 @@ function ZeD.JournalTab.confirmDelete(win)
     for i, e in ipairs(entries) do
         if e == ask.entry then
             table.remove(entries, i)
+            -- the controller lands on the entry that took its place, else the one before it (JT.land)
+            win._journalLand = { entry = entries[i] or entries[i - 1], at = i }
             break
         end
     end
@@ -1298,9 +1316,40 @@ function ZeD.JournalTab.confirmDelete(win)
     win._journalGroupCache = nil
 end
 
---- Drop the question (the Cancel answer).
+--- Drop the question (the Cancel answer): the controller goes back to the entry's delete cross.
 function ZeD.JournalTab.cancelDelete(win)
-    if win then win._journalAsk, win._journalAskRects = nil, nil end
+    if not win then return end
+    local ask = win._journalAsk
+    win._journalAsk, win._journalAskRects = nil, nil
+    if ask and ask.entry then win._journalLand = { entry = ask.entry } end
+end
+
+--- Where the controller lands after the delete question (the Log page's builder calls it with its stops): the
+-- entry's delete cross on Cancel; after Delete the next entry's, else the one before. An entry out of the pad's
+-- reach gives the nearest cross. Sets elements._focusIdx.
+function ZeD.JournalTab.land(win, elements)
+    local l = win and win._journalLand
+    if not (l and elements) then return end
+    win._journalLand = nil
+    local entries = journalEntries(win)
+    if not (entries and l.entry) then return end
+    local want = l.at
+    for i, e in ipairs(entries) do
+        if e == l.entry then want = i; break end
+    end
+    if not want then return end
+    local best, bestD = nil, nil
+    for i, el in ipairs(elements) do
+        if el.journalKind == "delete" and el.entryIdx then
+            local d = math.abs(el.entryIdx - want)
+            if not bestD or d < bestD then best, bestD = i, d end
+        end
+    end
+    if best then elements._focusIdx = best
+    elseif (l.tries or 0) < 5 then
+        l.tries = (l.tries or 0) + 1   -- (the crosses not stamped yet: tried again on the next builds)
+        win._journalLand = l
+    end
 end
 
 --- A click on the question band's buttons (the Character window's click path reaches it
@@ -1487,6 +1536,12 @@ end
 -- (a paper's quick look) shows the box greyed.
 local function placeSearch(panel, win, page, x, y, w, h)
     local f = nil
+    -- the controller's stop on the page's search (punch list 252; JT.headerFocusables): stamped
+    -- here for the Journal, Notebooks, Papers and Loadouts pages (Recipes' is CraftingCore's)
+    local fz = win._journalFindZone or {}
+    win._journalFindZone = fz
+    fz.x, fz.y, fz.w, fz.h, fz.field = x, y, w, h, nil
+    if page == 5 and ZeD.JournalLists and ZeD.JournalLists.state(win).searchShown ~= false then fz.field = win._jlSearch end
     if page == 1 then f = win._journalSearch
     elseif page == 2 or page == 3 then
         if ZeD.JournalReaders.searchVisible(win, page) then
@@ -1498,11 +1553,16 @@ local function placeSearch(panel, win, page, x, y, w, h)
         return
     elseif page == 5 and ZeD.JournalLists then
         ZeD.JournalLists.placeSearch(win, x, y, w, h)
+        local mf = fz.field and focusOf(win, "journal:__find")
+        if mf and ZeD.Focus and ZeD.Focus.mark then ZeD.Focus.mark(panel, x, y, w, h, mf) end
         return
     end
     if f then
         if f:getX() ~= x or f:getY() ~= y then f:setX(x); f:setY(y) end
         if f:getWidth() ~= w or f:getHeight() ~= h then f:setWidth(w); f:setHeight(h) end
+        fz.field = f
+        local mf = focusOf(win, "journal:__find")
+        if mf and ZeD.Focus and ZeD.Focus.mark then ZeD.Focus.mark(panel, x, y, w, h, mf) end
         return
     end
     -- greyed: the frame and the page's search words, dim
@@ -1643,6 +1703,8 @@ function ZeD.JournalTab.padKey(win)
     local pz, tz, gz = win._journalPickZones, win._journalTagZones, win._journalGroupZones
     return tostring(pz and pz[1] and pz[1].y) .. ":" .. tostring(pz and pz[#pz] and pz[#pz].y) .. ":" .. tostring(tz and #tz)
         .. ":" .. tostring(gz and gz[1] and gz[1].y) .. ":" .. tostring(win._journalSearchText)
+        -- (the Into picker comes and goes with a carried notebook, and its width with the notebook's name)
+        .. ":" .. tostring(win._journalIntoZone and win._journalIntoZone.w)
 end
 
 --- A click on the header: a tab opens its page; the rest of the header takes its clicks too (nothing
@@ -1676,13 +1738,30 @@ end
 local function tabActivate(w, el) ZeD.JournalTab.setPage(w, el.page) end
 local function tabFocus() end
 
---- The header's controller stops: the pages' tabs ("jtab:<page>", left to right).
+-- the page's search stop: A opens the pad keyboard on it (punch list 252); the keyboard's RT or B
+-- gives the pad back to the box
+local function findActivate(w, el)
+    local z = w._journalFindZone
+    local KB = ZeD.Keyboard
+    if not (z and z.field and KB and KB.edit) then return end
+    local pn = (w._playerObj and w._playerObj:getPlayerNum()) or w.playerNum or 0
+    KB.edit(z.field, pn)
+end
+
+--- The header's controller stops: the page's search (right of the title; not on Recipes, whose
+--- search is CraftingCore's stop) and the pages' tabs ("jtab:<page>", left to right).
 function ZeD.JournalTab.headerFocusables(win)
     local out = {}
     if not win then return out end
     for _, z in ipairs(win._journalTabZones or {}) do
         out[#out + 1] = { x = z.x, y = z.y, w = z.w, h = z.h, id = "jtab:" .. tostring(z.page),
             journalKind = "pageTab", page = z.page, onFocus = tabFocus, onActivate = tabActivate }
+    end
+    -- (after the tabs, so landing on the tab still puts the hand on a page tab, not the search)
+    local fz = win._journalFindZone
+    if fz and fz.field and fz.field:isVisible() and (win._journalSubTab or 1) ~= 4 then
+        out[#out + 1] = { x = fz.x, y = fz.y, w = fz.w, h = fz.h, id = "journal:__find", journalKind = "find",
+            promptA = ZeD.tr("UI_ZeD_Inv_PromptType"), onFocus = tabFocus, onActivate = findActivate }
     end
     return out
 end

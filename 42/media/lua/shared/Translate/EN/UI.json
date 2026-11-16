@@ -2964,6 +2964,7 @@
     "UI_ZeD_CMap_Scroll": "Scroll",
     "UI_ZeD_CMap_Triggers": "The game's own: aim and attack. On the map, zoom.",
     "UI_ZeD_CMap_View": "In a window: layout. No window open: tap for the ZeD wheel.",
+    "UI_ZeD_CMap_SelWheel": "No window open: tap for the ZeD wheel.",
     "UI_ZeD_CMap_X": "RMB: it opens the context menu.",
     "UI_ZeD_CMap_Y": "Tap: open, hide or show both windows. Hold: close both.",
     "UI_ZeD_Close": "Close",

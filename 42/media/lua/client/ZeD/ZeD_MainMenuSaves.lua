@@ -72,7 +72,10 @@ local function drawStripAndButtons(win)
         -- a button inside a scrolled pane draws (and clicks) only while it is fully in view
         local clipped = b.clipTop and (b.y < b.clipTop or b.y + b.h > b.clipBot)
         -- (noDraw: a stop the window draws itself, a Find field)
-        if not b.band and not b.listRow and not b.noDraw and not clipped then
+        if b.readStop then
+            -- (a pane's read stop, MM.panePad: its mark only, and no box for the pointer)
+            if b.draw then b.draw(win, b, false, gp and win.focusId == b.id) end
+        elseif not b.band and not b.listRow and not b.noDraw and not clipped then
             local hid = win.kind .. ":" .. b.id
             local hot = not gp and ctx.hot == hid
             MM.drawBtn(win, b, hot, gp and win.focusId == b.id, hot and ctx.press == hid)
@@ -120,6 +123,43 @@ local function styleEntry(e, x, y, w, h)
     local b, bs = T.base, T.borderS
     e.backgroundColor = { r = b.r, g = b.g, b = b.b, a = 1 }
     e.borderColor = { r = bs.r, g = bs.g, b = bs.b, a = bs.a or 1 }
+end
+
+--- A on a typed field (punch list 252): with a controller, ZeD's pad keyboard opens on it; its RT or B gives the
+--- pad back to the menu, the hand on the field again. With the mouse, the field takes the caret. submit = true: a
+--- field whose only "go" is Return (no button does it) hears Return when the keyboard closes on some text.
+local function typeIn(e, submit)
+    if not e then return end
+    local KB = ZeD.Keyboard
+    if MM.gamepad() and KB and KB.edit then
+        local jd = MM.joypad and MM.joypad() or nil
+        local after = nil
+        if submit then
+            after = function()
+                local t = e:getText() or ""
+                if t ~= "" and e.onCommandEntered then e.onCommandEntered(e) end
+            end
+        end
+        if KB.edit(e, jd and jd.player or 0, { jd = jd, onAccept = after }) then return end
+    end
+    pcall(function() e:focus() end)
+end
+MM.typeIn = typeIn
+
+--- A typed field as one of the window's controller stops (punch list 252): a spec at (x, y, w, h) in the window
+--- (noDraw: the field draws itself) whose A is typeIn, and the controller's mark while the hand is on it. row / col
+--- order it in the old row grid only (the D-pad goes by place). extra: more of the spec's fields (clip, listId;
+--- submit: typeIn's).
+local function fieldStop(win, e, id, x, y, w, h, row, col, extra)
+    local submit = extra and extra.submit or false
+    local sp = { id = id, noDraw = true, row = row, col = col or 1, x = x, y = y, w = w, h = h, field = e,
+                 fn = function() typeIn(e, submit) end }
+    if extra then for k, v in pairs(extra) do sp[k] = v end end
+    win._specs[#win._specs + 1] = sp
+    if win.focusId == id and MM.gamepad() and ZeD.Focus and ZeD.Focus.mark and MM.focusOpts then
+        ZeD.Focus.mark(win, x, y, w, h, MM.focusOpts(win))
+    end
+    return sp
 end
 
 --- The window's place on the monitor: below the menu bar, margins all round; with h, that tall
@@ -537,6 +577,9 @@ function ZeD_MMLoad:drawList(x, y, w, h)
     -- the field takes the click itself (the screen's glass sits above every panel)
     self._hits[#self._hits + 1] = { id = "load:find", x = ax + self.find.x, y = ay + self.find.y, w = self.find.width, h = self.find.height,
                                     fn = function() self.find:focus() end }
+    -- the controller's stop on it (punch list 252): A opens the pad keyboard (after the rows in the old grid, so
+    -- the hand still lands on a save)
+    fieldStop(self, self.find, "find", self.find.x, self.find.y, self.find.width, self.find.height, 999)
 
     -- the rows, scrolled inside the box
     local vy, vh = y + fH + T.px(1), h - fH - T.px(2)
@@ -1106,4 +1149,5 @@ function ZeD_MMDesk:onMouseWheel(del) return MM.wheel(del) end
 --- The shared helpers, MM.ui: nearly every ZeD_MainMenu*.lua window (Mods, Options, Sandbox, the
 --- desk's notes and mail, ...) and Sandbox in game draw their bands, fields and boxes with these.
 MM.ui = { insetBox = insetBox, newEntry = newEntry, styleEntry = styleEntry, placeOnTube = placeOnTube,
-          stripSpecs = stripSpecs, drawStripAndButtons = drawStripAndButtons, plain = plain }
+          stripSpecs = stripSpecs, drawStripAndButtons = drawStripAndButtons, plain = plain,
+          typeIn = typeIn, fieldStop = fieldStop }

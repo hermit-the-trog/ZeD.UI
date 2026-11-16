@@ -5154,16 +5154,16 @@ where focus goes after something opens or acts, every panel that can't be scroll
 panels too), and things built but never wired. Six read-only passes over beta 17's code (8db5bf8e8); QA checked the
 items marked "confirmed" in the code. "Check in game" means the code reads that way but the game may cover it.
 
-249. **Trash can's "Remove all": the controller lands on Remove, so a second A deletes everything.** open.
+249. **Trash can's "Remove all": the controller lands on Remove, so a second A deletes everything.** built in beta 17 (Build, Nov 16), check in game.
    Confirmed. ContainerControls.lua:1131 sets the question; the band has only Cancel and Remove (:1054-1055);
    CT.syncFocus (:1188) keeps the old index, clamped to 2 = Remove. Live in beta 16. Focus should land on Cancel.
    Sent to Build ahead of the list.
-250. **Belt: its controller code is never called.** open. Confirmed: B.focus (ZeD_Belt.lua:2466) has no caller since
+250. **Belt: its controller code is never called.** built in beta 17 (Build, Nov 16), check in game. Confirmed: B.focus (ZeD_Belt.lua:2466) has no caller since
    D-pad Left opens the Character wheel. The belt's wrist watch (light, set, the full watch face) and other mods'
    belt boxes (B.addBox, e.g. the mask filter) can't be used by pad. GAMEPAD_SPEC.md:31 still describes it.
-251. **The popped-up watch has no controller handlers.** open. Confirmed: ZeD_Watch.lua has mouse handlers only; the
+251. **The popped-up watch has no controller handlers.** built in beta 17 (Build, Nov 16), check in game. Confirmed: ZeD_Watch.lua has mouse handlers only; the
    pad can open it and toggle the alarm from the wheel but can't set the alarm time, crown or speed keys.
-252. **Text boxes the controller can't type in.** open. Confirmed for the first three; the rest read the same way.
+252. **Text boxes the controller can't type in.** built in beta 17 (Build, Nov 16), check in game. Confirmed for the first three; the rest read the same way.
    Skills, Equip and the inventory Filter already do it right (a stop whose A opens the on-screen keyboard).
    - Journal: the write box and every Journal search (ZeD_CharacterWindow.lua:4610-4652, JournalTab.lua:1488,
      ZeD_JournalLists.lua:729; the comment at :3006 says text entry stays mouse-only).
@@ -5171,14 +5171,14 @@ items marked "confirmed" in the code. "Check in game" means the code reads that 
    - Main menu: Add server and Add account forms (ZeD_MainMenuJoin.lua:545-889), Public servers' Find, Load Game's
      Find (ZeD_MainMenuSaves.lua:538), the server settings editor's typed fields (ZeD_MainMenuServer.lua:739-1023),
      Host's account name, and the Find box on Options / Sandbox / server settings (ZeD_MainMenuOptions.lua:924).
-253. **Animal zones: rename and remove are mouse only.** open. Confirmed: the rename and remove buttons and their
+253. **Animal zones: rename and remove are mouse only.** built in beta 17 (Build, Nov 16), check in game. Confirmed: the rename and remove buttons and their
    Save / Cancel / Reset and Yes / No (AnimalsTab.lua:3446-3805) are not stops, and not in a context menu.
-254. **Journal "Into notebook" picker is mouse only.** open. JournalTab.lua:1087; the jr:into zone is not a stop.
-255. **Sorting: the controller can't reverse a sort.** open. Confirmed: L3 always sets sortAsc = true
+254. **Journal "Into notebook" picker is mouse only.** built in beta 17 (Build, Nov 16), check in game. JournalTab.lua:1087; the jr:into zone is not a stop.
+255. **Sorting: the controller can't reverse a sort.** built in beta 17 (Build, Nov 16), check in game. Confirmed: L3 always sets sortAsc = true
    (InventoryRenderer.lua:431-434); the mouse reverses on a second header click. No Z-A, heaviest or worst first by pad.
-256. **Category headings can't be folded or unfolded by pad.** open. ZeD_WorldWindow.lua:5755 (cat: zone) has no stop;
+256. **Category headings can't be folded or unfolded by pad.** built in beta 17 (Build, Nov 16), check in game. ZeD_WorldWindow.lua:5755 (cat: zone) has no stop;
    a category folded with the mouse hides its rows from the pad.
-257. **Faces still get stuck partway down (248 only partly fixes it).** open. The pop-out button is a stop on every
+257. **Faces still get stuck partway down (248 only partly fixes it).** built in beta 17 (Build, Nov 16), check in game. The pop-out button is a stop on every
    face, but only the Craft tab's oven / microwave scroll back to the top when Up reaches it (Stations.lua:920).
    - Radio tab radios, CD player and two-way sets: Up from the top control lands on the header and the face stays
      scrolled down (RadioTab.lua:741-757: follow runs only for face controls; the TV is saved by its screen stop).
@@ -5187,7 +5187,7 @@ items marked "confirmed" in the code. "Check in game" means the code reads that 
      and landing on the first control leaves the art above it clipped (ObjectCards.lua:1426-1440, 1612-1626).
    - Craft tab oven: the first Up from a control not under the button lands on the station dropdown, then the button.
    Check in game in a short window with Large text.
-258. **Content above the first stop or below the last can't be scrolled into view.** open. There is no shared pad
+258. **Content above the first stop or below the last can't be scrolled into view.** built in beta 17 (Build, Nov 16), check in game. There is no shared pad
    scroll: scrolling only follows focus, and the right stick and triggers are the aiming escape. Where it shows:
    - Item card of anything but clothing: Down goes to the footer verbs, so a long card (facts, ingredients,
      "Used to make") can't be read to the bottom (ItemCard.lua:1802-1827). Check in game.
@@ -5199,18 +5199,18 @@ items marked "confirmed" in the code. "Check in game" means the code reads that 
    - Mail letters and ticket messages longer than the view: one stop per message, so the end never shows
      (ZeD_TicketCards.lua:2383-2410). The Statistics card's middle rows (ZeD_AdminTools.lua:151-226).
    - Traits: the Starting skills block below the chosen traits (ZeD_MainMenuTraits.lua).
-259. **Load order info pane cuts off, for both inputs.** open. Confirmed: ZeD_MainMenuModsOrder.lua:1154 stops drawing
+259. **Load order info pane cuts off, for both inputs.** built in beta 17 (Build, Nov 16), check in game. Confirmed: ZeD_MainMenuModsOrder.lua:1154 stops drawing
    at the bottom and :1190 / :1211 only make buttons that fit, so "Delete separator" and "Start separators from
    folders" can't be reached at all on a separator with many mods.
-260. **"Your mods" folder list on the Workshop page has no scroll.** open. ZeD_MainMenuWorkshop.lua:475: folders past
+260. **"Your mods" folder list on the Workshop page has no scroll.** built in beta 17 (Build, Nov 16), check in game. ZeD_MainMenuWorkshop.lua:475: folders past
    the bottom can't be reached by either input.
-261. **"Keep these display settings?": B skips the question.** open. Confirmed: joyB (ZeD_MainMenuOptions.lua:1970)
+261. **"Keep these display settings?": B skips the question.** built in beta 17 (Build, Nov 16), check in game. Confirmed: joyB (ZeD_MainMenuOptions.lua:1970)
    passes the monitor question to back(); Escape answers No (:2020). The 20-second revert may be skipped.
-262. **View button "layout in a window" does nothing.** open. Confirmed: layout_mode (ActionMap.lua:101) has no
+262. **View button "layout in a window" does nothing.** built in beta 17 (Build, Nov 16), taken off the Controller map (nothing defines layout mode); check the Select row wording. Confirmed: layout_mode (ActionMap.lua:101) has no
    dispatcher (FocusManager.lua:2440); the Controller map still tells players it works.
-263. **Start doesn't pause while a pop-out or reader holds the pad.** open. Only ZeD_Window forwards Start
+263. **Start doesn't pause while a pop-out or reader holds the pad.** built in beta 17 (Build, Nov 16), check in game. Only ZeD_Window forwards Start
    (Organisms.lua:1797). Face pop-outs, car dash, siren, car radio, guide book, reader, seat picker and chat swallow it.
-264. **Focus after an action lands in the wrong place.** open. Check in game.
+264. **Focus after an action lands in the wrong place.** built in beta 17 (Build, Nov 16), check in game. Check in game.
    - Journal delete question: after Cancel or Delete the focus goes to a page tab at the top (JournalTab.lua:1286-1306).
    - Equip card: after Unequip or Drop focus goes to the Equipped header and the tab scrolls to the top
      (ZeD_CharacterWindow.lua ~2338-2350); it should land on the next filled slot.
@@ -5219,14 +5219,14 @@ items marked "confirmed" in the code. "Check in game" means the code reads that 
      options (AdminTab.lua:68-102), a ticket's Player card (ZeD_TicketCards.lua:1788), the world "View safehouse"
      (ZeD_ClaimCards.lua:1568), the belt's PvP marker (ZeD_Belt.lua:1756).
    - Seat picker and seat pop-out close always drop the pad (ZeD_SeatPopout.lua:243, ZeD_SeatChooser.lua:140).
-265. **Car dash volume can't be turned down by pad.** open. ZeD_Dashboard.lua:545-816: A or X step one way only and
+265. **Car dash volume can't be turned down by pad.** built in beta 17 (Build, Nov 16), check in game. ZeD_Dashboard.lua:545-816: A or X step one way only and
    wrap; no "A grabs, D-pad turns" as on the faces. Tune, temp and fan have X for minus.
-266. **Chat window: its menu (name color, theme, accent) can't be reached by pad.** open. ZeD_Chat.lua:544, 945-975.
+266. **Chat window: its menu (name color, theme, accent) can't be reached by pad.** built in beta 17 (Build, Nov 16), check in game. ZeD_Chat.lua:544, 945-975.
    Players 2-4 can't open chat by pad (ZeD_Chat.lua:1131 uses players[1]).
-267. **Mouse / keyboard only gaps the other way.** open.
+267. **Mouse / keyboard only gaps the other way.** built in beta 17 (Build, Nov 16), check in game.
    - "Bug report" (copy caught errors) is only on the Select wheel (ZeD_DpadWheels.lua:671).
    - The community rules / join screen has no key handling (ZeD_CommunityCards.lua ~790-870).
-268. **Smaller pad gaps.** open, low priority. Identity photo turn and zoom; Equip column dividers; Spawn map pan and
+268. **Smaller pad gaps.** partly built in beta 17: the restock pin shows a "A B X Y Stop" strip; the rest still open, low priority (each needs new stops or a mode; X on an empty column not located). Identity photo turn and zoom; Equip column dividers; Spawn map pan and
    zoom; multi-select mods into a folder; Studio backdrop tray and framing; dimmed option rows can't be focused to read
    why (also an add-on group's needsWhy); mod keybind rows can't capture a key by pad; moodle descriptions on demand;
    the restock pin shows no hint that any pad button cancels it; X on an empty container column does nothing.

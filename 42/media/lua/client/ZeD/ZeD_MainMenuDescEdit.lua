@@ -454,6 +454,9 @@ function ZeD_MMDescEdit:drawPreview(x, y, w, h)
     self:clearStencilRect()
     local total = cy + self.pscroll - py + pad
     self.pscroll = math.max(0, math.min(self.pscroll, math.max(0, total - ph)))
+    -- (Nov 16 2026, punch list 258: a stop over a preview that runs long: Up and Down read it, MM.panePad)
+    MM.panePad(self, #self._specs + 1, MM.paneView("wsd:preview", py, ph, self.pscroll, total,
+        function(n) self.pscroll = n end), self._pv)
 end
 
 function ZeD_MMDescEdit:buildStrip(stripY, stripH, w)

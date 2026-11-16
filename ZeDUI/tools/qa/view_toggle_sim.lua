@@ -216,8 +216,8 @@ check("WINDOWS: the Character window builds its stops from the renderer's rects 
 check("WINDOWS: the World window builds its stops from the renderer's rects (main list and columns)",
     count(WW, "ZeD%.InventoryRenderer%.toggleElements%(") >= 2)
 check("WINDOWS: both hand a heading click to onViewZone", CW:find("onViewZone(zid, self)", 1, true) ~= nil and WW:find("onViewZone(zid, self)", 1, true) ~= nil)
--- (Nov 15 2026, punch list 245: the same line keeps an open stack's header stop too)
-local KEEP = "(fe.isViewToggle or fe.isStackHead) then keepId = fe.id"
+-- (Nov 15 2026, punch list 245: the same line keeps an open stack's header stop too; 256: and a category's heading)
+local KEEP = "(fe.isViewToggle or fe.isStackHead or fe.isCatHead) then keepId = fe.id"
 check("WINDOWS: both keep the focus on a view stop across a rebuild", CW:find(KEEP, 1, true) ~= nil
     and WW:find(KEEP, 1, true) ~= nil)
 local stale = {}

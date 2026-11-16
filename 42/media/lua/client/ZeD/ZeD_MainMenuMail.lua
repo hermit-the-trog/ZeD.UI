@@ -471,6 +471,9 @@ function ZeD_MMMail:drawLetter(b, x, y, w, h)
     if total > bot - top then
         local sbw = T.sp.scrollbarW
         MM.scrollBar(self, "mail:read", x + w - sbw - T.px(1), top, sbw, bot - top, self.rscroll, total, function(v) self.rscroll = v end, { step = lineH })
+        -- (Nov 16 2026, punch list 258: a stop over a long letter's words: Up and Down read it to its end, MM.panePad)
+        MM.panePad(self, #self._specs + 1, MM.paneView("mail:read", top, bot - top, self.rscroll, total,
+            function(n) self.rscroll = n end), self._readText)
     end
 end
 

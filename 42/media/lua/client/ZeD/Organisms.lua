@@ -1797,10 +1797,8 @@ end
 function ZeD_Window:onJoypadDown(button, joypadData)
     -- (Nov 14 2026, punch list 187: Start pauses with a ZeD window holding the pad, as the game's own windows do;
     -- the game routes every button to the focused window, and ZeD's dispatcher has no action for Start)
-    if button == Joypad.Start and joypadData and joypadData.controller and joypadData.controller.onPauseButtonPressed then
-        joypadData.controller:onPauseButtonPressed()
-        return
-    end
+    -- (the one helper every pad holder calls: ZeD.padStart, ZeD_Panel.lua, punch list 263)
+    if ZeD.padStart and ZeD.padStart(button, joypadData, self.playerNum) then return end
     -- (Nov 14 2026, punch list 184: a game cursor up (Place item, a build) while this window holds the pad: the
     -- press is the cursor's, and the windows roll up as the game's inventory does)
     local F = ZeD and ZeD.Input and ZeD.Input.Focus

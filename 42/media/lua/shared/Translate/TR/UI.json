@@ -2972,6 +2972,7 @@
     "UI_ZeD_CMap_Scroll": "Kaydır",
     "UI_ZeD_CMap_Triggers": "Oyunun kendi tuşları: nişan ve saldırı. Haritada yakınlaştırma.",
     "UI_ZeD_CMap_View": "Bir pencerede: düzen. Açık pencere yokken: ZeD çarkı için basılı tutun.",
+    "UI_ZeD_CMap_SelWheel": "Açık pencere yokken: ZeD çarkı için basılı tutun.",
     "UI_ZeD_CMap_X": "Sağ tık: bağlam menüsünü açar.",
     "UI_ZeD_CMap_Y": "Dokun: iki pencereyi açar, gizler ya da gösterir. Basılı tut: ikisini de kapatır.",
     "UI_ZeD_Close": "Kapat",

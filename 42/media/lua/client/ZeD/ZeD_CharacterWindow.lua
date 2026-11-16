@@ -1608,7 +1608,11 @@ _buildInvRowFocusables = function(win)
     -- (Nov 14 2026, punch list 202: an empty container still has its column's view button and Filter: no rows,
     -- but those stops stay, so Right from the strip lands on them and not on the footer's Take all)
     if not items or #items == 0 then
-        return ZeD.InventoryRenderer.toggleElements(c._viewToggleRects)
+        -- (punch list 256: every category folded leaves no rows, but their headings stay stops to open them by)
+        local els = ZeD.InventoryRenderer.catElements(c._useGroups and c._catOrder or nil, c._stackedGroups, c._itemRenderYMap,
+            0, ZeD.T.px(200), c._rowView, nil, nil, c._inventory)
+        for _, e in ipairs(ZeD.InventoryRenderer.toggleElements(c._viewToggleRects)) do els[#els + 1] = e end
+        return els
     end
     local elements = {}
     -- Bounds must be distinct per element so the cone-nav algorithm can
@@ -1722,6 +1726,10 @@ _buildInvRowFocusables = function(win)
     end
     -- an open stack's header row: a stop of its own (Nov 15 2026, punch list 245; A on it shuts the stack)
     for _, e in ipairs(ZeD.InventoryRenderer.headElements(c._openHeads, yMap, 0, T.px(200), c._rowView, nil, nil, c._inventory)) do
+        elements[#elements + 1] = e
+    end
+    -- a category's heading: a stop of its own (Nov 16 2026, punch list 256; A folds or opens it)
+    for _, e in ipairs(ZeD.InventoryRenderer.catElements(c._useGroups and c._catOrder or nil, c._stackedGroups, yMap, 0, T.px(200), c._rowView, nil, nil, c._inventory)) do
         elements[#elements + 1] = e
     end
     -- Seed first-item focus so accent paints immediately on section enter
@@ -1868,6 +1876,10 @@ _buildCharacterMCColumnFocusables = function(win, slot)
     end
     -- an open stack's header row: a stop of its own (Nov 15 2026, punch list 245; A on it shuts the stack)
     for _, e in ipairs(ZeD.InventoryRenderer.headElements(cs.openHeads, yMap, colX, colW, cs.rowView, slot, cs.containerIdx, cs.inventory)) do
+        elements[#elements + 1] = e
+    end
+    -- a category's heading: a stop of its own (Nov 16 2026, punch list 256; A folds or opens it)
+    for _, e in ipairs(ZeD.InventoryRenderer.catElements(cs.catHeads, cs.catGroups, yMap, colX, colW, cs.rowView, slot, cs.containerIdx, cs.inventory)) do
         elements[#elements + 1] = e
     end
     -- rows out of the column's view: for the column's own Up / Down only
@@ -2409,16 +2421,63 @@ local function _buildEquipmentFocusables(win)
     if win and ZeD.EquipLoadout then ZeD.EquipLoadout.barFocusables(win, elements) end
     if win and ZeD.EquipLoadout then ZeD.EquipLoadout.land(win, elements) end
     -- Back from a card: focus returns to the slot or row that opened it
+    local equipGone = nil
     if win and win._equipCardSeed and not win._equipSelected then
         local want = "equipslot:" .. tostring(win._equipCardSeed)
         win._equipCardSeed = nil
+        equipGone = want
         for i, el in ipairs(elements) do
             if el.id == want then
                 elements._focusIdx = i
                 win._gpFocusedEquipSlot = el.slotType
+                equipGone = nil
                 break
             end
         end
+    end
+    -- A worn thing gone from its slot (the card's Unequip or Drop, or the action finishing after): the focus goes to
+    -- the next filled slot down, else the one above, not to the heading at the top (the tab's view follows the focus).
+    -- win._equipFilledOrder is the filled slots' order as last built.
+    if win and not finding and not elements._focusIdx then
+        local cur = win._gpFocusedEquipSlot
+        if not equipGone and cur ~= nil and string.sub(tostring(cur), 1, 2) ~= "__" then equipGone = "equipslot:" .. tostring(cur) end
+        local order = win._equipFilledOrder
+        local k = nil
+        for i = 1, (equipGone and order) and #order or 0 do
+            if order[i] == equipGone then k = i; break end
+        end
+        -- (only a slot the last build had filled; looked for in this build's stops only then)
+        local have = nil
+        if k then
+            have = {}
+            for i, el in ipairs(elements) do if el.id ~= nil then have[el.id] = i end end
+            if have[equipGone] then k = nil end
+        end
+        if k then
+            local pick = nil
+            for i = k + 1, #order do
+                if have[order[i]] then pick = have[order[i]]; break end
+            end
+            if not pick then
+                for i = k - 1, 1, -1 do
+                    if have[order[i]] then pick = have[order[i]]; break end
+                end
+            end
+            if pick then
+                elements._focusIdx = pick
+                win._gpFocusedEquipSlot = elements[pick].slotType
+            end
+        end
+    end
+    if win and not finding then
+        -- (two lists swapped each build: nothing made a frame)
+        local filled = win._equipFilledSpare or {}
+        for i = #filled, 1, -1 do filled[i] = nil end
+        for _, el in ipairs(elements) do
+            if el.item ~= nil and string.sub(tostring(el.id), 1, 10) == "equipslot:" then filled[#filled + 1] = el.id end
+        end
+        if #filled > 0 then win._equipFilledSpare, win._equipFilledOrder = win._equipFilledOrder, filled
+        else win._equipFilledSpare = filled end
     end
     -- after a Find clear or the keyboard's Accept: the field, or the first matching slot
     if TF and win then TF.land(win, "equip", elements, _equipFindHit) end
@@ -2999,19 +3058,44 @@ local function _buildJournalDeleteFocusables(win)
     return elements
 end
 
--- Journal page content aggregator: the kills disclosure, the tag picks under
--- the write box, the month group headers, each entry's tags and delete cross
--- (in its head row, right of the date: the D-pad walks them left and right),
--- then Save in the page's band. X on any of them clears the search. Text entry
--- stays mouse-only (no text input is a stop).
+-- Journal page: the write box (punch list 252). A opens the pad keyboard on it; the keyboard's
+-- RT or B gives the pad back to the box.
+local function _journalWriteActivate(w, el)
+    local KB = ZeD.Keyboard
+    local pn = (w._playerObj and w._playerObj:getPlayerNum()) or w.playerNum or 0
+    if KB and KB.edit then KB.edit(w._journalInput, pn) end
+end
+local function _buildJournalWriteFocusable(win)
+    local z = win and win._journalWriteZone
+    if not z or (z.w or 0) <= 0 or not (win._journalInput and win._journalInput:isVisible()) then return nil end
+    return {
+        x = z.x, y = z.y, w = z.w, h = z.h,
+        id = "journal:__write",
+        journalKind = "write",
+        promptA = ZeD.tr("UI_ZeD_Inv_PromptType"),
+        onFocus = function(w, el) end,
+        onActivate = _journalWriteActivate,
+    }
+end
+
+-- Journal page content aggregator: the kills disclosure, the write box, the
+-- tag picks under it, the Into picker (a carried notebook), the month group
+-- headers, each entry's tags and delete cross (in its head row, right of the
+-- date: the D-pad walks them left and right), then Save in the page's band.
+-- X on any of them clears the search. A on the write box opens the pad keyboard.
 local function _buildJournalSubContent(win)
     if not win then return {} end
     -- a question is up (delete an entry?): its two answers are the only stops (Cancel first; B cancels)
     local JT = ZeD.JournalTab
     if win._journalAsk and JT and JT.askFocusables then return JT.askFocusables(win) end
     local elements = _buildJournalKillsFocusable(win)
+    local write = _buildJournalWriteFocusable(win)
+    if write then elements[#elements + 1] = write end
     local tags = JT and JT.tagFocusables and JT.tagFocusables(win) or {}
     for i = 1, #tags do elements[#elements + 1] = tags[i] end
+    -- Into (punch list 254): A steps the log only, then each carried notebook
+    local into = ZeD.JournalReaders and ZeD.JournalReaders.intoFocusable and ZeD.JournalReaders.intoFocusable(win)
+    if into then elements[#elements + 1] = into end
     local groups = _buildJournalGroupFocusables(win)
     for i = 1, #groups do elements[#elements + 1] = groups[i] end
     local dels = _buildJournalDeleteFocusables(win)
@@ -3020,6 +3104,8 @@ local function _buildJournalSubContent(win)
     local save = _buildJournalSaveFocusable(win)
     if save[1] then elements[#elements + 1] = save[1] end
     if JT and JT.withClear then JT.withClear(elements) end
+    -- back from the delete question: the entry's cross (Cancel), or the next entry's (Delete)
+    if JT and JT.land then JT.land(win, elements) end
     return elements
 end
 
@@ -6559,7 +6645,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                             if z.zone == "charMainInv" then
                                 local fe = z.elements and z.elements[z.focusedElementIdx or 1]
                                 -- (an open stack's header too: no item; punch list 245)
-                                if fe and (fe.isViewToggle or fe.isStackHead) then keepId = fe.id end
+                                if fe and (fe.isViewToggle or fe.isStackHead or fe.isCatHead) then keepId = fe.id end
                             end
                         end
                         if #newEls == 0 then

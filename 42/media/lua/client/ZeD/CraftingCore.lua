@@ -1452,6 +1452,16 @@ function CC.placeSearch(win, config, state, x, y, w, h)
     if not f then return end
     if f:getX() ~= x or f:getY() ~= y then f:setX(x); f:setY(y) end
     if f:getWidth() ~= w or f:getHeight() ~= h then f:setWidth(w); f:setHeight(h) end
+    -- the controller's stop on it (punch list 252; CC.buildFocusables, "<prefix>:search") and its mark
+    if state then
+        local r = state._searchRect or {}
+        state._searchRect = r
+        r.x, r.y, r.w, r.h = x, y, w, h
+        state._searchField = f
+        if state._gpFocusedId == (tostring(config.prefix) .. ":search") and f.parent and ZeD.Focus and ZeD.Focus.mark then
+            ZeD.Focus.mark(f.parent, x, y, w, h, { win = win })
+        end
+    end
     if f._zedBaseHint == nil then f._zedBaseHint = f.placeholder or false end   -- (the field's own words: Build's names structures)
     if state.altSlotName then f.placeholder = ZeD.tr("UI_ZeD_Craft_FilterAlts")
     else f.placeholder = f._zedBaseHint or getText("IGUI_CraftingWindow_SearchRecipes") end
@@ -3813,6 +3823,29 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                 end,
             }
         end
+    end
+    -- the search box (punch list 252): A opens the pad keyboard on it (in alt mode it filters the
+    -- alternatives); the keyboard's RT or B gives the pad back to the box. It goes after the header's
+    -- selects, so landing on the tab is unchanged.
+    local sf, sr = state._searchField, state._searchRect
+    if sf and sr and sf:isVisible() and (sr.w or 0) > 0 then
+        local at = 1
+        for i, e in ipairs(elements) do
+            if e.craftKind == "stDrop" or e.craftKind == "catDrop" then at = i + 1 end
+        end
+        if at > 1 and elements[at - 1] and elements[at - 1].y ~= nil and elements[at - 1].y > sr.y + sr.h then at = 1 end
+        table.insert(elements, at, {
+            x = sr.x, y = sr.y, w = sr.w, h = sr.h,
+            id = prefix .. ":search",
+            craftKind = "search",
+            promptA = ZeD.tr("UI_ZeD_Inv_PromptType"),
+            onFocus = function(w, el) end,
+            onActivate = function(w, el)
+                local KB = ZeD.Keyboard
+                local pn = (w._playerObj and w._playerObj:getPlayerNum()) or w.playerNum or 0
+                if KB and KB.edit then KB.edit(state._searchField, pn) end
+            end,
+        })
     end
     -- a list or a select has just shut: the controller comes back to the box that opened it
     if state._gpReturnTo then

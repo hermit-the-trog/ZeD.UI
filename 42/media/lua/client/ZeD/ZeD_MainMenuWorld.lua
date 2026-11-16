@@ -258,6 +258,9 @@ function ZeD_MMWorld:drawDetails(x, y, w, h, card)
     local total = cy + (self.detailScroll or 0) - top
     self._details = { x = x, y = y, w = w, h = h, max = math.max(0, total - (bot - top)) }
     self.detailScroll = math.max(0, math.min(self.detailScroll or 0, self._details.max))
+    -- (Nov 16 2026, punch list 258: a stop over the details while they run long: Up and Down read them, MM.panePad)
+    MM.panePad(self, #self._specs + 1, MM.paneView("world:details", top, bot - top, self.detailScroll, total,
+        function(n) self.detailScroll = n end), self._details)
 end
 
 -- CONTROLLER + KEYS + WHEEL ---------------------------------------------------------

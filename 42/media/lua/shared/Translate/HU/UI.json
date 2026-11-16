@@ -2972,6 +2972,7 @@
     "UI_ZeD_CMap_Scroll": "Görgetés",
     "UI_ZeD_CMap_Triggers": "A játék saját funkciója: célzás és támadás. A térképen nagyítás.",
     "UI_ZeD_CMap_View": "Ablakban: elrendezés. Nyitott ablak nélkül: tartsd nyomva a ZeD körmenühöz.",
+    "UI_ZeD_CMap_SelWheel": "Nyitott ablak nélkül: tartsd nyomva a ZeD körmenühöz.",
     "UI_ZeD_CMap_X": "RMB: megnyitja a helyi menüt.",
     "UI_ZeD_CMap_Y": "Koppintás: mindkét ablak megnyitása, elrejtése vagy mutatása. Tartás: mindkettő bezárása.",
     "UI_ZeD_Close": "Bezárás",

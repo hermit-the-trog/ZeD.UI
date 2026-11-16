@@ -176,7 +176,23 @@ end
 -- own parallel copy.
 -- ============================================================================
 
+-- (Nov 16 2026, punch list 263) Start pauses, and Start again plays, from anything that holds the pad: the game
+-- routes every button to the focused element, so a pop-out, the dash, a reader or the belt swallowed Start. One helper
+-- for all of them: true when the press was Start and went to the game's own pause (vanilla's onPauseButtonPressed,
+-- which keeps the pad's focus and gives it back on Play). jd: the press's joypadData; pn: the player, when a handler
+-- gets no joypadData.
+ZeD = ZeD or {}
+function ZeD.padStart(button, jd, pn)
+    if button ~= Joypad.Start then return false end
+    if not jd and type(pn) == "number" and JoypadState and JoypadState.players then jd = JoypadState.players[pn + 1] end
+    local c = jd and jd.controller
+    if not (c and c.onPauseButtonPressed) then return false end
+    c:onPauseButtonPressed()
+    return true
+end
+
 function ZeD_Panel:onJoypadDown(button, joypadData)
+    if ZeD.padStart and ZeD.padStart(button, joypadData, self.playerNum) then return end
     if ZeD and ZeD.Input and ZeD.Input.Focus
        and ZeD.Input.Focus.getFocusedWindow(joypadData and joypadData.player) == self then
         ZeD.Input.Focus.dispatchJoypadDown(self, button, joypadData)

@@ -694,6 +694,9 @@ function ZeD_MMSpawn:drawDesc(x, y, w, h, it)
     if over then
         local sx = x + w - T.px(1) - sbW
         MM.scrollBar(self, "spawn:desctrack", sx, vy, sbW, vh, self.descScroll, self._descContentH, function(v) self.descScroll = v end)
+        -- (Nov 16 2026, punch list 258: a stop over the town's words while they run long: Up and Down read them)
+        MM.panePad(self, #self._specs + 1, MM.paneView("spawn:desc", vy, vh, self.descScroll, self._descContentH,
+            function(n) self.descScroll = n end), self._desc)
     end
 end
 

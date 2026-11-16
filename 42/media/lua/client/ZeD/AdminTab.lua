@@ -63,6 +63,13 @@ end
 -- ---------------------------------------------------------------------------
 -- WHAT THE BUTTONS DO
 -- ---------------------------------------------------------------------------
+--- A card opened in the other window: on a controller the pad goes with it (Focus.follow). fromPad: the press was
+--- the pad's even though no window held it (the world's right-click menu).
+function A.padFollow(w, fromPad)
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    if w and Fo and Fo.follow then pcall(Fo.follow, w, fromPad) end
+end
+
 local function openUI(ui) ui:initialise(); ui:addToUIManager(); if ui.setVisible then ui:setVisible(true) end end
 local function closeOld(cls, how) if cls and cls.instance then pcall(function() cls.instance[how or "close"](cls.instance) end) end end
 
@@ -71,6 +78,7 @@ local function ownCard(p, kind)
     if not (ZeD_CharacterWindow and ZeD_CharacterWindow.openTab) then return false end
     if not ZeD_CharacterWindow.openTab(p:getPlayerNum(), "server") then return false end
     ZeD.Claims.openNext = kind
+    A.padFollow(ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(p:getPlayerNum()))
     return true
 end
 local function isOwnHouse(h) local C = ZeD.Claims; return C ~= nil and C.safe ~= nil and C.safe.obj == h end
@@ -287,7 +295,7 @@ end
 
 --- A card asked for from outside the tab. what: { kind = "osafe" | "ofac", obj } or { kind = "pstats" | "pinv", user, oid }.
 --- True once the tab shows; false if it can't (not staff, the window away): the caller then opens the game's window.
-function A.openNext(what, playerNum)
+function A.openNext(what, playerNum, fromPad)
     if not A.visible() or not (ZeD_WorldWindow and ZeD_WorldWindow.openTab) then return false end
     A.next = what
     local ok, shown = pcall(ZeD_WorldWindow.openTab, playerNum or 0, TAB_ID)
@@ -295,6 +303,8 @@ function A.openNext(what, playerNum)
         A.next = nil
         return false
     end
+    -- (opened from the Character window, a ticket's Player card: the pad comes along to the card)
+    A.padFollow(ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(playerNum or 0), fromPad)
     return true
 end
 

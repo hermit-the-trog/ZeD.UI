@@ -704,15 +704,27 @@ local function renderTwoWay(panel, win, x, y, w, h, current, pid, des, drv)
     -- the controller: the focused control kept in view
     local fid = _twFocusId(win)
     local fctl = fid and fid:match("^radio:tw:(.+)$")
+    -- (Nov 16 2026, punch list 257: a stop over the face, the header's pop-out button or a radio's tab, is the face's
+    -- top: landing there scrolls the face back to the very top, case and all)
+    if needs and fid and not fctl and tw.follow ~= fid and (fid == "radio:full" or fid:sub(1, 10) == "radio:tab:") then
+        tw.follow = fid
+        if off > 0 then scroll:setScrollPos(0); off = 0 end
+    end
     if needs and fctl and tw.follow ~= fid then
         tw.follow = fid
         -- (Nov 15 2026, punch list 228k: a TV's screen stop, kept off the hits' list, scrolls the set's top into view)
         local scr = tw.hits and tw.hits.screen
+        -- (punch list 257: the face's topmost stop, the TV's screen among them, scrolls to the very top, so the case
+        -- over it (a TV's antenna) shows too, when the stop still shows whole there)
+        local topY
+        for _, hh in ipairs(tw.hits or {}) do if not topY or hh.y < topY then topY = hh.y end end
+        if scr and (not topY or scr.y < topY) then topY = scr.y end
         for _, hh in ipairs((fctl == "screen" and scr) and { scr } or tw.hits or {}) do
             if hh.id == fctl then
                 local cy = hh.y - (tw.fy or fy0) + pad                  -- its top within the body
                 local newOff = off
-                if cy < off then newOff = cy elseif cy + hh.h > off + h then newOff = cy + hh.h - h end
+                if topY and hh.y <= topY + 1 and cy + hh.h <= h then newOff = 0
+                elseif cy < off then newOff = cy elseif cy + hh.h > off + h then newOff = cy + hh.h - h end
                 newOff = math.max(0, math.min(contentH - h, newOff))
                 if newOff ~= off then scroll:setScrollPos(newOff / (contentH - h)); off = newOff end
             end

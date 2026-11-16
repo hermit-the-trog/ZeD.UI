@@ -1245,6 +1245,45 @@ function MM.scrollBar(p, key, x, y, w, h, scroll, total, set, opts)
 end
 
 -- ---------------------------------------------------------------------------
+-- THE PAD SCROLL OF A PANE (Nov 16 2026, punch list 258). A pane that scrolls as one unit (a mod's details, a
+-- letter, a form) is read to its ends by pad, by the in-game rule (FocusManager.lua's PAD SCROLL, which
+-- ZeD_MMWindow:joyDir runs): Up or Down on a control in the pane with more of it that way scrolls it a step until
+-- the next control is in sight, and the move leaves the pane only once its end shows. A pane with no control of its
+-- own gets one stop over it to read with, which A does nothing on.
+-- ---------------------------------------------------------------------------
+
+--- The pane's view for its controls (nil when it fits or the focus code is not there): key names it; vy / vh its
+--- shown part in the window; off the scroll now; contentH the whole of it; set(newOff) scrolls it.
+function MM.paneView(key, vy, vh, off, contentH, set)
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    if not (Fo and Fo.scrollView) then return nil end
+    return Fo.scrollView(key, vy, vh, off or 0, math.max(0, (contentH or 0) - (vh or 0)), set)
+end
+
+-- a read stop's mark: a ring (or the chosen style's hand / corners) around the pane, never a wash over its words
+local function _drawReadStop(win, b, hot, focus)
+    if focus and ZeD.Focus and ZeD.Focus.mark then ZeD.Focus.mark(win, b.x, b.y, b.w, b.h, MM.focusOpts(win, true)) end
+end
+
+--- After a pane is drawn: the specs win added from index i0 on that are its controls (pred(spec), nil: every one)
+--- take the view v; with none, a read stop over the pane (rect { x, y, w, h }) is added. Nothing when v is nil.
+function MM.panePad(win, i0, v, rect, pred, id)
+    if not (v and win and win._specs) then return end
+    local n = 0
+    for i = i0 or 1, #win._specs do
+        local s = win._specs[i]
+        if s and not s.band and (not pred or pred(s)) then
+            s.scrollView = v
+            n = n + 1
+        end
+    end
+    if n == 0 and rect then
+        win._specs[#win._specs + 1] = { id = id or ((v.key or "pane") .. ":read"), x = rect.x, y = rect.y, w = rect.w, h = rect.h,
+                                        scrollView = v, readStop = true, draw = _drawReadStop }
+    end
+end
+
+-- ---------------------------------------------------------------------------
 -- CONTROLS ON THE LIBRARY (ZeD's shared drawing parts). The menu has no FocusManager:
 -- a window of the menu says for itself which element holds the controller's focus, and that a
 -- controller is driving (MM.gamepad). Everything below hands the library those two facts.
@@ -2435,6 +2474,14 @@ function ZeD_MMWindow:joyDir(dir)
             end
         end
         local best = ZeD.SpatialNav.pick(fr, cands, dir, function(e) return e.rect end)
+        -- (Nov 16 2026, punch list 258: the pad scroll, the in-game rule (FocusManager.lua's PAD SCROLL): a control in a
+        -- scrolled pane (spec.scrollView, made by MM.paneView) with more of the pane that way scrolls it a step unless
+        -- the move lands on a control of the same pane in sight or a step away; the move leaves once the end shows)
+        local Fo = ZeD.Input and ZeD.Input.Focus
+        if cur.scrollView and Fo and Fo.padScroll
+           and Fo.padScroll(cur.scrollView, dir, best and best.spec.scrollView, best and best.rect) then
+            return
+        end
         if best then
             local spec = best.spec
             -- coming into a list from outside it: its chosen row, not just the nearest one
@@ -2616,7 +2663,10 @@ function ZeD_MMWindow:prerender()
             local focus = gp and self.focusId == b.id
             -- (the Continue button is the card's own main action: solid accent when it has the focus; a page's row draws itself)
             if b.draw then b.draw(self, b, hot, focus) else drawBtn(self, b, hot, focus, hot and ctx.press == hid) end
-            self._hits[#self._hits + 1] = { id = hid, x = ax + b.x, y = ay + b.y, w = b.w, h = b.h, fn = b.fn, disabled = b.disabled, sound = true }
+            -- (a pane's read stop, MM.panePad, is the controller's only: no box for the pointer over the pane's words)
+            if not b.readStop then
+                self._hits[#self._hits + 1] = { id = hid, x = ax + b.x, y = ay + b.y, w = b.w, h = b.h, fn = b.fn, disabled = b.disabled, sound = true }
+            end
         end
     end
 end

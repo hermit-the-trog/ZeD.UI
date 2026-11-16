@@ -2972,6 +2972,7 @@
     "UI_ZeD_CMap_Scroll": "スクロール",
     "UI_ZeD_CMap_Triggers": "ゲーム標準: 構えと攻撃。マップ上では拡大縮小。",
     "UI_ZeD_CMap_View": "ウィンドウ内: レイアウト。ウィンドウがないとき: 押し続けるとZeDホイール。",
+    "UI_ZeD_CMap_SelWheel": "ウィンドウがないとき: 押し続けるとZeDホイール。",
     "UI_ZeD_CMap_X": "右クリック: コンテキストメニューを開きます。",
     "UI_ZeD_CMap_Y": "タップ: 両方のウィンドウを開く、隠す、表示する。長押し: 両方を閉じる。",
     "UI_ZeD_Close": "閉じる",

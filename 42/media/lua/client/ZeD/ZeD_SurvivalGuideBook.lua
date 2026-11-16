@@ -1952,6 +1952,7 @@ end
 function ZeD_GuideBook:onGainJoypadFocus(jd) self.joyfocus = jd end
 function ZeD_GuideBook:onLoseJoypadFocus(jd) self.joyfocus = nil end
 function ZeD_GuideBook:onJoypadDown(button, jd)
+    if ZeD.padStart and ZeD.padStart(button, jd, self.playerNum) then return end   -- (Start pauses: punch list 263)
     if button == Joypad.BButton then B.close(self.playerNum)
     elseif button == Joypad.LBumper then self:turn(-1)
     elseif button == Joypad.RBumper then self:turn(1)

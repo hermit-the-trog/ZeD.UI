@@ -2972,6 +2972,7 @@
     "UI_ZeD_CMap_Scroll": "捲動",
     "UI_ZeD_CMap_Triggers": "遊戲內建：瞄準和攻擊。在地圖上：縮放。",
     "UI_ZeD_CMap_View": "在視窗中：版面配置。沒有開啟視窗時：按住開啟 ZeD 輪盤。",
+    "UI_ZeD_CMap_SelWheel": "沒有開啟視窗時：按住開啟 ZeD 輪盤。",
     "UI_ZeD_CMap_X": "右鍵：開啟右鍵選單。",
     "UI_ZeD_CMap_Y": "輕按：開啟、隱藏或顯示兩個視窗。按住：關閉兩個視窗。",
     "UI_ZeD_Close": "關閉",

@@ -419,19 +419,25 @@ local function padList(win)
     return cnt, cs
 end
 
--- L3: the next sort column (Name, Category, Condition, Weight, round again), A-Z first
+-- L3: a second press on a sort reverses it (as a second header click does), the press after that
+-- goes on to the next column (Name, Category, Condition, Weight, round again), A-Z first
 function ZeD.InventoryRenderer.padSort(win)
     local cnt, cs = padList(win)
     if not cnt then return false end
     local cur = (cs and cs.sortCol) or cnt._sortCol or "name"
-    local i = 1
-    for k, c in ipairs(SORT_COLS) do if c == cur then i = k end end
-    local nxt = SORT_COLS[i % #SORT_COLS + 1]
+    local asc
+    if cs then asc = cs.sortAsc else asc = cnt._sortAsc end
+    local nxt, nxtAsc = cur, false
+    if asc == false then
+        local i = 1
+        for k, c in ipairs(SORT_COLS) do if c == cur then i = k end end
+        nxt, nxtAsc = SORT_COLS[i % #SORT_COLS + 1], true
+    end
     if cs then
-        cs.sortCol, cs.sortAsc = nxt, true
+        cs.sortCol, cs.sortAsc = nxt, nxtAsc
         if cs.scroll then cs.scroll:setScrollPos(0) end
     else
-        cnt._sortCol, cnt._sortAsc = nxt, true
+        cnt._sortCol, cnt._sortAsc = nxt, nxtAsc
         if cnt._scroll then cnt._scroll:setScrollPos(0) end
     end
     pcall(function() ZeD.uiSound("UISelectListItem") end)
@@ -847,6 +853,60 @@ function ZeD.InventoryRenderer.headElements(heads, yMap, x, w, view, colIdx, con
     return els
 end
 
+-- (Nov 16 2026, punch list 256) A category's heading as a controller stop: A folds or opens it, as a click does. It
+-- carries no item; the list's scroll follows "cat:<category>" (the renderer stamps the heading's place under it).
+-- The window's remembered row is the category's first row (nil while it is folded).
+local function catFolds(w, el)
+    local cnt = w and w._mainContent
+    local cs = el.colIdx and cnt and cnt._colStates and cnt._colStates[el.colIdx] or nil
+    return (cs and cs.collapsedGroups) or (cnt and cnt._collapsedGroups)
+end
+local function catFocus(w, el)
+    local cnt = w._mainContent
+    if cnt then cnt._gpFocusedRowItem = el.yKey end
+    if el.colIdx then
+        w._gpFocusedMCItem, w._gpFocusedMCColIdx = el.rep, el.colIdx
+    else
+        w._gpFocusedRowItem = el.rep
+    end
+end
+local function catToggle(w, el)
+    local folds = catFolds(w, el)
+    if not folds then return end
+    if folds[el.cat] then folds[el.cat] = nil else folds[el.cat] = true end
+    pcall(function() ZeD.uiSound("UISelectListItem") end)
+end
+local function catPromptA(w, el)
+    local folds = catFolds(w, el)
+    return ZeD.tr((folds and folds[el.cat]) and "UI_ZeD_Prompt_Unfold" or "UI_ZeD_Prompt_Fold")
+end
+--- The stops for a list's category headings (cats: the renderer's _catHeads / a column's catHeads, in order; groups:
+--- its rows by category, for each heading's first row; yMap, x, w, view, colIdx, containerIdx, inv: as headElements).
+--- Appended to the item rows' stops by each list's builder; a heading not drawn this frame (no place in yMap) has none.
+function ZeD.InventoryRenderer.catElements(cats, groups, yMap, x, w, view, colIdx, containerIdx, inv)
+    local els = {}
+    if not (cats and yMap) then return els end
+    local T = ZeD.T
+    local hh = (T and T.sp and T.sp.catHdrH) or (T and T.rowH) or 26
+    for _, cat in ipairs(cats) do
+        local yKey = "cat:" .. tostring(cat)
+        local y = yMap[yKey]
+        if y then
+            local rows = groups and groups[cat]
+            els[#els + 1] = {
+                x = x, y = y, w = w, h = hh,
+                id = "cathead:" .. tostring(colIdx or 0) .. ":" .. tostring(cat),
+                isCatHead = true, cat = cat, catInv = inv, rep = rows and rows[1] or nil, yKey = yKey,
+                colIdx = colIdx, mcSlot = colIdx, containerIdx = containerIdx,
+                offscreen = (view and view.top and view.bottom and (y + hh <= view.top or y >= view.bottom)) or nil,
+                onFocus = catFocus, onActivate = catToggle, promptA = catPromptA,
+                onCancel = ZeD.InventoryRenderer.padCancel, promptB = ZeD.InventoryRenderer.padPromptB,
+            }
+        end
+    end
+    return els
+end
+
 -- The quick use itself, for the double-click and the controller's hold X on
 -- a row. Vanilla's basic action does nothing for a thing in a crate, so, as
 -- vanilla's double-click does, a thing elsewhere comes over first.
@@ -925,8 +985,8 @@ function ZeD.InventoryRenderer.keepToggleIdx(win, zoneName, els, idx)
     for _, z in ipairs(ring) do
         if z.zone == zoneName then
             local fe = z.elements and z.elements[z.focusedElementIdx or 1]
-            -- (an open stack's header too, punch list 245: it carries no item either)
-            if fe and (fe.isViewToggle or fe.isStackHead) then
+            -- (an open stack's header too, punch list 245, and a category's heading, 256: they carry no item either)
+            if fe and (fe.isViewToggle or fe.isStackHead or fe.isCatHead) then
                 for i, el in ipairs(els) do if el.id == fe.id then return i end end
             end
             return idx
@@ -989,6 +1049,17 @@ local function gpFocusedHead(key, inv, pn)
     local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow(pn) or nil
     local focEl = (focWin and Focus.liveElement) and Focus.liveElement(focWin) or nil
     if not (focEl ~= nil and focEl.isStackHead and focEl.stackKey == key and focEl.stackInv == inv) then return false end
+    local zone = Focus.liveZone and Focus.liveZone(focWin) or nil
+    _itemFocus.win, _itemFocus.zone = focWin, zone and zone.zone or ""
+    return _itemFocus
+end
+
+-- (Nov 16 2026, punch list 256) is the controller on this list's category heading? As gpFocusedHead; nil when not.
+local function gpFocusedCat(cat, inv, pn)
+    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow(pn) or nil
+    local focEl = (focWin and Focus.liveElement) and Focus.liveElement(focWin) or nil
+    if not (focEl ~= nil and focEl.isCatHead and focEl.cat == cat and focEl.catInv == inv) then return nil end
     local zone = Focus.liveZone and Focus.liveZone(focWin) or nil
     _itemFocus.win, _itemFocus.zone = focWin, zone and zone.zone or ""
     return _itemFocus
@@ -1537,6 +1608,8 @@ local _catOpts = {}
 local function drawCatRow(self, x, y, w, h, cat, n, isClosed, hover, inset)
     local o = _catOpts
     o.hover, o.h, o.inset = hover, h, inset
+    o.focus = gpFocusedCat(cat, self._inventory, ZeD.playerNumOf(self))   -- (punch list 256: the pad's stop)
+    if o.focus then o.hover = false end
     ZeD.Molecules.drawCategoryRow(self, x, y, w, ZeD.InventoryRenderer.catLabel(cat), n, not isClosed, o)
     -- (while the Filter narrows, a category with nothing matching dims with its rows)
     local fr = self._fres
@@ -1549,6 +1622,7 @@ local function drawGridGroups(self, GV, catOrder, groups, collapsed, stackedGrou
     local T = ZeD.T
     for _, cat in ipairs(catOrder) do
         local isClosed = collapsed[cat]
+        if GV.ymap then GV.ymap["cat:" .. cat] = y end   -- (the heading's place: its pad stop, punch list 256)
         if y + catHdrH > GV.top and y < GV.h then
             local hover = GV.mouseIn and not cuesOn() and GV.my >= y and GV.my < y + catHdrH and GV.lmx < scrollX
             drawCatRow(self, xOff, y, scrollX, catHdrH, cat, #groups[cat], isClosed, hover, GV.padX + T.px(2))
@@ -2736,6 +2810,7 @@ local function renderItemList(self)
             local isClosed = collapsed[cat]
 
             -- Category row ("v Weapons (4)": the library's category row; a press folds it)
+            itemRenderYMap["cat:" .. cat] = y   -- (its place, before the cull: the pad's stop and its scroll follow, 256)
             if y + catHdrH > contentTop and y < h then
                 drawCatRow(self, xOff, y, scrollX, catHdrH, cat, #catGroup, isClosed,
                     mouseInCol and not cuesOn() and my >= y and my < y + catHdrH and localMx < scrollX, padX + T.px(2))
@@ -3061,6 +3136,8 @@ local function renderMultiColumnContent(self)
             cs.stacks          = self._stacks
             cs.childParent     = self._childParent
             cs.openHeads       = self._openHeads   -- (punch list 245: its open stacks' header rows)
+            cs.catHeads        = self._useGroups and self._catOrder or nil   -- (punch list 256: its category headings)
+            cs.catGroups       = self._stackedGroups
         else
             renderItemList(self)
         end
@@ -3157,6 +3234,8 @@ local function renderMultiColumnContent(self)
             cs.stacks          = self._stacks
             cs.childParent     = self._childParent
             cs.openHeads       = self._openHeads   -- (punch list 245: its open stacks' header rows)
+            cs.catHeads        = self._useGroups and self._catOrder or nil   -- (punch list 256: its category headings)
+            cs.catGroups       = self._stackedGroups
             -- Each column keeps its own row-Y map, so the per-column controller
             -- zones (charMC1.., worldMC1..) can read each row's y to move between
             -- rows. Each column's renderItemList call writes to

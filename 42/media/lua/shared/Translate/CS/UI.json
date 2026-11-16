@@ -2972,6 +2972,7 @@
     "UI_ZeD_CMap_Scroll": "Posun",
     "UI_ZeD_CMap_Triggers": "Vlastní funkce hry: míření a útok. Na mapě přiblížení.",
     "UI_ZeD_CMap_View": "V okně: rozložení. Bez otevřeného okna: podržením otevřeš kolo ZeD.",
+    "UI_ZeD_CMap_SelWheel": "Bez otevřeného okna: podržením otevřeš kolo ZeD.",
     "UI_ZeD_CMap_X": "RMB: otevře kontextové menu.",
     "UI_ZeD_CMap_Y": "Klepnutí: otevře, skryje nebo ukáže obě okna. Podržení: zavře obě.",
     "UI_ZeD_Close": "Zavřít",

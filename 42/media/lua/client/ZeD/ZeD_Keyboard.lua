@@ -693,6 +693,48 @@ function KB.get()
     return KB.instance
 end
 
+-- ---------------------------------------------------------------------------
+-- A on a text box (punch list 252): the one way every ZeD text box takes the controller
+-- ---------------------------------------------------------------------------
+--- The text box inside a ZeD field: a ZeD_SearchField's input, a ZeD_TextEntry's entry, else the box itself.
+function KB.entryOf(box)
+    if type(box) ~= "table" then return nil end
+    return box.input or box._entry or box
+end
+
+--- A on a text box's stop: ZeD's pad keyboard opens on the box for player pn (opts.jd: the controller, when the
+--- caller has its own, as the main menu does). The keyboard takes the pad, and when it closes (RT or B) it gives
+--- the pad back to what held it, so the hand is on the box again. Then the box lets go of the game's keyboard (a
+--- box that keeps it swallows every key and the pad's A in game) unless opts.keepCaret. opts.onAccept, if given,
+--- runs after that. With no keyboard to open (or no box) the box takes the caret, as a click gives it.
+--- Returns true when the keyboard opened.
+function KB.edit(box, pn, opts)
+    local e = KB.entryOf(box)
+    if not (e and e.javaObject) then return false end
+    opts = opts or {}
+    pn = tonumber(pn) or 0
+    local jd = opts.jd or (JoypadState and JoypadState.players and JoypadState.players[pn + 1])
+    if jd and jd.player ~= nil and opts.jd then pn = jd.player end
+    if OnScreenKeyboard and OnScreenKeyboard.Show then
+        local ok, osk = pcall(OnScreenKeyboard.Show, pn, e, jd)
+        if ok and osk then
+            if osk.textEntryBox == e then
+                local after = opts.onAccept
+                local keep = opts.keepCaret
+                local function done()
+                    if not keep and e.javaObject and e:isFocused() then pcall(function() e:unfocus() end) end
+                    if after then after(e) end
+                end
+                osk.onAccept, osk.onCancel = done, done
+            end
+            return true
+        end
+    end
+    pcall(function() e:focus() end)
+    return false
+end
+ZeD.padType = KB.edit
+
 --- True while the keyboard is up on a field.
 function KB.isVisible()
     local k = KB.instance

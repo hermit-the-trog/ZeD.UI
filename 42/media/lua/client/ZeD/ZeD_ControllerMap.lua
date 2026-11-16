@@ -39,7 +39,7 @@ CM.ROWS = {
     { { "LB" },         "UI_ZeD_CMap_LB" },
     { { "RB" },         "UI_ZeD_CMap_RB" },
     { { "LT", "RT" },   "UI_ZeD_CMap_Triggers" },
-    { { "SEL" },        "UI_ZeD_CMap_View" },
+    { { "SEL" },        "UI_ZeD_CMap_SelWheel" },   -- (punch list 262: no "layout" any more; nothing in a window answers Select)
     { { "START" },      "UI_ZeD_CMap_Menu" },
 }
 

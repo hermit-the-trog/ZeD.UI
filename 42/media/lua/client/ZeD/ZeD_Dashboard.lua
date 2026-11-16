@@ -806,7 +806,7 @@ function ZeD_Dashboard:_element(id, hr, st)
     local secondary = SECONDARY[id]
     if id == "ignition" and not st.keysIn then secondary = nil end
     if id == "odoButton" and not st.odoTrip then secondary = nil end     -- (zeroing waits for the trip to show)
-    self._elements[#self._elements + 1] = {
+    local el = {
         x = hr.x, y = hr.y, w = hr.w, h = hr.h, id = "dash:" .. id,
         promptA = self._pad and ZeD.tr(_promptKey(id, st)) or nil,
         promptX = (self._pad and secondary) and ZeD.tr(secondary) or nil,
@@ -815,6 +815,32 @@ function ZeD_Dashboard:_element(id, hr, st)
         onContextMenu = function(win, el) if secondary then win:_fire(id, true) end end,
         onCancel = function(win, el) win:_release(); win:_unregister() end,
     }
+    self._elements[#self._elements + 1] = el
+    if id == "vol" then self:_volKnob(el, st) end
+end
+
+-- The volume knob on the controller, as on the radios up close: A grabs it, the D-pad turns it down (Left / Down) and
+-- up (Right / Up), stopping at nothing and at full, A or B lets go; X pushes it for power (a rocker set's power is its
+-- rocker). The mouse keeps its clicks and the wheel. The hint's words are this frame's (the plate draws strings).
+function ZeD_Dashboard:_volKnob(el, st)
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    if not (Fo and Fo.knobStop) then return end
+    local rocker = st.radio and ROCKER[st.radio.kind]
+    Fo.knobStop(el, function(win, e, d)
+        local chr = getSpecificPlayer(win.playerNum)
+        local s = win._st
+        if chr and s and s.radioPart and win._driver and getGameSpeed() ~= 0 then RO.volStep(chr, s.radioPart, d, false) end
+    end, { press = (not rocker) and function(win) win:_fire("pwr", false) end or nil })
+    if rocker then el.onContextMenu = nil end
+    local held = Fo.knobGrabbed(self, el.id)
+    if self._pad then
+        el.promptA = ZeD.tr(held and "UI_ZeD_Prompt_KnobLetGo" or "UI_ZeD_Prompt_KnobGrab")
+        el.promptX = (not rocker and not held) and ZeD.tr(_promptKey("pwr", st)) or nil
+        el.promptBWord = held and ZeD.tr("UI_ZeD_Prompt_KnobLetGo") or nil
+        el.promptB = el.promptBWord or ZeD.tr("UI_ZeD_Dash_PromptDrive")
+    else
+        el.promptA, el.promptX, el.promptB = nil, nil, nil
+    end
 end
 
 -- a control of the simple strip, already drawn: its click area (screen pixels in the panel) and its focus element
@@ -2117,7 +2143,7 @@ function ZeD_Dashboard:_plain(des, st, k)
         if fe then
             prompts = { { glyph = "A", label = fe.promptA or ZeD.tr("UI_ZeD_Dash_PromptPress") } }
             if fe.promptX then prompts[#prompts + 1] = { glyph = "X", label = fe.promptX } end
-            prompts[#prompts + 1] = { glyph = "B", label = ZeD.tr("UI_ZeD_Dash_PromptDrive") }
+            prompts[#prompts + 1] = { glyph = "B", label = fe.promptBWord or ZeD.tr("UI_ZeD_Dash_PromptDrive") }
         else
             prompts = { ZeD.tr("UI_ZeD_Dash_HintWheel") }
         end
@@ -2261,7 +2287,7 @@ function ZeD_Dashboard:prerender()
             -- (ZeD_PadGlyphs)
             local segs = { { "A", self._focEl.promptA or ZeD.tr("UI_ZeD_Dash_PromptPress") } }
             if self._focEl.promptX then segs[#segs + 1] = { "X", self._focEl.promptX } end
-            segs[#segs + 1] = { "B", ZeD.tr("UI_ZeD_Dash_PromptDrive") }
+            segs[#segs + 1] = { "B", self._focEl.promptBWord or ZeD.tr("UI_ZeD_Dash_PromptDrive") }
             local x = DP.hintRight
             -- (a dark strip behind the hint, like a printed label's tape: it reads on every cabin color, the wood and tan
             -- ones included; QA, beta 12 release pass)
@@ -2279,7 +2305,7 @@ function ZeD_Dashboard:prerender()
             end
         else
             if self._focEl then
-                local pa, pb = self._focEl.promptA or ZeD.tr("UI_ZeD_Dash_PromptPress"), ZeD.tr("UI_ZeD_Dash_PromptDrive")
+                local pa, pb = self._focEl.promptA or ZeD.tr("UI_ZeD_Dash_PromptPress"), self._focEl.promptBWord or ZeD.tr("UI_ZeD_Dash_PromptDrive")
                 hint = self._focEl.promptX and ZeD.tr("UI_ZeD_Dash_HintAxb", pa, self._focEl.promptX, pb) or ZeD.tr("UI_ZeD_Dash_HintAb", pa, pb)
             else
                 hint = ZeD.tr("UI_ZeD_Dash_HintWheel")

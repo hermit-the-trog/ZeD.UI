@@ -935,6 +935,17 @@ function FT.buildFocusables(win)
             end,
             promptB = ZeD.tr("UI_ZeD_Furn_ToCursor") }
     end
+    -- (Nov 16 2026, punch list 258: the body is one scrolled view, its rows stamped only while in sight: Down from the
+    -- last row in sight scrolls the next ones in (and Up the ones above), FocusManager.lua's pad scroll)
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    local span = s.maxScroll or 0
+    if Fo and Fo.scrollView and span > 0 and s.bodyTop and s.bodyBottom then
+        local v = Fo.scrollView("fur", s.bodyTop, s.bodyBottom - s.bodyTop, s.scrollY or 0, span,
+            function(n) s.scrollY = math.floor(n + 0.5) end, ZeD.T.px(ROW_H))
+        for _, el in ipairs(els) do
+            if v and el.y >= s.bodyTop - ZeD.T.px(4) then el.scrollView = v end
+        end
+    end
     return els
 end
 

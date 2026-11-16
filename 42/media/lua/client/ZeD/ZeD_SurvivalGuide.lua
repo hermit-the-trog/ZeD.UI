@@ -1577,6 +1577,7 @@ local function listIndex(self)
 end
 
 function ZeD_GuideWindow:onJoypadDown(button, joypadData)
+    if ZeD.padStart and ZeD.padStart(button, joypadData, self.playerNum) then return end   -- (Start pauses: punch list 263)
     if button == Joypad.BButton then self:close(); return end
     if button == Joypad.LBumper then self:step(-1); self.zone = "list"; return end
     if button == Joypad.RBumper then self:step(1); self.zone = "list"; return end

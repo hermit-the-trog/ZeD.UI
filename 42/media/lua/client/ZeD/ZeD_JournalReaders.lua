@@ -955,6 +955,15 @@ function J.renderNotebooks(panel, win, x, y, w, h)
         panel:drawRectBorder(fr.x, fr.y, fr.w, fr.h, bs.a, bs.r, bs.g, bs.b)
         -- (the field shows only whole, inside the tab's view)
         fieldShown = why == nil and fr.y >= s.clip.y and fr.y + fr.h <= s.clip.y + s.clip.h
+        -- the controller's stop on the note (punch list 252): A opens the pad keyboard on it
+        if fieldShown then
+            markFocus(panel, win, "jr:note", fr.x, fr.y, fr.w, fr.h)
+            zone(win, { id = "note", x = fr.x, y = fr.y, w = fr.w, h = fr.h, promptA = ZeD.tr("UI_ZeD_Inv_PromptType"),
+                fn = function()
+                    local KB = ZeD.Keyboard
+                    if KB and KB.edit then KB.edit(field, p and p:getPlayerNum() or 0) end
+                end })
+        end
         local writing = s.pending and ISTimedActionQueue.hasAction(s.pending)
         if not writing then s.pending = nil end
         button(panel, win, "write", px + pw - ww, py, wl, function() J.writeNote(win) end, "primary", { disabled = why ~= nil or writing })
@@ -1055,6 +1064,27 @@ function J.drawLogInto(panel, win, x, y, maxW, h)
     return pw
 end
 
+--- The Into picker as a controller stop on the Journal page (punch list 254; "jr:into"): A steps it as a click
+--- does (the log only, then each carried notebook). nil while it is not drawn (no notebook carried).
+local function intoZone(win)
+    for _, z in ipairs(win and win._jrZones or {}) do
+        if z.id == "into" and z.fn then return z end
+    end
+    return nil
+end
+-- (the press asks for the zone drawn last: its closure knows the notebook picked now)
+local function intoActivate(w)
+    local z = intoZone(w)
+    if z then z.fn() end
+end
+local function intoNoFocus() end
+function J.intoFocusable(win)
+    local z = intoZone(win)
+    if not z then return nil end
+    return { x = z.x, y = z.y, w = z.w, h = z.h, id = "jr:into", journalKind = "into",
+        onFocus = intoNoFocus, onActivate = intoActivate }
+end
+
 --- A log entry, as the Journal's Save makes it; `source` names where it was written too, `tags`
 --- the ticked tags' keys (nil: none; JournalTab's TAGS).
 function J.addLogEntry(win, text, source, tags)
@@ -1148,6 +1178,7 @@ function J.focusables(win)
                 onFocus = function() end,
             }
             if z.fn then el.onActivate = function() z.fn() end end
+            if z.promptA then el.promptA = z.promptA end
             if z.cancel then el.onCancel = function() z.cancel() end end
             if z.dpad then
                 el.isGridScroll = true

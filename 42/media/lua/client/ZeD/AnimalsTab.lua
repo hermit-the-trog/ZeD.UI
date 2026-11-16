@@ -108,6 +108,10 @@ local function focusFor(win, id)
     return nil
 end
 
+-- (Nov 16 2026, punch list 253) the ring's id for one of the zone's own controls: rename, remove, name (the zone's
+-- name), field (the rename's text box), save, cancel, reset, no and yes (the remove question)
+local function zoneStop(id) return "animals:zone:" .. tostring(id) end
+
 -- the plain-words line the window's footer shows while the pointer is over a part
 local function help(panel, key, ...)
     if ZeD.Help and ZeD.Help.set then ZeD.Help.set(panel, ZeD.tr(key, ...)) end
@@ -764,6 +768,37 @@ local function cancelRemoveZone(win)
     win._animalsRemoveConfirm = false
 end
 
+-- Rename's Reset: the box gets the zone's first name back (the game's "Zone <n>" by its place in the list)
+local function resetRename(win)
+    local state = getState(win)
+    local zone = getZoneByName(state.zoneName)
+    if zone and win._animalsRenameEntry then
+        local allZones = DesignationZoneAnimal.getAllZones()
+        if allZones then
+            for i = 0, allZones:size() - 1 do
+                if allZones:get(i) == zone then
+                    win._animalsRenameEntry:setText(ZeD.tr("UI_ZeD_Animals_ZoneAutoName", i + 1))
+                    break
+                end
+            end
+        end
+    end
+end
+
+-- The controller's keyboard on the rename's box (as the inventory Filter's field); the box takes the keys without one
+local function renameKeyboard(win)
+    local entry = win._animalsRenameEntry
+    if not entry then return false end
+    local pn = WPN(win)
+    local jd = JoypadState and JoypadState.players and JoypadState.players[pn + 1]
+    if jd and OnScreenKeyboard and OnScreenKeyboard.Show then
+        local ok, osk = pcall(OnScreenKeyboard.Show, pn, entry, jd)
+        if ok and osk then return true end
+    end
+    pcall(function() entry:focus() end)
+    return false
+end
+
 -- Returns normalized width, height, valid flags.
 -- Hoist: assigned into the forward-declared slot so gpConfirm above sees it.
 getZoneDimensions = function(zc)
@@ -1346,8 +1381,10 @@ local function drawZoneSummary(panel, x, y, w, summary, win)
 
     -- Store click zone for zone navigation
     if not win._animalsZoneCardZones then win._animalsZoneCardZones = {} end
+    -- (sx, sy: the card's top left on the screen, where the controller's zone menu opens; punch list 253)
     table.insert(win._animalsZoneCardZones, {
-        x = x, y = y, w = w, h = cardH, zoneName = summary.name
+        x = x, y = y, w = w, h = cardH, zoneName = summary.name,
+        sx = panel:getAbsoluteX() + x + T.px(ZCARD_PAD), sy = panel:getAbsoluteY() + y + T.px(ZCARD_PAD)
     })
 
     return cardH
@@ -1603,17 +1640,25 @@ local function drawZoneInfoBand(panel, win, x, y, w, summary)
         entry:setY(panelOffY + curY - T.px(2))
         entry:setWidth(entryW)
         entry:setVisible(true)
+        -- (punch list 253: the box is a controller stop, A opens the keyboard; its mark frames the box)
+        win._animalsRenameFieldZone = { x = x + pad, y = curY - T.px(2), w = entryW, h = entry:getHeight() }
+        markId(panel, win, zoneStop("field"), x + pad - T.px(2), curY - T.px(4), entryW + T.px(4), entry:getHeight() + T.px(4))
     else
         -- The name is pressable (it starts a rename): the hover wash says so
-        if A.mouseIn(panel, x + pad, curY, nameW, nameH) then
+        -- (punch list 253: a controller stop too, A renames, X the zone's menu)
+        local nameOn = markId(panel, win, zoneStop("name"), x + pad - T.px(2), curY - T.px(1), nameW + T.px(4), nameH + T.px(2))
+        if not nameOn and A.mouseIn(panel, x + pad, curY, nameW, nameH) then
             local hv = T.hover
             panel:drawRect(x + pad - T.px(2), curY - T.px(1), nameW + T.px(4), nameH + T.px(2), hv.a, hv.r, hv.g, hv.b)
             help(panel, "UI_ZeD_Animals_HelpRename")
         end
-        panel:drawText(name, x + pad, curY, T.text.r, T.text.g, T.text.b, T.text.a or 1, nameFont)
+        local nc = nameOn and (T.textOnFocus or T.text) or T.text
+        panel:drawText(name, x + pad, curY, nc.r, nc.g, nc.b, nc.a or 1, nameFont)
+        win._animalsRenameFieldZone = nil
 
         -- Store name click zone for rename trigger
-        win._animalsZoneNameZone = { x = x + pad, y = curY, w = nameW, h = nameH }
+        win._animalsZoneNameZone = { x = x + pad, y = curY, w = nameW, h = nameH,
+                                     sx = panel:getAbsoluteX() + x + pad, sy = panel:getAbsoluteY() + curY + nameH + T.px(1) }
 
         -- Hide entry if not renaming
         if win._animalsRenameEntry then
@@ -3428,7 +3473,7 @@ local function drawZoneBand(panel, win, x, y, w, state)
         if keepRename then edge, gap = closeEdge, closeGap end
         for _, v in ipairs(shown) do
             if v.id ~= "rename" or keepRename then
-                buttons[#buttons + 1] = { label = v.label, help = v.help, id = v.id }
+                buttons[#buttons + 1] = { label = v.label, help = v.help, id = v.id, focus = focusFor(win, zoneStop(v.id)) }
             end
         end
         local last = Q.last
@@ -3584,6 +3629,130 @@ function AT.navFocusIndex(win, els, t)
     return nil
 end
 
+--- (Nov 16 2026, punch list 253) The zone's own controls by the controller and the zone's menu: id is rename,
+-- remove, name (the zone's name: renames), field (the rename's box: the keyboard again), save, cancel, reset, no or
+-- yes (the remove question). pad: a controller pressed it, so the focus lands as the director's rules ask: Rename
+-- opens the keyboard and lands on Save, Remove lands on Cancel (the safe answer), and Save, Cancel or the question's
+-- Cancel come back to the control the player started from (from: its ring id; nil, the band's Rename or Remove).
+-- Started from a zone's card on the overview (its menu), the page goes back to the overview and the card.
+local function zoneReturn(win, fallback)
+    local f = win._animalsZoneFrom
+    win._animalsZoneFrom = nil
+    if f and string.sub(f, 1, 17) == "animals:zonecard:" then
+        local name = getState(win).zoneName   -- (after a Save, the new name: the card's id has it)
+        navigateBack(win)
+        return "animals:zonecard:" .. tostring(name)
+    end
+    return f or fallback
+end
+function AT.zoneAct(win, id, pad, from)
+    local state = getState(win)
+    if state.view ~= "zone" or not state.zoneName then return false end
+    local land
+    if id == "rename" or id == "name" then
+        if win._animalsRemoveConfirm then cancelRemoveZone(win) end
+        if not win._animalsRenaming then
+            win._animalsZoneFrom = from or zoneStop(id)
+            renameZone(win)
+        end
+        if not win._animalsRenaming then return false end
+        if pad then
+            renameKeyboard(win)
+            land = zoneStop("save")
+        end
+    elseif id == "field" then
+        if not win._animalsRenaming then return false end
+        renameKeyboard(win)
+    elseif id == "reset" then
+        if not win._animalsRenaming then return false end
+        resetRename(win)
+    elseif id == "save" or id == "cancel" then
+        if not win._animalsRenaming then return false end
+        if id == "save" then commitRename(win) else cancelRename(win) end
+        land = zoneReturn(win, zoneStop("rename"))
+    elseif id == "remove" then
+        if win._animalsRenaming then cancelRename(win) end
+        win._animalsZoneFrom = from or zoneStop("remove")
+        removeZone(win)
+        land = zoneStop("no")
+    elseif id == "no" then
+        if not win._animalsRemoveConfirm then return false end
+        cancelRemoveZone(win)
+        land = zoneReturn(win, zoneStop("remove"))
+    elseif id == "yes" then
+        if not win._animalsRemoveConfirm then return false end
+        win._animalsZoneFrom = nil
+        confirmRemoveZone(win)
+    else
+        return false
+    end
+    if pad and land then win._animalsNavFocusTarget, win._animalsNavFocusSince = land, nil end
+    return true
+end
+
+--- The controller's stops for the zone's own controls, from the rects this frame drew (none on a view that has no
+-- zone): the zone's name, Rename and Remove zone; during a rename its box, Reset, Cancel and Save; during the
+-- remove question its Cancel and Remove. A presses (AT.zoneAct); B on the rename or the question is its Cancel.
+function AT.zoneStops(win)
+    local els = {}
+    local state = getState(win)
+    if state.view ~= "zone" or not state.zoneName then return els end
+    local function press(w, el) AT.zoneAct(w, el.zoneId, true, el.id) end
+    local function add(id, r, extra)
+        if not r then return end
+        local el = { x = r.x, y = r.y, w = r.w, h = r.h, id = zoneStop(id), isZoneCtl = true, zoneId = id, onActivate = press }
+        for k, v in pairs(extra or {}) do el[k] = v end
+        els[#els + 1] = el
+    end
+    if win._animalsRenaming then
+        local cancel = { onCancel = function(w) return AT.zoneAct(w, "cancel", true) end, promptB = ZeD.tr("UI_Cancel") }
+        add("field", win._animalsRenameFieldZone, { onCancel = cancel.onCancel, promptB = cancel.promptB,
+            promptA = ZeD.tr("UI_ZeD_Inv_PromptType") })
+        add("reset", win._animalsRenameResetBtn, cancel)
+        add("cancel", win._animalsRenameCancelBtn, cancel)
+        add("save", win._animalsRenameSaveBtn, cancel)
+    elseif win._animalsRemoveConfirm then
+        local no = { onCancel = function(w) return AT.zoneAct(w, "no", true) end, promptB = ZeD.tr("UI_Cancel") }
+        add("no", win._animalsRemoveNo, no)
+        add("yes", win._animalsRemoveYes, no)
+    else
+        local nz = win._animalsZoneNameZone
+        add("name", nz, {
+            onContextMenu = function(w, el) AT.zoneMenu(w, getState(w).zoneName, nz.sx, nz.sy, true, el.id) end,
+            promptX = ZeD.tr("UI_ZeD_Prompt_Menu"),
+        })
+        add("rename", win._animalsZoneRenameBtn)
+        add("remove", win._animalsZoneRemoveBtn)
+    end
+    return els
+end
+
+--- The zone's menu (a right-click on its card or its name; X on either by the controller): Rename and Remove zone,
+-- the band's two verbs. From the overview the menu opens the zone first. (sx, sy): where on the screen; from: the
+-- ring id of the control it opened from (the focus comes back there after a Cancel).
+function AT.zoneMenu(win, zoneName, sx, sy, pad, from)
+    if not zoneName then return false end
+    local function act(id)
+        return function()
+            local state = getState(win)
+            if state.view ~= "zone" or state.zoneName ~= zoneName then
+                if state.view == "animal" then navigateBack(win) end
+                navigate(win, "zone", zoneName, nil)
+            end
+            AT.zoneAct(win, id, pad, from)
+        end
+    end
+    local rows = {
+        { name = getText("ContextMenu_RenameBag"), onFire = act("rename") },
+        { name = ZeD.tr("UI_ZeD_Animals_BtnRemoveZone"), onFire = act("remove") },
+    }
+    local m = ZeD_ContextList:new(WPN(win), "cursor", sx or getMouseX(), sy or getMouseY(), nil, rows, nil)
+    m.headText = zoneName
+    m:initialise()
+    m:open()
+    return true
+end
+
 --- Tick or clear one roster row (its box; X on the controller; a right-click on the row).
 function AT.toggleSelected(win, animal)
     local state = getState(win)
@@ -3606,9 +3775,11 @@ local function drawTabBand(panel, win, x, y, w, view)
             win = win,
             status = { text = ZeD.tr("UI_ZeD_Animals_TypeNewName") },
             buttons = {
-                { label = getText("IGUI_WorldMapEditor_Reset"), help = ZeD.tr("UI_ZeD_Animals_HelpRenameReset") },
-                { label = ZeD.tr("UI_Cancel"), help = ZeD.tr("UI_ZeD_Animals_HelpRenameCancel") },
-                { label = getText("UI_btn_save"), variant = "primary", help = ZeD.tr("UI_ZeD_Animals_HelpRenameSave") },
+                { label = getText("IGUI_WorldMapEditor_Reset"), help = ZeD.tr("UI_ZeD_Animals_HelpRenameReset"),
+                  focus = focusFor(win, zoneStop("reset")) },
+                { label = ZeD.tr("UI_Cancel"), help = ZeD.tr("UI_ZeD_Animals_HelpRenameCancel"), focus = focusFor(win, zoneStop("cancel")) },
+                { label = getText("UI_btn_save"), variant = "primary", help = ZeD.tr("UI_ZeD_Animals_HelpRenameSave"),
+                  focus = focusFor(win, zoneStop("save")) },
             },
         })
         win._animalsRenameResetBtn = out.buttons[1]
@@ -3619,7 +3790,8 @@ local function drawTabBand(panel, win, x, y, w, view)
         -- Remove: a question, then Cancel and the verb (it cannot be undone)
         local H, cancelR, verbR = M.drawQuestionBand(panel, x, y, w, ZeD.tr("UI_ZeD_Animals_RemoveZoneAsk"),
             getText("ContextMenu_Remove"), { win = win, danger = true,
-                cancelHelp = ZeD.tr("UI_ZeD_Animals_HelpRemoveCancel"), verbHelp = ZeD.tr("UI_ZeD_Animals_HelpRemoveDo") })
+                cancelHelp = ZeD.tr("UI_ZeD_Animals_HelpRemoveCancel"), verbHelp = ZeD.tr("UI_ZeD_Animals_HelpRemoveDo"),
+                cancelFocus = focusFor(win, zoneStop("no")), verbFocus = focusFor(win, zoneStop("yes")) })
         win._animalsRemoveNo = cancelR
         win._animalsRemoveYes = verbR
         return H
@@ -3659,6 +3831,7 @@ function ZeD.AnimalsTab.render(panel, win, x, y, w, h)
     win._animalsGenomeZones, win._animalsGenomeBtns = nil, nil
     win._animalsButcherZones = nil   -- the Butcher roster rebuilds it when drawn
     win._animalsRosterZones, win._animalsSortZone, win._animalsZoneNameZone = nil, nil, nil
+    win._animalsRenameFieldZone = nil   -- (the zone page's info band sets it while a rename is open)
     win._animalsZoneHelpZone = nil
     win._animalsZoneCardZones, win._animalsSectionZones = nil, nil
     win._animalsAlertZones, win._animalsOvClip = nil, nil   -- (not _animalsOvRows: the follow reads last frame's)
@@ -3780,21 +3953,7 @@ function ZeD.AnimalsTab.onClick(win, x, y)
         return true
     end
     if hitZone(win._animalsRenameResetBtn, x, y) then
-        -- Reset to auto-generated name
-        local state = getState(win)
-        local zone = getZoneByName(state.zoneName)
-        if zone and win._animalsRenameEntry then
-            -- Find original auto-name by zone index
-            local allZones = DesignationZoneAnimal.getAllZones()
-            if allZones then
-                for i = 0, allZones:size() - 1 do
-                    if allZones:get(i) == zone then
-                        win._animalsRenameEntry:setText(ZeD.tr("UI_ZeD_Animals_ZoneAutoName", i + 1))
-                        break
-                    end
-                end
-            end
-        end
+        resetRename(win)
         return true
     end
     -- Remove question: the verb / Cancel
@@ -3961,6 +4120,16 @@ end
 
 -- A right-click on a roster row ticks or clears it (X on the controller does the same).
 function ZeD.AnimalsTab.onRightClick(win, x, y)
+    -- (punch list 253) the zone's menu, Rename and Remove zone: on a zone's card (the overview) or the zone's name
+    local ovClip = win._animalsOvClip
+    if win._animalsZoneCardZones and not (ovClip and (y < ovClip.y or y >= ovClip.y + ovClip.h)) then
+        for _, zc in ipairs(win._animalsZoneCardZones) do
+            if hitZone(zc, x, y) then return AT.zoneMenu(win, zc.zoneName, getMouseX(), getMouseY(), false) end
+        end
+    end
+    if hitZone(win._animalsZoneNameZone, x, y) and not win._animalsRenaming then
+        return AT.zoneMenu(win, getState(win).zoneName, getMouseX(), getMouseY(), false)
+    end
     local rs = win._animalsRosterScroll
     if not win._animalsRosterZones or (rs and (y < rs.top or y >= rs.top + rs.h)) then return false end
     for _, rz in ipairs(win._animalsRosterZones) do

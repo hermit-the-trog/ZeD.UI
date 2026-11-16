@@ -222,6 +222,9 @@ function ZeD_MMHost:prerender()
             UI.styleEntry(self.account, vx, cy + math.floor((rowH - T.px(24)) / 2), boxW, T.px(24))
             if not self.account:isVisible() then self.account:setVisible(true) end
             self._hits[#self._hits + 1] = { id = "host:account", x = ax + vx, y = ay + self.account.y, w = boxW, h = T.px(24), fn = function() self.account:focus() end }
+            -- the controller's stop on it: A opens the pad keyboard (punch list 252; last in the old grid, so the hand
+            -- still lands on Settings)
+            if UI.fieldStop then UI.fieldStop(self, self.account, "account", vx, self.account.y, boxW, T.px(24), 999) end
         end
         cy = cy + rowH
         label(ZeD.tr("UI_ZeD_Host_LabelSettings"), cy)

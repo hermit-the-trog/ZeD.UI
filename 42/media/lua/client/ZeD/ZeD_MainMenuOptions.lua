@@ -620,6 +620,8 @@ end
 -- CLOSING ---------------------------------------------------------------------
 
 function ZeD_MMOptions:finish()
+    -- (punch list 261: "Keep these display settings?" is never left unanswered: leaving answers No, the old ones back)
+    if self.confirm == "monitor" then self:answerMonitor(false) end
     self.firstRun = nil
     if self.find:isFocused() then self.find:unfocus() end
     self:setConfirm(false)   -- (every answer through setConfirm: _backFocus never left stale)
@@ -631,6 +633,8 @@ end
 -- vanilla's BACK: no changes -> reload the keys file and leave
 function ZeD_MMOptions:back()
     MM.clickSound()
+    -- (punch list 261: Back during "Keep these display settings?" answers No, as Escape does; the old ones come back)
+    if self.confirm == "monitor" then self:answerMonitor(false); return end
     if self:anyChanged() then self:setConfirm("back"); return end
     pcall(MainOptions.loadKeys)
     self:finish()
@@ -798,6 +802,11 @@ function ZeD_MMOptions:editText(r)
     self.field:setText(tostring(r.control:getText() or ""))
     self.field:setVisible(true)
     self.field:focus()
+    -- with a controller the hand goes to the field and the pad keyboard opens on it (punch list 252)
+    if MM.gamepad() and UI.typeIn then
+        self.focusId = "field:band"
+        UI.typeIn(self.field)
+    end
 end
 function ZeD_MMOptions:commitText()
     local r = self._textRow
@@ -823,7 +832,9 @@ end
 -- The answer the controller lands on when a question opens: Back or Discard with changes can
 -- lose work, so they land on Keep editing and Discard needs a deliberate move; the other
 -- questions land on their main answer (confirm:yes) where they have one.
-local SAFE_ANSWER = { back = "confirm:no", discard = "confirm:no" }
+-- (punch list 261: "Keep these display settings?" lands on Cancel, the old settings: a screen that can't be read
+-- must not be kept by one press)
+local SAFE_ANSWER = { back = "confirm:no", discard = "confirm:no", monitor = "confirm:no" }
 function ZeD_MMOptions:setConfirm(mode)
     if self.confirm == mode then return end
     -- (B on a question goes back to the stop it was asked from)
@@ -923,6 +934,9 @@ function ZeD_MMOptions:drawPages(x, y, w, h, pages, finding)
     local kind = self.kind
     self._hits[#self._hits + 1] = { id = kind .. ":find", x = ax + self.find.x, y = ay + self.find.y, w = self.find.width, h = self.find.height,
                                     fn = function() self.find:focus() end }
+    -- the controller's stop on it (punch list 252): A opens the pad keyboard (after the rows in the old grid, so the
+    -- hand still lands on the page's first option). Options, Sandbox and the server settings share it.
+    if UI.fieldStop then UI.fieldStop(self, self.find, "field:find", self.find.x, self.find.y, self.find.width, self.find.height, 999) end
     -- the pages under Find scroll in their own box (with a long mod list the Sandbox step has
     -- dozens of pages, more than the window holds). The wheel over the box moves it, the bar
     -- drags, and the picked page comes into view whenever it changes (a bumper, a page shown from elsewhere).
@@ -1725,6 +1739,11 @@ function ZeD_MMOptions:joyA()
         if code then self:pickColor(paletteColor(code)) end
         return
     end
+    -- (punch list 261: while "Keep these display settings?" is up only its answers take A)
+    if self.confirm == "monitor" and not string.find(tostring(self.focusId or ""), "^confirm:") then
+        self.focusId = "confirm:no"
+        return
+    end
     ZeD_MMWindow.joyA(self)
 end
 
@@ -1906,7 +1925,10 @@ function ZeD_MMOptions:buildStrip(stripY, stripH, w)
         local firstBtn = w
         for _, b in ipairs(self._specs) do if b.row == row then firstBtn = math.min(firstBtn, b.x) end end
         local fh = T.px(24)
-        UI.styleEntry(self.field, fx, stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx), fh)
+        local fy, fw = stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx)
+        UI.styleEntry(self.field, fx, fy, fw, fh)
+        -- the controller's stop on it, left of the buttons: A opens the pad keyboard (punch list 252)
+        if UI.fieldStop then UI.fieldStop(self, self.field, "field:band", fx, fy, fw, fh, row, 0) end
     else
         -- Back (| Defaults on ZeD setup) | Discard changes, Apply (Apply keeps the window open)
         local changed = self:anyChanged()
@@ -1924,6 +1946,9 @@ end
 -- POINTER (in game the window has its own; at the menu the desk's) ---------------------
 --- Each update: a press outside the open palette closes it; in game the window runs its own pointer.
 function ZeD_MMOptions:update()
+    -- (punch list 261: the 20-second revert runs here too, not only while the band draws, so a window hidden or
+    -- covered meanwhile still puts the old display settings back on time)
+    if self.confirm == "monitor" and MM.now() >= (self._monitorUntil or 0) then self:answerMonitor(false) end
     -- a click outside the open palette closes it
     local down = ZeD.MouseTick.down()   -- (update() runs every 100 ms: ZeD_MouseTick.lua)
     if self._palette and down and not self._palDown then
@@ -1951,6 +1976,17 @@ end
 
 function ZeD_MMOptions:joyDir(dir)
     if self._palette then self:paletteDir(dir); return end
+    -- (punch list 261: while "Keep these display settings?" is up the D-pad stays on its answers: it can't wander to
+    -- an option, the menu bar or the desk and leave the 20-second revert behind)
+    if self.confirm == "monitor" then
+        local was = self.focusId
+        if dir == "left" or dir == "right" then ZeD_MMWindow.joyDir(self, dir) end
+        if not string.find(tostring(self.focusId or ""), "^confirm:") then
+            self.focusId = string.find(tostring(was or ""), "^confirm:") and was or "confirm:no"
+        end
+        self._edge = nil
+        return
+    end
     if dir == "left" or dir == "right" then
         local r = self:focusedRow()
         if r and self:nudge(r, dir == "left" and -1 or 1) then return end
@@ -1967,7 +2003,10 @@ end
 function ZeD_MMOptions:joyB()
     if self._palette then self._palette = nil; return end
     if self.confirm == "key" then self:stopCapture(); self:setConfirm(false); return end
-    if self.confirm and self.confirm ~= "monitor" then self:setConfirm(false); return end
+    -- (punch list 261: B answers "Keep these display settings?" No, as Escape does: the old settings come back.
+    -- It used to fall through to Back, which skipped the question and kept the new ones.)
+    if self.confirm == "monitor" then MM.clickSound(); self:answerMonitor(false); return end
+    if self.confirm then self:setConfirm(false); return end
     self:back()
 end
 -- X: on a quick action chord, clears it (ZeD_QuickChords); else Discard, when there is something to discard
