@@ -935,7 +935,8 @@ function ZeD_ObjectCard:press(v)
     if not (player and e) then return end
     if v.confirm then
         self._confirm = { text = v.confirm, yes = v.label, run = v.run, danger = v.danger and true or false, help = v.help }
-        self._pendingFocus = "oc:confirm:yes"
+        -- (Nov 16 2026) a question opens on Cancel (digging up a crop, taking a grill apart, emptying), so a second A cannot act
+        self._pendingFocus = "oc:confirm:no"
         return
     end
     if v.jump then

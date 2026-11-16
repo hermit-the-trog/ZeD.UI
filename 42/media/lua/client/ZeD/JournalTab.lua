@@ -1370,7 +1370,7 @@ function ZeD.JournalTab.askFocusables(win)
     if not r then return {} end
     local out = {}
     if r.cancel then
-        out[#out + 1] = { x = r.cancel.x, y = r.cancel.y, w = r.cancel.w, h = r.cancel.h, id = "journal:ask:cancel",
+        out[#out + 1] = { x = r.cancel.x, y = r.cancel.y, w = r.cancel.w, h = r.cancel.h, id = "journal:ask:cancel", land = true,
             onFocus = function() end,
             onActivate = function(w) ZeD.JournalTab.cancelDelete(w) end,
             onCancel = function(w) ZeD.JournalTab.cancelDelete(w) end }

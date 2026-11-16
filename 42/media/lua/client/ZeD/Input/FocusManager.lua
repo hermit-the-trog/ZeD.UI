@@ -830,6 +830,19 @@ function Focus.setRingZoneElements(w, zoneRef, elements, preserveIdx)
     local idx = _resolveZoneIdx(w, zoneRef)
     if not idx or not elements then return end
     local zone = w._focusRing[idx]
+    -- (Nov 16 2026, QA's beta 17 run: the Journal's delete question opened on Delete.) A stop marked land = true
+    -- (a question's Cancel) takes the focus when the stops are swapped and the focused one is gone, never a clamped
+    -- index that may be the answer that acts.
+    if not preserveIdx then
+        local old = zone.elements and zone.elements[zone.focusedElementIdx or 1]
+        local oldId = old and old.id
+        local stays, landAt = false, nil
+        for i, e in ipairs(elements) do
+            if oldId ~= nil and e.id == oldId then stays = true end
+            if e.land and not landAt then landAt = i end
+        end
+        if landAt and not stays then preserveIdx = landAt end
+    end
     zone.elements = elements
     if preserveIdx then
         zone.focusedElementIdx = _clampIdx(preserveIdx, elements)

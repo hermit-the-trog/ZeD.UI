@@ -78,5 +78,33 @@ cc.hits = { hit("xfer", 0), hit("same", 20), hit("near", 40), hit("sort", 61), h
 CT.syncFocus(win, content)
 check("and closes back on the button that asked", focused() == "sort", focused())
 
+-- (QA's beta 17 run) the Journal's delete question swapped the zone's stops for Cancel and Delete and the clamped
+-- index landed on Delete. FocusManager now seats a stop marked land = true when the focused stop is gone.
+local function readSrc(p) local fh = assert(io.open(ROOT .. p, "rb")); local s = fh:read("*a"):gsub("\r\n", "\n"); fh:close(); return s end
+local fm = readSrc("42/media/lua/client/ZeD/Input/FocusManager.lua")
+local setBody = fm:match("\nfunction Focus%.setRingZoneElements%(.-\nend\n")
+check("finds Focus.setRingZoneElements", setBody ~= nil)
+local Focus = {}
+local resolve = function(w, zn) for i, z in ipairs(w._focusRing) do if z.zone == zn then return i end end end
+local clampIdx = function(i, els) if #els == 0 then return 1 end return math.max(1, math.min(i or 1, #els)) end
+assert(loadstring("local Focus, _resolveZoneIdx, _clampIdx = ...\n" .. (setBody or "")))(Focus, resolve, clampIdx)
+local jw = { _focusRing = { { zone = "jr", focusedElementIdx = 5, elements = {} } } }
+local jz = jw._focusRing[1]
+for i = 1, 6 do jz.elements[i] = { id = "journal:del:" .. i } end
+local jt = readSrc("42/media/lua/client/ZeD/JournalTab.lua")
+check("the Journal's Cancel is marked to take the focus", jt:find('id = "journal:ask:cancel", land = true', 1, true) ~= nil)
+Focus.setRingZoneElements(jw, "jr", { { id = "journal:ask:cancel", land = true }, { id = "journal:ask:verb" } })
+check("the Journal's delete question opens on Cancel", jz.elements[jz.focusedElementIdx].id == "journal:ask:cancel", jz.focusedElementIdx)
+jz.focusedElementIdx = 2
+Focus.setRingZoneElements(jw, "jr", { { id = "journal:ask:cancel", land = true }, { id = "journal:ask:verb" } })
+check("a rebuild while the question is up keeps the player's pick", jz.focusedElementIdx == 2, jz.focusedElementIdx)
+Focus.setRingZoneElements(jw, "jr", { { id = "a" }, { id = "b" }, { id = "c" } }, 3)
+check("an asked-for index still wins", jz.focusedElementIdx == 3, jz.focusedElementIdx)
+
+-- the machine cards' questions (dig up a crop, take a grill apart, empty) open on Cancel
+local oc = readSrc("42/media/lua/client/ZeD/ObjectCards.lua")
+check("an object card's question opens on Cancel", oc:find('self._pendingFocus = "oc:confirm:no"', 1, true) ~= nil
+    and oc:find('self._pendingFocus = "oc:confirm:yes"', 1, true) == nil)
+
 print("ask_cancel_first_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end
