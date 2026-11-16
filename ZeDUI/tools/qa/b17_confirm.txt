@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/b17_confirm.txt  (Nov 16 2026, QA): beta 17's question landings on 459471f4f: the Journal ask and the machine cards' questions (zedqa_b17_scroll.lua, the plates and object card coverage scripts that answer them)
+zedqa_prelude.lua | pre
+zedqa_b17_scroll.lua | b17s | timeout=420
+zedqa_plates_336.lua | p336 | timeout=300
+zedqa_cov_objcards.lua | cov_objcards | timeout=300
