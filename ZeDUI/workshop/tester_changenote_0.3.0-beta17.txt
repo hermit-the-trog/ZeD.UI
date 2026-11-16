@@ -1,0 +1,26 @@
+0.3.0-beta17
+
+Add-ons and fixes.
+
+Add-ons
+- Other mods can now lay out an inventory column their own way, set rules for where items may go, and put their own settings on the ZeD setup page as a group.
+
+Controller
+- Every question opens on Cancel, so a second A can't delete or empty anything: the trash can's Remove all, a Journal entry's delete, digging up a crop, taking apart a grill, emptying a container.
+- The belt is back: the Character wheel's last slice, Belt, puts the controller on it. On the belt's watch, A opens the full watch, X starts it, Y lights it.
+- The full watch works by controller: A grabs the alarm setting, the crown or the speed, the D-pad turns it, A or B lets go.
+- Start pauses from every pop-out, the reader, the car dash, the seat picker and chat.
+- Every text box takes the on-screen keyboard: Journal writing and searches, Craft and Build search, the main menu's forms and Find boxes.
+- Long item cards, letters, messages and main menu panes read to the end before the controller moves on.
+- Machine faces scroll back to the top, so the TV's antenna and a card's art always show.
+- Animal zones can be renamed and removed, also from a new zone menu.
+- A second L3 reverses a sort. Category headings fold and unfold.
+- After deleting, unequipping or opening a card in the other window, the controller lands where you'd expect.
+- The car's volume is a knob: A grabs it, the D-pad turns it both ways.
+- The chat window's menu can be reached, and players 2 to 4 can open chat.
+- "Keep these display settings?": B answers No.
+
+Mouse and keyboard
+- The Load order pane and the Workshop page's folder list scroll, so every button and folder can be reached.
+- Bug report is in every ZeD window's menu.
+- The server join screen takes Enter, Tab and the arrow keys.
