@@ -731,8 +731,22 @@ function S.popToggle(playerObj, vehicle)
     p._design, p._cabin = S.cabinPick(vehicle)
     p._anchor, p._drag, p._g = nil, nil, nil
     -- (a dry run: a car whose seats can't be laid out as rows, or the art not there, gets the window)
-    local ok = pcall(p.readSeats, p)
-    if not (ok and p:plan() and tex("floor/" .. p._cabin .. "_1")) then return false end
+    local ok, err = pcall(p.readSeats, p)
+    local planned = ok and p:plan() or nil
+    local art = tex("floor/" .. p._cabin .. "_1")
+    if not (ok and planned and art) then
+        -- (Nov 15 2026, QA's beta 16 pass: a smashed sedan fell back to the window with no word why; say which test
+        -- failed, once per car type, so the log tells the seats, the rows and the art apart)
+        local why = (not ok) and ("seats unread: " .. tostring(err)) or (not planned) and "seats not in rows" or ("no art floor/" .. tostring(p._cabin) .. "_1")
+        -- (a plain print, not ZeD.logOnce: that one counts toward safe mode's watchdog, and a fallback is no fault)
+        local name = tostring(vehicle and vehicle:getScriptName())
+        S._fellBack = S._fellBack or {}
+        if not S._fellBack[name] then
+            S._fellBack[name] = true
+            print("[ZeD] SeatPopout: " .. name .. " fell back to the window: " .. why)
+        end
+        return false
+    end
     p:setVisible(true)
     p:addToUIManager()
     p:setAlwaysOnTop(true)
