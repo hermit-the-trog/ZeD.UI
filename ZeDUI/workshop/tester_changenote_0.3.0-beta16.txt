@@ -1,0 +1,26 @@
+0.3.0-beta16
+
+Pop-outs and polish.
+
+Pop-outs
+- Radios, TVs, two-way sets, ovens, microwaves, washers, dryers, generators and propane grills pop out beside you as the real thing. Click the machine or press A at it; the same machine again puts it away, another one takes its place.
+- Every face has a pop-out button in its top right corner, so the controller always has a stop at the top.
+- Info on a generator or a grill still opens its card, with the fuel, the condition and what it powers.
+- Pop-outs open clear of the Character and World windows.
+- Choosing a seat shows the car's cabin from above. The Simple style keeps the seat window. A wreck with no seats opens nothing, as in the game.
+
+Look
+- Tooltips are light in every theme, so they stand out.
+- Pop-up bubbles use the same type as Messages: speech in Fira Mono, notes and stats in Fira Sans.
+- Any game speed other than normal, and pause, shows in a bubble above your character.
+- Actions with no end, the ones whose bar only cycles, show the action's icon instead of a bar.
+
+Controller
+- Right from the Character window lands on a container in the World window, not the ground, when there is one; on the ground when it's the only one.
+
+New setting
+- ZeD setup, Additional appliance support: makes more of the game's appliances work, starting with the espresso machine. Off unless you turn it on; with it on, taking ZeD out of a save is riskier.
+
+Fixes
+- A machine's card stays open while your character walks over to do what you chose on it, even when the path swings wide.
+- The grill's burner lights straight after a fresh tank goes in.
