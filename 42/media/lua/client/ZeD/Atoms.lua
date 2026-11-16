@@ -327,20 +327,28 @@ end
 --- True when ZeD has a pixel icon of this id.
 function PXI.has(id) return id ~= nil and pxTex(16, id) ~= nil end
 
---- The color of icon `id`'s mark (ZeD.PxIconMark: "add" blue, "remove" red), or nil when it has none.
---- set: a pair { add =, remove = } (the theme's, T.marks, on a theme surface), or nil for the paper's pair
---- (ZeD.Ctx.markAdd / markRemove: the strip and the wheels).
+--- The color of icon `id`'s mark (ZeD.PxIconMark: "blue", "red" or "gold"; the older "add" reads as blue and
+--- "remove" as red), or nil when it has none.
+--- set: the theme's set { blue =, red =, gold = } (T.marks, on a theme surface; an older pair { add =, remove = }
+--- still works), or nil for the paper's set (ZeD.Ctx.markBlue / markRed / markGold: the strip and the wheels).
+local MARK_KIND = { add = "blue", remove = "red", blue = "blue", red = "red", gold = "gold" }
+local MARK_PAPER = { blue = "markBlue", red = "markRed", gold = "markGold" }
+local MARK_OLD = { blue = "add", red = "remove" }
 function PXI.markColor(id, set)
-    local kind = id and ZeD.PxIconMark and ZeD.PxIconMark[id]
+    local kind = id and ZeD.PxIconMark and MARK_KIND[ZeD.PxIconMark[id]]
     if not kind then return nil end
-    if type(set) == "table" and set.add then return (kind == "add") and set.add or set.remove end
+    if type(set) == "table" then
+        local c = set[kind] or (MARK_OLD[kind] and set[MARK_OLD[kind]])
+        if c then return c end
+        if set.add or set.blue then return nil end   -- (a set without this color: leave the mark ink)
+    end
     local C = ZeD.Ctx
-    return C and ((kind == "add") and C.markAdd or C.markRemove) or nil
+    return C and (C[MARK_PAPER[kind]] or (kind == "blue" and C.markAdd) or (kind == "red" and C.markRemove)) or nil
 end
 
 --- Draw pixel icon `id` centred in the box (x, y, box), tinted (default T.text).
 --- marks: also draw the icon's mark in its color over the tint (punch list 138), the mark's own picture
---- (zw_<id>_mk.png at the same size) over the whole icon: true for the paper's pair, or a pair { add =, remove = }
+--- (zw_<id>_mk.png at the same size) over the whole icon: true for the paper's set, or a set { blue =, red =, gold = }
 --- (T.marks on a theme surface). Callers ask for it at rest only: a pointed cell or row draws the whole icon in its
 --- one tint, marks included.
 function ZeD.Atoms.drawPxIcon(panel, id, x, y, box, alpha, tint, marks)

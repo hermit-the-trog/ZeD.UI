@@ -4,9 +4,15 @@ the director, Nov 9 2026: "I want color to distinguish the difference ... when t
 The icons stay ink; only the mark that tells a pair apart takes a color: a plus or minus, an in or out arrow, the strike
 of an "off". The first of a pair (add, take, load, in, open, up, enter) is blue, the second (remove, put, drop, unload,
 out, off, close, down, exit) is red. The shape still carries the meaning, so a player who can't see color loses nothing.
-The colors live with the paper and ink in the game (ZeD.Ctx.markAdd / markRemove, Tokens.lua), not here.
+The colors live with the paper and ink in the game (ZeD.Ctx.markBlue / markGold / markRed, Tokens.lua), not here.
 
-MARKS: icon id -> "add" or "remove". What's marked is the icon's mark layer (kit.C.mark(): badges, strikes, and the
+Three accents from round 1b (the director's redrawn icons, Nov 16 2026; i_r1.py): blue (water and cold; the giving side
+of a pair), red (harm and danger; the taking-away side) and gold (energy and value: fire, light, power, favorite, kept).
+The pairs' old kinds read on: add is blue, remove is red. The r_ icons take their kind from i_r1.ACCENT. HOLES (i_r1):
+the accent fills what the base cuts out (the medkit's cross), so export.py writes the base without the mark's pixels and
+a pointed cell, drawn in one tint, shows the hole.
+
+MARKS: icon id -> "blue", "red" or "gold". What's marked is the icon's mark layer (kit.C.mark(): badges, strikes, and the
 arrows marked by hand in i_row, i_gun, i_sym, i_world), except the WHOLE ones, where the glyph is the mark.
 When it's unclear which is first (the director's call: the player's side decides), a plus or an in-arrow is blue and a
 minus or an out-arrow red, except the container pair, where Take is blue and Put in red whatever way the arrow points.
@@ -16,7 +22,9 @@ Left ink on purpose: arrows that say where with no twin (holster*, tent_down, th
 the check.
 """
 
-ADD, REMOVE = "add", "remove"
+BLUE, RED, GOLD = "blue", "red", "gold"
+KINDS = (BLUE, RED, GOLD)
+ADD, REMOVE = BLUE, RED                                 # (the pairs' kinds before round 1b: add blue, remove red)
 
 MARKS = {
     # add and remove
@@ -53,8 +61,12 @@ MARKS = {
     # them ink as arrows that say where). Only the menus color marks: the belt's hands stay ink.
     "hand_main": ADD, "hand_off": ADD,
 }
+# round 1b (Nov 16 2026): the redrawn icons, each with its one accent
+import i_r1 as _R1                                      # noqa: E402
+MARKS.update(_R1.ACCENT)
+HOLES = set(_R1.HOLES)
 
-WHOLE = {"plus", "minus", "move_up", "move_down"}       # the glyph is all mark
+WHOLE = {"plus", "minus", "move_up", "move_down", "r_favorite"}   # the glyph is all mark
 
 
 def mark_image(id_, size):
@@ -65,13 +77,26 @@ def mark_image(id_, size):
     return kit.render_mark(id_, size)
 
 
+def base_image(id_, size):
+    """the icon as exported: the whole drawing, or for a HOLES icon the drawing without its mark (the cut-out the
+    accent fills at rest)"""
+    import kit
+    from PIL import ImageChops
+    im = kit.render(id_, size)
+    if id_ not in HOLES: return im
+    m = mark_image(id_, size)
+    if m is None: return im
+    im.putalpha(ImageChops.subtract(im.getchannel("A"), m.getchannel("A")))
+    return im
+
+
 def check():
     """every marked icon exists and has mark pixels at both sizes; the mark is part of the icon, not all of it
     (unless WHOLE). Returns a list of problems."""
     import kit
     bad = []
     for id_, kind in MARKS.items():
-        if kind not in (ADD, REMOVE): bad.append("%s: kind %r" % (id_, kind)); continue
+        if kind not in KINDS: bad.append("%s: kind %r" % (id_, kind)); continue
         if id_ not in kit.ICONS: bad.append("%s: no such icon" % id_); continue
         for sz in (16, 24):
             m = mark_image(id_, sz)
@@ -80,6 +105,7 @@ def check():
             mk = m.getchannel("A").tobytes()
             if any(b and not a for a, b in zip(full, mk)): bad.append("%s %d: a mark pixel off the icon" % (id_, sz))
             if id_ not in WHOLE and mk == full: bad.append("%s %d: the mark is the whole icon" % (id_, sz))
+            if id_ in HOLES and not base_image(id_, sz).getchannel("A").getbbox(): bad.append("%s %d: nothing left round the hole" % (id_, sz))
     return bad
 
 

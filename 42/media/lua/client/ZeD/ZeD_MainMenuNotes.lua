@@ -280,7 +280,7 @@ local function drawButton(p, b, text, danger, over)
     local f = T.fontF2
     local s = ZeD.Atoms.truncateText(text, f, b.w - T.px(4))
     local tw = MM.textW(f, s)
-    local ink = danger and ZeD.Ctx and ZeD.Ctx.markRemove or INK
+    local ink = danger and ZeD.Ctx and (ZeD.Ctx.markRed or ZeD.Ctx.markRemove) or INK
     p:drawText(s, b.x + math.floor((b.w - tw) / 2), b.y + math.floor((b.h - MM.fontH(f)) / 2), ink.r, ink.g, ink.b, 1, f)
 end
 

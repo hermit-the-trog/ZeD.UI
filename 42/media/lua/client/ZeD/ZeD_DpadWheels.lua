@@ -990,15 +990,15 @@ D.B.character = function(p, pn)
     local hurt = ZeD.QuickWheel and ZeD.QuickWheel.hurt and ZeD.QuickWheel.hurt(p)
     local ring = {
         { name = tr("UI_ZeD_Wheel_Tabs"), tab = "loot-tab-white", detail = tr("UI_ZeD_Wheel_CharacterWindow"), sub = C.tabs },
-        { name = tr("UI_ZeD_Wheel_Weapons"), icon = "knife", best = true, sub = C.weapons, off = (#weapons == 0) and tr("UI_ZeD_Wheel_NoWeapon") or nil },
+        { name = tr("UI_ZeD_Wheel_Weapons"), icon = "r_weapons", best = true, sub = C.weapons, off = (#weapons == 0) and tr("UI_ZeD_Wheel_NoWeapon") or nil },
         { name = getText("ContextMenu_Eat"), icon = "apple", best = true, sub = function() return H.quick(p, "eat") end,
           off = (#eat == 0) and ((ZeD.QuickWheel.tooFull and ZeD.QuickWheel.tooFull(p)) and getText("Tooltip_CantEatMore")
               or tr("UI_ZeD_Wheel_NothingToEat")) or nil },
-        { name = getText("ContextMenu_Drink"), icon = "glass", best = true, sub = function() return H.quick(p, "drink") end,
+        { name = getText("ContextMenu_Drink"), icon = "r_drink", best = true, sub = function() return H.quick(p, "drink") end,
           off = (#drink == 0) and tr("UI_ZeD_Wheel_NothingToDrink") or nil },
-        { name = tr("UI_ZeD_Wheel_Medicine"), icon = "medkit", sub = C.medicine, pick = C.medicinePick,
+        { name = tr("UI_ZeD_Wheel_Medicine"), icon = "r_medkit", sub = C.medicine, pick = C.medicinePick,
           off = (#pills == 0 and #treat == 0 and not hurt) and tr("UI_ZeD_Wheel_NothingToTreat") or nil },
-        { name = getText("ContextMenu_Sleep"), icon = "bed", detail = sleep.detail, off = sleep.off, run = sleep.run },
+        { name = getText("ContextMenu_Sleep"), icon = "r_sleep", detail = sleep.detail, off = sleep.off, run = sleep.run },
         { name = tr("UI_ZeD_Wheel_Clothing"), icon = "shirt", sub = C.clothing,
           off = (#clothing == 0) and tr("UI_ZeD_Wheel_NothingToChange") or nil },
         { name = tr("UI_ZeD_Wheel_Use"), icon = "backpack", detail = tr("UI_ZeD_Wheel_UseDetail"), sub = C.use },

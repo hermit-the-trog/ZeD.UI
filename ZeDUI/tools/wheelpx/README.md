@@ -31,10 +31,17 @@ pointed), the figures on a template ("follow a template or doll"). Signed off Oc
   animals, the safehouse and the rest), 199 new; signed off by the director group by group. `map.py` CTX gives each
   of the menu's 389 picture names (`shared/ZeD/ContextIcons.lua`) its icon; `export.py --game` writes that table as
   `42/media/lua/shared/ZeD/ContextPxIcons.lua`, which `ContextMenuRegistry` reads.
-- `marks.py` (Nov 10 2026, punch list 138): which icons' marks take a color (`MARKS`: id -> add or remove) and a
+- `marks.py` (Nov 10 2026, punch list 138; three accents from round 1b, Nov 16 2026): which icons' marks take a color
+  (`MARKS`: id -> blue, red or gold; the older add and remove are blue and red) and a
   check. A badge, a strike, and the arrows marked by hand (`with c.mark():` in i_row, i_gun, i_sym, i_world) land on the
   canvas's mark layer as well; `export.py` writes `zw_<id>_mk.png` beside each marked icon and the table
   `ZeD.PxIconMark` at the end of ContextPxIcons.lua. `python marks.py` checks every marked icon has a mark at 16 and 24.
+- `i_r1.py` (round 1b, the director's redraw, Nov 16 2026): 26 icons, ink plus one accent at most, for the item menu's
+  actions (favorite, place, pick up, put in, take, drop, move to, wanted / unwanted, the recipe padlock, rename), the
+  cutting verbs, the workshop (install, uninstall, disassemble, destroy, dig, light) and the character wheel's weapons,
+  drink, medicine and sleep. Its `ACCENT` gives each its color; `HOLES` (the medkit) are accents drawn into a cut-out:
+  the exported base leaves them clear, so the pointed cell, in one tint, shows the hole. The menu rows reach them
+  through the `r1-*` picture names (map.py CTX, ContextIcons.lua).
 - `review_ctx.py <group>`: their review sheets in `ZeDUI/mockups/zed_menu_icons_v1/` (real menus today against new at
   1x and 1.75x, then the group's catalogue).
 
@@ -47,7 +54,8 @@ python -c "import allicons, review as R; R.true_size(list(R.ICONS), 'true.png')"
 Pillow is the only need.
 
 ## Rules (from kit.py)
-- one colour, white on clear; the game tints it (ink on the paper cell, the theme's text-on-accent when pointed)
+- one colour, white on clear; the game tints it (ink on the paper cell, the theme's text-on-accent when pointed); a
+  mark (marks.py) takes blue, red or gold at rest
 - 16: objects in the 14 x 14 live area, 1 px details; 24: objects in 22 x 22, 2 px lines
 - masses solid, details cut out of them; outlines only where a mass would hide the meaning
 - badges bottom right (top right on a figure, whose feet fill the bottom), one clear pixel round them; 5 x 5 at 16,

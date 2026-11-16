@@ -1,14 +1,16 @@
 -- ZeDUI/tools/qa/menu_marks_sim.lua  (Nov 10 2026, Build; punch list 138, the menu marks and the new icons)
 -- With no game running. Each part loads the REAL files on stubs:
---   TABLE  ContextPxIcons.lua: ZeD.PxIconMark names only "add" or "remove"; every marked icon has its picture and its
+--   (Nov 16 2026: round 1b's three accents, blue, red and gold; the redrawn icons on their menu rows and wheel slices)
+--   TABLE  ContextPxIcons.lua: ZeD.PxIconMark names only "blue", "red" or "gold"; every marked icon has its picture and its
 --          mark's picture (zw_<id>_mk.png) at 16, 24, 32 and 48; every icon the menu table names has its pictures
 --   NAMES  ContextMenuRegistry.lua with ContextIcons.lua: the three safehouse rows get the boarded-up house (claim,
 --          release, view), Eat and its parts get the eat figure, Reinforce keeps its shield
---   DRAW   Tokens.lua and Atoms.lua: ZeD.Ctx.markAdd is #0B63B0 and markRemove #C2410C; drawPxIcon with marks draws
---          the icon in its tint and then the mark's picture, the same size, in the mark's color (blue for add, red for
---          remove); without marks, or for an icon with no mark, only the icon
---   LIST   each base theme's own pair for the list menu (T.marks: Dark and High contrast #4491E2 / #D9572A, Light
---          #014E8E / #872801), and drawPxIcon given a pair draws in it
+--   DRAW   Tokens.lua and Atoms.lua: ZeD.Ctx.markBlue is #1F5FC4, markRed #EA416E, markGold #B57F00 (markAdd and
+--          markRemove the older names for blue and red); drawPxIcon with marks draws the icon in its tint and then the
+--          mark's picture, the same size, in the mark's color; the older kinds "add" and "remove" still read as blue and
+--          red; without marks, or for an icon with no mark, only the icon
+--   LIST   each base theme's own set for the list menu (T.marks: Dark and High contrast #5AA2FF / #DC3250 / #F0B429,
+--          Light #1D5AB9 / #B81440 / #7A5600), and drawPxIcon given a set draws in it
 --   CELL   Molecules.lua's drawContextCell (the strip's cell, which the wheels draw too): at rest a ZeD icon's mark is
 --          colored; the pointed cell draws the whole icon in the accent's text color; a colored picture (not ZeD's)
 --          gets no mark
@@ -62,13 +64,13 @@ local MARK = ZeD.PxIconMark or {}
 local nMarks = 0
 for id, kind in pairs(MARK) do
     nMarks = nMarks + 1
-    check("TABLE: " .. id .. " is add or remove", kind == "add" or kind == "remove", kind)
+    check("TABLE: " .. id .. " is blue, red or gold", kind == "blue" or kind == "red" or kind == "gold", kind)
     for _, s in ipairs(SIZES) do
         check("TABLE: " .. id .. " has its " .. s, exists(pic(s, id)))
         check("TABLE: " .. id .. " has its mark at " .. s, exists(pic(s, id .. "_mk")))
     end
 end
-check("TABLE: 52 icons take a mark", nMarks == 52, nMarks)
+check("TABLE: 71 icons take a mark", nMarks == 71, nMarks)
 -- the handoff's pairs, both sides
 local PAIRS = {
     { "plus", "minus" }, { "equip", "unequip" }, { "tray_in", "tray_out" }, { "mag_in", "mag_out" },
@@ -78,15 +80,25 @@ local PAIRS = {
     { "outfit_add", "outfit_remove" }, { "loadout_add", "loadout_remove" },
 }
 for _, p in ipairs(PAIRS) do
-    check("TABLE: " .. p[1] .. " is blue", MARK[p[1]] == "add", MARK[p[1]])
-    check("TABLE: " .. p[2] .. " is red", MARK[p[2]] == "remove", MARK[p[2]])
+    check("TABLE: " .. p[1] .. " is blue", MARK[p[1]] == "blue", MARK[p[1]])
+    check("TABLE: " .. p[2] .. " is red", MARK[p[2]] == "red", MARK[p[2]])
 end
 for _, id in ipairs({ "to_floor", "trash", "bandage_off", "unplug", "bulb_remove", "bulb_off", "sneak_off", "star_off" }) do
-    check("TABLE: " .. id .. " is red", MARK[id] == "remove", MARK[id])
+    check("TABLE: " .. id .. " is red", MARK[id] == "red", MARK[id])
+end
+-- round 1b (Nov 16 2026): each redrawn icon's one accent (i_r1.ACCENT)
+local R1 = { r_favorite = "gold", r_place = "red", r_pick_up = "blue", r_put_in = "red", r_take = "blue", r_drop = "red",
+             r_wanted = "blue", r_unwanted = "red", r_no_recipes = "gold", r_recipes_ok = "gold", r_install = "blue",
+             r_uninstall = "red", r_disassemble = "red", r_destroy = "red", r_light = "gold", r_weapons = "red",
+             r_drink = "blue", r_medkit = "red", r_sleep = "gold" }
+for id, kind in pairs(R1) do check("TABLE: " .. id .. " is " .. kind, MARK[id] == kind, MARK[id]) end
+for _, id in ipairs({ "r_move_to", "r_rename", "r_chop", "r_slice", "r_dice", "r_peel", "r_dig" }) do
+    check("TABLE: " .. id .. " is ink only", MARK[id] == nil, MARK[id])
+    for _, s in ipairs(SIZES) do check("TABLE: " .. id .. " has its " .. s, exists(pic(s, id))) end
 end
 -- left ink on purpose
 for _, id in ipairs({ "hand_main", "hand_off" }) do
-    check("TABLE: " .. id .. "'s which-hand arrow is blue (Equip Primary / Secondary)", MARK[id] == "add", MARK[id])
+    check("TABLE: " .. id .. "'s which-hand arrow is blue (Equip Primary / Secondary)", MARK[id] == "blue", MARK[id])
 end
 for _, id in ipairs({ "holster", "tent_down", "padlock", "padlock_open", "link", "unlink",
                       "thumbs_up", "thumbs_down", "expand", "contract", "pop_out", "outfit", "loadout",
@@ -131,14 +143,35 @@ do
         check("NAMES: Release safehouse draws the house with a minus", id("ContextMenu_SafehouseRelease") == "safehouse_release", id("ContextMenu_SafehouseRelease"))
         check("NAMES: View safehouse draws the house", id("ContextMenu_ViewSafehouse") == "safehouse", id("ContextMenu_ViewSafehouse"))
         check("NAMES: Reinforce keeps its shield", id("Reinforce") == "reinforce", id("Reinforce"))
-        -- Grab takes the Take icon, blue; Smash keeps the fist; Place Item keeps the red Drop arrow (the director, Nov 10)
+        -- Grab takes the Take icon, blue; Smash keeps the fist (the director, Nov 10)
         check("NAMES: Grab draws Take", id("Grab") == "tray_in", id("Grab"))
         check("NAMES: ... Grab with its thing after (the first word)", id("Grab Hammer") == "tray_in", id("Grab Hammer"))
-        check("NAMES: ... and its blue mark", MK and MK.tray_in == "add")
+        check("NAMES: ... and its blue mark", MK and MK.tray_in == "blue")
         check("NAMES: Smash keeps the fist", id("Smash") == "fist", id("Smash"))
         for _, k in ipairs({ "ContextMenu_Eat", "ContextMenu_Eat_All", "ContextMenu_Eat_Half", "ContextMenu_Eat_Quarter" }) do
             check("NAMES: " .. k .. " draws the eat figure", id(k) == "eat", id(k))
         end
+        -- round 1b (Nov 16 2026): the item menu's actions each draw their own redrawn icon
+        local ROWS = {
+            { "IGUI_CraftUI_Favorite", "r_favorite" }, { "ContextMenu_Place", "r_place" }, { "Place", "r_place" },
+            { "ContextMenu_ExtendedPlacement", "r_place" }, { "Pick up", "r_pick_up" }, { "Put In", "r_put_in" },
+            { "ContextMenu_Put_in_Container", "r_put_in" }, { "ContextMenu_PutInContainer", "r_put_in" },
+            { "ContextMenu_Take", "r_take" }, { "Take Out", "r_take" }, { "Drop", "r_drop" }, { "ContextMenu_DropItems", "r_drop" },
+            { "ContextMenu_Move_To", "r_move_to" }, { "ContextMenu_Wanted", "r_wanted" }, { "ContextMenu_Unwanted", "r_unwanted" },
+            { "Mark Unwanted", "r_unwanted" }, { "ContextMenu_SetNoRecipes", "r_no_recipes" },
+            { "ContextMenu_UnsetNoRecipes", "r_recipes_ok" }, { "Rename", "r_rename" }, { "Chop", "r_chop" },
+            { "Slice", "r_slice" }, { "Dice", "r_dice" }, { "Peel", "r_peel" }, { "Install", "r_install" },
+            { "Install Part", "r_install" }, { "Uninstall", "r_uninstall" }, { "Remove Part", "r_uninstall" },
+            { "Disassemble", "r_disassemble" }, { "ContextMenu_Disassemble", "r_disassemble" },
+            { "ContextMenu_Dismantle", "r_disassemble" }, { "ContextMenu_Destroy", "r_destroy" },
+            { "ContextMenu_DestroyFloor", "r_destroy" }, { "ContextMenu_DestroyForFuel", "r_destroy" },
+            { "ContextMenu_Dig", "r_dig" }, { "ContextMenu_DigWithHands", "r_dig" }, { "ContextMenu_DigGraves", "r_dig" },
+            { "ContextMenu_Light", "r_light" }, { "Light Fire", "r_light" }, { "Use Lighter", "r_light" },
+        }
+        for _, r in ipairs(ROWS) do check("NAMES: " .. r[1] .. " draws " .. r[2], id(r[1]) == r[2], id(r[1])) end
+        check("NAMES: Set Unwanted and Unusable in Recipes no longer share a picture",
+              id("ContextMenu_Unwanted") ~= id("ContextMenu_SetNoRecipes"))
+        check("NAMES: Unfavorite keeps its struck star", id("Unfavorite") == "star_off", id("Unfavorite"))
     else
         check("NAMES: the registry's resolveIconForName", false)
     end
@@ -163,8 +196,11 @@ setmetatable(_G, nil)
 check("DRAW: Tokens.lua and Atoms.lua load", okT and okA, tostring(errT) .. " " .. tostring(errA))
 
 local function near(c, r, g, b) return c and math.abs(c.r - r / 255) < 1e-6 and math.abs(c.g - g / 255) < 1e-6 and math.abs(c.b - b / 255) < 1e-6 end
-check("DRAW: markAdd is #0B63B0", near(ZeD.Ctx and ZeD.Ctx.markAdd, 0x0B, 0x63, 0xB0))
-check("DRAW: markRemove is #C2410C", near(ZeD.Ctx and ZeD.Ctx.markRemove, 0xC2, 0x41, 0x0C))
+check("DRAW: markBlue is #1F5FC4", near(ZeD.Ctx and ZeD.Ctx.markBlue, 0x1F, 0x5F, 0xC4))
+check("DRAW: markRed is #EA416E", near(ZeD.Ctx and ZeD.Ctx.markRed, 0xEA, 0x41, 0x6E))
+check("DRAW: markGold is #B57F00", near(ZeD.Ctx and ZeD.Ctx.markGold, 0xB5, 0x7F, 0x00))
+check("DRAW: markAdd and markRemove are still there, the blue and the red", ZeD.Ctx and ZeD.Ctx.markAdd == ZeD.Ctx.markBlue
+      and ZeD.Ctx.markRemove == ZeD.Ctx.markRed)
 
 local function panel()
     local p = { draws = {}, rects = 0 }
@@ -181,13 +217,13 @@ if A and A.drawPxIcon then
     check("DRAW: the icon in the ink", p.draws[1] and p.draws[1].path == "media/textures/ZeD/wheel/16/zw_equip.png"
           and p.draws[1].r == INK.r, p.draws[1] and p.draws[1].path)
     check("DRAW: the mark's picture over it, in blue", p.draws[2] and p.draws[2].path == "media/textures/ZeD/wheel/16/zw_equip_mk.png"
-          and near(p.draws[2], 0x0B, 0x63, 0xB0), p.draws[2] and p.draws[2].path)
+          and near(p.draws[2], 0x1F, 0x5F, 0xC4), p.draws[2] and p.draws[2].path)
     check("DRAW: the mark sits exactly on the icon", p.draws[2] and p.draws[2].x == p.draws[1].x and p.draws[2].y == p.draws[1].y
           and p.draws[2].w == p.draws[1].w)
 
     p = panel(); A.drawPxIcon(p, "trash", 0, 0, 24, 0.45, INK, true)
     check("DRAW: Dispose at 24, greyed: its red lid at 24 with the icon's alpha", #p.draws == 2 and p.draws[2].path:find("/24/zw_trash_mk.png", 1, true)
-          and near(p.draws[2], 0xC2, 0x41, 0x0C) and p.draws[2].a == 0.45, p.draws[2] and p.draws[2].path)
+          and near(p.draws[2], 0xEA, 0x41, 0x6E) and p.draws[2].a == 0.45, p.draws[2] and p.draws[2].path)
     p = panel(); A.drawPxIcon(p, "move_down", 0, 0, 52, 1, INK, true)
     check("DRAW: a 52 box draws the 48 and its 48 mark", #p.draws == 2 and p.draws[1].w == 48 and p.draws[2].path:find("/48/zw_move_down_mk.png", 1, true))
     p = panel(); A.drawPxIcon(p, "equip", 0, 0, 16, 1, INK, false)
@@ -196,6 +232,18 @@ if A and A.drawPxIcon then
     check("DRAW: an icon with no mark draws once", #p.draws == 1, #p.draws)
     p = panel(); A.drawPxIcon(p, "equip", 0, 0, 16, 1, INK)
     check("DRAW: the old call (no marks argument) is unchanged", #p.draws == 1, #p.draws)
+    p = panel(); A.drawPxIcon(p, "r_light", 0, 0, 24, 1, INK, true)
+    check("DRAW: the lighter's flame is gold", #p.draws == 2 and near(p.draws[2], 0xB5, 0x7F, 0x00), #p.draws)
+    p = panel(); A.drawPxIcon(p, "r_medkit", 0, 0, 24, 1, INK, true)
+    check("DRAW: the medkit's cross is red", #p.draws == 2 and near(p.draws[2], 0xEA, 0x41, 0x6E), #p.draws)
+    -- an older kind still reads: "add" as blue, "remove" as red
+    ZeD.PxIconMark.zz_old_add, ZeD.PxIconMark.zz_old_remove = "add", "remove"
+    check("DRAW: an older add mark is the blue", ZeD.PxIcon.markColor("zz_old_add", true) == ZeD.Ctx.markBlue)
+    check("DRAW: an older remove mark is the red", ZeD.PxIcon.markColor("zz_old_remove", true) == ZeD.Ctx.markRed)
+    local oldPair = { add = { r = 0, g = 0, b = 1 }, remove = { r = 1, g = 0, b = 0 } }
+    check("DRAW: an older { add, remove } pair still colors blue", ZeD.PxIcon.markColor("equip", oldPair) == oldPair.add)
+    check("DRAW: ... and leaves a gold mark ink", ZeD.PxIcon.markColor("r_light", oldPair) == nil)
+    ZeD.PxIconMark.zz_old_add, ZeD.PxIconMark.zz_old_remove = nil, nil
 
     -- LISTS: the outfit and loadout icons are in the game (the director, Nov 10 2026), their plus and minus versions on
     -- the rows that add to a list (ZeD_Lists.lua's L.icon)
@@ -214,18 +262,23 @@ if A and A.drawPxIcon then
             for _, sz in ipairs(SIZES) do check("LISTS: " .. id .. " is in the mod at " .. sz, exists(pic(sz, id))) end
         end
         local pl = panel(); A.drawPxIcon(pl, Lst.icon("outfit", "add"), 0, 0, 16, 1, INK, true)
-        check("LISTS: Save to outfit's plus is blue at rest", #pl.draws == 2 and near(pl.draws[2], 0x0B, 0x63, 0xB0))
+        check("LISTS: Save to outfit's plus is blue at rest", #pl.draws == 2 and near(pl.draws[2], 0x1F, 0x5F, 0xC4))
     end
 
-    -- LIST: the theme's own pair on its surfaces (the director approved the shades Nov 10 2026)
-    local SHADES = { dark = { 0x44, 0x91, 0xE2, 0xD9, 0x57, 0x2A }, hicon = { 0x44, 0x91, 0xE2, 0xD9, 0x57, 0x2A },
-                     light = { 0x01, 0x4E, 0x8E, 0x87, 0x28, 0x01 } }
+    -- LIST: the theme's own set on its surfaces (round 1b, Nov 16 2026: the design's dark set; Light the light set
+    -- made darker at the same hues for its grey surfaces)
+    local SHADES = { dark = { 0x5A, 0xA2, 0xFF, 0xDC, 0x32, 0x50, 0xF0, 0xB4, 0x29 },
+                     hicon = { 0x5A, 0xA2, 0xFF, 0xDC, 0x32, 0x50, 0xF0, 0xB4, 0x29 },
+                     light = { 0x1D, 0x5A, 0xB9, 0xB8, 0x14, 0x40, 0x7A, 0x56, 0x00 } }
     for key, v in pairs(SHADES) do
         if ZeD.BaseThemes[key] then
             pcall(ZeD.applyTheme, key, "teal", "small")
             local m = ZeD.T and ZeD.T.marks
             check("LIST: " .. key .. "'s blue", m and near(m.add, v[1], v[2], v[3]))
-            check("LIST: " .. key .. "'s red", m and near(m.remove, v[4], v[5], v[6]))
+            check("LIST: " .. key .. "'s red", m and near(m.remove, v[4], v[5], v[6]) and m.red == m.remove and m.blue == m.add)
+            check("LIST: " .. key .. "'s gold", m and near(m.gold, v[7], v[8], v[9]))
+            p = panel(); A.drawPxIcon(p, "r_favorite", 0, 0, 16, 1, INK, m)
+            check("LIST: " .. key .. ": the star takes the theme's gold", #p.draws == 2 and near(p.draws[2], v[7], v[8], v[9]))
             p = panel(); A.drawPxIcon(p, "unequip", 0, 0, 16, 1, INK, m)
             check("LIST: " .. key .. ": the mark takes the theme's red, not the paper's", #p.draws == 2 and near(p.draws[2], v[4], v[5], v[6]))
         else
@@ -257,12 +310,12 @@ if M and M.drawContextCell and ZeD.T then
         return tex
     end
     local d = cell({ pxIcon = "unequip", iconTintable = true, iconTexture = {}, name = "Unequip" }, {})
-    check("CELL: at rest, Unequip's minus is red", #d == 2 and near(d[2], 0xC2, 0x41, 0x0C), #d)
+    check("CELL: at rest, Unequip's minus is red", #d == 2 and near(d[2], 0xEA, 0x41, 0x6E), #d)
     d = cell({ pxIcon = "unequip", iconTintable = true, iconTexture = {}, name = "Unequip" }, { isActive = true })
     check("CELL: pointed, the whole icon in one color", #d == 1, #d)
     check("CELL: pointed, the icon in the accent's text color", d[1] and T.textOnAccent and d[1].r == T.textOnAccent.r)
     d = cell({ pxIcon = "car_enter", iconTintable = true, iconTexture = {}, name = "Enter" }, { isDisabled = true })
-    check("CELL: greyed, the mark still shows, at the cell's alpha", #d == 2 and near(d[2], 0x0B, 0x63, 0xB0) and d[2].a == 0.45, #d)
+    check("CELL: greyed, the mark still shows, at the cell's alpha", #d == 2 and near(d[2], 0x1F, 0x5F, 0xC4) and d[2].a == 0.45, #d)
     d = cell({ pxIcon = "equip", iconTintable = false, iconTexture = {}, name = "Equip" }, {})
     check("CELL: a picture that isn't tinted gets no mark", #d == 1, #d)
 else

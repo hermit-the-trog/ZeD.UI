@@ -5,7 +5,9 @@
   out/export/wheel/48/zw_<id>.png   the 24 drawing, each pixel 2x2 (the pointed cell at 2x)
 and out/export/wheel_icons_map.json: every icon (its group, what it means) and the rules that say where it goes.
 A marked icon (marks.py: the plus, minus, arrow or strike that tells a pair apart) also gets zw_<id>_mk.png at each
-size, holding only its mark's pixels; the menus draw it over the icon in the mark's color.
+size, holding only its mark's pixels; the menus draw it over the icon in the mark's color (blue, red or gold).
+A HOLES icon (i_r1, round 1b: the medkit) is written without its mark's pixels, so the one-tint pointed cell shows the
+cut-out and the mark fills it at rest.
 The zw_ prefix keeps a file's name off the game's packed pictures: getTexture("media/textures/.../map.png")
 loads the game's own "map" (map, engine, sneak and heart did; PZAPI-KNOWLEDGE-BANK Q143)."""
 import json
@@ -47,8 +49,8 @@ def main(game=False):
             path = os.path.join(out, "wheel", str(sz), "zw_" + id_ + ".png")
             if game and same_pixels(path, im): continue      # (unchanged drawings keep their files: no churn in git)
             im.save(path, optimize=True); written += 1
-    for id_ in kit.ICONS:
-        save(id_, kit.render(id_, 16), kit.render(id_, 24))
+    for id_ in kit.ICONS:      # (a HOLES icon's base leaves its mark's pixels clear: marks.base_image)
+        save(id_, MK.base_image(id_, 16), MK.base_image(id_, 24))
     for id_ in MK.MARKS:
         save(id_ + "_mk", MK.mark_image(id_, 16), MK.mark_image(id_, 24))
     used = M.used()
@@ -98,11 +100,13 @@ def write_ctx_lua():
         lines.append('    ["%s"] = "%s",' % (t, i))
     lines.append("}")
     lines += ["",
-              "-- ZeD.PxIconMark: an icon id -> \"add\" or \"remove\". The icon's mark (a plus or minus, an in or",
-              "-- out arrow, the strike of an \"off\": the part that tells it from its twin) is drawn in",
-              "-- ZeD.Ctx.markAdd (blue) or ZeD.Ctx.markRemove (red) over the ink, at rest in the strip, the",
-              "-- list menu and the wheels (ZeD.Atoms.drawPxIcon's marks). The mark's own picture is",
-              "-- media/textures/ZeD/wheel/<size>/zw_<id>_mk.png. Design handoff Nov 9 2026 (punch list 138).",
+              "-- ZeD.PxIconMark: an icon id -> \"blue\", \"red\" or \"gold\". The icon's mark (a plus or minus,",
+              "-- an in or out arrow, the strike of an \"off\", or round 1b's one accent) is drawn in",
+              "-- ZeD.Ctx.markBlue / markRed / markGold over the ink, at rest in the strip, the list menu and",
+              "-- the wheels (ZeD.Atoms.drawPxIcon's marks). The mark's own picture is",
+              "-- media/textures/ZeD/wheel/<size>/zw_<id>_mk.png. Design handoff Nov 9 2026 (punch list 138);",
+              "-- three accents from round 1b, Nov 16 2026 (the older kinds \"add\" and \"remove\" still read",
+              "-- as blue and red).",
               "ZeD.PxIconMark = {"]
     for i in sorted(MK.MARKS): lines.append('    ["%s"] = "%s",' % (i, MK.MARKS[i]))
     lines.append("}")

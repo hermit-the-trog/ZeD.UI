@@ -42,10 +42,12 @@ ZeD.BaseThemes = {
 
     dark = {
         name     = "Dark",
-        -- the list menu's marks on surface 1 (punch list 138, the director approved Nov 10 2026): the paper pair's
-        -- hues made light enough for 4.5 : 1 here (blue 5.6, red 4.7), apart under all three kinds of color blindness
-        markAdd    = hex("#4491E2"),
-        markRemove = hex("#D9572A"),
+        -- the list menu's marks on surface 1 (punch list 138; round 1b's three accents, the director, Nov 16 2026):
+        -- the design's set for dark (blue 7.2, gold 10.0, red 4.1 : 1 here), apart under all three kinds of color
+        -- blindness. markAdd / markRemove are the older names for blue and red.
+        markBlue   = hex("#5AA2FF"),
+        markRed    = hex("#DC3250"),
+        markGold   = hex("#F0B429"),
         base     = hex("#0C0C0C", 0.92),   -- deepest background (neutral grey)
         onBand   = hex("#030303", 1.0),     -- the Mods list: the solid band under a mod that is on (darker than base)
         surf1    = hex("#141414", 0.92),    -- window background
@@ -123,9 +125,12 @@ ZeD.BaseThemes = {
 
     light = {
         name     = "Light",
-        -- the list menu's marks: dark enough for 4.5 : 1 on the grey surface (blue 4.6, red 4.8; the red reads as rust)
-        markAdd    = hex("#014E8E"),
-        markRemove = hex("#872801"),
+        -- the list menu's marks (round 1b, Nov 16 2026): the design's light set (#1F5FC4, #EA416E, #B57F00, for the
+        -- #F2F2F2 paper) made darker at the same hues, as it read 1.9-3.2 : 1 on these greys: 3.5 : 1 on surface 1,
+        -- 3.2 on surface 2, the bar for a drawn mark
+        markBlue   = hex("#1D5AB9"),
+        markRed    = hex("#B81440"),
+        markGold   = hex("#7A5600"),
         base     = hex("#C6C6C6", 0.97),
         onBand   = hex("#A6A6A6", 1.0),
         surf1    = hex("#BEBEBE", 0.97),
@@ -195,8 +200,9 @@ ZeD.BaseThemes = {
 
     hicon = {
         name     = "High contrast",
-        markAdd    = hex("#4491E2"),   -- the list menu's marks: Dark's pair (blue 5.7 : 1, red 4.8 here)
-        markRemove = hex("#D9572A"),
+        markBlue   = hex("#5AA2FF"),   -- the list menu's marks: Dark's set (blue 7.2, gold 10.1, red 4.2 : 1 here)
+        markRed    = hex("#DC3250"),
+        markGold   = hex("#F0B429"),
         base     = hex("#050505", 0.95),
         onBand   = hex("#000000", 1.0),
         surf1    = hex("#111111", 0.95),
@@ -539,13 +545,18 @@ ZeD.Ctx = {
     -- STATE CHROME
     drilledBorderTop = 2, -- strip top border thickens 1px -> 2px when a submenu is open
 
-    -- THE MARKS (punch list 138; design handoff Nov 9 2026): the plus or minus, in or out arrow, or strike that
-    -- tells the two actions of a pair apart, colored at rest over the ink. Literals like the paper and ink they sit
-    -- on (#F2F2F2, #141414), not theme colors: blue 5.5 : 1 and red 4.6 : 1 on the paper, and the two hold apart
-    -- under all three kinds of color blindness. ZeD.PxIconMark (ContextPxIcons.lua) says which icon takes which.
-    markAdd    = { r = 0x0B / 255, g = 0x63 / 255, b = 0xB0 / 255, a = 1 },   -- #0B63B0: add, take, load, in, on, up
-    markRemove = { r = 0xC2 / 255, g = 0x41 / 255, b = 0x0C / 255, a = 1 },   -- #C2410C: remove, put, drop, out, off
+    -- THE MARKS (punch list 138; design handoff Nov 9 2026; three accents from round 1b, the director's redraw,
+    -- Nov 16 2026): the plus or minus, in or out arrow, strike or accent that carries an icon's meaning, colored at
+    -- rest over the ink. Literals like the paper and ink they sit on (#F2F2F2, #141414), not theme colors: the
+    -- design's light set, blue 5.4, red 3.4 and gold 3.1 : 1 on the paper, apart under all three kinds of color
+    -- blindness. ZeD.PxIconMark (ContextPxIcons.lua) says which icon takes which.
+    markBlue   = { r = 0x1F / 255, g = 0x5F / 255, b = 0xC4 / 255, a = 1 },   -- #1F5FC4: water, cold; add, take, in, on, up
+    markRed    = { r = 0xEA / 255, g = 0x41 / 255, b = 0x6E / 255, a = 1 },   -- #EA416E: harm; remove, put, drop, out, off
+    markGold   = { r = 0xB5 / 255, g = 0x7F / 255, b = 0x00 / 255, a = 1 },   -- #B57F00: fire, light, power; favorite, kept
 }
+-- the older names (before round 1b) for the blue and the red, kept for callers and add-ons that use them
+ZeD.Ctx.markAdd    = ZeD.Ctx.markBlue
+ZeD.Ctx.markRemove = ZeD.Ctx.markRed
 
 -- ---------------------------------------------------------------------------
 -- GAMEPAD TOKENS
@@ -950,8 +961,8 @@ function ZeD.buildColors(P, baseKey, accentKey, statusKey, seePick)
     -- Surface colors from base theme
     T.base     = base.base
     -- the marks on this theme's own surfaces (the list menu); the strip and the wheels sit on the locked paper and
-    -- use ZeD.Ctx.markAdd / markRemove
-    T.marks    = { add = base.markAdd, remove = base.markRemove }
+    -- use ZeD.Ctx.markBlue / markRed / markGold. add and remove: the older names for blue and red.
+    T.marks    = { blue = base.markBlue, red = base.markRed, gold = base.markGold, add = base.markBlue, remove = base.markRed }
     T.onBand   = base.onBand or base.base
     T.surf1    = base.surf1
     T.surf2    = base.surf2

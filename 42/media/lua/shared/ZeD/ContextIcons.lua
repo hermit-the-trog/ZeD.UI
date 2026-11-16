@@ -120,12 +120,12 @@ ZeD.ContextIcons = {
     ["Ferment"]                                   = "bubble-tea",
 
     -- INGREDIENTS
-    ["Chop"]                                      = "knife-kitchen",
-    ["Slice"]                                     = "knife-kitchen",
-    ["Dice"]                                      = "knife-kitchen",
+    ["Chop"]                                      = "r1-chop",
+    ["Slice"]                                     = "r1-slice",
+    ["Dice"]                                      = "r1-dice",
     ["Mince"]                                     = "knife-kitchen",
     ["Grate"]                                     = "grid-dividers",
-    ["Peel"]                                      = "knife-kitchen",
+    ["Peel"]                                      = "r1-peel",
     ["Crush"]                                     = "hammer-crash",
     ["Grind"]                                     = "ball-pile",
     ["Mix"]                                       = "mixer",
@@ -154,15 +154,15 @@ ZeD.ContextIcons = {
     -- CRAFTING & CONSTRUCTION
     ["Build"]                                     = "build",
     ["Barricade"]                                 = "barrier-cone",
-    ["Disassemble"]                               = "build-alt",
+    ["Disassemble"]                               = "r1-disassemble",
     ["Craft"]                                     = "hammer-brush",
     ["Repair"]                                    = "wrench-alt",
     ["Upgrade"]                                   = "layer-plus",
     ["Reinforce"]                                 = "shield-plus",
-    ["Install"]                                   = "screwdriver",
-    ["Uninstall"]                                 = "arrow-up-from-square",
-    ["Place"]                                     = "arrow-down-to-square",
-    ["Pick up"]                                   = "arrow-up-right-from-square",
+    ["Install"]                                   = "r1-install",
+    ["Uninstall"]                                 = "r1-uninstall",
+    ["Place"]                                     = "r1-place",
+    ["Pick up"]                                   = "r1-pick-up",
     ["Rotate"]                                    = "rotate-reverse",
     ["Saw"]                                       = "saw",
     ["Hammer"]                                    = "hammer-crash",
@@ -181,12 +181,12 @@ ZeD.ContextIcons = {
     ["Dye"]                                       = "paint-bucket",
 
     -- FIRE
-    ["Light Fire"]                                = "match-fire",
+    ["Light Fire"]                                = "r1-light",
     ["Extinguish"]                                = "fire-extinguisher",
     ["Add Fuel"]                                  = "grill-fire",
     ["Tend Fire"]                                 = "campfire",
     ["Light Campfire"]                            = "campfire",
-    ["Use Lighter"]                               = "flame",
+    ["Use Lighter"]                               = "r1-light",
     ["Use Matches"]                               = "match-fire",
 
     -- FLUIDS
@@ -269,8 +269,8 @@ ZeD.ContextIcons = {
     ["Open Trunk"]                                = "car-rear",
     ["Close Trunk"]                               = "car-rear",
     ["Open Hood"]                                 = "car-alt",
-    ["Install Part"]                              = "address-card",
-    ["Remove Part"]                               = "gears",
+    ["Install Part"]                              = "r1-install",
+    ["Remove Part"]                               = "r1-uninstall",
 
     -- FARMING & NATURE
     ["Plant"]                                     = "plant-care",
@@ -310,7 +310,7 @@ ZeD.ContextIcons = {
     ["Refuel Generator"]                          = "car-oil",
     ["Build Rain Collector"]                      = "hammer",
     ["Fortify"]                                   = "shield-plus",
-    ["Dig Grave"]                                 = "shovel",
+    ["Dig Grave"]                                 = "r1-dig",
     ["Bury"]                                      = "shovel",
 
     -- ELECTRICAL
@@ -334,17 +334,17 @@ ZeD.ContextIcons = {
 
     -- INVENTORY
     ["Take"]                                      = "hand-holding-box",
-    ["Put In"]                                    = "inbox-in",
-    ["Take Out"]                                  = "inbox-out",
+    ["Put In"]                                    = "r1-put-in",
+    ["Take Out"]                                  = "r1-take",
     ["Transfer All"]                              = "truck-arrow-right",
-    ["Drop"]                                      = "arrow-alt-down",
+    ["Drop"]                                      = "r1-drop",
     ["Examine"]                                   = "contact-lens-eyes",
     ["Inspect"]                                   = "magnifying-glass-eye",
-    ["Favorite"]                                  = "star",
+    ["Favorite"]                                  = "r1-favorite",
     ["Unfavorite"]                                = "star-sharp-half-stroke",
     ["Protect from Craft"]                        = "shield-xmark",
-    ["Mark Unwanted"]                             = "trash-can-check",
-    ["Rename"]                                    = "text-box-dots",
+    ["Mark Unwanted"]                             = "r1-unwanted",
+    ["Rename"]                                    = "r1-rename",
     ["Open"]                                      = "box-open",
     ["Close"]                                     = "cross-circle",
     ["Lock"]                                      = "lock",
@@ -363,14 +363,14 @@ ZeD.ContextIcons = {
     ["ContextMenu_Sleep"]                         = "face-sleeping",
     ["ContextMenu_Attack"]                        = "gun-shooting",
     ["ContextMenu_Equip"]                         = "benefit-hand",
-    ["ContextMenu_Place"]                         = "arrow-down-to-square",
+    ["ContextMenu_Place"]                         = "r1-place",
     ["ContextMenu_Repair"]                        = "wrench-alt",
     ["ContextMenu_Barricade"]                     = "barrier-cone",
-    ["ContextMenu_Disassemble"]                   = "build-alt",
+    ["ContextMenu_Disassemble"]                   = "r1-disassemble",
     ["ContextMenu_WashClothes"]                   = "washer",
     ["ContextMenu_WashItem"]                      = "washing-dishes",
     ["ContextMenu_CleanWeapon"]                   = "blood",
-    ["ContextMenu_DropItems"]                     = "arrow-alt-down",
+    ["ContextMenu_DropItems"]                     = "r1-drop",
     ["ContextMenu_TransferItems"]                 = "arrow-square-right",
     ["ContextMenu_EnterVehicle"]                  = "enter",
     ["ContextMenu_ExitVehicle"]                   = "exit",
@@ -381,7 +381,7 @@ ZeD.ContextIcons = {
     ["IGUI_RepairEngine"]                         = "car-mechanic",
     ["IGUI_TakeEngineParts"]                      = "holding-hand-gear",
     ["IGUI_TradingUI_SealOffer"]                  = "handshake",
-    ["IGUI_CraftUI_Favorite"]                     = "star",
+    ["IGUI_CraftUI_Favorite"]                     = "r1-favorite",
     ["IGUI_MakeUp"]                               = "makeup-brush",
     ["IGUI_PlaceObject"]                          = "arrow-down-to-square",
     ["IGUI_SelectBodyLocation"]                   = "person-circle-question",
@@ -429,12 +429,12 @@ ZeD.ContextIcons = {
     -- ============================================================================
 
     -- STRUCTURES & DESTRUCTION
-    ["ContextMenu_Destroy"]                       = "hammer-crash",
-    ["ContextMenu_DestroyFloor"]                  = "hammer-crash",
-    ["ContextMenu_DestroyForFuel"]                = "hammer-crash",
+    ["ContextMenu_Destroy"]                       = "r1-destroy",
+    ["ContextMenu_DestroyFloor"]                  = "r1-destroy",
+    ["ContextMenu_DestroyForFuel"]                = "r1-destroy",
     ["ContextMenu_Unbarricade"]                   = "barrier-cone",
     ["ContextMenu_Barricades"]                    = "barrier-cone",
-    ["ContextMenu_Dismantle"]                     = "build-alt",
+    ["ContextMenu_Dismantle"]                     = "r1-disassemble",
     ["ContextMenu_Clear_Ashes"]                   = "smoke",
     ["ContextMenu_RemoveBurntVehicle"]            = "car-crash",
 
@@ -500,8 +500,8 @@ ZeD.ContextIcons = {
     ["ContextMenu_Shear"]                         = "scissors",
 
     -- FARMING / GARDENING
-    ["ContextMenu_Dig"]                           = "shovel",
-    ["ContextMenu_DigWithHands"]                  = "shovel",
+    ["ContextMenu_Dig"]                           = "r1-dig",
+    ["ContextMenu_DigWithHands"]                  = "r1-dig",
     ["ContextMenu_DigWithHandsTT"]                = "exclamation",
     ["ContextMenu_Crops"]                         = "plant-growth",
     ["ContextMenu_Sow_Seed"]                      = "seedling",
@@ -512,7 +512,7 @@ ZeD.ContextIcons = {
     ["ContextMenu_Shovel"]                        = "shovel",
     ["ContextMenu_Rake"]                          = "shovel",
     ["ContextMenu_ScytheGrass"]                   = "scythe",
-    ["ContextMenu_DigGraves"]                     = "shovel",
+    ["ContextMenu_DigGraves"]                     = "r1-dig",
 
     -- HABITS
     ["ContextMenu_Smoke"]                         = "smoking",
@@ -537,7 +537,11 @@ ZeD.ContextIcons = {
     ["ContextMenu_MoveToContainer"]               = "box-open",
     ["ContextMenu_MoveToInventory"]               = "backpack",
     ["ContextMenu_MoveToFloor"]                   = "arrow-alt-down",
-    ["ContextMenu_Move_To"]                       = "arrow-square-right",
+    ["ContextMenu_Move_To"]                       = "r1-move-to",
+    ["ContextMenu_Take"]                          = "r1-take",       -- (round 1b: keyed, so Take Pills and the other "Take ..." rows keep theirs)
+    ["ContextMenu_Put_in_Container"]              = "r1-put-in",
+    ["ContextMenu_PutInContainer"]                = "r1-put-in",
+    ["ContextMenu_Light"]                         = "r1-light",      -- (keyed: the "Light ..." paint colors keep theirs)
     ["ContextMenu_Unpack"]                        = "box-open",
     ["ContextMenu_Bookcase"]                      = "books",
     ["ContextMenu_Shelves"]                       = "shelves",
@@ -860,7 +864,7 @@ ZeD.ContextIcons = {
     ["ContextMenu_EditItem"]                      = "edit",
     ["ContextMenu_CloneItem"]                     = "copy",
     ["ContextMenu_StoveSetting"]                  = "settings",
-    ["ContextMenu_ExtendedPlacement"]             = "arrow-down-to-square",
+    ["ContextMenu_ExtendedPlacement"]             = "r1-place",
     ["ContextMenu_SwitchOutfit"]                  = "clothes-hanger",
     ["ContextMenu_StoreOutfit"]                   = "clothes-hanger",
     ["ContextMenu_ShowRecipes"]                   = "list",
@@ -870,7 +874,10 @@ ZeD.ContextIcons = {
     -- RECIPE FLAGS
     ["ContextMenu_Known"]                         = "check-circle",
     ["ContextMenu_CanLearn"]                      = "graduation-cap",
-    ["ContextMenu_Wanted"]                        = "trash-can-check",
+    ["ContextMenu_Wanted"]                        = "r1-wanted",
+    ["ContextMenu_Unwanted"]                      = "r1-unwanted",   -- (round 1b, Nov 16 2026: these four had no row; "Set ..." fell to the gears)
+    ["ContextMenu_SetNoRecipes"]                  = "r1-no-recipes",
+    ["ContextMenu_UnsetNoRecipes"]                = "r1-recipes-ok",
     ["ContextMenu_RecipeProducedByCraft"]         = "hammer-brush",
     ["ContextMenu_RecipeCannotProducedByCraft"]   = "hammer-brush",
     ["ContextMenu_CanBeForaged"]                  = "magnifying-glass-eye",

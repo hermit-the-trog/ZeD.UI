@@ -18,7 +18,7 @@
   "medkit": {
    "group": "char",
    "means": "a first-aid case: medicine",
-   "mapped": true
+   "mapped": false
   },
   "bandage": {
    "group": "char",
@@ -1924,6 +1924,136 @@
    "group": "lists",
    "means": "a clipboard with its list, a minus: take out of the loadout",
    "mapped": false
+  },
+  "r_favorite": {
+   "group": "r1",
+   "means": "a star, gold: favorite",
+   "mapped": true
+  },
+  "r_place": {
+   "group": "r1",
+   "means": "a carton not yet placed, an arrow under it down to the shelf it goes on: place",
+   "mapped": true
+  },
+  "r_pick_up": {
+   "group": "r1",
+   "means": "the carton on its shelf, an arrow over it up to where it goes: pick up",
+   "mapped": true
+  },
+  "r_put_in": {
+   "group": "r1",
+   "means": "an arrow down into an open carton: put in a container",
+   "mapped": true
+  },
+  "r_take": {
+   "group": "r1",
+   "means": "an arrow up out of the open carton: take",
+   "mapped": true
+  },
+  "r_drop": {
+   "group": "r1",
+   "means": "a carton tumbling corner first, its lid seam along one edge, speed lines trailing it, the floor: drop",
+   "mapped": true
+  },
+  "r_move_to": {
+   "group": "r1",
+   "means": "two cartons, an arrow arcing from one over to the other: move to",
+   "mapped": true
+  },
+  "r_wanted": {
+   "group": "r1",
+   "means": "a carton, a blue check beside it: wanted",
+   "mapped": true
+  },
+  "r_unwanted": {
+   "group": "r1",
+   "means": "a carton inside a red no-entry ring, the slash across it: unwanted",
+   "mapped": true
+  },
+  "r_no_recipes": {
+   "group": "r1",
+   "means": "a recipe page, a shut gold padlock on it: keep it out of recipes",
+   "mapped": true
+  },
+  "r_recipes_ok": {
+   "group": "r1",
+   "means": "the recipe page, the padlock open: usable in recipes again",
+   "mapped": true
+  },
+  "r_rename": {
+   "group": "r1",
+   "means": "a name label, a text cursor standing in it: rename",
+   "mapped": true
+  },
+  "r_chop": {
+   "group": "r1",
+   "means": "a cleaver over three chunks on a board: chop",
+   "mapped": true
+  },
+  "r_slice": {
+   "group": "r1",
+   "means": "a loaf, slices standing off it: slice",
+   "mapped": true
+  },
+  "r_dice": {
+   "group": "r1",
+   "means": "a bowl heaped with little cubes, one tumbling off: dice",
+   "mapped": true
+  },
+  "r_peel": {
+   "group": "r1",
+   "means": "a potato, its peel coming off in a curl: peel",
+   "mapped": true
+  },
+  "r_install": {
+   "group": "r1",
+   "means": "a part, an arrow carrying it into a bracket: install",
+   "mapped": true
+  },
+  "r_uninstall": {
+   "group": "r1",
+   "means": "the part, an arrow carrying it out of the bracket: uninstall",
+   "mapped": true
+  },
+  "r_disassemble": {
+   "group": "r1",
+   "means": "a part pulled apart in three layers, its screws loose between: take apart",
+   "mapped": true
+  },
+  "r_destroy": {
+   "group": "r1",
+   "means": "a brick wall, a red crack running down through it: destroy",
+   "mapped": true
+  },
+  "r_dig": {
+   "group": "r1",
+   "means": "a spade leaning into a heap of dirt, its T grip up, clods flying off: dig",
+   "mapped": true
+  },
+  "r_light": {
+   "group": "r1",
+   "means": "a lighter, its hood and wheel, its flame gold: light it",
+   "mapped": true
+  },
+  "r_weapons": {
+   "group": "r1",
+   "means": "the knife, its cutting edge red: weapons",
+   "mapped": true
+  },
+  "r_drink": {
+   "group": "r1",
+   "means": "the glass, the water in it blue: drink",
+   "mapped": true
+  },
+  "r_medkit": {
+   "group": "r1",
+   "means": "the first aid box, its cross red: medicine",
+   "mapped": true
+  },
+  "r_sleep": {
+   "group": "r1",
+   "means": "the bed, a gold crescent moon over it: sleep",
+   "mapped": true
   }
  },
  "order": "TEXT, then KEEP, then TEX; ZeD's own wheels name ids directly (ZED, TABS)",
@@ -2604,7 +2734,7 @@
    "wheel": "character",
    "slice": "UI_ZeD_Wheel_Weapons",
    "now": "knife",
-   "id": "knife"
+   "id": "r_weapons"
   },
   {
    "wheel": "character",
@@ -2616,19 +2746,19 @@
    "wheel": "character",
    "slice": "ContextMenu_Drink",
    "now": "water-045-drink",
-   "id": "glass"
+   "id": "r_drink"
   },
   {
    "wheel": "character",
    "slice": "UI_ZeD_Wheel_Medicine",
    "now": "bandage-wound",
-   "id": "medkit"
+   "id": "r_medkit"
   },
   {
    "wheel": "character",
    "slice": "ContextMenu_Sleep",
    "now": "bed",
-   "id": "bed"
+   "id": "r_sleep"
   },
   {
    "wheel": "character",
@@ -5179,6 +5309,116 @@
    "group": 6,
    "picture": "muffin",
    "id": "cake"
+  },
+  {
+   "group": 1,
+   "picture": "r1-favorite",
+   "id": "r_favorite"
+  },
+  {
+   "group": 1,
+   "picture": "r1-place",
+   "id": "r_place"
+  },
+  {
+   "group": 1,
+   "picture": "r1-pick-up",
+   "id": "r_pick_up"
+  },
+  {
+   "group": 1,
+   "picture": "r1-put-in",
+   "id": "r_put_in"
+  },
+  {
+   "group": 1,
+   "picture": "r1-take",
+   "id": "r_take"
+  },
+  {
+   "group": 1,
+   "picture": "r1-drop",
+   "id": "r_drop"
+  },
+  {
+   "group": 1,
+   "picture": "r1-move-to",
+   "id": "r_move_to"
+  },
+  {
+   "group": 1,
+   "picture": "r1-wanted",
+   "id": "r_wanted"
+  },
+  {
+   "group": 1,
+   "picture": "r1-unwanted",
+   "id": "r_unwanted"
+  },
+  {
+   "group": 1,
+   "picture": "r1-no-recipes",
+   "id": "r_no_recipes"
+  },
+  {
+   "group": 1,
+   "picture": "r1-recipes-ok",
+   "id": "r_recipes_ok"
+  },
+  {
+   "group": 1,
+   "picture": "r1-rename",
+   "id": "r_rename"
+  },
+  {
+   "group": 2,
+   "picture": "r1-chop",
+   "id": "r_chop"
+  },
+  {
+   "group": 2,
+   "picture": "r1-slice",
+   "id": "r_slice"
+  },
+  {
+   "group": 2,
+   "picture": "r1-dice",
+   "id": "r_dice"
+  },
+  {
+   "group": 2,
+   "picture": "r1-peel",
+   "id": "r_peel"
+  },
+  {
+   "group": 4,
+   "picture": "r1-install",
+   "id": "r_install"
+  },
+  {
+   "group": 4,
+   "picture": "r1-uninstall",
+   "id": "r_uninstall"
+  },
+  {
+   "group": 4,
+   "picture": "r1-disassemble",
+   "id": "r_disassemble"
+  },
+  {
+   "group": 4,
+   "picture": "r1-destroy",
+   "id": "r_destroy"
+  },
+  {
+   "group": 4,
+   "picture": "r1-light",
+   "id": "r_light"
+  },
+  {
+   "group": 6,
+   "picture": "r1-dig",
+   "id": "r_dig"
   }
  ]
 }

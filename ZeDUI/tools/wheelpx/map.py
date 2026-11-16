@@ -99,11 +99,11 @@ TEX = [   # (group, a piece of the texture's name, id); the first match wins, so
 ZED = [   # (wheel, the slice: its label key, what it names now, id)
     # the character wheel (D-pad down)
     ("character", "UI_ZeD_Wheel_Tabs", "tab loot-tab-white", "crate"),
-    ("character", "UI_ZeD_Wheel_Weapons", "knife", "knife"),
+    ("character", "UI_ZeD_Wheel_Weapons", "knife", "r_weapons"),     # (round 1b, Nov 16 2026: the four below take their accent)
     ("character", "ContextMenu_Eat", "apple-whole", "apple"),
-    ("character", "ContextMenu_Drink", "water-045-drink", "glass"),
-    ("character", "UI_ZeD_Wheel_Medicine", "bandage-wound", "medkit"),
-    ("character", "ContextMenu_Sleep", "bed", "bed"),
+    ("character", "ContextMenu_Drink", "water-045-drink", "r_drink"),
+    ("character", "UI_ZeD_Wheel_Medicine", "bandage-wound", "r_medkit"),
+    ("character", "ContextMenu_Sleep", "bed", "r_sleep"),
     ("character", "UI_ZeD_Wheel_Clothing", "fi-br-shirt-long-sleeve", "shirt"),
     ("character", "UI_ZeD_Wheel_Use", "backpack", "backpack"),
     ("character > Weapons", "UI_ZeD_Wheel_HandsFree", "backpack", "hand"),
@@ -350,4 +350,13 @@ CTX = [
     (6, "bars-filter", "more"), (6, "apps", "view_grid"), (6, "square-1", "one"), (6, "plus", "plus"),
     (6, "tally", "tally"), (6, "trash", "trash"), (6, "trash-check", "trash"), (6, "clock", "watch"),
     (6, "portal-enter", "pin"), (6, "muffin", "cake"),
+    # round 1b (the director's redraw, Nov 16 2026; i_r1.py): the item menu's actions each get their own picture name,
+    # so no two of them share a drawing (ContextIcons.lua names these for the rows that mean the action)
+    (1, "r1-favorite", "r_favorite"), (1, "r1-place", "r_place"), (1, "r1-pick-up", "r_pick_up"),
+    (1, "r1-put-in", "r_put_in"), (1, "r1-take", "r_take"), (1, "r1-drop", "r_drop"), (1, "r1-move-to", "r_move_to"),
+    (1, "r1-wanted", "r_wanted"), (1, "r1-unwanted", "r_unwanted"), (1, "r1-no-recipes", "r_no_recipes"),
+    (1, "r1-recipes-ok", "r_recipes_ok"), (1, "r1-rename", "r_rename"),
+    (2, "r1-chop", "r_chop"), (2, "r1-slice", "r_slice"), (2, "r1-dice", "r_dice"), (2, "r1-peel", "r_peel"),
+    (4, "r1-install", "r_install"), (4, "r1-uninstall", "r_uninstall"), (4, "r1-disassemble", "r_disassemble"),
+    (4, "r1-destroy", "r_destroy"), (4, "r1-light", "r_light"), (6, "r1-dig", "r_dig"),
 ]
