@@ -644,6 +644,11 @@ end
 function S.toggle(playerObj, vehicle)
     local speed = UIManager.getSpeedControls()
     if speed and speed:getCurrentGameSpeed() == 0 then return end   -- vanilla: not while paused
+    -- (Nov 15 2026, QA's beta 16 pass: a car with no seats, a smashed or burnt wreck, opens nothing, neither the
+    -- cabin nor this window. The game's own menu offers "Enter vehicle" only where the script has passengers; the
+    -- seat key reaches here for any car with wheels.)
+    local okC, nSeats = pcall(function() return vehicle:getScript():getPassengerCount() end)
+    if not (okC and nSeats and nSeats > 0) then return end
     local pn = playerObj:getPlayerNum()
     local win = S.windows[pn]
     -- (Nov 15 2026, seat pop-out: in the Immersive style the cabin pops out instead, ZeD_SeatPopout.lua; a car it
