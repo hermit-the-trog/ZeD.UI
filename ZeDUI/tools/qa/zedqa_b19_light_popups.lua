@@ -11,8 +11,9 @@
 --   mood    the Moodles row at right, left and bottom; hunger, thirst, tiredness raised (as zedqa_moodles.lua): the note
 --           by itself (lpp_<theme>_mood_<place>_note), then the pointer on moodle 2 (lpp_<theme>_mood_<place>)
 --   bar     Simple, then Detailed: reading a book (work), stopped (the queue stopped mid-read), resting (no end, its
---           icon; taken anyway, its phase logged), walking 6 tiles to a read, a queue of three apples, done (an apple
---           eaten to its end): lpp_<theme>_<simple|detailed>_<read|stopped|rest|walk|queue|done>. Not judged (the track
+--           icon; taken anyway, its phase logged), walking 6 tiles to a read, a queue of three apples (at 50% of the first, and in the second: _queue2), done (an apple
+--           eaten to its end): lpp_<theme>_<simple|detailed>_<read|stopped|rest|walk|queue|queue2|done>; the read at
+--           about 30%, stopped at about 40% (game speed 3 while waiting, 1 for each picture, progress logged). Not judged (the track
 --           is a fixed dark since a8753ff12): the colors drawn are logged, the pictures are for Build's eye.
 --   notice  two made-up mods' notes (zedqa_gallery_t4.lua's), the balloon and its hover; the guide's offer
 --           (zedqa_guide_bubble.lua, first show at 1.5 s), the balloon and its hover: lpp_<theme>_notice_<mod|guide>[_hover]
@@ -192,18 +193,42 @@ function S.logColors()
 end
 -- waits (5 frames a poll, up to n polls) until ok(st) is true, then takes the picture and logs the colors and the bar's
 -- state; force: the picture is taken anyway after n polls, with the phase it reads
-function S.barShot(tag, ok, n, force)
-    S.step(2, function() S.t = 0; S.start(tag) end)
+-- the running action's progress (its job delta, 0 to 1; -1 when none) and how many actions are queued
+function S.prog()
+    local d = -1
+    pcall(function() local q = ISTimedActionQueue.getTimedActionQueue(S.p); d = q.queue[1].action:getJobDelta() end)
+    return d or -1
+end
+function S.qlen()
+    local n = 0
+    pcall(function() n = #ISTimedActionQueue.getTimedActionQueue(S.p).queue end)
+    return n
+end
+function S.barShot(tag, ok, n, force, fast)
+    S.step(2, function() S.t = 0; S.start(tag); if fast then S.speed(3) end end)
     S.step(5, function()
         S.t = S.t + 1
         local st = S.barSt()
         local good = st ~= nil and ok(st)
         if not good and S.t < n then return true end
-        local state = "phase " .. tostring(st and st.phase) .. ", noend " .. tostring(st and st.noend) .. ", queue " .. tostring(st and st.qi) .. "/" .. tostring(st and st.qn)
+        if fast then S.speed(1) end
+        local state = string.format("phase %s, noend %s, bar queue %s/%s, progress %.2f, %d queued", tostring(st and st.phase), tostring(st and st.noend),
+            tostring(st and st.qi), tostring(st and st.qn), S.prog(), S.qlen())
         if not good and not force then S.say("not run: " .. tag .. " (the bar reads " .. state .. ")"); S.capOn = false; return end
         S.say(tag .. ": the bar reads " .. state .. (good and "" or " (taken anyway)"))
         S.shot("lpp_" .. tag)
         S.logColors()
+    end)
+end
+-- waits (5 frames a poll, up to n polls, at speed 3) until the running action is past frac, then fn
+function S.untilProg(frac, n, fn)
+    S.step(2, function() S.t = 0; S.speed(3) end)
+    S.step(5, function()
+        S.t = S.t + 1
+        if S.prog() < frac and S.t < n then return true end
+        S.speed(1)
+        S.say(string.format("progress %.2f (wanted %.2f)", S.prog(), frac))
+        if fn then fn() end
     end)
 end
 function S.isPhase(want) return function(st) return st.phase == want end end
@@ -220,9 +245,8 @@ function S.bar(theme)
         S.step(10, function() pcall(function() S.St.actionBarOption:setValue(b[1]) end); S.stopAll() end)
         -- reading, then stopped
         S.step(10, S.read)
-        S.step(60, function() end)
-        S.barShot(tag .. "_read", S.isPhase("work"), 60)
-        S.step(5, function() S.stopAll() end)
+        S.barShot(tag .. "_read", function(st) return st.phase == "work" and S.prog() >= 0.3 end, 400, false, true)
+        S.untilProg(0.4, 400, function() S.say(tag .. "_stopped: stopped at progress " .. string.format("%.2f", S.prog())); S.stopAll() end)
         S.barShot(tag .. "_stopped", S.isPhase("stopped"), 20)
         -- resting (no end: its icon). Its phase read nil in the first run: taken anyway, the phase logged
         S.step(90, function()
@@ -255,7 +279,8 @@ function S.bar(theme)
         end)
         -- a queue of three: the dividers while the first runs
         S.step(60, function() S.eat(3) end)
-        S.barShot(tag .. "_queue", function(st) return st.phase == "work" and (st.qn or 0) >= 2 end, 60)
+        S.barShot(tag .. "_queue", function(st) return st.phase == "work" and (st.qn or 0) >= 2 and S.qlen() >= 2 and S.prog() >= 0.5 end, 400, false, true)
+        S.barShot(tag .. "_queue2", function(st) return st.phase == "work" and (st.qi or 0) >= 1 and S.prog() >= 0.3 end, 600, false, true)
         S.step(5, function() S.stopAll() end)
         -- an apple eaten to the end: done
         S.step(90, function() S.eat(1) end)
