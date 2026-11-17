@@ -2426,6 +2426,8 @@
     "UI_ZeD_Settings_GlyphsTip": "Di quale controller mostrare le immagini dei pulsanti. Auto segue lo stile pulsanti del gioco. Tastiera/mouse e Off mostrano i pulsanti come riquadri con lettere.",
     "UI_ZeD_Settings_HealthBlink": "Fai lampeggiare il pixel di salute bassa",
     "UI_ZeD_Settings_HealthBlinkTip": "Con il 20%% di salute o meno, il pixel della salute accanto al tuo nome lampeggia una volta al secondo. Off: resta rosso fisso.",
+    "UI_ZeD_Settings_GridTint": "Caselle del colore dell'oggetto",
+    "UI_ZeD_Settings_GridTintTip": "Nella vista a griglia dell'inventario ogni casella prende una tinta tenue del colore principale del suo oggetto: un CD blu, un'ascia rossa, una mazza beige. Disattivato: tutte le caselle sono semplici.",
     "UI_ZeD_Settings_HiddenFacts": "Fatti nascosti",
     "UI_ZeD_Settings_HiddenFactsTip": "Il palinsesto TV e le probabilità d'infezione della guida di sopravvivenza. Prima trovare: ciascuno si apre quando il personaggio ha letto TV Monthly o un libro di primo soccorso. Sempre: entrambi sono aperti dall'inizio, e la scheda di una ricetta nomina la rivista che la insegna.",
     "UI_ZeD_Settings_HighContrast": "Alto contrasto",

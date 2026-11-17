@@ -475,6 +475,13 @@ healthBlink:addItem(getText("UI_Off"), false)
 healthBlink:addItem(getText("UI_On"), true)   -- default
 ZeD.Settings.healthBlinkOption = healthBlink
 ZeD.Settings.healthBlink = function() return (liveIdx(healthBlink) or 2) == 2 end
+-- Item-colored tiles (the director, Nov 16 2026): each grid tile in the inventory takes a soft tint of its item's
+-- main color in place of the plain fill (InventoryRenderer's gridTint reads this every frame). Off for a new player.
+local gridTint = opts:addComboBox("gridTint", ZeD.tr("UI_ZeD_Settings_GridTint"), ZeD.tr("UI_ZeD_Settings_GridTintTip"))
+gridTint:addItem(getText("UI_Off"), true)   -- default
+gridTint:addItem(getText("UI_On"), false)
+ZeD.Settings.gridTintOption = gridTint
+ZeD.Settings.gridTint = function() return (liveIdx(gridTint) or 1) == 2 end
 -- Controller highlight: how the element the controller is on is marked (ZeD.Focus draws it and
 -- reads ZeD.Settings.focusStyle() every frame). The pointing hand for a new player.
 local focusKeys   = { "hand", "corners", "wash", "ants" }
@@ -729,7 +736,7 @@ do
         glyphDisplay = "UI_ZeD_Settings_Glyphs", inputModeLock = "UI_ZeD_Settings_InputLock",
         safeMode = "UI_ZeD_Settings_SafeMode", testLanguage = "UI_ZeD_Settings_TestLanguage",
         putBack = "UI_ZeD_Settings_PutBack", seeThrough = "UI_ZeD_Settings_SeeThrough",
-        solidInUse = "UI_ZeD_Settings_SolidInUse", healthBlink = "UI_ZeD_Settings_HealthBlink", focusStyle = "UI_ZeD_Settings_FocusStyle",
+        solidInUse = "UI_ZeD_Settings_SolidInUse", healthBlink = "UI_ZeD_Settings_HealthBlink", gridTint = "UI_ZeD_Settings_GridTint", focusStyle = "UI_ZeD_Settings_FocusStyle",
         hiddenActions = "UI_ZeD_Settings_HiddenActions",
         messagesCatch = "UI_ZeD_Settings_MsgCatch", messagesToast = "UI_ZeD_Settings_MsgToast", haloBubble = "UI_ZeD_Settings_HaloBubble", hintStrip = "UI_ZeD_Settings_HintStrip",
         sandboxInGame = "UI_ZeD_Settings_SandboxIG", dimRead = "UI_ZeD_Settings_DimRead",
@@ -1075,6 +1082,10 @@ function ZeD.Settings.setSolidInUse(on)
 end
 function ZeD.Settings.setHealthBlink(on)
     healthBlink:setValue(on and 2 or 1)
+    saveModOptions()
+end
+function ZeD.Settings.setGridTint(on)
+    gridTint:setValue(on and 2 or 1)
     saveModOptions()
 end
 function ZeD.Settings.setFocusStyle(key)

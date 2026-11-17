@@ -2426,6 +2426,8 @@
     "UI_ZeD_Settings_GlyphsTip": "どのコントローラーのボタン画像を表示するかを選びます。自動はゲームのコントローラーボタンスタイルに従います。キーボード/マウスとオフは、ボタンを文字入りの四角で表示します。",
     "UI_ZeD_Settings_HealthBlink": "低体力ピクセルの点滅",
     "UI_ZeD_Settings_HealthBlinkTip": "体力が20%%以下になると、名前の横の体力ピクセルが1秒に1回点滅します。オフ: 赤のまま点灯し続けます。",
+    "UI_ZeD_Settings_GridTint": "アイテム色のマス",
+    "UI_ZeD_Settings_GridTintTip": "インベントリのグリッド表示で、各マスがアイテムの主な色の淡い色合いになります。CDは青、斧は赤、バットは薄茶色。オフ: すべてのマスが無地になります。",
     "UI_ZeD_Settings_HiddenFacts": "隠された情報",
     "UI_ZeD_Settings_HiddenFactsTip": "サバイバルガイドのテレビ番組表と感染の確率。先に見つける: キャラクターがTV Monthlyか応急処置の本を読むと、それぞれが開きます。常に: どちらも最初から開いていて、レシピのカードがそれを教える雑誌の名前を示します。",
     "UI_ZeD_Settings_HighContrast": "ハイコントラスト",

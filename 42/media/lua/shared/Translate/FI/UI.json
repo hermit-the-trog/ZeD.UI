@@ -2426,6 +2426,8 @@
     "UI_ZeD_Settings_GlyphsTip": "Minkä ohjaimen painikekuvat näytetään. Automaattinen seuraa pelin ohjaimen painiketyyliä. Näppäimistö/hiiri ja Pois näyttävät painikkeet kirjainlaatikoina.",
     "UI_ZeD_Settings_HealthBlink": "Vilkuta matalan terveyden pikseliä",
     "UI_ZeD_Settings_HealthBlinkTip": "Kun terveys on enintään 20 %%, nimesi vieressä oleva terveyspikseli vilkkuu kerran sekunnissa. Pois: se pysyy punaisena.",
+    "UI_ZeD_Settings_GridTint": "Esineen väriset ruudut",
+    "UI_ZeD_Settings_GridTintTip": "Inventaarion ruudukkonäkymässä jokainen ruutu saa pehmeän sävyn esineensä pääväristä: CD sininen, kirves punainen, maila vaaleanruskea. Pois: kaikki ruudut ovat tavallisia.",
     "UI_ZeD_Settings_HiddenFacts": "Piilotetut tiedot",
     "UI_ZeD_Settings_HiddenFactsTip": "Selviytymisoppaan TV-ohjelmat ja tartuntariskit. Ensin löydä: kumpikin aukeaa, kun hahmo on lukenut TV Monthlyn tai ensiapukirjan. Aina: molemmat ovat auki alusta asti, ja reseptin kortti nimeää lehden, joka opettaa sen.",
     "UI_ZeD_Settings_HighContrast": "Korkea kontrasti",

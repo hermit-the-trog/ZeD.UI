@@ -1394,8 +1394,17 @@ local function drawGridCell(self, GV, item, cx, cy, cw, ch)
     if cy + ch <= GV.top or cy >= GV.h then return end
     local ax = xOff + cx
     local ac, bs = T.accent, T.borderS
-    local st = T.stripe
-    self:drawRect(ax, cy, cw, ch, st.a, st.r, st.g, st.b)
+    local tex = item:getTex()
+    -- the fill: a soft tint of the item's main color with "Item-colored tiles" on (GridTint.lua; the director,
+    -- Nov 16 2026), at the window surface's alpha so See-through holds; else the plain stripe
+    local gr, gg, gb
+    if ZeD.GridTint then gr, gg, gb = ZeD.GridTint.of(T, tex) end
+    if gr then
+        self:drawRect(ax, cy, cw, ch, T.surf1.a or 1, gr, gg, gb)
+    else
+        local st = T.stripe
+        self:drawRect(ax, cy, cw, ch, st.a, st.r, st.g, st.b)
+    end
     self:drawRectBorder(ax, cy, cw, ch, bs.a or 1, bs.r, bs.g, bs.b)
     local isSelected = GV.sel and GV.sel[item]
     -- the pointer (its name in a hint, and the help line) / the controller
@@ -1416,7 +1425,6 @@ local function drawGridCell(self, GV, item, cx, cy, cw, ch)
     end
     local stackInfo = self._stacks and self._stacks[item]
     local count = (stackInfo and stackInfo.count) or 1
-    local tex = item:getTex()
     local isz = math.floor(cell * 32 / 52)
     -- (the icon's box on a span: the same share of the span as of a square, at most twice the square's icon; the
     -- texture keeps its own shape inside it. On a square cell both are isz, as before.)
