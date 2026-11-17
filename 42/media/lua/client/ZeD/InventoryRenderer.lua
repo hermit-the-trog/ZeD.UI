@@ -1320,7 +1320,7 @@ end
 -- (its help line: "Condition 64%", "Remaining 50%"). 52 units less 6: 34 px at 0.75.
 -- (Nov 15 2026, add-on hooks: cell is the cell's width; ch its height, nil for a square cell. A cell an add-on's
 -- layout spans over several squares (GridLayout.lua) is wider or taller than it is the other way.)
-local function drawCellCondition(self, item, ax, cy, cell, stackInfo, ch)
+local function drawCellCondition(self, item, ax, cy, cell, stackInfo, ch, thin)
     local T = ZeD.T
     local IM = ZeD.ItemMeter
     ch = ch or cell   -- (a square cell: as tall as it is wide, as every cell was before)
@@ -1329,6 +1329,9 @@ local function drawCellCondition(self, item, ax, cy, cell, stackInfo, ch)
     local fc, graduated = IM.style(kind)
     local bh = T.px(5)
     local by = cy + ch - T.px(3) - bh
+    -- (Nov 17 2026, Multi-Slot 0.2, QA: thin, a one-square shape: a slim strip along the square's very foot, so the
+    -- picture, which fills most of a small square, stays readable)
+    if thin then bh = T.px(3); by = cy + ch - T.px(1) - bh end
     local hov = ZeD.Atoms.drawFillBar(self, ax + T.px(3), by, cell - T.px(6), f, graduated, fc, bh, IM.label(kind))
     return by, hov
 end
@@ -1442,28 +1445,41 @@ local function drawShapeCell(self, GV, item, cx, cy, g)
         local o = math.floor((sq - isz) / 2)
         self:drawTextureScaledAspect(tex, ax + g.fx + o, cy + g.fy + o, isz, isz, ia, 1, 1, 1)
     end
+    -- (Nov 17 2026, QA's 0.2 pass: on a ONE-square shape the picture fills most of the square, so the labels gave
+    -- way to it: no weight chip there (the item's card has it), the count small at the top right, the condition a slim
+    -- strip along the foot. And no chip is ever wider than its square: "(10)" spilled over the next item.)
+    local one = g.n == 1
     -- the condition strip along the last square's foot (a readable item: its read mark instead)
     local lx, ly = ax + g.ix, cy + g.iy
     local condTop, condHov = ly + sq, false
-    if not rs then condTop, condHov = drawCellCondition(self, item, lx, ly, sq, stackInfo, sq) end
-    -- the weight, top right of its square
+    if not rs then condTop, condHov = drawCellCondition(self, item, lx, ly, sq, stackInfo, sq, one) end
     local f5 = T.fontF5
     local s1 = T.surf1
-    local wtStr = weightText(item, stackInfo, f5, g.wroom - T.px(6))
-    local wtw = ZeD.TM:MeasureStringX(f5, wtStr)
-    local wr, wt = ax + g.wx + sq, cy + g.wy
-    self:drawRect(wr - wtw - T.px(5), wt + T.px(1), wtw + T.px(4), GV.f5FH, s1.a or 1, s1.r, s1.g, s1.b)
-    local th = T.accentText or T.text
-    self:drawText(wtStr, wr - wtw - T.px(3), wt + T.px(1), th.r, th.g, th.b, th.a or 1, f5)
-    -- the count, bottom right of the last square (above the condition strip)
+    -- the weight, top right of its square (not on a one-square shape)
+    if not one then
+        local wtStr = weightText(item, stackInfo, f5, g.wroom - T.px(6))
+        local wtw = ZeD.TM:MeasureStringX(f5, wtStr)
+        local wr, wt = ax + g.wx + sq, cy + g.wy
+        self:drawRect(wr - wtw - T.px(5), wt + T.px(1), wtw + T.px(4), GV.f5FH, s1.a or 1, s1.r, s1.g, s1.b)
+        local th = T.accentText or T.text
+        self:drawText(wtStr, wr - wtw - T.px(3), wt + T.px(1), th.r, th.g, th.b, th.a or 1, f5)
+    end
+    -- the count: bottom right of the last square, above the condition strip (one square: top right, small); the
+    -- small font when the usual one is wider than the square, and never past the square's left edge
     if count > 1 then
         local cs = "(" .. count .. ")"
-        local f1 = T.fontF1
-        local cw2 = ZeD.TM:MeasureStringX(f1, cs)
-        local cy2 = math.min(ly + sq - GV.secFH - T.px(4), condTop - GV.secFH - T.px(1))
-        self:drawRect(lx + sq - cw2 - T.px(5), cy2, cw2 + T.px(4), GV.secFH, s1.a or 1, s1.r, s1.g, s1.b)
+        local fc, fh = T.fontF1, GV.secFH
+        local cw2 = ZeD.TM:MeasureStringX(fc, cs)
+        if one or cw2 + T.px(5) > sq then
+            fc, fh = f5, GV.f5FH
+            cw2 = ZeD.TM:MeasureStringX(fc, cs)
+        end
+        local chipW = math.min(cw2 + T.px(4), sq - T.px(2))
+        local cx2 = lx + sq - chipW - T.px(1)
+        local cy2 = one and (ly + T.px(1)) or math.min(ly + sq - fh - T.px(4), condTop - fh - T.px(1))
+        self:drawRect(cx2, cy2, chipW, fh, s1.a or 1, s1.r, s1.g, s1.b)
         local tc = T.text
-        self:drawText(cs, lx + sq - cw2 - T.px(3), cy2, tc.r, tc.g, tc.b, tc.a or 1, f1)
+        self:drawText(cs, cx2 + math.floor((chipW - cw2) / 2), cy2, tc.r, tc.g, tc.b, tc.a or 1, fc)
     end
     GV._beltW = 0
     if rs then

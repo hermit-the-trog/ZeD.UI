@@ -964,6 +964,37 @@ check("DRAW: the axe's first square in its tint, at the surface's alpha (forced 
 local pic = false
 for _, l in ipairs(ps.log) do if l:find("^tex tex_Axe " .. (x0 + 3) .. " " .. (y0 + 3) .. " 27 27") then pic = true end end
 check("DRAW: the picture in the first square, centered, one size", pic)
+-- (Nov 17 2026, QA's 0.2 pass) a one-square stack: no weight chip, the count inside its square, a slim condition strip
+do
+    local p1 = mkPanel()
+    local g1 = mkGV(5)
+    GL.attach(p1, g1, MS, SBAG, {}, false, 24, 300)
+    local L1 = g1.L
+    local st = {}
+    for k, v in pairs(L1.stacks) do st[k] = v end
+    st[nut] = { rep = nut, items = { nut, nut, nut }, count = 30, key = "Base.Nut" }
+    p1._stacks = st
+    nut._cond = 0.5
+    GL.draw(p1, g1, 0, 300, 24)
+    nut._cond = nil
+    local sx, sy, sq = 10 + L1.px[nut], L1.py[nut], L1.cell
+    local inSq = function(x, y) return x >= sx and x < sx + sq and y >= sy and y < sy + sq end
+    local weight, count, countIn, chipIn = false, false, false, true
+    for _, l in ipairs(p1.log) do
+        local s, x, y = l:match("^text (%S+) (%-?%d+) (%-?%d+)$")
+        x, y = tonumber(x), tonumber(y)
+        if s and inSq(x, y) then
+            if s:match("^%(?%d+%.%d%)?$") then weight = true end
+            if s == "(30)" then count = true; countIn = x + #s * 6 <= sx + sq end
+        end
+        local rx, ry, rw = l:match("^rect (%-?%d+) (%-?%d+) (%d+) %d+")
+        rx, ry, rw = tonumber(rx), tonumber(ry), tonumber(rw)
+        if rx and ry >= sy and ry < sy + sq and rx < sx + sq and rx + rw > sx and rw < sq and (rx < sx or rx + rw > sx + sq) then chipIn = false end
+    end
+    check("ONE SQUARE: no weight chip over the picture", not weight)
+    check("ONE SQUARE: the count is drawn, inside its square", count and countIn)
+    check("ONE SQUARE: no chip spills past its square", chipIn)
+end
 -- hover over the hole: the nut, not the axe
 local gh2 = mkGV(5, { 10 + LS.px[nut] + 5, LS.py[nut] + 5 })
 local ph = mkPanel()
