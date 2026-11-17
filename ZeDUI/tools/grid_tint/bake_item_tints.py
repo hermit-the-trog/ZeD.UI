@@ -128,8 +128,9 @@ def main():
     for k in sorted(colors):
         c = colors[k]
         if c is None:
+            # a gray, black or white icon: neutral gray, so its tile takes a soft gray tint (the director, Nov 16)
             gray += 1
-            continue
+            c = (128, 128, 128)
         v = (c[0] << 16) | (c[1] << 8) | c[2]
         ident = k.isidentifier() and k.isascii() and k not in LUA_KEYWORDS
         lines.append(("%s=%d," if ident else '["%s"]=%d,') % (k, v))
@@ -149,9 +150,9 @@ def main():
         "-- EACH ITEM ICON'S MAIN COLOR, for the grid's item-colored tiles (the director, Nov 16 2026): a generated",
         "-- data table, written by ZeDUI/tools/grid_tint/bake_item_tints.py from the game's icons: do not edit by hand.",
         "-- ZeD.ItemTints: the icon's name without \"Item_\" -> its main color, 0xRRGGBB as one number (the saturation-",
-        "-- weighted average of its colored pixels). Gray, black or white icons are left out; so are other mods' items.",
+        "-- weighted average of its colored pixels). Gray, black or white icons are 0x808080 (a neutral tint); other mods' items are not here.",
         "-- InventoryRenderer turns the raw color into each theme's tint. Shared, plain data. Pure ASCII.",
-        "-- %d icons, %d left out as gray." % (len(lines), gray),
+        "-- %d icons, %d of them gray." % (len(lines), gray),
         "-- ============================================================================",
         "ZeD = ZeD or {}",
         "ZeD.ItemTints = {",

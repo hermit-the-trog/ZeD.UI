@@ -10,11 +10,11 @@
 -- cannot read a texture's pixels. Only the raw color is stored; the rule per theme is here, so a theme
 -- change shows at once:
 --   Light          lightness 0.74, saturation at most 0.30 (the director's pick: soft and gray, not pastel)
---   Dark           lightness 0.21, saturation at most 0.30 (deep and muted: no large bright fills on dark)
---   High contrast  lightness 0.16, saturation at most 0.36 (deeper still, so the white text and marks stand off)
+--   Dark           lightness 0.17, saturation at most 0.30 (deep and muted: the director picked a little darker)
+--   High contrast  lightness 0.13, saturation at most 0.36 (deeper still, so the white text and marks stand off)
 -- The hue is the item's. The weight and count sit on their own surface chips and the condition strip is framed,
--- so they read as before. An icon not in the table (another mod's item, or a gray, black or white icon) keeps
--- the plain fill.
+-- so they read as before. A gray, black or white icon is baked as neutral gray, so it takes a soft gray tint (the
+-- director's pick); an icon not in the table (another mod's item) keeps the plain fill.
 -- Cost: one table lookup per tile per frame; the name lookup and the color math run once per texture and theme.
 -- Pure ASCII.
 -- ============================================================================
@@ -26,8 +26,8 @@ local G = ZeD.GridTint
 -- per base theme: the tile's lightness and the most saturation it keeps (an unknown theme takes Dark's)
 G.RULES = {
     light = { l = 0.74, s = 0.30 },
-    dark  = { l = 0.21, s = 0.30 },
-    hicon = { l = 0.16, s = 0.36 },
+    dark  = { l = 0.17, s = 0.30 },
+    hicon = { l = 0.13, s = 0.36 },
 }
 
 -- (one per texture: false for no tint, else { raw = 0xRRGGBB, [baseKey] = { r, g, b } }; never theme colors

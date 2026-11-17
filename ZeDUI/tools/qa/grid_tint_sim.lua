@@ -6,8 +6,8 @@
 --   OPTION   registered, Off for a new player, named for the Look group, a check box there, in all 28 UI.json files
 --   OFF      the tile draws T.stripe, as before
 --   ON       a known item (the axe, the CD) draws a tint, per theme: Light pale (lightness 0.74), Dark and High
---            contrast deep (0.21, 0.16); its hue is the item's (the axe red, the CD blue); saturation capped
---   UNKNOWN  another mod's item, a gray icon, no texture: the plain stripe
+--            contrast deep (0.17, 0.13); its hue is the item's (the axe red, the CD blue); saturation capped
+--   UNKNOWN  another mod's item, no texture: the plain stripe; a gray icon takes a neutral gray tint
 --   RANGE    every baked color under every rule stays within 0 to 1 and on the rule's lightness
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/grid_tint_sim.lua
 
@@ -156,7 +156,7 @@ end
 -- UNKNOWN: plain stripe
 for k, T in pairs(THEMES) do
     check("UNKNOWN " .. k .. ": another mod's item keeps the stripe", isStripe(fillOf(T, item(TEX.mod)), T))
-    check("UNKNOWN " .. k .. ": a gray icon (the wrench) keeps the stripe", isStripe(fillOf(T, item(TEX.gray)), T))
+    check("GRAY " .. k .. ": a gray icon (the wrench) takes a neutral tint", (function() local f = fillOf(T, item(TEX.gray)); return f ~= nil and not isStripe(f, T) and math.abs(f.r - f.g) < 0.002 and math.abs(f.g - f.b) < 0.002 end)())
     check("UNKNOWN " .. k .. ": no texture keeps the stripe", isStripe(fillOf(T, item(nil)), T))
 end
 check("UNKNOWN: a texture whose getName throws keeps the stripe",
@@ -185,7 +185,7 @@ do
     end
     check("RANGE: " .. n .. " colors x 3 rules, all within 0..1, on the rule's lightness, saturation capped", bad == 0 and n > 1000, bad)
     check("RANGE: pure gray, black, white stay gray at the rule's lightness",
-        select(1, G.apply(0x808080, G.RULES.light)) == 0.74 and select(3, G.apply(0, G.RULES.dark)) == 0.21 and select(2, G.apply(0xFFFFFF, G.RULES.hicon)) == 0.16)
+        select(1, G.apply(0x808080, G.RULES.light)) == 0.74 and select(3, G.apply(0, G.RULES.dark)) == 0.17 and select(2, G.apply(0xFFFFFF, G.RULES.hicon)) == 0.13)
 end
 -- KEY
 check("KEY: Item_Axe -> Axe; a path and .png stripped", G.key("Item_Axe") == "Axe" and G.key("media/textures/Item_Axe.png") == "Axe"
