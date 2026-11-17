@@ -1,0 +1,2 @@
+# ZeDUI/tools/qa/toilet.txt  (Nov 17 2026, QA): the A Rest through a locked wall (the director's report), run with ZeD on and off
+zedqa_toilet.lua | toil | timeout=240
