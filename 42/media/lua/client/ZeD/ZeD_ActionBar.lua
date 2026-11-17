@@ -539,6 +539,17 @@ local function R(cv, x, y, w, h, c, a) P.rect(cv, x, y, w, h, c, (c.a or 1) * (a
 AB.TRACK = { r = 0x1A / 255, g = 0x1A / 255, b = 0x1E / 255, a = 1 }
 AB.TRACK_SEG = { r = 0x33 / 255, g = 0x33 / 255, b = 0x38 / 255, a = 1 }
 AB.TRACK_DIM = { r = 0x8A / 255, g = 0x8A / 255, b = 0x90 / 255, a = 1 }   -- (a stopped or walking action's fill, on the dark track)
+-- (Nov 17 2026, QA on the dark track: the Simple bar's icon alone, walking or stopped, drew in the light palette's
+-- dimmed near-black straight over the game and could not be seen; it takes a light grey there)
+AB.WORLD_DIM = { r = 0xC8 / 255, g = 0xC8 / 255, b = 0xCC / 255, a = 0.85 }
+-- the fill on the dark track: the accent's Dark-theme pair whatever the theme (QA, Nov 17 2026: the Light theme's
+-- darker accent, made to read on light grey, barely stood off the empty segments)
+function AB.trackAccent(T)
+    local set = ZeD.AccentColors and T.accentKey and ZeD.AccentColors[T.accentKey]
+    local d = set and set.dark
+    if d and d.accent then return d.accent, d.bright or d.accent end
+    return T.accent, T.accentBright or T.accent
+end
 
 -- sizes, so the element can be placed before it draws
 function AB.sizeSimple() return 53, 9 end
@@ -569,18 +580,19 @@ function AB.drawSimple(cv, T, st, a, ms)
     local W, H = AB.sizeSimple()
     if st.noend and st.icon then
         -- (no end: no box and no segments, only the action's icon, the bar's height, centred; the director, Nov 15 2026)
-        AB.drawIcon(cv, st.icon, math.floor((W - H) / 2), 0, (st.phase == "walk" or st.phase == "stopped") and AB._dim or T.accent, a, H)
+        AB.drawIcon(cv, st.icon, math.floor((W - H) / 2), 0, (st.phase == "walk" or st.phase == "stopped") and AB.WORLD_DIM or (AB.trackAccent(T)), a, H)
         return
     end
     R(cv, 0, 0, W, H, T.borderS, a); R(cv, 1, 1, W - 2, H - 2, AB.TRACK, a)
+    local acc, accB = AB.trackAccent(T)
     local function sx(i) return 2 + i * (sw + gap) end
     local function lit(i, c, f)
         R(cv, sx(i), 2, sw, sh, c, a * (f or 1))
-        if c == T.accent then R(cv, sx(i), 2, sw, 1, T.accentBright, a * (f or 1)) end
+        if c == acc then R(cv, sx(i), 2, sw, 1, accB, a * (f or 1)) end
     end
     for i = 0, n - 1 do R(cv, sx(i), 2, sw, sh, AB.TRACK_SEG, a) end
     if st.noend and st.phase ~= "stopped" then
-        local c = st.phase == "walk" and AB.TRACK_DIM or T.accent
+        local c = st.phase == "walk" and AB.TRACK_DIM or acc
         local ph = (ms / 1200) % 2
         local pos = math.floor((ph < 1 and ph or 2 - ph) * (n - 1) + 0.5)
         lit(pos, c); if pos > 0 then lit(pos - 1, c, 0.35) end; if pos < n - 1 then lit(pos + 1, c, 0.35) end
@@ -588,7 +600,9 @@ function AB.drawSimple(cv, T, st, a, ms)
         for i = 0, n - 1 do lit(i, T.positive) end
     else
         local full = math.floor(overall(st) * n)
-        local c = st.phase == "stopped" and AB.TRACK_DIM or T.accent
+        -- (a stopped bar always shows at least one grey segment, so it never looks like an empty one: QA, Nov 17 2026)
+        if st.phase == "stopped" and full < 1 then full = 1 end
+        local c = st.phase == "stopped" and AB.TRACK_DIM or acc
         for i = 0, full - 1 do lit(i, c) end
         if st.phase == "work" and full < n then
             lit(full, c, 0.25 + 0.35 * (0.5 + 0.5 * math.sin(ms / 1000 * math.pi * 2 * 0.9)))
@@ -649,21 +663,22 @@ function AB.drawVerboseBody(cv, T, st, a, ms, px, py, bw)
     local bx, by = px, py + 18
     local fx, fy, fwid, fh = bx + 1, by + 1, bw - 2, bh - 2      -- inside the frame
     R(cv, bx, by, bw, bh, AB.TRACK, a)
+    local acc = AB.trackAccent(T)
     if st.noend and st.phase ~= "stopped" then
         local seg = 12
         local span = fwid + seg
         local p = ((ms / 1000 * 26) % span) - seg
         local x0, x1 = math.max(fx, math.floor(fx + p)), math.min(fx + fwid, math.floor(fx + p) + seg)
-        if x1 > x0 then R(cv, x0, fy, x1 - x0, fh, st.phase == "walk" and AB.TRACK_DIM or T.accent, a) end
+        if x1 > x0 then R(cv, x0, fy, x1 - x0, fh, st.phase == "walk" and AB.TRACK_DIM or acc, a) end
     else
-        local c = st.phase == "done" and T.positive or (st.phase == "stopped" and AB.TRACK_DIM or T.accent)
+        local c = st.phase == "done" and T.positive or (st.phase == "stopped" and AB.TRACK_DIM or acc)
         local f = st.phase == "done" and 1 or overall(st)
         local w = math.floor(fwid * f + 0.5)
         if f > 0 then w = math.max(2, w) end                      -- two units at least, as the strip
         if w > 0 then R(cv, fx, fy, w, fh, c, a) end
     end
     if st.qn > 1 and st.qn <= 24 and fwid / st.qn >= 3 then
-        for i = 1, st.qn - 1 do R(cv, fx + math.floor(fwid * i / st.qn + 0.5), fy, 1, fh, AB.TRACK, a) end
+        for i = 1, st.qn - 1 do R(cv, fx + math.floor(fwid * i / st.qn + 0.5), fy, 1, fh, AB.TRACK_SEG, a) end
     end
     -- the frame, over the fill's ends
     R(cv, bx, by, bw, 1, T.borderS, a); R(cv, bx, by + bh - 1, bw, 1, T.borderS, a)
