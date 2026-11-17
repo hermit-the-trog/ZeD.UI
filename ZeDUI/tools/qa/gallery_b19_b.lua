@@ -11,8 +11,6 @@
 --                                  keyboard ("Go Bag" + "s!"), Set Alarm on a stand-in alarm; each opened on the pointer
 --     zqa_padmap_options           zedqa_pad_figure.lua "02_lit": Options > Controls > Button map and test, Xbox set
 --     g19_generator_popout (new)   a generator placed beside the character, running, its face popped out (FacePop.open)
---     g19_espresso_popout (new)    Additional appliance support on, the espresso machine placed in the generator's
---                                  power, FacePop.open; "not taken" when the build has no face for it
 --     gb_seat_cabin / gb_simple_seat (new)  zedqa_b16_seats.lua: a sedan (ZEDQA_CAR_WAIT), the seat key's own route
 --                                  (ZeD.Seats.toggle) with the Dashboard row on Full, then on Simple
 --     gb_plain_dash                gallery_beta_new.lua: the same sedan, Simple dashboard, engine running
@@ -29,8 +27,11 @@
 --     gb_simple_watch / gb_simple_belt / gb_plain_radio / gb_forms_setup   gallery_beta_new.lua
 --   NOT HERE (main menu only, pushed by gallery_b11_menus_run.ps1): desk_05_trash_computer (gallery_desk_pass.lua),
 --     mm4_01_options_zed / mm4_02_options_interface / mm4_03_options_hidden (gallery_beta_hidden.lua, gallery_v4_menus.lua)
--- Before each shot: about 30 frames to settle, the pointer parked top left (unless the shot needs it), the debug
--- console hidden, god mode and invisible off (zombies-don't-attack on instead), the inventory weight printed.
+-- Before each shot: about 30 frames to settle, the pointer parked where no UI element covers it and hidden for the
+-- shot (Mouse.setCursorVisible), the debug console hidden, god mode and invisible off (zombies-don't-attack on
+-- instead). The load is held at 15 to 17 kg for the whole run (S.lighten: the rest taken out of the inventory, put
+-- back at the end); each shot logs weight, item count and the Heavy Load moodle, and a shot over 19 kg is not taken.
+-- (g19_espresso_popout is dropped from this run.)
 -- No controller here: pad-only views use a stand-in pad record for one call (withPad) or Focus.qaButton.
 -- Puts back: theme, options, items given, objects and the car, the window layout, the time of day, game speed, god
 -- mode / invisible / zombies-don't-attack, the character's place. grep "ZEDQA gb19b".
@@ -64,20 +65,131 @@ function S.cheats()
     pcall(function() S.p:setInvisible(false) end)
     pcall(function() S.p:setZombiesDontAttack(true) end)
 end
-function S.park() pcall(function() Mouse.setXY(20, 20) end) end
+-- the pointer parked on a spot no visible UI element covers (the screen's edges tried in turn), and hidden for the shot
+S.PARK = { { 1, 0.5 }, { 0, 0.5 }, { 0.5, 1 }, { 0.5, 0 }, { 1, 0 }, { 0, 1 }, { 0.75, 1 }, { 0.25, 0 } }
+function S.covered(x, y)
+    local hit = false
+    pcall(function()
+        local ui = UIManager.getUI()
+        for i = 0, ui:size() - 1 do
+            local e = ui:get(i)
+            if e:isVisible() and e:getClass():getSimpleName() ~= "UIDebugConsole" then
+                local ex, ey = e:getAbsoluteX(), e:getAbsoluteY()
+                if x >= ex and y >= ey and x < ex + e:getWidth() and y < ey + e:getHeight() then hit = true end
+            end
+        end
+    end)
+    return hit
+end
+function S.park()
+    local W, H = getCore():getScreenWidth(), getCore():getScreenHeight()
+    local px, py = W - 3, math.floor(H / 2)
+    for _, c in ipairs(S.PARK) do
+        local x, y = math.floor(c[1] * (W - 6)) + 3, math.floor(c[2] * (H - 6)) + 3
+        if not S.covered(x, y) then px, py = x, y; break end
+    end
+    pcall(function() Mouse.setXY(px, py) end)
+    S.parked = px .. "," .. py
+end
 -- the pointer off the windows, hover tooltips gone, no item card left in a drawer
 function S.pre(keepPointer)
     if not keepPointer then S.park() end
     pcall(function() local m = getPlayerContextMenu(S.pn); if m and m:isVisible() then m:setVisible(false) end end)
     S.console(); S.cheats()
 end
+-- the load: the inventory's weight (worn bags' contents counted as the game counts them) and the items, top level and
+-- in the bags worn or held
+function S.weight() local ok, w = pcall(function() return S.inv:getCapacityWeight() end); return ok and w or 999 end
+function S.count()
+    local n = 0
+    pcall(function()
+        local items = S.inv:getItems()
+        n = items:size()
+        for i = 0, items:size() - 1 do
+            local it = items:get(i)
+            if instanceof(it, "InventoryContainer") and S.p:isEquipped(it) then n = n + it:getInventory():getItems():size() end
+        end
+    end)
+    return n
+end
+function S.heavy()
+    local ok, l = pcall(function() return S.p:getMoodles():getMoodleLevel(MoodleType.HeavyLoad) end)
+    return ok and l or -1
+end
 function S.shot(name)
     S.console(); S.cheats()
+    local wt, n, hv = S.weight(), S.count(), S.heavy()
+    local load = string.format("%.1f of %s kg, %d items, Heavy Load %s", wt, tostring(S.p:getMaxWeight()), n, tostring(hv))
+    if wt > 19 or (hv and hv > 0) then S.notTaken(name, "over the load limit: " .. load); return end
+    pcall(function() S.cursorWas = Mouse.isCursorVisible(); Mouse.setCursorVisible(false) end)
+    S.curHid = 0
     local ok = pcall(function() getCore():TakeFullScreenshot(name .. ".png") end)
-    local wt, cap = "?", "?"
-    pcall(function() wt = string.format("%.1f", S.inv:getCapacityWeight()); cap = string.format("%.1f", S.p:getMaxWeight()) end)
     if ok then S.took[#S.took + 1] = name end
-    S.say((ok and "shot " or "ERR shot ") .. name .. " (carried " .. wt .. " of " .. cap .. ")")
+    S.say((ok and "shot " or "ERR shot ") .. name .. " (" .. load .. "; pointer at " .. tostring(S.parked) .. ", hidden)")
+end
+-- the pointer shown again two frames after the shot
+function S.cursorBack()
+    if S.curHid == nil then return end
+    S.curHid = S.curHid + 1
+    if S.curHid < 3 then return end
+    S.curHid = nil
+    pcall(function() Mouse.setCursorVisible(S.cursorWas ~= false) end)
+end
+
+-- ---------------------------------------------------------------- the load under 20 kg
+-- Everything not worn, held, on the belt or needed by a shot is taken OUT of the inventory (and out of the bags worn or
+-- held) into S.stash, kept in Lua with the container it came from; then the stash is put back one thing at a time while
+-- the load stays at or under 17 kg, until it reaches 15 kg. At the end every stashed thing goes back where it was.
+S.NEED = { "Cigarette", "Lighter", "Matches", "Flashlight", "Torch", "WaterBottle" }
+function S.keep(it, need)
+    if S.p:isEquipped(it) or S.p:isEquippedClothing(it) or S.p:isHandItem(it) then return true end
+    if it:getAttachedSlot() and it:getAttachedSlot() > -1 then return true end
+    local ft = it:getFullType()
+    for _, pat in ipairs(S.NEED) do
+        if not need[pat] and string.find(ft, pat, 1, true) then need[pat] = true; return true end
+    end
+    if not need.food and it:IsFood() then need.food = true; return true end
+    return false
+end
+function S.lighten()
+    S.stash = {}
+    local need, worn = {}, {}
+    local items = S.inv:getItems()
+    for i = 0, items:size() - 1 do
+        local it = items:get(i)
+        if S.keep(it, need) then
+            if instanceof(it, "InventoryContainer") then worn[#worn + 1] = it:getInventory() end
+        else S.stash[#S.stash + 1] = { it = it, c = S.inv } end
+    end
+    for _, bag in ipairs(worn) do
+        local b = bag:getItems()
+        for i = 0, b:size() - 1 do
+            local it = b:get(i)
+            if not S.keep(it, need) then S.stash[#S.stash + 1] = { it = it, c = bag } end
+        end
+    end
+    for _, e in ipairs(S.stash) do pcall(function() e.c:Remove(e.it) end) end
+    -- (some put back, one at a time while the load stays at or under 17 kg, until it reaches 15 kg)
+    for _, e in ipairs(S.stash) do
+        if S.weight() >= 15 then break end
+        pcall(function() e.c:AddItem(e.it) end)
+        if S.weight() > 17 then pcall(function() e.c:Remove(e.it) end) else e.back = true end
+    end
+    local out = 0
+    for _, e in ipairs(S.stash) do if not e.back then out = out + 1 end end
+    S.say(string.format("load: %d things taken out of the inventory for the run (kept by the script, put back at the end); now %.1f kg, %d items, Heavy Load %s",
+        out, S.weight(), S.count(), tostring(S.heavy())))
+end
+function S.unlighten()
+    local n = 0
+    for _, e in ipairs(S.stash or {}) do
+        if not e.back then
+            local ok = pcall(function() e.c:AddItem(e.it) end)
+            if ok then n = n + 1 else S.say("ERR could not put back " .. tostring(e.it:getFullType())) end
+        end
+    end
+    S.stash = {}
+    S.say(string.format("load put back: %d things; now %.1f kg, %d items", n, S.weight(), S.count()))
 end
 function S.pairShut() if S.CW.isOpen(S.pn) then pcall(S.CW.toggleBothPaired, S.pn) end end
 function S.pairOpen() if not S.CW.isOpen(S.pn) then pcall(S.CW.toggleBothPaired, S.pn) end end
@@ -159,6 +271,11 @@ S.step(10, function()
     S.cheats(); S.console()
     S.say("start at " .. math.floor(p:getX()) .. "," .. math.floor(p:getY()) .. " | look " .. tostring(ZeD.currentBase) .. " " .. tostring(ZeD.currentAccent)
         .. " | kit watch " .. tostring(S.kit and S.kit:getFullType()))
+end)
+
+S.step(10, function()
+    local ok, e = pcall(S.lighten)
+    if not ok then S.say("ERR lighten: " .. tostring(e)) end
 end)
 
 -- ===================================================================== 35 bubbles: zqa_bub_both_dark (home)
@@ -316,7 +433,7 @@ S.step(20, function()
     S.setOpt(S.St.glyphOption, S.optWas.glyphOption)
 end)
 
--- ===================================================================== new: g19_generator_popout, g19_espresso_popout (home)
+-- ===================================================================== new: g19_generator_popout (home)
 S.FP, S.TF = ZeD.FacePop, ZeD.TwoWayFull
 S.step(30, function()
     if getGameSpeed() <= 0 then setGameSpeed(1) end
@@ -343,34 +460,8 @@ S.step(30, function()
     pcall(S.TF.close, S.pn)
 end)
 S.step(10, function()
-    S.setOpt(S.St.appliancesOption, 2)
-    local sq = S.sq(-1, 1)
-    if not sq then S.notTaken("g19_espresso_popout", "no square beside the character"); return end
-    local o = IsoObject.new(sq, "appliances_cooking_01_61", nil, false)
-    sq:AddTileObject(o)
-    S.esp = o; S.placed[#S.placed + 1] = o
-end)
-S.step(40, function()
-    if not S.esp then return end
-    local A = ZeD.Appliances
-    local pw = A and A.powered and A.powered(S.esp:getSquare())
-    S.say("espresso: appliance support " .. tostring(A and A.on and A.on()) .. ", powered " .. tostring(pw) .. ", offered " .. tostring(A and A.isEspresso and A.isEspresso(S.esp)))
-    local ok, opened = pcall(S.FP.open, S.p, S.esp)
-    if not (ok and opened) then
-        S.notTaken("g19_espresso_popout", "FacePop has no face for the espresso machine in this build (FacePop.resolve knows ovens, microwaves, radios, generators, the grill and laundry; Appliances.lua: its face is still to be drawn)")
-        S.espOff = true
-    else S.pre() end
-end)
-S.step(30, function()
-    if not S.esp or S.espOff then return end
-    S.shot("g19_espresso_popout")
-    S.say("note: g19_espresso_popout is at the drag strip beside the generator, not in a kitchen")
-    pcall(S.TF.close, S.pn)
-end)
-S.step(10, function()
     for _, o in ipairs(S.placed) do S.unplace(o) end
-    S.placed, S.gen, S.esp = {}, nil, nil
-    S.setOpt(S.St.appliancesOption, S.optWas.appliancesOption)
+    S.placed, S.gen = {}, nil
 end)
 
 -- ===================================================================== 45 + 42: the sedan (home)
@@ -821,6 +912,8 @@ S.step(20, function()
         pcall(function() if S.p:isEquippedClothing(it) then S.p:removeWornItem(it) end end)
         pcall(function() local c = it:getContainer(); if c then c:Remove(it) end end)
     end
+    local okU, eU = pcall(S.unlighten)
+    if not okU then S.say("ERR put back the load: " .. tostring(eU)) end
     for k, v in pairs(S.optWas) do S.setOpt(S.St[k], v) end
     pcall(function() ZeD.applyTheme(S.look[1], S.look[2], S.look[3]) end)
     pcall(function() getGameTime():setTimeOfDay(S.todWas) end)
@@ -845,8 +938,9 @@ end)
 -- (stepped on each drawn frame: the pause menu stops the game's tick; a step returning true runs again after n frames;
 -- a button held for a tap is let go before the next step)
 function S.tick()
+    S.cursorBack()
     local s = S.Q[S.qi]
-    if not s then Events.OnPreUIDraw.Remove(S.tick); return end
+    if not s then Events.OnPreUIDraw.Remove(S.tick); pcall(function() Mouse.setCursorVisible(true) end); return end
     S.wait = (S.wait or s.n) - 1
     if S.wait > 0 then return end
     S.wait = nil

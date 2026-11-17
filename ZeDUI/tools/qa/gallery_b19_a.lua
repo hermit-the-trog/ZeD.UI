@@ -242,7 +242,7 @@ function S.tall(on)
     local c, w = S.CW(), S.WW()
     if not (c and w) then return end
     if on then
-        S.was.size = S.was.size or { c = { c:getX(), c:getY(), c:getHeight() }, w = { w:getX(), w:getY(), w:getHeight() } }
+        S.was.tallWas = S.was.tallWas or { c = { c:getX(), c:getY(), c:getHeight() }, w = { w:getX(), w:getY(), w:getHeight() } }
         local m = ZeD.T.px(12)
         local h = S.core:getScreenHeight() - 2 * m
         S.lock = nil
@@ -250,11 +250,11 @@ function S.tall(on)
         S.place()
         return
     end
-    local s = S.was.size
+    local s = S.was.tallWas
     if not s then return end
     c:setHeight(s.c[3]); pcall(function() c:onResize() end); c:setX(s.c[1]); c:setY(s.c[2])
     w:setHeight(s.w[3]); pcall(function() w:onResize() end); w:setX(s.w[1]); w:setY(s.w[2])
-    S.lock, S.was.size = nil, nil
+    S.lock, S.was.tallWas = nil, nil
 end
 -- one source per window (GAL_ONE_SOURCE's hero): every extra column off
 function S.oneSource()
@@ -298,20 +298,32 @@ function S.select(win, item)
     return true
 end
 -- the Character list's apple stack opened (or shut): its header row and each apple on its own row
+-- (an open stack leaves cnt._stacks for cnt._openHeads, InventoryRenderer's model; both are read; the biggest wins)
 function S.openStack(ft, on)
     local cnt = S.CW() and S.CW()._mainContent
-    if not (cnt and cnt._stacks) then return nil end
-    for item, stk in pairs(cnt._stacks) do
-        local ok, full = pcall(function() return item:getFullType() end)
-        if ok and full == ft and stk.count and stk.count > 1 then
-            cnt._expandedStacks = cnt._expandedStacks or {}
-            cnt._expandedStacks[stk.key] = on or nil
-            for _, cs in ipairs(cnt._colStates or {}) do
-                cs.expandedStacks = cs.expandedStacks or cnt._expandedStacks
-                cs.expandedStacks[stk.key] = on or nil
-            end
-            return stk.count
-        end
+    if not cnt then return nil end
+    local best
+    local function look(stk)
+        local ok, full = pcall(function() return stk.rep:getFullType() end)
+        if ok and full == ft and stk.count and stk.count > 1 and (not best or stk.count > best.count) then best = stk end
+    end
+    for _, stk in pairs(cnt._stacks or {}) do look(stk) end
+    for _, stk in ipairs(cnt._openHeads or {}) do look(stk) end
+    if not best then return nil end
+    cnt._expandedStacks = cnt._expandedStacks or {}
+    cnt._expandedStacks[best.key] = on or nil
+    for _, cs in ipairs(cnt._colStates or {}) do
+        cs.expandedStacks = cs.expandedStacks or cnt._expandedStacks
+        cs.expandedStacks[best.key] = on or nil
+    end
+    return best.count
+end
+-- is that stack drawn open now (its header row in the list)
+function S.stackShown(ft)
+    local cnt = S.CW() and S.CW()._mainContent
+    for _, stk in ipairs(cnt and cnt._openHeads or {}) do
+        local ok, full = pcall(function() return stk.rep:getFullType() end)
+        if ok and full == ft then return stk.count end
     end
     return nil
 end
@@ -358,22 +370,23 @@ end
 function S.lotHero()
     S.step(5, function()
         S.sort(S.CW(), "cat", true); S.sort(S.WW(), "name", true)
-        local n = 0
-        local items = S.p:getInventory():getItems()
-        for i = 0, items:size() - 1 do if items:get(i):getFullType() == "Base.Apple" then n = n + 1 end end
-        if n < 3 then for _ = n + 1, 3 do S.give("Base.Apple") end end
-        S.say("apples in the inventory: " .. math.max(n, 3))
+        -- three new apples (0.2 kg each): fresh alike, so they make one stack of three or more with any fresh ones
+        for _ = 1, 3 do S.give("Base.Apple") end
+        S.weightNote("apples given")
         pcall(GAL.faceFront)
     end)
     S.step(60, function()
         local n = S.openStack("Base.Apple", true)
-        S.say("the apple stack open: " .. tostring(n))
+        S.say("the apple stack opened: " .. tostring(n))
         S.place()
     end)
-    S.step(40, function() S.place() end)
+    S.waitFor(10, 300, function() return S.stackShown("Base.Apple") ~= nil end, function() S.place() end)
+    S.step(20, function() S.place() end)
     S.still(5, function()
         S.weightNote("zed_01_hero_mid")
-        if S.openStack("Base.Apple", true) then S.shot("zed_01_hero_mid") else S.notTaken("zed_01_hero_mid", "no stack of two or more apples in the list") end
+        local n = S.stackShown("Base.Apple")
+        if n and n >= 3 then S.say("open stack: Apple (" .. n .. ")"); S.shot("zed_01_hero_mid")
+        else S.notTaken("zed_01_hero_mid", "no open apple stack of three in the list (" .. tostring(n) .. ")") end
     end)
     S.step(2, function() S.openStack("Base.Apple", false) end)
 end
@@ -839,13 +852,18 @@ function S.homeEnd()
 end
 
 -- ===================================================================== run
+-- GB19A_ONLY = { hero = true } (set before this script, e.g. "GB19A_ONLY = { hero = true }" in a one-line setter run
+-- ahead of it) takes only those lot sections: grid, hero, cards, menus, hud. Cleared at the end.
+S.only = GB19A_ONLY
+GB19A_ONLY = nil
+function S.want(k) return (not S.only) or S.only[k] == true end
 if S.lot then
     S.lotStart()
-    S.lotGrid()
-    S.lotHero()
-    S.lotCards()
-    S.lotMenus()
-    S.lotHud()
+    if S.want("grid") then S.lotGrid() end
+    if S.want("hero") then S.lotHero() end
+    if S.want("cards") then S.lotCards() end
+    if S.want("menus") then S.lotMenus() end
+    if S.want("hud") then S.lotHud() end
     S.lotEnd()
 else
     if not (ZeD.FacePop and ZeD.TwoWayFull and ZeD.Stations and ZeD.StationAppliance) then
