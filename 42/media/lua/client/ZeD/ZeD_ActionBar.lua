@@ -798,6 +798,21 @@ local function drawBar(self, st, L, k, cv)
     end
 end
 
+-- Everything over the head in the light palette (render runs it inside ZeD.Balloon.inLight): the bar, the speech, the
+-- notes. The shared colors are synced from the palette first (drawBar does it when there is a bar).
+local function drawOverhead(self, st, sp, L, k, cv)
+    local LT = ZeD.T
+    if st then
+        drawBar(self, st, L, k, cv)
+    else
+        ZeD.colorSync(AB._dim, LT.text, (LT.text.a or 1) * 0.55)
+        ZeD.colorSync(AB._legend, LT.text, (LT.text.a or 1) * 0.70)
+        ZeD.Bubbles.syncColours(LT)
+    end
+    if sp then ZeD.Bubbles.drawSpeech(cv, LT, L, self._drawSpA) end
+    if self._drawNotes then ZeD.Bubbles.drawNotes(cv, LT, L) end
+end
+
 function ZeD_ActionBarLayer:render()
     local st, sp = self._drawSt, self._drawSp
     if not st and not sp and not self._drawNotes then return end
@@ -805,16 +820,14 @@ function ZeD_ActionBarLayer:render()
     local L, k = self._lay, self._k
     local cv = P.canvas(self, L.ox, L.oy, k)
     self._zedAlpha = 1
-    if st then
-        local Bl = ZeD.Balloon
-        if Bl and Bl.inLight then Bl.inLight(drawBar, self, st, L, k, cv) else drawBar(self, st, L, k, cv) end
-        -- (the speech and the notes below keep the theme: its colors back in the shared places)
-        ZeD.colorSync(AB._dim, T.text, (T.text.a or 1) * 0.55)
-        ZeD.colorSync(AB._legend, T.text, (T.text.a or 1) * 0.70)
-        ZeD.Bubbles.syncColours(T)
-    end
-    if sp then ZeD.Bubbles.drawSpeech(cv, T, L, self._drawSpA) end
-    if self._drawNotes then ZeD.Bubbles.drawNotes(cv, T, L) end
+    -- (the director, the same day: "any tooltips, any bubbles ... need to be light": the speech and the overhead
+    -- notes, the speed and pause bubble among them, draw in the light palette too, after the bar)
+    local Bl = ZeD.Balloon
+    if Bl and Bl.inLight then Bl.inLight(drawOverhead, self, st, sp, L, k, cv) else drawOverhead(self, st, sp, L, k, cv) end
+    -- (the theme's own colors back in the shared places for whatever draws from them next)
+    ZeD.colorSync(AB._dim, T.text, (T.text.a or 1) * 0.55)
+    ZeD.colorSync(AB._legend, T.text, (T.text.a or 1) * 0.70)
+    ZeD.Bubbles.syncColours(T)
     self._zedAlpha = 1
 end
 

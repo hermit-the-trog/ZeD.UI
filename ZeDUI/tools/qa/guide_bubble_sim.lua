@@ -403,8 +403,10 @@ do
     check("LIGHT: the moodle's thought bubble draws inside the light palette",
         md:find("if Bl and Bl.inLight then return Bl.inLight(self._drawChipRaw, self, m, idx, on, ox, oy) end", 1, true) ~= nil)
     local ab = slurp(ROOT .. "42/media/lua/client/ZeD/ZeD_ActionBar.lua")
-    check("LIGHT: the action bar, Simple and Detailed, draws inside the light palette",
-        ab:find("if Bl and Bl.inLight then Bl.inLight(drawBar, self, st, L, k, cv) else drawBar(self, st, L, k, cv) end", 1, true) ~= nil)
+    check("LIGHT: everything over the head (the bar, Simple and Detailed; the speech; the notes) draws inside the light palette",
+        ab:find("if Bl and Bl.inLight then Bl.inLight(drawOverhead, self, st, sp, L, k, cv) else drawOverhead(self, st, sp, L, k, cv) end", 1, true) ~= nil
+        and ab:find("if sp then ZeD.Bubbles.drawSpeech(cv, LT, L, self._drawSpA) end", 1, true) ~= nil
+        and ab:find("if self._drawNotes then ZeD.Bubbles.drawNotes(cv, LT, L) end", 1, true) ~= nil)
     check("LIGHT: the shared colors are synced from the palette before the bar draws, and from the theme after",
         ab:find("ZeD.Bubbles.syncColours(T)\n    if L.bar == \"simple\" then", 1, true) ~= nil or ab:find("ZeD.Bubbles.syncColours(T)\r\n    if L.bar == \"simple\" then", 1, true) ~= nil)
 end
