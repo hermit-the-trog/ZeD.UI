@@ -1,0 +1,19 @@
+# ZeDUI/tools/qa/gallery_b19_a3.txt  (Nov 17 2026, QA): the beta 19 gallery, a rerun of the first half's QA-home shots with
+# the load under 20 kg (gallery_unload.lua: 15 to 17 kg, the load logged once a second, the pointer parked and hidden;
+# gallery_reload.lua puts it all back). gallery_b19_a.lua takes the QA home (tag gb19ah) because no mall-lot staging (GAL)
+# runs here. Shots: g14_ldy_combo/dryer/washer, g14_radio_black/cd/handbuilt/red, g19_radio_popout, g19_tv_tab,
+# zqa_ap_1_tab_stove, zqa_ap_2b_popout_stove_on, zqa_ap_4_popout_microwave, zqa_b19_speed_bubble, zqa_tw_1b_valutech_tab,
+# zqa_tw_3a_valutech_full_view, zqa_tw_5_ham_civilian_tab.
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest gallery_b19_a3.txt -Report gallery_b19_a3   (QA only)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_unload.lua | unl | timeout=60
+gallery_b19_a.lua | gb19ah | timeout=900
+gallery_t14_radios.lua | g14r | timeout=300
+zedqa_twoway.lua | tw | timeout=900
+gallery_reload.lua | rel | timeout=60
+gallery_t14_end.lua | g14e | timeout=60
