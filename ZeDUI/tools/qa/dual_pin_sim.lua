@@ -751,6 +751,25 @@ do
     check("PADUP: Up from the top bag: the inventory's pin, lined up", b and b.id == "halfpin:inv" and tb == 0, b and b.id)
     local d = els[1] and N.pick(els[1], { topTab, topBag }, "down")
     check("PADUP: Down from the drawer's pin: the top tab", d == topTab)
+    -- (Nov 16 2026, QA's beta 19 pass on 214: Up from the inventory column's heading, its Filter button in the middle
+    -- of the window, lined up with no stop; the window box was out of the D-pad's reach)
+    local filterBtn = { x = math.floor(w:getWidth() * 0.6), y = 40, w = 20, h = 20 }
+    local f1 = N.pick(filterBtn, els, "up")
+    check("PADUP: Up from the column heading's Filter: a title-bar stop", f1 ~= nil, f1 and f1.id)
+    -- Right walks the bar in order (H.barStep, the stops' own Left / Right: the box sits inside the bag pin's stop)
+    local cur, seen = f1, 0
+    while cur and cur.id ~= "windowbox" and seen < 5 do
+        if not (cur.onDpadDir and cur.onDpadDir(w, cur, "right")) then cur = nil; break end
+        cur = zone.elements[zone.focusedElementIdx]
+        seen = seen + 1
+    end
+    check("PADUP: then Right walks along the bar to the window box", cur ~= nil and cur.id == "windowbox", cur and cur.id)
+    check("PADUP: Right at the box: handed on (to the other window)", cur and cur.onDpadDir(w, cur, "right") == false)
+    check("PADUP: Left from the box: back to the bag's pin", cur and cur.onDpadDir(w, cur, "left") == true and zone.elements[zone.focusedElementIdx].id == "halfpin:inv")
+    check("PADUP: Up / Down are the usual pick", cur and cur.onDpadDir(w, cur, "down") == false)
+    local stopsOk = true
+    for i = 2, #els do if els[i].x < els[i - 1].x then stopsOk = false end end
+    check("PADUP: the bar's stops stay in order left to right", stopsOk)
     ZeD.T.closeBoxSz = keepBox
 end
 

@@ -258,6 +258,33 @@ local function pinElement(half, x, y, w, h, box)
     }
 end
 
+--- Left / Right on a title-bar stop (its onDpadDir): the next stop along the bar, in order. (Nov 16 2026, QA's
+--- beta 19 pass on 214: the window box sits inside the bag pin's stop, which is as wide as the bag strip, so the
+--- D-pad's geometry found nothing to the pin's right.) At either end of the bar, or Up / Down, it hands the move to
+--- the usual pick (false): off the side to the other window, down into the window.
+function H.barStep(w, el, dir)
+    if dir ~= "left" and dir ~= "right" then return false end
+    local name = w._halves and w._halves.zone
+    for zi, z in ipairs(w._focusRing or {}) do
+        if z.zone == name then
+            local els = z.elements or {}
+            for j = 1, #els do
+                if els[j] == el then
+                    local k = j + ((dir == "right") and 1 or -1)
+                    local t = els[k]
+                    if not (t and t.onDpadDir == H.barStep) then return false end   -- (the end, or the rod's pin)
+                    w._focusIdx = zi
+                    z.focusedElementIdx = k
+                    if t.onFocus then t.onFocus(w, t) end
+                    pcall(function() ZeD.uiSound("UISelectListItem") end)
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
 --- The pins as controller stops, window-local, left to right (the rod's pin
 --- where the rod is). A pin on the bar is a stop as wide as the strip under it
 --- (the tab strip under the drawer's, the bag strip under the inventory's): the
@@ -289,6 +316,7 @@ function H.padElements(win)
     if box then
         out[#out + 1] = {
             x = box.x, y = box.y, w = box.w, h = box.h, id = "windowbox",
+            tipRect = { x = box.x, y = box.y, w = box.w, h = box.h },   -- (the balloon points at the box itself)
             tip = ZeD.tr("UI_ZeD_WinMenu_Help"), tipSide = "below",   -- (punch list 230: the pointer's help words)
             promptA = function() return ZeD.tr("UI_ZeD_Prompt_Menu") end,
             onFocus = function() end,
@@ -296,6 +324,30 @@ function H.padElements(win)
         }
     end
     table.sort(out, function(a, b) return a.x < b.x end)
+    -- (Nov 16 2026, QA's beta 19 pass on 214: Up from the inventory column's heading, its Filter button, lined up with
+    -- no title-bar stop, so the window box was out of the D-pad's reach. The stops on the bar now share its whole
+    -- width: a gap between two stops goes to the stop on its LEFT (the first stop also reaches the window's left
+    -- edge, and a gap after the last stop goes to it). A stop is never made narrower, and the pins at the bar's right
+    -- end keep their own width, so Up from the top tab and the top bag still land on their pins (a pin stretched over
+    -- the bar would lose to the box on the D-pad's distance test). Up from anywhere at the window's top lands on the
+    -- bar, and Right walks to the box. The marks still draw on the pins' and the box's own squares; the rod's pin,
+    -- outside the window, is left as it is.)
+    local ww = win:getWidth()
+    local inside = {}
+    for _, el in ipairs(out) do
+        if el.x >= 0 and el.x < ww then
+            inside[#inside + 1] = el
+            el.onDpadDir = H.barStep   -- (Left / Right walk the bar in order: the box sits inside the bag pin's stop)
+        end
+    end
+    for i, el in ipairs(inside) do
+        if i == 1 and el.x > 0 then el.w, el.x = el.w + el.x, 0 end
+        local nextX = (i < #inside) and inside[i + 1].x or ww
+        local reach = 0
+        for j = 1, i - 1 do reach = math.max(reach, inside[j].x + inside[j].w) end
+        -- (the gap to the next stop, or to the window's edge when nothing before already reaches it)
+        if el.x + el.w < nextX and (i < #inside or reach < ww) then el.w = nextX - el.x end
+    end
     return out
 end
 
