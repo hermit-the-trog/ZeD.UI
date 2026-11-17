@@ -29,8 +29,9 @@ Nothing in the repo was changed to make this. Everything is in `ZeDUI/workshop/g
 2. **The plain-place pictures: retake all of them** somewhere lived-in, not only Parts 2 and 3. QA has the list (the
    chapters marked "re-crop" with a QA test-place backdrop: 30 by Build's count of storyboard_v1.json).
 4. **The title spread: cover, title, contents** (79 pictures).
-5. **Window settings stay last**, in "Your way", as storyboarded. (This morning's plan had them right after the
-   inventory; the director chose the storyboard's place.)
+5. **Window settings stay last**, in "Your way", as storyboarded. The storyboard's order comes from the research on
+   how players progress through the UI. It supersedes the morning plan's "right after the inventory", which came before
+   that research.
 
 ## Still open (do not build on this until the director answers)
 
