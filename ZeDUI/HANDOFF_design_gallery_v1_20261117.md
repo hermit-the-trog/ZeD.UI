@@ -22,17 +22,20 @@ Nothing in the repo was changed to make this. Everything is in `ZeDUI/workshop/g
 - From the morning plan, still standing: Angel's story is told only in the figure captions; all other printed text is
   dry; a contents spread after the title.
 
-## Still open (do not build on these until the director answers)
+## Answered (the director, Nov 17 2026, to Build)
 
-1. **Pitch before the menus.** The morning plan said menu chapters first. The storyboard puts five pitch pictures ahead
-   of the cover and makes the menus Part 1. The director approved the storyboard as a whole but has not said this in
-   words.
-2. **The 31 plain-place pictures.** Wide crops will show QA's parking lot, test field and sand roof. Design's
-   recommendation: retake the ones in Parts 2 and 3 somewhere lived-in, re-crop the rest. Unanswered.
+1. **Pitch before the menus: yes.** Five pitch pictures ahead of the cover, then cover, title, contents, then Part 1
+   with the menu chapters.
+2. **The plain-place pictures: retake all of them** somewhere lived-in, not only Parts 2 and 3. QA has the list (the
+   chapters marked "re-crop" with a QA test-place backdrop: 30 by Build's count of storyboard_v1.json).
+4. **The title spread: cover, title, contents** (79 pictures).
+5. **Window settings stay last**, in "Your way", as storyboarded. (This morning's plan had them right after the
+   inventory; the director chose the storyboard's place.)
+
+## Still open (do not build on this until the director answers)
+
 3. **The fact page (pitch picture 5).** Build range, single player and multiplayer, adding to and removing from a save,
    conflicts with other UI mods, languages: the director supplies these. Do not write them from memory.
-4. **The title spread.** The storyboard left out `00c_title` by mistake. Design's intent is cover, title, contents (79
-   pictures, not 78). Confirm with the director.
 
 ## What is in `v1_plan/`
 
@@ -140,8 +143,9 @@ director's answer (open item 2); they are listed on the storyboard under that fi
 ## Not in this handoff
 
 - The dry text rewrite, the Angel captions and the note cuts: Design, next, reviewed by the director in one document.
-- Step 0 of the morning plan, the action bar commit: `42/media/lua/client/ZeD/ZeD_ActionBar.lua` is still modified and
-  uncommitted. Design did not run the 160 sims or the Kahlua guard and did not commit it.
+- Step 0 of the morning plan, the action bar: done by Build, a8753ff12 and QA's four fixes in c3cd0421d (sims clean).
+- Build's part of this handoff (Nov 17): reorder.py checked (now writes LF), spread.py's "full" print, caption-cover
+  CHECK and the --v1 checks, contents_spread.py: ade8ae707.
 - The Workshop upload: only on the director's go; the director uploads by hand.
 
 ## Check before calling it done
