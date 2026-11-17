@@ -17,7 +17,7 @@
     ]
    },
    {
-    "p": "An item card sets out what one item is and what can be done with it. To open the card for an item, click the item in an inventory list. The card opens in the drawer at the left of the window, on top of the panel that was there, and stays open until you click its close box or the action you started from it is done."
+    "p": "An item card sets out what one item is and what can be done with it. To open the card for an item, click the item in an inventory list. The card opens in the window's drawer, on top of the panel that was there, and stays open until you click its close box or the action you started from it is done."
    },
    {
     "p": "Cards are not only for items. A card also opens for a generator, a campfire, a farm plot, a trough, a padlock or a liquid."
@@ -40,7 +40,7 @@
      "rows": [
       [
        "Top row",
-       "The close box, the item's main action (*Eat* for food, *Equip* for a weapon) and *More*."
+       "The close box; *Grab* for a thing in a container or on the ground; the item's main action (*Eat* for food, *Equip* for a weapon); and *More*."
       ],
       [
        "Marks",
@@ -94,16 +94,16 @@
     ]
    },
    {
-    "p": "To use an item from its card, click the main action in the top row. *More* lists the item's other actions. To close the card, click its close box; the panel it covered returns."
+    "p": "To use an item from its card, click the main action in the top row. *Grab* takes it into your inventory and *More* lists its other actions. To close the card, click its close box; the panel it covered returns."
    }
   ],
   "prints": [
    {
     "src": "zed_18_card_food.png",
     "box": [
-     751,
+     2640,
      21,
-     1199,
+     3088,
      930
     ],
     "scale": 0.6,
@@ -119,9 +119,9 @@
    {
     "src": "zed_19_card_weapon.png",
     "box": [
-     751,
+     2640,
      21,
-     1199,
+     3088,
      930
     ],
     "scale": 0.6,
@@ -137,7 +137,7 @@
   ],
   "marks": [
    {
-    "text": "The X closes the card. Top row: the main action (Eat, Equip) and More.",
+    "text": "The X closes the card. Top row: Grab, the main action (Eat, Equip) and More.",
     "pen": "blu",
     "at": [
      1676,
@@ -146,8 +146,8 @@
     "maxw": 184,
     "to": [
      1,
-     1185,
-     93
+     2896,
+     98
     ]
    },
    {
@@ -160,8 +160,8 @@
     "maxw": 184,
     "to": [
      1,
-     1062,
-     211
+     2744,
+     224
     ]
    },
    {
@@ -174,8 +174,8 @@
     "maxw": 184,
     "to": [
      1,
-     1180,
-     347
+     2940,
+     668
     ]
    },
    {
@@ -188,18 +188,18 @@
     "maxw": 184,
     "to": [
      1,
-     1185,
-     500
+     2720,
+     420
     ]
    },
    {
     "circle": {
      "print": 0,
      "box": [
-      837,
-      505,
-      1031,
-      540
+      2660,
+      372,
+      2880,
+      404
      ]
     },
     "pen": "grn"

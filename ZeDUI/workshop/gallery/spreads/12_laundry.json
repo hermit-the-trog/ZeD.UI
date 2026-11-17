@@ -17,7 +17,7 @@
     ]
    },
    {
-    "p": "The washer, the dryer and the washer-dryer each have a face of their own in the machine's card. The game's own actions run them."
+    "p": "The washer, the dryer and the washer-dryer each pop out beside you as the machine itself. The game's own actions run them."
    },
    {
     "at": 730
@@ -36,12 +36,12 @@
    {
     "src": "g14_ldy_combo.png",
     "box": [
-     2770,
-     112,
-     3312,
-     692
+     1316,
+     740,
+     1852,
+     1404
     ],
-    "scale": 0.6,
+    "scale": 0.5,
     "at": [
      330,
      330
@@ -63,18 +63,18 @@
     "maxw": 184,
     "to": [
      0,
-     2812,
-     188
+     1350,
+     814
     ]
    },
    {
     "circle": {
      "print": 0,
      "box": [
-      2806,
-      174,
-      2955,
-      202
+      1334,
+      802,
+      1470,
+      828
      ]
     },
     "pen": "grn"
@@ -90,8 +90,8 @@
     "bend": -0.04,
     "to": [
      0,
-     3140,
-     220
+     1640,
+     836
     ]
    }
   ],
@@ -129,12 +129,12 @@
    {
     "src": "g14_ldy_washer.png",
     "box": [
-     2770,
-     112,
-     3312,
-     692
+     1984,
+     740,
+     2524,
+     1404
     ],
-    "scale": 0.5,
+    "scale": 0.42,
     "at": [
      1036,
      300
@@ -147,12 +147,12 @@
    {
     "src": "g14_ldy_dryer.png",
     "box": [
-     2770,
-     112,
-     3312,
-     692
+     1984,
+     748,
+     2524,
+     1412
     ],
-    "scale": 0.5,
+    "scale": 0.42,
     "at": [
      1240,
      620
@@ -174,18 +174,18 @@
     "maxw": 180,
     "to": [
      1,
-     3150,
-     430
+     2120,
+     840
     ]
    },
    {
     "circle": {
      "print": 1,
      "box": [
-      2808,
-      204,
-      3002,
-      230
+      2060,
+      828,
+      2200,
+      852
      ]
     },
     "pen": "grn"
@@ -200,8 +200,8 @@
     "maxw": 184,
     "to": [
      2,
-     3270,
-     175
+     2474,
+     790
     ]
    },
    {
@@ -214,8 +214,8 @@
     "maxw": 180,
     "to": [
      2,
-     3000,
-     480
+     2250,
+     1080
     ]
    }
   ],

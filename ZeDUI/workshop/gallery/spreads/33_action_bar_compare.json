@@ -77,19 +77,37 @@
     "p": "In the verbose bar the action and the item are written out over the character, and a framed strip under them fills as the action runs."
    },
    {
-    "at": 838
+    "at": 690
    },
    {
     "caption": [
      "Figure 33-2",
-     "The verbose bar while reading a book."
+     "The verbose bar while resting, left, and while reading a book, right."
     ]
    },
    {
-    "p": "A long name is shortened, as the book's title is here."
+    "p": "A long name is shortened, as the book's title is here. An action with no end, such as resting, shows its icon and the time so far instead of a strip."
    }
   ],
   "prints": [
+   {
+    "src": "zed_32b_action_endless.png",
+    "box": [
+     1790,
+     830,
+     2040,
+     1020
+    ],
+    "scale": 1.2,
+    "at": [
+     1040,
+     420
+    ],
+    "tape": [
+     "tl",
+     "t"
+    ]
+   },
    {
     "src": "zed_32_action_bar_reading.png",
     "box": [
@@ -98,28 +116,42 @@
      2040,
      1020
     ],
-    "scale": 2.0,
+    "scale": 1.2,
     "at": [
-     1060,
-     410
+     1360,
+     420
     ],
     "tape": [
-     "tl",
-     "br"
+     "t",
+     "tr"
     ]
    }
   ],
   "marks": [
    {
+    "text": "No end: its icon and the time so far, no strip.",
+    "pen": "blu",
+    "at": [
+     1050,
+     315
+    ],
+    "maxw": 290,
+    "to": [
+     1,
+     1880,
+     880
+    ]
+   },
+   {
     "text": "ZeD: the action and the item in words, over the character.",
     "pen": "blu",
     "at": [
-     1180,
-     300
+     1370,
+     315
     ],
-    "maxw": 340,
+    "maxw": 290,
     "to": [
-     1,
+     2,
      1900,
      868
     ]
@@ -134,7 +166,7 @@
     "maxw": 184,
     "bend": 0,
     "to": [
-     1,
+     2,
      2004,
      898
     ]
