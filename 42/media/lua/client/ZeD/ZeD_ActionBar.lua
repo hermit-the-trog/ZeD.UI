@@ -532,6 +532,13 @@ end
 -- drawing (design units on the canvas; colours from ZeD.T, read fresh every frame)
 -- ---------------------------------------------------------------------------
 local function R(cv, x, y, w, h, c, a) P.rect(cv, x, y, w, h, c, (c.a or 1) * (a or 1)) end
+-- (Nov 17 2026, the director: "Can the status bar background be dark consistently? One consistent dark color.")
+-- The bar's track is one fixed dark in every theme and both styles, the Dark theme's base, with the empty Simple
+-- segments a step lighter; before, the Detailed track took the theme's base (light in the Light theme) and the
+-- Simple bar the light pop-up greys.
+AB.TRACK = { r = 0x1A / 255, g = 0x1A / 255, b = 0x1E / 255, a = 1 }
+AB.TRACK_SEG = { r = 0x33 / 255, g = 0x33 / 255, b = 0x38 / 255, a = 1 }
+AB.TRACK_DIM = { r = 0x8A / 255, g = 0x8A / 255, b = 0x90 / 255, a = 1 }   -- (a stopped or walking action's fill, on the dark track)
 
 -- sizes, so the element can be placed before it draws
 function AB.sizeSimple() return 53, 9 end
@@ -565,16 +572,15 @@ function AB.drawSimple(cv, T, st, a, ms)
         AB.drawIcon(cv, st.icon, math.floor((W - H) / 2), 0, (st.phase == "walk" or st.phase == "stopped") and AB._dim or T.accent, a, H)
         return
     end
-    local S = ZeD.Bubbles.solid   -- (HUD: opaque whatever the See-through setting is)
-    R(cv, 0, 0, W, H, S.base, a); R(cv, 1, 1, W - 2, H - 2, S.surf1, a)
+    R(cv, 0, 0, W, H, T.borderS, a); R(cv, 1, 1, W - 2, H - 2, AB.TRACK, a)
     local function sx(i) return 2 + i * (sw + gap) end
     local function lit(i, c, f)
         R(cv, sx(i), 2, sw, sh, c, a * (f or 1))
         if c == T.accent then R(cv, sx(i), 2, sw, 1, T.accentBright, a * (f or 1)) end
     end
-    for i = 0, n - 1 do R(cv, sx(i), 2, sw, sh, S.surf3, a) end
+    for i = 0, n - 1 do R(cv, sx(i), 2, sw, sh, AB.TRACK_SEG, a) end
     if st.noend and st.phase ~= "stopped" then
-        local c = st.phase == "walk" and AB._dim or T.accent
+        local c = st.phase == "walk" and AB.TRACK_DIM or T.accent
         local ph = (ms / 1200) % 2
         local pos = math.floor((ph < 1 and ph or 2 - ph) * (n - 1) + 0.5)
         lit(pos, c); if pos > 0 then lit(pos - 1, c, 0.35) end; if pos < n - 1 then lit(pos + 1, c, 0.35) end
@@ -582,7 +588,7 @@ function AB.drawSimple(cv, T, st, a, ms)
         for i = 0, n - 1 do lit(i, T.positive) end
     else
         local full = math.floor(overall(st) * n)
-        local c = st.phase == "stopped" and AB._dim or T.accent
+        local c = st.phase == "stopped" and AB.TRACK_DIM or T.accent
         for i = 0, full - 1 do lit(i, c) end
         if st.phase == "work" and full < n then
             lit(full, c, 0.25 + 0.35 * (0.5 + 0.5 * math.sin(ms / 1000 * math.pi * 2 * 0.9)))
@@ -642,22 +648,22 @@ function AB.drawVerboseBody(cv, T, st, a, ms, px, py, bw)
     local bh = AB.BAR_H
     local bx, by = px, py + 18
     local fx, fy, fwid, fh = bx + 1, by + 1, bw - 2, bh - 2      -- inside the frame
-    R(cv, bx, by, bw, bh, ZeD.Bubbles.solid.base, a)
+    R(cv, bx, by, bw, bh, AB.TRACK, a)
     if st.noend and st.phase ~= "stopped" then
         local seg = 12
         local span = fwid + seg
         local p = ((ms / 1000 * 26) % span) - seg
         local x0, x1 = math.max(fx, math.floor(fx + p)), math.min(fx + fwid, math.floor(fx + p) + seg)
-        if x1 > x0 then R(cv, x0, fy, x1 - x0, fh, st.phase == "walk" and AB._dim or T.accent, a) end
+        if x1 > x0 then R(cv, x0, fy, x1 - x0, fh, st.phase == "walk" and AB.TRACK_DIM or T.accent, a) end
     else
-        local c = st.phase == "done" and T.positive or (st.phase == "stopped" and AB._dim or T.accent)
+        local c = st.phase == "done" and T.positive or (st.phase == "stopped" and AB.TRACK_DIM or T.accent)
         local f = st.phase == "done" and 1 or overall(st)
         local w = math.floor(fwid * f + 0.5)
         if f > 0 then w = math.max(2, w) end                      -- two units at least, as the strip
         if w > 0 then R(cv, fx, fy, w, fh, c, a) end
     end
     if st.qn > 1 and st.qn <= 24 and fwid / st.qn >= 3 then
-        for i = 1, st.qn - 1 do R(cv, fx + math.floor(fwid * i / st.qn + 0.5), fy, 1, fh, T.borderS, a) end
+        for i = 1, st.qn - 1 do R(cv, fx + math.floor(fwid * i / st.qn + 0.5), fy, 1, fh, AB.TRACK, a) end
     end
     -- the frame, over the fill's ends
     R(cv, bx, by, bw, 1, T.borderS, a); R(cv, bx, by + bh - 1, bw, 1, T.borderS, a)
