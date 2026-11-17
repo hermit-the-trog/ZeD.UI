@@ -1,0 +1,13 @@
+# ZeDUI/tools/qa/gallery_b19_b.txt  (Nov 17 2026, QA): the beta 19 gallery recapture, second half (spreads 35, 38, 39, 40,
+# 42, 45, 47, 48, 53, 54 and six new captures; ZeDUI/workshop/gallery/B19_RECAPTURE.md). Dark, PZ Teal, 4K at 1.75x,
+# fontSize=2 (the runner pins it). gallery_b11_look.lua also switches off the -debug position readout (WaterMarkUI).
+# Main-menu pictures (desk_05_trash_computer, mm4_01/02/03) are not in this run: gallery_b11_menus_run.ps1.
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest gallery_b19_b.txt -Report gallery_b19_b   (QA only)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_b19_b.lua | gb19b | timeout=1200
+gallery_t14_end.lua | g14e | timeout=60
