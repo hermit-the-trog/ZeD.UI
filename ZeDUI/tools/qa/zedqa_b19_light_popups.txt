@@ -1,0 +1,9 @@
+# ZeDUI/tools/qa/zedqa_b19_light_popups.txt  (Nov 17 2026, QA): Build's light pop-ups (e39286ea1, a6b8d41ed) in the
+# running game: the moodle's note and hover balloon, the action bar Simple and Detailed, the notice balloons, in Dark,
+# Light and High contrast. gallery_unload.lua holds the load under 20 kg and hides the pointer; gallery_reload.lua
+# puts the load and the pointer back.
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest zedqa_b19_light_popups.txt -Report b19_light_popups   (QA only)
+zedqa_prelude.lua | pre | timeout=120
+gallery_unload.lua | unl | timeout=60
+zedqa_b19_light_popups.lua | lpp | timeout=1500
+gallery_reload.lua | rel | timeout=60
