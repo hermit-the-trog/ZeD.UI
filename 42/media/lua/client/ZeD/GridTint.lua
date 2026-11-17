@@ -85,9 +85,10 @@ function G.key(name)
 end
 
 --- A tile's fill for tex on the theme T: r, g, b (0 to 1), or nil for the plain fill (the setting off, no
---- texture, or an icon with no main color)
-function G.of(T, tex)
-    if not tex or not G.on() then return nil end
+--- texture, or an icon with no main color). force: tinted whatever the setting says (an add-on's shaped grid,
+--- GridLayout version 2: the director's approved shapes are all tinted, Nov 16 2026)
+function G.of(T, tex, force)
+    if not tex or not (force or G.on()) then return nil end
     local c = G._cache[tex]
     if c == nil then
         local ok, n = pcall(function() return tex:getName() end)

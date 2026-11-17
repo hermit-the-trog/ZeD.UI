@@ -54,6 +54,24 @@
 --   container differs), B cancels. The help line reads D-pad Move, A Turn, X Place (let go), B Cancel.
 -- Every provider call is guarded: an error is logged once and ZeD falls back to its own grid (layout), draws on
 -- (decorate), or treats the drag as 1 x 1 and allowed (dragShape, canPlace).
+--
+-- VERSION 2 (Nov 16 2026, Multi-Slot 0.2's shaped items). Everything above still holds; a version 1 provider is
+-- drawn exactly as before. New:
+--   cell.mask        the cell's squares, written row by row: "XXX/XXX/X../X.." (X a square, any other letter a hole;
+--                    rows split by "/"). Its w and h come from the mask (c.w, c.h are not read then). The squares
+--                    inside its box that are holes are not the cell's: they draw nothing, take no click, and
+--                    another cell may sit in them.
+--   answer.shapes    true: every grid cell draws square by square (a block is a mask with no holes): each square
+--                    filled with the item's tint (GridTint, always on here, whatever the Item-colored tiles setting
+--                    says; a plain tile where an item has none), the lines between its squares one shade darker,
+--                    a dark outline round the whole shape, the game's picture in the FIRST square (the top row's
+--                    leftmost) at one size for every item. A cell with a mask draws so even without it.
+--   answer.scale     the squares' size as a share of ZeD's own (0.4 to 1; Multi-Slot: two thirds).
+--   ctx.avail, ctx.cell, ctx.gap   the px across, ZeD's square and its gap; GL.colsAt(ctx, scale) is how many
+--                    squares of that scale fit across (the provider's cols when nothing else sets them).
+--   provider.dragShape(items, ctx) -> w, h, mask   (mask optional: the dragged shape as it lies now)
+--   provider.canPlace(items, ctx, x, y, w, h, mask) the mask the ghost has, so holes may land over other cells
+--   The ghost and the pad's place mode draw the shape's outline, not its box.
 -- InventoryRenderer calls attach (a column's layout), draw (its cells), modelFolds (its model) and takeDrop (a
 -- release); the windows read the spans (_itemRenderWMap / _itemRenderHMap) for the pad's focus rects, and
 -- padButtons gives the cells their X hold. Kahlua: no next(), no goto, ASCII only, no tables made per frame.
@@ -63,7 +81,7 @@ ZeD = ZeD or {}
 ZeD.GridLayout = ZeD.GridLayout or {}
 local GL = ZeD.GridLayout
 
-GL.VERSION = 1   -- (raise it when the provider's contract changes; add-ons compare against it)
+GL.VERSION = 2   -- (raise it when the provider's contract changes; add-ons compare against it. 2: shaped cells)
 
 -- (hoisted: the closures below capture these names when they are made, so they are declared first)
 local _id, _prov = nil, nil      -- the provider's id and table
@@ -201,20 +219,164 @@ local function takeCell(L, c, listed, used)
     return rep
 end
 
--- the first free spot for a w x h cell in an occupancy table (occ[y * cols + x] = true), row by row; marks it
-local function firstFit(occ, cols, w, h)
+-- ---------------------------------------------------------------------------
+-- SHAPES (version 2): a mask is the table has[dy * w + dx] = true for each square of a w x h box (0-based)
+-- ---------------------------------------------------------------------------
+-- a square of the mask letters: X (or x, #)
+local function isSq(ch) return ch == "X" or ch == "x" or ch == "#" end
+
+--- A mask written row by row ("XXX/X../X..") as w, h, has; its empty rows and columns at the edges are trimmed.
+--- nil for no squares, not a string, or wider or taller than 16.
+function GL.parseMask(s)
+    if type(s) ~= "string" then return nil end
+    -- the rows, split by "/" by hand (no gmatch: Kahlua and empty captures, see the engine notes)
+    local rows, at = {}, 1
+    while true do
+        local j = string.find(s, "/", at, true)
+        if not j then rows[#rows + 1] = string.sub(s, at); break end
+        rows[#rows + 1] = string.sub(s, at, j - 1)
+        at = j + 1
+    end
+    local x0, y0, x1, y1 = 1000, 1000, -1, -1
+    for y = 1, #rows do
+        local r = rows[y]
+        for x = 1, string.len(r) do
+            if isSq(string.sub(r, x, x)) then
+                if x < x0 then x0 = x end
+                if x > x1 then x1 = x end
+                if y < y0 then y0 = y end
+                if y > y1 then y1 = y end
+            end
+        end
+    end
+    if x1 < 0 then return nil end
+    local w, h = x1 - x0 + 1, y1 - y0 + 1
+    if w > 16 or h > 16 then return nil end
+    local has = {}
+    for y = y0, y1 do
+        local r = rows[y]
+        for x = x0, x1 do
+            if isSq(string.sub(r, x, x)) then has[(y - y0) * w + (x - x0)] = true end
+        end
+    end
+    return w, h, has
+end
+
+-- a w x h block as a mask (every square)
+local function fullMask(w, h)
+    local has = {}
+    for i = 0, w * h - 1 do has[i] = true end
+    return has
+end
+
+--- The drawing of a mask, worked out once (at layout time, or once per drag turn), never per frame: px offsets from
+--- the box's top left in flat lists of x, y, w, h. cell, gap: the squares' px; t: the outline's thickness.
+---   fill   the squares             gaps   the gaps between two squares of the shape (and a corner where 3 meet)
+---   edges  the outline: t px inside each side of the shape that has nothing beyond it
+---   hits   fill and gaps together (the cell's click zones)
+---   fx, fy the first square (top row, leftmost: the picture's); ix, iy the last (bottom row, rightmost: the
+---          condition strip and the count); wx, wy, wroom the weight's square (the top row's run's last square
+---          when the run is two or more, else the last square) and the px the weight may take
+function GL.geom(has, w, h, cell, gap, t)
+    local step = cell + gap
+    local function sq(dx, dy)
+        if dx < 0 or dy < 0 or dx >= w or dy >= h then return false end
+        return has[dy * w + dx] == true
+    end
+    -- the fine blocks: even i / j a square's column / row, odd a gap's
+    local function F(i, j)
+        if i < 0 or j < 0 or i > 2 * w - 2 or j > 2 * h - 2 then return false end
+        local dx, dy = math.floor(i / 2), math.floor(j / 2)
+        local oi, oj = i - dx * 2, j - dy * 2
+        if oi == 0 and oj == 0 then return sq(dx, dy) end
+        if oi == 1 and oj == 0 then return sq(dx, dy) and sq(dx + 1, dy) end
+        if oi == 0 and oj == 1 then return sq(dx, dy) and sq(dx, dy + 1) end
+        local n = (sq(dx, dy) and 1 or 0) + (sq(dx + 1, dy) and 1 or 0) + (sq(dx, dy + 1) and 1 or 0) + (sq(dx + 1, dy + 1) and 1 or 0)
+        return n >= 3
+    end
+    local function bpos(i)
+        local d = math.floor(i / 2)
+        if i - d * 2 == 0 then return d * step, cell end
+        return d * step + cell, gap
+    end
+    local g = { fill = {}, gaps = {}, edges = {}, hits = {}, n = 0, bw = w * cell + (w - 1) * gap, bh = h * cell + (h - 1) * gap, cell = cell }
+    local function put(list, x, y, bw, bh)
+        if bw <= 0 or bh <= 0 then return end
+        list[#list + 1] = x; list[#list + 1] = y; list[#list + 1] = bw; list[#list + 1] = bh
+    end
+    for j = 0, 2 * h - 2 do
+        for i = 0, 2 * w - 2 do
+            if F(i, j) then
+                local bx, bw = bpos(i)
+                local by, bh = bpos(j)
+                local isSquare = (i - math.floor(i / 2) * 2 == 0) and (j - math.floor(j / 2) * 2 == 0)
+                if isSquare then put(g.fill, bx, by, bw, bh); g.n = g.n + 1 else put(g.gaps, bx, by, bw, bh) end
+                put(g.hits, bx, by, bw, bh)
+                if bw > 0 and bh > 0 then
+                    -- a side with nothing beyond it: the outline, run on t into a block beside it along the side
+                    -- (so a concave corner closes)
+                    local xl = bx - (F(i - 1, j) and t or 0)
+                    local xr = bx + bw + (F(i + 1, j) and t or 0)
+                    local yt = by - (F(i, j - 1) and t or 0)
+                    local yb = by + bh + (F(i, j + 1) and t or 0)
+                    if not F(i, j - 1) then put(g.edges, xl, by, xr - xl, t) end
+                    if not F(i, j + 1) then put(g.edges, xl, by + bh - t, xr - xl, t) end
+                    if not F(i - 1, j) then put(g.edges, bx, yt, t, yb - yt) end
+                    if not F(i + 1, j) then put(g.edges, bx + bw - t, yt, t, yb - yt) end
+                end
+            end
+        end
+    end
+    -- the first square (top row, leftmost), its row's run, and the last square (bottom row, rightmost)
+    local fx, fy, lx, ly = nil, nil, 0, 0
+    for dy = 0, h - 1 do
+        for dx = 0, w - 1 do
+            if sq(dx, dy) then
+                if fx == nil then fx, fy = dx, dy end
+                lx, ly = dx, dy
+            end
+        end
+    end
+    fx, fy = fx or 0, fy or 0
+    local run = 0
+    while sq(fx + run, fy) do run = run + 1 end
+    g.fx, g.fy, g.ix, g.iy = fx * step, fy * step, lx * step, ly * step
+    if run >= 2 then
+        g.wx, g.wy, g.wroom = (fx + run - 1) * step, fy * step, (run - 1) * step
+    else
+        g.wx, g.wy, g.wroom = g.ix, g.iy, cell
+    end
+    return g
+end
+
+-- may a mask (has, or every square when nil) of w x h sit with its top left on x, y of occ (cols across)
+local function fits(occ, cols, x, y, w, h, has)
+    if x < 0 or x + w > cols then return false end
+    for dy = 0, h - 1 do
+        for dx = 0, w - 1 do
+            if (has == nil or has[dy * w + dx]) and occ[(y + dy) * cols + x + dx] then return false end
+        end
+    end
+    return true
+end
+
+-- marks a placed cell's squares taken (has: its mask; nil: every square of its box)
+local function mark(occ, cols, x, y, w, h, has)
+    for dy = 0, h - 1 do
+        for dx = 0, w - 1 do
+            if has == nil or has[dy * w + dx] then occ[(y + dy) * cols + x + dx] = true end
+        end
+    end
+end
+
+-- the first free spot for a w x h cell (mask has, nil a block) in an occupancy table (occ[y * cols + x] = true),
+-- row by row; marks it
+local function firstFit(occ, cols, w, h, has)
     local y = 0
     while true do
         for x = 0, cols - w do
-            local free = true
-            for dy = 0, h - 1 do
-                for dx = 0, w - 1 do
-                    if occ[(y + dy) * cols + x + dx] then free = false; break end
-                end
-                if not free then break end
-            end
-            if free then
-                for dy = 0, h - 1 do for dx = 0, w - 1 do occ[(y + dy) * cols + x + dx] = true end end
+            if fits(occ, cols, x, y, w, h, has) then
+                mark(occ, cols, x, y, w, h, has)
                 return x, y
             end
         end
@@ -222,9 +384,11 @@ local function firstFit(occ, cols, w, h)
     end
 end
 
--- marks a placed cell's squares taken
-local function mark(occ, cols, x, y, w, h)
-    for dy = 0, h - 1 do for dx = 0, w - 1 do occ[(y + dy) * cols + x + dx] = true end end
+--- How many squares of scale (a share of ZeD's own square) fit across a layout's ctx.
+function GL.colsAt(ctx, scale)
+    local gap = tonumber(ctx and ctx.gap) or 0
+    local cell = math.max(4, math.floor((tonumber(ctx and ctx.cell) or 32) * (tonumber(scale) or 1)))
+    return math.max(1, math.floor(((tonumber(ctx and ctx.avail) or cell) + gap) / (cell + gap)))
 end
 
 -- Squares into px: each cell's spot relative to the grid's left edge and the layout's top (px, py), its size (wmap,
@@ -252,18 +416,22 @@ local function placeGrid(L, reps, given, fixedRows)
     local cols, occ, later = L.cols, {}, {}
     for _, rep in ipairs(reps) do
         local w = math.min(L.sqw[rep], cols)
+        if w ~= L.sqw[rep] and L.has[rep] then
+            -- (a shape wider than the grid: drawn as its box cut to the grid, every square, so it never breaks)
+            L.has[rep], L.geo[rep] = nil, nil
+        end
         L.sqw[rep] = w
         local g = given and given[rep]
         if g then
             local x = math.max(0, math.min(g.x, cols - w))
             L.sqx[rep], L.sqy[rep] = x, g.y
-            mark(occ, cols, x, g.y, w, L.sqh[rep])
+            mark(occ, cols, x, g.y, w, L.sqh[rep], L.has[rep])
         else
             later[#later + 1] = rep
         end
     end
     for _, rep in ipairs(later) do
-        L.sqx[rep], L.sqy[rep] = firstFit(occ, cols, L.sqw[rep], L.sqh[rep])
+        L.sqx[rep], L.sqy[rep] = firstFit(occ, cols, L.sqw[rep], L.sqh[rep], L.has[rep])
     end
     local rows = fixedRows or 0
     for _, rep in ipairs(reps) do
@@ -290,14 +458,23 @@ end
 -- row's height; avail: the px across for squares. Everything here is made once per layout, never per frame.
 local function shape(res, ctx, M, GV, useGroups, collapsed, hh, avail)
     local L = { ctx = ctx, list = {}, stacks = {}, kind = {}, sqx = {}, sqy = {}, sqw = {}, sqh = {},
-                px = {}, py = {}, wmap = {}, hmap = {}, empties = {}, heads = {} }
+                px = {}, py = {}, wmap = {}, hmap = {}, empties = {}, heads = {}, has = {}, geo = {} }
     L.gap = GV.gap
     L.cols = whole(res.cols, 1) or ctx.cols
     L.cell = GV.cell
-    if L.cols > ctx.cols then
-        -- (wider than the column: the squares shrink to fit, never a sideways scroll)
-        L.cell = math.max(4, math.floor((avail + L.gap) / L.cols) - L.gap)
+    -- (version 2: the provider's squares may be smaller than ZeD's own)
+    local scale = tonumber(res.scale)
+    if scale then
+        scale = math.max(0.4, math.min(1, scale))
+        L.cell = math.max(4, math.floor(GV.cell * scale))
     end
+    if L.cols > ctx.cols or L.cols * (L.cell + L.gap) - L.gap > avail then
+        -- (wider than the column: the squares shrink to fit, never a sideways scroll)
+        L.cell = math.max(4, math.min(L.cell, math.floor((avail + L.gap) / L.cols) - L.gap))
+    end
+    L.shapes = res.shapes == true
+    -- the picture in a shape's first square: ZeD's own picture size, less where the square is small
+    L.isz = math.min(math.floor(GV.cell * 32 / 52), math.floor(L.cell * 0.8))
     L.flat = (res.flat == true) or not useGroups
     L.fixedRows = whole(res.rows, 1)
     L.headLine = res.headLine ~= nil and tostring(res.headLine) or nil
@@ -315,6 +492,9 @@ local function shape(res, ctx, M, GV, useGroups, collapsed, hh, avail)
             grid[#grid + 1] = rep
             L.kind[rep] = "grid"
             L.sqw[rep], L.sqh[rep] = whole(c.w, 1) or 1, whole(c.h, 1) or 1
+            -- (version 2: a mask sets the cell's box and the squares in it)
+            local mw, mh, has = GL.parseMask(c.mask)
+            if mw then L.sqw[rep], L.sqh[rep], L.has[rep] = mw, mh, has end
             local x, y = whole(c.x, 0), whole(c.y, 0)
             if x and y then given[rep] = { x = x, y = y } end
         end
@@ -383,6 +563,23 @@ local function shape(res, ctx, M, GV, useGroups, collapsed, hh, avail)
         for _, rep in ipairs(over) do L.list[#L.list + 1] = rep end
     end
     L.totalH = off
+    -- (version 2: each shaped cell's drawing, worked out once here; the strips' cells are one square each)
+    local t = (ZeD.T and ZeD.T.px) and math.max(1, ZeD.T.px(1)) or 1
+    local one = nil
+    for _, rep in ipairs(L.list) do
+        local has = (L.kind[rep] == "grid") and L.has[rep] or nil
+        if has or L.shapes then
+            local w, h = L.sqw[rep], L.sqh[rep]
+            if has then
+                L.geo[rep] = GL.geom(has, w, h, L.cell, L.gap, t)
+            elseif w == 1 and h == 1 then
+                one = one or GL.geom(fullMask(1, 1), 1, 1, L.cell, L.gap, t)
+                L.geo[rep] = one
+            else
+                L.geo[rep] = GL.geom(fullMask(w, h), w, h, L.cell, L.gap, t)
+            end
+        end
+    end
     return L
 end
 GL._shape = shape
@@ -434,7 +631,8 @@ function GL.attach(panel, GV, M, inv, playerObj, useGroups, hh, avail)
                 items[#items + 1] = rep
             end
         end
-        local ctx = { inv = inv, player = playerObj, key = GV.key, cols = GV.cols, items = items, stacks = M.stacks or {} }
+        local ctx = { inv = inv, player = playerObj, key = GV.key, cols = GV.cols, items = items, stacks = M.stacks or {},
+                      avail = avail, cell = GV.cell, gap = GV.gap }   -- (avail, cell, gap: version 2, GL.colsAt)
         local ok, res = pcall(_prov.layout, ctx)
         if ok and type(res) ~= "table" then ok, res = false, "layout returned " .. type(res) end
         if ok then
@@ -484,7 +682,23 @@ local FRESH_MS = 250    -- (the over-state counts this long after the last draw 
 local KEEP_MS = 2500    -- (a refused drop's reason stays on that list's help line this long)
 -- the dragged things and their shape, made once per drag and turn (not per frame)
 local D = { rows = nil, carried = nil, turn = 0, shapeFor = nil, shapeTurn = -1, shapeL = nil, w = 1, h = 1,
+            mask = nil, geo = nil,
             askL = nil, askX = -1, askY = -1, askW = 0, askH = 0, askTurn = -1, askRows = nil }
+
+-- a dragged shape from the provider's dragShape answer, on layout L: w, h (kept inside the grid's columns), the
+-- mask words (nil: a block) and the ghost's drawing (nil: the box's frame). Made once per drag, turn and grid.
+local function shapeFrom(L, w, h, mask)
+    w, h = whole(w, 1) or 1, whole(h, 1) or 1
+    local mw, mh, has = GL.parseMask(mask)
+    if mw then w, h = mw, mh else mask = nil end
+    if w > L.cols then w, mask, has = L.cols, nil, nil end
+    local geo = nil
+    if has then
+        local t = (ZeD.T and ZeD.T.px) and math.max(1, ZeD.T.px(2)) or 2
+        geo = GL.geom(has, w, h, L.cell, L.gap, t)
+    end
+    return w, h, mask, geo
+end
 
 --- The ZeD list a mouse drag is on for player pn: its content panel and its drag state, or nil.
 -- the list of window W (a window module) for pn, when a drag is on in it
@@ -514,22 +728,21 @@ end
 local function dragShape(items, L)
     if D.shapeFor == items and D.shapeTurn == D.turn and D.shapeL == L then return D.w, D.h end
     D.shapeFor, D.shapeTurn, D.shapeL = items, D.turn, L
-    D.w, D.h = 1, 1
+    D.w, D.h, D.mask, D.geo = 1, 1, nil, nil
     if _prov and _prov.dragShape then
-        local ok, w, h = pcall(_prov.dragShape, items, L.ctx)
-        if ok then D.w, D.h = whole(w, 1) or 1, whole(h, 1) or 1
+        local ok, w, h, mask = pcall(_prov.dragShape, items, L.ctx)
+        if ok then D.w, D.h, D.mask, D.geo = shapeFrom(L, w, h, mask)
         else logOnce("dragShape", w) end
     end
-    if D.w > L.cols then D.w = L.cols end
     return D.w, D.h
 end
 
 -- may items land with their top-left on x, y of layout L: the provider's canPlace, then (into another container)
--- the add-ons' rules (ItemRules). Returns ok, reason.
-local function askPlace(items, L, x, y, w, h, src)
+-- the add-ons' rules (ItemRules). Returns ok, reason. mask: the dragged shape's words (version 2; nil a block).
+local function askPlace(items, L, x, y, w, h, src, mask)
     local ok, reason = true, nil
     if _prov and _prov.canPlace then
-        local okC, yes, why = pcall(_prov.canPlace, items, L.ctx, x, y, w, h)
+        local okC, yes, why = pcall(_prov.canPlace, items, L.ctx, x, y, w, h, mask)
         if okC then
             if yes == false then ok, reason = false, why ~= nil and tostring(why) or nil end
         else
@@ -552,12 +765,19 @@ local function clampSpot(L, sx, sy, w, h)
     return x, y
 end
 
--- the ghost: the footprint's edge in the status colour (2 units), over the cells
-local function drawGhost(panel, GV, L, gy, x, y, w, h, ok)
+-- the ghost: the footprint's edge in the status colour (2 units), over the cells; a shape (geo, version 2) draws
+-- its own outline, not its box
+local function drawGhost(panel, GV, L, gy, x, y, w, h, ok, geo)
     local T = ZeD.T
     local step = L.cell + L.gap
-    ZeD.Atoms.frame(panel, GV.xOff + GV.padX + x * step, gy + L.gap + y * step,
-        w * L.cell + (w - 1) * L.gap, h * L.cell + (h - 1) * L.gap, ok and T.positive or T.danger, nil, T.px(2))
+    local c = ok and T.positive or T.danger
+    local gx, gy2 = GV.xOff + GV.padX + x * step, gy + L.gap + y * step
+    if geo and geo.cell == L.cell then
+        local e = geo.edges
+        for k = 1, #e, 4 do panel:drawRect(gx + e[k], gy2 + e[k + 1], e[k + 2], e[k + 3], c.a or 1, c.r, c.g, c.b) end
+        return
+    end
+    ZeD.Atoms.frame(panel, gx, gy2, w * L.cell + (w - 1) * L.gap, h * L.cell + (h - 1) * L.gap, c, nil, T.px(2))
 end
 
 -- A mouse drag over this column's single grid (y0: where the layout starts): the ghost, the reason on the help line,
@@ -581,10 +801,10 @@ local function mouseOver(panel, GV, L, y0)
     if not (D.askL == L and D.askX == x and D.askY == y and D.askW == w and D.askH == h and D.askTurn == D.turn
             and D.askRows == items) then
         D.askL, D.askX, D.askY, D.askW, D.askH, D.askTurn, D.askRows = L, x, y, w, h, D.turn, items
-        O.ok, O.reason = askPlace(items, L, x, y, w, h, src)
+        O.ok, O.reason = askPlace(items, L, x, y, w, h, src, D.mask)
     end
     O.at, O.panel, O.L, O.inv, O.x, O.y, O.w, O.h, O.items = getTimestampMs(), panel, L, L.ctx.inv, x, y, w, h, items
-    drawGhost(panel, GV, L, gy, x, y, w, h, O.ok)
+    drawGhost(panel, GV, L, gy, x, y, w, h, O.ok, D.geo)
     if O.reason then ZeD.Help.set(panel, O.reason) end
 end
 
@@ -657,16 +877,15 @@ end
 -- the place mode's footprint asked anew (its shape after a turn, kept inside the grid, then canPlace)
 local function padAsk(S)
     local L = S.L
-    S.w, S.h = 1, 1
+    S.w, S.h, S.mask, S.geo = 1, 1, nil, nil
     if _prov.dragShape then
-        local ok, w, h = pcall(_prov.dragShape, S.items, L.ctx)
-        if ok then S.w, S.h = whole(w, 1) or 1, whole(h, 1) or 1 else logOnce("dragShape", w) end
+        local ok, w, h, mask = pcall(_prov.dragShape, S.items, L.ctx)
+        if ok then S.w, S.h, S.mask, S.geo = shapeFrom(L, w, h, mask) else logOnce("dragShape", w) end
     end
-    if S.w > L.cols then S.w = L.cols end
     S.x = math.max(0, math.min(S.x, L.cols - S.w))
     S.y = math.max(0, S.y)
     if L.fixedRows then S.y = math.max(0, math.min(S.y, L.fixedRows - S.h)) end
-    S.ok, S.reason = askPlace(S.items, L, S.x, S.y, S.w, S.h, S.src)
+    S.ok, S.reason = askPlace(S.items, L, S.x, S.y, S.w, S.h, S.src, S.mask)
 end
 
 -- the layout of the column beside S's (dir -1 left, +1 right) in a side-by-side view, with its container
@@ -869,7 +1088,7 @@ function GL.draw(panel, GV, y0, scrollX, hh)
     for i = 1, #L.list do
         local rep = L.list[i]
         local cx, cy, w, h = GV.padX + L.px[rep], y0 + L.py[rep], L.wmap[rep], L.hmap[rep]
-        R._drawGridCell(panel, GV, rep, cx, cy, w, h)
+        R._drawGridCell(panel, GV, rep, cx, cy, w, h, L.geo[rep])   -- (geo: a shape, version 2; nil a span)
         if dec and cy + h > GV.top and cy < GV.h then
             local ok, err = pcall(dec, panel, rep, GV.xOff + cx, cy, w, h)
             if not ok then logOnce("decorate", err); dec = nil end
@@ -882,8 +1101,11 @@ function GL.draw(panel, GV, y0, scrollX, hh)
         if S and S.cnt == panel and S.L.ctx.inv == L.ctx.inv then
             -- (the layout is made anew as the model rebuilds, about once a second: place mode follows the new one,
             -- so its drop and canPlace get the add-on's current ctx)
-            if S.L ~= L then S.L = L end
-            drawGhost(panel, GV, L, y0 + L.gridTop, S.x, S.y, S.w, S.h, S.ok)
+            if S.L ~= L then
+                S.L = L
+                if S.geo and S.geo.cell ~= L.cell then padAsk(S) end   -- (the squares changed size: the ghost anew)
+            end
+            drawGhost(panel, GV, L, y0 + L.gridTop, S.x, S.y, S.w, S.h, S.ok, S.geo)
             -- (where this layout's grid starts on screen this frame, for GL.followPad's scroll on the next one)
             S.gridY, S.drawnL = y0 + L.gridTop + L.gap, L
             if S.reason then ZeD.Help.set(panel, S.reason) end

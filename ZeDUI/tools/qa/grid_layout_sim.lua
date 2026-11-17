@@ -852,8 +852,145 @@ check("unregister: gone", GL.active() == nil)
 local gu = mkGV(5)
 GL.attach(pe, gu, M1, BAG, {}, false, 24, 300)
 check("unregister: ZeD's own grid again", gu.L == nil and pe._itemRenderWMap == nil)
-check("VERSION", GL.VERSION == 1)
+check("VERSION", GL.VERSION == 2)
 check("register refuses a provider with no layout", GL.register("x", {}) == false and GL.active() == nil)
+
+-- ---------------------------------------------------------------------------
+-- (Nov 16 2026, Multi-Slot 0.2) VERSION 2: shaped cells. Everything above is a version 1 provider and still passes.
+section("SHAPES (version 2)")
+local AXE = "XXX/XXX/X../X../X../X.."
+local aw, ah, ahas = GL.parseMask(AXE)
+local na = 0
+for _ in pairs(ahas or {}) do na = na + 1 end
+check("MASK: the axe is 3 x 6, ten squares", aw == 3 and ah == 6 and na == 10, tostring(aw) .. "x" .. tostring(ah) .. " " .. na)
+check("MASK: the head's squares and the handle's, the holes empty", ahas[0] and ahas[5] and ahas[6] and ahas[15] and not ahas[7] and not ahas[17])
+local tw, th = GL.parseMask("..X/..X/...")
+check("MASK: empty edges trimmed", tw == 1 and th == 2)
+check("MASK: no squares, or not words: nil", GL.parseMask("...") == nil and GL.parseMask(nil) == nil and GL.parseMask(5) == nil)
+local g = GL.geom(ahas, aw, ah, 10, 2, 1)
+check("GEOM: ten squares filled", g.n == 10 and #g.fill == 40)
+check("GEOM: the first square top left; the last the handle's foot", g.fx == 0 and g.fy == 0 and g.ix == 0 and g.iy == 5 * 12)
+check("GEOM: the weight at the top row's run's end (three squares)", g.wx == 2 * 12 and g.wy == 0 and g.wroom == 2 * 12)
+-- the outline closes: a raster of the shape (its squares and gaps) and of its edges
+local function raster(list)
+    local s = {}
+    for k = 1, #list, 4 do
+        for y = list[k + 1], list[k + 1] + list[k + 3] - 1 do
+            for x = list[k], list[k] + list[k + 2] - 1 do s[y * 1000 + x] = true end
+        end
+    end
+    return s
+end
+local function outlineOk(geo)
+    local R, E = raster(geo.hits), raster(geo.edges)
+    local missing, outside = 0, 0
+    for p in pairs(R) do
+        local y = math.floor(p / 1000)
+        local x = p - y * 1000
+        local edge = false
+        for dy = -1, 1 do for dx = -1, 1 do if not R[(y + dy) * 1000 + x + dx] then edge = true end end end
+        if edge and not E[p] then missing = missing + 1 end
+    end
+    for p in pairs(E) do if not R[p] then outside = outside + 1 end end
+    return missing == 0 and outside == 0, missing .. " missing, " .. outside .. " outside"
+end
+local okO, whyO = outlineOk(g)
+check("GEOM: the axe's outline closes all round, concave corners too, never outside it", okO, whyO)
+for _, m in ipairs({ "XX/X.", "XXX/.X./.X./.X.", "XXXXXX/XXX...", "X", "XXX/X.X/XXX", "XXXXX/..X../..X.." }) do
+    local w2, h2, has2 = GL.parseMask(m)
+    local ok2, why2 = outlineOk(GL.geom(has2, w2, h2, 10, 2, 1))
+    check("GEOM: " .. m .. " outline closes", ok2, why2)
+end
+local gp2 = GL.geom(select(3, GL.parseMask("XX/X.")), 2, 2, 10, 2, 1)
+local cornerIn = false
+for k = 1, #gp2.gaps, 4 do if gp2.gaps[k] == 10 and gp2.gaps[k + 1] == 10 then cornerIn = true end end
+check("GEOM: where three squares meet the corner gap is filled (the L's inside corner)", cornerIn)
+check("GEOM: the pistol's weight on its two-square top row", gp2.wx == 12 and gp2.wroom == 12)
+local gk2 = GL.geom(select(3, GL.parseMask("X/X")), 1, 2, 10, 2, 1)
+check("GEOM: a one-wide shape: the weight on its last square", gk2.wx == 0 and gk2.wy == 12 and gk2.wroom == 10)
+-- colsAt
+check("colsAt: 300 px, 52 squares at two thirds (34), gap 4: 8 across", GL.colsAt({ avail = 300, cell = 52, gap = 4 }, 2 / 3) == 8)
+
+-- a shaped layout: an axe, a small thing in the hole beside its handle, a block, the strips
+local SBAG = mkInv("sbag")
+local axe, nut, box, worn = mkItem("Axe", 3, SBAG, "Weapon"), mkItem("Nut", 0.1, SBAG), mkItem("Box", 1, SBAG), mkItem("Worn", 0.2, SBAG)
+local SL = { axe, nut, box, worn }
+local MS = { flatItems = SL, stacks = {}, catOrder = {}, catOf = {} }
+local SP = {}
+local DRAGMASK, CANMASK = AXE, "unset"
+SP.layout = function(ctx)
+    return { flat = true, shapes = true, scale = 2 / 3, cols = 6, rows = 6, fixed = true,
+             cells = { { item = axe, x = 0, y = 0, mask = AXE, w = 9, h = 9 },
+                       { item = nut, x = 1, y = 2 },
+                       { item = box, w = 2, h = 2 } },
+             aside = { { item = worn } }, asideText = "On you" }
+end
+SP.dragShape = function(its, ctx) if DRAGMASK then local w2, h2 = GL.parseMask(DRAGMASK); return w2, h2, DRAGMASK end return 1, 1 end
+SP.canPlace = function(its, ctx, x, y, w, h, mask) CANMASK = mask; return true end
+GL.register("ZeDMultiSlot", SP)
+local ps = mkPanel()
+local gs = mkGV(5)
+GL.attach(ps, gs, MS, SBAG, {}, false, 24, 300)
+local LS = gs.L
+check("LAYOUT: made", LS ~= nil, PRINTS[#PRINTS])
+check("LAYOUT: the mask sets the box (c.w / c.h not read)", LS.sqw[axe] == 3 and LS.sqh[axe] == 6)
+check("LAYOUT: the small thing sits in the hole beside the handle", LS.sqx[nut] == 1 and LS.sqy[nut] == 2)
+check("LAYOUT: the block first-fit beside the head, never over the axe", LS.sqx[box] == 3 and LS.sqy[box] == 0, tostring(LS.sqx[box]) .. "," .. tostring(LS.sqy[box]))
+check("LAYOUT: two thirds of ZeD's square (52 -> 34)", LS.cell == 34 and gs.cell == 34)
+check("LAYOUT: the picture: ZeD's size, less in a small square", LS.isz == math.min(32, math.floor(34 * 0.8)))
+check("LAYOUT: every grid cell has its drawing (shapes on), the strips' too", LS.geo[axe] and LS.geo[nut] and LS.geo[box] and LS.geo[worn] and LS.geo[axe].n == 10 and LS.geo[box].n == 4)
+local emptyHole = false
+for _, n in ipairs(LS.empties) do if n == 2 * 6 + 2 then emptyHole = true end end
+check("LAYOUT: an empty hole inside the axe's box draws as a free slot", emptyHole)
+-- draw: the axe's squares only
+ZeD.GridTint = { of = function(T, tex, force) if force and tex == "tex_Axe" then return 0.5, 0.2, 0.1 end return nil end }
+ps._stacks = LS.stacks
+GL.draw(ps, gs, 0, 300, 24)
+local az = 0
+local inHole = false
+local x0, y0 = 10 + LS.px[axe], LS.py[axe]
+for _, z in ipairs(ps.zones) do
+    if z.id == axe then
+        az = az + 1
+        -- the hole square (1, 2): x0 + 38 .. x0 + 72, y0 + 76 .. y0 + 110
+        if z.x < x0 + 72 and z.x + z.w > x0 + 38 and z.y < y0 + 110 and z.y + z.h > y0 + 76 then inHole = true end
+    end
+end
+check("DRAW: the axe's click zones are its squares and gaps", az == #LS.geo[axe].hits / 4, az)
+check("DRAW: no click zone of the axe over its hole", not inHole)
+local tinted = false
+for _, l in ipairs(ps.log) do if l == string.format("rect %d %d 34 34 %.2f", x0, y0, ZeD.T.surf1.a) then tinted = true end end
+check("DRAW: the axe's first square in its tint, at the surface's alpha (forced on)", tinted)
+local pic = false
+for _, l in ipairs(ps.log) do if l:find("^tex tex_Axe " .. (x0 + 3) .. " " .. (y0 + 3) .. " 27 27") then pic = true end end
+check("DRAW: the picture in the first square, centered, one size", pic)
+-- hover over the hole: the nut, not the axe
+local gh2 = mkGV(5, { 10 + LS.px[nut] + 5, LS.py[nut] + 5 })
+local ph = mkPanel()
+GL.attach(ph, gh2, MS, SBAG, {}, false, 24, 300)
+ph._stacks = gh2.L.stacks
+HELP = {}
+GL.draw(ph, gh2, 0, 300, 24)
+check("DRAW: the pointer in the hole is on the small thing", HELP[#HELP] == "UI_ZeD_Inv_RowHelpLoot:Nut", HELP[#HELP])
+-- a version 1 provider's cell draws as a span (no geo), as before
+check("DRAW: no mask and no shapes: a span, as version 1", (function()
+    local L1 = GL._shape({ cells = { { item = axe, x = 0, y = 0, w = 2, h = 3 } } }, { items = { axe }, cols = 5 }, MS, mkGV(5), false, nil, 24, 300)
+    return L1.geo[axe] == nil and L1.cell == 52
+end)())
+-- the mouse ghost: the shape's outline, its mask handed to canPlace
+SRC._drag, SRC._dragSourceInv = { items = { axe }, isActive = function() return true end }, SBAG
+local gm = mkGV(5, { 10 + 4 * 38 + 5, 3 * 38 + 5 })
+local pmg = mkPanel()
+GL.attach(pmg, gm, MS, SBAG, {}, false, 24, 300)
+pmg._stacks = gm.L.stacks
+FRAMES = {}
+local before = #pmg.log
+GL.draw(pmg, gm, 0, 300, 24)
+check("GHOST: canPlace gets the dragged mask", CANMASK == AXE, tostring(CANMASK))
+check("GHOST: the shape's outline drawn (no box frame)", GL._over.w == 3 and GL._over.h == 6 and #FRAMES == #gm.L.empties)
+DRAGMASK = nil
+GL.unregister("ZeDMultiSlot")
+ZeD.GridTint = nil
 
 print = realPrint
 print(string.format("grid_layout_sim: %d checks, %d failed", checks, failed))

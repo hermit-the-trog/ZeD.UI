@@ -1377,6 +1377,128 @@ local function wtFit(cw, set, room, minName)
     return set - math.max(0, give)
 end
 
+-- (Nov 16 2026, Multi-Slot 0.2, GridLayout version 2) a shape's rects (a flat list of x, y, w, h from its geo) filled
+-- at ox, oy; and is the point mx, my (relative to the shape's box) on one of them
+local function paintRects(self, list, ox, oy, a, r, g, b)
+    for k = 1, #list, 4 do self:drawRect(ox + list[k], oy + list[k + 1], list[k + 2], list[k + 3], a, r, g, b) end
+end
+local function onRects(list, mx, my)
+    for k = 1, #list, 4 do
+        if mx >= list[k] and mx < list[k] + list[k + 2] and my >= list[k + 1] and my < list[k + 1] + list[k + 3] then return true end
+    end
+    return false
+end
+
+-- One SHAPED cell (an add-on's layout, GridLayout version 2; geo is its drawing, made once with the layout): each
+-- square filled with the item's tint (always on here: the director's approved shapes are all tinted; a plain tile
+-- where the item has no main color), the gaps between its squares one shade darker, a dark outline round the shape.
+-- The game's picture sits in the FIRST square (top row, leftmost) at one size for every item; the weight is at the
+-- top right of the top row's run (or of the last square, when the run is one square); the condition strip, the count
+-- and the read mark are on the LAST square (bottom row, rightmost). Hover, selection, the Filter's dim and the
+-- click zones cover the shape's squares only: the holes in its box are not the item's. The controller's mark sits on
+-- the first square. No tables or strings made here but the hint's, as drawGridCell.
+local function drawShapeCell(self, GV, item, cx, cy, g)
+    local T = ZeD.T
+    local xOff = GV.xOff
+    local cw, ch, sq = g.bw, g.bh, g.cell
+    GV.ymap[item] = cy
+    GV.xmap[item] = xOff + cx
+    if cy + ch <= GV.top or cy >= GV.h then return end
+    local ax = xOff + cx
+    local ac = T.accent
+    local tex = item:getTex()
+    local fa, fr, fg, fb
+    if ZeD.GridTint then fr, fg, fb = ZeD.GridTint.of(T, tex, true) end
+    if fr then
+        fa = T.surf1.a or 1
+    else
+        local st = T.stripe
+        fa, fr, fg, fb = st.a, st.r, st.g, st.b
+    end
+    paintRects(self, g.fill, ax, cy, fa, fr, fg, fb)
+    paintRects(self, g.gaps, ax, cy, fa, fr * 0.8, fg * 0.8, fb * 0.8)           -- (one shade darker)
+    local isSelected = GV.sel and GV.sel[item]
+    local over = GV.mouseIn and not cuesOn() and GV.my >= GV.top and GV.my < GV.top + GV.visH
+                 and onRects(g.hits, GV.lmx - cx, GV.my - cy)
+    if isSelected then
+        paintRects(self, g.hits, ax, cy, T.selectionA, ac.r, ac.g, ac.b)
+    elseif over or (self._ccMarks and ccMarked(self, item)) then
+        local hv = T.hover
+        paintRects(self, g.hits, ax, cy, hv.a, hv.r, hv.g, hv.b)
+    end
+    paintRects(self, g.edges, ax, cy, 1, fr * 0.45, fg * 0.45, fb * 0.45)       -- (the dark outline)
+    local stackInfo = self._stacks and self._stacks[item]
+    local count = (stackInfo and stackInfo.count) or 1
+    local fo = gpFocusedItem(item, ZeD.playerNumOf(self))
+    if fo then
+        ZeD.Focus.mark(self, ax + g.fx, cy + g.fy, sq, sq, fo)
+        padTip(self, item, ax, cy, cw, ch, count)
+    end
+    -- the picture, in the first square
+    local isz = (GV.L and GV.L.isz) or math.floor(sq * 0.8)
+    local rs = ZeD.ReadMarks.state(GV.player, item)
+    if tex then
+        local ia = (rs and rs.st == "r" and ZeD.ReadMarks.dimOn()) and 0.5 or 1
+        local o = math.floor((sq - isz) / 2)
+        self:drawTextureScaledAspect(tex, ax + g.fx + o, cy + g.fy + o, isz, isz, ia, 1, 1, 1)
+    end
+    -- the condition strip along the last square's foot (a readable item: its read mark instead)
+    local lx, ly = ax + g.ix, cy + g.iy
+    local condTop, condHov = ly + sq, false
+    if not rs then condTop, condHov = drawCellCondition(self, item, lx, ly, sq, stackInfo, sq) end
+    -- the weight, top right of its square
+    local f5 = T.fontF5
+    local s1 = T.surf1
+    local wtStr = weightText(item, stackInfo, f5, g.wroom - T.px(6))
+    local wtw = ZeD.TM:MeasureStringX(f5, wtStr)
+    local wr, wt = ax + g.wx + sq, cy + g.wy
+    self:drawRect(wr - wtw - T.px(5), wt + T.px(1), wtw + T.px(4), GV.f5FH, s1.a or 1, s1.r, s1.g, s1.b)
+    local th = T.accentText or T.text
+    self:drawText(wtStr, wr - wtw - T.px(3), wt + T.px(1), th.r, th.g, th.b, th.a or 1, f5)
+    -- the count, bottom right of the last square (above the condition strip)
+    if count > 1 then
+        local cs = "(" .. count .. ")"
+        local f1 = T.fontF1
+        local cw2 = ZeD.TM:MeasureStringX(f1, cs)
+        local cy2 = math.min(ly + sq - GV.secFH - T.px(4), condTop - GV.secFH - T.px(1))
+        self:drawRect(lx + sq - cw2 - T.px(5), cy2, cw2 + T.px(4), GV.secFH, s1.a or 1, s1.r, s1.g, s1.b)
+        local tc = T.text
+        self:drawText(cs, lx + sq - cw2 - T.px(3), cy2, tc.r, tc.g, tc.b, tc.a or 1, f1)
+    end
+    GV._beltW = 0
+    if rs then
+        local RM = ZeD.ReadMarks
+        local ms = RM.markSize()
+        RM.drawMark(self, lx + T.px(3), ly + sq - ms - T.px(3), rs.st)
+        if rs.next and RM.nextOn() then RM.drawUp(self, ax + g.fx + T.px(2), cy + g.fy + T.px(2)) end
+    end
+    queueMark(self, item, nil, nil, 0, ax + g.fx, cy + g.fy, sq, sq)   -- (waiting to move: the bar along its first square)
+    if over then
+        local nm = item:getName() or "?"
+        if count > 1 then nm = nm .. " (" .. count .. ")" end
+        self._gridHintCand = { key = item, text = nm, read = rs, x = ax, y = cy, w = cw, h = ch }
+        if ZeD.InvTip and not cuesOn() then
+            local r = _tipRect
+            r.x, r.y, r.w, r.h = ax, cy, cw, ch
+            ZeD.InvTip.want(self, item, r, count, true)
+        end
+        if not condHov then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelpLoot", nm)) end
+    end
+    -- the Filter: a match takes the accent outline while text is typed; no match dims its squares
+    local fres = self._fres
+    if fres then
+        if fres.match[item] then
+            if fres.ql ~= "" then paintRects(self, g.edges, ax, cy, 1, ac.r, ac.g, ac.b) end
+        elseif not fo then
+            local h = g.hits
+            for k = 1, #h, 4 do filterDim(self, ax + h[k], cy + h[k + 1], h[k + 2], h[k + 3]) end
+        end
+    end
+    -- the click zones: the shape's squares and the gaps between them, never its holes
+    local h = g.hits
+    for k = 1, #h, 4 do self:addHitZone(item, ax + h[k], cy + h[k + 1], h[k + 2], h[k + 3]) end
+end
+
 -- One cell: the icon, the stack's weight top right, its count bottom right, the
 -- condition strip along the bottom, a BELT n key square; hover T.hover, selected
 -- the T.selectionA wash, the controller's focus mark under the icon. Its hit zone
@@ -1385,7 +1507,8 @@ end
 -- layout (GridLayout.lua) spans a cell over several squares: everything below is drawn on the span, the hit zone is
 -- the whole span, and the icon grows to fit it, up to twice its square size. With cw and ch nil every number below
 -- is the one it was before.)
-local function drawGridCell(self, GV, item, cx, cy, cw, ch)
+local function drawGridCell(self, GV, item, cx, cy, cw, ch, geo)
+    if geo then return drawShapeCell(self, GV, item, cx, cy, geo) end   -- (a shape: GridLayout version 2)
     local T = ZeD.T
     local cell, xOff = GV.cell, GV.xOff
     cw, ch = cw or cell, ch or cell   -- (a square cell when no span is given)
