@@ -16,9 +16,10 @@
 --        the desk note did): WOW typed reaches the field; B puts the keyboard away, the text stays, the pad goes back to
 --        the window, not to the hidden keyboard; a B on the hidden keyboard sends the pad back and leaves the text.
 --        (The desk note itself is at the main menu: not run.)
---   214  the Character and World windows: the window box is a pad stop (padElements), Up from a stop below reaches it
---        (found by previewing Up from each stop; the walk from the list is logged), its focus mark
---        draws, A opens the window menu (press, then the poll's release), B closes it and the pad stays on the window.
+--   214  the Character and World windows: the window box is a pad stop (padElements); Up from the Filter button lands
+--        on a title-bar stop, Right (up to 3) reaches the box (each stop logged), its focus mark draws, A opens the
+--        window menu (press, then the poll's release), B closes it and the pad stays on the window; Left from the box
+--        goes to the bag pin; Right from the box crosses to the other window when it sits to the right.
 --   196  the Safe mode question (a ZeD_Prompt) holding the pad, a frame after it opens: Focus.held is true, a Y tap (through the poll) leaves the pad on the
 --        question and the windows as they were; B answers No, the pad goes back to the Character window, safe mode off.
 --   187  Start with the Character window holding the pad: the window hands Start to the game's pause (the real
@@ -299,43 +300,30 @@ local function boxTest(tag, getw)
         check(found, "214 " .. tag .. ": the window box is one of the title bar's pad stops")
         withPad(function() Focus.claimFocus(w); fake.focus = w end)
         local function at() local e = Focus.getFocusedElement(w); return e and e.id end
-        withPad(function()
-            for _ = 1, 40 do if at() == "windowbox" then break end; w:onJoypadDirUp(fake) end
-        end)
-        -- (round 2: Up from wherever the window's focus starts is not the promise; a walk up the inventory side stops
-        -- on its column heading. The promise is that some stop below the title bar has the box as its Up.)
-        local flat = Focus.flatElements(w) or {}
-        local box = w:windowBoxRect()
-        say("214 " .. tag .. ": the Up walk from the list ended on " .. tostring(at()) .. "; box at " .. box.x .. "," .. box.y .. " " .. box.w .. "x" .. box.h)
-        for _, t in ipairs(flat) do
-            if t.id == at() then say("214 " .. tag .. ":   that stop is " .. tostring(t.zone) .. " at " .. t.x .. "," .. t.y .. " " .. t.w .. "x" .. t.h) end
+        local barZone = w._halves and w._halves.zone
+        -- (a8d2cc26e: the bar's stops cover its width and Left / Right walk them in order, H.barStep. The path:
+        -- the Filter button, Up onto the bar, Right to the box.)
+        local fz
+        for _, t in ipairs(Focus.flatElements(w) or {}) do
+            if not fz and type(t.id) == "string" and t.id:sub(1, 12) == "view:filter:" then fz = t end
         end
-        if at() ~= "windowbox" then
-            local from = nil
-            local zi0 = w._focusIdx
-            local z0 = w._focusRing and w._focusRing[zi0 or 1]
-            local ei0 = z0 and z0.focusedElementIdx
-            -- (each stop tried in place, no onFocus: the focus is set by hand and the move only previewed)
-            for _, t in ipairs(flat) do
-                local z = w._focusRing and w._focusRing[t.zi]
-                if not from and z and t.id ~= "windowbox" and type(t.zone) == "string" and t.zone:sub(-9) ~= "TitlePins" then
-                    local keep = z.focusedElementIdx
-                    w._focusIdx = t.zi; z.focusedElementIdx = t.ei
-                    local r = Focus.previewMove(w, "up")
-                    if r and r.id == "windowbox" then from = t end
-                    z.focusedElementIdx = keep
-                end
-            end
-            w._focusIdx = zi0
-            if z0 then z0.focusedElementIdx = ei0 end
-            if from then
-                Focus.focusWhere(w, from.zone, function(e) return e.id == from.id end)
-                say("214 " .. tag .. ": Up from " .. tostring(from.id) .. " (" .. tostring(from.zone) .. " at " .. from.x .. "," .. from.y .. ") leads to the box")
-                withPad(function() w:onJoypadDirUp(fake) end)
-            end
+        if fz then
+            Focus.focusWhere(w, fz.zone, function(e) return e.id == fz.id end)
+            say("214 " .. tag .. ": start on " .. tostring(at()))
+            withPad(function() w:onJoypadDirUp(fake) end)
+            local z = Focus.getFocusedZone(w)
+            say("214 " .. tag .. ": Up -> " .. tostring(at()) .. " (" .. tostring(z and z.zone) .. ")")
+            check(z ~= nil and z.zone == barZone, "214 " .. tag .. ": Up from the Filter button lands on a title-bar stop (" .. tostring(at()) .. ")")
+        else
+            say("not run: 214 " .. tag .. " Up from the Filter button (no Filter button on show)")
         end
-        check(at() == "windowbox", "214 " .. tag .. ": Up from a stop below reaches the window box (on " .. tostring(at()) .. ")")
-        if at() ~= "windowbox" then Focus.focusWhere(w, w._halves and w._halves.zone, function(e) return e.id == "windowbox" end) end
+        for i = 1, 3 do
+            if at() == "windowbox" then break end
+            withPad(function() w:onJoypadDirRight(fake) end)
+            say("214 " .. tag .. ": Right " .. i .. " -> " .. tostring(at()))
+        end
+        check(at() == "windowbox", "214 " .. tag .. ": Right along the bar reaches the window box (on " .. tostring(at()) .. ")")
+        if at() ~= "windowbox" then Focus.focusWhere(w, barZone, function(e) return e.id == "windowbox" end) end
         -- watch the title bar's draw for the box's focus mark
         S.marked = false
         S.markOrig = ZeD.Focus.mark
@@ -371,6 +359,30 @@ local function boxTest(tag, getw)
         check(WM.current == nil, "214 " .. tag .. ": B closes the window menu")
         check(fake.focus == w, "214 " .. tag .. ": the pad is back on the window (" .. desc(fake.focus) .. ")")
         if WM.current then WM.current:close() end
+    end)
+    step(5, function()
+        local w = S.bw; if not w then return end
+        local function at() local e = Focus.getFocusedElement(w); return e and e.id end
+        local barZone = w._halves and w._halves.zone
+        if at() ~= "windowbox" then Focus.focusWhere(w, barZone, function(e) return e.id == "windowbox" end) end
+        -- Left from the box: back to the bag pin
+        withPad(function() fake.focus = w; w:onJoypadDirLeft(fake) end)
+        local id = at()
+        say("214 " .. tag .. ": Left from the box -> " .. tostring(id))
+        check(type(id) == "string" and id:sub(1, 8) == "halfpin:" and id ~= "halfpin:drawer", "214 " .. tag .. ": Left from the box goes back to the bag pin (" .. tostring(id) .. ")")
+        -- Right from the box: across to the other window (when it sits to the right)
+        Focus.focusWhere(w, barZone, function(e) return e.id == "windowbox" end)
+        local other = (w == cwin()) and wwin() or cwin()
+        withPad(function() fake.focus = w; w:onJoypadDirRight(fake) end)
+        local fw = Focus.getFocusedWindow(pn)
+        local fe = fw and Focus.getFocusedElement(fw)
+        say("214 " .. tag .. ": Right from the box -> " .. desc(fw) .. " on " .. tostring(fe and fe.id) .. " (other window at x " .. tostring(other and other:getX()) .. ", this at " .. w:getX() .. ")")
+        if other and other:getX() > w:getX() then
+            check(fw == other, "214 " .. tag .. ": Right from the box crosses to the other window (" .. desc(fw) .. ")")
+        else
+            say("not run: 214 " .. tag .. " Right from the box to the other window (the other window is not to its right)")
+        end
+        withPad(function() Focus.claimFocus(w); fake.focus = w end)
     end)
 end
 boxTest("char", cwin)

@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/b19_214.txt  (Nov 16 2026, QA): the 214 fix (a8d2cc26e) and group a again
+zedqa_prelude.lua | pre
+zedqa_b19_old_a.lua | b19a | timeout=600
