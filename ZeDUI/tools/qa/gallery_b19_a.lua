@@ -391,8 +391,50 @@ function S.lotHero()
     S.step(2, function() S.openStack("Base.Apple", false) end)
 end
 
+-- (Build, Nov 17 2026: the grid shots read 27.0 / 20 kg in the header. The heaviest loose things (not worn, held or on
+-- the belt) are set aside until the load is at most `to` kg, and put back after the grid shots: S.lightenBack)
+function S.lightenTo(to)
+    S.was.aside = S.was.aside or {}
+    pcall(function()
+        local inv = S.p:getInventory()
+        local loose = {}
+        local items = inv:getItems()
+        for i = 0, items:size() - 1 do
+            local it = items:get(i)
+            local keep = S.p:isEquipped(it) or S.p:isEquippedClothing(it) or S.p:isHandItem(it) or (it:getAttachedSlot() and it:getAttachedSlot() > -1)
+            if not keep then loose[#loose + 1] = it end
+        end
+        table.sort(loose, function(a, b) return a:getUnequippedWeight() > b:getUnequippedWeight() end)
+        local w = 0
+        for i = 0, items:size() - 1 do local it = items:get(i); w = w + (S.p:isEquipped(it) and it:getEquippedWeight() or it:getUnequippedWeight()) end
+        for _, it in ipairs(loose) do
+            if w <= to then break end
+            w = w - it:getUnequippedWeight()
+            inv:Remove(it)
+            S.was.aside[#S.was.aside + 1] = it
+        end
+        S.say(string.format("set aside %d things for the grid shots, load now about %.1f kg", #S.was.aside, w))
+    end)
+end
+function S.lightenBack()
+    local inv = S.p:getInventory()
+    for _, it in ipairs(S.was.aside or {}) do pcall(function() inv:AddItem(it) end) end
+    S.say("put back " .. #(S.was.aside or {}) .. " things set aside for the grid shots")
+    S.was.aside = {}
+end
+
 function S.lotGrid()
-    S.step(5, function() ZeD.InventoryRenderer.setGridKey("player", true, S.p); S.place() end)
+    S.step(5, function()
+        S.lightenTo(6)
+        -- light things so the grid stays full (about 17 tiles with the tinted set), each taken away after
+        S.was.fill = {}
+        for _, ft in ipairs({ "Base.Apple", "Base.Orange", "Base.Battery", "Base.Bandage", "Base.Pencil", "Base.Matches",
+                              "Base.Socks_Ankle", "Base.Spoon", "Base.Lighter", "Base.Scissors", "Base.Needle", "Base.Thread" }) do
+            local it = S.give(ft); if it then S.was.fill[#S.was.fill + 1] = it end
+        end
+        S.weightNote("grid filled with light things")
+        ZeD.InventoryRenderer.setGridKey("player", true, S.p); S.place()
+    end)
     S.step(50, function() S.place() end)
     S.still(5, function() S.shot("zed_53_grid") end)
     -- the new one: Item-colored tiles on, things of clearly different colors, sorted by name so they show
@@ -400,7 +442,7 @@ function S.lotGrid()
         local Opt = ZeD.Settings
         if not Opt.gridTintOption then S.was.noTint = true; return end
         S.was.tintGive = {}
-        for _, ft in ipairs({ "Base.Axe", "Base.Disc_Retail", "Base.BaseballBat", "Base.BaseballBat", "Base.Wrench" }) do
+        for _, ft in ipairs({ "Base.Axe", "Base.Disc_Retail", "Base.BaseballBat", "Base.Wrench" }) do   -- (one bat: two put the load over 20 kg)
             local it = S.give(ft)
             if not it and ft == "Base.Wrench" then it = S.give("Base.PipeWrench") end
             if it then S.was.tintGive[#S.was.tintGive + 1] = it end
@@ -435,6 +477,12 @@ function S.lotGrid()
         S.was.tintGive = nil
         S.sort(S.CW(), "cat", true)
         ZeD.InventoryRenderer.setGridKey("player", false, S.p)
+        for _, it in ipairs(S.was.fill or {}) do
+            pcall(function() local c = it:getContainer(); if c then c:Remove(it) end end)
+            for i = #S.added, 1, -1 do if S.added[i] == it then table.remove(S.added, i) end end
+        end
+        S.was.fill = nil
+        S.lightenBack()
     end)
     S.step(30, function() S.place() end)
 end
