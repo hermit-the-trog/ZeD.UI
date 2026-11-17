@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/b19_round2.txt  (Nov 16 2026, QA): beta 19 round 2: the door test widened, and the 27 items built in beta 14-15 never checked in game (groups a, b, c)
+zedqa_prelude.lua | pre
+zedqa_b19_pad.lua | b19p | timeout=600
+zedqa_b19_old_a.lua | b19a | timeout=600
+zedqa_b19_old_b.lua | b19b | timeout=600
+zedqa_b19_old_c.lua | b19c | timeout=420

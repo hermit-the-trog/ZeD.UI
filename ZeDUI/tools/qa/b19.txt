@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/b19.txt  (Nov 16 2026, QA): beta 19's controller fixes (218, 228e-p, 217) and Item-colored tiles in game
+zedqa_prelude.lua | pre
+zedqa_b19_pad.lua | b19p | timeout=600
+zedqa_b19_tint.lua | b19t | timeout=300

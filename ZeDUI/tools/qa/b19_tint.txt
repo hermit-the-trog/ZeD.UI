@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/b19_tint.txt  (Nov 16 2026, QA): Item-colored tiles alone (with the Multi-Slot add-on staged)
+zedqa_prelude.lua | pre
+zedqa_b19_tint.lua | b19t | timeout=300
