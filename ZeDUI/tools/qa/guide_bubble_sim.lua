@@ -398,6 +398,15 @@ do
     check("LIGHT: their words are the palette's near-black", body:find("words, a * (words.a or 1)", 1, true) ~= nil)
     local mw = slurp(ROOT .. "42/media/lua/client/ZeD/ZeD_MessagesWindow.lua")
     check("LIGHT: the hover wash on them shows on light grey", mw:find("local hv = LP and LP.borderS or ZeD.T.hover", 1, true) ~= nil)
+    -- (the director, the same day: the moodle's thought bubble, and the action bar, Simple and Detailed, are light too)
+    local md = slurp(ROOT .. "42/media/lua/client/ZeD/ZeD_Moodles.lua")
+    check("LIGHT: the moodle's thought bubble draws inside the light palette",
+        md:find("if Bl and Bl.inLight then return Bl.inLight(self._drawChipRaw, self, m, idx, on, ox, oy) end", 1, true) ~= nil)
+    local ab = slurp(ROOT .. "42/media/lua/client/ZeD/ZeD_ActionBar.lua")
+    check("LIGHT: the action bar, Simple and Detailed, draws inside the light palette",
+        ab:find("if Bl and Bl.inLight then Bl.inLight(drawBar, self, st, L, k, cv) else drawBar(self, st, L, k, cv) end", 1, true) ~= nil)
+    check("LIGHT: the shared colors are synced from the palette before the bar draws, and from the theme after",
+        ab:find("ZeD.Bubbles.syncColours(T)\n    if L.bar == \"simple\" then", 1, true) ~= nil or ab:find("ZeD.Bubbles.syncColours(T)\r\n    if L.bar == \"simple\" then", 1, true) ~= nil)
 end
 
 print("guide_bubble_sim: " .. checks .. " checks, " .. failed .. " failed")

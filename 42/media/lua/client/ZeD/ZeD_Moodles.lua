@@ -438,7 +438,16 @@ end
 -- moodle it is about, so the note shows which moodle it comes from. Right / left: the cloud beside
 -- the column, level with its moodle, the trail across; bottom: above the row, the trail down.
 -- Laid out in the layer's own space; drawn on `on` (the note layer) with the layer's corner at (ox, oy) in it.
+-- (Nov 17 2026, the director: the moodle's thought bubble is light, "only light", as the tooltips are: the note draws
+-- in the tooltips' light palette whatever the theme, ZeD.Balloon.inLight, which stands it in for ZeD.T while it draws.
+-- The bubble's shared fill, Bubbles.syncColours, is synced from that palette here and from the theme by each other
+-- bubble before it draws, so nothing else turns light.)
 function ZeD_MoodleLayer:_drawChip(m, idx, on, ox, oy)
+    local Bl = ZeD.Balloon
+    if Bl and Bl.inLight then return Bl.inLight(self._drawChipRaw, self, m, idx, on, ox, oy) end
+    return self:_drawChipRaw(m, idx, on, ox, oy)
+end
+function ZeD_MoodleLayer:_drawChipRaw(m, idx, on, ox, oy)
     on, ox, oy = on or self, ox or 0, oy or 0
     local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
     local p = self:player()

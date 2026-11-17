@@ -781,6 +781,23 @@ function ZeD_ActionBarLayer:prerender()
     self._drawNotes = notes
 end
 
+-- The action bar itself, Simple or Detailed. (Nov 17 2026, the director: the action bars are light, as the tooltips
+-- and the moodle's bubble are, whatever the theme. render runs this inside ZeD.Balloon.inLight, so ZeD.T is the
+-- tooltips' light palette here; the colors synced from the theme in prerender, the dimmed words and the bubbles'
+-- shared fill, are synced again from it first.)
+local function drawBar(self, st, L, k, cv)
+    local T = ZeD.T
+    ZeD.colorSync(AB._dim, T.text, (T.text.a or 1) * 0.55)
+    ZeD.colorSync(AB._legend, T.text, (T.text.a or 1) * 0.70)
+    ZeD.Bubbles.syncColours(T)
+    if L.bar == "simple" then
+        AB.drawSimple(P.canvas(self, L.px - self:getX(), L.py - self:getY(), k), T, st, self._drawA, self._ms)
+    else
+        ZeD.Bubbles.drawThought(cv, T, L, self._drawA)
+        AB.drawVerboseBody(cv, T, st, self._drawA, self._ms, L.tx + ZeD.Bubbles.THOUGHT_PAD, L.ty + 5, L.iw)
+    end
+end
+
 function ZeD_ActionBarLayer:render()
     local st, sp = self._drawSt, self._drawSp
     if not st and not sp and not self._drawNotes then return end
@@ -789,12 +806,12 @@ function ZeD_ActionBarLayer:render()
     local cv = P.canvas(self, L.ox, L.oy, k)
     self._zedAlpha = 1
     if st then
-        if L.bar == "simple" then
-            AB.drawSimple(P.canvas(self, L.px - self:getX(), L.py - self:getY(), k), T, st, self._drawA, self._ms)
-        else
-            ZeD.Bubbles.drawThought(cv, T, L, self._drawA)
-            AB.drawVerboseBody(cv, T, st, self._drawA, self._ms, L.tx + ZeD.Bubbles.THOUGHT_PAD, L.ty + 5, L.iw)
-        end
+        local Bl = ZeD.Balloon
+        if Bl and Bl.inLight then Bl.inLight(drawBar, self, st, L, k, cv) else drawBar(self, st, L, k, cv) end
+        -- (the speech and the notes below keep the theme: its colors back in the shared places)
+        ZeD.colorSync(AB._dim, T.text, (T.text.a or 1) * 0.55)
+        ZeD.colorSync(AB._legend, T.text, (T.text.a or 1) * 0.70)
+        ZeD.Bubbles.syncColours(T)
     end
     if sp then ZeD.Bubbles.drawSpeech(cv, T, L, self._drawSpA) end
     if self._drawNotes then ZeD.Bubbles.drawNotes(cv, T, L) end
