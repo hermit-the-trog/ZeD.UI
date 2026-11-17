@@ -60,9 +60,12 @@ local LIGHT = {
     textHead = { r = 0.02, g = 0.02, b = 0.02, a = 1 },
     textSec = { r = 0.047, g = 0.047, b = 0.047, a = 0.72 },
     textDim = { r = 0.047, g = 0.047, b = 0.047, a = 0.72 },
-    positive = { r = 0x2A / 255, g = 0x55 / 255, b = 0x11 / 255, a = 1 },
+    -- (Nov 17 2026, QA on the light over-head notes: the old dark green and red, 2A5511 and 7A2A11, both read as
+    -- near-black on the light grey. The status marks are now a clearly green and a clearly red, each over 3:1 on
+    -- surf1 for a mark; the words keep their own darker positiveText / dangerText.)
+    positive = { r = 0x1E / 255, g = 0x7D / 255, b = 0x22 / 255, a = 1 },
     positiveText = { r = 0x20 / 255, g = 0x4A / 255, b = 0x0C / 255, a = 1 },
-    danger = { r = 0x7A / 255, g = 0x2A / 255, b = 0x11 / 255, a = 1 },
+    danger = { r = 0xC0 / 255, g = 0x1C / 255, b = 0x1C / 255, a = 1 },
     dangerText = { r = 0x7A / 255, g = 0x2A / 255, b = 0x11 / 255, a = 1 },
     warning = { r = 0x6B / 255, g = 0x55 / 255, b = 0x10 / 255, a = 1 },
     info = { r = 0x1A / 255, g = 0x55 / 255, b = 0x66 / 255, a = 1 },
