@@ -1,0 +1,18 @@
+# ZeDUI/tools/qa/gallery_b19_hovers.txt  (Nov 17 2026, QA): the gallery pictures with a hover balloon, retaken for the
+# light tooltips of beta 16 (Build / the director): zqa_mood_left/bottom/right_hover (chapters 37, 51) and
+# story_11_smoke_break (chapter 51, the Agitated balloon). Under the load limit (gallery_unload / gallery_reload).
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_unload.lua | unl | timeout=60
+zedqa_moodles.lua | mood | timeout=240
+gallery_b19_story11_only.lua | s11 | timeout=60
+gallery_story_stage.lua | sts | timeout=600
+gallery_story_shots.lua | stz | timeout=1500
+gallery_story_teardown.lua | stt | timeout=600
+gallery_b11_look.lua | g14l2 | timeout=60
+gallery_reload.lua | rel | timeout=60
+gallery_t14_end.lua | g14e | timeout=60
