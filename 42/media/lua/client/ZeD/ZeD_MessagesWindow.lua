@@ -118,7 +118,11 @@ function ZeD_MessagesWindow:close()
     self:removeFromUIManager()
     -- (a guest's window leaves player one's own focus where it is)
     local own = JoypadState.players[self.playerNum + 1]
-    if own and (not wasGuest or own.focus == self) then setJoypadFocus(self.playerNum, nil) end
+    -- (punch list 228f (beta 19, Nov 16 2026): the player's own window gives the pad back where it came from, as the
+    -- seat chooser does (ZeD.Seats.padBack); it left it on nothing)
+    local Se = ZeD.Seats
+    if own and not wasGuest and Se and Se.padBack then Se.padBack(self)
+    elseif own and (not wasGuest or own.focus == self) then setJoypadFocus(self.playerNum, nil) end
 end
 
 -- the sources in list order, and the chosen one (the first when none or gone)
@@ -443,6 +447,13 @@ function ZeD_MessagesWindow:prerender()
         Mo.drawEmptyLine(self, px(U.PAD), g.list.y + px(8), g.list.w - px(U.PAD) * 2, tr("UI_ZeD_Msg_None"))
     end
 
+    -- (punch list 228i (beta 19, Nov 16 2026): the window box holds the pad, its mark, as the chat window draws its
+    -- own; Organisms draws the box's mark only for a window on ZeD's focus ring, and this one keeps its own zones)
+    if joy and self.zone == "box" then
+        local wb = self:windowBoxRect()
+        if wb then ZeD.Focus.mark(self, wb.x, wb.y, wb.w, wb.h, focusOpts(self), nil) end
+    end
+
     -- the cards (clipped to their area)
     local ca = g.cardsArea
     -- (the controller on the panel: its mark; taken with no button in view focused, a ring. Nov 15 2026, punch
@@ -543,6 +554,8 @@ function ZeD_MessagesWindow:getFooterPrompts()
     local move = P and P.padNote and P.padNote(tr("UI_ZeD_Msg_DpadMove")) or tr("UI_ZeD_Msg_DpadMove")
     -- (the cards' panel, Nov 15 2026, punch list 236: on it, A takes it; taken, the D-pad scrolls, A presses the
     -- button in view and B lets go)
+    -- (228i: on the window box, A pulls its menu down)
+    if self.zone == "box" then return { move, { glyph = "A", label = tr("UI_ZeD_Prompt_Menu") }, { glyph = "B", label = getText("UI_Close") } } end
     if self.zone == "cards" and not self.asking then
         if not self.cardsGrab then
             return { move, { glyph = "A", label = tr("UI_ZeD_Terms_PromptScroll") }, { glyph = "B", label = getText("UI_Close") } }
@@ -839,6 +852,14 @@ function ZeD_MessagesWindow:onJoypadDown(button, joypadData)
         return
     end
     if button ~= Joypad.AButton then return end
+    if self.zone == "box" then
+        -- (punch list 228i (beta 19, Nov 16 2026): the window box's menu, as a click on it; B or a choice gives the
+        -- pad back here (the menu's origin), as the chat window's box does)
+        self:openWindowMenu()
+        local WM = ZeD.WindowMenu
+        if WM and WM.current and WM.current.win == self then WM.current.origin = self end
+        return
+    end
     if self.zone == "cards" then
         if not self.cardsGrab then self:grabCards(true); sound("UISelectListItem")
         else
@@ -853,8 +874,14 @@ function ZeD_MessagesWindow:onJoypadDirUp()
     if self.zone == "list" then
         local s = sourcesInOrder(self)
         for i, n in ipairs(s) do if n == self.sel and i > 1 then self:choose(s[i - 1]); sound("UISelectListItem"); return end end
+        -- (punch list 228i (beta 19, Nov 16 2026): Up from the top row reaches the window box, as Up from the tabs does in
+        -- the Character and World windows)
+        if self:windowBoxRect() then self.zone = "box"; sound("UISelectListItem") end
     elseif self.zone == "cards" then
-        if self.cardsGrab then padScroll(self, -1) end
+        -- (punch list 228n (beta 19, Nov 16 2026): the panel let go, Up did nothing; it goes to the zone above it, the
+        -- window box (the list when there is none))
+        if self.cardsGrab then padScroll(self, -1)
+        else self.zone = self:windowBoxRect() and "box" or "list"; sound("UISelectListItem") end
     elseif self.zone == "foot" then
         if self._g and #self._g.cards > 0 then self.zone = "cards"; self.cardsGrab = nil else self.zone = "list" end
         sound("UISelectListItem")
@@ -862,6 +889,12 @@ function ZeD_MessagesWindow:onJoypadDirUp()
 end
 
 function ZeD_MessagesWindow:onJoypadDirDown()
+    -- (228i: Down from the window box, to the panel under it, else the list)
+    if self.zone == "box" then
+        if self._g and #self._g.cards > 0 then self.zone = "cards"; self.cardsGrab = nil else self.zone = "list" end
+        sound("UISelectListItem")
+        return
+    end
     if self.zone == "list" then
         local s = sourcesInOrder(self)
         for i, n in ipairs(s) do
@@ -919,6 +952,8 @@ function W.open(pn, name)
     MS.toasts = {}
     local jd = JoypadState.players[pn + 1]
     if jd then
+        -- (punch list 228f (beta 19, Nov 16 2026): what held the pad, for close)
+        if ZeD.Seats and ZeD.Seats.padFrom then ZeD.Seats.padFrom(win, pn) end
         jd.focus = win
         updateJoypadFocus(jd)
     end

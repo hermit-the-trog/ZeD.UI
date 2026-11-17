@@ -2451,10 +2451,12 @@ local function _handleYTap(pn)
     local bothVisible = (not charShaded) and (not worldShaded)
 
     if bothVisible then
+        local t0 = getTimestampMs()   -- (217: the hide's timing, Focus.lagClose)
         if charWin.setWindowShaded  then charWin:setWindowShaded(true)  end
         if worldWin.setWindowShaded then worldWin:setWindowShaded(true) end
         Focus.releaseFocus(pn)
         print("[ZeD.Input] Focus: Y tap - hide pair" .. _who(pn))
+        Focus.lagClose(t0)
         return
     end
 
@@ -3207,6 +3209,34 @@ local function _watchPointer()
     pcall(Mouse.setCursorVisible, (not hide) and show)
 end
 if Events.OnRenderTick then Events.OnRenderTick.Add(_watchPointer) end
+
+-- ---------------------------------------------------------------------------
+-- THE Y TAP'S HIDE, TIMED (punch list 217 (beta 19, Nov 16 2026): timing only, no fix yet). The director saw one large
+-- hitch as the windows close. Each hide prints one line: what the hide itself cost (rolling both windows up and
+-- letting go of the pad) and the gaps to the next few frames, so QA sees whether the hitch is in the hide or after it.
+-- grep "[ZeD.LagClose]". Not behind a flag: ZeD has no debug switch of its own, and it is one line a hide, as the
+-- Y tap's own "[ZeD.Input]" lines are. (Fields on Focus, not locals: this file is near Kahlua's local limit.)
+-- ---------------------------------------------------------------------------
+Focus.LAG_FRAMES = 5
+Focus._lag = nil
+--- The hide began at t0 (getTimestampMs) and has just ended: time the frames after it.
+function Focus.lagClose(t0)
+    local now = getTimestampMs()
+    Focus._lag = { t0 = t0, cost = now - t0, last = now, gaps = {} }
+end
+--- Each frame (OnRenderTick): the gap since the last; the line once LAG_FRAMES are in.
+function Focus.lagCloseTick()
+    local L = Focus._lag
+    if not L then return end
+    local now = getTimestampMs()
+    L.gaps[#L.gaps + 1] = tostring(now - L.last)
+    L.last = now
+    if #L.gaps < Focus.LAG_FRAMES then return end
+    Focus._lag = nil
+    print("[ZeD.LagClose] hide " .. tostring(L.cost) .. " ms | next frames " .. table.concat(L.gaps, " ")
+        .. " ms | hide to last frame " .. tostring(now - L.t0) .. " ms")
+end
+if Events.OnRenderTick then Events.OnRenderTick.Add(function() Focus.lagCloseTick() end) end
 
 -- A player's number can come back with another pad and another character (a
 -- respawn, or a new player in a dead player's number). Players 2-4 start over

@@ -633,7 +633,13 @@ function Z.safeMode(p, pn)
     local modal = ISModalDialog:new(0, 0, 350, 150, tr("UI_ZeD_Wheel_SafeModeAsk"), true, nil, onAnswer, pn)
     modal:initialise()
     modal:addToUIManager()
-    if JoypadState.players[pn + 1] then setJoypadFocus(pn, modal) end
+    if JoypadState.players[pn + 1] then
+        -- (punch list 228e (beta 19, Nov 16 2026): Yes or No gives the pad back to the ZeD window that held it,
+        -- not to nothing)
+        local Fo = ZeD.Input and ZeD.Input.Focus
+        if Fo and Fo.getFocusedWindow then modal.prevFocus = Fo.getFocusedWindow(pn) end
+        setJoypadFocus(pn, modal)
+    end
 end
 
 D.B.zed = function(p, pn)

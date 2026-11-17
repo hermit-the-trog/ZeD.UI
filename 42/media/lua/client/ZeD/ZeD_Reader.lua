@@ -149,7 +149,11 @@ function ZeD_Reader:close()
     P.vanillaHide()
     self:setVisible(false)
     self:removeFromUIManager()
-    if JoypadState.players[self.playerNum + 1] then setJoypadFocus(self.playerNum, nil) end
+    -- (punch list 228f (beta 19, Nov 16 2026): the pad goes back where it came from, as the seat chooser's does; it
+    -- left it on nothing)
+    if JoypadState.players[self.playerNum + 1] then
+        if ZeD.Seats and ZeD.Seats.padBack then ZeD.Seats.padBack(self) else setJoypadFocus(self.playerNum, nil) end
+    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -217,6 +221,11 @@ function ZeD_Reader:prerender()
     local g = self:layout()
     ZeD_Window.prerender(self)
     self.minimumWidth, self.minimumHeight = 0, 0
+    -- (punch list 228i (beta 19, Nov 16 2026): the window box holds the pad, its mark, as the chat window draws its own)
+    if self.padBox and self.joyfocus and ZeD.Focus and ZeD.Focus.mark then
+        local wb = self:windowBoxRect()
+        if wb then ZeD.Focus.mark(self, wb.x, wb.y, wb.w, wb.h, { win = self }) end
+    end
     local u = T.hair
     -- the canvas
     local c = g.canvas
@@ -248,6 +257,7 @@ function ZeD_Reader:drawPaper(c)
     local mx, my = math.max(0, (pw - c.w) / 2 + 40), math.max(0, (ph - c.h) / 2 + 40)
     self.panX = math.max(-mx, math.min(mx, self.panX))
     self.panY = math.max(-my, math.min(my, self.panY))
+    self._panMaxY = my   -- (228i: the pan's top, for Up to the window box)
     local ox = c.x + math.floor((c.w - pw) / 2 + self.panX)
     local oy = c.y + math.floor((c.h - ph) / 2 + self.panY)
     -- the page as the game draws it; ZeD's own setting of it only if that cannot be built
@@ -556,6 +566,8 @@ function ZeD_Reader:getFooterPrompts()
         out[#out + 1] = back
         return out
     end
+    -- (228i: on the window box, A pulls its menu down)
+    if self.padBox then return { { glyph = "A", label = ZeD.tr("UI_ZeD_Prompt_Menu") }, { glyph = "B", label = getText("UI_Close") } } end
     local out = {}
     local mv = ZeD.tr(self.view == "paper" and "UI_ZeD_Prompt_DPadMove" or "UI_ZeD_Prompt_DPadScroll")
     out[#out + 1] = note and note(mv) or mv
@@ -767,6 +779,14 @@ end
 function ZeD_Reader:onJoypadDown(button, joypadData)
     if ZeD.padStart and ZeD.padStart(button, joypadData, self.playerNum) then return end   -- (Start pauses: punch list 263)
     if self.mode == "notebook" then return self:onJoypadNotebook(button) end
+    if self.padBox and button == Joypad.AButton then
+        -- (punch list 228i (beta 19, Nov 16 2026): the window box's menu, as a click on it; B or a choice gives the pad
+        -- back here (the menu's origin), as the chat window's box does)
+        self:openWindowMenu()
+        local WM = ZeD.WindowMenu
+        if WM and WM.current and WM.current.win == self then WM.current.origin = self end
+        return
+    end
     if button == Joypad.BButton then self:close()
     elseif button == Joypad.LBumper or button == Joypad.RBumper then
         if self.page then self:setView(self.view == "paper" and "words" or "paper") end
@@ -775,8 +795,18 @@ function ZeD_Reader:onJoypadDown(button, joypadData)
     elseif button == Joypad.AButton then if #self.places > 0 then self:showPlace(1) end end
 end
 local STEP = 60
-function ZeD_Reader:onJoypadDirUp() if self.mode == "notebook" then return end; if self.view == "paper" then self.panY = self.panY + ZeD.T.px(STEP) else self.wscroll = self.wscroll - ZeD.T.px(STEP) end end
-function ZeD_Reader:onJoypadDirDown() if self.mode == "notebook" then return end; if self.view == "paper" then self.panY = self.panY - ZeD.T.px(STEP) else self.wscroll = self.wscroll + ZeD.T.px(STEP) end end
+-- (punch list 228i (beta 19, Nov 16 2026): the page at its top, Up reaches the window box (its menu on A); Down comes
+-- back to the page. The page is the window's one stop, so its top is its "top row".)
+function ZeD_Reader:atTop()
+    if self.view == "paper" and self.page then return self.panY >= (self._panMaxY or 0) end
+    return (self.wscroll or 0) <= 0
+end
+function ZeD_Reader:onJoypadDirUp()
+    if self.mode == "notebook" or self.padBox then return end
+    if self:atTop() and self:windowBoxRect() then self.padBox = true; sound("UISelectListItem"); return end
+    if self.view == "paper" then self.panY = self.panY + ZeD.T.px(STEP) else self.wscroll = self.wscroll - ZeD.T.px(STEP) end
+end
+function ZeD_Reader:onJoypadDirDown() if self.mode == "notebook" then return end; if self.padBox then self.padBox = nil; sound("UISelectListItem"); return end; if self.view == "paper" then self.panY = self.panY - ZeD.T.px(STEP) else self.wscroll = self.wscroll + ZeD.T.px(STEP) end end
 function ZeD_Reader:onJoypadDirLeft() if self.mode == "notebook" then return self:turnPage(-1) end; if self.view == "paper" then self.panX = self.panX + ZeD.T.px(STEP) end end
 function ZeD_Reader:onJoypadDirRight() if self.mode == "notebook" then return self:turnPage(1) end; if self.view == "paper" then self.panX = self.panX - ZeD.T.px(STEP) end end
 
@@ -1130,7 +1160,9 @@ local function show(win)
     win:addToUIManager()
     win:bringToTop()
     local pn = win.playerNum
+    win.padBox = nil   -- (228i: the window box's stop starts let go)
     if JoypadState.players[pn + 1] then
+        if ZeD.Seats and ZeD.Seats.padFrom then ZeD.Seats.padFrom(win, pn) end   -- (228f: what held the pad, for close)
         JoypadState.players[pn + 1].focus = win
         updateJoypadFocus(JoypadState.players[pn + 1])
     end

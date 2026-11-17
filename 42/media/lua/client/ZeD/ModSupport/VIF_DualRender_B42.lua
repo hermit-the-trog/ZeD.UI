@@ -222,6 +222,12 @@ local function askName(playerNum, title, start, onName)
     end, playerNum)
     box:initialise()
     box:addToUIManager()
+    -- (punch list 228e (beta 19, Nov 16 2026): the prompt takes the pad, as ZeD's own name prompt does
+    -- (ZeD_ListsMenu.lua); OK or Cancel gives it back to what held it)
+    if JoypadState and JoypadState.players and JoypadState.players[playerNum + 1] then
+        pcall(function() box.prevFocus = getJoypadFocus(playerNum) end)
+        setJoypadFocus(playerNum, box)
+    end
     return box
 end
 S.askName = askName

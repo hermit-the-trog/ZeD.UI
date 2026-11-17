@@ -87,6 +87,90 @@ if not ZeD._placeItemPadCtx then
     Events.OnPlayerUpdate.Add(function(player) pcall(guardContext, player) end)
 end
 
+-- ============================================================================
+-- A AT A DOOR OR A WINDOW (punch list 218 (beta 19, Nov 16 2026)).
+--
+-- The prompt says A (Open door, Close window), but the game sets it with no function
+-- (ISButtonPrompt:doInteractButtonDoorOrWindowOrWindowFrame): Java does the toggle, in
+-- IsoPlayer.updateUseKey on A's release, through doContext. In the director's playtest it
+-- never did, with no ZeD window holding the pad (the press logged as reaching the prompt).
+-- updateUseKey drops the press when a text box is still typing (Core.currentTextEntryBox) or
+-- Lua key presses are off, and doContext when the player blocks movement or ignores the
+-- context key; no ZeD path was found leaving one of those on, so the press gets a function:
+-- the game's own Open / Close from the right-click menu (ISWorldObjectContextMenu
+-- onOpenCloseDoor / onOpenCloseWindow: walk beside it, a timed action), run on the press.
+--
+-- Never twice: if Java does act, it acts on this same press's release, so the press sets the
+-- player's ignoreContextKey (doContext's first gate, as the Place Item guard above) and it
+-- stays on until A has been up HOLD_UPDATES updates. The toggle is then ours alone, whether
+-- Java would have acted or not. Only the controller's own prompt gets it (the hint strip's
+-- keyboard copy keeps the game's nil, and still reads the hint by its words), and only a flag
+-- set here is cleared.
+-- ============================================================================
+-- player number -> updates A has been up since the press (present only while this holds the flag)
+local doorHeld = {}
+
+local function isDoorOrWindow(obj)
+    if not obj then return false end
+    if instanceof(obj, "IsoDoor") or instanceof(obj, "IsoWindow") then return true end
+    return instanceof(obj, "IsoThumpable") and obj:isDoor() == true
+end
+
+-- the prompt's aFunc: onAPress calls it as bp:aFunc(obj)
+local function openCloseDoorOrWindow(bp, obj)
+    local pn = bp and bp.player
+    local p = pn ~= nil and getSpecificPlayer(pn)
+    if not (p and obj) then return end
+    if not p:isIgnoreContextKey() then
+        p:setIgnoreContextKey(true)
+        doorHeld[pn] = 0
+    end
+    if instanceof(obj, "IsoWindow") then ISWorldObjectContextMenu.onOpenCloseWindow(nil, obj, pn)
+    else ISWorldObjectContextMenu.onOpenCloseDoor(nil, obj, pn) end
+end
+ZeD.PadDoor = { isDoorOrWindow = isDoorOrWindow, press = openCloseDoorOrWindow, held = doorHeld }
+
+local function releaseDoorPress(player)
+    if not player or not player:isLocalPlayer() then return end
+    local pn = player:getPlayerNum()
+    if doorHeld[pn] == nil then return end
+    local jd = JoypadState and JoypadState.players and JoypadState.players[pn + 1]
+    if jd and jd.id ~= nil and interactDown(jd.id) then doorHeld[pn] = 0; return end
+    doorHeld[pn] = doorHeld[pn] + 1
+    if doorHeld[pn] < HOLD_UPDATES then return end
+    doorHeld[pn] = nil
+    if held[pn] ~= nil then return end   -- (the Place Item guard holds it too: it lets go)
+    local cell = getCell()
+    if cell and cell:getDrag(pn) then held[pn] = 0; return end   -- (a cursor came up meanwhile: that guard takes it over)
+    player:setIgnoreContextKey(false)
+end
+
+local function wrapDoorPrompt()
+    local B = ISButtonPrompt
+    if not (B and B.doInteractButtonDoorOrWindowOrWindowFrame) or B._zedPadDoor then return end
+    B._zedPadDoor = true
+    local orig = B.doInteractButtonDoorOrWindowOrWindowFrame
+    B.doInteractButtonDoorOrWindowOrWindowFrame = function(self, dir, obj)
+        local before = self.aPrompt
+        orig(self, dir, obj)
+        if before == nil and self.aPrompt ~= nil and self.aFunc == nil and self.player ~= nil
+            and JoypadState and JoypadState.players and JoypadState.players[self.player + 1]
+            and isDoorOrWindow(obj) then
+            self.aFunc = openCloseDoorOrWindow
+            self.aParams = { obj }
+        end
+    end
+end
+ZeD.PadDoor.wrap = wrapDoorPrompt
+
+if not ZeD._padDoorCtx then
+    ZeD._padDoorCtx = true
+    Events.OnPlayerUpdate.Add(function(player) pcall(releaseDoorPress, player) end)
+end
+wrapDoorPrompt()
+Events.OnGameBoot.Add(wrapDoorPrompt)
+Events.OnGameStart.Add(wrapDoorPrompt)
+
 -- (ISPlace3DItemCursor is server Lua, which loads with the save, after the client files and after
 -- OnGameBoot: the playtest found the wrap never on. It goes on when the game starts, or a player is made.)
 Events.OnGameBoot.Add(apply)

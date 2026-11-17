@@ -237,8 +237,19 @@ function ZeD_Keyboard:hide()
         -- then sets prevFocus = jd.focus names the keyboard; it falls back to what held the pad before it opened)
         local back = self.prevFocus
         if back == self then back = self._zedPrev end
-        jd.focus = back or e
-        if updateJoypadFocus then updateJoypadFocus(jd) end
+        if back then
+            jd.focus = back
+            if updateJoypadFocus then updateJoypadFocus(jd) end
+        else
+            -- (punch list 228g (beta 19, Nov 16 2026): with nothing named, the pad went to the bare text box, which
+            -- takes no press. It goes back as a ZeD menu's does (Focus.menuClosed): the focused ZeD window, else the game)
+            local Fo = ZeD.Input and ZeD.Input.Focus
+            local pn = self.playerNum or jd.player or 0
+            if not (Fo and Fo.menuClosed and pcall(Fo.menuClosed, self, pn)) then
+                jd.focus = nil
+                if updateJoypadFocus then updateJoypadFocus(jd) end
+            end
+        end
     end
     self.joyfocus = nil
     self.textEntryBox = nil

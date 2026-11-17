@@ -19,6 +19,7 @@
 --   Save position, Go to saved position (greyed while nothing is saved)
 --   ----
 --   Bug report (the Select wheel's: caught errors onto the clipboard)
+--   Controller map (with a pad), Hide interface (the Select wheel's too)
 --   ZeD setup...
 --
 -- Before touching it: every choice calls what ZeD setup and the Select wheel
@@ -259,6 +260,17 @@ function WM.build(win)
     local MS = ZeD.Messages
     if MS and MS.copyBugReport then
         items[#items + 1] = { name = tr("UI_ZeD_Msg_BugReport"), category = "setup", onFire = function() MS.copyBugReport(pn) end }
+    end
+    -- (punch list 228p (beta 19, Nov 16 2026): the Select wheel's Controller map and Hide interface, here too: two ways
+    -- to do everything. They call what the wheel calls. The map is a controller's, so it shows only with a pad.
+    -- Hiding the interface hides this window too; the wheel's Show interface (or the game's Toggle UI key) brings it back.)
+    local CM = ZeD.ControllerMap
+    if CM and CM.open and JoypadState and JoypadState.players and JoypadState.players[pn + 1] then
+        items[#items + 1] = { name = tr("UI_ZeD_Wheel_ControllerMap"), category = "setup", onFire = function() CM.open(pn) end }
+    end
+    local WH = ZeD.DpadWheels and ZeD.DpadWheels.H
+    if WH and WH.hideInterface then
+        items[#items + 1] = { name = tr("UI_ZeD_Wheel_HideInterface"), category = "setup", onFire = function() WH.hideInterface() end }
     end
     items[#items + 1] = { name = tr("UI_ZeD_WinMenu_Setup"), category = "setup", onFire = function() WM.openSetup(win) end }
     return items

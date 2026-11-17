@@ -160,7 +160,8 @@ function ZeD_CarRadio:close()
     self:setVisible(false)
     self:removeFromUIManager()
     if JoypadState.players[self.playerNum + 1] and JoypadState.players[self.playerNum + 1].focus == self then
-        setJoypadFocus(self.playerNum, nil)
+        -- (punch list 228f (beta 19, Nov 16 2026): the pad goes back where it came from, as the seat chooser's does)
+        if ZeD.Seats and ZeD.Seats.padBack then ZeD.Seats.padBack(self) else setJoypadFocus(self.playerNum, nil) end
     end
 end
 
@@ -879,7 +880,10 @@ function R.toggle(character, part)
     prop:setVisible(true)
     prop:addToUIManager()
     prop:setAlwaysOnTop(true)
-    if JoypadState.players[pn + 1] then setJoypadFocus(pn, prop) end
+    if JoypadState.players[pn + 1] then
+        if ZeD.Seats and ZeD.Seats.padFrom then ZeD.Seats.padFrom(prop, pn) end   -- (228f: what held the pad, for close)
+        setJoypadFocus(pn, prop)
+    end
 end
 
 -- Escape (the prompts' key hook asks): the radio's CD list goes first, then the radio

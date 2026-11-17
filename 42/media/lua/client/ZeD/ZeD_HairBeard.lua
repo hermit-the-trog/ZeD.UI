@@ -1863,13 +1863,15 @@ function HB.focusables(win)
         local e
         if it.kind == "parts" then
             e = { id = "hb:part",
-                dpadExits = true,   -- (its handler says false at either end and for Up / Down: the D-pad leaves)
+                dpadExits = true,   -- (its handler says false for Up / Down: the D-pad leaves)
                 onDpadDir = function(w, el, dir)
                     local parts = partsOf(st)
                     local at = 1
                     for i, pt in ipairs(parts) do if pt == st.part then at = i end end
                     if dir == "left" and at > 1 then HB.setPart(w, parts[at - 1]); return true end
                     if dir == "right" and at < #parts then HB.setPart(w, parts[at + 1]); return true end
+                    -- (punch list 228m (beta 19, Nov 16 2026): Left / Right stop at the switch's ends; they fell out of it)
+                    if dir == "left" or dir == "right" then return true end
                     return false
                 end,
                 onActivate = function(w)

@@ -869,6 +869,8 @@ do
     -- prints the run as it is now)
     -- (Nov 14 2026, punch list 212: LB at 3400 and RB at 6100 now take the pad to their window on the release, at
     -- 3450 and 6150, as a tab step; the presses alone change nothing. Only those lines moved.)
+    -- (beta 19, Nov 16 2026, punch list 217: the Y tap's hide prints one timing line, [ZeD.LagClose], five frames after
+    -- it. Only that line is new.)
     local GOLDEN = [[
     0 p0 [ZeD.Input] ActionMap loaded - 18 actions registered
     0 p0 [ZeD.Input] BumperChord loaded - no arming timeout, hold-and-tap model
@@ -905,6 +907,7 @@ do
  1300 p0 [ZeD.Input] Focus: release: world0 -> nil
  1300 p0 focus nil <- world0
  1300 p0 [ZeD.Input] Focus: Y tap - hide pair
+ 1340 p0 [ZeD.LagClose] hide 0 ms | next frames 0 10 10 10 10 ms | hide to last frame 40 ms
  1500 p0 game press Y
  1500 p0 state nil - cues=true mode=gamepad chord=IDLE slot=nil
  1600 p0 game release Y
