@@ -24,16 +24,17 @@ leaves with the mod. Nothing else in the save depends on it.
 Gadgets can be drawn as the real thing or as plain cards.
 
 **Other mods.** Context menu options, container buttons, items and recipes added by other mods appear in ZeD-GUI's
-windows. Buttons that a mod adds inside the game's own inventory window do not. ZeD-GUI replaces the whole interface,
-so with another full interface overhaul, use one or the other.
+windows. Buttons that a mod adds inside the game's own inventory window do not. A mod loaded after ZeD-GUI that
+replaces a whole screen of the game keeps that screen, and a note in *Messages* says which; *ZeD setup* turns
+ZeD-GUI's own screen back on. (This sentence prints only once Build confirms the hand-back works; see item 4.)
 
 **Controllers.** Everything works on a controller, with button prompts drawn for Xbox, PlayStation, Steam Deck and
 Nintendo pads. Keyboard and mouse work alongside.
 
-**Languages.** English, with machine-drafted translations into 27 more languages: Arabic, Catalan, Chinese
-(Simplified and Traditional), Czech, Danish, Dutch, Finnish, French, German, Hungarian, Indonesian, Italian,
-Japanese, Korean, Norwegian, Polish, Portuguese (Portugal and Brazil), Romanian, Russian, Spanish (Spain, Chile and
-Mexico), Thai, Turkish and Ukrainian. Corrections are welcome.
+**Languages.** English, with machine-drafted translations into 27 more, each named here in its own language:
+Bahasa Indonesia, Català, Čeština, Dansk, Deutsch, Español (Argentina), Español (Chile), Español (España), Español
+(México), Français, Italiano, Magyar, Nederlands, Norsk, Polski, Português (Brasil), Português (Portugal), Română,
+Suomi, Türkçe, Русский, Українська, ไทย, 日本語, 简体中文, 繁體中文, 한국어. Corrections are welcome.
 
 ## Where each fact comes from
 
@@ -50,19 +51,21 @@ Mexico), Thai, Turkish and Ukrainian. Corrections are welcome.
 | Other mods: what shows and what doesn't | beta 19 description, "Your mods still work" |
 | One overhaul or the other | the director, Nov 8 (NeatUI and Xen's Enhanced GUI: "pick the UI overhaul that looks the way you want it to") |
 | Pad prompts for four families | beta 19 description, "What you get" |
-| 27 machine-drafted languages | `42/media/lua/shared/Translate/`: 28 folders with a `UI.json`, English included |
+| 27 machine-drafted languages | `42/media/lua/shared/Translate/`: 28 folders with a `UI.json`, English included. The game's AR folder is Argentine Spanish, not Arabic (its text: "soga", "untable"). |
 
-## For the director to settle
+## The director's answers (Nov 17 2026)
 
-1. **Which builds to name.** `mod.info` allows 42.17 and up, but testing has been on 42.21 and 42.22 only. Print
-   "42.17 or later", or only the tested builds?
-2. **New saves.** The beta says "use a new game or a copy of a save". The draft drops that for 1.0. Keep a line
-   like it?
-3. **Is 1.0 a new Workshop item?** The beta says "the final release will be a separate item". If so, the page should
-   say how to move from the beta item (for example: unsubscribe from the beta first).
-4. **Mods that replace a whole screen.** On Nov 7 you asked that ZeD give a screen back automatically when a later
-   mod replaces it, with a Messages note. Build could not confirm from the code today that this shipped. If it did,
-   the page can say so; if not, it stays out.
-5. **Other overhauls by name.** The draft says "another full interface overhaul" without naming NeatUI or Xen's.
-   Name them, or leave it general?
-6. **The 27 languages.** All 27 are listed. Print the full list, or "27 other languages" with the list in ZeD setup?
+1. **Builds:** "42.17 or later." The tested builds stay named after it.
+2. **Saves:** it can be added to a current save at any time ("It's interface after all"). The beta's "use a new game
+   or a copy of a save" stays off the page.
+3. **A new Workshop item:** not addressed on this page; the book is being readied for 1.0.
+4. **Screen hand-back:** "Yes, please check if it works. And if it doesn't, make it work." Build is on it; the
+   sentence under *Other mods* prints once it is confirmed.
+5. **Other overhauls:** not addressed ("They're doing something different than what we're doing anyway"), so the
+   one-or-the-other sentence is gone.
+6. **Languages:** all 27 printed by name, each in its own language.
+
+## For Build when the page is set
+
+The list needs fonts with Cyrillic, Thai, Japanese, Chinese (both scripts) and Korean glyphs. The mod already ships
+Noto Sans SC; check the page's other scripts render before it goes up.
