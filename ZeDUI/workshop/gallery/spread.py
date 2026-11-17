@@ -47,6 +47,14 @@ PRINT_PAPER, TAPE, STICKY = (241, 237, 226), (214, 198, 150), (238, 222, 118)
 
 _fc = {}
 STRICT = False   # --strict (or "strict": true on a spread): also check tape and print edges over printed words
+# The 1.0 book's rules (Design's handoff, Nov 17 2026), on with "v1_rules": true in _book.json, --v1, or "v1": true on a
+# spread: a print's crop at least 45% of its capture's width unless marked "closer"; at most four ink notes a page; a
+# sticky must not repeat the ink notes or captions on its page (60% of its words, stop words dropped, as sb.py tests).
+V1 = False
+WIDE_MIN = 0.45
+INK_MAX = 4
+STOP = set("the a an of and to in on at is are it its for with by or as that this from your you each one two".split())
+def _words(t): return set(w for w in re.findall(r"[a-z]+", t.lower()) if w not in STOP and len(w) > 2)
 
 
 def F(path, size):
@@ -183,8 +191,8 @@ def table(canvas, d, x0, y, width, spec, boxes):
     return y + 12
 
 
-def printed(canvas, d, side, blocks, boxes):
-    """The publisher's page: the blocks down the column."""
+def printed(canvas, d, side, blocks, boxes, caps=None):
+    """The publisher's page: the blocks down the column. caps (a list) gets each caption: (label, text, its boxes)."""
     c0, c1 = column(side)
     width = c1 - c0
     y = TOP + 128
@@ -208,7 +216,11 @@ def printed(canvas, d, side, blocks, boxes):
             lab, txt = b["caption"]
             put_tok(canvas, lab, SANS_B, 10, c0, y)
             lw = F(SANS_B, 10).getlength(lab) * 2 + 18
+            i0 = len(boxes)
+            cap_box = (c0, y - 18, c0 + lw - 18, y + 6)
             y = para(canvas, c0 + lw, y, width - lw, txt, size=10, lead=26, justify=False, boxes=boxes) + 16
+            if caps is not None:
+                caps.append((lab, txt, [cap_box] + [wb for _, wb in boxes[i0:]]))
         elif "list" in b:                                    # steps (numbered) or a bulleted list, hanging
             for k, item in enumerate(b["list"]):
                 mark = ("%d." % (k + 1)) if b.get("numbered") else "•"
@@ -341,10 +353,12 @@ def render(sp, screens, out_path):
     canvas = art.resize((OW, OH), Image.NEAREST).convert("RGB")
     d = ImageDraw.Draw(canvas)
     boxes = {"left": [], "right": []}
+    caps = {"left": [], "right": []}
+    v1 = V1 or sp.get("v1")
     for side in ("left", "right"):
         pg = sp[side]
         running_head(canvas, d, side, sp["pages"][0 if side == "left" else 1], pg.get("head", ""))
-        end = printed(canvas, d, side, pg.get("blocks", []), boxes[side])
+        end = printed(canvas, d, side, pg.get("blocks", []), boxes[side], caps[side])
         if end > BOT - 24:
             checks.append("%s page: the print runs past the foot of the page (to y %d)" % (side, end))
     imgs, maps, pboxes, tapes = {}, [], [], []
@@ -354,6 +368,19 @@ def render(sp, screens, out_path):
             src = psrc if os.path.isabs(psrc) else os.path.join(screens, psrc)
             if src not in imgs:
                 imgs[src] = Image.open(src).convert("RGB")
+            if p.get("full"):
+                # (1.0 book: a print that fills its page edge to edge, over the running head; no border, no tape. Its
+                # corner is the page's unless "at" says otherwise, and its scale fits the box's width to the page's.)
+                pg0, pg1 = PAGES[side]
+                bx0, by0, bx1, by1 = p["box"]
+                sc = p.get("scale") or (pg1 - pg0) / float(bx1 - bx0)
+                x, y = ev((p.get("at") or (pg0, TOP))[0]), ev((p.get("at") or (pg0, TOP))[1])
+                tw, th = min(round((bx1 - bx0) * sc), pg1 - x), min(round((by1 - by0) * sc), BOT - y)
+                canvas.paste(imgs[src].crop(p["box"]).resize((round((bx1 - bx0) * sc), round((by1 - by0) * sc)),
+                                                             resample_of(dict(p, scale=sc))).crop((0, 0, tw, th)), (x, y))
+                maps.append(lambda X, Y, x=x, y=y, b=(bx0, by0), s=sc: (x + (X - b[0]) * s, y + (Y - b[1]) * s))
+                pboxes.append((x, y, x + tw, y + th))
+                continue
             if p.get("printed"):                                  # the publisher's own figure, printed in the column
                 bx0, by0, bx1, by1 = p["box"]
                 tw, th = round((bx1 - bx0) * p["scale"]), round((by1 - by0) * p["scale"])
@@ -379,6 +406,26 @@ def render(sp, screens, out_path):
             pg0, pg1 = PAGES[side]
             if (pbox[0] < pg0 + 8 or pbox[2] > pg1 - 8) and not p.get("cross"):
                 checks.append("print %d (%s) runs off its page" % (len(pboxes) - 1, p["src"]))
+            if v1 and not p.get("closer") and (p["box"][2] - p["box"][0]) < WIDE_MIN * imgs[src].width:
+                checks.append("print %d (%s) is a tight crop (%d of %d px wide): widen it to %d or mark it \"closer\""
+                              % (len(pboxes) - 1, p["src"], p["box"][2] - p["box"][0], imgs[src].width, WIDE_MIN * imgs[src].width))
+    for side in ("left", "right"):                                # a caption a print covers cannot be read
+        for lab, _, cb in caps[side]:
+            if any(overlap(wb, pb) for wb in cb for pb in pboxes):
+                checks.append("%s (%s page) is covered by a print: move the print or the caption" % (lab, side))
+    if v1:
+        for side in ("left", "right"):
+            pg = sp[side]
+            ink = [m["text"] for m in pg.get("marks", []) if "text" in m]
+            if len(ink) > INK_MAX:
+                checks.append("%s page: %d ink notes (%d at most)" % (side, len(ink), INK_MAX))
+            others = ink + [t for _, t, _ in caps[side]]
+            for s in pg.get("stickies", []) + ([pg["sticky"]] if pg.get("sticky") else []):
+                sw = _words(s["text"])
+                for o in others:
+                    if sw and len(sw & _words(o)) >= 0.6 * len(sw):
+                        checks.append("sticky '%s' repeats '%s'" % (s["text"][:28], o[:28]))
+                        break
     for s_ in (("left", "right") if STRICT or sp.get("strict") else ()):   # tape or a print's edge across printed words
         for w_, wb in boxes[s_]:
             if any(pb[0] <= wb[0] and pb[1] <= wb[1] and wb[2] <= pb[2] and wb[3] <= pb[3] for pb in pboxes):
@@ -504,6 +551,8 @@ def load_spreads(path):
     """A folder of spreads (one NN_id.json each, plus _book.json with the screens folder) or one json file."""
     if os.path.isdir(path):
         book = json.load(open(os.path.join(path, "_book.json"), encoding="utf-8"))
+        global V1
+        V1 = V1 or bool(book.get("v1_rules"))
         sps = []
         for f in sorted(os.listdir(path)):
             if f.endswith(".json") and not f.startswith("_"):
@@ -519,10 +568,12 @@ def main():
     ap.add_argument("out")
     ap.add_argument("--only", default="")
     ap.add_argument("--strict", action="store_true", help="also flag tape or a print's edge over printed words")
+    ap.add_argument("--v1", action="store_true", help="the 1.0 book's rules: wide crops, four ink notes a page, no repeating sticky")
     ap.add_argument("--jpg", default="", help="also write the upload copies here: JPEG under Steam's 1 MB")
     a = ap.parse_args()
-    global STRICT
+    global STRICT, V1
     STRICT = a.strict
+    V1 = a.v1 or V1
     screens, sps = load_spreads(a.spec)
     os.makedirs(a.out, exist_ok=True)
     if a.jpg:

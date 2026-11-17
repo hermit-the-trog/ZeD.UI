@@ -1,0 +1,130 @@
+{
+ "id": "t_feature",
+ "n": 31,
+ "seed": 8,
+ "pages": [
+  82,
+  83
+ ],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs - Doidbros & Buzzlord",
+  "blocks": [
+   {
+    "chapter": [
+     "31",
+     "Stocking Shelves"
+    ]
+   },
+   {
+    "p": "Angel puts stock back on the shelves of the station. The *Character* window holds what he carries; the *World* window holds the containers around him."
+   },
+   {
+    "p": "The badge over the container buttons of each window counts the containers open in it, and each container has a column of its own. Each column header gives the container's name, its weight against what it holds at most, and the number of items in it. To move an item, drag it from one column to another."
+   },
+   {
+    "p": "Angel's backpack holds the stock: candy, chips, cigarettes and colas. The row of the item being dragged is lit in its column."
+   },
+   {
+    "at": 900
+   },
+   {
+    "caption": [
+     "Figure 31-1",
+     "The Character window: the backpack and the inventory."
+    ]
+   },
+   {
+    "caption": [
+     "Figure 31-2",
+     "The World window: three shelves and the ground."
+    ]
+   }
+  ],
+  "prints": [
+   {
+    "src": "story_07b_drag_to_shelf.png",
+    "box": [
+     1025,
+     0,
+     1975,
+     525
+    ],
+    "scale": 0.5,
+    "at": [
+     262,
+     610
+    ],
+    "tape": [
+     "tl",
+     "br"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "The badge counts the containers: 2 here,",
+    "pen": "blu",
+    "at": [
+     62,
+     248
+    ],
+    "maxw": 186,
+    "bend": 0.0,
+    "to": [
+     0,
+     1925,
+     100
+    ]
+   },
+   {
+    "text": "Each column header shows its weight and item count.",
+    "pen": "blu",
+    "at": [
+     62,
+     null
+    ],
+    "maxw": 186,
+    "bend": 0.0,
+    "to": [
+     0,
+     1212,
+     130
+    ]
+   }
+  ]
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Stocking Shelves",
+  "blocks": [],
+  "prints": [
+   {
+    "src": "story_07b_drag_to_shelf.png",
+    "box": [
+     1800,
+     0,
+     3746,
+     2160
+    ],
+    "scale": 0.4686,
+    "at": [
+     960,
+     28
+    ],
+    "tape": [],
+    "cross": true
+   }
+  ],
+  "marks": [],
+  "sticky": {
+   "at": [
+    1560,
+    890
+   ],
+   "w": 280,
+   "h": 120,
+   "text": "Three shelves and the ground, all in reach."
+  }
+ }
+}

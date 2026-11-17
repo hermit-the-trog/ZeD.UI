@@ -1,0 +1,1775 @@
+{
+ "frames": [
+  {
+   "lay": [
+    "vanilla: inventory + loot",
+    "ZeD: Character + World + belt"
+   ],
+   "kind": "pitch",
+   "name": "Before and after",
+   "stage": "Pitch",
+   "shot": "One moment, one place, split down the spine: the game's own inventory and loot on the left page, ZeD-GUI on the right. Same character, same container, same items. The screenshots fill the pages; the book shows only as a frame. Must still read at 116 x 65.",
+   "status": "retake",
+   "caps": [
+    "One line only: 'The same moment, before and after.'"
+   ],
+   "extra": [
+    "No ink notes. No sticky."
+   ],
+   "files": [
+    "van_01",
+    "zed_01_hero_mid"
+   ]
+  },
+  {
+   "lay": [
+    "Character wheel, in play",
+    "inventory, pointing hand + help line"
+   ],
+   "kind": "pitch",
+   "name": "On a controller",
+   "stage": "Pitch",
+   "shot": "Pad connected. Left: the Character wheel open in play. Right: the inventory with the pointing hand on a row and the help line showing the pad prompts. Glyphs readable at half size.",
+   "status": "keep",
+   "caps": [
+    "'Everything works on a pad. Nothing needs a mouse.'"
+   ],
+   "extra": [
+    "Ink: at most 2 (the hand, the help line)."
+   ],
+   "files": [
+    "zqa_g3_wheel_character_eat",
+    "zqa_g3_footer_pad"
+   ]
+  },
+  {
+   "lay": [
+    "context strip",
+    "Health tab",
+    "moodle balloon",
+    "action bar",
+    "vanilla context menu, for scale",
+    "belt + watch"
+   ],
+   "kind": "pitch",
+   "name": "What you look at every minute",
+   "stage": "Pitch",
+   "shot": "Four crops, one per quarter: the context menu strip, the Health tab, a moodle with its balloon, the action bar over the head. Each a different system, each large.",
+   "status": "check",
+   "caps": [
+    "'Menus, health, moodles and the action bar.'"
+   ],
+   "extra": [
+    "Ink: one word per crop, no arrows."
+   ],
+   "files": [
+    "zed_20_ctx_strip",
+    "van_20"
+   ]
+  },
+  {
+   "lay": [
+    "vanilla B42 crafting window (NEW)",
+    "Crafting tab, same recipe",
+    "Building tab"
+   ],
+   "kind": "pitch",
+   "name": "Crafting and building",
+   "stage": "Pitch",
+   "shot": "The B42 crafting window as the game draws it, left; the Crafting tab on the same recipe, right. Under them, the Building tab with a recipe open.",
+   "status": "new",
+   "caps": [
+    "'Crafting and building, in the World window.'"
+   ],
+   "extra": [
+    "Ink: at most 3."
+   ],
+   "files": [
+    "van_craft_b42 (new)"
+   ]
+  },
+  {
+   "lay": [
+    "ZeD setup: the groups, Immersive or Simple"
+   ],
+   "kind": "pitch",
+   "name": "Before you install",
+   "stage": "Pitch",
+   "shot": "A printed manual page, no story: the build it runs on, single player and multiplayer, adding to and removing from a save, turning parts off, other UI mods, controller and Steam Deck, languages. Right page: ZeD setup, so the reader sees the switches. The facts are the director's to confirm; none are filled in here.",
+   "status": "new",
+   "caps": [
+    "Table, not a caption: one row per question, one line each."
+   ],
+   "extra": [
+    "No ink. One sticky: the single line a visitor most needs."
+   ],
+   "files": [
+    "mm4_01_options_zed"
+   ]
+  },
+  {
+   "lay": [
+    "00a cover"
+   ],
+   "kind": "front",
+   "name": "The cover",
+   "stage": "Front",
+   "shot": "The desk, the book and the discs. Unchanged.",
+   "status": "keep",
+   "caps": [],
+   "extra": [],
+   "files": []
+  },
+  {
+   "lay": [],
+   "kind": "front",
+   "name": "Contents",
+   "stage": "Front",
+   "shot": "New printed spread: the seven parts and their chapters with page numbers. No capture needed.",
+   "status": "new",
+   "caps": [],
+   "extra": [
+    "No ink, no sticky."
+   ],
+   "files": []
+  },
+  {
+   "lay": [
+    "zed_02_hero_close: now 100% of the screen wide; full page, half the screen at full height"
+   ],
+   "kind": "chapter",
+   "name": "Introduction",
+   "stage": "Front",
+   "shot": "The whole screen in play: both windows on their first tabs, the belt, Angel standing in the Fossoil forecourt in daylight. Nothing else open.",
+   "status": "retake",
+   "caps": [
+    "The screen in play: two windows and the belt."
+   ],
+   "extra": [
+    "Feature spread: text and at most one small picture on one page, one picture filling the other.",
+    "Notes now: 3 ink, 1 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop now: QA's parking lot (glass roof, a few cars). The full capture has open game under the windows, so it re-crops wide, but the place is plain.",
+    "A feature spread fills a page with this place. Retake somewhere lived-in.",
+    "Cast: Angel Cross, Light + Blue (Dark + Blue at night), the Fossoil, West Point."
+   ],
+   "files": [],
+   "old": 1,
+   "id": "hero"
+  },
+  {
+   "lay": [
+    "desk_05_trash_computer: now 95% of the screen wide; full page, half the screen at full height"
+   ],
+   "kind": "chapter",
+   "name": "The Desk",
+   "stage": "Part 1",
+   "shot": "The main menu as the desk: every icon visible, pointer on nothing. No tooltip.",
+   "status": "keep",
+   "caps": [
+    "The desk."
+   ],
+   "extra": [
+    "Feature spread: text and at most one small picture on one page, one picture filling the other.",
+    "Notes now: 3 ink, 1 sticky, 1 sticky repeats the ink or caption.",
+    "A menu screen on the desk: already shown whole. No crop change."
+   ],
+   "files": [],
+   "old": 53,
+   "id": "desk"
+  },
+  {
+   "lay": [
+    "mm4_01_options_zed: now 34% of the screen wide; wide, at least 45% of the screen",
+    "mm4_03_options_hidden: now 41% of the screen wide; wide, at least 45% of the screen",
+    "mm4_02_options_interface: now 33% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Options",
+   "stage": "Part 1",
+   "shot": "ZeD setup with the Find field empty, Look group at top; second shot the game's Interface page with a grayed 'Does nothing with ZeD active' row in frame.",
+   "status": "keep",
+   "caps": [
+    "The Look section, at the top of ZeD setup.",
+    "ZeD setup, top, and the Interface page."
+   ],
+   "extra": [
+    "Notes now: 4 ink, 2 sticky, 1 sticky repeats the ink or caption.",
+    "A menu screen on the desk: already shown whole. No crop change."
+   ],
+   "files": [],
+   "old": 54,
+   "id": "options_menu"
+  },
+  {
+   "lay": [
+    "zqa_sbx_pause_line: now 17% of the screen wide; wide, at least 45% of the screen",
+    "zqa_sbx_world_help: now 10% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Sandbox Options in Game",
+   "stage": "Part 1",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "The pause window, left, and the list of pages, right.",
+    "The World page and its help band."
+   ],
+   "extra": [
+    "Notes now: 5 ink, 2 sticky.",
+    "Backdrop now: QA's test field (mowed grass, a road, a doghouse). Re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 55,
+   "id": "sandbox_ingame"
+  },
+  {
+   "lay": [
+    "mm4_03_mods_conflict: now 25% of the screen wide; wide, at least 45% of the screen",
+    "mm4_04_mods_conflicts_tab: now 24% of the screen wide; wide, at least 45% of the screen",
+    "mm4_06_mods_problem_missing: now 17% of the screen wide; closer look, small",
+    "mm4_07_mods_problem_version: now 17% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Mods",
+   "stage": "Part 1",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "keep",
+   "caps": [
+    "The Conflicts tab of a mod's info pane.",
+    "The list, part of an info pane, and two problems."
+   ],
+   "extra": [
+    "Notes now: 8 ink, 2 sticky, 2 sticky repeats the ink or caption.",
+    "A menu screen on the desk: already shown whole. No crop change."
+   ],
+   "files": [],
+   "old": 57,
+   "id": "mod_manager"
+  },
+  {
+   "lay": [
+    "zqa_mp_r1_reset_files: now 24% of the screen wide; wide, at least 45% of the screen",
+    "zqa_mp_5_srm_sandbox: now 24% of the screen wide; wide, at least 45% of the screen",
+    "zqa_mp_r2_reset_confirm: now 48% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "A Mod's Settings",
+   "stage": "Part 1",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "keep",
+   "caps": [
+    "The Options tab.",
+    "The Sandbox tab of a mod that is off."
+   ],
+   "extra": [
+    "Notes now: 5 ink, 2 sticky, 2 sticky repeats the ink or caption.",
+    "A menu screen on the desk: already shown whole. No crop change."
+   ],
+   "files": [],
+   "old": 58,
+   "id": "mod_settings"
+  },
+  {
+   "lay": [
+    "zqa_mp_12_turnoff_items: now 24% of the screen wide; wide, at least 45% of the screen",
+    "zqa_mp_14_ask_off: now 24% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Turning a Mod Off",
+   "stage": "Part 1",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "keep",
+   "caps": [
+    "A mod rated Careful.",
+    "A mod that is not safe for the save ZeD-QA, and the question it asks."
+   ],
+   "extra": [
+    "Notes now: 4 ink, 1 sticky, 1 sticky repeats the ink or caption.",
+    "A menu screen on the desk: already shown whole. No crop change."
+   ],
+   "files": [],
+   "old": 59,
+   "id": "turn_off"
+  },
+  {
+   "lay": [
+    "mm4_08_profiles: now 14% of the screen wide; wide, at least 45% of the screen",
+    "mm4_09_load_order: now 17% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Profiles and Load Order",
+   "stage": "Part 1",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "keep",
+   "caps": [
+    "The profile Crafting run."
+   ],
+   "extra": [
+    "Notes now: 5 ink, 2 sticky, 1 sticky repeats the ink or caption.",
+    "A menu screen on the desk: already shown whole. No crop change."
+   ],
+   "files": [],
+   "old": 60,
+   "id": "load_order"
+  },
+  {
+   "lay": [
+    "cin_ang_open"
+   ],
+   "kind": "scene",
+   "name": "Part 2 opener",
+   "stage": "Scene",
+   "shot": "Full-bleed movie frame, no book, no notes. Angel, Light + Blue: the Fossoil in the morning, both windows on Loot.",
+   "status": "keep",
+   "caps": [],
+   "extra": [],
+   "files": [
+    "cin_ang_open"
+   ]
+  },
+  {
+   "lay": [
+    "van_01_hero_mid: now 67% of the screen wide; wide, at least 45% of the screen",
+    "zed_01_hero_mid: now 41% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Inventory and Loot",
+   "stage": "Part 2",
+   "shot": "Same character, same spot, same container, same items in both shots: vanilla first, then ZeD. One open stack. This pair also feeds pitch image 1, so take it wide and clean.",
+   "status": "retake",
+   "caps": [
+    "The game's own windows: inventory, left, and loot, right.",
+    "The same moment in ZNIX: the Character window, left, and the World window, right."
+   ],
+   "extra": [
+    "Notes now: 4 ink, 2 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop now: QA's parking lot (glass roof, a few cars). The full capture has open game under the windows, so it re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 9,
+   "id": "inventory_compare"
+  },
+  {
+   "lay": [
+    "zed_18_card_food: now 12% of the screen wide; wide, at least 45% of the screen",
+    "zed_19_card_weapon: now 12% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Item Cards",
+   "stage": "Part 2",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "The card for an apple, left, and for a machete, right."
+   ],
+   "extra": [
+    "Notes now: 4 ink, 1 sticky.",
+    "Backdrop now: QA's parking lot (glass roof, a few cars). The full capture has open game under the windows, so it re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 11,
+   "id": "item_cards"
+  },
+  {
+   "lay": [
+    "zed_13_crafting: now 20% of the screen wide; wide, at least 45% of the screen",
+    "zed_53b_grid_tinted: now 20% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "List or Grid",
+   "stage": "Part 2",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "The inventory as a list.",
+    "The inventory as a grid, with Item-colored tiles on."
+   ],
+   "extra": [
+    "Notes now: 3 ink, 2 sticky, 2 sticky repeats the ink or caption.",
+    "Backdrop now: QA's parking lot (glass roof, a few cars). The full capture has open game under the windows, so it re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 7,
+   "id": "grid_view"
+  },
+  {
+   "lay": [
+    "van_20_ctx_menu: now 6% of the screen wide; wide, at least 45% of the screen",
+    "zed_20_ctx_strip: now 12% of the screen wide; wide, at least 45% of the screen",
+    "zed_21_ctx_list: now 11% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Context Menus",
+   "stage": "Part 2",
+   "shot": "Right-click the same item in vanilla and in ZeD. ZeD strip with the round 1b icons; the label above the strip readable.",
+   "status": "check",
+   "caps": [
+    "The context menu as the game draws it.",
+    "The strip, top, and the list, bottom."
+   ],
+   "extra": [
+    "Notes now: 4 ink, 1 sticky.",
+    "Backdrop now: QA's parking lot (glass roof, a few cars). The full capture has open game under the windows, so it re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 32,
+   "id": "context_menus"
+  },
+  {
+   "lay": [
+    "zed_10_equip_doll: now 22% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Equipment Tab",
+   "stage": "Part 2",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "retake",
+   "caps": [
+    "The Equipment tab in doll view."
+   ],
+   "extra": [
+    "Notes now: 6 ink, 1 sticky.",
+    "Backdrop now: QA's parking lot (glass roof, a few cars). The full capture has open game under the windows, so it re-crops wide, but the place is plain.",
+    "The tall window covers the character and the street. Retake with the window to one side and the character standing clear."
+   ],
+   "files": [],
+   "old": 14,
+   "id": "equip_doll"
+  },
+  {
+   "lay": [
+    "zqa_ht_01_two: now 18% of the screen wide; wide, at least 45% of the screen",
+    "zqa_ht_02_both: now 4% of the screen wide; wide, at least 45% of the screen",
+    "zqa_ht_06_rightwatch_pistol: now 11% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "The Belt",
+   "stage": "Part 2",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "The belt with an item in each hand.",
+    "One item in both hands, top, and a loaded pistol, bottom."
+   ],
+   "extra": [
+    "Notes now: 5 ink, 2 sticky, 2 sticky repeats the ink or caption.",
+    "Backdrop now: QA's test field (mowed grass, a road, a doghouse). Re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 34,
+   "id": "belt"
+  },
+  {
+   "lay": [
+    "story_10_customers_queue: now 34% of the screen wide; full page, half the screen at full height",
+    "zqa_ht_06_rightwatch_pistol: now 11% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Customers",
+   "stage": "Part 2",
+   "shot": "Angel, Light + Blue, outside the Fossoil store with survivors queuing; belt in frame, both hands empty.",
+   "status": "keep",
+   "caps": [
+    "The store and the belt."
+   ],
+   "extra": [
+    "Feature spread: text and at most one small picture on one page, one picture filling the other.",
+    "Notes now: 4 ink, 1 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop: the Fossoil, West Point. Re-crops wide and reads well.",
+    "Cast: Angel Cross, Light + Blue (Dark + Blue at night), the Fossoil, West Point."
+   ],
+   "files": [],
+   "old": 46,
+   "id": "customers"
+  },
+  {
+   "lay": [
+    "van_32_action_bar_reading: now 7% of the screen wide; wide, at least 45% of the screen",
+    "zed_32b_action_endless: now 7% of the screen wide; wide, at least 45% of the screen",
+    "zed_32_action_bar_reading: now 7% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Action Bar",
+   "stage": "Part 2",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "The action bar as the game draws it.",
+    "The verbose bar while resting, left, and while reading a book, right."
+   ],
+   "extra": [
+    "Notes now: 4 ink, 1 sticky.",
+    "Backdrop now: QA's parking lot (glass roof, a few cars). The full capture has open game under the windows, so it re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 33,
+   "id": "action_bar_compare"
+  },
+  {
+   "lay": [
+    "zqa_mood_left_hover: now 16% of the screen wide; full page, half the screen at full height",
+    "zqa_mood_bottom_hover: now 19% of the screen wide; wide, at least 45% of the screen",
+    "zqa_mood_right_hover: now 16% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Moodles",
+   "stage": "Part 2",
+   "shot": "Three or more moodles showing, one balloon open with its tail on the moodle. Feeds pitch image 3.",
+   "status": "retake",
+   "caps": [
+    "The moodles on the left edge, with one balloon open.",
+    "Above the belt, top, and on the right edge, bottom."
+   ],
+   "extra": [
+    "Feature spread: text and at most one small picture on one page, one picture filling the other.",
+    "Notes now: 4 ink, 1 sticky.",
+    "Backdrop now: QA's test field (mowed grass, a road, a doghouse). Re-crops wide, but the place is plain.",
+    "A feature spread fills a page with this place. Retake somewhere lived-in."
+   ],
+   "files": [],
+   "old": 37,
+   "id": "moodles"
+  },
+  {
+   "lay": [
+    "van_11_health: now 10% of the screen wide; wide, at least 45% of the screen",
+    "zed_11_health_exercise: now 22% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Health Tab",
+   "stage": "Part 2",
+   "shot": "Same wound in vanilla and ZeD (a bandaged scratch reads best). Feeds pitch image 3.",
+   "status": "retake",
+   "caps": [
+    "The Health tab as the game draws it.",
+    "The Health tab, with push-ups picked."
+   ],
+   "extra": [
+    "Notes now: 6 ink, 1 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop now: QA's parking lot (glass roof, a few cars). The full capture has open game under the windows, so it re-crops wide, but the place is plain.",
+    "The tall Health window covers the character. Retake with the character clear beside it, a visible wound."
+   ],
+   "files": [],
+   "old": 19,
+   "id": "health_compare"
+  },
+  {
+   "lay": [
+    "gbw_DigitalBlack: now 23% of the screen wide; wide, at least 45% of the screen",
+    "gbw_DigitalTimez: now 23% of the screen wide; wide, at least 45% of the screen",
+    "gbw_ClassicGold: now 23% of the screen wide; closer look, small",
+    "gbw_DigitalRed: now 23% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Watches",
+   "stage": "Part 2",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "The small watch in four models."
+   ],
+   "extra": [
+    "Notes now: 5 ink, 1 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop now: QA's test field (mowed grass, a road, a doghouse). Re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 38,
+   "id": "watches"
+  },
+  {
+   "lay": [
+    "cin_mck_kitchen"
+   ],
+   "kind": "scene",
+   "name": "Part 3 opener",
+   "stage": "Scene",
+   "shot": "Full-bleed movie frame, no book, no notes. McKline, High Contrast + Red: his kitchen, Cooking and the oven.",
+   "status": "keep",
+   "caps": [],
+   "extra": [],
+   "files": [
+    "cin_mck_kitchen"
+   ]
+  },
+  {
+   "lay": [
+    "zqa_cw_02_dark_small_window_menu_theme: now 18% of the screen wide; wide, at least 45% of the screen",
+    "zqa_cw_01_dark_small_card: now 30% of the screen wide; wide, at least 45% of the screen",
+    "zqa_cw_14_focus_hand_inventory_row: now 20% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Every Window",
+   "stage": "Part 3",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "The window menu, at top, and the help line at the foot of the window.",
+    "The help line with a controller."
+   ],
+   "extra": [
+    "Notes now: 5 ink, 2 sticky, 2 sticky repeats the ink or caption.",
+    "Backdrop now: QA's parking lot (glass roof, a few cars). The full capture has open game under the windows, so it re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 3,
+   "id": "every_window"
+  },
+  {
+   "lay": [
+    "zqa_ht_01_two: now 19% of the screen wide; wide, at least 45% of the screen",
+    "zqa_ht_02_both: now 19% of the screen wide; wide, at least 45% of the screen",
+    "~/Zomboid/Screenshots/lpp_dark_detailed_read: now 8% of the screen wide; closer look, small",
+    "~/Zomboid/Screenshots/lpp_dark_speech: now 8% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Speech, Thoughts and Hands",
+   "stage": "Part 3",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "Two items, top, and one item held in both hands, bottom.",
+    "The thought bubble, left, and the balloon, right."
+   ],
+   "extra": [
+    "Notes now: 4 ink, 2 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop now: QA's test field (mowed grass, a road, a doghouse). Re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 35,
+   "id": "bubbles"
+  },
+  {
+   "lay": [
+    "zqa_g4_belt_toast: now 11% of the screen wide; wide, at least 45% of the screen",
+    "zqa_g4_window_radio: now 35% of the screen wide; wide, at least 45% of the screen",
+    "zqa_g4_guide_bubble: now 17% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Messages",
+   "stage": "Part 3",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "Notes from two mods have come in.",
+    "The Messages window, and the paper note on the belt that opens it."
+   ],
+   "extra": [
+    "Notes now: 6 ink, 1 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop now: QA's flat sand roof. Re-crops wide, but there is nothing to look at."
+   ],
+   "files": [],
+   "old": 39,
+   "id": "messages"
+  },
+  {
+   "lay": [
+    "zqa_pr_01_sleep: now 14% of the screen wide; wide, at least 45% of the screen",
+    "zqa_pr_07_alarm: now 14% of the screen wide; wide, at least 45% of the screen",
+    "zqa_pr_06_keyboard: now 26% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Questions",
+   "stage": "Part 3",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "A question, left, and Set Alarm Time, right.",
+    "A prompt for a name, with the keyboard open under it."
+   ],
+   "extra": [
+    "Notes now: 4 ink, 2 sticky.",
+    "Backdrop now: QA's test field (mowed grass, a road, a doghouse). Re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 40,
+   "id": "questions"
+  },
+  {
+   "lay": [
+    "story_07b_drag_to_shelf: now 25% of the screen wide; full page, half the screen at full height"
+   ],
+   "kind": "chapter",
+   "name": "Stocking Shelves",
+   "stage": "Part 3",
+   "shot": "Angel, Light + Blue, inside the Fossoil: backpack column and three shelf columns, one item mid-drag.",
+   "status": "keep",
+   "caps": [
+    "The Character window: the backpack and the inventory.",
+    "The World window: three shelves and the ground."
+   ],
+   "extra": [
+    "Feature spread: text and at most one small picture on one page, one picture filling the other.",
+    "Notes now: 8 ink, 2 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop: the Fossoil, West Point. Re-crops wide and reads well.",
+    "Cast: Angel Cross, Light + Blue (Dark + Blue at night), the Fossoil, West Point."
+   ],
+   "files": [],
+   "old": 31,
+   "id": "stocking_shelves"
+  },
+  {
+   "lay": [
+    "zed_70_loadout_save: now 17% of the screen wide; wide, at least 45% of the screen",
+    "zed_71_loadout_fold: now 22% of the screen wide; wide, at least 45% of the screen",
+    "zed_73_loadout_todo_lines: now 22% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Loadouts",
+   "stage": "Part 3",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "Save to loadout, in the menu for a machete.",
+    "The fold, and the to-do of the loadout Supply run."
+   ],
+   "extra": [
+    "Notes now: 4 ink, 1 sticky.",
+    "Backdrop now: QA's parking lot (glass roof, a few cars). The full capture has open game under the windows, so it re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 29,
+   "id": "loadouts"
+  },
+  {
+   "lay": [
+    "~/Zomboid/Screenshots/gallery_beta2/zqa_c80_3840x2160_2_stew_plan: now 22% of the screen wide; full page, half the screen at full height",
+    "~/Zomboid/Screenshots/gallery_beta2/zqa_c80_3840x2160_5_dish_list: now 22% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Cooking",
+   "stage": "Part 3",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "retake",
+   "caps": [
+    "A stew planned: carrots, potato and cabbage, 3 of 6.",
+    "The Dish list: a saved stew, then the dishes the pot makes."
+   ],
+   "extra": [
+    "Feature spread: text and at most one small picture on one page, one picture filling the other.",
+    "Notes now: 4 ink, 2 sticky.",
+    "Backdrop now: QA's test field (mowed grass, a road, a doghouse). Re-crops wide, but the place is plain.",
+    "A feature spread fills a page with this place. Retake somewhere lived-in."
+   ],
+   "files": [],
+   "old": 21,
+   "id": "cooking"
+  },
+  {
+   "lay": [
+    "zqa_ap_1_tab_stove: now 21% of the screen wide; wide, at least 45% of the screen",
+    "zqa_ap_2b_popout_stove_on: now 46% of the screen wide; wide, at least 45% of the screen",
+    "zqa_ap_4_popout_microwave: now 46% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Ovens and Microwaves",
+   "stage": "Part 3",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "keep",
+   "caps": [
+    "An oven in the Crafting tab.",
+    "An oven, top, and a microwave."
+   ],
+   "extra": [
+    "Notes now: 3 ink, 1 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop: the house interior with the appliance in the room. Re-crops wide and reads well."
+   ],
+   "files": [],
+   "old": 22,
+   "id": "ovens"
+  },
+  {
+   "lay": [
+    "g14_radio_handbuilt: now 9% of the screen wide; wide, at least 45% of the screen",
+    "g14_radio_cd: now 9% of the screen wide; wide, at least 45% of the screen",
+    "g14_radio_red: now 9% of the screen wide; closer look, small",
+    "g14_radio_black: now 9% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Radios and the CD Player",
+   "stage": "Part 3",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "The hand-built radio, left, and the CD player, right.",
+    "The Premium radio, left, and the ValuTech radio, right."
+   ],
+   "extra": [
+    "Notes now: 5 ink, 2 sticky.",
+    "Backdrop now: QA's test field (mowed grass, a road, a doghouse). Re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 26,
+   "id": "radios"
+  },
+  {
+   "lay": [
+    "zqa_nb_01_page1: now 49% of the screen wide; wide, at least 45% of the screen",
+    "zqa_rd_01_paper: now 54% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Reading and Writing",
+   "stage": "Part 3",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "A notebook open at its first page.",
+    "A newspaper in the reader, with its side column, zoom buttons and switch shown closer."
+   ],
+   "extra": [
+    "Notes now: 5 ink, 2 sticky, 2 sticky repeats the ink or caption.",
+    "Backdrop now: QA's test field (mowed grass, a road, a doghouse). Re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 44,
+   "id": "reading_writing"
+  },
+  {
+   "lay": [
+    "story_00b_skills_tall: now 24% of the screen wide; wide, at least 45% of the screen",
+    "story_00a_identity_tall: now 23% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Skills",
+   "stage": "Part 3",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "retake",
+   "caps": [
+    "The Skills tab.",
+    "The traits on the Identity tab."
+   ],
+   "extra": [
+    "Notes now: 5 ink, 1 sticky.",
+    "Backdrop: the Fossoil, West Point. Re-crops wide and reads well.",
+    "Uses the same two tall captures as Old Job: retake once, use in both."
+   ],
+   "files": [],
+   "old": 16,
+   "id": "skills"
+  },
+  {
+   "lay": [
+    "story_00b_skills_tall: now 24% of the screen wide; wide, at least 45% of the screen",
+    "story_00a_identity_tall: now 24% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Old Job",
+   "stage": "Part 3",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "retake",
+   "caps": [
+    "The Skills tab.",
+    "The Identity tab."
+   ],
+   "extra": [
+    "Notes now: 7 ink, 2 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop: the Fossoil, West Point. Re-crops wide and reads well.",
+    "Both tall panels cover the middle of the screen. Retake each with Angel clear beside the window, the Fossoil behind.",
+    "Cast: Angel Cross, Light + Blue (Dark + Blue at night), the Fossoil, West Point."
+   ],
+   "files": [],
+   "old": 2,
+   "id": "old_job"
+  },
+  {
+   "lay": [
+    "story_02a_journal_entry: now 24% of the screen wide; wide, at least 45% of the screen",
+    "story_01a_flyer_reader: now 54% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "The Plan",
+   "stage": "Part 3",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "keep",
+   "caps": [
+    "The Journal tab.",
+    "A flyer open in the reader."
+   ],
+   "extra": [
+    "Notes now: 6 ink, 2 sticky.",
+    "Backdrop: the Fossoil, West Point. Re-crops wide and reads well.",
+    "Cast: Angel Cross, Light + Blue (Dark + Blue at night), the Fossoil, West Point."
+   ],
+   "files": [],
+   "old": 8,
+   "id": "the_plan"
+  },
+  {
+   "lay": [
+    "zed_70_thermal_insulation: now 12% of the screen wide; wide, at least 45% of the screen",
+    "zed_72_thermal_wetness: now 12% of the screen wide; wide, at least 45% of the screen",
+    "zed_66_thermal_skin: now 22% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Thermal Tab",
+   "stage": "Part 3",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "The figure in the Insulation view, left, and the Wetness view, right.",
+    "The Thermal tab in the Skin Temperature view."
+   ],
+   "extra": [
+    "Notes now: 3 ink, 1 sticky.",
+    "Backdrop now: QA's parking lot (glass roof, a few cars). The full capture has open game under the windows, so it re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 24,
+   "id": "thermal"
+  },
+  {
+   "lay": [
+    "cin_koh_vehicle"
+   ],
+   "kind": "scene",
+   "name": "Part 4 opener",
+   "stage": "Scene",
+   "shot": "Full-bleed movie frame, no book, no notes. Kohners, the broken-down car: Equipment and Vehicle.",
+   "status": "keep",
+   "caps": [],
+   "extra": [],
+   "files": [
+    "cin_koh_vehicle"
+   ]
+  },
+  {
+   "lay": [
+    "story_03_route_map: now 10% of the screen wide; full page, half the screen at full height",
+    "story_03b_route_note: now 8% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "The Route",
+   "stage": "Part 4",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "keep",
+   "caps": [
+    "The Maps tab."
+   ],
+   "extra": [
+    "Feature spread: text and at most one small picture on one page, one picture filling the other.",
+    "Notes now: 5 ink, 2 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop: the Fossoil, West Point. Re-crops wide and reads well.",
+    "Cast: Angel Cross, Light + Blue (Dark + Blue at night), the Fossoil, West Point."
+   ],
+   "files": [],
+   "old": 13,
+   "id": "the_route"
+  },
+  {
+   "lay": [
+    "story_05a_barricade_menu: now 16% of the screen wide; wide, at least 45% of the screen",
+    "story_05b_barricade_bar: now 14% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Barricading",
+   "stage": "Part 4",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "keep",
+   "caps": [
+    "The context menu on the front window, top, and the action bar while Angel barricades it, bottom."
+   ],
+   "extra": [
+    "Notes now: 3 ink, 1 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop: the Fossoil, West Point. Re-crops wide and reads well.",
+    "Cast: Angel Cross, Light + Blue (Dark + Blue at night), the Fossoil, West Point."
+   ],
+   "files": [],
+   "old": 28,
+   "id": "barricading"
+  },
+  {
+   "lay": [
+    "zed_13_crafting: now 22% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Crafting",
+   "stage": "Part 4",
+   "shot": "A recipe open with ingredients partly missing, so the have/need marks show. Take the vanilla B42 crafting window on the same recipe too (new), for pitch image 4.",
+   "status": "retake",
+   "caps": [
+    "The Crafting tab, with a recipe open."
+   ],
+   "extra": [
+    "Notes now: 6 ink, 1 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop now: QA's parking lot (glass roof, a few cars). The full capture has open game under the windows, so it re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 15,
+   "id": "crafting"
+  },
+  {
+   "lay": [
+    "zed_50_building: now 22% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Building",
+   "stage": "Part 4",
+   "shot": "A recipe open, the ghost of the piece visible in the world behind the window.",
+   "status": "check",
+   "caps": [
+    "The Building tab, with a recipe open."
+   ],
+   "extra": [
+    "Notes now: 6 ink, 1 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop now: QA's parking lot (glass roof, a few cars). The full capture has open game under the windows, so it re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 17,
+   "id": "building"
+  },
+  {
+   "lay": [
+    "zed_52_furniture: now 22% of the screen wide; wide, at least 45% of the screen",
+    "zed_51_forage: now 22% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Foraging and Furniture",
+   "stage": "Part 4",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "The Furniture tab, with an Outdoor Bench under the pointer.",
+    "The Foraging tab while searching, and its foot."
+   ],
+   "extra": [
+    "Notes now: 8 ink, 2 sticky, 2 sticky repeats the ink or caption.",
+    "Backdrop now: QA's parking lot (glass roof, a few cars). The full capture has open game under the windows, so it re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 10,
+   "id": "foraging_furniture"
+  },
+  {
+   "lay": [
+    "story_04a_dash_low_fuel: now 26% of the screen wide; full page, half the screen at full height",
+    "gb_seat_cabin: now 12% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Driving In",
+   "stage": "Part 4",
+   "shot": "The wagon's dashboard at the foot, fuel needle on E; second shot the cabin seat picker (pop-out, no window). The printed text still says 'Enter Vehicle window'; it gets rewritten.",
+   "status": "keep",
+   "caps": [
+    "The station wagon's dashboard.",
+    "Choosing a seat: the cabin from above."
+   ],
+   "extra": [
+    "Feature spread: text and at most one small picture on one page, one picture filling the other.",
+    "Notes now: 4 ink, 2 sticky, 2 sticky repeats the ink or caption.",
+    "Backdrop: the Fossoil, West Point. Re-crops wide and reads well.",
+    "Cast: Angel Cross, Light + Blue (Dark + Blue at night), the Fossoil, West Point."
+   ],
+   "files": [],
+   "old": 18,
+   "id": "driving_in"
+  },
+  {
+   "lay": [
+    "~/Zomboid/Screenshots/gallery_beta2/zqa_m79_3840x2160_2_hover_row: now 24% of the screen wide; wide, at least 45% of the screen",
+    "~/Zomboid/Screenshots/gallery_beta2/zqa_m79_3840x2160_6_card_brake_step: now 12% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "The Vehicle Tab",
+   "stage": "Part 4",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "The Vehicle tab: the muffler, pointed at in the list, lit on the car.",
+    "The rear left brake's card: the tire comes off first."
+   ],
+   "extra": [
+    "Notes now: 4 ink, 2 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop now: QA's test field (mowed grass, a road, a doghouse). Re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 30,
+   "id": "vehicle_tab"
+  },
+  {
+   "lay": [
+    "~/Zomboid/Screenshots/gallery_beta2/story_04b_vehicle_tab_tire: now 23% of the screen wide; wide, at least 45% of the screen",
+    "~/Zomboid/Screenshots/gallery_beta2/story_04b_tire_install_bar: now 21% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Fixing the Car",
+   "stage": "Part 4",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "keep",
+   "caps": [
+    "The Vehicle tab, at the front right tire.",
+    "The band in the Vehicle tab, and the action bar over the car."
+   ],
+   "extra": [
+    "Notes now: 7 ink, 2 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop: the Fossoil, West Point. Re-crops wide and reads well.",
+    "Cast: Angel Cross, Light + Blue (Dark + Blue at night), the Fossoil, West Point."
+   ],
+   "files": [],
+   "old": 23,
+   "id": "fixing_the_car"
+  },
+  {
+   "lay": [
+    "story_09b_gas_can_card: now 12% of the screen wide; full page, half the screen at full height",
+    "story_09c_dash_fuel_full: now 7% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Pumping Gas",
+   "stage": "Part 4",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "keep",
+   "caps": [
+    "The card of the gas can in Angel's hands.",
+    "Taking fuel at the pump.",
+    "The wagon's fuel gauge after refueling."
+   ],
+   "extra": [
+    "Feature spread: text and at most one small picture on one page, one picture filling the other.",
+    "Notes now: 3 ink, 2 sticky, 2 sticky repeats the ink or caption.",
+    "Backdrop: the Fossoil, West Point. Re-crops wide and reads well.",
+    "Cast: Angel Cross, Light + Blue (Dark + Blue at night), the Fossoil, West Point."
+   ],
+   "files": [],
+   "old": 41,
+   "id": "pumping_gas"
+  },
+  {
+   "lay": [
+    "zqa_r6p_taxi_extras: now 21% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Dashboards",
+   "stage": "Part 4",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "The middle of a taxi's dashboard."
+   ],
+   "extra": [
+    "Notes now: 4 ink, 1 sticky.",
+    "Backdrop now: QA's test field (mowed grass, a road, a doghouse). Re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 43,
+   "id": "dashboards"
+  },
+  {
+   "lay": [
+    "g5_car_radio: now 25% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "The Car Radio",
+   "stage": "Part 4",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "The Premium Technologies CD receiver, up close, with the radio on."
+   ],
+   "extra": [
+    "Notes now: 6 ink, 1 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop now: QA's test field (mowed grass, a road, a doghouse). Re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 42,
+   "id": "car_radio"
+  },
+  {
+   "lay": [
+    "story_11_smoke_break: now 5% of the screen wide; wide, at least 45% of the screen",
+    "zqa_mood_right_hover: now 15% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Smoke Break",
+   "stage": "Part 4",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "keep",
+   "caps": [
+    "The action bar, and the full watch open.",
+    "The balloon for a moodle."
+   ],
+   "extra": [
+    "Notes now: 5 ink, 2 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop: the Fossoil, West Point. Re-crops wide and reads well.",
+    "Cast: Angel Cross, Light + Blue (Dark + Blue at night), the Fossoil, West Point."
+   ],
+   "files": [],
+   "old": 51,
+   "id": "smoke_break"
+  },
+  {
+   "lay": [
+    "cin_lau_lake"
+   ],
+   "kind": "scene",
+   "name": "Part 5 opener",
+   "stage": "Scene",
+   "shot": "Full-bleed movie frame, no book, no notes. Laura, Light + Teal: the lake, a walkie and Fishing.",
+   "status": "keep",
+   "caps": [],
+   "extra": [],
+   "files": [
+    "cin_lau_lake"
+   ]
+  },
+  {
+   "lay": [
+    "g14_ldy_combo: now 14% of the screen wide; wide, at least 45% of the screen",
+    "g14_ldy_washer: now 14% of the screen wide; wide, at least 45% of the screen",
+    "g14_ldy_dryer: now 14% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Washer and Dryer",
+   "stage": "Part 5",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "keep",
+   "caps": [
+    "The washer-dryer.",
+    "The washer, top, and the dryer, bottom."
+   ],
+   "extra": [
+    "Notes now: 5 ink, 2 sticky.",
+    "Backdrop: the house interior with the appliance in the room. Re-crops wide and reads well."
+   ],
+   "files": [],
+   "old": 12,
+   "id": "laundry"
+  },
+  {
+   "lay": [
+    "gfr_yard: now 34% of the screen wide; wide, at least 45% of the screen",
+    "gfr_crop_grown: now 23% of the screen wide; wide, at least 45% of the screen",
+    "gfr_zone: now 25% of the screen wide; closer look, small",
+    "gfr_hutch_open: now 23% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "The Farm",
+   "stage": "Part 5",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "keep",
+   "caps": [
+    "A row of crops, top, and the card of a plot, bottom.",
+    "A pasture's card, top, and a henhouse card, bottom."
+   ],
+   "extra": [
+    "Notes now: 11 ink, 2 sticky, 2 sticky repeats the ink or caption.",
+    "Cut ink to 4 a page.",
+    "Backdrop: the farm plot with crops and animals. Re-crops wide and reads well."
+   ],
+   "files": [],
+   "old": 20,
+   "id": "farm"
+  },
+  {
+   "lay": [
+    "zqa_fi_1_slack: now 29% of the screen wide; full page, half the screen at full height",
+    "zqa_fi_3_tight: now 29% of the screen wide; wide, at least 45% of the screen",
+    "zqa_fi_5_limit: now 29% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Fishing",
+   "stage": "Part 5",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "retake",
+   "caps": [
+    "The line slack.",
+    "Tight, top, and at the limit, bottom."
+   ],
+   "extra": [
+    "Feature spread: text and at most one small picture on one page, one picture filling the other.",
+    "Notes now: 4 ink, 2 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop now: QA's test field (mowed grass, a road, a doghouse). Re-crops wide, but the place is plain.",
+    "The line is cast on mowed grass. Retake at water.",
+    "A feature spread fills a page with this place. Retake somewhere lived-in."
+   ],
+   "files": [],
+   "old": 25,
+   "id": "fishing"
+  },
+  {
+   "lay": [
+    "zqa_tw_5_ham_civilian_tab: now 22% of the screen wide; wide, at least 45% of the screen",
+    "zqa_tw_3a_valutech_full_view: now 11% of the screen wide; wide, at least 45% of the screen",
+    "zqa_tw_1b_valutech_tab: now 12% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Two-Way Radios",
+   "stage": "Part 5",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "A ham set in the Radio tab.",
+    "Full view, left, and the Radio tab, right."
+   ],
+   "extra": [
+    "Notes now: 5 ink, 1 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop now: QA's test field (mowed grass, a road, a doghouse). Re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 27,
+   "id": "two_way_radios"
+  },
+  {
+   "lay": [
+    "story_12b_dash_night: now 26% of the screen wide; full page, half the screen at full height",
+    "story_12c_watch_light: now 8% of the screen wide; wide, at least 45% of the screen",
+    "story_12d_windows_night: now 41% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Night Shift",
+   "stage": "Part 5",
+   "shot": "Angel, Dark + Blue, night, at the Fossoil: dashboard lit amber, watch light on.",
+   "status": "keep",
+   "caps": [
+    "The dashboard at night, and the watch with its light on.",
+    "The Character and World windows at night: the Dark theme with the Blue accent."
+   ],
+   "extra": [
+    "Feature spread: text and at most one small picture on one page, one picture filling the other.",
+    "Notes now: 3 ink, 2 sticky, 2 sticky repeats the ink or caption.",
+    "Backdrop: the Fossoil, West Point. Re-crops wide and reads well.",
+    "Cast: Angel Cross, Light + Blue (Dark + Blue at night), the Fossoil, West Point."
+   ],
+   "files": [],
+   "old": 61,
+   "id": "night_shift"
+  },
+  {
+   "lay": [
+    "journal_kills_1: now 24% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Keeping Count",
+   "stage": "Part 5",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "The Journal tab, with the Zombies Killed section open."
+   ],
+   "extra": [
+    "Notes now: 3 ink, 1 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop now: QA's test field (mowed grass, a road, a doghouse). Re-crops wide, but the place is plain.",
+    "Cast: Angel Cross, Light + Blue (Dark + Blue at night), the Fossoil, West Point."
+   ],
+   "files": [],
+   "old": 56,
+   "id": "keeping_count"
+  },
+  {
+   "lay": [
+    "cin_pad_wheel"
+   ],
+   "kind": "scene",
+   "name": "Part 6 opener",
+   "stage": "Scene",
+   "shot": "Full-bleed movie frame, no book, no notes. NEW: a survivor mid-street, pad connected, the Here and now wheel open, no windows.",
+   "status": "new",
+   "caps": [],
+   "extra": [],
+   "files": [
+    "cin_pad_wheel"
+   ]
+  },
+  {
+   "lay": [
+    "zqa_padmap_options: now 25% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Controller",
+   "stage": "Part 6",
+   "shot": "The controller map from the window menu, pad glyphs readable at half size.",
+   "status": "check",
+   "caps": [
+    "The controller."
+   ],
+   "extra": [
+    "Notes now: 7 ink, 1 sticky.",
+    "Backdrop now: QA's flat sand roof. Re-crops wide, but there is nothing to look at."
+   ],
+   "files": [],
+   "old": 47,
+   "id": "controller_map"
+  },
+  {
+   "lay": [
+    "zqa_g3_wheel_character_eat: now 12% of the screen wide; full page, half the screen at full height",
+    "zqa_g3_wheel_now_light: now 12% of the screen wide; wide, at least 45% of the screen",
+    "zqa_g3_wheel_use_smoke: now 12% of the screen wide; closer look, small",
+    "zqa_g3_footer_pad: now 21% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "On a Controller",
+   "stage": "Part 6",
+   "shot": "Pad connected: the Character wheel with the Belt slice; a window's help line showing pad prompts. Feeds pitch image 2.",
+   "status": "retake",
+   "caps": [
+    "The Character wheel, left, and the Here and now wheel.",
+    "Inside the Use slice, with Smoke pointed at. Below it, a window's help line."
+   ],
+   "extra": [
+    "Feature spread: text and at most one small picture on one page, one picture filling the other.",
+    "Notes now: 4 ink, 2 sticky.",
+    "Backdrop now: QA's flat sand roof. Re-crops wide, but there is nothing to look at.",
+    "A feature spread fills a page with this place. Retake somewhere lived-in."
+   ],
+   "files": [],
+   "old": 48,
+   "id": "controller"
+  },
+  {
+   "lay": [
+    "zqa_g3_setup_chords: now 34% of the screen wide; wide, at least 45% of the screen",
+    "zqa_g3_setup_putback: now 34% of the screen wide; wide, at least 45% of the screen",
+    "zqa_g3_setup_list: now 19% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Quick Actions",
+   "stage": "Part 6",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "Quick actions in ZeD setup, with the LB + X row chosen.",
+    "Put things back, top, and the list."
+   ],
+   "extra": [
+    "Notes now: 4 ink, 2 sticky, 2 sticky repeats the ink or caption.",
+    "Backdrop now: QA's flat sand roof. Re-crops wide, but there is nothing to look at."
+   ],
+   "files": [],
+   "old": 49,
+   "id": "quick_actions"
+  },
+  {
+   "lay": [
+    "zqa_cw_14_focus_hand_inventory_row: now 19% of the screen wide; wide, at least 45% of the screen",
+    "zqa_cw_16_focus_corners_inventory_row: now 19% of the screen wide; wide, at least 45% of the screen",
+    "zqa_cw_18_focus_wash_inventory_row: now 19% of the screen wide; closer look, small",
+    "zqa_cw_20_focus_ants_inventory_row: now 19% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Controller Highlight",
+   "stage": "Part 6",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "Pointing hand, Corner marks, One wash and Marching ants, from the top."
+   ],
+   "extra": [
+    "Notes now: 4 ink, 1 sticky.",
+    "Backdrop now: QA's parking lot (glass roof, a few cars). The full capture has open game under the windows, so it re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 5,
+   "id": "controller_highlight"
+  },
+  {
+   "lay": [
+    "cin_koh_dusk"
+   ],
+   "kind": "scene",
+   "name": "Part 7 opener",
+   "stage": "Scene",
+   "shot": "Full-bleed movie frame, no book, no notes. Kohners, Dark + Pink: driving at dusk, the dashboard and the car radio, no windows.",
+   "status": "keep",
+   "caps": [],
+   "extra": [],
+   "files": [
+    "cin_koh_dusk"
+   ]
+  },
+  {
+   "lay": [
+    "theme_dark_orange: now 25% of the screen wide; wide, at least 45% of the screen",
+    "theme_dark_green: now 25% of the screen wide; wide, at least 45% of the screen",
+    "theme_light_blue: now 25% of the screen wide; closer look, small",
+    "theme_light_red: now 25% of the screen wide; closer look, small",
+    "theme_hicon_teal: now 25% of the screen wide; cut or move to another spread",
+    "theme_hicon_purple: now 25% of the screen wide; cut or move to another spread",
+    "zqa_cw_02_dark_small_window_menu_theme: now 9% of the screen wide; cut or move to another spread"
+   ],
+   "kind": "chapter",
+   "name": "Themes and Accents",
+   "stage": "Part 7",
+   "shot": "One scene, same windows, repeated per theme and accent so only the color changes.",
+   "status": "check",
+   "caps": [
+    "Dark, top, and Light, bottom, each with two accents.",
+    "High contrast, with PZ Teal and with Purple.",
+    "The window menu."
+   ],
+   "extra": [
+    "Notes now: 2 ink, 2 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop now: QA's parking lot (glass roof, a few cars). The full capture has open game under the windows, so it re-crops wide, but the place is plain.",
+    "7 pictures now. At the wider crop the spread holds two large and two small: pick."
+   ],
+   "files": [],
+   "old": 50,
+   "id": "themes"
+  },
+  {
+   "lay": [
+    "story_08c_footer_blue: now 18% of the screen wide; full page, half the screen at full height",
+    "story_08b_footer_light: now 18% of the screen wide; wide, at least 45% of the screen",
+    "story_08d_open_light_blue: now 41% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Open for Business",
+   "stage": "Part 7",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "keep",
+   "caps": [
+    "The window menu, with Accent open.",
+    "The Theme submenu, top, and the Character and World windows in the Light theme with the Blue accent, bottom."
+   ],
+   "extra": [
+    "Feature spread: text and at most one small picture on one page, one picture filling the other.",
+    "Notes now: 4 ink, 2 sticky, 2 sticky repeats the ink or caption.",
+    "Backdrop: the Fossoil, West Point. Re-crops wide and reads well.",
+    "Cast: Angel Cross, Light + Blue (Dark + Blue at night), the Fossoil, West Point."
+   ],
+   "files": [],
+   "old": 36,
+   "id": "open_for_business"
+  },
+  {
+   "lay": [
+    "zqa_cw_12b_solid_in_use: now 51% of the screen wide; wide, at least 45% of the screen",
+    "zqa_cw_08_seethrough_100: now 21% of the screen wide; wide, at least 45% of the screen",
+    "zqa_cw_12_seethrough_60: now 21% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "See-through",
+   "stage": "Part 7",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "See-through 60 with Solid while in use on: the Character window, in use, stays solid.",
+    "The World window at see-through 100, left, and 60, right."
+   ],
+   "extra": [
+    "Notes now: 3 ink, 2 sticky, 2 sticky repeats the ink or caption.",
+    "Backdrop now: QA's parking lot (glass roof, a few cars). The full capture has open game under the windows, so it re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 4,
+   "id": "see_through"
+  },
+  {
+   "lay": [
+    "zqa_cw_29_hair_beard_folded: now 22% of the screen wide; wide, at least 45% of the screen",
+    "zqa_cw_30_hair_beard_show_all: now 22% of the screen wide; wide, at least 45% of the screen"
+   ],
+   "kind": "chapter",
+   "name": "Hidden Actions",
+   "stage": "Part 7",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "Folded, the default: what cannot be done yet folds into one row.",
+    "Show all: the same actions, grayed, each with what it needs."
+   ],
+   "extra": [
+    "Notes now: 2 ink, 2 sticky, 2 sticky repeats the ink or caption.",
+    "Backdrop now: QA's parking lot (glass roof, a few cars). The full capture has open game under the windows, so it re-crops wide, but the place is plain."
+   ],
+   "files": [],
+   "old": 6,
+   "id": "hidden_actions"
+  },
+  {
+   "lay": [
+    "gb_forms_setup: now 24% of the screen wide; wide, at least 45% of the screen",
+    "gb_simple_watch: now 13% of the screen wide; wide, at least 45% of the screen",
+    "gb_simple_belt: now 15% of the screen wide; closer look, small",
+    "gb_plain_radio: now 12% of the screen wide; closer look, small",
+    "gb_plain_dash: now 37% of the screen wide; cut or move to another spread"
+   ],
+   "kind": "chapter",
+   "name": "Immersive or Simple",
+   "stage": "Part 7",
+   "shot": "Each pair framed identically, Immersive and Simple, so only the style differs.",
+   "status": "check",
+   "caps": [
+    "The Immersive or simple section of ZeD setup.",
+    "The watch, Simple, left; the belt, both looks, right.",
+    "A radio, Simple, top; the dashboard, Simple, bottom."
+   ],
+   "extra": [
+    "Notes now: 5 ink, 2 sticky.",
+    "Backdrop now: QA's flat sand roof. Re-crops wide, but there is nothing to look at.",
+    "5 pictures now. At the wider crop the spread holds two large and two small: pick."
+   ],
+   "files": [],
+   "old": 45,
+   "id": "full_or_simple"
+  },
+  {
+   "lay": [
+    "gb_1_title: now 24% of the screen wide; wide, at least 45% of the screen",
+    "gb_2_contents_p1p2: now 24% of the screen wide; wide, at least 45% of the screen",
+    "gb_3_chapter_opener: now 48% of the screen wide; closer look, small",
+    "gb_4_skill_books_rules: now 24% of the screen wide; closer look, small",
+    "gw_zqa_g82s_3840x2160_2b_skill_books_rules_full: now 20% of the screen wide; cut or move to another spread",
+    "gb_5_shared_page: now 48% of the screen wide; cut or move to another spread",
+    "gw_zqa_g82s_3840x2160_4_find_book: now 34% of the screen wide; cut or move to another spread"
+   ],
+   "kind": "chapter",
+   "name": "The Survival Guide",
+   "stage": "Part 7",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "check",
+   "caps": [
+    "The *Immersive* look: the title page, left, and the contents, right.",
+    "The rules page: *Immersive*, top; *Simple*, below."
+   ],
+   "extra": [
+    "Notes now: 6 ink, 2 sticky.",
+    "Backdrop now: QA's flat sand roof. Re-crops wide, but there is nothing to look at.",
+    "7 pictures now. At the wider crop the spread holds two large and two small: pick."
+   ],
+   "files": [],
+   "old": 52,
+   "id": "survival_guide"
+  },
+  {
+   "lay": [
+    "mps_01_server_tab_top: now 24% of the screen wide; wide, at least 45% of the screen",
+    "mps_02_server_tab_foot: now 24% of the screen wide; wide, at least 45% of the screen",
+    "mps_03_belt_pvp_marker_and_chat_key: now 29% of the screen wide; closer look, small",
+    "mps_09_admin_tab_top_player_picked: now 24% of the screen wide; closer look, small",
+    "mps_10_admin_tab_middle: now 24% of the screen wide; cut or move to another spread",
+    "mps_11_admin_tab_foot: now 24% of the screen wide; cut or move to another spread",
+    "mps_05_chat_window_general: now 23% of the screen wide; cut or move to another spread",
+    "mps_06_chat_window_admin_tab: now 23% of the screen wide; cut or move to another spread"
+   ],
+   "kind": "chapter",
+   "name": "Playing on a Server",
+   "stage": "Part 7",
+   "shot": "Server tab with other players listed; chat open. Names must be QA's own test names.",
+   "status": "retake",
+   "caps": [
+    "The *Server* tab and the belt.",
+    "The *Admin* tab, top, and chat, below."
+   ],
+   "extra": [
+    "Notes now: 8 ink, 2 sticky, 1 sticky repeats the ink or caption.",
+    "Backdrop now: half the captures are a black void with one tile lit. Retake in a street with other players in view.",
+    "8 pictures now. At the wider crop the spread holds two large and two small: pick."
+   ],
+   "files": [],
+   "old": 63,
+   "id": "multiplayer"
+  },
+  {
+   "lay": [
+    "mm4_15_upload_ready: now 32% of the screen wide; wide, at least 45% of the screen",
+    "mm4_16_upload_ask: now 48% of the screen wide; wide, at least 45% of the screen",
+    "mm4_12_editor: now 17% of the screen wide; closer look, small"
+   ],
+   "kind": "chapter",
+   "name": "Uploading",
+   "stage": "Part 7",
+   "shot": "Re-crop the beta 19 capture wide. Check it at the 1.0 sweep for old icons, dark pop-ups or an older layout.",
+   "status": "keep",
+   "caps": [
+    "A mod's page, ready to go up.",
+    "The page as Steam shows it, and the blocks and sections."
+   ],
+   "extra": [
+    "Notes now: 7 ink, 2 sticky, 1 sticky repeats the ink or caption.",
+    "A menu screen on the desk: already shown whole. No crop change."
+   ],
+   "files": [],
+   "old": 62,
+   "id": "uploader"
+  },
+  {
+   "lay": [
+    "cin_ang_close"
+   ],
+   "kind": "scene",
+   "name": "Closing scene",
+   "stage": "Scene",
+   "shot": "Full-bleed. Angel, Light + Blue, night: Angel meets a group of survivors on a server.",
+   "status": "keep",
+   "caps": [],
+   "extra": [],
+   "files": [
+    "cin_ang_close"
+   ]
+  },
+  {
+   "lay": [
+    "69_the_end"
+   ],
+   "kind": "front",
+   "name": "The end",
+   "stage": "Front",
+   "shot": "The director's closing picture, placed by hand. Unchanged.",
+   "status": "keep",
+   "caps": [],
+   "extra": [],
+   "files": []
+  }
+ ],
+ "sections": [
+  [
+   "The pitch",
+   "Images 1 to 5. The whole argument for a visitor who looks at nothing else: each image a different system, screenshots large, almost no notes.",
+   0,
+   5
+  ],
+  [
+   "Front matter",
+   "",
+   5,
+   8
+  ],
+  [
+   "Part 1: Before you play",
+   "Stage 0. Every run passes through these.",
+   8,
+   15
+  ],
+  [
+   "Part 2: The first ten minutes",
+   "Stage 1. What nearly every player touches in every run, and what they complain about most.",
+   15,
+   27
+  ],
+  [
+   "Part 3: The first day",
+   "Stage 2. Bags and containers, food, books, TV and radio, sleep.",
+   27,
+   42
+  ],
+  [
+   "Part 4: The first week",
+   "Stage 3. The map, barricades, crafting, and the first car.",
+   42,
+   55
+  ],
+  [
+   "Part 5: Settling in",
+   "Stages 4 and 5. Only long runs get here.",
+   55,
+   62
+  ],
+  [
+   "Part 6: On a controller",
+   "For the pad and Steam Deck player. Pitch image 2 points here.",
+   62,
+   67
+  ],
+  [
+   "Part 7: Your way",
+   "Themes, styles, and what you can turn off. Then multiplayer and uploading.",
+   67,
+   76
+  ],
+  [
+   "The close",
+   "",
+   76,
+   78
+  ]
+ ]
+}

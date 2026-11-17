@@ -1,0 +1,112 @@
+{
+ "note": "The 1.0 book order from the storyboard (Nov 17 2026): the introduction, then seven parts in the order a run meets the UI. 'break' is the scene shown BEFORE the part (its opener).",
+ "parts": [
+  {
+   "title": "Before you play",
+   "chapters": [
+    "hero",
+    "desk",
+    "options_menu",
+    "sandbox_ingame",
+    "mod_manager",
+    "mod_settings",
+    "turn_off",
+    "load_order"
+   ],
+   "break": null
+  },
+  {
+   "title": "The first ten minutes",
+   "chapters": [
+    "inventory_compare",
+    "item_cards",
+    "grid_view",
+    "context_menus",
+    "equip_doll",
+    "belt",
+    "customers",
+    "action_bar_compare",
+    "moodles",
+    "health_compare",
+    "watches"
+   ],
+   "break": "cin_ang_open"
+  },
+  {
+   "title": "The first day",
+   "chapters": [
+    "every_window",
+    "bubbles",
+    "messages",
+    "questions",
+    "stocking_shelves",
+    "loadouts",
+    "cooking",
+    "ovens",
+    "radios",
+    "reading_writing",
+    "skills",
+    "old_job",
+    "the_plan",
+    "thermal"
+   ],
+   "break": "cin_mck_kitchen"
+  },
+  {
+   "title": "The first week",
+   "chapters": [
+    "the_route",
+    "barricading",
+    "crafting",
+    "building",
+    "foraging_furniture",
+    "driving_in",
+    "vehicle_tab",
+    "fixing_the_car",
+    "pumping_gas",
+    "dashboards",
+    "car_radio",
+    "smoke_break"
+   ],
+   "break": "cin_koh_vehicle"
+  },
+  {
+   "title": "Settling in",
+   "chapters": [
+    "laundry",
+    "farm",
+    "fishing",
+    "two_way_radios",
+    "night_shift",
+    "keeping_count"
+   ],
+   "break": "cin_lau_lake"
+  },
+  {
+   "title": "On a controller",
+   "chapters": [
+    "controller_map",
+    "controller",
+    "quick_actions",
+    "controller_highlight"
+   ],
+   "break": "cin_pad_wheel"
+  },
+  {
+   "title": "Your way",
+   "chapters": [
+    "themes",
+    "open_for_business",
+    "see_through",
+    "hidden_actions",
+    "full_or_simple",
+    "survival_guide",
+    "multiplayer",
+    "uploader"
+   ],
+   "break": "cin_koh_dusk"
+  }
+ ],
+ "close_break": "cin_ang_close",
+ "openers": true
+}
