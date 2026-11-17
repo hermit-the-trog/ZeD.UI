@@ -1205,10 +1205,14 @@ function ZeD_MessagesToasts:render()
     ZeD.Bubbles.drawNoticeBalloons(cv, ZeD.T, list, self._tail, 1)
     -- the pointer over a balloon: the hover wash on it (a click opens Messages there)
     local mx, my = self:getMouseX(), self:getMouseY()
-    local hv = ZeD.T.hover
+    -- (Nov 17 2026: the balloons are light now, the tooltips' palette; the wash is a faint shade of its dark line,
+    -- as the theme's own hover, a faint white on Dark, would not show on light grey)
+    local LP = ZeD.Balloon and ZeD.Balloon.LIGHT
+    local hv = LP and LP.borderS or ZeD.T.hover
+    local ha = LP and 0.14 or (hv.a or 1)
     for _, b in ipairs(self._boxes or {}) do
         if mx >= b.x and mx < b.x + b.w and my >= b.y and my < b.y + b.h then
-            ISUIElement.drawRect(self, b.x + k, b.y + k, b.w - 2 * k, b.h - 2 * k, hv.a or 1, hv.r, hv.g, hv.b)
+            ISUIElement.drawRect(self, b.x + k, b.y + k, b.w - 2 * k, b.h - 2 * k, ha, hv.r, hv.g, hv.b)
         end
     end
 end

@@ -711,18 +711,25 @@ function B.layoutNoticeBalloons(list, leftU, rightU, tail)
 end
 
 -- the balloons: shadow, body, the status mark, the lines; the newest one's tail (tail set) to the anchor
+-- (Nov 17 2026, the director: the pop-ups are "supposed to be light", as the tooltips are since beta 16: the notice
+-- balloons, a mod's note out of the belt and the guide's offer, draw in the tooltips' light palette (ZeD.Balloon.LIGHT:
+-- near-black words on light grey, its strongest line) whatever the theme. The status mark keeps its own color.)
 function B.drawNoticeBalloons(cv, T, list, tail, a)
     local sh = B._shadow
+    local LP = ZeD.Balloon and ZeD.Balloon.LIGHT
+    local fill = LP and LP.surf1 or B.solid.surf1
+    local ink = LP and LP.borderS or T.borderS
+    local words = LP and LP.text or T.text
     a = a or 1
     for i = 1, #list do
         local n = list[i]
         B.roundBox(cv, n.x + 1, n.y + 1, n.w, n.h, sh, sh, a)
         if tail and i == #list then rectsA(cv, B.speechTail().sh, sh, a, 0, 0) end
-        B.roundBox(cv, n.x, n.y, n.w, n.h, B.solid.surf1, T.borderS, a)
+        B.roundBox(cv, n.x, n.y, n.w, n.h, fill, ink, a)
         if tail and i == #list then
             local tl = B.speechTail()
-            rectsA(cv, tl.ink, T.borderS, a, 0, 0)
-            rectsA(cv, tl.fill, B.solid.surf1, a, 0, 0)
+            rectsA(cv, tl.ink, ink, a, 0, 0)
+            rectsA(cv, tl.fill, fill, a, 0, 0)
         end
         local tx = n.x + B.PAD
         if n.dot then
@@ -730,7 +737,7 @@ function B.drawNoticeBalloons(cv, T, list, tail, a)
             tx = tx + B.NOTE_DOT * 2
         end
         for j = 1, #n.lines do
-            B.drawLine(cv, n.lines[j], tx, n.y + B.PAD + (j - 1) * B.LINE, T.text, a * (T.text.a or 1), "l", "body")
+            B.drawLine(cv, n.lines[j], tx, n.y + B.PAD + (j - 1) * B.LINE, words, a * (words.a or 1), "l", "body")
         end
     end
 end

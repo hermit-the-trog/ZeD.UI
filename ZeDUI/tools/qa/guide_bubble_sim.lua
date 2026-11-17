@@ -388,5 +388,17 @@ for _, l in ipairs(langs) do
     check(l .. " bubble keeps its %1", b and string.find(b, "%1", 1, true) ~= nil)
 end
 
+-- (Nov 17 2026, the director: the pop-ups are light, as the tooltips are) the notice balloons, the guide's offer and a
+-- mod's note out of the belt, draw in the tooltips' light palette, not the theme's surface
+do
+    local bs = (slurp(ROOT .. "42/media/lua/client/ZeD/ZeD_Bubbles.lua"):gsub(string.char(13) .. string.char(10), string.char(10)))
+    local body = bs:match("function B%.drawNoticeBalloons%(.-\nend\n") or ""
+    check("LIGHT: the notice balloons take the tooltips' light palette",
+        body:find("ZeD.Balloon.LIGHT", 1, true) ~= nil and body:find("B.roundBox(cv, n.x, n.y, n.w, n.h, fill, ink, a)", 1, true) ~= nil)
+    check("LIGHT: their words are the palette's near-black", body:find("words, a * (words.a or 1)", 1, true) ~= nil)
+    local mw = slurp(ROOT .. "42/media/lua/client/ZeD/ZeD_MessagesWindow.lua")
+    check("LIGHT: the hover wash on them shows on light grey", mw:find("local hv = LP and LP.borderS or ZeD.T.hover", 1, true) ~= nil)
+end
+
 print("guide_bubble_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end
