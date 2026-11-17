@@ -11,7 +11,9 @@
 --   mood    the Moodles row at right, left and bottom; hunger, thirst, tiredness raised (as zedqa_moodles.lua): the note
 --           by itself (lpp_<theme>_mood_<place>_note), then the pointer on moodle 2 (lpp_<theme>_mood_<place>)
 --   bar     Simple, then Detailed: reading a book (work), stopped (the queue stopped mid-read), resting (no end, its
---           icon), done (an apple eaten to its end): lpp_<theme>_<simple|detailed>_<read|stopped|rest|done>
+--           icon; taken anyway, its phase logged), walking 6 tiles to a read, a queue of three apples, done (an apple
+--           eaten to its end): lpp_<theme>_<simple|detailed>_<read|stopped|rest|walk|queue|done>. Not judged (the track
+--           is a fixed dark since a8753ff12): the colors drawn are logged, the pictures are for Build's eye.
 --   notice  two made-up mods' notes (zedqa_gallery_t4.lua's), the balloon and its hover; the guide's offer
 --           (zedqa_guide_bubble.lua, first show at 1.5 s), the balloon and its hover: lpp_<theme>_notice_<mod|guide>[_hover]
 -- Run after gallery_unload.lua (the load under 20 kg, the pointer hidden) and before gallery_reload.lua.
@@ -177,41 +179,87 @@ function S.barSt() local l = S.AB._layers and S.AB._layers[S.pn]; return l and l
 function S.give(ft) local it = S.inv:AddItem(ft); if it then S.given[#S.given + 1] = it end; return it end
 function S.stopAll() pcall(function() S.p:StopAllActionQueue() end) end
 -- waits (5 frames a poll, up to n polls) until the bar's phase is want, then takes the picture and judges it
-function S.barShot(tag, want, n)
+-- (a8753ff12: the bar's track is a fixed dark now, so the bar is not judged: the colors drawn are logged and the
+-- pictures taken for Build's eye)
+function S.logColors()
+    S.capOn = false
+    local list = {}
+    for k, v in pairs(S.tally) do list[#list + 1] = { k = k, v = v } end
+    table.sort(list, function(x, y) return x.v > y.v end)
+    local tops = {}
+    for i = 1, math.min(6, #list) do tops[#tops + 1] = list[i].k .. " (" .. math.floor(list[i].v) .. ")" end
+    S.say(S.tag .. ": colors drawn, most area first: " .. (#tops > 0 and table.concat(tops, ", ") or "none caught"))
+end
+-- waits (5 frames a poll, up to n polls) until ok(st) is true, then takes the picture and logs the colors and the bar's
+-- state; force: the picture is taken anyway after n polls, with the phase it reads
+function S.barShot(tag, ok, n, force)
     S.step(2, function() S.t = 0; S.start(tag) end)
     S.step(5, function()
         S.t = S.t + 1
         local st = S.barSt()
-        if not (st and st.phase == want) and S.t < n then return true end
-        if not (st and st.phase == want) then S.say("not run: " .. tag .. " (the bar's phase is " .. tostring(st and st.phase) .. ", not " .. want .. ")"); S.capOn = false; return end
+        local good = st ~= nil and ok(st)
+        if not good and S.t < n then return true end
+        local state = "phase " .. tostring(st and st.phase) .. ", noend " .. tostring(st and st.noend) .. ", queue " .. tostring(st and st.qi) .. "/" .. tostring(st and st.qn)
+        if not good and not force then S.say("not run: " .. tag .. " (the bar reads " .. state .. ")"); S.capOn = false; return end
+        S.say(tag .. ": the bar reads " .. state .. (good and "" or " (taken anyway)"))
         S.shot("lpp_" .. tag)
-        S.judge(false)
+        S.logColors()
     end)
+end
+function S.isPhase(want) return function(st) return st.phase == want end end
+function S.read() S.book = S.book or S.give("Base.Book"); if S.book then pcall(function() ISTimedActionQueue.add(ISReadABook:new(S.p, S.book)) end) end end
+function S.eat(n)
+    for _ = 1, n do
+        local a = S.give("Base.Apple")
+        if a then pcall(function() ISTimedActionQueue.add(ISEatFoodAction:new(S.p, a, 0.25)) end) end
+    end
 end
 function S.bar(theme)
     for _, b in ipairs({ { 2, "simple" }, { 1, "detailed" } }) do
         local tag = theme .. "_" .. b[2]
         S.step(10, function() pcall(function() S.St.actionBarOption:setValue(b[1]) end); S.stopAll() end)
         -- reading, then stopped
-        S.step(10, function()
-            S.book = S.book or S.give("Base.Book")
-            if S.book then pcall(function() ISTimedActionQueue.add(ISReadABook:new(S.p, S.book)) end) end
-        end)
+        S.step(10, S.read)
         S.step(60, function() end)
-        S.barShot(tag .. "_read", "work", 60)
+        S.barShot(tag .. "_read", S.isPhase("work"), 60)
         S.step(5, function() S.stopAll() end)
-        S.barShot(tag .. "_stopped", "stopped", 20)
-        -- resting (no end: its icon)
-        S.step(90, function() pcall(function() ISTimedActionQueue.add(ISRestAction:new(S.p, nil, true)) end) end)
-        S.step(60, function() end)
-        S.barShot(tag .. "_rest", "work", 60)
+        S.barShot(tag .. "_stopped", S.isPhase("stopped"), 20)
+        -- resting (no end: its icon). Its phase read nil in the first run: taken anyway, the phase logged
+        S.step(90, function()
+            local ok, e = pcall(function() ISTimedActionQueue.add(ISRestAction:new(S.p, nil, true)) end)
+            if not ok then S.say(tag .. "_rest: ISRestAction did not queue (" .. tostring(e) .. ")") end
+        end)
+        S.step(30, function() end)
+        S.barShot(tag .. "_rest", function(st) return st.phase == "work" and st.noend end, 40, true)
+        S.step(5, function() S.stopAll() end)
+        -- walking to an action: a square about 6 tiles off, then a read there (the moving grey segment)
+        S.step(60, function()
+            local sq
+            for _, o in ipairs({ { 6, 0 }, { -6, 0 }, { 0, 6 }, { 0, -6 } }) do
+                local t = getCell():getGridSquare(math.floor(S.p:getX()) + o[1], math.floor(S.p:getY()) + o[2], math.floor(S.p:getZ()))
+                local free = false
+                if t then pcall(function() free = t:isFree(false) end) end
+                if free and not sq then sq = t end
+            end
+            if not sq then S.say("not run: " .. tag .. "_walk (no free square 6 tiles off)"); return end
+            S.walkFrom = { x = S.p:getX(), y = S.p:getY(), z = S.p:getZ() }
+            pcall(function() ISTimedActionQueue.add(ISWalkToTimedAction:new(S.p, sq)) end)
+            S.read()
+        end)
+        S.barShot(tag .. "_walk", S.isPhase("walk"), 40)
+        S.step(5, function()
+            S.stopAll()
+            local w = S.walkFrom
+            if w then pcall(function() S.p:setX(w.x); S.p:setY(w.y); S.p:setLastX(w.x); S.p:setLastY(w.y) end) end
+            S.walkFrom = nil
+        end)
+        -- a queue of three: the dividers while the first runs
+        S.step(60, function() S.eat(3) end)
+        S.barShot(tag .. "_queue", function(st) return st.phase == "work" and (st.qn or 0) >= 2 end, 60)
         S.step(5, function() S.stopAll() end)
         -- an apple eaten to the end: done
-        S.step(90, function()
-            local a = S.give("Base.Apple")
-            if a then pcall(function() ISTimedActionQueue.add(ISEatFoodAction:new(S.p, a, 0.25)) end) end
-        end)
-        S.barShot(tag .. "_done", "done", 600)
+        S.step(90, function() S.eat(1) end)
+        S.barShot(tag .. "_done", S.isPhase("done"), 600)
         S.step(60, function() S.stopAll() end)
     end
 end
