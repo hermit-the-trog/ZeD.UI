@@ -40,12 +40,40 @@ local function localNum(p)
 end
 
 -- the tone of a colour the game passed: a ColorRGB (r, g, b as 0-255) or three numbers
+-- (Nov 17 2026, QA: the red and green notes came out with no mark at all. Kahlua does not hand a Java object's fields
+-- over as c.r / c.g / c.b, so a ColorRGB read as no colour. The game's own red and green are matched first, the same
+-- objects HaloTextHelper hands out; then its getters; then the fields, where a build exposes them.)
+local function colourOf(c, name)
+    local ok, v = pcall(function() return c[name](c) end)
+    if ok and type(v) == "number" then return v end
+    return nil
+end
 local function toneOf(c, g, b)
     local r
     if type(c) == "number" then r = c
     elseif c ~= nil then
-        local ok = pcall(function() r, g, b = c.r, c.g, c.b end)
-        if not ok then return nil end
+        local HT = HaloTextHelper
+        if HT then
+            -- (the jar's ColorRGB has public fields only, no getters: the game's own colour objects are matched)
+            for _, f in ipairs({ "getColorRed", "getBadColor" }) do
+                local ok, v = pcall(function() return HT[f]() end)
+                if ok and v ~= nil and c == v then return "bad" end
+            end
+            for _, f in ipairs({ "getColorGreen", "getGoodColor" }) do
+                local ok, v = pcall(function() return HT[f]() end)
+                if ok and v ~= nil and c == v then return "good" end
+            end
+        end
+        r, g, b = colourOf(c, "getR"), colourOf(c, "getG"), colourOf(c, "getB")
+        if not (r and g and b) then
+            r, g, b = colourOf(c, "getRed"), colourOf(c, "getGreen"), colourOf(c, "getBlue")
+        end
+        if not (r and g and b) then
+            local ok = pcall(function() r, g, b = c.r, c.g, c.b end)
+            if not ok then return nil end
+        end
+        -- (a getter may hand 0-1 floats: scale them to the 0-255 the test below reads)
+        if r and g and b and r <= 1 and g <= 1 and b <= 1 then r, g, b = r * 255, g * 255, b * 255 end
     end
     if not (r and g and b) then return nil end
     if g > r + 40 and g > b then return "good" end
@@ -104,8 +132,10 @@ function H.install()
         -- addTextWithArrow(player, text [, separator], up, colour [, arrow colour] | r, g, b [, r, g, b])
         HT.addTextWithArrow = function(...)
             local p, text, a3, a4, a5, a6, a7 = ...
-            local tone
-            if type(a3) == "string" then tone = toneOf(a5, a6, a7) else tone = toneOf(a4, a5, a6) end
+            local tone, up
+            if type(a3) == "string" then tone, up = toneOf(a5, a6, a7), a4 else tone, up = toneOf(a4, a5, a6), a3 end
+            -- (no colour read: the arrow's way says it, as the game draws it, up for a gain and down for a loss)
+            if tone == nil and type(up) == "boolean" then tone = up and "good" or "bad" end
             if take(p, text, tone) then return end
             return O.addTextWithArrow(...)
         end
