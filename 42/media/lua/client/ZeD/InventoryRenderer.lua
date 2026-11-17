@@ -1396,7 +1396,7 @@ end
 -- square filled with the item's tint (always on here: the director's approved shapes are all tinted; a plain tile
 -- where the item has no main color), the gaps between its squares one shade darker, a dark outline round the shape.
 -- The game's picture sits in the FIRST square (top row, leftmost) at one size for every item; the weight is at the
--- top right of the top row's run (or of the last square, when the run is one square); the condition strip, the count
+-- top right of the top row's run (or of the first square, with the picture, when the run is one square); the condition strip, the count
 -- and the read mark are on the LAST square (bottom row, rightmost). Hover, selection, the Filter's dim and the
 -- click zones cover the shape's squares only: the holes in its box are not the item's. The controller's mark sits on
 -- the first square. No tables or strings made here but the hint's, as drawGridCell.

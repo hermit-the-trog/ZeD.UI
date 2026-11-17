@@ -907,7 +907,7 @@ for k = 1, #gp2.gaps, 4 do if gp2.gaps[k] == 10 and gp2.gaps[k + 1] == 10 then c
 check("GEOM: where three squares meet the corner gap is filled (the L's inside corner)", cornerIn)
 check("GEOM: the pistol's weight on its two-square top row", gp2.wx == 12 and gp2.wroom == 12)
 local gk2 = GL.geom(select(3, GL.parseMask("X/X")), 1, 2, 10, 2, 1)
-check("GEOM: a one-wide shape: the weight on its last square", gk2.wx == 0 and gk2.wy == 12 and gk2.wroom == 10)
+check("GEOM: a one-wide shape: the weight with the picture, its first square (the director, Nov 17)", gk2.wx == 0 and gk2.wy == 0 and gk2.wroom == 10)
 -- colsAt
 check("colsAt: 300 px, 52 squares at two thirds (34), gap 4: 8 across", GL.colsAt({ avail = 300, cell = 52, gap = 4 }, 2 / 3) == 8)
 

@@ -276,7 +276,7 @@ end
 ---   hits   fill and gaps together (the cell's click zones)
 ---   fx, fy the first square (top row, leftmost: the picture's); ix, iy the last (bottom row, rightmost: the
 ---          condition strip and the count); wx, wy, wroom the weight's square (the top row's run's last square
----          when the run is two or more, else the last square) and the px the weight may take
+---          when the run is two or more, else the first square, with the picture) and the px the weight may take
 function GL.geom(has, w, h, cell, gap, t)
     local step = cell + gap
     local function sq(dx, dy)
@@ -344,7 +344,8 @@ function GL.geom(has, w, h, cell, gap, t)
     if run >= 2 then
         g.wx, g.wy, g.wroom = (fx + run - 1) * step, fy * step, (run - 1) * step
     else
-        g.wx, g.wy, g.wroom = g.ix, g.iy, cell
+        -- (Nov 17 2026, the director: a one-wide shape's weight goes "with icon", top right of its first square)
+        g.wx, g.wy, g.wroom = g.fx, g.fy, cell
     end
     return g
 end
