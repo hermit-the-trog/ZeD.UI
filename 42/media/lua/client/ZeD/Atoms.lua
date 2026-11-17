@@ -451,11 +451,12 @@ end
 
 --- How many of a status bar's five segments a share lights: rounded up, so any share above nothing lights one and
 --- only a whole one lights all five (95% reads as full, a broken item as empty)
-function ZeD.Atoms.statusSegsLit(percent)
+function ZeD.Atoms.statusSegsLit(percent, n)
+    n = n or STATUS_SEGS   -- (n: a status bar of fewer segments, a shaped grid's small square: three)
     local p = percent or 0
     if p <= 0 then return 0 end
-    if p >= 1 then return STATUS_SEGS end
-    return math.max(1, math.ceil(p * STATUS_SEGS - 1e-6))   -- (the 1e-6: 0.6 * 5 is 3.0000000000000004)
+    if p >= 1 then return n end
+    return math.max(1, math.ceil(p * n - 1e-6))   -- (the 1e-6: 0.6 * 5 is 3.0000000000000004)
 end
 
 --- The status color of a share (a condition, a health, 0 to 1), by the segments it lights on a status bar: four or
@@ -524,7 +525,9 @@ function ZeD.Atoms.drawSegFill(panel, x, y, w, h, n, k, color)
     return ZeD.Atoms.mouseIn(panel, x, y, w, h)
 end
 
-function ZeD.Atoms.drawFillBar(panel, x, y, w, percent, graduated, fillColor, h, label)
+-- segs (optional, Nov 17 2026, the director: "3 bars, 3 segments" in Multi-Slot's shaped grid): the strip's segment
+-- count in place of the usual five (status) or ten (amount); nil keeps those.
+function ZeD.Atoms.drawFillBar(panel, x, y, w, percent, graduated, fillColor, h, label, segs)
     local T = ZeD.T
     h = h or T.fillBarH
     percent = math.max(0.0, math.min(1.0, percent or 0))
@@ -532,9 +535,9 @@ function ZeD.Atoms.drawFillBar(panel, x, y, w, percent, graduated, fillColor, h,
     if not fc then fc = graduated and ZeD.Atoms.statusColor(percent) or T.accent end
     local hov
     if graduated then
-        hov = ZeD.Atoms.drawSegFill(panel, x, y, w, h, STATUS_SEGS, ZeD.Atoms.statusSegsLit(percent), fc)
+        hov = ZeD.Atoms.drawSegFill(panel, x, y, w, h, segs or STATUS_SEGS, ZeD.Atoms.statusSegsLit(percent, segs), fc)
     else
-        hov = ZeD.Atoms.drawSegFill(panel, x, y, w, h, FILL_SEGS, ZeD.Atoms.fillSegsLit(percent), fc)
+        hov = ZeD.Atoms.drawSegFill(panel, x, y, w, h, segs or FILL_SEGS, ZeD.Atoms.fillSegsLit(percent, segs), fc)
     end
     if hov and ZeD.Help then ZeD.Help.set(panel, ZeD.Atoms.fillBarHelp(percent, label)) end
     return hov

@@ -269,7 +269,7 @@ local HELP = {}
 ZeD.Help = { set = function(p, t) HELP[#HELP + 1] = t end }
 local FRAMES = {}
 ZeD.Atoms = {
-    drawFillBar = function() return false end,
+    drawFillBar = function(p, x, y, w, pc, g, c, h, l, segs) LASTSEGS = segs; return false end,
     frame = function(p, x, y, w, h, c, a, t) FRAMES[#FRAMES + 1] = { x = x, y = y, w = w, h = h, c = c, t = t }; if p.log then p.log[#p.log + 1] = string.format("frame %d %d %d %d", x, y, w, h) end end,
     drawStatusDot = function(p, x, y, c, sz) p.log[#p.log + 1] = "dot " .. ((c == ZeD.T.warning) and "warning" or "other") end,
 }
@@ -996,6 +996,7 @@ do
     check("ONE SQUARE: no weight chip over the picture", not weight)
     check("ONE SQUARE: the count is drawn, inside its square", count and countIn)
     check("ONE SQUARE: no chip spills past its square", chipIn)
+    check("SHAPES: the condition strip has three segments (the director, Nov 17)", LASTSEGS == 3, LASTSEGS)
 end
 -- hover over the hole: the nut, not the axe
 local gh2 = mkGV(5, { 10 + LS.px[nut] + 5, LS.py[nut] + 5 })

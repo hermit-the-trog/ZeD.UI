@@ -1320,7 +1320,7 @@ end
 -- (its help line: "Condition 64%", "Remaining 50%"). 52 units less 6: 34 px at 0.75.
 -- (Nov 15 2026, add-on hooks: cell is the cell's width; ch its height, nil for a square cell. A cell an add-on's
 -- layout spans over several squares (GridLayout.lua) is wider or taller than it is the other way.)
-local function drawCellCondition(self, item, ax, cy, cell, stackInfo, ch, thin)
+local function drawCellCondition(self, item, ax, cy, cell, stackInfo, ch, thin, segs)
     local T = ZeD.T
     local IM = ZeD.ItemMeter
     ch = ch or cell   -- (a square cell: as tall as it is wide, as every cell was before)
@@ -1332,7 +1332,8 @@ local function drawCellCondition(self, item, ax, cy, cell, stackInfo, ch, thin)
     -- (Nov 17 2026, Multi-Slot 0.2, QA: thin, a one-square shape: a slim strip along the square's very foot, so the
     -- picture, which fills most of a small square, stays readable)
     if thin then bh = T.px(3); by = cy + ch - T.px(1) - bh end
-    local hov = ZeD.Atoms.drawFillBar(self, ax + T.px(3), by, cell - T.px(6), f, graduated, fc, bh, IM.label(kind))
+    -- (segs: a shaped cell's strip, three segments, the director Nov 17 2026; nil every other cell, as before)
+    local hov = ZeD.Atoms.drawFillBar(self, ax + T.px(3), by, cell - T.px(6), f, graduated, fc, bh, IM.label(kind), segs)
     return by, hov
 end
 
@@ -1452,7 +1453,7 @@ local function drawShapeCell(self, GV, item, cx, cy, g)
     -- the condition strip along the last square's foot (a readable item: its read mark instead)
     local lx, ly = ax + g.ix, cy + g.iy
     local condTop, condHov = ly + sq, false
-    if not rs then condTop, condHov = drawCellCondition(self, item, lx, ly, sq, stackInfo, sq, one) end
+    if not rs then condTop, condHov = drawCellCondition(self, item, lx, ly, sq, stackInfo, sq, one, 3) end   -- (three segments: the director)
     local f5 = T.fontF5
     local s1 = T.surf1
     -- the weight, top right of its square (not on a one-square shape)
