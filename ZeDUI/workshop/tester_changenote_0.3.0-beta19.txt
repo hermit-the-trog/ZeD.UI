@@ -1,0 +1,17 @@
+0.3.0-beta19
+
+Controller fixes, item-colored tiles, shaped cells for add-ons.
+
+Controller
+- A at a door or window opens or closes it once, as E does.
+- Messages, the car radio, the siren and the reader give the controller back to where it was when they close; so do the on-screen keyboard and the safe-mode question.
+- Messages and the reader have a window box: A opens the window's menu.
+- In the Character and World windows, Up from the top of a list reaches the title bar, and Right walks along it to the window box.
+- Hair | Beard: Left and Right stop at the ends.
+- The window menu has Controller map (with a controller) and Hide interface.
+
+Look
+- Item-colored tiles (ZeD setup, Look; off by default): each grid tile takes a soft tint of its item's main color. Gray items take a neutral gray.
+
+For add-ons
+- The grid hook draws shaped items (ZeD Multi-Slot 0.2): a cell can be any shape of squares, with the picture in its first square.
