@@ -1,0 +1,9 @@
+0.3.0-beta18
+
+New icons.
+
+Icons
+- 26 icons redrawn so each action looks like itself and no two look alike: Place Item, Pick up, Put in Container, Take, Drop, Move to, Favorite, Wanted and Unwanted, Unusable and Usable in Recipes, Rename, Chop, Slice, Dice, Peel, Install, Uninstall, Take apart, Destroy, Dig and Light.
+- Set Unwanted and Unusable in Recipes no longer share the gear.
+- The Character wheel's Weapons, Drink, Medicine and Sleep have new pictures.
+- Icons carry one accent at most: blue for water and the giving side of a pair, red for harm and the taking-away side, gold for fire, light, power and things you keep. The three stay apart for every kind of color vision.
