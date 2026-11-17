@@ -1,0 +1,12 @@
+# ZeDUI/tools/qa/gallery_b19_tire.txt  (Nov 17 2026, QA): chapter 23's story_04b_tire_install_bar retaken for the light
+# action bar (e39286ea1) and the red / green marks (7941748eb); copied into Screenshots/gallery_beta2 after.
+zedqa_prelude.lua | pre | timeout=120
+gallery_t14_look.lua | g14l | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_unload.lua | unl | timeout=60
+gallery_story_only.lua | sto | timeout=60
+gallery_story_stage.lua | sts | timeout=600
+gallery_story_shots.lua | stz | timeout=1500
+gallery_story_teardown.lua | stt | timeout=600
+gallery_reload.lua | rel | timeout=60
+gallery_t14_end.lua | g14e | timeout=60
