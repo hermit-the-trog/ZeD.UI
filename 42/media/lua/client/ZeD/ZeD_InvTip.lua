@@ -102,6 +102,10 @@ function IT.showLayer()
         -- a stop with no item, an Equipment group heading or an empty doll box: QA, Nov 17 2026.)
         if not (w and w.content and ZeD.Balloon) then return end
         if w.frame < IT._frame - 1 or (w.pad and w.frame < IT._frame) then return end
+        -- (QA's rerun, Nov 17 2026: still one frame on an empty stop. The pad can move after the old stop asked and
+        -- before this layer draws, in the same frame. So a pad card is checked again here: the stop the pad is on now
+        -- must name this item, as the asking rows check it.)
+        if w.pad and not IT.padStillOn(w) then return end
         local a = IT._rect or {}
         IT._rect = a
         a.x, a.y, a.w, a.h, a.below, a.noFlip = w.ox + w.ax, w.oy + w.ay, w.aw or 1, w.ah, nil, nil
@@ -115,6 +119,19 @@ function IT.showLayer()
     Layer:addToUIManager()
     Layer:setAlwaysOnTop(true)
     IT._layer = Layer
+end
+
+--- True while the controller's stop in the asking window still names the asked item (a row's or cell's item, a
+--- slot's, or a belt row's, kept on its zone). Where the window or the focus can't be read, true: the ask stands.
+function IT.padStillOn(w)
+    local F = ZeD.Input and ZeD.Input.Focus
+    local A = ZeD.Atoms
+    if not (F and F.liveElement and A and A.windowOf) then return true end
+    local win = A.windowOf(w.owner)
+    if not win then return true end
+    local el = F.liveElement(win)
+    local its = el and (el.item or (el.zone and el.zone.item)) or nil
+    return its == w.item
 end
 
 --- True when owner asked for item's tooltip this frame (its own hover box then stays away: one box at the pointer).
