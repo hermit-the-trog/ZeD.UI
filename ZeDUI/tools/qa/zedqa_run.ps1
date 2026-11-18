@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+﻿#Requires -Version 7.0
 <#
 .SYNOPSIS
     Unattended ZeD-UI regression run through the QA bridge (Oct 19 2026).
@@ -678,7 +678,7 @@ function Stop-Game {
 function Measure-Window([string]$Text, [string]$Tag, [string]$EndRegex, [string]$ExpectRegex, [string[]]$OtherTags = @()) {
     $v = [pscustomobject]@{
         Done = $false; OkFalse = $false; Responded = $false; MainMenu = $false; Paused = $false
-        Runs = 0; ErrLines = 0; Exceptions = 0; Expected = 0
+        Runs = 0; ErrLines = 0; Exceptions = 0; Expected = 0; Verdict = $false; Checks = 0
         Late = [ordered]@{}
         Lines = (New-Object System.Collections.Generic.List[string])
     }
@@ -727,6 +727,9 @@ function Measure-Window([string]$Text, [string]$Tag, [string]$EndRegex, [string]
             if ($ran -and (Test-DoneLine $head $Tag $EndRegex)) { $v.Done = $true }
             if ($head -cmatch '\b(ERR|FAIL)\b' -or $head -match 'spawn failed|step error|step \d+ failed') { $v.ErrLines++ }
             if ($head -match 'ERR OnTick never ran') { $v.Paused = $true }
+            # (Nov 18 2026, the release test, rt_kit.lua: a script's own failed checks make it FAIL, not WARN)
+            if ($head -cmatch 'VERDICT FAIL') { $v.Verdict = $true }
+            if ($head -cmatch ' (PASS|FAIL) ') { $v.Checks++ }
             continue
         }
         $all = $head
@@ -851,11 +854,16 @@ function Invoke-QaScript($Item, $Res) {
     if ($v.Exceptions -gt 0) { $Res.Notes.Add("$($v.Exceptions) Java exception(s) in the log") }
     if ($v.Expected -gt 0) { $Res.Notes.Add("$($v.Expected) expected exception(s) ignored (expect=)") }
     if ($v.ErrLines -gt 0) { $Res.Notes.Add("$($v.ErrLines) ERR line(s)") }
+    if ($v.Verdict) { $Res.Notes.Add("its own checks failed (VERDICT FAIL)") }
+    # (Nov 18 2026, the director: a test that checks nothing must never come back) in the release test every script
+    # but the prelude and the kit prints PASS / FAIL lines; one that prints none fails as "checks nothing"
+    $noChecks = ($Manifest -match 'release_test' -and $Item.Tag -notin @('pre', 'rtk') -and $v.Checks -eq 0 -and $v.Done)
+    if ($noChecks) { $Res.Notes.Add("checks nothing: no PASS or FAIL line (the release test needs real checks)") }
     if ($v.Runs -gt 1) { $Res.Notes.Add("the script ran twice (re-bump)") }
     foreach ($lt in $v.Late.Keys) { $Res.Notes.Add("late output from $lt ($($v.Late[$lt]) line(s), not counted)") }
     if (-not $v.Done -and -not $timedOut) { $Res.Notes.Add("no DONE") }
     if ($Res.Abort) { $Res.Notes.Add($Res.Abort) }
-    $Res.Status = $(if ($v.OkFalse -or $v.Exceptions -gt 0 -or $lost) { "FAIL" }
+    $Res.Status = $(if ($v.OkFalse -or $v.Exceptions -gt 0 -or $lost -or $v.Verdict -or $noChecks) { "FAIL" }
         elseif (-not $v.Done) { "TIMEOUT" }
         elseif ($v.ErrLines -gt 0 -or $v.Runs -gt 1) { "WARN" }
         else { "PASS" })
