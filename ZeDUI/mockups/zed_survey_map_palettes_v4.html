@@ -1,0 +1,340 @@
+<title>Survey Map Palettes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600&display=swap">
+<style>
+/* Layout: one ZeD window (title bar, controls band, map, key beside it, notes under). System 7 chrome, 0px corners. */
+:root {
+  --bg: #c6c6c6; --surf1: #bebebe; --surf2: #b2b2b2; --border: rgba(0,0,0,0.22); --border-strong: rgba(0,0,0,0.42);
+  --text: #141414; --text-dim: rgba(0,0,0,0.58); --accent: #9a5f10; --good: #014e8e; --bad: #6e1e00;
+  --stripe-1: #a8a8a8; --stripe-2: #b8b8b8;
+  --mono: 'Fira Mono', ui-monospace, Consolas, monospace; --sans: 'Fira Sans Condensed', 'Arial Narrow', sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0c0c0c; --surf1: #141414; --surf2: #1e1e1e; --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.22);
+  --text: #d4d4d8; --text-dim: rgba(255,255,255,0.50); --accent: #d4922a; --good: #4491e2; --bad: #d9572a;
+  --stripe-1: #2a2a2e; --stripe-2: #333338; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0c0c0c; --surf1: #141414; --surf2: #1e1e1e; --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.22);
+  --text: #d4d4d8; --text-dim: rgba(255,255,255,0.50); --accent: #d4922a; --good: #4491e2; --bad: #d9572a;
+  --stripe-1: #2a2a2e; --stripe-2: #333338; color-scheme: dark }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; }
+.page { padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.win { border: 1px solid var(--border-strong); background: var(--surf1); }
+.title { height: 22px; display: flex; align-items: center; justify-content: center; position: relative;
+  background: repeating-linear-gradient(to bottom, var(--stripe-1) 0 2px, var(--stripe-2) 2px 4px); border-bottom: 1px solid var(--border-strong); }
+.title span { background: var(--surf2); padding: 0 10px; font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: 0.02em; }
+.title i { position: absolute; left: 8px; width: 11px; height: 11px; border: 1px solid var(--border-strong); background: var(--surf1); }
+.band { display: flex; flex-wrap: wrap; gap: 14px 22px; padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--surf2); }
+.grp { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.grp > b { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg button { font-family: var(--mono); font-size: 12px; color: var(--text); background: var(--surf1); cursor: pointer;
+  border: 1px solid var(--border-strong); border-radius: 4px; padding: 3px 9px; position: relative; }
+.seg button::before { content: ""; position: absolute; inset: 2px; border: 1px solid var(--border); border-radius: 2px; pointer-events: none; }
+.seg button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.seg button[aria-pressed="true"]::before { border-color: var(--accent); }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.body { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 0; }
+.mapwrap { min-width: 0; border-right: 1px solid var(--border); background: #000; }
+canvas { display: block; width: 100%; height: auto; }
+.key { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.key h3 { margin: 0; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); }
+.sw { display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: center; font-size: 14px; }
+.sw canvas { width: 26px; height: 16px; border: 1px solid var(--border-strong); }
+.sw canvas.line { border-color: transparent; }
+.sec { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  border-top: 2px solid var(--text); padding-top: 4px; margin-top: 4px; }
+.sec:first-child { margin-top: 0; }
+#key { display: flex; flex-direction: column; gap: 5px; }
+.sw small { font-family: var(--mono); font-size: 11px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.ctr { display: grid; grid-template-columns: 1fr auto auto; gap: 2px 10px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.ctr span:nth-child(3n+2) { font-family: var(--mono); font-size: 12px; text-align: right; }
+.ok { color: var(--good); font-family: var(--mono); font-size: 12px; }
+.no { color: var(--bad); font-family: var(--mono); font-size: 12px; font-weight: 700; }
+.foot { padding: 6px 12px; border-top: 1px solid var(--border); background: var(--surf2); font-family: var(--mono); font-size: 12px; color: var(--text-dim); }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.notes section { min-width: 0; }
+.notes h2 { margin: 0 0 6px; font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); text-wrap: balance; }
+.notes p, .notes li { margin: 0 0 6px; line-height: 1.45; max-width: 62ch; }
+.notes ul { margin: 0; padding-left: 18px; }
+@media (max-width: 760px) { .body { grid-template-columns: 1fr; } .mapwrap { border-right: 0; border-bottom: 1px solid var(--border); } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- color vision simulation, Machado, Oliveira and Fernandes (2009), full severity -->
+  <filter id="sim-protan"><feColorMatrix type="matrix" values="0.152286 1.052583 -0.204868 0 0  0.114503 0.786281 0.099216 0 0  -0.003882 -0.048116 1.051998 0 0  0 0 0 1 0"/></filter>
+  <filter id="sim-deutan"><feColorMatrix type="matrix" values="0.367322 0.860646 -0.227968 0 0  0.280085 0.672501 0.047413 0 0  -0.011820 0.042940 0.968881 0 0  0 0 0 1 0"/></filter>
+  <filter id="sim-tritan"><feColorMatrix type="matrix" values="1.255528 -0.076749 -0.178779 0 0  -0.078411 0.930809 0.147602 0 0  0.004733 0.691367 0.303900 0 0  0 0 0 1 0"/></filter>
+</svg>
+
+<div class="page">
+  <div class="win">
+    <div class="title"><i></i><span>Maps: Survey</span></div>
+    <div class="band">
+      <div class="grp"><b>Palette</b><div class="seg" id="g-theme"></div></div>
+      <div class="grp"><b>Building colors</b><div class="seg" id="g-set"></div></div>
+      <div class="grp"><b>Patterns</b><div class="seg" id="g-pat"></div></div>
+      <div class="grp"><b>Preview as seen with</b><div class="seg" id="g-sim"></div></div>
+    </div>
+    <div class="body">
+      <div class="mapwrap"><canvas id="map" width="880" height="560" aria-label="A sample Survey map block in the chosen palette"></canvas></div>
+      <div class="key">
+        <h3>Key</h3>
+        <div id="key"></div>
+        <h3>Label contrast</h3>
+        <div class="ctr" id="ctr"></div>
+      </div>
+    </div>
+    <div class="foot" id="foot"></div>
+  </div>
+
+  <div class="notes">
+    <section>
+      <h2>What ZeD can set</h2>
+      <ul>
+        <li>The fill of each of the eight building uses, and plain buildings.</li>
+        <li>Trails, small streets, main roads, the railway, forest, water and the ground.</li>
+        <li>Each label kind's color: streets, buildings, places, towns, forest and water names.</li>
+        <li>The game's own color blind patterns, already a ZeD setting (Options, Status colors).</li>
+      </ul>
+    </section>
+    <section>
+      <h2>What stays the game's</h2>
+      <ul>
+        <li>Where every road and building is, and every name. Those are the map's data.</li>
+        <li>Road widths: roads are filled shapes, not lines.</li>
+        <li>The printed legend sheets placed on the map itself (Legend.png) are pictures in the game's colors. With a ZeD palette they would be hidden, and ZeD's Key (right) shows the palette in use.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>From your references</h2>
+      <ul>
+        <li>The colors a 1993 paper road map or survey map used: red for primary highways, a lighter red for the other highways, gray small streets, a black railway, woodland in green with tree marks, and blue water with blue names.</li>
+        <li>Lakes and ponds a deeper blue than rivers and streams. The game tags all its water the same way, so ZeD would ship a small map data file of its own marking which water shapes are lakes, worked out once from the game's map.</li>
+        <li>Patterns: tree marks on woodland are a texture fill, the same way the game's color blind patterns work.</li>
+        <li>Not possible: marshes and swamps (the game's map has none), roads as double lines or with an edge, and dashed trails. Roads are filled shapes, one color each.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>How to read this page</h2>
+      <p>The block is drawn here in the browser to compare colors. The real map comes from the game's data. The patterns are stand-ins drawn here: in the game they are its own pattern pictures. The label contrast list measures each label against what it sits on; 4.5 to 1 is the floor for small text.</p>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  // ---- palettes (hex) ------------------------------------------------------------------------------------------
+  // "game": the game's Survey map today (MapUtils.initDefaultStyleV1, initDefaultTextLayersV3)
+  const P = {
+    // "paper": the director, Nov 18 2026: the colors a 1993 paper road map or survey map used (references: USGS sheets
+    // and symbol sheets, a road atlas legend, an orienteering legend). Red for major highways, a lighter red for the
+    // other highways, woodland as a green tint with tree marks, rivers and streams a lighter blue than lakes and ponds,
+    // labels black with water names in blue and forest names in green.
+    paper: { name: "Paper map", ground: "F4F1E6", forest: "C4DDB0", forestPat: true, mark: "rgba(47,93,42,0.55)", water: "9CCFE4", lake: "6FB3DA", trail: "8B5A2B", small: "B8B2A6", main: "E26F6F", sec: "EFA3A0", rail: "2B2B2B",
+      b: { Residential: "E8B9A6", CommunityServices: "A497D6", Hospitality: "8CC3D8", Industrial: "9A958E", Medical: "E28C98", RestaurantsAndEntertainment: "EDD36A", RetailAndCommercial: "B2C77A" },
+      t: { street: "1A1A1A", building: "1A1A1A", town: "000000", forest: "2F5D2A", water: "0F3466" } },
+    game:  { name: "Game today", ground: "DBD7C0", forest: "BDC5A3", water: "3B8D95", trail: "B97A57", small: "AB9E8F", main: "867D71", rail: "C8BFE7",
+      b: { Residential: "D29E69", CommunityServices: "8B75EB", Hospitality: "7FCEE1", Industrial: "383635", Medical: "E58097", RestaurantsAndEntertainment: "F5E13C", RetailAndCommercial: "B8CD54" },
+      t: { street: "FFFFFF", building: "FFFFFF", town: "000000", forest: "0F632B", water: "04307D" } },
+    // the paper map's colors on ZeD's Dark ground (the director, Nov 18 2026: "these are the colors I want applied to
+    // the dark, light and high contrast"): red highways, woodland with tree marks, lakes stronger than rivers
+    dark:  { name: "Dark", ground: "1B1C1E", forest: "1F3324", forestPat: true, mark: "rgba(150,210,160,0.50)", water: "1F4C63", lake: "24618A", trail: "7A5034", small: "45464B", main: "A8363C", sec: "7E4447", rail: "C8C8C8",
+      b: { Residential: "B88470", CommunityServices: "8A7BD0", Hospitality: "5DA0B8", Industrial: "8E8A84", Medical: "C26878", RestaurantsAndEntertainment: "C9AD3E", RetailAndCommercial: "8FA65A" },
+      t: { street: "F0F0F2", building: "0C0C0C", town: "F5F5F5", forest: "9AD0AC", water: "BFE3F2" } },
+    light: { name: "Light", ground: "D9D9D6", forest: "B9D2A4", forestPat: true, mark: "rgba(47,93,42,0.55)", water: "92C6DC", lake: "6AAAD2", trail: "8B5A2B", small: "A8A49C", main: "DE6A6A", sec: "ECA09C", rail: "2B2B2B",
+      b: { Residential: "DDAE9B", CommunityServices: "9C8FD0", Hospitality: "86BCD2", Industrial: "9A958E", Medical: "DC8692", RestaurantsAndEntertainment: "E6CB5E", RetailAndCommercial: "AAC072" },
+      t: { street: "1A1A1A", building: "1A1A1A", town: "000000", forest: "24502D", water: "0F3466" } },
+    hicon: { name: "High contrast", ground: "000000", forest: "003D14", forestPat: true, mark: "rgba(140,255,170,0.75)", water: "1F6FD6", lake: "0A3FB8", trail: "A06A00", small: "9A9A9A", main: "FF3B3B", sec: "FF9A9A", rail: "FFFFFF",
+      b: { Residential: "FFAE7A", CommunityServices: "B39CFF", Hospitality: "5CD8FF", Industrial: "A8A8A8", Medical: "FF6F8C", RestaurantsAndEntertainment: "FFE14A", RetailAndCommercial: "A6FF5C" },
+      t: { street: "000000", building: "000000", town: "FFFFFF", forest: "8CFFAA", water: "FFFFFF" } },
+  };
+  // color blind building set: the Okabe and Ito hues, which stay apart under protanopia, deuteranopia and
+  // tritanopia; shaded per palette (Industrial is the one grey, lighter on the dark grounds)
+  const CB = {
+    base: { Residential: "E69F00", CommunityServices: "3F95D3", Hospitality: "8FD3F5", Industrial: "9A9A9A", Medical: "CC79A7", RestaurantsAndEntertainment: "F0E442", RetailAndCommercial: "009E73" },
+    dark: { Residential: "C48A10", CommunityServices: "2F86C4", Hospitality: "4A9DCB", Industrial: "8E8E92", Medical: "B66E97", RestaurantsAndEntertainment: "CFC43C", RetailAndCommercial: "2FA383" },
+    hicon:{ Residential: "FFB000", CommunityServices: "3D9BFF", Hospitality: "6CD0FF", Industrial: "8A8A8A", Medical: "FF8CC6", RestaurantsAndEntertainment: "FFF04A", RetailAndCommercial: "00D49A" },
+  };
+  const USE = [
+    ["Residential", "Residential"], ["CommunityServices", "Community services"], ["Hospitality", "Hospitality"],
+    ["Industrial", "Industrial"], ["Medical", "Medical"], ["RestaurantsAndEntertainment", "Restaurants and entertainment"],
+    ["RetailAndCommercial", "Retail and commercial"],
+  ];
+  const PAT = { Residential: "diag", CommunityServices: "cross", Hospitality: "dots", Industrial: "horiz",
+                Medical: "plus", RestaurantsAndEntertainment: "vert", RetailAndCommercial: "back" };
+
+  const S = { theme: "paper", set: "standard", pat: false, sim: "none" };
+  try { const s = JSON.parse(localStorage.getItem("zed-survey-pal-v3") || "null"); if (s) Object.assign(S, s); } catch (e) {}
+
+  function hex(h) { return "#" + h; }
+  function rgb(h) { return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
+  function lum(h) { return rgb(h).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); })
+                             .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0); }
+  function ratio(a, b) { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+
+  function palette() {
+    const p = P[S.theme];
+    let b = p.b;
+    if (S.set === "cb") b = CB[S.theme === "dark" ? "dark" : S.theme === "hicon" ? "hicon" : "base"];
+    return Object.assign({ sec: p.main, lake: p.water }, p, { b });
+  }
+
+  // ---- pattern stand-ins ---------------------------------------------------------------------------------------
+  function pattern(ctx, kind, fill) {
+    const c = document.createElement("canvas"); c.width = c.height = 8;
+    const g = c.getContext("2d");
+    g.fillStyle = hex(fill); g.fillRect(0, 0, 8, 8);
+    g.strokeStyle = lum(fill) > 0.25 ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.6)";
+    g.fillStyle = g.strokeStyle; g.lineWidth = 1;
+    g.beginPath();
+    if (kind === "diag") { g.moveTo(0, 8); g.lineTo(8, 0); }
+    if (kind === "back") { g.moveTo(0, 0); g.lineTo(8, 8); }
+    if (kind === "cross") { g.moveTo(0, 8); g.lineTo(8, 0); g.moveTo(0, 0); g.lineTo(8, 8); }
+    if (kind === "horiz") { g.moveTo(0, 4.5); g.lineTo(8, 4.5); }
+    if (kind === "vert") { g.moveTo(4.5, 0); g.lineTo(4.5, 8); }
+    if (kind === "plus") { g.moveTo(4.5, 2); g.lineTo(4.5, 7); g.moveTo(2, 4.5); g.lineTo(7, 4.5); }
+    g.stroke();
+    if (kind === "dots") { g.fillRect(3, 3, 2, 2); }
+    return ctx.createPattern(c, "repeat");
+  }
+  function buildingFill(ctx, pal, use) {
+    const f = pal.b[use] || pal.b.Residential;
+    return S.pat ? pattern(ctx, PAT[use] || "diag", f) : hex(f);
+  }
+
+  // ---- the sample block ----------------------------------------------------------------------------------------
+  // a made-up corner of a Kentucky town, in map px at street zoom
+  const BUILD = [
+    ["Residential", 40, 40, 70, 54], ["Residential", 124, 40, 62, 54], ["Residential", 40, 112, 70, 48], ["Residential", 124, 112, 62, 48],
+    ["RestaurantsAndEntertainment", 262, 40, 96, 58], ["RetailAndCommercial", 372, 40, 120, 58], ["RetailAndCommercial", 262, 112, 64, 48],
+    ["Hospitality", 340, 112, 152, 48], ["CommunityServices", 566, 40, 120, 120], ["Medical", 40, 270, 146, 96],
+    ["Industrial", 262, 270, 230, 110], ["Residential", 566, 270, 54, 46], ["Residential", 632, 270, 54, 46],
+    ["Residential", 566, 328, 54, 46], ["RetailAndCommercial", 632, 328, 54, 46], ["Residential", 40, 452, 64, 50],
+    ["Residential", 118, 452, 68, 50], ["Hospitality", 262, 452, 96, 64],
+  ];
+  const BLABEL = { 9: "Muldraugh Clinic", 10: "Rosewood Fire Dept", 8: "Spiffo's", 4: "Rosewood Diner" };
+
+  function draw() {
+    const pal = palette();
+    const cv = document.getElementById("map"), ctx = cv.getContext("2d");
+    const W = cv.width, H = cv.height;
+    ctx.fillStyle = hex(pal.ground); ctx.fillRect(0, 0, W, H);
+    // forest and the river
+    ctx.fillStyle = hex(pal.forest);
+    ctx.beginPath(); ctx.moveTo(720, 0); ctx.lineTo(W, 0); ctx.lineTo(W, 330); ctx.lineTo(790, 300); ctx.lineTo(740, 180); ctx.closePath(); ctx.fill();
+    if (pal.forestPat) {
+      // woodland's tree marks, as the paper maps printed them (in the game: a texture fill on the forest layer)
+      ctx.save(); ctx.clip();
+      ctx.fillStyle = pal.mark || "rgba(47,93,42,0.55)";
+      for (let y = 6; y < 340; y += 14) for (let x = 724 + ((y / 14) % 2) * 7; x < W; x += 14) {
+        ctx.beginPath(); ctx.arc(x, y, 2.6, 0, Math.PI * 2); ctx.fill(); ctx.fillRect(x - 0.5, y + 2, 1, 3);
+      }
+      ctx.restore();
+    }
+    ctx.fillStyle = hex(pal.water);
+    ctx.beginPath(); ctx.moveTo(760, H); ctx.bezierCurveTo(770, 470, 840, 430, W, 400); ctx.lineTo(W, 450); ctx.bezierCurveTo(860, 470, 820, 500, 812, H); ctx.closePath(); ctx.fill();
+    // a lake and the creek that drains it (the game tags both "river": ZeD's own lake data tells them apart)
+    ctx.fillStyle = hex(pal.water);
+    ctx.beginPath(); ctx.moveTo(700, 492); ctx.bezierCurveTo(730, 488, 760, 500, 790, 505); ctx.lineTo(790, 511); ctx.bezierCurveTo(760, 507, 730, 496, 700, 498); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = hex(pal.lake);
+    ctx.beginPath(); ctx.ellipse(640, 478, 70, 42, -0.15, 0, Math.PI * 2); ctx.fill();
+    // roads: the primary highway (east-west), a secondary highway (north-south), small streets, a trail, the railway
+    ctx.fillStyle = hex(pal.main); ctx.fillRect(0, 196, 720, 40);
+    ctx.fillStyle = hex(pal.sec); ctx.fillRect(210, 0, 34, H);
+    ctx.fillStyle = hex(pal.small);
+    ctx.fillRect(0, 400, 720, 26); ctx.fillRect(516, 0, 26, H); ctx.fillRect(0, 0, 720, 18);
+    ctx.fillStyle = hex(pal.trail);
+    ctx.save(); ctx.translate(700, 236); ctx.rotate(-0.55); ctx.fillRect(0, 0, 220, 9); ctx.restore();
+    ctx.fillStyle = hex(pal.rail); ctx.fillRect(0, 540, 760, 8);
+    // buildings
+    BUILD.forEach(([use, x, y, w, h]) => { ctx.fillStyle = buildingFill(ctx, pal, use); ctx.fillRect(x, y, w, h); });
+    // labels (the game's bold faces, here Fira Sans Condensed)
+    function label(txt, x, y, col, size, opts) {
+      ctx.save(); ctx.translate(x, y); if (opts && opts.rot) ctx.rotate(opts.rot);
+      ctx.font = (opts && opts.italic ? "italic " : "") + "600 " + size + "px 'Fira Sans Condensed', 'Arial Narrow', sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = hex(col); ctx.fillText(txt, 0, 0); ctx.restore();
+    }
+    label("Main Street", 110, 216, pal.t.street, 15); label("Main Street", 640, 216, pal.t.street, 15);
+    label("Dixie Highway", 227, 330, pal.t.street, 14, { rot: -Math.PI / 2 });
+    label("Rosewood Ave", 380, 413, pal.t.street, 13); label("3rd St", 529, 120, pal.t.street, 12, { rot: -Math.PI / 2 });
+    Object.keys(BLABEL).forEach(i => { const [, x, y, w, h] = BUILD[i]; label(BLABEL[i], x + w / 2, y + h / 2, pal.t.building, 13, { italic: true }); });
+    label("ROSEWOOD", 420, 488, pal.t.town, 22);
+    label("Rosewood Woods", 820, 110, pal.t.forest, 14, { italic: true });
+    label("Salt River", 830, 470, pal.t.water, 14, { italic: true, rot: -0.35 });
+    label("Lake Rosewood", 640, 478, pal.t.water, 14, { italic: true });
+    cv.style.filter = S.sim === "none" ? "" : "url(#sim-" + S.sim + ")";
+  }
+
+  function key() {
+    const pal = palette();
+    const k = document.getElementById("key"); k.innerHTML = "";
+    // laid out as a printed symbol sheet (the director's USGS and orienteering references): ruled sections in
+    // capitals, a line for a road, a box for an area
+    const SECTIONS = [
+      ["Roads and related features", [["Primary highway", null, pal.main, "line", 6], ["Secondary highway", null, pal.sec, "line", 6], ["Small street", null, pal.small, "line", 4],
+                                       ["Trail", null, pal.trail, "line", 2], ["Railway", null, pal.rail, "rail", 3]]],
+      ["Buildings by use", USE.map(([u, n]) => [n, u, null, "box"])],
+      ["Water and vegetation", [["River, stream", null, pal.water, "box"], ["Lake, pond", null, pal.lake, "box"], ["Woodland", null, pal.forest, pal.forestPat ? "wood" : "box"]]],
+    ];
+    SECTIONS.forEach(([title, rows]) => {
+      const h = document.createElement("div"); h.className = "sec"; h.textContent = title; k.append(h);
+      rows.forEach(([name, use, col, kind, lw]) => {
+        const row = document.createElement("div"); row.className = "sw";
+        const c = document.createElement("canvas"); c.width = 26; c.height = 16;
+        const g = c.getContext("2d");
+        if (kind === "box" || kind === "wood") {
+          g.fillStyle = use ? buildingFill(g, pal, use) : hex(col); g.fillRect(0, 0, 26, 16);
+          if (kind === "wood") { g.fillStyle = pal.mark || "rgba(47,93,42,0.55)"; [[6, 5], [16, 5], [11, 11], [21, 11]].forEach(([x, y]) => { g.beginPath(); g.arc(x, y, 2.4, 0, Math.PI * 2); g.fill(); }); }
+        } else {
+          c.className = "line";
+          g.fillStyle = hex(col); g.fillRect(0, 8 - Math.floor(lw / 2), 26, lw);
+          if (kind === "rail") { for (let x = 3; x < 26; x += 6) g.fillRect(x, 4, 1, 9); }
+        }
+        c.style.filter = S.sim === "none" ? "" : "url(#sim-" + S.sim + ")";
+        const t = document.createElement("span"); t.textContent = name;
+        const hx = document.createElement("small"); hx.textContent = "#" + (use ? pal.b[use] : col);
+        row.append(c, t, hx); k.append(row);
+      });
+    });
+    // label contrast: each label against what it sits on (building labels against every building colour, the worst)
+    const ctr = document.getElementById("ctr"); ctr.innerHTML = "";
+    const worstB = Math.min(...Object.values(pal.b).map(c => ratio(pal.t.building, c)));
+    const lines = [["Street names", Math.min(ratio(pal.t.street, pal.main), ratio(pal.t.street, pal.sec), ratio(pal.t.street, pal.small))],
+                   ["Building names", worstB], ["Town names", ratio(pal.t.town, pal.ground)],
+                   ["Forest names", ratio(pal.t.forest, pal.forest)], ["Water names", Math.min(ratio(pal.t.water, pal.water), ratio(pal.t.water, pal.lake))]];
+    lines.forEach(([n, r]) => {
+      const a = document.createElement("span"); a.textContent = n;
+      const b = document.createElement("span"); b.textContent = r.toFixed(1) + " : 1";
+      const c = document.createElement("span"); c.className = r >= 4.5 ? "ok" : "no"; c.textContent = r >= 4.5 ? "reads" : "too faint";
+      ctr.append(a, b, c);
+    });
+    const fails = lines.filter(l => l[1] < 4.5).length;
+    document.getElementById("foot").textContent = pal.name + ", " + (S.set === "cb" ? "color blind building set" : "standard building set") +
+      (S.pat ? ", patterns on" : "") + ". " + (fails ? fails + " label kind" + (fails > 1 ? "s" : "") + " under 4.5 to 1." : "Every label kind reads at 4.5 to 1 or better.");
+  }
+
+  function seg(id, key, opts) {
+    const el = document.getElementById(id);
+    function render() {
+      el.innerHTML = "";
+      opts.forEach(([v, label]) => {
+        const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.id = id + "-" + String(v);
+        b.setAttribute("aria-pressed", String(S[key] === v));
+        b.addEventListener("click", () => { S[key] = v; try { localStorage.setItem("zed-survey-pal-v3", JSON.stringify(S)); } catch (e) {} all(); });
+        el.append(b);
+      });
+    }
+    return render;
+  }
+  const segs = [
+    seg("g-theme", "theme", [["paper", "Paper map"], ["game", "Game today"], ["dark", "Dark"], ["light", "Light"], ["hicon", "High contrast"]]),
+    seg("g-set", "set", [["standard", "Standard"], ["cb", "Color blind"]]),
+    seg("g-pat", "pat", [[false, "Off"], [true, "On"]]),
+    seg("g-sim", "sim", [["none", "Normal sight"], ["protan", "Protanopia"], ["deutan", "Deuteranopia"], ["tritan", "Tritanopia"]]),
+  ];
+  function all() { segs.forEach(r => r()); draw(); key(); }
+  all();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+})();
+</script>
