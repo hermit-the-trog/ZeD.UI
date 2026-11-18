@@ -1,0 +1,23 @@
+0.3.0-beta20
+
+Light tooltips and bubbles, new foraging icons, instant item cards on the controller.
+
+Look
+- Every tooltip and bubble is light, whatever the theme: the notices out of the belt, the moodle's thought bubble, the action bar (Simple and Detailed), what your character says, the notes over the head, and the speed and pause bubble.
+- The notes over the head keep their red and green mark.
+- The action bar's background is one dark color in every theme, with a bright fill.
+
+Foraging
+- In search mode, a find is marked with a magnifying glass holding the find. A find not yet known shows a frosted lens with a question mark, and a known poison gets a small mark.
+- The pointer to a find is a hand from a cloud, thumb up whichever way it points.
+- The search eye over your head sits in a light bubble with the other notes over the head.
+- Safe mode brings back the game's own pins, pointer and eye.
+
+Controller
+- The item card shows at once when the controller lands on a row, a grid tile or an Equipment slot, as it does under the mouse.
+
+Fixes
+- Gaining skill XP no longer logs an error each time.
+
+For add-ons
+- Shaped cells (ZeD Multi-Slot 0.2): an item one square wide shows its weight below its picture, and its condition in three segments.
