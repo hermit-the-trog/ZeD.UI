@@ -26,6 +26,15 @@
 --   8. the survival guide: the book (Immersive) turns by its strip, the wheel, RB and the arrow key, Contents and a
 --      contents row, the start-up box flips the game's option and back; a spoiler bar shows its numbers on a click and
 --      on A; Escape and B close the book, Escape closes the Simple window
+--   (Nov 18 2026, QA, the ledger's proof pass, more closed here:)
+--   1b. the radio's face pops out by its button and Escape puts it away (Devices on Immersive); the D-pad wheel's
+--      Radio slices turn the set on, move to the next station and turn it off
+--   2b. a second TV, and a click on the first TV's own tab in the radios' strip picks it; a click on the TV in the
+--      world (FacePop.worldClick, the game's click handler's hook) pops its face out and a second puts it away
+--   4b. a click on the flyer's row opens it on the Papers page; Back returns to the list
+--   8b. F1 (the game's key handler) opens the guide on the open tab's topic and closes it again
+--   9. Health's fill block head folds and opens; a Thermal grid cell picks its region; Hair and beard's switch, a row
+--      and Cut (the game's ISCutHair queued, stopped at once)
 -- (The newspaper / print media page is not tested here: the director ruled it is not ZeD's.)
 -- Every surface is measured with RT.bounds. Put back: the hands, the sets taken away, the map's style and marks, the
 -- time of day, the grid, the character's place, both windows on Loot and open or shut as found; RT.takeBack takes
@@ -192,6 +201,59 @@ function H.portable(m)
             if els[1] and els[1].onActivate then els[1].onActivate(H.CW(), els[1]) end
         end)
         Q.step(10, function() if S.cur then Q.check(not H.on(S.cur), m.name .. ": A again turns it off") end end)
+        -- (Nov 18 2026, QA, the ledger: the face's pop-out button through the tab's own click handler, with ZeD
+        -- setup's Devices on Immersive (put back after), and Escape (the game's key handler, ZeD's in front) putting
+        -- it away; then the D-pad wheel's Radio slices for the set in hand (ZeD.DpadWheels.H.radio, each taken as the
+        -- wheel takes a slice, D.take): on, Next station, off)
+        Q.step(3, function()
+            local o = ZeD.Settings and ZeD.Settings.devicesStyleOption
+            if o and S.devWas == nil then pcall(function() S.devWas = o:getValue() end) end
+            if o then pcall(function() o:setValue(1) end) end
+        end)
+        Q.step(5, function()
+            S.popSkip1 = nil
+            local w = H.CW()
+            local z = w and w._radioFullZone
+            if not Q.check(S.cur ~= nil and z ~= nil, m.name .. ": the face has its pop-out button") then S.popSkip1 = true; return end
+            RTab.onClick(w, z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2))
+        end)
+        Q.waitFor(3, 120, function() return S.popSkip1 or ZeD.TwoWayFull.showing(pn) == S.cur end, function(ok)
+            if S.popSkip1 then return end
+            Q.check(ok, m.name .. ": the pop-out button pops its face out")
+            RT.bounds(Q, m.name .. "'s face popped out")
+            S.popEsc = H.escape()
+            if not S.popEsc then pcall(ZeD.TwoWayFull.close, pn) end
+        end)
+        Q.step(5, function()
+            if S.popSkip1 then return end
+            Q.check(ZeD.TwoWayFull.showing(pn) == nil and not H.pauseMenuUp(), m.name .. ": Escape puts the popped face away",
+                S.popEsc and "Escape" or "ZeD's key handler is not in place: closed by its own close")
+            if H.pauseMenuUp() then pcall(ToggleEscapeMenu, Keyboard.KEY_ESCAPE) end
+        end)
+        Q.step(3, function()
+            S.wSkip = nil
+            local D = ZeD.DpadWheels
+            local sl = (S.cur and D and D.H and D.H.radio) and D.H.radio(p, pn) or {}
+            if not Q.check(#sl >= 2 and sl[1].run ~= nil, "the radio wheel: Radio has its slices for the set in hand", #sl .. " slices") then S.wSkip = true; return end
+            pcall(D.take, pn, sl[1])
+        end)
+        Q.step(10, function()
+            if S.wSkip then return end
+            Q.check(H.on(S.cur), "the radio wheel: its power slice turns the set on")
+            local sl = ZeD.DpadWheels.H.radio(p, pn) or {}
+            S.wCh = H.chan(S.cur)
+            if sl[2] and sl[2].run and not sl[2].off then pcall(ZeD.DpadWheels.take, pn, sl[2]) end
+        end)
+        Q.waitFor(3, 120, function() return S.wSkip or H.chan(S.cur) ~= S.wCh end, function(ok)
+            if S.wSkip then return end
+            Q.check(ok, "the radio wheel: Next station moves the channel", tostring(S.wCh) .. " -> " .. tostring(H.chan(S.cur)))
+            local sl = ZeD.DpadWheels.H.radio(p, pn) or {}
+            if sl[1] and sl[1].run then pcall(ZeD.DpadWheels.take, pn, sl[1]) end
+        end)
+        Q.step(10, function()
+            if S.wSkip then return end
+            Q.check(not H.on(S.cur), "the radio wheel: the power slice again turns it off")
+        end)
     end
     Q.step(3, function() H.hold(nil) end)
 end
@@ -299,6 +361,16 @@ Q.step(30, function()
         S.tv = obj
     end)
     Q.check(S.tv ~= nil, "a TV is placed beside the character")
+    -- (Nov 18 2026, QA, the ledger: a second TV on the next free room square, so the Radio tab has radios to pick among)
+    pcall(function()
+        local sq2 = S.spot.ring[2]
+        local o2 = IsoTelevision.new(getCell(), sq2, getSprite("appliances_television_01_5"))
+        sq2:AddTileObject(o2)
+        S.placed[#S.placed + 1] = o2
+        local d2 = o2:getDeviceData()
+        if d2 then d2:setIsTurnedOn(false); d2:setDeviceVolume(0.5) end
+        S.tv2 = o2
+    end)
 end)
 Q.waitFor(5, 400, function()
     if not S.tv then return true end
@@ -310,9 +382,26 @@ end, function(ok)
     Q.check(ok, "the World window's Radio list has the TV")
     Q.check(RT.worldTab("radio"), "the World window's Radio tab opens from the strip")
 end)
+-- (Nov 18 2026, QA, the ledger: among several radios, the TV picked by a click on its own tab in the radios' strip,
+-- through the tab's click handler; another radio shown first, so the click is what moves the pick)
 Q.step(5, function()
     local w = H.WW()
-    for i, r in ipairs((w and w._radios) or {}) do if S.tv and r.radioInstance == S.tv then RTab.selectRadio(w, i) end end
+    S.tvIdx, S.tvByTab = nil, false
+    for i, r in ipairs((w and w._radios) or {}) do if S.tv and r.radioInstance == S.tv then S.tvIdx = i end end
+    if not S.tvIdx then return end
+    if #w._radios >= 2 then RTab.selectRadio(w, (S.tvIdx == 1) and 2 or 1) end
+end)
+Q.step(5, function()
+    local w = H.WW()
+    if not (w and S.tvIdx) then return end
+    local z = nil
+    for _, zz in ipairs(w._radioTabZones or {}) do if zz.idx == S.tvIdx then z = zz end end
+    if z then
+        S.tvByTab = true
+        RTab.onClick(w, z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2))
+    else
+        RTab.selectRadio(w, S.tvIdx)
+    end
 end)
 Q.waitFor(5, 300, function()
     if not S.tv then return true end
@@ -320,6 +409,9 @@ Q.waitFor(5, 300, function()
     return t ~= nil and t.dev == S.tv and H.settled(H.WW())
 end, function(ok)
     if not S.tv then return end
+    local w = H.WW()
+    Q.check(S.tvByTab and w._radioIdx == S.tvIdx and #(w._radios or {}) >= 2, "the World window's Radio tab: a click on the TV's own tab picks it among the radios",
+        "idx " .. tostring(w._radioIdx) .. ", want " .. tostring(S.tvIdx) .. " of " .. #(w._radios or {}) .. (S.tvByTab and "" or "; no tab for it in the strip"))
     local t = H.tw(H.WW())
     Q.check(ok and t ~= nil and R.basePid(t.pid) == "tv_black", "the TV: its own face draws in the tab", "face " .. tostring(t and t.pid))
     RT.bounds(Q, "the TV's face in the World window")
@@ -342,9 +434,28 @@ Q.step(8, function()
     Q.check(H.stopI(S.tv) == S.stop + 1, "the TV: CH up tunes the next channel", S.stop .. " -> " .. H.stopI(S.tv))
     H.click(H.WW(), "power")
 end)
+-- (Nov 18 2026, QA, the ledger: a left click on the TV in the world, through ZeD's hook on the game's click handler
+-- (FacePop.worldClick, Devices on Immersive), pops its face out; a second click puts it away)
 Q.step(10, function()
     if not S.tv then return end
     Q.check(not H.on(S.tv), "the TV: power again turns it off")
+    local o = ZeD.Settings and ZeD.Settings.devicesStyleOption
+    if o and S.devWas == nil then pcall(function() S.devWas = o:getValue() end) end
+    if o then pcall(function() o:setValue(1) end) end
+    pcall(function() Mouse.setXY(20, 20) end)
+    S.fpOk = ZeD.FacePop ~= nil and ZeD.FacePop.worldClick ~= nil and ISObjectClickHandler ~= nil and ISObjectClickHandler._zedFacePop == true
+    if S.fpOk then pcall(ZeD.FacePop.worldClick, S.tv) end
+end)
+Q.waitFor(3, 120, function() return not S.tv or not S.fpOk or ZeD.TwoWayFull.showingObj(pn, S.tv) end, function(ok)
+    if not S.tv then return end
+    if not Q.check(S.fpOk and ok, "the TV: a click on it in the world pops its face out", S.fpOk and "" or "ZeD's hook is not on the game's click handler") then return end
+    RT.bounds(Q, "the TV's face popped out")
+    pcall(ZeD.FacePop.worldClick, S.tv)
+end)
+Q.step(5, function()
+    if not S.tv then return end
+    if S.fpOk then Q.check(not ZeD.TwoWayFull.showingObj(pn, S.tv), "the TV: a second click on it puts its face away") end
+    pcall(ZeD.TwoWayFull.close, pn)
     H.removeTv()
     H.gridBack()
     if S.moved then H.moveTo(S.home.x, S.home.y, S.home.z); S.t0 = getTimestampMs() end
@@ -602,6 +713,327 @@ function H.putView()
     S.view0 = nil
 end
 
+-- ===================================================================== 3c. the Survey map's paper-map look (MapsSurvey.lua)
+-- (Nov 18 2026, QA, the Survey map work: Survey opened afresh (from Color) raises no Lua error and trips no fault;
+-- its layers read in the theme's palette (M.PALETTES), the woodland tile on the forest layer and a lake layer per
+-- MapsSurveyData lake just above the water; a status-colour change recolours it in place, once, with no new layers.
+-- The printed additions are read by drawing them once into a recorder (M.drawMap with the map's draw calls caught,
+-- nothing drawn) at a view set for each: the grid, place badges from zoom 14 and none farther out, route shields,
+-- bridge marks, town dots, the exclusion zone's edge and label, the scale bar and north arrow. The key's Colors and
+-- Symbols pages through the Maps tab's own click handler (MapsTabExt.onClick). Put back: the style, the status
+-- colours, the view and the key.)
+local SV = ZeD.MapsSurvey
+function H.errN() local n = nil; pcall(function() n = getLuaDebuggerErrorCount() end); return n end
+function H.sapi() local m = H.mp(); local a = nil; if m then pcall(function() a = m.mapAPI:getStyleAPI() end) end; return a end
+-- a layer's first fill stop is this hex colour (the stops read as 0..255 or 0..1)
+function H.fillIs(layer, hex)
+    if not (layer and hex) then return false end
+    local r, g, b = SV.rgb(hex)
+    local ok, fr, fg, fb = pcall(function() return layer:getFillRed(0), layer:getFillGreen(0), layer:getFillBlue(0) end)
+    if not ok or fr == nil then return false end
+    local k = (fr <= 1 and fg <= 1 and fb <= 1 and (r + g + b) > 3) and 255 or 1
+    return math.abs(fr * k - r) < 1.5 and math.abs(fg * k - g) < 1.5 and math.abs(fb * k - b) < 1.5
+end
+function H.layer(name) local s = H.sapi(); local l = nil; if s then pcall(function() l = s:getLayerByName(name) end) end; return l end
+function H.layerN() local s = H.sapi(); local n = -1; if s then pcall(function() n = s:getLayerCount() end) end; return n end
+function H.layerAt(name) local s = H.sapi(); local n = -1; if s then pcall(function() n = s:indexOfLayer(name) end) end; return n end
+function H.palNow() local base, cb = SV.key(); return SV.PALETTES[base], cb, base end
+-- the view: centred on world x, y at zoom z
+function H.viewAt(x, y, z)
+    local m = H.mp()
+    if not m then return end
+    pcall(function() m.mapAPI:centerOn(x, y) end)
+    pcall(function() m.mapAPI:setZoom(z) end)
+end
+-- the printed additions drawn once into a recorder (no drawing): rects, borders, texts and textures
+function H.rec()
+    local m = H.mp()
+    local R = { rects = {}, borders = {}, texts = {}, texs = {}, W = m:getWidth(), H = m:getHeight() }
+    m.drawRect = function(_, x, y, w, h, a) R.rects[#R.rects + 1] = { x = x, y = y, w = w, h = h, a = a } end
+    m.drawRectBorder = function(_, x, y, w, h) R.borders[#R.borders + 1] = { x = x, y = y, w = w, h = h } end
+    m.drawText = function(_, s, x, y) R.texts[#R.texts + 1] = { s = tostring(s), x = x, y = y } end
+    m.drawTextureScaled = function(_, t, x, y, w, h) R.texs[#R.texs + 1] = { t = t, x = x, y = y, w = w, h = h } end
+    local ok, err = pcall(SV.drawMap, m, H.WW())
+    m.drawRect, m.drawRectBorder, m.drawText, m.drawTextureScaled = nil, nil, nil, nil
+    R.ok, R.err = ok, err
+    pcall(function() R.z = m.mapAPI:getZoomF() end)
+    return R
+end
+function H.ui(x, y)
+    local api = H.mp().mapAPI
+    return api:worldToUIX(x, y), api:worldToUIY(x, y)
+end
+function H.inMap(R, x, y, w, h) return x >= -1 and y >= -1 and x + (w or 0) <= R.W + 1 and y + (h or 0) <= R.H + 1 end
+function H.near(R, x, y, pad) return x > -pad and y > -pad and x < R.W + pad and y < R.H + pad end
+function H.nSq(R, list, s) local n = 0; for _, r in ipairs(list) do if math.abs(r.w - s) < 0.5 and math.abs(r.h - s) < 0.5 then n = n + 1 end end; return n end
+function H.putSurvey()
+    if not S.svBack then return end
+    S.svBack = nil
+    if SV and S.svRs then SV.restyle = S.svRs; S.svRs = nil end
+    ZeD.currentStatus = S.sv.status
+    local w = H.WW()
+    if w then w._mapKeyOpen, w._mapKeyPage = S.sv.keyOpen, S.sv.page end
+    local m = H.mp()
+    if m and S.sv.view then
+        pcall(function() m.mapAPI:centerOn(S.sv.view.x, S.sv.view.y) end)
+        pcall(function() m.mapAPI:setZoom(S.sv.view.z) end)
+    end
+    if w and m and S.sv.style and m.style ~= S.sv.style then MT.setStyle(w, S.sv.style) end
+end
+Q.step(5, function()
+    local m, w = H.mp(), H.WW()
+    if not Q.check(SV ~= nil and m ~= nil and SV.restyle ~= nil and SV.drawMap ~= nil, "survey: MapsSurvey is loaded and the map is up") then S.svSkip = true; return end
+    S.sv = { style = m.style, status = ZeD.currentStatus, view = H.mapView(), keyOpen = w._mapKeyOpen, page = w._mapKeyPage }
+    S.svBack = true
+    if m.style == "survey" then MT.setStyle(w, "color") end
+end)
+Q.waitFor(5, 200, function() local m = H.mp(); return S.svSkip or (m ~= nil and m.style ~= "survey" and not m._styleWanted) end, function()
+    if S.svSkip then return end
+    S.svErr0 = H.errN()
+    S.svSafe0 = ZeD.Safe and ZeD.Safe.on and ZeD.Safe.on() or false
+    MT.setStyle(H.WW(), "survey")
+end)
+Q.waitFor(5, 200, function() local m = H.mp(); return S.svSkip or (m ~= nil and m.style == "survey" and not m._styleWanted) end, function(ok)
+    if S.svSkip then return end
+    local m = H.mp()
+    local e1 = H.errN()
+    local safe1 = ZeD.Safe and ZeD.Safe.on and ZeD.Safe.on() or false
+    local okR, err = pcall(SV.restyle, m)
+    Q.check(ok and okR and (S.svErr0 == nil or e1 == S.svErr0) and safe1 == S.svSafe0,
+        "survey: opening Survey raises no Lua error and trips no fault", okR and ("errors " .. tostring(S.svErr0) .. " -> " .. tostring(e1)) or tostring(err))
+    RT.bounds(Q, "the Survey map")
+    local pal, cb, base = H.palNow()
+    local bset = cb and pal.cb or pal.b
+    Q.check(H.fillIs(H.layer("road-primary"), pal.main) and H.fillIs(H.layer("building-Residential"), bset.Residential) and H.fillIs(H.layer("water"), pal.water),
+        "survey colors: the roads, water and buildings in the theme's palette", base .. (cb and " (color blind)" or ""))
+    Q.check(m._zedSurveyKey == base .. (cb and ":cb" or ""), "survey colors: the map keeps the palette it drew", tostring(m._zedSurveyKey))
+    -- the woodland tile on the forest layer
+    local fl = H.layer("forest")
+    local n, path = 0, nil
+    if fl then pcall(function() n = fl:getTextureStops(); path = fl:getTexturePath(0) end) end
+    Q.check(fl ~= nil and n >= 1 and tostring(path) == "media/textures/ZeD/map/woods_" .. base .. ".png", "survey woods: the forest layer carries the theme's tree-mark tile",
+        tostring(n) .. " texture stops, " .. tostring(path))
+    -- the lakes
+    local lakes = (ZeD.MapsSurveyData and ZeD.MapsSurveyData.lakes) or {}
+    local waterAt, bad = H.layerAt("water"), {}
+    for i = 1, #lakes do
+        local nm = "zed-lake-" .. i
+        if not (H.layer(nm) ~= nil and H.layerAt(nm) == waterAt + i and H.fillIs(H.layer(nm), pal.lake)) then bad[#bad + 1] = nm .. "@" .. tostring(H.layerAt(nm)) end
+    end
+    Q.check(#lakes > 0 and waterAt >= 0 and #bad == 0, "survey lakes: a lake layer per lake, just above the water, in the lake blue",
+        #lakes .. " lakes, water at " .. tostring(waterAt) .. ((#bad > 0) and (", wrong: " .. table.concat(bad, " ")) or ""))
+    -- a status-colour change: watched each frame (M.watch), one restyle, no new layers
+    S.svN0 = H.layerN()
+    S.svRsN = 0
+    S.svRs = SV.restyle
+    SV.restyle = function(...) S.svRsN = S.svRsN + 1; return S.svRs(...) end
+    ZeD.currentStatus = (S.sv.status == "cb") and "standard" or "cb"
+end)
+Q.step(10, function()
+    if S.svSkip then return end
+    local m = H.mp()
+    local pal, cb, base = H.palNow()
+    local bset = cb and pal.cb or pal.b
+    Q.check(m._zedSurveyKey == base .. (cb and ":cb" or "") and S.svRsN == 1 and H.layerN() == S.svN0 and H.fillIs(H.layer("building-Residential"), bset.Residential),
+        "survey recolor: a status-colour change recolors it once, no new layers", tostring(m._zedSurveyKey) .. ", " .. S.svRsN .. " restyles, layers " .. S.svN0 .. " -> " .. H.layerN())
+    ZeD.currentStatus = S.sv.status
+end)
+Q.step(10, function()
+    if S.svSkip then return end
+    if S.svRs then SV.restyle = S.svRs; S.svRs = nil end
+    local _, cb, base = H.palNow()
+    Q.check(H.mp()._zedSurveyKey == base .. (cb and ":cb" or ""), "survey recolor: the status colours put back, the palette follows")
+    -- the grid, at the character's spot
+    H.viewAt(p:getX(), p:getY(), 13)
+end)
+Q.step(10, function()
+    if S.svSkip then return end
+    local R = H.rec()
+    local lines, out = 0, 0
+    for _, r in ipairs(R.rects) do
+        if r.a == 0.30 and (r.w == 1 or r.h == 1) then lines = lines + 1 end
+        if (r.a == 0.30 or r.a == 0.85) and not H.inMap(R, r.x, r.y, r.w, r.h) then out = out + 1 end
+    end
+    local letters = 0
+    for _, t in ipairs(R.texts) do if t.s:match("^[A-Z][A-Z]?$") then letters = letters + 1 end end
+    Q.check(R.ok and lines > 0 and letters > 0 and out == 0, "survey grid: lines and letters drawn, all on the map",
+        R.ok and (lines .. " lines, " .. letters .. " letters, " .. out .. " off the map") or tostring(R.err))
+    -- the scale bar and north arrow, at this view
+    local api = H.mp().mapAPI
+    local cx, cy = api:getCenterWorldX(), api:getCenterWorldY()
+    local ppsq = math.abs(api:worldToUIX(cx + 100, cy) - api:worldToUIX(cx, cy)) / 100
+    local want = R.W / 3 / math.max(0.0001, ppsq)
+    local mm = 10
+    for _, s in ipairs({ 10, 20, 50, 100, 200, 500, 1000, 2000, 5000 }) do if s <= want then mm = s end end
+    local barW = math.floor(mm * ppsq)
+    local bar, box = false, false
+    for _, b in ipairs(R.borders) do
+        if math.abs(b.h - ZeD.T.px(4)) < 0.5 and math.abs(b.w - barW) < 1 then bar = true end
+        if b.w > barW and math.abs(b.x + b.w / 2 - R.W / 2) <= 1 and H.inMap(R, b.x, b.y, b.w, b.h) then box = true end
+    end
+    local label = (mm >= 1000) and (tostring(mm / 1000) .. " km") or (tostring(mm) .. " m")
+    local hasLabel, hasN = false, false
+    for _, t in ipairs(R.texts) do if t.s == label then hasLabel = true end; if t.s == "N" then hasN = true end end
+    Q.check(bar and box and hasLabel and hasN, "survey scale: the bar is its metres x px per square, boxed at the foot",
+        "want " .. barW .. " px for " .. label .. "; bar " .. tostring(bar) .. ", box " .. tostring(box) .. ", label " .. tostring(hasLabel) .. ", N " .. tostring(hasN))
+    -- the places: zoom 15 on the first
+    local pl = (ZeD.MapsSurveyData and ZeD.MapsSurveyData.places or {})[1]
+    S.svPl = pl
+    if pl then H.viewAt(pl.x, pl.y, 15) end
+end)
+Q.step(10, function()
+    if S.svSkip then return end
+    if not Q.check(S.svPl ~= nil, "survey places: MapsSurveyData has places") then return end
+    local R = H.rec()
+    local s = ZeD.T.px((R.z or 0) >= 16 and 18 or 14)
+    local want = 0
+    for _, pp in ipairs(ZeD.MapsSurveyData.places) do
+        local sx, sy = H.ui(pp.x, pp.y)
+        if H.near(R, sx, sy, s) then want = want + 1 end
+    end
+    local got = H.nSq(R, R.borders, s)
+    Q.check(R.ok and (R.z or 0) >= 14 and want > 0 and got == want, "survey places: a badge at each place in view from zoom 14",
+        "zoom " .. tostring(R.z) .. ", " .. got .. " badges, " .. want .. " places in view")
+    H.viewAt(S.svPl.x, S.svPl.y, 13.9)
+end)
+Q.step(10, function()
+    if S.svSkip or not S.svPl then return end
+    local R = H.rec()
+    Q.check(R.ok and (R.z or 99) < 14 and H.nSq(R, R.borders, ZeD.T.px(14)) == 0, "survey places: no place badges farther out than zoom 14", "zoom " .. tostring(R.z))
+    local sh = (ZeD.MapsSurveyData.shields or {})[1]
+    S.svSh = sh
+    if sh then H.viewAt(sh.x, sh.y, 14) end
+end)
+Q.step(10, function()
+    if S.svSkip or not S.svPl then return end
+    if not Q.check(S.svSh ~= nil, "survey shields: MapsSurveyData has route shields") then return end
+    local R = H.rec()
+    local T3 = { us = getTexture("media/textures/ZeD/map/shield_us.png"), ky = getTexture("media/textures/ZeD/map/shield_ky.png"),
+        i = getTexture("media/textures/ZeD/map/shield_i.png") }
+    local want, nums = 0, 0
+    for _, e in ipairs(ZeD.MapsSurveyData.shields) do
+        local sx, sy = H.ui(e.x, e.y)
+        if T3[e.t] and H.near(R, sx, sy, 30) then
+            want = want + 1
+            for _, t in ipairs(R.texts) do if t.s == tostring(e.n) then nums = nums + 1; break end end
+        end
+    end
+    local got = 0
+    for _, t in ipairs(R.texs) do if t.t ~= nil and (t.t == T3.us or t.t == T3.ky or t.t == T3.i) then got = got + 1 end end
+    Q.check(R.ok and want > 0 and got == want and nums == want, "survey shields: a shield with its number per route in view",
+        "zoom " .. tostring(R.z) .. ", " .. got .. " shields, " .. nums .. " numbers, " .. want .. " in view")
+    local br = (ZeD.MapsSurveyData.bridges or {})[1]
+    S.svBr = br
+    if br then H.viewAt(br.x, br.y, 16) end
+end)
+Q.step(10, function()
+    if S.svSkip or not S.svPl then return end
+    if not Q.check(S.svBr ~= nil, "survey bridges: MapsSurveyData has bridges") then return end
+    local R = H.rec()
+    local sx, sy = H.ui(S.svBr.x, S.svBr.y)
+    local reach = ZeD.T.px(60)
+    local near, out = 0, 0
+    for _, r in ipairs(R.rects) do
+        if r.a == 1 and (r.w == 1 or r.h == 1) and math.abs(r.x - sx) <= reach and math.abs(r.y - sy) <= reach then
+            near = near + 1
+            if not H.inMap(R, r.x, r.y, r.w, r.h) then out = out + 1 end
+        end
+    end
+    Q.check(R.ok and near >= 2 and out == 0, "survey bridges: a bridge in view gets its two lines, wholly on the map",
+        "zoom " .. tostring(R.z) .. ", " .. near .. " marks by it, " .. out .. " off the map")
+    -- the towns: zoom 12 on the city (size 3)
+    S.svTown = nil
+    for _, t in ipairs(ZeD.MapsSurveyData.towns or {}) do if not S.svTown and t.size == 3 then S.svTown = t end end
+    if S.svTown then H.viewAt(S.svTown.x, S.svTown.y, 12) end
+end)
+Q.step(10, function()
+    if S.svSkip or not S.svPl then return end
+    if not Q.check(S.svTown ~= nil, "survey towns: MapsSurveyData has a city (size 3)") then return end
+    local R = H.rec()
+    local want, cities = 0, 0
+    for _, t in ipairs(ZeD.MapsSurveyData.towns) do
+        local tx, ty = H.ui(t.x, t.y)
+        if H.near(R, tx, ty, 20) then want = want + 1; if t.size == 3 then cities = cities + 1 end end
+    end
+    local sq9 = 0
+    for _, r in ipairs(R.rects) do if r.a == 1 and math.abs(r.w - ZeD.T.px(9)) < 0.5 and math.abs(r.h - ZeD.T.px(9)) < 0.5 then sq9 = sq9 + 1 end end
+    local dots = H.nSq(R, R.borders, ZeD.T.px(8))
+    Q.check(R.ok and (R.z or 99) < 13.5 and cities > 0 and sq9 == cities and dots + sq9 == want, "survey towns: a dot per town in view, a filled square for a city",
+        "zoom " .. tostring(R.z) .. ", " .. dots .. " dots and " .. sq9 .. " squares for " .. want .. " towns (" .. cities .. " cities)")
+    -- the exclusion zone: its top edge, mid-map
+    local b = ZeD.MapsSurveyData.bounds
+    S.svB = b
+    if b then H.viewAt((b[1] + b[3]) / 2, b[2] + 60, 14) end
+end)
+Q.step(10, function()
+    if S.svSkip or not S.svPl then return end
+    if not Q.check(S.svB ~= nil, "survey zone: MapsSurveyData has the map's bounds") then return end
+    local R = H.rec()
+    local b = S.svB
+    local x1, y1 = H.ui(b[1], b[2])
+    local x2, y2 = H.ui(b[3], b[4])
+    local bars, outside = 0, 0
+    for _, r in ipairs(R.rects) do
+        if r.a == 0.55 then
+            bars = bars + 1
+            if r.x < x1 - 1 or r.y < y1 - 1 or r.x + r.w > x2 + 1 or r.y + r.h > y2 + 1 then outside = outside + 1 end
+        end
+    end
+    local name = ZeD.tr("UI_ZeD_Map_ExclusionZone")
+    local f = ZeD.T.fontF5 or UIFont.Small
+    local tm = getTextManager()
+    local lab = false
+    for _, t in ipairs(R.texts) do
+        if t.s == name and H.inMap(R, t.x, t.y, tm:MeasureStringX(f, name), tm:getFontHeight(f)) then lab = true end
+    end
+    Q.check(R.ok and bars > 0 and outside == 0 and lab, "survey zone: magenta bars inside the edge, its label wholly on the map",
+        bars .. " bars, " .. outside .. " outside the bounds, label " .. tostring(lab))
+    pcall(function() local v = S.sv.view; H.viewAt(v.x, v.y, v.z) end)
+    -- the key: its button on the Maps band
+    local w = H.WW()
+    local z = nil
+    for _, zz in ipairs(w._mapExtZones or {}) do if zz.id == "map:ext:key" then z = zz end end
+    if not Q.check(z ~= nil, "survey key: the Maps band has the Key button") then S.keySkip = true; return end
+    w._mapKeyOpen = false
+    ZeD.MapsTabExt.onClick(w, z.x + 2, z.y + 2)
+end)
+function H.extZone(id)
+    local w = H.WW()
+    for _, z in ipairs((w and w._mapExtZones) or {}) do if z.id == id then return z end end
+    return nil
+end
+Q.waitFor(3, 120, function() return S.svSkip or not S.svPl or S.keySkip or H.extZone("map:key:page:symbols") ~= nil end, function(ok)
+    if S.svSkip or not S.svPl or S.keySkip then return end
+    local w = H.WW()
+    if not Q.check(ok and w._mapKeyOpen == true, "survey key: the Key button opens Survey's key with its two pages") then S.keySkip = true; return end
+    local z = H.extZone("map:key:page:symbols")
+    ZeD.MapsTabExt.onClick(w, z.x + 2, z.y + 2)
+end)
+Q.step(5, function()
+    if S.svSkip or not S.svPl or S.keySkip then return end
+    local w, m = H.WW(), H.mp()
+    local pz = H.extZone("map:key:panel")
+    Q.check(w._mapKeyPage == "symbols" and pz ~= nil and pz.w <= m:getWidth() and pz.h <= m:getHeight(),
+        "survey key: Symbols turns the page; the key fits on the map", tostring(w._mapKeyPage) .. ", panel " .. tostring(pz and (pz.w .. "x" .. pz.h)) .. " on a " .. m:getWidth() .. "x" .. m:getHeight() .. " map")
+    RT.bounds(Q, "the map key, Symbols")
+    local z = H.extZone("map:key:page:colors")
+    if z then ZeD.MapsTabExt.onClick(w, z.x + 2, z.y + 2) end
+end)
+Q.step(5, function()
+    if S.svSkip or not S.svPl or S.keySkip then return end
+    local w, m = H.WW(), H.mp()
+    local pz = H.extZone("map:key:panel")
+    Q.check(w._mapKeyPage == "colors" and pz ~= nil and pz.h <= m:getHeight(), "survey key: Colors turns it back; the key fits on the map", tostring(w._mapKeyPage))
+    RT.bounds(Q, "the map key, Colors")
+    local z = H.extZone("map:key:close")
+    if z then ZeD.MapsTabExt.onClick(w, z.x + 2, z.y + 2) end
+end)
+Q.step(5, function()
+    if S.svSkip or not S.svPl or S.keySkip then H.putSurvey(); return end
+    Q.check(H.WW()._mapKeyOpen ~= true, "survey key: its close box shuts it")
+    H.putSurvey()
+end)
+
 -- ===================================================================== 4. the Journal tab: the lists, the quick note
 local NOTE = "fossoil out back. two cans. check again tomorrow"
 local PAGE2 = "water: 2 bottles and the pot.\nfood: beans, crackers"
@@ -649,6 +1081,21 @@ end, function(ok)
     Q.check(ok, "Papers lists the flyer carried")
     Q.check(H.zone("paper:ustoreitmuldraugh") ~= nil, "the flyer has its row on the page")
     RT.bounds(Q, "the Journal's Papers page")
+    -- (Nov 18 2026, QA, the ledger: a click on the row opens the flyer on the page; Back returns to the list. Its Open
+    -- full is the print page, not tested here: the director ruled it is not ZeD's.)
+    S.paperPressed = H.press("paper:ustoreitmuldraugh")
+end)
+Q.step(5, function()
+    local w = H.CW()
+    local s = w and w._jr
+    Q.check(S.paperPressed and s ~= nil and s.paperOpen == "ustoreitmuldraugh", "Papers: a click on the flyer's row opens it on the page", tostring(s and s.paperOpen))
+    RT.bounds(Q, "the flyer open on the Papers page")
+    S.paperBack = H.press("back")
+    if not S.paperBack and s then s.paperOpen = nil end
+end)
+Q.step(5, function()
+    local w = H.CW()
+    Q.check(S.paperBack and w._jr and w._jr.paperOpen == nil, "Papers: Back on the open flyer returns to the list")
 end)
 Q.step(5, function() ZeD.JournalTab.setPage(H.CW(), 2) end)
 Q.waitFor(5, 200, function()
@@ -997,6 +1444,40 @@ Q.step(5, function()
     if S.bookSkip then return end
     Q.check(not H.bookOpen(), "B closes the book (its own pad handler)")
 end)
+-- (Nov 18 2026, QA, the ledger: F1, the game's Toggle Survival Guide key through the game's own OnKeyPressed handler
+-- (SurvivalGuide.onKeyPressed is ZeD's onKey), opens the guide on the topic for the open tab: with the Health tab
+-- open, First aid; the key again closes it)
+Q.step(5, function()
+    S.f1Skip = nil
+    if S.bookSkip then return end
+    S.f1 = nil
+    pcall(function() S.f1 = getCore():getKey(KeybindId.TOGGLE_SURVIVAL_GUIDE) end)
+    if not S.f1 or S.f1 == 0 or not (SurvivalGuide and SurvivalGuide.onKeyPressed) then
+        S.f1Skip = true
+        Q.skip("F1 opens the guide", "the Toggle Survival Guide key is not bound")
+        return
+    end
+    pcall(function() Mouse.setXY(20, 20) end)
+    RT.charTab("health")
+end)
+Q.step(10, function()
+    if S.bookSkip or S.f1Skip then return end
+    local topic = ZeD.Guide.contextTopicKey()
+    Q.check(topic == "SurvivalGuide_first_aid_title", "F1: with the Health tab open the guide's topic is First aid", tostring(topic))
+    pcall(SurvivalGuide.onKeyPressed, S.f1)
+end)
+Q.waitFor(3, 120, function() return S.bookSkip or S.f1Skip or H.bookOpen() end, function(ok)
+    if S.bookSkip or S.f1Skip then return end
+    local bk = H.book()
+    Q.check(ok and bk ~= nil and bk.spread ~= 1, "F1: the key opens the book on that topic, past its first spread", tostring(bk and bk.spread))
+    RT.bounds(Q, "the guide book opened by F1")
+    pcall(SurvivalGuide.onKeyPressed, S.f1)
+end)
+Q.step(5, function()
+    if S.bookSkip or S.f1Skip then return end
+    Q.check(not H.bookOpen(), "F1: the key again closes the guide")
+    RT.charTab("journal")
+end)
 -- the Simple look: the guide window, closed by Escape
 Q.step(5, function()
     if S.escSkip then return end
@@ -1016,14 +1497,143 @@ Q.step(5, function()
     H.putGuide()
 end)
 
+-- ===================================================================== 9. Health's fill blocks, Thermal's regions, hair and beard
+-- (Nov 18 2026, QA, the ledger: each through its tab's own click handler, as rt_media presses the Journal's: a fill
+-- block's head folds it (ZeD.TabFill, the Health tab) and again opens it; a cell of Thermal's region grid picks that
+-- region; the Identity tab's Hair and beard: its switch changes the part, a row picked and Cut queue the game's own
+-- haircut (ISCutHair, scissors given), stopped at once so the character's hair is kept)
+local FILL_HEAD = "fill:health:head:"
+function H.fillHead(id)
+    for _, z in ipairs(ZeD.TabFill.zones(H.CW(), "health") or {}) do
+        if type(z.id) == "string" and ((id and z.id == id) or (not id and z.id:find(FILL_HEAD, 1, true) == 1)) then return z end
+    end
+    return nil
+end
+Q.step(5, function()
+    S.fillSkip = nil
+    if not RT.charTab("health") then S.fillSkip = true; Q.check(false, "Health: the tab opens from the strip") end
+end)
+Q.waitFor(5, 300, function() return S.fillSkip or H.fillHead() ~= nil end, function(ok)
+    if S.fillSkip then return end
+    local z = H.fillHead()
+    if not Q.check(ok and z ~= nil, "Health: its fill blocks draw their heads") then S.fillSkip = true; return end
+    S.fillId = z.id
+    S.fillBlock = z.id:sub(string.len(FILL_HEAD) + 1)
+    S.fillWas = ZeD.TabFill.folded(H.CW(), "health", S.fillBlock)
+    Q.check(ZeD.TabFill.onClick(H.CW(), "health", z.x + 2, z.y + 2) == true, "Health: a click on a fill block's head is taken")
+end)
+Q.step(5, function()
+    if S.fillSkip then return end
+    local now = ZeD.TabFill.folded(H.CW(), "health", S.fillBlock)
+    Q.check(now ~= S.fillWas, "Health: a fill block's head folds or opens its block", S.fillBlock .. ": " .. tostring(S.fillWas) .. " -> " .. tostring(now))
+    local z = H.fillHead(S.fillId)
+    if z then ZeD.TabFill.onClick(H.CW(), "health", z.x + 2, z.y + 2) end
+end)
+Q.step(5, function()
+    if S.fillSkip then return end
+    Q.check(ZeD.TabFill.folded(H.CW(), "health", S.fillBlock) == S.fillWas, "Health: pressed again, the block is back as it was")
+end)
+Q.step(5, function()
+    S.thSkip = nil
+    if not RT.charTab("thermal") then S.thSkip = true; Q.check(false, "Thermal: the tab opens from the strip") end
+end)
+Q.waitFor(5, 300, function()
+    if S.thSkip then return true end
+    local w = H.CW()
+    S.thZ = nil
+    for _, z in ipairs(ZeD.TabFill.zones(w, "thermal") or {}) do
+        if not S.thZ and z.partName and z.partName ~= w._thermalPick and type(z.id) == "string" and z.id:find("fill:thermal:cell:", 1, true) == 1 then S.thZ = z end
+    end
+    return S.thZ ~= nil
+end, function(ok)
+    if S.thSkip then return end
+    if not Q.check(ok, "Thermal: the region grid draws its cells") then S.thSkip = true; return end
+    local w = H.CW()
+    S.thWas, S.thPart = w._thermalPick, S.thZ.partName
+    ZeD.TabFill.onClick(w, "thermal", S.thZ.x + 2, S.thZ.y + 2)
+end)
+Q.step(5, function()
+    if S.thSkip then return end
+    local w = H.CW()
+    Q.check(w._thermalPick == S.thPart, "Thermal: a click on a grid cell picks that region", tostring(w._thermalPick) .. ", want " .. tostring(S.thPart))
+    RT.bounds(Q, "the Thermal tab")
+    w._thermalPick = S.thWas
+end)
+function H.hb() return ZeD.HairBeard and ZeD.HairBeard.state(H.CW()) end
+function H.hbZone(kind, pred)
+    local st = H.hb()
+    for _, z in ipairs((st and st.zones) or {}) do
+        local it = z.item
+        if it and it.kind == kind and (not pred or pred(it)) then return z end
+    end
+    return nil
+end
+function H.hbRowOk(it) return it.row ~= nil and it.row.ok and not it.row.out and not it.row.instant and it.row.part ~= "makeup" end
+Q.step(5, function()
+    S.hbSkip = nil
+    if not (ZeD.HairBeard and ZeD.IdentityTab and RT.charTab("identity")) then S.hbSkip = true; Q.check(false, "Hair and beard: the Identity tab opens from the strip") end
+end)
+Q.waitFor(5, 600, function() return S.hbSkip or H.hbZone("parts") ~= nil end, function(ok)
+    if S.hbSkip then return end
+    if not Q.check(ok, "Hair and beard: the Identity tab draws the section's part switch") then S.hbSkip = true; return end
+    local st = H.hb()
+    local parts = ZeD.HairBeard.partsOf(st)
+    S.hbPart0, S.hbWant = st.part, nil
+    if #parts < 2 then Q.skip("Hair and beard: the part switch", "this character has Hair only (no beard, no make-up)"); return end
+    local i = (st.part == parts[1]) and 2 or 1
+    S.hbWant = parts[i]
+    local z = H.hbZone("parts")
+    ZeD.IdentityTab.onClick(H.CW(), z.x + math.floor(z.w * (i - 0.5) / #parts), z.y + math.floor(z.h / 2))
+end)
+Q.step(5, function()
+    if S.hbSkip then return end
+    if S.hbWant then
+        local st = H.hb()
+        Q.check(st.part == S.hbWant, "Hair and beard: a click on the switch changes the part", tostring(st.part) .. ", want " .. S.hbWant)
+    end
+    ZeD.HairBeard.setPart(H.CW(), "hair")
+    pcall(function() S.hbHair = p:getHumanVisual():getHairModel() end)
+    RT.give("Base.Scissors")
+end)
+Q.waitFor(10, 600, function() return S.hbSkip or H.hbZone("row", H.hbRowOk) ~= nil end, function(ok)
+    if S.hbSkip then return end
+    if not ok then S.hbCutSkip = true; Q.skip("Hair and beard: Cut", "no hair row this character can do now, scissors given"); return end
+    local z = H.hbZone("row", H.hbRowOk)
+    S.hbKey = z.item.row.key
+    ZeD.IdentityTab.onClick(H.CW(), z.x + 2, z.y + 2)
+end)
+Q.step(5, function()
+    if S.hbSkip or S.hbCutSkip then return end
+    local st = H.hb()
+    Q.check(st.sel == S.hbKey, "Hair and beard: a click on a row picks it", tostring(st.sel))
+    local b = st.btn
+    if not Q.check(b ~= nil and b.on == true, "Hair and beard: Cut is live for the picked row") then S.hbCutSkip = true; return end
+    ZeD.IdentityTab.onClick(H.CW(), b.x + 2, b.y + 2)
+end)
+Q.waitFor(1, 400, function() return S.hbSkip or S.hbCutSkip or ISTimedActionQueue.hasActionType(p, "ISCutHair") end, function(ok)
+    if S.hbSkip or S.hbCutSkip then return end
+    Q.check(ok, "Hair and beard: Cut queues the game's haircut (ISCutHair)")
+    ZeD.HairBeard.stop(H.CW())
+    H.clearQueue()
+end)
+Q.step(10, function()
+    if S.hbSkip or S.hbCutSkip then return end
+    local hm = nil
+    pcall(function() hm = p:getHumanVisual():getHairModel() end)
+    Q.check(hm == S.hbHair, "Hair and beard: stopped at once, the hair is as it was", tostring(hm))
+end)
+
 -- ===================================================================== put back
 Q.mark()
 Q.step(5, function()
     H.clearQueue()
+    pcall(function() if S.devWas ~= nil then ZeD.Settings.devicesStyleOption:setValue(S.devWas) end end)
+    pcall(function() local w = H.CW(); if w and S.thWas then w._thermalPick = S.thWas end end)
     pcall(function() local r = ZeD.Reader.get(pn); if r and r:isReallyVisible() then r:close() end end)
     pcall(function() ZeD.TwoWayFull.close(pn) end)
     pcall(H.putGuide)
     pcall(H.putLog)
+    pcall(H.putSurvey)
     pcall(function() local w = H.WW(); if w and w._mapPopout then MT.closePopout(w, true) end end)
     pcall(H.putView)
     pcall(function() local st = H.CW()._jrecipeState; if st and S.recWas ~= nil then st.allCollapsed = S.recWas end end)

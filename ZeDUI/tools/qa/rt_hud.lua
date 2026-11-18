@@ -31,6 +31,14 @@
 --             text back; a long rich text stays on screen and scrolls; Escape and Enter answer the prompt on top and
 --             the pause menu stays shut
 --   mini-map  Overrides/MiniMap.lua: the game's mini-map shown is hidden again within 500 ms; restore shows it
+-- (Nov 18 2026, QA, the ledger's proof pass, more closed here:)
+--   alone     ZeD_CharacterWindow.toggle opens the Character window without the World window, on Loot; UI scale Auto's
+--             root is the screen height over 1080, held to 0.75 .. 4, times the font knob
+--   column    the game's left-edge column shows no hands and no window buttons
+--   keys      a number key held opens its slot's list at the slot; its release draws nothing; the Messages note opens
+--             the Messages window
+--   more      the action bar's queue count; the watch's light; an item pinned from its own menu, and a fourth pin
+--             taking off the oldest with a note; the run button's hold crouching and standing (RunSneak's QA hook)
 -- Every surface: RT.bounds. Puts back: every option, the stats, hands, worn watch, the watch's saved spot, Messages,
 -- the guide's flag file and timings, search mode, the time, the character's spot, the hint uses file, the pins, the
 -- hotbar, the game speed, the mini-map. Things given are taken back.
@@ -69,6 +77,37 @@ Q.step(10, function()
         and Z.HintStrip and Z.Messages and Z.Settings, "every HUD module is loaded")
 end)
 
+-- ===================================================================== one window alone; UI scale Auto
+-- (Nov 18 2026, QA, the ledger: ZeD_CharacterWindow.toggle, what the pair key calls for the Character window, opens it
+-- alone, on Loot with its drawer shut; Auto's root worked out with no fixed pick, the run's own scale left as it is)
+Q.step(5, function() pcall(ZeD_CharacterWindow.toggle, S.pn) end)
+Q.waitFor(2, 120, function() local w = RT.cw(); return w ~= nil and w:isReallyVisible() end, function(ok)
+    local w = RT.cw()
+    local ww, wwVis = RT.ww(), false
+    if ww then pcall(function() wwVis = ww:isReallyVisible() end) end
+    Q.check(ok and w ~= nil and not wwVis, "window alone: toggle opens the Character window without the World window")
+    Q.check(w ~= nil and w._activeTab == "loot" and w._drawerOpen ~= true, "window alone: it opens on Loot with the drawer shut",
+        tostring(w and w._activeTab) .. ", drawer " .. tostring(w and w._drawerOpen))
+    RT.bounds(Q, "the Character window alone")
+    pcall(ZeD_CharacterWindow.toggle, S.pn)
+end)
+Q.step(5, function()
+    Q.check(ZeD_CharacterWindow.getWindow(S.pn) == nil, "window alone: toggle again closes it")
+    local Sc = ZeD.Scale
+    if not Q.check(Sc ~= nil and Sc.computeGame ~= nil and Sc.userMul ~= nil, "UI scale Auto: ZeD.Scale is loaded") then return end
+    local want = math.max(0.75, math.min(4, S.sh / 1080)) * Sc.userMul()
+    local us, ov = Sc.userScale, Sc.override
+    Sc.userScale, Sc.override = nil, nil
+    local ok, got = pcall(Sc.computeGame)
+    Sc.userScale, Sc.override = us, ov
+    Q.check(ok and type(got) == "number" and math.abs(got - want) < 0.001,
+        "UI scale Auto: the root is the screen height over 1080, held to 0.75 .. 4, times the font knob",
+        tostring(got) .. ", want " .. tostring(want) .. " at " .. tostring(S.sh) .. " px high")
+    if us == nil and ov == nil then
+        Q.check(math.abs(Sc.root() - want) < 0.001, "UI scale Auto: the run is on Auto and draws at that root", tostring(Sc.root()))
+    end
+end)
+
 -- ===================================================================== belt and hands
 Q.step(20, function()
     local hud = S.hud()
@@ -79,6 +118,21 @@ Q.step(20, function()
     local parked = false
     pcall(function() parked = ISHotbar._zedBelt == true and getPlayerHotbar(S.pn):getX() < -1000 end)
     Q.check(parked, "belt: the game's hotbar is parked off screen (Overrides/Belt.lua)")
+    -- (Nov 18 2026, QA, the ledger: the game's left-edge column, ISEquippedItem: its hands and its window buttons are
+    -- hidden, or the whole column is; under -debug the column stays for its debug buttons, the window buttons still go)
+    local eq, eqVis = nil, false
+    pcall(function() local pd = getPlayerData(S.pn); eq = pd and pd.equipped end)
+    if eq then pcall(function() eqVis = eq:getIsVisible() end) end
+    local shown = {}
+    if eq and eqVis then
+        for _, k in ipairs({ "invBtn", "healthBtn", "craftingBtn", "buildBtn", "movableBtn", "searchBtn", "zoneBtn", "mapBtn", "mainHand", "offHand" }) do
+            local b, v = eq[k], false
+            if b then pcall(function() v = b:getIsVisible() end) end
+            if v then shown[#shown + 1] = k end
+        end
+    end
+    Q.check(eq ~= nil and #shown == 0, "belt: the game's left column shows no hands and no window buttons",
+        eq and (eqVis and ("column up; showing: " .. table.concat(shown, " ")) or "column hidden") or "no column")
     local main, off = S.handBox("p"), S.handBox("s")
     Q.check(main ~= nil and off ~= nil and main.w > off.w, "hands: two circles, the main hand the bigger",
         main and off and (main.w .. " and " .. off.w) or "missing")
@@ -198,6 +252,90 @@ Q.waitFor(2, 120, function() return S.noSlot or S.menu() ~= nil end, function()
     S.putRc()
 end)
 
+-- ===================================================================== belt: a number key held; the Messages note
+-- (Nov 18 2026, QA, the ledger. The held key: the game's own OnKeyKeepPressed with the slot's key, the press half a
+-- second old (Overrides/Belt.lua's holdKeepPressed reads the hotbar's keyPressedMS), then the release through
+-- OnKeyPressed, which ZeD's handler takes so it draws nothing. The note: the belt's own mouse handler on its box.)
+function S.listUp()
+    local m = S.menu()
+    local v = false
+    if m then pcall(function() v = m:isReallyVisible() end) end
+    if v then return m end
+    local c = S.ctx()
+    if c then pcall(function() v = c:isReallyVisible() end) end
+    return v and c or nil
+end
+Q.step(5, function()
+    S.closeMenu()
+    local hb = Z.Belt.hotbar and Z.Belt.hotbar(S.pn)
+    local hud = S.hud()
+    local i = hud and hud:_firstSlotIdx()
+    local b = i and hud._boxes[i]
+    if not (hb and b and b.kind == "slot") then S.hkSkip = true; Q.skip("belt: a number key held", "the belt shows no slot"); return end
+    local key = nil
+    for k = 2, 11 do   -- (Keyboard.KEY_1 .. KEY_0)
+        local okS, si = pcall(function() return hb:getSlotForKey(k) end)
+        if not key and okS and si == b.i then key = k end
+    end
+    if not key then S.hkSkip = true; Q.skip("belt: a number key held", "no number key is bound to slot " .. tostring(b.i)); return end
+    S.hk = { key = key, i = b.i, hands = { S.p:getPrimaryHandItem(), S.p:getSecondaryHandItem() } }
+    hb.keyPressedMS = getTimestampMs() - 700
+    pcall(triggerEvent, "OnKeyKeepPressed", key)
+end)
+Q.waitFor(2, 60, function() return S.hkSkip or S.listUp() ~= nil end, function(ok)
+    if S.hkSkip then return end
+    local m = S.listUp()
+    if not Q.check(ok and m ~= nil, "belt: a number key held past half a second opens its slot's list") then return end
+    local x, y, w, h = m:getX(), m:getY(), m:getWidth(), m:getHeight()
+    local bx = Z.Belt.boxScreen(S.hk.i, S.pn)
+    local slack = ZeD.T.px(40)
+    Q.check(bx ~= nil and bx >= x - slack and bx <= x + w + slack and S.onScreen(x, y, w, h), "belt: the slot's list opens at its slot, on screen",
+        string.format("%d,%d %dx%d", x, y, w, h) .. ", slot at x " .. tostring(bx))
+    RT.bounds(Q, "the slot's list")
+    S.closeMenu()
+    pcall(triggerEvent, "OnKeyPressed", S.hk.key)
+end)
+Q.step(10, function()
+    if S.hkSkip then return end
+    Q.check(S.p:getPrimaryHandItem() == S.hk.hands[1] and S.p:getSecondaryHandItem() == S.hk.hands[2],
+        "belt: the key's release after the list draws nothing")
+    pcall(function() S.p:setPrimaryHandItem(S.hk.hands[1]); S.p:setSecondaryHandItem(S.hk.hands[2]) end)
+    S.closeMenu()
+end)
+Q.step(5, function()
+    local hud = S.hud()
+    local _, b = S.boxIdx("lamp")
+    local MW = ZeD.MessagesWindow
+    if not Q.check(hud ~= nil and b ~= nil and MW ~= nil, "belt: the Messages note is on the belt") then S.lampSkip = true; return end
+    local w0 = MW.get(S.pn)
+    S.msgWas = w0 ~= nil and w0:isReallyVisible()
+    S.toastsWas = Z.Messages.toasts   -- (the window's open clears the toasts: put back after)
+    S.back.lamp = true
+    hud:onMouseDown(b.x + math.floor(b.w / 2), b.y + math.floor(b.h / 2))
+end)
+Q.waitFor(2, 60, function()
+    if S.lampSkip then return true end
+    local w = ZeD.MessagesWindow.get(S.pn)
+    return w ~= nil and w:isReallyVisible()
+end, function(ok)
+    if S.lampSkip then return end
+    local w = ZeD.MessagesWindow.get(S.pn)
+    Q.check(ok and w ~= nil, "belt: a click on the Messages note opens the Messages window")
+    if w then Q.check(S.onScreen(w:getX(), w:getY(), w:getWidth(), w:getHeight()), "belt: the Messages window is on screen") end
+    RT.bounds(Q, "the Messages window")
+    local hud = S.hud()
+    local ax, ay = Z.Belt.noteAnchor(S.pn)
+    Q.check(hud ~= nil and ax ~= nil and ax >= hud:getX() and ax <= hud:getX() + hud:getWidth() and ay >= hud:getY() and ay <= hud:getY() + hud:getHeight(),
+        "belt: the note's anchor is a point on the belt", tostring(ax) .. "," .. tostring(ay))
+    S.putLamp()
+end)
+function S.putLamp()
+    if not S.back.lamp then return end
+    S.back.lamp = nil
+    if not S.msgWas then pcall(function() local w = ZeD.MessagesWindow.get(S.pn); if w and w:isReallyVisible() then w:close() end end) end
+    if S.toastsWas then Z.Messages.toasts = S.toastsWas end
+end
+
 -- ===================================================================== the Simple belt
 Q.step(5, function()
     S.beltStyle = S.opt(Z.Settings.beltStyleOption)
@@ -280,6 +418,31 @@ end)
 Q.step(15, function()
     local inst = Z.Watch.getInstance()
     Q.check(inst and not inst._popped and inst:getWidth() == 0, "watch: a second press tucks it back")
+    -- (Nov 18 2026, QA, the ledger: the light. A press on the mini's light, through the belt's own mouse handler; a
+    -- watch whose mini has no light spot takes it on the watch's own light control, said so)
+    local b = S.boxes("watch")[1]
+    S.lit = nil
+    if not (inst and b) then return end
+    if not Z.Watch.hasLight(inst._def) then
+        Q.skip("watch: the light", "this watch has no light: " .. tostring(S.watch.item and S.watch.item:getFullType()))
+        return
+    end
+    local hx, hy = nil, nil
+    for yy = 0, b.h - 1 do
+        for xx = 0, b.w - 1 do
+            if not hx and Z.WatchMini.hit(b.plate, xx, yy) == "light" then hx, hy = xx, yy end
+        end
+    end
+    S.lit = { mini = hx ~= nil }
+    if hx then S.hud():onMouseDown(b.x + hx, b.y + hy) else Z.Watch.act("light") end
+end)
+Q.step(5, function()
+    if S.lit then
+        local inst = Z.Watch.getInstance()
+        local ms = Z.Watch.miniState(S.p, S.watch.item)
+        Q.check(inst ~= nil and (inst._litUntil or 0) > getTimestampMs() and ms and ms.lit == true, "watch: its light comes on",
+            S.lit.mini and "pressed on the mini" or "no light spot on the mini: the watch's own light control")
+    end
     S.putWatch()
 end)
 function S.putWatch()
@@ -315,6 +478,9 @@ Q.waitFor(1, 180, function() return Z.ActionBar.state(S.p, S.pn) ~= nil end, fun
     local st = AB.state(S.p, S.pn)
     if not Q.check(ok and st ~= nil, "action bar: the game's timed action is drawn") then return end
     Q.check(st.phase == "work" and tostring(st.label or "") ~= "", "action bar: it names the action", tostring(st.label) .. " " .. tostring(st.item))
+    -- (Nov 18 2026, QA, the ledger: the count of the same actions queued, as RIPPING 4/12 reads)
+    Q.check(st.qn == #(S.packed or {}) and (st.qi or -1) >= 0 and st.qi < st.qn, "action bar: the queue count reads the moves queued",
+        "qi " .. tostring(st.qi) .. " of " .. tostring(st.qn) .. ", queued " .. #(S.packed or {}))
     local L = AB._layers[S.pn]
     Q.check(L ~= nil and L:isVisible(), "action bar: its layer shows")
     S.prog0 = (st.qi + st.frac) / math.max(1, st.qn)
@@ -895,6 +1061,36 @@ Q.step(20, function()
     for _, o in ipairs(S.F.icons) do if o.worldMarker then left = left + 1 end end
     Q.check(left == 0, "forage: the find and its pointer are gone again")
 end)
+-- (Nov 18 2026, QA, the ledger: the World window's Foraging tab, its band's Search button through the tab's own click
+-- handler, flips the game's search mode; a second press flips it back)
+Q.step(5, function()
+    RT.pairOpen()
+    S.fsSkip = nil
+    if not RT.worldTab("forage") then S.fsSkip = true; Q.check(false, "forage tab: the World window's Foraging tab opens from the strip") end
+end)
+Q.waitFor(5, 300, function() local w = RT.ww(); return S.fsSkip or (w ~= nil and w._forageSearchBtn ~= nil) end, function(ok)
+    if S.fsSkip then return end
+    if not Q.check(ok, "forage tab: the band draws its Search button") then S.fsSkip = true; return end
+    local w = RT.ww()
+    S.fsMgr = ISSearchManager.getManager(S.p)
+    S.fsWas = S.fsMgr.isSearchMode == true
+    local b = w._forageSearchBtn
+    ZeD.ForagingTab.onClick(w, b.x + math.floor(b.w / 2), b.y + math.floor(b.h / 2))
+end)
+Q.step(10, function()
+    if S.fsSkip then return end
+    Q.check((S.fsMgr.isSearchMode == true) ~= S.fsWas, "forage tab: a click on Search flips the game's search mode", tostring(S.fsMgr.isSearchMode))
+    local w = RT.ww()
+    local b = w and w._forageSearchBtn
+    if b then ZeD.ForagingTab.onClick(w, b.x + math.floor(b.w / 2), b.y + math.floor(b.h / 2)) end
+end)
+Q.step(10, function()
+    if S.fsSkip then RT.pairShut(); return end
+    Q.check((S.fsMgr.isSearchMode == true) == S.fsWas, "forage tab: a second click puts search mode back")
+    if (S.fsMgr.isSearchMode == true) ~= S.fsWas then pcall(function() S.fsMgr:toggleSearchMode(S.fsWas) end) end
+    RT.worldTab("loot")
+    RT.pairShut()
+end)
 function S.putForage()
     if not S.back.forage then return end
     S.back.forage = nil
@@ -1089,6 +1285,69 @@ Q.step(15, function()
         if pd and not want and not st.noMark and t ~= "" then seen = true end
     end
     Q.check(seen, "pin: the title bar shows its level and XP", tostring(want) .. " in: " .. table.concat(all, " | "))
+end)
+
+-- ===================================================================== pin items; a fourth pin
+-- (Nov 18 2026, QA, the ledger: the first item pinned from the game's own item menu (ZeD's Pin to title bar, added on
+-- OnFillInventoryObjectContextMenu), three more by the same pick (ZeD.Pins.toggle); the pins start empty for it and
+-- the character's own are put back after)
+function S.ctxOpt(name)
+    local c = S.ctx()
+    local o = nil
+    if c then pcall(function() o = c:getOptionFromName(name) end) end
+    return o
+end
+Q.step(5, function()
+    S.closeMenu()
+    if not S.back.pin then S.pin = { had = S.p:getModData().ZeD_Pins ~= nil, list = {} }; S.back.pin = true end
+    S.p:getModData().ZeD_Pins = {}
+    S.pinItems = {}
+    for _, ft in ipairs({ "Base.Hammer", "Base.Crowbar", "Base.BaseballBat", "Base.Axe" }) do
+        local it = RT.give(ft)
+        if it and Z.Pins.kindOf(it) then S.pinItems[#S.pinItems + 1] = it end
+    end
+    if not Q.check(#S.pinItems == 4, "pin item: four pinnable things to pin", #S.pinItems .. " of 4") then S.pinItemSkip = true; return end
+    pcall(function() ISInventoryPaneContextMenu.createMenu(S.pn, true, { S.pinItems[1] }, 200, 200) end)
+end)
+Q.waitFor(2, 120, function() return S.pinItemSkip or S.ctxOpt(ZeD.tr("UI_ZeD_Pin_Pin")) ~= nil end, function(ok)
+    if S.pinItemSkip then return end
+    local opt = S.ctxOpt(ZeD.tr("UI_ZeD_Pin_Pin"))
+    if not Q.check(ok and opt ~= nil and opt.onSelect ~= nil, "pin item: the item's own menu offers Pin to title bar") then S.pinItemSkip = true; S.closeMenu(); return end
+    opt.onSelect(opt.target)
+    S.closeMenu()
+end)
+Q.step(10, function()
+    if S.pinItemSkip then return end
+    local it = S.pinItems[1]
+    local e = (S.p:getModData().ZeD_Pins or {})[1]
+    Q.check(e ~= nil and e.k == Z.Pins.kindOf(it) and tostring(e.id) == tostring(it:getID()), "pin item: the pick puts the item's kind and id in ZeD_Pins",
+        e and (tostring(e.k) .. " " .. tostring(e.id)) or "none")
+    local rows = Z.Pins.stats(S.p) or {}
+    Q.check(#rows == 1 and tostring(rows[1].text or "") ~= "", "pin item: ZeD.Pins.stats gives its row", rows[1] and rows[1].text)
+    local w = RT.cw()
+    local name = tostring(it:getDisplayName()):sub(1, 4)
+    local seen, all = false, {}
+    for _, st in ipairs((w and w.titleStats) or {}) do
+        local t = tostring(st.text or "")
+        all[#all + 1] = t
+        if t:find(name, 1, true) then seen = true end
+    end
+    Q.check(seen, "pin item: the Character window's title bar shows it", name .. " in: " .. table.concat(all, " | "))
+    for i = 2, 4 do
+        local o = S.pinItems[i]
+        pcall(Z.Pins.toggle, S.p, Z.Pins.kindOf(o), o:getID(), o:getDisplayName())
+    end
+end)
+Q.step(5, function()
+    if S.pinItemSkip then S.putPins(); return end
+    local L = S.p:getModData().ZeD_Pins or {}
+    local first, last = S.pinItems[1], S.pinItems[4]
+    Q.check(#L == Z.Pins.MAX and Z.Pins.MAX == 3 and not Z.Pins.isPinned(S.p, Z.Pins.kindOf(first), first:getID()),
+        "pins: a fourth pin takes off the oldest (three at most)", #L .. " pins")
+    local want = Z.Bubbles.clean(ZeD.tr("UI_ZeD_Pin_Replaced", last:getDisplayName(), first:getDisplayName(), Z.Pins.MAX))
+    local seen = false
+    for _, n in ipairs(Z.Bubbles._notes[S.pn] or {}) do if n.text == want then seen = true end end
+    Q.check(seen, "pins: a note over the head says which pin went", want)
     S.putPins()
 end)
 
@@ -1316,11 +1575,56 @@ end, function(ok)
     S.putMiniMap()
 end)
 
+-- ===================================================================== the run button also crouches (ZeD setup, off by default)
+-- (Nov 18 2026, QA, the ledger: Input/RunSneak.lua's own QA hook stands in for the pad, RS.qaInput: Run held 400 ms
+-- standing still crouches, held again stands. It means something only where the game's Run is a button or a trigger.)
+function S.putRs()
+    if not S.back.rs then return end
+    S.back.rs = nil
+    local RS = ZeD.Input and ZeD.Input.RunSneak
+    if RS then pcall(RS.qaInput, S.pn, nil) end
+    S.setOpt(Z.Settings.runSneakOption, S.rs.opt or 1)
+    pcall(function() S.p:setSneaking(S.rs.sneak) end)
+end
+function S.rsHold(on) local RS = ZeD.Input.RunSneak; pcall(RS.qaInput, S.pn, { held = on, moving = false, pad = true }) end
+Q.step(5, function()
+    local RS = ZeD.Input and ZeD.Input.RunSneak
+    if not Q.check(RS ~= nil and RS.qaInput ~= nil and Z.Settings.runSneakOption ~= nil, "run-sneak: the module and its setting are loaded") then S.rsSkip = true; return end
+    local kind = RS.runBindingKind()
+    if kind ~= "button" and kind ~= "trigger" then
+        S.rsSkip = true
+        Q.skip("run-sneak: Run held crouches", "the game's Run is on " .. tostring(kind) .. " in this layout, where a hold means nothing")
+        return
+    end
+    S.rs = { opt = S.opt(Z.Settings.runSneakOption), sneak = S.p:isSneaking() }
+    S.back.rs = true
+    pcall(function() S.p:setSneaking(false) end)
+    S.setOpt(Z.Settings.runSneakOption, 2)
+    S.rsHold(false)
+end)
+Q.step(10, function() if not S.rsSkip then S.rsHold(true) end end)
+Q.waitMs(700)
+Q.step(1, function()
+    if S.rsSkip then return end
+    local act = ZeD.Input.RunSneak.lastAction(S.pn)
+    Q.check(act == "crouch" and S.p:isSneaking(), "run-sneak: Run held 400 ms standing still crouches", tostring(act))
+    S.rsHold(false)
+end)
+Q.step(10, function() if not S.rsSkip then S.rsHold(true) end end)
+Q.waitMs(700)
+Q.step(1, function()
+    if S.rsSkip then return end
+    local act = ZeD.Input.RunSneak.lastAction(S.pn)
+    Q.check(act == "stand" and not S.p:isSneaking(), "run-sneak: held again, it stands", tostring(act))
+    S.putRs()
+end)
+
 -- ===================================================================== put back
 Q.mark()
 Q.step(5, function()
     pcall(function() S.p:StopAllActionQueue() end)
     if S.paused then S.pause(false) end
+    S.putRs(); S.putLamp()
     S.putPrompts(); S.putBalloon(); S.putPins(); S.putMiniMap(); S.putRc(); S.putAttach(); S.putBeltStyle(); S.putAbStyle()
     S.putHands(); S.putWatch(); S.putMoodles(); S.putHalo(); S.putGuide(); S.putHint(); S.putForage()
     pcall(function() S.p:setZ(S.home.z); S.p:setLastZ(S.home.z) end)

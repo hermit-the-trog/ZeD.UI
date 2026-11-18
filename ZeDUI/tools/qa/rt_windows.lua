@@ -22,6 +22,9 @@
 --   8. Resize by the right edge (the pointer read as the drag reads it): narrower, past the cap, back.
 --   9. Layout kept per character over a close; the game's own pages hidden; World force close; paused, the
 --      Character window alone.
+--  10. (after the pad's Y) the D-pad wheel's presses: the same direction or B closes it, another swaps; LB + A on a
+--      pointed slice puts it on that chord (put back); the Controller map closes on B. Also: each half's pin
+--      (after Show all) and the Character window's extension tabs (after the World's).
 -- Put back: the halves' pins, the active tabs, the window places (ZEDQA_LAYOUT_BACK when the prelude ran), the input
 -- mode lock, the game speed, and the pair open or shut as found; each window's accent, the kept layout (pair shut),
 -- the Equip view option, the craft pins, the saved window places file, and each tab's state the checks touched.
@@ -669,6 +672,27 @@ end, function(ok)
         "anyRolled " .. tostring(ZeD.Halves.anyRolled(w)) .. ", shaded " .. tostring(w.windowShaded))
     pinAll()
 end)
+-- Half pins (FEATURE_MAP "Half pins (inventory / tabs)", Nov 18 2026 ledger): each half's pin (what the title bar's
+-- pin box and the pad's "halfpin:" stop run, ZeD.Halves.togglePin) flips it and saves it with the character; again
+-- puts it back
+Q.step(3, function()
+    local w, H = RT.cw(), ZeD.Halves
+    if not (w and w._halves and H and H.togglePin) then Q.check(false, "Half pins: the Character window has its halves"); return end
+    for _, half in ipairs({ "inv", "drawer" }) do
+        local key = (half == "inv") and "charInv" or "charTabs"
+        local was = w._halves[half].pinned and true or false
+        pcall(H.togglePin, w, half)
+        local now = w._halves[half].pinned and true or false
+        local md = nil
+        pcall(function() md = RT.p:getModData().ZeD_WinPinned end)
+        local saved = md and md[key]
+        Q.check(now ~= was and saved ~= nil and (saved and true or false) == now, "Half pins: a half's pin pressed flips it, saved with the character",
+            half .. ": " .. tostring(was) .. " -> " .. tostring(now) .. ", " .. key .. " " .. tostring(saved))
+        pcall(H.togglePin, w, half)
+        Q.check((w._halves[half].pinned and true or false) == was, "Half pins: pressed again, the pin is back as it was", half)
+    end
+    pinAll()
+end)
 
 -- Identity: one controller stop per trait row (FEATURE_MAP: "Traits list")
 X.tabStep("c", "identity")
@@ -873,6 +897,18 @@ Q.step(2, function()
         if not X.tabDef("w", id) then missing[#missing + 1] = tostring(id) end
     end
     Q.check(ext.fishing ~= nil and #missing == 0, "World extension tabs: each one added (addTab) is registered and on the tab list",
+        table.concat(ids, ", ") .. ((#missing > 0) and (", not on the list: " .. table.concat(missing, ", ")) or ""))
+end)
+Q.step(2, function()
+    -- (FEATURE_MAP "Extension tabs" (Character), Nov 18 2026 ledger) every tab another file added (Cooking always) is
+    -- registered and on the Character window's tab list
+    local ext = ZeD_CharacterWindow._extTabs or {}
+    local ids, missing = {}, {}
+    for id in pairs(ext) do
+        ids[#ids + 1] = tostring(id)
+        if not X.tabDef("c", id) then missing[#missing + 1] = tostring(id) end
+    end
+    Q.check(ext.cooking ~= nil and #missing == 0, "Character extension tabs: each one added (addTab) is registered and on the tab list",
         table.concat(ids, ", ") .. ((#missing > 0) and (", not on the list: " .. table.concat(missing, ", ")) or ""))
 end)
 
@@ -1152,10 +1188,140 @@ Q.waitFor(2, 900, function() return (not S.padOk) or bothShut() end, function(ok
 end)
 Q.step(4, function() RT.pad("Y", nil) end)
 
+-- ===================================================================== 10. the pad's wheels and the Controller map
+-- (Nov 18 2026, the FEATURE_MAP ledger: "Same direction or B closes; another direction swaps", "Assign a chord from an
+-- open wheel", "Controller map closes"). The input mode is still locked to the pad (section 4). The Left wheel is
+-- opened the way the game opens it (ISDPadWheels.onDisplayLeft), the gesture set to Tap (D.qaSettings, as rt_pad
+-- sets it), and the presses go to the open wheel's own onJoypadDown (ZeD's wrap of ISRadialMenu's).
+function X.wheelsShut()
+    local D = ZeD.DpadWheels
+    if not D then return end
+    pcall(D.close, pn)
+    D.state[pn] = nil
+    for _, m in ipairs({ getPlayerRadialMenu(pn), getPlayerBackButtonWheel(pn) }) do
+        if m and m:isReallyVisible() then pcall(m.undisplay, m) end
+    end
+    if ZeD.Wheel then ZeD.Wheel.qaPoint = nil end
+end
+function X.wheelOpen(dir)
+    local fn = ({ left = "onDisplayLeft", right = "onDisplayRight" })[dir]
+    pcall(ISDPadWheels[fn], { player = pn })
+    local st = ZeD.DpadWheels.state[pn]
+    return st ~= nil and st.dir == dir and st.menu ~= nil
+end
+function X.wheelPress(button)
+    local st = ZeD.DpadWheels.state[pn]
+    local m = st and st.menu
+    if m then pcall(m.onJoypadDown, m, button, { player = pn }) end
+end
+function X.wheelStep(fn)
+    Q.step(5, function()
+        if not S.wh then return end
+        X.wheelsShut()
+        S.whOpen = X.wheelOpen("left")
+        if not S.whOpen then Q.check(false, "wheels: D-pad Left opens the Character wheel for the next press") end
+    end)
+    Q.waitMs(400)   -- (past the wheel's open debounce, D.tune.OPEN_DEBOUNCE_MS: the press that opened it is ignored)
+    Q.step(2, function() if S.wh and S.whOpen then fn() end end)
+end
+Q.step(5, function()
+    local D = ZeD.DpadWheels
+    S.wh = S.padOk and D ~= nil and D.state ~= nil and ISDPadWheels ~= nil and ISDPadWheels.onDisplayLeft ~= nil and ZeD.QuickChords ~= nil
+    if not S.wh then Q.skip("the pad's wheels", "no D-pad wheels or no pad hook here"); return end
+    S.whBack = true
+    S.whSettings = D.qaSettings
+    D.qaSettings = { open = "tap", commit = "flick", toggle = false, deadZone = 0.35 }
+    if D.qaStick then pcall(D.qaStick, pn, 0, 0) end
+    pcall(RT.focus().releaseFocus, pn)
+end)
+X.wheelStep(function()
+    X.wheelPress(Joypad.DPadLeft)
+    Q.check(ZeD.DpadWheels.state[pn] == nil, "wheels: the same direction again (D-pad Left) closes the wheel")
+end)
+X.wheelStep(function()
+    X.wheelPress(Joypad.BButton)
+    Q.check(ZeD.DpadWheels.state[pn] == nil, "wheels: B on the wheel's top level closes it")
+end)
+X.wheelStep(function()
+    X.wheelPress(Joypad.DPadRight)
+    local st = ZeD.DpadWheels.state[pn]
+    Q.check(st ~= nil and st.dir == "right" and st.menu ~= nil and st.menu:isReallyVisible(), "wheels: another direction (D-pad Right) swaps to that wheel",
+        "dir " .. tostring(st and st.dir))
+    RT.bounds(Q, "the World wheel, swapped to")
+end)
+-- the chord: LB held, then A, on the pointed slice puts it on LB + A; the wheel stays open. LB + A put back after.
+X.wheelStep(function()
+    local D, Qc = ZeD.DpadWheels, ZeD.QuickChords
+    local st = D.state[pn]
+    local i, e = nil, nil
+    for k, x in ipairs(st.path[1].entries or {}) do
+        if not i and not x.off and D.pathOf(st, k, x) then i, e = k, x end
+    end
+    if not i then Q.check(false, "chord: the Left wheel has a slice to put on a chord"); return end
+    S.chord = { def = Qc.isDefault("LB+A") }
+    S.chord.path, S.chord.words = Qc.get("LB+A")
+    local m = st.menu
+    ZeD.Wheel.qaPoint = i
+    m._zedPoint = i
+    X.wheelPress(Joypad.LBumper)
+    X.wheelPress(Joypad.AButton)
+    local got = Qc.get("LB+A")
+    local want = D.pathOf(st, i, e)
+    Q.check(got ~= nil and got == want and D.state[pn] ~= nil and m:isReallyVisible(),
+        "chord: LB held and A on the pointed slice puts it on LB + A, the wheel stays open", tostring(got) .. " (want " .. tostring(want) .. ")")
+    X.chordBack()
+end)
+function X.chordBack()
+    local c, Qc = S.chord, ZeD.QuickChords
+    if not c then return end
+    S.chord = nil
+    if c.def then pcall(Qc.reset, "LB+A") else pcall(Qc.set, "LB+A", c.path, c.words) end
+end
+Q.step(3, function()
+    if not S.wh then return end
+    X.wheelsShut()
+    local D = ZeD.DpadWheels
+    D.qaSettings = S.whSettings
+    if D.qaStick then pcall(D.qaStick, pn, nil) end
+    S.whBack = nil
+end)
+-- the Controller map: B closes it (only B: A does nothing), and it lets go of the pad
+Q.step(5, function()
+    S.cm = nil
+    if not S.padOk then return end
+    local CM = ZeD.ControllerMap
+    if not (CM and CM.open) then Q.check(false, "Controller map: ZeD.ControllerMap is loaded"); return end
+    pcall(function() S.cm = CM.open(pn) end)
+end)
+Q.step(10, function()
+    local cm = S.cm
+    if not cm then return end
+    if not Q.check(cm:isReallyVisible(), "Controller map: it opens") then return end
+    RT.bounds(Q, "the Controller map")
+    pcall(cm.onJoypadDown, cm, Joypad.AButton)
+    local afterA = cm:isReallyVisible()
+    pcall(cm.onJoypadDown, cm, Joypad.BButton)
+    local jd = JoypadState and JoypadState.players and JoypadState.players[pn + 1]
+    local held = jd ~= nil and jd.focus == cm
+    Q.check(afterA and not cm:isReallyVisible() and not held, "Controller map: B closes it (A does not) and it lets go of the pad",
+        "after A " .. tostring(afterA) .. ", after B " .. tostring(cm:isReallyVisible()) .. ", holds the pad " .. tostring(held))
+    pcall(ZeD.ControllerMap.close, pn)
+    S.cm = nil
+end)
+
 -- ===================================================================== put back
 Q.mark()
 Q.step(5, function()
     RT.pad("Y", nil)
+    -- (section 10, if the run jumped here: the chord, the wheel's gesture settings, the wheels, the Controller map)
+    X.chordBack()
+    if S.whBack then
+        X.wheelsShut()
+        ZeD.DpadWheels.qaSettings = S.whSettings
+        if ZeD.DpadWheels.qaStick then pcall(ZeD.DpadWheels.qaStick, pn, nil) end
+        S.whBack = nil
+    end
+    if S.cm then pcall(ZeD.ControllerMap.close, pn); S.cm = nil end
     if S.padOk then
         pcall(ZeD.Input.Detector.setLockedMode, nil)
         if S.lockWas == "kbm" or S.lockWas == "gamepad" then pcall(ZeD.Input.Detector.setLockedMode, S.lockWas) end

@@ -13,7 +13,11 @@
 --   * the pad's place mode (GridLayout.padDrag, what X held on a cell runs) carries the mask, and its ghost is drawn
 --     as the mask's outline, not its box;
 --   * unregistered at the end: the hook is empty and the grid is ZeD's own again.
--- Things given (three apples, a hammer at half condition) are taken back; the bag's view is put back as found.
+-- Then (Nov 18 2026, the FEATURE_MAP ledger's rows tagged rt_addon): the pad place mode's prompts, B and release; the
+-- mail store; one bar per item; the loot card's content; an add-on item rule refusing a move; the Loadouts lists; the
+-- fishing log; an add-on's ZeD setup group; the watch registry; the item facts factories; the Traits tab's sources;
+-- ZeD's pad keyboard; the Lua console (-debug only). Each stand-in is taken away again (A.back).
+-- Things given (apples, hammers, a water bottle, beans, a school bag) are taken back; the bag's view is put back as found.
 -- A save where another add-on's provider is on (Multi-Slot) SKIPs: GridLayout keeps the active provider's id to
 -- itself, so the stand-in could not hand it back.
 local Q = RT.make("rt_addon")
@@ -76,7 +80,7 @@ local function sameColor(c, r, g, b) return c ~= nil and math.abs(c.r - r) < 0.0
 -- ghost's colors only
 local WRAP = { "drawRect", "drawRectBorder", "drawText", "drawTextureScaledAspect" }
 local function record(kind, x, y, w, h, text, r, g, b)
-    local e = { kind = kind, x = x, y = y, w = w, h = h, text = text }
+    local e = { kind = kind, x = x, y = y, w = w, h = h, text = text, col = { r = r or 0, g = g or 0, b = b or 0 } }
     if S.cur then
         local L = S.rec[S.cur]
         if L then L.calls[#L.calls + 1] = e end
@@ -184,6 +188,8 @@ Q.waitFor(5, 300, function() return S.skip ~= nil or (RT.cw() ~= nil and RT.cw()
     if not (S.apples[1] and S.apples[2] and S.apples[3] and S.hammer) then S.skip = "the test things could not be given"; return end
     pcall(function() S.hammer:setCondition(math.max(1, math.floor(S.hammer:getConditionMax() / 2))) end)
     S.repA, S.repB = S.apples[1], S.hammer
+    -- (Nov 18 2026 ledger: a provider with no layout is refused; the real one under the same id follows)
+    S.badReg = GL.register(ID, {})
     S.regOk = GL.register(ID, P)
     GL.dirty(S.inv)
     pcall(R.dirtyModels)
@@ -195,6 +201,7 @@ Q.waitFor(5, 600, function()
 end, function(ok)
     if S.skip then Q.skip("the add-on grid hook", S.skip); return end
     Q.check(S.regOk == true and GL.active() == P, "the stand-in provider registers (hook version " .. tostring(GL.VERSION) .. ")")
+    Q.check(S.badReg == false, "a provider with no layout function is refused (register returns false)", tostring(S.badReg))
     local ctx = S.ctx
     Q.check(S.calls > 0 and ctx ~= nil and tonumber(ctx.avail) ~= nil and tonumber(ctx.cell) ~= nil and tonumber(ctx.gap) ~= nil,
         "the provider's layout is asked, with version 2's avail, cell and gap", "calls " .. S.calls)
@@ -300,6 +307,143 @@ Q.step(4, function()
     Q.check(found > 0 and missing == 0 and inHole == 0, "the place mode's ghost is the mask's outline, not its box",
         found .. " edges drawn, " .. missing .. " missing, " .. inHole .. " in the hole")
 end)
+-- (Nov 18 2026 ledger, FEATURE_MAP "Pad place mode"): its prompts, B ends it, and letting X go (GL.padRelease, what
+-- FocusManager's hold release runs) hands the ghost's square to the provider's drop. The stand-in's drop only notes
+-- the call (the square is the cell's own: nothing moves).
+Q.step(2, function()
+    if S.skip or not S.on then return end
+    local pr = GL.padPrompts(pn)
+    local gl = {}
+    for _, p in ipairs(pr or {}) do gl[#gl + 1] = tostring(p.glyph) end
+    Q.check(table.concat(gl, " ") == "D-PAD A X B" and pr[2].label == ZeD.tr("UI_ZeD_Looks_PromptTurn"),
+        "the place mode's prompts: D-pad Move, A Turn, X Place, B Cancel", table.concat(gl, " "))
+    local took = GL.padButton(pn, Joypad.BButton)
+    Q.check(took == true and (GL._pad or {})[pn] == nil and S.dropped ~= true, "the place mode: B ends it, nothing placed")
+    pcall(GL.padDrag, RT.cw(), { item = S.repA }, nil)
+end)
+Q.step(2, function()
+    if S.skip or not S.on then return end
+    local on = (GL._pad or {})[pn] ~= nil
+    pcall(GL.padRelease, RT.cw(), { item = S.repA })
+    Q.check(on and (GL._pad or {})[pn] == nil and S.dropped == true, "the place mode: letting X go hands the square to the provider's drop",
+        "on " .. tostring(on) .. ", dropped " .. tostring(S.dropped))
+    S.dropped = nil   -- (the put-back's check below is about the cancel at the end)
+end)
+
+-- (Nov 18 2026 ledger, FEATURE_MAP "Drag ghost (mouse)"): a mouse drag of the L cell through the list's own press
+-- (onMouseDown, past the drag threshold), the pointer held over the cell's first square (the list's getMouseX /
+-- getMouseY answer it while the drag draws): the over-state says canPlace's yes, the ghost is the mask's outline in
+-- the yes colour; the wheel (content.onMouseWheel, as R) turns it (the provider's turn, its shape asked again); the
+-- release hands the square to the provider's drop. Then canPlace says no with a reason: the ghost turns the no
+-- colour, the release drops nothing and the reason stays on the help line. Put back by S.mdBack.
+function S.mdFake(on)
+    local c = S.panel
+    if not c then return end
+    if on then
+        S.mdHad = { rawget(c, "getMouseX"), rawget(c, "getMouseY") }
+        c.getMouseX = function() return S.mdX end
+        c.getMouseY = function() return S.mdY end
+    elseif S.mdHad then
+        c.getMouseX, c.getMouseY = S.mdHad[1], S.mdHad[2]
+        S.mdHad = nil
+    end
+end
+function S.mdStart()
+    local c, ra = S.panel, S.rec[S.repA]
+    if not (c and ra and ra.geo) then return false end
+    local sq = square(ra, 0, 0)
+    S.mdX, S.mdY = sq.x + math.floor(sq.w / 2), sq.y + math.floor(sq.h / 2)
+    c._zedLastClick = nil
+    c:onMouseDown(S.mdX, S.mdY)
+    local d = c._drag
+    if not (d and d:isPending()) then return false end
+    d:checkThreshold(d.startX + 40, d.startY + 40)
+    if not d:isActive() then pcall(function() d:cancel() end); return false end
+    S.mdFake(true)
+    S.ghost = {}
+    S.ghostOn = true
+    return true
+end
+-- the ghost's rects matched against the mask's edges at the cell's own square: found, missing, the colours seen
+function S.mdGhost(col)
+    local ra = S.rec[S.repA]
+    local L = GL.layoutOf(cnt(), S.inv)
+    local g = L and L.geo and L.geo[S.repA]
+    local found, missing, other = 0, 0, 0
+    if not (ra and g) then return 0, 1, 0 end
+    local e = g.edges
+    for k = 1, #e, 4 do
+        local seen = false
+        for _, r in ipairs(S.ghost) do
+            if math.abs(r.x - (ra.ax + e[k])) < 0.5 and math.abs(r.y - (ra.cy + e[k + 1])) < 0.5 and math.abs(r.w - e[k + 2]) < 0.5
+               and math.abs(r.h - e[k + 3]) < 0.5 then seen = true end
+        end
+        if seen then found = found + 1 else missing = missing + 1 end
+    end
+    for _, r in ipairs(S.ghost) do if not sameColor(r.col, col.r, col.g, col.b) then other = other + 1 end end
+    return found, missing, other
+end
+function S.mdBack()
+    S.ghostOn = false
+    S.mdFake(false)
+    pcall(function() local d = S.panel and S.panel._drag; if d and (d:isActive() or d:isPending()) then d:cancel() end end)
+    if S.mdOrig then P.canPlace, P.turn, P.dragShape = S.mdOrig[1], S.mdOrig[2], S.mdOrig[3]; S.mdOrig = nil end
+end
+Q.step(2, function()
+    if S.skip or not S.on then return end
+    S.mdOrig = { P.canPlace, P.turn, P.dragShape }
+    S.mdTurns, S.mdAsks = 0, 0
+    local ds = P.dragShape
+    P.dragShape = function(items, ctx) S.mdAsks = S.mdAsks + 1; return ds(items, ctx) end
+    P.turn = function() S.mdTurns = S.mdTurns + 1 end
+    S.dropped = nil
+    S.mdArm = Q.check(S.mdStart(), "mouse drag: a press on the L cell past the threshold starts ZeD's drag")
+end)
+Q.step(4, function()
+    if not S.mdArm then return end
+    local O = GL._over
+    local found, missing, other = S.mdGhost(T.positive)
+    Q.check(O.panel == S.panel and O.ok == true and O.inv == S.inv, "mouse drag: over the grid, the over-state says canPlace's yes",
+        "ok " .. tostring(O.ok) .. ", on this list " .. tostring(O.panel == S.panel))
+    Q.check(found > 0 and missing == 0 and other == 0, "mouse drag: the ghost is the mask's outline, in the yes colour",
+        found .. " edges drawn, " .. missing .. " missing, " .. other .. " in another colour")
+    S.mdAsk0 = S.mdAsks
+    pcall(S.panel.onMouseWheel, S.panel, 1)
+end)
+Q.step(3, function()
+    if not S.mdArm then return end
+    Q.check(S.mdTurns == 1 and S.mdAsks > S.mdAsk0, "mouse drag: the wheel (as R) turns the dragged shape",
+        S.mdTurns .. " turns, shape asked " .. (S.mdAsks - S.mdAsk0) .. " times since")
+    pcall(S.panel.onMouseUp, S.panel, S.mdX, S.mdY)
+end)
+Q.step(3, function()
+    if not S.mdArm then return end
+    local d = S.panel._drag
+    Q.check(S.dropped == true and not (d and d:isActive()), "mouse drag: the release hands the square to the provider's drop",
+        "dropped " .. tostring(S.dropped))
+    S.mdFake(false)
+    S.dropped = nil
+    S.mdWhy = "QA stand-in: no room here"
+    P.canPlace = function() return false, S.mdWhy end
+    S.mdArm = S.mdStart()
+end)
+Q.step(4, function()
+    if not S.mdArm then return end
+    local O = GL._over
+    local found, missing, other = S.mdGhost(T.danger)
+    Q.check(O.ok == false and O.reason == S.mdWhy and found > 0 and missing == 0 and other == 0,
+        "mouse drag: canPlace's no turns the ghost the no colour, its reason said",
+        "ok " .. tostring(O.ok) .. ", reason " .. tostring(O.reason) .. "; " .. found .. " edges, " .. other .. " other colour")
+    pcall(S.panel.onMouseUp, S.panel, S.mdX, S.mdY)
+end)
+Q.step(3, function()
+    if not S.mdArm then S.mdBack(); return end
+    local O = GL._over
+    Q.check(S.dropped ~= true and O.keepReason == S.mdWhy, "mouse drag: a refused release drops nothing, the reason kept",
+        "dropped " .. tostring(S.dropped) .. ", kept " .. tostring(O.keepReason))
+    S.dropped = nil
+    S.mdBack()
+end)
 
 -- ===================================================================== the mail kept on this computer
 -- (Nov 18 2026, FEATURE_MAP "Mail kept on this computer": ZeD_MailStore.lua, the model under the multiplayer mail.
@@ -389,10 +533,305 @@ Q.step(3, function()
     Q.check(MSt.io == io0, "mail store put back: its own file access again, the QA files emptied")
 end)
 
+-- ===================================================================== the other add-on hooks and models (Nov 18 2026)
+-- (the FEATURE_MAP ledger's rows this script owns; each block names its row. Everything a block registers it takes
+-- away again in the same block, and once more in the put-back if the run jumped there.)
+local A = {}
+A.RULE = "zedqa_rt_addon_rule"
+A.OWNER = "zedqa_rt_addon"
+A.FACTS = "zedqa_rt_addon_facts"
+A.WATCH = "Base.ZedQAStandinWatch"
+function A.back()
+    pcall(function() ZeD.ItemRules.unregister(A.RULE) end)
+    if A.note ~= nil then ZeD.Bubbles.note = A.note; A.note = nil end
+    pcall(function()
+        local O = ZeD.Options
+        for i = #O.groups, 1, -1 do if O.groups[i].owner == A.OWNER then table.remove(O.groups, i); O.rev = O.rev + 1 end end
+    end)
+    pcall(function() ZeD.Watch.watches[A.WATCH] = nil end)
+    pcall(function()
+        local M = ZeD.ItemFactsPanel
+        for i = #M._registry, 1, -1 do if M._registry[i].key == A.FACTS then table.remove(M._registry, i); M.gen = (M.gen or 0) + 1 end end
+    end)
+    pcall(function()
+        local TT = ZeD.TraitsTab
+        for i = #TT.sources, 1, -1 do if TT.sources[i].id == A.OWNER then table.remove(TT.sources, i) end end
+    end)
+    if A.fishWas ~= nil then pcall(function() RT.p:getModData()[ZeD.FishingLog.KEY] = A.fishWas.v end); A.fishWas = nil end
+    if A.kbBox then
+        pcall(function() if ZeD.Keyboard.isVisible() then ZeD.Keyboard.hide() end end)
+        pcall(function() A.kbBox:removeFromUIManager() end)
+        A.kbBox = nil
+    end
+    if A.dc then
+        if not A.dc.was then pcall(ZeD.DebugConsole.close) end
+        A.dc = nil
+    end
+end
+
+-- One bar per item (FEATURE_MAP "Inventory: one bar per item"): ItemMeter.of, what the list's COND / AMT column and
+-- the grid's strip draw
+Q.step(3, function()
+    local IM = ZeD.ItemMeter
+    if not (IM and IM.of) then Q.check(false, "item bar: ZeD.ItemMeter is loaded"); return end
+    local bottle, beans, hammer = RT.give("Base.WaterBottle"), RT.give("Base.TinnedBeans"), RT.give("Base.Hammer")
+    if not (bottle and beans and hammer) then Q.check(false, "item bar: a water bottle, a can of beans and a hammer are given"); return end
+    local want = nil
+    pcall(function() local fc = bottle:getFluidContainer(); want = fc:getAmount() / fc:getCapacity() end)
+    local kB, fB = IM.of(bottle)
+    Q.check(kB == "fluid" and want ~= nil and type(fB) == "number" and math.abs(fB - want) < 0.001,
+        "item bar: a water bottle's bar is its fluid, amount over capacity", tostring(kB) .. " " .. tostring(fB) .. " (want " .. tostring(want) .. ")")
+    local kH = IM.of(hammer)
+    Q.check(kH == "cond", "item bar: a weapon's bar is its condition", tostring(kH))
+    local kC = IM.of(beans)
+    Q.check(kC == nil, "item bar: a can of beans has no bar", tostring(kC))
+end)
+
+-- The hover loot card's content (FEATURE_MAP "Inventory: hover loot card"): LootCard.content, what the balloon shows
+-- for a hovered row (the hover itself and the card on screen: rt_pad's card checks, by the pad's path)
+Q.step(3, function()
+    local LC = ZeD.LootCard
+    local apple = RT.give("Base.Apple")
+    if not (LC and LC.content and apple) then Q.check(false, "loot card: ZeD.LootCard is loaded and an apple given"); return end
+    local c, f = nil, nil
+    pcall(function() c = LC.content(apple, RT.p, 3); f = LC.facts(apple, RT.p) end)
+    local name = apple:getName()
+    local wrow = f and f.rows and f.rows[1]
+    Q.check(c ~= nil and c.title == name .. " (3)" and wrow ~= nil and wrow[1] == ZeD.tr("UI_ZeD_Weight") and c.body ~= nil,
+        "loot card: the card names the item with its count and leads with its weight",
+        tostring(c and c.title) .. ", first row " .. tostring(wrow and wrow[1]))
+end)
+
+-- Item rules (FEATURE_MAP "Inventory: add-on rule refuses a move with a reason" and "Item rules (why a move is
+-- refused)"): a stand-in rule refuses one apple into a bag; the band's own move (ContainerControls.moveItems, what
+-- Take all, Transfer all, the pad's X and a drop run) moves the other and leaves that one, and the reason shows once
+-- over the head (ZeD_Bubbles.note, counted here, not shown)
+Q.step(3, function()
+    A.ir = nil
+    local IRu, CT = ZeD.ItemRules, ZeD.ContainerControls
+    if not (IRu and IRu.register and CT and CT.moveItems and ZeD.Bubbles and ZeD.Bubbles.note) then
+        Q.check(false, "item rules: ZeD.ItemRules and the band's move are loaded"); return
+    end
+    local bag, a, b = RT.give("Base.Bag_Schoolbag"), RT.give("Base.Apple"), RT.give("Base.Apple")
+    local dest = nil
+    pcall(function() dest = bag:getInventory() end)
+    if not (dest and a and b) then Q.check(false, "item rules: a school bag and two apples are given"); return end
+    A.ir = { a = a, b = b, dest = dest, src = a:getContainer(), notes = {}, why = "QA stand-in: no room for this apple" }
+    A.note = ZeD.Bubbles.note
+    ZeD.Bubbles.note = function(p2, text, kind) A.ir.notes[#A.ir.notes + 1] = tostring(text) end
+    IRu.register(A.RULE, { canPut = function(item, d) if item == A.ir.a and d == A.ir.dest then return false, A.ir.why end; return true end })
+    local okC, why = IRu.check(a, dest, RT.p, A.ir.src)
+    Q.check(okC == false and why == A.ir.why, "item rules: the stand-in rule refuses its apple, with its reason", tostring(okC) .. ", " .. tostring(why))
+    pcall(CT.moveItems, RT.p, { a, b }, dest)
+end)
+Q.waitFor(5, 1200, function()
+    if not A.ir then return true end
+    local inB = false
+    pcall(function() inB = A.ir.b:getContainer() == A.ir.dest end)
+    return inB
+end, function(ok)
+    if not A.ir then return end
+    local ir = A.ir
+    local aWhere = nil
+    pcall(function() aWhere = ir.a:getContainer() end)
+    Q.check(ok and aWhere == ir.src, "item rules: the refused apple stays put, the other moves into the bag",
+        "other moved " .. tostring(ok) .. ", refused one in place " .. tostring(aWhere == ir.src))
+    Q.check(#ir.notes == 1 and ir.notes[1] == ir.why, "item rules: the reason shows once over the head", #ir.notes .. " notes: " .. table.concat(ir.notes, " / "))
+    ZeD.ItemRules.unregister(A.RULE)
+    ZeD.Bubbles.note = A.note
+    A.note = nil
+    A.ir = nil
+end)
+
+-- Loadouts (FEATURE_MAP "Loadouts page: new, rename, delete, amounts"): ZeD.Lists, the model the Loadouts page's
+-- New, Rename, Delete and amount boxes call; a list made, renamed, given a line and an amount, then deleted
+Q.step(3, function()
+    local L = ZeD.Lists
+    if not (L and L.create and L.store) then Q.check(false, "Loadouts: ZeD.Lists is loaded"); return end
+    local s = L.store(RT.p)
+    local n0, next0 = #s.lists, s.nextId
+    local l = L.create(RT.p, "loadout", "zedqa list")
+    local md = nil
+    pcall(function() md = RT.p:getModData().ZeD_Lists end)
+    local last = md and md.lists and md.lists[#md.lists]
+    Q.check(l ~= nil and #s.lists == n0 + 1 and last ~= nil and last.name == "zedqa list", "Loadouts: a new list is saved with the character, by its name",
+        #s.lists .. " lists (were " .. n0 .. ")")
+    if not l then return end
+    local okR = L.rename(RT.p, l.id, "zedqa renamed")
+    local g = L.get(RT.p, l.id)
+    Q.check(okR and g ~= nil and g.name == "zedqa renamed", "Loadouts: a list renamed keeps its new name", tostring(g and g.name))
+    local ln = L.addLine(RT.p, l.id, { type = "Base.Apple", unit = "n", amount = 1 })
+    local amt = ln and L.setAmount(RT.p, l.id, ln.id, 3)
+    Q.check(amt == 3 and ln.amount == 3, "Loadouts: a line's amount is set and kept", tostring(amt))
+    local okD = L.delete(RT.p, l.id)
+    Q.check(okD and #s.lists == n0 and L.get(RT.p, l.id) == nil, "Loadouts: a list deleted is gone from the character's lists", #s.lists .. " lists")
+    if okD then s.nextId = next0 end
+end)
+
+-- The fishing log (FEATURE_MAP "Catches are logged"): the game's landing is wrapped, and the record it calls writes
+-- the catch, newest last, with its name and weight. (No water on the QA save: the record is called as the wrap calls
+-- it, into a fresh log; the character's own log is put back.)
+Q.step(3, function()
+    local FL = ZeD.FishingLog
+    if not (FL and FL.record and FL.KEY) then Q.check(false, "fishing log: ZeD.FishingLog is loaded"); return end
+    local Pk = Fishing and Fishing.States and Fishing.States.PickupFish
+    Q.check(Pk ~= nil and Pk._zedOrigStart ~= nil and Pk.start ~= Pk._zedOrigStart, "fishing log: the game's landing (PickupFish.start) is wrapped")
+    local md = RT.p:getModData()
+    A.fishWas = { v = md[FL.KEY] }
+    md[FL.KEY] = nil
+    local ok, err = pcall(FL.record, RT.p, { kind = "fish", name = "QA Bass", wt = 2.5, len = 40 })
+    local d = FL.data(RT.p)
+    local e = d.log[#d.log]
+    local r = FL.recent(RT.p, 1)
+    Q.check(ok and #d.log == 1 and d.n == 1 and e ~= nil and e.name == "QA Bass" and e.wt == 2.5 and r[1] == e,
+        "fishing log: a catch is logged, newest, with its name and weight", tostring(err) .. ", " .. #d.log .. " in the log")
+    md[FL.KEY] = A.fishWas.v
+    A.fishWas = nil
+end)
+
+-- An add-on's group on ZeD setup (FEATURE_MAP "Add-on group on ZeD setup"): ZeD.Options.addGroup (version 1) takes a
+-- stand-in group, refuses one with no owner, and the same owner and title again replaces it. (Its rows on the
+-- screen need the add-on's own PZAPI.ModOptions and the Options window: rt_system's ground.)
+Q.step(3, function()
+    local O = ZeD.Options
+    if not (O and O.addGroup and O.groups) then Q.check(false, "add-on options: ZeD.Options is loaded"); return end
+    local n0, rev0 = #O.groups, O.rev or 0
+    local logged0 = O.logged["addGroup:noowner"]
+    local bad = O.addGroup({ title = "x", rows = {} })
+    O.logged["addGroup:noowner"] = logged0
+    local spec = { owner = A.OWNER, title = "ZeD QA stand-in", rows = { { "zedqa", "onoff" } } }
+    local ok = O.addGroup(spec)
+    local g = O.groups[#O.groups]
+    Q.check(O.VERSION == 1 and bad == false and ok == true and #O.groups == n0 + 1 and g.owner == A.OWNER and #g.rows == 1 and (O.rev or 0) > rev0,
+        "add-on options: addGroup takes a stand-in group and refuses one with no owner", "version " .. tostring(O.VERSION) .. ", " .. #O.groups .. " groups")
+    O.addGroup(spec)
+    Q.check(#O.groups == n0 + 1, "add-on options: the same owner and title again replaces it, never twice", #O.groups .. " groups")
+    A.back()
+end)
+
+-- The watch registry (FEATURE_MAP "Watch registry"): ZeD.Watch.register files a stand-in watch under its item type
+-- (wearing a registered watch draws its plate: rt_hud's watch checks, with the game's own watches)
+Q.step(2, function()
+    local W = ZeD.Watch
+    if not (W and W.register and W.watches) then Q.check(false, "watch registry: ZeD.Watch is loaded"); return end
+    local def = { plate = "classic_gold", items = { A.WATCH } }
+    W.register(def)
+    Q.check(W.watches[A.WATCH] == def, "watch registry: a registered watch is filed under its item type")
+    W.watches[A.WATCH] = nil
+end)
+
+-- The item facts factories (FEATURE_MAP "Item facts panel factories"): a stand-in factory registered first answers
+-- for its item on the card's facts (ItemFactsPanel.factsFor, what ItemCardOrganism asks), not for another; gen bumps
+Q.step(2, function()
+    local M = ZeD.ItemFactsPanel
+    local apple, hammer = RT.give("Base.Apple"), RT.give("Base.Hammer")
+    if not (M and M.register and M.factsFor and apple and hammer) then Q.check(false, "item facts: ZeD.ItemFactsPanel is loaded, things given"); return end
+    local gen0 = M.gen or 0
+    M.register(A.FACTS, function(item) if item == apple then return { zedqa = true } end; return nil end, 1)
+    local pa, ph = nil, nil
+    pcall(function() pa = M.factsFor(apple, pn); ph = M.factsFor(hammer, pn) end)
+    Q.check(pa ~= nil and pa.zedqa == true and pa._key == A.FACTS and (M.gen or 0) > gen0 and not (ph and ph._key == A.FACTS),
+        "item facts: a registered factory gives its item's facts on the card", "key " .. tostring(pa and pa._key) .. ", gen " .. gen0 .. " -> " .. tostring(M.gen))
+    A.back()
+end)
+
+-- The Traits tab's sources (FEATURE_MAP "Traits tab registry"): with no traits mod on this save, no source and no
+-- Traits tab; a stand-in source added is listed, counted, laid out and owns its ids; taken away after
+Q.step(2, function()
+    local TT = ZeD.TraitsTab
+    if not (TT and TT.addSource and TT.list) then Q.check(false, "traits tab: ZeD.TraitsTab is loaded"); return end
+    local n0 = #TT.list()
+    if n0 == 0 then
+        local tab = nil
+        for id, d in pairs(ZeD_CharacterWindow._extTabs or {}) do if d.iconName == "traits-tab-white" then tab = id end end
+        Q.check(tab == nil, "traits tab: no source here, so no Traits tab", tostring(tab))
+    end
+    local a0 = TT.counts(nil, "", false)
+    local y0 = TT.layout(nil, nil, 0, 10, 100, "", false)
+    TT.addSource(A.OWNER, { counts = function() return 2, 1, 1 end, layout = function(win, L, x, y) return y + 5 end,
+                            owns = function(id) return id == "zedqa:x" end })
+    local a1 = TT.counts(nil, "", false)
+    local y1 = TT.layout(nil, nil, 0, 10, 100, "", false)
+    local own = TT.ownerOf("zedqa:x")
+    Q.check(#TT.list() == n0 + 1 and a1 - a0 == 2 and y1 - y0 == 5 and own ~= nil and own.id == A.OWNER,
+        "traits tab: a source added is listed, counted, laid out and owns its ids", "count +" .. tostring(a1 - a0) .. ", y +" .. tostring(y1 - y0))
+    A.back()
+end)
+
+-- ZeD's pad keyboard (FEATURE_MAP "ZeD on-screen keyboard"): KB.edit (ZeD.padType, the A on every ZeD text box) on a
+-- stand-in box, keys pressed with A as the pad presses them (the hand moved to the key), B leaves it with the text kept
+Q.step(3, function()
+    local KB = ZeD.Keyboard
+    A.kbBox = nil
+    if not (KB and KB.edit and ISTextEntryBox) then Q.check(false, "keyboard: ZeD.Keyboard is loaded"); return end
+    local box = ISTextEntryBox:new("", T.px(100), T.px(100), T.px(200), T.px(24))
+    box:initialise()
+    box:instantiate()
+    box:addToUIManager()
+    A.kbBox = box
+    local ok = false
+    pcall(function() ok = KB.edit(box, pn) end)
+    if not Q.check(ok and KB.isVisible(), "keyboard: A on a text box opens ZeD's keyboard on it") then return end
+    local kb = KB.instance
+    for _, ch in ipairs({ "a", "b" }) do
+        local at = nil
+        for r, row in ipairs(kb._rows or {}) do
+            for c, k in ipairs(row) do if not at and k.lo == ch then at = { r, c } end end
+        end
+        if at then kb._focus = at; pcall(kb.onJoypadDown, kb, Joypad.AButton) end
+    end
+end)
+-- (a key types through the game's queued key events: the text is there a frame or two later)
+Q.waitFor(2, 120, function()
+    if not (A.kbBox and ZeD.Keyboard.isVisible()) then return true end
+    return A.kbBox:getInternalText() == "ab"
+end, function(ok)
+    local box, KB = A.kbBox, ZeD.Keyboard
+    if not (box and KB.isVisible()) then return end
+    Q.check(ok, "keyboard: A on the a and b keys types ab", "'" .. tostring(box:getInternalText()) .. "'")
+    RT.bounds(Q, "ZeD's keyboard")
+    local kb = KB.instance
+    pcall(kb.onJoypadDown, kb, Joypad.BButton)
+    Q.check(not KB.isVisible() and box:getInternalText() == "ab", "keyboard: B leaves it and the text is kept", "'" .. tostring(box:getInternalText()) .. "'")
+    pcall(function() box:removeFromUIManager() end)
+    A.kbBox = nil
+end)
+
+-- The Lua console (FEATURE_MAP "Lua console window"): only in -debug. Opened (as the game's console key does), it is
+-- ZeD's window, on screen, and a print reaches its log; shut again as found
+Q.step(3, function()
+    local DC = ZeD.DebugConsole
+    A.dc = nil
+    if not (DC and DC.open and DC.debug and DC.exists) then Q.check(false, "Lua console: ZeD.DebugConsole is loaded"); return end
+    if not (DC.debug() and DC.exists()) then Q.skip("the Lua console", "the game is not in -debug, or its console is handed back"); return end
+    A.dc = { was = DC.isOpen(), mark = "ZEDQA rt_addon console mark " .. tostring(getTimestampMs()) }
+    pcall(DC.open)
+end)
+Q.waitFor(2, 120, function() return (not A.dc) or ZeD.DebugConsole.isOpen() end, function(ok)
+    if not A.dc then return end
+    Q.check(ok, "Lua console: it opens as ZeD's window")
+    RT.bounds(Q, "the Lua console")
+    print(A.dc.mark)
+end)
+Q.waitFor(2, 300, function()
+    return (not A.dc) or string.find(tostring(ZeD.DebugConsole.text or ""), A.dc.mark, 1, true) ~= nil
+end, function(ok)
+    if not A.dc then return end
+    Q.check(ok, "Lua console: a print reaches its log")
+    if not A.dc.was then pcall(ZeD.DebugConsole.close) end
+end)
+Q.waitFor(2, 120, function() return (not A.dc) or A.dc.was or not ZeD.DebugConsole.isOpen() end, function(ok)
+    if not A.dc then return end
+    if not A.dc.was then Q.check(ok, "Lua console: closed again, as it was") end
+    A.dc = nil
+end)
+
 -- ===================================================================== put back
 Q.mark()
 Q.step(2, function()
     mailBack()
+    A.back()
+    pcall(S.mdBack)
     wrapOff()
     S.ghostOn = false
     pcall(GL.padCancel, pn)

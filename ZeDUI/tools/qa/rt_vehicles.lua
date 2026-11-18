@@ -19,8 +19,13 @@
 --   vehicle  the engine off by the dash's ignition, then the game's Vehicle Mechanics (ISVehicleMenu.onMechanic: the
 --            character gets out and inspects the car) opens the World window's Vehicle tab (MechanicsTab.lua): it
 --            lists the car's parts; a click on a row opens that part's card, a second click closes it
+--   (Nov 18 2026, QA, the ledger's car gaps closed here:) the game's own dash stays hidden while ZeD's shows, and
+--            ZeD's goes once the character is out; the dash's headlight switch flips the headlights and back; the seat
+--            key opens the chooser on the Simple dash and the cabin pop-out on Immersive; an animal trailer's Check
+--            Animals (ISVehicleMenu.onCheckAnimalInside, hooked) opens the Vehicle tab on the trailer
 -- Each surface is measured with RT.bounds. Put back: the radio and the lightbar as they were, the props closed, the
--- World window on Loot, the character out, the key taken back and the car removed (ZEDQA_CAR_AWAY).
+-- dash style, the World window on Loot, the character out, the key taken back and the car and trailer removed
+-- (ZEDQA_CAR_AWAY).
 
 if not RT then
     print("ZEDQA rt_veh ERR the kit (rt_kit.lua) did not run first")
@@ -120,6 +125,25 @@ function H.lightbar()
     pcall(function() m = S.v:getLightbarLightsMode() end)
     return m
 end
+function H.headlights()
+    local on = false
+    pcall(function() on = S.v:getHeadlightsOn() end)
+    return on and true or false
+end
+function H.chooser() local w = nil; pcall(function() w = S.Seats.get(S.pn) end); return w end
+function H.popout() local w = nil; pcall(function() w = S.Seats.getPopout(S.pn) end); return w end
+-- the dash style (ZeD setup: 1 Immersive, 2 Simple), the run's own kept to put back
+function H.setDash(n)
+    local o = ZeD.Settings and ZeD.Settings.dashStyleOption
+    if not o then return end
+    if S.dashWas == nil then pcall(function() S.dashWas = o:getValue() end) end
+    pcall(function() o:setValue(n) end)
+end
+function H.putDash()
+    local o = ZeD.Settings and ZeD.Settings.dashStyleOption
+    if o and S.dashWas ~= nil then pcall(function() o:setValue(S.dashWas) end) end
+    S.dashWas = nil
+end
 function H.ms() local w = RT.ww(); return w and S.MT.getState(w) end
 function H.zone(id) local s = H.ms(); return s and s.byId and s.byId[id] end
 
@@ -149,7 +173,12 @@ end)
 Q.waitFor(10, 300, function() return not H.inCar() or (H.vis(H.dash()) and H.st() ~= nil) end, function(ok)
     if not H.inCar() then return end
     local d = H.dash()
-    Q.check(H.vis(d), "dash: ZeD's dash shows in the car")
+    Q.check(H.vis(d) and d.vehicle == S.v, "dash: ZeD's dash shows in the car")
+    -- (Nov 18 2026, QA, the ledger: the game's own dash stays out of sight while ZeD's shows)
+    local vd, vdVis = nil, false
+    pcall(function() vd = getPlayerVehicleDashboard(S.pn) end)
+    if vd then pcall(function() vdVis = vd:isVisible() end) end
+    Q.check(not vdVis, "dash: the game's own dash is not shown beside ZeD's")
     local id, des = H.design()
     Q.check(id ~= nil and des ~= nil, "dash: it has a design for the car", tostring(id))
     Q.check(H.parts(des, "needle") > 0 or H.parts(des, "gauge") > 0, "dash: its design has gauges", H.parts(des, "needle") .. " needles")
@@ -190,6 +219,28 @@ Q.step(1, function()
     Q.check((s.fuel or 0) > 0.5, "dash: the fuel needle reads the full tank", string.format("fuel %.2f", s.fuel or 0))
     Q.check(s.check == false and s.oilLamp == false, "dash: running: the bulb check is over (oil lamp dark)", tostring(s.oilLamp))
     RT.bounds(Q, "the dash, engine running")
+end)
+
+-- ===================================================================== the headlights
+-- (Nov 18 2026, QA, the ledger: the dash's headlight switch, its own hit, through the game's onToggleHeadlights)
+Q.step(5, function()
+    if not H.inCar() then return end
+    S.lightsWas = H.headlights()
+    local d = H.dash()
+    local h = d and H.hitOf(d._hit, { "lights" })
+    if not Q.check(h ~= nil, "dash: it has its headlight switch", d and H.ids(d._hit)) then S.noLights = true; return end
+    H.pressHit(d, h, 0.5, false)
+end)
+Q.waitFor(5, 300, function() return S.noLights or not H.inCar() or H.headlights() ~= S.lightsWas end, function(ok)
+    if S.noLights or not H.inCar() then return end
+    Q.check(ok, "dash: a click on the headlight switch flips the headlights", tostring(S.lightsWas) .. " -> " .. tostring(H.headlights()))
+    local d = H.dash()
+    local h = d and H.hitOf(d._hit, { "lights" })
+    if h then H.pressHit(d, h, 0.5, false) end
+end)
+Q.waitFor(5, 300, function() return S.noLights or not H.inCar() or H.headlights() == S.lightsWas end, function(ok)
+    if S.noLights or not H.inCar() then return end
+    Q.check(ok, "dash: a second click puts the headlights back", tostring(H.headlights()))
 end)
 
 -- ===================================================================== the radio
@@ -255,15 +306,21 @@ Q.step(10, function()
 end)
 
 -- ===================================================================== the seat chooser
+-- (Nov 18 2026, QA, the ledger: the chooser on the Simple dash, the cabin pop-out on Immersive, each asked for; the
+-- run's own dash style put back after)
 Q.step(5, function()
     if not H.inCar() then return end
     Q.check(ISVehicleMenu._zedSeats ~= nil, "seats: ZeD's hook is on the seat key")
+    H.setDash(2)
+end)
+Q.step(5, function()
+    if not H.inCar() then return end
     pcall(ISVehicleMenu.onShowSeatUI, S.p, S.v)
 end)
 Q.waitFor(5, 300, function() local w = H.seatWin(); return not H.inCar() or (w ~= nil and w._seats ~= nil) end, function(ok)
     if not H.inCar() then return end
     local w = H.seatWin()
-    Q.check(ok and w ~= nil, "seats: the seat key opens ZeD's seat chooser", tostring(w and w.Type))
+    Q.check(ok and w ~= nil and w == H.chooser(), "seats: the seat key opens ZeD's seat chooser", tostring(w and w.Type))
     local n = 0
     pcall(function() n = S.v:getMaxPassengers() end)
     local seats = (w and w._seats) or {}
@@ -276,6 +333,24 @@ end)
 Q.step(10, function()
     if not H.inCar() then return end
     Q.check(H.seatWin() == nil, "seats: it closes")
+    H.setDash(1)
+end)
+Q.step(5, function()
+    if not H.inCar() then return end
+    pcall(ISVehicleMenu.onShowSeatUI, S.p, S.v)
+end)
+Q.waitFor(5, 300, function() return not H.inCar() or H.vis(H.popout()) or H.vis(H.chooser()) end, function(ok)
+    if not H.inCar() then return end
+    Q.check(ok and H.vis(H.popout()) and not H.vis(H.chooser()), "seats: on the Immersive dash the seat key opens the cabin pop-out",
+        "pop-out " .. tostring(H.vis(H.popout())) .. ", chooser " .. tostring(H.vis(H.chooser())))
+    RT.bounds(Q, "the seat pop-out")
+    pcall(function() local w = H.popout(); if H.vis(w) then w:close() end end)
+    pcall(function() local w = H.chooser(); if H.vis(w) then w:close() end end)
+end)
+Q.step(10, function()
+    if not H.inCar() then return end
+    Q.check(not H.vis(H.popout()), "seats: the cabin pop-out closes")
+    H.putDash()
 end)
 
 -- ===================================================================== the siren
@@ -348,6 +423,11 @@ end, function(ok)
     if not S.mechAsked then return end
     Q.check(ok, "vehicle: the game's Vehicle Mechanics inspects the car and opens the World window's Vehicle tab")
 end)
+-- (Nov 18 2026, QA, the ledger: out of the car, the dash goes)
+Q.waitFor(1, 300, function() return not S.mechAsked or (S.p:getVehicle() == nil and not H.vis(H.dash())) end, function(ok)
+    if not S.mechAsked then return end
+    Q.check(ok, "dash: out of the car, ZeD's dash is put away", "in a car " .. tostring(S.p:getVehicle() ~= nil) .. ", dash " .. tostring(H.vis(H.dash())))
+end)
 Q.step(30, function()
     if not S.mechAsked then return end
     local s = H.ms()
@@ -380,6 +460,39 @@ Q.step(20, function()
     Q.check(s and s.card == nil, "vehicle: the same row again closes the card", tostring(s and s.card))
 end)
 
+-- ===================================================================== an animal trailer: Check Animals
+-- (Nov 18 2026, QA, the ledger: the game's Check Animal(s) in Trailer, ISVehicleMenu.onCheckAnimalInside, hooked by
+-- Overrides/TrailerAnimals.lua, opens the Vehicle tab on the trailer, scrolled to its animals. The prelude's helper
+-- spawns it beside the character; it takes the police car away first, as the character is out of it now.)
+Q.step(10, function()
+    if not S.v then return end
+    S.trAsked = true
+    ZEDQA_CAR_WAIT("Base.Trailer_Livestock", "rt_veh", function(v) S.tr = v; S.trDone = true end,
+        function(why) S.trWhy = why or "no trailer ready"; S.trDone = true end, 6000)
+end)
+Q.waitFor(5, 3600, function() return not S.trAsked or S.trDone end, function()
+    if not S.trAsked then return end
+    if not Q.check(S.tr ~= nil, "trailer: an animal trailer spawned beside the character", tostring(S.trWhy)) then return end
+    Q.check(ISVehicleMenu._zedTrailerHooked == true, "trailer: ZeD's hook is on the game's Check Animals")
+    pcall(ISVehicleMenu.onCheckAnimalInside, S.tr, S.p)
+end)
+Q.waitFor(10, 1800, function()
+    if not S.tr then return true end
+    local w = RT.ww()
+    local s = H.ms()
+    local cur = s and s.vehicles and s.vehicles[s.idx or 1]
+    local id = -1
+    pcall(function() id = S.tr:getId() end)
+    return w ~= nil and w._activeTab == "vehicle" and cur ~= nil and cur.id == id
+end, function(ok)
+    if not S.tr then return end
+    local isTr = false
+    pcall(function() isTr = ZeD.MechTrailer.isTrailer(S.tr) end)
+    local w = RT.ww()
+    Q.check(ok and isTr, "trailer: Check Animals opens the Vehicle tab on the trailer's page", "tab " .. tostring(w and w._activeTab) .. ", trailer " .. tostring(isTr))
+    RT.bounds(Q, "the trailer's page")
+end)
+
 -- ===================================================================== put back
 Q.mark()
 Q.step(5, function()
@@ -401,10 +514,13 @@ Q.step(5, function()
         end
     end
     pcall(function() S.p:StopAllActionQueue() end)
+    pcall(function() local w = H.popout(); if H.vis(w) then w:close() end end)
+    H.putDash()
     RT.worldTab("loot")
 end)
 Q.step(10, function()
     if S.v then ZEDQA_CAR_AWAY(S.v, S.key) end
+    if S.tr then ZEDQA_CAR_AWAY(S.tr) end
     if S.pairWas == false then RT.pairShut() end
 end)
 Q.waitFor(5, 600, function()
@@ -412,7 +528,10 @@ Q.waitFor(5, 600, function()
     local gone = true
     pcall(function()
         local it = getCell():getVehicles():iterator()
-        while it:hasNext() do if it:next() == S.v then gone = false end end
+        while it:hasNext() do
+            local o = it:next()
+            if o == S.v or (S.tr ~= nil and o == S.tr) then gone = false end
+        end
     end)
     return gone and S.p:getVehicle() == nil
 end, function(ok)

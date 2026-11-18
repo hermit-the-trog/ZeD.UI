@@ -20,6 +20,9 @@
 --   put back  with Put things back on, a drink from a bottle in a bag: the bottle goes back into the bag
 --   place     the game's Place Item cursor: A (Overrides/PlaceItemPad.lua) places the item
 --   map       Here and now > Help > Controller map opens it; it draws the pad (ZeD_PadFigure.lua) and its twelve rows
+--   (Nov 18 2026, the ledger's proof pass, FEATURE_MAP.md) R3 grid view, Back in an inner wheel, the ZeD wheel's slices,
+--             the mode read from a key press and the flip to the pad, a bumper tap on a wheel, a chord with a window
+--             holding the pad, the D-pad going to that window, the moodles' hover balloon, the fishing rod's tension
 -- Every surface: RT.bounds. Puts back: the input mode, the focus, the windows, the options (inventory view, moodles'
 -- place, Put things back, auto-drink), the chords file, the zoom, the stats, the pointer, the stand-ins.
 local Q = RT.make("rt_pad")
@@ -144,6 +147,33 @@ Q.step(10, function()
     Q.check(el3 ~= nil and S.item0 ~= nil and el3.item == S.item0, "focus: D-pad Up moves back", S.nm(el3 and el3.item))
     RT.bounds(Q, "windows on the pad")
 end)
+-- (Nov 18 2026, the ledger: Inventory grid view by pad) R3 on the list turns the container on show between List and
+-- Grid (InventoryRenderer.padView); in the grid every item has its x in _itemRenderXMap. R3 again puts it back.
+function S.gridState()
+    local w = RT.cw()
+    local c = w and w._mainContent
+    if not c then return nil, false end
+    local placed = true
+    if c._gridCell ~= nil then
+        for _, it in ipairs(c._flatItems or {}) do if not (c._itemRenderXMap and c._itemRenderXMap[it]) then placed = false end end
+    end
+    return c._gridCell ~= nil, placed
+end
+Q.step(2, function()
+    S.gridWas = S.gridState()
+    S.back.grid = true
+    RT.padDown(Joypad.RStickButton, RT.cw())
+end)
+Q.step(6, function()
+    local now, placed = S.gridState()
+    Q.check(S.gridWas ~= nil and now ~= S.gridWas and (not now or placed),
+        "grid view: R3 on the list turns its container between List and Grid", "grid " .. tostring(S.gridWas) .. " to " .. tostring(now) .. ", every item placed " .. tostring(placed))
+    if now ~= S.gridWas then RT.padDown(Joypad.RStickButton, RT.cw()) end
+end)
+Q.step(6, function()
+    S.back.grid = nil
+    Q.check(S.gridState() == S.gridWas, "grid view: R3 again puts the container's view back", tostring(S.gridState()))
+end)
 
 -- ===================================================================== the pad's item card follows the focus
 -- (zedqa_pad_tooltip.lua's probe: what the card's layer draws, read the frame after; a move every 3 drawn frames)
@@ -258,6 +288,26 @@ Q.step(40, function()
     S.release()
     RT.pairShut()
 end)
+-- (Nov 18 2026, the ledger: inner wheel and Back) Character > Tabs, then D.back twice: one level up, then closed
+Q.step(10, function()
+    S.closeWheels()
+    S.openWheel("left")
+end)
+Q.step(5, function()
+    local tabs = S.entry(1, S.byName(Z.tr("UI_ZeD_Wheel_Tabs")))
+    if not Q.check(tabs ~= nil, "inner wheel: Character has Tabs") then S.closeWheels(); return end
+    D.enter(S.pn, tabs)
+    local st = D.state[S.pn]
+    local n1 = st and #st.path
+    D.back(S.pn)
+    st = D.state[S.pn]
+    local n2 = st and #st.path
+    D.back(S.pn)
+    local gone = D.state[S.pn] == nil
+    Q.check(n1 == 2 and n2 == 1 and gone, "inner wheel: Back goes up one level, then from the top closes the wheel",
+        tostring(n1) .. ", " .. tostring(n2) .. ", closed " .. tostring(gone))
+    S.closeWheels()
+end)
 -- Right: World > Tabs > Loot
 Q.step(20, function()
     S.closeWheels()
@@ -342,13 +392,14 @@ Q.step(5, function()
     D.enter(S.pn, zoom)
     local zin = S.entry(nil, function(e) return e.run ~= nil end)
     if zin and zin.off then Q.skip("down: Zoom > in", tostring(zin.off)); S.closeWheels(); return end
-    if Q.check(zin ~= nil, "down: Zoom has in") then D.take(S.pn, zin); S.zoomed = true end
+    if Q.check(zin ~= nil, "down: Zoom has in") then D.take(S.pn, zin); S.zoomed = true; S.zoomClosed = D.state[S.pn] == nil end
     S.closeWheels()
 end)
 Q.step(60, function()
     if not S.zoomed then return end
     local z = getCore():getZoom(S.pn)
-    Q.check(z ~= S.zoomWas, "down: Zoom > in changes the zoom", string.format("%.2f to %.2f", S.zoomWas or -1, z or -1))
+    Q.check(z ~= S.zoomWas and S.zoomClosed == true, "down: Zoom > in changes the zoom and the wheel closes",
+        string.format("%.2f to %.2f", S.zoomWas or -1, z or -1) .. ", closed " .. tostring(S.zoomClosed))
     S.putZoom()
 end)
 function S.putZoom()
@@ -367,6 +418,13 @@ Q.step(5, function()
     local st = D.state[S.pn]
     if not Q.check(st ~= nil and st.dir == "select" and st.menu and st.menu:isReallyVisible(), "select: the ZeD wheel opens") then return end
     RT.bounds(Q, "ZeD wheel")
+    -- (Nov 18 2026, the ledger: the thirteen slices by name, D.B.zed; the Lua console adds a fourteenth in -debug)
+    local okZ, gotZ = S.namesAre({ Z.tr("UI_ZeD_Settings_BaseTheme"), Z.tr("UI_ZeD_Settings_AccentColor"), Z.tr("UI_ZeD_Settings_TextSize"),
+        Z.tr("UI_ZeD_Settings_SeeThrough"), Z.tr("UI_ZeD_Settings_FocusStyle"), Z.tr("UI_ZeD_Settings_UiScale"),
+        Z.tr("UI_ZeD_Settings_Moodles"), Z.tr("UI_ZeD_Settings_ActionBar"), Z.tr("UI_ZeD_Msg_Title"), Z.tr("UI_ZeD_Msg_BugReport"),
+        Z.tr("UI_ZeD_Wheel_ResetWindows"), Z.tr("UI_ZeD_Options_GroupZed"), Z.tr("UI_ZeD_Settings_SafeMode") })
+    local nZ = #st.path[1].entries
+    Q.check(okZ and (nZ == 13 or nZ == 14), "select: the slices by name, Theme to Safe mode", gotZ)
     local mo = S.entry(1, S.byName(Z.tr("UI_ZeD_Settings_Moodles")))
     if not Q.check(mo ~= nil, "select: Moodles is there") then return end
     D.enter(S.pn, mo)
@@ -455,6 +513,12 @@ end
 -- textOnFocus on a stop that is not solid (mark returns true), the others never do; the hand stays on the screen
 -- (its width left of the marked stop). ZeD.Focus.mark and drawOverlay are watched, not replaced.
 S.HL = { "hand", "corners", "wash", "ants" }
+S.HL_DRAWN = {
+    hand = "highlight hand: picked, reads back, the focused stop marked and drawn with no error",
+    corners = "highlight corners: picked, reads back, the focused stop marked and drawn with no error",
+    wash = "highlight wash: picked, reads back, the focused stop marked and drawn with no error",
+    ants = "highlight ants: picked, reads back, the focused stop marked and drawn with no error",
+}
 S.hl = { on = false }
 function S.hlInstall()
     local FP = Z.Focus
@@ -516,7 +580,8 @@ function S.hlCheck(i)
     local h = S.hl
     h.on = false
     Q.check(Z.Focus.style() == key, "highlight " .. key .. ": the style reads back", Z.Focus.style())
-    Q.check(h.marks > 0 and h.ov > 0 and h.err == nil, "highlight " .. key .. ": the focused stop is marked and drawn with no error",
+    -- (one literal what-string per style, so the ledger can name each: FEATURE_MAP.md's Check column)
+    Q.check(Z.Focus.style() == key and h.marks > 0 and h.ov > 0 and h.err == nil, S.HL_DRAWN[key],
         h.marks .. " marks, " .. h.ov .. " overlay passes" .. (h.err and (", " .. h.err) or ""))
     if h.plain then
         if key == "wash" then
@@ -613,6 +678,143 @@ Q.waitFor(1, 90, function() return not S.back.ptr or #S.ptr.calls > 0 end, funct
     if not S.back.ptr then return end
     Q.check(ok and S.ptrLast() == false, "pointer: a pad press on a ZeD window hides it again", tostring(S.ptrLast()))
     S.putPtr()
+    S.release()
+    RT.pairShut()
+end)
+
+-- ===================================================================== the input mode and the flip to the pad
+-- (Nov 18 2026, the ledger) With no lock, a key press (OnKeyPressed with F15, a key nothing binds) reads "kbm";
+-- players 2 to 4 always read "gamepad". From the pair shut, the lock to "gamepad" opens it (FocusManager's
+-- _onModeChanged); a pad press shows the focus marks, and the flip to "kbm" hides them. The detector's switch waits
+-- 200 ms after the last one, so each flip waits 300 ms. The auto flip to "gamepad" needs a real controller.
+Q.step(5, function()
+    S.closeWheels()
+    S.release()
+    RT.pairShut()
+    S.back.mode = true
+    Det.setLockedMode(nil)
+    local ok, err = pcall(triggerEvent, "OnKeyPressed", 102)
+    if not ok then Q.say("mode: the key press: " .. tostring(err)) end
+end)
+Q.waitFor(1, 120, function() return Det.getMode(S.pn) == "kbm" end, function(ok)
+    Q.check(ok and Det.getMode(1) == "gamepad" and Det.getMode(3) == "gamepad",
+        "mode: with no lock a key press reads the mouse and keyboard; players 2 to 4 read the controller",
+        tostring(Det.getMode(S.pn)) .. ", player 2 " .. tostring(Det.getMode(1)))
+    Q.check(not RT.isOpen(), "flip: the pair is shut before the flip")
+end)
+Q.waitMs(300)
+Q.step(1, function() Det.setLockedMode("gamepad") end)
+Q.waitFor(1, 120, function() local w = RT.ww(); return RT.isOpen() and w ~= nil and w:isVisible() end, function(ok)
+    Q.check(ok, "flip: locking the controller opens the Character and World windows")
+    local w = RT.cw()
+    if w and w:isVisible() then
+        if F.getFocusedWindow(S.pn) ~= w then F.claimFocus(w) end
+        RT.padDir("down", w)
+    end
+end)
+Q.waitMs(300)
+Q.step(1, function()
+    S.cuesOn = F.cuesVisible(S.pn)
+    Det.setLockedMode("kbm")
+end)
+Q.waitFor(1, 120, function() return not F.cuesVisible(S.pn) end, function(ok)
+    Q.check(ok and S.cuesOn == true, "flip: on the pad the focus marks show; back on the mouse they hide", "before " .. tostring(S.cuesOn))
+    S.release()
+    RT.pairShut()
+end)
+
+-- ===================================================================== the moodles' balloon under the pointer
+-- (Nov 18 2026, the ledger) On the mouse (the lock still "kbm"), the pair shut: thirst and hunger raised so a moodle
+-- shows, the pointer put on the first one; after the hover pause its balloon is up (ZeD.Balloon.up, keyed
+-- "moodle:<key>") and fully on screen (the layer's _chip). Put back: the pointer, the stats, god mode.
+function S.putMH()
+    if not S.back.mh then return end
+    S.back.mh = nil
+    pcall(function() Mouse.setXY(S.mh.mouse[1], S.mh.mouse[2]) end)
+    pcall(function() local st = S.p:getStats(); st:set(CharacterStat.THIRST, S.mh.th); st:set(CharacterStat.HUNGER, S.mh.hu) end)
+    pcall(function() S.p:setGodMod(S.mh.god) end)
+end
+Q.step(5, function()
+    S.mh = { mouse = { getMouseX(), getMouseY() } }
+    pcall(function() S.mh.god = S.p:isGodMod() end)
+    pcall(function() local st = S.p:getStats(); S.mh.th = st:get(CharacterStat.THIRST); S.mh.hu = st:get(CharacterStat.HUNGER) end)
+    if S.mh.th == nil or S.mh.hu == nil then Q.skip("moodles: hover balloon", "the stats cannot be read here"); return end
+    S.back.mh = true
+    pcall(function() S.p:setGodMod(false) end)
+    pcall(function() local st = S.p:getStats(); st:set(CharacterStat.THIRST, 0.45); st:set(CharacterStat.HUNGER, 0.45) end)
+end)
+Q.waitFor(5, 240, function()
+    if not S.back.mh then return true end
+    local L = Z.Moodles and Z.Moodles.getLayer and Z.Moodles.getLayer(S.pn)
+    return L ~= nil and L._show == true and L._list ~= nil and #L._list > 0
+end, function(ok)
+    if not S.back.mh then return end
+    local L = Z.Moodles and Z.Moodles.getLayer and Z.Moodles.getLayer(S.pn)
+    if not (ok and L) then Q.check(false, "moodles: a moodle shows to hover"); S.putMH(); return end
+    local size = L._size or 32
+    S.mh.key = "moodle:" .. tostring(L._list[1].key)
+    S.mh.L = L
+    local cx = math.floor(L:getAbsoluteX() + size / 2)
+    local cy = math.floor(L:getAbsoluteY() + size / 2)
+    pcall(function() Mouse.setXY(cx, cy) end)
+end)
+Q.waitFor(2, 240, function()
+    if not (S.back.mh and S.mh.key) then return true end
+    return Z.Balloon.up() and Z.Balloon._slot ~= nil and Z.Balloon._slot.key == S.mh.key
+end, function(ok)
+    if not (S.back.mh and S.mh.key) then S.putMH(); return end
+    local L, c = S.mh.L, S.mh.L and S.mh.L._chip
+    local W, H = getCore():getScreenWidth(), getCore():getScreenHeight()
+    local on = false
+    local where = "no balloon"
+    if c and c.balloon then
+        local ax, ay = L:getAbsoluteX() + c.x, L:getAbsoluteY() + c.y
+        on = ax >= -1 and ay >= -1 and ax + c.w <= W + 1 and ay + c.h <= H + 1
+        where = string.format("%d,%d %dx%d", math.floor(ax), math.floor(ay), math.floor(c.w), math.floor(c.h))
+    end
+    Q.check(ok and on, "moodles: the pointer on a moodle brings up its balloon, fully on screen", tostring(S.mh.key) .. " " .. where)
+    S.putMH()
+end)
+
+-- ===================================================================== the fishing line's tension as the rod in hand
+-- (Nov 18 2026, the ledger) The game's tension meter (Fishing.ISTensionUI, which FishingManager makes with a fish on)
+-- made here as the game makes it; its value set as the game sets it: Overrides/Fishing.lua keeps zedTension and draws
+-- the rod (ZeD.FishRod.draw returns true: no vanilla dial). ZeD.FishRod.draw is watched, not replaced.
+function S.putFish()
+    if not S.back.fish then return end
+    S.back.fish = nil
+    Z.FishRod.draw = S.fish.drawWas
+    pcall(function() S.fish.ui:removeFromUIManager() end)
+end
+Q.step(5, function()
+    local TUI = Fishing and Fishing.ISTensionUI
+    if not (TUI and Z.FishRod and Z.FishRod.draw) then Q.check(false, "fishing: the rod override is loaded"); return end
+    S.fish = { drawWas = Z.FishRod.draw }
+    S.back.fish = true
+    Z.FishRod.draw = function(self, ox, oy, k, t)
+        local r = S.fish.drawWas(self, ox, oy, k, t)
+        if S.fish.ui ~= nil and self == S.fish.ui then S.fish.drawn, S.fish.t = r, t end
+        return r
+    end
+    local ok, err = pcall(function()
+        S.fish.ui = TUI:new(S.p)
+        S.fish.ui:initialise()
+        S.fish.ui:addToUIManager()
+        S.fish.ui:updateValue(0.5)
+    end)
+    if not ok then Q.say("fishing: the meter: " .. tostring(err)) end
+end)
+Q.waitFor(2, 60, function() return not S.back.fish or S.fish.drawn ~= nil end, function(ok)
+    if not S.back.fish then return end
+    local ui = S.fish.ui
+    Q.check(ok and S.fish.drawn == true and ui ~= nil and ui.zedTension == 0.5 and S.fish.t == 0.5,
+        "fishing: the line's tension is kept and drawn as the rod in hand", "drawn " .. tostring(S.fish.drawn) .. ", tension " .. tostring(S.fish.t))
+    S.putFish()
+end)
+-- back on the pad (the flip opens the pair; it is shut again)
+Q.waitMs(300)
+Q.step(1, function() Det.setLockedMode("gamepad") end)
+Q.waitFor(1, 120, function() return RT.isOpen() end, function()
     S.release()
     RT.pairShut()
 end)
@@ -756,6 +958,32 @@ Q.step(3, function()
     S.gPress(Joypad.AButton)
     Q.check(D.state[S.pn] == nil and (S.gi ~= 2 or S.sneak()), "gesture toggle: A takes the lit slice")
 end)
+-- (Nov 18 2026, the ledger) a bumper tapped with a wheel up: LB down and let go on the wheel (as the game sends them)
+-- closes it and opens the pair with the pad on the Character window (G.onRelease -> F.openSide)
+Q.step(3, function()
+    S.release()
+    RT.pairShut()
+end)
+Q.step(5, function()
+    S.gBump = nil
+    if not S.gFresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 }) then
+        Q.check(false, "gesture bumper: Here and now opens")
+        return
+    end
+    local m = D.state[S.pn].menu
+    S.gBump = true
+    m:onJoypadDown(Joypad.LBumper, S.gJD)
+    m:onJoypadButtonReleased(Joypad.LBumper, S.gJD)
+end)
+Q.step(10, function()
+    if not S.gBump then return end
+    local cw, ww = RT.cw(), RT.ww()
+    Q.check(D.state[S.pn] == nil and cw ~= nil and cw:isVisible() and ww ~= nil and ww:isVisible() and F.getFocusedWindow(S.pn) == cw,
+        "gesture bumper: LB tapped on a wheel closes it and opens the pair, the pad on the Character window",
+        "wheel " .. tostring(D.state[S.pn] ~= nil) .. ", focus " .. tostring(F.getFocusedWindow(S.pn)))
+    S.release()
+    RT.pairShut()
+end)
 Q.step(3, function() S.putGesture() end)
 
 -- ===================================================================== a quick chord: RB + R3 on Crouch
@@ -780,7 +1008,13 @@ S.ctl = setmetatable({ joypad = S.jd }, { __index = JoypadControllerData })
 function S.press(bump, button)
     local C = Z.QuickChords
     C.qaBumper = bump
+    -- (Q.onPress watched, not replaced: the game's press wrapper asks it by name and returns before the game's own
+    -- press when it says true)
+    local was = C.onPress
+    S.took = nil
+    C.onPress = function(jd, b) local r = was(jd, b); S.took = r; return r end
     local ok, err = pcall(JoypadControllerData.onPressButtonNoFocus, S.ctl, button)
+    C.onPress = was
     if not ok then Q.say("chord press: " .. tostring(err)) end
     pcall(JoypadControllerData.onReleaseButton, S.ctl, button)
     C.qaBumper = nil
@@ -798,11 +1032,44 @@ Q.step(10, function()
 end)
 Q.step(10, function()
     Q.check(Z.QuickChords.lastChord == "RB+R3", "chord: the press is taken as RB + R3", Z.QuickChords.lastChord)
+    Q.check(S.took == true, "chord: the press is the chord's, so the game's own press never runs", tostring(S.took))
     Q.check(S.p:isSneaking() ~= S.sneakWas, "chord: the character crouches")
     S.press("RB", Joypad.RStickButton)
 end)
 Q.step(10, function()
     Q.check(S.p:isSneaking() == S.sneakWas, "chord: again, and it stands as it was")
+    RT.pairOpen()
+end)
+-- (Nov 18 2026, the ledger) A ZeD window holding the pad: RB + R3 is not a chord (Q.onPress says false, the crouch
+-- stays as it was), and the D-pad goes to that window, not a wheel (the onDisplay wrap's windowTakes: no wheel, the
+-- focus moved). Q.onPress is asked straight, so the game's own R3 never runs.
+Q.step(20, function()
+    local w = RT.cw()
+    if not Q.check(w ~= nil and w:isVisible(), "chord: the Character window is open for the window checks") then return end
+    if w._activeTab ~= "loot" then pcall(CW.openTab, S.pn, "loot") end
+    F.claimFocus(w)
+    F.focusWhere(w, "charMainInv", function(x) return x.item ~= nil end)
+end)
+Q.step(5, function()
+    local w = RT.cw()
+    if not (w and w:isVisible()) then return end
+    local C = Z.QuickChords
+    C.qaBumper = "RB"
+    local okP, r = pcall(C.onPress, { player = S.pn, id = 0 }, Joypad.RStickButton)
+    C.qaBumper = nil
+    Q.check(F.getFocusedWindow(S.pn) == w and okP and r == false and S.p:isSneaking() == S.sneakWas,
+        "chord: with a window holding the pad the chord does nothing", tostring(r))
+    S.closeWheels()
+    local z = F.getFocusedZone(w)
+    local i0 = z and z.focusedElementIdx
+    pcall(ISDPadWheels.onDisplayDown, { player = S.pn })
+    local z2 = F.getFocusedZone(w)
+    local i1 = z2 and z2.focusedElementIdx
+    Q.check(D.state[S.pn] == nil and i0 ~= nil and i1 ~= nil and i1 ~= i0,
+        "D-pad on a focused window: no wheel opens, the window's focus moves", tostring(i0) .. " to " .. tostring(i1))
+    S.closeWheels()
+    S.release()
+    RT.pairShut()
 end)
 -- a chord that cannot run says why over the head (HaloTextHelper.addBadText, watched and kept quiet): on a slice
 -- that is off, its reason; on a slice that is gone, "gone" with the chord's words
@@ -1001,7 +1268,7 @@ Q.mark()
 Q.step(5, function()
     S.closeWheels()
     S.putDraw(); S.putShout(); S.putZoom(); S.putMood(); S.putChords(); S.putPB(); S.putPlace(); S.putPF()
-    S.putRW(); S.putHL(); S.putPtr(); S.putRoute(); S.putGesture(); S.putHalo()
+    S.putRW(); S.putHL(); S.putPtr(); S.putRoute(); S.putGesture(); S.putHalo(); S.putMH(); S.putFish()
     S.release()
     if S.back.view then S.back.view = nil; S.setOpt(Z.Settings.inventoryViewOption, S.invView) end
     if S.back.mode then
@@ -1018,7 +1285,8 @@ Q.step(10, function()
     Q.check(F.getFocusedWindow(S.pn) == nil or S.pairWas, "put back: the pad is the game's again")
     Q.check(Z.Balloon.draw == S.drawWas and ISDPadWheels.onShout == S.shoutWas
         and (S.hlMarkWas == nil or (Z.Focus.mark == S.hlMarkWas and Z.Focus.drawOverlay == S.hlOvWas))
-        and (S.haloWas == nil or HaloTextHelper.addBadText == S.haloWas) and D.qaSettings == nil,
+        and (S.haloWas == nil or HaloTextHelper.addBadText == S.haloWas) and D.qaSettings == nil
+        and (S.fish == nil or Z.FishRod.draw == S.fish.drawWas),
         "put back: the stand-ins are gone")
     if S.hlStyleWas then Q.check(Z.Focus.style() == S.hlStyleWas, "put back: the controller highlight", Z.Focus.style()) end
     if S.moodWas then Q.check(S.opt(Z.Settings.moodlePlaceOption) == S.moodWas, "put back: the moodles' place") end
