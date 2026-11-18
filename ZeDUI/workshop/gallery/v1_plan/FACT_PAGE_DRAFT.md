@@ -11,7 +11,8 @@ facing page.
 **The game.** ZeD-GUI runs on Project Zomboid Build 42, version 42.17 or later. It has been tested on 42.21 and
 42.22, at 4K, at 1080p and on the Steam Deck.
 
-**Size.** Over 600 features. (The director, Nov 18 2026: "Over 600 features. Undersell, over deliver." The release
+**Size.** Over 600 features and counting. (The director, Nov 18 2026: "Over 600 features. Undersell, over deliver.",
+then "over 600 features and counting". The release
 test's ledger, ZeDUI/tools/qa/FEATURE_MAP.md, counted 709 that day.)
 
 **Single player and multiplayer.** ZeD-GUI works in both. On a server, every player needs it; its mod ID is
