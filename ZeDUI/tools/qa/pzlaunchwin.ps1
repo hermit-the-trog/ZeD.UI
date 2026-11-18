@@ -23,7 +23,9 @@ $opt = Join-Path $Z "options.ini"
 $bak = $(if ($env:ZEDQA_ZDIR) { Join-Path $Z "options.ini.fullscreen.bak" } else { Join-Path $S "options.ini.fullscreen.bak" })
 if (-not (Test-Path $bak)) { Copy-Item $opt $bak }
 $t = Get-Content $opt
-$t = $t -replace '^fullScreen=.*', 'fullScreen=false' -replace '^width=.*', "width=$Width" -replace '^height=.*', "height=$Height"
+# (Nov 18 2026: borderless=true makes the game fill the desktop whatever width and height say, so "Deck" runs were
+# 4K; it goes off for the run too, and the whole file comes back from the backup afterwards)
+$t = $t -replace '^fullScreen=.*', 'fullScreen=false' -replace '^borderless=.*', 'borderless=false' -replace '^width=.*', "width=$Width" -replace '^height=.*', "height=$Height"
 Set-Content -Path $opt -Value $t
 Set-Content -Path (Join-Path $Z "Lua\zedqa.autoload") -Value ($(if ($MainMenu) { "0" } else { "1" })) -NoNewline
 $dir = "E:\Project Zomboid\SteamApps\common\ProjectZomboid"
