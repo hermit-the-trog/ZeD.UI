@@ -77,7 +77,9 @@ function H.iconless(defs, out, seen)
             -- (Nov 18 2026, Build: the strip's navigation Back is drawn with A.drawBackGlyph, never an icon; its def may
             -- reach here as the "__back" id or by its words, so all three are exempt)
             local back = d.isBack or d.id == "__back" or H.same(d.name, ZeD.tr("UI_ZeD_CtxMenu_Back"))
-            if not (d.heading or back or d.pxIcon or d.iconTexture or d.check ~= nil) then out[#out + 1] = tostring(d.name) end
+            if not (d.heading or back or d.pxIcon or d.iconTexture or d.check ~= nil) then
+                out[#out + 1] = tostring(d.name) .. " (id " .. tostring(d.id) .. ", isBack " .. tostring(d.isBack) .. ")"
+            end
             H.iconless(d.children, out, seen)
         end
     end
