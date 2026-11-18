@@ -1333,10 +1333,12 @@ local function drawCellCondition(self, item, ax, cy, cell, stackInfo, ch, thin, 
         -- inside the shape's dark outline, so the outline stays closed; on the left it runs to the square's edge where
         -- the square joins another. 8 units tall (5 before); a one-square shape's 6 (3 before), so its picture, which
         -- fills most of the square, keeps its look.)
+        -- (Nov 18 2026: the strip moved to the first square; each side that joins another square has no outline, so
+        -- the strip runs to the square's edge there)
         local t = geo.t or 0
-        local li = geo.lopen and 0 or t
+        local li, ri, bi = geo.lopen and 0 or t, geo.ropen and 0 or t, geo.bopen and 0 or t
         bh = thin and T.px(6) or T.px(8)
-        bx, bw, by = ax + li, cell - li - t, cy + ch - t - bh
+        bx, bw, by = ax + li, cell - li - ri, cy + ch - bi - bh
     elseif thin then
         -- (Nov 17 2026, Multi-Slot 0.2, QA: thin, a one-square shape: a slim strip along the square's very foot)
         bh = T.px(3); by = cy + ch - T.px(1) - bh
@@ -1454,7 +1456,9 @@ local function drawShapeCell(self, GV, item, cx, cy, g)
     -- glance". A one-square shape at least three quarters of ZeD's own cell (Multi-Slot draws them at four fifths) is
     -- labeled as ZeD's own cell is: the weight top right, the count in its usual font above the strip, the full strip.
     -- A smaller square, another provider's scale, keeps the slim fallback above.)
-    local one = g.n == 1 and not (GV.zedCell and sq >= math.floor(GV.zedCell * 0.75))
+    -- (Nov 18 2026, the director: "move status and numbers back to icon tile". Every label now sits on the first
+    -- square, with the picture, on every shape, so this rule is the same for every shape: one = the slim fallback.)
+    local one = not (GV.zedCell and sq >= math.floor(GV.zedCell * 0.75))
     -- the picture, in the first square
     local isz = (GV.L and GV.L.isz) or math.floor(sq * 0.8)
     local rs = ZeD.ReadMarks.state(GV.player, item)
@@ -1466,21 +1470,21 @@ local function drawShapeCell(self, GV, item, cx, cy, g)
         -- above the strip rather than under it: as big as fits over the strip, never bigger than it was, centred across
         -- and put just under the square's top outline. The weight chip still takes the top right corner, as on ZeD's
         -- own cells.)
-        if g.n == 1 and not one and GV.zedCell and sq < GV.zedCell - 1 and not rs then
+        if not one and GV.zedCell and sq < GV.zedCell - 1 and not rs then
             local t = g.t or 0
-            local room = sq - t - T.px(8) - t - T.px(1)
+            local room = sq - t - T.px(8) - (g.bopen and 0 or t) - T.px(1)
             if room < isz then isz = math.max(1, room) end
             px, py = ax + g.fx + math.floor((sq - isz) / 2), cy + g.fy + t + T.px(1)
         end
         self:drawTextureScaledAspect(tex, px, py, isz, isz, ia, 1, 1, 1)
     end
-    -- the condition strip along the last square's foot (a readable item: its read mark instead)
+    -- the condition strip along the first square's foot (a readable item: its read mark instead)
     local lx, ly = ax + g.ix, cy + g.iy
     local condTop, condHov = ly + sq, false
     if not rs then condTop, condHov = drawCellCondition(self, item, lx, ly, sq, stackInfo, sq, one, 3, g) end   -- (three segments: the director)
     local f5 = T.fontF5
     local s1 = T.surf1
-    -- the weight, top right of its square (not on a one-square shape)
+    -- the weight, top right of the first square (not in the slim fallback)
     if not one then
         local wtStr = weightText(item, stackInfo, f5, g.wroom - T.px(6))
         local wtw = ZeD.TM:MeasureStringX(f5, wtStr)
@@ -1489,7 +1493,7 @@ local function drawShapeCell(self, GV, item, cx, cy, g)
         local th = T.accentText or T.text
         self:drawText(wtStr, wr - wtw - T.px(3), wt + T.px(1), th.r, th.g, th.b, th.a or 1, f5)
     end
-    -- the count: bottom right of the last square, above the condition strip (one square: top right, small); the
+    -- the count: bottom right of the first square, above the condition strip (one square: top right, small); the
     -- small font when the usual one is wider than the square, and never past the square's left edge
     if count > 1 then
         local cs = "(" .. count .. ")"

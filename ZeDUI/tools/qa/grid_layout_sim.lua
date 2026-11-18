@@ -869,8 +869,10 @@ check("MASK: empty edges trimmed", tw == 1 and th == 2)
 check("MASK: no squares, or not words: nil", GL.parseMask("...") == nil and GL.parseMask(nil) == nil and GL.parseMask(5) == nil)
 local g = GL.geom(ahas, aw, ah, 10, 2, 1)
 check("GEOM: ten squares filled", g.n == 10 and #g.fill == 40)
-check("GEOM: the first square top left; the last the handle's foot", g.fx == 0 and g.fy == 0 and g.ix == 0 and g.iy == 5 * 12)
-check("GEOM: the weight at the top row's run's end (three squares)", g.wx == 2 * 12 and g.wy == 0 and g.wroom == 2 * 12)
+check("GEOM: the first square top left; the last the handle's foot", g.fx == 0 and g.fy == 0 and g.lx == 0 and g.ly == 5 * 12)
+check("GEOM: the strip on the first square (the director, Nov 18: \"back to icon tile\")", g.ix == 0 and g.iy == 0)
+check("GEOM: the weight on the first square too", g.wx == 0 and g.wy == 0 and g.wroom == 10)
+check("GEOM: the axe's first square joins on its right and below, not its left", g.ropen and g.bopen and not g.lopen)
 -- the outline closes: a raster of the shape (its squares and gaps) and of its edges
 local function raster(list)
     local s = {}
@@ -905,11 +907,11 @@ local gp2 = GL.geom(select(3, GL.parseMask("XX/X.")), 2, 2, 10, 2, 1)
 local cornerIn = false
 for k = 1, #gp2.gaps, 4 do if gp2.gaps[k] == 10 and gp2.gaps[k + 1] == 10 then cornerIn = true end end
 check("GEOM: where three squares meet the corner gap is filled (the L's inside corner)", cornerIn)
-check("GEOM: the pistol's weight on its two-square top row", gp2.wx == 12 and gp2.wroom == 12)
+check("GEOM: the pistol's weight on its first square", gp2.wx == 0 and gp2.wy == 0 and gp2.wroom == 10)
 local gk2 = GL.geom(select(3, GL.parseMask("X/X")), 1, 2, 10, 2, 1)
-check("GEOM: a one-wide shape: the weight below the picture, its second square (the director, Nov 17)", gk2.wx == 0 and gk2.wy == 12 and gk2.wroom == 10)
+check("GEOM: a one-wide shape: the weight on the picture's square, joined below only", gk2.wx == 0 and gk2.wy == 0 and gk2.bopen and not gk2.ropen)
 local gk3 = GL.geom(select(3, GL.parseMask("X/X/X/X/X")), 1, 5, 10, 2, 1)
-check("GEOM: a bat: the weight on the square under the picture, not the last", gk3.wy == 12 and gk3.iy == 4 * 12)
+check("GEOM: a bat: weight and strip on the picture's square; the last at its foot", gk3.wy == 0 and gk3.iy == 0 and gk3.ly == 4 * 12)
 -- colsAt
 check("colsAt: 300 px, 52 squares at two thirds (34), gap 4: 8 across", GL.colsAt({ avail = 300, cell = 52, gap = 4 }, 2 / 3) == 8)
 

@@ -274,9 +274,9 @@ end
 ---   fill   the squares             gaps   the gaps between two squares of the shape (and a corner where 3 meet)
 ---   edges  the outline: t px inside each side of the shape that has nothing beyond it
 ---   hits   fill and gaps together (the cell's click zones)
----   fx, fy the first square (top row, leftmost: the picture's); ix, iy the last (bottom row, rightmost: the
----          condition strip and the count); wx, wy, wroom the weight's square (the top row's run's last square
----          when the run is two or more, else the square under the first, below the picture) and the px the weight may take
+---   fx, fy the first square (top row, leftmost: the picture's, and every label's since Nov 18 2026); ix, iy and
+---          wx, wy the strip's and the weight's square (the first square), wroom the px the weight may take; lx, ly
+---          the last square (bottom row, rightmost); t and lopen / ropen / bopen, see the end
 function GL.geom(has, w, h, cell, gap, t)
     local step = cell + gap
     local function sq(dx, dy)
@@ -338,23 +338,19 @@ function GL.geom(has, w, h, cell, gap, t)
         end
     end
     fx, fy = fx or 0, fy or 0
-    local run = 0
-    while sq(fx + run, fy) do run = run + 1 end
-    g.fx, g.fy, g.ix, g.iy = fx * step, fy * step, lx * step, ly * step
-    -- (the outline's width, and whether the last square joins one on its left, so no outline there: the condition
-    -- strip sits flush on the outline, InventoryRenderer's drawCellCondition, the director Nov 18 2026)
-    g.t, g.lopen = t, sq(lx - 1, ly)
-    if run >= 2 then
-        g.wx, g.wy, g.wroom = (fx + run - 1) * step, fy * step, (run - 1) * step
-    else
-        -- (Nov 17 2026, the director, after seeing it with the icon: a one-wide shape's weight goes "below the icon",
-        -- top right of the square under the first; a lone square keeps none, drawShapeCell)
-        if sq(fx, fy + 1) then
-            g.wx, g.wy, g.wroom = fx * step, (fy + 1) * step, cell
-        else
-            g.wx, g.wy, g.wroom = g.fx, g.fy, cell
-        end
-    end
+    g.fx, g.fy = fx * step, fy * step
+    g.lx, g.ly = lx * step, ly * step   -- (the last square: nothing on it now; kept for add-ons that read it)
+    -- (Nov 18 2026, the director: "move status and numbers back to icon tile". The condition strip, the weight, the
+    -- count and the read mark all sit on the FIRST square, with the picture; the shape's other squares carry only the
+    -- tint and the lines. Before: the weight on the top row's run's end or the square under the picture, the strip,
+    -- count and read mark on the last square.)
+    g.ix, g.iy = g.fx, g.fy
+    g.wx, g.wy, g.wroom = g.fx, g.fy, cell
+    -- (the outline's width, and which of the first square's sides join another square, so carry no outline there:
+    -- the strip runs flush to the square's edge on those sides and sits on the outline on the others,
+    -- InventoryRenderer's drawCellCondition. The first square is leftmost in its row, so its left side never joins.)
+    g.t = t
+    g.lopen, g.ropen, g.bopen = sq(fx - 1, fy), sq(fx + 1, fy), sq(fx, fy + 1)
     return g
 end
 
