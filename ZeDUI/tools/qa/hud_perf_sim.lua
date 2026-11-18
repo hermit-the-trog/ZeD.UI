@@ -273,7 +273,10 @@ local function moodleFrame(w, notices)
         if L then
             local list = {}
             for i, m in ipairs(L._list or {}) do list[i] = m.key .. ":" .. m.level .. ":" .. m.gbn .. ":" .. m.art .. ":" .. ser(m.type) end
-            out[#out + 1] = table.concat({ "P" .. pn, tostring(L._mode), tostring(L._show), ser({ L.x, L.y, L.w, L.h }),
+            -- (the layer's height is left out at Right and Left: Nov 18 2026 it became the stack's height, not the game
+            -- column's, on purpose, QA's release test; the stack's own height is in _rect, compared below)
+            local lh = (L._mode == "bottom") and L.h or "-"
+            out[#out + 1] = table.concat({ "P" .. pn, tostring(L._mode), tostring(L._show), ser({ L.x, L.y, L.w, lh }),
                 ser(L._rect), ser(M.rect(pn)), "mui " .. w.mui[pn].x .. "," .. w.mui[pn].y, table.concat(list, ";") }, " | ")
             if notices then out[#out + 1] = "notices " .. ser(L._notices) .. " at " .. tostring(L._noticeAt) .. " chip " .. ser((not hov) and L._chip or nil) end
         end

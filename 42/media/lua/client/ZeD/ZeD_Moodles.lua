@@ -359,7 +359,10 @@ function ZeD_MoodleLayer:_place()
     end
     if mui:getX() ~= x then mui:setX(x) end
     if mui:getY() ~= y then mui:setY(y) end
-    local h = mui:getHeight()
+    -- (QA's release test, Nov 18 2026: the layer took the game column's height, which is the screen's, so from its y
+    -- it ran ~970 px past the screen's foot at 4K, over the world along that edge. It is the stack's height now; the
+    -- notes and balloons it draws beside the stack use _rect, not the layer's box.)
+    local h = stackH
     if self:getX() ~= x then self:setX(x) end
     if self:getY() ~= y then self:setY(y) end
     if self:getWidth() ~= size then self:setWidth(size) end

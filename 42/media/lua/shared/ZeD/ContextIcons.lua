@@ -229,6 +229,16 @@ ZeD.ContextIcons = {
     ["Equip Belt Left"]                           = "holster-gun-left",
     ["Equip Belt Right"]                          = "holster-gun-right",
     ["Holster"]                                   = "arrow-alt-to-bottom",
+    -- (Nov 18 2026, QA's release test: the Attach list's slots, the game's IGUI_HotbarAttachment_* words, had no icon)
+    ["Belt Left"]                                 = "holster-gun-left",
+    ["Belt Right"]                                = "holster-gun-right",
+    ["Holster Left"]                              = "holster-gun-left",
+    ["Holster Right"]                             = "holster-gun-right",
+    ["Shoulder Holster"]                          = "arrow-alt-to-bottom",
+    ["Ankle Holster"]                             = "arrow-alt-to-bottom",
+    ["Webbing Left"]                              = "holster-gun-left",
+    ["Webbing Right"]                             = "holster-gun-right",
+    ["Backpack Bottom"]                           = "on-back",
     ["Attach Weapon Mod"]                         = "square-dashed-circle-plus",
     ["Detach Weapon Mod"]                         = "octagon-minus",
     ["Attach Scope"]                              = "rifle_scope",
@@ -1188,6 +1198,15 @@ ZeD.ContextIcons = {
 -- the name has in ZeD.ContextIcons. ContextMenuRegistry turns the keys into the
 -- player's language at load; the English name stays as the fallback.
 ZeD.ContextIconKeys = {
+    { "Belt Left", "IGUI_HotbarAttachment_SmallBeltLeft" },
+    { "Belt Right", "IGUI_HotbarAttachment_SmallBeltRight" },
+    { "Holster Left", "IGUI_HotbarAttachment_HolsterLeft" },
+    { "Holster Right", "IGUI_HotbarAttachment_HolsterRight" },
+    { "Shoulder Holster", "IGUI_HotbarAttachment_HolsterShoulder" },
+    { "Ankle Holster", "IGUI_HotbarAttachment_HolsterAnkle" },
+    { "Webbing Left", "IGUI_HotbarAttachment_WebbingLeft" },
+    { "Webbing Right", "IGUI_HotbarAttachment_WebbingRight" },
+    { "Backpack Bottom", "IGUI_HotbarAttachment_BedrollBottom", "IGUI_HotbarAttachment_BedrollBottomALICE", "IGUI_HotbarAttachment_BedrollBottomBig" },
     { "Walk to", "ContextMenu_Walk_to" },
     { "Sit on ground", "ContextMenu_SitGround" },
     { "Sleep on Ground", "ContextMenu_SleepOnGround" },

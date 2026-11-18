@@ -32,6 +32,8 @@
 --     cols    squares across (nil: ctx.cols). Wider than ctx.cols: the squares shrink to fit, never a sideways scroll
 --     rows    the grid's height in squares (nil: as tall as the cells need)
 --     fixed   true: every empty square of cols x rows draws as a faint slot
+--     squares with fixed: how many of those squares are the container's (a bag that wraps: the last row's end is
+--             not); only the first squares draw as slots (nil: all of cols x rows)
 --     flat    true: no category headings with Sort by Category (one grid). Without it, sorted by category, each
 --             category is its own grid and ZeD packs its cells first-fit (their x / y are not used then; the drag's
 --             ghost and the pad's place mode work only in a single grid)
@@ -533,7 +535,11 @@ local function shape(res, ctx, M, GV, useGroups, collapsed, hh, avail)
         for _, rep in ipairs(grid) do L.list[#L.list + 1] = rep end
         if res.fixed == true then
             -- (the empty squares, as numbers y * cols + x: drawn as faint slots)
-            for i = 0, rows * L.cols - 1 do if not occ[i] then L.empties[#L.empties + 1] = i end end
+            -- (answer.squares, Nov 18 2026, ZeD Multi-Slot: a bag wider than its column wraps, and the end of its last
+            -- row is not the bag's; only its first squares - 1 numbers are slots)
+            local last = rows * L.cols - 1
+            if type(res.squares) == "number" and res.squares >= 1 then last = math.min(last, math.floor(res.squares) - 1) end
+            for i = 0, last do if not occ[i] then L.empties[#L.empties + 1] = i end end
         end
         off = off + rowsH(L, rows)
     else
