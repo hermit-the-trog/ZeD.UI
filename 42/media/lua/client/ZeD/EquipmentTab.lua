@@ -189,7 +189,9 @@ function ZeD.EquipmentTab.itemTip(panel, win, item, x, y, w, h, over, focused)
     local F = ZeD.Input and ZeD.Input.Focus
     local cues = F and F.cuesVisible and F.cuesVisible(win and win.playerNum) or false
     local pad = false
-    if focused and cues then pad = F.padRested and F.padRested(win) or false end
+    -- (Nov 17 2026, the director: the item card is instant on the controller, as under the pointer: no rest to wait
+    -- out, only a focus mark showing on this stop; restedMs is nil while no mark shows in this window)
+    if focused and cues then pad = (F.restedMs and F.restedMs(win) ~= nil) or false end
     if not (pad or (over and not cues)) then return end
     _tipR.x, _tipR.y, _tipR.w, _tipR.h = x, y, w, h
     IT.want(panel, item, _tipR, nil, pad)

@@ -1017,18 +1017,14 @@ local function gpFocusedItem(item, pn)
 end
 
 -- (Nov 14 2026, punch list 227b, the director: the pointer's quick look at a row, the loot card, on the controller's
--- row too.) The row or cell the pad rests on asks for the card once it has rested PAD_TIP_MS, as a pointer resting on
--- it would; it stands beside the row (there is no pointer to stand by). Moving on starts the wait again.
-local PAD_TIP_MS = 400
+-- row too.) The row or cell the pad rests on asks for the card at once, as a pointer resting on
+-- it would; it stands beside the row (there is no pointer to stand by).
+-- (Nov 17 2026, the director: "Controller tooltips, item info tooltips. Those need to be instant on controller, just
+-- like they are on mouse." The pointer's card never waited; the pad's waited 400 ms on each row. It shows at once now,
+-- on the frame the pad lands on the row or cell.)
 local _padTipRect = { x = 0, y = 0, w = 0, h = 0 }
 local function padTip(self, item, x, y, w, h, count)
     if not ZeD.InvTip then return end
-    local now = getTimestampMs()
-    local f = ZeD.InvTip._frame or 0
-    local fresh = self._padTipItem ~= item or (self._padTipFrame or -9) < f - 1   -- (moved on, or came back after a while)
-    self._padTipFrame = f
-    if fresh then self._padTipItem, self._padTipSince = item, now; return end
-    if now - (self._padTipSince or now) < PAD_TIP_MS then return end
     _padTipRect.x, _padTipRect.y, _padTipRect.w, _padTipRect.h = x, y, w, h
     ZeD.InvTip.want(self, item, _padTipRect, count, true)
 end
