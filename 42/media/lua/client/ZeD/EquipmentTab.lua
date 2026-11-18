@@ -195,9 +195,13 @@ function ZeD.EquipmentTab.itemTip(panel, win, item, x, y, w, h, over, focused)
     -- (QA, Nov 17 2026: on a group heading the previous row's card stayed up. The row's "focused" is the slot the
     -- tab remembers, which only a slot stop changes; the 400 ms wait used to hide that. The card now also asks the
     -- stop the pad is really on: never a group heading, and, where the stop names its item, this item.)
+    -- (QA's rerun, Nov 17 2026: still stale on an empty doll box and the loadouts' fold. Those stops carry no item,
+    -- and "no item" let the remembered row through. The stop must now name this very item: a slot's own item, or a
+    -- belt row's, kept on its zone.)
     if pad and F.liveElement then
         local el = F.liveElement(win)
-        if not el or el.groupId ~= nil or (el.item ~= nil and el.item ~= item) then pad = false end
+        local its = el and (el.item or (el.zone and el.zone.item)) or nil
+        if its ~= item then pad = false end
     end
     if not (pad or (over and not cues)) then return end
     _tipR.x, _tipR.y, _tipR.w, _tipR.h = x, y, w, h
