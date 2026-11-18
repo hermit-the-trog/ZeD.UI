@@ -9,7 +9,8 @@
          take its row out, and its check with it);
       3. a ZeD Lua file is owned by no row and is not on the plumbing list rt_coverage_plumbing.txt (a feature added
          without a row);
-      4. a row names an rt_ script tag that release_test.txt does not run.
+      4. a row's check is not proven: a covered row is written rt_tag: "the check's words", the tag must be one
+         release_test.txt runs, and those words must be in that script (so a reworded or removed check shows up).
     zedqa_run.ps1 runs this first for the release test and will not start the game while it fails.
       pwsh -File ZeDUI/tools/qa/rt_coverage.ps1            (exit 0 clean, 1 with the problems listed)
 #>
@@ -31,9 +32,17 @@ $files = @(Get-ChildItem $client, $shared -Recurse -Filter *.lua | ForEach-Objec
 })
 $text = (Get-ChildItem $client, $shared -Recurse -Filter *.lua | ForEach-Object { [IO.File]::ReadAllText($_.FullName) }) -join "`n"
 
-# ---- the release test's tags
-$tags = @(Get-Content (Join-Path $qa "release_test.txt") | Where-Object { $_ -match '^\s*[^#\s].*\|' } |
-    ForEach-Object { ($_ -split '\|')[1].Trim() })
+# ---- the release test's tags, and each tag's script text (a claimed check's words must be in it)
+$tags = @()
+$scriptOf = @{}
+foreach ($ln in Get-Content (Join-Path $qa "release_test.txt")) {
+    if ($ln -notmatch '^\s*[^#\s].*\|') { continue }
+    $parts = $ln -split '\|'
+    $tg = $parts[1].Trim()
+    $tags += $tg
+    $sf = Join-Path $qa $parts[0].Trim()
+    if (Test-Path $sf) { $scriptOf[$tg] = [IO.File]::ReadAllText($sf) }
+}
 
 # ---- the map: abbreviations ("CW = ZeD_CharacterWindow.lua") and the feature rows
 $abbr = @{}
@@ -49,8 +58,15 @@ foreach ($l in Get-Content $Map) {
     $feat, $own, $entry, $check = $c[0], $c[1], $c[2], $c[7]
     # 1. a gap
     if ($check -eq 'TODO' -or -not $check) { $problems.Add("no check: '$feat' (Check is $(if ($check) { $check } else { 'empty' }))") }
-    # 4. an rt_ tag the release test does not run
-    if ($check -match '^(rt_[a-z_]+)$' -and $tags -notcontains $Matches[1]) { $problems.Add("'$feat': Check names $($Matches[1]), which release_test.txt does not run") }
+    # 4. a claimed check: rt_tag: "the check's own words" (Nov 18 2026: a bare tag is no proof; the first pass marked
+    # rows covered because a script mentioned a function, and the audit found many with no check at all)
+    if ($check -match '^(rt_[a-z_]+)\s*$') { $problems.Add("'$feat': Check says $($Matches[1]) but names no check (write it as $($Matches[1]): ""the check's words"")") }
+    elseif ($check -match '^(rt_[a-z_]+):\s*"(.+)"\s*$') {
+        $tg, $phrase = $Matches[1], $Matches[2]
+        if ($tags -notcontains $tg) { $problems.Add("'$feat': Check names $tg, which release_test.txt does not run") }
+        elseif (-not $scriptOf.ContainsKey($tg) -or -not $scriptOf[$tg].Contains($phrase)) { $problems.Add("'$feat': $tg has no check with the words ""$phrase"" (the check was removed or reworded: fix the row)") }
+    }
+    elseif ($check -match '^rt_') { $problems.Add("'$feat': Check '$check' is not in the form rt_tag: ""words""") }
     # 2. the owning files
     $owners = @()
     if ($own -match '^as above') { $owners = $prevOwners }
