@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/b8_sa_only.txt  (Nov 17 2026, QA): the automatic step-aside alone (zedqa_b8_stepaside.lua) with Wounds Overhaul, as on Nov 8
+zedqa_prelude.lua | pre
+zedqa_pin_windows.lua | pnw | timeout=60
+zedqa_b8_stepaside.lua | b8sa | timeout=200

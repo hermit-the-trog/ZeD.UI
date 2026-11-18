@@ -1,0 +1,21 @@
+# ZeDUI/tools/qa/gallery_v1_c2.txt  (Nov 17 2026, QA): ZeD-GUI 1.0 gallery, lived-in retakes, second batch: chapters
+# 32, 34, 37, 38 (a furnished house in West Point), 42, 47, 48, 53 (the street in front of the Fossoil), 50, 54 (a car in
+# a driveway by a garage). Same content and file names as today's captures; the window to one side, the character and
+# the place clear. 4K at 1.75x, Dark + PZ Teal, the list view, fontSize=2 (as gallery_b19_b.txt). The real mouse is
+# needed for chapter 50's hovered row, so this runs through release_check.ps1 (it starts release_check_mouse.ps1):
+#   pwsh -File ZeDUI/tools/qa/release_check.ps1 -Manifest gallery_v1_c2.txt -Report gallery_v1_c2   (QA only)
+# The pictures land in Zomboid/Screenshots under today's names (the m79 pair too, not gallery_beta2); collect them as
+# gallery_b13_collect.ps1 does. grep the log for "ZEDQA gv1" ("not taken", "COVERS the character", "OVER").
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_unload.lua | unl | timeout=60
+gallery_v1_c2_common.lua | gv1c | timeout=60
+gallery_v1_c2_house.lua | gv1h | timeout=1500
+gallery_v1_c2_street.lua | gv1s | timeout=1500
+gallery_v1_c2_garage.lua | gv1g | timeout=1800
+gallery_reload.lua | rel | timeout=60
+gallery_t14_end.lua | g14e | timeout=60

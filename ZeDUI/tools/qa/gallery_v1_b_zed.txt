@@ -1,0 +1,22 @@
+# ZeDUI/tools/qa/gallery_v1_b_zed.txt  (Nov 17 2026, QA): the ZeD-GUI 1.0 gallery, part B, ZeD's run
+# (HANDOFF_design_gallery_v1_20261117.md, "For QA: the shot list": 04, 46, 59, 63, 65). 4K at 1.75x, Dark + PZ Teal,
+# fontSize=2 (the runner pins it). gallery_b11_look.lua switches off the -debug readout; gallery_unload.lua holds the
+# load under 20 kg and the pointer hidden until gallery_reload.lua. Run it BEFORE gallery_v1_b_van.txt: the craft
+# script writes the recipe's name (Lua/gallery_v1_b_recipe.txt) for the vanilla run.
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest gallery_v1_b_zed.txt -Report gallery_v1_b_zed   (QA only)
+# Pictures in Zomboid/Screenshots: g1_46_craft_zed, g1_04_build_zed, g1_59_fishing, g1_63_now_wheel,
+# g1_63_now_wheel_point, g1_65_wheel_belt, g1_65_help_pad. 05 is gallery_v1_b_setup.txt (ZeD Multi-Slot on).
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=300
+# (glasses on after the daylight; the scripts put them back on before each shot, GV1.glasses)
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_unload.lua | unl | timeout=240
+gallery_v1_b_lib.lua | g1lib | timeout=60
+gallery_v1_b_craft.lua | g1bc | timeout=600
+gallery_v1_b_fish.lua | g1bf | timeout=900
+gallery_v1_b_pad.lua | g1bp | timeout=600
+gallery_reload.lua | rel | timeout=60
+gallery_t14_end.lua | g14e | timeout=60

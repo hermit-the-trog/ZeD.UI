@@ -1,0 +1,8 @@
+# ZeDUI/tools/qa/gallery_v1_mp.txt  (Nov 17 2026, QA; ZeD-GUI 1.0 gallery, picture 75 "Playing on a Server"): the admin
+# client's set-up on the local test server, before gallery_v1_mp_run.ps1 brings the other players in. Run by
+# zedqa_run.ps1 -Mp -Mode windowed 3840x2160 -KeepOpen. The pictures themselves are gallery_v1_mp_shot.lua, run after.
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_v1_mp_stage.lua | g1mst | timeout=240
+gallery_unload.lua | unl | timeout=60

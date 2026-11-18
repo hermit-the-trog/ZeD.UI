@@ -46,7 +46,12 @@ try {
     $a = @{ Mode = $Mode; Report = $Report }
     if ($Manifest) { $a.Manifest = $Manifest }
     if ($Width -gt 0) { $a.Width = $Width; $a.Height = $Height }
-    & (Join-Path $QaDir "zedqa_run.ps1") @a 2>&1 | ForEach-Object { Write-Output $_ }
+    # (Nov 17 2026, the director: the vanilla baseline is taken at the vanilla game's default font setting, 6 "Scale with
+    # window height", not the 19px every ZeD run pins)
+    $fontWas = $env:ZEDQA_FONTSIZE
+    if ($NoZeD -and -not $fontWas) { $env:ZEDQA_FONTSIZE = "6" }
+    try { & (Join-Path $QaDir "zedqa_run.ps1") @a 2>&1 | ForEach-Object { Write-Output $_ } }
+    finally { $env:ZEDQA_FONTSIZE = $fontWas }
 }
 finally {
     if (Get-Process ProjectZomboid64 -ErrorAction SilentlyContinue) {

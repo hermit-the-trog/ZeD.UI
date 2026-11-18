@@ -1,0 +1,29 @@
+# ZeDUI/tools/qa/gallery_v1_c1_zed.txt  (Nov 17 2026, QA): the ZeD-GUI 1.0 gallery's lived-in retakes, set c1, ZeD ON.
+# Chapters 11, 18, 19, 20, 22, 24, 27, 29, 30, 31 under today's file names, in West Point: a furnished house (kitchen,
+# living room), the main street outside the cafe, inside the grocery. 4K at 1.75x, Dark + PZ Teal, the list view,
+# fontSize=2 (the runner pins it). The window to one side, the character and the place uncovered beside it.
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest gallery_v1_c1_zed.txt -Report gallery_v1_c1_zed   (QA only)
+# Then the vanilla half: gallery_v1_c1_van.txt. Pictures in Zomboid/Screenshots under their gallery names.
+# Each shot logs "shot", "load" and "box" lines (grep "ZEDQA c1"); a box marked COVERS the character needs a look.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_unload.lua | unl | timeout=60
+gallery_v1_c1_common.lua | c1c | timeout=60
+#
+# -- the house: 18 Item Cards (glance + inspected, zed_11g_* / zed_11i_*), 20 Context Menus, 19 List or Grid (kitchen); 29 Every Window, 24 Action Bar (living room)
+gallery_v1_c1_house.lua | c1h | timeout=900
+gallery_b11_look.lua | g14l2 | timeout=60
+#
+# -- the main street: 22 The Belt, 27 Watches, 30 Speech, Thoughts and Hands, 31 Messages
+gallery_v1_c1_street.lua | c1s | timeout=900
+#
+# -- the grocery: 11 Sandbox Options in Game
+gallery_v1_c1_store.lua | c1x | timeout=300
+#
+gallery_v1_c1_end.lua | c1e | timeout=120
+gallery_reload.lua | rel | timeout=60
+gallery_t14_end.lua | g14e | timeout=60

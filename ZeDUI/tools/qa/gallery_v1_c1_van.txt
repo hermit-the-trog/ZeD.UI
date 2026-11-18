@@ -1,0 +1,15 @@
+# ZeDUI/tools/qa/gallery_v1_c1_van.txt  (Nov 17 2026, QA): the vanilla half of set c1 (van_20_ctx_menu in the kitchen,
+# van_32_action_bar_reading in the living room of the same West Point house as gallery_v1_c1_zed.txt). ZeD OFF: the
+# runner swaps the QA save's mods.txt "mod = ZeD_UI," for "mod = ZeDQAShim," (the shim keeps the bridge). Game Font
+# Size 19px (the runner pins fontSize=2), 4K. The glasses and the hidden build line are gallery_v1_c1_van.lua's own
+# (game calls only), so gallery_b10_glasses.lua is not in this list.
+#   zedqa_mods_run.ps1 -ModList gallery_b11_van_mods.txt -NoZeD -Mode fullscreen4k -Manifest gallery_v1_c1_van.txt   (QA only)
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+gallery_unload.lua | unl | timeout=60
+gallery_v1_c1_common.lua | c1c | timeout=60
+gallery_v1_c1_van.lua | c1v | timeout=600
+gallery_v1_c1_end.lua | c1e | timeout=120
+gallery_reload.lua | rel | timeout=60
+gallery_t14_end.lua | g14e | timeout=60

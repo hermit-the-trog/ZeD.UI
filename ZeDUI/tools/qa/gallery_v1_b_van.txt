@@ -1,0 +1,17 @@
+# ZeDUI/tools/qa/gallery_v1_b_van.txt  (Nov 17 2026, QA): the ZeD-GUI 1.0 gallery's vanilla crafting picture
+# (g1_46_craft_van: 46, pitch image 4, and 04's left picture) with ZeD OFF: the runner writes the save's mod list with
+# ZeDQAShim in place of ZeD_UI. 4K, the game's Font Size at 19px. Run AFTER gallery_v1_b_zed.txt (the same recipe).
+#   zedqa_mods_run.ps1 -ModList gallery_v1_b_van_mods.txt -NoZeD -Mode fullscreen4k -Manifest gallery_v1_b_van.txt   (QA only)
+# (gallery_b11_look.lua and gallery_t14_end.lua guard every ZeD call: with ZeD off they only switch the -debug readout.)
+# gallery_b10_glasses.lua uses only the game's calls (AddItem, setWornItem); gallery_v1_b_van.lua puts the glasses on
+# again itself and hides the game's build line (WaterMarkUI) for its shot, also with no ZeD calls.
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+# (glasses on after the daylight; the scripts put them back on before each shot, GV1.glasses)
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_unload.lua | unl | timeout=60
+gallery_v1_b_lib.lua | g1lib | timeout=60
+gallery_v1_b_van.lua | g1bv | timeout=300
+gallery_reload.lua | rel | timeout=60
+gallery_t14_end.lua | g14e | timeout=60

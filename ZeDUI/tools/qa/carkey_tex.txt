@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/carkey_tex.txt  (Nov 17 2026, QA): the car key texture test (handoff of Nov 17, set C) with the dev-only
+# ZeDQAOverheadTex fixture (fixtures/ZeDQAOverheadTex, copied to Zomboid/mods); mods list carkey_tex_mods.txt.
+zedqa_prelude.lua | pre
+zedqa_carkey_tex.lua | ckt | timeout=240

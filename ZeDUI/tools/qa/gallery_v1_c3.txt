@@ -1,0 +1,32 @@
+# ZeDUI/tools/qa/gallery_v1_c3.txt  (Nov 17 2026, QA; ZeD-GUI 1.0 gallery, the lived-in retakes, third batch): chapters
+# 60 Two-Way Radios, 62 Keeping Count, 64 Controller, 66 Quick Actions, 67 Controller Highlight, 69 Themes and Accents,
+# 71 See-through, 72 Hidden Actions, 73 Immersive or Simple, 74 The Survival Guide. Angel Cross at the West Point
+# Fossoil (gallery_story_stage.lua), daylight, the load under 20 kg, list view (no Overflow), no debug overlay, the
+# pointer hidden; every window to one side with Angel and the place uncovered (each shot logs its boxes).
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest gallery_v1_c3.txt -Report gallery_v1_c3   (QA only)
+# grep "ZEDQA c3a" / "c3b" / "c3c": "shot", "box ... COVERS the character", "not taken", "load".
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=300
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+#
+# -- Angel at the Fossoil (the stage sets 10:00; daylight again after it), the look again, then the load
+gallery_story_stage.lua | sts | timeout=600
+gallery_b11_look.lua | g14l2 | timeout=60
+gallery_unload.lua | unl | timeout=240
+gallery_v1_c3_common.lua | c3m | timeout=60
+#
+# -- behind the counter and on the forecourt: 60, 62, 72, 74
+gallery_v1_c3_a.lua | c3a | timeout=1500
+# -- by the pump and the station wagon: 64, 66, 73
+gallery_v1_c3_b.lua | c3b | timeout=1500
+# -- among the shelves: 71, 67, 69
+gallery_v1_c3_c.lua | c3c | timeout=1500
+#
+# -- put back: the load, the story stage, the look
+gallery_reload.lua | rel | timeout=60
+gallery_story_teardown.lua | stt | timeout=600
+gallery_b11_look.lua | g14l3 | timeout=60
+gallery_t14_end.lua | g14e | timeout=60

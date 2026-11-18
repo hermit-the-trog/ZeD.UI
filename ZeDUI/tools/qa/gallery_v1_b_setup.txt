@@ -1,0 +1,17 @@
+# ZeDUI/tools/qa/gallery_v1_b_setup.txt  (Nov 17 2026, QA): the ZeD-GUI 1.0 gallery's 05 "Before you install": ZeD
+# setup only, with ZeD Multi-Slot loaded after ZeD so its group (Multi-slot inventory) is on the page:
+#   zedqa_mods_run.ps1 -ModList gallery_v1_b_setup_mods.txt -ZeDFirst -Mode fullscreen4k -Manifest gallery_v1_b_setup.txt   (QA only)
+# (Multi-Slot must be where the game finds it on a -nosteam run, i.e. in Zomboid/mods: it is not there now.)
+# The glasses (gallery_b10_glasses.lua) after the daylight, as every gallery manifest; the scripts put them back on
+# before each shot if a teleport or a stage strips them, and hide the red error note (GV1.hideErrors).
+# Pictures: g1_05_setup_top, g1_05_setup_multislot, g1_05_setup_trouble.
+zedqa_prelude.lua | pre | timeout=120
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_unload.lua | unl | timeout=60
+gallery_v1_b_lib.lua | g1lib | timeout=60
+gallery_v1_b_setup.lua | g1bs | timeout=300
+gallery_reload.lua | rel | timeout=60
+gallery_t14_end.lua | g14e | timeout=60

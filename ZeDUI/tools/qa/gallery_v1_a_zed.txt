@@ -1,0 +1,25 @@
+# Nov 17 2026: the ZeD-GUI 1.0 gallery, set A, the ZeD run (ZeDUI/HANDOFF_design_gallery_v1_20261117.md, "For QA: the
+# shot list"; storyboard cards 01, 08, 17, 21, 25, 26, 35, 39/40). 4K at 1.75x, the list view, fontSize=2. Angel Cross at
+# the Fossoil, West Point, Light + Blue, daylight. Every window to one side or along the top, Angel uncovered.
+# RUN ORDER: this run first, then gallery_v1_a_van.txt (the vanilla halves of 17, 01 and 26, the same staging).
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest gallery_v1_a_zed.txt -Report gallery_v1_a_zed   (QA only)
+# Glasses (gallery_b10_glasses.lua) after the daylight: the QA character is short-sighted. The stage puts them aside
+# and wears prescription aviators; gallery_v1_a_common.lua checks a prescription pair is on before every shot, hides
+# the debug build's error box, mutes the floating XP text (its ZeD wrap threw per skill); gallery_v1_a_end.lua puts it back.
+# Pictures in Zomboid/Screenshots: g1_08_intro, g1_17_zed, g1_01_zed, g1_21_equip_doll, g1_26_zed, g1_39_identity_tall,
+# g1_39_identity_traits, g1_39_skills_tall (39 and 40 both), g1_35_stew_plan, g1_35_dish_list, g1_25_left,
+# g1_25_bottom, g1_25_right. grep "ZEDQA g1z" (shots, "load ..." lines, "box ..." lines, "moved ...", "not taken").
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_story_stage.lua | sts | timeout=600
+gallery_unload.lua | unl | timeout=60
+gallery_v1_a_common.lua | g1c | timeout=60
+gallery_v1_a_zed.lua | g1z | timeout=1500
+gallery_reload.lua | rel | timeout=60
+gallery_story_teardown.lua | stt | timeout=600
+gallery_v1_a_end.lua | g1e | timeout=60
+gallery_t14_end.lua | g14e | timeout=60

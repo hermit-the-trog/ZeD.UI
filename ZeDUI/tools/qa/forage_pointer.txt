@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/forage_pointer.txt  (Nov 17 2026, QA): the pointer to a find as Design's pixel hand (handoff set A2, aa9bdd62d)
+zedqa_prelude.lua | pre
+zedqa_forage_pointer.lua | fpt | timeout=420

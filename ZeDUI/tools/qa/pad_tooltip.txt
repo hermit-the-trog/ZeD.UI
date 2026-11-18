@@ -1,0 +1,9 @@
+# ZeDUI/tools/qa/pad_tooltip.txt  (Nov 17 2026, QA): Build's 5923be905, the item card instant on the controller
+# (InventoryRenderer padTip, EquipmentTab.itemTip): lists and grids in both windows, the Equipment rows and the doll's
+# boxes; help-word balloons still wait 400 ms; the pointer's card unchanged. No pad plugged in: ZeD's own moves.
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest pad_tooltip.txt -Report pad_tooltip   (QA only)
+# grep "ZEDQA ptt"; pictures Screenshots/zqa_ptt_*.png.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_pad_tooltip.lua | ptt | timeout=300

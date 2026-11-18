@@ -225,6 +225,9 @@ function Restore-ZeDSettings([string]$Keep) {
 # vanilla text in a capture can't drift (the Mac rig's "Scale with window height" blew it up at 4K, Nov 10). The
 # director's own line goes back once the game has closed; a missing key is added for the run and taken out after.
 $PinFontSize = 2
+# (Nov 17 2026, the director: a vanilla capture is taken at the vanilla game's default font setting. The game's own default
+# is 6, "Scale with window height" (Core: IntegerConfigOption("fontSize", 1, 6, 6)); zedqa_mods_run.ps1 -NoZeD sets it.)
+if ($env:ZEDQA_FONTSIZE -match '^[1-6]$') { $PinFontSize = [int]$env:ZEDQA_FONTSIZE }
 function Set-FontSize {
     $t = Read-Text $OptionsIni
     if ($null -eq $t) { Add-Note "font size NOT pinned (no options.ini)"; return }

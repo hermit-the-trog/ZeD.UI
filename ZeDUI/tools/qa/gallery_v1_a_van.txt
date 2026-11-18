@@ -1,0 +1,22 @@
+# Nov 17 2026: the ZeD-GUI 1.0 gallery, set A, the vanilla run: ZeD OFF (mods.txt "mod = ZeD_UI," becomes
+# "mod = ZeDQAShim,"; the bridge runs, ZeD does not). Run it AFTER gallery_v1_a_zed.txt. The same staging as the ZeD
+# run (story stage, unload, the same shelf, things, spots and wound), only the game's own UI. No zedqa_prelude or
+# zedqa_pin_windows (they drive ZeD). 4K, the game's Font Size at 19px.
+# Glasses (gallery_b10_glasses.lua) after the daylight: the QA character is short-sighted. The stage puts them aside
+# and wears prescription aviators; gallery_v1_a_common.lua checks a prescription pair is on before every shot.
+#   zedqa_mods_run.ps1 -ModList gallery_b11_van_mods.txt -NoZeD -Mode fullscreen4k -Manifest gallery_v1_a_van.txt
+# Pictures in Zomboid/Screenshots: g1_17_vanilla, g1_01_vanilla, g1_26_vanilla. grep "ZEDQA g1v".
+# (gallery_story_teardown.lua's first step calls ZeD and logs an ERR with ZeD off; gallery_v1_a_van.lua already
+# cleared the actions and menus that step would, and the teardown's later steps put the rest back.)
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_story_stage.lua | sts | timeout=600
+gallery_unload.lua | unl | timeout=60
+gallery_v1_a_common.lua | g1c | timeout=60
+gallery_v1_a_van.lua | g1v | timeout=900
+gallery_reload.lua | rel | timeout=60
+gallery_story_teardown.lua | stt | timeout=600
+gallery_v1_a_end.lua | g1e | timeout=60
+gallery_t14_end.lua | g14e | timeout=60
