@@ -168,7 +168,8 @@ end
 function S.target(w)
     local el = S.Focus.getFocusedElement(w)
     if not el then return nil, nil end
-    local it = el.item
+    -- (Nov 17 2026: a belt row names its thing as el.zone.item, as the card's own check reads it)
+    local it = el.item or (el.zone and el.zone.item)
     if it == nil and el.slotType ~= nil and string.sub(tostring(el.slotType), 1, 2) ~= "__" then
         local want = S.locName(el.slotType)
         local worn = S.p:getWornItems()

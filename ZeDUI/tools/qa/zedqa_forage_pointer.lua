@@ -137,6 +137,9 @@ end
 -- ===================================================================== setup
 step(30, function()
     if ZEDQA_HOME then ZEDQA_HOME("fpt") end
+    -- (Nov 17 2026, beta 20: the save's home spot drifted to 926,13037, where the first find at 929,13036 is never
+    -- seen by the game (no marker, ZeD on or off). The check stands on the tile where it passed, 925,13040.)
+    if math.floor(S.p:getZ()) == 0 then S.moveTo(925.5, 13040.5) end
     S.hx, S.hy, S.hz = S.p:getX(), S.p:getY(), S.p:getZ()
     S.px, S.py, S.pz = math.floor(S.hx), math.floor(S.hy), math.floor(S.hz)
     S.safeWas = ZeD.Settings.safeModeOption:getValue()
@@ -188,8 +191,16 @@ function S.faceOne()
 end
 step(30, function()
     S.one = S.mk("one", 3, -1)
+    S.moveTo(S.hx - 1, S.hy)
+end)
+-- (Build, Nov 17: after a teleport the square's isCanSee waits for the engine's sight update, which a step brings: a
+-- one-tile step back to the spot, then face the find; the manager's disableTick logged, a very close zombie sets it)
+step(15, function()
     S.moveTo(S.hx, S.hy)
     S.faceOne()
+    local dt = "?"
+    pcall(function() dt = tostring(S.mgr.disableTick) end)
+    say("one find: stepped one tile back to the spot; the manager's disableTick " .. dt)
 end)
 step(60, function()
     local r = S.mark(S.one)
@@ -346,9 +357,9 @@ step(5, function() S.runsOn(S.one); S.moveTo(S.hx - 13, S.hy) end)
 step(60, function()
     check(S.mark(S.one) == nil, "13 tiles off: the pointer is gone")
     shot("out_of_range")
-    S.moveTo(S.hx, S.hy)
-    S.faceOne()
+    S.moveTo(S.hx - 1, S.hy)
 end)
+step(15, function() S.moveTo(S.hx, S.hy); S.faceOne() end)
 step(60, function()
     S.runsOff("out of range and back")
     check(S.mark(S.one) ~= nil, "back in range: the pointer is up again")
