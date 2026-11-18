@@ -94,8 +94,9 @@ means nothing checks it today.
 
 | Item | State |
 |---|---|
-| The controller card on an empty stop | Fixed tonight. QA's beta 20 pass checks it. |
-| The 1.0 gallery | QA's retakes are done (73 pictures). Still to do: the watches (reveal first), the Health picture without debug mode, the server, fishing, the six glance and inspected cards, and Design's copy and layout. |
+| The controller card on an empty stop | Fixed (4db3b9f36); QA passed it 4/4 at 4K and Deck, Nov 18. |
+| Beta 20 | QA passed it, then the director held the upload until the gallery is done; the stage was taken down so QA could shoot, and is restaged at the upload go. |
+| The 1.0 gallery | Every QA picture is in `gallery_v1_wip` (Nov 18), except fishing (59): the director says skip it for now and come back later. Next: Design's copy and layout. |
 | The fact page | Drafted and answered. It needs a font that draws Thai, Japanese, Chinese and Korean. |
 | Design's ten new over-head icons | The director's pick |
 | Simple versions of the pins, pointer and eye | The director's call |
