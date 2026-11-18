@@ -1,0 +1,5 @@
+zedqa_prelude.lua | pre | timeout=120
+gallery_b11_look.lua | g14l | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+rt_kit.lua | rtk | timeout=60
+zedqa_survey_themes.lua | svt | timeout=600
