@@ -10,10 +10,16 @@
 --   wheels    each D-pad wheel (Left, Right, Up, Down) and Select opens, and a pick acts: Character > Tabs > Health,
 --             World > Tabs > Loot, Social > Shout (the game's shout stood in for, so no noise), Here and now > Zoom > in,
 --             ZeD > Moodles > another place
---   chord     RB + R3 on Crouch: the character crouches, and again stands
+--             (Right and Down: every slice by name, Vehicle / Animal off with their reason)
+--   reset     Select > Reset windows: the pair nudged, then back at the page spread
+--   highlight Select > Controller highlight > hand, corners, wash, ants: each reads back, marks and draws
+--   pointer   the mouse pointer: shown on the mouse, hidden on the pad, shown when the mouse moves, hidden by a press
+--   routes    Designated zones and Investigate area open the World window's Animals and Foraging tabs
+--   gesture   tap and flick, a trigger closing, Hold (A), Stick click (R3), Toggle mode (D-pad, A) on Crouch
+--   chord     RB + R3 on Crouch: the character crouches, and again stands; a chord that cannot run says why
 --   put back  with Put things back on, a drink from a bottle in a bag: the bottle goes back into the bag
 --   place     the game's Place Item cursor: A (Overrides/PlaceItemPad.lua) places the item
---   map       the Controller map draws the pad (ZeD_PadFigure.lua)
+--   map       Here and now > Help > Controller map opens it; it draws the pad (ZeD_PadFigure.lua) and its twelve rows
 -- Every surface: RT.bounds. Puts back: the input mode, the focus, the windows, the options (inventory view, moodles'
 -- place, Put things back, auto-drink), the chords file, the zoom, the stats, the pointer, the stand-ins.
 local Q = RT.make("rt_pad")
@@ -64,6 +70,26 @@ function S.entry(level, pred)
     return nil
 end
 function S.byName(name) return function(e) return tostring(e.name):find(name, 1, true) == 1 end end
+-- the top level's names against a list (want[i] == false: any name); ok, and what was there
+function S.namesAre(want)
+    local st = D.state[S.pn]
+    local list = st and st.path[1] and st.path[1].entries or {}
+    local got, ok = {}, true
+    for i, w in ipairs(want) do
+        local e = list[i]
+        got[#got + 1] = e and tostring(e.name) or "-"
+        if not e or (w and tostring(e.name) ~= w) then ok = false end
+    end
+    return ok, table.concat(got, ", ")
+end
+-- a copy of a saved-state table (no Java objects in it; a few levels at most)
+function S.copy(t, depth)
+    if type(t) ~= "table" then return t end
+    depth = depth or 0
+    local out = {}
+    for k, v in pairs(t) do out[k] = (depth < 6) and S.copy(v, depth + 1) or v end
+    return out
+end
 
 -- ===================================================================== start
 Q.step(10, function()
@@ -241,6 +267,16 @@ Q.step(5, function()
     local st = D.state[S.pn]
     if not Q.check(st ~= nil and st.dir == "right" and st.menu and st.menu:isReallyVisible(), "right: the World wheel opens") then return end
     RT.bounds(Q, "World wheel")
+    -- (the eight slices in their order; Vehicle and Animal off with their reason when none is in reach)
+    local okN, got = S.namesAre({ Z.tr("UI_ZeD_Wheel_Tabs"), Z.tr("UI_ZeD_Wheel_Map"), Z.tr("UI_ZeD_Wheel_Vehicle"),
+        Z.tr("UI_ZeD_Wheel_Animal"), Z.tr("UI_ZeD_Wheel_CraftBuild"), Z.tr("UI_ZeD_Wheel_Search"),
+        Z.tr("UI_ZeD_Wheel_LightsPower"), getText("IGUI_Zone_Name") })
+    Q.check(okN and #st.path[1].entries == 8, "right: the eight slices, Tabs to Designated zones", got)
+    local veh, ani = st.path[1].entries[3], st.path[1].entries[4]
+    Q.check(veh ~= nil and (veh.off == nil or veh.off == Z.tr("UI_ZeD_Wheel_NoVehicle")),
+        "right: Vehicle is live with a car in reach, else off with its reason", tostring(veh and veh.off or "live"))
+    Q.check(ani ~= nil and (ani.off == nil or ani.off == Z.tr("UI_ZeD_Wheel_NoAnimal")),
+        "right: Animal is live with an animal in reach, else off with its reason", tostring(ani and ani.off or "live"))
     local tabs = S.entry(1, S.byName(Z.tr("UI_ZeD_Wheel_Tabs")))
     if not Q.check(tabs ~= nil, "right: Tabs is there") then return end
     D.enter(S.pn, tabs)
@@ -289,6 +325,17 @@ Q.step(5, function()
     local st = D.state[S.pn]
     if not Q.check(st ~= nil and st.dir == "down" and st.menu and st.menu:isReallyVisible(), "down: the Here and now wheel opens") then return end
     RT.bounds(Q, "Here and now wheel")
+    -- (Sit to Help by name, then the light: its own name when one is in reach; Last Stand adds a ninth)
+    local okN, got = S.namesAre({ Z.tr("UI_ZeD_Wheel_Sit"), Z.tr("UI_ZeD_Wheel_Crouch"), Z.tr("UI_ZeD_Wheel_AutoWalk"),
+        Z.tr("UI_ZeD_Wheel_GameSpeed"), Z.tr("UI_ZeD_Wheel_Zoom"), Z.tr("UI_ZeD_Wheel_View"), Z.tr("UI_ZeD_Wheel_Help"), false })
+    local n = #st.path[1].entries
+    local light = st.path[1].entries[8]
+    Q.check(okN and light ~= nil and light.icon == "bulb_on" and (n == 8 or n == 9), "down: Sit, Crouch, Auto walk, Game speed, Zoom, View, Help, Light", got)
+    local inCar = Z.tr("UI_ZeD_Wheel_InVehicle")
+    local footOk = true
+    for i = 1, 3 do local e = st.path[1].entries[i]; if e and e.off == inCar then footOk = false end end
+    Q.check(footOk, "down: on foot, Sit, Crouch and Auto walk are not off for a vehicle")
+    Q.skip("down: Sit, Crouch and Auto walk off \"in vehicle\" in a car", "on foot here; rt_vehicles has the car")
     local zoom = S.entry(1, S.byName(Z.tr("UI_ZeD_Wheel_Zoom")))
     if not Q.check(zoom ~= nil, "down: Zoom is there") then return end
     if zoom.off then Q.skip("down: Zoom > in", tostring(zoom.off)); S.closeWheels(); return end
@@ -340,6 +387,377 @@ function S.putMood()
     if Z.Settings.save then pcall(Z.Settings.save) end
 end
 
+-- ===================================================================== Select > Reset windows
+-- the pair nudged off its places, then the slice: both back at the page spread (Organisms.lua resetLayout: the
+-- Character window's right edge a gap left of the screen's middle, the World window a gap right of it, both at the top).
+-- Put back: each window's box, its accent and list width, and the saved places (resetLayout clears them).
+S.RW_KEYS = { "minimumWidth", "_anchorRightEdge", "_lastSetX", "_baseInvW", "_invDrawerEffW", "_invDrawerTargetW",
+    "_fitInvW", "_fitFromInvW", "_accentKey" }
+function S.boxOf(w)
+    local b = { x = w:getX(), y = w:getY(), w = w:getWidth(), h = w:getHeight(), f = {} }
+    for _, k in ipairs(S.RW_KEYS) do b.f[k] = w[k] end
+    return b
+end
+function S.putBox(w, b)
+    if not (w and b) then return end
+    for _, k in ipairs(S.RW_KEYS) do w[k] = b.f[k] end
+    pcall(function() w:setWidth(b.w); w:setHeight(b.h); w:setX(b.x); w:setY(b.y) end)
+    if Z.Settings.syncWindowAccent then pcall(Z.Settings.syncWindowAccent, w) end
+end
+Q.step(10, function()
+    S.closeWheels()
+    RT.pairOpen()
+end)
+Q.step(20, function()
+    local cw, ww = RT.cw(), RT.ww()
+    if not Q.check(cw ~= nil and ww ~= nil and cw:isVisible() and ww:isVisible(), "reset: the pair is open") then return end
+    local md = S.p:getModData()
+    local ws = md.ZeD_WinState
+    S.rw = { c = S.boxOf(cw), w = S.boxOf(ww), had = ws ~= nil, cs = ws and S.copy(ws.char), ws = ws and S.copy(ws.world) }
+    S.back.rw = true
+    cw:setX(cw:getX() + 37); cw:setY(cw:getY() + 29)
+    ww:setX(ww:getX() - 23); ww:setY(ww:getY() + 41)
+    S.openWheel("select")
+    local e = S.entry(1, S.byName(Z.tr("UI_ZeD_Wheel_ResetWindows")))
+    if Q.check(e ~= nil and e.run ~= nil and not e.off, "reset: the ZeD wheel has Reset windows") then D.take(S.pn, e) end
+    S.closeWheels()
+    local sw, _, sl, stp = ZeD.screenOf(S.pn)
+    local gap = Z.T.px(5)
+    local mid = sl + math.floor(sw / 2)
+    Q.check(cw:getY() == stp and ww:getY() == stp and cw:getX() + cw:getWidth() == mid - gap and ww:getX() == mid + gap,
+        "reset: both windows back at their places, side by side at the top",
+        "char " .. math.floor(cw:getX()) .. "," .. math.floor(cw:getY()) .. " " .. math.floor(cw:getWidth()) .. "x" .. math.floor(cw:getHeight())
+        .. "; world " .. math.floor(ww:getX()) .. "," .. math.floor(ww:getY()) .. "; middle " .. math.floor(mid) .. ", gap " .. math.floor(gap))
+end)
+Q.step(10, function()
+    RT.bounds(Q, "the pair after Reset windows")
+    S.putRW()
+end)
+function S.putRW()
+    if not S.back.rw then return end
+    S.back.rw = nil
+    S.putBox(RT.cw(), S.rw.c)
+    S.putBox(RT.ww(), S.rw.w)
+    S.release()
+    RT.pairShut()
+    -- (after the close, which saves what it shows: the places as they were saved before the reset)
+    local md = S.p:getModData()
+    if S.rw.had then
+        md.ZeD_WinState = md.ZeD_WinState or {}
+        md.ZeD_WinState.char = S.rw.cs
+        md.ZeD_WinState.world = S.rw.ws
+    end
+end
+
+-- ===================================================================== the controller highlight, each style
+-- Picked as the pad picks it (Select > Controller highlight > the style), the pad on the Character window's list:
+-- the style reads back, the window lays a mark and its overlay draws it with no error; wash turns the words to
+-- textOnFocus on a stop that is not solid (mark returns true), the others never do; the hand stays on the screen
+-- (its width left of the marked stop). ZeD.Focus.mark and drawOverlay are watched, not replaced.
+S.HL = { "hand", "corners", "wash", "ants" }
+S.hl = { on = false }
+function S.hlInstall()
+    local FP = Z.Focus
+    S.hlMarkWas, S.hlOvWas = FP.mark, FP.drawOverlay
+    S.back.hl = true
+    S.hlStyleWas = FP.style()
+    FP.mark = function(panel, x, y, w, h, opts, rounded)
+        local r = S.hlMarkWas(panel, x, y, w, h, opts, rounded)
+        if S.hl.on then
+            pcall(function()
+                local win = (type(opts) == "table" and opts.win) or (Z.Atoms and Z.Atoms.windowOf and Z.Atoms.windowOf(panel)) or panel
+                if win == RT.cw() and FP.isShowing(win, type(opts) == "table" and opts or nil) then
+                    S.hl.marks = S.hl.marks + 1
+                    if not (type(opts) == "table" and opts.solid) then
+                        S.hl.plain = true
+                        if r then S.hl.swap = true end
+                    end
+                    local ax = panel:getAbsoluteX() + x
+                    if S.hl.ax == nil or ax < S.hl.ax then S.hl.ax = ax end
+                end
+            end)
+        end
+        return r
+    end
+    FP.drawOverlay = function(ov, win)
+        if S.hl.on and (win or ov) == RT.cw() then S.hl.ov = S.hl.ov + 1 end
+        local ok, err = pcall(S.hlOvWas, ov, win)
+        if not ok then
+            S.hl.err = tostring(err)
+            error(err)
+        end
+    end
+end
+function S.putHL()
+    if not S.back.hl then return end
+    S.back.hl = nil
+    S.hl.on = false
+    Z.Focus.mark, Z.Focus.drawOverlay = S.hlMarkWas, S.hlOvWas
+    if S.hlStyleWas and Z.Settings.setFocusStyle then pcall(Z.Settings.setFocusStyle, S.hlStyleWas) end
+end
+function S.hlPick(i)
+    S.closeWheels()
+    S.openWheel("select")
+    local e = S.entry(1, S.byName(Z.tr("UI_ZeD_Settings_FocusStyle")))
+    if not Q.check(e ~= nil and e.sub ~= nil, "highlight " .. S.HL[i] .. ": the ZeD wheel has Controller highlight") then S.closeWheels(); return end
+    D.enter(S.pn, e)
+    local lv = D.state[S.pn] and D.state[S.pn].path[2]
+    local x = lv and lv.entries and lv.entries[i]
+    if Q.check(x ~= nil and x.run ~= nil, "highlight " .. S.HL[i] .. ": the style is on its wheel") then D.take(S.pn, x) end
+    S.closeWheels()
+    local w = RT.cw()
+    if w and F.getFocusedWindow(S.pn) ~= w then F.claimFocus(w) end
+    RT.padDir("down", w)
+    RT.padDir("up", w)
+    S.hl = { on = true, marks = 0, ov = 0, plain = false, swap = false, ax = nil, err = nil }
+end
+function S.hlCheck(i)
+    local key = S.HL[i]
+    local h = S.hl
+    h.on = false
+    Q.check(Z.Focus.style() == key, "highlight " .. key .. ": the style reads back", Z.Focus.style())
+    Q.check(h.marks > 0 and h.ov > 0 and h.err == nil, "highlight " .. key .. ": the focused stop is marked and drawn with no error",
+        h.marks .. " marks, " .. h.ov .. " overlay passes" .. (h.err and (", " .. h.err) or ""))
+    if h.plain then
+        if key == "wash" then
+            Q.check(h.swap == true, "highlight wash: the words turn to textOnFocus on a plain stop")
+        else
+            Q.check(h.swap == false, "highlight " .. key .. ": the words keep their color")
+        end
+    else
+        Q.skip("highlight " .. key .. ": the words' color", "every marked stop was a solid one")
+    end
+    if key == "hand" then
+        local hw = Z.Focus.handWidth()
+        Q.check(h.ax ~= nil and h.ax - hw >= 0, "highlight hand: the hand stays on the screen", tostring(h.ax) .. " - " .. tostring(hw))
+    end
+    RT.bounds(Q, "highlight " .. key)
+end
+Q.step(10, function()
+    pcall(CW.ensureBothOpenForGamepad, S.pn)
+end)
+Q.step(20, function()
+    local w = RT.cw()
+    if not Q.check(w ~= nil and w:isVisible(), "highlight: the pair is open for the pad") then return end
+    if w._activeTab ~= "loot" then pcall(CW.openTab, S.pn, "loot") end
+    F.claimFocus(w)
+    S.hlInstall()
+end)
+for i = 1, #S.HL do
+    local idx = i
+    Q.step(5, function() if S.back.hl then S.hlPick(idx) end end)
+    Q.step(6, function() if S.back.hl then S.hlCheck(idx) end end)
+end
+Q.step(2, function() S.putHL() end)
+
+-- ===================================================================== the pointer hides on the pad
+-- _watchPointer (FocusManager.lua) keeps its state local; what it does is Mouse.setCursorVisible, watched here:
+-- the mode to the mouse shows the pointer (as the game's Display cursor has it), back to the pad hides it, the mouse
+-- moved shows it, a pad press hides it again.
+S.ptr = { calls = {} }
+function S.ptrLast() return S.ptr.calls[#S.ptr.calls] end
+function S.putPtr()
+    if not S.back.ptr then return end
+    S.back.ptr = nil
+    pcall(function() Mouse.setCursorVisible = S.ptrWas end)
+    if S.ptrMouse then pcall(function() Mouse.setXY(S.ptrMouse[1], S.ptrMouse[2]) end) end
+end
+Q.step(5, function()
+    S.ptrWas = Mouse.setCursorVisible
+    S.ptrFn = function(v)
+        S.ptr.calls[#S.ptr.calls + 1] = (v == true)
+        return S.ptrWas(v)
+    end
+    pcall(function() Mouse.setCursorVisible = S.ptrFn end)
+    if not rawequal(Mouse.setCursorVisible, S.ptrFn) then
+        Q.skip("pointer: hides on the pad", "Mouse.setCursorVisible cannot be watched from Lua here")
+        return
+    end
+    S.back.ptr = true
+    S.ptrMouse = { getMouseX(), getMouseY() }
+    S.ptrShow = true
+    pcall(function() S.ptrShow = getCore():isDisplayCursor() end)
+    S.ptr.calls = {}
+    Det.setLockedMode("kbm")
+end)
+-- (a pointer already shown, the mouse moved earlier, gets no call: then only "no hide" can be read)
+Q.step(30, function()
+    if not S.back.ptr then return end
+    Q.check(#S.ptr.calls == 0 or S.ptrLast() == S.ptrShow, "pointer: on the mouse it shows (as Display cursor has it)",
+        (#S.ptr.calls == 0) and "already shown" or tostring(S.ptrLast()))
+    S.ptr.calls = {}
+    Det.setLockedMode("gamepad")
+end)
+Q.waitFor(1, 90, function() return not S.back.ptr or #S.ptr.calls > 0 end, function(ok)
+    if not S.back.ptr then return end
+    Q.check(ok and S.ptrLast() == false, "pointer: back on the pad it hides", tostring(S.ptrLast()))
+    S.ptr.calls = {}
+    pcall(function() Mouse.setXY(S.ptrMouse[1] + Z.T.px(40), S.ptrMouse[2] + Z.T.px(20)) end)
+end)
+Q.waitFor(1, 90, function() return not S.back.ptr or #S.ptr.calls > 0 end, function(ok)
+    if not S.back.ptr then return end
+    Q.check(ok and S.ptrLast() == S.ptrShow, "pointer: the mouse moved shows it again", tostring(S.ptrLast()))
+    S.ptr.calls = {}
+    pcall(function() Mouse.setXY(S.ptrMouse[1], S.ptrMouse[2]) end)
+end)
+Q.step(3, function()
+    if not S.back.ptr then return end
+    S.ptr.calls = {}
+    local w = RT.cw()
+    if w and w:isVisible() then
+        if F.getFocusedWindow(S.pn) ~= w then F.claimFocus(w) end
+        RT.padDir("down", w)
+    end
+end)
+Q.waitFor(1, 90, function() return not S.back.ptr or #S.ptr.calls > 0 end, function(ok)
+    if not S.back.ptr then return end
+    Q.check(ok and S.ptrLast() == false, "pointer: a pad press on a ZeD window hides it again", tostring(S.ptrLast()))
+    S.putPtr()
+    S.release()
+    RT.pairShut()
+end)
+
+-- ===================================================================== the wheels' routes to ZeD windows
+-- the game's Designated zones and Investigate area (World wheel, the screen icons) open the World window's tab
+Q.step(10, function()
+    S.closeWheels()
+    S.release()
+    RT.pairShut()
+    S.wwWas = ZeD_WorldWindow.isOpen and ZeD_WorldWindow.isOpen(S.pn)
+    S.back.route = true
+    ISDPadWheels.showAnimalZoneUI(S.pn)
+end)
+Q.waitFor(2, 60, function() local w = RT.ww(); return w ~= nil and w:isVisible() and w._activeTab == "animals" end, function(ok)
+    local w = RT.ww()
+    Q.check(ok, "routes: Designated zones opens the World window on Animals", w and w._activeTab)
+    RT.bounds(Q, "World window on Animals")
+    ISSearchWindow.toggleWindow(S.p)
+end)
+Q.waitFor(2, 60, function() local w = RT.ww(); return w ~= nil and w:isVisible() and w._activeTab == "forage" end, function(ok)
+    local w = RT.ww()
+    Q.check(ok, "routes: Investigate area opens the World window on Foraging", w and w._activeTab)
+    RT.bounds(Q, "World window on Foraging")
+    S.putRoute()
+end)
+function S.putRoute()
+    if not S.back.route then return end
+    S.back.route = nil
+    S.release()
+    if not S.wwWas then pcall(ZeD_WorldWindow.close, S.pn) end
+    RT.pairShut()
+end
+
+-- ===================================================================== working a wheel (the gesture)
+-- ZeD_WheelGesture.lua's own QA hooks: D.qaStick (a stick), D.qaStep (a frame), D.qaTrigger, D.qaSettings (stands in
+-- for ZeD setup, nothing saved). The buttons go to the wheel as the game sends them with the wheel holding the pad.
+-- Here and now's Crouch is the slice taken: it shows at once (p:isSneaking), and is put back.
+S.gJD = { player = S.pn }
+function S.gStick(x, y) D.qaStick(S.pn, x, y); D.qaStep(S.pn) end
+function S.gAt(i, n, mag)
+    local a = math.rad(-90 + (i - 1) * 360 / n)
+    return math.cos(a) * mag, math.sin(a) * mag
+end
+function S.gPoint(i)
+    local st = D.state[S.pn]
+    if not st then return end
+    local g = D.gesture(S.pn)
+    if g and g.needCenter then S.gStick(0, 0) end
+    local x, y = S.gAt(i, #st.menu.slices, 0.9)
+    S.gStick(x, y)
+end
+function S.gPress(b) local st = D.state[S.pn]; if st and st.menu then st.menu:onJoypadDown(b, S.gJD) end end
+function S.gFresh(settings)
+    pcall(D.close, S.pn)
+    S.closeWheels()
+    D.qaSettings = settings
+    D.qaTrigger(S.pn, false)
+    D.qaStick(S.pn, 0, 0)
+    pcall(function() S.p:setSneaking(false) end)
+    ISDPadWheels.onDisplayDown(S.gJD)
+    local st = D.state[S.pn]
+    S.gi = nil
+    for i, e in ipairs(st and st.path[1].entries or {}) do
+        if e.name == Z.tr("UI_ZeD_Wheel_Crouch") and not e.off then S.gi = i end
+    end
+    return st ~= nil and S.gi ~= nil and #st.menu.slices >= S.gi
+end
+function S.sneak() local s = false; pcall(function() s = S.p:isSneaking() end); return s end
+function S.putGesture()
+    if not S.back.gest then return end
+    S.back.gest = nil
+    pcall(D.close, S.pn)
+    S.closeWheels()
+    D.qaSettings = nil
+    D.qaStick(S.pn, nil)
+    D.qaTrigger(S.pn, nil)
+    D.tune.OPEN_DEBOUNCE_MS = S.gDebounce
+    pcall(function() S.p:setSneaking(S.gSneakWas) end)
+end
+Q.step(10, function()
+    S.closeWheels()
+    S.release()
+    S.gSneakWas = S.sneak()
+    S.gDebounce = D.tune.OPEN_DEBOUNCE_MS
+    S.back.gest = true
+    D.tune.OPEN_DEBOUNCE_MS = 0
+end)
+-- tap opens, a flick takes
+Q.step(3, function()
+    if not Q.check(S.gFresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 }), "gesture: Here and now opens with Crouch on it") then return end
+    local g = D.gesture(S.pn)
+    Q.check(g ~= nil and g.mode == "tap" and g.commit == "flick" and not g.held, "gesture tap: the wheel opens and stays up", g and g.mode)
+    S.gPoint(S.gi)
+    g = D.gesture(S.pn)
+    Q.check(g ~= nil and g.point == S.gi, "gesture tap: the stick lights Crouch", g and tostring(g.point))
+    S.gStick(0, 0)
+    Q.check(D.state[S.pn] == nil and S.sneak(), "gesture tap: letting the stick go takes Crouch and the wheel closes")
+end)
+-- a trigger closes it, nothing taken
+Q.step(3, function()
+    if not S.gFresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 }) then return end
+    S.gPoint(S.gi)
+    D.qaTrigger(S.pn, true)
+    D.qaStep(S.pn)
+    Q.check(D.state[S.pn] == nil and not S.sneak(), "gesture trigger: a trigger closes the wheel, nothing taken")
+    D.qaTrigger(S.pn, false)
+end)
+-- Hold: A takes the lit slice
+Q.step(3, function()
+    if not S.gFresh({ open = "hold", commit = "flick", toggle = false, deadZone = 0.35 }) then return end
+    local g = D.gesture(S.pn)
+    Q.check(g ~= nil and g.mode == "hold" and g.held, "gesture hold: the wheel is held", g and g.mode)
+    S.gPoint(S.gi)
+    S.gPress(Joypad.AButton)
+    Q.check(D.state[S.pn] == nil and S.sneak(), "gesture hold: A takes the lit slice")
+end)
+-- Stick click: letting go keeps the slice lit, R3 takes it
+Q.step(3, function()
+    if not S.gFresh({ open = "tap", commit = "click", toggle = false, deadZone = 0.35 }) then return end
+    local g = D.gesture(S.pn)
+    Q.check(g ~= nil and g.commit == "click", "gesture click: the wheel waits for the stick's click", g and g.commit)
+    S.gPoint(S.gi)
+    S.gStick(0, 0)
+    g = D.gesture(S.pn)
+    Q.check(g ~= nil and g.point == S.gi and not S.sneak(), "gesture click: letting the stick go keeps Crouch lit")
+    S.gPress(Joypad.RStickButton)
+    Q.check(D.state[S.pn] == nil and S.sneak(), "gesture click: R3 takes it")
+end)
+-- Toggle mode: the D-pad walks the ring, A takes
+Q.step(3, function()
+    if not S.gFresh({ toggle = true, deadZone = 0.35 }) then return end
+    local g = D.gesture(S.pn)
+    Q.check(g ~= nil and g.mode == "toggle" and not g.held, "gesture toggle: the wheel opens in Toggle mode", g and g.mode)
+    S.gStick(0, 0)
+    S.gPress(Joypad.DPadUp)
+    local p1 = D.gesture(S.pn) and D.gesture(S.pn).point
+    S.gPress(Joypad.DPadRight)
+    local p2 = D.gesture(S.pn) and D.gesture(S.pn).point
+    Q.check(p1 == 1 and p2 == 2, "gesture toggle: D-pad Up lights the top slice, Right walks to the next", tostring(p1) .. " then " .. tostring(p2))
+    S.gPress(Joypad.AButton)
+    Q.check(D.state[S.pn] == nil and (S.gi ~= 2 or S.sneak()), "gesture toggle: A takes the lit slice")
+end)
+Q.step(3, function() S.putGesture() end)
+
 -- ===================================================================== a quick chord: RB + R3 on Crouch
 S.CFILE, S.CSPARE = "ZeD_chords.txt", "ZeD_chords_spare.txt"
 function S.readFile(name)
@@ -385,8 +803,36 @@ Q.step(10, function()
 end)
 Q.step(10, function()
     Q.check(S.p:isSneaking() == S.sneakWas, "chord: again, and it stands as it was")
+end)
+-- a chord that cannot run says why over the head (HaloTextHelper.addBadText, watched and kept quiet): on a slice
+-- that is off, its reason; on a slice that is gone, "gone" with the chord's words
+Q.step(5, function()
+    local C = Z.QuickChords
+    S.halo, S.haloWas = {}, HaloTextHelper.addBadText
+    S.back.halo = true
+    HaloTextHelper.addBadText = function(pl, text) S.halo[#S.halo + 1] = tostring(text) end
+    local list = D.B.world(S.p, S.pn) or {}
+    local oi, off = nil, nil
+    for i, e in ipairs(list) do if e.off and not oi then oi, off = i, e.off end end
+    if oi then
+        C.set("RB+L3", "world:" .. oi, { Z.tr("UI_ZeD_Wheel_World"), tostring(list[oi].name) })
+        local r = C.run(S.p, "RB+L3")
+        Q.check(r == false and S.halo[#S.halo] == off, "chord: on a slice that is off it does nothing and says why", tostring(S.halo[#S.halo]))
+    else
+        Q.skip("chord: on a slice that is off it says why", "every World wheel slice is live here (a car, an animal and a light in reach)")
+    end
+    S.halo = {}
+    C.set("RB+L3", "world:99", { Z.tr("UI_ZeD_Wheel_World"), "QA gone" })
+    local r2 = C.run(S.p, "RB+L3")
+    Q.check(r2 == false and S.halo[#S.halo] == Z.tr("UI_ZeD_Chord_Gone", "QA gone"), "chord: on a slice that is gone it says so", tostring(S.halo[#S.halo]))
+    S.putHalo()
     S.putChords()
 end)
+function S.putHalo()
+    if not S.back.halo then return end
+    S.back.halo = nil
+    HaloTextHelper.addBadText = S.haloWas
+end
 function S.putChords()
     if not S.back.chords then return end
     S.back.chords = nil
@@ -490,12 +936,49 @@ Q.step(10, function()
         if panel == Z.ControllerMap.windows[S.pn] then S.drawn = { ok = r, x = x, y = y, k = k, set = set } end
         return r
     end
-    Z.ControllerMap.open(S.pn)
+    -- (the pad's way in: Here and now > Help > Controller map; there is no mouse way)
+    S.closeWheels()
+    S.release()
+    S.openWheel("down")
+    local help = S.entry(1, S.byName(Z.tr("UI_ZeD_Wheel_Help")))
+    if Q.check(help ~= nil and help.sub ~= nil and not help.off, "map: Here and now has Help") then
+        D.enter(S.pn, help)
+        local cm = S.entry(nil, S.byName(Z.tr("UI_ZeD_Wheel_ControllerMap")))
+        if Q.check(cm ~= nil and cm.run ~= nil and not cm.off, "map: Help has Controller map") then D.take(S.pn, cm) end
+    end
+    S.closeWheels()
+end)
+-- the twelve rows: each row's words drawn (the window's drawText watched on the window itself)
+Q.step(2, function()
+    local win = Z.ControllerMap.windows[S.pn]
+    if not win then return end
+    S.cmText = {}
+    S.cmDrawWas = win.drawText
+    S.cmRaw = rawget(win, "drawText")
+    S.cmWin = win
+    win.drawText = function(self, s, ...)
+        if s ~= nil then S.cmText[#S.cmText + 1] = tostring(s) end
+        return S.cmDrawWas(self, s, ...)
+    end
 end)
 Q.step(20, function()
     local win = Z.ControllerMap.windows[S.pn]
     local d = S.drawn
     Q.check(win ~= nil and win:isReallyVisible(), "map: the Controller map opens")
+    if S.cmWin then
+        local rows, seen = Z.ControllerMap.ROWS or {}, 0
+        for _, r in ipairs(rows) do
+            local full = Z.tr(r[2])
+            local hit = false
+            for _, s in ipairs(S.cmText) do
+                if not hit and #s > 2 and full:find(s, 1, true) then hit = true end
+            end
+            if hit then seen = seen + 1 end
+        end
+        Q.check(#rows == 12 and seen == 12, "map: its twelve rows are drawn", seen .. " of " .. #rows)
+        S.cmWin.drawText = S.cmRaw
+        S.cmWin = nil
+    end
     Q.check(d ~= nil and d.ok == true and (d.k or 0) >= 1, "map: it draws the pad from its textures", d and ("k " .. tostring(d.k) .. ", " .. tostring(d.set)))
     if d and win then
         local PF = Z.PadFigure
@@ -509,6 +992,7 @@ function S.putPF()
     if not S.back.pf then return end
     S.back.pf = nil
     Z.PadFigure.draw = S.pfWas
+    if S.cmWin then S.cmWin.drawText = S.cmRaw; S.cmWin = nil end
     pcall(Z.ControllerMap.close, S.pn)
 end
 
@@ -517,6 +1001,7 @@ Q.mark()
 Q.step(5, function()
     S.closeWheels()
     S.putDraw(); S.putShout(); S.putZoom(); S.putMood(); S.putChords(); S.putPB(); S.putPlace(); S.putPF()
+    S.putRW(); S.putHL(); S.putPtr(); S.putRoute(); S.putGesture(); S.putHalo()
     S.release()
     if S.back.view then S.back.view = nil; S.setOpt(Z.Settings.inventoryViewOption, S.invView) end
     if S.back.mode then
@@ -531,7 +1016,11 @@ Q.step(5, function()
 end)
 Q.step(10, function()
     Q.check(F.getFocusedWindow(S.pn) == nil or S.pairWas, "put back: the pad is the game's again")
-    Q.check(Z.Balloon.draw == S.drawWas and ISDPadWheels.onShout == S.shoutWas, "put back: the stand-ins are gone")
+    Q.check(Z.Balloon.draw == S.drawWas and ISDPadWheels.onShout == S.shoutWas
+        and (S.hlMarkWas == nil or (Z.Focus.mark == S.hlMarkWas and Z.Focus.drawOverlay == S.hlOvWas))
+        and (S.haloWas == nil or HaloTextHelper.addBadText == S.haloWas) and D.qaSettings == nil,
+        "put back: the stand-ins are gone")
+    if S.hlStyleWas then Q.check(Z.Focus.style() == S.hlStyleWas, "put back: the controller highlight", Z.Focus.style()) end
     if S.moodWas then Q.check(S.opt(Z.Settings.moodlePlaceOption) == S.moodWas, "put back: the moodles' place") end
     Q.say("put back: the input mode lock is " .. tostring(S.lockWas) .. " again; the mode reads " .. tostring(Det.getMode(S.pn)))
 end)

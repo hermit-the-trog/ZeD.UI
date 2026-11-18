@@ -126,6 +126,54 @@ function H.verbIdx(id)
     for i, v in ipairs((c and c._lastHeaderVerbs) or {}) do if v.id == id then return i end end
     return nil
 end
+function H.ctxMenu()
+    local m = nil
+    pcall(function() local v = getPlayerContextMenu(S.pn); m = v and v._zedMenu end)
+    return m
+end
+-- a menu of ZeD's on screen: the strip by RT.bounds, the list (a full-screen layer RT.bounds skips) by its levels
+function H.menuOnScreen(m, label)
+    RT.bounds(Q, label)
+    if not (m and m._levels) then return end
+    local W, Hs = getCore():getScreenWidth(), getCore():getScreenHeight()
+    local bad = {}
+    for i, lv in ipairs(m._levels) do
+        if lv.x < -1 or lv.y < -1 or lv.x + lv.w > W + 1 or lv.y + lv.h > Hs + 1 then
+            bad[#bad + 1] = string.format("level %d at %d,%d %dx%d", i, math.floor(lv.x), math.floor(lv.y), math.floor(lv.w), math.floor(lv.h))
+        end
+    end
+    Q.check(#bad == 0, "on screen (" .. label .. "): every level of the list", (#bad == 0) and (#m._levels .. " levels") or table.concat(bad, "; "))
+end
+-- focus a stop of the card by its id (FocusManager, charItemCard)
+function H.focusCardId(id)
+    local w = RT.cw()
+    if not (w and S.F and S.F.focusWhere) then return false end
+    local e = nil
+    pcall(function() e = S.F.focusWhere(w, "charItemCard", function(el) return el.id == id end) end)
+    return e ~= nil
+end
+-- the text prompt up (ZeD's prompt, or vanilla's box in safe mode)
+function H.textPrompt()
+    return RT.find(function(t) return (t.Type == "ZeD_Prompt" and t.kind == "text") or (t.Type == "ISTextBox" and t.entry ~= nil) end)
+end
+function H.promptAnswer(t, yes, text)
+    if text and t.entry then pcall(function() t.entry:setText(text) end) end
+    if t.pressPrimary then
+        if yes then t:pressPrimary() else t:answerCancel() end
+    else
+        t:onClick(yes and t.yes or t.no)
+    end
+end
+-- a field of a panel somewhere under root (the Equip tab keeps its card on its panel)
+function H.findField(el, key, depth)
+    if type(el) ~= "table" or depth > 8 then return nil end
+    if el[key] ~= nil then return el[key] end
+    for _, ch in pairs(el.children or {}) do
+        local r = H.findField(ch, key, depth + 1)
+        if r ~= nil then return r end
+    end
+    return nil
+end
 function H.verbIds()
     local out = {}
     local c = H.card()
@@ -386,6 +434,21 @@ Q.waitFor(2, 120, function() return H.cardOn(S.apple) end, function(ok)
     Q.check(c and H.cardW(c:getWidth()), "pad: the card is half or full wide", c and math.floor(c:getWidth()))
     RT.bounds(Q, "the apple's item card (pad)")
 end)
+-- A again on the row whose card is open: the game's menu for it (InventoryRenderer.padCardOpen), ZeD's menu, on screen
+Q.waitFor(4, 120, function() return H.focusRow(S.apple) end, function(ok)
+    S.armA = ok and H.cardOn(S.apple)
+    Q.check(S.armA, "pad: the focus goes back to the apple's row, its card still open")
+end)
+H.queueA(0)
+Q.waitFor(2, 120, function() return H.ctxMenu() ~= nil end, function(ok)
+    local m = H.ctxMenu()
+    local on = false
+    for _, t in ipairs((m and m._ctx and type(m._ctx.target) == "table") and m._ctx.target or {}) do if t == S.apple then on = true end end
+    Q.check(ok and on, "pad: A on the row whose card is open opens the game's menu for the apple (ZeD's menu)",
+        "menu " .. tostring(m and m.Type) .. ", on the apple " .. tostring(on))
+    H.menuOnScreen(m, "the apple's menu (pad A)")
+    if m then pcall(function() m:close() end) end
+end)
 
 -- Eat: A held on the card's Eat (the game's ISEatFoodAction)
 Q.step(10, function() end)
@@ -417,6 +480,79 @@ Q.step(15, function()
     local fr = m and H.factRow(m.facts, getText("Tooltip_weapon_Condition"))
     Q.check(fr ~= nil and fr.value == wantC, "facts: the card's facts show the bat's condition", tostring(fr and fr.value) .. " (want " .. wantC .. ")")
     RT.bounds(Q, "the bat's item card")
+    -- the width branch (ItemCardOrganism's widthPreset): the drawer's card is under 320 units, so the compact 220
+    -- layout draws, its back bar and verbs stamped
+    local bb = c and c._backBarRects
+    Q.check(c ~= nil and c:getWidth() < H.px(320) and bb ~= nil and #(bb.verbs or {}) > 0 and c._nameRowRect ~= nil,
+        "width: the drawer's card is the compact one (under 320) and it draws its name row, back bar and verbs",
+        c and (math.floor(c:getWidth()) .. " wide, " .. #((bb and bb.verbs) or {}) .. " verbs"))
+end)
+
+-- rename from the name row: A on the card's stop "name_row" opens the rename prompt with the bat's name; OK takes
+-- the typed name, Cancel leaves it (Overrides/ItemMenu.lua's rename). The bat's name is put back.
+S.newName = "ZeD QA bat"
+Q.step(2, function() pcall(function() S.batName = S.bat:getName() end) end)
+Q.waitFor(2, 120, function() return H.focusCardId("name_row") end, function(ok)
+    S.armA = ok and true or false
+    Q.check(ok, "rename: the pad's focus lands on the card's name row (name_row)")
+end)
+H.queueA(0)
+Q.waitFor(2, 120, function() return H.textPrompt() ~= nil end, function(ok)
+    local t = H.textPrompt()
+    local txt = nil
+    pcall(function() txt = t.entry:getText() end)
+    Q.check(ok and txt == S.batName, "rename: A on the name row opens the rename prompt with the bat's name", tostring(txt))
+    RT.bounds(Q, "the rename prompt")
+    if t then H.promptAnswer(t, true, S.newName) end
+end)
+Q.waitFor(2, 60, function() return H.textPrompt() == nil end, function(ok)
+    local nm = nil
+    pcall(function() nm = S.bat:getName() end)
+    Q.check(ok and nm == S.newName, "rename: OK names the bat as typed", tostring(nm))
+end)
+Q.waitFor(4, 120, function() return H.focusCardId("name_row") end, function(ok) S.armA = ok and true or false end)
+H.queueA(0)
+Q.waitFor(2, 120, function() return H.textPrompt() ~= nil end, function(ok)
+    local t = H.textPrompt()
+    Q.check(ok, "rename: the prompt opens again")
+    if t then H.promptAnswer(t, false, "ZeD QA not this") end
+end)
+Q.waitFor(2, 60, function() return H.textPrompt() == nil end, function(ok)
+    local nm = nil
+    pcall(function() nm = S.bat:getName() end)
+    Q.check(ok and nm == S.newName, "rename: Cancel leaves the name as it was", tostring(nm))
+    pcall(function() S.bat:setName(S.batName); S.bat:setCustomName(false) end)
+end)
+
+-- the Lists pop-up: A on the card's Lists mark (stop "toggle_lists") opens it beside the card, on screen. The mark
+-- shows only while ZeD setup's Loadouts and outfits is on: it is turned on for this and put back.
+Q.step(2, function()
+    local o = ZeD.Settings and ZeD.Settings.loadoutsOption
+    if o then
+        S.loadWas = o:getValue()
+        if S.loadWas ~= 2 then pcall(function() o:setValue(2) end) end
+    end
+end)
+Q.waitFor(4, 240, function() return H.focusCardId("toggle_lists") end, function(ok)
+    S.armA = ok and true or false
+    Q.check(ok, "lists: the card shows its Lists mark and the pad's focus lands on it (toggle_lists)", tostring(ZeD.Lists and ZeD.Lists.on()))
+end)
+H.queueA(0)
+Q.waitFor(2, 120, function() local LU = ZeD.ListsUI; return LU and LU.popup and LU.popup._ctx and LU.popup._ctx.open end, function(ok)
+    local m = ZeD.ListsUI and ZeD.ListsUI.popup
+    Q.check(ok, "lists: A on the Lists mark opens the lists' pop-up", tostring(m and m.headText))
+    if ok then
+        H.menuOnScreen(m, "the Lists pop-up")
+        local c = H.card()
+        local lv = m._levels and m._levels[1]
+        local cx = c and c:getAbsoluteX()
+        Q.check(lv ~= nil and cx ~= nil and lv.x + lv.w >= cx and lv.x <= cx + c:getWidth() + H.px(8),
+            "lists: the pop-up opens at the card (from the mark's lower left)",
+            lv and (math.floor(lv.x) .. "+" .. math.floor(lv.w) .. " vs card " .. tostring(cx and math.floor(cx))))
+        pcall(function() m:close() end)
+    end
+    local o = ZeD.Settings and ZeD.Settings.loadoutsOption
+    if o and S.loadWas then pcall(function() o:setValue(S.loadWas) end) end
 end)
 
 -- Read: the book's card by the mouse, Read by the pad (ISReadABook)
@@ -449,6 +585,47 @@ Q.waitFor(2, 900, function() return S.p:getPrimaryHandItem() == S.bat end, funct
     H.stopActions()
 end)
 
+-- the full card (ItemCardOrganism's 480 branch): the Equip tab, A on the primary hand's slot (stop slotType "PRI" in
+-- charTabContent), its card at 480 with its back bar and verbs drawn; its back key returns to the list
+Q.step(10, function()
+    local w = RT.cw()
+    S.charTabWas = w and w._activeTab
+    if not RT.charTab("equip") then Q.check(false, "width: the Character window has the Equip tab", table.concat(RT.tabs(RT.charStrip()), " ")) end
+end)
+Q.waitFor(10, 240, function()
+    local w = RT.cw()
+    local e = nil
+    pcall(function() e = S.F.focusWhere(w, "charTabContent", function(el) return el.slotType == "PRI" end) end)
+    return e ~= nil
+end, function(ok)
+    S.armA = ok and true or false
+    if not ok then
+        -- (the doll view lists no PRI row: the slot opened as its own stop's onActivate opens it)
+        local w = RT.cw()
+        Q.say("NOTE no PRI stop in the Equip tab: the primary hand's slot opened as its stop does")
+        if w then w._equipSelected = "PRI"; w._equipCache = nil end
+    end
+end)
+H.queueA(0)
+Q.waitFor(4, 300, function()
+    local card = H.findField(RT.cw(), "_equipCard", 0)
+    return card ~= nil and card.item == S.bat and card:isVisible() and card._backBarRects ~= nil
+end, function(ok)
+    local card = H.findField(RT.cw(), "_equipCard", 0)
+    local bb = card and card._backBarRects
+    Q.check(ok and H.full(card:getWidth()) and #((bb and bb.verbs) or {}) > 0,
+        "width: the Equip tab opens the bat's card at full width (480) and it draws its back bar and verbs",
+        card and (math.floor(card:getWidth()) .. " wide, item " .. H.nm(card.item)) or "no card")
+    RT.bounds(Q, "the Equip tab's card")
+    if card and card.onBackClick then pcall(card.onBackClick, card) end
+end)
+Q.step(4, function()
+    local w = RT.cw()
+    Q.check(w ~= nil and w._equipSelected == nil, "width: the card's back key returns the Equip tab to its list")
+    if w then w._equipSelected = nil end
+    if S.charTabWas and S.charTabWas ~= "equip" then RT.charTab(S.charTabWas) end
+end)
+
 -- Drop: the pencil's card, Drop (the game's drop: it leaves the inventory)
 Q.waitMs(600)
 H.queueClick("pencil", "drop")
@@ -458,11 +635,6 @@ end)
 Q.step(10, function() end)
 -- (Nov 18 2026, Build: by design an item not worn or held shows its primary verb and MORE; MORE opens the item's
 -- whole context menu at the button, and Drop is there, the game's ContextMenu_Drop. So: MORE, then that row.)
-function H.ctxMenu()
-    local m = nil
-    pcall(function() local v = getPlayerContextMenu(S.pn); m = v and v._zedMenu end)
-    return m
-end
 function H.ctxPick(m, nm)
     local function same(a, b) return a == b or string.lower(tostring(a)) == string.lower(tostring(b)) end
     if m._levels then
@@ -486,6 +658,10 @@ H.queueVerb("MORE", "drop", 0)
 Q.waitFor(2, 120, function() return H.ctxMenu() ~= nil end, function(ok)
     Q.check(ok, "drop: MORE opens the pencil's whole context menu", tostring(ok))
     local m = H.ctxMenu()
+    local on = false
+    for _, t in ipairs((m and m._ctx and type(m._ctx.target) == "table") and m._ctx.target or {}) do if t == S.pencil then on = true end end
+    Q.check(m ~= nil and on and m:isVisible(), "more: the menu MORE opens is the pencil's, and it shows", tostring(m and m.Type) .. ", on the pencil " .. tostring(on))
+    H.menuOnScreen(m, "the pencil's MORE menu")
     local nm = getTextOrNull("ContextMenu_Drop") or "Drop"
     local okP, why = false, "no menu"
     if m then okP, why = H.ctxPick(m, nm) end
@@ -500,6 +676,67 @@ Q.waitFor(2, 900, function() return not S.p:getInventory():contains(S.pencil) en
     H.stopActions()
 end)
 Q.step(5, function() H.padOff() end)
+
+-- ===================================================================== the recipe preview card
+-- The World window's Craft tab (no station bound: the hand's recipes): a click on a recipe's row opens its craft
+-- card, a click on the card's icon (zone "detailIcon", CraftingCore.openPreview) opens the preview card, half wide
+-- (220); a click on another recipe closes it (ObjectCardPreview's valid follows the pick). Clicks go through the
+-- tab's own click handler (ZeD.CraftingTab.onClick) at each zone's middle.
+function H.craftState() local w = RT.ww(); return w and w._craftState end
+function H.craftZone(kind, notId)
+    local st = H.craftState()
+    local lg = st and st._listGeo
+    for _, z in ipairs((st and st.zones) or {}) do
+        if z.type == kind and z.id ~= notId then
+            local inView = (kind ~= "recipeRow") or (lg == nil) or (z.y >= lg.viewY and z.y + z.h <= lg.viewY + lg.viewH)
+            if inView and z.w > 0 and z.h > 0 then return z end
+        end
+    end
+    return nil
+end
+function H.craftClick(z)
+    return pcall(ZeD.CraftingTab.onClick, RT.ww(), z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2))
+end
+Q.step(5, function()
+    RT.pairOpen()
+    pcall(S.ST.unbind, S.p)
+    H.closeCard()
+    if not RT.worldTab("craft") then Q.check(false, "preview: the World window has the Craft tab", table.concat(RT.tabs(RT.worldStrip()), " ")) end
+end)
+Q.waitFor(10, 600, function() return H.craftZone("recipeRow") ~= nil end, function(ok)
+    local z = H.craftZone("recipeRow")
+    if not Q.check(ok, "preview: the Craft tab lists a recipe row in view") then return end
+    S.recipe = z.id
+    H.craftClick(z)
+end)
+Q.waitFor(4, 300, function() return S.recipe == nil or H.craftZone("detailIcon") ~= nil end, function(ok)
+    if not S.recipe then return end
+    local st = H.craftState()
+    Q.check(ok and st and st.selected == S.recipe, "preview: a click on the recipe's row opens its craft card (the icon at its top)", tostring(st and st.selected))
+    local z = H.craftZone("detailIcon")
+    if z then H.craftClick(z) end
+end)
+Q.waitFor(2, 300, function() return S.recipe == nil or H.kind() == "preview" end, function(ok)
+    if not S.recipe then return end
+    local c = H.ocard()
+    Q.check(ok, "preview: a click on the craft card's icon opens the recipe preview card", tostring(H.kind()))
+    Q.check(c ~= nil and math.abs(c:getWidth() - H.px(220)) <= 1, "preview: the preview card is the half card (220)", c and math.floor(c:getWidth()))
+    RT.bounds(Q, "the recipe preview card")
+    local z = H.craftZone("recipeRow", S.recipe)
+    S.recipe2 = z and z.id
+    if z then H.craftClick(z) else Q.skip("preview: another recipe closes it", "only one recipe row in view") end
+end)
+Q.waitFor(2, 300, function() return S.recipe2 == nil or H.kind() ~= "preview" end, function(ok)
+    if not S.recipe2 then return end
+    local st = H.craftState()
+    Q.check(ok and st and st.selected == S.recipe2, "preview: picking another recipe closes the preview card", tostring(H.kind()))
+end)
+Q.step(4, function()
+    local st = H.craftState()
+    pcall(function() if st and st.selected then ZeD.CraftingCore.closeCraft(st) end end)
+    H.closeCard()
+    RT.worldTab("loot")
+end)
 
 -- ===================================================================== object cards
 Q.step(10, function()
@@ -757,6 +994,15 @@ Q.step(5, function()
     H.stopActions()
     H.padOff()
     H.closeCard()
+    -- (what the card checks change, as found: a run cut short leaves them)
+    pcall(function() local m = H.ctxMenu(); if m then m:close() end end)
+    pcall(function() local t = H.textPrompt(); if t then H.promptAnswer(t, false) end end)
+    pcall(function() local m = ZeD.ListsUI.popup; if m and m._ctx.open then m:close() end end)
+    pcall(function() if S.loadWas then ZeD.Settings.loadoutsOption:setValue(S.loadWas) end end)
+    pcall(function() if S.batName and S.bat:getName() ~= S.batName then S.bat:setName(S.batName); S.bat:setCustomName(false) end end)
+    pcall(function() local w = RT.cw(); if w then w._equipSelected = nil end end)
+    pcall(function() local st = H.craftState(); if st and st.selected then ZeD.CraftingCore.closeCraft(st) end end)
+    if S.charTabWas and S.charTabWas ~= "equip" then RT.charTab(S.charTabWas) end
     H.closeGameStationWindows()
     pcall(function() if S.stove and ZeD.TwoWayFull.showingObj(S.pn, S.stove) then ZeD.TwoWayFull.close(S.pn) end end)
     pcall(S.ST.unbind, S.p)

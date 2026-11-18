@@ -315,6 +315,7 @@ Q.step(1, function()
     if ZEDQA_HOME then pcall(ZEDQA_HOME, "rt_inv") end
     RT.pairOpen()
     pcall(function() S.instWas = S.p:isTimedActionInstantCheat() end)
+    S.handWas = { S.p:getPrimaryHandItem(), S.p:getSecondaryHandItem() }
     pcall(function() S.p:setTimedActionInstantCheat(true) end)
 end)
 step(30, function()
@@ -366,7 +367,10 @@ step(20, function()
             if it then
                 S.crateGiven[#S.crateGiven + 1] = it
                 pcall(function() it:getModData().ZeDQA_spawned = true end)
-                if e[1] == "Base.Crowbar" then pcall(function() it:setCondition(math.max(1, math.floor(it:getConditionMax() / 2))) end) end
+                if e[1] == "Base.Crowbar" then
+                    S.crowbar = it
+                    pcall(function() it:setCondition(math.max(1, math.floor(it:getConditionMax() / 2))) end)
+                end
             end
         end
     end
@@ -437,6 +441,20 @@ step(4, function()
         Q.check(ok and c._gridCell == nil, "the list draws every thing in the " .. ((k == "cc") and "bag" or "crate"), why)
     end
 end)
+-- (Nov 18 2026, the ledger's gap "list draws every item": the pad's rows, content._invRowItems, are the shown rows,
+-- each row once (a closed stack is one row), each with its drawn place in _itemRenderYMap)
+step(1, function()
+    for _, k in ipairs({ "cc", "wc" }) do
+        local c = (k == "cc") and H.cc() or H.wc()
+        local rows = c._invRowItems or {}
+        local seen, distinct, noY = {}, 0, 0
+        for _, it in ipairs(c._flatItems or {}) do if not seen[it] then seen[it] = true; distinct = distinct + 1 end end
+        for _, it in ipairs(rows) do if not (c._itemRenderYMap and c._itemRenderYMap[it]) then noY = noY + 1 end end
+        Q.check(#rows > 0 and #rows == distinct and noY == 0,
+            "the " .. ((k == "cc") and "bag's" or "crate's") .. " pad rows (_invRowItems) are its shown rows, one each, each drawn",
+            #rows .. " pad rows, " .. distinct .. " shown rows, " .. noY .. " with no place")
+    end
+end)
 step(2, function()
     for _, k in ipairs({ "cc", "wc" }) do
         local c = (k == "cc") and H.cc() or H.wc()
@@ -452,6 +470,35 @@ step(6, function()
         Q.check(S[k .. "Flip"] and c._gridCell ~= nil and ok, "the view button turns the " .. ((k == "cc") and "bag" or "crate")
             .. " to the grid, and the grid draws every thing", "button " .. tostring(S[k .. "Flip"]) .. ", " .. why)
     end
+end)
+-- item-colored grid tiles (GridTint.lua): with ZeD setup's Look switch on, a vanilla item's icon gives a tile color
+-- and an icon not in the baked table gives none; with it off (the default) no tile is tinted. The switch is put back.
+function H.tintSet(v)
+    local opt = ZeD.Settings.gridTintOption
+    pcall(function() opt:setValue(v) end)
+    if opt.element and opt.element.selected ~= nil then opt.element.selected = v end
+end
+step(1, function()
+    local G, opt = ZeD.GridTint, ZeD.Settings and ZeD.Settings.gridTintOption
+    if not Q.check(G ~= nil and opt ~= nil, "item-colored tiles: GridTint and its setting are there") then return end
+    S.tintWas = opt:getValue()
+    S.tintElWas = opt.element and opt.element.selected
+    local tex = nil
+    pcall(function() tex = S.crowbar:getTex() end)
+    S.fakeTex = { getName = function() return "ZeDQA_NoSuchIcon" end }
+    H.tintSet(2)
+    local on = ZeD.Settings.gridTint()
+    local r, g, b = G.of(ZeD.T, tex)
+    local r2 = G.of(ZeD.T, S.fakeTex)
+    Q.check(on and r ~= nil and g ~= nil and b ~= nil and r2 == nil,
+        "item-colored tiles on: the crowbar's icon gives a tile color, an unknown icon none",
+        "switch " .. tostring(on) .. ", crowbar " .. tostring(r) .. "," .. tostring(g) .. "," .. tostring(b) .. ", unknown " .. tostring(r2))
+    H.tintSet(1)
+    local r3 = G.of(ZeD.T, tex)
+    Q.check((not ZeD.Settings.gridTint()) and r3 == nil, "item-colored tiles off: no tile is tinted", tostring(r3))
+    H.tintSet(S.tintWas)
+    if opt.element and S.tintElWas ~= nil then opt.element.selected = S.tintElWas end
+    G._cache[S.fakeTex] = nil
 end)
 step(2, function()
     for _, k in ipairs({ "cc", "wc" }) do
@@ -514,6 +561,72 @@ step(4, function()
     local wc = H.wc()
     Q.check(S.clearZone and wc._fres == nil and not ZeD.InvFilter.active(S.F), "Clear shows every row again",
         "button " .. tostring(S.clearZone) .. ", text \"" .. tostring(S.F and S.F.q) .. "\"")
+end)
+-- a category chip (the bar's "view:fbar:chip:<category>"): the rows of that category match, the rest dim; the
+-- filter is saved on the crate's key, a container with no place (the floor) keeps none, and the crate shown again
+-- takes its filter back (InventoryFilter's sync); Clear takes it off the crate's key
+S.chipPre = "view:fbar:chip:"
+function H.catOf(c, it) return tostring((c._catOf and c._catOf[it]) or ZeD.InventoryRenderer.catKey(it)) end
+step(2, function()
+    local wc = H.wc()
+    local z = H.zoneStarts(wc, S.chipPre)
+    if not z then Q.skip("Filter: a category chip", "the bar shows no chip at this width"); return end
+    S.chip = string.sub(z.id, #S.chipPre + 1)
+    S.crateKey = ZeD.InventoryRenderer.containerKey(S.crate, S.p)
+    H.click(wc, z)
+end)
+step(6, function()
+    if not S.chip then return end
+    local wc = H.wc()
+    local fr = wc._fres
+    local hit, miss, wrong = 0, 0, {}
+    for _, it in ipairs(wc._flatItems or {}) do
+        local want = H.catOf(wc, it) == S.chip
+        local got = (fr and fr.match[it]) and true or false
+        if want then hit = hit + 1 else miss = miss + 1 end
+        if want ~= got then wrong[#wrong + 1] = tostring(it:getName()) end
+    end
+    Q.check(S.F.cats[S.chip] == true and fr ~= nil and hit > 0 and #wrong == 0,
+        "the chip " .. S.chip .. " marks that category's rows and dims the rest",
+        hit .. " match, " .. miss .. " dim" .. ((#wrong > 0) and ("; wrong: " .. table.concat(wrong, ", ")) or ""))
+    local st = S.p:getModData().ZeD_Filters
+    Q.check(st ~= nil and S.crateKey ~= nil and st[S.crateKey] == ZeD.InvFilter.encode(S.F),
+        "the filter is saved on the crate's key", tostring(S.crateKey) .. " = " .. tostring(st and S.crateKey and st[S.crateKey]))
+    local ww = RT.ww()
+    for _, e in ipairs((ww and ww._containers) or {}) do
+        if not S.floorInv and e.inventory then
+            local ty = nil
+            pcall(function() ty = e.inventory:getType() end)
+            if e.isFloor or ty == "floor" then S.floorInv = e.inventory end
+        end
+    end
+    if S.floorInv then pcall(ZeD_WorldWindow.selectContainer, S.floorInv, 60, S.pn) end
+end)
+waitFor(4, 300, function() return S.chip == nil or S.floorInv == nil or (H.wc() and H.wc()._inventory == S.floorInv) end, function(ok)
+    if not S.chip then return end
+    if not S.floorInv then Q.skip("Filter: the crate's filter comes back when it is shown again", "the World window lists no floor here"); return end
+    Q.check(ok and not ZeD.InvFilter.active(S.F), "the floor shown: it keeps no filter (the bar empties)",
+        "nCats " .. tostring(S.F.nCats) .. ", text \"" .. tostring(S.F.q) .. "\"")
+    pcall(ZeD_WorldWindow.selectContainer, S.crate, 60, S.pn)
+end)
+waitFor(4, 300, function() return S.chip == nil or S.floorInv == nil or (H.wc() and H.wc()._inventory == S.crate and H.zone(H.wc(), "hdr:name") ~= nil) end, function(ok)
+    if not (S.chip and S.floorInv) then return end
+    Q.check(ok and S.F.open and S.F.cats[S.chip] == true, "the crate shown again takes its saved filter back (the chip on, the bar open)",
+        "open " .. tostring(S.F.open) .. ", chip " .. tostring(S.F.cats[S.chip]))
+end)
+step(4, function()
+    if not S.chip then return end
+    local wc = H.wc()
+    local z = H.zone(wc, "view:fbar:clear")
+    if z then H.click(wc, z) else ZeD.InvFilter.clear(S.F) end
+end)
+step(4, function()
+    if S.chip then
+        local st = S.p:getModData().ZeD_Filters
+        Q.check(not ZeD.InvFilter.active(S.F) and not (st and st[S.crateKey]), "Clear takes the chip off and the crate's saved filter with it",
+            tostring(st and st[S.crateKey]))
+    end
+    local wc = H.wc()
     local z = H.zoneStarts(wc, "view:filter:")
     if z then H.click(wc, z) end
 end)
@@ -614,6 +727,38 @@ step(2, function()
     wc._lastClickedItem = nil
     pcall(function() RT.ww()._updateDrawer() end)
 end)
+-- a double-click on the empty space selects every row (ZeD_BoxSelect.doubleEmpty, the list's zedSelectAll)
+step(3, function()
+    local wc = H.wc()
+    local first, bottom = nil, nil
+    for _, z in ipairs(wc._hitZones or {}) do
+        if type(z.id) ~= "string" and type(z.id) ~= "number" then
+            if not first or z.y < first.y then first = z end
+            if not bottom or z.y + z.h > bottom then bottom = z.y + z.h end
+        end
+    end
+    if not first then Q.check(false, "the crate's rows are on screen for a double-click"); return end
+    local x, yE = first.x + math.floor(first.w / 2), nil
+    local yy = bottom + 3
+    while not yE and yy < wc:getHeight() - 2 do
+        if not wc:hitZoneAt(x, yy) then yE = yy end
+        yy = yy + 3
+    end
+    if not yE then Q.skip("double-click on empty space", "no empty space under the crate's rows at this screen size"); return end
+    wc._emptyPress = nil   -- (the box's own press above was the first of a pair otherwise)
+    wc:onMouseDown(x, yE)
+    wc:onMouseUp(x, yE)
+    wc:onMouseDown(x, yE)
+    wc:onMouseUp(x, yE)
+    local sel = wc._selectedItems or {}
+    local n, all = 0, 0
+    for _, it in ipairs(wc._flatItems or {}) do all = all + 1; if sel[it] then n = n + 1 end end
+    Q.check(all > 0 and n == all, "a double-click on the list's empty space selects every row", n .. " of " .. all)
+    for k in pairs(sel) do sel[k] = nil end
+    wc._lastClickedItem = nil
+    wc._padMarks = nil
+    pcall(function() RT.ww()._updateDrawer() end)
+end)
 
 -- ===================================================================== 6. moving: drag, then Move To, both ways
 function H.moveCheck(what, toCrate)
@@ -668,6 +813,334 @@ waitFor(2, 120, function() return H.menu() ~= nil end, function(ok)
 end)
 waitFor(10, 900, function() return H.queueEmpty() and H.menu() == nil end, function()
     H.moveCheck("Move To the inventory: the pan is back in the bag and the counts agree", false)
+end)
+
+-- ===================================================================== 6b. column resize (the bag's Weight divider)
+-- (the press and the move go through the list's own handlers, which read the pointer's x from getMouseX: that one
+-- reading is faked for the length of the call, as the drag above fakes "the pointer is over me")
+function H.withGlobals(over, fn)
+    local was = {}
+    for k, v in pairs(over) do was[k] = _G[k]; _G[k] = v end
+    local ok, err = pcall(fn)
+    for k, v in pairs(was) do _G[k] = v end
+    return ok, err
+end
+step(3, function()
+    local cc = H.cc()
+    local z = H.zone(cc, "div:wt")
+    if not z then Q.skip("Column resize", "the bag's list has no Weight divider here (grid or side-by-side)"); return end
+    local cw = cc._colWidths
+    S.colWas = cw and cw.wt
+    local d = ZeD.T.px(20)
+    local x, y = z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2)
+    S.mx = 1000
+    local ok, err = H.withGlobals({ getMouseX = function() return S.mx end }, function()
+        cc:onMouseDown(x, y)
+        S.dragStarted = cc._colDrag ~= nil
+        S.mx = 1000 - d
+        cc:onMouseMove(-d, 0)
+        cc:onMouseUp(x - d, y)
+    end)
+    local want = math.max(ZeD.T.px(30), math.min(math.floor(cc:getWidth() / 2), (S.colWas or 0) + d))
+    Q.check(ok and S.dragStarted and cc._colDrag == nil and cc._colWidths.wt == want,
+        "a drag on the Weight divider widens the column by the drag (the list's own press, move and release)",
+        tostring(err or "") .. " was " .. tostring(S.colWas) .. ", now " .. tostring(cc._colWidths and cc._colWidths.wt) .. ", want " .. want)
+end)
+step(3, function()
+    local cc = H.cc()
+    if S.colWas == nil then return end
+    local z = H.zone(cc, "hdr:wt")
+    Q.check(z ~= nil and z.x >= 0 and z.x + z.w <= cc:getWidth() + 1, "the Weight heading stays inside the list after the resize",
+        z and (math.floor(z.x) .. "+" .. math.floor(z.w) .. " in " .. math.floor(cc:getWidth())) or "no heading")
+    cc._colWidths.wt = S.colWas
+end)
+
+-- ===================================================================== 6c. category headings fold (the crate)
+-- (Sort by Category from its heading; on a list too narrow for the Category column, Build's width rule, the sort is
+-- set as that heading sets it: the fold is the feature here, not the heading)
+step(2, function()
+    local wc = H.wc()
+    local ok = H.sortTo(wc, "cat", true)
+    if not ok then wc._sortCol, wc._sortAsc = "cat", true; Q.say("NOTE no Category heading at this width: Sort by Category set as its heading sets it") end
+end)
+function H.inCat(c, cat)
+    local n = 0
+    for _, it in ipairs(c._invRowItems or {}) do if H.catOf(c, it) == cat then n = n + 1 end end
+    return n
+end
+step(4, function()
+    local wc = H.wc()
+    local z = H.zoneStarts(wc, "cat:")
+    if not Q.check(z ~= nil, "Sort by Category draws the category headings") then return end
+    S.foldCat = string.sub(z.id, 5)
+    S.foldN = H.inCat(wc, S.foldCat)
+    H.click(wc, z)
+end)
+step(4, function()
+    if not S.foldCat then return end
+    local wc = H.wc()
+    local n = H.inCat(wc, S.foldCat)
+    Q.check((wc._collapsedGroups or {})[S.foldCat] == true and S.foldN > 0 and n == 0,
+        "a press on the heading " .. S.foldCat .. " folds it: its rows leave the list", "rows " .. S.foldN .. " -> " .. n)
+    local z = H.zone(wc, "cat:" .. S.foldCat)
+    if z then H.click(wc, z) end
+end)
+step(4, function()
+    if not S.foldCat then return end
+    local wc = H.wc()
+    local n = H.inCat(wc, S.foldCat)
+    Q.check(not (wc._collapsedGroups or {})[S.foldCat] and n == S.foldN, "a second press opens it: its rows come back", n .. " of " .. S.foldN)
+    if not H.sortTo(wc, "name", true) then wc._sortCol, wc._sortAsc = "name", true end
+end)
+
+-- ===================================================================== 6d. select: click, Ctrl, Shift; the picked line (the crate)
+-- (the list's own press reads Ctrl and Shift from isCtrlKeyDown / isShiftKeyDown: those two are faked for the call)
+function H.clickMods(c, item, ctrl, shift)
+    local z = H.zone(c, item)
+    if not z then return false end
+    c._zedLastClick = nil
+    local x, y = z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2)
+    local ok = H.withGlobals({ isCtrlKeyDown = function() return ctrl end, isShiftKeyDown = function() return shift end }, function()
+        c:onMouseDown(x, y)
+        c:onMouseUp(x, y)
+    end)
+    return ok
+end
+function H.selIs(c, want)
+    local sel = c._selectedItems or {}
+    local n, w, got = 0, 0, {}
+    for it in pairs(sel) do n = n + 1; got[#got + 1] = tostring(it:getName()) end
+    for _, it in ipairs(want) do w = w + 1; if not sel[it] then return false, table.concat(got, ", ") end end
+    return n == w, table.concat(got, ", ")
+end
+step(3, function()
+    local wc = H.wc()
+    local r = wc._flatItems or {}
+    if #r < 5 then Q.check(false, "the crate shows five rows to pick from", #r .. " rows"); return end
+    S.r = { r[1], r[3], r[4], r[5] }
+    local okC = H.clickMods(wc, S.r[1], false, false)
+    local ok, got = H.selIs(wc, { S.r[1] })
+    Q.check(okC and ok, "a click selects its row alone", got)
+    okC = H.clickMods(wc, S.r[2], true, false)
+    ok, got = H.selIs(wc, { S.r[1], S.r[2] })
+    Q.check(okC and ok, "Ctrl-click adds a row", got)
+    okC = H.clickMods(wc, S.r[4], false, true)
+    ok, got = H.selIs(wc, { S.r[1], S.r[2], S.r[3], S.r[4] })
+    Q.check(okC and ok, "Shift-click adds the run from the last row clicked", got)
+    okC = H.clickMods(wc, S.r[2], true, false)
+    ok, got = H.selIs(wc, { S.r[1], S.r[3], S.r[4] })
+    Q.check(okC and ok, "Ctrl-click on a picked row takes it out", got)
+end)
+Q.waitMs(300)   -- (the picked line looks at the picks every 100 ms: InventoryPicked.CHECK_MS)
+step(2, function()
+    if not S.r then return end
+    local wc = H.wc()
+    local n, g = 0, 0
+    for it in pairs(wc._selectedItems or {}) do
+        local st = wc._stacks and wc._stacks[it]
+        local list = (st and st.count and st.count > 1 and st.items) or { it }
+        for _, x in ipairs(list) do n = n + 1; g = g + math.floor((x:getUnequippedWeight() or 0) * 1000 + 0.5) end
+    end
+    local total = ZeD.InventoryRenderer.shownCount(wc, S.crate, S.p) or 0
+    local want = ZeD.tr(n == 1 and "UI_ZeD_Inv_PickedOne" or "UI_ZeD_Inv_PickedMany", n, total, string.format("%.1f", g / 1000))
+    local got = RT.ww()._statusLine
+    Q.check(got == want, "the picked line counts the picks (a closed stack's row is its whole stack) and their weight",
+        "\"" .. tostring(got) .. "\", want \"" .. want .. "\"")
+    local sel = wc._selectedItems or {}
+    for k in pairs(sel) do sel[k] = nil end
+    wc._lastClickedItem = nil
+    wc._padMarks = nil
+    pcall(function() RT.ww()._updateDrawer() end)
+end)
+
+-- ===================================================================== 6e. double-click: the quick use
+-- in the crate a double-click brings the crowbar to the bag; in the bag (its stack opened, so the row is its own) a
+-- double-click is the game's basic action: the crowbar in the hand. Then the hands as they were, the crowbar back.
+function H.dbl(c, item)
+    local z = H.zone(c, item)
+    if not z then return false end
+    local x, y = z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2)
+    c._zedLastClick = nil
+    c:onMouseDown(x, y)
+    c:onMouseUp(x, y)
+    c:onMouseDown(x, y)
+    c:onMouseUp(x, y)
+    return true
+end
+step(2, function()
+    local cc = H.cc()
+    cc._expandedStacks = cc._expandedStacks or {}
+    S.cbStackWas = cc._expandedStacks["Base.Crowbar"]
+    cc._expandedStacks["Base.Crowbar"] = true
+    H.reveal(H.wc(), S.crowbar)
+end)
+step(4, function()
+    Q.check(H.dbl(H.wc(), S.crowbar), "the crowbar's row in the crate takes a double-click")
+end)
+waitFor(5, 900, function() return H.queueEmpty() and H.where(S.crowbar) == S.bag end, function(ok)
+    Q.check(ok, "a double-click in the crate brings the crowbar to the bag (the game's transfer)", tostring(H.where(S.crowbar)))
+    H.reveal(H.cc(), S.crowbar)
+end)
+step(4, function()
+    if H.where(S.crowbar) ~= S.bag then return end
+    Q.check(H.dbl(H.cc(), S.crowbar), "the crowbar's row in the bag takes a double-click")
+end)
+waitFor(5, 900, function() return H.queueEmpty() and H.held(S.crowbar) end, function(ok)
+    Q.check(ok, "a double-click in the bag is the game's basic action: the crowbar in the hand",
+        tostring(S.p:getPrimaryHandItem() and S.p:getPrimaryHandItem():getName()))
+    pcall(function() S.p:setPrimaryHandItem(S.handWas[1]) end)
+    pcall(function() S.p:setSecondaryHandItem(S.handWas[2]) end)
+    H.removeItem(S.crowbar)
+    pcall(function() S.crate:AddItem(S.crowbar) end)
+    local cc = H.cc()
+    cc._expandedStacks["Base.Crowbar"] = S.cbStackWas
+    for _, c in ipairs({ cc, H.wc() }) do
+        local sel = c._selectedItems or {}
+        for k in pairs(sel) do sel[k] = nil end
+        c._lastClickedItem = nil
+    end
+    pcall(function() RT.cw()._updateDrawer(cc) end)
+    pcall(function() RT.ww()._updateDrawer() end)
+end)
+
+-- ===================================================================== 6f. the pad on the bag: L3 sort, marks, B, X
+-- (FocusManager's own presses: the input mode locked to the controller, the Character window holding the pad, as
+-- rt_cards.lua does)
+S.Fo = RT.focus()
+function H.padOn(w)
+    if not S.padIsOn then
+        pcall(function() local md = S.p:getModData().ZeD_Gamepad; S.lockWas = md and md.inputModeLock end)
+        pcall(function() ZeD.Input.Detector.setLockedMode("gamepad") end)
+        S.padIsOn = true
+    end
+    if w and S.Fo and S.Fo.claimFocus then pcall(S.Fo.claimFocus, w) end
+end
+function H.padOff()
+    if not S.padIsOn then return end
+    S.padIsOn = nil
+    for _, b in ipairs({ "A", "B", "X" }) do RT.pad(b, nil) end
+    pcall(function() S.Fo.releaseFocus(S.pn) end)
+    pcall(function()
+        local Dt = ZeD.Input.Detector
+        Dt.setLockedMode(nil)
+        if S.lockWas == "kbm" or S.lockWas == "gamepad" then Dt.setLockedMode(S.lockWas) end
+    end)
+end
+function H.focusItem(w, zone, item)
+    local e = nil
+    pcall(function() e = S.Fo.focusWhere(w, zone, function(el) return el.item == item end) end)
+    return e
+end
+function H.focused(w)
+    local e = nil
+    pcall(function() e = S.Fo.getFocusedElement(w) end)
+    return e
+end
+-- queue a tap (holdMs 0) or a hold of a pad button on window w (getW: a function giving w)
+function H.queuePress(name, button, getW, holdMs)
+    Q.step(1, function()
+        local w = getW()
+        if not w then return end
+        RT.pad(name, true); RT.padDown(button, w)
+    end)
+    if holdMs and holdMs > 0 then Q.waitMs(holdMs) else Q.step(4, function() end) end
+    Q.step(1, function() RT.pad(name, false) end)
+    Q.step(4, function() RT.pad(name, nil) end)
+end
+step(2, function()
+    H.padOn(RT.cw())
+    H.sortTo(H.cc(), "name", true)
+end)
+-- L3: a second press turns the sort round, the next goes on to the next column (Category), A-Z first
+step(3, function() RT.padDown(Joypad.LStickButton, RT.cw()) end)
+step(3, function()
+    local cc = H.cc()
+    local okO, why = H.order(cc, "name", false)
+    Q.check(cc._sortCol == "name" and cc._sortAsc == false and okO, "pad L3 on Name A-Z turns it to Z-A", tostring(cc._sortCol) .. " " .. tostring(cc._sortAsc) .. "; " .. why)
+    RT.padDown(Joypad.LStickButton, RT.cw())
+end)
+step(3, function()
+    local cc = H.cc()
+    Q.check(cc._sortCol == "cat" and cc._sortAsc == true, "pad L3 again goes on to Category A-Z", tostring(cc._sortCol) .. " " .. tostring(cc._sortAsc))
+    if not H.sortTo(cc, "name", true) then cc._sortCol, cc._sortAsc = "name", true end
+    H.reveal(cc, S.mover)
+end)
+-- hold A on the pan's row marks it; with A still held a D-pad step paints the row it lands on; B clears the marks
+-- and leaves the focus where it is
+waitFor(4, 120, function() return H.focusItem(RT.cw(), "charMainInv", S.mover) ~= nil end, function(ok)
+    S.markArmed = ok
+    Q.check(ok, "pad: the focus lands on the pan's row (charMainInv)")
+    local rows = H.cc()._invRowItems or {}
+    local idx = 0
+    for i, it in ipairs(rows) do if it == S.mover then idx = i end end
+    S.paintDir = (idx > 0 and idx < #rows) and "down" or "up"
+end)
+Q.step(1, function() if S.markArmed then RT.pad("A", true); RT.padDown(Joypad.AButton, RT.cw()) end end)
+Q.waitMs(600)
+step(1, function()
+    if not S.markArmed then return end
+    local IR = ZeD.InventoryRenderer
+    local sel = H.cc()._selectedItems or {}
+    Q.check(IR.padMarkCount(RT.cw()) == 1 and sel[S.mover] == true, "pad: hold A on the pan's row marks it (one mark)",
+        IR.padMarkCount(RT.cw()) .. " marked")
+    RT.padDir(S.paintDir, RT.cw())
+end)
+step(3, function()
+    if not S.markArmed then return end
+    local IR = ZeD.InventoryRenderer
+    local e = H.focused(RT.cw())
+    local sel = H.cc()._selectedItems or {}
+    Q.check(e ~= nil and e.item ~= nil and e.item ~= S.mover and sel[e.item] == true and IR.padMarkCount(RT.cw()) >= 2,
+        "pad: with A held, D-pad " .. S.paintDir .. " paints the row it lands on", IR.padMarkCount(RT.cw()) .. " marked, on "
+        .. tostring(e and e.item and e.item:getName()))
+    RT.pad("A", false)
+end)
+step(4, function() RT.pad("A", nil) end)
+step(2, function()
+    if not S.markArmed then return end
+    local e = H.focused(RT.cw())
+    S.focusIdWas = e and e.id
+    RT.padDown(Joypad.BButton, RT.cw())
+end)
+step(3, function()
+    if not S.markArmed then return end
+    local e = H.focused(RT.cw())
+    Q.check(ZeD.InventoryRenderer.padMarkCount(RT.cw()) == 0 and e ~= nil and e.id == S.focusIdWas,
+        "pad: B clears every mark and the focus stays where it was", tostring(S.focusIdWas) .. " -> " .. tostring(e and e.id))
+end)
+-- X tapped on a row moves it to the other window's container (the crate), and from the crate back to the bag
+waitFor(2, 120, function() return H.focusItem(RT.cw(), "charMainInv", S.mover) ~= nil end, function(ok)
+    S.xArmed = ok
+    H.counts()
+    Q.check(ok, "pad: the focus is on the pan's row for X")
+end)
+H.queuePress("X", Joypad.XButton, function() return S.xArmed and RT.cw() or nil end, 0)
+waitFor(5, 900, function() return H.queueEmpty() and H.where(S.mover) == S.crate end, function()
+    H.moveCheck("pad: X on the pan's row in the bag moves it to the crate, and the counts agree", true)
+end)
+step(4, function()
+    H.counts()
+    H.padOn(RT.ww())
+    H.reveal(H.wc(), S.mover)
+end)
+waitFor(4, 120, function() return H.focusItem(RT.ww(), "worldMainInv", S.mover) ~= nil end, function(ok)
+    S.xArmed = ok
+    Q.check(ok, "pad: the focus lands on the pan's row in the crate (worldMainInv)")
+end)
+H.queuePress("X", Joypad.XButton, function() return S.xArmed and RT.ww() or nil end, 0)
+waitFor(5, 900, function() return H.queueEmpty() and H.where(S.mover) == S.bag end, function()
+    H.moveCheck("pad: X on the pan's row in the crate moves it back to the bag, and the counts agree", false)
+end)
+step(4, function()
+    H.padOff()
+    for _, c in ipairs({ H.cc(), H.wc() }) do
+        local sel = c._selectedItems or {}
+        for k in pairs(sel) do sel[k] = nil end
+        c._lastClickedItem = nil
+        c._padMarks = nil
+    end
+    pcall(function() RT.cw()._updateDrawer(H.cc()) end)
+    pcall(function() RT.ww()._updateDrawer() end)
 end)
 
 -- ===================================================================== 7. the container buttons
@@ -746,7 +1219,15 @@ Q.mark()
 Q.step(2, function()
     H.closeMenu()
     H.capUnhook()
+    H.padOff()
+    for _, b in ipairs({ "A", "B", "X" }) do RT.pad(b, nil) end
+    -- (the filter, the column, the tiles switch and the crowbar's stack, as found: a run cut short leaves them)
     if S.F and S.F.open then pcall(ZeD.InvFilter.toggleOpen, S.F) end
+    pcall(function() if S.crateKey then local st = S.p:getModData().ZeD_Filters; if st then st[S.crateKey] = nil end end end)
+    pcall(function() if S.colWas then H.cc()._colWidths.wt = S.colWas end end)
+    pcall(function() if S.tintWas then H.tintSet(S.tintWas) end end)
+    pcall(function() if S.cbStackWas ~= nil or S.crowbar then H.cc()._expandedStacks["Base.Crowbar"] = S.cbStackWas end end)
+    pcall(function() if S.handWas then S.p:setPrimaryHandItem(S.handWas[1]); S.p:setSecondaryHandItem(S.handWas[2]) end end)
     for _, c in ipairs({ H.cc(), H.wc() }) do
         if c then
             local sel = c._selectedItems or {}

@@ -21,7 +21,24 @@
 --      memory (collectgarbage("count"), after a full collect) grows by no more than SOAK_KB
 --   9. translation (shared/ZeD/Tr.lua): every key in ZeD's English UI.json has text in the game, and every key ZeD
 --      asked ZeD.tr for while this script ran (themes, scales, every tab in the soak) has text
--- Every setting is put back exactly (the option values, the file, the scale, the theme, the windows).
+-- Added Nov 18 2026 (the FEATURE_MAP gaps of "Settings, look and safety"):
+--   2b. ZeD setup's own controls, as the pad works them (ZeD_MMOptions:nudge / activateRow), never applied: a moot
+--      row takes no change, a mirrored game row is the game's own control, Find narrows and clears, Wheel toggle
+--      mode dims open and commit, each dead zone step reads live, Back with a change asks, the Additions preset
+--      sets its additions and a hand change reads Custom, Defaults puts every ZeD option on its first item; each
+--      time Discard puts every control back on its stored pick
+--   3. each UI scale step: a step the screen does not offer is a SKIP with the reason, and set by hand (as a saved
+--      pick) it draws at the floor (0.5x) or the screen's cap; the cap's help line
+--   4. the theme and every accent through the window box's own menu (ZeD_WindowMenu.lua): the accent's light or
+--      dark variant, See-through forced solid outside Dark, the pick saved; the Character and World windows' own
+--      accent, kept over a close and reopen; See-through 60 with no guarded fault; Solid while in use, Low-health
+--      blink, Item-colored tiles, the four controller highlights, the Immersive or simple forms
+--   5. safe mode also: a hand reset clears the trip, Off brings the windows back, Messages keeps nothing while on
+--   6. a supported mod is never detected; 7. a balloon for a new message and its six seconds, the Bug report
+--   9b. data: the sandbox WHEN and RISK tags, capitals for every language, the pixel fonts' extra letters
+-- Every setting is put back exactly (the option values, the file, the scale, the theme, the windows): every ZeD
+-- option's value in memory is kept at the start and set back at the end, and ModOptions.ini is written back line for
+-- line (the window box's picks save it at once).
 if not RT then
     print("ZEDQA rt_sys FAIL the kit (rt_kit.lua) is not loaded")
     print("ZEDQA rt_sys VERDICT FAIL 1")
@@ -110,6 +127,117 @@ function H.bothOpen()
     return c and w
 end
 
+-- ZeD's options (PZAPI.ModOptions "ZeD_UI") and one of them by id
+function H.opts() local zo = nil; pcall(function() zo = PZAPI.ModOptions:getOptions("ZeD_UI") end); return zo end
+function H.opt(id) local zo = H.opts(); return zo and zo.dict and zo.dict[id] or nil end
+function H.val(id) local o = H.opt(id); local v = nil; pcall(function() v = o:getValue() end); return v end
+-- the pick on the screen (Options open: its control), else the stored one
+function H.live(o) if not o then return nil end; local el = o.element; return (el and el.selected) or o:getValue() end
+function H.same(c, d) return c ~= nil and d ~= nil and math.abs(c.r - d.r) < 0.002 and math.abs(c.g - d.g) < 0.002 and math.abs(c.b - d.b) < 0.002 end
+function H.hexOf(c) if not c then return "nil" end; return string.format("rgb %d %d %d", math.floor(c.r * 255 + 0.5), math.floor(c.g * 255 + 0.5), math.floor(c.b * 255 + 0.5)) end
+function H.copy(t)
+    if type(t) ~= "table" then return t end
+    local o = {}
+    for k, v in pairs(t) do o[k] = v end
+    return o
+end
+-- parent[key] made equal to snap again, in place (a table other code holds stays the same table)
+function H.restoreTable(parent, key, snap)
+    if snap == nil then parent[key] = nil; return end
+    local t = parent[key]
+    if type(t) ~= "table" then t = {}; parent[key] = t end
+    local drop = {}
+    for k in pairs(t) do if snap[k] == nil then drop[#drop + 1] = k end end
+    for _, k in ipairs(drop) do t[k] = nil end
+    for k, v in pairs(snap) do t[k] = v end
+end
+-- the window box's menu (ZeD_WindowMenu.lua's WM.build): the group named by its key, and its i-th choice fired as a
+-- click on it fires it. H.stub() stands for a ZeD window that is not the Character / World pair (its Accent is the
+-- whole interface's); the pair's own windows give their own accent.
+function H.stub() return { playerNum = pn, noResetControl = true } end
+function H.menuGroup(win, key)
+    local WM = ZeD.WindowMenu
+    if not (WM and WM.build and win) then return nil end
+    local items = {}
+    pcall(function() items = WM.build(win) or {} end)
+    local name = ZeD.tr(key)
+    for _, it in ipairs(items) do if it.name == name and it.children then return it end end
+    return nil
+end
+function H.menuPick(win, key, i)
+    local g = H.menuGroup(win, key)
+    local leaf = g and g.children[i]
+    if not (leaf and leaf.onFire) then return false end
+    return pcall(leaf.onFire) and true or false
+end
+-- every ZeD option's value back as the script found it (in memory; the file is written back on its own), and the
+-- copies Settings.lua keeps on the character
+function H.putOptions()
+    local zo = H.opts()
+    for id, v in pairs(S.opt0 or {}) do
+        local o = zo and zo.dict and zo.dict[id]
+        if o and (o.selected ~= v or (o.element and o.element.selected ~= v)) then pcall(function() o:setValue(v) end) end
+    end
+    pcall(function()
+        local md = p:getModData()
+        H.restoreTable(md, "ZeD_Theme", S.mdTheme0)
+        H.restoreTable(md, "ZeD_Gamepad", S.mdPad0)
+        local ws = md.ZeD_WinState
+        if ws and ws.char then ws.char.accentKey = S.wsC0 end
+        if ws and ws.world then ws.world.accentKey = S.wsW0 end
+    end)
+    ZeD._pendingCharAccent, ZeD._pendingWorldAccent = S.pendC0, S.pendW0
+end
+-- the look as the script found it: the see-through pick, the status set, the theme
+function H.putLook()
+    if not S.look0 then return end
+    ZeD.surfaceAlpha, ZeD._seePick, ZeD._seeForced = S.look0.a, S.look0.pick, S.look0.forced
+    ZeD.currentStatus = S.look0.status
+    pcall(function() if ZeD_Window and ZeD_Window.clearPaletteCache then ZeD_Window.clearPaletteCache() end end)
+    pcall(ZeD.applyTheme, S.base0, S.accent0, S.size0)
+end
+-- the ids of ZeD's options whose control (Options open) is not on the stored pick
+function H.liveOff()
+    local bad = {}
+    local zo = H.opts()
+    for _, o in ipairs((zo and zo.data) or {}) do
+        if o.type == "combobox" and o.element and o.element.selected ~= o.selected then bad[#bad + 1] = tostring(o.id) end
+    end
+    return bad
+end
+-- ZeD setup's row for one of ZeD's options, and a row stepped to item want as the pad's Left / Right do
+function H.setupRow(w, id)
+    local o = H.opt(id)
+    local el = o and o.element
+    if not el then return nil end
+    local rows = {}
+    pcall(function() rows = w:zedSetupRows() end)
+    for _, r in ipairs(rows) do if r.control == el then return r end end
+    return nil
+end
+function H.nudgeTo(w, r, want)
+    local c = r and r.control
+    if not c then return false end
+    for _ = 1, 16 do
+        local cur = c.selected or 1
+        if cur == want then return true end
+        pcall(function() w:nudge(r, (want > cur) and 1 or -1) end)
+        if c.selected == cur then return false end
+    end
+    return c.selected == want
+end
+-- the rows the Options window lays out now (its pad stops: every row that takes a press)
+function H.listRows(w)
+    local out = {}
+    for _, sp in ipairs((w and w._specs) or {}) do if sp.listRow and sp.rowRef then out[#out + 1] = sp.rowRef end end
+    return out
+end
+function H.toastsOf(name)
+    local n = 0
+    for _, t in ipairs((ZeD.Messages and ZeD.Messages.toasts) or {}) do if t.source == name then n = n + 1 end end
+    return n
+end
+
 -- every key ZeD.tr is asked for while the script runs (checked at the end: section 9)
 S.trWas = ZeD.tr
 ZeD.tr = function(key, ...)
@@ -124,6 +252,23 @@ Q.step(5, function()
     RT.pairOpen()
     if ZEDQA_LAYOUT_SNAP then pcall(function() S.snap = ZEDQA_LAYOUT_SNAP() end) end
     S.err0 = H.errs()
+    -- what this script may change, as found: every ZeD option's value, the copies on the character, the look
+    S.opt0 = {}
+    local zo = H.opts()
+    for _, o in ipairs((zo and zo.data) or {}) do
+        if o.type == "combobox" and o.id then S.opt0[o.id] = o.selected end
+    end
+    pcall(function()
+        local md = p:getModData()
+        S.mdTheme0, S.mdPad0 = H.copy(md.ZeD_Theme), H.copy(md.ZeD_Gamepad)
+        local ws = md.ZeD_WinState
+        S.wsC0 = ws and ws.char and ws.char.accentKey
+        S.wsW0 = ws and ws.world and ws.world.accentKey
+    end)
+    S.pendC0, S.pendW0 = ZeD._pendingCharAccent, ZeD._pendingWorldAccent
+    S.look0 = { a = ZeD.surfaceAlpha, pick = ZeD._seePick, forced = ZeD._seeForced, status = ZeD.currentStatus }
+    S.base0, S.accent0, S.size0 = ZeD.currentBase, ZeD.currentAccent, ZeD.currentSize
+    S.root0 = Sc and Sc.root()
     Q.check(St ~= nil and Sf ~= nil and MM ~= nil and Sc ~= nil, "ZeD's settings, safe mode, main menu and scale modules are loaded")
 end)
 
@@ -226,38 +371,280 @@ Q.waitFor(5, 300, function() return S.menuWas or not H.menuUp() end, function(ok
     Q.check(ok, "the pause menu shuts again")
 end)
 
+-- ===================================================================== 2b. ZeD setup's controls (never applied)
+-- Worked as the pad works them (ZeD_MMOptions:nudge is Left / Right, activateRow is A); a click runs the same
+-- functions. Nothing is applied: Discard (the footer's, discardStay) puts every control back on its stored pick, and
+-- Settings.lua's wrap re-applies the stored look.
+Q.step(5, function()
+    S.menuWas2 = H.menuUp()
+    if not S.menuWas2 then H.toggleMenu() end
+end)
+Q.waitFor(10, 400, function() return H.menuUp() and MM.pauseOpts ~= nil end, function(ok)
+    if ok then pcall(MM.openOptions) end
+end)
+Q.waitFor(5, 300, function() return MM.pauseOpts ~= nil and MM.pauseOpts:isVisible() end, function(ok)
+    S.o2 = ok
+    if not ok then Q.check(false, "Options opens again for ZeD setup's controls"); return end
+    local w = MM.pauseOpts
+    S.page2 = w.pageIdx
+    for i, pg in ipairs(w:pages()) do if pg.setup then w.pageIdx = i end end
+    w.scroll = 0
+    -- the game's rows: Inventory font does nothing with ZeD on (moot), the Dyslexic font works only somewhere
+    local moot, only, all, origs = nil, nil, 0, {}
+    for _, pg in ipairs(w:pages()) do
+        for _, r in ipairs(w:rowsFor(pg) or {}) do
+            if r.kind ~= "header" and r.kind ~= "note" and r.kind ~= "desc" then all = all + 1 end
+            if not pg.setup and r.opt and r.opt.name and not r.setupCopy then
+                if r.opt.name == "inventoryFont" then moot = r end
+                if r.opt.name == "enableDyslexicFont" then only = r end
+                origs[r.opt.name] = origs[r.opt.name] or r
+            end
+        end
+    end
+    S.allRows = all
+    if moot and moot.moot then
+        local before, ch0 = moot.control and moot.control.selected, w:anyChanged()
+        pcall(function() w:activateRow(moot) end)
+        pcall(function() w:nudge(moot, 1) end)
+        Q.check(moot.control.selected == before and w:anyChanged() == ch0, "Options: the game's Inventory font row is marked moot and takes no change",
+            tostring(moot.moot) .. ", item " .. tostring(before) .. " -> " .. tostring(moot.control.selected))
+    else
+        Q.check(false, "Options: the game's Inventory font row is marked moot", moot and "no moot mark" or "no Inventory font row")
+    end
+    Q.check(only ~= nil and only.only ~= nil, "Options: the game's Dyslexic font row says where it still works", only and tostring(only.only and only.only[1]) or "no row")
+    -- ZeD setup's copies of the game settings ZeD's look depends on: the game's own control, one object in both
+    local copies = {}
+    for _, r in ipairs(w:zedSetupRows() or {}) do if r.setupCopy and r.opt and r.opt.name then copies[r.opt.name] = r end end
+    local n, bad = 0, {}
+    for _, e in ipairs((MM.optionGroups and MM.optionGroups.SETUP_GAME) or {}) do
+        local c, o = copies[e[1]], origs[e[1]]
+        if c or o then
+            n = n + 1
+            if not (c and o and c.control ~= nil and c.control == o.control) then bad[#bad + 1] = e[1] end
+        end
+    end
+    Q.check(copies.fontSize ~= nil and #bad == 0, "ZeD setup: the game settings it mirrors (Font size first) work the game's own control",
+        n .. " rows" .. ((#bad > 0) and (", not the same control: " .. table.concat(bad, " ")) or ""))
+end)
+-- Find: "scale" narrows the list to the matching rows, UI scale among them; cleared, the page comes back
+Q.step(3, function()
+    if not S.o2 then return end
+    local w = MM.pauseOpts
+    S.rows2 = #H.listRows(w)
+    pcall(function() w.find:setText("scale") end)
+end)
+Q.step(4, function()
+    if not S.o2 then return end
+    local w = MM.pauseOpts
+    local rows = H.listRows(w)
+    local hasScale = false
+    for _, r in ipairs(rows) do if r.labelKey == "UI_ZeD_Settings_UiScale" then hasScale = true end end
+    Q.check(#rows > 0 and #rows < (S.allRows or 0) and hasScale, "Options, Find \"scale\": only the matching rows, UI scale among them",
+        #rows .. " of " .. tostring(S.allRows) .. " rows, UI scale " .. tostring(hasScale))
+    pcall(function() w.find:setText("") end)
+end)
+Q.step(4, function()
+    if not S.o2 then return end
+    local n = #H.listRows(MM.pauseOpts)
+    Q.check(n > 0 and n == S.rows2, "Options, Find cleared: ZeD setup's rows come back", n .. " rows, " .. tostring(S.rows2) .. " before")
+end)
+-- the wheels: Toggle mode On dims Open and Commit (no change taken); Open, Commit and each Dead zone step read live
+Q.step(3, function()
+    if not S.o2 then return end
+    local w = MM.pauseOpts
+    local rT, rO, rC, rD = H.setupRow(w, "wheelToggle"), H.setupRow(w, "wheelOpen"), H.setupRow(w, "wheelCommit"), H.setupRow(w, "wheelDeadZone")
+    if not (rT and rO and rC and rD) then
+        Q.check(false, "ZeD setup has the four wheel rows", tostring(rT ~= nil) .. " " .. tostring(rO ~= nil) .. " " .. tostring(rC ~= nil) .. " " .. tostring(rD ~= nil))
+        return
+    end
+    H.nudgeTo(w, rT, 2)
+    local o0, c0 = rO.control.selected, rC.control.selected
+    pcall(function() w:activateRow(rO) end)
+    pcall(function() w:nudge(rO, (o0 == 1) and 1 or -1) end)
+    pcall(function() w:activateRow(rC) end)
+    pcall(function() w:nudge(rC, (c0 == 1) and 1 or -1) end)
+    Q.check(St.wheelToggle() and rO.control.selected == o0 and rC.control.selected == c0,
+        "ZeD setup: with Wheel toggle mode On, Wheel open and Wheel commit are dimmed and take no change",
+        "toggle " .. tostring(St.wheelToggle()) .. ", open " .. tostring(rO.control.selected) .. ", commit " .. tostring(rC.control.selected))
+    H.nudgeTo(w, rT, 1)
+    H.nudgeTo(w, rO, 2)
+    H.nudgeTo(w, rC, 2)
+    Q.check(not St.wheelToggle() and St.wheelOpen() == "hold" and St.wheelCommit() == "click",
+        "ZeD setup: with Toggle mode Off, Wheel open Hold and Wheel commit Stick click are read live", St.wheelOpen() .. ", " .. St.wheelCommit())
+    local nD, bad = #(rD.control.options or {}), {}
+    for i = 1, nD do
+        H.nudgeTo(w, rD, i)
+        local want = nil
+        pcall(function() want = tonumber(rD.control:getOptionText(i)) end)
+        local got = St.wheelDeadZone()
+        if not (rD.control.selected == i and want and math.abs(got - want) < 0.001) then bad[#bad + 1] = i .. "=" .. tostring(got) end
+    end
+    Q.check(nD > 0 and #bad == 0, "ZeD setup: each Wheel dead zone step is read live", nD .. " steps" .. ((#bad > 0) and (", wrong: " .. table.concat(bad, " ")) or ""))
+end)
+-- Back with those changes pending asks, and the window stays; Discard puts them back
+Q.step(3, function()
+    if not S.o2 then return end
+    local w = MM.pauseOpts
+    S.chg2 = w:anyChanged()
+    pcall(function() w:back() end)
+end)
+Q.step(3, function()
+    if not S.o2 then return end
+    local w = MM.pauseOpts
+    Q.check(S.chg2 and w.confirm == "back" and MM.pauseView == "options" and w:isVisible(), "Options: Back with a change pending asks first, and the window stays",
+        "changed " .. tostring(S.chg2) .. ", confirm " .. tostring(w.confirm) .. ", view " .. tostring(MM.pauseView))
+    pcall(function() w:discardStay() end)
+end)
+Q.step(3, function()
+    if not S.o2 then return end
+    local w = MM.pauseOpts
+    local bad = H.liveOff()
+    Q.check(#bad == 0 and not w:anyChanged() and not w.confirm, "Options: Discard puts every changed ZeD setup control back on its stored pick", table.concat(bad, " "))
+end)
+-- the Additions preset: Vanilla Plus sets every addition it names; one addition changed by hand reads Custom
+Q.step(3, function()
+    if not S.o2 then return end
+    local w = MM.pauseOpts
+    local rP, rA = H.setupRow(w, "additionsPreset"), H.setupRow(w, "ammoBox")
+    local P2 = St.ADDITION_PRESETS and St.ADDITION_PRESETS[2]
+    if not (rP and rA and P2) then Q.check(false, "ZeD setup has the Additions preset and Ammo on the belt rows"); return end
+    H.nudgeTo(w, rP, 2)
+    local bad = {}
+    for _, id in ipairs(St.ADDITION_IDS or {}) do
+        local o = H.opt(id)
+        if o and P2[id] and H.live(o) ~= P2[id] then bad[#bad + 1] = id .. "=" .. tostring(H.live(o)) end
+    end
+    Q.check(rP.control.selected == 2 and #bad == 0, "ZeD setup, Additions: picking Vanilla Plus sets every addition to the preset's",
+        "preset " .. tostring(rP.control.selected) .. ((#bad > 0) and (", off: " .. table.concat(bad, " ")) or ""))
+    H.nudgeTo(w, rA, (rA.control.selected == 2) and 1 or 2)
+    pcall(St.syncAdditionsPreset)
+    Q.check(rP.control.selected == 4, "ZeD setup, Additions: one addition changed by hand makes the preset read Custom", "preset " .. tostring(rP.control.selected))
+    pcall(function() w:discardStay() end)
+end)
+Q.step(3, function()
+    if not S.o2 then return end
+    local bad = H.liveOff()
+    Q.check(#bad == 0 and not MM.pauseOpts:anyChanged(), "Options: Discard puts the preset and the additions back", table.concat(bad, " "))
+end)
+-- Defaults: every ZeD option on the item it starts on (the quick chords' reset is held back: they save at once,
+-- and the director's chords must stay); then Discard
+Q.step(3, function()
+    if not S.o2 then return end
+    local w = MM.pauseOpts
+    local QC = ZeD.QuickChords
+    S.qcReset = QC and QC.reset
+    S.qcCalls = 0
+    if QC then QC.reset = function() S.qcCalls = S.qcCalls + 1 end end
+    local ok = pcall(function() w:zedDefaults() end)
+    if QC then QC.reset = S.qcReset end
+    S.qcReset = nil
+    local n, bad = 0, {}
+    for _, r in ipairs(w:zedSetupRows() or {}) do
+        local c = r.control
+        if r.zedDefault and c and not c.disabled then
+            n = n + 1
+            if c.selected ~= r.zedDefault then bad[#bad + 1] = tostring(r.labelKey or r.label) .. "=" .. tostring(c.selected) end
+        end
+    end
+    Q.check(ok and n > 0 and #bad == 0, "ZeD setup, Defaults: every ZeD option's control is on the item it starts on",
+        n .. " rows" .. ((#bad > 0) and (", off: " .. table.concat(bad, " ")) or ""))
+    local chordsDefault = true
+    for _, c in ipairs((QC and QC.CHORDS) or {}) do if not QC.isDefault(c) then chordsDefault = false end end
+    if chordsDefault then
+        Q.check(not w:zedOffDefault(), "ZeD setup, Defaults: afterwards nothing is off its default (the button greys out)")
+    else
+        Q.skip("nothing off its default after Defaults", "this game's quick chords are its own, and the test does not reset them (a chord saves at once)")
+    end
+    pcall(function() w:discardStay() end)
+end)
+Q.step(5, function()
+    if not S.o2 then return end
+    local bad = H.liveOff()
+    Q.check(#bad == 0 and not MM.pauseOpts:anyChanged() and ZeD.currentBase == S.base0 and ZeD.currentAccent == S.accent0 and ZeD.currentSize == S.size0,
+        "Options: Discard after Defaults puts every control and the look back", table.concat(bad, " ") .. " | " .. tostring(ZeD.currentBase) .. " / " .. tostring(ZeD.currentAccent))
+    local w = MM.pauseOpts
+    if S.page2 then w.pageIdx = S.page2 end
+    pcall(function() w:back() end)
+end)
+Q.step(10, function()
+    if S.o2 then Q.check(MM.pauseView == "pause", "Back leaves Options with nothing pending", tostring(MM.pauseView)) end
+    if not S.menuWas2 and H.menuUp() then H.toggleMenu() end
+end)
+Q.waitFor(10, 900, function()
+    local T = ZeD.T
+    return (S.menuWas2 or not H.menuUp()) and Sc._reopenAt == nil and T ~= nil and math.abs((T.root or 0) - Sc.root()) < 0.001
+end, function(ok)
+    Q.check(ok and math.abs(Sc.root() - (S.root0 or Sc.root())) < 0.001, "after ZeD setup's controls the scale is the run's own", "root " .. tostring(Sc.root()))
+    RT.pairOpen()
+end)
+Q.step(30, function() RT.bounds(Q, "the windows after ZeD setup's controls") end)
+
 -- ===================================================================== 3. UI scale: every step offered
 Q.step(10, function()
     S.scaleOpt = St.uiScaleOption
     S.scaleWas = S.scaleOpt:getValue() or 1
     S.rootWas = Sc.root()
+    S.tooBig = {}
     RT.pairOpen()
 end)
+-- (a step the screen does not offer is a SKIP for "drawn at that step", with the reason; it is still set by hand, as
+-- a pick saved on a bigger screen or before the beta would be, and must draw at the floor or at this screen's cap)
 for i = 1, #((St and St.scaleKeys) or {}) do
     Q.step(5, function()
-        S.stepSkip = nil
         local v = St.scaleKeys[i]
+        local label = tostring(St.scaleLabels[i])
+        S.wantRoot = (type(v) == "number") and v or nil
+        S.stepKind = "offered"
         if St.scaleStepOff(S.scaleOpt, i) then
-            S.stepSkip = true
-            Q.say("scale step " .. tostring(St.scaleLabels[i]) .. ": not offered on this screen (retired or too big)")
-            return
+            local W, Hh = RT.core:getScreenWidth(), RT.core:getScreenHeight()
+            if St.scaleStepRetired and St.scaleStepRetired(i) then
+                S.stepKind = "retired"
+                Q.skip("UI scale " .. label .. " drawn at " .. label, "retired in the beta: ZeD setup's slider dims it and the wheel leaves it out")
+                S.wantRoot = Sc.STEP_FLOOR or 0.75
+            else
+                S.stepKind = "toobig"
+                S.tooBig[#S.tooBig + 1] = label
+                Q.skip("UI scale " .. label .. " drawn at " .. label, "not offered on this " .. W .. "x" .. Hh .. " screen: over its cap of " .. tostring(Sc.fitCap()) .. "x")
+                Q.check(St.scaleTooBigHelp() ~= nil, "UI scale " .. label .. ": dimmed, and ZeD setup's help line says it is too big", tostring(St.scaleTooBigHelp()))
+                S.wantRoot = Sc.fitCap()
+            end
         end
         S.scaleOpt:setValue(i)
         St.applyScale(i)
-        S.wantRoot = (type(v) == "number") and v or nil
     end)
     Q.waitFor(10, 900, function()
-        if S.stepSkip then return true end
         local T = ZeD.T
         return Sc._reopenAt == nil and T ~= nil and math.abs((T.root or 0) - Sc.root()) < 0.001 and H.bothOpen()
     end, function(ok)
-        if S.stepSkip then return end
         local label = tostring(St.scaleLabels[i])
         Q.check(ok, "UI scale " .. label .. ": the theme follows the new scale and both windows are open again", "root " .. tostring(Sc.root()))
-        if S.wantRoot then Q.check(math.abs(Sc.root() - S.wantRoot) < 0.001, "UI scale " .. label .. ": drawn at that scale", "root " .. tostring(Sc.root())) end
+        local T = ZeD.T
+        local rootNow, tRoot = Sc.root(), T and T.root or -1
+        if S.wantRoot then
+            local at = math.abs(rootNow - S.wantRoot) < 0.001 and math.abs(tRoot - S.wantRoot) < 0.001
+            if S.stepKind == "retired" then
+                Q.check(at and S.scaleOpt:getValue() == i, "UI scale " .. label .. " set by hand: drawn at the floor " .. tostring(S.wantRoot) .. "x, the saved pick kept",
+                    "root " .. tostring(rootNow) .. ", ZeD.T.root " .. tostring(tRoot) .. ", item " .. tostring(S.scaleOpt:getValue()))
+            elseif S.stepKind == "toobig" then
+                Q.check(at, "UI scale " .. label .. " set by hand: drawn at this screen's cap " .. tostring(S.wantRoot) .. "x",
+                    "root " .. tostring(rootNow) .. ", ZeD.T.root " .. tostring(tRoot))
+            else
+                Q.check(at, "UI scale " .. label .. ": drawn at that scale (ZeD.T.root)", "root " .. tostring(rootNow) .. ", ZeD.T.root " .. tostring(tRoot))
+            end
+        end
         RT.bounds(Q, "UI scale " .. label)
     end)
 end
+-- the cap: on a small screen the steps over it are named in the help line; where every step fits there is none
+Q.step(2, function()
+    local cap, help = Sc.fitCap(), St.scaleTooBigHelp()
+    if #(S.tooBig or {}) > 0 then
+        Q.check(cap < 2 and help ~= nil, "UI scale cap: this screen offers up to " .. tostring(cap) .. "x and ZeD setup names the steps too big",
+            table.concat(S.tooBig, " ") .. " | " .. tostring(help))
+    else
+        Q.check(help == nil, "UI scale cap: every step fits this screen and there is no too-big line", "cap " .. tostring(cap))
+    end
+end)
 Q.step(5, function()
     S.scaleOpt:setValue(S.scaleWas)
     St.applyScale(S.scaleWas)
@@ -273,32 +660,204 @@ end)
 Q.step(30, function() RT.bounds(Q, "the windows back after the scale steps") end)
 
 -- ===================================================================== 4. themes and accents
+-- (each pick through the window box's own menu, as a click on it: ZeD.applyTheme, then saved to the options; the
+-- options, the file and the character's copy are put back after)
 Q.step(5, function()
-    S.base0, S.accent0, S.size0 = ZeD.currentBase, ZeD.currentAccent, ZeD.currentSize
     RT.pairOpen()
 end)
-for _, b in ipairs((St and St.baseKeys) or {}) do
-    Q.step(3, function() ZeD.applyTheme(b, S.accent0, S.size0) end)
+for i, b in ipairs((St and St.baseKeys) or {}) do
+    Q.step(3, function() S.picked = H.menuPick(H.stub(), "UI_ZeD_WinMenu_Theme", i) end)
     Q.step(8, function()
         local T = ZeD.T
-        Q.check(T ~= nil and T.baseKey == b and ZeD.currentBase == b, "theme " .. b .. ": applies to ZeD's table", tostring(T and T.baseKey))
+        Q.check(S.picked and T ~= nil and T.baseKey == b and ZeD.currentBase == b and H.val("baseTheme") == i,
+            "theme " .. b .. ": the window box's Theme pick applies to ZeD's table and is saved as item " .. i,
+            tostring(T and T.baseKey) .. ", option " .. tostring(H.val("baseTheme")))
+        local tone = (b == "light") and "light" or "dark"
+        local set = ZeD.AccentColors[ZeD.currentAccent]
+        Q.check(T ~= nil and set ~= nil and H.same(T.accent, set[tone].accent), "theme " .. b .. ": the accent is its " .. tone .. " variant",
+            H.hexOf(T and T.accent) .. ", want " .. H.hexOf(set and set[tone].accent))
+        local wantA = (b == "dark") and (St.seeThrough() / 100) or 1
+        Q.check(math.abs((ZeD.surfaceAlpha or -1) - wantA) < 0.001, "theme " .. b .. ": See-through " .. ((b == "dark") and "is the player's pick" or "is forced solid"),
+            "surfaceAlpha " .. tostring(ZeD.surfaceAlpha) .. ", want " .. tostring(wantA))
         RT.bounds(Q, "theme " .. b)
     end)
 end
 Q.step(3, function() ZeD.applyTheme(S.base0, S.accent0, S.size0) end)
-for _, a in ipairs((St and St.accentKeys) or {}) do
-    Q.step(2, function() ZeD.applyTheme(S.base0, a, S.size0) end)
+for i, a in ipairs((St and St.accentKeys) or {}) do
+    Q.step(2, function() S.picked = H.menuPick(H.stub(), "UI_ZeD_WinMenu_Accent", i) end)
     Q.step(4, function()
         local T = ZeD.T
-        Q.check(T ~= nil and T.accentKey == a and T.accent ~= nil and ZeD.currentAccent == a, "accent " .. a .. ": applies to ZeD's table",
-            tostring(T and T.accentKey))
+        local tone = (T and T.baseKey == "light") and "light" or "dark"
+        local set = ZeD.AccentColors[a]
+        Q.check(S.picked and T ~= nil and T.accentKey == a and ZeD.currentAccent == a and set ~= nil and H.same(T.accent, set[tone].accent) and H.val("accentColor") == i,
+            "accent " .. a .. ": the window box's Accent pick gives its " .. tone .. " color and is saved as item " .. i,
+            tostring(T and T.accentKey) .. ", " .. H.hexOf(T and T.accent) .. ", want " .. H.hexOf(set and set[tone].accent) .. ", option " .. tostring(H.val("accentColor")))
     end)
 end
-Q.step(3, function() ZeD.applyTheme(S.base0, S.accent0, S.size0) end)
+Q.step(3, function()
+    ZeD.applyTheme(S.base0, S.accent0, S.size0)
+    H.putOptions()
+end)
 Q.step(5, function()
     local T = ZeD.T
     Q.check(ZeD.currentBase == S.base0 and ZeD.currentAccent == S.accent0 and ZeD.currentSize == S.size0 and T and T.baseKey == S.base0,
         "the run's own theme, accent and text size are back", tostring(ZeD.currentBase) .. " / " .. tostring(ZeD.currentAccent) .. " / " .. tostring(ZeD.currentSize))
+end)
+
+-- ===================================================================== 4b. the Character and World windows' own accent
+-- (the pair's window box: its Accent sets that window's own; purple on Character, green on World, kept over a close
+-- and reopen; then "Same as Accent color"; then each window's own as found)
+Q.step(5, function()
+    RT.pairOpen()
+    S.accC, S.accW = nil, nil
+    pcall(function() S.accC = { k = RT.cw()._accentKey } end)
+    pcall(function() S.accW = { k = RT.ww()._accentKey } end)
+    S.iP, S.iG = nil, nil
+    for i, k in ipairs(St.accentKeys or {}) do
+        if k == "purple" then S.iP = i end
+        if k == "green" then S.iG = i end
+    end
+    S.pickC = S.iP and H.menuPick(RT.cw(), "UI_ZeD_WinMenu_Accent", S.iP)
+    S.pickW = S.iG and H.menuPick(RT.ww(), "UI_ZeD_WinMenu_Accent", S.iG)
+end)
+Q.step(4, function()
+    local cw, ww = RT.cw(), RT.ww()
+    Q.check(S.pickC and cw ~= nil and cw._accentKey == "purple" and H.val("charAccent") == S.iP and ZeD._pendingCharAccent == "purple",
+        "the Character window's own accent: its window box's pick sets it and saves it", tostring(cw and cw._accentKey) .. ", option " .. tostring(H.val("charAccent")))
+    Q.check(S.pickW and ww ~= nil and ww._accentKey == "green" and H.val("worldAccent") == S.iG and ZeD._pendingWorldAccent == "green",
+        "the World window's own accent: its window box's pick sets it and saves it", tostring(ww and ww._accentKey) .. ", option " .. tostring(H.val("worldAccent")))
+    Q.check(ZeD.currentAccent == S.accent0, "a window's own accent leaves the interface's accent alone", tostring(ZeD.currentAccent))
+    RT.pairShut()
+end)
+Q.step(10, function() RT.pairOpen() end)
+Q.waitFor(5, 300, function() return H.bothOpen() end, function(ok)
+    local cw, ww = RT.cw(), RT.ww()
+    Q.check(ok and cw ~= nil and ww ~= nil and cw._accentKey == "purple" and ww._accentKey == "green", "the windows' own accents are kept over a close and reopen",
+        tostring(cw and cw._accentKey) .. " / " .. tostring(ww and ww._accentKey))
+    S.pickC = H.menuPick(cw, "UI_ZeD_WinMenu_Accent", #(St.accentKeys or {}) + 1)
+end)
+Q.step(4, function()
+    local cw = RT.cw()
+    Q.check(S.pickC and cw ~= nil and cw._accentKey == nil and H.val("charAccent") == #(St.accentKeys or {}) + 1,
+        "the Character window's \"Same as Accent color\" follows the interface's accent again", tostring(cw and cw._accentKey) .. ", option " .. tostring(H.val("charAccent")))
+    -- put back: each window's own accent as found (the options and the character's copies at the section's end)
+    pcall(function() if S.accC then RT.cw()._accentKey = S.accC.k end end)
+    pcall(function() if S.accW then RT.ww()._accentKey = S.accW.k end end)
+    H.putOptions()
+end)
+
+-- ===================================================================== 4c. the look switches
+-- See-through 60 (the window box's pick; it works in Dark only, so the base theme option is Dark meanwhile): the
+-- windows with their bands draw a second and a half with no fault for safe mode's watchdog and no Lua error (no way to
+-- read back the alpha a window drew)
+Q.step(5, function()
+    S.seeIdx0 = H.val("seeThrough")
+    S.baseOpt0 = H.val("baseTheme")
+    pcall(function() if S.baseOpt0 ~= 1 then H.opt("baseTheme"):setValue(1) end end)
+    S.picked = H.menuPick(H.stub(), "UI_ZeD_Settings_SeeThrough", 5)
+    RT.pairOpen()
+    pcall(RT.charTab, "equip")
+    pcall(RT.worldTab, "craft")
+    S.faults = 0
+    S.faultWas = Sf.fault
+    Sf.fault = function(k, e) S.faults = S.faults + 1; return S.faultWas(k, e) end
+    S.errSee = H.errs()
+end)
+Q.waitMs(1500)
+Q.step(1, function()
+    if S.faultWas and Sf.fault ~= S.faultWas then Sf.fault = S.faultWas end
+    local T = ZeD.T
+    Q.check(S.picked and math.abs((ZeD.surfaceAlpha or 0) - 0.6) < 0.001 and T ~= nil and T.baseKey == "dark" and H.val("seeThrough") == 5,
+        "See-through 60: the window box's pick draws the windows at 0.6 in Dark and is saved", "surfaceAlpha " .. tostring(ZeD.surfaceAlpha))
+    local e1 = H.errs()
+    Q.check(S.faults == 0 and (S.errSee == nil or e1 == S.errSee) and not Sf.on(),
+        "one see-through layer per window: the windows and their bands draw at 60 with no guarded fault and no Lua error",
+        S.faults .. " faults, " .. tostring(S.errSee and e1 and (e1 - S.errSee)) .. " new errors")
+    RT.bounds(Q, "the windows at 60 see-through")
+    pcall(RT.charTab, "loot")
+    pcall(RT.worldTab, "loot")
+    pcall(function() H.opt("baseTheme"):setValue(S.baseOpt0) end)
+    pcall(St.setSeeThrough, S.seeIdx0)
+    Q.check(H.val("seeThrough") == S.seeIdx0 and ZeD.currentBase == S.base0, "See-through and the theme put back", tostring(H.val("seeThrough")) .. ", " .. tostring(ZeD.currentBase))
+end)
+-- Solid while in use: the window box's row (See-through's last) flips it and saves it; a second pick puts it back
+Q.step(3, function()
+    S.solid0 = St.solidInUse()
+    local g = H.menuGroup(H.stub(), "UI_ZeD_Settings_SeeThrough")
+    local leaf = g and g.children[#g.children]
+    local ok1 = leaf ~= nil and pcall(leaf.onFire)
+    local now = St.solidInUse()
+    Q.check(ok1 and now == (not S.solid0) and H.val("solidInUse") == (now and 2 or 1), "Solid while in use: the window box's row flips it and saves it",
+        tostring(S.solid0) .. " -> " .. tostring(now) .. ", option " .. tostring(H.val("solidInUse")))
+    if leaf then pcall(leaf.onFire) end
+    Q.check(St.solidInUse() == S.solid0, "Solid while in use: a second pick puts it back", tostring(St.solidInUse()))
+end)
+-- Low-health blink: Off holds the pixel lit at every moment; On, it is dark part of each second
+Q.step(3, function()
+    S.blink0 = St.healthBlink()
+    pcall(St.setHealthBlink, false)
+    local lit = 0
+    for ms = 0, 2000, 50 do if ZeD_Window.pixelLit(true, ms) then lit = lit + 1 end end
+    Q.check(not St.healthBlink() and H.val("healthBlink") == 1 and lit == 41, "Low-health pixel blink Off: the pixel holds lit", lit .. " of 41 moments lit")
+    pcall(St.setHealthBlink, true)
+    local dark = 0
+    for ms = 0, 2000, 50 do if not ZeD_Window.pixelLit(true, ms) then dark = dark + 1 end end
+    Q.check(St.healthBlink() and H.val("healthBlink") == 2 and (dark > 0 or not ZeD_Window.PIXEL_BLINK), "Low-health pixel blink On: the pixel blinks", dark .. " of 41 moments dark")
+    pcall(St.setHealthBlink, S.blink0)
+    Q.check(St.healthBlink() == S.blink0, "Low-health pixel blink put back", tostring(St.healthBlink()))
+end)
+-- Item-colored tiles: the switch reads back, and the tints are loaded
+Q.step(3, function()
+    S.tint0 = St.gridTint()
+    pcall(St.setGridTint, not S.tint0)
+    Q.check(St.gridTint() == (not S.tint0) and H.val("gridTint") == ((not S.tint0) and 2 or 1), "Item-colored grid tiles: the switch is read back at once", tostring(St.gridTint()))
+    pcall(St.setGridTint, S.tint0)
+    Q.check(St.gridTint() == S.tint0, "Item-colored grid tiles put back", tostring(St.gridTint()))
+    Q.check(ZeD.ItemTints ~= nil and ZeD.ItemTints["Acorn"] == 8806442, "Item-colored grid tiles: the item colors are loaded (Acorn)", tostring(ZeD.ItemTints and ZeD.ItemTints["Acorn"]))
+end)
+-- the four controller highlights, each through the window box's menu, with the windows drawing a moment each
+Q.step(3, function()
+    S.focus0 = St.focusStyle()
+    S.errFocus = H.errs()
+end)
+for i = 1, #((St and St.focusStyleKeys) or {}) do
+    Q.step(2, function() S.picked = H.menuPick(H.stub(), "UI_ZeD_Settings_FocusStyle", i) end)
+    Q.step(6, function()
+        local k = St.focusStyleKeys[i]
+        Q.check(S.picked and St.focusStyle() == k and H.val("focusStyle") == i, "Controller highlight " .. k .. ": the window box's pick is read and saved",
+            tostring(St.focusStyle()) .. ", option " .. tostring(H.val("focusStyle")))
+    end)
+end
+Q.step(3, function()
+    local e1 = H.errs()
+    if S.errFocus and e1 then Q.check(e1 == S.errFocus, "the controller highlights drew with no Lua error", (e1 - S.errFocus) .. " new") end
+    pcall(St.setFocusStyle, S.focus0)
+    Q.check(St.focusStyle() == S.focus0, "Controller highlight put back", tostring(St.focusStyle()))
+end)
+-- the Immersive or simple forms: each getter answers Simple right after its option is item 2, Immersive at item 1
+Q.step(3, function()
+    local forms = {
+        { "beltStyle", function() return ZeD.Belt and ZeD.Belt.simple and ZeD.Belt.simple() end },
+        { "devicesStyle", St.devicesSimple }, { "watchStyle", St.watchSimple }, { "dashStyle", St.dashSimple },
+        { "guideStyle", St.guideSimple }, { "modsStyle", St.modsSimple }, { "identityStyle", St.identitySimple },
+    }
+    local bad = {}
+    for _, f in ipairs(forms) do
+        local o = H.opt(f[1])
+        if not (o and f[2]) then
+            bad[#bad + 1] = f[1] .. " missing"
+        else
+            local v0 = o:getValue()
+            local s2, s1 = nil, nil
+            pcall(function() o:setValue(2); s2 = f[2]() end)
+            pcall(function() o:setValue(1); s1 = f[2]() end)
+            pcall(function() o:setValue(v0) end)
+            if not (s2 == true and not s1) then bad[#bad + 1] = f[1] .. " " .. tostring(s2) .. "/" .. tostring(s1) end
+        end
+    end
+    Q.check(#bad == 0, "Immersive or simple forms: each form's getter follows its option at once (belt, devices, watch, dash, guide, mods, identity)",
+        (#bad > 0) and table.concat(bad, "; ") or (#forms .. " forms"))
+    H.putOptions()
 end)
 
 -- ===================================================================== 5. safe mode
@@ -368,6 +927,8 @@ Q.step(30, function()
     if S.safeSkip then return end
     Q.say("reset: " .. H.state())
     Q.check(not Sf.on() and H.hotbar() == "replaced" and H.moodles() == "true" and not H.vanillaInv(), "a reset brings ZeD back and hides the game's page")
+    Q.check(Sf._state ~= nil and Sf._state.tripped == false and not Sf.on(), "trip recovery by hand: ZeD.Safe.reset() clears the trip and the switch reads Off",
+        "tripped " .. tostring(Sf._state and Sf._state.tripped))
     RT.pairOpen()
 end)
 Q.step(30, function()
@@ -395,12 +956,36 @@ H.optionPoll(2, true, "the Safe mode option On is picked up by itself within a s
 Q.step(30, function()
     if S.safeSkip then return end
     Q.check(H.bothShut() and H.vanillaInv() and H.hotbar() == "vanilla" and H.note() == nil, "Safe mode On: the game's own pages, no trip note")
+    -- Messages keeps nothing while safe mode is on (with the catch switch On meanwhile)
+    local MS = ZeD.Messages
+    if MS and MS.wouldKeep and St.messagesCatchOption then
+        S.catchTmp = St.messagesCatchOption:getValue()
+        St.messagesCatchOption:setValue(2)
+        Q.check(MS.wouldKeep("ZeD QA test mod") == false, "never caught in safe mode: with safe mode On, Messages keeps no other mod's note")
+    end
 end)
 H.optionPoll(1, false, "the Safe mode option Off is picked up by itself within a second")
 Q.step(30, function()
     if S.safeSkip then return end
     Q.check(not Sf.on() and H.hotbar() == "replaced" and not H.vanillaInv(), "Safe mode Off: ZeD back")
+    Q.check(Sf._state ~= nil and Sf._state.applied == false, "Safe mode recovery: switched Off, nothing of the game's own is left applied",
+        "applied " .. tostring(Sf._state and Sf._state.applied))
+    local MS = ZeD.Messages
+    if S.catchTmp then
+        if MS.popupsFor("ZeD QA test mod") then
+            Q.skip("the control: a note kept with safe mode Off", "the test mod's name is on this game's pop-up list")
+        else
+            Q.check(MS.wouldKeep("ZeD QA test mod") == true, "with safe mode Off the same note would be kept again (the control)")
+        end
+        St.messagesCatchOption:setValue(S.catchTmp)
+        S.catchTmp = nil
+    end
+    RT.pairOpen()
     S.burstN, S.tBurst = 0, nil
+end)
+Q.waitFor(5, 300, function() return S.safeSkip or H.bothOpen() end, function(ok)
+    if S.safeSkip then return end
+    Q.check(ok and not H.vanillaInv(), "Safe mode recovery: the ZeD Character and World windows open again")
 end)
 -- the watchdog: a burst of five frames (the first with 100 faults, counted once) leaves ZeD on, 2.5 s later still
 Q.waitFor(5, 60, function()
@@ -484,6 +1069,11 @@ Q.step(5, function()
         end
     end
     if not any then Q.skip("step-aside", "no active mod replaces a ZeD screen in this game") end
+    -- the mods ZeD supports (ModSupport) never trigger a hand-back
+    local hit = {}
+    for sc, f in pairs(found) do if SA.SUPPORTED and SA.SUPPORTED[tostring(f.id)] then hit[#hit + 1] = sc .. ":" .. tostring(f.id) end end
+    Q.check(SA.SUPPORTED ~= nil and SA.SUPPORTED.AutoHideHotbar == true and #hit == 0, "step-aside: a supported mod (AutoHideHotbar and the rest) is never detected",
+        (#hit > 0) and table.concat(hit, " ") or "none detected")
 end)
 
 -- ===================================================================== 7. Messages keeps another mod's note
@@ -541,6 +1131,73 @@ Q.step(5, function()
         if S.toastWas then St.messagesToastOption:setValue(S.toastWas) end
     end)
     Q.check(MS.sources[S.SRC] == nil, "put back: the test mod's messages are cleared")
+end)
+-- the balloon: with Balloons On a new message shows one, gone after six seconds; Off, none
+Q.step(5, function()
+    local MS = ZeD.Messages
+    if S.msgSkip or not (MS and MS.notice and St.messagesToastOption) then S.toastSkip = true; return end
+    S.HEAD = "ZeD QA balloon"
+    S.toasts1 = {}
+    for _, t in ipairs(MS.toasts or {}) do S.toasts1[#S.toasts1 + 1] = t end
+    S.toastOpt0 = St.messagesToastOption:getValue()
+    St.messagesToastOption:setValue(2)
+    MS.notice(S.HEAD, "QA: a message with its balloon.")
+    S.tToast = getTimestampMs()
+    Q.check(H.toastsOf(S.HEAD) == 1, "Messages, balloons On: a new message shows its balloon", H.toastsOf(S.HEAD) .. " balloons")
+end)
+Q.waitFor(5, 3000, function()
+    if S.toastSkip then return true end
+    return H.toastsOf(S.HEAD) == 0 or getTimestampMs() - S.tToast > 7500
+end, function()
+    if S.toastSkip then return end
+    local MS = ZeD.Messages
+    local ms = getTimestampMs() - S.tToast
+    Q.check(H.toastsOf(S.HEAD) == 0 and ms >= 5900 and ms <= 7500, "Messages: the balloon goes after six seconds", ms .. " ms")
+    St.messagesToastOption:setValue(1)
+    MS.notice(S.HEAD, "QA: a second message, balloons Off.")
+    Q.check(H.toastsOf(S.HEAD) == 0, "Messages, balloons Off: a new message shows no balloon", H.toastsOf(S.HEAD) .. " balloons")
+    MS.clear(S.HEAD)
+    MS.toasts = S.toasts1
+    St.messagesToastOption:setValue(S.toastOpt0)
+    Q.check(MS.sources[S.HEAD] == nil and St.messagesToastOption:getValue() == S.toastOpt0, "put back: the balloon test's messages and the switch")
+end)
+-- Bug report: every caught error onto the clipboard, the count returned; the clipboard put back as it was (a test
+-- that cannot read it back leaves it alone), the "copied" note closed
+Q.step(5, function()
+    local MS = ZeD.Messages
+    if not (MS and MS.copyBugReport and MS.reportAll) then Q.check(false, "ZeD's Messages has the Bug report"); return end
+    S.clip0 = nil
+    pcall(function() S.clip0 = Clipboard.getClipboard() end)
+    if S.clip0 == nil then Q.skip("Bug report to the clipboard", "the clipboard cannot be read back here, so the test leaves it alone"); return end
+    local want = nil
+    pcall(function() local _, n = MS.reportAll(); want = n end)
+    local src0 = {}
+    for name in pairs(MS.sources or {}) do src0[name] = true end
+    S.newWas = ISModalDialog.new
+    ISModalDialog.new = function(self, ...)
+        local o = S.newWas(self, ...)
+        S.bugModal = o
+        return o
+    end
+    local okB, n = pcall(MS.copyBugReport, pn)
+    ISModalDialog.new = S.newWas
+    S.newWas = nil
+    local got = nil
+    pcall(function() got = Clipboard.getClipboard() end)
+    pcall(function() Clipboard.setClipboard(S.clip0) end)
+    local back, orig = nil, S.clip0
+    pcall(function() back = Clipboard.getClipboard() end)
+    S.clip0 = nil
+    pcall(function() if S.bugModal then S.bugModal:destroy() end end)
+    S.bugModal = nil
+    -- (the note is ZeD's own; should Messages have kept it under the test's name, that line goes too)
+    local fresh = {}
+    for name in pairs(MS.sources or {}) do if not src0[name] then fresh[#fresh + 1] = name end end
+    for _, name in ipairs(fresh) do pcall(MS.clear, name) end
+    Q.check(okB and n ~= nil and n == want, "Bug report: the count it returns is the caught errors'", tostring(n) .. ", want " .. tostring(want))
+    Q.check(type(got) == "string" and string.sub(got, 1, 8) == "ZeD-GUI ", "Bug report: the clipboard holds the report (it starts \"ZeD-GUI \")",
+        type(got) == "string" and string.sub(got, 1, 40) or tostring(got))
+    Q.check(back ~= nil and back == orig, "put back: the clipboard as it was", tostring(back and #back) .. " characters, " .. tostring(orig and #orig) .. " before")
 end)
 
 -- ===================================================================== 8. the soak: two minutes of play
@@ -644,11 +1301,51 @@ Q.step(3, function()
         game .. " keys" .. ((#badGame > 0) and (", none for: " .. table.concat(badGame, " ", 1, math.min(#badGame, 12))) or ""))
 end)
 
+-- ===================================================================== 9b. data the screens read
+Q.step(3, function()
+    -- the in-game sandbox window's WHEN and RISK tags: every tag one the window knows; a "fix" row is locked
+    local N = ZeD.SandboxNotes
+    if not (N and N.when and N.WHEN) then Q.check(false, "ZeD's sandbox notes are loaded"); return end
+    local okW = { now = true, new = true, chr = true, load = true, fix = true }
+    local badW, badR = {}, {}
+    for k, v in pairs(N.WHEN) do if not okW[v] then badW[#badW + 1] = tostring(k) end end
+    for k, v in pairs(N.RISK or {}) do if v ~= "care" and v ~= "undo" then badR[#badR + 1] = tostring(k) end end
+    Q.check(okW[N.when("DayLength")] and N.when("StartMonth") == "fix" and N.risk("ErosionDays") == "undo" and #badW == 0 and #badR == 0,
+        "sandbox tags: each setting's WHEN and RISK is one the window knows (DayLength " .. tostring(N.when("DayLength")) .. ")",
+        table.concat(badW, " ") .. " | " .. table.concat(badR, " "))
+    local d1, d2 = nil, nil
+    pcall(function() d1 = ZeD_MMSandboxIG.rowDisabled({ ctls = {} }, { name = "StartMonth" }) end)
+    pcall(function() d2 = ZeD_MMSandboxIG.rowDisabled({ ctls = {} }, { name = "DayLength" }) end)
+    Q.check(d1 == true and d2 == false, "sandbox tags: a \"fix\" setting's row is locked, a \"now\" one is not", tostring(d1) .. " / " .. tostring(d2))
+end)
+Q.step(3, function()
+    -- capitals for every language: the German sharp s stays one letter; an accented letter takes its capital
+    local ss = string.char(223)
+    local u1 = ZeD.upper("stra" .. ss .. "e")
+    local u2 = ZeD.upper(string.char(233))
+    Q.check(u1 == "STRA" .. ss .. "E" and u2 == string.char(201), "capitals: the sharp s stays one letter and an accented letter takes its capital",
+        tostring(u1 and #u1) .. " letters")
+    -- the pixel faces' extra letters (PixelFontsExt.lua merged into PixelFonts.lua's faces): signs, accents, Cyrillic
+    local PF = ZeD.PixelFonts or {}
+    local f35, f57, f57t = PF["35"], PF["57"], PF["57t"]
+    Q.check(f35 ~= nil and f35.A ~= nil and f35[string.char(33)] ~= nil and f57 ~= nil and f57[string.char(201)] ~= nil
+        and f57[string.char(1040)] ~= nil and f57t ~= nil and rawget(f57t, string.char(201)) ~= nil,
+        "pixel fonts: the 3x5 and 5x7 faces have their signs, accented capitals and Cyrillic (the extra file merged)")
+end)
+
 -- ===================================================================== put back
 Q.mark()
 Q.step(5, function()
     S.trOn = false
     if ZeD.tr ~= S.trWas then ZeD.tr = S.trWas end
+    -- (a run cut short: what a section had swapped is its own again)
+    if S.faultWas and Sf.fault ~= S.faultWas then Sf.fault = S.faultWas end
+    if S.qcReset and ZeD.QuickChords then ZeD.QuickChords.reset = S.qcReset end
+    if S.newWas then ISModalDialog.new = S.newWas end
+    if S.clip0 then pcall(function() Clipboard.setClipboard(S.clip0) end) end
+    pcall(function() if S.accC then RT.cw()._accentKey = S.accC.k end end)
+    pcall(function() if S.accW then RT.ww()._accentKey = S.accW.k end end)
+    if S.o2 and MM.pauseView == "options" and MM.pauseOpts and MM.pauseOpts:isVisible() then pcall(function() MM.pauseOpts:discardStay() end) end
     -- the settings this script touched, each as it was (a run cut short jumps here)
     pcall(function() if S.abWas and St.actionBarOption:getValue() ~= S.abWas then St.actionBarOption:setValue(S.abWas) end end)
     if S.ini0 and not S.iniBack then H.writeIni(S.ini0) end
@@ -670,8 +1367,15 @@ Q.step(5, function()
         if S.SRC and MS.sources[S.SRC] then MS.clear(S.SRC) end
         if S.catchWas then St.messagesCatchOption:setValue(S.catchWas) end
         if S.toastWas then St.messagesToastOption:setValue(S.toastWas) end
+        if S.HEAD and MS.sources[S.HEAD] then MS.clear(S.HEAD) end
+        if S.catchTmp then St.messagesCatchOption:setValue(S.catchTmp) end
     end)
-    if S.menuWas == false and H.menuUp() then H.toggleMenu() end
+    -- every ZeD option's value in memory as found, the character's copies, the look, and the file line for line
+    pcall(H.putOptions)
+    pcall(function() if S.root0 and math.abs(Sc.root() - S.root0) > 0.001 then St.applyScale(St.uiScaleOption:getValue()) end end)
+    pcall(H.putLook)
+    if S.ini0 then H.writeIni(S.ini0) end
+    if (S.menuWas == false or S.menuWas2 == false) and H.menuUp() then H.toggleMenu() end
     if getGameSpeed() <= 0 then pcall(setGameSpeed, 1) end
 end)
 Q.waitFor(10, 900, function()
@@ -684,5 +1388,16 @@ end, function()
     Q.check((not S.abWas or St.actionBarOption:getValue() == S.abWas) and (not S.scaleWas or S.scaleOpt:getValue() == S.scaleWas)
         and (not S.safeWas or S.safeOpt:getValue() == S.safeWas) and (not S.base0 or ZeD.currentBase == S.base0),
         "put back: every setting this script changed is as it was")
+    local zo, off = H.opts(), {}
+    for id, v in pairs(S.opt0 or {}) do
+        local o = zo and zo.dict and zo.dict[id]
+        if o and o.selected ~= v then off[#off + 1] = id end
+    end
+    Q.check(#off == 0 and ZeD.currentAccent == S.accent0 and ZeD.currentSize == S.size0 and ZeD.currentStatus == (S.look0 and S.look0.status)
+        and ZeD.surfaceAlpha == (S.look0 and S.look0.a),
+        "put back: every ZeD option's value, the accent, the text size and the see-through as found", table.concat(off, " "))
+    local now = H.readIni()
+    Q.check(S.ini0 ~= nil and now ~= nil and table.concat(now, "\n") == table.concat(S.ini0, "\n"), "put back: ModOptions.ini is as found, line for line",
+        tostring(now and #now) .. " lines, " .. tostring(S.ini0 and #S.ini0) .. " before")
 end)
 Q.start()

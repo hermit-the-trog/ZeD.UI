@@ -17,6 +17,15 @@
 --      (ZeD_WriteNoteAction) is kept on the page
 --   5. the reader (ZeD_Reader.lua): Open full opens the notebook in ZeD's reader with the line on its page; a second
 --      page written there and Done keep both pages' text
+--   (Nov 18 2026, QA, the ledger's gaps closed here:)
+--   3b. the map zooms (wheel, the pad's gpZoom) and pans (gpMoveCursor at the edge, a drag); the unfold button opens
+--      the map in a window of its own, on screen, and a click on the drawer's fold place folds it back
+--   6. the Journal page: a tag pick ticked by a click, Save writes the entry at the top of the log with its tag, the box
+--      and ticks clear (the entry taken out after)
+--   7. the Journal's Recipes page draws its rows; a click on the All recipes head folds it and a second opens it
+--   8. the survival guide: the book (Immersive) turns by its strip, the wheel, RB and the arrow key, Contents and a
+--      contents row, the start-up box flips the game's option and back; a spoiler bar shows its numbers on a click and
+--      on A; Escape and B close the book, Escape closes the Simple window
 -- (The newspaper / print media page is not tested here: the director ruled it is not ZeD's.)
 -- Every surface is measured with RT.bounds. Put back: the hands, the sets taken away, the map's style and marks, the
 -- time of day, the grid, the character's place, both windows on Loot and open or shut as found; RT.takeBack takes
@@ -482,6 +491,117 @@ Q.step(5, function()
     S.note = nil
 end)
 
+-- ===================================================================== 3b. the map: zoom and pan, unfold and fold
+-- (the wheel through the map's own onMouseWheel, the triggers through gpZoom, the left stick at the edge through
+-- gpMoveCursor; a drag through the map's own press, move and release, with the pointer moved for it: it reads the
+-- pointer, so a run where the pointer cannot be moved says SKIP for the drag)
+function H.mapView()
+    local m = H.mp()
+    local v = nil
+    if m and m.mapAPI then
+        pcall(function() v = { z = m.mapAPI:getZoomF(), x = m.mapAPI:getCenterWorldX(), y = m.mapAPI:getCenterWorldY() } end)
+    end
+    return v
+end
+Q.step(5, function()
+    local m = H.mp()
+    S.view0 = H.mapView()
+    if not Q.check(m ~= nil and S.view0 ~= nil, "zoom: the map is up") then S.zSkip = true; return end
+    pcall(function() Mouse.setXY(20, 20) end)
+    m:onMouseWheel(-1)
+end)
+Q.waitFor(3, 60, function() local v = H.mapView(); return S.zSkip or (v ~= nil and math.abs(v.z - S.view0.z) > 0.001) end, function(ok)
+    if S.zSkip then return end
+    local v = H.mapView()
+    Q.check(ok, "zoom: the mouse wheel zooms the map", string.format("%.2f to %.2f", S.view0.z, v and v.z or -1))
+    S.zMid = v and v.z
+    MT.gpZoom(H.WW(), 1)
+end)
+Q.waitFor(3, 60, function() local v = H.mapView(); return S.zSkip or (v ~= nil and math.abs(v.z - (S.zMid or 0)) > 0.001) end, function(ok)
+    if S.zSkip then return end
+    Q.check(ok, "zoom: the pad's trigger zooms it (gpZoom)")
+    local m = H.mp()
+    S.pan0 = H.mapView()
+    m:seedGpCursor()
+    MT.gpMoveCursor(H.WW(), -m:getWidth(), 0)
+end)
+Q.step(5, function()
+    if S.zSkip then return end
+    local v = H.mapView()
+    Q.check(v ~= nil and math.abs(v.x - S.pan0.x) > 0.5, "pan: the pad's cursor at the map's edge pans it (gpMoveCursor)",
+        string.format("%.1f to %.1f", S.pan0.x, v and v.x or -1))
+    local m = H.mp()
+    S.drag = { x = math.floor(m:getWidth() / 2), y = math.floor(m:getHeight() / 2), ax = m:getAbsoluteX(), ay = m:getAbsoluteY() }
+    pcall(function() Mouse.setXY(S.drag.ax + S.drag.x, S.drag.ay + S.drag.y) end)
+end)
+Q.step(3, function()
+    if S.zSkip then return end
+    local d = S.drag
+    if getMouseX() ~= d.ax + d.x or getMouseY() ~= d.ay + d.y then
+        d.skip = true
+        Q.skip("pan: a drag pans the map", "the pointer could not be moved on this run")
+        return
+    end
+    local m = H.mp()
+    d.v0 = H.mapView()
+    m:onMouseDown(d.x, d.y)
+    d.dx = ZeD.T.px(120)
+    pcall(function() Mouse.setXY(d.ax + d.x + d.dx, d.ay + d.y) end)
+end)
+Q.step(3, function()
+    if S.zSkip or S.drag.skip then return end
+    local m, d = H.mp(), S.drag
+    m:onMouseMove(d.dx, 0)
+    m:onMouseUp(d.x + d.dx, d.y)
+    local v = H.mapView()
+    Q.check(v ~= nil and math.abs(v.x - d.v0.x) > 0.5, "pan: a drag pans the map", string.format("%.1f to %.1f", d.v0.x, v and v.x or -1))
+end)
+Q.step(3, function()
+    pcall(function() Mouse.setXY(20, 20) end)
+    H.putView()
+    -- unfold: the button on the Maps header, through the tab's own click handler
+    local w = H.WW()
+    local z = w and w._mapPopoutZone
+    if not Q.check(z ~= nil, "unfold: the Maps header has its unfold button") then S.popSkip = true; return end
+    MT.onClick(w, z.x + 2, z.y + 2)
+end)
+Q.waitFor(5, 300, function()
+    local w = H.WW()
+    local m = H.mp()
+    return S.popSkip or (w._mapPopout ~= nil and m ~= nil and m:isReallyVisible() and MT.isPopoutOpen(w))
+end, function(ok)
+    if S.popSkip then return end
+    local w = H.WW()
+    local pop = w._mapPopout
+    if not Q.check(ok and pop ~= nil and pop:isReallyVisible(), "unfold: the map opens in a window of its own and draws there") then return end
+    local m = H.mp()
+    Q.check(m:getAbsoluteX() >= pop:getAbsoluteX() and m:getAbsoluteY() >= pop:getAbsoluteY(), "unfold: the live map is the pop-out's")
+    RT.bounds(Q, "the unfolded map")
+end)
+Q.step(5, function()
+    if S.popSkip then return end
+    local w = H.WW()
+    local z = w._mapFoldZone
+    if not Q.check(z ~= nil, "fold: the drawer shows the fold-back place") then pcall(MT.closePopout, w, true); return end
+    MT.onClick(w, z.x + 2, z.y + 2)
+end)
+Q.waitFor(5, 300, function()
+    local w = H.WW()
+    local m = H.mp()
+    return S.popSkip or (w._mapPopout == nil and m ~= nil and m:isReallyVisible())
+end, function(ok)
+    if S.popSkip then return end
+    Q.check(ok and not MT.isPopoutOpen(H.WW()), "fold: a click on the drawer folds the map back into the tab")
+end)
+function H.putView()
+    local m = H.mp()
+    local v = S.view0
+    if not (m and v) then return end
+    pcall(function() m.mapAPI:centerOn(v.x, v.y) end)
+    pcall(function() m.mapAPI:setZoom(v.z) end)
+    S.view0 = nil
+end
+
 -- ===================================================================== 4. the Journal tab: the lists, the quick note
 local NOTE = "fossoil out back. two cans. check again tomorrow"
 local PAGE2 = "water: 2 bottles and the pot.\nfood: beans, crackers"
@@ -591,12 +711,322 @@ Q.step(10, function()
     Q.check(not (r and r:isReallyVisible()), "Done closes the reader")
 end)
 
+-- ===================================================================== 6. the Journal page: a log entry with a tag
+-- (a tag ticked through the page's own click handler; Save is the pad's journal:__save press, the button's own onclick:
+-- a mouse click on it needs the pointer over it)
+local LOG = "ZEDQA rt log: the water tower is dry"
+function H.putLog()
+    if not S.logBack then return end
+    S.logBack = nil
+    local md = p:getModData()
+    local j = md.ZeD_Journal
+    if j and j.entries then
+        for i = #j.entries, 1, -1 do if j.entries[i] and j.entries[i].text == LOG then table.remove(j.entries, i) end end
+    end
+    if not S.logHad then md.ZeD_Journal = nil end
+    local w = H.CW()
+    if w then
+        if w._jr then w._jr.logInto = S.logInto end
+        w._journalCache = nil
+        pcall(function() ZeD.JournalTab.clearPicks(w) end)
+        pcall(function() if w._journalInput then w._journalInput:clear() end end)
+    end
+end
+Q.step(10, function()
+    local w = H.CW()
+    local md = p:getModData()
+    S.logHad = md.ZeD_Journal ~= nil
+    S.logN = (md.ZeD_Journal and md.ZeD_Journal.entries) and #md.ZeD_Journal.entries or 0
+    S.logInto = w._jr and w._jr.logInto
+    S.logBack = true
+    if w._jr then w._jr.logInto = nil end   -- (the log only: Into a notebook is the quick note's, tested above)
+    ZeD.JournalTab.clearPicks(w)
+    if w._activeTab ~= "journal" then RT.charTab("journal") end
+    ZeD.JournalTab.setPage(w, 1)
+end)
+Q.waitFor(5, 300, function()
+    local w = H.CW()
+    local z = w._journalPickZones
+    return w._journalSubTab == 1 and z ~= nil and #z > 0 and w._journalInput ~= nil and w._journalInput:isReallyVisible()
+end, function(ok)
+    if not Q.check(ok, "the Journal page draws its write box and tag picks") then S.logSkip = true; return end
+    local w = H.CW()
+    RT.bounds(Q, "the Journal page")
+    S.tagK = nil
+    for _, z in ipairs(w._journalPickZones) do if z.k == "news" then S.tagZ = z end end
+    S.tagZ = S.tagZ or w._journalPickZones[1]
+    S.tagK = S.tagZ.k
+    if not ZeD.JournalTab.onBodyClick(w, S.tagZ.x + 2, S.tagZ.y + 2) then
+        Q.say("(the tag pick sat outside the log's view: ticked through togglePick)")
+        ZeD.JournalTab.togglePick(w, S.tagK)
+    end
+end)
+Q.step(5, function()
+    if S.logSkip then return end
+    local w = H.CW()
+    Q.check(ZeD.JournalTab.isPicked(w, S.tagK), "a click on a tag pick ticks it (" .. tostring(S.tagK) .. ")")
+    w._journalInput:setText(LOG)
+    local btn = w._journalSaveBtn
+    if Q.check(btn ~= nil and btn.onclick ~= nil, "the Journal page has its Save") then btn.onclick(btn.target, btn) end
+end)
+Q.step(5, function()
+    if S.logSkip then return end
+    local w = H.CW()
+    local j = p:getModData().ZeD_Journal
+    local e = j and j.entries and j.entries[1]
+    Q.check(e ~= nil and e.text == LOG and #j.entries == S.logN + 1, "Save writes the entry at the top of the log",
+        tostring(e and e.text) .. " (" .. tostring(j and j.entries and #j.entries) .. " entries, were " .. S.logN .. ")")
+    local tagged = false
+    for _, k in ipairs((e and e.tags) or {}) do if k == S.tagK then tagged = true end end
+    Q.check(tagged, "the entry keeps the ticked tag")
+    Q.check(ZeD.JournalTab.pickedTags(w) == nil and (w._journalInput:getText() or "") == "", "Save clears the box and the ticks")
+    H.putLog()
+end)
+
+-- ===================================================================== 7. the Journal's Recipes page (read only)
+Q.step(5, function()
+    local w = H.CW()
+    ZeD.JournalTab.setPage(w, 4)
+end)
+Q.waitFor(5, 600, function()
+    local w = H.CW()
+    local st = w._jrecipeState
+    if not (w._journalSubTab == 4 and st and st.zones) then return false end
+    local head, rows = nil, 0
+    for _, z in ipairs(st.zones) do
+        if z.type == "sectionHeader" and z.id == "all" then head = z end
+        if z.type == "recipeRow" then rows = rows + 1 end
+    end
+    S.rHead, S.rRows = head, rows
+    return head ~= nil and rows > 0
+end, function(ok)
+    if not Q.check(ok, "Recipes: the page draws its recipe rows", tostring(S.rRows) .. " rows") then S.recSkip = true; return end
+    RT.bounds(Q, "the Journal's Recipes page")
+    local st = H.CW()._jrecipeState
+    S.recWas = st.allCollapsed and true or false
+    local z = S.rHead
+    Q.check(ZeD.JournalTab.onRecipeClick(H.CW(), z.x + 2, z.y + 2) == true, "Recipes: a click on the All recipes head is taken")
+end)
+Q.step(10, function()
+    if S.recSkip then return end
+    local st = H.CW()._jrecipeState
+    local rows = 0
+    for _, z in ipairs(st.zones or {}) do if z.type == "recipeRow" then rows = rows + 1 end end
+    Q.check((st.allCollapsed and true or false) ~= S.recWas, "Recipes: the head folds its group", rows .. " rows now")
+    for _, z in ipairs(st.zones or {}) do if z.type == "sectionHeader" and z.id == "all" then S.rHead = z end end
+    ZeD.JournalTab.onRecipeClick(H.CW(), S.rHead.x + 2, S.rHead.y + 2)
+end)
+Q.step(10, function()
+    if S.recSkip then return end
+    local st = H.CW()._jrecipeState
+    local rows = 0
+    for _, z in ipairs(st.zones or {}) do if z.type == "recipeRow" then rows = rows + 1 end end
+    Q.check((st.allCollapsed and true or false) == S.recWas and rows > 0, "Recipes: a second click opens it again", rows .. " rows")
+    ZeD.JournalTab.setPage(H.CW(), 1)
+end)
+
+-- ===================================================================== 8. the survival guide: the book and the window
+-- (the book is the Immersive look: turned by its strip (mouse), the wheel, RB (its own pad handler) and the arrow key;
+-- Contents and a contents row; the start-up box flips the game's option and back; a spoiler bar shows its numbers on a
+-- click and on A; Escape (the game's key handler, ZeD's in front) and B close it; Escape closes the Simple window too.
+-- The guide's first-game bubble is held off for the test, so opening the guide does not end it.)
+function H.book() return ZeD.GuideBook and ZeD.GuideBook.books and ZeD.GuideBook.books[pn] end
+function H.bookOpen() return ZeD.GuideBook and ZeD.GuideBook.isOpen and ZeD.GuideBook.isOpen(pn) or false end
+function H.stripRect(id)
+    local bk = H.book()
+    local r = bk and bk._stripRects
+    if not r then return nil end
+    if id == "startup" then return r.check end
+    for _, b in pairs(r.buttons or {}) do if b.id == id then return b end end
+    return nil
+end
+function H.stripPress(id)
+    local bk, r = H.book(), H.stripRect(id)
+    if not (bk and r) then return false end
+    local x, y = r.x + math.floor(r.w / 2), r.y + math.floor(r.h / 2)
+    bk:onMouseDown(x, y)
+    bk:onMouseUp(x, y)
+    return true
+end
+function H.pauseMenuUp()
+    local up = false
+    pcall(function() local ms = MainScreen.instance; up = ms ~= nil and ms.inGame and ms:isVisible() end)
+    return up and true or false
+end
+function H.escape()
+    if not (_G._zedPromptKeys and ToggleEscapeMenu) then return false end
+    ToggleEscapeMenu(Keyboard.KEY_ESCAPE)
+    return true
+end
+function H.putGuide()
+    if not S.gBack then return end
+    S.gBack = nil
+    pcall(function() local w = ZeD.Guide.get(pn); if w and w:isReallyVisible() then w:close() end end)
+    pcall(function() if H.bookOpen() then ZeD.GuideBook.close(pn) end end)
+    if H.pauseMenuUp() and ToggleEscapeMenu then pcall(ToggleEscapeMenu, Keyboard.KEY_ESCAPE) end
+    pcall(function() ZeD.Settings.guideStyleOption:setValue(S.g.style or 1) end)
+    if ZeD.GuideBubble then ZeD.GuideBubble.st = S.g.bubble end
+    pcall(function()
+        local core = getCore()
+        if core:getOptionShowSurvivalGuide() ~= S.g.startup then core:setOptionShowSurvivalGuide(S.g.startup); core:saveOptions() end
+    end)
+    pcall(function() ZeD.Guide.spoil = {} end)
+end
+Q.step(10, function()
+    local core = getCore()
+    S.g = { startup = core:getOptionShowSurvivalGuide(), bubble = ZeD.GuideBubble and ZeD.GuideBubble.st }
+    pcall(function() S.g.style = ZeD.Settings.guideStyleOption:getValue() end)
+    S.gBack = true
+    if ZeD.GuideBubble then ZeD.GuideBubble.st = nil end
+    pcall(function() ZeD.Settings.guideStyleOption:setValue(1) end)
+    pcall(function() Mouse.setXY(20, 20) end)
+    if not (ZeD.Guide and ZeD.GuideBook and ZeD.Guide.useBook()) then
+        S.bookSkip = true
+        Q.skip("the guide book", "this language gets the guide window, not the book")
+        return
+    end
+    ZeD.Guide.open(pn)
+end)
+Q.waitFor(5, 300, function() local bk = H.book(); return S.bookSkip or (H.bookOpen() and bk._stripRects ~= nil) end, function(ok)
+    if S.bookSkip then return end
+    local bk = H.book()
+    if not Q.check(ok and bk.spread == 1, "book: the guide opens as the book, at its first spread") then S.bookSkip = true; return end
+    RT.bounds(Q, "the guide book")
+    Q.check(H.stripPress("next"), "book: its strip has Next page")
+end)
+Q.step(3, function()
+    if S.bookSkip then return end
+    local bk = H.book()
+    Q.check(bk.spread == 2, "book: Next page turns a page (mouse)", bk.spread)
+    bk:onMouseWheel(-1)
+end)
+Q.step(3, function()
+    if S.bookSkip then return end
+    local bk = H.book()
+    Q.check(bk.spread == 1, "book: the wheel turns back", bk.spread)
+    bk:onJoypadDown(Joypad.RBumper, nil)
+end)
+Q.step(3, function()
+    if S.bookSkip then return end
+    local bk = H.book()
+    Q.check(bk.spread == 2, "book: RB turns on (its own pad handler)", bk.spread)
+    bk:onKeyPress(Keyboard.KEY_RIGHT)
+end)
+Q.step(3, function()
+    if S.bookSkip then return end
+    local bk = H.book()
+    Q.check(bk.spread == 3, "book: the right arrow key turns on", bk.spread)
+    Q.check(H.stripPress("toc"), "book: its strip has Contents")
+end)
+Q.step(5, function()
+    if S.bookSkip then return end
+    local bk = H.book()
+    S.tocSpread = math.floor(((bk.contentsPage or 3) + 1) / 2)
+    Q.check(bk.spread == S.tocSpread, "book: Contents opens the contents spread", bk.spread .. ", want " .. S.tocSpread)
+    local li = bk.spread * 2 - 1
+    S.row = nil
+    for _, row in ipairs(bk._contentsRows or {}) do
+        if not S.row and row.page and (row.onPage == li or row.onPage == li + 1) and math.floor((row.page + 1) / 2) ~= bk.spread then S.row = row end
+    end
+    if not Q.check(S.row ~= nil, "book: the contents spread lists its chapters") then return end
+    bk:onMouseDown(S.row.x + 2, S.row.y + 2)
+end)
+Q.step(3, function()
+    if S.bookSkip or not S.row then return end
+    local bk = H.book()
+    local want = math.floor((S.row.page + 1) / 2)
+    Q.check(bk.spread == want, "book: a contents row opens its chapter", bk.spread .. ", want " .. want)
+    S.g.su0 = getCore():getOptionShowSurvivalGuide()
+    Q.check(H.stripPress("startup"), "book: its strip has the start-up box")
+end)
+Q.step(3, function()
+    if S.bookSkip then return end
+    Q.check(getCore():getOptionShowSurvivalGuide() == not S.g.su0, "book: the start-up box flips the game's own option")
+    H.stripPress("startup")
+end)
+Q.step(3, function()
+    if S.bookSkip then return end
+    Q.check(getCore():getOptionShowSurvivalGuide() == S.g.su0, "book: a second press puts the option back")
+    -- a spoiler bar: the topic with this world's water and power settings
+    ZeD.Guide.open(pn, "SurvivalGuide_treat_water_title")
+end)
+Q.waitFor(5, 120, function() local bk = H.book(); return S.bookSkip or (bk._spoilRects ~= nil and #bk._spoilRects > 0) end, function(ok)
+    if S.bookSkip then return end
+    if not ok then S.spoilSkip = true; Q.skip("book: spoilers", "no spoiler bar on this world's water topic"); return end
+    local bk = H.book()
+    local r = bk._spoilRects[1]
+    S.spoilKey = ZeD.Guide.spoilKey(r.topic, r.ri)
+    S.spoilN = #bk._spoilRects
+    bk:onMouseDown(r.x + 2, r.y + 2)
+end)
+Q.step(5, function()
+    if S.bookSkip or S.spoilSkip then return end
+    local bk = H.book()
+    Q.check(ZeD.Guide.spoil[S.spoilKey] == true, "book: a click on a spoiler bar shows its numbers", S.spoilKey)
+    Q.check(#(bk._spoilRects or {}) < S.spoilN, "book: that bar is gone from the page")
+    ZeD.Guide.open(pn, "SurvivalGuide_treat_water_title")
+end)
+Q.waitFor(5, 120, function() local bk = H.book(); return S.bookSkip or S.spoilSkip or (bk._spoilRects ~= nil and #bk._spoilRects > 0) end, function(ok)
+    if S.bookSkip or S.spoilSkip then return end
+    if not Q.check(ok and ZeD.Guide.spoil[S.spoilKey] == nil, "book: opening the guide again hides the spoilers again") then return end
+    H.book().footFocus = nil
+    H.book():onJoypadDown(Joypad.AButton, nil)
+end)
+Q.step(5, function()
+    if S.bookSkip or S.spoilSkip then return end
+    local bk = H.book()
+    Q.check(ZeD.Guide.spoil[S.spoilKey] == true and #(bk._spoilRects or {}) == 0, "book: A on the pages shows every spoiler on the spread")
+end)
+Q.step(3, function()
+    if S.bookSkip then return end
+    if not H.escape() then S.escSkip = true; Q.skip("Escape closes the guide", "ZeD's key handler is not in place") end
+end)
+Q.step(5, function()
+    if S.bookSkip then return end
+    if not S.escSkip then
+        Q.check(not H.bookOpen() and not H.pauseMenuUp(), "Escape closes the book (and the pause menu stays shut)")
+        if H.pauseMenuUp() then pcall(ToggleEscapeMenu, Keyboard.KEY_ESCAPE) end
+    end
+    ZeD.Guide.open(pn)
+end)
+Q.waitFor(3, 120, function() return S.bookSkip or H.bookOpen() end, function(ok)
+    if S.bookSkip then return end
+    if ok then H.book():onJoypadDown(Joypad.BButton, nil) end
+end)
+Q.step(5, function()
+    if S.bookSkip then return end
+    Q.check(not H.bookOpen(), "B closes the book (its own pad handler)")
+end)
+-- the Simple look: the guide window, closed by Escape
+Q.step(5, function()
+    if S.escSkip then return end
+    pcall(function() ZeD.Settings.guideStyleOption:setValue(2) end)
+    ZeD.Guide.open(pn)
+end)
+Q.waitFor(3, 120, function() local w = ZeD.Guide.get(pn); return S.escSkip or (w ~= nil and w:isReallyVisible()) end, function(ok)
+    if S.escSkip then return end
+    if not Q.check(ok and not H.bookOpen(), "the Simple look opens the guide window") then return end
+    RT.bounds(Q, "the guide window")
+    H.escape()
+end)
+Q.step(5, function()
+    if S.escSkip then return end
+    local w = ZeD.Guide.get(pn)
+    Q.check(not (w and w:isReallyVisible()) and not H.bookOpen() and not H.pauseMenuUp(), "Escape closes the guide window")
+    H.putGuide()
+end)
+
 -- ===================================================================== put back
 Q.mark()
 Q.step(5, function()
     H.clearQueue()
     pcall(function() local r = ZeD.Reader.get(pn); if r and r:isReallyVisible() then r:close() end end)
     pcall(function() ZeD.TwoWayFull.close(pn) end)
+    pcall(H.putGuide)
+    pcall(H.putLog)
+    pcall(function() local w = H.WW(); if w and w._mapPopout then MT.closePopout(w, true) end end)
+    pcall(H.putView)
+    pcall(function() local st = H.CW()._jrecipeState; if st and S.recWas ~= nil then st.allCollapsed = S.recWas end end)
     -- the map: a note left, the style, the character's own records of it, the note box's words
     pcall(function() if S.note then N.remove(S.note) end end)
     pcall(function()

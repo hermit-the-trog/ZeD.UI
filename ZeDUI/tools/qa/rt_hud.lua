@@ -13,10 +13,29 @@
 --   forage    Overrides/ForagePins.lua: a find staged as zedqa_forage_pointer.lua stages it (tile 925,13040, the step
 --             back and the facing): ZeD's pin is drawn and the pointer is ZeD's hand, 44 x 77, white; the eye note
 --   guide     ZeD_GuideBubble.lua: a fresh machine's guide bubble comes out of the belt with the guide's words and fades
---   hint      ZeD_HintStrip.lua: at a door the strip shows above the belt, centred; Off takes it away
+--   hint      ZeD_HintStrip.lua: at a door the strip shows above the belt, centred; paused it hides; First hours stops a
+--             hint after its three uses (counted in Zomboid/Lua/ZeD_hints.txt); Off takes it away
+-- (Nov 18 2026, QA, the ledger's HUD gaps closed here:)
+--   belt menu ZeD_Belt.lua: a right-click on the main hand (the belt's onRightMouseUp) and the pad's X on the hand and
+--             on a slot (the belt's own onJoypadDown) open a menu on screen; the pad's menu names the belt its origin
+--   simple    the Simple belt: no strap, the slots SIMPLE_GAP apart, on screen; Full has its strap again
+--   bar style the action bar Simple (53 x 9 units, above the head) and Detailed (the thought bubble), each on a real
+--             transfer; an attach to the hotbar (useProgressBar false in the game) draws no bar
+--   balloon   Balloon.lua: one balloon at a time near the screen's corner, on screen; Escape's dismiss keeps it down
+--             until the focus moves to another control
+--   paused    ZeD_PausedLook.lua: paused, the Character window's glass covers its list and eats presses, the tab strip
+--             still switches tabs; playing again the glass is gone
+--   pin       ZeD_Pins.lua: a skill row's right-click menu pins the skill; the title bar shows its level and XP
+--   popclear  PopClear.lua: a spot over a ZeD window moves clear of it (or stays only when neither side has room)
+--   prompts   ZeD_Prompt.lua / Overrides/Prompts.lua: the game's ISTextBox is ZeD's text prompt and OK hands the typed
+--             text back; a long rich text stays on screen and scrolls; Escape and Enter answer the prompt on top and
+--             the pause menu stays shut
+--   mini-map  Overrides/MiniMap.lua: the game's mini-map shown is hidden again within 500 ms; restore shows it
 -- Every surface: RT.bounds. Puts back: every option, the stats, hands, worn watch, the watch's saved spot, Messages,
--- the guide's flag file and timings, search mode, the time, the character's spot. Things given are taken back.
+-- the guide's flag file and timings, search mode, the time, the character's spot, the hint uses file, the pins, the
+-- hotbar, the game speed, the mini-map. Things given are taken back.
 local Q = RT.make("rt_hud")
+Q.maxMs = 780000                     -- (the runner gives this script 900 s: the put-back runs before that)
 local S = { p = RT.p, pn = RT.pn, back = {} }
 local Z = ZeD
 S.sw, S.sh = RT.core:getScreenWidth(), RT.core:getScreenHeight()
@@ -84,6 +103,131 @@ function S.putHands()
     if not S.back.hands then return end
     S.back.hands = nil
     pcall(function() S.p:setPrimaryHandItem(S.hands[1]); S.p:setSecondaryHandItem(S.hands[2]) end)
+end
+
+-- ===================================================================== belt: the menus on a hand and a slot
+-- (mouse: the belt's own onRightMouseUp on the main hand; pad: the belt's own onJoypadDown X, the pad's place set as
+-- B.focus sets it. The pad's way back to the belt when the menu closes needs a joined controller: by hand.)
+function S.ctx() local c = nil; pcall(function() c = getPlayerContextMenu(S.pn) end); return c end
+function S.menu()
+    local m = nil
+    pcall(function() local v = getPlayerContextMenu(S.pn); m = v and v._zedMenu end)
+    return m
+end
+function S.closeMenu()
+    local m = S.menu()
+    if m then pcall(function() m:close() end) end
+    pcall(function() local c = S.ctx(); if c and c:isAnyVisible() then c:hideAndChildren() end end)
+end
+function S.menuOk(what)
+    local m = S.menu()
+    local vis = false
+    if m then pcall(function() vis = m:isReallyVisible() end) end
+    if not Q.check(m ~= nil and vis, what .. ": a menu opens") then return false end
+    local x, y, w, h = m:getX(), m:getY(), m:getWidth(), m:getHeight()
+    Q.check(S.onScreen(x, y, w, h), what .. ": the menu is on screen", string.format("%d,%d %dx%d", x, y, w, h))
+    RT.bounds(Q, what)
+    return true
+end
+function S.boxIdx(kind, which)
+    local hud = S.hud()
+    for i, b in ipairs(hud and hud._boxes or {}) do
+        if b.kind == kind and (which == nil or b.which == which) then return i, b end
+    end
+    return nil
+end
+function S.putRc()
+    if not S.back.rc then return end
+    S.back.rc = nil
+    S.closeMenu()
+    local hud = S.hud()
+    if hud then hud._gp = nil end
+    pcall(function() S.p:setPrimaryHandItem(S.rc.hands[1]); S.p:setSecondaryHandItem(S.rc.hands[2]) end)
+end
+Q.step(5, function()
+    S.rc = { hands = { S.p:getPrimaryHandItem(), S.p:getSecondaryHandItem() } }
+    S.back.rc = true
+    S.closeMenu()
+    pcall(function() S.p:setPrimaryHandItem(S.hammer); S.p:setSecondaryHandItem(nil) end)
+end)
+Q.step(15, function()
+    local hud = S.hud()
+    local _, b = S.boxIdx("hand", "p")
+    if not Q.check(hud ~= nil and b ~= nil and S.hammer ~= nil and S.p:getPrimaryHandItem() == S.hammer,
+        "belt menu: the hammer is in the main hand") then S.rcSkip = true; return end
+    local cx, cy = b.x + math.floor(b.w / 2), b.y + math.floor(b.h / 2)
+    pcall(function() Mouse.setXY(hud:getAbsoluteX() + cx, hud:getAbsoluteY() + cy) end)
+    pcall(function() hud:onRightMouseDown(cx, cy) end)
+    Q.check(hud:onRightMouseUp(cx, cy) == true, "belt menu: the belt takes a right-click on the main hand")
+end)
+Q.waitFor(2, 120, function() return S.rcSkip or S.menu() ~= nil end, function()
+    if S.rcSkip then return end
+    if S.menuOk("belt menu, right-click on the main hand") then
+        local c = S.ctx()
+        Q.check(c ~= nil and (c.numOptions or 0) > 1, "belt menu: it holds the hammer's own options", c and c.numOptions)
+    end
+    S.closeMenu()
+    pcall(function() Mouse.setXY(20, 20) end)
+end)
+Q.step(10, function()
+    if S.rcSkip then return end
+    local hud = S.hud()
+    local i = S.boxIdx("hand", "p")
+    if not (hud and i) then return end
+    hud._gp = { idx = i, inList = false, row = 1, list = {} }
+    hud:onJoypadDown(Joypad.XButton, nil)
+end)
+Q.waitFor(2, 120, function() return S.rcSkip or S.menu() ~= nil end, function()
+    if S.rcSkip then return end
+    if S.menuOk("belt menu, the pad's X on the main hand") then
+        local c = S.ctx()
+        Q.check(c ~= nil and c.origin == S.hud(), "belt menu: the pad's menu names the belt its origin (the way back to it)")
+    end
+    S.closeMenu()
+end)
+Q.step(10, function()
+    local hud = S.hud()
+    local i = hud and hud:_firstSlotIdx()
+    local b = i and hud._boxes[i]
+    if not (b and b.kind == "slot") then S.noSlot = true; Q.skip("belt menu on a slot", "the belt shows no slot"); return end
+    hud._gp = { idx = i, inList = false, row = 1, list = {} }
+    hud:onJoypadDown(Joypad.XButton, nil)
+end)
+Q.waitFor(2, 120, function() return S.noSlot or S.menu() ~= nil end, function()
+    if not S.noSlot then S.menuOk("belt menu, the pad's X on a slot") end
+    S.putRc()
+end)
+
+-- ===================================================================== the Simple belt
+Q.step(5, function()
+    S.beltStyle = S.opt(Z.Settings.beltStyleOption)
+    S.back.beltStyle = true
+    S.setOpt(Z.Settings.beltStyleOption, 2)
+end)
+Q.step(20, function()
+    local hud = S.hud()
+    if not Q.check(hud ~= nil and hud._drawn == true and Z.Belt.simple(), "simple belt: the Belt option's Simple is read") then return end
+    Q.check(hud._strap == nil and hud._buckle == nil, "simple belt: no strap and no buckle")
+    local slots = S.boxes("slot")
+    if #slots >= 2 then
+        local gap = slots[2].x - (slots[1].x + slots[1].w)
+        Q.check(gap == ZeD.T.px(6), "simple belt: the slots SIMPLE_GAP apart", gap .. " px, want " .. ZeD.T.px(6))
+    else
+        Q.skip("simple belt: the gap between slots", #slots .. " slot(s) on this character's belt")
+    end
+    Q.check(S.onScreen(hud:getX(), hud:getY(), hud:getWidth(), hud:getHeight()), "simple belt: on screen")
+    RT.bounds(Q, "simple belt")
+    S.setOpt(Z.Settings.beltStyleOption, 1)
+end)
+Q.step(20, function()
+    local hud = S.hud()
+    Q.check(hud ~= nil and hud._strap ~= nil, "simple belt: Full brings the strap back")
+    S.putBeltStyle()
+end)
+function S.putBeltStyle()
+    if not S.back.beltStyle then return end
+    S.back.beltStyle = nil
+    S.setOpt(Z.Settings.beltStyleOption, S.beltStyle or 1)
 end
 
 -- ===================================================================== watch, mini and full
@@ -194,6 +338,113 @@ Q.waitFor(1, 300, function() return Z.ActionBar._ends[S.pn] == nil and Z.ActionB
     local inBag = 0
     for _, it in ipairs(S.packed or {}) do if S.bag and it:getContainer() == S.bag:getInventory() then inBag = inBag + 1 end end
     Q.check(inBag == #(S.packed or {}) and inBag > 0, "action bar: the action did its work (" .. inBag .. " in the bag)")
+end)
+
+-- ===================================================================== action bar: Simple and Detailed, and no bar
+-- (each style on its own real transfer: the pencils out of the bag for Simple, back in for Detailed)
+function S.moveAll(fromInv, toInv)
+    for _, it in ipairs(S.packed or {}) do
+        pcall(function() ISTimedActionQueue.add(ISInventoryTransferAction:new(S.p, it, fromInv, toInv, 90)) end)
+    end
+end
+function S.putAbStyle()
+    if not S.back.abStyle then return end
+    S.back.abStyle = nil
+    S.setOpt(Z.Settings.actionBarOption, S.abStyle or 1)
+end
+Q.step(5, function()
+    S.abStyle = S.opt(Z.Settings.actionBarOption)
+    S.back.abStyle = true
+    S.setOpt(Z.Settings.actionBarOption, 2)
+    if not (S.bag and S.packed and #S.packed > 0) then S.abSkip = true; Q.skip("action bar styles", "no bag packed above"); return end
+    S.moveAll(S.bag:getInventory(), S.p:getInventory())
+end)
+Q.waitFor(1, 180, function()
+    local L = Z.ActionBar._layers[S.pn]
+    return S.abSkip or (L ~= nil and L._drawSt ~= nil and L._lay ~= nil and L._lay.bar ~= nil)
+end, function(ok)
+    if S.abSkip then return end
+    local AB = Z.ActionBar
+    local L = AB._layers[S.pn]
+    if not Q.check(ok and AB.mode() == "simple" and L._drawMode == "simple" and L._lay.bar == "simple", "bar style: Simple draws the simple bar",
+        tostring(L and L._drawMode)) then return end
+    local W, H = AB.sizeSimple()
+    local k = L._k or 1
+    Q.check(W == 53 and H == 9, "bar style: the simple bar is 53 x 9 units", W .. " x " .. H)
+    local x, y, w, h = L._lay.px, L._lay.py, W * k, H * k
+    Q.check(S.onScreen(x, y, w, h), "bar style: the simple bar is on screen", string.format("%d,%d %dx%d", x, y, w, h))
+    local _, hy = AB.headScreen(S.pn, S.p)
+    Q.check(hy ~= nil and y + h <= hy + 1, "bar style: the simple bar stands above the head", tostring(y + h) .. " over " .. tostring(hy))
+    RT.bounds(Q, "simple action bar")
+end)
+Q.waitFor(1, 2400, function() return S.abSkip or Z.ActionBar.state(S.p, S.pn) == nil end, function(ok)
+    if S.abSkip then return end
+    Q.check(ok, "bar style: the simple job ends")
+    S.setOpt(Z.Settings.actionBarOption, 1)
+end)
+Q.step(30, function()
+    if S.abSkip then return end
+    S.moveAll(S.p:getInventory(), S.bag:getInventory())
+end)
+Q.waitFor(1, 180, function()
+    local L = Z.ActionBar._layers[S.pn]
+    return S.abSkip or (L ~= nil and L._drawSt ~= nil and L._lay ~= nil and L._lay.bar ~= nil)
+end, function(ok)
+    if S.abSkip then return end
+    local AB = Z.ActionBar
+    local L = AB._layers[S.pn]
+    if not Q.check(ok and AB.mode() == "verbose" and L._drawMode == "verbose" and L._lay.bar == "thought",
+        "bar style: Detailed draws the thought bubble", tostring(L and L._drawMode)) then return end
+    local vw, vh = AB.sizeVerbose(L._drawSt)
+    Q.check(vw >= 60 and vh > 0, "bar style: the detailed bar has its size", vw .. " x " .. vh)
+    Q.check(S.onScreen(L:getX(), L:getY(), L:getWidth(), L:getHeight()), "bar style: the detailed bar is on screen",
+        string.format("%d,%d %dx%d", L:getX(), L:getY(), L:getWidth(), L:getHeight()))
+    RT.bounds(Q, "detailed action bar")
+end)
+Q.waitFor(1, 2400, function() return S.abSkip or Z.ActionBar.state(S.p, S.pn) == nil end, function(ok)
+    if not S.abSkip then Q.check(ok, "bar style: the detailed job ends") end
+    S.putAbStyle()
+end)
+-- an attach to the hotbar: the game's own ISAttachItemHotbar has useProgressBar false, so ZeD draws no bar for it
+function S.putAttach()
+    local hb = S.att and S.att.hb
+    if not hb then return end
+    pcall(function() if hb:isItemAttached(S.hammer) then hb:removeItem(S.hammer, false) end end)
+    S.att = nil
+end
+Q.step(30, function()
+    local hb = Z.Belt.hotbar and Z.Belt.hotbar(S.pn)
+    local it = S.hammer
+    local slot, idx = nil, nil
+    if hb and it then
+        pcall(function()
+            if S.p:getPrimaryHandItem() == it then S.p:setPrimaryHandItem(nil) end
+            if S.p:getSecondaryHandItem() == it then S.p:setSecondaryHandItem(nil) end
+        end)
+        for i, sl in pairs(hb.availableSlot or {}) do
+            if not idx and not (hb.attachedItems and hb.attachedItems[i]) and Z.Belt.fits(hb, i, it) then slot, idx = sl, i end
+        end
+    end
+    if not idx then S.attSkip = true; Q.skip("no bar for an attach to the hotbar", "no free hotbar slot takes a hammer on this character"); return end
+    S.att = { hb = hb }
+    local name = slot.def and slot.def.attachments and slot.def.attachments[it:getAttachmentType()]
+    S.attAct = ISAttachItemHotbar:new(S.p, it, name, idx, slot.def)
+    ISTimedActionQueue.add(S.attAct)
+end)
+Q.waitFor(1, 120, function() return S.attSkip or (S.attAct ~= nil and (S.attAct.action ~= nil or S.attAct._zedBar ~= nil)) end, function(ok)
+    if S.attSkip then return end
+    local a = S.attAct
+    if not Q.check(ok, "no bar: the attach starts") then return end
+    Q.check(a.useProgressBar == false and a._zedBar == false, "no bar: the game's own flag is read (useProgressBar false, _zedBar false)")
+    Q.check(Z.ActionBar.state(S.p, S.pn) == nil, "no bar: the action bar has no state for it")
+end)
+Q.waitFor(1, 300, function()
+    if S.attSkip then return true end
+    local q = ISTimedActionQueue.queues and ISTimedActionQueue.queues[S.p]
+    return not (q and q.queue and q.queue[1])
+end, function()
+    pcall(function() S.p:StopAllActionQueue() end)
+    S.putAttach()
 end)
 
 -- ===================================================================== moodles in their three places
@@ -441,17 +692,77 @@ Q.step(2, function()
     local belt = S.hud()
     if belt and belt._drawn then Q.check(y + hh <= belt:getY(), "hint: the strip sits above the belt") end
     RT.bounds(Q, "hint strip")
+    S.pause(true)
+end)
+-- paused: no strip (H.prompts asks the game's speed controls)
+Q.step(10, function()
+    if not (S.door and S.hintOn) then S.pause(false); return end
+    local h = Z.HintStrip._huds[S.pn]
+    Q.check(h ~= nil and h._p == nil and Z.HintStrip.prompts(S.pn) == nil, "hint: paused, the strip is not shown")
+    S.pause(false)
+end)
+Q.step(15, function()
+    if not (S.door and S.hintOn) then return end
+    local h = Z.HintStrip._huds[S.pn]
+    Q.check(h ~= nil and h._p ~= nil, "hint: playing again, the strip is back")
+    -- First hours: from no uses (the uses file put back after)
+    S.hint.file = S.readFile(S.HFILE)
+    S.hint.fileTouched = true
+    S.writeFile(S.HFILE, "")
+    Z.HintStrip.uses = {}
+    S.setOpt(Z.Settings.hintStripOption, 2)
+end)
+Q.step(15, function()
+    if not (S.door and S.hintOn) then return end
+    local h = Z.HintStrip._huds[S.pn]
+    if not Q.check(Z.Settings.hintStripMode() == "first" and h ~= nil and h._p ~= nil, "hint: First hours shows a hint not used yet") then return end
+    -- three uses of each hint shown, counted as the Interact key and a right-click in the world count them
+    local st = Z.HintStrip._eval[S.pn]
+    for _ = 1, 3 do
+        if st and st.a then Z.HintStrip.used(st.aFn, st.a) end
+        Z.HintStrip.used("rightclick", "rightclick")
+    end
+end)
+Q.waitMs(500)
+Q.step(5, function()
+    if not (S.door and S.hintOn) then return end
+    local h = Z.HintStrip._huds[S.pn]
+    Q.check(h ~= nil and h._p == nil, "hint: First hours, a hint used three times is not shown again")
+    local lines = S.readFile(S.HFILE) or {}
+    local counted = false
+    for _, l in ipairs(lines) do if l == "rightclick=3" then counted = true end end
+    Q.check(counted, "hint: the uses are kept in Zomboid/Lua/" .. S.HFILE, table.concat(lines, "; "))
+    S.putHintUses()
     S.setOpt(Z.Settings.hintStripOption, 3)
 end)
 Q.step(10, function()
     if not S.door then return end
     local h = Z.HintStrip._huds[S.pn]
-    Q.check(h ~= nil and h._p == nil, "hint: Off takes the strip away")
+    Q.check(h ~= nil and h._p == nil and Z.HintStrip.prompts(S.pn) == nil, "hint: Off takes the strip away")
     S.putHint()
 end)
+S.HFILE = "ZeD_hints.txt"
+function S.pause(on)
+    S.paused = on and true or nil
+    if on then
+        pcall(function() UIManager.getSpeedControls():SetCurrentGameSpeed(0) end)
+        if ZEDQA_SPEED then ZEDQA_SPEED(0) else pcall(setGameSpeed, 0) end
+    else
+        pcall(function() UIManager.getSpeedControls():SetCurrentGameSpeed(1) end)
+        if ZEDQA_SPEED then ZEDQA_SPEED(1) else pcall(setGameSpeed, 1) end
+    end
+end
+function S.putHintUses()
+    if not (S.hint and S.hint.fileTouched) then return end
+    S.hint.fileTouched = nil
+    local f = S.hint.file
+    S.writeFile(S.HFILE, f and (table.concat(f, "\n") .. ((#f > 0) and "\n" or "")) or "")
+    Z.HintStrip.uses = nil   -- (read again from the file put back)
+end
 function S.putHint()
     if not S.back.hint then return end
     S.back.hint = nil
+    S.putHintUses()
     S.setOpt(Z.Settings.hintStripOption, S.hint.opt or 1)
     S.moveTo(S.home.x, S.home.y)
 end
@@ -596,14 +907,425 @@ function S.putForage()
     end
 end
 
+-- ===================================================================== balloon help: one at a time, dismiss
+-- (probes of the test ask for balloons from their own render, as every ZeD control does through ZeD.Balloon.draw)
+S.Probe = ISUIElement:derive("ZeD_RTBalloonProbe")
+function S.Probe:render()
+    local a = self.ask
+    self.got = nil
+    if not a then return end
+    local ok, x = pcall(Z.Balloon.draw, self, a.c, a.rect, "above", a.opts)
+    self.got = (ok and x ~= nil) and true or false
+    if not ok then self.err = tostring(x) end
+end
+function S.newProbe()
+    local o = S.Probe:new(S.sw - 3, S.sh - 3, 2, 2)
+    o:initialise()
+    o:addToUIManager()
+    pcall(function() o:setAlwaysOnTop(true) end)
+    S.probes[#S.probes + 1] = o
+    return o
+end
+function S.putBalloon()
+    if not S.back.balloon then return end
+    S.back.balloon = nil
+    for _, o in ipairs(S.probes or {}) do
+        o.ask = nil
+        pcall(function() o:removeFromUIManager() end)
+    end
+    S.probes = {}
+end
+Q.step(5, function()
+    S.probes = {}
+    S.bl = { t0 = getTimestampMs() }
+    S.back.balloon = true
+    pcall(function() Mouse.setXY(20, 20) end)
+    local px = ZeD.T.px
+    local a = S.newProbe()
+    a.ask = { c = { kind = "plain", title = "ZeD QA: a balloon near the corner of the screen" },
+        rect = { x = S.sw - px(40), y = S.sh - px(24), w = px(30), h = px(18) },
+        opts = { key = "rtqa:a", since = S.bl.t0, owner = a } }
+    S.bl.a = a
+end)
+Q.waitFor(2, 60, function() return Z.Balloon.up() and Z.Balloon._slot.key == "rtqa:a" end, function(ok)
+    if not Q.check(ok, "balloon: it shows", S.bl.a.err or tostring(Z.Balloon._slot.key)) then return end
+    local b = Z.Balloon._slot.box
+    Q.check(b ~= nil and S.onScreen(b.x, b.y, b.w, b.h), "balloon: near the screen's corner it stays fully on screen",
+        b and string.format("%d,%d %dx%d", b.x, b.y, b.w, b.h))
+    local p2 = S.newProbe()
+    p2.ask = { c = { kind = "plain", title = "ZeD QA: a second balloon" },
+        rect = { x = math.floor(S.sw / 2), y = math.floor(S.sh / 2), w = 20, h = 20 },
+        opts = { key = "rtqa:b", since = S.bl.t0 - 1000, owner = p2 } }
+    S.bl.b = p2
+end)
+Q.step(10, function()
+    if not S.bl.b then return end
+    Q.check(Z.Balloon._slot.key == "rtqa:a" and S.bl.a.got == true and S.bl.b.got == false,
+        "balloon: one at a time (a second one asked while it is up does not draw)", "up: " .. tostring(Z.Balloon._slot.key))
+    S.bl.b.ask = nil
+    -- (Escape's handler, Balloon.lua's OnKeyPressed, and the pad's B, FocusManager, both call dismiss)
+    Z.Balloon.dismiss()
+end)
+Q.step(10, function()
+    if not S.bl.b then return end
+    Q.check(not Z.Balloon.up() and S.bl.a.got == false, "balloon: dismissed, it stays down while its control still asks")
+    S.bl.a.ask.opts = { key = "rtqa:c", since = getTimestampMs(), owner = S.bl.a }
+end)
+Q.waitFor(2, 60, function() return S.bl.b == nil or (Z.Balloon.up() and Z.Balloon._slot.key == "rtqa:c") end, function(ok)
+    if S.bl.b then Q.check(ok, "balloon: the focus on another control brings a balloon back") end
+    S.putBalloon()
+end)
+
+-- ===================================================================== the Character window read-only while paused
+S.FREE = { charTabBar = true, charContainerStrip = true, worldTabBar = true, worldContainerStrip = true,
+    charTitlePins = true, worldTitlePins = true }
+Q.step(5, function()
+    S.closeMenu()
+    RT.pairOpen()
+end)
+Q.waitFor(5, 300, function() local w = RT.cw(); return w ~= nil and w:isReallyVisible() and w._mainContent ~= nil end, function(ok)
+    if not Q.check(ok, "paused: the Character window is open") then S.plSkip = true; return end
+    S.plTab = RT.cw()._activeTab
+    S.pause(true)
+end)
+Q.step(10, function()
+    if S.plSkip then return end
+    local PL = Z.PausedLook
+    local w = RT.cw()
+    local g = PL._glass
+    Q.check(PL.on(), "paused: the game reads paused")
+    if not Q.check(g ~= nil and g.win == w and g:isVisible(), "paused: the glass lies on the Character window") then return end
+    local c = w._mainContent
+    local gx, gy, gw, gh = g:getAbsoluteX(), g:getAbsoluteY(), g:getWidth(), g:getHeight()
+    local mx, my = c:getAbsoluteX() + math.floor(c:getWidth() / 2), c:getAbsoluteY() + math.floor(c:getHeight() / 2)
+    Q.check(mx >= gx and mx < gx + gw and my >= gy and my < gy + gh, "paused: the glass covers the item list")
+    Q.check(g:onMouseDown(10, 10) == true and g:onRightMouseDown(10, 10) == true, "paused: the glass takes a press and a right press (nothing is used)")
+    local F = ZeD.Input and ZeD.Input.Focus
+    local fz = F and F.liveZone and F.liveZone(w)
+    local free = (fz and S.FREE[fz.zone]) and true or false
+    Q.check(PL.blocks(w) == (not free), "paused: the pad's A and X are held outside the tab strip and the bags", fz and fz.zone or "no live zone")
+    RT.bounds(Q, "paused Character window")
+    S.plAlt = nil
+    for _, id in ipairs(RT.tabs(RT.charStrip())) do if not S.plAlt and id ~= S.plTab and id ~= "loot" then S.plAlt = id end end
+    if S.plAlt then RT.charTab(S.plAlt) end
+end)
+Q.step(15, function()
+    if S.plSkip then return end
+    if S.plAlt then
+        Q.check(RT.cw()._activeTab == S.plAlt, "paused: the tab strip still switches tabs", tostring(RT.cw()._activeTab) .. ", want " .. S.plAlt)
+    end
+    S.pause(false)
+end)
+Q.step(10, function()
+    if S.plSkip then return end
+    local g = Z.PausedLook._glass
+    Q.check(not (g and g:isVisible()) and not Z.PausedLook.blocks(RT.cw()), "paused: playing again, the glass is gone")
+end)
+
+-- ===================================================================== pin a skill from its row's menu
+function S.putPins()
+    if not S.back.pin then return end
+    S.back.pin = nil
+    S.closeMenu()
+    local md = S.p:getModData()
+    md.ZeD_Pins = S.pin.had and S.pin.list or nil
+    local w = RT.cw()
+    if w then
+        w._pinnedSkills = Z.Pins.skillNames(S.p)
+        if S.pin.grid ~= nil then w._skillsGridExpanded = S.pin.grid; w._skillsCache = nil end
+    end
+end
+Q.step(5, function()
+    local md = S.p:getModData()
+    S.pin = { had = md.ZeD_Pins ~= nil, list = {} }
+    for i, e in ipairs(md.ZeD_Pins or {}) do
+        local c = {}
+        for k2, v in pairs(e) do c[k2] = v end
+        S.pin.list[i] = c
+    end
+    S.back.pin = true
+    local w = RT.cw()
+    -- (the skill rows draw only while the grid is open: opened for the test if a player folded it, put back after)
+    if w then S.pin.grid = w._skillsGridExpanded; w._skillsGridExpanded = true; w._skillsCache = nil end
+    if not Q.check(w ~= nil and RT.charTab("skills"), "pin: the Skills tab opens from the strip") then S.pinSkip = true end
+end)
+Q.waitFor(5, 300, function()
+    local w = RT.cw()
+    local z = w and w._skillRowZones
+    return S.pinSkip or (z ~= nil and (z.n or 0) > 0 and w._drawerPanel ~= nil and w._activeTab == "skills")
+end, function(ok)
+    if S.pinSkip then return end
+    if not Q.check(ok, "pin: the Skills tab draws its skill rows") then S.pinSkip = true; return end
+    local w = RT.cw()
+    local zl = w._skillRowZones
+    for i = 1, zl.n do
+        local z = zl[i]
+        if not S.pinZone and z and z.name and not Z.Pins.isPinned(S.p, "skill", z.name) then S.pinZone = z end
+    end
+    if not S.pinZone then S.pinSkip = true; Q.skip("pin a skill", "every skill row is pinned already"); return end
+    local z = S.pinZone
+    w._drawerPanel:onRightMouseUp(z.x + 2, z.y + 2)
+end)
+Q.waitFor(2, 120, function() return S.pinSkip or S.menu() ~= nil end, function(ok)
+    if S.pinSkip then return end
+    if not Q.check(ok, "pin: a right-click on the skill row opens its menu") then S.pinSkip = true; return end
+    RT.bounds(Q, "skill row menu")
+    local c = S.ctx()
+    local opt = c and c:getOptionFromName(ZeD.tr("UI_ZeD_Pin_Pin"))
+    if Q.check(opt ~= nil and opt.onSelect ~= nil, "pin: the menu offers Pin to title bar") then opt.onSelect(opt.target) end
+    S.closeMenu()
+end)
+Q.step(15, function()
+    if S.pinSkip then return end
+    local name = S.pinZone.name
+    Q.check(Z.Pins.isPinned(S.p, "skill", name), "pin: the skill is pinned", name)
+    local pd = ZeD.SkillsTab.getPinData(S.p, name)
+    local want = (pd and pd.level < 10) and (tostring(pd.xpInLevel) .. "/" .. tostring(pd.xpForLevel)) or nil
+    local seen, all = false, {}
+    for _, st in ipairs(RT.cw().titleStats or {}) do
+        local t = tostring(st.text or "")
+        all[#all + 1] = t
+        if want and t:find(want, 1, true) then seen = true end
+        if pd and not want and not st.noMark and t ~= "" then seen = true end
+    end
+    Q.check(seen, "pin: the title bar shows its level and XP", tostring(want) .. " in: " .. table.concat(all, " | "))
+    S.putPins()
+end)
+
+-- ===================================================================== pop-outs keep clear of ZeD windows
+Q.step(5, function()
+    local PC = ZeD.PopClear
+    local wins = {}
+    for _, w in ipairs({ RT.cw(), RT.ww() }) do
+        local vis = false
+        if w then pcall(function() vis = w:isReallyVisible() end) end
+        if vis then wins[#wins + 1] = { x = w:getX(), y = w:getY(), w = w:getWidth(), h = w:getHeight() } end
+    end
+    if not Q.check(PC ~= nil and #wins > 0, "popclear: a ZeD window is open to keep clear of") then return end
+    local s = ZeD.T.px(60)
+    local function over(x, y)
+        for _, b in ipairs(wins) do
+            if x < b.x + b.w and b.x < x + s and y < b.y + b.h and b.y < y + s then return b end
+        end
+        return nil
+    end
+    local last = wins[#wins]
+    local x, y = last.x + math.floor((last.w - s) / 2), last.y + math.floor(last.h / 2)
+    local nx, ny = PC.spot(S.pn, x, y, s, s)
+    if nx ~= x or ny ~= y then
+        Q.check(over(nx, ny) == nil and S.onScreen(nx, ny, s, s), "popclear: a pop-out over a ZeD window moves clear of it, on screen",
+            string.format("%d,%d to %d,%d", x, y, nx, ny))
+    else
+        local b = over(x, y)
+        local gap = ZeD.T.px(8)
+        local room = false
+        for _, ty in ipairs({ b.y + b.h + gap, b.y - s - gap }) do
+            if ty >= 0 and ty + s <= S.sh and over(x, ty) == nil then room = true end
+        end
+        Q.check(not room, "popclear: it stays over the window only when neither below nor above has room")
+    end
+    local fx, fy = nil, nil
+    for gy = 0, S.sh - s, s do
+        for gx = 0, S.sw - s, s do
+            if not fx and over(gx, gy) == nil then fx, fy = gx, gy end
+        end
+    end
+    if fx then
+        local kx, ky = PC.spot(S.pn, fx, fy, s, s)
+        Q.check(kx == fx and ky == fy, "popclear: a spot clear of the windows is kept", string.format("%d,%d to %d,%d", fx, fy, kx, ky))
+    else
+        Q.skip("popclear: a clear spot is kept", "the windows cover the whole screen")
+    end
+    if S.plTab then RT.charTab(S.plTab) end
+    RT.pairShut()
+end)
+
+-- ===================================================================== the prompts: text box, rich text, Escape and Enter
+S.pr = { open = {} }
+function S.prCb(target, button)
+    local par = button and button.parent
+    S.pr.got = { internal = button and button.internal, text = par and par.entry and par.entry:getText() }
+end
+function S.prOpen(o)
+    o._zedSource = nil   -- (the test's own prompt: never one of another mod's notes kept in Messages)
+    o:initialise()
+    o:addToUIManager()
+    S.pr.open[#S.pr.open + 1] = o
+    return o
+end
+function S.prClick(o, b)
+    for _, h in ipairs((o and o._g and o._g.hits) or {}) do
+        if b and h.b == b then
+            local x, y = h.x + math.floor(h.w / 2), h.y + math.floor(h.h / 2)
+            o:onMouseDown(x, y)
+            o:onMouseUp(x, y)
+            return true
+        end
+    end
+    return false
+end
+function S.prShut(o)
+    local vis = false
+    if o then pcall(function() vis = o:isReallyVisible() end) end
+    return o == nil or o._dead == true or not vis
+end
+function S.prOnScreen(o) return S.onScreen(o:getX(), o:getY(), o:getWidth(), o:getHeight()) end
+function S.pauseMenuUp()
+    local up = false
+    pcall(function() local ms = MainScreen.instance; up = ms ~= nil and ms.inGame and ms:isVisible() end)
+    return up and true or false
+end
+function S.shutPauseMenu()
+    if S.pauseMenuUp() and ToggleEscapeMenu then pcall(ToggleEscapeMenu, Keyboard.KEY_ESCAPE) end
+end
+function S.putPrompts()
+    if not S.back.prompts then return end
+    S.back.prompts = nil
+    for _, o in ipairs(S.pr.open or {}) do
+        if not S.prShut(o) then pcall(function() o:answerCancel() end) end
+        if not S.prShut(o) then pcall(function() o:destroy() end) end
+    end
+    S.pr.open = {}
+    S.shutPauseMenu()
+end
+Q.step(5, function()
+    S.back.prompts = true
+    pcall(function() Mouse.setXY(20, 20) end)
+    local o = ISTextBox:new(0, 0, 280, 180, "ZeD QA: a name for it?", "ZeD QA default", nil, S.prCb, S.pn)
+    if not Q.check(o ~= nil and o.kind == "text", "prompt: the game's ISTextBox is ZeD's text prompt", o and o.Type) then return end
+    S.pr.text = S.prOpen(o)
+end)
+Q.waitFor(3, 120, function() local o = S.pr.text; return o == nil or (o._g ~= nil and o:isReallyVisible()) end, function(ok)
+    local o = S.pr.text
+    if not o then return end
+    if not Q.check(ok, "prompt: the text prompt shows") then return end
+    Q.check(S.prOnScreen(o), "prompt: the text prompt is on screen")
+    RT.bounds(Q, "text prompt")
+    o.entry:setText("ZeD QA typed")
+    Q.check(S.prClick(o, o.yes), "prompt: the text prompt has its OK")
+end)
+Q.step(5, function()
+    local o = S.pr.text
+    if not o then return end
+    local g = S.pr.got
+    Q.check(g ~= nil and g.internal == "OK" and g.text == "ZeD QA typed", "prompt: OK hands the typed text back in entry",
+        g and (tostring(g.internal) .. " " .. tostring(g.text)))
+    Q.check(S.prShut(o), "prompt: the text prompt closes on OK")
+    S.pr.got = nil
+    local para = "ZeD QA: a long note to lay out. " .. string.rep("The words run on to fill the line and the next. ", 6)
+    local t = {}
+    for _ = 1, 14 do t[#t + 1] = para end
+    local r = ISModalRichText:new(0, 0, 420, 300, table.concat(t, " <LINE> <LINE> "), false, nil, S.prCb, S.pn)
+    if not Q.check(r ~= nil and r.kind == "rich", "prompt: the game's ISModalRichText is ZeD's rich prompt", r and r.Type) then return end
+    S.pr.rich = S.prOpen(r)
+end)
+Q.waitFor(3, 120, function()
+    local o = S.pr.rich
+    return o == nil or (o._g ~= nil and o._maxScroll ~= nil and o:isReallyVisible())
+end, function(ok)
+    local o = S.pr.rich
+    if not o then return end
+    if not Q.check(ok, "prompt: the rich prompt shows") then return end
+    Q.check(S.prOnScreen(o), "prompt: the long rich text stays on screen", string.format("%d,%d %dx%d on %dx%d",
+        o:getX(), o:getY(), o:getWidth(), o:getHeight(), S.sw, S.sh))
+    Q.check((o._maxScroll or 0) > 0, "prompt: the long text scrolls inside it instead of growing past the screen", o._maxScroll)
+    RT.bounds(Q, "rich prompt")
+    Q.check(S.prClick(o, o.ok), "prompt: the rich prompt has its OK")
+end)
+Q.step(5, function()
+    local o = S.pr.rich
+    if not o then return end
+    Q.check(S.pr.got ~= nil and S.pr.got.internal == "OK" and S.prShut(o), "prompt: OK answers and closes the rich prompt")
+    S.pr.got = nil
+    if not (_G._zedPromptKeys and ToggleEscapeMenu) then
+        S.pr.keySkip = true
+        Q.skip("Escape and Enter on a prompt", "ZeD's key handler is not in place")
+        return
+    end
+    local q = ISModalDialog:new(0, 0, 250, 150, "ZeD QA: Escape answers No", true, nil, S.prCb, S.pn)
+    if not Q.check(q ~= nil and q.kind == "question", "prompt: the game's ISModalDialog is ZeD's question") then S.pr.keySkip = true; return end
+    S.pr.q1 = S.prOpen(q)
+end)
+Q.waitFor(3, 120, function() return S.pr.keySkip or Z.Prompt.top() == S.pr.q1 end, function(ok)
+    if S.pr.keySkip then return end
+    if not Q.check(ok, "prompt: the question is the prompt on top") then S.pr.keySkip = true; return end
+    -- (the game's own key handler: ToggleEscapeMenu is ZeD's onKey, with the game's behind it)
+    ToggleEscapeMenu(Keyboard.KEY_ESCAPE)
+end)
+Q.step(5, function()
+    if S.pr.keySkip then return end
+    local g = S.pr.got
+    Q.check(g ~= nil and g.internal == "NO" and S.prShut(S.pr.q1), "prompt: Escape answers No on the prompt on top", g and g.internal)
+    Q.check(not S.pauseMenuUp(), "prompt: that Escape does not open the pause menu")
+    S.shutPauseMenu()
+    S.pr.got = nil
+    S.pr.q2 = S.prOpen(ISModalDialog:new(0, 0, 250, 150, "ZeD QA: Enter answers Yes", true, nil, S.prCb, S.pn))
+end)
+Q.waitFor(3, 120, function() return S.pr.keySkip or Z.Prompt.top() == S.pr.q2 end, function(ok)
+    if S.pr.keySkip then return end
+    if not Q.check(ok, "prompt: the second question is the prompt on top") then return end
+    ToggleEscapeMenu(Keyboard.KEY_RETURN)
+end)
+Q.step(5, function()
+    if not S.pr.keySkip then
+        local g = S.pr.got
+        Q.check(g ~= nil and g.internal == "YES" and S.prShut(S.pr.q2), "prompt: Enter presses the main answer (Yes)", g and g.internal)
+    end
+    S.putPrompts()
+end)
+
+-- ===================================================================== the game's mini-map stays hidden
+function S.putMiniMap()
+    if not S.back.mm then return end
+    S.back.mm = nil
+    local m = S.mm
+    if m.inUI then
+        pcall(function() m.m:setVisible(m.vis) end)
+        Z.MiniMapOff._hidden[S.pn] = m.hid
+    else
+        pcall(function() m.m:setVisible(false) end)
+        pcall(function() m.m:removeFromUIManager() end)
+        Z.MiniMapOff._hidden[S.pn] = nil
+    end
+end
+Q.step(5, function()
+    local mm = getPlayerMiniMap and getPlayerMiniMap(S.pn)
+    if not (mm and Z.MiniMapOff) then S.mmSkip = true; Q.skip("the mini-map stays hidden", "the game made no mini-map for this player"); return end
+    S.mm = { m = mm, inUI = false, hid = Z.MiniMapOff._hidden[S.pn] }
+    pcall(function() S.mm.vis = mm:isVisible() end)
+    for _, r in ipairs(RT.roots()) do if r.t == mm then S.mm.inUI = true end end
+    S.back.mm = true
+    if not S.mm.inUI then pcall(function() mm:addToUIManager() end) end
+    pcall(function() mm:setVisible(true) end)
+    S.mm.t0 = getTimestampMs()
+end)
+Q.waitFor(1, 600, function()
+    if S.mmSkip then return true end
+    local v = true
+    pcall(function() v = S.mm.m:isReallyVisible() end)
+    return not v
+end, function(ok)
+    if S.mmSkip then return end
+    local ms = getTimestampMs() - S.mm.t0
+    Q.check(ok and ms <= 700, "mini-map: shown, it is hidden again within 500 ms", ms .. " ms")
+    Q.check(Z.MiniMapOff._hidden[S.pn] == S.mm.m, "mini-map: kept to give back")
+    Z.MiniMapOff.restore()
+    local v = false
+    pcall(function() v = S.mm.m:isVisible() end)
+    Q.check(v, "mini-map: restore (safe mode's leave) shows it again")
+    S.putMiniMap()
+end)
+
 -- ===================================================================== put back
 Q.mark()
 Q.step(5, function()
     pcall(function() S.p:StopAllActionQueue() end)
+    if S.paused then S.pause(false) end
+    S.putPrompts(); S.putBalloon(); S.putPins(); S.putMiniMap(); S.putRc(); S.putAttach(); S.putBeltStyle(); S.putAbStyle()
     S.putHands(); S.putWatch(); S.putMoodles(); S.putHalo(); S.putGuide(); S.putHint(); S.putForage()
     pcall(function() S.p:setZ(S.home.z); S.p:setLastZ(S.home.z) end)
     S.moveTo(S.home.x, S.home.y)
-    if S.pairWas then RT.pairOpen() end
+    if S.pairWas then RT.pairOpen() else RT.pairShut() end
 end)
 Q.step(10, function()
     Q.check(math.abs(S.p:getX() - S.home.x) < 0.01 and math.abs(S.p:getY() - S.home.y) < 0.01, "put back: the character where it started")

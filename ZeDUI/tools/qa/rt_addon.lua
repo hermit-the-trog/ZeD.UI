@@ -301,9 +301,98 @@ Q.step(4, function()
         found .. " edges drawn, " .. missing .. " missing, " .. inHole .. " in the hole")
 end)
 
+-- ===================================================================== the mail kept on this computer
+-- (Nov 18 2026, FEATURE_MAP "Mail kept on this computer": ZeD_MailStore.lua, the model under the multiplayer mail.
+-- It needs no server: a box per server and name, its Outbox, Inbox and Sent written to Zomboid/Lua and read back.
+-- The store's file access (MS.io, its own seam) is pointed at "zedqa_rt_"-named files for the run, so the player's
+-- real mail files are never read or written; the QA files are emptied after.)
+local MAILQ = "zedqa_rt_"
+local function mailLines(name)
+    local out = nil
+    pcall(function()
+        local r = getFileReader(MAILQ .. name, false)
+        if not r then return end
+        out = {}
+        local l = r:readLine()
+        while l do out[#out + 1] = l; l = r:readLine() end
+        r:close()
+    end)
+    return out
+end
+local function mailBack()
+    local MSt = ZeD.MailStore
+    if not (MSt and S.mIo) then return end
+    for name in pairs(S.mFiles or {}) do
+        pcall(function() local w = getFileWriter(MAILQ .. name, true, false); w:write(""); w:close() end)
+    end
+    MSt.io, MSt._boxes = S.mIo, S.mBoxes
+    S.mIo = nil
+end
+Q.step(3, function()
+    local MSt = ZeD.MailStore
+    if not (MSt and MSt.box and MSt.queue and MSt.load and ZeD.Ml) then Q.check(false, "ZeD's mail store is loaded"); return end
+    S.mIo, S.mBoxes = MSt.io, MSt._boxes
+    S.mFiles = { [MSt.INDEX] = true }
+    MSt.io = {
+        reader = function(name) return getFileReader(MAILQ .. name, false) end,
+        writer = function(name) S.mFiles[name] = true; return getFileWriter(MAILQ .. name, true, false) end,
+    }
+    -- (an earlier run's index emptied first: the box is made fresh)
+    pcall(function() local w = getFileWriter(MAILQ .. MSt.INDEX, true, false); w:write(""); w:close() end)
+    MSt._boxes = nil
+    S.mText = "A letter | with a pipe\nand a second line."
+    local ok, err = pcall(function()
+        local b = MSt.box("rtqa-server", "rtqa-user", "QA server")
+        S.mN = b.n
+        S.mLetter = MSt.queue(b, "rtqa-friend", "QA subject", S.mText)
+        MSt.receive(b, { id = 7, from = "rtqa-friend", to = "rtqa-user", t = 1, day = 2, subj = "QA reply", text = "Got it." })
+        MSt.save(b)
+    end)
+    Q.check(ok and S.mLetter ~= nil, "mail store: a box is made for a server and name, a letter queued and one received", tostring(err))
+    if not (ok and S.mN and S.mLetter) then return end
+    local box, idx = mailLines(MSt.fileOf(S.mN)) or {}, mailLines(MSt.INDEX) or {}
+    local hasOut, hasIn, hasBox = false, false, false
+    for _, l in ipairs(box) do
+        if string.sub(l, 1, 2) == "o|" and string.find(l, "QA subject", 1, true) and string.find(l, "\\p", 1, true) then hasOut = true end
+        if string.sub(l, 1, 4) == "i|7|" then hasIn = true end
+    end
+    for _, l in ipairs(idx) do if string.find(l, "rtqa-server/rtqa-user", 1, true) then hasBox = true end end
+    Q.check(hasOut and hasIn and hasBox, "mail store: the box's file holds the queued letter (its pipe escaped) and the received one; the index names the box",
+        #box .. " lines in " .. MSt.fileOf(S.mN) .. ", box listed " .. tostring(hasBox))
+end)
+Q.step(3, function()
+    local MSt = ZeD.MailStore
+    if not (MSt and S.mIo and S.mN and S.mLetter) then mailBack(); return end
+    -- read back from the files alone: the cache dropped
+    MSt._boxes = nil
+    local b, d = nil, nil
+    pcall(function()
+        b = MSt.find(MSt.keyOf("rtqa-server", "rtqa-user"))
+        d = b and MSt.load(b)
+    end)
+    local o1, i1 = d and d.outbox[1], d and d.inbox[1]
+    Q.check(o1 ~= nil and o1.subj == "QA subject" and o1.text == S.mLetter.text and o1.to == "rtqa-friend" and o1.cid == S.mLetter.cid,
+        "mail store: the Outbox letter reads back whole (subject, words with the pipe and the line break, to)", tostring(o1 and o1.text))
+    local unread = nil
+    pcall(function() unread = MSt.unread(b) end)
+    Q.check(i1 ~= nil and i1.id == 7 and i1.from == "rtqa-friend" and i1.subj == "QA reply" and not i1.read and unread == 1,
+        "mail store: the Inbox letter reads back, unread", tostring(i1 and i1.subj) .. ", unread " .. tostring(unread))
+    -- sent: the Outbox letter moves to Sent, and that reads back too
+    pcall(function() MSt.sent(b, S.mLetter.cid) end)
+    MSt._boxes = nil
+    local d2 = nil
+    pcall(function() local b2 = MSt.find(MSt.keyOf("rtqa-server", "rtqa-user")); d2 = b2 and MSt.load(b2) end)
+    Q.check(d2 ~= nil and #d2.outbox == 0 and #d2.sent == 1 and d2.sent[1].subj == "QA subject", "mail store: a sent letter leaves the Outbox for Sent, read back",
+        tostring(d2 and #d2.outbox) .. " out, " .. tostring(d2 and #d2.sent) .. " sent")
+    local io0 = S.mIo
+    mailBack()
+    Q.check(MSt.io == io0, "mail store put back: its own file access again, the QA files emptied")
+end)
+
 -- ===================================================================== put back
 Q.mark()
 Q.step(2, function()
+    mailBack()
     wrapOff()
     S.ghostOn = false
     pcall(GL.padCancel, pn)
