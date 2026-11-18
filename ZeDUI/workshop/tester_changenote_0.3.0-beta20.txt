@@ -18,6 +18,9 @@ Controller
 
 Fixes
 - Gaining skill XP no longer logs an error each time.
+- The right-click menu's Attach list shows an icon for every slot: back, belt, holsters, webbing and backpack bottom.
+- With the moodles on the right or left, their invisible layer no longer runs past the bottom of the screen.
 
 For add-ons
-- Shaped cells (ZeD Multi-Slot 0.2): an item one square wide shows its weight below its picture, and its condition in three segments.
+- Shaped cells (ZeD Multi-Slot): the condition strip, weight, count and read mark sit on the item's picture square. The strip runs the square's full width at its foot, and a square at least three quarters of ZeD's size is labeled as ZeD's own squares are.
+- A bag that wraps its squares across rows no longer shows the blocked end of its last row as empty slots.
