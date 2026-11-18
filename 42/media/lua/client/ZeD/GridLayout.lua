@@ -341,6 +341,9 @@ function GL.geom(has, w, h, cell, gap, t)
     local run = 0
     while sq(fx + run, fy) do run = run + 1 end
     g.fx, g.fy, g.ix, g.iy = fx * step, fy * step, lx * step, ly * step
+    -- (the outline's width, and whether the last square joins one on its left, so no outline there: the condition
+    -- strip sits flush on the outline, InventoryRenderer's drawCellCondition, the director Nov 18 2026)
+    g.t, g.lopen = t, sq(lx - 1, ly)
     if run >= 2 then
         g.wx, g.wy, g.wroom = (fx + run - 1) * step, fy * step, (run - 1) * step
     else

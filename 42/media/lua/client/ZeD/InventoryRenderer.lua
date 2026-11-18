@@ -1316,20 +1316,32 @@ end
 -- (its help line: "Condition 64%", "Remaining 50%"). 52 units less 6: 34 px at 0.75.
 -- (Nov 15 2026, add-on hooks: cell is the cell's width; ch its height, nil for a square cell. A cell an add-on's
 -- layout spans over several squares (GridLayout.lua) is wider or taller than it is the other way.)
-local function drawCellCondition(self, item, ax, cy, cell, stackInfo, ch, thin, segs)
+local function drawCellCondition(self, item, ax, cy, cell, stackInfo, ch, thin, segs, geo)
     local T = ZeD.T
     local IM = ZeD.ItemMeter
     ch = ch or cell   -- (a square cell: as tall as it is wide, as every cell was before)
     local kind, f = IM.ofStack(item, stackInfo and stackInfo.count > 1 and stackInfo.items or nil)   -- (162)
     if kind == nil or kind == "hidden" then return cy + ch, false end
     local fc, graduated = IM.style(kind)
-    local bh = T.px(5)
+    local bx, bw, bh = ax + T.px(3), cell - T.px(6), T.px(5)
     local by = cy + ch - T.px(3) - bh
-    -- (Nov 17 2026, Multi-Slot 0.2, QA: thin, a one-square shape: a slim strip along the square's very foot, so the
-    -- picture, which fills most of a small square, stays readable)
-    if thin then bh = T.px(3); by = cy + ch - T.px(1) - bh end
+    if geo then
+        -- (Nov 18 2026, the director, Multi-Slot: "The status bar should take up the whole bottom. There should be no
+        -- padding on the left, right, or bottom, and it should sit at the bottom of the tile. That way it can fill the
+        -- tile and be larger." A shaped cell's strip runs the last square's whole width and sits on its foot, just
+        -- inside the shape's dark outline, so the outline stays closed; on the left it runs to the square's edge where
+        -- the square joins another. 8 units tall (5 before); a one-square shape's 6 (3 before), so its picture, which
+        -- fills most of the square, keeps its look.)
+        local t = geo.t or 0
+        local li = geo.lopen and 0 or t
+        bh = thin and T.px(6) or T.px(8)
+        bx, bw, by = ax + li, cell - li - t, cy + ch - t - bh
+    elseif thin then
+        -- (Nov 17 2026, Multi-Slot 0.2, QA: thin, a one-square shape: a slim strip along the square's very foot)
+        bh = T.px(3); by = cy + ch - T.px(1) - bh
+    end
     -- (segs: a shaped cell's strip, three segments, the director Nov 17 2026; nil every other cell, as before)
-    local hov = ZeD.Atoms.drawFillBar(self, ax + T.px(3), by, cell - T.px(6), f, graduated, fc, bh, IM.label(kind), segs)
+    local hov = ZeD.Atoms.drawFillBar(self, bx, by, bw, f, graduated, fc, bh, IM.label(kind), segs)
     return by, hov
 end
 
@@ -1449,7 +1461,7 @@ local function drawShapeCell(self, GV, item, cx, cy, g)
     -- the condition strip along the last square's foot (a readable item: its read mark instead)
     local lx, ly = ax + g.ix, cy + g.iy
     local condTop, condHov = ly + sq, false
-    if not rs then condTop, condHov = drawCellCondition(self, item, lx, ly, sq, stackInfo, sq, one, 3) end   -- (three segments: the director)
+    if not rs then condTop, condHov = drawCellCondition(self, item, lx, ly, sq, stackInfo, sq, one, 3, g) end   -- (three segments: the director)
     local f5 = T.fontF5
     local s1 = T.surf1
     -- the weight, top right of its square (not on a one-square shape)
