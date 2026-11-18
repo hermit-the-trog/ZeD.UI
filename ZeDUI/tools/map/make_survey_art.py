@@ -20,7 +20,7 @@ OUT = os.path.join("42", "media", "textures", "ZeD", "map")
 WOODS = {
     "dark": ("1F3324", "96D2A0"),
     "light": ("B9D2A4", "2F5D2A"),
-    "hicon": ("003D14", "8CFFAA"),
+    "hicon": ("002A0E", "8CFFAA"),
 }
 
 

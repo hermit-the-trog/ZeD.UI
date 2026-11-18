@@ -36,7 +36,7 @@ local MINZ, MAXZ, MINZ_B = 0, 24, 13
 -- ---------------------------------------------------------------------------
 local P = {
     dark = {
-        ground = "1B1C1E", forest = "1F3324", mark = "96D2A0", water = "1F4C63", lake = "24618A", trail = "7A5034",
+        ground = "34363A", forest = "1F3324", mark = "96D2A0", water = "1F4C63", lake = "24618A", trail = "7A5034",
         small = "45464B", main = "A8363C", sec = "7E4447", rail = "C8C8C8",
         b = { Residential = "B88470", CommunityServices = "8A7BD0", Hospitality = "5DA0B8", Industrial = "8E8A84",
               Medical = "C26878", RestaurantsAndEntertainment = "C9AD3E", RetailAndCommercial = "8FA65A" },
@@ -59,7 +59,7 @@ local P = {
         ink = "141414", paper = "F4F1E6", zone = "D0287A",
     },
     hicon = {
-        ground = "000000", forest = "003D14", mark = "8CFFAA", water = "1F6FD6", lake = "0A3FB8", trail = "A06A00",
+        ground = "2A2A2A", forest = "002A0E", mark = "8CFFAA", water = "1F6FD6", lake = "0A3FB8", trail = "A06A00",
         small = "9A9A9A", main = "FF3B3B", sec = "FF9A9A", rail = "FFFFFF",
         b = { Residential = "FFAE7A", CommunityServices = "B39CFF", Hospitality = "5CD8FF", Industrial = "A8A8A8",
               Medical = "FF6F8C", RestaurantsAndEntertainment = "FFE14A", RetailAndCommercial = "A6FF5C" },
@@ -225,7 +225,8 @@ end
 -- THE PRINTED ADDITIONS (drawn by ZeD over its own map panel)
 -- ===========================================================================
 -- zoom bands (the map's zoom, getZoomF): towns and shields while zoomed out, places and bridges close up
-local Z_TOWN_MAX, Z_SHIELD_MIN, Z_SHIELD_MAX, Z_PLACE_MIN, Z_BRIDGE_MIN = 13.5, 12.5, 17.5, 14.0, 15.0
+-- (places from 15, the director Nov 18 2026: at 14 their badges covered the street names)
+local Z_TOWN_MAX, Z_SHIELD_MIN, Z_SHIELD_MAX, Z_PLACE_MIN, Z_BRIDGE_MIN = 13.5, 12.5, 17.5, 15.0, 15.0
 local GRID_SQ = 1200          -- a grid cell: 1200 squares (four of the map's 300-square cells)
 
 -- the place kinds: a ZeD pixel icon, or a drawn mark where there is none
@@ -402,7 +403,7 @@ end
 local function drawPlaces(mp, data, ink, paper, z)
     local api = mp.mapAPI
     local T = ZeD.T
-    local s = T.px(z >= 16 and 18 or 14)
+    local s = T.px(z >= 16 and 14 or 11)   -- (smaller: the director, Nov 18 2026)
     for _, p in ipairs(data.places or {}) do
         local sx, sy = api:worldToUIX(p.x, p.y), api:worldToUIY(p.x, p.y)
         if onScreen(mp, sx, sy, s) then
