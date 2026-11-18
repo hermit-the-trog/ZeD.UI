@@ -201,7 +201,7 @@ function ZeD.EquipmentTab.itemTip(panel, win, item, x, y, w, h, over, focused)
     end
     if not (pad or (over and not cues)) then return end
     _tipR.x, _tipR.y, _tipR.w, _tipR.h = x, y, w, h
-    IT.want(panel, item, _tipR, nil, pad)
+    IT.want(panel, item, _tipR, nil, pad, nil, pad)
 end
 
 -- A row's condition: the framed strip (ZeD.Atoms.drawFillBar, five segments) at the list

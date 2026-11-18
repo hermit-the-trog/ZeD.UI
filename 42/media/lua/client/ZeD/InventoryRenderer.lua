@@ -1026,7 +1026,7 @@ local _padTipRect = { x = 0, y = 0, w = 0, h = 0 }
 local function padTip(self, item, x, y, w, h, count)
     if not ZeD.InvTip then return end
     _padTipRect.x, _padTipRect.y, _padTipRect.w, _padTipRect.h = x, y, w, h
-    ZeD.InvTip.want(self, item, _padTipRect, count, true)
+    ZeD.InvTip.want(self, item, _padTipRect, count, true, nil, true)
 end
 
 local function gpFocusedToggle(id, pn)

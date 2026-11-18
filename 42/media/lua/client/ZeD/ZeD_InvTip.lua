@@ -40,11 +40,13 @@ local blocked   -- (below)
 --- of every window (ZeD_LootCard's layer, below), or with Alt held, the game's tooltip (shown before the next frame).
 --- pref = "above": the card stands above rect, its tail on it, rather than by the pointer (the belt's boxes: the
 --- belt keeps its own game box for Alt, so it asks only without Alt).
-function IT.want(owner, item, rect, count, beside, pref)
+--- pad = true: asked for the controller's focused stop (InventoryRenderer's padTip, EquipmentTab.itemTip). Such a card
+--- shows only in the frame it was asked for, never a frame late (below).
+function IT.want(owner, item, rect, count, beside, pref, pad)
     if not (owner and item) then return end
     local w = IT._want
     if not w then w = {}; IT._want = w end
-    w.owner, w.item, w.frame = owner, item, IT._frame
+    w.owner, w.item, w.frame, w.pad = owner, item, IT._frame, pad == true
     w.alt = altDown()
     w.content = nil
     if w.alt or not (rect and ZeD.LootCard) then return end
@@ -95,8 +97,11 @@ function IT.showLayer()
     Layer.prerender = function() end
     Layer.render = function(self)
         local w = IT._want
-        -- (this frame's, or the last frame's when the layer draws before the lists do)
-        if not (w and w.content and w.frame >= IT._frame - 1 and ZeD.Balloon) then return end
+        -- (this frame's, or the last frame's when the layer draws before the lists do. Not for the controller's card:
+        -- its stops always ask before the layer draws, and the grace kept the previous stop's card up for one frame on
+        -- a stop with no item, an Equipment group heading or an empty doll box: QA, Nov 17 2026.)
+        if not (w and w.content and ZeD.Balloon) then return end
+        if w.frame < IT._frame - 1 or (w.pad and w.frame < IT._frame) then return end
         local a = IT._rect or {}
         IT._rect = a
         a.x, a.y, a.w, a.h, a.below, a.noFlip = w.ox + w.ax, w.oy + w.ay, w.aw or 1, w.ah, nil, nil
