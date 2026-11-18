@@ -1,0 +1,27 @@
+# ZeDUI/tools/qa/rt_coverage_plumbing.txt  (Nov 18 2026, QA): ZeD files that are not features themselves, so no row in
+# FEATURE_MAP.md owns them: drawing parts, art data, helpers. rt_coverage.ps1 fails on any ZeD file that is neither
+# owned by a feature row nor listed here. Add a file here only when it really draws or does nothing a player can
+# reach on its own; a new feature gets a row in FEATURE_MAP.md instead. One path per line, then # the reason.
+Atoms.lua                       # the design system's smallest drawing parts, used by every surface
+AtomExtensions.lua              # more atoms
+Molecules.lua                   # the design system's composed parts (buttons, strips, rows)
+ZeD_PixelParts.lua              # pixel-art drawing helpers
+ZeD_Plate.lua                   # the plate frame every machine face draws in
+PhysPx.lua                      # pixel art data for physical props
+DashPx.lua                      # the dashboards' pixel art data (the dash rows test the dash)
+MechFigs.lua                    # the Vehicle tab's part figures (art data)
+RadioPlates.lua                 # radio face art data (the radio rows test the faces)
+WatchPlates.lua                 # watch face art data (the watch rows test the watches)
+SirenPlate.lua                  # the siren controller's art data
+ZeD_BodyFigure.lua              # the Health tab's body figure drawing
+ZeD_GuideChapters.lua           # the survival guide's chapter text (the guide rows test the guide)
+RecipeIndex.lua                 # the recipe lookup the crafting tabs read
+ZeD_RadioOps.lua                # radio power and tuning helpers the radio faces call
+Overrides/MakeUp.lua            # the game's make-up hook into ZeD_MakeUp.lua (owned by the make-up rows)
+AnimalsAlertPoller.lua          # the Animals tab's data (animal rows need a farm: not yet)
+AnimalsData.lua                 # the Animals tab's data
+AnimalsDisorderCatalog.lua      # the Animals tab's data
+AnimalsQuick.lua                # the Animals tab's quick actions' data
+AnimalsStressInference.lua      # the Animals tab's data
+QABridge.lua                    # the QA bridge (the test runner's own hook; not shipped behavior)
+TestInventory.lua               # a debug helper, not reachable by a player

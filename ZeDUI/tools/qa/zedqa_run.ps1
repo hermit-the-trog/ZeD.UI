@@ -1019,6 +1019,20 @@ if ($MyInvocation.InvocationName -eq '.') { return }
 try { $items = Read-Manifest $Manifest }
 catch { Write-Output "zedqa_run: not starting: $($_.Exception.Message)"; exit 2 }
 
+# (Nov 18 2026, the director: an intake when something is added or removed) the release test runs only while its
+# ledger is whole: rt_coverage.ps1 checks FEATURE_MAP.md against the code and release_test.txt (a gap, a removed
+# feature still listed, a new file with no row); the game is not started while it fails.
+if ($Manifest -match 'release_test' -and -not $Check) {
+    $cov = & pwsh -NoProfile -File (Join-Path $PSScriptRoot "rt_coverage.ps1") 2>&1
+    $covCode = $LASTEXITCODE
+    Write-Output ($cov | Select-Object -Last 1)
+    if ($covCode -ne 0) {
+        $cov | Where-Object { $_ -match '^FAIL' } | Select-Object -First 20 | ForEach-Object { Write-Output "  $_" }
+        Write-Output "zedqa_run: not starting: the release test's ledger has problems (pwsh -File ZeDUI/tools/qa/rt_coverage.ps1 lists them)"
+        exit 2
+    }
+}
+
 if ($Check) {
     Write-Host "Manifest $Manifest : $($items.Count) scripts"
     $k = 0
