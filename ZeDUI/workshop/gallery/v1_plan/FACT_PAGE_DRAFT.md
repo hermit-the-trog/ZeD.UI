@@ -51,7 +51,7 @@ Suomi, Türkçe, Русский, Українська, ไทย, 日本語, 한
 | Other mods: what shows and what doesn't | beta 19 description, "Your mods still work" |
 | One overhaul or the other | the director, Nov 8 (NeatUI and Xen's Enhanced GUI: "pick the UI overhaul that looks the way you want it to") |
 | Pad prompts for four families | beta 19 description, "What you get" |
-| Screen hand-back | `ZeD_StepAside.lua` (built Nov 7, commits 9ee617e35, 11dd201a1, e8b3aa0f0): either load order; a screen counts as taken only when a mod replaces the whole screen, never when it only adds. `step_aside_sim` 290 checks, 0 failed (Nov 17); in game PASS Nov 8 (`regression/2026-11-08_0648_mods_fullscreen4k.md`, row 3); QA rerun on today's build asked for Nov 17 |
+| Screen hand-back | `ZeD_StepAside.lua` (built Nov 7, commits 9ee617e35, 11dd201a1, e8b3aa0f0): either load order; a screen counts as taken only when a mod replaces the whole screen, never when it only adds. `step_aside_sim` 290 checks, 0 failed (Nov 17); in game PASS Nov 8 (`regression/2026-11-08_0648_mods_fullscreen4k.md`, row 3), and again Nov 17 on today's build in both load orders with the ZeDQATakesHealth test mod (`regression/2026-11-17_1732_...` ZeD first, `2026-11-17_1838_...` ZeD last) |
 | Language names | the game's own `media/lua/shared/Translate/<code>/language.json`, `language_name`, Build 42 install |
 | 27 machine-drafted languages | `42/media/lua/shared/Translate/`: 28 folders with a `UI.json`, English included. The game's AR folder is Argentine Spanish, not Arabic (its text: "soga", "untable"). |
 
@@ -63,7 +63,7 @@ Suomi, Türkçe, Русский, Українська, ไทย, 日本語, 한
 3. **A new Workshop item:** not addressed on this page; the book is being readied for 1.0.
 4. **Screen hand-back:** "Yes, please check if it works. And if it doesn't, make it work." It was built Nov 7
    (`ZeD_StepAside.lua`; Build first missed it, searching for the wrong words) and works: its test passes and QA passed
-   it in game on Nov 8. QA reruns it on today's build; the sentence stands unless that fails.
+   it in game on Nov 8. QA passed it again on Nov 17 in both load orders; the sentence stands.
 5. **Other overhauls:** not addressed ("They're doing something different than what we're doing anyway"), so the
    one-or-the-other sentence is gone.
 6. **Languages:** all 27 printed by name, each in its own language. The game's own list (`language.json`) names 20

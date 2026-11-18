@@ -70,3 +70,16 @@ in those, so the XP arrows stay the game's.
 - D, the ten new ideas.
 - The Simple style: the pins, pointer and eye have no Simple version, and are built as Immersive only.
 - The hint pin.
+
+## QA results (Nov 17 2026)
+
+- **A, the pins:** good by eye at 4K: the magnifier with the find in the lens, the frosted `?` lens, the bounce and
+  fade as the game's, finds centred. **For Design:** the poison mark reads tiny at 4K (12 units on a 30-pixel pin);
+  it may want to be bigger.
+- **B, the eye:** in a light balloon in ZeD's stack, no overlap; the game's own eye draws nothing.
+- **C, the car key: the replacement does not take.** The game's car key is packed in `media/texturepacks/UI2.pack`.
+  With the test mod's `media/ui/CarKey.png` (same path) loaded, the game still drew its own key: textures loaded at
+  28 x 26 and 30 x 28, not the mod's 31 x 30 and 62 x 60. As the handoff says, these stay the game's, and ZeD does
+  not hook the Java. That's the car key, the voice icons and the PvP skulls. Design's C art stays in the folder,
+  unused.
+- **A2, the pointer:** its check runs next.
