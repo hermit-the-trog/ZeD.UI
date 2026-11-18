@@ -55,7 +55,9 @@ local P = {
         -- (white labels, the director, Nov 18 2026: the game draws every map label with a black shadow it lets no one
         -- change, which smudged dark labels on Light; under white text it is the label's dark edge, as on the game's
         -- own street names)
-        t = { street = "FFFFFF", building = "FFFFFF", town = "FFFFFF", forest = "FFFFFF", water = "FFFFFF" },
+        -- (QA's pictures, Nov 18 2026: the big names zoomed out, towns, woods and water, read pale in white on the light
+        -- ground, and the shadow under them is slight at that size: they take dark ink; streets and buildings stay white)
+        t = { street = "FFFFFF", building = "FFFFFF", town = "141414", forest = "24502D", water = "0F3466" },
         ink = "141414", paper = "F4F1E6", zone = "D0287A",
     },
     hicon = {
@@ -424,10 +426,29 @@ local function drawShields(mp, data)
     local f = T.fontF5 or UIFont.Small
     local tm = getTextManager()
     local fh = tm:getFontHeight(f)
+    -- (QA's pictures, Nov 18 2026: spaced by map distance, zoomed out the shields stood in rows, and one sat on
+    -- MULDRAUGH. Kept apart on screen now: none within SEP of one already drawn, none on a town's name while names show.)
+    local SEP = T.px(110)
+    local drawn = {}
+    local names = {}
+    if zoomOf(mp) < Z_TOWN_MAX then
+        for _, tn in ipairs(data.towns or {}) do names[#names + 1] = { api:worldToUIX(tn.x, tn.y), api:worldToUIY(tn.x, tn.y) } end
+    end
+    local function clear(x, y)
+        for _, d in ipairs(drawn) do
+            local dx, dy = x - d[1], y - d[2]
+            if dx * dx + dy * dy < SEP * SEP then return false end
+        end
+        for _, n in ipairs(names) do
+            if math.abs(x - n[1]) < T.px(90) and math.abs(y - n[2]) < T.px(22) then return false end
+        end
+        return true
+    end
     for _, sh in ipairs(data.shields or {}) do
         local sx, sy = api:worldToUIX(sh.x, sh.y), api:worldToUIY(sh.x, sh.y)
         local t = tex(SHIELD_TEX[sh.t] or "")
-        if t and onScreen(mp, sx, sy, 30) then
+        if t and onScreen(mp, sx, sy, 30) and clear(sx, sy) then
+            drawn[#drawn + 1] = { sx, sy }
             local n = tostring(sh.n)
             local tw = tm:MeasureStringX(f, n)
             local h = math.max(T.px(18), fh + T.px(6))

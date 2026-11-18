@@ -215,6 +215,23 @@ for _, base in ipairs({ "dark", "light", "hicon" }) do
             check(base .. " real data at zoom " .. z .. " (" .. at[1] .. "," .. at[2] .. ")", ok and m.outside == 0, err or m.outside)
         end
     end
+    -- the shields keep apart on screen (QA's pictures, Nov 18 2026: rows of them zoomed out)
+    for _, z in ipairs({ 12.5, 13, 14 }) do
+        local m = newMap(z); m.mapAPI.cx, m.mapAPI.cy = 11654, 6864
+        local pts = {}
+        local orig = m.drawTextureScaled
+        m.drawTextureScaled = function(self, t, x, y, w, h, ...)
+            if type(t) == "table" and t.path and t.path:find("shield_") then pts[#pts + 1] = { x + w / 2, y + h / 2 } end
+            return orig(self, t, x, y, w, h, ...)
+        end
+        M.drawMap(m, {})
+        local close = 0
+        for i = 1, #pts do for j = i + 1, #pts do
+            local dx, dy = pts[i][1] - pts[j][1], pts[i][2] - pts[j][2]
+            if dx * dx + dy * dy < 110 * 110 then close = close + 1 end
+        end end
+        check(base .. " zoom " .. z .. ": no two shields closer than 110 px", close == 0, close .. " pairs of " .. #pts)
+    end
     local panel = newMap(16)
     local ok = pcall(function()
         for _, r in ipairs(M.keyColors()) do assert(r.sec or (r.swatch and r.text)) end
