@@ -259,6 +259,21 @@ if not ZeD._appliancesHooked then
     ZeD._appliancesHooked = true
     Events.OnFillWorldObjectContextMenu.Add(function(...) return ZeD.Appliances.onFillWorld(...) end)
     Events.OnGameStart.Add(function() ZeD.Appliances.faAnswer = nil end)
+    -- (QA's release test, Nov 18 2026: 424 Java exceptions by a lit campfire. The game's ISEntityUI.CanOpenWindowFor
+    -- reads _entity:getSprite():getName() unguarded, and a fire's flame (IsoFire) has no sprite. The game reaches it
+    -- only for a controller player's prompt; ZeD's hint strip asks the same prompt finder (ZeD_HintStrip.lua) for every
+    -- player, so a mouse player by a fire hit it five times a second. An object with no sprite has no window.)
+    local function guardWindowCheck()
+        if not (ISEntityUI and ISEntityUI.CanOpenWindowFor) or ISEntityUI._zedSpriteGuard then return end
+        ISEntityUI._zedSpriteGuard = true
+        local origCan = ISEntityUI.CanOpenWindowFor
+        ISEntityUI.CanOpenWindowFor = function(_player, _entity, ...)
+            if _entity ~= nil and _entity:getSprite() == nil then return false end
+            return origCan(_player, _entity, ...)
+        end
+    end
+    guardWindowCheck()
+    Events.OnGameStart.Add(guardWindowCheck)   -- (in case ISEntityUI loads after this file)
     if ISButtonPrompt and ISButtonPrompt.testInteractButtonAction then
         local orig = ISButtonPrompt.testInteractButtonAction
         ISButtonPrompt.testInteractButtonAction = function(self, dir)
