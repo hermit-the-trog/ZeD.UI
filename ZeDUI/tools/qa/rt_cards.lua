@@ -1594,10 +1594,26 @@ end, function(okq)
     if not (S.rkArm and S.rkStart) then return end
     if not okq then Q.say("NOTE rack stop: the queue did not empty: " .. H.queueTypes()) end
 end)
-Q.waitFor(1, 60, function() return not (S.rkArm and S.rkStart) or not H.rackRunning() end, function(ok)
+-- (Nov 18 2026, Build: ZeD's Stop does what the game's own Cancel does (component:stop(player)); CraftLogic.stop
+-- sets a stop request handled on the logic's update, and DryingCraftLogic's own isRunning may stay true while anything
+-- sits drying. So the check is that the stop request is taken: isStopRequested, isCancelled, or not running.)
+function H.rackFlags()
+    local c = H.rackComp()
+    local run, req, can = nil, nil, nil
+    pcall(function() run = c:isRunning() end)
+    pcall(function() req = c:isStopRequested() end)
+    pcall(function() can = c:isCancelled() end)
+    return run, req, can
+end
+Q.waitFor(1, 180, function()
+    if not (S.rkArm and S.rkStart) then return true end
+    local run, req, can = H.rackFlags()
+    return run == false or req == true or can == true
+end, function(ok)
     if not (S.rkArm and S.rkStart) then return end
-    if not ok then Q.say("NOTE rack stop: isRunning " .. tostring(H.rackRunning()) .. ", queue " .. H.queueTypes()) end
-    Q.check(ok, "rack: Start pressed again stops it")
+    local run, req, can = H.rackFlags()
+    Q.check(ok, "rack: Start pressed again stops it (its stop request is taken)",
+        "isRunning " .. tostring(run) .. ", isStopRequested " .. tostring(req) .. ", isCancelled " .. tostring(can) .. ", queue " .. H.queueTypes())
 end)
 Q.step(2, function()
     if not S.rkArm then return end

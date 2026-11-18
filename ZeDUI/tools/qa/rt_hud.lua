@@ -1055,6 +1055,39 @@ function S.F.handCheck(o, why, what)
         .. ", view distance " .. tostring(o.viewDistance) .. ", disable tick " .. tostring(mg.disableTick) .. ")"
     if r then
         d = tostring(r.hand) .. ", " .. math.floor((r.w or 0) + 0.5) .. " x " .. math.floor((r.h or 0) + 0.5)
+    else
+        -- (Nov 18 2026, Build: what the marker also needs, ISBaseIcon:updateWorldMarker: isNearby(), and the update
+        -- itself. Called once here by hand; if that raises the marker while the game's own update did not, it says so.)
+        local near, direct = "?", "?"
+        pcall(function() near = tostring(o:isNearby()) end)
+        pcall(function() o:updateWorldMarker(); direct = tostring(o.worldMarker ~= nil) end)
+        local r2 = F.mark(o)
+        d = d .. ", nearby " .. near .. ", a direct updateWorldMarker raises it " .. direct
+            .. (r2 and (" (" .. tostring(r2.hand) .. ")") or "")
+        -- what stands on the squares between the character and the find
+        local seen = {}
+        pcall(function()
+            local px, py, pz = math.floor(S.p:getX()), math.floor(S.p:getY()), math.floor(S.p:getZ())
+            local fx, fy = math.floor(o.xCoord), math.floor(o.yCoord)
+            local n = math.max(math.abs(fx - px), math.abs(fy - py))
+            for k = 1, n do
+                local sx = px + math.floor((fx - px) * k / n + 0.5)
+                local sy = py + math.floor((fy - py) * k / n + 0.5)
+                local sq = getCell():getGridSquare(sx, sy, pz)
+                local names = {}
+                if sq then
+                    local objs = sq:getObjects()
+                    for i = 0, objs:size() - 1 do
+                        local ob = objs:get(i)
+                        local nm = "?"
+                        pcall(function() nm = ob:getSprite() and ob:getSprite():getName() or ob:getObjectName() end)
+                        names[#names + 1] = tostring(nm)
+                    end
+                end
+                seen[#seen + 1] = sx .. "," .. sy .. "=" .. ((#names > 0) and table.concat(names, "+") or "empty")
+            end
+        end)
+        d = d .. ", between: " .. table.concat(seen, " ")
     end
     Q.check(r ~= nil and r.hand == F.want(F.side(o)) and math.floor((r.w or 0) + 0.5) == 44 and math.floor((r.h or 0) + 0.5) == 77,
         what, d)

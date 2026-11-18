@@ -729,7 +729,7 @@ end
 -- its layers read in the theme's palette (M.PALETTES), the woodland tile on the forest layer and a lake layer per
 -- MapsSurveyData lake just above the water; a status-colour change recolours it in place, once, with no new layers.
 -- The printed additions are read by drawing them once into a recorder (M.drawMap with the map's draw calls caught,
--- nothing drawn) at a view set for each: the grid, place badges from zoom 14 and none farther out, route shields,
+-- nothing drawn) at a view set for each: the grid, place badges from zoom 15 and none farther out, route shields,
 -- bridge marks, town dots, the exclusion zone's edge and label, the scale bar and north arrow. The key's Colors and
 -- Symbols pages through the Maps tab's own click handler (MapsTabExt.onClick). Put back: the style, the status
 -- colours, the view and the key.)
@@ -887,30 +887,49 @@ Q.step(10, function()
     for _, t in ipairs(R.texts) do if t.s == label then hasLabel = true end; if t.s == "N" then hasN = true end end
     Q.check(bar and box and hasLabel and hasN, "survey scale: the bar is its metres x px per square, boxed at the foot",
         "want " .. barW .. " px for " .. label .. "; bar " .. tostring(bar) .. ", box " .. tostring(box) .. ", label " .. tostring(hasLabel) .. ", N " .. tostring(hasN))
-    -- the places: zoom 15 on the first
+    -- the places: at the cutoff zoom on the first
     local pl = (ZeD.MapsSurveyData and ZeD.MapsSurveyData.places or {})[1]
     S.svPl = pl
-    if pl then H.viewAt(pl.x, pl.y, 15) end
+    if pl then
+        local zc = H.zPlace()
+        H.viewAt(pl.x, pl.y, zc)
+        -- (setZoom can read back a hair under: 14.999 for 15)
+        local zr = nil
+        pcall(function() zr = H.mp().mapAPI:getZoomF() end)
+        if zr ~= nil and zr < zc then pcall(function() H.mp().mapAPI:setZoom(zc + 0.01) end) end
+    end
 end)
+-- the place cutoff and badge size: MapsSurvey's own when it shares them (Z_PLACE_MIN, placeBadgeSize), else its numbers
+function H.zPlace() return (SV and tonumber(SV.Z_PLACE_MIN)) or 15.0 end
+function H.badgeS(z)
+    if SV and SV.placeBadgeSize then
+        local ok, s = pcall(SV.placeBadgeSize, z)
+        if ok and tonumber(s) then return tonumber(s) end
+    end
+    return ZeD.T.px(z >= 16 and 14 or 11)
+end
 Q.step(10, function()
     if S.svSkip then return end
     if not Q.check(S.svPl ~= nil, "survey places: MapsSurveyData has places") then return end
     local R = H.rec()
-    local s = ZeD.T.px((R.z or 0) >= 16 and 18 or 14)
+    local s = H.badgeS(R.z or 0)
     local want = 0
     for _, pp in ipairs(ZeD.MapsSurveyData.places) do
         local sx, sy = H.ui(pp.x, pp.y)
         if H.near(R, sx, sy, s) then want = want + 1 end
     end
     local got = H.nSq(R, R.borders, s)
-    Q.check(R.ok and (R.z or 0) >= 14 and want > 0 and got == want, "survey places: a badge at each place in view from zoom 14",
-        "zoom " .. tostring(R.z) .. ", " .. got .. " badges, " .. want .. " places in view")
-    H.viewAt(S.svPl.x, S.svPl.y, 13.9)
+    Q.check(R.ok and (R.z or 0) >= H.zPlace() and want > 0 and got == want, "survey places: a badge at each place in view from zoom 15",
+        "zoom " .. tostring(R.z) .. ", " .. got .. " badges of " .. tostring(s) .. " px, " .. want .. " places in view")
+    H.viewAt(S.svPl.x, S.svPl.y, H.zPlace() - 0.1)
 end)
 Q.step(10, function()
     if S.svSkip or not S.svPl then return end
     local R = H.rec()
-    Q.check(R.ok and (R.z or 99) < 14 and H.nSq(R, R.borders, ZeD.T.px(14)) == 0, "survey places: no place badges farther out than zoom 14", "zoom " .. tostring(R.z))
+    local zc = H.zPlace()
+    local nb = H.nSq(R, R.borders, H.badgeS(zc - 0.1)) + H.nSq(R, R.borders, H.badgeS(16))
+    Q.check(R.ok and (R.z or 99) < zc and nb == 0, "survey places: no place badges below zoom 15",
+        "zoom " .. tostring(R.z) .. ", " .. nb .. " badges")
     local sh = (ZeD.MapsSurveyData.shields or {})[1]
     S.svSh = sh
     if sh then H.viewAt(sh.x, sh.y, 14) end
@@ -921,18 +940,45 @@ Q.step(10, function()
     local R = H.rec()
     local T3 = { us = getTexture("media/textures/ZeD/map/shield_us.png"), ky = getTexture("media/textures/ZeD/map/shield_ky.png"),
         i = getTexture("media/textures/ZeD/map/shield_i.png") }
-    local want, nums = 0, 0
-    for _, e in ipairs(ZeD.MapsSurveyData.shields) do
-        local sx, sy = H.ui(e.x, e.y)
-        if T3[e.t] and H.near(R, sx, sy, 30) then
-            want = want + 1
-            for _, t in ipairs(R.texts) do if t.s == tostring(e.n) then nums = nums + 1; break end end
+    -- the shields drawn this frame (kept 110 px apart and off the town names by design, so fewer than the routes is right)
+    local shs = {}
+    for _, t in ipairs(R.texs) do
+        if t.t ~= nil and (t.t == T3.us or t.t == T3.ky or t.t == T3.i) then shs[#shs + 1] = t end
+    end
+    -- each carries its number: a digits-only text whose spot lies inside the shield's rect (grid rows, scale labels fall outside)
+    local numbered = 0
+    for _, sh in ipairs(shs) do
+        for _, t in ipairs(R.texts) do
+            if t.s:match("^[0-9]+$") and t.x >= sh.x and t.y >= sh.y and t.x <= sh.x + sh.w and t.y <= sh.y + sh.h then
+                numbered = numbered + 1
+                break
+            end
         end
     end
-    local got = 0
-    for _, t in ipairs(R.texs) do if t.t ~= nil and (t.t == T3.us or t.t == T3.ky or t.t == T3.i) then got = got + 1 end end
-    Q.check(R.ok and want > 0 and got == want and nums == want, "survey shields: a shield with its number per route in view",
-        "zoom " .. tostring(R.z) .. ", " .. got .. " shields, " .. nums .. " numbers, " .. want .. " in view")
+    -- none closer than 110 px (centre to centre)
+    local sep = ZeD.T.px(110)
+    local close = 0
+    for i = 1, #shs do
+        local ax, ay = shs[i].x + shs[i].w / 2, shs[i].y + shs[i].h / 2
+        for j = i + 1, #shs do
+            local dx, dy = shs[j].x + shs[j].w / 2 - ax, shs[j].y + shs[j].h / 2 - ay
+            if dx * dx + dy * dy < sep * sep - 1 then close = close + 1 end
+        end
+    end
+    -- none on a town's name while the names show
+    local onName = 0
+    local zt = (SV and tonumber(SV.Z_TOWN_MAX)) or 13.5
+    if (R.z or 99) < zt then
+        for _, tn in ipairs(ZeD.MapsSurveyData.towns or {}) do
+            local ux, uy = H.ui(tn.x, tn.y)
+            for _, sh in ipairs(shs) do
+                if math.abs(sh.x + sh.w / 2 - ux) < ZeD.T.px(90) and math.abs(sh.y + sh.h / 2 - uy) < ZeD.T.px(22) then onName = onName + 1 end
+            end
+        end
+    end
+    Q.check(R.ok and #shs > 0 and numbered == #shs and close == 0 and onName == 0,
+        "survey shields: every shield drawn carries its number, 110 px apart, off the town names",
+        "zoom " .. tostring(R.z) .. ", " .. #shs .. " shields, " .. numbered .. " numbered, " .. close .. " too close, " .. onName .. " on a town name")
     local br = (ZeD.MapsSurveyData.bridges or {})[1]
     S.svBr = br
     if br then H.viewAt(br.x, br.y, 16) end
