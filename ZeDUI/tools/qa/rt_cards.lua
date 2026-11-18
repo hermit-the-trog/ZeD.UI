@@ -456,7 +456,41 @@ Q.waitFor(2, 120, function() return H.cardOn(S.pencil) end, function(ok)
     Q.check(ok, "drop: a click on the pencil's row opens its card", H.nm(H.card() and H.card().item))
 end)
 Q.step(10, function() end)
-H.queueVerb("DROP", "drop", 0)
+-- (Nov 18 2026, Build: by design an item not worn or held shows its primary verb and MORE; MORE opens the item's
+-- whole context menu at the button, and Drop is there, the game's ContextMenu_Drop. So: MORE, then that row.)
+function H.ctxMenu()
+    local m = nil
+    pcall(function() local v = getPlayerContextMenu(S.pn); m = v and v._zedMenu end)
+    return m
+end
+function H.ctxPick(m, nm)
+    local function same(a, b) return a == b or string.lower(tostring(a)) == string.lower(tostring(b)) end
+    if m._levels then
+        local lv = m._levels[1]
+        if not lv then return false, "no level 1" end
+        local ri = nil
+        for k, r in ipairs(lv.rows or {}) do if not ri and r.def and same(r.def.name, nm) then ri = k end end
+        if not ri then return false, "no row " .. tostring(nm) end
+        lv.sel = ri
+        m:confirm(1)
+        return true, "picked"
+    end
+    local idx = nil
+    for i, d in ipairs(m._ctx and m._ctx.items or {}) do if not idx and d and same(d.name, nm) then idx = i end end
+    if not idx then return false, "no cell " .. tostring(nm) end
+    m._ctx.selected = idx
+    m:confirm()
+    return true, "picked"
+end
+H.queueVerb("MORE", "drop", 0)
+Q.waitFor(2, 120, function() return H.ctxMenu() ~= nil end, function(ok)
+    Q.check(ok, "drop: MORE opens the pencil's whole context menu", tostring(ok))
+    local m = H.ctxMenu()
+    local nm = getTextOrNull("ContextMenu_Drop") or "Drop"
+    local okP, why = false, "no menu"
+    if m then okP, why = H.ctxPick(m, nm) end
+    Q.check(okP, "drop: the menu has the game's Drop and it can be picked", tostring(why))
+end)
 Q.waitFor(2, 900, function() return not S.p:getInventory():contains(S.pencil) end, function(ok)
     local wi, cont = nil, nil
     pcall(function() wi = S.pencil:getWorldItem() end)
