@@ -112,10 +112,19 @@ local TEXT = {
     { "text-water-nofade", "water",    { { 0, 255 } } },
 }
 
+-- (QA, Nov 18 2026, read from projectzomboid.jar: only the texture, text and pyramid layers have removeAllFill /
+-- removeAllTexture; the polygon layers (forest, water, roads, buildings) do not, and a missing method on a Java
+-- object throws. Every layer kind has getFillStops / removeFill, and the polygon layers getTextureStops /
+-- removeTexture and getScaleStops / removeScale, so stops are cleared one at a time.)
+local function clearFills(layer) for _ = 1, layer:getFillStops() do layer:removeFill(0) end end
+local function clearTextures(layer) for _ = 1, layer:getTextureStops() do layer:removeTexture(0) end end
+local function clearScales(layer) for _ = 1, layer:getScaleStops() do layer:removeScale(0) end end
+M._clearFills = clearFills
+
 local function refill(layer, hex, stops)
     if not (layer and hex) then return end
     local r, g, b = rgb(hex)
-    layer:removeAllFill()
+    clearFills(layer)
     for _, s in ipairs(stops) do layer:addFill(s[1], r, g, b, s[2]) end
 end
 
@@ -144,7 +153,7 @@ function M.restyle(mp)
     local pyr = styleAPI:getLayerByName("pyramid-forest")
     if pyr then
         local fr, fg, fb = rgb(pal.forest)
-        pyr:removeAllFill()
+        clearFills(pyr)
         pyr:addFill(0.0, fr, fg, fb, 255)
         pyr:addFill(14.999, fr, fg, fb, 255)
         pyr:addFill(15.0, 0, 0, 0, 0)
@@ -152,8 +161,9 @@ function M.restyle(mp)
     -- the forest shapes (from zoom 15): white, carrying the tree-mark tile in its own colours
     local forest = styleAPI:getLayerByName("forest")
     if forest then
-        forest:removeAllFill()
-        forest:removeAllTexture()
+        clearFills(forest)
+        clearTextures(forest)
+        clearScales(forest)
         forest:addFill(MINZ, 255, 255, 255, 0)
         forest:addFill(14.5, 255, 255, 255, 0)
         forest:addFill(15, 255, 255, 255, 255)
@@ -166,7 +176,7 @@ function M.restyle(mp)
     if paperL then
         local pr, pg, pb = 255, 255, 255
         if base ~= "light" then pr, pg, pb = 0, 0, 0 end
-        paperL:removeAllFill()
+        clearFills(paperL)
         paperL:addFill(14.00, pr, pg, pb, 0)
         paperL:addFill(15.00, pr, pg, pb, 32)
     end
@@ -196,7 +206,7 @@ function M.lakes(mp, pal)
                 waterAt = waterAt + 1
             end
         end
-        layer:removeAllFill()
+        clearFills(layer)
         layer:addFill(MINZ, lr, lg, lb, 255)
     end
 end

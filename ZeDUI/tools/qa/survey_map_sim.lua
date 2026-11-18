@@ -33,16 +33,42 @@ require = realRequire
 local M = ZeD.MapsSurvey
 check("module loads and registers its drawing", M ~= nil and ext ~= nil and ext.drawMap ~= nil)
 
+-- (the layer kinds as projectzomboid.jar has them, QA's catch Nov 18 2026: removeAllFill / removeAllTexture only on
+-- the texture, text and pyramid layers, never on the polygon ones; a call to a method a kind lacks fails here as it
+-- throws in the game)
+local function kindOf(name)
+    if name:find("^text%-") then return "text" end
+    if name == "pyramid-forest" then return "pyramid" end
+    if name == "paper" or name:find("^zed%-lake") then return "texture" end
+    return "polygon"
+end
 local function newLayer(name)
-    local L = { name = name, fills = {}, textures = {}, scales = {} }
-    function L:removeAllFill() self.fills = {} end
-    function L:removeAllTexture() self.textures = {} end
-    function L:addFill(z, r, g, b, a) self.fills[#self.fills + 1] = { z, r, g, b, a } end
-    function L:addTexture(z, p, mode) self.textures[#self.textures + 1] = { z, p, mode } end
-    function L:addScale(z, s) self.scales[#self.scales + 1] = { z, s } end
-    function L:setMinZoom(z) self.minZ = z end
-    function L:setBoundsInSquares(a, b, c, d) self.bounds = { a, b, c, d } end
-    return L
+    local L = { name = name, fills = {}, textures = {}, scales = {}, kind = kindOf(name) }
+    local M = {}
+    function M:getFillStops() return #self.fills end
+    function M:removeFill(i) table.remove(self.fills, i + 1) end
+    function M:addFill(z, r, g, b, a) self.fills[#self.fills + 1] = { z, r, g, b, a } end
+    function M:setMinZoom(z) self.minZ = z end
+    if L.kind == "polygon" or L.kind == "texture" then
+        function M:addTexture(z, p, mode) self.textures[#self.textures + 1] = { z, p, mode } end
+        function M:getTextureStops() return #self.textures end
+        function M:removeTexture(i) table.remove(self.textures, i + 1) end
+    end
+    if L.kind == "polygon" then
+        function M:addScale(z, s) self.scales[#self.scales + 1] = { z, s } end
+        function M:getScaleStops() return #self.scales end
+        function M:removeScale(i) table.remove(self.scales, i + 1) end
+    else
+        function M:removeAllFill() self.fills = {} end
+    end
+    if L.kind == "texture" then
+        function M:removeAllTexture() self.textures = {} end
+        function M:setBoundsInSquares(a, b, c, d) self.bounds = { a, b, c, d } end
+    end
+    return setmetatable(L, { __index = function(_, k)
+        if M[k] then return M[k] end
+        error("the game's " .. L.kind .. " layer has no " .. tostring(k), 2)
+    end })
 end
 local NAMES = { "forest", "water", "road-trail", "road-tertiary", "road-secondary", "road-primary", "railway",
     "building", "building-Residential", "building-CommunityServices", "building-Hospitality", "building-Industrial",
@@ -125,6 +151,8 @@ for _, base in ipairs({ "dark", "light", "hicon" }) do
             local n0 = #mp.order
             M.restyle(mp)
             check(tag .. ": restyling again adds no layers", #mp.order == n0)
+            local f2 = S:getLayerByName("forest")
+            check(tag .. ": restyling again keeps one woods texture and one scale", #f2.textures == 1 and #f2.scales == 1 and #f2.fills == 4)
         end
     end
 end
