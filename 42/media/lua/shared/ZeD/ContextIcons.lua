@@ -230,6 +230,7 @@ ZeD.ContextIcons = {
     ["Equip Belt Right"]                          = "holster-gun-right",
     ["Holster"]                                   = "arrow-alt-to-bottom",
     -- (Nov 18 2026, QA's release test: the Attach list's slots, the game's IGUI_HotbarAttachment_* words, had no icon)
+    ["Back"]                                      = "on-back",
     ["Belt Left"]                                 = "holster-gun-left",
     ["Belt Right"]                                = "holster-gun-right",
     ["Holster Left"]                              = "holster-gun-left",
@@ -1198,6 +1199,7 @@ ZeD.ContextIcons = {
 -- the name has in ZeD.ContextIcons. ContextMenuRegistry turns the keys into the
 -- player's language at load; the English name stays as the fallback.
 ZeD.ContextIconKeys = {
+    { "Back", "IGUI_HotbarAttachment_Back" },
     { "Belt Left", "IGUI_HotbarAttachment_SmallBeltLeft" },
     { "Belt Right", "IGUI_HotbarAttachment_SmallBeltRight" },
     { "Holster Left", "IGUI_HotbarAttachment_HolsterLeft" },
