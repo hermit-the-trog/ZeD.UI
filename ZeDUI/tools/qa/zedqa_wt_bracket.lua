@@ -184,7 +184,12 @@ local function checkOne(k, tag, grid, mode, which)
         local catOn = hdr[string.lower(ZeD.tr("UI_ZeD_Inv_ColCat"))] or false
         local condOn = hdr[string.lower(ZeD.tr("UI_ZeD_Inv_ColCond"))] or false
         say(string.format("%s %s headers: cat %s, cond %s", tag, k, tostring(catOn), tostring(condOn)))
-        if tag == "small list" and not (catOn and condOn) then fail(tag .. " " .. k .. ": a column dropped for the bracket") end
+        -- (Nov 18 2026, Build: which columns show is decided from the WT column's unit width, never the bracket; a
+        -- 222 px list at a true 1280x800 Deck has room for one column only, and fitColumns drops Cat before Status.
+        -- So both columns are expected only where the default-width list has room for both, at 4K.)
+        local roomy = getCore():getScreenWidth() > 1280
+        if tag == "small list" and roomy and not (catOn and condOn) then fail(tag .. " " .. k .. ": a column dropped for the bracket") end
+        if tag == "small list" and not roomy then say(tag .. " " .. k .. ": a narrow screen, the width rule decides the columns (not checked against the pair)") end
     end
     return
     end
