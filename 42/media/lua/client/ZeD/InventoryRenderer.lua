@@ -1244,6 +1244,7 @@ local function gridState(self, inv, playerObj, colW, scrollW, padX, childParent)
     local GV = { key = containerKeyOf(inv, playerObj), toggles = {}, child = childParent, player = playerObj or getSpecificPlayer(0) }
     GV.on   = ZeD.InventoryRenderer.isGridKey(GV.key, GV.player)
     GV.cell = T.px(GRID_CELL)
+    GV.zedCell = GV.cell   -- (ZeD's own square, kept: an add-on's layout sets GV.cell to its own; drawShapeCell)
     GV.gap  = T.px(GRID_GAP)
     GV.cols = math.max(1, math.floor((colW - scrollW - padX * 2 + GV.gap) / (GV.cell + GV.gap)))
     self._gridCell = GV.on and GV.cell or nil
@@ -1457,7 +1458,11 @@ local function drawShapeCell(self, GV, item, cx, cy, g)
     -- (Nov 17 2026, QA's 0.2 pass: on a ONE-square shape the picture fills most of the square, so the labels gave
     -- way to it: no weight chip there (the item's card has it), the count small at the top right, the condition a slim
     -- strip along the foot. And no chip is ever wider than its square: "(10)" spilled over the next item.)
-    local one = g.n == 1
+    -- (Nov 18 2026, the director, Multi-Slot at ZeD's full square size: "big enough for picture so you can see things
+    -- at a glance". A one-square shape as big as ZeD's own cell is labeled as ZeD's own cell is: the weight top right,
+    -- the count in its usual font above the strip, the full strip. Only a smaller square, another provider's scale,
+    -- keeps the slim fallback above.)
+    local one = g.n == 1 and not (GV.zedCell and sq >= GV.zedCell - 1)
     -- the condition strip along the last square's foot (a readable item: its read mark instead)
     local lx, ly = ax + g.ix, cy + g.iy
     local condTop, condHov = ly + sq, false
