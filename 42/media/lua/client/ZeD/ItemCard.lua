@@ -370,8 +370,15 @@ end
 
 VERB_DISPATCH.repair  = function(card) tryFixingManager(card) end
 
--- the nearest water within two tiles of the player (vanilla's wash reach), or nil
-local function waterInReach(player)
+-- the nearest water within two tiles of the player (vanilla's wash reach), or nil. With item: only water that holds
+-- enough to wash it (ISWashClothing.GetRequiredWater, as the game's own menu asks; a nearer source with a little
+-- water left made the wash stop at once, Nov 18 2026)
+local function waterInReach(player, item)
+    local need = 0
+    if item and ISWashClothing and ISWashClothing.GetRequiredWater then
+        local okN, n = pcall(ISWashClothing.GetRequiredWater, item)
+        if okN and type(n) == "number" then need = n end
+    end
     local sq = player:getCurrentSquare()
     local best, bestD = nil, nil
     if sq then
@@ -382,7 +389,7 @@ local function waterInReach(player)
                 local objs = s and s:getObjects()
                 for i = 0, (objs and objs:size() or 0) - 1 do
                     local o = objs:get(i)
-                    local ok, has = pcall(function() return o:hasWater() and o:getFluidAmount() > 0 end)
+                    local ok, has = pcall(function() local a = o:hasWater() and o:getFluidAmount() or 0; return a > 0 and a >= need end)
                     local d = dx * dx + dy * dy
                     if ok and has and (not bestD or d < bestD) then best, bestD = o, d end
                 end
@@ -429,7 +436,7 @@ end
 VERB_DISPATCH.wash = function(card)
     local player = getSpecificPlayer(card.playerNum)
     if not (player and card.item) then return end
-    local best = waterInReach(player)
+    local best = waterInReach(player, card.item)
     if not best then note(player, ZeD.tr("UI_ZeD_Card_NoWaterInReach")); return end
     local soap = player:getInventory():getSoapList(nil, true)
     ISWorldObjectContextMenu.onWashClothing(player, best, soap, nil, card.item)
@@ -488,13 +495,14 @@ local function workOutAbility(card, key)
     local VT = ZeD.ItemCard and ZeD.ItemCard.verbText
     if key == "repair_all" or key == "pad_all" then
         local holes, pads = holesAndPads(item)
-        a.sensible = (key == "repair_all") and holes > 0 or pads > 0
+        -- (Nov 18 2026: "x and a or b" made Repair all sensible with no holes whenever a pad was possible)
+        if key == "repair_all" then a.sensible = holes > 0 else a.sensible = pads > 0 end
         a.canDo = findClothingMaterials(player) ~= nil
         a.needs = ZeD.tr("UI_ZeD_Card_NeedsSewing")
         a.hint = ZeD.tr(key == "repair_all" and "UI_ZeD_Card_HintRepairHoles" or "UI_ZeD_Card_HintPad")
         a.label = VT and VT(key == "repair_all" and "REPAIR" or "PAD")
     elseif key == "wash" then
-        a.canDo = waterInReach(player) ~= nil
+        a.canDo = waterInReach(player, item) ~= nil
         a.needs = ZeD.tr("UI_ZeD_Card_NeedsWater")
         a.hint = ZeD.tr("UI_ZeD_Card_HintWash")
         a.label = VT and VT("WASH")
