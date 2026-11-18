@@ -42,7 +42,8 @@ are marked below.
 ## Still to come (the chain is running)
 
 - 59 Fishing (g1_59_fishing): NOT taken yet. Nov 18: three tries; the aim is on the water, but the game never goes into
-  fishing when a script holds the aim (it needs the real right mouse button). Waiting on the director's call.
+  fishing when a script holds the aim (it needs the real right mouse button). The director: skip it for now, come
+  back to it later. Lay out the gallery without 59 for now.
 - 05 ZeD setup: taken in the setup run; the fact page waits on the director.
 - The rest of the lived-in set (chapters 60, 64, 66, 67, 71, 72, 22, 29, 30, 31, 11, 18, 32, 38, 50, 53, 60): in today's runs; QA will add them to the folder as they land.
 - Vanilla pictures are all at the game's own default font ("Scale with window height"), as the director asked.
