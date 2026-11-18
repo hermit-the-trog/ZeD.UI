@@ -1048,13 +1048,54 @@ function S.F.handCheck(o, why, what)
     local F = S.F
     if not o then Q.check(false, what, "not staged: " .. tostring(why)); return end
     local r = F.mark(o)
+    local mg = F.mgr or {}
     local d = "no pointer up (seen " .. tostring(o.isSeenThisUpdate) .. ", forageable " .. tostring(o.isForageable)
-        .. ", distance " .. string.format("%.1f", o.distanceToPlayer or -1) .. ")"
+        .. ", distance " .. string.format("%.1f", o.distanceToPlayer or -1)
+        .. ", radius " .. tostring(mg.radius) .. ", darkness capped " .. tostring(o.isDarknessCapped)
+        .. ", view distance " .. tostring(o.viewDistance) .. ", disable tick " .. tostring(mg.disableTick) .. ")"
     if r then
         d = tostring(r.hand) .. ", " .. math.floor((r.w or 0) + 0.5) .. " x " .. math.floor((r.h or 0) + 0.5)
     end
     Q.check(r ~= nil and r.hand == F.want(F.side(o)) and math.floor((r.w or 0) + 0.5) == 44 and math.floor((r.h or 0) + 0.5) == 77,
         what, d)
+end
+-- (Nov 18 2026, run r7: the ground find's pointer passed in r6 and failed in r7 with no code change. The game raises a
+-- find's pointer only in range for its update (ISBaseIcon:isInRangeForUpdate: within manager.radius and not darkness
+-- capped, or within viewDistance), and both follow the light (forageSystem.getLightLevelPenalty reads the square's
+-- light and ClimateManager:getDayLightStrength). So beside noon the sky is pinned clear through the climate's own
+-- overrides (fog, cloud and rain none, daylight full), the way the game's debug scenarios clear fog; each override
+-- goes back as it was in S.putForage. stopWeatherAndThunder is not used: it cannot be put back.)
+function S.F.clearSky()
+    local F = S.F
+    F.sky = {}
+    local cm = nil
+    pcall(function() cm = getClimateManager() end)
+    if not cm then return end
+    local want = {
+        { k = "FLOAT_FOG_INTENSITY", v = 0 }, { k = "FLOAT_CLOUD_INTENSITY", v = 0 },
+        { k = "FLOAT_PRECIPITATION_INTENSITY", v = 0 }, { k = "FLOAT_DAYLIGHT_STRENGTH", v = 1 },
+    }
+    for _, w in ipairs(want) do
+        pcall(function()
+            local idx = ClimateManager[w.k]
+            local cf = idx and cm:getClimateFloat(idx)
+            if not cf then return end
+            local e = { cf = cf, on = cf:isEnableOverride(), val = cf:getOverride(), interp = cf:getOverrideInterpolate() }
+            cf:setEnableOverride(true)
+            cf:setOverride(w.v, 1)
+            F.sky[#F.sky + 1] = e
+        end)
+    end
+end
+function S.F.putSky()
+    local F = S.F
+    for _, e in ipairs(F.sky or {}) do
+        pcall(function()
+            if e.val ~= nil then e.cf:setOverride(e.val, e.interp or 0) end
+            e.cf:setEnableOverride(e.on == true)
+        end)
+    end
+    F.sky = {}
 end
 function S.F.faceOne()
     local F = S.F
@@ -1078,6 +1119,7 @@ Q.step(10, function()
         if inCat and pcall(instanceItem, t) and (not F.ty or t < F.ty.type) then F.ty = { type = t, cat = "Mushrooms" } end
     end
     getGameTime():setTimeOfDay(12.0)
+    F.clearSky()
 end)
 Q.step(10, function()
     local F = S.F
@@ -1199,6 +1241,7 @@ function S.putForage()
     end
     F.ground = {}
     pcall(function() getGameTime():setTimeOfDay(F.tod) end)
+    F.putSky()
     if not F.searchWas then
         pcall(function() F.mgr:toggleSearchMode(false) end)
         pcall(function() local eng = getSearchMode(); eng:setOverride(S.pn, false); eng:setEnabled(S.pn, false) end)

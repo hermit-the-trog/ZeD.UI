@@ -1541,24 +1541,9 @@ Q.waitFor(4, 1800, function() return not S.rkArm or (H.basilIn() < S.basil0 and 
     if not S.rkArm then return end
     Q.check(ok, "rack: Add puts the basil into its input slots (the game's slot action)", S.basil0 .. " -> " .. H.basilIn() .. " carried")
 end)
-Q.waitFor(4, 300, function() local z = H.craftZone("mStart"); return not S.rkArm or z ~= nil end, function(ok)
-    if not S.rkArm then return end
-    local z = H.craftZone("mStart")
-    S.rkStart = z and z.enabled
-    if not z then Q.check(false, "rack: its Start is drawn"); return end
-    if not z.enabled then Q.skip("rack: Start runs it", "the game's canStart says no for this load"); return end
-    H.craftClick(z)
-end)
-Q.waitFor(4, 900, function() return not (S.rkArm and S.rkStart) or H.rackRunning() end, function(ok)
-    if not (S.rkArm and S.rkStart) then return end
-    Q.check(ok, "rack: Start runs it (isRunning)")
-    local z = H.craftZone("mStart")
-    if z and z.running then H.craftClick(z) end
-end)
-Q.waitFor(4, 900, function() return not (S.rkArm and S.rkStart) or not H.rackRunning() end, function(ok)
-    if not (S.rkArm and S.rkStart) then return end
-    Q.check(ok, "rack: Start pressed again stops it")
-end)
+-- (Nov 18 2026, r7: the slots are checked BEFORE Start: a running rack holds its input as "drying", which shows no
+-- take. The basil taken goes back in with Add, then Start. Stopping is queued after a walk to the rack (SM.stop, as
+-- Add), so the stop is read once the timed-action queue is empty.)
 Q.waitFor(4, 300, function() return not S.rkArm or H.craftZone("mInRemove") ~= nil end, function(ok)
     if not S.rkArm then return end
     S.rkIn = H.basilIn()
@@ -1574,6 +1559,48 @@ end)
 Q.waitFor(4, 1800, function() return not S.rkArm or (H.basilIn() > S.rkIn and H.queueTypes() == "none") end, function(ok)
     if not S.rkArm then return end
     Q.check(ok, "rack: a slot's take brings the basil back out (the game's slot action)", S.rkIn .. " -> " .. H.basilIn() .. " carried")
+end)
+-- the basil taken goes back in for Start (Add again)
+Q.waitFor(4, 300, function() return not S.rkArm or H.craftZone("mAdd") ~= nil end, function(ok)
+    if not S.rkArm then return end
+    S.rkBack = H.basilIn()
+    S.rkReAdd = ok and H.craftPress("mAdd") or false
+    if not S.rkReAdd then Q.say("NOTE rack: no Add drawn after the take (basil " .. S.rkBack .. ")") end
+end)
+Q.waitFor(4, 1800, function() return not (S.rkArm and S.rkReAdd) or (H.basilIn() < S.rkBack and H.queueTypes() == "none") end, function(ok)
+    if not (S.rkArm and S.rkReAdd) then return end
+    if not ok then Q.say("NOTE rack: the basil did not go back in (" .. S.rkBack .. " -> " .. H.basilIn() .. ", queue " .. H.queueTypes() .. ")") end
+end)
+Q.waitFor(4, 300, function() local z = H.craftZone("mStart"); return not S.rkArm or z ~= nil end, function(ok)
+    if not S.rkArm then return end
+    local z = H.craftZone("mStart")
+    S.rkStart = z and z.enabled
+    if not z then Q.check(false, "rack: its Start is drawn"); return end
+    if not z.enabled then Q.skip("rack: Start runs it", "the game's canStart says no for this load"); return end
+    H.craftClick(z)
+end)
+Q.waitFor(4, 900, function() return not (S.rkArm and S.rkStart) or H.rackRunning() end, function(ok)
+    if not (S.rkArm and S.rkStart) then return end
+    Q.check(ok, "rack: Start runs it (isRunning)")
+    S.rkStopAt = getTimestampMs()
+    local z = H.craftZone("mStart")
+    if z and z.running then H.craftClick(z) end
+end)
+-- (the stop walks to the rack first: wait for the queue to empty, at least half a second after the press)
+Q.waitFor(4, 1800, function()
+    if not (S.rkArm and S.rkStart) then return true end
+    return getTimestampMs() - (S.rkStopAt or 0) >= 500 and H.queueTypes() == "none"
+end, function(okq)
+    if not (S.rkArm and S.rkStart) then return end
+    if not okq then Q.say("NOTE rack stop: the queue did not empty: " .. H.queueTypes()) end
+end)
+Q.waitFor(1, 60, function() return not (S.rkArm and S.rkStart) or not H.rackRunning() end, function(ok)
+    if not (S.rkArm and S.rkStart) then return end
+    if not ok then Q.say("NOTE rack stop: isRunning " .. tostring(H.rackRunning()) .. ", queue " .. H.queueTypes()) end
+    Q.check(ok, "rack: Start pressed again stops it")
+end)
+Q.step(2, function()
+    if not S.rkArm then return end
     H.stopActions()
     pcall(S.ST.unbind, S.p)
     RT.worldTab("loot")
@@ -1677,10 +1704,14 @@ Q.step(4, function()
     end
     local W, Hs = getCore():getScreenWidth(), getCore():getScreenHeight()
     local spot = nil
-    for _, p in ipairs({ { 3, 3 }, { W - 4, 3 }, { 3, Hs - 4 }, { W - 4, Hs - 4 }, { math.floor(W / 2), 3 } }) do
-        if not spot and not H.overWin(p[1], p[2]) then spot = p end
+    -- (Nov 18 2026, r7: the spot is the middle-top of the screen, off both windows; where they cover it, a step down
+    -- the screen at a time until a spot is off both. The bottom-right corner it used before may sit on an edge zone.)
+    local mx, sy = math.floor(W / 2), 24
+    while not spot and sy < Hs - 4 do
+        if not H.overWin(mx, sy) then spot = { mx, sy } end
+        sy = sy + 16
     end
-    if not spot then Q.skip("halves roll up after 2 s away", "the windows cover every corner of the screen"); return end
+    if not spot then Q.skip("halves roll up after 2 s away", "the windows cover the screen's middle column top to bottom"); return end
     -- no card in the drawer (nothing selected in the list), no object card
     H.closeCard()
     local c = H.content()
@@ -1714,10 +1745,11 @@ end, function(ok)
 end)
 Q.waitFor(2, 900, function() local w = RT.cw(); return S.hv == nil or w._halves.drawer.rolled == true end, function(ok)
     if not S.hv then return end
-    H.mouseBack()
     local w = RT.cw()
     local ms = getTimestampMs() - S.hvT0
+    -- (read while getMouseX / getMouseY still answer the spot, as WindowHalves.update saw it)
     Q.say("NOTE halves at the wait's end: " .. H.hvDiag(w))
+    H.mouseBack()
     Q.check(ok and ms >= 1500, S.HV_ROLL, ms .. " ms" .. (w.windowShaded and " (the whole window shaded: its list hid under the drawer)" or ""))
     local tab = ZeD.Halves.foldedTab(w)
     local kept = tab == "skills" or (tab == nil and w.windowShaded and w._activeTab == "skills")
@@ -1753,6 +1785,25 @@ function H.hvDiag(w)
     add("drawer.rolled", function() return w._halves and w._halves.drawer and w._halves.drawer.rolled end)
     add("drawer.pinned", function() return w._halves and w._halves.drawer and w._halves.drawer.pinned end)
     add("invDrawerOpen", function() return w._invDrawerOpen end)
+    -- (Nov 18 2026, r7: the developer's three causes: the drawer not a tab drawer, a button held, the spot inside)
+    add("_drawerOpen", function() return w._drawerOpen end)
+    add("_drawerMode", function() return w._drawerMode end)
+    add("mouseDown0", function() return isMouseButtonDown(0) end)
+    add("mouseDown1", function() return isMouseButtonDown(1) end)
+    add("absX", function() return w:getAbsoluteX() end)
+    add("absY", function() return w:getAbsoluteY() end)
+    add("width", function() return w:getWidth() end)
+    add("shownH", function()
+        if type(w.shownHeight) == "function" then return w:shownHeight() end
+        return w:getHeight()
+    end)
+    add("spot", function() return S.hv and S.hv.spot and (S.hv.spot[1] .. "," .. S.hv.spot[2]) end)
+    add("mouse", function() return getMouseX() .. "," .. getMouseY() end)
+    add("split", function() return ZeD.Halves.split(w) end)
+    add("hit(drawer)", function()
+        local a, b = ZeD.Halves.hit(w, "drawer", getMouseX() - w:getAbsoluteX(), getMouseY() - w:getAbsoluteY(), ZeD.Halves.split(w))
+        return tostring(a) .. "/" .. tostring(b)
+    end)
     return table.concat(out, ", ")
 end
 function H.halvesBack()

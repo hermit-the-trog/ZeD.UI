@@ -1556,6 +1556,8 @@ function H.footBack()
     local MS = ZeD.Messages
     if not MS then return end
     if S.FOOT and MS.sources and MS.sources[S.FOOT] then pcall(MS.clear, S.FOOT) end
+    if S.FOOT2 and MS.sources and MS.sources[S.FOOT2] then pcall(MS.clear, S.FOOT2) end
+    S.FOOT2 = nil
     for _, e in ipairs(S.readSnap or {}) do e.it.read = e.read end
     S.readSnap = nil
     if S.popFile0 then H.writeLines("ZeD_messages.txt", S.popFile0); MS.popups = nil end
@@ -1597,6 +1599,11 @@ Q.step(20, function()
     win:pressFoot(bP)
     Q.check(on and inFile and not MS.popupsFor(S.FOOT), "Messages foot band: Pop-ups on saves the mod in ZeD_messages.txt, pressed again it is off",
         "on " .. tostring(on) .. ", in the file " .. tostring(inFile) .. ", after " .. tostring(MS.popupsFor(S.FOOT)))
+    -- (Nov 18 2026, run r7: "0 -> 0". The window opened on S.FOOT, and choosing a source marks it read, so nothing
+    -- was unread to start with. A second mod's note, not the one on show, stays unread for Mark all read to clear.)
+    S.FOOT2 = "ZeD QA foot band, unread"
+    pcall(MS.add, S.FOOT2, "mods", { k = "notice", text = "QA: an unread message for Mark all read." })
+    -- (the check below asks n0 > 0 first: at least this note is unread)
     local n0 = MS.unread()
     win:pressFoot(bA)
     local n1 = MS.unread()
