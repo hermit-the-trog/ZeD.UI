@@ -1040,13 +1040,46 @@ end, function(ok)
     Q.check(ok and p ~= ZeD.tr("UI_ZeD_Fire_PillOut"), "fire: Light lights it (the game's light) and the pill reads burning", tostring(p))
     H.stopActions()
     H.closeCard()
-    -- (Nov 18 2026: put out at once. A lit campfire's flame is the game's IsoFire.new(cell, square), with no sprite;
-    -- the character stands beside it after Light, and the game's A prompt (ISButtonPrompt -> ISEntityUI.
-    -- CanOpenWindowFor, which reads getSprite():getName()) threw on it every frame to the end of the script.)
+end)
+-- (Nov 18 2026, Build: a lit campfire's flame is the game's IsoFire, with no sprite. ZeD's hint strip asked the game's
+-- getBestInteractButtonAction for every player every 200 ms, which reaches ISEntityUI.CanOpenWindowFor and its
+-- getSprite():getName() on the flame: 424 Java exceptions in one run, for any player by a lit fire. Appliances.lua
+-- now guards it. The fire stays lit a few seconds here, and the game's window check on the flame must answer no
+-- with no error.)
+Q.waitMs(3000)
+Q.step(2, function()
+    if not S.lightArm then return end
+    local flame = nil
     pcall(function()
-        local lo = SCampfireSystem.instance:getLuaObjectOnSquare(S.fireSq)
-        if lo then SCampfireSystem.instance:putOut(lo); lo:removeFireObject() end
+        local objs = S.fireSq:getObjects()
+        for i = 0, objs:size() - 1 do
+            local o = objs:get(i)
+            if flame == nil and instanceof(o, "IsoFire") then flame = o end
+        end
     end)
+    if flame == nil then Q.skip("fire: a lit campfire's flame asked for a window", "no IsoFire on the fire's square"); return end
+    local ok, r = pcall(ISEntityUI.CanOpenWindowFor, getPlayer(), flame)
+    Q.check(ok and r == false, "fire: a lit campfire beside the character logs no exception (its flame has no window)",
+        "pcall " .. tostring(ok) .. ", answer " .. tostring(r))
+end)
+-- put out the game's client way (CCampfireSystem; the server's SCampfireSystem:putOut is nil on the client, so the
+-- first run's put-out never ran and the fire stayed lit)
+Q.step(2, function()
+    if not S.lightArm then return end
+    pcall(function()
+        local cf = CCampfireSystem.instance:getLuaObjectOnSquare(S.fireSq)
+        if cf and cf.isLit then ISTimedActionQueue.add(ISPutOutCampfireAction:new(getPlayer(), cf)) end
+    end)
+end)
+Q.waitFor(5, 600, function()
+    if not S.lightArm then return true end
+    local lit = false
+    pcall(function() local cf = CCampfireSystem.instance:getLuaObjectOnSquare(S.fireSq); lit = cf ~= nil and cf.isLit == true end)
+    return not lit
+end, function(ok)
+    if not S.lightArm then return end
+    Q.check(ok, "fire: Put out puts the lit campfire out (the game's put-out action)")
+    H.stopActions()
 end)
 
 -- the washer: its gears button on the container row
