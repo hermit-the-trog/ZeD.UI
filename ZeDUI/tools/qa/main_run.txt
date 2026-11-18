@@ -24,6 +24,15 @@
 #   every animal script, zedqa_b8_animals.lua     amendment 1: no farm yet
 #   zedqa_dash_odo.lua, zedqa_dash_odo_reload.lua  need a quit and a second launch: dash_odo_a.txt, then dash_odo_b.txt
 #   zedqa_fishing_tab_live*.lua                   run when fishing changes (the shore, their own manifest)
+#   zedqa_print_fit.lua, zedqa_print_typeset.lua  (Nov 18 2026, the director) Oct 16 prototypes that rearrange the
+#                                                 game's own newspaper inside the test; ZeD ships neither, and their
+#                                                 pictures kept looking like faults ("that newspaper is not drawn in our UI")
+#   zedqa_mapshot.lua, zedqa_journal_refs.lua,    (Nov 18 2026) reference pictures for old mockups, no checks
+#   zedqa_reader_refs.lua
+#   zedqa_seat_lightbar_vanilla.lua               (Nov 18 2026) the game's own seat chooser and lightbar, before-pictures
+#   zedqa_b19_light_popups.lua, zedqa_overhead_pins.lua, zedqa_b19_old_a/b.lua, zedqa_b19_pad.lua
+#                                                 (Nov 18 2026) not yet: each still warns on its own staging; their own
+#                                                 manifests until they run clean
 #   the compat set (exinfo aside)                 capacity, dropnloot, nested, isearch, roadworthy, msc_run1/2, r3_D_cars,
 #                                                 b8_seven_menus, minsidebar, cml, responsiveui, modlist: with their mods
 
@@ -94,7 +103,6 @@ zedqa_mech79.lua | m79 | timeout=1200            # the Vehicle tab in two column
 zedqa_dash_lamps.lua | dl | timeout=300          # lamps by part condition, blink, hover chips, bulb check
 zedqa_dash_green.lua | dgr | timeout=600 | expect=FBORenderCell   # D6 fan needle parked by day; the green-lit late models at night (no push to speed)
 # (amendment 3: these four stay until zedqa_cov_vehicles.lua has one green run, then they go)
-zedqa_seat_lightbar_vanilla.lua | sl | expect=FBORenderLevels.getNLevels   # seat chooser and lightbar from vanilla's entry points (pictures)
 zedqa_car_radio_build.lua | rb                   # the car radio up close with each radio fitted (pictures)
 zedqa_car_radio_cd.lua | cd                      # CD deck: list, insert, play, eject (prints)
 zedqa_dash_props_smoke.lua | sm                  # v6 dash, radio up close, siren controller still draw (pictures)
@@ -107,18 +115,13 @@ zedqa_cov_b9to11.lua | cov_b9to11 | timeout=480         # the beta 9 to 11 fixes
 zedqa_cov_objcards.lua | cov_objcards | timeout=300       # the track, placement, fluid and campfire cards on the strip (the trough, hen house and farm plot cards are zedqa_cov_farmcards.lua, which waits for a farm); one FAIL until setAxis stops trusting Kahlua's %: "placement: -15 from 5 degrees wraps to 350"
 
 # ---- in regression.txt and not judged by name in the plan: kept as they were (phase 1's rule)
-zedqa_mapshot.lua | ms                           # both windows, then the Maps tab
 zedqa_mapstyles.lua | mst                        # Survey / Color / Paper at two zooms
 zedqa_flyers.lua | fl                            # the Maps tab marks only flyers read
 zedqa_flyermap.lua | fm                          # flyer pins, hover card, reader from a pin, Show on map
 zedqa_mapnotes.lua | mnote                       # notes and marks in vanilla's store; all taken back
-zedqa_journal_refs.lua | jr                      # Journal tab diary and Flyers gallery
 zedqa_journal_readers.lua | jrd                  # Notebooks, Papers, Into; items and log entry taken back
 zedqa_reader.lua | rd                            # the reader through vanilla's Read
-zedqa_reader_refs.lua | rr                       # reader reference captures; items taken back
 zedqa_notebook.lua | nb                          # writing in a notebook through vanilla's Write
-zedqa_print_fit.lua | pf                         # newspaper stories fitted to their columns
-zedqa_print_typeset.lua | ts                     # newspaper page typeset by ZeD
 zedqa_props_plates.lua | props                   # rod and clock radio plates on a test panel
 zedqa_belt_strap.lua | belt                      # the pixel-art belt strap
 zedqa_straps.lua | straps                        # per-slot strap materials, four loadouts, all taken off
@@ -139,6 +142,12 @@ zedqa_cazio_light.lua | czl | timeout=240        # the CaZio LIGHT: bulb by day 
 # ---- not in the Build sim map as moved: kept
 # zedqa_158_balloon.lua: moved to balloon_cjk_sim and archived (Nov 12 2026)
 zedqa_guide_bubble.lua | gbub | timeout=240      # the guide offers itself from the Messages icon
+
+# ---- beta 19 and 20 (Nov 18 2026: checks that ran clean on their own, carried in)
+zedqa_pad_tooltip.lua | ptt | timeout=300        # the pad's item card: no stale card for a frame (beta 20)
+zedqa_forage_pointer.lua | fpt | timeout=420     # the foraging pins and the pointer hand (beta 20)
+zedqa_xp_note.lua | xpn | timeout=120            # the game's "+XP" note over the head with ZeD on (beta 20)
+zedqa_b19_old_c.lua | b19c | timeout=420         # five older fixes checked in game: the action bubble and more (beta 19)
 
 # ---- last
 zedqa_safemode.lua | safe | timeout=240          # safe mode trips, turns ZeD off, and recovers
