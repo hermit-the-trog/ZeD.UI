@@ -6,8 +6,8 @@ the director asked for on Nov 17:
 1. **Over-head icons:** the icons the game puts over your head (the car key, search mode, PvP, voice, the XP arrows),
    redrawn as small ZeD balloons, plus ten new ideas the director has not picked yet.
 2. **Foraging pins:** the pins that mark a find in search mode, redrawn as a magnifying glass with the find in its lens.
-3. **The pointer to a find** (added Nov 17): what sits at the character's feet and points at each find. Two arrows and
-   a pointing hand, for the director to pick.
+3. **The pointer to a find** (added Nov 17): what sits at the character's feet and points at each find. The director
+   picked the hand from the cloud.
 
 Since Nov 15 the director made every bubble light (8d331a08f, "any tooltips, any bubbles"). The over-head icons are
 redrawn here on the light balloon. The pins are world markers, not bubbles, and are unchanged from their Nov 15 review.
@@ -40,7 +40,7 @@ Art: `ZeDUI/art/overhead_20261117/`. Nothing in `42/` was touched.
 | Set | What | How | Status |
 |---|---|---|---|
 | A | Foraging pins | Lua: replace `ISBaseIcon:renderPinIcon` | Build |
-| A2 | The pointer from the character to a find | Lua tint and picture (arrows), or ZeD draws it (hand) | Build, once the director picks one of three |
+| A2 | The pointer from the character to a find: the hand from the cloud | ZeD draws it (Lua) | Build |
 | B | Search-mode eye | Lua: replace `ISSearchManager:renderEye` | Build |
 | C | Car key, PvP skull, voice | Texture replacement (the game draws these in Java) | Build: test one first |
 | C2 | XP arrows | Texture replacement, but the same files are the game's combo box and scroll arrows | Build: check, likely skip |
@@ -79,21 +79,32 @@ When a find is near, seen and forageable, the game puts an arrowhead on a ring r
 toward it (`ISBaseIcon:updateWorldMarker`, line 613). `ISBaseIcon:addWorldMarker` (line 590) makes it:
 `getWorldMarkers():addPlayerHomingPoint(self.character, x, y, 0.8, 0.8, 0.8, 1)`. The Java draws and turns it.
 
-The director asked for it on Nov 17. Design drew it in the magnifier's family, two ways
-(`review/forage_arrow_review.png`, over QA's `zed_51_forage` capture, with the ZeD pins in place):
+The director asked for it on Nov 17, tried four, and picked one: **the hand from the cloud** ("I like the hand of God,
+going with that one, until I decide that I want something else"). Build that one. The other three stay in the folder
+in case he changes his mind. Reviews: `review/forage_hands_review.png` (both hands, in game, over QA's
+`zed_51_forage` capture with the ZeD pins in place) and `review/forage_arrow_review.png` (the arrows).
 
-- `arrow/forage_arrow_glass.png`: a chrome rim with the pin's dark glass in it. Design's pick: it reads as part of
-  the pin, and holds on light ground (the glass) and dark ground (the rim).
+- **`hand/forage_godhand_right.png` and `forage_godhand_left.png`, the pick** (after the director's reference, Monty
+  Python's hand of God): Design's own take on the old hand from the clouds, not a copy of that picture. A painted
+  hand, lit from above, the index finger out, a draped red sleeve, coming out of a small cloud. 72 x 40.
+  Its build follows the director's anatomy references (Nov 17): the thumb lies forward under the index finger, thick
+  at its root, its tip with its nail resting on the first curled finger; the three curled fingers show their nails at
+  the back, where their tips tuck into the palm ("Draw the thumb until you get it right ... right now it looks like
+  little mini sausages").
+
+The alternates:
+
+
+- `arrow/forage_arrow_glass.png`: a chrome rim with the pin's dark glass in it, in the magnifier's family.
 - `arrow/forage_arrow_solid.png`: solid chrome. Brighter; the stronger of the two at night.
-- `hand/forage_hand_right.png` and `forage_hand_left.png` (the director's idea, Nov 17: "What about pointing
-  fingers? ... a different kind of point. Maybe it has a little arm attached to it."): an old printer's fist, a
-  navy sleeve, a white cuff with a gold link, the index finger out and the thumb over the curled fingers. 46 x 26.
-  Review: `review/forage_hand_review.png`.
+- `hand/forage_hand_right.png` and `forage_hand_left.png`: the printer's fist (the director: "What about pointing
+  fingers? ... Maybe it has a little arm attached to it", then an old engraving as its guide): black and white like
+  a woodcut, a black cuff with its button, the same hand as the pick. 72 x 40.
 
-Both are 32 x 32 with the tip up, like the game's, and drawn smooth (not pixel-doubled), with no light direction
-baked in, because the game turns them to any angle.
+The arrows are 32 x 32 with the tip up, like the game's. All four are drawn smooth (not pixel-doubled), because the
+game turns them to any angle.
 
-For either arrow:
+If the director goes back to an arrow:
 
 1. Replace `addWorldMarker` so it passes white (1, 1, 1, 1), not the game's 0.8 grey, which would dim the chrome.
 2. The picture: Design matched the game's arrow to `media/textures/highlights/arrow_triangle.png` by eye; Build
@@ -101,15 +112,16 @@ For either arrow:
    that takes a texture, pass ZeD's. If not, a file at the same path replaces it, and with it every homing arrow in
    the game (the tutorial's, other mods'). Tell Design which way it went.
 
-For the hand, the game's homing point will not do: it only turns its picture, so a hand pointing left would hang
-upside down with its thumb underneath. ZeD draws it instead:
+For the hand (the pick), the game's homing point will not do: it only turns its picture, so a hand pointing left
+would hang upside down with its thumb underneath. ZeD draws it instead:
 
 1. Replace `addWorldMarker`, `setWorldMarkerPosition` and `removeWorldMarker` so the game makes no homing point;
    keep ZeD's own list of finds to point at (the same finds, at the same moments, as the game's `updateWorldMarker`).
 2. Each frame, for each find: the angle from the character's feet to the find, on screen. Draw the hand on the same
-   ring round the feet as the game's arrow, its fingertip outward: `forage_hand_right` when the find is to the
-   right of the character on screen, `forage_hand_left` when it is to the left, turned by the angle within 90
-   degrees either way, so the thumb is always on top.
+   ring round the feet as the game's arrow, its fingertip outward: `forage_godhand_right` when the find is to the
+   right of the character on screen, `forage_godhand_left` when it is to the left, turned by the angle within 90
+   degrees either way, so the thumb is always on top. The picture is 72 x 40, drawn at 1 picture pixel a screen
+   pixel at 4K, the pivot at its middle.
 3. Keep the game's look otherwise: white, full alpha, gone when the find is picked up or out of range.
 
 ### B. Search-mode eye
@@ -180,7 +192,7 @@ so palette and scale stay live. The triggers are Design's proposal, for the dire
    proposal: the over-head badges are already flat and serve both styles; the pins' Simple style is the game's own
    pins. The director's call.
 3. **The hint pin:** a use for it, or drop it (A).
-4. **The pointer to a find:** glass arrow, solid arrow or the pointing hand (A2).
+4. **The pointer to a find:** decided, the hand from the cloud (A2), "until I decide that I want something else".
 
 ## Files: `ZeDUI/art/overhead_20261117/`
 
@@ -190,10 +202,10 @@ so palette and scale stay live. The triggers are Design's proposal, for the dire
 | `overhead/2x/` | The same, doubled (nearest neighbor), for 4K. |
 | `overhead/icons/` | The icons alone, ink on clear, for balloons ZeD draws itself (D, and B if Build draws the eye's balloon in code). |
 | `arrow/` | `forage_arrow_glass.png`, `forage_arrow_solid.png`, 32 x 32, tip up. |
-| `hand/` | `forage_hand_right.png`, `forage_hand_left.png` (the same hand mirrored), 46 x 26, pointing sideways. |
+| `hand/` | `forage_godhand_right.png`, `forage_godhand_left.png` (the hand from the cloud, the pick), and `forage_hand_right.png`, `forage_hand_left.png` (the printer's fist, the alternate). 72 x 40, pointing sideways; each left is its right mirrored. |
 | `pins/` | `pinB_back`, `pinB_glass`, `pinB_unknown`, `pinB_hint`, `poison_mark`. 60 x 90 like the game's pins; the mark 12 x 12. |
-| `review/` | `overhead_icons_review_v3_light.png` (this set), `overhead_icons_review_v2.png` (the Nov 15 dark one, superseded), `foraging_pins_review_v2.png`, `forage_arrow_review.png`, `forage_hand_review.png`. |
-| `src/` | `overhead.py` (the shapes), `fix_icons.py` (the Nov 17 skull and sword), `twig.py` (the Nov 17 noise icon), `arrow.py`, `hand.py` and `arrow_mock.py` (the pointer to a find), `overhead_light.py` (this export), `pins.py` (needs `tools/dashpx`, or `ZED_DASHPX`), `compose_pins.py`, `review_v3.py`, `ingame.py`. |
+| `review/` | `overhead_icons_review_v3_light.png` (this set), `overhead_icons_review_v2.png` (the Nov 15 dark one, superseded), `foraging_pins_review_v2.png`, `forage_hands_review.png`, `forage_arrow_review.png`. |
+| `src/` | `overhead.py` (the shapes), `fix_icons.py` (the Nov 17 skull and sword), `twig.py` (the Nov 17 noise icon), `manicule.py` (both hands, one build: `painted()` and `engraved()`), `arrow.py` and `arrow_mock.py` (the pointer to a find), `overhead_light.py` (this export), `pins.py` (needs `tools/dashpx`, or `ZED_DASHPX`), `compose_pins.py`, `review_v3.py`, `ingame.py`. |
 
 Colors are ZeD.Balloon.LIGHT (Balloon.lua): body CCCCCC, line 424242, near-black ink, marks 1E7D22 and C01C1C. The
 warning square is B57F00, the round 1b light gold (white `!` on it, 3.5:1). If the palette changes, rerun
@@ -205,9 +217,18 @@ At 4K and Deck, in Dark, Light and High Contrast (the pins and balloons look the
 
 - **Pins:** a found mushroom, berries and an insect; an unidentified find (the `?`); a known poisonous mushroom (the
   mark); a world item in search mode; a stash icon from a map. Each fades and bounces as the game's did.
-- **The pointer to a find:** one find and several at once, by day and at night, on grass, road and snow; the arrow
-  turns smoothly as the character walks round a find (the hand: thumb on top, all the way round), and is gone once the find is picked up.
+- **The pointer to a find:** one find and several at once, by day and at night, on grass, road and snow; the hand
+  turns smoothly as the character walks round a find, thumb on top all the way round, flipping sides cleanly when the
+  find crosses straight ahead or behind; it is gone once the find is picked up.
 - **Search mode:** the eye over the head, faded when something is in view, never on top of an over-head note or the
   speed bubble.
 - **C:** whatever Build shipped: the key walking up to a car with and without its key; PvP and voice on a server.
   If C2 shipped, a combo box and a long context menu's scroll arrows still look right.
+
+**For Design, the pin's size (QA, Nov 17, confirmed in the game's code):** the pin textures are 60 x 90, but the game
+draws every pin at 30 x 45 at zoom 1 (`ISBaseIcon:new`: width 30, height 45; `updatePinIconSize` divides by zoom).
+Build follows the handoff's canvas math against the pin's real width (s = width / 60), so the find sits in the lens
+exactly as on the review sheet, at half the size the handoff assumed: a 32-pixel item draws 16 pixels wide on a
+30-pixel pin. The game drew it at 21 (32 / 1.5), larger than the lens can hold, so "the lens is meant to magnify it"
+cannot happen at the game's pin size. Build keeps the find inside the lens. If Design wants a bigger find, the choices
+are a bigger pin (the size code is the game's) or a find that overflows the rim. Design's call.
