@@ -52,7 +52,10 @@ local P = {
               Medical = "DC8692", RestaurantsAndEntertainment = "E6CB5E", RetailAndCommercial = "AAC072" },
         cb = { Residential = "E69F00", CommunityServices = "3F95D3", Hospitality = "8FD3F5", Industrial = "9A9A9A",
                Medical = "CC79A7", RestaurantsAndEntertainment = "F0E442", RetailAndCommercial = "009E73" },
-        t = { street = "1A1A1A", building = "1A1A1A", town = "000000", forest = "24502D", water = "0F3466" },
+        -- (white labels, the director, Nov 18 2026: the game draws every map label with a black shadow it lets no one
+        -- change, which smudged dark labels on Light; under white text it is the label's dark edge, as on the game's
+        -- own street names)
+        t = { street = "FFFFFF", building = "FFFFFF", town = "FFFFFF", forest = "FFFFFF", water = "FFFFFF" },
         ink = "141414", paper = "F4F1E6", zone = "D0287A",
     },
     hicon = {
