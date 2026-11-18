@@ -7,7 +7,8 @@
 -- IsoFlagType.water), looked for round West Point first (lived-in), then the shore zedqa_fishing_tab_live.lua fishes
 -- at (13913,4555), then the QA home. The gear as the game gives it: a Base.FishingRod (hook and line on it) equipped
 -- by the equip action, a worm put on by the game's Add Bait (ISInventoryPaneContextMenu.addLure).
--- No mouse helper here: the aim is the game's aim point stood in for (Fishing.Utils.getAimCoords answers the water
+-- Needs the real mouse (release_check_mouse.ps1) beside the game, only to bring the game to the front and put the
+-- pointer on the water (Nov 18 2026: without it the game never went into fishing). The aim is the game's aim point stood in for (Fishing.Utils.getAimCoords answers the water
 -- square 5 ahead for this character, as the game's controller aim answers a square along the facing); the cast is
 -- the game's cast button stood in for once (Fishing.Utils.isCastButtonPressed true for one call), as
 -- zedqa_fishing_tab_live.lua does without its helper. No fast-forward; nothing waits for a bite.
@@ -97,12 +98,41 @@ S.step(30, function()
         return S.aimWas(pl, len)
     end
     S.aiming = true
-    S.every = function()
+    -- (Nov 18 2026) held on the game's tick, as zedqa_fishing_tab_live.lua does: held on the draw (S.every, run from
+    -- OnPreUIDraw) it came after the player's update had let the aim go, and the manager never left None
+    S.aimTick = function()
         if not S.aiming then return end
         local st = S.state()
-        if st == "None" or st == "Idle" or st == "nomanager" then S.p:setIsAiming(true) end
+        if st == "None" or st == "Idle" or st == "nomanager" then pcall(function() S.p:setIsAiming(true) end) end
     end
+    Events.OnTick.Add(S.aimTick)
     S.tries = 0
+    -- (Nov 18 2026) the stand-in aim alone never left None: the game only goes into its fishing state (FishingState)
+    -- with the game in front and the real pointer over it, as zedqa_fishing_tab_live.lua had it (None -> Idle with
+    -- "player state FishingState"). So the real mouse (release_check_mouse.ps1, started beside the game by the chain)
+    -- brings the game to the front and puts the pointer on the water square; the pointer stays hidden (gallery_unload)
+    -- and is parked again before the picture.
+    S.mouseSent = false
+    pcall(function()
+        local sx, sy = isoToScreenX(S.pn, S.shore.tx, S.shore.ty, 0), isoToScreenY(S.pn, S.shore.tx, S.shore.ty, 0)
+        local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
+        local x = math.floor(math.max(2, math.min(sw - 2, sx)))
+        local y = math.floor(math.max(2, math.min(sh - 2, sy - 100)))   -- (getAimCoords reads the pointer 100 px lower)
+        local fw = getFileWriter("zedqa_click_done.txt", true, false); fw:write(""); fw:close()
+        local f = getFileWriter("zedqa_click.txt", true, false); f:write("move " .. x .. " " .. y); f:close()
+        S.mouseSent = true
+        S.say("the real pointer asked onto the water at " .. x .. "," .. y)
+    end)
+    S.mt = 0
+end)
+S.step(10, function()   -- (up to about 10 s for the mouse helper's answer)
+    if not S.rod or not S.mouseSent then return end
+    S.mt = S.mt + 1
+    local l = nil
+    pcall(function() local r = getFileReader("zedqa_click_done.txt", false); if r then l = r:readLine(); r:close() end end)
+    if l and l:find("done", 1, true) then S.say("the mouse helper answered (the game in front, the pointer on the water)"); return end
+    if S.mt >= 60 then S.say("ERR the mouse helper never answered: is release_check_mouse.ps1 running?"); return end
+    return true
 end)
 S.step(20, function()   -- (up to about 4 s for the game's None -> Idle: aiming, on water)
     if not S.rod then return end
@@ -145,13 +175,14 @@ S.step(150, function()   -- (the line settles; the tab comes up by itself on the
     local showing = S.WW.isTabShowing("fishing", S.pn)
     if not showing then pcall(S.WW.openTab, S.pn, "fishing") end
     S.say("the Fishing tab came up by itself " .. tostring(showing) .. "; state " .. S.state())
+    if GAL_UNLOAD and GAL_UNLOAD.park then GAL_UNLOAD.park() end   -- (the real pointer off the picture again)
 end)
 S.step(40, function() if S.cast then S.L.shot(S, "g1_59_fishing") end end)
 
 -- ===================================================================== put back
 S.step(10, function()
     S.aiming = false
-    S.every = nil
+    if S.aimTick then Events.OnTick.Remove(S.aimTick); S.aimTick = nil end
     if S.castWas then Fishing.Utils.isCastButtonPressed = S.castWas end
     if S.aimWas then Fishing.Utils.getAimCoords = S.aimWas; S.aimWas = nil end
     pcall(function() S.FT.stopFishing(S.p) end)

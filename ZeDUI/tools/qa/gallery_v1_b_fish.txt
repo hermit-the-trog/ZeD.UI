@@ -1,0 +1,16 @@
+# ZeDUI/tools/qa/gallery_v1_b_fish.txt  (Nov 18 2026, QA): the 1.0 gallery's picture 59 Fishing on its own (part B's
+# fishing step, gallery_v1_b_zed.txt, without the craft and pad steps). Needs release_check_mouse.ps1 beside the game
+# (gallery_v1_b_fish.lua brings the game to the front and puts the real pointer on the water through it).
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest gallery_v1_b_fish.txt -Report gallery_v1_b_fish   (QA only)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=300
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_unload.lua | unl | timeout=240
+gallery_v1_b_lib.lua | g1lib | timeout=60
+gallery_v1_b_place.lua | g1pl | timeout=60
+gallery_v1_b_fish.lua | g1bf | timeout=900
+gallery_reload.lua | rel | timeout=60
+gallery_t14_end.lua | g14e | timeout=60
