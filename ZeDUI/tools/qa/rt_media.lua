@@ -937,7 +937,13 @@ end)
 Q.step(10, function()
     if S.svSkip or not S.svPl then return end
     if not Q.check(S.svSh ~= nil, "survey shields: MapsSurveyData has route shields") then return end
+    -- (Nov 18 2026, Build: the key's Symbols page draws plain US and KY shields as its samples, with no number; the key
+    -- is shut for this frame so only the map's own shields are counted, and put back as it was)
+    local kw = H.WW()
+    local keyWas = kw and kw._mapKeyOpen
+    if keyWas then kw._mapKeyOpen = false end
     local R = H.rec()
+    if keyWas then kw._mapKeyOpen = keyWas end
     local T3 = { us = getTexture("media/textures/ZeD/map/shield_us.png"), ky = getTexture("media/textures/ZeD/map/shield_ky.png"),
         i = getTexture("media/textures/ZeD/map/shield_i.png") }
     -- the shields drawn this frame (kept 110 px apart and off the town names by design, so fewer than the routes is right)

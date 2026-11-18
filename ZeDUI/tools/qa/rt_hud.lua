@@ -1059,10 +1059,20 @@ function S.F.handCheck(o, why, what)
         -- (Nov 18 2026, Build: what the marker also needs, ISBaseIcon:updateWorldMarker: isNearby(), and the update
         -- itself. Called once here by hand; if that raises the marker while the game's own update did not, it says so.)
         local near, direct = "?", "?"
+        local live, valid, seenNow, removing, cls, wiNow = "?", "?", "?", "?", "?", "?"
         pcall(function() near = tostring(o:isNearby()) end)
-        pcall(function() o:updateWorldMarker(); direct = tostring(o.worldMarker ~= nil) end)
+        pcall(function() live = tostring(o:checkIsForageable()) end)
+        pcall(function() valid = tostring(o:isValid()) end)
+        pcall(function() seenNow = tostring(o:getIsSeenThisUpdate()) end)
+        pcall(function() removing = tostring(o.isBeingRemoved) end)
+        pcall(function() cls = tostring(o.iconClass) end)
+        pcall(function() wiNow = tostring(o.itemObj ~= nil and o.itemObj:getWorldItem() ~= nil) end)
+        -- (Build: o:update() recomputes isSeenThisUpdate and calls updateWorldMarker itself, a fair direct test)
+        pcall(function() o:update(); direct = tostring(o.worldMarker ~= nil) end)
         local r2 = F.mark(o)
-        d = d .. ", nearby " .. near .. ", a direct updateWorldMarker raises it " .. direct
+        d = d .. ", nearby " .. near .. ", checkIsForageable " .. live .. ", isValid " .. valid .. ", seen this update " .. seenNow
+            .. ", being removed " .. removing .. ", class " .. cls .. ", its item in the world " .. wiNow
+            .. ", a direct update raises it " .. direct
             .. (r2 and (" (" .. tostring(r2.hand) .. ")") or "")
         -- what stands on the squares between the character and the find
         local seen = {}
@@ -1166,7 +1176,40 @@ Q.step(10, function()
         F.zone = { id = "zedqa_rthud_zone", name = zn, forageIcons = {} }
     end
 end)
+-- (Nov 18 2026, run r8: the squares by the home held WorldInventoryItems left by earlier runs; createIconsForWorldItems
+-- keys its icon by square and type, so the find could be tied to an old pencil, isValid false, and no pointer. Only
+-- things the tests marked ZeDQA_spawned are taken, within 4 tiles of the home.)
+function S.F.clearStray()
+    local F = S.F
+    local n = 0
+    for dx = -4, 4 do
+        for dy = -4, 4 do
+            local sq = getCell():getGridSquare(F.px + dx, F.py + dy, F.pz)
+            if sq then
+                local objs = nil
+                pcall(function() objs = sq:getWorldObjects() end)
+                if objs then
+                    for i = objs:size() - 1, 0, -1 do
+                        local wi = objs:get(i)
+                        local mine = false
+                        pcall(function() mine = wi:getItem():getModData().ZeDQA_spawned == true end)
+                        if mine then
+                            pcall(function() sq:transmitRemoveItemFromSquare(wi) end)
+                            pcall(function() wi:removeFromWorld() end)
+                            n = n + 1
+                        end
+                    end
+                end
+            end
+        end
+    end
+    Q.say("NOTE forage: " .. n .. " things earlier runs left on the ground by the home taken away")
+end
 Q.step(30, function()
+    local F = S.F
+    F.clearStray()
+end)
+Q.step(10, function()
     local F = S.F
     F.one = F.mk(3, -1)
     local okG, okT

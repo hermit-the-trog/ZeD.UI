@@ -1579,12 +1579,71 @@ Q.waitFor(4, 300, function() local z = H.craftZone("mStart"); return not S.rkArm
     if not z.enabled then Q.skip("rack: Start runs it", "the game's canStart says no for this load"); return end
     H.craftClick(z)
 end)
+-- (Nov 18 2026, diagnostics for the Stop step: does the queued ISGenericCraftStart(stop) pass isValid? It asks
+-- entity:isUsingPlayer(character) first. isValid and perform are wrapped only around the Stop press and the game's
+-- own Cancel below, and unwrapped right after (and in the put-back). NOTE lines only.)
+function H.rkUse(obj, who)
+    local u, g = nil, nil
+    pcall(function() u = obj:isUsingPlayer(who) end)
+    pcall(function() g = obj:getUsingPlayer() end)
+    return "isUsingPlayer " .. tostring(u) .. " (getUsingPlayer " .. ((g == nil) and "nil" or ((g == who) and "you" or "someone else")) .. ")"
+end
+function H.rkUseNow()
+    local st = S.ST.current(S.p)
+    local obj = (st and st.obj) or S.rack
+    return H.rkUse(obj, S.p) .. ((st and st.obj) and "" or " [no ZeD binding, read on the rack]")
+end
+function H.rkCan(a)
+    local ok, r = pcall(a.funcCanStart, a.character, a.entity, a.component)
+    return ok and tostring(r) or ("error " .. tostring(r))
+end
+function H.rkReq(c)
+    local r = nil
+    pcall(function() r = c:isStopRequested() end)
+    return tostring(r)
+end
+function H.rkWrap(tag)
+    if S.rkOrigV or not ISGenericCraftStart then return end
+    local origV, origP = ISGenericCraftStart.isValid, ISGenericCraftStart.perform
+    S.rkOrigV, S.rkOrigP, S.rkTag = origV, origP, tag
+    S.rkNV, S.rkNP, S.rkLastV = 0, 0, nil
+    ISGenericCraftStart.isValid = function(self)
+        local r = origV(self)
+        S.rkNV = (S.rkNV or 0) + 1
+        if S.rkNV <= 2 or r ~= S.rkLastV then
+            Q.say("NOTE rack stop (" .. tostring(S.rkTag) .. "): isValid ran (call " .. S.rkNV .. ") -> " .. tostring(r)
+                .. ", funcCanStart " .. H.rkCan(self) .. ", " .. H.rkUse(self.entity, self.character))
+        end
+        S.rkLastV = r
+        return r
+    end
+    ISGenericCraftStart.perform = function(self)
+        S.rkNP = (S.rkNP or 0) + 1
+        local before = H.rkReq(self.component)
+        Q.say("NOTE rack stop (" .. tostring(S.rkTag) .. "): perform ran, funcCanStart " .. H.rkCan(self) .. ", "
+            .. H.rkUse(self.entity, self.character) .. ", isStopRequested before " .. before)
+        local ok, err = pcall(origP, self)
+        Q.say("NOTE rack stop (" .. tostring(S.rkTag) .. "): perform done" .. (ok and "" or (" with error " .. tostring(err)))
+            .. ", isStopRequested after " .. H.rkReq(self.component))
+        if not ok then error(err) end
+    end
+end
+function H.rkUnwrap()
+    if not S.rkOrigV then return end
+    Q.say("NOTE rack stop (" .. tostring(S.rkTag) .. "): unwrapped; isValid ran " .. tostring(S.rkNV) .. " times, perform " .. tostring(S.rkNP) .. " times")
+    ISGenericCraftStart.isValid, ISGenericCraftStart.perform = S.rkOrigV, S.rkOrigP
+    S.rkOrigV, S.rkOrigP = nil, nil
+end
 Q.waitFor(4, 900, function() return not (S.rkArm and S.rkStart) or H.rackRunning() end, function(ok)
     if not (S.rkArm and S.rkStart) then return end
     Q.check(ok, "rack: Start runs it (isRunning)")
     S.rkStopAt = getTimestampMs()
     local z = H.craftZone("mStart")
+    Q.say("NOTE rack stop: at the press, " .. H.rkUseNow() .. ", isStopRequested " .. H.rkReq(H.rackComp())
+        .. ", isRunning " .. tostring(H.rackRunning()) .. ", Start zone " .. tostring(z ~= nil) .. " running " .. tostring(z and z.running))
+    H.rkWrap("ZeD Stop")
     if z and z.running then H.craftClick(z) end
+    Q.say("NOTE rack stop: just after the press, queue " .. H.queueTypes() .. ", " .. H.rkUseNow() .. ", isStopRequested " .. H.rkReq(H.rackComp()))
 end)
 -- (the stop walks to the rack first: wait for the queue to empty, at least half a second after the press)
 Q.waitFor(4, 1800, function()
@@ -1614,6 +1673,131 @@ end, function(ok)
     local run, req, can = H.rackFlags()
     Q.check(ok, "rack: Start pressed again stops it (its stop request is taken)",
         "isRunning " .. tostring(run) .. ", isStopRequested " .. tostring(req) .. ", isCancelled " .. tostring(can) .. ", queue " .. H.queueTypes())
+    Q.say("NOTE rack stop: at the check, " .. H.rkUseNow())
+    H.rkUnwrap()
+end)
+-- (Nov 18 2026, diagnostics: the same stop through the game's own Cancel (ISWidgetCraftLogicControl:cancelCraft) in
+-- the game's own window, safe mode on for it and put back exactly as found after. NOTE lines and SKIPs only.)
+function H.rkFlagsOf(c)
+    local run, req, can = nil, nil, nil
+    pcall(function() run = c:isRunning() end)
+    pcall(function() req = c:isStopRequested() end)
+    pcall(function() can = c:isCancelled() end)
+    return "isRunning " .. tostring(run) .. ", isStopRequested " .. tostring(req) .. ", isCancelled " .. tostring(can)
+end
+function H.rkFindCancel(el, depth)
+    if not el or depth > 14 then return nil end
+    if el.cancelCraft and el.logic then return el end
+    for _, ch in pairs(el.children or {}) do
+        local f = H.rkFindCancel(ch, depth + 1)
+        if f then return f end
+    end
+    return nil
+end
+function H.rkGameCancel()
+    local found = nil
+    pcall(function()
+        local pl = ISEntityUI.players and ISEntityUI.players[S.pn]
+        for _, w in pairs((pl and pl.windows) or {}) do
+            if not found and w and w.instance then found = H.rkFindCancel(w.instance, 0) end
+        end
+    end)
+    return found
+end
+function H.rkCmpBack()
+    H.rkUnwrap()
+    if S.rkSafeSet then
+        S.rkSafeSet = false
+        H.closeGameStationWindows()
+        pcall(function() ZeD.Settings.safeModeOption:setValue(S.rkSafeVal) end)
+        pcall(function() ZeD.Safe.reread() end)
+        Q.say("NOTE rack Cancel: safe mode option put back to " .. tostring(S.rkSafeVal) .. ", ZeD.Safe.on() " .. tostring(ZeD.Safe.on()))
+    end
+end
+Q.step(2, function()
+    S.rkCmp = false
+    if not (S.rkArm and S.rkStart) then return end
+    S.rkC = H.rackComp()
+    if not S.rkC then Q.skip("NOTE rack Cancel comparison", "no rack component bound"); return end
+    S.rkCmp = true
+    S.rkRestart = false
+    if not H.rackRunning() then
+        local z = H.craftZone("mStart")
+        if z and z.enabled and not z.running then
+            S.rkRestart = true
+            H.craftClick(z)
+            Q.say("NOTE rack Cancel: the first stop stopped it; Start pressed again before the comparison")
+        end
+    end
+end)
+Q.waitFor(4, 900, function() return not S.rkCmp or H.rackRunning() end, function(ok)
+    if not S.rkCmp then return end
+    Q.say("NOTE rack Cancel: before the comparison, " .. H.rkFlagsOf(S.rkC) .. ", queue " .. H.queueTypes() .. ", restarted " .. tostring(S.rkRestart))
+    if not ok then
+        S.rkCmp = false
+        Q.skip("NOTE rack Cancel comparison", "the rack is not running, so the game's Cancel button would do nothing")
+        return
+    end
+    local opt, Sf = ZeD.Settings and ZeD.Settings.safeModeOption, ZeD.Safe
+    if not (opt and Sf and Sf.reread) then
+        S.rkCmp = false
+        Q.skip("NOTE rack Cancel comparison", "no safe mode option or ZeD.Safe.reread to hand the window to the game")
+        return
+    end
+    local okv, v = pcall(function() return opt:getValue() end)
+    if not okv or Sf.on() then
+        S.rkCmp = false
+        Q.skip("NOTE rack Cancel comparison", "safe mode already on or its option unreadable (" .. tostring(v) .. ")")
+        return
+    end
+    H.stopActions()
+    S.rkSafeVal, S.rkSafeSet = v, true
+    opt:setValue(2)
+    Sf.reread()
+    Q.say("NOTE rack Cancel: safe mode on (was " .. tostring(v) .. "), ZeD.Safe.on() " .. tostring(Sf.on()) .. ", " .. H.rkUseNow())
+    pcall(ISEntityUI.OpenWindow, S.p, S.rack)
+end)
+Q.waitFor(4, 300, function() return not S.rkCmp or H.rkGameCancel() ~= nil end, function(ok)
+    if not S.rkCmp then return end
+    local w = H.rkGameCancel()
+    if not (ok and w) then
+        S.rkCmp = false
+        Q.skip("NOTE rack Cancel comparison", "the game's window for the rack has no craft logic control (cancelCraft) to press")
+        H.rkCmpBack()
+        return
+    end
+    local lc = nil
+    pcall(function() lc = w.logic:getCraftLogic() end)
+    if lc then S.rkC = lc end
+    Q.say("NOTE rack Cancel: the game's window is open, " .. H.rkUse(S.rack, S.p) .. ", " .. H.rkFlagsOf(S.rkC)
+        .. ", same component as ZeD's " .. tostring(lc == H.rackComp()))
+    local run = false
+    pcall(function() run = w.logic:getCraftLogic():isRunning() end)
+    if not run then
+        S.rkCmp = false
+        Q.skip("NOTE rack Cancel comparison", "the game's window reads the rack not running: its Cancel button would do nothing")
+        H.rkCmpBack()
+        return
+    end
+    H.rkWrap("game Cancel")
+    local okc, err = pcall(function() w:cancelCraft() end)
+    S.rkCancelAt = getTimestampMs()
+    Q.say("NOTE rack Cancel: cancelCraft called" .. (okc and "" or (" with error " .. tostring(err))) .. ", queue " .. H.queueTypes())
+end)
+Q.waitFor(4, 1800, function()
+    if not S.rkCmp then return true end
+    return getTimestampMs() - (S.rkCancelAt or 0) >= 500 and H.queueTypes() == "none"
+end, function(okq)
+    if not S.rkCmp then return end
+    Q.say("NOTE rack Cancel: queue " .. (okq and "empty" or ("not empty: " .. H.queueTypes())) .. ", after the game's Cancel "
+        .. H.rkFlagsOf(S.rkC) .. ", " .. H.rkUse(S.rack, S.p))
+    H.rkCmpBack()
+end)
+Q.step(5, function()
+    if not S.rkArm then return end
+    pcall(H.rkCmpBack)
+    if S.rkC then Q.say("NOTE rack Cancel: with ZeD back, " .. H.rkFlagsOf(S.rkC) .. ", ZeD.Safe.on() " .. tostring(ZeD.Safe and ZeD.Safe.on())) end
+    RT.pairOpen()
 end)
 Q.step(2, function()
     if not S.rkArm then return end
@@ -2014,6 +2198,7 @@ end
 -- ===================================================================== put back
 Q.mark()
 Q.step(5, function()
+    pcall(H.rkCmpBack)   -- (the rack Stop diagnostics: nothing left wrapped, safe mode as found)
     H.ledgerBack()
     H.stopActions()
     H.padOff()
