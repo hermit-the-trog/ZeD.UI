@@ -7,7 +7,7 @@
 -- Pictures: Screenshots/zqa_svt_<theme>_z13.png and _z16.png.
 local Q = RT.make("svt")
 local MT = ZeD.MapsTab
-local S = { themes = { "dark", "light", "hicon" } }
+local S = { themes = (ZEDQA_SVT_THEMES or { "dark", "light", "hicon" }) }
 local function mp() local w = RT.ww(); return w and w._worldMapPanel end
 local function shot(n)
     pcall(function() Mouse.setCursorVisible(false) end)

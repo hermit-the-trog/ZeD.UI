@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Started | 2026-11-18 14:44:05 |
-| Finished | 2026-11-18 14:53:18 (9 min 12 s) - still running |
+| Finished | 2026-11-18 14:53:39 (9 min 33 s) |
 | Mode | windowed (1280x800 window) |
 | Display | fontSize=2 fullScreen=false height=800 width=1280 |
 | Game build | 42.22.2 3d39148846 |
@@ -11,7 +11,7 @@
 | Save | Saves/Sandbox/ZeD-QA |
 | Manifest | %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\release_test.txt (12 scripts) |
 | Result | **9/12 pass**, 0 warn, 3 fail, 0 timeout |
-| Go numbers | 29663 to 29674 |
+| Go numbers | 29663 to 29676 |
 
 Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
 
@@ -21,6 +21,10 @@ Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites 
 - font size: fontSize=2 for the run (was fontSize=3)
 - pzlaunchwin.ps1: launched windowed; clicked client centre (1929,1118) of 1280x800; pointer parked at (2565,1514)
 - the bridge armed in game on Saves/Sandbox/ZeD-QA
+- quit: quit to the main menu, then to the desktop (go 29675, 29676)
+- pzrestorewin.ps1: fullScreen=false height=2160 width=3840
+- font size: the director's line put back (fontSize=3)
+- ZeD settings: the director's ModOptions.ini put back
 
 ## Results
 
@@ -1689,8 +1693,8 @@ ERROR lines from launch to quit that fall in no script's window, once each (coun
     1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
     1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
     1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
-    1x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
-    1x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
     1x ERROR: General f:N at CraftRecipeComponentScript.getIconTexture> CraftRecipeComponentScript: Recipe Piano missing UiConfigScript - falling back to SpriteConfigScript first world object face for recipe icon.
     1x ERROR: Lua f:N at Lua(Vanilla).handleMannequinZone > ERROR: Mannequin zone missing properties in media/maps/Muldraugh, KY/objects.lua coords: 13583, 1299, 0
     1x ERROR: General f:N at Basements.mergeRoomsOntoMetaCell > duplicate RoomDef.metaID for room at 10707,9484,0
