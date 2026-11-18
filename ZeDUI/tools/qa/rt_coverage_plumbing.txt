@@ -25,3 +25,4 @@ AnimalsQuick.lua                # the Animals tab's quick actions' data
 AnimalsStressInference.lua      # the Animals tab's data
 QABridge.lua                    # the QA bridge (the test runner's own hook; not shipped behavior)
 TestInventory.lua               # a debug helper, not reachable by a player
+MapsSurveyData.lua              # generated data (ZeDUI/tools/map/make_survey_data.py) the Survey map rows draw

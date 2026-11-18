@@ -1,6 +1,6 @@
 0.3.0-beta20
 
-Light tooltips and bubbles, new foraging icons, instant item cards on the controller.
+Revised Survey map colors, light tooltips and bubbles, new foraging icons, instant item cards on the controller.
 
 Look
 - Every tooltip and bubble is light, whatever the theme: the notices out of the belt, the moodle's thought bubble, the action bar (Simple and Detailed), what your character says, the notes over the head, and the speed and pause bubble.
@@ -12,6 +12,11 @@ Foraging
 - The pointer to a find is a hand from a cloud, thumb up whichever way it points.
 - The search eye over your head sits in a light bubble with the other notes over the head.
 - Safe mode brings back the game's own pins, pointer and eye.
+
+Revised Survey Map Colors
+- The Survey map takes the colors of a 1993 paper road map, in each theme: red for primary highways and a lighter red for the others, woodland with tree marks, and lakes a deeper blue than rivers and streams.
+- New on the map: place symbols (gas, police, fire, hospital, school and more), route shields, bridge marks, town dots, a lettered grid, the exclusion zone's edge, a scale bar and a north arrow.
+- The map key has two pages, Colors and Symbols.
 
 Controller
 - The item card shows at once when the controller lands on a row, a grid tile or an Equipment slot, as it does under the mouse.
