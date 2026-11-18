@@ -211,4 +211,10 @@ function RT.bounds(Q, label)
 end
 
 say("kit ready: player " .. tostring(RT.pn) .. ", screen " .. RT.core:getScreenWidth() .. "x" .. RT.core:getScreenHeight())
-say("DONE")
+-- (Nov 18 2026, the first run: a DONE printed while the chunk still loads comes before the bridge's "run #n ok=true"
+-- line, and the runner does not count it; so DONE waits for the next drawn frame)
+local function doneLater()
+    Events.OnPreUIDraw.Remove(doneLater)
+    say("DONE")
+end
+Events.OnPreUIDraw.Add(doneLater)
