@@ -5829,8 +5829,10 @@ function ZeD_WorldWindow.toggle(playerNum)
             self._dragSourceInv = self._inventory
         end
 
-        local isCtrl  = isKeyDown(Keyboard.KEY_LCONTROL) or isKeyDown(Keyboard.KEY_RCONTROL)
-        local isShift = isKeyDown(Keyboard.KEY_LSHIFT) or isKeyDown(Keyboard.KEY_RSHIFT)
+        -- (the game's own readers, as the Character window's copy of this click and this function's double-click
+        -- guard use; Nov 18 2026, QA's release test could not reach the keys read directly)
+        local isCtrl  = isCtrlKeyDown()
+        local isShift = isShiftKeyDown()
 
         if isCtrl then
             self._padMarks = true   -- (picking rows: the card stays shut, even at one; punch list 146)

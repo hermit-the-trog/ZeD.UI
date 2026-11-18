@@ -105,7 +105,7 @@ end
 -- sheet, Colors (roads, water and woodland, buildings by use) and Symbols (places, the map's marks), each in two
 -- columns under ruled section heads. The page buttons sit at the body's top.
 local _pageOpts = {}
-local function surveyBody(mp, win, x, y, w, focId, zones, ox, oy, measureOnly)
+local function surveyBody(mp, win, x, y, w, focId, zones, ox, oy, measureOnly, capCol)
     local T, tm, A, S = ZeD.T, ZeD.TM, ZeD.Atoms, ZeD.MapsSurvey
     local f1, f2 = T.fontF1, T.fontF2
     local h1, h2 = tm:getFontHeight(f1), tm:getFontHeight(f2)
@@ -114,23 +114,45 @@ local function surveyBody(mp, win, x, y, w, focId, zones, ox, oy, measureOnly)
     local pad = T.px(8)
     local rowH = math.max(T.px(15), h2 + T.px(2))
     local secH = h1 + T.px(6)
-    -- the two columns: rows split where the first column's height passes half
-    local total = 0
-    for _, r in ipairs(rows) do total = total + (r.sec and secH or rowH) end
+    local function hOf(r) return r.sec and secH or rowH end
+    local function colH(a, b)
+        local hh = 0
+        for i = a, b do hh = hh + hOf(rows[i]) end
+        return hh
+    end
+    -- the columns. Two, split where the first passes half, while they fit the map; else (QA's release test, Nov 18
+    -- 2026: Symbols ran 557 px tall on a 456 px map at 4K) filled to the height that fits, up to three. A section's
+    -- head never ends a column.
+    local total = colH(1, #rows)
     local split, acc = #rows, 0
     for i, r in ipairs(rows) do
-        acc = acc + (r.sec and secH or rowH)
+        acc = acc + hOf(r)
         if acc >= total / 2 then split = i; break end
     end
     if rows[split + 1] and rows[split + 1].sec == nil and rows[split] and rows[split].sec then split = split - 1 end
-    local function colH(a, b)
-        local hh = 0
-        for i = a, b do hh = hh + (rows[i].sec and secH or rowH) end
-        return hh
+    local cols = { { 1, split }, { split + 1, #rows } }
+    if capCol and math.max(colH(1, split), colH(split + 1, #rows)) > capCol then
+        cols = {}
+        local a, hh = 1, 0
+        for i = 1, #rows do
+            local rh = hOf(rows[i])
+            if hh + rh > capCol and i > a and #cols < 2 then
+                local b = i - 1
+                if rows[b].sec and b > a then b = b - 1 end   -- (a head moves down with its first row)
+                cols[#cols + 1] = { a, b }
+                a = b + 1
+                hh = colH(a, i)
+            else
+                hh = hh + rh
+            end
+        end
+        cols[#cols + 1] = { a, #rows }
     end
+    local tallest = 0
+    for _, c in ipairs(cols) do tallest = math.max(tallest, colH(c[1], c[2])) end
     local btnH = T.buttonH
-    local bodyH = pad + btnH + pad + math.max(colH(1, split), colH(split + 1, #rows)) + pad
-    if measureOnly then return bodyH end
+    local bodyH = pad + btnH + pad + tallest + pad
+    if measureOnly then return bodyH, #cols end
     -- the page buttons
     local M = ZeD.Molecules
     local bx = x + pad
@@ -149,7 +171,7 @@ local function surveyBody(mp, win, x, y, w, focId, zones, ox, oy, measureOnly)
         bx = bx + bw + T.px(6)
     end
     -- the columns
-    local colW = math.floor((w - pad * 3) / 2)
+    local colW = math.floor((w - pad * (#cols + 1)) / #cols)
     local tc, th = T.text, T.text
     local sw, sh = T.px(22), T.px(11)
     local function column(a, b, cx, cy)
@@ -190,8 +212,7 @@ local function surveyBody(mp, win, x, y, w, focId, zones, ox, oy, measureOnly)
         end
     end
     local top = y + pad + btnH + pad
-    column(1, split, x + pad, top)
-    column(split + 1, #rows, x + pad * 2 + colW, top)
+    for i, c in ipairs(cols) do column(c[1], c[2], x + pad * i + colW * (i - 1), top) end
     return bodyH
 end
 
@@ -203,13 +224,16 @@ function K.overlay(mp, win, ox, oy, focId)
         local w = math.min(T.px(440), mp:getWidth() - T.px(16))
         local headH = T.px(20)
         local zones = {}
-        local bodyH = surveyBody(mp, win, 0, 0, w, focId, zones, ox, oy, true)
+        -- the most a column may take: the map's height less the panel's head, its page buttons and pads
+        local capCol = mp:getHeight() - T.px(12) - headH - (T.px(8) * 3 + T.buttonH)
+        local bodyH, ncols = surveyBody(mp, win, 0, 0, w, focId, zones, ox, oy, true, capCol)
+        if ncols > 2 then w = math.max(w, mp:getWidth() - T.px(16)) end   -- (three columns: the map's width)
         local h = headH + bodyH
         local x = T.px(8)
         local y = math.max(T.px(4), mp:getHeight() - h - T.px(8))
         drawBar(mp, x, y, w, headH, focId, zones, ox, oy)
         A.surfaceFill(mp, x, y + headH, w, h - headH, "surf1")
-        surveyBody(mp, win, x, y + headH, w, focId, zones, ox, oy, false)
+        surveyBody(mp, win, x, y + headH, w, focId, zones, ox, oy, false, capCol)
         A.frame(mp, x, y, w, h, T.borderS)
         zones[#zones + 1] = { id = "map:key:panel", x = x + ox, y = y + oy, w = w, h = h, inert = true }
         return zones

@@ -27,6 +27,9 @@
 
 require "Foraging/ISBaseIcon"
 require "Foraging/ISSearchManager"
+require "Foraging/ISWorldItemIcon"
+require "Foraging/ISStashIcon"
+require "Foraging/ISWorldItemIconTrack"
 require "ZeD/SafeMode"
 
 local DIR = "media/textures/ZeD/forage/"
@@ -152,6 +155,24 @@ if ISBaseIcon and ISBaseIcon.addWorldMarker and ISBaseIcon.setWorldMarkerPositio
     function ISBaseIcon:setWorldMarkerPosition()
         _origSetPos(self)
         dress(self)
+    end
+
+    -- (QA and the director, Nov 18 2026: "most of them are the vanilla arrows, and I only saw a few of the hands".
+    -- Three of the game's finds place their pointer with their own setWorldMarkerPosition, which the wrap above never
+    -- reaches: items lying found on the ground (ISWorldItemIcon, the most common), stashes (ISStashIcon) and animal
+    -- tracks (ISWorldItemIconTrack). Each one's own placement is wrapped the same way.)
+    local SUBS = { "ISWorldItemIcon", "ISStashIcon", "ISWorldItemIconTrack" }
+    for _, name in ipairs(SUBS) do
+        local cls = _G[name]
+        local own = cls and rawget(cls, "setWorldMarkerPosition")
+        if own then
+            cls._zedOrigSetWorldMarkerPosition = rawget(cls, "_zedOrigSetWorldMarkerPosition") or own
+            local orig = cls._zedOrigSetWorldMarkerPosition
+            cls.setWorldMarkerPosition = function(self)
+                orig(self)
+                dress(self)
+            end
+        end
     end
 end
 

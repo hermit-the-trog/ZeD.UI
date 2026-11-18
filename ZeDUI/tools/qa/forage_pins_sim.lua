@@ -63,8 +63,27 @@ function ISBaseIcon:addWorldMarker()   -- (the game's own, 42.21)
     self:setWorldMarkerPosition()
 end
 function ISBaseIcon:setWorldMarkerPosition() self.worldMarker:setX(self.xCoord); self.worldMarker:setY(self.yCoord) end
+-- the game's three finds with a placement of their own (ISWorldItemIcon.lua:68, ISStashIcon.lua:19,
+-- ISWorldItemIconTrack.lua:73): the director, Nov 18 2026, saw "mostly the vanilla arrows"
+local SUBS = { "ISWorldItemIcon", "ISStashIcon", "ISWorldItemIconTrack" }
+for _, name in ipairs(SUBS) do
+    local cls = setmetatable({}, { __index = ISBaseIcon })
+    function cls:setWorldMarkerPosition() self.worldMarker:setX(self.xCoord); self.worldMarker:setY(self.yCoord); self._ownPlace = true end
+    _G[name] = cls
+end
 
 assert(loadfile("42/media/lua/client/ZeD/Overrides/ForagePins.lua"))()
+
+do
+    local chr = { getX = function() return 100 end, getY = function() return 100 end }
+    for _, name in ipairs(SUBS) do
+        local icon = setmetatable({ character = chr, xCoord = 110, yCoord = 100 }, { __index = _G[name] })
+        icon:addWorldMarker()
+        local m = icon.worldMarker
+        check(name .. ": its pointer is the hand", m and m.tex == "zed_forage_hand_up_a" and m.w == 44 and m.h == 77, m and m.tex)
+        check(name .. ": its own placement still runs", icon._ownPlace == true)
+    end
+end
 
 local function pin(width, opts)
     local calls = {}

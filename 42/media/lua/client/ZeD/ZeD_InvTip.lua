@@ -245,6 +245,16 @@ local function readQueue(chr)
             end
             Q.map[it] = d
             Q.any = true
+            -- (Nov 18 2026: once a move starts, the game folds the moves queued after it into its queueList and takes
+            -- them off the queue (ISInventoryTransferAction:checkQueueList), so the third and later waiting rows lost
+            -- their mark. They wait too.)
+            if type(act.queueList) == "table" then
+                for _, e in ipairs(act.queueList) do
+                    for _, x in ipairs(type(e) == "table" and e.items or {}) do
+                        if Q.map[x] == nil then Q.map[x] = 0 end
+                    end
+                end
+            end
         end
     end
 end

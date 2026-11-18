@@ -380,6 +380,9 @@ function ZeD_WorldMap:instantiate()
     -- showed whatever the character had explored)
     self.mapAPI:setBoolean("Isometric", false)
     self.mapAPI:setBoolean("DebugInfo", false)
+    -- the game's closest zoom (its own map sets it, ISWorldMap.lua; the engine's default stops at 18, where ZeD's
+    -- map opens, so the wheel could not zoom in at all: QA's release test, Nov 18 2026)
+    pcall(function() self.mapAPI:setMaxZoom(24.0) end)
     self.mapAPI:setBoolean("HideUnvisited", true)
     -- the game's own dots for players, as the server allows (the Players On
     -- Map mod draws its own squares and names over them)
