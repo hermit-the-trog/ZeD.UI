@@ -34,8 +34,7 @@ Nintendo pads. Keyboard and mouse work alongside.
 **Languages.** English, with machine-drafted translations into 27 more, each named here in its own language:
 Bahasa Indonesia, Català, Čeština, Dansk, Deutsch, Español (Argentina), Español (Chile), Español (España), Español
 (México), Français, Italiano, Magyar, Nederlands, Norsk, Polski, Português (Brasil), Português (Portugal), Română,
-Suomi, Türkçe, Chinese (Simplified), Chinese (Traditional), Japanese, Korean, Russian, Thai, Ukrainian. Corrections
-are welcome. (Every name as the game's own language list gives it; see "Language names" below.)
+Suomi, Türkçe, Русский, Українська, ไทย, 日本語, 한국어, 简体中文, 繁體中文. Corrections are welcome.
 
 ## Where each fact comes from
 
@@ -68,8 +67,9 @@ are welcome. (Every name as the game's own language list gives it; see "Language
 5. **Other overhauls:** not addressed ("They're doing something different than what we're doing anyway"), so the
    one-or-the-other sentence is gone.
 6. **Languages:** all 27 printed by name, each in its own language. The game's own list (`language.json`) names 20
-   in their own language and 7 in English (Chinese both ways, Japanese, Korean, Russian, Thai, Ukrainian); the page
-   follows the game until the director decides those 7. No name is Build's own.
+   in their own language and 7 in English (Chinese both ways, Japanese, Korean, Russian, Thai, Ukrainian). The
+   director chose their own script for those 7 (Nov 17): Русский, Українська, ไทย, 日本語, 한국어, 简体中文 (Simplified),
+   繁體中文 (Traditional). The other 20 are the game's own words.
 
 ## For Build when the page is set
 
