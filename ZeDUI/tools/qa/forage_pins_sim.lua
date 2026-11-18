@@ -39,6 +39,30 @@ ISBaseIcon = {}
 function ISBaseIcon:renderPinIcon() GAME_PIN = GAME_PIN + 1 end
 ISSearchManager = { players = {} }
 function ISSearchManager:renderEye() GAME_EYE = GAME_EYE + 1 end
+-- the game's pointer: a homing point that records what is done to it
+local MARKERS = {}
+local function homingPoint(r, g, b, a)
+    local m = { r = r, g = g, b = b, a = a, tex = "arrow_triangle", w = 32, h = 32, sets = 0 }
+    function m:setX(v) self.x = v end
+    function m:setY(v) self.y = v end
+    function m:setHomeOnOffsetX() end
+    function m:setHomeOnOffsetY() end
+    function m:setTexture(t) self.tex = t; self.sets = self.sets + 1 end
+    function m:setRenderWidth(v) self.w = v end
+    function m:setRenderHeight(v) self.h = v end
+    function m:remove() self.removed = true end
+    MARKERS[#MARKERS + 1] = m
+    return m
+end
+function getWorldMarkers() return { addPlayerHomingPoint = function(_, chr, x, y, r, g, b, a) return homingPoint(r, g, b, a) end } end
+function ISBaseIcon:updateManagerMarkers() end
+function ISBaseIcon:addWorldMarker()   -- (the game's own, 42.21)
+    self:updateManagerMarkers()
+    if self.isBeingRemoved then return end
+    self.worldMarker = getWorldMarkers():addPlayerHomingPoint(self.character, self.xCoord, self.yCoord, 0.8, 0.8, 0.8, 1)
+    self:setWorldMarkerPosition()
+end
+function ISBaseIcon:setWorldMarkerPosition() self.worldMarker:setX(self.xCoord); self.worldMarker:setY(self.yCoord) end
 
 assert(loadfile("42/media/lua/client/ZeD/Overrides/ForagePins.lua"))()
 
@@ -90,6 +114,40 @@ local p = setmetatable({ width = 60, height = 90, textureColor = {}, itemTexture
     getAlpha = function() return 1 end, drawTextureScaled = function() error("boom") end }, { __index = ISBaseIcon })
 p:renderPinIcon()
 check("a failing ZeD pin draws the game's and counts a fault", GAME_PIN == 2 and FAULTS[1] == "forage pin", GAME_PIN .. " " .. tostring(FAULTS[1]))
+
+-- POINTER: the game's homing point dressed as the hand
+local chr = { getX = function() return 100 end, getY = function() return 100 end }
+local function find(x, y) return setmetatable({ character = chr, xCoord = x, yCoord = y }, { __index = ISBaseIcon }) end
+local f = find(105, 100)   -- east of the character: to the right on screen (x - y grows)
+f:addWorldMarker()
+local m = f.worldMarker
+check("pointer: white at full alpha, not the game's grey", m and m.r == 1 and m.g == 1 and m.b == 1 and m.a == 1, m and m.r)
+check("pointer: a find to the right gets hand a (thumb on top pointing right)", m.tex == "zed_forage_hand_up_a", m.tex)
+check("pointer: the hand's size, 44 x 77", m.w == 44 and m.h == 77, m.w .. "x" .. m.h)
+check("pointer: the game's placement still runs", m.x == 105 and m.y == 100, tostring(m.x))
+local sets = m.sets
+f:setWorldMarkerPosition(); f:setWorldMarkerPosition()
+check("pointer: no texture set again while nothing changes", m.sets == sets, m.sets - sets)
+chr.getX = function() return 110 end   -- the character walks past it: the find is now to the left
+f:setWorldMarkerPosition()
+check("pointer: the find to the left gets hand b (the mirror)", m.tex == "zed_forage_hand_up_b" and m.w == 44, m.tex)
+chr.getX = function() return 100 end
+local g = find(100, 106)   -- south of the character: to the left on screen
+g:addWorldMarker()
+check("pointer: a find to the left from the start: hand b", g.worldMarker.tex == "zed_forage_hand_up_b", g.worldMarker.tex)
+g.worldMarker:remove(); g.worldMarker = nil
+g:addWorldMarker()
+check("pointer: a new marker after a remove is dressed again", g.worldMarker.tex == "zed_forage_hand_up_b" and g.worldMarker.w == 44, g.worldMarker.tex)
+SAFE = true
+f:setWorldMarkerPosition()
+check("safe mode: the game's arrow back on the next update", m.tex == "arrow_triangle" and m.w == 32 and m.h == 32, m.tex)
+local h = find(105, 100); h:addWorldMarker()
+check("safe mode: a new marker is the game's own, grey, its arrow", h.worldMarker.r == 0.8 and h.worldMarker.tex == "arrow_triangle", h.worldMarker.tex)
+SAFE = false
+f:setWorldMarkerPosition()
+check("out of safe mode: the hand again", m.tex == "zed_forage_hand_up_a" and m.w == 44, m.tex)
+local gone = find(105, 100); gone.isBeingRemoved = true; gone:addWorldMarker()
+check("a find being removed gets no marker (the game's own step)", gone.worldMarker == nil)
 
 -- EYE: the game's own is not drawn
 local mgr = setmetatable({ isSearchMode = true, textureColor = { r = 1, g = 1, b = 1, a = 0.33 } }, { __index = ISSearchManager })

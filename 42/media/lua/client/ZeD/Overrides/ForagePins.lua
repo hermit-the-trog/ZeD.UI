@@ -18,6 +18,7 @@
 --      3. not identified: pinB_unknown, the frosted lens with the "?", and no item.
 --    Every layer keeps the game's alpha and textureColor. (pinB_hint, a half-frosted lens, is drawn but unused: the
 --    game has only identified or not, and a blurred find would tell more than the game does. Design's note.)
+-- A2. The pointer to a find: the game's homing point dressed as Design's hand from the cloud (below).
 -- B. The eye. The game draws its search-mode eye over the head itself (ISSearchManager:renderEye). ZeD draws it
 --    as a note in its over-head stack (ZeD_Bubbles: the eye note, just above the speed bubble), so here the game's
 --    own drawing is stopped. The same texture is also the eye in the game's search window; that one is untouched.
@@ -87,6 +88,73 @@ if ISBaseIcon and ISBaseIcon.renderPinIcon then
     end
 end
 
+-- A2. the pointer to a find: the hand from the cloud (the director, Nov 17: "Pixel, please")
+-- The game points at a near, seen, forageable find with a homing point (ISBaseIcon:addWorldMarker:
+-- getWorldMarkers():addPlayerHomingPoint). Its Java places it, turns it toward the find, eases it along, fades it in
+-- fog and keeps it on the screen: 130 px out from the character, or by the find itself while the find is on screen
+-- and within 20 tiles (WorldMarkers$PlayerHomingPoint, read from 42.21's jar). Lua cannot read where it is, but it
+-- can change its picture (setTexture, a name under media/textures/highlights/) and its size, so ZeD keeps the
+-- game's marker and all of that, and dresses it as the hand: white at full alpha in place of the game's grey, the
+-- picture 44 x 77 (Design's 77 x 44 pixel hand turned upright, as the game's arrow points up before it is turned).
+-- The game turns the picture right round, so one hand pointing left would hang with its thumb underneath. Two
+-- upright hands: zed_forage_hand_up_a (thumb at its left) while the find is to the right of the character on
+-- screen, zed_forage_hand_up_b (its mirror) while it is to the left; turned to point, each has its thumb on top.
+-- Safe mode puts the game's arrow back, grey, on the next update.
+local HAND_A, HAND_B = "zed_forage_hand_up_a", "zed_forage_hand_up_b"
+local HAND_W, HAND_H = 44, 77
+local GAME_ARROW, GAME_W, GAME_H = "arrow_triangle", 32, 32
+
+-- true while the find is to the right of the character on the screen (iso: screen x grows with x - y)
+local function findOnRight(self)
+    local chr = self.character
+    if not (chr and self.xCoord and self.yCoord) then return true end
+    local ok, cx, cy = pcall(function() return chr:getX(), chr:getY() end)
+    if not ok then return true end
+    return (self.xCoord - cx) - (self.yCoord - cy) >= 0
+end
+
+-- the marker as ZeD's hand (or, in safe mode, as the game's arrow again); only on a change
+local function dress(self)
+    local m = self.worldMarker
+    if not m then return end
+    if ZeD.Safe.on() then
+        if self._zedHandOn == m then
+            pcall(function() m:setTexture(GAME_ARROW); m:setRenderWidth(GAME_W); m:setRenderHeight(GAME_H) end)
+            self._zedHandOn, self._zedHand = nil, nil
+        end
+        return
+    end
+    local want = findOnRight(self) and HAND_A or HAND_B
+    if self._zedHandOn == m and self._zedHand == want then return end
+    local ok = pcall(function()
+        m:setTexture(want)
+        if self._zedHandOn ~= m then m:setRenderWidth(HAND_W); m:setRenderHeight(HAND_H) end
+    end)
+    if ok then self._zedHandOn, self._zedHand = m, want end
+end
+if ISBaseIcon then ISBaseIcon._zedDressPointer = dress end   -- (the test sim's way in)
+
+if ISBaseIcon and ISBaseIcon.addWorldMarker and ISBaseIcon.setWorldMarkerPosition then
+    ISBaseIcon._zedOrigAddWorldMarker = ISBaseIcon._zedOrigAddWorldMarker or ISBaseIcon.addWorldMarker
+    ISBaseIcon._zedOrigSetWorldMarkerPosition = ISBaseIcon._zedOrigSetWorldMarkerPosition or ISBaseIcon.setWorldMarkerPosition
+    local _origAdd, _origSetPos = ISBaseIcon._zedOrigAddWorldMarker, ISBaseIcon._zedOrigSetWorldMarkerPosition
+
+    -- the game's own steps, with white at full alpha in place of its grey (0.8)
+    function ISBaseIcon:addWorldMarker()
+        if ZeD.Safe.on() then return _origAdd(self) end
+        self:updateManagerMarkers()
+        if self.isBeingRemoved then return end
+        self.worldMarker = getWorldMarkers():addPlayerHomingPoint(self.character, self.xCoord, self.yCoord, 1, 1, 1, 1)
+        self:setWorldMarkerPosition()
+    end
+
+    -- run on every update while the marker is up: the game's placement, then the hand for the side the find is on
+    function ISBaseIcon:setWorldMarkerPosition()
+        _origSetPos(self)
+        dress(self)
+    end
+end
+
 -- B. the game's own eye over the head: ZeD's over-head stack draws it instead
 if ISSearchManager and ISSearchManager.renderEye then
     ISSearchManager._zedOrigRenderEye = ISSearchManager._zedOrigRenderEye or ISSearchManager.renderEye
@@ -97,4 +165,4 @@ if ISSearchManager and ISSearchManager.renderEye then
     end
 end
 
-print("[ZeD] Overrides/ForagePins: search-mode pins are magnifying glasses; the eye is in ZeD's over-head stack")
+print("[ZeD] Overrides/ForagePins: search-mode pins are magnifying glasses, the pointer to a find is the hand; the eye is in ZeD's over-head stack")
