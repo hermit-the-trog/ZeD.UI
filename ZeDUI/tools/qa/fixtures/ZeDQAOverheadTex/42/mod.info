@@ -1,0 +1,6 @@
+name=ZeD QA Overhead Textures (dev only)
+id=ZeDQAOverheadTex
+description=DEV ONLY - never stage, never upload. Tests whether the game takes a mod's media/ui/CarKey.png over its packed one, and at what size: CarKey.png is Design's 1x (31 x 30), CarKey_none.png its 2x (62 x 60). Design's over-head handoff, set C.
+modversion=0.0.1
+versionMin=42.17.0
+author=ZeD Team (dev tool)

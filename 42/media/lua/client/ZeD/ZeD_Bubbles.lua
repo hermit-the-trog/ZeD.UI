@@ -556,6 +556,65 @@ local function speedNote(pn)
     return n
 end
 
+-- (Nov 17 2026, Design's over-head icons, handoff HANDOFF_design_overhead_icons_pins_20261117: the search-mode eye,
+-- which the game drew over the head on its own (ISSearchManager:renderEye, its texture eyeconOn), is a note in this
+-- stack, in ZeD's light balloon, just above the speed bubble, so the two never overlap. Overrides/ForagePins.lua
+-- stops the game drawing its own. The eye is Design's 16 x 10 icon (art/overhead_20261117/overhead/icons/eyeconOn),
+-- drawn pixel by pixel as the speed glyph is, so it stays sharp at any scale; it keeps the game's fade, 0.33 while
+-- something is in view.)
+B.EYE_W, B.EYE_H = 16, 10
+B.EYE_ROWS = {
+    "....aaaaaaaa....", "..aabbbbbbbbaa..", ".abbbbaaaabbbba.", "abbbbaccddabbbba", "abbbacecaddabbba",
+    "abbbaccaaddabbba", "abbbbaddddabbbba", ".abbbbaaaabbbba.", "..aabbbbbbbbaa..", "....aaaaaaaa....",
+}
+local function hex(h) return { r = tonumber(h:sub(1, 2), 16) / 255, g = tonumber(h:sub(3, 4), 16) / 255, b = tonumber(h:sub(5, 6), 16) / 255, a = 1 } end
+B.EYE_INK = { a = hex("0C0C0C"), b = hex("E8E6E0"), c = hex("5880A0"), d = hex("345470"), e = hex("FFFFFF") }
+-- the eye's runs, worked out once: { row, x, width, colour key }
+B._eyeRuns = B._eyeRuns or nil
+local function eyeRuns()
+    if B._eyeRuns then return B._eyeRuns end
+    local runs = {}
+    for r = 1, #B.EYE_ROWS do
+        local row, x = B.EYE_ROWS[r], 1
+        while x <= #row do
+            local ch = row:sub(x, x)
+            local x2 = x
+            while x2 < #row and row:sub(x2 + 1, x2 + 1) == ch do x2 = x2 + 1 end
+            if ch ~= "." then runs[#runs + 1] = { r - 1, x - 1, x2 - x + 1, ch } end
+            x = x2 + 1
+        end
+    end
+    B._eyeRuns = runs
+    return runs
+end
+-- the eye at (x, y) units
+function B.drawEye(cv, x, y, a)
+    local runs = eyeRuns()
+    for i = 1, #runs do
+        local r = runs[i]
+        rectA(cv, x + r[2], y + r[1], r[3], 1, B.EYE_INK[r[4]], a)
+    end
+end
+B._eyeNote = B._eyeNote or {}   -- playerNum -> the eye's note (kept, so nothing is made each frame)
+-- the search-mode manager of a player in search mode, or nil (read from the game's own table: never makes one)
+function B.searchManager(pn)
+    local SM = ISSearchManager
+    local chr = getSpecificPlayer and getSpecificPlayer(pn)
+    if not (SM and SM.players and chr) then return nil end
+    local m = SM.players[chr]
+    if m and m.isSearchMode then return m end
+    return nil
+end
+local function eyeNote(pn)
+    local m = B.searchManager(pn)
+    if not m then return nil end
+    local n = B._eyeNote[pn]
+    if not n then n = { lines = { "" }, eye = true, tw = B.EYE_W, a = 1 }; B._eyeNote[pn] = n end
+    local tc = m.textureColor
+    n.a = (tc and type(tc.a) == "number") and tc.a or 1
+    return n
+end
+
 -- the notes to draw for a player now (each with .a, its alpha), or nil
 function B.notes(pn, ms)
     local list = B._notes[pn]
@@ -567,7 +626,8 @@ function B.notes(pn, ms)
         end
     end
     local sn = speedNote(pn)
-    if not sn then
+    local en = eyeNote(pn)
+    if not sn and not en then
         if not list or #list == 0 then return nil end
         return list
     end
@@ -575,7 +635,8 @@ function B.notes(pn, ms)
     B._noteOut[pn] = out
     for i = #out, 1, -1 do out[i] = nil end
     for i = 1, (list and #list or 0) do out[i] = list[i] end
-    out[#out + 1] = sn   -- (the newest place: nearest the head)
+    if en then out[#out + 1] = en end   -- (the eye: just above the speed bubble)
+    if sn then out[#out + 1] = sn end   -- (the newest place: nearest the head)
     return out
 end
 
@@ -637,7 +698,9 @@ function B.drawNotes(cv, T, L)
             rectA(cv, tx, n.y + B.PAD + 3, B.NOTE_DOT, B.NOTE_DOT, c, a)
             tx = tx + B.NOTE_DOT * 2
         end
-        if n.speed then
+        if n.eye then
+            B.drawEye(cv, tx, n.y + math.floor((n.h - B.EYE_H) / 2), a)
+        elseif n.speed then
             B.drawSpeedGlyph(cv, n.speed, tx, n.y + B.PAD, T.text, a)
         else
             for j = 1, #n.lines do
