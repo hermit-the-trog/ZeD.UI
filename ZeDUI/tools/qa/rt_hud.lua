@@ -11,7 +11,7 @@
 --   xp note   ZeD_HaloText.lua: skill XP (Perks.Woodwork: B42 has no Perks.Carpentry) goes through with no error and is
 --             logged in Messages; a game note (HaloTextHelper.addGoodText) shows in ZeD's bubble and fades
 --   forage    Overrides/ForagePins.lua: a find staged as zedqa_forage_pointer.lua stages it (tile 925,13040, the step
---             back and the facing): ZeD's pin is drawn and the pointer is ZeD's hand, 44 x 77, white; the eye note
+--             back and the facing): ZeD's pin is drawn and the pointer is ZeD's hand at its set size and alpha (ISBaseIcon._zedHandSize), white; the eye note
 --   guide     ZeD_GuideBubble.lua: a fresh machine's guide bubble comes out of the belt with the guide's words and fades
 --   hint      ZeD_HintStrip.lua: at a door the strip shows above the belt, centred; paused it hides; First hours stops a
 --             hint after its three uses (counted in Zomboid/Lua/ZeD_hints.txt); Off takes it away
@@ -1043,14 +1043,21 @@ function S.F.mkGround(dx, dy, track)
     F.icons[#F.icons + 1] = o
     return o
 end
--- the hand on a find's pointer: the same reading as the forage pointer checks above (the hand for its side, 44 x 77)
+-- the hand on a find's pointer: the same reading as the forage pointer checks above (the hand for its side, at its set size)
+-- (Nov 18 2026, the director: the hand smaller and a little see-through, 36 x 63 at 0.75; ForagePins exposes it as
+-- ISBaseIcon._zedHandSize = { w, h, alpha }, read here so the check follows the mod, not a copied number)
+function S.handSize()
+    local z = ISBaseIcon and ISBaseIcon._zedHandSize
+    if type(z) == "table" and z[1] then return z[1], z[2], z[3] or 1 end
+    return 36, 63, 0.75
+end
 function S.F.handCheck(o, why, what)
     local F = S.F
     if not o then Q.check(false, what, "not staged: " .. tostring(why)); return end
     local r = F.mark(o)
     local mg = F.mgr or {}
     local d = "no pointer up (seen " .. tostring(o.isSeenThisUpdate) .. ", forageable " .. tostring(o.isForageable)
-        .. ", distance " .. string.format("%.1f", o.distanceToPlayer or -1)
+        .. ", distance " .. string.format("%.4f", o.distanceToPlayer or -1)
         .. ", radius " .. tostring(mg.radius) .. ", darkness capped " .. tostring(o.isDarknessCapped)
         .. ", view distance " .. tostring(o.viewDistance) .. ", disable tick " .. tostring(mg.disableTick) .. ")"
     if r then
@@ -1068,7 +1075,10 @@ function S.F.handCheck(o, why, what)
         pcall(function() cls = tostring(o.iconClass) end)
         pcall(function() wiNow = tostring(o.itemObj ~= nil and o.itemObj:getWorldItem() ~= nil) end)
         -- (Build: o:update() recomputes isSeenThisUpdate and calls updateWorldMarker itself, a fair direct test)
-        pcall(function() o:update(); direct = tostring(o.worldMarker ~= nil) end)
+        local okU, errU = pcall(function() o:update(); direct = tostring(o.worldMarker ~= nil) end)
+        if not okU then direct = "error: " .. tostring(errU) end
+        local okW, errW = pcall(function() o:updateWorldMarker() end)
+        direct = direct .. "; updateWorldMarker " .. (okW and "ran" or ("error: " .. tostring(errW))) .. ", marker " .. tostring(o.worldMarker ~= nil)
         local r2 = F.mark(o)
         d = d .. ", nearby " .. near .. ", checkIsForageable " .. live .. ", isValid " .. valid .. ", seen this update " .. seenNow
             .. ", being removed " .. removing .. ", class " .. cls .. ", its item in the world " .. wiNow
@@ -1099,7 +1109,8 @@ function S.F.handCheck(o, why, what)
         end)
         d = d .. ", between: " .. table.concat(seen, " ")
     end
-    Q.check(r ~= nil and r.hand == F.want(F.side(o)) and math.floor((r.w or 0) + 0.5) == 44 and math.floor((r.h or 0) + 0.5) == 77,
+    local hw, hh = S.handSize()
+    Q.check(r ~= nil and r.hand == F.want(F.side(o)) and math.floor((r.w or 0) + 0.5) == hw and math.floor((r.h or 0) + 0.5) == hh,
         what, d)
 end
 -- (Nov 18 2026, run r7: the ground find's pointer passed in r6 and failed in r7 with no code change. The game raises a
@@ -1213,7 +1224,7 @@ Q.step(10, function()
     local F = S.F
     F.one = F.mk(3, -1)
     local okG, okT
-    okG, F.gnd, F.gndWhy = pcall(F.mkGround, 3, 0, false)
+    okG, F.gnd, F.gndWhy = pcall(F.mkGround, 2, 0, false)   -- (Build: 2 tiles, well inside the radius; at 3 the float distance sat on its edge)
     if not okG then F.gndWhy, F.gnd = F.gnd, nil end
     okT, F.trk, F.trkWhy = pcall(F.mkGround, 2, -1, true)
     if not okT then F.trkWhy, F.trk = F.trk, nil end
@@ -1230,8 +1241,9 @@ Q.step(60, function()
     local r = F.mark(o)
     if Q.check(r ~= nil, "forage: the pointer to the find is up") then
         Q.check(r.hand == F.want(F.side(o)), "forage: the pointer is ZeD's hand for the find's side", tostring(r.hand))
-        Q.check(math.floor((r.w or 0) + 0.5) == 44 and math.floor((r.h or 0) + 0.5) == 77, "forage: the hand is 44 x 77")
-        Q.check(math.abs((r.r or 0) - 1) < 0.01 and math.abs((r.a or 0) - 1) < 0.01, "forage: white at full alpha")
+        local hw, hh, ha = S.handSize()
+        Q.check(math.floor((r.w or 0) + 0.5) == hw and math.floor((r.h or 0) + 0.5) == hh, "forage: the hand is its set size", math.floor((r.w or 0) + 0.5) .. " x " .. math.floor((r.h or 0) + 0.5) .. ", want " .. hw .. " x " .. hh)
+        Q.check(math.abs((r.r or 0) - 1) < 0.01 and math.abs((r.a or 0) - ha) < 0.01, "forage: white at its set alpha", "alpha " .. tostring(r.a) .. ", want " .. ha)
     end
     local zed, any = 0, #o._rtDrawn
     local want = { getTexture("media/textures/ZeD/forage/pinB_back.png"), getTexture("media/textures/ZeD/forage/pinB_unknown.png") }

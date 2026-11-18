@@ -1642,7 +1642,9 @@ Q.waitFor(4, 900, function() return not (S.rkArm and S.rkStart) or H.rackRunning
     Q.say("NOTE rack stop: at the press, " .. H.rkUseNow() .. ", isStopRequested " .. H.rkReq(H.rackComp())
         .. ", isRunning " .. tostring(H.rackRunning()) .. ", Start zone " .. tostring(z ~= nil) .. " running " .. tostring(z and z.running))
     H.rkWrap("ZeD Stop")
-    if z and z.running then H.craftClick(z) end
+    -- (run 9: the drawn flag z.running lags the live state by up to 20 frames, so pressing only on it skipped the
+    -- press; the press goes in whenever the rack is live-running, as a player's would.)
+    if z and H.rackRunning() then H.craftClick(z) end
     Q.say("NOTE rack stop: just after the press, queue " .. H.queueTypes() .. ", " .. H.rkUseNow() .. ", isStopRequested " .. H.rkReq(H.rackComp()))
 end)
 -- (the stop walks to the rack first: wait for the queue to empty, at least half a second after the press)
@@ -1655,13 +1657,12 @@ end, function(okq)
 end)
 -- (Nov 18 2026, Build: ZeD's Stop does what the game's own Cancel does (component:stop(player)); CraftLogic.stop
 -- sets a stop request handled on the logic's update, and DryingCraftLogic's own isRunning may stay true while anything
--- sits drying. So the check is that the stop request is taken: isStopRequested, isCancelled, or not running.)
+-- sits drying. So the check is that the stop request is taken: isStopRequested or not running. (Run 9: DryingCraftLogic has no isCancelled; asking each frame logged 185 exceptions, so it is not asked.))
 function H.rackFlags()
     local c = H.rackComp()
     local run, req, can = nil, nil, nil
     pcall(function() run = c:isRunning() end)
     pcall(function() req = c:isStopRequested() end)
-    pcall(function() can = c:isCancelled() end)
     return run, req, can
 end
 Q.waitFor(1, 180, function()
@@ -1672,7 +1673,7 @@ end, function(ok)
     if not (S.rkArm and S.rkStart) then return end
     local run, req, can = H.rackFlags()
     Q.check(ok, "rack: Start pressed again stops it (its stop request is taken)",
-        "isRunning " .. tostring(run) .. ", isStopRequested " .. tostring(req) .. ", isCancelled " .. tostring(can) .. ", queue " .. H.queueTypes())
+        "isRunning " .. tostring(run) .. ", isStopRequested " .. tostring(req) .. ", queue " .. H.queueTypes())
     Q.say("NOTE rack stop: at the check, " .. H.rkUseNow())
     H.rkUnwrap()
 end)
@@ -1682,8 +1683,7 @@ function H.rkFlagsOf(c)
     local run, req, can = nil, nil, nil
     pcall(function() run = c:isRunning() end)
     pcall(function() req = c:isStopRequested() end)
-    pcall(function() can = c:isCancelled() end)
-    return "isRunning " .. tostring(run) .. ", isStopRequested " .. tostring(req) .. ", isCancelled " .. tostring(can)
+    return "isRunning " .. tostring(run) .. ", isStopRequested " .. tostring(req)
 end
 function H.rkFindCancel(el, depth)
     if not el or depth > 14 then return nil end

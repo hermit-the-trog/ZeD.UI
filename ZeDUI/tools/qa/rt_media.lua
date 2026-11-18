@@ -951,11 +951,11 @@ Q.step(10, function()
     for _, t in ipairs(R.texs) do
         if t.t ~= nil and (t.t == T3.us or t.t == T3.ky or t.t == T3.i) then shs[#shs + 1] = t end
     end
-    -- each carries its number: a digits-only text whose spot lies inside the shield's rect (grid rows, scale labels fall outside)
+    -- each carries its number: a route number text (digits, or digits and a letter, as 31W) whose spot lies inside the shield's rect (grid rows, scale labels fall outside)
     local numbered = 0
     for _, sh in ipairs(shs) do
         for _, t in ipairs(R.texts) do
-            if t.s:match("^[0-9]+$") and t.x >= sh.x and t.y >= sh.y and t.x <= sh.x + sh.w and t.y <= sh.y + sh.h then
+            if t.s:match("^[0-9]+[A-Z]?$") and t.x >= sh.x and t.y >= sh.y and t.x <= sh.x + sh.w and t.y <= sh.y + sh.h then
                 numbered = numbered + 1
                 break
             end
@@ -981,6 +981,20 @@ Q.step(10, function()
                 if math.abs(sh.x + sh.w / 2 - ux) < ZeD.T.px(90) and math.abs(sh.y + sh.h / 2 - uy) < ZeD.T.px(22) then onName = onName + 1 end
             end
         end
+    end
+    if numbered < #shs then
+        -- (Nov 18 2026: one shield read unnumbered even with the key shut; the rects and the digit texts near each, for Build)
+        local parts = {}
+        for _, sh in ipairs(shs) do
+            local near = {}
+            for _, t in ipairs(R.texts) do
+                if t.s:match("^[0-9]+[A-Z]?$") and math.abs(t.x - sh.x) < sh.w * 2 and math.abs(t.y - sh.y) < sh.h * 2 then
+                    near[#near + 1] = t.s .. "@" .. math.floor(t.x) .. "," .. math.floor(t.y)
+                end
+            end
+            parts[#parts + 1] = string.format("shield %d,%d %dx%d near [%s]", math.floor(sh.x), math.floor(sh.y), math.floor(sh.w), math.floor(sh.h), table.concat(near, " "))
+        end
+        Q.say("NOTE survey shields: " .. table.concat(parts, "; "))
     end
     Q.check(R.ok and #shs > 0 and numbered == #shs and close == 0 and onName == 0,
         "survey shields: every shield drawn carries its number, 110 px apart, off the town names",
