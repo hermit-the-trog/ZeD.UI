@@ -49,7 +49,15 @@ function K.button(win)
             local T = ZeD.T
             local bw = math.max(1, math.floor(s / 4))
             local bh = math.floor(s * 0.7)
-            for i, k in ipairs(BTN) do
+            -- (Survey's own colours since Nov 18 2026, MapsSurvey.lua: a highway's red, a home's, a store's)
+            local S = ZeD.MapsSurvey
+            local pal = S and S.palette()
+            local cols = BTN
+            if pal then
+                local function c(h) local r, g, b = S.rgb(h); return { r, g, b } end
+                cols = { c(pal.main), c(pal.b.Residential), c(pal.b.RetailAndCommercial) }
+            end
+            for i, k in ipairs(cols) do
                 panel:drawRect(x + (i - 1) * (bw + T.px(1)) + math.floor(s * 0.15), y + math.floor((s - bh) / 2), bw, bh, 1, k[1] / 255, k[2] / 255, k[3] / 255)
             end
         end,
@@ -93,9 +101,119 @@ local function drawBar(mp, x, y, w, headH, focId, zones, ox, oy)
         activate = function(w2) w2._mapKeyOpen = false end }
 end
 
+-- SURVEY'S KEY (Nov 18 2026, the director's paper-map look, MapsSurvey.lua): two pages laid out as a printed symbol
+-- sheet, Colors (roads, water and woodland, buildings by use) and Symbols (places, the map's marks), each in two
+-- columns under ruled section heads. The page buttons sit at the body's top.
+local _pageOpts = {}
+local function surveyBody(mp, win, x, y, w, focId, zones, ox, oy, measureOnly)
+    local T, tm, A, S = ZeD.T, ZeD.TM, ZeD.Atoms, ZeD.MapsSurvey
+    local f1, f2 = T.fontF1, T.fontF2
+    local h1, h2 = tm:getFontHeight(f1), tm:getFontHeight(f2)
+    local page = win._mapKeyPage == "symbols" and "symbols" or "colors"
+    local rows = page == "symbols" and S.keySymbols() or S.keyColors()
+    local pad = T.px(8)
+    local rowH = math.max(T.px(15), h2 + T.px(2))
+    local secH = h1 + T.px(6)
+    -- the two columns: rows split where the first column's height passes half
+    local total = 0
+    for _, r in ipairs(rows) do total = total + (r.sec and secH or rowH) end
+    local split, acc = #rows, 0
+    for i, r in ipairs(rows) do
+        acc = acc + (r.sec and secH or rowH)
+        if acc >= total / 2 then split = i; break end
+    end
+    if rows[split + 1] and rows[split + 1].sec == nil and rows[split] and rows[split].sec then split = split - 1 end
+    local function colH(a, b)
+        local hh = 0
+        for i = a, b do hh = hh + (rows[i].sec and secH or rowH) end
+        return hh
+    end
+    local btnH = T.buttonH
+    local bodyH = pad + btnH + pad + math.max(colH(1, split), colH(split + 1, #rows)) + pad
+    if measureOnly then return bodyH end
+    -- the page buttons
+    local M = ZeD.Molecules
+    local bx = x + pad
+    for _, pg in ipairs({ { "colors", "UI_ZeD_MapKey_PageColors" }, { "symbols", "UI_ZeD_MapKey_PageSymbols" } }) do
+        local label = ZeD.tr(pg[2])
+        local bw = M.buttonW(label)
+        local id = "map:key:page:" .. pg[1]
+        local o = _pageOpts[pg[1]] or {}
+        _pageOpts[pg[1]] = o
+        o.hover = A.mouseIn(mp, bx, y + pad, bw, btnH)
+        o.focus = (focId == id) and FOCUS or nil
+        M.drawButton(mp, bx, y + pad, bw, btnH, label, page == pg[1] and "primary" or "default", false, nil, o)
+        local which = pg[1]
+        zones[#zones + 1] = { id = id, x = bx + ox, y = y + pad + oy, w = bw, h = btnH,
+            activate = function(w2) w2._mapKeyPage = which end }
+        bx = bx + bw + T.px(6)
+    end
+    -- the columns
+    local colW = math.floor((w - pad * 3) / 2)
+    local tc, th = T.text, T.text
+    local sw, sh = T.px(22), T.px(11)
+    local function column(a, b, cx, cy)
+        for i = a, b do
+            local r = rows[i]
+            if r.sec then
+                mp:drawRect(cx, cy + T.px(2), colW, T.line(2), 1, th.r, th.g, th.b)
+                mp:drawText(string.upper(ZeD.tr(r.sec)), cx, cy + T.px(4), th.r, th.g, th.b, th.a or 1, f1)
+                cy = cy + secH
+            else
+                local sy = cy + math.floor((rowH - sh) / 2)
+                if r.swatch then
+                    local cr, cg, cb = S.rgb(r.swatch)
+                    if r.line then
+                        local lh = T.px(r.line + 1)
+                        mp:drawRect(cx, cy + math.floor((rowH - lh) / 2), sw, lh, 1, cr / 255, cg / 255, cb / 255)
+                        if r.ties then
+                            for tx = cx + T.px(2), cx + sw - T.px(2), T.px(5) do
+                                mp:drawRect(tx, cy + math.floor(rowH / 2) - T.px(3), 1, T.px(6), 1, cr / 255, cg / 255, cb / 255)
+                            end
+                        end
+                    else
+                        mp:drawRect(cx, sy, sw, sh, 1, cr / 255, cg / 255, cb / 255)
+                        if r.woods then
+                            local t = getTexture("media/textures/ZeD/map/woods_" .. (S.key()) .. ".png")
+                            if t then mp:drawTextureScaled(t, cx, sy, sw, sh, 1, 1, 1, 1) end
+                        end
+                        A.frame(mp, cx, sy, sw, sh, T.borderS)
+                    end
+                else
+                    local s = math.min(rowH - T.px(2), sw)
+                    S.drawKeySymbol(mp, r, cx + math.floor((sw - s) / 2), cy + math.floor((rowH - s) / 2), s)
+                end
+                local maxW = colW - sw - T.px(6)
+                mp:drawText(A.truncateText(r.text or "", f2, maxW), cx + sw + T.px(6), cy + math.floor((rowH - h2) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
+                cy = cy + rowH
+            end
+        end
+    end
+    local top = y + pad + btnH + pad
+    column(1, split, x + pad, top)
+    column(split + 1, #rows, x + pad * 2 + colW, top)
+    return bodyH
+end
+
 -- the panel over the map's bottom-left corner; its controls as zones
 function K.overlay(mp, win, ox, oy, focId)
     if not win._mapKeyOpen then return nil end
+    if (mp.style or "survey") == "survey" and ZeD.MapsSurvey and not mp._paperItem then
+        local T, A = ZeD.T, ZeD.Atoms
+        local w = math.min(T.px(440), mp:getWidth() - T.px(16))
+        local headH = T.px(20)
+        local zones = {}
+        local bodyH = surveyBody(mp, win, 0, 0, w, focId, zones, ox, oy, true)
+        local h = headH + bodyH
+        local x = T.px(8)
+        local y = math.max(T.px(4), mp:getHeight() - h - T.px(8))
+        drawBar(mp, x, y, w, headH, focId, zones, ox, oy)
+        A.surfaceFill(mp, x, y + headH, w, h - headH, "surf1")
+        surveyBody(mp, win, x, y + headH, w, focId, zones, ox, oy, false)
+        A.frame(mp, x, y, w, h, T.borderS)
+        zones[#zones + 1] = { id = "map:key:panel", x = x + ox, y = y + oy, w = w, h = h, inert = true }
+        return zones
+    end
     local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
     local f2 = T.fontF2
     local h2 = tm:getFontHeight(f2)

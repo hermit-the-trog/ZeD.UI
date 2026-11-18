@@ -485,6 +485,12 @@ local function initSurvey(mp)
     if MapUtils.overlayPaper then
         MapUtils.overlayPaper(mp)
     end
+    -- the paper-map colours for the theme, the woodland marks and the lakes (MapsSurvey.lua); the game's own look
+    -- stays if that fails
+    if ZeD.MapsSurvey and ZeD.MapsSurvey.restyle then
+        local ok, err = pcall(ZeD.MapsSurvey.restyle, mp)
+        if not ok and ZeD.Safe and ZeD.Safe.fault then ZeD.Safe.fault("survey colours", err) end
+    end
     -- (the marks and notes, and the map's own labels, are vanilla's store, drawn
     -- by the engine through the item bound in instantiate: MapNotes.lua)
 end
@@ -1144,6 +1150,7 @@ end
 function ZeD_WorldMap:render()
     self._drawnMs = getTimestampMs()   -- (requestStyle: drawn lately, so restyle after a hold)
     if self._pendingZoom then self:_zoomTo(self._pendingZoom) end
+    if ZeD.MapsSurvey and ZeD.MapsSurvey.watch then ZeD.MapsSurvey.watch(self) end   -- (a theme change recolours Survey)
     self._gpCursorLive = false
     -- what sits ON the map (stash icons, flyer pins and their pulse, previews, the
     -- extensions' marks) is clipped to the map: a pin by the edge never hangs over
