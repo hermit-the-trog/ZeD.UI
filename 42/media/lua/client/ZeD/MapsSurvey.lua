@@ -229,6 +229,9 @@ end
 -- zoom bands (the map's zoom, getZoomF): towns and shields while zoomed out, places and bridges close up
 -- (places from 15, the director Nov 18 2026: at 14 their badges covered the street names)
 local Z_TOWN_MAX, Z_SHIELD_MIN, Z_SHIELD_MAX, Z_PLACE_MIN, Z_BRIDGE_MIN = 13.5, 12.5, 17.5, 15.0, 15.0
+M.Z_PLACE_MIN = Z_PLACE_MIN   -- (the release test reads these rather than copying them)
+--- A place badge's px at zoom z (smaller: the director, Nov 18 2026)
+function M.placeBadgeSize(z) return ZeD.T.px(z >= 16 and 14 or 11) end
 local GRID_SQ = 1200          -- a grid cell: 1200 squares (four of the map's 300-square cells)
 
 -- the place kinds: a ZeD pixel icon, or a drawn mark where there is none
@@ -405,7 +408,7 @@ end
 local function drawPlaces(mp, data, ink, paper, z)
     local api = mp.mapAPI
     local T = ZeD.T
-    local s = T.px(z >= 16 and 14 or 11)   -- (smaller: the director, Nov 18 2026)
+    local s = M.placeBadgeSize(z)
     for _, p in ipairs(data.places or {}) do
         local sx, sy = api:worldToUIX(p.x, p.y), api:worldToUIY(p.x, p.y)
         if onScreen(mp, sx, sy, s) then

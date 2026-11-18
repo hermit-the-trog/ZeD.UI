@@ -104,7 +104,9 @@ end
 -- screen, zed_forage_hand_up_b (its mirror) while it is to the left; turned to point, each has its thumb on top.
 -- Safe mode puts the game's arrow back, grey, on the next update.
 local HAND_A, HAND_B = "zed_forage_hand_up_a", "zed_forage_hand_up_b"
-local HAND_W, HAND_H = 44, 77
+-- (smaller and a little see-through, the director, Nov 18 2026: "scale down the hand of God a little and make it a
+-- little bit transparent"; was 44 x 77 at full alpha)
+local HAND_W, HAND_H, HAND_ALPHA = 36, 63, 0.75
 local GAME_ARROW, GAME_W, GAME_H = "arrow_triangle", 32, 32
 
 -- true while the find is to the right of the character on the screen (iso: screen x grows with x - y)
@@ -136,6 +138,7 @@ local function dress(self)
     if ok then self._zedHandOn, self._zedHand = m, want end
 end
 if ISBaseIcon then ISBaseIcon._zedDressPointer = dress end   -- (the test sim's way in)
+if ISBaseIcon then ISBaseIcon._zedHandSize = { HAND_W, HAND_H, HAND_ALPHA } end   -- (the release test reads it)
 
 if ISBaseIcon and ISBaseIcon.addWorldMarker and ISBaseIcon.setWorldMarkerPosition then
     ISBaseIcon._zedOrigAddWorldMarker = ISBaseIcon._zedOrigAddWorldMarker or ISBaseIcon.addWorldMarker
@@ -147,7 +150,7 @@ if ISBaseIcon and ISBaseIcon.addWorldMarker and ISBaseIcon.setWorldMarkerPositio
         if ZeD.Safe.on() then return _origAdd(self) end
         self:updateManagerMarkers()
         if self.isBeingRemoved then return end
-        self.worldMarker = getWorldMarkers():addPlayerHomingPoint(self.character, self.xCoord, self.yCoord, 1, 1, 1, 1)
+        self.worldMarker = getWorldMarkers():addPlayerHomingPoint(self.character, self.xCoord, self.yCoord, 1, 1, 1, HAND_ALPHA)
         self:setWorldMarkerPosition()
     end
 

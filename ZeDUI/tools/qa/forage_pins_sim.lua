@@ -80,7 +80,7 @@ do
         local icon = setmetatable({ character = chr, xCoord = 110, yCoord = 100 }, { __index = _G[name] })
         icon:addWorldMarker()
         local m = icon.worldMarker
-        check(name .. ": its pointer is the hand", m and m.tex == "zed_forage_hand_up_a" and m.w == 44 and m.h == 77, m and m.tex)
+        check(name .. ": its pointer is the hand", m and m.tex == "zed_forage_hand_up_a" and m.w == 36 and m.h == 63, m and m.tex)
         check(name .. ": its own placement still runs", icon._ownPlace == true)
     end
 end
@@ -140,23 +140,23 @@ local function find(x, y) return setmetatable({ character = chr, xCoord = x, yCo
 local f = find(105, 100)   -- east of the character: to the right on screen (x - y grows)
 f:addWorldMarker()
 local m = f.worldMarker
-check("pointer: white at full alpha, not the game's grey", m and m.r == 1 and m.g == 1 and m.b == 1 and m.a == 1, m and m.r)
+check("pointer: white at three-quarters alpha, not the game's grey", m and m.r == 1 and m.g == 1 and m.b == 1 and m.a == 0.75, m and m.a)
 check("pointer: a find to the right gets hand a (thumb on top pointing right)", m.tex == "zed_forage_hand_up_a", m.tex)
-check("pointer: the hand's size, 44 x 77", m.w == 44 and m.h == 77, m.w .. "x" .. m.h)
+check("pointer: the hand's size, 36 x 63", m.w == 36 and m.h == 63, m.w .. "x" .. m.h)
 check("pointer: the game's placement still runs", m.x == 105 and m.y == 100, tostring(m.x))
 local sets = m.sets
 f:setWorldMarkerPosition(); f:setWorldMarkerPosition()
 check("pointer: no texture set again while nothing changes", m.sets == sets, m.sets - sets)
 chr.getX = function() return 110 end   -- the character walks past it: the find is now to the left
 f:setWorldMarkerPosition()
-check("pointer: the find to the left gets hand b (the mirror)", m.tex == "zed_forage_hand_up_b" and m.w == 44, m.tex)
+check("pointer: the find to the left gets hand b (the mirror)", m.tex == "zed_forage_hand_up_b" and m.w == 36, m.tex)
 chr.getX = function() return 100 end
 local g = find(100, 106)   -- south of the character: to the left on screen
 g:addWorldMarker()
 check("pointer: a find to the left from the start: hand b", g.worldMarker.tex == "zed_forage_hand_up_b", g.worldMarker.tex)
 g.worldMarker:remove(); g.worldMarker = nil
 g:addWorldMarker()
-check("pointer: a new marker after a remove is dressed again", g.worldMarker.tex == "zed_forage_hand_up_b" and g.worldMarker.w == 44, g.worldMarker.tex)
+check("pointer: a new marker after a remove is dressed again", g.worldMarker.tex == "zed_forage_hand_up_b" and g.worldMarker.w == 36, g.worldMarker.tex)
 SAFE = true
 f:setWorldMarkerPosition()
 check("safe mode: the game's arrow back on the next update", m.tex == "arrow_triangle" and m.w == 32 and m.h == 32, m.tex)
@@ -164,7 +164,7 @@ local h = find(105, 100); h:addWorldMarker()
 check("safe mode: a new marker is the game's own, grey, its arrow", h.worldMarker.r == 0.8 and h.worldMarker.tex == "arrow_triangle", h.worldMarker.tex)
 SAFE = false
 f:setWorldMarkerPosition()
-check("out of safe mode: the hand again", m.tex == "zed_forage_hand_up_a" and m.w == 44, m.tex)
+check("out of safe mode: the hand again", m.tex == "zed_forage_hand_up_a" and m.w == 36, m.tex)
 local gone = find(105, 100); gone.isBeingRemoved = true; gone:addWorldMarker()
 check("a find being removed gets no marker (the game's own step)", gone.worldMarker == nil)
 
