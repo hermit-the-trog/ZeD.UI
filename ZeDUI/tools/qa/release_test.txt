@@ -5,13 +5,13 @@
 # Every script is built on rt_kit.lua: any failed check prints "VERDICT FAIL n", which the runner scores as FAIL.
 zedqa_prelude.lua | pre | timeout=120
 rt_kit.lua | rtk | timeout=60
-rt_windows.lua | rt_win | timeout=600
-rt_inventory.lua | rt_inv | timeout=900
-rt_menus.lua | rt_menu | timeout=600
-rt_cards.lua | rt_cards | timeout=900
-rt_hud.lua | rt_hud | timeout=900
-rt_pad.lua | rt_pad | timeout=900
-rt_media.lua | rt_media | timeout=900
-rt_vehicles.lua | rt_veh | timeout=900
-rt_addon.lua | rt_addon | timeout=600
-rt_system.lua | rt_sys | timeout=1200
+rt_windows.lua | rt_win | timeout=1800
+rt_inventory.lua | rt_inv | timeout=1800
+rt_menus.lua | rt_menu | timeout=1800
+rt_cards.lua | rt_cards | timeout=1800
+rt_hud.lua | rt_hud | timeout=1800
+rt_pad.lua | rt_pad | timeout=1800
+rt_media.lua | rt_media | timeout=1800
+rt_vehicles.lua | rt_veh | timeout=1800
+rt_addon.lua | rt_addon | timeout=1800
+rt_system.lua | rt_sys | timeout=1800

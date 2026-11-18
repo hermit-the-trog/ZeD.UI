@@ -4,7 +4,7 @@
 -- ITEM CARDS (ItemCard.lua, ItemCardOrganism.lua, ItemFactsPanel.lua, ItemActionHooks.lua). An apple, a baseball bat,
 -- a book and a pencil are given to the main inventory (their stacks opened so each has its own row).
 --   mouse   a click on the bat's row (the list's own onMouseDown / onMouseUp) opens its card in the drawer; the card is
---           220, 260 or 480 wide; its top facts show the bat's weight ("n.n kg") and its facts panel its condition
+--           220 or 480 wide; its top facts show the bat's weight ("n.n kg") and its facts panel its condition
 --           ("cond / max"), both read from the card's own model (what it draws)
 --   pad     ZeD's input locked to the controller, the Character window holding the pad (FocusManager), the focus on
 --           the apple's row and A tapped (Focus.qaButton + dispatchJoypadDown): the apple's card opens
@@ -47,7 +47,8 @@ S.BUILD = { { 4, -4 }, { -4, -4 }, { 4, 4 }, { -4, 4 }, { 5, 0 }, { -5, 0 }, { 0
 -- ===================================================================== helpers
 function H.px(n) return ZeD.T.px(n) end
 function H.cardW(w)
-    for _, n in ipairs({ 220, 260, 480 }) do if math.abs((w or 0) - H.px(n)) <= 1 then return true end end
+    -- (a drawer is 220 or 480, nothing else: FEATURE_MAP, "Drawer widths"; the 260 in the code is the drawer's speed)
+    for _, n in ipairs({ 220, 480 }) do if math.abs((w or 0) - H.px(n)) <= 1 then return true end end
     return false
 end
 function H.full(w) return math.abs((w or 0) - H.px(480)) <= 1 end
@@ -464,7 +465,7 @@ H.queueClick("bat", "mouse")
 Q.waitFor(2, 120, function() return H.cardOn(S.bat) and H.cardW(H.card():getWidth()) end, function(ok)
     local c = H.card()
     Q.check(H.cardOn(S.bat), "mouse: a click on the bat's row opens its card", H.nm(c and c.item))
-    Q.check(c and H.cardW(c:getWidth()), "mouse: the card is half (220 / 260) or full (480) wide", c and math.floor(c:getWidth()))
+    Q.check(c and H.cardW(c:getWidth()), "mouse: the card is half (220) or full (480) wide", c and math.floor(c:getWidth()))
 end)
 Q.step(15, function()
     local c = H.card()
@@ -675,6 +676,85 @@ Q.waitFor(2, 900, function() return not S.p:getInventory():contains(S.pencil) en
         "world item " .. tostring(wi ~= nil) .. ", container " .. tostring(cont))
     H.stopActions()
 end)
+-- (Nov 18 2026, the ledger's row "Item card: tool verbs (Repair, Repair all, Pad all, Sharpen, Wash)": the card's
+-- body verbs (stops verb_<key>) on a dull hunting knife with a whetstone, and on a dirty T-shirt (one hole) with a
+-- needle, thread and rags and a barrel of water beside the character: each A queues the game's own action, which is
+-- stopped. Repair on the knife: the game has no fixing for it, so nothing is queued (the verb only says what it needs).)
+function H.queueHas(pat)
+    local found = false
+    pcall(function()
+        local q = ISTimedActionQueue.getTimedActionQueue(S.p)
+        for _, a in ipairs((q and q.queue) or {}) do if string.find(tostring(a.Type), pat, 1, true) then found = true end end
+    end)
+    return found
+end
+function H.queueTypes()
+    local t = {}
+    pcall(function()
+        local q = ISTimedActionQueue.getTimedActionQueue(S.p)
+        for _, a in ipairs((q and q.queue) or {}) do t[#t + 1] = tostring(a.Type) end
+    end)
+    return (#t > 0) and table.concat(t, " ") or "none"
+end
+Q.step(4, function()
+    H.stopActions()
+    S.knife, S.shirt = RT.give("Base.HuntingKnife"), RT.give("Base.Tshirt_White")
+    for _, ft in ipairs({ "Base.Whetstone", "Base.Needle", "Base.Thread", "Base.RippedSheets", "Base.RippedSheets", "Base.RippedSheets" }) do RT.give(ft) end
+    pcall(function() S.knife:setSharpness(0.3) end)
+    pcall(function() S.shirt:setDirtiness(60) end)
+    pcall(function() local parts = S.shirt:getCoveredParts(); S.shirt:getVisual():setHole(parts:get(0)) end)
+    local c = H.content()
+    for _, k in ipairs({ "knife", "shirt" }) do
+        local ft = nil
+        pcall(function() ft = S[k]:getFullType() end)
+        if c and ft then
+            c._expandedStacks = c._expandedStacks or {}
+            if S.stackWas[ft] == nil then S.stackWas[ft] = c._expandedStacks[ft] or false end
+            c._expandedStacks[ft] = true
+        end
+    end
+    -- the water: a barrel beside the character, filled (its fluid container, as the game's barrels hold water)
+    local sq = H.freeSq(S.RING1)
+    for _, name in ipairs({ "carpentry_02_54", "carpentry_02_52", "carpentry_02_120" }) do
+        if sq and not S.barrel and getSprite(name) then
+            pcall(function()
+                local o = IsoObject.new(sq, name, nil, false)
+                sq:AddTileObject(o)
+                pcall(function() o:createFluidContainersFromSpriteProperties() end)
+                local fc = o:getFluidContainer()
+                if fc then fc:addFluid(Fluid.Water, fc:getCapacity()) end
+                if o:hasWater() then S.barrel = o else sq:transmitRemoveItemFromSquare(o) end
+            end)
+        end
+    end
+    if S.barrel then S.placed[#S.placed + 1] = S.barrel end
+    Q.check(S.knife ~= nil and S.shirt ~= nil and S.barrel ~= nil, "tool verbs: a dull knife, a whetstone, a dirty shirt, sewing things and a barrel of water",
+        "knife " .. tostring(S.knife ~= nil) .. ", shirt " .. tostring(S.shirt ~= nil) .. ", water " .. tostring(S.barrel ~= nil))
+end)
+-- one body verb: the item's card by the mouse, the pad's focus on verb_<key>, A tapped; then check(ok, types)
+function H.toolVerb(item, vkey, label, pat)
+    Q.waitMs(400)
+    H.queueClick(item, label)
+    Q.waitFor(2, 120, function() return H.cardOn(S[item]) end, function(ok) S.tvCard = ok end)
+    Q.waitFor(4, 240, function() return not S.tvCard or H.focusCardId("verb_" .. vkey) end, function(ok)
+        S.armA = (S.tvCard and ok) and true or false
+        Q.check(S.armA, label .. ": the card offers " .. vkey .. " and the pad's focus lands on it")
+    end)
+    H.queueA(0)
+    Q.waitFor(2, 300, function() return (pat == nil) or H.queueHas(pat) end, function(ok)
+        if pat then
+            Q.check(ok, label .. ": A on it queues the game's own action (" .. pat .. ")", H.queueTypes())
+        else
+            Q.check(H.queueTypes() == "none", label .. ": with no fixing for the thing, A queues nothing", H.queueTypes())
+        end
+        H.stopActions()
+    end)
+end
+H.toolVerb("knife", "sharpen", "sharpen", "Craft")
+H.toolVerb("knife", "repair", "repair", nil)
+H.toolVerb("shirt", "wash", "wash", "ISWashClothing")
+H.toolVerb("shirt", "pad_all", "pad all", "ISRepairClothing")
+H.toolVerb("shirt", "repair_all", "repair all", "ISRepairClothing")
 Q.step(5, function() H.padOff() end)
 
 -- ===================================================================== the recipe preview card
@@ -779,6 +859,72 @@ end, function(ok)
     RT.bounds(Q, "the generator card")
     H.closeCard()
 end)
+-- (Nov 18 2026, the ledger's row "Generator card": the engine switch. Connected and fuelled, the face's switch
+-- (zone gen:engine; the Simple card's Turn on verb when the face is off) runs the game's activate and the card reads
+-- it on; again it stops; with no fuel the switch has nothing to run. Put back: unplugged, 60 fuel, off.)
+function H.zoneFid(fid)
+    local c = H.ocard()
+    for _, z in ipairs((c and c._lastZones) or {}) do if z.fid == fid then return z end end
+    for _, z in ipairs((c and c._zones) or {}) do if z.fid == fid then return z end end
+    return nil
+end
+function H.verb(id)
+    local e = H.entry()
+    for _, v in ipairs((e and e.t and e.t.verbs) or {}) do if v.id == id then return v end end
+    return nil
+end
+-- the engine switch pressed: its zone's run as a click fires it, else the power verb's
+function H.genSwitch()
+    local z = H.zoneFid("gen:engine")
+    if z and z.run then return pcall(z.run, H.ocard(), S.p) end
+    local v = H.verb("power")
+    if v and v.run and v.enabled then return pcall(v.run, S.p, H.entry().t, H.ocard()) end
+    return false
+end
+function H.genOn() local on = false; pcall(function() on = S.gen:isActivated() end); return on end
+function H.genInfo() if S.gen then pcall(ISWorldObjectContextMenu.onInfoGenerator, nil, S.gen, S.pn) end end
+Q.step(4, function()
+    if not S.gen then return end
+    pcall(function() S.gen:setConnected(true) end)
+    H.genInfo()
+end)
+Q.waitFor(4, 300, function()
+    local z, v = H.zoneFid("gen:engine"), H.verb("power")
+    return S.gen == nil or (z ~= nil and z.run ~= nil) or (v ~= nil and v.enabled)
+end, function(ok)
+    if not S.gen then return end
+    S.genArm = Q.check(ok, "generator: connected with fuel, its engine switch is live (gen:engine)")
+    if S.genArm then H.genSwitch() end
+end)
+Q.waitFor(4, 1500, function() return not S.genArm or H.genOn() end, function(ok)
+    if not S.genArm then return end
+    Q.check(ok, "generator: the engine switch starts it (the game's own activate)")
+    H.genInfo()
+end)
+Q.waitFor(4, 300, function() local e = H.entry(); return not S.genArm or (e and e.t and e.t.d and e.t.d.on == true) end, function(ok)
+    if not S.genArm then return end
+    local p = H.pill(H.entry())
+    Q.check(ok and p ~= nil and p ~= ZeD.tr("UI_Off"), "generator: running, its card reads it on", tostring(p))
+    H.genSwitch()
+end)
+Q.waitFor(4, 1500, function() return not S.genArm or not H.genOn() end, function(ok)
+    if not S.genArm then return end
+    Q.check(ok, "generator: the engine switch again stops it")
+    pcall(function() S.gen:setFuel(0) end)
+    H.genInfo()
+end)
+Q.waitFor(4, 300, function() local e = H.entry(); return not S.genArm or (e and e.t and e.t.d and e.t.d.fuel == 0 and e.t.d.on == false) end, function(ok)
+    if not S.genArm then return end
+    local z, v = H.zoneFid("gen:engine"), H.verb("power")
+    Q.check(ok and (z == nil or z.run == nil) and not (v and v.enabled), "generator: with no fuel the engine switch refuses (nothing to run)",
+        "zone run " .. tostring(z and z.run ~= nil) .. ", verb on " .. tostring(v and v.enabled))
+    H.closeCard()
+end)
+Q.step(2, function()
+    if not S.gen then return end
+    pcall(function() if S.gen:isActivated() then S.gen:setActivated(false) end end)
+    pcall(function() S.gen:setConnected(false); S.gen:setFuel(60) end)
+end)
 
 -- the campfire: the game's Info
 Q.step(10, function()
@@ -813,6 +959,56 @@ end, function(ok)
         Q.check(H.pill(e) == ZeD.tr("UI_ZeD_Fire_PillOut"), "fire: the card says Out", tostring(H.pill(e)))
     end
     RT.bounds(Q, "the fire card")
+    H.closeCard()
+end)
+-- (Nov 18 2026, the ledger's row "Fire card": Add fuel and Light. Planks, paper and matches given; the card's first
+-- fuel row (zone fire:fuel:1, the game's ISAddFuelAction) adds fuel time; its first Light row (fire:light:1, the
+-- game's light from tinder) lights it and the pill reads burning. The campfire goes in the put-back.)
+function H.fireInfo()
+    local lo = S.fireSq and H.campLua(S.fireSq)
+    local iso = lo and lo:getIsoObject()
+    if iso then pcall(ISCampingMenu.onDisplayInfo, nil, S.p, iso, lo) end
+end
+function H.fireD() local e = H.entry(); return (e and e.def and e.def.id == "fire" and e.t) and e.t.d or nil end
+Q.step(4, function()
+    if not S.fireSq then return end
+    S.fireGiven = { RT.give("Base.Plank"), RT.give("Base.Plank"), RT.give("Base.SheetPaper2"), RT.give("Base.SheetPaper2"),
+        RT.give("Base.SheetPaper2"), RT.give("Base.Matches") }
+    H.fireInfo()
+end)
+Q.waitFor(4, 300, function() local z = H.zoneFid("fire:fuel:1"); return S.fireSq == nil or (z ~= nil and z.run ~= nil) end, function(ok)
+    if not S.fireSq then return end
+    S.fireArm = Q.check(ok, "fire: with fuel carried, the card lists it to add (fire:fuel:1)")
+    if not S.fireArm then return end
+    local d = H.fireD()
+    S.fuel0 = d and d.fuel or 0
+    pcall(H.zoneFid("fire:fuel:1").run, H.ocard(), S.p)
+end)
+Q.waitFor(4, 1800, function()
+    if not S.fireArm then return true end
+    local d = H.fireD()
+    if not d then H.fireInfo() end
+    return d ~= nil and d.fuel > S.fuel0
+end, function(ok)
+    if not S.fireArm then return end
+    local d = H.fireD()
+    Q.check(ok, "fire: Add fuel adds fuel time (the game's add fuel)", tostring(S.fuel0) .. " -> " .. tostring(d and d.fuel))
+end)
+Q.waitFor(4, 300, function() local z = H.zoneFid("fire:light:1"); return not S.fireArm or (z ~= nil and z.run ~= nil and not z.disabled) end, function(ok)
+    if not S.fireArm then return end
+    S.lightArm = Q.check(ok, "fire: with matches and paper, the card offers Light (fire:light:1)")
+    if S.lightArm then pcall(H.zoneFid("fire:light:1").run, H.ocard(), S.p) end
+end)
+Q.waitFor(4, 2400, function()
+    if not S.lightArm then return true end
+    local d = H.fireD()
+    if not d then H.fireInfo() end
+    return d ~= nil and d.lit == true
+end, function(ok)
+    if not S.lightArm then return end
+    local p = H.pill(H.entry())
+    Q.check(ok and p ~= ZeD.tr("UI_ZeD_Fire_PillOut"), "fire: Light lights it (the game's light) and the pill reads burning", tostring(p))
+    H.stopActions()
     H.closeCard()
 end)
 
@@ -945,6 +1141,200 @@ Q.step(5, function()
     pcall(S.ST.unbind, S.p)
     RT.worldTab("loot")
 end)
+-- (Nov 18 2026, the ledger's rows on the stove: "Inventory: band scrolls sideways when wide", "Oven / microwave
+-- panel (knobs, keys, timer)", "Oven in its own window (pop-out)". Put back by H.stoveBack: the band's offset, the
+-- stove's heat, timer and switch, the devices look, the generator stopped, the pop-out closed, the station let go.)
+-- the band: the stove shown in the Loot pane, its container row's buttons overflow the list (a stove has many):
+-- the right arrow scrolls them sideways (the band's offset, cc.sx.bot), every shown part inside the list; the left
+-- arrow scrolls back. Where they all fit (a wide 4K list) that is a SKIP with the width.
+function H.bandArrow(cc, left)
+    for _, a in ipairs((cc and cc.arrows) or {}) do if (a.idx == -1) == left then return a end end
+    return nil
+end
+function H.bandPress(c, left)
+    local a = H.bandArrow(c._cc, left)
+    if a then c:onMouseDown(a.x + math.floor(a.w / 2), a.y + math.floor(a.h / 2)) else S.CT.press(c, left and -1 or -2) end
+end
+Q.step(4, function()
+    S.stInv = S.stove and S.stove:getContainer()
+    if S.stInv then pcall(ZeD_WorldWindow.selectContainer, S.stInv, 60, S.pn) end
+end)
+Q.waitFor(4, 300, function()
+    local c = H.wcontent()
+    return S.stInv == nil or (c ~= nil and c._inventory == S.stInv and c._cc ~= nil and c._cc.strips ~= nil and c._cc.strips.bot ~= nil)
+end, function(ok)
+    S.bandArm = nil
+    if not S.stInv then return end
+    local c = H.wcontent()
+    if not Q.check(ok, "band: the stove's container row draws its button band") then return end
+    if not c._cc.strips.bot.scroll then
+        Q.skip("band: the stove's buttons scroll sideways", "they all fit the list's " .. math.floor(c:getWidth()) .. " px here (no overflow)")
+        return
+    end
+    S.bandX0 = c._cc.sx.bot or 0
+    S.bandArm = true
+    H.bandPress(c, false)
+end)
+Q.step(3, function()
+    if not S.bandArm then return end
+    local c = H.wcontent()
+    local cc = c._cc
+    S.bandX1 = cc.sx.bot or 0
+    local bad = 0
+    for _, h in ipairs(cc.hits or {}) do if (h.vw or 0) > 0 and (h.vx < -1 or h.vx + h.vw > c:getWidth() + 1) then bad = bad + 1 end end
+    Q.check(S.bandX1 > S.bandX0 and bad == 0, "band: its right arrow scrolls the stove's buttons sideways, all inside the list",
+        "offset " .. S.bandX0 .. " -> " .. S.bandX1 .. ", " .. bad .. " buttons outside")
+    RT.bounds(Q, "the stove's button band")
+    H.bandPress(c, true)
+end)
+Q.step(3, function()
+    if not S.bandArm then return end
+    local cc = H.wcontent()._cc
+    Q.check((cc.sx.bot or 0) < S.bandX1, "band: its left arrow scrolls them back", tostring(cc.sx.bot))
+    cc.sx.bot = S.bandX0
+end)
+-- the panel (StationAppliance): the stove bound in the Craft tab (Stations.open), with power (the grid, else the
+-- generator beside it run for the test): a knob's right half (or a key) changes its heat or timer; its timer knob sets
+-- the timer; its power key turns it on (the game's own stove command) and off again
+function H.stTemp() local v = nil; pcall(function() v = S.stove:getMaxTemperature() end); return v end
+function H.stTimer() local v = nil; pcall(function() v = S.stove:getTimer() end); return v end
+function H.stOn() local v = false; pcall(function() v = S.stove:Activated() end); return v and true or false end
+function H.plate(pred)
+    local st = H.craftState()
+    for _, z in ipairs((st and st.zones) or {}) do if z.type == "plate" and pred(z) then return z end end
+    return nil
+end
+function H.isHeat(z) return z.kind == "turn" and (z.id == "heat" or z.id == "power") end
+function H.isTimer(z) return z.kind == "turn" and z.id == "timer" end
+function H.isPowerKey(z) return z.id == "on" or z.id == "onoff" or z.id == "start" end
+function H.isOffKey(z) return z.id == "off" or z.id == "onoff" or z.id == "start" end
+function H.rightHalf(z) return pcall(ZeD.CraftingTab.onClick, RT.ww(), z.x + math.floor(z.w * 3 / 4), z.y + math.floor(z.h / 2)) end
+Q.step(4, function()
+    S.stBack = { temp = H.stTemp(), timer = H.stTimer(), on = H.stOn(), dev = ZeD.Settings.devicesStyleOption and ZeD.Settings.devicesStyleOption:getValue() }
+    local pw = false
+    pcall(function() pw = S.stInv:isPowered() end)
+    if not pw and S.gen then
+        pcall(function() S.gen:setConnected(true); S.gen:setFuel(60); S.gen:setActivated(true) end)
+        S.genForStove = true
+    end
+end)
+Q.waitFor(4, 600, function() local pw = false; pcall(function() pw = S.stInv:isPowered() end); return S.stInv == nil or pw end, function(ok)
+    S.stArm = nil
+    if not S.stInv then return end
+    S.stArm = Q.check(ok, "oven: the stove has power (the grid, or the generator beside it run for the test)")
+    if S.stArm then pcall(S.ST.open, S.p, S.stove) end
+end)
+Q.waitFor(4, 300, function()
+    if not S.stArm then return true end
+    local st = S.ST.current(S.p)
+    return st ~= nil and st.obj == S.stove and RT.ww()._activeTab == "craft" and H.plate(function() return true end) ~= nil
+end, function(ok)
+    if not S.stArm then return end
+    if not Q.check(ok, "oven: the stove is bound in the Craft tab, its panel's controls drawn") then S.stArm = nil; return end
+    S.t0, S.tm0 = H.stTemp(), H.stTimer()
+    local z = H.plate(H.isHeat) or H.plate(H.isTimer) or H.plate(function(x) return x.id == "up" end)
+    S.stCtl = z and z.id
+    if z then H.rightHalf(z) end
+end)
+Q.step(4, function()
+    if not S.stArm then return end
+    Q.check(S.stCtl ~= nil and (H.stTemp() ~= S.t0 or H.stTimer() ~= S.tm0), "oven: a knob or key on its panel changes the stove's setting",
+        tostring(S.stCtl) .. ": heat " .. tostring(S.t0) .. " -> " .. tostring(H.stTemp()) .. ", timer " .. tostring(S.tm0) .. " -> " .. tostring(H.stTimer()))
+    local zt = H.plate(H.isTimer)
+    S.tm1 = H.stTimer()
+    if zt then H.rightHalf(zt) else Q.skip("oven: the timer knob sets the timer", "this stove's panel has no timer knob (" .. tostring(S.stCtl) .. ")") end
+    S.stTimerZ = zt ~= nil
+end)
+Q.step(4, function()
+    if not (S.stArm and S.stTimerZ) then return end
+    Q.check(H.stTimer() ~= S.tm1 and (H.stTimer() or 0) > 0, "oven: its timer knob sets the timer", tostring(S.tm1) .. " -> " .. tostring(H.stTimer()))
+end)
+Q.step(2, function()
+    if not S.stArm then return end
+    local z = H.plate(H.isPowerKey)
+    S.stKey = z and z.id
+    if not z then Q.skip("oven: its power key turns it on", "this stove's panel has no on key (a keypad oven starts from its keys)"); return end
+    pcall(ZeD.CraftingTab.onClick, RT.ww(), z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2))
+end)
+Q.waitFor(4, 600, function() return not (S.stArm and S.stKey) or H.stOn() end, function(ok)
+    if not (S.stArm and S.stKey) then return end
+    Q.check(ok, "oven: its power key turns the stove on (the game's stove command)", tostring(S.stKey))
+    local z = H.plate(H.isOffKey)
+    if z then pcall(ZeD.CraftingTab.onClick, RT.ww(), z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2)) end
+end)
+Q.waitFor(4, 600, function() return not (S.stArm and S.stKey) or not H.stOn() end, function(ok)
+    if not (S.stArm and S.stKey) then return end
+    Q.check(ok, "oven: pressed again it turns off")
+end)
+-- the pop-out (StationPopout, with ZeD setup's Devices on Simple: with faces on the button pops the face out
+-- instead): the panel's pop-out button opens the stove in its own window, centred and on screen; the tab's "bring it
+-- back" closes it; popped out again, letting the station go closes it too
+function H.spWin() local w = nil; pcall(function() w = ZeD.StationPopout.get(S.pn) end); return w end
+function H.spUp() local w = H.spWin(); return w ~= nil and w:isReallyVisible() end
+function H.craftPress(kind)
+    local z = H.craftZone(kind)
+    if z then H.craftClick(z) end
+    return z ~= nil
+end
+Q.step(4, function()
+    if not S.stArm then return end
+    pcall(function() ZeD.Settings.devicesStyleOption:setValue(2) end)
+end)
+Q.waitFor(4, 300, function() return not S.stArm or H.craftZone("popout") ~= nil end, function(ok)
+    if not S.stArm then return end
+    S.spArm = Q.check(ok, "pop-out: the stove's panel (Simple) has its pop-out button")
+    if S.spArm then H.craftPress("popout") end
+end)
+Q.waitFor(2, 120, function() return not S.spArm or H.spUp() end, function(ok)
+    if not S.spArm then return end
+    local w = H.spWin()
+    local W = getCore():getScreenWidth()
+    local mid = w and (w:getX() + w:getWidth() / 2) or -1
+    Q.check(ok and w.st ~= nil and w.st.obj == S.stove and math.abs(mid - W / 2) <= 2, "pop-out: the stove opens in its own window, centred",
+        "up " .. tostring(ok) .. ", middle " .. math.floor(mid) .. " of " .. W)
+    RT.bounds(Q, "the stove's own window")
+end)
+Q.waitFor(2, 120, function() return not S.spArm or H.craftZone("popin") ~= nil end, function(ok)
+    if not S.spArm then return end
+    if ok then H.craftPress("popin") else pcall(function() ZeD.StationPopout.close(S.p) end) end
+    S.spIn = ok
+end)
+Q.waitFor(2, 120, function() return not S.spArm or not H.spUp() end, function(ok)
+    if not S.spArm then return end
+    Q.check(S.spIn and ok, "pop-out: the tab's bring-it-back closes the stove's window")
+end)
+Q.waitFor(2, 120, function() return not S.spArm or H.craftZone("popout") ~= nil end, function(ok)
+    if not S.spArm then return end
+    if ok then H.craftPress("popout") end
+end)
+Q.waitFor(2, 120, function() return not S.spArm or H.spUp() end, function(ok)
+    if not S.spArm then return end
+    S.spAgain = ok
+    pcall(S.ST.unbind, S.p)
+end)
+Q.waitFor(2, 300, function() return not S.spArm or not H.spUp() end, function(ok)
+    if not S.spArm then return end
+    Q.check(S.spAgain and ok, "pop-out: letting the station go closes its window", "opened again " .. tostring(S.spAgain))
+end)
+Q.step(2, function() H.stoveBack() end)
+function H.stoveBack()
+    pcall(function() if H.spUp() then ZeD.StationPopout.close(S.p) end end)
+    local b = S.stBack
+    if b then
+        S.stBack = nil
+        pcall(function() if b.dev then ZeD.Settings.devicesStyleOption:setValue(b.dev) end end)
+        pcall(function() if H.stOn() ~= b.on then ZeD.StationAppliance.toggle(S.p, { obj = S.stove }, 0) end end)
+        pcall(function() if b.temp then S.stove:setMaxTemperature(b.temp) end end)
+        pcall(function() if b.timer then S.stove:setTimer(b.timer) end end)
+    end
+    pcall(function() local cc = H.wcontent()._cc; if S.bandX0 and cc then cc.sx.bot = S.bandX0 end end)
+    if S.genForStove then
+        S.genForStove = nil
+        pcall(function() S.gen:setActivated(false); S.gen:setConnected(false) end)
+    end
+    pcall(S.ST.unbind, S.p)
+    RT.worldTab("loot")
+end
 
 -- ===================================================================== stations
 Q.step(20, function()
@@ -988,9 +1378,361 @@ Q.step(5, function()
     Q.skip("a mod's general station card (StationGeneral.lua)", "no mod station is installed on the release-test save")
 end)
 
+-- ===================================================================== a drying rack (StationMachine)
+-- (Nov 18 2026, the ledger's row "Drying rack / machine (slots, Start, Take all, Add)": a herb drying rack built beside
+-- the character (the game's build code, as the kiln), two basil carried; the game's station option binds it in the
+-- Craft tab's machine view; Add (zone mAdd) puts the basil in its input slots (the game's ISItemSlotAddAction); Start
+-- (mStart) runs it when the game's canStart allows; pressed again it stops; a slot's take (mInRemove) brings the basil
+-- back out. Take all (mTakeAll) empties the OUTPUT, which fills only after the drying's 24 game hours: it is checked
+-- only when the rack shows it. The rack goes in the put-back.)
+function H.rackComp() local st = S.ST.current(S.p); return (st and st.obj == S.rack) and st.comp or nil end
+function H.rackRunning() local v = false; pcall(function() v = H.rackComp():isRunning() end); return v and true or false end
+function H.basilIn() local n = 0; pcall(function() n = S.p:getInventory():getCountTypeRecurse("Base.Basil") end); return n end
+Q.step(10, function()
+    S.rack = nil
+    local objs, why = H.build("Base.Herb_Drying_Rack")
+    for _, o in ipairs(objs or {}) do
+        local m = S.ST.call(o, "getMasterObject") or o
+        if not S.rack and S.ST.classify(m, true) == "machine" then S.rack = m end
+    end
+    if not Q.check(S.rack ~= nil, "rack: a herb drying rack built beside the character", tostring(why or (objs and #objs .. " objects"))) then return end
+    S.basil = { RT.give("Base.Basil"), RT.give("Base.Basil") }
+    S.basil0 = H.basilIn()
+    pcall(ISEntityUI.OpenWindow, S.p, S.rack)
+end)
+Q.waitFor(5, 600, function()
+    if not S.rack then return true end
+    return H.rackComp() ~= nil and RT.ww()._activeTab == "craft" and H.craftZone("mAdd") ~= nil
+end, function(ok)
+    S.rkArm = nil
+    if not S.rack then return end
+    H.closeGameStationWindows()
+    S.rkArm = Q.check(ok, "rack: bound in the Craft tab, its Add offers the basil carried")
+    if S.rkArm then H.craftPress("mAdd") end
+end)
+Q.waitFor(4, 1800, function() return not S.rkArm or (H.basilIn() < S.basil0 and H.queueTypes() == "none") end, function(ok)
+    if not S.rkArm then return end
+    Q.check(ok, "rack: Add puts the basil into its input slots (the game's slot action)", S.basil0 .. " -> " .. H.basilIn() .. " carried")
+end)
+Q.waitFor(4, 300, function() local z = H.craftZone("mStart"); return not S.rkArm or z ~= nil end, function(ok)
+    if not S.rkArm then return end
+    local z = H.craftZone("mStart")
+    S.rkStart = z and z.enabled
+    if not z then Q.check(false, "rack: its Start is drawn"); return end
+    if not z.enabled then Q.skip("rack: Start runs it", "the game's canStart says no for this load"); return end
+    H.craftClick(z)
+end)
+Q.waitFor(4, 900, function() return not (S.rkArm and S.rkStart) or H.rackRunning() end, function(ok)
+    if not (S.rkArm and S.rkStart) then return end
+    Q.check(ok, "rack: Start runs it (isRunning)")
+    local z = H.craftZone("mStart")
+    if z and z.running then H.craftClick(z) end
+end)
+Q.waitFor(4, 900, function() return not (S.rkArm and S.rkStart) or not H.rackRunning() end, function(ok)
+    if not (S.rkArm and S.rkStart) then return end
+    Q.check(ok, "rack: Start pressed again stops it")
+end)
+Q.waitFor(4, 300, function() return not S.rkArm or H.craftZone("mInRemove") ~= nil end, function(ok)
+    if not S.rkArm then return end
+    S.rkIn = H.basilIn()
+    if Q.check(ok, "rack: its input slots show the basil to take") then H.craftPress("mInRemove") end
+    if H.craftZone("mTakeAll") then
+        Q.say("NOTE the rack shows an output to take: Take all pressed")
+        S.rkTakeAll = true
+        H.craftPress("mTakeAll")
+    else
+        Q.skip("rack: Take all empties the output", "nothing has dried (the drying takes 24 game hours); a slot's take is checked instead")
+    end
+end)
+Q.waitFor(4, 1800, function() return not S.rkArm or (H.basilIn() > S.rkIn and H.queueTypes() == "none") end, function(ok)
+    if not S.rkArm then return end
+    Q.check(ok, "rack: a slot's take brings the basil back out (the game's slot action)", S.rkIn .. " -> " .. H.basilIn() .. " carried")
+    H.stopActions()
+    pcall(S.ST.unbind, S.p)
+    RT.worldTab("loot")
+end)
+
+-- ===================================================================== the ledger's rows (FEATURE_MAP.md, Check "rt_cards")
+-- (Nov 18 2026, QA's ledger pass: a row is covered only by a check that measures it. These are the rows the ledger
+-- gave this script that nothing above measured. Put back by H.ledgerBack.)
+function H.stripZone(strip, id)
+    for _, z in ipairs((strip and strip._hitZones) or {}) do if z.id == id then return z end end
+    return nil
+end
+function H.press(strip, id)
+    local z = H.stripZone(strip, id)
+    if not z then return false end
+    strip:onMouseDown(z.x + 2, z.y + 2)
+    return true
+end
+-- the tab strips' own press (strip.onMouseDown): a tab switches, the same tab again folds back to Loot, and Loot snaps
+-- the Character window to the inventory alone (strip, list, strip wide, its right edge where it was anchored)
+Q.step(5, function()
+    RT.pairOpen()
+    H.closeCard()
+    RT.charTab("loot")
+    RT.worldTab("loot")
+end)
+Q.step(6, function() S.tsA = H.press(RT.charStrip(), "tab:skills") end)
+Q.step(6, function()
+    local w = RT.cw()
+    Q.check(S.tsA and w._activeTab == "skills" and w._drawerOpen == true, "tab strip (Character window): a press on Skills opens it",
+        "tab " .. tostring(w._activeTab))
+    S.tsB = H.press(RT.charStrip(), "tab:skills")
+end)
+Q.waitFor(2, 120, function() local w = RT.cw(); return w._activeTab == "loot" and w._drawerOpen == false end, function(ok)
+    Q.check(S.tsB and ok, "tab strip (Character window): Skills pressed again folds back to Loot", "tab " .. tostring(RT.cw()._activeTab))
+end)
+function H.snapW(w) local T = ZeD.T; return T.px(36) + T.px(w._baseInvW or 0) + T.px(36) end
+Q.waitFor(2, 300, function() local w = RT.cw(); return w._baseInvW ~= nil and math.abs(w:getWidth() - H.snapW(w)) <= 1 end, function(ok)
+    local w = RT.cw()
+    local edge = w._anchorRightEdge
+    Q.check(ok and (edge == nil or math.abs(w:getX() + w:getWidth() - edge) <= 1),
+        "Loot snaps the Character window to the inventory alone, its right edge kept",
+        math.floor(w:getWidth()) .. " wide, want " .. H.snapW(w) .. "; right " .. math.floor(w:getX() + w:getWidth()) .. ", anchor " .. tostring(edge))
+end)
+Q.step(2, function()
+    local w = RT.cw()
+    S.tso = w._tabScrollOffset or 0
+    if not H.stripZone(RT.charStrip(), "tab_scroll_down") then
+        S.tso = nil
+        Q.skip("tab strip scroll arrows", "the strip shows every tab at this size (no overflow, no arrows)")
+        return
+    end
+    H.press(RT.charStrip(), "tab_scroll_down")
+    Q.check((w._tabScrollOffset or 0) ~= S.tso, "tab strip: the scroll arrow moves the tabs by a row",
+        S.tso .. " -> " .. tostring(w._tabScrollOffset))
+end)
+Q.step(4, function()
+    if S.tso == nil then return end
+    H.press(RT.charStrip(), "tab_scroll_up")
+    local w = RT.cw()
+    Q.check((w._tabScrollOffset or 0) == S.tso, "tab strip: the other arrow moves them back", tostring(w._tabScrollOffset))
+    w._tabScrollOffset = S.tso
+end)
+Q.step(4, function() S.wsA = H.press(RT.worldStrip(), "tab:craft") end)
+Q.step(6, function()
+    Q.check(S.wsA and ZeD_WorldWindow.isTabShowing("craft", S.pn), "tab strip (World window): a press on Craft opens it",
+        "tab " .. tostring(RT.ww()._activeTab))
+    S.wsB = H.press(RT.worldStrip(), "tab:craft")
+end)
+Q.waitFor(2, 120, function() return RT.ww()._activeTab == "loot" end, function(ok)
+    Q.check(S.wsB and ok, "tab strip (World window): Craft pressed again folds back to Loot", "tab " .. tostring(RT.ww()._activeTab))
+end)
+-- the halves roll up after two seconds away (WindowHalves.update): the drawer half unpinned, on Skills, the pointer
+-- off both windows (getMouseX / getMouseY answer a spot beside them for the wait); the folded drawer keeps its tab.
+-- Put back: the pointer, the pin, the half shown.
+function H.overWin(x, y)
+    for _, w in ipairs({ RT.cw(), RT.ww() }) do
+        if w and x >= w:getAbsoluteX() - 4 and y >= w:getAbsoluteY() - 4 and x <= w:getAbsoluteX() + w:getWidth() + 4
+            and y <= w:getAbsoluteY() + w:getHeight() + 4 then return true end
+    end
+    return false
+end
+function H.mouseBack()
+    if S.mouseWas then getMouseX, getMouseY = S.mouseWas[1], S.mouseWas[2]; S.mouseWas = nil end
+end
+Q.step(4, function()
+    S.hv = nil
+    local w, Hv = RT.cw(), ZeD.Halves
+    if not (w and Hv and w._halves) then Q.check(false, "halves: the Character window has its halves"); return end
+    local W, Hs = getCore():getScreenWidth(), getCore():getScreenHeight()
+    local spot = nil
+    for _, p in ipairs({ { 3, 3 }, { W - 4, 3 }, { 3, Hs - 4 }, { W - 4, Hs - 4 }, { math.floor(W / 2), 3 } }) do
+        if not spot and not H.overWin(p[1], p[2]) then spot = p end
+    end
+    if not spot then Q.skip("halves roll up after 2 s away", "the windows cover every corner of the screen"); return end
+    S.hv = { pin = w._halves.drawer.pinned == true }
+    RT.charTab("skills")
+    pcall(Hv.setPin, w, "drawer", false)
+    S.mouseWas = { getMouseX, getMouseY }
+    getMouseX = function() return spot[1] end
+    getMouseY = function() return spot[2] end
+    S.hvT0 = getTimestampMs()
+end)
+Q.waitFor(2, 900, function() local w = RT.cw(); return S.hv == nil or w._halves.drawer.rolled == true end, function(ok)
+    if not S.hv then return end
+    H.mouseBack()
+    local w = RT.cw()
+    local ms = getTimestampMs() - S.hvT0
+    Q.check(ok and ms >= 1500, "halves: the unpinned drawer rolls up after 2 s with the pointer away", ms .. " ms")
+    Q.check(ZeD.Halves.foldedTab(w) == "skills", "halves: the rolled drawer keeps its tab (Skills)", tostring(ZeD.Halves.foldedTab(w)))
+    H.halvesBack()
+end)
+function H.halvesBack()
+    H.mouseBack()
+    if not S.hv then return end
+    local w = RT.cw()
+    if w then
+        pcall(ZeD.Halves.showAll, w)
+        pcall(function() local ww = RT.ww(); if ww and ww._halves then ZeD.Halves.showAll(ww) end end)
+        pcall(ZeD.Halves.setPin, w, "drawer", S.hv.pin)
+    end
+    S.hv = nil
+    RT.charTab("loot")
+end
+-- queued transfers shown on rows (ZeD_InvTip.queued): two moves to the floor queued, both rows say waiting; the
+-- queue stopped, neither does
+Q.step(6, function()
+    S.qFloor = nil
+    local ww = RT.ww()
+    for _, e in ipairs((ww and ww._containers) or {}) do if not S.qFloor and e.isFloor then S.qFloor = e.inventory end end
+    if not S.qFloor then Q.skip("queued transfers on rows", "the World window lists no floor here"); return end
+    H.stopActions()
+    S.qItems = {}
+    for _, k in ipairs({ "apple", "book" }) do
+        local it = S[k]
+        if it and S.p:getInventory():contains(it) then
+            S.qItems[#S.qItems + 1] = it
+            pcall(function() ISTimedActionQueue.add(ISInventoryTransferAction:new(S.p, it, S.p:getInventory(), S.qFloor)) end)
+        end
+    end
+end)
+Q.step(2, function()
+    if not S.qFloor then return end
+    local c, IT = H.content(), ZeD.InvTip
+    local n = 0
+    for _, it in ipairs(S.qItems) do if IT.queued(c, it) ~= nil then n = n + 1 end end
+    Q.check(#S.qItems == 2 and n == 2, "queued transfers: both moves waiting show on their rows (InvTip.queued)", n .. " of " .. #S.qItems)
+    H.stopActions()
+end)
+Q.step(3, function()
+    if not S.qFloor then return end
+    local c, IT = H.content(), ZeD.InvTip
+    local n = 0
+    for _, it in ipairs(S.qItems) do if IT.queued(c, it) ~= nil then n = n + 1 end end
+    Q.check(n == 0, "queued transfers: the queue stopped, no row shows a move waiting", n .. " still shown")
+end)
+-- the watch: the game's own clock and speed controls parked off the screen while ZeD's watch is on (ZeD_Watch)
+Q.step(2, function()
+    if ZeD.Safe and ZeD.Safe.on("watch") then Q.skip("the game's clock parked", "safe mode has the watch"); return end
+    local c, sc = UIManager.getClock(), UIManager.getSpeedControls()
+    local cy, sy = c and c:getY(), sc and sc:getY()
+    Q.check(cy ~= nil and sy ~= nil and cy < 0 and sy < 0, "watch: the game's clock and speed controls are parked off screen",
+        "clock y " .. tostring(cy) .. ", speed controls y " .. tostring(sy))
+end)
+-- the Maps tab's key (MapsTabKey): its header button opens the key over the map, on screen; its close box shuts it
+function H.mapZone(pred)
+    local w = RT.ww()
+    for _, z in ipairs((w and w._mapExtZones) or {}) do if pred(z) then return z end end
+    return nil
+end
+function H.isKeyBtn(z) return z.id == "key" end
+function H.isKeyClose(z) return z.id == "map:key:close" end
+Q.step(4, function()
+    S.mapsTab = RT.worldTab("maps")
+    S.keyWas = RT.ww() and RT.ww()._mapKeyOpen
+end)
+Q.waitFor(4, 300, function() return H.mapZone(H.isKeyBtn) ~= nil end, function(ok)
+    S.keyArm = Q.check(S.mapsTab and ok, "Maps: the header has its Key button")
+    if not S.keyArm then return end
+    local z = H.mapZone(H.isKeyBtn)
+    pcall(ZeD.MapsTabExt.onClick, RT.ww(), z.x + 1, z.y + 1)
+end)
+Q.waitFor(2, 120, function() return not S.keyArm or H.mapZone(H.isKeyClose) ~= nil end, function(ok)
+    if not S.keyArm then return end
+    Q.check(ok and RT.ww()._mapKeyOpen == true, "Maps: the Key button opens the map's key", tostring(RT.ww()._mapKeyOpen))
+    RT.bounds(Q, "the map's key")
+    local z = H.mapZone(H.isKeyClose)
+    if z then pcall(ZeD.MapsTabExt.onClick, RT.ww(), z.x + 1, z.y + 1) end
+end)
+Q.step(4, function()
+    if not S.keyArm then return end
+    local w = RT.ww()
+    Q.check(not w._mapKeyOpen, "Maps: the key's close box shuts it", tostring(w._mapKeyOpen))
+    w._mapKeyOpen = S.keyWas
+end)
+-- Read Map on a paper map (the game's ISInventoryPaneContextMenu.onCheckMap, hooked): ZeD's map opens on the paper in
+-- a pop-out; the paper taken from the main inventory, the pop-out folds. (The game's read marks the map read for the
+-- character, as reading any map does: that stays.)
+Q.step(4, function()
+    RT.worldTab("loot")
+    S.paper = nil
+    for _, ft in ipairs({ "Base.MuldraughMap", "Base.WestpointMap", "Base.RosewoodMap", "Base.RiversideMap" }) do
+        if not S.paper then S.paper = RT.give(ft) end
+    end
+    if not Q.check(S.paper ~= nil, "Read Map: a town map is given", "") then return end
+    pcall(ISInventoryPaneContextMenu.onCheckMap, S.paper, S.pn)
+end)
+Q.waitFor(2, 300, function() local w = RT.ww(); return S.paper == nil or (w ~= nil and w._mapPaperItem == S.paper and w._mapPopout ~= nil) end, function(ok)
+    if not S.paper then return end
+    Q.check(ok, "Read Map on a paper map opens ZeD's map on that paper (a pop-out)", tostring(RT.ww() and RT.ww()._mapPaperItem))
+    RT.bounds(Q, "the paper map")
+    pcall(function() S.paper:getContainer():Remove(S.paper) end)
+end)
+Q.waitFor(2, 300, function() local w = RT.ww(); return S.paper == nil or w == nil or w._mapPopout == nil end, function(ok)
+    if not S.paper then return end
+    Q.check(ok, "Read Map: the paper gone from the main inventory, its map folds away")
+    H.paperBack()
+end)
+function H.paperBack()
+    local w = RT.ww()
+    pcall(function() if w and w._mapPopout then ZeD.MapsTab.closePopout(w, true) end end)
+    if not RT.ww() then pcall(ZeD_WorldWindow.open, S.pn) end
+end
+-- every wheel is drawn ZeD's way (Overrides/Wheels.lua): the game's own emote wheel opens as ZeD's (menu._zed), on
+-- screen; refilled with the game's addSlice, a click towards a slice runs that slice's command
+Q.step(4, function()
+    S.wh = getPlayerRadialMenu(S.pn)
+    S.whOk = pcall(function() ISEmoteRadialMenu:new(S.p):fillMenu() end)
+end)
+Q.waitFor(2, 120, function() return S.wh == nil or S.wh:isReallyVisible() end, function(ok)
+    local m = S.wh
+    if not Q.check(m ~= nil and ok and m._zed == true, "wheel: the game's emote wheel opens drawn ZeD's way (menu._zed)",
+        "opened " .. tostring(S.whOk) .. ", zed " .. tostring(m and m._zed)) then pcall(function() m:undisplay() end); return end
+    RT.bounds(Q, "the emote wheel")
+    S.whHit = nil
+    m:clear()
+    for i = 1, 4 do m:addSlice("ZeD QA " .. i, nil, function(n) S.whHit = n end, i) end
+    local _, _, r, cx, cy = ZeD.Wheel.geom(m)
+    local a = math.rad(-90 + 90)   -- (slice 2 of 4: a quarter turn from the top)
+    local x, y = cx + r * math.cos(a), cy + r * math.sin(a)
+    local okP = pcall(m.onMouseDown, m, x, y)
+    Q.check(okP and S.whHit == 2, "wheel: a click towards a slice runs that slice's command",
+        "slice under the click " .. tostring(ZeD.Wheel.sliceFromMouse and ZeD.Wheel.sliceFromMouse(m, x, y)) .. ", ran " .. tostring(S.whHit))
+    pcall(function() m:undisplay() end)
+end)
+-- the form card (ZeD_FormCard): opened from a spec it shows on screen; A on its check row runs the row; B is its
+-- cancel, and the card closes
+Q.step(4, function()
+    S.fc, S.fcRun, S.fcCancel, S.fcDone = nil, 0, 0, 0
+    local FC = ZeD.FormCard
+    if not (FC and FC.open) then Q.check(false, "the form card is loaded"); return end
+    pcall(function()
+        S.fc = FC.open({ title = "ZeD QA", playerNum = S.pn,
+            rows = function() return { { k = "label", text = "ZeD QA" },
+                { k = "check", id = "qa", text = "ZeD QA check", on = S.fcRun > 0, run = function() S.fcRun = S.fcRun + 1 end } } end,
+            band = function() return { buttons = { { id = "ok", text = getText("UI_Ok"), run = function(card) card:finish() end } } } end,
+            cancel = function(card) S.fcCancel = S.fcCancel + 1; card:finish() end,
+            onFinish = function() S.fcDone = S.fcDone + 1 end })
+    end)
+end)
+Q.waitFor(2, 120, function() return S.fc == nil or S.fc:isReallyVisible() end, function(ok)
+    local fc = S.fc
+    if not Q.check(fc ~= nil and ok, "form card: it opens from its spec and shows") then return end
+    RT.bounds(Q, "the form card")
+    fc._focus = 1
+    pcall(fc.onJoypadDown, fc, Joypad.AButton, nil)
+    Q.check(S.fcRun == 1, "form card: A on its check row runs the row", S.fcRun .. " runs")
+    pcall(fc.onJoypadDown, fc, Joypad.BButton, nil)
+    Q.check(S.fcCancel == 1 and S.fcDone == 1 and not fc:isVisible(), "form card: B is its cancel and the card closes",
+        "cancel " .. S.fcCancel .. ", finished " .. S.fcDone)
+end)
+function H.ledgerBack()
+    pcall(H.stoveBack)
+    H.halvesBack()
+    H.paperBack()
+    pcall(function() if S.fc and not S.fc._done then S.fc:finish() end end)
+    pcall(function() if S.wh and S.wh:isReallyVisible() then S.wh:undisplay() end end)
+    pcall(function() local w = RT.ww(); if w and S.keyArm then w._mapKeyOpen = S.keyWas end end)
+    pcall(function() local w = RT.cw(); if w and S.tso ~= nil then w._tabScrollOffset = S.tso end end)
+    pcall(function() if S.gen then S.gen:setActivated(false); S.gen:setConnected(false) end end)
+end
+
 -- ===================================================================== put back
 Q.mark()
 Q.step(5, function()
+    H.ledgerBack()
     H.stopActions()
     H.padOff()
     H.closeCard()

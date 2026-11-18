@@ -411,6 +411,17 @@ for si, style in ipairs({ 1, 2 }) do
         local missing = H.iconless(defs, {}, {})
         Q.check(#defs > 0 and #missing == 0, "the " .. sname .. ": every row and submenu row has its icon",
             H.count(defs, {}) .. " rows" .. ((#missing > 0) and ("; no icon: " .. table.concat(missing, ", ")) or ""))
+        -- (Nov 18 2026, the ledger's row "Menu: every option has an icon; categories": each top row is in one of the
+        -- Registry's categories, the groups the menu sorts by)
+        local cats, badC = {}, {}
+        for _, c in ipairs(ZeD.ContextMenu.Registry.CATEGORIES or {}) do cats[c] = true end
+        for _, d in ipairs(defs) do
+            local back = d.isBack or d.id == "__back"
+            if type(d) == "table" and not d.heading and not back and not cats[tostring(d.category)] then
+                badC[#badC + 1] = tostring(d.name) .. " (" .. tostring(d.category) .. ")"
+            end
+        end
+        Q.check(#badC == 0, "the " .. sname .. ": every top row has its category (USE to ADMIN)", table.concat(badC, ", "))
         RT.bounds(Q, "the " .. sname .. " open")
         if m._levels then
             local okL, why = H.levelsOnScreen(m)
@@ -589,9 +600,117 @@ function H.tipOff()
     if S.atomsFrame then ZeD.Atoms.frame = S.atomsFrame; S.atomsFrame = nil end
 end
 
+-- ===================================================================== the ledger's rows (FEATURE_MAP.md)
+-- (Nov 18 2026, QA's ledger pass: rows the ledger gave this script that nothing above measured)
+-- the context icons' data is loaded (shared/ContextIcons.lua): an option's name finds its pixel icon
+step(2, function()
+    local CI = ZeD.ContextIcons
+    Q.check(CI ~= nil and CI["Walk to"] == "person-walking-arrow-right", "context icons: the data is loaded (Walk to has its icon)",
+        tostring(CI and CI["Walk to"]))
+end)
+-- the pause menu (ZeD's pause window): while it is up the pad stays the menu's (FocusManager claims no window);
+-- its Options window's sub-pages: the controller page (Button map and test) and Advanced game sounds, where a slider
+-- step changes a sound's volume and reads back (put back, nothing saved)
+S.MM = ZeD.MainMenu
+function H.menuUp()
+    local up = false
+    pcall(function() up = MainScreen.instance ~= nil and MainScreen.instance:isVisible() end)
+    return up
+end
+function H.toggleMenu() pcall(function() ToggleEscapeMenu(getCore():getKey(KeybindId.MAIN_MENU)) end) end
+step(4, function()
+    H.closeMenu()
+    S.menuWas = H.menuUp()
+    if not S.menuWas then H.toggleMenu() end
+    S.menuMine = not S.menuWas
+end)
+waitFor(10, 400, function() return H.menuUp() and S.MM ~= nil and S.MM.pauseOpts ~= nil end, function(ok)
+    S.pmOk = Q.check(ok, "the pause menu opens (for the pad and Options checks)")
+    if not S.pmOk then return end
+    local F = RT.focus()
+    pcall(function() local md = S.p:getModData().ZeD_Gamepad; S.lockWas = md and md.inputModeLock end)
+    pcall(function() ZeD.Input.Detector.setLockedMode("gamepad") end)
+    S.padLocked = true
+    pcall(F.releaseFocus, S.pn)
+    pcall(F.claimFocus, RT.cw())
+    Q.check(F.pauseMenuUp() and F.getFocusedWindow(S.pn) == nil, "pause menu up: no ZeD window takes the pad (claimFocus declines)",
+        "menu up " .. tostring(F.pauseMenuUp()) .. ", focused " .. tostring(F.getFocusedWindow(S.pn)))
+    H.padBack()
+    pcall(S.MM.openOptions)
+end)
+function H.padBack()
+    if not S.padLocked then return end
+    S.padLocked = nil
+    pcall(function() RT.focus().releaseFocus(S.pn) end)
+    pcall(function()
+        local Dt = ZeD.Input.Detector
+        Dt.setLockedMode(nil)
+        if S.lockWas == "kbm" or S.lockWas == "gamepad" then Dt.setLockedMode(S.lockWas) end
+    end)
+end
+waitFor(5, 300, function() return not S.pmOk or (S.MM.pauseOpts ~= nil and S.MM.pauseOpts:isVisible()) end, function(ok)
+    if not S.pmOk then return end
+    S.optOk = Q.check(ok, "Options opens from the pause menu (for its sub-pages)")
+    if S.optOk then pcall(function() S.MM.pauseOpts:openVanillaController() end) end
+end)
+step(4, function()
+    if not S.optOk then return end
+    local w = S.MM.pauseOpts
+    Q.check(w.sub == "pad", "Options: the controller page (Button map and test) opens as its sub-page", tostring(w.sub))
+    RT.bounds(Q, "the controller page")
+    pcall(function() w:closeSub() end)
+    pcall(function() w:openSub("sounds") end)
+end)
+step(4, function()
+    if not S.optOk then return end
+    local w = S.MM.pauseOpts
+    S.snd = nil
+    local cats = S.MM.soundCategories()
+    local rows = (cats[1] and S.MM.soundsIn(cats[1].id)) or {}
+    local r = rows[1]
+    if not Q.check(w.sub == "sounds" and r ~= nil, "Options: Advanced game sounds opens with its sounds", tostring(w.sub) .. ", " .. #cats .. " categories") then return end
+    S.snd = { r = r, v0 = r.snd:getUserVolume(), ch0 = w._sndChanged }
+    local want = (S.snd.v0 <= 1.9) and (S.snd.v0 + 0.05) or (S.snd.v0 - 0.05)
+    want = math.floor(want * 20 + 0.5) / 20
+    w:setSoundVolume(r, want)
+    local got = r.snd:getUserVolume()
+    Q.check(math.abs(got - want) < 0.001, "Options, game sounds: a slider step sets the sound's volume and reads back",
+        tostring(r.name) .. " " .. tostring(S.snd.v0) .. " -> " .. tostring(got) .. ", want " .. tostring(want))
+    RT.bounds(Q, "the game sounds page")
+    H.sndBack()
+end)
+function H.sndBack()
+    if not S.snd then return end
+    pcall(function() S.snd.r.snd:setUserVolume(S.snd.v0) end)
+    pcall(function() S.MM.pauseOpts._sndChanged = S.snd.ch0 and true or false end)
+    S.snd = nil
+end
+step(4, function()
+    if not S.optOk then return end
+    pcall(function() S.MM.pauseOpts:closeSub() end)
+    pcall(function() S.MM.pauseOpts:back() end)
+end)
+step(10, function()
+    if S.menuMine and H.menuUp() then H.toggleMenu() end
+end)
+waitFor(5, 300, function() return not S.menuMine or not H.menuUp() end, function(ok)
+    if S.menuMine then Q.check(ok, "the pause menu shuts again") end
+    S.menuMine = nil
+end)
+function H.ledgerBack()
+    H.padBack()
+    H.sndBack()
+    pcall(function() if S.MM and S.MM.pauseOpts and S.MM.pauseOpts.sub then S.MM.pauseOpts:closeSub() end end)
+    if S.menuMine and H.menuUp() then
+        pcall(function() if S.MM.pauseView == "options" then S.MM.pauseOpts:back() end end)
+        H.toggleMenu()
+    end
+end
+
 -- ===================================================================== put back
 Q.mark()
 Q.step(2, function()
+    H.ledgerBack()
     H.closeMenu()
     H.capOff()
     H.tipOff()
