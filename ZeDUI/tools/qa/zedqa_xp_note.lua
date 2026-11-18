@@ -11,11 +11,13 @@ local function step(n, fn) Q[#Q + 1] = { n = n, fn = fn } end
 local S = {}
 
 local function give(perk, amt)
+    -- (Nov 17 2026: B42 has no Perks.Carpentry; a nil perk makes the game throw inside AddXP)
+    if perk == nil then say("AddXP skipped: that perk does not exist in this build"); return end
     local ok, err = pcall(function() p:getXp():AddXP(perk, amt) end)
     say("AddXP " .. tostring(perk) .. " " .. amt .. ": ok " .. tostring(ok) .. (ok and "" or (" " .. tostring(err))))
 end
 
-step(20, function() say("start"); give(Perks.Carpentry, 25) end)
+step(20, function() say("start"); give(Perks.Woodwork or Perks.Carpentry, 25) end)
 step(20, function() shot("1_carpentry") end)
 step(40, function() give(Perks.Cooking, 25) end)
 step(20, function() shot("2_cooking") end)

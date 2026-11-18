@@ -62,20 +62,120 @@ S.drawWas = ZeD.Balloon.draw
 ZeD.Balloon.draw = function(p, c, a, pref, opts, ...)
     if p ~= nil and p == S.IT._layer then
         S.cur.card = (opts and opts.key) or true
+        if S.probeOn then pcall(S.drawProbe) end
     else
         S.cur.balloon = true
     end
     return S.drawWas(p, c, a, pref, opts, ...)
 end
 
+-- ---------------------------------------------------------------- PROBE (Build, the equipment headings' stale card)
+-- Active only during the equip rows run (S.probeOn). ZeD.InvTip.want wrapped: each ask while the pad's live element
+-- is an equipgroup stop prints the item, the owner, the 5th argument (beside: true = the pad path, nil = the mouse
+-- path), the caller (debug.traceback when Kahlua has it, else the game's call-frame functions), and at that moment
+-- Focus.cuesVisible, the live element's id and groupId, the window's _gpFocusedEquipSlot, the pointer and whether
+-- it is over the row above the heading. At most 4 lines per heading stop. Unwrapped at the end. "ptt PROBE".
+S.wantWas = ZeD.InvTip.want
+S.probeN = {}
+function S.caller()
+    if debug and debug.traceback then return string.gsub(tostring(debug.traceback()), "\n", " / ") end
+    if not (getCurrentCoroutine and getCallframeTop and getCoroutineCallframeStack and getFilenameOfCallframe) then
+        return "no caller info (no debug.traceback, no call-frame functions)"
+    end
+    local co = getCurrentCoroutine()
+    if not co then return "no coroutine" end
+    local out = {}
+    local top = getCallframeTop(co) or 0
+    for i = top - 1, math.max(0, top - 8), -1 do
+        local cf = getCoroutineCallframeStack(co, i)
+        if cf then
+            local f = tostring(getFilenameOfCallframe(cf))
+            local ln = getLineNumber and getLineNumber(cf) or nil
+            out[#out + 1] = (string.match(f, "([^/\\]+)$") or f) .. (ln and (":" .. tostring(ln)) or "")
+        end
+    end
+    return table.concat(out, " < ")
+end
+-- (Nov 17 2026, second probe, Build: the card still draws one frame on equipgroup:legs/held, el:fold and an empty doll
+-- box after d52218645.) At the layer's card draw, while the pad's live stop names no item: the live element as
+-- liveElement returns it, and the card request the layer is drawing (its frame, pad flag, item, owner) against the
+-- layer's frame count. At most 3 lines per stop. "ptt PROBE draw".
+S.drawN = {}
+function S.drawProbe()
+    local w = S.cw()
+    local el = w and S.Focus.liveElement(w)
+    local id = tostring(el and el.id)
+    local named = el and (el.item or (el.zone and el.zone.item))
+    if named and not (string.find(id, "equipgroup", 1, true) or string.find(id, "fold", 1, true)) then return end
+    S.drawN[id] = (S.drawN[id] or 0) + 1
+    if S.drawN[id] > 3 then return end
+    local q = S.IT._want or {}
+    local fields = {}
+    if el then for k, v in pairs(el) do if type(v) ~= "function" and type(v) ~= "table" then fields[#fields + 1] = tostring(k) .. "=" .. tostring(v) end end end
+    table.sort(fields)
+    S.say("PROBE draw on " .. id .. ": el.item " .. S.nm(el and el.item) .. " | el.zone.item " .. S.nm(el and el.zone and el.zone.item)
+        .. " | groupId " .. tostring(el and el.groupId) .. " | the request: item " .. S.nm(q.item) .. ", frame " .. tostring(q.frame)
+        .. ", pad " .. tostring(q.pad) .. ", owner " .. tostring(q.owner and (q.owner.Type or q.owner)) .. " | IT._frame " .. tostring(S.IT._frame)
+        .. " | _gpFocusedEquipSlot " .. tostring(w and w._gpFocusedEquipSlot))
+    S.say("PROBE   el fields: " .. table.concat(fields, ", "))
+end
+function S.probe(owner, item, rect, count, beside)
+    local w = S.cw()
+    local el = w and S.Focus.liveElement(w)
+    if not (el and string.find(tostring(el.id or ""), "equipgroup", 1, true)) then return end
+    local key = tostring(el.id)
+    S.probeN[key] = (S.probeN[key] or 0) + 1
+    if S.probeN[key] > 4 then return end
+    local on = "?"
+    if owner then on = tostring(owner.Type or (owner.getClass and owner:getClass()) or owner) end
+    S.say("PROBE want on " .. key .. ": item " .. S.nm(item) .. " | owner " .. on .. " | beside " .. tostring(beside)
+        .. " (true = the pad path, nil = the mouse path) | count " .. tostring(count))
+    -- the row above the heading: the stop before it in its zone
+    local z = S.Focus.getFocusedZone(w)
+    local above = z and z.elements and z.elements[(z.focusedElementIdx or 1) - 1]
+    local mx, my = getMouseX(), getMouseY()
+    local over = "?"
+    if above and above.x and above.y and above.w and above.h then
+        local pnl = z.panel or w
+        local ax, ay = pnl:getAbsoluteX() + above.x, pnl:getAbsoluteY() + above.y
+        over = tostring(mx >= ax and mx < ax + above.w and my >= ay and my < ay + above.h)
+            .. " (row " .. tostring(above.id or above.slotType) .. " at " .. math.floor(ax) .. "," .. math.floor(ay) .. " "
+            .. math.floor(above.w) .. "x" .. math.floor(above.h) .. ", from " .. (z.panel and "the zone's panel" or "the window") .. ")"
+    end
+    S.say("PROBE   cuesVisible " .. tostring(S.Focus.cuesVisible(S.pn)) .. " | live id " .. key .. " groupId " .. tostring(el.groupId)
+        .. " | _gpFocusedEquipSlot " .. tostring(w._gpFocusedEquipSlot) .. " | pointer " .. tostring(mx) .. "," .. tostring(my)
+        .. " | pointer over the row above " .. over)
+    S.say("PROBE   caller " .. tostring(S.caller()))
+end
+ZeD.InvTip.want = function(owner, item, rect, count, beside, pref)
+    if S.probeOn then
+        local ok, e = pcall(S.probe, owner, item, rect, count, beside)
+        if not ok then S.say("PROBE ERR " .. tostring(e)) end
+    end
+    return S.wantWas(owner, item, rect, count, beside, pref)
+end
+
 -- ---------------------------------------------------------------- one surface's run
 -- m: { name, win, zone, dirs, n, gap, i, f, expect, prev, shownAt, sawPrev, lost }
+-- the item on a stop: its own .item, else the worn item whose body location matches the stop's slotType. B42's
+-- getWornItem takes an ItemBodyLocation object, not a name ("expected argument of type ItemBodyLocation, got String"
+-- on the doll's boxes), so the worn list is read and each location compared by its name (the part after any "x:"
+-- prefix, either side: "doll:eyes" with "base:eyes"). A stop whose slot names no worn thing: nil.
+function S.locName(v)
+    local n = string.lower(tostring(v or ""))
+    return string.match(n, "([^:]+)$") or n
+end
 function S.target(w)
     local el = S.Focus.getFocusedElement(w)
     if not el then return nil, nil end
     local it = el.item
-    if it == nil and el.slotType ~= nil and type(el.slotType) == "string" and string.sub(el.slotType, 1, 2) ~= "__" then
-        it = S.call(S.p, "getWornItem", el.slotType)
+    if it == nil and el.slotType ~= nil and string.sub(tostring(el.slotType), 1, 2) ~= "__" then
+        local want = S.locName(el.slotType)
+        local worn = S.p:getWornItems()
+        for i = 0, worn:size() - 1 do
+            local wi = worn:get(i)
+            if it == nil and S.locName(wi:getLocation()) == want then it = wi:getItem() end
+        end
     end
     return el, it
 end
@@ -138,7 +238,9 @@ function S.surface(name, win, zone, dirs, pred, setup)
         local e = S.Focus.focusWhere(w, zone, pred)
         if not e then S.say("not run: " .. name .. " (no stop in " .. zone .. ")"); return end
         S.m = { name = name, win = w, zone = zone, dirs = dirs, n = 12, i = 0, f = 0, pred = pred, results = {} }
-        S.say(name .. ": the pad on " .. zone .. ", first stop " .. tostring(e.id or e.slotType or S.nm(e.item)))
+        S.say(name .. ": the pad on " .. zone .. ", first stop " .. tostring(e.id or e.slotType or S.nm(e.item))
+            .. " (placed by Focus.focusWhere, which fires the stop's onFocus; every move after is a D-pad press through"
+            .. " Focus.dispatchJoypadDir, ZeD's own pad path: cues, then the spatial move, the stop's onDpadDir and onFocus)")
     end)
     S.step(3, function()
         local m = S.m
@@ -200,10 +302,14 @@ S.surface("equip rows", S.cw, "charTabContent", { "down" }, S.isSlot, function()
     S.St.inventoryViewOption:setValue(1)
     if S.St.equipViewOption then S.St.equipViewOption:setValue(1) end
     S.CW.openTab(S.pn, "equip")
+    S.probeOn = true
+    S.say("PROBE on for the equip rows run (ZeD.InvTip.want wrapped)")
 end)
 S.surface("doll boxes", S.cw, "charTabContent", { "right", "down", "right", "down" }, S.isSlot, function()
+    S.say("PROBE stays on for the doll boxes")
     if S.St.equipViewOption then S.St.equipViewOption:setValue(2) end
 end)
+S.step(1, function() S.probeOn = false; S.say("PROBE off") end)
 
 -- ---------------------------------------------------------------- a help-words balloon on the pad still waits
 S.step(20, function()
@@ -287,6 +393,8 @@ S.step(10, function()
     pcall(S.WW.openTab, S.pn, "loot")
     if S.mouseWas then pcall(function() Mouse.setXY(S.mouseWas[1], S.mouseWas[2]) end) end
     ZeD.Balloon.draw = S.drawWas
+    S.probeOn = false
+    ZeD.InvTip.want = S.wantWas
 end)
 S.step(10, function()
     S.say(S.fail == 0 and ("all " .. S.pass .. " checks passed") or (S.fail .. " failed, " .. S.pass .. " passed"))
@@ -319,6 +427,7 @@ function S.tick()
     if not s then
         Events.OnPreUIDraw.Remove(S.tick)
         if ZeD.Balloon.draw ~= S.drawWas then ZeD.Balloon.draw = S.drawWas end
+        if ZeD.InvTip.want ~= S.wantWas then ZeD.InvTip.want = S.wantWas end
         if not S.done then S.say("DONE") end
         return
     end

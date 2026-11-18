@@ -196,7 +196,11 @@ end
 -- the running action's progress (its job delta, 0 to 1; -1 when none) and how many actions are queued
 function S.prog()
     local d = -1
-    pcall(function() local q = ISTimedActionQueue.getTimedActionQueue(S.p); d = q.queue[1].action:getJobDelta() end)
+    -- (Nov 17 2026: checked step by step; a nil index inside pcall still logs a Java exception under -debug)
+    local q = ISTimedActionQueue.getTimedActionQueue(S.p)
+    local a = q and q.queue and q.queue[1]
+    a = type(a) == "table" and a.action or nil
+    if a then pcall(function() d = a:getJobDelta() end) end
     return d or -1
 end
 function S.qlen()

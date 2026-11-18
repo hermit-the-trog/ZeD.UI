@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/b20_pad_rerun.txt  (Nov 17 2026, QA): beta 20, the three main-run lines that warned new since beta 17
+# (a real controller may be plugged in), run again on their own.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_navmap.lua | nav
+zedqa_world_pad_take.lua | wpt | timeout=300
+zedqa_cov_input.lua | cov_input

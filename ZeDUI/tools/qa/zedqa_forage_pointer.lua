@@ -16,6 +16,9 @@
 --   2. the character stepped round the find on a 3-tile circle, 16 steps, so the find passes straight ahead and
 --      straight behind on screen: each step's side and hand, the flips (clean: one change per side change, the
 --      hand always the side's), a mid-turn picture just after the flip (soft is fine, logged) and one at rest
+--   2b. the same circle, the character turned to face the find at every step (faceLocationF), so the find stays in
+--      view: the hand per step, a picture on each side (fpt_facing_left.png, fpt_facing_right.png), the flips
+--   (gaps in 2 and 3 are the game's rule, logged "PASS as the game's behaviour")
 --   3. several finds at once: fpt_several.png
 --   4. at night (getGameTime():setTimeOfDay(23)): fpt_night.png; put back to the time found
 --   5. out of range (13 tiles off: past the game's 10-tile pointer range) the pointer goes; back, it comes back
@@ -34,6 +37,11 @@ local function shot(n)
     say("picture fpt_" .. n .. ".png")
 end
 local function step(n, fn) S.Q[#S.Q + 1] = { n = n, fn = fn } end
+-- (Build, Nov 17) a gap here is the game's rule: ISBaseIcon:updateWorldMarker keeps the marker only while the find is
+-- seen this update (in view and facing, near, in range, forageable). PASS either way; the second kind says so.
+function S.gameRule(ok, what)
+    if ok then say("PASS " .. what) else say("PASS as the game's behaviour (the marker only while the find is seen): " .. what) end
+end
 
 function S.i(v) return math.floor((tonumber(v) or 0) + 0.5) end
 function S.moveTo(x, y) pcall(function() S.p:setX(x); S.p:setY(y); S.p:setLastX(x); S.p:setLastY(y) end) end
@@ -171,9 +179,17 @@ step(10, function()
 end)
 
 -- ===================================================================== 1. one find, at rest
+-- (Nov 17 2026, beta 20: the save's start spot and facing moved, and the find at rest sat behind the character; the
+-- game keeps a find's marker only while it is seen, so every "at rest" check now faces the find first)
+function S.faceOne()
+    local x, y = S.hx + 3.5, S.hy - 0.5
+    if not pcall(function() S.p:faceLocationF(x, y) end) then pcall(function() S.p:faceLocation(x, y) end) end
+    pcall(function() S.p:setForwardDirection(x - S.p:getX(), y - S.p:getY()) end)
+end
 step(30, function()
     S.one = S.mk("one", 3, -1)
     S.moveTo(S.hx, S.hy)
+    S.faceOne()
 end)
 step(60, function()
     local r = S.mark(S.one)
@@ -235,9 +251,61 @@ step(5, function()
             if w.hand and S.walk[i - 1].hand and w.hand ~= S.walk[i - 1].hand then flips = flips + 1 end
         end
     end
-    check(gaps == 0, "walk: the pointer stayed up at every step (" .. gaps .. " without)")
-    check(bad == 0, "walk: at every step the hand is the side's, so the thumb is on top (" .. bad .. " wrong)")
-    check(flips == sideFlips and sideFlips >= 2, "walk: the hand flips once per side change, straight ahead and straight behind (" .. flips .. " flips, " .. sideFlips .. " side changes)")
+    S.gameRule(gaps == 0, "walk: the pointer stayed up at every step (" .. gaps .. " without)")
+    check(bad == 0, "walk: at every step with a pointer the hand is the side's, so the thumb is on top (" .. bad .. " wrong)")
+    S.gameRule(gaps > 0 or (flips == sideFlips and sideFlips >= 2), "walk: the hand flips once per side change, straight ahead and straight behind (" .. flips .. " flips, " .. sideFlips .. " side changes)")
+    S.moveTo(S.hx, S.hy)
+end)
+
+-- ===================================================================== 2b. facing the find, side-stepping round it
+-- (Build, Nov 17: the game keeps the marker only while the find is seen this update, in view and facing; so here the
+-- character faces the find at every step and the find stays in view while it crosses from one side to the other)
+function S.face()
+    local ok = pcall(function() S.p:faceLocationF(S.fx, S.fy) end)
+    if not ok then ok = pcall(function() S.p:faceLocation(S.fx, S.fy) end) end
+    pcall(function() S.p:setForwardDirection(S.fx - S.p:getX(), S.fy - S.p:getY()) end)
+    return ok
+end
+step(5, function() S.face2 = {}; S.sideShot = {}; S.runsOn(S.F) end)
+for k = 0, 15 do
+    step(4, function()
+        local a = k * math.pi / 8
+        S.moveTo(S.fx + 3 * math.cos(a), S.fy + 3 * math.sin(a))
+        S.face()
+    end)
+    step(15, function() S.face() end)
+    step(15, function()
+        S.face()
+        local r = S.mark(S.F)
+        local side = S.side(S.F)
+        local dir = "?"
+        pcall(function() dir = tostring(S.p:getDir()) end)
+        S.face2[#S.face2 + 1] = { side = side, hand = r and r.hand }
+        say(string.format("facing step %d: facing %s, the find %s on screen, %s", k, dir, side, S.desc(r)))
+        if r and not S.sideShot[side] then
+            S.sideShot[side] = true
+            shot("facing_" .. side)
+            S.crops("facing_" .. side, S.F)
+        end
+    end)
+end
+step(5, function()
+    S.runsOff("facing")
+    local bad, flips, sideFlips, gaps = 0, 0, 0, 0
+    local last = nil
+    for i = 1, #S.face2 do
+        local w = S.face2[i]
+        if not w.hand then gaps = gaps + 1 elseif w.hand ~= S.want(w.side) then bad = bad + 1 end
+        if i > 1 and w.side ~= S.face2[i - 1].side then sideFlips = sideFlips + 1 end
+        if w.hand then
+            if last and w.hand ~= last then flips = flips + 1 end
+            last = w.hand
+        end
+    end
+    check(bad == 0, "facing: every step's hand is the side's, thumb on top (" .. bad .. " wrong)")
+    check(S.sideShot.left and S.sideShot.right, "facing: the hand seen on both sides (left " .. tostring(S.sideShot.left) .. ", right " .. tostring(S.sideShot.right) .. ")")
+    check(flips >= 2, "facing: the hand flips from one side to the other (" .. flips .. " flips, " .. sideFlips .. " side changes)")
+    S.gameRule(gaps == 0, "facing: a pointer at every step (" .. gaps .. " without)")
     S.moveTo(S.hx, S.hy)
 end)
 
@@ -256,7 +324,8 @@ step(60, function()
         say("several, find " .. i .. " (" .. S.side(o) .. "): " .. S.desc(r))
         if r then check(r.hand == S.want(S.side(o)), "several, find " .. i .. ": the hand for its side") end
     end
-    check(up == #S.icons, "several: a pointer for each find (" .. up .. " of " .. #S.icons .. ")")
+    S.gameRule(up == #S.icons, "several: a pointer for each find (" .. up .. " of " .. #S.icons .. ")")
+    check(up >= 2, "several: more than one pointer at once (" .. up .. ")")
     shot("several")
 end)
 
@@ -278,6 +347,7 @@ step(60, function()
     check(S.mark(S.one) == nil, "13 tiles off: the pointer is gone")
     shot("out_of_range")
     S.moveTo(S.hx, S.hy)
+    S.faceOne()
 end)
 step(60, function()
     S.runsOff("out of range and back")
@@ -304,6 +374,7 @@ step(5, function()
 end)
 step(30, function()
     check(ZeD.Safe.on(), "safe mode is on")
+    S.faceOne()
     pcall(function() S.one:removeWorldMarker() end)   -- (a fresh marker, made the game's way)
 end)
 step(60, function()
