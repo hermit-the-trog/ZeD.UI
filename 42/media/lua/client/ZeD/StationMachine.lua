@@ -279,11 +279,14 @@ function SM.start(player, st)
     dirty(st)
 end
 
+-- (QA's release test, Nov 18 2026, beside the game's own Cancel in safe mode: the stop queued as ISGenericCraftStart
+-- (the game's cancelCraft) is thrown away on a running dryer, because the player stops "using" the entity before the
+-- action performs (isValid: isUsingPlayer false), so neither the game's Cancel nor ZeD's stopped it. The stop is the
+-- logic's own call, which is all that action performs; the craft logic sends it on to the server itself in
+-- multiplayer (CraftLogic.sendStopRequest).)
 function SM.stop(player, st)
-    if not (ISEntityUI and ISEntityUI.GenericCraftStart) then return end
-    ISEntityUI.GenericCraftStart(player, st.obj, st.comp,
-        function() return true end,
-        function(p, e, c) c:stop(p) end)
+    if not (player and st and st.comp) then return end
+    call(st.comp, "stop", player)
     dirty(st)
 end
 
@@ -515,7 +518,11 @@ local function activate(player, st, z)
     elseif z.type == "mTakeAll" then SM.take(player, st, st._md and st._md.outputs or {})
     elseif z.type == "mAdd" then SM.add(player, st, z.group)
     elseif z.type == "mStart" then
-        if z.running then SM.stop(player, st) elseif z.enabled then SM.start(player, st) end
+        -- (QA's release test, Nov 18 2026: a press read the drawn flag, which can lag the drying logic by up to
+        -- REFRESH frames, so a running rack took Start again and never offered Stop. The live state decides.)
+        if call(st.comp, "isRunning") then SM.stop(player, st)
+        elseif z.enabled then SM.start(player, st) end
+        dirty(st)
     end
 end
 
