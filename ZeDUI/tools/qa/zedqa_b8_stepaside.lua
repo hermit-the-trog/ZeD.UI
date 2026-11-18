@@ -39,7 +39,17 @@ local function step(n, fn) Q[#Q + 1] = { n = n, fn = fn } end
 local function untilDo(n, max, fn, what) Q[#Q + 1] = { n = n, fn = fn, tries = max, what = what } end
 
 local FILE = "ZeD_step_aside.txt"
-local MOD = "WoundsOverhaul"
+-- the mod that takes Character info: the dev-only ZeDQATakesHealth (ZeDUI/tools/qa/fixtures, copied to Zomboid/mods;
+-- Nov 17 2026, when Wounds Overhaul was no longer on the QA PC) when it is on, else Wounds Overhaul as before
+local TAKERS = { { "ZeDQATakesHealth", "ZeD QA Takes Health (dev only)", function() return type(QATakesHealthView) == "table" end },
+                 { "WoundsOverhaul", "Wounds Overhaul", function() return type(Wounds) == "table" end } }
+local MOD, MODNAME, MODLUA = TAKERS[2][1], TAKERS[2][2], TAKERS[2][3]
+do
+    local list = getActivatedMods()
+    for i = 0, list:size() - 1 do
+        if tostring(list:get(i)):gsub("^\\", "") == TAKERS[1][1] then MOD, MODNAME, MODLUA = TAKERS[1][1], TAKERS[1][2], TAKERS[1][3] end
+    end
+end
 local HEAD = ZeD.tr("UI_ZeD_StepAside_Head")
 local opt = ZeD.Settings.screenOptions.charinfo
 local function readLines()
@@ -96,9 +106,9 @@ local order = "?"
 step(5, function()
     local zi, wi = activeOrder()
     order = (zi and wi) and ((zi < wi) and "ZeD first" or "ZeD last") or "?"
-    say("load order: " .. order .. " (ZeD_UI at " .. tostring(zi) .. ", Wounds Overhaul at " .. tostring(wi) .. ")")
-    check(wi ~= nil, "Wounds Overhaul is on in this game")
-    check(type(Wounds) == "table", "Wounds Overhaul's Lua is loaded")
+    say("load order: " .. order .. " (ZeD_UI at " .. tostring(zi) .. ", " .. MODNAME .. " at " .. tostring(wi) .. ")")
+    check(wi ~= nil, MODNAME .. " is on in this game")
+    check(MODLUA(), MODNAME .. "'s Lua is loaded")
     if getGameSpeed() <= 0 then setGameSpeed(1) end
     if CW.isOpen() then CW.toggleBothPaired(0) end
 end)
@@ -123,7 +133,7 @@ step(10, function()
     -- the state to put back at the end
     origLines, origValue = readLines(), opt:getValue()
     say("saved for the end: " .. tostring(origLines and #origLines) .. " file lines, switch " .. tostring(origValue))
-    say("(expect [ZeD] Step aside: Wounds Overhaul [B42] took charinfo; handed back to the game)")
+    say("(expect [ZeD] Step aside: " .. MODNAME .. " took charinfo; handed back to the game)")
     -- the notice
     local src = MS.sources[HEAD]
     noticeCount = src and #src.items or 0
@@ -132,13 +142,13 @@ step(10, function()
     origRead = it and it.read
     check(it ~= nil and it.read == false, "the notice is unread")
     local txt = it and it.text or ""
-    check(txt:find("Wounds Overhaul", 1, true) ~= nil and txt:find("character info", 1, true) ~= nil,
+    check(txt:find(MODNAME, 1, true) ~= nil and txt:find("character info", 1, true) ~= nil,
         "the notice names the mod and 'character info'")
     say("notice text: " .. txt)
     local n = MS.unread()
     check(n >= 1, "Messages counts unread notes (" .. tostring(n) .. ")")
     local under = SA.underFor("charinfo")
-    check(under ~= nil and under:find("Wounds Overhaul", 1, true) ~= nil, "ZeD setup's line under the switch: '" .. tostring(under) .. "'")
+    check(under ~= nil and under:find(MODNAME, 1, true) ~= nil, "ZeD setup's line under the switch: '" .. tostring(under) .. "'")
     say("(manual: ZeD setup is a main-menu screen; its 'Taken by' line is pictured by hand)")
 end)
 

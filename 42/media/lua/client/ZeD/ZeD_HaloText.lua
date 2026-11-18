@@ -43,9 +43,22 @@ end
 -- (Nov 17 2026, QA: the red and green notes came out with no mark at all. Kahlua does not hand a Java object's fields
 -- over as c.r / c.g / c.b, so a ColorRGB read as no colour. The game's own red and green are matched first, the same
 -- objects HaloTextHelper hands out; then its getters; then the fields, where a build exposes them.)
+-- (Nov 17 2026, QA: the game's XP note, addTextWithArrow(..., getGoodColor()), threw a Java exception on every
+-- gain. A failed call inside pcall is still caught, but the game logs each one and counts it in its red error box.
+-- The getters and fields below were tried on the Java colour, which has neither. A Java object is now only matched
+-- against the game's own colours, never probed; the probing is kept for a plain Lua table a mod may pass.)
 local function colourOf(c, name)
-    local ok, v = pcall(function() return c[name](c) end)
+    local f = c[name]   -- (called only on a Lua table: a plain read, its class's methods included)
+    if type(f) ~= "function" then return nil end
+    local ok, v = pcall(f, c)
     if ok and type(v) == "number" then return v end
+    return nil
+end
+local function gameColour(HT, f)
+    local fn = HT[f]   -- (HaloTextHelper is a table of the class's functions: a missing one reads as nil, no throw)
+    if fn == nil then return nil end
+    local ok, v = pcall(fn)
+    if ok then return v end
     return nil
 end
 local function toneOf(c, g, b)
@@ -56,21 +69,23 @@ local function toneOf(c, g, b)
         if HT then
             -- (the jar's ColorRGB has public fields only, no getters: the game's own colour objects are matched)
             for _, f in ipairs({ "getColorRed", "getBadColor" }) do
-                local ok, v = pcall(function() return HT[f]() end)
-                if ok and v ~= nil and c == v then return "bad" end
+                local v = gameColour(HT, f)
+                if v ~= nil and c == v then return "bad" end
             end
             for _, f in ipairs({ "getColorGreen", "getGoodColor" }) do
-                local ok, v = pcall(function() return HT[f]() end)
-                if ok and v ~= nil and c == v then return "good" end
+                local v = gameColour(HT, f)
+                if v ~= nil and c == v then return "good" end
             end
         end
+        -- a Java colour that is not one of the game's own: nothing more can be read from it without throwing
+        if type(c) ~= "table" then return nil end
         r, g, b = colourOf(c, "getR"), colourOf(c, "getG"), colourOf(c, "getB")
         if not (r and g and b) then
             r, g, b = colourOf(c, "getRed"), colourOf(c, "getGreen"), colourOf(c, "getBlue")
         end
         if not (r and g and b) then
-            local ok = pcall(function() r, g, b = c.r, c.g, c.b end)
-            if not ok then return nil end
+            r, g, b = c.r, c.g, c.b
+            if not (type(r) == "number" and type(g) == "number" and type(b) == "number") then return nil end
         end
         -- (a getter may hand 0-1 floats: scale them to the 0-255 the test below reads)
         if r and g and b and r <= 1 and g <= 1 and b <= 1 then r, g, b = r * 255, g * 255, b * 255 end

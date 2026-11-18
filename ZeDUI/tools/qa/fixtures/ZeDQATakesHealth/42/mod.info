@@ -1,0 +1,6 @@
+name=ZeD QA Takes Health (dev only)
+id=ZeDQATakesHealth
+description=DEV ONLY - never stage, never upload. A stand-in for a mod that takes a whole screen: it puts its own view on the Health page of the game's Character Info window, as Wounds Overhaul did, so zedqa_b8_stepaside.lua can check ZeD's step aside without a Workshop mod.
+modversion=0.0.1
+versionMin=42.17.0
+author=ZeD Team (dev tool)

@@ -12,10 +12,16 @@ local function check(name, ok, detail)
     if ok then print("ok   " .. name) else failed = failed + 1; print("FAIL " .. name .. (detail ~= nil and (" (" .. tostring(detail) .. ")") or "")) end
 end
 
--- an opaque object: any field read errors, as a Java object's field does in Kahlua
+-- an opaque object: userdata, as Kahlua types a Java object, and any read of it is counted and errors, as a missing
+-- method or field does there. (Nov 17 2026, QA: every failed read inside a pcall still logs a Java exception in the
+-- game and counts in its red error box, so the wrappers must never touch one: PROBES must stay 0.)
+local PROBES = 0
 local function opaque(name)
-    return setmetatable({}, { __index = function(_, k) error("no field " .. tostring(k) .. " on " .. name) end,
-                              __tostring = function() return name end })
+    local u = newproxy(true)
+    local mt = getmetatable(u)
+    mt.__index = function(_, k) PROBES = PROBES + 1; error("no field " .. tostring(k) .. " on " .. name) end
+    mt.__tostring = function() return name end
+    return u
 end
 local RED, GREEN, WHITE = opaque("RED"), opaque("GREEN"), opaque("WHITE")
 local GAME = {}
@@ -57,6 +63,21 @@ HT.addText(P, "Numbers", 200, 30, 30)
 check("addText with r, g, b numbers: still read (bad)", last() and last().tone == "bad", last() and last().tone)
 HT.addText(P, "White", HT.getColorWhite())
 check("addText white: no mark", last() and last().tone == nil, last() and last().tone)
+-- the game's XP note: getGoodColor() handing back a NEW object each call, so it never matches by identity
+-- (XpUpdate.lua: addTextWithArrow(owner, text, "[br/]", true, HaloTextHelper.getGoodColor()))
+local good = HT.getGoodColor
+HT.getGoodColor = function() return opaque("FRESH_GREEN") end
+HT.addTextWithArrow(P, "Carpentry +5", "[br/]", true, HT.getGoodColor())
+check("the XP note (a fresh colour object, arrow up): good from the arrow", last() and last().t == "Carpentry +5" and last().tone == "good", last() and last().tone)
+HT.addText(P, "Fresh", HT.getGoodColor())
+check("addText with a colour object it cannot match: no mark", last() and last().t == "Fresh" and last().tone == nil, last() and last().tone)
+HT.getGoodColor = good
+-- a mod passing a plain Lua table: still read
+HT.addText(P, "Table", { r = 30, g = 200, b = 40 })
+check("addText with a Lua table colour: read (good)", last() and last().tone == "good", last() and last().tone)
+HT.addText(P, "Getters", setmetatable({}, { __index = { getR = function() return 0.9 end, getG = function() return 0.1 end, getB = function() return 0.1 end } }))
+check("addText with a Lua class colour (getters, 0-1): read (bad)", last() and last().tone == "bad", last() and last().tone)
+check("no Java colour was ever read (each read logs an exception in the game)", PROBES == 0, PROBES)
 HT.addBadText(P, "Bad")
 check("addBadText: bad", last() and last().tone == "bad")
 check("ZeD took every line (none to the game)", #GAME == 0, #GAME)

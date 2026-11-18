@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/b8_takeshealth_manifest.txt (Nov 17 2026): step aside with the dev-only ZeDQATakesHealth fixture
+# (fixtures/ZeDQATakesHealth, copied to Zomboid/mods) in place of Wounds Overhaul; mods list b8_takeshealth_mods.txt.
+# Run once ZeD first and once ZeD last.
+zedqa_prelude.lua | pre
+zedqa_pin_windows.lua | pnw | timeout=60   # pins both windows: unpinned ones roll up when the mouse is away (Nov 8 QA)
+zedqa_b8_stepaside.lua | b8sa | timeout=200
