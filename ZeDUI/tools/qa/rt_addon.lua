@@ -386,8 +386,19 @@ function S.mdGhost(col)
     local gy = ra.cy - L.py[S.repA] + L.gridTop + L.gap + O.y * step
     local last = -1
     for _, r in ipairs(S.ghost) do if (r.f or 0) > last then last = r.f or 0 end end
+    -- (Nov 18 2026, run r6) the mouse ghost's drawing is made with a 2-unit outline (shapeFrom in GridLayout.lua), the
+    -- layout's own geo with 1: the expected edges are built the ghost's way. Only rects inside the ghost's 2 x 2
+    -- footprint are judged (the recorder also catches other rows' status strips in the same colours).
+    local has = L.has and L.has[S.repA]
+    if not has then return 0, 1, 0, 0 end
+    local tg = math.max(1, T.px(2))
+    local okG, gg = pcall(GL.geom, has, 2, 2, L.cell, L.gap, tg)
+    if okG and gg then g = gg end
+    local box = { x = gx, y = gy, w = 2 * L.cell + L.gap, h = 2 * L.cell + L.gap }
     local rs = {}
-    for _, r in ipairs(S.ghost) do if (r.f or 0) == last then rs[#rs + 1] = r end end
+    for _, r in ipairs(S.ghost) do
+        if (r.f or 0) == last and within(r.x, r.y, r.w, r.h, box, 0.5) then rs[#rs + 1] = r end
+    end
     local e = g.edges
     for k = 1, #e, 4 do
         local seen = false
@@ -426,10 +437,8 @@ Q.step(4, function()
     local found, missing, other, yes = S.mdGhost(T.positive)
     Q.check(O.panel == S.panel and O.ok == true and O.inv == S.inv, "mouse drag: over the grid, the over-state says canPlace's yes",
         "ok " .. tostring(O.ok) .. ", on this list " .. tostring(O.panel == S.panel))
-    local stale = O.ok == false and yes > 0
-    Q.check(found > 0 and missing == 0 and other == 0 and not stale, "mouse drag: the ghost is the mask's outline, in the yes colour",
-        (stale and "STALE: the last frame's ghost is the yes colour while the over-state's ok is false; " or "")
-        .. found .. " edges drawn, " .. missing .. " missing, " .. other .. " in another colour (last frame, at the over-state's square "
+    Q.check(found > 0 and missing == 0 and other == 0, "mouse drag: the ghost is the mask's outline, in the yes colour",
+        found .. " edges drawn, " .. missing .. " missing, " .. other .. " in another colour (last frame, at the over-state's square "
         .. tostring(O.x) .. "," .. tostring(O.y) .. ")")
     S.mdAsk0 = S.mdAsks
     pcall(S.panel.onMouseWheel, S.panel, 1)
@@ -455,11 +464,9 @@ Q.step(4, function()
     if not S.mdArm then return end
     local O = GL._over
     local found, missing, other, yes = S.mdGhost(T.danger)
-    local stale = O.ok == false and yes > 0
-    Q.check(O.ok == false and O.reason == S.mdWhy and found > 0 and missing == 0 and other == 0 and not stale,
+    Q.check(O.ok == false and O.reason == S.mdWhy and found > 0 and missing == 0 and other == 0 and yes == 0,
         "mouse drag: canPlace's no turns the ghost the no colour, its reason said",
-        (stale and "STALE: the last frame's ghost is the yes colour while the over-state's ok is false (a stale ask cache?); " or "")
-        .. "ok " .. tostring(O.ok) .. ", reason " .. tostring(O.reason) .. "; " .. found .. " edges, " .. missing .. " missing, "
+        "ok " .. tostring(O.ok) .. ", reason " .. tostring(O.reason) .. "; " .. found .. " edges, " .. missing .. " missing, "
         .. other .. " other colour (last frame)")
     pcall(S.panel.onMouseUp, S.panel, S.mdX, S.mdY)
 end)

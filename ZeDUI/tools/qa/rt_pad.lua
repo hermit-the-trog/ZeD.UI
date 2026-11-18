@@ -721,10 +721,26 @@ Q.step(5, function()
     RT.pairShut()
     S.back.mode = true
     Det.setLockedMode(nil)
+end)
+-- (Nov 18 2026, Deck run r5) the key press came ~5 frames after the last switch, under the detector's 200 ms at the
+-- Deck window's frame rate, and was ignored: wait 300 ms of real time first, then press (again every 20 frames,
+-- at most 6 presses, until the mode reads "kbm")
+Q.waitMs(300)
+Q.step(1, function()
+    S.modeKeys = 1
     local ok, err = pcall(triggerEvent, "OnKeyPressed", 102)
     if not ok then Q.say("mode: the key press: " .. tostring(err)) end
 end)
-Q.waitFor(1, 120, function() return Det.getMode(S.pn) == "kbm" end, function(ok)
+Q.waitFor(1, 120, function()
+    if Det.getMode(S.pn) == "kbm" then return true end
+    S.modeWait = (S.modeWait or 0) + 1
+    if S.modeWait >= 20 and S.modeKeys < 6 then
+        S.modeWait = 0
+        S.modeKeys = S.modeKeys + 1
+        pcall(triggerEvent, "OnKeyPressed", 102)
+    end
+    return false
+end, function(ok)
     Q.check(ok and Det.getMode(1) == "gamepad" and Det.getMode(3) == "gamepad",
         "mode: with no lock a key press reads the mouse and keyboard; players 2 to 4 read the controller",
         tostring(Det.getMode(S.pn)) .. ", player 2 " .. tostring(Det.getMode(1)))

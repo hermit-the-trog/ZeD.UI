@@ -43,7 +43,8 @@ S.CT = ZeD.ContainerControls
 -- (Nov 18 2026: the diagonals too. The World window gathers the 3x3 around the player (ZeD_WorldWindow), so a
 -- container it must list sits in RING1; the stove was in RING2 and never listed)
 S.RING1 = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }, { 1, 1 }, { -1, -1 }, { 1, -1 }, { -1, 1 } }
--- the rain collector: within the 2 tiles the card's Wash looks for water (ItemCard.lua waterInReach), off RING1
+-- the rain collector's fallback: within the 2 tiles the card's Wash looks for water (ItemCard.lua waterInReach);
+-- it is tried in RING1 first (Nov 18 2026: adjacent, so the game's walk to it is short)
 S.NEAR = { { 2, 1 }, { -2, -1 }, { 1, 2 }, { -1, -2 }, { 2, -1 }, { -2, 1 }, { 1, -2 }, { -1, 2 } }
 S.RING2 = { { 2, 0 }, { -2, 0 }, { 0, 2 }, { 0, -2 }, { 2, 2 }, { -2, -2 }, { 2, -2 }, { -2, 2 }, { 3, 0 }, { -3, 0 } }
 S.BUILD = { { 4, -4 }, { -4, -4 }, { 4, 4 }, { -4, 4 }, { 5, 0 }, { -5, 0 }, { 0, -5 }, { 0, 5 } }
@@ -223,11 +224,18 @@ function H.focusVerb(id)
 end
 -- queue: A down (the QA hook holds it, FocusManager's dispatch takes the press), up after holdMs (0: a tap), let go
 -- (S.armA false: the focus did not land where it should, so no A is pressed on whatever holds it instead)
-function H.queueA(holdMs)
+function H.queueA(holdMs, note)
     Q.step(1, function()
         if S.armA == false then return end
         RT.pad("A", true); RT.padDown(Joypad.AButton, RT.cw())
     end)
+    -- (note: one frame after A, the queue's action types said in a NOTE line)
+    if note then
+        Q.step(1, function()
+            if S.armA == false then return end
+            Q.say("NOTE " .. tostring(note) .. ": one frame after A the queue holds " .. H.queueTypes())
+        end)
+    end
     if holdMs and holdMs > 0 then Q.waitMs(holdMs) else Q.step(4, function() end) end
     Q.step(1, function() RT.pad("A", false) end)
     Q.step(4, function() RT.pad("A", nil); S.armA = nil end)
@@ -731,7 +739,13 @@ Q.step(4, function()
     -- the water: a rain collector (the game's entity Base.RainCollector, built with the game's build code as the
     -- kiln is) within 2 tiles of the character, its fluid container filled. (Nov 18 2026: a bare IsoObject barrel
     -- has no fluid component, so it never held water.) It goes in the put-back with what was built.
-    local objs = H.build("Base.RainCollector", S.NEAR)
+    -- (Nov 18 2026, Build: ZeD's Wash calls the game's onWashClothing with the water object, which queues a walk
+    -- (ISPathFindAction) then ISWashClothing; 2 tiles off, the walk could fail. Built adjacent (RING1) now, NEAR
+    -- kept as the fallback.)
+    local spots = {}
+    for _, o in ipairs(S.RING1) do spots[#spots + 1] = o end
+    for _, o in ipairs(S.NEAR) do spots[#spots + 1] = o end
+    local objs = H.build("Base.RainCollector", spots)
     for _, o in ipairs(objs or {}) do
         local m = o
         pcall(function() m = o:getMasterObject() or o end)
@@ -750,13 +764,19 @@ end)
 -- (words: the action's name in the check's words, where the queued Type is spelled otherwise)
 function H.toolVerb(item, vkey, label, pat, words)
     Q.waitMs(400)
-    H.queueClick(item, label)
+    -- (Nov 18 2026, Build: a click on the row toggles its card, and the card was already up from the verb before
+    -- (Wash, then Pad all on the same shirt), so the click shut it. The row is clicked only when its card is not up.)
+    Q.step(2, function() S.seekPos = nil end)
+    Q.waitFor(1, 240, function() return H.seekRow(S[item]) end, function(ok)
+        Q.check(ok, label .. ": its row is in the Character window's list", H.nm(S[item]))
+        if ok and not H.cardOn(S[item]) then H.click(S[item]) end
+    end)
     Q.waitFor(2, 120, function() return H.cardOn(S[item]) end, function(ok) S.tvCard = ok end)
     Q.waitFor(4, 240, function() return not S.tvCard or H.focusCardId("verb_" .. vkey) end, function(ok)
         S.armA = (S.tvCard and ok) and true or false
         Q.check(S.armA, label .. ": the card offers " .. vkey .. " and the pad's focus lands on it")
     end)
-    H.queueA(0)
+    H.queueA(0, label)
     Q.waitFor(2, 300, function() return H.queueHas(pat) end, function(ok)
         Q.check(ok, label .. ": A on it queues the game's own action (" .. (words or pat) .. ")", H.queueTypes())
         H.stopActions()
@@ -1477,7 +1497,12 @@ function H.rackRunning() local v = false; pcall(function() v = H.rackComp():isRu
 function H.basilIn() local n = 0; pcall(function() n = S.p:getInventory():getCountTypeRecurse("Base.Basil") end); return n end
 Q.step(10, function()
     S.rack = nil
-    local objs, why = H.build("Base.Herb_Drying_Rack")
+    -- (Nov 18 2026, Build: ZeD's Add mirrors the game's ISCraftLogicPanel.ItemSlotAddItems, a walk then the slot
+    -- action; built 4-5 tiles off (S.BUILD) the walk ran past its 3-tile reach in a crowded site. Within 3 tiles now.)
+    local near = {}
+    for _, o in ipairs(S.RING1) do near[#near + 1] = o end
+    for _, o in ipairs(S.RING2) do near[#near + 1] = o end
+    local objs, why = H.build("Base.Herb_Drying_Rack", near)
     for _, o in ipairs(objs or {}) do
         local m = S.ST.call(o, "getMasterObject") or o
         if not S.rack and S.ST.classify(m, true) == "machine" then S.rack = m end
@@ -1496,6 +1521,21 @@ end, function(ok)
     H.closeGameStationWindows()
     S.rkArm = Q.check(ok, "rack: bound in the Craft tab, its Add offers the basil carried")
     if S.rkArm then H.craftPress("mAdd") end
+end)
+-- (one frame after Add: what the game queued, and the room the rack has)
+Q.step(1, function()
+    if not S.rkArm then return end
+    local comp = H.rackComp()
+    local outFree = comp and S.ST.call(comp, "getFreeOutputSlotCount")
+    local dist = "?"
+    pcall(function()
+        local rs = S.rack:getSquare()
+        if rs then
+            local dx, dy = rs:getX() + 0.5 - S.p:getX(), rs:getY() + 0.5 - S.p:getY()
+            dist = string.format("%.1f", math.sqrt(dx * dx + dy * dy))
+        end
+    end)
+    Q.say("NOTE rack Add: queue " .. H.queueTypes() .. ", free output slots " .. tostring(outFree) .. ", distance " .. dist .. ", basil " .. H.basilIn())
 end)
 Q.waitFor(4, 1800, function() return not S.rkArm or (H.basilIn() < S.basil0 and H.queueTypes() == "none") end, function(ok)
     if not S.rkArm then return end
@@ -1677,12 +1717,44 @@ Q.waitFor(2, 900, function() local w = RT.cw(); return S.hv == nil or w._halves.
     H.mouseBack()
     local w = RT.cw()
     local ms = getTimestampMs() - S.hvT0
+    Q.say("NOTE halves at the wait's end: " .. H.hvDiag(w))
     Q.check(ok and ms >= 1500, S.HV_ROLL, ms .. " ms" .. (w.windowShaded and " (the whole window shaded: its list hid under the drawer)" or ""))
     local tab = ZeD.Halves.foldedTab(w)
     local kept = tab == "skills" or (tab == nil and w.windowShaded and w._activeTab == "skills")
     Q.check(kept, S.HV_TAB, "folded " .. tostring(tab) .. ", shaded " .. tostring(w.windowShaded) .. ", tab " .. tostring(w._activeTab))
     H.halvesBack()
 end)
+-- (Nov 18 2026, Build: the Deck's roll-up was not settled from the code; what holds the timer, for the window timed)
+function H.hvDiag(w)
+    local out = {}
+    local function add(k, f)
+        local ok, v = pcall(f)
+        out[#out + 1] = k .. "=" .. (ok and tostring(v) or "err")
+    end
+    local now = getTimestampMs()
+    add("pad", function() return JoypadState ~= nil and JoypadState.players ~= nil and JoypadState.players[S.pn + 1] ~= nil end)
+    for _, pr in ipairs({ { "cw", RT.cw() }, { "ww", RT.ww() } }) do
+        local win = pr[2]
+        local d = nil
+        if win then pcall(function() d = win._mainContent and win._mainContent._drag end) end
+        add(pr[1] .. ".drag", function() return d end)
+        add(pr[1] .. ".dragActive", function()
+            if type(d) == "table" and type(d.isActive) == "function" then return d:isActive() end
+            return "n/a"
+        end)
+    end
+    if not w then return table.concat(out, ", ") .. ", window nil" end
+    add("moving", function() return w.moving end)
+    add("pinned", function() return w.pinned end)
+    add("outSince-now", function() return (type(w._outSince) == "number") and (w._outSince - now) or tostring(w._outSince) end)
+    add("halves", function() return w._halves end)
+    add("halves.drawer", function() return w._halves and w._halves.drawer end)
+    add("drawer.out", function() return w._halves and w._halves.drawer and w._halves.drawer.out end)
+    add("drawer.rolled", function() return w._halves and w._halves.drawer and w._halves.drawer.rolled end)
+    add("drawer.pinned", function() return w._halves and w._halves.drawer and w._halves.drawer.pinned end)
+    add("invDrawerOpen", function() return w._invDrawerOpen end)
+    return table.concat(out, ", ")
+end
 function H.halvesBack()
     H.mouseBack()
     if not S.hv then return end
@@ -1703,12 +1775,15 @@ Q.step(6, function()
     for _, e in ipairs((ww and ww._containers) or {}) do if not S.qFloor and e.isFloor then S.qFloor = e.inventory end end
     if not S.qFloor then Q.skip("queued transfers on rows", "the World window lists no floor here"); return end
     H.stopActions()
+    -- (Nov 18 2026, Build: a carried-to-floor move takes about 1 tick (the apple) or 2.5 (the book), so the moves had
+    -- landed before the check, and on the Deck an earlier step had used one item up. Two fresh items, each move given
+    -- an explicit time (maxTime 300) so both still wait at the check; taken back after.)
     S.qItems = {}
-    for _, k in ipairs({ "apple", "book" }) do
-        local it = S[k]
-        if it and S.p:getInventory():contains(it) then
+    for _, ft in ipairs({ "Base.Apple", "Base.Book" }) do
+        local it = RT.give(ft)
+        if it then
             S.qItems[#S.qItems + 1] = it
-            pcall(function() ISTimedActionQueue.add(ISInventoryTransferAction:new(S.p, it, S.p:getInventory(), S.qFloor)) end)
+            pcall(function() ISTimedActionQueue.add(ISInventoryTransferAction:new(S.p, it, S.p:getInventory(), S.qFloor, 300)) end)
         end
     end
 end)
@@ -1726,6 +1801,14 @@ Q.step(3, function()
     local n = 0
     for _, it in ipairs(S.qItems) do if IT.queued(c, it) ~= nil then n = n + 1 end end
     Q.check(n == 0, "queued transfers: the queue stopped, no row shows a move waiting", n .. " still shown")
+    -- the two given for this check go back now (wherever they are: carried, or on the floor if one landed)
+    for _, it in ipairs(S.qItems or {}) do
+        pcall(function() local ic = it:getContainer(); if ic then ic:Remove(it) end end)
+        pcall(function()
+            local wi = it:getWorldItem()
+            if wi and wi:getSquare() then wi:getSquare():transmitRemoveItemFromSquare(wi) end
+        end)
+    end
 end)
 -- the watch: the game's own clock and speed controls parked off the screen while ZeD's watch is on (ZeD_Watch)
 Q.step(2, function()
