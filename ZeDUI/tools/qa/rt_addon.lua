@@ -80,7 +80,7 @@ local function sameColor(c, r, g, b) return c ~= nil and math.abs(c.r - r) < 0.0
 -- ghost's colors only
 local WRAP = { "drawRect", "drawRectBorder", "drawText", "drawTextureScaledAspect" }
 local function record(kind, x, y, w, h, text, r, g, b)
-    local e = { kind = kind, x = x, y = y, w = w, h = h, text = text, col = { r = r or 0, g = g or 0, b = b or 0 } }
+    local e = { kind = kind, x = x, y = y, w = w, h = h, text = text, col = { r = r or 0, g = g or 0, b = b or 0 }, f = S.gframe }
     if S.cur then
         local L = S.rec[S.cur]
         if L then L.calls[#L.calls + 1] = e end
@@ -362,28 +362,49 @@ function S.mdStart()
     S.mdFake(true)
     S.ghost = {}
     S.ghostOn = true
+    if not S.gtickOn then Events.OnPreUIDraw.Add(S.gtick); S.gtickOn = true end
     return true
 end
--- the ghost's rects matched against the mask's edges at the cell's own square: found, missing, the colours seen
+-- (Nov 18 2026, run r5) the frames counted while a mouse drag is on, so only the last frame's ghost is judged
+S.gframe = 0
+function S.gtick() S.gframe = S.gframe + 1 end
+-- the ghost's rects matched against the mask's edges where GridLayout draws the mouse's ghost: the over-state's
+-- square (GL._over's x, y), not the cell's own square (run r5: it is drawn there, 12 edges a frame, and was looked for
+-- at the cell). Only the last frame drawn is judged. Returns found, missing, the rects not in col, and the rects in
+-- the yes colour (T.positive).
 function S.mdGhost(col)
     local ra = S.rec[S.repA]
     local L = GL.layoutOf(cnt(), S.inv)
     local g = L and L.geo and L.geo[S.repA]
-    local found, missing, other = 0, 0, 0
-    if not (ra and g) then return 0, 1, 0 end
+    local O = GL._over
+    local found, missing, other, yes = 0, 0, 0, 0
+    if not (ra and g and L.px and L.py and L.px[S.repA] and L.py[S.repA] and O) then return 0, 1, 0, 0 end
+    local step = L.cell + L.gap
+    -- the cell's own square is (GV.xOff + GV.padX + L.px, y0 + L.py); the ghost's is (GV.xOff + GV.padX + O.x * step,
+    -- y0 + L.gridTop + L.gap + O.y * step)
+    local gx = ra.ax - L.px[S.repA] + O.x * step
+    local gy = ra.cy - L.py[S.repA] + L.gridTop + L.gap + O.y * step
+    local last = -1
+    for _, r in ipairs(S.ghost) do if (r.f or 0) > last then last = r.f or 0 end end
+    local rs = {}
+    for _, r in ipairs(S.ghost) do if (r.f or 0) == last then rs[#rs + 1] = r end end
     local e = g.edges
     for k = 1, #e, 4 do
         local seen = false
-        for _, r in ipairs(S.ghost) do
-            if math.abs(r.x - (ra.ax + e[k])) < 0.5 and math.abs(r.y - (ra.cy + e[k + 1])) < 0.5 and math.abs(r.w - e[k + 2]) < 0.5
+        for _, r in ipairs(rs) do
+            if math.abs(r.x - (gx + e[k])) < 0.5 and math.abs(r.y - (gy + e[k + 1])) < 0.5 and math.abs(r.w - e[k + 2]) < 0.5
                and math.abs(r.h - e[k + 3]) < 0.5 then seen = true end
         end
         if seen then found = found + 1 else missing = missing + 1 end
     end
-    for _, r in ipairs(S.ghost) do if not sameColor(r.col, col.r, col.g, col.b) then other = other + 1 end end
-    return found, missing, other
+    for _, r in ipairs(rs) do
+        if not sameColor(r.col, col.r, col.g, col.b) then other = other + 1 end
+        if sameColor(r.col, T.positive.r, T.positive.g, T.positive.b) then yes = yes + 1 end
+    end
+    return found, missing, other, yes
 end
 function S.mdBack()
+    if S.gtickOn then Events.OnPreUIDraw.Remove(S.gtick); S.gtickOn = false end
     S.ghostOn = false
     S.mdFake(false)
     pcall(function() local d = S.panel and S.panel._drag; if d and (d:isActive() or d:isPending()) then d:cancel() end end)
@@ -402,11 +423,14 @@ end)
 Q.step(4, function()
     if not S.mdArm then return end
     local O = GL._over
-    local found, missing, other = S.mdGhost(T.positive)
+    local found, missing, other, yes = S.mdGhost(T.positive)
     Q.check(O.panel == S.panel and O.ok == true and O.inv == S.inv, "mouse drag: over the grid, the over-state says canPlace's yes",
         "ok " .. tostring(O.ok) .. ", on this list " .. tostring(O.panel == S.panel))
-    Q.check(found > 0 and missing == 0 and other == 0, "mouse drag: the ghost is the mask's outline, in the yes colour",
-        found .. " edges drawn, " .. missing .. " missing, " .. other .. " in another colour")
+    local stale = O.ok == false and yes > 0
+    Q.check(found > 0 and missing == 0 and other == 0 and not stale, "mouse drag: the ghost is the mask's outline, in the yes colour",
+        (stale and "STALE: the last frame's ghost is the yes colour while the over-state's ok is false; " or "")
+        .. found .. " edges drawn, " .. missing .. " missing, " .. other .. " in another colour (last frame, at the over-state's square "
+        .. tostring(O.x) .. "," .. tostring(O.y) .. ")")
     S.mdAsk0 = S.mdAsks
     pcall(S.panel.onMouseWheel, S.panel, 1)
 end)
@@ -430,10 +454,13 @@ end)
 Q.step(4, function()
     if not S.mdArm then return end
     local O = GL._over
-    local found, missing, other = S.mdGhost(T.danger)
-    Q.check(O.ok == false and O.reason == S.mdWhy and found > 0 and missing == 0 and other == 0,
+    local found, missing, other, yes = S.mdGhost(T.danger)
+    local stale = O.ok == false and yes > 0
+    Q.check(O.ok == false and O.reason == S.mdWhy and found > 0 and missing == 0 and other == 0 and not stale,
         "mouse drag: canPlace's no turns the ghost the no colour, its reason said",
-        "ok " .. tostring(O.ok) .. ", reason " .. tostring(O.reason) .. "; " .. found .. " edges, " .. other .. " other colour")
+        (stale and "STALE: the last frame's ghost is the yes colour while the over-state's ok is false (a stale ask cache?); " or "")
+        .. "ok " .. tostring(O.ok) .. ", reason " .. tostring(O.reason) .. "; " .. found .. " edges, " .. missing .. " missing, "
+        .. other .. " other colour (last frame)")
     pcall(S.panel.onMouseUp, S.panel, S.mdX, S.mdY)
 end)
 Q.step(3, function()
@@ -771,7 +798,25 @@ Q.step(3, function()
     A.kbBox = box
     local ok = false
     pcall(function() ok = KB.edit(box, pn) end)
-    if not Q.check(ok and KB.isVisible(), "keyboard: A on a text box opens ZeD's keyboard on it") then return end
+    -- (Nov 18 2026, run r5: the keyboard opened, but KB.isVisible (isReallyVisible) is true only once UIManager adds it
+    -- on the next update, so the opening is read from the keyboard's own box, and the keys wait for it to show)
+    local kb = KB.instance
+    if not Q.check(ok and kb ~= nil and kb.textEntryBox == box, "keyboard: A on a text box opens ZeD's keyboard on it") then
+        pcall(function() KB.hide() end)
+        pcall(function() box:removeFromUIManager() end)
+        A.kbBox = nil
+    end
+end)
+Q.waitFor(1, 60, function() return (not A.kbBox) or ZeD.Keyboard.isVisible() end, function(ok)
+    local box, KB = A.kbBox, ZeD.Keyboard
+    if not box then return end
+    if not ok then
+        Q.check(false, "keyboard: A on the a and b keys types ab", "the keyboard never showed")
+        pcall(function() KB.hide() end)
+        pcall(function() box:removeFromUIManager() end)
+        A.kbBox = nil
+        return
+    end
     local kb = KB.instance
     for _, ch in ipairs({ "a", "b" }) do
         local at = nil
@@ -787,7 +832,13 @@ Q.waitFor(2, 120, function()
     return A.kbBox:getInternalText() == "ab"
 end, function(ok)
     local box, KB = A.kbBox, ZeD.Keyboard
-    if not (box and KB.isVisible()) then return end
+    if not box then return end
+    if not KB.isVisible() then
+        Q.check(false, "keyboard: A on the a and b keys types ab", "the keyboard closed before the text came: '" .. tostring(box:getInternalText()) .. "'")
+        pcall(function() box:removeFromUIManager() end)
+        A.kbBox = nil
+        return
+    end
     Q.check(ok, "keyboard: A on the a and b keys types ab", "'" .. tostring(box:getInternalText()) .. "'")
     RT.bounds(Q, "ZeD's keyboard")
     local kb = KB.instance

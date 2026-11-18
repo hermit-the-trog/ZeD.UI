@@ -624,6 +624,7 @@ function S.ptrLast() return S.ptr.calls[#S.ptr.calls] end
 function S.putPtr()
     if not S.back.ptr then return end
     S.back.ptr = nil
+    S.ptrUnfake()
     pcall(function() Mouse.setCursorVisible = S.ptrWas end)
     if S.ptrMouse then pcall(function() Mouse.setXY(S.ptrMouse[1], S.ptrMouse[2]) end) end
 end
@@ -657,10 +658,33 @@ Q.waitFor(1, 90, function() return not S.back.ptr or #S.ptr.calls > 0 end, funct
     if not S.back.ptr then return end
     Q.check(ok and S.ptrLast() == false, "pointer: back on the pad it hides", tostring(S.ptrLast()))
     S.ptr.calls = {}
-    pcall(function() Mouse.setXY(S.ptrMouse[1] + Z.T.px(40), S.ptrMouse[2] + Z.T.px(20)) end)
+    -- (Nov 18 2026, run r5: Mouse.setXY did not move the pointer (getMouseX read the old spot; rt_media saw the same),
+    -- so the move is read back, and when it did not move the globals getMouseX / getMouseY that _watchPointer reads
+    -- answer the moved spot until the check; put back by S.ptrUnfake / S.putPtr)
+    local tx, ty = math.floor(S.ptrMouse[1] + Z.T.px(40)), math.floor(S.ptrMouse[2] + Z.T.px(20))
+    pcall(function() Mouse.setXY(tx, ty) end)
+    local mx = nil
+    pcall(function() mx = getMouseX() end)
+    if mx ~= tx then
+        S.ptrFake = { getMouseX, getMouseY }
+        getMouseX = function() return tx end
+        getMouseY = function() return ty end
+        if getMouseX() ~= tx then
+            S.ptrUnfake()
+            S.ptrNoMove = true
+            Q.skip("pointer: the mouse moved shows it again", "Mouse.setXY did not move the pointer and getMouseX could not be stood in")
+        end
+    end
 end)
-Q.waitFor(1, 90, function() return not S.back.ptr or #S.ptr.calls > 0 end, function(ok)
+function S.ptrUnfake()
+    if not S.ptrFake then return end
+    getMouseX, getMouseY = S.ptrFake[1], S.ptrFake[2]
+    S.ptrFake = nil
+end
+Q.waitFor(1, 90, function() return not S.back.ptr or S.ptrNoMove or #S.ptr.calls > 0 end, function(ok)
     if not S.back.ptr then return end
+    S.ptrUnfake()
+    if S.ptrNoMove then return end
     Q.check(ok and S.ptrLast() == S.ptrShow, "pointer: the mouse moved shows it again", tostring(S.ptrLast()))
     S.ptr.calls = {}
     pcall(function() Mouse.setXY(S.ptrMouse[1], S.ptrMouse[2]) end)
@@ -674,9 +698,13 @@ Q.step(3, function()
         RT.padDir("down", w)
     end
 end)
-Q.waitFor(1, 90, function() return not S.back.ptr or #S.ptr.calls > 0 end, function(ok)
+Q.waitFor(1, 90, function() return not S.back.ptr or S.ptrNoMove or #S.ptr.calls > 0 end, function(ok)
     if not S.back.ptr then return end
-    Q.check(ok and S.ptrLast() == false, "pointer: a pad press on a ZeD window hides it again", tostring(S.ptrLast()))
+    if S.ptrNoMove then
+        Q.skip("pointer: a pad press on a ZeD window hides it again", "the pointer was never shown again (the mouse could not be moved)")
+    else
+        Q.check(ok and S.ptrLast() == false, "pointer: a pad press on a ZeD window hides it again", tostring(S.ptrLast()))
+    end
     S.putPtr()
     S.release()
     RT.pairShut()
@@ -730,6 +758,7 @@ end)
 function S.putMH()
     if not S.back.mh then return end
     S.back.mh = nil
+    S.mhFake(false)
     pcall(function() Mouse.setXY(S.mh.mouse[1], S.mh.mouse[2]) end)
     pcall(function() local st = S.p:getStats(); st:set(CharacterStat.THIRST, S.mh.th); st:set(CharacterStat.HUNGER, S.mh.hu) end)
     pcall(function() S.p:setGodMod(S.mh.god) end)
@@ -757,7 +786,24 @@ end, function(ok)
     local cx = math.floor(L:getAbsoluteX() + size / 2)
     local cy = math.floor(L:getAbsoluteY() + size / 2)
     pcall(function() Mouse.setXY(cx, cy) end)
+    -- (Nov 18 2026, run r5: Mouse.setXY did not move the pointer, so the layer's own getMouseX / getMouseY /
+    -- isMouseOver answer the first moodle's middle for the hover, as rt_addon's mdFake does; put back by S.putMH)
+    S.mhFake(true, math.floor(size / 2))
 end)
+function S.mhFake(on, at)
+    local L = S.mh and S.mh.L
+    if not L then return end
+    if on then
+        if S.mh.had then return end
+        S.mh.had = { rawget(L, "getMouseX"), rawget(L, "getMouseY"), rawget(L, "isMouseOver") }
+        L.getMouseX = function() return at end
+        L.getMouseY = function() return at end
+        L.isMouseOver = function() return true end
+    elseif S.mh.had then
+        L.getMouseX, L.getMouseY, L.isMouseOver = S.mh.had[1], S.mh.had[2], S.mh.had[3]
+        S.mh.had = nil
+    end
+end
 Q.waitFor(2, 240, function()
     if not (S.back.mh and S.mh.key) then return true end
     return Z.Balloon.up() and Z.Balloon._slot ~= nil and Z.Balloon._slot.key == S.mh.key

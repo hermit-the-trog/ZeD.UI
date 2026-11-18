@@ -614,10 +614,21 @@ function H.mapView()
     end
     return v
 end
+-- (Nov 18 2026, QA, run r5: "18.00 to 18.00": the map opens at 18, and the wheel zooms in; at the map's top zoom it
+-- cannot. So the wheel starts two steps out from where the map opened, a zoom the map surely can come back in from.)
 Q.step(5, function()
     local m = H.mp()
     S.view0 = H.mapView()
     if not Q.check(m ~= nil and S.view0 ~= nil, "zoom: the map is up") then S.zSkip = true; return end
+    S.zFrom = math.max(8, math.floor(S.view0.z + 0.5) - 2)
+    m:_zoomTo(S.zFrom)
+end)
+Q.waitFor(3, 60, function() local v = H.mapView(); return S.zSkip or (v ~= nil and math.abs(v.z - S.zFrom) < 0.01) end, function()
+    if S.zSkip then return end
+    local m = H.mp()
+    S.viewOpen = S.viewOpen or S.view0   -- (the put-back's view: where the map opened)
+    S.view0 = H.mapView()
+    if not (m and S.view0) then S.zSkip = true; Q.check(false, "zoom: the map is up", "gone after the zoom out"); return end
     pcall(function() Mouse.setXY(20, 20) end)
     m:onMouseWheel(-1)
 end)
@@ -706,11 +717,11 @@ end, function(ok)
 end)
 function H.putView()
     local m = H.mp()
-    local v = S.view0
+    local v = S.viewOpen or S.view0
     if not (m and v) then return end
     pcall(function() m.mapAPI:centerOn(v.x, v.y) end)
     pcall(function() m.mapAPI:setZoom(v.z) end)
-    S.view0 = nil
+    S.view0, S.viewOpen = nil, nil
 end
 
 -- ===================================================================== 3c. the Survey map's paper-map look (MapsSurvey.lua)
@@ -1571,7 +1582,12 @@ end
 function H.hbRowOk(it) return it.row ~= nil and it.row.ok and not it.row.out and not it.row.instant and it.row.part ~= "makeup" end
 Q.step(5, function()
     S.hbSkip = nil
-    if not (ZeD.HairBeard and ZeD.IdentityTab and RT.charTab("identity")) then S.hbSkip = true; Q.check(false, "Hair and beard: the Identity tab opens from the strip") end
+    if not (ZeD.HairBeard and ZeD.IdentityTab and RT.charTab("identity")) then S.hbSkip = true; Q.check(false, "Hair and beard: the Identity tab opens from the strip"); return end
+    -- (Nov 18 2026, QA, run r5: the switch's hit zone is recorded only inside the visible scroll, and at 4K the
+    -- section sits below the fold. The tab's own way to bring it into view, as a make-up item's Make Up option does:
+    -- the section's wantScroll, taken by IdentityTab on its next draw through ZeD_HairBeard.takeScroll.)
+    local st = H.hb()
+    if st then st.wantScroll = true end
 end)
 Q.waitFor(5, 600, function() return S.hbSkip or H.hbZone("parts") ~= nil end, function(ok)
     if S.hbSkip then return end
@@ -1629,6 +1645,7 @@ Q.step(5, function()
     H.clearQueue()
     pcall(function() if S.devWas ~= nil then ZeD.Settings.devicesStyleOption:setValue(S.devWas) end end)
     pcall(function() local w = H.CW(); if w and S.thWas then w._thermalPick = S.thWas end end)
+    pcall(function() local w = H.CW(); if w and w._hb then w._hb.wantScroll = nil end end)
     pcall(function() local r = ZeD.Reader.get(pn); if r and r:isReallyVisible() then r:close() end end)
     pcall(function() ZeD.TwoWayFull.close(pn) end)
     pcall(H.putGuide)

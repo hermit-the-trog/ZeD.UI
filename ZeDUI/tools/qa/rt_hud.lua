@@ -989,6 +989,73 @@ function S.F.drop(o)
     end)
     o._rtGone = true
 end
+-- (Nov 18 2026, QA, the director in play: "most of them are the vanilla arrows, and I only saw a few of the hands".
+-- The game's ISWorldItemIcon (a thing lying on the ground, found by searching), ISStashIcon and ISWorldItemIconTrack
+-- (an animal track) each place their pointer with their own setWorldMarkerPosition, which ZeD's ISBaseIcon wrap
+-- never reached; the staged ISForageIcon above passed all along. So a real thing is laid on the ground and its find
+-- is made as ISSearchManager makes one (createIconsForWorldItems, then loadIcons' own steps); a track is made with
+-- the game's track class on a thing on the ground the same way (an animal's real track needs an animal).)
+S.F.ground = {}
+function S.F.lay(dx, dy, ft)
+    local F = S.F
+    local sq = getCell():getGridSquare(F.px + dx, F.py + dy, F.pz)
+    if not sq then return nil end
+    local it = nil
+    pcall(function() it = instanceItem(ft) end)
+    if not it then return nil end
+    pcall(function() it:getModData().ZeDQA_spawned = true end)
+    local okA = pcall(function() sq:AddWorldInventoryItem(it, 0.5, 0.5, 0) end)
+    local wi = nil
+    pcall(function() wi = it:getWorldItem() end)
+    if not (okA and wi) then return nil end
+    F.ground[#F.ground + 1] = { sq = sq, it = it }
+    return sq, it, wi
+end
+function S.F.mkGround(dx, dy, track)
+    local F = S.F
+    local sq, it, wi = F.lay(dx, dy, "Base.Pencil")
+    if not sq then return nil, "no thing could be laid on the ground" end
+    local id = tostring(sq) .. "-" .. it:getFullType()
+    local icon = nil
+    if not track then
+        pcall(function() F.mgr:createIconsForWorldItems(sq) end)
+        icon = F.mgr.worldIconStack and F.mgr.worldIconStack[id]
+        if F.mgr.worldIconStack then F.mgr.worldIconStack[id] = nil end
+    else
+        id = "zedqa_rthud_track"
+    end
+    if not icon then
+        icon = { id = id, x = wi:getWorldPosX(), y = wi:getWorldPosY(), z = wi:getWorldPosZ(), itemObj = it, itemObjTable = {},
+            itemType = it:getFullType(), isBonusIcon = false, isTrack = track and true or false }
+        icon.itemObjTable[it] = it
+    end
+    local o = nil
+    local okN, err = pcall(function()
+        if track then o = ISWorldItemIconTrack:new(F.mgr, icon) else o = ISWorldItemIcon:new(F.mgr, icon) end
+    end)
+    if not (okN and o) then return nil, tostring(err) end
+    o.iconClass = "worldObject"
+    o:findTextureCenter()
+    F.mgr.worldObjectIcons[o.iconID] = o
+    o:doUpdateEvents(true)
+    o:addToUIManager()
+    o:spotIcon()
+    F.icons[#F.icons + 1] = o
+    return o
+end
+-- the hand on a find's pointer: the same reading as the forage pointer checks above (the hand for its side, 44 x 77)
+function S.F.handCheck(o, why, what)
+    local F = S.F
+    if not o then Q.check(false, what, "not staged: " .. tostring(why)); return end
+    local r = F.mark(o)
+    local d = "no pointer up (seen " .. tostring(o.isSeenThisUpdate) .. ", forageable " .. tostring(o.isForageable)
+        .. ", distance " .. string.format("%.1f", o.distanceToPlayer or -1) .. ")"
+    if r then
+        d = tostring(r.hand) .. ", " .. math.floor((r.w or 0) + 0.5) .. " x " .. math.floor((r.h or 0) + 0.5)
+    end
+    Q.check(r ~= nil and r.hand == F.want(F.side(o)) and math.floor((r.w or 0) + 0.5) == 44 and math.floor((r.h or 0) + 0.5) == 77,
+        what, d)
+end
 function S.F.faceOne()
     local F = S.F
     local x, y = F.hx + 3.5, F.hy - 0.5
@@ -1027,6 +1094,11 @@ end)
 Q.step(30, function()
     local F = S.F
     F.one = F.mk(3, -1)
+    local okG, okT
+    okG, F.gnd, F.gndWhy = pcall(F.mkGround, 3, 0, false)
+    if not okG then F.gndWhy, F.gnd = F.gnd, nil end
+    okT, F.trk, F.trkWhy = pcall(F.mkGround, 2, -1, true)
+    if not okT then F.trkWhy, F.trk = F.trk, nil end
     S.moveTo(F.hx - 1, F.hy)
 end)
 Q.step(15, function()
@@ -1053,6 +1125,11 @@ Q.step(60, function()
     local eye = false
     for _, n in ipairs(notes) do if n.eye then eye = true end end
     Q.check(eye, "forage: the search-mode eye is in ZeD's over-head stack")
+    F.handCheck(F.gnd, F.gndWhy, "forage pointer: a find on the ground shows ZeD's hand")
+    -- (the game gives a stash no pointer: ISBaseIcon:updateWorldMarker adds one only for iconClass "forageIcon" or
+    -- "worldObject", and ISSearchManager makes every stash "stashObject"; ZeD's ISStashIcon wrap is only a guard)
+    Q.skip("forage pointer: a stash find shows ZeD's hand", "the game draws no pointer to a stash (ISBaseIcon:updateWorldMarker skips iconClass stashObject)")
+    F.handCheck(F.trk, F.trkWhy, "forage pointer: an animal track shows ZeD's hand")
     RT.bounds(Q, "forage")
     S.putForage()
 end)
@@ -1063,10 +1140,18 @@ Q.step(20, function()
 end)
 -- (Nov 18 2026, QA, the ledger: the World window's Foraging tab, its band's Search button through the tab's own click
 -- handler, flips the game's search mode; a second press flips it back)
+-- (Nov 18 2026, QA, run r5: a same-step race: the pair was just opened, and the strip fills its hit zones only when
+-- it draws. So the press waits for the strip to list the Foraging tab.)
 Q.step(5, function()
     RT.pairOpen()
     S.fsSkip = nil
-    if not RT.worldTab("forage") then S.fsSkip = true; Q.check(false, "forage tab: the World window's Foraging tab opens from the strip") end
+end)
+Q.waitFor(2, 300, function()
+    for _, id in ipairs(RT.tabs(RT.worldStrip())) do if id == "forage" then return true end end
+    return false
+end, function(ok)
+    local pressed = ok and RT.worldTab("forage")
+    if not Q.check(pressed, "forage tab: the World window's Foraging tab opens from the strip", (not pressed) and (ok and "the press found no tab" or "the strip never listed it") or nil) then S.fsSkip = true end
 end)
 Q.waitFor(5, 300, function() local w = RT.ww(); return S.fsSkip or (w ~= nil and w._forageSearchBtn ~= nil) end, function(ok)
     if S.fsSkip then return end
@@ -1096,6 +1181,23 @@ function S.putForage()
     S.back.forage = nil
     local F = S.F
     for _, o in ipairs(F.icons) do F.drop(o) end
+    -- the things laid on the ground for the finds there, taken up again (and any find the game made of them since)
+    for _, g in ipairs(F.ground) do
+        pcall(function()
+            local wi = g.it:getWorldItem()
+            if wi then
+                g.sq:transmitRemoveItemFromSquare(wi)
+                if g.it:getWorldItem() then wi:removeFromWorld(); wi:removeFromSquare(); wi:setSquare(nil) end
+            end
+        end)
+        pcall(function()
+            local id = tostring(g.sq) .. "-" .. g.it:getFullType()
+            if F.mgr.worldIconStack then F.mgr.worldIconStack[id] = nil end
+            local o = F.mgr.worldObjectIcons[id]
+            if o then F.drop(o) end
+        end)
+    end
+    F.ground = {}
     pcall(function() getGameTime():setTimeOfDay(F.tod) end)
     if not F.searchWas then
         pcall(function() F.mgr:toggleSearchMode(false) end)

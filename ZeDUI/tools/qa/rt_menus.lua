@@ -669,6 +669,16 @@ step(4, function()
     local rows = (cats[1] and S.MM.soundsIn(cats[1].id)) or {}
     local r = rows[1]
     if not Q.check(w.sub == "sounds" and r ~= nil, "Options: Advanced game sounds opens with its sounds", tostring(w.sub) .. ", " .. #cats .. " categories") then return end
+    -- (the game's getUserVolume reads 1.0 whenever SystemDisabler.getEnableAdvancedSoundOptions() is false, and that
+    -- is the only time ZeD's page is reachable: with the flag off there is no volume to read back)
+    local adv = false
+    pcall(function() adv = SystemDisabler.getEnableAdvancedSoundOptions() and true or false end)
+    if not adv then
+        Q.skip("Options, game sounds: a slider step sets the sound's volume and reads back",
+            "the game's advanced sound options are off (SystemDisabler), so every sound's volume reads 1.0")
+        RT.bounds(Q, "the game sounds page")
+        return
+    end
     S.snd = { r = r, v0 = r.snd:getUserVolume(), ch0 = w._sndChanged }
     local want = (S.snd.v0 <= 1.9) and (S.snd.v0 + 0.05) or (S.snd.v0 - 0.05)
     want = math.floor(want * 20 + 0.5) / 20

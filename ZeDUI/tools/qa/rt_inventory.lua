@@ -1261,9 +1261,14 @@ waitFor(1, 30, function() local w = RT.cw(); return S.ip == nil or (w ~= nil and
 end)
 -- 8c. the Loot columns from code (toggleColumn): a bag given, its column opens (one more in _mcSelected); any other
 -- tab closes the columns
+-- (the Character window lists a carried bag only when it is equipped: the bag is held in the second hand, and the
+-- hand given back what it held before the bag goes)
 step(4, function()
     S.colBag = RT.give("Base.Bag_Schoolbag")
     S.colInv = nil
+    S.colHandWas = nil
+    pcall(function() S.colHandWas = S.p:getSecondaryHandItem() end)
+    if S.colBag then pcall(function() S.p:setSecondaryHandItem(S.colBag) end) end
     pcall(function() S.colInv = S.colBag:getInventory() end)
     pcall(function() RT.cw()._containersDirty = true end)
 end)
@@ -1282,11 +1287,16 @@ step(4, function()
     RT.charTab("skills")
 end)
 step(6, function()
-    if not S.colN0 then return end
-    local w = RT.cw()
-    Q.check(#(w._mcSelected or {}) == 0, "another tab than Loot closes the Character window's columns", #(w._mcSelected or {}) .. " left")
+    if S.colN0 then
+        local w = RT.cw()
+        Q.check(#(w._mcSelected or {}) == 0, "another tab than Loot closes the Character window's columns", #(w._mcSelected or {}) .. " left")
+    end
     RT.charTab("loot")
-    if S.colBag then H.removeItem(S.colBag) end
+    if S.colBag then
+        pcall(function() if S.p:getSecondaryHandItem() == S.colBag then S.p:setSecondaryHandItem(S.colHandWas) end end)
+        H.removeItem(S.colBag)
+    end
+    S.colBag, S.colHandWas = nil, nil
     pcall(function() RT.cw()._containersDirty = true end)
 end)
 -- 8d. the World window: a tab from code (openTab), its Loot columns (toggleColumn on the crate), close and open again
@@ -1522,8 +1532,11 @@ step(4, function()
     pcall(function() S.mnOpt:setValue(2) end)
     pcall(function() S.mnGod = S.p:isGodMod(); S.p:setGodMod(false) end)
     pcall(function() S.mnBored = S.p:getStats():get(CharacterStat.BOREDOM) end)
-    -- (a moodle that goes away queues nothing: Bored is brought on, or moved a level while it stays on)
-    S.mnTo = ((S.mnBored or 0) < 0.5) and 0.9 or 0.3
+    -- (a moodle that goes away queues nothing: Bored is brought on, or moved a level while it stays on. Boredom runs
+    -- 0..100 in B42: the stat's own maximum scales the levels)
+    local top = 100
+    pcall(function() local m = CharacterStat.BOREDOM:getMaximumValue(); if m and m > 0 then top = m end end)
+    S.mnTo = ((S.mnBored or 0) < top * 0.5) and (top * 0.9) or (top * 0.3)
     pcall(function() S.p:getStats():set(CharacterStat.BOREDOM, S.mnTo) end)
 end)
 waitFor(4, 300, function() return S.mnSkip or H.has(S.mnL._notices, "BORED") end, function(ok)
@@ -1650,9 +1663,56 @@ step(4, function()
     if l then L.addLine(S.p, l.id, { type = S.rsType, unit = "n", amount = 1 }) end
     pcall(function() S.rsItem = S.crate:AddItem(S.rsType) end)
     if not Q.check(l ~= nil and S.rsItem ~= nil, "restock: a loadout asks for a " .. S.rsType .. " the crate holds") then return end
+    -- (Casual restock takes nothing past what the character can carry, and the steps before leave them loaded: what
+    -- is loose in the inventory, not held, worn or on the belt, waits in the crate until the put-back)
+    if not H.rsShed() then return end
     R.setLoadout(S.p, l.id)
     S.rsRun = R.start(S.p, "restock")
 end)
+function H.rsLoad()
+    local load, most = 0, 0
+    pcall(function() load, most = S.p:getInventoryWeight(), S.p:getMaxWeight() end)
+    return load or 0, most or 0
+end
+function H.rsShed()
+    local need = 0
+    pcall(function() need = S.rsItem:getUnequippedWeight() or 0 end)
+    local load0, most = H.rsLoad()
+    S.rsShed = {}
+    if load0 + need > most then
+        local inv = S.p:getInventory()
+        local loose = {}
+        pcall(function()
+            local items = inv:getItems()
+            for i = 0, items:size() - 1 do loose[#loose + 1] = items:get(i) end
+        end)
+        for _, it in ipairs(loose) do
+            local load = H.rsLoad()
+            if load + need <= most then break end
+            local keep = true
+            pcall(function() keep = S.p:isEquipped(it) or (it:getAttachedSlot() or -1) > -1 end)
+            if not keep then
+                pcall(function() inv:Remove(it); S.crate:AddItem(it) end)
+                if H.where(it) == S.crate then S.rsShed[#S.rsShed + 1] = it end
+            end
+        end
+    end
+    local load = H.rsLoad()
+    if load + need > most then
+        Q.skip("restock: the missing thing comes out of the crate to the character, the list done",
+            string.format("the character carries %.2f of %.2f even with %d loose things set in the crate, the %s weighs %.2f",
+                load, most, #S.rsShed, tostring(S.rsType), need))
+        return false
+    end
+    return true
+end
+function H.rsUnshed()
+    local inv = S.p:getInventory()
+    for _, it in ipairs(S.rsShed or {}) do
+        if H.where(it) == S.crate then pcall(function() S.crate:Remove(it); inv:AddItem(it) end) end
+    end
+    S.rsShed = nil
+end
 function H.pin() local P = ZeD.RestockPin; return P and P.panels and P.panels[S.pn] end
 waitFor(4, 300, function() local pin = H.pin(); return S.rsRun == nil or (pin ~= nil and pin:isVisible()) end, function(ok)
     if not S.rsRun then return end
@@ -1688,6 +1748,7 @@ function H.restockBack()
     pcall(function() St.loadoutsOption:setValue(S.rs.load) end)
     pcall(function() St.restockOption:setValue(S.rs.mode) end)
     if S.rsItem then H.removeItem(S.rsItem) end
+    H.rsUnshed()
     S.rs, S.rsRun = nil, nil
 end
 function H.ledgerBack()

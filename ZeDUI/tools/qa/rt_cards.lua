@@ -40,7 +40,11 @@ S.p, S.pn = RT.p, RT.pn
 S.F = RT.focus()
 S.ST = ZeD.Stations
 S.CT = ZeD.ContainerControls
-S.RING1 = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }
+-- (Nov 18 2026: the diagonals too. The World window gathers the 3x3 around the player (ZeD_WorldWindow), so a
+-- container it must list sits in RING1; the stove was in RING2 and never listed)
+S.RING1 = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }, { 1, 1 }, { -1, -1 }, { 1, -1 }, { -1, 1 } }
+-- the rain collector: within the 2 tiles the card's Wash looks for water (ItemCard.lua waterInReach), off RING1
+S.NEAR = { { 2, 1 }, { -2, -1 }, { 1, 2 }, { -1, -2 }, { 2, -1 }, { -2, 1 }, { 1, -2 }, { -1, 2 } }
 S.RING2 = { { 2, 0 }, { -2, 0 }, { 0, 2 }, { 0, -2 }, { 2, 2 }, { -2, -2 }, { 2, -2 }, { -2, 2 }, { 3, 0 }, { -3, 0 } }
 S.BUILD = { { 4, -4 }, { -4, -4 }, { 4, 4 }, { -4, 4 }, { 5, 0 }, { -5, 0 }, { 0, -5 }, { 0, 5 } }
 
@@ -63,6 +67,7 @@ function H.queueHead()
 end
 function H.stopActions() pcall(function() S.p:StopAllActionQueue() end) end
 function H.nm(it)
+    if it == nil then return "nil" end   -- (under -debug a nil indexed inside pcall still logs a Java exception)
     local n = nil
     pcall(function() n = it:getDisplayName() end)
     return tostring(n or it)
@@ -240,15 +245,19 @@ end
 function H.sq(dx, dy)
     return getCell():getGridSquare(math.floor(S.p:getX()) + dx, math.floor(S.p:getY()) + dy, math.floor(S.p:getZ()))
 end
+-- (Nov 18 2026: a square is marked used only once something is placed on it (H.useSq), and by where it is, not by
+-- its offset: the character walks (Add fuel, Light) and the offsets move with them. A failed placement used to
+-- burn the square.)
+function H.sqKey(sq) return sq:getX() .. "," .. sq:getY() .. "," .. sq:getZ() end
+function H.useSq(sq) if sq then S.used[H.sqKey(sq)] = true end end
 function H.freeSq(offsets)
     for _, o in ipairs(offsets) do
-        local k = o[1] .. "," .. o[2]
         local sq = H.sq(o[1], o[2])
         local free = false
-        if sq and not S.used[k] then
+        if sq and not S.used[H.sqKey(sq)] then
             pcall(function() free = sq:isFree(false) and not sq:HasTree() and sq:getVehicleContainer() == nil end)
         end
-        if free then S.used[k] = true; return sq end
+        if free then return sq end
     end
     return nil
 end
@@ -339,11 +348,11 @@ function H.snapshot(cx, cy, r)
     end
     return set
 end
-function H.build(full)
+function H.build(full, offsets)
     local info = H.findInfo(full)
     if not info then return nil, "no entity info for " .. full end
     local px, py, pz = math.floor(S.p:getX()), math.floor(S.p:getY()), math.floor(S.p:getZ())
-    for _, o in ipairs(S.BUILD) do
+    for _, o in ipairs(offsets or S.BUILD) do
         local x, y = px + o[1], py + o[2]
         local before = H.snapshot(x, y, 2)
         S.p:setBuildCheat(true)
@@ -361,7 +370,7 @@ function H.build(full)
             for obj in pairs(H.snapshot(x, y, 2)) do
                 if not before[obj] then new[#new + 1] = obj; S.built[#S.built + 1] = obj end
             end
-            if #new > 0 then return new end
+            if #new > 0 then H.useSq(getCell():getGridSquare(x, y, pz)); return new end
         end
     end
     return nil, "no room to build " .. full
@@ -679,7 +688,7 @@ end)
 -- (Nov 18 2026, the ledger's row "Item card: tool verbs (Repair, Repair all, Pad all, Sharpen, Wash)": the card's
 -- body verbs (stops verb_<key>) on a dull hunting knife with a whetstone, and on a dirty T-shirt (one hole) with a
 -- needle, thread and rags and a barrel of water beside the character: each A queues the game's own action, which is
--- stopped. Repair on the knife: the game has no fixing for it, so nothing is queued (the verb only says what it needs).)
+-- stopped. Repair on the knife: the game has no fixing for it, so the card hides the verb (checked absent).)
 function H.queueHas(pat)
     local found = false
     pcall(function()
@@ -698,41 +707,48 @@ function H.queueTypes()
 end
 Q.step(4, function()
     H.stopActions()
-    S.knife, S.shirt = RT.give("Base.HuntingKnife"), RT.give("Base.Tshirt_White")
+    -- (Nov 18 2026: Base.Tshirt_White is not in B42; Base.Tshirt_DefaultTEXTURE is the plain T-shirt)
+    S.knife, S.shirt = RT.give("Base.HuntingKnife"), RT.give("Base.Tshirt_DefaultTEXTURE")
     for _, ft in ipairs({ "Base.Whetstone", "Base.Needle", "Base.Thread", "Base.RippedSheets", "Base.RippedSheets", "Base.RippedSheets" }) do RT.give(ft) end
-    pcall(function() S.knife:setSharpness(0.3) end)
-    pcall(function() S.shirt:setDirtiness(60) end)
-    pcall(function() local parts = S.shirt:getCoveredParts(); S.shirt:getVisual():setHole(parts:get(0)) end)
+    if S.knife then pcall(function() S.knife:setSharpness(0.3) end) end
+    if S.shirt then
+        pcall(function() S.shirt:setDirtiness(60) end)
+        pcall(function()
+            local parts = S.shirt:getCoveredParts()
+            if parts and parts:size() > 0 then S.shirt:getVisual():setHole(parts:get(0)) end
+        end)
+    end
     local c = H.content()
     for _, k in ipairs({ "knife", "shirt" }) do
         local ft = nil
-        pcall(function() ft = S[k]:getFullType() end)
+        if S[k] then pcall(function() ft = S[k]:getFullType() end) end
         if c and ft then
             c._expandedStacks = c._expandedStacks or {}
             if S.stackWas[ft] == nil then S.stackWas[ft] = c._expandedStacks[ft] or false end
             c._expandedStacks[ft] = true
         end
     end
-    -- the water: a barrel beside the character, filled (its fluid container, as the game's barrels hold water)
-    local sq = H.freeSq(S.RING1)
-    for _, name in ipairs({ "carpentry_02_54", "carpentry_02_52", "carpentry_02_120" }) do
-        if sq and not S.barrel and getSprite(name) then
+    -- the water: a rain collector (the game's entity Base.RainCollector, built with the game's build code as the
+    -- kiln is) within 2 tiles of the character, its fluid container filled. (Nov 18 2026: a bare IsoObject barrel
+    -- has no fluid component, so it never held water.) It goes in the put-back with what was built.
+    local objs = H.build("Base.RainCollector", S.NEAR)
+    for _, o in ipairs(objs or {}) do
+        local m = o
+        pcall(function() m = o:getMasterObject() or o end)
+        if not S.barrel then
             pcall(function()
-                local o = IsoObject.new(sq, name, nil, false)
-                sq:AddTileObject(o)
-                pcall(function() o:createFluidContainersFromSpriteProperties() end)
-                local fc = o:getFluidContainer()
+                local fc = m:getFluidContainer()
                 if fc then fc:addFluid(Fluid.Water, fc:getCapacity()) end
-                if o:hasWater() then S.barrel = o else sq:transmitRemoveItemFromSquare(o) end
+                if m:hasWater() and m:getFluidAmount() > 0 then S.barrel = m end
             end)
         end
     end
-    if S.barrel then S.placed[#S.placed + 1] = S.barrel end
     Q.check(S.knife ~= nil and S.shirt ~= nil and S.barrel ~= nil, "tool verbs: a dull knife, a whetstone, a dirty shirt, sewing things and a barrel of water",
         "knife " .. tostring(S.knife ~= nil) .. ", shirt " .. tostring(S.shirt ~= nil) .. ", water " .. tostring(S.barrel ~= nil))
 end)
 -- one body verb: the item's card by the mouse, the pad's focus on verb_<key>, A tapped; then check(ok, types)
-function H.toolVerb(item, vkey, label, pat)
+-- (words: the action's name in the check's words, where the queued Type is spelled otherwise)
+function H.toolVerb(item, vkey, label, pat, words)
     Q.waitMs(400)
     H.queueClick(item, label)
     Q.waitFor(2, 120, function() return H.cardOn(S[item]) end, function(ok) S.tvCard = ok end)
@@ -741,17 +757,29 @@ function H.toolVerb(item, vkey, label, pat)
         Q.check(S.armA, label .. ": the card offers " .. vkey .. " and the pad's focus lands on it")
     end)
     H.queueA(0)
-    Q.waitFor(2, 300, function() return (pat == nil) or H.queueHas(pat) end, function(ok)
-        if pat then
-            Q.check(ok, label .. ": A on it queues the game's own action (" .. pat .. ")", H.queueTypes())
-        else
-            Q.check(H.queueTypes() == "none", label .. ": with no fixing for the thing, A queues nothing", H.queueTypes())
-        end
+    Q.waitFor(2, 300, function() return H.queueHas(pat) end, function(ok)
+        Q.check(ok, label .. ": A on it queues the game's own action (" .. (words or pat) .. ")", H.queueTypes())
         H.stopActions()
     end)
 end
-H.toolVerb("knife", "sharpen", "sharpen", "Craft")
-H.toolVerb("knife", "repair", "repair", nil)
+-- (Nov 18 2026, Build: B42's SharpenBlade is a craftRecipe, run by the game's ISHandcraftAction; the old find of
+-- "Craft" was case-sensitive and missed it. The check's words keep "Craft".)
+H.toolVerb("knife", "sharpen", "sharpen", "ISHandcraftAction", "Craft")
+-- (Nov 18 2026, Build: no B42 fixing covers a knife, so the card hides Repair by design (Disclose.split): the check
+-- is that it is absent, once the card's stops are built)
+Q.waitMs(400)
+Q.step(2, function() S.seekPos = nil end)
+Q.waitFor(1, 240, function() return H.seekRow(S.knife) end, function(ok)
+    Q.check(ok, "repair: its row is in the Character window's list", H.nm(S.knife))
+    -- (the knife's card is still up from Sharpen: a click on its row then would not be needed)
+    if ok and not H.cardOn(S.knife) then H.click(S.knife) end
+end)
+Q.waitFor(2, 120, function() return H.cardOn(S.knife) end, function(ok) S.tvCard = ok end)
+Q.step(20, function()
+    local has = S.tvCard and H.focusCardId("verb_repair")
+    Q.check(S.tvCard and not has, "repair: with no fixing for the knife, the card offers no repair (verb_repair)",
+        "card " .. tostring(S.tvCard) .. ", repair stop " .. tostring(has))
+end)
 H.toolVerb("shirt", "wash", "wash", "ISWashClothing")
 H.toolVerb("shirt", "pad_all", "pad all", "ISRepairClothing")
 H.toolVerb("shirt", "repair_all", "repair all", "ISRepairClothing")
@@ -767,7 +795,8 @@ function H.craftZone(kind, notId)
     local st = H.craftState()
     local lg = st and st._listGeo
     for _, z in ipairs((st and st.zones) or {}) do
-        if z.type == kind and z.id ~= notId then
+        -- (Nov 18 2026: notId nil used to drop every zone with no id: the detail icon, the pop-out keys, the rack's)
+        if z.type == kind and (notId == nil or z.id ~= notId) then
             local inView = (kind ~= "recipeRow") or (lg == nil) or (z.y >= lg.viewY and z.y + z.h <= lg.viewY + lg.viewH)
             if inView and z.w > 0 and z.h > 0 then return z end
         end
@@ -833,7 +862,7 @@ Q.step(10, function()
         S.gen = IsoGenerator.new(instanceItem("Base.Generator"), getCell(), sq)
         S.gen:setConnected(false); S.gen:setFuel(60); S.gen:setCondition(90)
     end)
-    if S.gen then S.placed[#S.placed + 1] = S.gen end
+    if S.gen then S.placed[#S.placed + 1] = S.gen; H.useSq(sq) end
     Q.check(S.gen ~= nil, "generator: placed beside the character")
     Q.check(ISWorldObjectContextMenu._zed_onInfoGenerator == true, "generator: ZeD's hook is on the game's Info")
 end)
@@ -933,6 +962,7 @@ Q.step(10, function()
     local ok = pcall(function() SCampfireSystem.instance:addCampfire(sq) end)
     S.fires[#S.fires + 1] = sq
     S.fireSq = sq
+    if ok then H.useSq(sq) end
     Q.check(ok, "fire: a campfire made beside the character (the game's campfire system)")
     Q.check(ISCampingMenu and ISCampingMenu._zed_onDisplayInfo == true, "fire: ZeD's hook is on the campfire's Info")
 end)
@@ -1010,6 +1040,13 @@ end, function(ok)
     Q.check(ok and p ~= ZeD.tr("UI_ZeD_Fire_PillOut"), "fire: Light lights it (the game's light) and the pill reads burning", tostring(p))
     H.stopActions()
     H.closeCard()
+    -- (Nov 18 2026: put out at once. A lit campfire's flame is the game's IsoFire.new(cell, square), with no sprite;
+    -- the character stands beside it after Light, and the game's A prompt (ISButtonPrompt -> ISEntityUI.
+    -- CanOpenWindowFor, which reads getSprite():getName()) threw on it every frame to the end of the script.)
+    pcall(function()
+        local lo = SCampfireSystem.instance:getLuaObjectOnSquare(S.fireSq)
+        if lo then SCampfireSystem.instance:putOut(lo); lo:removeFireObject() end
+    end)
 end)
 
 -- the washer: its gears button on the container row
@@ -1024,7 +1061,7 @@ Q.step(10, function()
         sq:AddSpecialObject(S.washer)
         if S.washer:getObjectIndex() < 0 then sq:AddTileObject(S.washer) end
     end)
-    if S.washer then S.placed[#S.placed + 1] = S.washer end
+    if S.washer then S.placed[#S.placed + 1] = S.washer; H.useSq(sq) end
     Q.check(ok and S.washer ~= nil and S.washer:getContainer() ~= nil, "laundry: a washer placed beside the character", tile)
     pcall(function() RT.ww()._containersDirty = true end)
 end)
@@ -1073,6 +1110,7 @@ Q.step(10, function()
     S.fridge = sq and H.tileObject(sq, { "appliances_refrigeration_01_0", "appliances_refrigeration_01_4" }) or nil
     if S.fridge then
         S.placed[#S.placed + 1] = S.fridge
+        H.useSq(sq)
         local inv = S.fridge:getContainerByType("fridge") or S.fridge:getContainer()
         S.fridgeInv = inv
         pcall(function() S.milk = inv:AddItem("Base.Milk") end)
@@ -1101,15 +1139,23 @@ end)
 
 -- the stove: the game's stove settings
 Q.step(10, function()
-    local sq = H.freeSq(S.RING2)
+    -- (Nov 18 2026: adjacent (RING1): the World window lists only the 3x3 around the character)
+    local sq = H.freeSq(S.RING1)
     if not sq then Q.check(false, "stove: a free square beside the character", "none"); return end
+    -- (Nov 18 2026: a knob range (PhysPx oven_green: heat and timer knobs, ON and OFF keys), else the red one.
+    -- appliances_cooking_01_12 was the modern keypad oven: no heat or timer knob, and its "off" is CANCEL.)
+    local tile = nil
+    for _, name in ipairs({ "appliances_cooking_01_0", "appliances_cooking_01_8" }) do
+        if not tile and getSprite(name) then tile = name end
+    end
+    if not tile then Q.check(false, "stove: a range placed beside the character", "no knob range sprite"); return end
     local ok = pcall(function()
-        S.stove = IsoStove.new(getCell(), sq, getSprite("appliances_cooking_01_12"))
+        S.stove = IsoStove.new(getCell(), sq, getSprite(tile))
         pcall(function() S.stove:createContainersFromSpriteProperties() end)
         sq:AddSpecialObject(S.stove)
         if S.stove:getObjectIndex() < 0 then sq:AddTileObject(S.stove) end
     end)
-    if S.stove then S.placed[#S.placed + 1] = S.stove end
+    if S.stove then S.placed[#S.placed + 1] = S.stove; H.useSq(sq) end
     Q.check(ok and S.stove ~= nil, "stove: a range placed beside the character")
     Q.check(ISOvenUITimedAction and ISOvenUITimedAction._zedHooked == true, "stove: ZeD's hook is on the game's stove settings")
     if S.stove then pcall(function() ISTimedActionQueue.add(ISOvenUITimedAction:new(S.p, S.stove, nil)) end) end
@@ -1207,7 +1253,15 @@ end
 function H.isHeat(z) return z.kind == "turn" and (z.id == "heat" or z.id == "power") end
 function H.isTimer(z) return z.kind == "turn" and z.id == "timer" end
 function H.isPowerKey(z) return z.id == "on" or z.id == "onoff" or z.id == "start" end
-function H.isOffKey(z) return z.id == "off" or z.id == "onoff" or z.id == "start" end
+-- the key that turns it off: OFF first, else the one switch, else a keypad's CANCEL / CLEAR-OFF / STOP
+H.OFFKEYS = { "off", "onoff", "cancel", "clearoff", "stop", "start" }
+function H.offKeyZone()
+    for _, id in ipairs(H.OFFKEYS) do
+        local z = H.plate(function(x) return x.id == id end)
+        if z then return z end
+    end
+    return nil
+end
 function H.rightHalf(z) return pcall(ZeD.CraftingTab.onClick, RT.ww(), z.x + math.floor(z.w * 3 / 4), z.y + math.floor(z.h / 2)) end
 Q.step(4, function()
     S.stBack = { temp = H.stTemp(), timer = H.stTimer(), on = H.stOn(), dev = ZeD.Settings.devicesStyleOption and ZeD.Settings.devicesStyleOption:getValue() }
@@ -1259,7 +1313,7 @@ end)
 Q.waitFor(4, 600, function() return not (S.stArm and S.stKey) or H.stOn() end, function(ok)
     if not (S.stArm and S.stKey) then return end
     Q.check(ok, "oven: its power key turns the stove on (the game's stove command)", tostring(S.stKey))
-    local z = H.plate(H.isOffKey)
+    local z = H.offKeyZone()
     if z then pcall(ZeD.CraftingTab.onClick, RT.ww(), z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2)) end
 end)
 Q.waitFor(4, 600, function() return not (S.stArm and S.stKey) or not H.stOn() end, function(ok)
@@ -1532,19 +1586,54 @@ end
 function H.mouseBack()
     if S.mouseWas then getMouseX, getMouseY = S.mouseWas[1], S.mouseWas[2]; S.mouseWas = nil end
 end
+-- (Nov 18 2026: an item card left open from an earlier step kept the drawer on "item", and only a tab drawer rolls
+-- (WindowHalves drawerOpen): the cards are closed first, and the drawer must be on its tab before the wait. A pad
+-- joined holds every timer (WindowHalves.update), so that is a SKIP. Where the list hides under a full drawer (the
+-- Deck), H.drive shades the whole window instead of folding the drawer: the tab is then the window's own.)
+S.HV_ROLL = "halves: the unpinned drawer rolls up after 2 s with the pointer away"
+S.HV_TAB = "halves: the rolled drawer keeps its tab (Skills)"
 Q.step(4, function()
     S.hv = nil
     local w, Hv = RT.cw(), ZeD.Halves
     if not (w and Hv and w._halves) then Q.check(false, "halves: the Character window has its halves"); return end
+    local pad = JoypadState and JoypadState.players and JoypadState.players[S.pn + 1] ~= nil
+    if pad then
+        Q.skip(S.HV_ROLL, "a controller is joined: the halves hold while a pad plays")
+        Q.skip(S.HV_TAB, "a controller is joined")
+        return
+    end
     local W, Hs = getCore():getScreenWidth(), getCore():getScreenHeight()
     local spot = nil
     for _, p in ipairs({ { 3, 3 }, { W - 4, 3 }, { 3, Hs - 4 }, { W - 4, Hs - 4 }, { math.floor(W / 2), 3 } }) do
         if not spot and not H.overWin(p[1], p[2]) then spot = p end
     end
     if not spot then Q.skip("halves roll up after 2 s away", "the windows cover every corner of the screen"); return end
-    S.hv = { pin = w._halves.drawer.pinned == true }
+    -- no card in the drawer (nothing selected in the list), no object card
+    H.closeCard()
+    local c = H.content()
+    if c and w._drawerItem and w._updateDrawer then
+        c._selectedItems = {}
+        c._lastClickedItem = nil
+        pcall(w._updateDrawer, c)
+    end
+    S.hv = { pin = w._halves.drawer.pinned == true, spot = spot }
     RT.charTab("skills")
     pcall(Hv.setPin, w, "drawer", false)
+end)
+Q.waitFor(2, 120, function()
+    local w = RT.cw()
+    return S.hv == nil or (w._drawerMode == "tab" and w._drawerOpen == true and w._activeTab == "skills")
+end, function(ok)
+    if not S.hv then return end
+    local w = RT.cw()
+    if not ok then
+        local why = "before the wait the drawer was not on Skills: mode " .. tostring(w._drawerMode) .. ", tab " .. tostring(w._activeTab)
+        Q.check(false, S.HV_ROLL, why)
+        Q.check(false, S.HV_TAB, why)
+        H.halvesBack()
+        return
+    end
+    local spot = S.hv.spot
     S.mouseWas = { getMouseX, getMouseY }
     getMouseX = function() return spot[1] end
     getMouseY = function() return spot[2] end
@@ -1555,8 +1644,10 @@ Q.waitFor(2, 900, function() local w = RT.cw(); return S.hv == nil or w._halves.
     H.mouseBack()
     local w = RT.cw()
     local ms = getTimestampMs() - S.hvT0
-    Q.check(ok and ms >= 1500, "halves: the unpinned drawer rolls up after 2 s with the pointer away", ms .. " ms")
-    Q.check(ZeD.Halves.foldedTab(w) == "skills", "halves: the rolled drawer keeps its tab (Skills)", tostring(ZeD.Halves.foldedTab(w)))
+    Q.check(ok and ms >= 1500, S.HV_ROLL, ms .. " ms" .. (w.windowShaded and " (the whole window shaded: its list hid under the drawer)" or ""))
+    local tab = ZeD.Halves.foldedTab(w)
+    local kept = tab == "skills" or (tab == nil and w.windowShaded and w._activeTab == "skills")
+    Q.check(kept, S.HV_TAB, "folded " .. tostring(tab) .. ", shaded " .. tostring(w.windowShaded) .. ", tab " .. tostring(w._activeTab))
     H.halvesBack()
 end)
 function H.halvesBack()
@@ -1617,7 +1708,8 @@ function H.mapZone(pred)
     for _, z in ipairs((w and w._mapExtZones) or {}) do if pred(z) then return z end end
     return nil
 end
-function H.isKeyBtn(z) return z.id == "key" end
+-- (Nov 18 2026: the header's buttons are zoned "map:ext:<id>" (MapsTabExt drawBtn), so the Key button is "map:ext:key")
+function H.isKeyBtn(z) return z.id == "map:ext:key" end
 function H.isKeyClose(z) return z.id == "map:key:close" end
 Q.step(4, function()
     S.mapsTab = RT.worldTab("maps")
@@ -1711,10 +1803,16 @@ Q.waitFor(2, 120, function() return S.fc == nil or S.fc:isReallyVisible() end, f
     local fc = S.fc
     if not Q.check(fc ~= nil and ok, "form card: it opens from its spec and shows") then return end
     RT.bounds(Q, "the form card")
+    -- (Nov 18 2026: the card answers A only with a pad (its focused() needs joyfocus); a jd of nil left it none, and
+    -- update() takes joyfocus from the pad or FC.qaJoy each frame. A stand-in pad is passed, and held in qaJoy.)
+    local jd = { player = S.pn, id = S.pn }
+    ZeD.FormCard.qaJoy = jd
+    fc.joyfocus = jd
     fc._focus = 1
-    pcall(fc.onJoypadDown, fc, Joypad.AButton, nil)
+    pcall(fc.onJoypadDown, fc, Joypad.AButton, jd)
     Q.check(S.fcRun == 1, "form card: A on its check row runs the row", S.fcRun .. " runs")
-    pcall(fc.onJoypadDown, fc, Joypad.BButton, nil)
+    pcall(fc.onJoypadDown, fc, Joypad.BButton, jd)
+    ZeD.FormCard.qaJoy = nil
     Q.check(S.fcCancel == 1 and S.fcDone == 1 and not fc:isVisible(), "form card: B is its cancel and the card closes",
         "cancel " .. S.fcCancel .. ", finished " .. S.fcDone)
 end)
@@ -1722,6 +1820,7 @@ function H.ledgerBack()
     pcall(H.stoveBack)
     H.halvesBack()
     H.paperBack()
+    pcall(function() ZeD.FormCard.qaJoy = nil end)
     pcall(function() if S.fc and not S.fc._done then S.fc:finish() end end)
     pcall(function() if S.wh and S.wh:isReallyVisible() then S.wh:undisplay() end end)
     pcall(function() local w = RT.ww(); if w and S.keyArm then w._mapKeyOpen = S.keyWas end end)
