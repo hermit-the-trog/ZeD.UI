@@ -1317,7 +1317,7 @@ function H.offKeyZone()
 end
 function H.rightHalf(z) return pcall(ZeD.CraftingTab.onClick, RT.ww(), z.x + math.floor(z.w * 3 / 4), z.y + math.floor(z.h / 2)) end
 Q.step(4, function()
-    S.stBack = { temp = H.stTemp(), timer = H.stTimer(), on = H.stOn(), dev = ZeD.Settings.devicesStyleOption and ZeD.Settings.devicesStyleOption:getValue() }
+    S.stBack = { temp = H.stTemp(), timer = H.stTimer(), on = H.stOn(), dev = ZeD.Settings.lookStyleOption and ZeD.Settings.lookStyleOption:getValue() }
     local pw = false
     pcall(function() pw = S.stInv:isPowered() end)
     if not pw and S.gen then
@@ -1385,7 +1385,7 @@ function H.craftPress(kind)
 end
 Q.step(4, function()
     if not S.stArm then return end
-    pcall(function() ZeD.Settings.devicesStyleOption:setValue(2) end)
+    pcall(function() ZeD.Settings.lookStyleOption:setValue(2) end)
 end)
 Q.waitFor(4, 300, function() return not S.stArm or H.craftZone("popout") ~= nil end, function(ok)
     if not S.stArm then return end
@@ -1429,7 +1429,7 @@ function H.stoveBack()
     local b = S.stBack
     if b then
         S.stBack = nil
-        pcall(function() if b.dev then ZeD.Settings.devicesStyleOption:setValue(b.dev) end end)
+        pcall(function() if b.dev then ZeD.Settings.lookStyleOption:setValue(b.dev) end end)
         pcall(function() if H.stOn() ~= b.on then ZeD.StationAppliance.toggle(S.p, { obj = S.stove }, 0) end end)
         pcall(function() if b.temp then S.stove:setMaxTemperature(b.temp) end end)
         pcall(function() if b.timer then S.stove:setTimer(b.timer) end end)

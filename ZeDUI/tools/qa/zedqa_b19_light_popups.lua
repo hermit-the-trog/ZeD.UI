@@ -1,3 +1,5 @@
+-- (Nov 19 2026, QA: OUT OF DATE since beta 21. This script sets the retired per-piece Simple switches, which nothing reads
+-- now (one Style switch, ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). Its Simple legs run against Full. Do not reuse as is.)
 -- ZeDUI/tools/qa/zedqa_b19_light_popups.lua  (Nov 17 2026, QA): Build's light pop-ups in the running game. The moodle's
 -- note and its hover balloon (ZeD_Moodles: _drawChip and ZeD.Balloon.draw inside ZeD.Balloon.inLight), the action bar
 -- Simple and Detailed (ZeD_ActionBar render: drawBar inside ZeD.Balloon.inLight) and the notice balloons, a mod's note

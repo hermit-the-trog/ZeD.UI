@@ -1,3 +1,5 @@
+-- (Nov 19 2026, QA: OUT OF DATE since beta 21. This script sets the retired per-piece Simple switches, which nothing reads
+-- now (one Style switch, ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). Its Simple legs run against Full. Do not reuse as is.)
 -- ZeDUI/tools/qa/zedqa_aiming_clip.lua  (Nov 3 2026, QA; punch list 83: is Aiming's clip the book or the file?)
 -- Video effects on. The window look opened straight on Aiming, 4 s, a picture; Vaulting the same (a clip that plays,
 -- for comparison); then the book opened straight on Aiming's spread (goToTopic), 4 s, a picture. Settings put back.

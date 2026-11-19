@@ -348,13 +348,13 @@ end
 
 -- ===================================================================== the Simple belt
 Q.step(5, function()
-    S.beltStyle = S.opt(Z.Settings.beltStyleOption)
+    S.beltStyle = S.opt(Z.Settings.lookStyleOption)
     S.back.beltStyle = true
-    S.setOpt(Z.Settings.beltStyleOption, 2)
+    S.setOpt(Z.Settings.lookStyleOption, 2)
 end)
 Q.step(20, function()
     local hud = S.hud()
-    if not Q.check(hud ~= nil and hud._drawn == true and Z.Belt.simple(), "simple belt: the Belt option's Simple is read") then return end
+    if not Q.check(hud ~= nil and hud._drawn == true and Z.Belt.simple(), "Lite belt: Style Lite gives the simple belt (Z.Belt.simple())") then return end
     Q.check(hud._strap == nil and hud._buckle == nil, "simple belt: no strap and no buckle")
     local slots = S.boxes("slot")
     if #slots >= 2 then
@@ -365,17 +365,17 @@ Q.step(20, function()
     end
     Q.check(S.onScreen(hud:getX(), hud:getY(), hud:getWidth(), hud:getHeight()), "simple belt: on screen")
     RT.bounds(Q, "simple belt")
-    S.setOpt(Z.Settings.beltStyleOption, 1)
+    S.setOpt(Z.Settings.lookStyleOption, 1)
 end)
 Q.step(20, function()
     local hud = S.hud()
-    Q.check(hud ~= nil and hud._strap ~= nil, "simple belt: Full brings the strap back")
+    Q.check(hud ~= nil and hud._strap ~= nil, "Lite belt: Style Full brings the strap back")
     S.putBeltStyle()
 end)
 function S.putBeltStyle()
     if not S.back.beltStyle then return end
     S.back.beltStyle = nil
-    S.setOpt(Z.Settings.beltStyleOption, S.beltStyle or 1)
+    S.setOpt(Z.Settings.lookStyleOption, S.beltStyle or 1)
 end
 
 -- ===================================================================== watch, mini and full
@@ -526,12 +526,12 @@ end
 function S.putAbStyle()
     if not S.back.abStyle then return end
     S.back.abStyle = nil
-    S.setOpt(Z.Settings.actionBarOption, S.abStyle or 1)
+    S.setOpt(Z.Settings.lookStyleOption, S.abStyle or 1)
 end
 Q.step(5, function()
-    S.abStyle = S.opt(Z.Settings.actionBarOption)
+    S.abStyle = S.opt(Z.Settings.lookStyleOption)
     S.back.abStyle = true
-    S.setOpt(Z.Settings.actionBarOption, 2)
+    S.setOpt(Z.Settings.lookStyleOption, 2)
     if not (S.bag and S.packed and #S.packed > 0) then S.abSkip = true; Q.skip("action bar styles", "no bag packed above"); return end
     S.moveAll(S.bag:getInventory(), S.p:getInventory())
 end)
@@ -542,7 +542,7 @@ end, function(ok)
     if S.abSkip then return end
     local AB = Z.ActionBar
     local L = AB._layers[S.pn]
-    if not Q.check(ok and AB.mode() == "simple" and L._drawMode == "simple" and L._lay.bar == "simple", "bar style: Simple draws the simple bar",
+    if not Q.check(ok and AB.mode() == "simple" and L._drawMode == "simple" and L._lay.bar == "simple", "bar style: Style Lite draws the simple bar",
         tostring(L and L._drawMode)) then return end
     local W, H = AB.sizeSimple()
     local k = L._k or 1
@@ -556,7 +556,7 @@ end)
 Q.waitFor(1, 2400, function() return S.abSkip or Z.ActionBar.state(S.p, S.pn) == nil end, function(ok)
     if S.abSkip then return end
     Q.check(ok, "bar style: the simple job ends")
-    S.setOpt(Z.Settings.actionBarOption, 1)
+    S.setOpt(Z.Settings.lookStyleOption, 1)
 end)
 Q.step(30, function()
     if S.abSkip then return end

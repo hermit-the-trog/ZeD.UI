@@ -301,29 +301,29 @@ end)
 
 -- ===================================================================== 1. a setting saves and comes back
 Q.step(5, function()
-    local o = St.actionBarOption
-    if not o then Q.check(false, "ZeD's settings API has the action bar option"); return end
+    local o = St.lookStyleOption
+    if not o then Q.check(false, "ZeD's settings API has the Style option (lookStyle)"); return end
     S.abWas = o:getValue()
-    S.abIniWas = H.iniValue("actionBar")
+    S.abIniWas = H.iniValue("lookStyle")
     -- (the whole file kept: saving writes every option's value in memory, so it is put back line for line)
     S.ini0 = H.readIni()
     S.abNew = (S.abWas == 2) and 1 or 2
     o:setValue(S.abNew)
     St.save()
-    Q.check(H.iniValue("actionBar") == S.abNew, "a changed setting is written to ModOptions.ini", "file " .. tostring(H.iniValue("actionBar")) .. ", want " .. S.abNew)
+    Q.check(H.iniValue("lookStyle") == S.abNew, "a changed setting is written to ModOptions.ini", "file " .. tostring(H.iniValue("lookStyle")) .. ", want " .. S.abNew)
     -- the value in memory set back, then the game reads its file again: the saved one comes back
     o:setValue(S.abWas)
     pcall(function() PZAPI.ModOptions:load() end)
     Q.check(o:getValue() == S.abNew, "the saved setting comes back when the game reads ModOptions.ini", "value " .. tostring(o:getValue()))
 end)
 Q.step(5, function()
-    local o = St.actionBarOption
+    local o = St.lookStyleOption
     if not (o and S.abWas) then return end
     o:setValue(S.abWas)
     if S.ini0 then H.writeIni(S.ini0) else St.save() end
     S.iniBack = true
-    Q.check(o:getValue() == S.abWas and H.iniValue("actionBar") == S.abIniWas, "the setting is put back, in memory and in the file",
-        "value " .. tostring(o:getValue()) .. ", file " .. tostring(H.iniValue("actionBar")))
+    Q.check(o:getValue() == S.abWas and H.iniValue("lookStyle") == S.abIniWas, "the setting is put back, in memory and in the file",
+        "value " .. tostring(o:getValue()) .. ", file " .. tostring(H.iniValue("lookStyle")))
     local now = H.readIni()
     Q.check(S.ini0 ~= nil and now ~= nil and table.concat(now, "\n") == table.concat(S.ini0, "\n"), "ModOptions.ini is back line for line",
         tostring(now and #now) .. " lines, " .. tostring(S.ini0 and #S.ini0) .. " before")
@@ -1859,7 +1859,7 @@ Q.step(5, function()
     pcall(function() if S.accW then RT.ww()._accentKey = S.accW.k end end)
     if S.o2 and MM.pauseView == "options" and MM.pauseOpts and MM.pauseOpts:isVisible() then pcall(function() MM.pauseOpts:discardStay() end) end
     -- the settings this script touched, each as it was (a run cut short jumps here)
-    pcall(function() if S.abWas and St.actionBarOption:getValue() ~= S.abWas then St.actionBarOption:setValue(S.abWas) end end)
+    pcall(function() if S.abWas and St.lookStyleOption:getValue() ~= S.abWas then St.lookStyleOption:setValue(S.abWas) end end)
     if S.ini0 and not S.iniBack then H.writeIni(S.ini0) end
     pcall(function()
         if S.scaleWas and S.scaleOpt:getValue() ~= S.scaleWas then S.scaleOpt:setValue(S.scaleWas); St.applyScale(S.scaleWas) end
@@ -1901,7 +1901,7 @@ end, function()
     if ZEDQA_LAYOUT_BACK then pcall(ZEDQA_LAYOUT_BACK, S.snap, "rt_sys") end
     if S.winsWere == false then RT.pairShut() elseif S.winsWere then RT.pairOpen() end
     Q.check(ZeD.tr == S.trWas, "put back: ZeD.tr is ZeD's own again")
-    Q.check((not S.abWas or St.actionBarOption:getValue() == S.abWas) and (not S.scaleWas or S.scaleOpt:getValue() == S.scaleWas)
+    Q.check((not S.abWas or St.lookStyleOption:getValue() == S.abWas) and (not S.scaleWas or S.scaleOpt:getValue() == S.scaleWas)
         and (not S.safeWas or S.safeOpt:getValue() == S.safeWas) and (not S.base0 or ZeD.currentBase == S.base0),
         "put back: every setting this script changed is as it was")
     local zo, off = H.opts(), {}

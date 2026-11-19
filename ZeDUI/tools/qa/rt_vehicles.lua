@@ -21,10 +21,10 @@
 --            lists the car's parts; a click on a row opens that part's card, a second click closes it
 --   (Nov 18 2026, QA, the ledger's car gaps closed here:) the game's own dash stays hidden while ZeD's shows, and
 --            ZeD's goes once the character is out; the dash's headlight switch flips the headlights and back; the seat
---            key opens the chooser on the Simple dash and the cabin pop-out on Immersive; an animal trailer's Check
+--            key opens the cabin pop-out (in Lite too), the chooser for a car the cabin cannot lay out; an animal trailer's Check
 --            Animals (ISVehicleMenu.onCheckAnimalInside, hooked) opens the Vehicle tab on the trailer
 -- Each surface is measured with RT.bounds. Put back: the radio and the lightbar as they were, the props closed, the
--- dash style, the World window on Loot, the character out, the key taken back and the car and trailer removed
+-- Style, the World window on Loot, the character out, the key taken back and the car and trailer removed
 -- (ZEDQA_CAR_AWAY).
 
 if not RT then
@@ -132,17 +132,19 @@ function H.headlights()
 end
 function H.chooser() local w = nil; pcall(function() w = S.Seats.get(S.pn) end); return w end
 function H.popout() local w = nil; pcall(function() w = S.Seats.getPopout(S.pn) end); return w end
--- the dash style (ZeD setup: 1 Immersive, 2 Simple), the run's own kept to put back
-function H.setDash(n)
-    local o = ZeD.Settings and ZeD.Settings.dashStyleOption
+-- Style (ZeD setup, Look: 1 Full, 2 Lite; beta 21 retired the Dashboard row), the run's own kept to put back. The
+-- value only: the option's onChange would also set the additions to Vanilla.
+function H.setStyle(n)
+    local o = ZeD.Settings and ZeD.Settings.lookStyleOption
     if not o then return end
-    if S.dashWas == nil then pcall(function() S.dashWas = o:getValue() end) end
+    if S.styleWas == nil then pcall(function() S.styleWas = o:getValue() end) end
     pcall(function() o:setValue(n) end)
 end
-function H.putDash()
-    local o = ZeD.Settings and ZeD.Settings.dashStyleOption
-    if o and S.dashWas ~= nil then pcall(function() o:setValue(S.dashWas) end) end
-    S.dashWas = nil
+function H.putStyle()
+    local o = ZeD.Settings and ZeD.Settings.lookStyleOption
+    if o and S.styleWas ~= nil then pcall(function() o:setValue(S.styleWas) end) end
+    S.styleWas = nil
+    if S.popWas then S.Seats.popToggle = S.popWas; S.popWas = nil end
 end
 function H.ms() local w = RT.ww(); return w and S.MT.getState(w) end
 function H.zone(id) local s = H.ms(); return s and s.byId and s.byId[id] end
@@ -306,12 +308,17 @@ Q.step(10, function()
 end)
 
 -- ===================================================================== the seat chooser
--- (Nov 18 2026, QA, the ledger: the chooser on the Simple dash, the cabin pop-out on Immersive, each asked for; the
--- run's own dash style put back after)
+-- (Nov 19 2026, QA: beta 21 retired the plain dash, so the seat key opens the cabin pop-out in Full and Lite alike;
+-- the chooser stays for a car the cabin cannot lay out as rows, ZeD_SeatChooser.lua S.toggle: that case is made here
+-- by the pop-out declining (S.Seats.popToggle answering false, put back after). Then the pop-out in Lite. The run's
+-- own Style put back after.)
 Q.step(5, function()
     if not H.inCar() then return end
     Q.check(ISVehicleMenu._zedSeats ~= nil, "seats: ZeD's hook is on the seat key")
-    H.setDash(2)
+    if S.Seats.popToggle and not S.popWas then
+        S.popWas = S.Seats.popToggle
+        S.Seats.popToggle = function() return false end
+    end
 end)
 Q.step(5, function()
     if not H.inCar() then return end
@@ -320,7 +327,7 @@ end)
 Q.waitFor(5, 300, function() local w = H.seatWin(); return not H.inCar() or (w ~= nil and w._seats ~= nil) end, function(ok)
     if not H.inCar() then return end
     local w = H.seatWin()
-    Q.check(ok and w ~= nil and w == H.chooser(), "seats: the seat key opens ZeD's seat chooser", tostring(w and w.Type))
+    Q.check(ok and w ~= nil and w == H.chooser(), "seats: a car the cabin cannot lay out gets ZeD's seat chooser", tostring(w and w.Type))
     local n = 0
     pcall(function() n = S.v:getMaxPassengers() end)
     local seats = (w and w._seats) or {}
@@ -333,7 +340,8 @@ end)
 Q.step(10, function()
     if not H.inCar() then return end
     Q.check(H.seatWin() == nil, "seats: it closes")
-    H.setDash(1)
+    if S.popWas then S.Seats.popToggle = S.popWas; S.popWas = nil end
+    H.setStyle(2)
 end)
 Q.step(5, function()
     if not H.inCar() then return end
@@ -341,7 +349,7 @@ Q.step(5, function()
 end)
 Q.waitFor(5, 300, function() return not H.inCar() or H.vis(H.popout()) or H.vis(H.chooser()) end, function(ok)
     if not H.inCar() then return end
-    Q.check(ok and H.vis(H.popout()) and not H.vis(H.chooser()), "seats: on the Immersive dash the seat key opens the cabin pop-out",
+    Q.check(ok and H.vis(H.popout()) and not H.vis(H.chooser()), "seats: in Lite the seat key opens the cabin pop-out",
         "pop-out " .. tostring(H.vis(H.popout())) .. ", chooser " .. tostring(H.vis(H.chooser())))
     RT.bounds(Q, "the seat pop-out")
     pcall(function() local w = H.popout(); if H.vis(w) then w:close() end end)
@@ -350,7 +358,7 @@ end)
 Q.step(10, function()
     if not H.inCar() then return end
     Q.check(not H.vis(H.popout()), "seats: the cabin pop-out closes")
-    H.putDash()
+    H.putStyle()
 end)
 
 -- ===================================================================== the siren
@@ -515,7 +523,7 @@ Q.step(5, function()
     end
     pcall(function() S.p:StopAllActionQueue() end)
     pcall(function() local w = H.popout(); if H.vis(w) then w:close() end end)
-    H.putDash()
+    H.putStyle()
     RT.worldTab("loot")
 end)
 Q.step(10, function()

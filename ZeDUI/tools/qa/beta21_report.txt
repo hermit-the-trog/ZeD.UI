@@ -1,0 +1,16 @@
+# ZeDUI/tools/qa/beta21_report.txt (Nov 19 2026, QA): the beta 21 visual report's in-game pictures (beta21_report.lua),
+# on the 1.0 gallery's staging (Angel at the Fossoil, glasses, daylight, debug hidden). 4K only.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_story_stage.lua | sts | timeout=600
+gallery_unload.lua | unl | timeout=60
+gallery_v1_a_common.lua | g1c | timeout=60
+beta21_report.lua | b21r | timeout=1500
+gallery_reload.lua | rel | timeout=60
+gallery_story_teardown.lua | stt | timeout=600
+gallery_v1_a_end.lua | g1e | timeout=60
+gallery_t14_end.lua | g14e | timeout=60

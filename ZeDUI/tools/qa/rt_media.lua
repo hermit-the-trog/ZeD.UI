@@ -206,7 +206,7 @@ function H.portable(m)
         -- it away; then the D-pad wheel's Radio slices for the set in hand (ZeD.DpadWheels.H.radio, each taken as the
         -- wheel takes a slice, D.take): on, Next station, off)
         Q.step(3, function()
-            local o = ZeD.Settings and ZeD.Settings.devicesStyleOption
+            local o = ZeD.Settings and ZeD.Settings.lookStyleOption
             if o and S.devWas == nil then pcall(function() S.devWas = o:getValue() end) end
             if o then pcall(function() o:setValue(1) end) end
         end)
@@ -439,7 +439,7 @@ end)
 Q.step(10, function()
     if not S.tv then return end
     Q.check(not H.on(S.tv), "the TV: power again turns it off")
-    local o = ZeD.Settings and ZeD.Settings.devicesStyleOption
+    local o = ZeD.Settings and ZeD.Settings.lookStyleOption
     if o and S.devWas == nil then pcall(function() S.devWas = o:getValue() end) end
     if o then pcall(function() o:setValue(1) end) end
     pcall(function() Mouse.setXY(20, 20) end)
@@ -1388,7 +1388,7 @@ function H.putGuide()
     pcall(function() local w = ZeD.Guide.get(pn); if w and w:isReallyVisible() then w:close() end end)
     pcall(function() if H.bookOpen() then ZeD.GuideBook.close(pn) end end)
     if H.pauseMenuUp() and ToggleEscapeMenu then pcall(ToggleEscapeMenu, Keyboard.KEY_ESCAPE) end
-    pcall(function() ZeD.Settings.guideStyleOption:setValue(S.g.style or 1) end)
+    pcall(function() ZeD.Settings.lookStyleOption:setValue(S.g.style or 1) end)
     if ZeD.GuideBubble then ZeD.GuideBubble.st = S.g.bubble end
     pcall(function()
         local core = getCore()
@@ -1399,10 +1399,10 @@ end
 Q.step(10, function()
     local core = getCore()
     S.g = { startup = core:getOptionShowSurvivalGuide(), bubble = ZeD.GuideBubble and ZeD.GuideBubble.st }
-    pcall(function() S.g.style = ZeD.Settings.guideStyleOption:getValue() end)
+    pcall(function() S.g.style = ZeD.Settings.lookStyleOption:getValue() end)
     S.gBack = true
     if ZeD.GuideBubble then ZeD.GuideBubble.st = nil end
-    pcall(function() ZeD.Settings.guideStyleOption:setValue(1) end)
+    pcall(function() ZeD.Settings.lookStyleOption:setValue(1) end)
     pcall(function() Mouse.setXY(20, 20) end)
     if not (ZeD.Guide and ZeD.GuideBook and ZeD.Guide.useBook()) then
         S.bookSkip = true
@@ -1558,7 +1558,7 @@ end)
 -- the Simple look: the guide window, closed by Escape
 Q.step(5, function()
     if S.escSkip then return end
-    pcall(function() ZeD.Settings.guideStyleOption:setValue(2) end)
+    pcall(function() ZeD.Settings.lookStyleOption:setValue(2) end)
     ZeD.Guide.open(pn)
 end)
 Q.waitFor(3, 120, function() local w = ZeD.Guide.get(pn); return S.escSkip or (w ~= nil and w:isReallyVisible()) end, function(ok)
@@ -1709,7 +1709,7 @@ end)
 Q.mark()
 Q.step(5, function()
     H.clearQueue()
-    pcall(function() if S.devWas ~= nil then ZeD.Settings.devicesStyleOption:setValue(S.devWas) end end)
+    pcall(function() if S.devWas ~= nil then ZeD.Settings.lookStyleOption:setValue(S.devWas) end end)
     pcall(function() local w = H.CW(); if w and S.thWas then w._thermalPick = S.thWas end end)
     pcall(function() local w = H.CW(); if w and w._hb then w._hb.wantScroll = nil end end)
     pcall(function() local r = ZeD.Reader.get(pn); if r and r:isReallyVisible() then r:close() end end)

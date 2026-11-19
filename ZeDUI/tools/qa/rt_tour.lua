@@ -157,8 +157,15 @@ Q.step(2, function()
     Q.check(s:find("3", 1, true) ~= nil and s:find("7", 1, true) ~= nil, "words: the step count fills in its numbers", s)
 end)
 
--- 2. the whole tour with the mouse
+-- 2. the whole tour with the mouse, from both windows shut (a first game: the tour must open what each step shows;
+-- Nov 19 2026, QA, the beta 21 report run found steps 3 to 6 passed over when the windows had been opened and shut)
 Q.step(2, function()
+    if RT.isOpen() then pcall(ZeD_CharacterWindow.toggleBothPaired, RT.pn) end
+    pcall(function() if RT.isOpen() then ZeD_CharacterWindow.toggle(RT.pn) end end)
+    pcall(function() if H.vis(RT.ww()) then ZeD_WorldWindow.close(RT.pn) end end)
+end)
+Q.step(10, function()
+    Q.check(not H.vis(RT.cw()) and not H.vis(RT.ww()), "mouse: both windows are shut before the tour starts")
     H.watchStart()
     H.writeWord("1")
     S.visited = {}
@@ -202,6 +209,7 @@ for i = 1, 7 do
         local k = { x = R.keys:getX(), y = R.keys:getY(), w = R.keys:getWidth(), h = R.keys:getHeight() }
         Q.check(R.keys:getIsVisible() and H.onScreen(k), name .. ": the keys are shown, on screen", H.rs(k))
         Q.check(H.overlap(k, L.box) == 0, name .. ": the keys sit off the balloon", "keys " .. H.rs(k) .. ", balloon " .. H.rs(L.box))
+        Q.check(H.overlap(k, tgt) == 0, name .. ": the keys do not cover its thing", "keys " .. H.rs(k) .. ", thing " .. H.rs(tgt))
         local want = (idx == #TU.STEPS) and H.tr("UI_ZeD_Tut_Done") or H.tr("UI_ZeD_Tut_Next")
         Q.check(R.keys.nextWord == want, name .. ": its key reads " .. tostring(want), R.keys.nextWord)
         if st.key == "Char" then Q.check(H.vis(RT.cw()), name .. ": the Character window is open") end

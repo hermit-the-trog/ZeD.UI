@@ -1,3 +1,5 @@
+-- (Nov 19 2026, QA: OUT OF DATE since beta 21. This script sets the retired per-piece Simple switches, which nothing reads
+-- now (one Style switch, ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). Its Simple legs run against Full. Do not reuse as is.)
 -- ZeDUI/tools/qa/zedqa_all_simple.lua  (Nov 2 2026, QA; the beta checklist, part C): every Full or simple row on Simple
 -- for the rest of the run (the runner puts the director's ModOptions.ini back after): Belt, Action bar, Context menu
 -- (the list), Equip view (the list), Devices, Watch, Dashboard. grep "ZEDQA asp".

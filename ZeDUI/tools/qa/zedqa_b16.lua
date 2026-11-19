@@ -1,3 +1,5 @@
+-- (Nov 19 2026, QA: OUT OF DATE since beta 21. This script sets the retired per-piece Simple switches, which nothing reads
+-- now (one Style switch, ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). Its Simple legs run against Full. Do not reuse as is.)
 -- ZeDUI/tools/qa/zedqa_b16.lua  (Nov 15 2026, QA): beta 16's new pieces in the game, with pictures for the director.
 -- The face pop-outs (an oven, a microwave, a TV placed beside the character, opened through FacePop.open, the way
 -- a click or A at the machine opens them): the frameless face shows, B / the same machine again puts it away.
