@@ -1,0 +1,16 @@
+# ZeDUI/tools/qa/gallery_v1_route.txt  (Nov 18 2026, QA): the 1.0 gallery's chapter 34 "The Route" retake
+# (NOTE_for_QA_gallery_retakes_20261118.md, item 5): story_03_route_map and story_03b_route_note at the same West Point
+# Fossoil spot and setup as beta 19, on beta 20's revised Survey map. Dark, PZ Teal, 4K at 1.75x, the glasses fix.
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest gallery_v1_route.txt -Report gallery_v1_route   (QA only)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_v1_route_only.lua | rto | timeout=60
+gallery_story_stage.lua | sts | timeout=600
+gallery_nov1_story.lua | n1s | timeout=1080
+gallery_story_teardown.lua | stt | timeout=600
+gallery_b11_look.lua | g14l2 | timeout=60
+gallery_t14_end.lua | g14e | timeout=60
