@@ -15,12 +15,14 @@ S.v.p, S.v.pn = C2.p, C2.pn
 S.v.icons = {}
 function S.v.moveTo(x, y) pcall(function() S.v.p:setX(x); S.v.p:setY(y); S.v.p:setLastX(x); S.v.p:setLastY(y) end) end
 function S.v.face()
-    local x, y = S.v.hx + 3.5, S.v.hy - 0.5
+    local x, y = S.v.hx + 3.5, S.v.hy + 0.5   -- (between the spotted find "one" and the unspotted "two")
     if not pcall(function() S.v.p:faceLocationF(x, y) end) then pcall(function() S.v.p:faceLocation(x, y) end) end
     pcall(function() S.v.p:setForwardDirection(x - S.v.p:getX(), y - S.v.p:getY()) end)
 end
 -- a find, made and kept as the game makes its forage pins (zedqa_forage_pointer.lua's S.mk)
-function S.v.mk(kind, dx, dy)
+-- (Nov 18 2026, the director: the hand points only at finds not pinned yet (Build 1e5e438e6). "unspotted" stops this
+-- find's spot timer so it stays in sight and unspotted, the moment a player sees the hand, and the shot can hold it.)
+function S.v.mk(kind, dx, dy, unspotted)
     local mgr, zone = S.v.mgr, S.v.zone
     local sq = getCell():getGridSquare(S.v.px + dx, S.v.py + dy, 0)
     if not (sq and S.v.ty and mgr and zone) then S.say("not staged: " .. kind); return nil end
@@ -34,7 +36,7 @@ function S.v.mk(kind, dx, dy)
     mgr.worldObjectIcons[id] = o
     o:doUpdateEvents(true)
     o:addToUIManager()
-    o:spotIcon()
+    if unspotted then o.updateSpotTimer = function() end else o:spotIcon() end
     S.v.icons[#S.v.icons + 1] = o
     return o
 end
@@ -66,9 +68,11 @@ S.step(5, function()
     if getGameSpeed() <= 0 then setGameSpeed(1) end
     C2.rule()
     S.v.tod = getGameTime():getTimeOfDay()
-    S.v.moveTo(925.5, 13040.5)
-    S.v.hx, S.v.hy = 925.5, 13040.5
-    S.v.px, S.v.py = 925, 13040
+    -- (Nov 18 2026, the director: nothing in front of the character; the open ground east of the shed, as
+    -- gallery_v1_forage_compare.lua, in place of the tile beside the shed)
+    S.v.moveTo(931.5, 13045.5)
+    S.v.hx, S.v.hy = 931.5, 13045.5
+    S.v.px, S.v.py = 931, 13045
     getGameTime():setTimeOfDay(12.0)
     S.v.mgr = ISSearchManager.getManager(S.v.p)
     S.v.searchWas = S.v.mgr and S.v.mgr.isSearchMode == true
@@ -77,7 +81,7 @@ S.step(5, function()
         for _, c in ipairs(d.categories or {}) do if c == "Mushrooms" then inCat = true end end
         if inCat and pcall(instanceItem, t) and (not S.v.ty or t < S.v.ty.type) then S.v.ty = { type = t, cat = "Mushrooms" } end
     end
-    S.say("at 925,13040, noon; search mode was " .. tostring(S.v.searchWas) .. "; find type " .. tostring(S.v.ty and S.v.ty.type))
+    S.say("at 931,13045, noon; search mode was " .. tostring(S.v.searchWas) .. "; find type " .. tostring(S.v.ty and S.v.ty.type))
     C2.pairOpen()
 end)
 S.waitFor(10, 300, function() return C2.worldTab("forage") end, function(ok) S.v.tabOk = ok; S.say("the Foraging tab open " .. tostring(ok)) end)
@@ -98,7 +102,7 @@ end)
 -- the finds (zedqa_forage_pointer.lua's several: one ahead right, three round), then the step back and the facing
 S.step(20, function()
     S.v.mk("one", 3, -1)
-    S.v.mk("two", -2, 2)
+    S.v.mk("two", 3, 2, true)        -- not spotted yet: the hand points at it
     S.v.mk("three", 1, 3)
     S.v.mk("four", -3, -2)
     S.v.moveTo(S.v.hx - 1, S.v.hy)

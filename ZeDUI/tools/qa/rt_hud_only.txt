@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/rt_hud_only.txt  (Nov 18 2026, QA): the release test's HUD script alone, to prove a change before the full run.
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+rt_hud.lua | rt_hud | timeout=1800

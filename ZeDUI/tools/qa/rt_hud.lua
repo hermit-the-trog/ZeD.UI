@@ -302,11 +302,20 @@ Q.step(10, function()
     pcall(function() S.p:setPrimaryHandItem(S.hk.hands[1]); S.p:setSecondaryHandItem(S.hk.hands[2]) end)
     S.closeMenu()
 end)
+-- (Nov 18 2026: the belt shows the Messages note only while ZeD.Messages holds a note (ZeD_Belt: count() > 0). In the
+-- full run an earlier area leaves one; run alone there is none. The check stages its own note and clears it after.)
+Q.step(5, function()
+    local M = ZeD.Messages
+    if M and M.count() == 0 then
+        pcall(function() M.add("ZeDQA rt_hud", "mods", { head = "QA", text = "a note for the belt's Messages note check" }) end)
+        S.msgStaged = true
+    end
+end)
 Q.step(5, function()
     local hud = S.hud()
     local _, b = S.boxIdx("lamp")
     local MW = ZeD.MessagesWindow
-    if not Q.check(hud ~= nil and b ~= nil and MW ~= nil, "belt: the Messages note is on the belt") then S.lampSkip = true; return end
+    if not Q.check(hud ~= nil and b ~= nil and MW ~= nil, "belt: the Messages note is on the belt") then S.lampSkip = true; if S.msgStaged then pcall(function() ZeD.Messages.clear("ZeDQA rt_hud") end); S.msgStaged = nil end; return end
     local w0 = MW.get(S.pn)
     S.msgWas = w0 ~= nil and w0:isReallyVisible()
     S.toastsWas = Z.Messages.toasts   -- (the window's open clears the toasts: put back after)
@@ -328,6 +337,7 @@ end, function(ok)
     Q.check(hud ~= nil and ax ~= nil and ax >= hud:getX() and ax <= hud:getX() + hud:getWidth() and ay >= hud:getY() and ay <= hud:getY() + hud:getHeight(),
         "belt: the note's anchor is a point on the belt", tostring(ax) .. "," .. tostring(ay))
     S.putLamp()
+    if S.msgStaged then pcall(function() ZeD.Messages.clear("ZeDQA rt_hud") end); S.msgStaged = nil end
 end)
 function S.putLamp()
     if not S.back.lamp then return end
@@ -950,11 +960,16 @@ function S.F.mark(o)
 end
 function S.F.side(o) return ((o.xCoord - S.p:getX()) - (o.yCoord - S.p:getY()) >= 0) and "right" or "left" end
 function S.F.want(side) return side == "right" and "zed_forage_hand_up_a" or "zed_forage_hand_up_b" end
-function S.F.mk(dx, dy)
+-- (Nov 18 2026, the director: "The hand should be pointing at things that aren't pinned yet." Build's 1e5e438e6:
+-- a spotted find (any pin) has an empty pointer; the hand shows only while a find in sight is not spotted yet. The
+-- game spots a find in sight after its spot timer; "unspotted" stops that timer for this one test find so it stays
+-- in sight and unspotted, the state a player sees for a moment.)
+function S.F.hold(o) o.updateSpotTimer = function() end end
+function S.F.mk(dx, dy, unspotted, tag)
     local F = S.F
     local sq = getCell():getGridSquare(F.px + dx, F.py + dy, F.pz)
     if not (sq and F.ty) then return nil end
-    local id = "zedqa_rthud_find"
+    local id = "zedqa_rthud_find" .. (tag or "")
     local fi = { id = id, zoneid = F.zone.id, x = sq:getX(), y = sq:getY(), z = sq:getZ(), catName = F.ty.cat, itemType = F.ty.type,
         isBonusIcon = false, canRollForSearchFocus = false }
     local o = ISForageIcon:new(F.mgr, fi, F.zone)
@@ -972,7 +987,7 @@ function S.F.mk(dx, dy)
     F.mgr.worldObjectIcons[id] = o
     o:doUpdateEvents(true)
     o:addToUIManager()
-    o:spotIcon()
+    if unspotted then F.hold(o) else o:spotIcon() end
     F.icons[#F.icons + 1] = o
     return o
 end
@@ -1011,7 +1026,7 @@ function S.F.lay(dx, dy, ft)
     F.ground[#F.ground + 1] = { sq = sq, it = it }
     return sq, it, wi
 end
-function S.F.mkGround(dx, dy, track)
+function S.F.mkGround(dx, dy, track, unspotted)
     local F = S.F
     local sq, it, wi = F.lay(dx, dy, "Base.Pencil")
     if not sq then return nil, "no thing could be laid on the ground" end
@@ -1039,7 +1054,7 @@ function S.F.mkGround(dx, dy, track)
     F.mgr.worldObjectIcons[o.iconID] = o
     o:doUpdateEvents(true)
     o:addToUIManager()
-    o:spotIcon()
+    if unspotted then F.hold(o) else o:spotIcon() end
     F.icons[#F.icons + 1] = o
     return o
 end
@@ -1222,11 +1237,12 @@ Q.step(30, function()
 end)
 Q.step(10, function()
     local F = S.F
-    F.one = F.mk(3, -1)
+    F.one = F.mk(3, -1)                     -- spotted: its pin shows, its pointer is empty
+    F.raw = F.mk(3, 1, true, "_raw")         -- in sight, not spotted yet: the hand
     local okG, okT
-    okG, F.gnd, F.gndWhy = pcall(F.mkGround, 2, 0, false)   -- (Build: 2 tiles, well inside the radius; at 3 the float distance sat on its edge)
+    okG, F.gnd, F.gndWhy = pcall(F.mkGround, 2, 0, false, true)   -- (Build: 2 tiles, well inside the radius; at 3 the float distance sat on its edge)
     if not okG then F.gndWhy, F.gnd = F.gnd, nil end
-    okT, F.trk, F.trkWhy = pcall(F.mkGround, 2, -1, true)
+    okT, F.trk, F.trkWhy = pcall(F.mkGround, 2, -1, true, true)
     if not okT then F.trkWhy, F.trk = F.trk, nil end
     S.moveTo(F.hx - 1, F.hy)
 end)
@@ -1238,9 +1254,12 @@ Q.step(60, function()
     local F = S.F
     local o = F.one
     if not Q.check(o ~= nil, "forage: a find is staged", F.ty and F.ty.type) then return end
-    local r = F.mark(o)
-    if Q.check(r ~= nil, "forage: the pointer to the find is up") then
-        Q.check(r.hand == F.want(F.side(o)), "forage: the pointer is ZeD's hand for the find's side", tostring(r.hand))
+    local r1 = F.mark(o)
+    Q.check(r1 ~= nil and r1.hand == "zed_forage_hand_none", "forage: a pinned find's pointer is empty (its pin marks it)", tostring(r1 and r1.hand))
+    local u = F.raw
+    local r = u and F.mark(u)
+    if Q.check(r ~= nil, "forage: the pointer to the find is up", "a find in sight, not spotted yet: " .. tostring(u ~= nil)) then
+        Q.check(r.hand == F.want(F.side(u)), "forage: the pointer is ZeD's hand for the find's side", tostring(r.hand))
         local hw, hh, ha = S.handSize()
         Q.check(math.floor((r.w or 0) + 0.5) == hw and math.floor((r.h or 0) + 0.5) == hh, "forage: the hand is its set size", math.floor((r.w or 0) + 0.5) .. " x " .. math.floor((r.h or 0) + 0.5) .. ", want " .. hw .. " x " .. hh)
         Q.check(math.abs((r.r or 0) - 1) < 0.01 and math.abs((r.a or 0) - ha) < 0.01, "forage: white at its set alpha", "alpha " .. tostring(r.a) .. ", want " .. ha)

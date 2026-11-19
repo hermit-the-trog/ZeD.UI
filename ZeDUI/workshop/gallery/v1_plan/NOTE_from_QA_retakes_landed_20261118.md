@@ -30,7 +30,13 @@ picture replaced is in `_replaced_20261118`.
 | `zed_08c_load_order_separators` | Chapter 8 | The Load order with the three separators; Enhanced Medical – Chronic Conditions red at 9 ("needs Enhanced Medical (10)"), its rule shown on the right, Done waiting. |
 | `zed_08d_seps_from_folders` | Chapter 8 (optional) | Just after "Replace separators with folders": five separators from the folders, "Nothing turned on or off." Retaken at 6 pm on Build's 2800b2651 (the director's call): mods in no folder keep their place, so Unfiled sits at the top with ZeD-GUI still first. All four chapter 8 pictures are from that same run. |
 
-## Not landed
+## Foraging, landed at 6 pm
+
+| Capture | Chapter | What it shows |
+|---|---|---|
+| `zed_51_forage` | 38, Foraging | Build's 1e5e438e6, the director's rule: the hand points only at finds not spotted yet; a spotted find shows only its pin. Angel in open ground east of the drag strip's shed (nothing in front of him), search mode on, the Foraging tab open. Six hands at 40% in a ring around him (the game's own pointer places), each for a find he has not spotted, so the game draws nothing where they point; three "?" pins on spotted finds. The director saw it and chose "Use this picture". |
+
+## Not landed (superseded: the section below is from before 6 pm)
 
 - **`zed_51_forage` (chapter 38):** on hold. The hand now follows the game's own pointer exactly (QA compared
   them side by side from the same spot). But the game puts a close find's pointer on a ring around the character,
