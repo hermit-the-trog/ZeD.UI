@@ -167,6 +167,9 @@ end)
 Q.step(10, function()
     Q.check(not H.vis(RT.cw()) and not H.vis(RT.ww()), "mouse: both windows are shut before the tour starts")
     H.watchStart()
+    -- (a Messages note staged, so the belt draws its lamp for step 7; cleared at Done)
+    local M = ZeD.Messages
+    if M and M.count and M.count() == 0 then pcall(function() M.add("ZeDQA rt_tour", "mods", { head = "QA", text = "a note for the tour's Messages step" }) end); S.msgStaged = true end
     H.writeWord("1")
     S.visited = {}
     TU.start(S.pn, "mouse")
@@ -213,6 +216,17 @@ for i = 1, 7 do
         local want = (idx == #TU.STEPS) and H.tr("UI_ZeD_Tut_Done") or H.tr("UI_ZeD_Tut_Next")
         Q.check(R.keys.nextWord == want, name .. ": its key reads " .. tostring(want), R.keys.nextWord)
         if st.key == "Char" then Q.check(H.vis(RT.cw()), name .. ": the Character window is open") end
+        if st.key == "Guide" then
+            -- (Nov 19 2026, the director's markup: step 7 points at the belt's Messages note, the HUD's "lamp" box;
+            -- the whole belt only when no note is drawn. A note is staged before the walk, so the lamp is drawn.)
+            local hud = ZeD.Belt and ZeD.Belt.getHUD and ZeD.Belt.getHUD(S.pn)
+            local lamp = nil
+            for _, b in ipairs((hud and hud._boxes) or {}) do if b.kind == "lamp" then lamp = b end end
+            local lr = nil
+            if hud and lamp then lr = { x = hud:getAbsoluteX() + lamp.x, y = hud:getAbsoluteY() + lamp.y, w = lamp.w, h = lamp.h } end
+            Q.check(lr ~= nil and math.abs(L.a.x - lr.x) < 2 and math.abs(L.a.y - lr.y) < 2 and math.abs(L.a.w - lr.w) < 2,
+                name .. ": it points at the belt's Messages note (the lamp box)", "anchor " .. H.rs(L.a) .. ", lamp " .. H.rs(lr))
+        end
         if st.key == "Card" then
             -- (Nov 19 2026: the card step opens an item's card, ensureCard; the director's "Yes, fix it first")
             local cw = RT.cw()
@@ -229,6 +243,7 @@ for i = 1, 7 do
 end
 -- 3. Done
 Q.step(6, function()
+    if S.msgStaged then pcall(function() ZeD.Messages.clear("ZeDQA rt_tour") end); S.msgStaged = nil end
     Q.check(not TU.running(), "Done: the last step's Done ends the tour", "visited " .. table.concat(S.visited, ", "))
     Q.check(not H.inUI(H.R().layer) and not H.inUI(H.R().keys), "Done: the balloon's layer and the keys are gone")
     Q.check(H.readWord() == "0", "Done: the file says \"0\", so the tour never comes back by itself", H.readWord())
@@ -301,6 +316,7 @@ Q.step(2, function()
     H.stop()
     if S.watchWas then TU.STEPS[2].target = S.watchWas; S.watchWas = nil end
     H.watchStop()
+    if S.msgStaged then pcall(function() ZeD.Messages.clear("ZeDQA rt_tour") end); S.msgStaged = nil end
     if S.wordAtStart ~= nil then H.writeWord(S.wordAtStart) end
     if S.charWas then RT.pairOpen() else RT.pairShut() end
     if not S.worldWas then

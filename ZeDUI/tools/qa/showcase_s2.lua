@@ -42,6 +42,10 @@ S.v.MOOD = { STRESS = 0.6, HUNGER = 0.45, THIRST = 0.45, BOREDOM = 0.6 }   -- (g
 S.v.SAY1 = "Last apple in Kentucky, probably."
 S.v.SAY2 = "Needs salt. Everything needs salt."
 S.v.TOWN = { x = 2427, y = 14185 }                -- Irvington's middle (MapsSurveyData.lua's town label)
+-- (Nov 19 2026, the director's markup on description picture 2: SC2_MAPAT { x, y, area = { x0, y0, x1, y1 } } centres
+-- the map elsewhere and reveals that area; SC2_MAPLOOK "light" takes the map shot in that theme (put back after);
+-- SC2_MAPNAME names the picture. showcase_s2_map_light.lua sets all three for the Fossoil at West Point.)
+if SC2_MAPAT then S.v.TOWN = { x = SC2_MAPAT.x, y = SC2_MAPAT.y } end
 
 -- ===================================================================== helpers
 function S.v.moveTo(x, y) pcall(function() S.v.p:setX(x); S.v.p:setY(y); S.v.p:setLastX(x); S.v.p:setLastY(y) end) end
@@ -444,10 +448,16 @@ S.step(20, function()
     -- (Build, Nov 18 2026: unvisited ground draws as fog patches; Irvington and the strip marked known AND visited)
     local okR = pcall(function()
         local v = WorldMapVisited.getInstance()
-        v:setKnownInSquares(0, 11800, 4400, 15900)
-        v:setVisitedInSquares(0, 11800, 4400, 15900)
+        local a = (SC2_MAPAT and SC2_MAPAT.area) or { 0, 11800, 4400, 15900 }
+        v:setKnownInSquares(a[1], a[2], a[3], a[4])
+        v:setVisitedInSquares(a[1], a[2], a[3], a[4])
     end)
-    S.say("Irvington and the strip revealed " .. tostring(okR))
+    S.say("the map's ground revealed " .. tostring(okR))
+    if SC2_MAPLOOK then
+        S.v.lookWas = { ZeD.currentBase, ZeD.currentAccent, ZeD.currentSize }
+        pcall(function() ZeD.applyTheme(SC2_MAPLOOK, ZeD.currentAccent, ZeD.currentSize) end)
+        S.say("look for the map: " .. tostring(ZeD.currentBase))
+    end
 end)
 S.waitFor(10, 300, function() return C2.worldTab("maps") end, function(ok) S.v.mapTab = ok; S.say("the Maps tab open " .. tostring(ok)) end)
 S.step(10, function()
@@ -479,7 +489,7 @@ S.step(10, function()
     if mp.style ~= "survey" then S.say("note: the map is on " .. tostring(mp.style)) end
     pcall(function() S.say(string.format("map on screen: panel %d,%d %dx%d", math.floor(mp:getAbsoluteX()), math.floor(mp:getAbsoluteY()),
         math.floor(mp:getWidth()), math.floor(mp:getHeight()))) end)
-    C2.shot(S, "sc2_map")
+    C2.shot(S, SC2_MAPNAME or "sc2_map")
 end)
 S.step(10, function()
     local w = C2.ww()
@@ -490,7 +500,8 @@ S.step(10, function()
     S.v.tall(false)
     if S.v.mapWWas and w then pcall(function() w:setWidth(S.v.mapWWas); w:onResize() end); S.v.mapWWas = nil end
     C2.worldTab("loot")
-    S.say("map put back: style " .. tostring(want) .. ", window heights")
+    if S.v.lookWas then pcall(function() ZeD.applyTheme(S.v.lookWas[1], S.v.lookWas[2], S.v.lookWas[3]) end); S.v.lookWas = nil end
+    S.say("map put back: style " .. tostring(want) .. ", window heights, look " .. tostring(ZeD.currentBase))
 end)
 end
 

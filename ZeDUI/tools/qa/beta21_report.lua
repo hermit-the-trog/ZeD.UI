@@ -379,6 +379,8 @@ end)
 -- tour_14 .. tour_20: each balloon (the tour opens what each step shows)
 Q.step(10, function()
     G1.tp(S.P.stock, "SE")
+    -- (a Messages note, so the belt draws its lamp: the tour's step 7 points at it)
+    if ZeD.Messages and ZeD.Messages.count() == 0 then pcall(function() ZeD.Messages.add("ZeDQA b21r", "mods", { head = "Dishes", text = "Dishes 1.0.2 is up to date." }) end); S.msgStaged = true end
     S.tourOk = TU and pcall(TU.start, S.pn, "mouse") or false
     Q.say("tour started " .. tostring(S.tourOk and TU.running()))
 end)
@@ -393,7 +395,10 @@ for i = 1, 7 do
         else Q.notTaken(n, "the tour is not running") end
     end)
 end
-Q.step(10, function() if TU and TU.running() then pcall(TU.stop) end end)
+Q.step(10, function()
+    if TU and TU.running() then pcall(TU.stop) end
+    if S.msgStaged then pcall(function() ZeD.Messages.clear("ZeDQA b21r") end); S.msgStaged = nil end
+end)
 -- lite_05: a pickup with the engine running (the Dash Elite)
 Q.step(10, function()
     S.closePair()

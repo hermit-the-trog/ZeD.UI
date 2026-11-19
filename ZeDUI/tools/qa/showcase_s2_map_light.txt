@@ -1,0 +1,14 @@
+# ZeDUI/tools/qa/showcase_s2_map_light.txt (Nov 19 2026, QA): the description picture 2 map in Light at the Fossoil (showcase_s2_map_light.lua).
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest showcase_s2_map_light.txt -Report showcase_s2_map_light   (QA only)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_unload.lua | unl | timeout=60
+gallery_v1_c2_common.lua | gv1c | timeout=60
+showcase_s2_map_light.lua | s2l | timeout=60
+showcase_s2.lua | sc2 | timeout=1200
+gallery_reload.lua | rel | timeout=60
+gallery_t14_end.lua | g14e | timeout=60
