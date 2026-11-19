@@ -22,7 +22,7 @@
 --   * the order check: a mod that needs one under a later separator is red, and the band offers
 --     Move it up (the needed mod to the end of the section above)
 --   * Start separators from folders: one separator per folder with mods on, in the folders'
---     order, holding only those mods, then Unfiled; each section sorted by the mods' own rules;
+--     order, holding only those mods, with Unfiled in its place; each section in its mods' own order;
 --     asks first when the list has separators. Folders and separators never change each other. The mods in no folder
 --     keep their place under Unfiled (the director, Nov 18 2026).
 --   * built for 1,500 mods: the list's entries are worked out once per change (with the order
@@ -1059,8 +1059,11 @@ function ZeD_MMMods:sepFromFolders(confirmed)
     self.oLo.seps, self.oLo.top = seps, {}
     self.oOffHere = {}
     self.oSepSel, self.oHeldSel = nil, nil
-    -- (each section sorted by the mods' own rules, never across a separator; nothing on or off)
-    self:orderLayout(true)
+    -- (each section keeps its mods in the order they had: the director, Nov 18 2026, "it never quietly changes what
+    -- wins". Laid out with Auto, the sections were sorted by the game's rule sort, which goes by mod id first, so
+    -- Expanded Media jumped ahead of ZeD-GUI. A mod that breaks its own rules there shows red in the check, as
+    -- anywhere; nothing on or off.)
+    self:orderLayout(false)
     local res = self:orderCheck()
     local made = ZeD.tr(#seps == 1 and "UI_ZeD_Seps_ProfCountOne" or "UI_ZeD_Seps_ProfCountMany", #seps)
     if res.nBad > 0 then self:say(ZeD.tr(res.nBad == 1 and "UI_ZeD_Seps_SayFromFoldersRedOne" or "UI_ZeD_Seps_SayFromFoldersRed", made, res.nBad))
