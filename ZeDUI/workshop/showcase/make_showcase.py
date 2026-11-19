@@ -141,7 +141,38 @@ def slot4():
     return canvas
 
 
-SLOTS = {1: ("two_windows", slot1), 4: ("mod_manager", slot4)}
+def slot2():
+    """Gadgets you can hold; Know where you stand."""
+    global SHOTS
+    SHOTS = SC
+    top, s = top_shot("sc2_context.png")
+    inset_h = 240
+    H = top.height + PAD + inset_h + PAD
+    canvas = Image.new("RGB", (W, H), BG)
+    canvas.paste(top, (0, 0))
+    d = ImageDraw.Draw(canvas)
+    health = scaled((8, 40, 900, 700), s)
+    radio = scaled((2920, 60, 3740, 700), s)
+    note = scaled((1840, 890, 2200, 1010), s)
+    moodle = scaled((1640, 1770, 1990, 2010), s)
+    outline(d, health)
+    outline(d, radio)
+    outline(d, note, 3)
+    outline(d, moodle, 3)
+    chip(d, health[0], health[3] + 8, "HEALTH AT A GLANCE", 20)
+    chip(d, radio[2], radio[3] + 8, "A RADIO YOU CAN HOLD", 20, "rt")
+    chip(d, note[2] + 10, note[1], "NOTES OVER YOUR HEAD", 16)
+    chip(d, moodle[0] - 10, moodle[1], "MOODLES WHERE YOU WANT THEM", 16, "rt")
+    inset_row(canvas, d, top.height + PAD, [
+        ("sc2_watch_radio.png", (1420, 1620, 1700, 2010), "WATCH", []),
+        ("sc2_forage.png", (1700, 850, 2250, 1350), "FORAGING", []),
+        ("sc2_map.png", (2920, 200, 3760, 1640), "MAP", []),
+        ("sc2_dash_radio.png", (1100, 1480, 2700, 2160), "DASHBOARD AND CAR RADIO", []),
+    ], inset_h)
+    return canvas
+
+
+SLOTS = {1: ("two_windows", slot1), 2: ("gadgets", slot2), 4: ("mod_manager", slot4)}
 
 
 def main():
