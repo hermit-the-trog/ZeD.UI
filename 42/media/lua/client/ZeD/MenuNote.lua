@@ -12,6 +12,6 @@
 -- ============================================================================
 
 ZeD = ZeD or {}
-ZeD.MenuNote = { "LIGHT TIPS", "FORAGING", "PAD CARDS", "FIXES" }
+ZeD.MenuNote = { "LITE MODE", "KEY MAP", "SETUP", "TOUR", "FIXES" }
 
 return ZeD.MenuNote
