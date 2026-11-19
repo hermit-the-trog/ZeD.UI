@@ -11,7 +11,7 @@
 --   lite_05_dash       in a pickup with the engine running (the Dash Elite)
 --   lite_06_watch      the corner clock with its speed row, windows shut
 --   kbmap_11           the Keyboard map, a key picked and its action's key box listening
---   tour_14 .. tour_20 each of the tour's seven balloons
+--   tour_14 .. tour_24 each of the tour's eleven balloons
 --   full_10_same       lite_01's moment with Style = Full
 -- What it puts back: Style as found (picked the same way, ZeD setup and Apply), the radio, hammer and pickup taken
 -- away, the microwave removed, the tour stopped, the windows open or shut as found. grep "ZEDQA b21r".
@@ -351,6 +351,45 @@ Q.step(10, function()
     S.micro = nil
     S.worldTab("loot")
 end)
+-- map_light_25: Dark, Map: Always light, the Survey map on the World window's Maps tab, centred on the Fossoil
+-- (Nov 19 2026, beta 21's mapLight; the theme, the option, the map's style and the window put back after)
+Q.step(10, function()
+    S.closePair()
+    S.openPair()
+    S.mapWas = { base = ZeD.currentBase, accent = ZeD.currentAccent, size = ZeD.currentSize, opt = St.mapLightOption and St.mapLightOption:getValue() }
+    if ZeD.currentBase ~= "dark" then pcall(function() ZeD.applyTheme("dark", ZeD.currentAccent, ZeD.currentSize) end) end
+    pcall(function() St.mapLightOption:setValue(2) end)
+    pcall(function()
+        local v = WorldMapVisited.getInstance()
+        v:setKnownInSquares(10800, 6000, 13400, 8300)
+        v:setVisitedInSquares(10800, 6000, 13400, 8300)
+    end)
+end)
+Q.waitFor(10, 300, function() return S.worldTab("maps") end, function(ok)
+    S.mapTab = ok
+    local mp = S.WW() and S.WW()._worldMapPanel
+    S.mapStyleWas = mp and mp.style
+    pcall(function() ZeD.MapsTab.setStyle(S.WW(), "survey") end)
+end)
+Q.step(40, function()
+    local mp = S.WW() and S.WW()._worldMapPanel
+    pcall(function() mp.mapAPI:centerOn(12060, 7121); mp:_zoomTo(15.75) end)
+    S.clearChar()
+end)
+Q.step(90, function() end)
+Q.still(10, function()
+    local key = ZeD.MapsSurvey and ZeD.MapsSurvey.key and ZeD.MapsSurvey.key()
+    Q.say("map: tab " .. tostring(S.mapTab) .. ", theme " .. tostring(ZeD.currentBase) .. ", map palette " .. tostring(key))
+    if S.mapTab and key == "light" then S.shot("map_light_25") else Q.notTaken("map_light_25", "tab " .. tostring(S.mapTab) .. ", palette " .. tostring(key)) end
+end)
+Q.step(10, function()
+    local W = S.mapWas or {}
+    pcall(function() ZeD.MapsTab.setStyle(S.WW(), S.mapStyleWas or "survey") end)
+    pcall(function() if W.opt then St.mapLightOption:setValue(W.opt) end end)
+    if W.base and W.base ~= ZeD.currentBase then pcall(function() ZeD.applyTheme(W.base, W.accent, W.size) end) end
+    S.worldTab("loot")
+    S.closePair()
+end)
 -- kbmap_11: the Keyboard map, a key picked, its action listening
 Q.step(10, function()
     S.closePair()
@@ -384,7 +423,7 @@ Q.step(10, function()
     S.tourOk = TU and pcall(TU.start, S.pn, "mouse") or false
     Q.say("tour started " .. tostring(S.tourOk and TU.running()))
 end)
-for i = 1, 7 do
+for i = 1, #((TU and TU.STEPS) or {}) do
     Q.step(40, function() end)
     Q.still(10, function()
         local n = string.format("tour_%02d", 13 + i)

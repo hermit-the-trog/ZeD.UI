@@ -528,6 +528,30 @@ Q.step(20, function()
     if H.cardOn(S.pencil) then H.click(S.pencil) end
 end)
 
+-- ===================================================================== map always light
+-- (Nov 19 2026, QA: the FEATURE_MAP row "Map always light"; Settings.lua mapLight, MapsSurvey.lua M.key. Dark with
+-- Always light reads light; Follows the theme reads dark; High contrast keeps its own either way. The theme and the
+-- option put back after.)
+Q.step(5, function()
+    local MS = ZeD.MapsSurvey
+    local o = St.mapLightOption
+    if not (MS and MS.key and o and St.mapLight) then Q.check(false, "Map always light: the mapLight option and MapsSurvey.key are loaded"); return end
+    local was = { ZeD.currentBase, ZeD.currentAccent, ZeD.currentSize, o:getValue() }
+    local r = {}
+    pcall(function()
+        ZeD.applyTheme("dark", was[2], was[3])
+        o:setValue(2); r.dOn = MS.key()
+        o:setValue(1); r.dOff = MS.key()
+        ZeD.applyTheme("hicon", was[2], was[3])
+        o:setValue(2); r.hOn = MS.key()
+    end)
+    pcall(function() o:setValue(was[4]); ZeD.applyTheme(was[1], was[2], was[3]) end)
+    Q.check(r.dOn == "light", "Map always light: in Dark, Always light reads the Light map", tostring(r.dOn))
+    Q.check(r.dOff == "dark", "Map always light: in Dark, Follows the theme reads the Dark map", tostring(r.dOff))
+    Q.check(r.hOn == "hicon", "Map always light: High contrast keeps its own map", tostring(r.hOn))
+    Q.check(ZeD.currentBase == was[1] and o:getValue() == was[4], "Map always light: the theme and the option put back", tostring(ZeD.currentBase))
+end)
+
 -- ===================================================================== put back
 Q.mark()
 Q.step(10, function()

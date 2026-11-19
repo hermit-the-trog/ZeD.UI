@@ -102,14 +102,49 @@ at(25, function()
     K.shot("lite_08_desk")
 end)
 at(30, function() MM.ctx.open = nil; MM.openMods() end)
+-- (Nov 19 2026, beta 21's folder colors: four folders made and colored for the pictures, as a player sorts them.
+-- The director's ModFolders.cfg and ZeD_folder_colors.txt are put back byte for byte by zedqa_menu_mods_run.ps1.)
+at(40, function()
+    local F, MMM = ZeD.ModFolders, ZeD_MMMods
+    local w = MM.root and MM.root.modsWin
+    if not (F and F.create and F.assign and MMM and MMM.setFolderColor and w) then say("ERR folders: the parts are not loaded"); fail = fail + 1; return end
+    local ids = {}
+    pcall(function() ids = w:visibleModIds() end)
+    local function nameOf(id) local n = ""; pcall(function() n = getModInfoByID(id):getName() end); return n end
+    local sets = { { "Survival", "blue", {} }, { "Looks", "green", {} }, { "Tools", "purple", {} }, { "Testing", "orange", {} } }
+    for _, id in ipairs(ids) do
+        local n = nameOf(id)
+        if n:find("dev only", 1, true) or n:find("QA", 1, true) then table.insert(sets[4][3], id)
+        elseif n:find("Spongie", 1, true) or n:find("picks", 1, true) then table.insert(sets[2][3], id)
+        elseif n:find("Console", 1, true) then table.insert(sets[3][3], id)
+        elseif not n:find("ZeD-GUI", 1, true) then table.insert(sets[1][3], id) end
+    end
+    keep.fids = {}
+    for _, s in ipairs(sets) do
+        local ok, fid = F.create(s[1])
+        if ok then F.assign(s[3], fid); MMM.setFolderColor(fid, s[2]); keep.fids[#keep.fids + 1] = fid end
+        say("folder " .. s[1] .. " " .. tostring(ok) .. ": " .. #s[3] .. " mods, " .. s[2])
+    end
+end)
 at(55, function()
     local w = MM.root and MM.root.modsWin
     say("Mods screen open " .. tostring(w ~= nil and w:isVisible()))
     K.shot("lite_09_mods")
 end)
-at(60, function()
+-- folders_26: Full style, the same folders, the first folder's Color... menu open (the folder pane's way in)
+at(57, function() K.style(1) end)
+at(61, function()
+    local w = MM.root and MM.root.modsWin
+    local fid = keep.fids and keep.fids[1]
+    if w and fid and w.folderColorMenu then pcall(function() w:folderColorMenu(fid) end) end
+    say("Color menu open " .. tostring(MM.ctx and MM.ctx.open ~= nil))
+end)
+at(65, function() K.shot("folders_26") end)
+at(67, function()
+    MM.ctx.open = nil
     local w = MM.root and MM.root.modsWin
     if w then pcall(function() w:back() end) end
+    K.style(2)
 end)
 at(70, function() MM.openWelcome() end)
 at(95, function() K.press("way:1") end)

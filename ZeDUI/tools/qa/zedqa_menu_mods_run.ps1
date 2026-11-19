@@ -47,6 +47,13 @@ Write-T $Lock "busy"
 $keepDefault = Read-T $Default
 $keepOptions = Read-T $ModOptions
 $keepAuto = Read-T (Join-Path $Lua "zedqa.autoload")
+# (Nov 19 2026, QA: the folder color checks and the report's Mods picture write the director's ModFolders.cfg and
+# ZeD_folder_colors.txt: both kept as bytes and put back after, or removed when they were not there)
+$keepFiles = @{}
+foreach ($n in @("ModFolders.cfg", "ZeD_folder_colors.txt")) {
+    $f = Join-Path $Lua $n
+    $keepFiles[$n] = $(if (Test-Path -LiteralPath $f) { [IO.File]::ReadAllBytes($f) } else { $null })
+}
 try {
     $mapLines = ""
     if ($Maps) { $mapLines = ((@(Get-Content $Maps | ForEach-Object { $_.Trim() } | Where-Object { $_ }) + @("Muldraugh, KY") | ForEach-Object { "    map = $_," }) -join "`r`n") + "`r`n" }
@@ -91,6 +98,14 @@ finally {
     else {
         Write-T $Default $keepDefault; Write-T $ModOptions $keepOptions; Write-T (Join-Path $Lua "zedqa.autoload") $keepAuto
         Write-Output "default.txt, ModOptions.ini and autoload put back"
+        foreach ($n in $keepFiles.Keys) {
+            $f = Join-Path $Lua $n
+            if ($null -eq $keepFiles[$n]) { if (Test-Path -LiteralPath $f) { Remove-Item -LiteralPath $f -Force; Write-Output "$n removed (not there before)" } }
+            else {
+                $now = $(if (Test-Path -LiteralPath $f) { [IO.File]::ReadAllBytes($f) } else { $null })
+                if (-not ($now -and [Convert]::ToBase64String($now) -eq [Convert]::ToBase64String($keepFiles[$n]))) { [IO.File]::WriteAllBytes($f, $keepFiles[$n]); Write-Output "$n put back byte for byte" }
+            }
+        }
     }
     Write-T $Lock "free"
 }

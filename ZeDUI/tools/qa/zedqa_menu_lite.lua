@@ -148,6 +148,40 @@ at(75, function()
     end
     if w then pcall(function() w:back() end) end
 end)
+-- (Nov 19 2026, QA: the FEATURE_MAP row "Folder colors"; ZeD_MainMenuModsFolders.lua. A folder id no folder uses,
+-- 9999, so no real folder changes; ModFolders.cfg must not change at all. zedqa_menu_mods_run.ps1 puts both files back.)
+function K.lines(name)
+    local t = {}
+    pcall(function()
+        local r = getFileReader(name, false)
+        if not r then return end
+        local l = r:readLine()
+        while l do t[#t + 1] = l; l = r:readLine() end
+        r:close()
+    end)
+    return t
+end
+at(80, function()
+    local MMM = ZeD_MMMods
+    if not (MMM and MMM.setFolderColor and MMM.folderColorKey and MMM.folderTint) then
+        check(false, "Folder colors: ZeD_MMMods.setFolderColor, folderColorKey and folderTint are loaded"); return
+    end
+    local cfg0 = table.concat(K.lines("ModFolders.cfg"), "\n")
+    MMM.setFolderColor(9999, "blue")
+    local has = false
+    for _, l in ipairs(K.lines("ZeD_folder_colors.txt")) do if l == "9999=blue" then has = true end end
+    check(MMM.folderColorKey(9999) == "blue" and has, "Folder colors: a folder set to blue reads blue and ZeD_folder_colors.txt has 9999=blue",
+        tostring(MMM.folderColorKey(9999)) .. ", file " .. tostring(has))
+    local t = MMM.folderTint(9999)
+    local A = ZeD.AccentColors and ZeD.AccentColors.blue
+    local tone = A and (A[(ZeD.currentBase == "light") and "light" or "dark"] or A.dark)
+    check(t ~= nil and tone ~= nil and t == tone.accent, "Folder colors: its rows' wash is the blue accent of this theme")
+    MMM.setFolderColor(9999, nil)
+    local still = false
+    for _, l in ipairs(K.lines("ZeD_folder_colors.txt")) do if l:match("^9999=") then still = true end end
+    check(MMM.folderColorKey(9999) == nil and not still and MMM.folderTint(9999) == nil, "Folder colors: No color clears it, in memory and in the file")
+    check(table.concat(K.lines("ModFolders.cfg"), "\n") == cfg0, "Folder colors: ModFolders.cfg (the Mod Folders mod's file) is unchanged")
+end)
 -- put back
 at(90, function()
     local zo = K.opts()
