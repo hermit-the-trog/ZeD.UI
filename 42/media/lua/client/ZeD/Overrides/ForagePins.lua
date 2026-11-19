@@ -106,7 +106,7 @@ end
 local HAND_A, HAND_B = "zed_forage_hand_up_a", "zed_forage_hand_up_b"
 -- (smaller and a little see-through, the director, Nov 18 2026: "scale down the hand of God a little and make it a
 -- little bit transparent"; was 44 x 77 at full alpha)
-local HAND_W, HAND_H, HAND_ALPHA = 36, 63, 0.75
+local HAND_W, HAND_H, HAND_ALPHA = 36, 63, 0.40   -- (0.40: "Can the hand of God be more transparent?", Nov 18)
 local GAME_ARROW, GAME_W, GAME_H = "arrow_triangle", 32, 32
 
 -- true while the find is to the right of the character on the screen (iso: screen x grows with x - y)

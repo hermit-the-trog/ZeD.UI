@@ -140,7 +140,7 @@ local function find(x, y) return setmetatable({ character = chr, xCoord = x, yCo
 local f = find(105, 100)   -- east of the character: to the right on screen (x - y grows)
 f:addWorldMarker()
 local m = f.worldMarker
-check("pointer: white at three-quarters alpha, not the game's grey", m and m.r == 1 and m.g == 1 and m.b == 1 and m.a == 0.75, m and m.a)
+check("pointer: white at 40 percent alpha, not the game's grey", m and m.r == 1 and m.g == 1 and m.b == 1 and m.a == 0.40, m and m.a)
 check("pointer: a find to the right gets hand a (thumb on top pointing right)", m.tex == "zed_forage_hand_up_a", m.tex)
 check("pointer: the hand's size, 36 x 63", m.w == 36 and m.h == 63, m.w .. "x" .. m.h)
 check("pointer: the game's placement still runs", m.x == 105 and m.y == 100, tostring(m.x))
