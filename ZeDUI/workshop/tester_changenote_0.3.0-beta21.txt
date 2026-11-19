@@ -1,0 +1,20 @@
+0.3.0-beta21
+
+Lite mode, a keyboard map, a setup on the first launch and a tour.
+
+Lite mode
+- One Style choice in ZeD setup, Full or Lite, in place of the eight Immersive-or-Simple choices. Lite is ZeD with little more than the game itself does.
+- Lite buttons have one bold line and are filled: OK and Yes in your positive color, Cancel, No and Delete in your negative color, from the game's Accessibility options.
+- In Lite: ZeD's extras are off (the Vanilla preset), the watch is a plain clock in the corner with the game's speed, every car has the same black dashboard, radios and appliances use radio buttons for on and off, Filter and List or Grid read as words, and the Same type buttons, the item card's marks and the desk apps are put away. The Mods screen keeps Profiles and Load order.
+- If you had picked Simple for some parts before, pick Lite once in ZeD setup.
+
+Keyboard map
+- Every window's menu has Keyboard map: a drawn keyboard with every key the game uses lit, and a key doing two jobs in your negative color.
+- Click an action's key box and press a new key to change it. The game saves it as its own Options do. Reset to the game's keys asks once.
+
+First launch
+- The first time ZeD runs, the desk asks how you want it: pick your own (style, theme, text, moodles, accent, with a preview), load a setup you saved, or skip.
+- Save setup writes every ZeD setting to Zomboid/Lua/ZeD_setup.txt, to load later or on another machine. The desk's Settings menu opens it again.
+
+Tour
+- Pick "Show me around" on the first launch and the first game shows balloons through the belt, the watch, both windows, an item's card, a window's menu and the guide. Next and Stop tour on each; A and B on a controller.
