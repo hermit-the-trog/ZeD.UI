@@ -62,7 +62,7 @@ def inset_row(canvas, d, y, items, h):
     items: (shot name, crop box, label, [boxes inside the crop to outline])"""
     pics = []
     for name, crop, label, marks in items:
-        im = shot(name).crop(crop)
+        im = (name if isinstance(name, Image.Image) else shot(name)).crop(crop)   # (a made image, or a shot by name)
         s = h / im.height
         pics.append((im.resize((int(im.width * s), h), Image.LANCZOS), s, crop, label, marks))
     total = sum(p[0].width for p in pics) + PAD * (len(pics) - 1)
@@ -172,7 +172,42 @@ def slot2():
     return canvas
 
 
-SLOTS = {1: ("two_windows", slot1), 2: ("gadgets", slot2), 4: ("mod_manager", slot4)}
+def slot3():
+    """Built for the controller; Made to be read."""
+    global SHOTS
+    SHOTS = SC
+    top, s = top_shot("sc3_pad.png")
+    row1_h = 260
+    # the three themes: the same moment, the Character window with the apple's card, side by side
+    themes = [shot("sc3_themes_%s.png" % t).crop((0, 0, 1180, 740)) for t in ("dark", "light", "hicon")]
+    strip = Image.new("RGB", (1180 * 3 + 2 * 24, 740), BG)
+    for i, t in enumerate(themes):
+        strip.paste(t, (i * (1180 + 24), 0))
+    row2_h = int(740 * (W - 2 * PAD) / strip.width)
+    H = top.height + PAD + row1_h + PAD + row2_h + PAD
+    canvas = Image.new("RGB", (W, H), BG)
+    canvas.paste(top, (0, 0))
+    d = ImageDraw.Draw(canvas)
+    row = scaled((14, 150, 790, 186), s)
+    card = scaled((756, 156, 1064, 344), s)
+    prompts = scaled((14, 696, 700, 736), s)
+    outline(d, row, 3)
+    outline(d, card, 3)
+    outline(d, prompts, 3)
+    chip(d, card[2] + 10, card[1], "A GLANCE AT WHAT THE HAND IS ON", 16)
+    chip(d, prompts[0], prompts[3] + 8, "YOUR CONTROLLER'S BUTTONS", 20)
+    inset_row(canvas, d, top.height + PAD, [
+        ("sc3_wheel.png", (1640, 800, 2120, 1330), "D-PAD WHEELS", []),
+        ("sc3_buttonmap.png", (20, 440, 1760, 1660), "BUTTON MAP AND TEST", []),
+        ("sc3_language.png", (0, 130, 1180, 740), "27 MORE LANGUAGES", []),
+    ], row1_h)
+    inset_row(canvas, d, top.height + PAD + row1_h + PAD, [
+        (strip, (0, 0, strip.width, strip.height), "DARK, LIGHT AND HIGH CONTRAST", []),
+    ], row2_h)
+    return canvas
+
+
+SLOTS = {1: ("two_windows", slot1), 2: ("gadgets", slot2), 3: ("controller", slot3), 4: ("mod_manager", slot4)}
 
 
 def main():
