@@ -215,7 +215,9 @@ function ZeD_MMWelcome:prerender()
         ZeD.Atoms.frame(self, bx, cy, cw, ch, on and T.accent or T.borderS)
         radioWord(self, bx + T.px(8), cy + T.px(6), MM.fontH(f2), on, tr(wy[1]), onF, false)
         local dd = onF and T.textOnFocus or d
-        self:drawText(tr(wy[2]), bx + T.px(8) + ZeD.Atoms.radioSize() + T.px(6), cy + T.px(8) + MM.fontH(f2), dd.r, dd.g, dd.b, dd.a or 1, f3)
+        -- (QA, Nov 19 2026: the line ran past its card: cut to the card)
+        local subX = bx + T.px(8) + ZeD.Atoms.radioSize() + T.px(6)
+        self:drawText(ZeD.Atoms.truncateText(tr(wy[2]), f3, cw - (subX - bx) - T.px(8)), subX, cy + T.px(8) + MM.fontH(f2), dd.r, dd.g, dd.b, dd.a or 1, f3)
         local wi = i
         local fn = function() self.way = wi; self.focusId = "way:" .. wi; MM.hoverSound() end
         self._hits[#self._hits + 1] = { id = hid, x = ax + bx, y = ay + cy, w = cw, h = ch, fn = fn }
@@ -314,15 +316,21 @@ function ZeD_MMWelcome:prerender()
     local by = my + ph - T.px(20) - T.buttonH - T.px(8)
     ZeD.Molecules.drawButton(self, mx + T.px(10), by, bw, T.buttonH, tr("UI_ZeD_Welcome_SampleDrop"), "default", false, nil, {})
     ZeD.Molecules.drawButton(self, mx + T.px(20) + bw, by, bw, T.buttonH, tr("UI_ZeD_Welcome_SampleEat"), "primary", false, nil, {})
-    self:drawText(tr("UI_ZeD_Welcome_PreviewNote"), px0, py0 + ph + T.px(4), d.r, d.g, d.b, d.a or 1, f3)
+    -- (QA: the line ran past the window's edge: wrapped to the preview's width)
+    local ny = py0 + ph + T.px(4)
+    for _, l in ipairs(ZeD.Atoms.wrapText(tr("UI_ZeD_Welcome_PreviewNote"), f3, prevW)) do
+        self:drawText(l, px0, ny, d.r, d.g, d.b, d.a or 1, f3)
+        ny = ny + MM.fontH(f3)
+    end
     -- the band
     local stripH = MM.bandH()
     local stripY = h - self:footerHeight() - stripH
     local doneWord = (self.way == 3) and tr("UI_ZeD_Welcome_WaySkip") or ((self.way == 2) and tr("UI_ZeD_Welcome_LoadDone") or getText("UI_btn_accept"))
     UI.stripSpecs(self, stripY, w, 1000, {},
         { { "save", tr("UI_ZeD_Welcome_SaveSetup"), function() self:saveSetup() end, "default", self.way ~= 1, tr("UI_ZeD_Welcome_HelpSave", S().SETUP_FILE) },
-          { "done", doneWord, function() self:done() end, "primary", false, tr("UI_ZeD_Welcome_HelpDone") } },
-        self.note or tr("UI_ZeD_Welcome_Band"), true)
+          -- (QA: Load with no setup file to read is grayed, and the band says where the file goes)
+          { "done", doneWord, function() self:done() end, "primary", self.way == 2 and not (S().hasSetup and S().hasSetup()), tr("UI_ZeD_Welcome_HelpDone") } },
+        self.note or ((self.way == 2 and not (S().hasSetup and S().hasSetup())) and tr("UI_ZeD_Welcome_NoFile", S().SETUP_FILE) or tr("UI_ZeD_Welcome_Band")), true)
 end
 
 function ZeD_MMWelcome:render()

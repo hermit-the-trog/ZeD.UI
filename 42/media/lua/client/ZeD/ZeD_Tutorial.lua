@@ -25,6 +25,7 @@ ZeD.Tutorial = ZeD.Tutorial or {}
 local TU = ZeD.Tutorial
 TU.FILE = "ZeD_tutorial.txt"
 TU.WAIT_MS = 6000          -- after the game is playable
+TU.WAIT_SHOW_MS = 2000     -- how long a step waits for what it opens to come up
 
 local function tr(k, ...) return ZeD.tr(k, ...) end
 
@@ -60,15 +61,22 @@ local function rectOf(el)
 end
 local function charWin(pn) return ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(pn) end
 local function worldWin(pn) return ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn) end
+-- (QA, Nov 19 2026: a window made earlier and since shut keeps its place in the window's table, hidden, so opening a tab
+-- on it showed nothing and the tour passed the step over. A hidden window is closed for good first, toggle, and made
+-- fresh, toggle again, as the player's own key does.)
 local function ensureChar(pn)
+    if not ZeD_CharacterWindow then return end
     local w = charWin(pn)
-    if not (w and w:isReallyVisible()) and ZeD_CharacterWindow and ZeD_CharacterWindow.openTab then
-        pcall(ZeD_CharacterWindow.openTab, pn, "loot")
-    end
+    if w and w:isReallyVisible() then return end
+    if w and ZeD_CharacterWindow.toggle then pcall(ZeD_CharacterWindow.toggle, pn) end
+    if ZeD_CharacterWindow.openTab then pcall(ZeD_CharacterWindow.openTab, pn, "loot") end
 end
 local function ensureWorld(pn)
+    if not ZeD_WorldWindow then return end
     local w = worldWin(pn)
-    if not (w and w:isReallyVisible()) and ZeD_WorldWindow and ZeD_WorldWindow.open then pcall(ZeD_WorldWindow.open, pn) end
+    if w and w:isReallyVisible() then return end
+    if w and ZeD_WorldWindow.toggle then pcall(ZeD_WorldWindow.toggle, pn) end
+    if ZeD_WorldWindow.open then pcall(ZeD_WorldWindow.open, pn) end
 end
 
 -- The steps: the words' keys (UI_ZeD_Tut_<key>_Title, _Text, and _Pad for a controller's words), what to open, what
@@ -106,7 +114,15 @@ function ZeD_TutorialKeys:keyRects()
     local stopW = ZeD.Molecules.buttonW(tr("UI_ZeD_Tut_Stop"))
     return { x = stopW + T.px(6), y = 0, w = nextW, h = T.buttonH, id = "next" }, { x = 0, y = 0, w = stopW, h = T.buttonH, id = "stop" }
 end
-function ZeD_TutorialKeys:prerender() end
+-- (QA: the keys read as see-through over the game; each sits on the balloon's own light paper, solid)
+function ZeD_TutorialKeys:prerender()
+    local n, s = self:keyRects()
+    local pal = ZeD.Balloon and ZeD.Balloon.PALETTE
+    local c = (pal and pal.surf2) or ZeD.T.surf2
+    for _, r in ipairs({ n, s }) do
+        ZeD.Atoms.fillRounded(self, r.x, r.y, r.w, r.h, c.r, c.g, c.b, 1)
+    end
+end
 function ZeD_TutorialKeys:render()
     local T = ZeD.T
     local n, s = self:keyRects()
@@ -171,7 +187,9 @@ local function findStep(i)
         local st = TU.STEPS[i]
         if st.prepare then pcall(st.prepare, R.pn) end
         local ok, r = pcall(st.target, R.pn)
-        if ok and r then return i end
+        -- (a step that opens what it shows waits for it: the window may come up a frame later; TU.draw passes the
+        -- step over if it is still not there after WAIT_SHOW_MS)
+        if (ok and r) or st.prepare then return i end
         i = i + 1
     end
     return nil
@@ -186,6 +204,7 @@ local function show(i)
     local found = findStep(i)
     if not found then TU.finish(); return end
     R.i = found
+    R.shownAt = getTimestampMs()
     local title, text = stepWords(TU.STEPS[found])
     R.content = { title = title, lines = { text, { text = tr("UI_ZeD_Tut_StepOf", found, #TU.STEPS), font = ZeD.T.fontF3 } } }
     R.keys.nextWord = (found == #TU.STEPS) and tr("UI_ZeD_Tut_Done") or tr("UI_ZeD_Tut_Next")
@@ -199,6 +218,9 @@ function TU.draw(layer)
     local ok, r = pcall(st.target, R.pn)
     if not (ok and r) then
         R.keys:setVisible(false)
+        if R.shownAt and getTimestampMs() - R.shownAt > TU.WAIT_SHOW_MS then
+            if R.i >= #TU.STEPS then TU.finish() else show(R.i + 1) end
+        end
         return
     end
     local a = R.anchor
@@ -210,8 +232,16 @@ function TU.draw(layer)
     local n, s = R.keys:keyRects()
     local kw = n.x + n.w
     local kx = x + w - kw
-    local ky = y + h + T.px(6)
-    if ky + T.buttonH > getCore():getScreenHeight() then ky = y - T.buttonH - T.px(6) end
+    -- (QA, Nov 19 2026: under the box, the keys lay over the belt the balloon points at. They go on the box's far
+    -- side from the thing: above a box that sits above it, below a box that sits below or beside it.)
+    local ax, ay = layer:getAbsoluteX(), layer:getAbsoluteY()
+    local boxTop, boxBot = ay + y, ay + y + h
+    local ky
+    if boxBot <= r.y + T.px(2) then ky = y - T.buttonH - T.px(6)
+    else ky = y + h + T.px(6) end
+    if ay + ky + T.buttonH > getCore():getScreenHeight() then ky = y - T.buttonH - T.px(6) end
+    if ay + ky < 0 then ky = y + h + T.px(6) end
+    kx, ky = ax + kx, ay + ky
     R.keys:setX(kx); R.keys:setY(ky); R.keys:setWidth(kw); R.keys:setHeight(T.buttonH)
     if not R.keys:getIsVisible() then R.keys:setVisible(true) end
 end

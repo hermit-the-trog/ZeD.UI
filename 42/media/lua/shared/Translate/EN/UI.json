@@ -4964,7 +4964,7 @@
     "UI_ZeD_Welcome_Title": "Welcome to ZeD-GUI",
     "UI_ZeD_Welcome_Intro": "How do you want it? You can change any of this later in ZeD setup.",
     "UI_ZeD_Welcome_WayPick": "Pick your own",
-    "UI_ZeD_Welcome_WayPickSub": "The choices below, with a preview",
+    "UI_ZeD_Welcome_WayPickSub": "With a live preview",
     "UI_ZeD_Welcome_WayLoad": "Load a setup",
     "UI_ZeD_Welcome_WayLoadSub": "From a file you saved before",
     "UI_ZeD_Welcome_WaySkip": "Skip",
