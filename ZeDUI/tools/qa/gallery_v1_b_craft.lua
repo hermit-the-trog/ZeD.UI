@@ -7,9 +7,12 @@
 --   g1_04_build_zed   04: the Building tab with a recipe open (a crate if the list has one, else the first one the
 --                     character can build, else the first listed)
 -- The recipe's name goes to Zomboid/Lua/gallery_v1_b_recipe.txt for the vanilla run (gallery_v1_b_van.lua), so the
--- game's own crafting window opens on the same recipe. At the QA home, the window pair at its default places and
--- sizes (the World window to one side, the character clear between; every shot logs the boxes and that check).
--- Puts back: the recipe cards shut, Show as it was, the given things out, the fluid holders back, the place.
+-- game's own crafting window opens on the same recipe. In a lived-in place (the director's review): the West Point
+-- kitchen (gallery_v1_b_place.lua, GV1P: the house at 12021-12033,7078-7090, the grid power on for the shots). The
+-- window pair at its default sizes; if a window covers the character, the Character window goes to the left edge and
+-- the World window to the right edge (logged), so the character and the kitchen stay clear between them.
+-- Puts back: the recipe cards shut, Show as it was, the given things out, the fluid holders back, the window places,
+-- the grid power, the place.
 -- grep "ZEDQA g1bc".
 local S = GV1 and GV1.new("g1bc")
 if not S then print("ZEDQA g1bc ERR run gallery_v1_b_lib.lua first"); print("ZEDQA g1bc DONE"); return end
@@ -18,6 +21,17 @@ S.RECIPE = "MakeMolotovCocktail"   -- (recipes_traps.txt; ZeD lists a recipe by 
 S.CW, S.WW = ZeD_CharacterWindow, ZeD_WorldWindow
 S.CC = ZeD.CraftingCore
 function S.ww() return S.WW.getWindow(S.pn) end
+function S.cw() return S.CW.getWindow(S.pn) end
+-- the character clear of the windows: else Character window left, World window right
+function S.clearChar()
+    if not string.find(S.L.clear(S), "COVERED", 1, true) then return end
+    local c, w = S.cw(), S.ww()
+    if not S.winWas then
+        S.winWas = { c and c:getX(), c and c:getY(), w and w:getX(), w and w:getY() }
+    end
+    GV1P.side(S, { { "Character window", c, "left" }, { "World window", w, "right" } })
+    S.say("the character now " .. S.L.clear(S))
+end
 function S.pairOpen() if not S.CW.isOpen(S.pn) then pcall(S.CW.toggleBothPaired, S.pn) end end
 function S.bare(name) return (string.gsub(tostring(name or ""), "^Base%.", "")) end
 function S.find(data, name)
@@ -43,7 +57,6 @@ end
 S.step(10, function()
     S.home = { x = S.p:getX(), y = S.p:getY(), z = S.p:getZ() }
     S.L.keepCheats(S)
-    if ZEDQA_HOME then pcall(ZEDQA_HOME, "g1bc") end
     if ZEDQA_SPEED then ZEDQA_SPEED(1) elseif getGameSpeed() ~= 1 then setGameSpeed(1) end
     S.L.cheats(S); S.L.console()
     S.rag = S.L.give(S, "Base.RippedSheets")
@@ -52,6 +65,7 @@ S.step(10, function()
     S.say("given: rag " .. tostring(S.rag ~= nil) .. ", brandy " .. tostring(S.bottle ~= nil))
     S.pairOpen()
 end)
+if GV1P then GV1P.kitchen(S) else S.say("ERR gallery_v1_b_place.lua did not run: the shots stay here") end
 S.step(30, function() pcall(S.WW.openTab, S.pn, "craft") end)
 S.step(30, function()
     local w = S.ww()
@@ -78,6 +92,7 @@ S.step(120, function()   -- (the list's craftable answer is refreshed every 1.2 
     local can = S.canMake(S.recipe)
     S.say("list status " .. tostring(rd and rd.status) .. ", the game's check " .. can)
     if can == "true" then S.say("WARN nothing is missing: the have / need marks will all read have") end
+    S.clearChar()
     if GAL_UNLOAD and GAL_UNLOAD.park then GAL_UNLOAD.park() end
 end)
 S.step(40, function() if S.recipe then S.L.shot(S, "g1_46_craft_zed") end end)
@@ -112,7 +127,10 @@ S.step(30, function()
     S.CC.openCraft(st, S.build)
     S.say("building recipe open: " .. tostring(S.build) .. " (" .. tostring(pick.entry.displayName) .. "), status " .. tostring(pick.status))
 end)
-S.step(120, function() if GAL_UNLOAD and GAL_UNLOAD.park then GAL_UNLOAD.park() end end)
+S.step(120, function()
+    S.clearChar()
+    if GAL_UNLOAD and GAL_UNLOAD.park then GAL_UNLOAD.park() end
+end)
 S.step(40, function() if S.build then S.L.shot(S, "g1_04_build_zed") end end)
 
 -- ===================================================================== put back
@@ -125,6 +143,14 @@ S.step(10, function()
     pcall(S.WW.openTab, S.pn, "loot")
     pcall(S.L.takeBack, S)
     pcall(S.L.unhide, S)
+    if S.winWas then
+        pcall(function()
+            local c, w = S.cw(), S.ww()
+            if c and S.winWas[1] then c:setX(S.winWas[1]); c:setY(S.winWas[2]) end
+            if w and S.winWas[3] then w:setX(S.winWas[3]); w:setY(S.winWas[4]) end
+        end)
+    end
+    if GV1P then pcall(GV1P.back, S) end
     if S.home then pcall(S.L.moveTo, S, S.home.x, S.home.y, S.home.z) end
     pcall(S.L.putCheats, S)
     pcall(S.L.summary, S)

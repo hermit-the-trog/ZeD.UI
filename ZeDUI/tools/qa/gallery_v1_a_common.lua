@@ -186,8 +186,24 @@ function G1.glassesOn()
     end)
     return on
 end
+function G1.shortSighted()
+    local ss = false
+    pcall(function() ss = G1.p:getCharacterTraits():get(CharacterTrait.SHORT_SIGHTED) == true end)
+    return ss
+end
 function G1.glasses(Q)
     local on = G1.glassesOn()
+    if not G1.shortSighted() then
+        -- prescription glasses blur the world for a character who is not short-sighted: take any worn pair off
+        if on then
+            G1.glassesStripped = G1.glassesStripped or {}
+            G1.glassesStripped[#G1.glassesStripped + 1] = on
+            pcall(function() G1.p:removeWornItem(on, false) end)
+            pcall(function() triggerEvent("OnClothingUpdated", G1.p) end)
+            if Q then Q.say("short sighted false, prescription glasses off (took off " .. tostring(on:getFullType()) .. ")") end
+        elseif Q then Q.say("short sighted false, prescription glasses off") end
+        return true
+    end
     if on then return true end
     local g = nil
     pcall(function() g = G1.p:getInventory():AddItem("Base.Glasses_Prescription_Aviators") end)
@@ -205,9 +221,13 @@ function G1.glassesBack(Q)
         pcall(function() G1.p:removeWornItem(g, false) end)
         pcall(function() local c = g:getContainer(); if c then c:Remove(g) end end)
     end
+    for _, g in ipairs(G1.glassesStripped or {}) do
+        pcall(function() G1.p:setWornItem(g:getBodyLocation(), g) end)
+    end
     pcall(function() triggerEvent("OnClothingUpdated", G1.p) end)
-    if Q then Q.say("glasses put on by the script taken off again: " .. #(G1.glassesAdded or {})) end
+    if Q then Q.say("glasses put on by the script taken off again: " .. #(G1.glassesAdded or {}) .. ", worn ones put back: " .. #(G1.glassesStripped or {})) end
     G1.glassesAdded = {}
+    G1.glassesStripped = {}
 end
 -- pain off (the scratch's pain and its moodle blur the picture; the wound stays drawn)
 function G1.noPain()

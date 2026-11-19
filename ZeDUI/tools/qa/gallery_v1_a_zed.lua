@@ -26,6 +26,10 @@
 -- Puts back: the theme (reapplied from the options), the window places and sizes, the equip view, the moodle place,
 -- the stats, the wound, the kills and favorite weapon, the saved dishes, everything given, the shelf, the game speed.
 -- The skills go back with gallery_story_teardown.lua (the stage kept them). grep "ZEDQA g1z".
+-- (Nov 18 2026, the pitch retakes: G1Z_ONLY = { ["01"] = true, ["26"] = true } takes only those beats (01 runs with
+-- 17's staging; only 01's picture is wanted) and G1Z_LOOK = { "dark", "teal" } replaces the story's Light + Blue.
+-- gallery_v1_pitch_only.lua sets both.)
+local function want(k) return (not G1Z_ONLY) or G1Z_ONLY[k] == true end
 local S = { was = {}, made = {} }
 local Q = G1 and G1.make and G1.make("g1z")
 if not Q then print("ZEDQA g1z ERR run gallery_v1_a_common.lua first"); print("ZEDQA g1z DONE"); return end
@@ -97,10 +101,12 @@ function S.putBox(w, b)
     w._anchorRightEdge = b.a
 end
 function S.lightBlue()
-    ZeD.applyTheme("light", "blue", ZeD.currentSize)
+    local b, a = "light", "blue"
+    if G1Z_LOOK then b, a = G1Z_LOOK[1], G1Z_LOOK[2] end
+    ZeD.applyTheme(b, a, ZeD.currentSize)
     local c, w = S.CW(), S.WW()
-    if c then c._accentKey = "blue" end
-    if w then w._accentKey = "blue" end
+    if c then c._accentKey = a end
+    if w then w._accentKey = a end
 end
 -- one source per window: every extra column off (as gallery_b19_a.lua)
 function S.oneSource()
@@ -244,6 +250,7 @@ Q.step(40, function()
     G1.boxes(Q, "default")
 end)
 
+if want("08") then
 -- ===================================================================== 08 the introduction
 Q.step(10, function() G1.tp(S.P.smoke, "SE"); S.openPair() end)
 Q.zoomTo(1.0)
@@ -256,7 +263,9 @@ Q.step(20, function()
 end)
 Q.step(30, function() S.clearChar() end)
 Q.still(10, function() Q.shot("g1_08_intro") end)
+end
 
+if want("01") then
 -- ===================================================================== 17 (and 01) inventory and loot
 Q.step(10, function()
     G1.tp(S.P.stock, "SE")
@@ -279,7 +288,7 @@ Q.step(20, function()
 end)
 Q.still(10, function()
     local n = S.stackShown("Base.Apple")
-    if n and n >= 3 then Q.say("open stack: Apple (" .. n .. ")"); Q.shot("g1_17_zed")
+    if n and n >= 3 then Q.say("open stack: Apple (" .. n .. ")"); if want("17") then Q.shot("g1_17_zed") end
     else Q.notTaken("g1_17_zed", "no open apple stack of three (" .. tostring(n) .. ")") end
 end)
 Q.zoomTo(0.75)
@@ -290,7 +299,9 @@ Q.still(10, function()
 end)
 Q.zoomTo(1.0)
 Q.step(5, function() S.openStack("Base.Apple", false); G1.applesBack(Q); G1.shelfBack(Q) end)
+end
 
+if want("21") then
 -- ===================================================================== 21 the Equipment tab
 Q.step(10, function() G1.tp(S.P.smoke, "SE"); S.charOnly() end)
 Q.waitFor(10, 120, function() return S.charTab("equip") end, function() end)
@@ -298,8 +309,12 @@ Q.step(20, function() pcall(function() ZeD.EquipDoll.setView("doll") end) end)
 Q.step(30, function() S.clearChar() end)
 Q.still(10, function() Q.shot("g1_21_equip_doll") end)
 Q.step(2, function() pcall(function() ZeD.EquipDoll.setView(S.was.equip) end) end)
+end
 
+if want("26") then
 -- ===================================================================== 26 the Health tab, a bandaged scratch
+-- (Nov 18 2026: with 21 skipped (the pitch retake), its move to the forecourt and the Character window alone come here)
+if not want("21") then Q.step(10, function() G1.tp(S.P.smoke, "SE"); S.charOnly() end) end
 Q.step(5, function() G1.wound(Q, true) end)
 Q.waitFor(10, 120, function() return S.charTab("health") end, function() end)
 Q.step(20, function()
@@ -309,10 +324,23 @@ Q.step(20, function()
         pcall(function() w._healthScroll:setScrollPos(0) end)
     end
 end)
-Q.step(30, function() S.clearChar() end)
+-- (Nov 18 2026, Design: "the bandaged scratch showing": the figure's left forearm held as if hovered, so the right
+-- column shows that part's detail (the scratch, bandaged) and the figure lights it; the pointer stays hidden)
+function S.holdArm()
+    local w = S.CW()
+    if w and w._activeTab == "health" then w._healthHoveredPart = "Left Forearm" end
+end
+Q.step(30, function() S.clearChar(); Events.OnTick.Add(S.holdArm) end)
 Q.still(10, function() Q.shot("g1_26_zed") end)
-Q.step(2, function() G1.wound(Q, false) end)
+Q.step(2, function()
+    Events.OnTick.Remove(S.holdArm)
+    local w = S.CW()
+    if w then w._healthHoveredPart = nil end
+    G1.wound(Q, false)
+end)
+end
 
+if want("39") then
 -- ===================================================================== 39 / 40 skills and the old job (one retake)
 Q.step(5, function()
     local xp = S.p:getXp()
@@ -363,7 +391,9 @@ Q.step(2, function()
     S.p:getModData()["Fav:Crowbar"] = S.was.fav
     Q.say("put back: the window's height, kills " .. S.p:getZombieKills() .. " (skills go back with the teardown)")
 end)
+end
 
+if want("35") then
 -- ===================================================================== 35 cooking
 Q.step(10, function()
     G1.tp(S.P.clerk, "SE")
@@ -411,7 +441,9 @@ Q.step(10, function()
     S.p:getModData().ZeD_CookDishes = S.was.dishes
     S.charTab("loot")
 end)
+end
 
+if want("25") then
 -- ===================================================================== 25 moodles, three places
 Q.step(10, function()
     S.closePair()
@@ -435,6 +467,7 @@ for _, place in ipairs({ { 2, "left" }, { 3, "bottom" }, { 1, "right" } }) do
         else Q.shot("g1_25_" .. place[2]) end
     end)
     Q.step(2, function() S.unhover() end)
+end
 end
 
 -- ===================================================================== put back

@@ -86,8 +86,29 @@ end
 -- ---------------------------------------------------------------- the glasses (the QA character is short-sighted)
 -- gallery_b10_glasses.lua puts a pair on; a teleport or a staging that strips them gets them put back before a shot
 L.GLASSES = "Base.Glasses_Prescription"
+function L.shortSighted(S)
+    local ss = false
+    pcall(function() ss = S.p:getCharacterTraits():get(CharacterTrait.SHORT_SIGHTED) == true end)
+    return ss
+end
 function L.glasses(S)
     local g, worn = nil, false
+    if not L.shortSighted(S) then
+        -- prescription glasses blur the world unless the character is short-sighted: any worn pair comes off
+        local n = 0
+        pcall(function()
+            local wi = S.p:getWornItems()
+            local drop = {}
+            for i = 0, wi:size() - 1 do
+                local it = wi:get(i):getItem()
+                if it and tostring(it:getFullType()):find("Glasses_Prescription", 1, true) then drop[#drop + 1] = it end
+            end
+            for _, it in ipairs(drop) do S.p:removeWornItem(it, false); n = n + 1 end
+        end)
+        if n > 0 then pcall(function() triggerEvent("OnClothingUpdated", S.p) end) end
+        S.say("short sighted false, prescription glasses off (took off " .. n .. ")")
+        return true
+    end
     local items = S.inv:getItems()
     for i = 0, items:size() - 1 do
         local it = items:get(i)

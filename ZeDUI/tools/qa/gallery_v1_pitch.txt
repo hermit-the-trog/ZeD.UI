@@ -1,0 +1,18 @@
+# ZeDUI/tools/qa/gallery_v1_pitch.txt  (Nov 18 2026, QA): pitch 1 (g1_01_zed) and pitch 3 (g1_26_zed) in Dark + PZ Teal,
+# same spot, moment and items as set A (NOTE_for_QA_pitch_dark_teal_20261118.md). 4K at 1.75x, the glasses fix.
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest gallery_v1_pitch.txt -Report gallery_v1_pitch   (QA only)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_story_stage.lua | sts | timeout=600
+gallery_unload.lua | unl | timeout=60
+gallery_v1_a_common.lua | g1c | timeout=60
+gallery_v1_pitch_only.lua | pto | timeout=60
+gallery_v1_a_zed.lua | g1z | timeout=1500
+gallery_reload.lua | rel | timeout=60
+gallery_story_teardown.lua | stt | timeout=600
+gallery_v1_a_end.lua | g1e | timeout=60
+gallery_t14_end.lua | g14e | timeout=60

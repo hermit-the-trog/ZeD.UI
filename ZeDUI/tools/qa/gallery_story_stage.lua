@@ -32,6 +32,9 @@ STORY = {}
 local ST = STORY
 ST.p = p
 ST.pn = p:getPlayerNum()
+ST.ss = false
+pcall(function() ST.ss = p:getCharacterTraits():get(CharacterTrait.SHORT_SIGHTED) == true end)
+print("ZEDQA sts short sighted " .. tostring(ST.ss))
 ST.inv = p:getInventory()
 ST.core = getCore()
 ST.gt = getGameTime()
@@ -495,9 +498,9 @@ ST.KIT = {
         { "Base.HolsterSimple_Black", "Base.HolsterSimple" },
         { "Base.Kneepad_Left_Tactical" }, { "Base.Kneepad_Right_Tactical" },
         { "Base.WristWatch_Left_DigitalBlack" },
-        -- prescription aviators (the same look): the QA character is short-sighted, and
-        -- without glasses the game blurs everything past arm's length (Oct 25 2026 reshoot)
-        { "Base.Glasses_Prescription_Aviators", "Base.Glasses_Aviators" },
+        -- plain aviators: prescription glasses blur the whole world unless the character really is
+        -- short-sighted (measured Nov 17 2026: sharpness 26 with them, 347 without)
+        ST.ss and { "Base.Glasses_Prescription_Aviators", "Base.Glasses_Aviators" } or { "Base.Glasses_Aviators" },
         { "Base.Bag_ALICEpack_Army", "Base.Bag_ALICEpack" },
         { "Base.Bag_ChestRig" },
         { "Base.Bag_FannyPackBack" },

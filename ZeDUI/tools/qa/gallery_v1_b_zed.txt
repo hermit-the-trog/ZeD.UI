@@ -15,6 +15,7 @@ gallery_b10_glasses.lua | gls | timeout=60
 gallery_hidecon.lua | hcn | timeout=60
 gallery_unload.lua | unl | timeout=240
 gallery_v1_b_lib.lua | g1lib | timeout=60
+gallery_v1_b_place.lua | g1pl | timeout=60
 gallery_v1_b_craft.lua | g1bc | timeout=600
 gallery_v1_b_fish.lua | g1bf | timeout=900
 gallery_v1_b_pad.lua | g1bp | timeout=600

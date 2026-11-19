@@ -6,11 +6,14 @@
 --                     read from Zomboid/Lua/gallery_v1_b_recipe.txt (the ZeD run writes it; Make Molotov Cocktail
 --                     without it), with the same things carried: a rag and a bottle of brandy given, every other
 --                     fluid holder taken out for the run, so ingredients show partly missing
--- At the QA home (925,13040). The window opens at the game's place and size; if it covers the character it is slid to
+-- In the West Point kitchen (gallery_v1_b_place.lua, GV1P, as the ZeD run), after the QA home. The window opens at the game's place and size; if it covers the character it is slid to
 -- the screen's left edge (else the right), its size kept, so the character and the place stay clear beside it. Its
 -- place is put back before it closes (the game saves window places when one closes).
 -- The glasses go on at the start and again before the shot (game calls only), and the build line at the bottom
 -- right (WaterMarkUI) is hidden for the run.
+-- The -debug line under the recipe's name ("( DBG:MakeMolotovCocktail)", added by the game's ISWidgetTitleHeader /
+-- ISWidgetCraftLogicTitle when isDebugEnabled()) is cut from those title labels for the shot (ISLabel:setName on the
+-- window's own labels) and put back after it.
 -- Puts back: the build line shown, the window shut at its own place, the given things out, the fluid holders back, the place. grep "ZEDQA g1bv".
 local S = GV1 and GV1.new("g1bv")
 if not S then print("ZEDQA g1bv ERR run gallery_v1_b_lib.lua first"); print("ZEDQA g1bv DONE"); return end
@@ -50,7 +53,51 @@ function S.glasses()
         local it = items:get(i)
         if it:getFullType() == S.L.GLASSES and S.p:isEquippedClothing(it) then worn = true end
     end
-    S.say("prescription glasses worn " .. tostring(worn))
+    S.say("short sighted " .. tostring(S.L.shortSighted(S)) .. ", prescription glasses " .. (worn and "on" or "off"))
+end
+-- the window's labels carrying the game's "\n( DBG:<recipe>)" line: cut for the shot (on), put back (off)
+function S.walkDbg(el, on, depth)
+    if depth > 12 then return end
+    for _, c in pairs(el.children or {}) do
+        local n = c.name
+        if on and type(n) == "string" and c.setName then
+            local k = string.find(n, "\n( DBG:", 1, true)
+            if k then
+                S.dbg[#S.dbg + 1] = { c = c, n = n, o = c.origTitleStr }
+                c:setName(string.sub(n, 1, k - 1))
+                if c.origTitleStr then c.origTitleStr = string.sub(n, 1, k - 1) end
+                if c.setHeightToName then c:setHeightToName(0) end
+            end
+        end
+        S.walkDbg(c, on, depth + 1)
+    end
+end
+function S.noDbg(on)
+    local w = S.win()
+    if on then
+        S.dbg = S.dbg or {}
+        if w then S.walkDbg(w, true, 0) end
+        S.say("debug lines cut from the title: " .. #S.dbg)
+    else
+        for _, e in ipairs(S.dbg or {}) do
+            e.c:setName(e.n)
+            if e.o then e.c.origTitleStr = e.o end
+            if e.c.setHeightToName then e.c:setHeightToName(0) end
+        end
+        S.dbg = {}
+    end
+end
+-- (Nov 18 2026: the beta 19 picture still had three -debug extras: the "( DBG:...)" title line, the Force Action
+-- button and a "(tags: ...)" line under every recipe in the list. All three come from the game's own isDebugEnabled()
+-- checks (ISWidgetTitleHeader, ISWidgetHandCraftControl, ISRecipeScrollingListBox), so for this window only the global
+-- answers false: from just before the window is built until just after it closes.)
+function S.debugOff(off)
+    if off then
+        if not S.dbgFn then S.dbgFn = isDebugEnabled; isDebugEnabled = function() return false end end
+    elseif S.dbgFn then
+        isDebugEnabled = S.dbgFn; S.dbgFn = nil
+    end
+    S.say("isDebugEnabled for the window: " .. tostring(isDebugEnabled()))
 end
 function S.charCovered()
     return S.L.clear(S):find("COVERED", 1, true) ~= nil
@@ -77,12 +124,14 @@ S.step(10, function()
     S.bottle = S.L.give(S, "Base.Brandy")
     S.L.hideFluids(S, S.bottle)
 end)
+if GV1P then GV1P.kitchen(S) else S.say("ERR gallery_v1_b_place.lua did not run: the shot stays at the QA home") end
 S.step(60, function()
     local r = nil
     local sm = getScriptManager()
     r = sm:getCraftRecipe(S.RECIPE)
     if not r and not string.find(S.RECIPE, ".", 1, true) then r = sm:getCraftRecipe("Base." .. S.RECIPE) end
     if not r then S.say("ERR no craft recipe " .. S.RECIPE .. ": the window opens on the game's first recipe") end
+    S.debugOff(true)
     local ok, e = pcall(function() ISEntityUI.OpenHandcraftWindow(S.p, nil, nil, true, r) end)
     if not ok then S.say("ERR open: " .. tostring(e)) end
 end)
@@ -107,18 +156,24 @@ S.step(40, function()
     if not S.win() then return end
     S.glasses()
     pcall(S.watermark, false)
+    local okD, eD = pcall(S.noDbg, true)
+    if not okD then S.say("ERR the debug line: " .. tostring(eD)) end
     S.L.shot(S, "g1_46_craft_van")
 end)
 
 S.step(10, function()
+    pcall(S.noDbg, false)
     local w = S.win()
     if w then
         if S.place then w:setX(S.place.x); w:setY(S.place.y) end
         pcall(function() w:close() end)
     end
+    S.debugOff(false)
 end)
 S.step(10, function()
+    pcall(S.debugOff, false)
     pcall(S.watermark, true)
+    if GV1P then pcall(GV1P.back, S) end
     pcall(S.L.takeBack, S)
     pcall(S.L.unhide, S)
     if S.home then pcall(S.L.moveTo, S, S.home.x, S.home.y, S.home.z) end

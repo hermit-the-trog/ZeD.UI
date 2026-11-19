@@ -1,0 +1,15 @@
+# ZeDUI/tools/qa/gallery_v1_craft_zed.txt  (Nov 18 2026, QA): gallery_v1_b_zed.txt's crafting picture only (g1_46_craft_zed),
+# retaken with the kitchen spot clear in front (gallery_v1_b_place.lua). Run before the vanilla half (gallery_v1_b_van.txt).
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest gallery_v1_craft_zed.txt -Report gallery_v1_craft_zed   (QA only)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=300
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_unload.lua | unl | timeout=240
+gallery_v1_b_lib.lua | g1lib | timeout=60
+gallery_v1_b_place.lua | g1pl | timeout=60
+gallery_v1_b_craft.lua | g1bc | timeout=600
+gallery_reload.lua | rel | timeout=60
+gallery_t14_end.lua | g14e | timeout=60
