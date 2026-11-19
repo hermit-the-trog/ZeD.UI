@@ -568,7 +568,11 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         else self:drawText(t, pad, y, tc.r, tc.g, tc.b, tc.a or 1, T.fontF5) end
         local tw = (hf and z) and ZeD.Text.width(hf, t, z) or tm:MeasureStringX(T.fontF5, t)
         local tail = (rd.sec and (":" .. rd.sec) or "") .. (rd.pm and (" " .. ZeD.tr("UI_ZeD_WatchPlain_PM")) or "")
-        if tail ~= "" then self:drawText(tail, pad + tw + px(3), y + bigH - fh1, td.r, td.g, td.b, td.a or 1, f1) end
+        -- (the director, Nov 19 2026, on beta 21's report: "Seconds is below baseline". The seconds stood on the foot of
+        -- the time's line box, which sits under its baseline by the bigger face's descent. Both faces are ZeD's atlas
+        -- (baseline 60 of a 77 px line, Scale.lua ZED_BASE), so the small line goes down by that share of the
+        -- difference in line heights and its baseline meets the time's.)
+        if tail ~= "" then self:drawText(tail, pad + tw + px(3), y + math.floor((bigH - fh1) * 60 / 77 + 0.5), td.r, td.g, td.b, td.a or 1, f1) end
         y = y + bigH + gap
         -- the weekday and date, the temperature at the right
         self:drawText(((rd.day or "") .. " " .. (rd.date or "")), pad, y, tc.r, tc.g, tc.b, tc.a or 1, f2)
