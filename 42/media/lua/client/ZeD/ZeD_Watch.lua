@@ -497,6 +497,7 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
     local rd = self._st.display
     local btns = {}
     local h
+    local topH = nil
     if not item then
         if _serverTime() then
             h = pad + fh2 + pad   -- (only the words: no speed keys on a server)
@@ -506,7 +507,11 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         end
     else
         _reading(rd, player, item, speed, self._setOpen, armed, alarmHour)
-        h = pad + bigH + gap + fh2 + gap + fh2 + gap + bh + pad
+        -- (the director, Nov 19 2026, on beta 21's report: "time can be large enough to take up two lines, and then
+        -- stack day and temperature on the right. Time is on the left." The top block is the time beside a column of
+        -- two lines, the weekday and date over the temperature, both right-aligned; it is as tall as the taller.)
+        topH = math.max(bigH, 2 * fh2 + gap)
+        h = pad + topH + gap + fh2 + gap + bh + pad
         if self._setOpen then
             btns = { { id = "setdn", text = "-" }, { id = "setup", text = "+" }, { id = "alarmtoggle", text = ZeD.tr("UI_ZeD_WatchPlain_AlarmOnOff") }, { id = "set", text = ZeD.tr("UI_ZeD_WatchPlain_Done") } }
         elseif W.lite() then
@@ -533,6 +538,17 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
     for _, bt in ipairs(btns) do widest = math.max(widest, ZeD.Molecules.buttonW(bt.text)) end
     local need = 2 * pad + (#btns - 1) * gap + #btns * widest
     if need > w then w = need end
+    -- the top block's width: the time and its seconds, a gap, the wider of the two right-hand lines
+    if item and not self._setOpen then
+        local t0 = (rd.time or ""):gsub("^%s+", "")
+        local tw0 = (hf and z) and ZeD.Text.width(hf, t0, z) or tm:MeasureStringX(T.fontF5, t0)
+        local tail0 = (rd.sec and (":" .. rd.sec) or "") .. (rd.pm and (" " .. ZeD.tr("UI_ZeD_WatchPlain_PM")) or "")
+        local tailW = (tail0 ~= "") and (px(3) + tm:MeasureStringX(f1, tail0)) or 0
+        local dayW = tm:MeasureStringX(f2, (rd.day or "") .. " " .. (rd.date or ""))
+        local tempW = rd.temp and tm:MeasureStringX(f2, tostring(rd.temp) .. (rd.tempUnit or "")) or 0
+        local needTop = 2 * pad + tw0 + tailW + px(12) + math.max(dayW, tempW)
+        if needTop > w then w = needTop end
+    end
     -- set mode: the help line wraps to the box (the normal face, not the mono one)
     local helpLines = nil
     if item and self._setOpen then
@@ -564,23 +580,26 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         y = y + gap
     else
         local t = (rd.time or ""):gsub("^%s+", "")
-        if hf and z then ZeD.Text.draw(self, hf, t, pad, y, z, tc.r, tc.g, tc.b, tc.a or 1, "l")
-        else self:drawText(t, pad, y, tc.r, tc.g, tc.b, tc.a or 1, T.fontF5) end
+        local ty = y + math.floor(((topH or bigH) - bigH) / 2)   -- (the time centred in the top block)
+        if hf and z then ZeD.Text.draw(self, hf, t, pad, ty, z, tc.r, tc.g, tc.b, tc.a or 1, "l")
+        else self:drawText(t, pad, ty, tc.r, tc.g, tc.b, tc.a or 1, T.fontF5) end
         local tw = (hf and z) and ZeD.Text.width(hf, t, z) or tm:MeasureStringX(T.fontF5, t)
         local tail = (rd.sec and (":" .. rd.sec) or "") .. (rd.pm and (" " .. ZeD.tr("UI_ZeD_WatchPlain_PM")) or "")
         -- (the director, Nov 19 2026, on beta 21's report: "Seconds is below baseline". The seconds stood on the foot of
         -- the time's line box, which sits under its baseline by the bigger face's descent. Both faces are ZeD's atlas
         -- (baseline 60 of a 77 px line, Scale.lua ZED_BASE), so the small line goes down by that share of the
         -- difference in line heights and its baseline meets the time's.)
-        if tail ~= "" then self:drawText(tail, pad + tw + px(3), y + math.floor((bigH - fh1) * 60 / 77 + 0.5), td.r, td.g, td.b, td.a or 1, f1) end
-        y = y + bigH + gap
-        -- the weekday and date, the temperature at the right
-        self:drawText(((rd.day or "") .. " " .. (rd.date or "")), pad, y, tc.r, tc.g, tc.b, tc.a or 1, f2)
+        if tail ~= "" then self:drawText(tail, pad + tw + px(3), ty + math.floor((bigH - fh1) * 60 / 77 + 0.5), td.r, td.g, td.b, td.a or 1, f1) end
+        -- the right-hand column, right-aligned: the weekday and date, then the temperature under it
+        local th = topH or bigH
+        local cy = y + math.floor((th - (2 * fh2 + gap)) / 2)
+        local ds = (rd.day or "") .. " " .. (rd.date or "")
+        self:drawText(ds, w - pad - tm:MeasureStringX(f2, ds), cy, tc.r, tc.g, tc.b, tc.a or 1, f2)
         if rd.temp then
             local ts = tostring(rd.temp) .. (rd.tempUnit or "")
-            self:drawText(ts, w - pad - tm:MeasureStringX(f2, ts), y, tc.r, tc.g, tc.b, tc.a or 1, f2)
+            self:drawText(ts, w - pad - tm:MeasureStringX(f2, ts), cy + fh2 + gap, tc.r, tc.g, tc.b, tc.a or 1, f2)
         end
-        y = y + fh2 + gap
+        y = y + th + gap
         -- the game's speed, the alarm at the right (a status dot when it is set)
         local sp = _serverTime() and ZeD.tr("UI_ZeD_WatchPlain_ServerTime")
             or ((speed == 0) and ZeD.tr("UI_ZeD_WatchPlain_Paused") or ZeD.tr("UI_ZeD_WatchPlain_SpeedN", tostring(speed)))

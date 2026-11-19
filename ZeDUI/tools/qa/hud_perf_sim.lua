@@ -618,12 +618,22 @@ end
 
 section("The watch: both copies load")
 local srcWB, srcWA = gitShow(WATCH_FILE), readFile(ROOT .. WATCH_FILE)
--- (Nov 19 2026, the director on beta 21's report: "Seconds is below baseline". The plain watch's seconds moved onto the
--- time's baseline on purpose; the BASE copy gets the same line so the rest still compares draw for draw)
-if srcWB then
-    local was = "y + bigH - fh1, td.r, td.g, td.b, td.a or 1, f1)"
-    local a = srcWB:find(was, 1, true)
-    if a then srcWB = srcWB:sub(1, a - 1) .. "y + math.floor((bigH - fh1) * 60 / 77 + 0.5), td.r, td.g, td.b, td.a or 1, f1)" .. srcWB:sub(a + #was) end
+-- (Nov 19 2026, the director on beta 21's report: the plain watch's seconds onto the time's baseline, then its top
+-- block laid out again: the time large on the left, the weekday and date over the temperature on the right. Both
+-- were made on purpose and touch only ZeD_Watch:_plain, so the BASE copy takes the checkout's _plain (and W.lite,
+-- which it calls) and the rest still compares draw for draw.)
+local function plainOf(src)
+    local a = src:find("function ZeD_Watch:_plain(", 1, true)
+    if not a then return nil end
+    local b = src:find("\nfunction ", a + 10, true)
+    return a, (b or #src)
+end
+if srcWB and srcWA then
+    local a1, b1 = plainOf(srcWB)
+    local a2, b2 = plainOf(srcWA)
+    if a1 and a2 then
+        srcWB = srcWB:sub(1, a1 - 1) .. "if not W.lite then function W.lite() return false end end\n" .. srcWA:sub(a2, b2) .. srcWB:sub(b1 + 1)
+    end
 end
 check("watch: the BASE copy is readable through git", srcWB ~= nil)
 check("watch: the checkout's copy is readable", srcWA ~= nil)
