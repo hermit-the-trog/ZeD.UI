@@ -268,6 +268,11 @@ function WM.build(win)
     if CM and CM.open and JoypadState and JoypadState.players and JoypadState.players[pn + 1] then
         items[#items + 1] = { name = tr("UI_ZeD_Wheel_ControllerMap"), category = "setup", onFire = function() CM.open(pn) end }
     end
+    -- (beta 21, the director: "Keyboard display and binding assistance": the keys, and a way to change them)
+    local KMap = ZeD.KeyboardMap
+    if KMap and KMap.open then
+        items[#items + 1] = { name = tr("UI_ZeD_KMap_Title"), category = "setup", onFire = function() KMap.open(pn) end }
+    end
     local WH = ZeD.DpadWheels and ZeD.DpadWheels.H
     if WH and WH.hideInterface then
         items[#items + 1] = { name = tr("UI_ZeD_Wheel_HideInterface"), category = "setup", onFire = function() WH.hideInterface() end }
