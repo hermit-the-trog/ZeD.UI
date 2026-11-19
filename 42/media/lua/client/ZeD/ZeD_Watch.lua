@@ -557,6 +557,33 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         local needTop = 2 * pad + tw0 + tailW + px(12) + math.max(dayW, tempW)
         if needTop > w then w = needTop end
     end
+    -- folded (a click on the face): one thin line, the time, the date and the temperature; a click unfolds it
+    if item and self._plainThin and not self._setOpen then
+        local tt = (rd.time or ""):gsub("^%s+", "") .. (rd.pm and (" " .. ZeD.tr("UI_ZeD_WatchPlain_PM")) or "")
+        local dd = (rd.day or "") .. " " .. (rd.mon and (rd.mon .. " ") or "") .. (rd.date or "")
+        local te = rd.temp and (tostring(rd.temp) .. (rd.tempUnit or "")) or nil
+        local sep = px(10)
+        local tw1, dw1 = tm:MeasureStringX(f2, tt), tm:MeasureStringX(f2, dd)
+        local ew1 = te and tm:MeasureStringX(f2, te) or 0
+        local sw = 2 * px(6) + tw1 + sep + dw1 + (te and (sep + ew1) or 0)
+        local sh = px(4) + fh2 + px(4)
+        self:_layout(sw, sh, 1)
+        if self._belt then self:_placePopped(sw, sh) end
+        self._s = 1
+        ZeD.Surface.fill(self, 0, 0, sw, sh, "surf2")
+        local bb = T.borderS
+        self:drawRectBorder(0, 0, sw, sh, bb.a or 1, bb.r, bb.g, bb.b)
+        local c1 = T.text
+        local x1 = px(6)
+        local ac1 = T.accent   -- (the time in the accent color)
+        self:drawText(tt, x1, px(4), ac1.r, ac1.g, ac1.b, ac1.a or 1, f2)
+        self:drawText(dd, x1 + tw1 + sep, px(4), c1.r, c1.g, c1.b, c1.a or 1, f2)
+        if te then self:drawText(te, sw - px(6) - ew1, px(4), c1.r, c1.g, c1.b, c1.a or 1, f2) end
+        local hits0 = self._hit
+        for i = #hits0, 1, -1 do hits0[i] = nil end
+        hits0[1] = { id = "fold", x = 0, y = 0, w = sw, h = sh }
+        return
+    end
     -- set mode: the help line wraps to the box (the normal face, not the mono one)
     local helpLines = nil
     if item and self._setOpen then
@@ -573,6 +600,7 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
     self:drawRectBorder(0, 0, w, h, b.a or 1, b.r, b.g, b.b)
     local tc, td = T.text, T.textDim
     local y = pad
+    local alarmHit, faceHit = nil, nil   -- (the face's fold area and the alarm line's, when drawn)
     if not item then
         self:drawText(ZeD.tr(_serverTime() and "UI_ZeD_WatchPlain_ServerTime" or "UI_ZeD_WatchPlain_GameSpeed"), pad, y, td.r, td.g, td.b, td.a or 1, f2)
         y = y + fh2 + gap
@@ -589,8 +617,9 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
     else
         local t = (rd.time or ""):gsub("^%s+", "")
         local ty = y + math.floor(((topH or bigH) - bigH) / 2)   -- (the time centred in the top block)
-        if hf and z then ZeD.Text.draw(self, hf, t, pad, ty, z, tc.r, tc.g, tc.b, tc.a or 1, "l")
-        else self:drawText(t, pad, ty, tc.r, tc.g, tc.b, tc.a or 1, T.fontF5) end
+        local ac = T.accent   -- (the time in the accent color, the director, Nov 19 2026)
+        if hf and z then ZeD.Text.draw(self, hf, t, pad, ty, z, ac.r, ac.g, ac.b, ac.a or 1, "l")
+        else self:drawText(t, pad, ty, ac.r, ac.g, ac.b, ac.a or 1, T.fontF5) end
         local tw = (hf and z) and ZeD.Text.width(hf, t, z) or tm:MeasureStringX(T.fontF5, t)
         local tail = (rd.sec and (":" .. rd.sec) or "") .. (rd.pm and (" " .. ZeD.tr("UI_ZeD_WatchPlain_PM")) or "")
         -- (the director, Nov 19 2026, on beta 21's report: "Seconds is below baseline". The seconds stood on the foot of
@@ -615,6 +644,8 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         local al = armed and ZeD.tr("UI_ZeD_WatchPlain_AlarmAt", rd.almTime or string.format("%d:00", alarmHour)) or ZeD.tr("UI_ZeD_WatchPlain_AlarmOff")
         local aw = tm:MeasureStringX(f2, al)
         self:drawText(al, w - pad - aw, y, td.r, td.g, td.b, td.a or 1, f2)
+        alarmHit = { id = "alarmline", x = w - pad - aw - px(14), y = y - px(2), w = aw + px(14), h = fh2 + px(4) }
+        faceHit = { id = "fold", x = 0, y = 0, w = w, h = pad + (topH or bigH) }
         if armed then
             local ds = px(6)
             ZeD.Atoms.drawStatusDot(self, w - pad - aw - ds - px(4), y + math.floor((fh2 - ds) / 2), T.accent, ds)
@@ -633,6 +664,8 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         ZeD.Molecules.drawButton(self, bx, y, bw, bh, bt.text, bt.on and "primary" or "default", hov and isMouseButtonDown(0))
         hits[#hits + 1] = { id = bt.id, x = bx, y = y, w = bw, h = bh }
     end
+    if alarmHit then hits[#hits + 1] = alarmHit end
+    if faceHit then hits[#hits + 1] = faceHit end
 end
 
 function ZeD_Watch:_canvas(k)
@@ -764,6 +797,11 @@ function ZeD_Watch:_act(id)
     if id == "speed" then _actSpeed(); return end
     if id == "start" then _actStart(); return end   -- (both nothing on a server: _setSpeed)
     if not item then return end
+    -- (the director, Nov 19 2026: "clicking the watch face, a single left mouse button click hides all but the time,
+    -- temperature, and date ... A single left mouse button click again brings it back to full size. Clicking on the
+    -- alarm set or not set allows them to set the alarm. Keep it super simple." The plain watch only.)
+    if id == "fold" then self._plainThin = not self._plainThin; return end
+    if id == "alarmline" then self._plainThin = false; self._setOpen = true; return end
     if id == "light" then
         if W.hasLight(self._def) then self._litUntil = getTimestampMs() + W.LIGHT_MS end   -- a watch without one: nothing
         return
