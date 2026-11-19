@@ -104,6 +104,7 @@ end
 -- screen, zed_forage_hand_up_b (its mirror) while it is to the left; turned to point, each has its thumb on top.
 -- Safe mode puts the game's arrow back, grey, on the next update.
 local HAND_A, HAND_B = "zed_forage_hand_up_a", "zed_forage_hand_up_b"
+local HAND_NONE = "zed_forage_hand_none"   -- (an empty picture: a pinned find's pointer, below)
 -- (smaller and a little see-through, the director, Nov 18 2026: "scale down the hand of God a little and make it a
 -- little bit transparent"; was 44 x 77 at full alpha)
 local HAND_W, HAND_H, HAND_ALPHA = 36, 63, 0.40   -- (0.40: "Can the hand of God be more transparent?", Nov 18)
@@ -129,7 +130,12 @@ local function dress(self)
         end
         return
     end
-    local want = findOnRight(self) and HAND_A or HAND_B
+    -- (the director, Nov 18 2026: "If there's a magnifying glass pin, it means the image is identified and it
+    -- doesn't need a finger pointing at it anymore... The hand should be pointing at things that aren't pinned yet."
+    -- A find with any pin, the frosted ? or the glass, is spotted (getIsSeen) and marked on screen: its pointer
+    -- wears an empty picture. The game's marker stays, so the game doesn't make it again each update.)
+    local pinned = self.getIsSeen and self:getIsSeen()
+    local want = pinned and HAND_NONE or (findOnRight(self) and HAND_A or HAND_B)
     if self._zedHandOn == m and self._zedHand == want then return end
     local ok = pcall(function()
         m:setTexture(want)

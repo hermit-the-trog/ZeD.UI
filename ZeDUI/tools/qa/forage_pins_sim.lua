@@ -83,6 +83,16 @@ do
         check(name .. ": its pointer is the hand", m and m.tex == "zed_forage_hand_up_a" and m.w == 36 and m.h == 63, m and m.tex)
         check(name .. ": its own placement still runs", icon._ownPlace == true)
     end
+    -- a find with a pin (spotted: the ? or the glass) needs no hand; one not pinned yet keeps it (the director, Nov 18)
+    local seen = false
+    local icon = setmetatable({ character = chr, xCoord = 110, yCoord = 100, getIsSeen = function() return seen end },
+        { __index = _G.ISWorldItemIcon })
+    icon:addWorldMarker()
+    check("not pinned yet: the hand points", icon.worldMarker.tex == "zed_forage_hand_up_a", icon.worldMarker.tex)
+    seen = true
+    icon:setWorldMarkerPosition()
+    check("pinned: no hand (an empty picture)", icon.worldMarker.tex == "zed_forage_hand_none", icon.worldMarker.tex)
+    check("pinned: the game's marker stays (not removed and remade)", icon.worldMarker.removed ~= true)
 end
 
 local function pin(width, opts)
