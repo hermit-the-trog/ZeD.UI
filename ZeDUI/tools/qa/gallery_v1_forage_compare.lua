@@ -97,36 +97,51 @@ S.step(20, function()
     S.v.moveTo(S.v.hx - 1, S.v.hy)
 end)
 S.step(15, function() S.v.moveTo(S.v.hx, S.v.hy); S.v.face() end)
-S.step(10, function() C2.pairShut() end)
-S.step(60, function()
-    S.v.face()
-    S.say("pointers up " .. S.v.pointers() .. " of " .. #S.v.icons .. "; search mode " .. tostring(S.v.mgr and S.v.mgr.isSearchMode))
-    for _, o in ipairs(S.v.icons) do S.say(string.format("find %s at %d,%d (character %.1f,%.1f)", tostring(o.iconID), o.xCoord or -1, o.yCoord or -1, S.v.p:getX(), S.v.p:getY())) end
-end)
-S.step(5, function()
-    if S.v.pointers() == 0 then S.say("ERR no pointer up"); return end
-    C2.shot(S, "zqa_fcmp_hands")
-end)
-S.step(5, function()
+-- (Nov 18 2026, Build: a pin draws only once its find is spotted (getIsSeen, after the spot timer) while the pointer
+-- rises as soon as the find is in sight, so run 1's ZeD picture came before five finds were spotted. Now: a long
+-- settle, the game's arrows first, ZeD second, the same wait before each, and each find's state printed.)
+function S.v.report(tag)
+    local n, seen, ident, mk = 0, 0, 0, 0
+    for id, o in pairs(S.v.mgr and S.v.mgr.worldObjectIcons or {}) do
+        n = n + 1
+        local sn, idf, up = false, o.identified == true, false
+        pcall(function() sn = o:getIsSeen() == true end)
+        pcall(function() up = o.worldMarker ~= nil and not o.worldMarker:isRemoved() end)
+        if sn then seen = seen + 1 end
+        if idf then ident = ident + 1 end
+        if up then mk = mk + 1 end
+        S.say(string.format("%s find %s at %s,%s: seen %s, identified %s, pointer %s", tag, tostring(id), tostring(o.xCoord), tostring(o.yCoord), tostring(sn), tostring(idf), tostring(up)))
+    end
+    S.say(string.format("%s finds %d: seen %d, identified %d, pointers %d", tag, n, seen, ident, mk))
+end
+function S.v.safe(on)
     local opt, Sf = ZeD.Settings and ZeD.Settings.safeModeOption, ZeD.Safe
     if not (opt and Sf and Sf.reread) then S.say("ERR no safe mode option"); return end
-    local ok, v = pcall(function() return opt:getValue() end)
-    S.v.safeWas = ok and v or nil
-    pcall(function() opt:setValue(2) end)
+    if on then
+        local ok, v = pcall(function() return opt:getValue() end)
+        S.v.safeWas = ok and v or nil
+        pcall(function() opt:setValue(2) end)
+    elseif S.v.safeWas ~= nil then
+        pcall(function() opt:setValue(S.v.safeWas) end)
+    end
     Sf.reread()
-    S.say("safe mode on (was " .. tostring(S.v.safeWas) .. "): " .. tostring(Sf.on()))
-end)
-S.step(60, function() S.v.face() end)
+    S.say("safe mode " .. tostring(Sf.on()) .. " (option was " .. tostring(S.v.safeWas) .. ")")
+end
+S.step(10, function() C2.pairShut() end)
+S.step(300, function() S.v.face(); S.v.report("settled") end)
+S.step(5, function() S.v.safe(true) end)
+S.step(180, function() S.v.face() end)
 S.step(5, function()
     if not (ZeD.Safe and ZeD.Safe.on()) then S.say("ERR safe mode did not hold"); return end
+    S.v.report("arrows")
     C2.shot(S, "zqa_fcmp_arrows")
 end)
+S.step(5, function() S.v.safe(false) end)
+S.step(180, function() S.v.face() end)
 S.step(5, function()
-    if S.v.safeWas ~= nil then
-        pcall(function() ZeD.Settings.safeModeOption:setValue(S.v.safeWas) end)
-        pcall(function() ZeD.Safe.reread() end)
-    end
-    S.say("safe mode put back to " .. tostring(S.v.safeWas) .. ": " .. tostring(ZeD.Safe and ZeD.Safe.on()))
+    if ZeD.Safe and ZeD.Safe.on() then S.say("ERR safe mode still on"); return end
+    S.v.report("hands")
+    C2.shot(S, "zqa_fcmp_hands")
 end)
 
 -- ===================================================================== put back
