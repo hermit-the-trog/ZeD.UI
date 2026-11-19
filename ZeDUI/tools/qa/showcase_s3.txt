@@ -1,0 +1,31 @@
+# ZeDUI/tools/qa/showcase_s3.txt  (Nov 18 2026, QA; the 1.0 Workshop description's showcase graphic 3, "Built for the
+# controller / Made to be read", ZeDUI/workshop/showcase/SHOWCASE_CAPTURES.md section 3): sc3_buttonmap, sc3_context,
+# sc3_pad, sc3_wheel, sc3_themes_dark, sc3_themes_light, sc3_themes_hicon; sc3_language only with the game in another
+# language. Angel Cross at the West Point Fossoil (gallery_story_stage.lua): the forecourt by the pump and the station
+# wagon, then among the shelves. Daylight, the load under 20 kg, no prescription glasses, no debug overlay, the pointer
+# hidden, the windows to one side with Angel uncovered (each shot logs its boxes). Shots land in Zomboid/Screenshots as
+# sc3_*.png; move them into Screenshots/showcase/ after the run.
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest showcase_s3.txt -Report showcase_s3            (QA only; the six shots)
+#   lang_run.ps1 -Lang RU -Manifest showcase_s3.txt                                            (sc3_language; or -Lang JP)
+# grep "ZEDQA sc3": "shot", "not taken", "box ... COVERS the character", "strip", "load", "put back".
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=300
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+#
+# -- Angel at the Fossoil (the stage sets 10:00; daylight again after it), the look again, then the load
+gallery_story_stage.lua | sts | timeout=600
+gallery_b11_look.lua | g14l2 | timeout=60
+gallery_unload.lua | unl | timeout=240
+gallery_v1_c3_common.lua | c3m | timeout=60
+#
+# -- the button map, the controller on the forecourt, the three themes among the shelves (or the language alone)
+showcase_s3.lua | sc3 | timeout=1200
+#
+# -- put back: the load, the story stage, the look
+gallery_reload.lua | rel | timeout=60
+gallery_story_teardown.lua | stt | timeout=600
+gallery_b11_look.lua | g14l3 | timeout=60
+gallery_t14_end.lua | g14e | timeout=60

@@ -1,0 +1,18 @@
+# ZeDUI/tools/qa/showcase_s2.txt  (Nov 18 2026, QA): the 1.0 Workshop description's showcase graphic 2, "Gadgets you can
+# hold / Know where you stand" (ZeDUI/workshop/showcase/SHOWCASE_CAPTURES.md, section 2): sc2_context, sc2_dash,
+# sc2_dash_radio, sc2_watch_radio, sc2_survival, sc2_forage, sc2_map, all at the QA home (the drag strip) by
+# showcase_s2.lua. Dark, PZ Teal, 4K at 1.75x, the glasses fix, every container under its limit.
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest showcase_s2.txt -Report showcase_s2   (QA only)
+# The pictures land in Zomboid/Screenshots as sc2_*.png; move them into Zomboid/Screenshots/showcase/ after the run.
+# grep the log for "ZEDQA sc2" ("not taken", "COVERS the character", "OVER").
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_unload.lua | unl | timeout=60
+gallery_v1_c2_common.lua | gv1c | timeout=60
+showcase_s2.lua | sc2 | timeout=1200
+gallery_reload.lua | rel | timeout=60
+gallery_t14_end.lua | g14e | timeout=60
