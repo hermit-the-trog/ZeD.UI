@@ -1104,6 +1104,8 @@ function MM.menuItems(key)
     elseif key == "settings" then
         local t = { { text = ZeD.btnCase(getText("UI_mainscreen_option")), fn = A.options }, { text = ZeD.tr("UI_ZeD_MainMenu_ModsOn", MM.modCount()), fn = A.mods } }
         if m and m.workshopOption then t[#t + 1] = { text = ZeD.btnCase(getText("UI_mainscreen_workshop")), fn = A.workshop } end
+        -- (beta 21: the first-launch setup again, to pick, save or load a setup; ZeD_MainMenuWelcome.lua)
+        if MM.openWelcome and not (m and m.inGame) then t[#t + 1] = { text = ZeD.tr("UI_ZeD_Welcome_MenuItem"), fn = function() MM.openWelcome() end } end
         local wall = MM.wallpaper()
         t[#t + 1] = "-"
         t[#t + 1] = { text = ZeD.tr("UI_ZeD_MainMenu_WallpaperOriginal"), check = wall == "original", fn = function() MM.ctx.open = nil; MM.setWallpaper("original") end }

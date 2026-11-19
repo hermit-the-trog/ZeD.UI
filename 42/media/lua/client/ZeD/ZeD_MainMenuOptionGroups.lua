@@ -523,6 +523,9 @@ local function firstRun()
     Events.OnFETick.Remove(firstRun)
     local r = getFileReader(SEEN_FILE, false)
     if r then r:close(); return end
+    -- (beta 21, the director: the first launch offers a setup of its own, pick your own, load a setup or skip,
+    -- ZeD_MainMenuWelcome.lua; it writes the seen file when it is answered, so a launch that never answers asks again)
+    if MM.openWelcome then MM.openWelcome(); return end
     MM.openOptions()
     if MM.view ~= "options" then return end   -- it did not open: the marker stays unwritten, so the next launch tries again
     local w = getFileWriter(SEEN_FILE, true, false)

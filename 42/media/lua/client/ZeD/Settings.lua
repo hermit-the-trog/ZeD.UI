@@ -1328,3 +1328,64 @@ local function cycleNext(list, current)
     return list[1]
 end
 ZeD.Settings.cycleNext = cycleNext
+
+-- ---------------------------------------------------------------------------
+-- (beta 21) THE FIRST-LAUNCH SETUP AND A SETUP CARRIED BETWEEN MACHINES
+-- The director, Nov 18 2026: "Pick their own experience including settings with preview on first launch ... can be
+-- skipped and they get the setup we default to", and "there should be a choice to load a previous setup". A setup
+-- is every ZeD option's value, one "<option id>=<item>" line each, in Zomboid/Lua/ZeD_setup.txt: Save setup writes
+-- it, Load a setup reads it (from this machine or copied from another). ZeD_MainMenuWelcome.lua is the window.
+-- ---------------------------------------------------------------------------
+ZeD.Settings.opts = opts
+ZeD.Settings.SETUP_FILE = "ZeD_setup.txt"
+--- The theme, accent, text size, see-through and status colors put on screen from the options as they stand.
+function ZeD.Settings.applyThemeNow() applyFromOptions() end
+--- ModOptions.ini written now.
+ZeD.Settings.saveNow = saveModOptions
+
+--- Every ZeD option's value to the setup file. True when it wrote.
+function ZeD.Settings.saveSetup(file)
+    local ok, w = pcall(function() return getFileWriter(file or ZeD.Settings.SETUP_FILE, true, false) end)
+    if not (ok and w) then return false end
+    local wrote = pcall(function()
+        w:write("ZeD-GUI setup; <option id>=<item>\n")
+        for _, o in ipairs(opts.data or {}) do   -- (PZAPI.ModOptions: the options in order, by id in .dict)
+            local id = o.id
+            local v = (o.type ~= "multipletickbox" and o.getValue) and o:getValue() or nil
+            if id and v ~= nil and type(v) ~= "table" then w:write(tostring(id) .. "=" .. tostring(v) .. "\n") end
+        end
+    end)
+    pcall(function() w:close() end)
+    return wrote
+end
+
+--- True while a setup file is there to load.
+function ZeD.Settings.hasSetup(file)
+    local ok, r = pcall(function() return getFileReader(file or ZeD.Settings.SETUP_FILE, false) end)
+    if ok and r then pcall(function() r:close() end); return true end
+    return false
+end
+
+--- The setup file's values onto the options, the theme on screen and ModOptions.ini saved. The count it set, or nil.
+function ZeD.Settings.loadSetup(file)
+    local ok, r = pcall(function() return getFileReader(file or ZeD.Settings.SETUP_FILE, false) end)
+    if not (ok and r) then return nil end
+    local n = 0
+    pcall(function()
+        local l = r:readLine()
+        while l do
+            local id, v = l:match("^([%w_]+)=(.+)$")
+            local o = id and opts.dict and opts.dict[id]
+            if o and o.setValue then
+                local val = v
+                if v == "true" then val = true elseif v == "false" then val = false elseif tonumber(v) then val = tonumber(v) end
+                if pcall(function() o:setValue(val) end) then n = n + 1 end
+            end
+            l = r:readLine()
+        end
+    end)
+    pcall(function() r:close() end)
+    applyFromOptions()
+    saveModOptions()
+    return n
+end
