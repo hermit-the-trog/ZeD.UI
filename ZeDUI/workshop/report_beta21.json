@@ -120,7 +120,7 @@
      "title": "Tour 4 of 7: an item's card",
      "shots": "tour_17",
      "look": "",
-     "what": "Not right yet: no item card is open in this step, so the balloon describes a card that isn't on screen. I'll make this step open an item's card before the final run."
+     "what": "Fixed: the step now opens the card of the first thing you carry (here the Cigarette Pack) before the balloon shows."
     },
     {
      "title": "Tour 5 of 7: the World window",
@@ -178,8 +178,8 @@
   {
    "kind": "added",
    "script": "rt_tour.lua",
-   "what": "The tour: starts by itself when asked for; all seven balloons in order, each pointing at its thing; a step with nothing on screen is passed over; Stop, Done, the controller's words, A and B. Two new checks: the tour shows every step when it starts with both windows shut, and its keys never cover what the balloon points at.",
-   "checks": 118
+   "what": "The tour: starts by itself when asked for; all seven balloons in order, each pointing at its thing; a step with nothing on screen is passed over; Stop, Done, the controller's words, A and B. Two new checks: the tour shows every step when it starts with both windows shut, and its keys never cover what the balloon points at. And that the card step has a card open.",
+   "checks": 127
   },
   {
    "kind": "changed",
@@ -191,6 +191,6 @@
  "tests_notes": [
   "Nothing was removed. Not covered by a script: how the Options wheel's Style slice looks, how the radio-button rows draw, and the tour on a real controller (no controller on the test machine).",
   "Found and fixed while taking these pictures: the tour skipped the two windows when they had been opened and shut before it began; its Next and Stop keys sat over the belt; two lines on the welcome window ran past their edges; Load was offered with no setup file to load.",
-  "In the later pictures a crowd of zombies gathers at the Fossoil's side door. They are the QA save's own and don't attack during tests."
+  "In these pictures a few zombies stand inside the Fossoil near Angel. They are the QA save's own and don't attack during tests; say if you want the pictures retaken without them."
  ]
 }
