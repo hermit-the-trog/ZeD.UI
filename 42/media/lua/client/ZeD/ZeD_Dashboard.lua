@@ -77,7 +77,12 @@ local LIVERY_DESIGN = {
     { "trooper", "police" }, { "swat", "police" }, { "kst", "police" }, { "louisvillepd", "police" }, { "louisvillecounty", "police" },
     { "westpoint", "police" }, { "ranger", "ranger" }, { "taxi", "taxi" }, { "race", "race" },
 }
+-- (beta 21, the director, Nov 18 2026: Lite gives every car one dash, "the black 1990s late model": the Dash Elite
+-- in its black cabin)
+D.LITE_DESIGN, D.LITE_CABIN = "dashelite", "v_black"
+local function isLite() return ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite() or false end
 local function _designFor(scriptName)
+    if isLite() and DP.designs[D.LITE_DESIGN] then return DP.designs[D.LITE_DESIGN], D.LITE_DESIGN, true end
     local n = tostring(scriptName or ""):gsub("^Base%.", "")
     local low = n:lower()
     for _, pair in ipairs(LIVERY_DESIGN) do
@@ -1403,7 +1408,7 @@ local function _cabinOf(vehicle, des, designId)
     local list = des.cabins
     if not list or #list == 0 then return nil, nil end
     local Pr = ZeD.DashProto
-    local want = D.qaCabin
+    local want = D.qaCabin or (isLite() and designId == D.LITE_DESIGN and D.LITE_CABIN or nil)
     if not want and Pr and Pr.carCabin then
         local b, r = Pr.carCabin(vehicle)
         want = Pr.cabinFor(designId, b, r)
@@ -2207,7 +2212,9 @@ function ZeD_Dashboard:prerender()
     local trs = ZeD._trState
     local trOn = (trs and trs.on) and true or false
     local des, designId, ownFamily
-    if bk and bk.v == vehicle and bk.s == scriptName and bk.gen == ZeD._trGen and bk.on == trOn and bk.qa == D.qaCabin then
+    local lite = isLite()
+    if bk and bk.v == vehicle and bk.s == scriptName and bk.gen == ZeD._trGen and bk.on == trOn and bk.qa == D.qaCabin
+       and bk.lite == lite then
         des, designId, ownFamily = bk.des, bk.id, bk.own
     else
         des, designId, ownFamily = _designFor(scriptName)
@@ -2219,7 +2226,7 @@ function ZeD_Dashboard:prerender()
         for name in pairs(des.sprites or {}) do tex(names and names[name] or name) end
         self._badge = _badges(des, vehicle, scriptName, ownFamily)
         self._badgeKey = { v = vehicle, s = scriptName, gen = ZeD._trGen, on = trOn, des = des, id = designId, own = ownFamily,
-                           qa = D.qaCabin }
+                           qa = D.qaCabin, lite = lite }
     end
     self._designId = designId
     if st.pub then

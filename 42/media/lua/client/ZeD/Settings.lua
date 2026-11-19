@@ -642,7 +642,9 @@ dashStyle:addItem(ZeD.tr("UI_ZeD_Settings_Immersive"), true)   -- default
 dashStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
 ZeD.Settings.dashStyleOption = dashStyle
 function ZeD.Settings.dashSimple()
-    return ZeD.Settings.lite()   -- (Lite or Full, beta 21)
+    -- (beta 21: Lite's dash is not the plain strip but one pixel dash for every car, the black Dash Elite:
+    -- ZeD_Dashboard.lua D.LITE_DESIGN; the plain strip is retired with the Dashboard row)
+    return false
 end
 
 -- ----- THE SURVIVAL GUIDE'S FORM -----

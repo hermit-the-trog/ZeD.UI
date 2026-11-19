@@ -305,6 +305,8 @@ W.POP_IDLE_MS = 6000     -- the full watch tucks back after this long untouched
 
 --- The "Watch" option says the belt (its first choice, the default; no option at all counts as the belt).
 function W.beltMode()
+    -- (beta 21, the director: in Lite "the watches stay, but the watches aren't on the belt anymore": the corner)
+    if ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite() then return false end
     local o = ZeD.Settings and ZeD.Settings.watchPlaceOption
     return not o or o:getValue() == 1
 end
@@ -477,6 +479,8 @@ end
 -- ---------------------------------------------------------------------------
 --- The watchSimple setting is on.
 function W.simple() return ZeD.Settings and ZeD.Settings.watchSimple and ZeD.Settings.watchSimple() or false end
+--- Lite (beta 21): the plain clock with the speed as one pick-one row.
+function W.lite() return ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite() or false end
 
 local PLAIN_W, PLAIN_PAD, PLAIN_GAP = 150, 8, 4
 function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
@@ -505,6 +509,13 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         h = pad + bigH + gap + fh2 + gap + fh2 + gap + bh + pad
         if self._setOpen then
             btns = { { id = "setdn", text = "-" }, { id = "setup", text = "+" }, { id = "alarmtoggle", text = ZeD.tr("UI_ZeD_WatchPlain_AlarmOnOff") }, { id = "set", text = ZeD.tr("UI_ZeD_WatchPlain_Done") } }
+        elseif W.lite() then
+            -- (beta 21, Lite: the clock in the corner as the game's own, and the game's speed as one pick-one row
+            -- in place of Start, Speed, Alarm and Set: "more radio buttons than click buttons", the director. On a
+            -- server the speed is not the player's: no row.)
+            if not _serverTime() then
+                for i = 0, 3 do btns[#btns + 1] = { id = "speed" .. i, text = ZeD.tr("UI_ZeD_WatchPlain_Speed" .. i), on = (speed == i) or (i == 3 and speed > 3) } end
+            end
         elseif _serverTime() then
             btns = { { id = "alarm", text = ZeD.tr("UI_ZeD_WatchPlain_AlarmBtn") },
                      { id = "set", text = ZeD.tr("UI_ZeD_WatchPlain_Set") } }
@@ -515,6 +526,7 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
                      { id = "set", text = ZeD.tr("UI_ZeD_WatchPlain_Set") } }
         end
     end
+    if item and #btns == 0 then h = h - bh - gap end   -- (Lite on a server: no row, no room for one)
     -- as wide as the buttons' words need (each its text and a margin), never narrower than the design width
     -- (the buttons share the width equally, so each must hold the widest word)
     local widest = 0
