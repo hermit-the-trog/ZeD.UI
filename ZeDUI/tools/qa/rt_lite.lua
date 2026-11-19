@@ -369,6 +369,20 @@ Q.step(3, function()
     H.recStart()
 end)
 
+-- (Nov 19 2026, QA: the plain watch draws its face and alarm line only for a worn watch; the QA character wears none,
+-- so a digital one is put on for sections 4 and 4b, and taken off after with whatever it replaced put back)
+Q.step(3, function()
+    S.wWatch = {}
+    local W = ZeD.Watch
+    local inst = W and W.getInstance and W.getInstance() or nil
+    if inst and inst._item then Q.say("watch: the character's own"); return end
+    local it = RT.give("Base.WristWatch_Left_DigitalBlack")
+    if not it then return end
+    local loc = it:getBodyLocation()
+    pcall(function() S.wWatch.prev = S.p:getWornItem(loc) end)
+    if pcall(function() S.p:setWornItem(loc, it) end) then S.wWatch.given, S.wWatch.loc = it, loc end
+    pcall(function() triggerEvent("OnClothingUpdated", S.p) end)
+end)
 -- ===================================================================== 4. the watch (and the buttons it draws)
 Q.step(30, function()
     H.recStop()
@@ -382,7 +396,12 @@ Q.step(30, function()
         local ids = {}
         for _, h in ipairs((inst and inst._hit) or {}) do ids[#ids + 1] = tostring(h.id) end
         local want = "speed0 speed1 speed2 speed3"
-        Q.check(inst ~= nil and table.concat(ids, " ") == want, "Lite watch: its keys are the speed row speed0 to speed3", table.concat(ids, " "))
+        local four = table.concat({ ids[1] or "", ids[2] or "", ids[3] or "", ids[4] or "" }, " ")
+        local rest = {}
+        for i = 5, #ids do rest[ids[i]] = true end
+        -- (Nov 19 2026, the folding watch: after the speed row, the face (fold) and the alarm line (alarmline))
+        Q.check(inst ~= nil and four == want and rest.fold and rest.alarmline and #ids == 6,
+            "Lite watch: its keys are the speed row speed0 to speed3, then the face and the alarm line", table.concat(ids, " "))
     end
     if inst and inst:isVisible() and inst:getWidth() > 0 then RT.bounds(Q, "Lite: the watch in its corner") end
     -- a button really drawn in Lite: the watch's speed row, the speed in use primary, filled with the good color
@@ -418,6 +437,93 @@ Q.step(3, function()
     local cab = nil
     pcall(function() cab = D._cabinOf(nil, des, id) end)
     Q.check(cab ~= nil and cab.id == D.LITE_CABIN and cab.id == "v_black", "Lite dashboard: in the black cabin", cab and tostring(cab.id) or "no cabin")
+end)
+
+-- ===================================================================== 4b. the plain watch folds (Nov 19 2026)
+-- (the director: a click on the face folds it to one line, time, date and temperature; a click unfolds it; a click on
+-- the alarm line opens the alarm setting; the time in the accent color. ZeD_Watch.lua _act fold / alarmline. Each
+-- click through the watch's own mouse handler at the hit's middle; the watch put back unfolded and out of set mode.)
+function H.watchHit(inst, id)
+    for _, h in ipairs((inst and inst._hit) or {}) do if h.id == id then return h end end
+    return nil
+end
+function H.watchClick(inst, id)
+    local h = H.watchHit(inst, id)
+    if not h then return false end
+    inst:onMouseDown(h.x + math.floor(h.w / 2), h.y + math.floor(h.h / 2))
+    inst:onMouseUp(h.x + math.floor(h.w / 2), h.y + math.floor(h.h / 2))
+    return true
+end
+-- the colors the watch's words are drawn in, by their text (pass-through)
+function H.watchTextStart(inst)
+    S.wtxt = {}
+    S.wInst = inst
+    S.wDrawWas = inst.drawText
+    inst.drawText = function(self, s, x, y, r, g, b, a, f)
+        S.wtxt[tostring(s)] = { r, g, b }
+        return S.wDrawWas(self, s, x, y, r, g, b, a, f)
+    end
+end
+function H.watchTextStop() if S.wInst and S.wDrawWas then S.wInst.drawText = S.wDrawWas end; S.wInst, S.wDrawWas = nil, nil end
+function H.timeColor()
+    for s, c in pairs(S.wtxt or {}) do if s:match("^%d+:%d%d$") then return c, s end end
+    return nil
+end
+Q.step(5, function()
+    local inst = ZeD.Watch.getInstance and ZeD.Watch.getInstance() or nil
+    S.wi = inst
+    if not inst then Q.check(false, "Lite watch fold: the watch is on screen"); return end
+    S.wFold0, S.wSet0 = inst._plainThin, inst._setOpen
+    inst._plainThin, inst._setOpen = false, false
+    S.wH0 = inst:getHeight()
+    H.watchTextStart(inst)
+end)
+Q.step(10, function()
+    local inst = S.wi
+    if not inst then return end
+    S.wH0 = inst:getHeight()
+    local c, s = H.timeColor()
+    local A = ZeD.T.accent
+    if c then
+        Q.check(math.abs(c[1] - A.r) < 0.01 and math.abs(c[2] - A.g) < 0.01 and math.abs(c[3] - A.b) < 0.01,
+            "Lite watch: the big time is in the accent color", string.format("%.2f %.2f %.2f, accent %.2f %.2f %.2f", c[1], c[2], c[3], A.r, A.g, A.b))
+    else Q.skip("Lite watch: the big time is in the accent color", "the big time is not drawn through drawText (another drawing path)") end
+    Q.check(H.watchClick(inst, "fold"), "Lite watch fold: the face has its fold hit and a click lands on it")
+end)
+Q.step(10, function()
+    local inst = S.wi
+    if not inst then return end
+    local ids = {}
+    for _, h in ipairs(inst._hit or {}) do ids[#ids + 1] = tostring(h.id) end
+    Q.check(inst._plainThin == true and inst:getHeight() < S.wH0 and table.concat(ids, " ") == "fold",
+        "Lite watch fold: a click on the face folds it to one line (shorter, the strip is one fold hit)",
+        "thin " .. tostring(inst._plainThin) .. ", h " .. inst:getHeight() .. " < " .. tostring(S.wH0) .. ", hits " .. table.concat(ids, " "))
+    local c, s = H.timeColor()
+    local A = ZeD.T.accent
+    Q.check(c ~= nil and math.abs(c[1] - A.r) < 0.01 and math.abs(c[2] - A.g) < 0.01 and math.abs(c[3] - A.b) < 0.01,
+        "Lite watch fold: the strip's time is in the accent color", tostring(s))
+    RT.bounds(Q, "Lite: the folded watch")
+    H.watchClick(inst, "fold")
+end)
+Q.step(10, function()
+    local inst = S.wi
+    if not inst then return end
+    Q.check(inst._plainThin == false and math.abs(inst:getHeight() - S.wH0) <= 1, "Lite watch fold: a click on the strip unfolds it to its full height",
+        "thin " .. tostring(inst._plainThin) .. ", h " .. inst:getHeight())
+    Q.check(H.watchClick(inst, "alarmline"), "Lite watch: the alarm line has its hit")
+end)
+Q.step(10, function()
+    local inst = S.wi
+    if not inst then return end
+    Q.check(inst._setOpen == true and inst._plainThin == false, "Lite watch: a click on the alarm line opens the alarm setting", tostring(inst._setOpen))
+    H.watchTextStop()
+    inst._setOpen = S.wSet0 == true
+    inst._plainThin = S.wFold0 == true
+    if S.wWatch and S.wWatch.given then
+        pcall(function() S.p:setWornItem(S.wWatch.loc, S.wWatch.prev) end)
+        pcall(function() triggerEvent("OnClothingUpdated", S.p) end)
+        S.wWatch.given = nil
+    end
 end)
 
 -- ===================================================================== 5. device faces

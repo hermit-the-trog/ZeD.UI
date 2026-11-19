@@ -52,8 +52,9 @@ function K.style(i)
     pcall(function() o:setValue(i) end)
     if o.onChange then pcall(o.onChange, o, i) end
 end
-function K.shot(name)
-    pcall(function() Mouse.setXY(4, 4); Mouse.setCursorVisible(false) end)
+function K.shot(name, keepMouse)
+    -- (keepMouse: the pointer hidden where it is; a menu that is open stays open)
+    pcall(function() if not keepMouse then Mouse.setXY(4, 4) end; Mouse.setCursorVisible(false) end)
     local ok, e = pcall(function() getCore():TakeFullScreenshot("b21r_" .. name .. ".png") end)
     if ok then pass = pass + 1; say("shot b21r_" .. name) else fail = fail + 1; say("ERR shot " .. name .. ": " .. tostring(e)) end
 end
@@ -139,7 +140,7 @@ at(61, function()
     if w and fid and w.folderColorMenu then pcall(function() w:folderColorMenu(fid) end) end
     say("Color menu open " .. tostring(MM.ctx and MM.ctx.open ~= nil))
 end)
-at(65, function() K.shot("folders_26") end)
+at(65, function() say("Color menu still open " .. tostring(MM.ctx and MM.ctx.open)); K.shot("folders_26", true) end)
 at(67, function()
     MM.ctx.open = nil
     local w = MM.root and MM.root.modsWin
