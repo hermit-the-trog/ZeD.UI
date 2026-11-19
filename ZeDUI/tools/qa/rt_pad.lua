@@ -1187,6 +1187,13 @@ Q.step(10, function()
     local fc = S.bottle and S.bottle:getFluidContainer()
     if fc then pcall(function() fc:Empty(); fc:addFluid(FluidType.Water, fc:getCapacity() * 0.8) end) end
     pcall(function() S.p:getStats():set(CharacterStat.THIRST, 0.4) end)
+    -- (Nov 18 2026, run 11: the game's own ISDrinkFromBottle:drink line 82 calls syncPlayerStats(character,
+    -- SyncPlayerStatsPacket.Stat_Thirst), and 42.21/42.22 have no Stat_Thirst, so a thirsty drink throws in -debug in
+    -- the game without ZeD too. For this drink only, a call with that missing code is skipped; put back in S.putPB.)
+    if syncPlayerStats and not S.syncWas then
+        S.syncWas = syncPlayerStats
+        syncPlayerStats = function(chr, stat, ...) if stat == nil then return end; return S.syncWas(chr, stat, ...) end
+    end
     local g = Z.QuickWheel and Z.QuickWheel.group("drink")
     if Q.check(g ~= nil and S.bottle ~= nil, "put back: a bottle of water in a bag") then
         PB.last = nil
@@ -1203,6 +1210,7 @@ end, function(ok)
     S.putPB()
 end)
 function S.putPB()
+    if S.syncWas then syncPlayerStats = S.syncWas; S.syncWas = nil end
     if not S.back.pb then return end
     S.back.pb = nil
     pcall(function() S.p:StopAllActionQueue() end)

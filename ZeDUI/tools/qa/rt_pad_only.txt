@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/rt_pad_only.txt  (Nov 18 2026, QA): the release test's controller script alone, to clear one area after a fix.
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+rt_pad.lua | rt_pad | timeout=1800
