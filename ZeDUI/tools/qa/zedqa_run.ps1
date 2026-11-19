@@ -1125,6 +1125,11 @@ try {
     $script:KeysIni = Join-Path $LuaDir "keysB42.ini"
     $script:KeysWas = $null
     if (Test-Path -LiteralPath $script:KeysIni) { $script:KeysWas = [IO.File]::ReadAllBytes($script:KeysIni) }
+    # (the same for the tour's word, Zomboid/Lua/ZeD_tutorial.txt: rt_tour starts and stops the tour, and Stop writes
+    # "0"; the file comes back as it was, or goes again when there was none)
+    $script:TutFile = Join-Path $LuaDir "ZeD_tutorial.txt"
+    $script:TutHad = Test-Path -LiteralPath $script:TutFile
+    $script:TutWas = $(if ($script:TutHad) { [IO.File]::ReadAllBytes($script:TutFile) } else { $null })
     Reset-ZeDSettings $Mode $KeepIni
     Set-FontSize
     if ($Mode -eq "windowed") { Start-GameWindowed } else { Start-Game4K }
@@ -1180,6 +1185,20 @@ finally {
             if (-not $same) {
                 [IO.File]::WriteAllBytes($script:KeysIni, $script:KeysWas)
                 Add-Note "keysB42.ini put back byte for byte (the run had changed it)"
+            }
+        }
+        if (-not $KeepOpen -and -not (Test-GameRunning)) {
+            $tutNow = Test-Path -LiteralPath $script:TutFile
+            if ($script:TutHad) {
+                $now = $(if ($tutNow) { [IO.File]::ReadAllBytes($script:TutFile) } else { $null })
+                if (-not ($now -and [Convert]::ToBase64String($now) -eq [Convert]::ToBase64String($script:TutWas))) {
+                    [IO.File]::WriteAllBytes($script:TutFile, $script:TutWas)
+                    Add-Note "ZeD_tutorial.txt put back byte for byte (the run had changed it)"
+                }
+            }
+            elseif ($tutNow) {
+                Remove-Item -LiteralPath $script:TutFile -Force
+                Add-Note "ZeD_tutorial.txt removed (there was none before the run)"
             }
         }
         $info.Finished = Get-Date

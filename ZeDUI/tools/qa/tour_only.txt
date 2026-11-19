@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/tour_only.txt  (Nov 19 2026, QA): the tour's checks alone (rt_tour.lua, also in release_test.txt).
+# Run through tour_run.ps1, which asks for the tour at launch (so the start by itself is checked) and puts the
+# director's Zomboid/Lua/ZeD_tutorial.txt back after.
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+rt_tour.lua | rt_tour | timeout=600
