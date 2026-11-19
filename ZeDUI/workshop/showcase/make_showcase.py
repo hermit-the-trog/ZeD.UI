@@ -7,15 +7,15 @@ stuff, highlight stuff, but not enough that you can't tell what's going on or wh
 Each graphic: the whole screen on top (where things are), the parts its bullets name outlined and labeled; under it,
 close-ups at the game's own pixels (what they look like). Shots: QA's 4K captures in Zomboid/Screenshots/gallery_v1_wip.
 
-Run from the repo root:  python ZeDUI/workshop/showcase/make_showcase.py [shots folder]
-Writes ZeDUI/workshop/description_img/<n>_<name>.jpg (the description's GitHub-hosted pictures).
+Run from the repo root:  python ZeDUI/workshop/showcase/make_showcase.py <slot numbers>
+Writes ZeDUI/workshop/showcase/review/<n>_<name>.jpg; once the director approves, copy it into description_img/ (the live page reads that).
 """
 import os
 import sys
 from PIL import Image, ImageDraw, ImageFont
 
-SHOTS = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.expanduser("~"), "Zomboid", "Screenshots", "gallery_v1_wip")
-OUT = os.path.join("ZeDUI", "workshop", "description_img")
+SHOTS = os.path.join(os.path.expanduser("~"), "Zomboid", "Screenshots", "gallery_v1_wip")
+OUT = os.path.join("ZeDUI", "workshop", "showcase", "review")
 FONTS = os.path.join("ZeDUI", "workshop", "gallery", "fonts")
 
 W = 1280                       # the graphic's width (Steam shows the description about 636 wide: twice that, sharp)
@@ -103,9 +103,52 @@ def slot1():
     return canvas
 
 
+# QA's showcase captures (SHOWCASE_CAPTURES.md, Nov 18 2026) for slots 2 to 4
+SC = os.path.join(os.path.expanduser("~"), "Zomboid", "Screenshots", "showcase")
+
+
+def top_shot(name, folder=None):
+    """A whole 4K screen scaled to the graphic's width, and its scale."""
+    full = Image.open(os.path.join(folder or SC, name)).convert("RGB")
+    s = W / full.width
+    return full.resize((W, int(full.height * s)), Image.LANCZOS), s
+
+
+def slot4():
+    """Before you play (the desk, the mod manager); On a server has no shot (no server kit run)."""
+    global SHOTS
+    SHOTS = SC
+    top, s = top_shot("sc4_mods_conflict.png")
+    inset_h = 225
+    H = top.height + PAD + inset_h + PAD
+    canvas = Image.new("RGB", (W, H), BG)
+    canvas.paste(top, (0, 0))
+    d = ImageDraw.Draw(canvas)
+    folders = scaled((1020, 572, 1878, 1948), s)
+    conflict = scaled((1902, 748, 2822, 1040), s)
+    profile = scaled((2492, 304, 2652, 342), s)
+    outline(d, folders)
+    outline(d, conflict)
+    outline(d, profile, 3)
+    chip(d, folders[0], folders[3] + 8, "FOLDERS", 20)
+    chip(d, conflict[0], conflict[3] + 8, "CONFLICTS AND THEIR FIXES", 20)
+    chip(d, profile[2], profile[3] + 8, "PROFILE IN USE", 16, "rt")
+    inset_row(canvas, d, top.height + PAD, [
+        ("sc4_desk.png", (1340, 240, 2880, 1160), "A 1993 DESK", []),
+        ("sc4_profiles.png", (1010, 350, 2300, 1000), "PROFILES AND LOAD ORDER", []),
+        ("sc4_mods.png", (1900, 690, 2800, 1180), "WARNINGS BEFORE YOU TURN IT OFF", []),
+    ], inset_h)
+    return canvas
+
+
+SLOTS = {1: ("two_windows", slot1), 4: ("mod_manager", slot4)}
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
-    for n, (name, fn) in enumerate([("two_windows", slot1)], 1):
+    # (slot 1 is Design's labeled version now: only the slots named on the command line are made)
+    for n in [int(a) for a in sys.argv[1:]]:
+        name, fn = SLOTS[n]
         im = fn()
         p = os.path.join(OUT, "%d_%s.jpg" % (n, name))
         im.save(p, "JPEG", quality=90, optimize=True, progressive=True)
