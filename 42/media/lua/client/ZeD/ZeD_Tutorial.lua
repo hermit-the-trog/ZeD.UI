@@ -118,7 +118,18 @@ TU.STEPS = {
         if not (ok and r and r.w) then return nil end
         return { x = w:getAbsoluteX() + r.x, y = w:getAbsoluteY() + r.y, w = r.w, h = r.h }
     end, pref = "below" },
-    { key = "Guide", target = function(pn) return rectOf(ZeD.Belt and ZeD.Belt.getHUD and ZeD.Belt.getHUD(pn)) end, pref = "above" },
+    -- (the director, Nov 19 2026, on beta 21's report: the guide step pointed at the whole belt. It points at the belt's
+    -- Messages note, where ZeD's guide bubble comes out on the first game with ZeD and where the guide's line stays;
+    -- the whole belt only when the note is not drawn)
+    { key = "Guide", target = function(pn)
+        local hud = ZeD.Belt and ZeD.Belt.getHUD and ZeD.Belt.getHUD(pn)
+        local r = rectOf(hud)
+        if not r then return nil end
+        for _, b in ipairs(hud._boxes or {}) do
+            if b.kind == "lamp" and b.w and b.w > 0 then return { x = r.x + b.x, y = r.y + b.y, w = b.w, h = b.h } end
+        end
+        return r
+    end, pref = "above" },
 }
 
 -- ---------------------------------------------------------------------------
