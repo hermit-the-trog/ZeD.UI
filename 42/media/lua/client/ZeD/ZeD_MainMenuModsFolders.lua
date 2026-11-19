@@ -310,6 +310,8 @@ function ZeD_MMMods:drawFolderHead(e, x, ry, rw, vy, vh, gp)
     local f2, f3 = T.fontF2, T.fontF3
     local s2 = T.surf2
     self:drawRect(x + T.px(1), ry, rw, e.h, s2.a or 1, s2.r, s2.g, s2.b)
+    local tint = e.f and ZeD_MMMods.folderTint(e.fkey)   -- (the folder's color, beta 21)
+    if tint then self:drawRect(x + T.px(1), ry, rw, e.h, ZeD_MMMods.FOLDER_TINT_A or 0.18, tint.r, tint.g, tint.b) end
     local hot = (not gp) and (MM.ctx.hot == e.hid or MM.ctx.hot == e.tid)
     local onFocus = MM.rowLook(self, x + T.px(1), ry, rw, e.h, self.fsel == e.fkey, hot, gp and self.focusId == e.sid)
     if hot or (gp and self.focusId == e.sid) then ZeD.Help.set(self, e.help) end
@@ -416,7 +418,11 @@ function ZeD_MMMods:drawFolderRows(x, y, w, h, vy)
         if ry >= vy + vh then break end
         self:folderStop(e, k)
         if e.k == "folder" then self:drawFolderHead(e, x, ry, rw, vy, vh, gp)
-        else self:drawModRow(e.d, x, ry, rw, e.h, vy, vh, gp, e.sid, T.px(INDENT), star) end
+        else
+            self._rowTint = ZeD_MMMods.folderTint(e.fkey)   -- (its folder's color, beta 21; drawModRow washes the row)
+            self:drawModRow(e.d, x, ry, rw, e.h, vy, vh, gp, e.sid, T.px(INDENT), star)
+            self._rowTint = nil
+        end
         k = k + 1
     end
     -- stops out of sight: the one before, the one after, the focused one
@@ -636,6 +642,73 @@ function ZeD_MMMods:folderAnchor()
     return { x = ax + T.px(60), y = ay + T.px(60), w = T.px(10), h = T.px(10) }
 end
 
+-- ----------------------------------------------------------------------------
+-- FOLDER COLORS (beta 21, the director, Nov 19 2026: "Can you assign colors to the folders?", the whole row tinted).
+-- A folder takes one of the nine accent colors, or none. ModFolders.cfg is the [B42]Mod Folders mod's file and stays
+-- in its format, so the colors are ZeD's own: Zomboid/Lua/ZeD_folder_colors.txt, "<folder id>=<accent key>" a line.
+-- The folder's row and its mods' rows are washed in the color (FOLDER_TINT_A over the row, under its words).
+-- ----------------------------------------------------------------------------
+local COLOR_FILE = "ZeD_folder_colors.txt"
+local FOLDER_TINT_A = 0.18
+local _colors = nil
+local function colorsLoad()
+    _colors = {}
+    local ok, r = pcall(function() return getFileReader(COLOR_FILE, false) end)
+    if not (ok and r) then return end
+    pcall(function()
+        local l = r:readLine()
+        while l do
+            local id, key = l:match("^(%d+)=(%a+)$")
+            if id then _colors[tonumber(id)] = key end
+            l = r:readLine()
+        end
+    end)
+    pcall(function() r:close() end)
+end
+local function colorsSave()
+    local ok, w = pcall(function() return getFileWriter(COLOR_FILE, true, false) end)
+    if not (ok and w) then return end
+    pcall(function()
+        w:write("ZeD-GUI: the Mods screen's folder colors; <folder id>=<accent key>\n")
+        for id, key in pairs(_colors or {}) do w:write(tostring(id) .. "=" .. key .. "\n") end
+    end)
+    pcall(function() w:close() end)
+end
+--- A folder's accent key, or nil.
+function ZeD_MMMods.folderColorKey(fid)
+    if _colors == nil then colorsLoad() end
+    return fid and _colors[fid] or nil
+end
+--- The color a folder's rows are washed in ({ r, g, b }), or nil.
+function ZeD_MMMods.folderTint(fid)
+    local key = ZeD_MMMods.folderColorKey(fid)
+    local set = key and ZeD.AccentColors and ZeD.AccentColors[key]
+    if not set then return nil end
+    local tone = set[(ZeD.currentBase == "light") and "light" or "dark"] or set.dark
+    return tone and tone.accent
+end
+function ZeD_MMMods.setFolderColor(fid, key)
+    if _colors == nil then colorsLoad() end
+    _colors[fid] = key
+    colorsSave()
+end
+ZeD_MMMods.FOLDER_TINT_A = FOLDER_TINT_A
+
+-- the color menu: None, then the nine accents, the folder's own ticked
+function ZeD_MMMods:folderColorMenu(fid, anchor)
+    local cur = ZeD_MMMods.folderColorKey(fid)
+    local items = { { text = ZeD.tr("UI_ZeD_Folders_ColorNone"), check = cur == nil, fn = function() MM.ctx.open = nil; ZeD_MMMods.setFolderColor(fid, nil) end } }
+    local S = ZeD.Settings
+    for i, key in ipairs((S and S.accentKeys) or {}) do
+        if key ~= "mono" then
+            local label = S.accentLabels and S.accentLabels[i]
+            local k = key
+            items[#items + 1] = { text = label and getText(label) or key, check = cur == key, fn = function() MM.ctx.open = nil; ZeD_MMMods.setFolderColor(fid, k) end }
+        end
+    end
+    MM.openPopup("folderColor", items, anchor or self:folderAnchor(), false)
+end
+
 -- a folder row's menu: Rename..., Delete folder, Move up / Move down, Open all / Close all
 function ZeD_MMMods:folderMenu(e, anchor)
     local items = { { text = e.name, disabled = true }, "-" }
@@ -646,6 +719,7 @@ function ZeD_MMMods:folderMenu(e, anchor)
         for i, f in ipairs(list) do if f.id == fid then idx = i end end
         items[#items + 1] = { text = ZeD.tr("UI_ZeD_Folders_MenuRename"), fn = function() self:folderAskRename(fid) end }
         items[#items + 1] = { text = ZeD.tr("UI_ZeD_Folders_MenuDelete"), fn = function() self:folderAskDelete(fid) end }
+        items[#items + 1] = { text = ZeD.tr("UI_ZeD_Folders_MenuColor"), fn = function() self:folderColorMenu(fid, anchor) end }
         items[#items + 1] = "-"
         items[#items + 1] = { text = ZeD.tr("UI_ServerSettings_ButtonMoveUp"), disabled = idx <= 1, fn = function() self:folderShift(fid, -1) end }
         items[#items + 1] = { text = ZeD.tr("UI_ServerSettings_ButtonMoveDown"), disabled = idx >= #list, fn = function() self:folderShift(fid, 1) end }
@@ -841,6 +915,7 @@ function ZeD_MMMods:folderDetailModel(iw)
             { "fturn", ZeD.tr((n > 0 and k == n) and "UI_ZeD_Folders_VerbTurnAllOff" or "UI_ZeD_Folders_VerbTurnAllOn"), function() self:folderBox(fid) end, "default", n == 0 },
             { "frename", ZeD.tr("UI_ZeD_Folders_MenuRename"), function() self:folderAskRename(fid) end },
             { "fdelete", ZeD.tr("UI_ZeD_Folders_MenuDelete"), function() self:folderAskDelete(fid) end },
+            { "fcolor", ZeD.tr("UI_ZeD_Folders_MenuColor"), function() self:folderColorMenu(fid) end },
             { "fup", ZeD.tr("UI_ServerSettings_ButtonMoveUp"), function() self:folderShift(fid, -1) end, "default", idx <= 1 },
             { "fdown", ZeD.tr("UI_ServerSettings_ButtonMoveDown"), function() self:folderShift(fid, 1) end, "default", idx >= #list },
         }

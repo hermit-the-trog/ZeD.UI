@@ -80,6 +80,9 @@ M.rgb = rgb
 function M.key()
     local base = ZeD.currentBase or "dark"
     if not P[base] then base = "dark" end
+    -- (beta 21, the director: the map read in Light while the rest is Dark, as Outlook's reading pane; High contrast
+    -- keeps its own. M.watch sees the key change and restyles the map at once.)
+    if base == "dark" and ZeD.Settings and ZeD.Settings.mapLight and ZeD.Settings.mapLight() then base = "light" end
     return base, (ZeD.currentStatus == "cb")
 end
 function M.palette()

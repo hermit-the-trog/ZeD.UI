@@ -231,6 +231,10 @@ local function _reading(rd, player, item, speed, setOpen, armed, alarmHour)
     local dayKey = DAYS[_dayOfWeek(year, month, day)]
     rd.day = dayKey and _lcd(dayKey) or ""
     rd.date = tostring(day)
+    -- (the director, Nov 19 2026: "the watch only says the day, not the month": the plain face writes the month's
+    -- short name too; the LCD faces keep their own day and number)
+    local MON = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" }
+    rd.mon = ZeD.tr("UI_ZeD_MainMenu_Month" .. (MON[month] or "Jan"))
     local t, unit = _thermo(player)
     if t then rd.temp = t; rd.tempUnit = string.char(176) .. unit end   -- the degree sign (Kahlua: one character)
     if speed == 0 then rd.pause = _lcd("UI_ZeD_Watch_Pause") else rd.speed = speed end
@@ -544,7 +548,7 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         local tw0 = (hf and z) and ZeD.Text.width(hf, t0, z) or tm:MeasureStringX(T.fontF5, t0)
         local tail0 = (rd.sec and (":" .. rd.sec) or "") .. (rd.pm and (" " .. ZeD.tr("UI_ZeD_WatchPlain_PM")) or "")
         local tailW = (tail0 ~= "") and (px(3) + tm:MeasureStringX(f1, tail0)) or 0
-        local dayW = tm:MeasureStringX(f2, (rd.day or "") .. " " .. (rd.date or ""))
+        local dayW = tm:MeasureStringX(f2, (rd.day or "") .. " " .. (rd.mon and (rd.mon .. " ") or "") .. (rd.date or ""))
         local tempW = rd.temp and tm:MeasureStringX(f2, tostring(rd.temp) .. (rd.tempUnit or "")) or 0
         local needTop = 2 * pad + tw0 + tailW + px(12) + math.max(dayW, tempW)
         if needTop > w then w = needTop end
@@ -593,7 +597,7 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         -- the right-hand column, right-aligned: the weekday and date, then the temperature under it
         local th = topH or bigH
         local cy = y + math.floor((th - (2 * fh2 + gap)) / 2)
-        local ds = (rd.day or "") .. " " .. (rd.date or "")
+        local ds = (rd.day or "") .. " " .. (rd.mon and (rd.mon .. " ") or "") .. (rd.date or "")
         self:drawText(ds, w - pad - tm:MeasureStringX(f2, ds), cy, tc.r, tc.g, tc.b, tc.a or 1, f2)
         if rd.temp then
             local ts = tostring(rd.temp) .. (rd.tempUnit or "")

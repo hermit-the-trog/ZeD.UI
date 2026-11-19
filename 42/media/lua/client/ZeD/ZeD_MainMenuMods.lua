@@ -1531,6 +1531,9 @@ function ZeD_MMMods:drawModRow(d, x, ry, rw, rh, vy, vh, gp, rid, indent, star)
                 local bd = T.onBand
                 self:drawRect(x + T.px(1), ry, rw, rh, bd.a or 1, bd.r, bd.g, bd.b)
             end
+            -- (beta 21: the row's folder color, ZeD_MainMenuModsFolders.lua, over the band and under the words)
+            local tint = self._rowTint
+            if tint then self:drawRect(x + T.px(1), ry, rw, rh, ZeD_MMMods.FOLDER_TINT_A or 0.18, tint.r, tint.g, tint.b) end
             local onFocus = MM.rowLook(self, x + T.px(1), ry, rw, rh, isSel, (not gp) and MM.ctx.hot == "mods:row:" .. d.modId, gp and self.focusId == rid)
             if (not gp) and MM.ctx.hot == "mods:row:" .. d.modId then ZeD.Help.set(self, ZeD.tr("UI_ZeD_MMHelp_ModRow")) end
             self:drawRect(x + T.px(1), ry + rh - T.px(1), rw, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)

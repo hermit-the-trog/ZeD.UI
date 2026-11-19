@@ -601,6 +601,20 @@ function ZeD.Settings.lite()
     return ok and v == 2
 end
 
+-- ----- THE MAP, ALWAYS LIGHT (beta 21, the director, Nov 19 2026) -----
+-- "a toggle for seeing, in dark mode, seeing the map in light mode. Similar to how you can be in dark mode in
+-- Outlook, but still read the message in light mode." Follows the theme (the default) or Always light: the Survey map
+-- takes its Light colors whatever the theme, but in High contrast, which keeps its own (MapsSurvey.lua M.key).
+local mapLight = opts:addComboBox("mapLight", ZeD.tr("UI_ZeD_Settings_MapLight"), ZeD.tr("UI_ZeD_Settings_MapLightTip"))
+mapLight:addItem(ZeD.tr("UI_ZeD_Settings_MapFollows"), true)   -- default
+mapLight:addItem(ZeD.tr("UI_ZeD_Settings_MapAlwaysLight"), false)
+ZeD.Settings.mapLightOption = mapLight
+--- True while the map is always light (read as it draws).
+function ZeD.Settings.mapLight()
+    local ok, v = pcall(mapLight.getValue, mapLight)
+    return ok and v == 2
+end
+
 -- ----- THE BELT'S FORM: a full and a simple version, as for the action bar -----
 -- Immersive: the leather strap and the profession buckle. Simple: the same slots and hands with no strap or buckle.
 -- ZeD_Belt.lua reads it as it lays out, so a change applies at once. Immersive is the default.

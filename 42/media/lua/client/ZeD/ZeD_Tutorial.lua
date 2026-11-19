@@ -74,8 +74,21 @@ end
 -- (the director, Nov 19 2026, from QA's report pictures: the card step described a card that was not on screen. It
 -- opens one: the first thing the character carries and does not wear or hold, picked as a click picks it, so the
 -- window's own drawer shows its card.)
+-- (the director, Nov 19 2026: "Show me around should also go over the tabs quickly. The tabs are one item that changed
+-- the way people are used to playing ... Those icons are no longer up in the top left corner of the screen." The tour
+-- opens each tab it shows: Health, the ID card, Skills.)
+local function ensureTab(pn, tabId)
+    ensureChar(pn)
+    if ZeD_CharacterWindow and ZeD_CharacterWindow.openTab then pcall(ZeD_CharacterWindow.openTab, pn, tabId) end
+end
+local function tabStrip(pn)
+    local w = charWin(pn)
+    return w and rectOf(w._tabStripPanel) or nil
+end
 local function ensureCard(pn)
     ensureChar(pn)
+    -- (after the tabs: back to the inventory, so the card opens beside it)
+    if ZeD_CharacterWindow and ZeD_CharacterWindow.openTab then pcall(ZeD_CharacterWindow.openTab, pn, "loot") end
     local w = charWin(pn)
     if not (w and w._contentPanel and w._updateDrawer) or w._drawerMode == "item" then return end
     local chr = getSpecificPlayer(pn)
@@ -109,6 +122,10 @@ TU.STEPS = {
     { key = "Belt", target = function(pn) return rectOf(ZeD.Belt and ZeD.Belt.getHUD and ZeD.Belt.getHUD(pn)) end, pref = "above" },
     { key = "Watch", target = function(pn) return rectOf(ZeD.Watch and ZeD.Watch._instance) end, pref = "below" },
     { key = "Char", prepare = ensureChar, target = function(pn) return rectOf(charWin(pn)) end, pref = "right" },
+    { key = "Tabs", prepare = ensureChar, target = function(pn) return tabStrip(pn) or rectOf(charWin(pn)) end, pref = "right" },
+    { key = "Health", prepare = function(pn) ensureTab(pn, "health") end, target = function(pn) return rectOf(charWin(pn)) end, pref = "right" },
+    { key = "Identity", prepare = function(pn) ensureTab(pn, "identity") end, target = function(pn) return rectOf(charWin(pn)) end, pref = "right" },
+    { key = "Skills", prepare = function(pn) ensureTab(pn, "skills") end, target = function(pn) return rectOf(charWin(pn)) end, pref = "right" },
     { key = "Card", prepare = ensureCard, target = function(pn) return rectOf(charWin(pn)) end, pref = "right" },
     { key = "World", prepare = ensureWorld, target = function(pn) return rectOf(worldWin(pn)) end, pref = "left" },
     { key = "Menu", prepare = ensureWorld, target = function(pn)
