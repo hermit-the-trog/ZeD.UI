@@ -28,7 +28,7 @@ picture replaced is in `_replaced_20261118`.
 | `zed_08a_mods_folders` | Chapter 8 | The Mods window in folders: Quality of life (7), Medical (4), Crafting (2), Maps (3, folded shut), Unfiled folded; the Quality of life folder's page on the right. 17 real Workshop mods. |
 | `zed_08b_profiles` | Chapter 8 | Mod profiles, "Gallery run" picked: "Loading it: Turns on 1 (Expanded Media)" and its load order under three separators (Interface, Gameplay, Maps). |
 | `zed_08c_load_order_separators` | Chapter 8 | The Load order with the three separators; Enhanced Medical – Chronic Conditions red at 9 ("needs Enhanced Medical (10)"), its rule shown on the right, Done waiting. |
-| `zed_08d_seps_from_folders` | Chapter 8 (optional) | Just after "Replace separators with folders": five separators from the folders, "Nothing turned on or off." |
+| `zed_08d_seps_from_folders` | Chapter 8 (optional) | Just after "Replace separators with folders": five separators from the folders, "Nothing turned on or off." Retaken at 6 pm on Build's 2800b2651 (the director's call): mods in no folder keep their place, so Unfiled sits at the top with ZeD-GUI still first. All four chapter 8 pictures are from that same run. |
 
 ## Not landed
 
