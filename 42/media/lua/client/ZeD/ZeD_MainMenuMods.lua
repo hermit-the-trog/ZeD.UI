@@ -1244,7 +1244,9 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
         -- (the Simple view: no folders, profiles or load order; Map order still shows when maps clash)
         local simple = self:simple()
         if self.folderNewSpec and self.filter ~= "ws" and not simple then rights[1] = self:folderNewSpec() end
-        if not simple then
+        -- (beta 21, Lite: "If vanilla does it, so does Lite": the game's own mods screen keeps saved mod lists and an
+        -- order, so Lite keeps Profiles and Load order; only folders go)
+        if not simple or (ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite()) then
             rights[#rights + 1] = { "profiles", ZeD.tr("UI_ZeD_Mods_BtnProfiles"), function() self:enterProfiles() end }
             rights[#rights + 1] = { "order", ZeD.tr("UI_ZeD_Mods_BtnLoadOrder"), function() self:enterOrder("order") end }
         end

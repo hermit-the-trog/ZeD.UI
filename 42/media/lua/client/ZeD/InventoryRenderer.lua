@@ -1268,6 +1268,12 @@ end
 -- its view in a hint after the pause (the library's). Stamps GV.toggles (panel coords). Returns the width taken
 -- (with its gap).
 local _viewOpts = {}
+local _liteOpen = { fill = { r = 0, g = 0, b = 0, a = 0 } }
+local function liteOpen()   -- (Lite's Filter key while its bar is open: the selection wash under the word)
+    local ac, f = ZeD.T.accent, _liteOpen.fill
+    f.r, f.g, f.b, f.a = ac.r, ac.g, ac.b, ZeD.T.selectionA
+    return _liteOpen
+end
 local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
     if not GV.key then return 0 end
     local T = ZeD.T
@@ -1278,7 +1284,15 @@ local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
     local S = self._zedFilter
     local withF = S ~= nil and S.shown
     local fgap = T.px(6)
-    local tW = bw + (withF and (bw + fgap) or 0)
+    -- (beta 21, Lite: the two keys say what they are in words, "Filter" and "List" or "Grid", in place of the funnel
+    -- and the view's picture: the director's answer to "buttons not obvious")
+    local lite = M.lite and M.lite()
+    local grid0 = GV.on and true or false
+    local fWord = ZeD.tr("UI_ZeD_Inv_Filter")
+    local vWord = grid0 and ZeD.tr("UI_ZeD_Inv_GridView") or getText("IGUI_CraftingWindow_ListView")
+    local fw = lite and M.buttonW(fWord) or bw
+    local vw = lite and M.buttonW(vWord) or bw
+    local tW = vw + (withF and (fw + fgap) or 0)
     local tx = xOff + right - tW
     local ty = barH + math.floor((areaH - bw) / 2)
     if withF then
@@ -1288,9 +1302,14 @@ local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
         o.focus, o.hint, o.id = gpFocusedToggle(id, ZeD.playerNumOf(self)), ZeD.tr("UI_ZeD_Inv_Filter"), id
         o.help = ZeD.tr("UI_ZeD_Inv_FilterHelp")
         o.iconSize = math.min(T.px(16), bw - T.px(6))
-        M.drawIconButton(self, tx, ty, bw, "filter", o)   -- (the ZeD pixel funnel)
-        GV.toggles[#GV.toggles + 1] = { x = tx, y = ty, w = bw, h = bw, view = "filter", key = GV.key, id = id }
-        tx = tx + bw + fgap
+        if lite then
+            o.hover = ZeD.Atoms.mouseIn(self, tx, ty, fw, bw)
+            M.drawButton(self, tx, ty, fw, bw, fWord, "default", false, S.open and liteOpen() or nil, o)
+        else
+            M.drawIconButton(self, tx, ty, bw, "filter", o)   -- (the ZeD pixel funnel)
+        end
+        GV.toggles[#GV.toggles + 1] = { x = tx, y = ty, w = fw, h = bw, view = "filter", key = GV.key, id = id }
+        tx = tx + fw + fgap
         -- the bar's stops ride with every column's toggles: the controller reaches them from any column, and their
         -- zones go in before the rows' (a cell scrolled half under the bar never takes its press)
         if S.open then
@@ -1306,8 +1325,13 @@ local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
     o.hint = grid and ZeD.tr("UI_ZeD_Inv_GridView") or getText("IGUI_CraftingWindow_ListView")
     o.help = ZeD.tr(grid and "UI_ZeD_Inv_GridHelp" or "UI_ZeD_Inv_ListHelp")
     o.iconSize = math.min(T.px(16), bw - T.px(6))
-    M.drawIconButton(self, tx, ty, bw, grid and "view_grid" or "view_list", o)   -- (ZeD pixel icons)
-    GV.toggles[#GV.toggles + 1] = { x = tx, y = ty, w = bw, h = bw, view = "flip", key = GV.key, id = id }
+    if lite then
+        o.hover = ZeD.Atoms.mouseIn(self, tx, ty, vw, bw)
+        M.drawButton(self, tx, ty, vw, bw, vWord, "default", false, nil, o)
+    else
+        M.drawIconButton(self, tx, ty, bw, grid and "view_grid" or "view_list", o)   -- (ZeD pixel icons)
+    end
+    GV.toggles[#GV.toggles + 1] = { x = tx, y = ty, w = vw, h = bw, view = "flip", key = GV.key, id = id }
     return tW + padX
 end
 

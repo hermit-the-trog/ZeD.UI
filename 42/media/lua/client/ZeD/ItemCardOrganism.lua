@@ -1433,7 +1433,10 @@ function ZeD_ItemCard:renderBody(ctx)
         fp.fav, fp.nocraft, fp.dispose, fp.lists = nil, nil, nil, nil
     end
     fo.win = self
-    local fsH = M.drawCardFlagStrip(self, 0, cy, w, marks, compact, flagRects, fo)
+    -- (beta 21, Lite: the marks strip (Favorite, No-craft, Dispose, Lists) is ZeD's own; Lite leaves it out, and the game's
+    -- Favorite is still in More, the full right-click menu. No rects, so no clicks and no controller stops land there.)
+    local fsH = 0
+    if not (ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite()) then fsH = M.drawCardFlagStrip(self, 0, cy, w, marks, compact, flagRects, fo) end
     self._flagRects = flagRects
     cy = cy + (fsH or 0)
 

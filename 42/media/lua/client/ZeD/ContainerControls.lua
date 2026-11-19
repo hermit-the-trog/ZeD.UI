@@ -599,6 +599,18 @@ local function markedSet(items)
     return set
 end
 
+-- (beta 21, Lite: "If vanilla does it, so does Lite": the game's windows have Transfer all and Loot all, not ZeD's
+-- Same type and Same type nearby, so Lite leaves those two out)
+local LITE_DROP = { same = true, near = true }
+local function liteTrim(moves)
+    if not (ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite()) then return moves end
+    for i = #moves, 1, -1 do
+        if moves[i] and LITE_DROP[moves[i].id] then table.remove(moves, i) end
+    end
+    return moves
+end
+CT._liteTrim = liteTrim   -- (the test sim's way in)
+
 local function buildChar(content)
     local playerObj = content._playerObj
     local inv = content._inventory
@@ -643,7 +655,7 @@ local function buildChar(content)
                 CT.moveItems(playerObj, step.items, step.dest)
             end
         end }
-    return moves, addProviderSpecs(inventorySpecs(content, inv), "char", content, inv, dest)
+    return liteTrim(moves), addProviderSpecs(inventorySpecs(content, inv), "char", content, inv, dest)
 end
 
 local function buildWorld(content)
@@ -724,7 +736,7 @@ local function buildWorld(content)
     local words, icons = {}, {}
     for _, o in ipairs(objs) do if o.icon then icons[#icons + 1] = o else words[#words + 1] = o end end
     for _, o in ipairs(icons) do words[#words + 1] = o end
-    return moves, words
+    return liteTrim(moves), words
 end
 
 -- ----------------------------------------------------------------------------

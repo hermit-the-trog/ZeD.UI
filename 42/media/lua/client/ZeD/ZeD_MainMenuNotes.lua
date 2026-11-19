@@ -579,7 +579,12 @@ MM.leftApps = MM.leftApps or {}       -- more apps after CletusWorks (ZeD_MainMe
 local _left = { key = nil, list = nil }
 --- The desktop's left column, top to bottom: Pasties, CletusWorks, the apps, Documents; then the Pasties' notes, which
 --- lie where they were put (rebuilt when a note, an app or the mail count changes).
+-- (beta 21, Lite: "If vanilla does it, so does Lite": the game's main menu has no desk apps, so in Lite the left
+-- column and the ZeD menu leave out Pasties, CletusWorks, the apps, Documents and the notes; a note keeps its file)
+local function liteDesk() return ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite() or false end
+local NO_LEFT = {}
 function MM.leftItems()
+    if liteDesk() then return NO_LEFT end
     local MSq = ZeD.MailStore and ZeD.MailStore.seq or 0
     local key = tostring(N.seq) .. ":" .. tostring(#MM.leftApps) .. ":" .. tostring(MSq)
     if _left.key == key and _left.list then return _left.list end
@@ -603,7 +608,7 @@ MM._notesMenuBase = _menuItems
 function MM.menuItems(key)
     local t = _menuItems(key)
     -- (the desk after a death has no notepad or app views to show: picking one there blanked the monitor)
-    if key ~= "zed" or MM.respawn then return t end
+    if key ~= "zed" or MM.respawn or liteDesk() then return t end
     local out = {}
     for i, it in ipairs(t) do
         out[#out + 1] = it
