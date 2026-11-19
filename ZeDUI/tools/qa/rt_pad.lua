@@ -418,10 +418,10 @@ Q.step(5, function()
     local st = D.state[S.pn]
     if not Q.check(st ~= nil and st.dir == "select" and st.menu and st.menu:isReallyVisible(), "select: the ZeD wheel opens") then return end
     RT.bounds(Q, "ZeD wheel")
-    -- (Nov 18 2026, the ledger: the thirteen slices by name, D.B.zed; the Lua console adds a fourteenth in -debug)
+    -- (Nov 18 2026, the ledger: the thirteen slices by name, D.B.zed (beta 21: Style where Action bar was); the Lua console adds a fourteenth in -debug)
     local okZ, gotZ = S.namesAre({ Z.tr("UI_ZeD_Settings_BaseTheme"), Z.tr("UI_ZeD_Settings_AccentColor"), Z.tr("UI_ZeD_Settings_TextSize"),
         Z.tr("UI_ZeD_Settings_SeeThrough"), Z.tr("UI_ZeD_Settings_FocusStyle"), Z.tr("UI_ZeD_Settings_UiScale"),
-        Z.tr("UI_ZeD_Settings_Moodles"), Z.tr("UI_ZeD_Settings_ActionBar"), Z.tr("UI_ZeD_Msg_Title"), Z.tr("UI_ZeD_Msg_BugReport"),
+        Z.tr("UI_ZeD_Settings_Moodles"), Z.tr("UI_ZeD_Settings_LookStyle"), Z.tr("UI_ZeD_Msg_Title"), Z.tr("UI_ZeD_Msg_BugReport"),
         Z.tr("UI_ZeD_Wheel_ResetWindows"), Z.tr("UI_ZeD_Options_GroupZed"), Z.tr("UI_ZeD_Settings_SafeMode") })
     local nZ = #st.path[1].entries
     Q.check(okZ and (nZ == 13 or nZ == 14), "select: the slices by name, Theme to Safe mode", gotZ)
