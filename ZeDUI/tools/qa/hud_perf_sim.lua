@@ -618,6 +618,13 @@ end
 
 section("The watch: both copies load")
 local srcWB, srcWA = gitShow(WATCH_FILE), readFile(ROOT .. WATCH_FILE)
+-- (Nov 19 2026, the director on beta 21's report: "Seconds is below baseline". The plain watch's seconds moved onto the
+-- time's baseline on purpose; the BASE copy gets the same line so the rest still compares draw for draw)
+if srcWB then
+    local was = "y + bigH - fh1, td.r, td.g, td.b, td.a or 1, f1)"
+    local a = srcWB:find(was, 1, true)
+    if a then srcWB = srcWB:sub(1, a - 1) .. "y + math.floor((bigH - fh1) * 60 / 77 + 0.5), td.r, td.g, td.b, td.a or 1, f1)" .. srcWB:sub(a + #was) end
+end
 check("watch: the BASE copy is readable through git", srcWB ~= nil)
 check("watch: the checkout's copy is readable", srcWA ~= nil)
 check("watch: ZeD_Plate.lua's PL.controls cut out", CONTROLS ~= nil)
