@@ -1,6 +1,6 @@
 0.3.0-beta21
 
-Lite mode, a keyboard map, a setup on the first launch and a tour.
+Lite mode, a keyboard map, a setup on the first launch, a tour, folder colors and a map that can stay light.
 
 Lite mode
 - One Style choice in ZeD setup, Full or Lite, in place of the eight Immersive-or-Simple choices. Lite is ZeD with little more than the game itself does.
@@ -17,4 +17,14 @@ First launch
 - Save setup writes every ZeD setting to Zomboid/Lua/ZeD_setup.txt, to load later or on another machine. The desk's Settings menu opens it again.
 
 Tour
-- Pick "Show me around" on the first launch and the first game shows balloons through the belt, the watch, both windows, an item's card, a window's menu and the guide. Next and Stop tour on each; A and B on a controller.
+- Pick "Show me around" on the first launch and the first game shows balloons through the belt, the watch, the Character window and its tabs (Health and how to treat a wound, your ID and weight, Skills and the training materials), an item's card, the World window, a window's menu and Messages. Next and Stop tour on each; A and B on a controller.
+
+Watch
+- The plain watch: the time large in your accent color on the left, the day, month and date over the temperature on the right. Click it to fold it to a thin strip; click again to open it. Click the alarm line to set the alarm.
+- The drawn digital watches show the month and day (11-14), as the game's own clock does.
+
+Map
+- ZeD setup, Look, Map: Follows the theme or Always light. Always light keeps the Survey map in its light colors in the Dark theme.
+
+Mods
+- Folders take a color: Color... in a folder's menu or its pane. The folder's row and its mods' rows take a light wash of it.
