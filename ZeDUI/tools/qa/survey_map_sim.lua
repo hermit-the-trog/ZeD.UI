@@ -132,6 +132,9 @@ for _, base in ipairs({ "dark", "light", "hicon" }) do
             local r, g, b = hex(pal.main)
             local pr = S:getLayerByName("road-primary").fills
             check(tag .. ": primary highway in the theme's red", pr[1] and pr[1][2] == r and pr[1][3] == g and pr[1][4] == b)
+            local sr, sg, sb = hex(pal.small)
+            local sec = S:getLayerByName("road-secondary").fills
+            check(tag .. ": secondary roads drawn as streets (the director, Nov 18)", sec[1] and sec[1][2] == sr and sec[1][3] == sg and sec[1][4] == sb)
             local tr = S:getLayerByName("road-trail").fills
             check(tag .. ": the trail keeps the game's fade (0 at 12.25)", tr[1] and tr[1][1] == 12.25 and tr[1][5] == 0)
             local bset = (st == "cb") and pal.cb or pal.b

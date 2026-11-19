@@ -95,7 +95,10 @@ local POLY = {
     { "water",          "water", { { MINZ, 255 }, { MAXZ, 255 } } },
     { "road-trail",     "trail", { { 12.25, 0 }, { 13, 255 }, { MAXZ, 255 } } },
     { "road-tertiary",  "small", { { 11.5, 0 }, { 13, 255 }, { MAXZ, 255 } } },
-    { "road-secondary", "sec",   { { MINZ, 255 }, { MAXZ, 255 } } },
+    -- (the director, Nov 18 2026: "I'm seeing a lot of secondary highways that should be streets". The game's data
+    -- tags town streets highway=secondary (West Point's 2nd St, 4th St, Main); only the primary roads, the real
+    -- highways like 31W, stay red. Secondary is drawn as a street.)
+    { "road-secondary", "small", { { MINZ, 255 }, { MAXZ, 255 } } },
     { "road-primary",   "main",  { { MINZ, 255 }, { MAXZ, 255 } } },
     { "railway",        "rail",  { { MINZ, 255 }, { MAXZ, 255 } } },
 }
@@ -567,7 +570,6 @@ function M.keyColors()
     local rows = {
         { sec = "UI_ZeD_MapKey_Roads" },
         { swatch = pal.main, line = 3, text = ZeD.tr("UI_ZeD_MapKey_Primary") },
-        { swatch = pal.sec, line = 3, text = ZeD.tr("UI_ZeD_MapKey_Secondary") },
         { swatch = pal.small, line = 2, text = ZeD.tr("UI_ZeD_MapKey_Street") },
         { swatch = pal.trail, line = 1, text = ZeD.tr("UI_ZeD_MapKey_Trail") },
         { swatch = pal.rail, line = 2, ties = true, text = ZeD.tr("UI_ZeD_MapKey_Railway") },
