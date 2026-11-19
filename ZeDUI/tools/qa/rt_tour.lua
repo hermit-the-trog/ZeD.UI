@@ -213,6 +213,15 @@ for i = 1, 7 do
         local want = (idx == #TU.STEPS) and H.tr("UI_ZeD_Tut_Done") or H.tr("UI_ZeD_Tut_Next")
         Q.check(R.keys.nextWord == want, name .. ": its key reads " .. tostring(want), R.keys.nextWord)
         if st.key == "Char" then Q.check(H.vis(RT.cw()), name .. ": the Character window is open") end
+        if st.key == "Card" then
+            -- (Nov 19 2026: the card step opens an item's card, ensureCard; the director's "Yes, fix it first")
+            local cw = RT.cw()
+            local card = cw and cw._itemCard
+            local on = false
+            pcall(function() on = card ~= nil and card:isReallyVisible() end)
+            Q.check(cw ~= nil and cw._drawerMode == "item" and cw._drawerItem ~= nil and on, name .. ": an item's card is open (the drawer in item mode)",
+                "drawer " .. tostring(cw and cw._drawerMode) .. ", item " .. tostring(cw and cw._drawerItem) .. ", card shown " .. tostring(on))
+        end
         if st.key == "World" then Q.check(H.vis(RT.ww()), name .. ": the World window is open") end
         RT.bounds(Q, name)
         H.press("next")
