@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/rt_lite_only.txt  (Nov 18 2026, QA): the release test's Lite script alone (beta 21), to prove a change before the full run.
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+rt_lite.lua | rt_lite | timeout=1800
