@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/kbmap_check.txt  (Nov 19 2026, QA): the Keyboard map's restart check, second launch: the binding came
+# back after the restart, then it is set back (kbmap_check.lua). Run only through kbmap_run.ps1.
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+kbmap_check.lua | kbmap_check | timeout=300

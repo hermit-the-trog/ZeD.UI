@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/kbmap_full.txt  (Nov 19 2026, QA): the Keyboard map's in-game checks alone (rt_kbmap.lua, also in
+# release_test.txt). Run through kbmap_run.ps1, which keeps the director's keysB42.ini safe.
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+rt_kbmap.lua | rt_kbmap | timeout=900

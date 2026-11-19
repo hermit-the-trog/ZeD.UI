@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/kbmap_set.txt  (Nov 19 2026, QA): the Keyboard map's restart check, first launch: one binding set and
+# left set (kbmap_set.lua). Run only through kbmap_run.ps1 (it puts keysB42.ini back byte for byte after).
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+kbmap_set.lua | kbmap_set | timeout=300

@@ -1119,6 +1119,12 @@ foreach ($it in $items) {
 Write-Host "zedqa_run: $($items.Count) scripts, $Mode; report $Report"
 try {
     Set-Lock "busy"   # (inside the try: the finally below always writes "free")
+    # (Nov 19 2026, QA: the keyboard map checks change the director's key file, Zomboid/Lua/keysB42.ini. Every run
+    # keeps its bytes and writes them back at the end, so line endings and all come back exact. ZEDQA_KEEPKEYS=1 skips
+    # that, for kbmap_run.ps1's restart pair, which carries one key across two launches and restores it itself.)
+    $script:KeysIni = Join-Path $LuaDir "keysB42.ini"
+    $script:KeysWas = $null
+    if (Test-Path -LiteralPath $script:KeysIni) { $script:KeysWas = [IO.File]::ReadAllBytes($script:KeysIni) }
     Reset-ZeDSettings $Mode $KeepIni
     Set-FontSize
     if ($Mode -eq "windowed") { Start-GameWindowed } else { Start-Game4K }
@@ -1167,6 +1173,15 @@ finally {
         else { Add-Note "-KeepOpen: options.ini still has the run's fontSize=$PinFontSize" }
         if (-not $KeepOpen) { Restore-ZeDSettings $KeepIni }
         else { Add-Note "-KeepOpen: ZeD settings are still the test's; the director's file is $KeepIni" }
+        if ($script:KeysWas -and -not $env:ZEDQA_KEEPKEYS -and -not $KeepOpen -and -not (Test-GameRunning)) {
+            $now = $null
+            if (Test-Path -LiteralPath $script:KeysIni) { $now = [IO.File]::ReadAllBytes($script:KeysIni) }
+            $same = ($null -ne $now) -and ($now.Length -eq $script:KeysWas.Length) -and ([Convert]::ToBase64String($now) -eq [Convert]::ToBase64String($script:KeysWas))
+            if (-not $same) {
+                [IO.File]::WriteAllBytes($script:KeysIni, $script:KeysWas)
+                Add-Note "keysB42.ini put back byte for byte (the run had changed it)"
+            }
+        }
         $info.Finished = Get-Date
         Write-Report $results $Report $info
     }
