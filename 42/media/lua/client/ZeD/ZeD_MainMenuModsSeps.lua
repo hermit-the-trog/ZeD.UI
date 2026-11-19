@@ -23,7 +23,8 @@
 --     Move it up (the needed mod to the end of the section above)
 --   * Start separators from folders: one separator per folder with mods on, in the folders'
 --     order, holding only those mods, then Unfiled; each section sorted by the mods' own rules;
---     asks first when the list has separators. Folders and separators never change each other.
+--     asks first when the list has separators. Folders and separators never change each other. The mods in no folder
+--     keep their place under Unfiled (the director, Nov 18 2026).
 --   * built for 1,500 mods: the list's entries are worked out once per change (with the order
 --     page's own cache); each frame draws, and makes stops for, only the entries in sight
 -- ============================================================================
@@ -1017,17 +1018,19 @@ function ZeD_MMMods:sepFromFolders(confirmed)
     if self.confirm then self:setConfirm(false) end
     local helper = O.helperId()
     local by, rest, any = {}, {}, false
-    for _, id in ipairs(self.order) do
+    local firstAt, restAt = {}, nil   -- (where each folder's first mod, and the first unfiled mod, stood in the order)
+    for pos, id in ipairs(self.order) do
         -- (the pinned blocks and ZeD picks stay where they are: only the middle has sections)
         if id ~= helper and (self.oZone[id] or 2) == 2 then
             local fid = F.folderOf(id)
             if fid then
                 local t = by[fid]
-                if not t then t = {}; by[fid] = t end
+                if not t then t = {}; by[fid] = t; firstAt[fid] = pos end
                 t[#t + 1] = id
                 any = true
             else
                 rest[#rest + 1] = id
+                restAt = restAt or pos
             end
         end
     end
@@ -1041,7 +1044,18 @@ function ZeD_MMMods:sepFromFolders(confirmed)
             if ids and #ids > 0 then seps[#seps + 1] = { uid = O.newUid(), name = f.name, on = true, open = true, ids = ids, label = F.labelOf(f.id) } end
         end
     end
-    if #rest > 0 then seps[#seps + 1] = { uid = O.newUid(), name = ZeD.tr("UI_ZeD_Folders_Unfiled"), on = true, open = true, ids = rest } end
+    -- (the director, Nov 18 2026: the mods in no folder keep their place. Unfiled goes after the folder sections whose
+    -- first mod loaded before the first unfiled one, so a mod that loaded first stays first; it never quietly changes
+    -- which mod wins.)
+    if #rest > 0 then
+        local at = 1
+        for i, sp in ipairs(seps) do
+            local fid = nil
+            for k, ids in pairs(by) do if ids == sp.ids then fid = k end end
+            if fid and firstAt[fid] and restAt and firstAt[fid] < restAt then at = i + 1 end
+        end
+        table.insert(seps, at, { uid = O.newUid(), name = ZeD.tr("UI_ZeD_Folders_Unfiled"), on = true, open = true, ids = rest })
+    end
     self.oLo.seps, self.oLo.top = seps, {}
     self.oOffHere = {}
     self.oSepSel, self.oHeldSel = nil, nil

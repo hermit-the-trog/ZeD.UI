@@ -312,14 +312,21 @@ do
         check("SEPS from folders: with separators already there, it asks first", asked == "sreplace" and page.oLo.seps[1].name == "Old")
         page:sepFromFolders(true)
         local s = page.oLo.seps
+        -- (the director, Nov 18 2026: the mods in no folder keep their place; m1 loaded first, so Unfiled leads)
+        check("SEPS from folders: the rest under Unfiled, in its place (m1 loaded first, so first); the pinned helper stays out",
+            s[1] and s[1].name == "UI_ZeD_Folders_Unfiled" and join(s[1].ids) == "m1;m3", s[1] and join(s[1].ids))
         check("SEPS from folders: one separator per folder, in the folders' order, only its mods that are on",
-            #s == 3 and s[1].name == "QA First" and join(s[1].ids) == "m2" and s[2].name == "QA Second" and join(s[2].ids) == "m4", #s)
-        check("SEPS from folders: the rest under Unfiled, last; the pinned helper stays out",
-            s[3] and s[3].name == "UI_ZeD_Folders_Unfiled" and join(s[3].ids) == "m1;m3", s[3] and join(s[3].ids))
+            #s == 3 and s[2].name == "QA First" and join(s[2].ids) == "m2" and s[3].name == "QA Second" and join(s[3].ids) == "m4", #s)
         check("SEPS from folders: nothing turned on or off (the order as it was)", join(page.order) == "m1;m2;m3;m4;ZeD_Picks")
         check("SEPS from folders: the folders file is not touched", raw(TEST) == folders0)
         F.rename(f1, "QA First renamed")
-        check("SEPS a folder renamed later leaves its separator's name", s[1].name == "QA First")
+        check("SEPS a folder renamed later leaves its separator's name", s[2].name == "QA First")
+        -- an unfiled mod that loaded after the folders' mods stays after them
+        page.order = { "m2", "m4", "m1", "m3", "ZeD_Picks" }
+        page:sepFromFolders(true)
+        local s2 = page.oLo.seps
+        check("SEPS from folders: Unfiled after the folders whose mods loaded before it",
+            s2[3] and s2[3].name == "UI_ZeD_Folders_Unfiled" and s2[1].name == "QA First renamed", s2[3] and s2[3].name)
     end
 end
 
