@@ -275,6 +275,14 @@ picture("zed_08c_load_order_separators")
 -- 5. zed_08d: Start separators from folders (the list has separators: confirmed, as after its question)
 at(10, function()
     local w = W()
+    -- (Nov 18 2026: 08c's broken pair put back first: since 2800b2651 the button keeps every section's order
+    -- as it is, so the pair 08c moved on the page would show red in 08d)
+    local a, b = idx(w.order, NEEDER), idx(w.order, NEEDED)
+    if a and b and a < b then
+        table.remove(w.order, a)
+        table.insert(w.order, b, NEEDER)
+        w:orderChanged()
+    end
     w:sepFromFolders(true)
     local names = {}
     for _, sp in ipairs(w.oLo.seps) do names[#names + 1] = sp.name end
