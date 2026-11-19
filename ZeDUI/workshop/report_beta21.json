@@ -86,6 +86,12 @@
      "shots": "folders_26",
      "look": "Each folder's row and its mods' rows washed in the folder's color.",
      "what": "Color... in a folder's menu or its pane: No color or one of eight accent colors."
+    },
+    {
+     "title": "A folder's Color... menu",
+     "shots": "folders_26b_color_menu",
+     "look": "The menu open beside the folder, Blue ticked.",
+     "what": ""
     }
    ]
   },
