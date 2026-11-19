@@ -1,0 +1,48 @@
+{
+ "version": "0.3.0-beta21",
+ "intro": "Everything new in beta 21, on screen, before the final release test: Lite mode, the keyboard map, the first-launch setup and the tour. Then the Workshop page as Steam will show it, the gallery, what the release test checks and the change note.",
+ "shots": "~/Zomboid/Screenshots/beta21_report",
+ "description": "ZeDUI/workshop/tester_description_0.3.0-beta21.bbcode",
+ "changenote": "ZeDUI/workshop/tester_changenote_0.3.0-beta21.txt",
+ "changes": [
+  {"group": "Lite mode", "items": [
+   {"title": "Lite: the windows in use", "shots": ["lite_01_world", "full_10_same"], "look": "Left: Lite. Right: the same moment in Full.", "what": "Buttons with one bold line, filled; Filter and List or Grid in words; no Same type buttons; no marks strip on the item card; the watch in the corner."},
+   {"title": "Lite: a question with OK and Cancel", "shots": "lite_02_confirm", "look": "OK in your positive color, Cancel in your negative color.", "what": "The colors come from the game's Accessibility options, so each player sees their own."},
+   {"title": "Lite: a radio", "shots": "lite_03_radio", "look": "Power and Mute as radio buttons; no preset keys.", "what": "The game's own radios have no presets, so Lite leaves them out."},
+   {"title": "Lite: an appliance", "shots": "lite_04_appliance", "look": "On and Off as radio buttons.", "what": ""},
+   {"title": "Lite: the dashboard", "shots": "lite_05_dash", "look": "Every car gets the black Dash Elite.", "what": ""},
+   {"title": "Lite: the watch", "shots": "lite_06_watch", "look": "A plain clock in the corner: time, date, temperature, and the game's speed as one row of choices.", "what": ""},
+   {"title": "Lite: ZeD setup", "shots": "lite_07_setup", "look": "Style at the top of Look; Additions and Chords put away.", "what": "Picking Lite also sets ZeD's extras to the Vanilla preset."},
+   {"title": "Lite: the main menu desk", "shots": "lite_08_desk", "look": "No desk apps or notes.", "what": ""},
+   {"title": "Lite: the Mods screen", "shots": "lite_09_mods", "look": "Profiles and Load order stay, as in the game's own; folders go.", "what": ""}
+  ]},
+  {"group": "Keyboard map", "items": [
+   {"title": "The keyboard map", "shots": "kbmap_11", "look": "Every key the game uses lit; a key with two jobs in your negative color; a key picked and an action waiting for its new key.", "what": "Opens from every window's menu."}
+  ]},
+  {"group": "First-launch setup", "items": [
+   {"title": "Welcome: pick your own", "shots": "welcome_12", "look": "Light picked: the desk and the preview change as you pick.", "what": "Shows once, the first time ZeD runs. Skip puts everything back."},
+   {"title": "Welcome: load a setup", "shots": "welcome_13", "look": "", "what": "Reads Zomboid/Lua/ZeD_setup.txt, written by Save setup here or on another machine."}
+  ]},
+  {"group": "The tour", "items": [
+   {"title": "Tour 1 of 7: the belt", "shots": "tour_14", "look": "", "what": ""},
+   {"title": "Tour 2 of 7: the watch", "shots": "tour_15", "look": "", "what": ""},
+   {"title": "Tour 3 of 7: the Character window", "shots": "tour_16", "look": "", "what": ""},
+   {"title": "Tour 4 of 7: an item's card", "shots": "tour_17", "look": "", "what": ""},
+   {"title": "Tour 5 of 7: the World window", "shots": "tour_18", "look": "", "what": ""},
+   {"title": "Tour 6 of 7: a window's menu", "shots": "tour_19", "look": "", "what": ""},
+   {"title": "Tour 7 of 7: the survival guide", "shots": "tour_20", "look": "", "what": ""}
+  ]}
+ ],
+ "description_notes": ["Changed from beta 20: the version in the beta line, the Gadgets bullet now names Lite mode, and the Controller bullet names the keyboard map. Pictures unchanged."],
+ "gallery_notes": ["No gallery changes for beta 21: the 71 pictures from beta 20 stay as they are. Lite mode, the keyboard map, the setup and the tour are not in the gallery yet; tell me if you want pictures of them added."],
+ "tests_lead": "The full release test runs every script below at 4K and on the true Steam Deck screen. These are the changes since the last full run (run 11, beta 20).",
+ "tests": [
+  {"kind": "added", "script": "rt_lite.lua", "what": "Lite mode: Style picked in ZeD setup like a player; the plain forms switch on; the Vanilla preset; Additions and Chords hidden; button colors from the game's good and bad colors; the black Dash Elite; the watch's speed row; no presets, memory key or lamp on any radio; Filter and List or Grid as words; no Same type; no marks strip; then Full back.", "checks": 55},
+  {"kind": "added", "script": "zedqa_menu_lite.lua", "what": "Lite on the main menu: no desk apps or notes; the Mods screen keeps Profiles and Load order. (A main-menu run, beside the release test.)", "checks": 15},
+  {"kind": "added", "script": "rt_kbmap.lua + kbmap_run.ps1", "what": "The keyboard map: opens from the window menu; lists every binding; lights only bound keys; a changed key works at once, is written the game's way and survives a restart; a clash in the bad color; Reset asks once. Your own key file is put back byte for byte.", "checks": "24 + 9"},
+  {"kind": "added", "script": "welcome_run.ps1 + zedqa_menu_welcome.lua", "what": "The first-launch setup: opens by itself only the first time; every choice sets its option; Skip restores; Save and Load a setup. (Two main-menu launches.)", "checks": "42 + 43"},
+  {"kind": "added", "script": "rt_tour.lua", "what": "The tour: starts by itself when asked for; all seven balloons in order, each pointing at its thing; a step with nothing on screen is passed over; Stop, Done, the controller's words, A and B.", "checks": 118},
+  {"kind": "changed", "script": "rt_cards, rt_hud, rt_media, rt_system, rt_vehicles", "what": "Their Simple legs set the eight old Simple switches, which Lite retired. They are being switched to the one Style switch before the run; the plain dashboard strip checks go (Lite's dash is checked in rt_lite).", "checks": "in progress"}
+ ],
+ "tests_notes": ["Nothing else was removed. Not covered by a script: how the Options wheel's Style slice looks, how the radio-button rows draw, and the tour on a real controller (no controller on the test machine)."]
+}
