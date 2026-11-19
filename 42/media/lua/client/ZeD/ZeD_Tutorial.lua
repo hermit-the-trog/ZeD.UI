@@ -71,6 +71,30 @@ local function ensureChar(pn)
     if w and ZeD_CharacterWindow.toggle then pcall(ZeD_CharacterWindow.toggle, pn) end
     if ZeD_CharacterWindow.openTab then pcall(ZeD_CharacterWindow.openTab, pn, "loot") end
 end
+-- (the director, Nov 19 2026, from QA's report pictures: the card step described a card that was not on screen. It
+-- opens one: the first thing the character carries and does not wear or hold, picked as a click picks it, so the
+-- window's own drawer shows its card.)
+local function ensureCard(pn)
+    ensureChar(pn)
+    local w = charWin(pn)
+    if not (w and w._contentPanel and w._updateDrawer) or w._drawerMode == "item" then return end
+    local chr = getSpecificPlayer(pn)
+    local inv = chr and chr:getInventory()
+    if not inv then return end
+    local pickIt = nil
+    local ok = pcall(function()
+        local items = inv:getItems()
+        for i = 0, items:size() - 1 do
+            local it = items:get(i)
+            local worn = it and it:isEquipped()   -- (InventoryItem.isEquipped: worn, held or on the belt)
+            if it and not worn then pickIt = it; break end
+        end
+    end)
+    if not (ok and pickIt) then return end
+    w._contentPanel._selectedItems = { [pickIt] = true }
+    pcall(w._updateDrawer, w._contentPanel)
+end
+TU._ensureCard = ensureCard   -- (the test sim's way in)
 local function ensureWorld(pn)
     if not ZeD_WorldWindow then return end
     local w = worldWin(pn)
@@ -85,7 +109,7 @@ TU.STEPS = {
     { key = "Belt", target = function(pn) return rectOf(ZeD.Belt and ZeD.Belt.getHUD and ZeD.Belt.getHUD(pn)) end, pref = "above" },
     { key = "Watch", target = function(pn) return rectOf(ZeD.Watch and ZeD.Watch._instance) end, pref = "below" },
     { key = "Char", prepare = ensureChar, target = function(pn) return rectOf(charWin(pn)) end, pref = "right" },
-    { key = "Card", prepare = ensureChar, target = function(pn) return rectOf(charWin(pn)) end, pref = "right" },
+    { key = "Card", prepare = ensureCard, target = function(pn) return rectOf(charWin(pn)) end, pref = "right" },
     { key = "World", prepare = ensureWorld, target = function(pn) return rectOf(worldWin(pn)) end, pref = "left" },
     { key = "Menu", prepare = ensureWorld, target = function(pn)
         local w = worldWin(pn)
