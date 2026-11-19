@@ -44,7 +44,7 @@
     {
      "title": "Lite: the watch",
      "shots": "lite_06_watch",
-     "look": "A plain clock in the corner: time, date, temperature, and the game's speed as one row of choices.",
+     "look": "A plain clock in the corner: the time large on the left; the day, month and date over the temperature on the right; the game's speed as one row of choices.",
      "what": ""
     },
     {
@@ -60,10 +60,32 @@
      "what": ""
     },
     {
-     "title": "Lite: the Mods screen",
+     "title": "The Mods screen: Lite, with folder colors",
      "shots": "lite_09_mods",
-     "look": "Profiles and Load order stay, as in the game's own; folders go.",
-     "what": ""
+     "look": "Profiles and Load order stay, as in the game's own; folders go in Lite.",
+     "what": "Folder colors (new): in Full, a folder's menu has Color..., and the folder's row and its mods' rows take a light wash of it."
+    }
+   ]
+  },
+  {
+   "group": "The map",
+   "items": [
+    {
+     "title": "Map: always light",
+     "shots": "map_light_25",
+     "look": "ZeD setup, Look, Map: Always light. The Survey map keeps its Light colors while the theme is Dark.",
+     "what": "High contrast keeps its own colors. Follows the theme is the default."
+    }
+   ]
+  },
+  {
+   "group": "Folder colors",
+   "items": [
+    {
+     "title": "Mods folders with colors",
+     "shots": "folders_26",
+     "look": "Each folder's row and its mods' rows washed in the folder's color.",
+     "what": "Color... in a folder's menu or its pane: No color or one of eight accent colors."
     }
    ]
   },
@@ -99,52 +121,76 @@
    "group": "The tour",
    "items": [
     {
-     "title": "Tour 1 of 7: the belt",
+     "title": "Tour 1 of 11: the belt",
      "shots": "tour_14",
      "look": "",
      "what": ""
     },
     {
-     "title": "Tour 2 of 7: the watch",
+     "title": "Tour 2 of 11: the watch",
      "shots": "tour_15",
      "look": "",
      "what": ""
     },
     {
-     "title": "Tour 3 of 7: the Character window",
+     "title": "Tour 3 of 11: the Character window",
      "shots": "tour_16",
      "look": "",
-     "what": "The balloon points right at the Character window, so it sits over the World window's left column."
+     "what": ""
     },
     {
-     "title": "Tour 4 of 7: an item's card",
+     "title": "Tour 4 of 11: the tabs",
      "shots": "tour_17",
      "look": "",
-     "what": "Fixed: the step now opens the card of the first thing you carry (here the Cigarette Pack) before the balloon shows."
+     "what": "The game's icons from the top left corner live here now, as tabs down the side."
     },
     {
-     "title": "Tour 5 of 7: the World window",
+     "title": "Tour 5 of 11: Health",
      "shots": "tour_18",
      "look": "",
-     "what": ""
+     "what": "Shows how to treat a wound."
     },
     {
-     "title": "Tour 6 of 7: a window's menu",
+     "title": "Tour 6 of 11: your ID",
      "shots": "tour_19",
      "look": "",
+     "what": "Your weight, with a plus or a minus while it changes."
+    },
+    {
+     "title": "Tour 7 of 11: Skills",
+     "shots": "tour_20",
+     "look": "",
+     "what": "Scroll down for Training materials."
+    },
+    {
+     "title": "Tour 8 of 11: an item's card",
+     "shots": "tour_21",
+     "look": "",
+     "what": "Opens the card of the first thing you carry."
+    },
+    {
+     "title": "Tour 9 of 11: the World window",
+     "shots": "tour_22",
+     "look": "",
      "what": ""
     },
     {
-     "title": "Tour 7 of 7: the survival guide",
-     "shots": "tour_20",
+     "title": "Tour 10 of 11: a window's menu",
+     "shots": "tour_23",
      "look": "",
      "what": ""
+    },
+    {
+     "title": "Tour 11 of 11: Messages and the guide",
+     "shots": "tour_24",
+     "look": "",
+     "what": "Points at the belt's Messages note, where ZeD's guide bubble comes out on the first game."
     }
    ]
   }
  ],
  "description_notes": [
-  "Changed from beta 20: the version in the beta line, the Gadgets bullet now names Lite mode, and the Controller bullet names the keyboard map. Pictures unchanged."
+  "Changed from beta 20: the version in the beta line, the Gadgets bullet names Lite mode, the Controller bullet names the keyboard map, and picture 2's map close-up is now the Light Survey map at the Fossoil (your note)."
  ],
  "gallery_notes": [
   "No gallery changes for beta 21: the 71 pictures from beta 20 stay as they are. Lite mode, the keyboard map, the setup and the tour are not in the gallery yet; tell me if you want pictures of them added."

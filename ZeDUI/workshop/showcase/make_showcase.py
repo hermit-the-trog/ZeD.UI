@@ -166,7 +166,7 @@ def slot2():
     inset_row(canvas, d, top.height + PAD, [
         ("sc2_watch_radio.png", (1420, 1620, 1700, 2010), "WATCH", []),
         ("sc2_forage.png", (1700, 850, 2250, 1350), "FORAGING", []),
-        ("sc2_map_close.png", (2920, 200, 3760, 1640), "SURVEY MAP", []),
+        ("sc2_map_light.png", (2920, 200, 3760, 1080), "SURVEY MAP", []),
         ("sc2_dash_radio.png", (1100, 1480, 2700, 2160), "DASHBOARD AND CAR RADIO", []),
     ], inset_h)
     return canvas
