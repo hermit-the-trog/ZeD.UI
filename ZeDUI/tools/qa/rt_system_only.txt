@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/rt_system_only.txt (Nov 19 2026, QA): rt_system.lua alone, to prove a change before the full run.
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+rt_system.lua | rt_sys | timeout=1800

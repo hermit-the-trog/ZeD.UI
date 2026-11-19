@@ -1051,28 +1051,36 @@ Q.step(3, function()
     pcall(St.setFocusStyle, S.focus0)
     Q.check(St.focusStyle() == S.focus0, "Controller highlight put back", tostring(St.focusStyle()))
 end)
--- the Immersive or simple forms: each getter answers Simple right after its option is item 2, Immersive at item 1
+-- the forms follow Style at once: each getter answers simple right after Style is Lite (item 2), full at Full (item 1).
+-- (Nov 19 2026, QA: beta 21 retired the per-piece switches; every getter reads lookStyle. The dash has no plain
+-- form now, so dashSimple() is false in both; Lite's dash is checked in rt_lite. Value only: the option's onChange
+-- would also set the additions to Vanilla.)
 Q.step(3, function()
     local forms = {
-        { "beltStyle", function() return ZeD.Belt and ZeD.Belt.simple and ZeD.Belt.simple() end },
-        { "devicesStyle", St.devicesSimple }, { "watchStyle", St.watchSimple }, { "dashStyle", St.dashSimple },
-        { "guideStyle", St.guideSimple }, { "modsStyle", St.modsSimple }, { "identityStyle", St.identitySimple },
+        { "belt", function() return ZeD.Belt and ZeD.Belt.simple and ZeD.Belt.simple() end },
+        { "devices", St.devicesSimple }, { "watch", St.watchSimple },
+        { "guide", St.guideSimple }, { "mods", St.modsSimple }, { "identity", St.identitySimple },
     }
+    local o = St.lookStyleOption
     local bad = {}
-    for _, f in ipairs(forms) do
-        local o = H.opt(f[1])
-        if not (o and f[2]) then
-            bad[#bad + 1] = f[1] .. " missing"
-        else
-            local v0 = o:getValue()
-            local s2, s1 = nil, nil
-            pcall(function() o:setValue(2); s2 = f[2]() end)
-            pcall(function() o:setValue(1); s1 = f[2]() end)
-            pcall(function() o:setValue(v0) end)
-            if not (s2 == true and not s1) then bad[#bad + 1] = f[1] .. " " .. tostring(s2) .. "/" .. tostring(s1) end
+    if not o then bad[1] = "lookStyle missing" else
+        local v0 = o:getValue()
+        for _, f in ipairs(forms) do
+            if not f[2] then bad[#bad + 1] = f[1] .. " missing"
+            else
+                local s2, s1 = nil, nil
+                pcall(function() o:setValue(2); s2 = f[2]() end)
+                pcall(function() o:setValue(1); s1 = f[2]() end)
+                if not (s2 == true and not s1) then bad[#bad + 1] = f[1] .. " " .. tostring(s2) .. "/" .. tostring(s1) end
+            end
         end
+        local d2, d1 = nil, nil
+        pcall(function() o:setValue(2); d2 = St.dashSimple() end)
+        pcall(function() o:setValue(1); d1 = St.dashSimple() end)
+        if d2 or d1 then bad[#bad + 1] = "dash " .. tostring(d2) .. "/" .. tostring(d1) .. " (the plain dash is retired)" end
+        pcall(function() o:setValue(v0) end)
     end
-    Q.check(#bad == 0, "Immersive or simple forms: each form's getter follows its option at once (belt, devices, watch, dash, guide, mods, identity)",
+    Q.check(#bad == 0, "Lite or Full forms: each form's getter follows Style at once (belt, devices, watch, guide, mods, identity; the dash has no plain form)",
         (#bad > 0) and table.concat(bad, "; ") or (#forms .. " forms"))
     H.putOptions()
 end)

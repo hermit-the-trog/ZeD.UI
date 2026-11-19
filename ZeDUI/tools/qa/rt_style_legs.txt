@@ -1,0 +1,8 @@
+# ZeDUI/tools/qa/rt_style_legs.txt (Nov 19 2026, QA): the five release scripts whose Simple legs moved to Style (lookStyle), alone, to prove the change before the full run.
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+rt_cards.lua | rt_cards | timeout=1800
+rt_hud.lua | rt_hud | timeout=1800
+rt_media.lua | rt_media | timeout=1800
+rt_vehicles.lua | rt_veh | timeout=1800
+rt_system.lua | rt_sys | timeout=1800
