@@ -235,6 +235,10 @@ local function _reading(rd, player, item, speed, setOpen, armed, alarmHour)
     -- short name too; the LCD faces keep their own day and number)
     local MON = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" }
     rd.mon = ZeD.tr("UI_ZeD_MainMenu_Month" .. (MON[month] or "Jan"))
+    -- (the director, Nov 19 2026: "I'm almost positive month is on the vanilla watch. Is that not how you track what
+    -- month you're in game?" The game's clock shows month and day; the drawn digital faces' date reads 11-14 too,
+    -- PhysPx.lua's dateMD fields. While setting, the faces' middle shows what is set, so the date keeps to the day.)
+    rd.dateMD = setOpen and tostring(day) or (tostring(month) .. "-" .. tostring(day))
     local t, unit = _thermo(player)
     if t then rd.temp = t; rd.tempUnit = string.char(176) .. unit end   -- the degree sign (Kahlua: one character)
     if speed == 0 then rd.pause = _lcd("UI_ZeD_Watch_Pause") else rd.speed = speed end

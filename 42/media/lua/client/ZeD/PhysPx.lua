@@ -711,7 +711,7 @@ ZeD.PhysPx = {
           ghost = "#a6aa9f",
           fields = {
             { t = "text", src = "day", x = 3, y = 3, font = "35" },
-            { t = "seg", src = "date", x = 28, y = 2, cw = 4, ch = 7, pitch = 6, n = 2 },
+            { t = "seg", src = "dateMD", x = 46, y = 2, cw = 4, ch = 7, pitch = 6, n = 5 },
             { t = "seg", src = "temp", x = 70, y = 2, cw = 5, ch = 9, pitch = 7, n = 3 },
             { t = "text", src = "tempUnit", x = 71, y = 2, font = "57" },
             { t = "text", src = "pm", x = 3, y = 16, font = "35" },
@@ -761,7 +761,7 @@ ZeD.PhysPx = {
           ghost = "#a6aa9f",
           fields = {
             { t = "text", src = "day", x = 3, y = 3, font = "35" },
-            { t = "seg", src = "date", x = 28, y = 2, cw = 4, ch = 7, pitch = 6, n = 2 },
+            { t = "seg", src = "dateMD", x = 46, y = 2, cw = 4, ch = 7, pitch = 6, n = 5 },
             { t = "seg", src = "temp", x = 70, y = 2, cw = 5, ch = 9, pitch = 7, n = 3 },
             { t = "text", src = "tempUnit", x = 71, y = 2, font = "57" },
             { t = "text", src = "pm", x = 3, y = 16, font = "35" },
@@ -810,7 +810,7 @@ ZeD.PhysPx = {
           ghost = "#a6aa9f",
           fields = {
             { t = "text", src = "day", x = 3, y = 3, font = "35" },
-            { t = "seg", src = "date", x = 81, y = 2, cw = 5, ch = 9, pitch = 7, n = 2 },
+            { t = "seg", src = "dateMD", x = 81, y = 2, cw = 5, ch = 9, pitch = 7, n = 5 },
             { t = "text", src = "pm", x = 3, y = 16, font = "35" },
             { t = "seg", src = "time", x = 68, y = 14, cw = 8, ch = 15, pitch = 11, n = 5, st = 2 },
             { t = "seg", src = "sec", x = 81, y = 21, cw = 4, ch = 8, pitch = 6, n = 2 },
@@ -856,7 +856,7 @@ ZeD.PhysPx = {
           ghost = "#a6aa9f",
           fields = {
             { t = "text", src = "day", x = 3, y = 3, font = "35" },
-            { t = "seg", src = "date", x = 81, y = 2, cw = 5, ch = 9, pitch = 7, n = 2 },
+            { t = "seg", src = "dateMD", x = 81, y = 2, cw = 5, ch = 9, pitch = 7, n = 5 },
             { t = "text", src = "pm", x = 3, y = 16, font = "35" },
             { t = "seg", src = "time", x = 68, y = 14, cw = 8, ch = 15, pitch = 11, n = 5, st = 2 },
             { t = "seg", src = "sec", x = 81, y = 21, cw = 4, ch = 8, pitch = 6, n = 2 },
@@ -903,7 +903,7 @@ ZeD.PhysPx = {
           ghost = "#a6aa9f",
           fields = {
             { t = "text", src = "day", x = 2, y = 2, font = "35" },
-            { t = "seg", src = "date", x = 42, y = 2, cw = 4, ch = 7, pitch = 6, n = 2 },
+            { t = "seg", src = "dateMD", x = 42, y = 2, cw = 4, ch = 7, pitch = 6, n = 5 },
             { t = "bars", src = "speed", x = 2, y = 12, n = 3, bw = 3, gap = 1, h0 = 2, dh = 1 },
             { t = "text", src = "pause", x = 2, y = 8, font = "35" },
             { t = "text", src = "alm", x = 42, y = 8, font = "35", align = "r" },
@@ -956,7 +956,7 @@ ZeD.PhysPx = {
           ghost = "#a6aa9f",
           fields = {
             { t = "text", src = "day", x = 2, y = 2, font = "35" },
-            { t = "seg", src = "date", x = 42, y = 2, cw = 4, ch = 7, pitch = 6, n = 2 },
+            { t = "seg", src = "dateMD", x = 42, y = 2, cw = 4, ch = 7, pitch = 6, n = 5 },
             { t = "bars", src = "speed", x = 2, y = 12, n = 3, bw = 3, gap = 1, h0 = 2, dh = 1 },
             { t = "text", src = "pause", x = 2, y = 8, font = "35" },
             { t = "text", src = "alm", x = 42, y = 8, font = "35", align = "r" },

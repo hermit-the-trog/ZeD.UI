@@ -636,7 +636,7 @@ if srcWB and srcWA then
         -- (and the month on the reading, which only the plain face writes)
         local was = "rd.date = tostring(day)"
         local at = srcWB:find(was, 1, true)
-        if at then srcWB = srcWB:sub(1, at - 1) .. was .. "\n    local MON = { \"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\", \"Jul\", \"Aug\", \"Sep\", \"Oct\", \"Nov\", \"Dec\" }\n    rd.mon = ZeD.tr(\"UI_ZeD_MainMenu_Month\" .. (MON[month] or \"Jan\"))" .. srcWB:sub(at + #was) end
+        if at then srcWB = srcWB:sub(1, at - 1) .. was .. "\n    local MON = { \"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\", \"Jul\", \"Aug\", \"Sep\", \"Oct\", \"Nov\", \"Dec\" }\n    rd.mon = ZeD.tr(\"UI_ZeD_MainMenu_Month\" .. (MON[month] or \"Jan\"))\n    rd.dateMD = setOpen and tostring(day) or (tostring(month) .. \"-\" .. tostring(day))" .. srcWB:sub(at + #was) end
     end
 end
 check("watch: the BASE copy is readable through git", srcWB ~= nil)
