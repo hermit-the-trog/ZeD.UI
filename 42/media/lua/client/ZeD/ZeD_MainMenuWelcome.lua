@@ -47,7 +47,7 @@ local function readFirst(name)
 end
 
 --- True when the player asked for the tutorial on the first-launch setup (and it has not run yet).
-function WL.tutorialWanted() return readFirst(WL.TUTORIAL_FILE) == "1" end
+function WL.tutorialWanted() local l = readFirst(WL.TUTORIAL_FILE); return l == "1" or l == "pad" end
 --- The tutorial ran (or was stopped): it does not come again by itself.
 function WL.tutorialDone() writeFile(WL.TUTORIAL_FILE, "0") end
 --- True once the first-launch setup was answered.
@@ -144,7 +144,8 @@ function ZeD_MMWelcome:done()
         if not n then self.note = tr("UI_ZeD_Welcome_NoFile", S().SETUP_FILE); return end
         return finish(self, "0")
     end
-    finish(self, (self.tutorial == 1) and "1" or "0")
+    -- (the tour's words follow Playing with: "pad" gives the controller's, ZeD_Tutorial.lua)
+    finish(self, (self.tutorial == 1) and ((self.input == 2) and "pad" or "1") or "0")
 end
 
 function ZeD_MMWelcome:skip()
