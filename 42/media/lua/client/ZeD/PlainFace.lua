@@ -248,8 +248,14 @@ end
 
 -- a face's plain controls (per plate id, kept): { list, byId, tw, tv, keyN }
 local _ctl = {}
+-- (beta 21, Lite: "If vanilla does it, so does Lite" and "more radio buttons than click buttons", the director, Nov 18
+-- 2026: the game's radios have no preset keys, no memory key and no dial lamp, so Lite's card leaves them out; its
+-- on/off rows are drawn as radio buttons, drawSwitch below)
+local function isLite() return ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite() or false end
+PF.LITE_DROPS = { mem = true, lamp = true }
 controlsFor = function(base, pid)
-    local key = tostring(pid)
+    local lite = isLite()
+    local key = tostring(pid) .. (lite and "|lite" or "")
     local out = _ctl[key]
     if out then return out end
     out = { list = {}, byId = {} }
@@ -272,7 +278,9 @@ controlsFor = function(base, pid)
     if spec and spec.order then order = spec.order(hits) else order = isTw and TW.readingOrder(hits, 1) or R.focusOrder(hits, 1) end
     local have = {}
     for _, h in ipairs(hits) do have[h.id] = true end
-    for _, h in ipairs(order) do place(out, h.id, isTw, tv, shared, have) end
+    for _, h in ipairs(order) do
+        if not (lite and (PF.LITE_DROPS[h.id] or h.id:match("^p%d$"))) then place(out, h.id, isTw, tv, shared, have) end
+    end
     -- a two-way set's battery is read on its glass (BAT / AC), never pressed
     if isTw and not (spec and spec.noBattery) then add(out, C_BATT_READ) end
     out.tw, out.tv = isTw, tv
@@ -491,6 +499,21 @@ local function drawSwitch(panel, cx, cy, ch, c, x, face, fo)
     local on = c.on(x)
     local hov = face.hoverId == c.id
     local ink = markAll(panel, cx, cy, 2 * sw + T.px(2), ch, fo)
+    if isLite() then
+        -- (Lite: Off and On as two radio buttons in the same room, each its word beside it)
+        local A, rs = ZeD.Atoms, ZeD.Atoms.radioSize()
+        local tc = ink and T.textOnFocus or T.text
+        local f = T.fontF3
+        local fh = ZeD.TM:getFontHeight(f)
+        for i = 1, 2 do
+            local isOn = i == 2
+            local bx = cx + (i - 1) * (sw + T.px(2))
+            A.drawRadio(panel, bx, cy + math.floor((ch - rs) / 2), on == isOn, { hover = hov and on ~= isOn })
+            panel:drawText(ZeD.tr(isOn and "UI_On" or "UI_Off"), bx + rs + T.px(4), cy + math.floor((ch - fh) / 2),
+                tc.r, tc.g, tc.b, tc.a or 1, f)
+        end
+        return
+    end
     for i = 1, 2 do
         local isOn = i == 2
         local sel = on == isOn

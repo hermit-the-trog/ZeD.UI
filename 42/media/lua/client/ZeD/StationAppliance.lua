@@ -830,6 +830,26 @@ local function markWhole(panel, x, id, cx, cy, cw, ch)
     return ZeD.Focus.mark(panel, cx, cy, cw, ch, fo ~= true and fo or nil) == true
 end
 
+-- (beta 21, Lite: an on/off row as two radio buttons, each its word beside it, in the room the two keys take: "more
+-- radio buttons than click buttons", the director, Nov 18 2026; the zones stay the keys' own)
+local function liteOn() return ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite() or false end
+local function pRadios(panel, x, cx, cy, sw, ch, on, ink)
+    local T, A = ZeD.T, ZeD.Atoms
+    local rs = A.radioSize()
+    local f = T.fontF3
+    local fh = ZeD.TM:getFontHeight(f)
+    local tc = ink and T.textOnFocus or T.text
+    local a = x.enabled and 1 or T.disabledAlpha
+    for i = 1, 2 do
+        local isOn = i == 2
+        local bx = cx + (i - 1) * (sw + T.px(2))
+        A.drawRadio(panel, bx, cy + math.floor((ch - rs) / 2), on == isOn,
+            { hover = hovered(panel, x, bx, cy, sw, ch) and on ~= isOn, disabled = not x.enabled })
+        panel:drawText(ZeD.tr(isOn and "UI_On" or "UI_Off"), bx + rs + T.px(4), cy + math.floor((ch - fh) / 2),
+            tc.r, tc.g, tc.b, (tc.a or 1) * a, f)
+    end
+end
+
 -- the control's parts at (cx, cy) and their zones
 local function pControl(panel, x, rw, cx, cy, ch)
     local T = ZeD.T
@@ -853,20 +873,27 @@ local function pControl(panel, x, rw, cx, cy, ch)
         -- the ON and OFF keys: each half its key, the side the hand left it at selected
         local sw = pSegW()
         local on = x.r.active
-        pButton(panel, x, cx, cy, sw, ch, ZeD.tr("UI_Off"), "off", not on)
+        if liteOn() then
+            pRadios(panel, x, cx, cy, sw, ch, on, markWhole(panel, x, on and "off" or "on", cx, cy, 2 * sw + T.px(2), ch))
+        else
+            pButton(panel, x, cx, cy, sw, ch, ZeD.tr("UI_Off"), "off", not on)
+            pButton(panel, x, cx + sw + T.px(2), cy, sw, ch, ZeD.tr("UI_On"), "on", on)
+        end
         stamp(x, "off", "press", cx, cy, sw, ch)
-        pButton(panel, x, cx + sw + T.px(2), cy, sw, ch, ZeD.tr("UI_On"), "on", on)
         stamp(x, "on", "press", cx + sw + T.px(2), cy, sw, ch)
     elseif t == "switch" then
         -- a rocker or a toggle: one control (a press throws it)
         local sw = pSegW()
         local on = x.r.active
         local ink = markWhole(panel, x, rw.id, cx, cy, 2 * sw + T.px(2), ch)
-        for i = 1, 2 do
-            local isOn = i == 2
-            local sel = on == isOn
-            local col = sel and selColors(ink) or (ink and inkColors() or nil)
-            pButton(panel, x, cx + (i - 1) * (sw + T.px(2)), cy, sw, ch, ZeD.tr(isOn and "UI_On" or "UI_Off"), rw.id, false, col, true)
+        if liteOn() then pRadios(panel, x, cx, cy, sw, ch, on, ink)
+        else
+            for i = 1, 2 do
+                local isOn = i == 2
+                local sel = on == isOn
+                local col = sel and selColors(ink) or (ink and inkColors() or nil)
+                pButton(panel, x, cx + (i - 1) * (sw + T.px(2)), cy, sw, ch, ZeD.tr(isOn and "UI_On" or "UI_Off"), rw.id, false, col, true)
+            end
         end
         stamp(x, rw.id, "press", cx, cy, 2 * sw + T.px(2), ch)
     elseif t == "key" then
