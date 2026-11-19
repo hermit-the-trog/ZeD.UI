@@ -578,7 +578,8 @@ function Z.moodleWheel()
 end
 
 function Z.actionBarWheel()
-    return comboWheel(ZeD.Settings.actionBarOption, { "UI_ZeD_Settings_ActionBarVerbose", "UI_ZeD_Settings_ActionBarSimple" }, "progress")
+    -- (beta 21: the action bar's own switch is now the one Style switch, Lite or Full)
+    return comboWheel(ZeD.Settings.lookStyleOption, { "UI_ZeD_Settings_Full", "UI_ZeD_Settings_Lite" }, "progress")
 end
 
 -- see-through: 100% to 60%, then solid while in use (ZeD.Settings saves the pick and re-applies
@@ -662,8 +663,8 @@ D.B.zed = function(p, pn)
           detail = current(S.focusStyleOption, S.focusStyleLabels or {}), sub = Z.focusWheel },
         { name = tr("UI_ZeD_Settings_UiScale"), icon = "scale", sub = Z.scaleWheel },
         { name = tr("UI_ZeD_Settings_Moodles"), icon = "smiley", detail = current(S.moodlePlaceOption, S.moodleLabels or {}), sub = Z.moodleWheel },
-        { name = tr("UI_ZeD_Settings_ActionBar"), icon = "progress",
-          detail = current(S.actionBarOption, { "UI_ZeD_Settings_ActionBarVerbose", "UI_ZeD_Settings_ActionBarSimple" }), sub = Z.actionBarWheel },
+        { name = tr("UI_ZeD_Settings_LookStyle"), icon = "progress",
+          detail = current(S.lookStyleOption, { "UI_ZeD_Settings_Full", "UI_ZeD_Settings_Lite" }), sub = Z.actionBarWheel },
         -- Messages: other mods' notes and errors; off while nothing is kept
         (function()
             local MS = ZeD.Messages

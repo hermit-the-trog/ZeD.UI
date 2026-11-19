@@ -583,6 +583,24 @@ for _, sc in ipairs({
     if ZeD.Safe and ZeD.Safe.setPieceOption then ZeD.Safe.setPieceOption(sc[2], o) end
 end
 
+-- ----- LITE OR FULL (beta 21, the director, Nov 18 2026) -----
+-- One switch in place of the eight Immersive-or-Simple ones (action bar, belt, devices, watch, dash, guide, mods
+-- screen, identity card). The director: "If vanilla does it, so does Lite... Everything you can do in vanilla with
+-- very little extra." Lite: every one of those in its plain form, plain buttons (one bolder line, filled, Yes in the
+-- player's good color and No in the bad one from the game's Accessibility options), the watch a plain clock in the
+-- corner, one dashboard for every car, and the extras the game itself does not have put away. Full is the default.
+-- The eight old switches stay in ModOptions.ini (a save from before keeps reading) but no longer show; each helper
+-- below now answers from this one.
+local lookStyle = opts:addComboBox("lookStyle", ZeD.tr("UI_ZeD_Settings_LookStyle"), ZeD.tr("UI_ZeD_Settings_LookStyleTip"))
+lookStyle:addItem(ZeD.tr("UI_ZeD_Settings_Full"), true)   -- default
+lookStyle:addItem(ZeD.tr("UI_ZeD_Settings_Lite"), false)
+ZeD.Settings.lookStyleOption = lookStyle
+--- True in Lite (read as things draw, so a change applies at once).
+function ZeD.Settings.lite()
+    local ok, v = pcall(lookStyle.getValue, lookStyle)
+    return ok and v == 2
+end
+
 -- ----- THE BELT'S FORM: a full and a simple version, as for the action bar -----
 -- Immersive: the leather strap and the profession buckle. Simple: the same slots and hands with no strap or buckle.
 -- ZeD_Belt.lua reads it as it lays out, so a change applies at once. Immersive is the default.
@@ -602,8 +620,7 @@ ZeD.Settings.devicesStyleOption = devicesStyle
 --- True while the devices are drawn as simple cards (read as they draw, so a change applies at once).
 --- watchSimple, dashSimple, guideSimple, modsSimple and identitySimple below answer the same for theirs.
 function ZeD.Settings.devicesSimple()
-    local ok, v = pcall(devicesStyle.getValue, devicesStyle)
-    return ok and v == 2
+    return ZeD.Settings.lite()   -- (Lite or Full, beta 21)
 end
 
 -- ----- THE WATCH'S FORM -----
@@ -614,8 +631,7 @@ watchStyle:addItem(ZeD.tr("UI_ZeD_Settings_Immersive"), true)   -- default
 watchStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
 ZeD.Settings.watchStyleOption = watchStyle
 function ZeD.Settings.watchSimple()
-    local ok, v = pcall(watchStyle.getValue, watchStyle)
-    return ok and v == 2
+    return ZeD.Settings.lite()   -- (Lite or Full, beta 21)
 end
 
 -- ----- THE DASHBOARD'S FORM -----
@@ -626,8 +642,7 @@ dashStyle:addItem(ZeD.tr("UI_ZeD_Settings_Immersive"), true)   -- default
 dashStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
 ZeD.Settings.dashStyleOption = dashStyle
 function ZeD.Settings.dashSimple()
-    local ok, v = pcall(dashStyle.getValue, dashStyle)
-    return ok and v == 2
+    return ZeD.Settings.lite()   -- (Lite or Full, beta 21)
 end
 
 -- ----- THE SURVIVAL GUIDE'S FORM -----
@@ -638,8 +653,7 @@ guideStyle:addItem(ZeD.tr("UI_ZeD_Settings_Immersive"), true)   -- default
 guideStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
 ZeD.Settings.guideStyleOption = guideStyle
 function ZeD.Settings.guideSimple()
-    local ok, v = pcall(guideStyle.getValue, guideStyle)
-    return ok and v == 2
+    return ZeD.Settings.lite()   -- (Lite or Full, beta 21)
 end
 
 -- ----- THE MODS SCREEN'S FORM: a Simple view for newcomers, asked for on the Workshop -----
@@ -650,8 +664,7 @@ modsStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarVerbose"), true)   -- default
 modsStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
 ZeD.Settings.modsStyleOption = modsStyle
 function ZeD.Settings.modsSimple()
-    local ok, v = pcall(modsStyle.getValue, modsStyle)
-    return ok and v == 2
+    return ZeD.Settings.lite()   -- (Lite or Full, beta 21)
 end
 
 -- ----- THE IDENTITY CARD'S FORM: everything is either Immersive or Simple -----
@@ -661,8 +674,7 @@ identityStyle:addItem(ZeD.tr("UI_ZeD_Settings_Immersive"), true)   -- default
 identityStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
 ZeD.Settings.identityStyleOption = identityStyle
 function ZeD.Settings.identitySimple()
-    local ok, v = pcall(identityStyle.getValue, identityStyle)
-    return ok and v == 2
+    return ZeD.Settings.lite()   -- (Lite or Full, beta 21)
 end
 
 -- ----- THE HIDDEN FACTS: Vanilla Plus gates them; only Vanilla Access opens them from the start -----
@@ -903,6 +915,17 @@ local function setUpAdditions()
             busy = false
         end
         ZeD.Settings.syncAdditionsPreset()
+    end
+    -- (beta 21) Lite picked: the additions are set to the Vanilla preset, as a pick of Vanilla would ("If vanilla does
+    -- it, so does Lite"; the Custom set is held and kept as a pick of a preset keeps it). Back to Full, the Additions
+    -- group shows again and any preset can be picked there.
+    function ZeD.Settings.pickAdditionsPreset(i)
+        local el = additionsPreset.element
+        if el then el.selected = i end
+        additionsPreset.onChange(nil, i)
+    end
+    lookStyle.onChange = function(_, sel)
+        if tonumber(sel) == 2 then pcall(ZeD.Settings.pickAdditionsPreset, 1) end
     end
 
     -- Apply, on ZeD setup or the game's Mods page (MainOptions:apply calls each mod's options:apply())

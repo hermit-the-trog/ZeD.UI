@@ -161,20 +161,23 @@ G.SETUP_GAME = {
 --   short = shorter words for a switch's choices or the slider's steps, by item (the drop-down
 --   on the Mods page keeps the full ones) } } }
 -- An option of ZeD's this table doesn't name (a new one) lands under Other, as a drop-down.
+-- (beta 21) the switches Style replaced, never shown; the groups Lite leaves out (the director: "If vanilla does it,
+-- so does Lite"; the additions and the chords are ZeD's own, set as Lite has them)
+G.RETIRED = { "beltStyle", "devicesStyle", "watchStyle", "dashStyle", "guideStyle", "identityStyle", "modsStyle", "actionBar" }
+G.LITE_HIDES = { UI_ZeD_Options_ZedAdditions = true, UI_ZeD_Options_ZedChords = true }
 G.ZED_GROUPS = {
     -- (the windows' See-through is the stepped slider under Text size, Solid while in use a
     -- checkbox under it; Controller highlight leads Controls as a pop-up menu with a live sample
     -- beside it; Hidden actions closes Windows as a pop-up menu. No row for theme squares: the
     -- windows have none, and each window box's menu, ZeD_WindowMenu.lua, holds Theme, Accent
     -- and Text size.)
-    { "UI_ZeD_Options_ZedLook", { { "baseTheme", "radio" }, { "accentColor", "swatch" }, { "statusColors", "radio" }, { "textSize", "radio" }, { "seeThrough", "scale" }, { "solidInUse", "onoff" }, { "healthBlink", "onoff" }, { "gridTint", "onoff" }, { "uiScale", "scale", short = { "UI_ZeD_Settings_Auto" } } } },
+    { "UI_ZeD_Options_ZedLook", { { "lookStyle", "radio" }, { "baseTheme", "radio" }, { "accentColor", "swatch" }, { "statusColors", "radio" }, { "textSize", "radio" }, { "seeThrough", "scale" }, { "solidInUse", "onoff" }, { "healthBlink", "onoff" }, { "gridTint", "onoff" }, { "uiScale", "scale", short = { "UI_ZeD_Settings_Auto" } } } },
     -- (One row per family, each offering ZeD's full vision or a plainer one, with one phrase for
     -- the two forms: Immersive or simple, for the rows drawn as the thing itself or as a plain
     -- card, the Identity card (once in Look) among them. The Action bar (in HUD) and the Mods
     -- screen (in Windows) are Detailed or simple; Context menu and Equipped items choose a
     -- layout, so they sit in Windows by Inventory. A row can move between groups freely: every
     -- option keeps its items in order, so saved choices keep their meaning.)
-    { "UI_ZeD_Options_ZedForms", { { "beltStyle", "radio" }, { "devicesStyle", "radio" }, { "watchStyle", "radio" }, { "dashStyle", "radio" }, { "guideStyle", "radio" }, { "identityStyle", "radio" } } },
     -- (everything vanilla does not do, in one group after the look, the preset first; the
     -- presets' table is in Settings.lua's setUpAdditions. Put back, Messages and Sandbox in game
     -- have no groups of their own; Ammo on the belt, Moodle notices and Dashboard lamps (once in
@@ -187,8 +190,8 @@ G.ZED_GROUPS = {
         { "restock", "radio", needs = "loadouts", needsWhy = "UI_ZeD_Options_NeedsLoadouts" },
         -- (Nov 15 2026, appliances: Additional appliance support, Appliances.lua)
         { "appliances", "onoff" } } },
-    { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "contextStyle", "radio" }, { "equipView", "radio" }, { "modsStyle", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "uiSounds", "radio" }, { "hiddenActions" } } },
-    { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio" }, { "actionBar", "radio" } } },
+    { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "contextStyle", "radio" }, { "equipView", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "uiSounds", "radio" }, { "hiddenActions" } } },
+    { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio" } } },
     -- (how the wheels are worked; Toggle mode overrides open and commit, so they dim while it is on; then the Run
     -- button that also crouches, Input/RunSneak.lua)
     { "UI_ZeD_Options_ZedControls", { { "focusStyle" }, { "glyphDisplay" }, { "inputModeLock" },
@@ -427,7 +430,12 @@ function G.build(pages, rowsOf)
         end
     end
     local defaultDone = false   -- the default place came up (it is before Trouble)
+    -- (beta 21: the eight Immersive-or-Simple switches are one Style switch now, Lite or Full; the old ones stay saved
+    -- but never show, not even under Other)
+    for _, id in ipairs(G.RETIRED) do placed[id] = true end
+    local lite = ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite()
     for _, grp in ipairs(G.ZED_GROUPS) do
+      if not (lite and G.LITE_HIDES[grp[1]]) then
         if grp[1] == "UI_ZeD_Options_ZedTrouble" and #addons > 0 then emitAddons(nil); defaultDone = true end
         local list = {}
         if grp.chords then
@@ -447,6 +455,7 @@ function G.build(pages, rowsOf)
             for _, c in ipairs(list) do setup[#setup + 1] = c end
         end
         if #addons > 0 then emitAddons(grp[1]) end
+      end
     end
     -- (no Trouble group, should one ever be cut: the default place is the end of ZeD's groups)
     if #addons > 0 and not defaultDone then emitAddons(nil) end

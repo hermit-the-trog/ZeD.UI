@@ -523,9 +523,8 @@ end
 -- the setting
 -- ---------------------------------------------------------------------------
 function AB.mode()
-    local opt = ZeD.Settings and ZeD.Settings.actionBarOption
-    local v = opt and opt.getValue and opt:getValue() or 1
-    return v == 2 and "simple" or "verbose"
+    local lite = ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite()   -- (Lite or Full, beta 21)
+    return lite and "simple" or "verbose"
 end
 
 -- ---------------------------------------------------------------------------

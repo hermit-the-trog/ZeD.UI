@@ -88,17 +88,19 @@ for _, g in ipairs(G and G.ZED_GROUPS or {}) do
     end
 end
 local function list(t) return table.concat(t or {}, ", ") end
-local FORMS = { "beltStyle", "devicesStyle", "watchStyle", "dashStyle", "guideStyle", "identityStyle" }
-check("Immersive or simple holds the six, in order", list(rows.UI_ZeD_Options_ZedForms) == list(FORMS),
-      list(rows.UI_ZeD_Options_ZedForms))
-check("the Identity card has left Look", where.identityStyle == "UI_ZeD_Options_ZedForms", where.identityStyle)
-check("the Action bar sits in HUD", where.actionBar == "UI_ZeD_Options_ZedHud", where.actionBar)
-check("the Mods screen sits in Windows", where.modsStyle == "UI_ZeD_Options_ZedWindows", where.modsStyle)
+-- (beta 21, the director, Nov 18 2026: one Style switch, Lite or Full, replaces the eight Immersive-or-Simple rows;
+-- it leads Look, and the eight are retired: saved, never shown, not even under Other)
+local RETIRED = { "beltStyle", "devicesStyle", "watchStyle", "dashStyle", "guideStyle", "identityStyle", "modsStyle", "actionBar" }
+check("Style leads Look", (rows.UI_ZeD_Options_ZedLook or {})[1] == "lookStyle", list(rows.UI_ZeD_Options_ZedLook))
+check("no Immersive-or-simple group any more", rows.UI_ZeD_Options_ZedForms == nil, list(rows.UI_ZeD_Options_ZedForms))
+check("the retired list names the eight", list(G and G.RETIRED) == list(RETIRED), list(G and G.RETIRED))
+for _, id in ipairs(RETIRED) do check(id .. " is in no group", where[id] == nil, where[id]) end
+check("Lite leaves out Additions and Chords", G and G.LITE_HIDES and G.LITE_HIDES.UI_ZeD_Options_ZedAdditions
+      and G.LITE_HIDES.UI_ZeD_Options_ZedChords)
 local win = rows.UI_ZeD_Options_ZedWindows or {}
 check("Windows: Inventory, Context menu, Equipped items lead", win[1] == "inventoryView" and win[2] == "contextStyle"
       and win[3] == "equipView", list(win))
-for _, id in ipairs({ "beltStyle", "devicesStyle", "watchStyle", "dashStyle", "guideStyle", "identityStyle", "actionBar",
-                      "modsStyle", "contextStyle", "equipView", "inventoryView" }) do
+for _, id in ipairs({ "lookStyle", "contextStyle", "equipView", "inventoryView" }) do
     check(id .. " shows in one section", count[id] == 1, count[id])
 end
 
@@ -109,6 +111,10 @@ local function items(id) local o = opts.dict[id]; return o and list(o.items) or 
 local function default(id) local o = opts.dict[id]; return o and o.default end
 local IMM = "UI_ZeD_Settings_Immersive, UI_ZeD_Settings_ActionBarSimple"
 local DET = "UI_ZeD_Settings_ActionBarVerbose, UI_ZeD_Settings_ActionBarSimple"
+-- (the retired rows keep their items, so a saved value still reads the same)
+local FORMS = { "beltStyle", "devicesStyle", "watchStyle", "dashStyle", "guideStyle", "identityStyle" }
+check("lookStyle: Full then Lite, Full the default", items("lookStyle") == "UI_ZeD_Settings_Full, UI_ZeD_Settings_Lite"
+      and default("lookStyle") == 1, items("lookStyle"))
 for _, id in ipairs(FORMS) do
     check(id .. ": Immersive then Simple", items(id) == IMM, items(id))
     check(id .. ": default item 1", default(id) == 1, default(id))

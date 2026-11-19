@@ -118,6 +118,57 @@ local function withAlpha(out, c, a)
 end
 
 local _btnHelpR = {}
+-- ----- LITE BUTTONS (beta 21, the director, Nov 18 2026) -----
+-- "more basic buttons (not the double border, maybe bolder, full color)... the positive and negative choice that the
+-- user makes in the accessibility menu." In Lite a button has one line two hairlines thick and is filled: the answer
+-- a window is for (primary, or a confirm's default) in the game's good color, a destructive one (danger) or a
+-- Cancel or No in its bad color, the way the game's own accept and cancel buttons are drawn (ISButton: the color at
+-- a quarter under the words, half on hover, the line at full). Every other button keeps the theme's line, thicker.
+local LITE_FILL, LITE_HOVER = 0.25, 0.50
+local liteNo = nil   -- the words a No or Cancel button reads, in this language (sentence case, as drawn)
+local function isNoWord(text)
+    if not liteNo then
+        liteNo = {}
+        for _, k in ipairs({ "UI_Cancel", "UI_btn_cancel", "UI_No", "UI_btn_no", "UI_ZeD_Options_Discard", "UI_ZeD_MMWord_DiscardChanges" }) do
+            local ok, t = pcall(function() return k:find("^UI_ZeD_") and ZeD.tr(k) or getText(k) end)
+            if ok and t and t ~= k then liteNo[ZeD.btnCase(t)] = true end
+        end
+    end
+    return liteNo[text] == true
+end
+local function coreRGB(fn, dr, dg, db)
+    local ok, c = pcall(function() return getCore()[fn](getCore()) end)
+    if ok and c then
+        local ok2, r, g, b = pcall(function() return c:getR(), c:getG(), c:getB() end)
+        if ok2 and r then return r, g, b end
+    end
+    return dr, dg, db
+end
+--- True while ZeD is in Lite (ZeD.Settings.lite; false before the settings load).
+function ZeD.Molecules.lite()
+    return ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite() or false
+end
+--- The Lite colors: "good", "bad" or nil (plain) for a button, and the game's good and bad colors.
+function ZeD.Molecules.liteKind(text, variant, opts)
+    if opts and opts.disabled then return nil end
+    if variant == "danger" then return "bad" end
+    if opts and opts.liteKind then return opts.liteKind end
+    if text and isNoWord(text) then return "bad" end
+    if variant == "primary" or (opts and opts.default) then return "good" end
+    return nil
+end
+function ZeD.Molecules.liteColor(kind)
+    if kind == "good" then return coreRGB("getGoodHighlitedColor", 0.2, 0.8, 0.3) end
+    if kind == "bad" then return coreRGB("getBadHighlitedColor", 0.9, 0.25, 0.25) end
+    return nil
+end
+-- a line two hairlines thick, on the button's own rounded corners
+local function liteBorder(A, panel, x, y, w, h, r, g, b, a)
+    local u = ZeD.T.hair
+    A.borderRounded(panel, x, y, w, h, r, g, b, a)
+    A.borderRounded(panel, x + u, y + u, w - 2 * u, h - 2 * u, r, g, b, a)
+end
+
 function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, colors, opts)
     local T = ZeD.T
     local A = ZeD.Atoms
@@ -177,7 +228,18 @@ function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, col
     -- accent double ring on a button that does nothing ("Craft" with nothing to
     -- make, "Restock 0:00") read as the focused default. Disabled wins.
     local borderColor, textColor
-    if opts.disabled then
+    local lite = ZeD.Molecules.lite and ZeD.Molecules.lite()
+    local liteK = lite and ZeD.Molecules.liteKind(text, variant, opts) or nil
+    if lite then
+        -- (Lite: no pulse, no accent; the kind's color filled under the words, the theme's text on it)
+        borderColor = T.borderS
+        textColor = T.text
+        if liteK then
+            local r, g, b = ZeD.Molecules.liteColor(liteK)
+            A.fillRounded(panel, x, y, w, h, r, g, b, (opts.hover and LITE_HOVER or LITE_FILL) * alpha)
+            borderColor = { r = r, g = g, b = b, a = 1 }
+        end
+    elseif opts.disabled then
         borderColor = T.borderS
         textColor = T.text
     elseif variant == "primary" then
@@ -214,7 +276,9 @@ function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, col
     -- So: two lines on "primary", or on a red button that is the default answer
     -- (opts.default: a confirm's Delete); one line on the rest, and on any
     -- grayed button (a default that can't be pressed is not the default).
-    if not opts.disabled and (variant == "primary" or opts.default) then
+    if lite then
+        liteBorder(A, panel, x, y, w, h, borderColor.r, borderColor.g, borderColor.b, (borderColor.a or 1) * alpha)
+    elseif not opts.disabled and (variant == "primary" or opts.default) then
         A.borderDoubleRounded(panel, x, y, w, h, borderColor.r, borderColor.g, borderColor.b, (borderColor.a or 1) * alpha)
     else
         A.borderRounded(panel, x, y, w, h, borderColor.r, borderColor.g, borderColor.b, (borderColor.a or 1) * alpha)
@@ -301,7 +365,11 @@ function ZeD.Molecules.drawIconButton(panel, x, y, size, icon, opts)
         end
     end
     local bc = active and T.accent or (onFocus and T.textOnFocus or T.borderS)
-    A.borderRounded(panel, x, y, size, size, bc.r, bc.g, bc.b, (bc.a or 1) * alpha)
+    if ZeD.Molecules.lite and ZeD.Molecules.lite() then   -- (Lite, beta 21: the bolder single line)
+        liteBorder(A, panel, x, y, size, size, bc.r, bc.g, bc.b, (bc.a or 1) * alpha)
+    else
+        A.borderRounded(panel, x, y, size, size, bc.r, bc.g, bc.b, (bc.a or 1) * alpha)
+    end
 
     local ic = active and T.textOnAccent or (onFocus and T.textOnFocus or (opts.tint or T.text))
     local isz = math.min(opts.iconSize or T.px(16), size - T.px(4))

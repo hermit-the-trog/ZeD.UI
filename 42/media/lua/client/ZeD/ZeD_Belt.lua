@@ -73,10 +73,7 @@ local SIMPLE_GAP = 6   -- the Simple belt's gap between slots (no strap material
 
 -- the Simple belt (the "Belt" option's second item), read as the belt lays out
 function B.simple()
-    local o = ZeD.Settings and ZeD.Settings.beltStyleOption
-    if not o then return false end
-    local ok, v = pcall(o.getValue, o)
-    return ok and v == 2
+    return ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite() or false   -- (Lite or Full, beta 21)
 end
 
 local function col(c) return c.r, c.g, c.b end

@@ -241,7 +241,7 @@ local function installZeD()
     ZeD.textCase = function(s) return s end
     ZeD.logOnce = function(key, msg) env.errors[#env.errors + 1] = tostring(key) .. ": " .. tostring(msg) end
     ZeD.Safe = { on = function() return env.safe end, guard = function(self, fn) return fn(self) end, register = function() end }
-    ZeD.Settings = { beltStyleOption = { getValue = function() return env.simple and 2 or 1 end }, ammoBoxOn = function() return false end }
+    ZeD.Settings = { lite = function() return env.simple == true end, beltStyleOption = { getValue = function() return env.simple and 2 or 1 end }, ammoBoxOn = function() return false end }   -- (beta 21: the belt's plain form is Lite's)
     ZeD.Watch = { beltWatch = function() return nil end }
     ZeD.WatchMini = { size = function() return 44, 46 end }
     ZeD.Messages = { count = function() return env.messages end, unread = function() return 0 end, open = function() end }
