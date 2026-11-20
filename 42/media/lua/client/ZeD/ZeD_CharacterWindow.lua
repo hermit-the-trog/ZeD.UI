@@ -796,6 +796,26 @@ local function composeCharHealth(win)
     win._titleHelp = win._hpHelpS
 end
 
+-- The load in the title bar while the inventory side did not draw last frame (the tab drawer over the whole
+-- window): its heading, which says the load, is off screen, so the title says it (QA's visual noise audit 1,
+-- Nov 20 2026). The side sets win._invDrew each frame it draws; the window's prerender runs before it.
+function ZeD_CharacterWindow.titleLoadFallback(win)
+    local drew = win._invDrew
+    win._invDrew = false
+    if drew or not win._playerObj then return end
+    local stats = win.titleStats or {}
+    local last = stats[#stats]
+    local p = win._playerObj
+    local txt = ZeD.Atoms.loadText(p:getInventory():getCapacityWeight(), p:getMaxWeight())
+    if last and last == win._loadStat then
+        last.text = txt
+    else
+        win._loadStat = { text = txt, noMark = true }
+        stats[#stats + 1] = win._loadStat
+        win.titleStats = stats
+    end
+end
+
 --- A tab that another file adds: ZeD's own extras (CookingTab, ServerTab) and
 --- ZeD's support for other mods (ZeD/ModSupport/<mod id>.lua, loaded only when
 --- that mod is on). def: id, label(), group, iconName, after (a tab id),
@@ -3829,7 +3849,11 @@ local function drawContainerStrip(self, win, content)
     local sortColor = isActive and T.toneNorm or T.toneLo
     local labelX = math.floor((w - labelW) / 2)
     local labelY = sortRowY + math.floor((sortRowH - f5H) / 2)
-    self:drawText(sortLabel, labelX, labelY, sortColor.r, sortColor.g, sortColor.b, sortColor.a, f5Font)
+    -- (QA's visual noise audit 23, Nov 20 2026: "Dist" read as a column head over the buttons; the usual order says
+    -- nothing, its word shows while the pointer is on the row. The row still takes the click and gives its help.)
+    if isActive or isSortHover then
+        self:drawText(sortLabel, labelX, labelY, sortColor.r, sortColor.g, sortColor.b, sortColor.a, f5Font)
+    end
     -- Underline when active sort
     if isActive then
         self:drawRect(labelX, labelY + f5H, labelW, T.px(1), sortColor.a, sortColor.r, sortColor.g, sortColor.b)
@@ -4211,6 +4235,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win.minimumHeight = T.px(220)
     win._maxWinW = maxWinW
     win.playerNum = playerNum   -- (read as `win.playerNum or 0` by the doll, the equipment tab, the roll-up)
+    -- the help line folds away while the window has nothing to say (QA's visual noise audit 9, Nov 20 2026)
+    win.footerWhenUsed = true
     _charWins[playerNum] = win
     _hideVanilla()
 
@@ -6304,9 +6330,21 @@ function ZeD_CharacterWindow.toggle(playerNum)
         for _, st in ipairs(pinStats) do win.titleStats[#win.titleStats + 1] = st end
 
         -- Weight (rightmost): "5.8 / 28 kg", its unit kept so it never reads as bare numbers; no status mark
-        win.titleStats[#win.titleStats + 1] = { text = ZeD.Atoms.loadText(weight, maxWt), noMark = true }
-
+        -- (QA's visual noise audit 1, Nov 20 2026: the load showed in the title bar and again in the heading of
+        -- the list under it. The title keeps it only while the inventory's own heading is not on screen: a bag
+        -- viewed alone, columns without the inventory, or the tab drawer over the whole window, titleLoadFallback)
+        win._invDrew = true
         local mcSel = win._mcSelected or {}
+        local mainShown
+        if #mcSel > 0 then mainShown = win._mainVisible and true or false
+        else
+            local vc = win._containers and win._containers[win._viewedContainer or win._activeContainer]
+            mainShown = (vc == nil) or (vc.isMain and true or false)
+        end
+        if not mainShown then
+            win.titleStats[#win.titleStats + 1] = { text = ZeD.Atoms.loadText(weight, maxWt), noMark = true }
+        end
+
         -- Count visible MC columns
         local colCount = #mcSel + (win._mainVisible and 1 or 0)
 
@@ -6360,12 +6398,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     name    = cnt.name,
                     texture = cnt.texture,
                     stats   = ZeD.ContainerGates.status(cInv, win._playerObj) or ZeD.Atoms.loadText(cWeight, cMax),
-                    count   = (cItems == 1) and ZeD.tr("UI_ZeD_Char_ItemsOne", cItems) or ZeD.tr("UI_ZeD_Char_ItemsMany", cItems),
+                    -- (QA's visual noise audit 2, Nov 20 2026: an empty list says "Nothing here." alone, no "0 items")
+                    count   = (cItems == 0) and "" or (cItems == 1) and ZeD.tr("UI_ZeD_Char_ItemsOne", cItems) or ZeD.tr("UI_ZeD_Char_ItemsMany", cItems),
                 }
                 self._inventory = cInv
-                -- the help line's own words when the pointer is on nothing that has help: "48 items",
-                -- or "3 of 48 picked | 4.2 kg" while rows are picked (InventoryPicked.lua). No weight
-                -- at rest: the heading shows the container's, the title bar the character's load.
+                -- the help line's own words when the pointer is on nothing that has help: "3 of 48 picked
+                -- | 4.2 kg" while rows are picked (InventoryPicked.lua), nothing at rest (the heading counts).
                 win._statusLine = ZeD.InventoryPicked.line(self, nil, cItems,
                     "UI_ZeD_Char_ItemsOne", "UI_ZeD_Char_ItemsMany", win._playerObj)
             end
@@ -6756,6 +6794,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         lootDrawerFallback(self)
         composeCharTitle(self)
         composeCharHealth(self)
+        ZeD_CharacterWindow.titleLoadFallback(self)
         _baseWinPrerender(self)
     end
 

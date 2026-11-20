@@ -118,7 +118,8 @@ check("ONE: one button in the heading", #BUTTONS == 1, #BUTTONS)
 check("ONE: one stamped rect", #GV.toggles == 1, #GV.toggles)
 local b = BUTTONS[1]
 check("SHOWS: list view (the default) draws the list's picture", b.icon == "view_list", b.icon)
-check("SHOWS: lit in the accent (active) as the chosen view", b.active == true)
+-- (Nov 20 2026, QA's visual noise audit 37: an outline, as the Filter beside it, not the accent's solid square)
+check("SHOWS: drawn as an outline (not active), as the Filter", b.active == false)
 check("SHOWS: its hint names the view on show", b.hint == "IGUI_CraftingWindow_ListView", b.hint)
 check("SHOWS: its help line is the list's (it says a press flips)", b.help == "UI_ZeD_Inv_ListHelp", b.help)
 local listId = b.id
@@ -134,7 +135,7 @@ check("FLIP: a click sound", SOUNDS == 1, SOUNDS)
 GV = heading(p, BAG, 420)
 b = BUTTONS[1]
 check("SHOWS: grid view draws the grid's picture", #BUTTONS == 1 and b.icon == "view_grid", b.icon)
-check("SHOWS: still lit in grid view", b.active == true)
+check("SHOWS: still an outline in grid view", b.active == false)
 check("SHOWS: hint and help name the grid", b.hint == "UI_ZeD_Inv_GridView" and b.help == "UI_ZeD_Inv_GridHelp", tostring(b.hint) .. " " .. tostring(b.help))
 check("SHOWS: the button stays where it was (same x)", GV.toggles[1].x == rx, GV.toggles[1].x .. " vs " .. rx)
 check("PAD: the same id in grid view (the focus keeps its place)", b.id == listId, b.id)

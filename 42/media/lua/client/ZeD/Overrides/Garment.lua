@@ -78,6 +78,7 @@ local function openCard(player, clothing)
     if card then
         card._foldStates = card._foldStates or {}
         card._foldStates["clothing_zones"] = true   -- the parts, open
+        card._foldStates["clothing_zones_uniform"] = true   -- (and where they all read the same: ItemCardOrganism)
     end
     return win._drawerItem == clothing
 end

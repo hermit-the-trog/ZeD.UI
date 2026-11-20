@@ -866,8 +866,9 @@ function ST.renderViewHeader(panel, win, x, y, w, state, st)
     local h = T.inputH
     -- the Crafting tab's title on row 1, as the recipe list opens (design review C1), the
     -- select centered in the shared strip under it (punch list 178)
-    local titleH = ZeD.Molecules.drawTabHeader(panel, x, y, w, getText("IGUI_CraftingWindow_Title"), false, false, true)
-    y = y + titleH
+    -- (QA's visual noise audit 3, Nov 20 2026: that title row held the one word "Crafting" under the title bar's
+    -- "+ Crafting"; gone, the select takes row 1)
+    local titleH = 0
     local rowH = T.stripH
     local sx, sy, sw = x + pad, y + math.floor((rowH - h) / 2), w - pad * 2
     local mx, my = panel:getMouseX(), panel:getMouseY()

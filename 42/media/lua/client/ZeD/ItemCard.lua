@@ -1076,6 +1076,8 @@ function ZeD_ItemCard:_loadFoldStates()
     end
     self._foldStates = {
         clothing_zones     = foldDefault("clothing_zones",   true),
+        -- (a garment whose zones all read its own figure starts shut: ItemCardOrganism, QA's visual noise audit 34)
+        clothing_zones_uniform = foldDefault("clothing_zones_uniform", false),
         food_nutrition     = foldDefault("food_nutrition",   true),
         food_ingredients   = foldDefault("food_ingredients", false),
     }

@@ -1594,16 +1594,11 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     end
     local data = win._identityCache
 
-    -- Pinned tab header (37 design units, not in scroll content)
-    local tabHeaderH = M.getTabHeaderH()
-
-    -- Stamp the disclosure hit-zone EARLY, as SkillsTab and HealthTab do. The
-    -- tab header is a disclosure that toggles the license photo between bust
-    -- (collapsed) and full-body (expanded). The focusable builder in
-    -- ZeD_CharacterWindow reads _identityFigureZone each frame; a zone stamped
-    -- at the end of render is still nil on the first prerender after a tab
-    -- switch, so stamping at the top is what puts the disclosure in element[1].
-    win._identityFigureZone = { x = x, y = y, w = w, h = tabHeaderH }
+    -- No tab header (QA's visual noise audit 3 and 38, Nov 20 2026: "Identity" stood under the title bar's
+    -- "+ Identity", and its arrow only switched the photo between the bust and the whole body, which a click on the
+    -- photo and A on it, the photo's own stop, already do). No header zone: the pad's disclosure stop goes with it.
+    local tabHeaderH = 0
+    win._identityFigureZone = nil
 
     -- ================================================================
     -- SCROLL (starts below pinned header)
@@ -1746,16 +1741,7 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     -- the model joins the card in this frame, not the next (its rect was just published)
     if win._placeIdentityModel then win._placeIdentityModel(w) end
 
-    -- Pinned tab header: the disclosure arrow turns with _identityPhotoExpanded
-    -- (collapsed = bust, right-pointing; expanded = full body, down). A on it
-    -- (controller), the header click (mouse) and a click on the photo all toggle it.
-    -- The hover wash and the controller's mark come with the molecule.
-    local hdrHover = A.mouseIn(panel, x, y, w, tabHeaderH)
-    if hdrHover and ZeD.Help then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Identity_HelpHeader")) end
-    local F = ZeD.Input and ZeD.Input.Focus
-    local hdrFocus = (F and F.isFocused and F.isFocused(win, nil, "identity:__disclosure")) and { win = win } or nil
-    M.drawTabHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Char_TabIdentity"), win._identityPhotoExpanded, hdrHover, nil,
-        { focus = hdrFocus })
+    -- (the tab header was here: gone, see the top of this function)
 
     if needsScroll then
         scroll:draw(panel)

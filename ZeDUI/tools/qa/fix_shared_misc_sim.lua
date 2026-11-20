@@ -145,7 +145,9 @@ do
     end
     check("CASE the card header's verbs", M:find('local labelStr = ZeD.btnCase(v.label or "")   -- sentence case (draw only', 1, true) ~= nil)
     check("CASE the card's verb strip (Wash, Repair, Pad)", inFn("function ZeD.Molecules.drawCardVerbStrip(", "ZeD.btnCase(v.label"))
-    check("CASE the card's flag strip", inFn("function ZeD.Molecules.drawCardFlagStrip(", "A.textCase("))
+    -- (Nov 20 2026, QA's visual noise audit 34: the strip's one word of its own, "Marked", is gone; its buttons name
+    -- themselves in their hints)
+    check("CASE the card's flag strip draws no word of its own", not inFn("function ZeD.Molecules.drawCardFlagStrip(", "UI_ZeD_Card_Marked"))
     check("CASE a tab's words", inFn("function ZeD.Molecules.drawTab(", "text = A.textCase(text)"))
     check("CASE a button's natural width measures the words as drawn", inFn("function ZeD.Molecules.buttonW(", "ZeD.btnCase(text"))
     local atoms = srcOf("Atoms.lua")

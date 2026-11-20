@@ -1914,7 +1914,9 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     -- controller's mark on the disclosure come with the molecule
     local hdrHover = A.mouseIn(panel, x, y, w, headerH)
     if hdrHover and ZeD.Help then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Health_HelpHeader")) end
-    M.drawTabHeader(panel, x, y, w, getText("IGUI_XP_Health"), figureExpanded, hdrHover, nil,
+    -- (QA's visual noise audit 3 and 38, Nov 20 2026: the header said "Health" under the title bar's "+ Health"; it
+    -- folds the body figure, its only job, so it names that. The band stays: it is the figure's one fold.)
+    M.drawTabHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Tab_BodyFigure"), figureExpanded, hdrHover, nil,
         { focus = focusOf(win, "health:__disclosure") })
 
     if needsScroll then

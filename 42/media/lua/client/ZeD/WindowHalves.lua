@@ -53,6 +53,7 @@ local ENDS = { "left", "right" }
 --- older code set it straight on the window.
 function H.isPinned(win, half)
     local s = win._halves
+    if half == "both" then return (s and s.inv.pinned and s.drawer.pinned) or win.pinned == true end
     return (s and s[half] and s[half].pinned) or win.pinned == true
 end
 
@@ -108,12 +109,14 @@ end
 
 function H.togglePin(win, half)
     local s = win._halves
+    if s and half == "both" then H.setPin(win, nil, not H.isPinned(win, "both")); return end
     if s and s[half] then H.setPin(win, half, not s[half].pinned) end
 end
 
 --- The help line's words for a half's pin.
 function H.help(win, half)
     local on = H.isPinned(win, half)
+    if half == "both" then return ZeD.tr(on and "UI_ZeD_Win_HelpUnpin" or "UI_ZeD_Win_HelpPin") end
     if half == "inv" then
         return ZeD.tr(on and "UI_ZeD_Win_HelpUnpinInv" or "UI_ZeD_Win_HelpPinInv")
     end
@@ -129,6 +132,27 @@ function H.halfAt(win, e)
     return (win._halves.side == e) and "drawer" or "inv"
 end
 
+--- True while neither half has rolled: the window shows as one, and one pin (at the right end, where the window's
+--- single pin always was) pins both halves. (QA's visual noise audit 22, Nov 20 2026: two identical pins in one
+--- title bar.) A half that rolls by itself splits them again: each half's own pin at its own end.
+function H.joined(win)
+    local s = win._halves
+    return s ~= nil and not s.inv.rolled and not s.drawer.rolled and not win._rolled and not s.foldTab
+end
+
+--- What the pin at one end of the bar pins: "both" while the halves are joined, else that end's half.
+function H.pinHalf(win, e)
+    if H.joined(win) then return "both" end
+    return H.halfAt(win, e)
+end
+
+-- a pin's pointer state ("both" keeps its own)
+local function pinState(s, half)
+    local st = s[half]
+    if not st then st = { hover = false }; s[half] = st end
+    return st
+end
+
 -- the inventory's pin is on the rod while the curtain holds it rolled
 local function onRod(win, half)
     return half == "inv" and win._rolled and not win.windowShaded
@@ -140,6 +164,7 @@ end
 function H.pinRect(win, e)
     local s = win._halves
     if not s or onRod(win, H.halfAt(win, e)) then return nil end
+    if e == "left" and H.joined(win) then return nil end   -- (one pin while joined: H.joined)
     local T = ZeD.T
     local sz = T.closeBoxSz
     local r = s[e .. "Rect"]
@@ -193,8 +218,8 @@ function H.drawTitlePins(win)
     for _, e in ipairs(ENDS) do
         local r = H.pinRect(win, e)
         if r then
-            local half = H.halfAt(win, e)
-            ZeD_Window.drawPinBox(win, r, H.isPinned(win, half), s[half].hover)
+            local half = H.pinHalf(win, e)
+            ZeD_Window.drawPinBox(win, r, H.isPinned(win, half), pinState(s, half).hover)
             if focusOn(win, half) and ZeD.Focus and ZeD.Focus.mark then
                 ZeD.Focus.mark(win, r.x, r.y, r.w, r.h, { win = win })
             end
@@ -222,8 +247,8 @@ function H.watch(win, mx, my, down, fresh)
     local s = win._halves
     local on = win:pointerOn()
     for _, e in ipairs(ENDS) do
-        local half = H.halfAt(win, e)
-        local st = s[half]
+        local half = H.pinHalf(win, e)
+        local st = pinState(s, half)
         local r = H.pinRect(win, e)
         if r then
             local inside = on and mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h or false
@@ -297,8 +322,8 @@ function H.padElements(win)
     for _, e in ipairs(ENDS) do
         local r = H.pinRect(win, e)
         if r then
-            local half = H.halfAt(win, e)
-            local strip = (half == "drawer") and win[s.strip] or win._containerStrip
+            local half = H.pinHalf(win, e)
+            local strip = (H.halfAt(win, e) == "drawer") and win[s.strip] or win._containerStrip
             local x, w = r.x, r.w
             if strip and strip:isVisible() and strip:getWidth() > 0 then x, w = strip:getX(), strip:getWidth() end
             out[#out + 1] = pinElement(half, x, r.y, w, r.h, r)

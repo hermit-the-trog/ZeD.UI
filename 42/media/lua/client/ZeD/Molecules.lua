@@ -2000,8 +2000,10 @@ function ZeD.Molecules.drawStatRow(panel, x, y, w, label, value, valueColor, lab
     local labelY = y + math.floor((rowH - labelH) / 2)
     local valueY = y + math.floor((rowH - valueH) / 2)
 
-    -- Label: sentence case (a caps string from upstream reads in sentence case), secondary color
-    local lc = T.textSec
+    -- Label: sentence case (a caps string from upstream reads in sentence case), dim gray (QA's visual noise audit
+    -- 47, Nov 20 2026: in textSec, the accent at run time, the brightest color on a card sat on its least important
+    -- words and vied with the lit tab and the main button; dim gray, as the Fishing tab has its labels)
+    local lc = T.textDim
     local A = ZeD.Atoms
     local caseLabel = A.truncateText(ZeD.textCase(label or ""), lblFont, w)
     local labelW = ZeD.TM:MeasureStringX(lblFont, caseLabel)
@@ -2751,16 +2753,10 @@ function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRect
     local chipH  = T.px(A.FLAG_CHIP_H)
     local rowY   = y + math.floor((h - chipH) / 2)
 
-    -- "Marked" label (left, dim)
-    local lblText  = A.textCase(ZeD.tr("UI_ZeD_Card_Marked"))
-    local labelTY  = y + math.floor((h - labelH) / 2)
-    local labelC   = T.textDim
-    panel:drawText(lblText, x + padX, labelTY,
-        labelC.r, labelC.g, labelC.b, labelC.a, font)
-    local lblW = ZeD.TM:MeasureStringX(font, lblText)
-
-    -- Three chips — composes Atoms.drawFlagChip ×3, each with its hover and focus
-    local cursorX = x + padX + lblW + lblPadR
+    -- (QA's visual noise audit 34, Nov 20 2026: the word "Marked" before the four buttons is gone; each names itself
+    -- in its hint and its help line)
+    local labelTY  = y + math.floor((h - labelH) / 2)   -- (the Lists words' line, below)
+    local cursorX = x + padX
     local hov = opts.hover
     for _, c in ipairs(FLAG_CHIPS) do
         local k = c.kind
@@ -2933,9 +2929,10 @@ function ZeD.Molecules.drawCardStatRow(panel, x, y, w, label, value, valueClass,
     local labelY = y + math.floor((rowH - labelH) / 2)
     local valueY = y + math.floor((rowH - valueH) / 2)
 
-    -- Label: F1 mono bold in sentence case, the accent as legible text (not toneLo)
+    -- Label: F1 mono bold in sentence case, dim gray (QA's visual noise audit 47, Nov 20 2026: the accent here made
+    -- the card's least important words its brightest; as drawStatRow's)
     local lblText = ZeD.textCase(label or "")
-    local lc      = T.accentText
+    local lc      = T.textDim
     -- the status: the caller's square, else the value class's (default words either way)
     dotColor = dotColor or _statClassMark(valueClass, T)
     panel:drawText(lblText, x, labelY,

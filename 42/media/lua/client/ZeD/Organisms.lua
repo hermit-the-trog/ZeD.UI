@@ -304,7 +304,22 @@ end
 -- own footer strip says themeFooter = false and goes without until it moves onto the line.
 function ZeD_Window:footerHeight()
     if self.themeFooter == false then return 0 end
+    if self.footerWhenUsed and self._footIdle then return 0 end
     return ZeD.T.px(HELP_H)
+end
+
+-- A window with footerWhenUsed (the Character and World windows) folds its help line away while it has nothing to
+-- say: not in use (ZeD_Window:_inUse, the pointer on it or the pad's focus), no status line of its own (the picked
+-- line), no resize under way. Worked out once a frame, in the frame's draw, so every footerHeight of the frame
+-- agrees (QA's visual noise audit 9, Nov 20 2026: a blank strip at the foot of the window most of the time).
+function ZeD_Window:_footerIdleNow()
+    if self._rzLit or self.resizing or self.moving then return false end
+    if self:_inUse() then return false end
+    if self.getStatusLine then
+        local ok, s = pcall(self.getStatusLine, self)
+        if ok and s and s ~= "" then return false end
+    end
+    return true
 end
 
 -- A window of player 2 to 4 draws in that player's own theme in split view (PlayerTheme.lua): the switch goes
@@ -838,6 +853,8 @@ function ZeD_Window:_drawFrame()
     end
     -- this window's own see-through (solid while in use), after the accent's surfaces
     self:_swapSurfaces()
+    -- the help line folded away while there is nothing to say (footerWhenUsed: footerHeight)
+    if self.footerWhenUsed then self._footIdle = self:_footerIdleNow() end
 
     self:_keepOverlayLast()
     ZeD.Surface.beginFrame(self)
@@ -1118,7 +1135,8 @@ function ZeD_Window:_drawHelpLine(p, w, h, lit)
             end
         end
     end
-    if grow > 0 then drawGrow(p, w - grow, h - grow, grow, lit == "se", false) end
+    -- (the grow box goes with a folded help line: the pointer on the window brings both back)
+    if grow > 0 and not (fH == 0 and self.footerWhenUsed) then drawGrow(p, w - grow, h - grow, grow, lit == "se", false) end
 end
 
 -- the handle of the edge the pointer rests on (or drags): a ridged grip in the accent at the
@@ -1749,7 +1767,7 @@ function ZeD_Window:update()
         self:openWindowMenu()
     elseif act == "pin" then
         self:setPinned(not self.pinned)
-    elseif (act == "pin:inv" or act == "pin:drawer") and ZeD.Halves then
+    elseif (act == "pin:inv" or act == "pin:drawer" or act == "pin:both") and ZeD.Halves then
         ZeD.Halves.togglePin(self, act:sub(5))
     end
     self:_autoCollapse()
