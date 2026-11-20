@@ -1,17 +1,17 @@
-# ZeD-UI regression - 2026-11-20 02:12 - fullscreen4k (3840x2160 fullscreen)
+# ZeD-UI regression - 2026-11-20 04:39 - fullscreen4k (3840x2160 fullscreen)
 
 | | |
 |---|---|
-| Started | 2026-11-20 02:12:29 |
-| Finished | 2026-11-20 02:14:16 (1 min 46 s) |
+| Started | 2026-11-20 04:39:52 |
+| Finished | 2026-11-20 04:41:58 (2 min 5 s) |
 | Mode | fullscreen4k (3840x2160 fullscreen) |
 | Display | fontSize=2 fullScreen=false height=2160 width=3840 |
 | Game build | 42.22.2 3d39148846 |
 | Mod version | 0.3.0-beta21 |
 | Save | Saves/Sandbox/ZeD-QA |
 | Manifest | %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\kbmap_full.txt (3 scripts) |
-| Result | **3/3 pass**, 0 warn, 0 fail, 0 timeout |
-| Go numbers | 30552 to 30556 |
+| Result | **2/3 pass**, 0 warn, 1 fail, 0 timeout |
+| Go numbers | 30710 to 30714 |
 
 Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
 
@@ -23,7 +23,7 @@ Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites 
 - started ProjectZomboid64.exe -debug -nosteam (fullscreen, the director's options.ini)
 - loaded; clicked the screen centre (1920,1080) to pass 'click to start'
 - the bridge armed in game on Saves/Sandbox/ZeD-QA
-- quit: quit to the main menu, then to the desktop (go 30555, 30556)
+- quit: quit to the main menu, then to the desktop (go 30713, 30714)
 - font size: the director's line put back (fontSize=3)
 - ZeD settings: the director's ModOptions.ini put back
 
@@ -31,21 +31,20 @@ Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites 
 
 | # | Script | Tag | Status | Seconds | Screenshots | Notes |
 |---:|---|---|---|---:|---|---|
-| 1 | zedqa_prelude.lua | pre | PASS | 7 |  |  |
+| 1 | zedqa_prelude.lua | pre | PASS | 8 |  |  |
 | 2 | rt_kit.lua | rtk | PASS | 1 |  |  |
-| 3 | rt_kbmap.lua | rt_kbmap | PASS | 4 |  |  |
+| 3 | rt_kbmap.lua | rt_kbmap | **FAIL** | 7 |  | 2 ERR line(s); its own checks failed (VERDICT FAIL) |
 
 ## Scripts
 
-### 1. zedqa_prelude.lua (`ZEDQA pre`) - PASS, 7 s
+### 1. zedqa_prelude.lua (`ZEDQA pre`) - PASS, 8 s
 
-- go 30552 at 02:13:34
+- go 30710 at 04:41:08
 
 ```text
 [ZeD.QA] state #1 speed=1 paused=false player=911,13039 grid=19 inCar=false vehicles=44 missing=get
 [ZeD.QA] windows reset (R)
 ZEDQA pre moved from 911,13039,0 to the drag strip
-ZEDQA pre clock 17.16 -> 11.00 (daylight)
 ZEDQA pre the Lua console was open: closed
 ZEDQA pre start
 [ZeD.QA] run #1 ok=true
@@ -61,7 +60,7 @@ ZEDQA pre DONE
 
 ### 2. rt_kit.lua (`ZEDQA rtk`) - PASS, 1 s
 
-- go 30553 at 02:13:45
+- go 30711 at 04:41:19
 
 ```text
 [ZeD.QA] state #2 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=32 missing=get
@@ -71,14 +70,16 @@ ZEDQA rtk kit ready: player 0, screen 3840x2160
 ZEDQA rtk DONE
 ```
 
-### 3. rt_kbmap.lua (`ZEDQA rt_kbmap`) - PASS, 4 s
+### 3. rt_kbmap.lua (`ZEDQA rt_kbmap`) - FAIL, 7 s
 
-- go 30554 at 02:13:49
+- go 30712 at 04:41:24
+- 2 ERR line(s)
+- its own checks failed (VERDICT FAIL)
 
 ```text
 [ZeD.QA] state #3 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=32 missing=get
 [ZeD.QA] windows reset (R)
-ZEDQA rt_kbmap start (22 steps)
+ZEDQA rt_kbmap start (31 steps)
 [ZeD.QA] run #3 ok=true
 ZEDQA rt_kbmap PASS Keyboard map: ZeD.KeyboardMap is loaded (open, read, setKey, resetAll)
 ZEDQA rt_kbmap as found: Toggle Music on 0, keysB42.ini 95 lines
@@ -97,6 +98,12 @@ ZEDQA rt_kbmap PASS Keyboard map: a key given two jobs is a clash in read() | To
 ZEDQA rt_kbmap PASS Keyboard map: a clash is drawn in the bad color (getBadHighlitedColor) on its key | rgb 255 0 0, bad rgb 255 0 0
 ZEDQA rt_kbmap PASS Keyboard map: both clashing actions' key boxes are edged in the bad color | Toggle Music true, Toggle Survival Guide true
 ZEDQA rt_kbmap PASS Keyboard map: the clash clears once the key is put back | clash nil
+ZEDQA rt_kbmap PASS Keyboard map keys: a click on an action's key box starts the wait | Toggle Music
+ZEDQA rt_kbmap PASS Keyboard map keys: while the map waits for a key, the game's Lua key events are off | listening Toggle Music, keys off true, setter last false
+ZEDQA rt_kbmap PASS Keyboard map keys: GameKeyboard.setDoLuaKeyPressed(false) was called | false
+ZEDQA rt_kbmap PASS Keyboard map keys: Escape ends the wait, leaves the key as it was, and gives the game its keys back | listening nil, keys off false, setter last true
+ZEDQA rt_kbmap FAIL Keyboard map keys: a second click on the box ends the wait and gives the game its keys back | listening Toggle Music, keys off true
+ZEDQA rt_kbmap PASS Keyboard map keys: closing the map mid-wait gives the game its keys back | setter last true
 ZEDQA rt_kbmap PASS Keyboard map: the first Reset press asks and changes nothing yet | clicked true, Toggle Music on 40
 ZEDQA rt_kbmap PASS Keyboard map: the Reset button reads Press again to reset | Press again to reset / danger
 ZEDQA rt_kbmap PASS Keyboard map: a second Reset press at once (a double click) changes nothing | Toggle Music on 40, was 40
@@ -107,8 +114,8 @@ ZEDQA rt_kbmap PASS put back: keysB42.ini line for line as found | 95 lines, 95 
 ZEDQA rt_kbmap PASS put back: the keyboard map is shut
 ZEDQA rt_kbmap PASS put back: the windows open or shut as found
 ZEDQA rt_kbmap PASS the keyboard map ran with no Lua error | 0 new
-ZEDQA rt_kbmap end: 26 pass, 0 fail, 0 skipped
-ZEDQA rt_kbmap VERDICT PASS 26
+ZEDQA rt_kbmap end: 31 pass, 1 fail, 0 skipped
+ZEDQA rt_kbmap VERDICT FAIL 1
 ZEDQA rt_kbmap DONE
 ```
 

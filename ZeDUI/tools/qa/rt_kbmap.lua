@@ -402,6 +402,86 @@ Q.step(5, function()
         "Keyboard map: the clash clears once the key is put back", "clash " .. tostring(data.clash[S.other]))
 end)
 
+-- ===================================================================== 4b. the game's keys while the map listens
+-- (Nov 20 2026, the bug hunt's P6: the key that answers the map also did its job in the game. While an action waits
+-- for its key the game's Lua key events must be off, GameKeyboard.setDoLuaKeyPressed(false), and back on at every
+-- way out. The setter is watched (pass-through) and the window's own _keysOff read; the wait is started with a click
+-- on an action's key box through the window's mouse handler, ended by Escape, by a second click, and by closing.)
+function H.bindClick(name)
+    local w = H.win()
+    for _, h in ipairs(H.hits("bind")) do
+        if h.name == name then
+            local x, y = h.x + math.floor(h.w / 2), h.y + math.floor(h.h / 2)
+            local was = w.listening
+            w:onMouseDown(x, y)
+            local down = w._down
+            w:onMouseUp(x, y)
+            Q.say("click on " .. tostring(name) .. "'s box at " .. x .. "," .. y .. " (body " .. tostring(w:titleBarHeight()) ..
+                "+" .. tostring(w._bodyH) .. ", scroll " .. tostring(w.scroll) .. "): down " .. tostring(down) ..
+                ", listening " .. tostring(was) .. " -> " .. tostring(w.listening))
+            return true
+        end
+    end
+    return false
+end
+-- (the action's row scrolled into the window's body first: a click outside the body is not taken)
+function H.bindShow(name)
+    local w = H.win()
+    if not w then return end
+    local tb = w:titleBarHeight()
+    for _, h in ipairs(H.hits("bind")) do
+        if h.name == name and (h.y < tb or h.y + h.h > tb + (w._bodyH or 0)) then
+            w:scrollBy(h.y - tb - math.floor((w._bodyH or 0) / 3))
+        end
+    end
+end
+Q.step(3, function() H.bindShow(S.name) end)
+Q.step(5, function()
+    if not S.win then return end
+    S.gk = { last = nil, n = 0 }
+    local ok = pcall(function()
+        S.gk.was = GameKeyboard.setDoLuaKeyPressed
+        GameKeyboard.setDoLuaKeyPressed = function(v) S.gk.last = v; S.gk.n = S.gk.n + 1; return S.gk.was(v) end
+    end)
+    S.gk.watched = ok and S.gk.was ~= nil
+    Q.check(H.bindClick(S.name), "Keyboard map keys: a click on an action's key box starts the wait", tostring(S.name))
+end)
+Q.step(10, function()
+    if not S.win then return end
+    Q.check(S.win.listening == S.name and S.win._keysOff == true, "Keyboard map keys: while the map waits for a key, the game's Lua key events are off",
+        "listening " .. tostring(S.win.listening) .. ", keys off " .. tostring(S.win._keysOff) .. ", setter last " .. tostring(S.gk.last))
+    if S.gk.watched then Q.check(S.gk.last == false, "Keyboard map keys: GameKeyboard.setDoLuaKeyPressed(false) was called", tostring(S.gk.last)) end
+    pcall(function() S.win:onKeyPress(Keyboard.KEY_ESCAPE) end)
+end)
+Q.step(10, function()
+    if not S.win then return end
+    Q.check(S.win.listening == nil and not S.win._keysOff and (not S.gk.watched or S.gk.last == true) and H.key(S.name) == S.new,
+        "Keyboard map keys: Escape ends the wait, leaves the key as it was, and gives the game its keys back",
+        "listening " .. tostring(S.win.listening) .. ", keys off " .. tostring(S.win._keysOff) .. ", setter last " .. tostring(S.gk.last))
+    H.bindClick(S.name)
+end)
+Q.step(10, function() if S.win then H.bindClick(S.name) end end)   -- (a second click on the same box: the wait ends)
+Q.step(10, function()
+    if not S.win then return end
+    Q.check(S.win.listening == nil and not S.win._keysOff and (not S.gk.watched or S.gk.last == true),
+        "Keyboard map keys: a second click on the box ends the wait and gives the game its keys back",
+        "listening " .. tostring(S.win.listening) .. ", keys off " .. tostring(S.win._keysOff))
+    H.bindClick(S.name)
+end)
+Q.step(10, function()
+    if not S.win then return end
+    S.gk.offBeforeClose = S.win._keysOff
+    pcall(function() S.win:close() end)
+end)
+Q.step(10, function()
+    Q.check(S.gk.offBeforeClose == true and (not S.gk.watched or S.gk.last == true),
+        "Keyboard map keys: closing the map mid-wait gives the game its keys back", "setter last " .. tostring(S.gk.last))
+    if S.gk.was then pcall(function() GameKeyboard.setDoLuaKeyPressed = S.gk.was end) end
+    -- (the map open again for the Reset checks below)
+    pcall(KM.open, S.pn)
+end)
+Q.step(20, function() S.win = H.win() end)
+
 -- ===================================================================== 5. Reset: asks once, then the game's keys
 Q.step(5, function()
     if not S.win then return end
