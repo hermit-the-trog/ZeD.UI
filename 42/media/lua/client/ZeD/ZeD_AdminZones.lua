@@ -269,7 +269,7 @@ function P.zoneRow(items, st, card, z, i)
     items[#items + 1] = { k = "arow", left = z.title, leftMin = 110, meta = P.coords(z.x, z.y, z.x2, z.y2), right = tr("UI_ZeD_Adm_ZoneSizeN", z.size), on = open,
         c = { id = "z:" .. i, help = tr("UI_ZeD_Adm_HelpZoneRow"), land = i == 1,
             run = function()
-                card.sel = (card.sel == z.title) and nil or z.title
+                if card.sel == z.title then card.sel = nil else card.sel = z.title end   -- (QA, Nov 20 2026: "(x == v) and nil or v" never gives nil, so a second click never cleared it)
                 Z.bump()
             end } }
     if not open then return end

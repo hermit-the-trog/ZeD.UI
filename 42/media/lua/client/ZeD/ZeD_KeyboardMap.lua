@@ -522,9 +522,9 @@ function ZeD_KeyboardMap:onMouseUp(x, y)
     if not (h and h.id == down) then return true end
     pcall(function() ZeD.uiSound("UIActivateButton") end)
     if h.id == "cap" then
-        self.picked = (self.picked == h.code) and nil or h.code
+        if self.picked == h.code then self.picked = nil else self.picked = h.code end   -- (QA, Nov 20 2026: "(x == v) and nil or v" never gives nil, so a second click never cleared it)
     elseif h.id == "bind" then
-        self.listening = (self.listening == h.name) and nil or h.name
+        if self.listening == h.name then self.listening = nil else self.listening = h.name end   -- (QA, Nov 20 2026: "(x == v) and nil or v" never gives nil, so a second click never cleared it)
         syncKeys(self)
     elseif h.id == "reset" then
         local since = self._resetAt and (getTimestampMs() - self._resetAt) or nil

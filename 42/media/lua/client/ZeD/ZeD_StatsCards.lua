@@ -1042,7 +1042,7 @@ function Y.invItems(win, st, t, card, data)
         items[#items + 1] = { k = "sinv", name = r.name, full = r.full, count = r.count, cat = r.cat, sub = Y.invLines(r), on = card.sel == r.id, kin = kin,
             c = { id = "it:" .. tostring(i), land = i == 1, help = tr("UI_ZeD_St_HelpPick"),
                 run = function(ww)
-                    card.sel = (card.sel == row.id) and nil or row.id
+                    if card.sel == row.id then card.sel = nil else card.sel = row.id end   -- (QA, Nov 20 2026: "(x == v) and nil or v" never gives nil, so a second click never cleared it)
                     t.confirm = nil
                     M.bump()
                 end } }
