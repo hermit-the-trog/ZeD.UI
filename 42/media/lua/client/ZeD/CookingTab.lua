@@ -760,17 +760,15 @@ local function renderDish(panel, win, s, x, top, w, bodyH, chr, mouse)
     local need, n = planCounts(s)
     panel:setStencilRect(x, top, w, bodyH)
     local cy = top - s.dishScroll + pad
-    -- the dish, and what it is made in
-    local hc, dc = T.text, T.textDim
-    local dl = s.dish and C.dishes[s.dish] and C.dishes[s.dish].label or ""
-    panel:drawText(A.truncateText(dl, T.fontF4, iw), x + pad, cy, hc.r, hc.g, hc.b, hc.a or 1, T.fontF4)
-    cy = cy + T.fontF4H
-    if b then
-        local line = b.name .. (b.ok and "" or ("  |  " .. ZeD.tr("UI_ZeD_Cook_NeedsWater")))
+    -- (QA's visual noise audit 17, Nov 20 2026: the dish and the pot were named in the Dish and In pop-ups and
+    -- again as a heading pair right under them; the pane starts at Ingredients. A pot that needs water still says
+    -- so, the pop-up does not.)
+    local dc = T.textDim
+    if b and not b.ok then
+        local line = b.name .. "  |  " .. ZeD.tr("UI_ZeD_Cook_NeedsWater")
         panel:drawText(A.truncateText(line, T.fontF1, iw), x + pad, cy, dc.r, dc.g, dc.b, dc.a or 1, T.fontF1)
-        cy = cy + T.fontF1H
+        cy = cy + T.fontF1H + T.px(10)
     end
-    cy = cy + T.px(10)
 
     local function section(text)
         -- (the one section heading, the small mono line: design review D6)
@@ -856,7 +854,9 @@ local function renderDish(panel, win, s, x, top, w, bodyH, chr, mouse)
         cy = cy + T.px(10)
         cy = cy + M.drawStatRow(panel, x + pad, cy, iw, getText("Tooltip_food_Hunger"), tostring(math.floor(fill + 0.5)))
     end
-    if b and b.recipe:isCookable() then
+    -- (QA's visual noise audit, Words, Nov 20 2026: "Press an ingredient..." over "Cook it afterwards...": one line at a
+    -- time, the cooking note once the dish has something in it)
+    if b and n > 0 and b.recipe:isCookable() then
         cy = cy + T.px(6)
         local dcc = T.textDim
         for _, ln in ipairs(A.wrapText(ZeD.tr("UI_ZeD_Cook_CookAfter"), T.fontF2, iw)) do

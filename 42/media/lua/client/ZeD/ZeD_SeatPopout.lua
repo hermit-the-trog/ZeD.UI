@@ -46,6 +46,7 @@ require "ZeD/PopClear"
 ZeD.trDefaults({
     UI_ZeD_Seat_KeysSit = "%1 Sit", UI_ZeD_Seat_KeysOut = "Shift+%1 Get out there", UI_ZeD_Seat_KeysClose = "Esc Close",
     UI_ZeD_Seat_FreeSit = "Free. Press %1 to sit here.", UI_ZeD_Seat_FreeSlide = "Free. Press %1 to slide over.",
+    UI_ZeD_Seat_Free = "Free.",
 })
 
 ZeD = ZeD or {}
@@ -418,9 +419,12 @@ function ZeD_SeatPopout:words()
         why, dot = self:reason(st)
         if not why and st.kind == "empty" and not st.off then
             -- (a free seat: the mockup's line, the key that takes it)
+            -- (QA's visual noise audit 20, Nov 20 2026: the key showed three times, on the seat, here and in the
+            -- foot line; a free seat to sit in now reads "Free." Sliding over keeps its line: the foot says Sit.)
             local PG = ZeD.PadGlyphs
             local key = self.joyfocus and ((PG and PG.name and PG.name("A", PG.set and PG.set(self.playerNum))) or "A") or tostring(ps)
-            why = ZeD.tr((self._playerSeat ~= -1) and "UI_ZeD_Seat_FreeSlide" or "UI_ZeD_Seat_FreeSit", key)
+            if self._playerSeat ~= -1 then why = ZeD.tr("UI_ZeD_Seat_FreeSlide", key)
+            else why = ZeD.tr("UI_ZeD_Seat_Free") end
             dot = "ok"
         end
     end

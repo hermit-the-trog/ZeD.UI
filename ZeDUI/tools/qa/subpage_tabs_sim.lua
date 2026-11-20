@@ -198,6 +198,18 @@ local two = { { radioInstance = "x", deviceData = dev("TV"), locationTag = "Floo
               { radioInstance = "y", deviceData = dev("TV"), locationTag = "Floor" } }
 ti = RT.tabItems(two)
 check("tabItems: two alike in the same place carry their number", ti[2] and ti[2].label == "TV (2)", ti[2] and ti[2].label)
+-- (QA's visual bug B10, Nov 20 2026: three ham sets drop the "Ham Radio" they share; the help keeps it)
+local hams = { { radioInstance = "h1", deviceData = dev("Premium Technologies Ham Radio"), locationTag = "Floor" },
+               { radioInstance = "h2", deviceData = dev("US Army Ham Radio"), locationTag = "Floor" },
+               { radioInstance = "h3", deviceData = dev("Ham Radio"), locationTag = "Floor" },
+               { radioInstance = "h4", deviceData = dev("Walkie Talkie"), locationTag = "Primary" } }
+ti = RT.tabItems(hams)
+check("tabItems B10: a shared ending goes", ti[1] and ti[1].label == "Premium Technologies" and ti[2] and ti[2].label == "US Army",
+    ti[1] and ti[1].label, ti[2] and ti[2].label)
+check("tabItems B10: a name that would lose every word keeps it", ti[3] and ti[3].label == "Ham Radio", ti[3] and ti[3].label)
+check("tabItems B10: a name sharing nothing keeps it", ti[4] and ti[4].label == "Walkie Talkie", ti[4] and ti[4].label)
+check("tabItems B10: the help keeps the whole name", ti[1] and ti[1].help and ti[1].help:find("Premium Technologies Ham Radio", 1, true) ~= nil,
+    ti[1] and ti[1].help)
 
 local win = { _radios = radios, _radioIdx = 1, _radioTabZones = {
     { x = 10, y = 10, w = 50, h = 22, idx = 1 }, { x = 62, y = 10, w = 50, h = 22, idx = 2 }, { x = 114, y = 10, w = 50, h = 22, idx = 3 } },

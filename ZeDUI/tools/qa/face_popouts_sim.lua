@@ -235,8 +235,10 @@ do
     v:update(); v:prerender()
     check("HELP no help: the control's name", strips[#strips][1] == "name:power", strips[#strips][1])
     mouse.x, mouse.y = v.x + 90, v.y + 40
+    local nStrips = #strips
     v:update(); v:prerender()
-    check("HELP off the controls: how to use it", strips[#strips][1] == "<UI_ZeD_FacePop_Hint>", strips[#strips][1])
+    -- (QA's visual noise audit 21, Nov 20 2026: the "Click a control.  Esc closes." caption is gone)
+    check("HELP off the controls: no strip", #strips == nStrips, #strips)
     check("PLACE the face, 3u, then the strip", v.height == 50 * 2 + 1 + 3 + 20, v.height)
     -- Escape
     check("ESC Escape closes it first", F.takeEscape() == true and not v.visible)

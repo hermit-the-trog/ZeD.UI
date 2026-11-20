@@ -556,6 +556,10 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         end
     end
     if item and #btns == 0 then h = h - bh - gap end   -- (Lite on a server: no row, no room for one)
+    -- (QA's visual noise audit 6, Nov 20 2026: in Lite "Speed x1" sat over the lit x1 key, which says it. The speed
+    -- line goes and the alarm moves up beside the temperature. On a server the line stays: it says "Server time".)
+    local liteTop = item and W.lite() and not self._setOpen
+    if liteTop and not _serverTime() then h = h - fh2 - gap end
     -- as wide as the buttons' words need (each its text and a margin), never narrower than the design width
     -- (the buttons share the width equally, so each must hold the widest word)
     local widest = 0
@@ -570,6 +574,10 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         local tailW = (tail0 ~= "") and (px(3) + tm:MeasureStringX(f1, tail0)) or 0
         local dayW = tm:MeasureStringX(f2, (rd.day or "") .. " " .. (rd.mon and (rd.mon .. " ") or "") .. (rd.date or ""))
         local tempW = rd.temp and tm:MeasureStringX(f2, tostring(rd.temp) .. (rd.tempUnit or "")) or 0
+        if liteTop then   -- (the alarm shares the temperature's line)
+            local al0 = armed and ZeD.tr("UI_ZeD_WatchPlain_AlarmAt", rd.almTime or (tostring(alarmHour) .. ":00")) or ZeD.tr("UI_ZeD_WatchPlain_AlarmOff")
+            tempW =tempW + ((tempW > 0) and px(10) or 0) + tm:MeasureStringX(f2, al0) + (armed and px(10) or 0)
+        end
         local needTop = 2 * pad + tw0 + tailW + px(12) + math.max(dayW, tempW)
         if needTop > w then w = needTop end
     end
@@ -648,25 +656,35 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         local cy = y + math.floor((th - (2 * fh2 + gap)) / 2)
         local ds = (rd.day or "") .. " " .. (rd.mon and (rd.mon .. " ") or "") .. (rd.date or "")
         self:drawText(ds, w - pad - tm:MeasureStringX(f2, ds), cy, tc.r, tc.g, tc.b, tc.a or 1, f2)
+        local tempW1 = 0
         if rd.temp then
             local ts = tostring(rd.temp) .. (rd.tempUnit or "")
-            self:drawText(ts, w - pad - tm:MeasureStringX(f2, ts), cy + fh2 + gap, tc.r, tc.g, tc.b, tc.a or 1, f2)
+            tempW1 = tm:MeasureStringX(f2, ts)
+            self:drawText(ts, w - pad - tempW1, cy + fh2 + gap, tc.r, tc.g, tc.b, tc.a or 1, f2)
         end
         y = y + th + gap
-        -- the game's speed, the alarm at the right (a status dot when it is set)
-        local sp = _serverTime() and ZeD.tr("UI_ZeD_WatchPlain_ServerTime")
-            or ((speed == 0) and ZeD.tr("UI_ZeD_WatchPlain_Paused") or ZeD.tr("UI_ZeD_WatchPlain_SpeedN", tostring(speed)))
-        self:drawText(sp, pad, y, td.r, td.g, td.b, td.a or 1, f2)
+        -- the game's speed, the alarm at the right (a status dot when it is set); in Lite the alarm sits left of
+        -- the temperature and the speed line is only the server's note
         local al = armed and ZeD.tr("UI_ZeD_WatchPlain_AlarmAt", rd.almTime or string.format("%d:00", alarmHour)) or ZeD.tr("UI_ZeD_WatchPlain_AlarmOff")
         local aw = tm:MeasureStringX(f2, al)
-        self:drawText(al, w - pad - aw, y, td.r, td.g, td.b, td.a or 1, f2)
-        alarmHit = { id = "alarmline", x = w - pad - aw - px(14), y = y - px(2), w = aw + px(14), h = fh2 + px(4) }
+        local ax, ay = w - pad - aw, y
+        if liteTop then
+            ax = w - pad - tempW1 - ((tempW1 > 0) and px(10) or 0) - aw
+            ay = cy + fh2 + gap
+        end
+        if (not liteTop) or _serverTime() then
+            local sp = _serverTime() and ZeD.tr("UI_ZeD_WatchPlain_ServerTime")
+                or ((speed == 0) and ZeD.tr("UI_ZeD_WatchPlain_Paused") or ZeD.tr("UI_ZeD_WatchPlain_SpeedN", tostring(speed)))
+            self:drawText(sp, pad, y, td.r, td.g, td.b, td.a or 1, f2)
+        end
+        self:drawText(al, ax, ay, td.r, td.g, td.b, td.a or 1, f2)
+        alarmHit = { id = "alarmline", x = ax - px(14), y = ay - px(2), w = aw + px(14), h = fh2 + px(4) }
         faceHit = { id = "fold", x = 0, y = 0, w = w, h = pad + (topH or bigH) }
         if armed then
             local ds = px(6)
-            ZeD.Atoms.drawStatusDot(self, w - pad - aw - ds - px(4), y + math.floor((fh2 - ds) / 2), T.accent, ds)
+            ZeD.Atoms.drawStatusDot(self, ax - ds - px(4), ay + math.floor((fh2 - ds) / 2), T.accent, ds)
         end
-        y = y + fh2 + gap
+        if (not liteTop) or _serverTime() then y = y + fh2 + gap end
     end
     -- the buttons, evenly across the box; their ids are the watch's own
     local hits = self._hit

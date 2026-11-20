@@ -12,7 +12,7 @@
 --   VERBOSE (default)  two lines in the HUD's pixel faces (ZeD/PixelFonts.lua):
 --                      the action in the 5 x 7 face in the accent with the queue
 --                      (RIPPING 4/12); under it in the 3 x 5 legend face the item
---                      and its percent (SHEET 40%), the time so far for an action
+--                      (SHEET; no percent since Nov 20 2026), the time so far for an action
 --                      with no end (0:42), THEN <ACTION> while walking there; a
 --                      2-unit bar for the whole job, notched between its items.
 --   SIMPLE             ten segments in a frame, no words: one fill for the whole
@@ -315,7 +315,8 @@ function AB.clean(s)
     s = ZeD.upper(s)
     s = s:gsub("%s+", " "):gsub("^ ", ""):gsub(" $", "")
     -- QA's visual audit B13, Nov 20 2026: three dots, as everywhere else (was ".."); one letter fewer keeps the length
-    if #s > 16 then s = s:sub(1, 14):gsub(" $", "") .. "..." end
+    -- (QA's visual noise audit 18, Nov 20 2026: with the percent gone the name has the line: 22 letters, was 16)
+    if #s > 22 then s = s:sub(1, 19):gsub(" $", "") .. "..." end
     return s
 end
 -- The item's name, looked up once per action and kept on it. Only inventory
@@ -559,12 +560,11 @@ function AB.verboseText(st)
     if st.qn > 1 and st.phase ~= "walk" then R1 = tostring(st.phase == "done" and st.qn or st.qi + 1) .. "/" .. tostring(st.qn) end
     local L2, R2 = "", ""
     if st.phase == "walk" then L2 = st.next and ZeD.tr("UI_ZeD_ActionBar_Then", st.next) or "" else L2 = st.item or "" end
-    if st.phase == "work" or st.phase == "stopped" then
-        if st.noend then R2 = string.format("%d:%02d", math.floor((st.el or 0) / 60), math.floor((st.el or 0) % 60))
-        else R2 = tostring(math.floor((st.frac or 0) * 100)) .. "%" end
+    -- (QA's visual noise audit 18, Nov 20 2026: the count, a percent and the bar said the progress three ways and the
+    -- percent cut the item's name; the percent goes, the bar says it. An action with no end keeps its time so far.)
+    if (st.phase == "work" or st.phase == "stopped") and st.noend then
+        R2 = string.format("%d:%02d", math.floor((st.el or 0) / 60), math.floor((st.el or 0) % 60))
     end
-    if st.phase == "done" then R2 = "100%" end
-    if st.phase == "walk" then R2 = "" end
     return L1, R1, L2, R2
 end
 function AB.sizeVerbose(st)

@@ -112,11 +112,11 @@ check("a walk that arrives is not an end", L.eval("ZeD.ActionBar._ends[0]") is N
 L.execute("R.action.delta = 0.62")
 st = state(L)
 check("reading at 62%", st.phase == "work" and st.label == "READING" and abs(st.frac - .62) < 1e-9 and st.qn == 1)
-check("verbose: READING / THE HERBALIST 62%", vtext(L, st) == ("READING", "", "THE HERBALIST", "62%"), vtext(L, st))
+check("verbose: READING / THE HERBALIST (no percent: visual noise audit 18)", vtext(L, st) == ("READING", "", "THE HERBALIST", ""), vtext(L, st))
 L.execute("R.action.delta = 1; R:perform()")
 e = L.eval("ZeD.ActionBar._ends[0]")
 check("done when the book is finished", e is not None and e.st.phase == "done", e and e.st.phase)
-check("verbose done: DONE / THE HERBALIST 100%", vtext(L, e.st) == ("DONE", "", "THE HERBALIST", "100%"), vtext(L, e.st))
+check("verbose done: DONE / THE HERBALIST", vtext(L, e.st) == ("DONE", "", "THE HERBALIST", ""), vtext(L, e.st))
 
 print("ripping 12 sheets: one job")
 L = load()
@@ -131,11 +131,11 @@ for i in range(1, 4):
 L.execute("RS[4].action.delta = 0.4")
 st = state(L)
 check("the 4th of 12, 40% into it", st.qi == 3 and st.qn == 12 and abs(st.frac - .4) < 1e-9, (st.qi, st.qn, st.frac))
-check("verbose: <label> 4/12 / SHEET 40%", vtext(L, st)[1:] == ("4/12", "SHEET", "40%"), vtext(L, st))
+check("verbose: <label> 4/12 / SHEET", vtext(L, st)[1:] == ("4/12", "SHEET", ""), vtext(L, st))
 L.execute("ISTimedActionQueue.getTimedActionQueue(PLAYER).queue[1]:stop()")
 e = L.eval("ZeD.ActionBar._ends[0]")
 check("STOP mid-job: stopped, grey, at the 4th", e is not None and e.st.phase == "stopped" and e.st.qi == 3, e and e.st.phase)
-check("verbose stopped: STOPPED 4/12 / SHEET 40%", vtext(L, e.st) == ("STOPPED", "4/12", "SHEET", "40%"), vtext(L, e.st))
+check("verbose stopped: STOPPED 4/12 / SHEET", vtext(L, e.st) == ("STOPPED", "4/12", "SHEET", ""), vtext(L, e.st))
 
 print("looting: walks between items of the same kind")
 L = load()
@@ -211,7 +211,7 @@ for name, want in (("ISRepairGunAction", "REPAIRING GUN"), ("MyModOvenThing", "W
 open(os.path.join(HERE, "labels.txt"), "w").write("\n".join(f"{a:40s} {l}" for a, l in sorted(labels.items())))
 check("a category prefix goes: Book: Far From Home -> FAR FROM HOME", L.eval("ZeD.ActionBar.clean('Book: Far From Home')") == "FAR FROM HOME",
       L.eval("ZeD.ActionBar.clean('Book: Far From Home')"))
-check("item names cleaned to the 3 x 5 face, 16 letters", L.eval("ZeD.ActionBar.clean('Bob\\'s Big Book of Wörds')") == "BOB'S BIG BOOK..",
+check("item names cleaned to the 3 x 5 face, 22 letters", L.eval("ZeD.ActionBar.clean('Bob\\'s Big Book of Wörds')") == "BOB'S BIG BOOK OF W...",
       L.eval("ZeD.ActionBar.clean('Bob\\'s Big Book of Wörds')"))
 
 # ---- render both modes for the eye -------------------------------------------------
