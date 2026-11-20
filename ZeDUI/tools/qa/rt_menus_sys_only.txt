@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/rt_menus_sys_only.txt (Nov 20 2026, QA): rt_menus, rt_lite and rt_system alone (the ZeD setup page checks).
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+rt_menus.lua | rt_menu | timeout=600
+rt_lite.lua | rt_lite | timeout=600
+rt_system.lua | rt_sys | timeout=1800

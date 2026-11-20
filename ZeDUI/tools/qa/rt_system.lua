@@ -450,42 +450,32 @@ Q.waitFor(5, 300, function() return MM.pauseOpts ~= nil and MM.pauseOpts:isVisib
     S.page2 = w.pageIdx
     for i, pg in ipairs(w:pages()) do if pg.setup then w.pageIdx = i end end
     w.scroll = 0
-    -- the game's rows: Inventory font does nothing with ZeD on (moot), the Dyslexic font works only somewhere
-    local moot, only, all, origs = nil, nil, 0, {}
+    -- the game's rows: the Dyslexic font works only somewhere. (Nov 20 2026, Cuts C, the visual noise audit 29: the
+    -- game's settings that do nothing with ZeD on, G.MOOT, are hidden; they were grayed rows with a warning.)
+    local moots, only, all, origs = {}, nil, 0, {}
+    local MOOT = (MM.optionGroups and MM.optionGroups.MOOT) or {}
     for _, pg in ipairs(w:pages()) do
         for _, r in ipairs(w:rowsFor(pg) or {}) do
             if r.kind ~= "header" and r.kind ~= "note" and r.kind ~= "desc" then all = all + 1 end
             if not pg.setup and r.opt and r.opt.name and not r.setupCopy then
-                if r.opt.name == "inventoryFont" then moot = r end
+                if MOOT[r.opt.name] then moots[#moots + 1] = r.opt.name end
                 if r.opt.name == "enableDyslexicFont" then only = r end
                 origs[r.opt.name] = origs[r.opt.name] or r
             end
         end
     end
     S.allRows = all
-    if moot and moot.moot then
-        local before, ch0 = moot.control and moot.control.selected, w:anyChanged()
-        pcall(function() w:activateRow(moot) end)
-        pcall(function() w:nudge(moot, 1) end)
-        Q.check(moot.control.selected == before and w:anyChanged() == ch0, "Options: the game's Inventory font row is marked moot and takes no change",
-            tostring(moot.moot) .. ", item " .. tostring(before) .. " -> " .. tostring(moot.control.selected))
-    else
-        Q.check(false, "Options: the game's Inventory font row is marked moot", moot and "no moot mark" or "no Inventory font row")
-    end
+    Q.check(MOOT.inventoryFont ~= nil and #moots == 0, "Options: the game's settings that do nothing with ZeD on (Inventory font and the rest) are not listed",
+        (#moots > 0) and ("listed: " .. table.concat(moots, " ")) or "none listed")
     Q.check(only ~= nil and only.only ~= nil, "Options: the game's Dyslexic font row says where it still works", only and tostring(only.only and only.only[1]) or "no row")
-    -- ZeD setup's copies of the game settings ZeD's look depends on: the game's own control, one object in both
+    -- (Nov 20 2026, Cuts C: ZeD setup no longer copies the game's settings; each is in its own group, Font size first)
     local copies = {}
-    for _, r in ipairs(w:zedSetupRows() or {}) do if r.setupCopy and r.opt and r.opt.name then copies[r.opt.name] = r end end
-    local n, bad = 0, {}
-    for _, e in ipairs((MM.optionGroups and MM.optionGroups.SETUP_GAME) or {}) do
-        local c, o = copies[e[1]], origs[e[1]]
-        if c or o then
-            n = n + 1
-            if not (c and o and c.control ~= nil and c.control == o.control) then bad[#bad + 1] = e[1] end
-        end
+    for _, r in ipairs(w:zedSetupRows() or {}) do
+        local nm = r.setupCopy and r.opt and r.opt.name
+        if nm and not tostring(nm):find("ZeD_UI.", 1, true) then copies[#copies + 1] = nm end   -- (ZeD's own rows are ModOptions "ZeD_UI.<id>")
     end
-    Q.check(copies.fontSize ~= nil and #bad == 0, "ZeD setup: the game settings it mirrors (Font size first) work the game's own control",
-        n .. " rows" .. ((#bad > 0) and (", not the same control: " .. table.concat(bad, " ")) or ""))
+    Q.check(#copies == 0 and origs.fontSize ~= nil, "ZeD setup: no copies of the game's settings; Font size is in its own group",
+        #copies .. " copies" .. ((#copies > 0) and (": " .. table.concat(copies, " ")) or "") .. ", Font size row " .. tostring(origs.fontSize ~= nil))
 end)
 -- Find: "scale" narrows the list to the matching rows, UI scale among them; cleared, the page comes back
 Q.step(3, function()
@@ -539,29 +529,29 @@ Q.step(2, function()
     Q.check(n > 0 and rows > 0 and #bad == 0, "ZeD setup: every group has its heading and a named row for each of its options",
         n .. " groups, " .. rows .. " rows" .. ((#bad > 0) and (", wrong: " .. table.concat(bad, " ")) or ""))
 end)
--- the wheels: Toggle mode On dims Open and Commit (no change taken); Open, Commit and each Dead zone step read live
+-- the wheels (Nov 20 2026, Cuts C: one merged row for open, commit and toggle mode, G.MERGED.wheels): each of its
+-- four ways read live; then each Dead zone step read live
 Q.step(3, function()
     if not S.o2 then return end
     local w = MM.pauseOpts
-    local rT, rO, rC, rD = H.setupRow(w, "wheelToggle"), H.setupRow(w, "wheelOpen"), H.setupRow(w, "wheelCommit"), H.setupRow(w, "wheelDeadZone")
-    if not (rT and rO and rC and rD) then
-        Q.check(false, "ZeD setup has the four wheel rows", tostring(rT ~= nil) .. " " .. tostring(rO ~= nil) .. " " .. tostring(rC ~= nil) .. " " .. tostring(rD ~= nil))
+    local rW, rD = H.setupRow(w, "wheelOpen"), H.setupRow(w, "wheelDeadZone")
+    local merged = rW and rW == H.setupRow(w, "wheelCommit") and rW == H.setupRow(w, "wheelToggle")
+    if not (merged and rD) then
+        Q.check(false, "ZeD setup has the Wheels row (open, commit and toggle as one) and the Dead zone row", tostring(merged) .. " " .. tostring(rD ~= nil))
         return
     end
-    H.nudgeTo(w, rT, 2)
-    local o0, c0 = rO.control.selected, rC.control.selected
-    pcall(function() w:activateRow(rO) end)
-    pcall(function() w:nudge(rO, (o0 == 1) and 1 or -1) end)
-    pcall(function() w:activateRow(rC) end)
-    pcall(function() w:nudge(rC, (c0 == 1) and 1 or -1) end)
-    Q.check(St.wheelToggle() and rO.control.selected == o0 and rC.control.selected == c0,
-        "ZeD setup: with Wheel toggle mode On, Wheel open and Wheel commit are dimmed and take no change",
-        "toggle " .. tostring(St.wheelToggle()) .. ", open " .. tostring(rO.control.selected) .. ", commit " .. tostring(rC.control.selected))
-    H.nudgeTo(w, rT, 1)
-    H.nudgeTo(w, rO, 2)
-    H.nudgeTo(w, rC, 2)
-    Q.check(not St.wheelToggle() and St.wheelOpen() == "hold" and St.wheelCommit() == "click",
-        "ZeD setup: with Toggle mode Off, Wheel open Hold and Wheel commit Stick click are read live", St.wheelOpen() .. ", " .. St.wheelCommit())
+    -- item: { toggle, open, commit } as ZeD.Settings reads them (open/commit only matter with toggle off)
+    local want = { { false, "hold", "flick" }, { false, "tap", "flick" }, { false, "tap", "click" }, { true } }
+    local bad = {}
+    for i = 1, 4 do
+        H.nudgeTo(w, rW, i)
+        local wt = want[i]
+        local t, o, c = St.wheelToggle(), St.wheelOpen(), St.wheelCommit()
+        local ok = rW.control.selected == i and t == wt[1] and (wt[1] or (o == wt[2] and c == wt[3]))
+        if not ok then bad[#bad + 1] = i .. "=" .. tostring(t) .. "/" .. tostring(o) .. "/" .. tostring(c) end
+    end
+    Q.check(#bad == 0, "ZeD setup: each of the Wheels row's four ways (Hold and flick, Tap and flick, Tap and click, Toggle) is read live",
+        (#bad > 0) and ("wrong: " .. table.concat(bad, " ")) or "4 ways")
     local nD, bad = #(rD.control.options or {}), {}
     for i = 1, nD do
         H.nudgeTo(w, rD, i)
@@ -1001,39 +991,50 @@ Q.step(1, function()
     pcall(St.setSeeThrough, S.seeIdx0)
     Q.check(H.val("seeThrough") == S.seeIdx0 and ZeD.currentBase == S.base0, "See-through and the theme put back", tostring(H.val("seeThrough")) .. ", " .. tostring(ZeD.currentBase))
 end)
--- Solid while in use: the window box's row (See-through's last) flips it and saves it; a second pick puts it back
+-- (Nov 20 2026, Cuts C, the visual noise audit's ZeD setup table: Solid while in use is the rule now, the low-health
+-- pixel holds solid red, and Item-colored tiles follow Style. The options stay saved and settable, their rows gone.)
+-- Solid while in use: always on, whatever the saved option says; the window box's See-through leaf has no such row
 Q.step(3, function()
-    S.solid0 = St.solidInUse()
+    local o = St.solidInUseOption
+    local was = o and o:getValue()
+    local both = {}
+    for i = 1, 2 do pcall(function() o:setValue(i) end); both[i] = St.solidInUse() end
+    if was then pcall(function() o:setValue(was) end) end
+    Q.check(both[1] == true and both[2] == true, "Solid while in use: a window in use is always solid, with the saved option Off or On",
+        tostring(both[1]) .. ", " .. tostring(both[2]))
     local g = H.menuGroup(H.stub(), "UI_ZeD_Settings_SeeThrough")
-    local leaf = g and g.children[#g.children]
-    local ok1 = leaf ~= nil and pcall(leaf.onFire)
-    local now = St.solidInUse()
-    Q.check(ok1 and now == (not S.solid0) and H.val("solidInUse") == (now and 2 or 1), "Solid while in use: the window box's row flips it and saves it",
-        tostring(S.solid0) .. " -> " .. tostring(now) .. ", option " .. tostring(H.val("solidInUse")))
-    if leaf then pcall(leaf.onFire) end
-    Q.check(St.solidInUse() == S.solid0, "Solid while in use: a second pick puts it back", tostring(St.solidInUse()))
+    local hit = nil
+    for _, c in ipairs((g and g.children) or {}) do
+        if tostring(c.name or c.text or ""):find(ZeD.tr("UI_ZeD_Settings_SolidInUse"), 1, true) then hit = c end
+    end
+    Q.check(g ~= nil and hit == nil, "Solid while in use: the window box's See-through has no row for it", g and (#g.children .. " rows") or "no See-through group")
 end)
--- Low-health blink: Off holds the pixel lit at every moment; On, it is dark part of each second
+-- Low-health pixel: solid red, never dark, with the saved option Off or On
 Q.step(3, function()
-    S.blink0 = St.healthBlink()
-    pcall(St.setHealthBlink, false)
-    local lit = 0
-    for ms = 0, 2000, 50 do if ZeD_Window.pixelLit(true, ms) then lit = lit + 1 end end
-    Q.check(not St.healthBlink() and H.val("healthBlink") == 1 and lit == 41, "Low-health pixel blink Off: the pixel holds lit", lit .. " of 41 moments lit")
-    pcall(St.setHealthBlink, true)
-    local dark = 0
-    for ms = 0, 2000, 50 do if not ZeD_Window.pixelLit(true, ms) then dark = dark + 1 end end
-    Q.check(St.healthBlink() and H.val("healthBlink") == 2 and (dark > 0 or not ZeD_Window.PIXEL_BLINK), "Low-health pixel blink On: the pixel blinks", dark .. " of 41 moments dark")
-    pcall(St.setHealthBlink, S.blink0)
-    Q.check(St.healthBlink() == S.blink0, "Low-health pixel blink put back", tostring(St.healthBlink()))
+    local o = St.healthBlinkOption
+    local was = o and o:getValue()
+    local dark = { 0, 0 }
+    for i = 1, 2 do
+        pcall(function() o:setValue(i) end)
+        for ms = 0, 2000, 50 do if not ZeD_Window.pixelLit(true, ms) then dark[i] = dark[i] + 1 end end
+    end
+    if was then pcall(function() o:setValue(was) end) end
+    Q.check(not St.healthBlink() and dark[1] == 0 and dark[2] == 0, "Low-health pixel: it holds lit (solid red) at every moment, with the saved option Off or On",
+        dark[1] .. " and " .. dark[2] .. " of 41 moments dark")
+    Q.check(o == nil or o:getValue() == was, "Low-health pixel option put back", tostring(o and o:getValue()))
 end)
--- Item-colored tiles: the switch reads back, and the tints are loaded
+-- Item-colored tiles: on in Full, off in Lite (Style set by value and put back), whatever the saved option says
 Q.step(3, function()
-    S.tint0 = St.gridTint()
-    pcall(St.setGridTint, not S.tint0)
-    Q.check(St.gridTint() == (not S.tint0) and H.val("gridTint") == ((not S.tint0) and 2 or 1), "Item-colored grid tiles: the switch is read back at once", tostring(St.gridTint()))
-    pcall(St.setGridTint, S.tint0)
-    Q.check(St.gridTint() == S.tint0, "Item-colored grid tiles put back", tostring(St.gridTint()))
+    local ls = St.lookStyleOption
+    local was = ls and ls:getValue()
+    local r = {}
+    pcall(function()
+        ls:setValue(1); r.full = St.gridTint()
+        ls:setValue(2); r.lite = St.gridTint()
+    end)
+    if was then pcall(function() ls:setValue(was) end) end
+    Q.check(r.full == true and r.lite == false, "Item-colored grid tiles: on in Full, off in Lite", "Full " .. tostring(r.full) .. ", Lite " .. tostring(r.lite))
+    Q.check(ls == nil or ls:getValue() == was, "Style put back", tostring(ls and ls:getValue()))
     Q.check(ZeD.ItemTints ~= nil and ZeD.ItemTints["Acorn"] == 8806442, "Item-colored grid tiles: the item colors are loaded (Acorn)", tostring(ZeD.ItemTints and ZeD.ItemTints["Acorn"]))
 end)
 -- the four controller highlights, each through the window box's menu, with the windows drawing a moment each

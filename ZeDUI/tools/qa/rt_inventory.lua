@@ -471,33 +471,31 @@ step(6, function()
             .. " to the grid, and the grid draws every thing", "button " .. tostring(S[k .. "Flip"]) .. ", " .. why)
     end
 end)
--- item-colored grid tiles (GridTint.lua): with ZeD setup's Look switch on, a vanilla item's icon gives a tile color
--- and an icon not in the baked table gives none; with it off (the default) no tile is tinted. The switch is put back.
+-- item-colored grid tiles (GridTint.lua): a vanilla item's icon gives a tile color and an icon not in the baked table
+-- gives none. (Nov 20 2026, Cuts C: the tiles follow Style, tinted in Full and plain in Lite; the setup row is gone.)
+-- Style is set by value only and put back.
 function H.tintSet(v)
-    local opt = ZeD.Settings.gridTintOption
+    local opt = ZeD.Settings.lookStyleOption
     pcall(function() opt:setValue(v) end)
-    if opt.element and opt.element.selected ~= nil then opt.element.selected = v end
 end
 step(1, function()
-    local G, opt = ZeD.GridTint, ZeD.Settings and ZeD.Settings.gridTintOption
-    if not Q.check(G ~= nil and opt ~= nil, "item-colored tiles: GridTint and its setting are there") then return end
+    local G, opt = ZeD.GridTint, ZeD.Settings and ZeD.Settings.lookStyleOption
+    if not Q.check(G ~= nil and opt ~= nil, "item-colored tiles: GridTint and the Style setting are there") then return end
     S.tintWas = opt:getValue()
-    S.tintElWas = opt.element and opt.element.selected
     local tex = nil
     pcall(function() tex = S.crowbar:getTex() end)
     S.fakeTex = { getName = function() return "ZeDQA_NoSuchIcon" end }
-    H.tintSet(2)
+    H.tintSet(1)
     local on = ZeD.Settings.gridTint()
     local r, g, b = G.of(ZeD.T, tex)
     local r2 = G.of(ZeD.T, S.fakeTex)
     Q.check(on and r ~= nil and g ~= nil and b ~= nil and r2 == nil,
-        "item-colored tiles on: the crowbar's icon gives a tile color, an unknown icon none",
+        "item-colored tiles in Full: the crowbar's icon gives a tile color, an unknown icon none",
         "switch " .. tostring(on) .. ", crowbar " .. tostring(r) .. "," .. tostring(g) .. "," .. tostring(b) .. ", unknown " .. tostring(r2))
-    H.tintSet(1)
+    H.tintSet(2)
     local r3 = G.of(ZeD.T, tex)
-    Q.check((not ZeD.Settings.gridTint()) and r3 == nil, "item-colored tiles off: no tile is tinted", tostring(r3))
+    Q.check((not ZeD.Settings.gridTint()) and r3 == nil, "item-colored tiles in Lite: no tile is tinted", tostring(r3))
     H.tintSet(S.tintWas)
-    if opt.element and S.tintElWas ~= nil then opt.element.selected = S.tintElWas end
     G._cache[S.fakeTex] = nil
 end)
 step(2, function()
