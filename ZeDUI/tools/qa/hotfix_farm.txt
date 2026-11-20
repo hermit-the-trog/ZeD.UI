@@ -1,0 +1,13 @@
+# ZeDUI/tools/qa/hotfix_farm.txt (Nov 20 2026, QA): the beta 21 hotfix report's farm pictures (hfr_farm.lua, a copy of gallery_farm_ranch.lua) at the director's farm, 4K only. gallery_unload.lua / gallery_reload.lua take the load down for the run and put it back.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+zedqa_farm_spot.lua | farm | timeout=120
+gallery_b11_look.lua | g14l | timeout=60
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_farm_pre.lua | gfp | timeout=20
+zedqa_animals.lua | an | timeout=60 | end=setup done
+gallery_unload.lua | unl | timeout=60
+hfr_farm.lua | hff | timeout=300
+gallery_reload.lua | rel | timeout=60
+gallery_t14_end.lua | g14e | timeout=60

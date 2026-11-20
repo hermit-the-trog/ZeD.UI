@@ -1,0 +1,13 @@
+# ZeDUI/tools/qa/hotfix_veh.txt (Nov 20 2026, QA): the beta 21 hotfix report's car pictures (hfr_veh.lua) at the QA home, no story stage. 4K only.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_unload.lua | unl | timeout=60
+gallery_v1_a_common.lua | g1c | timeout=60
+hfr_common.lua | hfrc | timeout=60
+hfr_veh.lua | hfv | timeout=1500
+gallery_reload.lua | rel | timeout=60
+gallery_t14_end.lua | g14e | timeout=60
