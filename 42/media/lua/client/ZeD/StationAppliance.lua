@@ -899,8 +899,10 @@ local function pControl(panel, x, rw, cx, cy, ch)
         end
         stamp(x, rw.id, "press", cx, cy, 2 * sw + T.px(2), ch)
     elseif t == "key" then
-        local bw = ctlW(rw)
-        pButton(panel, x, cx, cy, bw, ch, ZeD.tr(KEYROW[rw.id].word), rw.id, false)
+        -- (the key carries its row's value: pRow sets x._keyText / x._keyOn for this row)
+        local word = x._keyText or ZeD.tr(KEYROW[rw.id].word)
+        local bw = ZeD.Molecules.buttonW(word)
+        pButton(panel, x, cx, cy, bw, ch, word, rw.id, x._keyOn == true)
         stamp(x, rw.id, "press", cx, cy, bw, ch)
     end
 end
@@ -941,6 +943,14 @@ local function pRow(panel, x0, y, w, x, rw, draw)
     local label = A.textCase(rowLabel(rw))
     local text, dot = rowVal(x, rw)
     local cw = ctlW(rw)
+    -- (QA's visual noise audit 4, Nov 20 2026: "Power level Med [Power level]" said the label twice; a key's
+    -- button now carries the value, "Power level [Med]", lit while it runs, and the row has no value of its own)
+    x._keyText, x._keyOn = nil, nil
+    if rw.t == "key" and text and text ~= "" then
+        x._keyText, x._keyOn = text, dot ~= nil
+        cw = ZeD.Molecules.buttonW(text)
+        text, dot = nil, nil
+    end
     local lw = tm:MeasureStringX(T.fontF1, label)
     local vw = (text and text ~= "") and (tm:MeasureStringX(T.fontF2, text) + T.px(10)) or 0
     local h
@@ -970,6 +980,7 @@ local function pRow(panel, x0, y, w, x, rw, draw)
         pValue(panel, lx + lw + gap, y, vRight - (lx + lw + gap), lh, text, dot)
         if cw > 0 then pControl(panel, x, rw, right - cw, y + math.floor((lh - bh) / 2), bh) end
     end
+    x._keyText, x._keyOn = nil, nil
     A.drawDividerH(panel, lx, y + h - T.line(T.borderW), inner)
     return h
 end

@@ -412,6 +412,18 @@ end
 local function mechType(v)
     return txt("IGUI_VehicleType_" .. tostring(v:getScript():getMechanicType()), "")
 end
+-- (QA's visual bug B11, Nov 20 2026: "Tire - Regular (Standard Ve..." was cut, and the cut part repeats the tab's
+-- "Standard". A name ending in "(<this car's type> ...)" drops that tail: "Tire - Regular" on a standard car.
+-- A name for another type of car keeps it.)
+function MT.forThisCar(name, v)
+    if type(name) ~= "string" or not v then return name end
+    local ok, mt = pcall(mechType, v)
+    if not ok or type(mt) ~= "string" or mt == "" then return name end
+    if string.sub(name, -1) ~= ")" then return name end
+    local i = string.find(name, " (" .. mt, 1, true)
+    if i and i > 1 then return string.sub(name, 1, i - 1) end
+    return name
+end
 
 local function keyState(v, chr)
     local eng = v:getPartById("Engine")
@@ -1132,7 +1144,10 @@ local function progressBand(panel, win, s, x, y, w, v, chr)
             pcall(function() pct = a:getJobDelta() end)
             local rect = {}
             _cancelOpts.focus = focusFor(s, "mech:cancel")   -- Cancel's mark, drawn under its icon
-            local h = ZeD.Atoms.drawProgressBand(panel, x, y, w, "active", cased(a.jobType), pct, nil, rect, false, _cancelOpts)
+            -- (QA's visual noise audit 18, Nov 20 2026: the action bar over the head already shows this job; the
+            -- band keeps its bar and loses its percent. Bug B11: no "(Standard Vehicle)" on a standard car.)
+            _cancelOpts.noPercent = true
+            local h = ZeD.Atoms.drawProgressBand(panel, x, y, w, "active", cased(MT.forThisCar(a.jobType, v)), pct, nil, rect, false, _cancelOpts)
             if rect.w then
                 stamp(s, "mech:cancel", rect.x, rect.y, rect.w, rect.h, function()
                     pcall(function() ISTimedActionQueue.clear(chr) end)
@@ -1184,7 +1199,7 @@ local function drawSummary(panel, s, sx, sy, sw, v, chr, parts, hl)
         elseif p.smashed then
             yy = yy + M.drawStatRowDot(panel, sx, yy, sw, getText("IGUI_Item"), ZeD.tr("UI_ZeD_Veh_Smashed"), T.danger)
         elseif item then
-            yy = yy + M.drawStatRow(panel, sx, yy, sw, getText("IGUI_Item"), item:getDisplayName())
+            yy = yy + M.drawStatRow(panel, sx, yy, sw, getText("IGUI_Item"), MT.forThisCar(item:getDisplayName(), v))
         end
         if p.info and p.info ~= "" then yy = yy + M.drawStatRow(panel, sx, yy, sw, ZeD.tr("UI_ZeD_Veh_State"), p.info) end
         if p.id == "Engine" then
@@ -1249,7 +1264,7 @@ local function cardStats(p, v, chr)
     if p.missing then add(getText("IGUI_invpanel_Condition"), getText("IGUI_Missing"), T.danger)
     elseif p.smashed then add(getText("IGUI_invpanel_Condition"), ZeD.tr("UI_ZeD_Veh_Smashed"), T.danger)
     else add(getText("IGUI_invpanel_Condition"), tostring(p.cond) .. "%", statusColor(T, p.cond)) end
-    if item then add(getText("IGUI_Item"), item:getDisplayName()) end
+    if item then add(getText("IGUI_Item"), MT.forThisCar(item:getDisplayName(), v)) end
     if part:getId() == "Engine" then
         add(getText("Attributes_Type_Quality"), tostring(v:getEngineQuality()))
         add(ZeD.tr("UI_ZeD_Veh_Loudness"), tostring(v:getEngineLoudness()))
@@ -1408,7 +1423,7 @@ local function stepBefore(v, part, verb)
     for _, q in ipairs(idsIn(kv.requireUninstalled)) do
         local qp = v:getPartById(q)
         if qp and qp:getInventoryItem() then
-            return { id = q, text = getText("Tooltip_vehicle_requireUnistalled", partName(q)) }
+            return { id = q, text = getText("Tooltip_vehicle_requireUnistalled", partName(q)), off = true }
         end
     end
     if verb == "install" then
@@ -1522,41 +1537,9 @@ local function renderList(panel, win, s, x, top, w, bodyH, v, chr, inspected, pa
         cy = ZeD.MechTrailer.drawSections(panel, win, s, x, cy, cw, v, chr, clip, mouse)
     end
     if inspected then
-        -- column heads: Part sorts By section; Cond sorts By condition, a sort from Mechanics 4
-        -- (under it a heading only); the sorted one underlined
-        local hh = T.sortBarH   -- row 2's height and font (punch list 178)
-        A.surfaceFill(panel, x, cy, cw, hh, "surf2")
-        local f5 = T.sortFont
-        local f5h = TM:getFontHeight(f5)
-        local ty = cy + math.floor((hh - f5h) / 2)
+        -- (QA's visual noise audit 11, Nov 20 2026: the column heads Part and Cond went; they were a second sort
+        -- control under the footer's Sort, which keeps both sorts for the mouse and the controller)
         local condRight = x + cw - pad
-        local tt, td = T.text, T.textSec
-        local earned = condEarned(chr)
-        local sortKey = (s.sort == "cond" and earned) and "cond" or "area"
-        local function sortLabel(label, key, lx, rightAlign)
-            label = cased(label)
-            local lw = TM:MeasureStringX(f5, label)
-            local px0 = rightAlign and (lx - lw) or lx
-            local active = key ~= "cond" or earned
-            local zid = "mech:sort:" .. key
-            local zx, zw = px0 - T.px(4), lw + T.px(8)
-            if active and rowHover(cy, hh) and mx >= zx and mx < zx + zw then
-                local hv = T.hover
-                panel:drawRect(zx, cy, zw, hh, hv.a, hv.r, hv.g, hv.b)
-                help(panel, key == "area" and "UI_ZeD_Veh_HelpSortArea" or "UI_ZeD_Veh_HelpSortCond")
-            end
-            local onFocus = active and markAt(s, panel, zid, zx, cy, zw, hh) or false
-            local c = onFocus and T.textOnFocus or ((sortKey == key) and tt or td)
-            panel:drawText(label, px0, ty, c.r, c.g, c.b, c.a or 1, f5)
-            if sortKey == key then panel:drawRect(px0, ty + f5h, lw, T.hair, c.a or 1, c.r, c.g, c.b) end
-            if active then
-                stamp(s, zid, zx, cy, zw, hh, function() s.sort = key; s.scrollY = 0 end, { clip = clip, pane = "list" })
-            end
-        end
-        sortLabel(ZeD.tr("UI_ZeD_Veh_HdrPart"), "area", x + pad, false)
-        sortLabel(ZeD.tr("UI_ZeD_Veh_HdrCond"), "cond", condRight, true)
-        A.drawDividerH(panel, x, cy + hh - T.hair, cw, false)
-        cy = cy + hh
 
         for _, g in ipairs(groupedParts(s, parts, chr)) do
             -- category row (A / click folds it)
@@ -1603,12 +1586,10 @@ local function renderList(panel, win, s, x, top, w, bodyH, v, chr, inspected, pa
                         rightX = condRight - bw
                         M.drawTag(panel, rightX, cy + math.floor((rh - T.px(16)) / 2), label, T.danger)
                     else
-                        -- (the list column's bar is narrower than the card's, so a long name
-                        -- like "Right Headlight" still fits at 4K)
-                        local barX = condRight - T.px(PCT_W + 4) - T.px(LIST_BAR_W)
-                        miniBar(panel, barX, cy + math.floor(rh / 2), T.px(LIST_BAR_W), p.cond)
+                        -- (QA's visual noise audit 11, Nov 20 2026: the square, a bar and the percent read the
+                        -- condition three ways; the square and the percent stay, the bar goes)
                         A.drawTextRight(panel, tostring(p.cond) .. "%", condRight, cy + math.floor((rh - T.fontF3H) / 2), T.fontF3, ink)
-                        rightX = barX
+                        rightX = condRight - T.px(PCT_W)
                     end
                     if p.locked then
                         local lw = cased(getText("EC_Locked"))
@@ -1752,24 +1733,38 @@ local function renderCardBody(panel, win, s, x, top, w, bodyH, v, chr, cm)
             if vb == "install" or vb == "uninstall" then sb = stepBefore(v, part, vb); if sb then break end end
         end
     end
+    -- (QA's visual noise audit 16, Nov 20 2026: the game's "Rear Left Tire need to be uninstalled first", then the
+    -- button, then the greyed verb's needs line said one thing three times. Now one row in ZeD's words, "Take off
+    -- first:" and the button; the verb that step blocks draws no needs line of its own.)
+    local sbId = nil
     if sb then
-        cy = cy + M.drawNeedsLine(panel, x + pad, cy, iw, sb.text) + T.px(4)
-        local label = cased(partName(sb.id))
-        local bw = math.min(iw, M.buttonW(label))
         local bh = T.buttonH
+        local lead = ZeD.tr(sb.off and "UI_ZeD_Veh_TakeOffFirst" or "UI_ZeD_Veh_PutOnFirst")
+        local leadW = TM:MeasureStringX(T.fontF2, lead)
+        local label = cased(partName(sb.id))
+        local bx = x + pad + leadW + T.px(8)
+        local bw = math.min(x + pad + iw - bx, M.buttonW(label))
+        if bw < T.px(60) then   -- (no room beside the words: the button goes under them)
+            bx, bw = x + pad, math.min(iw, M.buttonW(label))
+        end
+        local tc0 = T.text
+        local lineY = (bx == x + pad) and cy or (cy + math.floor((bh - T.fontF2H) / 2))
+        panel:drawText(lead, x + pad, lineY, tc0.r, tc0.g, tc0.b, tc0.a or 1, T.fontF2)
+        if bx == x + pad then cy = cy + T.fontF2H + T.px(4) end
         local onFocus = focusFor(s, "mech:step")
-        M.drawButton(panel, x + pad, cy, bw, bh, label, "default", false, nil,
+        M.drawButton(panel, bx, cy, bw, bh, label, "default", false, nil,
             { focus = onFocus, win = win, help = ZeD.tr("UI_ZeD_Veh_HelpPartRow") })
         local toId = sb.id
-        stamp(s, "mech:step", x + pad, cy, bw, bh, function() openCard(win, s, toId) end, { clip = clip, pane = "right" })
+        stamp(s, "mech:step", bx, cy, bw, bh, function() openCard(win, s, toId) end, { clip = clip, pane = "right" })
         cy = cy + bh + T.px(10)
+        sbId = sb.id
     end
 
     -- a verb shown greyed says what it needs; the folded row after: what you could do with the
     -- right things (A / click opens it)
     local moreKey = "veh:part:" .. tostring(p.id)
     for _, sv in ipairs(cm.shown) do
-        if not sv.canDo then
+        if not sv.canDo and not (sbId and (sv.id == "install" or sv.id == "uninstall") and (stepBefore(v, part, sv.id) or {}).id == sbId) then
             cy = cy + M.drawNeedsLine(panel, x + pad, cy, iw, DS.needsLine(sv)) + T.px(4)
         end
     end
@@ -1786,6 +1781,9 @@ local function renderCardBody(panel, win, s, x, top, w, bodyH, v, chr, cm)
     -- and where the work is done
     local stats = cardStats(p, v, chr)
     local place = workPlace(part)
+    -- (QA's visual noise audit 16, Nov 20 2026: "Location  Front Left Tire" under the title "Front Left Tire": the
+    -- row goes when it only repeats the title)
+    if place and string.lower(place) == string.lower(p.name or "") then place = nil end
     if place then stats[#stats + 1] = { label = getText("IGUI_AttachedItems_Location"), value = place } end
     cy = cy + M.drawTopStatsList(panel, x + pad, cy, iw, stats)
     cy = cy + T.px(8)
@@ -1832,7 +1830,7 @@ local function renderCardBody(panel, win, s, x, top, w, bodyH, v, chr, cm)
             local rc = onFocus and T.textOnFocus or (pk.none and T.textDim or T.text)
             local dimc = onFocus and T.textOnFocus or T.textDim
             local maxW = (x + pad + iw - T.px(4)) - textX
-            local nmk = pk.name
+            local nmk = MT.forThisCar(pk.name, v)
             if TM:MeasureStringX(T.fontF2, nmk) > maxW then nmk = A.truncateText(nmk, T.fontF2, maxW) end
             panel:drawText(nmk, textX, cy + T.px(3), rc.r, rc.g, rc.b, rc.a or 1, T.fontF2)
             -- the second line: where it is and its condition (or that none is near)

@@ -388,27 +388,8 @@ function ZeD_Reader:drawSide(s)
     local tc, td = T.text, T.textDim
     local hv, ac = T.hover, T.accent
     local u = T.hair
-    -- This piece
-    y = section(self, ZeD.tr("UI_ZeD_Reader_HeadPiece"), s, y)
-    local function kv(k, v, mark)
-        self:drawText(ZeD.textCase(k), x, y + T.px(2), td.r, td.g, td.b, td.a or 1, T.fontF1)
-        local vx = x + T.px(64)
-        if mark then
-            local dsz = T.px(6)
-            local dy = y + math.floor((fh(f2) - dsz) / 2)
-            if mark.hollow then A.drawStatusHollow(self, vx, dy, mark.color, dsz) else A.drawStatusDot(self, vx, dy, mark.color, dsz) end
-            vx = vx + dsz + T.px(6)
-        end
-        self:drawText(A.truncateText(v, f2, x + w - vx), vx, y, tc.r, tc.g, tc.b, tc.a or 1, f2)
-        y = y + fh(f2) + T.px(5)
-    end
-    kv(ZeD.tr("UI_ZeD_Reader_LabelKind"), P.kindName(P.kind(self.item)))
-    local date = P.title(self.media):match(" %- (.+)$")
-    if date then kv(ZeD.tr("UI_ZeD_Reader_LabelDate"), date) end
-    local read = self:isRead()
-    kv(ZeD.tr("UI_ZeD_Reader_LabelRead"), read and getText("UI_Yes") or ZeD.tr("UI_ZeD_Reader_NotYet"),
-        read and { color = T.positive } or { color = td, hollow = true })
-    y = y + T.px(10)
+    -- (QA's visual noise audit 19, Nov 20 2026: the "This piece" block, kind, date and read, repeated the title
+    -- bar, which names the piece and its date and ends in the Read mark. The column starts at the stories.)
     -- On this page: its stories (a press jumps to it in Words)
     local heads = P.headlines(self.page)
     if #heads > 0 then
@@ -979,8 +960,10 @@ function ZeD_Reader:drawRail(r)
         local num = tostring(i)
         self:drawText(num, r.x + T.px(32) - tw(f3, num), y + math.floor((rh - fh(f3)) / 2), td.r, td.g, td.b, td.a or 1, f3)
         local words = firstWords(self.pages[i])
-        local c = words and tc or td
-        self:drawText(A.truncateText(words or ZeD.tr("UI_ZeD_Reader_Blank"), f2, r.w - T.px(52)), r.x + T.px(42), y + math.floor((rh - fh(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
+        -- (QA's visual noise audit 19, Nov 20 2026: nine rows each said "Blank"; a blank page is its dim number only)
+        if words then
+            self:drawText(A.truncateText(words, f2, r.w - T.px(52)), r.x + T.px(42), y + math.floor((rh - fh(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
+        end
         self:drawRect(r.x + u, y + rh - u, r.w - 2 * u, u, T.border.a, T.border.r, T.border.g, T.border.b)
         hit(self, id, r.x, y, r.w, rh, function() self:goPage(i) end, ZeD.tr("UI_ZeD_Reader_HelpPage"))
         y = y + rh

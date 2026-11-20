@@ -717,6 +717,10 @@ end
 --- it holds a heading line and an 18u icon, so it keeps its own 28u and its line falls below the sort row's
 ST.BAND_H = 28
 function ST.drawBand(panel, x, y, w, st, player)
+    -- (QA's visual noise audit 4, Nov 20 2026: on an oven or a microwave the band said "Microwave 2 tiles | Appliance
+    -- Off" under "Station: Microwave", with the state again in the card; the appliances have no band. The others keep
+    -- it without the kind, which restated the name, and with "2 tiles away" for the distance.)
+    if st and (st.kind == "oven" or st.kind == "micro") then return 0 end
     local T  = ZeD.T
     local A  = ZeD.Atoms
     local tm = ZeD.TM
@@ -737,7 +741,8 @@ function ST.drawBand(panel, x, y, w, st, player)
     local stX = x + w - T.px(10) - stW
     panel:drawText(stTxt, stX, y + math.floor((h - tm:getFontHeight(sf)) / 2), T.text.r, T.text.g, T.text.b, T.text.a, sf)
     A.drawStatusDot(panel, stX - dotSz - T.px(5), y + math.floor((h - dotSz) / 2), stCol, dotSz)
-    local meta = A.textCase(ST.tilesText(st.dist)) .. "  " .. ST.DOT .. "  " .. (KIND_LABEL[st.kind] and A.textCase(ZeD.tr(KIND_LABEL[st.kind])) or "")
+    local nAway = math.max(1, math.floor((st.dist or 0) + 0.5))
+    local meta = A.textCase(nAway == 1 and ZeD.tr("UI_ZeD_Station_AwayOne") or ZeD.tr("UI_ZeD_Station_AwayMany", nAway))
     local mf = T.fontF1
     local nf = T.fontF4
     local metaW = tm:MeasureStringX(mf, meta)

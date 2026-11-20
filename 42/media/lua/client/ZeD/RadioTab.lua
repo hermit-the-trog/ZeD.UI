@@ -403,6 +403,53 @@ local function _radioName(e)
     return n:match("^[^%.]+%.(.+)$") or n
 end
 
+-- a name's words (split on single spaces, no pattern)
+local function _words(s)
+    local out, i = {}, 1
+    while true do
+        local j = string.find(s, " ", i, true)
+        local w = j and string.sub(s, i, j - 1) or string.sub(s, i)
+        if w ~= "" then out[#out + 1] = w end
+        if not j then break end
+        i = j + 1
+    end
+    return out
+end
+-- (QA's visual bug B10, Nov 20 2026: three ham sets read "Premium Technologies Ham Ra..." and the like, the shared
+-- "Ham Radio" using up the room. A name that ends in the same words as another radio's name drops them on its tab:
+-- "Premium Technologies", "US Army". Only two words or more are dropped, both names keep a word of their own, and
+-- the help line keeps the whole name.)
+local function _shortNames(names)
+    local short = {}
+    local list = {}
+    for n in pairs(names) do list[#list + 1] = { n = n, w = _words(n) } end
+    for _, a in ipairs(list) do
+        local best = 0
+        for _, b in ipairs(list) do
+            if a.n ~= b.n then
+                local k = 0
+                while k < #a.w - 1 and k < #b.w - 1 and a.w[#a.w - k] == b.w[#b.w - k] do k = k + 1 end
+                if k > best then best = k end
+            end
+        end
+        if best >= 2 then
+            local s = a.w[1]
+            for i = 2, #a.w - best do s = s .. " " .. a.w[i] end
+            short[a.n] = s
+        end
+    end
+    -- two radios cut to the same words keep their whole names
+    local used = {}
+    for _, a in ipairs(list) do
+        local s = short[a.n] or a.n
+        used[s] = (used[s] or 0) + 1
+    end
+    for _, a in ipairs(list) do
+        if short[a.n] and used[short[a.n]] > 1 then short[a.n] = nil end
+    end
+    return short
+end
+
 local _tabItems = {}
 --- The radios' tabs: each radio's name; two of the same name carry where each is ("Walkie Talkie (Primary)"),
 --- or their place in the list when that is the same too. The help line names the radio and where it is.
@@ -412,6 +459,7 @@ function ZeD.RadioTab.tabItems(radios)
         local n = _radioName(e)
         seen[n] = (seen[n] or 0) + 1
     end
+    local short = _shortNames(seen)
     local locSeen = {}
     for i, e in ipairs(radios or {}) do
         local n = _radioName(e)
@@ -422,9 +470,9 @@ function ZeD.RadioTab.tabItems(radios)
     for i, e in ipairs(radios or {}) do
         local n = _radioName(e)
         local loc = ZeD.RadioTab.locationName(e.locationTag)
-        local label = n
+        local label = short[n] or n
         if seen[n] > 1 then
-            label = n .. " (" .. ((locSeen[n .. "|" .. loc] > 1 or loc == "") and tostring(i) or loc) .. ")"
+            label = label .. " (" .. ((locSeen[n .. "|" .. loc] > 1 or loc == "") and tostring(i) or loc) .. ")"
         end
         local it = _tabItems[i] or {}
         _tabItems[i] = it

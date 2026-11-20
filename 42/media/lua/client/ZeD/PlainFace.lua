@@ -202,15 +202,22 @@ local function add(out, c)
     if ex then add(out, ex) end
 end
 
+-- (QA's visual noise audit 5, Nov 20 2026: "Power  Off  (o) Off  ( ) On" said the state twice and the band a third
+-- time; the row keeps only its Off and On pair, and a word only when there is no power to switch on)
+local function powerWord(x)
+    if not x.st.on and not x.st.powered then return V.power(x) end
+    return nil
+end
 local function powerCtl(real)
-    return { id = "power", kind = "switch", label = "IGUI_RadioPower", real = real, on = ON.power, val = V.power }
+    return { id = "power", kind = "switch", label = "IGUI_RadioPower", real = real, on = ON.power, val = powerWord }
 end
 
 -- the preset keys the face has, in number order
+-- (QA's visual noise audit 5: no "3" beside Presets over the lit 3 key; V.presets stays for a driver that asks)
 local function presetsCtl(have)
     local keys = {}
     for i = 1, 9 do if have["p" .. i] then keys[#keys + 1] = "p" .. i end end
-    return { id = "presets", kind = "keys", label = "UI_ZeD_Plain_Presets", keys = keys, val = V.presets }
+    return { id = "presets", kind = "keys", label = "UI_ZeD_Plain_Presets", keys = keys }
 end
 
 -- the disc or tape slot (the slot and the eject key do the same: in, else the list of those carried)
@@ -715,13 +722,9 @@ local function band(panel, x0, y, w, x, face, hits, draw, fo)
             b.disabled, b.help, b.minW, b.w = nil, nil, nil, nil
             btns[i] = b
         end
-        local last = li == #lines
-        if last then
-            local text, dot = V.power(x)
-            spec.status.text, spec.status.color = text, dot or ZeD.T.textDim
-        else
-            spec.status.text, spec.status.color = "", nil
-        end
+        -- (QA's visual noise audit 5, Nov 20 2026: the band's lone "On" was the power state a third time; the Power
+        -- row and the readout say it)
+        spec.status.text, spec.status.color = "", nil
         spec.noLine = li > 1
         spec.win = face.win
         local _, rects = M.drawBand(panel, x0, y, w, spec)
@@ -736,6 +739,19 @@ end
 -- ---------------------------------------------------------------------------
 -- THE CARD: readout, (a TV's screen,) rows, band. draw = false measures it. Returns its height and the hits.
 -- ---------------------------------------------------------------------------
+-- (QA's visual noise audit 5, Nov 20 2026: the frequency was in the readout and again on a Frequency row with its
+-- - and +; the keys now sit in the readout beside the large frequency and the row goes. Only while the readout
+-- shows the frequency: a disc's track or a tape's time keep the row.)
+local function tuneInReadout(x)
+    local c = x.C.byId.tune
+    if not c or x.tv then return nil end
+    local R = ZeD.Rtv
+    local inf = (not x.tw) and R and R.info and R.info(x.pid) or nil
+    if inf and inf.layout == "disc" then return nil end
+    if x.st.on and (not x.tw) and x.st.playing then return nil end
+    return c
+end
+
 local _fo = {}
 layout = function(panel, x0, y0, w, x, face, draw)
     local T = ZeD.T
@@ -744,11 +760,25 @@ layout = function(panel, x0, y0, w, x, face, draw)
     if draw then _fo.win, _fo.focused = face.win, face.ownFocus; fo = _fo end
     local y = y0
     y = y + readout(panel, x0, y, w, x, draw)
+    local tuneC = tuneInReadout(x)
+    local tuneHit = nil
+    if tuneC and draw then
+        local bh = T.buttonH
+        local kw = keyW()
+        local cw = 2 * kw + gapW()
+        local cx = x0 + w - T.px(10) - cw
+        local h1 = ZeD.TM:getFontHeight(T.fontF1)
+        local cy = y0 + T.px(8) + h1 + T.px(2) + math.floor((T.px(PF.BIG_PX) - bh) / 2)
+        drawStepper(panel, panel:getMouseX(), cx, cy, bh, tuneC, face, face.focusId == tuneC.id and fo or nil)
+        tuneHit = { id = tuneC.id, kind = "turn", knob = true, stepper = true, x = cx, y = cy, w = cw, h = bh }
+    end
     if draw then ZeD.Atoms.drawDividerH(panel, x0, y, w, true) end
     y = y + T.line(T.borderW)
     if x.tv then y = y + T.px(8) + tvScreen(panel, x0, y + T.px(8), w, x, draw) end
     for _, c in ipairs(x.C.list) do
-        if not c.foot then y = y + row(panel, x0, y, w, c, x, face, hits, draw, fo) end
+        if c == tuneC then
+            if tuneHit then hits[#hits + 1] = tuneHit end   -- (its stop stays where the row was: the controller's order)
+        elseif not c.foot then y = y + row(panel, x0, y, w, c, x, face, hits, draw, fo) end
     end
     local bh = band(panel, x0, y, w, x, face, hits, false, fo)
     local by = math.max(y + T.px(8), y0 + (face.minH or 0) - bh)

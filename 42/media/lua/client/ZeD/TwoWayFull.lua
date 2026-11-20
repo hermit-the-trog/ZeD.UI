@@ -29,8 +29,8 @@
 -- (1u right and down, black at 0.5, the face's own shape), then 3u down the
 -- strip at the face's width: with the controller the focused control's prompt
 -- and B Close (the two-way sets keep their own longer strip); with the mouse the
--- help line for the control under the pointer, else "Click a control.  Esc
--- closes.". Drag it by any part that is not a control; its place is kept per
+-- help line for the control under the pointer, else no strip (QA's visual
+-- noise audit 21, Nov 20 2026). Drag it by any part that is not a control; its place is kept per
 -- character (modData ZeD_TwoWayFull, design units), one place for every face.
 -- The first time it sits beside the player, on the side with more room, clear
 -- of the player and the machine.
@@ -263,7 +263,9 @@ function ZeD_TwoWayFull:mouseLine()
         if line then return line end
         if D ~= TW or TW.labelA(id) then return nameOf(D, id) end
     end
-    return ZeD.tr("UI_ZeD_FacePop_Hint")
+    -- (QA's visual noise audit 21, Nov 20 2026: off the controls the strip read "Click a control.  Esc closes.",
+    -- explaining the obvious; now no strip there, only a control's line under the pointer)
+    return nil
 end
 
 function ZeD_TwoWayFull:prerender()
@@ -304,7 +306,10 @@ function ZeD_TwoWayFull:prerender()
     end
     local sy = fh + sh + gap
     if joy then PG.drawStrip(self, 0, sy, fw, self:padItems())
-    else PG.drawStrip(self, 0, sy, fw, { self:mouseLine() }) end
+    else
+        local ml = self:mouseLine()   -- (nothing under the pointer: no strip; its room stays so the face does not jump)
+        if ml then PG.drawStrip(self, 0, sy, fw, { ml }) end
+    end
     -- the controller's mark on a key, drawn last so no neighbour covers it
     ZeD.Focus.drawOverlay(self, self)
 end

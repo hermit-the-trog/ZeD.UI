@@ -1679,10 +1679,14 @@ function ZeD.Atoms.drawProgressBand(panel, x, y, w, mode, label, percent, timeSt
     A.drawStatusDot(panel, colX, rowY + math.floor((labelH - sq) / 2), markC, sq)
     local lx = colX + sq + T.px(6)
     local tc = T.text
-    local pctStr = string.format("%d%%", math.floor((percent or 0) * 100))
-    local pctX = colR - tm:MeasureStringX(font, pctStr)
-    panel:drawText(pctStr, pctX, rowY, tc.r, tc.g, tc.b, tc.a or 1, font)
-    local wordsR = pctX - T.px(8)
+    -- (opts.noPercent: the bar alone says it; QA's visual noise audit 18, Nov 20 2026, the Vehicle tab's band)
+    local wordsR = colR
+    if not opts.noPercent then
+        local pctStr = string.format("%d%%", math.floor((percent or 0) * 100))
+        local pctX = colR - tm:MeasureStringX(font, pctStr)
+        panel:drawText(pctStr, pctX, rowY, tc.r, tc.g, tc.b, tc.a or 1, font)
+        wordsR = pctX - T.px(8)
+    end
     local lab = textCase(label or "")
     local labelW = tm:MeasureStringX(font, lab)
     if timeStr and timeStr ~= "" then
