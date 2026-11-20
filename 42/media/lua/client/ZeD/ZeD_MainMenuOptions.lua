@@ -346,7 +346,8 @@ local function help(r)
             local tt = c.tooltip
             if type(tt) == "table" then t = tt[comboText(c, c.selected)] or tt.defaultTooltip
             elseif type(tt) == "string" then t = tt end
-            local ot = c:getOptionTooltip(c.selected)
+            -- (a merged row's stand-in control has no option tooltips; its help is its zedTipKey, below: QA, Nov 20 2026)
+            local ot = c.getOptionTooltip and c:getOptionTooltip(c.selected) or nil
             if ot and ot ~= "" and type(ot) == "string" then t = ot end
         elseif c and c.tooltip and type(c.tooltip) == "string" then
             t = c.tooltip
