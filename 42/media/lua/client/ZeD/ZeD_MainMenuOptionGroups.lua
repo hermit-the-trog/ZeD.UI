@@ -137,14 +137,10 @@ G.ONLY = {
 
 -- ZeD setup: the game settings ZeD's look depends on: { name, its group, its section, why ZeD uses it }
 -- (the group and section are translation keys, shown as "Also in <group> | <section>")
-G.SETUP_GAME = {
-    { "fontSize", "UI_ZeD_Options_GroupInterface", "UI_ZeD_Options_SecText", "UI_ZeD_Options_WhyFontSize" },
-    { "tooltipFont", "UI_ZeD_Options_GroupInterface", "UI_ZeD_Options_SecText", "UI_ZeD_Options_WhyTooltipFont" },
-    { "moodleSize", "UI_ZeD_Options_GroupInterface", "UI_ZeD_Options_SecHud", "UI_ZeD_Options_WhyMoodleSize" },
-    { "clock24hour", "UI_ZeD_Options_GroupInterface", "UI_DisplayOptions_Clock", "UI_ZeD_Options_WhyWatch" },
-    { "temperatureDisplay", "UI_ZeD_Options_GroupInterface", "UI_DisplayOptions_Clock", "UI_ZeD_Options_WhyWatch" },
-    { "doVideoEffects", "UI_ZeD_Options_GroupGraphics", "UI_ZeD_Options_SecEffects", "UI_ZeD_Options_WhyVideoEffects" },
-}
+-- (QA's visual noise audit, ZeD setup, Nov 20 2026: Font size, Tooltip font, Moodle size, 24-hour clock, Temperature
+-- and Video effects were one control in two places in one window. The mirrors are dropped: each lives on its own
+-- page, and Find reaches it there. The list is empty, so the build below adds no copies.)
+G.SETUP_GAME = {}
 
 -- ZeD setup: ZeD's own options in groups, each with the control it is drawn with.
 -- The value is still the combo's item (ModOptions saves that number), so a saved choice keeps
@@ -171,7 +167,11 @@ G.ZED_GROUPS = {
     -- beside it; Hidden actions closes Windows as a pop-up menu. No row for theme squares: the
     -- windows have none, and each window box's menu, ZeD_WindowMenu.lua, holds Theme, Accent
     -- and Text size.)
-    { "UI_ZeD_Options_ZedLook", { { "lookStyle", "radio" }, { "baseTheme", "radio" }, { "accentColor", "swatch" }, { "statusColors", "radio" }, { "mapLight", "radio" }, { "textSize", "radio" }, { "seeThrough", "scale" }, { "solidInUse", "onoff" }, { "healthBlink", "onoff" }, { "gridTint", "onoff" }, { "uiScale", "scale", short = { "UI_ZeD_Settings_Auto" } } } },
+    -- (QA's visual noise audit, ZeD setup, Nov 20 2026: the page went from about 68 rows to about 45. Map light moved
+    -- to the Maps tab's own switch; Solid while in use is the rule now, the low-health pixel holds solid red and the
+    -- item-colored tiles follow Style, so their three rows went; Status colors stays until the bars and checks read
+    -- the game's own Accessibility colors, since it is the only way to the color-blind set. G.SETUP_HIDDEN below.)
+    { "UI_ZeD_Options_ZedLook", { { "lookStyle", "radio" }, { "baseTheme", "radio" }, { "accentColor", "swatch" }, { "statusColors", "radio" }, { "textSize", "radio" }, { "seeThrough", "scale" }, { "uiScale", "scale", short = { "UI_ZeD_Settings_Auto" } } } },
     -- (One row per family, each offering ZeD's full vision or a plainer one, with one phrase for
     -- the two forms: Immersive or simple, for the rows drawn as the thing itself or as a plain
     -- card, the Identity card (once in Look) among them. The Action bar (in HUD) and the Mods
@@ -183,36 +183,178 @@ G.ZED_GROUPS = {
     -- have no groups of their own; Ammo on the belt, Moodle notices and Dashboard lamps (once in
     -- HUD) and Restock and the read marks (once in Windows) live here too.)
     { "UI_ZeD_Options_ZedAdditions", { { "additionsPreset", "radio", short = { "UI_ZeD_Settings_PresetVanilla", "UI_ZeD_Options_PresetPlus", "UI_ZeD_Options_PresetAccessible", "Sandbox_Custom" } },
-        { "ammoBox", "onoff" }, { "readMarks", "onoff" }, { "readNext", "onoff" }, { "dimRead", "onoff" }, { "dashLamps", "onoff" },
-        { "moodleNotices", "onoff" }, { "messagesCatch", "onoff" }, { "messagesToast", "onoff" }, { "haloBubble", "onoff" }, { "hintStrip", "radio" }, { "putBack", "onoff" },
-        { "sandboxInGame", "onoff", under = "UI_ZeD_Options_UnderSandboxIG" }, { "hiddenFacts", "radio" }, { "autoLearn", "onoff" }, { "loadouts", "onoff" },
-        -- (Restock works only with a loadout, so its row dims and goes inert while Loadouts is off)
-        { "restock", "radio", needs = "loadouts", needsWhy = "UI_ZeD_Options_NeedsLoadouts" },
+        -- (QA's visual noise audit, Nov 20 2026: Read marks, Next level on skill books and Dim read items are one
+        -- three-way row; Keep notes in Messages and its toast one; Hidden facts takes Recipes skills teach. Each such
+        -- row works the options under it, G.MERGED below.)
+        { "ammoBox", "onoff" }, { "readMarks", "radio", merge = "readMarks" }, { "dashLamps", "onoff" },
+        { "moodleNotices", "onoff" }, { "messagesCatch", "radio", merge = "messages" }, { "haloBubble", "onoff" }, { "hintStrip", "radio" }, { "putBack", "onoff" },
+        { "sandboxInGame", "onoff", under = "UI_ZeD_Options_UnderSandboxIG" }, { "hiddenFacts", "radio", merge = "hiddenFacts" }, { "loadouts", "onoff" },
+        -- (Restock works only with a loadout: its row is hidden while Loadouts is off. The audit: hiding is quieter
+        -- than the dimmed row with its reason line.)
+        { "restock", "radio", showIf = "loadouts" },
         -- (Nov 15 2026, appliances: Additional appliance support, Appliances.lua)
         { "appliances", "onoff" } } },
-    { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "contextStyle", "radio" }, { "equipView", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "uiSounds", "radio" }, { "hiddenActions" } } },
-    { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio" } } },
-    -- (how the wheels are worked; Toggle mode overrides open and commit, so they dim while it is on; then the Run
-    -- button that also crouches, Input/RunSneak.lua)
-    { "UI_ZeD_Options_ZedControls", { { "focusStyle" }, { "glyphDisplay" }, { "inputModeLock" },
-        { "wheelOpen", "radio", needsNot = "wheelToggle", needsWhy = "UI_ZeD_Options_NeedsNoToggle" },
-        { "wheelCommit", "radio", needsNot = "wheelToggle", needsWhy = "UI_ZeD_Options_NeedsNoToggle" },
-        { "wheelToggle", "onoff" }, { "wheelDeadZone", "scale" }, { "runSneak", "onoff" } } },
+    -- (the audit: Inventory has the view button in every column header, Equipped items the Equip tab's own switch,
+    -- the window accents each window's menu; Hidden actions has one-word choices, the help band explains them)
+    { "UI_ZeD_Options_ZedWindows", { { "contextStyle", "radio" }, { "uiSounds", "radio" }, { "hiddenActions", "radio" } } },
+    -- (Lite's clock is always in the corner: the Watch row shows in Full only)
+    { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio", fullOnly = true } } },
+    -- (the button pictures: Auto, which follows the game's own controller button style, or Letters; how the wheels are
+    -- worked, one pop-up for open, commit and toggle mode; then the Run button that also crouches, Input/RunSneak.lua)
+    { "UI_ZeD_Options_ZedControls", { { "focusStyle" }, { "glyphDisplay", "radio", merge = "glyphs" },
+        { "wheelOpen", nil, merge = "wheels" }, { "wheelDeadZone", "scale" }, { "runSneak", "onoff" } } },
     -- (the twelve chords, ZeD_QuickChords; not ModOptions: rows of their own)
     { "UI_ZeD_Options_ZedChords", {}, chords = true },
-    -- (one screen at a time steps aside, under Safe mode and read as it is:
-    -- ticked, that screen is the game's own)
+    -- (the seven screens a player can give back are one row of check boxes under Safe mode, the sentence they shared
+    -- said once in the help: ticked, that screen is the game's own. Playing with (the input mode lock) moved here from
+    -- Controls; the Lua console's switch and the test language show in debug mode only.)
     { "UI_ZeD_Options_ZedTrouble", { { "safeMode", "onoff", under = "UI_ZeD_Options_UnderSafeMode" },
-                                     { "screenWindows", "onoff", under = "UI_ZeD_Options_UnderScreenWindows", back = "windows" },
-                                     { "screenBelt", "onoff", under = "UI_ZeD_Options_UnderScreenBelt", back = "belt" },
-                                     { "screenWatch", "onoff", under = "UI_ZeD_Options_UnderScreenWatch" },
-                                     { "screenDashboard", "onoff", under = "UI_ZeD_Options_UnderScreenDashboard", back = "dashboard" },
-                                     { "screenMoodles", "onoff", under = "UI_ZeD_Options_UnderScreenMoodles" },
-                                     { "screenWheels", "onoff", under = "UI_ZeD_Options_UnderScreenWheels", back = "wheels" },
-                                     { "screenCharInfo", "onoff", under = "UI_ZeD_Options_UnderScreenCharInfo", back = "charinfo" },
-                                     { "screenConsole", "onoff", under = "UI_ZeD_Options_UnderScreenConsole" },
-                                     { "testLanguage", "onoff" } } },
+                                     { "screenWindows", nil, merge = "screens" },
+                                     { "inputModeLock", "radio", short = { "UI_ZeD_Settings_Auto", "UI_ZeD_Welcome_MouseKeys", "UI_ZeD_Welcome_Controller" } },
+                                     { "screenConsole", "onoff", under = "UI_ZeD_Options_UnderScreenConsole", debugOnly = true },
+                                     { "testLanguage", "onoff", debugOnly = true } } },
 }
+
+-- (QA's visual noise audit, Nov 20 2026) ZeD's options that keep working but have no row on ZeD setup: kept and saved
+-- as before (QA's runners and the Mods page still set them), never under Other. The ones a merged row works are here
+-- too. ZeD setup's Defaults still puts each back.
+G.SETUP_HIDDEN = { "mapLight", "solidInUse", "healthBlink", "gridTint", "inventoryView", "equipView", "charAccent", "worldAccent",
+                   "readNext", "dimRead", "messagesToast", "autoLearn", "wheelCommit", "wheelToggle",
+                   "screenBelt", "screenWatch", "screenDashboard", "screenMoodles", "screenWheels", "screenCharInfo" }
+
+-- (QA's visual noise audit, Nov 20 2026) One row on ZeD setup that reads and writes several options. Not an option of
+-- its own: what it shows is read from the options under it each time, and a pick sets each of them as a click on its
+-- own control would (counted for Apply, its onChange run).
+--   ids    the options it works
+--   items  { the choice's words (a translation key), { [option id] = the item it sets } }
+--   read   the choice the options' live picks make (v: option id -> item)
+--   ticks  instead of items: a row of check boxes, { option id, its words }; ticked = item 2
+G.MERGED = {
+    readMarks = { name = "UI_ZeD_Settings_ReadMarks", tip = "UI_ZeD_Options_ReadTrioTip", ids = { "readMarks", "readNext", "dimRead" },
+        items = { { "UI_Off", { readMarks = 1, readNext = 1, dimRead = 1 } },
+                  { "UI_ZeD_Options_ReadMarksOnly", { readMarks = 2, readNext = 2, dimRead = 1 } },
+                  { "UI_ZeD_Options_ReadMarksDim", { readMarks = 2, readNext = 2, dimRead = 2 } } },
+        read = function(v)
+            if v.readMarks ~= 2 and v.readNext ~= 2 and v.dimRead ~= 2 then return 1 end
+            return (v.dimRead == 2) and 3 or 2
+        end },
+    messages = { name = "UI_ZeD_Options_MsgNotes", tip = "UI_ZeD_Options_MsgNotesTip", ids = { "messagesCatch", "messagesToast" },
+        items = { { "UI_ZeD_Options_MsgAsGame", { messagesCatch = 1, messagesToast = 1 } },
+                  { "UI_ZeD_Options_MsgKeep", { messagesCatch = 2, messagesToast = 1 } },
+                  { "UI_ZeD_Options_MsgKeepToast", { messagesCatch = 2, messagesToast = 2 } } },
+        read = function(v)
+            if v.messagesCatch ~= 2 then return 1 end
+            return (v.messagesToast == 2) and 3 or 2
+        end },
+    hiddenFacts = { name = "UI_ZeD_Settings_HiddenFacts", tip = "UI_ZeD_Options_HiddenFactsTip", ids = { "hiddenFacts", "autoLearn" },
+        items = { { "UI_ZeD_Settings_FindFirst", { hiddenFacts = 1, autoLearn = 1 } },
+                  { "UI_ZeD_Hidden_Always", { hiddenFacts = 2, autoLearn = 2 } } },
+        read = function(v) return (v.hiddenFacts == 2) and 2 or 1 end },
+    -- (the game's controller button style picks the pictures; ZeD's own sets stay saved, a player on one sees Auto)
+    glyphs = { name = "UI_ZeD_Settings_Glyphs", tip = "UI_ZeD_Options_GlyphsTip", ids = { "glyphDisplay" },
+        items = { { "UI_ZeD_Settings_Auto", { glyphDisplay = 1 } },
+                  { "UI_ZeD_Options_GlyphLetters", { glyphDisplay = 6 } } },
+        read = function(v) return (v.glyphDisplay == 6 or v.glyphDisplay == 7) and 2 or 1 end },
+    -- (Toggle mode overrode the other two, which is why they dimmed; Hold with a stick click, never offered here, reads
+    -- as Hold and flick)
+    wheels = { name = "UI_ZeD_Options_Wheels", tip = "UI_ZeD_Options_WheelsTip", ids = { "wheelOpen", "wheelCommit", "wheelToggle" },
+        items = { { "UI_ZeD_Options_WheelHoldFlick", { wheelOpen = 2, wheelCommit = 1, wheelToggle = 1 } },
+                  { "UI_ZeD_Options_WheelTapFlick", { wheelOpen = 1, wheelCommit = 1, wheelToggle = 1 } },
+                  { "UI_ZeD_Options_WheelTapClick", { wheelOpen = 1, wheelCommit = 2, wheelToggle = 1 } },
+                  { "UI_ZeD_Options_WheelToggle", { wheelToggle = 2 } } },
+        read = function(v)
+            if v.wheelToggle == 2 then return 4 end
+            if v.wheelOpen == 2 then return 1 end
+            return (v.wheelCommit == 2) and 3 or 2
+        end },
+    screens = { name = "UI_ZeD_Options_GiveBack", tip = "UI_ZeD_Options_GiveBackTip",
+        ticks = { { "screenWindows", "UI_ZeD_Options_GiveWindows", "windows" }, { "screenBelt", "UI_ZeD_Options_GiveBelt", "belt" },
+                  { "screenWatch", "UI_ZeD_Options_GiveWatch" }, { "screenDashboard", "UI_ZeD_Options_GiveDashboard", "dashboard" },
+                  { "screenMoodles", "UI_ZeD_Options_GiveMoodles" }, { "screenWheels", "UI_ZeD_Options_GiveWheels", "wheels" },
+                  { "screenCharInfo", "UI_ZeD_Options_GiveCharInfo", "charinfo" } } },
+}
+
+-- a ZeD option's live pick (on the screen, Apply or not), else its stored value
+local function liveOf(zo, id)
+    local o = zo and zo.dict and zo.dict[id]
+    if not o then return nil end
+    local el = o.element
+    local v = el and el.selected
+    if v == nil then
+        local ok, s = pcall(o.getValue, o)
+        v = ok and s or nil
+    end
+    return v
+end
+-- an option's control set to item i as a click on it would (ZeD_MainMenuOptions' setCombo): counted for Apply, its
+-- onChange run; with no control built yet, the option itself
+local function setLiveOf(zo, id, i)
+    local o = zo and zo.dict and zo.dict[id]
+    if not o then return end
+    local el = o.element
+    if not el then pcall(o.setValue, o, i); return end
+    if el.disabled or el.selected == i then return end
+    el.selected = i
+    if el.onChange then el.onChange(el.target, el, el.onChangeArgs and el.onChangeArgs[1], el.onChangeArgs and el.onChangeArgs[2]) end
+end
+G.liveOf = liveOf
+
+--- A merged row's control, d a G.MERGED entry: a stand-in for a drop-down (or a row of tick boxes) that the options
+--- window draws and steps as it does any other. Its pick is never kept on it: `selected` is read from the options each
+--- time and a pick written to them (a metatable, so nothing stale is ever drawn).
+local function mergedControl(key, d, zo)
+    local c = { ID = "zedmerge:" .. key, options = {}, zedMerged = key }
+    if d.ticks then
+        for i, t in ipairs(d.ticks) do c.options[i] = ZeD.tr(t[2]) end
+        c.selected = setmetatable({}, {
+            __index = function(_, i)
+                local t = d.ticks[tonumber(i) or 0]
+                return (t ~= nil) and liveOf(zo, t[1]) == 2
+            end,
+            __newindex = function(_, i, on)
+                local t = d.ticks[tonumber(i) or 0]
+                if t then setLiveOf(zo, t[1], on and 2 or 1) end
+            end })
+        -- (Defaults: every one ZeD's again)
+        c.zedOffDefault = function()
+            for _, t in ipairs(d.ticks) do if liveOf(zo, t[1]) == 2 then return true end end
+            return false
+        end
+        c.zedResetDefault = function() for _, t in ipairs(d.ticks) do setLiveOf(zo, t[1], 1) end end
+        return c
+    end
+    for i, it in ipairs(d.items) do c.options[i] = it[1] end
+    c.getOptionText = function(_, i)
+        local it = d.items[tonumber(i) or 0]
+        return it and ZeD.tr(it[1]) or ""
+    end
+    setmetatable(c, {
+        __index = function(_, k)
+            if k ~= "selected" then return nil end
+            local v = {}
+            for _, id in ipairs(d.ids) do v[id] = liveOf(zo, id) end
+            return d.read(v)
+        end,
+        __newindex = function(t, k, i)
+            if k ~= "selected" then rawset(t, k, i); return end
+            local it = d.items[tonumber(i) or 0]
+            if not it then return end
+            for _, id in ipairs(d.ids) do
+                local want = it[2][id]
+                if want then setLiveOf(zo, id, want) end
+            end
+        end })
+    return c
+end
+
+--- What the setup page's rows depend on besides the options' own values: Style (Lite leaves out groups and rows),
+--- Loadouts' live pick (Restock shows only while it is on) and debug mode. ZeD_MainMenuOptions builds again when it changes.
+function G.stateKey()
+    local lite = ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite()
+    local zo = PZAPI and PZAPI.ModOptions and PZAPI.ModOptions:getOptions("ZeD_UI")
+    local dbg = isDebugEnabled and isDebugEnabled()
+    return tostring(lite) .. ":" .. tostring(liveOf(zo, "loadouts")) .. ":" .. tostring(dbg)
+end
 
 -- a shallow copy carrying a note under its name (ZeD setup's copies; the
 -- original row stays as it is in its own group)
@@ -309,7 +451,10 @@ function G.build(pages, rowsOf)
             if pid == "audio" and r.kind == "button" and not r.opt then byName.__audioButton = r end
             if r.opt and r.opt.name then
                 byName[r.opt.name] = r
-                if G.MOOT[r.opt.name] then r.moot = G.MOOT[r.opt.name] end
+                -- (QA's visual noise audit 29, Nov 20 2026: "Does nothing with ZeD active" under each replaced setting,
+                -- each with its own warning square. Such a row is hidden now: placed nowhere, not even under Other,
+                -- and Find does not offer it. Its value stays the game's.)
+                if G.MOOT[r.opt.name] then r.moot = G.MOOT[r.opt.name]; used[r] = true end
                 if G.ONLY[r.opt.name] then r.only = G.ONLY[r.opt.name] end
             end
         end
@@ -434,8 +579,27 @@ function G.build(pages, rowsOf)
     -- but never show, not even under Other)
     for _, id in ipairs(G.RETIRED) do placed[id] = true end
     local lite = ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite()
+    -- (QA's visual noise audit, Nov 20 2026) the options with no row of their own, and the rows hidden now (Restock
+    -- while Loadouts is off, the Watch in Lite, the debug switches outside debug mode): none goes under Other, and
+    -- G.hiddenOpts lists them for ZeD setup's Defaults
+    local hidden = {}
+    local function hide(id)
+        if placed[id] then return end
+        placed[id] = true
+        local o = zo and zo.dict and zo.dict[id]
+        if o then hidden[#hidden + 1] = o end
+    end
+    for _, id in ipairs(G.SETUP_HIDDEN) do hide(id) end
+    local dbg = isDebugEnabled and isDebugEnabled() or false
     for _, grp in ipairs(G.ZED_GROUPS) do
-      if not (lite and G.LITE_HIDES[grp[1]]) then
+      if lite and G.LITE_HIDES[grp[1]] then
+        -- (a group Lite leaves out: its options are placed, so none of them turns up under Other instead)
+        for _, e in ipairs(grp[2]) do
+            placed[e[1]] = true
+            local d = e.merge and G.MERGED[e.merge]
+            for _, id in ipairs((d and d.ids) or {}) do placed[id] = true end
+        end
+      else
         if grp[1] == "UI_ZeD_Options_ZedTrouble" and #addons > 0 then emitAddons(nil); defaultDone = true end
         local list = {}
         if grp.chords then
@@ -444,8 +608,39 @@ function G.build(pages, rowsOf)
         end
         for _, e in ipairs(grp[2]) do
             local c = zrow[e[1]]
-            if c and not placed[e[1]] then
+            local off = (e.fullOnly and lite) or (e.debugOnly and not dbg)
+                or (e.showIf and liveOf(zo, e.showIf) ~= 2)
+            if c and off then
+                hide(e[1])
+            elseif c and not placed[e[1]] then
                 styleRow(c, e)
+                local d = e.merge and G.MERGED[e.merge]
+                if d then
+                    -- one row for several options: a stand-in control (mergedControl), its own name and help; no
+                    -- option of its own, so no opt (the changed dot compares it by its own key)
+                    c.control = mergedControl(e.merge, d, zo)
+                    c.opt = nil
+                    c.labelKey = d.name
+                    c.zedTipKey = d.tip
+                    c.zedIds = d.ids
+                    if d.ticks then
+                        c.kind = "tick"
+                        c.zedStyle = nil
+                        c.zedDefault = nil
+                        c.zedIds = {}
+                        for i, t in ipairs(d.ticks) do c.zedIds[i] = t[1] end
+                        c.zedBacks = d.ticks   -- (a screen a mod took: its name under the row, ZeD_StepAside.lua)
+                    else
+                        -- Defaults: the choice the options' own starting items make
+                        local v = {}
+                        for _, id in ipairs(d.ids) do
+                            local o = zo and zo.dict and zo.dict[id]
+                            v[id] = o and o.zedDefault
+                        end
+                        c.zedDefault = d.read(v)
+                    end
+                    for _, id in ipairs(c.zedIds) do placed[id] = true end
+                end
                 list[#list + 1] = c
                 placed[e[1]] = true
             end
@@ -475,6 +670,7 @@ function G.build(pages, rowsOf)
         for _, r in ipairs(grows) do setup[#setup + 1] = r end
     end
     out.zed = setup
+    out.zedHidden = hidden
     return out
 end
 

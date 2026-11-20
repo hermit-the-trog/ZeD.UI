@@ -187,7 +187,8 @@ local o4 = loadSettings(table.concat({ "|ZeD_UI|additionsPreset|3", "|ZeD_UI|hid
 check("a saved Find first on Vanilla Access is left as saved", o4 and o4.dict.hiddenFacts and o4.dict.hiddenFacts:getValue() == 1)
 local groups = readFile(LUA .. "client/ZeD/ZeD_MainMenuOptionGroups.lua") or ""
 local addGroup = groups:match('"UI_ZeD_Options_ZedAdditions".-}%s*}%s*},')
-check("its row in ZeD setup's additions group", addGroup and addGroup:find('{ "hiddenFacts", "radio" }', 1, true) ~= nil)
+-- (QA's visual noise audit, Nov 20 2026: the row also works Recipes skills teach, G.MERGED.hiddenFacts)
+check("its row in ZeD setup's additions group", addGroup and addGroup:find('{ "hiddenFacts", "radio", merge = "hiddenFacts" }', 1, true) ~= nil)
 
 section("Settings: the beta 6 repair still runs with newer additions")
 -- a player beta 6 moved to Custom: Vanilla Access in every row but Identity (Immersive), no line for any newer row

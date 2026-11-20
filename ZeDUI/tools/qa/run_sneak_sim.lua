@@ -1135,12 +1135,11 @@ check("Run on LB or RB is a kind of its own", code:find("btn == JoypadButton.Lef
 section("Words")
 check("English name", EN.UI_ZeD_Settings_RunSneak == "Run button also sneaks", EN.UI_ZeD_Settings_RunSneak)
 local tip = EN.UI_ZeD_Settings_RunSneakTip or ""
-check("English help: Run on a button works, as in Original (RT)", tip:find("Works when the game's Run is on a button", 1, true) ~= nil
-      and tip:find("as in the Original controller layout (Run on the right trigger, RT)", 1, true) ~= nil)
-check("English help: a full stick push (Default) does nothing", tip:find("does nothing when Run is a full push of the stick (the Default layout)", 1, true) ~= nil)
-check("English help: Run on LB or RB does nothing, kept for the quick actions",
-      tip:find("(the Default layout) or on LB or RB, which ZeD keeps for its quick actions.", 1, true) ~= nil)
-check("English help: the hold and the tap", tip:find("hold Run to crouch", 1, true) ~= nil and tip:find("A quick tap", 1, true) ~= nil)
+-- (QA's visual noise audit, Nov 20 2026: the help was close to 80 words; halved, the same facts kept)
+check("English help: Run on a button works, as RT in Original", tip:find("Needs Run on a button, as RT in the Original layout", 1, true) ~= nil)
+check("English help: a full stick push does nothing", tip:find("or a full stick push", 1, true) ~= nil)
+check("English help: Run on LB or RB does nothing", tip:find("not on LB or RB", 1, true) ~= nil)
+check("English help: the hold and the tap", tip:find("hold Run to crouch", 1, true) ~= nil and tip:find("A tap stays the game's", 1, true) ~= nil)
 for _, l in ipairs(LANGS) do
     local t = UI[l] or {}
     local lt = t.UI_ZeD_Settings_RunSneakTip or ""

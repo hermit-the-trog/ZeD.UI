@@ -853,7 +853,8 @@ local function src(p) local f = assert(io.open(ROOT .. p, "rb")); local s = f:re
 local settings = src("42/media/lua/client/ZeD/Settings.lua")
 check("switch: in the ZeD screens list as piece console", settings:find('{ "screenConsole",%s+"console",%s+"UI_ZeD_Settings_ScreenConsole" }') ~= nil)
 check("switch: named in the options' label list", settings:find('screenConsole = "UI_ZeD_Settings_ScreenConsole"', 1, true) ~= nil)
-check("switch: in ZeD setup beside the other screens", src("42/media/lua/client/ZeD/ZeD_MainMenuOptionGroups.lua"):find('{ "screenConsole", "onoff", under = "UI_ZeD_Options_UnderScreenConsole" }', 1, true) ~= nil)
+-- (QA's visual noise audit, Nov 20 2026: it does nothing outside debug mode, so its row shows in debug mode only)
+check("switch: in ZeD setup under Safe mode, in debug mode only", src("42/media/lua/client/ZeD/ZeD_MainMenuOptionGroups.lua"):find('{ "screenConsole", "onoff", under = "UI_ZeD_Options_UnderScreenConsole", debugOnly = true }', 1, true) ~= nil)
 check("switch: its words", TEXT.UI_ZeD_Settings_ScreenConsole ~= nil and TEXT.UI_ZeD_Settings_ScreenConsoleTip ~= nil and TEXT.UI_ZeD_Options_UnderScreenConsole ~= nil)
 check("desk Debug menu: the console while it exists", src("42/media/lua/client/ZeD/ZeD_MainMenu.lua"):find('DCon.exists() then', 1, true) ~= nil)
 ZEDQA_ROOT, ZEDQA_LARGE = 1, false

@@ -538,8 +538,8 @@ ZeD.trDefaults({
     UI_ZeD_ModName = "ZeD-GUI",
     UI_ZeD_ModDesc = "Total UI overhaul for Project Zomboid",
 
-    UI_ZeD_Settings_BaseTheme = "Base theme",
-    UI_ZeD_Settings_AccentColor = "Accent color",
+    UI_ZeD_Settings_BaseTheme = "Theme",
+    UI_ZeD_Settings_AccentColor = "Accent",
     UI_ZeD_Settings_TextSize = "Text size",
     UI_ZeD_Settings_Dark = "Dark",
     UI_ZeD_Settings_Light = "Light",
