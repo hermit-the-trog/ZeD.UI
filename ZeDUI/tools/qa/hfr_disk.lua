@@ -20,8 +20,10 @@ function K.shot(name)
     local ok, e = pcall(function() getCore():TakeFullScreenshot("hfr_" .. name .. ".png") end)
     if ok then pass = pass + 1; say("shot hfr_" .. name) else fail = fail + 1; say("ERR shot " .. name .. ": " .. tostring(e)) end
 end
--- the desk painting's lightning (ZeD_MainMenu.lua life.zap) is held off while pictures are taken: a strike lights
--- the glass and the menu behind the Mods window shows through (director, Nov 20 2026). Let go at the end.
+-- the desk painting's lightning (ZeD_MainMenu.lua life.zap) is held off while pictures are taken: a strike would
+-- light the room in a picture (director, Nov 20 2026). Let go at the end. (Mouse.setXY does not move the pointer
+-- the game reads here: the hidden pointer stays where it was, so a Dark picture shows See-through when that is
+-- off the window.)
 function K.holdZap()
     local z = MM._life and MM._life.zap
     if not z then return end
