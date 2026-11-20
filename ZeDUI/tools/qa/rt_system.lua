@@ -240,6 +240,10 @@ function H.setupRow(w, id)
     local rows = {}
     pcall(function() rows = w:zedSetupRows() end)
     for _, r in ipairs(rows) do if r.control == el then return r end end
+    -- (Nov 20 2026, Cuts C: a merged row works several options, its own control listing them in r.zedIds)
+    for _, r in ipairs(rows) do
+        for _, z in ipairs(r.zedIds or (r.control and r.control.zedIds) or {}) do if z == id then return r end end
+    end
     return nil
 end
 function H.nudgeTo(w, r, want)

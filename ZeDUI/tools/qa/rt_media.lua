@@ -1106,8 +1106,48 @@ Q.step(5, function()
     if z then ZeD.MapsTabExt.onClick(w, z.x + 2, z.y + 2) end
 end)
 Q.step(5, function()
-    if S.svSkip or not S.svPl or S.keySkip then H.putSurvey(); return end
-    Q.check(H.WW()._mapKeyOpen ~= true, "survey key: its close box shuts it")
+    if not (S.svSkip or not S.svPl or S.keySkip) then Q.check(H.WW()._mapKeyOpen ~= true, "survey key: its close box shuts it") end
+end)
+-- (Nov 20 2026, Cuts E, the visual noise audit 48: the Light map switch moved from ZeD setup to the Maps tab's band,
+-- a checkbox after Survey / Color / Paper, shown on the Survey map under the Dark theme. A click through the tab's own
+-- click handler (MapsTab.onClick) writes mapLightOption and the Survey colors follow; a second click puts it back.)
+function H.lightZone()
+    for _, z in ipairs(H.WW()._mapStyleZones or {}) do if z.id == "light" then return z end end
+    return nil
+end
+Q.step(5, function()
+    local o = ZeD.Settings and ZeD.Settings.mapLightOption
+    S.lm = { skip = S.svSkip or not (o and ZeD.Settings.mapLight and MT.toggleLight) or ZeD.currentBase ~= "dark" }
+    if S.lm.skip then
+        Q.skip("Light map switch on the Maps tab", S.svSkip and "no Survey map" or ("theme " .. tostring(ZeD.currentBase) .. ", toggleLight " .. tostring(MT.toggleLight ~= nil)))
+        return
+    end
+    S.lm.was = o:getValue()
+    o:setValue(1)
+end)
+Q.step(10, function()
+    if S.lm.skip then return end
+    local z = H.lightZone()
+    if not Q.check(z ~= nil, "Light map switch: the Maps tab draws its checkbox on the Survey map under Dark") then S.lm.skip = true; return end
+    MT.onClick(H.WW(), z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2))
+end)
+Q.step(30, function()
+    if S.lm.skip then return end
+    local m = H.mp()
+    local key = SV.key()
+    Q.check(ZeD.Settings.mapLight() and ZeD.Settings.mapLightOption:getValue() == 2 and key == "light",
+        "Light map switch: a click turns the light map on (the option written) and Survey reads the Light palette",
+        "mapLight " .. tostring(ZeD.Settings.mapLight()) .. ", option " .. tostring(ZeD.Settings.mapLightOption:getValue()) .. ", key " .. tostring(key) .. ", map " .. tostring(m and m._zedSurveyKey))
+    local z = H.lightZone()
+    if z then MT.onClick(H.WW(), z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2)) end
+end)
+Q.step(30, function()
+    if S.lm.skip then return end
+    Q.check(not ZeD.Settings.mapLight() and SV.key() == "dark", "Light map switch: a second click turns it off and Survey reads the Dark palette",
+        "mapLight " .. tostring(ZeD.Settings.mapLight()) .. ", key " .. tostring(SV.key()))
+end)
+Q.step(5, function()
+    if S.lm and S.lm.was then pcall(function() ZeD.Settings.mapLightOption:setValue(S.lm.was) end) end
     H.putSurvey()
 end)
 

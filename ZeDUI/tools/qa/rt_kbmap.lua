@@ -481,6 +481,33 @@ Q.step(10, function()
     pcall(KM.open, S.pn)
 end)
 Q.step(20, function() S.win = H.win() end)
+-- (Nov 20 2026: a key picked on the drawn keyboard is un-picked by a second click on it; the same "(x == v) and nil
+-- or v" toggle as the key box's never cleared it)
+function H.capClick(code)
+    local w = H.win()
+    for _, h in ipairs(H.hits("cap")) do
+        if h.code == code then
+            local x, y = h.x + math.floor(h.w / 2), h.y + math.floor(h.h / 2)
+            w:onMouseDown(x, y); w:onMouseUp(x, y)
+            return true
+        end
+    end
+    return false
+end
+Q.step(5, function()
+    if not (S.win and S.new) then return end
+    S.scroll0 = S.win.scroll
+    S.win.scroll = 0
+end)
+Q.step(5, function()
+    if not (S.win and S.new) then return end
+    local c1 = H.capClick(S.new)
+    local p1 = S.win.picked
+    local c2 = H.capClick(S.new)
+    Q.check(c1 and c2 and p1 == S.new and S.win.picked == nil, "Keyboard map: a click on a drawn key picks it, a second click un-picks it",
+        "picked " .. tostring(p1) .. " -> " .. tostring(S.win.picked) .. " (key " .. tostring(S.new) .. ")")
+    S.win.scroll = S.scroll0 or 0
+end)
 
 -- ===================================================================== 5. Reset: asks once, then the game's keys
 Q.step(5, function()
