@@ -206,23 +206,15 @@ local function _partCond(vehicle, id)
     if it ~= nil and not _get(it, "isEmpty", true) and _get(part, "getInventoryItem", nil) == nil then return nil end
     return _get(part, "getCondition", nil)
 end
-local function _state(vehicle, chr)
-    local st = {}
-    st.running  = _get(vehicle, "isEngineRunning", false)
-    st.started  = _get(vehicle, "isEngineStarted", false)
-    -- the starter turning: the engine's own state (BaseVehicle.engineStateTypes). tryStartEngine sets Starting for a
-    -- moment, then the whole crank reads StartingSuccess until it runs (Running), or StartingFailed (RetryingStarting
-    -- on another try) until it gives up (Idle); the vanilla dashboard's isStarting() where the state cannot be read
-    local es = _get(vehicle, "getEngineState", nil)
-    st.engState = es and tostring(es) or nil
-    if st.engState then st.cranking = CRANKING[st.engState] == true and not st.running
-    else st.cranking = _get(vehicle, "isStarting", false) and not st.running end
-    st.keysIn   = _get(vehicle, "isKeysInIgnition", false)
-    st.hotwired = _get(vehicle, "isHotwired", false)
+-- (QA's speed audit 3, Nov 20 2026: the whole car was read from the game every frame, about 58 calls. What moves
+-- with the driving is read each frame; the parts, locks, fuel, battery, heater and key are read into keep._slow
+-- every SLOW_MS and copied in. keep is the dash (prerender); without one, every field is read fresh. A new car, a new
+-- character and any action from the dash (_fire) read it fresh on the next frame.)
+local SLOW_MS = 200
+local SLOW_KEYS = { "hasKey", "fuelRaw", "battRaw", "engineCond", "engWarn", "battCond", "heaterCond", "hlL", "hlR",
+    "allLocked", "anyLocked", "hasTrunk", "trunkLocked", "hasHeater", "heaterOn", "heaterTemp", "fan", "ac" }
+local function _slowRead(vehicle, chr, st)
     st.hasKey   = _safe(function() return chr:getInventory():haveThisKeyId(vehicle:getKeyId()) ~= nil end, false)
-    st.speed    = math.abs(_get(vehicle, "getCurrentSpeedKmHour", 0))
-    st.rpmRaw   = st.running and _get(vehicle, "getEngineSpeed", 0) or 0
-    st.gear     = _safe(function() return tostring(vehicle:getTransmissionNumberLetter()) end, "D")
     local tank = _safe(function() return vehicle:getPartById("GasTank") end, nil)
     st.fuelRaw = 0
     if tank and _get(tank, "isContainer", false) then
@@ -237,10 +229,6 @@ local function _state(vehicle, chr)
     st.heaterCond = _partCond(vehicle, "Heater")
     st.hlL = _partCond(vehicle, "HeadlightLeft")
     st.hlR = _partCond(vehicle, "HeadlightRight")
-    st.lights   = _get(vehicle, "getHeadlightsOn", false)
-    -- the dash lights burn on the headlight switch while the lamps can actually light (vanilla's own test, its
-    -- dashboard's lights icon: switched on and getHeadlightCanEmmitLight)
-    st.dashLit  = st.lights and _get(vehicle, "getHeadlightCanEmmitLight", false) or false
     st.allLocked = _get(vehicle, "areAllDoorsLocked", false)
     st.anyLocked = _get(vehicle, "isAnyDoorLocked", false)
     st.hasTrunk  = _safe(function() return vehicle:getPartById("TruckBed") ~= nil end, false)
@@ -253,6 +241,39 @@ local function _state(vehicle, chr)
     local mag = math.abs(st.heaterTemp)
     st.fan = (not st.heaterOn) and 0 or (mag >= 21 and 3 or (mag >= 12 and 2 or 1))
     st.ac = st.heaterOn and st.heaterTemp < 0
+end
+local function _state(vehicle, chr, keep)
+    local st = {}
+    st.running  = _get(vehicle, "isEngineRunning", false)
+    st.started  = _get(vehicle, "isEngineStarted", false)
+    -- the starter turning: the engine's own state (BaseVehicle.engineStateTypes). tryStartEngine sets Starting for a
+    -- moment, then the whole crank reads StartingSuccess until it runs (Running), or StartingFailed (RetryingStarting
+    -- on another try) until it gives up (Idle); the vanilla dashboard's isStarting() where the state cannot be read
+    local es = _get(vehicle, "getEngineState", nil)
+    st.engState = es and tostring(es) or nil
+    if st.engState then st.cranking = CRANKING[st.engState] == true and not st.running
+    else st.cranking = _get(vehicle, "isStarting", false) and not st.running end
+    st.keysIn   = _get(vehicle, "isKeysInIgnition", false)
+    st.hotwired = _get(vehicle, "isHotwired", false)
+    st.speed    = math.abs(_get(vehicle, "getCurrentSpeedKmHour", 0))
+    st.rpmRaw   = st.running and _get(vehicle, "getEngineSpeed", 0) or 0
+    st.gear     = _safe(function() return tostring(vehicle:getTransmissionNumberLetter()) end, "D")
+    if keep then
+        local now = getTimestampMs()
+        local sl = keep._slow
+        if not sl or keep._slowCar ~= vehicle or keep._slowChr ~= chr or not keep._slowAt or now - keep._slowAt >= SLOW_MS then
+            sl = sl or {}
+            _slowRead(vehicle, chr, sl)
+            keep._slow, keep._slowCar, keep._slowChr, keep._slowAt = sl, vehicle, chr, now
+        end
+        for i = 1, #SLOW_KEYS do local kk = SLOW_KEYS[i]; st[kk] = sl[kk] end
+    else
+        _slowRead(vehicle, chr, st)
+    end
+    st.lights   = _get(vehicle, "getHeadlightsOn", false)
+    -- the dash lights burn on the headlight switch while the lamps can actually light (vanilla's own test, its
+    -- dashboard's lights icon: switched on and getHeadlightCanEmmitLight)
+    st.dashLit  = st.lights and _get(vehicle, "getHeadlightCanEmmitLight", false) or false
     -- the fitted radio, read the same way its close-up reads it (ZeD_RadioOps)
     local radio  = _safe(function() return vehicle:getPartById("Radio") end, nil)
     st.radioPart = radio
@@ -2197,7 +2218,7 @@ function ZeD_Dashboard:prerender()
     self._lastMs = now
     self._driver = _safe(function() return vehicle:isDriver(chr) end, false)
     if self._odoCar and not self._driver then self:_odoLeave() end    -- (moved out of the driver's seat)
-    local st = _state(vehicle, chr)
+    local st = _state(vehicle, chr, self)
     local pubV = ZeD.ModSupport and ZeD.ModSupport.VSKDash
     if pubV then
         if self._driver then st.pub = pubV.read(vehicle, chr, self._mem) else st.pub = pubV.figures(vehicle, self._mem) end
@@ -2392,6 +2413,7 @@ function ZeD_Dashboard:_fire(id, secondary)
     -- the key turned to start: the dash shows it on its way (ZeD_Dashboard:_keyPos)
     if id == "ignition" and not secondary and st.keysIn and not st.running then self._keyTurn = getTimestampMs() end
     local ok, err = pcall(fn, chr, v, st, secondary, self)
+    self._slowAt = nil   -- (the action's result is read fresh on the next frame: speed audit 3)
     if not ok then print("[ZeD] Dashboard: action " .. tostring(id) .. " failed: " .. tostring(err)) end
 end
 

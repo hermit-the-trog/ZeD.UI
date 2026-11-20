@@ -723,6 +723,9 @@ local function sfSetup()
     end
 end
 X._scriptReset = function() SF.ready = false end
+-- (the faces' table, read by the lean text draw's fast path in Overrides/TextScale.lua: SF.cur[str] == false is a
+-- string kept as drawn in its own face. Speed audit, Nov 20 2026.)
+X._SF = SF
 -- true once the faces have been looked up (not before the fonts have loaded)
 local function sfReady()
     if SF.ready then return true end

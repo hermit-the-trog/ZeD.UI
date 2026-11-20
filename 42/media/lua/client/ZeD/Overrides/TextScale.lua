@@ -233,7 +233,17 @@ function LEAN.drawText(self, str, x, y, r, g, b, a, font)
         end
         return
     end
-    if jo ~= nil and not self.isCollapsed then roleDraw(jo, font, tostring(str), x, y, z, r, g, b, a) end
+    if jo == nil or self.isCollapsed then return end
+    -- (QA's speed audit, Nov 20 2026: a role-font draw cost about 6 us against 1 for the Java call, most of it the
+    -- walk through roleDraw, scriptSwap and scriptFont to learn that the string draws in its own face. A string
+    -- already known to, with the game's faces not standing in, draws straight away; anything else as before.)
+    if type(str) ~= "string" then str = tostring(str) end
+    local SF = X._SF
+    if SF and SF.ready and not X.fallback and SF.cur[str] == false then
+        jo:DrawText(font, str, x, y, z, r, g, b, a)
+        return
+    end
+    roleDraw(jo, font, str, x, y, z, r, g, b, a)
 end
 function LEAN.drawTextureScaled(self, texture, x, y, w, h, a, r, g, b)
     local jo = self.javaObject
