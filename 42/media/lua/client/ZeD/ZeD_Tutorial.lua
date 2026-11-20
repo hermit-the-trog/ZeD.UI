@@ -206,7 +206,9 @@ end
 function ZeD_TutorialKeys:onMouseUpOutside() self._down = nil end
 function ZeD_TutorialKeys:onJoypadDown(button, jd)
     -- (QA's bug hunt 7, Nov 20 2026: Start did nothing while the tour held the controller; it pauses, as everywhere)
-    if ZeD.padStart and ZeD.padStart(button, jd, R.pn) then return end
+    -- (R, the tour's state, is declared further down: read it through TU._state, set by then)
+    local st = TU._state
+    if ZeD.padStart and ZeD.padStart(button, jd, st and st.pn or 0) then return end
     if button == Joypad.AButton then TU.next() elseif button == Joypad.BButton then TU.stop() end
 end
 
