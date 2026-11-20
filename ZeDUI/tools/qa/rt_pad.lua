@@ -445,6 +445,61 @@ function S.putMood()
     if Z.Settings.save then pcall(Z.Settings.save) end
 end
 
+-- Select: ZeD > Style > Lite sets the additions to Vanilla, as picking Lite on ZeD setup does (Nov 20 2026, the
+-- complexity audit's BUG 1: the wheel set the Style and left the extras on, with no row left to turn them off).
+-- Every ZeD combo box is kept first and put back after (the scripts after this one expect the additions on).
+function S.putStyle()
+    if not S.styleKeep then return end
+    local zo = nil
+    pcall(function() zo = PZAPI.ModOptions:getOptions("ZeD_UI") end)
+    for id, v in pairs(S.styleKeep) do
+        local o = zo and zo.dict and zo.dict[id]
+        if o and o.selected ~= v then pcall(function() o:setValue(v) end) end
+    end
+    S.styleKeep = nil
+    if Z.Settings.reapplyFromOptions then pcall(Z.Settings.reapplyFromOptions) end
+    if Z.Settings.save then pcall(Z.Settings.save) end
+end
+Q.step(10, function()
+    S.closeWheels()
+    S.styleKeep = {}
+    local zo = nil
+    pcall(function() zo = PZAPI.ModOptions:getOptions("ZeD_UI") end)
+    for _, o in ipairs((zo and zo.data) or {}) do
+        if o.type == "combobox" and o.id then S.styleKeep[o.id] = o.selected end
+    end
+    S.back.style = true
+    S.setOpt(Z.Settings.lookStyleOption, 1)
+    S.openWheel("select")
+end)
+Q.step(5, function()
+    local sty = S.entry(1, S.byName(Z.tr("UI_ZeD_Settings_LookStyle")))
+    if not Q.check(sty ~= nil, "select: Style is on the ZeD wheel") then return end
+    D.enter(S.pn, sty)
+    local lv = D.state[S.pn] and D.state[S.pn].path[2]
+    local e = lv and lv.entries and lv.entries[2]
+    if Q.check(e ~= nil and e.run ~= nil, "select: Style lists Full and Lite") then D.take(S.pn, e) end
+    S.closeWheels()
+end)
+Q.step(10, function()
+    local St = Z.Settings
+    local on = {}
+    for _, id in ipairs({ "ammoBox", "readMarks", "readNext", "dimRead", "dashLamps", "moodleNotices", "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "loadouts" }) do
+        local zo = nil
+        pcall(function() zo = PZAPI.ModOptions:getOptions("ZeD_UI") end)
+        local o = zo and zo.dict and zo.dict[id]
+        if o and o.selected ~= 1 then on[#on + 1] = id .. "=" .. tostring(o.selected) end
+    end
+    Q.check(St.lite() == true, "select: the Style pick sets Lite", tostring(S.opt(St.lookStyleOption)))
+    Q.check(#on == 0, "select: Lite picked on the wheel sets the additions to Vanilla, as ZeD setup does", table.concat(on, " "))
+    S.back.style = nil
+    S.putStyle()
+end)
+Q.step(10, function()
+    Q.check(Z.Settings.lite() == false and S.opt(Z.Settings.additionsPresetOption or Z.Settings.lookStyleOption) ~= nil, "select: Style and the additions are put back",
+        "Style " .. tostring(S.opt(Z.Settings.lookStyleOption)))
+end)
+
 -- ===================================================================== Select > Reset windows
 -- the pair nudged off its places, then the slice: both back at the page spread (Organisms.lua resetLayout: the
 -- Character window's right edge a gap left of the screen's middle, the World window a gap right of it, both at the top).
@@ -1337,7 +1392,7 @@ end
 Q.mark()
 Q.step(5, function()
     S.closeWheels()
-    S.putDraw(); S.putShout(); S.putZoom(); S.putMood(); S.putChords(); S.putPB(); S.putPlace(); S.putPF()
+    S.putDraw(); S.putShout(); S.putZoom(); S.putMood(); S.putStyle(); S.putChords(); S.putPB(); S.putPlace(); S.putPF()
     S.putRW(); S.putHL(); S.putPtr(); S.putRoute(); S.putGesture(); S.putHalo(); S.putMH(); S.putFish()
     S.release()
     if S.back.view then S.back.view = nil; S.setOpt(Z.Settings.inventoryViewOption, S.invView) end
