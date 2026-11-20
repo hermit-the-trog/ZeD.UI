@@ -508,23 +508,9 @@ local function renderPaperLook(panel, win, x, y, w, h, e)
         panel:drawRectBorder(lx, cy, thW, thH, bd.a * 0.5, bd.r, bd.g, bd.b)
         local rx = lx + thW + T.sp.md
         local rw = lx + lw - rx
-        local ry = section(panel, ZeD.tr("UI_ZeD_Reader_HeadPiece"), rx, cy, rw)
-        local ac, tc = T.textDim, T.text
-        local function kv(k, v, dot)
-            panel:drawText(ZeD.textCase(k), rx, ry + T.px(2), ac.r, ac.g, ac.b, ac.a or 1, f1)
-            local vx = rx + T.px(52)
-            if dot then
-                local dsz = T.px(6)
-                ZeD.Atoms.drawStatusDot(panel, vx, ry + math.floor((fh(f2) - dsz) / 2), dot, dsz)
-                vx = vx + dsz + T.px(6)
-            end
-            panel:drawText(trunc(v, f2, rx + rw - vx), vx, ry, tc.r, tc.g, tc.b, tc.a or 1, f2)
-            ry = ry + fh(f2) + T.px(5)
-        end
-        kv(ZeD.tr("UI_ZeD_Reader_LabelKind"), P.kindName(e.kind))
-        if e.date then kv(ZeD.tr("UI_ZeD_Reader_LabelDate"), e.date) end
-        kv(ZeD.tr("UI_ZeD_Reader_LabelRead"), e.read and getText("UI_Yes") or ZeD.tr("UI_ZeD_Reader_NotYet"), e.read and T.positive or T.textDim)
-        ry = ry + T.sp.sm
+        -- (QA's visual noise audit 19, Nov 20 2026: the "This piece" block, kind, date and read, repeated the title above
+        -- it; the Read button says it is unread, the places say it was read)
+        local ry = cy
         if not e.read then
             -- reading is vanilla's action: light, time, then the words and the places
             local dark = p:tooDarkToRead()

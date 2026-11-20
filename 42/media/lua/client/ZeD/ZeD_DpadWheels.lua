@@ -601,10 +601,7 @@ function Z.seeThroughWheel(p, pn)
         out[#out + 1] = { name = tr("UI_ZeD_Settings_SeeThroughPct", v), icon = SEE_ICON, detail = inUse(cur == i),
             run = function() S.setSeeThrough(i) end, off = off }
     end
-    if S.solidInUse then
-        out[#out + 1] = { name = tr("UI_ZeD_Settings_SolidInUse"), icon = SEE_ICON, detail = getText(S.solidInUse() and "UI_On" or "UI_Off"),
-            run = function() S.setSolidInUse(not S.solidInUse()) end, off = off }
-    end
+    -- (a window in use is always solid now: no "Solid while in use" choice; visual noise audit, ZeD setup)
     return out
 end
 

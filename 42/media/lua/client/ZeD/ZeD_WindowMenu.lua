@@ -224,8 +224,7 @@ function WM.build(win)
             see.children[#see.children + 1] = leaf(tr("UI_ZeD_Settings_SeeThroughPct", v), function() S.setSeeThrough(i) end,
                 function() return S.seeThroughIndex() == i end)
         end
-        see.children[#see.children + 1] = leaf(tr("UI_ZeD_Settings_SolidInUse"), function() S.setSolidInUse(not S.solidInUse()) end,
-            function() return S.solidInUse() end, "solid")
+        -- (QA's visual noise audit, ZeD setup: a window in use is always solid now, so "Solid while in use" is no choice)
         items[#items + 1] = see
     end
 
