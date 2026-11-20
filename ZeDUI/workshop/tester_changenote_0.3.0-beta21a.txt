@@ -1,0 +1,27 @@
+0.3.0-beta21a
+
+A hotfix for beta 21: faster windows, less repeated text and the bugs from a night of deep tests.
+
+Speed
+- With both windows open on Loot at 4K, a frame takes about 10.7 ms (beta 21: 18.1). The item lists and the container buttons no longer ask the game for the same facts every frame.
+- Text draws about twice as fast, in every window that uses ZeD's text.
+- The dashboard reads the slow car facts (fuel, battery, part condition, locks) five times a second instead of every frame.
+
+Less repeated text
+- The item count and weight show once on each inventory window. An empty container says "Nothing here." and nothing else.
+- A tab's name shows once. Item card labels are gray; no "Marked" word.
+- Question windows put their heading in the title bar. A window's foot strip is not drawn when it has nothing to say.
+- The Mods screen counts the mods once and drops the mod ID under names. Load order shows only the rows that need fixing.
+- ZeD setup: about 46 rows in Full (was about 68) and 19 in Lite. Related switches are merged into one row; no saved setting changes meaning.
+- Plain radio, appliance and clock cards, vehicle part rows, the action bar, Skills, Health, Crafting, farm plots, henhouses, Maps and the Equipment doll each lose a repeated line or label.
+- Maps: a Light map checkbox beside Survey, Color and Paper.
+
+Fixes
+- Keyboard map: a changed key no longer goes back when Apply is pressed. The key you press to answer it no longer also does its job in the game. Clicking the same row again cancels. Reset gives French keyboards the game's own French keys.
+- Tour: it no longer starts in the game's Tutorial, the Character window stays open during its step, Start works on a controller and the tour closes when the character dies.
+- Lite picked on the first launch or the controller wheel turns the extras off too.
+- A setup file with a value no option has is ignored.
+- A key saved with Shift, Ctrl or Alt shows with it.
+- The small watch's date no longer touches the weekday.
+- A second click clears a pick on the admin, zone and stats cards.
+- Cut-off text and overlaps fixed on the Lite clock, the character name, help lines, farm plot tags and the Cat column.
