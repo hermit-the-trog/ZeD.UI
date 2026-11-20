@@ -10,14 +10,14 @@
     Refuses (exit 2) while ProjectZomboid64.exe runs or Zomboid/Lua/zedqa.lock says busy.
       pwsh -NoProfile -File ZeDUI/tools/qa/hotfix_report_run.ps1 -Part inv,tabs
 #>
-param([string[]]$Part = @("menu", "setup", "inv", "prompts", "devices", "veh", "tabs", "farm"))
+param([string[]]$Part = @("menu", "setup", "inv", "prompts", "devices", "veh", "tabs", "farm"), [string]$OutName = "beta21_hotfix_report")
 $ErrorActionPreference = "Stop"
 $here = $PSScriptRoot
 $Z = "$($env:USERPROFILE)\Zomboid"
 $lua = Join-Path $Z "Lua"
 $lock = Join-Path $lua "zedqa.lock"
 $shots = Join-Path $Z "Screenshots"
-$out = Join-Path $shots "beta21_hotfix_report"
+$out = Join-Path $shots $OutName
 $names = @("ModOptions.ini", "ZeD_setup.txt", "ZeD_tutorial.txt", "ZeD_setup_seen.txt")
 $env:ZEDQA_NOSTEAM = "1"
 
@@ -67,9 +67,9 @@ try {
         if ((Get-Process -Name ProjectZomboid64 -ErrorAction SilentlyContinue)) { Write-Output "hotfix_report_run: a game is running, stopping before $pt"; $codes += 3; break }
         Write-Output "hotfix_report_run: part $pt"
         try {
-            if ($pt -eq "menu" -or $pt -eq "setup") {
+            if ($pt -eq "menu" -or $pt -eq "setup" -or $pt -eq "disk") {
                 & pwsh -NoProfile -File (Join-Path $here "zedqa_menu_mods_run.ps1") -ModList (Join-Path $here "zed_only_mods.txt") `
-                    -Script (Join-Path $here "hfr_$pt.lua") -Tag $(if ($pt -eq "menu") { "mhfr" } else { "mset" }) -TimeoutSec 600
+                    -Script (Join-Path $here "hfr_$pt.lua") -Tag $(if ($pt -eq "menu") { "mhfr" } elseif ($pt -eq "disk") { "mdsk" } else { "mset" }) -TimeoutSec 600
                 $codes += $LASTEXITCODE
             }
             elseif ($pt -eq "farm") {
