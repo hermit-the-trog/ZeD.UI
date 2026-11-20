@@ -2196,6 +2196,19 @@ function ZeD_MMWindow:pointerOn()
     return inside(self)
 end
 
+-- On the monitor a desk window draws solid. See-through is for seeing the game world past a
+-- window; on the desk there is no world behind it, only the main window still drawn under
+-- whichever view holds the screen (Mods, Options, Load), whose icons would show through the
+-- moment the pointer left the window. In game (no glass: the pause window) See-through
+-- works as everywhere else.
+function ZeD_MMWindow:_surfaceAlpha(T)
+    local desk = self.parent
+    if not (desk and desk.glass and desk.glass:isVisible()) then return ZeD_Window._surfaceAlpha(self, T) end
+    local base = (T.surf1 and T.surf1.a) or 1
+    if base >= 0.999 then return nil end   -- (Light and High contrast are solid already)
+    return 1
+end
+
 -- the pointer context this window reads hover from
 function ZeD_MMWindow:pctx() if self.kind == "pause" then return self.ctx end; return MM.ctx end   -- the desk's windows share the menu bar's pointer
 
