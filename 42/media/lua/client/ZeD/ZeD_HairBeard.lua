@@ -1334,12 +1334,9 @@ local function drawHeads(panel, win, st, it, y, wants, view)
     local face = st.part == "beard" or st.part == "makeup"
     want(wants, view, "now", it.x, y, bw, bh, nh, nb, false, face)
     local dim, tc = T.toneLo or T.textDim, T.text
-    local f5 = T.fontF5
-    local function cap(text, cx)
-        local tw = ZeD.TM:MeasureStringX(f5, text)
-        panel:drawText(text, cx + math.floor((bw - tw) / 2), y + bh + T.px(3), dim.r, dim.g, dim.b, dim.a or 1, f5)
-    end
-    cap(tr("UI_ZeD_Hair_Now"), it.x)
+    -- (QA's visual noise audit 40, Nov 20 2026: "Now" and "After" captioned two pictures the ">" already joins;
+    -- gone. The rows at the right keep only the length bars: the card above names the style, the color and the
+    -- facial hair, and a beard that is not there has no row.)
     local ax = it.x + bw + T.px(6)
     panel:drawText(">", ax, y + math.floor((bh - F(2)) / 2), dim.r, dim.g, dim.b, dim.a or 1, T.fontF2)
     local bx = ax + ZeD.TM:MeasureStringX(T.fontF2, ">") + T.px(6)
@@ -1349,7 +1346,6 @@ local function drawHeads(panel, win, st, it, y, wants, view)
         local h2, b2 = headLook(st, p, sel)
         want(wants, view, "after", bx, y, bw, bh, h2, b2, false, face, false, sel.mk)
     end
-    cap(tr("UI_ZeD_Hair_After"), bx)
     -- what the character has now
     local cx = bx + bw + T.px(12)
     local cw = it.x + it.w - cx
@@ -1360,10 +1356,11 @@ local function drawHeads(panel, win, st, it, y, wants, view)
     local hv1 = hairWord(curHair)
     if tiedTo and cur and cur:isAttachedHair() then hv1 = hv1 .. " " .. tr("UI_ZeD_Hair_Tied", hairWord(tiedTo)) end
     rowsDef[#rowsDef + 1] = { getText("IGUI_char_HairStyle"), hv1, "len", cur and cur:getLevel() or 0 }
-    rowsDef[#rowsDef + 1] = { tr("UI_ZeD_Hair_Color"), win._identityCache and win._identityCache.hairColor or "", "color" }
     if not female then
         local bs = getBeardStylesInstance():FindStyle(curBeard)
-        rowsDef[#rowsDef + 1] = { getText("IGUI_char_BeardStyle"), beardWord(bs and bs:getName() or ""), "len", bs and bs:getLevel() or 0 }
+        if bs and (bs:getLevel() or 0) > 0 then
+            rowsDef[#rowsDef + 1] = { getText("IGUI_char_BeardStyle"), beardWord(bs:getName() or ""), "len", bs:getLevel() }
+        end
     end
     local rh = T.px(CUR_H)
     local ry = y + math.floor((it.h - rh * #rowsDef) / 2)
@@ -1389,8 +1386,10 @@ local function drawHeads(panel, win, st, it, y, wants, view)
             panel:drawRectBorder(vx, ry + math.floor((rh - sz) / 2), sz, sz, T.borderS.a or 1, T.borderS.r, T.borderS.g, T.borderS.b)
             vx2 = vx + sz + T.px(5)
         end
-        local vw = cx + cw - mw - T.px(8) - vx2
-        panel:drawText(ZeD.Atoms.truncateText(d[2], f2, vw), vx2, ty2, tc.r, tc.g, tc.b, tc.a or 1, f2)
+        if d[3] ~= "len" then   -- (a length row: the bar and its word; the style's name is on the card above)
+            local vw = cx + cw - mw - T.px(8) - vx2
+            panel:drawText(ZeD.Atoms.truncateText(d[2], f2, vw), vx2, ty2, tc.r, tc.g, tc.b, tc.a or 1, f2)
+        end
         local mx = cx + cw - mw
         if d[3] == "len" then
             local used = lenBar(panel, mx, ry + math.floor((rh - T.px(10)) / 2), d[4])
@@ -1724,8 +1723,9 @@ function stripState(win)
     local r = findRow(st, st.sel)
     local verb = (st.part == "beard" and "Trim") or (st.part == "makeup" and "Apply") or "Cut"
     if not r then
-        if st.done then s.text, s.color = st.done, T.positive
-        else s.text = tr("UI_ZeD_Hair_Pick") end
+        -- (QA's visual noise audit 40, Nov 20 2026: "Choose a row to see what it needs" sat beside a dimmed button
+        -- under the rows it means; the strip stays empty until a row is picked)
+        if st.done then s.text, s.color = st.done, T.positive end
     elseif r.out then
         s.text, s.info, s.needs = tr("UI_ZeD_Hair_OutTitleNA", r.label), r.why, true
     else

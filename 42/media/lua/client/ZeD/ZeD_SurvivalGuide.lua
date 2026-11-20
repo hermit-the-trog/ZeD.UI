@@ -877,8 +877,15 @@ function ZeD_GuideWindow:buildList(g)
     for _, s in ipairs(self.sections or {}) do
         local shown = {}
         for _, t in ipairs(s.topics) do if matches(t, q) then shown[#shown + 1] = t end end
-        if q == "" or #shown > 0 then
-            local folded = q == "" and self.closed[s.id]
+        -- (QA's visual noise audit, Words, Nov 20 2026: a Find put every hit under its own section head with "(1)";
+        -- the hits are one flat list now, each with its section as a dim word at the right)
+        if q ~= "" then
+            for _, t in ipairs(shown) do
+                g.rows[#g.rows + 1] = { x = 0, y = y, w = g.list.w, h = rowH, topic = t, id = t.id, chapter = s.title }
+                y = y + rowH
+            end
+        elseif #shown > 0 or q == "" then
+            local folded = self.closed[s.id]
             g.rows[#g.rows + 1] = { x = 0, y = y, w = g.list.w, h = catH, section = s, count = #shown, folded = folded, id = "s:" .. s.id }
             y = y + catH
             if not folded then
@@ -1256,7 +1263,15 @@ function ZeD_GuideWindow:prerender()
                 local onFocus = focus and ZeD.Focus.mark(self, r.x, r.y, r.w, r.h, focusOpts(self), nil)
                 local col = onFocus and T.textOnFocus or tc
                 local nx = r.x + px(U.PAD) * 2 + px(4)
-                self:drawText(A.truncateText(r.topic.title, T.fontF2, r.w - (nx - r.x) - px(U.PAD)), nx, r.y + math.floor((r.h - fh(T.fontF2)) / 2), col.r, col.g, col.b, col.a or 1, T.fontF2)
+                local right = r.x + r.w - px(U.PAD)
+                if r.chapter then
+                    local cw = math.min(tw(T.fontF1, r.chapter), math.floor(r.w * 0.4))
+                    local ch = A.truncateText(r.chapter, T.fontF1, cw)
+                    local cc = onFocus and T.textOnFocus or td
+                    self:drawText(ch, right - tw(T.fontF1, ch), r.y + math.floor((r.h - fh(T.fontF1)) / 2), cc.r, cc.g, cc.b, cc.a or 1, T.fontF1)
+                    right = right - tw(T.fontF1, ch) - px(8)
+                end
+                self:drawText(A.truncateText(r.topic.title, T.fontF2, right - nx), nx, r.y + math.floor((r.h - fh(T.fontF2)) / 2), col.r, col.g, col.b, col.a or 1, T.fontF2)
             end
         end
     end

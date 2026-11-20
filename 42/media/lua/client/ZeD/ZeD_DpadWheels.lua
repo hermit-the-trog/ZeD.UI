@@ -124,9 +124,10 @@ local function prompts(st)
     if st.commit == "click" then
         out[2] = { glyph = "R3", label = ZeD.tr("UI_ZeD_Wheel_PromptTake") }
     else
-        out[2] = { glyph = "RS", label = ZeD.tr("UI_ZeD_Wheel_PromptLetGo") }
+        -- (QA's visual noise audit, Words: "(R) Point  (R) Let go: take" named the stick twice; one prompt says both)
+        out[1] = { glyph = "RS", label = ZeD.tr("UI_ZeD_Wheel_PromptPointTake") }
     end
-    if #st.path > 1 then out[3] = { glyph = g, pad = gp, label = ZeD.tr("UI_ZeD_Wheel_PromptClose") } end
+    if #st.path > 1 then out[#out + 1] = { glyph = g, pad = gp, label = ZeD.tr("UI_ZeD_Wheel_PromptClose") } end
     out[#out + 1] = b
     return out
 end
@@ -1216,7 +1217,9 @@ end
 
 function N.help(p, pn)
     return {
-        { name = getText("UI_optionscreen_binding_Toggle Survival Guide"), icon = "guide", run = function(pl, n) ISDPadWheels.showSurvGuide(n) end },
+        -- (QA's visual noise audit, Words, Nov 20 2026: "Toggle Survival Guide" sat in the same lists as the game's
+        -- "Show/Hide World Map"; one verb, the game's)
+        { name = tr("UI_ZeD_Wheel_GuideShowHide"), icon = "guide", run = function(pl, n) ISDPadWheels.showSurvGuide(n) end },
         -- the controller map: ZeD_ControllerMap.lua
         { name = tr("UI_ZeD_Wheel_ControllerMap"), icon = "gamepad",
           run = function(pl, n) if ZeD.ControllerMap and ZeD.ControllerMap.open then ZeD.ControllerMap.open(n) end end },
@@ -1251,7 +1254,9 @@ D.B.now = function(p, pn)
           off = (not getCore():isZoomEnabled()) and tr("UI_ZeD_Wheel_NotNow") or nil },
         { name = tr("UI_ZeD_Wheel_View"), icon = "eye", detail = tr("UI_ZeD_Wheel_ViewDetail"), sub = N.view },
         { name = tr("UI_ZeD_Wheel_Help"), icon = "help", sub = N.help },
-        { name = light and light:getDisplayName() or tr("UI_ZeD_Wheel_Light"), icon = "bulb_on", detail = lightDetail,
+        -- (word: the slice's steady name for the quick action picker, which said "Flashlight" where the chord row
+        -- said "Light" for this one action; QA's visual noise audit, Words, Nov 20 2026)
+        { name = light and light:getDisplayName() or tr("UI_ZeD_Wheel_Light"), word = tr("UI_ZeD_Wheel_Light"), icon = "bulb_on", detail = lightDetail,
           run = function(pl) local l = H.bestLight(pl); if l then H.lightOn(pl, l) end end,
           off = (not light) and tr("UI_ZeD_Wheel_NoLight") or nil },
     }

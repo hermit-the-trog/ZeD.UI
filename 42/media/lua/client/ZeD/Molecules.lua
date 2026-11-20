@@ -3863,7 +3863,9 @@ function ZeD.Molecules.drawSlotRow(panel, x, y, w, data, selected, hovered, opts
     local tri = T.px(5)
     if alts then
         tagStr = tostring(data.altCount)
-        tagW = A.tagW(tagStr, true) + T.px(3) + tri
+        -- (QA's visual noise audit 30, Nov 20 2026: two colored squares on every ingredient row, the count's and the
+        -- alternatives tag's. One square per row: the count's; the tag is the number and its triangle.)
+        tagW = A.tagW(tagStr, false) + T.px(3) + tri
         nameMaxW = nameMaxW - tagW - T.px(6)
         if data.tag == "FUEL" then
             extraTag = ZeD.tr("UI_ZeD_Recipe_Fuel")
@@ -3887,7 +3889,7 @@ function ZeD.Molecules.drawSlotRow(panel, x, y, w, data, selected, hovered, opts
         tg.textColor = onFocus and T.textOnFocus or nil
         local ty = y + math.floor((h - T.px(16)) / 2)
         if alts then
-            local tw = A.drawTag(panel, cx, ty, tagStr, T.warning, tg)
+            local tw = A.drawTag(panel, cx, ty, tagStr, nil, tg)
             A.drawTriangleDown(panel, cx + tw + T.px(3), y + math.floor((h - tri) / 2), tri, onFocus and T.textOnFocus or T.textDim)
             if extraTag then
                 A.drawTag(panel, cx + tagW + T.px(6), ty, extraTag, nil, tg)

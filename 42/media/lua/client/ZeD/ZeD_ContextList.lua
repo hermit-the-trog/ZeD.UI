@@ -75,13 +75,24 @@ local function checked(def)
 end
 local function live(def) return def and not def.heading end
 
--- a level's rows: the actions with a rule between groups (the strip's categories)
+-- (QA's visual noise audit 44, Nov 20 2026: ten actions and five rules, "Eat", "Drop" and "Rename" each alone
+-- between two. The list rules off four groups: use, move, mark, manage. The registry's seven categories fold into
+-- them; a menu's own categories (the loadouts' menus) are their own groups, as before. The strip is unchanged.)
+local LIST_GROUP = { USE = "use", ACTION = "use", CRAFT = "use", EQUIP = "move", TRANSFER = "move",
+                     INFO = "mark", ADMIN = "manage" }
+local function groupOf(def)
+    local c = def.category
+    return (c ~= nil and LIST_GROUP[c]) or c
+end
+
+-- a level's rows: the actions with a rule between groups
 local function rowsOf(items)
     local rows, last = {}, nil
     for _, def in ipairs(items) do
-        if last and def.category ~= last then rows[#rows + 1] = { sep = true } end
+        local g = groupOf(def)
+        if last and g ~= last then rows[#rows + 1] = { sep = true } end
         rows[#rows + 1] = { def = def }
-        last = def.category
+        last = g
     end
     return rows
 end

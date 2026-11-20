@@ -346,12 +346,9 @@ function def.pill(t)
     if d.plowed then return ZeD.tr("UI_ZeD_Farm_PillEmpty"), T.textDim end
     if d.state == "rotten" then return ZeD.tr("Farming_Rotten"), T.danger end
     if not d.alive then return OC.cap(d.state == "harvested" and getText("Farming_Harvested") or getText("Farming_Dead")), T.danger end
-    if t.obj:canHarvest() then return ZeD.tr("UI_ZeD_Farm_PhaseReady"), T.positive end
-    local w = d.water
-    if w <= 25 then return ZeD.tr("Farming_Parched"), T.danger end
-    if w <= 50 then return ZeD.tr("Farming_Dry"), T.danger end
-    if w <= 60 then return ZeD.tr("Farming_Thirsty"), T.warning end
-    return ZeD.tr("UI_ZeD_Farm_PillGrowing"), T.positive
+    -- (QA's visual noise audit 31, Nov 20 2026: "Ready" sat in the title, the heading and the stage strip. A living
+    -- plant's tag only repeated the heading, the strip or the water row under it; the tag stays for dead and rotten.)
+    return nil
 end
 
 -- ---------------------------------------------------------------------------
@@ -384,6 +381,9 @@ local function drawPhaseStrip(card, x, y, w, d)
     local bh = T.fillBarH
     local f5 = T.fontF5
     local locked = d.skill < 2
+    -- (QA's visual noise audit 31, Nov 20 2026: a locked strip was an empty bar with a "Farming 2" tag; it is hidden,
+    -- and the body's one dim line says what more skill shows. This also ends bug B7's tag over the bars.)
+    if locked then return 0 end
     local lit, fillC = 0, T.accent
     if not locked and d.phase ~= nil then
         lit = d.phase + 1
@@ -554,18 +554,31 @@ function def.body(card, x, y, w, t, player)
         end
     else
         y = y + drawPlantTag(card, x, y, w, d, d.name, ZeD.textCase(ZeD.tr("UI_ZeD_Farm_Skill", d.skill))) + gap
-        y = y + drawPhaseStrip(card, x, y, w, d) + gap
-        -- Next stage / Compost
-        local nextV
-        if not d.alive then nextV = txt("UI_No", "No")
-        elseif d.skill >= 6 then nextV = d.next or "?"
-        else
-            nextV = function(rx, ry, rh)
-                local tw = UI.tagW(lockTag(6))
-                UI.tag(card, rx - tw, ry + math.floor((rh - T.px(16)) / 2), lockTag(6))
+        -- (QA's visual noise audit 31, Nov 20 2026: "Farming 2", "Farming 3", "Farming 4" and "Farming 6" sat on four
+        -- mostly empty bars. One dim line names the levels that show more; the locked bars and tags are gone.)
+        if d.alive then
+            local more = {}
+            for _, lv in ipairs({ 2, 3, 4, 6 }) do
+                if d.skill < lv then more[#more + 1] = tostring(lv) end
+            end
+            if #more > 0 then
+                local list = more[#more]
+                if #more > 1 then
+                    list = ZeD.tr("UI_ZeD_Farm_ListAnd", table.concat(more, ", ", 1, #more - 1), more[#more])
+                end
+                y = y + UI.para(card, x, y, w, ZeD.tr("UI_ZeD_Farm_MoreAt", list), T.textDim) + gap
             end
         end
-        y = y + UI.pair(card, x, y, w, ZeD.tr("UI_ZeD_Farm_NextStage"), nextV, ZeD.tr("Farming_Compost"), d.compost and txt("Farming_Compost_True", "Yes") or txt("Farming_Compost_False", "No")) + gap
+        local stripH = drawPhaseStrip(card, x, y, w, d)
+        if stripH > 0 then y = y + stripH + gap end
+        -- Next stage / Compost (Next stage only once the skill reads it)
+        local compostV = d.compost and txt("Farming_Compost_True", "Yes") or txt("Farming_Compost_False", "No")
+        if d.alive and d.skill < 6 then
+            y = y + UI.pair(card, x, y, w, ZeD.tr("Farming_Compost"), compostV) + gap
+        else
+            local nextV = d.alive and (d.next or "?") or txt("UI_No", "No")
+            y = y + UI.pair(card, x, y, w, ZeD.tr("UI_ZeD_Farm_NextStage"), nextV, ZeD.tr("Farming_Compost"), compostV) + gap
+        end
         -- WATER
         if d.alive then
             local word, dotC = waterWord(d.water)
@@ -580,7 +593,8 @@ function def.body(card, x, y, w, t, player)
                 elseif d.water < d.waterNeeded then fillC = T.danger end
                 y = y + UI.meter(card, x, y, w, ZeD.tr("Fluid_Name_Water"), word, dotC, d.water, fillC, { lo, hi }) + gap
             else
-                y = y + UI.meter(card, x, y, w, ZeD.tr("Fluid_Name_Water"), word, dotC, 0, nil, nil, lockTag(4)) + gap
+                -- (the word without its locked bar: audit 31)
+                y = y + UI.pairWide(card, x, y, w, ZeD.tr("Fluid_Name_Water"), word) + gap
             end
         end
         -- Pests and disease: rows with Treat (vanilla lets you spray blind). A Treat with no spray to
@@ -588,7 +602,7 @@ function def.body(card, x, y, w, t, player)
         if d.alive then
             local known, count = t.pestsVisible, 0
             for _, pe in ipairs(d.pests) do if pe.lvl > 0 then count = count + 1 end end
-            local right = known and (count > 0 and tostring(count) or txt("Farming_None", "None")) or lockTag(3)
+            local right = known and (count > 0 and tostring(count) or txt("Farming_None", "None")) or nil   -- (no lock tag: audit 31)
             y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Farm_Pests"), right)
             local showAll = ZeD.Disclose.setting() == "all"
             for i, pe in ipairs(d.pests) do

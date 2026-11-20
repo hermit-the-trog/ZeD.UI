@@ -1666,10 +1666,9 @@ local function drawZoneInfoBand(panel, win, x, y, w, summary)
         end
     end
 
-    local countStr = ZeD.tr((summary.count or 0) == 1 and "UI_ZeD_Animals_AnimalCountOne" or "UI_ZeD_Animals_AnimalCountMany", summary.count or 0)
-    local countFont = T.fontF3
-    local countW = tm:MeasureStringX(countFont, countStr)
-    panel:drawText(countStr, x + w - pad - countW, curY, T.text.r, T.text.g, T.text.b, T.text.a or 1, countFont)
+    -- (QA's visual noise audit 32, Nov 20 2026: "11 animals" sat here, on the trough row and as "Animals (11)";
+    -- the roster's head keeps it)
+    local countW = 0
     -- Zone size (on same line as name, after count)
     local zoneObj = summary.zone
     if not renaming and zoneObj and zoneObj.getW and zoneObj.getH then
@@ -1925,7 +1924,8 @@ local function structInfo(kind, o, player)
             sub = ZeD.tr("UI_ZeD_Animals_TroughWater", string.format("%.1f", wl), string.format("%.1f", ocall(o, "getMaxWater") or 0))
             badge, variant = getText("IGUI_FeedingTroughUI_Water"), "info"
         else
-            sub = ZeD.tr("Fluid_Empty"); badge, variant = getText("Fluid_Empty"), "neutral"
+            -- (audit 32: the line already says Empty; no second "Empty" tag at the right)
+            sub = ZeD.tr("Fluid_Empty")
         end
         local linked = ocall(o, "getLinkedAnimals")
         local nLinked = linked and linked:size() or 0
@@ -2010,7 +2010,8 @@ local function drawStructRow(panel, win, x, y, w, kind, o, idx, player, focusId)
     if tex then panel:drawTextureScaledAspect(tex, x + pad, y + math.floor((h - isz) / 2), isz, isz, 1, 1, 1, 1) end
 
     -- Open (right): a compact push button; pressing anywhere on the row does the same
-    local openLabel = getText("IGUI_Open")
+    -- (QA's visual noise audit 32, Nov 20 2026: "Open" here opens the card, beside a "Door open" tag; it says "Card")
+    local openLabel = ZeD.tr("UI_ZeD_Animals_CardBtn")
     local bw = M.buttonW(openLabel)
     local bx = x + w - pad - bw
     local rbx, rby, rbw, rbh = M.drawButton(panel, bx, y, bw, h, openLabel, "default", false, nil,

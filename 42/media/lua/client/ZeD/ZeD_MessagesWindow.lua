@@ -478,7 +478,9 @@ function ZeD_MessagesWindow:prerender()
                 kcol = (it.tone == "good" and T.positive) or (it.tone == "bad" and T.danger) or T.textDim
             end
             local kw = Mo.drawTag(self, c.x + px(U.CARD_PAD), hy, tr(kindKey), kcol)
-            local meta = self.sel .. " | " .. tostring(it.when or "") .. ((it.done and it.answer) and (" | " .. tr("UI_ZeD_Msg_Answered", it.answer)) or "")
+            -- (QA's visual noise audit 39, Nov 20 2026: each note repeated the source picked in the list; the head
+            -- says when only)
+            local meta = tostring(it.when or "") .. ((it.done and it.answer) and (" | " .. tr("UI_ZeD_Msg_Answered", it.answer)) or "")
             self:drawText(A.truncateText(meta, T.fontF1, c.w - kw - px(U.CARD_PAD) * 3), c.x + px(U.CARD_PAD) * 2 + kw, c.y + math.floor((px(U.CARD_HEAD_H) - fh(T.fontF1)) / 2), td.r, td.g, td.b, td.a or 1, T.fontF1)
             A.drawDividerH(self, c.x, c.y + px(U.CARD_HEAD_H), c.w, false)
             -- the text
@@ -498,7 +500,9 @@ function ZeD_MessagesWindow:prerender()
                 local o = _cardBtn
                 o.hover, o.focus, o.win = hov, focused and focusOpts(self) or nil, self
                 o.help = (b.ticket and tr("UI_ZeD_Tk_NoteOpenHelp")) or (b.bans and tr("UI_ZeD_Adm_NoteOpenHelp")) or (b.invite and tr("UI_ZeD_Cl_NoteOpenHelp")) or (b.copy and tr("UI_ZeD_Msg_HelpCopy")) or (b.openMods and tr("UI_ZeD_Msg_HelpOpenInMods")) or tr("UI_ZeD_Msg_HelpCardButton", b.label)
-                Mo.drawButton(self, b.x, b.y, b.w, b.h, b.label, b.primary and "primary" or "default", self._down == b, nil, o)
+                -- (audit 39: two cards' "Ok" and "Mark all read" all wore the accent; the band's verb keeps it, a
+                -- card's buttons are plain)
+                Mo.drawButton(self, b.x, b.y, b.w, b.h, b.label, "default", self._down == b, nil, o)
             end
         end
     end
