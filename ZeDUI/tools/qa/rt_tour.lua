@@ -8,7 +8,7 @@
 --      no tour starts by itself;
 --   1. every word the tour shows exists (each step's title and text, the controller's words where it has them, Next,
 --      Done, Stop tour, the step count);
---   2. the whole tour with the mouse, Next pressed through the keys panel's own mouse handler: all eleven steps, in
+--   2. the whole tour with the mouse, Next pressed through the keys panel's own mouse handler: all twelve steps, in
 --      order; each step draws its balloon (Balloon.draw watched, pass-through) with the step's title, words and
 --      "step n of 7", pointing at the step's thing, on screen, not covering that thing; the keys sit on screen and
 --      off the balloon; the Character window step opens the Character window, the World window step the World
@@ -151,7 +151,7 @@ Q.step(2, function()
     for _, k in ipairs({ "UI_ZeD_Tut_Next", "UI_ZeD_Tut_Done", "UI_ZeD_Tut_Stop", "UI_ZeD_Tut_StepOf" }) do
         if not H.has(k) then miss[#miss + 1] = k end
     end
-    Q.check(#TU.STEPS == 11, "the tour has eleven steps (belt, watch, Character window, its tabs, Health, Identity, Skills, card, World window, menu, guide)", #TU.STEPS)
+    Q.check(#TU.STEPS == 12, "the tour has twelve steps (belt, watch, Character window, its tabs, Equipment, Health, Identity, Skills, card, World window, menu, guide)", #TU.STEPS)
     Q.check(#miss == 0, "words: every step's title and text, Next, Done, Stop tour and the step count are in the game's words", table.concat(miss, ", "))
     local s = H.tr("UI_ZeD_Tut_StepOf", 3, 7) or ""
     Q.check(s:find("3", 1, true) ~= nil and s:find("7", 1, true) ~= nil, "words: the step count fills in its numbers", s)
@@ -224,7 +224,7 @@ for i = 1, #((TU and TU.STEPS) or {}) do
             pcall(function() ok = sp ~= nil and math.abs(L.a.x - sp:getAbsoluteX()) < 2 and math.abs(L.a.y - sp:getAbsoluteY()) < 2 end)
             Q.check(ok, name .. ": it points at the Character window's tab strip", "anchor " .. H.rs(L.a))
         end
-        local tabFor = { Health = "health", Identity = "identity", Skills = "skills", Card = "loot" }
+        local tabFor = { Equipment = "equip", Health = "health", Identity = "identity", Skills = "skills", Card = "loot" }
         if tabFor[st.key] then
             local cw = RT.cw()
             Q.check(cw ~= nil and cw._activeTab == tabFor[st.key], name .. ": the Character window is on its " .. tabFor[st.key] .. " tab",

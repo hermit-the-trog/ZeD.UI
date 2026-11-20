@@ -239,6 +239,18 @@ Q.step(5, function()
         math.floor(S.p:getX()), math.floor(S.p:getY()), S.core:getScreenWidth(), S.core:getScreenHeight(),
         tostring(W.style), tostring(ZeD.currentBase), tostring(ZeD.currentAccent)))
     G1.fillShelf(Q)
+    -- (Nov 19 2026: a crowd gathers at the Fossoil during a long run and stood beside Angel in the tour shots; the
+    -- zombies within 40 squares are taken away for the pictures, QA save only)
+    local gone = 0
+    pcall(function()
+        local zl = getCell():getZombieList()
+        local px, py = S.p:getX(), S.p:getY()
+        for i = zl:size() - 1, 0, -1 do
+            local z = zl:get(i)
+            if z and math.abs(z:getX() - px) < 40 and math.abs(z:getY() - py) < 40 then z:removeFromWorld(); z:removeFromSquare(); gone = gone + 1 end
+        end
+    end)
+    Q.say("zombies taken away near the store: " .. gone)
     G1.tp(S.P.stock, "SE")
 end)
 -- (the gallery's zoom: Angel readable at 4K, as gallery_v1_a_zed.lua's pictures)
