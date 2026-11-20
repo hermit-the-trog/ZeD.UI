@@ -1202,8 +1202,8 @@ function ZeD_MMMods:sepMenu(uid, anchor)
     items[#items + 1] = { text = ZeD.tr("UI_ZeD_Seps_MenuRename"), fn = function() self:sepAskRename(uid) end }
     items[#items + 1] = { text = ZeD.tr("UI_ZeD_Seps_MenuDelete"), fn = function() self:sepDelete(uid) end }
     items[#items + 1] = "-"
-    items[#items + 1] = { text = ZeD.tr("UI_ServerSettings_ButtonMoveUp"), disabled = k <= 1, fn = function() self:sepShift(uid, -1) end }
-    items[#items + 1] = { text = ZeD.tr("UI_ServerSettings_ButtonMoveDown"), disabled = k >= n, fn = function() self:sepShift(uid, 1) end }
+    items[#items + 1] = { text = ZeD.tr("UI_ZeD_Order_MoveUp"), disabled = k <= 1, fn = function() self:sepShift(uid, -1) end }
+    items[#items + 1] = { text = ZeD.tr("UI_ZeD_Order_MoveDown"), disabled = k >= n, fn = function() self:sepShift(uid, 1) end }
     items[#items + 1] = "-"
     items[#items + 1] = { text = ZeD.tr("UI_ZeD_Seps_BtnNew"), fn = function() self:sepAskNew() end }
     if F.any() then items[#items + 1] = { text = ZeD.tr("UI_ZeD_Seps_BtnReplace"), fn = function() self:sepFromFolders(false) end } end
@@ -1289,8 +1289,8 @@ function ZeD_MMMods:sepDetailItems(items, rw, uid)
         btn("sren", ZeD.tr("UI_ZeD_Seps_MenuRename"), function() self:sepAskRename(uid) end),
         btn("sdel", ZeD.tr("UI_ZeD_Seps_MenuDelete"), function() self:sepDelete(uid) end, false, ZeD.tr("UI_ZeD_Seps_HelpDelete")) } }
     items[#items + 1] = { t = "btns", list = {
-        btn("sup", ZeD.tr("UI_ServerSettings_ButtonMoveUp"), function() self:sepShift(uid, -1) end, k <= 1),
-        btn("sdown", ZeD.tr("UI_ServerSettings_ButtonMoveDown"), function() self:sepShift(uid, 1) end, k >= #self.oLo.seps),
+        btn("sup", ZeD.tr("UI_ZeD_Order_MoveUp"), function() self:sepShift(uid, -1) end, k <= 1),
+        btn("sdown", ZeD.tr("UI_ZeD_Order_MoveDown"), function() self:sepShift(uid, 1) end, k >= #self.oLo.seps),
         btn("sfold", ZeD.tr(sp.open and "UI_ZeD_Seps_MenuCollapse" or "UI_ZeD_Seps_MenuExpand"), function() self:sepOpenClose(uid) end) } }
     -- its label (ZeD's accent colours), kept with the profile's separators
     items[#items + 1] = { t = "head", text = ZeD.tr("UI_ZeD_Mods_Label") }
@@ -1421,8 +1421,8 @@ function ZeD_MMMods:orderPrompts(f, sel, back)
     if not self.pick and self.page == "order" then
         local p = f:sub(1, 5)
         if p == "osep:" then
-            return { { glyph = "A", label = ZeD.tr("UI_ZeD_Order_PromptMenu") }, { glyph = "Y", label = ZeD.tr("UI_ServerSettings_ButtonMoveUp") },
-                     { glyph = "X", label = ZeD.tr("UI_ServerSettings_ButtonMoveDown") }, { glyph = "LB", label = "" },
+            return { { glyph = "A", label = ZeD.tr("UI_ZeD_Order_PromptMenu") }, { glyph = "Y", label = ZeD.tr("UI_ZeD_Order_MoveUp") },
+                     { glyph = "X", label = ZeD.tr("UI_ZeD_Order_MoveDown") }, { glyph = "LB", label = "" },
                      { glyph = "RB", label = ZeD.tr("UI_ZeD_Seps_PromptJump") }, { glyph = "B", label = back } }
         end
         if p == "ohld:" then

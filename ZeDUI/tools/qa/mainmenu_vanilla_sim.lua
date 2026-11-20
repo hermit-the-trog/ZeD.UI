@@ -757,7 +757,8 @@ local file = MM.menuItems("file")
 local found = false
 for _, it in ipairs(file) do if type(it) == "table" and it.text == ZeD.tr("UI_ZeD_MainMenu_TutorialVanilla") and it.fn == MM.act.tutorial then found = true end end
 check("D1 File menu: the Tutorial as the game's own, without mods", found)
-check("D1 the label says it runs without mods", ZeD.tr("UI_ZeD_MainMenu_TutorialVanilla"):find("without mods", 1, true) ~= nil)
+-- (QA's visual noise audit 49, Nov 20 2026: the label is now "Tutorial (no mods)")
+check("D1 the label says it runs without mods", ZeD.tr("UI_ZeD_MainMenu_TutorialVanilla"):find("no mods", 1, true) ~= nil)
 
 -- ============================================================================
 -- A5 + A6: THE OPTIONS SUB-PAGES

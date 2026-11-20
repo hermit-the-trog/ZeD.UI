@@ -643,7 +643,13 @@ function ZeD_MMWorkshop:formTop(it, ix, iw, cy)
             "default", 300, i, false, { radio = true, on = (self.vis == v[1]) }) + T.px(10)
     end
     cy = cy + bh + T.px(4)
-    cy = self:paneText(ZeD.tr(VIS_SEEN[self.vis] or VIS_SEEN[0]), vx, cy, vw, f3, dim) + T.px(8)
+    -- (QA's visual noise audit, Words, Nov 20 2026: "Seen by everyone." under a lit Public said the button again;
+    -- the line shows for Hidden and Unlisted, the two a name does not explain)
+    if self.vis == 2 or self.vis == 3 then
+        cy = self:paneText(ZeD.tr(VIS_SEEN[self.vis]), vx, cy, vw, f3, dim) + T.px(8)
+    else
+        cy = cy + T.px(4)
+    end
     -- the tags: each on or off, checkboxes
     label(self, ZeD.textCase(ZeD.trBare("UI_WorkshopSubmit_ItemTags")), ix, cy, bh)
     bx = vx
@@ -717,7 +723,10 @@ function ZeD_MMWorkshop:formBottom(it, ix, iw, cy)
     -- CHANGE NOTE
     label(self, ZeD.tr("UI_ZeD_Workshop_LabelChangeNote"), ix, cy, T.px(24))
     cy = cy + self:formEntry(self.noteE, "f:note", vx, cy, vw, self:noteH(vw), 450) + T.px(4)
-    cy = self:paneText(ZeD.tr(it:getID() and "UI_ZeD_Workshop_NoteHelpUpdate" or "UI_ZeD_Workshop_NoteHelpNew"), vx, cy, vw, f3, dim) + T.px(10)
+    -- (QA's visual noise audit, Words, Nov 20 2026: an update's change note needs no line saying what a change
+    -- note is; a first upload keeps its line, since nothing shows until then)
+    if it:getID() then cy = cy + T.px(6)
+    else cy = self:paneText(ZeD.tr("UI_ZeD_Workshop_NoteHelpNew"), vx, cy, vw, f3, dim) + T.px(10) end
     -- WHAT GOES UP
     label(self, ZeD.tr("UI_ZeD_Workshop_LabelWhatGoesUp"), ix, cy, T.px(20))
     local dsz = T.px(7)

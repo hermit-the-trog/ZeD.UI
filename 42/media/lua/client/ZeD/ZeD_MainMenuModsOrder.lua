@@ -716,9 +716,11 @@ function ZeD_MMMods:drawOrderRow(e, v, res, x, ry, rw, gp, modal)
     local nx = x + T.px(14) + numW
     if self.page == "order" then
         local s = res.st[e.i]
-        local col = (s == "bad" and T.danger) or (s == "soft" and T.warning) or T.positive
+        -- (QA's visual noise audit 27, Nov 20 2026: no green mark on a row that is right; only the red and the
+        -- yellow say anything. Their room stays, so the names keep one edge.)
+        local col = (s == "bad" and T.danger) or (s == "soft" and T.warning) or nil
         local dsz = T.px(7)
-        ZeD.Atoms.drawStatusDot(self, nx, ry + math.floor((e.h - dsz) / 2), col, dsz)
+        if col then ZeD.Atoms.drawStatusDot(self, nx, ry + math.floor((e.h - dsz) / 2), col, dsz) end
         nx = nx + dsz + T.px(8)
     end
     local tr = x + rw - T.px(8)
@@ -970,6 +972,8 @@ end
 -- the pins; its buttons. Worked out once per change and per pick, drawn each frame.
 -- ----------------------------------------------------------------------------
 -- a button spec of the pane (kept with the pane's model)
+-- (QA's visual noise audit 27, Nov 20 2026: Move up and Move down in sentence case, as Load first and Load last;
+-- the game's "Move Up" came through as written, and the folders and separators take the same words)
 local function paneBtn(id, text, fn, disabled, help)
     return { id = id, text = text, fn = fn, variant = "default", disabled = disabled, help = help }
 end
@@ -996,8 +1000,8 @@ function ZeD_MMMods:mapDetailItems(items, rw)
     local sel = self.order[self.oSel or 1]
     items[#items + 1] = { t = "title", text = tostring(sel or "") }
     items[#items + 1] = { t = "btns", list = {
-        paneBtn("up", ZeD.tr("UI_ServerSettings_ButtonMoveUp"), function() self:move(-1) end, (self.oSel or 1) <= 1),
-        paneBtn("down", ZeD.tr("UI_ServerSettings_ButtonMoveDown"), function() self:move(1) end, (self.oSel or 1) >= #self.order) } }
+        paneBtn("up", ZeD.tr("UI_ZeD_Order_MoveUp"), function() self:move(-1) end, (self.oSel or 1) <= 1),
+        paneBtn("down", ZeD.tr("UI_ZeD_Order_MoveDown"), function() self:move(1) end, (self.oSel or 1) >= #self.order) } }
     local conf = {}
     pcall(function() conf = jlist(m:getMapConflicts(sel)) end)
     if #conf > 0 then addText(items, rw, ZeD.tr("UI_ZeD_Mods_MapShares", table.concat(conf, ", "))) end
@@ -1058,8 +1062,10 @@ function ZeD_MMMods:yourRuleItems(items, rw, id, res)
     local T = ZeD.T
     local m = model()
     local mine = O.rulesOf(self.oLo, id)
+    -- (QA's visual noise audit 27, Nov 20 2026: no "Your rules (0)" over "None yet."; the section shows once there
+    -- is a rule, and Load after... and Load before... sit right above it)
+    if #mine == 0 then return end
     items[#items + 1] = { t = "head", text = ZeD.tr("UI_ZeD_Order_DetYourRules"), note = "(" .. #mine .. ")" }
-    if #mine == 0 then addText(items, rw, ZeD.tr("UI_ZeD_Order_DetRulesNone"), nil, true); return end
     for n, x in ipairs(mine) do
         local r = x.r
         local nm = O.nameOf(m, self.oInfo, r.other)
@@ -1123,8 +1129,8 @@ function ZeD_MMMods:orderDetailItems(items, rw, finding)
         row1[#row1 + 1] = paneBtn("obefore", ZeD.tr("UI_ZeD_Order_LoadBefore"), function() self:openPicker("before") end, false, ZeD.tr("UI_ZeD_Order_HelpLoadBefore"))
         items[#items + 1] = { t = "btns", list = row1 }
         local row2 = {
-            paneBtn("up", ZeD.tr("UI_ServerSettings_ButtonMoveUp"), function() self:move(-1) end, i <= 1),
-            paneBtn("down", ZeD.tr("UI_ServerSettings_ButtonMoveDown"), function() self:move(1) end, i >= #self.order or self.order[i + 1] == O.helperId()) }
+            paneBtn("up", ZeD.tr("UI_ZeD_Order_MoveUp"), function() self:move(-1) end, i <= 1),
+            paneBtn("down", ZeD.tr("UI_ZeD_Order_MoveDown"), function() self:move(1) end, i >= #self.order or self.order[i + 1] == O.helperId()) }
         if pin == "first" then row2[#row2 + 1] = paneBtn("ounpin", ZeD.tr("UI_ZeD_Order_Unpin"), function() self:orderPin(nil) end, false, ZeD.tr("UI_ZeD_Order_HelpUnpin"))
         else row2[#row2 + 1] = paneBtn("ofirst", ZeD.tr("UI_ZeD_Order_LoadFirst"), function() self:orderPin("first") end, false, ZeD.tr("UI_ZeD_Order_HelpLoadFirst")) end
         if pin == "last" then row2[#row2 + 1] = paneBtn("ounpin2", ZeD.tr("UI_ZeD_Order_Unpin"), function() self:orderPin(nil) end, false, ZeD.tr("UI_ZeD_Order_HelpUnpin"))
@@ -1134,7 +1140,8 @@ function ZeD_MMMods:orderDetailItems(items, rw, finding)
     self:pinItems(items, rw, id)
     self:ownRuleItems(items, rw, id, i, res)
     if not helper then self:yourRuleItems(items, rw, id, res) end
-    if res.firstBad then addText(items, rw, ZeD.tr("UI_ZeD_Mods_RuleFix"), T.danger) end
+    -- (QA's visual noise audit 27, Nov 20 2026: one sentence per problem. The red line above says it; "Fix the red
+    -- rows" no longer follows it here. Accept still says it when the order cannot be kept.)
     items[#items + 1] = { t = "head", text = ZeD.tr("UI_ZeD_Order_DetKept") }
     addText(items, rw, ZeD.tr("UI_ZeD_Order_DetKeptText"), nil, true)
 end
@@ -1784,8 +1791,8 @@ function ZeD_MMMods:orderPrompts(f, sel, back)
             local v = self._oView
             t[#t + 1] = { glyph = "A", label = ZeD.tr((v and v.q ~= "") and "UI_ZeD_Order_PromptShow" or "UI_ZeD_Order_PromptMenu") }
         end
-        t[#t + 1] = { glyph = "Y", label = ZeD.tr("UI_ServerSettings_ButtonMoveUp") }
-        t[#t + 1] = { glyph = "X", label = ZeD.tr("UI_ServerSettings_ButtonMoveDown") }
+        t[#t + 1] = { glyph = "Y", label = ZeD.tr("UI_ZeD_Order_MoveUp") }
+        t[#t + 1] = { glyph = "X", label = ZeD.tr("UI_ZeD_Order_MoveDown") }
         t[#t + 1] = { glyph = "LB", label = "" }
         t[#t + 1] = { glyph = "RB", label = ZeD.tr("UI_ZeD_Order_PromptPage") }
         t[#t + 1] = { glyph = "B", label = back }

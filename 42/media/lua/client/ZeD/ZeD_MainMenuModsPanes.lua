@@ -313,14 +313,16 @@ function ZeD_MMMods:drawOptionsTab(d, ix, iw, cy, vy, vh)
     end
     local idx = 0
     for _, sec in ipairs(data.sections) do
-        local head = ZeD.textCase(ZeD.tr("UI_ZeD_Mods_OptHead"))
-        if #data.sections > 1 then head = tostring(sec.title) end
+        -- (QA's visual noise audit 26, Nov 20 2026: one section has no "Options" heading under the Options tab;
+        -- its note leads the line. Several keep their own titles.)
+        local head = (#data.sections > 1) and tostring(sec.title) or nil
         local la = T.accent
-        self:drawText(head, ix, cy, la.r, la.g, la.b, la.a or 1, f1)
+        if head then self:drawText(head, ix, cy, la.r, la.g, la.b, la.a or 1, f1) end
         local sub = ZeD.tr("UI_ZeD_Mods_OptHeadNote")
         local sw = MM.textW(T.fontF3, sub)
-        if MM.textW(f1, head) + sw + T.px(20) < iw then self:drawText(sub, ix + iw - sw, cy, dim.r, dim.g, dim.b, dim.a or 1, T.fontF3) end
-        cy = cy + MM.fontH(f1) + T.px(3)
+        if not head then self:drawText(sub, ix, cy, dim.r, dim.g, dim.b, dim.a or 1, T.fontF3)
+        elseif MM.textW(f1, head) + sw + T.px(20) < iw then self:drawText(sub, ix + iw - sw, cy, dim.r, dim.g, dim.b, dim.a or 1, T.fontF3) end
+        cy = cy + MM.fontH(head and f1 or T.fontF3) + T.px(3)
         self:drawRect(ix, cy, iw, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
         cy = cy + T.px(2)
         for _, e in ipairs(sec.entries) do
@@ -370,8 +372,13 @@ function ZeD_MMMods:drawSettingsFiles(d, ix, iw, cy, vy, vh, withVerb)
     self:drawRect(ix, cy, iw, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
     cy = cy + T.px(6)
     if not res then return self:paneNote(ZeD.tr("UI_ZeD_Mods_FilesLooking"), ix, iw, cy) + T.px(4) end
+    -- (QA's visual noise audit 26, Nov 20 2026: why a file is the mod's is said once, on the first row of a run
+    -- that shares it, not at the end of every row)
+    local lastWhy = nil
     for _, f in ipairs(res.files) do
-        cy = self:fileRow(f.path, ZeD.tr(f.why == "id" and "UI_ZeD_Mods_FileWhyId" or "UI_ZeD_Mods_FileWhyNamed"), ix, iw, cy)
+        local why = ZeD.tr(f.why == "id" and "UI_ZeD_Mods_FileWhyId" or "UI_ZeD_Mods_FileWhyNamed")
+        cy = self:fileRow(f.path, (why ~= lastWhy) and why or "", ix, iw, cy)
+        lastWhy = why
     end
     if res.b41 then
         cy = self:fileRow(ZeD.tr("UI_ZeD_Mods_FileOldOptions", res.b41.path, table.concat(res.b41.sections, ", ")), ZeD.tr("UI_ZeD_Mods_FileWhyPart"), ix, iw, cy)
@@ -483,19 +490,30 @@ function ZeD_MMMods:drawSandboxTab(d, ix, iw, cy, vy, vh)
     local dim = T.textDim
     local s = S.sandbox(d.modId)
     if not s or #s.list == 0 then return self:paneNote(ZeD.tr("UI_ZeD_Mods_SbNone"), ix, iw, cy) end
-    local la = T.accent
-    local head = ZeD.textCase(ZeD.tr("UI_ZeD_Mods_SbHead"))
-    self:drawText(head, ix, cy, la.r, la.g, la.b, la.a or 1, f1)
+    -- (QA's visual noise audit 26, Nov 20 2026: no "Sandbox settings" heading under the Sandbox tab; its note
+    -- leads the line)
     local sub = ZeD.tr(d.isActive and "UI_ZeD_Mods_SbHeadNote" or "UI_ZeD_Mods_SbHeadNoteOff")
-    local sw = MM.textW(T.fontF3, sub)
-    if MM.textW(f1, head) + sw + T.px(20) < iw then self:drawText(sub, ix + iw - sw, cy, dim.r, dim.g, dim.b, dim.a or 1, T.fontF3) end
-    cy = cy + MM.fontH(f1) + T.px(3)
+    self:drawText(sub, ix, cy, dim.r, dim.g, dim.b, dim.a or 1, T.fontF3)
+    cy = cy + MM.fontH(T.fontF3) + T.px(3)
     self:drawRect(ix, cy, iw, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
     cy = cy + T.px(6)
     -- where they are chosen
     local pages = table.concat(s.pages, ", ")
     cy = self:paneNote(pages ~= "" and ZeD.tr("UI_ZeD_Mods_SbWhere", pages) or ZeD.tr("UI_ZeD_Mods_SbWhereNoPage"), ix, iw, cy, T.info)
-    local lw = math.floor(iw * LABEL_SHARE)
+    -- (QA's visual noise audit B6, Nov 20 2026: the labels were cut at a fixed share with room to their right.
+    -- The label column takes what the values leave it, never less than that share; worked out once per list and width.)
+    local lc = self._sbLw
+    if not (lc and lc.s == s and lc.iw == iw and lc.scale == T.scale) then
+        local labW, valW = 0, T.px(40)
+        for _, st in ipairs(s.list) do
+            labW = math.max(labW, MM.textW(f2, tostring(st.label or "")))
+            valW = math.max(valW, (st.type == "boolean") and T.checkboxSz or MM.textW(f2, tostring(st.value or "")))
+        end
+        local base = math.floor(iw * LABEL_SHARE)
+        lc = { s = s, iw = iw, scale = T.scale, lw = math.max(base, math.min(labW + T.px(18), iw - valW - T.px(10))) }
+        self._sbLw = lc
+    end
+    local lw = lc.lw
     local cx = ix + lw + T.px(10)
     local rh = T.px(OPT_ROW_H) - T.px(4)
     local mx, my = getMouseX() - self:getAbsoluteX(), getMouseY() - self:getAbsoluteY()

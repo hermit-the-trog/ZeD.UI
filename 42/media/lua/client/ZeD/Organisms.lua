@@ -1100,12 +1100,24 @@ function ZeD_Window:_drawHelpLine(p, w, h, lit)
     if fH > 0 then
         local fY = h - fH
         local fw = frameW(T)
+        local prompts = self:_footerPrompts()
+        local says = (prompts and #prompts > 0) or (text and text ~= "") or lit
+        -- (QA's visual noise audit 9, Nov 20 2026: a strip with nothing to say is not drawn. It keeps its room, so
+        -- nothing moves under the pointer, and wears the body's surface; a help line, the controller's prompts or
+        -- a resize handle bring the strip back.)
+        if not says then
+            -- (under a button band, the main menu's, the band's own surface: the band runs to the foot)
+            local bandEnd = self._bandY and self._bandH and (self._bandY + self._bandH)
+            local under = bandEnd and math.abs(bandEnd - fY) <= T.px(2)
+            ZeD.Surface.fill(p, 0, fY, w - grow, fH, under and "surf2" or "surf1")
+            if grow > 0 then drawGrow(p, w - grow, h - grow, grow, false, false) end
+            return
+        end
         ZeD.Surface.fill(p, 0, fY, w - grow, fH, "surf2")
         local bs = T.borderS
         p:drawRect(fw, fY, w - 2 * fw, T.hair, bs.a, bs.r, bs.g, bs.b)
         local x0 = (lit == "sw") and (grow + T.px(6)) or T.px(10)
         local maxX = w - grow - T.px(10)
-        local prompts = self:_footerPrompts()
         if prompts and #prompts > 0 then
             drawPrompts(p, prompts, x0, fY, fH, maxX, self.playerNum)
         else

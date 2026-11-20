@@ -383,7 +383,9 @@ function ZeD_KeyboardMap:prerender()
     if self.listening then
         for _, g in ipairs(data.groups) do for _, r in ipairs(g.rows) do if r.name == self.listening then listenRow = r end end end
     end
-    ZeD.Help.set(self, listenRow and tr("UI_ZeD_KMap_Listening", listenRow.label) or tr("UI_ZeD_KMap_Help"))
+    -- (QA's visual noise audit, Words, Nov 20 2026: while it listens the button says "Press a key"; the foot only
+    -- says what Escape does)
+    ZeD.Help.set(self, listenRow and tr("UI_ZeD_KMap_ListeningFoot") or tr("UI_ZeD_KMap_Help"))
 
     local hits = self._hits
     for i = #hits, 1, -1 do hits[i] = nil end

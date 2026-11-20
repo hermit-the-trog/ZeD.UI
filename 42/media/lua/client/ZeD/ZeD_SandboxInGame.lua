@@ -669,11 +669,18 @@ function ZeD_MMSandboxIG:drawRowTags(r, right, ry, rh)
     local Mo = ZeD.Molecules
     local f1 = T.fontF1
     local by = ry + math.floor((rh - T.px(16)) / 2)
+    -- (QA's visual noise audit 28, Nov 20 2026: only the exceptions carry a tag. "Now" was on most rows and
+    -- "Fixed" on rows already grayed; New places, New characters, Next load, Careful and Can't undo stay.)
     local w = N.when(r.name)
-    local wt = ZeD.tr(WHEN_KEY[w])
-    local x = right - tagW(wt)
-    local mc, hollow = whenMark(T, w)
-    Mo.drawTag(self, x, by, wt, mc, { font = f1, hollow = hollow })
+    local x = right
+    if w ~= "now" and w ~= "fix" then
+        local wt = ZeD.tr(WHEN_KEY[w])
+        x = right - tagW(wt)
+        local mc, hollow = whenMark(T, w)
+        Mo.drawTag(self, x, by, wt, mc, { font = f1, hollow = hollow })
+    else
+        x = right + T.px(6)   -- (a risk tag then ends at the row's right edge)
+    end
     local k = N.risk(r.name)
     if k ~= "" then
         local rt = ZeD.tr(RISK_KEY[k])
@@ -825,7 +832,10 @@ function ZeD_MMSandboxIG:drawHelp(x, hy, w, helpH, hr)
     elseif risk == "care" then warn = { text = ZeD.tr("UI_ZeD_Sbx_WarnCare"), color = T.warning } end
     local now = ZeD.tr("UI_ZeD_Sbx_ThisSave", self:valueText(r, self.base[r.name]))
     if self.diff[r.name] then now = now .. MM.DOT .. ZeD.tr("UI_ZeD_Sbx_AfterApplyIs", self:valueText(r, self:rowValue(r))) end
-    self:drawHelpCol(cx, top, cwid, ih, ZeD.tr("UI_ZeD_Sbx_HeadSave", ZeD.tr(WHEN_KEY[when])), N.save(r.name, r.section), now, warn)
+    -- (QA's visual noise audit 28, Nov 20 2026: "On this save | Now" said the usual case again; the head names
+    -- when only for the exceptions)
+    local head = (when == "now") and ZeD.tr("UI_ZeD_Sbx_HeadSaveNow") or ZeD.tr("UI_ZeD_Sbx_HeadSave", ZeD.tr(WHEN_KEY[when]))
+    self:drawHelpCol(cx, top, cwid, ih, head, N.save(r.name, r.section), now, warn)
     -- a tip
     if tip then
         self:drawRect(cx + cwid + math.floor(gap / 2), top, T.px(1), ih, bd.a or 1, bd.r, bd.g, bd.b)

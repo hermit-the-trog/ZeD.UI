@@ -80,14 +80,16 @@ end
 -- ----------------------------------------------------------------------------
 --- The line saying which list this is ("order" or the collection); returns the y under it.
 function ZeD_MMMods:listLine(x, top, w, which)
-    if not F.any() then return top end
+    -- (QA's visual noise audit 7, Nov 20 2026: Lite shows no folders, so it does not explain them)
+    if not F.any() or self:simple() then return top end
     local T = ZeD.T
     local f1, f2 = T.fontF1, T.fontF2
     local c = self._llC
     if not (c and c.which == which and c.w == w and c.scale == T.scale) then
-        local label = ZeD.tr(which == "order" and "UI_ZeD_Folders_LineOrder" or "UI_ZeD_Folders_LineCollection")
+        -- (and the list's line goes without the word "Collection": the tab says which list it is)
+        local label = (which == "order") and ZeD.tr("UI_ZeD_Folders_LineOrder") or ""
         local text = ZeD.tr(which == "order" and "UI_ZeD_Folders_LineOrderText" or "UI_ZeD_Folders_LineCollectionText")
-        local tx = T.px(8) + MM.textW(f1, label) + T.px(10)
+        local tx = T.px(8) + ((label ~= "") and (MM.textW(f1, label) + T.px(10)) or 0)
         local lines = ZeD.Atoms.wrapText(text, f2, w - tx - T.px(8))
         local lh = MM.fontH(f2) + T.px(2)
         c = { which = which, w = w, scale = T.scale, label = label, tx = tx, lines = lines, lh = lh, h = #lines * lh + T.px(10) }
@@ -721,8 +723,8 @@ function ZeD_MMMods:folderMenu(e, anchor)
         items[#items + 1] = { text = ZeD.tr("UI_ZeD_Folders_MenuDelete"), fn = function() self:folderAskDelete(fid) end }
         items[#items + 1] = { text = ZeD.tr("UI_ZeD_Folders_MenuColor"), fn = function() self:folderColorMenu(fid, anchor) end }
         items[#items + 1] = "-"
-        items[#items + 1] = { text = ZeD.tr("UI_ServerSettings_ButtonMoveUp"), disabled = idx <= 1, fn = function() self:folderShift(fid, -1) end }
-        items[#items + 1] = { text = ZeD.tr("UI_ServerSettings_ButtonMoveDown"), disabled = idx >= #list, fn = function() self:folderShift(fid, 1) end }
+        items[#items + 1] = { text = ZeD.tr("UI_ZeD_Order_MoveUp"), disabled = idx <= 1, fn = function() self:folderShift(fid, -1) end }
+        items[#items + 1] = { text = ZeD.tr("UI_ZeD_Order_MoveDown"), disabled = idx >= #list, fn = function() self:folderShift(fid, 1) end }
         items[#items + 1] = "-"
     end
     items[#items + 1] = { text = ZeD.tr("UI_ZeD_Folders_MenuOpenAll"), fn = function() self:folderAllOpen(true) end }
@@ -916,8 +918,8 @@ function ZeD_MMMods:folderDetailModel(iw)
             { "frename", ZeD.tr("UI_ZeD_Folders_MenuRename"), function() self:folderAskRename(fid) end },
             { "fdelete", ZeD.tr("UI_ZeD_Folders_MenuDelete"), function() self:folderAskDelete(fid) end },
             { "fcolor", ZeD.tr("UI_ZeD_Folders_MenuColor"), function() self:folderColorMenu(fid) end },
-            { "fup", ZeD.tr("UI_ServerSettings_ButtonMoveUp"), function() self:folderShift(fid, -1) end, "default", idx <= 1 },
-            { "fdown", ZeD.tr("UI_ServerSettings_ButtonMoveDown"), function() self:folderShift(fid, 1) end, "default", idx >= #list },
+            { "fup", ZeD.tr("UI_ZeD_Order_MoveUp"), function() self:folderShift(fid, -1) end, "default", idx <= 1 },
+            { "fdown", ZeD.tr("UI_ZeD_Order_MoveDown"), function() self:folderShift(fid, 1) end, "default", idx >= #list },
         }
     else
         c.verbs = { { "fnewp", ZeD.tr("UI_ZeD_Folders_BtnNew"), function() self:folderAskNew(nil) end, "default", #F.folders() >= F.MAX } }

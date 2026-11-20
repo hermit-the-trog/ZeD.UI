@@ -99,8 +99,15 @@ function ZeD_Keyboard:new()
     o.keepOnScreen = false
     o.anchorLeft, o.anchorRight, o.anchorTop, o.anchorBottom = true, false, true, false
     o._focus = { 3, 6 }   -- vanilla's first key: g
+    -- (QA's visual noise audit 8, Nov 20 2026: no Theme and Accent menu on the keyboard)
+    o.noWindowBox = true
     return o
 end
+
+-- (QA's visual noise audit 8, Nov 20 2026: no help line under the keys. Each key that a controller button works
+-- names that button on its face (X Delete, Y Space, LT Shift, L3 Caps, RT Accept, LB, RB, B Back), and the D-pad
+-- and A move and press as everywhere.)
+function ZeD_Keyboard:footerHeight() return 0 end
 
 function ZeD_Keyboard:createChildren()
     ZeD_Window.createChildren(self)

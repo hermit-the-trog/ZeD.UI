@@ -249,6 +249,8 @@ function ZeD_Prompt:new(kind, cx, cy, player)
     o.kind = kind
     o.resizable = false
     o.pin = true
+    -- (QA's visual noise audit 8, Nov 20 2026: a question needs no Theme and Accent menu; the close box stays)
+    o.noWindowBox = true
     -- vanilla's fields callers read or write (colours are kept, never drawn)
     o.backgroundColor = { r = 0, g = 0, b = 0, a = 0.8 }
     o.borderColor = { r = 0.4, g = 0.4, b = 0.4, a = 1 }
@@ -706,10 +708,18 @@ function ZeD_Prompt:padPrompts()
     return { move, { glyph = "A", label = press }, { glyph = "B", label = noWord } }
 end
 
--- the help line shows them while a controller holds the prompt (the help words, with the mouse)
+-- the help line shows them while a controller holds the prompt
 function ZeD_Prompt:getFooterPrompts()
     if not self.joyfocus then return nil end
     return self:padPrompts()
+end
+
+-- (QA's visual noise audit 8, Nov 20 2026: a System 7 dialog is a title, the question and the buttons. The
+-- help line under the buttons is there only while a controller holds the prompt, for its button prompts;
+-- with the mouse the answers say what they do.)
+function ZeD_Prompt:footerHeight()
+    if not self.joyfocus then return 0 end
+    return ZeD_Window.footerHeight(self)
 end
 
 -- A field: the prompt draws the inset box (System 7 field: base fill, border, dark
@@ -735,6 +745,18 @@ local function placeEntry(e, box)
     if e.width ~= w or e.height ~= eh then e:setWidth(w); e:setHeight(eh) end
     e.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
     e.borderColor = { r = 0, g = 0, b = 0, a = 0 }
+end
+
+-- (QA's visual noise audit 8, Nov 20 2026) The width a title needs in the bar: the close box and its gaps
+-- before it, the bar's pad and edge after (no window box on a prompt), as ZeD_Window:_drawTitleBar lays it out.
+local function titleNeed(text)
+    local T = ZeD.T
+    local sp = T.sp
+    return sp.sm + T.closeBoxSz + sp.md + tw(T.fontF3, tostring(text or "")) + sp.titleBoxPad + sp.sm
+end
+-- the heading goes in the title bar when the widest prompt the screen allows holds it whole
+local function titleFits(self, text, maxW)
+    return text ~= nil and text ~= "" and not tostring(text):find("\n", 1, true) and titleNeed(text) <= maxW
 end
 
 function ZeD_Prompt:layout()
@@ -808,16 +830,24 @@ function ZeD_Prompt:layout()
         local lblFont = T.fontF1
         local label = ZeD.textCase(self.text)
         local callerW = T.px(self._vanillaW or 0)
-        w = clamp(math.max(minW, T.px(U.TEXT_W), callerW, tw(lblFont, label) + padL + padR), minW, maxW)
+        -- (QA's visual noise audit 8, Nov 20 2026: the heading goes in the title bar, as a System 7 dialog's; a
+        -- heading too long for any title bar stays in the body)
+        local inTitle = titleFits(self, label, maxW)
+        local labelW = inTitle and titleNeed(label) or (tw(lblFont, label) + padL + padR)
+        w = clamp(math.max(minW, T.px(U.TEXT_W), callerW, labelW), minW, maxW)
         local y = tbH + padT
-        g.label = { x = padL, y = y, text = label, font = lblFont }
-        y = y + fh(lblFont) + T.px(U.LABEL_GAP)
+        local top = y
+        if not inTitle then
+            g.label = { x = padL, y = y, text = label, font = lblFont }
+            y = y + fh(lblFont) + T.px(U.LABEL_GAP)
+        end
+        self.title = inTitle and label or ""
         local lines = math.max(1, self.numLines or 1)
         if self.entry then self.entry._zedLines = lines end
         local fieldH = boxH(self.entry, lines)
         g.field = { x = padL, y = y, w = w - padL - padR, h = fieldH }
         g.boxes = { g.field }
-        g.rowFocus = { field = { x = padL - T.px(6), y = g.label.y - T.px(6), w = w - padL - padR + 2 * T.px(6), h = 0 } }
+        g.rowFocus = { field = { x = padL - T.px(6), y = top - T.px(6), w = w - padL - padR + 2 * T.px(6), h = 0 } }
         placeEntry(self.entry, g.field)
         y = y + fieldH
         if self._colorPicker then
@@ -842,8 +872,16 @@ function ZeD_Prompt:layout()
     elseif K == "alarm" then
         w = clamp(math.max(minW, T.px(U.ALARM_W)), minW, maxW)
         local y = tbH + padT
-        g.head = { x = padL, y = y, text = getText("IGUI_SetAlarm") }
-        y = y + fh(T.fontF2) + T.px(U.HEAD_GAP)
+        -- (QA's visual noise audit 8, Nov 20 2026: "Set Alarm" in the title bar, not as a line in the body)
+        local headText = getText("IGUI_SetAlarm")
+        if titleFits(self, headText, maxW) then
+            w = clamp(math.max(w, titleNeed(headText)), minW, maxW)
+            self.title = headText
+        else
+            self.title = ""
+            g.head = { x = padL, y = y, text = headText }
+            y = y + fh(T.fontF2) + T.px(U.HEAD_GAP)
+        end
         g.steppers = {}
         g.rowFocus = {}
         g.boxes = {}
@@ -877,10 +915,16 @@ function ZeD_Prompt:layout()
         local smW = {}
         local rowW = T.px(U.TVAL_W)
         for i, s in ipairs(steps) do smW[i] = tw(T.fontF3, s) + T.px(U.SM_PAD) * 2; rowW = rowW + smW[i] + T.px(U.SM_GAP) end
-        w = clamp(math.max(minW, tw(lblFont, label) + padL + padR, rowW + padL + padR), minW, maxW)
+        -- (QA's visual noise audit 8, Nov 20 2026: the timer's question in the title bar when it fits there)
+        local inTitle = label ~= "" and titleFits(self, label, maxW)
+        local labelW = inTitle and titleNeed(label) or (tw(lblFont, label) + padL + padR)
+        w = clamp(math.max(minW, labelW, rowW + padL + padR), minW, maxW)
         local y = tbH + padT
-        g.label = { x = padL, y = y, text = label, font = lblFont }
-        y = y + fh(lblFont) + T.px(U.HEAD_GAP)
+        self.title = inTitle and label or ""
+        if not inTitle then
+            g.label = { x = padL, y = y, text = label, font = lblFont }
+            y = y + fh(lblFont) + T.px(U.HEAD_GAP)
+        end
         local tvh = boxH(self.textBox)
         local rh = math.max(tvh, T.buttonH) + T.px(12)
         local x = math.floor((w - rowW) / 2)
@@ -1067,7 +1111,7 @@ function ZeD_Prompt:prerender()
         end
     end
     -- the text prompt
-    if g.field then
+    if g.field and g.label then   -- (no label: it is in the title bar)
         local lc = onField and T.textOnFocus or T.textHead
         self:drawText(g.label.text, g.label.x, g.label.y, lc.r, lc.g, lc.b, lc.a or 1, g.label.font)
     end
@@ -1128,7 +1172,7 @@ function ZeD_Prompt:prerender()
     -- the timer
     if g.small then
         local lc = onValue and T.textOnFocus or T.textHead
-        self:drawText(g.label.text, g.label.x, g.label.y, lc.r, lc.g, lc.b, lc.a or 1, g.label.font)
+        if g.label then self:drawText(g.label.text, g.label.x, g.label.y, lc.r, lc.g, lc.b, lc.a or 1, g.label.font) end
         for _, r in ipairs(g.small) do
             local more = r.text:sub(1, 1) == "+"
             drawAnswer(self, r, r.text, "default", (not focusOn) and self:stateOf(r.id) or nil,

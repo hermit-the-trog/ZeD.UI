@@ -374,7 +374,9 @@ function ZeD_MMMods:problemRun(d)
         local vmin, vmax = "", ""
         pcall(function() local v = d.modInfo:getVersionMin(); if v then vmin = v:toString() end end)
         pcall(function() local v = d.modInfo:getVersionMax(); if v then vmax = v:toString() end end)
-        if vmin ~= "" or vmax ~= "" then return ZeD.tr("UI_ZeD_Mods_ProbVersionRange", vmin ~= "" and vmin or "?", vmax ~= "" and vmax or "?") end
+        -- (QA's visual noise audit 26, Nov 20 2026: an open end says "any", as the pane's Game row does, not "?")
+        local any = ZeD.tr("UI_ZeD_Mods_Any")
+        if vmin ~= "" or vmax ~= "" then return ZeD.tr("UI_ZeD_Mods_ProbVersionRange", vmin ~= "" and vmin or any, vmax ~= "" and vmax or any) end
         return ZeD.tr("UI_ZeD_Mods_ProbVersion")
     end
     if not d.isAvailable then
@@ -1123,7 +1125,9 @@ function ZeD_MMMods:prerender()
     elseif self.page == "picks" then section = "UI_ZeD_Mods_TitlePicks"
     else section = server and "UI_ZeD_Mods_TitleServer" or "UI_ZeD_Mods_Title" end
     self.title = ZeD.tr("UI_ZeD_Mods_TitleFmt", ZeD.tr(section))
-    self.titleStats = { { text = ZeD.tr("UI_ZeD_Mods_StatOn", on, all), color = (on > 0) and T.positive or T.textDim } }
+    -- (QA's visual noise audit 7, Nov 20 2026: "1 of 12 on" sat in the title bar and the foot as well as on
+    -- the tabs; the tabs say it)
+    self.titleStats = {}
     local inUse = self:profileInUse()
     if inUse then table.insert(self.titleStats, 1, { text = inUse, color = T.accent }) end
     ZeD_Window.prerender(self)
@@ -1152,10 +1156,10 @@ function ZeD_MMMods:prerender()
     if self.filesFrameEnd then self:filesFrameEnd() end   -- (no Files tab this frame: its open file is shut)
 end
 
--- the footer line when nothing is under the pointer: how many mods are on
+-- the footer line when nothing is under the pointer: nothing (QA's visual noise audit 7, Nov 20 2026: it was
+-- the tabs' count again; the folders add picked rows and an unread file, ZeD_MainMenuModsFolders.lua)
 function ZeD_MMMods:getStatusLine()
-    local all, on = self:counts()
-    return ZeD.tr("UI_ZeD_Mods_StatOn", on, all)
+    return nil
 end
 
 function ZeD_MMMods:render()
@@ -1578,19 +1582,19 @@ function ZeD_MMMods:drawModRow(d, x, ry, rw, rh, vy, vh, gp, rid, indent, star)
                 chipR = chipR - T.px(6)
             end
             local maxW = chipR - T.px(4) - nx
-            local l1y = ry + T.px(5)
+            -- (QA's visual noise audit 25, Nov 20 2026: the mod's ID no longer sits under every name; the pane's
+            -- ModID row has it and Find still matches it. The second line is only for what is wrong.)
+            local l1y = prob and (ry + T.px(5)) or (ry + math.floor((rh - MM.fontH(f2)) / 2))
             self:drawText(ZeD.Atoms.truncateText(tostring(d.name), f2, maxW), nx, l1y, nameC.r, nameC.g, nameC.b, nameC.a or 1, f2)
-            local f3, dim = T.fontF3, onFocus and T.textOnFocus or T.textDim
-            local l2y = ry + rh - T.px(5) - MM.fontH(f3)
-            local lx = nx
-            local sub = tostring(d.modId)
             if prob then
+                local f3, dim = T.fontF3, onFocus and T.textOnFocus or T.textDim
+                local l2y = ry + rh - T.px(5) - MM.fontH(f3)
+                local lx = nx
                 local dsz = T.px(7)
                 ZeD.Atoms.drawStatusDot(self, lx, l2y + math.floor((MM.fontH(f3) - dsz) / 2), T.danger, dsz)
                 lx = lx + dsz + T.px(5)
-                sub = prob
+                self:drawText(ZeD.Atoms.truncateText(prob, f3, maxW - (lx - nx)), lx, l2y, dim.r, dim.g, dim.b, dim.a or 1, f3)
             end
-            self:drawText(ZeD.Atoms.truncateText(sub, f3, maxW - (lx - nx)), lx, l2y, dim.r, dim.g, dim.b, dim.a or 1, f3)
             -- the favourite star
             local sx = x + rw - T.px(10) - starW
             local sy = ry + math.floor((rh - starW) / 2)
@@ -1831,7 +1835,9 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
                                           row = 500, col = #self._specs + 1, x = bx, y = by, w = bw, h = bh, clipTop = vy, clipBot = vy + vh }
         bx = bx + bw + T.px(6)
     end
-    verb("toggle", ZeD.tr(d.isActive and "ContextMenu_Turn_Off" or "ContextMenu_Turn_On"), function() self:toggle(d) end, d.isActive and "default" or "primary", (not d.isActive) and prob ~= nil)
+    -- (QA's visual noise audit 24, Nov 20 2026: Turn on was drawn as a main action beside Accept; Accept is the
+    -- one main action, Turn on a plain button. It stays: a controller's way to the row's check box.)
+    verb("toggle", ZeD.tr(d.isActive and "ContextMenu_Turn_Off" or "ContextMenu_Turn_On"), function() self:toggle(d) end, "default", (not d.isActive) and prob ~= nil)
     verb("fav", ZeD.tr(d.favorite and "UI_ZeD_Mods_VerbUnfavourite" or "UI_ZeD_Mods_VerbFavourite"), function() self:toggleFav(d) end)
     -- Move to folder... (the controller's way to the row's folder menu: ZeD_MainMenuModsFolders)
     if self.folderVerb and self.filter ~= "ws" and not self:simple() then verb("fmove", ZeD.tr("UI_ZeD_Folders_VerbMove"), function() self:folderVerb(d) end) end
@@ -1864,7 +1870,15 @@ function ZeD_MMMods:drawAbout(d, ix, iw, cy, vy, vh, prob, wid)
     local m = model()
     local info = d.modInfo
     local f2, f1 = T.fontF2, T.fontF1
-    -- what is wrong, as vanilla knows it
+    -- what is wrong, as vanilla knows it. (QA's visual noise audit 26, Nov 20 2026: the line gives the verdict and
+    -- the rows under it the detail: a game version gives "Made for another game version" over the Game row, a
+    -- missing need "Cannot run" over the Needs list. The list's rows keep the whole line.)
+    if prob then
+        local runs = true
+        pcall(function() runs = info:isAvailableSelf() ~= false end)
+        if not runs then prob = ZeD.tr("UI_ZeD_Mods_ProbVersion")
+        elseif not d.isAvailable and #jlist(info:getRequire()) > 0 then prob = ZeD.tr("UI_ZeD_Mods_ProbCannot") end
+    end
     if prob then
         local dsz = T.px(7)
         ZeD.Atoms.drawStatusDot(self, ix, cy + math.floor((MM.fontH(f2) - dsz) / 2), T.danger, dsz)
@@ -2016,13 +2030,7 @@ function ZeD_MMMods:drawConflicts(d, ix, iw, cy, vy, vh)
     cy = cy + T.px(4)
     local la, dim, txt, head = T.accent, T.textDim, T.text, T.textHead
     local kvH = T.px(KV_ROW_H)
-    local head1 = ZeD.tr("UI_ZeD_Mods_ConflictsHead")
-    self:drawText(head1, ix, cy, la.r, la.g, la.b, la.a or 1, f1)
-    if #list > 0 then
-        local lw = MM.textW(f1, head1)
-        self:drawText(tostring(#list), ix + lw + T.px(8), cy, dim.r, dim.g, dim.b, dim.a or 1, f1)
-    end
-    cy = cy + kvH
+    -- (QA's visual noise audit 26, Nov 20 2026: no "Conflicts 2" heading under the tab that says "Conflicts 2")
     if not loaded then return self:paneText(ZeD.tr("UI_ZeD_Mods_ConflictsLater"), ix, cy, iw, f2, dim) + T.px(4) end
     if not MS.res.done then return self:paneText(ZeD.tr("UI_ZeD_Mods_ConflictsChecking"), ix, cy, iw, f2, dim) + T.px(4) end
     if #list == 0 then cy = self:paneText(ZeD.tr("UI_ZeD_Mods_ConflictsNone"), ix, cy, iw, f2, dim) end

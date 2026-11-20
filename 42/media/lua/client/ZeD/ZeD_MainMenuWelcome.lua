@@ -195,7 +195,13 @@ function ZeD_MMWelcome:prerender()
     self._specs, self._hits = {}, {}
     local barH, gap = T.px(U.BAR_H), T.px(12)
     local w = math.min(T.px(720), L.tw - T.px(40))
-    local h = L.th - barH - gap * 2
+    -- (QA's visual noise audit 14, Nov 20 2026: the window ran to the desk's foot with its lower half blank.
+    -- It is as tall as its rows: the intro, the three ways, the choices and Accent, the band and the help line.)
+    local f2h, f3h = MM.fontH(T.fontF2), MM.fontH(T.fontF3)
+    local rowH = math.max(T.buttonH, f2h) + T.px(8)
+    local fit = T.titleBarH + T.px(U.STACK_PAD) * 2 + f2h + T.px(10) + (f2h + f3h + T.px(16)) + T.px(14)
+                + (#WL.ROWS + 1) * rowH + MM.bandH() + self:footerHeight()
+    local h = math.min(L.th - barH - gap * 2, fit)
     local x = L.tx + math.floor((L.tw - w) / 2)
     local y = L.ty + barH + gap
     if self.x ~= x or self.y ~= y then self:setX(x); self:setY(y) end
@@ -327,12 +333,7 @@ function ZeD_MMWelcome:prerender()
     local by = my + ph - T.px(20) - T.buttonH - T.px(8)
     ZeD.Molecules.drawButton(self, mx + T.px(10), by, bw, T.buttonH, tr("UI_ZeD_Welcome_SampleDrop"), "default", false, nil, {})
     ZeD.Molecules.drawButton(self, mx + T.px(20) + bw, by, bw, T.buttonH, tr("UI_ZeD_Welcome_SampleEat"), "primary", false, nil, {})
-    -- (QA: the line ran past the window's edge: wrapped to the preview's width)
-    local ny = py0 + ph + T.px(4)
-    for _, l in ipairs(ZeD.Atoms.wrapText(tr("UI_ZeD_Welcome_PreviewNote"), f3, prevW)) do
-        self:drawText(l, px0, ny, d.r, d.g, d.b, d.a or 1, f3)
-        ny = ny + MM.fontH(f3)
-    end
+    -- (QA's visual noise audit 14, Nov 20 2026: no note under the preview saying it changes as you pick; it does)
     -- the band
     local stripH = MM.bandH()
     local stripY = h - self:footerHeight() - stripH
