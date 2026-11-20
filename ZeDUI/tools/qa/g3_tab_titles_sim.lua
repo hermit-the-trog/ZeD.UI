@@ -202,9 +202,11 @@ do
     check("Furniture opens with its title", FUR:find('M.drawTabHeader(panel, x, y, w, getText("IGUI_CraftingCategories_Furniture"), false, false, true)', 1, true) ~= nil)
     check("Furniture's sub-tabs move under the title", FUR:find("local tabY = y + titleH + T.stripH - T.tabH", 1, true) ~= nil)
     local vh = cutFn(STS, "function ST.renderViewHeader(") or ""
-    check("a station's view opens with the Crafting title",
-        vh:find('ZeD.Molecules.drawTabHeader(panel, x, y, w, getText("IGUI_CraftingWindow_Title"), false, false, true)', 1, true) ~= nil
-        and vh:find("return titleH + used", 1, true) ~= nil)
+    -- (Nov 20 2026, QA's visual noise audit 3: the title row held only "Crafting" under the title bar's "+ Crafting";
+    -- the station's view now opens with its select)
+    check("a station's view opens with its select, no Crafting title row",
+        vh:find('getText("IGUI_CraftingWindow_Title")', 1, true) == nil
+        and vh:find("local titleH = 0", 1, true) ~= nil and vh:find("return titleH + used", 1, true) ~= nil)
 end
 
 -- ---------------------------------------------------------------------------

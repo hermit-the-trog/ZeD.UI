@@ -1368,7 +1368,9 @@ local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
     local grid = GV.on and true or false
     local id = "view:flip:" .. GV.key
     local o = _viewOpts
-    o.active, o.hover = true, ZeD.Atoms.mouseIn(self, tx, ty, bw, bw)
+    -- (QA's visual noise audit 37, Nov 20 2026: drawn solid it was the brightest thing in every heading, and it is a
+    -- view switch, not an action; an outline now, as the Filter button beside it)
+    o.active, o.hover = false, ZeD.Atoms.mouseIn(self, tx, ty, bw, bw)
     o.focus, o.id = gpFocusedToggle(id, ZeD.playerNumOf(self)), id
     o.hint = grid and ZeD.tr("UI_ZeD_Inv_GridView") or getText("IGUI_CraftingWindow_ListView")
     o.help = ZeD.tr(grid and "UI_ZeD_Inv_GridHelp" or "UI_ZeD_Inv_ListHelp")
@@ -1819,6 +1821,8 @@ local function drawColumnHeading(self, GV, xOff, colW, barH, hdrY, padX, secFH, 
     -- weight (the window's foot line says both); centred, it would run up over the title
     -- bar's own weight
     local stackH = secFH + gap + f5FH
+    -- (no count, an empty list: the weight alone, centred; QA's visual noise audit 2, Nov 20 2026)
+    if cntStr == "" then cntStr, cntW, stackH = nil, 0, secFH end
     if stackH > infoAreaH then cntStr, cntW, stackH = nil, 0, secFH end
     if stackH > infoAreaH then wtStr, wtW, stackH = nil, 0, 0 end
     -- and where the stack would cut the container's name (a narrow window at Large text: "Invent..."), the count
@@ -2467,7 +2471,13 @@ local function renderItemList(self)
         -- common category ("Literature") and a weight in the columns' own
         -- fonts, so Large text shows "Literature" whole, not "Liter..."
         colWData = {
-            cat  = math.ceil(math.min(ZeD.TM:MeasureStringX(T.fontF1, ZeD.InventoryRenderer.catLabel("Literature")), T.px(96)) + padX * 2),
+            -- (bug B2 of QA's visual noise audit, Nov 20 2026: "Tool / ..." and "Fire So..." in every capture, the two
+            -- most common long ones, while Status beside them had room; measured on them too, up to 120 units,
+            -- the room taken from the name, which has the most)
+            cat  = math.ceil(math.min(math.max(ZeD.TM:MeasureStringX(T.fontF1, ZeD.InventoryRenderer.catLabel("Literature")),
+                                               ZeD.TM:MeasureStringX(T.fontF1, ZeD.InventoryRenderer.catLabel("ToolWeapon")),
+                                               ZeD.TM:MeasureStringX(T.fontF1, ZeD.InventoryRenderer.catLabel("FireSource"))),
+                                      T.px(120)) + padX * 2),
             -- (a book's read status takes the column, a dot and a word; room
             -- for the one-word statuses, so the column still shows in the default window; longer ones shorten)
             -- (and room for its heading, "Cond / Amt", whole: up to 90 units of F5, past that it shortens; the cap
@@ -2589,6 +2599,14 @@ local function renderItemList(self)
     -- function sits near Kahlua's 200-local limit)
     ZeD.GridLayout.attach(self, self._gv, M, inv, playerObj, useGroups, catHdrH, colW - scrollW - padX * 2)
 
+    -- No head row over an empty list (QA's visual noise audit 2, Nov 20 2026: "Name Cat Status Wt" over "Nothing
+    -- here.") nor over a grid, which has no columns (audit 36): the grid's sort keys come with its Filter bar, under
+    -- it while the bar is open; the controller's L3 sorts either way. (No new local: this function is near Kahlua's
+    -- 200-local limit.)
+    if #catOrder == 0 or (self._gv.on and not (self._zedFilter and self._zedFilter.shown and self._zedFilter.open)) then
+        colHdrH = 0
+    end
+
     local totalContentH = 0
     if self._gv.L then
         totalContentH = self._gv.L.totalH   -- (the add-on's grid: its height worked out with the layout)
@@ -2671,6 +2689,7 @@ local function renderItemList(self)
     colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColWt"),   "wt",   wtX + padX,   wtX,    wtColW, wtX + wtColW - padX}
     -- the grid has no columns: its bar carries the same sort keys end to end
     if self._gv.on then colDefs = gridSortDefs(padX, scroll.visible and (colW - scrollW) or colW) end
+    if colHdrH == 0 then colDefs = {} end   -- (no head row: above)
 
     -- Divider hit zones (registered BEFORE header zones for priority)
     local DIV_W = T.px(6)
@@ -2872,10 +2891,15 @@ local function renderItemList(self)
                 A.drawTriangleDown(self, xOff + nameX, y + math.floor((rowH - tri) / 2), tri, htc or T.toneLo or T.textDim)
                 local hsuf = " (" .. tostring(hs.count) .. ")"
                 local hroom = nameW - tri - T.px(6)
+                -- (bug B4 of QA's visual noise audit, Nov 20 2026: "Apple (Fr... (3)" over three whole "Apple (Fresh)"
+                -- rows. A name that does not fit with its count takes the Category cell's room too; the closed stack's
+                -- row and the group heading still say the category)
+                local hspill = showCat and ZeD.TM:MeasureStringX(T.fontF2, keptName(hs.rep) .. hsuf) > hroom
+                if hspill then hroom = hroom + catColW end
                 local hname = truncateText(keptName(hs.rep), T.fontF2, hroom - ZeD.TM:MeasureStringX(T.fontF2, hsuf)) .. hsuf
                 local hc = htc or T.toneNorm
                 dT(hname, nameX + tri + T.px(6), y + math.floor((rowH - bodyFH) / 2), hc.r, hc.g, hc.b, hc.a or 1, T.fontF2)
-                if showCat then
+                if showCat and not hspill then
                     local hcat = truncateText(ZeD.InventoryRenderer.catLabel(self._catOf[hs.rep] or ZeD.InventoryRenderer.catKey(hs.rep)),
                         T.fontF1, catColW - padX * 2)
                     local cc = htc or T.toneHi
@@ -3010,7 +3034,9 @@ local function renderItemList(self)
 
         if showCat then
             -- (waiting to move: "Moving" in place of the category, a bar along the row's foot; punch list 146)
-            if not queueMark(self, item, catX + padX, secTextY, catColW - padX * 2, xOff, y, scrollX, rowH) then
+            -- (an open stack's own rows leave the category to the stack's header row: they show only what can differ,
+            -- the name with its freshness, the condition and the weight; QA's visual noise audit 35, Nov 20 2026)
+            if not queueMark(self, item, catX + padX, secTextY, catColW - padX * 2, xOff, y, scrollX, rowH) and not isChild then
                 local catLabel = truncateText(ZeD.InventoryRenderer.catLabel(self._catOf[item] or ZeD.InventoryRenderer.catKey(item)), T.fontF1,
                     catColW - padX * 2 + (condFree and condColW or 0))
                 local cc = focusTxt or T.toneHi
@@ -3451,7 +3477,8 @@ local function renderMultiColumnContent(self)
             -- (a mod's gate: its words for the weight, and only the things it lets show)
             local statsStr = ZeD.ContainerGates.status(inv, self._playerObj) or ZeD.Atoms.loadText(weight, capacity)
             local itemCount = inv and ZeD.InventoryRenderer.shownCount(self, inv, self._playerObj) or 0   -- (as the rows)
-            local countStr  = ZeD.tr(itemCount == 1 and "UI_ZeD_Inv_ItemsOne" or "UI_ZeD_Inv_ItemsMany", itemCount)
+            -- (QA's visual noise audit 2, Nov 20 2026: an empty column says "Nothing here." alone, no "0 items")
+            local countStr  = (itemCount == 0) and "" or ZeD.tr(itemCount == 1 and "UI_ZeD_Inv_ItemsOne" or "UI_ZeD_Inv_ItemsMany", itemCount)
 
             -- Bind column state onto self
             self._inventory         = cs.inventory

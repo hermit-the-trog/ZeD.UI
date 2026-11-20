@@ -825,6 +825,29 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
     if #zones > 0 then
         local discKey = "clothing_zones"
         local expanded = (card._foldStates and card._foldStates[discKey]) ~= false
+        -- (QA's visual noise audit 34, Nov 20 2026: a jacket read "Zones 60%", a bar, then Upper, Lower and Back each
+        -- with a bar and "60%", one number five times. Where every zone is at the garment's own figure and none has
+        -- anything to do or show, the fold starts shut, under a key of its own, so opening it is kept apart from the
+        -- usual Zones fold; and shut, the header gives the figure alone, no bar.)
+        local uniform = true
+        do
+            local cm = safeGet(item, "getConditionMax") or 1
+            local all = math.floor(math.max(0, math.min(1, (safeGet(item, "getCondition") or cm) / math.max(1, cm))) * 100)
+            -- (a zone with a press of its own, a repair or a patch to take off, keeps the fold open: the controller
+            -- reaches the zones' buttons only while they show)
+            local flag1 = zones[1].dock and zones[1].dock.flag or "-"
+            for _, zc in ipairs(zones) do
+                if zc.action or zc.soiled or ((zc.dock and zc.dock.flag) or "-") ~= flag1
+                   or math.abs((zc.pct or 100) - all) > 1 then
+                    uniform = false
+                    break
+                end
+            end
+        end
+        if uniform then
+            discKey = "clothing_zones_uniform"
+            expanded = (card._foldStates and card._foldStates[discKey]) == true
+        end
 
         -- Padding tokens scale with font height. Generous breathing is the
         -- house rule (6-10px at the small font; 2px reads as nothing, 4px as
@@ -926,10 +949,10 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                 ZeD.Atoms.drawStatusDot(card, sumX - T.px(4) - sq, textY + math.floor((fontH - sq) / 2), condColor, sq)
                 local sumLeftEdge = sumX - T.px(4) - sq - T.px(8)
 
-                -- Seg-bar fills middle (between label end and % left edge)
+                -- Seg-bar fills middle (between label end and % left edge); none over zones that all read the same
                 local barX = labelEndX
                 local barW = sumLeftEdge - barX
-                if barW > T.px(20) then
+                if barW > T.px(20) and not uniform then
                     local barH = math.max(math.floor(fontH * 0.7), T.px(10))
                     local barY = cy + math.floor((hdrH - barH) / 2)
                     _drawZoneSegBar(card, barX, barY, barW, barH, zones)
@@ -958,8 +981,10 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
             -- 480w: skip - already composed inline in the disclosure header.
             if compact then
                 cy = cy + padAfterDisclosureBeforeSegBar
-                _drawZoneSegBar(card, x, cy, w, segH, zones)
-                cy = cy + segH + padAfterSegBar
+                if not uniform then
+                    _drawZoneSegBar(card, x, cy, w, segH, zones)
+                    cy = cy + segH + padAfterSegBar
+                end
 
                 if soil and ZeD.ItemDetail and ZeD.ItemDetail.drawSoilRow then
                     cy = cy + ZeD.ItemDetail.drawSoilRow(card, x, cy, w, soil)

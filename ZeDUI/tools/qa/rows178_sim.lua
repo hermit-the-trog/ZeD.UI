@@ -327,9 +327,9 @@ local function windowChecks(label, pieces, tabFn, stripFn, mainId, sortId, first
                     L.list and L.list.y == r1 + r2, L.list and (L.list.y .. " vs " .. (r1 + r2)))
                 local word
                 for _, t in ipairs(L.stripTexts) do if tostring(t.s):find("Sort") then word = t end end
-                check(tag .. ": the sort row's word is in the sort font", word and T.sortFont and word.font == T.sortFont, word and word.font)
-                check(tag .. ": the sort row's word sits inside row 2", word and word.y >= r1 and word.y + ZeD.TM:getFontHeight(word.font) <= r1 + r2,
-                    word and word.y)
+                -- (Nov 20 2026, QA's visual noise audit 23: the usual order, by distance, shows no word; the row stays,
+                -- its word comes with the pointer on it or another order)
+                check(tag .. ": the sort row shows no word at the usual order", word == nil, word and word.s)
             end
         end
     end
@@ -453,11 +453,12 @@ do
                 local state = { zones = {} }
                 local used = ST.renderViewHeader(p, { _playerObj = {} }, 0, 0, 400, state, { name = "Bench" })
                 local z = state.zones[1]
-                -- (Nov 12 2026, design review C1: the tab's title on row 1, the select on the strip under it)
-                check("TABS station header " .. size .. " x" .. root .. ": the title row and the strip, each row 1 high",
-                    used == 2 * T.stripH, tostring(used) .. " vs " .. tostring(T.stripH))
-                check("TABS station header " .. size .. " x" .. root .. ": its select centered in the strip under the title",
-                    z and type(T.stripH) == "number" and math.abs((z.y + z.h / 2) - (T.stripH + T.stripH / 2)) <= 1, z and z.y)
+                -- (Nov 20 2026, QA's visual noise audit 3: the title row is gone, the title bar names the tab; the
+                -- select takes row 1)
+                check("TABS station header " .. size .. " x" .. root .. ": the strip alone, row 1 high",
+                    used == T.stripH, tostring(used) .. " vs " .. tostring(T.stripH))
+                check("TABS station header " .. size .. " x" .. root .. ": its select centered in row 1",
+                    z and type(T.stripH) == "number" and math.abs((z.y + z.h / 2) - (T.stripH / 2)) <= 1, z and z.y)
             end
         end
     end

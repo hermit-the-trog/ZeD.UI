@@ -473,8 +473,33 @@ do
     w = fresh({})
     check("SAVE: no pins saved: both unpinned", not H.isPinned(w, "inv") and not H.isPinned(w, "drawer"))
 
-    -- a real click on each pin: the drawer's at the left end (after the close box), the inventory's at the right
+    -- (Nov 20 2026, QA's visual noise audit 22: while the halves are joined, nothing rolled, the bar has one pin, at
+    -- the right end where the window's single pin always was, and it pins both halves; once a half rolls by itself,
+    -- each half's own pin is back at its own end)
     w = fresh()
+    local jl, jr = H.pinRect(w, "left"), H.pinRect(w, "right")
+    check("SAVE: joined: one pin, at the right end before the window box", jl == nil and jr ~= nil and jr.x == w:windowBoxRect().x - 4 - 14)
+    check("SAVE: joined: the title keeps its place (no left pin)", H.titleShift(w) == 0)
+    check("SAVE: joined: pinRect (the bar's right end) is that pin", w:pinRect() == jr)
+    pointAt(w, jr.x + 3, jr.y + 3)
+    DOWN = true; tick(1); DOWN = false; tick(1)
+    check("SAVE: joined: a click on the one pin pins both halves", H.isPinned(w, "drawer") and H.isPinned(w, "inv")
+        and PLAYER.md.ZeD_WinPinned.char == true and w.pinned == true)
+    tick(1)
+    check("SAVE: joined: its help line names the window", w._updHelp == "UI_ZeD_Win_HelpUnpin", w._updHelp)
+    DOWN = true; tick(1); DOWN = false; tick(1)
+    check("SAVE: joined: a second click unpins both", not H.isPinned(w, "drawer") and not H.isPinned(w, "inv") and w.pinned == false)
+    local pe = H.padElements(w)
+    local pinStops = 0
+    for _, el in ipairs(pe) do if el.id == "halfpin:both" then pinStops = pinStops + 1 end end
+    check("SAVE: joined: the pad has the one pin's stop", pinStops == 1 and #pe == 2, #pe)
+
+    -- a real click on each pin, once the drawer has folded by itself: the drawer's at the left end (after the close
+    -- box), the inventory's at the right
+    w = fresh()
+    pointAt(w, 36 + 300 + 100, 200)   -- over the inventory: the drawer folds in
+    tick(22)
+    check("SAVE: (staged) the drawer folded by itself", w._halves.foldTab == "health")
     local lp, rp = H.pinRect(w, "left"), H.pinRect(w, "right")
     check("SAVE: Character: the drawer's pin after the close box, the inventory's before the window box",
         lp and rp and lp.x == 4 + 14 + 4 and rp.x == w:windowBoxRect().x - 4 - 14, lp and lp.x)
@@ -486,7 +511,8 @@ do
     check("SAVE: a click on the left pin pins the drawer only", H.isPinned(w, "drawer") and not H.isPinned(w, "inv"))
     check("SAVE: ... saved per half", t.charTabs == true and t.charInv == false and t.char == false)
     tick(1)
-    check("SAVE: ... its help line, the next update", w._updHelp == "UI_ZeD_Win_HelpUnpinTabs", w._updHelp)
+    -- (pinning the folded drawer brings it back, as the window's pin did: the halves join again under one pin)
+    check("SAVE: ... the drawer back out, the halves joined: one pin again", H.joined(w) and H.pinRect(w, "left") == nil)
     pointAt(w, rp.x + 3, rp.y + 3)
     DOWN = true; tick(1); DOWN = false; tick(1)
     check("SAVE: a click on the right pin pins the inventory", H.isPinned(w, "inv") and PLAYER.md.ZeD_WinPinned.charInv == true)
@@ -579,7 +605,8 @@ do
     WW = makeWindow("world")
     check("MAPS: World opens on the Maps tab, its drawer pinned", WW._activeTab == "maps" and WW._drawerOpen and H.isPinned(WW, "drawer") and not H.isPinned(WW, "inv"))
     local lp, rp = H.pinRect(WW, "left"), H.pinRect(WW, "right")
-    check("MAPS: World: the containers' pin after the close box, the drawer's before the window box", lp and rp and lp.x < rp.x)
+    -- (Nov 20 2026, audit 22: nothing rolled yet, one pin; the containers' own pin comes with their roll, below)
+    check("MAPS: World, joined: one pin, at the right end", lp == nil and rp ~= nil)
     -- the pointer on the map for a long while: the containers roll, the map stays
     pointAt(WW, CSTRIP + INV + 150, 200)
     tick(25)
@@ -736,6 +763,10 @@ do
     local keepBox = ZeD.T.closeBoxSz
     ZeD.T.closeBoxSz = 27   -- (Large text: each pin overlaps its 36-unit strip by 1 unit)
     local w = fresh()
+    -- (Nov 20 2026, audit 22: the two pins show once a half has rolled: the drawer folds with the pointer in the list)
+    pointAt(w, 36 + 300 + 100, 200)
+    tick(22)
+    check("PADUP: (staged) the drawer folded, the halves apart", w._halves.foldTab == "health" and not H.joined(w))
     tick(1)
     local N = ZeD.SpatialNav
     local zone

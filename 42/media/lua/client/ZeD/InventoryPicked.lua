@@ -8,9 +8,9 @@
 -- Like the Finder's "3 of 48 selected": while rows are picked (a click, Ctrl or
 -- Shift, a box drawn round them, or the controller's marks) the line says
 -- "3 of 48 picked | 4.2 kg", so a pile's weight shows before it is moved. With
--- nothing picked it says "48 items". The container's own weight is the
--- heading's job and the character's load the title bar's, so this line no
--- longer repeats either.
+-- nothing picked it says nothing (nil): the count and the weight are the
+-- heading's job, so this line no longer repeats either (QA's visual noise
+-- audit 1, Nov 20 2026).
 --
 -- A picked stack row counts every thing in it, as a drag of that row moves the
 -- whole stack (InventoryRenderer.dragItems): a closed stack, or any stack in the
@@ -143,7 +143,9 @@ function P.line(holder, cols, total, oneKey, manyKey, playerObj)
     if n > 0 then
         c.text = ZeD.tr(n == 1 and "UI_ZeD_Inv_PickedOne" or "UI_ZeD_Inv_PickedMany", n, total, string.format("%.1f", c.w))
     else
-        c.text = ZeD.tr(total == 1 and oneKey or manyKey, total)
+        -- (QA's visual noise audit 1, Nov 20 2026: "48 items" here repeated the heading's count, and stayed under
+        -- the Radio and Health tabs; at rest the line says nothing, and the window's help line folds away)
+        c.text = nil
     end
     c.total, c.oneKey = total, oneKey
     return c.text

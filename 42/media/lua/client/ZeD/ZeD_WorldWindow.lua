@@ -3293,7 +3293,11 @@ local function drawWorldContainerStrip(self, win, content)
     local sortColor = isActive and T.toneNorm or T.toneLo
     local labelX = math.floor((w - labelW) / 2)
     local labelY = sortRowY + math.floor((sortRowH - f5H) / 2)
-    self:drawText(sortLabel, labelX, labelY, sortColor.r, sortColor.g, sortColor.b, sortColor.a, f5Font)
+    -- (QA's visual noise audit 23, Nov 20 2026: "Dist" read as a column head over the buttons; the usual order says
+    -- nothing, its word shows while the pointer is on the row. The row still takes the click and gives its help.)
+    if isActive or isSortHover then
+        self:drawText(sortLabel, labelX, labelY, sortColor.r, sortColor.g, sortColor.b, sortColor.a, f5Font)
+    end
     if isActive then
         self:drawRect(labelX, labelY + f5H, labelW, T.px(1), sortColor.a, sortColor.r, sortColor.g, sortColor.b)
     end
@@ -3612,6 +3616,8 @@ function ZeD_WorldWindow.toggle(playerNum)
     win.minimumHeight = T.px(220)
     win._maxWinW = maxWinW
     win.playerNum = playerNum   -- (read as `win.playerNum or 0` by the roll-up and the cards)
+    -- the help line folds away while the window has nothing to say (QA's visual noise audit 9, Nov 20 2026)
+    win.footerWhenUsed = true
 
     _worldWins[playerNum] = win
 
@@ -4956,16 +4962,17 @@ function ZeD_WorldWindow.toggle(playerNum)
                     name    = cnt.name,
                     texture = not cnt.isFloor and cnt.texture or nil,
                     stats   = cnt.isFloor and "" or ZeD.ContainerGates.status(cInv, win._playerObj) or ZeD.Atoms.loadText(cWeight, cMax),
-                    count   = ZeD.tr(cItems == 1 and "UI_ZeD_Inv_ItemsOne" or "UI_ZeD_Inv_ItemsMany", cItems),
+                    -- (QA's visual noise audit 2, Nov 20 2026: an empty list says "Nothing here." alone, no "0 items")
+                    count   = (cItems == 0) and "" or ZeD.tr(cItems == 1 and "UI_ZeD_Inv_ItemsOne" or "UI_ZeD_Inv_ItemsMany", cItems),
                 }
 
-                -- the title is the container's name (the open tab follows it, below); its
-                -- count is a title stat
+                -- the title is the container's name (the open tab follows it, below). (QA's visual noise audit 1,
+                -- Nov 20 2026: its count was a title stat too, over the heading's own count; the heading keeps it)
                 win._titleBase = cnt.name
-                win._titleCount = self._containerInfo.count
+                win._titleCount = nil
                 self._inventory = cInv
-                -- the help line's own words: "48 items", or "3 of 48 picked | 4.2 kg" while rows are
-                -- picked (InventoryPicked.lua); no weight at rest, the heading shows it. The one column
+                -- the help line's own words: "3 of 48 picked | 4.2 kg" while rows are picked
+                -- (InventoryPicked.lua); nothing at rest, the heading counts. The one column
                 -- left of several keeps its picks in its column state, so that counts too.
                 win._statusLine = ZeD.InventoryPicked.line(self,
                     (#mcSel > 0 and not win._mainVisible) and self._colStates or nil, cItems,

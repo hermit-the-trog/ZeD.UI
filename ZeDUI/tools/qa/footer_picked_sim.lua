@@ -1,6 +1,7 @@
 -- ZeDUI/tools/qa/footer_picked_sim.lua  (Nov 11 2026, Build): the weight leaves the window footer (the director:
 -- weight showed three times with keyboard and mouse). The help line's resting words for an inventory side become
--- "48 items", or "3 of 48 picked | 4.2 kg" while rows are picked. Checked on the real pieces of the changed files
+-- "48 items", or "3 of 48 picked | 4.2 kg" while rows are picked (Nov 20 2026, QA's visual noise audit 1: at rest
+-- the line says nothing now, the heading counts). Checked on the real pieces of the changed files
 -- with no game running.
 --   MODULE   InventoryPicked.lua: nothing picked says "N items" with no weight; picks say "k of N picked | w kg";
 --            a closed stack row counts its every thing, an open one its own row, a grid stack the whole stack;
@@ -131,9 +132,9 @@ do
     local cInv = inv(48)
     local h = { _selectedItems = {}, _inventory = cInv, _stacks = {} }
     local t = lineNow(h, nil, 48)
-    check("nothing picked: N items", t == "48 items", t)
-    check("nothing picked: no weight", not t:find("kg"), t)
-    check("one thing in the list: 1 item", lineNow({ _selectedItems = {} }, nil, 1) == "1 item")
+    -- (QA's visual noise audit 1, Nov 20 2026: at rest the line says nothing; the heading counts)
+    check("nothing picked: nothing (was N items)", t == nil, t)
+    check("one thing in the list, nothing picked: nothing", lineNow({ _selectedItems = {} }, nil, 1) == nil)
     h._selectedItems[a] = true
     t = lineNow(h, nil, 48)
     check("one picked: 1 of 48 picked | 0.5 kg", t == "1 of 48 picked | 0.5 kg", t)
@@ -161,7 +162,7 @@ do
     check("a marked stack and its row count each thing once", t == "3 of 48 picked | 0.3 kg", t)
     h._selectedItems = {}
     t = lineNow(h, nil, 48)
-    check("picks gone: back to N items", t == "48 items", t)
+    check("picks gone: back to nothing", t == nil, t)
 end
 
 section("COLUMNS")
@@ -178,7 +179,7 @@ do
     cs1.selectedItems, cs2.selectedItems, cs3.selectedItems = {}, {}, {}
     h._selectedItems = cs3.selectedItems
     t = lineNow(h, { cs1, cs2, cs3 })
-    check("nothing picked in any column: the columns' N items", t == "35 items", t)
+    check("nothing picked in any column: nothing", t == nil, t)
 end
 
 -- ---------------------------------------------------------------------------
@@ -212,7 +213,7 @@ do
         check("it runs", ok, e)
         CLOCK = CLOCK + 1000
         run("local self, win, viewIdx, round = ...\n" .. single .. "\nend", "char single", self, win, 1, round)
-        check("at rest: 48 items, no weight", win._statusLine == "48 items", win._statusLine)
+        check("at rest: nothing (audit 1, Nov 20 2026)", win._statusLine == nil, win._statusLine)
         check("the heading keeps the container's weight", self._containerInfo and self._containerInfo.stats == "7.0 / 19 kg",
             self._containerInfo and self._containerInfo.stats)
         self._selectedItems[a] = true; self._selectedItems[c] = true
@@ -250,7 +251,7 @@ do
         CLOCK = CLOCK + 1000
         local ok, e = run(head .. single .. "\nend", "world single", self, win, 1, round, {})
         check("it runs", ok, e)
-        check("at rest: 20 items, no weight", win._statusLine == "20 items", win._statusLine)
+        check("at rest: nothing (audit 1, Nov 20 2026)", win._statusLine == nil, win._statusLine)
         check("the heading keeps the container's weight", self._containerInfo.stats == "12.3 / 50 kg", self._containerInfo.stats)
         self._selectedItems[b] = true
         CLOCK = CLOCK + 1000
@@ -260,7 +261,7 @@ do
         self._selectedItems = {}
         CLOCK = CLOCK + 1000
         run(head .. single .. "\nend", "world floor", self, win, 2, round, {})
-        check("the floor at rest: 4 items", win._statusLine == "4 items", win._statusLine)
+        check("the floor at rest: nothing", win._statusLine == nil, win._statusLine)
         self._selectedItems = { [a] = true }
         CLOCK = CLOCK + 1000
         run(head .. single .. "\nend", "world floor", self, win, 2, round, {})
@@ -284,7 +285,7 @@ do
         CLOCK = CLOCK + 1000
         local ok, e = run("local self, win, r = ...\n" .. multi, "world multi", self, win, r)
         check("it runs", ok, e)
-        check("columns at rest: 10 items (the line was empty before)", win._statusLine == "10 items", win._statusLine)
+        check("columns at rest: nothing (audit 1, Nov 20 2026)", win._statusLine == nil, win._statusLine)
         cs1.selectedItems[a] = true; cs2.selectedItems[b] = true
         CLOCK = CLOCK + 1000
         run("local self, win, r = ...\n" .. multi, "world multi", self, win, r)

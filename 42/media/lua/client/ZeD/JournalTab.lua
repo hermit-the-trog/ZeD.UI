@@ -1590,11 +1590,10 @@ local function drawHeader(panel, win, x, y, w)
     local ih = T.inputH
     local rowY = y + math.floor((headerH - ih) / 2)
     local cur = win._journalSubTab or 1
-    -- row 1: the tab's title (no fold: the arrow is off), the page's search at its right
-    local title = ZeD.tr("UI_ZeD_Char_TabJournal")
-    M.drawTabHeader(panel, x, y, w, title, false, false, true)
-    local titleR = x + M.getTabPad() + ZeD.TM:MeasureStringX(T.fontF4, A.textCase(title))
-    local sx = math.max(titleR + gap * 2, x + math.floor(w * 0.35))
+    -- row 1: the page's search across it (QA's visual noise audit 3, Nov 20 2026: the word "Journal" stood here under
+    -- the title bar's "+ Journal" and over the first page's tab, also "Journal" then, now "Log"; the search has the row)
+    M.drawTabHeader(panel, x, y, w, "", false, false, true)
+    local sx = x + M.getTabPad()
     placeSearch(panel, win, cur, sx, rowY, x + w - pad - sx, ih)
     -- row 2: the pages
     local items, at = pageItems(cur)
