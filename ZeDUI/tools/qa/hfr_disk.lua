@@ -2,7 +2,7 @@
 -- zedqa_menu_mods_run.ps1 (hotfix_report_run.ps1 -Part disk -OutName disk_icons_report). The disk icons and the
 -- "ZeD-GUI" names (Build, ZeDUI/tools/modicon): the Mods screen at 4K, the pointer hidden, the debug console hidden.
 -- It logs every ZeD row's name and icon, checks the three names, and takes Screenshots/hfr_disk_*.png:
---   disk_dark_zed, disk_dark_multislot, disk_dark_picks, disk_light_zed
+--   disk_dark_zed, disk_dark_picks, disk_light_zed (Multi-Slot is checked by name only: no installed copy)
 -- Nothing is saved. What it puts back: the look on screen (Dark), the desk view. grep "ZEDQA mdsk".
 local MM = ZeD.MainMenu
 local function say(s) print("ZEDQA mdsk " .. tostring(s)) end
@@ -19,6 +19,19 @@ function K.shot(name)
     pcall(function() Mouse.setXY(4, 4); Mouse.setCursorVisible(false) end)
     local ok, e = pcall(function() getCore():TakeFullScreenshot("hfr_" .. name .. ".png") end)
     if ok then pass = pass + 1; say("shot hfr_" .. name) else fail = fail + 1; say("ERR shot " .. name .. ": " .. tostring(e)) end
+end
+-- the desk painting's lightning (ZeD_MainMenu.lua life.zap) is held off while pictures are taken: a strike lights
+-- the glass and the menu behind the Mods window shows through (director, Nov 20 2026). Let go at the end.
+function K.holdZap()
+    local z = MM._life and MM._life.zap
+    if not z then return end
+    if keep.zapAt == nil then keep.zapAt = z.nextAt or 0 end
+    z.t0 = nil; z.nextAt = 1e15
+end
+function K.freeZap()
+    local z = MM._life and MM._life.zap
+    if z and keep.zapAt ~= nil then z.nextAt = keep.zapAt end
+    keep.zapAt = nil
 end
 function K.W() return MM.root and MM.root.modsWin end
 function K.rows() local w = K.W(); local r = {}; if w then pcall(function() r = w:rows() end) end; return r end
@@ -52,8 +65,6 @@ at(40, function()
     K.pick("ZeD_UI")
 end)
 at(15, function() K.shot("disk_dark_zed") end)
-at(5, function() K.pick("ZeDMultiSlot") end)
-at(15, function() K.shot("disk_dark_multislot") end)
 at(5, function() K.pick("ZeD_Picks") end)
 at(15, function() K.shot("disk_dark_picks") end)
 at(5, function() pcall(ZeD.applyTheme, "light", keep.accent, keep.size); K.pick("ZeD_UI") end)
@@ -61,6 +72,7 @@ at(25, function() say("look " .. tostring(ZeD.currentBase)); K.shot("disk_light_
 -- put back: the look, the desk
 at(5, function()
     if keep.base then pcall(ZeD.applyTheme, keep.base, keep.accent, keep.size) end
+    K.freeZap(); keep.free = true
     local w = K.W(); if w then pcall(function() w:back() end) end
 end)
 at(20, function()
@@ -77,6 +89,7 @@ end)
 local last = T0
 local function t()
     tick = tick + 1
+    if not keep.free then pcall(K.holdZap) end
     for _, s in ipairs(steps) do
         if s.n == tick then
             local ok, e = pcall(s.fn)
