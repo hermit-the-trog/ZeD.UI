@@ -833,7 +833,7 @@ local function drawBandRow(panel, win, x, y, w)
     b.variant = "primary"
     b.focus = _gpFocusMatches(win, _isSearchEl) and true or nil
     b.help = ZeD.tr("UI_ZeD_Forage_SearchHelp")
-    b.hover = win._ddBlocksHover and false or nil
+    if win._ddBlocksHover then b.hover = false else b.hover = nil end   -- ("and false or nil" was always nil: QA, Nov 20 2026)
     _bandSpec.win = win
     local _, out = M.drawBand(panel, x, y, w, _bandSpec)
     win._forageSearchBtn = out.buttons[1]

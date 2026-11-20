@@ -408,9 +408,9 @@ local function sound(n) pcall(function() ZeD.uiSound(n or "UIActivateButton") en
 
 local function choose(st, it)
     if it.house then
-        st.house = (st.house == it.house) and nil or it.house
+        if st.house == it.house then st.house = nil else st.house = it.house end   -- (QA, Nov 20 2026: "(x == v) and nil or v" never gives nil, so a second click never cleared it)
     elseif it.faction then
-        st.faction = (st.faction == it.faction) and nil or it.faction
+        if st.faction == it.faction then st.faction = nil else st.faction = it.faction end   -- (QA, Nov 20 2026: "(x == v) and nil or v" never gives nil, so a second click never cleared it)
     end
     sound("UISelectListItem")
 end
