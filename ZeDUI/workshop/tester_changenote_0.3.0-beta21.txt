@@ -17,7 +17,7 @@ First launch
 - Save setup writes every ZeD setting to Zomboid/Lua/ZeD_setup.txt, to load later or on another machine. The desk's Settings menu opens it again.
 
 Tour
-- Pick "Show me around" on the first launch and the first game shows balloons through the belt, the watch, the Character window and its tabs (Health and how to treat a wound, your ID and weight, Skills and the training materials), an item's card, the World window, a window's menu and Messages. Next and Stop tour on each; A and B on a controller.
+- Pick "Show me around" on the first launch and the first game shows balloons through the belt, the watch, the Character window and its tabs (Equipment, where your clothes are; Health and how to treat a wound, your ID and weight, Skills and the training materials), an item's card, the World window, a window's menu and Messages. Next and Stop tour on each; A and B on a controller.
 
 Watch
 - The plain watch: the time large in your accent color on the left, the day, month and date over the temperature on the right. Click it to fold it to a thin strip; click again to open it. Click the alarm line to set the alarm.
