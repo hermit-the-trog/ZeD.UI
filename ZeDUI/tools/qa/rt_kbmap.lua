@@ -326,6 +326,22 @@ Q.step(5, function()
     local took = KM.setKey(S.name, S.new)
     Q.check(took and H.key(S.name) == S.new, "Keyboard map: setKey gives the game the new key at once (getCore():getKey)",
         tostring(S.name) .. " on " .. tostring(H.key(S.name)) .. ", wanted " .. tostring(S.new))
+    -- (Nov 20 2026, the bug hunt's KM-1: the game's Options keep their own list, MainOptions.keyText, and every
+    -- Apply writes it back to the game and to keysB42.ini; a key set in the map must be in that list too, or the
+    -- next Apply for anything puts the old key back)
+    local kt, seen = nil, 0
+    for _, v in ipairs((MainOptions and MainOptions.keyText) or {}) do
+        seen = seen + 1
+        local nm = nil
+        pcall(function() nm = v.txt and v.txt:getName() end)
+        if nm == S.name then kt = v end
+    end
+    if kt then
+        Q.check(kt.keyCode == S.new, "Keyboard map: the game's Options key list has the new key too (an Apply there keeps it)",
+            "Options list " .. tostring(kt.keyCode) .. ", wanted " .. tostring(S.new))
+    else
+        Q.skip("the game's Options key list has the new key too", "MainOptions.keyText has no entry for " .. tostring(S.name) .. " (" .. seen .. " entries; the Options screen is not built yet)")
+    end
     local now = H.readLines() or {}
     local i0, i1 = H.lineIdx(before, S.name), H.lineIdx(now, S.name)
     local want = S.name .. "=key:" .. tostring(S.new)
@@ -402,8 +418,20 @@ Q.step(5, function()
     local sure = ZeD.tr("UI_ZeD_KMap_ResetSure")
     Q.check(b ~= nil and b.text == sure and b.variant == "danger", "Keyboard map: the Reset button reads Press again to reset",
         b and (tostring(b.text) .. " / " .. tostring(b.variant)) or "not drawn")
-    H.clickReset()
+    H.clickReset()   -- (at once: a double click)
 end)
+-- (Nov 20 2026, the bug hunt's P1: a second press at once, a double click, must not wipe the keys; the second press
+-- counts from 300 ms after the first)
+Q.step(5, function()
+    if not S.win then return end
+    Q.check(H.key(S.name) == S.new, "Keyboard map: a second Reset press at once (a double click) changes nothing",
+        tostring(S.name) .. " on " .. tostring(H.key(S.name)) .. ", was " .. tostring(S.new))
+end)
+Q.waitMs(500)
+Q.step(2, function() if S.win and H.key(S.name) == S.new then H.clickReset() end end)
+Q.step(5, function() S.askedAgain = S.win ~= nil and S.win._resetAt ~= nil and H.key(S.name) == S.new end)
+Q.waitMs(500)
+Q.step(2, function() if S.askedAgain then H.clickReset() end end)   -- (the at-once press had dropped the question: asked again above)
 Q.step(5, function()
     if not S.win then return end
     local tbl = H.table()
@@ -412,7 +440,7 @@ Q.step(5, function()
         n = n + 1
         if H.key(name) ~= def and #off < 6 then off[#off + 1] = name .. "=" .. tostring(H.key(name)) .. "/" .. tostring(def) end
     end
-    Q.check(#off == 0 and S.win._resetAt == nil, "Keyboard map: a second Reset press within 4 s puts every key back to the game's own",
+    Q.check(#off == 0 and S.win._resetAt == nil, "Keyboard map: a second Reset press half a second on puts every key back to the game's own",
         n .. " bindings" .. ((#off > 0) and (", off: " .. table.concat(off, " ")) or ""))
     local lines = H.readLines() or {}
     local bad = {}

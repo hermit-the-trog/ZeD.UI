@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/perf_fn.txt (Nov 20 2026, QA): what one draw call costs (perf_micro.lua, against Oct 22's numbers) and
+# the function profile of the open windows (perf_fnprof_now.lua), Full style, windows pinned.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+perf_micro.lua | pmic | timeout=300
+perf_fnprof_now.lua | pfn | timeout=900

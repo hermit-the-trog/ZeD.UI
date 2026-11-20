@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/perf_full.txt (Nov 20 2026, QA): perf_now.lua's eight scenes in the Full style, windows pinned.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+perf_now.lua | pnow | timeout=900

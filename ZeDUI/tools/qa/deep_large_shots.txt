@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/deep_large_shots.txt (Nov 20 2026, QA): Large text and Lite on a small screen, three pictures for the eye (deep_large_shots.lua).
+zedqa_prelude.lua | pre | timeout=120
+zedqa_cfg_large.lua | cfl | timeout=60
+zedqa_style_lite.lua | stl | timeout=60
+deep_large_shots.lua | dls | timeout=300

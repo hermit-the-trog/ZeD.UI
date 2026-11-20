@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/perf_micro.txt (Nov 20 2026, QA): what one draw call and one helper call cost.
+zedqa_prelude.lua | pre | timeout=120
+perf_micro.lua | pmic | timeout=300

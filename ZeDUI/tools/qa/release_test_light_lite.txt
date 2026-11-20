@@ -1,0 +1,17 @@
+# ZeDUI/tools/qa/release_test_light_lite.txt (Nov 20 2026, QA): the release test, the Light theme and the Lite style for the whole run (a deep run).
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+zedqa_cfg_light_lite.lua | cfx | timeout=60
+rt_windows.lua | rt_win | timeout=1800
+rt_inventory.lua | rt_inv | timeout=1800
+rt_menus.lua | rt_menu | timeout=1800
+rt_cards.lua | rt_cards | timeout=1800
+rt_hud.lua | rt_hud | timeout=1800
+rt_pad.lua | rt_pad | timeout=1800
+rt_media.lua | rt_media | timeout=1800
+rt_vehicles.lua | rt_veh | timeout=1800
+rt_addon.lua | rt_addon | timeout=1800
+rt_lite.lua | rt_lite | timeout=1800
+rt_kbmap.lua | rt_kbmap | timeout=900
+rt_tour.lua | rt_tour | timeout=600
+rt_system.lua | rt_sys | timeout=1800

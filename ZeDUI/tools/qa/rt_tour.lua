@@ -189,13 +189,25 @@ for i = 1, #((TU and TU.STEPS) or {}) do
         local R = H.R()
         local st = TU.STEPS[TU.step()]
         local idx = TU.step()
+        -- (Nov 20 2026: the watch step may be passed over, when no watch box is on screen: a tucked belt watch is a
+        -- 0 x 0 panel at 0,0, and the balloon must not point there. Then this turn is the next step's.)
+        if not TU.running() then return end   -- (the walk ended a turn early: a step was passed over)
+        local last = S.lastIdx or 0
+        for k = last + 1, idx - 1 do
+            local sk = TU.STEPS[k]
+            local okW, wr = pcall(sk.target, S.pn)
+            wr = okW and wr or nil
+            Q.check(sk.key == "Watch" and (wr == nil or wr.w < 8 or wr.h < 8),
+                "mouse step " .. k .. " (" .. sk.key .. "): passed over only because it has nothing on screen (the watch alone may be)", H.rs(wr))
+        end
         S.visited[#S.visited + 1] = st and st.key or "?"
         local name = "mouse step " .. idx .. " (" .. tostring(st and st.key) .. ")"
-        Q.check(TU.running() and idx == i, name .. ": the tour is on step " .. i, "on " .. tostring(idx))
+        Q.check(idx > last, name .. ": the tour moved on from step " .. last, "on " .. tostring(idx))
+        S.lastIdx = idx
         if not st then return end
         local okT, tgt = pcall(st.target, S.pn)
         tgt = okT and tgt or nil
-        Q.check(tgt ~= nil and H.onScreen(tgt), name .. ": its thing is on screen", H.rs(tgt))
+        Q.check(tgt ~= nil and H.onScreen(tgt) and tgt.w >= 8 and tgt.h >= 8, name .. ": its thing is on screen, a real box (8 px or more each way)", H.rs(tgt))
         local L = S.last
         local fresh = L and L.key == "tutorial:" .. idx and getTimestampMs() - L.t < 1000
         Q.check(fresh and L.box ~= nil, name .. ": its balloon is drawn", L and L.key or "no balloon")
@@ -258,10 +270,100 @@ end
 -- 3. Done
 Q.step(6, function()
     if S.msgStaged then pcall(function() ZeD.Messages.clear("ZeDQA rt_tour") end); S.msgStaged = nil end
+    if TU.running() and TU.step() == #TU.STEPS then H.press("next") end   -- (a walk one turn short: not expected)
     Q.check(not TU.running(), "Done: the last step's Done ends the tour", "visited " .. table.concat(S.visited, ", "))
+    Q.check(#S.visited >= #TU.STEPS - 1 and S.visited[#S.visited] == "Guide", "Done: the walk saw every step to the last (the watch alone may be passed over)",
+        #S.visited .. " of " .. #TU.STEPS)
     Q.check(not H.inUI(H.R().layer) and not H.inUI(H.R().keys), "Done: the balloon's layer and the keys are gone")
     Q.check(H.readWord() == "0", "Done: the file says \"0\", so the tour never comes back by itself", H.readWord())
     Q.check(TU.wanted() == nil, "Done: wanted() is nothing after it")
+end)
+
+-- 3b. a worn watch in the Full style sits on the belt: its own panel is tucked away (0 x 0 at 0,0). The watch step
+-- must then point at a real box or be passed over, never at the screen's corner. (Nov 20 2026, QA: the bug hunt's
+-- find; the walk above runs with no watch worn, so it never saw this.)
+Q.step(4, function()
+    S.ww = {}
+    local it = RT.give("Base.WristWatch_Left_DigitalBlack")
+    if not it then Q.skip("worn watch: the watch step", "no watch could be given"); return end
+    local loc = it:getBodyLocation()
+    pcall(function() S.ww.prev = RT.p:getWornItem(loc) end)
+    if pcall(function() RT.p:setWornItem(loc, it) end) then S.ww.given, S.ww.loc = it, loc end
+    -- (ZeD setup, Watch: on the belt, the default; this run's own pick put back after)
+    pcall(function() local o = ZeD.Settings.watchPlaceOption; S.ww.placeWas = o:getValue(); o:setValue(1) end)
+    pcall(function() triggerEvent("OnClothingUpdated", RT.p) end)
+end)
+-- (the watch tucked: on the belt, not popped up. A watch just put on, or one an earlier script popped, shows its
+-- full face in the corner for a while, and the first run of this check passed on that.)
+Q.step(20, function() if S.ww.given then pcall(ZeD.Watch.togglePop, false) end end)
+Q.step(40, function()
+    if not S.ww.given then return end
+    local inst = ZeD.Watch._instance
+    S.ww.tucked = ZeD.Watch.beltMode() and inst ~= nil and inst:getWidth() == 0
+    Q.say("worn watch: belt mode " .. tostring(ZeD.Watch.beltMode()) .. ", its own panel " .. tostring(inst and inst:getWidth()) .. " x " .. tostring(inst and inst:getHeight())
+        .. (S.ww.tucked and " (tucked on the belt)" or " (in the corner)"))
+    S.last = nil
+    TU.start(S.pn, "mouse")
+end)
+Q.step(10, function() if S.ww.given and TU.running() and TU.step() == 1 then H.press("next") end end)
+Q.step(20, function()
+    if not S.ww.given then return end
+    local idx = TU.step()
+    local st = TU.STEPS[idx]
+    if st and st.key == "Watch" then
+        local L = S.last
+        local a = L and L.key == "tutorial:" .. idx and L.a or nil
+        Q.check(a ~= nil and a.w >= 8 and a.h >= 8 and not (a.x == 0 and a.y == 0),
+            "worn watch (" .. (ZeD.Settings.lite() and "Lite" or "Full") .. (S.ww.tucked and ", tucked on the belt" or ", in the corner") .. "): the watch step points at a real box, not the screen's corner", H.rs(a))
+    else
+        Q.check(TU.running() and idx > 2, "worn watch (" .. (ZeD.Settings.lite() and "Lite" or "Full") .. "): the watch step is passed over when the watch has no box of its own",
+            "on step " .. tostring(idx))
+    end
+    H.stop()
+    pcall(function() RT.p:setWornItem(S.ww.loc, S.ww.prev) end)
+    pcall(function() triggerEvent("OnClothingUpdated", RT.p) end)
+    S.ww.given = nil
+    pcall(function() if S.ww.placeWas ~= nil then ZeD.Settings.watchPlaceOption:setValue(S.ww.placeWas) end end)
+end)
+
+-- 3c. the tour holds its window open: an unpinned Character window rolls up about two seconds after the pointer
+-- leaves it (WindowHalves.lua); a step that is describing the window must keep it open while the player reads.
+-- (Nov 20 2026, QA: the bug hunt's find. The walk above presses Next at once, so it never waited long enough.)
+Q.step(10, function()
+    local md = RT.p:getModData()
+    S.pinWas = md.ZeD_WinPinned
+    md.ZeD_WinPinned = { char = false, world = false }
+    for _, w in ipairs({ RT.cw(), RT.ww() }) do
+        if w and w.setPinned then pcall(function() w:setPinned(false) end) end
+    end
+    -- (the pointer far from both windows: the screen's lower right)
+    pcall(function() Mouse.setXY(getCore():getScreenWidth() - 40, getCore():getScreenHeight() - 160) end)
+    H.writeWord("1")
+    TU.start(S.pn, "mouse")
+end)
+Q.step(10, function() if TU.running() and TU.step() < 3 then H.press("next") end end)
+Q.step(10, function() if TU.running() and TU.step() < 3 then H.press("next") end end)
+Q.step(10, function()
+    S.holdStep = TU.step()
+    S.holdKey = TU.STEPS[S.holdStep] and TU.STEPS[S.holdStep].key
+    pcall(function() Mouse.setXY(getCore():getScreenWidth() - 40, getCore():getScreenHeight() - 160) end)
+end)
+Q.waitMs(4500)
+Q.step(2, function()
+    local cw = RT.cw()
+    local shaded = cw ~= nil and cw.windowShaded == true
+    local h = cw and cw:getHeight() or 0
+    Q.check(S.holdKey == "Char" and TU.running() and TU.step() == S.holdStep, "window held: the tour is still on the Character window step after 4.5 s",
+        tostring(S.holdKey) .. ", step " .. tostring(TU.step()))
+    Q.check(cw ~= nil and H.vis(cw) and not shaded and h > 120, "window held: an unpinned Character window stays open while its step shows (the pointer away 4.5 s)",
+        "shaded " .. tostring(shaded) .. ", height " .. tostring(h))
+    H.stop()
+    local md = RT.p:getModData()
+    md.ZeD_WinPinned = S.pinWas
+    local pc, pw = S.pinWas and S.pinWas.char == true, S.pinWas and S.pinWas.world == true
+    pcall(function() local w = RT.cw(); if w and w.setPinned then w:setPinned(pc) end; if w and w.windowShaded then w:setWindowShaded(false) end end)
+    pcall(function() local w = RT.ww(); if w and w.setPinned then w:setPinned(pw) end; if w and w.windowShaded then w:setWindowShaded(false) end end)
+    pcall(function() Mouse.setXY(20, 20) end)
 end)
 
 -- 4. a step with nothing on screen is passed over
