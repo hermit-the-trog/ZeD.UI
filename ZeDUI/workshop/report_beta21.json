@@ -127,68 +127,74 @@
    "group": "The tour",
    "items": [
     {
-     "title": "Tour 1 of 11: the belt",
+     "title": "Tour 1 of 12: the belt",
      "shots": "tour_14",
      "look": "",
      "what": ""
     },
     {
-     "title": "Tour 2 of 11: the watch",
+     "title": "Tour 2 of 12: the watch",
      "shots": "tour_15",
      "look": "",
      "what": ""
     },
     {
-     "title": "Tour 3 of 11: the Character window",
+     "title": "Tour 3 of 12: the Character window",
      "shots": "tour_16",
      "look": "",
      "what": ""
     },
     {
-     "title": "Tour 4 of 11: the tabs",
+     "title": "Tour 4 of 12: the tabs",
      "shots": "tour_17",
      "look": "",
      "what": "The game's icons from the top left corner live here now, as tabs down the side."
     },
     {
-     "title": "Tour 5 of 11: Health",
+     "title": "Tour 5 of 12: Equipment",
      "shots": "tour_18",
+     "look": "",
+     "what": "Where your clothes went: what you wear and hold is on the Equipment tab."
+    },
+    {
+     "title": "Tour 6 of 12: Health",
+     "shots": "tour_19",
      "look": "",
      "what": "Shows how to treat a wound."
     },
     {
-     "title": "Tour 6 of 11: your ID",
-     "shots": "tour_19",
+     "title": "Tour 7 of 12: your ID",
+     "shots": "tour_20",
      "look": "",
      "what": "Your weight, with a plus or a minus while it changes."
     },
     {
-     "title": "Tour 7 of 11: Skills",
-     "shots": "tour_20",
+     "title": "Tour 8 of 12: Skills",
+     "shots": "tour_21",
      "look": "",
      "what": "Scroll down for Training materials."
     },
     {
-     "title": "Tour 8 of 11: an item's card",
-     "shots": "tour_21",
+     "title": "Tour 9 of 12: an item's card",
+     "shots": "tour_22",
      "look": "",
      "what": "Opens the card of the first thing you carry."
     },
     {
-     "title": "Tour 9 of 11: the World window",
-     "shots": "tour_22",
-     "look": "",
-     "what": ""
-    },
-    {
-     "title": "Tour 10 of 11: a window's menu",
+     "title": "Tour 10 of 12: the World window",
      "shots": "tour_23",
      "look": "",
      "what": ""
     },
     {
-     "title": "Tour 11 of 11: Messages and the guide",
+     "title": "Tour 11 of 12: a window's menu",
      "shots": "tour_24",
+     "look": "",
+     "what": ""
+    },
+    {
+     "title": "Tour 12 of 12: Messages and the guide",
+     "shots": "tour_25",
      "look": "",
      "what": "Points at the belt's Messages note, where ZeD's guide bubble comes out on the first game."
     }

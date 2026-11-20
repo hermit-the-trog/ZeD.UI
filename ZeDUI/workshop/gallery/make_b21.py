@@ -140,7 +140,7 @@ def first_launch():
 
 
 def tour():
-    im = scene("tour_18.png", (300, 0, 3180, 1620))
+    im = scene("tour_19.png", (300, 0, 3180, 1620))   # (Health, 6 of 12)
     caption(im, (40, 740, 980), "Show me around: a balloon tour of every window, the tabs too.",
             [("Stop tour", "plain"), ("Next", "default")], 40)
     return im
