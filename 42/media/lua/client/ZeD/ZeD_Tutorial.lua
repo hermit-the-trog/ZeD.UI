@@ -123,6 +123,9 @@ TU.STEPS = {
     { key = "Watch", target = function(pn) return rectOf(ZeD.Watch and ZeD.Watch._instance) end, pref = "below" },
     { key = "Char", prepare = ensureChar, target = function(pn) return rectOf(charWin(pn)) end, pref = "right" },
     { key = "Tabs", prepare = ensureChar, target = function(pn) return tabStrip(pn) or rectOf(charWin(pn)) end, pref = "right" },
+    -- (the director, Nov 19 2026: "The tour also needs to show equipment tab. That's one thing that people are going to
+    -- be like, hey, my inventory's empty. Where are all my clothing?")
+    { key = "Equipment", prepare = function(pn) ensureTab(pn, "equip") end, target = function(pn) return rectOf(charWin(pn)) end, pref = "right" },
     { key = "Health", prepare = function(pn) ensureTab(pn, "health") end, target = function(pn) return rectOf(charWin(pn)) end, pref = "right" },
     { key = "Identity", prepare = function(pn) ensureTab(pn, "identity") end, target = function(pn) return rectOf(charWin(pn)) end, pref = "right" },
     { key = "Skills", prepare = function(pn) ensureTab(pn, "skills") end, target = function(pn) return rectOf(charWin(pn)) end, pref = "right" },

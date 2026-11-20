@@ -5036,6 +5036,8 @@
     "UI_ZeD_Tut_Identity_Text": "Your name, profession and traits, and your weight, with a plus or a minus beside it while it's going up or down.",
     "UI_ZeD_Tut_Skills_Title": "Skills",
     "UI_ZeD_Tut_Skills_Text": "Every skill and its level. Scroll down for Training materials: the skill books for each skill.",
+    "UI_ZeD_Tut_Equipment_Title": "Your clothes and gear",
+    "UI_ZeD_Tut_Equipment_Text": "Your inventory lists what you carry. What you wear and what's in your hands is here, on the Equipment tab, slot by slot.",
     "UI_ZeD_Settings_Immersive": "Immersive",
     "UI_ZeD_Tk_KindTicket": "Ticket",
     "UI_ZeD_Tk_ToastHead": "Ticket",
