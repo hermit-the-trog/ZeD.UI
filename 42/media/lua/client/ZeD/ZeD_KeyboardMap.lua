@@ -105,6 +105,16 @@ local function modsOf(name)
 end
 KM.modsOf = modsOf
 
+-- (QA's bug hunt KM-2, Nov 20 2026: on a French AZERTY keyboard the game's own keys are not keyBinding's: it moves four
+-- of them as it loads (MainOptions, "a=q, etc."). Reset wrote the QWERTY keys, and the map drew the game's own pairs
+-- in the bad color. The game's own swap is used for both.)
+local AZERTY = { Left = 16, Forward = 44, Shout = 30, VehicleHorn = 30 }
+local function defaultKey(b)
+    local ok, az = pcall(function() return getCore():isAzerty() end)
+    if ok and az and AZERTY[tostring(b.value)] then return AZERTY[tostring(b.value)] end
+    return b.key or 0
+end
+
 --- { groups = { { title, rows = { { name, label, code } } } }, used = { [code] = count }, clash = { [code] = true } }
 function KM.read()
     local out = { groups = {}, used = {}, clash = {} }
@@ -124,9 +134,10 @@ function KM.read()
                 table.insert(nowOf[c], v)
                 out.used[c] = (out.used[c] or 0) + 1
             end
-            if b.key and b.key ~= 0 then
-                defaultsOf[b.key] = defaultsOf[b.key] or {}
-                defaultsOf[b.key][v] = true
+            local dk = defaultKey(b)
+            if dk ~= 0 then
+                defaultsOf[dk] = defaultsOf[dk] or {}
+                defaultsOf[dk][v] = true
             end
         end
     end
@@ -248,7 +259,7 @@ function KM.resetAll()
         local v = b.value and tostring(b.value) or ""
         if v:find("^%[") then lines[#lines + 1] = v
         elseif v ~= "" then
-            local c = b.key or 0
+            local c = defaultKey(b)
             pcall(function() getCore():addKeyBinding(v, c, b.alt or 0, b.shift or false, b.ctrl or false, b.altKey or false) end)
             syncOptions(v, c, b.alt or 0, b.shift or false, b.ctrl or false, b.altKey or false)
             lines[#lines + 1] = lineOf(v, c, b.alt, b.shift, b.ctrl, b.altKey)
@@ -287,8 +298,24 @@ function ZeD_KeyboardMap:createChildren()
     self.minimumWidth, self.minimumHeight = 0, 0
 end
 
+-- (QA's bug hunt P6, Nov 20 2026: the key that answers the map also did its job in the game, a shout for Q, a window
+-- for Tab. While an action waits for its key, and until the key that answered is let go, the game's Lua key events
+-- are off, as the game's own Options does it; they come back on at every way out. Read each update, and at once
+-- wherever the wait starts or ends.)
+local function syncKeys(self)
+    local held = self._heldKey and isKeyDown(self._heldKey)
+    if not held then self._heldKey = nil end
+    local off = self:getIsVisible() and (self.listening ~= nil or held) and true or false
+    if off ~= (self._keysOff or false) then
+        self._keysOff = off
+        pcall(function() GameKeyboard.setDoLuaKeyPressed(not off) end)
+    end
+end
+
 function ZeD_KeyboardMap:close()
     self.listening = nil
+    self._heldKey = nil
+    if self._keysOff then self._keysOff = false; pcall(function() GameKeyboard.setDoLuaKeyPressed(true) end) end
     self:setVisible(false)
     self:removeFromUIManager()
     local jd = JoypadState.players[self.playerNum + 1]
@@ -453,6 +480,7 @@ end
 
 function ZeD_KeyboardMap:update()
     ZeD_Window.update(self)
+    syncKeys(self)
     if not self:getIsVisible() then return end
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
     self.joyfocus = (jd and jd.focus == self) and jd or nil
@@ -495,11 +523,13 @@ function ZeD_KeyboardMap:onMouseUp(x, y)
         self.picked = (self.picked == h.code) and nil or h.code
     elseif h.id == "bind" then
         self.listening = (self.listening == h.name) and nil or h.name
+        syncKeys(self)
     elseif h.id == "reset" then
         local since = self._resetAt and (getTimestampMs() - self._resetAt) or nil
         if since and since >= 300 and since < RESET_ASK_MS then   -- (QA's bug hunt P1: a double-click is not "again")
             self._resetAt = nil
             self.listening = nil
+            syncKeys(self)
             KM.resetAll()
         else
             self._resetAt = getTimestampMs()
@@ -516,6 +546,7 @@ function ZeD_KeyboardMap:onKeyPress(key)
     if self.listening then
         local name = self.listening
         self.listening = nil
+        self._heldKey = key     -- (the game's keys stay off till this one is let go: P6)
         if key ~= Keyboard.KEY_ESCAPE then KM.setKey(name, key) end
         pcall(function() GameKeyboard.eatKeyPress(key) end)
         return
@@ -564,7 +595,7 @@ end
 function KM.takeEscape()
     for _, win in pairs(KM.windows) do
         if win and win:isReallyVisible() then
-            if win.listening then win.listening = nil else win:close() end
+            if win.listening then win.listening = nil; syncKeys(win) else win:close() end
             return true
         end
     end
@@ -572,5 +603,18 @@ function KM.takeEscape()
 end
 ZeD.EscapeTakers = ZeD.EscapeTakers or {}
 ZeD.EscapeTakers.keyboardMap = KM.takeEscape
+
+-- (P6's safety: a map taken off screen some other way, mid-wait, gives the game its keys back; a window that no
+-- longer draws never runs its own update)
+if Events and Events.OnTick then
+    Events.OnTick.Add(function()
+        for _, win in pairs(KM.windows) do
+            if win and win._keysOff and not win:isReallyVisible() then
+                win._keysOff, win.listening, win._heldKey = false, nil, nil
+                pcall(function() GameKeyboard.setDoLuaKeyPressed(true) end)
+            end
+        end
+    end)
+end
 
 return KM

@@ -903,7 +903,7 @@ ZeD.PhysPx = {
           ghost = "#a6aa9f",
           fields = {
             { t = "text", src = "day", x = 2, y = 2, font = "35" },
-            { t = "seg", src = "dateMD", x = 42, y = 2, cw = 4, ch = 7, pitch = 6, n = 5 },
+            { t = "seg", src = "dateMD", x = 42, y = 2, cw = 4, ch = 7, pitch = 5, n = 5 },   -- (P5: pitch 5 keeps "12-25" clear of the weekday)
             { t = "bars", src = "speed", x = 2, y = 12, n = 3, bw = 3, gap = 1, h0 = 2, dh = 1 },
             { t = "text", src = "pause", x = 2, y = 8, font = "35" },
             { t = "text", src = "alm", x = 42, y = 8, font = "35", align = "r" },
@@ -956,7 +956,7 @@ ZeD.PhysPx = {
           ghost = "#a6aa9f",
           fields = {
             { t = "text", src = "day", x = 2, y = 2, font = "35" },
-            { t = "seg", src = "dateMD", x = 42, y = 2, cw = 4, ch = 7, pitch = 6, n = 5 },
+            { t = "seg", src = "dateMD", x = 42, y = 2, cw = 4, ch = 7, pitch = 5, n = 5 },   -- (P5: pitch 5 keeps "12-25" clear of the weekday)
             { t = "bars", src = "speed", x = 2, y = 12, n = 3, bw = 3, gap = 1, h0 = 2, dh = 1 },
             { t = "text", src = "pause", x = 2, y = 8, font = "35" },
             { t = "text", src = "alm", x = 42, y = 8, font = "35", align = "r" },
