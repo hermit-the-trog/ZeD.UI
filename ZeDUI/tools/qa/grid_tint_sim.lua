@@ -72,12 +72,16 @@ local S = ZeD.Settings
 local gt = OPTS.dict.gridTint
 check("OPTION: Settings.lua registers gridTint", gt ~= nil)
 check("OPTION: Off then On, Off the default", gt and #gt.items == 2 and gt.default == 1, gt and gt.default)
-check("OPTION: read through ZeD.Settings.gridTint, off for a new player", S.gridTint and S.gridTint() == false)
+-- (QA's visual noise audit, Nov 20 2026: the row is gone from ZeD setup; the tiles follow Style, tinted in Full and plain in Lite)
+local liteOn = false
+S.lite = function() return liteOn end
+check("OPTION: read through ZeD.Settings.gridTint, on in Full (a new player)", S.gridTint and S.gridTint() == true)
 check("OPTION: ZeD setup names it", gt and gt.zedNameKey == "UI_ZeD_Settings_GridTint", gt and gt.zedNameKey)
 do
     local g = readSrc("42/media/lua/client/ZeD/ZeD_MainMenuOptionGroups.lua")
     local look = g:match('"UI_ZeD_Options_ZedLook",(.-)\n    %-%-')
-    check("OPTION: the Look group lists it as a check box", look ~= nil and look:find('{ "gridTint", "onoff" }', 1, true) ~= nil)
+    check("OPTION: the Look group has no row for it, ZeD setup hides it", look ~= nil and look:find('"gridTint"', 1, true) == nil
+          and g:find('G.SETUP_HIDDEN = { "mapLight", "solidInUse", "healthBlink", "gridTint"', 1, true) ~= nil)
     local missing = 0
     for _, l in ipairs({ "AR","CA","CH","CN","CS","DA","DE","EN","ES","ES_CL","ES_MX","FI","FR","HU","ID","IT","JP","KO","NL","NO","PL","PT","PTBR","RO","RU","TH","TR","UA" }) do
         local t = readSrc("42/media/lua/shared/Translate/" .. l .. "/UI.json")
@@ -117,15 +121,16 @@ end
 local function isStripe(r, T) return r and r.a == T.stripe.a and r.r == T.stripe.r and r.g == T.stripe.g and r.b == T.stripe.b end
 local function lightness(r) local mx, mn = math.max(r.r, r.g, r.b), math.min(r.r, r.g, r.b); return (mx + mn) / 2 end
 
--- OFF (the default)
+-- OFF (Lite)
+liteOn = true
 for k, T in pairs(THEMES) do
     local r, n = fillOf(T, item(TEX.axe))
     check("OFF " .. k .. ": the axe's tile draws the plain stripe, once", isStripe(r, T) and n == 1, r and r.a)
 end
 
 -- ON
-S.setGridTint(true)
-check("ON: the pick reads on", S.gridTint() == true and G.on() == true)
+liteOn = false
+check("ON: Full reads on", S.gridTint() == true and G.on() == true)
 for k, T in pairs(THEMES) do
     local r = fillOf(T, item(TEX.axe))
     check("ON " .. k .. ": the axe's tile is a tint, not the stripe", r and not isStripe(r, T))
@@ -163,8 +168,8 @@ check("UNKNOWN: a texture whose getName throws keeps the stripe",
     isStripe(fillOf(THEMES.dark, item({ getName = function() error("java") end })), THEMES.dark))
 
 -- OFF again: back to the stripe at once (the cache holds colors, never the switch)
-S.setGridTint(false)
-check("OFF again: the axe is plain at once", isStripe(fillOf(THEMES.light, item(TEX.axe)), THEMES.light))
+liteOn = true
+check("OFF again: Lite, the axe is plain at once", isStripe(fillOf(THEMES.light, item(TEX.axe)), THEMES.light))
 
 -- RANGE: every baked color under every rule
 do

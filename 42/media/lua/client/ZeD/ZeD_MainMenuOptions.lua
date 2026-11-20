@@ -395,6 +395,13 @@ local function underLine(r)
     -- a ZeD screen a mod took (ZeD_StepAside.lua): which mod, while it is handed back
     local taken = r.zedBack and ZeD.StepAside and ZeD.StepAside.underFor(r.zedBack)
     if taken then return taken end
+    -- (QA's visual noise audit, Nov 20 2026: the seven screens are one row of check boxes; the first one a mod took names it)
+    if r.zedBacks and ZeD.StepAside and ZeD.StepAside.underFor then
+        for _, t in ipairs(r.zedBacks) do
+            local tk = t[3] and ZeD.StepAside.underFor(t[3])
+            if tk then return tk end
+        end
+    end
     if r.under then return MM.optionGroups.text(r.under) end
     return r.only and MM.optionGroups.text(r.only[1])
 end
@@ -552,8 +559,10 @@ function ZeD_MMOptions:rowsFor(page)
     -- (Nov 15 2026, add-on hooks: rev goes up each time an add-on adds a group, ZeD.Options.addGroup, so a group
     -- added while the window is open shows at once; with none added it stays 0 and only the two seconds count)
     local rev = (ZeD.Options and ZeD.Options.rev) or 0
-    if not (gc and now - gc.at < 2000 and gc.rev == rev) then
-        gc = { at = now, rev = rev, rows = MM.optionGroups.build(self:vpages(), function(p) return self:vrowsFor(p) end) }
+    -- (QA's visual noise audit, Nov 20 2026: rows come and go with Style, Loadouts' pick and debug mode; a change builds again at once)
+    local st = MM.optionGroups.stateKey and MM.optionGroups.stateKey() or ""
+    if not (gc and now - gc.at < 2000 and gc.rev == rev and gc.st == st) then
+        gc = { at = now, rev = rev, st = st, rows = MM.optionGroups.build(self:vpages(), function(p) return self:vrowsFor(p) end) }
         self._groupCache = gc
     end
     local rows = gc.rows[page.raw] or {}
@@ -1013,14 +1022,17 @@ local function seeText(i)
     return ZeD.tr("UI_ZeD_Settings_SeeThroughPct", keys and keys[i] or 90)
 end
 
--- what the stepped slider says beside it: the size picked, or what Auto picks on this screen
--- (See-through: the percentage picked)
+-- what the stepped slider says beside it: what Auto picks on this screen, or the size a capped step draws at; nil
+-- for any other pick
+-- (QA's visual noise audit 10, Nov 20 2026: See-through had "90%" at the right and a bold "90%" under its tick, UI
+-- scale "1.75x" twice, the dead zone "0.35" twice. The pick's name under the track says it: the number at the right
+-- stays only where it adds something, what Auto came to or what a capped step is drawn at.)
 local function scaleReadout(r)
     local c = r.control
-    if isSeeRow(r) then return seeText(c.selected or 2) end
-    if r.labelKey == "UI_ZeD_Settings_WheelDeadZone" then return comboText(c, c.selected) end   -- (no Auto: the number)
-    -- (Nov 15 2026, add-on hooks: an add-on's slider is no UI scale; its readout is the item picked, in its own words)
-    if r.zedOwner then return comboText(c, c.selected) end
+    if isSeeRow(r) then return nil end
+    if r.labelKey == "UI_ZeD_Settings_WheelDeadZone" then return nil end
+    -- (Nov 15 2026, add-on hooks: an add-on's slider is no UI scale; the pick's name under its tick says it)
+    if r.zedOwner then return nil end
     if (c.selected or 1) == 1 then
         local root = ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root() or 1
         return ZeD.tr("UI_ZeD_Options_ScaleAutoNow", scaleText(root))
@@ -1034,7 +1046,7 @@ local function scaleReadout(r)
         end
         return ZeD.tr("UI_ZeD_Options_ScaleCappedNow", comboText(c, c.selected), scaleText(root))
     end
-    return comboText(c, c.selected)
+    return nil
 end
 
 -- a choice's words on a ZeD control: the short ones where G.ZED_GROUPS gives them, else the item's
@@ -1062,7 +1074,8 @@ local function zedWidth(r, cw)
         if n > k then w = w + T.px(SW_GAP) + T.px(SW_SZ) end
         return w
     elseif r.zedStyle == "scale" then
-        return T.px(SCALE_MIN) + T.px(14) + MM.textW(f2, scaleReadout(r))
+        local ro = scaleReadout(r)
+        return T.px(SCALE_MIN) + (ro and (T.px(14) + MM.textW(f2, ro)) or 0)
     elseif r.zedStyle == "onoff" then
         return T.checkboxSz + T.px(4)
     end
@@ -1156,7 +1169,7 @@ function ZeD_MMOptions:drawZedControl(r, cx, ry, cw, rowId, hit)
     elseif r.zedStyle == "scale" then
         -- a stepped slider: the System 7 bar for the track, a tick and its name under every step, Auto at the left
         local ro = scaleReadout(r)
-        local tw = math.min(T.px(SCALE_W), cw - T.px(14) - MM.textW(f2, ro))
+        local tw = math.min(T.px(SCALE_W), cw - (ro and (T.px(14) + MM.textW(f2, ro)) or 0))
         local bh = A.fillBarCompactH()
         local barY = midY - math.floor(bh / 2)
         local function stepX(i) return cx + math.floor((i - 1) / math.max(1, n - 1) * tw) end
@@ -1180,6 +1193,8 @@ function ZeD_MMOptions:drawZedControl(r, cx, ry, cw, rowId, hit)
             self:drawText(lt, lx, nameY, lc.r, lc.g, lc.b, la, f1)
         end
         for i = 1, n do self:drawRect(stepX(i), barY + bh + T.px(1), T.px(1), T.px(4), bs.a * (stepOff(c, i) and T.disabledAlpha or 1), bs.r, bs.g, bs.b) end
+        -- (the pick's name first, so it is always there: with the number at the right gone it says the value alone)
+        place(sel)
         place(1)
         if n > 1 then place(n) end
         for i = 2, n - 1 do place(i) end
@@ -1189,8 +1204,10 @@ function ZeD_MMOptions:drawZedControl(r, cx, ry, cw, rowId, hit)
         local tbk = isHot(id) and T.accentBright or T.surf4
         self:drawRect(thX, thY, thW, thH, 1, tbk.r, tbk.g, tbk.b)
         A.frame(self, thX, thY, thW, thH, bs)
-        local tc = T.text
-        self:drawText(ro, cx + tw + T.px(14), midY - math.floor(MM.fontH(f2) / 2), tc.r, tc.g, tc.b, (tc.a or 1) * dim, f2)
+        if ro then
+            local tc = T.text
+            self:drawText(ro, cx + tw + T.px(14), midY - math.floor(MM.fontH(f2) / 2), tc.r, tc.g, tc.b, (tc.a or 1) * dim, f2)
+        end
         -- a click picks the nearest step (no drag: a new UI scale re-lays the window out under the pointer)
         local ax = self:getAbsoluteX()
         hit(id, cx - T.px(8), thY, tw + T.px(16), thH + MM.fontH(f1), function()
@@ -1874,18 +1891,35 @@ function ZeD_MMOptions:zedSetupRows()
     for _, p in ipairs(self:pages()) do if p.setup then return self:rowsFor(p) end end
     return {}
 end
+-- (QA's visual noise audit, Nov 20 2026) ZeD's options with no row on ZeD setup now (ZeD_MainMenuOptionGroups'
+-- G.SETUP_HIDDEN and the rows hidden for now): Defaults puts them back too, as it did while they had rows
+function ZeD_MMOptions:zedHiddenOpts()
+    self:zedSetupRows()   -- (builds the groups when they are stale)
+    local gc = self._groupCache
+    return (gc and gc.rows and gc.rows.zedHidden) or {}
+end
+local function hiddenOff(o)
+    local el = o and o.element
+    return el ~= nil and o.zedDefault ~= nil and not el.disabled and el.selected ~= o.zedDefault
+end
 function ZeD_MMOptions:zedOffDefault()
     for _, r in ipairs(self:zedSetupRows()) do
         if r.zedDefault and r.control and r.control.selected ~= r.zedDefault then return true end
         if r.kind == "chord" and not ZeD.QuickChords.isDefault(r.chord) then return true end
+        if r.control and r.control.zedOffDefault and r.control.zedOffDefault() then return true end   -- (the screens' check boxes)
     end
+    for _, o in ipairs(self:zedHiddenOpts()) do if hiddenOff(o) then return true end end
     return false
 end
 function ZeD_MMOptions:zedDefaults()
     for _, r in ipairs(self:zedSetupRows()) do
         local c = r.control
         if r.zedDefault and c and not c.disabled and c.selected ~= r.zedDefault then setCombo(c, r.zedDefault) end
+        if c and c.zedResetDefault then c.zedResetDefault() end   -- (the screens' check boxes: every one ZeD's)
         if r.kind == "chord" then ZeD.QuickChords.reset(r.chord) end   -- (the chords keep no Apply: back to their start at once)
+    end
+    for _, o in ipairs(self:zedHiddenOpts()) do
+        if hiddenOff(o) then setCombo(o.element, o.zedDefault) end
     end
 end
 

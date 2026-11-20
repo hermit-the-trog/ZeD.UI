@@ -98,10 +98,16 @@ for _, id in ipairs(RETIRED) do check(id .. " is in no group", where[id] == nil,
 check("Lite leaves out Additions and Chords", G and G.LITE_HIDES and G.LITE_HIDES.UI_ZeD_Options_ZedAdditions
       and G.LITE_HIDES.UI_ZeD_Options_ZedChords)
 local win = rows.UI_ZeD_Options_ZedWindows or {}
-check("Windows: Inventory, Context menu, Equipped items lead", win[1] == "inventoryView" and win[2] == "contextStyle"
-      and win[3] == "equipView", list(win))
-for _, id in ipairs({ "lookStyle", "contextStyle", "equipView", "inventoryView" }) do
+-- (QA's visual noise audit, Nov 20 2026: Inventory and Equipped items have their own switches in the windows; their
+-- rows left ZeD setup, kept saved and hidden)
+check("Windows: Context menu leads", win[1] == "contextStyle", list(win))
+for _, id in ipairs({ "lookStyle", "contextStyle" }) do
     check(id .. " shows in one section", count[id] == 1, count[id])
+end
+local hid = {}
+for _, id in ipairs(G and G.SETUP_HIDDEN or {}) do hid[id] = true end
+for _, id in ipairs({ "equipView", "inventoryView" }) do
+    check(id .. " is in no section, and hidden", count[id] == nil and hid[id] == true, count[id])
 end
 
 -- ---------------------------------------------------------------------------

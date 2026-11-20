@@ -243,20 +243,23 @@ local S = ZeD.Settings
 local hb = OPTS.dict.healthBlink
 check("OPTION: Settings.lua registers healthBlink", hb ~= nil)
 check("OPTION: Off then On, On the default", hb and #hb.items == 2 and hb.default == 2, hb and hb.default)
-check("OPTION: read through ZeD.Settings.healthBlink", S.healthBlink and S.healthBlink() == true)
+-- (QA's visual noise audit, Nov 20 2026: "Pick solid red and be done." The pixel holds solid whatever the option says;
+-- the option stays saved, its row is gone from ZeD setup)
+check("OPTION: read through ZeD.Settings.healthBlink, never blinking now", S.healthBlink and S.healthBlink() == false)
 check("OPTION: ZeD setup names it for the Look group", hb and hb.zedNameKey == "UI_ZeD_Settings_HealthBlink", hb and hb.zedNameKey)
 do
     local g = io.open(CLIENT .. "ZeD_MainMenuOptionGroups.lua", "rb"):read("*a")
     local look = g:match('"UI_ZeD_Options_ZedLook",(.-)\n    %-%-')
-    check("OPTION: the Look group lists it as a check box", look ~= nil and look:find('{ "healthBlink", "onoff" }', 1, true) ~= nil)
+    check("OPTION: the Look group has no row for it, ZeD setup hides it", look ~= nil and look:find('"healthBlink"', 1, true) == nil
+          and g:find('"healthBlink", "gridTint"', 1, true) ~= nil)
 end
-check("DEFAULT: a new player's pixel blinks (lit then dark)", ZeD_Window.pixelLit(true, BIG) and not ZeD_Window.pixelLit(true, BIG + 600))
+check("DEFAULT: a new player's pixel holds solid (lit in both halves)", ZeD_Window.pixelLit(true, BIG) and ZeD_Window.pixelLit(true, BIG + 600))
 S.setHealthBlink(false)
 check("OFF: the pick takes effect at once, solid in both halves of the second",
     ZeD_Window.pixelLit(true, BIG) and ZeD_Window.pixelLit(true, BIG + 600) and ZeD_Window.pixelLit(true, BIG + 1600))
 check("OFF: a solid pixel is still drawn lit by the title bar's blink flag", ZeD_Window.pixelLit(true, BIG + 700))
 S.setHealthBlink(true)
-check("ON again: blinks again at once", ZeD_Window.pixelLit(true, BIG) and not ZeD_Window.pixelLit(true, BIG + 600))
+check("ON again: still solid (the option no longer blinks it)", ZeD_Window.pixelLit(true, BIG) and ZeD_Window.pixelLit(true, BIG + 600))
 -- while the options screen is open the pick on the control (not yet applied) is what counts
 hb.element = { selected = 1 }
 check("LIVE: an unapplied pick on the open options screen already holds it solid", ZeD_Window.pixelLit(true, BIG + 600))
@@ -269,7 +272,7 @@ check("ROUND TRIP: the reloaded pixel holds solid", ZeD_Window.pixelLit(true, BI
 S.setHealthBlink(true)
 loadSettings()
 S = ZeD.Settings
-check("ROUND TRIP: On saved, reloads On and blinks", S.healthBlink() == true and not ZeD_Window.pixelLit(true, BIG + 600))
+check("ROUND TRIP: On saved, reloads and still holds solid", S.healthBlink() == false and ZeD_Window.pixelLit(true, BIG + 600))
 -- the code switch still wins over the option
 ZeD_Window.PIXEL_BLINK = false
 check("SWITCH: the code switch holds it solid with the option On", ZeD_Window.pixelLit(true, BIG + 600))
@@ -384,7 +387,7 @@ check("the same health keeps its string", rawequal(win._titleHelp, s1h))
 -- blink in the draw: dark half draws no pixel, the name stays put
 CLOCK = BIG + 600
 local rd = read(win, draw(win))
-check("dark half: no pixel, the name in place", rd.pixel == nil and rd.name and rd.name.x == 36)
+check("the blink's dark half: the pixel still drawn (solid red now), the name in place", rd.pixel ~= nil and rd.name and rd.name.x == 36)
 CLOCK = BIG + 100
 check("lit half: the pixel", read(win, draw(win)).pixel ~= nil)
 HP = 100
