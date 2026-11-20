@@ -12,6 +12,6 @@
 -- ============================================================================
 
 ZeD = ZeD or {}
-ZeD.MenuNote = { "FASTER", "TIDIER", "KEY MAP", "FIXES" }
+ZeD.MenuNote = { "NEW ICON", "SOLID MENU" }
 
 return ZeD.MenuNote

@@ -1,0 +1,6 @@
+0.3.0-beta21b
+
+A small hotfix for beta 21a.
+
+- Mod icons: ZeD-GUI and its Picks helper now have their own icons in the Mods screen, a ZeD floppy disk each. ZeD-GUI is named "ZeD-GUI [BETA]" and the helper "ZeD-GUI: Picks", so they sit together in the list.
+- Main menu: in Dark, the desk's icons no longer show through the Mods, Options and Load windows when the pointer leaves the window. Windows on the monitor are always solid now; in game See-through works as before.
