@@ -429,24 +429,12 @@ function def.body(card, x, y, w, t, player)
     local gap = T.px(8)
     local HW = UI.HW
 
-    -- the two doors: a full square when open, a hollow one when shut, then the words
-    local tm = ZeD.TM
-    local f1 = T.fontF1
-    local lx = x + T.px(2)
-    for _, door in ipairs({ { d.doorOpen, d.doorOpen and ZeD.tr("UI_ZeD_Hutch_DoorOpen") or ZeD.tr("UI_ZeD_Hutch_DoorShut") },
-                            { d.hatchOpen, d.hatchOpen and ZeD.tr("UI_ZeD_Hutch_HatchOpen") or ZeD.tr("UI_ZeD_Hutch_HatchShut") } }) do
-        local word = ZeD.textCase(door[2])
-        local my = y + math.floor((T.px(18) - T.px(6)) / 2)
-        if door[1] then ZeD.Atoms.drawStatusDot(card, lx, my, T.positive, T.px(6))
-        else ZeD.Atoms.drawStatusHollow(card, lx, my, T.textDim, T.px(6)) end
-        card:drawText(word, lx + T.px(12), y + T.px(9) - math.floor(tm:getFontHeight(f1) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f1)
-        lx = lx + T.px(12) + tm:MeasureStringX(f1, word) + T.px(22)
-    end
-    y = y + T.px(18) + gap
+    -- (QA's visual noise audit 32, Nov 20 2026: a row of "Door open" and "Egg hatch open" chips sat over the
+    -- "Close door" and "Close hatch" buttons that already say each door's state; the chip row is gone)
 
-    -- egg laying boxes
+    -- egg laying boxes ("9 eggs"; the boxes are drawn, so no "| 4 boxes")
     y = y + UI.section(card, x, y, w, txt("IGUI_Hutch_EggLayingBox", "Egg Laying Boxes"),
-        d.boxesShown and ZeD.tr("UI_ZeD_Hutch_EggsBoxes", d.eggs, #d.boxes) or ZeD.tr("UI_ZeD_Hutch_Boxes", #d.boxes))
+        d.boxesShown and ZeD.tr("UI_ZeD_Hutch_Eggs", d.eggs) or ZeD.tr("UI_ZeD_Hutch_Boxes", #d.boxes))
     y = y + T.px(6)
     if not d.boxesShown then
         y = y + closedPlate(card, x, y, w, ZeD.tr("UI_ZeD_Hutch_BothShut"))
@@ -464,7 +452,9 @@ function def.body(card, x, y, w, t, player)
     y = y + gap
 
     -- coop roosting
-    y = y + UI.section(card, x, y, w, txt("IGUI_Hutch_CoopRoosting", "Coop Roosting"), tostring(d.count) .. " / " .. tostring(d.max))
+    -- (audit 32 and its Words table: the one building was "Hutches", "Henhouse" and "Coop Roosting"; the perches
+    -- section is "Birds", as its empty line "No birds inside." says, and the building is the Henhouse)
+    y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Hutch_Birds"), tostring(d.count) .. " / " .. tostring(d.max))
     if not d.roostShown then
         y = y + T.px(6)
         y = y + closedPlate(card, x, y, w, ZeD.tr("UI_ZeD_Hutch_DoorShut"))

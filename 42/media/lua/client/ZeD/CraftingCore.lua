@@ -776,6 +776,22 @@ function CC.prebakeOutputs(recipe)
     return outputDefs
 end
 
+--- True when the recipe makes one thing and its title already names it ("Bucket of Clay Cement" in "Make Bucket of
+--- Clay Cement"): the card's Outputs section would only repeat the title. Kept on the entry.
+function CC.outputsRepeatTitle(entry)
+    if not entry then return false end
+    local v = entry._outRepeats
+    if v == nil then
+        v = false
+        local defs = entry.outputDefs
+        if defs and #defs == 1 and defs[1].name and defs[1].name ~= "?" and entry.displayName then
+            v = string.find(string.lower(tostring(entry.displayName)), string.lower(tostring(defs[1].name)), 1, true) ~= nil
+        end
+        entry._outRepeats = v
+    end
+    return v
+end
+
 --- Pre-bake skill requirements from a recipe object.
 function CC.prebakeSkills(recipe)
     local skillDefs = {}
@@ -1978,16 +1994,23 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
                 allItems[#allItems + 1] = rd
             end
         end
-        local allLabel = (#(state.search or "") > 0) and "UI_ZeD_Craft_Results" or "UI_ZeD_Craft_AllRecipes"   -- keys, translated where drawn
+        -- (QA's visual noise audit 30: Building's head read "All Recipes" over "Search structures..."; it says structures)
+        local allKey = (config.prefix == "build") and "UI_ZeD_Craft_AllStructures" or "UI_ZeD_Craft_AllRecipes"
+        local allLabel = (#(state.search or "") > 0) and "UI_ZeD_Craft_Results" or allKey   -- keys, translated where drawn
         sections[#sections + 1] = {
             id = "all", label = allLabel, color = nil,
             items = allItems, collapsed = state.allCollapsed,
         }
 
+        -- (QA's visual noise audit 30, Nov 20 2026: "All Recipes (3)" sat right under "Category: All" with nothing
+        -- else in the list. The fold head shows only when the list is split into groups (pinned, most used); a list
+        -- of one group has no head and cannot fold.)
+        if #sections == 1 then sections[1].solo = true; sections[1].collapsed = false end
+
         -- Measure total content height
         totalH = 0
         for _, sec in ipairs(sections) do
-            totalH = totalH + catHdrH
+            if not sec.solo then totalH = totalH + catHdrH end
             if not sec.collapsed then
                 totalH = totalH + #sec.items * ROW_H
             end
@@ -2063,6 +2086,8 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
         -- Section header — always stamp zone (gamepad cone-nav targets off-
         -- screen disclosures; scroll-follow brings them into view). Draw only
         -- when within visible rect.
+        -- (a lone group: no head, no head zone; see the audit note where the sections are built)
+        if not sec.solo then
         local hdrVisible = curY + catHdrH > visTop and curY < visBot
         if hdrVisible then
             -- the list's group row ("v Pinned (3)": the library category row, 15u,
@@ -2087,6 +2112,7 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
         end
         zones[#zones + 1] = hz
         curY = curY + catHdrH
+        end
 
         -- Rows: always stamp zones for cone-nav (scrolling past the viewport
         -- needs off-screen rows focusable so the D-pad cone has a target below
@@ -2162,7 +2188,7 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
     -- An empty list says why, as the other empty lists do ("Nothing here."), under its "(0)" head:
     -- the search found nothing, or nothing is ready, or nothing to list. The search box and the band
     -- stay, being the way back to a full list.
-    if #(state.filteredCache or {}) == 0 and not state.allCollapsed then
+    if #(state.filteredCache or {}) == 0 and (not state.allCollapsed or (sections[1] and sections[1].solo)) then
         M.drawEmptyLine(panel, x + T.px(6), curY + T.px(8), contentW - T.px(12), CC.emptyListText(state, config))
     end
 
@@ -2532,7 +2558,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     local headerH = T.px(60)  -- icon + name + description estimate
     local chipH = T.px(22)
     local inputsH = ROW_H + #(rd.ingredients or {}) * ROW_H  -- header + rows
-    local outputsH = ROW_H + #(entry.outputDefs or {}) * ROW_H
+    local outputsH = CC.outputsRepeatTitle(entry) and 0 or (ROW_H + #(entry.outputDefs or {}) * ROW_H)
     local actionH = 0   -- (the amount and Craft / Build live in the card's band, CC.renderBand)
     -- Learn info section height (readOnly + not accessible)
     local showLearnSection = config.readOnly and (not rd.learned or rd.hasSkill == false)
@@ -2557,7 +2583,12 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         if stNear then needH = needH + T.px(6) + T.buttonH end
         needH = needH + T.px(8)
     end
-    local totalH = headerH + chipH + T.px(4) + needH + inputsH + T.px(4) + outputsH + learnH + actionH
+    -- (QA's bug B12, Nov 20 2026: "Required (2/2)" with Craft dimmed was a riddle. Every item is here yet the
+    -- recipe cannot start: it wants a workbench or station. One short dim line under the items says so.)
+    local benchLine = (not config.readOnly) and (not stNeed) and #(rd.ingredients or {}) > 0
+        and (rd.missingCount or 0) == 0 and (rd.status == "missing" or rd.status == "station")
+    local benchH = benchLine and (T.fontF2H + T.px(4)) or 0
+    local totalH = headerH + chipH + T.px(4) + needH + inputsH + benchH + T.px(4) + outputsH + learnH + actionH
 
     -- Scrollbar (for very long ingredient lists)
     local scrollW = T.sp.scrollbarW
@@ -2628,10 +2659,12 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     local chipX = x + T.px(6)
     -- In readOnly (Journal), show accessibility: learned AND has skill
     local isAccessible = rd.learned and (rd.hasSkill ~= false)
-    local learnedStr = ZeD.tr(isAccessible and "UI_ZeD_Craft_BadgeKnown" or "UI_ZeD_Craft_BadgeUnknown")
-    local learnedV = isAccessible and "positive" or "danger"
-    local bw = A.drawBadge(panel, learnedStr, chipX, curY, learnedV)
-    chipX = chipX + bw + T.px(4)
+    -- (QA's visual noise audit 30, Nov 20 2026: "Known" sat on every known recipe; only "not known" is news)
+    local bw
+    if not isAccessible then
+        bw = A.drawBadge(panel, ZeD.tr("UI_ZeD_Craft_BadgeUnknown"), chipX, curY, "danger")
+        chipX = chipX + bw + T.px(4)
+    end
 
     -- Surface requirement (pre-baked during catalog build)
     local needsSurface = entry.needSurface or false
@@ -2791,11 +2824,19 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
             curY = curY + ROW_H
         end
     end
+    if benchLine then
+        local dc = T.textDim
+        panel:drawText(CC.truncText(ZeD.tr("UI_ZeD_Craft_NeedsBench"), T.fontF2, contentW - T.px(12)),
+            x + T.px(6), curY + T.px(2), dc.r, dc.g, dc.b, dc.a or 1, T.fontF2)
+        curY = curY + benchH
+    end
 
     -- Outputs section (folds; the same 20u section head as Required)
+    -- (QA's visual noise audit 30, Nov 20 2026: "Outputs (1)" headed one line that repeated the recipe's title;
+    -- hidden when the one output is the thing the title names)
     curY = curY + T.px(4)
     local outCount = #(entry.outputDefs or {})
-    if outCount > 0 then
+    if outCount > 0 and not CC.outputsRepeatTitle(entry) then
         local outHdrHover = mx >= x and mx < x + contentW and my >= curY and my < curY + catHdrH
         secOpts.focus = (state._gpFocusedId == (pfx .. ":card:out")) and NO_FOCUS_OPTS or nil
         secOpts.hover, secOpts.bleedLeft, secOpts.h, secOpts.inset, secOpts.noArrow = outHdrHover, T.px(6), catHdrH, 0, nil

@@ -227,6 +227,12 @@ for i = 1, #((TU and TU.STEPS) or {}) do
         Q.check(H.overlap(k, tgt) == 0, name .. ": the keys do not cover its thing", "keys " .. H.rs(k) .. ", thing " .. H.rs(tgt))
         local want = (idx == #TU.STEPS) and H.tr("UI_ZeD_Tut_Done") or H.tr("UI_ZeD_Tut_Next")
         Q.check(R.keys.nextWord == want, name .. ": its key reads " .. tostring(want), R.keys.nextWord)
+        -- (QA's visual noise audit 13, Nov 20 2026: on the last step Done stands alone; Stop tour shows on the others)
+        do
+            local _, sk = R.keys:keyRects()
+            local last = idx == #TU.STEPS
+            Q.check((sk.w == 0) == last, name .. (last and ": Stop tour is hidden beside Done" or ": Stop tour shows"), "stop key " .. tostring(sk.w) .. " wide")
+        end
         if st.key == "Char" then Q.check(H.vis(RT.cw()), name .. ": the Character window is open") end
         -- (Nov 19 2026, the director's review: the tour goes over the Character window's tabs)
         if st.key == "Tabs" then

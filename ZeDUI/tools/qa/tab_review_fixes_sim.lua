@@ -128,18 +128,22 @@ if okCut then
     local r = listOf({ filteredCache = {}, search = "" }, cfg)
     check("Show: Ready, nothing ready: the line says so", r.empty and r.empty.text == TR.UI_ZeD_Craft_EmptyReady,
         r.empty and r.empty.text)
-    check("... under the All Recipes (0) head", r.heads[1] and r.heads[1].text == "UI_ZeD_Craft_AllRecipes"
-        and r.heads[1].count == 0 and r.empty and r.empty.y > r.heads[1].y)
+    -- (QA's visual noise audit 30, Nov 20 2026: a list of one group has no fold head; it was "All Recipes (0)")
+    check("... with no fold head over a list of one group", r.heads[1] == nil and r.empty ~= nil)
     r = listOf({ filteredCache = {}, search = "", show = "all" }, cfg)
     check("Show: All, nothing: no recipes to list", r.empty and r.empty.text == TR.UI_ZeD_Craft_EmptyNone, r.empty and r.empty.text)
     r = listOf({ filteredCache = {}, search = "zzzzqq" }, cfg)
     check("a search that finds nothing names it", r.empty and r.empty.text == "Nothing matches \"zzzzqq\".", r.empty and r.empty.text)
-    check("... under the Results (0) head", r.heads[1] and r.heads[1].text == "UI_ZeD_Craft_Results")
+    check("... with no Results head (one group)", r.heads[1] == nil)
     r = listOf({ filteredCache = {}, search = "", show = "known" }, { prefix = "jrecipe", readOnly = true })
     check("the Journal's read-only list, nothing known: no recipes to list", r.empty and r.empty.text == TR.UI_ZeD_Craft_EmptyNone)
     r = listOf({ filteredCache = {}, search = "", allCollapsed = true }, cfg)
-    check("the group folded: no line", r.empty == nil)
+    check("a lone group cannot fold (no head to fold it): the line still shows", r.empty ~= nil)
     local rd = { entry = { name = "Forge", displayName = "Advanced Forge" }, status = "unlocked" }
+    local rd2 = { entry = { name = "Shed", displayName = "Shed" }, status = "unlocked" }
+    r = listOf({ filteredCache = { rd, rd2 }, search = "", pins = { "Forge" } }, cfg)
+    check("split (a pin): both groups keep their heads, Building's reads All structures",
+        #r.heads == 2 and r.heads[2].text == "UI_ZeD_Craft_AllStructures" and r.rows == 2, #r.heads)
     r = listOf({ filteredCache = { rd }, search = "" }, cfg)
     check("a list with a row: no line", r.empty == nil and r.rows == 1, r.rows)
     -- TEETH: the line hangs on the list being empty, not on the head's count alone

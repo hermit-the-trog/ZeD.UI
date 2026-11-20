@@ -176,10 +176,10 @@ for _, s in ipairs(D.SLOTS) do for loc in pairs(s.locs) do LOC_TO_BIG[loc] = s.i
 for _, row in ipairs(SMALL_ROWS) do
     local x0 = (row.side == "L") and SM_XL or SM_XR
     local y0 = row.y + (row.name and SM_NAME_DY or 0)
-    if row.name then D.GROUPS[#D.GROUPS + 1] = { side = row.side, x = x0, y = row.y, name = row.name } end
+    if row.name then D.GROUPS[#D.GROUPS + 1] = { side = row.side, x = x0, y = row.y, name = row.name, row = row } end
     for c, t in ipairs(row.slots) do
         local sm = { id = t[1], big = t[2], place = t[3], locs = set(t[4]), letter = t[5], side = row.side,
-                     x = x0 + (c - 1) * SM_STEP, y = y0, col = c }
+                     x = x0 + (c - 1) * SM_STEP, y = y0, col = c, row = row }
         D.SMALL[#D.SMALL + 1] = sm
         for loc in pairs(sm.locs) do LOC_TO_SMALL[loc] = sm.id; LOC_FOLD[loc] = sm.big end
     end
@@ -714,12 +714,27 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         local f5 = T.fontF5
         local dc = T.textDim
         local f5h = T.fontF5H or getTextManager():getFontHeight(f5)
+        -- (QA's visual noise audit 45, Nov 20 2026: about 35 empty dashed boxes for ears, nose, wrists, rings and the
+        -- rest. A small group is drawn only while it holds something (or a missing loadout piece), while something
+        -- is being dragged (the boxes are drop targets: a drag from the doll or from an inventory window) and while
+        -- a Find is on. A hidden empty box is no pad stop either; the pad equips through the item's own actions.)
+        local dragging = (ZeD.EquipmentTab and ZeD.EquipmentTab.draggedItem and ZeD.EquipmentTab.draggedItem(win) ~= nil)
+            or (ISMouseDrag ~= nil and ISMouseDrag.dragging ~= nil)
+        local rowOn = win._dollRowOn
+        if not rowOn then rowOn = {}; win._dollRowOn = rowOn end
+        for _, sm in ipairs(D.SMALL) do rowOn[sm.row] = false end
+        for _, sm in ipairs(D.SMALL) do
+            if dragging or found or data.small[sm.id].items[1] or (ghosts and ghosts[sm.id]) then rowOn[sm.row] = true end
+        end
         for _, g in ipairs(D.GROUPS) do
+          if rowOn[g.row] then
             -- the name sits on its row's y; on a shrunk doll it rises just enough to clear its slots
             local ny = math.min(y + P(g.y), y + P(g.y + SM_NAME_DY) - f5h - 1)
             panel:drawText(ZeD.Atoms.truncateText(groupName(g, wd), f5, P(BAND_W - 4) + bandX), ox + P(g.x) + S(g.x), ny, dc.r, dc.g, dc.b, dc.a or 1, f5)
+          end
         end
         for _, sm in ipairs(D.SMALL) do
+          if rowOn[sm.row] then
             local items = data.small[sm.id].items
             local item = items[1]
             local key = "doll:" .. sm.id
@@ -740,6 +755,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
                 if over or foc then hint = { key = key, text = ptext, x = sbx, y = sby, w = ss, now = not over } end
             end
             win._equipSlotYMap[key] = sby
+          end
         end
     end
 

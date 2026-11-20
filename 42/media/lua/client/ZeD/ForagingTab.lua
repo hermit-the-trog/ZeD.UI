@@ -677,6 +677,9 @@ local function drawHero(panel, win, x, y, w)
     -- row drop and a "+N" chip says how many.
     local chipH = T.px(16)   -- the tag's height
     local chipGap = T.px(4)
+    -- (QA's visual noise audit 43, Nov 20 2026: "Fair Searching Winter Clear" read as one tag behind one dot; the
+    -- tags stand apart, a wider gap between them in a row)
+    local colGap = T.px(10)
     -- Dynamic chip styles based on live data (good and fair conditions read as good)
     local cond = win._frameCondition or "Fair"
     local condStyle = (cond == "Good" or cond == "Fair") and "pos" or "warn"
@@ -703,7 +706,7 @@ local function drawHero(panel, win, x, y, w)
         end
         if row > maxRows then break end
         rowOf[i], xOf[i], wOf[i] = row, cx, cw
-        cx = cx + cw + chipGap
+        cx = cx + cw + colGap
         shown = i
     end
     local moreText = nil
@@ -711,7 +714,7 @@ local function drawHero(panel, win, x, y, w)
         -- the "+N" chip follows the last shown chip; chips are given up until it fits
         while shown > 1 do
             local mw = chipWidth("+" .. tostring(#chips - shown), T, "neutral")
-            if xOf[shown] + wOf[shown] + chipGap + mw <= infoRoom then break end
+            if xOf[shown] + wOf[shown] + colGap + mw <= infoRoom then break end
             shown = shown - 1
         end
         moreText = "+" .. tostring(#chips - shown)
@@ -723,7 +726,7 @@ local function drawHero(panel, win, x, y, w)
         drawChip(panel, infoX + xOf[i], firstRowY + (rowOf[i] - 1) * (chipH + chipGap), chips[i].text, chips[i].style, T, wOf[i])
     end
     if moreText then
-        local mx = infoX + xOf[shown] + wOf[shown] + chipGap
+        local mx = infoX + xOf[shown] + wOf[shown] + colGap
         drawChip(panel, mx, firstRowY + (rowOf[shown] - 1) * (chipH + chipGap), moreText, "neutral", T)
     end
 
@@ -1018,8 +1021,7 @@ local function drawFindsHeader(panel, x, y, w)
     local wtLabel = ZeD.textCase(ZeD.tr("UI_ZeD_Forage_HeadWeight"))
     local wtW = tm:MeasureStringX(f5, wtLabel)
     local wtX = x + w - T.px(FINDS_PAD_X) - wtW
-    local nameLabel = ZeD.Atoms.truncateText(ZeD.tr("IGUI_Name"), f5, wtX - nameX - T.px(8))
-    panel:drawText(nameLabel, nameX, labelY, lc.r, lc.g, lc.b, lc.a or 1, f5)
+    -- (QA's visual noise audit 43, Nov 20 2026: no "Name" head over the names; Dist and Wt stay, as they head numbers)
     panel:drawText(wtLabel, wtX, labelY, lc.r, lc.g, lc.b, lc.a or 1, f5)
 
     return h
@@ -1055,9 +1057,8 @@ local function drawFindsRows(panel, win, x, y, w, maxH)
 
         local colX = x + T.px(FINDS_PAD_X)
 
-        -- Icon placeholder (small accent-colored dot)
-        local iconY = ry + math.floor((h - T.px(FINDS_ICON_SZ)) / 2)
-        A.drawStatusDot(panel, colX + T.px(2), iconY + T.px(2), T.accent, T.px(FINDS_ICON_SZ) - 2 * T.px(2))
+        -- (audit 43: the same teal square started every row and said nothing; its room stays, so the columns
+        -- keep their places under the heads)
         colX = colX + T.px(FINDS_ICON_SZ) + T.px(FINDS_ICON_GAP)
 
         -- Distance + bearing

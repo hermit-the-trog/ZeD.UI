@@ -393,7 +393,7 @@ end
 -- the readings' height: three rows and the core meter, then Body Heat Generation and its meter
 function ZeD.ThermalTab._measureReadings()
     local T = ZeD.T
-    return 4 * (readingRowH() + T.sp.rowGap) + 2 * T.fillBarH + T.px(10)
+    return 4 * (readingRowH() + T.sp.rowGap) + T.fillBarH + T.px(10)   -- (one meter: audit 41)
 end
 
 -- a 0..1 reading as a stepped meter: ten flat segments in the thermal color of where it stands
@@ -411,20 +411,22 @@ function ZeD.ThermalTab._renderHeader(panel, win, data, rx, ry, rw)
     if celsius == nil then celsius = ZeD.ThermalTab.useCelsius() end
     local curY = ry
     -- the readings are degrees C from the thermoregulator; shown in the player's unit
+    -- (QA's visual noise audit 41, Nov 20 2026: the core's meter sat under "Wind" with no label, Body Heat
+    -- Generation had a word and a second meter saying the same, and "Wind" over a temperature read as the wind's
+    -- speed. The core's meter now sits under Core, body heat is its word alone, and the row is "Wind chill".)
     curY = curY + M.drawStatRow(panel, rx, curY, rw, ZeD.tr("UI_ZeD_Thermal_Core"),
         ZeD.ThermalTab.tempText(data.coreTemp, celsius), T.toneNorm) + T.sp.rowGap
-    curY = curY + M.drawStatRow(panel, rx, curY, rw, ZeD.tr("UI_ZeD_Thermal_Air"),
-        ZeD.ThermalTab.tempText(data.airTemp, celsius), T.toneNorm) + T.sp.rowGap
-    curY = curY + M.drawStatRow(panel, rx, curY, rw, ZeD.tr("IGUI_Fishing_Wind"),
-        ZeD.ThermalTab.tempText(data.windTemp, celsius), T.toneNorm) + T.sp.rowGap
     -- the core temperature's meter: the standard bar height, 30 to 42 C across it, in steps
     drawStepped(panel, rx, curY, rw, T.fillBarH, (data.coreTemp - 30) / 12)
     curY = curY + T.fillBarH + T.px(10)
-    -- Body Heat Generation: vanilla's word for where its bar stands (Low, Normal, High), its meter under it
+    curY = curY + M.drawStatRow(panel, rx, curY, rw, ZeD.tr("UI_ZeD_Thermal_Air"),
+        ZeD.ThermalTab.tempText(data.airTemp, celsius), T.toneNorm) + T.sp.rowGap
+    curY = curY + M.drawStatRow(panel, rx, curY, rw, ZeD.tr("UI_ZeD_Thermal_WindChill"),
+        ZeD.ThermalTab.tempText(data.windTemp, celsius), T.toneNorm) + T.sp.rowGap
+    -- Body Heat Generation: vanilla's word for where it stands (Low, Normal, High)
     local heat = data.heatGen or 0
     local word = getText(ZeD.TabFill.scaleWord(heat, "IGUI_Temp_Low", "IGUI_Temp_Normal", "IGUI_Temp_High"))
-    curY = curY + M.drawStatRow(panel, rx, curY, rw, getText("IGUI_Temp_BodyHeat"), word, T.toneNorm) + T.sp.rowGap
-    drawStepped(panel, rx, curY, rw, T.fillBarH, heat)
+    M.drawStatRow(panel, rx, curY, rw, getText("IGUI_Temp_BodyHeat"), word, T.toneNorm)
 end
 
 -- ============================================================================

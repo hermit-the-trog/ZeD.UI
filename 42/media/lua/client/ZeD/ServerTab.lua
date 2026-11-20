@@ -352,7 +352,9 @@ local function build(p, win, st)
     local pv = pvpState(p)
     if pv then
         head(L, tr("UI_ZeD_Srv_PvP"))
-        local word = tr(pv.on and "UI_ZeD_Srv_PvPOn" or "UI_ZeD_Srv_PvPOff")
+        -- (QA's visual noise audit 46, Nov 20 2026: heading "PvP", "PvP off" and "Turn PvP on"; the heading names it
+        -- once, the row says On or Off, the button "Turn on" or "Turn off")
+        local word = tr(pv.on and "UI_ZeD_Srv_StateOn" or "UI_ZeD_Srv_StateOff")
         local val = (pv.left > 0) and tr("UI_ZeD_Srv_PvPLeft", pv.left) or ""
         row(L, word, val, pv.on and T.danger or T.positive)
         if pv.zone then line(L, getText("IGUI_PvpZone_NonPvpZone")) end

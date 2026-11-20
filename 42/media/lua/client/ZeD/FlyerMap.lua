@@ -210,16 +210,18 @@ function F.drawCard(mp)
     local meta = F.meta(p.id)
     local title, teaser = meta.title, meta.teaser
     local status = ZeD.tr(p.done and "UI_ZeD_Flyer_BeenThere" or "UI_ZeD_Flyer_NotBeenThere")
-    local hint = ZeD.tr(pad and "UI_ZeD_Flyer_PadRead" or "UI_ZeD_Flyer_ClickRead")
+    -- (QA's visual noise audit 48, Nov 20 2026: the mouse's card ended "Click to read"; a pin is clicked, it needs no
+    -- telling. The controller's card keeps its line, which names the button.)
+    local hint = pad and ZeD.tr("UI_ZeD_Flyer_PadRead") or nil
     local f4, f2 = T.fontF4, T.fontF2
     local tm = ZeD.TM
     local padX, padY, lgap = T.px(10), T.px(8), T.px(2)
     local sq = T.px(6)
-    local w = math.max(tm:MeasureStringX(f4, title), sq + T.px(6) + tm:MeasureStringX(f2, status), tm:MeasureStringX(f2, hint),
+    local w = math.max(tm:MeasureStringX(f4, title), sq + T.px(6) + tm:MeasureStringX(f2, status), hint and tm:MeasureStringX(f2, hint) or 0,
         teaser and math.min(tm:MeasureStringX(f2, teaser), T.px(260)) or 0) + padX * 2
     w = math.min(w, T.px(280), mp:getWidth() - T.px(8))
     local lh4, lh2 = tm:getFontHeight(f4), tm:getFontHeight(f2)
-    local h = padY * 2 + lh4 + T.px(4) + (teaser and (lh2 + lgap) or 0) + lh2 + lgap + lh2
+    local h = padY * 2 + lh4 + T.px(4) + (teaser and (lh2 + lgap) or 0) + lh2 + (hint and (lgap + lh2) or 0)
     local x = p.x + p.w + T.px(6)
     if x + w > mp:getWidth() - T.px(4) then x = p.x - w - T.px(6) end
     x = math.max(T.px(4), x)
@@ -238,8 +240,10 @@ function F.drawCard(mp)
     if p.done then A.drawStatusDot(mp, x + padX, my, T.positive, sq)
     else A.drawStatusHollow(mp, x + padX, my, td, sq) end
     mp:drawText(A.truncateText(status, f2, inner - sq - T.px(6)), x + padX + sq + T.px(6), cy, tx.r, tx.g, tx.b, tx.a or 1, f2)
-    cy = cy + lh2 + lgap
-    mp:drawText(A.truncateText(hint, f2, inner), x + padX, cy, td.r, td.g, td.b, td.a or 1, f2)
+    if hint then
+        cy = cy + lh2 + lgap
+        mp:drawText(A.truncateText(hint, f2, inner), x + padX, cy, td.r, td.g, td.b, td.a or 1, f2)
+    end
 end
 
 -- a piece's name and the first line of its words (looked up once)

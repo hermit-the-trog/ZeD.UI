@@ -333,7 +333,9 @@ local function drawPicks(panel, win, x, y, w, vy0, vy1)
         -- the checkbox: the tag's square, hollow off, filled on
         local by = iy + math.floor((rowH - box) / 2)
         if on then A.drawStatusDot(panel, ix, by, tagColor(t, false), box)
-        else A.drawStatusHollow(panel, ix, by, tagColor(t, false), box) end
+        -- (QA's visual noise audit 42, Nov 20 2026: eight picks in six colors over the writing box; a pick is one
+        -- quiet color until it is ticked, then its own)
+        else A.drawStatusHollow(panel, ix, by, T.textDim, box) end
         local tc = (washed and T.textOnFocus) or (on and tagColor(t, true)) or (hov and T.text) or T.textSec
         panel:drawText(it.word, ix + box + gap, iy + math.floor((rowH - fh3) / 2), tc.r, tc.g, tc.b, tc.a or 1, f3)
         local z = it.zone
@@ -1165,7 +1167,6 @@ local function renderJournal(panel, win, x, y, w, h)
                     if dateStr == nil or wrapped.stampKey ~= stampKey then
                         local monthStr = MONTHS[(entry.month or 0) + 1] and ZeD.tr(MONTHS[(entry.month or 0) + 1]) or "???"
                         local dayStr   = tostring((entry.day or 0) + 1)
-                        local yearStr  = tostring(entry.year or 0)
                         local hourStr  = string.format("%02d:%02d", entry.hour or 0, entry.minute or 0)
 
                         -- Compute survival day (stored on new entries; derive for old ones)
@@ -1177,8 +1178,11 @@ local function renderJournal(panel, win, x, y, w, h)
                             survDay = math.max(1, entryEpoch - startEpoch + 1)
                         end
 
-                        dateStr = ZeD.tr("UI_ZeD_Journal_EntryStamp", survDay, monthStr, dayStr, yearStr)
-                            .. " - " .. hourStr
+                        -- (QA's visual noise audit 42, Nov 20 2026: "Day 7  Jul 23, 1993 - 10:05" under "July, Year
+                        -- 1993". The year is the group's: "Day 7  Jul 23  10:05", from the day and short date phrases
+                        -- the tickets use, so each language keeps its own day and month order)
+                        dateStr = ZeD.tr("UI_ZeD_Tk_Day", survDay) .. "  " .. ZeD.tr("UI_ZeD_Tk_ShortDate", monthStr, dayStr)
+                            .. "  " .. hourStr
                         -- written into a notebook too: which, and the page
                         if entry.source and entry.source.name then
                             dateStr = dateStr .. " | " .. ZeD.tr("UI_ZeD_Journal_EntrySource", tostring(entry.source.name), tostring(entry.source.page))

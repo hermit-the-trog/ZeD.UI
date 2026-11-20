@@ -599,10 +599,20 @@ function ZeD.HealthTab.overallLineCount(data, font, w)
     return n
 end
 
+--- Nothing to report: no part in the list, no wound (a read with no counts, as a test's, is never calm)
+-- (QA's visual noise audit 15, Nov 20 2026: "Overall 100%", a full bar, "OK" and "No injuries" said healthy four
+-- ways. Calm, the bar and "No injuries" say it; the percent and the game's word come back with something to report.)
+function ZeD.HealthTab.calm(data)
+    return data ~= nil and data.injuredCount == 0 and (data.woundedCount or 0) == 0
+end
+
 function ZeD.HealthTab.drawOverall(panel, x, y, w, data)
     local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
     local frac = (data.overall or 0) / 100
     local label = ZeD.tr("UI_ZeD_Health_Overall")
+    if ZeD.HealthTab.calm(data) then
+        return y + M.drawFillBar(panel, x, y, w, frac, nil, label) + T.sp.xs
+    end
     y = y + M.drawStatRowDot(panel, x, y, w, label, A.pctText(frac), A.statusColor(frac)) + T.sp.rowGap
     y = y + M.drawFillBar(panel, x, y, w, frac, nil, label) + T.sp.xs
     local lines = overallLines(data, T.fontF2, math.max(1, math.floor(w)))
@@ -1083,8 +1093,8 @@ local function layoutExerciseInfo(info, w)
     local dotSz, dotGap = T.px(6), T.px(4)
     local items, y = {}, 0
 
-    items[#items + 1] = { kind = "name", y = y, text = A.truncateText(info.name, f2, w) }
-    y = y + h2 + sg
+    -- (QA's visual noise audit 15, Nov 20 2026: the block was headed "Squats" right under the pop-up's "Exercise:
+    -- Squats"; the pop-up names it, the block starts at the description)
 
     -- (the game's description is prose: F2, in the secondary ink)
     if info.desc and info.desc ~= "" then
@@ -1524,11 +1534,12 @@ function ZeD.HealthTab._measureZoneA(data, rw, win)
     local rightH = 0
     local f2H = ZeD.TM:getFontHeight(T.fontF2)
     local statRowH = math.max(secH, f2H) + T.px(4)
-    rightH = rightH + statRowH + T.sp.rowGap
+    local calm = ZeD.HealthTab.calm(data)   -- (calm: the bar alone, as drawOverall draws it)
+    if not calm then rightH = rightH + statRowH + T.sp.rowGap end
     rightH = rightH + T.fillBarH + T.sp.xs
     -- (counted at the narrowest the column draws, the scroll bar showing: never short of the draw;
     -- left out, the scroll range caught up a frame late, from what the last frame drew)
-    if data then
+    if data and not calm then
         local narrowW = ZeD.Molecules.layoutZoneA(0, 0, rw - T.sp.scrollbarW, 0, 0).rightW
         rightH = rightH + ZeD.HealthTab.overallLineCount(data, T.fontF2, narrowW) * f2H + T.sp.xs
     end

@@ -147,7 +147,8 @@ assert(loadfile(CLIENT .. "ZeD_GuideBubble.lua"))()
 local G = ZeD.GuideBubble
 check("the bubble driver loads", G and G.tick and G.start)
 
-local EXACT = "New to Knox County? Check out this handy survival guide. Stop alt-tabbing for information: click this bubble or press F1 instead. You can dismiss this bubble at any time."
+-- (QA's visual noise audit, Words, Nov 20 2026, approved by the director: the bubble cut to its first half)
+local EXACT = "New to Knox County? The survival guide: click here or press F1."
 local SHOW = G.FIRST_MS
 
 local function reset(opts)

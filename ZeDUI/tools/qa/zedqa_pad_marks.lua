@@ -236,6 +236,12 @@ local function promptsOf(w)
 end
 local function has(list, s)
     for _, x in ipairs(list or {}) do if x == s then return true end end
+    -- (a hold word: the joined prompt "<tap>, hold: <word>" names it too)
+    for _, x in ipairs(list or {}) do
+        for _, w in ipairs({ ZeD.tr("UI_ZeD_Inv_PromptMark"), ZeD.tr("UI_ZeD_Inv_PromptUnmark") }) do
+            if s == ZeD.tr("UI_ZeD_Prompt_Hold", w) and x:sub(-#w) == w and x:find(",", 1, true) then return true end
+        end
+    end
     return false
 end
 local function join(list) return (list and #list > 0) and table.concat(list, " / ") or "none" end
@@ -400,7 +406,9 @@ local function waitMove()
     check(left == 0, mv.tag .. " clears the marks (" .. left .. " left)")
 end
 -- the footer's word for the hold ("Mark (hold)" / "Unmark (hold)")
-local function holdWord(key) return ZeD.tr("UI_ZeD_Prompt_Hold", ZeD.tr(key)) end
+-- (QA's visual noise audit, Words, Nov 20 2026: a row with a tap and a hold on A shows one prompt, "Card, hold: Mark";
+-- the hold's word is then the end of the A prompt, so has() also takes a prompt that ends in it)
+local function holdWord(key) return ZeD.tr("UI_ZeD_Prompt_Hold", ZeD.tr(key)), ZeD.tr(key) end
 -- the band's move with this id, as the band last built it (its word), and its controller stop
 local function bandMove(w, id)
     local cnt = w and w._mainContent

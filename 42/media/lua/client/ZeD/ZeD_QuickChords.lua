@@ -298,16 +298,26 @@ function Q.catalog(p, pn)
     for _, wheel in ipairs(Q.WHEELS) do
         local title = ZeD.tr(WHEEL_TITLE[wheel])
         local acts = {}
+        -- (QA's visual noise audit, Words, Nov 20 2026: "Zoom: opens its wheel", "Zoom > Zoom 75%" and "View > OPTIONS".
+        -- A wheel the game fills reads "Zoom ...", a slice drops its parent's name from its front, and a name the
+        -- game writes in capitals reads in sentence case.)
         local function add(path, words, how)
             local w = {}
-            for i = 2, #words do w[#w + 1] = words[i] end
+            for i = 2, #words do
+                local s = tostring(words[i] or "")
+                local parent = (i > 2) and tostring(words[i - 1] or "") or nil
+                if parent and #s > #parent + 1 and s:sub(1, #parent + 1) == parent .. " " then s = s:sub(#parent + 2) end
+                if #s > 3 and s == s:upper() and s ~= s:lower() then s = s:sub(1, 1) .. s:sub(2):lower() end
+                w[#w + 1] = s
+            end
             local text = table.concat(w, CH)
-            if how then text = text .. ": " .. how end
+            if how == ZeD.tr("UI_ZeD_Chord_OpensWheel") then text = text .. " ..."
+            elseif how then text = text .. ": " .. how end
             acts[#acts + 1] = { path = path, words = words, text = text }
         end
         local function how(e) return (e.best or e.pick) and ZeD.tr("UI_ZeD_Chord_BestPick") or ZeD.tr("UI_ZeD_Chord_OpensWheel") end
         for i, e in ipairs(safe(D.B[wheel], p, pn) or {}) do
-            local name = Q.cleanName(e.name)
+            local name = Q.cleanName(e.word or e.name)   -- (word: a slice's steady name, the light's)
             local path = wheel .. ":" .. i
             if e.fill then add(path, { title, name }, ZeD.tr("UI_ZeD_Chord_OpensWheel"))
             elseif e.run then add(path, { title, name })

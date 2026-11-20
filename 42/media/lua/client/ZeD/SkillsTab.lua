@@ -1404,8 +1404,10 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                     local over = skillNameW(skill.name, font) - (startX + colWidth - fit.edge - barW - fit.gap - nameX)
                     if over > 0 then rowBar = math.max(barMin, barW - over) end
                     local barX = startX + colWidth - fit.edge - rowBar
+                    -- (QA's visual noise audit 12, Nov 20 2026: the bar lit one segment per level, the badge's number
+                    -- again; it now shows the way to the next level, which only the help line knew. Full at 10.)
                     if A.drawSegFill(panel, barX, cy + math.floor((baseRowH - barH) / 2), rowBar, barH, 10,
-                            skill.level, levelBarColor(T, skill.level, isPinned)) then
+                            A.fillSegsLit(skill.xpProgress or 0, 10), levelBarColor(T, skill.level, isPinned)) then
                         help(win, ZeD.SkillsTab.barHelp(skill))
                     end
 

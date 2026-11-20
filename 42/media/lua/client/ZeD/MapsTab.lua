@@ -1504,14 +1504,18 @@ local function renderMapToolbar(panel, win, x, y, w)
         end
     end
     curX = curX + sGap
+    -- (QA's visual noise audit 48, Nov 20 2026: five ink squares sat over the map whatever the hand held. They show
+    -- while a drawing tool (a mark or the note) is picked; their room stays, so nothing on the row moves.)
+    local inksOn = win._mapActiveTool ~= nil
     if showNote then
         _toolButton(panel, win, "text", _textGlyph("Aa"), "UI_ZeD_Map_NoteDefault", curX, by, bs, "map:tool:text", focId, textWhy, false, false, hov)
         curX = curX + bs + btnGap * 2
         -- a content line between the tools and the inks
-        ZeD.Atoms.drawDividerV(panel, curX, by, bs, false)
+        if inksOn then ZeD.Atoms.drawDividerV(panel, curX, by, bs, false) end
         curX = curX + T.hair + btnGap * 2
     end
     local colY = y + math.floor((rowH - colSz) / 2)
+    if not inksOn then nInk = 0 end
     for k = 1, nInk do
         local ci = k
         if k == nInk and inkUse > nInk and inkUse <= #MAP_COLORS then ci = inkUse end
@@ -1569,11 +1573,34 @@ end
 
 local _bandSpec = {}
 
+-- (Nov 20 2026, the director with QA's visual noise audit 48: the light map switch lives here, beside Survey / Color
+-- / Paper, where the map is; ZeD setup no longer lists it. It writes the mapLight option (ZeD.Settings), which the
+-- Survey colours read (MapsSurvey.lua M.key) and restyle from at once. Shown where it has an effect: the Survey map
+-- under the Dark theme.)
+local function _lightShown(win)
+    if win._mapPaperItem or not (ZeD.Settings and ZeD.Settings.mapLightOption and ZeD.Settings.mapLight) then return false end
+    if (ZeD.currentBase or "dark") ~= "dark" then return false end
+    local mp = win._worldMapPanel
+    return ((mp and mp.style) or "survey") == "survey"
+end
+local function _lightW()
+    local T = ZeD.T
+    return T.checkboxSz + T.px(RADIO_GAP) + ZeD.TM:MeasureStringX(T.fontF1, ZeD.tr("UI_ZeD_Map_LightMap"))
+end
+--- The light map switch flipped (the mouse, the pad): written and saved as ZeD setup would
+function ZeD.MapsTab.toggleLight()
+    local o = ZeD.Settings and ZeD.Settings.mapLightOption
+    if not o then return end
+    local on = ZeD.Settings.mapLight()
+    pcall(function() o:setValue(on and 1 or 2) end)
+    if ZeD.Settings.save then ZeD.Settings.save() end
+end
+
 -- the height at the card's foot, w wide: the question's, the band's, or 0
 local function _bandH(panel, win, w)
     local askH = Ext.askH(win, w)
     if askH > 0 then return askH end
-    if (ZeD.MapsTab.hasPaper() and not win._mapPaperItem) or Ext.buttonsW(win, panel, ZeD.T.buttonH, true) > 0 then
+    if (ZeD.MapsTab.hasPaper() and not win._mapPaperItem) or _lightShown(win) or Ext.buttonsW(win, panel, ZeD.T.buttonH, true) > 0 then
         return ZeD.Molecules.bandH()
     end
     return 0
@@ -1597,7 +1624,23 @@ local function renderMapBand(panel, win, x, y, w, footH, focId)
         Ext.drawButtons(panel, win, right, by, bh, focId, true)
         right = right - gap
     end
+    local light = _lightShown(win) and (x + edge + _lightW() <= right)
+    if light then right = right - _lightW() - T.px(CHOICE_GAP) end
     _styleChoice(panel, win, x + edge, right, by, bh, focId, not win._mapStyleMenuOpen)
+    if light then
+        -- the light map switch, after the styles (a checkbox: on = the map in its Light colours)
+        local A = ZeD.Atoms
+        local lx, lw = right + T.px(CHOICE_GAP), _lightW()
+        local hover = (not win._mapStyleMenuOpen) and A.mouseIn(panel, lx, by, lw, bh)
+        local onFocus = (focId == "map:style:light") and ZeD.Focus.mark(panel, lx - T.px(2), by, lw + T.px(4), bh, FOCUS)
+        A.drawCheckbox(panel, lx, by + math.floor((bh - T.checkboxSz) / 2), ZeD.Settings.mapLight(), hover, false)
+        local tc = onFocus and T.textOnFocus or T.text
+        panel:drawText(ZeD.tr("UI_ZeD_Map_LightMap"), lx + T.checkboxSz + T.px(RADIO_GAP),
+            by + math.floor((bh - ZeD.TM:getFontHeight(T.fontF1)) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF1)
+        if hover then ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Map_HelpLightMap")) end
+        local zs = win._mapStyleZones
+        zs[#zs + 1] = { id = "light", x = lx, y = by, w = lw, h = bh }
+    end
 end
 
 -- ============================================================================
@@ -1784,7 +1827,7 @@ function ZeD.MapsTab.onClick(win, x, y)
     -- SURVEY / COLOR / PAPER: a radio button, or the pop-up menu's box (opens its list)
     for _, z in ipairs(win._mapStyleZones or {}) do
         if x >= z.x and x <= z.x + z.w and y >= z.y and y <= z.y + z.h then
-            ZeD.MapsTab.setStyle(win, z.id)
+            if z.id == "light" then ZeD.MapsTab.toggleLight() else ZeD.MapsTab.setStyle(win, z.id) end
             return
         end
     end
@@ -1919,7 +1962,9 @@ local function _addStyleEls(win, elements)
             x = sz.x, y = sz.y, w = sz.w, h = sz.h,
             id = "map:style:" .. sz.id,
             styleId = sz.id,
-            onActivate = function(w, el2) ZeD.MapsTab.setStyle(w, el2.styleId) end,
+            onActivate = function(w, el2)
+                if el2.styleId == "light" then ZeD.MapsTab.toggleLight() else ZeD.MapsTab.setStyle(w, el2.styleId) end
+            end,
         }
     end
     if win._mapStyleMenuZone then

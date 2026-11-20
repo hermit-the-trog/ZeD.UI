@@ -171,6 +171,11 @@ function ZeD_TutorialKeys:keyRects()
     local T = ZeD.T
     local nextW = ZeD.Molecules.buttonW(self.nextWord or "")
     local stopW = ZeD.Molecules.buttonW(tr("UI_ZeD_Tut_Stop"))
+    -- (QA's visual noise audit 13, Nov 20 2026: on the last step "Stop tour" sat beside "Done" and did the same
+    -- thing; Done stands alone there. B still ends the tour on a controller.)
+    if self.lastStep then
+        return { x = 0, y = 0, w = nextW, h = T.buttonH, id = "next" }, { x = 0, y = 0, w = 0, h = T.buttonH, id = "stop" }
+    end
     return { x = stopW + T.px(6), y = 0, w = nextW, h = T.buttonH, id = "next" }, { x = 0, y = 0, w = stopW, h = T.buttonH, id = "stop" }
 end
 -- (QA: the keys read as see-through over the game; each sits on the balloon's own light paper, solid)
@@ -179,7 +184,7 @@ function ZeD_TutorialKeys:prerender()
     local pal = ZeD.Balloon and ZeD.Balloon.PALETTE
     local c = (pal and pal.surf2) or ZeD.T.surf2
     for _, r in ipairs({ n, s }) do
-        ZeD.Atoms.fillRounded(self, r.x, r.y, r.w, r.h, c.r, c.g, c.b, 1)
+        if r.w > 0 then ZeD.Atoms.fillRounded(self, r.x, r.y, r.w, r.h, c.r, c.g, c.b, 1) end
     end
 end
 function ZeD_TutorialKeys:render()
@@ -187,7 +192,9 @@ function ZeD_TutorialKeys:render()
     local n, s = self:keyRects()
     local mx, my = self:getMouseX(), self:getMouseY()
     local function over(r) return mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h end
-    ZeD.Molecules.drawButton(self, s.x, s.y, s.w, s.h, tr("UI_ZeD_Tut_Stop"), "default", self._down == "stop", nil, { hover = over(s) })
+    if s.w > 0 then
+        ZeD.Molecules.drawButton(self, s.x, s.y, s.w, s.h, tr("UI_ZeD_Tut_Stop"), "default", self._down == "stop", nil, { hover = over(s) })
+    end
     ZeD.Molecules.drawButton(self, n.x, n.y, n.w, n.h, self.nextWord or "", "primary", self._down == "next", nil, { hover = over(n), default = true })
 end
 function ZeD_TutorialKeys:onMouseDown(x, y)
@@ -270,6 +277,7 @@ local function show(i)
     R.shownAt = getTimestampMs()
     local title, text = stepWords(TU.STEPS[found])
     R.content = { title = title, lines = { text, { text = tr("UI_ZeD_Tut_StepOf", found, #TU.STEPS), font = ZeD.T.fontF3 } } }
+    R.keys.lastStep = (found == #TU.STEPS)
     R.keys.nextWord = (found == #TU.STEPS) and tr("UI_ZeD_Tut_Done") or tr("UI_ZeD_Tut_Next")
     giveKeysThePad()
 end

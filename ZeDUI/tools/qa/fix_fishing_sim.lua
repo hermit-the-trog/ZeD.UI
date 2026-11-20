@@ -543,8 +543,12 @@ local function upAndBack(label, id, fold)
     local off0 = w._fishTab.off
     press(w, "up")
     local onto = curId(w)
+    -- (QA's visual noise audit 33, Nov 20 2026: the line band under the header is gone, so the list is taller and a
+    -- stop can sit a few pixels under the view's foot; Up then brings it in by those pixels, less than a row, and
+    -- Down leaves the list there)
+    local offU = w._fishTab.off
     press(w, "down")
-    ok(onto ~= id and curId(w) == id and w._fishTab.off == off0,
+    ok(onto ~= id and curId(w) == id and (w._fishTab.off == off0 or (w._fishTab.off == offU and offU - off0 < 24)),
        label .. ": Up from " .. id .. " (onto " .. tostring(onto) .. ") then Down is " .. id .. " again, the list where it was (" .. tostring(curId(w)) .. ")")
 end
 

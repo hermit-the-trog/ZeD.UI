@@ -781,8 +781,10 @@ function AC.drawYou(panel, x, y, w, h)
     local name = M.myRoleName()
     if not name then return end
     if F.tagW(name) > math.floor(w / 3) then name = ZeD.Atoms.truncateText(name, T.fontF1, math.floor(w / 3)) end
-    local rx = x + w - px(10) - F.tagW(name)
-    F.drawTag(panel, rx, y + math.floor((h - px(16)) / 2), name, F.roleColor(name), false)
+    local rx = x + w - px(10) - ZeD.TM:MeasureStringX(T.fontF1, name)
+    -- (QA's visual noise audit 46, Nov 20 2026: the role in a red box was the loudest mark on the tab and not an
+    -- action; it is plain dim text now)
+    ZeD.Atoms.drawTextRight(panel, name, x + w - px(10), y + math.floor((h - ZeD.TM:getFontHeight(T.fontF1)) / 2), T.fontF1, T.textDim)
     ZeD.Atoms.drawTextRight(panel, tr("UI_ZeD_Adm_YouRole"), rx - px(6), y + math.floor((h - ZeD.TM:getFontHeight(T.fontF1)) / 2), T.fontF1, T.textDim)
 end
 

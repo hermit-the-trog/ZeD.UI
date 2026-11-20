@@ -852,7 +852,11 @@ end
 
 local function rowEntry(win, row, inBuilding)
     local pk = row.picks[1]
-    local e = { state = row.state, name = lineName(row), sub = ruleWords(row.line), where = whereWords(row, inBuilding),
+    -- (QA's visual noise audit 42, Nov 20 2026: "this one, main hand" under the name and "to main hand" at the right;
+    -- when the right says where it goes, the line under the name keeps only the rule)
+    local sub = ruleWords(row.line)
+    if row.state == "take" and not row.where and row.line.sec ~= "supply" then sub = L.ruleText(row.line) end
+    local e = { state = row.state, name = lineName(row), sub = sub, where = whereWords(row, inBuilding),
                 tex = (pk and itemTex(pk.item)) or (row.fill and itemTex(row.fill.bottles[1].item))
                       or (row.items and row.items[1] and itemTex(row.items[1])) or typeTex(row.line.type) }
     if row.state == "ask" then
@@ -1088,8 +1092,9 @@ local function drawTodoRows(panel, win, x, y, w, plan)
         return cy + T.px(8)
     end
     -- the long trip: the supplies as a table, the gear under it
-    local h, folded = section(panel, win, "sec:supplies", x, cy, w, ZeD.tr("UI_ZeD_Todo_SuppliesFor", plan.days),
-        ZeD.tr("UI_ZeD_Todo_SuppliesCap", plan.days))
+    -- (audit 42: "2 days" was in the stepper, in "Supplies for 2 days" and in "a day x 2, or fixed"; the stepper
+    -- keeps it: the head reads "Supplies" and has no cap line)
+    local h, folded = section(panel, win, "sec:supplies", x, cy, w, ZeD.tr("UI_ZeD_Todo_Supplies"), nil)
     cy = cy + h
     if not folded then
         local f1, f2 = T.fontF1, T.fontF2

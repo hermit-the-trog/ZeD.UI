@@ -88,10 +88,11 @@ local function chipsOf(p, lv, wx, wy)
     local U = Fishing and Fishing.Utils
     if not U then return out end
     -- the game's own Fishing panel words and skill gates: Time from 2, Temperature 4, Weather 6, Wind 8
+    -- (QA's visual noise audit 33, Nov 20 2026: "Wind: Unknown" and "Weather: Unknown" said nothing; a condition the
+    -- skill cannot read yet is left out)
     local function chip(labelKey, gate, judge)
-        local word, tone
-        if lv < gate then word, tone = getText("Fluid_Unknown"), "unknown"
-        else word, tone = judge() end
+        if lv < gate then return end
+        local word, tone = judge()
         out[#out + 1] = { text = tr("UI_ZeD_Fish_ChipKV", getText(labelKey), word), tone = tone }
     end
     chip("Sandbox_TimeOptions", 2, function()
@@ -522,7 +523,9 @@ local function measure(L, w, s)
         elseif k == "hero" then
             it.h = math.max(px(8) + ZeD.TM:getFontHeight(T.fontF4) + px(6) + 4 * (px(KV_H) + px(3)) + px(8), px(96))
         elseif k == "tension" then
-            it.h = px(12) + f1h + px(8) + px(14) + px(6) + f1h + px(8) + f1h + px(4) + px(6) + px(8) + 2 * (f2h + px(4)) + px(8)
+            -- (audit 33: the Held row only once something is held; no Fish or Line rows, see drawTension)
+            local heldH = ((s and s.held or 0) > 0) and (f1h + px(4) + px(6) + px(8)) or 0
+            it.h = px(12) + f1h + px(8) + px(14) + px(6) + f1h + px(8) + heldH + px(8)
         else it.h = px(ROW_H) end
         it.y = y
         y = y + it.h
@@ -659,20 +662,17 @@ local function drawTension(panel, s, x, y, w)
     text(panel, tr("UI_ZeD_Fish_TWears"), math.min(mk - math.floor(ww / 2), lx + lw - ww - tm:MeasureStringX(f1, tr("UI_ZeD_Fish_TSnaps")) - px(8)), cy, T.textDim, f1)
     textR(panel, tr("UI_ZeD_Fish_TSnaps"), lx + lw, cy, T.textDim, f1)
     cy = cy + f1h + px(8)
+    -- (QA's visual noise audit 33, Nov 20 2026: "Held at the limit 0%" over an empty bar, "Fish: Unknown until
+    -- landed" and a Line row the Line row below already says. A row shows once it has something to say: Held only
+    -- while the line is held past the mark; the fish and the line rows are gone.)
     -- how long it has been held past the wear mark, against what the rod and Fishing allow (FishingRod:updateLine)
-    text(panel, ZeD.textCase(tr("UI_ZeD_Fish_Held")), lx, cy, T.textHead, f1)
-    textR(panel, tostring(math.floor((s.held or 0) * 100 + 0.5)) .. "%", lx + lw, cy, T.text, f3)
-    cy = cy + f1h + px(4)
-    ZeD.Surface.fill(panel, lx, cy, lw, px(6), "surf3")
-    if (s.held or 0) > 0 then panel:drawRect(lx, cy, math.floor(lw * s.held), px(6), 1, T.danger.r, T.danger.g, T.danger.b) end
-    cy = cy + px(6) + px(8)
-    local kw = math.max(tm:MeasureStringX(f3, tr("UI_ZeD_Fish_FishLab")), tm:MeasureStringX(f3, tr("UI_ZeD_Fish_Line"))) + px(8)
-    text(panel, tr("UI_ZeD_Fish_FishLab"), lx, cy, T.textDim, f3)
-    text(panel, cut(tr("UI_ZeD_Fish_Unknown"), f2, lw - kw), lx + kw, cy, T.text, f2)
-    cy = cy + tm:getFontHeight(f2) + px(4)
-    local tk = s.tackle
-    text(panel, tr("UI_ZeD_Fish_Line"), lx, cy, T.textDim, f3)
-    text(panel, cut(tr("UI_ZeD_Fish_LineWear", tk and math.floor(math.max(0, tk.cond) * 100 + 0.5) or 0), f2, lw - kw), lx + kw, cy, T.text, f2)
+    if (s.held or 0) > 0 then
+        text(panel, ZeD.textCase(tr("UI_ZeD_Fish_Held")), lx, cy, T.textHead, f1)
+        textR(panel, tostring(math.floor((s.held or 0) * 100 + 0.5)) .. "%", lx + lw, cy, T.text, f3)
+        cy = cy + f1h + px(4)
+        ZeD.Surface.fill(panel, lx, cy, lw, px(6), "surf3")
+        panel:drawRect(lx, cy, math.floor(lw * s.held), px(6), 1, T.danger.r, T.danger.g, T.danger.b)
+    end
     A.drawDividerH(panel, x, y + s.tensionH - T.hair, w, false)
 end
 
@@ -872,30 +872,6 @@ local function drawHeader(panel, s, x, y, w)
     return h
 end
 
--- the strip under the header while the line is out: waiting, or reeling a fish in, and the clock
-local function drawLineBand(panel, st, s, x, y, w)
-    local T, A = ZeD.T, ZeD.Atoms
-    local tm = ZeD.TM
-    local h = px(BAND2_H)
-    local fight = s.state == "fight"
-    local c = fight and T.danger or T.accent
-    ZeD.Surface.fill(panel, x, y, w, h, "surf1")
-    panel:drawRect(x, y, w, h, 0.22, c.r, c.g, c.b)
-    A.drawDividerH(panel, x, y + h - T.hair, w, false)
-    local f1 = T.fontF1
-    local ty = y + math.floor((h - tm:getFontHeight(f1)) / 2)
-    A.drawStatusDot(panel, x + px(PAD), y + math.floor((h - px(7)) / 2), c, px(7))
-    text(panel, ZeD.textCase(tr(fight and "UI_ZeD_Fish_Reeling" or "UI_ZeD_Fish_Waiting")), x + px(PAD) + px(13), ty, fight and T.danger or (T.accentText or T.accent), f1)
-    local since = fight and st.fishAt or Log.castAt
-    local clock = since and mmss(nowMs() - since) or ""
-    if not fight then
-        local t = s.tension or 0
-        clock = clock .. " | " .. tr((t < 0) and "UI_ZeD_Fish_TSlack" or "UI_ZeD_Fish_TTight")
-    end
-    textR(panel, clock, x + w - px(PAD), ty, T.text, T.fontF3)
-    return h
-end
-
 local function state(win)
     local st = win._fishTab
     if not st then
@@ -947,7 +923,8 @@ function FT.render(panel, win, x, y, w, h)
     local L = FT.build(s, st)
     st.items = L
     local headH = drawHeader(panel, s, x, y, w)
-    if s.state == "wait" or s.state == "fight" then headH = headH + drawLineBand(panel, st, s, x, y + headH, w) end
+    -- (QA's visual noise audit 33, Nov 20 2026: "Line in the water" in the header right over a second band, "Waiting
+    -- for a bite 0:04 | Tight". One band: the header says the state, the tension block says Tight or Slack.)
     local bandH = M.bandH()
     local sy, sh = y + headH, h - headH - bandH
     local listH = measure(L, w - T.sp.scrollbarW, s)

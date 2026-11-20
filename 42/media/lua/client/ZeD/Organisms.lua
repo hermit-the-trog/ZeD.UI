@@ -929,8 +929,13 @@ local function _promptsFor(el, win)
     end
     labels = labels or {}
     local pA, pH, pX, pB = _pv(el.promptA, win, el), _pv(el.promptHold, win, el), _pv(el.promptX, win, el), _pv(el.promptB, win, el)
-    if el.onActivate     and pA ~= false then out[#out + 1] = { glyph = "A", label = pA or ZeD.tr(labels.a or "UI_ZeD_Prompt_Select") } end
-    if el.onHoldActivate and pH ~= false then out[#out + 1] = { glyph = "A", label = ZeD.tr("UI_ZeD_Prompt_Hold", pH or ZeD.tr(labels.hold or "UI_ZeD_Prompt_Use")) } end
+    -- (QA's visual noise audit, Words: "(A) Card  (A) Smoke (hold)" showed A twice; with both, one prompt reads
+    -- "(A) Card, hold: Smoke")
+    local aTap = (el.onActivate and pA ~= false) and (pA or ZeD.tr(labels.a or "UI_ZeD_Prompt_Select")) or nil
+    local aHold = (el.onHoldActivate and pH ~= false) and (pH or ZeD.tr(labels.hold or "UI_ZeD_Prompt_Use")) or nil
+    if aTap and aHold then out[#out + 1] = { glyph = "A", label = ZeD.tr("UI_ZeD_Prompt_TapHold", aTap, aHold) }
+    elseif aTap then out[#out + 1] = { glyph = "A", label = aTap }
+    elseif aHold then out[#out + 1] = { glyph = "A", label = ZeD.tr("UI_ZeD_Prompt_Hold", aHold) } end
     if el.onContextMenu  then if pX ~= false then out[#out + 1] = { glyph = "X", label = pX or ZeD.tr(labels.x or "UI_ZeD_Prompt_Menu") } end
     elseif el.onReset    then out[#out + 1] = { glyph = "X", label = ZeD.tr("UI_ZeD_Prompt_Reset") } end
     if el.onCancel       and pB ~= false then out[#out + 1] = { glyph = "B", label = pB or ZeD.tr(labels.b or "UI_ZeD_Prompt_Back") } end

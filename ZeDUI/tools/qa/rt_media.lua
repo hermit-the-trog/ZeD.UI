@@ -1322,30 +1322,16 @@ Q.waitFor(5, 600, function()
         if z.type == "recipeRow" then rows = rows + 1 end
     end
     S.rHead, S.rRows = head, rows
-    return head ~= nil and rows > 0
+    return rows > 0
 end, function(ok)
     if not Q.check(ok, "Recipes: the page draws its recipe rows", tostring(S.rRows) .. " rows") then S.recSkip = true; return end
     RT.bounds(Q, "the Journal's Recipes page")
-    local st = H.CW()._jrecipeState
-    S.recWas = st.allCollapsed and true or false
-    local z = S.rHead
-    Q.check(ZeD.JournalTab.onRecipeClick(H.CW(), z.x + 2, z.y + 2) == true, "Recipes: a click on the All recipes head is taken")
+    -- (QA's visual noise audit 30, Nov 20 2026: the read-only list is one group, so it has no fold head; it was
+    -- "All recipes" over "Category: All". The fold test went with the head.)
+    Q.check(S.rHead == nil, "Recipes: a list of one group draws no fold head")
 end)
 Q.step(10, function()
     if S.recSkip then return end
-    local st = H.CW()._jrecipeState
-    local rows = 0
-    for _, z in ipairs(st.zones or {}) do if z.type == "recipeRow" then rows = rows + 1 end end
-    Q.check((st.allCollapsed and true or false) ~= S.recWas, "Recipes: the head folds its group", rows .. " rows now")
-    for _, z in ipairs(st.zones or {}) do if z.type == "sectionHeader" and z.id == "all" then S.rHead = z end end
-    ZeD.JournalTab.onRecipeClick(H.CW(), S.rHead.x + 2, S.rHead.y + 2)
-end)
-Q.step(10, function()
-    if S.recSkip then return end
-    local st = H.CW()._jrecipeState
-    local rows = 0
-    for _, z in ipairs(st.zones or {}) do if z.type == "recipeRow" then rows = rows + 1 end end
-    Q.check((st.allCollapsed and true or false) == S.recWas and rows > 0, "Recipes: a second click opens it again", rows .. " rows")
     ZeD.JournalTab.setPage(H.CW(), 1)
 end)
 
