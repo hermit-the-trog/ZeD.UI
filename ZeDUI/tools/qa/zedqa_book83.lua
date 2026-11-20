@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/zedqa_book83.lua  (Nov 3 2026, QA; punch list 83, the survival guide's Full look: the book, Build's b1fae517)
 -- With ZeD setup's Survival guide row on Full: F1 opens the book, Escape and F1 close it, Simple opens the window; the
 -- pages (title, the contents over its pages, introduction, a topic a page, Skill Books' rules page after it); the strip's Previous page,

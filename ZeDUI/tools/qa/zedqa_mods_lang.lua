@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/zedqa_mods_lang.lua  (Nov 4 2026, QA; punch list 84 in other languages, 067a0361) MAIN MENU ONLY.
 -- The Mods screen in the game's language: the tab strip (All, On, Off and the rest) fits the list, the Hide
 -- incompatible box with its count leaves Find a usable field, the Simple view's tabs fit; pictures with the

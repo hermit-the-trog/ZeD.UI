@@ -68,14 +68,35 @@ function S.glasses()
         local wi = S.p:getWornItems()
         for i = 0, wi:size() - 1 do if wi:get(i):getItem():getFullType() == "Base.Glasses_Prescription" then worn = true end end
     end)
-    if worn then S.say("glasses: already worn"); return end
+    local ss = false
+    pcall(function() ss = S.p:getCharacterTraits():get(CharacterTrait.SHORT_SIGHTED) == true end)
+    if not ss then
+        -- prescription glasses blur the world unless the character is short-sighted: any worn pair comes off
+        pcall(function()
+            local wi = S.p:getWornItems()
+            local drop = {}
+            for i = 0, wi:size() - 1 do
+                local it = wi:get(i):getItem()
+                if it and tostring(it:getFullType()):find("Glasses_Prescription", 1, true) then drop[#drop + 1] = it end
+            end
+            S.was.glassesTaken = S.was.glassesTaken or {}
+            for _, it in ipairs(drop) do
+                S.was.glassesTaken[#S.was.glassesTaken + 1] = { it = it, loc = it:getBodyLocation() }
+                S.p:removeWornItem(it, false)
+            end
+        end)
+        pcall(function() triggerEvent("OnClothingUpdated", S.p) end)
+        S.say("short sighted false, prescription glasses off")
+        return
+    end
+    if worn then S.say("short sighted true, prescription glasses on (already worn)"); return end
     pcall(function()
         local g = S.inv:AddItem("Base.Glasses_Prescription")
         local loc = g:getBodyLocation()
         S.was.glasses = { it = g, loc = loc, prev = S.p:getWornItem(loc) }
         S.p:setWornItem(loc, g)
     end)
-    S.say("glasses: put on " .. tostring(S.was.glasses ~= nil))
+    S.say("short sighted true, prescription glasses " .. (S.was.glasses ~= nil and "on" or "off"))
 end
 -- the game's build line (WaterMarkUI, ISVersionWaterMark.lua: "<version> pzBullet(...)") hidden: its panel is found
 -- among the top-level UI elements by its Lua type and set invisible; shown again at the end
@@ -164,6 +185,7 @@ S.step(5, function()
         pcall(function() S.p:removeWornItem(g.it, false); S.inv:Remove(g.it) end)
         if g.prev then pcall(function() S.p:setWornItem(g.loc, g.prev) end) end
     end
+    for _, t in ipairs(S.was.glassesTaken or {}) do pcall(function() S.p:setWornItem(t.loc, t.it) end) end
     S.say("put back: the pages, the things given, the stats, the actions, the zoom, the build line, the glasses")
 end)
 S.start()

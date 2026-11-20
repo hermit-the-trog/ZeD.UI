@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/belt_mods_sim.lua  (Nov 7 2026, Build): the belt's two new general hooks (ZeD.Belt.addMeter,
 -- ZeD.Belt.addBox) and the four ModSupport files that use them or sit beside them, with no game running. The real
 -- ZeD_Belt.lua and the real ModSupport files run on Lua 5.1 stubs of the game, ZeD's library and the four mods. The

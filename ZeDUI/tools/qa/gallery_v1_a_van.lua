@@ -126,7 +126,18 @@ Q.step(5, function()
 end)
 
 -- ===================================================================== 26 the Health panel, a bandaged scratch
-Q.step(10, function() G1.tp(S.P.smoke, "SE"); G1.wound(Q, true) end)
+-- (the game's health panel draws its debug lines, "Left Hand(health=100)", "Bandage Life", "scratch Time" and every
+-- body part, while ISHealthPanel.cheat is on; it is set from getDebug() at load, so -debug turns it on. Off for the
+-- shot, as a player sees it; put back after.)
+Q.step(10, function()
+    G1.tp(S.P.smoke, "SE")
+    G1.wound(Q, true)
+    if ISHealthPanel then
+        S.was.cheat = ISHealthPanel.cheat
+        ISHealthPanel.cheat = false
+        Q.say("health panel debug lines off (ISHealthPanel.cheat was " .. tostring(S.was.cheat) .. ")")
+    end
+end)
 Q.step(45, function() S.info(xpSystemText.health) end)
 Q.step(30, function()
     local ip = getPlayerInfoPanel(S.pn)
@@ -142,6 +153,7 @@ end)
 Q.mark()
 Q.step(5, function()
     S.info(nil)
+    if ISHealthPanel and S.was.cheat ~= nil then ISHealthPanel.cheat = S.was.cheat; Q.say("health panel debug lines back (" .. tostring(S.was.cheat) .. ")") end
     G1.wound(Q, false)
     S.openApples(false)
     G1.applesBack(Q)

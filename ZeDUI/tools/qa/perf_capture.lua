@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/perf_capture.lua  (Oct 22 2026)
 -- Before / after captures for the drawing-cost work (PERF_2026-10-22.md, "After the fixes").
 -- After gallery_v3_core.lua, perf_bench_clean.lua and gallery_v3_stage.lua, with ZeD on.

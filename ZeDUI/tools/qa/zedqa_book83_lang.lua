@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/zedqa_book83_lang.lua  (Nov 3 2026, QA; punch list 83: the guide in the game's language)
 -- With the guide on Full: which look F1 opens (the book for Latin, Greek and Cyrillic, AR (the game's Argentine
 -- Spanish) included; the window for Chinese, Japanese, Korean, Thai), and pictures: the book's title page, contents and introduction, a chapter opener,

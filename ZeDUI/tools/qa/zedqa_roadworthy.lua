@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/zedqa_roadworthy.lua  (Nov 6 2026, QA): ZeD's dash reading Vehicle Kit Library and Roadworthy, in the game. Both
 -- mods on: zedqa_mods_run.ps1 -ModList roadworthy_mods.txt -Mode fullscreen4k -Manifest .../roadworthy_manifest.txt
 -- Without them it says SKIP. vskdash_sim.lua proves the logic and that nothing changes without the mods; this is the part only

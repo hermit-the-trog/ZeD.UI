@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/zedqa_dash_odo.lua  (Nov 7 2026, QA; punch list 92 and 94, Build's 44df3931): the odometers and the trip.
 -- Built on zedqa_dash_r6_parts.lua (the drag strip, the car staging, the push that drives with no keys pressed).
 --   for a Nyala (drum dash) and a ModernCar (Dash Elite):

@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/gallery_v1_c2_garage.lua  (Nov 17 2026, QA): ZeD-GUI 1.0 gallery, lived-in retakes with a car in a
 -- driveway in West Point: the nearest garage to the Fossoil with a clear paved 3 x 7 footprint beside it (else beside the
 -- furnished house, else the street by the store; C2.driveway, logged). The character stays outdoors beside the car; it

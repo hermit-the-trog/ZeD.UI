@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/gallery_v5_five.lua  (Oct 22 2026)
 -- Workshop gallery re-shoot of the five re-added cards (Equipment tab, Health tab, Action
 -- bar, On a controller, The car radio): after gallery_v3_core.lua, gallery_v3_reveal.lua

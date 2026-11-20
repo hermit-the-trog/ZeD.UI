@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/gallery_v1_c3_b.lua  (Nov 17 2026, QA): the ZeD-GUI 1.0 gallery's lived-in retakes, part b: chapters
 -- 64 Controller, 66 Quick Actions and 73 Immersive or Simple, all on the West Point Fossoil's forecourt beside the pump
 -- and the story's station wagon (spot pump). Same content and settings as the captures they replace; the new rule: the

@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/gallery_beta3_breaks.lua  (Nov 4 2026, QA; the director: full-screen breaks between the book's
 -- spreads, ZeDUI/workshop/gallery/BETA3_ORDER.md). Run after gallery_t14_look.lua (no debug text, the default look).
 -- Plain full-screen pictures of the game with Beta 3's screens in them:

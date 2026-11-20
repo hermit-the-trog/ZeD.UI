@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/zedqa_b8_dash.lua  (Nov 7 2026, QA; tag b8dk): the Simple dash strip's speed follows the game's measurement option
 -- (the outside review of beta 7, item 3; Build's 13f362ac, D.plainSpeed).
 --   pure    D.plainSpeed on a made-up state: 60 mph reads "60" with the mph key, 96.6 km/h reads "97" with the km/h key (EN: "km/h").

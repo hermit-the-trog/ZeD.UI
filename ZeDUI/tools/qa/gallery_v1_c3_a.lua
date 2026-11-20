@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/gallery_v1_c3_a.lua  (Nov 17 2026, QA): the ZeD-GUI 1.0 gallery's lived-in retakes, part a: chapters
 -- 60 Two-Way Radios, 62 Keeping Count, 72 Hidden Actions and 74 The Survival Guide, at the West Point Fossoil
 -- (gallery_story_stage.lua's Angel and spots). Same content and settings as the captures they replace; the new rule:

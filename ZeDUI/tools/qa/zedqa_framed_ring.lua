@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/zedqa_framed_ring.lua  (Oct 27 2026)
 -- The belt hands' condition ring and the action bar's strip as the windows' framed strip (director,
 -- Oct 27 2026: "Make the belt hands' condition ring and the action bar's progress line the same chunky

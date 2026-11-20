@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/showcase_s2.lua  (Nov 18 2026, QA): the 1.0 Workshop description's showcase graphic 2, "Gadgets you
 -- can hold / Know where you stand" (ZeDUI/workshop/showcase/SHOWCASE_CAPTURES.md, section 2). The UI as it is played:
 -- windows at their working size to the sides (C2.sides), tabs and drawers open, the belt and HUD showing, Angel clear

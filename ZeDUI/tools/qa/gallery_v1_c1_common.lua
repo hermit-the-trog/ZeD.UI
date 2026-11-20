@@ -395,11 +395,134 @@ function C1.go(Q, key)
         Q.say(string.format("place %s: %s | square %d,%d room %s floor %s | %d zombies within 30 squares taken out of the world",
             key, P.name, s.x, s.y, tostring(C1.roomName(sq)), C1.floorName(sq), n))
     end)
-    Q.step(60, function()
+    C1.waitMap(Q, key)
+    C1.reveal(Q, key)
+    Q.step(10, function()
         C1.face(P.dir)
         C1.rule()
         pcall(function() Q.say("grid power here " .. tostring(C1.p:getCurrentSquare():hasGridPower())) end)
     end)
+end
+
+-- the map loaded round the character (gallery_v1_mp_stage.lua's check): every square on rings 10, 25 and 40 squares
+-- out exists (16 each), three clean checks a second apart, then 4 s more; at most about 2 minutes
+C1.RINGS = { 10, 25, 40 }
+function C1.ringMiss()
+    local px, py = math.floor(C1.p:getX()), math.floor(C1.p:getY())
+    local miss = 0
+    for _, r in ipairs(C1.RINGS) do
+        for k = 0, 15 do
+            local a = k * math.pi / 8
+            if not C1.sqAt(px + math.floor(r * math.cos(a)), py + math.floor(r * math.sin(a)), 0) then miss = miss + 1 end
+        end
+    end
+    return miss
+end
+function C1.waitMap(Q, label)
+    local st = { clean = 0, last = 0, t = nil }
+    Q.waitFor(5, 7200, function()
+        local now = getTimestampMs()
+        if st.t then return now - st.t >= 4000 end
+        if now - st.last < 1000 then return false end
+        st.last = now
+        local miss = C1.ringMiss()
+        if miss == 0 then st.clean = st.clean + 1 else st.clean = 0 end
+        if st.clean >= 3 then st.t = now end
+        return false
+    end, function(ok)
+        local miss = C1.ringMiss()
+        Q.say(string.format("%s map loaded round %d,%d: %s (%d of 48 ring squares missing) | time %.2f", tostring(label),
+            math.floor(C1.p:getX()), math.floor(C1.p:getY()), (miss == 0 and ok) and "PASS" or "FAIL", miss, getGameTime():getTimeOfDay()))
+    end)
+end
+
+-- the squares round the spot SEEN (the game draws squares the character never saw black, loaded or not): the tour of
+-- gallery_v3_reveal.lua round the character's spot: stops 12 and 26 squares out in eight directions (the nearest free
+-- outdoor square to each), a full turn at each, then back on the spot facing the camera. The unseen squares within 30
+-- (sq:isSeen) are counted before and after, as the check that the frame will have no black.
+C1.DIRS = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" }
+function C1.nearOut(x, y)
+    for r = 0, 6 do
+        for dy = -r, r do
+            for dx = -r, r do
+                if math.max(math.abs(dx), math.abs(dy)) == r then
+                    local q = C1.sqAt(x + dx, y + dy, 0)
+                    local ok = false
+                    if q then pcall(function() ok = q:isOutside() and q:isFree(false) and not q:getVehicleContainer() end) end
+                    if ok then return x + dx, y + dy end
+                end
+            end
+        end
+    end
+    return nil
+end
+function C1.unseen(rad)
+    local px, py = math.floor(C1.p:getX()), math.floor(C1.p:getY())
+    local n, all = 0, 0
+    local ok = pcall(function()
+        for dy = -rad, rad, 2 do
+            for dx = -rad, rad, 2 do
+                local q = C1.sqAt(px + dx, py + dy, 0)
+                if q then all = all + 1; if not q:isSeen(C1.pn) then n = n + 1 end end
+            end
+        end
+    end)
+    if not ok then return "unknown (no isSeen)" end
+    return n .. " of " .. all
+end
+function C1.reveal(Q, label)
+    local st = {}
+    Q.step(2, function()
+        st.home = { x = C1.p:getX(), y = C1.p:getY(), z = C1.p:getZ() }
+        Q.say(tostring(label) .. " reveal: unseen squares within 30 before the tour " .. C1.unseen(30))
+    end)
+    for _, d in ipairs({ 12, 26 }) do
+        for _, o in ipairs({ { 0, -1 }, { 1, -1 }, { 1, 0 }, { 1, 1 }, { 0, 1 }, { -1, 1 }, { -1, 0 }, { -1, -1 } }) do
+            Q.step(2, function()
+                local x, y = C1.nearOut(math.floor(st.home.x) + o[1] * d, math.floor(st.home.y) + o[2] * d)
+                if x then C1.tp(x + 0.5, y + 0.5, 0) end
+            end)
+            for _, dn in ipairs(C1.DIRS) do Q.step(4, function() C1.face(dn) end) end
+            Q.step(6, function() end)
+        end
+    end
+    Q.step(2, function() C1.tp(st.home.x, st.home.y, st.home.z) end)
+    for _, dn in ipairs(C1.DIRS) do Q.step(8, function() C1.face(dn) end) end
+    Q.step(20, function()
+        C1.face("SE")
+        Q.say(tostring(label) .. " reveal: unseen squares within 30 after the tour " .. C1.unseen(30))
+    end)
+end
+
+-- the load under to kg for a set of shots: the heaviest loose things (not worn, held, on the belt) set aside out of the
+-- inventory (gallery_b19_a.lua's lightenTo), then put back by C1.lightenBack
+function C1.lightenTo(Q, to)
+    C1.aside = C1.aside or {}
+    pcall(function()
+        local inv = C1.p:getInventory()
+        local loose = {}
+        local items = inv:getItems()
+        for i = 0, items:size() - 1 do
+            local it = items:get(i)
+            local keep = C1.p:isEquipped(it) or C1.p:isEquippedClothing(it) or C1.p:isHandItem(it) or (it:getAttachedSlot() and it:getAttachedSlot() > -1)
+            if not keep then loose[#loose + 1] = it end
+        end
+        table.sort(loose, function(a, b) return a:getUnequippedWeight() > b:getUnequippedWeight() end)
+        local W = (GAL_UNLOAD and GAL_UNLOAD.weight) and GAL_UNLOAD.weight() or inv:getCapacityWeight()
+        for _, it in ipairs(loose) do
+            if W <= to then break end
+            W = W - it:getUnequippedWeight()
+            inv:Remove(it)
+            C1.aside[#C1.aside + 1] = it
+        end
+    end)
+    Q.say(string.format("set aside %d things; load now %s", #C1.aside, (GAL_UNLOAD and GAL_UNLOAD.line) and GAL_UNLOAD.line() or "?"))
+end
+function C1.lightenBack(Q)
+    local inv = C1.p:getInventory()
+    for _, it in ipairs(C1.aside or {}) do pcall(function() inv:AddItem(it) end) end
+    if Q then Q.say("put back " .. #(C1.aside or {}) .. " things set aside") end
+    C1.aside = {}
 end
 
 -- the grid power on (the house and the store lit) and back (as gallery_b19_a.lua's S.grid)

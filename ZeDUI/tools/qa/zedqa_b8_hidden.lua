@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/zedqa_b8_hidden.lua  (Nov 8 2026, QA; punch list 109, CHECK_hidden_facts_20261107.md)
 -- The guide's two pages that open with a find (ZeD_HiddenFacts.lua): the TV schedule on Television/Radio and the infection
 -- odds on Zombie Attacks, read live from the real game (its broadcast scripts, its sandbox). Single player.

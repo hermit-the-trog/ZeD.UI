@@ -1,6 +1,8 @@
 -- ZeDUI/tools/qa/gallery_v1_mp_shot.lua  (Nov 17 2026, QA; ZeD-GUI 1.0 gallery, picture 75 "Playing on a Server"): on the
 -- ADMIN client (mp_client2.ps1 -Main -Run), after gallery_v1_mp.txt staged it in a lit Muldraugh street and the other
 -- players (bob, carl, dave: QA's own test accounts) stand beside it and have each said a line on the General chat.
+-- The admin itself is "angel" (gallery_v1_mp_run.ps1 makes that account), so no "zedqa" shows in the player list; the
+-- chat is cleared of every line but the players' own (the teleports answer there as server lines).
 --   * daytime held: the server's clock at 11:00 (the shim's ZeDQA.time) and the client's held there every frame for
 --     the picture; clear sky; the time controls (top right) out of the UI for the picture; 4K at UI scale 1.75x
 --   * the Character window alone, on the Server tab scrolled to its foot (PLAYERS: who is on the server), against the
@@ -46,12 +48,30 @@ function G.others()
     end)
     return out
 end
+G.me = tostring(G.p:getUsername())
+G.isGuest = {}
+for _, g in ipairs(G.guests) do G.isGuest[g] = true end
+-- a player's own line: written by one of the other players, not a server line (the teleports' replies, the welcome)
+function G.playerLine(ln)
+    return ln.author ~= nil and ln.author ~= G.me and ln.kind ~= "server" and (#G.guests == 0 or G.isGuest[ln.author] == true)
+end
 function G.chatAuthors()
     local seen, n = {}, 0
     for _, ln in ipairs(G.Chat.lines or {}) do
-        if ln.author and ln.author ~= "zedqa" and not seen[ln.author] then seen[ln.author] = true; n = n + 1 end
+        if G.playerLine(ln) and not seen[ln.author] then seen[ln.author] = true; n = n + 1 end
     end
     return n
+end
+-- the chat cleared of everything but the players' own lines (QA's teleports answer on the chat as server lines)
+function G.onlyPlayers()
+    local keep, cut = {}, 0
+    for _, ln in ipairs(G.Chat.lines or {}) do
+        if G.playerLine(ln) then keep[#keep + 1] = ln else cut = cut + 1 end
+    end
+    G.Chat.lines = keep
+    G.Chat.unreadN = 0
+    if G.Chat.win then G.Chat.win._dirty = true end
+    return cut
 end
 function G.cw() return ZeD_CharacterWindow.getWindow() end
 function G.ww() return ZeD_WorldWindow.getWindow() end
@@ -147,6 +167,7 @@ step(5, function()
     local names = {}
     for _, ln in ipairs(G.Chat.lines or {}) do if ln.author then names[#names + 1] = ln.author end end
     G.say((G.chatAuthors() >= 2 and "PASS" or "FAIL") .. " chat lines from " .. G.chatAuthors() .. " other players (authors in order: " .. table.concat(names, ", ") .. ")")
+    G.say("chat cleared of " .. G.onlyPlayers() .. " lines that were not the players' own; " .. #G.Chat.lines .. " left")
     if G.Chat.win then G.Chat.win._dirty = true; G.Chat.win._usedAt = getTimestampMs() end
     G.p:setDir(IsoDirections.SE)
 end)
@@ -158,7 +179,8 @@ poll(1, 900, function()
     return G.same >= (GAL_STILL or 20) + 10
 end)
 step(2, function()
-    -- (the chat dims when left alone: woken just before the picture)
+    -- (the chat dims when left alone: woken just before the picture; any late server line cut again)
+    G.onlyPlayers()
     if G.Chat.win then G.Chat.win._usedAt = getTimestampMs() end
     G.say(string.format("time %.2f | others beside %d | shape %s", getGameTime():getTimeOfDay(), #G.others(), G.shape()))
     G.shot("g1_75_server.png")

@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/zedqa_cov_b9to11.lua  (Nov 12 2026, QA coverage; tag cov_b9to11)
 -- Real checks for the beta 9 to 11 fixes no check reached (qa/AUDIT_DESIGN_AND_COVERAGE_20261111.md, Table B and B3).
 -- In game, on the ZeD-QA save only (it stops at once on any other save). Copy to Zomboid/Lua/zedqa.lua and bump

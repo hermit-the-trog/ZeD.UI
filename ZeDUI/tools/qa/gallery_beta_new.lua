@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/gallery_beta_new.lua  (Nov 2 2026, QA; the gallery's new pages for 0.3.0-beta1)
 -- In game at 4K, after gallery_t14_look.lua and gallery_daylight.lua (the default look, daylight, no debug artifacts).
 -- Eight new captures, each full screen in Zomboid/Screenshots (Build crops them into the spreads):

@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/gallery_v1_c1_street.lua  (Nov 17 2026, QA): the ZeD-GUI 1.0 gallery's lived-in retakes on West Point's
 -- main street (gallery_v1_c1_common.lua's "street": the walk outside the cafe, the post office, the tool store and the
 -- grocery across the road). ZeD on. Same content and settings as today's captures, same file names. The windows are
@@ -80,6 +83,11 @@ function S.wear(name)
         S.p:setWornItem(S.curWatch:getBodyLocation(), S.curWatch)
     end)
 end
+-- everything given so far taken back out of the inventory (worn watches come off with S.takeOff / S.wear first)
+function S.giveBack()
+    for i = #S.added, 1, -1 do local it = S.added[i]; pcall(function() local c = it:getContainer(); if c then c:Remove(it) end end) end
+    S.added = {}
+end
 function S.load(gun, n, mag)
     pcall(function() gun:setCurrentAmmoCount(n) end)
     if mag then pcall(function() gun:setContainsClip(true) end) end
@@ -130,6 +138,13 @@ S.step(10, function()
     C1.extraBoxes = nil
     S.say("start | look " .. tostring(W.base) .. " " .. tostring(W.accent) .. " " .. tostring(W.size) .. " | kit watch " .. tostring(S.kit and S.kit:getFullType()))
 end)
+-- the load: the character's limit is 18 kg here; the heaviest loose things are set aside for the whole street set
+-- (put back at the end), and what each section gives is taken back when it is done
+S.step(5, function()
+    local max = 18
+    pcall(function() max = S.p:getMaxWeight() end)
+    C1.lightenTo(S, max - 4)
+end)
 S.mark()
 
 -- ===================================================================== 22 / 30: the hands on the belt
@@ -161,13 +176,19 @@ S.step(10, function()
     S.takeOff(S.w2)
     S.p:setPrimaryHandItem(S.was.p1); S.p:setSecondaryHandItem(S.was.p2)
     pcall(function() ZeD.applyTheme(S.was.base, S.was.accent, S.was.size) end)
+    S.giveBack()
+    S.say("the hands' things taken back | load " .. ((GAL_UNLOAD and GAL_UNLOAD.line) and GAL_UNLOAD.line() or "?"))
 end)
 
--- ===================================================================== 27: the belt watches, 13:00
+-- ===================================================================== 27: the belt watches, 13:00 in daylight
+-- (the first take had two thirds of each frame black: the map round the street not loaded yet. The clock is set to
+-- 13:00 first, then the shots wait for the rings of squares round the character to load, plus 4 s)
 S.step(30, function()
     S.setOpt("watchPlaceOption", 1)
     getGameTime():setTimeOfDay(13.0)
 end)
+C1.waitMap(S, "watches")
+C1.reveal(S, "watches")   -- (two thirds black again in daylight: squares never seen draw black; the tour sees them)
 for _, name in ipairs({ "DigitalBlack", "DigitalTimez", "ClassicGold", "DigitalRed" }) do
     S.step(10, function() S.wear(name) end)
     S.step(60, function() C1.face("SE") end)
@@ -199,6 +220,7 @@ S.step(10, function()
 end)
 S.step(10, function()
     S.stopAll()
+    S.giveBack()
     S.setOpt("actionBarOption", S.was.opt.actionBarOption)
     S.setOpt("haloBubbleOption", 2)
     S.speed(1)
@@ -286,6 +308,7 @@ S.step(10, function()
     pcall(function() S.p:setPrimaryHandItem(W.p1); S.p:setSecondaryHandItem(W.p2) end)
     for i = #S.added, 1, -1 do local it = S.added[i]; pcall(function() local c = it:getContainer(); if c then c:Remove(it) end end) end
     S.added = {}
+    C1.lightenBack(S)
     for k, v in pairs(W.opt) do S.setOpt(k, v) end
     pcall(function() ZeD.applyTheme(W.base, W.accent, W.size) end)
     pcall(function() getGameTime():setTimeOfDay(W.tod) end)

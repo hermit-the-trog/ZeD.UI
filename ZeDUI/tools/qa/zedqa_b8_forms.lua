@@ -1,3 +1,6 @@
+-- (Nov 20 2026, QA: OUT OF DATE since beta 21. This script sets one or more of the retired per-piece Simple switches,
+-- which nothing reads now (one Style switch: ZeD.Settings.lookStyleOption, 1 Full, 2 Lite). A Simple leg runs against
+-- Full; a Full pick is a no-op. To reuse it, set lookStyleOption instead (the value only). Not in the release test.)
 -- ZeDUI/tools/qa/zedqa_b8_forms.lua  (Nov 8 2026, QA; punch list 110, CHECK_forms_phrase_20261107.md)
 -- One phrase for the two forms, read from the live game (the real Settings.lua, ZeD_MainMenuOptionGroups.lua and the loaded
 -- translation), the same facts forms_phrase_sim.lua reads off disk:
