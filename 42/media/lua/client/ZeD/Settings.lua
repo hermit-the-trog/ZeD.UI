@@ -1417,9 +1417,17 @@ function ZeD.Settings.loadSetup(file)
         while l do
             local id, v = l:match("^([%w_]+)=(.+)$")
             local o = id and opts.dict and opts.dict[id]
-            if o and o.setValue then
-                local val = v
-                if v == "true" then val = true elseif v == "false" then val = false elseif tonumber(v) then val = tonumber(v) end
+            -- (QA's bug hunt P2, Nov 20 2026: a hand-edited or broken file put any value onto any option, 99 for the
+            -- UI scale and "abc" for a list, and saved it to ModOptions.ini. Only a value the option can hold is
+            -- taken: a list takes a whole number from 1 to its length, a tick box true or false. The rest is skipped.)
+            local val
+            if o and o.type == "combobox" then
+                local i = tonumber(v)
+                if i and i == math.floor(i) and i >= 1 and i <= #(o.values or {}) then val = i end
+            elseif o and o.type == "tickbox" then
+                if v == "true" then val = true elseif v == "false" then val = false end
+            end
+            if val ~= nil and o.setValue then
                 if pcall(function() o:setValue(val) end) then n = n + 1 end
             end
             l = r:readLine()
