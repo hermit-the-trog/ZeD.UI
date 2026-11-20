@@ -4236,7 +4236,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._maxWinW = maxWinW
     win.playerNum = playerNum   -- (read as `win.playerNum or 0` by the doll, the equipment tab, the roll-up)
     -- the help line folds away while the window has nothing to say (QA's visual noise audit 9, Nov 20 2026)
-    win.footerWhenUsed = true
+    -- (Build, Nov 20: off. Folding the strip moved the window's foot and its grow box as the pointer came and went;
+    -- the shared frame already draws an empty strip as plain body, which keeps the window still.)
+    win.footerWhenUsed = false
     _charWins[playerNum] = win
     _hideVanilla()
 

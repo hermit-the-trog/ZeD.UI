@@ -769,7 +769,7 @@ local function pReadout(panel, x0, y, w, x, draw)
     local colW = math.floor((w - 2 * pad - (x.iconW or 0)) / 2)
     local ty = y + T.px(8)
     local by = ty + h1 + T.px(2)
-    local ac, tc, dc = T.accent, T.text, T.textDim
+    local ac, tc, dc = T.textDim, T.text, T.textDim   -- (card labels dim, not accent: visual noise audit 47)
     local cx1, cx2 = x0 + pad, x0 + pad + colW
     panel:drawText(A.textCase(l1), cx1, ty, ac.r, ac.g, ac.b, 1, f1)
     panel:drawText(A.textCase(l2), cx2, ty, ac.r, ac.g, ac.b, 1, f1)
@@ -964,7 +964,7 @@ local function pRow(panel, x0, y, w, x, rw, draw)
         h = two and (lh + lh) or lh
     end
     if not draw then return h end
-    local ac = T.accent
+    local ac = T.textDim   -- (card labels dim, not accent: visual noise audit 47)
     local lx = x0 + pad
     local right = x0 + w - pad
     local bh = T.buttonH

@@ -388,7 +388,7 @@ local function readout(panel, x0, y, w, x, draw)
     local label, big, unit, line, live, prog = readoutOf(x)
     local h1, h2, hb = tm:getFontHeight(f1), tm:getFontHeight(f2), T.px(PF.BIG_PX)
     if draw then
-        local ac, tc, dc = T.accent, T.text, T.textDim
+        local ac, tc, dc = T.textDim, T.text, T.textDim   -- (card labels dim, not accent: visual noise audit 47)
         panel:drawText(A.textCase(label), x0 + pad, y, ac.r, ac.g, ac.b, 1, f1)
         local bw = bigText(panel, big, x0 + pad, y + h1 + T.px(2), live and tc or dc)
         if unit then
@@ -430,7 +430,7 @@ local function tvScreen(panel, x0, y, w, x, draw)
     local lh = tm:getFontHeight(f2)
     local h = tm:getFontHeight(f1) + T.px(4) + PF.TV_LINES * lh + T.px(8)
     if not draw then return h end
-    local ac, tc, dc = T.accent, T.text, T.textDim
+    local ac, tc, dc = T.textDim, T.text, T.textDim   -- (card labels dim, not accent: visual noise audit 47)
     panel:drawText(A.textCase(ZeD.tr("UI_ZeD_Plain_OnScreen")), x0 + pad, y, ac.r, ac.g, ac.b, 1, f1)
     local ty = y + tm:getFontHeight(f1) + T.px(4)
     local lines = tvLines(x, w - 2 * pad)
@@ -627,7 +627,7 @@ local function wrapRow(panel, x0, y, w, c, x, draw)
     local first = math.floor((lh - fh2) / 2)
     local h = math.max(lh, first + #lines * fh2 + first)
     if not draw then return h end
-    local ac = T.accent
+    local ac = T.textDim   -- (card labels dim, not accent: visual noise audit 47)
     local lx = x0 + pad
     panel:drawText(label, lx, y + first + math.floor((fh2 - fh1) / 2), ac.r, ac.g, ac.b, 1, f1)
     local ty = y + first
@@ -654,7 +654,7 @@ local function row(panel, x0, y, w, c, x, face, hits, draw, fo)
     local two = cw > 0 and (lw + gap + vw + gap + cw > inner)
     local h = two and (lh + lh) or lh
     if not draw then return h end
-    local ac = T.accent
+    local ac = T.textDim   -- (card labels dim, not accent: visual noise audit 47)
     local lx = x0 + pad
     panel:drawText(label, lx, y + math.floor((lh - tm:getFontHeight(T.fontF1)) / 2), ac.r, ac.g, ac.b, 1, T.fontF1)
     local right = x0 + w - pad
