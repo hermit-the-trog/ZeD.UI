@@ -440,89 +440,9 @@ end
 --- Build every group's rows. pages = vanilla's pages ({ title, raw, view, keys });
 --- rowsOf(page) = that page's rows (ZeD_MainMenuOptions' discovery, cached).
 --- Returns { [groupId] = rows }.
-function G.build(pages, rowsOf)
-    local byName, byPage, used = {}, {}, {}
-    local extra = {}   -- pages a mod added with MainOptions:addPage (titles the game doesn't have)
-    for _, p in ipairs(pages) do
-        local pid = pageId(p.raw)
-        local rows = rowsOf(p) or {}
-        if pid then byPage[pid] = rows else extra[#extra + 1] = { title = p.raw, rows = rows } end
-        for _, r in ipairs(rows) do
-            if pid == "audio" and r.kind == "button" and not r.opt then byName.__audioButton = r end
-            if r.opt and r.opt.name then
-                byName[r.opt.name] = r
-                -- (QA's visual noise audit 29, Nov 20 2026: "Does nothing with ZeD active" under each replaced setting,
-                -- each with its own warning square. Such a row is hidden now: placed nowhere, not even under Other,
-                -- and Find does not offer it. Its value stays the game's.)
-                if G.MOOT[r.opt.name] then r.moot = G.MOOT[r.opt.name]; used[r] = true end
-                if G.ONLY[r.opt.name] then r.only = G.ONLY[r.opt.name] end
-            end
-        end
-    end
-    -- the Mods group: the game's Mods page (where ZeD's own controls are), then each added page under its title
-    local realMods = byPage.mods or {}
-    if #extra > 0 then
-        local all = {}
-        for _, r in ipairs(realMods) do all[#all + 1] = r end
-        for _, e in ipairs(extra) do
-            all[#all + 1] = { kind = "header", text = tostring(e.title or "") }
-            for _, r in ipairs(e.rows) do all[#all + 1] = r end
-        end
-        byPage.mods = all
-    end
-    local out = {}
-    local other = {}   -- groupId -> rows nobody named
-    for _, g in ipairs(G.GROUPS) do
-        local rows = {}
-        for _, sec in ipairs(g.sections or {}) do
-            local title = sec[1]
-            local list = {}
-            if sec.from then
-                local src = byPage[sec.from] or {}
-                if sec.from == "keys" then
-                    -- the key list, without the toggles (filed under Movement)
-                    local skip = false
-                    for _, r in ipairs(src) do
-                        if r.kind == "header" and r.id == "toggles" then skip = true
-                        elseif r.kind == "header" then skip = false end
-                        if not skip and r.kind ~= "tick" then list[#list + 1] = r; used[r] = true end
-                    end
-                else
-                    for _, r in ipairs(src) do list[#list + 1] = r; used[r] = true end
-                end
-            else
-                for _, name in ipairs(sec[2] or {}) do
-                    local r = byName[name]
-                    if r and not used[r] then list[#list + 1] = r; used[r] = true end
-                end
-            end
-            if #list > 0 then
-                if title then rows[#rows + 1] = { kind = "header", text = G.text(title) } end
-                for _, r in ipairs(list) do rows[#rows + 1] = r end
-            end
-        end
-        out[g.id] = rows
-    end
-    -- the rest: controls nobody named, in their old page's group under Other
-    for pid, rows in pairs(byPage) do
-        local gid = FALLBACK[pid] or "gameplay"
-        for _, r in ipairs(rows) do
-            if not used[r] and r.kind ~= "header" and r.kind ~= "note" and r.kind ~= "desc" then
-                -- a button with no label of its own (Audio's sound list) is named by its title
-                if (r.label or "") == "" and r.control and r.control.title then r.label = tostring(r.control.title) end
-                other[gid] = other[gid] or {}
-                table.insert(other[gid], r)
-                used[r] = true
-            end
-        end
-    end
-    for gid, rows in pairs(other) do
-        local t = out[gid]
-        if t then
-            t[#t + 1] = { kind = "header", text = getText("UI_ServerSettingGroup_Other") }
-            for _, r in ipairs(rows) do t[#t + 1] = r end
-        end
-    end
+-- (QA, Nov 20 2026: G.build went over Kahlua's 200 locals once the setup cuts added theirs; the game threw
+-- "Index 200 out of bounds" in LexState.new_localvar while KCheck passed. ZeD setup's rows are built here.)
+local function buildSetup(realMods, byName)
     -- ZeD setup: ZeD's own options (their controls on the Mods page) in their groups,
     -- then the game settings ZeD's look depends on
     local setup = {}
@@ -669,8 +589,93 @@ function G.build(pages, rowsOf)
         setup[#setup + 1] = { kind = "header", text = ZeD.tr("UI_ZeD_Options_HeadGameSettings") }
         for _, r in ipairs(grows) do setup[#setup + 1] = r end
     end
-    out.zed = setup
-    out.zedHidden = hidden
+    return setup, hidden
+end
+
+function G.build(pages, rowsOf)
+    local byName, byPage, used = {}, {}, {}
+    local extra = {}   -- pages a mod added with MainOptions:addPage (titles the game doesn't have)
+    for _, p in ipairs(pages) do
+        local pid = pageId(p.raw)
+        local rows = rowsOf(p) or {}
+        if pid then byPage[pid] = rows else extra[#extra + 1] = { title = p.raw, rows = rows } end
+        for _, r in ipairs(rows) do
+            if pid == "audio" and r.kind == "button" and not r.opt then byName.__audioButton = r end
+            if r.opt and r.opt.name then
+                byName[r.opt.name] = r
+                -- (QA's visual noise audit 29, Nov 20 2026: "Does nothing with ZeD active" under each replaced setting,
+                -- each with its own warning square. Such a row is hidden now: placed nowhere, not even under Other,
+                -- and Find does not offer it. Its value stays the game's.)
+                if G.MOOT[r.opt.name] then r.moot = G.MOOT[r.opt.name]; used[r] = true end
+                if G.ONLY[r.opt.name] then r.only = G.ONLY[r.opt.name] end
+            end
+        end
+    end
+    -- the Mods group: the game's Mods page (where ZeD's own controls are), then each added page under its title
+    local realMods = byPage.mods or {}
+    if #extra > 0 then
+        local all = {}
+        for _, r in ipairs(realMods) do all[#all + 1] = r end
+        for _, e in ipairs(extra) do
+            all[#all + 1] = { kind = "header", text = tostring(e.title or "") }
+            for _, r in ipairs(e.rows) do all[#all + 1] = r end
+        end
+        byPage.mods = all
+    end
+    local out = {}
+    local other = {}   -- groupId -> rows nobody named
+    for _, g in ipairs(G.GROUPS) do
+        local rows = {}
+        for _, sec in ipairs(g.sections or {}) do
+            local title = sec[1]
+            local list = {}
+            if sec.from then
+                local src = byPage[sec.from] or {}
+                if sec.from == "keys" then
+                    -- the key list, without the toggles (filed under Movement)
+                    local skip = false
+                    for _, r in ipairs(src) do
+                        if r.kind == "header" and r.id == "toggles" then skip = true
+                        elseif r.kind == "header" then skip = false end
+                        if not skip and r.kind ~= "tick" then list[#list + 1] = r; used[r] = true end
+                    end
+                else
+                    for _, r in ipairs(src) do list[#list + 1] = r; used[r] = true end
+                end
+            else
+                for _, name in ipairs(sec[2] or {}) do
+                    local r = byName[name]
+                    if r and not used[r] then list[#list + 1] = r; used[r] = true end
+                end
+            end
+            if #list > 0 then
+                if title then rows[#rows + 1] = { kind = "header", text = G.text(title) } end
+                for _, r in ipairs(list) do rows[#rows + 1] = r end
+            end
+        end
+        out[g.id] = rows
+    end
+    -- the rest: controls nobody named, in their old page's group under Other
+    for pid, rows in pairs(byPage) do
+        local gid = FALLBACK[pid] or "gameplay"
+        for _, r in ipairs(rows) do
+            if not used[r] and r.kind ~= "header" and r.kind ~= "note" and r.kind ~= "desc" then
+                -- a button with no label of its own (Audio's sound list) is named by its title
+                if (r.label or "") == "" and r.control and r.control.title then r.label = tostring(r.control.title) end
+                other[gid] = other[gid] or {}
+                table.insert(other[gid], r)
+                used[r] = true
+            end
+        end
+    end
+    for gid, rows in pairs(other) do
+        local t = out[gid]
+        if t then
+            t[#t + 1] = { kind = "header", text = getText("UI_ServerSettingGroup_Other") }
+            for _, r in ipairs(rows) do t[#t + 1] = r end
+        end
+    end
+    out.zed, out.zedHidden = buildSetup(realMods, byName)
     return out
 end
 
