@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/p5_date.txt  (Nov 20 2026, QA): the bug hunt's P5 picture, "12-25" on the CaZio classic faces
+# (zedqa_p5_date.lua: game date set to Dec 25 for the shots, then put back). 4K.
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_p5_date.lua | p5d | timeout=180

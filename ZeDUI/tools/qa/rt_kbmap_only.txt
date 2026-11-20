@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/rt_kbmap_only.txt (Nov 20 2026, QA): rt_kbmap.lua alone, to prove a change before the full run.
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+rt_kbmap.lua | rt_kbmap | timeout=600

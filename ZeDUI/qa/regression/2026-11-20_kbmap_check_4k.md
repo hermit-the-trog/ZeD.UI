@@ -1,9 +1,9 @@
-# ZeD-UI regression - 2026-11-20 02:15 - fullscreen4k (3840x2160 fullscreen)
+# ZeD-UI regression - 2026-11-20 04:43 - fullscreen4k (3840x2160 fullscreen)
 
 | | |
 |---|---|
-| Started | 2026-11-20 02:15:58 |
-| Finished | 2026-11-20 02:17:40 (1 min 42 s) |
+| Started | 2026-11-20 04:43:54 |
+| Finished | 2026-11-20 04:45:43 (1 min 49 s) |
 | Mode | fullscreen4k (3840x2160 fullscreen) |
 | Display | fontSize=2 fullScreen=false height=2160 width=3840 |
 | Game build | 42.22.2 3d39148846 |
@@ -11,7 +11,7 @@
 | Save | Saves/Sandbox/ZeD-QA |
 | Manifest | %USERPROFILE%\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\kbmap_check.txt (3 scripts) |
 | Result | **3/3 pass**, 0 warn, 0 fail, 0 timeout |
-| Go numbers | 30562 to 30566 |
+| Go numbers | 30720 to 30724 |
 
 Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
 
@@ -23,7 +23,7 @@ Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites 
 - started ProjectZomboid64.exe -debug -nosteam (fullscreen, the director's options.ini)
 - loaded; clicked the screen centre (1920,1080) to pass 'click to start'
 - the bridge armed in game on Saves/Sandbox/ZeD-QA
-- quit: quit to the main menu, then to the desktop (go 30565, 30566)
+- quit: quit to the main menu, then to the desktop (go 30723, 30724)
 - font size: the director's line put back (fontSize=3)
 - ZeD settings: the director's ModOptions.ini put back
 
@@ -39,7 +39,7 @@ Screenshots are in `%USERPROFILE%/Zomboid/Screenshots` (the next run overwrites 
 
 ### 1. zedqa_prelude.lua (`ZEDQA pre`) - PASS, 2 s
 
-- go 30562 at 02:17:05
+- go 30720 at 04:45:07
 
 ```text
 [ZeD.QA] state #1 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=32 missing=get
@@ -59,7 +59,7 @@ ZEDQA pre DONE
 
 ### 2. rt_kit.lua (`ZEDQA rtk`) - PASS, 1 s
 
-- go 30563 at 02:17:10
+- go 30721 at 04:45:13
 
 ```text
 [ZeD.QA] state #2 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=32 missing=get
@@ -71,7 +71,7 @@ ZEDQA rtk DONE
 
 ### 3. kbmap_check.lua (`ZEDQA kbmap_check`) - PASS, 1 s
 
-- go 30564 at 02:17:14
+- go 30722 at 04:45:17
 
 ```text
 [ZeD.QA] state #3 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=32 missing=get
