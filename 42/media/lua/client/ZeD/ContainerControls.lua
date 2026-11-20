@@ -60,7 +60,13 @@ local CT = ZeD.ContainerControls
 CT.PAD_X   = 8     -- design units: the band's edges
 CT.GAP     = 8     -- between buttons (4 between two icons)
 CT.DIV_PAD = 5     -- each side of the divider before the container's own buttons
-CT.REFRESH = 15    -- frames between rebuilding the button set (sooner when items change)
+CT.REFRESH_MS = 1000   -- ms: the safety beat for rebuilding the button set when nothing it watches moved
+CT.EVENT_MS   = 250    -- ms: a container event rebuilds it at most this often (a transfer fires many)
+-- (These were 15 frames, a rebuild 4 times a second at 60 Hz and 10 at 144, whether
+-- or not anything changed: a 300-item crate cost thousands of game calls each time.
+-- Now the row is rebuilt when its signature changes (containers, counts, gates,
+-- marks), soon after a container event, and once a second anyway for what none of
+-- those catch, a favorite or an item equipped, say. QA's speed audit, Nov 20 2026.)
 
 -- vanilla's moves, done here on the ZeD windows' containers
 local OURS = {
@@ -562,7 +568,7 @@ end
 --           (help is the footer's line while the pointer rests on the button;
 --           primary = true draws it as the main button).
 -- Specs become words after the divider, with the container's own buttons.
--- Called when the row is rebuilt (every REFRESH frames, sooner when items change),
+-- Called when the row is rebuilt (once a second, sooner when items change),
 -- inside pcall, so a provider that fails costs its buttons, never the row.
 -- ----------------------------------------------------------------------------
 CT.providers = CT.providers or {}
@@ -786,7 +792,7 @@ end
 
 local function refresh(content)
     local cc = content._cc
-    cc.tick = (cc.tick or 0) + 1
+    local now = getTimestampMs()
     local other = otherInventory(content)
     -- (the containers and their sizes compared as they are: a signature string
     -- built every frame cost two Java toString calls)
@@ -798,12 +804,15 @@ local function refresh(content)
     local m = (R and R.padMarkCountOf) and R.padMarkCountOf(content) or 0   -- (the controller's marks)
     local same = cc.sigSet and cc.sigInv == inv and cc.sigN1 == n1 and cc.sigOther == other and cc.sigN2 == n2
         and cc.sigG1 == g1 and cc.sigG2 == g2 and cc.sigM == m
-    if same and cc.tick - cc.frame < CT.REFRESH and cc.moves then return end
+    -- (a container event anywhere: the lists' model number moved; rebuilt soon, not every frame of a transfer)
+    local gen = (R and R.modelGen) and R.modelGen() or 0
+    local age = now - cc.frame   -- (cc.frame: the clock at the last build; -1000 asks for one now)
+    if same and cc.moves and age < CT.REFRESH_MS and (cc.sigGen == gen or age < CT.EVENT_MS) then return end
     if not same and cc.invSeen ~= inv then cc.ask = nil; cc.sx = {} end   -- another container: no pending question, the ribbons from their start
     cc.invSeen = inv
     cc.sigSet, cc.sigInv, cc.sigN1, cc.sigOther, cc.sigN2 = true, inv, n1, other, n2
     cc.sigG1, cc.sigG2, cc.sigM = g1, g2, m
-    cc.frame = cc.tick
+    cc.frame, cc.sigGen = now, gen
     local ok, moves, objs
     if content._ccSide == "char" then ok, moves, objs = pcall(buildChar, content)
     else ok, moves, objs = pcall(buildWorld, content) end

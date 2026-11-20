@@ -81,11 +81,17 @@ end
 
 local checkLanguage = nil   -- (set below, with the template cache it clears)
 
+-- One clock read a tick, shared: testOn below runs at the top of every ZeD.tr (hundreds a
+-- frame with the windows open) and read the game's clock on every call. It reads ZeD._nowMs,
+-- which SafeMode's sync sets once a tick (even paused, and on the main menu's tick) on the
+-- hooks it already has, and the real clock only until that first runs.
+-- (QA's speed audit, Nov 20 2026)
+
 -- true while the test language is on (ZeD.trTestOn). The option is read at most every READ_MS,
 -- and the game's language is checked at the same pace
 local function testOn()
     if not getTimestampMs then return false end   -- no game clock to pace the reads: never the test language
-    local now = getTimestampMs()
+    local now = ZeD._nowMs or getTimestampMs()   -- (the tick's clock read: see above)
     if now >= st.nextRead then
         st.nextRead = now + READ_MS
         st.on = readOption()

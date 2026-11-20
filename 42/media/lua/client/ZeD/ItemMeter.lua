@@ -64,7 +64,23 @@ end
 
 --- A stack's one bar (punch list 162, the director, Nov 11 2026): the lowest of its items of the head's kind, so a
 --- stack of full and empty bottles never reads fuller than its emptiest. items: the stack's items (nil or one: the head's)
+-- (A row's or a cell's bar is asked every frame: about 7 game calls and pcalls an item, every item of a stack.
+-- The answer is kept per head and its stack's list, the whole table starting over every KEEP_MS, so a worn
+-- condition or a drained lighter shows at most a quarter second late. QA's speed audit, Nov 20 2026.)
+IM.KEEP_MS = 250
+local _kept, _keptAt = {}, 0
 function IM.ofStack(head, items)
+    local clock = getTimestampMs
+    if not (head and clock) then return IM.ofStackNow(head, items) end
+    local now = ZeD._nowMs or clock()
+    if now - _keptAt >= IM.KEEP_MS or now < _keptAt then _kept, _keptAt = {}, now end
+    local r = _kept[head]
+    if r and r.items == items then return r.k, r.f end
+    local k, f = IM.ofStackNow(head, items)
+    _kept[head] = { items = items, k = k, f = f }
+    return k, f
+end
+function IM.ofStackNow(head, items)
     local kind, f = IM.of(head)
     if not items or #items < 2 or kind == nil or kind == "hidden" then return kind, f end
     for i = 1, #items do
@@ -82,9 +98,16 @@ function IM.style(kind)
 end
 
 --- What the bar's help line calls it ("Condition 64%", "Remaining 50%")
+-- (kept per kind while the phrase is the same: every bar drawn asked for it, a new string and a gsub
+-- each frame per row. QA's speed audit, Nov 20 2026)
+local _labelRaw, _labelOut = {}, {}
 function IM.label(kind)
+    local k = (kind == "cond") and "cond" or "other"
     local s = ZeD.tr((kind == "cond") and "IGUI_invpanel_Condition" or "IGUI_invpanel_Remaining")
-    return ((tostring(s or "")):gsub("%s*:%s*$", ""))
+    if _labelOut[k] ~= nil and _labelRaw[k] == s then return _labelOut[k] end
+    local out = ((tostring(s or "")):gsub("%s*:%s*$", ""))
+    _labelRaw[k], _labelOut[k] = s, out
+    return out
 end
 
 --- The sort key: the bar's share; no bar sorts below an empty one

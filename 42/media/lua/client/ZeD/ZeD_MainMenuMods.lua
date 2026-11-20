@@ -1275,11 +1275,13 @@ local function tagMark(variant) local T = ZeD.T; return TAG_MARK[variant] and T[
 local function tagW(text, variant)
     return ZeD.Atoms.tagW(text, tagMark(variant) ~= nil)
 end
-local function rowTag(p, text, x, y, variant)
+local function rowTag(p, text, x, y, variant, onFocus)
     local T = ZeD.T
     local w = tagW(text, variant)
     local b = T.base
-    p:drawRect(x, y, w, T.px(16), 1, b.r, b.g, b.b)
+    -- QA's visual audit B9, Nov 20 2026: on the selected row the base backing read as a black block behind
+    -- the "2 conflicts" chip; a selected or focused row draws the tag straight on its fill.
+    if not onFocus then p:drawRect(x, y, w, T.px(16), 1, b.r, b.g, b.b) end
     ZeD.Molecules.drawTag(p, x, y, text, tagMark(variant), { font = T.fontF1 })
 end
 
@@ -1572,7 +1574,7 @@ function ZeD_MMMods:drawModRow(d, x, ry, rw, rh, vy, vh, gp, rid, indent, star)
             for ci, chip in ipairs(self:rowChips(d)) do
                 local ctext = chip[1]
                 chipR = chipR - tagW(ctext, chip[2])
-                rowTag(self, ctext, chipR, ry + math.floor((rh - T.px(16)) / 2), chip[2])
+                rowTag(self, ctext, chipR, ry + math.floor((rh - T.px(16)) / 2), chip[2], onFocus or isSel)
                 chipR = chipR - T.px(6)
             end
             local maxW = chipR - T.px(4) - nx
@@ -1669,7 +1671,7 @@ function ZeD_MMMods:drawWsRows(x, y, w, h, vy)
                 local tag = fresh and ZeD.tr("UI_ZeD_Mods_ChipUpdated") or (WS_TAG_TEXT[it.state] and ZeD.tr(WS_TAG_TEXT[it.state]) or "")
                 local variant = fresh and "accent" or WS_TAG[it.state]
                 tx = tx - tagW(tag, variant)
-                rowTag(self, tag, tx, ry + math.floor((rh - T.px(16)) / 2), variant)
+                rowTag(self, tag, tx, ry + math.floor((rh - T.px(16)) / 2), variant, onFocus or self.wsSel == it.id)
             end
             local maxW = tx - T.px(8) - nx
             local tc = onFocus and T.textOnFocus or T.textHead

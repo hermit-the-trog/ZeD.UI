@@ -1070,13 +1070,61 @@ end
 
 local _tipRect = { x = 0, y = 0, w = 0, h = 0 }   -- (the hovered row or cell, handed to ZeD.InvTip.want)
 
+-- What a row asks the game about its item, kept a short while: the picture, the name, the belt slot, the
+-- bar, the cooking state and the weight. Every visible row asked about a dozen of these every frame (a
+-- stack's head asked them of every item in the stack), the bulk of the lists' 3 ms a draw at 4K. The whole
+-- table starts over every ROW_KEEP_MS and on every container event (the models' number), so a rename, a
+-- worn condition or a drained lighter shows at most a quarter second late, and nothing is kept for long.
+-- (QA's speed audit, Nov 20 2026, finding 2)
+local ROW_KEEP_MS = 250
+local _rowKeep, _rowKeepAt, _rowKeepGen = {}, 0, -1
+local function rowRec(key)
+    local now = ZeD._nowMs or getTimestampMs()
+    local IR = ZeD.InventoryRenderer
+    local gen = IR.modelGen and IR.modelGen() or 0
+    if now - _rowKeepAt >= ROW_KEEP_MS or now < _rowKeepAt or gen ~= _rowKeepGen then
+        _rowKeep, _rowKeepAt, _rowKeepGen = {}, now, gen
+    end
+    local r = _rowKeep[key]
+    if not r then r = {}; _rowKeep[key] = r end
+    return r
+end
+ZeD.InventoryRenderer.rowRec = rowRec   -- (weightText and stackWeight reach it here: QA's sims lift them out alone)
+local function keptTex(item)
+    local r = rowRec(item)
+    if r.tex == nil then r.tex = item:getTex() or false end
+    return r.tex or nil
+end
+local function keptName(item)
+    local r = rowRec(item)
+    if r.name == nil then r.name = item:getName() or "???" end
+    return r.name
+end
+local function keptSlot(item)
+    local r = rowRec(item)
+    if r.slot == nil then
+        local ok, s = pcall(item.getAttachedSlot, item)
+        r.slot = (ok and s) or false
+    end
+    return r.slot or nil
+end
+
 -- An item waiting to move (punch list 146, after the streamer's clips: vanilla's rows say "Moving to container" with
 -- a bar while he reads on): "Moving" in the category column (wordW > 0) and a thin bar along the row's or cell's
 -- foot, filling as it goes. True when the item is waiting.
 -- (Nov 14 2026, punch list 222, the director ate a raw pork chop: nothing on its row said it was still cooking.)
 -- Food on a lit stove, oven or fire: how far along (0..1) and whether it is now burning; nil when not cooking.
 -- Read only for Food rows; heating is the food's own heat above 1.6, the game's test (ISInventoryPane).
+local cookStateNow
 local function cookState(item)
+    -- (kept with the row's record: see rowRec)
+    local r = rowRec(item)
+    if r.cDone then return r.cp, r.cb end
+    r.cp, r.cb = cookStateNow(item)
+    r.cDone = true
+    return r.cp, r.cb
+end
+cookStateNow = function(item)
     if not (instanceof and instanceof(item, "Food")) then return nil end
     local ok, p, burning = pcall(function()
         if not item:isCookable() or item:isBurnt() then return nil end
@@ -1375,8 +1423,12 @@ end
 -- A stack's total weight, summed as vanilla's inventory sums a stack
 -- (ISInventoryPane: getUnequippedWeight of each).
 local function stackWeight(stackInfo)
+    local RR = ZeD.InventoryRenderer.rowRec
+    local r = RR and RR(stackInfo) or {}   -- (kept a short while: see rowRec)
+    if r.total then return r.total end
     local total = 0
     for _, si in ipairs(stackInfo.items) do total = total + (si:getUnequippedWeight() or 0) end
+    r.total = total
     return total
 end
 
@@ -1385,7 +1437,10 @@ end
 -- own). A total wider than room in font drops its
 -- decimal ("(120)"), then gives way to the item's own.
 local function weightText(item, stackInfo, font, room)
-    local unit = string.format("%.1f", item:getUnequippedWeight() or 0)
+    local RR = ZeD.InventoryRenderer.rowRec
+    local r = RR and RR(item) or {}   -- (the item's own weight, worded once a while: see rowRec)
+    local unit = r.unit
+    if not unit then unit = string.format("%.1f", item:getUnequippedWeight() or 0); r.unit = unit end
     if not (stackInfo and stackInfo.count > 1 and stackInfo.items) then return unit end
     local total = stackWeight(stackInfo)
     local s = "(" .. string.format("%.1f", total) .. ")"
@@ -1950,6 +2005,9 @@ local _modelGen, _modelPhases = 0, 0
 function ZeD.InventoryRenderer.dirtyModels()
     _modelGen = _modelGen + 1
 end
+-- the number dirtyModels moves: the container buttons rebuild when it does
+-- (ContainerControls; QA's speed audit, Nov 20 2026)
+function ZeD.InventoryRenderer.modelGen() return _modelGen end
 if Events then
     if Events.OnContainerUpdate then Events.OnContainerUpdate.Add(ZeD.InventoryRenderer.dirtyModels) end
     if Events.OnClothingUpdated then
@@ -2808,13 +2866,13 @@ local function renderItemList(self)
                 end
                 if hfo then ZeD.Focus.mark(self, xOff, y, scrollX, rowH, hfo) end
                 local htc = hfo and (T.textOnFocus or T.toneNorm) or nil
-                local htex = hs.rep:getTex()
+                local htex = keptTex(hs.rep)
                 if htex then dTS(htex, padX, y + math.floor((rowH - iconW) / 2), iconW, iconW, 1, 1, 1, 1) end
                 local tri = math.min(T.px(8), rowH - T.px(4))
                 A.drawTriangleDown(self, xOff + nameX, y + math.floor((rowH - tri) / 2), tri, htc or T.toneLo or T.textDim)
                 local hsuf = " (" .. tostring(hs.count) .. ")"
                 local hroom = nameW - tri - T.px(6)
-                local hname = truncateText(hs.rep:getName() or "???", T.fontF2, hroom - ZeD.TM:MeasureStringX(T.fontF2, hsuf)) .. hsuf
+                local hname = truncateText(keptName(hs.rep), T.fontF2, hroom - ZeD.TM:MeasureStringX(T.fontF2, hsuf)) .. hsuf
                 local hc = htc or T.toneNorm
                 dT(hname, nameX + tri + T.px(6), y + math.floor((rowH - bodyFH) / 2), hc.r, hc.g, hc.b, hc.a or 1, T.fontF2)
                 if showCat then
@@ -2877,7 +2935,7 @@ local function renderItemList(self)
 
         -- Icon (children don't show icon; stack header shows icon of rep)
         if not isChild then
-            local tex = item:getTex()
+            local tex = keptTex(item)   -- (kept: rowRec)
             if tex then
                 local iconY = y + math.floor((rowH - iconW) / 2)
                 dTS(tex, padX, iconY, iconW, iconW, dimA, 1, 1, 1)
@@ -2887,7 +2945,7 @@ local function renderItemList(self)
         -- Name (truncated to column width), with the stack's triangle / count
         local textY  = y + math.floor((rowH - bodyFH) / 2)
         local nameColor = focusTxt or (dimA < 1 and T.textDim) or (isSelected and T.toneHi or T.toneNorm)
-        local baseName = item:getName() or "???"
+        local baseName = keptName(item)   -- (kept: rowRec)
         local suffix = ""
         local chevW = 0
         if isStackHead then
@@ -2931,8 +2989,8 @@ local function renderItemList(self)
 
         -- On the belt: a Belt n tag after the name (n = the key that draws it),
         -- where vanilla puts its small hotbar icon
-        local okAS, aslot = pcall(item.getAttachedSlot, item)
-        if okAS and aslot and aslot > 0 and ZeD.Belt and ZeD.Belt.tagFor then
+        local aslot = keptSlot(item)   -- (kept: rowRec)
+        if aslot and aslot > 0 and ZeD.Belt and ZeD.Belt.tagFor then
             local tag = ZeD.Belt.tagFor(aslot)
             if afterName + tagW(tag) <= nameX + nameW then rowTag(self, xOff + afterName, y, rowH, tag, focusTxt, T.info) end
         end

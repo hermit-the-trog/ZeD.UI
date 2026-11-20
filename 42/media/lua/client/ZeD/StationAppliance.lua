@@ -874,7 +874,9 @@ local function pControl(panel, x, rw, cx, cy, ch)
         local sw = pSegW()
         local on = x.r.active
         if liteOn() then
-            pRadios(panel, x, cx, cy, sw, ch, on, markWhole(panel, x, on and "off" or "on", cx, cy, 2 * sw + T.px(2), ch))
+            -- (QA's bug hunt 10, Nov 20 2026: the mark follows whichever of the two keys the controller is on)
+            local fk = (x.fid == "craft:a:off") and "off" or "on"
+            pRadios(panel, x, cx, cy, sw, ch, on, markWhole(panel, x, fk, cx, cy, 2 * sw + T.px(2), ch))
         else
             pButton(panel, x, cx, cy, sw, ch, ZeD.tr("UI_Off"), "off", not on)
             pButton(panel, x, cx + sw + T.px(2), cy, sw, ch, ZeD.tr("UI_On"), "on", on)

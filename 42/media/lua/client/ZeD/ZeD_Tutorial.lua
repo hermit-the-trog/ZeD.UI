@@ -57,7 +57,11 @@ local function rectOf(el)
     if not el then return nil end
     local ok, vis = pcall(function() return el:isReallyVisible() end)
     if not (ok and vis) then return nil end
-    return { x = el:getAbsoluteX(), y = el:getAbsoluteY(), w = el:getWidth(), h = el:getHeight() }
+    -- (QA's bug hunt 3, Nov 20 2026: in Full with a watch worn, the watch's panel is tucked to 0 x 0 at the corner until
+    -- it pops; a box with no size is nothing to point at, so the step is passed over)
+    local w, h = el:getWidth(), el:getHeight()
+    if not (w and h and w > 2 and h > 2) then return nil end
+    return { x = el:getAbsoluteX(), y = el:getAbsoluteY(), w = w, h = h }
 end
 local function charWin(pn) return ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(pn) end
 local function worldWin(pn) return ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn) end
@@ -200,7 +204,9 @@ function ZeD_TutorialKeys:onMouseUp(x, y)
     return true
 end
 function ZeD_TutorialKeys:onMouseUpOutside() self._down = nil end
-function ZeD_TutorialKeys:onJoypadDown(button)
+function ZeD_TutorialKeys:onJoypadDown(button, jd)
+    -- (QA's bug hunt 7, Nov 20 2026: Start did nothing while the tour held the controller; it pauses, as everywhere)
+    if ZeD.padStart and ZeD.padStart(button, jd, R.pn) then return end
     if button == Joypad.AButton then TU.next() elseif button == Joypad.BButton then TU.stop() end
 end
 
@@ -278,6 +284,11 @@ function TU.draw(layer)
         end
         return
     end
+    -- (QA's bug hunt 2, Nov 20 2026: an unpinned window rolls up about 2 s after the pointer leaves it, mid-step. While a
+    -- step shows a window, its roll-up waits, as openTab makes it wait: win._outSince.)
+    for _, w in ipairs({ charWin(R.pn), worldWin(R.pn) }) do
+        if w and w.isReallyVisible and w:isReallyVisible() then w._outSince = getTimestampMs() + 500 end
+    end
     local a = R.anchor
     a.x, a.y, a.w, a.h, a.below, a.noFlip = r.x, r.y, r.w, r.h, nil, nil
     local x, y, w, h = ZeD.Balloon.draw(layer, R.content, a, st.pref, { key = "tutorial:" .. R.i, prio = 3, noClaim = true, owner = layer })
@@ -340,6 +351,16 @@ function TU.finish() close() end
 function TU.running() return R.on end
 function TU.step() return R.i end
 
+-- (QA's bug hunt TU-1, Nov 20 2026: a death mid-tour left the keys holding the controller and Next opening windows on
+-- a dead character. The tour stops for good, as Stop does.)
+if Events and Events.OnPlayerDeath then
+    Events.OnPlayerDeath.Add(function(p)
+        if not R.on then return end
+        local ok, n = pcall(function() return p:getPlayerNum() end)
+        if not ok or n == R.pn then close() end
+    end)
+end
+
 -- the first game after the setup asked for it: a few seconds after the game is playable, player one
 local startAt = nil
 local function tick()
@@ -350,6 +371,10 @@ local function tick()
     local mode = TU.wanted()
     if not mode or (ZeD.Safe and ZeD.Safe.on and ZeD.Safe.on()) then return end
     if not getSpecificPlayer(0) then return end
+    -- (QA's bug hunt 4, Nov 20 2026: the game's own Tutorial teaches its own steps, as the guide's bubble knows; the tour
+    -- waits for a real game and keeps its answer till then)
+    local okm, gm = pcall(function() return tostring(getCore():getGameMode()) end)
+    if okm and gm == "Tutorial" then return end
     TU.start(0, mode)
 end
 Events.OnGameStart.Add(function()

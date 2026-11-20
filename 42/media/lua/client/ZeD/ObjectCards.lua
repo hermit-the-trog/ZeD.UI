@@ -440,13 +440,16 @@ function UI.meter(card, x, y, w, label, value, dotC, pct, fillC, zone, lockText)
     local bh = T.fillBarH
     -- ten segments; the help line the meter's own reading ("Water 64%", or the word a low
     -- skill reads), none while the skill locks it
-    if A.drawSegFill(card, x, by, w, bh, A.FILL_SEGS, lockText and 0 or A.fillSegsLit(math.max(0, math.min(100, pct or 0)) / 100),
+    -- QA's visual audit B7, Nov 20 2026: a lock tag was drawn over the bar's right end; locked, the bar stops
+    -- short and the tag sits in the room after it.
+    local barW = lockText and math.max(A.FILL_SEGS, w - UI.tagW(lockText) - T.px(6)) or w
+    if A.drawSegFill(card, x, by, barW, bh, A.FILL_SEGS, lockText and 0 or A.fillSegsLit(math.max(0, math.min(100, pct or 0)) / 100),
             fillC or ac) and not lockText and value and value ~= "" then
         ZeD.Help.set(card, ZeD.tr("UI_ZeD_Bar_Help", A.textCase(label), value))
     end
     if lockText then
         local tw = UI.tagW(lockText)
-        UI.tag(card, x + w - tw - T.px(6), by + math.floor((bh - T.px(16)) / 2), lockText)
+        UI.tag(card, x + w - tw, by + math.floor((bh - T.px(16)) / 2), lockText)
     elseif zone then
         local zx = x + math.floor(w * zone[1] / 100)
         local zw = math.floor(w * (zone[2] - zone[1]) / 100)

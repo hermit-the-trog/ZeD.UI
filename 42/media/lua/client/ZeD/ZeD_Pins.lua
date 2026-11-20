@@ -187,7 +187,10 @@ function P.stats(p)
         end
         if mode then
             local text = pinForm(mode, pd, key, a1, a2, shortName(full, SHORT))
-            local alts = { pinForm(mode, pd, key, a1, a2, shortName(full, 8)) }
+            -- QA's visual audit B3, Nov 20 2026: a name of eight letters or fewer ("Cooking") had no shorter form,
+            -- so the pin kept its whole length while the character's name was cut to "Ange...". A last form cuts
+            -- the pin's name to four letters and the dots, so the pin gives way before the name does.
+            local alts = { pinForm(mode, pd, key, a1, a2, shortName(full, 8)), pinForm(mode, pd, key, a1, a2, shortName(full, 5)) }
             out[#out + 1] = { text = text, color = color, alts = alts }
         end
     end

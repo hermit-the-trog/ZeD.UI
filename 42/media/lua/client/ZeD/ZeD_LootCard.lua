@@ -271,9 +271,14 @@ local function makeBody(f)
 end
 
 -- per item: its content and when it was made
-local _cache = setmetatable({}, { __mode = "k" })
+-- The game's Lua ignores weak keys (__mode), so this kept every item ever hovered,
+-- eaten and despawned ones too. It counts its entries now and starts over past
+-- a few hundred, as the list models do (QA's speed audit, Nov 20 2026).
+local _cache = {}
+local _cacheN = 0
 LC._cache = _cache
 LC.KEEP_MS = 500
+LC.KEEP_MAX = 256
 
 --- The balloon content for item (count: a stack's, shown after the name); chr: whose worn things to compare.
 function LC.content(item, chr, count)
@@ -288,6 +293,13 @@ function LC.content(item, chr, count)
     local f = LC.facts(item, chr)
     local c = { kind = "card", title = name, body = makeBody(f) }
     if e and e.c and e.c.title == c.title and e.c.body and e.c.body.sig == c.body.sig then c = e.c end   -- (the same table while it shows the same)
+    if not e then
+        _cacheN = _cacheN + 1
+        if _cacheN > LC.KEEP_MAX then
+            _cache = {}; _cacheN = 1
+            LC._cache = _cache
+        end
+    end
     _cache[item] = { c = c, t = now, T = T, count = count }
     return c
 end

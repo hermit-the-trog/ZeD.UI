@@ -109,7 +109,7 @@ function S.pieceOff(name)
     -- (Settings.lua makes the switches; whichever file loads first, its table is found here too)
     local o = pieceOptions[name] or (ZeD.Settings and ZeD.Settings.screenOptions and ZeD.Settings.screenOptions[name])
     if not o then return false end
-    local now = getTimestampMs()
+    local now = ZeD._nowMs or getTimestampMs()   -- (the tick's clock read, set in sync; QA's speed audit, Nov 20 2026)
     local r = pieceRead[name]
     if not r then r = { off = false, next = 0 }; pieceRead[name] = r end
     if now >= r.next then
@@ -124,7 +124,9 @@ end
 --- that screen is given back on its own. Cheap enough to ask every frame: the option is read at most
 --- every half second.
 function S.on(name)
-    local now = getTimestampMs()
+    -- (the tick's clock read, set once a tick in sync below: this read the game's clock on
+    -- every call, 25 to 40 times a frame on the HUD alone. QA's speed audit, Nov 20 2026)
+    local now = ZeD._nowMs or getTimestampMs()
     if now >= st.nextRead then
         st.nextRead = now + READ_MS
         local v = readOption()
@@ -147,6 +149,10 @@ end
 -- each hook follows safe mode or its own screen's switch: handed back while either says so
 st.by = st.by or {}
 local function sync()
+    -- the tick's clock read, shared with S.on, S.pieceOff and ZeD.tr's test-language gate (Tr.lua): they
+    -- read the game's clock on every call before (QA's speed audit, Nov 20 2026). Set on the hooks this
+    -- already runs on (OnTickEvenPaused, OnFETick), so no new event hook.
+    ZeD._nowMs = getTimestampMs()
     local all = S.on()
     if all ~= st.applied then
         st.applied = all

@@ -389,6 +389,10 @@ local function drawPhaseStrip(card, x, y, w, d)
         lit = d.phase + 1
         if d.phase == 5 then fillC = T.danger end
     end
+    -- QA's visual audit B7, Nov 20 2026: the "Farming 2" tag was drawn over the strip's right end. Locked, the
+    -- strip (and its stage names) stops short and the tag sits in the room after it.
+    local fullW = w
+    if locked then w = math.max(n, w - UI.tagW(lockTag(2)) - T.px(6)) end
     if A.drawSegFill(card, x, y, w, bh, n, lit, fillC) and lit > 0 and PHASES[lit] then
         ZeD.Help.set(card, A.textCase(ZeD.tr(PHASES[lit])))
     end
@@ -403,7 +407,7 @@ local function drawPhaseStrip(card, x, y, w, d)
     end
     if locked then
         local tw = UI.tagW(lockTag(2))
-        UI.tag(card, x + w - tw - T.px(6), y + math.floor((bh - T.px(16)) / 2), lockTag(2))
+        UI.tag(card, x + fullW - tw, y + math.floor((bh - T.px(16)) / 2), lockTag(2))
     end
     return bh + T.px(3) + tm:getFontHeight(f5)
 end

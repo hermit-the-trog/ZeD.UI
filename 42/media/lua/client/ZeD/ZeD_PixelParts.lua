@@ -318,15 +318,16 @@ end
 local NR_MAX = 64
 local _nr = {}
 -- the needle's samples as P.needleRuns takes them (the same steps, the same arithmetic): each sample's pixel
--- key, doubled, plus one when it falls on the shaded side; in order
-local function needleSamples(cx, cy, deg, r0, r1, w, hub)
+-- key, doubled, plus one when it falls on the shaded side; in order. Filled into out (a kept table, its
+-- count in out.n, the old tail cleared) rather than a new table each frame. (QA's speed audit, Nov 20 2026)
+local function needleSamples(cx, cy, deg, r0, r1, w, hub, out)
     local a = deg * math.pi / 180
     local ca, sa = math.cos(a), math.sin(a)
     local px, py = -sa, ca
     local lit = ((px * LX + py * LY) > 0) and 1 or -1
     local steps = math.floor(math.abs(r1 - r0) * 2) + 1
     local horiz = math.abs(ca) >= math.abs(sa)
-    local out, n = {}, 0
+    local n = 0
     for i = 0, steps do
         local r = r0 + (r1 - r0) * i / steps
         if math.abs(r) >= hub then
@@ -341,6 +342,8 @@ local function needleSamples(cx, cy, deg, r0, r1, w, hub)
             end
         end
     end
+    for i = n + 1, (out.n or 0) do out[i] = nil end
+    out.n = n
     return out
 end
 local function needleSets(cx, cy, deg, r0, r1, w, hub)
@@ -353,12 +356,15 @@ local function needleSets(cx, cy, deg, r0, r1, w, hub)
     -- a moving needle (a reading settling) comes at a new angle every frame, but its pixels change only
     -- now and then: when every sample lands on the same pixel, on the same side, as at the angle before,
     -- the pixels are the same and so is everything made from them
-    local smp = needleSamples(cx, cy, deg, r0, r1, w, hub)
+    -- (two kept sample tables per needle, swapped when the pixels change: the one drawn last and a scratch)
+    local smp = needleSamples(cx, cy, deg, r0, r1, w, hub, byDeg.scratch or {})
+    byDeg.scratch = nil
     local last = byDeg.last
-    if last and #last.smp == #smp then
+    if last and last.smp.n == smp.n then
         local same = true
-        for i = 1, #smp do if smp[i] ~= last.smp[i] then same = false; break end end
+        for i = 1, smp.n do if smp[i] ~= last.smp[i] then same = false; break end end
         if same then
+            byDeg.scratch = smp
             s = last.set
             byDeg.d[deg] = s
             byDeg.n = byDeg.n + 1
@@ -368,6 +374,7 @@ local function needleSets(cx, cy, deg, r0, r1, w, hub)
     end
     local body, edge, all = P.needleRuns(cx, cy, deg, r0, r1, w, hub)
     s = { body, edge, all }          -- [4..6]: the merged sets, made when first drawn (merged)
+    if last then byDeg.scratch = last.smp end
     byDeg.last = { smp = smp, set = s }
     if byDeg.n >= NR_MAX then byDeg.d, byDeg.n = {}, 0 end
     byDeg.d[deg] = s

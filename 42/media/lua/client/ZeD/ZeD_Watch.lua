@@ -449,6 +449,22 @@ function ZeD_Watch:_layout(frameW, frameH, k)
     local x = right - w - 8 * k
     local y = getPlayerScreenTop(pn) + (W._clockY or 10)   -- the Java clock's own Y (it is parked off-screen, see prerender)
     if clock then x = math.min(x, clock:getX() + clock:getWidth() - w) end
+    -- QA's visual audit B1, Nov 20 2026: a wide World window (Crafting or Maps open) covered the corner clock.
+    -- When the open World window's rect overlaps the clock's, the clock steps to the window's left side;
+    -- when there is no room there, it steps below the window. No overlap: placed exactly as before.
+    local WWin = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn)
+    if WWin and WWin.getIsVisible and WWin:getIsVisible() then
+        local wx, wy, ww, wh = WWin:getX(), WWin:getY(), WWin:getWidth(), WWin:getHeight()
+        if x < wx + ww and x + w > wx and y < wy + wh and y + h > wy then
+            local gap = 4 * k
+            local left = getPlayerScreenLeft(pn)
+            if wx - gap - w >= left then
+                x = wx - gap - w
+            elseif wy + wh + gap + h <= getPlayerScreenTop(pn) + getPlayerScreenHeight(pn) then
+                y = wy + wh + gap
+            end
+        end
+    end
     if self:getWidth() ~= w then self:setWidth(w) end
     if self:getHeight() ~= h then self:setHeight(h) end
     if self:getX() ~= x then self:setX(x) end

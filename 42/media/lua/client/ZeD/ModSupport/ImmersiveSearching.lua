@@ -85,7 +85,13 @@ local PENDING_MS  = 1500   -- a search asked for, not yet in the queue (the mod 
 
 -- The QA scripts read these: the last search ZeD started (reused table) and the decorator's stamps
 S.lastStart = { inv = nil, side = nil, how = nil, at = 0, ok = false }
-S.badged = setmetatable({}, { __mode = "k" })   -- container -> time its "?" was last drawn
+S.badged = {}   -- container -> time its "?" was last drawn
+S._badgedN = 0
+
+-- The game's Lua ignores weak keys (__mode), so a table keyed by container keeps
+-- every container it ever saw. These three count their entries and start over
+-- past a few hundred, as the list models do (QA's speed audit, Nov 20 2026).
+local KEEP_MAX = 256
 
 -- ---------------------------------------------------------------------------
 -- THE MOD'S OWN ANSWERS (its global table, looked up at the moment of use:
@@ -136,7 +142,8 @@ end
 -- ---------------------------------------------------------------------------
 -- STARTING A SEARCH: the game's own page, pressed for that container
 -- ---------------------------------------------------------------------------
-local pending = setmetatable({}, { __mode = "k" })   -- container -> when ZeD asked
+local pending = {}   -- container -> when ZeD asked (bounded: see KEEP_MAX)
+local pendingN = 0
 
 local function findButton(page, inv)
     for _, b in ipairs(page and page.backpacks or {}) do
@@ -179,6 +186,10 @@ function S.start(po, inv, side, how)
     -- the mod's wrapper of selectContainer queues its search, then the game's own runs
     local ok, err = pcall(page.selectContainer, page, button)
     if not ok then print("[ZeD] ImmersiveSearching: starting a search failed: " .. tostring(err)) end
+    if pending[inv] == nil then
+        pendingN = pendingN + 1
+        if pendingN > KEEP_MAX then pending = {}; pendingN = 1 end
+    end
     pending[inv] = now
     local L = S.lastStart
     L.inv, L.side, L.how, L.at, L.ok = inv, side, how, now, ok
@@ -242,7 +253,8 @@ end
 -- ---------------------------------------------------------------------------
 -- THE GATE (ContainerGates.lua): one table per container, updated in place
 -- ---------------------------------------------------------------------------
-local gates = setmetatable({}, { __mode = "k" })
+local gates = {}   -- (bounded: see KEEP_MAX)
+local gatesN = 0
 
 local function newGate(inv)
     local g = { inv = inv, noMoves = true, band = {} }
@@ -271,7 +283,11 @@ local function gateFor(inv, po)
     local IS = api()
     if not IS then return nil end
     local g = gates[inv]
-    if not g then g = newGate(inv); gates[inv] = g end
+    if not g then
+        gatesN = gatesN + 1
+        if gatesN > KEEP_MAX then gates = {}; gatesN = 1 end
+        g = newGate(inv); gates[inv] = g
+    end
     local rev = IS.Items and IS.Items[inv] or nil
     g.rev = rev
     local a, place = searchAction(po, inv)
@@ -349,6 +365,10 @@ function S.decorate(panel, entry, x, y, w, h, win)
     local gx, gy = cx + T.px(2), cy + T.px(2)
     for _, r in ipairs(GLYPH) do
         panel:drawRect(gx + r[1] * u, gy + r[2] * u, r[3] * u, r[4] * u, tc.a or 1, tc.r, tc.g, tc.b)
+    end
+    if S.badged[inv] == nil then
+        S._badgedN = S._badgedN + 1
+        if S._badgedN > KEEP_MAX then S.badged = {}; S._badgedN = 1 end
     end
     S.badged[inv] = getTimestampMs()
 end
