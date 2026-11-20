@@ -1633,7 +1633,19 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
         local dx = x + w - T.px(1) - dcol
         local bd, d = T.border, T.textDim
         self:drawRect(dx, hy + T.px(7), T.px(1), helpH - 2 * T.px(7), bd.a or 1, bd.r, bd.g, bd.b)
-        self:drawText(ZeD.Atoms.truncateText(dt, f2, dcol - T.px(24)), dx + T.px(12), hy + T.px(8), d.r, d.g, d.b, d.a or 1, f2)
+        -- QA's visual audit B5, Nov 20 2026: the default was cut to one line with free lines under it; it now
+        -- wraps down the column, as many lines as the band holds (the last one cut short if it still runs over)
+        local dlh = MM.fontH(f2) + T.px(3)
+        local dmax = math.max(1, math.floor((helpH - 2 * T.px(8) + T.px(3)) / dlh))
+        local dls = ZeD.Atoms.wrapText(dt, f2, dcol - T.px(24))
+        local dly = hy + T.px(8)
+        for k, l in ipairs(dls) do
+            if k > dmax then break end
+            local lt = l
+            if k == dmax and #dls > dmax then lt = ZeD.Atoms.truncateText(l .. " " .. dls[k + 1], f2, dcol - T.px(24)) end
+            self:drawText(lt, dx + T.px(12), dly, d.r, d.g, d.b, d.a or 1, f2)
+            dly = dly + dlh
+        end
     end
     if htext then
         local tc = T.text

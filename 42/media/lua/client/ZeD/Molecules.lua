@@ -3598,15 +3598,15 @@ end
 
 local RECIPE_ROW_H = 24   -- design units; every use wraps it in T.px
 
--- a name cut to maxW with ".." (the recipe lists' own short ellipsis)
+-- a name cut to maxW with "..." (QA's visual audit B13, Nov 20 2026: three dots as everywhere else; was "..")
 local function cutName(tm, font, s, maxW)
     if tm:MeasureStringX(font, s) <= maxW then return s end
     local lo, hi = 1, #s
     while lo < hi do
         local mid = math.ceil((lo + hi) / 2)
-        if tm:MeasureStringX(font, string.sub(s, 1, mid) .. "..") <= maxW then lo = mid else hi = mid - 1 end
+        if tm:MeasureStringX(font, string.sub(s, 1, mid) .. "...") <= maxW then lo = mid else hi = mid - 1 end
     end
-    return string.sub(s, 1, lo) .. ".."
+    return string.sub(s, 1, lo) .. "..."
 end
 
 local _recTag = {}

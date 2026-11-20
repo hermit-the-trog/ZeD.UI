@@ -618,11 +618,16 @@ end
 function D.draw(panel, win, x, y, w, viewH, mx, my)
     local T, tm = ZeD.T, ZeD.TM
     local wd = dollWords(ZeD.Text.wordsEpoch())   -- (the slots' words, kept)
-    win._equipDollTimer = (win._equipDollTimer or 0) + 1
+    -- (the slots are gathered again every 250 ms on the clock: this counted 15 frames,
+    -- which ran 2.4 times as often at 144 Hz. _equipDollTimer stays the "read now"
+    -- switch: 99 there asks for a gather on the next draw. QA's speed audit, Nov 20 2026)
+    local now = getTimestampMs()
     local data = win._equipDollData
     local _, bands = fit(w, viewH, data and #data.belt or 0)
-    if win._equipDollTimer >= 15 or not data or data.bands ~= bands then
+    if (win._equipDollTimer or 0) >= 15 or not data or data.bands ~= bands
+        or now - (win._equipDollAt or 0) >= 250 then
         win._equipDollTimer = 0
+        win._equipDollAt = now
         data = D.gather(win._playerObj, win.playerNum or 0, bands)
         win._equipDollData = data
     end

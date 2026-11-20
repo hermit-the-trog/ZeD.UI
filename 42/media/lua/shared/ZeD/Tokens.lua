@@ -1103,8 +1103,10 @@ function ZeD.buildColors(P, baseKey, accentKey, statusKey, seePick)
 
     -- Neutral icon tint (theme-independent — used for texture rendering)
     T.iconWhite = {r = 1, g = 1, b = 1}
-    -- Theme-aware icon tint: white on dark/hc, black on light
-    T.iconTone  = (baseKey == "light") and {r = 0, g = 0, b = 0} or {r = 1, g = 1, b = 1}
+    -- Icon tint for the column title's container icon (its only user, InventoryRenderer's column header).
+    -- QA's visual audit B8, Nov 20 2026: black on Light multiplied the colored container picture into a solid
+    -- black blob; every theme now draws the picture in its own colors, as Dark always has.
+    T.iconTone  = {r = 1, g = 1, b = 1}
 
     return T
 end

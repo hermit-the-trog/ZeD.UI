@@ -352,6 +352,9 @@ function D.derive(st, mem, dtMs)
         local cur = mem[key]
         if cur == nil then cur = FROM_REST[key] and 0 or target end
         if tau and dtMs > 0 then cur = cur + (target - cur) * (dtMs / (tau + dtMs)) else cur = tau and cur or target end
+        -- (an eased reading never lands on its target: snapped once within 1e-4, so a resting needle
+        -- keeps one angle and the needle cache in ZeD_PixelParts hits. QA's speed audit, Nov 20 2026)
+        if tau and math.abs(target - cur) < 1e-4 then cur = target end
         mem[key] = cur
         st[key] = cur
     end

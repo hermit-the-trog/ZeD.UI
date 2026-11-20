@@ -103,9 +103,14 @@ local function _pollPlayer(p)
     local kind, label = _classifyAction(head)
     if not kind then head = nil end  -- treat as "no relevant action"
 
+    -- A head with no item (fixing a generator, say) counts as no action too.
+    -- This returned early before, so the action before it never got its
+    -- "complete" and a finished book kept its reading band until the next
+    -- action ended (QA's speed audit, Nov 20 2026).
+    local item = head and _actionItem(head) or nil
+    if not item then head = nil end
+
     if head then
-        local item = _actionItem(head)
-        if not item then return end
 
         if not last or last.action ~= head then
             -- Action transitioned — emit complete on previous, start on new

@@ -595,6 +595,30 @@ local lookStyle = opts:addComboBox("lookStyle", ZeD.tr("UI_ZeD_Settings_LookStyl
 lookStyle:addItem(ZeD.tr("UI_ZeD_Settings_Full"), true)   -- default
 lookStyle:addItem(ZeD.tr("UI_ZeD_Settings_Lite"), false)
 ZeD.Settings.lookStyleOption = lookStyle
+-- (QA's bug hunt ST-1, Nov 20 2026: an upgrade from beta 20 ignored the eight Simple switches. A player who had all
+-- eight on, the whole plain look, starts in Lite, once (Lua/ZeD_style_carry.txt remembers); one who had some on
+-- starts in Full, as the change note says.)
+local CARRY_FILE = "ZeD_style_carry.txt"
+function ZeD.Settings.carryStyle()
+    local ok, r = pcall(function() return getFileReader(CARRY_FILE, false) end)
+    if ok and r then pcall(function() r:close() end); return false end
+    local all = true
+    for _, id in ipairs({ "actionBar", "beltStyle", "devicesStyle", "watchStyle", "dashStyle", "guideStyle", "modsStyle", "identityStyle" }) do
+        local o = opts.dict and opts.dict[id]
+        local okv, v = pcall(function() return o and o:getValue() end)
+        if not (okv and v == 2) then all = false; break end
+    end
+    local wok, w = pcall(function() return getFileWriter(CARRY_FILE, true, false) end)
+    if wok and w then pcall(function() w:write("1"); w:close() end) end
+    if all and lookStyle:getValue() ~= 2 then
+        lookStyle:setValue(2)
+        if PZAPI and PZAPI.ModOptions and PZAPI.ModOptions.save then pcall(PZAPI.ModOptions.save, PZAPI.ModOptions) end
+        return true
+    end
+    return false
+end
+if Events and Events.OnMainMenuEnter then Events.OnMainMenuEnter.Add(function() pcall(ZeD.Settings.carryStyle) end) end
+
 --- True in Lite (read as things draw, so a change applies at once).
 function ZeD.Settings.lite()
     local ok, v = pcall(lookStyle.getValue, lookStyle)
@@ -844,11 +868,14 @@ local function setUpAdditions()
     local function live(id) local o = opt(id); return o and liveIdx(o) end      -- the pick on the screen
     local function stored(id) local o = opt(id); return o and o:getValue() end  -- the value applied
     -- the preset the values make (read(id): an addition's item), else Custom
+    -- (QA's complexity audit, Nov 20 2026: the retired style rows still counted, so a beta 20 player with one Simple
+    -- pick read Custom with no row to put right. They are hidden now and leave the comparison.)
+    local HIDDEN = { devicesStyle = true, watchStyle = true, dashStyle = true, guideStyle = true, modsStyle = true, identityStyle = true }
     local function presetOf(read)
         for i, set in ipairs(PRESETS) do
             local same = true
             for id, v in pairs(set) do
-                if read(id) ~= v then same = false; break end
+                if not HIDDEN[id] and read(id) ~= v then same = false; break end
             end
             if same then return i end
         end

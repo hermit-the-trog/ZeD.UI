@@ -314,7 +314,8 @@ function AB.clean(s)
     if after and after ~= "" then s = after end
     s = ZeD.upper(s)
     s = s:gsub("%s+", " "):gsub("^ ", ""):gsub(" $", "")
-    if #s > 16 then s = s:sub(1, 15):gsub(" $", "") .. ".." end
+    -- QA's visual audit B13, Nov 20 2026: three dots, as everywhere else (was ".."); one letter fewer keeps the length
+    if #s > 16 then s = s:sub(1, 14):gsub(" $", "") .. "..." end
     return s
 end
 -- The item's name, looked up once per action and kept on it. Only inventory

@@ -75,6 +75,36 @@ local function keyLabel(c)
     return (ok and n and n ~= "") and n or tostring(c)
 end
 
+-- (QA's bug hunt KM-3, Nov 20 2026: a binding saved with Shift, Ctrl or Alt held keeps it, and the map showed only the
+-- key. The file's own line says which; the key box reads "Shift+H" and so on.)
+local _modsAt, _mods = -1, {}
+local function modsOf(name)
+    local now = getTimestampMs()
+    if now - _modsAt > 1000 then
+        _modsAt, _mods = now, {}
+        local ok, r = pcall(function() return getFileReader(KM.FILE, false) end)
+        if ok and r then
+            pcall(function()
+                local l = r:readLine()
+                while l do
+                    local n, rest = l:match("^([^=]+)=(.*)$")
+                    if n then
+                        local p = ""
+                        if rest:find("ctrl:true", 1, true) then p = p .. "Ctrl+" end
+                        if rest:find("shift:true", 1, true) then p = p .. "Shift+" end
+                        if rest:find("alt:true", 1, true) then p = p .. "Alt+" end
+                        if p ~= "" then _mods[n] = p end
+                    end
+                    l = r:readLine()
+                end
+            end)
+            pcall(function() r:close() end)
+        end
+    end
+    return _mods[name] or ""
+end
+KM.modsOf = modsOf
+
 --- { groups = { { title, rows = { { name, label, code } } } }, used = { [code] = count }, clash = { [code] = true } }
 function KM.read()
     local out = { groups = {}, used = {}, clash = {} }
@@ -168,6 +198,25 @@ local function currentLines()
     return lines
 end
 
+-- (QA's bug hunt KM-1, Nov 20 2026: the game's Options screen keeps its own list of keys, MainOptions.keyText, and its
+-- Apply writes keysB42.ini from that list, so a key changed here came undone at the next Apply. Each change is put into
+-- that list too, the button's words with it.)
+local function syncOptions(name, c, alt, shift, ctrl, altK)
+    local list = MainOptions and MainOptions.keyText
+    if not list then return end
+    for _, v in ipairs(list) do
+        local ok, n = pcall(function() return v.txt and v.txt:getName() end)
+        if ok and n == name then
+            v.keyCode = c
+            if alt ~= nil then v.altCode = alt end
+            if shift ~= nil then v.shift, v.ctrl, v.alt = shift, ctrl, altK end
+            pcall(function()
+                if v.btn and MainOptions.getKeyPrefix then v.btn:setTitle(MainOptions.getKeyPrefix(v) .. getKeyName(c)) end
+            end)
+        end
+    end
+end
+
 --- One action onto a key: the file and the game. True when it took.
 function KM.setKey(name, c)
     local lines = readLines() or currentLines()
@@ -176,8 +225,11 @@ function KM.setKey(name, c)
     for i, l in ipairs(lines) do
         local n, _, a, s, ct, ak = parse(l)
         if n == name then
-            alt, shift, ctrl, altK = a, s, ct, ak
-            lines[i] = lineOf(name, c, a, s, ct, ak)
+            -- (a key pressed here is the key alone: Shift, Ctrl and Alt are cleared, so the map, the file and the game
+            -- agree; the alternate stays)
+            alt, shift, ctrl, altK = a, false, false, false
+            lines[i] = lineOf(name, c, a, false, false, false)
+            _modsAt = -1
             found = true
             break
         end
@@ -185,6 +237,7 @@ function KM.setKey(name, c)
     if not found then lines[#lines + 1] = lineOf(name, c, 0, false, false, false) end
     local ok = pcall(function() getCore():addKeyBinding(name, c, alt, shift, ctrl, altK) end)
     writeLines(lines)
+    syncOptions(name, c, alt, shift, ctrl, altK)
     return ok
 end
 
@@ -197,6 +250,7 @@ function KM.resetAll()
         elseif v ~= "" then
             local c = b.key or 0
             pcall(function() getCore():addKeyBinding(v, c, b.alt or 0, b.shift or false, b.ctrl or false, b.altKey or false) end)
+            syncOptions(v, c, b.alt or 0, b.shift or false, b.ctrl or false, b.altKey or false)
             lines[#lines + 1] = lineOf(v, c, b.alt, b.shift, b.ctrl, b.altKey)
         end
     end
@@ -356,7 +410,7 @@ function ZeD_KeyboardMap:prerender()
             self:drawText(r.label, margin, y + math.floor((rowH - T.px(4) - fh2) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
             local bx = margin + inner - boxW
             local listening = self.listening == r.name
-            local word = listening and tr("UI_ZeD_KMap_Press") or keyLabel(r.code)
+            local word = listening and tr("UI_ZeD_KMap_Press") or (((r.code ~= 0) and modsOf(r.name) or "") .. keyLabel(r.code))
             local colors = nil
             if listening then colors = { fill = { r = T.accent.r, g = T.accent.g, b = T.accent.b, a = T.selectionA } }
             elseif r.code ~= 0 and data.clash[r.code] then
@@ -442,7 +496,8 @@ function ZeD_KeyboardMap:onMouseUp(x, y)
     elseif h.id == "bind" then
         self.listening = (self.listening == h.name) and nil or h.name
     elseif h.id == "reset" then
-        if self._resetAt and (getTimestampMs() - self._resetAt) < RESET_ASK_MS then
+        local since = self._resetAt and (getTimestampMs() - self._resetAt) or nil
+        if since and since >= 300 and since < RESET_ASK_MS then   -- (QA's bug hunt P1: a double-click is not "again")
             self._resetAt = nil
             self.listening = nil
             KM.resetAll()
@@ -470,7 +525,8 @@ end
 
 function ZeD_KeyboardMap:onGainJoypadFocus(jd) self.joyfocus = jd end
 function ZeD_KeyboardMap:onLoseJoypadFocus() self.joyfocus = nil end
-function ZeD_KeyboardMap:onJoypadDown(button)
+function ZeD_KeyboardMap:onJoypadDown(button, jd)
+    if ZeD.padStart and ZeD.padStart(button, jd, self.playerNum) then return end   -- (Start pauses: QA's bug hunt 7)
     if button == Joypad.BButton then self:close() end
 end
 function ZeD_KeyboardMap:onJoypadDirUp() self:scrollBy(-ZeD.T.px(STEP_U)) end

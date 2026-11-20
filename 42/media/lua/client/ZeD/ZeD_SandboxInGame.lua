@@ -748,7 +748,26 @@ function ZeD_MMSandboxIG:drawHelpCol(x, y, w, h, head, body, foot, warn)
         self:drawText(l, x, ly, tc.r, tc.g, tc.b, tc.a or 1, f2)
         ly = ly + lh
     end
-    if foot then self:drawText(ZeD.Atoms.truncateText(foot, f1, w), x, y + h - MM.fontH(f1), d.r, d.g, d.b, d.a or 1, f1) end
+    -- QA's visual audit B5, Nov 20 2026: the foot ("Default: Base.Hat, Base.Glasses, Bas...") was cut to one line
+    -- with free room above it; it now wraps upward into the room the words above left (still ending on the bottom
+    -- line; the last line it gets is cut short only if it still runs over). One line that fits: drawn as before.
+    if foot then
+        local fl = ZeD.Atoms.wrapText(foot, f1, w)
+        if #fl == 0 then fl = { foot } end
+        local flh = MM.fontH(f1) + T.px(2)
+        local fk = math.max(1, math.min(#fl, math.floor((y + h - ly + T.px(2)) / flh)))
+        local fy = y + h - MM.fontH(f1) - (fk - 1) * flh
+        for i = 1, fk do
+            local l = fl[i]
+            if i == fk then
+                -- (the rest joined on the last line, cut short to the column)
+                for j = fk + 1, #fl do l = l .. " " .. fl[j] end
+                l = ZeD.Atoms.truncateText(l, f1, w)
+            end
+            self:drawText(l, x, fy, d.r, d.g, d.b, d.a or 1, f1)
+            fy = fy + flh
+        end
+    end
 end
 
 function ZeD_MMSandboxIG:drawHelp(x, hy, w, helpH, hr)

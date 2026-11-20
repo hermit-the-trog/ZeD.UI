@@ -95,7 +95,18 @@ local function pick(win, row, i)
     local v = i
     if row.keys and row.keyList then v = idxOf(row.keyList(), row.keys[i]) end
     o:setValue(v)
-    if row.key == "style" and i == 2 and S().pickAdditionsPreset then pcall(S().pickAdditionsPreset, 1) end
+    -- (QA's bug hunt WL-1, Nov 20 2026: the preset was set on the options screen's controls only, so Done saved the
+    -- additions as they were. The Vanilla preset goes onto the options themselves.)
+    if row.key == "style" and i == 2 then
+        local P = S().ADDITION_PRESETS and S().ADDITION_PRESETS[1]
+        for id, v in pairs(P or {}) do
+            local ao = optOf(id)
+            if ao and ao.setValue then pcall(ao.setValue, ao, v) end
+        end
+        local pre = optOf("additionsPreset")
+        if pre and pre.setValue then pcall(pre.setValue, pre, 1) end
+        if S().pickAdditionsPreset then pcall(S().pickAdditionsPreset, 1) end
+    end
     if S().applyThemeNow then pcall(S().applyThemeNow) end
 end
 
