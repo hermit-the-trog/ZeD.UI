@@ -967,8 +967,18 @@ local function setUpAdditions()
         if el then el.selected = i end
         additionsPreset.onChange(nil, i)
     end
+    -- (QA's complexity audit BUG 1, Nov 20 2026: Lite picked on the Select wheel set the option only, so the additions
+    -- stayed as they were. Every way to pick Lite now puts the Vanilla preset onto the options themselves.)
+    function ZeD.Settings.liteAdditions()
+        for id, v in pairs(PRESETS[1] or {}) do
+            local o = opts.dict and opts.dict[id]
+            if o and o.setValue then pcall(o.setValue, o, v) end
+        end
+        if additionsPreset.setValue then pcall(additionsPreset.setValue, additionsPreset, 1) end
+        pcall(ZeD.Settings.pickAdditionsPreset, 1)
+    end
     lookStyle.onChange = function(_, sel)
-        if tonumber(sel) == 2 then pcall(ZeD.Settings.pickAdditionsPreset, 1) end
+        if tonumber(sel) == 2 then pcall(ZeD.Settings.liteAdditions) end
     end
 
     -- Apply, on ZeD setup or the game's Mods page (MainOptions:apply calls each mod's options:apply())

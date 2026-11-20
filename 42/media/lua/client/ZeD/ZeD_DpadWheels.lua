@@ -563,11 +563,11 @@ function Z.scaleWheel()
     return out
 end
 
-local function comboWheel(opt, labels, icon)
+local function comboWheel(opt, labels, icon, apply)
     local out = {}
     local cur = opt and opt:getValue() or 1
     for i, key in ipairs(labels) do
-        out[#out + 1] = { name = tr(key), icon = icon, detail = inUse(cur == i), run = function() Z.option(opt, i) end }
+        out[#out + 1] = { name = tr(key), icon = icon, detail = inUse(cur == i), run = function() Z.option(opt, i, apply) end }
     end
     return out
 end
@@ -579,7 +579,9 @@ end
 
 function Z.actionBarWheel()
     -- (beta 21: the action bar's own switch is now the one Style switch, Lite or Full)
-    return comboWheel(ZeD.Settings.lookStyleOption, { "UI_ZeD_Settings_Full", "UI_ZeD_Settings_Lite" }, "progress")
+    -- (Lite picked here sets the additions to Vanilla, as on ZeD setup: QA's complexity audit BUG 1)
+    return comboWheel(ZeD.Settings.lookStyleOption, { "UI_ZeD_Settings_Full", "UI_ZeD_Settings_Lite" }, "progress",
+        function(i) if i == 2 and ZeD.Settings.liteAdditions then ZeD.Settings.liteAdditions() end end)
 end
 
 -- see-through: 100% to 60%, then solid while in use (ZeD.Settings saves the pick and re-applies
