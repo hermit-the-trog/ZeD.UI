@@ -322,6 +322,15 @@ Q.step(5, function()
     Q.check(St ~= nil and St.lite ~= nil and St.lookStyleOption ~= nil and M ~= nil and M.liteKind ~= nil and MM ~= nil,
         "Lite: ZeD's settings, molecules and options are loaded")
     Q.say("as found: Style " .. tostring(S.style0) .. " (1 Full, 2 Lite), additions preset " .. tostring(H.val("additionsPreset")))
+    -- (Nov 21 2026, QA: release_test_light_lite.txt starts in Lite, set by zedqa_cfg_light_lite.lua as the value only
+    -- with the runner's additions on. The Style row then already read Lite, section 1's pick changed nothing and
+    -- lookStyle.onChange, which puts the additions on Vanilla (stored at Apply), never ran. Full first, the value
+    -- only (a pick of Full does nothing more), so Lite is picked from Full as a player picks it; the put back below
+    -- puts Style and the additions back as found.)
+    if S.style0 == 2 then
+        pcall(function() St.lookStyleOption:setValue(1) end)
+        Q.say("Lite as found: Full first (the value only), so section 1 picks Lite from Full")
+    end
 end)
 
 -- ===================================================================== 1. Lite picked

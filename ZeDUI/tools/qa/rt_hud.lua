@@ -380,8 +380,11 @@ end
 
 -- ===================================================================== watch, mini and full
 Q.step(5, function()
-    S.watch = { opt = S.opt(Z.Settings.watchPlaceOption), pop = S.p:getModData().ZeD_WatchPop }
+    S.watch = { opt = S.opt(Z.Settings.watchPlaceOption), pop = S.p:getModData().ZeD_WatchPop, style = S.opt(Z.Settings.lookStyleOption) }
     S.back.watch = true
+    -- (Nov 21 2026, QA: the watch on the belt is Full's. Lite keeps the worn watch in the corner, ZeD_Watch.lua W.beltMode
+    -- (the director, Nov 18), and rt_lite checks that; this block runs on Full and S.putWatch puts the style back)
+    S.setOpt(Z.Settings.lookStyleOption, 1)
     S.setOpt(Z.Settings.watchPlaceOption, 1)
     S.p:getModData().ZeD_WatchPop = nil
     local worn = Z.Watch._wornWatch and Z.Watch._wornWatch(S.p) or nil
@@ -466,6 +469,7 @@ function S.putWatch()
     pcall(function() Z.Watch.togglePop(false) end)
     S.p:getModData().ZeD_WatchPop = w.pop
     S.setOpt(Z.Settings.watchPlaceOption, w.opt)
+    S.setOpt(Z.Settings.lookStyleOption, w.style)
 end
 
 -- ===================================================================== action bar

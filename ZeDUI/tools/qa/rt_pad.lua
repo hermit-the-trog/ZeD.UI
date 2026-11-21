@@ -468,6 +468,7 @@ Q.step(10, function()
     for _, o in ipairs((zo and zo.data) or {}) do
         if o.type == "combobox" and o.id then S.styleKeep[o.id] = o.selected end
     end
+    S.styleFound = S.copy(S.styleKeep)   -- (as found, for the put-back check: the Light + Lite run starts in Lite)
     S.back.style = true
     S.setOpt(Z.Settings.lookStyleOption, 1)
     S.openWheel("select")
@@ -496,8 +497,16 @@ Q.step(10, function()
     S.putStyle()
 end)
 Q.step(10, function()
-    Q.check(Z.Settings.lite() == false and S.opt(Z.Settings.additionsPresetOption or Z.Settings.lookStyleOption) ~= nil, "select: Style and the additions are put back",
-        "Style " .. tostring(S.opt(Z.Settings.lookStyleOption)))
+    -- (every kept combo box back as found, Style among them: Full or Lite, whichever the run is in, as rt_lite's put back checks)
+    local zo, bad = nil, {}
+    pcall(function() zo = PZAPI.ModOptions:getOptions("ZeD_UI") end)
+    for id, v in pairs(S.styleFound or {}) do
+        local o = zo and zo.dict and zo.dict[id]
+        if o and o.selected ~= v then bad[#bad + 1] = id .. "=" .. tostring(o.selected) end
+    end
+    local was = S.styleFound and S.styleFound.lookStyle
+    Q.check(was ~= nil and #bad == 0 and Z.Settings.lite() == (was == 2), "select: Style and the additions are put back",
+        "Style " .. tostring(S.opt(Z.Settings.lookStyleOption)) .. ", as found " .. tostring(was) .. (#bad > 0 and (", off: " .. table.concat(bad, " ")) or ""))
 end)
 
 -- ===================================================================== Select > Reset windows

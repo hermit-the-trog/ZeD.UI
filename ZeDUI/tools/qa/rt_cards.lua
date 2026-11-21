@@ -544,21 +544,37 @@ end)
 
 -- the Lists pop-up: A on the card's Lists mark (stop "toggle_lists") opens it beside the card, on screen. The mark
 -- shows only while ZeD setup's Loadouts and outfits is on: it is turned on for this and put back.
+-- (Nov 21 2026: Lite leaves the card's marks strip out, the Lists mark with it (ItemCardOrganism.lua renderBody, beta 21
+-- Lite step 4; rt_lite checks the strip is gone). In Lite, with Loadouts on, the mark is checked absent and the pop-up is a SKIP.)
 Q.step(2, function()
+    S.liteCard = (ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite()) and true or false
     local o = ZeD.Settings and ZeD.Settings.loadoutsOption
     if o then
         S.loadWas = o:getValue()
         if S.loadWas ~= 2 then pcall(function() o:setValue(2) end) end
     end
 end)
-Q.waitFor(4, 240, function() return H.focusCardId("toggle_lists") end, function(ok)
+Q.waitFor(4, 240, function() return S.liteCard or H.focusCardId("toggle_lists") end, function(ok)
+    if S.liteCard then
+        S.armA = false
+        local on = H.cardOn(S.bat)
+        Q.check(on and H.card()._listsRect == nil and not H.focusCardId("toggle_lists"),
+            "lists (Lite): the card has no Lists mark and the pad has no stop for it (toggle_lists)",
+            "card " .. tostring(on) .. ", Loadouts on " .. tostring(ZeD.Lists and ZeD.Lists.on()))
+        return
+    end
     S.armA = ok and true or false
     Q.check(ok, "lists: the card shows its Lists mark and the pad's focus lands on it (toggle_lists)", tostring(ZeD.Lists and ZeD.Lists.on()))
 end)
 H.queueA(0)
-Q.waitFor(2, 120, function() local LU = ZeD.ListsUI; return LU and LU.popup and LU.popup._ctx and LU.popup._ctx.open end, function(ok)
+Q.waitFor(2, 120, function() local LU = ZeD.ListsUI; return S.liteCard or (LU and LU.popup and LU.popup._ctx and LU.popup._ctx.open) end, function(ok)
     local m = ZeD.ListsUI and ZeD.ListsUI.popup
-    Q.check(ok, "lists: A on the Lists mark opens the lists' pop-up", tostring(m and m.headText))
+    if S.liteCard then
+        ok = false
+        Q.skip("lists: A on the Lists mark opens the lists' pop-up", "Lite: the item card has no Lists mark")
+    else
+        Q.check(ok, "lists: A on the Lists mark opens the lists' pop-up", tostring(m and m.headText))
+    end
     if ok then
         H.menuOnScreen(m, "the Lists pop-up")
         local c = H.card()

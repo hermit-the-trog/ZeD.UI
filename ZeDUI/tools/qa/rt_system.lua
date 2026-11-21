@@ -511,20 +511,37 @@ Q.step(2, function()
         if r.kind == "chord" then chords = chords + 1 end
     end
     local n, rows, bad = 0, 0, {}
+    -- (Nov 21 2026, the Light and Lite run) In Lite, ZeD setup leaves out the Additions and Chords groups and the Watch
+    -- row (the director: "If vanilla does it, so does Lite"; FEATURE_MAP "Style: Lite or Full"). They are pinned here,
+    -- not read from G.LITE_HIDES, so a group cut from Lite by mistake still fails; and what Lite leaves out must be gone
+    -- from the whole page, none of it under Other (the Nov 20 fault: the Additions under Other, Restock taking a change
+    -- with Loadouts Off). A row hidden by its own rule (a debug switch outside debug mode, Restock while Loadouts is
+    -- off) is not asked for.
+    local lite = (St.lite and St.lite()) and true or false
+    local dbg = (isDebugEnabled and isDebugEnabled()) and true or false
+    local LITE_GROUPS = { UI_ZeD_Options_ZedAdditions = true, UI_ZeD_Options_ZedChords = true }
+    local LITE_ROWS = { watchPlace = true }
     for _, grp in ipairs((G and G.ZED_GROUPS) or {}) do
         n = n + 1
         local title = G.text(grp[1])
-        if title == grp[1] or not heads[tostring(title)] then bad[#bad + 1] = "heading " .. tostring(grp[1]) end
+        local gone = lite and LITE_GROUPS[grp[1]] == true
+        if gone then
+            if heads[tostring(title)] then bad[#bad + 1] = "Lite shows heading " .. tostring(grp[1]) end
+        elseif title == grp[1] or not heads[tostring(title)] then bad[#bad + 1] = "heading " .. tostring(grp[1]) end
         for _, e in ipairs(grp[2] or {}) do
             local o = H.opt(e[1])
             if o and o.element then
                 local r = H.setupRow(w, e[1])
-                local key = r and r.labelKey
-                rows = rows + 1
-                if not (r and r.control) or (key ~= nil and ZeD.tr(key) == key) then bad[#bad + 1] = tostring(e[1]) end
+                if gone or (lite and LITE_ROWS[e[1]]) then
+                    if r then bad[#bad + 1] = "Lite shows " .. tostring(e[1]) end
+                elseif not ((e.debugOnly and not dbg) or (e.showIf ~= nil and G.liveOf ~= nil and G.liveOf(H.opts(), e.showIf) ~= 2)) then
+                    local key = r and r.labelKey
+                    rows = rows + 1
+                    if not (r and r.control) or (key ~= nil and ZeD.tr(key) == key) then bad[#bad + 1] = tostring(e[1]) end
+                end
             end
         end
-        if grp.chords and chords ~= #((ZeD.QuickChords and ZeD.QuickChords.CHORDS) or {}) then bad[#bad + 1] = "chords " .. chords end
+        if grp.chords and chords ~= (gone and 0 or #((ZeD.QuickChords and ZeD.QuickChords.CHORDS) or {})) then bad[#bad + 1] = "chords " .. chords end
     end
     Q.check(n > 0 and rows > 0 and #bad == 0, "ZeD setup: every group has its heading and a named row for each of its options",
         n .. " groups, " .. rows .. " rows" .. ((#bad > 0) and (", wrong: " .. table.concat(bad, " ")) or ""))
@@ -587,6 +604,12 @@ Q.step(3, function()
     if not S.o2 then return end
     local w = MM.pauseOpts
     local rP, rA = H.setupRow(w, "additionsPreset"), H.setupRow(w, "ammoBox")
+    -- (Nov 21 2026, the Light and Lite run) Lite leaves the Additions group out of ZeD setup, so there is no preset to
+    -- pick here: Full's step. A row that shows in Lite anyway fails the step above, and this step still runs on it.
+    if not (rP or rA) and St.lite and St.lite() then
+        Q.skip("ZeD setup, Additions: picking Vanilla Plus sets every addition to the preset's", "Style is Lite, and Lite leaves the Additions group out of ZeD setup")
+        return
+    end
     local P2 = St.ADDITION_PRESETS and St.ADDITION_PRESETS[2]
     if not (rP and rA and P2) then Q.check(false, "ZeD setup has the Additions preset and Ammo on the belt rows"); return end
     H.nudgeTo(w, rP, 2)
@@ -634,6 +657,13 @@ Q.step(3, function()
     if not S.o2 then return end
     local w = MM.pauseOpts
     local rL, rR = H.setupRow(w, "loadouts"), H.setupRow(w, "restock")
+    -- (Nov 21 2026, the Light and Lite run) Lite leaves Loadouts and Restock out of ZeD setup with the Additions group:
+    -- nothing to gate. A Restock row that shows in Lite anyway (under Other, the Nov 20 fault) must still follow
+    -- Loadouts, so with either row on the page the step runs.
+    if not (rL or rR) and St.lite and St.lite() then
+        Q.skip("Restock needs Loadouts: with Loadouts Off its row takes no change", "Style is Lite, and Lite leaves Loadouts and Restock out of ZeD setup with the Additions group")
+        return
+    end
     if not (rL and rR) then Q.check(false, "ZeD setup has the Loadouts and Restock rows"); return end
     H.nudgeTo(w, rL, 1)
     local r0 = rR.control.selected
@@ -662,8 +692,27 @@ Q.step(3, function()
     S.qcReset = QC and QC.reset
     S.qcCalls = 0
     if QC then QC.reset = function() S.qcCalls = S.qcCalls + 1 end end
+    -- (Nov 21 2026, QA B3-1, 3593f42c4) In Lite ZeD setup leaves the Additions group out, but its options must still be
+    -- in Defaults' list: with one of them on the button is live, and Defaults puts them on their first item (Off).
+    S.liteHid = nil
+    if St.lite and St.lite() then
+        local function sel(id) local o = H.opt(id); return o and o.element and o.element.selected end
+        S.liteHid = { b = { sel("ammoBox"), sel("readMarks"), sel("loadouts") }, live = w:zedOffDefault() and true or false }
+    end
     local ok = pcall(function() w:zedDefaults() end)
-    if QC then QC.reset = S.qcReset end
+    if S.liteHid then
+        local function sel(id) local o = H.opt(id); return o and o.element and o.element.selected end
+        local b = S.liteHid.b
+        local was = tostring(b[1]) .. "/" .. tostring(b[2]) .. "/" .. tostring(b[3])
+        if (b[1] ~= nil and b[1] ~= 1) or (b[2] ~= nil and b[2] ~= 1) or (b[3] ~= nil and b[3] ~= 1) then
+            Q.check(S.liteHid.live, "ZeD setup (Lite): with an extra Lite leaves out still on, Defaults is live", "ammo box/read marks/loadouts " .. was)
+            local a1, a2, a3 = sel("ammoBox"), sel("readMarks"), sel("loadouts")
+            Q.check(a1 == 1 and a2 == 1 and a3 == 1, "ZeD setup (Lite): Defaults also puts the extras Lite leaves out on their first item",
+                "ammo box/read marks/loadouts " .. was .. " -> " .. tostring(a1) .. "/" .. tostring(a2) .. "/" .. tostring(a3))
+        else
+            Q.skip("ZeD setup (Lite): Defaults on the extras Lite leaves out", "none of them was on (" .. was .. ")")
+        end
+    end    if QC then QC.reset = S.qcReset end
     S.qcReset = nil
     local n, bad = 0, {}
     for _, r in ipairs(w:zedSetupRows() or {}) do
