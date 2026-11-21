@@ -702,6 +702,18 @@ local function makeActionDef(option, index, vanillaMenu, target)
     if option.zedPx and ZeD.PxIcon and ZeD.PxIcon.has(option.zedPx) then
         def.iconTexture, def.pxIcon, def.iconTintable = ZeD.PxIcon.tex(option.zedPx, 16), option.zedPx, true
     end
+    -- (Nov 21 2026, QA B0-1) A row whose target is a bag (vanilla's Move to lists each worn or
+    -- held bag by its own name, with the bag's ItemContainer as param1) gets the backpack icon
+    -- when its name found none: Fanny Pack, Leather Satchel and every modded bag read alike.
+    if not def.iconTexture and ZeD.PxIcon and ZeD.PxIcon.has("backpack") then
+        local ok, isBag = pcall(function()
+            local c = option.param1
+            return c and instanceof(c, "ItemContainer") and c:getContainingItem() ~= nil
+        end)
+        if ok and isBag then
+            def.iconTexture, def.pxIcon, def.iconTintable = ZeD.PxIcon.tex("backpack", 16), "backpack", true
+        end
+    end
     if not def.iconTexture then   -- (punch list 200; untinted, cropped to its drawn pixels)
         def.iconTexture = objectIconOf(option)
         def.iconTrim = def.iconTexture ~= nil
