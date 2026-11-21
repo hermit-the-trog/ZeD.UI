@@ -1,0 +1,8 @@
+# ZeDUI/tools/qa/bx_full_recheck.txt  (Nov 21 2026, QA beast day): the same three in Dark and Full (the runner's extras all on),
+# so B3-2's Lite rule is seen not to touch Full.
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/bx_full_recheck.txt -Mode fullscreen4k -Report bx_full_recheck_4k
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+rt_lite.lua | rt_lite | timeout=1800
+rt_kbmap.lua | rt_kbmap | timeout=900
+rt_system.lua | rt_sys | timeout=1800

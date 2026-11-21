@@ -519,8 +519,16 @@ Q.step(2, function()
     -- off) is not asked for.
     local lite = (St.lite and St.lite()) and true or false
     local dbg = (isDebugEnabled and isDebugEnabled()) and true or false
-    local LITE_GROUPS = { UI_ZeD_Options_ZedAdditions = true, UI_ZeD_Options_ZedChords = true }
-    local LITE_ROWS = { watchPlace = true }
+    -- (Nov 21 2026, the director on B3-2: "Keep and show them", 0bb5eba0e) In Lite the Additions group comes back while
+    -- the applied extras are off the Vanilla preset, so a player who came into Lite with extras on sees them; Chords
+    -- stays out. Read through ZeD.Settings.additionsOffVanilla() and cross-checked here: an applied Ammo on the belt
+    -- set On is off the Vanilla preset for certain.
+    local offV = (St.additionsOffVanilla and St.additionsOffVanilla()) and true or false
+    local ammoOn = false
+    pcall(function() local o = H.opt("ammoBox"); ammoOn = (o and o:getValue() == 2) and true or false end)
+    if lite and ammoOn and not offV then bad[#bad + 1] = "additionsOffVanilla false with Ammo on the belt On" end
+    local LITE_GROUPS = { UI_ZeD_Options_ZedChords = true }
+    if not offV then LITE_GROUPS.UI_ZeD_Options_ZedAdditions = true end    local LITE_ROWS = { watchPlace = true }
     for _, grp in ipairs((G and G.ZED_GROUPS) or {}) do
         n = n + 1
         local title = G.text(grp[1])
@@ -544,7 +552,8 @@ Q.step(2, function()
         if grp.chords and chords ~= (gone and 0 or #((ZeD.QuickChords and ZeD.QuickChords.CHORDS) or {})) then bad[#bad + 1] = "chords " .. chords end
     end
     Q.check(n > 0 and rows > 0 and #bad == 0, "ZeD setup: every group has its heading and a named row for each of its options",
-        n .. " groups, " .. rows .. " rows" .. ((#bad > 0) and (", wrong: " .. table.concat(bad, " ")) or ""))
+        n .. " groups, " .. rows .. " rows" .. (lite and (offV and ", Lite, extras off Vanilla" or ", Lite, extras on Vanilla") or "") ..
+        ((#bad > 0) and (", wrong: " .. table.concat(bad, " ")) or ""))
 end)
 -- the wheels (Nov 20 2026, Cuts C: one merged row for open, commit and toggle mode, G.MERGED.wheels): each of its
 -- four ways read live; then each Dead zone step read live
@@ -692,8 +701,9 @@ Q.step(3, function()
     S.qcReset = QC and QC.reset
     S.qcCalls = 0
     if QC then QC.reset = function() S.qcCalls = S.qcCalls + 1 end end
-    -- (Nov 21 2026, QA B3-1, 3593f42c4) In Lite ZeD setup leaves the Additions group out, but its options must still be
-    -- in Defaults' list: with one of them on the button is live, and Defaults puts them on their first item (Off).
+    -- (Nov 21 2026, QA B3-1 3593f42c4 and B3-2 0bb5eba0e) In Lite the extras are rows while they are off the Vanilla
+    -- preset and in Defaults' hidden list while Lite leaves them out: either way, with one of them on the button is live,
+    -- and Defaults puts them on their first item (Off).
     S.liteHid = nil
     if St.lite and St.lite() then
         local function sel(id) local o = H.opt(id); return o and o.element and o.element.selected end
@@ -705,12 +715,12 @@ Q.step(3, function()
         local b = S.liteHid.b
         local was = tostring(b[1]) .. "/" .. tostring(b[2]) .. "/" .. tostring(b[3])
         if (b[1] ~= nil and b[1] ~= 1) or (b[2] ~= nil and b[2] ~= 1) or (b[3] ~= nil and b[3] ~= 1) then
-            Q.check(S.liteHid.live, "ZeD setup (Lite): with an extra Lite leaves out still on, Defaults is live", "ammo box/read marks/loadouts " .. was)
+            Q.check(S.liteHid.live, "ZeD setup (Lite): with an extra still on, Defaults is live", "ammo box/read marks/loadouts " .. was)
             local a1, a2, a3 = sel("ammoBox"), sel("readMarks"), sel("loadouts")
-            Q.check(a1 == 1 and a2 == 1 and a3 == 1, "ZeD setup (Lite): Defaults also puts the extras Lite leaves out on their first item",
+            Q.check(a1 == 1 and a2 == 1 and a3 == 1, "ZeD setup (Lite): Defaults puts the extras (ammo box, read marks, loadouts) on their first item",
                 "ammo box/read marks/loadouts " .. was .. " -> " .. tostring(a1) .. "/" .. tostring(a2) .. "/" .. tostring(a3))
         else
-            Q.skip("ZeD setup (Lite): Defaults on the extras Lite leaves out", "none of them was on (" .. was .. ")")
+            Q.skip("ZeD setup (Lite): Defaults on the extras", "none of them was on (" .. was .. ")")
         end
     end    if QC then QC.reset = S.qcReset end
     S.qcReset = nil

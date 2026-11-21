@@ -388,8 +388,24 @@ Q.step(5, function()
     local col = H.capColor(S.other)
     Q.check(H.same3(col, br, bg, bb), "Keyboard map: a clash is drawn in the bad color (getBadHighlitedColor) on its key",
         H.rgb(col) .. ", bad " .. H.rgb({ br, bg, bb }))
-    Q.check(H.boxBad(S.name) and H.boxBad(S.holder), "Keyboard map: both clashing actions' key boxes are edged in the bad color",
-        tostring(S.name) .. " " .. tostring(H.boxBad(S.name)) .. ", " .. tostring(S.holder) .. " " .. tostring(H.boxBad(S.holder)))
+    -- (Nov 21 2026, beast W48: the map draws only the rows inside its body, so each clashing action's row is scrolled
+    -- into view before its key box is read; the scroll is put back after)
+    S.scrollClash = S.win.scroll
+    H.bindShow(S.name)
+    H.recClear()
+end)
+Q.step(3, function()
+    if not (S.win and S.other) then return end
+    S.badName = H.boxBad(S.name)
+    H.bindShow(S.holder)
+    H.recClear()
+end)
+Q.step(3, function()
+    if not (S.win and S.other) then return end
+    S.badHolder = H.boxBad(S.holder)
+    Q.check(S.badName and S.badHolder, "Keyboard map: both clashing actions' key boxes are edged in the bad color",
+        tostring(S.name) .. " " .. tostring(S.badName) .. ", " .. tostring(S.holder) .. " " .. tostring(S.badHolder))
+    S.win.scroll = S.scrollClash or 0
     KM.setKey(S.name, S.new)
     H.recClear()
 end)

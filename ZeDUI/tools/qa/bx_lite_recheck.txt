@@ -1,0 +1,10 @@
+# ZeDUI/tools/qa/bx_lite_recheck.txt  (Nov 21 2026, QA beast day): the Lite pieces again after B3-1, B3-2 and the keyboard
+# map fix, in the Light + Lite state (the runner's extras all on, then Lite set as the value: a player who came into Lite with
+# extras, so ZeD setup shows the Additions group).
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/bx_lite_recheck.txt -Mode fullscreen4k -Report bx_lite_recheck_4k
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+zedqa_cfg_light_lite.lua | cfx | timeout=60
+rt_lite.lua | rt_lite | timeout=1800
+rt_kbmap.lua | rt_kbmap | timeout=900
+rt_system.lua | rt_sys | timeout=1800
