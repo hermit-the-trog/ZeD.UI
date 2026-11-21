@@ -742,6 +742,7 @@ end
 local function renameZone(win)
     -- Set rename mode — the band shows Save / Cancel / Reset, the info band the text entry
     win._animalsRenaming = true
+    AT._editWins = AT._editWins or {}; AT._editWins[win] = true   -- (the tick watcher ends the edit when the tab goes) (QA B6-11)
 
     local state = getState(win)
     local zone = getZoneByName(state.zoneName)
@@ -800,6 +801,7 @@ end
 local function removeZone(win)
     -- Set confirm flag — the band asks the question (Cancel and Remove) instead of the usual buttons
     win._animalsRemoveConfirm = true
+    AT._editWins = AT._editWins or {}; AT._editWins[win] = true   -- (ended by the tick watcher too) (QA B6-11)
 end
 
 local function confirmRemoveZone(win)
@@ -4283,6 +4285,9 @@ function AT.showAnimal(win, animal)
     state.submode = "ranch"
     -- (the zone the rows count it in, getDZone as the fallback: AnimalsData.getZoneName)
     local zn = AD().getZoneName(animal)
+    -- this writes the view itself, so navigate cannot see a zone page being left: a lit old zone goes dark here,
+    -- unless the animal is in that same zone (QA B6-12)
+    if state.view == "zone" and zn ~= state.zoneName then AT._unlightZone(win) end
     state.zoneName = zn
     state.view = zn and "zone" or "overview"
     navigate(win, "animal", nil, animal)
@@ -4308,13 +4313,27 @@ AT.gpCancel         = gpCancel
 -- ============================================================================
 
 local function animalsTabGone(win)
-    return ZeD_WorldWindow.getWindow(WPN(win)) ~= win or win._activeTab ~= "animals"
+    if ZeD_WorldWindow.getWindow(WPN(win)) ~= win or win._activeTab ~= "animals" then return true end
+    -- a folded drawer half keeps its tab (_activeTab stays), but nothing of it shows or takes the mouse (QA B6-13)
+    local H = ZeD.Halves
+    return (H and H.foldedTab and H.foldedTab(win)) and true or false
 end
 
 function AT._watch()
     if not (ZeD_WorldWindow and ZeD_WorldWindow.getWindow) then return end
     local dw = AT._zoneDrawWin
     if dw and animalsTabGone(dw) then AT.endZoneDraw() end
+    -- a rename or remove question left open on a tab that is no longer showing ends too (QA B6-11, B6-13)
+    local ew = AT._editWins
+    if ew then
+        local done = nil   -- (collected first, as below)
+        for win in pairs(ew) do
+            if animalsTabGone(win) then done = done or {}; done[#done + 1] = win end
+        end
+        if done then
+            for _, win in ipairs(done) do AT._editWins[win] = nil; AT._endZoneEdit(win) end
+        end
+    end
     if AT._litWins then
         local gone = nil   -- (collected first: the list is changed by the unlight, not while it is walked)
         for win in pairs(AT._litWins) do
