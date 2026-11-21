@@ -675,7 +675,7 @@ end
 
 -- ----- THE WATCH'S FORM -----
 -- Immersive: the watch you wear, drawn as itself (and the tape deck keys with none). Simple: a plain clock box with the
--- same readings and buttons, and a plain time box for the small one on the belt.
+-- same readings and buttons. (Lite has no watch on the belt: ZeD_Watch.lua W.beltMode.)
 local watchStyle = opts:addComboBox("watchStyle", ZeD.tr("UI_ZeD_Settings_WatchStyle"), ZeD.tr("UI_ZeD_Settings_WatchStyleTip"))
 watchStyle:addItem(ZeD.tr("UI_ZeD_Settings_Immersive"), true)   -- default
 watchStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)

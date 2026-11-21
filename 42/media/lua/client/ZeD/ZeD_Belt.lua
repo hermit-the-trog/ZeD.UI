@@ -24,7 +24,8 @@
 --
 -- Two forms (the "Belt" option, a full and a simple version, as the
 -- action bar and the context menu have): Full, the leather strap with each slot's material and the profession buckle;
--- Simple, the same hands, slots, ammo tab, wrist watch and note with no strap and no buckle, the slots evenly
+-- Simple (Lite), the same hands, slots, ammo tab and note with no strap, no buckle and no wrist watch (Lite takes the
+-- watch off the belt: ZeD_Watch.lua W.beltMode), the slots evenly
 -- spaced after the hands, the middle of the slots on the screen's centre (where Full puts its buckle, so the slots
 -- stay put while the hands change). Everything the belt does is the same in both.
 -- ============================================================================

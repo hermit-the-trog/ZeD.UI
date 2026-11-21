@@ -513,11 +513,12 @@ local function buildSetup(realMods, byName)
     local dbg = isDebugEnabled and isDebugEnabled() or false
     for _, grp in ipairs(G.ZED_GROUPS) do
       if lite and G.LITE_HIDES[grp[1]] then
-        -- (a group Lite leaves out: its options are placed, so none of them turns up under Other instead)
+        -- (a group Lite leaves out: its options are hidden, so none of them turns up under Other instead, and
+        -- through hide() they reach G.hiddenOpts, so ZeD setup's Defaults resets them too (QA B3-1))
         for _, e in ipairs(grp[2]) do
-            placed[e[1]] = true
+            hide(e[1])
             local d = e.merge and G.MERGED[e.merge]
-            for _, id in ipairs((d and d.ids) or {}) do placed[id] = true end
+            for _, id in ipairs((d and d.ids) or {}) do hide(id) end
         end
       else
         if grp[1] == "UI_ZeD_Options_ZedTrouble" and #addons > 0 then emitAddons(nil); defaultDone = true end
