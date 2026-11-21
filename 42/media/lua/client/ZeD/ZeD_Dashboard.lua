@@ -73,10 +73,37 @@ local MODEL_DESIGN = {
     PickUpVan = "bulldriver", OffRoad = "rancher", CarTaxi = "taxi", VanAmbulance = "ambulance", RaceCar = "race",
 }
 local LIVERY_DESIGN = {
-    { "ambulance", "ambulance" }, { "hosp", "ambulance" }, { "fire", "fire" }, { "police", "police" }, { "sheriff", "police" },
+    { "ambulance", "ambulance" }, { "fire", "fire" }, { "police", "police" }, { "sheriff", "police" },
     { "trooper", "police" }, { "swat", "police" }, { "kst", "police" }, { "louisvillepd", "police" }, { "louisvillecounty", "police" },
-    { "westpoint", "police" }, { "ranger", "ranger" }, { "taxi", "taxi" }, { "race", "race" },
+    { "westpoint", "police" }, { "ranger", "ranger" }, { "taxi", "taxi" },
 }
+-- (beast W22: "race" and "hosp" are gone from the list. RaceCar* is already the race design through MODEL_DESIGN, and
+-- StepVan_SouthEasternHosp is South Eastern Hospitality's catering van, not an ambulance)
+-- the game's own burnt wrecks whose script name does not start with a car family's name
+local VANILLA_LIVERY = { AmbulanceBurnt = "ambulance", NormalCarBurntPolice = "police", TaxiBurnt = "taxi" }
+-- does the script name start with one of the game's own car families (MODEL_DESIGN)? A modded car's name does not
+-- ("92fordRanger"), so it never gets a service livery from a word in its name (beast W22)
+local function _vanillaFamily(n)
+    for model in pairs(MODEL_DESIGN) do
+        if n:sub(1, #model) == model then return true end
+    end
+    return false
+end
+-- is word (lower case) in the name as a whole CamelCase / underscore token: it starts the name, follows "_" or starts a
+-- capital, and ends the name or is followed by "_", a capital or a digit ("Firebird" and "Spitfire" are not "Fire")
+local function _liveryHit(n, low, word)
+    local from = 1
+    while true do
+        local s = low:find(word, from, true)
+        if not s then return false end
+        local e = s + #word
+        local startOk = (s == 1) or (n:sub(s - 1, s - 1) == "_") or (n:sub(s, s):match("%u") ~= nil)
+        local nextCh = n:sub(e, e)
+        local endOk = (e > #n) or (nextCh == "_") or (nextCh:match("[%u%d]") ~= nil)
+        if startOk and endOk then return true end
+        from = s + 1
+    end
+end
 -- (beta 21, the director, Nov 18 2026: Lite gives every car one dash, "the black 1990s late model": the Dash Elite
 -- in its black cabin)
 D.LITE_DESIGN, D.LITE_CABIN = "dashelite", "v_black"
@@ -85,8 +112,11 @@ local function _designFor(scriptName)
     if isLite() and DP.designs[D.LITE_DESIGN] then return DP.designs[D.LITE_DESIGN], D.LITE_DESIGN, true end
     local n = tostring(scriptName or ""):gsub("^Base%.", "")
     local low = n:lower()
-    for _, pair in ipairs(LIVERY_DESIGN) do
-        if low:find(pair[1], 1, true) then return DP.designs[pair[2]], pair[2], true end
+    if VANILLA_LIVERY[n] then return DP.designs[VANILLA_LIVERY[n]], VANILLA_LIVERY[n], true end
+    if _vanillaFamily(n) then
+        for _, pair in ipairs(LIVERY_DESIGN) do
+            if _liveryHit(n, low, pair[1]) then return DP.designs[pair[2]], pair[2], true end
+        end
     end
     local best, bestLen = nil, 0
     for model, id in pairs(MODEL_DESIGN) do
@@ -170,7 +200,10 @@ local function _badges(design, vehicle, scriptName, ownFamily)
         model = (fi < #words) and _join(words, fi + 1, #words) or make
     end
     local fleet = nil
-    for _, s in ipairs(SERVICES) do if livery:find(s, 1, true) then fleet = s; break end end
+    for _, s in ipairs(SERVICES) do
+        -- a whole word of the livery ("RANGER" in "PARK RANGER", not in "FORD RANGER" -> only a livery word counts) (beast W22)
+        if (" " .. livery .. " "):find(" " .. s .. " ", 1, true) then fleet = s; break end
+    end
     fleet = fleet or livery:match("^(%S+)") or make
     local id = 0; pcall(function() id = vehicle:getId() or 0 end)
     local wordKey = (fleet == "TAXI") and "UI_ZeD_Dash_UnitCab" or ((fleet == "FIRE") and "UI_ZeD_Dash_UnitEngine" or "UI_ZeD_Dash_UnitUnit")
@@ -516,7 +549,7 @@ local function _sendHeater(chr, v, on, temp)
 end
 local ACT = {}
 ACT.ignition = function(chr, v, st, secondary)
-    if secondary then if st.keysIn and not st.running then v:setKeysInIgnition(false) end; return end
+    if secondary then if st.keysIn and not st.running and not st.started then v:setKeysInIgnition(false) end; return end
     if st.running then ISVehicleMenu.onShutOff(chr); return end
     if st.keysIn or st.hotwired then ISVehicleMenu.onStartEngine(chr); return end
     if st.hasKey then v:setKeysInIgnition(true); return end
@@ -833,7 +866,7 @@ end
 function ZeD_Dashboard:_element(id, hr, st)
     -- X offers the secondary verb only when it can happen: "Remove key" needs a key in the lock
     local secondary = SECONDARY[id]
-    if id == "ignition" and not st.keysIn then secondary = nil end
+    if id == "ignition" and (not st.keysIn or st.started) then secondary = nil end
     if id == "odoButton" and not st.odoTrip then secondary = nil end     -- (zeroing waits for the trip to show)
     local el = {
         x = hr.x, y = hr.y, w = hr.w, h = hr.h, id = "dash:" .. id,

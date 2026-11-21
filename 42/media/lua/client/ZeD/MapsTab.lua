@@ -2364,7 +2364,11 @@ local function _mapPadTick()
     _pad.t = now
     for pn = 0, 3 do _mapPadHold(pn, _mapPadPlayer(pn, now, dt) == true) end
 end
-if Events and Events.OnTick then Events.OnTick.Add(_mapPadTick) end
+-- OnTick does not fire while the game is paused, so the stick cursor and the trigger zoom would be dead on a paused
+-- map. OnTickEvenPaused fires every frame, paused or not, so it is the one driver (not also OnTick: that would run
+-- the tick twice per frame while the game runs). OnTick stays as the fallback where the event does not exist. (beast W54)
+if Events and Events.OnTickEvenPaused then Events.OnTickEvenPaused.Add(_mapPadTick)
+elseif Events and Events.OnTick then Events.OnTick.Add(_mapPadTick) end
 
 -- ============================================================================
 -- POP-OUT -- "unfold" the map into a large centred window.
@@ -2398,6 +2402,17 @@ function ZeD.MapsTab._renderPopout(content, win, pop)
 
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
     if not Focus or not pop._focusRing then return end
+    -- With the mouse and keyboard in use the stops wait (Focus.stopsMayWait); the first controller press, landing or
+    -- stop list brings them up to date through pop._focusFresh, as the World window does (beast W42)
+    if not pop._focusFresh then pop._focusFresh = function(p) ZeD.MapsTab._buildPopoutStops(content, win, p) end end
+    if Focus.stopsMayWait and Focus.stopsMayWait(pop) then return end
+    ZeD.MapsTab._buildPopoutStops(content, win, pop)
+end
+
+-- Builds the unfolded map's focus stops from the world window's map controls and hands them to the pop-out's ring.
+function ZeD.MapsTab._buildPopoutStops(content, win, pop)
+    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    if not Focus or not pop._focusRing or win._mapPopout ~= pop then return end
     win._mapBuildingForPopout = true
     local ok, src = pcall(ZeD.MapsTab.buildFocusables, win)
     win._mapBuildingForPopout = false
@@ -2405,6 +2420,7 @@ function ZeD.MapsTab._renderPopout(content, win, pop)
 
     -- Re-bind callbacks to the world window; B folds the map on any element.
     local wrapped = {}
+    local promptFold = win._mapPaperItem and ZeD.tr("UI_Close") or ZeD.tr("UI_ZeD_Map_PadFold")   -- once, not per element (beast W42)
     for i = 1, #src do
         local el = src[i]
         local e = {}
@@ -2419,7 +2435,7 @@ function ZeD.MapsTab._renderPopout(content, win, pop)
             e.onCancel = function(_, ee) return el.onCancel(win, ee) end
         else
             e.onCancel = function(_, _ee) ZeD.MapsTab.closePopout(win) end
-            e.promptB  = win._mapPaperItem and ZeD.tr("UI_Close") or ZeD.tr("UI_ZeD_Map_PadFold")
+            e.promptB  = promptFold
         end
         wrapped[#wrapped + 1] = e
     end

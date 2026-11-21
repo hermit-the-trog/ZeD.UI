@@ -88,6 +88,7 @@ local function grabEggs(p, h, boxes, t)
     unequipHands(p)
     ISTimedActionQueue.add(ISHutchGrabEgg:new(p, boxes[1].nest, h))
     if t then
+        t.eggLast = boxes[1].nest   -- the box queued last: still full when idle means the player cancelled (beast W33)
         t.eggChain = {}
         for k = 2, #boxes do t.eggChain[#t.eggChain + 1] = boxes[k].nest end
     end
@@ -97,10 +98,21 @@ local function chainEggs(t, player)
     local chain = t.eggChain
     if not (chain and #chain > 0) then return end
     if ISTimedActionQueue.isPlayerDoingAction(player) then return end
+    -- idle while the box queued last still has eggs: a finished grab always empties its box, so the player cancelled
+    -- (a move key, Esc, an attack): drop the rest of the chain instead of restarting it (beast W33)
+    if t.eggLast and (call(t.eggLast, "getEggsNb") or 0) > 0 then t.eggChain = nil; t.eggLast = nil; return end
     while #chain > 0 do
         local nest = table.remove(chain, 1)
-        if (call(nest, "getEggsNb") or 0) > 0 then
+        local hen = false     -- a hen has sat down on the box since: leave it (the same test as the card's free list)
+        for _, b in ipairs(t.d and t.d.boxes or {}) do
+            if b.nest == nest and call(t.obj, "getAnimalInNestBox", b.i) then hen = true end
+        end
+        if not hen and (call(nest, "getEggsNb") or 0) > 0 then
+            -- the same walk and empty hands as the first grab, so it is taken from the entry square (beast W33)
+            if not luautils.walkAdj(player, t.obj:getEntrySq()) then t.eggChain = nil; t.eggLast = nil; return end
+            unequipHands(player)
             ISTimedActionQueue.add(ISHutchGrabEgg:new(player, nest, t.obj))
+            t.eggLast = nest
             return
         end
     end

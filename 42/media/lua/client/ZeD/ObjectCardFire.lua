@@ -119,14 +119,16 @@ local function iso(t) return t.kind == "campfire" and t.obj:getIsoObject() or t.
 local function fuelRows(info, current, max, player)
     local rows = {}
     local list = {}
-    for _, it in ipairs(info.fuelList or {}) do list[#list + 1] = it end
-    table.sort(list, function(a, b)
-        return ISCampingMenu.getFuelDurationForItem(a) > ISCampingMenu.getFuelDurationForItem(b)
-    end)
+    local durOf = {}      -- each item's burn time worked out once, not in every comparison (beast W34)
+    for _, it in ipairs(info.fuelList or {}) do
+        list[#list + 1] = it
+        durOf[it] = ISCampingMenu.getFuelDurationForItem(it) or 0
+    end
+    table.sort(list, function(a, b) return durOf[a] > durOf[b] end)
     local totalN, totalDur = 0, 0
     for _, it in ipairs(list) do
         local count = info.itemCount[it:getName()] or 1
-        local dur = ISCampingMenu.getFuelDurationForItem(it) or 0
+        local dur = durOf[it]
         -- vanilla's cap loop: as many of this type as the fire still holds
         local fitN = count
         while current + dur * fitN > max and fitN > 1 do fitN = fitN - 1 end
@@ -209,6 +211,19 @@ local function refreshPropane(t, player)
     t.verbs = verbs
 end
 
+-- Vanilla's getNearbyFuelInfo walks every item in reach (its own menu runs it once per right-click), so the card keeps
+-- the answer on t and rescans only every 1.5 s, when the player's square changes, or after a card action
+-- (t._fuelAt = nil) (beast W34)
+local function fuelInfo(t, player)
+    local now = getTimestampMs()
+    local sq = player:getCurrentSquare()
+    if not t._fuelInfo or not t._fuelAt or now - t._fuelAt > 1500 or t._fuelSq ~= sq then
+        t._fuelInfo = ISCampingMenu.getNearbyFuelInfo(player)
+        t._fuelAt, t._fuelSq = now, sq
+    end
+    return t._fuelInfo
+end
+
 function def.refresh(t, player)
     if t.kind == "propane" then return refreshPropane(t, player) end
     local d = {}
@@ -227,28 +242,32 @@ function def.refresh(t, player)
     d.name = (io and call(io, "getTileName")) or (t.kind == "campfire" and ZeD.tr("IGUI_Campfire_Campfire") or ZeD.tr("UI_ZeD_Fire_Fire"))
     d.tex = spriteIcon(io)
     d.container = io and call(io, "getContainer")
-    local info = ISCampingMenu.getNearbyFuelInfo(player)
+    local info = fuelInfo(t, player)
     d.fuelRows = fuelRows(info, d.fuel, d.max, player)
     d.lightRows = (not d.lit) and lightRows(info, d.fuel > 0, player) or {}
     t.d = d
 
     local addAction = (t.kind == "campfire") and ISAddFuelAction or ISBBQAddFuel
     t.addFuel = function(p, row)
+        t._fuelAt = nil   -- rescan after an action (beast W34)
         ISCampingMenu.onAddFuel(p, t.obj, row.fullType, addAction, d.fuel)
     end
     -- vanilla's bulk adds: every one of a type that fits (or all that fit),
     -- and everything on the list. The capped count is passed explicitly
     -- because vanilla only checks the cap per item, not across the batch.
     t.addFuelMany = function(p, row)
+        t._fuelAt = nil
         ISCampingMenu.onAddMultipleFuel(p, t.obj, row.fullType, addAction, d.fuel, (not row.allFits) and row.fitN or nil)
     end
     t.addFuelAll = function(p)
+        t._fuelAt = nil
         ISCampingMenu.onAddAllFuel(p, t.obj, addAction, d.fuel)
     end
     local petrolA = (t.kind == "campfire") and ISLightFromPetrol or ISBBQLightFromPetrol
     local tinderA = (t.kind == "campfire") and ISLightFromLiterature or ISBBQLightFromLiterature
     local kindleA = (t.kind == "campfire") and ISLightFromKindle or ISBBQLightFromKindle
     t.light = function(p, row)
+        t._fuelAt = nil
         if row.method == "petrol" then
             ISCampingMenu.onLightFromPetrol(p, row.starter, row.petrol, t.obj, petrolA)
         elseif row.method == "tinder" then

@@ -239,6 +239,7 @@ function ZeD_SeatPopout:onLoseJoypadFocus(joypadData) self.joyfocus = nil end
 
 function ZeD_SeatPopout:close()
     self._drag = nil
+    self:setCapture(false)   -- let go of the mouse if closed mid-drag (beast W21)
     self:setVisible(false)
     self:removeFromUIManager()
     S.padBack(self)   -- (the pad goes back where it came from: ZeD_SeatChooser.lua)
@@ -778,6 +779,7 @@ function S.popToggle(playerObj, vehicle)
     p:setVehicle(vehicle)
     p._design, p._cabin = S.cabinPick(vehicle)
     p._anchor, p._drag, p._g = nil, nil, nil
+    p:setCapture(false)   -- a pop-out closed mid-drag must not keep the mouse capture (beast W21)
     -- (a dry run: a car whose seats can't be laid out as rows, or the art not there, gets the window)
     local ok, err = pcall(p.readSeats, p)
     local planned = ok and p:plan() or nil
