@@ -512,7 +512,11 @@ local function buildSetup(realMods, byName)
     for _, id in ipairs(G.SETUP_HIDDEN) do hide(id) end
     local dbg = isDebugEnabled and isDebugEnabled() or false
     for _, grp in ipairs(G.ZED_GROUPS) do
-      if lite and G.LITE_HIDES[grp[1]] then
+      -- (QA B3-2) in Lite the Additions group still shows while the applied additions are off the Vanilla preset, so
+      -- a player who came into Lite with extras on can see them and turn them off; Chords stays out
+      local keepShown = grp[1] == "UI_ZeD_Options_ZedAdditions" and ZeD.Settings and ZeD.Settings.additionsOffVanilla
+          and ZeD.Settings.additionsOffVanilla()
+      if lite and G.LITE_HIDES[grp[1]] and not keepShown then
         -- (a group Lite leaves out: its options are hidden, so none of them turns up under Other instead, and
         -- through hide() they reach G.hiddenOpts, so ZeD setup's Defaults resets them too (QA B3-1))
         for _, e in ipairs(grp[2]) do

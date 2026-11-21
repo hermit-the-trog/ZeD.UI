@@ -893,6 +893,12 @@ local function setUpAdditions()
         end
         return CUSTOM
     end
+    --- (QA B3-2, the director: "Keep and show them") true while the APPLIED additions are not the Vanilla preset.
+    --- A player who reached Lite with extras on (the beta 20 carry, an early beta 21 Lite pick, a setup file) keeps
+    --- them, and ZeD setup shows the Additions group in Lite until they are back on Vanilla.
+    function ZeD.Settings.additionsOffVanilla()
+        return presetOf(stored) ~= 1
+    end
 
     -- the Custom set: kept in the file at Apply; held for the screen while a preset is tried over it
     local held = nil
