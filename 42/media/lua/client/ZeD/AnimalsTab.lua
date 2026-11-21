@@ -3085,6 +3085,15 @@ local function renderRanchAnimal(panel, win, x, y, w, h)
         return
     end
 
+    -- the open animal died, was picked up or butchered: step back as the page's Back button does. A hutch or a
+    -- vehicle holds animals that are out of the world, so those stay (QA B5-12)
+    if ocall(animal, "isDead") == true
+        or (ocall(animal, "isExistInTheWorld") == false and not ocall(animal, "getHutch") and not ocall(animal, "getVehicle")) then
+        navigateBack(win)
+        state.animalRef = nil
+        return
+    end
+
     -- an animal outside the ranch that the game's Info opened keeps the game's reach (WorldRoutes.lua)
     local WR = ZeD.WorldRoutes
     if WR and WR.animalLeft and WR.animalLeft(win, animal) then

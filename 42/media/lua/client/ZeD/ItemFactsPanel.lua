@@ -313,12 +313,15 @@ function M.CombatFacts(item)
         local cap = safeGet(item, "getMaxAmmo")
         if cap then ammoStr = ammoStr .. " | " .. string.format("%d / %d", safeGet(item, "getCurrentAmmoCount") or 0, cap) end
     end
+    -- a jammed gun says so beside its rounds (QA B5-11)
+    local jammed = safeGet(item, "isJammed") == true
+    if jammed then ammoStr = ZeD.tr("UI_ZeD_Jammed") .. " | " .. ammoStr end
     panel.groups[#panel.groups + 1] = {
         rows = {
             {label = getText("Tooltip_weapon_Condition"), value = (cond and condMax) and string.format("%d / %d", cond, condMax) or "-",
              valueClass = _condClass(ratio), mirrorKey = "condition"},
             {label = getText("Tooltip_weapon_Ammo"),      value = ammoStr,
-             valueClass = (not hasAmmo) and "dim" or nil},
+             valueClass = jammed and "bad" or ((not hasAmmo) and "dim" or nil)},
         },
     }
 

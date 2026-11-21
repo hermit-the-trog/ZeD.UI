@@ -679,6 +679,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Belt_WatchStart` | `Start` | Belt HUD, chip over the mini watch's start / pause button while the game is paused | 10 |
 | `UI_ZeD_Belt_WatchTuck` | `%1 \| tuck away` | Belt HUD, chip over the mini watch's face when the full watch is open; %1 = watch name | 40 |
 | `UI_ZeD_Belt_AmmoEmpty` | `Empty` | Belt HUD, ammo box beside the main hand: the gun holds no rounds (large figures) | 6 |
+| `UI_ZeD_Jammed` | `Jammed` | A gun that has jammed: in the belt's ammo box (in place of the round count), the item card's Status row and the Ammo fact | 6 |
 | `UI_ZeD_Belt_AmmoMags` | `%1 mag` | Belt HUD, ammo box: loaded magazines carried; %1 = how many | 8 |
 | `UI_ZeD_Belt_AmmoRounds` | `%1 rds` | Belt HUD, ammo box: loose rounds carried; %1 = how many | 8 |
 | `UI_ZeD_Belt_AmmoBoxes` | `+%1 box` | Belt HUD, ammo box: unopened ammo boxes carried (not counted as rounds); %1 = how many | 8 |

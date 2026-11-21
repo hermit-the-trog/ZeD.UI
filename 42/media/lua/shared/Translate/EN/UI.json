@@ -3286,6 +3286,7 @@
     "UI_ZeD_SPNCC_SpiffoText": "While you carry it, the face and details can change.",
     "UI_ZeD_SPNCC_SpiffoTitle": "Appearance changing Spiffo",
     "UI_ZeD_Belt_AmmoEmpty": "Empty",
+    "UI_ZeD_Jammed": "Jammed",
     "UI_ZeD_Belt_AmmoMags": "%1 mag",
     "UI_ZeD_Belt_AmmoRounds": "%1 rds",
     "UI_ZeD_Belt_AmmoBoxes": "+%1 box",

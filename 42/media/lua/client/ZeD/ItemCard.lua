@@ -90,6 +90,7 @@ local function formatFirearm(item)
     if mn and mx then table.insert(s,{label="Damage",value=string.format("%.1f - %.1f",mn,mx)}) end
     local r = safeGet(item,"getMaxRange"); if r and r>0 then table.insert(s,{label="Range",value=string.format("%.1f",r)}) end
     local c = safeGet(item,"getCriticalChance"); if c and c>0 then table.insert(s,{label="Crit",value=math.floor(c).."%"}) end
+    if safeGet(item,"isJammed") == true then table.insert(s,{label="Status",value=ZeD.tr("UI_ZeD_Jammed"),color=ZeD.T.danger}) end  -- (QA B5-11)
     local cur,mx2 = safeGet(item,"getCurrentAmmoCount"),safeGet(item,"getMaxAmmo")
     if mx2 and mx2>0 then table.insert(s,{label="Ammo",value=(cur or 0).."/"..mx2}) end
     -- (getAmmoType is an AmmoType object, not a string: ammoOf reads it and finds the ammo's own name;

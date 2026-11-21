@@ -310,6 +310,10 @@ function ZeD.BuildingTab.startBuild(win, state)
     -- Create BuildLogic and set recipe
     local ok, logic = pcall(function()
         local l = BuildLogic.new(playerObj, nil, nil)
+        -- (as the game's ISBuildPanel: fill the recipe lookup first, or getSelectedBuildObject and
+        -- getWallCoveringParams throw a NullPointerException and no cursor starts) (QA B5-8)
+        local list = l:getAllBuildableRecipes()
+        l:setRecipes(list)
         l:setRecipe(recipe)
         l:setContainers(containers)
         return l

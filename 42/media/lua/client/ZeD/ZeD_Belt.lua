@@ -657,6 +657,7 @@ function B.ammo(playerObj)
     a.chambered = call(gun, "isRoundChambered") == true
     a.max = math.max(1, call(gun, "getMaxAmmo") or 1)
     a.n = a.inGun + (a.chambered and 1 or 0)
+    a.jammed = call(gun, "isJammed") == true  -- a jammed gun says so, not its rounds (QA B5-11)
     a.f = math.min(1, a.n / a.max)
     a.mag = call(gun, "getMagazineType")
     a.chamber = call(gun, "haveChamber") ~= false
@@ -682,7 +683,8 @@ end
 -- the hover's two lines: what is in the gun, and what is carried
 function B.ammoLines(a)
     local l1
-    if a.n == 0 then l1 = ZeD.tr("UI_ZeD_Belt_AmmoGunEmpty", a.name)
+    if a.jammed then l1 = ZeD.tr("UI_ZeD_Jammed") .. ": " .. a.name  -- (QA B5-11)
+    elseif a.n == 0 then l1 = ZeD.tr("UI_ZeD_Belt_AmmoGunEmpty", a.name)
     else
         local k = a.mag and "UI_ZeD_Belt_AmmoInMag" or ((not a.chamber) and "UI_ZeD_Belt_AmmoInCyl" or "UI_ZeD_Belt_AmmoLoaded")
         l1 = ZeD.tr(k, a.name, a.inGun)
@@ -703,7 +705,7 @@ end
 
 -- the box's words: the count ("12+1", "Empty") and what is carried under it (two short lines)
 function B.ammoWords(a)
-    local count = (a.n == 0) and ZeD.textCase(ZeD.tr("UI_ZeD_Belt_AmmoEmpty")) or (a.chambered and (tostring(a.inGun) .. "+1") or tostring(a.inGun))
+    local count = a.jammed and ZeD.textCase(ZeD.tr("UI_ZeD_Jammed")) or (a.n == 0) and ZeD.textCase(ZeD.tr("UI_ZeD_Belt_AmmoEmpty")) or (a.chambered and (tostring(a.inGun) .. "+1") or tostring(a.inGun))
     local s1, s2
     if a.loaded > 0 then
         s1, s2 = ZeD.tr("UI_ZeD_Belt_AmmoMags", a.loaded), ZeD.tr("UI_ZeD_Belt_AmmoRounds", a.loose)
@@ -1944,7 +1946,7 @@ end
 -- slots' condition strips show their empty part.
 function B.ammoInk(a)
     local T = ZeD.T
-    local low = a.n == 0 or a.f <= 0.25
+    local low = a.jammed or a.n == 0 or a.f <= 0.25  -- (a jam reads red: QA B5-11)
     return {
         fill = (low and T.danger) or (a.f > 0.5 and T.text) or T.warningText,
         text = T.text,
