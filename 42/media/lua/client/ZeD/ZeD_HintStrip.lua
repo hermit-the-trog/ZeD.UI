@@ -143,14 +143,29 @@ local function keyPrompts(pn, out)
             bp:getBestInteractButtonAction(dir)
         end)
         st.a, st.aFn = bp.aPrompt, bp.aFunc
+        -- (a held radio makes the A prompt "Device Options" before the game looks at a crafting station in front, so
+        -- note here, on the same clock, whether such a station is in front: its right-click menu still opens) (QA B6-7)
+        st.station = false
+        if ISButtonPrompt and st.aFn ~= nil and st.aFn == ISButtonPrompt.openDeviceOptions then
+            pcall(function()
+                local sq = p:getCurrentSquare()
+                local sq2 = sq and sq:getAdjacentSquare(p:getDir())
+                local objs = sq2 and sq2:getObjects()
+                for i = 0, (objs and objs:size() or 0) - 1 do
+                    local obj = objs:get(i):getMasterObject()
+                    if ISEntityUI and ISEntityUI.CanOpenWindowFor(p, obj) then st.station = true; break end
+                end
+            end)
+        end
     end
     if st.a and st.a ~= "" then
         local key = keyDoes(st.aFn, st.a) and keyName("Interact")
         if key and not spent(st.aFn, st.a) then out[#out + 1] = { glyph = key, key = true, label = tostring(st.a) } end
-        -- (a held radio always makes the game's A prompt "Device Options", wherever you stand: no right-click menu in the
-        -- world has more for it, so that prompt earns no "Right-click More" hint) (beast W55)
+        -- (a held radio always makes the game's A prompt "Device Options", wherever you stand: in an empty field no
+        -- right-click menu has more for it, so no "Right-click More" hint (beast W55); in front of a crafting station
+        -- the right-click still opens the station's menu, so the hint stays there (QA B6-7))
         local heldDevice = ISButtonPrompt and st.aFn ~= nil and st.aFn == ISButtonPrompt.openDeviceOptions
-        if not heldDevice and not spent("rightclick", "rightclick") then out[#out + 1] = { glyph = getText("IGUI_mouse_btn_1"), key = true, label = ZeD.tr("UI_ZeD_Hint_More") } end
+        if not (heldDevice and not st.station) and not spent("rightclick", "rightclick") then out[#out + 1] = { glyph = getText("IGUI_mouse_btn_1"), key = true, label = ZeD.tr("UI_ZeD_Hint_More") } end
     end
 end
 

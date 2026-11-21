@@ -2054,12 +2054,14 @@ function ZeD_BeltHUD:_prerender()
     local T = ZeD.T
     if not T then return end
     local p = self:player()
-    if not self:wanted() then self._drawn = false; return end
     -- (a drag whose release never came, the button no longer down: drop it, so the icon cannot stay on the pointer) (beast W40)
-    if self._out and not isMouseButtonDown(0) then
+    -- (also a press that armed no drag, and also while the belt is hidden: a press left armed would pass onMouseUp's
+    -- same-box test after the next press that starts off the belt) (QA B6-18)
+    if (self._out or self._press) and not isMouseButtonDown(0) then
         self._out, self._press = nil, nil
         self:setCapture(false)
     end
+    if not self:wanted() then self._drawn = false; return end
     if ZeD.trTestOn then ZeD.trTestOn() end   -- keeps the test-language state fresh for the kept names
     local slots = B.slots(self.playerNum)
     local w, h = self:_layoutCached(slots)

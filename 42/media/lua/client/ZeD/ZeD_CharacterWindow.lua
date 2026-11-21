@@ -881,17 +881,19 @@ function ZeD_CharacterWindow.titleLoadFallback(win)
     local drew = win._invDrew
     win._invDrew = false
     if drew or not win._playerObj then return end
-    local stats = win.titleStats or {}
-    local last = stats[#stats]
     local p = win._playerObj
     local txt = ZeD.Atoms.loadText(p:getInventory():getCapacityWeight(), p:getMaxWeight())
-    if last and last == win._loadStat then
-        last.text = txt
-    else
-        win._loadStat = { text = txt, noMark = true }
-        stats[#stats + 1] = win._loadStat
-        win.titleStats = stats
-    end
+    -- (the pins are built here too while the side does not draw, so a rolled-up side or a drawer over the window does
+    -- not freeze their numbers; the list is made again, pins then the one load entry kept on the window, so the load
+    -- never shows twice) (QA B6-17, beast W8)
+    local stats = {}
+    win._pinnedSkills = ZeD.Pins.skillNames(p)
+    for _, st in ipairs(ZeD.Pins.stats(p)) do stats[#stats + 1] = st end
+    local ls = win._loadStat
+    if not ls then ls = { noMark = true }; win._loadStat = ls end
+    ls.text = txt
+    stats[#stats + 1] = ls
+    win.titleStats = stats
 end
 
 --- A tab that another file adds: ZeD's own extras (CookingTab, ServerTab) and

@@ -51,6 +51,8 @@ local function carriedByType(p, ft) return p:getInventory():getAllTypeRecurse(ft
 local foundIds = {}
 -- each pin's built title bar entry, by kind and id (P.stats; cleared in P.toggle)
 local entryCache = {}
+-- the language (ZeD._trGen) and the test language the cache was built for (QA B6-8)
+local entryGen, entryTest = nil, nil
 -- is this item's id the id of any pin in the list?
 local function heldByAPin(p, it)
     local iid = tostring(it:getID())
@@ -59,10 +61,17 @@ local function heldByAPin(p, it)
 end
 local function itemOf(p, id, e)
     local ok, it = pcall(carriedById, p, id)
-    if ok and it then foundIds[tostring(id)] = true; return it end
-    -- (the same kind of thing you carry, when its id is not found: ids may not survive the game loading again. Only
-    -- for a pin whose id has not been found yet this session, and never an item another pin already holds) (beast W7)
-    if e and e.ft and not foundIds[tostring(id)] then
+    if ok and it then
+        foundIds[tostring(id)] = true
+        -- (this pin's id is known to survive a load: it is never re-targeted by type again) (QA B6-10)
+        if e and not e.byId then e.byId = true end
+        return it
+    end
+    -- (the same kind of thing you carry, when its id is not found: only for a record made before ids were trusted
+    -- (no byId mark), as ids did not survive a load then. A pin made now keeps its own id and shows nothing while its
+    -- item is in a crate, the car or on the floor, never another item of its kind. Not for a pin whose id has been
+    -- found this session, and never an item another pin already holds) (beast W7, QA B6-10)
+    if e and e.ft and not e.byId and not foundIds[tostring(id)] then
         local ok2, all = pcall(carriedByType, p, e.ft)
         if ok2 and all then
             for i = 0, all:size() - 1 do
@@ -100,7 +109,8 @@ function P.toggle(p, k, id, name)
         local it = itemOf(p, id)
         if it then pcall(function() ft = it:getFullType() end) end
     end
-    L[#L + 1] = { k = k, id = id, name = name, ft = ft }
+    -- (an item pin made now is by id only, never moved to another item of its kind after a load) (QA B6-10)
+    L[#L + 1] = { k = k, id = id, name = name, ft = ft, byId = (k ~= "skill") or nil }
     if #L > P.MAX then
         local gone = table.remove(L, 1)
         local pn = p:getPlayerNum()
@@ -184,6 +194,13 @@ end
 function P.stats(p)
     local T = ZeD.T
     local out = {}
+    -- (the kept entries hold words in the language they were built in: dropped when the language or the test
+    -- language changes, as ZeD.tr's own cache is) (QA B6-8)
+    local trSt = ZeD._trState
+    local trOn = (trSt and trSt.on) and true or false
+    if entryGen ~= ZeD._trGen or entryTest ~= trOn then
+        entryCache, entryGen, entryTest = {}, ZeD._trGen, trOn
+    end
     for _, e in ipairs(list(p)) do
         -- the pin's words with its name, then with the name cut shorter (alts): the title bar fits the whole row
         -- in the longest forms it can, and drops a pin rather than show numbers with no word to them
