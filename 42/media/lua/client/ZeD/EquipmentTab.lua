@@ -65,12 +65,12 @@ local EQUIP_GROUPS = {
         { type = "HAT", vkey = "UI_ClothingType_Hat",   locs = {"hat", "fullhat", "fullsuithead", "fullsuitheadscba"} },
         { type = "EYE", key = "UI_ZeD_Equip_Eyewear",   locs = {"eyes", "lefteye", "righteye"} },
         { type = "MSK", vkey = "UI_ClothingType_Mask",  locs = {"mask", "maskeyes", "maskfull"} },
-        { type = "EAR", vkey = "UI_ClothingType_Ears",  locs = {"ears", "eartop"} },
+        { type = "EAR", vkey = "UI_ClothingType_Ears",  locs = {"ears", "eartop", "nose"} },   -- nose: by the ears, as the doll's Ears | Nose band (beast W3)
         { type = "SCF", vkey = "UI_ClothingType_Scarf", locs = {"scarf", "necktexture"} },
     }},
     { id = "torso", key = "UI_ZeD_Equip_GroupTorso", slots = {
         { type = "OUT", key = "UI_ZeD_Equip_Outer",         locs = {"jacket", "jacketdown", "jacketbulky", "jacketsuit", "boilersuit", "fullsuit", "fulltop", "bathrobe", "fullrobe", "bodycostume", "sweater", "jersey", "sweaterhat", "jackethat", "jackethatbulky"} },
-        { type = "INR", key = "UI_ZeD_Equip_Inner",         locs = {"tshirt", "tanktop", "shirt", "shortsleeveshirt", "torso1", "torso1legs1", "torsoextra"} },
+        { type = "INR", key = "UI_ZeD_Equip_Inner",         locs = {"tshirt", "tanktop", "shirt", "shortsleeveshirt", "torso1", "torso1legs1", "torsoextra", "bellybutton"} },   -- bellybutton: the doll's Torso (beast W3)
         { type = "VST", vkey = "UI_ClothingType_Vest",      locs = {"torsoextravest", "torsoextravestbullet", "cuirass", "gorget", "vesttexture", "shoulderholster"} },
         { type = "UND", vkey = "UI_ClothingType_Underwear", locs = {"underwear", "underweartop", "underwearbottom", "underwearextra1", "underwearextra2"} },
         { type = "NKL", vkey = "UI_ClothingType_Neck",      locs = {"necklace", "necklacelong", "neck"} },
@@ -80,10 +80,10 @@ local EQUIP_GROUPS = {
         { type = "WCH", key = "UI_ZeD_Equip_Wrist",     locs = {"leftwrist", "rightwrist"} },
         { type = "RNG", key = "UI_ZeD_Equip_Ring",      locs = {"leftmiddlefinger", "rightmiddlefinger", "leftringfinger", "rightringfinger"} },
         { type = "ARM", key = "UI_ZeD_Equip_Arms",      locs = {"leftarm", "rightarm", "forearmleft", "forearmright", "elbowleft", "elbowright"} },
-        { type = "SHD", key = "UI_ZeD_Equip_Shoulder",  locs = {"shoulderpadleft", "shoulderpadright", "sportshoulderpad", "sportshoulderpaddontop"} },
+        { type = "SHD", key = "UI_ZeD_Equip_Shoulder",  locs = {"shoulderpadleft", "shoulderpadright", "sportshoulderpad", "sportshoulderpadontop"} },   -- (one d: vanilla's spelling) (beast W3)
     }},
     { id = "legs", key = "UI_ZeD_Equip_GroupLegs", slots = {
-        { type = "PNT", vkey = "UI_ClothingType_Pants", locs = {"pants", "pantsskinny", "pantsextra", "shortpants", "shortsshort", "legs1", "skirt", "longskirt", "dress", "longdress"} },
+        { type = "PNT", vkey = "UI_ClothingType_Pants", locs = {"pants", "pantsskinny", "pantsextra", "shortpants", "shortsshort", "legs1", "skirt", "longskirt", "dress", "longdress", "codpiece"} },   -- codpiece: the doll's Legs (beast W3)
         { type = "SOC", vkey = "UI_ClothingType_Socks", locs = {"socks"} },
         { type = "BOT", vkey = "UI_ClothingType_Shoes", locs = {"shoes"} },
         { type = "KNE", key = "UI_ZeD_Equip_KneeLeg",   locs = {"kneeleft", "kneeright", "calfleft", "calfright", "calflefttexture", "calfrighttexture", "thighleft", "thighright", "gaiterleft", "gaiterright"} },
@@ -91,7 +91,7 @@ local EQUIP_GROUPS = {
     { id = "held", key = "UI_ZeD_Equip_GroupHeld", slots = {
         { type = "PRI", vkey = "IGUI_PrimaryTooltip",   locs = {"__primary"} },
         { type = "SEC", vkey = "IGUI_SecondaryTooltip", locs = {"__secondary"} },
-        { type = "BAG", key = "UI_ZeD_Equip_BackBag",   locs = {"back", "satchel"} },
+        { type = "BAG", key = "UI_ZeD_Equip_BackBag",   locs = {"back", "satchel", "scba", "scbanotank", "tail"} },   -- air tank and tail: the doll's Back (beast W3)
         { type = "BLT", vkey = "UI_ClothingType_Belt",  locs = {"belt", "beltextra", "fannypackfront", "fannypackback", "webbing", "ankleholster", "ammostrap"} },
     }},
 }
@@ -122,7 +122,7 @@ local SHORT_KEY = {
     BLT = "UI_ZeD_Equip_Short_BLT",
 }
 function ZeD.EquipmentTab.shortOf(def)
-    local k = def and SHORT_KEY[def.type]
+    local k = def and SHORT_KEY[def.layerOf or def.type]   -- a layer row reads as its slot (beast W3)
     if k then return ZeD.tr(k) end
     return ZeD.EquipmentTab.wordsOf(def)
 end
@@ -517,13 +517,26 @@ function ZeD.EquipmentTab.gatherData(playerObj)
                     local mapping = LOCATION_TO_SLOT[locStr]
                     if mapping then
                         local slot = groups[mapping.gi].slots[mapping.si]
-                        -- Only fill if empty: the first match in worn order wins
+                        -- The first match in worn order (the outermost) fills the slot's row
                         if not slot.item then
                             slot.item   = item
                             slot.cond   = condRatio(item)
                             slot.tex    = getItemTexture(item)
                             slot.attach = getAttachCount(item)
                             slot.prot   = getProtection(item)
+                        else
+                            -- Every further item worn in the slot (a tank top under a T-shirt, a second
+                            -- ring) gets a row of its own under it, so nothing worn is hidden: the main
+                            -- inventory list leaves worn items out. Its own type ("INR#2") keeps its
+                            -- selection, focus and Find match apart from the slot's. (beast W3)
+                            slot.layers = slot.layers or {}
+                            local n = #slot.layers + 2
+                            slot.layers[#slot.layers + 1] = {
+                                type = slot.type .. "#" .. n, layerOf = slot.type,
+                                key = slot.key, vkey = slot.vkey,
+                                item = item, cond = condRatio(item), tex = getItemTexture(item),
+                                attach = getAttachCount(item), prot = getProtection(item),
+                            }
                         end
                     end
                 end
@@ -549,6 +562,22 @@ function ZeD.EquipmentTab.gatherData(playerObj)
                 groups[5].slots[si].attach = 0
                 groups[5].slots[si].prot   = getProtection(sec)
             end
+        end
+    end
+
+    -- Put each slot's extra worn items in as rows right after it (after the hands above, which
+    -- find their slots by index). (beast W3)
+    for _, g in ipairs(groups) do
+        local hasLayers = false
+        for _, s in ipairs(g.slots) do if s.layers then hasLayers = true; break end end
+        if hasLayers then
+            local rows = {}
+            for _, s in ipairs(g.slots) do
+                rows[#rows + 1] = s
+                for _, l in ipairs(s.layers or {}) do rows[#rows + 1] = l end
+                s.layers = nil
+            end
+            g.slots = rows
         end
     end
 

@@ -3737,7 +3737,12 @@ local function handleDrop(content, items, srcInventory)
     -- otherwise: is the mouse over a different column (multi-column transfer)
     local destContainer = ZeD.Curtain and ZeD.Curtain.dropTarget and ZeD.Curtain.dropTarget() or nil
     local mx = content:getMouseX()
-    local dropColIdx, dropCs = getColumnAtX(content, mx)
+    -- A column counts only while the pointer is inside the list top to bottom too: a release above
+    -- or below the window (or over another window) at a column's X must fall through to the floor
+    -- and cross-window checks, not land in that column's container. (beast W1)
+    local myIn = content:getMouseY()
+    local dropColIdx, dropCs = nil, nil
+    if myIn >= 0 and myIn < content:getHeight() then dropColIdx, dropCs = getColumnAtX(content, mx) end
     if not destContainer and dropColIdx and dropCs and dropCs.inventory ~= srcContainer then
         destContainer = dropCs.inventory
     end

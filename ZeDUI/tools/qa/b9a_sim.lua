@@ -86,6 +86,7 @@ do
             local c = { _inventory = inv, _playerObj = player, _stacks = {}, _expandedStacks = {} }
             c.getMouseX = function() return 10 end
             c.getMouseY = function() return 10 end
+            c.getHeight = function() return 600 end   -- (beast W1: a column counts only with the pointer inside the list's height)
             c.hitZoneAt = function() return nil end
             c.isMouseOver = function() return over end
             c.getAbsoluteX = function() return 0 end

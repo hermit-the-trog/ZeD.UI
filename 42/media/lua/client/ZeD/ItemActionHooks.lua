@@ -267,18 +267,22 @@ local function _pollReadingFallback(p)
             end
         end
 
+        -- Carry the read action at the queue head when it reads this book: the queue poll just
+        -- reported it, and passing nil here wiped that each tick, so the band's X could never stop
+        -- the reading. (beast W4)
+        local readAction = (headItem == book and _classifyAction(head) == "reading") and head or nil
         local prev = _readActiveItem[pn]
         if prev ~= book then
             if prev then _safeNotify(prev, "complete", nil) end
             _safeNotify(book, "start", {
                 kind = "reading", label = ZeD.tr("UI_ZeD_ItemAct_Reading"),
-                percent = percent, _action = nil,
+                percent = percent, _action = readAction,
             })
             _readActiveItem[pn] = book
         else
             _safeNotify(book, "tick", {
                 kind = "reading", label = ZeD.tr("UI_ZeD_ItemAct_Reading"),
-                percent = percent, _action = nil,
+                percent = percent, _action = readAction,
             })
         end
     else

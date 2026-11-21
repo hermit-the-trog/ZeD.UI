@@ -1470,6 +1470,10 @@ function ZeD_ItemCard:renderBody(ctx)
     local pbo = self._progressOpts
     if not pbo then pbo = {}; self._progressOpts = pbo end
     pbo.focus = self.focusFor and self:focusFor("cancel_band") or nil   -- Cancel's mark, under its icon
+    -- Cooking is not a timed action (the food cooks while it sits on the heat), so there is
+    -- nothing for the band's X to stop: the band shows without it. (beast W4)
+    local pba = ZeD.ItemActionManager and ZeD.ItemActionManager.getActiveAction(item)
+    pbo.noCancel = (pba and pba.kind == "cooking") or nil
     local pbH = M.drawCardProgressBand(self, 0, cy, w, item, compact, cancelRect, pbo)
     cy = cy + (pbH or 0)
     if pbH == 0 then cancelRect = nil end

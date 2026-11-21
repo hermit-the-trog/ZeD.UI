@@ -1641,7 +1641,9 @@ ZeD.Atoms.drawCrossGlyph = drawCrossGlyph   -- (the cards' close key draws the s
 --- @param compact  If true, 220w sizing preset; otherwise 480w preset
 --- @param opts     Optional { focus = the ZeD.Focus.mark opts (or true) when Cancel has the
 ---                 controller's focus, hover (nil: the pointer is tested here), help (the
----                 help line's words; default "Cancel: stop doing this"), win }
+---                 help line's words; default "Cancel: stop doing this"), win,
+---                 noCancel (true: no Cancel button and outRect left empty, for a band
+---                 nothing can stop, e.g. food cooking on a stove) }
 --- @return height  Total vertical pixels consumed (so caller can place the next element)
 local _pbCancel = {}
 function ZeD.Atoms.drawProgressBand(panel, x, y, w, mode, label, percent, timeStr, outRect, compact, opts)
@@ -1672,6 +1674,8 @@ function ZeD.Atoms.drawProgressBand(panel, x, y, w, mode, label, percent, timeSt
     local btnY = y + padTop + math.floor((innerH - btnS) / 2)
     local colX = x + padX
     local colR = btnX - T.px(8)
+    -- no Cancel: the rows take its room too (beast W4)
+    if opts.noCancel then colR = x + w - padX end
     local rowY = y + padTop + math.floor((innerH - colH) / 2)
 
     -- Row 1: the status mark and the words, the percent at the right, the time before it
@@ -1705,7 +1709,12 @@ function ZeD.Atoms.drawProgressBand(panel, x, y, w, mode, label, percent, timeSt
     -- Row 2: the framed fill bar in the mode's colour
     A.drawSmoothBar(panel, colX, rowY + labelH + gapV, math.max(T.px(8), colR - colX), percent or 0, false, markC, barH)
 
-    -- Cancel: the icon button with an X (its hint names it; its help says what a press does)
+    -- Cancel: the icon button with an X (its hint names it; its help says what a press does).
+    -- Skipped with opts.noCancel, and outRect then stays empty so no click or pad stop lands. (beast W4)
+    if opts.noCancel then
+        A.drawDividerH(panel, x, y + totalH - T.line(T.borderW), w, false)
+        return totalH
+    end
     local o = _pbCancel
     if opts.hover ~= nil then o.hover = opts.hover else o.hover = A.mouseIn(panel, btnX, btnY, btnS, btnS) end
     o.focus, o.win = opts.focus, opts.win

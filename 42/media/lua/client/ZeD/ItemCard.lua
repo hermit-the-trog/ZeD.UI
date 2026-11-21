@@ -298,51 +298,29 @@ local function noteNeeds(card, key)
     end
 end
 
-VERB_DISPATCH.repair_all = function(card)
+-- Repair (onlyHoles true) or Pad (false) every part of a garment through vanilla's
+-- ISInventoryPaneContextMenu.repairAllClothing: it takes a fresh fabric for each part (one
+-- action used to share one fabric, so the second failed once the first ate it), moves on to the
+-- next thread when one runs low, and its repairClothing first carries the fabric, thread, needle
+-- and garment out of bags or off the floor into the main inventory, where ISRepairClothing needs
+-- them. (beast W2)
+local function queueRepairAll(card, key, onlyHoles)
     local player = getSpecificPlayer(card.playerNum)
     if not player then return end
     local item = card.item
     local parts = safeGet(item, "getCoveredParts")
     if not parts then return end
     local needle, thread, fabric = findClothingMaterials(player)
-    if not needle then noteNeeds(card, "repair_all"); return end
-    for i = 0, parts:size() - 1 do
-        local part   = parts:get(i)
-        local visual = safeGet(item, "getVisual")
-        local hc = 0
-        if visual then
-            local ok, v = pcall(function() return visual:getHole(part) end)
-            if ok and v then hc = v end
-        end
-        local patch = safeGet(item, "getPatchType", part)
-        if hc > 0 and not patch then
-            ISTimedActionQueue.add(ISRepairClothing:new(player, item, part, fabric, thread, needle))
-        end
-    end
+    if not needle then noteNeeds(card, key); return end
+    -- vanilla wants a plain Lua list of parts, not the Java ArrayList (beast W2)
+    local list = {}
+    for i = 0, parts:size() - 1 do list[#list + 1] = parts:get(i) end
+    ISInventoryPaneContextMenu.repairAllClothing(player, item, list, fabric, thread, needle, onlyHoles)
 end
 
-VERB_DISPATCH.pad_all = function(card)
-    local player = getSpecificPlayer(card.playerNum)
-    if not player then return end
-    local item = card.item
-    local parts = safeGet(item, "getCoveredParts")
-    if not parts then return end
-    local needle, thread, fabric = findClothingMaterials(player)
-    if not needle then noteNeeds(card, "pad_all"); return end
-    for i = 0, parts:size() - 1 do
-        local part   = parts:get(i)
-        local visual = safeGet(item, "getVisual")
-        local hc = 0
-        if visual then
-            local ok, v = pcall(function() return visual:getHole(part) end)
-            if ok and v then hc = v end
-        end
-        local patch = safeGet(item, "getPatchType", part)
-        if hc == 0 and not patch then
-            ISTimedActionQueue.add(ISRepairClothing:new(player, item, part, fabric, thread, needle))
-        end
-    end
-end
+VERB_DISPATCH.repair_all = function(card) queueRepairAll(card, "repair_all", true) end
+
+VERB_DISPATCH.pad_all = function(card) queueRepairAll(card, "pad_all", false) end
 
 -- Shared: find the first available fixer for a given fixing, then delegate to
 -- vanilla onFix which handles transferIfNeeded + ISFixAction queuing.
@@ -797,7 +775,8 @@ function ZeD_ItemCard:_onZonePress(zoneIdx, zone, rect)
         -- Repair hole — find materials via shared helper
         local needle, thread, fabric = findClothingMaterials(player)
         if needle then
-            ISTimedActionQueue.add(ISRepairClothing:new(player, item, part, fabric, thread, needle))
+            -- vanilla's repairClothing brings the materials and garment out of bags first (beast W2)
+            ISInventoryPaneContextMenu.repairClothing(player, item, part, fabric, thread, needle)
         end
     elseif patchObj then
         -- Remove patch — needs needle only
@@ -868,22 +847,20 @@ function ZeD_ItemCard:_dispatchProgressCancel()
     if not mgr then return end
     local active = mgr.getActiveAction(self.item)
     if not active then return end
+    -- the cooking band has no action to stop (its X is hidden); never wipe the queue for it (beast W4)
+    if active.kind == "cooking" then return end
     local action = active._action
     if action and action.forceStop then
         pcall(action.forceStop, action)
     elseif action and action.stop then
         pcall(action.stop, action)
     else
-        -- Fallback: clear the player's entire queue. Bigger hammer but
-        -- safe — the user explicitly clicked cancel.
+        -- Fallback: stop what the player is doing, the way vanilla's own cancel does.
+        -- ISTimedActionQueue.clear stops the running action (StopAllActionQueue) and then
+        -- clears the queue; clearQueue alone left the running action going. (beast W4)
         local p = getSpecificPlayer(self.playerNum or 0)
-        if p and ISTimedActionQueue and ISTimedActionQueue.queues then
-            local q = ISTimedActionQueue.getTimedActionQueue(p)  -- queues are keyed by character, not playerNum
-            -- Never forceStop queued-but-unstarted actions — vanilla's
-            -- ISBaseTimedAction:forceStop indexes self.action, which is nil
-            -- until start(), and throws. ISTimedActionQueue:clearQueue is the
-            -- vanilla-safe way to drop the whole queue.
-            if q and q.clearQueue then pcall(q.clearQueue, q) end
+        if p and ISTimedActionQueue and ISTimedActionQueue.clear then
+            pcall(ISTimedActionQueue.clear, p)
         end
     end
     -- Clear the manager's active state so the Band stops rendering even
@@ -2045,7 +2022,8 @@ function ZeD.ItemDetail.dispatchZoneAction(player, item, part, action)
     if action == "repair" then
         local needle, thread, fabric = findClothingMaterials(player)
         if needle then
-            ISTimedActionQueue.add(ISRepairClothing:new(player, item, part, fabric, thread, needle))
+            -- vanilla's repairClothing brings the materials and garment out of bags first (beast W2)
+            ISInventoryPaneContextMenu.repairClothing(player, item, part, fabric, thread, needle)
         end
     elseif action == "remove-patch" then
         local inv = player:getInventory()

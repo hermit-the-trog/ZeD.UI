@@ -2800,177 +2800,219 @@ local function buildWorldContainers(playerObj)
 
     local vehicleSeen = {}  -- dedup vehicles across tiles
 
-    for dy = -1, 1 do
-        for dx = -1, 1 do
-            local gs = getCell():getGridSquare(cx + dx, cy + dy, cz)
+    -- Seated in a vehicle: like vanilla's loot window (ISInventoryPage.refreshBackpacks' seated branch),
+    -- list only that car's containers the seat can reach and the bags in them, the truck bed last.
+    -- No 3x3 scan (no floor items, furniture or corpses beside the car, no filling unexplored ones as
+    -- you drive past); the floor entry below stays, empty. (beast W5)
+    local seatedIn = playerObj:getVehicle()
+    if seatedIn then
+        for pass = 1, 2 do   -- pass 1: every part but the truck bed; pass 2: the truck bed
+            for pi = 0, seatedIn:getPartCount() - 1 do
+                local part = seatedIn:getPartByIndex(pi)
+                if part and part:getItemContainer() and seatedIn:canAccessContainer(pi, playerObj)
+                   and ((part:getId() == "TruckBed") == (pass == 2)) then
+                    local pCont = part:getItemContainer()
+                    local pType = tostring(pCont:getType())
+                    containers[#containers + 1] = {
+                        inventory = pCont,
+                        name = getTextOrNull("IGUI_VehiclePart" .. pType) or part:getCategory() or "Vehicle",
+                        texture = resolveContainerIcon(pType)
+                              or resolveContainerIcon(tostring(part:getId())) or resolveContainerIcon(part:getCategory() or ""),
+                        isFloor = false,
+                        sourceType = "vehicle",
+                    }
+                    -- the bags on the seats and in the trunk (not the glove box's), as vanilla
+                    if part:getId() and part:getId() ~= "GloveBox" then
+                        local pItems = pCont:getItems()
+                        for bi = 0, pItems:size() - 1 do
+                            local bag = pItems:get(bi)
+                            if bag and bag:getCategory() == "Container" then
+                                containers[#containers + 1] = {
+                                    inventory = bag:getInventory(),
+                                    name = bag:getName(),
+                                    texture = bag:getTex(),
+                                    isFloor = false,
+                                    sourceType = "vehicle_container",
+                                }
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    else
+        for dy = -1, 1 do
+            for dx = -1, 1 do
+                local gs = getCell():getGridSquare(cx + dx, cy + dy, cz)
 
-            -- Wall penetration check
-            if gs and gs ~= currentSq and currentSq then
-                if not currentSq:canReachTo(gs) then
+                -- Wall penetration check
+                if gs and gs ~= currentSq and currentSq then
+                    if not currentSq:canReachTo(gs) then
+                        gs = nil
+                    end
+                end
+
+                -- Safehouse permission check (multiplayer)
+                if gs and isClient() and not SafeHouse.isSafehouseAllowLoot(gs, playerObj) then
                     gs = nil
                 end
-            end
 
-            -- Safehouse permission check (multiplayer)
-            if gs and isClient() and not SafeHouse.isSafehouseAllowLoot(gs, playerObj) then
-                gs = nil
-            end
-
-            if gs then
-                -- A. Ground items (IsoWorldInventoryObject)
-                local wobs = gs:getWorldObjects()
-                if wobs then
-                    for i = 0, wobs:size() - 1 do
-                        local o = wobs:get(i)
-                        if o and o:getItem() then
-                            local item = o:getItem()
-                            floorC:AddItem(item)
-                            -- Item-containers on the ground (dropped backpacks)
-                            if item:getCategory() == "Container" then
-                                containers[#containers + 1] = {
-                                    inventory = item:getInventory(),
-                                    name = item:getName(),
-                                    texture = item:getTex(),
-                                    isFloor = false,
-                                    sourceType = "ground_container",
-                                }
-                            end
-                        end
-                    end
-                end
-
-                -- B. Static moving objects (corpses)
-                local sobs = gs:getStaticMovingObjects()
-                if sobs then
-                    for i = 0, sobs:size() - 1 do
-                        local so = sobs:get(i)
-                        if so and so:getContainer() then
-                            -- Skip animal bodies
-                            local isAnimal = instanceof(so, "IsoDeadBody") and so:isAnimal()
-                            if not isAnimal then
-                                local corpseType = "inventorymale"
-                                local desc = instanceof(so, "IsoDeadBody") and so:getDescription() or nil
-                                if desc and desc.isFemale and pcall(function() if desc:isFemale() then corpseType = "inventoryfemale" end end) then end
-                                -- a nameless body is titled by vanilla's own word for it ("Corpse")
-                                local title = getText("IGUI_ContainerTitle_" .. corpseType)
-                                if instanceof(so, "IsoDeadBody") then
-                                    -- The player's own corpse (and some B42 bodies) hands
-                                    -- back a description without getForename/getSurname — this
-                                    -- threw "Object tried to call nil" every frame after a death.
-                                    pcall(function()
-                                        local desc = so:getDescription()
-                                        if desc and desc.getForename and desc.getSurname then
-                                            local fore, sur = desc:getForename(), desc:getSurname()
-                                            if fore and sur then title = fore .. " " .. sur end
-                                        end
-                                    end)
+                if gs then
+                    -- A. Ground items (IsoWorldInventoryObject)
+                    local wobs = gs:getWorldObjects()
+                    if wobs then
+                        for i = 0, wobs:size() - 1 do
+                            local o = wobs:get(i)
+                            if o and o:getItem() then
+                                local item = o:getItem()
+                                floorC:AddItem(item)
+                                -- Item-containers on the ground (dropped backpacks)
+                                if item:getCategory() == "Container" then
+                                    containers[#containers + 1] = {
+                                        inventory = item:getInventory(),
+                                        name = item:getName(),
+                                        texture = item:getTex(),
+                                        isFloor = false,
+                                        sourceType = "ground_container",
+                                    }
                                 end
-                                containers[#containers + 1] = {
-                                    inventory = so:getContainer(),
-                                    name = title,
-                                    texture = resolveContainerIcon(corpseType),
-                                    isFloor = false,
-                                    sourceType = "corpse",
-                                }
                             end
                         end
                     end
-                end
 
-                -- C. IsoObjects with containers (furniture, appliances)
-                local obs = gs:getObjects()
-                if obs then
-                    for i = 0, obs:size() - 1 do
-                        local o = obs:get(i)
-                        if o then
-                            local count = 0
-                            if o.getContainerCount then
-                                count = o:getContainerCount()
+                    -- B. Static moving objects (corpses)
+                    local sobs = gs:getStaticMovingObjects()
+                    if sobs then
+                        for i = 0, sobs:size() - 1 do
+                            local so = sobs:get(i)
+                            if so and so:getContainer() then
+                                -- Skip animal bodies
+                                local isAnimal = instanceof(so, "IsoDeadBody") and so:isAnimal()
+                                if not isAnimal then
+                                    local corpseType = "inventorymale"
+                                    local desc = instanceof(so, "IsoDeadBody") and so:getDescription() or nil
+                                    if desc and desc.isFemale and pcall(function() if desc:isFemale() then corpseType = "inventoryfemale" end end) then end
+                                    -- a nameless body is titled by vanilla's own word for it ("Corpse")
+                                    local title = getText("IGUI_ContainerTitle_" .. corpseType)
+                                    if instanceof(so, "IsoDeadBody") then
+                                        -- The player's own corpse (and some B42 bodies) hands
+                                        -- back a description without getForename/getSurname — this
+                                        -- threw "Object tried to call nil" every frame after a death.
+                                        pcall(function()
+                                            local desc = so:getDescription()
+                                            if desc and desc.getForename and desc.getSurname then
+                                                local fore, sur = desc:getForename(), desc:getSurname()
+                                                if fore and sur then title = fore .. " " .. sur end
+                                            end
+                                        end)
+                                    end
+                                    containers[#containers + 1] = {
+                                        inventory = so:getContainer(),
+                                        name = title,
+                                        texture = resolveContainerIcon(corpseType),
+                                        isFloor = false,
+                                        sourceType = "corpse",
+                                    }
+                                end
                             end
-                            for ci = 0, count - 1 do
-                                local container = o:getContainerByIndex(ci)
-                                if container then
-                                    local title = container:getType()
-                                    if o:getName() and o:getName() ~= "" then
-                                        title = o:getName()
-                                    end
-                                    -- Translate container type
-                                    local transKey = "IGUI_ContainerTitle_" .. container:getType()
-                                    local translated = getText(transKey)
-                                    if translated ~= transKey then
-                                        title = translated
-                                    end
+                        end
+                    end
 
-                                    local locked = false
-                                    if instanceof(o, "IsoThumpable") then
-                                        locked = o:isLockedToCharacter(playerObj)
-                                        if o:isLockedByPadlock() then
-                                            if playerObj:getInventory():haveThisKeyId(o:getKeyId()) then
-                                                locked = false
+                    -- C. IsoObjects with containers (furniture, appliances)
+                    local obs = gs:getObjects()
+                    if obs then
+                        for i = 0, obs:size() - 1 do
+                            local o = obs:get(i)
+                            if o then
+                                local count = 0
+                                if o.getContainerCount then
+                                    count = o:getContainerCount()
+                                end
+                                for ci = 0, count - 1 do
+                                    local container = o:getContainerByIndex(ci)
+                                    if container then
+                                        local title = container:getType()
+                                        if o:getName() and o:getName() ~= "" then
+                                            title = o:getName()
+                                        end
+                                        -- Translate container type
+                                        local transKey = "IGUI_ContainerTitle_" .. container:getType()
+                                        local translated = getText(transKey)
+                                        if translated ~= transKey then
+                                            title = translated
+                                        end
+
+                                        local locked = false
+                                        if instanceof(o, "IsoThumpable") then
+                                            locked = o:isLockedToCharacter(playerObj)
+                                            if o:isLockedByPadlock() then
+                                                if playerObj:getInventory():haveThisKeyId(o:getKeyId()) then
+                                                    locked = false
+                                                end
                                             end
                                         end
-                                    end
 
-                                    containers[#containers + 1] = {
-                                        inventory = container,
-                                        name = title,
-                                        texture = resolveContainerIcon(container:getType()),
-                                        isFloor = false,
-                                        sourceType = "object",
-                                        locked = locked,
-                                        isoObject = o,
-                                    }
+                                        containers[#containers + 1] = {
+                                            inventory = container,
+                                            name = title,
+                                            texture = resolveContainerIcon(container:getType()),
+                                            isFloor = false,
+                                            sourceType = "object",
+                                            locked = locked,
+                                            isoObject = o,
+                                        }
 
-                                    -- Request server items for unexplored containers
-                                    if not container:isExplored() then
-                                        if isClient() then
-                                            container:requestServerItemsForContainer()
-                                        else
-                                            ItemPicker.fillContainer(container, playerObj)
+                                        -- Request server items for unexplored containers
+                                        if not container:isExplored() then
+                                            if isClient() then
+                                                container:requestServerItemsForContainer()
+                                            else
+                                                ItemPicker.fillContainer(container, playerObj)
+                                            end
+                                            container:setExplored(true)
                                         end
-                                        container:setExplored(true)
                                     end
                                 end
                             end
                         end
                     end
-                end
 
-                -- D. Vehicles
-                local vehicle = gs:getVehicleContainer()
-                if vehicle and not vehicleSeen[vehicle] then
-                    vehicleSeen[vehicle] = true
-                    local partCount = vehicle:getPartCount()
-                    for pi = 0, partCount - 1 do
-                        local part = vehicle:getPartByIndex(pi)
-                        if part and part:getItemContainer()
-                           and vehicle:canAccessContainer(pi, playerObj) then
-                            -- vanilla's name for the container (Trunk, Food Container...)
-                            local partName = getTextOrNull("IGUI_VehiclePart" .. tostring(part:getItemContainer():getType()))
-                                             or part:getCategory() or "Vehicle"
-                            local vehType = part:getCategory() or ""
-                            containers[#containers + 1] = {
-                                inventory = part:getItemContainer(),
-                                name = partName,
-                                texture = resolveContainerIcon(tostring(part:getItemContainer():getType()))
-                                      or resolveContainerIcon(tostring(part:getId())) or resolveContainerIcon(vehType),
-                                isFloor = false,
-                                sourceType = "vehicle",
-                            }
-                            -- Bags on the seats and in the trunk get a button of their own,
-                            -- as in vanilla's loot window (not the glove box's)
-                            if part:getId() and part:getId() ~= "GloveBox" then
-                                local pItems = part:getItemContainer():getItems()
-                                for bi = 0, pItems:size() - 1 do
-                                    local bag = pItems:get(bi)
-                                    if bag and bag:getCategory() == "Container" then
-                                        containers[#containers + 1] = {
-                                            inventory = bag:getInventory(),
-                                            name = bag:getName(),
-                                            texture = bag:getTex(),
-                                            isFloor = false,
-                                            sourceType = "vehicle_container",
-                                        }
+                    -- D. Vehicles
+                    local vehicle = gs:getVehicleContainer()
+                    if vehicle and not vehicleSeen[vehicle] then
+                        vehicleSeen[vehicle] = true
+                        local partCount = vehicle:getPartCount()
+                        for pi = 0, partCount - 1 do
+                            local part = vehicle:getPartByIndex(pi)
+                            if part and part:getItemContainer()
+                               and vehicle:canAccessContainer(pi, playerObj) then
+                                -- vanilla's name for the container (Trunk, Food Container...)
+                                local partName = getTextOrNull("IGUI_VehiclePart" .. tostring(part:getItemContainer():getType()))
+                                                 or part:getCategory() or "Vehicle"
+                                local vehType = part:getCategory() or ""
+                                containers[#containers + 1] = {
+                                    inventory = part:getItemContainer(),
+                                    name = partName,
+                                    texture = resolveContainerIcon(tostring(part:getItemContainer():getType()))
+                                          or resolveContainerIcon(tostring(part:getId())) or resolveContainerIcon(vehType),
+                                    isFloor = false,
+                                    sourceType = "vehicle",
+                                }
+                                -- Bags on the seats and in the trunk get a button of their own,
+                                -- as in vanilla's loot window (not the glove box's)
+                                if part:getId() and part:getId() ~= "GloveBox" then
+                                    local pItems = part:getItemContainer():getItems()
+                                    for bi = 0, pItems:size() - 1 do
+                                        local bag = pItems:get(bi)
+                                        if bag and bag:getCategory() == "Container" then
+                                            containers[#containers + 1] = {
+                                                inventory = bag:getInventory(),
+                                                name = bag:getName(),
+                                                texture = bag:getTex(),
+                                                isFloor = false,
+                                                sourceType = "vehicle_container",
+                                            }
+                                        end
                                     end
                                 end
                             end
@@ -2979,7 +3021,7 @@ local function buildWorldContainers(playerObj)
                 end
             end
         end
-    end
+    end   -- (the seated branch above) (beast W5)
 
     -- Floor container always last in the list (the strip draws it pinned at the top)
     containers[#containers + 1] = {
@@ -5631,6 +5673,9 @@ function ZeD_WorldWindow.toggle(playerNum)
         local colStates = contentPanel._colStates
         if not colStates then return false end
         local mx = contentPanel:getMouseX()
+        -- only a release inside the list top to bottom picks a column; outside it falls through (beast W1)
+        local my = contentPanel:getMouseY()
+        if my < 0 or my >= contentPanel:getHeight() then return false end
         local _, dropCs = getColumnAtX(contentPanel, mx)
         if not dropCs then return false end
         local destInv = dropCs.inventory
