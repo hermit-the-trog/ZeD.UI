@@ -1,0 +1,8 @@
+# ZeDUI/tools/qa/bx_mods.txt  (Nov 21 2026, QA beast day): ZeD with nine other mods on (bx_mods_list.txt): both windows on
+# every tab, the right-click menus, the Health tab, Messages and the pause window's Mods list, step aside. Run it through
+# bx_mods_run.ps1 (it copies the mods into Zomboid/mods, runs zedqa_mods_run.ps1 at 4K with no Steam, and takes its
+# copies out again):
+#   pwsh -File ZeDUI/tools/qa/bx_mods_run.ps1
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+bx_mods.lua | bx_mods | timeout=900

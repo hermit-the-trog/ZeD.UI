@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/bx_g2.txt  (Nov 21 2026, QA beast day): the stress run, group 2: ZeD's options and the UI scale
+# pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/bx_g2.txt -Mode fullscreen4k -Report bx_g2
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+bx_options.lua | bx_opt | timeout=540
+bx_scale.lua | bx_scl | timeout=540

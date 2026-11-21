@@ -1,0 +1,7 @@
+# ZeDUI/tools/qa/bx_g1.txt  (Nov 21 2026, QA beast day): the stress run, group 1: inventory, windows and the right-click menus, fast and in odd orders
+# pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/bx_g1.txt -Mode fullscreen4k -Report bx_g1
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+bx_inventory.lua | bx_inv | timeout=540
+bx_windows.lua | bx_win | timeout=540
+bx_context.lua | bx_ctx | timeout=560

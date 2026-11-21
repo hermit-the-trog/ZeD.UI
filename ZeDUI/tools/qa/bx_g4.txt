@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/bx_g4.txt  (Nov 21 2026, QA beast day): the stress run, group 4: combat (shoot, reload, swing) and the world (doors, lights, sit, climb)
+# pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/bx_g4.txt -Mode fullscreen4k -Report bx_g4
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+bx_combat.lua | bx_cmb | timeout=540
+bx_world.lua | bx_wld | timeout=540

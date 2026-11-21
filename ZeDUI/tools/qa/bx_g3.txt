@@ -1,0 +1,7 @@
+# ZeDUI/tools/qa/bx_g3.txt  (Nov 21 2026, QA beast day): the stress run, group 3: craft, cook, injuries, sickness, sleep, rest and sit
+# pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/bx_g3.txt -Mode fullscreen4k -Report bx_g3
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+bx_craft.lua | bx_crf | timeout=540
+bx_cook.lua | bx_cook | timeout=540
+bx_health.lua | bx_hlth | timeout=560
