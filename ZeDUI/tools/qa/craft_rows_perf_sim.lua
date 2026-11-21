@@ -139,7 +139,8 @@ local CC = {
 ZeD.CraftingCore = CC
 local cut = dofile(ROOT .. "ZeDUI/tools/qa/cc_cut.lua")
 cut(ROOT, CC, { "function CC.due(", "function CC.carryStatus(", "function CC.rowsBegin(", "function CC.refreshRow(",
-    "function CC.perkLevelOf(", "function CC.rowsEnd(", "function CC.showMode(", "function CC.filterAndSort(",
+    "function CC.perkLevelOf(", "function CC.rowsEnd(", "function CC.showMode(", "function CC.filterAndSort(", "function CC.stableSort(", "function CC.craftSurface(",
+    "function CC.moveCraftInputs(", "function CC.returnCraftInputs(",
     "local function logicSig(", "local function sameContainers(", "function CC.logicScan(" })
 
 local okC, errC = pcall(dofile, ROOT .. "42/media/lua/client/ZeD/CraftingTab.lua")
@@ -487,6 +488,9 @@ local function container(st)
 end
 local MAINC, BAGC = container(MAIN), container(BAG)
 CC.buildContainers = function() local l = ArrayList.new(); l:add(MAINC); l:add(BAGC); return l end
+-- (the tabs now gather the game's list, CC.craftContainers (beast W25); here it is the carried list, so the
+-- tests that swap CC.buildContainers still steer the scan)
+CC.craftContainers = function(p) return CC.buildContainers(p) end
 PerkFactory = { PerkList = list({ "P_carp", "P_cook", "P_tail", "P_metal", "P_elec" }) }
 function player:getKnownRecipes() return { size = function() return KNOWN_N.n end } end
 

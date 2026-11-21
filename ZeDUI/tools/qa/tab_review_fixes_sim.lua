@@ -250,7 +250,7 @@ do
     local function scroll() return { setScrollPos = function() end } end
     -- the list alone: Show never hides the open card's recipe
     local C1 = { }
-    local okF, errF = pcall(cut, ROOT, C1, { "function CC.showMode(", "function CC.filterAndSort(" })
+    local okF, errF = pcall(cut, ROOT, C1, { "function CC.showMode(", "function CC.filterAndSort(", "function CC.stableSort(" })
     check("filterAndSort cuts and loads", okF, errF)
     if okF then
         local data = { recipes = { rd("Base.AddCigaretteToPack", "Miscellaneous", "missing"), rd("Base.OpenCan", "Cooking", "craftable") } }
@@ -263,7 +263,7 @@ do
         check("with no card open it does not", #C1.filterAndSort(data, st, nil) == 1)
     end
     local C2 = { }
-    local okC, errC = pcall(cut, ROOT, C2, { "function CC.showMode(", "function CC.filterAndSort(", "function CC.openCraft(",
+    local okC, errC = pcall(cut, ROOT, C2, { "function CC.showMode(", "function CC.filterAndSort(", "function CC.stableSort(", "function CC.openCraft(",
         "function CC.closeCraft(", "function CC.refilter(" })
     check("filterAndSort, openCraft, closeCraft and refilter cut and load", okC, errC)
     if okC then

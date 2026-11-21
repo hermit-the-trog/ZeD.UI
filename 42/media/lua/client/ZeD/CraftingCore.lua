@@ -153,6 +153,78 @@ function CC.buildContainers(playerObj)
     return containers
 end
 
+--- The containers the Craft and Build tabs check and craft from: the game's own list for its
+--- craft and build windows (ISInventoryPaneContextMenu.getContainers: the inventory, the bags,
+--- the floor and the open loot containers), so dropped planks or a crate beside the bench count
+--- as they do in vanilla. Falls back to the carried list (CC.buildContainers) when the game's
+--- list cannot be read. The two lists are never merged: the inventory and bags would count twice.
+--- (beast W25)
+function CC.craftContainers(playerObj)
+    -- (the game's list reads the player's inventory pages; at quit they are gone, and the game's
+    -- function prints its error even under pcall, so check them first, as CookingTab does)
+    local pn = playerObj:getPlayerNum()
+    local ok0, ready = pcall(function() return getPlayerInventory(pn) ~= nil and getPlayerLoot(pn) ~= nil end)
+    if not (ok0 and ready) then return CC.buildContainers(playerObj) end
+    local ok, list = pcall(ISInventoryPaneContextMenu.getContainers, playerObj)
+    if ok and list and list:size() > 0 then return list end
+    return CC.buildContainers(playerObj)
+end
+
+--- Vanilla's craft window (ISWidgetHandCraftControl:startHandcraft) moves a recipe's inputs into
+--- the main inventory first when the recipe cannot be made from the floor, and queues the kept
+--- ones back to where they were after the craft. logic: a HandcraftLogic that has the recipe's
+--- inputs filled (canPerformCurrentRecipe asked). Queues the moves (run before the craft
+--- actions are queued) and returns the list of items to put back (for CC.returnCraftInputs).
+--- seen (optional): items already moved for an earlier craft of the batch (a tool each craft
+--- shares); they are skipped and the ones moved here are added. (beast W25)
+function CC.moveCraftInputs(playerObj, logic, seen)
+    local back = {}
+    pcall(function()
+        if logic:getRecipe():isCanBeDoneFromFloor() then return end
+        local data = logic:getRecipeData()
+        if not data then return end
+        local items = data:getAllInputItems()
+        local itemsToReturn = data:getAllPutBackInputItems()
+        -- (the recipe-at-hand item, a book or a magazine, is moved and put back too, as vanilla does)
+        if logic:isUsingRecipeAtHandBenefit() then
+            local atHand = logic:getUsingRecipeAtHandItem()
+            if atHand then
+                items:add(atHand)
+                itemsToReturn:add(atHand)
+            end
+        end
+        local inv = playerObj:getInventory()
+        for i = 0, items:size() - 1 do
+            local item = items:get(i)
+            if item and item:getContainer() ~= inv and not (seen and seen[item]) then
+                if seen then seen[item] = true end
+                ISInventoryPaneContextMenu.transferIfNeeded(playerObj, item)
+                if itemsToReturn:contains(item) then back[#back + 1] = item end
+            end
+        end
+    end)
+    return back
+end
+
+--- Queues the kept inputs CC.moveCraftInputs moved back to their containers (after the crafts).
+--- (beast W25)
+function CC.returnCraftInputs(playerObj, back)
+    if not (back and #back > 0) then return end
+    pcall(ISCraftingUI.ReturnItemsToOriginalContainer, playerObj, back)
+end
+
+--- An any-surface recipe in Hand mode: the table or counter it is made on, found as vanilla's
+--- craft window finds it (ISEntityUI.FindCraftSurface, 2 squares). nil when there is none, at a
+--- bench (the bench is the surface) or for a recipe that needs no surface. Without a surface the
+--- game's start check refuses every any-surface recipe in Hand mode. (beast W23: shared by
+--- CraftingTab's start and the chosen-ingredients start)
+function CC.craftSurface(playerObj, entry, bench)
+    if bench or not (entry and entry.needSurface) then return nil end
+    if not (ISEntityUI and ISEntityUI.FindCraftSurface) then return nil end
+    local ok, obj = pcall(ISEntityUI.FindCraftSurface, playerObj, 2)
+    return ok and obj or nil
+end
+
 -- ============================================================================
 -- UTILITY — Container Type Cache
 -- Builds a fullType → count map from all containers ONCE per refresh.
@@ -284,7 +356,7 @@ function CC.backgroundIngredientScan(data, win, prefix)
     local contKey = "_" .. prefix .. "Containers"
     local containers = win[contKey]
     if not containers then
-        containers = CC.buildContainers(win._playerObj)
+        containers = CC.craftContainers(win._playerObj)  -- (the floor and nearby containers too, as vanilla: beast W25)
         win[contKey] = containers
     end
 
@@ -381,7 +453,7 @@ function CC.logicScan(data, win, prefix, makeLogic, always)
     local ok = pcall(function()
         -- the containers as they are now (and the quick scan's cache and the Craft button's start check
         -- follow them), then the recipes: setting them fills the per-recipe cache from those containers
-        local containers = CC.buildContainers(win._playerObj)
+        local containers = CC.craftContainers(win._playerObj)  -- (beast W25)
         win["_" .. prefix .. "Containers"] = containers
         win["_" .. prefix .. "TypeCache"] = nil
         -- the list is made again only when the rows' recipes change (data.listId: the tabs keep one
@@ -723,6 +795,23 @@ function CC.prebakeInputs(recipe)
                     altCount = possible:size()
                 end
 
+                -- How many items the input takes (4 planks, 5 nails), read as vanilla's input widget
+                -- reads it (ISWidgetInput: getIntAmount for an item input). The card's have count is
+                -- items, so an input counted in uses (thread, glue, tape: a drainable item, not
+                -- isItemCount) keeps 1: one item may hold every use it needs. (beast W24)
+                local amount = 1
+                pcall(function()
+                    if input:getResourceType() ~= ResourceType.Item then return end
+                    local usesBased = false
+                    if not input:isItemCount() and okP and possible then
+                        for j = 0, possible:size() - 1 do
+                            local item = possible:get(j)
+                            if item and item:isItemType(ItemType.DRAINABLE) then usesBased = true; break end
+                        end
+                    end
+                    if not usesBased then amount = math.max(1, input:getIntAmount()) end
+                end)
+
                 -- Tag for display: TOOL, KEEP, or nil (FUEL comes later, in CC.gatherDetail:
                 -- a fuel input at a heat station)
                 local tag = nil
@@ -738,6 +827,7 @@ function CC.prebakeInputs(recipe)
                     validTypes = validTypes,
                     altCount   = altCount > 1 and altCount or 0,  -- 0 or 1 = specific item
                     tag        = tag,
+                    amount     = amount,  -- items the input takes (beast W24)
                     inputRef   = input,  -- keep ref for alt enumeration
                 }
             end
@@ -1070,23 +1160,82 @@ function CC.filterAndSort(data, state, config, win)
         rd._sortKey = sk
     end
 
-    -- Insertion sort — Kahlua-safe (no recursion)
-    for i = 2, #filtered do
-        local val = filtered[i]
-        local vk  = val._sortKey
-        local vn  = val.entry.displayName
-        local j = i - 1
-        while j >= 1 do
-            local other = filtered[j]
-            if other._sortKey < vk then break end
-            if other._sortKey == vk and other.entry.displayName <= vn then break end
-            filtered[j + 1] = other
-            j = j - 1
+    -- Order: by _sortKey, then by name, rows with the same key and name kept in list order (the
+    -- order the old insertion sort gave). Kahlua-safe: no recursion, no table.sort (the game's is a
+    -- recursive quicksort, quadratic on a list already in name order). (beast W27)
+    local n = #filtered
+    local inNameOrder = true
+    for i = 2, n do
+        if filtered[i].entry.displayName < filtered[i - 1].entry.displayName then inNameOrder = false; break end
+    end
+    if inNameOrder then
+        -- The list comes in name order: one pass drops each row in its key's bucket (each bucket
+        -- stays in name order), then the buckets join in ascending key order. The few distinct
+        -- keys are put in order with the merge sort below.
+        local buckets, keys = {}, {}
+        for i = 1, n do
+            local rd = filtered[i]
+            local b = buckets[rd._sortKey]
+            if not b then
+                b = {}
+                buckets[rd._sortKey] = b
+                keys[#keys + 1] = rd._sortKey
+            end
+            b[#b + 1] = rd
         end
-        filtered[j + 1] = val
+        CC.stableSort(keys, function(a, b) return a < b end)
+        local out = {}
+        for ki = 1, #keys do
+            local b = buckets[keys[ki]]
+            for i = 1, #b do out[#out + 1] = b[i] end
+        end
+        filtered = out
+    else
+        -- (a list not in name order, a station's own list say: the merge sort on key, then name)
+        CC.stableSort(filtered, function(a, b)
+            if a._sortKey ~= b._sortKey then return a._sortKey < b._sortKey end
+            return a.entry.displayName < b.entry.displayName
+        end)
     end
 
     return filtered, catCounts
+end
+
+--- Sorts list in place by less(a, b), keeping equal items in their list order (stable). An
+--- iterative bottom-up merge sort: no recursion (Kahlua's stack) and n log n on any input.
+--- (beast W27)
+function CC.stableSort(list, less)
+    local n = #list
+    if n < 2 then return list end
+    local src, dst = list, {}
+    local width = 1
+    while width < n do
+        local lo = 1
+        while lo <= n do
+            local mid = math.min(lo + width, n + 1)    -- first index of the right run
+            local hi = math.min(lo + 2 * width, n + 1) -- one past the right run
+            local i, j, k = lo, mid, lo
+            while i < mid and j < hi do
+                -- take the right item only when it is strictly less: equal items keep their order
+                if less(src[j], src[i]) then
+                    dst[k] = src[j]; j = j + 1
+                else
+                    dst[k] = src[i]; i = i + 1
+                end
+                k = k + 1
+            end
+            while i < mid do dst[k] = src[i]; i = i + 1; k = k + 1 end
+            while j < hi do dst[k] = src[j]; j = j + 1; k = k + 1 end
+            lo = lo + 2 * width
+        end
+        src, dst = dst, src
+        width = width * 2
+    end
+    -- (after an odd number of passes the sorted run is in the spare table: copy it back)
+    if src ~= list then
+        for i = 1, n do list[i] = src[i] end
+    end
+    return list
 end
 
 -- ============================================================================
@@ -1104,7 +1253,7 @@ function CC.gatherDetail(rd, playerObj, win, prefix)
     local contKey  = "_" .. prefix .. "Containers"
     local cacheKey = "_" .. prefix .. "TypeCache"
     if CC.due(win, "_" .. prefix .. "ContainerAt", CONTAINER_MS, not win[contKey]) then
-        win[contKey] = CC.buildContainers(playerObj)
+        win[contKey] = CC.craftContainers(playerObj)  -- (beast W25)
         win[cacheKey] = nil  -- invalidate type cache on container refresh
     end
     local containers = win[contKey]
@@ -1120,7 +1269,7 @@ function CC.gatherDetail(rd, playerObj, win, prefix)
     local missingCount = 0
     for _, inp in ipairs(entry.inputDefs) do
         local have = CC.countWithTypes(inp.validTypes, containers, typeCache)
-        local need = 1
+        local need = inp.amount or 1   -- (the input's own amount: 4 planks need 4; beast W24)
         -- Tools/kept items ARE returned after craft, but you still need them to start
         if have < need then
             missingCount = missingCount + 1
@@ -1165,7 +1314,7 @@ function CC.gatherDetail(rd, playerObj, win, prefix)
     rd.skills       = skills
     rd.missingCount = missingCount
     rd.craftTime    = craftTime
-    if rd.status ~= "station" and not rd.fromLogic then   -- (vanilla's answer counts amounts; this only counts one of each)
+    if rd.status ~= "station" and not rd.fromLogic then   -- (vanilla's answer also weighs uses, fluids and the slot's picked items; this counts whole items)
         rd.status   = missingCount > 0 and "missing" or "craftable"
     end
 
@@ -1200,7 +1349,7 @@ function CC.enumerateAlts(playerObj, containers, inputDef)
                                 displayName = item:getDisplayName() or ft,
                                 iconTex = item:getTexture(),
                                 have = 0,
-                                need = 1,
+                                need = inputDef.amount or 1,  -- (the slot's own amount: beast W24)
                             }
                             typeOrder[#typeOrder + 1] = ft
                         end
@@ -1237,7 +1386,7 @@ function CC.enumerateAlts(playerObj, containers, inputDef)
                 displayName = name,
                 iconTex = tex,
                 have = 0,
-                need = 1,
+                need = inputDef.amount or 1,  -- (beast W24)
             }
             typeOrder[#typeOrder + 1] = ft
         end
@@ -2320,12 +2469,15 @@ end
 -- `used` (optional) is a set of items already promised to an earlier craft
 -- of the same batch: they are skipped, and the items this craft takes are
 -- added to it. Tools and kept items are not consumed, so they are never skipped.
-function CC.pickedCraftAction(playerObj, state, entry, bench, containers, used)
+-- `surface` (optional): an any-surface recipe's table in Hand mode (CC.craftSurface);
+-- without it the game's check refuses every any-surface recipe. (beast W23)
+-- Also returns the logic, for the input moves (CC.moveCraftInputs).
+function CC.pickedCraftAction(playerObj, state, entry, bench, containers, used, surface)
     local picks = state.picks and entry and state.picks[entry.name]
     if not (picks and hasAny(picks) and entry.recipe and entry.inputDefs and containers) then return nil end
-    local action = nil
+    local action, theLogic = nil, nil
     local ok = pcall(function()
-        local logic = HandcraftLogic.new(playerObj, bench and bench.comp or nil, bench and bench.obj or nil)
+        local logic = HandcraftLogic.new(playerObj, bench and bench.comp or nil, bench and bench.obj or surface or nil)
         logic:setContainers(containers)
         logic:setRecipe(entry.recipe)
         logic:setManualSelectInputs(true)
@@ -2345,9 +2497,20 @@ function CC.pickedCraftAction(playerObj, state, entry, bench, containers, used)
             end
         end
         logic:setManualSelectInputScriptFilter(nil)
-        if logic:canPerformCurrentRecipe() then
+        local canDo = logic:canPerformCurrentRecipe()
+        -- A bound bench past the check's 3 tiles (ZeD keeps it bound out to its leash): the check
+        -- fails on range alone. Judge it as CraftingTab.startCheck does, by what the recipe takes;
+        -- the walk is queued before the craft, and the action asks the check again at its start,
+        -- by then at the bench. (beast W23)
+        local farBench = (not canDo) and bench and not logic:isCharacterInRangeOfWorkbench()
+        if canDo or farBench then
             action = ISHandcraftAction.FromLogic(logic, 0)
-            if used then
+            if farBench then
+                if not (logic:getPossibleCraftCount(true) > 0) then action = nil end
+                -- (asked again so the recipe's data holds the chosen items for the input moves)
+                logic:canPerformCurrentRecipe()
+            end
+            if action and used then
                 for idx = 1, #defs do
                     local def = defs[idx]
                     local script = def.inputRef
@@ -2357,9 +2520,11 @@ function CC.pickedCraftAction(playerObj, state, entry, bench, containers, used)
                     end
                 end
             end
+            if action then theLogic = logic end
         end
     end)
-    return ok and action or nil
+    if not (ok and action) then return nil end
+    return action, theLogic
 end
 
 -- Queue the crafts for the selected recipe when the player chose ingredients,
@@ -2383,19 +2548,35 @@ function CC.startPickedCraft(win, state)
     if entry.stationInfo and not bench then return false end
     if bench and not ZeD.Stations.recipeSet(bench)[entry.recipe:getName()] then return false end
 
-    local containers = CC.buildContainers(playerObj)
+    local containers = CC.craftContainers(playerObj)  -- (beast W25)
+    -- an any-surface recipe in Hand mode is made on a table, as the usual start does (beast W23)
+    local surface = CC.craftSurface(playerObj, entry, bench)
     local actions = {}
+    local logics = {}
     local used = {}
     for i = 1, (state.qty or 1) do
-        local a = CC.pickedCraftAction(playerObj, state, entry, bench, containers, used)
+        local a, l = CC.pickedCraftAction(playerObj, state, entry, bench, containers, used, surface)
         if not a then return false end
         actions[i] = a
+        logics[i] = l
     end
 
-    if bench and ISEntityUI and ISEntityUI.WalkToEntity and not ISEntityUI.WalkToEntity(playerObj, bench.obj) then return true end
+    -- inputs off the floor or out of a crate move into the inventory first, as vanilla's craft
+    -- window moves them (before its walk); the kept ones go back after the crafts (beast W25)
+    local back, moved = {}, {}
+    for i = 1, #logics do
+        if logics[i] then
+            for _, it in ipairs(CC.moveCraftInputs(playerObj, logics[i], moved)) do back[#back + 1] = it end
+        end
+    end
+
+    -- walk to the bench, or to the any-surface recipe's table (beast W23)
+    local at = bench and bench.obj or surface
+    if at and ISEntityUI and ISEntityUI.WalkToEntity and not ISEntityUI.WalkToEntity(playerObj, at) then return true end
     local queued = pcall(function()
         for i = 1, #actions do ISTimedActionQueue.add(actions[i]) end
     end)
+    CC.returnCraftInputs(playerObj, back)
     if queued then
         CC.incrementCraftCount(playerObj, name, state._countKey or "ZeD_CraftCounts")
     end

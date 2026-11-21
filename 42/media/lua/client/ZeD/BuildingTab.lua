@@ -305,7 +305,7 @@ function ZeD.BuildingTab.startBuild(win, state)
     if not entry then return end
 
     local recipe = entry.recipe
-    local containers = CC.buildContainers(playerObj)
+    local containers = CC.craftContainers(playerObj)  -- (the game's list, the floor too, as ISBuildPanel: beast W25)
 
     -- Create BuildLogic and set recipe
     local ok, logic = pcall(function()

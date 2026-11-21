@@ -337,8 +337,10 @@ end
 -- by what the recipe takes (getPossibleCraftCount; the list's answer already holds the skill
 -- and the recipe known, and the bench's recipe set the station). surface: an any-surface
 -- recipe's table in Hand mode (craftSurface), as vanilla's craft window passes it.
+-- The third return is the check's logic (nil when the game would not answer), for the input
+-- moves at Craft (CC.moveCraftInputs, beast W25).
 function ZeD.CraftingTab.startCheck(playerObj, bench, containers, recipe, allowBatch, surface)
-    local ok, most = nil, 1
+    local ok, most, logic = nil, 1, nil
     pcall(function()
         local l = HandcraftLogic.new(playerObj, bench and bench.comp or nil, bench and bench.obj or surface or nil)
         l:setContainers(containers)
@@ -348,20 +350,16 @@ function ZeD.CraftingTab.startCheck(playerObj, bench, containers, recipe, allowB
             ok = l:getPossibleCraftCount(true) > 0
         end
         if ok and allowBatch then most = l:getPossibleCraftCount(true) end
+        logic = l
     end)
-    return ok, most
+    return ok, most, logic
 end
 
--- An any-surface recipe in Hand mode: the table or counter it is made on, found as vanilla's
--- craft window finds it (ISEntityUI.FindCraftSurface, 2 squares). nil when there is none (the
--- start check then refuses, as vanilla's does), at a bench (the bench is the surface) or for
--- a recipe that needs no surface. Without a surface the start check refuses every any-surface
--- recipe in Hand mode.
+-- An any-surface recipe in Hand mode: the table or counter it is made on (CC.craftSurface, shared
+-- with the chosen-ingredients start: beast W23). nil when there is none (the start check then
+-- refuses, as vanilla's does), at a bench or for a recipe that needs no surface.
 local function craftSurface(playerObj, entry, bench)
-    if bench or not entry.needSurface then return nil end
-    if not (ISEntityUI and ISEntityUI.FindCraftSurface) then return nil end
-    local ok, obj = pcall(ISEntityUI.FindCraftSurface, playerObj, 2)
-    return ok and obj or nil
+    return CC.craftSurface(playerObj, entry, bench)
 end
 
 local function gatherDetail(rd, playerObj, win)
@@ -417,15 +415,15 @@ function ZeD.CraftingTab.startCraft(win, state)
     if entry.stationInfo and not bench then return end
     if bench and not ZeD.Stations.recipeSet(bench)[recipe:getName()] then return end
 
-    -- Build containers
-    local containers = CC.buildContainers(playerObj)
+    -- Build containers (the game's list: the floor and nearby containers too, as vanilla; beast W25)
+    local containers = CC.craftContainers(playerObj)
 
     -- The craft's own start check, now, as vanilla's HandcraftStart asks it before it queues:
     -- refused, nothing is queued or counted, and the tab asks again from the containers as they
     -- are (the button and the list catch up the same frame). A bench out of the check's reach
     -- is judged from the bench, and the walk below takes the player there.
     local surface = craftSurface(playerObj, entry, bench)
-    local canStart, most = ZeD.CraftingTab.startCheck(playerObj, bench, containers, recipe, qty > 1, surface)
+    local canStart, most, checkLogic = ZeD.CraftingTab.startCheck(playerObj, bench, containers, recipe, qty > 1, surface)
     if canStart == false or (canStart and qty > 1 and most < qty) then
         win._craftStartChk = nil
         win["_craftLogicAt"] = nil
@@ -435,6 +433,11 @@ function ZeD.CraftingTab.startCraft(win, state)
         state.qty = canStart and math.max(1, most or 1) or 1
         return
     end
+
+    -- inputs off the floor or out of a crate move into the inventory first when the recipe cannot
+    -- be made from the floor, as vanilla's craft window does before its walk (startHandcraft); the
+    -- kept ones are queued back after the crafts (beast W25)
+    local back = checkLogic and CC.moveCraftInputs(playerObj, checkLogic) or {}
 
     -- walk to the bench, or to an any-surface recipe's table (as vanilla's HandcraftStart does)
     local at = bench and bench.obj or surface
@@ -467,6 +470,7 @@ function ZeD.CraftingTab.startCraft(win, state)
             ISTimedActionQueue.add(action)
         end
     end)
+    CC.returnCraftInputs(playerObj, back)   -- (beast W25)
 
     -- Increment craft count only if execution succeeded
     if craftOk then

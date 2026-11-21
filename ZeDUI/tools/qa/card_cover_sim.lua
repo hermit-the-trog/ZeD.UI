@@ -232,6 +232,10 @@ local gatherCont = {}
 local CC = {
     gatherDetail = function() return gatherCont end,
     buildContainers = function() return {} end,
+    -- (beast W25: the tab gathers the game's list and moves floor inputs in; nothing to move here)
+    craftContainers = function() return {} end,
+    moveCraftInputs = function() return {} end,
+    returnCraftInputs = function() end,
     incrementCraftCount = function() counted = counted + 1 end,
 }
 local gatherDetail
@@ -251,6 +255,13 @@ local function loadCraft(src, opts)
         ISTimedActionQueue = { add = function(act) queued = queued + 1; lastAction = act end },
         CharacterTrait = { ALL_THUMBS = 1 }, ISEntityUI = opts.ISEntityUI,
     }
+    -- (beast W23: the surface lookup moved to CC.craftSurface; the same rule, on this load's ISEntityUI)
+    CC.craftSurface = function(p, e2, b)
+        if b or not e2.needSurface then return nil end
+        local E = opts.ISEntityUI
+        if not (E and E.FindCraftSurface) then return nil end
+        return E.FindCraftSurface(p, 2)
+    end
     local chunk = assert(loadstring("local CC, _recipeByName, boundBench = ...\n" .. string.sub(src, a, e - 1)
         .. "\nreturn gatherDetail"))
     setfenv(chunk, env)
@@ -461,7 +472,8 @@ do
     local src = readFile("42/media/lua/client/ZeD/CraftingCore.lua")
     local body = cut(src, "function CC.logicScan(", "\nend\n")
     check("CC.logicScan is found", body ~= nil)
-    local CC2 = { buildContainers = function() error("the game would not answer") end }
+    local CC2 = { buildContainers = function() error("the game would not answer") end,
+                  craftContainers = function() error("the game would not answer") end }   -- (beast W25)
     local env = { pcall = pcall, ipairs = ipairs, getTimestampMs = function() return 99999 end, ArrayList = {} }
     local chunk = assert(loadstring("local CC, LOGIC_EVERY_MS = ...\n" .. (body or "")))
     setfenv(chunk, env)
