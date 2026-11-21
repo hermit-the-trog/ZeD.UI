@@ -440,6 +440,7 @@ function ZeD_KeyboardMap:prerender()
     y = y + T.buttonH + T.px(10)
     -- the actions, in the game's groups
     local boxW = T.px(110)
+    local bx = margin + inner - boxW   -- (the key box's x, the same on every row; read by the hit list for rows not drawn too, QA)
     local tc = T.text
     for _, g in ipairs(data.groups) do
         local ac = T.accent
@@ -454,7 +455,6 @@ function ZeD_KeyboardMap:prerender()
                 self:drawRect(margin, y - T.px(2), inner, rowH, T.selectionA, s.r, s.g, s.b)
             end
             self:drawText(r.label, margin, y + math.floor((rowH - T.px(4) - fh2) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
-            local bx = margin + inner - boxW
             local listening = self.listening == r.name
             local word = listening and tr("UI_ZeD_KMap_Press") or (((r.code ~= 0) and modsOf(r.name) or "") .. keyLabel(r.code))
             local colors = nil
