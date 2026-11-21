@@ -1,0 +1,11 @@
+# ZeDUI/tools/qa/bx_break_all.txt  (Nov 21 2026, QA beast day): the break-it kit in one launch: sizes and scales at the
+# extremes, edges, the C1/C2 pair, the pad mash and the resolution change. The runner puts the window layout back
+# before each script and the director's ModOptions.ini back at the end. Run at 4K and at the Deck size:
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/bx_break_all.txt -Mode fullscreen4k -Report bx_break_4k
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/bx_break_all.txt -Mode windowed -Width 1280 -Height 800 -Report bx_break_deck
+zedqa_prelude.lua | pre | timeout=120
+zedqa_break_sizes.lua | brk | timeout=900
+zedqa_break_edges.lua | bedg | timeout=600
+zedqa_break_c1c2.lua | bc12 | timeout=300
+zedqa_break_pad.lua | bpad | timeout=900
+zedqa_break_reschange.lua | bres | timeout=600

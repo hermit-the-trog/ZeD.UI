@@ -84,7 +84,9 @@ local function record(kind, x, y, w, h, text, r, g, b)
     if S.cur then
         local L = S.rec[S.cur]
         if L then L.calls[#L.calls + 1] = e end
-    elseif kind == "rect" and S.ghostOn and (sameColor(T.positive, r, g, b) or sameColor(T.danger, r, g, b)) then
+    -- (Nov 21 2026: with a full inventory another item's cell can sit in the L's hole, free space by design, and its
+    -- condition strip draws in T.positive; draws made inside any other cell are not the ghost's)
+    elseif not S.inCell and kind == "rect" and S.ghostOn and (sameColor(T.positive, r, g, b) or sameColor(T.danger, r, g, b)) then
         S.ghost[#S.ghost + 1] = e
     end
 end
@@ -103,12 +105,15 @@ local function wrapOn()
     local orig = S.origCell
     R._drawGridCell = function(panel, GV, item, cx, cy, w, h, geo)
         local mine = panel == S.panel and (item == S.repA or item == S.repB)
+        local theirs = panel == S.panel and not mine
         if mine then
             S.rec[item] = { calls = {}, ax = GV.xOff + cx, cy = cy, geo = geo, gap = GV.gap, zedCell = GV.zedCell, cell = GV.cell }
             S.cur = item
         end
+        if theirs then S.inCell = true end
         local ok, e = pcall(orig, panel, GV, item, cx, cy, w, h, geo)
         if mine then S.cur = nil end
+        if theirs then S.inCell = nil end
         if not ok then error(e) end
     end
     S.on = true
@@ -121,6 +126,7 @@ local function wrapOff()
     local c = S.panel
     if c then for _, m in ipairs(WRAP) do c[m] = S.own[m] end end
     S.cur = nil
+    S.inCell = nil
 end
 
 -- the first square, and the square (dx, dy) of a recorded cell, in the panel's px
