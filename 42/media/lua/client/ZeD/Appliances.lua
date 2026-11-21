@@ -112,23 +112,25 @@ local function offered(obj)
 end
 
 --- The coffee maker's recipe the player can make at this machine now, the mug first; nil when the water, the
---- coffee or a mug is missing. containers: the player's inventory and worn bags (CC.buildContainers). The
+--- coffee or a mug is missing. containers: the game's craft list, floor and open containers too (CC.craftContainers). The
 --- craft's own check, as ZeD's Crafting tab asks it (CraftingTab.startCheck): from across the room the
 --- check's reach to the machine fails, so there it goes by what the recipe takes; the walk comes first.
+--- Also returns the logic that said yes (its inputs filled), for the input moves (QA W25).
 function A.recipeFor(playerObj, machine, containers)
     local sm = getScriptManager()
     for _, name in ipairs(RECIPES) do
         local recipe = sm and sm:getCraftRecipe(name)
         if recipe then
+            local l = nil
             local ok, can = pcall(function()
-                local l = HandcraftLogic.new(playerObj, nil, machine)
+                l = HandcraftLogic.new(playerObj, nil, machine)
                 l:setContainers(containers)
                 l:setRecipe(recipe)
                 if l:canPerformCurrentRecipe() then return true end
                 if not l:isCharacterInRangeOfWorkbench() then return l:getPossibleCraftCount(true) > 0 end
                 return false
             end)
-            if ok and can then return recipe end
+            if ok and can then return recipe, l end
         end
     end
     return nil
@@ -153,9 +155,13 @@ function A.makeEspresso(playerObj, machine)
     local sq = machine:getSquare()
     if not A.powered(sq) then badNote(playerObj, "UI_ZeD_Espresso_NeedPower"); return false end
     local CC = ZeD.CraftingCore
-    local containers = CC.buildContainers(playerObj)
-    local recipe = A.recipeFor(playerObj, machine, containers)
+    -- the floor and open containers count too, as the Craft tab's and vanilla's do (QA W25)
+    local containers = CC.craftContainers(playerObj)
+    local recipe, logic = A.recipeFor(playerObj, machine, containers)
     if not recipe then badNote(playerObj, "UI_ZeD_Espresso_NeedThings"); return false end
+    -- inputs off the floor or out of a crate move into the inventory first and the kept ones (the mug)
+    -- go back after, as the Craft tab's start does (CC.moveCraftInputs) (QA W25)
+    local back = logic and CC.moveCraftInputs(playerObj, logic) or {}
     if not luautils.walkAdj(playerObj, sq, true) then return false end
     -- Built as ZeD's Crafting tab builds its crafts (CraftingTab.startCraft): ISHandcraftAction:new hands its
     -- manualInputs to convertToPZNetTable, which fails on nil and false, and start() wants them falsy so it finds
@@ -179,6 +185,7 @@ function A.makeEspresso(playerObj, machine)
         action.isValid      = stillPowered
         ISTimedActionQueue.add(action)
     end)
+    CC.returnCraftInputs(playerObj, back)   -- (queued after the craft: QA W25)
     return ok
 end
 
@@ -217,7 +224,7 @@ function A.onFillWorld(pn, context, worldobjects, test)
     local why = nil
     if not A.powered(machine:getSquare()) then
         why = "UI_ZeD_Espresso_NeedPower"
-    elseif not A.recipeFor(playerObj, machine, ZeD.CraftingCore.buildContainers(playerObj)) then
+    elseif not A.recipeFor(playerObj, machine, ZeD.CraftingCore.craftContainers(playerObj)) then   -- (QA W25)
         why = "UI_ZeD_Espresso_NeedThings"
     end
     if why and option then

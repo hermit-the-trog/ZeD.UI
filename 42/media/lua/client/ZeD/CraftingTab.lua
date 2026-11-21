@@ -571,9 +571,14 @@ function ZeD.CraftingTab.render(panel, win, x, y, w, h)
     local benchKey = bench and tostring(bench.obj) or "hand"
     -- (a new bench or none: asked again at once, not up to 1.2 s later)
     if win._craftLogicBench ~= benchKey then win._craftLogic = nil; win._craftLogicBench = benchKey; win._craftLogicAt = nil end
+    -- In Hand mode the scan hands the game the table or counter nearby, as the start check does, so
+    -- any-surface recipes read ready beside one. Made once per window, not per frame. (QA B6-14)
+    if not win._craftFindSurface then
+        win._craftFindSurface = function() return CC.findHandSurface(win._playerObj) end
+    end
     if CC.logicScan(data, win, "craft", function()
         return HandcraftLogic.new(win._playerObj, bench and bench.comp or nil, bench and bench.obj or nil)
-    end, bench ~= nil) then state.filterDirty = true end   -- (at a bench: the full set every scan)
+    end, bench ~= nil, not bench and win._craftFindSurface or nil) then state.filterDirty = true end   -- (at a bench: the full set every scan)
     -- (the quick scan: at once, then every 5 s)
     if CC.due(win, "_craftScanAt", 5000) then
         CC.backgroundIngredientScan(data, win, "craft")

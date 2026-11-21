@@ -220,7 +220,13 @@ end
 --- CraftingTab's start and the chosen-ingredients start)
 function CC.craftSurface(playerObj, entry, bench)
     if bench or not (entry and entry.needSurface) then return nil end
-    if not (ISEntityUI and ISEntityUI.FindCraftSurface) then return nil end
+    return CC.findHandSurface(playerObj)
+end
+
+--- The nearest table or counter within 2 squares (vanilla's hand craft panel radius), for any recipe;
+--- the list's ready scan asks it once per scan, the start check per recipe. (QA B6-14)
+function CC.findHandSurface(playerObj)
+    if not (playerObj and ISEntityUI and ISEntityUI.FindCraftSurface) then return nil end
     local ok, obj = pcall(ISEntityUI.FindCraftSurface, playerObj, 2)
     return ok and obj or nil
 end
@@ -330,9 +336,10 @@ function CC.quickCraftCheck(rd, containers, typeCache)
     if rd.status == "locked" or rd.status == "station" then return rd.status end
 
     -- Check ALL inputs — tools/kept items are returned after craft but still needed to start
+    -- Each in its own amount (4 planks need 4, as the card's rows count), not just one of it. (QA B6-16)
     local entry = rd.entry
     for _, inp in ipairs(entry.inputDefs) do
-        if not CC.hasAnyWithTypes(inp.validTypes, containers, typeCache) then
+        if CC.countWithTypes(inp.validTypes, containers, typeCache) < (inp.amount or 1) then
             return "missing"
         end
     end
@@ -431,7 +438,10 @@ local function sameContainers(a, b)
 end
 
 -- always: skip the signature and set the recipes in full every scan (the Craft tab at a bench).
-function CC.logicScan(data, win, prefix, makeLogic, always)
+-- findSurface (optional): returns the table or counter the hand recipes are made on, asked once per
+-- scan (not per recipe); the logic is handed it as vanilla's hand craft panel does, and a new one
+-- sets the recipes again. Without it the game refuses every any-surface recipe. (QA B6-14)
+function CC.logicScan(data, win, prefix, makeLogic, always, findSurface)
     local recipes = data and data.recipes
     if not recipes or #recipes == 0 or not makeLogic then return false end
     local now = getTimestampMs()
@@ -449,6 +459,7 @@ function CC.logicScan(data, win, prefix, makeLogic, always)
         end
         logic = l
         win[lKey], win[dKey], win[sKey] = logic, nil, nil
+        win["_" .. prefix .. "LogicSurface"] = nil   -- (a new logic holds no surface yet) (QA B6-14)
     end
     local ok = pcall(function()
         -- the containers as they are now (and the quick scan's cache and the Craft button's start check
@@ -471,8 +482,21 @@ function CC.logicScan(data, win, prefix, makeLogic, always)
         local okS, sig, sq = false, nil, nil
         if not always then okS, sig, sq = pcall(logicSig, win._playerObj, containers) end
         if not okS then sig = nil end
+        -- the craft surface, looked up once for the whole scan; a different one (or none now) is handed
+        -- to the logic and forces the full set below, as vanilla re-checks on a new surface (QA B6-14)
+        local surfChanged = false
+        if findSurface then
+            local surfKey = "_" .. prefix .. "LogicSurface"
+            local surf = findSurface()
+            local held = win[surfKey]   -- (nil: a new logic, which holds none)
+            if surf ~= held then
+                logic:setIsoObject(surf)
+                win[surfKey] = surf
+                surfChanged = true
+            end
+        end
         local fKey, qKey, ckKey = "_" .. prefix .. "LogicFullAt", "_" .. prefix .. "LogicSq", "_" .. prefix .. "LogicConts"
-        if always or sig == nil or win[sKey] ~= sig or win[qKey] ~= sq or not sameContainers(win[ckKey], containers)
+        if always or surfChanged or sig == nil or win[sKey] ~= sig or win[qKey] ~= sq or not sameContainers(win[ckKey], containers)
            or not win[fKey] or now - win[fKey] >= LOGIC_FULL_MS then
             logic:setContainers(containers)
             logic:setRecipes(win[lk])
@@ -1284,6 +1308,7 @@ function CC.gatherDetail(rd, playerObj, win, prefix)
             tag        = (inp.isFuel and entry.heatStation) and "FUEL" or inp.tag,
             iconTex    = nil,  -- no per-ingredient icon is looked up here
             validTypes = inp.validTypes,  -- needed for alt enumeration
+            amount     = need,  -- (the alternatives list reads the slot's real amount, 2/4 not 2/1: QA B6-16)
         }
     end
 
@@ -2460,7 +2485,7 @@ end
 -- crafting window does when the player picks items) and the action is built
 -- from it, so the game uses what was chosen. Returns nil when nothing was
 -- chosen or the choice no longer covers the recipe (an item used up, moved
--- out of reach): the caller then starts the usual automatic craft.
+-- out of reach): the caller then stops the batch there (QA B6-15).
 --
 -- The slots the player did not choose for keep the items the game fills them
 -- with (autoPopulateInputs, as vanilla's panel does), so the recipe stays
@@ -2530,8 +2555,11 @@ end
 -- Queue the crafts for the selected recipe when the player chose ingredients,
 -- one action per craft of the batch. Returns true when it handled the click
 -- (even if a bench check declined it, as the usual start does) and false when
--- the usual automatic start should run instead: nothing chosen, or the choice
--- cannot be met right now.
+-- the usual automatic start should run instead: nothing chosen, or not at a
+-- bench the recipe needs. Chosen items are never swapped for the game's picks:
+-- the batch stops at the crafts they cover (as vanilla's craft window caps its
+-- count to the chosen items), and when they cover none nothing is queued and
+-- the character says what is missing. (QA B6-15)
 function CC.startPickedCraft(win, state)
     local playerObj = win._playerObj
     local name = state.selected
@@ -2556,9 +2584,16 @@ function CC.startPickedCraft(win, state)
     local used = {}
     for i = 1, (state.qty or 1) do
         local a, l = CC.pickedCraftAction(playerObj, state, entry, bench, containers, used, surface)
-        if not a then return false end
+        if not a then break end   -- (the chosen items cover no more crafts: the batch stops here)
         actions[i] = a
         logics[i] = l
+    end
+    if #actions == 0 then
+        -- (not even one craft: refuse, with vanilla's own words, rather than craft from other items)
+        if HaloTextHelper and HaloTextHelper.addBadText then
+            pcall(HaloTextHelper.addBadText, playerObj, getText("IGUI_CraftingWindow_Error_Inputs"))
+        end
+        return true
     end
 
     -- inputs off the floor or out of a crate move into the inventory first, as vanilla's craft
