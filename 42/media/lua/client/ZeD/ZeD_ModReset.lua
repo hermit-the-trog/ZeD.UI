@@ -200,13 +200,16 @@ local function addFound(res, seen, path, why)
     if lines and #lines > 0 then res.files[#res.files + 1] = { path = p, why = why, lines = #lines } end
 end
 
-local function addPrefix(res, seen, pre)
+-- (ok, when given, is asked about each top-level file the start takes: false leaves it out) (QA B6-2)
+local function addPrefix(res, seen, pre, ok)
     local dir, start = pre:match("^(.*)/([^/]*)$")
     if not dir then dir, start = "", pre end
     if dir == "" and #start < 4 then return end   -- a short bare start would take other mods' files
     local ls = lower(start)
     for ln, real in pairs(listing(dir)) do
-        if ls == "" or ln:sub(1, #ls) == ls then addFound(res, seen, (dir ~= "" and (dir .. "/") or "") .. real, "named") end
+        if (ls == "" or ln:sub(1, #ls) == ls) and (dir ~= "" or not ok or ok(ln)) then
+            addFound(res, seen, (dir ~= "" and (dir .. "/") or "") .. real, "named")
+        end
     end
 end
 
@@ -241,13 +244,18 @@ local function holdsId(ln, id)
     end
 end
 
+-- a (lower-case) name without its separators: "bandits_weekone" and "banditsweekone" read the same (QA B6-2)
+local function bare(s) return (s:gsub("[%s_%-%.]", "")) end
+
 -- the ids of the other installed or enabled mods that are longer than this one and hold it ("brita_armor"
--- for "brita"): a file named after one of them is that mod's, not this one's (beast W52)
+-- for "brita"): a file named after one of them is that mod's, not this one's (beast W52). Kept without their
+-- separators, so "banditsweekone" also holds "bandits" and claims "Bandits_WeekOne.ini" (QA B6-2)
 local function longerIds(id)
     local out, seen = {}, {}
+    local bid = bare(id)
     local function add(o)
-        o = lower(o):gsub("^\\", "")   -- (an enabled id can carry a leading backslash)
-        if o ~= id and not seen[o] and #o > #id and o:find(id, 1, true) then seen[o] = true; out[#out + 1] = o end
+        o = bare(lower(o):gsub("^\\", ""))   -- (an enabled id can carry a leading backslash)
+        if bid ~= "" and not seen[o] and #o > #bid and o:find(bid, 1, true) then seen[o] = true; out[#out + 1] = o end
     end
     local act = safe(getActivatedMods)
     for i = 0, (act and act:size() or 0) - 1 do add(tostring(act:get(i))) end
@@ -259,21 +267,51 @@ local function longerIds(id)
     return out
 end
 
+-- the words a mod's own settings file may add around its id ("my_zqamod_keys.txt", "Bandits_Options.ini").
+-- Any other word may be a mod's id too, one installed or one uninstalled that left its file ("Bandits_WeekOne.ini"
+-- for Bandits): no list tells those apart, so such a file is left out (QA B6-2)
+local OWN_WORDS = { my = true, mod = true, settings = true, setting = true, options = true, option = true, config = true,
+                    configs = true, cfg = true, conf = true, prefs = true, preferences = true, keys = true, keybinds = true,
+                    binds = true, hotkeys = true, notes = true, data = true, save = true, saved = true, state = true,
+                    user = true, client = true, server = true, sandbox = true, vars = true, presets = true, preset = true,
+                    profile = true, profiles = true, layout = true, ui = true, favorites = true, favourites = true,
+                    cache = true, log = true }
+
+-- may a top-level file (lower-case name) be emptied for this mod? Never when it is named after another
+-- installed or enabled mod's longer id (separators aside); when it holds this mod's id, only if every other
+-- word of its name is one of OWN_WORDS (QA B6-2)
+local function mineOk(id, others)
+    return function(ln)
+        local base = ln:match("^(.*)%.[^%.]*$") or ln
+        local bb = bare(base)
+        for _, o in ipairs(others) do if bb:find(o, 1, true) then return false end end
+        if not holdsId(ln, id) then return true end   -- (a start the code builds that is not the id: as before)
+        -- the words left once the id is taken out of the name
+        local at = base:find(id, 1, true)
+        while at do
+            local before, after = base:sub(at - 1, at - 1), base:sub(at + #id, at + #id)
+            if (at == 1 or not before:match("%w")) and (after == "" or not after:match("%w")) then break end
+            at = base:find(id, at + 1, true)
+        end
+        if not at then return false end
+        local rest = base:sub(1, at - 1) .. " " .. base:sub(at + #id)
+        for w in rest:gmatch("[^%s_%-%.]+") do if not OWN_WORDS[w] then return false end end
+        return true
+    end
+end
+
 local function resolve(job)
     local res = { files = {} }
     local seen = {}
     for _, p in pairs(job.names) do addFound(res, seen, p, "named") end
-    for _, pre in pairs(job.prefixes) do addPrefix(res, seen, pre) end
     local id = lower(job.modId)
+    local ok = mineOk(id, longerIds(id))
+    -- a start the code builds a name from ("Brita_" .. part) takes no other mod's file either (QA B6-2)
+    for _, pre in pairs(job.prefixes) do addPrefix(res, seen, pre, ok) end
     if #id >= 4 then
-        local others = longerIds(id)
         for ln, real in pairs(listing("")) do
-            if holdsId(ln, id) then
-                -- skip the file when it is named after a longer id of another mod (beast W52)
-                local theirs = false
-                for _, o in ipairs(others) do if holdsId(ln, o) then theirs = true; break end end
-                if not theirs then addFound(res, seen, real, "id") end
-            end
+            -- the file holds the id as a whole word, and no longer id's or unknown word claims it (beast W52, QA B6-2)
+            if holdsId(ln, id) and ok(ln) then addFound(res, seen, real, "id") end
         end
         for _, real in pairs(listing(job.modId)) do addFound(res, seen, job.modId .. "/" .. real, "id") end
     end

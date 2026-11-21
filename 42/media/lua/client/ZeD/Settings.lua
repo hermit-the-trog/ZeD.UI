@@ -998,13 +998,37 @@ local function setUpAdditions()
     -- (beast W35) on the options screens a Lite pick changes the controls only, until Apply: liteAdditions wrote the
     -- stored values at once, so Discard could not bring the additions back. The Select wheel, which saves at once,
     -- still calls liteAdditions itself (ZeD_DpadWheels.lua Z.actionBarWheel).
+    -- (QA B6-4) Lite picked keeps the additions' picks as they were (liteFrom); Full picked again puts them back, so
+    -- an Apply pressed later for anything else does not save every addition Off. Only while they still read Vanilla:
+    -- a pick made in between is the player's and stays.
+    local liteFrom = nil
     lookStyle.onChange = function(_, sel)
-        if tonumber(sel) == 2 then pcall(ZeD.Settings.pickAdditionsPreset, 1) end
+        sel = tonumber(sel)
+        if sel == 2 then
+            if not liteFrom then
+                liteFrom = {}
+                for _, id in ipairs(IDS) do liteFrom[id] = live(id) end
+            end
+            pcall(ZeD.Settings.pickAdditionsPreset, 1)
+        elseif sel == 1 and liteFrom then
+            local back = liteFrom
+            liteFrom = nil
+            if presetOf(live) ~= 1 then return end   -- (changed since Lite: left as the player set them)
+            busy = true
+            for _, id in ipairs(IDS) do
+                local o, v = opt(id), back[id]
+                -- (only a control on the screen: with no screen, setLive would write the stored value)
+                if o and o.element and v and o.values and o.values[v] then pcall(setLive, o, v) end
+            end
+            busy = false
+            ZeD.Settings.syncAdditionsPreset()
+        end
     end
 
     -- Apply, on ZeD setup or the game's Mods page (MainOptions:apply calls each mod's options:apply())
     opts.apply = function(self)
         held = nil
+        liteFrom = nil   -- (applied: Full picked later starts from the stored picks) (QA B6-4)
         local want = presetOf(stored)
         if additionsPreset:getValue() ~= want then additionsPreset:setValue(want) end
         if want == CUSTOM then saveCustom(stored) end
@@ -1060,7 +1084,7 @@ local function setUpAdditions()
         saveModOptions()
     end
     -- the options window's discard: the hand picks held for Custom go with the rest
-    function ZeD.Settings.forgetHeldCustom() held = nil end
+    function ZeD.Settings.forgetHeldCustom() held = nil; liteFrom = nil end   -- (and the picks Lite kept) (QA B6-4)
 
     -- A player who had ZeD before the additions' switches has ZeD's lines in ModOptions.ini. An addition that
     -- was on for them with no line of its own (Loadouts had no switch; a switch newer than their last save)

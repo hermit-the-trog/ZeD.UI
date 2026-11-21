@@ -1153,9 +1153,14 @@ local function rootChanged()
     end
 end
 -- (beast W36) the re-theme for a new root, run at once by Settings.applyScale and the resolution hook: OnTick
--- does not fire while the game is paused. The windows' reopen countdown (S._reopenAt) stays on OnTick, so the
--- Character and World windows come back once the game resumes.
+-- does not fire while the game is paused. The windows' reopen countdown (S._reopenAt) runs on OnTick and, while
+-- no tick comes, on the UI draw (QA B6-6), so windows shut by a scale change while paused come back at once.
 S.applyRootNow = rootChanged
+-- one step of the reopen countdown; at 0 the windows that were shut open again (QA B6-6)
+function S.stepReopen()
+    S._reopenAt = S._reopenAt - 1
+    if S._reopenAt <= 0 then S._reopenAt = nil; pcall(reopenWindowsClosed) end
+end
 -- The role-font check runs again until the fonts have loaded; if the answer changes, the theme
 -- is re-applied so the roles move to (or off) the game's fonts.
 local function fontsSettle()
@@ -1171,10 +1176,21 @@ end
 if Events and Events.OnTick then
     Events.OnTick.Add(function()
         if S._tick == 0 then rootChanged(); fontsSettle() end
-        if S._reopenAt then
-            S._reopenAt = S._reopenAt - 1
-            if S._reopenAt <= 0 then S._reopenAt = nil; pcall(reopenWindowsClosed) end
-        end
+        S._tickSeen = true   -- (the UI draw below leaves the countdown to the tick) (QA B6-6)
+        if S._reopenAt then S.stepReopen() end
+    end)
+end
+-- (QA B6-6) paused by the speed control, no tick comes but the UI still draws, and the windows are on screen: a
+-- scale picked on the Select wheel, or a window resize on Auto, shut both and they stayed gone until the game ran.
+-- A UI frame with no tick since the last one steps the countdown instead. Not under the game's pause menu: the
+-- windows are hidden there, and they come back with the first tick after it, as before.
+if Events and Events.OnPreUIDraw then
+    Events.OnPreUIDraw.Add(function()
+        if S._tickSeen then S._tickSeen = false; return end
+        if not S._reopenAt then return end
+        local ms = MainScreen and MainScreen.instance
+        if ms and ms.isVisible and ms:isVisible() then return end   -- (the pause menu is up)
+        S.stepReopen()
     end)
 end
 

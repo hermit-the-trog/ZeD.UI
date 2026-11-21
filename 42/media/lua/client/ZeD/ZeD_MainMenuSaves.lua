@@ -334,12 +334,20 @@ function ZeD_MMLoad:play()
 end
 
 function ZeD_MMLoad:askDelete()
-    if not self:selected() then return end
+    local s = self:selected()
+    if not s then return end
+    self._dTarget = s.key   -- (the save the question opened on, as Rename keeps _rTarget) (QA B6-1)
     self:setConfirm("delete")
 end
 
+-- the save Delete was opened on, found by the key kept when the question opened (QA B6-1)
+function ZeD_MMLoad:deleteTarget()
+    for _, s in ipairs(self.saves) do if s.key == self._dTarget then return s end end
+    return nil
+end
+
 function ZeD_MMLoad:delete()
-    local s = self:selected()
+    local s = self:deleteTarget()   -- (never the save picked since: a fold or a Find can move the pick) (QA B6-1)
     if not s then return end
     pcall(deleteSave, s.key)
     self:setConfirm(false)
@@ -495,6 +503,8 @@ function ZeD_MMLoad:setConfirm(mode)
     if self.confirm == mode then return end
     self.confirm = mode
     MM.clickSound()
+    -- a question open: Find lets go, so typing cannot re-filter the list under it (QA B6-1)
+    if mode and self.find:isFocused() then self.find:unfocus() end
     if mode ~= "rename" then
         self.renameEntry:setVisible(false)
         if self.renameEntry:isFocused() then self.renameEntry:unfocus() end
@@ -531,10 +541,11 @@ function ZeD_MMLoad:prerender()
     local why = self:whyNot(s)
     local row = 1000
     if self.confirm == "delete" then
+        local dt = self:deleteTarget()   -- (the band names the save the question opened on) (QA B6-1)
         stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
             { "confirm:yes", getText("UI_btn_delete"), function() self:delete() end, "danger", false, ZeD.tr("UI_ZeD_MMHelp_DeleteSave") } },
-            ZeD.tr("UI_ZeD_Saves_AskDelete", s and s.title or ""))
+            ZeD.tr("UI_ZeD_Saves_AskDelete", dt and dt.title or ""))
     elseif self.confirm == "rename" then
         local ask = ZeD.tr("UI_ZeD_Saves_AskRename")
         local valid = self:renameValid(self.renameEntry:getText())
@@ -584,7 +595,7 @@ function ZeD_MMLoad:drawList(x, y, w, h)
     styleEntry(self.find, ex, y + math.floor((fH - eh) / 2), x + w - T.px(8) - ex, eh)
     -- the field takes the click itself (the screen's glass sits above every panel)
     self._hits[#self._hits + 1] = { id = "load:find", x = ax + self.find.x, y = ay + self.find.y, w = self.find.width, h = self.find.height,
-                                    fn = function() self.find:focus() end }
+                                    fn = function() if not self.confirm then self.find:focus() end end }   -- (not under a question) (QA B6-1)
     -- the controller's stop on it (punch list 252): A opens the pad keyboard (after the rows in the old grid, so
     -- the hand still lands on a save)
     fieldStop(self, self.find, "find", self.find.x, self.find.y, self.find.width, self.find.height, 999)
@@ -613,7 +624,10 @@ function ZeD_MMLoad:drawList(x, y, w, h)
                     not self.collapsed[r.mode], MM.ctx.hot == hid, T.fontF1, true, T.px(8), rh) end
                 local cy, ch = math.max(ry, vy), math.min(ry + rh, vy + vh) - math.max(ry, vy)
                 self._hits[#self._hits + 1] = { id = hid, x = ax + x, y = ay + cy, w = rw, h = ch,
-                    fn = function() self.collapsed[r.mode] = not self.collapsed[r.mode]; self:filter() end }
+                    fn = function()
+                        if self.confirm then return end   -- (a fold could move the pick under an open question) (QA B6-1)
+                        self.collapsed[r.mode] = not self.collapsed[r.mode]; self:filter()
+                    end }
             end
         else
             idx = idx + 1
@@ -669,7 +683,7 @@ end
 
 -- a click picks the save; a second click on it soon after plays it (vanilla's double-click)
 function ZeD_MMLoad:clickSave(s)
-    if self.confirm == "rename" then return end   -- (the rows wait while the rename field is open) (beast W51)
+    if self.confirm then return end   -- (the rows wait while Rename or Delete is open) (beast W51, QA B6-1)
     local t = MM.now()
     if self.sel == s.key and self._lastClick and t - self._lastClick < 450 then
         self._lastClick = nil
@@ -803,7 +817,8 @@ end
 
 -- the list follows the controller: a focused save is the chosen one, scrolled into view
 function ZeD_MMLoad:joyDir(dir)
-    if self.confirm == "rename" and (dir == "up" or dir == "down") then return end
+    -- (up and down would land on a save row and pick it: not while Rename or Delete is open) (QA B6-1)
+    if self.confirm and (dir == "up" or dir == "down") then return end
     ZeD_MMWindow.joyDir(self, dir)
     for _, b in ipairs(self._specs) do
         if b.id == self.focusId and b.listRow then

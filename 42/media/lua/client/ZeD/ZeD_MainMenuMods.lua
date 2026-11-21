@@ -911,7 +911,8 @@ function ZeD_MMMods:savePreset()          -- New...: the band's field holds the 
 end
 
 function ZeD_MMMods:updateProfile()
-    local name = self.psel
+    -- the profile the Replace question opened on; called with no question open (a script), the picked one (QA B6-3)
+    local name = (self.confirm == "update" and self._pTarget) or self.psel
     if not name then return end
     self:writeProfile(name)
     self:setConfirm(false)
@@ -956,7 +957,8 @@ end
 
 function ZeD_MMMods:deletePreset()
     local m = model()
-    local name = self.psel
+    -- the profile the Delete question opened on; called with no question open (a script), the picked one (QA B6-3)
+    local name = (self.confirm == "delete" and self._pTarget) or self.psel
     if not (m and name) then return end
     m.presets[name] = nil
     m:saveModDataToFile()
@@ -1089,8 +1091,10 @@ function ZeD_MMMods:setConfirm(mode)
     if mode and not self.confirm and self._backFocus == nil then self._backFocus = self.focusId end
     self.confirm = mode
     MM.ctx.open = nil
-    -- Rename and Duplicate keep the profile they were opened on, as folders keep _fTarget (beast W38)
-    if mode == "rename" or mode == "dup" then self._pTarget = self.psel end
+    -- Rename, Duplicate, Delete and Replace keep the profile they were opened on, as folders keep _fTarget
+    -- (beast W38, QA B6-3)
+    if mode == "rename" or mode == "dup" or mode == "delete" or mode == "update" then self._pTarget = self.psel
+    elseif not mode then self._pTarget = nil end   -- (a closed question keeps no target to act on later) (QA B6-3)
     if FIELD_MODES[mode] then
         local pre = ""
         if mode == "rename" then pre = self._pTarget or "" elseif mode == "dup" then pre = ZeD.tr("UI_ZeD_Mods_CopyName", self._pTarget or "")
@@ -1196,13 +1200,13 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
         UI.stripSpecs(self, stripY, w, row, {}, {
             cancel,
             { "confirm:yes", getText("UI_btn_delete"), function() self:deletePreset() end, "danger", false, ZeD.tr("UI_ZeD_MMHelp_DeleteProfile") } },
-            ZeD.tr("UI_ZeD_Mods_AskDelete", tostring(self.psel)))
+            ZeD.tr("UI_ZeD_Mods_AskDelete", tostring(self._pTarget)))   -- (QA B6-3)
     elseif self.confirm == "update" then
         local _, on = self:counts()
         UI.stripSpecs(self, stripY, w, row, {}, {
             cancel,
             { "confirm:yes", ZeD.tr("UI_ZeD_Mods_Replace"), function() self:updateProfile() end, "primary" } },
-            ZeD.tr(on == 1 and "UI_ZeD_Mods_AskReplaceOne" or "UI_ZeD_Mods_AskReplaceMany", tostring(self.psel), on))
+            ZeD.tr(on == 1 and "UI_ZeD_Mods_AskReplaceOne" or "UI_ZeD_Mods_AskReplaceMany", tostring(self._pTarget), on))   -- (QA B6-3)
     elseif (self.confirm == "fnew" or self.confirm == "frename" or self.confirm == "fdelete") and self.folderStrip then
         self:folderStrip(stripY, stripH, w, row)
     elseif FIELD_MODES[self.confirm] then
@@ -2358,7 +2362,8 @@ end
 -- CONTROLLER + KEYS ---------------------------------------------------------------
 
 function ZeD_MMMods:joyDir(dir)
-    if FIELD_MODES[self.confirm] then
+    -- (a profile question keeps the focus in the band too: up or down onto a profile row would pick it) (QA B6-3)
+    if FIELD_MODES[self.confirm] or self.confirm == "delete" or self.confirm == "update" then
         if dir == "left" or dir == "right" then ZeD_MMWindow.joyDir(self, dir) end
         return
     end

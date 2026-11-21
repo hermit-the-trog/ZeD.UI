@@ -658,5 +658,26 @@ check("RESETID: another enabled mod's longer id keeps its file", br["Brita.json"
 local sv = idFiles("ServerListSteam")
 check("RESETID: the game's server list is never listed", not sv["ServerListSteam.txt"])
 
+-- (QA B6-2) the W52 leftovers: a start the code builds a name from, an id spelled with a separator, a file an
+-- uninstalled mod left
+section("RESETID2: a built name's start, a separator, an uninstalled mod's file")
+mod("Britb", { ["media/lua/client/Britb.lua"] = { "local w = getFileWriter(\"Britb_\" .. part, true, false)" } })
+mod("Bandits", { ["media/lua/client/Bandits.lua"] = { "Bandits = {}" } })
+boot({ "ZeD_UI", "Britb", "Britb_Armor", "Bandits", "BanditsWeekOne" })
+LUA["Britb_Armor.ini"] = { "a=1" }
+LUA["Britb_Options.ini"] = { "a=1" }
+LUA["Bandits.ini"] = { "a=1" }
+LUA["Bandits_Settings.txt"] = { "a=1" }
+LUA["Bandits_WeekOne.ini"] = { "a=1" }
+LUA["Bandits_Extra.ini"] = { "a=1" }
+ZeD.ModReset.forget()
+local bt = idFiles("Britb")
+check("RESETID2: the built start keeps the mod's own file", bt["Britb_Options.ini"])
+check("RESETID2: the built start takes no file of a longer id in use (Britb_Armor)", not bt["Britb_Armor.ini"])
+local bd = idFiles("Bandits")
+check("RESETID2: the mod's own files are listed", bd["Bandits.ini"] and bd["Bandits_Settings.txt"])
+check("RESETID2: a longer id in use spelled with a separator keeps its file (BanditsWeekOne)", not bd["Bandits_WeekOne.ini"])
+check("RESETID2: a file another, uninstalled mod may have left is not listed", not bd["Bandits_Extra.ini"])
+
 print("fix_mods_msgs_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed == 0 and 0 or 1)
