@@ -1,0 +1,10 @@
+# ZeDUI/tools/qa/vx_a.txt  (Nov 21 2026, QA beast day): proof of Build's beast fixes, part A (each check fails on the old code
+# and passes on the fix): inventory W1-W5, windows W6-W10, input W11-W15 and W48, health W16-W19, cars W20-W22.
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/vx_a.txt -Mode fullscreen4k -Report vx_a_4k
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+vx_inventory.lua | vx_inv | timeout=420
+vx_windows.lua | vx_win | timeout=420
+vx_input.lua | vx_inp | timeout=420
+vx_health.lua | vx_hlth | timeout=420
+vx_vehicles.lua | vx_veh | timeout=420

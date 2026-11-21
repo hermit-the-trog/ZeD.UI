@@ -1,0 +1,11 @@
+# ZeDUI/tools/qa/vx_b.txt  (Nov 21 2026, QA beast day): proof of Build's beast fixes, part B: crafting W23-W27, the world
+# cards W28-W34, settings W35-W37, the HUD W40-W43, W54, W55. The main menu's (W38, W39, W51-W53) is vx_menu.lua:
+#   pwsh -File ZeDUI/tools/qa/zedqa_menu_mods_run.ps1 -ModList ZeDUI/tools/qa/zed_only_mods.txt -Script ZeDUI/tools/qa/vx_menu.lua -Tag vx_menu -TimeoutSec 480
+#   (then remove Zomboid/Lua/zedqa_vx_menu_reset.txt, which it writes)
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/vx_b.txt -Mode fullscreen4k -Report vx_b_4k
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+vx_crafting.lua | vx_crf | timeout=420
+vx_world.lua | vx_wld | timeout=420
+vx_settings.lua | vx_set | timeout=420
+vx_hud.lua | vx_hud | timeout=420
