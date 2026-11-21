@@ -64,11 +64,11 @@ F.player = player
 local function readLiterature(p, prefix)
     local ok, found = pcall(function()
         -- 42.21: a Java HashMap; Kahlua cannot call keySet() or iterator() on it, nor pairs() it. tostring(map) works
-        -- and reads "[key=n, key=n]", so the key is found in that text.
+        -- and reads "{key=n, key=n}", so the key is found in that text (beast W16).
         local map = p:getReadLiterature()
         if not map or map:isEmpty() then return false end
         local text = tostring(map)
-        return (text:find("[" .. prefix, 1, true) or text:find(", " .. prefix, 1, true)) and true or false
+        return (text:find("{" .. prefix, 1, true) or text:find(", " .. prefix, 1, true)) and true or false
     end)
     return ok and found or false
 end

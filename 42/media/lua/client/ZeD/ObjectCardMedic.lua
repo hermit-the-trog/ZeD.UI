@@ -228,12 +228,14 @@ local function figure()
     return FIG
 end
 
+-- the red for 20 percent or less, one table (beast W19)
+local LOW_HEALTH_RED = { r = 0.95, g = 0.15, b = 0.15, a = 1.0 }
 local function healthColor(health)
     local T = ZeD.T
     if health > 80 then return T.positive end
     if health > 50 then return T.warning end
     if health > 20 then return T.danger end
-    return { r = 0.95, g = 0.15, b = 0.15, a = 1.0 }
+    return LOW_HEALTH_RED
 end
 
 -- the summary column (the Health tab's, without your own exercise): overall, wounded, their pain
@@ -309,7 +311,7 @@ function def.body(card, x, y, w, t, doctor)
     -- (last frame's rects, as the Health tab draws it), the part a stop that opens the treatment menu
     local fig = figure()
     if d.isFemale ~= nil then fig:setSex(d.isFemale) end
-    fig:clearColors()
+    -- (no clearColors: the check maps every body part each frame, and the figure reuses its colour tables) (beast W19)
     for fname, health in pairs(d.partHealth) do
         local c = healthColor(health)
         fig:setPartColor(fname, c.r, c.g, c.b, 0.65)

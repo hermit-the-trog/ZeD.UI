@@ -32,20 +32,16 @@ local function countZombiesInRadius(animal, radius)
     local count = 0
     local cell = getCell()
     if not cell then return 0 end
-    for x = cx - radius, cx + radius do
-        for y = cy - radius, cy + radius do
-            local gs = cell:getGridSquare(x, y, cz)
-            if gs then
-                local movingObjects = gs:getMovingObjects()
-                if movingObjects then
-                    for i = 0, movingObjects:size() - 1 do
-                        local obj = movingObjects:get(i)
-                        if obj and instanceof(obj, "IsoZombie") then
-                            count = count + 1
-                        end
-                    end
-                end
-            end
+    -- one pass over the cell's zombie list, keeping those within the radius on the animal's floor; the old walk over
+    -- every square (961 at radius 15) cost far more (beast W31)
+    local zombies = cell:getZombieList()
+    if not zombies then return 0 end
+    for i = 0, zombies:size() - 1 do
+        local z = zombies:get(i)
+        if z and math.floor(z:getZ()) == cz
+            and math.abs(math.floor(z:getX()) - cx) <= radius
+            and math.abs(math.floor(z:getY()) - cy) <= radius then
+            count = count + 1
         end
     end
     return count

@@ -263,7 +263,7 @@ local function newPlayer()
             __tostring = function()
                 local t = {}
                 for i, k in ipairs(keys) do t[i] = k .. "=" .. tostring(owner.lit[k]) end
-                return "[" .. table.concat(t, ", ") .. "]"
+                return "{" .. table.concat(t, ", ") .. "}"   -- a Java HashMap prints with braces (beast W16)
             end,
         })
     end
@@ -457,6 +457,12 @@ PLAYER.lit["Book_Fantasy_3"] = 1
 check("another title: locked", last("SurvivalGuide_television_title").locked == true)
 PLAYER.lit["TVMagazine_7_1993"] = 1
 check("a TV Monthly issue in getReadLiterature: open", not last("SurvivalGuide_television_title").locked)
+-- the issue as the only key and as the first key print as "{TVMagazine_..." (beast W16)
+PLAYER = newPlayer()
+PLAYER.lit["TVMagazine_7_1993"] = 1
+check("a TV Monthly issue as the only key: open", not last("SurvivalGuide_television_title").locked)
+PLAYER.lit["Zine_1"] = 1
+check("a TV Monthly issue as the first key: open", not last("SurvivalGuide_television_title").locked)
 PLAYER.pages["Base.BookFirstAid2"] = 120
 check("a First Aid book part read: locked", last("SurvivalGuide_zombie_attacks_title").locked == true)
 PLAYER.pages["Base.BookFirstAid2"] = 260

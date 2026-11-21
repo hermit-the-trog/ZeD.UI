@@ -446,13 +446,25 @@ end
 function ZeD.SkillsTab.gatherTrainingData(playerObj)
     local catalog = buildTMCatalog()
 
-    -- Build inventory lookup for "collected" status
+    -- Build inventory lookup for "collected" status. Walks into bags too: a plain loop over a stack of containers
+    -- (the main inventory first, then each InventoryContainer item's own inventory) (beast W17)
     local inventoryHas = {}
     local inv = playerObj:getInventory()
     if inv then
-        local items = inv:getItems()
-        for i = 0, items:size() - 1 do
-            inventoryHas[items:get(i):getFullType()] = true
+        local stack = { inv }
+        local seen = 0
+        while #stack > 0 and seen < 200 do   -- 200 containers is a safety stop
+            local cont = table.remove(stack)
+            seen = seen + 1
+            local items = cont:getItems()
+            for i = 0, items:size() - 1 do
+                local it = items:get(i)
+                inventoryHas[it:getFullType()] = true
+                if instanceof(it, "InventoryContainer") then
+                    local sub = it:getInventory()
+                    if sub then stack[#stack + 1] = sub end
+                end
+            end
         end
     end
 

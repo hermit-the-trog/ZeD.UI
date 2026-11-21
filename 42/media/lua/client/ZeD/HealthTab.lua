@@ -397,12 +397,14 @@ end
 -- HEALTH-TO-COLOR MAPPING (for body figure)
 -- ============================================================================
 
+-- the red for 20 percent or less, one table (beast W19)
+local LOW_HEALTH_RED = { r = 0.95, g = 0.15, b = 0.15, a = 1.0 }
 local function getHealthColor(health)
     local T = ZeD.T
     if health > 80  then return T.positive end
     if health > 50  then return T.warning  end
     if health > 20  then return T.danger   end
-    return { r = 0.95, g = 0.15, b = 0.15, a = 1.0 }
+    return LOW_HEALTH_RED
 end
 
 -- ============================================================================
@@ -744,7 +746,7 @@ function ZeD.HealthTab._drawBodyFigure(panel, win, data, px, py, pw, ph)
     end
 
     -- Color every part by health percentage (always visible, green when healthy)
-    fig:clearColors()
+    -- (no clearColors: gatherData maps every part each time, and the figure reuses its colour tables) (beast W19)
     for figureName, health in pairs(data.partHealth) do
         local color = getHealthColor(health)
         fig:setPartColor(figureName, color.r, color.g, color.b, 0.65)
@@ -1021,6 +1023,23 @@ local function isExerciseAvailable(playerObj, exerciseId)
     return true
 end
 
+-- The exercise state the DRAWING reads, kept on the tab's own 250 ms clock (beast W18): the block key, the climbing
+-- rule, which of the exercises have their item, and (in exerciseInfo) the picked one's info. Without it every frame
+-- searched the inventory with its bags 3 to 5 times and read the moodles about 10 times. Clicks still use the live
+-- canStart / exerciseBlockKey.
+local function exerciseState(win)
+    local p = win and win._playerObj
+    if not p then return nil end
+    local st = win._healthEx
+    if dueMs(win, "_healthExAt", 250, st == nil) then
+        st = { blockKey = exerciseBlockKey(p), canEx = canExercise(p), avail = {} }
+        for _, id in ipairs(EXERCISES) do st.avail[id] = isExerciseAvailable(p, id) end
+        win._healthEx = st
+    end
+    return st
+end
+ZeD.HealthTab._exerciseState = exerciseState
+
 -- ----------------------------------------------------------------------------
 -- EXERCISE INFO: what vanilla's fitness window says about the chosen exercise.
 -- Same sources as vanilla ISFitnessUI: the exercise's tooltip from
@@ -1056,7 +1075,8 @@ end
 -- Everything vanilla shows for one exercise, as data:
 --   { id, name, desc, stiff = { text... }, warn = { text... }, regularity = 0..1 or nil }
 -- skipReg: leave the regularity out (the layout reserve does not need it).
-function ZeD.HealthTab.exerciseInfo(playerObj, exeId, skipReg)
+-- st: the cached exercise state (exerciseState), given by the drawing; nil reads the live values
+function ZeD.HealthTab.exerciseInfo(playerObj, exeId, skipReg, st)
     if not playerObj or not FitnessExercises or not FitnessExercises.exercisesType then return nil end
     local exeData = FitnessExercises.exercisesType[exeId]
     if not exeData then return nil end
@@ -1073,11 +1093,16 @@ function ZeD.HealthTab.exerciseInfo(playerObj, exeId, skipReg)
             if key then info.stiff[#info.stiff + 1] = getText(key) end
         end
     end
-    if exeData.item and not isExerciseAvailable(playerObj, exeId) then
+    local have = true
+    if exeData.item then
+        if st and st.avail[exeId] ~= nil then have = st.avail[exeId] else have = isExerciseAvailable(playerObj, exeId) end
+    end
+    if exeData.item and not have then
         local itemName = getItemDisplayName and getItemDisplayName(exeData.item) or exeData.item
         info.warn[#info.warn + 1] = getText("IGUI_FitnessNeedItem", itemName)
     end
-    local blockKey = exerciseBlockKey(playerObj)
+    local blockKey
+    if st then blockKey = st.blockKey else blockKey = exerciseBlockKey(playerObj) end
     if blockKey then info.warn[#info.warn + 1] = getText(blockKey) end
     if not skipReg then info.regularity = readRegularity(playerObj, exeId) end
     return info
@@ -1347,7 +1372,9 @@ function ZeD.HealthTab._renderBand(panel, win, x, y, w)
     local by = y + T.px(5)
     local sel = ZeD.HealthTab.selectedExercise(win)
     local mins = ZeD.HealthTab.getExerciseMinutes(win)
-    local enabled = ZeD.HealthTab.canStart(win)
+    -- (drawing reads the 250 ms state; startSelected still asks the live canStart) (beast W18)
+    local exSt = exerciseState(win)
+    local enabled = exSt ~= nil and exSt.canEx and exSt.avail[sel] == true and not isExercising(win._playerObj)
     local open = win._healthMenuOpen == true
     local bz = bandZones(win)
     bz.y, bz.h = y, M.bandH()
@@ -1369,10 +1396,17 @@ function ZeD.HealthTab._renderBand(panel, win, x, y, w)
     -- the pop-up box's room: what the time block and Start leave. Its width is the widest
     -- exercise's, so picking another never moves the time keys.
     local boxX = x + edge
-    local nat = 0
-    for _, id in ipairs(EXERCISES) do
-        local nw = M.popupMenuW(ZeD.tr("UI_ZeD_Health_ExercisePick", ZeD.HealthTab.exerciseLabel(id)))
-        if nw > nat then nat = nw end
+    -- the widest label only changes with the language, the scale and the fonts: measured once per those (beast W18)
+    local natKey = table.concat({ tostring(T.scale), TM:getFontHeight(T.fontF1),
+        ZeD.tr("UI_ZeD_Health_ExercisePick", ZeD.HealthTab.exerciseLabel(EXERCISES[1])) }, "|")
+    local nat = win._healthNat
+    if not nat or win._healthNatKey ~= natKey then
+        nat = 0
+        for _, id in ipairs(EXERCISES) do
+            local nw = M.popupMenuW(ZeD.tr("UI_ZeD_Health_ExercisePick", ZeD.HealthTab.exerciseLabel(id)))
+            if nw > nat then nat = nw end
+        end
+        win._healthNat, win._healthNatKey = nat, natKey
     end
     local f1 = T.fontF1
     local timeLbl = getText("IGUI_FitnessTime")
@@ -1463,7 +1497,16 @@ end
 -- so picking another exercise never moves what is below.
 function ZeD.HealthTab._renderExerciseInfo(panel, win, rx, ry, rw)
     local T, A = ZeD.T, ZeD.Atoms
-    local info = ZeD.HealthTab.exerciseInfo(win._playerObj, ZeD.HealthTab.selectedExercise(win))
+    -- the picked exercise's info is kept with the 250 ms state and rebuilt when the state or the pick changes (beast W18)
+    local exSt = exerciseState(win)
+    local selId = ZeD.HealthTab.selectedExercise(win)
+    local info
+    if exSt and exSt.infoId == selId then
+        info = exSt.info
+    else
+        info = ZeD.HealthTab.exerciseInfo(win._playerObj, selId, false, exSt)
+        if exSt then exSt.infoId, exSt.info = selId, info end
+    end
     if not info then return ry end
     local w = math.min(rw, win._healthInfoW or rw)
     A.drawDividerH(panel, rx, ry, rw)
@@ -1497,10 +1540,12 @@ function ZeD.HealthTab._measureExerciseInfo(win, w)
     local playerObj = win and win._playerObj
     if not playerObj or not FitnessExercises or not FitnessExercises.exercisesType then return 0 end
     local wrapW = math.max(T.px(60), ZeD.Molecules.layoutZoneA(0, 0, w - T.sp.scrollbarW, 0, 0).rightW)
+    -- (the key reads the 250 ms exercise state, not a live search each frame) (beast W18)
+    local exSt = exerciseState(win)
     local sig = { wrapW, tostring(T.scale), TM:getFontHeight(T.fontF1), TM:getFontHeight(T.fontF2),
-                  exerciseBlockKey(playerObj) or "-" }
+                  exSt and exSt.blockKey or "-" }
     for _, exeId in ipairs(EXERCISES) do
-        sig[#sig + 1] = isExerciseAvailable(playerObj, exeId) and "1" or "0"
+        sig[#sig + 1] = (exSt and exSt.avail[exeId]) and "1" or "0"
     end
     local key = table.concat(sig, "|")
     local cache = win._healthInfoCache

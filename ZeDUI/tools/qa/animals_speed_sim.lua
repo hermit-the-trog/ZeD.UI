@@ -144,6 +144,7 @@ do  -- the row's sizes must be the file's
     end
 end
 
+AT = {}   -- (highlightZone registers the window on AnimalsTab: AT._litWins, beast W29)
 -- the new code, cut from the file
 local NEW = assert(loadstring(constLine("SORT_CACHE_MS") .. constLine("HOOK_SCAN_R") .. constLine("HOOK_SCAN_ROWS")
     .. constLine("HOOK_SWEEP_STALE_MS")

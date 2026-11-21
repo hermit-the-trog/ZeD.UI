@@ -215,8 +215,54 @@ local function getZoneByName(name)
     return nil
 end
 
+-- Turns the zone page's ground highlight off. Runs only while the page has it lit (win._animalsZoneLit is set by
+-- highlightZone), so calling it from every way of leaving the page costs nothing otherwise. (beast W29)
+function AT._unlightZone(win)
+    if AT._litWins then AT._litWins[win] = nil end   -- (the tick watcher's list)
+    if not win._animalsZoneLit then return end
+    win._animalsZoneLit = nil
+    local player = getSpecificPlayer(WPN(win))
+    if player then
+        player:resetSelectedZonesForHighlight()
+        player:setSeeDesignationZone(false)
+    end
+end
+
+-- Ends a zone edit (the Rename box or the Remove question), as navigateBack does: both flags off, the box hidden and
+-- unfocused, the controller's return stop forgotten. Called when the page moves to another view or zone, so the
+-- box can never carry one zone's name onto another. (beast W30)
+function AT._endZoneEdit(win)
+    win._animalsRenaming = false
+    win._animalsRemoveConfirm = false
+    win._animalsZoneFrom = nil
+    local entry = win._animalsRenameEntry
+    if entry then
+        entry:setVisible(false)
+        entry:unfocus()
+    end
+end
+
+-- True while the mouse is over one of this player's ZeD windows (as FurnitureTab's overWindow). (beast W28)
+local function overZeDWindow(w)
+    if not (w and w:getIsVisible()) then return false end
+    local mx, my = getMouseX(), getMouseY()
+    local ax, ay = w:getAbsoluteX(), w:getAbsoluteY()
+    return mx >= ax and my >= ay and mx < ax + w:getWidth() and my < ay + w:getHeight()
+end
+function AT._overZeD(pn)
+    if ZeD_WorldWindow and ZeD_WorldWindow.getWindow and overZeDWindow(ZeD_WorldWindow.getWindow(pn)) then return true end
+    if ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and overZeDWindow(ZeD_CharacterWindow.getWindow(pn)) then return true end
+    return false
+end
+
 local function navigate(win, view, zoneName, animalRef)
     local state = getState(win)
+    -- the view or the zone changes: a rename or remove question for the old page ends; leaving the zone page for
+    -- anything but one of its animals turns its ground highlight off (beast W29, W30)
+    if view ~= state.view or (zoneName ~= nil and zoneName ~= state.zoneName) then
+        AT._endZoneEdit(win)
+    end
+    if state.view == "zone" and view ~= "zone" and view ~= "animal" then AT._unlightZone(win) end
     state.prevView = state.view
     state.view = view
     if zoneName ~= nil then state.zoneName = zoneName end
@@ -247,6 +293,7 @@ local function navigateBack(win)
             player:resetSelectedZonesForHighlight()
             player:setSeeDesignationZone(false)
         end
+        win._animalsZoneLit = nil   -- (so the highlight cache is not taken for lit) (beast W29)
     end
     -- Cancel any active rename
     win._animalsRenaming = false
@@ -258,6 +305,8 @@ end
 
 local function switchSubmode(win, submode)
     local state = getState(win)
+    AT._endZoneEdit(win)    -- (a rename or remove question belongs to the zone page being left) (beast W30)
+    AT._unlightZone(win)    -- (and so does the ground highlight) (beast W29)
     state.submode = submode
     state.view = "overview"
     state.zoneName = nil
@@ -726,6 +775,9 @@ local function commitRename(win)
     if zone and entry then
         local newName = entry:getText()
         if newName then newName = string.match(newName, "^%s*(.-)%s*$") end  -- trim
+        -- a name another zone already holds is refused (the tab keys zones by name); the box stays open (beast W32)
+        local other = newName and #newName > 0 and DesignationZoneAnimal.getZoneByName(newName)
+        if other and other ~= zone then return end
         if newName and #newName > 0 then
             zone:setName(newName)
             state.zoneName = newName  -- update stored name to match
@@ -773,15 +825,15 @@ local function resetRename(win)
     local state = getState(win)
     local zone = getZoneByName(state.zoneName)
     if zone and win._animalsRenameEntry then
-        local allZones = DesignationZoneAnimal.getAllZones()
-        if allZones then
-            for i = 0, allZones:size() - 1 do
-                if allZones:get(i) == zone then
-                    win._animalsRenameEntry:setText(ZeD.tr("UI_ZeD_Animals_ZoneAutoName", i + 1))
-                    break
-                end
-            end
+        -- the first free "Zone <n>", as startZoneCreate finds it; this zone's own name counts as free (beast W32)
+        local num = 1
+        while true do
+            local nm = ZeD.tr("UI_ZeD_Animals_ZoneAutoName", num)
+            local other = DesignationZoneAnimal.getZoneByName(nm)
+            if not other or other == zone then break end
+            num = num + 1
         end
+        win._animalsRenameEntry:setText(ZeD.tr("UI_ZeD_Animals_ZoneAutoName", num))
     end
 end
 
@@ -835,7 +887,8 @@ local function updateZoneCreateMouse(win)
 
     if zc.phase == "idle" then
         -- Start drag on mouse down
-        if mouseDown and not zc.wasDown then
+        -- (a press that lands on a ZeD window, such as its title bar, is not a corner) (beast W28)
+        if mouseDown and not zc.wasDown and not AT._overZeD(WPN(win)) then
             local sq = pickSquare()
             if sq then
                 zc.startX = sq:getX()
@@ -2399,6 +2452,8 @@ local function highlightZone(win, player, zoneName)
     local id = zoneObj:getId()
     if not (same and h.id == id and zoneLit(player, id)) then lightZone(player, id) end
     win._animalsZoneLit = { player = player, name = zoneName, zone = zoneObj, id = id, t = now }
+    AT._litWins = AT._litWins or {}
+    AT._litWins[win] = true   -- (the tick watcher turns it off when the tab or window goes) (beast W29)
 end
 
 -- Where the controller's focus sits in the zone page, in page units (0 = the top of the scrolling region with no
@@ -2791,7 +2846,14 @@ local function drawVitalsSection(panel, x, y, w, animal, player)
 
     -- Stress sources line (inferred)
     if stress > 10 then
-        local sources = si.inferSources(animal, player)
+        -- the stress sources are worked out about once a second per animal, not every frame (beast W31)
+        local nowMs = getTimestampMs()
+        local sc = AT._srcCache
+        if not (sc and sc.animal == animal and nowMs >= sc.t and nowMs - sc.t < 1000) then
+            sc = { animal = animal, t = nowMs, list = si.inferSources(animal, player) }
+            AT._srcCache = sc
+        end
+        local sources = sc.list
         if #sources > 0 then
             local srcFont = T.fontF5
             local srcText = "\226\134\146 " .. table.concat(sources, ", ")
@@ -4228,6 +4290,40 @@ AT.startZoneCreate  = startZoneCreate
 AT.gpMoveCursor     = gpMoveCursor
 AT.gpConfirm        = gpConfirm
 AT.gpCancel         = gpCancel
+
+-- ============================================================================
+-- TICK WATCHER (like FurnitureTab.watch): the Animals tab can stop drawing without telling it (another World tab is
+-- picked, the window closes), so each tick a zone drawing in progress and a lit zone page are ended once the window
+-- is gone or its selected tab is no longer "animals". The selected tab is checked, not whether the drawer shows,
+-- because a folded half keeps its tab. (beast W28, W29)
+-- ============================================================================
+
+local function animalsTabGone(win)
+    return ZeD_WorldWindow.getWindow(WPN(win)) ~= win or win._activeTab ~= "animals"
+end
+
+function AT._watch()
+    if not (ZeD_WorldWindow and ZeD_WorldWindow.getWindow) then return end
+    local dw = AT._zoneDrawWin
+    if dw and animalsTabGone(dw) then AT.endZoneDraw() end
+    if AT._litWins then
+        local gone = nil   -- (collected first: the list is changed by the unlight, not while it is walked)
+        for win in pairs(AT._litWins) do
+            if animalsTabGone(win) then gone = gone or {}; gone[#gone + 1] = win end
+        end
+        if gone then
+            for _, win in ipairs(gone) do AT._unlightZone(win) end
+        end
+    end
+end
+
+if not AT._ticking then
+    AT._ticking = true
+    Events.OnTick.Add(function()
+        local ok, err = pcall(AT._watch)
+        if not ok and ZeD.logOnce then ZeD.logOnce("AnimalsTab: watch failed", err) end
+    end)
+end
 
 -- ============================================================================
 -- REGISTRATION
