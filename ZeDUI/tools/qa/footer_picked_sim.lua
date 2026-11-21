@@ -386,7 +386,7 @@ do
         local now = cut(srcOf(rel), from, to)
         return now ~= nil and now:find("ZeD.Atoms.loadText(", 1, true) ~= nil, now == nil and "not found" or "another format"
     end
-    local ok, why = oneFormat("ZeD_CharacterWindow.lua", "        -- Weight (rightmost):", "noMark = true }")
+    local ok, why = oneFormat("ZeD_CharacterWindow.lua", "        -- Weight (rightmost):", "win.titleStats[#win.titleStats + 1] = ls")
     check("the title bar's weight: the load over the max, in the one format", ok, why)
     ok, why = oneFormat("ZeD_CharacterWindow.lua", "                self._containerInfo = {", "                }")
     check("the Character heading's weight, in the one format", ok, why)

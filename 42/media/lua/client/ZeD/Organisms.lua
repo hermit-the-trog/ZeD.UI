@@ -1619,6 +1619,9 @@ function ZeD_Window.resetLayout(which, pn)
         if w and w._rolled and ZeD.Curtain and ZeD.Curtain.finishUnroll then ZeD.Curtain.finishUnroll(w) end
         -- (a drawer its half folded is forgotten: the reset's Loot is what gets saved, WindowHalves)
         if w and w._halves and ZeD.Halves then ZeD.Halves.forgetFold(w) end
+        -- (a window rolled up by the hover comes down first, as goPair does, so the new height is not undone by the
+        -- old preShadeHeight on the next hover) (beast W6)
+        if w and w.windowShaded then w:setWindowShaded(false) end
     end
     if charWin then resetChar(charWin, defW, defH, gap, screenW, screenL, screenT) end
     if worldWin then resetWorld(worldWin, defW, defH, gap, screenW, screenL, screenT) end

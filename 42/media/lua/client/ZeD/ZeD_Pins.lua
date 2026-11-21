@@ -45,14 +45,35 @@ function P.isPinned(p, k, id) return P.find(p, k, id) ~= nil end
 -- (the title bar asks every frame, so the guarded calls are named
 -- functions, not a closure per pin per frame)
 local function carriedById(p, id) return p:getInventory():getItemWithIDRecursiv(tonumber(id)) end
-local function carriedByType(p, ft) return p:getInventory():getFirstTypeRecurse(ft) end
+local function carriedByType(p, ft) return p:getInventory():getAllTypeRecurse(ft) end
+-- ids found this session (module-local, never saved): a pin whose id was found once is not re-targeted by type when
+-- its item is put down (beast W7)
+local foundIds = {}
+-- each pin's built title bar entry, by kind and id (P.stats; cleared in P.toggle)
+local entryCache = {}
+-- is this item's id the id of any pin in the list?
+local function heldByAPin(p, it)
+    local iid = tostring(it:getID())
+    for _, o in ipairs(list(p)) do if tostring(o.id) == iid then return true end end
+    return false
+end
 local function itemOf(p, id, e)
     local ok, it = pcall(carriedById, p, id)
-    if ok and it then return it end
-    -- (the same kind of thing you carry, when its id is not found: ids may not survive the game loading again)
-    if e and e.ft then
-        local ok2, it2 = pcall(carriedByType, p, e.ft)
-        if ok2 and it2 then e.id = it2:getID(); return it2 end
+    if ok and it then foundIds[tostring(id)] = true; return it end
+    -- (the same kind of thing you carry, when its id is not found: ids may not survive the game loading again. Only
+    -- for a pin whose id has not been found yet this session, and never an item another pin already holds) (beast W7)
+    if e and e.ft and not foundIds[tostring(id)] then
+        local ok2, all = pcall(carriedByType, p, e.ft)
+        if ok2 and all then
+            for i = 0, all:size() - 1 do
+                local it2 = all:get(i)
+                if it2 and not heldByAPin(p, it2) then
+                    e.id = it2:getID()
+                    foundIds[tostring(e.id)] = true
+                    return it2
+                end
+            end
+        end
     end
     return nil
 end
@@ -72,6 +93,8 @@ function P.toggle(p, k, id, name)
     local L = list(p)
     local i = P.find(p, k, id)
     if i then table.remove(L, i); return false end
+    -- (a pin made again starts from fresh words)
+    entryCache[k .. tostring(id)] = nil
     local ft = nil
     if k ~= "skill" then
         local it = itemOf(p, id)
@@ -186,12 +209,25 @@ function P.stats(p)
             end
         end
         if mode then
+            -- the entry built last time, handed back while the values match (beast W10): the title bar asks every
+            -- frame and the numbers change a few times a minute. Module-local, keyed by kind and id, never saved.
+            local v1, v2, v3 = a1, a2, nil
+            if mode == "level" then v1, v2, v3 = pd.level, pd.xpInLevel, pd.xpForLevel end
+            local ck = e.k .. tostring(e.id)
+            local c = entryCache[ck]
+            if c and c.mode == mode and c.full == full and c.key == key and c.v1 == v1 and c.v2 == v2
+                and c.v3 == v3 and c.color == color then
+                out[#out + 1] = c.entry
+            else
             local text = pinForm(mode, pd, key, a1, a2, shortName(full, SHORT))
             -- QA's visual audit B3, Nov 20 2026: a name of eight letters or fewer ("Cooking") had no shorter form,
             -- so the pin kept its whole length while the character's name was cut to "Ange...". A last form cuts
             -- the pin's name to four letters and the dots, so the pin gives way before the name does.
             local alts = { pinForm(mode, pd, key, a1, a2, shortName(full, 8)), pinForm(mode, pd, key, a1, a2, shortName(full, 5)) }
-            out[#out + 1] = { text = text, color = color, alts = alts }
+            local entry = { text = text, color = color, alts = alts }
+            entryCache[ck] = { mode = mode, full = full, key = key, v1 = v1, v2 = v2, v3 = v3, color = color, entry = entry }
+            out[#out + 1] = entry
+            end
         end
     end
     return out

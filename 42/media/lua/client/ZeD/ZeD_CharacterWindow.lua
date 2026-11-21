@@ -6344,7 +6344,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
             mainShown = (vc == nil) or (vc.isMain and true or false)
         end
         if not mainShown then
-            win.titleStats[#win.titleStats + 1] = { text = ZeD.Atoms.loadText(weight, maxWt), noMark = true }
+            -- (one load entry kept on the window, so titleLoadFallback sees it is the last one and does not add a
+            -- second when the drawer covers the side) (beast W8)
+            local ls = win._loadStat
+            if not ls then ls = { noMark = true }; win._loadStat = ls end
+            ls.text = ZeD.Atoms.loadText(weight, maxWt)
+            win.titleStats[#win.titleStats + 1] = ls
         end
 
         -- Count visible MC columns
@@ -7497,16 +7502,25 @@ if not ZeD._winStateCarry then
             local pn = playerObj:getPlayerNum()
             local md = playerObj:getModData()
             ZeD._winStateCarry.stash[pn] = md.ZeD_WinState and ZeD._winStateCarry.copy(md.ZeD_WinState) or nil
+            -- the halves' pins go with it, under their own key (beast W9)
+            ZeD._winStateCarry.stash["pins" .. pn] = md.ZeD_WinPinned and ZeD._winStateCarry.copy(md.ZeD_WinPinned) or nil
         end)
     end)
     Events.OnCreatePlayer.Add(function(playerNum)
         if type(playerNum) ~= "number" then return end
         pcall(function()
             local stash = ZeD._winStateCarry.stash[playerNum]
-            if not stash then return end
+            local pinStash = ZeD._winStateCarry.stash["pins" .. playerNum]
+            if not stash and not pinStash then return end
             local p = getSpecificPlayer(playerNum)
             if not p then return end
             local md = p:getModData()
+            -- (before any window's Halves load() runs: put the pins back when the new character has none) (beast W9)
+            if pinStash and md.ZeD_WinPinned == nil then
+                md.ZeD_WinPinned = ZeD._winStateCarry.copy(pinStash)
+            end
+            ZeD._winStateCarry.stash["pins" .. playerNum] = nil
+            if not stash then return end
             if md.ZeD_WinState == nil then
                 md.ZeD_WinState = ZeD._winStateCarry.copy(stash)
             end

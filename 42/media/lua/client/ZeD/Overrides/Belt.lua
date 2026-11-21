@@ -313,6 +313,8 @@ ZeD.Safe.register("belt", {
             eq._zedColFrames, eq._zedColKeep, eq._zedColHidden = nil, nil, nil
             if eq.mainHand then eq.mainHand:setVisible(true) end
             if eq.offHand then eq.offHand:setVisible(true) end
+            -- (on a server the User Panel button was hidden every frame; vanilla's prerender never shows it again) (beast W37)
+            if isClient() and eq.clientBtn then pcall(eq.clientBtn.setVisible, eq.clientBtn, true) end
             if not (ISUIHandler and ISUIHandler.allUIVisible == false) then eq:setVisible(true) end
         end)
         for _, hud in pairs(B._huds or {}) do

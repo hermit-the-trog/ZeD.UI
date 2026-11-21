@@ -452,7 +452,11 @@ function M.catchNote(p)
     -- a mod that pauses the game to show its note (Horse Mod does, right after addToUIManager):
     -- the note is kept, so the game runs on. Every kept note watches again (with several
     -- notes at game start, a later one's mod pauses after the first pause was undone)
-    speedWatch = { speed = lastSpeed, frames = 3 }
+    -- (only when the game is running at the catch, or a watch is already waiting: a game the player had paused is
+    -- left paused) (beast W43)
+    local running = false
+    pcall(function() running = (getGameSpeed() or 0) > 0 end)
+    if running or speedWatch then speedWatch = { speed = lastSpeed, frames = 3 } end
     print("[ZeD] Messages: a note from " .. tostring(name) .. " kept in Messages")
 end
 

@@ -1080,6 +1080,8 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
         x = self:_tailBoxes(boxes, x, h)
         self._boxes = boxes
         self._strap, self._buckle, self._runs, self._closure = nil, nil, nil, nil
+        -- (the layout cache's once-a-second clock, as the full belt sets it: without it Lite re-laid out every frame) (beast W41)
+        self._provAt = getTimestampMs and getTimestampMs() or 0
         return x, h
     end
     self._anchorX = nil
@@ -2050,6 +2052,11 @@ function ZeD_BeltHUD:_prerender()
     if not T then return end
     local p = self:player()
     if not self:wanted() then self._drawn = false; return end
+    -- (a drag whose release never came, the button no longer down: drop it, so the icon cannot stay on the pointer) (beast W40)
+    if self._out and not isMouseButtonDown(0) then
+        self._out, self._press = nil, nil
+        self:setCapture(false)
+    end
     if ZeD.trTestOn then ZeD.trTestOn() end   -- keeps the test-language state fresh for the kept names
     local slots = B.slots(self.playerNum)
     local w, h = self:_layoutCached(slots)
@@ -2375,7 +2382,13 @@ function ZeD_BeltHUD:_finishOut(x, y)
 end
 
 function ZeD_BeltHUD:onMouseUp(x, y)
-    if not self._drawn then return false end
+    if not self._drawn then
+        -- (a belt that is not showing drops any drag it was holding, so it cannot stay armed) (beast W40)
+        self._out = nil
+        self._press = nil
+        self:setCapture(false)
+        return false
+    end
     if self._out and self._out.active then return self:_finishOut(x, y) end
     self._out = nil
     self:setCapture(false)
@@ -2722,6 +2735,11 @@ local function visibilityTick()
         end
         if not want then
             hud._drawn = false
+            -- (no mouse-up reaches a hidden belt: drop a drag it was holding) (beast W40)
+            if hud._out or hud._press then
+                hud._out, hud._press = nil, nil
+                hud:setCapture(false)
+            end
             if hud._tip then hud._tip:setVisible(false) end
             if hud._gp then hud:_leavePad() end
         end

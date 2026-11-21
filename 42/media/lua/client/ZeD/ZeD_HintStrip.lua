@@ -147,7 +147,10 @@ local function keyPrompts(pn, out)
     if st.a and st.a ~= "" then
         local key = keyDoes(st.aFn, st.a) and keyName("Interact")
         if key and not spent(st.aFn, st.a) then out[#out + 1] = { glyph = key, key = true, label = tostring(st.a) } end
-        if not spent("rightclick", "rightclick") then out[#out + 1] = { glyph = getText("IGUI_mouse_btn_1"), key = true, label = ZeD.tr("UI_ZeD_Hint_More") } end
+        -- (a held radio always makes the game's A prompt "Device Options", wherever you stand: no right-click menu in the
+        -- world has more for it, so that prompt earns no "Right-click More" hint) (beast W55)
+        local heldDevice = ISButtonPrompt and st.aFn ~= nil and st.aFn == ISButtonPrompt.openDeviceOptions
+        if not heldDevice and not spent("rightclick", "rightclick") then out[#out + 1] = { glyph = getText("IGUI_mouse_btn_1"), key = true, label = ZeD.tr("UI_ZeD_Hint_More") } end
     end
 end
 

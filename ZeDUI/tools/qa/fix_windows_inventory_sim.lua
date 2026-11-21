@@ -88,7 +88,7 @@ do
     check("WEIGHT: no capacity (the floor): the load alone, 2.0 kg", LT(2, 0) == "2.0 kg", LT(2, 0))
     -- every place that writes a load over a capacity
     local ICO, IFP = readFile(CL .. "ItemCardOrganism.lua"), readFile(CL .. "ItemFactsPanel.lua")
-    check("WEIGHT: the title bar's weight", CWS:find("{ text = ZeD.Atoms.loadText(weight, maxWt), noMark = true }", 1, true) ~= nil)
+    check("WEIGHT: the title bar's weight", CWS:find("ls.text = ZeD.Atoms.loadText(weight, maxWt)", 1, true) ~= nil)
     check("WEIGHT: the Character window's heading", CWS:find("or ZeD.Atoms.loadText(cWeight, cMax),", 1, true) ~= nil)
     check("WEIGHT: the World window's heading", WWS:find("or ZeD.Atoms.loadText(cWeight, cMax),", 1, true) ~= nil)
     check("WEIGHT: the columns' headings", IRS:find("or ZeD.Atoms.loadText(weight, capacity)", 1, true) ~= nil)

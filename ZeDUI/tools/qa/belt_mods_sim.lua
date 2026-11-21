@@ -157,6 +157,7 @@ end
 local function installGlobals()
     Events = newEvents()
     getTimestampMs = function() return env.clock end
+    isMouseButtonDown = function() return env.mouseDown == true end   -- (the belt drops a drag whose button is up, beast W40)
     getText = function(k, ...) return k end
     getTextOrNull = function() return nil end
     getCore = function()
@@ -824,10 +825,12 @@ check("MSB the controller on the belt keeps it shown", msbAlpha("slot") == 1, ms
 hud._gp = nil
 msbRun(120)
 check("MSB the controller off: it fades again", msbAlpha("slot") == 0)
+env.mouseDown = true   -- (the button is held during the drag)
 hud._out = { active = true }
 msbRun(120)
 check("MSB a slot dragged off the belt keeps it shown", msbAlpha("slot") == 1)
 hud._out = nil
+env.mouseDown = false
 msbRun(120)
 env.ctx.visible = true
 msbRun(30)
