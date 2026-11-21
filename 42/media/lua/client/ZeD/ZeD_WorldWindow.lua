@@ -2709,6 +2709,10 @@ local function applyWorldState(win, ws)
     win._baseInvW         = restoredInvW                               -- design units
     win._prevDesiredW     = nil
     fitWorldToScreen(win)         -- (and the window's own minimums against the screen)
+    -- (pushed off its kept place to stay on screen: then it may sit on the Character window; the two are spread
+    -- apart, ZeD_CharacterWindow.unpilePair) (QA B5-7)
+    win._restorePushed = win:getX() ~= T.px(xU) or nil
+    if ZeD_CharacterWindow and ZeD_CharacterWindow.unpilePair then ZeD_CharacterWindow.unpilePair(win) end
 
     -- Restore active tab
     if ws.activeTab then
@@ -5982,6 +5986,10 @@ function ZeD_WorldWindow.toggle(playerNum)
                and not tryFloorTransfer(self, items, self._dragSourceInv) then
                 handleDrop(self, items, self._dragSourceInv)
             end
+            -- (the rows let go over another list: this list lets go of their picks too) (QA B5-10)
+            if ZeD_CharacterWindow and ZeD_CharacterWindow.letGoOfDragged then
+                ZeD_CharacterWindow.letGoOfDragged(self, items, self._dragSourceInv, x, y)
+            end
             self:setCapture(false)
             self._deferredSelect = nil
             self._dragSourceCol = nil
@@ -6051,6 +6059,10 @@ function ZeD_WorldWindow.toggle(playerNum)
             if not tryStripDrop(self, items, self._dragSourceInv)
                and not tryFloorTransfer(self, items, self._dragSourceInv) then
                 handleDrop(self, items, self._dragSourceInv)
+            end
+            -- (released outside this list: it lets go of the dragged rows' picks, as the game's list does) (QA B5-10)
+            if ZeD_CharacterWindow and ZeD_CharacterWindow.letGoOfDragged then
+                ZeD_CharacterWindow.letGoOfDragged(self, items, self._dragSourceInv)
             end
             self:setCapture(false)
             self._deferredSelect = nil
@@ -6546,13 +6558,17 @@ local function _lootPageWatchFor(pn)
     if not _worldWins[pn] then ZeD_WorldWindow.open(pn) end
     local win = _worldWins[pn]
     if not win then return end
-    if win.windowShaded then
-        win._autoShaded = false
-        win:setWindowShaded(false)
-    end
     -- (an unpinned window rolls up again a moment after the pointer is away: counted from the click, a little
     -- longer than the hover's wait, as the game's page counts from -30 after a click)
     win._outSince = now + 500
+    if win._halves and ZeD.Halves and ZeD.Halves.showAll then
+        -- (the halves' own "come and look": the whole window down, and an inventory side the pointer rolled
+        -- under its rod comes down too, as a bumper or Y brings it; a side rolled by hand stays) (QA B5-1)
+        ZeD.Halves.showAll(win)
+    elseif win.windowShaded then
+        win._autoShaded = false
+        win:setWindowShaded(false)
+    end
     if inv then ZeD_WorldWindow.selectContainer(inv, 60, pn) end
 end
 local function _lootPageWatch()

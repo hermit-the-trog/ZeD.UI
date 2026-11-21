@@ -85,6 +85,18 @@ function ZeD_WindowMenu:close()
     if WM.current == self then WM.current = nil end
 end
 
+-- The menu belongs to its window: once the window is closed (the inventory key, a reset, a respawn) the menu
+-- goes with it, or it would float on screen with nothing under it until a click or Escape. (QA B5-3)
+function ZeD_WindowMenu:update()
+    if self._ctx.open then
+        local win = self.win
+        local shown = false
+        if win then pcall(function() shown = win:isReallyVisible() end) end
+        if not shown then self:close(); return end
+    end
+    ZeD_ContextList.update(self)
+end
+
 local function drawCheck(p, x, y, k, c)
     for row = 1, #CHECK do
         local line = CHECK[row]

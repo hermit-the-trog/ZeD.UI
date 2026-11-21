@@ -112,6 +112,9 @@ function ZeD_CurtainRod:prerender()
     local win = self.win
     -- (a rod its window no longer holds: C.drop took it away with a closed window)
     if not (win and win._rod == self and win:isVisible() and win._rolled) then self:setVisible(false); return end
+    -- (a window rolled up to its title bar hides its children, so C.sync, run from the drawer's drawing, does
+    -- not run to hide the rod: the rod hides itself; C.sync shows it again once the window rolls down) (QA B5-2)
+    if win.windowShaded then self:setVisible(false); return end
     local T = ZeD.T
     local tbH = T.titleBarH
     -- the roll: the fabric's height runs to its target at the drawers' speed

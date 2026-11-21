@@ -248,6 +248,80 @@ local function fitCharToScreen(win)
 end
 ZeD_CharacterWindow.fitToScreen = fitCharToScreen
 
+--- After either window's restore (ZeD_WorldWindow's too): places are kept in design units and multiplied from the
+--- screen's top-left corner, then each window is pushed back onto the screen on its own. After a big scale-up both
+--- can be pushed against the right edge, one on top of the other. When a push moved either window and the two now
+--- overlap, they are laid out as the default spread (Character left, World right, the reset's gap between), moved
+--- as little as fits on the screen. A pair the player overlapped by hand, with nothing pushed, stays as it is.
+--- (QA B5-7)
+function ZeD_CharacterWindow.unpilePair(win)
+    local pn = win and win.playerNum or 0
+    local cw = ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(pn)
+    local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn)
+    if not (cw and ww and cw ~= ww) then return end
+    -- (only the window being restored and an open partner count: a closed partner places itself when it opens)
+    local other = (win == cw) and ww or cw
+    if not other:isVisible() then return end
+    if not (cw._restorePushed or ww._restorePushed) then return end
+    cw._restorePushed, ww._restorePushed = nil, nil
+    local cx, cy, cW, cH = cw:getX(), cw:getY(), cw:getWidth(), cw:getHeight()
+    local wx, wy, wW, wH = ww:getX(), ww:getY(), ww:getWidth(), ww:getHeight()
+    local overlap = cx < wx + wW and wx < cx + cW and cy < wy + wH and wy < cy + cH
+    if not overlap then return end
+    local screenW, _, screenL = ZeD.screenOf(cw)
+    local gap = ZeD.T.px(5) * 2   -- the reset's gap: 5 px each side of the middle (ZeD_Window.resetLayout)
+    -- (both cannot fit side by side: nothing better to do here, the player's Reset spreads them)
+    if cW + gap + wW > screenW then return end
+    -- Character as near its place as fits with World to its right, World just after it
+    local ncx = math.max(screenL, math.min(cx, screenL + screenW - wW - gap - cW))
+    local nwx = ncx + cW + gap
+    for _, mv in ipairs({ { cw, ncx - cx }, { ww, nwx - wx } }) do
+        local w, d = mv[1], mv[2]
+        if d ~= 0 then
+            w:setX(w:getX() + d)
+            w._lastSetX = w:getX()
+            -- (the right-edge anchor moves with it: a drawer's slide places the window from it)
+            if w._anchorRightEdge then w._anchorRightEdge = w._anchorRightEdge + d end
+        end
+    end
+end
+
+--- A drag's release (this window's list and the World window's): each drag's press picked the row in the list it
+--- leaves, and a pick left on a thing that has gone turns that list's band into Take marked / Move marked, whose
+--- first press moves nothing. So the list lets go of the dragged rows' picks, as the game's own list does on a
+--- release outside it (ISInventoryPane:onMouseUpOutside). x, y: the release inside the list (onMouseUp), where
+--- the picks stay when the rows were let go over their own list (nothing moved; not over an XFER button);
+--- nil: a release outside it, where they always go. (QA B5-10)
+function ZeD_CharacterWindow.letGoOfDragged(content, items, srcInv, x, y)
+    if not (content and items and #items > 0) then return end
+    if x then
+        -- the list under the release: a column's container, else the list's own
+        local inv = content._inventory
+        for _, cs in ipairs(content._colStates or {}) do
+            if cs.renderX and cs.renderW and x >= cs.renderX and x < cs.renderX + cs.renderW then inv = cs.inventory; break end
+        end
+        local zone = content.hitZoneAt and content:hitZoneAt(x, y)
+        local xfer = zone and type(zone.id) == "string" and zone.id:sub(1, 5) == "xfer:"
+        if inv == (srcInv or content._inventory) and not xfer then return end
+    end
+    -- (the main list's table and a column's alias one another: each table is emptied once)
+    local seen, left = {}, false
+    local function letGo(t)
+        if not t or seen[t] then return end
+        seen[t] = true
+        for _, it in ipairs(items) do t[it] = nil end
+        for _ in pairs(t) do left = true; break end
+    end
+    letGo(content._selectedItems)
+    for _, cs in ipairs(content._colStates or {}) do
+        letGo(cs.selectedItems)
+        for _, it in ipairs(items) do if cs.lastClickedItem == it then cs.lastClickedItem = nil end end
+    end
+    for _, it in ipairs(items) do if content._lastClickedItem == it then content._lastClickedItem = nil end end
+    -- (nothing picked anymore: the card's "rows are being picked" hold goes too, as ZeD's own clear does)
+    if not left then content._padMarks = nil end
+end
+
 local function applyCharState(win, cs)
     local T = ZeD.T
     local screenW, screenH, screenL, screenT = ZeD.screenOf(win)
@@ -295,6 +369,10 @@ local function applyCharState(win, cs)
     win._baseInvW         = restoredInvW                        -- design units
     win._prevDesiredW     = nil  -- let first frame compute fresh
     fitCharToScreen(win)         -- (and the window's own minimums against the screen)
+    -- (pushed off its kept place to stay on screen: then it may sit on the World window, ZeD_CharacterWindow.unpilePair)
+    -- (QA B5-7)
+    win._restorePushed = win:getX() ~= T.px(xU) or nil
+    if ZeD_CharacterWindow.unpilePair then ZeD_CharacterWindow.unpilePair(win) end
     -- Restore active tab
     if cs.activeTab then
         win._activeTab = cs.activeTab
@@ -7163,6 +7241,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
         if self._drag:isActive() then
             local items = self._drag:complete()
             handleDrop(self, items, self._dragSourceInv)
+            -- (the rows let go over another list: this list lets go of their picks too) (QA B5-10)
+            ZeD_CharacterWindow.letGoOfDragged(self, items, self._dragSourceInv, x, y)
             self:setCapture(false)
             self._deferredSelect = nil
             self._dragSourceCol = nil
@@ -7278,6 +7358,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
         if self._drag:isActive() then
             local items = self._drag:complete()
             handleDrop(self, items, self._dragSourceInv)
+            -- (released outside this list: it lets go of the dragged rows' picks, as the game's list does) (QA B5-10)
+            ZeD_CharacterWindow.letGoOfDragged(self, items, self._dragSourceInv)
             self:setCapture(false)
             self._deferredSelect = nil
             self._dragSourceCol = nil

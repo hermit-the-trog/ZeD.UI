@@ -1576,6 +1576,11 @@ local function resetWorld(worldWin, defW, defH, gap, screenW, screenL, screenT)
     worldWin._drawerCapLost = 0
     worldWin._lastSetX = worldWin:getX()
     worldWin._preDrawerW = nil
+    -- Back to Loot, as the Character window above and as a press on Loot does (the strip lights Loot and the
+    -- Loot-only code, a container click opening Loot columns, runs again); the size is the reset's own, below,
+    -- not the Loot press's snap width (QA B5-4)
+    worldWin._activeTab = "loot"
+    worldWin._tabUnder = nil
     worldWin._drawerOpen = false
     worldWin._drawerEffW = 0
     worldWin._prevEffW   = 0
