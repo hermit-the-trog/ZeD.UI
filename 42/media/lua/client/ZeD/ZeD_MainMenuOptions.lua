@@ -165,13 +165,42 @@ function MM.optionRows(page)
     for _, e in ipairs(MainOptions.keyText or {}) do if not e.value and e.btn then keyOf[e.btn] = e end end
     local used = {}
     local rows = {}
+    -- (beast W39) the labels filed by height in bands of LBAND px, so each control looks only at the labels near
+    -- its own row, not at every label on the page. The rule is the one it always was: a label on the same row
+    -- (its middle within tol of the control's), ending left of the control, the right-most one wins; on a tie
+    -- the label that came first (i, its place in the list) wins, as when every label was walked in order.
+    local LBAND = 16
+    local bands = {}
+    for i, l in ipairs(bucket.labels) do
+        if not l.medium then
+            l.i, l.mid, l.right = i, l.y + l.h / 2, l.x + l.w
+            local b = math.floor(l.mid / LBAND)
+            local t = bands[b]
+            if not t then t = {}; bands[b] = t end
+            t[#t + 1] = l
+        end
+    end
     for _, c in ipairs(bucket.controls) do
         local best, bestRight = nil, -1e9
-        for _, l in ipairs(bucket.labels) do
-            if not used[l] and not l.medium then
-                local right = l.x + l.w
-                local sameRow = math.abs((l.y + l.h / 2) - (c.y + math.min(c.h, 40) / 2)) <= math.max(8, math.min(c.h, 40) / 2)
-                if sameRow and right <= c.x + 6 and right > bestRight then best, bestRight = l, right end
+        local ch = c.h
+        if ch > 40 then ch = 40 end                  -- min(c.h, 40), once per control
+        local cmid = c.y + ch / 2
+        local tol = ch / 2
+        if tol < 8 then tol = 8 end                  -- max(8, ...), once per control
+        local maxRight = c.x + 6
+        for b = math.floor((cmid - tol) / LBAND), math.floor((cmid + tol) / LBAND) do
+            local t = bands[b]
+            if t then
+                for _, l in ipairs(t) do
+                    if not used[l] then
+                        local d = l.mid - cmid
+                        if d < 0 then d = -d end
+                        local right = l.right
+                        if d <= tol and right <= maxRight and (right > bestRight or (best and right == bestRight and l.i < best.i)) then
+                            best, bestRight = l, right
+                        end
+                    end
+                end
             end
         end
         if best then used[best] = true end
@@ -212,13 +241,57 @@ function MM.optionRows(page)
     return out
 end
 
+--- A cheap mark of what a vanilla page holds (beast W39): the page itself, how many elements are under it, the key
+--- list's length and ZeD's language generation. The cached rows are built again only when it changes (or the window
+--- opens, applies or discards), not every two seconds.
+local function countKids(el, depth)
+    if depth > 8 then return 0 end
+    local n = 0
+    local ch = el and el.getChildren and el:getChildren() or nil
+    if ch then for _, c in pairs(ch) do n = n + 1 + countKids(c, depth + 1) end end
+    return n
+end
+function MM.optionPageSig(view)
+    local n = 0
+    pcall(function() n = countKids(view, 0) end)
+    return tostring(view) .. "|" .. n .. "|" .. #(MainOptions and MainOptions.keyText or {}) .. "|" .. tostring(ZeD._trGen)
+end
+
 --- The key bindings page: vanilla's own list (MainOptions.keyText), its toggles first.
 function MM.keyRows(page)
     local rows = {}
     local o = mo()
-    local generic = page and MM.optionRows(page) or {}
     local toggles = {}
-    for _, r in ipairs(generic) do if r.kind == "tick" then toggles[#toggles + 1] = r end end
+    -- (beast W39) the toggles are vanilla's keyTickBoxes: read straight from that list, with no pairing walk. They sit
+    -- on rows of their own with no label to their left, so each is the row optionRows made for it, its own words
+    -- as the name (tickNoText). Without the list, the full reading as before.
+    local boxes = o and o.keyTickBoxes
+    if page and boxes and #boxes > 0 then
+        local optOf = {}
+        for _, opt in ipairs(o.gameOptions and o.gameOptions.options or {}) do if opt.control then optOf[opt.control] = opt end end
+        for _, el in ipairs(boxes) do
+            local ok, ax, ay = pcall(function() return el:getAbsoluteX(), el:getAbsoluteY() end)
+            if ok then
+                local r = { kind = "tick", control = el, label = "", y = ay, x = ax, opt = optOf[el] }
+                if el.options and #el.options == 1 and tostring(el.options[1] or "") ~= "" then
+                    r.label = tostring(el.options[1])
+                    r.tickNoText = true
+                end
+                toggles[#toggles + 1] = r
+            end
+        end
+        -- top to bottom, then left to right, as optionRows sorts (a handful of rows: a plain insertion sort)
+        for i = 2, #toggles do
+            local r, j = toggles[i], i - 1
+            while j >= 1 and (toggles[j].y - r.y > 2 or (math.abs(toggles[j].y - r.y) <= 2 and toggles[j].x > r.x)) do
+                toggles[j + 1] = toggles[j]; j = j - 1
+            end
+            toggles[j + 1] = r
+        end
+    else
+        local generic = page and MM.optionRows(page) or {}
+        for _, r in ipairs(generic) do if r.kind == "tick" then toggles[#toggles + 1] = r end end
+    end
     if #toggles > 0 then
         rows[#rows + 1] = { kind = "header", text = ZeD.tr("UI_ZeD_Options_Toggles"), id = "toggles" }   -- (id: ZeD_MainMenuOptionGroups finds this header by it)
         for _, r in ipairs(toggles) do rows[#rows + 1] = r end
@@ -529,17 +602,25 @@ function ZeD_MMOptions:vpages()
     return t
 end
 
--- a vanilla page's rows (cached for two seconds: the pairing walks every
--- control; values are read live anyway)
+-- a vanilla page's rows (cached: the pairing walks every control; values are read live anyway). Every two
+-- seconds the page's mark (MM.optionPageSig) is checked, and the rows are built again only when it changed (beast W39)
 function ZeD_MMOptions:vrowsFor(page)
     if not page then return {} end
     self._cache = self._cache or {}
     local c = self._cache[page.raw]
     local t = MM.now()
     if c and t - c.at < 2000 then return c.rows end
+    local sig = MM.optionPageSig(page.view)
+    if c and c.sig == sig then c.at = t; return c.rows end
     local rows = page.keys and MM.keyRows(page) or MM.optionRows(page)
-    self._cache[page.raw] = { at = t, rows = rows }
+    self._cache[page.raw] = { at = t, rows = rows, sig = sig }
     return rows
+end
+-- every vanilla page's mark in one string (the groups are built again only when one changed) (beast W39)
+function ZeD_MMOptions:vpagesSig()
+    local t = {}
+    for _, p in ipairs(self:vpages()) do t[#t + 1] = MM.optionPageSig(p.view) end
+    return table.concat(t, ";")
 end
 
 -- The window's pages are the groups (ZeD_MainMenuOptionGroups: ZeD setup,
@@ -562,8 +643,10 @@ function ZeD_MMOptions:rowsFor(page)
     local rev = (ZeD.Options and ZeD.Options.rev) or 0
     -- (QA's visual noise audit, Nov 20 2026: rows come and go with Style, Loadouts' pick and debug mode; a change builds again at once)
     local st = MM.optionGroups.stateKey and MM.optionGroups.stateKey() or ""
+    -- (beast W39) past two seconds the pages' marks are checked: unchanged, the groups stay as built
+    if gc and now - gc.at >= 2000 and gc.rev == rev and gc.st == st and gc.sig == self:vpagesSig() then gc.at = now end
     if not (gc and now - gc.at < 2000 and gc.rev == rev and gc.st == st) then
-        gc = { at = now, rev = rev, st = st, rows = MM.optionGroups.build(self:vpages(), function(p) return self:vrowsFor(p) end) }
+        gc = { at = now, rev = rev, st = st, sig = self:vpagesSig(), rows = MM.optionGroups.build(self:vpages(), function(p) return self:vrowsFor(p) end) }
         self._groupCache = gc
     end
     local rows = gc.rows[page.raw] or {}
@@ -692,6 +775,7 @@ function ZeD_MMOptions:apply(closeAfter)
     self:setConfirm(false)
     self._closeAfter = closeAfter
     o:apply(closeAfter)          -- vanilla: keys, options, mod options, save, then the dialogs (ours, below)
+    self._groupCache, self._cache = nil, nil   -- (vanilla's apply can rewrite labels: read the pages afresh) (beast W39)
     if not closeAfter and self:isVisible() then self:snapshot() end
 end
 

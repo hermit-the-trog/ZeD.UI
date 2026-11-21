@@ -60,7 +60,9 @@ local EXT = { ini = true, cfg = true, txt = true, json = true, log = true }
 local VANILLA = { ["modoptions.ini"] = true, ["pz_modlist_settings.cfg"] = true, ["keysb42.ini"] = true, ["keys.ini"] = true,
                   ["layout.ini"] = true, ["entitylayout.ini"] = true, ["emote.ini"] = true, ["host.ini"] = true, ["invited.ini"] = true,
                   ["cheatpanel.ini"] = true, ["screenresolution.ini"] = true, ["luaglobals.log"] = true, ["foragemissingitems.log"] = true,
-                  ["statisticsdebug.log"] = true, ["saved_outfits.txt"] = true, ["saved_builds.txt"] = true, [B41_FILE] = true }
+                  ["statisticsdebug.log"] = true, ["saved_outfits.txt"] = true, ["saved_builds.txt"] = true, [B41_FILE] = true,
+                  -- the game's server lists (an id such as "server" or "list" must never take them) (beast W52)
+                  ["serverlist.txt"] = true, ["serverliststeam.txt"] = true }
 -- ZeD's own files and its tests' (never another mod's settings)
 local OWN = { "zed_", "zedqa", "zqa_", "zed-" }
 
@@ -222,6 +224,41 @@ local function b41Part(job)
     return { path = B41_FILE, sections = secs }
 end
 
+-- does the (lower-case) file name hold the (lower-case) id as a whole word? The id must start the name or
+-- follow a non-letter, and end the name or be followed by ". _ - " or a space, so "zqamod" takes
+-- "zqamod.ini" and "my_zqamod_settings.txt" but not "zqamodplus.ini" (another mod's id) (beast W52)
+local function holdsId(ln, id)
+    local from = 1
+    while true do
+        local at = ln:find(id, from, true)
+        if not at then return false end
+        local before = at > 1 and ln:sub(at - 1, at - 1) or ""
+        local after = ln:sub(at + #id, at + #id)
+        if not before:match("%w") and (after == "" or after == "." or after == "_" or after == "-" or after == " ") then
+            return true
+        end
+        from = at + 1
+    end
+end
+
+-- the ids of the other installed or enabled mods that are longer than this one and hold it ("brita_armor"
+-- for "brita"): a file named after one of them is that mod's, not this one's (beast W52)
+local function longerIds(id)
+    local out, seen = {}, {}
+    local function add(o)
+        o = lower(o):gsub("^\\", "")   -- (an enabled id can carry a leading backslash)
+        if o ~= id and not seen[o] and #o > #id and o:find(id, 1, true) then seen[o] = true; out[#out + 1] = o end
+    end
+    local act = safe(getActivatedMods)
+    for i = 0, (act and act:size() or 0) - 1 do add(tostring(act:get(i))) end
+    for _, dir in ipairs(safe(getModDirectoryTable) or {}) do
+        local mi = safe(getModInfo, dir)
+        local oid = mi and safe(function() return mi:getId() end)
+        if oid then add(tostring(oid)) end
+    end
+    return out
+end
+
 local function resolve(job)
     local res = { files = {} }
     local seen = {}
@@ -229,7 +266,15 @@ local function resolve(job)
     for _, pre in pairs(job.prefixes) do addPrefix(res, seen, pre) end
     local id = lower(job.modId)
     if #id >= 4 then
-        for ln, real in pairs(listing("")) do if ln:find(id, 1, true) then addFound(res, seen, real, "id") end end
+        local others = longerIds(id)
+        for ln, real in pairs(listing("")) do
+            if holdsId(ln, id) then
+                -- skip the file when it is named after a longer id of another mod (beast W52)
+                local theirs = false
+                for _, o in ipairs(others) do if holdsId(ln, o) then theirs = true; break end end
+                if not theirs then addFound(res, seen, real, "id") end
+            end
+        end
         for _, real in pairs(listing(job.modId)) do addFound(res, seen, job.modId .. "/" .. real, "id") end
     end
     table.sort(res.files, function(a, b) return lower(a.path) < lower(b.path) end)

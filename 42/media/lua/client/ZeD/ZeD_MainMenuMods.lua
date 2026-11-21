@@ -920,7 +920,7 @@ end
 
 function ZeD_MMMods:renameProfile()
     local m = model()
-    local old, new = self.psel, self.field:getText()
+    local old, new = self._pTarget, self.field:getText()   -- (the profile the question opened on) (beast W38)
     if not (m and old and self:nameFree(new, old)) then return end
     if new ~= old then
         m.presets[new], m.presets[old] = m.presets[old], nil
@@ -937,7 +937,7 @@ end
 
 function ZeD_MMMods:duplicateProfile()
     local m = model()
-    local old, new = self.psel, self.field:getText()
+    local old, new = self._pTarget, self.field:getText()   -- (the profile the question opened on) (beast W38)
     if not (m and old and self:nameFree(new)) then return end
     local copy = {}
     for k, v in pairs(m.presets[old] or {}) do copy[k] = v end
@@ -1089,9 +1089,11 @@ function ZeD_MMMods:setConfirm(mode)
     if mode and not self.confirm and self._backFocus == nil then self._backFocus = self.focusId end
     self.confirm = mode
     MM.ctx.open = nil
+    -- Rename and Duplicate keep the profile they were opened on, as folders keep _fTarget (beast W38)
+    if mode == "rename" or mode == "dup" then self._pTarget = self.psel end
     if FIELD_MODES[mode] then
         local pre = ""
-        if mode == "rename" then pre = self.psel or "" elseif mode == "dup" then pre = ZeD.tr("UI_ZeD_Mods_CopyName", self.psel or "")
+        if mode == "rename" then pre = self._pTarget or "" elseif mode == "dup" then pre = ZeD.tr("UI_ZeD_Mods_CopyName", self._pTarget or "")
         elseif mode == "frename" then pre = self._fieldPre or "" end
         self.field:setText(pre)
         self.field:setVisible(true)
@@ -1209,7 +1211,7 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
         local text = self.field:getText()
         local valid
         if c == "paste" then valid = text and text:find(":", 1, true) ~= nil
-        elseif c == "rename" then valid = self:nameFree(text, self.psel)
+        elseif c == "rename" then valid = self:nameFree(text, self._pTarget)   -- (beast W38)
         else valid = self:nameFree(text) end
         local fx = UI.stripSpecs(self, stripY, w, row, {}, {
             cancel,
@@ -2340,6 +2342,7 @@ end
 
 -- a click picks the profile; a second click on it soon after loads it
 function ZeD_MMMods:clickProfile(p, i)
+    if self.confirm then return end   -- (the rows wait while a question is open, as joyDir does) (beast W38)
     local t = MM.now()
     if self.psel == p.name and self._lastPClick and t - self._lastPClick < 450 then
         self._lastPClick = nil

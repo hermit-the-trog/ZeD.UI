@@ -48,17 +48,21 @@ local function plain(s) return MM.ui and MM.ui.plain(s) or tostring(s or "") end
 -- ----------------------------------------------------------------------------
 local cache = { at = -1e9, rows = nil }
 
--- vanilla's Mods page rows (the Options window's reading of it), kept two seconds
+-- vanilla's Mods page rows (the Options window's reading of it). Every two seconds the page's mark
+-- (MM.optionPageSig) is checked and the rows are read again only when it changed (beast W39)
 local function pageRows()
     local now = getTimestampMs()
     if cache.rows and now - cache.at < 2000 then return cache.rows end
     local o = mo()
     local want = getText("UI_mainscreen_mods")
-    local rows = {}
+    local view = nil
     for _, v in ipairs(o and o.tabs and o.tabs.viewList or {}) do
-        if v.name == want then rows = MM.optionRows({ view = v.view }) or {} end
+        if v.name == want then view = v.view end
     end
-    cache.rows, cache.at = rows, now
+    local sig = view and MM.optionPageSig and MM.optionPageSig(view) or nil
+    if cache.rows and sig and sig == cache.sig then cache.at = now; return cache.rows end
+    local rows = view and MM.optionRows({ view = view }) or {}
+    cache.rows, cache.at, cache.sig, cache.byCtl = rows, now, sig, nil
     return rows
 end
 
@@ -73,10 +77,15 @@ function S.optionRows(modId)
     local mine = OW.forMod(modId)
     if #mine == 0 then return out end
     local rows = pageRows()
-    local byCtl = {}
-    for _, r in ipairs(rows) do
-        if r.control then byCtl[r.control] = r end
-        if r.entry and r.entry.btn then byCtl[r.entry.btn] = r end
+    -- the control -> row map, built once per reading of the page, not every frame (beast W39)
+    local byCtl = cache.byCtl
+    if not byCtl then
+        byCtl = {}
+        for _, r in ipairs(rows) do
+            if r.control then byCtl[r.control] = r end
+            if r.entry and r.entry.btn then byCtl[r.entry.btn] = r end
+        end
+        cache.byCtl = byCtl
     end
     for _, options in ipairs(mine) do
         local sec = { title = getText(tostring(options.name or options.modOptionsID)), options = options, entries = {} }
@@ -328,5 +337,5 @@ end
 --- Forget everything read (the Mods screen opens).
 function S.reset()
     sb, trs = {}, {}
-    cache.rows, cache.at = nil, -1e9
+    cache.rows, cache.at, cache.sig, cache.byCtl = nil, -1e9, nil, nil
 end

@@ -337,12 +337,22 @@ function ZeD_MMWelcome:prerender()
     -- the band
     local stripH = MM.bandH()
     local stripY = h - self:footerHeight() - stripH
+    -- is there a setup file to load? Asked at most once a second: hasSetup opens the file (beast W53)
+    local noFile = false
+    if self.way == 2 then
+        local now = MM.now()
+        if not self._setupAt or now - self._setupAt >= 1000 then
+            self._setupAt = now
+            self._hasSetup = (S().hasSetup and S().hasSetup()) and true or false
+        end
+        noFile = not self._hasSetup
+    end
     local doneWord = (self.way == 3) and tr("UI_ZeD_Welcome_WaySkip") or ((self.way == 2) and tr("UI_ZeD_Welcome_LoadDone") or getText("UI_btn_accept"))
     UI.stripSpecs(self, stripY, w, 1000, {},
         { { "save", tr("UI_ZeD_Welcome_SaveSetup"), function() self:saveSetup() end, "default", self.way ~= 1, tr("UI_ZeD_Welcome_HelpSave", S().SETUP_FILE) },
           -- (QA: Load with no setup file to read is grayed, and the band says where the file goes)
-          { "done", doneWord, function() self:done() end, "primary", self.way == 2 and not (S().hasSetup and S().hasSetup()), tr("UI_ZeD_Welcome_HelpDone") } },
-        self.note or ((self.way == 2 and not (S().hasSetup and S().hasSetup())) and tr("UI_ZeD_Welcome_NoFile", S().SETUP_FILE) or tr("UI_ZeD_Welcome_Band")), true)
+          { "done", doneWord, function() self:done() end, "primary", noFile, tr("UI_ZeD_Welcome_HelpDone") } },
+        self.note or (noFile and tr("UI_ZeD_Welcome_NoFile", S().SETUP_FILE) or tr("UI_ZeD_Welcome_Band")), true)
 end
 
 function ZeD_MMWelcome:render()

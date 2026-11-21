@@ -633,5 +633,30 @@ local named = false
 for _, f in ipairs(rf and rf.files or {}) do if f.path == "FooSettings.ini" then named = true end end
 check("MEDIA: Reset settings finds the file a sub-folder's code names", named, rf and #rf.files)
 
+-- (beast W52) a file is the mod's by its id only as a whole word; never a longer id's file or the game's lists
+section("RESETID: Reset settings takes only files named for the mod's own id")
+boot({ "Foo", "Deck", "Bar", "Baz", "ZeD_UI", "ZeD_Picks", "Brita", "Brita_Armor" })
+LUA["ZQAModPlus_settings.ini"] = { "a=1" }
+LUA["ZQAMod.ini"] = { "a=1" }
+LUA["my_zqamod_keys.txt"] = { "a=1" }
+LUA["Brita_Armor_settings.ini"] = { "a=1" }
+LUA["Brita.json"] = { "{}" }
+LUA["ServerListSteam.txt"] = { "x" }
+ZeD.ModReset.forget()
+local function idFiles(id)
+    local r
+    for _ = 1, 20 do r = ZeD.ModReset.find(id); if r then break end end
+    local s = {}
+    for _, f in ipairs(r and r.files or {}) do s[f.path] = true end
+    return s
+end
+local zq = idFiles("ZQAMod")
+check("RESETID: the mod's own files are listed", zq["ZQAMod.ini"] and zq["my_zqamod_keys.txt"])
+check("RESETID: a longer id's file is not", not zq["ZQAModPlus_settings.ini"])
+local br = idFiles("Brita")
+check("RESETID: another enabled mod's longer id keeps its file", br["Brita.json"] and not br["Brita_Armor_settings.ini"])
+local sv = idFiles("ServerListSteam")
+check("RESETID: the game's server list is never listed", not sv["ServerListSteam.txt"])
+
 print("fix_mods_msgs_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed == 0 and 0 or 1)

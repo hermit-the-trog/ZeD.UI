@@ -363,9 +363,16 @@ function ZeD_MMLoad:delete()
     self.focusId = self.sel and ("save:" .. self.sel) or nil
 end
 
+-- the save Rename was opened on: kept by its key when the field opens, so a row clicked, a group folded
+-- or a Find typed while the field is open cannot swap in another save (beast W51)
+function ZeD_MMLoad:renameTarget()
+    for _, s in ipairs(self.saves) do if s.key == self._rTarget then return s end end
+    return nil
+end
+
 -- vanilla's ConfigPanel:validateSavefileName
 function ZeD_MMLoad:renameValid(text)
-    local s = self:selected()
+    local s = self:renameTarget()   -- (beast W51)
     if not s or not text then return false end
     if text == s.saveName then return false end
     local worldName = sanitizeWorldName(text)
@@ -381,6 +388,7 @@ end
 function ZeD_MMLoad:startRename()
     local s = self:selected()
     if not s then return end
+    self._rTarget = s.key   -- (beast W51)
     self:setConfirm("rename")
     self.renameEntry:setText(s.saveName)
     self.renameEntry:setVisible(true)
@@ -389,7 +397,7 @@ function ZeD_MMLoad:startRename()
 end
 
 function ZeD_MMLoad:rename()
-    local s = self:selected()
+    local s = self:renameTarget()   -- (beast W51)
     if not s then return end
     local text = self.renameEntry:getText()
     if not self:renameValid(text) then return end
@@ -661,6 +669,7 @@ end
 
 -- a click picks the save; a second click on it soon after plays it (vanilla's double-click)
 function ZeD_MMLoad:clickSave(s)
+    if self.confirm == "rename" then return end   -- (the rows wait while the rename field is open) (beast W51)
     local t = MM.now()
     if self.sel == s.key and self._lastClick and t - self._lastClick < 450 then
         self._lastClick = nil

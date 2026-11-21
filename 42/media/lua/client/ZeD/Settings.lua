@@ -188,6 +188,8 @@ local function applyScale(idx)
     if ZeD.Scale then
         ZeD.Scale.userScale = (type(v) == "number") and v or nil
         ZeD.Scale.refresh()   -- the Scale tick hook re-applies the theme and reopens the windows
+        -- (beast W36) OnTick stops while paused, so the re-theme runs now; the windows still reopen on resume
+        if ZeD.Scale.applyRootNow then pcall(ZeD.Scale.applyRootNow) end
     end
 end
 -- (onChange and onChangeApply both get the option, then the new index)
@@ -987,8 +989,11 @@ local function setUpAdditions()
         if additionsPreset.setValue then pcall(additionsPreset.setValue, additionsPreset, 1) end
         pcall(ZeD.Settings.pickAdditionsPreset, 1)
     end
+    -- (beast W35) on the options screens a Lite pick changes the controls only, until Apply: liteAdditions wrote the
+    -- stored values at once, so Discard could not bring the additions back. The Select wheel, which saves at once,
+    -- still calls liteAdditions itself (ZeD_DpadWheels.lua Z.actionBarWheel).
     lookStyle.onChange = function(_, sel)
-        if tonumber(sel) == 2 then pcall(ZeD.Settings.liteAdditions) end
+        if tonumber(sel) == 2 then pcall(ZeD.Settings.pickAdditionsPreset, 1) end
     end
 
     -- Apply, on ZeD setup or the game's Mods page (MainOptions:apply calls each mod's options:apply())
