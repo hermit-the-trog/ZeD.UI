@@ -81,7 +81,7 @@ do
             return { name = name, getContainer = function() return inv end, isFavorite = function() return false end,
                 getFullType = function() return "Base." .. name end }
         end
-        local player = { getPlayerNum = function() return 0 end, getInventory = function() return bag end }
+        local player = { getPlayerNum = function() return 0 end, getInventory = function() return bag end, getVehicle = function() return nil end }
         local function list(inv, over)
             local c = { _inventory = inv, _playerObj = player, _stacks = {}, _expandedStacks = {} }
             c.getMouseX = function() return 10 end

@@ -3831,6 +3831,23 @@ local function handleDrop(content, items, srcInventory)
     -- tab, the card, a locked container's button), and never from the floor.
     if not destContainer and (srcIsFloor or pointerOverUI()) then return end
 
+    -- Seated in a car, things go out to the ground only through the seat's door window when it is open, broken
+    -- out or missing, as vanilla's loot pane rules (ISInventoryPane.lua ~1913-1931) (beast W5)
+    if (destIsFloor or not destContainer) and not srcIsFloor and playerObj:getVehicle() then
+        local shut = false
+        pcall(function()
+            local vehicle = playerObj:getVehicle()
+            local door = vehicle:getPassengerDoor(vehicle:getSeat(playerObj))
+            local windowPart = VehicleUtils.getChildWindow(door)
+            -- a window part with a pane in it (not one already smashed out) that can open and is closed
+            if windowPart and (not windowPart:getItemType() or windowPart:getInventoryItem()) then
+                local window = windowPart:getWindow()
+                if window and window:isOpenable() and not window:isOpen() then shut = true end
+            end
+        end)
+        if shut then return end
+    end
+
     -- A mod's gate refuses things put into this container (ContainerGates.lua: Immersive
     -- Searching's never-searched container, as its hasRoomFor refuses them in vanilla's lists)
     if destContainer and not destIsFloor and ZeD.ContainerGates.refuses(destContainer, playerObj) then return end
