@@ -24,6 +24,16 @@
 -- Put back: the pointer the game reads, menus and maps shut, the interface shown, theme, text size, see-through and
 -- controller highlight, each window's accent, the clipboard, the halves' pins, the saved places file, the layout
 -- (ZEDQA_LAYOUT_BACK), the tabs, the game speed, and the pair open or shut as found.
+-- The character (Nov 21 2026, after the first run): nothing here hurts him, but the world stays live for the whole
+-- run and after it, so god mode and invincible are ON from the first step and stay ON when the script ends (never
+-- turned off here); the put-back heals him if anything is wrong and prints "put back: the character is alive and
+-- whole" as a PASS or a FAIL.
+-- ZeD faults the first run found, their checks kept as they are (they FAIL until Build fixes them):
+--   * a window rolled up by a double-click while its side is rolled keeps its rod on screen (WindowCurtain.lua C.sync
+--     hides it, but C.sync runs from the drawer's prerender, which a rolled-up window does not draw);
+--   * the window box's menu stays up when the inventory key closes its window (ZeD_WindowMenu.lua has no watch);
+--   * Reset both windows leaves the World window's tab as it was, its card shut (Organisms.lua resetWorld never sets
+--     _activeTab = "loot" as resetChar does). The put-back here presses Loot before its own reset because of it.
 local Q = RT.make("bx_win")
 Q.maxMs = 420000   -- (7 minutes: past it the run jumps to the put-back)
 local pn = RT.pn
@@ -47,6 +57,67 @@ function X.copy(t)
     local o = {}
     for a, b in pairs(t) do o[a] = b end
     return o
+end
+-- the character as the game has him now (the kit's RT.p is read once, when the kit loads)
+function X.me()
+    local p = nil
+    pcall(function() p = getSpecificPlayer(pn) end)
+    return p or RT.p
+end
+-- the character: what is wrong with him (an empty list: alive and whole), and his overall health. Never throws: a
+-- part of him that cannot be read counts as wrong.
+function X.hurt()
+    local p = X.me()
+    local bad = {}
+    local dead = true
+    pcall(function() dead = p:isDead() end)
+    if dead then bad[#bad + 1] = "dead" end
+    local bd = nil
+    pcall(function() bd = p:getBodyDamage() end)
+    if not bd then bad[#bad + 1] = "his body cannot be read"; return bad, nil end
+    local overall = nil
+    pcall(function() overall = bd:getOverallBodyHealth() end)
+    if not (overall and overall >= 99.5) then bad[#bad + 1] = "health " .. tostring(overall) end
+    local inf = nil
+    pcall(function() inf = bd:IsInfected() end)
+    if inf ~= false then bad[#bad + 1] = "infected " .. tostring(inf) end
+    local wounds, breaks, n = 0, 0, 0
+    local okP = pcall(function()
+        local parts = bd:getBodyParts()
+        n = parts:size()
+        for i = 0, n - 1 do
+            local b = parts:get(i)
+            local w, f = true, true
+            pcall(function()
+                w = b:HasInjury() or b:bleeding() or b:bitten() or b:scratched() or b:isCut() or b:deepWounded()
+                    or b:haveBullet() or b:haveGlass() or b:getBurnTime() > 0 or b:isInfectedWound()
+            end)
+            pcall(function() f = b:getFractureTime() > 0 end)
+            if w then wounds = wounds + 1 end
+            if f then breaks = breaks + 1 end
+        end
+    end)
+    if not (okP and n > 0) then bad[#bad + 1] = "his body parts cannot be read" end
+    if wounds > 0 then bad[#bad + 1] = wounds .. " wounded part(s)" end
+    if breaks > 0 then bad[#bad + 1] = breaks .. " fracture(s)" end
+    return bad, overall
+end
+-- every part and the whole body healed (the restores take no argument; the three setters take one)
+function X.heal()
+    local bd = nil
+    pcall(function() bd = X.me():getBodyDamage() end)
+    if not bd then return end
+    pcall(function()
+        local parts = bd:getBodyParts()
+        for i = 0, parts:size() - 1 do
+            local b = parts:get(i)
+            pcall(function() b:RestoreToFullHealth() end)
+        end
+    end)
+    pcall(function() bd:RestoreToFullHealth() end)
+    pcall(function() bd:setInfected(false) end)
+    pcall(function() bd:setIsFakeInfected(false) end)
+    pcall(function() bd:setOverallBodyHealth(100) end)
 end
 function X.geo(w)
     if not w then return nil end
@@ -1463,6 +1534,17 @@ end
 
 -- ===================================================================== setup
 Q.step(10, function()
+    -- the character kept safe for the whole run, and after it (the last step of the put-back leaves both ON)
+    S.safe = {}
+    pcall(function() S.safe.god = X.me():isGodMod() end)
+    pcall(function() S.safe.inv = X.me():isInvincible() end)
+    pcall(function() X.me():setGodMod(true) end)
+    pcall(function() X.me():setInvincible(true) end)
+    pcall(function()
+        local bad = X.hurt()
+        S.safe.bad0 = table.concat(bad, ", ")
+        if #bad > 0 then Q.say("note: the character came to this script not whole: " .. S.safe.bad0) end
+    end)
     S.hasErr = X.err() ~= nil
     if not S.hasErr then Q.say("note: no Lua error counter (getLuaDebuggerErrorCount) in this game: the no-error checks are off") end
     S.errAt, S.secErr = X.err(), X.err()
@@ -1518,6 +1600,15 @@ X.partLoop()
 
 -- ===================================================================== put back
 Q.mark()
+-- the character first, in a step of its own (a fault in the steps below cannot skip it): healed if anything is wrong
+Q.step(2, function()
+    pcall(function() X.me():setGodMod(true) end)
+    pcall(function() X.me():setInvincible(true) end)
+    local bad = X.hurt()
+    S.safe = S.safe or {}
+    S.safe.badEnd = table.concat(bad, ", ")
+    if #bad > 0 then X.heal() end
+end)
 Q.step(5, function()
     X.pointer(nil)
     pcall(function() local on, m = X.menuOpen(); if m then m:close() end end)
@@ -1582,6 +1673,15 @@ end, function()
         return
     end
     local c, w = RT.cw(), RT.ww()
+    -- (Loot pressed on both strips before the reset: the mod's reset shuts the World window's card but leaves its
+    -- tab, so the next script found the World window on the last tab this one opened, with no card)
+    for _, k in ipairs(KS) do
+        local win = X.win(k)
+        if win then
+            if win._rolled and ZeD.Curtain then pcall(ZeD.Curtain.finishUnroll, win) end
+            pcall(X.press, k, "loot")
+        end
+    end
     if ZEDQA_LAYOUT_BACK and S.snap then
         ZEDQA_LAYOUT_BACK(S.snap, "bx_win")
     else
@@ -1627,8 +1727,33 @@ Q.step(60, function()
         local c, w = X.geo(RT.cw()), X.geo(RT.ww())
         Q.check(X.same(c, S.geoC, 1) and X.same(w, S.geoW, 1), "put back: both windows are where and as big as they were",
             "Character " .. X.gs(S.geoC) .. " -> " .. X.gs(c) .. ", World " .. X.gs(S.geoW) .. " -> " .. X.gs(w))
+        local tc, tw = RT.cw() and RT.cw()._activeTab, RT.ww() and RT.ww()._activeTab
+        Q.check(tc == S.tabC0 and tw == S.tabW0, "put back: both windows are on the tabs they were found on",
+            "Character " .. tostring(S.tabC0) .. " -> " .. tostring(tc) .. ", World " .. tostring(S.tabW0) .. " -> " .. tostring(tw))
     else
         Q.check(RT.isOpen() == S.wasChar and X.worldOpen() == S.wasWorld, "put back: the pair is open or shut as found")
     end
+end)
+-- the character, last and in a step of its own: healed once more if need be, read, and god mode and invincible left
+-- ON (never turned off here: the world stays live after this script, and the prelude's rule is god mode on)
+Q.step(2, function()
+    local sf = S.safe or {}
+    pcall(function() X.me():setGodMod(true) end)
+    pcall(function() X.me():setInvincible(true) end)
+    local bad, overall = X.hurt()
+    if #bad > 0 then
+        X.heal()
+        sf.badEnd = ((sf.badEnd and sf.badEnd ~= "") and (sf.badEnd .. "; then ") or "") .. table.concat(bad, ", ")
+        bad, overall = X.hurt()
+    end
+    local came = (sf.bad0 and sf.bad0 ~= "") and (", he came to this script with: " .. sf.bad0) or ""
+    Q.check(#bad == 0, "put back: the character is alive and whole (health 100, no wound, no fracture, not infected)",
+        (#bad == 0) and ("health " .. tostring(overall) .. ((sf.badEnd and sf.badEnd ~= "") and (", healed here from: " .. sf.badEnd) or ", already whole when the put-back began") .. came)
+            or (table.concat(bad, ", ") .. came))
+    local god, inv = nil, nil
+    pcall(function() god = X.me():isGodMod() end)
+    pcall(function() inv = X.me():isInvincible() end)
+    Q.say("god mode " .. tostring(sf.god) .. " -> " .. tostring(god) .. ", invincible " .. tostring(sf.inv) .. " -> " .. tostring(inv)
+        .. " (left ON)")
 end)
 Q.start()

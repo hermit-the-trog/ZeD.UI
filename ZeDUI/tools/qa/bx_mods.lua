@@ -22,11 +22,18 @@
 --      menu's own Mods button): the pause window's Mods page lists every mod that is on; the conflict scan's own
 --      code runs over these mods' files without stopping
 -- After every act: no new Lua error (the game's error count), and every ZeD window inside the screen (RT.bounds).
+-- THE CHARACTER: god mode comes off only while the Health tab's wounds are on (god mode heals a wound at once), with
+-- invincible on and the script's own watch (H.guard, every game tick): health under 75 or wounds on for two minutes
+-- and it heals him and puts god mode back. The put-back heals him FIRST, whatever a step before it did, and its last
+-- line reads the game's own body: alive, health 100, no wound, bandage or fracture on any part, not infected.
 -- PUT BACK: wounds healed, god mode and invincible as found, the given things taken back, hands, the Context menu setting, Messages' read flags,
 -- the pause window's page and jump note, the step-aside file, tabs, layout, the pair, speed 1, the character home.
 -- Copy to Zomboid/Lua/ after zedqa_prelude.lua and rt_kit.lua; grep "ZEDQA bx_mods".
 
 local Q = RT.make("bx_mods")
+-- (bx_mods.txt gives this script 900 s; the kit's own limit is 20 minutes, which the runner would cut short before
+-- the put-back ran. At 12 minutes the queue jumps to the put-back, with three minutes left for it.)
+Q.maxMs = 720000
 local S = { p = RT.p, pn = RT.pn, dead = false, tools = {}, mine = {}, on = {}, parts = {} }
 local H = {}
 local TAG = "bx_mods"
@@ -156,6 +163,69 @@ function H.writeLines(file, t)
     end)
 end
 
+-- ===================================================================== the character's body (the game's own, not ZeD's tab)
+-- every part and the body restored by the game's own full heal (BodyPart and BodyDamage: no arguments)
+function H.healAll()
+    local dead = false
+    pcall(function() dead = S.p:isDead() end)
+    if dead then return end
+    pcall(function()
+        local parts = S.p:getBodyDamage():getBodyParts()
+        for i = 0, parts:size() - 1 do
+            local bp = parts:get(i)
+            pcall(function() bp:RestoreToFullHealth() end)
+        end
+    end)
+    pcall(function() S.p:getBodyDamage():RestoreToFullHealth() end)
+end
+-- what is wrong with him now, in words (an empty list: alive and healed)
+function H.hurt()
+    local bad = {}
+    local okH, e = pcall(function()
+        if S.p:isDead() then bad[#bad + 1] = "dead" end
+        local bd = S.p:getBodyDamage()
+        local hp = bd:getOverallBodyHealth()
+        if hp < 99.5 then bad[#bad + 1] = "health " .. tostring(math.floor(hp)) end
+        if bd:IsInfected() then bad[#bad + 1] = "infected" end
+        local parts = bd:getBodyParts()
+        for i = 0, parts:size() - 1 do
+            local bp = parts:get(i)
+            local w = {}
+            if bp:HasInjury() then w[#w + 1] = "wound" end
+            if bp:isCut() then w[#w + 1] = "cut" end
+            if bp:bleeding() then w[#w + 1] = "bleeding" end
+            if bp:bandaged() then w[#w + 1] = "bandage" end
+            if bp:stitched() then w[#w + 1] = "stitches" end
+            if bp:haveGlass() then w[#w + 1] = "glass" end
+            if bp:isSplint() then w[#w + 1] = "splint" end
+            if bp:getFractureTime() > 0 then w[#w + 1] = "fracture" end
+            if bp:isInfectedWound() then w[#w + 1] = "infected wound" end
+            if bp:IsInfected() then w[#w + 1] = "infected" end
+            if bp:getHealth() < 99.5 then w[#w + 1] = "health " .. tostring(math.floor(bp:getHealth())) end
+            if #w > 0 then
+                local nm = "part " .. i
+                pcall(function() nm = tostring(BodyPartType.ToString(bp:getType())) end)
+                bad[#bad + 1] = nm .. " (" .. table.concat(w, ", ") .. ")"
+            end
+        end
+    end)
+    if not okH then bad[#bad + 1] = "the body could not be read: " .. tostring(e) end
+    return bad
+end
+-- the watch while wounds are staged (god mode is off then): every game tick; he is healed at once when his health
+-- drops under 75 or the wounds have been on for two minutes, whatever the queue is doing
+function H.guard()
+    if not S.staged then return end
+    local hp, dead = 100, false
+    pcall(function() hp = S.p:getBodyDamage():getOverallBodyHealth(); dead = S.p:isDead() end)
+    local long = getTimestampMs() - (S.stagedAt or 0) > 120000
+    if hp < 75 or long or dead then
+        S.guardSaid = "health " .. tostring(math.floor(hp)) .. (long and ", the wounds were on for over two minutes" or "") .. (dead and ", DEAD" or "")
+        print("ZEDQA " .. TAG .. " the watch healed the character: " .. S.guardSaid)
+        H.heal()
+    end
+end
+
 -- ===================================================================== 0. setup, the mods
 function H.setup()
     if not (S.p and ZeD and ZeD_CharacterWindow and ZeD_WorldWindow and ZeD.StepAside and ZeD.Messages and ZeD.Settings) then
@@ -168,6 +238,8 @@ function H.setup()
     if dead then Q.check(false, "the character is alive"); S.dead = true; return end
     if ZEDQA_HOME then pcall(ZEDQA_HOME, TAG) end
     S.speed0 = getGameSpeed()
+    pcall(function() S.god0 = S.p:isGodMod() and true or false end)
+    pcall(function() S.inv0 = S.p:isInvincible() and true or false end)
     if S.speed0 == 0 then pcall(ZEDQA_SPEED or setGameSpeed, 1) end
     S.pairWas = RT.isOpen()
     S.snap = (S.pairWas and ZEDQA_LAYOUT_SNAP) and ZEDQA_LAYOUT_SNAP() or nil
@@ -726,6 +798,10 @@ for si, style in ipairs({ 1, 2 }) do
     waitFor(2, 150, function() return not S.menuGo or H.menu() ~= nil end, function(ok)
         if S.menuGo then H.menuOpened(ok, sname, want) end
     end)
+    -- (a short settle before the row for the hold is chosen: the menu's first updates and Responsive Context Menus'
+    -- first rebuild come first. Since beast W14 both shapes note the pointer's place when they open and take a hovered
+    -- row only once the pointer moves, so a resting pointer does not change the row: a row lost in the hold is ZeD's)
+    Q.waitMs(300)
     step(4, function() local okR, e = pcall(H.menuRows, sname); if not okR then Q.check(false, "the " .. sname .. ": its rows read", tostring(e)) end end)
     Q.waitMs(1500)
     step(1, function() H.menuHeld(sname) end)
@@ -810,10 +886,12 @@ function H.wound()
     S.w0 = d0 and d0.woundedCount or 0
     S.godWas = S.p:isGodMod() and true or false
     pcall(function() S.invWas = S.p:isInvincible() and true or false end)
-    S.p:setGodMod(false)
     pcall(function() S.p:setInvincible(true) end)
+    S.staged, S.everStaged, S.stagedAt = true, true, getTimestampMs()
+    Events.OnTick.Add(H.guard)
+    S.p:setGodMod(false)
     local okS, e = pcall(function() arm:setCut(true); arm:setCutTime(20) end)
-    if not okS then Q.skip("the Health tab's wounds", "a cut could not be staged: " .. tostring(e)); return end
+    if not okS then H.heal(); Q.skip("the Health tab's wounds", "a cut could not be staged: " .. tostring(e)); return end
     for _, nm in ipairs({ "Hand_R", "UpperLeg_R", "Foot_L", "Torso_Upper" }) do
         local bp = H.part(nm)
         if bp and pcall(function() bp:setScratched(true, true) end) then S.parts[#S.parts + 1] = bp end
@@ -829,12 +907,21 @@ function H.wound()
         Q.check(more >= 1 and more <= #S.parts + 1, "Health: the wounded count grew by the staged wounds, no more",
             more .. " more for " .. (#S.parts + 1) .. " staged (" .. S.w0 .. " before)")
     end
+    -- (the tab's checks will not run: nothing to keep him wounded for)
+    if not S.hGo then H.heal() end
 end
 -- (wounds bleed with god mode off: the overall health is kept up while they are on)
 function H.topUp() pcall(function() if S.godWas ~= nil then S.p:getBodyDamage():setOverallBodyHealth(100) end end) end
 step(6, function() if S.win then RT.charTab("health") end end)
 waitFor(5, 400, function() return not S.win or (RT.cw() and RT.cw()._activeTab == "health") end, function() end)
-step(20, function() H.wound() end)
+step(20, function()
+    local okW, e = pcall(H.wound)
+    if not okW then
+        S.hGo = false
+        H.heal()
+        Q.check(false, "Health: the wounds were staged without an error (healed at once)", tostring(e))
+    end
+end)
 -- the tab's own data (what it draws from) follows the game
 waitFor(5, 400, function()
     if not S.hGo then return true end
@@ -891,23 +978,29 @@ step(2, function()
     H.closeMenu()
     H.noErr("the treatment menu over a healed part")
 end)
+-- never throws: each call under its own pcall, so one that fails cannot leave the rest undone
 function H.heal()
-    pcall(function()
-        for _, bp in ipairs(S.parts) do
-            bp:setScratched(false, false)
-            bp:setBandaged(false, 0)
-            bp:setBleeding(false)
-        end
-        if S.arm then S.arm:setCut(false); S.arm:setCutTime(0); S.arm:setBleeding(false) end
-    end)
-    pcall(function() S.p:getBodyDamage():RestoreToFullHealth() end)
+    S.staged = false
+    pcall(function() Events.OnTick.Remove(H.guard) end)
+    for _, bp in ipairs(S.parts) do
+        pcall(function() bp:setScratched(false, false) end)
+        pcall(function() bp:setBandaged(false, 0) end)
+        pcall(function() bp:setBleeding(false) end)
+    end
+    if S.arm then
+        pcall(function() S.arm:setCut(false) end)
+        pcall(function() S.arm:setCutTime(0) end)
+        pcall(function() S.arm:setBleeding(false) end)
+    end
+    H.healAll()
     if S.godWas ~= nil then
         pcall(function() S.p:setGodMod(S.godWas) end)
         if S.invWas ~= nil then pcall(function() S.p:setInvincible(S.invWas) end) end
         S.godBack, S.godWas = S.godWas, nil
     end
 end
-step(10, function() if S.hGo then H.heal() end end)
+-- (healed here whether or not the tab's checks ran)
+Q.step(10, function() if S.p and (S.staged or S.godWas ~= nil) then H.heal() end end)
 waitFor(5, 600, function()
     if not S.hGo then return true end
     local w, d = RT.cw(), H.fresh()
@@ -1038,11 +1131,18 @@ function H.modsPage()
         if S.on[m.id] then
             local e = seen[m.id]
             if not e then missing[#missing + 1] = m.id
-            elseif tostring(e.name or "") == "" or tostring(e.name) == tostring(e.id) then unnamed[#unnamed + 1] = m.id end
+            else
+                -- (the name the mod gives itself in its mod.info; CleanHotBar's name IS its id, so "not the id" was wrong)
+                local want = nil
+                pcall(function() local mi = getModInfoByID(e.id); want = mi and mi:getName() end)
+                if tostring(e.name or "") == "" or (want ~= nil and tostring(e.name) ~= tostring(want)) then
+                    unnamed[#unnamed + 1] = m.id .. " ('" .. tostring(e.name) .. "' for '" .. tostring(want) .. "')"
+                end
+            end
         end
     end
     Q.check(#missing == 0 and seen["ZeD_UI"] ~= nil, "the Mods page names each of the test's mods and ZeD", (#missing > 0) and ("missing: " .. table.concat(missing, ", ")) or nil)
-    Q.check(#unnamed == 0, "each is listed by its name, not its bare id", (#unnamed > 0) and table.concat(unnamed, ", ") or nil)
+    Q.check(#unnamed == 0, "each is listed by the name its mod.info gives", (#unnamed > 0) and table.concat(unnamed, ", ") or nil)
     Q.say("the Mods page marks: " .. ((#bad > 0) and table.concat(bad, "; ") or "nothing (no mod missing, unavailable or with errors)"))
     if S.jumped then
         Q.check(w._mods ~= nil and w._mods.note ~= nil, "the Mods page says where the Mods screen will open (the error's file)", tostring(S.MM.pauseJump and S.MM.pauseJump.file))
@@ -1074,8 +1174,10 @@ step(4, function()
         Q.skip("the conflict scan over these mods", "the pause window did not open, or ZeD.ModScan is not loaded in a game")
         return
     end
+    H.printHook()
     local okS, e = pcall(MSc.start)
     S.scan = Q.check(okS, "the conflict scan starts over this game's mods", okS and nil or tostring(e))
+    if not S.scan then H.printBack() end
     S.scanT = getTimestampMs()
 end)
 waitFor(1, 2400, function()
@@ -1084,8 +1186,11 @@ waitFor(1, 2400, function()
     for _ = 1, 3 do pcall(MSc.step) end
     return MSc.res ~= nil and MSc.res.done == true
 end, function(ok)
+    H.printBack()
     if not S.scan then return end
     local MSc = ZeD.ModScan
+    -- (a scan that throws marks itself done and says so only in the console: "ZeD ModScan: ...")
+    if ok then Q.check(S.scanErr == nil, "the conflict scan read these mods' files to the end without an error of its own", S.scanErr) end
     if not ok then
         Q.skip("the conflict scan finishes", "still reading the mods' files after " .. math.floor((getTimestampMs() - S.scanT) / 1000) .. " s")
         return
@@ -1106,6 +1211,21 @@ end, function(ok)
         (#badN > 0) and table.concat(badN, "; ") or ("with conflicts: " .. ((#out > 0) and table.concat(out, ", ") or "none") .. "; ZeD_UI " .. tostring(zc)))
     H.noErr("the conflict scan")
 end)
+-- the scan's own failure line is read off the console while it runs (print is put back right after, and in the put-back)
+function H.printHook()
+    if S.printWas then return end
+    S.scanErr = nil
+    S.printWas = print
+    -- (the arguments go through as they came: a print() with none stays a blank line)
+    print = function(...)
+        local a = ...
+        if type(a) == "string" and a:find("ZeD ModScan:", 1, true) then S.scanErr = a end
+        return S.printWas(...)
+    end
+end
+function H.printBack()
+    if S.printWas then print = S.printWas; S.printWas = nil end
+end
 function H.pauseBack()
     pcall(function() if S.jumped and ZeD.ModFiles and ZeD.ModFiles.takeJump then ZeD.ModFiles.takeJump() end end)
     S.jumped = false
@@ -1115,7 +1235,9 @@ function H.pauseBack()
             if S.MM.pause then S.MM.pause.page = S.page0; S.MM.pause.focusId = nil end
         end
     end)
-    if S.menuMine and H.menuUp() then H.toggleMenu() end
+    -- (S.menuWas false: this script found the pause menu shut, so one that is up now is its own, even when the queue
+    -- jumped to the put-back before S.menuMine was noted)
+    if (S.menuMine or S.menuWas == false) and H.menuUp() then H.toggleMenu() end
 end
 step(6, function() H.pauseBack() end)
 waitFor(5, 400, function() return not S.menuMine or not H.menuUp() end, function(ok)
@@ -1130,7 +1252,7 @@ function H.backThings()
     H.closeMenu()
     local win = H.mw()
     if win then pcall(function() if win:isReallyVisible() then win:close() end end) end
-    H.heal()
+    H.printBack()
     pcall(function() ISTimedActionQueue.clear(S.p) end)
     if S.styleWas ~= nil then pcall(function() ZeD.Settings.contextStyleOption:setValue(S.styleWas) end) end
     pcall(function() S.p:setPrimaryHandItem(S.ph) end)
@@ -1177,7 +1299,7 @@ function H.backCheck()
     local d = H.fresh()
     local hp = nil
     pcall(function() hp = S.p:getBodyDamage():getOverallBodyHealth() end)
-    Q.check(d ~= nil and d.woundedCount <= (S.w0 or 0), "put back: no wound left on the character", "wounded parts " .. tostring(d and d.woundedCount) .. ", health " .. tostring(hp))
+    Q.check(d ~= nil and d.woundedCount <= (S.w0 or 0), "put back: ZeD's Health data shows no wound left", "wounded parts " .. tostring(d and d.woundedCount) .. ", health " .. tostring(hp))
     if S.godBack ~= nil then
         Q.check(S.p:isGodMod() == S.godBack, "put back: god mode as it was (" .. tostring(S.godBack) .. ")", tostring(S.p:isGodMod()))
     end
@@ -1186,8 +1308,54 @@ function H.backCheck()
     Q.say("the whole run: " .. tostring((n and S.err0) and (n - S.err0) or "?") .. " Lua errors with " .. #LIST .. " mods on" ..
         ((n and S.err0 and n > S.err0) and ("; Messages holds errors from: " .. H.errNames()) or ""))
 end
+-- the last word on the character, from the game's own body: alive and healed, god mode and invincible as found
+function H.backBody()
+    local first = H.hurt()
+    local bad = first
+    if #first > 0 then
+        -- (the heal at the start of the put-back did not hold: god mode and invincible ON, the game's full heal again)
+        pcall(function() S.p:setGodMod(true) end)
+        pcall(function() S.p:setInvincible(true) end)
+        H.healAll()
+        bad = H.hurt()
+    end
+    -- (with Wound Expansion on, the Lua-side full heal also clears its own records, so nothing is left to hold a part
+    -- down: a body that is not whole here means the put-back's own heal failed, as bx_health's did)
+    Q.check(#first == 0, "put back: the heal at the start of the put-back held to the last look",
+        (#first > 0) and (table.concat(first, "; ") .. "; healed again with god mode on: " .. ((#bad == 0) and "whole now" or "STILL HURT")) or nil)
+    local god, inv, hp = nil, nil, nil
+    pcall(function() god = S.p:isGodMod() end)
+    pcall(function() inv = S.p:isInvincible() end)
+    -- god mode and invincible as found, but only for a whole body: a hurt one keeps both ON
+    if #bad == 0 then
+        if S.god0 ~= nil and god ~= S.god0 then
+            pcall(function() S.p:setGodMod(S.god0) end)
+            pcall(function() god = S.p:isGodMod() end)
+        end
+        if S.inv0 ~= nil and inv ~= S.inv0 then
+            pcall(function() S.p:setInvincible(S.inv0) end)
+            pcall(function() inv = S.p:isInvincible() end)
+        end
+    else
+        pcall(function() S.p:setGodMod(true) end)
+        pcall(function() S.p:setInvincible(true) end)
+        pcall(function() god = S.p:isGodMod(); inv = S.p:isInvincible() end)
+        Q.say("the body is not whole at the end: god mode and invincible are left ON")
+    end
+    pcall(function() hp = S.p:getBodyDamage():getOverallBodyHealth() end)
+    Q.check(#bad == 0, "put back: the character is alive and healed (not dead, health 100, no wound, bandage or fracture on any part, not infected)",
+        ((#bad > 0) and (table.concat(bad, "; ") .. "; ") or "") .. "health " .. tostring(hp and math.floor(hp)) .. ", god mode " .. tostring(god) ..
+        " (found " .. tostring(S.god0) .. "), invincible " .. tostring(inv) .. " (found " .. tostring(S.inv0) .. ")")
+    if S.everStaged then
+        Q.check(S.guardSaid == nil, "the staged wounds never ran the character down (the script's watch did not have to heal him)", S.guardSaid)
+    end
+end
+-- the body first, whatever the rest of the put-back does (a step above may have thrown, or the run may have been
+-- cut short, with the wounds still on)
+Q.step(2, function() if S.p then H.heal() end end)
 Q.step(2, function() if S.p then H.backThings() end end)
 Q.step(6, function() if S.p and ZeD and ZeD.StepAside then H.backFile() end end)
 Q.step(6, function() if S.p then H.backWindows() end end)
 Q.step(20, function() if S.p and ZeD and ZeD.HealthTab then H.backCheck() end end)
+Q.step(10, function() if S.p then H.backBody() end end)
 Q.start()

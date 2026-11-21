@@ -26,7 +26,8 @@
 --  12. a pickup's bed: in and out, then the car taken away while its bed shows.
 -- The pointer's place is the one thing faked (the target answers "the pointer is over me", or getMouseX / getMouseY
 -- answer a spot for the call; a drag held over a rolled window keeps them faked for a second). Everything is put
--- back. Copy to Zomboid/Lua/ after zedqa_prelude.lua and rt_kit.lua; grep "ZEDQA bx_inv".
+-- back, and the last line says the character is whole (nothing here is meant to hurt him; god mode and invincible are
+-- turned on at the start and left on). Copy to Zomboid/Lua/ after zedqa_prelude.lua and rt_kit.lua; grep "ZEDQA bx_inv".
 
 local Q = RT.make("bx_inv")
 Q.maxMs = 420000   -- (the budget is 8 minutes: past 7 the run jumps to the put-back)
@@ -55,6 +56,16 @@ end
 function H.size(inv) local n = -1; pcall(function() n = inv:getItems():size() end); return n end
 function H.where(it) local c = nil; pcall(function() c = it:getContainer() end); return c end
 function H.typeOf(inv) local t = "nothing"; pcall(function() t = tostring(inv:getType()) end); return t end
+-- a container by the test's own name (every crate's type reads "crate": a line must say which one)
+function H.nameOf(inv)
+    if inv == nil then return "nothing" end
+    if inv == S.bag then return "the bag" end
+    for _, k in ipairs({ "A", "B", "C", "D" }) do
+        local c = S[k]
+        if c and c.inv == inv then return "crate " .. k end
+    end
+    return H.typeOf(inv)
+end
 function H.queueLen()
     local q = nil
     pcall(function() q = ISTimedActionQueue.getTimedActionQueue(S.p) end)
@@ -117,9 +128,40 @@ function H.removeItem(it)
             if sq then pcall(function() sq:transmitRemoveItemFromSquare(wo) end) end
             pcall(function() wo:removeFromWorld() end)
             pcall(function() wo:removeFromSquare() end)
+            -- (the thing forgets its world object, as the game's own pickup does: ISGrabItemAction, ISTransferAction.
+            -- Left set, a thing put back in the bag by hand still read as "on the floor" for the rest of the run)
+            pcall(function() it:setWorldItem(nil) end)
         end
     end)
     pcall(function() local c = it:getContainer(); if c then c:Remove(it) end end)
+end
+-- the character's state, for the put-back's last line: nil when he is whole, else what is wrong
+function H.hurt()
+    local why = {}
+    local ok, err = pcall(function()
+        if S.p:isDead() then why[#why + 1] = "dead" end
+        local bd = S.p:getBodyDamage()
+        local hp = bd:getOverallBodyHealth()
+        if hp < 99.9 then why[#why + 1] = "health " .. string.format("%.1f", hp) end
+        if bd:IsInfected() then why[#why + 1] = "infected" end
+        local parts = bd:getBodyParts()
+        local wounds, breaks = 0, 0
+        for i = 0, parts:size() - 1 do
+            local bp = parts:get(i)
+            if bp:HasInjury() then wounds = wounds + 1 end
+            if bp:getFractureTime() > 0 then breaks = breaks + 1 end
+        end
+        if wounds > 0 then why[#why + 1] = wounds .. " wounded parts" end
+        if breaks > 0 then why[#why + 1] = breaks .. " fractures" end
+    end)
+    if not ok then why[#why + 1] = "his health could not be read: " .. tostring(err) end
+    if #why == 0 then return nil end
+    return table.concat(why, ", ")
+end
+-- nothing here is meant to hurt him; god mode and invincible are on all the same (left on: the prelude's rule)
+function H.guard()
+    pcall(function() if not S.p:isGodMod() then S.p:setGodMod(true) end end)
+    pcall(function() if not S.p:isInvincible() then S.p:setInvincible(true) end end)
 end
 -- staging by hand: a thing made in a container (remembered, taken away at the end), a thing set in a container
 function H.add(inv, ft)
@@ -251,8 +293,31 @@ function H.clearSel(c)
     if not c then return end
     local sel = c._selectedItems or {}
     for k in pairs(sel) do sel[k] = nil end
+    -- (every column's picks too, as ZeD's own clear does, InventoryRenderer.padClearMarksOf: the band reads them all)
+    for _, cs in ipairs(c._colStates or {}) do
+        local t = cs.selectedItems or {}
+        for k in pairs(t) do t[k] = nil end
+        cs.lastClickedItem = nil
+    end
     c._lastClickedItem = nil
     c._padMarks = nil
+end
+-- picks a list keeps on things it no longer holds (the game's own list lets go of its picks on a release outside it,
+-- ISInventoryPane:onMouseUpOutside, and its refresh keeps only the picks it still holds)
+function H.strayPicks(c)
+    local n = 0
+    local inv = c and c._inventory
+    for it in pairs((c and c._selectedItems) or {}) do
+        if H.where(it) ~= inv then n = n + 1 end
+    end
+    return n
+end
+-- the word on a list's band button (id "take", "xfer"), as the band last laid it out
+function H.bandWord(c, id)
+    for _, h in ipairs((c and c._cc and c._cc.hits) or {}) do
+        if h.spec and h.spec.id == id then return tostring(h.spec.label) end
+    end
+    return "no button"
 end
 
 -- ===================================================================== the pointer (the one thing faked)
@@ -476,7 +541,7 @@ function H.qShow(getInv, what)
     waitFor(4, 300, function() local inv = getInv(); return inv == nil or H.shows(inv) end, function(ok)
         local inv = getInv()
         if inv and not ok then
-            Q.check(false, "the World window shows " .. what .. " when asked (selectContainer)", "it shows " .. H.typeOf(H.wc() and H.wc()._inventory))
+            Q.check(false, "the World window shows " .. what .. " when asked (selectContainer)", "it shows " .. H.nameOf(H.wc() and H.wc()._inventory))
         end
     end)
 end
@@ -608,6 +673,7 @@ Q.step(1, function()
     local deadNow = true
     pcall(function() deadNow = S.p:isDead() end)
     if not Q.check(not deadNow, "the character is alive") then S.dead = true; return end
+    H.guard()
     H.openBoth()
     pcall(function() S.instWas = S.p:isTimedActionInstantCheat() end)
     S.handWas = { p = S.p:getPrimaryHandItem(), s = S.p:getSecondaryHandItem() }
@@ -703,7 +769,7 @@ waitFor(10, 600, function()
     local wc = H.wc()
     return wc ~= nil and wc._inventory == S.A.inv and #(wc._flatItems or {}) > 0
 end, function(ok)
-    if not Q.check(ok, "the World window shows crate A (selectContainer)", H.typeOf(H.wc() and H.wc()._inventory)) then S.dead = true end
+    if not Q.check(ok, "the World window shows crate A (selectContainer)", H.nameOf(H.wc() and H.wc()._inventory)) then S.dead = true end
 end)
 
 -- ===================================================================== 1. the base line
@@ -861,22 +927,44 @@ step(8, function()
     Q.check(okC and badC == 0, "the bag's list agrees with the inventory after the fifty drags", whyC .. ", " .. badC .. " rows not its own")
     Q.check(okW and badW == 0, "the crate's list agrees with the crate after the fifty drags", whyW .. ", " .. badW .. " rows not its own")
     RT.bounds(Q, "after fifty drags")
+    -- A row dragged out of a list: that list lets go of it (the game's own list does). Read here, before the test
+    -- moves anything by hand: each drag's press picks the row in the list it leaves, and a pick left on a thing that
+    -- is gone turns that list's band into Take marked / Move marked, whose first press moves nothing.
+    local strayC, strayW = H.strayPicks(H.cc()), H.strayPicks(H.wc())
+    Q.check(strayC == 0 and strayW == 0, "after the drags neither list keeps a pick on a thing it no longer holds (its band stays Loot all / Transfer all)",
+        "the bag's list: " .. strayC .. " (its band reads " .. H.bandWord(H.cc(), "xfer") .. "); the crate's list: " .. strayW
+        .. " (its band reads " .. H.bandWord(H.wc(), "take") .. "); the thing is in " .. H.nameOf(H.where(S.mover)))
     H.put(S.mover, S.bag)
+    -- (no row left picked: with one picked the button is "Take marked", and the first run took the one picked
+    -- row, which was back in the bag by then, so nothing was queued and nothing was cut short. The check above
+    -- says whether ZeD left that pick; this clears it so section 5 presses the real Loot all)
+    H.clearSel(H.wc()); H.clearSel(H.cc())
 end)
 
 -- ===================================================================== 5. Loot all and Transfer all cut short
 step(6, function()
     S.aThings = H.list(S.A.inv)
     H.instant(false)
+    -- (with a row picked the button is Take marked, not Loot all: the first run passed this line on Take marked)
+    local picked = 0
+    pcall(function() picked = ZeD.InventoryRenderer.padMarkCountOf(H.wc()) end)
     local ok, why, threw = H.press(H.wc(), "take")
     S.cut = ok
-    if ok then Q.check(true, "Loot all pressed with the timed actions at their real length", why)
+    if ok then Q.check(picked == 0, "Loot all pressed with the timed actions at their real length (no row picked: the real Loot all)", why .. ", " .. picked .. " rows picked")
     elseif threw then Q.check(false, "Loot all pressed with the timed actions at their real length", why)
     else Q.skip("Loot all cut short", tostring(why)) end
 end)
 step(3, function()
     if not S.cut then return end
     S.qMid = H.queueLen()
+    local roomFor = 0
+    for _, it in ipairs(S.aThings) do if H.room(S.bag, it) then roomFor = roomFor + 1 end end
+    if roomFor == 0 then
+        Q.skip("Loot all cut short", "the character carries too much to take any thing of the crate")
+    else
+        Q.check(S.qMid > 0, "Loot all queued its transfers (there is something to cut short)",
+            "the queue holds " .. S.qMid .. " three frames after the press; the bag has room for " .. roomFor .. " of " .. #S.aThings)
+    end
     H.shutBoth()
 end)
 step(12, function()
@@ -916,18 +1004,22 @@ step(8, function()
     end
     for _, it in ipairs(S.aThings or {}) do H.put(it, S.A.inv) end
     H.put(S.mover, S.bag)
+    H.clearSel(H.wc()); H.clearSel(H.cc())
 end)
 step(8, function()
     H.instant(false)
+    local picked = 0
+    pcall(function() picked = ZeD.InventoryRenderer.padMarkCountOf(H.cc()) end)
     local ok, why, threw = H.press(H.cc(), "xfer")
     S.cutX = ok
-    if ok then Q.check(true, "Transfer all pressed with the timed actions at their real length", why)
+    if ok then Q.check(picked == 0, "Transfer all pressed with the timed actions at their real length (no row picked: the real Transfer all)", why .. ", " .. picked .. " rows picked")
     elseif threw then Q.check(false, "Transfer all pressed with the timed actions at their real length", why)
     else Q.skip("Transfer all cut short", tostring(why)) end
 end)
 step(2, function()
     if not S.cutX then return end
     local ww = RT.ww()
+    S.qMidX = H.queueLen()
     H.try("the World window rolls up while Transfer all runs", function() ww:setWindowShaded(true) end)
 end)
 step(6, function()
@@ -943,7 +1035,7 @@ waitFor(4, 900, H.queueEmpty, function()
             if at ~= S.bag and at ~= S.A.inv then lost = lost + 1 end
         end
         Q.check(lost == 0, "Transfer all cut short by a roll-up and a cleared queue: every thing of the bag is in the bag or the crate",
-            lost .. " elsewhere")
+            lost .. " elsewhere; the queue held " .. tostring(S.qMidX) .. " when the window rolled up")
     end
     local back = H.restoreBag()
     if back > 0 then Q.say("the bag's own things put back by hand: " .. back) end
@@ -971,7 +1063,7 @@ end)
 waitFor(2, 240, function() return not S.k6 or (S.click.done and H.worldOpen() and H.shows(S.A.inv)) end, function(ok)
     if not S.k6 then return end
     Q.check(ok, "a left click on a crate with both windows shut opens ZeD's World window on that crate",
-        "by " .. tostring(S.click.how) .. "; World window open " .. tostring(H.worldOpen()) .. ", its list on " .. H.typeOf(H.wc() and H.wc()._inventory))
+        "by " .. tostring(S.click.how) .. "; World window open " .. tostring(H.worldOpen()) .. ", its list on " .. H.nameOf(H.wc() and H.wc()._inventory))
     Q.check(S.van.n == 0 and not H.vanShowing(), "the game's own loot and inventory pages are never drawn for that click (no flash)",
         S.van.n .. " draws; showing now " .. tostring(H.vanShowing()))
 end)
@@ -1000,7 +1092,7 @@ waitFor(2, 240, function() local ww = RT.ww(); return not S.k6b or (S.click.done
     local ww = RT.ww()
     if S.k6b then
         Q.check(ok, "a left click on a crate with the World window rolled up rolls it down on that crate",
-            "by " .. tostring(S.click.how) .. "; rolled up " .. tostring(ww and ww.windowShaded) .. ", its list on " .. H.typeOf(H.wc() and H.wc()._inventory))
+            "by " .. tostring(S.click.how) .. "; rolled up " .. tostring(ww and ww.windowShaded) .. ", its list on " .. H.nameOf(H.wc() and H.wc()._inventory))
         Q.check(S.van.n == 0 and not H.vanShowing(), "the game's own pages are never drawn for the click on the rolled-up window", S.van.n .. " draws")
     end
     H.setPins(ww, true, true)
@@ -1017,7 +1109,7 @@ step(2, function()
     H.clickOn(S.B.obj, S.B.inv)
 end)
 waitFor(2, 240, function() return S.click.done and H.shows(S.B.inv) end, function(ok)
-    Q.check(ok, "two crates clicked two frames apart: the list ends on the second", "its list on " .. H.typeOf(H.wc() and H.wc()._inventory))
+    Q.check(ok, "two crates clicked two frames apart: the list ends on the second", "its list on " .. H.nameOf(H.wc() and H.wc()._inventory))
 end)
 step(20, function()
     local st = S.st
@@ -1056,7 +1148,7 @@ waitFor(2, 240, function() local ww = RT.ww(); return not S.k6d or (S.click.done
     local ww = RT.ww()
     if S.k6d then
         Q.check(ok, "a left click on a crate with the inventory side rolled under its tab rolls the side down on that crate",
-            "by " .. tostring(S.click.how) .. "; side rolled " .. tostring(ww and ww._rolled) .. ", its list on " .. H.typeOf(H.wc() and H.wc()._inventory))
+            "by " .. tostring(S.click.how) .. "; side rolled " .. tostring(ww and ww._rolled) .. ", its list on " .. H.nameOf(H.wc() and H.wc()._inventory))
         Q.check(S.van.n == 0 and not H.vanShowing(), "the game's own pages are never drawn for the click on the rolled side", S.van.n .. " draws")
     end
     H.setPins(ww, true, true)
@@ -1083,7 +1175,7 @@ waitFor(2, 240, function() local ww = RT.ww(); return not S.k6e or (S.click.done
     local ww = RT.ww()
     if S.k6e then
         Q.check(ok, "paused: a left click on a crate rolls the World window down on that crate while the game stays paused",
-            "by " .. tostring(S.click.how) .. "; rolled up " .. tostring(ww and ww.windowShaded) .. ", its list on " .. H.typeOf(H.wc() and H.wc()._inventory)
+            "by " .. tostring(S.click.how) .. "; rolled up " .. tostring(ww and ww.windowShaded) .. ", its list on " .. H.nameOf(H.wc() and H.wc()._inventory)
             .. ", game speed " .. tostring(getGameSpeed()))
         Q.check(S.van.n == 0 and not H.vanShowing(), "paused: the game's own pages are never drawn for the click", S.van.n .. " draws")
     end
@@ -1108,7 +1200,7 @@ waitFor(2, 240, function() local ww = RT.ww(); return not S.k6f or (S.click.done
     local ww = RT.ww()
     if S.k6f then
         Q.check(ok, "a left click on a crate with Loot columns open closes them on that crate's one list",
-            #((ww and ww._mcSelected) or {}) .. " columns left, its list on " .. H.typeOf(H.wc() and H.wc()._inventory))
+            #((ww and ww._mcSelected) or {}) .. " columns left, its list on " .. H.nameOf(H.wc() and H.wc()._inventory))
         Q.check(S.van.n == 0 and not H.vanShowing(), "the game's own pages are never drawn for the click over the columns", S.van.n .. " draws")
     end
     pcall(ZeD_WorldWindow.closeColumns, ww)
@@ -1138,7 +1230,7 @@ end, function() end)
 step(12, function()
     local w, st = S.sw, S.st
     Q.check(w.err == nil and H.shows(w.last), "eighteen container switches two frames apart end on the last one asked for",
-        (w.err and ("fault: " .. w.err .. "; ") or "") .. "its list on " .. H.typeOf(H.wc() and H.wc()._inventory))
+        (w.err and ("fault: " .. w.err .. "; ") or "") .. "its list on " .. H.nameOf(H.wc() and H.wc()._inventory))
     if S.sampling and st then
         Q.check(st.stale == 0 and st.mis == 0 and st.back == 0 and st.frames > 0,
             "through the eighteen switches the list never draws another container's things, and its drop target is the container shown", H.stLine())
@@ -1169,7 +1261,7 @@ step(2, function()
     if not S.late then return end
     local st = S.st or { back = 0 }
     Q.check(H.shows(S.A.inv) and st.back == 0, "a crate asked for before it was in reach, then crate A asked for: the list stays on crate A (the newer request)",
-        "its list on " .. ((H.wc() and H.wc()._inventory == S.D.inv) and "the crate asked for first" or H.typeOf(H.wc() and H.wc()._inventory))
+        "its list on " .. ((H.wc() and H.wc()._inventory == S.D.inv) and "the crate asked for first" or H.nameOf(H.wc() and H.wc()._inventory))
         .. "; " .. H.stLine())
     H.want(nil)
 end)
@@ -1943,6 +2035,7 @@ Q.step(2, function()
     pcall(function() ISTimedActionQueue.clear(S.p) end)
     if S.pausedByMe then H.pause(false) end
     pcall(function() if getGameSpeed() ~= 1 then H.pause(false) end end)
+    H.guard()
     H.instant(true)
     if S.car then pcall(ZEDQA_CAR_AWAY, S.car); S.car = nil end
     if ZEDQA_HOME then pcall(ZEDQA_HOME, "bx_inv") end
@@ -1983,9 +2076,20 @@ Q.step(20, function()
         for _, it in ipairs(S.bagOrig) do if H.where(it) == S.bag then back = back + 1 end end
         Q.check(back == #S.bagOrig, "the bag holds all its own things again", back .. " of " .. #S.bagOrig)
     end
-    local left = 0
-    for _, it in ipairs(S.made) do if H.where(it) ~= nil or H.onFloor(it) then left = left + 1 end end
-    Q.check(left == 0, "every thing the test made is gone", left .. " of " .. #S.made .. " left")
+    local left, names = 0, ""
+    for _, it in ipairs(S.made) do
+        local at, fl = H.where(it), H.onFloor(it)
+        if at ~= nil or fl then
+            left = left + 1
+            local ft = "?"
+            pcall(function() ft = tostring(it:getFullType()) end)
+            if left <= 4 then
+                names = names .. "; " .. ft .. " (" .. ((at == S.bag) and "in the bag" or (at and ("in " .. H.typeOf(at)) or "in no container"))
+                    .. (fl and ", still has a world object" or "") .. ")"
+            end
+        end
+    end
+    Q.check(left == 0, "every thing the test made is gone", left .. " of " .. #S.made .. " left" .. names)
     local hp, hs = S.p:getPrimaryHandItem(), S.p:getSecondaryHandItem()
     if S.handWas then Q.check(hp == S.handWas.p and hs == S.handWas.s, "the hands hold what they held") end
     local worn, onNow = 0, H.wornSet()
@@ -2003,5 +2107,18 @@ Q.step(10, function()
     elseif S.worldWas == false and H.worldOpen() then
         pcall(ZeD_WorldWindow.close, S.pn)
     end
+end)
+-- the last line, in a step of its own (a fault in a step above cannot skip it): the character is whole
+Q.step(4, function()
+    local why = H.hurt()
+    if why then
+        Q.say("NOTE the character was found hurt at the put-back (" .. why .. "): healed by the game's own full heal")
+        pcall(function() S.p:getBodyDamage():RestoreToFullHealth() end)
+        why = H.hurt()
+    end
+    local god, inv = false, false
+    pcall(function() god = S.p:isGodMod(); inv = S.p:isInvincible() end)
+    Q.check(why == nil, "the character ends whole: alive, health 100, no wound, no fracture, not infected",
+        (why or "whole") .. "; god mode " .. tostring(god) .. ", invincible " .. tostring(inv))
 end)
 Q.start()

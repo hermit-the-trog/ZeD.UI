@@ -16,8 +16,8 @@
 --             then run; over to the driver's seat
 --   crash     a second car across the strip 14 tiles ahead; the police car is given real speed by
 --             BaseVehicle.addImpulse every frame (else by the cruise control), ZeD's dash read while it moves, and
---             runs into the car. No speed, or no damage from the hit: the game's BaseVehicle.crash, else the front
---             parts' conditions set by hand, said with SKIP. Then the dash's part readings against the game, the
+--             runs into the car. The game never damages the car of a driver in god mode, so the police car's front
+--             parts' conditions are set by hand, said with SKIP. Then the dash's part readings against the game, the
 --             engine off, the game's Vehicle Mechanics: every part's condition in the Vehicle tab against the game,
 --             the worst part's card
 --   injury    every wound the game holds must be in ZeD's Health list; god mode keeps the crash from wounding, so one
@@ -26,9 +26,18 @@
 --             open: the inspection ends, the tab drops the car, the card and the seat window close, nothing throws
 --   on foot   a sprint (the game's auto-walk, forced to a sprint) into the second car, into a wall and into a low
 --             fence built for it on the strip; after each: both windows up, the Health list right, everything on screen
--- Put back: the walk off, the props closed, the built wall and fence removed, healed, god mode, the two skills and the
+-- Put back: healed first, the walk off, the props closed, the built wall and fence removed, the two skills and the
 -- stats as found, both cars removed (the second one looked for by its key number where it stood), the tabs as found,
--- the character home on the strip.
+-- the character home on the strip; last, the character read alive and healed (a PASS / FAIL line) and only then god
+-- mode and invincible as found.
+-- The character's safety (Nov 21 2026, preflight): god mode AND invincible are turned on in the first step and stay on
+-- for the whole run; a watch on every tick (H.guard) turns them on again and heals a body under 60, until the last
+-- step. God mode is the real shield: under it BodyDamage.Update heals the whole body every tick, and the crash, falls
+-- and hits skip him (javap, 42.22). Invincible is on because the rule asks for it, but nothing in the game reads it for
+-- the player in 42.22 (only its own getter and IsoAnimal), so it shields nothing. The first step reads god mode back:
+-- off (a game not in debug mode refuses it), nothing that can hurt him is staged. The one staged scratch takes god mode
+-- off for a second, on foot, nothing queued and no zombie within 10 tiles, then heals; a check says so. The game's
+-- BaseVehicle.crash is never called (with the character at the wheel and god mode off it would wound him).
 
 if not RT then
     print("ZEDQA bx_veh ERR the kit (rt_kit.lua) did not run first")
@@ -276,19 +285,97 @@ function H.statsKeep()
         end
     end)
 end
+-- the full heal: every part by the game's own BodyPart.RestoreToFullHealth, then the body's (it clears every wound,
+-- fracture, burn, bandage and infection and resets the stats, which are then put back as found). Every call is one
+-- the game has with this number of arguments (javap, 42.22), each in its own pcall: one that throws stops nothing.
 function H.heal()
+    pcall(function()
+        local parts = S.p:getBodyDamage():getBodyParts()
+        for i = 0, parts:size() - 1 do
+            local bp = parts:get(i)
+            pcall(function() bp:RestoreToFullHealth() end)
+        end
+    end)
     pcall(function() S.p:getBodyDamage():RestoreToFullHealth() end)
+    pcall(function() S.p:getBodyDamage():setInfected(false) end)
+    pcall(function() S.p:getBodyDamage():setOverallBodyHealth(100) end)
     pcall(function()
         local st = S.p:getStats()
         for k, v in pairs(S.stats or {}) do st:set(CharacterStat[k], v) end
     end)
-    pcall(function() S.p:getBodyDamage():setWetness(0) end)
+end
+-- what is wrong with the character now, in words; an empty list is alive and healed
+function H.hurt()
+    local bad = {}
+    local okR = pcall(function()
+        if S.p:isDead() then bad[#bad + 1] = "dead" end
+        local bd = S.p:getBodyDamage()
+        local overall = bd:getOverallBodyHealth()
+        if overall < 99.5 then bad[#bad + 1] = string.format("health %.1f", overall) end
+        if bd:IsInfected() then bad[#bad + 1] = "infected" end
+        local parts = bd:getBodyParts()
+        for i = 0, parts:size() - 1 do
+            local bp = parts:get(i)
+            if H.wounded(bp) then
+                bad[#bad + 1] = tostring(bp:getType()) .. (bp:getFractureTime() > 0 and " fractured" or " wounded")
+            elseif bp:isInfectedWound() then
+                bad[#bad + 1] = tostring(bp:getType()) .. " infected wound"
+            end
+        end
+    end)
+    if not okR then bad[#bad + 1] = "the body could not be read" end
+    return bad
+end
+-- god mode and invincible ON (the whole run; the one staged scratch takes god mode off for a second). Only god mode
+-- shields him: the game reads invincible for no player in 42.22.
+function H.safeOn()
+    pcall(function() S.p:setInvincible(true) end)
+    pcall(function() S.p:setGodMod(true) end)
 end
 function H.godBack()
-    if S.godOff then
-        pcall(function() S.p:setGodMod(S.godWas ~= false) end)
-        S.godOff = nil
-    end
+    S.godOff, S.godOffAt = nil, nil
+    H.safeOn()
+end
+-- a watch on every tick until the put-back's last step: god mode or invincible found off is turned on again, a god
+-- mode left off past 4 seconds (a step that threw) is healed and turned on, a body under 60 is healed. It is never
+-- taken off before the last step, so a throw anywhere leaves the character guarded.
+function H.guard()
+    if S.done then Events.OnTick.Remove(H.guard); return end
+    pcall(function()
+        local p = S.p
+        if p:isDead() then return end
+        if S.godOff then
+            if getTimestampMs() - (S.godOffAt or 0) > 4000 then
+                H.heal(); H.godBack()
+                S.guardSaid = (S.guardSaid or 0) + 1
+                if S.guardSaid <= 3 then Q.say("NOTE the guard: god mode was off for more than 4 s, healed and turned on") end
+            elseif not p:isInvincible() then p:setInvincible(true) end
+        elseif not p:isGodMod() or not p:isInvincible() then
+            H.safeOn()
+        end
+        if p:getBodyDamage():getOverallBodyHealth() < 60 then
+            H.heal()
+            S.guardHeals = (S.guardHeals or 0) + 1
+            if S.guardHeals <= 3 then Q.say("NOTE the guard: the body was under 60, healed") end
+        end
+    end)
+end
+-- the nearest live zombie within r tiles (nil: none); ok false when the list could not be read
+function H.zombieNear(r)
+    local near = nil
+    local ok = pcall(function()
+        local zl = getCell():getZombieList()
+        local px, py = S.p:getX(), S.p:getY()
+        for i = 0, zl:size() - 1 do
+            local z = zl:get(i)
+            if z and not z:isDead() then
+                local dx, dy = z:getX() - px, z:getY() - py
+                local d = math.sqrt(dx * dx + dy * dy)
+                if d < r and (near == nil or d < near) then near = d end
+            end
+        end
+    end)
+    return ok, near
 end
 
 -- ---- the Health list against the game
@@ -348,7 +435,8 @@ function H.cruise(on)
     end)
 end
 function H.driveImpulse(L, sp, t)
-    if sp >= 90 or t > 3500 or not L.canPush then
+    local gone = math.abs(S.v:getY() - L.y0) + math.abs(S.v:getX() - L.x0)
+    if sp >= 90 or t > 3500 or gone > 30 or not L.canPush then
         L.tc = getTimestampMs()
         if L.max >= 15 then L.phase = "coast" else L.phase = "cruise"; H.cruise(true) end
         return
@@ -366,8 +454,10 @@ function H.driveCoast(L, sp)
     local y = S.v:getY()
     local dy = y - (L.py or y)
     L.py = y
-    -- (a car that hit nothing is slowed by the same push, against its travel along the strip)
-    if tc > 1500 and sp > 6 and L.impOk and L.canPush then
+    -- (a car that hit nothing is slowed by the same push, against its travel along the strip; at once when it is
+    -- more than 30 tiles from where it started, so it stays on loaded ground)
+    local far = math.abs(y - L.y0) + math.abs(S.v:getX() - L.x0)
+    if (tc > 1500 or far > 30) and sp > 6 and L.impOk and L.canPush then
         local keep = L.mag
         L.mag = keep * 0.4
         if dy < -0.02 then H.push(L, 1) elseif dy > 0.02 then H.push(L, -1) end
@@ -397,11 +487,11 @@ function H.drive()
     end
     return false
 end
--- no real hit: the game's own crash, else the front parts' conditions by hand
+-- the driven car not damaged by the hit: the front parts' conditions by hand. (The game shields the car of a driver
+-- in god mode: BaseVehicle.addDamageFront, addDamageRear and damageHeadlight return at once for him, so neither a real
+-- hit nor BaseVehicle.crash damages the police car while god mode is on, and god mode stays on. BaseVehicle.crash is
+-- never called here: it also runs damagePlayers, which wounds the character at the wheel whenever god mode is off.)
 function H.fakeCrash()
-    local before = H.condSum(S.v)
-    if H.has(S.v, "crash") then pcall(function() S.v:crash(60, true) end) end
-    if H.condSum(S.v) < before then S.crashHow = "the game's BaseVehicle.crash(60, front)"; return end
     for _, pr in ipairs({ { "Engine", 22 }, { "EngineDoor", 10 }, { "HeadlightLeft", 0 }, { "HeadlightRight", 35 },
                           { "Windshield", 15 }, { "TireFrontLeft", 30 }, { "Battery", 45 } }) do
         pcall(function()
@@ -421,9 +511,9 @@ function H.afterDrive()
     local dx, dy = S.v:getX() - L.x0, S.v:getY() - L.y0
     Q.say(string.format("NOTE crash run: top speed %.0f km/h (the dash's top %.0f), moved %.1f tiles, addImpulse usable %s, push %.0f m/s a frame, cruise lamp seen %s",
         L.max, L.dashMax, math.sqrt(dx * dx + dy * dy), tostring(L.impOk), L.mag, tostring(L.cruiseSeen)))
-    local dmg = S.sumV0 - H.condSum(S.v)
+    local dmgV, dmgT = S.sumV0 - H.condSum(S.v), 0
     if S.t and H.live(S.t) then
-        dmg = dmg + (S.sumT0 - H.condSum(S.t))
+        dmgT = S.sumT0 - H.condSum(S.t)
         pcall(function() S.tx, S.ty = S.t:getX(), S.t:getY() end)
     end
     if L.max >= 20 then
@@ -432,13 +522,19 @@ function H.afterDrive()
     else
         Q.skip("a run at real speed", string.format("neither BaseVehicle.addImpulse nor the cruise control moved the car (top %.0f km/h)", L.max))
     end
-    if L.max >= 20 and dmg > 0 then
-        Q.check(true, "crash: the hit damaged parts (the game's own crash)", string.format("%.0f condition points lost on the two cars", dmg))
+    Q.say(string.format("NOTE crash damage by the game: the police car %.0f condition points, the car it hit %.0f", dmgV, dmgT))
+    if L.max >= 20 and dmgT > 0 then
+        Q.check(true, "crash: the hit damaged the car that was hit (the game's own crash)", string.format("%.0f condition points lost", dmgT))
+    end
+    if L.max >= 20 and dmgV > 0 then
+        Q.check(true, "crash: the hit damaged the police car (the game's own crash)", string.format("%.0f condition points lost", dmgV))
         S.crashHow = "a real hit"
         return
     end
+    -- (the readings after the crash need a damaged car: the police car's front is damaged by hand)
     H.fakeCrash()
-    Q.skip("damage from a real hit", (L.max >= 20 and "the car hit nothing that damaged it" or "the car never got up to speed") .. "; damaged instead by " .. tostring(S.crashHow))
+    Q.skip("damage to the police car from a real hit", (L.max >= 20 and "the game does not damage the car of a driver in god mode, and god mode stays on"
+        or "the car never got up to speed") .. "; damaged instead by " .. tostring(S.crashHow))
 end
 function H.dashAgrees()
     local s = H.st()
@@ -633,16 +729,33 @@ end
 -- ===================================================================== the car, its key taken away
 Q.step(2, function()
     if getGameSpeed() <= 0 then pcall(setGameSpeed, 1) end
+    -- first of all, before anything can throw: what is found, then god mode and invincible on and the watch started
+    pcall(function() S.godWas = S.p:isGodMod() end)
+    pcall(function() S.invWas = S.p:isInvincible() end)
+    H.statsKeep()
     if S.p:isDead() then S.failWhy = "the character is dead"; return end
+    H.safeOn()
+    -- (one watch at a time: a watch an earlier push of this script left on is taken off first)
+    if ZEDQA_BXVEH_GUARD then pcall(function() Events.OnTick.Remove(ZEDQA_BXVEH_GUARD) end) end
+    ZEDQA_BXVEH_GUARD = H.guard
+    Events.OnTick.Add(H.guard)
+    S.guardOn = true
+    -- read back: a game not in debug mode refuses god mode (Role.hasCapability), and then nothing that can hurt him runs
+    local godOn = false
+    pcall(function() godOn = S.p:isGodMod() end)
+    Q.say("NOTE found: god mode " .. tostring(S.godWas) .. ", invincible " .. tostring(S.invWas) .. "; now god mode " .. tostring(godOn) .. " for the run")
+    if not godOn then
+        S.unsafe = true
+        S.failWhy = "god mode could not be turned on (is the game in debug mode?): no car, no crash, no sprint"
+        return
+    end
     if not (ZEDQA_HOME and ZEDQA_CAR_WAIT and ZEDQA_CAR_PREP and ZEDQA_CAR_ENTER and ZEDQA_CAR_READY) then
         S.failWhy = "the prelude's car helpers are not loaded (zedqa_prelude.lua runs first)"
         return
     end
     ZEDQA_HOME("bx_veh")
     S.pairWas = RT.isOpen()
-    pcall(function() S.godWas = S.p:isGodMod() end)
     S.elecWas, S.mechWas = S.p:getPerkLevel(Perks.Electricity), S.p:getPerkLevel(Perks.Mechanics)
-    H.statsKeep()
     local cw, ww = RT.cw(), RT.ww()
     S.charTabWas, S.worldTabWas = cw and cw._activeTab, ww and ww._activeTab
     RT.pairOpen()
@@ -716,6 +829,8 @@ end, function()
     else
         H.stopActions()
         Q.skip("a hotwire by the game's own action", "it did not take in " .. tostring(S.hwTries) .. " tries: set by BaseVehicle.setHotwired")
+        -- (a failed try can break the wiring for good, BaseVehicle.tryHotwire: mended first)
+        pcall(function() S.v:setHotwiredBroken(false) end)
         pcall(function() S.v:setHotwired(true) end)
     end
 end)
@@ -901,15 +1016,16 @@ Q.waitFor(5, 300, function() local d = H.dash(); return H.seat() ~= 1 or H.over(
     Q.check(H.vis(d) and d._driver == false and d.vehicle == S.v, "passenger: ZeD's dash stays up, read-only", "driver " .. tostring(d and d._driver))
     local okC, can = H.zed("passenger: canTakePad", S.D.canTakePad, S.p)
     if okC then Q.check(can == false, "passenger: the controller cannot take the dash") end
-    S.lightsP = H.headlights()
+    S.lightsP, S.runP = H.headlights(), H.running()
     H.ignition()
     pcall(function() d:_fire("ignition", false); d:_fire("lights", false) end)
 end)
 Q.waitMs(1200)
 Q.step(1, function()
     if H.seat() ~= 1 then return end
-    Q.check(H.running() and H.headlights() == S.lightsP, "passenger: clicks on the dash's ignition and lights do nothing",
-        "running " .. tostring(H.running()) .. ", lights " .. tostring(H.headlights()) .. ", busy " .. tostring(H.busy()))
+    -- (against what the engine and the lights were on arrival in the seat, not against "running")
+    Q.check(H.running() == S.runP and H.headlights() == S.lightsP, "passenger: clicks on the dash's ignition and lights do nothing",
+        "running " .. tostring(S.runP) .. " -> " .. tostring(H.running()) .. ", lights " .. tostring(S.lightsP) .. " -> " .. tostring(H.headlights()) .. ", busy " .. tostring(H.busy()))
     RT.bounds(Q, "the dash from the passenger seat")
     H.seatKey()
 end)
@@ -1096,23 +1212,42 @@ end)
 Q.step(5, function()
     if S.p:isDead() then return end
     local n = H.woundCheck("after the crash")
-    Q.say("NOTE wounds from the crash itself: " .. tostring(n) .. " (god mode " .. tostring(S.godWas) .. ")")
-    if S.p:getVehicle() ~= nil then return end
-    -- one scratch, as a crash gives: god mode off for a second
+    local godNow = nil
+    pcall(function() godNow = S.p:isGodMod() end)
+    Q.say("NOTE wounds from the crash itself: " .. tostring(n) .. " (god mode " .. tostring(godNow) .. ")")
+    -- one scratch, as a crash gives (under god mode the body heals every tick, so god mode goes off for about a
+    -- second): only on foot, with nothing queued, god mode able to come back and no zombie within 10 tiles, as nothing
+    -- else here can hurt him in that second. The watch turns god mode on again if the next steps never come.
+    -- (Invincible is set too, as the rule asks; the game reads it for no player in 42.22.)
+    local why = nil
+    if S.p:getVehicle() ~= nil then why = "the character is still in the car: the scratch is staged on foot only"
+    elseif S.unsafe then why = "god mode could not be turned on for the run: no scratch staged"
+    else
+        local okZ, zd = H.zombieNear(10)
+        if not okZ then why = "the zombies near could not be read: god mode stays on, no scratch staged"
+        elseif zd then why = string.format("a zombie %.1f tiles away: god mode stays on, no scratch staged", zd) end
+    end
+    if why then Q.skip("the crash injury in the Health tab", why); return end
+    H.stopActions()
+    pcall(function() S.p:setInvincible(true) end)
     pcall(function()
-        S.p:setGodMod(false)
-        S.godOff = true
         local bp = S.p:getBodyDamage():getBodyPart(BodyPartType.ForeArm_L)
+        S.godOff, S.godOffAt = true, getTimestampMs()
+        S.p:setGodMod(false)
         bp:setScratched(true, true)
         S.inj = bp
+        S.scratchStaged = true
     end)
+    if not S.inj then H.godBack() end
     RT.charTab("health")
 end)
 Q.waitMs(900)
 Q.step(1, function()
     local has = false
     if S.inj then pcall(function() has = S.inj:scratched() end) end
-    if not has then
+    if not S.inj then
+        -- (nothing was staged: said above)
+    elseif not has then
         Q.skip("the crash injury in the Health tab", "the staged scratch did not hold")
     else
         local n, data = H.woundCheck("a scratch on the left forearm")
@@ -1124,6 +1259,15 @@ Q.step(1, function()
     H.heal()
     H.godBack()
     S.inj = nil
+end)
+Q.step(10, function()
+    local bad = H.hurt()
+    local god = false
+    pcall(function() god = S.p:isGodMod() end)
+    if not god and not S.unsafe then bad[#bad + 1] = "god mode off" end
+    Q.check(#bad == 0, S.scratchStaged and "health: the staged scratch is healed, god mode on again" or "health: the character is unhurt after the crash",
+        (#bad > 0) and table.concat(bad, ", ") or nil)
+    if #bad > 0 then H.heal(); H.godBack() end
 end)
 
 -- ===================================================================== the car removed while ZeD shows it
@@ -1139,6 +1283,7 @@ Q.step(1, function()
     Q.say("NOTE before the removal: inspected " .. tostring(H.inspected()) .. ", card " .. tostring(s and s.card) .. ", seat window "
         .. tostring(H.seatWin() ~= nil) .. ", tab " .. tostring(win and win._activeTab))
     if S.hornOn and H.has(S.v, "onHornStop") then pcall(function() S.v:onHornStop() end) end
+    H.stopActions()   -- (no action of the game's left queued on a car about to go)
     ZEDQA_CAR_KEEP[S.v] = nil
     S.rmDone = pcall(function() S.v:permanentlyRemove() end)
     -- in the same tick, on what ZeD still holds from the last frame
@@ -1201,9 +1346,10 @@ end)
 
 -- ===================================================================== on foot: into a wall, into a fence
 Q.step(10, function()
-    S.moved = ZEDQA_HOME("bx_veh")
+    S.moved = ZEDQA_HOME and ZEDQA_HOME("bx_veh") or false
 end)
 Q.waitFor(5, 1800, function() return H.over("homeMax", 15000) or (H.loaded(925, 13040) and (not S.moved or H.over("home", 3000))) end, function()
+    if S.unsafe then Q.skip("sprints into a wall and a fence", "god mode could not be turned on for the run"); return end
     S.site = H.lane()
     if not S.site then Q.skip("sprints into a wall and a fence", "no clear lane of open ground 12 x 3 near home"); return end
     H.stageBarrier("wall", "walls_exterior_wooden_01_40", false, "a wall")
@@ -1224,25 +1370,32 @@ end)
 
 -- ===================================================================== put back
 Q.mark()
+-- the character first, in a step of its own: healed, god mode and invincible on (they go back as found only in the
+-- last step, once the body is read healed). Each line below is its own pcall: one that throws stops none of the rest.
 Q.step(5, function()
-    H.walk(0, 0, false)
-    H.stopActions()
-    pcall(function() local pr = H.radioProp(); if H.vis(pr) then pr:close() end end)
-    pcall(function() local w = H.seatWin(); if w then w:close() end end)
-    if S.v and H.live(S.v) then
-        H.cruise(false)
-        if H.has(S.v, "onHornStop") then pcall(function() S.v:onHornStop() end) end
-    end
-    H.exitNow()
-    H.unbuild()
     H.heal()
     H.godBack()
-    if S.godWas ~= nil then pcall(function() S.p:setGodMod(S.godWas) end) end
+    S.inj = nil
+end)
+Q.step(2, function()
+    pcall(H.walk, 0, 0, false)
+    pcall(H.stopActions)
+    pcall(function() local pr = H.radioProp(); if H.vis(pr) then pr:close() end end)
+    pcall(function() local w = H.seatWin(); if w then w:close() end end)
+    pcall(function()
+        if S.v and H.live(S.v) then
+            H.cruise(false)
+            if H.has(S.v, "onHornStop") then S.v:onHornStop() end
+        end
+    end)
+    pcall(H.exitNow)
+    pcall(H.unbuild)
     if S.perks then
         pcall(function() S.p:setPerkLevelDebug(Perks.Electricity, S.elecWas); S.p:setPerkLevelDebug(Perks.Mechanics, S.mechWas) end)
     end
     if S.key then pcall(function() S.p:getInventory():Remove(S.key) end) end
     if ZEDQA_SPEED then pcall(ZEDQA_SPEED, 1) else pcall(setGameSpeed, 1) end
+    H.heal()
 end)
 Q.step(20, function()
     -- every car still in the world, the character out of it since the last step
@@ -1266,10 +1419,10 @@ Q.waitFor(5, 1800, function() return not S.chase or H.over("chaseMax", 14000) or
     if t then pcall(function() t:permanentlyRemove() end) end
 end)
 Q.step(10, function()
-    ZEDQA_HOME("bx_veh")
-    if S.charTabWas then RT.charTab(S.charTabWas) end
-    RT.worldTab(S.worldTabWas or "loot")
-    if S.pairWas == false then RT.pairShut() end
+    if ZEDQA_HOME then pcall(ZEDQA_HOME, "bx_veh") end
+    if S.charTabWas then pcall(RT.charTab, S.charTabWas) end
+    pcall(RT.worldTab, S.worldTabWas or "loot")
+    if S.pairWas == false then pcall(RT.pairShut) end
 end)
 Q.waitFor(10, 900, function()
     if H.over("gone", 8000) then return true end
@@ -1282,14 +1435,49 @@ end, function()
     local keyLeft = false
     pcall(function() keyLeft = S.key ~= nil and S.p:getInventory():contains(S.key) end)
     Q.check(left == 0 and S.p:getVehicle() == nil and not keyLeft, "put back: every car removed, the character on foot, no key kept", left .. " car(s) left")
-    local god = nil
-    pcall(function() god = S.p:isGodMod() end)
-    Q.check(S.godWas == nil or god == S.godWas, "put back: god mode as found", tostring(god))
-    Q.check(S.p:getPerkLevel(Perks.Electricity) == S.elecWas and S.p:getPerkLevel(Perks.Mechanics) == S.mechWas, "put back: Electricity and Mechanics as found",
-        S.p:getPerkLevel(Perks.Electricity) .. " / " .. S.p:getPerkLevel(Perks.Mechanics))
+    if S.elecWas ~= nil then
+        Q.check(S.p:getPerkLevel(Perks.Electricity) == S.elecWas and S.p:getPerkLevel(Perks.Mechanics) == S.mechWas, "put back: Electricity and Mechanics as found",
+            S.p:getPerkLevel(Perks.Electricity) .. " / " .. S.p:getPerkLevel(Perks.Mechanics))
+    end
     Q.check(#S.built == 0 and (S.builtLeft or 0) == 0, "put back: nothing built is left on the strip")
     Q.check(math.abs(S.p:getX() - 925.5) <= 3 and math.abs(S.p:getY() - 13040.5) <= 3, "put back: the character is home on the strip",
         math.floor(S.p:getX()) .. "," .. math.floor(S.p:getY()))
     Q.check(getGameSpeed() == 1, "put back: game speed 1", tostring(getGameSpeed()))
+end)
+-- the character last: read healed, and only then god mode and invincible as found. Read hurt: healed once more and
+-- read again, and god mode and invincible are LEFT ON whatever was found (said in the FAIL line).
+Q.step(10, function()
+    local bad = H.hurt()
+    S.hurt1 = bad
+    if #bad > 0 then H.safeOn(); H.heal() end
+end)
+Q.step(10, function()
+    -- the watch ends here, first, so a throw below cannot leave it on: a watch left on would hold god mode on through
+    -- the next scripts (god mode itself stays on from the put-back's first step until the body reads healed)
+    S.done = true
+    pcall(function() Events.OnTick.Remove(H.guard) end)
+    if ZEDQA_BXVEH_GUARD == H.guard then ZEDQA_BXVEH_GUARD = nil end
+    local first = S.hurt1 or {}
+    local bad = H.hurt()
+    local overall = -1
+    pcall(function() overall = S.p:getBodyDamage():getOverallBodyHealth() end)
+    Q.check(#first == 0 and #bad == 0, "put back: the character is alive and healed (health 100, no wound and no fracture on any part, not infected)",
+        string.format("health %.1f", overall) .. (#first > 0 and ("; found at the put-back: " .. table.concat(first, ", ")) or "")
+        .. (#bad > 0 and ("; STILL after a second heal: " .. table.concat(bad, ", ") .. "; god mode and invincible are left ON") or ""))
+    if (S.guardHeals or 0) > 0 or (S.guardSaid or 0) > 0 then
+        Q.say("NOTE the guard stepped in during the run: " .. tostring(S.guardHeals or 0) .. " heal(s), " .. tostring(S.guardSaid or 0) .. " god mode left off")
+    end
+    -- god mode and invincible as found only for a healed character
+    if #bad == 0 then
+        if S.invWas ~= nil then pcall(function() S.p:setInvincible(S.invWas) end) end
+        if S.godWas ~= nil then pcall(function() S.p:setGodMod(S.godWas) end) end
+    else
+        H.safeOn()
+    end
+    local god, inv = nil, nil
+    pcall(function() god = S.p:isGodMod() end)
+    pcall(function() inv = S.p:isInvincible() end)
+    Q.check(#bad == 0 and (S.godWas == nil or god == S.godWas) and (S.invWas == nil or inv == S.invWas), "put back: god mode and invincible as found",
+        "god mode " .. tostring(god) .. " (found " .. tostring(S.godWas) .. "), invincible " .. tostring(inv) .. " (found " .. tostring(S.invWas) .. ")")
 end)
 Q.start()

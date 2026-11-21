@@ -37,17 +37,24 @@
 --
 -- What it puts back itself: every ZeD option as found (and the look and scale on screen), ModOptions.ini line for
 -- line, the first lines of ZeD_tutorial.txt / ZeD_setup_seen.txt when they were there, the wallpaper, the Mods
--- screen's tab and Hide incompatible, the mods in use (nothing accepted with a change), the lightning let go.
--- Lua cannot delete a file: a file that was not there before (ZeD_setup_seen.txt, ZeD_tutorial.txt, ZeD_wallpaper.txt,
--- ZeD_modsview.txt, ...) is the wrapper's to remove. Files it may write (all under Zomboid/): Lua/ModOptions.ini,
+-- screen's tab and Hide incompatible, the mods in use (nothing accepted with a change), the lightning let go; and,
+-- should a part have stopped half way, keysB42.ini as found (the game's keys read from it again) and a change left
+-- waiting in Options (Discard, never Apply).
+-- Lua cannot delete a file, and the runner (zedqa_menu_mods_run.ps1) removes only ModFolders.cfg and
+-- ZeD_folder_colors.txt. So (preflight, Nov 21 2026) ZeD_setup_seen.txt is never made here: when it was not there
+-- before, the welcome's Skip is not pressed (the next launch must still offer the setup) and the options go back by
+-- hand. The other files that may appear (ZeD_tutorial.txt holding "0", ZeD_wallpaper.txt holding the wallpaper
+-- found, ZeD_modsview.txt, ...) mean the same as no file. Files it may write (all under Zomboid/): Lua/ModOptions.ini,
 -- Lua/ZeD_setup_seen.txt, Lua/ZeD_tutorial.txt, Lua/ZeD_wallpaper.txt, Lua/ZeD_modsview.txt, Lua/ZeD_modfolders.txt,
--- Lua/pz_modlist_settings.cfg, mods/default.txt, Lua/ZeD_style_carry.txt, Lua/ZeD_custom_additions.txt; and by
--- accident only: Lua/keysB42.ini, Lua/ZeD_setup.txt, Lua/ModFolders.cfg, Lua/ZeD_modprofiles.txt; the Notepad clears
--- Lua/ZeD_desk_draft.txt when it closes with nothing unsaved; ZeD picks may write Lua/ZeD_picks.txt as Mods opens.
+-- Lua/pz_modlist_settings.cfg, mods/default.txt, Lua/ZeD_style_carry.txt, Lua/ZeD_custom_additions.txt, Lua/host.ini
+-- (Host's Back saves the host options again, the same values); and by accident only: Lua/keysB42.ini,
+-- Lua/ZeD_setup.txt, Lua/ModFolders.cfg, Lua/ZeD_modprofiles.txt; the Notepad clears Lua/ZeD_desk_draft.txt when it
+-- closes with nothing unsaved; ZeD picks may write Lua/ZeD_picks.txt as Mods opens.
 --
 -- Run (never while the game runs; the runner checks Lua/zedqa.lock itself):
 --   pwsh ZeDUI/tools/qa/zedqa_menu_mods_run.ps1 -ModList ZeDUI/tools/qa/zed_only_mods.txt `
 --        -Script ZeDUI/tools/qa/bx_menu.lua -Tag bx_menu -TimeoutSec 480
+--   with $env:ZEDQA_NOSTEAM = "1" set first: a Steam launch loads the Workshop copy of ZeD, which has no QA bridge.
 -- Lines: "ZEDQA bx_menu PASS ..." / "FAIL ..." / "SKIP ..." / "NOTE ..." / "ERR ...", then "VERDICT PASS n" or
 -- "VERDICT FAIL n", then DONE (always from a later frame than the bridge's run line). grep "ZEDQA bx_menu".
 local TAG = "bx_menu"
@@ -305,6 +312,33 @@ function K.rescue()
     MM.ctx.open = nil
     pcall(MM.showView, "main")
 end
+-- (preflight, Nov 21 2026) New game's Back and Join's Back run the game's MainScreen.resetLuaIfNeeded: when the
+-- mod list in memory is not the one running, that reloads Lua, and the script ends there with nothing put back.
+-- Why a Back would do that now, or nil.
+function K.wouldReset()
+    local need = false
+    pcall(function() need = ActiveMods.requiresResetLua(ActiveMods.getById("default")) end)
+    if need then return "the mod list in memory is not the one running" end
+    return nil
+end
+-- a window's Back (or its close box); when that would reload Lua, a FAIL and the main window put up instead.
+-- (skeptic pass, Nov 21 2026: as ZeD's own Backs do it, New game's reloads only from the playstyles, not from the
+-- challenges list, and Join's only from its list, not from a form, which Back only shuts)
+function K.back(label, w, closeBox)
+    local v = MM.view
+    local leaves = (v == "newgame" and not w.challenges) or (v == "join" and w.page == "list")
+    local why = leaves and K.wouldReset() or nil
+    if why then
+        check(false, label .. ": Back can be pressed without a Lua reload", why .. ": left by the menu bar's way instead")
+        -- (Join's own Back lets go of the server list it asked Steam for)
+        if v == "join" then pcall(function() if getSteamModeActive() then steamReleaseInternetServersRequest() end end) end
+        MM.ctx.open = nil
+        MM.showView("main")
+        return false
+    end
+    if closeBox then w:close() else w:back() end
+    return true
+end
 function K.spec(w, id)
     for _, s in ipairs((w and w._specs) or {}) do if s.id == id then return s end end
     return nil
@@ -400,6 +434,10 @@ function K.backReloads(w)
     local m = K.model()
     if not (w and m) then return "no mod list" end
     if w:changed() then return "a change is waiting" end
+    -- (the game's own Accept also reloads when its Mods on/off option moved since the list was read)
+    local flip = false
+    pcall(function() flip = m.ModsEnabled ~= getCore():getOptionModsEnabled() end)
+    if flip then return "the game's mods switch moved since the list was read" end
     local need = false
     pcall(function() need = ActiveMods.requiresResetLua(m:getActiveMods()) end)
     if need then return "the load order differs from the one running" end
@@ -429,7 +467,9 @@ end
 -- the mod with the most to show on a detail tab, or nil
 function K.modFor(tab)
     local w, best = K.W(), nil
-    for _, d in ipairs(K.rows()) do
+    -- (the first 80 rows only: a mod's tabs read its settings and code files, and a library can hold 1,500 mods)
+    for k, d in ipairs(K.rows()) do
+        if k > 80 then break end
         local list = {}
         pcall(function() list = w:detailTabs(d) end)
         for _, t in ipairs(list) do
@@ -508,6 +548,9 @@ function X.start()
             .. "; ZeD_tutorial.txt " .. (keep.tut0 and "there" or "absent") .. ", ZeD_setup_seen.txt " .. (keep.seen0 and "there" or "absent"))
         check(MM.openMods and MM.openOptions and MM.openWelcome and MM.menuItems and MM.menus and MM.showView and MM.act and St.lookStyleOption and true or false,
             "the main menu's parts are loaded")
+        -- (skeptic pass, Nov 21 2026: a reload already waiting at the start makes every New game and Join Back below a
+        -- FAIL that is not the window's; said here so it is not read as one)
+        if K.wouldReset() then note("at the start the mod list in memory is not the one running: New game's and Join's Back would reload Lua, so each is left by the menu bar's way and FAILs") end
     end)
     waitFor(function()
         local m = K.ms()
@@ -600,7 +643,7 @@ function X.backOpts(w)
 end
 function X.menuVisits()
     local A = MM.act
-    local function back(w) w:back() end
+    local function back(w) K.back("a window opened from the menu bar", w) end
     K.menuPress("Credits (ZeD menu)", "zed", function(it) return it.fn == A.credits end)
     K.visitRest("Credits (ZeD menu)", "credits", nil, back, "main")
     K.menuPress("Terms (ZeD menu)", "zed", function(it) return it.fn == A.tos and MM.hasView("terms") end)
@@ -684,7 +727,7 @@ function X.iconOne(id)
         elseif view == "workshop" then MM.showView("main")   -- (the uploader: looked at, nothing in it touched)
         elseif view == "options" then X.backOpts(w)
         else
-            w:close()
+            if not K.back(label, w, true) then return end
             -- (a page with unsaved words asks before it closes, the Notepad's recovered draft: left as the menu bar
             -- leaves it, the words kept in the draft)
             if MM.view == view and w.confirm then
@@ -744,6 +787,8 @@ function X.cycle()
             X.cycleVerify(view, i, st)
             local w = MM.activeWindow()
             if not (w and w.joyDir) then return end
+            -- (Mods: left and right on a mod's option row change that option; the walk stays on the About tab)
+            if view == "mods" then w.dtab = "about" end
             for _, d in ipairs({ "down", "down", "right", "up", "left", "down" }) do
                 local ok, e = pcall(w.joyDir, w, d)
                 if not ok then st.bad[#st.bad + 1] = view .. " " .. d .. ": " .. tostring(e) end
@@ -1056,7 +1101,13 @@ function X.modsToggle()
         if keep.noDev then return end
         local d = K.model().mods[keep.devId]
         if not check(d ~= nil and d.isActive == true, "Mods: a mod that is off and can run turns on", keep.devId) then keep.noDev = true; return end
-        check(w:changed() == true, "Mods: a change is waiting")
+        -- (skeptic pass, Nov 21 2026: with no change counted, Back takes the list as it stands, the mod on, and Lua
+        -- reloads with nothing put back. So Back is pressed only while a change is counted; else Undo changes)
+        if not check(w:changed() == true, "Mods: a change is waiting") then
+            keep.noDev = true
+            K.try("Mods: Undo changes (Back not pressed: no change was counted)", function() w:revert() end)
+            return
+        end
         local text = nil
         K.try("Mods: the band's waiting line", function() text = w:pendingNow() end)
         check(text ~= nil and text ~= "", "Mods: the band says a change is waiting", text)
@@ -1339,13 +1390,15 @@ function X.ngStart()
     end))
     after(400, NG("newgame", function(w)
         if not keep.chal then return end
-        check(w.challenges == true, "New game: Challenges opens its list (" .. #w:items() .. " challenges)")
+        keep.chalOpen = check(w.challenges == true, "New game: Challenges opens its list (" .. #w:items() .. " challenges)")
         K.onScreen("New game, the challenges", w)
         K.errCheck("New game: challenges")
-        K.try("New game: Back from the challenges", function() w:back() end)
+        -- (skeptic pass, Nov 21 2026: Back only while the list is up. From the playstyles it leaves New game, ending
+        -- the path, and runs the game's Lua reload check)
+        if keep.chalOpen then K.try("New game: Back from the challenges", function() w:back() end) end
     end))
     after(300, NG("newgame", function(w)
-        if keep.chal then check(w.challenges == false and MM.view == "newgame", "New game: Back from the challenges lands on the playstyles") end
+        if keep.chalOpen then check(w.challenges == false and MM.view == "newgame", "New game: Back from the challenges lands on the playstyles") end
         local sb = nil
         for i, d in ipairs(w:items()) do if d.mode == "Sandbox" then sb = i end end
         if not sb then keep.noPath = true; skip("New game: the Sandbox path", "no Sandbox playstyle here"); return end
@@ -1526,15 +1579,29 @@ function X.ngTraits()
     end, function(i, _, st)
         local w = K.win("traits")
         local rows = X.traitRows(w)
-        st.before, st.took = #X.prof().listboxTraitSelected.items, nil
+        local lb = X.prof().listboxTraitSelected
+        st.before, st.took, st.want = #lb.items, nil, nil
         if #rows == 0 then return end
         local k = i * 5
         local r = rows[k - math.floor(k / #rows) * #rows + 1]
         st.took = tostring(r.trait)
+        -- (skeptic pass, Nov 21 2026: vanilla's addTrait puts the trait under Chosen and each trait it brings with it
+        -- that is not there yet, Weight gain's Overweight for one. Chosen grows by exactly that; one more at least
+        -- only when the list it brings cannot be read)
+        pcall(function()
+            local add = 1
+            local g = r.trait:getGrantedTraits()
+            for j = 0, g:size() - 1 do
+                local def = CharacterTraitDefinition.getCharacterTraitDefinition(g:get(j))
+                if def and not lb:contains(def:getLabel()) then add = add + 1 end
+            end
+            st.want = st.before + add
+        end)
         w:takeTrait(r.trait)
     end, function(i, _, st)
-        if st.took and #X.prof().listboxTraitSelected.items ~= st.before + 1 then
-            st.bad[#st.bad + 1] = st.took .. ": taken, but Chosen went from " .. st.before .. " to " .. #X.prof().listboxTraitSelected.items
+        local n = #X.prof().listboxTraitSelected.items
+        if st.took and ((st.want and n ~= st.want) or (not st.want and n < st.before + 1)) then
+            st.bad[#st.bad + 1] = st.took .. ": taken, but Chosen went from " .. st.before .. " to " .. n .. (st.want and (", not " .. st.want) or "")
         end
     end, function() K.errCheck("Traits: many taken") end)
     after(200, NG("traits", function(w)
@@ -1613,7 +1680,7 @@ function X.ngBack()
         local w = K.win(v)
         MM.ctx.open = nil
         if w and w.back then
-            local ok, e = pcall(w.back, w)
+            local ok, e = pcall(K.back, "New game, Back from " .. tostring(v), w)
             if not ok then keep.backErr = tostring(v) .. ": " .. tostring(e) end
         else
             pcall(MM.showView, "main")
@@ -1771,12 +1838,15 @@ function X.join()
         check(p.port ~= nil, "Join: a port that is not a number is a problem, in words", tostring(p.port))
         K.onScreen("Join, the Add server form", w)
         K.errCheck("Join: the form with rubbish")
-        K.try("Join: Back from the form", function() w:back() end)
+        -- (through K.back: with no form up, this Back would leave Join and run the game's Lua reload check)
+        K.try("Join: Back from the form", function() K.back("Join, Back from the form", w) end)
     end))
     after(300, JN(function(w)
         check(w.page == "list" and MM.view == "join" and #w:savedRows() == keep.jSaved0, "Join: Back from the form lands on the list, no server added",
             tostring(w.page) .. ", " .. #w:savedRows() .. " rows (was " .. tostring(keep.jSaved0) .. ")")
-        K.try("Join: Back", function() w:back() end)
+        -- (the form may still be up when its Back threw: that Back only shuts the form, so it is shut by hand first)
+        if w.page ~= "list" then pcall(function() w:closeForm() end) end
+        K.try("Join: Back", function() K.back("Join", w) end)
     end))
     waitFor(function() return keep.noJoin or MM.view == "main" end, 4000, function(met)
         if keep.noJoin then return end
@@ -1833,10 +1903,28 @@ function X.welcome()
             tostring(w.input) .. " " .. tostring(w.tutorial) .. " " .. tostring(w.way))
         K.onScreen("Welcome after the picking", w)
         K.errCheck("Welcome: the picking")
+        -- (preflight, Nov 21 2026) Skip writes ZeD_setup_seen.txt, and nothing here or in the runner can delete it. On a
+        -- machine that has never answered the setup it is not pressed: the options go back by hand, the window is left
+        -- by the menu bar's way, and the next launch still offers the setup.
+        if keep.seen0 == nil then
+            keep.noSkip = true
+            skip("Welcome: Skip puts everything back", "ZeD_setup_seen.txt was not there before and Skip would make it: the options put back by hand")
+            K.setAll(keep.wSnap)
+            pcall(function() St.applyThemeNow() end)
+            MM.showView("main")
+            return
+        end
         K.try("Welcome: Skip (the close box)", function() w:close() end)
     end))
     waitFor(function() return keep.noWel or MM.view == "main" end, 4000, function(met)
         if keep.noWel then return end
+        if keep.noSkip then
+            local d0 = K.diff(keep.wSnap, K.snapAll())
+            check(#d0 == 0 and ZeD.currentBase == keep.wBase and ZeD.currentSize == keep.wSize, "Welcome: left without Skip, the options and the look are as the window found them", K.short(d0))
+            check(K.readLines((WL and WL.SEEN_FILE) or "ZeD_setup_seen.txt") == nil, "Welcome: ZeD_setup_seen.txt was not made")
+            K.errCheck("Welcome left")
+            return
+        end
         if not check(MM.view == "main", "Welcome: Skip leaves to the main window", "view " .. tostring(MM.view)) then K.rescue() end
         local d = K.diff(keep.wSnap, K.snapAll())
         check(#d == 0, "Welcome: Skip puts every option back as the window found it", K.short(d))
@@ -1888,10 +1976,13 @@ function X.kmap()
     end))
     after(300, KMs(function(km)
         local b = X.kmHit(km, "bind")
-        keep.kmBind = b and b.name or nil
+        keep.kmBind = nil
         if not b then skip("Keyboard map: an action asked for, then Escape", "no action's key box in sight"); return end
+        -- (a key box whose hit has no place cannot be clicked: said plainly, not as an arithmetic error)
+        if not check(type(b.x) == "number" and type(b.w) == "number", "Keyboard map: an action's key box has a place to click", "x " .. tostring(b.x) .. ", w " .. tostring(b.w)) then return end
         K.try("Keyboard map: an action's key box clicked", function() X.kmClick(km, b) end)
-        check(km.listening == b.name, "Keyboard map: the action waits for its key", tostring(km.listening))
+        -- (Escape is pressed only while the action waits: with nothing waiting Escape closes the map)
+        if check(km.listening == b.name, "Keyboard map: the action waits for its key", tostring(km.listening)) then keep.kmBind = b.name end
     end))
     after(400, KMs(function(km)
         if not keep.kmBind then return end
@@ -1949,17 +2040,42 @@ end
 -- put back
 function X.putBack()
     after(300, function()
-        K.rescue()
+        -- (preflight, Nov 21 2026: each part on its own, so one that throws does not stop the ones after it)
+        -- a question or a field a part left open (a key being asked for, a name field): shut, nothing answered
+        pcall(function()
+            local r = MM.root
+            local fields = { "win", "loadWin", "newWin", "modsWin", "optsWin" }
+            for _, rv in ipairs(MM.views or {}) do fields[#fields + 1] = rv.field end
+            for _, f in ipairs(fields) do
+                local w = r[f]
+                if w and w.confirm and w.setConfirm then pcall(w.setConfirm, w, false) end
+            end
+        end)
+        -- (skeptic pass, Nov 21 2026) a change left waiting in Options, never applied (a game tick flipped when the
+        -- time ran out before its Discard; or Lite's pick, which since W35 changes the controls until Apply):
+        -- Discard, the window's own No; never Apply
+        pcall(function()
+            local w = K.win("options")
+            if w and w.anyChanged and w:anyChanged() then note("put back: Options had a change waiting (never applied): Discard"); w:discard() end
+        end)
+        -- a mod a part left turned on or off in the list (never accepted): back as the screen opened
+        pcall(function()
+            local w = K.W()
+            if w and K.model() and w:changed() then note("put back: a mod was left changed in the Mods list: Undo changes"); w:revert() end
+        end)
+        pcall(K.rescue)
         pcall(function() local KM = ZeD.KeyboardMap; if KM and KM.close then KM.close(0) end end)
         pcall(function() GameKeyboard.setDoLuaKeyPressed(true) end)
         MM.forceGamepad = keep.pad0
         pcall(function() JoypadState.controllerTest = nil end)
-        if keep.wall0 and MM.wallpaper() ~= keep.wall0 then pcall(MM.setWallpaper, keep.wall0) end
+        pcall(function() if keep.wall0 and MM.wallpaper() ~= keep.wall0 then MM.setWallpaper(keep.wall0) end end)
         -- (the Mods screen's tab and box, should a part have stopped half way: the values only)
-        local w = K.W()
-        if w and keep.filter0 ~= nil then w.filter, w.hideInc = keep.filter0, keep.hide0; pcall(function() w.find:setText("") end) end
+        pcall(function()
+            local w = K.W()
+            if w and keep.filter0 ~= nil then w.filter, w.hideInc = keep.filter0, keep.hide0; w.find:setText("") end
+        end)
         if keep.opt0 then
-            K.setAll(keep.opt0)
+            pcall(K.setAll, keep.opt0)
             pcall(function() St.applyScale() end)
             pcall(function() St.applyThemeNow() end)
         end
@@ -1969,6 +2085,14 @@ function X.putBack()
         if keep.ini0 then K.writeLines("ModOptions.ini", keep.ini0, "\r\n") end
         if keep.tut0 then K.writeLines((WL and WL.TUTORIAL_FILE) or "ZeD_tutorial.txt", keep.tut0) end
         if keep.seen0 then K.writeLines((WL and WL.SEEN_FILE) or "ZeD_setup_seen.txt", keep.seen0) end
+        -- (the keyboard map writes keysB42.ini only when a key is really pressed while an action waits: should that
+        -- have happened, the file goes back as found; the FAIL below still says so)
+        if keep.keys0 and not K.same(K.readLines("keysB42.ini"), keep.keys0) then
+            keep.keysMoved = true
+            K.writeLines("keysB42.ini", keep.keys0, "\r\n")
+            -- (and the game's keys in memory read from it again, as the Options window's Back does: skeptic pass)
+            pcall(function() MainOptions.loadKeys() end)
+        end
     end)
     after(500, function()
         local d = K.diff(keep.opt0, K.snapAll())
@@ -1982,10 +2106,21 @@ function X.putBack()
         local files = { { (WL and WL.TUTORIAL_FILE) or "ZeD_tutorial.txt", keep.tut0 }, { (WL and WL.SEEN_FILE) or "ZeD_setup_seen.txt", keep.seen0 } }
         for _, f in ipairs(files) do
             if f[2] then check(K.same(K.readLines(f[1]), f[2]), "put back: " .. f[1] .. " line for line")
-            else say("SKIP put back: " .. f[1] .. " was not there before; the wrapper removes it") end
+            else
+                -- (no file before: none now, or one this run made; the runner removes neither, so it is said plainly)
+                local now = K.readLines(f[1])
+                if now == nil then check(true, "put back: " .. f[1] .. " was not there and is not there")
+                elseif f[1] == ((WL and WL.SEEN_FILE) or "ZeD_setup_seen.txt") then
+                    check(false, "put back: " .. f[1] .. " was not there before and is there now", "delete Zomboid/Lua/" .. f[1] .. " by hand, or the next launch will not offer the setup")
+                else
+                    note("put back: " .. f[1] .. " was not there before and now holds \"" .. tostring(now[1]) .. "\" (the same as no file: no tour asked for); delete Zomboid/Lua/" .. f[1] .. " to have it gone")
+                end
+            end
         end
         check(K.same(K.readLines(St.SETUP_FILE or "ZeD_setup.txt"), keep.setup0), "put back: ZeD_setup.txt was never written")
-        check(K.same(K.readLines("keysB42.ini"), keep.keys0), "put back: keysB42.ini line for line")
+        check(not keep.keysMoved and K.same(K.readLines("keysB42.ini"), keep.keys0), "put back: keysB42.ini line for line",
+            keep.keysMoved and "a key was changed during the run: the file was written back as found" or nil)
+        check(K.wouldReset() == nil, "put back: the mod list in memory is the one running (no Lua reload waiting)", K.wouldReset())
         check(MM.wallpaper() == keep.wall0, "put back: the wallpaper as found", tostring(MM.wallpaper()))
         check(K.activated() == keep.mods0, "put back: the mods in use are the ones found")
         check(MM.view == "main" and K.up("main") and MM.ctx.open == nil, "put back: the main window is up, no menu open", "view " .. tostring(MM.view))

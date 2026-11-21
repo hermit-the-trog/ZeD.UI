@@ -47,8 +47,14 @@
 -- (its hens first), the trough, every plot (and the squares' plowDay), every animal made (the hen that was put down
 -- too), every zone made; anything new lying on the staged squares; everything new on the character taken away (seeds,
 -- tools, the harvest, milk), the character's own seeds, fluid containers, fertilizer, feed and cow food (set aside at
--- the start) given back where they were; hands, god mode, the instant-action cheat, body stiffness, health; the
+-- the start) given back where they were; hands, the instant-action cheat, body stiffness, health; the
 -- Animals tab's view, the World window's tab, both windows as found; the character home on the drag strip.
+-- THE CHARACTER: god mode and invincible go on in the first step and a tick keeps them on until the last step, where,
+-- home again, he is healed and checked (alive, health 100, no wound, no fracture, not infected: a PASS or FAIL line)
+-- and only then do the two go back as found. Not home or not whole: they are left ON (the tick stops). If the two
+-- cannot be turned on at the start, he is not taken to the farm at all: nothing is staged and the put-back runs.
+-- COUNTS: the game counts the animals in a zone at its own zone check (every 2.5 s) and ZeD places a new animal by the
+-- zone's bounds until then, so the roster's count is held against the game's only once the game's list has them.
 -- Known leftovers: the grass cut on plot 2 (one square: the game's dig and dig-up cut it) and any Farming or Husbandry
 -- XP the game's own actions gave.
 
@@ -193,6 +199,49 @@ function H.fill(it, full)
     if full then fc:addFluid(Fluid.Water, fc:getCapacity()) end
 end
 function H.count(ft) return S.p:getInventory():getAllTypeRecurse(ft):size() end
+-- water the card's Water would use that is not the script's bottle (a canteen kept on the belt): the game's own test
+function H.ownWater()
+    local items = S.p:getInventory():getItems()
+    for k = 0, items:size() - 1 do
+        local it = items:get(k)
+        if it ~= S.bottle and ISFarmingMenu.getWaterUsesInteger(it) > 0 then return true end
+    end
+    return false
+end
+-- ---- the character's body: never hurt during the run, healed at the end
+function H.safe()
+    local p = S.p
+    if p:isDead() then return end
+    if not p:isGodMod() then p:setGodMod(true) end
+    if not p:isInvincible() then p:setInvincible(true) end
+end
+function H.heal()
+    local bd = S.p:getBodyDamage()
+    bd:RestoreToFullHealth()
+    local parts = bd:getBodyParts()
+    for k = 0, parts:size() - 1 do
+        local b = parts:get(k)
+        if b:HasInjury() or b:getFractureTime() > 0 then b:RestoreToFullHealth(); b:setFractureTime(0) end
+    end
+    if bd:getOverallBodyHealth() < 100 then bd:setOverallBodyHealth(100) end
+end
+-- what is wrong with the body, in words ("" when he is whole)
+function H.hurt()
+    local p = S.p
+    local bad = {}
+    if p:isDead() then bad[#bad + 1] = "dead" end
+    local bd = p:getBodyDamage()
+    local hp = bd:getOverallBodyHealth()
+    if hp < 99.5 then bad[#bad + 1] = "health " .. tostring(hp) end
+    if bd:IsInfected() then bad[#bad + 1] = "infected" end
+    local parts = bd:getBodyParts()
+    for k = 0, parts:size() - 1 do
+        local b = parts:get(k)
+        if b:HasInjury() then bad[#bad + 1] = "a wound on part " .. k end
+        if b:getFractureTime() > 0 then bad[#bad + 1] = "a fracture on part " .. k end
+    end
+    return table.concat(bad, ", ")
+end
 function H.objOn(sq, cls)
     if not sq then return nil end
     local objs = sq:getObjects()
@@ -213,6 +262,8 @@ function H.hold(w)
     w._outSince = getTimestampMs() + 600000
 end
 function H.keepTick()
+    -- (god mode and invincible stay on for the whole run, whatever turns them off)
+    if S.guard then pcall(H.safe) end
     if not S.holdOn then return end
     H.hold(RT.ww())
     H.hold(RT.cw())
@@ -456,7 +507,9 @@ function H.takeAside(list)
         else
             S.p:removeFromHands(it)
             c:Remove(it)
-            S.taken[#S.taken + 1] = { item = it, cont = c }
+            -- (only the character's own things are given back at the end: a thing the script made, the harvest's
+            -- carrots or a feed bag, is just taken away)
+            if S.had[it] then S.taken[#S.taken + 1] = { item = it, cont = c } end
         end
     end
 end
@@ -482,14 +535,19 @@ function H.ledger()
     S.home = { x = p:getX(), y = p:getY() }
     S.primary, S.secondary = p:getPrimaryHandItem(), p:getSecondaryHandItem()
     S.god = p:isGodMod() == true
+    S.inv = p:isInvincible() == true
     S.instant = p:isTimedActionInstantCheat() == true
+    -- god mode and invincible on before anything else, and kept on every tick until he is home and healed
+    p:setGodMod(true)
+    p:setInvincible(true)
+    S.guard = true
+    Events.OnTick.Add(H.keepTick)
     local parts = p:getBodyDamage():getBodyParts()
     for k = 0, parts:size() - 1 do S.stiff[k] = parts:get(k):getStiffness() end
     local all = p:getInventory():getAllEvalRecurse(function(it) return true end)
     for k = 0, all:size() - 1 do S.had[all:get(k)] = true end
     S.zones0 = H.zoneCount()
     S.staged = true
-    p:setGodMod(true)
     H.setAside()
     Q.say("set aside " .. #S.taken .. " of the character's own things (kept, worn or on the belt: " .. S.kept .. ")")
 end
@@ -503,11 +561,16 @@ Q.step(5, function()
     end
     if Z.Safe and Z.Safe.on and Z.Safe.on() then S.dead = true; Q.skip("the whole script", "ZeD is in safe mode: the game's own windows would open"); return end
     if not S.p or S.p:isDead() then S.dead = true; Q.skip("the whole script", "no living character"); return end
-    H.ledger()
+    -- (a ledger that threw: nothing is staged and nothing is run; the last step still heals and puts the cheats back)
+    local okL, eL = pcall(H.ledger)
+    if not okL then S.dead = true; Q.check(false, "the ledger of what is there was written", eL); return end
+    local safeOn = S.p:isGodMod() and S.p:isInvincible()
+    Q.check(safeOn, "god mode and invincible are on for the run", tostring(S.p:isGodMod()) .. " " .. tostring(S.p:isInvincible()))
+    -- (without both he is not taken to the farm: nothing is staged or run, and the put-back still runs)
+    if not safeOn then S.dead = true; return end
     S.opened = not RT.isOpen()
     RT.pairOpen()
     S.holdOn = true
-    Events.OnTick.Add(H.keepTick)
 end)
 pause(900)
 step(2, nil, function()
@@ -688,7 +751,12 @@ step(2, "farm", function()
     local d, w = H.d(), H.verb("water")
     local lvl = H.waterOf(S.P[1])
     Q.check(d ~= nil and H.near(d.water, lvl, 0.5), "farm: water set to 20: the card reads it", tostring(d and d.water) .. " vs " .. tostring(lvl))
-    Q.check(w ~= nil and w.sensible ~= false and w.enabled == false, "farm: thirsty with no water carried: Water waits", tostring(w and w.enabled))
+    S.ownWater = H.ownWater()
+    if S.ownWater then
+        Q.skip("Water waiting with no water carried", "the character keeps water of his own on him (worn or on the belt)")
+    else
+        Q.check(w ~= nil and w.sensible ~= false and w.enabled == false, "farm: thirsty with no water carried: Water waits", tostring(w and w.enabled))
+    end
     S.bottle = H.give("Base.WaterBottle")
     H.fill(S.bottle, true)
     H.fresh()
@@ -749,7 +817,11 @@ end)
 pause(500)
 step(2, "farm", function()
     local w = H.verb("water")
-    Q.check(w ~= nil and w.enabled == false, "farm: the bottle emptied while the card shows: Water waits again", tostring(w and w.enabled))
+    if S.ownWater then
+        Q.skip("Water waiting again once the bottle is emptied", "the character keeps water of his own on him (worn or on the belt)")
+    else
+        Q.check(w ~= nil and w.enabled == false, "farm: the bottle emptied while the card shows: Water waits again", tostring(w and w.enabled))
+    end
     H.fill(S.bottle, true)
     H.setWater(S.P[1], 80)
     S.fertItem = H.give("Base.Fertilizer")
@@ -811,7 +883,7 @@ step(2, "farm", function()
     if S.ripe then Q.check(v == nil or v.sensible == false, "farm: harvested: Harvest is gone", tostring(v and v.sensible)) end
     -- the second plot rots
     local lo2 = H.plantS(S.sq2)
-    if lo2 and lo2.state == "seeded" then lo2:rottenThis() end
+    if lo2 and lo2.state == "seeded" then lo2:rottenThis(); lo2:saveData() end
     H.openPlot(S.sq2)
 end)
 -- 1f. a rotten plant, dug up; the browse arrows; the last plots gone
@@ -969,7 +1041,18 @@ wait(10000, "ranch", function()
     return H.inRoster(S.cow) and H.inRoster(S.ewe) and H.inRoster(S.hen)
 end, function(ok)
     Q.check(ok, "ranch: the zone's roster holds the cow, the ewe and the hen", #H.roster() .. " on the roster, the game counts " .. H.gameZoneN())
-    Q.check(#H.roster() == H.gameZoneN(), "ranch: the roster's count is the game's count for the zone", #H.roster() .. " vs " .. H.gameZoneN())
+end)
+-- (the game counts the animals standing in a zone at its own zone check, every 2.5 s; until then ZeD places a new
+-- animal by the zone's bounds on purpose, so the two counts are compared once the game's list holds all three)
+wait(8000, "ranch", function()
+    return H.gameHas(S.cow) and H.gameHas(S.ewe) and H.gameHas(S.hen)
+end, function(ok)
+    H.try("the poller's refresh (AP.refreshCache)", S.AP.refreshCache, S.pn)
+    if ok then
+        Q.check(#H.roster() == H.gameZoneN(), "ranch: the roster's count is the game's count for the zone", #H.roster() .. " vs " .. H.gameZoneN())
+    else
+        Q.skip("the roster's count against the game's", "the game's own zone list did not hold all three after 8 s (it counts " .. H.gameZoneN() .. ")")
+    end
     local w = H.W()
     -- sub-tabs flipped, the zone's page, Back past the top
     for i = 1, 10 do H.try("the sub-tabs (AT.switchSubmode)", S.AT.switchSubmode, w, (i - math.floor(i / 2) * 2 == 0) and "ranch" or "butcher") end
@@ -1151,6 +1234,8 @@ end)
 -- Feed: greyed, the carrot gone before the pick, then fed
 step(5, "ranch", function()
     H.beside(S.cow)
+    -- (anything the cow eats that came since the first sweep, a feed bag the trough did not take, goes first)
+    H.asideFood(S.cow)
     S.cow:getStats():set(CharacterStat.HUNGER, 0.9)
     S.AQ.forgetChecks()
     H.zonePage()
@@ -1246,17 +1331,26 @@ wait(8000, "ranch", function() return S.henItem == nil or (not S.p:getInventory(
     for _, a in ipairs(H.cellAnimals()) do
         if not S.pre[a] and not S.gone[a] and (a == S.hen or not S.mine[a]) and a:getAnimalType() == "hen" then
             back = back + 1
+            S.henBack = a
             if not S.mine[a] then H.mark(a); S.mine[a] = true; S.animals[#S.animals + 1] = a; S.hen2 = a end
         end
     end
     Q.check(back == 1, "hen: put down: one hen is back in the world", back .. " found")
     H.try("the poller's refresh with the hen back (AP.refreshCache)", S.AP.refreshCache, S.pn)
 end)
-pause(800)
-step(2, "ranch", function()
+-- (the hen put down joins the game's zone list at its next zone check, every 2.5 s; ZeD places her by the zone's
+-- bounds before that, so the counts are compared once the game has her)
+wait(8000, "ranch", function()
+    if not (S.henItem and S.henBack) then return true end
+    return H.gameHas(S.henBack)
+end, function(ok)
     if not S.henItem then return end
-    S.AP.refreshCache(S.pn)
-    Q.check(#H.roster() == H.gameZoneN(), "hen: put down: the roster's count is the game's", #H.roster() .. " vs " .. H.gameZoneN())
+    H.try("the poller's refresh (AP.refreshCache)", S.AP.refreshCache, S.pn)
+    if S.henBack and not ok then
+        Q.skip("the roster's count with the hen put down", "the game's own zone list did not hold her after 8 s (it counts " .. H.gameZoneN() .. ")")
+    else
+        Q.check(#H.roster() == H.gameZoneN(), "hen: put down: the roster's count is the game's", #H.roster() .. " vs " .. H.gameZoneN())
+    end
 end)
 
 -- 2f. the ewe gone while its view is open
@@ -1276,7 +1370,14 @@ step(2, "ranch", function()
     H.takeAway(S.ewe)
 end)
 wait(15000, "ranch", function() return not H.inRoster(S.ewe) end, function(ok)
-    Q.check(ok, "gone: the roster drops an animal taken out of the world by itself (within 15 s)", "still on the roster: " .. tostring(H.inRoster(S.ewe)))
+    -- (the roster is the game's own list for the zone, read each game minute: when the game itself still counts her,
+    -- the roster is right to show her and the checks on her row and tick are not run)
+    S.eweKept = (not ok) and H.gameHas(S.ewe)
+    if S.eweKept then
+        Q.skip("the roster dropping an animal taken out of the world", "the game's own zone list still holds her after 15 s")
+    else
+        Q.check(ok, "gone: the roster drops an animal taken out of the world by itself (within 15 s)", "still on the roster: " .. tostring(H.inRoster(S.ewe)))
+    end
     local st = H.st()
     Q.check(not (st.view == "animal" and st.animalRef == S.ewe), "gone: the Animals tab lets go of the view of an animal that is gone", "view " .. tostring(st.view) .. ", still the ewe")
     S.AQ.forgetChecks()
@@ -1292,8 +1393,12 @@ pause(900)
 step(2, "ranch", function()
     local w = H.W()
     local sel = S.AT.getZoneViewState(w).sel
-    Q.check(H.rosterRow(S.ewe) == nil, "gone: the zone's page draws no row for her", "a row is drawn")
-    Q.check(not S.AQ.isSelected(sel, S.ewe), "gone: her tick is gone with her", "still ticked")
+    if S.eweKept then
+        Q.skip("her row and her tick going with her", "the game's own zone list still holds her")
+    else
+        Q.check(H.rosterRow(S.ewe) == nil, "gone: the zone's page draws no row for her", "a row is drawn")
+        Q.check(not S.AQ.isSelected(sel, S.ewe), "gone: her tick is gone with her", "still ticked")
+    end
     RT.bounds(Q, "the zone's page with the ewe gone")
 end)
 
@@ -1477,10 +1582,18 @@ end
 function H.backBody()
     local p = S.p
     p:setTimedActionInstantCheat(S.instant == true)
-    p:getBodyDamage():RestoreToFullHealth()
+    p:setSeeDesignationZone(false)
+    pcall(H.safe)
+    H.heal()
     local parts = p:getBodyDamage():getBodyParts()
     for k = 0, parts:size() - 1 do if S.stiff[k] then parts:get(k):setStiffness(S.stiff[k]) end end
-    p:setSeeDesignationZone(false)
+    -- (god mode and invincible go back as found in the last step, once he is home and healed: H.backCheats)
+end
+function H.backCheats()
+    local p = S.p
+    S.guard = false
+    Events.OnTick.Remove(H.keepTick)
+    p:setInvincible(S.inv == true)
     p:setGodMod(S.god == true)
 end
 function H.backWindows()
@@ -1492,6 +1605,8 @@ function H.backWindows()
     H.close()
     for _, typ in ipairs({ "ISAnimalUI", "ISFarmingInfo", "ISFeedingTroughUI", "ISHutchUI" }) do H.stray(typ) end
     getCell():setDrag(nil, S.pn)
+    -- (the zone page's ground highlight, ended the way ZeD ends it when the page is left)
+    if w and S.AT._unlightZone then pcall(S.AT._unlightZone, w) end
     if w and S.at0 then
         w._animalsRemoveConfirm, w._animalsRenaming = false, false
         if w._animalsZoneState then w._animalsZoneState.sel = nil end
@@ -1548,11 +1663,14 @@ Q.step(2, function()
     if not S.staged then return end
     local okL, left = pcall(H.leftovers)
     Q.check(okL and #left == 0, "put back: nothing staged is left at the farm or on the character", okL and table.concat(left, ", ") or tostring(left))
-    Q.check(H.idle() and getGameSpeed() == 1 and S.AQ.run == nil, "put back: nothing queued, game speed 1, no run", "queue " .. H.qn() .. ", speed " .. tostring(getGameSpeed()))
-    Q.check(ISWorldObjectContextMenu.disableWorldMenu ~= true, "put back: the world menu is on", tostring(ISWorldObjectContextMenu.disableWorldMenu))
+    -- (a check that throws must not keep him from going home: they run in a pcall)
+    local okQ, eQ = pcall(function()
+        Q.check(H.idle() and getGameSpeed() == 1 and S.AQ.run == nil, "put back: nothing queued, game speed 1, no run", "queue " .. H.qn() .. ", speed " .. tostring(getGameSpeed()))
+        Q.check(ISWorldObjectContextMenu.disableWorldMenu ~= true, "put back: the world menu is on", tostring(ISWorldObjectContextMenu.disableWorldMenu))
+    end)
+    if not okQ then Q.check(false, "put back: the queue, the speed and the world menu could be read", eQ) end
     -- the windows' roll-up timers run again, the character home
     S.holdOn = false
-    Events.OnTick.Remove(H.keepTick)
     for _, w in ipairs({ RT.ww() or false, RT.cw() or false }) do if w then w._outSince = nil end end
     if S.opened then RT.pairShut() end
     H.put(S.home.x, S.home.y)
@@ -1560,12 +1678,35 @@ Q.step(2, function()
 end)
 Q.waitMs(1500)
 Q.step(2, function()
-    if not S.staged then return end
+    if not (S.staged or S.guard) then return end
     local p = S.p
-    Q.check(math.abs(p:getX() - S.home.x) <= 3 and math.abs(p:getY() - S.home.y) <= 3, "put back: the character is home on the drag strip",
-        math.floor(p:getX()) .. "," .. math.floor(p:getY()))
-    Q.check(p:isGodMod() == S.god and p:isTimedActionInstantCheat() == S.instant, "put back: god mode and the instant-action cheat as found",
-        tostring(p:isGodMod()) .. " " .. tostring(p:isTimedActionInstantCheat()))
+    local home = S.home ~= nil and math.abs(p:getX() - S.home.x) <= 3 and math.abs(p:getY() - S.home.y) <= 3
+    Q.check(home, "put back: the character is home on the drag strip", math.floor(p:getX()) .. "," .. math.floor(p:getY()))
+    -- healed while god mode and invincible are still on (again only if something is still wrong: a heal clears the
+    -- stiffness the put-back just set as found), then the two go back as found
+    local okP, pre = pcall(H.hurt)
+    if not okP or pre ~= "" then
+        Q.say("still hurt after the put-back's heal (" .. tostring(pre) .. "): healed again")
+        local okH, eH = pcall(H.heal)
+        if not okH then Q.say("the heal threw: " .. tostring(eH)); pcall(function() p:getBodyDamage():RestoreToFullHealth() end) end
+    end
+    local okS, hurt = pcall(H.hurt)
+    if home and okS and hurt == "" then
+        local okC, eC = pcall(H.backCheats)
+        if not okC then Q.check(false, "put back: god mode and invincible", eC) end
+    else
+        -- (not home, or not whole: he keeps god mode and invincible, the safe way to be left; the tick stops here so
+        -- it cannot fight a later script that sets the two itself)
+        pcall(H.safe)
+        S.guard = false
+        pcall(Events.OnTick.Remove, H.keepTick)
+        Q.say("god mode and invincible are LEFT ON: the character is not home or not whole")
+    end
+    Q.check(okS and hurt == "", "put back: the character is alive and healed (health 100, no wound, no fracture, not infected)",
+        okS and (hurt == "" and "whole" or hurt) or tostring(hurt))
+    Q.check(p:isGodMod() == S.god and p:isInvincible() == S.inv and p:isTimedActionInstantCheat() == S.instant,
+        "put back: god mode, invincible and the instant-action cheat as found",
+        tostring(p:isGodMod()) .. " " .. tostring(p:isInvincible()) .. " " .. tostring(p:isTimedActionInstantCheat()))
     RT.bounds(Q, "the end")
 end)
 Q.start()

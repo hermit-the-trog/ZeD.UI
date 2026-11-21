@@ -29,6 +29,10 @@
 -- Put back before DONE: every object placed or built and the campfire removed, every item not in the bags at the start
 -- removed (a snapshot of item ids), the saved dishes, the devices look, both windows' tabs, the stats and nutrition,
 -- the hands, game speed 1, the character home.
+-- The character is never hurt: god mode and invincible are ON from the first step to the last (a stove left on with
+-- burnt food and a lit campfire are beside him), the put-back heals him first and last, and a PASS or FAIL line says
+-- he ends at full health with no wound, no infection and no fire on him; only then do god mode and invincible go
+-- back to what was found (after a FAIL they stay on).
 if not RT then
     print("ZEDQA bx_cook ERR the kit (rt_kit.lua) did not run first")
     print("ZEDQA bx_cook VERDICT FAIL 1")
@@ -87,7 +91,9 @@ end
 function H.nm(it)
     if it == nil then return "nil" end
     local n = nil
-    pcall(function() n = it:getDisplayName() end)
+    -- (only an item has a display name: asked of a world object the game logs a Java error, even inside pcall)
+    if instanceof(it, "InventoryItem") then pcall(function() n = it:getDisplayName() end)
+    elseif instanceof(it, "IsoObject") then pcall(function() n = it:getObjectName() end) end
     return tostring(n or it)
 end
 function H.moveTo(x, y)
@@ -110,6 +116,53 @@ function H.L(v)
 end
 
 -- ===================================================================== helpers: the character
+-- he is never hurt: god mode and invincible on (each call on its own, so one failing does not stop the other)
+function H.safe()
+    pcall(function() S.p:setGodMod(true) end)
+    pcall(function() S.p:setInvincible(true) end)
+end
+function H.heal()
+    pcall(function() if S.p:isOnFire() then S.p:StopBurning() end end)
+    pcall(function() S.p:getBodyDamage():RestoreToFullHealth() end)
+end
+-- what is wrong with him now, in words (an empty list: nothing)
+function H.hurt()
+    local bad = {}
+    local okH, err = pcall(function()
+        local bd = S.p:getBodyDamage()
+        if S.p:isDead() then bad[#bad + 1] = "dead" end
+        if S.p:isOnFire() then bad[#bad + 1] = "on fire" end
+        local overall = bd:getOverallBodyHealth()
+        if overall < 99.9 then bad[#bad + 1] = string.format("health %.1f", overall) end
+        if bd:IsInfected() or bd:IsFakeInfected() then bad[#bad + 1] = "infected" end
+        local parts = bd:getBodyParts()
+        for i = 0, parts:size() - 1 do
+            local b = parts:get(i)
+            if b:HasInjury() or b:bleeding() or b:scratched() or b:deepWounded() or b:bitten() or b:isCut() or b:getFractureTime() > 0
+                or b:getBurnTime() > 0 or b:haveGlass() or b:haveBullet() or b:isInfectedWound() or b:IsInfected() or b:getHealth() < 99.9 then
+                bad[#bad + 1] = tostring(b:getType())
+            end
+        end
+    end)
+    if not okH then bad[#bad + 1] = "the body could not be read: " .. tostring(err) end
+    return bad
+end
+-- any fire left within 6 tiles of home put out, so none burns beside him after the script: food burnt in a stove
+-- on grid power can start one (Food.update, IsoFireManager.StartFire). Only squares that have a fire are touched.
+-- How many were put out.
+function H.fireSweep()
+    local n = 0
+    if not (S.hx and S.hy and S.hz) then return n end
+    for y = S.hy - 6, S.hy + 6 do
+        for x = S.hx - 6, S.hx + 6 do
+            pcall(function()
+                local sq = getCell():getGridSquare(x, y, S.hz)
+                if sq and sq:haveFire() then sq:stopFire(); n = n + 1 end
+            end)
+        end
+    end
+    return n
+end
 function H.statsSave()
     S.was.stats = {}
     local st = S.p:getStats()
@@ -266,6 +319,9 @@ function H.objsAround(cx, cy, r)
 end
 function H.buildAt(info, x, y)
     local before = H.objsAround(x, y, 2)
+    -- (the build cheat goes back to what it was, not always off)
+    local cheatWas = false
+    pcall(function() cheatWas = S.p:isBuildCheat() end)
     S.p:setBuildCheat(true)
     local okB = pcall(function()
         local b = ISBuildIsoEntity:new(S.p, info, 1, ISInventoryPaneContextMenu.getContainers(S.p))
@@ -275,7 +331,7 @@ function H.buildAt(info, x, y)
         b.sq = sq
         if b:isValid(sq) then b:create(x, y, S.hz, false, nil) end
     end)
-    S.p:setBuildCheat(false)
+    S.p:setBuildCheat(cheatWas and true or false)
     local new = {}
     if okB then
         for obj in pairs(H.objsAround(x, y, 2)) do
@@ -731,6 +787,10 @@ end
 
 -- ===================================================================== 0. setup
 Q.step(30, function()
+    -- (first of all: what god mode and invincible were, then both on until the last step)
+    pcall(function() S.was.god = S.p:isGodMod() end)
+    pcall(function() S.was.inv = S.p:isInvincible() end)
+    H.safe()
     if getGameSpeed() ~= 1 then H.speed(1) end
     S.hx, S.hy, S.hz = math.floor(S.p:getX()), math.floor(S.p:getY()), math.floor(S.p:getZ())
     S.ok = S.ST ~= nil and S.SA ~= nil and S.SP ~= nil and S.CK ~= nil and S.OC ~= nil and ZeD.ItemFactsPanel ~= nil and ZeD.CraftingTab ~= nil
@@ -743,7 +803,8 @@ Q.step(30, function()
     H.statsSave()
     local okS, snap, n = pcall(H.invIds)
     if okS then S.snap = snap end
-    Q.say("start: home " .. S.hx .. "," .. S.hy .. "," .. S.hz .. ", " .. tostring(okS and n or "?") .. " items in the bags")
+    Q.say("start: home " .. S.hx .. "," .. S.hy .. "," .. S.hz .. ", " .. tostring(okS and n or "?") .. " items in the bags; god mode was "
+        .. tostring(S.was.god) .. ", invincible " .. tostring(S.was.inv) .. ", both on for the script")
     H.stop()
     RT.pairOpen()
 end)
@@ -808,7 +869,9 @@ Q.step(4, function()
     if not S.stArm then return end
     H.turnMany("heat", 1, 15)
     S.onKey = H.pressKey({ "on", "onoff", "start", "bake" })
-    if not S.onKey then H.zcall(function() S.SA.toggle(S.p, H.cur()) end) end
+    -- (the view's toggle only with a station bound: with none, ZeD's toggle would be blamed for the script's nil)
+    local st = H.cur()
+    if not S.onKey and st then H.zcall(function() S.SA.toggle(S.p, st) end) end
 end)
 H.wait(4000, function() return not S.stArm or H.on(S.stove) end, function()
     if not S.stArm then return end
@@ -986,7 +1049,8 @@ H.wait(30000, function() return not S.mwRun or not H.on(S.micro) end, function(h
     if not S.mwRun then return end
     if not held then
         Q.skip("microwave: the timer runs out and it stops", "still on after 30 s of fast-forward, timer " .. H.timer(S.micro))
-        H.zcall(function() S.SA.toggle(S.p, H.cur(), 0) end)
+        local st = H.cur()
+        if st then H.zcall(function() S.SA.toggle(S.p, st, 0) end) end
         return
     end
     Q.check(true, "microwave: the timer runs out and the game stops it")
@@ -1050,20 +1114,35 @@ H.wait(6000, function() return not S.frArm or (H.inList(S.frz) ~= nil and H.inLi
 end)
 H.wait(5000, function() return not S.frArm or H.inPane(S.frz, S.frzSteak) end, function(held)
     if not S.frArm then return end
-    Q.check(held, "freezer: it opens in the Loot pane with the steak in it")
+    S.frShown = Q.check(held, "freezer: it opens in the Loot pane with the steak in it")
     RT.bounds(Q, "the freezer in the Loot pane")
-    Q.say("freezer powered " .. tostring(S.frz:isPowered()) .. ", steak freezing " .. string.format("%.0f", S.frzSteak:getFreezingTime()))
+    S.fz0 = S.frzSteak:getFreezingTime()
+    Q.say("freezer powered " .. tostring(S.frz:isPowered()) .. ", steak freezing " .. string.format("%.1f", S.fz0))
     H.speed(3)
 end)
-H.wait(25000, function() return not S.frArm or S.frzSteak:isFrozen() end, function(held)
+-- (a full freeze is 4 game hours of freezer time (Food.updateFreezing), so the scene waits only for the freezing to
+-- begin. In single player food in a container ages, freezes and thaws when it is asked to: the game's own list asks
+-- every food it lists (ISInventoryPane.lua:2273, item:updateAge()). With ZeD's Loot pane showing the freezer the steak
+-- must freeze as it does there; the script does not ask for it until the wait is over)
+H.wait(12000, function() return not S.frArm or S.frzSteak:getFreezingTime() > (S.fz0 or 0) + 0.5 end, function(held)
     if not S.frArm then return end
     H.speed(1)
-    if held then
-        Q.check(true, "freezer: the steak freezes on fast-forward")
+    local a = S.frzSteak:getFreezingTime()
+    S.frzSteak:updateAge()
+    local b = S.frzSteak:getFreezingTime()
+    local label = "freezer: a steak in the powered freezer ZeD's Loot pane shows starts to freeze on fast-forward, as under the game's own list"
+    if not S.frShown then
+        -- (the pane never showed the freezer: that is the FAIL above, not this one)
+        Q.skip(label, string.format("the Loot pane did not show the freezer; freezing %.1f, asked to age %.1f", a, b))
+    elseif held then
+        Q.check(true, label, string.format("freezing %.1f of 100", a))
+    elseif b > a + 0.5 then
+        Q.check(false, label, string.format("freezing %.1f of 100 after 12 s; asked to age as the game's list asks each food (updateAge) it reads %.1f at once", a, b))
     else
-        Q.skip("freezer: the steak freezes on fast-forward", string.format("after 25 s: freezing %.0f of 100; frozen by hand", S.frzSteak:getFreezingTime()))
-        S.frzSteak:setFreezingTime(100); S.frzSteak:setFrozen(true)
+        Q.skip(label, string.format("the game itself did not start to freeze it (%.1f, asked to age %.1f; freezer powered %s)", a, b, tostring(S.frz:isPowered())))
     end
+    -- (frozen through by hand for the card: the 4 hours are not waited for)
+    S.frzSteak:setFreezingTime(100); S.frzSteak:setFrozen(true)
     H.factsOK(S.frzSteak, "steak: frozen")
     Q.say("NOTE the fridge is destroyed now, its freezer the container the Loot pane shows")
     H.takeOut(S.frzSteak); H.takeOut(S.milk)
@@ -1385,8 +1464,13 @@ H.wait(4000, function() return not S.fireArm or H.fireD() ~= nil end, function()
     S.fireArm = Q.check(d ~= nil, "campfire: its fire card opens", tostring(H.kind()))
     if not d then return end
     Q.check(d.fuel == 0 and d.lit == false and H.pill() == ZeD.tr("UI_ZeD_Fire_PillOut"), "campfire: new, the card reads no fuel, not lit, Out", tostring(d.fuel) .. " " .. tostring(d.lit) .. " " .. tostring(H.pill()))
+    -- (the game's rule, ISCampingMenu.doLightFireOption: petrol and the notched plank need fuel in the fire; tinder with
+    -- a lighter or matches does not, the tinder is the first fuel. So with no fuel Light is lit only for that pair)
     local v = H.verb("light")
-    Q.check(v ~= nil and v.enabled ~= true, "campfire: with no fuel in it, Light waits")
+    local fi = ISCampingMenu.getNearbyFuelInfo(S.p)
+    local wantLight = #fi.starters > 0 and #fi.tinder > 0
+    Q.check(v ~= nil and (v.enabled == true) == wantLight, "campfire: with no fuel in it, Light is lit only when a lighter or matches and tinder are in reach (the game's rule)",
+        "Light " .. tostring(v and v.enabled) .. "; in reach " .. #fi.starters .. " fire starters, " .. #fi.tinder .. " kinds of tinder")
     RT.bounds(Q, "the fire card")
     RT.give("Base.Plank"); RT.give("Base.Plank")
 end)
@@ -1649,23 +1733,30 @@ end)
 
 -- ===================================================================== put back
 Q.mark()
+-- (the character first, in a step of its own: whatever threw or ran out of time before this, he is safe and healed)
+Q.step(2, function()
+    H.safe()
+    H.heal()
+end)
 Q.step(5, function()
-    H.speed(1)
+    pcall(H.speed, 1)
     H.stop()
     pcall(function() if H.spUp() then S.SP.close(S.p) end end)
-    if S.was.look ~= nil and ZeD.Settings and ZeD.Settings.lookStyleOption then ZeD.Settings.lookStyleOption:setValue(S.was.look) end
+    pcall(function()
+        if S.was.look ~= nil and ZeD.Settings and ZeD.Settings.lookStyleOption then ZeD.Settings.lookStyleOption:setValue(S.was.look) end
+    end)
     if S.ST then pcall(S.ST.unbind, S.p) end
     H.closeCard()
     if S.gen then pcall(function() S.gen:setActivated(false); S.gen:setConnected(false) end) end
-    -- what is still in a placed thing, then the things themselves
-    for _, it in ipairs({ S.steak, S.mwFood, S.frzSteak, S.milk, S.campFood }) do pcall(H.takeOut, it) end
-    for _, o in ipairs(S.placed) do H.removeObj(o) end
-    for _, o in ipairs(S.built) do H.removeObj(o) end
+    -- what is still in a placed thing, then the things themselves (each on its own: one of them may never have been made)
+    pcall(H.takeOut, S.steak); pcall(H.takeOut, S.mwFood); pcall(H.takeOut, S.frzSteak); pcall(H.takeOut, S.milk); pcall(H.takeOut, S.campFood)
+    for _, o in ipairs(S.placed) do pcall(H.removeObj, o) end
+    for _, o in ipairs(S.built) do pcall(H.removeObj, o) end
     local so = H.campServer()
     if so then pcall(function() so:putOut(); SCampfireSystem.instance:removeCampfire(so) end) end
     pcall(function() RT.ww()._containersDirty = true end)
     -- the Cooking tab's own memory and the saved dishes
-    S.p:getModData().ZeD_CookDishes = S.was.dishes
+    pcall(function() S.p:getModData().ZeD_CookDishes = S.was.dishes end)
     local s = H.cs()
     if s then s.plan, s.popup, s.sort, s.qty = {}, nil, "name", 1 end
 end)
@@ -1688,11 +1779,10 @@ Q.step(5, function()
             S.p:setSecondaryHandItem(S.was.hands[2])
         end
     end)
-    H.statsBack()
-    pcall(function() S.p:getBodyDamage():RestoreToFullHealth() end)
-    H.statsBack()   -- (the heal resets some stats: the values found win)
-    if S.hx then H.moveTo(S.hx + 0.5, S.hy + 0.5) end
-    if ZEDQA_HOME then ZEDQA_HOME("bx_cook") end
+    H.heal()
+    pcall(H.statsBack)   -- (the heal resets some stats: the values found win)
+    if S.hx then pcall(H.moveTo, S.hx + 0.5, S.hy + 0.5) end
+    if ZEDQA_HOME then pcall(ZEDQA_HOME, "bx_cook") end
     RT.worldTab("loot")
     if S.was.charTab and S.was.charTab ~= "cooking" then RT.charTab(S.was.charTab) else RT.charTab("loot") end
     if S.was.pair == false then RT.pairShut() end
@@ -1712,5 +1802,28 @@ H.wait(6000, function() return H.campLua() == nil end, function(held)
     Q.check(getGameSpeed() == 1 and H.cur() == nil and not H.spUp() and H.idle(), "put back: game speed 1, no station bound, no pop-out, the character idle",
         "speed " .. tostring(getGameSpeed()))
     RT.bounds(Q, "the end")
+end)
+-- the character, last of all: healed, looked over, and only then god mode and invincible as they were found
+Q.step(10, function()
+    H.safe()
+    local okF, fires = pcall(H.fireSweep)
+    if not okF then fires = "? (" .. tostring(fires) .. ")" end
+    H.heal()
+    local bad = H.hurt()
+    if #bad > 0 then
+        H.heal()
+        bad = H.hurt()
+    end
+    local well = Q.check(#bad == 0, "put back: the character is alive at full health, no wound on any part, no fracture, not infected, not on fire",
+        #bad == 0 and "health 100" or table.concat(bad, ", "))
+    pcall(H.statsBack)
+    if well then
+        if S.was.inv ~= nil then pcall(function() S.p:setInvincible(S.was.inv and true or false) end) end
+        if S.was.god ~= nil then pcall(function() S.p:setGodMod(S.was.god and true or false) end) end
+    end
+    local g, iv = nil, nil
+    pcall(function() g = S.p:isGodMod(); iv = S.p:isInvincible() end)
+    Q.say("god mode " .. tostring(g) .. " (was " .. tostring(S.was.god) .. "), invincible " .. tostring(iv) .. " (was " .. tostring(S.was.inv) .. ")"
+        .. (well and "" or ": both left ON, he is not well") .. "; fires put out near home: " .. tostring(fires))
 end)
 Q.start()

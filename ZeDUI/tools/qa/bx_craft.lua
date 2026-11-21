@@ -21,6 +21,28 @@
 -- tabs' Show / Sort / category / search / card / pins, the craft and build counts, the hands, the stats and the
 -- clock, health, game speed 1, the window pair and its tab, the character home.
 -- NOT put back: skill XP earned by the crafts (Carving, Electrical, Woodwork: a few points each).
+-- Safety: nothing here wounds the character, but god mode is made sure ON (and left ON, as the prelude leaves it) and
+-- invincible is ON for the run (put back as found). The put-back heals first, in a step of its own, and the last step
+-- (it runs even when the character was found dead) prints "put back: the character is healed" PASS / FAIL.
+-- Nov 21, after the first run in game:
+--   * "stake, no branch" never met a missing branch: the character carries other things Make Stake takes (a handle,
+--     a plunger, ...), so the craft ran on one of his own. His own inputs are now set aside for the craft acts
+--     (H.stashOwn, back by H.unstash at the end of the acts and again in the put-back), so the missing case is real
+--     and the crafts use only what the script gave.
+--   * "batch: the amount's most" was asked 3 frames after the branches arrived; ZeD asks the game again only when
+--     it gathers the containers again (CraftingTab.lua gatherDetail: at most every 1.5 s). The check now waits for
+--     the two to agree (7 s) and fails only when they never do.
+--   * the game's own answers are asked with the containers the game's own craft and build windows use (the floor
+--     and open containers too, as ZeD since commit 49039efdf), else the two would differ over a plank on the ground.
+-- Nov 21, QA review of those changes:
+--   * a heal resets every stat (BodyDamage.RestoreToFullHealth calls Stats.resetStats), so the last step's heal undid
+--     the stats put-back: the stats are now put back after every heal, and the last step heals only when he is hurt.
+--   * the game's list is asked from the game itself (ISInventoryPaneContextMenu.getContainers), not through ZeD's
+--     CC.craftContainers, so a fault in ZeD's list cannot hide in the answer it is checked against.
+--   * the batch wait stays (ZeD asks again every 1.2 to 1.5 s by design), but the most must agree within 3 s, not 7.
+--   * the set-aside things go back in the put-back's first step, and the carried check fails on any not given back.
+--   * "stake, no branch" says SKIP when the game still finds an input in reach; Build's FAIL says SKIP for the acts
+--     behind it.
 
 if not RT then
     print("ZEDQA bx_crf ERR the kit (rt_kit.lua) did not run first")
@@ -41,8 +63,13 @@ S.FT = ZeD and ZeD.FurnitureTab
 S.WW = ZeD_WorldWindow
 S.STAKE, S.SPEAR, S.PART, S.NOISE = "MakeStake", "CarveSpear", "DismantleMiscElectronics", "MakeNoiseMaker"
 S.BRANCH, S.STICK = "Base.TreeBranch2", "Base.LongStick"
+-- what Make Stake takes besides a knife (recipes_carving.txt, craftRecipe MakeStake)
+S.STAKE_IN = { "Base.TreeBranch2", "Base.Handle", "Base.LongStick_Broken", "Base.WoodenStick2", "Base.LongHandle_Broken", "Base.LongHandle", "Base.LongStick", "Base.Plunger" }
+S.stash = {}
 S.RING = { { 2, 0 }, { 0, 2 }, { -2, 0 }, { 0, -2 }, { 2, 2 }, { -2, 2 }, { 2, -2 }, { -2, -2 }, { 3, 0 }, { 0, 3 }, { -3, 0 }, { 0, -3 }, { 3, 2 }, { -3, -2 } }
-S.STATS = { "HUNGER", "THIRST", "FATIGUE", "BOREDOM", "STRESS", "ENDURANCE", "UNHAPPINESS", "PANIC" }
+-- (the stats put back after a heal, which resets every stat; the ones that hurt (pain, sickness, poison, ...) stay healed)
+S.STATS = { "HUNGER", "THIRST", "FATIGUE", "BOREDOM", "STRESS", "ENDURANCE", "UNHAPPINESS", "PANIC", "MORALE", "SANITY", "ANGER",
+    "DISCOMFORT", "IDLENESS", "WETNESS" }
 S.dead = false
 
 if not (S.p and S.CC and S.CT and S.BT and S.FT and S.WW) then
@@ -174,6 +201,109 @@ function H.open(mod, st, name, what)
     end
     return st.selected == name
 end
+-- the containers the game's own craft and build windows use (ISHandCraftPanel, ISBuildPanel: the inventory, the bags,
+-- the floor and the open loot containers), asked from the game itself, not through ZeD's CC.craftContainers (the code
+-- under test); the carried list only when the game's inventory pages cannot be read
+function H.conts()
+    local list = nil
+    pcall(function()
+        if getPlayerInventory(S.pn) ~= nil and getPlayerLoot(S.pn) ~= nil then
+            local l = ISInventoryPaneContextMenu.getContainers(S.p)
+            if l and l:size() > 0 then list = l end
+        end
+    end)
+    return list or S.CC.buildContainers(S.p)
+end
+-- what of these types the game's containers hold, and where ("" when none)
+function H.inReach(types)
+    local want, out = {}, {}
+    for _, ft in ipairs(types) do want[ft] = true end
+    pcall(function()
+        local cs = H.conts()
+        for i = 0, cs:size() - 1 do
+            local c = cs:get(i)
+            local items = c:getItems()
+            for j = 0, items:size() - 1 do
+                local ft = items:get(j):getFullType()
+                if want[ft] then out[#out + 1] = ft .. " in " .. tostring(c:getType()) end
+            end
+        end
+    end)
+    return table.concat(out, ", ")
+end
+-- the character's own things Make Stake takes, set aside for the craft acts (not one worn, held or on the belt)
+function H.stashOwn()
+    local want, kept = {}, 0
+    for _, ft in ipairs(S.STAKE_IN) do want[ft] = true end
+    for _, it in ipairs(H.all()) do
+        if want[it:getFullType()] then
+            local c, free = nil, false
+            pcall(function() c = it:getContainer(); free = it:getAttachedSlot() == -1 and not it:isEquipped() end)
+            if c and free and pcall(function() c:Remove(it) end) then
+                S.stash[#S.stash + 1] = { it = it, c = c }
+            else
+                kept = kept + 1
+            end
+        end
+    end
+    return #S.stash, kept
+end
+-- ... and given back to the containers they were in. Returns how many could not be.
+function H.unstash()
+    local lost = 0
+    for _, s in ipairs(S.stash) do
+        pcall(function() if s.it:getContainer() == nil then s.c:AddItem(s.it) end end)
+        local back = false
+        pcall(function() back = s.it:getContainer() ~= nil end)
+        if not back then lost = lost + 1 end
+    end
+    S.stash = {}
+    return lost
+end
+-- health: what is wrong with the character ("" when healed: alive, health 100, no wound, fracture or infection)
+function H.hurt()
+    local bad = {}
+    local dead = true
+    pcall(function() dead = S.p:isDead() and true or false end)
+    if dead then bad[#bad + 1] = "dead" end
+    local ok = pcall(function()
+        local bd = S.p:getBodyDamage()
+        local h = bd:getOverallBodyHealth()
+        if h < 99.9 then bad[#bad + 1] = "health " .. tostring(h) end
+        if bd:IsInfected() or bd:isInfected() then bad[#bad + 1] = "infected" end
+        local parts = bd:getBodyParts()
+        for i = 0, parts:size() - 1 do
+            local bp = parts:get(i)
+            local nm = "part " .. i
+            pcall(function() nm = tostring(bp:getType()) end)
+            if bp:getFractureTime() > 0 then bad[#bad + 1] = "fracture on " .. nm end
+            if bp:HasInjury() or bp:bleeding() or bp:bitten() or bp:scratched() or bp:deepWounded() or bp:isCut()
+                or bp:isBurnt() or bp:haveBullet() or bp:haveGlass() or bp:IsInfected() then
+                bad[#bad + 1] = "wound on " .. nm
+            end
+        end
+    end)
+    if not ok then bad[#bad + 1] = "the body could not be read" end
+    return table.concat(bad, ", ")
+end
+-- (RestoreToFullHealth also calls Stats.resetStats, every stat to its default: put the stats back after it, H.putStats)
+function H.heal()
+    local dead = true
+    pcall(function() dead = S.p:isDead() and true or false end)
+    if dead then return end
+    pcall(function() S.p:getBodyDamage():RestoreToFullHealth() end)
+    pcall(function()
+        local bd = S.p:getBodyDamage()
+        if bd:IsInfected() or bd:isInfected() then bd:setInfected(false); bd:setIsFakeInfected(false) end
+    end)
+end
+-- the stats as they were at the start (hunger, thirst, fatigue, ...: S.STATS)
+function H.putStats()
+    pcall(function()
+        local stt = S.p:getStats()
+        for k, v in pairs(S.stats) do pcall(function() stt:set(CharacterStat[k], v) end) end
+    end)
+end
 -- the game's own answer for a hand recipe with what is carried (nil: it would not answer)
 function H.gameCan(name)
     local can = nil
@@ -183,7 +313,7 @@ function H.gameCan(name)
         local surf = nil
         pcall(function() if r:isAnySurfaceCraft() then surf = ISEntityUI.FindCraftSurface(S.p, 2) end end)
         local l = HandcraftLogic.new(S.p, nil, surf)
-        l:setContainers(S.CC.buildContainers(S.p))
+        l:setContainers(H.conts())
         l:setRecipe(r)
         can = l:canPerformCurrentRecipe() and true or false
     end)
@@ -195,7 +325,7 @@ function H.gameMost(name)
         local sm = getScriptManager()
         local r = sm:getCraftRecipe(name) or sm:getCraftRecipe("Base." .. name)
         local l = HandcraftLogic.new(S.p, nil, nil)
-        l:setContainers(S.CC.buildContainers(S.p))
+        l:setContainers(H.conts())
         l:setRecipe(r)
         most = l:getPossibleCraftCount(true)
     end)
@@ -206,7 +336,7 @@ function H.gameCanBuild(rd)
     pcall(function()
         local l = BuildLogic.new(S.p, nil, nil)
         l:setRecipe(rd.entry.recipe)
-        l:setContainers(S.CC.buildContainers(S.p))
+        l:setContainers(H.conts())
         can = l:canPerformCurrentRecipe() and true or false
     end)
     return can
@@ -231,7 +361,8 @@ function H.agree(rd, name, label)
 end
 
 -- ===================================================================== a craft, start to end
--- spec: name, label, give {fullType...}, out (the full type made), must (true: it has to be craftable once given)
+-- spec: name, label, give {fullType...}, out (the full type made), must (true: it has to be craftable once given),
+-- missing (the recipe's input types: the act is the input missing, said as a SKIP when the game still finds one)
 function H.make(spec)
     local T = {}
     Q.step(3, function()
@@ -253,6 +384,11 @@ function H.make(spec)
         H.agree(rd, spec.name, spec.label)
         if spec.must then Q.check(H.zedCan(rd), spec.label .. ": with the ingredients given the recipe is craftable", tostring(rd.status)) end
         T.go = H.gameCan(spec.name) == true
+        if spec.missing and T.go then
+            local where = H.inReach(spec.missing)
+            Q.skip(spec.label .. ": Craft with the input missing", "the game still finds one in reach: "
+                .. (where ~= "" and where or "none of the recipe's inputs seen in the game's containers"))
+        end
         H.speed(3)
         if not H.press(S.CT, H.cst(), "action_build", spec.label) then Q.check(false, spec.label .. ": the card's Craft button is drawn") end
         T.queued = H.qcount("ISHandcraftAction")
@@ -324,6 +460,9 @@ Q.step(2, function()
     local stt = S.p:getStats()
     for _, k in ipairs(S.STATS) do pcall(function() S.stats[k] = stt:get(CharacterStat[k]) end) end
     pcall(function() S.tod = getGameTime():getTimeOfDay() end)
+    -- (nothing here wounds, but nothing may: god mode ON and left ON, invincible ON until the put-back)
+    pcall(function() if not S.p:isGodMod() then S.p:setGodMod(true); Q.say("note god mode was off: turned on and left on") end end)
+    pcall(function() S.invWas = S.p:isInvincible() and true or false; S.p:setInvincible(true) end)
     pcall(function() S.instWas = S.p:isTimedActionInstantCheat(); S.p:setTimedActionInstantCheat(false) end)
     pcall(function() S.bcWas = S.p:isBuildCheat(); S.p:setBuildCheat(false) end)
     pcall(function() S.bmWas = ISBuildMenu.cheat; ISBuildMenu.cheat = false end)
@@ -342,6 +481,9 @@ Q.step(2, function()
         local cur = ZeD.Stations and ZeD.Stations.current(S.p)
         if cur then ZeD.Stations.unbind(S.p); Q.say("note a station was bound: unbound for the run (the hand's recipes)") end
     end)
+    local aside, kept = H.stashOwn()
+    Q.say("note " .. aside .. " of the character's own things Make Stake takes are set aside for the craft acts"
+        .. (kept > 0 and (", " .. kept .. " worn, held or on the belt stay (the no-branch craft may then run on one)") or ""))
     S.knife = RT.give("Base.HuntingKnife")
     Q.check(S.knife ~= nil, "a hunting knife is given (no branch yet)")
 end)
@@ -448,23 +590,43 @@ H.wait(3000, function() return not (S.craftOk and S.typed) or (H.cst().search ==
 end)
 
 -- ===================================================================== whittle: the stake, missing then once
-H.make({ name = S.STAKE, label = "stake, no branch", out = "Base.Stake", must = false })
+H.make({ name = S.STAKE, label = "stake, no branch", out = "Base.Stake", must = false, missing = S.STAKE_IN })
 H.make({ name = S.STAKE, label = "stake, one branch", give = { S.BRANCH }, out = "Base.Stake", must = true })
 
 -- ===================================================================== many: the amount's ends, a batch, tabs and windows mid-craft
 Q.step(3, function()
     if not S.craftOk then return end
-    S.m = { got = H.giveN(S.BRANCH, 4), stakes = H.count("Base.Stake"), cnt = H.md("ZeD_CraftCounts", S.STAKE) }
+    S.m = { got = H.giveN(S.BRANCH, 4), stakes = H.count("Base.Stake"), cnt = H.md("ZeD_CraftCounts", S.STAKE), t0 = getTimestampMs() }
     S.m.open = H.open(S.CT, H.cst(), S.STAKE, "batch")
 end)
-H.wait(7000, function() return not (S.m and S.m.open) or (H.zedCan(H.row(S.CT, S.STAKE)) and H.zone(H.cst(), "action_build") ~= nil) end, function(ok)
+-- (ZeD asks the game for the amount's most again when the row's answer changes, at each list scan (every 1.2 s) and
+-- each container gather (every 1.5 s): the wait is for the row craftable AND the most caught up with the branches
+-- just given, and the check wants that within 3 s, twice ZeD's own interval)
+H.wait(7000, function()
+    if not (S.m and S.m.open) then return true end
+    local rd = H.row(S.CT, S.STAKE)
+    if not (H.zedCan(rd) and H.zone(H.cst(), "action_build") ~= nil) then return false end
+    if not rd.entry.allowBatch then return true end
+    local g = H.gameMost(S.STAKE)
+    if g ~= nil and g ~= (rd.maxBatchQty or 1) then return false end
+    S.m.inMs = getTimestampMs() - S.m.t0
+    return true
+end, function()
     if not (S.craftOk and S.m and S.m.open) then return end
     local st, rd = H.cst(), H.row(S.CT, S.STAKE)
-    if not Q.check(ok, "batch: with four branches Make Stake is craftable", tostring(rd and rd.status)) then S.m.open = false; return end
+    local can = H.zedCan(rd) and H.zone(st, "action_build") ~= nil
+    if not Q.check(can, "batch: with four branches Make Stake is craftable", tostring(rd and rd.status)) then S.m.open = false; return end
     local max = rd.maxBatchQty or 1
     if rd.entry.allowBatch then
         local g = H.gameMost(S.STAKE)
-        Q.check(g == nil or g == max, "batch: the amount's most is the game's own count", "ZeD " .. tostring(max) .. ", the game " .. tostring(g))
+        if g == nil then
+            Q.skip("batch: the amount's most is the game's own count", "the game's crafting logic gave no count")
+        else
+            Q.check(g == max and S.m.inMs ~= nil and S.m.inMs <= 3000,
+                "batch: the amount's most is the game's own count within 3 s of the branches arriving (ZeD asks again every 1.2 to 1.5 s)",
+                "ZeD " .. tostring(max) .. ", the game " .. tostring(g) .. ", branches " .. H.count(S.BRANCH) .. ", agreed after "
+                .. (S.m.inMs and (S.m.inMs .. " ms") or "more than 7 s"))
+        end
     end
     if H.zone(st, "action_inc") and H.zone(st, "action_dec") then
         for _ = 1, 12 do H.press(S.CT, st, "action_inc", "amount +") end
@@ -599,6 +761,12 @@ Q.step(3, function()
     pcall(function() RT.ww()._craftSearch:clear() end)
     H.putState(st, S.cKeep)
     S.cKeep = nil
+end)
+-- the character's own stake inputs back where they were (the craft acts are over; again in the put-back if this did not run)
+Q.step(2, function()
+    if #S.stash == 0 then return end
+    H.stop()
+    S.stashLost = (S.stashLost or 0) + H.unstash()
 end)
 
 -- ===================================================================== the Building tab
@@ -747,7 +915,11 @@ H.wait(4000, function() return not (S.b and S.b.open) or (H.zone(H.bst(), "actio
     local d = H.drag()
     S.b.cur = (d and d.Type == "ISBuildIsoEntity") and d or nil
     if not Q.check(S.b.cur ~= nil and H.md("ZeD_BuildCounts", S.b.pick) == cnt + 1, "build: Build starts the game's build cursor and is counted once",
-        tostring(d and d.Type) .. ", count +" .. (H.md("ZeD_BuildCounts", S.b.pick) - cnt)) then S.b.open = false; return end
+        tostring(d and d.Type) .. ", count +" .. (H.md("ZeD_BuildCounts", S.b.pick) - cnt)) then
+        S.b.open = false
+        Q.skip("build: cancelled before placing, cancelled mid-build, built to the end", "Build started no cursor for " .. tostring(S.b.pick))
+        return
+    end
     S.b.sq = H.buildSq(S.b.cur)
     if not S.b.sq then Q.skip("build: placed beside the character", "the cursor takes none of the tiles around"); S.b.open = false; H.noDrag(); return end
     -- cancelled before placing (a right-click): the cursor goes, the card stays, Build starts a new one
@@ -989,6 +1161,14 @@ end)
 
 -- ===================================================================== put back
 Q.mark()
+-- healed first, in a step of its own: whatever threw before, or throws after, he does not stay hurt; the stats as
+-- found again (the heal resets them all), and his own set-aside things back where they were (a run cut short jumps here)
+Q.step(2, function()
+    H.speed(1)
+    H.heal()
+    H.putStats()
+    if #S.stash > 0 then H.stop(); S.stashLost = (S.stashLost or 0) + H.unstash() end
+end)
 function H.putCounts()
     local md = S.p:getModData()
     for _, key in ipairs({ "ZeD_CraftCounts", "ZeD_BuildCounts", "ZeD_CraftPins", "ZeD_BuildPins" }) do
@@ -1072,15 +1252,15 @@ Q.step(20, function()
     if S.dead then return end
     S.swept = H.sweep()
     RT.takeBack()
+    if #S.stash > 0 then S.stashLost = (S.stashLost or 0) + H.unstash() end
     S.refilled, S.short = H.refill()
     pcall(function()
         local a, b = S.handWas[1], S.handWas[2]
         S.p:setPrimaryHandItem((a and S.p:getInventory():containsRecursive(a)) and a or nil)
         S.p:setSecondaryHandItem((b and S.p:getInventory():containsRecursive(b)) and b or nil)
     end)
-    pcall(function() S.p:getBodyDamage():RestoreToFullHealth() end)
-    local stt = S.p:getStats()
-    for k, v in pairs(S.stats) do pcall(function() stt:set(CharacterStat[k], v) end) end
+    H.heal()
+    H.putStats()
     pcall(function() if S.tod then getGameTime():setTimeOfDay(S.tod) end end)
     pcall(function() local w = RT.ww(); if w then w._containersDirty = true end end)
     if ZEDQA_HOME then ZEDQA_HOME("bx_crf") end
@@ -1093,9 +1273,10 @@ Q.step(10, function()
     local now, floor = {}, 0
     H.snapFloor(now)
     for wo in pairs(now) do if not S.floorHad[wo] then floor = floor + 1 end end
-    Q.check(left == 0 and floor == 0 and (S.short or 0) == 0, "put back: the character carries what it carried at the start, nothing new on the floor",
+    local notBack = (S.stashLost or 0) + #S.stash
+    Q.check(left == 0 and floor == 0 and (S.short or 0) == 0 and notBack == 0, "put back: the character carries what it carried at the start, nothing new on the floor",
         tostring(S.swept) .. " taken away, " .. tostring(S.refilled) .. " of the character's own used things given again (" .. tostring(S.short)
-        .. " could not be), " .. left .. " carried and " .. floor .. " on the floor left")
+        .. " could not be), " .. left .. " carried and " .. floor .. " on the floor left, " .. notBack .. " set-aside things not given back")
     local stood = 0
     if S.f and S.f.pc and S.f.sq and H.pieceOn(S.f.sq, S.f.pc.name) then stood = stood + 1 end
     Q.check(stood == 0 and H.drag() == nil and H.qlen() == 0, "put back: no chair, no cursor, no action left",
@@ -1104,5 +1285,18 @@ Q.step(10, function()
     Q.check(getGameSpeed() == 1 and (st == nil or (st.selected == nil and (st.search or "") == "")), "put back: game speed 1, the Crafting tab's card shut and its search empty",
         tostring(getGameSpeed()) .. " / " .. tostring(st and st.selected) .. " / " .. tostring(st and st.search))
     RT.bounds(Q, "the end")
+end)
+-- the last word, whatever happened before (it runs for a character found dead too, and says so). Healed again only
+-- when something is wrong: a heal resets every stat, so the stats are put back after it.
+Q.step(3, function()
+    local was = H.hurt()
+    if was ~= "" then H.heal(); H.putStats() end
+    local bad = H.hurt()
+    Q.check(bad == "", "put back: the character is healed (alive, health 100, no wound, no fracture, not infected)",
+        (bad == "" and "healed" or bad) .. ((was ~= "" and was ~= bad) and (" (before this step's heal: " .. was .. ")") or ""))
+    pcall(function() if S.invWas ~= nil then S.p:setInvincible(S.invWas) end end)
+    local god, inv = nil, nil
+    pcall(function() god, inv = S.p:isGodMod(), S.p:isInvincible() end)
+    Q.say("note god mode " .. tostring(god) .. " (left on), invincible " .. tostring(inv) .. " (as found)")
 end)
 Q.start()

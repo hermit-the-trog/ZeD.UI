@@ -20,6 +20,9 @@
 --   7. the keyboard and the pad in both styles, 300 random navigation presses, a wheel spun for 45 frames;
 --   8. menus opened by the pad; a right-click during a timed action; a right-click while dragging; walking away.
 -- Everything is put back: items, placed objects, the corpse, the car, the hen, the setting, the hands, the place.
+-- Safety: god mode and invincible are ON for the whole run (a zombie is made for the corpse, he stands in the open and
+-- goes to the farm); the put-back heals him first, and the last check says he is alive and healed (health 100, no
+-- wound or fracture, not infected) before god mode and invincible go back as found.
 -- Run after zedqa_prelude.lua and rt_kit.lua. grep "ZEDQA bx_ctx".
 
 local Q = RT.make("bx_ctx")
@@ -69,6 +72,46 @@ function H.rnd(n)
 end
 function H.stand(x, y)
     S.p:setX(x); S.p:setY(y); S.p:setLastX(x); S.p:setLastY(y)
+end
+-- a part of the put-back, said when it throws (the rest still runs)
+function H.try(what, fn)
+    local ok, err = pcall(fn)
+    if not ok then Q.say("NOTE put back, " .. what .. " threw: " .. tostring(err)) end
+end
+-- the body made whole (the game's own full heal, no argument: BodyDamage.RestoreToFullHealth())
+function H.heal()
+    pcall(function() if S.p and not S.p:isDead() then S.p:getBodyDamage():RestoreToFullHealth() end end)
+end
+-- what is still wrong with him: {} when alive, health 100, no wound, no fracture, not infected
+function H.hurt()
+    local out = {}
+    local ok, err = pcall(function()
+        local p = S.p
+        if p:isDead() then out[#out + 1] = "he is dead" end
+        local bd = p:getBodyDamage()
+        S.hp = bd:getOverallBodyHealth()
+        if S.hp < 99.5 then out[#out + 1] = "health " .. tostring(S.hp) end
+        if bd:isInfected() then out[#out + 1] = "infected" end
+        if bd:IsFakeInfected() then out[#out + 1] = "fake infection" end
+        local parts = bd:getBodyParts()
+        for i = 0, parts:size() - 1 do
+            local bp = parts:get(i)
+            local w = {}
+            if bp:scratched() then w[#w + 1] = "scratch" end
+            if bp:isCut() then w[#w + 1] = "cut" end
+            if bp:deepWounded() then w[#w + 1] = "deep wound" end
+            if bp:bitten() then w[#w + 1] = "bite" end
+            if bp:bleeding() then w[#w + 1] = "bleeding" end
+            if bp:getFractureTime() > 0 then w[#w + 1] = "fracture" end
+            if bp:getBurnTime() > 0 then w[#w + 1] = "burn" end
+            if bp:haveGlass() then w[#w + 1] = "glass" end
+            if bp:haveBullet() then w[#w + 1] = "bullet" end
+            if bp:IsInfected() or bp:isInfectedWound() then w[#w + 1] = "infected" end
+            if #w > 0 then out[#out + 1] = tostring(bp:getType()) .. ": " .. table.concat(w, ", ") end
+        end
+    end)
+    if not ok then out[#out + 1] = "the health check threw: " .. tostring(err) end
+    return out
 end
 function H.zoneOf(m, id)
     for _, z in ipairs(m and m._hitZones or {}) do if z.id == id then return z end end
@@ -714,10 +757,14 @@ function H.corpsePrep(T)
     if not sq then return false, "no free square beside the character" end
     local z = createZombie(sq:getX() + 0.5, sq:getY() + 0.5, 0, nil, 0, IsoDirections.S)
     if not z then return false, "the game made no zombie" end
-    z:dressInRandomOutfit()
-    local body = IsoDeadBody.new(z, false)
-    z:removeFromWorld()
-    z:removeFromSquare()
+    -- (the zombie never stays: whatever the body's making does, it is taken out of the world in this same call)
+    local okB, body = pcall(function()
+        z:dressInRandomOutfit()
+        return IsoDeadBody.new(z, false)
+    end)
+    pcall(function() z:removeFromWorld() end)
+    pcall(function() z:removeFromSquare() end)
+    if not okB then return false, "making the body threw: " .. tostring(body) end
     if not body then return false, "the game made no body" end
     S.body, T.obj, T.world = body, body, true
     S.used[H.sqKey(sq)] = true
@@ -960,10 +1007,31 @@ function H.stripCell(V, m)
     local z = V.cell
     V.lx, V.ly = z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2)
     H.point(m, m:getAbsoluteX() + V.lx, m:getAbsoluteY() + V.ly)
-    if m._ctx.selected ~= V.idx then H.note(V, "hover", "the pointer on cell " .. V.idx .. " selects cell " .. tostring(m._ctx.selected)) end
+    -- (a strip the pad holds does not follow the pointer: ZeD_ContextMenu:update, "never while the pad has the menu",
+    -- beast W14. The pad holds it when the game has a pad on this player, JoypadState, as a Deck has: then the hover
+    -- is said not checked, once, and the click below still is)
+    if m._joyfocus then
+        if not S.joyHoverSaid then
+            S.joyHoverSaid = true
+            Q.say("NOTE strip: the pad holds the strip (the game has a pad on this player), so the pointer takes no cell by design (W14); the hover is not checked here, the click is")
+        end
+    elseif m._ctx.selected ~= V.idx then
+        H.note(V, "hover", "the pointer on cell " .. V.idx .. " selects cell " .. tostring(m._ctx.selected))
+    end
     V.phase = "click"
 end
 function H.stripClick(V, m)
+    -- The cell found a frame ago must still be under the spot. (Nov 21 2026, the first run: a strip of 11 or more
+    -- slid on its own as it opened, sweep W15, another cell came under the resting pointer and the click ran that
+    -- cell's action and closed the menu. No click is made on a cell that moved: it would run something.)
+    local z0 = m:hitZoneAt(V.lx, V.ly)
+    local k0 = z0 and type(z0.id) == "string" and z0.id:sub(1, 8) == "ctxcell_" and tonumber(z0.id:sub(9))
+    local now = k0 and (H.mod(k0 - 1, #m._ctx.items) + 1) or nil
+    if now ~= V.idx then
+        H.note(V, "slid", "the strip moved under a resting pointer between two frames: cell " .. V.idx .. " was there, now " .. tostring(now and ("cell " .. now) or "no cell") .. " (no click made)")
+        V.phase = "rc"
+        return
+    end
     m:onMouseDown(V.lx, V.ly)
     m:onMouseUp(V.lx, V.ly)
     H.mouseOn(-9000, -9000)
@@ -1094,6 +1162,14 @@ function H.quickGot(K, m)
     end
     K.phase = "close"
 end
+-- a spot on screen that no level of the list covers (a corner), or nil: a click on a row would run its action
+function H.offList(m)
+    local sw, sh = H.scr()
+    for _, c in ipairs({ { 2, 2 }, { sw - 3, 2 }, { 2, sh - 3 }, { sw - 3, sh - 3 }, { math.floor(sw / 2), 2 }, { math.floor(sw / 2), sh - 3 } }) do
+        if m:_levelAt(c[1], c[2]) == nil then return c[1], c[2] end
+    end
+    return nil
+end
 function H.quickClose(K)
     local m = H.menu()
     if K.old then
@@ -1105,7 +1181,22 @@ function H.quickClose(K)
         if how == 0 then m:close()
         elseif how == 1 then m:onRightMouseDown(1, 1)
         elseif how == 2 then m:onKeyPress(Keyboard.KEY_ESCAPE)
-        elseif how == 3 then m:onMouseDownOutside(-5, -5)
+        elseif how == 3 then
+            if m._levels then
+                -- (the list's panel is the whole screen, ZeD_ContextList:new: "a click outside closes" is a left
+                -- click off its rows, there is no press outside the panel; Nov 21 2026, the first run asked the
+                -- list for the strip's onMouseDownOutside and it stayed open)
+                local ox, oy = H.offList(m)
+                if ox then
+                    m:onMouseDown(ox, oy)
+                    m:onMouseUp(ox, oy)
+                else
+                    K.bad[#K.bad + 1] = "click " .. K.i .. ": every probe spot lies on the list (no click made)"
+                    m:close()
+                end
+            else
+                m:onMouseDownOutside(-5, -5)
+            end
         else m:cancel() end
         if m._ctx.open then K.bad[#K.bad + 1] = "click " .. K.i .. ": the menu did not close (way " .. how .. ")" end
     end
@@ -1275,7 +1366,23 @@ function H.listPadKeys()
     local l1, s1 = #m._levels, m._levels[2] and m._levels[2].sel
     m:onJoypadDown(Joypad.BButton)
     Q.check(l1 == 2 and s1 ~= nil and #m._levels == 1 and lv.sel == pr and m._ctx.open, "list, pad: A opens the submenu on its first row, B closes it", l1 .. " -> " .. #m._levels)
-    m:onJoypadDirDown()   -- (the pad's row, for the balloon next)
+    -- the pad's row for the balloon next: D-pad Down to the first row with words to show, once round at most
+    -- (Nov 21 2026, the first run: one step down landed on Place Item, which has none, and the balloon went unchecked)
+    for _ = 1, math.max(1, n) do
+        m:onJoypadDirDown()
+        local r = lv.rows[lv.sel]
+        if r and H.rowWords(m, r.def) then break end
+    end
+    -- (the balloon's last place is QA's read-only mark, Balloon.lua: cleared so the check reads this balloon, not an older one)
+    pcall(function() if ZeD.Balloon then ZeD.Balloon.lastPlace = nil end end)
+end
+-- the words a list row shows in its balloon (ZeD_ContextList:prerender makes a balloon only for these)
+function H.rowWords(m, def)
+    if type(def) ~= "table" then return false end
+    if (def.body and def.body ~= "") or def.bodyRich then return true end
+    if not def.state then return false end
+    local ok, st = pcall(def.state, m._ctx.target)
+    return ok and type(st) == "string" and st ~= ""
 end
 -- the list's balloon for the pad's row: beside it, on screen
 function H.listBalloon()
@@ -1283,8 +1390,7 @@ function H.listBalloon()
     local lv = m and m._levels and m._levels[1]
     if not (lv and lv.sel) then return end
     local def = lv.rows[lv.sel] and lv.rows[lv.sel].def
-    local words = def and ((def.body and def.body ~= "") or def.bodyRich or (def.state and def.state(m._ctx.target) ~= ""))
-    if not words then Q.skip("list, pad: the balloon for the pad's row sits on screen", "the row " .. tostring(def and def.name) .. " has no words to show"); return end
+    if not H.rowWords(m, def) then Q.skip("list, pad: the balloon for the pad's row sits on screen", "no top row of this menu has words to show (the pad is on " .. tostring(def and def.name) .. ")"); return end
     local pl = ZeD.Balloon and ZeD.Balloon.lastPlace
     local sw, sh = H.scr()
     Q.check(m._bl ~= nil and m._bl.def == def and pl ~= nil and pl.x >= -1 and pl.y >= -1 and pl.x < sw and pl.y < sh,
@@ -1349,7 +1455,10 @@ function H.stressTick()
             local k = H.rnd(12)
             X.n = X.n + 1
             if m._levels then H.listOp(m, k) else H.stripOp(m, k) end
-            local why = m._levels and H.listInv(m) or H.stripInv(m)
+            -- (Nov 21 2026, the first run: "a and f() or g()" ran the strip's test on a healthy list, whose nil answer
+            -- fell through to it, and failed press 1 with "no cells left"; each look has its own test)
+            local why
+            if m._levels then why = H.listInv(m) else why = H.stripInv(m) end
             if why then X.bad = "press " .. X.n .. " (kind " .. k .. "): " .. why; return end
         end
     end)
@@ -1390,7 +1499,7 @@ function H.spinTick()
     B.f = B.f + 1
     if B.f > 2 then
         local n = H.cellsShown(m)
-        if n < B.min then B.min, B.at = n, B.f end
+        if n < B.min then B.min, B.at, B.pos = n, B.f, m._ctx.pos end
     end
     if B.f <= 45 then m:onMouseWheel(1) end
     return B.f >= 48
@@ -1402,7 +1511,7 @@ function H.spinEnd()
     if not (m and m._ctx.open) then Q.check(false, "strip: the strip is still open after the wheel"); return end
     local V = math.min(#m._ctx.items, ZeD.T.ctx.maxVisible)
     Q.check(B.min >= V and not S.drawErr, "strip: the wheel spun a notch a frame for 45 frames never leaves cells missing from the strip",
-        "fewest cells in the strip's box: " .. B.min .. " of " .. V .. (B.at and (" (frame " .. B.at .. " of the spin)") or "") .. (S.drawErr and ("; " .. S.drawErr) or ""))
+        "fewest cells in the strip's box: " .. B.min .. " of " .. V .. (B.at and (" (frame " .. B.at .. " of the spin, carousel place " .. tostring(B.pos) .. ", its track holds " .. (3 * #m._ctx.items) .. " cells)") or "") .. (S.drawErr and ("; " .. S.drawErr) or ""))
 end
 function H.spinRest()
     local m = H.menu()
@@ -1556,6 +1665,14 @@ function H.dragOff(D) return not D.c._drag:isActive() and not D.c._drag:isPendin
 -- ===================================================================== THE RUN: setup
 Q.step(1, function()
     if not S.p or S.p:isDead() then Q.check(false, "the character is alive for the run"); S.dead = true; return end
+    -- nothing may hurt him: a zombie is made for the corpse, he stands in the open for minutes and goes to the farm.
+    -- God mode and invincible are on for the whole run, and put back as found after the healed check at the end.
+    pcall(function() S.godWas = S.p:isGodMod() end)
+    pcall(function() S.invWas = S.p:isInvincible() end)
+    pcall(function() S.p:setGodMod(true) end)
+    pcall(function() S.p:setInvincible(true) end)
+    S.guard = true
+    Q.say("safety: god mode " .. tostring(S.p:isGodMod()) .. ", invincible " .. tostring(S.p:isInvincible()) .. " for the run (found " .. tostring(S.godWas) .. ", " .. tostring(S.invWas) .. ")")
     if ZeD.Safe and ZeD.Safe.on() then Q.skip("the whole script", "safe mode is on: the menus are the game's own"); S.dead = true; return end
     if not Q.check(H.opt() ~= nil and ZeD.ContextMenu ~= nil and ZeD.ContextMenu.Registry ~= nil, "ZeD's Context menu setting and its registry are there") then S.dead = true; return end
     if ZEDQA_HOME then ZEDQA_HOME("bx_ctx") end
@@ -1865,27 +1982,32 @@ end)
 
 -- ===================================================================== put back
 Q.mark()
+-- healed first, in a step of its own: nothing before or after it in the put-back can stop it
+Q.step(1, function() H.heal() end)
 Q.step(2, function()
     if not S.home then return end
-    H.closeMenu()
-    H.mouseOff()
-    H.unwrap()
+    -- (each part on its own: one that throws does not stop the rest)
+    H.try("closing the menu", H.closeMenu)
+    H.try("the pointer", H.mouseOff)
+    H.try("the menu's watch", H.unwrap)
     pcall(H.henAway)
-    H.cleanStrip()
+    H.try("clearing the strip", H.cleanStrip)
     pcall(function() local c = H.cc(); if c and c._drag then c._drag:cancel() end end)
     pcall(function() ISTimedActionQueue.clear(S.p) end)
-    H.padLock(false)
-    local Dt = ZeD.Input and ZeD.Input.Detector
-    if Dt then
-        Dt.setLockedMode(nil)
-        if S.lockWas == "kbm" or S.lockWas == "gamepad" then Dt.setLockedMode(S.lockWas) end
-    end
-    if S.styleWas ~= nil then H.opt():setValue(S.styleWas) end
+    H.try("the pad lock", function()
+        H.padLock(false)
+        local Dt = ZeD.Input and ZeD.Input.Detector
+        if Dt then
+            Dt.setLockedMode(nil)
+            if S.lockWas == "kbm" or S.lockWas == "gamepad" then Dt.setLockedMode(S.lockWas) end
+        end
+    end)
+    H.try("the Context menu setting", function() if S.styleWas ~= nil then H.opt():setValue(S.styleWas) end end)
     pcall(function() S.p:setPrimaryHandItem(S.ph) end)
     pcall(function() S.p:setSecondaryHandItem(S.sh) end)
     pcall(function() if getGameSpeed() ~= S.speedWas and ZEDQA_SPEED then ZEDQA_SPEED(S.speedWas) end end)
-    H.stand(S.home.x, S.home.y)
-    RT.takeBack()
+    H.try("the way home", function() H.stand(S.home.x, S.home.y) end)
+    H.try("taking the given things back", RT.takeBack)
 end)
 Q.waitFor(20, 1200, function()
     return not S.home or (S.p:getCurrentSquare() ~= nil and getCell():getGridSquare(math.floor(S.home.x), math.floor(S.home.y), 0) ~= nil)
@@ -1893,7 +2015,7 @@ end, function(ok)
     if not S.home then return end
     Q.check(ok and math.abs(S.p:getX() - S.home.x) < 0.6 and math.abs(S.p:getY() - S.home.y) < 0.6, "the character is back on the home square, the strip loaded",
         H.fl(S.p:getX()) .. "," .. H.fl(S.p:getY()))
-    pcall(function() S.p:getBodyDamage():RestoreToFullHealth() end)
+    H.heal()
     local c = H.cc()
     if c then
         local sel = c._selectedItems or {}
@@ -1926,5 +2048,24 @@ Q.step(10, function()
 end)
 Q.step(10, function()
     if S.pairWas == false then RT.pairShut() end
+end)
+-- the last word: he is alive and healed (said even when the run never got past its first step), then god mode and
+-- invincible go back as found
+Q.step(4, function()
+    if not S.p then Q.check(false, "put back: the character is alive and healed", "no character"); return end
+    H.heal()
+    local bad = H.hurt()
+    Q.check(#bad == 0, "put back: the character is alive and healed (health 100, no wound or fracture on any part, not infected)",
+        (#bad == 0) and ("health " .. tostring(S.hp)) or H.join(bad, 8))
+    if not S.guard then return end
+    S.guard = nil
+    if #bad > 0 then
+        Q.say("NOTE god mode and invincible are left ON: the character is not healed")
+        return
+    end
+    if S.godWas ~= nil then pcall(function() S.p:setGodMod(S.godWas and true or false) end) end
+    if S.invWas ~= nil then pcall(function() S.p:setInvincible(S.invWas and true or false) end) end
+    Q.check((S.godWas == nil or S.p:isGodMod() == (S.godWas and true or false)) and (S.invWas == nil or S.p:isInvincible() == (S.invWas and true or false)),
+        "put back: god mode and invincible as found", "god mode " .. tostring(S.p:isGodMod()) .. ", invincible " .. tostring(S.p:isInvincible()))
 end)
 Q.start()

@@ -28,6 +28,14 @@
 -- given (and every round, magazine or gun of those types that was not there before), the kill count and ZeD_Kills, the
 -- pouch switch, unlimited ammo, the pins, the tabs, the windows, the list's stacks, health, panic and stress, blood on
 -- the clothes, the experience earned, the character home.
+-- Safety (preflight, Nov 21 2026): god mode and invincible are turned ON in the first step and held on every tick
+-- until the last step (H.guardTick); he is also made invisible for the run, so the shots draw no zombie from the
+-- country round the strip (the game's attack hook makes its noise "unless invisible"). The put-back heals him
+-- (H.heal: every setter with the argument count the game has) and its LAST step reads the body and prints
+-- "put back: the character is alive and healed" as a PASS or FAIL. Every step runs under the kit's pcall, so a
+-- step that throws does not stop the put-back. (Skeptic pass, Nov 21 2026: no zombie is made unless god mode and
+-- invincible hold at that moment, since the game's setters refuse outside -debug; the last step also checks that none
+-- of this run's zombies is left in the world, as a useless zombie left there is a normal one after a reload.)
 
 if not RT then
     print("ZEDQA bx_cmb ERR the kit (rt_kit.lua) did not run first")
@@ -39,7 +47,7 @@ end
 local Q = RT.make("bx_cmb")
 Q.maxMs = 400000
 local S = { p = RT.p, pn = RT.pn, g = {}, zs = {}, tz = {}, had = {}, was = {}, fired = {}, byCat = {}, stackWas = {},
-            kills = 0, pulls = 0, how = {} }
+            kills = 0, pulls = 0, how = {}, bodies0 = {}, reguard = 0 }
 local H = {}
 S.B = ZeD.Belt
 S.K = ZeD.KillTracker
@@ -256,6 +264,12 @@ end
 function H.queueSpawn(slot, dist, label)
     Q.step(4, function()
         if S.p:isDead() then return end
+        -- (no zombie beside him unless god mode and invincible hold right now: the setters refuse outside -debug)
+        if not (S.p:isGodMod() and S.p:isInvincible()) then
+            S.tz[slot] = nil
+            Q.skip(label .. ": a zombie " .. dist .. " tiles ahead", "god mode " .. tostring(S.p:isGodMod()) .. ", invincible " .. tostring(S.p:isInvincible()) .. ": no zombie is made beside him")
+            return
+        end
         local ok, z = pcall(H.spawnZ, slot, dist)
         if not (ok and z) then Q.skip(label .. ": a zombie " .. dist .. " tiles ahead", "it could not be made there: " .. tostring(z)) end
     end)
@@ -663,13 +677,127 @@ function H.statSnap()
     end
 end
 function H.statBack()
-    pcall(function() S.p:getBodyDamage():RestoreToFullHealth() end)
+    pcall(H.heal)
     if not CharacterStat then return end
     local st = S.p:getStats()
     for k, v in pairs(S.stat or {}) do
         local cs = CharacterStat[k]
         if cs and st and st.set then pcall(function() st:set(cs, v) end) end
     end
+end
+
+-- ===================================================================== nobody gets hurt
+-- every tick while the run lasts: god mode and invincible stay on, whatever a step or the game turned off
+function H.guardTick()
+    local p = S.p
+    if not (S.guard and p) or p:isDead() then return end
+    -- (counted: nothing in the run should turn them off, so a count above 0 at the end is worth reading)
+    if not p:isGodMod() then p:setGodMod(true); S.reguard = S.reguard + 1 end
+    if not p:isInvincible() then p:setInvincible(true); S.reguard = S.reguard + 1 end
+end
+-- every wound off every part, then the game's own full heal. The argument counts are the game's (javap, 42.22):
+-- setHaveBullet(boolean, int), setSplint(boolean, float), the rest one argument, RestoreToFullHealth() none.
+-- Each call stands in its own pcall, so one refusal does not stop the others.
+function H.heal()
+    local bd = S.p:getBodyDamage()
+    if not bd then return end
+    pcall(function()
+        local parts = bd:getBodyParts()
+        for i = 0, parts:size() - 1 do
+            local b = parts:get(i)
+            pcall(function() if b:haveBullet() then b:setHaveBullet(false, 0) end end)
+            pcall(function() if b:haveGlass() then b:setHaveGlass(false) end end)
+            pcall(function() b:SetBitten(false) end)
+            pcall(function() b:SetInfected(false) end)
+            pcall(function() b:SetFakeInfected(false) end)
+            pcall(function() b:setInfectedWound(false) end)
+            pcall(function() b:setWoundInfectionLevel(0) end)
+            pcall(function() b:setFractureTime(0) end)
+            pcall(function() b:setSplint(false, 0) end)
+            pcall(function() b:setBurnTime(0) end)
+            pcall(function() b:setNeedBurnWash(false) end)
+            pcall(function() b:setBleeding(false) end)
+            pcall(function() b:setBleedingTime(0) end)
+            pcall(function() b:setDeepWounded(false) end)
+            pcall(function() b:setAdditionalPain(0) end)
+            pcall(function() b:RestoreToFullHealth() end)
+        end
+    end)
+    pcall(function() bd:RestoreToFullHealth() end)
+    pcall(function() bd:setInfected(false) end)
+    pcall(function() bd:setIsFakeInfected(false) end)
+    pcall(function() if bd:getOverallBodyHealth() < 100 then bd:setOverallBodyHealth(100) end end)
+    pcall(function() if S.p:isOnFire() then S.p:StopBurning() end end)
+end
+-- nil when he is alive and whole, else what is wrong (dead, health, infection, each part's wounds)
+function H.hurt()
+    local p = S.p
+    local out = {}
+    local ok, err = pcall(function()
+        if p:isDead() then out[#out + 1] = "DEAD" end
+        local bd = p:getBodyDamage()
+        local hp = bd:getOverallBodyHealth()
+        if hp < 99.5 then out[#out + 1] = string.format("health %.1f", hp) end
+        if bd:IsInfected() then out[#out + 1] = "infected" end
+        if bd:IsFakeInfected() then out[#out + 1] = "a false infection" end
+        local parts = bd:getBodyParts()
+        for i = 0, parts:size() - 1 do
+            local b = parts:get(i)
+            local w = {}
+            if b:scratched() then w[#w + 1] = "scratch" end
+            if b:isCut() then w[#w + 1] = "cut" end
+            if b:deepWounded() then w[#w + 1] = "deep wound" end
+            if b:bitten() then w[#w + 1] = "bite" end
+            if b:bleeding() then w[#w + 1] = "bleeding" end
+            if b:haveBullet() then w[#w + 1] = "bullet" end
+            if b:haveGlass() then w[#w + 1] = "glass" end
+            if b:getFractureTime() > 0 then w[#w + 1] = "fracture" end
+            if b:getBurnTime() > 0 then w[#w + 1] = "burn" end
+            if b:isInfectedWound() then w[#w + 1] = "infected wound" end
+            if b:IsInfected() then w[#w + 1] = "infected" end
+            if b:getHealth() < 99.5 then w[#w + 1] = string.format("health %.1f", b:getHealth()) end
+            if #w > 0 then
+                local name = tostring(i)
+                pcall(function() name = tostring(BodyPartType.FromIndex(i)) end)
+                out[#out + 1] = name .. ": " .. table.concat(w, ", ")
+            end
+        end
+    end)
+    if not ok then out[#out + 1] = "the body could not be read: " .. tostring(err) end
+    if #out == 0 then return nil end
+    return table.concat(out, "; ")
+end
+-- the world's own zombies (not this script's) alive within r tiles of him; all: this script's too
+function H.strangers(r, all)
+    local n = 0
+    pcall(function()
+        local mine = {}
+        if not all then for _, z in ipairs(S.zs) do mine[z] = true end end
+        local l = getCell():getZombieList()
+        local px, py = S.p:getX(), S.p:getY()
+        for i = 0, l:size() - 1 do
+            local z = l:get(i)
+            if z and not mine[z] and not z:isDead() and math.abs(z:getX() - px) <= r and math.abs(z:getY() - py) <= r then n = n + 1 end
+        end
+    end)
+    return n
+end
+-- this script's own zombies still in the cell's list near him (a useless zombie left behind is a normal one after a
+-- reload). Far ones are left out: the game keeps removed zombies for reuse (VirtualZombieManager.addToReusable), so
+-- one of these objects may come back as a new zombie elsewhere.
+function H.mineLeft()
+    local n = 0
+    pcall(function()
+        local mine = {}
+        for _, z in ipairs(S.zs) do mine[z] = true end
+        local l = getCell():getZombieList()
+        local px, py = S.p:getX(), S.p:getY()
+        for i = 0, l:size() - 1 do
+            local z = l:get(i)
+            if z and mine[z] and math.abs(z:getX() - px) <= 30 and math.abs(z:getY() - py) <= 30 then n = n + 1 end
+        end
+    end)
+    return n
 end
 
 -- ===================================================================== the put-back's sweeps
@@ -782,10 +910,19 @@ end
 
 -- ===================================================================== 1. set the scene
 Q.step(5, function()
-    if ZEDQA_HOME then pcall(ZEDQA_HOME, "bx_cmb") end
-    H.speed(1)
     local p = S.p
     local W = S.was
+    -- first of all: nothing in this run may hurt him (zombies are made beside him, guns go off)
+    W.god, W.inv, W.invis = p:isGodMod() == true, p:isInvincible() == true, p:isInvisible() == true
+    S.guard = true
+    Events.OnTick.Add(H.guardTick)
+    p:setGodMod(true)
+    p:setInvincible(true)
+    -- (invisible: the world sound of every shot, Lua's attack hook and Java's CombatManager alike, goes through
+    -- addWorldSoundUnlessInvisible, so no zombie from the country round the strip comes to the noise)
+    pcall(function() p:setInvisible(true) end)
+    if ZEDQA_HOME then pcall(ZEDQA_HOME, "bx_cmb") end
+    H.speed(1)
     W.p1, W.p2 = p:getPrimaryHandItem(), p:getSecondaryHandItem()
     W.unlimited = H.call0(p, "isUnlimitedAmmo")
     W.open = RT.isOpen()
@@ -803,6 +940,9 @@ Q.step(5, function()
     for _, b in ipairs(ok and list or {}) do S.bodies0[b.body] = true end
     H.bloodSnap(); H.xpSnap(); H.statSnap(); H.floorSnap()
     Events.OnTick.Add(H.aimTick)
+    Q.check(p:isGodMod() == true and p:isInvincible() == true, "safety: god mode and invincible are on for the whole run",
+        "found god mode " .. tostring(W.god) .. ", invincible " .. tostring(W.inv) .. ", invisible " .. tostring(W.invis) .. "; now invisible " .. tostring(p:isInvisible()))
+    Q.say("scene: the body at the start: " .. (H.hurt() or "alive and whole") .. "; the world's own zombies within 40 tiles " .. H.strangers(40))
     Q.say("scene: god mode " .. tostring(H.call0(p, "isGodMod")) .. ", unlimited ammo was " .. tostring(W.unlimited) .. ", kills " .. W.engine .. ", corpses already near " .. #(ok and list or {}))
 end)
 Q.step(3, function()
@@ -967,7 +1107,7 @@ Q.step(3, function()
     local g = S.g.pistol
     if not g then return end
     g.gun:setJammed(true)
-    Q.say("NOTE the pistol is jammed now: ZeD's pouch, card and facts have no word for a jam (the game's tooltip says Jammed); only the firearm wheel offers Unjam")
+    Q.say("NOTE the pistol is jammed now: ZeD's pouch, card, facts and loot card have no word for a jam (the game's own tooltip, with Alt, says Weapon jammed); the firearm wheel and the right-click menu offer Unjam")
 end)
 H.checkAll("pistol jammed", "pistol")
 Q.step(2, function()
@@ -978,6 +1118,20 @@ Q.step(12, function()
     local g = S.g.pistol
     local m = H.wheel()
     if not (g and S.wheelOk and m) then return end
+    if not m._zed then
+        -- (the game draws its own wheel only while ZeD hands the wheels back: safe mode, or the wheels given back in
+        -- ZeD setup's ZeD screens (Overrides/Wheels.lua). Any other time the game's wheel here is ZeD's fault.)
+        local back = false
+        pcall(function() back = ZeD.Safe.on("wheels") and true or false end)
+        if back then
+            Q.skip("ZeD's firearm wheel on a jammed pistol", "the wheels are the game's own here (safe mode, or the wheels given back in ZeD setup)")
+        else
+            Q.check(false, "the firearm wheel on the jammed pistol is ZeD's", "the game's own wheel came up with safe mode off and the wheels not given back (on screen "
+                .. tostring(m:isReallyVisible()) .. ", slices " .. #(m.slices or {}) .. ")")
+        end
+        H.wheelShut()
+        return
+    end
     local i, s = H.sliceWith(m, getText("IGUI_FirearmRadial_Unjam"))
     Q.check(m:isReallyVisible(), "the firearm wheel is on screen for the jammed pistol", "drawn by ZeD " .. tostring(m._zed) .. ", slices " .. #(m.slices or {}))
     Q.check(i ~= nil and not ZeD.Wheel.isOff(s), "the wheel offers Unjam for the jammed pistol, and it can be chosen")
@@ -985,16 +1139,39 @@ Q.step(12, function()
     if not i then H.wheelShut(); return end
     H.speed(2)
     local ok, x, y = H.try("the wheel's own aim at Unjam", H.towards, m, i)
-    if ok then H.try("a press on Unjam", function() m:onMouseDown(x, y) end) end
+    if not (ok and H.try("a press on Unjam", function() m:onMouseDown(x, y) end)) then H.wheelShut(); return end
+    -- what the press queued (Unjam is the game's own rack, ISRackFirearm; it stays in the queue while it runs)
+    local types = {}
+    pcall(function()
+        local q = ISTimedActionQueue.getTimedActionQueue(S.p)
+        for _, a in ipairs((q and q.queue) or {}) do types[#types + 1] = tostring(a.Type) end
+    end)
+    S.racked = false
+    for _, t in ipairs(types) do if t == "ISRackFirearm" then S.racked = true end end
+    S.rackType = (#types > 0) and table.concat(types, ", ") or "nothing"
     S.unjamAsked = true
 end)
 H.waitUntil(7000, function() local g = S.g.pistol; return g == nil or not S.unjamAsked or (not g.gun:isJammed() and not H.busy()) end, function(ok)
+    -- (read before the shut below: ZeD's wheel takes itself off on the press; the shut only tidies one left up)
+    local up = false
+    pcall(function() local m = H.wheel(); up = (m ~= nil and m:isReallyVisible()) and true or false end)
+    local busy = H.busy()
     H.stop(); H.speed(1); H.wheelShut()
     local g = S.g.pistol
     if not g then return end
-    if S.unjamAsked then Q.check(not g.gun:isJammed(), "Unjam chosen on ZeD's wheel clears the jam (the game's own rack)", "jammed " .. tostring(g.gun:isJammed())) end
+    if S.unjamAsked then
+        Q.check(not up, "the wheel is gone after the choice")
+        local racked = S.racked == true
+        Q.check(racked, "a press on Unjam on ZeD's wheel starts the game's own rack", "the queue after the press: " .. tostring(S.rackType))
+        if racked and g.gun:isJammed() and not busy then
+            -- (the game's own dice: ISRackFirearm asks HandWeapon.checkUnJam, which leaves a new gun jammed about 1 time
+            -- in 12, more with panic, stress or drink. The rack ran to its end, so the wheel did its part.)
+            Q.skip("Unjam clears the jam", "the game's own rack ran to its end and its unjam roll failed this time (the game's chance, not ZeD's); cleared by hand")
+        else
+            Q.check(not g.gun:isJammed(), "Unjam chosen on ZeD's wheel clears the jam (the game's own rack)", "jammed " .. tostring(g.gun:isJammed()) .. ", the rack still running " .. tostring(busy))
+        end
+    end
     g.gun:setJammed(false)
-    Q.check(not (H.wheel() and H.wheel():isReallyVisible()), "the wheel is gone after the choice")
 end)
 H.checkAll("pistol unjammed", "pistol")
 -- the magazine out through the game's own action
@@ -1254,7 +1431,12 @@ end)
 -- ===================================================================== the put-back
 Q.mark()
 Q.step(3, function()
-    H.aimOff()
+    -- (the guard first: a jump here after a step that threw must find god mode and invincible on; taken off and put
+    -- on again, so it ticks once even if the first step never reached it)
+    S.guard = true
+    pcall(function() Events.OnTick.Remove(H.guardTick); Events.OnTick.Add(H.guardTick) end)
+    pcall(H.guardTick)
+    pcall(H.aimOff)
     H.pointer(nil)
     Events.OnTick.Remove(H.aimTick)
     H.stop(); H.speed(1); H.wheelShut()
@@ -1333,5 +1515,47 @@ Q.step(6, function()
     Q.say("put back: kills " .. tostring(S.p:getZombieKills()) .. " (found " .. tostring(W.engine) .. "), things of the given types left over " .. left .. ", corpses left over " .. extra
         .. ", aiming " .. tostring(S.p:isAiming()) .. ", speed " .. tostring(getGameSpeed()))
     Q.say("pulls of the trigger and swings through the game's attack hook: " .. S.pulls .. "; deaths " .. S.kills)
+    -- (a zombie of this run still in the cell's list: taken away again; the list lets go of it on a later tick)
+    local mine = H.mineLeft()
+    if mine > 0 then
+        Q.say("put back: " .. mine .. " of this run's zombies still in the world; taken away again")
+        pcall(H.sweepZombies)
+    end
+end)
+Q.waitMs(600)
+-- the last step, on its own so nothing above can stop it: he is alive and healed, then the cheats go back as found
+Q.step(4, function()
+    local p = S.p
+    local W = S.was
+    pcall(H.aimOff)
+    H.pointer(nil)
+    pcall(function() Events.OnTick.Remove(H.aimTick) end)
+    -- none of this run's zombies may stay: a useless zombie left beside him is a normal one after a reload
+    local mine = H.mineLeft()
+    Q.check(mine == 0, "put back: none of the zombies this run made is left in the world", mine .. " left of " .. #S.zs .. " made")
+    local first = H.hurt()
+    if first then
+        Q.say("put back: the body was not whole (" .. first .. "); healed again")
+        H.heal()
+    end
+    local bad = H.hurt()
+    Q.check(bad == nil, "put back: the character is alive and healed (health 100, no wound, no fracture, not infected, not dead)", bad or "alive and whole")
+    -- (every living zombie within 40 tiles counts here, the world's or one of this run's objects come back as another)
+    local near = H.strangers(40, true)
+    local keep = bad ~= nil or near > 0 or mine > 0
+    -- god mode and invincible go back as found only when he is whole and no zombie, the world's or this run's, is near
+    S.guard = false
+    pcall(function() Events.OnTick.Remove(H.guardTick) end)
+    if keep then
+        pcall(function() p:setGodMod(true); p:setInvincible(true) end)
+    else
+        if W.god ~= nil then pcall(function() p:setGodMod(W.god) end) end
+        if W.inv ~= nil then pcall(function() p:setInvincible(W.inv) end) end
+    end
+    if W.invis ~= nil then pcall(function() p:setInvisible(W.invis) end) end
+    Q.say("put back: god mode " .. tostring(p:isGodMod()) .. " (found " .. tostring(W.god) .. "), invincible " .. tostring(p:isInvincible()) .. " (found " .. tostring(W.inv)
+        .. "), invisible " .. tostring(p:isInvisible()) .. " (found " .. tostring(W.invis) .. "), living zombies within 40 tiles " .. near
+        .. ", times the guard had to turn god mode or invincible back on " .. S.reguard
+        .. (keep and "; god mode and invincible were LEFT ON because he is not safe without them" or ""))
 end)
 Q.start()

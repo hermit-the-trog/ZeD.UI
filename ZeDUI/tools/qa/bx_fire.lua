@@ -29,6 +29,18 @@
 --   gone, the floors in a 5-tile radius as found; the body healed, the stats, god mode, invincible and the clothing's
 --   condition as found; everything given (and the campfire's stones, the emptied sandbag) taken away, the hands, the
 --   tabs and the windows as found; the character home. No ZeD option is changed.
+-- SAFETY (Nov 21 2026, the preflight; the same rule as bx_health.lua): the character must never die or stay hurt.
+--   God mode and invincible are put ON at the first step and stay on through the campfire and the fire scenes (the
+--   prelude's god mode is not relied on; when the game refuses it, outside -debug, nothing is lit and the run goes
+--   straight to the put-back). God mode goes off only for the burn scenes, and only once no fire is left within 15
+--   tiles and no zombie is within 20. A guard runs on EVERY game tick (H.safety, Events.OnTick, not the step queue: it
+--   keeps running when a step throws): with god mode meant to be on it puts it back on (and stops the run if it
+--   cannot); in the burn scenes anything but the staged burn (a bite, a scratch, bleeding, a fracture, fire on the
+--   character, health under 35, a zombie within 12 tiles) puts god mode on, heals and jumps to the put-back; it
+--   keeps the fire to the squares the script lit (a square the fire spread to is put out); and when the put-back did
+--   not finish in time it heals, leaves god mode ON and prints the healed PASS or FAIL line. The put-back heals first,
+--   then PROVES the body whole (health 100, no wound on any part, no fracture, not infected, alive) with a PASS or
+--   FAIL line while god mode is still on; god mode and invincible go back as found only for a healed body.
 
 if not RT then
     print("ZEDQA bx_fire ERR the kit (rt_kit.lua) did not run first")
@@ -53,7 +65,7 @@ local setSpeed = ZEDQA_SPEED or setGameSpeed
 S.RING2 = { { 2, 0 }, { -2, 0 }, { 0, 2 }, { 0, -2 }, { 2, 2 }, { -2, -2 }, { 2, -2 }, { -2, 2 } }
 S.FIRE = { { 0, -4 }, { 4, 0 }, { -4, 0 }, { 0, 4 }, { 4, -4 }, { -4, 4 } }
 S.STATS = { "PANIC", "STRESS", "PAIN", "FATIGUE", "ENDURANCE", "HUNGER", "THIRST", "BOREDOM", "UNHAPPINESS", "WETNESS", "SICKNESS", "FOOD_SICKNESS" }
-S.BYPRODUCT = { ["Base.Stone2"] = true, ["Base.EmptySandbag"] = true }
+S.BYPRODUCT = { ["Base.Stone2"] = true, ["Base.EmptySandbag"] = true, ["Base.BandageDirty"] = true }
 S.FIG = "Left Forearm"
 
 -- ===================================================================== helpers: the queue
@@ -269,6 +281,11 @@ function H.left()
     end
     return n
 end
+function H.count(ft)
+    local n = 0
+    for _, it in ipairs(H.invItems()) do if it:getFullType() == ft then n = n + 1 end end
+    return n
+end
 function H.uses(it)
     local u = -1
     pcall(function() u = it:getCurrentUses() end)
@@ -474,13 +491,21 @@ function H.partClick()
     local ok = H.try("ZeD's click on the forearm (HealthTab._onPartClicked)", HT._onPartClicked, RT.cw(), S.FIG, nil, 10, 10)
     return ok
 end
+-- (each call its own pcall: one wrong call must not stop the rest. The part's and the body's RestoreToFullHealth, no
+-- arguments, are what heal; the setters before them are a second belt.)
 function H.healPart(bp)
     pcall(function() bp:setBurnTime(0) end)
     pcall(function() bp:setNeedBurnWash(false) end)
     pcall(function() bp:setBandaged(false, 0) end)
     pcall(function() bp:setAdditionalPain(0) end)
+    pcall(function() bp:setFractureTime(0) end)
+    pcall(function() bp:SetBitten(false) end)
+    pcall(function() bp:SetInfected(false) end)
+    pcall(function() bp:setInfectedWound(false) end)
     pcall(function() bp:RestoreToFullHealth() end)
+    pcall(function() bp:SetHealth(100) end)
 end
+-- NOTE the body's full heal also resets every stat (hunger, thirst...): the put-back sets the stats as found after it
 function H.healAll()
     pcall(function() S.p:StopBurning() end)
     pcall(function()
@@ -488,6 +513,182 @@ function H.healAll()
         for i = 0, parts:size() - 1 do H.healPart(parts:get(i)) end
     end)
     pcall(function() S.p:getBodyDamage():RestoreToFullHealth() end)
+    pcall(function() S.p:getBodyDamage():setInfected(false) end)
+    pcall(function() S.p:getBodyDamage():setIsFakeInfected(false) end)
+    pcall(function() S.p:getBodyDamage():setInfectionTime(-1) end)
+    pcall(function() S.p:getStats():set(CharacterStat.ZOMBIE_INFECTION, 0) end)
+end
+-- is the body whole? true, or false and what is wrong (alive, not burning, health, every part's wounds, infection)
+function H.bodyClean()
+    if not H.alive() then return false, "DEAD" end
+    local bad = {}
+    local okAll = pcall(function()
+        local bd = S.p:getBodyDamage()
+        local h = bd:getOverallBodyHealth()
+        if h < 99 then bad[#bad + 1] = string.format("health %.1f", h) end
+        if bd:isInfected() then bad[#bad + 1] = "infected" end
+        if S.p:isOnFire() then bad[#bad + 1] = "burning" end
+        local parts = bd:getBodyParts()
+        for i = 0, parts:size() - 1 do
+            local b = parts:get(i)
+            local w = {}
+            if b:getFractureTime() > 0 then w[#w + 1] = "fracture" end
+            if b:bitten() then w[#w + 1] = "bite" end
+            if b:scratched() then w[#w + 1] = "scratch" end
+            if b:isCut() then w[#w + 1] = "cut" end
+            if b:deepWounded() then w[#w + 1] = "deep wound" end
+            if b:bleeding() then w[#w + 1] = "bleeding" end
+            if b:haveBullet() then w[#w + 1] = "bullet" end
+            if b:haveGlass() then w[#w + 1] = "glass" end
+            if b:getBurnTime() > 0 then w[#w + 1] = "burn" end
+            if b:isInfectedWound() then w[#w + 1] = "infected wound" end
+            if b:IsInfected() then w[#w + 1] = "infection" end
+            if b:bandaged() then w[#w + 1] = "bandage" end
+            if b:getHealth() < 99 then w[#w + 1] = string.format("health %.1f", b:getHealth()) end
+            if #w > 0 then bad[#bad + 1] = tostring(b:getType()) .. ": " .. table.concat(w, "+") end
+        end
+    end)
+    if not okAll then bad[#bad + 1] = "the body could not be read" end
+    if #bad > 0 then return false, table.concat(bad, "; ") end
+    return true, "health 100, no wound, no fracture, not infected"
+end
+-- stop the run and go to the put-back (the step queue's own jump; safe from inside a step and from the guard)
+function H.bail(why)
+    if S.bailed then return end
+    S.bailed = true
+    Q.check(false, "the run went on to its end", "stopped, on to the put-back: " .. tostring(why))
+    if Q.backAt and Q.qi < Q.backAt then Q.qi = Q.backAt; Q.wait = nil end
+end
+-- the burn scenes are over (or cannot go on): the body healed, god mode back ON
+function H.burnEnd()
+    H.stopActions()
+    H.healAll()
+    S.godOff = false
+    pcall(function() S.p:setGodMod(true) end)
+end
+-- what, other than the staged burn on the left forearm, is wrong with the body (nil: nothing)
+function H.strayHurt()
+    local p = S.p
+    local bd = p:getBodyDamage()
+    if p:isOnFire() then return "the character caught fire" end
+    if bd:isInfected() then return "infected" end
+    local h = bd:getOverallBodyHealth()
+    if h < 35 then return "health fell to " .. string.format("%.1f", h) end
+    local parts = bd:getBodyParts()
+    for i = 0, parts:size() - 1 do
+        local b = parts:get(i)
+        if b:bitten() or b:scratched() or b:isCut() or b:deepWounded() or b:bleeding() or b:getFractureTime() > 0
+            or b:haveBullet() or b:haveGlass() then
+            return "a wound the script did not stage on " .. tostring(b:getType())
+        end
+        if b:getBurnTime() > 0 and b:getType() ~= BodyPartType.ForeArm_L then return "a burn on " .. tostring(b:getType()) end
+    end
+    return nil
+end
+-- living zombies within r tiles of the character (the QA save has zombies off, so any one is a stray)
+function H.zombiesNear(r)
+    local n = 0
+    pcall(function()
+        local l = getCell():getZombieList()
+        local px, py = S.p:getX(), S.p:getY()
+        for i = 0, l:size() - 1 do
+            local z = l:get(i)
+            if z and not z:isDead() and math.abs(z:getX() - px) <= r and math.abs(z:getY() - py) <= r then n = n + 1 end
+        end
+    end)
+    return n
+end
+-- fire kept to the squares the script lit: any other square with fire within 9 tiles of the fire is put out
+-- (the campfire's square is left alone only while the campfire stands: once it is gone, fire there is a stray too)
+function H.contain()
+    local n, cell = 0, getCell()
+    local fx, fy = S.fSq:getX(), S.fSq:getY()
+    local m1, m2 = S.fMore and S.fMore[1], S.fMore and S.fMore[2]
+    local cf = (S.cfSq and H.campLua(S.cfSq)) and S.cfSq or nil
+    for dx = -9, 9 do
+        for dy = -9, 9 do
+            local sq = cell:getGridSquare(fx + dx, fy + dy, 0)
+            if sq and sq ~= S.fSq and sq ~= m1 and sq ~= m2 and sq ~= cf and H.hot(sq) then
+                H.douse(sq)
+                n = n + 1
+            end
+        end
+    end
+    return n
+end
+-- THE GUARD, on every game tick from the first step to the end of the put-back (see SAFETY at the top)
+function H.safety()
+    if not S.live then return end
+    local ok, err = pcall(function()
+        local p = S.p
+        if p:isDead() then
+            if not S.deadSaid then
+                S.deadSaid = true
+                Q.check(false, "the character is alive", "DEAD during the run: restore the QA save from its backup")
+                H.bail("the character died")
+            end
+            return
+        end
+        if S.godOff then
+            -- the burn scenes: only the staged burn may be on the body, and his health stays up
+            local bd = p:getBodyDamage()
+            if bd:getOverallBodyHealth() < 75 then
+                local parts = bd:getBodyParts()
+                for i = 0, parts:size() - 1 do parts:get(i):SetHealth(100) end
+                S.topUps = (S.topUps or 0) + 1
+            end
+            local why = H.strayHurt()
+            -- (zombies are the one harm a tick-late guard cannot undo: several at once drag him down in one blow, and
+            -- only god mode stops that. Any zombie within 12 tiles ends the burn scenes; looked for every 10 ticks.)
+            S.zT = (S.zT or 0) + 1
+            if not why and S.zT >= 10 then
+                S.zT = 0
+                local nz = H.zombiesNear(12)
+                if nz > 0 then why = nz .. " zombie(s) within 12 tiles" end
+            end
+            if why then
+                S.godOff = false
+                p:setGodMod(true)
+                H.healAll()
+                S.hSkip = true
+                H.bail(why .. " in the burn scenes: god mode ON, healed")
+            end
+        elseif not p:isGodMod() then
+            p:setGodMod(true)
+            S.regod = (S.regod or 0) + 1
+            -- (outside -debug the game may refuse: setGodMod then leaves it OFF. Nothing that can hurt him goes on.)
+            if not p:isGodMod() then H.bail("god mode went off and could not be put back on") end
+        end
+        if S.fSq and not S.fireDone then
+            S.keepT = (S.keepT or 0) + 1
+            if S.keepT >= 20 then
+                S.keepT = 0
+                S.strays = (S.strays or 0) + H.contain()
+            end
+        end
+        -- the queue never came to the end of the put-back: heal here
+        if getTimestampMs() - Q.t0 > Q.maxMs + 60000 then
+            S.live = false
+            S.godOff = false
+            H.healAll()
+            p:setGodMod(true)
+            p:setInvincible(true)
+            Q.say("ERR the put-back did not finish in time: the guard healed the character and left god mode ON")
+            Events.OnTick.Remove(H.safety)
+            pcall(H.scan, 15, true)
+            H.spyOff()
+            -- (the put-back's own proof never ran: the same PASS or FAIL line here)
+            local healed, state = H.bodyClean()
+            Q.check(healed, "put back (by the guard, the queue never got there): the character is alive and healed", state)
+        end
+    end)
+    if not ok and not S.guardErrSaid then
+        S.guardErrSaid = true
+        Q.say("ERR the guard threw: " .. tostring(err))
+        S.godOff = false
+        pcall(function() S.p:setGodMod(true) end)
+        H.bail("the guard threw, god mode ON")
+    end
 end
 function H.burnsLeft()
     local n = 0
@@ -619,6 +820,16 @@ end
 
 -- ===================================================================== 0. as found
 Q.step(5, function()
+    -- SAFETY first, before anything can throw: as found read, then god mode and invincible ON, the guard on every tick
+    pcall(function() S.was.god = S.p:isGodMod() end)
+    pcall(function() S.was.inv = S.p:isInvincible() end)
+    pcall(function() S.p:setGodMod(true) end)
+    pcall(function() S.p:setInvincible(true) end)
+    S.live = true
+    Events.OnTick.Add(H.safety)
+    local godOn = false
+    pcall(function() godOn = S.p:isGodMod() end)
+    Q.check(godOn, "god mode is ON for the campfire and the fire scenes (invincible too)", "was " .. tostring(S.was.god))
     if ZEDQA_HOME then ZEDQA_HOME("bx_fire") else Q.say("NOTE the prelude did not run (no ZEDQA_HOME): the character stays where it stands") end
     S.hx, S.hy = math.floor(S.p:getX()), math.floor(S.p:getY())
     H.stopActions()
@@ -629,8 +840,6 @@ Q.step(5, function()
     H.floorsSnap()
     local was = S.was
     pcall(function() was.hand1, was.hand2 = S.p:getPrimaryHandItem(), S.p:getSecondaryHandItem() end)
-    pcall(function() was.god = S.p:isGodMod() end)
-    pcall(function() was.inv = S.p:isInvincible() end)
     pcall(function() was.speed = getGameSpeed() end)
     was.open = RT.isOpen()
     S.pre = H.scan(15, false)
@@ -641,6 +850,9 @@ Q.step(5, function()
     Q.check(H.alive(), "the character is alive at the start")
     if getGameSpeed() ~= 1 then setSpeed(1) end
     RT.pairOpen()
+    -- (the game's setGodMod puts god mode OFF for a player without the right to it, outside -debug: then no fire is
+    -- lit and no burn is set, straight to the put-back)
+    if not godOn then H.bail("god mode could not be put on: no campfire, no fire, no burn") end
 end)
 H.wait(3000, function() return RT.isOpen() and RT.cw() ~= nil and RT.ww() ~= nil end, function(ok)
     Q.check(ok, "both ZeD windows open")
@@ -739,7 +951,9 @@ H.qSync("campfire, Add fuel three times")
 -- Add with the World window's tab switched away and back in the middle
 Q.step(2, function()
     if not S.addArm then return end
-    if not H.fuelFid("Base.Plank") then S.planks[#S.planks + 1] = H.give("Base.Plank") end
+    -- (the planks counted in the inventory, not read off the card: since beast W34 the card's fuel rows are up to
+    -- 1.5 s old, so a row can still show for a plank that has just burnt)
+    if H.count("Base.Plank") == 0 or not H.fuelFid("Base.Plank") then S.planks[#S.planks + 1] = H.give("Base.Plank") end
     pcall(function() H.srv():setFuel(60) end)   -- (an hour of fuel: room for the plank under the game's maximum)
 end)
 H.wait(3000, function() return (not S.addArm) or H.plankReady() end, function(ok)
@@ -821,7 +1035,7 @@ end)
 -- lit: Add with both windows shut and opened again in the middle
 Q.step(2, function()
     if not S.lit then return end
-    if not H.fuelFid("Base.Plank") then S.planks[#S.planks + 1] = H.give("Base.Plank") end
+    if H.count("Base.Plank") == 0 or not H.fuelFid("Base.Plank") then S.planks[#S.planks + 1] = H.give("Base.Plank") end
     pcall(function() H.srv():setFuel(60) end)   -- (an hour of fuel: room for the plank under the game's maximum)
     local e = H.entry()
     if e and e.t then e.t._refreshT = 1000 end
@@ -985,7 +1199,8 @@ Q.waitMs(2500)
 Q.step(2, function()
     if S.wSkip then return end
     local n = H.scan(8, false)
-    Q.say("fire: " .. n .. " squares with fire within 8 tiles after 2.5 s (three were lit; more means the fire spread on its own)")
+    Q.say("fire: " .. n .. " squares with fire within 8 tiles after 2.5 s (three were lit; more means the fire spread on its own; "
+        .. tostring(S.strays or 0) .. " squares it spread to were put out by the guard so far)")
     Q.check(n >= 1, "fire: it still burns while ZeD's windows are open", n .. " squares")
     Q.check(RT.cw() ~= nil and RT.ww() ~= nil and RT.isOpen(), "fire: both windows are open beside the burning squares")
     S.ext = H.give("Base.Extinguisher")
@@ -1122,19 +1337,39 @@ end)
 Q.step(2, function()
     H.stopActions()
     pcall(function() getCell():setDrag(nil, S.pn) end)
-    S.afterFire = H.scan(8, true)
-    Q.say("fire: " .. S.afterFire .. " squares still had fire or smoke after the three ways; put out directly")
+    pcall(function() S.p:StopBurning() end)
+    S.afterFire = H.scan(15, true)
+    S.fireDone = true
+    Q.say("fire: " .. S.afterFire .. " squares still had fire or smoke after the three ways; put out directly ("
+        .. tostring(S.strays or 0) .. " squares the fire spread to were put out by the guard during the scenes)")
+    -- the campfire, when Take apart did not take it: no fire of any kind may be left when god mode goes off
+    pcall(function()
+        local so = S.cfSq and SCampfireSystem.instance:getLuaObjectOnSquare(S.cfSq)
+        if so then SCampfireSystem.instance:removeCampfire(so) end
+    end)
     H.goHome()
 end)
 
 -- ===================================================================== 3. a burn, treated in the Health tab
 Q.step(6, function()
     if not H.alive() then S.hSkip = true; Q.skip("the burn scenes", "the character is not alive"); return end
+    -- god mode goes off for these scenes (it heals a wound at once): only with no fire left anywhere near and no
+    -- zombie about
+    local hot, onFire = H.scan(15, true), true
+    pcall(function() onFire = S.p:isOnFire() end)
+    local zeds = H.zombiesNear(20)
+    if hot > 0 or onFire or zeds > 0 then
+        S.hSkip = true
+        Q.skip("the burn scenes", "god mode must go off for them and it was not safe (" .. hot .. " squares with fire, the character burning "
+            .. tostring(onFire) .. ", " .. zeds .. " zombies within 20 tiles)")
+        return
+    end
     RT.pairOpen()
     RT.charTab("health")
-    pcall(function() S.p:setGodMod(false) end)
-    pcall(function() S.p:setInvincible(true) end)
     H.healAll()
+    S.godOff = true
+    pcall(function() S.p:setInvincible(true) end)
+    pcall(function() S.p:setGodMod(false) end)
     S.band = { H.give("Base.Bandage"), H.give("Base.Bandage") }
     pcall(function()
         local bp = H.bp()
@@ -1143,7 +1378,7 @@ Q.step(6, function()
         S.hGo = bp:getBurnTime() > 0
     end)
     setSpeed(2)
-    if not S.hGo then S.hSkip = true; Q.skip("the burn scenes", "the game did not keep the burn on the forearm") end
+    if not S.hGo then S.hSkip = true; H.burnEnd(); Q.skip("the burn scenes", "the game did not keep the burn on the forearm") end
 end)
 H.wait(4000, function() H.keepUp(); return S.hSkip or H.hasBurn(H.cache()) end, function(ok)
     if S.hSkip then return end
@@ -1256,36 +1491,42 @@ Q.step(2, function()
 end)
 Q.waitMs(800)
 Q.step(2, function()
-    if S.hSkip then return end
-    H.stopActions()
-    H.keepUp()
-    local d = H.model()
-    Q.check(d ~= nil and not H.hasBurn(d), "burn: healed, ZeD's Health data lists no burn on the forearm")
-    Q.check(H.alive(), "burn: the character is alive at the end of the burn scenes")
+    if not S.hSkip then
+        H.stopActions()
+        H.keepUp()
+        local d = H.model()
+        Q.check(d ~= nil and not H.hasBurn(d), "burn: healed, ZeD's Health data lists no burn on the forearm")
+        Q.check(H.alive(), "burn: the character is alive at the end of the burn scenes")
+    end
+    -- the burn scenes are over: healed, god mode back ON at once (the put-back does it again)
+    H.burnEnd()
 end)
 
 -- ===================================================================== put back
 Q.mark()
 Q.step(2, function()
     H.spyOff()
+    -- the body first, before anything else can throw: not burning, healed, god mode and invincible ON
+    S.godOff = false
+    pcall(function() S.p:StopBurning() end)
+    H.healAll()
+    pcall(function() S.p:setGodMod(true) end)
+    pcall(function() S.p:setInvincible(true) end)
     H.hideMenu()
     H.stopActions()
     pcall(function() getCell():setDrag(nil, S.pn) end)
     H.closeCard()
-    setSpeed(1)
-    pcall(function() S.p:StopBurning() end)
+    pcall(setSpeed, 1)
     -- the campfire, when Take apart did not take it
     pcall(function()
         local so = S.cfSq and SCampfireSystem.instance:getLuaObjectOnSquare(S.cfSq)
         if so then SCampfireSystem.instance:removeCampfire(so) end
     end)
+    S.fireDone = true
     S.doused = H.scan(15, true)
 end)
 Q.step(6, function()
     H.healAll()
-    H.statsBack()
-    pcall(function() S.p:setGodMod(S.was.god and true or false) end)
-    if S.was.inv ~= nil then pcall(function() S.p:setInvincible(S.was.inv) end) end
     S.wornChanged, S.wornN = H.wornBack()
     S.gone, S.kept = H.settle()
     pcall(function()
@@ -1303,6 +1544,32 @@ Q.step(6, function()
     if S.was.ctab then RT.charTab(S.was.ctab) end
 end)
 Q.waitMs(1500)
+-- healed again (the steps above may have run a game update), then PROVED, while god mode is still ON; god mode and
+-- invincible go back as found only for a healed body, and the guard is taken off only now
+Q.step(2, function() H.healAll() end)
+H.wait(4000, function() return (H.bodyClean()) end, function()
+    local ok, why = H.bodyClean()
+    if not ok and H.alive() then
+        H.healAll()
+        ok, why = H.bodyClean()
+    end
+    S.healed = ok
+    Q.check(ok, "put back: the character is alive and healed (health 100, no wound on any part, no fracture, not infected)", why)
+    Q.say("the guard: god mode put back on " .. tostring(S.regod or 0) .. " time(s), health topped up " .. tostring(S.topUps or 0)
+        .. " time(s), " .. tostring(S.strays or 0) .. " squares the fire spread to put out")
+    if S.healed then
+        if S.was.inv ~= nil then pcall(function() S.p:setInvincible(S.was.inv) end) end
+        pcall(function() S.p:setGodMod(S.was.god and true or false) end)
+        -- (the stats after the heal and after god mode: both reset every one of them)
+        H.statsBack()
+    else
+        pcall(function() S.p:setInvincible(true) end)
+        pcall(function() S.p:setGodMod(true) end)
+        Q.say("ERR the body is not whole: god mode and invincible are left ON")
+    end
+    S.live = false
+    Events.OnTick.Remove(H.safety)
+end)
 Q.step(2, function()
     if S.was.open == false then RT.pairShut() end
     Q.say("put back: " .. tostring(S.doused) .. " squares doused at the end, " .. tostring(S.gone) .. " things taken away, " .. tostring(S.kept)

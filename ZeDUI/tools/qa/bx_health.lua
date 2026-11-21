@@ -1,7 +1,23 @@
 -- ZeDUI/tools/qa/bx_health.lua  (Nov 21 2026, QA beast mode; tag bx_hlth)
 -- Injuries, sickness, sleep, rest and sit, done fast and in odd orders with ZeD's Health tab open. Run after
--- zedqa_prelude.lua and rt_kit.lua. God mode heals a wound at once, so it is OFF for the run with invincible ON
--- (both put back at the end).
+-- zedqa_prelude.lua and rt_kit.lua.
+-- SAFETY (Nov 21 2026, after the first run killed the character). God mode cannot stay on here: with it the game
+-- heals every wound on every update (BodyDamage.Update -> RestoreToFullHealth) and resets tiredness, breath and
+-- body heat (IsoGameCharacter.updateInternal), so nothing this script stages would last a frame. Invincible stays
+-- ON, but the game does not ask it before a death by infection or blood loss. So while god mode is off a guard
+-- runs on EVERY game tick (X.safety, Events.OnTick, not the step queue: it keeps running when a step throws):
+--   * the zombie infection never runs: the bite is kept as a wound only, its infection is taken off in the same
+--     call, and the guard clears any infection the game adds and its clock. The game's SetBitten(false) infects
+--     the part as well, so it is always followed by SetInfected(false);
+--   * (the first run died of blood loss, not of the bite's infection: at game speed x20 with god mode off, six
+--     bleeding parts and the bite put the game's BLEEDING moodle at its top level, which takes health off every
+--     part on every update, times 20; the infection, at Mortality 2-3 days, had not begun to hurt. The ZOMBIE
+--     moodle at 4 in that log is what the game shows on any dead body that carried the infection at all);
+--   * health under 75 is topped up on every part (the wounds stay); under 35 the run stops: god mode ON (the game
+--     itself then heals him) and the queue jumps to the put-back;
+--   * if the queue never reaches the end of the put-back, the guard heals him and turns god mode ON by itself.
+-- The put-back heals FIRST (god mode ON, so the game's own heal runs too), then proves it: a PASS/FAIL line for
+-- alive, health 100, no wound on any part, no fracture, not infected. If that fails god mode is left ON.
 --   1. WOUNDS: ten wound kinds on ten body parts, one every few frames (fracture, scratch, bleeding, deep wound,
 --      bullet, laceration, glass, bite, burn, infected wound). After each: the tab's own data (win._healthCache)
 --      names the wound in the game's word, the body figure's colour for the part follows its health, the counts
@@ -12,7 +28,8 @@
 --      are shut and reopened, disinfect, a Bandage entry picked after the bandages left the inventory, stitch,
 --      splint, remove bullet, remove glass, clean burn, and one bandage through the wheel's Medicine list
 --      (DpadWheels.H.treatments). After each the tab shows the new state and drops the old word.
---   4. INFECTION set and cured; everything healed: the tab is calm, no row left, the figure all healthy.
+--   4. THE BITE taken off (the body is never infected: with the sandbox's mortality on Instant one update kills);
+--      everything healed: the tab is calm, no row left, the figure all healthy.
 --   5. STATES: food sickness, a cold, drunk, panic, stress, boredom, unhappy, pain, wet, tired, out of breath, hot,
 --      cold, piled up without clearing. After each ZeD's moodle list is the game's (key and level), ZeD's moodle
 --      rect counts them and lies on screen; the full pile in each of the three Moodles places; the Thermal tab
@@ -33,7 +50,7 @@ Q.maxMs = 430000
 local p = RT.p
 local pn = RT.pn
 local X = {}
-local S = { holds = {}, objs = {}, found = {}, guard = false }
+local S = { holds = {}, objs = {}, found = {}, live = false, t0 = getTimestampMs() }
 local HT = ZeD and ZeD.HealthTab
 local MO = ZeD and ZeD.Moodles
 local CW = ZeD_CharacterWindow
@@ -59,7 +76,6 @@ function X.part(c) return bd:getBodyPart(BodyPartType[c.bp]) end
 -- every poll: nobody dies, the Character window stays drawn, the held stats stay where the scene wants them
 function X.hold()
     if p:isDead() then return end
-    if S.guard then pcall(function() if bd:getOverallBodyHealth() < 45 then bd:setOverallBodyHealth(100) end end) end
     local w = RT.cw()
     if w then
         pcall(function()
@@ -108,22 +124,143 @@ function X.healthTab()
     pcall(function() ok = RT.charTab("health") end)
     if not ok then pcall(CW.openTab, pn, "health") end
 end
--- every wound, splint, bandage and stitch off every part, then the game's own full heal (the flags first: taking a
--- bullet or glass out through the setter can leave a wound, which the full heal then clears)
+-- the zombie infection off the body and off every part (the game copies a part's infection to the body on its next
+-- update, and an infected body dies: at once with the sandbox's mortality on Instant)
+-- NOTE the game's BodyPart.SetBitten(false) INFECTS the part too (bytecode: with the world's Transmission not None it
+-- sets isInfected whatever the argument), so every SetBitten here is followed, in the same call, by SetInfected(false)
+-- or by this (vanilla's own cheat does the same: SetBitten(false), then SetInfected(false)).
+function X.noInfection()
+    local parts = bd:getBodyParts()
+    for i = 0, parts:size() - 1 do
+        local b = parts:get(i)
+        if b:IsInfected() then b:SetInfected(false) end
+        if b:IsFakeInfected() then b:SetFakeInfected(false) end
+    end
+    if bd:isInfected() then bd:setInfected(false) end
+    if bd:isIsFakeInfected() then bd:setIsFakeInfected(false) end
+    if st:get(CharacterStat.ZOMBIE_INFECTION) > 0 then st:set(CharacterStat.ZOMBIE_INFECTION, 0) end
+    if st:get(CharacterStat.ZOMBIE_FEVER) > 0 then st:set(CharacterStat.ZOMBIE_FEVER, 0) end
+    -- (and the infection clock: one update with an infected part starts it, and a later infection would count from
+    -- that old start instead of from zero)
+    if bd:getInfectionTime() >= 0 then bd:setInfectionTime(-1) end
+    if bd:getInfectionMortalityDuration() >= 0 then bd:setInfectionMortalityDuration(-1) end
+end
+-- every wound, splint, bandage and stitch off every part, then the game's own full heal. Each call is its own pcall
+-- (one wrong call must not stop the rest); the part's and the body's RestoreToFullHealth are what heal, the setters
+-- before them are a second belt. NOTE the body's full heal also resets every stat (hunger, thirst...): the put-back
+-- sets the stats as found after it.
 function X.healAll()
     local parts = bd:getBodyParts()
     for i = 0, parts:size() - 1 do
         local b = parts:get(i)
-        pcall(function() b:SetBitten(false); b:setBiteTime(0); b:SetInfected(false) end)
-        pcall(function() b:setHaveBullet(false, 10); b:setHaveGlass(false) end)
-        pcall(function() b:setFractureTime(0); b:setSplint(false); b:setSplintFactor(0) end)
-        pcall(function() b:setBurnTime(0); b:setNeedBurnWash(false) end)
-        pcall(function() b:setInfectedWound(false); b:setWoundInfectionLevel(0) end)
-        pcall(function() b:setBandaged(false, 0); b:setStitched(false) end)
+        pcall(function() b:SetBitten(false) end)
+        pcall(function() b:setBiteTime(0) end)
+        pcall(function() b:SetInfected(false) end)
+        pcall(function() b:SetFakeInfected(false) end)
+        pcall(function() b:setHaveBullet(false, 0) end)
+        pcall(function() b:setHaveGlass(false) end)
+        pcall(function() b:setFractureTime(0) end)
+        pcall(function() b:setSplint(false, 0) end)
+        pcall(function() b:setSplintFactor(0) end)
+        pcall(function() b:setBurnTime(0) end)
+        pcall(function() b:setNeedBurnWash(false) end)
+        pcall(function() b:setInfectedWound(false) end)
+        pcall(function() b:setWoundInfectionLevel(0) end)
+        pcall(function() b:setBandaged(false, 0) end)
+        pcall(function() b:setStitched(false) end)
         pcall(function() b:setAdditionalPain(0) end)
         pcall(function() b:RestoreToFullHealth() end)
+        pcall(function() b:SetHealth(100) end)
     end
     pcall(function() bd:RestoreToFullHealth() end)
+    pcall(function() bd:setInfected(false) end)
+    pcall(function() bd:setIsFakeInfected(false) end)
+    pcall(function() bd:setInfectionTime(-1) end)
+    pcall(function() bd:setInfectionMortalityDuration(-1) end)
+    pcall(function() st:set(CharacterStat.ZOMBIE_INFECTION, 0) end)
+    pcall(function() st:set(CharacterStat.ZOMBIE_FEVER, 0) end)
+end
+-- is the body whole? true, or false and what is wrong (alive, health, every part's wounds, fracture, infection)
+function X.bodyClean()
+    if p:isDead() then return false, "DEAD" end
+    local bad = {}
+    local okAll = pcall(function()
+        local h = bd:getOverallBodyHealth()
+        if h < 99 then bad[#bad + 1] = string.format("health %.1f", h) end
+        if bd:isInfected() then bad[#bad + 1] = "infected" end
+        if st:get(CharacterStat.ZOMBIE_INFECTION) > 0 then bad[#bad + 1] = "infection level " .. tostring(st:get(CharacterStat.ZOMBIE_INFECTION)) end
+        local parts = bd:getBodyParts()
+        for i = 0, parts:size() - 1 do
+            local b = parts:get(i)
+            local w = {}
+            if b:getFractureTime() > 0 then w[#w + 1] = "fracture" end
+            if b:bitten() then w[#w + 1] = "bite" end
+            if b:scratched() then w[#w + 1] = "scratch" end
+            if b:isCut() then w[#w + 1] = "cut" end
+            if b:deepWounded() then w[#w + 1] = "deep wound" end
+            if b:bleeding() then w[#w + 1] = "bleeding" end
+            if b:haveBullet() then w[#w + 1] = "bullet" end
+            if b:haveGlass() then w[#w + 1] = "glass" end
+            if b:getBurnTime() > 0 then w[#w + 1] = "burn" end
+            if b:isInfectedWound() then w[#w + 1] = "infected wound" end
+            if b:IsInfected() then w[#w + 1] = "infection" end
+            if b:bandaged() then w[#w + 1] = "bandage" end
+            if b:stitched() then w[#w + 1] = "stitches" end
+            if b:isSplint() then w[#w + 1] = "splint" end
+            if b:getHealth() < 99 then w[#w + 1] = string.format("health %.1f", b:getHealth()) end
+            if #w > 0 then bad[#bad + 1] = tostring(BodyPartType.getDisplayName(b:getType())) .. ": " .. table.concat(w, "+") end
+        end
+    end)
+    if not okAll then bad[#bad + 1] = "the body could not be read" end
+    if #bad > 0 then return false, table.concat(bad, "; ") end
+    return true, "health " .. string.format("%.1f", bd:getOverallBodyHealth()) .. ", no wound, no fracture, not infected"
+end
+-- stop the run and go to the put-back (the step queue's own jump; safe from inside a step and from the guard)
+function X.bail(why)
+    if S.bailed then return end
+    S.bailed = true
+    Q.check(false, "the run went on to its end", "stopped, on to the put-back: " .. tostring(why))
+    if Q.backAt and Q.qi < Q.backAt then Q.qi = Q.backAt; Q.wait = nil end
+end
+-- THE GUARD, on every game tick while god mode is off (see SAFETY at the top)
+function X.safety()
+    if not S.live then return end
+    local ok, err = pcall(function()
+        if p:isDead() then
+            if not S.deadSaid then
+                S.deadSaid = true
+                Q.check(false, "the character is alive", "DEAD during the run: restore the QA save from its backup")
+                X.bail("the character died")
+            end
+            return
+        end
+        X.noInfection()
+        local h = bd:getOverallBodyHealth()
+        if h < 75 then
+            local parts = bd:getBodyParts()
+            for i = 0, parts:size() - 1 do parts:get(i):SetHealth(100) end
+            S.topUps = (S.topUps or 0) + 1
+        end
+        if h < 35 and not S.bailed then
+            p:setGodMod(true)
+            X.bail("health fell to " .. string.format("%.1f", h) .. " past the guard: god mode ON")
+        end
+        -- the queue never came to the end of the put-back: heal here
+        if getTimestampMs() - S.t0 > Q.maxMs + 120000 then
+            S.live = false
+            X.healAll()
+            p:setGodMod(true)
+            p:setInvincible(true)
+            Q.say("ERR the put-back did not finish in time: the guard healed the character and left god mode ON")
+            Events.OnTick.Remove(X.safety)
+        end
+    end)
+    if not ok and not S.guardErrSaid then
+        S.guardErrSaid = true
+        Q.say("ERR the guard threw: " .. tostring(err))
+        pcall(function() p:setGodMod(true) end)
+        X.bail("the guard threw, god mode ON")
+    end
 end
 -- the parts the tab lists now that it did not list before the first wound
 function X.left()
@@ -223,21 +360,34 @@ Q.step(4, function()
     pcall(function() f.tod = getGameTime():getTimeOfDay() end)
     pcall(function() f.lastSleep = p:getLastHourSleeped() end)
     pcall(function() f.cold = bd:isHasACold(); f.coldStr = bd:getColdStrength() end)
-    pcall(function() f.wet = bd:getWetness() end)
     pcall(function() f.place = ZeD.Settings.moodlePlaceOption:getValue() end)
+    -- (every part's wetness: the game mixes the WETNESS stat into the parts each update and the stat back from them,
+    -- so the stat alone put back leaves the body wet)
+    f.partWet = {}
+    pcall(function()
+        local parts = bd:getBodyParts()
+        for i = 0, parts:size() - 1 do f.partWet[i] = parts:get(i):getWetness() end
+    end)
     f.stats = {}
     for _, k in ipairs({ "FOOD_SICKNESS", "SICKNESS", "POISON", "INTOXICATION", "PANIC", "STRESS", "BOREDOM", "UNHAPPINESS", "PAIN",
                          "WETNESS", "TEMPERATURE", "FATIGUE", "ENDURANCE", "HUNGER", "THIRST", "ZOMBIE_INFECTION", "ZOMBIE_FEVER" }) do
         pcall(function() f.stats[k] = st:get(CharacterStat[k]) end)
     end
-    if p:isDead() then Q.check(false, "the character is alive at the start", "dead"); return end
+    if p:isDead() then
+        Q.check(false, "the character is alive at the start", "dead")
+        X.bail("dead at the start")
+        return
+    end
     X.speed(1)
-    p:setGodMod(false)
+    -- the guard first, then god mode off (never off without the guard running)
+    S.live = true
+    Events.OnTick.Add(X.safety)
     pcall(function() p:setInvincible(true) end)
-    Q.check(p:isGodMod() == false, "god mode is off for the run (it heals a wound at once)", "was " .. tostring(f.god))
     X.healAll()
+    p:setGodMod(false)
+    Q.check(p:isGodMod() == false, "god mode is off for the run (it heals a wound at once), the guard is on", "was " .. tostring(f.god))
+    Q.check(p:isInvincible() == true, "invincible is on for the run", "was " .. tostring(f.inv))
     X.clearQueue()
-    S.guard = true
     for _, ft in ipairs({ "Base.Bandage", "Base.Bandage", "Base.Bandage", "Base.Bandage", "Base.Bandage", "Base.Bandage",
                           "Base.Disinfectant", "Base.AlcoholWipes", "Base.SutureNeedle", "Base.SutureNeedle", "Base.Needle", "Base.Thread",
                           "Base.Tweezers", "Base.SutureNeedleHolder", "Base.Splint", "Base.Plank", "Base.RippedSheets", "Base.RippedSheets" }) do
@@ -272,7 +422,10 @@ local W = {
       apply = function(b) if not pcall(function() b:generateDeepShardWound() end) then b:setHaveGlass(true); b:setDeepWounded(true) end end,
       has = function(b) return b:haveGlass() end },
     { id = "bite", fig = "Right Hand", list = "Right Hand", bp = "Hand_R", key = "IGUI_health_Bitten",
-      apply = function(b) b:SetBitten(true) end, has = function(b) return b:bitten() end },
+      -- (a bite infects: the infection is taken off in the same call, before the game's next update can copy it
+      -- to the body; the bite stays as a wound)
+      apply = function(b) b:SetBitten(true); b:SetInfected(false); b:SetFakeInfected(false); pcall(X.noInfection) end,
+      has = function(b) return b:bitten() end },
     { id = "burn", fig = "Upper Torso", list = "Upper Torso", bp = "Torso_Upper", zedKey = "UI_ZeD_Health_Burn",
       apply = function(b) if not pcall(function() b:setBurned() end) then b:setBurnTime(40); b:setNeedBurnWash(true) end end,
       has = function(b) return b:getBurnTime() > 0 end },
@@ -526,6 +679,8 @@ Q.step(4, function()
     local F, Det = RT.focus(), ZeD.Input and ZeD.Input.Detector
     local c = X.case("fracture")
     if not (F and Det and F.focusWhere and F.claimFocus) or c.off then Q.skip("the controller on a part", "no focus manager, or no fracture"); return end
+    X.healthTab()
+    if not RT.cw() then Q.check(false, "the Character window is there for the controller", "no window"); return end
     local ok, el = pcall(function()
         Det.setLockedMode(Det.MODE_GAMEPAD)
         S.padLocked = true
@@ -554,22 +709,20 @@ function X.padOff()
 end
 
 -- ===================================================================== 4. infection, then everything healed
+-- (the body is never infected here: an infected body dies, at once with the sandbox's mortality on Instant, and the
+-- Health tab never reads the zombie infection, it shows only the wound's own Infected word; ZeD's moodle checks in
+-- section 5 compare the whole moodle list, ZOMBIE included, with the game's)
 Q.step(4, function()
     local c = X.case("bite")
-    Q.say("after the bite: the game says infected " .. tostring(bd:IsInfected()))
-    pcall(function() bd:setInfected(true) end)
-    pcall(function() st:set(CharacterStat.ZOMBIE_INFECTION, CharacterStat.ZOMBIE_INFECTION:getMaximumValue() * 0.6) end)
+    Q.check(bd:IsInfected() == false, "the bite was kept as a wound only: the game says not infected", "infection level " .. tostring(st:get(CharacterStat.ZOMBIE_INFECTION)))
     local d = X.fresh()
-    if d and not c.off then Q.check(X.hasLabel(X.entry(d, c.list), X.word("IGUI_health_Bitten")), "infected: the bitten hand is still named Bitten", X.labels(X.entry(d, c.list))) end
-end)
-X.pause(500)
-Q.step(1, function()
-    local c = X.case("bite")
-    pcall(function() bd:setInfected(false) end)
-    pcall(function() bd:setInfectionTime(-1) end)
-    pcall(function() st:set(CharacterStat.ZOMBIE_INFECTION, 0); st:set(CharacterStat.ZOMBIE_FEVER, 0) end)
-    pcall(function() local b = X.part(c); b:SetInfected(false); b:SetBitten(false); b:setBiteTime(0); b:setBandaged(false, 0) end)
-    Q.check(bd:IsInfected() == false, "cured: the game says not infected")
+    if d and not c.off then Q.check(X.hasLabel(X.entry(d, c.list), X.word("IGUI_health_Bitten")), "the bitten hand is still named Bitten", X.labels(X.entry(d, c.list))) end
+    -- (SetBitten(false) FIRST: the game's SetBitten sets the part infected whatever its argument; the infection comes
+    -- off after it, in this same call, before the game's next update can copy it to the body)
+    pcall(function() local b = X.part(c); b:SetBitten(false); b:SetInfected(false); b:SetFakeInfected(false); b:setBiteTime(0); b:setBandaged(false, 0) end)
+    pcall(X.noInfection)
+    Q.check(not X.part(c):bitten() and not X.part(c):IsInfected(), "cured: the bite is off the hand and the hand is not infected",
+        "bitten " .. tostring(X.part(c):bitten()) .. ", infected " .. tostring(X.part(c):IsInfected()))
 end)
 X.untilMs(1500, function() return not X.shownHas(X.case("bite"), X.word("IGUI_health_Bitten")) end, function(ok)
     Q.check(ok, "cured: the tab drops Bitten from the hand", X.labels(X.entry(X.shown(), "Right Hand")))
@@ -600,7 +753,8 @@ Q.step(8, function()
     local sh = X.shown()
     Q.check(#(w and w._healthInjuryZones or {}) <= #(sh and sh.entries or {}), "and no injury row is left over on the tab", #(w and w._healthInjuryZones or {}) .. " rows, " .. #(sh and sh.entries or {}) .. " listed")
     RT.bounds(Q, "health tab, healed")
-    S.guard = false
+    local okB, whyB = X.bodyClean()
+    Q.check(okB, "after the wounds: the body is whole again before the states start", whyB)
 end)
 
 -- ===================================================================== 5. states and moodles
@@ -668,7 +822,7 @@ local M = {
     { id = "boredom", mood = "BORED", set = function() X.setStat("BOREDOM", 0.8) end },
     { id = "unhappy", mood = "UNHAPPY", set = function() X.setStat("UNHAPPINESS", 0.8) end },
     { id = "pain", mood = "PAIN", set = function() X.setStat("PAIN", 0.7) end },
-    { id = "wet", mood = "WET", set = function() X.setStat("WETNESS", 0.8); pcall(function() bd:setWetness(80) end) end },
+    { id = "wet", mood = "WET", set = function() X.setStat("WETNESS", 0.8) end },
     { id = "tired", mood = "TIRED", set = function() X.setStat("FATIGUE", 0.85) end },
     { id = "out of breath", mood = "ENDURANCE", set = function() X.setStat("ENDURANCE", 0.1) end },
     { id = "hot", mood = "HYPERTHERMIA", set = function() X.setStat("TEMPERATURE", nil, 40.5) end, alone = true },
@@ -745,7 +899,10 @@ function X.clearStates()
     for k, v in pairs(f.stats) do pcall(function() st:set(CharacterStat[k], v) end) end
     pcall(function() st:set(CharacterStat.PANIC, 0); st:set(CharacterStat.PAIN, 0) end)
     pcall(function() bd:setHasACold(f.cold and true or false); bd:setColdStrength(f.coldStr or 0) end)
-    pcall(function() bd:setWetness(f.wet or 0) end)
+    pcall(function()
+        local parts = bd:getBodyParts()
+        for i = 0, parts:size() - 1 do if f.partWet and f.partWet[i] then parts:get(i):setWetness(f.partWet[i]) end end
+    end)
     pcall(function() bd:setInfected(false) end)
 end
 Q.step(3, function() X.clearStates() end)
@@ -814,10 +971,18 @@ function X.removeObj(o)
     if not o then return end
     local sq = nil
     pcall(function() sq = o:getSquare() end)
+    -- (the plain removal: the one-argument calls first look for the other tiles of a couch or a bed, find none
+    -- for a lone placed tile, warn "Failed to find all parts of a multi-tile object" and remove nothing: the first
+    -- run left its chair standing that way)
     if sq then
-        pcall(function() sq:transmitRemoveItemFromSquare(o) end)
-        pcall(function() if o:getObjectIndex() >= 0 then sq:RemoveTileObject(o) end end)
+        pcall(function() if sq:getObjects():contains(o) then sq:RemoveTileObject(o, false) end end)
+        pcall(function() if sq:getObjects():contains(o) then sq:transmitRemoveItemFromSquare(o, false) end end)
     end
+end
+function X.objGone(o)
+    local there = false
+    pcall(function() local sq = o:getSquare(); there = sq ~= nil and sq:getObjects():contains(o) end)
+    return not there
 end
 -- a seat tile (a chair or a bed) on a free square near home: the first sprite the game has seat places for
 function X.place(prefixes, dx, dy, wantBed)
@@ -828,6 +993,12 @@ function X.place(prefixes, dx, dy, wantBed)
             local name = pre .. i
             local spr = getSprite(name)
             local good = spr ~= nil
+            if good and not wantBed then
+                -- a chair of one tile only (one tile of a couch is half a couch)
+                local grid = nil
+                pcall(function() grid = spr:getSpriteGrid() end)
+                if grid ~= nil then good = false end
+            end
             if good and wantBed then
                 good = false
                 pcall(function() good = spr:getProperties():has("BedType") end)
@@ -1043,6 +1214,7 @@ function X.seatScene(label, prefixes, dy, wantBed, sleepToo)
         if not t.o then return end
         X.clearQueue()
         X.removeObj(t.o)
+        Q.check(X.objGone(t.o), label .. ": the placed tile is off the square again")
         local sl = X.sitSlices()
         local okN, seat = pcall(DH.nearestSeat, p)
         Q.check(okN and seat ~= t.o, label .. ": taken away, the wheel no longer finds it", tostring(seat))
@@ -1054,9 +1226,17 @@ X.seatScene("a bed", { "furniture_bedding_01_" }, 2, true, true)
 
 -- ===================================================================== PUT BACK
 Q.mark()
+-- the body FIRST, in its own step: healed by the script and, with god mode ON, by the game itself on its next
+-- update. Nothing before it in the put-back can throw past it.
+Q.step(1, function()
+    S.holds = {}
+    pcall(X.speed, 1)
+    pcall(X.healAll)
+    pcall(function() p:setInvincible(true) end)
+    pcall(function() p:setGodMod(true) end)
+end)
 Q.step(2, function()
     S.holds = {}
-    S.guard = false
     if save == nil then Q.say("ERR the game's save() is missing") end
     if p:isAsleep() then X.wake() end
     pcall(function() if ISWorldObjectContextMenu.sleepDialog then ISWorldObjectContextMenu.sleepDialog:destroy(); ISWorldObjectContextMenu.sleepDialog = nil end end)
@@ -1073,20 +1253,46 @@ X.untilMs(6000, function() return not X.sitting() and not p:isAsleep() end, func
         pcall(function() p:setSitOnGround(false) end)
         pcall(function() p:setSitOnFurnitureObject(nil); p:setSittingOnFurniture(false) end)
     end
-    for _, o in ipairs(S.objs) do X.removeObj(o) end
+    local left = 0
+    for _, o in ipairs(S.objs) do
+        X.removeObj(o)
+        if not X.objGone(o) then left = left + 1 end
+    end
+    if #S.objs > 0 then Q.check(left == 0, "put back: the placed chair and bed are off the ground", left .. " of " .. #S.objs .. " still there") end
     S.objs = {}
+end)
+-- healed again (the steps above may have run a game update with a wound on), then PROVED, while god mode is still ON
+Q.step(2, function() pcall(X.healAll) end)
+X.untilMs(4000, function() return X.bodyClean() end, function()
+    local ok, why = X.bodyClean()
+    if not ok and not p:isDead() then
+        pcall(X.healAll)
+        ok, why = X.bodyClean()
+    end
+    S.healed = ok
+    Q.check(ok, "put back: the character is alive and healed (health 100, no wound on any part, no fracture, not infected)", why)
+    Q.say("the guard topped his health up " .. tostring(S.topUps or 0) .. " time(s) in the run")
 end)
 Q.step(4, function()
     local f = S.found
-    X.healAll()
-    X.clearStates()
-    pcall(function() bd:setInfectionTime(-1) end)
+    -- (the stats after the heal: the game's full heal resets every one of them; in a pcall so nothing here can keep
+    -- the god mode decision and the guard's removal below from running)
+    pcall(X.clearStates)
     pcall(function() st:set(CharacterStat.ZOMBIE_INFECTION, 0); st:set(CharacterStat.ZOMBIE_FEVER, 0) end)
-    pcall(function() bd:setOverallBodyHealth(100) end)
     if f.lastSleep ~= nil then pcall(function() p:setLastHourSleeped(f.lastSleep) end) end
     if f.place ~= nil then pcall(function() ZeD.Settings.moodlePlaceOption:setValue(f.place) end) end
-    if f.inv ~= nil then pcall(function() p:setInvincible(f.inv) end) end
-    p:setGodMod(f.god and true or false)
+    -- god mode and invincible as found, but only for a healed body: a hurt one keeps both ON, and the guard is
+    -- taken off only now
+    if S.healed then
+        if f.inv ~= nil then pcall(function() p:setInvincible(f.inv) end) end
+        pcall(function() p:setGodMod(f.god and true or false) end)
+    else
+        pcall(function() p:setInvincible(true) end)
+        pcall(function() p:setGodMod(true) end)
+        Q.say("ERR the body is not whole: god mode and invincible are left ON")
+    end
+    S.live = false
+    Events.OnTick.Remove(X.safety)
     if f.tod ~= nil then
         pcall(function()
             local gt = getGameTime()
@@ -1116,9 +1322,22 @@ end)
 Q.step(20, function()
     local f = S.found
     local d = X.fresh()
-    Q.check(d and d.woundedCount == 0, "put back: no wound on the body", tostring(d and d.woundedCount))
-    Q.check(bd:IsInfected() == false and not p:isAsleep() and not X.sitting(), "put back: not infected, awake, standing")
-    Q.check(p:isGodMod() == (f.god and true or false), "put back: god mode as found", tostring(f.god))
+    Q.check(d and d.woundedCount == 0, "put back: the Health tab's data has no wound on the body", tostring(d and d.woundedCount))
+    -- (the last look at the body, after every other put-back step)
+    local okB, whyB = X.bodyClean()
+    if not okB and not p:isDead() then
+        pcall(X.healAll)
+        pcall(function() p:setGodMod(true); p:setInvincible(true) end)
+        S.healed = false
+    end
+    Q.check(okB, "put back, last look: alive, health 100, no wound on any part, no fracture, not infected", whyB)
+    Q.check(not p:isDead() and bd:IsInfected() == false and not p:isAsleep() and not X.sitting(), "put back: alive, not infected, awake, standing")
+    if S.healed then
+        Q.check(p:isGodMod() == (f.god and true or false), "put back: god mode as found", "found " .. tostring(f.god) .. ", now " .. tostring(p:isGodMod()))
+        if f.inv ~= nil then Q.check(p:isInvincible() == f.inv, "put back: invincible as found", "found " .. tostring(f.inv) .. ", now " .. tostring(p:isInvincible())) end
+    else
+        Q.check(p:isGodMod() == true, "put back: the body was not whole, so god mode is left ON", tostring(p:isGodMod()))
+    end
     Q.check(getGameSpeed() == 1, "put back: game speed 1", tostring(getGameSpeed()))
     Q.check(RT.isOpen() == (f.open and true or false), "put back: the windows as found")
     local _, n = X.gameMoodles()

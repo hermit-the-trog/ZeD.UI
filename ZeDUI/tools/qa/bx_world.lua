@@ -43,6 +43,11 @@
 -- and light switch as found, broken glass swept, the grid as found, every item the run gave or the game handed over
 -- taken out of the main inventory, the hands as found, the character healed, standing, not crouched, at home, the
 -- instant-action cheat as found, game speed 1, both windows on Loot and open or shut as found.
+-- The character: god mode and invincible are ON from the first line to the last step (the smashed window scratches
+-- whoever climbs it, and the noise calls zombies); a building's alarm is switched off before the run goes in and back
+-- on once the game has him home. The last step heals him, reads the body back from the game and prints "put back: the
+-- character is alive and healed" as a PASS or FAIL; god mode and invincible go back as found only when he is whole
+-- and home. Each piece of the put-back runs on its own, so an error in one never skips the heal.
 
 if not RT then
     print("ZEDQA bx_wld FAIL the kit (rt_kit.lua) is not loaded")
@@ -64,8 +69,77 @@ if not p or p:isDead() then
     Q.start()
     return
 end
+-- (Nov 21 2026, QA, the preflight: the run goes into a building 40 tiles off, smashes a window and climbs through the
+-- broken glass (the game scratches whoever does), and its noise calls zombies. God mode and invincible go ON here,
+-- before the first step, whatever the script before left, and stay on to the very end; the put-back heals him, says
+-- so in a PASS / FAIL line, and only then puts the two cheats back as found.)
+S.alarms = {}
+pcall(function() S.godWas = p:isGodMod() and true or false end)
+pcall(function() S.invWas = p:isInvincible() and true or false end)
+pcall(function() p:setGodMod(true) end)
+pcall(function() p:setInvincible(true) end)
 
 -- ===================================================================== helpers
+-- god mode and invincible on (called again at every move and at the put-back: nothing may switch them off mid-run)
+function H.guard()
+    pcall(function() if not p:isGodMod() then p:setGodMod(true) end end)
+    pcall(function() if not p:isInvincible() then p:setInvincible(true) end end)
+end
+-- every wound off every part, then the game's own full heal (each call on its own, with the game's argument counts,
+-- so one refused call never stops the rest)
+function H.healAll()
+    local bd = nil
+    pcall(function() bd = p:getBodyDamage() end)
+    if not bd then return end
+    local parts = nil
+    pcall(function() parts = bd:getBodyParts() end)
+    for i = 0, (parts and parts:size() or 0) - 1 do
+        local b = parts:get(i)
+        pcall(function() b:setHaveGlass(false) end)
+        pcall(function() b:setHaveBullet(false, 0) end)
+        pcall(function() b:SetBitten(false) end)
+        pcall(function() b:SetInfected(false) end)
+        pcall(function() b:setInfectedWound(false) end)
+        pcall(function() b:setFractureTime(0) end)
+        pcall(function() b:setBurnTime(0) end)
+        pcall(function() b:RestoreToFullHealth() end)
+    end
+    pcall(function() bd:RestoreToFullHealth() end)
+end
+-- what is still wrong with the body, in words ("" when he is whole)
+function H.hurt()
+    local bad = {}
+    local okD, dead = pcall(function() return p:isDead() end)
+    if not okD or dead then bad[#bad + 1] = "dead" end
+    local ok, err = pcall(function()
+        local bd = p:getBodyDamage()
+        if bd:getOverallBodyHealth() < 99.5 then bad[#bad + 1] = "health " .. tostring(bd:getOverallBodyHealth()) end
+        if bd:IsInfected() then bad[#bad + 1] = "infected" end
+        local parts = bd:getBodyParts()
+        for i = 0, parts:size() - 1 do
+            local b = parts:get(i)
+            if b:scratched() or b:isCut() or b:deepWounded() or b:bitten() or b:bleeding() or b:getFractureTime() > 0 or b:getBurnTime() > 0
+                or b:haveGlass() or b:haveBullet() or b:isInfectedWound() or b:IsInfected() then
+                bad[#bad + 1] = "a wound on part " .. i
+            end
+        end
+    end)
+    if not ok then bad[#bad + 1] = "the body could not be read (" .. tostring(err) .. ")" end
+    return table.concat(bad, ", ")
+end
+-- a house alarm rings at a window opened or smashed and at a step inside, and calls every zombie around: the
+-- building's alarm is switched off before the run touches it, and back on at the put-back
+function H.disarm(sq)
+    pcall(function()
+        local b = sq and sq:getBuilding()
+        local def = b and b:getDef()
+        if def and def:isAlarmed() then
+            def:setAlarmed(false)
+            S.alarms[#S.alarms + 1] = def
+            Q.say("NOTE the alarm of the building at " .. sq:getX() .. "," .. sq:getY() .. " is off for the run, back on at the put-back")
+        end
+    end)
+end
 -- a wait in real time: every frame until cond() holds or ms have passed, then fn(held)
 function H.wait(ms, cond, fn)
     local st = {}
@@ -117,11 +191,21 @@ function H.freeNear(offsets)
     return nil
 end
 function H.moveTo(x, y, z)
+    H.guard()
+    H.disarm(H.sq(math.floor(x), math.floor(y), math.floor(z)))
     pcall(function() p:teleportTo(x, y, z) end)
     p:setX(x); p:setY(y); p:setZ(z); p:setLastX(x); p:setLastY(y); p:setLastZ(z)
     S.moved = true
+    S.at = { x = math.floor(x), y = math.floor(y) }
 end
 function H.moveToSq(sq) H.moveTo(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ()) end
+-- after a move: the game has the character on the square he was sent to (no blind wait), 1.5 s at most
+function H.arrive()
+    H.wait(1500, function()
+        local sq = p:getCurrentSquare()
+        return S.at == nil or (sq ~= nil and sq:getX() == S.at.x and sq:getY() == S.at.y)
+    end, function() end)
+end
 -- a free square to stand on: the square itself, else one beside it (inRoom: in the same room)
 function H.standBy(sq, inRoom)
     if not sq then return nil end
@@ -548,10 +632,14 @@ H.wait(3000, function() return not (S.whArm and S.subI) or H.wheelUp() end, func
     if not (S.whArm and S.subI) then return end
     local m = S.wh
     S.emI = nil
+    -- (a group's wheel is told from the first wheel by the game's Back slice: the first wheel has quick emotes too)
+    local back = false
     for i, s in ipairs(m.slices or {}) do
         if not S.emI and s.command and s.command[1] == ISEmoteRadialMenu.emote then S.emI = i end
+        if s.command and s.command[1] == ISEmoteRadialMenu.fillMenu and s.command[3] == nil then back = true end
     end
-    if not Q.check(ok and S.emI ~= nil, "emote wheel: a click on a group fills the wheel with that group's emotes", #(m.slices or {}) .. " slices") then S.emI = nil; return end
+    if not Q.check(ok and S.emI ~= nil and back, "emote wheel: a click on a group fills the wheel with that group's emotes and the game's Back",
+        #(m.slices or {}) .. " slices, Back " .. tostring(back)) then S.emI = nil; return end
     RT.bounds(Q, "the emote group")
     S.emoteRan = nil
     local x, y = H.sliceXY(m, S.emI)
@@ -787,7 +875,10 @@ function H.goodFence(o, sq)
     if not o:isHoppable() or o:isTallHoppable() or sq:getRoom() ~= nil then return false end
     local north = sq:has(IsoFlagType.HoppableN)
     if not north and not sq:has(IsoFlagType.HoppableW) then return false end
-    local to = north and H.freeSq(sq:getX(), sq:getY() - 1, 0) or H.freeSq(sq:getX() - 1, sq:getY(), 0)
+    -- (the far square is the one across THIS fence: a north fence with its far square taken is no fence to climb,
+    -- never the west square in its place)
+    local to = nil
+    if north then to = H.freeSq(sq:getX(), sq:getY() - 1, 0) else to = H.freeSq(sq:getX() - 1, sq:getY(), 0) end
     if not (to and to:getRoom() == nil and H.freeSq(sq:getX(), sq:getY(), 0)) then return false end
     S.fenceFrom, S.fenceTo, S.fenceDir = sq, to, north and IsoDirections.N or IsoDirections.W
     return true
@@ -813,7 +904,8 @@ function H.scanSq(x, y)
     if not sq then return end
     local objs = sq:getObjects()
     if objs:size() < 2 then return end
-    for i = 0, objs:size() - 1 do H.classify(objs:get(i), sq) end
+    -- (one odd object that refuses a question must not end the whole search: the building scenes all hang on it)
+    for i = 0, objs:size() - 1 do pcall(H.classify, objs:get(i), sq) end
 end
 -- the squares r tiles out, nearest first, so the first of each kind found is the nearest
 function H.scanRing(cx, cy, r)
@@ -853,6 +945,11 @@ function H.gridBack()
     if S.elec and S.elecWas ~= nil then pcall(function() S.elec:setValue(S.elecWas); S.so:toLua() end) end
     if S.hydroWas ~= nil then pcall(function() getWorld():setHydroPowerOn(S.hydroWas) end) end
     S.gridTouched = false
+end
+-- a door or a window stands between two squares: the alarm of the building on either side
+function H.disarmAt(o)
+    pcall(function() H.disarm(o:getSquare()) end)
+    pcall(function() H.disarm(o:getOppositeSquare()) end)
 end
 function H.where(o)
     if not o then return "none" end
@@ -934,7 +1031,7 @@ Q.step(5, function()
     H.moveTo(S.spot.x, S.spot.y, S.spot.z)
     S.tvArm = true
 end)
-Q.waitMs(1200)
+H.arrive()
 Q.step(3, function()
     if not S.tvArm then return end
     RT.pairOpen()
@@ -980,14 +1077,14 @@ H.wait(2500, function() return not (S.tvPow and S.chArm) or H.chan(S.tv) ~= S.ch
     for _ = 1, 29 do H.volPress(1) end
     if not S.volArm then Q.skip("TV: the volume mashed", "this face has no volume control") end
 end)
-Q.waitMs(1200)
+H.wait(1200, function() return not (S.tvPow and S.volArm) or H.vol(S.tv) > S.v0 end, function() end)
 Q.step(2, function()
     if not (S.tvPow and S.volArm) then return end
     S.vTop = H.vol(S.tv)
     Q.check(S.vTop > S.v0 and S.vTop <= 1.0001, "TV: thirty volume-ups in one frame raise the volume and never past full", tostring(S.v0) .. " -> " .. tostring(S.vTop))
     for _ = 1, 40 do H.volPress(-1) end
 end)
-Q.waitMs(1200)
+H.wait(1200, function() return not (S.tvPow and S.volArm) or H.vol(S.tv) < S.vTop end, function() end)
 Q.step(2, function()
     if not S.tvPow then return end
     if S.volArm then
@@ -1129,7 +1226,7 @@ Q.step(8, function()
     H.moveToSq(sq)
     S.ltArm = true
 end)
-Q.waitMs(1000)
+H.arrive()
 Q.step(3, function()
     if not S.ltArm then return end
     RT.pairOpen()
@@ -1214,10 +1311,11 @@ Q.step(8, function()
     if not sq then Q.skip("door: every check", "no free square at the door"); return end
     local d = S.door
     S.doorWas = { open = d:IsOpen(), locked = d:isLocked(), key = d:isLockedByKey() }
+    H.disarmAt(d)
     H.moveToSq(sq)
     S.drArm = true
 end)
-Q.waitMs(1000)
+H.arrive()
 H.worldMenu("door", function() return S.drArm and S.door or nil end)
 Q.step(3, function()
     if not S.drArm then return end
@@ -1315,10 +1413,11 @@ Q.step(8, function()
     if not (sq and sq:isFree(false)) then Q.skip("window and curtains: every check", "no free square at the window"); return end
     S.winWas = { open = w:IsOpen(), locked = w:isLocked(), perma = w:isPermaLocked(), smashed = w:isSmashed(), glass = w:isGlassRemoved(),
                  hp = w:getHealth(), spr = w:getSprite() }
+    H.disarmAt(w)
     H.moveToSq(sq)
     S.wnArm = true
 end)
-Q.waitMs(1000)
+H.arrive()
 H.worldMenu("window", function() return S.wnArm and S.window or nil end)
 Q.step(3, function()
     if not S.wnArm then return end
@@ -1394,7 +1493,7 @@ end, function(ok)
     end
     H.stop()
     H.windowBack()
-    pcall(function() p:getBodyDamage():RestoreToFullHealth() end)
+    H.healAll()
     H.fin("the window")
 end)
 
@@ -1408,7 +1507,7 @@ Q.step(8, function()
     H.moveToSq(sq)
     S.toArm = true
 end)
-Q.waitMs(1000)
+H.arrive()
 H.worldMenu("toilet", function() return S.toArm and S.toilet or nil end)
 Q.step(3, function()
     S.seatArm = false
@@ -1460,7 +1559,7 @@ Q.step(8, function()
     H.moveToSq(sq)
     S.waArm = true
 end)
-Q.waitMs(1000)
+H.arrive()
 Q.step(3, function()
     if not S.waArm then return end
     RT.pairOpen()
@@ -1511,7 +1610,7 @@ Q.step(8, function()
     H.moveToSq(S.fenceFrom)
     S.fnArm = true
 end)
-Q.waitMs(1000)
+H.arrive()
 Q.step(3, function()
     if not S.fnArm then return end
     RT.pairOpen()
@@ -1533,42 +1632,78 @@ end)
 
 -- ===================================================================== put back
 Q.mark()
+-- one piece of the put-back: an error in it is a FAIL line and the next piece still runs
+function H.back(what, fn)
+    local ok, err = pcall(fn)
+    if not ok then Q.check(false, "put back: " .. what .. " ran without an error", tostring(err)) end
+end
+-- the building alarms switched off for the run, back on. (Nov 21 2026, QA review: only once the game has him home.
+-- The game rings a building's alarm for a character whose current square is in one of its rooms, and that square
+-- moves only on the game's update after a move: re-armed in the same frame as the trip home, the building he stood
+-- in would ring at once and call zombies. A building the game still has him in stays off, with a NOTE.)
+function H.alarmsBack()
+    local here = nil
+    pcall(function() local sq = p:getCurrentSquare(); local b = sq and sq:getBuilding(); here = b and b:getDef() or nil end)
+    for _, def in ipairs(S.alarms or {}) do
+        if here ~= nil and def == here then
+            Q.say("NOTE the alarm of the building the character still stands in is left off")
+        else
+            pcall(function() def:setAlarmed(true) end)
+        end
+    end
+    S.alarms = {}
+end
+-- (the body first, in a step of its own: whatever a scene left and whatever the pieces below do, he is guarded and
+-- healed before anything else is touched)
 Q.step(5, function()
-    H.stop()
-    H.cheat(S.cheatWas)
-    if ZEDQA_SPEED then ZEDQA_SPEED(1) else setGameSpeed(1) end
-    H.emoteBack()
-    H.closeMenu()
-    H.closeCard()
+    H.guard()
+    H.healAll()
+end)
+Q.step(2, function()
+    H.back("the queue, the cheat and the speed", function()
+        H.stop()
+        H.cheat(S.cheatWas)
+        if ZEDQA_SPEED then ZEDQA_SPEED(1) else setGameSpeed(1) end
+    end)
+    H.back("the emote wheel", H.emoteBack)
+    H.back("the menu and the card", function() H.closeMenu(); H.closeCard() end)
     pcall(function() local r = ZeD.Reader.get(pn); if r and r:isReallyVisible() then r:close() end end)
     pcall(function() ZeD.Stations.unbind(p) end)
-    H.doorBack()
-    H.windowBack()
-    if S.sw and S.swWas ~= nil and S.sw:isActivated() ~= S.swWas then
-        H.setGrid(true)
-        pcall(function() S.sw:toggle() end)
-    end
-    for _, o in ipairs(S.placed) do H.removeObj(o) end
-    H.gridBack()
-    H.standUp()
-    pcall(function() p:setSitOnFurnitureObject(nil); p:setSittingOnFurniture(false) end)
-    p:setAutoWalk(false)
-    p:setSneaking(S.sneakWas and true or false)
-    pcall(function() p:getBodyDamage():RestoreToFullHealth() end)
-    pcall(function() p:getBodyDamage():setWetness(0) end)
-    if S.home then H.moveTo(S.home.x, S.home.y, S.home.z) end
-    S.t0 = getTimestampMs()
+    H.back("the door", H.doorBack)
+    H.back("the window and its curtains", H.windowBack)
+    H.back("the light switch", function()
+        if S.sw and S.swWas ~= nil and S.sw:isActivated() ~= S.swWas then
+            H.setGrid(true)
+            S.sw:toggle()
+        end
+    end)
+    -- (a generator still running, when the run jumped here, is stopped and unplugged before it leaves the world)
+    pcall(function() if S.gen and S.gen:getObjectIndex() >= 0 then S.gen:setActivated(false); S.gen:setConnected(false) end end)
+    for _, o in ipairs(S.placed) do H.back("a thing set down taken away", function() H.removeObj(o) end) end
+    H.back("the grid", H.gridBack)
+    -- (the alarms go back on later, once the game has him home: H.alarmsBack)
+    H.back("the stance", function()
+        H.standUp()
+        pcall(function() p:setSitOnFurnitureObject(nil); p:setSittingOnFurniture(false) end)
+        p:setAutoWalk(false)
+        p:setSneaking(S.sneakWas and true or false)
+    end)
+    H.healAll()
+    if S.home then H.back("the way home", function() H.moveTo(S.home.x, S.home.y, S.home.z) end) end
 end)
 Q.step(5, function()
     if S.prim ~= nil and S.inv0 and not S.inv0[S.prim] then S.prim = nil end
-    S.swept = H.sweepInv()
+    if S.sec ~= nil and S.inv0 and not S.inv0[S.sec] then S.sec = nil end
+    H.back("the things given", function() S.swept = H.sweepInv() end)
     RT.takeBack()
     pcall(function() p:setPrimaryHandItem(S.prim); p:setSecondaryHandItem(S.sec) end)
     Q.say("put back: " .. tostring(S.swept) .. " things the run gave or the game handed over taken out of the main inventory")
 end)
+-- (the game has him on the home square, his current square moved there: no blind wait, 4 s at most)
 H.wait(4000, function()
     if not S.home then return true end
-    return H.sq(math.floor(S.home.x), math.floor(S.home.y), math.floor(S.home.z)) ~= nil and getTimestampMs() - S.t0 > 1500
+    local sq = p:getCurrentSquare()
+    return sq ~= nil and sq:getX() == math.floor(S.home.x) and sq:getY() == math.floor(S.home.y)
 end, function()
     if ZEDQA_HOME then pcall(ZEDQA_HOME, "bx_wld") end
     RT.pairOpen()
@@ -1577,17 +1712,49 @@ end, function()
 end)
 Q.step(10, function()
     if S.pairWas == false then RT.pairShut() end
-    local hx, hy = math.floor(S.home and S.home.x or 0), math.floor(S.home and S.home.y or 0)
-    Q.check(math.abs(p:getX() - (hx + 0.5)) <= 3 and math.abs(p:getY() - (hy + 0.5)) <= 3, "put back: the character is home", math.floor(p:getX()) .. "," .. math.floor(p:getY()))
-    Q.check(p:getPrimaryHandItem() == S.prim and p:getSecondaryHandItem() == S.sec, "put back: the hands hold what they held")
-    Q.check(H.newItems() == 0, "put back: nothing the run gave is left in the main inventory", H.newItems() .. " left")
-    local left = 0
-    for _, o in ipairs(S.placed) do if o:getObjectIndex() >= 0 then left = left + 1 end end
-    Q.check(left == 0, "put back: everything set down is taken away (generator, TV, radio, stove)", left .. " left")
-    if S.doorOk ~= nil then Q.check(S.doorOk and not S.door:isBarricaded(), "put back: the door is as it was found, no plank on it") end
-    if S.winOk ~= nil then Q.check(S.winOk, "put back: the window is whole and as it was found", "smashed " .. tostring(S.window:isSmashed())) end
-    Q.check(not p:isSitOnGround() and not p:isSittingOnFurniture() and p:isSneaking() == (S.sneakWas and true or false) and H.queueEmpty(),
-        "put back: the character stands, crouched or not as found, with nothing queued")
-    Q.check(getGameSpeed() == 1, "put back: game speed 1", tostring(getGameSpeed()))
+    H.back("the building alarms", H.alarmsBack)
+    H.back("the checks on the world", function()
+        local hx, hy = math.floor(S.home and S.home.x or 0), math.floor(S.home and S.home.y or 0)
+        Q.check(math.abs(p:getX() - (hx + 0.5)) <= 3 and math.abs(p:getY() - (hy + 0.5)) <= 3, "put back: the character is home", math.floor(p:getX()) .. "," .. math.floor(p:getY()))
+        Q.check(p:getPrimaryHandItem() == S.prim and p:getSecondaryHandItem() == S.sec, "put back: the hands hold what they held")
+        Q.check(H.newItems() == 0, "put back: nothing the run gave is left in the main inventory", H.newItems() .. " left")
+        local left = 0
+        for _, o in ipairs(S.placed) do if o:getObjectIndex() >= 0 then left = left + 1 end end
+        Q.check(left == 0, "put back: everything set down is taken away (generator, TV, radio, stove)", left .. " left")
+        if S.doorOk ~= nil then Q.check(S.doorOk and not S.door:isBarricaded(), "put back: the door is as it was found, no plank on it") end
+        if S.winOk ~= nil then Q.check(S.winOk, "put back: the window is whole and as it was found", "smashed " .. tostring(S.window:isSmashed())) end
+        Q.check(not p:isSitOnGround() and not p:isSittingOnFurniture() and p:isSneaking() == (S.sneakWas and true or false) and H.queueEmpty(),
+            "put back: the character stands, crouched or not as found, with nothing queued")
+        Q.check(getGameSpeed() == 1, "put back: game speed 1", tostring(getGameSpeed()))
+    end)
+end)
+-- the body last, in a step of its own (it runs whatever the steps before did): healed once more, read back from the
+-- game, said in a PASS / FAIL line; god mode and invincible go back as found only when he is whole and home, and stay
+-- ON when he is not
+Q.step(5, function()
+    H.guard()
+    H.healAll()
+    local bad = H.hurt()
+    local whole = Q.check(bad == "", "put back: the character is alive and healed (health 100, no wound on any part, no fracture, not infected)", (bad == "") and "whole" or bad)
+    -- (and home: away from it, near where the run's noise may have called zombies, the two stay ON as well)
+    local home = false
+    pcall(function()
+        home = S.home == nil or (math.abs(p:getX() - (math.floor(S.home.x) + 0.5)) <= 3 and math.abs(p:getY() - (math.floor(S.home.y) + 0.5)) <= 3)
+    end)
+    local backOk = whole and home
+    if backOk then
+        if S.invWas ~= nil then pcall(function() p:setInvincible(S.invWas) end) end
+        if S.godWas ~= nil then pcall(function() p:setGodMod(S.godWas) end) end
+    end
+    local god, inv = nil, nil
+    pcall(function() god = p:isGodMod() end)
+    pcall(function() inv = p:isInvincible() end)
+    if backOk then
+        Q.check((S.godWas == nil or god == S.godWas) and (S.invWas == nil or inv == S.invWas), "put back: god mode and invincible as found",
+            "god mode " .. tostring(god) .. " (was " .. tostring(S.godWas) .. "), invincible " .. tostring(inv) .. " (was " .. tostring(S.invWas) .. ")")
+    else
+        Q.say("NOTE god mode and invincible are left ON because the character is " .. (whole and "not home" or "not whole") .. ": god mode "
+            .. tostring(god) .. ", invincible " .. tostring(inv))
+    end
 end)
 Q.start()
