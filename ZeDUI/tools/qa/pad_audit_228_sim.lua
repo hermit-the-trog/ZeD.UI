@@ -83,7 +83,7 @@ getCell = function() return { getDrag = function() return DRAG end } end
 local POS = { x = 100, y = 100, z = 0 }
 local BLOCKED = false
 local PLAYER = { getPlayerNum = function() return 0 end, isAsleep = function() return false end, isDead = function() return false end,
-                 getX = function() return POS.x end, getY = function() return POS.y end, getZ = function() return POS.z end,
+                 getX = function() return POS.x end, getY = function() return POS.y end, getZ = function() return POS.z end, getVehicle = function() return POS.veh end,
                  isBlockMovement = function() return BLOCKED end, setBlockMovement = function(_, v) BLOCKED = v end }
 getSpecificPlayer = function(pn) return (pn or 0) == 0 and PLAYER or nil end
 
@@ -356,6 +356,16 @@ do
         POS.z = 1
         m:update()
         check("WALK: another floor closes it", m._ctx.open == false)
+        -- (beast W12: seated in a car it moves with the player, so distance and floor do not close it; getting out does)
+        m = open()
+        POS.veh = {}; m._openAt = nil; m._openAt = { x = 100, y = 100, z = 0, veh = POS.veh }
+        POS.x, POS.y = 140, 100
+        m:update()
+        check("WALK: in a car it stays open past 2 tiles", m._ctx.open == true)
+        POS.veh = nil
+        m:update()
+        check("WALK: getting out of the car closes it", m._ctx.open == false)
+        POS.veh = nil
         m = open()
         JD.focus = nil
         m:update()

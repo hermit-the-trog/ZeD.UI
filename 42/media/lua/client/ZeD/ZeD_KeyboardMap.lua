@@ -159,6 +159,18 @@ function KM.read()
     return out
 end
 
+-- The window's copy of KM.read(): the read costs a closure and a pcall per binding (about 190), too much for every frame.
+-- It is redone when a key is set or reset here (_readDirty), when the window opens, and once a second (the game's own
+-- Options screen can change a key too). (beast W48)
+local _readCache, _readAt, _readDirty = nil, -1, true
+local function readCached()
+    local now = getTimestampMs()
+    if _readDirty or not _readCache or now - _readAt >= 1000 then
+        _readCache, _readAt, _readDirty = KM.read(), now, false
+    end
+    return _readCache
+end
+
 -- ---------------------------------------------------------------------------
 -- SAVING: keysB42.ini as the game's Options writes it, and the game told at once
 -- ---------------------------------------------------------------------------
@@ -241,6 +253,7 @@ function KM.setKey(name, c)
             alt, shift, ctrl, altK = a, false, false, false
             lines[i] = lineOf(name, c, a, false, false, false)
             _modsAt = -1
+            _readDirty = true   -- (the map reads again, beast W48)
             found = true
             break
         end
@@ -248,6 +261,7 @@ function KM.setKey(name, c)
     if not found then lines[#lines + 1] = lineOf(name, c, 0, false, false, false) end
     local ok = pcall(function() getCore():addKeyBinding(name, c, alt, shift, ctrl, altK) end)
     writeLines(lines)
+    _readDirty = true   -- (also when the binding was not in the file yet, beast W48)
     syncOptions(name, c, alt, shift, ctrl, altK)
     return ok
 end
@@ -266,6 +280,7 @@ function KM.resetAll()
         end
     end
     writeLines(lines)
+    _modsAt, _readDirty = -1, true   -- (the map reads again, beast W48)
 end
 
 -- ---------------------------------------------------------------------------
@@ -354,7 +369,7 @@ function ZeD_KeyboardMap:prerender()
     local tm = ZeD.TM
     local f1, f2 = T.fontF1, T.fontF2
     local fh1, fh2 = tm:getFontHeight(f1), tm:getFontHeight(f2)
-    local data = KM.read()
+    local data = readCached()   -- (not KM.read(): it is cached, beast W48)
     self._data = data
     -- the keyboard's size: a key unit from the inner width
     local ku = math.floor(inner / ROW_UNITS)
@@ -431,6 +446,8 @@ function ZeD_KeyboardMap:prerender()
         self:drawText(g.title, margin, y, ac.r, ac.g, ac.b, ac.a or 1, f1)
         y = y + fh1 + T.px(8)
         for _, r in ipairs(g.rows) do
+          -- (a row wholly above or below the body is not drawn, only stepped past; its hit box is still listed, beast W48)
+          if y + rowH >= tbH and y <= tbH + bodyH then
             local on = self.picked ~= nil and r.code == self.picked
             if on then
                 local s = T.accent
@@ -449,6 +466,7 @@ function ZeD_KeyboardMap:prerender()
             local box = { x = bx, y = y, w = boxW, h = T.buttonH }
             ZeD.Molecules.drawButton(self, bx, y, boxW, T.buttonH, word, "default", false, colors,
                 { hover = inRect(box, mx, my), compact = true })
+          end
             hits[#hits + 1] = { id = "bind", name = r.name, x = bx, y = y, w = boxW, h = T.buttonH }
             y = y + rowH
         end
@@ -578,6 +596,7 @@ function KM.open(pn)
         KM.windows[pn] = win
     end
     win.scroll, win.listening, win.picked, win._resetAt = 0, nil, nil, nil
+    _readDirty = true   -- (a fresh read on open, beast W48)
     if not win:isReallyVisible() then
         win:setVisible(true)
         win:addToUIManager()

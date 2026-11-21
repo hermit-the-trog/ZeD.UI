@@ -490,8 +490,8 @@ function ZeD_Keyboard:prerender()
         for j, r in ipairs(row) do
             local k = r.k
             local focused = focusOn and self._focus[1] == i and self._focus[2] == j
-            local hover = (not focusOn) and self._hover == r
-            local down = self._down == r and hover
+            local hover = (not focusOn) and self._hover ~= nil and self._hover.k == k   -- (compare key defs: layout() makes new rect tables every frame, beast W11)
+            local down = self._down ~= nil and self._down.k == k and hover
             local on = (k.id == "caps" and self.capsLock) or (k.id == "shift" and self.shiftDown and not self.capsLock)
             local variant = (k.primary or on) and "primary" or "default"
             local o = _keyOpts
@@ -556,7 +556,8 @@ end
 function ZeD_Keyboard:onMouseUp(x, y)
     local d = self._down
     self._down = nil
-    if d and self:keyAt(x, y) == d then self:pressKey(d.k) end
+    local u = self:keyAt(x, y)
+    if d and u and u.k == d.k then self:pressKey(d.k) end   -- (key defs, not rect tables: layout() rebuilds the rects every frame, beast W11)
     return true
 end
 

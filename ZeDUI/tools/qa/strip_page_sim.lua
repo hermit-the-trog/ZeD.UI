@@ -117,8 +117,7 @@ for _, scale in ipairs({ 1, 1.75 }) do
     local T = tokens(scale)
     for _, N in ipairs({ 11, 12, 15, 20, 25, 31 }) do
         local tag = ("%sx N=%d: "):format(tostring(scale), N)
-        local o = menu(N, T)
-        o._suppressFrames = 1
+        local o = menu(N, T)
         settle(o, T)
         local first, whole, aligned = shown(o, T)
         check(tag .. "WHOLE: 10 cells show on opening", #first == 10, #first)
@@ -158,7 +157,7 @@ for _, scale in ipairs({ 1, 1.75 }) do
         check(tag .. "PAGE twice fast: two pages on", wh2 and same(w2, expect), table.concat(w2, ","))
 
         -- STEP: one cell, still whole
-        local o2 = menu(N, T); o2._suppressFrames = 1; settle(o2, T)
+        local o2 = menu(N, T); settle(o2, T)
         local before = shown(o2, T)
         o2:next(); settle(o2, T)
         local after, whS = shown(o2, T)

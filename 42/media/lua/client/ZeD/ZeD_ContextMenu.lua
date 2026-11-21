@@ -141,8 +141,11 @@ function ZeD_ContextMenu:open()
     end
     -- where the player stood when it opened (update: walking away closes it, punch list 220)
     local p = getSpecificPlayer and getSpecificPlayer(self.player)
-    local okAt, at = pcall(function() return { x = p:getX(), y = p:getY(), z = p:getZ() } end)
+    local okAt, at = pcall(function() return { x = p:getX(), y = p:getY(), z = p:getZ(), veh = p:getVehicle() } end)   -- (veh: the car it sits in, or nil; beast W12)
     self._openAt = (p and okAt) and at or nil
+    -- the pointer's place at open: hover only takes the selection once it moves from here (beast W14)
+    local okMx, mx0, my0 = pcall(function() return self:getMouseX(), self:getMouseY() end)
+    if okMx then self._lastMx, self._lastMy = mx0, my0 end
     self:setWantKeyEvents(true)
     -- (split view: the menu of player 2 to 4 draws in that player's own theme, PlayerTheme.lua)
     if ZeD.Theme and ZeD.Theme.adopt then ZeD.Theme.adopt(self) end
@@ -250,7 +253,7 @@ function ZeD_ContextMenu:_rebuildTrack()
         self._ctx.pos = self._ctx.selected
     end
     -- Reset animation anchors so we don't slide from a stale position
-    self._animSuppressFrames = 1
+    self._suppressFrames = 1   -- (the field _layout reads; the old _animSuppressFrames was never read, beast W15)
 end
 
 -- Compute the animated strip origin, label X, strip width. Writes results
@@ -736,7 +739,7 @@ function ZeD_ContextMenu:_settleCarousel()
 end
 
 -- ============================================================================
--- UPDATE — runs every frame. Handles settle timer + outside-click detection.
+-- UPDATE — runs about every 100 ms (the engine's update tick). Handles settle timer + outside-click detection.
 -- ============================================================================
 
 -- (Nov 14 2026, punch list 220, the director: the menu was "too easy for it to get stuck open". It closes once the
@@ -751,6 +754,10 @@ function ZeD_ContextMenu:update()
     local at = self._openAt
     if p and at then
         local okOff, off = pcall(function()
+            -- (beast W12: in a car the player moves with it; only getting in, out or changing vehicle closes the menu)
+            local veh = p:getVehicle()
+            if veh ~= at.veh then return true end
+            if veh then return false end
             local dx, dy = p:getX() - at.x, p:getY() - at.y
             return dx * dx + dy * dy > WALK_OFF_TILES * WALK_OFF_TILES or math.floor(p:getZ()) ~= math.floor(at.z)
         end)
@@ -775,6 +782,12 @@ function ZeD_ContextMenu:update()
     local my = self:getMouseY()
     local zone = self:hitZoneAt(mx, my)
     self._hoveredId = zone and zone.id or nil
+
+    -- Take the hovered cell only when the pointer moved since the last update, and never while the pad has the menu
+    -- (a resting pointer would undo D-pad, arrow key and wheel steps; beast W14)
+    local moved = (mx ~= self._lastMx or my ~= self._lastMy)
+    self._lastMx, self._lastMy = mx, my
+    if not moved or self._joyfocus then zone = nil end
 
     -- If mouse-hover over a cell, update selection (mouse-track selection
     -- mirrors vanilla ISContextMenu).
@@ -854,7 +867,11 @@ function ZeD_ContextMenu:onMouseUp(x, y)
     elseif zone.id == "ctxchev_r" then
         self:nextPage()
     elseif type(zone.id) == "string" and zone.id:sub(1, 8) == "ctxcell_" then
-        -- Cell click → confirm (selection was already set on hover)
+        -- Cell click → confirm. Update() runs only every 100 ms, so the selection may lag the pointer: set it from the
+        -- clicked cell here (track index is 1 or more, so % is safe; beast W13)
+        local trackIdx = tonumber(zone.id:sub(9))
+        local n = #self._ctx.items
+        if trackIdx and n > 0 then self._ctx.selected = ((trackIdx - 1) % n) + 1 end
         self:confirm()
     end
 end

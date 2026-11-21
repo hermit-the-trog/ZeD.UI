@@ -151,7 +151,7 @@ local WALK_OFF_TILES = 2
 local function standAt(pn)
     local p = getSpecificPlayer and getSpecificPlayer(pn)
     if not p then return nil end
-    local ok, at = pcall(function() return { x = p:getX(), y = p:getY(), z = p:getZ() } end)
+    local ok, at = pcall(function() return { x = p:getX(), y = p:getY(), z = p:getZ(), veh = p:getVehicle() } end)   -- (veh: the car it sits in, or nil; beast W12)
     return ok and at or nil
 end
 
@@ -559,6 +559,10 @@ function ZeD_ContextList:_walkedOff()
     if not now then return false end
     local at = self._openAt
     if not at then self._openAt = now; return false end   -- (a list that did not come through :open: from here)
+    -- (beast W12: a seated player moves with the car, so the walk-off rule only applies on foot; getting in, out
+    -- or changing vehicle still closes the list)
+    if now.veh ~= at.veh then return true end
+    if now.veh then return false end
     local dx, dy = now.x - at.x, now.y - at.y
     return dx * dx + dy * dy > WALK_OFF_TILES * WALK_OFF_TILES or math.floor(now.z) ~= math.floor(at.z)
 end
