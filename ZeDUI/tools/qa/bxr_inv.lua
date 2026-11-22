@@ -28,11 +28,26 @@
 -- (QA review, Nov 21: the W8 Loot picture waited for a load the title bar leaves out while the list's heading shows it,
 -- so it always skipped; the fault's own path at 4K, the side shut by its bag's button, is a picture now. The belt's
 -- ammo pouch shows only with ZeD setup's "Ammo on the belt" on, off for a new player: on in memory for B5-11.)
--- What it puts back: every thing given, the clothes put on, the pistol unjammed and gone, the hands, the pins (the
+-- (QA retake, Nov 21, after the first run's zoom check: the Move to pick rests on a bag that can take the hammer; the
+-- script's own throw (S.expand called with nothing) is gone and every picture is taken with Messages read and no error
+-- balloon (S.notesRead); the reading band is a skill book's, fast-forwarded to a few percent before the picture; the
+-- fridge-freezer stands inside the store and the World window grows so the steak's whole card shows; the balloon's
+-- step shuts every menu, drag and card first, tries twice and says what holds it back. B5-11 is kept as it was: the
+-- Jammed line cut off on the card is ZeD's, reported apart; retake once Build has it.)
+-- (QA review of the retake, Nov 21: the balloon's real hold-back was the row itself. With the jammed pistol back in
+-- the list the two M9s make an open stack of three rows, the list's tenth and eleventh, under the nine it shows: the
+-- pistol's row had its zone, drawn and cut off under the container buttons, and a pointer there is no hover. The list
+-- is scrolled now until the row stands whole inside its view (S.seekShown), and back to the top after. The red
+-- "ERROR n" box is the debug build's own (the game's ExceptionLogger draws it three seconds after each error, no UI
+-- element, so G1.hideErrors never hid it): every picture waits for 3.6 s with no new error (S.quiet). The freezer's
+-- spot wants a wall of its own behind the fridge (else the room's end) and needs the three squares in front of him
+-- clear.)
+-- What it puts back: the pages read of the book, the World window's height, his place (outside, the smoke spot),
+-- every thing given, the clothes put on, the pistol unjammed and gone, the hands, the pins (the
 -- character's own list, the same table), the fridge and the generator, the time of day (11:00, the story stage's) and
 -- the needs the fast-forward moved, the Context menu, Equip view and Ammo on the belt options (changed in memory
 -- only), the Equip list's folds, the inventory side and the bag viewed, the instant-action cheat, the windows' places
--- (ZEDQA_LAYOUT_BACK), the tabs, the game speed.
+-- (ZEDQA_LAYOUT_BACK), the tabs, the game speed, the list's scroll, the error watch (S.errWatch).
 -- grep "ZEDQA bxri".
 local S = HFR and HFR.init and HFR.init("bxri")
 if not S then return end
@@ -41,8 +56,59 @@ local Q, IR = S.Q, ZeD.InventoryRenderer
 S.A = {}
 S.STATS = { "HUNGER", "THIRST", "FATIGUE", "BOREDOM", "UNHAPPINESS", "STRESS", "IDLENESS", "NICOTINE_WITHDRAWAL", "ENDURANCE", "DISCOMFORT" }
 
+-- (QA review, Nov 21) The red "ERROR n" box at the bottom right is the debug build's own: the game's ExceptionLogger
+-- draws it for three seconds after every error it logs, then slides it away in half a second. It is no UI element, so
+-- G1.hideErrors cannot hide it (bxr_lite's pictures had it). The game's error count is read every frame; a picture
+-- waits until no new error has come for 3.6 s (S.quiet, in every still below), and one taken sooner says so.
+S.errN, S.errAt = nil, -100000
+function S.errWatch()
+    local n = getLuaDebuggerErrorCount and getLuaDebuggerErrorCount() or nil
+    if n ~= nil and n ~= S.errN then
+        if S.errN ~= nil then S.errAt = getTimestampMs() end
+        S.errN = n
+    end
+end
+function S.quiet() S.errWatch(); return getTimestampMs() - S.errAt > 3600 end
+Events.OnPreUIDraw.Add(S.errWatch)
+-- the kit's still (the windows the same for 30 frames, at most 900), with no new error for 3.6 s as well
+function Q.still(n, fn)
+    local st = { last = nil, same = 0 }
+    Q.waitFor(n, 900, function()
+        local s = G1.shape()
+        if s == st.last then st.same = st.same + 1 else st.last, st.same = s, 0 end
+        return st.same >= 30 and S.quiet()
+    end, fn)
+end
+
 -- ===================================================================== small helpers
+-- (QA retake, Nov 21) No picture with an unread error on screen. A script error, even a caught one, lands in the
+-- game's error list; ZeD files it in Messages: the belt's paper note gets an orange count and a red "Error" balloon
+-- comes out of it. Before each picture the list is read now (ZeD reads it only every two seconds), every
+-- message is marked read (what opening Messages does for a player) and the error balloons are dismissed (a player's
+-- click on them). Nothing is taken out of Messages: the errors stay there to be read.
+function S.notesRead()
+    local M = ZeD.Messages
+    if not (M and M.unread and M.markAllRead) then return end
+    if M.readErrors then pcall(M.readErrors) end
+    local un, err = M.unread()
+    if (un or 0) > 0 then M.markAllRead() end
+    local gone = 0
+    if M.toasts and M.dropToast then
+        for i = #M.toasts, 1, -1 do
+            local t = M.toasts[i]
+            if t and t.kind == "crit" then M.dropToast(t); gone = gone + 1 end
+        end
+    end
+    if (un or 0) > 0 or gone > 0 then
+        Q.say("note: before the picture " .. tostring(un) .. " unread message(s) marked read (an error among them " .. tostring(err)
+            .. "), " .. gone .. " error balloon(s) dismissed")
+    end
+end
 function S.take(name, what, keepMenu)
+    S.notesRead()
+    if not S.quiet() then
+        Q.say("NOTE " .. name .. ": a Lua error came " .. tostring(getTimestampMs() - S.errAt) .. " ms before the picture: the game's red ERROR box may be in it")
+    end
     S.shot(name, keepMenu)
     Q.say("SHOT " .. name .. " | " .. tostring(what))
 end
@@ -186,8 +252,11 @@ function S.speed(n) if ZEDQA_SPEED then pcall(ZEDQA_SPEED, n) else pcall(setGame
 
 -- a stacked kind has no row of its own: the kind's stack is opened (as hfr_inv.lua does), shut again at the end
 function S.expand(it)
+    -- (QA retake, Nov 21: called with nothing, the getFullType below threw; a caught throw still counts in the game's
+    -- error list, and the belt's note and the error balloon showed in every picture after it)
+    if it == nil then return end
     local c, ft = S.cc(), nil
-    pcall(function() ft = it:getFullType() end)
+    ft = it:getFullType()
     if not (c and ft) then return end
     c._expandedStacks = c._expandedStacks or {}
     S.stackWas = S.stackWas or {}
@@ -200,16 +269,19 @@ function S.same(a, b) return type(a) == "string" and type(b) == "string" and a:l
 function S.openCard(key, label)
     local function IT() return S.A[key] end
     Q.step(10, function()
+        if IT() == nil then return end     -- (nothing to open: the windows are left as they are)
         S.openPair(); S.charTab("loot"); S.seekPos = nil
         S.expand(IT())
     end)
     Q.waitFor(5, 600, function() return IT() == nil or S.seekRow(S.cc(), IT()) end, function(ok)
+        if IT() == nil then return end
         local did = false
-        if IT() and ok then did = S.click(S.cc(), S.zone(S.cc(), IT())) end
-        Q.say(label .. ": row " .. tostring(ok and IT() ~= nil) .. ", pressed " .. tostring(did))
+        if ok then did = S.click(S.cc(), S.zone(S.cc(), IT())) end
+        Q.say(label .. ": row " .. tostring(ok) .. ", pressed " .. tostring(did))
     end)
     Q.waitFor(10, 300, function() return IT() == nil or S.cardOn(IT()) end, function(ok)
-        Q.say(label .. ": card out " .. tostring(IT() ~= nil and S.cardOn(IT())))
+        if IT() == nil then return end
+        Q.say(label .. ": card out " .. tostring(S.cardOn(IT())))
         S.clearChar()
     end)
 end
@@ -221,7 +293,10 @@ function S.shutCard(key)
         local z = S.zone(c, it)
         if z then S.click(c, z) end
         if S.cardOn(it) and c and w and w._updateDrawer then
-            c._selectedItems = {}
+            -- (emptied in place: the list binds its column's own table again every frame)
+            local sel = c._selectedItems or {}
+            for k in pairs(sel) do sel[k] = nil end
+            c._selectedItems = sel
             c._lastClickedItem = nil
             pcall(w._updateDrawer, c)
         end
@@ -310,6 +385,13 @@ Q.step(10, function()
     if #S.bagMade > 0 then pcall(function() triggerEvent("OnClothingUpdated", S.p) end) end
     S.bagNames = {}
     for _, b in ipairs(S.bagWant) do S.bagNames[#S.bagNames + 1] = have[b[1]] and S.nm(have[b[1]]) or ("no " .. b[1]) end
+    -- (QA retake, Nov 21) the row the pick rests on: a bag that CAN take the hammer, the satchel or the backpack (the
+    -- fanny pack is too small for it: its row is grayed, and the pick stood on it in the first pictures). The story's
+    -- character wears these three bags and no chest rig: none is looked for.
+    S.bagPick = {}
+    for _, k in ipairs({ "Satchel", "ALICEpack" }) do
+        if have[k] then S.bagPick[S.nm(have[k]):lower()] = true end
+    end
     Q.say("B0-1 staged: a hammer carried " .. tostring(S.A.hammer ~= nil) .. "; bags worn: " .. table.concat(S.bagNames, ", ")
         .. " (" .. #S.bagMade .. " of them given here)")
 end)
@@ -333,6 +415,36 @@ function S.subWords(m, style)
     end
     return table.concat(t, ", "), #t, bare
 end
+-- a row of the submenu the pick may rest on: no Back cell, no heading, not grayed (pass 1: one of the two bags that
+-- take a hammer; pass 2: any row that is not grayed)
+function S.rowOk(m, def, pass)
+    if type(def) ~= "table" or def.isBack or def.heading then return false end
+    if type(def.disabled) == "function" and def.disabled(m._ctx and m._ctx.target) then return false end
+    if pass == 1 then return type(def.name) == "string" and (S.bagPick or {})[def.name:lower()] == true end
+    return true
+end
+-- the pick stepped onto such a row, as a player steps (the strip's own next, the list's Down key); the row's name
+function S.pickRow(m, style)
+    for pass = 1, 2 do
+        if style == 1 then
+            local n = #(m._ctx.items or {})
+            for _ = 1, n do
+                local def = m._ctx.items[m._ctx.selected]
+                if S.rowOk(m, def, pass) then return tostring(def.name) end
+                m:next()
+            end
+        else
+            local lv = m._levels[2]
+            local n = #((lv and lv.rows) or {})
+            for _ = 1, n do
+                local r = lv.sel and lv.rows[lv.sel]
+                if r and S.rowOk(m, r.def, pass) then return tostring(r.def.name) end
+                m:onKeyPress(Keyboard.KEY_DOWN)
+            end
+        end
+    end
+    return nil
+end
 function S.menuShot(style, name)
     local sname = (style == 1) and "the strip" or "the list"
     Q.step(10, function()
@@ -343,7 +455,8 @@ function S.menuShot(style, name)
         S.expand(S.A.hammer)
         S.aside()
     end)
-    Q.waitFor(20, 600, function() return S.A.hammer == nil or S.seekRow(S.cc(), S.A.hammer) end, function(ok)
+    -- (the hammer's row whole inside the list's view, S.seekShown: the menu opens at the row the picture shows)
+    Q.waitFor(20, 600, function() return S.A.hammer == nil or S.seekShown(S.cc(), S.A.hammer) end, function(ok)
         local c = S.cc()
         local z = (ok and S.A.hammer) and S.zone(c, S.A.hammer) or nil
         if not z then return end
@@ -385,12 +498,17 @@ function S.menuShot(style, name)
                 S.menuWhy = "Move to did not open its list"
             end
         end
-        Q.say(name .. ": menu " .. tostring(m.Type) .. ", Move to open " .. tostring(S.menuOk))
+        S.onRow = nil
+        if S.menuOk then
+            S.onRow = S.pickRow(m, style)
+            if not S.onRow then S.menuOk = false; S.menuWhy = "no row of Move to can take the hammer (every one is grayed)" end
+        end
+        Q.say(name .. ": menu " .. tostring(m.Type) .. ", Move to open " .. tostring(S.menuOk) .. ", the pick on " .. tostring(S.onRow))
     end)
     -- the strip's slide over, then drawn frames
     Q.waitFor(30, 400, function()
         local m = S.menu()
-        return (not S.menuOk) or m == nil or m._settleAt == nil
+        return ((not S.menuOk) or m == nil or m._settleAt == nil) and S.quiet()
     end, function() end)
     Q.step(20, function()
         local m = S.menu()
@@ -398,7 +516,8 @@ function S.menuShot(style, name)
         if not open then S.skip(name, S.menuWhy .. " (menu " .. tostring(m and m.Type) .. ")"); return end
         local words, n, bare = S.subWords(m, style)
         S.take(name, "Move to on a carried hammer, " .. sname .. " (" .. tostring(m.Type) .. "): " .. n .. " rows, " .. bare .. " with no icon: " .. words
-            .. " | bags worn: " .. table.concat(S.bagNames or {}, ", "), true)
+            .. " | the pick on " .. tostring(S.onRow) .. " (a row that can take the hammer" .. ((S.bagPick or {})[tostring(S.onRow):lower()] and ", a worn bag" or ", NOT one of the two bags")
+            .. ") | bags worn: " .. table.concat(S.bagNames or {}, ", "), true)
     end)
     Q.step(5, function() S.shutMenu() end)
 end
@@ -771,28 +890,139 @@ end)
 Q.step(6, function() S.A.gun2 = nil end)
 S.shutCard("gun")
 -- the balloon by the pointer on the pistol's row (ZeD's loot card): no card open, no menu, the pointer on the row
-Q.still(10, function() if S.jam then S.aside(); S.seekPos = nil end end)
-Q.waitFor(20, 600, function() return not S.jam or S.A.gun == nil or S.seekRow(S.cc(), S.A.gun) end, function(ok)
-    S.tipOn = false
-    if not (S.jam and S.A.gun) then return end
-    local c = S.cc()
-    local z = S.zone(c, S.A.gun)
-    if not z then return end
-    S.mouseOn(c:getAbsoluteX() + z.x + math.floor(z.w * 0.4), c:getAbsoluteY() + z.y + math.floor(z.h / 2))
-    S.tipOn = true
-end)
+-- (QA retake, Nov 21: the first run's balloon never came up and the skip did not say why. The row asks for the balloon
+-- each frame the pointer is on it inside the list's view (InventoryRenderer rowStates -> ZeD.InvTip.want), with no
+-- delay; ZeD_InvTip holds it back while a right-click menu counts as open, while a drag is on, while the same thing's
+-- card is open, and with Alt held. The first run's pointer stood on the row cut off under the list's foot (QA review:
+-- S.rowShown below), so the row is scrolled whole into the view first. As guards, before the pointer goes there: the
+-- game's menu shut whole, a drag left behind let go, the pistol's card and the row picks shut. The pointer is moved
+-- onto the row in two steps, as a hand does. Should it still not come up, a second try on another spot of the row,
+-- and the skip names each thing that holds it back.)
 function S.tipUp()
     local IT = ZeD.InvTip
     local w = IT and IT._want
     return w ~= nil and w.item == S.A.gun and w.content ~= nil and w.frame >= (IT._frame or 0) - 1
 end
-Q.waitFor(5, 300, function() return not S.tipOn or S.tipUp() end, function() end)
+-- (QA review, Nov 21) The row whole inside the list's view (its _rowView, the rows' own space). A row past the view's
+-- foot still gets its zone, drawn under the container buttons and cut off, and the list counts the pointer on it only
+-- inside the view (InventoryRenderer, renderItemList: no hover, no balloon): the first run's pointer stood there.
+function S.rowShown(c, item)
+    local z = c and item and S.zone(c, item)
+    local rv = c and c._rowView
+    if not (z and rv and rv.top and rv.bottom) then return false end
+    return z.y >= rv.top and z.y + z.h <= rv.bottom
+end
+-- S.seekRow's scroll steps until the row stands whole in the view
+function S.seekShown(c, item)
+    if S.rowShown(c, item) then return true end
+    local sc = c and c._scroll
+    if sc and sc.setScrollPos then
+        S.seekPos = (S.seekPos or -0.1) + 0.1
+        if S.seekPos > 1.001 then S.seekPos = 0 end
+        sc:setScrollPos(S.seekPos)
+    end
+    return false
+end
+function S.tipClear()
+    local notes = {}
+    S.shutMenu()
+    local m = getPlayerContextMenu(S.pn)
+    if m and m.isAnyVisible and m:isAnyVisible() then
+        if m.hideAndChildren then m:hideAndChildren() end
+        notes[#notes + 1] = "a game menu still counted as open: shut whole"
+    end
+    local c, w = S.cc(), S.CW()
+    if c and c._drag and c._drag.cancel and ((c._drag.isActive and c._drag:isActive()) or (c._drag.isPending and c._drag:isPending())) then
+        c._drag:cancel()
+        notes[#notes + 1] = "a drag was left on the list: let go"
+    end
+    if ISMouseDrag and ISMouseDrag.dragging ~= nil then
+        ISMouseDrag.dragging = nil
+        notes[#notes + 1] = "the game's drag was left on: let go"
+    end
+    if c and w and (w._drawerItem ~= nil or (c._selectedItems and S.count(c._selectedItems) > 0)) and w._updateDrawer then
+        -- (emptied in place: the list binds its column's own table again every frame, so a new table came back full)
+        local sel = c._selectedItems or {}
+        for k in pairs(sel) do sel[k] = nil end
+        c._selectedItems = sel
+        c._lastClickedItem = nil
+        w._updateDrawer(c)
+        notes[#notes + 1] = "a card or a row pick was left: shut"
+    end
+    return notes
+end
+function S.count(t) local n = 0; for _ in pairs(t) do n = n + 1 end; return n end
+-- the pointer onto the pistol's row, at part `at` of its width
+function S.tipPoint(at)
+    local c = S.cc()
+    local z = c and S.A.gun and S.zone(c, S.A.gun)
+    if not z then return false end
+    S.mouseOn(c:getAbsoluteX() + z.x + math.floor(z.w * at), c:getAbsoluteY() + z.y + math.floor(z.h / 2))
+    if c.onMouseMove then c:onMouseMove(2, 0) end
+    return true
+end
+-- what holds the balloon back now, in words (for the skip)
+function S.tipWhy()
+    local t = {}
+    local c, w, IT = S.cc(), S.CW(), ZeD.InvTip
+    local z = c and S.A.gun and S.zone(c, S.A.gun)
+    if not z then t[#t + 1] = "the pistol has no row in the list"
+    else
+        local mx, my = c:getMouseX(), c:getMouseY()
+        local on = mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h
+        t[#t + 1] = "the pointer the list reads is " .. (on and "on" or "NOT on") .. " the row (" .. tostring(mx) .. "," .. tostring(my) .. " in row "
+            .. tostring(z.x) .. "," .. tostring(z.y) .. " " .. tostring(z.w) .. "x" .. tostring(z.h) .. ")"
+        local rv = c._rowView
+        t[#t + 1] = "the row whole inside the list's view " .. tostring(S.rowShown(c, S.A.gun)) .. " (view " .. tostring(rv and rv.top) .. " to " .. tostring(rv and rv.bottom) .. ")"
+    end
+    local F = ZeD.Input and ZeD.Input.Focus
+    t[#t + 1] = "controller marks showing " .. tostring(F and F.cuesVisible and F.cuesVisible() or false)
+    local m = getPlayerContextMenu(S.pn)
+    t[#t + 1] = "a menu counted as open " .. tostring((m and m.isAnyVisible and m:isAnyVisible()) and true or false)
+    t[#t + 1] = "a drag on " .. tostring((c and c._drag and c._drag.isActive and c._drag:isActive()) and true or false)
+        .. ", the game's drag " .. tostring(ISMouseDrag ~= nil and ISMouseDrag.dragging ~= nil)
+        .. ", a selection box " .. tostring((c and c._box and c._box.live) and true or false)
+    t[#t + 1] = "the pistol's card open " .. tostring(w ~= nil and w._drawerItem == S.A.gun)
+    t[#t + 1] = "the list on screen " .. tostring((c and c.isReallyVisible and c:isReallyVisible()) and true or false)
+    t[#t + 1] = "Alt held " .. tostring((IT and IT.altDown and IT.altDown()) and true or false)
+    local q = IT and IT._want
+    if not q then t[#t + 1] = "no row has asked for a balloon yet"
+    else
+        t[#t + 1] = "the last ask was for " .. S.nm(q.item) .. " " .. tostring((IT._frame or 0) - (q.frame or 0)) .. " frame(s) ago, with words "
+            .. tostring(q.content ~= nil) .. ", from this list " .. tostring(q.owner == c)
+    end
+    return table.concat(t, "; ")
+end
+Q.still(10, function()
+    if not S.jam then return end
+    S.aside(); S.seekPos = nil
+    local notes = S.tipClear()
+    if #notes > 0 then Q.say("B7-4: " .. table.concat(notes, "; ")) end
+end)
+Q.waitFor(20, 600, function() return not S.jam or S.A.gun == nil or S.seekShown(S.cc(), S.A.gun) end, function(ok)
+    S.tipOn = false
+    if not (S.jam and S.A.gun) then return end
+    if not ok then Q.say("B7-4: the pistol's row never stood whole inside the list's view (" .. S.tipWhy() .. ")") end
+    S.tipOn = S.tipPoint(0.3)
+end)
+Q.step(4, function() if S.tipOn then S.tipOn = S.tipPoint(0.4) end end)
+Q.waitFor(5, 180, function() return not S.tipOn or S.tipUp() end, function(ok)
+    if not S.tipOn or S.tipUp() then return end
+    -- the second try: everything shut once more, the pointer off the row and back on another spot of it
+    Q.say("B7-4: no balloon on the first try (" .. S.tipWhy() .. "); a second try")
+    S.mouseOff()
+    local notes = S.tipClear()
+    if #notes > 0 then Q.say("B7-4: " .. table.concat(notes, "; ")) end
+end)
+Q.waitFor(20, 600, function() return not S.tipOn or S.tipUp() or S.A.gun == nil or S.seekShown(S.cc(), S.A.gun) end, function(ok)
+    if not S.tipOn or S.tipUp() then return end
+    S.tipOn = S.tipPoint(0.55)
+end)
+Q.waitFor(5, 300, function() return (not S.tipOn or S.tipUp()) and S.quiet() end, function() end)
 Q.step(6, function()
     if not S.jam then S.skip("B7-4_jammed_hover_balloon", "no jammed pistol"); return end
     if not (S.tipOn and S.tipUp()) then
-        local cues = false
-        pcall(function() cues = ZeD.Input.Focus.cuesVisible() and true or false end)
-        S.skip("B7-4_jammed_hover_balloon", "the balloon did not come up on the pistol's row (row found " .. tostring(S.tipOn) .. ", controller marks showing " .. tostring(cues) .. ")")
+        S.skip("B7-4_jammed_hover_balloon", "the balloon did not come up on the pistol's row (row found " .. tostring(S.tipOn) .. "): " .. S.tipWhy())
         return
     end
     local tags = {}
@@ -804,12 +1034,46 @@ Q.step(6, function()
 end)
 Q.step(5, function()
     S.mouseOff(); S.jamBack()
+    -- (the list at its top again, as the next pictures had it: the seek above scrolled it down to the pistol's row)
+    S.seekPos = nil
+    local c = S.cc()
+    local sc = c and c._scroll
+    if sc and sc.setScrollPos then sc:setScrollPos(0) end
     -- (the windows back from the screen's edges for the rest)
     S.home()
 end)
 Q.waitFor(10, 300, function() local w = S.CW(); return w ~= nil and w._activeTab == "loot" end, function() S.clearChar() end)
 
 -- ===================================================================== W4: the reading band's Cancel, the cooking band
+-- (QA retake, Nov 21: the first picture's band read 0%. The band's percent is the pages read of the book's pages
+-- (ItemActionHooks), and the novel given then has no page count, so its band never leaves 0. A skill book has pages:
+-- the first volume he can read now (his skill inside the book's levels, or the game stops the read as too easy or
+-- too hard). The read is then fast-forwarded, as a player would, until the band shows a few percent; it is stopped
+-- well under the 10% where the game gives the book's first XP bonus, so his skills stay as they were.)
+S.BOOKS = { "Base.BookCarpentry1", "Base.BookCooking1", "Base.BookFarming1", "Base.BookFishing1", "Base.BookTailoring1",
+            "Base.BookForaging1", "Base.BookTrapping1", "Base.BookFirstAid1", "Base.BookElectrician1" }
+function S.giveBook()
+    for _, ft in ipairs(S.BOOKS) do
+        local it = S.add(ft)
+        local ok = false
+        if it and it.getNumberOfPages and it:getNumberOfPages() > 0 and it.getSkillTrained then
+            local sb = SkillBook and SkillBook[it:getSkillTrained()]
+            if sb and sb.perk then
+                local lv = S.p:getPerkLevel(sb.perk)
+                ok = it:getLvlSkillTrained() <= lv + 1 and it:getMaxLevelTrained() >= lv + 1
+            end
+        end
+        if ok then return it end
+        S.drop(it)
+    end
+    -- (none fits him: the novel, as in the first run; its band stays at 0%, and the picture's words say so)
+    return S.add("Base.Book")
+end
+-- how far the band is, 0 to 1
+function S.bandPct()
+    local a = S.A.book and S.active(S.A.book)
+    return (a and tonumber(a.percent)) or 0
+end
 Q.step(20, function()
     S.w4 = false
     S.stopActions()
@@ -819,9 +1083,15 @@ Q.step(20, function()
     if not (ZeD.ItemActionManager and ISInventoryPaneContextMenu.readItem) then S.skip("W4_reading_band_cancel", "the action manager or the game's read is not loaded"); return end
     pcall(function() S.p:setTimedActionInstantCheat(false) end)    -- (a read at its real length)
     S.speed(1)
-    S.A.book = S.add("Base.Book")
+    S.A.book = S.giveBook()
     S.w4 = S.A.book ~= nil
-    if not S.w4 then S.skip("W4_reading_band_cancel", "no book could be given") end
+    if not S.w4 then S.skip("W4_reading_band_cancel", "no book could be given"); return end
+    -- (the pages of this book he has read so far, kept: the read below moves them, the put-back sets them again)
+    local ft = S.A.book:getFullType()
+    S.was.pages = { ft = ft, n = S.p:getAlreadyReadPages(ft) }
+    -- (a book he has read to its end cannot be read again: from its first page for the picture)
+    if S.A.book:getNumberOfPages() > 0 and S.was.pages.n >= S.A.book:getNumberOfPages() then S.p:setAlreadyReadPages(ft, 0) end
+    Q.say("W4 staged: " .. S.nm(S.A.book) .. " (" .. tostring(ft) .. ", " .. tostring(S.A.book:getNumberOfPages()) .. " pages, read so far " .. tostring(S.was.pages.n) .. ")")
 end)
 S.openCard("book", "W4 the book")
 Q.step(5, function()
@@ -847,6 +1117,24 @@ Q.waitFor(2, 1200, function() return not S.w4 or S.bandUp() end, function(ok)
     end
     S.clearChar()
 end)
+-- the read fast-forwarded until the band shows some progress (3% and up; forty seconds at most by the clock), then
+-- the game at its own speed again for the picture
+Q.step(4, function()
+    if not S.w4 then return end
+    S.w4T0 = getTimestampMs()
+    S.speed(3)
+end)
+Q.waitFor(2, 6000, function()
+    if not S.w4 then return true end
+    return S.bandPct() >= 0.03 or not S.reading() or getTimestampMs() - (S.w4T0 or 0) > 40000
+end, function(ok)
+    if not S.w4 then return end
+    S.speed(1)
+    -- the story's daylight again (game minutes went by), and no dead walked near in them
+    if STORY and STORY.day then pcall(STORY.day, 11.0) end
+    Q.say(string.format("W4: the band at %.0f%% after %d s of fast-forward (reading %s); zombies taken away near him: %d", S.bandPct() * 100,
+        math.floor((getTimestampMs() - (S.w4T0 or 0)) / 1000), tostring(S.reading()), S.zombiesAway()))
+end)
 Q.still(4, function()
     if not S.w4 then return end
     local a = S.active(S.A.book)
@@ -856,7 +1144,9 @@ Q.still(4, function()
         S.stopActions()
         return
     end
-    S.take("W4_reading_band_cancel", "reading " .. S.nm(S.A.book) .. ", its card open: the band reads " .. tostring(a.label or a.kind) .. " with its Cancel on it (band kind " .. tostring(a.kind) .. ")")
+    local pct = math.floor(S.bandPct() * 100 + 0.5)
+    S.take("W4_reading_band_cancel", "reading " .. S.nm(S.A.book) .. ", its card open: the band reads " .. tostring(a.label or a.kind) .. " at " .. pct .. "%"
+        .. ((pct < 1) and " (NOTE: still 0%, the band shows no progress)" or "") .. " with its Cancel on it (band kind " .. tostring(a.kind) .. ")")
     S.w4shot = true
 end)
 -- Cancel, as a press on the band's X runs it (a step after the picture: the picture is of the frame as drawn)
@@ -916,6 +1206,8 @@ Q.still(10, function()
 end)
 function S.w4Back()
     S.stopActions()
+    -- the pages he had read of the book, as they were
+    if S.was.pages then S.p:setAlreadyReadPages(S.was.pages.ft, S.was.pages.n); S.was.pages = nil end
     if S.cookOn and S.A.steak then pcall(function() ZeD.ItemActionManager.notify(S.A.steak, "complete", nil) end) end
     S.cookOn = nil
     pcall(function() if S.was.instant ~= nil then S.p:setTimedActionInstantCheat(S.was.instant == true) end end)
@@ -967,58 +1259,161 @@ function S.frBack()
     if S.frSteak then pcall(function() local c = S.frSteak:getContainer(); if c then c:Remove(S.frSteak) end end) end
     S.frSteak = nil
     if S.gen then pcall(function() S.gen:setActivated(false); S.gen:setConnected(false) end) end
-    S.removeObj(S.fridge); S.removeObj(S.gen)
-    S.fridge, S.gen, S.frz = nil, nil, nil
-    pcall(function() S.WW()._containersDirty = true end)
+    S.removeObj(S.fridge); S.removeObj(S.gen); S.removeObj(S.frTry)
+    S.fridge, S.gen, S.frz, S.frTry = nil, nil, nil, nil
+    -- the World window as tall as it was (made taller for the steak's card)
+    local w = S.WW()
+    if w and S.was.wwH then
+        if w:getHeight() ~= S.was.wwH then w:setHeight(S.was.wwH) end
+        S.was.wwH = nil
+    end
+    -- out of the store again, to the spot the other pictures were taken at
+    if S.frIn then S.frIn = nil; G1.tp(S.P.smoke, "SE") end
+    if w then w._containersDirty = true end
 end
--- a free square beside him that he reaches (no wall between: the smoke spot can stand by the store's wall, and the
--- World window lists only what he reaches)
-function S.nearSq(offs)
-    local here = nil
-    pcall(function() here = S.p:getCurrentSquare() end)
-    for _, o in ipairs(offs) do
-        local sq = getCell():getGridSquare(math.floor(S.p:getX()) + o[1], math.floor(S.p:getY()) + o[2], math.floor(S.p:getZ()))
-        local ok = false
-        if sq and here then pcall(function() ok = sq:isFree(false) and here:canReachTo(sq) end) end
-        if ok then return sq end
+-- (QA retake, Nov 21: the first picture had the fridge-freezer out on the parking lot. It stands inside the store
+-- now, the story stage's Fossoil, against a wall of the shop floor, where a shop's freezer would stand; he stands on
+-- the floor square in front of it. The generator that powers it, when the store has no power, runs outside the wall.)
+-- the squares of the store's floor: the story stage's list, else a box round the stock spot
+function S.storeFloor()
+    local out = {}
+    for _, q in ipairs((STORY and STORY.F and STORY.F.floor) or {}) do out[#out + 1] = q end
+    local st = S.P.stock
+    if #out == 0 and st then
+        for dy = -8, 8 do for dx = -8, 8 do out[#out + 1] = { st[1] + dx, st[2] + dy } end end
+    end
+    return out
+end
+function S.sq(x, y) return getCell():getGridSquare(x, y, 0) end
+function S.sqFree(sq) return sq ~= nil and sq:isFree(false) and not sq:getVehicleContainer() end
+-- no door and no window on the square (a fridge is not put in front of one)
+function S.plainWall(sq)
+    local objs = sq:getObjects()
+    for i = 0, objs:size() - 1 do
+        local o = objs:get(i)
+        if instanceof(o, "IsoDoor") or instanceof(o, "IsoWindow") then return false end
+    end
+    return true
+end
+-- a square of the room with nothing standing on it
+function S.roomFree(x, y, room)
+    local n = S.sq(x, y)
+    return S.sqFree(n) and n:getRoom() == room
+end
+-- where he stands and where the fridge goes: a free floor square of the store with a free floor square behind it (north
+-- first, then west: the far side from the camera, so the fridge stands behind him) whose own far edge is a wall of the
+-- room (QA review, Nov 21: a wall of its own there, getWall, true the north one, and nothing reaches through it, so
+-- no doorway or open side passes; failing that anywhere, the room's end behind it is enough). The three squares in
+-- front of him (east, south, south-east) must be clear floor: nothing stands between him and the camera. The best has
+-- the most free floor further out, then the nearest to the stock spot.
+function S.freezerSpot()
+    local st = S.P.stock
+    local home = st and S.sq(st[1], st[2])
+    local room = home and home:getRoom()
+    if not room then return nil end
+    for pass = 1, 2 do
+        local best = nil
+        for _, q in ipairs(S.storeFloor()) do
+            local here = S.sq(q[1], q[2])
+            local front = S.roomFree(q[1], q[2], room) and S.roomFree(q[1] + 1, q[2], room) and S.roomFree(q[1], q[2] + 1, room)
+                and S.roomFree(q[1] + 1, q[2] + 1, room)
+            if front then
+                for _, o in ipairs({ { 0, -1, "N" }, { -1, 0, "W" } }) do
+                    local f = S.sq(q[1] + o[1], q[2] + o[2])
+                    local back = S.sq(q[1] + 2 * o[1], q[2] + 2 * o[2])
+                    if S.sqFree(f) and f:getRoom() == room and back ~= nil and back:getRoom() ~= room and S.plainWall(f) and here:canReachTo(f)
+                       and (pass == 2 or (f:getWall(o[3] == "N") ~= nil and not f:canReachTo(back))) then
+                        local score = 0
+                        for _, d in ipairs({ { 2, 1 }, { 1, 2 }, { 2, 2 } }) do
+                            if S.roomFree(q[1] + d[1], q[2] + d[2], room) then score = score + 10 end
+                        end
+                        if o[3] == "N" then score = score + 5 end
+                        score = score - (math.abs(q[1] - st[1]) + math.abs(q[2] - st[2])) * 0.1
+                        if not best or score > best.score then best = { score = score, q = { q[1], q[2] }, f = f, side = o[3], pass = pass } end
+                    end
+                end
+            end
+        end
+        if best then return best end
     end
     return nil
+end
+-- a free outdoor square for the generator, the nearest to the fridge, the far side from the camera first
+function S.genSq(fx, fy)
+    for r = 1, 12 do
+        for dy = -r, r do
+            for dx = -r, r do
+                if math.max(math.abs(dx), math.abs(dy)) == r then
+                    local q = S.sq(fx + dx, fy + dy)
+                    if q and q:isOutside() and q:getRoom() == nil and S.sqFree(q) then return q end
+                end
+            end
+        end
+    end
+    return nil
+end
+-- how much of the steak's card lies under its bottom edge (0: all of it shows), in pixels
+function S.cardGap()
+    local w = S.WW()
+    local c = w and w._itemCard
+    if not (c and c.viewH and S.wcardOn(S.frSteak)) then return 0 end
+    return math.max(0, math.ceil((c._contentH or 0) - c:viewH()))
 end
 Q.step(20, function()
     S.fr = false
     S.openPair(); S.charTab("loot"); S.worldTab("loot")
-    -- beside him on the far side from the camera (west or north), so the fridge stands behind him; at his side (the
-    -- same depth) only when neither is free
-    local sq = S.nearSq({ { -1, 0 }, { 0, -1 }, { -1, -1 }, { 1, -1 }, { -1, 1 } })
-    if not sq then S.skip("B5-9_freezer_steak", "no free square beside the character that he reaches"); return end
-    for _, name in ipairs({ "appliances_refrigeration_01_0", "appliances_refrigeration_01_4" }) do
+    S.frSpot = S.freezerSpot()
+    if not S.frSpot then S.skip("B5-9_freezer_steak", "no floor square in the store with room for a fridge against the wall behind it and clear floor in front of him"); return end
+    -- into the store, on the square in front of the fridge's place
+    S.frIn = true
+    G1.tp(S.frSpot.q, "SE")
+    S.fr = true
+    Q.say("B5-9: in the store at " .. S.frSpot.q[1] .. "," .. S.frSpot.q[2] .. ", the fridge's place on his " .. ((S.frSpot.side == "N") and "north" or "west") .. " side, "
+        .. ((S.frSpot.pass == 1) and "against a wall of its own" or "at the room's end (NOTE: no wall of its own found there, check the picture)"))
+end)
+Q.step(40, function()
+    if not S.fr then return end
+    S.fr = false
+    local sq = S.frSpot.f
+    if not S.sqFree(sq) then S.skip("B5-9_freezer_steak", "the fridge's square is no longer free"); S.frBack(); return end
+    -- (the fridge-freezer's tile that faces into the room: 0 and 4 face south, 1 and 5 east)
+    local names = (S.frSpot.side == "N") and { "appliances_refrigeration_01_0", "appliances_refrigeration_01_4", "appliances_refrigeration_01_1" }
+        or { "appliances_refrigeration_01_1", "appliances_refrigeration_01_5", "appliances_refrigeration_01_0" }
+    for _, name in ipairs(names) do
         if not S.fridge and getSprite(name) then
-            pcall(function()
-                local o = IsoObject.new(sq, name, nil, false)
-                sq:AddTileObject(o)
-                pcall(function() o:createContainersFromSpriteProperties() end)
-                if o:getContainer() then S.fridge = o else pcall(function() sq:transmitRemoveItemFromSquare(o) end) end
-            end)
+            local o = IsoObject.new(sq, name, nil, false)
+            sq:AddTileObject(o)
+            S.frTry = o     -- (taken off again by S.frBack, should anything below stop the step)
+            o:createContainersFromSpriteProperties()
+            if o:getContainer() and o:getContainerByType("freezer") then
+                S.fridge = o
+                S.frName = name
+            else
+                S.removeObj(o)
+            end
+            S.frTry = nil
         end
     end
-    if not S.fridge then S.skip("B5-9_freezer_steak", "no fridge tile could be placed"); return end
-    pcall(function() S.frz = S.fridge:getContainerByType("freezer") end)
-    if S.frz then pcall(function() S.frSteak = S.frz:AddItem("Base.Steak") end) end
+    if not S.fridge then S.skip("B5-9_freezer_steak", "no fridge-freezer tile could be placed"); S.frBack(); return end
+    S.frz = S.fridge:getContainerByType("freezer")
+    if S.frz then S.frSteak = S.frz:AddItem("Base.Steak") end
     if not (S.frz and S.frSteak) then S.skip("B5-9_freezer_steak", "the fridge has no freezer, or no steak could be put in it"); S.frBack(); return end
     S.fr = true
     pcall(function() S.WW()._containersDirty = true end)
 end)
 Q.step(30, function()
     if not S.fr or S.powered() then return end
-    -- no power here: a generator a few squares off, behind him, as a player would run one
-    local gsq = S.freeSq({ { -3, -1 }, { -1, -3 }, { -3, 0 }, { 0, -3 }, { -2, -2 }, { -3, -3 }, { -3, 1 }, { 1, -3 } })
+    -- no power in the store: a generator outside its wall, the nearest free outdoor square to the fridge (a running
+    -- generator indoors would poison him), as a player would run one
+    local fsq = S.frSpot.f
+    local gsq = S.genSq(fsq:getX(), fsq:getY())
     if gsq then
         pcall(function()
             S.gen = IsoGenerator.new(instanceItem("Base.Generator"), getCell(), gsq)
             S.gen:setFuel(60); S.gen:setCondition(100); S.gen:setConnected(true); S.gen:setActivated(true)
         end)
     end
-    Q.say("B5-9: no power at the spot, a generator placed " .. tostring(S.gen ~= nil))
+    Q.say("B5-9: no power in the store, a generator placed outside " .. tostring(S.gen ~= nil) .. ((gsq and S.gen) and (" at " .. gsq:getX() .. "," .. gsq:getY()) or ""))
 end)
 Q.waitFor(10, 900, function() return not S.fr or S.powered() end, function(ok)
     if not S.fr then return end
@@ -1069,6 +1464,28 @@ Q.waitFor(20, 600, function() return not S.fr or S.zone(S.wc(), S.frSteak) ~= ni
     Q.say("B5-9: the steak's row " .. tostring(z ~= nil) .. ", pressed " .. tostring(z ~= nil and S.click(c, z)))
 end)
 Q.waitFor(10, 300, function() return not S.fr or S.wcardOn(S.frSteak) end, function(ok) if S.fr then S.clearChar() end end)
+-- (QA retake, Nov 21: the card's last line was cut at the card's bottom edge: the card is longer than the window at
+-- its default height, and scrolls. The World window is made as much taller as the card needs, so all of it shows;
+-- should the window then reach down over the character, it goes to the right edge of the screen (S.clearChar). Three
+-- tries: the card's length settles a frame after each. The reset after the picture gives the default height back.)
+S.frGrown = 0
+for _ = 1, 3 do
+    Q.still(6, function()
+        if not S.fr then return end
+        local gap = S.cardGap()
+        local w = S.WW()
+        if gap <= 0 or not w then return end
+        local T = ZeD.T
+        local H = S.core:getScreenHeight()
+        local h = w:getHeight() + gap + T.px(2)
+        if w:getY() + h > H - T.px(24) then h = H - T.px(24) - w:getY() end
+        if h <= w:getHeight() then return end
+        if S.was.wwH == nil then S.was.wwH = w:getHeight() end
+        S.frGrown = S.frGrown + (h - w:getHeight())
+        w:setHeight(h)
+    end)
+    Q.step(4, function() if S.fr then S.clearChar() end end)
+end
 Q.still(10, function()
     if not S.fr then return end
     local tags = {}
@@ -1079,9 +1496,13 @@ Q.still(10, function()
         S.skip("B5-9_freezer_steak", string.format("the steak's freezing did not start (%.1f -> %.1f of 100, freezer powered %s): the fault, or no freezing in this game", S.fz0 or -1, S.fz1 or -1, tostring(S.powered())))
         return
     end
-    S.take("B5-9_freezer_steak", string.format("a powered freezer (%s) in the World window's Loot list, a steak in it: its freezing went %.1f -> %.1f of 100 with only ZeD's list showing it, frozen %s; "
-        .. "the steak's card open on the World window %s; its state words: %s", S.gen and "a generator behind him" or "grid power", S.fz0 or -1, S.fz1 or -1, tostring(S.frFrozen),
-        tostring(S.wcardOn(S.frSteak)), (#tags > 0) and table.concat(tags, ", ") or "none"))
+    local gap = S.cardGap()
+    S.take("B5-9_freezer_steak", string.format("inside the store, a fridge-freezer against the wall behind him (%s), powered (%s), its freezer in the World window's Loot list, a steak in it: "
+        .. "its freezing went %.1f -> %.1f of 100 with only ZeD's list showing it, frozen %s; "
+        .. "the steak's card open on the World window %s, %s (the window made %d px taller for it); its state words: %s", tostring(S.frName),
+        S.gen and "a generator outside the wall" or "the store's own power", S.fz0 or -1, S.fz1 or -1, tostring(S.frFrozen),
+        tostring(S.wcardOn(S.frSteak)), (gap <= 0) and "all of it showing" or ("NOTE: " .. gap .. " px of it still under its bottom edge (the screen is too short for the whole card)"),
+        S.frGrown or 0, (#tags > 0) and table.concat(tags, ", ") or "none"))
 end)
 Q.step(5, function()
     if S.frSteak and S.wcardOn(S.frSteak) then
@@ -1090,7 +1511,7 @@ Q.step(5, function()
         if z then S.click(c, z) end
     end
 end)
-Q.step(20, function() S.frBack(); S.worldTab("loot") end)
+Q.step(20, function() S.frBack(); S.worldTab("loot"); S.home() end)
 
 -- ===================================================================== put back
 Q.mark()
@@ -1150,6 +1571,7 @@ end)
 Q.step(30, function()
     if not S.was.pairOpen then S.closePair() end
     pcall(function() Mouse.setCursorVisible(true) end)
+    Events.OnPreUIDraw.Remove(S.errWatch)
     Q.say("put back")
 end)
 Q.start()

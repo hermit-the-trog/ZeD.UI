@@ -11,15 +11,27 @@
 --                                B5-5 left undone, not its fix)
 --   W15_strip_at_rest            Context menu on Strip, a right-click on a carried thing with 11 or more actions.
 --                                The picture is the strip's third drawn frame, inside the 180 ms the old slide took:
---                                a strip that still slid would show its cells part way along; this one is at rest
+--                                a strip that still slid would show its cells part way along; this one is at rest.
+--                                The right-click lands near the top of the thing's row, so the strip (it opens just
+--                                above the click) lies level on the row above; the Character window is held "in use"
+--                                (the player's pointer is on the row he clicked), so it is solid, not see-through
 --   W55_radio_open_no_hint       a walkie-talkie in the main hand, in the open: the hint strip shows nothing
 --   B6-7_radio_station_more      the same radio in front of a crafting station: "Right-click More"
---   B7-3_wheel_sit_on_chair      the D-pad Down wheel's Sit ring, a chair two squares south west of him: "Sit on: <chair>"
---   B7-3_wheel_sleep_names_bed   sitting on a bed, the D-pad Left wheel's Sleep slice names the bed
+--   B7-3_wheel_sit_on_chair      the D-pad Down wheel's Sit ring, a chair two squares from him: "Sit on: <chair>"
+--   B7-3_wheel_sleep_names_bed   sitting on a bed, the D-pad Left wheel's Sleep slice names the bed (taken once the
+--                                "Resting" bubble over his head has gone)
+--                                (both inside the store, on open floor of one room with open floor toward the camera,
+--                                no seat of the map in the wheel's reach: S.findInside; a can or litter on the floor
+--                                round him is let be only when no fully bare floor is found; only with no such floor
+--                                at all are they placed on the patch outside; each said in the line)
 -- The scene: an open patch by the story's smoking spot (in the open, on the camera side of the store), or a door or
 -- window of the map on the camera side of a building. Nothing placed stands between him and the camera (it looks
 -- from the south-east): a place to stand needs its squares two deep toward the camera open (no roof, canopy, room,
 -- tree or car). A right-click menu opens to the right of him: he stands left of what he right-clicks, facing it.
+-- The station wagons old test runs left jammed by the pumps (the story car's kind) are kept out of the B5-5 frames:
+-- the door, the window (a building's own, not a gate) and the ground are the ones whose frame holds none of them
+-- (S.pickFramed), at zoom 1 if there is one, else zoomed in to 0.75 or 0.5 for that picture (the zoom and the count
+-- are in its line). No car is touched.
 -- While a menu is up, the pointer the game's Lua reads is parked off every menu (Mouse.setXY does not move it), so
 -- no row or cell is lit by wherever the real pointer happens to rest; the same while the hint strip is pictured.
 -- No controller is plugged in: the wheels open as gallery_v1_b_pad.lua opens them (ZeD's input mode locked to the
@@ -27,8 +39,8 @@
 -- Each picture prints "ZEDQA bxrm SHOT <name> | what is in it" or "ZEDQA bxrm SKIP <name> | why".
 -- What it puts back: the things given, his hands, the chair, bed, stove, door and station placed, the Context menu and
 -- Hint strip settings, the input mode lock, the build cheat, tiredness and the last sleep hour, the opened stack, the
--- pointer the game reads, both windows where they were, game speed, the pair as found; he ends standing, alive and
--- whole. grep "ZEDQA bxrm".
+-- pointer the game reads, the Character window's own pointer test, the zoom (1), both windows where they were, game
+-- speed, the pair as found; he ends standing, alive and whole. grep "ZEDQA bxrm".
 local S = HFR and HFR.init and HFR.init("bxrm")
 if not S then return end
 S.DIR = "bxr_"
@@ -178,6 +190,164 @@ function S.onScreen(x, y, w, h)
     return x >= -1 and y >= -1 and x + w <= sw + 1 and y + h <= sh + 1
 end
 
+-- ----- the frame: the station wagons of old test runs stay out of it
+-- every car of the story car's kind in the cell (the old runs' leftovers by the pumps; this run's own one too)
+S.ZOOMS = { 1, 0.75, 0.5 }
+function S.wagons()
+    if S.wagonList then return S.wagonList end
+    local out, kind = {}, nil
+    pcall(function() kind = STORY.car and tostring(STORY.car:getScriptName()) or nil end)
+    pcall(function()
+        local it = getCell():getVehicles():iterator()
+        while it:hasNext() do
+            local v = it:next()
+            local n = tostring(v:getScriptName())
+            if n == kind or n:find("StationWagon", 1, true) then out[#out + 1] = { x = v:getX(), y = v:getY() } end
+        end
+    end)
+    S.wagonList = out
+    return out
+end
+-- how many of them the picture holds with him on st and the camera at zoom z (the camera holds him where it holds
+-- him now; a car's middle within its own length of the frame counts)
+function S.wagonsIn(st, z)
+    local n = 0
+    pcall(function()
+        local f = S.zoom() / z
+        local sw, sh = S.scr()
+        local hx, hy = S.screenOf(S.p:getX(), S.p:getY())
+        local cx, cy = sw / 2 + (hx - sw / 2) * f, sh / 2 + (hy - sh / 2) * f
+        local ox, oy = isoToScreenX(S.pn, st.x + 0.5, st.y + 0.5, 0), isoToScreenY(S.pn, st.x + 0.5, st.y + 0.5, 0)
+        local unit = math.abs(isoToScreenX(S.pn, st.x + 1.5, st.y + 0.5, 0) - ox) * f
+        for _, v in ipairs(S.wagons()) do
+            local x = cx + (isoToScreenX(S.pn, v.x, v.y, 0) - ox) * f
+            local y = cy + (isoToScreenY(S.pn, v.x, v.y, 0) - oy) * f
+            if x > -unit * 3.5 and x < sw + unit * 3.5 and y > -unit * 2 and y < sh + unit * 3 then n = n + 1 end
+        end
+    end)
+    return n
+end
+-- of the candidates ({ st = where he stands, base = how far, ... }) the one whose frame holds no wagon: at zoom 1
+-- if there is one, else at 0.75, else at 0.5; with none anywhere, the fewest wagons. Sets its zoom and cars
+function S.pickFramed(cands)
+    local best, bs = nil, 1e12
+    for zi, z in ipairs(S.ZOOMS) do
+        for _, c in ipairs(cands) do
+            local n = S.wagonsIn(c.st, z)
+            local sc = ((n > 0) and (1e7 + n * 1e5) or 0) + zi * 1e4 + (c.base or 0)
+            if sc < bs then best, bs = c, sc; c.zoom, c.cars = z, n end
+        end
+    end
+    return best
+end
+-- the camera's zoom to get() (nil: left as it is), a quarter step a frame as G1's Q.zoomTo, then the time it takes
+function S.zoomDyn(get)
+    local st = {}
+    Q.waitFor(2, 1200, function()
+        if st.left == nil then
+            local z = get()
+            st.left = z and math.floor((S.core:getZoom(S.pn) - z) / 0.25 + 0.5) or 0
+            st.moved = st.left ~= 0
+        end
+        if st.left == 0 then return true end
+        S.core:doZoomScroll(S.pn, (st.left > 0) and -1 or 1)
+        st.left = (st.left > 0) and (st.left - 1) or (st.left + 1)
+        return st.left == 0
+    end, function() end)
+    Q.waitFor(1, 200, function()
+        if not st.moved then return true end
+        st.n = (st.n or 0) + 1
+        return st.n >= 100
+    end, function() if st.moved then Q.say("zoom " .. tostring(S.core:getZoom(S.pn))) end end)
+end
+
+-- ----- the store's floor (the chair and the bed stand inside, not in a parking space)
+-- a square of the store's room with its floor and nothing else on it (a wall on its far edges at most). loose: a
+-- thing lying on the floor (a can, litter) is let be; never anything solid, never a body
+function S.floorSq(sq, loose)
+    local good = false
+    pcall(function()
+        good = sq ~= nil and STORY.inRoom(sq:getX(), sq:getY()) and sq:getFloor() ~= nil and sq:isFree(false)
+            and sq:getStaticMovingObjects():size() == 0
+            and (loose == true or (sq:getObjects():size() <= 2 and sq:getWorldObjects():size() == 0))
+    end)
+    return good and sq or nil
+end
+-- a and b in one room (no wall between them across the floor; vanilla's AdjacentFreeTileFinder asks the same)
+function S.sameRoom(a, b)
+    local same = false
+    pcall(function() same = a ~= nil and b ~= nil and a:getRoom() ~= nil and a:getRoom() == b:getRoom() end)
+    return same
+end
+-- how many squares of the n x n block from (x, y) toward the camera are such floor, in (x, y)'s room
+function S.block(x, y, n, loose)
+    local home = S.sqAt(x, y)
+    local c = 0
+    for dy = 0, n - 1 do
+        for dx = 0, n - 1 do
+            local sq = S.floorSq(S.sqAt(x + dx, y + dy), loose)
+            if sq and S.sameRoom(sq, home) then c = c + 1 end
+        end
+    end
+    return c
+end
+-- no car and no tree on sq: on the squares just past a 3 x 3 block's near corner they are drawn over the legs of
+-- whoever is on its far corner (a wall there is cut away while he is inside; a shelf or a fridge of a store's height
+-- reaches no higher than his feet from there, so it is let be)
+function S.clearSq(sq)
+    if not sq then return true end
+    local ok = false
+    pcall(function() ok = sq:getVehicleContainer() == nil and not sq:HasTree() end)
+    return ok
+end
+-- a seat of the map within the wheel's reach of (x, y) (the wheel names the nearest seat: it must be the one placed)
+function S.seatBy(x, y)
+    local found = false
+    pcall(function()
+        local sm = SeatingManager.getInstance()
+        for yy = y - 3, y + 3 do
+            for xx = x - 3, x + 3 do
+                local sq = S.sqAt(xx, yy)
+                local objs = sq and sq:getObjects() or nil
+                for i = 0, (objs and objs:size() or 0) - 1 do
+                    if sm:getTilePositionCount(objs:get(i)) > 0 then found = true end
+                end
+            end
+        end
+    end)
+    return found
+end
+-- a place inside the store: (x, y) the far corner of a 3 x 3 block of bare floor in one room (so the two squares
+-- toward the camera of whoever stands or sits there are bare: no shelf, counter or wall in front of him), the three
+-- squares just past its near corner clear (S.clearSq), no seat of the map in the wheel's reach, and extra(x, y, loose)
+-- (the caller's own squares: what it returns is kept); the one with the most bare floor in the 5 x 5 block toward
+-- the camera, then the nearest to the room's middle. First with every square of the block bare; then, with none
+-- such, loose: a thing lying on the floor round him let be (his own square and the seat's still bare). nil with no
+-- such block either way
+function S.findInside(extra)
+    local s = STORY.site
+    local c = S.P.centre or { (s.x0 + s.x1) / 2, (s.y0 + s.y1) / 2 }
+    for pass = 1, 2 do
+        local loose = pass == 2
+        local best, bs = nil, -1e9
+        for y = s.y0, s.y1 do
+            for x = s.x0, s.x1 do
+                if S.floorSq(S.sqAt(x, y)) and S.block(x, y, 3, loose) == 9 and S.clearSq(S.sqAt(x + 3, y + 2))
+                   and S.clearSq(S.sqAt(x + 2, y + 3)) and S.clearSq(S.sqAt(x + 3, y + 3)) and not S.seatBy(x, y) then
+                    local e = extra(x, y, loose)
+                    if e then
+                        local open = S.block(x, y, 5, loose)
+                        local sc = open * 10 - (math.abs(x - c[1]) + math.abs(y - c[2]))
+                        if sc > bs then best, bs = { x = x, y = y, open = open, extra = e, loose = loose }, sc end
+                    end
+                end
+            end
+        end
+        if best then return best end
+    end
+    return nil
+end
+
 -- ----- placed tiles
 function S.removeObj(o)
     if not o then return end
@@ -226,38 +396,17 @@ function S.placeStove(sq)
     end
     return nil
 end
--- the other tiles of a bed: each at its own place in the sprite's grid, on bare squares only
-function S.restOfGrid(grid, spr, sq, name)
-    local n = 0
-    pcall(function()
-        local bx, by = grid:getSpriteGridPosX(spr), grid:getSpriteGridPosY(spr)
-        for gy = 0, grid:getHeight() - 1 do
-            for gx = 0, grid:getWidth() - 1 do
-                local s2 = grid:getSprite(gx, gy)
-                local n2 = s2 and tostring(s2:getName()) or nil
-                if n2 and n2 ~= name then
-                    local q = S.goodSq(S.sqAt(sq:getX() + gx - bx, sq:getY() + gy - by))
-                    if q then
-                        local o2 = IsoObject.new(q, n2, nil, false)
-                        q:AddTileObject(o2)
-                        S.objs[#S.objs + 1] = o2
-                        n = n + 1
-                    end
-                end
-            end
-        end
-    end)
-    return n
-end
 function S.seatName(o)
     local nm = nil
     pcall(function() nm = ISWorldObjectContextMenu.getMoveableDisplayName(o) end)
     return nm
 end
--- a seat tile (a chair of one tile, or a bed with its other tiles): the first sprite the game has seat places for
--- and a name (bx_health.lua's X.place; a seat with no name reads "Sit on a seat" whatever the fix)
-function S.placeSeat(prefixes, sq, wantBed)
-    if not sq then return nil, "the square is not free" end
+-- a seat sprite (a chair of one tile, or a bed with its other tiles): the first one the game has seat places and a
+-- name for (bx_health.lua's X.place; a seat with no name reads "Sit on a seat" whatever the fix). Gives its name and
+-- offs, where its other tiles go from its own square ({ dx, dy, sprite name }), before any square is picked
+function S.seatSprite(prefixes, wantBed)
+    local probe = S.p:getCurrentSquare()
+    if not probe then return nil end
     for _, pre in ipairs(prefixes) do
         for i = 0, 63 do
             local name = pre .. i
@@ -272,19 +421,66 @@ function S.placeSeat(prefixes, sq, wantBed)
             end
             if good then
                 local o, n = nil, 0
-                pcall(function() o = IsoObject.new(sq, name, nil, false) end)
+                pcall(function() o = IsoObject.new(probe, name, nil, false) end)
                 pcall(function() n = SeatingManager.getInstance():getTilePositionCount(o) end)
                 if o and n > 0 and S.seatName(o) ~= nil then
-                    sq:AddTileObject(o)
-                    S.objs[#S.objs + 1] = o
-                    local more = grid and S.restOfGrid(grid, spr, sq, name) or 0
-                    return o, name .. ((more > 0) and (" and " .. more .. " more of its tiles") or "")
+                    local offs = {}
+                    if grid then
+                        pcall(function()
+                            local bx, by = grid:getSpriteGridPosX(spr), grid:getSpriteGridPosY(spr)
+                            for gy = 0, grid:getHeight() - 1 do
+                                for gx = 0, grid:getWidth() - 1 do
+                                    local s2 = grid:getSprite(gx, gy)
+                                    local n2 = s2 and tostring(s2:getName()) or nil
+                                    if n2 and n2 ~= name then offs[#offs + 1] = { gx - bx, gy - by, n2 } end
+                                end
+                            end
+                        end)
+                    end
+                    return { name = name, offs = offs }
                 end
             end
         end
     end
-    return nil, "no sprite with seat places and a name"
+    return nil
 end
+-- the seat on sq, its other tiles on the squares okSq passes (S.floorSq inside, S.goodSq outside)
+function S.placeSeat(info, sq, okSq)
+    if not sq then return nil, "the square is not free" end
+    local o, on = nil, false
+    pcall(function() o = IsoObject.new(sq, info.name, nil, false); sq:AddTileObject(o) end)
+    pcall(function() on = o ~= nil and sq:getObjects():contains(o) end)
+    if not on then return nil, "the tile " .. info.name .. " could not be placed" end
+    S.objs[#S.objs + 1] = o
+    local more = 0
+    for _, f in ipairs(info.offs) do
+        local q = okSq(S.sqAt(sq:getX() + f[1], sq:getY() + f[2]))
+        if q then
+            pcall(function()
+                local o2 = IsoObject.new(q, f[3], nil, false)
+                q:AddTileObject(o2)
+                S.objs[#S.objs + 1] = o2
+                more = more + 1
+            end)
+        end
+    end
+    return o, info.name .. ((more > 0) and (" and " .. more .. " more of its tiles") or "")
+end
+-- anything ZeD draws over his head (the action bubble, "Resting" as he sits down; speech; a note)
+function S.overhead()
+    local up = false
+    pcall(function()
+        local L = ZeD.ActionBar._layers[S.pn]
+        up = L ~= nil and (L._drawSt ~= nil or L._drawSp ~= nil or L._drawNotes ~= nil)
+    end)
+    return up
+end
+function S.busy()
+    local n = 0
+    pcall(function() n = #ISTimedActionQueue.getTimedActionQueue(S.p).queue end)
+    return n > 0
+end
+S.WORDS = { N = "north", S = "south", E = "east", W = "west", NE = "north east", NW = "north west", SE = "south east", SW = "south west" }
 function S.sitting()
     local s = false
     pcall(function() s = S.p:isSitOnGround() or S.p:isSittingOnFurniture() end)
@@ -348,11 +544,16 @@ function S.worldShot(name, label, prep)
             if a.after then pcall(a.after) end
             return
         end
+        -- (a thing placed on the patch has one place only: the zoom alone keeps the wagons out of its frame)
+        a.st = st
+        if a.zoom == nil then S.pickFramed({ a }) end
         t.T = a
         local face = S.dirTo(st.x + 0.5, st.y + 0.5, a.fx, a.fy)
         G1.tp({ st.x, st.y }, face)
-        Q.say(t.pic .. ": " .. t.label .. " at " .. a.tx .. "," .. a.ty .. " (" .. tostring(a.how) .. "), he stands at " .. st.x .. "," .. st.y .. " facing " .. face)
+        Q.say(t.pic .. ": " .. t.label .. " at " .. a.tx .. "," .. a.ty .. " (" .. tostring(a.how) .. "), he stands at " .. st.x .. "," .. st.y .. " facing " .. face
+            .. "; zoom " .. tostring(a.zoom) .. ", station wagons in that frame " .. tostring(a.cars) .. " of " .. #S.wagons() .. " in the cell")
     end)
+    S.zoomDyn(function() return t.T and t.T.zoom or nil end)
     S.settle(function() return t.T ~= nil end)
     Q.step(3, function()
         if not t.T then return end
@@ -391,19 +592,24 @@ function S.worldShot(name, label, prep)
             .. fault .. " (\"Item\" before the fix); rows: " .. table.concat(rows, ", ")
             .. "; the list at " .. S.fl(lv.x) .. "," .. S.fl(lv.y) .. " " .. S.fl(lv.w) .. "x" .. S.fl(lv.h)
             .. ", all on screen " .. tostring(S.onScreen(lv.x, lv.y, lv.w, lv.h))
-            .. (S.over(lv.x, lv.y, lv.w, lv.h) and ", NOTE it lies over the character" or ", beside the character") .. "; no row lit (the pointer off the list)", true)
+            .. (S.over(lv.x, lv.y, lv.w, lv.h) and ", NOTE it lies over the character" or ", beside the character") .. "; no row lit (the pointer off the list)"
+            .. "; zoom " .. tostring(S.zoom()) .. ", station wagons of the old test runs in the frame: " .. tostring(S.wagonsIn(t.T.st, S.zoom()))
+            .. ((S.wagonsIn(t.T.st, S.zoom()) > 0) and " (NOTE: no place or zoom keeps them all out)" or ""), true)
     end)
     Q.step(5, function() S.closeMenu(); if t.T and t.T.after then pcall(t.T.after) end end)
+    S.zoomDyn(function() return 1 end)
 end
--- a door or window of the map whose own square is in the open and already seen (its wall is north or west of that
--- square, so he stands on the camera side of the building), with a place to stand left of it; the nearest to the
--- patch, a shut and whole one before an open, smashed or barricaded one. kind: "IsoDoor" or "IsoWindow" (a door a
--- player built is an IsoThumpable and is left out: its heading names its kind, not "Door")
+-- a door or window of a building of the map whose own square is in the open and already seen (its wall is north or
+-- west of that square, so he stands on the camera side of the building; the square past the wall a room's, so a
+-- gate in a fence is left out), with a place to stand left of it; the nearest to the patch, a shut and whole one
+-- before an open, smashed or barricaded one. kind: "IsoDoor" or "IsoWindow" (a door a player built is an
+-- IsoThumpable and is left out: its heading names its kind, not "Door"). Of them all, the one whose frame holds none
+-- of the old runs' station wagons (S.pickFramed)
 function S.findOpening(kind, label)
     local s = STORY.site
-    local best, bs = nil, 1e9
-    for y = s.y0 - 20, s.y1 + 20 do
-        for x = s.x0 - 20, s.x1 + 20 do
+    local cands = {}
+    for y = s.y0 - 30, s.y1 + 30 do
+        for x = s.x0 - 30, s.x1 + 30 do
             local sq = S.sqAt(x, y)
             local n = 0
             if sq then pcall(function() if sq:isSeen(S.pn) and sq:isOutside() and sq:getRoom() == nil then n = sq:getObjects():size() end end) end
@@ -412,22 +618,27 @@ function S.findOpening(kind, label)
                     local o = sq:getObjects():get(i)
                     if not instanceof(o, kind) then return end
                     local north = o:isNorth() and true or false
+                    -- (a building's own: the square past its wall is a room's; a gate in a fence is left out)
+                    local past = nil
+                    if north then past = S.sqAt(x, y - 1) else past = S.sqAt(x - 1, y) end
+                    if not (past and past:getRoom() ~= nil) then return end
                     local off, state = 0, "shut"
                     pcall(function() if o:IsOpen() then off, state = 40, "open" end end)
                     if kind == "IsoWindow" then
                         pcall(function() if o:isSmashed() or o:isDestroyed() then off, state = off + 200, "smashed" end end)
                         pcall(function() if o:isBarricaded() then off, state = off + 100, state .. ", barricaded" end end)
                     end
-                    local sc = math.abs(x - S.c.x) + math.abs(y - S.c.y) + off
-                    if sc >= bs then return end
                     local fx, fy = x + (north and 0.5 or 0.15), y + (north and 0.15 or 0.5)
                     local st = S.standFor(fx, fy, x, y)
-                    if st then best, bs = { obj = o, fx = fx, fy = fy, tx = x, ty = y, st = st, how = label .. " of the map, " .. state }, sc end
+                    if st then
+                        cands[#cands + 1] = { obj = o, fx = fx, fy = fy, tx = x, ty = y, st = st, how = label .. " of the map, " .. state,
+                                              base = math.abs(x - S.c.x) + math.abs(y - S.c.y) + off }
+                    end
                 end)
             end
         end
     end
-    return best
+    return S.pickFramed(cands)
 end
 
 -- ----- the input mode ZeD reads
@@ -627,6 +838,18 @@ function S.stacksBack()
     end)
     S.stackWas = {}
 end
+-- the Character window held "in use" while its row is right-clicked (ZeD_Window:_inUse asks pointerOn, which reads
+-- the real pointer; the script's pointer is not the real one): solid, as a player with his pointer on the row sees
+-- it, not see-through. false puts the window's own test back
+function S.holdChar(on)
+    if on then
+        local w = S.CW()
+        if w and not S.heldWin then S.heldWin = w; w.pointerOn = function() return true end end
+    elseif S.heldWin then
+        S.heldWin.pointerOn = nil
+        S.heldWin = nil
+    end
+end
 -- the strip's track: where it is drawn (o) and where it belongs (want), in px
 function S.stripAt(m)
     local c = ZeD.T.ctx
@@ -691,12 +914,25 @@ S.worldShot("B5-5_list_window", "a window", function()
              how = "NOTE a stove placed on the patch (" .. tostring(name) .. "): no window of the map has open ground on its camera side",
              after = function() S.removeObj(o) end }
 end)
+-- (bare ground on or round the patch, every second square out to 12: the one whose frame holds no wagon)
 S.worldShot("B5-5_list_ground", "bare ground", function()
     if not S.c then return nil, "no open patch" end
-    local sq = S.goodSq(S.sqAt(S.c.x + 2, S.c.y - 2))
-    local o = sq and sq:getFloor() or nil
-    if not o then return nil, "the patch's square is not bare" end
-    return { obj = o, fx = sq:getX() + 0.5, fy = sq:getY() + 0.5, tx = sq:getX(), ty = sq:getY(), floor = true, how = "open ground on the patch" }
+    local cands = {}
+    for dy = -12, 12, 2 do
+        for dx = -12, 12, 2 do
+            local x, y = S.c.x + 2 + dx, S.c.y - 2 + dy
+            local sq = S.goodSq(S.sqAt(x, y))
+            local o = sq and sq:getFloor() or nil
+            local st = o and S.standFor(x + 0.5, y + 0.5, x, y) or nil
+            if st then
+                cands[#cands + 1] = { obj = o, fx = x + 0.5, fy = y + 0.5, tx = x, ty = y, st = st, floor = true, base = math.abs(dx) + math.abs(dy),
+                                      how = (dx == 0 and dy == 0) and "open ground on the patch" or "open ground near the patch" }
+            end
+        end
+    end
+    local g = S.pickFramed(cands)
+    if not g then return nil, "no bare ground on or near the patch with a place to stand left of it" end
+    return g
 end)
 Q.step(5, function() S.closeMenu(); S.style(S.was.style) end)
 
@@ -717,6 +953,7 @@ Q.step(30, function()
     end
     pcall(function() ZeD_Window.resetLayout() end)
     S.charTab("loot"); S.worldTab("loot")
+    S.holdChar(true)
 end)
 Q.still(10, function() if not S.w15.done then S.clearChar() end end)
 for _, ft in ipairs(S.LONG) do
@@ -735,7 +972,16 @@ for _, ft in ipairs(S.LONG) do
         local z = S.zone(c, t.it)
         local x, y = nil, nil
         if z then
-            pcall(function() x = S.fl(c:getAbsoluteX() + z.x + math.min(z.w / 2, ZeD.T.px(110))); y = S.fl(c:getAbsoluteY() + z.y + z.h / 2) end)
+            -- the click near the row's top: the strip opens with its bottom T.px(6) above the click, so it lies level
+            -- on the row above (a click on the row's middle left it half a row low, across two rows)
+            pcall(function()
+                local k = ZeD.T.ctx
+                local stripH = k.cellH + k.drilledBorderTop + ZeD.T.px(1)
+                local top = c:getAbsoluteY() + z.y
+                local cx = S.fl(c:getAbsoluteX() + z.x + math.min(z.w / 2, ZeD.T.px(110)))
+                local cy = S.fl(math.max(top + 2, math.min(top + z.h - 2, top - z.h / 2 + stripH / 2 + ZeD.T.px(6))))
+                x, y, t.rowMid = cx, cy, top - z.h / 2
+            end)
         end
         local w = S.CW()
         t.onRow = x ~= nil
@@ -791,6 +1037,17 @@ for _, ft in ipairs(S.LONG) do
         local nm = "?"
         pcall(function() nm = t.it:getDisplayName() end)
         local still = math.abs(t.first.o - t.first.want) <= 1 and math.abs(s.o - s.want) <= 1
+        local level = "?"
+        if t.rowMid then level = tostring(S.fl(y0 + sh / 2 - t.rowMid + 0.5)) end
+        -- (in use and how it is drawn: ZeD_Window:_surfaceAlpha keeps _seeA only while the See-through and "Solid while
+        -- in use" settings apply; nil is the theme's own alpha)
+        local solid = "?"
+        pcall(function()
+            local cw = S.CW()
+            local a = cw._seeA
+            solid = "in use " .. tostring(cw:_inUse()) .. ", drawn " .. ((a == nil) and "at the theme's own alpha"
+                or ((a >= 0.99) and "solid" or ("at alpha " .. tostring(math.floor(a * 100 + 0.5) / 100))))
+        end)
         S.w15.done, t.shot = true, true
         S.shotOk(S.w15.name, "Context menu on Strip, a right-click on " .. nm .. (t.onRow and " on its row of the Character list" or " (NOTE its row was not found: opened over the Character window)")
             .. ": a strip of " .. n .. " actions, the picture taken " .. (getTimestampMs() - t.openMs) .. " ms after the right-click (the old slide took "
@@ -799,7 +1056,9 @@ for _, ft in ipairs(S.LONG) do
             .. (still and ": every cell in its place from the first frame" or " (FAULT: the track slid)")
             .. "; the strip with its arrows at " .. S.fl(x0) .. "," .. S.fl(y0) .. " " .. S.fl(sw) .. "x" .. S.fl(sh)
             .. ", all on screen " .. tostring(S.onScreen(x0, y0, sw, sh))
-            .. (S.over(x0, y0, sw, sh) and ", NOTE it lies over the character" or ", beside the character"), true)
+            .. (S.over(x0, y0, sw, sh) and ", NOTE it lies over the character" or ", beside the character")
+            .. "; its middle " .. level .. " px below the middle of the row above the clicked one (0: level on that row)"
+            .. "; the Character window " .. solid, true)
     end)
     -- after the picture: the track keeps to its place for 20 drawn frames
     Q.waitFor(1, 60, function()
@@ -821,6 +1080,7 @@ end
 Q.step(5, function()
     if not S.w15.done then S.skip(S.w15.name, "none of the things tried opened a strip of 11 or more actions") end
     S.closeMenu()
+    S.holdChar(false)
     S.style(S.was.style)
     S.stacksBack()
     S.takeMade()
@@ -896,20 +1156,69 @@ Q.step(5, function()
 end)
 
 -- ===================================================================== B7-3: the wheel names the chair and the bed
--- (the chair two squares south west, level with him on screen and clear of the wheel's cells; he faces it, so it is
--- in his view and not dimmed)
+-- Inside the store, where a chair and a bed look at home: he on the far corner of a 3 x 3 block of bare floor in one
+-- room (the two squares toward the camera of him bare, the three just past them clear: nothing but the wheel is drawn
+-- on him), the game cutting the roof and the near walls away. The chair two or three squares from him, level with him
+-- on screen (left or right of the wheel, clear of its cells, its tooltip and its footer), in his room, bare floor
+-- between them and on its camera side; he faces it, so it is in his view and not dimmed.
+S.CHAIR_AT = { { -2, 2 }, { 2, -2 }, { -3, 2 }, { -2, 3 }, { 2, -3 }, { 3, -2 } }
+-- the chair's square for him on (x, y): its own square seatOk (okSq when nil), the square between them and the three
+-- on its camera side okSq; inside, all of them in his room
+function S.chairAt(x, y, okSq, seatOk)
+    seatOk = seatOk or okSq
+    local home = S.sqAt(x, y)
+    local inside = false
+    pcall(function() inside = home ~= nil and home:getRoom() ~= nil end)
+    local function good(test, qx, qy)
+        local q = test(S.sqAt(qx, qy))
+        return q ~= nil and (not inside or S.sameRoom(q, home))
+    end
+    for _, f in ipairs(S.CHAIR_AT) do
+        local cx, cy = x + f[1], y + f[2]
+        local mx, my = x + ((f[1] > 0) and 1 or -1), y + ((f[2] > 0) and 1 or -1)
+        if good(seatOk, cx, cy) and good(okSq, mx, my) and good(okSq, cx + 1, cy) and good(okSq, cx, cy + 1)
+           and good(okSq, cx + 1, cy + 1) then
+            return { cx, cy }
+        end
+    end
+    return nil
+end
+-- the line's words for a place found inside
+function S.insideWords(spot, who)
+    return "inside the store (" .. spot.open .. " of the 25 squares toward the camera of " .. who
+        .. (spot.loose and " open floor, some with a can or litter lying on it: the store has no 3 x 3 of bare floor" or " bare floor") .. ")"
+end
 S.ch = {}
 Q.step(10, function()
     if not S.c then S.skip("B7-3_wheel_sit_on_chair", "no open patch"); return end
-    S.home("SW")
-    local o, why = S.placeSeat(S.CHAIRS, S.goodSq(S.sqAt(S.c.x - 2, S.c.y + 2)), false)
+    local info = S.seatSprite(S.CHAIRS, false)
+    if not info then S.skip("B7-3_wheel_sit_on_chair", "no chair sprite with seat places and a name"); return end
+    local px, py, at, okSq = nil, nil, nil, S.floorSq
+    local spot = S.findInside(function(x, y, loose)
+        return S.chairAt(x, y, function(q) return S.floorSq(q, loose) end, S.floorSq)
+    end)
+    if spot then
+        px, py, at = spot.x, spot.y, spot.extra
+        S.ch.where = S.insideWords(spot, "him")
+    else
+        px, py, at, okSq = S.c.x, S.c.y, S.chairAt(S.c.x, S.c.y, S.goodSq), S.goodSq
+        if not at and S.goodSq(S.sqAt(px - 2, py + 2)) then at = { px - 2, py + 2 } end
+        S.ch.where = "NOTE on the patch outside: the store has no 3 x 3 block of bare floor with room for a chair beside it"
+    end
+    if not at then S.skip("B7-3_wheel_sit_on_chair", "no bare square for the chair, inside the store or on the patch"); return end
+    local face = S.dirTo(px + 0.5, py + 0.5, at[1] + 0.5, at[2] + 0.5)
+    G1.tp({ px, py }, face)
+    local o, why = S.placeSeat(info, okSq(S.sqAt(at[1], at[2])), okSq)
     if not o then S.skip("B7-3_wheel_sit_on_chair", "a chair could not be placed: " .. tostring(why)); return end
     S.ch.o = o
-    Q.say("chair placed two squares south west of him: " .. tostring(why))
+    S.ch.rel = math.max(math.abs(at[1] - px), math.abs(at[2] - py)) .. " squares " .. tostring(S.WORDS[face] or face) .. " of him"
+    Q.say("he stands at " .. px .. "," .. py .. " facing " .. face .. ", " .. S.ch.where .. "; chair placed at " .. at[1] .. "," .. at[2] .. ": " .. tostring(why))
     S.lock("gamepad")
     S.toWheel()
 end)
 S.settle(function() return S.ch.o ~= nil end)
+-- (the roof and the near walls have gone: a second and a half)
+S.wait(1500, function() return not S.ch.o end, function() end)
 Q.step(20, function()
     if not S.ch.o then return end
     S.toWheel()   -- (again: the lock to the controller can hand the pad to a window a frame later)
@@ -936,22 +1245,47 @@ Q.step(4, function()
     if not S.wheelDrawn(2) then S.skip("B7-3_wheel_sit_on_chair", "the Sit ring is not on screen with its seat slice pointed (slices " .. #S.slices() .. ")"); return end
     local text = S.sliceText(2)
     local named = S.ch.name ~= nil and tostring(S.slices()[2].text):find(tostring(S.ch.name), 1, true) ~= nil
-    S.shotOk("B7-3_wheel_sit_on_chair", "a chair two squares south west of him (" .. tostring(S.ch.name) .. ", the wheel's nearest seat is the one placed: " .. tostring(S.ch.own)
-        .. "), D-pad Down, Sit: the seat slice reads \"" .. text .. "\"" .. (named and " (\"Sit on a seat\" before the fix)" or " (FAULT: it does not name the chair)"))
+    S.shotOk("B7-3_wheel_sit_on_chair", "a chair " .. tostring(S.ch.rel) .. " (" .. tostring(S.ch.name) .. ", the wheel's nearest seat is the one placed: " .. tostring(S.ch.own)
+        .. "), " .. tostring(S.ch.where) .. ", D-pad Down, Sit: the seat slice reads \"" .. text .. "\"" .. (named and " (\"Sit on a seat\" before the fix)" or " (FAULT: it does not name the chair)")
+        .. (S.overhead() and "; NOTE a bubble is up over his head" or "; nothing over his head but the wheel"))
 end)
 Q.step(10, function()
     S.closeWheel()
     if S.ch.o then S.removeObj(S.ch.o) end
 end)
 
+-- the bed on the far corner of such a block, he two squares toward the camera of it: he walks to its camera side
+-- and sits there, facing the camera, the squares in front of him bare. Its other tiles on bare floor of its room; no
+-- seat of the map in the wheel's reach of where he stands, so the seat slice takes him to this bed
 S.bd = {}
 Q.step(15, function()
     if not S.c then S.skip("B7-3_wheel_sleep_names_bed", "no open patch"); return end
-    S.home("SE")
-    local o, why = S.placeSeat(S.BEDS, S.goodSq(S.sqAt(S.c.x - 2, S.c.y - 2)), true)
+    local info = S.seatSprite(S.BEDS, true)
+    if not info then S.skip("B7-3_wheel_sleep_names_bed", "no bed sprite with seat places and a name"); return end
+    local function tilesOk(x, y)
+        local home = S.sqAt(x, y)
+        for _, f in ipairs(info.offs) do
+            local q = S.floorSq(S.sqAt(x + f[1], y + f[2]))
+            if not (q and S.sameRoom(q, home)) then return nil end
+        end
+        return true
+    end
+    local bx, by, okSq = nil, nil, S.floorSq
+    local spot = S.findInside(function(x, y)
+        return S.floorSq(S.sqAt(x + 2, y + 2)) ~= nil and tilesOk(x, y) and not S.seatBy(x + 2, y + 2)
+    end)
+    if spot then
+        bx, by = spot.x, spot.y
+        S.bd.where = S.insideWords(spot, "the bed")
+    else
+        bx, by, okSq = S.c.x - 2, S.c.y - 2, S.goodSq
+        S.bd.where = "NOTE on the patch outside: the store has no 3 x 3 block of bare floor for a bed"
+    end
+    G1.tp({ bx + 2, by + 2 }, "NW")
+    local o, why = S.placeSeat(info, okSq(S.sqAt(bx, by)), okSq)
     if not o then S.skip("B7-3_wheel_sleep_names_bed", "a bed could not be placed: " .. tostring(why)); return end
     S.bd.o = o
-    Q.say("bed placed north west of him: " .. tostring(why))
+    Q.say("bed placed at " .. bx .. "," .. by .. ", north west of him, " .. S.bd.where .. ": " .. tostring(why))
 end)
 Q.step(20, function()
     if not S.bd.o then return end
@@ -983,6 +1317,17 @@ end, function(ok)
         S.bd.o2 = true
     end
 end)
+-- the "Resting" bubble over his head goes once he has sat down (the game ends the rest action, ZeD fades the bubble):
+-- the wheel opens only then, so its tooltip never lies half across it; seated still and nothing queued, at most 12 s
+S.wait(12000, function()
+    if not S.bd.o or S.bd.o2 then return true end
+    if S.overhead() or S.busy() then S.bd.clearAt = nil; return false end
+    S.bd.clearAt = S.bd.clearAt or getTimestampMs()
+    return getTimestampMs() - S.bd.clearAt >= 500
+end, function(ok)
+    if not S.bd.o or S.bd.o2 then return end
+    if not ok then Q.say("note: after 12 s seated a bubble is still up over his head (action queued: " .. tostring(S.busy()) .. ")") end
+end)
 S.settle(function() return S.bd.o ~= nil and not S.bd.o2 end)
 Q.step(10, function() if S.bd.o and not S.bd.o2 then S.lock("gamepad"); S.toWheel() end end)   -- (the lock too: the chair's picture may have been skipped before it)
 Q.step(20, function()
@@ -1001,8 +1346,9 @@ Q.step(4, function()
     end
     local text = S.sliceText(S.bd.i)
     local named = S.bd.name ~= nil and tostring(S.slices()[S.bd.i].text):find(tostring(S.bd.name), 1, true) ~= nil
-    S.shotOk("B7-3_wheel_sleep_names_bed", "sitting on a bed (" .. tostring(S.bd.name) .. "), D-pad Left: the Sleep slice reads \"" .. text .. "\""
-        .. (named and " (\"Sleep on Ground\" before the fix)" or " (FAULT: it does not name the bed)"))
+    S.shotOk("B7-3_wheel_sleep_names_bed", "sitting on a bed (" .. tostring(S.bd.name) .. "), " .. tostring(S.bd.where) .. ", D-pad Left: the Sleep slice reads \"" .. text .. "\""
+        .. (named and " (\"Sleep on Ground\" before the fix)" or " (FAULT: it does not name the bed)")
+        .. (S.overhead() and "; NOTE a bubble is still up over his head" or "; the Resting bubble gone, nothing over his head but the wheel"))
 end)
 Q.step(10, function()
     S.closeWheel()
@@ -1017,9 +1363,11 @@ Q.step(5, function()
     S.closeMenu()
     S.closeWheel()
     S.lock(false)
+    S.holdChar(false)
     pcall(function() S.p:setBuildCheat(S.was.cheat == true) end)
     S.getUp()
 end)
+S.zoomDyn(function() return 1 end)
 S.wait(9000, function() return not S.sitting() end, function(ok)
     if not ok then pcall(function() S.p:setSitOnGround(false) end) end
 end)
@@ -1042,7 +1390,8 @@ Q.step(5, function()
         .. ", Context menu setting " .. tostring(S.ctxOpt():getValue()) .. " (found " .. tostring(S.was.style) .. "), Hint strip setting "
         .. tostring(ZeD.Settings.hintStripOption:getValue()) .. " (found " .. tostring(S.was.hint) .. "), input lock as found ("
         .. tostring(S.lockWas) .. "; ZeD reads " .. mode .. "), build cheat " .. cheat .. " (found " .. tostring(S.was.cheat) .. "), wheel pointer "
-        .. tostring(W.qaPoint) .. ", mouse swap " .. tostring(S.mouseSwapped == true))
+        .. tostring(W.qaPoint) .. ", mouse swap " .. tostring(S.mouseSwapped == true) .. ", Character window held in use "
+        .. tostring(S.heldWin ~= nil) .. ", zoom " .. tostring(S.zoom()))
     G1.glassesBack(Q)
 end)
 Q.step(20, function()

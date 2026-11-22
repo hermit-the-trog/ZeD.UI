@@ -4,9 +4,11 @@
 --   B3-2_lite_extras_on_additions_shown     ZeD setup in Lite from the pause menu, the extras still on (Style Lite set
 --                                           as a value over the Vanilla Plus additions): the Additions group shows
 --   B3-2_lite_extras_vanilla_additions_out  the same page, the extras on the Vanilla preset: the group is left out
---   B3-1_lite_defaults_live                 Lite with the extras on, scrolled to the Additions group: its rows read On
---                                           and Defaults (bottom left, by Back) is live, before it is pressed
---   B3-1_lite_after_defaults_extras_off     after Defaults (no Apply; Discard after): the extras read Off, Defaults greys
+--   B3-1_lite_defaults_live                 Lite with the extras on: the Style row (Lite) at the list's top, the Additions
+--                                           rows under it read On, Reset to defaults (bottom row, by Back) is live, not
+--                                           yet pressed
+--   B3-1_lite_after_defaults_extras_off     after Reset to defaults (no Apply; Discard after), the same frame: Style reads
+--                                           Full, the extras read Off, Reset to defaults grays
 --   B7-5_before_remove_two_pens             the Animals tab's overview at the farm, two pens with animals
 --   B7-5_after_remove_card_gone             after Remove zone on one pen, its animals still standing there: its card gone
 -- The setup pictures: nothing is applied. The Options window is held solid (as with the pointer on it) and the pointer
@@ -15,7 +17,13 @@
 -- two pens are made in it with a gap down the middle, and the character stays in the gap at the middle, so eight open
 -- squares lie in front of him (south and east) and nothing beyond them can be drawn over him. Every animal stands on
 -- one row two squares behind his, left and right of him: none over him, none under the windows. The overview is
--- scrolled as little as it takes to show both pens' cards (the farm's own zones are listed on it too).
+-- scrolled as little as it takes to show both pens' cards (the farm's own zones are listed on it too). The pens are
+-- named as a player names them (North Pasture, Back Pen; the next free such name when the save has one already).
+-- NO STORY STAGE in this part (beast_report_lite.txt): the kit's clean step (G1.clean, at the start and before every
+-- picture) calls STORY.noSearch, and with no STORY that threw each time, which lit the game's red error box in the
+-- pictures. So this script stands in a STORY with only noSearch (the same job: search mode and its overlay off) and
+-- takes it away again at the end; the end line gives how far the game's error count rose while it ran (0 wanted; in
+-- the first run each throw added 4).
 -- WHAT IT PUTS BACK: every ZeD option as found (Style and each addition), the look, ModOptions.ini and
 -- ZeD_custom_additions.txt line for line, the pause menu shut, getMouseX / getMouseY, the windows at their default
 -- places and open or shut as found, both pens and every animal it made, the Animals tab on its overview, the World
@@ -27,6 +35,29 @@ local Q = S.Q
 local MM, St = ZeD.MainMenu, ZeD.Settings
 local AT, AP = ZeD.AnimalsTab, ZeD.AnimalsAlertPoller
 local K = {}
+-- the stand-in for the story stage's STORY (see the head): only when no story stage is there
+if STORY == nil then
+    STORY = { bxrl = true }
+    function STORY.noSearch()
+        local p = S.p
+        local sm = ISSearchManager and ISSearchManager.getManager and ISSearchManager.getManager(p)
+        if sm and sm.isSearchMode then pcall(function() sm:toggleSearchMode(false) end) end
+        local eng = nil
+        if getSearchMode then pcall(function() eng = getSearchMode() end) end
+        if eng then
+            pcall(function()
+                local pn = p:getPlayerNum()
+                if eng:isEnabled(pn) or eng:isOverride(pn) or (sm and sm.isEffectOverlay) then
+                    if sm then sm.isEffectOverlay = false end
+                    eng:setOverride(pn, false)
+                    eng:setEnabled(pn, false)
+                end
+            end)
+        end
+    end
+end
+function K.errCount() local n = nil; pcall(function() n = getLuaDebuggerErrorCount() end); return n end
+K.err0 = K.errCount()
 
 -- ===================================================================== small helpers
 function K.shot(name, what, keepMenu) S.shot(name, keepMenu); Q.say("SHOT " .. name .. " | " .. tostring(what)) end
@@ -142,15 +173,47 @@ function K.hit(suffix)
 end
 function K.sel(id) local o = S.opt(id); return o and o.element and o.element.selected end
 function K.extras() return "Ammo on the belt " .. tostring(K.sel("ammoBox")) .. ", Read marks " .. tostring(K.sel("readMarks")) .. ", Loadouts " .. tostring(K.sel("loadouts")) .. " (1 is Off)" end
+-- a ZeD setup row found by its option (the row whose control is the option's own, as S.setupRow finds it): its y in
+-- the list and its height; nil before layout, or when the page has no such row
+function K.rowAt(id)
+    local o = S.opt(id)
+    local el = o and o.element
+    if not el then return nil end
+    local y = 0
+    for _, r in ipairs(K.rows()) do
+        if not r._h then return nil end
+        if r.control == el then return y, r._h end
+        y = y + r._h
+    end
+    return nil
+end
+function K.rowInView(id)
+    local w = K.O()
+    local y, h = K.rowAt(id)
+    if not (w and w._list and y) then return false end
+    return y + ZeD.T.px(4) >= w.scroll and y + h <= w.scroll + w._list.h
+end
+-- the Style row (Full / Lite)
+function K.styleRow() return K.rowAt("lookStyle") end
+function K.styleInView() return K.rowInView("lookStyle") end
+-- whether the third extra's row (Loadouts and outfits, under Hidden facts) is in the frame too
+function K.loadoutsLine() return "the Loadouts and outfits row " .. (K.rowInView("loadouts") and "in the frame" or "not in the frame") end
 -- the list scrolled so the Additions heading and the rows under it are in view; mode "top" keeps the page's top
--- (the Style row) in view while the heading and some rows still fit, "group" puts the heading near the list's top
+-- (the Style row) in view while the heading and some rows still fit, "group" puts the heading near the list's top,
+-- "style" puts the Style row at the list's top (as many Additions rows under it as the list holds) and falls back
+-- to "top" where the heading would not fit with it
 function K.seek(mode)
     local w = K.O()
     local y = K.headY()
     if not (w and w._list) or y == nil then return false end
     if y == false then return true end
     local T = ZeD.T
-    local want = (mode == "top") and math.max(0, y + T.px(240) - w._list.h) or math.max(0, y - T.px(40))
+    local want = (mode == "group") and math.max(0, y - T.px(40)) or math.max(0, y + T.px(240) - w._list.h)
+    if mode == "style" then
+        local sy = K.styleRow()
+        if sy == nil then return false end
+        if sy >= want then want = sy end
+    end
     if math.abs((w.scroll or 0) - want) > 1 and K.seekSet ~= want then w.scroll = want; K.seekSet = want; return false end
     return true
 end
@@ -230,11 +293,12 @@ Q.step(20, function()
             .. " heading on the page " .. tostring(y ~= false and y ~= nil) .. ", in view " .. tostring(K.headInView()))
     end
 end)
--- B3-1, first picture: the whole Additions group, its rows On, and the Defaults button live, before it is pressed.
+-- B3-1, first picture: the Style row (Lite) at the list's top, the Additions rows under it reading On, and the
+-- Defaults button live, before it is pressed: all in one frame, as in B3-2.
 -- (No hover: the pointer the game reads stays on the title bar. The button is live in Lite whatever the extras, since
 -- Style Lite and the run's 1.75x scale are off their defaults too; what B3-1 changed shows in the next picture.)
 Q.step(5, function() K.seekSet = nil end)
-Q.waitFor(3, 300, function() return (not S.optOk) or K.seek("group") end, function() K.parkOnTitle() end)
+Q.waitFor(3, 300, function() return (not S.optOk) or K.seek("style") end, function() K.parkOnTitle() end)
 Q.step(30, function()
     local name = "B3-1_lite_defaults_live"
     if not S.optOk then K.skip(name, "Options did not open from the pause menu"); return end
@@ -243,13 +307,14 @@ Q.step(30, function()
     pcall(function() live = w:zedOffDefault() and true or false end)
     local h = K.hit(":defaults")
     Q.say("before Defaults: something off its default " .. tostring(live) .. ", the Defaults button drawn " .. tostring(h ~= nil)
-        .. ", greyed " .. tostring(h and h.disabled) .. " | " .. K.extras())
-    if (St.lite and St.lite()) and K.headInView() and h and not h.disabled then
-        K.shot(name, "ZeD setup in Lite with the extras on (Vanilla Plus), scrolled to the " .. K.addTitle() .. " group: its rows read On and "
-            .. "Defaults (bottom left of the window, by Back) is live, not yet pressed; no hover; " .. K.extras(), true)
+        .. ", grayed " .. tostring(h and h.disabled) .. " | " .. K.extras())
+    Q.say("scroll " .. tostring(w.scroll) .. ", the Style row in view " .. tostring(K.styleInView()) .. ", the " .. K.addTitle() .. " heading in view " .. tostring(K.headInView()))
+    if (St.lite and St.lite()) and K.headInView() and K.styleInView() and h and not h.disabled then
+        K.shot(name, "ZeD setup in Lite with the extras on (Vanilla Plus): the Style row (Lite) at the top, the " .. K.addTitle() .. " rows under it read On and "
+            .. "Reset to defaults (in the window's bottom row, by Back) is live, not yet pressed; no hover; " .. K.extras() .. "; " .. K.loadoutsLine(), true)
     else
-        K.skip(name, "Lite " .. tostring(St.lite and St.lite()) .. ", the " .. K.addTitle() .. " heading in view " .. tostring(K.headInView())
-            .. ", the Defaults button drawn " .. tostring(h ~= nil) .. ", greyed " .. tostring(h and h.disabled))
+        K.skip(name, "Lite " .. tostring(St.lite and St.lite()) .. ", the Style row in view " .. tostring(K.styleInView()) .. ", the " .. K.addTitle()
+            .. " heading in view " .. tostring(K.headInView()) .. ", the Defaults button drawn " .. tostring(h ~= nil) .. ", grayed " .. tostring(h and h.disabled))
     end
 end)
 -- Defaults (no Apply), then the extras read Off
@@ -265,7 +330,7 @@ Q.step(10, function()
     Q.say("Defaults pressed " .. tostring(S.defOk) .. " | " .. K.extras())
 end)
 Q.waitFor(20, 300, function() if not S.optOk then return true end; K.parkOnTitle(); return K.headY() ~= nil end, function() K.seekSet = nil end)
-Q.waitFor(3, 300, function() return (not S.optOk) or K.seek("group") end, function() end)
+Q.waitFor(3, 300, function() return (not S.optOk) or K.seek("style") end, function() end)
 Q.step(30, function()
     local name = "B3-1_lite_after_defaults_extras_off"
     if not S.optOk then K.skip(name, "Options did not open from the pause menu"); return end
@@ -275,14 +340,17 @@ Q.step(30, function()
     local y = K.headY()
     local h = K.hit(":defaults")
     Q.say("after Defaults: " .. K.extras() .. ", changes waiting " .. tostring(w:anyChanged()) .. ", stored Ammo on the belt still " .. tostring(K.val("ammoBox"))
-        .. ", the Defaults button greyed " .. tostring(h and h.disabled))
-    if S.defOk and y and K.headInView() then
-        K.shot(name, "after Defaults, nothing applied: the extras read " .. (off and "Off" or "NOT all Off") .. " (" .. K.extras()
-            .. "), Defaults " .. ((h and h.disabled) and "greyed (nothing left off its default)" or "still live")
+        .. ", the Defaults button grayed " .. tostring(h and h.disabled))
+    Q.say("scroll " .. tostring(w.scroll) .. ", the Style row in view " .. tostring(K.styleInView()) .. ", the " .. K.addTitle() .. " heading in view " .. tostring(K.headInView()))
+    if S.defOk and y and K.headInView() and K.styleInView() then
+        K.shot(name, "after Reset to defaults, nothing applied, the same frame (the Style row at the top, the " .. K.addTitle() .. " rows under it): the extras read "
+            .. (off and "Off" or "NOT all Off") .. " (" .. K.extras() .. "; " .. K.loadoutsLine()
+            .. "), Reset to defaults " .. ((h and h.disabled) and "grayed (nothing left off its default)" or "still live")
             .. "; every other ZeD row is on its default too (Style reads Full and UI scale Auto, 2x at 4K, so the window draws larger than in the"
             .. " other pictures) until Discard", true)
     else
-        K.skip(name, "Defaults ran " .. tostring(S.defOk) .. ", the " .. K.addTitle() .. " heading in view " .. tostring(K.headInView()))
+        K.skip(name, "Defaults ran " .. tostring(S.defOk) .. ", the Style row in view " .. tostring(K.styleInView()) .. ", the " .. K.addTitle()
+            .. " heading in view " .. tostring(K.headInView()))
     end
 end)
 Q.step(10, function()
@@ -400,6 +468,19 @@ function F.inWorld(list)
     for _, a in ipairs(list) do if live[a] then n = n + 1 end end
     return n
 end
+-- how many of list stand on a square of the ground, in that square's list of movers (what the game draws from). The
+-- first run's B7-5 pictures showed none of the five made animals while the cards counted them all: this line shows
+-- whether they stood on their squares
+function F.onSquare(list)
+    local n = 0
+    for _, a in ipairs(list) do
+        pcall(function()
+            local sq = a:getCurrentSquare()
+            if sq and sq:getMovingObjects():contains(a) then n = n + 1 end
+        end)
+    end
+    return n
+end
 function F.stand(x, y)
     local p = S.p
     pcall(function() p:setX(x); p:setY(y); p:setZ(0); p:setLastX(x); p:setLastY(y); p:setLastZ(0); p:setDir(IsoDirections.SE) end)
@@ -507,9 +588,14 @@ Q.waitFor(10, 900, function()
 end, function(ok)
     if not F.staged then return end
     if not ok then F.why = "the farm's ground did not load round " .. F.cx .. "," .. F.cy; return end
-    F.keepName, F.goneName = "Home Pasture", "Back Pen"
-    if F.zone(F.keepName) or F.zone(F.goneName) then F.keepName, F.goneName = "QA Home Pasture", "QA Back Pen" end
-    if F.zone(F.keepName) or F.zone(F.goneName) then F.why = "pens named " .. F.keepName .. " or " .. F.goneName .. " are already in the save"; return end
+    -- names a player would give (the farm has its own Home Pasture): the first of each list the save does not have
+    for _, nm in ipairs({ "North Pasture", "West Pasture", "Sheep Pasture", "Top Field" }) do
+        if not F.keepName and not F.zone(nm) then F.keepName = nm end
+    end
+    for _, nm in ipairs({ "Back Pen", "Cow Pen", "East Pen", "Barn Paddock" }) do
+        if not F.goneName and not F.zone(nm) then F.goneName = nm end
+    end
+    if not (F.keepName and F.goneName) then F.why = "every pen name the script knows is already in the save"; return end
     for dx = -8, 8 do
         for dy = -8, 8 do
             local zz = nil
@@ -599,9 +685,12 @@ Q.still(10, function()
     local st, w = F.st(), F.W()
     local cA, cB = F.count(F.keepName), F.count(F.goneName)
     local inA, inB = F.cardInView(F.keepName), F.cardInView(F.goneName)
+    local onSq = F.onSquare(F.animals)
+    Q.say("the made animals on the ground: " .. onSq .. " of " .. #F.animals .. " stand on a square, in its list of movers")
     if w and w._activeTab == "animals" and st and st.view == "overview" and (cB or 0) >= 1 and inA and inB then
         K.shot(N1, "the Animals tab's overview at the farm: " .. F.keepName .. " with " .. tostring(cA) .. " animals and " .. F.goneName .. " with " .. tostring(cB)
-            .. ", a card each, both in view; the animals stand on a row just behind the character, left and right of him")
+            .. ", a card each, both in view; the made animals are placed on a row just behind the character, left and right of him ("
+            .. onSq .. " of " .. #F.animals .. " stand on a square)")
     else
         K.skip(N1, "tab " .. tostring(w and w._activeTab) .. ", view " .. tostring(st and st.view) .. ", " .. F.goneName .. " counts " .. tostring(cB)
             .. " animals, the cards in view " .. tostring(inA) .. " / " .. tostring(inB))
@@ -632,7 +721,7 @@ end, function(ok)
     S.clearChar()
     Q.say("zombies taken away near the farm: " .. F.noZombies())
 end)
--- the overview at the first picture's scroll: Home Pasture's card where it was, and under it what the tab still lists
+-- the overview at the first picture's scroll: the kept pen's card where it was, and under it what the tab still lists
 -- (the removed pen's card came after it, so a card left behind would show in the same place)
 Q.waitFor(3, 300, function()
     if not F.ok then return true end
@@ -650,7 +739,8 @@ Q.still(5, function()
         tostring(F.zone(F.goneName) ~= nil), tostring(ghost ~= nil or card), ghost and (" with " .. tostring(ghost.count) .. " animals") or "", tostring(st and st.view), there, #F.gone, own))
     if F.removed and w and w._activeTab == "animals" and there >= 1 and inA then
         K.shot(N2, "the overview right after Remove zone on " .. F.goneName .. ": its card is " .. ((ghost or card) and "STILL THERE (the fault)" or "gone") .. ", "
-            .. F.keepName .. "'s card stays; " .. there .. " of its animals still stand where the pen was (" .. own .. " still name a zone as their own)")
+            .. F.keepName .. "'s card stays; " .. there .. " of its animals are still in the world where the pen was, " .. F.onSquare(F.gone)
+            .. " of them standing on a square (" .. own .. " still name a zone as their own)")
     else
         K.skip(N2, "the pen removed " .. tostring(F.removed) .. ", tab " .. tostring(w and w._activeTab) .. ", its animals still in the world " .. there
             .. ", " .. F.keepName .. "'s card in view " .. tostring(inA))
@@ -692,5 +782,9 @@ Q.step(30, function()
     for id, v in pairs(S.opt0 or {}) do if K.val(id) ~= v then bad[#bad + 1] = id end end
     Q.say("put back: options " .. ((#bad == 0) and "all as found" or ("NOT " .. table.concat(bad, " "))) .. ", pause menu up " .. tostring(S.menuUp())
         .. ", the game's own pointer calls back " .. tostring(K.gmx == nil) .. ", speed " .. tostring(getGameSpeed()))
+    local e1 = K.errCount()
+    local thrown = (e1 and K.err0) and (e1 - K.err0) or nil
+    Q.say(((thrown == 0) and "" or "ERR ") .. "the game's error count rose by " .. tostring(thrown) .. " while this part ran (0 wanted: any rise lights the red error box)")
+    if STORY and STORY.bxrl then STORY = nil end
 end)
 Q.start()

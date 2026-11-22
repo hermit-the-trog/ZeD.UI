@@ -7,21 +7,26 @@
 --                              recipe he knows), 1 bowl carried: its alternatives list reads 1/4 and 0/4 (was 1/1)
 --   B6-14_any_surface_ready    beside a table, a plank and a screwdriver carried: Drill Plank reads ready, Craft lit
 --   W23_chosen_in_list         Drill Plank's plank slot, the large branch chosen by hand in the alternatives list
+--                              (the plank carried, the branch on the floor beside him: a large branch is 6 kg, and
+--                              with the plank's 3 he would be over his 18 kg; the tab counts the floor beside him
+--                              as it counts what he carries)
 --   W23_chosen_on_card         the same choice named on the card's row, before Craft
 --   W25_floor_2_of_4           no plank carried, 2 on the floor beside him: the plank row reads 2/4
 --   W25_floor_and_crate_4_of_4 2 more in a crate in reach: the plank row reads 4/4
 -- The scene: the story's smoking spot (in the open, on the camera side of the store), or the nearest open square to
--- it with room; a table, the crate and the floor's planks stand north or west of him or level with him, never
--- between him and the camera (which looks from the south-east).
+-- it with room; a table, the crate and what lies on the floor (the large branch, later the planks, on the same
+-- square) stand north or west of him or level with him, never between him and the camera (which looks from the
+-- south-east).
 -- The crate: the tab counts from the game's own loot list (CC.craftContainers), which ZeD keeps hidden; a hidden page
 -- takes a new container in only when he turns or steps (ISInventoryPage:update; OnContainerUpdate's refresh runs in
 -- its prerender, which a hidden page never draws). So he turns to the crate and back to the camera, as a player
 -- walking up to a crate would; whether the list held it before the turn is logged.
 -- Each picture prints "ZEDQA bxrc SHOT <name> | what is in it" or "ZEDQA bxrc SKIP <name> | why".
 -- What it puts back: the things given, his own things set aside (the slots' own types, and anything set aside for
--- the weight), the planks on the floor, the crate, the table, Carpentry as found, a bound station, the Crafting tab's
--- Show / Sort / category / search / Required fold / chosen ingredients / card / scroll, both windows to the place, size
--- and tab they had (ZeD's own restore, the steps "Go to saved position" takes), game speed, the pair as found.
+-- the weight), the large branch and the planks on the floor, the crate, the table, Carpentry as found, a bound
+-- station, the Crafting tab's Show / Sort / category / search / Required fold / chosen ingredients / card / scroll,
+-- both windows to the place, size and tab they had (ZeD's own restore, the steps "Go to saved position" takes), game
+-- speed, the pair as found.
 -- grep "ZEDQA bxrc".
 local S = HFR and HFR.init and HFR.init("bxrc")
 if not S then return end
@@ -692,17 +697,30 @@ end)
 -- ===================================================================== W23 / B6-15: an ingredient chosen by hand
 Q.step(10, function()
     if not (S.ok and S.pic.drillOpen) then return end
-    S.pic.branch = S.add(S.BIGBRANCH)
+    -- the large branch goes on the floor beside him, not in his hands: 6 kg on top of the plank's 3 put him at 21.4
+    -- of 18 kg (Nov 21 run: both pictures skipped). The tab counts the floor (W25), so the list holds it as owned.
+    local sq = S.spot.slots[2]
+    S.pic.branch = S.dropOn(sq, S.BIGBRANCH, 0.5, 0.5)
+    Q.say("a large branch put on the floor at " .. sq:getX() .. "," .. sq:getY() .. " (beside him): " .. tostring(S.pic.branch ~= nil))
     S.lighten()
     S.recount()
 end)
-S.wait(10000, function()
+S.wait(12000, function()
     if not (S.ok and S.pic.drillOpen and S.pic.branch) then return true end
     local ing, idx = S.ing(S.DRILL, S.PLANK)
     return S.cardUp(S.DRILL) and ing ~= nil and ing.have >= 2 and S.zoneOf("slotAlt", function(z) return z.idx == idx end) ~= nil
 end, function(ok)
-    if not (S.ok and S.pic.drillOpen and S.pic.branch and ok) then return end
-    local _, idx = S.ing(S.DRILL, S.PLANK)
+    if not (S.ok and S.pic.drillOpen and S.pic.branch) then return end
+    local ing0, idx = S.ing(S.DRILL, S.PLANK)
+    S.pic.drillHave = ing0 and ing0.have
+    if not ok then
+        if (S.pic.drillHave or 0) >= 2 then
+            Q.say("the plank slot counts " .. tostring(S.pic.drillHave) .. " (the branch on the floor too), but Drill Plank's card or its alternatives button is not up")
+        else
+            Q.say("the plank slot does not count the branch on the floor: it reads " .. tostring(S.pic.drillHave))
+        end
+        return
+    end
     S.pic.drillIdx = idx
     S.press(S.zoneOf("slotAlt", function(z) return z.idx == idx end))
 end)
@@ -719,11 +737,11 @@ end)
 Q.still(2, function()
     local name = "W23_chosen_in_list"
     if not S.ok then S.skip(name, S.why or "the Crafting tab did not open"); return end
-    if not (S.pic.drillOpen and S.pic.branch) then S.skip(name, "Drill Plank's card is not open, or no large branch could be given"); return end
+    if not (S.pic.drillOpen and S.pic.branch) then S.skip(name, "Drill Plank's card is not open, or no large branch could be put on the floor beside him"); return end
     local st = S.cst()
-    if not (S.pic.chosen == S.BIGBRANCH and st.altItems and st.selected == S.DRILL) then S.skip(name, "the large branch could not be chosen in the plank slot's alternatives (chosen " .. tostring(S.pic.chosen) .. ")"); return end
+    if not (S.pic.chosen == S.BIGBRANCH and st.altItems and st.selected == S.DRILL) then S.skip(name, "the large branch on the floor could not be chosen in the plank slot's alternatives (chosen " .. tostring(S.pic.chosen) .. ", the slot counts " .. tostring(S.pic.drillHave) .. ")"); return end
     local ing = S.ing(S.DRILL, S.PLANK)
-    S.shotOk(name, "Crafting tab, Drill Plank, a plank and a large branch carried: the plank slot's alternatives list open, " .. CC.typeName(S.BIGBRANCH)
+    S.shotOk(name, "Crafting tab, Drill Plank, a plank carried and a large branch on the floor beside him: the plank slot's alternatives list open, " .. CC.typeName(S.BIGBRANCH)
         .. " picked by hand (its row washed), the card's row reads \"" .. tostring(ing and ing.name) .. ": " .. CC.typeName(S.BIGBRANCH) .. "\"")
 end)
 -- the list shut by its Back button: the card alone, the choice still named on its row
@@ -752,7 +770,8 @@ Q.still(2, function()
         return
     end
     local ing, _, rd = S.ing(S.DRILL, S.PLANK)
-    S.shotOk(name, "Crafting tab, Drill Plank's card before Craft: the row reads \"" .. tostring(ing and ing.name) .. ": " .. CC.typeName(S.BIGBRANCH)
+    S.shotOk(name, "Crafting tab, Drill Plank's card before Craft, a plank carried and the large branch on the floor beside him: the row reads \""
+        .. tostring(ing and ing.name) .. ": " .. CC.typeName(S.BIGBRANCH)
         .. "\" (the ingredient picked by hand), " .. tostring(ing and ing.have) .. "/" .. tostring(ing and ing.need) .. "; " .. S.readyWord(rd) .. "; Craft not pressed")
 end)
 
@@ -761,6 +780,7 @@ Q.step(10, function()
     if not S.ok then return end
     S.shutCard()
     S.takeMade()
+    S.floorBack()   -- (the large branch of the pictures before: the floor holds the 2 planks only)
     if not S.pic.mold then return end
     S.add("Base.Hammer"); S.add("Base.Saw"); S.add("Base.Nails")
     S.lighten()
