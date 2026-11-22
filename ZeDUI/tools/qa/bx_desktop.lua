@@ -320,6 +320,25 @@ function K.up(view)
     return MM.view == view and w ~= nil and w:isVisible() and true or false
 end
 function K.pick() return K.win("desktopPick") end
+-- (Nov 22 2026, the first in-game run: the desk shows and hides its windows in ZeD_MMDesk:update(), which the engine
+-- runs every 100 ms, so MM.view changes at once and the windows follow up to 100 ms later. A wait ends on the
+-- windows, never on MM.view alone.)
+function K.closed()
+    local pw = K.pick()
+    return MM.view == "main" and K.up("main") and not (pw and pw:isVisible()) and true or false
+end
+-- one line on where the desk stands, after a failed check: the view, both windows, the views table's field
+function K.diag(label)
+    local r = MM.root
+    local mw, pw = r and r.win, K.pick()
+    local field = nil
+    for _, rv in ipairs(MM.views or {}) do if rv.view == "desktopPick" then field = rv.field end end
+    local act = nil
+    pcall(function() act = MM.activeWindow() end)
+    say("DIAG " .. label .. ": MM.view " .. tostring(MM.view) .. ", main window visible " .. tostring(mw and mw:isVisible())
+        .. ", Desktop window visible " .. tostring(pw and pw:isVisible()) .. ", MM.views desktopPick -> field " .. tostring(field)
+        .. " (MM.root." .. tostring(field) .. " " .. ((pw ~= nil) and "set" or "nil") .. "), keys go to the Desktop window " .. tostring(pw ~= nil and act == pw))
+end
 function K.spec(w, id)
     for _, s in ipairs((w and w._specs) or {}) do if s.id == id then return s end end
     return nil
@@ -585,8 +604,8 @@ function X.menuRow()
         if not check(h ~= nil and h.fn ~= nil, "Done: its hit zone is in the band") then pcall(MM.showView, "main"); return end
         K.try("Done pressed through its hit zone", h.fn)
     end)
-    waitFor(function() return MM.view == "main" end, 3000, function(met)
-        check(met and K.up("main") and not (K.pick() and K.pick():isVisible()), "Done closes the Desktop window (the main window back)", "view " .. tostring(MM.view))
+    waitFor(K.closed, 3000, function(met)
+        if not check(met, "Done closes the Desktop window (the main window back)", "view " .. tostring(MM.view)) then K.diag("Done") end
     end)
     after(100, function() K.errCheck("the menu row and Done") end)
 end
@@ -624,9 +643,13 @@ function X.sweep()
         MM.ctx.open = nil
         if not K.up("desktopPick") then K.try("the Desktop window opened again", MM.openDesktopPick) end
     end)
+    waitFor(function() return K.up("desktopPick") end, 3000, function(met)
+        if not check(met, "the Desktop window opens again after Done", "view " .. tostring(MM.view)) then K.diag("the window again") end
+    end)
     each("each of the 25 swatches through its hit zone: the desktop at once, the file holds it, a fresh read gives it, the help band reads its note",
         150, 30000, K.ids, X.swStep, X.swLook,
         function(st)
+            if #st.bad > 0 then K.diag("the swatches") end
             if st.ptr then note("the pointer rested on swatch " .. tostring(st.ptr) .. " for some steps (its note showed there; the pad part checks the line again)") end
             K.errCheck("the swatches")
         end)
@@ -803,11 +826,14 @@ function X.pad()
     each("pad: the D-pad walked to each swatch and Done with real presses, never off the window; A sets the desktop; the focus mark drawn there; the help line names it",
         200, 40000, X.padTargets, X.padStep, X.padLook, function() K.errCheck("the pad walk") end)
     after(150, function() K.try("pad: B", function() K.button(Joypad.BButton) end) end)
-    waitFor(function() return MM.view == "main" end, 3000, function(met)
-        check(met and K.up("main"), "pad: B closes the Desktop window", "view " .. tostring(MM.view))
+    waitFor(K.closed, 3000, function(met)
+        if not check(met, "pad: B closes the Desktop window", "view " .. tostring(MM.view)) then K.diag("pad B") end
     end)
     after(200, function() K.try("pad: the Desktop window opened again", MM.openDesktopPick) end)
-    after(300, function()
+    waitFor(function() return K.up("desktopPick") end, 3000, function(met)
+        if not check(met, "pad: the Desktop window opens again after B", "view " .. tostring(MM.view)) then K.diag("pad reopen") end
+    end)
+    after(150, function()
         local w = K.pick()
         local path = w and K.path(w.focusId, "done")
         if not check(path ~= nil, "pad: a way to Done", tostring(w and w.focusId)) then return end
@@ -817,8 +843,8 @@ function X.pad()
             K.button(Joypad.AButton)
         end)
     end)
-    waitFor(function() return MM.view == "main" end, 3000, function(met)
-        check(met and K.up("main"), "pad: A on Done closes the Desktop window", "view " .. tostring(MM.view))
+    waitFor(K.closed, 3000, function(met)
+        if not check(met, "pad: A on Done closes the Desktop window", "view " .. tostring(MM.view)) then K.diag("pad A on Done") end
     end)
     after(150, function()
         MM.forceGamepad = keep.pad0
