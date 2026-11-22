@@ -182,10 +182,13 @@ check("228i: the Reader draws the box's mark and resets it on opening",
 -- 228p: the window menu's new rows (the block run as written, with stubs)
 -- ---------------------------------------------------------------------------
 local wm = readSrc("ZeD_WindowMenu.lua")
-local block = wm:match("\n(    %-%- %(punch list 228p.-)\n    items%[#items %+ 1%] = { name = tr%(\"UI_ZeD_WinMenu_Setup\"%)")
-check("finds the window menu's 228p rows, before ZeD setup", block ~= nil)
+-- (KISS #40: the Keyboard map and ZeD setup moved to the top; the block ends at the note saying so, and reads the
+-- menu's pad flag)
+local block = wm:match("\n(    %-%- %(punch list 228p.-)\n    %-%- %(the Keyboard map, ZeD setup and the tour are first now")
+check("finds the window menu's 228p rows, at the end", block ~= nil)
 if block then
-    local fn = assert(loadstring("local items, tr, pn = ...\n" .. block))
+    local fn0 = assert(loadstring("local items, tr, pn, pad = ...\n" .. block))
+    local function fn(items, tr, pn) return fn0(items, tr, pn, JoypadState.players[pn + 1] ~= nil) end
     local cmOpened, hidden = nil, 0
     local tr = function(k) return k end
     ZeD = { ControllerMap = { open = function(n) cmOpened = n end },

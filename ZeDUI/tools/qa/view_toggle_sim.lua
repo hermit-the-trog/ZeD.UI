@@ -74,6 +74,14 @@ ZeD.Molecules = {
         BUTTONS[#BUTTONS + 1] = { x = x, y = y, size = size, icon = icon, active = o.active, hint = o.hint, help = o.help, id = o.id }
     end,
 }
+-- (Nov 22 2026, KISS #45 and #18: the heading also holds a Pick all word button, and the World window's list a Loot all; both
+-- are drawn with drawButton, which these stubs keep apart from the view button's picture, and "heading" below takes the
+-- Pick all rect out of GV.toggles after checking it, so the view button's checks read as they did)
+ZeD.Molecules.buttonW = function(label) return 40 end
+local WORD_BUTTONS = {}
+ZeD.Molecules.drawButton = function(p, x, y, w, h, label, style, a, b, o) WORD_BUTTONS[#WORD_BUTTONS + 1] = { label = label, id = o and o.id } end
+ZeD.ContainerControls = { headLootOn = function() return false end, headLootEnabled = function() return false end, lootAllLabel = function() return "Loot all" end }
+local PA = 40 + 6   -- (Pick all's width and its gap)
 ZeD.InvFilter = { act = function() end, clear = function() end, active = function() return false end }
 ZeD.InventoryRenderer = {}
 gpFocusedToggle = function() return nil end
@@ -105,7 +113,14 @@ end
 local function heading(p, key, colW)
     BUTTONS, NAME_ROOM = {}, nil
     local GV = { key = key, toggles = {}, on = R.isGridKey(key) }
+    WORD_BUTTONS = {}
     drawColumnHeading(p, GV, 0, colW, 20, 60, 6, 14, 14)
+    for i = #GV.toggles, 1, -1 do
+        if GV.toggles[i].view == "all" then
+            check("ALL: Pick all is a stamped stop with its own id", GV.toggles[i].id == "view:all:" .. tostring(key) and #WORD_BUTTONS == 1 and WORD_BUTTONS[1].label == "UI_ZeD_Inv_PickAll")
+            table.remove(GV.toggles, i)
+        end
+    end
     return GV
 end
 
@@ -171,7 +186,7 @@ section("ROOM")
 local OLD_EXTRA = 24 + 4
 local function nameRoom(compact, filterShown, colW)
     heading(mkPanel("A container with a long name", compact, filterShown), CRATE, colW)
-    return NAME_ROOM
+    return NAME_ROOM and NAME_ROOM + PA   -- (Pick all took PA of the name's room)
 end
 -- normal heading: name room = colW - (stackW + toggles + padX) - (padX + iconless 0) - padX * 2
 local stackW = math.max(#"12.5 / 20" * 7, #"9 items" * 7)
@@ -196,7 +211,7 @@ local function narrow(colW, stats, cnt)
     local drawn = {}
     function p2:drawText(s) drawn[s] = true end
     heading(p2, CRATE, colW)
-    return NAME_ROOM, drawn
+    return NAME_ROOM and NAME_ROOM + PA, drawn
 end
 local NAME_W = #"Inventory" * 7
 local room, drawn = narrow(160, "0.0 / 8 kg", "63 items")

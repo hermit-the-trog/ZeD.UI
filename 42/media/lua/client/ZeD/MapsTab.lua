@@ -2617,6 +2617,18 @@ function ZeD.MapsTab.closePopout(win, keepWorld)
         return
     end
     pcall(function() ZeD.uiSound("UIActivateTab") end)
+    -- The world map put away by the Map key again, B or Escape: a World window the map opened only for itself
+    -- closes with it, as the game's second press puts its map away (Overrides/WorldMap.lua marks it). A fold from
+    -- the window itself (keepWorld) keeps it. (KISS #25)
+    local owns = win._mapOwnsWindow
+    win._mapOwnsWindow = nil
+    if owns and not keepWorld and ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.close then
+        local pn = win.playerNum or 0
+        if ZeD_WorldWindow.getWindow(pn) == win then
+            ZeD_WorldWindow.close(pn)
+            return
+        end
+    end
     -- the controller lands back on the unfold button it left from, not on
     -- the tab column
     if Focus and Focus.focusByIdSoon then

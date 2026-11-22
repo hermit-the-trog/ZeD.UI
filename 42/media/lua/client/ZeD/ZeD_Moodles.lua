@@ -695,8 +695,23 @@ function ZeD_MoodleLayer:render() end
 -- the pointer, so its own hover text never draws); let clicks through.
 function ZeD_MoodleLayer:onMouseMove(dx, dy) return self._show == true end
 function ZeD_MoodleLayer:onMouseMoveOutside(dx, dy) end
-function ZeD_MoodleLayer:onMouseDown(x, y) return false end
-function ZeD_MoodleLayer:onMouseUp(x, y) return false end
+-- (KISS #49: a click on Hungry, Thirsty or a wound moodle opens the pad wheel's short list for it, ZeD_QuickWheel's
+-- moodleMenu, on the release; the press on one of those is taken so it reaches nothing under it. Every other click
+-- still passes through.)
+function ZeD_MoodleLayer:_clickKey()
+    local i = self._show and self:_hoverIndex()
+    local m = i and self._list and self._list[i]
+    local Q = ZeD.QuickWheel
+    return (m and Q and Q.MOODLE_LIST and Q.MOODLE_LIST[m.key]) and m.key or nil
+end
+function ZeD_MoodleLayer:onMouseDown(x, y) return self:_clickKey() ~= nil end
+function ZeD_MoodleLayer:onMouseUp(x, y)
+    local key = self:_clickKey()
+    if not key then return false end
+    local ok, took = pcall(ZeD.QuickWheel.moodleMenu, self.playerNum, key, getMouseX(), getMouseY())
+    if not ok then ZeD.logOnce("moodle click", took) end
+    return true
+end
 function ZeD_MoodleLayer:onRightMouseDown(x, y) return false end
 function ZeD_MoodleLayer:onRightMouseUp(x, y) return false end
 function ZeD_MoodleLayer:onMouseWheel(del) return false end

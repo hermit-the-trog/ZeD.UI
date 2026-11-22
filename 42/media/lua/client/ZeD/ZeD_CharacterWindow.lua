@@ -692,6 +692,12 @@ local function mcToggleContainer(win, content, cIdx)
                 -- else: no other containers, can't hide (nothing to show)
             end
         else
+            -- (KISS #10: Ctrl-click or hold A on main while a bag is on show alone adds main beside it: the shown bag
+            -- becomes a column first, so main does not take its place)
+            if #win._mcSelected == 0 and view and view ~= 1 and containers[view] then
+                win._mcSelected[1] = view
+                enterMultiContainer(win, content)
+            end
             win._mainVisible = true
             -- (main lit means main is listed: a bag the pad showed does not stay the list under it,
             -- and what was selected there does not stay selected unseen)
@@ -710,10 +716,16 @@ local function mcToggleContainer(win, content, cIdx)
         end
     else
         -- Non-main container: toggle in/out of MC selection
+        local shown = win._viewedContainer
         win._viewedContainer = nil
 
         local selected = win._mcSelected
         local wasEmpty = #selected == 0
+        -- (KISS #10: a bag on show alone, main hidden, becomes a column first, so the one added goes beside it
+        -- rather than in its place)
+        if wasEmpty and not win._mainVisible and shown and shown ~= 1 and shown ~= cIdx and containers[shown] then
+            selected[1] = shown
+        end
 
         local idx = nil
         for i, v in ipairs(selected) do
@@ -793,6 +805,23 @@ local function mcToggleContainer(win, content, cIdx)
     end
 end
 
+-- (KISS #10, the Character window too) A plain click on a bag's picture on Loot: that bag alone, as the pad's tap A
+-- shows it. Any columns close, nothing stays picked; main's own button shows main alone the same way. A Ctrl-click
+-- or the pad's hold A after it adds a column beside it (mcToggleContainer). A module field, not a local (this file is
+-- near Kahlua's limit).
+function ZeD_CharacterWindow._showAlone(win, content, cIdx)
+    if not (win and content and win._containers and win._containers[cIdx]) then return end
+    local hadCols = #(win._mcSelected or {}) > 0
+    if hadCols then exitMultiContainer(win, content) end
+    win._activeContainer = cIdx
+    win._viewedContainer = (cIdx ~= 1) and cIdx or nil
+    win._mainVisible = cIdx == 1
+    content._selectedItems = {}
+    content._lastClickedItem = nil
+    -- (the columns' stops go with them)
+    if hadCols and _syncRingZonesToActiveTab then _syncRingZonesToActiveTab(win, content) end
+end
+
 -- Active scroll dispatch — each scrollable tab has its own scroll state
 local function getActiveScroll(win)
     if win._activeTab == "health"  then return win._healthScroll end
@@ -822,11 +851,12 @@ end
 local CHAR_TABS = {
     -- key = ZeD's word for the tab, vkey = vanilla's own where it has the same word;
     -- the tab's name is read where it is shown (ZeD_CharacterWindow.tabLabel), so the language applies.
-    { id = "loot",     key = "UI_ZeD_Char_TabLoot",      group = 1, glyph = "L", iconName = "loot-tab-white" },
+    -- (the game's page words for his bags, Info and Temperature, the director's pick; the ids stay: KISS #59)
+    { id = "loot",     vkey = "IGUI_Controller_Inventory", group = 1, glyph = "L", iconName = "loot-tab-white" },
     { id = "equip",    key = "UI_ZeD_Char_TabEquipment", group = 1, glyph = "E", iconName = "equipment-tab-white" },
     { id = "health",   vkey = "IGUI_XP_Health",          group = 1, glyph = "H", iconName = "health-tab-white" },
-    { id = "thermal",  key = "UI_ZeD_Char_TabThermal",   group = 1, glyph = "T", iconName = "thermal-tab-white" },
-    { id = "identity", key = "UI_ZeD_Char_TabIdentity",  group = 2, glyph = "I", iconName = "identy-tab-white" },
+    { id = "thermal",  vkey = "IGUI_XP_ClothingIns",     group = 1, glyph = "T", iconName = "thermal-tab-white" },
+    { id = "identity", vkey = "IGUI_XP_Info",            group = 2, glyph = "I", iconName = "identy-tab-white" },
     { id = "journal",  key = "UI_ZeD_Char_TabJournal",   group = 2, glyph = "J", iconName = "journal-tab-white" },
     { id = "skills",   vkey = "IGUI_XP_Skills",          group = 2, glyph = "S", iconName = "skills-tab-white" },
     -- Radio is contextual: visible only while the player carries an equipped
@@ -2833,6 +2863,15 @@ local function _buildHealthFocusables(win)
     for i = 1, #parts do elements[#elements + 1] = parts[i] end
     local injuries = _buildHealthInjuryFocusables(win)
     for i = 1, #injuries do elements[#elements + 1] = injuries[i] end
+    -- Entering Health, the pad's first stop is the worst wound (the injury rows come worst first), once per entry so
+    -- it never snaps back on a rebuild; the flag clears when the tab changes (_buildPanelFocusables). (KISS #29)
+    if not win._healthPadSeeded and #elements > 0 then
+        win._healthPadSeeded = true
+        for i = 1, #elements do
+            local id = elements[i].id
+            if type(id) == "string" and id:sub(1, 7) == "injury:" then elements._focusIdx = i; break end
+        end
+    end
     -- the fill blocks' heads and rows (ZeD_TabFill): a Regularity row picks that exercise
     -- for the band; the moodle, Fitness and strain rows only read
     local fill = ZeD.TabFill and ZeD.TabFill.focusables(win, "health", win._healthView) or {}
@@ -3296,6 +3335,7 @@ end
 -- go straight to charMainInv which holds the invrows.
 _buildPanelFocusables = function(win, content, tabId)
     if not win then return {} end
+    if tabId ~= "health" then win._healthPadSeeded = nil end   -- (Health's worst-wound landing, again on the next entry: KISS #29)
     -- Loot: no tab drawer, invrows live in charMainInv.
     if tabId == "loot"     then return {}                              end
     if tabId == "skills"   then return _buildSkillsFocusables(win)     end
@@ -6135,10 +6175,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- Main container toggle
         if zid == "main_toggle" then
             if win._activeTab == "loot" then
-                -- Always toggle MAIN (container idx 1), regardless of
-                -- _activeContainer. Zone 1 is permanently pinned to main —
-                -- clicking it always controls main visibility in MC mode.
-                mcToggleContainer(win, content, 1)
+                -- (KISS #10) A plain click shows main alone, as a bag's does; Ctrl-click toggles main's column
+                -- (Zone 1 is permanently pinned to main, whatever _activeContainer is)
+                if isCtrlKeyDown() then
+                    mcToggleContainer(win, content, 1)
+                else
+                    ZeD_CharacterWindow._showAlone(win, content, 1)
+                end
             else
                 -- Non-loot: toggle inventory drawer showing on-person
                 local currentView = win._viewedContainer or win._activeContainer
@@ -6248,8 +6291,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 local idx = drag.containerIdx
                 if idx and win._containers[idx] then
                     if win._activeTab == "loot" then
-                        -- Loot tab: MC toggle (multi-column)
-                        mcToggleContainer(win, content, idx)
+                        -- (KISS #10) Loot tab: a plain click shows this bag alone, as the pad's tap A does;
+                        -- Ctrl-click adds it as a column (multi-column), as hold A does
+                        if isCtrlKeyDown() then
+                            mcToggleContainer(win, content, idx)
+                        else
+                            ZeD_CharacterWindow._showAlone(win, content, idx)
+                        end
                     else
                         -- Other tabs: switch viewed container or toggle inventory
                         local currentView = win._viewedContainer or win._activeContainer
@@ -7016,6 +7064,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
             local ccZone = self:hitZoneAt(x, y)
             local ccId = ccZone and ccZone.id
             if type(ccId) == "string" and ccId:sub(1, 3) == "cc:" and ZeD.ContainerControls then
+                -- (paused, the container buttons wait for play with the other actions: KISS #41)
+                if ZeD.PausedLook and ZeD.PausedLook.on() == true then return true end
                 ZeD.ContainerControls.press(self, tonumber(ccId:sub(4)))
                 return true
             end
@@ -7158,6 +7208,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
         local item = zid
         if type(item) == "string" then return true end  -- not an item
+        -- (paused, a double-click only where it is a move: a thing in his own bags would be used, so the second
+        -- click counts as a first one; KISS #41)
+        if ZeD.PausedLook and ZeD.PausedLook.blocksUse and ZeD.PausedLook.blocksUse(win, { item = item }) == true then
+            self._zedLastClick = nil
+        end
         -- double-click: vanilla's quick use (InventoryRenderer.doubleClick)
         if not isCtrlKeyDown() and not isShiftKeyDown() and self._playerObj
             and ZeD.InventoryRenderer.doubleClick(self, item, self._playerObj:getPlayerNum()) then
@@ -7429,6 +7484,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
     content.onRightMouseUp = function(self, x, y)
         if self._drag:isActive() or self._drag:isPending() then return true end
+        if ZeD.PausedLook and ZeD.PausedLook.on() == true then return true end   -- (paused: no item menu, as the game's; KISS #41)
 
         local colIdx, colCs = getColumnAtX(self, x)
         local inv = (colCs and colCs.inventory) or self._inventory

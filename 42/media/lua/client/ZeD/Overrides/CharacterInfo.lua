@@ -9,8 +9,9 @@
 -- the page they care about (Mini Health Panel's click on its body figure,
 -- `self.infopanel:toggleView(getText("IGUI_XP_Health"))`). Each of those now
 -- lands on ZeD's Character window on the matching tab; the game's window never
--- shows. The same page asked for again folds the tab's drawer, as the game's
--- toggle closes its window.
+-- shows. The same page asked for again closes the windows when that key opened
+-- them, else folds the tab's drawer, as the game's toggle closes its window
+-- (KISS #25).
 --   Health -> Health | Skills -> Skills | Info -> Identity
 --   Protection -> Equipment (its protection list) | ClothingIns -> Thermal
 --   a page another mod added to the game's window -> ZeD's tab of that name
@@ -62,13 +63,28 @@ function ZeD_CharacterWindow.openTab(playerNum, tabId, toggle)
     -- (split-screen: another player's page is the game's own window, which toggleView below falls back to)
     if not ZeD.windowsFor(playerNum) then return false end
     if not getSpecificPlayer(playerNum) then return false end
+    -- (KISS #25: what this key press opened, so the same key again closes it)
+    local byKey, opened = toggle == true, nil
     if not ZeD_CharacterWindow.isOpen(playerNum) then
+        local worldWas = ZeD_WorldWindow and ZeD_WorldWindow.isOpen and ZeD_WorldWindow.isOpen(playerNum)
         ZeD_CharacterWindow.toggleBothPaired(playerNum)
         if not ZeD_CharacterWindow.isOpen(playerNum) then return false end
         toggle = false
+        opened = { tab = tabId, world = not worldWas }
     end
     local win = ZeD_CharacterWindow.getWindow(playerNum)   -- (the asking player's window)
     if not win then return false end
+    -- The same key again closes what it opened, as the game's second press closes its page: the windows this
+    -- key opened on this tab close again (the World window only if it came with them); windows that were up
+    -- already only fold the tab, as before. (KISS #25)
+    local mine = win._keyOpened
+    if toggle and mine and mine.tab == tabId and win._activeTab == tabId and win._drawerOpen and win._drawerMode == "tab" then
+        win._keyOpened = nil
+        if mine.world and ZeD_WorldWindow and ZeD_WorldWindow.close then pcall(ZeD_WorldWindow.close, playerNum) end
+        if ZeD_CharacterWindow.isOpen(playerNum) then ZeD_CharacterWindow.toggle(playerNum) end
+        return true
+    end
+    win._keyOpened = byKey and opened or nil
     -- (rolled up by the hover roll-up: down first, its roll-up counted again from now)
     if win.windowShaded then
         win._autoShaded = false

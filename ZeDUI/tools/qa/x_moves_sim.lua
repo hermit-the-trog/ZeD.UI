@@ -435,7 +435,8 @@ do
     check("USE: A held on it uses it (the game's double-click, the player's own)", #dc == 1 and dc[1].item == pills and dc[1].pn == 0)
     check("USE: ... and marks nothing", #logged("mark") == 0)
     el = charW._focusRing[1].elements[1]
-    check("USE: the hold's word is the card's Use", el.promptHold(charW, el) == "UI_ZeD_Card_VerbUse", el.promptHold(charW, el))
+    -- (KISS #29: pills read the game's Take Pills; the stub getText returns the key)
+    check("USE: the hold's word is the card's Take Pills", el.promptHold(charW, el) == "ContextMenu_Take_pills", el.promptHold(charW, el))
     -- marking it: a painted run started on another row
     charW._mainContent._selectedItems = {}
     IR.padMark(charW, { item = shirt })

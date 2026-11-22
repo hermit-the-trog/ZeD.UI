@@ -84,7 +84,7 @@ function LC.facts(item, chr)
     end
     if safe(item, "isFrozen") then tags[#tags + 1] = { tr("UI_ZeD_Loot_Frozen"), nil } end
     -- a jammed gun says so, as the game's own tooltip does (QA B7-4)
-    if safe(item, "isJammed") == true then tags[#tags + 1] = { tr("UI_ZeD_Jammed"), "bad" } end
+    if safe(item, "isJammed") == true then tags[#tags + 1] = { (ZeD.ItemCard and ZeD.ItemCard.jammedWords and ZeD.ItemCard.jammedWords()) or tr("UI_ZeD_Jammed"), "bad" } end   -- (names the Rack key: KISS #54)
 
     -- the item's one bar (ItemMeter.lua): its condition when it wears, how full when it holds or runs down
     local IM = ZeD.ItemMeter

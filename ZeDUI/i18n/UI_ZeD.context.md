@@ -680,6 +680,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Belt_WatchTuck` | `%1 \| tuck away` | Belt HUD, chip over the mini watch's face when the full watch is open; %1 = watch name | 40 |
 | `UI_ZeD_Belt_AmmoEmpty` | `Empty` | Belt HUD, ammo box beside the main hand: the gun holds no rounds (large figures) | 6 |
 | `UI_ZeD_Jammed` | `Jammed` | A gun that has jammed: in the belt's ammo box (in place of the round count), the item card's Status row and the Ammo fact | 6 |
+| `UI_ZeD_JammedKey` | `Jammed, press %1` | A jammed gun on the item card, its facts row and the hover card: names the Rack key; %1 = the key's name as the player bound it (X by default) | - |
 | `UI_ZeD_Belt_AmmoMags` | `%1 mag` | Belt HUD, ammo box: loaded magazines carried; %1 = how many | 8 |
 | `UI_ZeD_Belt_AmmoRounds` | `%1 rds` | Belt HUD, ammo box: loose rounds carried; %1 = how many | 8 |
 | `UI_ZeD_Belt_AmmoBoxes` | `+%1 box` | Belt HUD, ammo box: unopened ammo boxes carried (not counted as rounds); %1 = how many | 8 |
@@ -778,6 +779,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Card_HelpEat` | `%1: all of it` | Item card (food): help line over the Eat button; %1 = the button's label | - |
 | `UI_ZeD_Card_HelpRead` | `%1: read it now` | Item card: help line over the Read button; %1 = the button's label | - |
 | `UI_ZeD_Card_HelpUse` | `%1: use it, as a double-click does` | Item card: help line over the Use button; %1 = the button's label | - |
+| `UI_ZeD_Card_HelpBandage` | `%1: put it on your worst wound` | Item card (a bandage): help line over the Bandage button; %1 = the button's label | - |
+| `UI_ZeD_Card_NoWoundToBandage` | `Nothing to bandage.` | Item card (a bandage): the character's line when the Bandage button is pressed and no wound lacks a bandage | - |
 | `UI_ZeD_Card_HelpDrink` | `%1: drink from it` | Item card: help line over the Drink button; %1 = the button's label | - |
 | `UI_ZeD_Card_HelpWear` | `%1: put it on` | Item card: help line over the Wear button; %1 = the button's label | - |
 | `UI_ZeD_Card_HelpOffHand` | `%1: put it in your other hand` | Item card: help line over the Off hand button; %1 = the button's label | - |
@@ -786,6 +789,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Card_HelpRepairHoles` | `%1: sew up its holes` | Item card (clothing): help line over the Repair holes button; %1 = the button's label | - |
 | `UI_ZeD_Card_HelpPad` | `%1: sew padding onto it` | Item card (clothing): help line over the Pad button; %1 = the button's label | - |
 | `UI_ZeD_Card_HelpRepair` | `%1: repair it with what you carry` | Item card: help line over the Repair button; %1 = the button's label | - |
+| `UI_ZeD_Card_HelpRepairWith` | `%1: repair it with %2` | Item card: help line over the Repair button when a fixer is in the bags; %1 = the button's label, %2 = the first fixer the game would spend (its item name, e.g. Duct Tape) | - |
 | `UI_ZeD_Card_HelpSharpen` | `%1: sharpen its edge` | Item card (blade): help line over the Sharpen button; %1 = the button's label | - |
 | `UI_ZeD_Card_HelpRename` | `Rename: press to give it a name of your own` | Item card: help line over the item's name row, which a press turns into a name field | - |
 | `UI_ZeD_Card_HelpDockRepair` | `Repair this part's hole` | Item card (clothing): help line over a part's cell in the patch dock when its button repairs the hole | - |
@@ -805,6 +809,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Char_JournalSearchEntries` | `Search entries...` | Character window, Journal tab: placeholder in the search box over the entries list | 24 |
 | `UI_ZeD_Char_JournalWrite` | `Write something...` | Character window, Journal tab: placeholder text in the entry box where the character writes a note | 30 |
 | `UI_ZeD_Char_PinLevel` | `%1 - Lv.%2 - %3` | Character window: title bar readout of a pinned skill; %1 is the skill name, %2 its level, %3 the XP progress such as 150/300 | 40 |
+| `UI_ZeD_Char_PausedMoves` | `Paused: moves between bags wait for play` | Character and World windows while the game is paused: a line across the top of the item list, shown when no tab page is open beside it (a drag or a double-click still moves things; they move once the game plays) | - |
 | `UI_ZeD_Char_PinMax` | `%1 - Lv.10` | Character window: title bar readout of a pinned skill at the top level; %1 is the skill name | 28 |
 | `UI_ZeD_Char_SortDist` | `Dist` | Character window, container strip (narrow vertical bar of container buttons): label of the sort button under the active container; clicking cycles the three - sort by distance (the strip is about 36 px wide) | 5 |
 | `UI_ZeD_Char_SortType` | `Type` | Character window, container strip (narrow vertical bar of container buttons): label of the sort button under the active container; clicking cycles the three - sort by type | 5 |
@@ -881,10 +886,13 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Craft_FindRecipe` | `Find recipe magazine or schematic` | Journal recipe card: hint for a recipe that must be learned from a magazine | - |
 | `UI_ZeD_Craft_HowToLearn` | `How to learn` | Journal recipe card: section heading above skill requirements | 20 |
 | `UI_ZeD_Craft_Known` | `Known` | Craft, Build and Journal tabs: sort button, and the Show toggle value (recipes you know) | 10 |
+| `UI_ZeD_Craft_Max` | `Max` | Craft tab, recipe band: button after the amount that sets the most that can be made now | 8 |
 | `UI_ZeD_Craft_NeedsBench` | `Needs a workbench or station nearby.` | Craft tab, recipe card: line under a stuck Craft button when the recipe is made at a bench or station and none is near | - |
 | `UI_ZeD_Craft_NeedsSurface` | `Needs a table or counter nearby.` | Craft tab, recipe card: line under a stuck Craft button when the recipe can be made on any surface and no table or counter is near (QA K1-7) | - |
 | `UI_ZeD_Craft_NoAlts` | `No alternatives found` | Craft and Build tabs, alternatives list: empty state | - |
 | `UI_ZeD_Craft_NoneWithin` | `None within %1 tiles.` | Craft tab, recipe card: second line when no needed station is near | - |
+| `UI_ZeD_Craft_OpenInBuild` | `Open in Build` | Journal recipe list, band: button that opens the picked recipe in the Build tab | 20 |
+| `UI_ZeD_Craft_OpenInCraft` | `Open in Craft` | Journal recipe list, band: button that opens the picked recipe in the Craft tab | 20 |
 | `UI_ZeD_Craft_Pinned` | `Pinned` | Craft and Build tabs: section heading above pinned recipes | 20 |
 | `UI_ZeD_Craft_Required` | `Required` | Recipe card: section heading above the ingredients | 20 |
 | `UI_ZeD_Craft_Results` | `Results` | Craft, Build and Journal tabs: section heading above search results | 20 |
@@ -948,6 +956,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Dash_HintAb` | `A %1  B %2` | Dashboard top edge (pixel face, controller only): A and B actions of the focused control; %1 = A action, %2 = B action | 46 |
 | `UI_ZeD_Dash_HintAxb` | `A %1  X %2  B %3` | Dashboard top edge (pixel face, controller only): A, X and B actions of the focused control; %1 = A action, %2 = X action, %3 = B action | 46 |
 | `UI_ZeD_Dash_HintWheel` | `D-pad Right: Vehicle / Dashboard` | Dashboard top edge (pixel face, controller only), driver's seat, while the dash does not have the controller: where to give it the controller (the World wheel, its Vehicle slice, then Dashboard). The pixel face has only A-Z, 0-9 and . ' - / + % : (no comma) | 46 |
+| `UI_ZeD_Dash_HintWheelUp` | `D-pad Up: Vehicle / Dashboard` | Dashboard top edge (pixel face, controller only), driver's seat, while the dash does not have the controller: where to give it the controller (seated, D-pad Up opens the car's wheel, then its Dashboard slice; KISS #20). The pixel face has only A-Z, 0-9 and . ' - / + % : (no comma) | 46 |
 | `UI_ZeD_Dash_MeterOff` | `Meter off` | Dashboard controller prompt: what the A or X button does on the focused control (also shown on the dash's top edge, pixel face): the taxi's fare meter, running now (puts its flag up) | 16 |
 | `UI_ZeD_Dash_MeterOn` | `Meter on` | Dashboard controller prompt: what the A or X button does on the focused control (also shown on the dash's top edge, pixel face): the taxi's fare meter, stopped now (pulls its flag down) | 16 |
 | `UI_ZeD_Dash_Passenger` | `PASSENGER` | Dashboard top edge (pixel face) when the player is not the driver | 12 |
@@ -1739,6 +1748,11 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Health_InjuredOf` | `%1 of %2 injured` | Health tab (Character window): summary line; %1 is how many body parts have a wound or condition, %2 how many body parts there are | 24 |
 | `UI_ZeD_Health_Moodles` | `Moodles` | Health tab (Character window): fold head of the block listing the moodles that are on (the game's word for the mood and status icons) | 20 |
 | `UI_ZeD_Health_NoInjuries` | `No injuries` | Health tab (Character window): summary line (with a green dot) when nothing is wounded and health is fine | 20 |
+| `UI_ZeD_Health_NeedBandage` | `a bandage` | Health tab: what a body part's empty treatment menu is missing, in lower case, filling %2 of "%1 needs %2." (the character says it) | - |
+| `UI_ZeD_Health_NeedStitch` | `a needle and thread` | Health tab: what a deep wound's empty treatment menu is missing, in lower case, filling %2 of "%1 needs %2." | - |
+| `UI_ZeD_Health_NeedSplint` | `a splint` | Health tab: what a broken bone's empty treatment menu is missing, in lower case, filling %2 of "%1 needs %2." | - |
+| `UI_ZeD_Health_NeedTweezers` | `tweezers` | Health tab: what glass or a bullet's empty treatment menu is missing, in lower case, filling %2 of "%1 needs %2." | - |
+| `UI_ZeD_Health_NothingToTreat` | `%1: nothing to treat.` | Health tab: the character's line when a body part with nothing wrong has no treatments; %1 = the part's name | - |
 | `UI_ZeD_Health_NoInjuriesLow` | `No injuries, low body health` | Health tab (Character window): summary line (with a yellow dot) when nothing is wounded but some body part has reduced health (hunger, illness, cold) | 32 |
 | `UI_ZeD_Health_Overall` | `Overall` | Health tab (Character window): stat row label at the top of the summary, before the overall body health percentage | 12 |
 | `UI_ZeD_Health_Qualified` | `%1 (%2)` | Health tab (Character window): a condition with its severity or state in a badge, e.g. Deep Wound (Severe), Stitched (Good); %1 the condition, %2 the severity word | 28 |
@@ -1746,6 +1760,14 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Health_HelpHeader` | `Show or hide the body figure.` | Health tab (Character window): help line while the pointer is on the Health header above the body figure | - |
 | `UI_ZeD_Health_HelpTimeLess` | `Make the session 10 minutes shorter.` | Health tab (Character window): help line while the pointer is on the minus button beside the exercise session length | - |
 | `UI_ZeD_Health_HelpTimeMore` | `Make the session 10 minutes longer.` | Health tab (Character window): help line while the pointer is on the plus button beside the exercise session length | - |
+
+## Hint
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_Hint_Wheels` | `Wheels` | Hint strip over the belt, controller only, the first hours: after the D-pad picture, "the D-pad opens wheels" (KISS #26) | 16 |
+| `UI_ZeD_Hint_Or` | `or` | Hint strip, controller only, the first hours: between the LB and RB pictures, "LB or RB + button Quick actions" | 6 |
+| `UI_ZeD_Hint_QuickActions` | `+ button Quick actions` | Hint strip, controller only, the first hours: after the RB picture, "LB or RB + button Quick actions" (a bumper held with a face button runs a quick action) | 30 |
 
 ## Hook
 
@@ -1887,6 +1909,11 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Inv_ColName` | `Name` | Inventory list: column heading, and the name of the sort order in the grid's order line | 8 |
 | `UI_ZeD_Inv_ColWt` | `Weight` | Inventory list: column heading for item weight | 4 |
 | `UI_ZeD_Inv_Empty` | `Nothing here.` | Inventory list: centered message when a container, a floor tile or any list has no items | 24 |
+| `UI_ZeD_Inv_PickAll` | `Pick all` | Inventory list heading: button beside the Filter that picks every row of the list | 12 |
+| `UI_ZeD_Inv_PickAllHelp` | `Picks every row of this list, as a double-click on the empty space under the rows does.` | Inventory list heading: help line while the pointer is on Pick all | - |
+| `UI_ZeD_Drag_NoRoom` | `No room` | Drag chip: replaces the count and weight while the container under the pointer cannot take what is carried | 10 |
+| `UI_ZeD_Inv_WornHeld` | `Worn and held` | Inventory list: heading of the group at the top that holds what the player wears and holds | 24 |
+| `UI_ZeD_Inv_WornLine` | `Worn and held: Equipment` | Inventory list: the last line when worn and held things stay on the Equipment tab; a press opens the tab | 40 |
 | `UI_ZeD_Inv_GridView` | `Grid view` | Inventory lists: hover hint on the view button in a column heading while the grid is on show (one button flips between list and grid) | - |
 | `UI_ZeD_Inv_ItemsMany` | `%1 items` | Inventory lists (both windows), compact container header: how many items it holds (several or none) | 12 |
 | `UI_ZeD_Inv_ItemsOne` | `%1 item` | Inventory lists (both windows), compact container header: how many items it holds (one) | - |
@@ -3581,6 +3608,10 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Settings_ContextMenu` | `Context menu` | Options > Mods > ZeD-GUI: name of the right-click menu style setting | - |
 | `UI_ZeD_Settings_ContextMenuTip` | `The right-click menu: a strip of icons with the target and what the action needs, or a list, one action to a row, as the game's own.` | Options > Mods > ZeD-GUI: hover help | - |
 | `UI_ZeD_Settings_ContextStrip` | `Icon strip` | Options > Mods > ZeD-GUI: choice of the Context menu setting | - |
+| `UI_ZeD_Settings_WornList` | `Worn and held things` | Options > Mods > ZeD-GUI: name of the setting for where worn and held things show | - |
+| `UI_ZeD_Settings_WornListTip` | `Where the things you wear and hold show: in their own group at the top of the inventory list, where a double-click takes one off, or only on the Equipment tab, with a line at the end of the list that opens it.` | Options > Mods > ZeD-GUI: hover help | - |
+| `UI_ZeD_Settings_WornListTop` | `In the list` | Options > Mods > ZeD-GUI: choice of the Worn and held things setting | - |
+| `UI_ZeD_Settings_WornListTab` | `On the Equipment tab` | Options > Mods > ZeD-GUI: choice of the Worn and held things setting | - |
 | `UI_ZeD_Settings_Dark` | `Dark` | Options > Mods > ZeD-GUI: base theme choice | - |
 | `UI_ZeD_Settings_EquipView` | `Equipped items` | Options > Mods > ZeD-GUI: name of the Equip tab view setting | - |
 | `UI_ZeD_Settings_EquipViewTip` | `How the Equip tab shows what you wear: a list, or your character with each slot beside the place it is worn.` | Options > Mods > ZeD-GUI: hover help | - |
@@ -4278,7 +4309,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_WinMenu_Accent` | `Accent` | Window menu (the box at the right end of a window's title bar): name of the submenu that picks the accent color | - |
 | `UI_ZeD_WinMenu_ResetThis` | `Reset this window` | Window menu: puts this window back to its starting size and place | - |
 | `UI_ZeD_WinMenu_ResetBoth` | `Reset both windows` | Window menu, on the Character and World windows only: puts both windows back to their starting size and place | - |
-| `UI_ZeD_WinMenu_Setup` | `ZeD setup...` | Window menu, last row: opens ZeD setup (Options > Mods > ZeD-GUI) | - |
+| `UI_ZeD_WinMenu_Setup` | `ZeD setup...` | Window menu, second row (after Keyboard map): opens ZeD setup (Options > Mods > ZeD-GUI) | - |
 | `UI_ZeD_WinMenu_Help` | `Window menu: theme, accent, text size, see-through, controller highlight and reset.` | Any ZeD window: help line while the pointer is on the window menu box (the box at the right end of the title bar) | - |
 | `UI_ZeD_WinMenu_CloseHelp` | `Close the window.` | Any ZeD window: help line while the pointer is on the close box at the left end of the title bar | - |
 | `UI_ZeD_WinMenu_SavePos` | `Save position` | Window menu, beside Reset this window: remembers where this window is and its size, for every save on this computer | - |
@@ -4437,7 +4468,7 @@ Limits here are estimates from the English: the cards wrap, buttons and tags do 
 | `UI_ZeD_Identity_TagStyle` | `STYLE` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
 | `UI_ZeD_Identity_TagSurvived` | `SURVIVED` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
 | `UI_ZeD_Settings_Identity` | `Identity card` | ZeD setup: a setting's name, or the help line under it (Tip) | 23 |
-| `UI_ZeD_Settings_IdentityTip` | `The Identity tab's card. Immersive: the Kentucky license. Simple: ZeD's own rows with the same facts.` | ZeD setup: a setting's name, or the help line under it (Tip) | - |
+| `UI_ZeD_Settings_IdentityTip` | `The Info tab's card. Immersive: the Kentucky license. Simple: ZeD's own rows with the same facts.` | ZeD setup: a setting's name, or the help line under it (Tip) | - |
 | `UI_ZeD_Settings_Immersive` | `Immersive` | ZeD setup: a setting's name, or the help line under it (Tip) | 15 |
 | `UI_ZeD_Srv_HelpOptionsCard` | `The server's settings, to read. They change only on the server.` | Server tab, the server options card: its help line | - |
 | `UI_ZeD_Srv_HelpOptionsChange` | `Change: the game's own window for changing the server's settings.` | Server tab, the server options card, for staff who may change options: help line over Change (begins with the button's name) | - |

@@ -61,7 +61,7 @@ ZeD = {
     tr = enTr, _trGen = 1,
     T = { px = function(n) return n end, borderS = { r = 0.1, g = 0.2, b = 0.3, a = 1 } },
     Atoms = {},
-    InventoryRenderer = { catKey = function(item) return item.cat or "Other" end },
+    InventoryRenderer = { catKey = function(item) return item.cat or "Other" end, wornListed = function() return false end, WORN_KEY = "zed:worn" },   -- (KISS #11)
     ContainerGates = {
         get = function() return nil end, keeps = function() return true end,
         count = function(inv) return inv and inv:getItems():size() or 0 end,

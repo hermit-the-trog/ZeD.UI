@@ -63,7 +63,12 @@ function isMouseButtonDown(b) if b == 1 then return RDOWN end return b == 0 and 
 local DRAG = nil
 JoypadState = { players = {} }
 local PLAYER = { md = {}, aiming = false }
-function PLAYER:getModData() return self.md end
+-- (KISS #9: the tab side starts pinned, once per window for a save from before. The pins staged here are his own
+-- picks made after that, so the once-flag is set, unless a test stages an old save: md.oldSave)
+function PLAYER:getModData()
+    if not self.md.oldSave and self.md.ZeD_WinPinnedK9 == nil then self.md.ZeD_WinPinnedK9 = { char = true, world = true } end
+    return self.md
+end
 function PLAYER:isAiming() return self.aiming end
 function getSpecificPlayer() return PLAYER end
 local SCREEN_W, SCREEN_H = 3840, 2160
@@ -319,8 +324,8 @@ local function away() MX, MY = 100, 2000 end
 -- so three updates here and the next one brings the half back
 local function rest() tick(3) end
 
-local function fresh(pins)
-    PLAYER.md = { ZeD_WinPinned = pins or { charInv = false, charTabs = false, worldInv = false, worldTabs = false } }
+local function fresh(pins, oldSave)
+    PLAYER.md = { ZeD_WinPinned = pins or { charInv = false, charTabs = false, worldInv = false, worldTabs = false }, oldSave = oldSave }
     PLAYER.aiming = false
     DOWN = false
     CW = makeWindow("char")
@@ -464,14 +469,20 @@ end
 -- SAVE
 -- ===========================================================================
 do
-    local w = fresh({ char = true, world = false })
+    local w = fresh({ char = true, world = false }, true)
     local t = PLAYER.md.ZeD_WinPinned
     check("SAVE: an old single pin pins both halves", H.isPinned(w, "inv") and H.isPinned(w, "drawer") and w.pinned == true)
     check("SAVE: ... written as the two new keys", t.charInv == true and t.charTabs == true)
-    w = fresh({ char = false })
-    check("SAVE: an old unpinned window: both halves unpinned", not H.isPinned(w, "inv") and not H.isPinned(w, "drawer"))
-    w = fresh({})
-    check("SAVE: no pins saved: both unpinned", not H.isPinned(w, "inv") and not H.isPinned(w, "drawer"))
+    -- (KISS #9: the tab side starts pinned, once, on a save from before; the inventory side keeps rolling)
+    w = fresh({ char = false }, true)
+    check("SAVE: an old unpinned window: the tab side pinned, the inventory not (KISS #9)", not H.isPinned(w, "inv") and H.isPinned(w, "drawer"))
+    check("SAVE: ... the once-flag kept beside the pins", PLAYER.md.ZeD_WinPinnedK9 and PLAYER.md.ZeD_WinPinnedK9.char == true)
+    w = fresh({}, true)
+    check("SAVE: no pins saved: the tab side starts pinned (KISS #9)", not H.isPinned(w, "inv") and H.isPinned(w, "drawer"))
+    -- (an unpin after it stays: the once-flag is there now)
+    PLAYER.md.ZeD_WinPinned.charTabs = false
+    w = makeWindow("char")
+    check("SAVE: an unpin after the once-pin stays (KISS #9)", not H.isPinned(w, "drawer"))
 
     -- (Nov 20 2026, QA's visual noise audit 22: while the halves are joined, nothing rolled, the bar has one pin, at
     -- the right end where the window's single pin always was, and it pins both halves; once a half rolls by itself,

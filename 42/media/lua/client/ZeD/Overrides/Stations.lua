@@ -72,28 +72,6 @@ local function focusRecipe(stateKey, searchKey, recipe, itemString, pn)
     end
 end
 
--- (Nov 14 2026, punch list 208) the oven a menu's Turn on is for, by player number: { obj, at = ms }. Only an
--- oven that is off: Turn off leaves the windows as they are. A mark older than a minute (a walk cut short) is dropped.
-local pendingOven = {}
-local OVEN_MARK_MS = 60000
-local function markOven(playerObj, obj)
-    if not (playerObj and obj) or ZeD.Safe.on() then return end
-    if not instanceof(obj, "IsoStove") then return end
-    local okA, on = pcall(function() return obj:Activated() end)
-    if okA and not on then pendingOven[playerObj:getPlayerNum()] = { obj = obj, at = getTimestampMs() } end
-end
-local function openMarkedOven(playerObj, obj)
-    if not (playerObj and obj) then return end
-    local pn = playerObj:getPlayerNum()
-    local m = pendingOven[pn]
-    if not m then return end
-    pendingOven[pn] = nil
-    if m.obj ~= obj or getTimestampMs() - m.at > OVEN_MARK_MS then return end
-    -- (Nov 15 2026, pop-outs: with faces on, the oven's face pops out beside the player instead of the Craft tab)
-    if ZeD.FacePop and ZeD.FacePop.open(playerObj, obj) then return end
-    ST.open(playerObj, obj)
-end
-
 local function apply()
     if not ISEntityUI then return end
 
@@ -193,66 +171,8 @@ local function apply()
         end
     end
 
-    -- (Nov 14 2026, punch list 208: Turn on from a menu opens the World window on the Craft tab, where the oven's
-    -- controls are, once the walk is done. The menus' Turn on mark the oven; ISToggleStoveAction:perform opens it.
-    -- The World window's own power button calls the handler's perform straight (ContainerControls), so it does not.)
-    local Tog = ISLootWindowObjectControlHandler_StoveToggle
-    if Tog and not Tog._zedHooked then
-        Tog._zedHooked = true
-        local origMenu = Tog.handleJoypadContextMenu
-        Tog.handleJoypadContextMenu = function(self, context)
-            local first = context and context.numOptions or 1
-            local r = origMenu(self, context)
-            if context and context.options then
-                pcall(function()
-                    for i = first, (context.numOptions or 1) - 1 do
-                        local o = context.options[i]
-                        if o and o.target == self and o.onSelect and not o._zedOven then
-                            local pick = o.onSelect
-                            o._zedOven = true
-                            o.onSelect = function(h, ...)
-                                if h then pcall(markOven, h.playerObj, h.object) end
-                                return pick(h, ...)
-                            end
-                        end
-                    end
-                end)
-            end
-            return r
-        end
-    end
-    if ISInventoryPage and ISInventoryPage.toggleStove and not ISInventoryPage._zedOvenHooked then
-        ISInventoryPage._zedOvenHooked = true
-        local origPageToggle = ISInventoryPage.toggleStove
-        ISInventoryPage.toggleStove = function(self, ...)
-            pcall(function()
-                local inv = self.inventoryPane and self.inventoryPane.inventory
-                markOven(getPlayer(), inv and inv:getParent())   -- (vanilla's toggle walks getPlayer())
-            end)
-            return origPageToggle(self, ...)
-        end
-    end
-    if ISWorldObjectContextMenu and ISWorldObjectContextMenu.onToggleStove and not ISWorldObjectContextMenu._zedOvenHooked then
-        ISWorldObjectContextMenu._zedOvenHooked = true
-        local origWorldToggle = ISWorldObjectContextMenu.onToggleStove
-        ISWorldObjectContextMenu.onToggleStove = function(worldobjects, stove, player, ...)
-            pcall(markOven, getSpecificPlayer(player), stove)
-            return origWorldToggle(worldobjects, stove, player, ...)
-        end
-    end
-    if ISToggleStoveAction and not ISToggleStoveAction._zedHooked then
-        ISToggleStoveAction._zedHooked = true
-        local origToggle = ISToggleStoveAction.perform
-        function ISToggleStoveAction:perform()
-            local r = origToggle(self)
-            if not ZeD.Safe.on() then
-                local ok, err = pcall(openMarkedOven, self.character, self.object)
-                if not ok then print("[ZeD] Stations: oven turn-on route failed: " .. tostring(err)) end
-            end
-            return r
-        end
-    end
 
+    -- (KISS #58: Turn on only turns the stove on; the panel opens from Stove settings (above) and the gears picture. Punch list 208 hooks removed.)
     print("[ZeD] Overrides/Stations: station, oven, crafting and build windows routed to the World window")
 end
 

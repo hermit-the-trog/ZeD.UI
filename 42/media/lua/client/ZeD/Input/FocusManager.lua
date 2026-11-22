@@ -40,16 +40,16 @@
 --                              commits); else onHoldContext once (a list row: quick use)
 --   B                        — fire focused element's onCancel if defined; else NO-OP
 --                              (no shade-all fallback; purely contextual cancel)
---   Y tap                    — toggle paired visibility (open both/hide both/unhide both)
+--   Y tap                    — open both, or close both (KISS #25); rolled ones come down
 --   Y hold (>=400ms)         — close every registered window (full lifecycle teardown)
 --   L3 / R3                  — the focused list's next sort / list or grid view, nothing else
 --   Right stick |v|² > 0.81  — roll up every registered window + release focus (aiming escape)
 --
 -- WINDOW-PAIR INVARIANT (gamepad mode):
---   Both Character and World are always open as a pair on gamepad. LB/RB rely
---   on this; Y maintains it. ZeD_CharacterWindow.ensureBothOpenForGamepad(0)
---   runs on the flip to gamepad (this file's ZeD_InputModeChanged listener),
---   on Y-tap and on LB / RB, as a safety net.
+--   On a pad, Character and World open and close as a pair. LB/RB rely
+--   on this; Y maintains it. ZeD_CharacterWindow.ensureBothOpenForGamepad(pn)
+--   runs on Y-tap and on LB / RB, as a safety net; the flip to a pad opens
+--   nothing (KISS #14).
 --
 -- PSEUDO-FOCUSABLE D-PAD INTERCEPT (unified contract):
 --   Any element may declare onDpadDir(w, el, dir) — a callback that fires
@@ -2398,9 +2398,19 @@ local function _closeAllWindows(pn)
     Focus.releaseFocus(pn)
 end
 
+-- (KISS #8) Where a Y lands: near a container the World window's Loot, on that container's first row, and after a Y
+-- that hid the pair the row it left (ZeD_WorldWindow.padYLand); else the Character window, as before. A field on
+-- Focus, not a local (this file is near Kahlua's local limit).
+function Focus.yLand(pn, charWin, back)
+    local WW = ZeD_WorldWindow
+    local ok, took = false, false
+    if WW and WW.padYLand then ok, took = pcall(WW.padYLand, pn, back) end
+    if not (ok and took) and charWin then Focus.claimFocus(charWin) end
+end
+
 -- Y tap: player pn's paired visibility toggle.
 --   both closed   → open both (Character focus)
---   both visible  → hide both (windowshade, release focus)
+--   both visible  → close both, release focus (KISS #25)
 --   both shaded   → unhide both (Character focus)
 --   mixed         → normalize via ensureBothOpenForGamepad + unhide all,
 --                   focus Character (gamepad invariant: paired)
@@ -2420,7 +2430,7 @@ local function _handleYTap(pn)
             CW.toggleBothPaired(pn)
         end
         local charWin = CW.getWindow and CW.getWindow(pn)
-        if charWin then Focus.claimFocus(charWin) end
+        Focus.yLand(pn, charWin, true)   -- (KISS #8: a Y that closed the pair kept its row; KISS #25)
         print("[ZeD.Input] Focus: Y tap - opened pair, Character focus" .. _who(pn))
         return
     end
@@ -2429,11 +2439,9 @@ local function _handleYTap(pn)
     if charOpen ~= worldOpen then
         if CW.ensureBothOpenForGamepad then CW.ensureBothOpenForGamepad(pn) end
         local charWin = CW.getWindow and CW.getWindow(pn)
-        if charWin then
-            Focus.showWin(charWin)
-            Focus.claimFocus(charWin)
-        end
+        if charWin then Focus.showWin(charWin) end
         Focus.showWin(WW.getWindow and WW.getWindow(pn))
+        Focus.yLand(pn, charWin, true)   -- (KISS #8; after both show, so the World window can take it)
         print("[ZeD.Input] Focus: Y tap - normalized pair, Character focus" .. _who(pn))
         return
     end
@@ -2452,10 +2460,14 @@ local function _handleYTap(pn)
 
     if bothVisible then
         local t0 = getTimestampMs()   -- (217: the hide's timing, Focus.lagClose)
-        if charWin.setWindowShaded  then charWin:setWindowShaded(true)  end
-        if worldWin.setWindowShaded then worldWin:setWindowShaded(true) end
+        -- (the row the pad is on, for the next Y to return to: KISS #8)
+        if WW.padYRemember then pcall(WW.padYRemember, pn) end
+        -- A tap of Y closes both, as the game's Y puts its inventory away; they used to roll to two bars that only a
+        -- hold cleared. (KISS #25)
+        if WW.close then pcall(WW.close, pn) end
+        if CW.isOpen and CW.isOpen(pn) and CW.toggle then pcall(CW.toggle, pn) end
         Focus.releaseFocus(pn)
-        print("[ZeD.Input] Focus: Y tap - hide pair" .. _who(pn))
+        print("[ZeD.Input] Focus: Y tap - close pair" .. _who(pn))
         Focus.lagClose(t0)
         return
     end
@@ -2463,7 +2475,7 @@ local function _handleYTap(pn)
     if bothShaded then
         Focus.showWin(charWin)
         Focus.showWin(worldWin)
-        Focus.claimFocus(charWin)
+        Focus.yLand(pn, charWin, true)   -- (KISS #8)
         print("[ZeD.Input] Focus: Y tap - unhide pair, Character focus" .. _who(pn))
         return
     end
@@ -2471,7 +2483,7 @@ local function _handleYTap(pn)
     -- One shaded one not: normalize to both-visible.
     if charShaded  then Focus.showWin(charWin)  end
     if worldShaded then Focus.showWin(worldWin) end
-    Focus.claimFocus(charWin)
+    Focus.yLand(pn, charWin, true)   -- (KISS #8)
     print("[ZeD.Input] Focus: Y tap - normalized visibility, Character focus" .. _who(pn))
 end
 
@@ -2497,6 +2509,34 @@ local function _pressPn(w, joypadData)
     return pn
 end
 
+-- (KISS #34) In a window, a bumper held with A, B, X, Y, L3 or R3 runs that quick action (ZeD_QuickChords), as it
+-- does in the world, and never turns a tab: the bumper's step is called off, and any step back its hold already made
+-- is undone. The face button does nothing else. True when the press was a chord. A field, not a local (this file is
+-- near Kahlua's local limit).
+function Focus.padChord(pn, s, button)
+    -- (one bumper down: both down are the zoom's, and the second bumper called the step off without a chord)
+    if not s.bHeld or (s.bCancel and not s.bChord) then return false end
+    local face = nil
+    for k, f in pairs({ AButton = "A", BButton = "B", XButton = "X", YButton = "Y", LStickButton = "L3", RStickButton = "R3" }) do
+        if Joypad[k] ~= nil and Joypad[k] == button then face = f end
+    end
+    if not face then return false end
+    s.bCancel, s.bChord = true, true
+    local steps = s.bSteps or 0
+    s.bSteps = 0
+    for _ = 1, steps do _stepTab(s.bHeld, pn, 1) end
+    local Q = ZeD.QuickChords
+    local p = getSpecificPlayer(pn)
+    -- (as in the world: not paused, not dead, not in safe mode)
+    if Q and Q.run and p and not p:isDead() and getGameSpeed() > 0 and not (ZeD.Safe and ZeD.Safe.on()) then
+        local chord = ((s.bHeld == "char") and "LB" or "RB") .. "+" .. face
+        local ok, err = pcall(Q.run, p, chord)
+        if not ok then print("[ZeD.Input] Focus: chord " .. chord .. ": " .. tostring(err)) end
+        Q.lastChord = chord
+    end
+    return true
+end
+
 --- A pad button went down while w holds the pad (w's onJoypadDown stub calls
 --- this). Shows the focus marks, names the button through ActionMap and
 --- routes it: A, X and Y arm their tap-vs-hold timers (settled on the tick),
@@ -2515,6 +2555,7 @@ function Focus.dispatchJoypadDown(w, button, joypadData)
     if ZeD.GridLayout and ZeD.GridLayout.padButton(pn, button) then return end
     -- B also hides the balloon that is up until the focus moves on (B still does its own job)
     if button == Joypad.BButton and ZeD.Balloon and ZeD.Balloon.dismiss then ZeD.Balloon.dismiss() end
+    if Focus.padChord(pn, s, button) then return end   -- (a bumper held: the quick action, KISS #34)
     local actions = ZeD.Input.Action and ZeD.Input.Action.fromGamepadButton
                     and ZeD.Input.Action.fromGamepadButton(button)
     if not actions then return end
@@ -2553,7 +2594,7 @@ function Focus.dispatchJoypadDown(w, button, joypadData)
             if s.bHeld then
                 if s.bHeld ~= side then s.bCancel = true end
             else
-                s.bHeld, s.bStart, s.bLast, s.bCancel = side, getTimestampMs(), 0, false
+                s.bHeld, s.bStart, s.bLast, s.bCancel, s.bChord, s.bSteps = side, getTimestampMs(), 0, false, nil, 0
             end
             return
         elseif aid == "cancel" then
@@ -2905,8 +2946,12 @@ local function _holdTicks(s, jid, pn)
                     s.xUsed = true
                     s.xDrag = true
                 elseif el and el.onHoldContext then
-                    -- a one-shot hold with no drag (hold X on a row is the quick use)
-                    _fireCb("element.onHoldContext", el.onHoldContext, s.xWin or s.win, el)
+                    -- a one-shot hold with no drag (hold X on a row is the quick use); paused, only where it is a
+                    -- move into his inventory (ZeD_PausedLook.blocksUse, KISS #41)
+                    local PL = ZeD.PausedLook
+                    if not (PL and PL.blocksUse and PL.blocksUse(s.xWin or s.win, el)) then
+                        _fireCb("element.onHoldContext", el.onHoldContext, s.xWin or s.win, el)
+                    end
                     s.xUsed = true
                 end
             end
@@ -2945,10 +2990,11 @@ local function _holdTicks(s, jid, pn)
                and (s.bLast == 0 or t - s.bLast >= BUMP_REPEAT_MS) then
                 s.bLast = t
                 _stepTab(side, pn, -1)
+                s.bSteps = (s.bSteps or 0) + 1   -- (a chord after it undoes it: Focus.padChord, KISS #34)
             end
         else
             if s.win and not s.bCancel and s.bLast == 0 then _stepTab(side, pn, 1) end
-            s.bHeld, s.bStart, s.bLast, s.bCancel = nil, 0, 0, false
+            s.bHeld, s.bStart, s.bLast, s.bCancel, s.bChord, s.bSteps = nil, 0, 0, false, nil, 0
         end
     end
 end
@@ -3265,19 +3311,12 @@ if Events.OnPlayerDeath then
     end)
 end
 
--- Window-pair invariant. On kbm→gamepad transition, ensure both windows
--- are open as a pair (gamepad-only invariant; mouse mode keeps asymmetric
--- open/closed state). Late-binds ZeD_CharacterWindow because that module
--- loads after this one (Input/* is a separate dir from the windows). The
--- mode is player 1's, and so are the marks it hides.
+-- The input switching. The mode is player 1's, and so are the marks it hides. The switch to a pad opens nothing:
+-- a touch of the screen or a key and then the stick used to pop both windows open over the game mid-walk; Y opens
+-- them when he wants them (and LB / RB, the wheels, still open the pair as before). (KISS #14)
 local function _onModeChanged(newMode, oldMode)
     -- the mouse or keyboard took over: the focus marks go (the focus itself stays)
     if newMode == "kbm" then _hideCues(_st0) end
-    if newMode == "gamepad" and oldMode ~= "gamepad" then
-        if ZeD_CharacterWindow and ZeD_CharacterWindow.ensureBothOpenForGamepad then
-            pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, 0)
-        end
-    end
 end
 Events.ZeD_InputModeChanged.Add(_onModeChanged)
 

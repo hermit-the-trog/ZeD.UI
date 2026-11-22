@@ -409,6 +409,7 @@ local buildConfig = {
 local function getState(win)
     if not win._buildState then
         win._buildState = CC.createState()
+        win._buildState.show = "known"   -- Build opens on Known: Ready is empty until he carries the materials (KISS #17)
     end
     return win._buildState
 end

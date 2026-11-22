@@ -181,14 +181,15 @@ end
 -- (QA: the keys read as see-through over the game; each sits on the balloon's own light paper, solid)
 function ZeD_TutorialKeys:prerender()
     local n, s = self:keyRects()
-    local pal = ZeD.Balloon and ZeD.Balloon.PALETTE
+    -- (the balloon's light palette is ZeD.Balloon.LIGHT; PALETTE never existed, so the plates took the theme's dark
+    -- surf2 in Dark: design system note, Nov 22 2026)
+    local pal = ZeD.Balloon and ZeD.Balloon.LIGHT
     local c = (pal and pal.surf2) or ZeD.T.surf2
     for _, r in ipairs({ n, s }) do
         if r.w > 0 then ZeD.Atoms.fillRounded(self, r.x, r.y, r.w, r.h, c.r, c.g, c.b, 1) end
     end
 end
-function ZeD_TutorialKeys:render()
-    local T = ZeD.T
+local function drawTourKeys(self)
     local n, s = self:keyRects()
     local mx, my = self:getMouseX(), self:getMouseY()
     local function over(r) return mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h end
@@ -196,6 +197,11 @@ function ZeD_TutorialKeys:render()
         ZeD.Molecules.drawButton(self, s.x, s.y, s.w, s.h, tr("UI_ZeD_Tut_Stop"), "default", self._down == "stop", nil, { hover = over(s) })
     end
     ZeD.Molecules.drawButton(self, n.x, n.y, n.w, n.h, self.nextWord or "", "primary", self._down == "next", nil, { hover = over(n), default = true })
+end
+function ZeD_TutorialKeys:render()
+    -- the keys' lines and words in the balloon's light palette too, so they match the paper they sit on in every theme
+    local B = ZeD.Balloon
+    if B and B.inLight then B.inLight(drawTourKeys, self) else drawTourKeys(self) end
 end
 function ZeD_TutorialKeys:onMouseDown(x, y)
     local n, s = self:keyRects()
@@ -289,6 +295,8 @@ end
 local function giveKeysThePad()
     local jd = JoypadState and JoypadState.players and JoypadState.players[R.pn + 1]
     if jd and R.keys then pcall(setJoypadFocus, R.pn, R.keys) end
+    -- (KISS #51: the game is paused while a balloon is up, so the pad must still reach the keys)
+    if jd then jd.activeWhilePaused = true end
 end
 
 local function show(i)
@@ -356,7 +364,23 @@ function TU.start(pn, mode)
     R.layer:setWidth(getCore():getScreenWidth()); R.layer:setHeight(getCore():getScreenHeight())
     R.layer:addToUIManager(); R.layer:setAlwaysOnTop(true)
     R.keys:addToUIManager(); R.keys:setAlwaysOnTop(true); R.keys:setVisible(false)
+    -- (KISS #51: the game pauses while a tour balloon is up, as the guide pauses it; the speed it had comes back at
+    -- the end, and the game's "Game Paused" box is hidden while the balloons show)
+    local okSp, sp = pcall(getGameSpeed)
+    R.prevSpeed = (okSp and type(sp) == "number" and sp > 0) and sp or 1
+    pcall(setGameSpeed, 0)
+    pcall(function() R.prevMsg = UIManager.isShowPausedMessage(); UIManager.setShowPausedMessage(false) end)
     show(1)
+end
+
+--- Start the tour again at any time (the "Show me around" row in a window's menu): the controller's words when a pad
+--- drives the game, else the mouse's. Does nothing while the tour is already running. (KISS #51)
+function TU.restart(pn)
+    if R.on then return false end
+    local G = ZeD.Guide
+    local okPad, onPad = pcall(function() return G and G.onPad and G.onPad(pn or 0) end)
+    TU.start(pn or 0, (okPad and onPad) and "pad" or "mouse")
+    return true
 end
 
 function TU.next()
@@ -375,6 +399,9 @@ local function close()
         local jd = JoypadState and JoypadState.players and JoypadState.players[R.pn + 1]
         if jd and jd.focus == R.keys then pcall(setJoypadFocus, R.pn, nil) end
     end
+    -- (KISS #51: the game runs again at the speed it had, its "Game Paused" box as it was)
+    if R.prevSpeed then pcall(setGameSpeed, R.prevSpeed); R.prevSpeed = nil end
+    if R.prevMsg ~= nil then pcall(function() UIManager.setShowPausedMessage(R.prevMsg) end); R.prevMsg = nil end
     writeWord("0")
 end
 function TU.stop() pcall(function() ZeD.uiSound("UIActivateButton") end); close() end

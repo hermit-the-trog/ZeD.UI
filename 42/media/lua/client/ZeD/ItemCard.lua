@@ -84,13 +84,49 @@ local function formatWeapon(item)
     local t = safeGet(item,"getTreeDamage"); if t and t>0 then table.insert(s,{label="Tree dmg",value=string.format("%.0f",t)}) end
     return s
 end
+-- (KISS #29) Bandage on a bandage's card: the worst wound with no bandage on it, worst first as the Health tab and the
+-- Medicine chord rank them (DpadWheels.H.partRank, then the less healthy part, then the body's order); the game's own
+-- applyBandage brings the bandage over and runs ISApplyBandage. Nothing to bandage: the character says so.
+ZeD.ItemCard.bandageWorst = function(player, item)
+    local okB, best = pcall(function()
+        local H = ZeD.DpadWheels and ZeD.DpadWheels.H
+        local parts = player:getBodyDamage():getBodyParts()
+        local pick, pr, ph = nil, 99, 1000
+        for i = 0, parts:size() - 1 do
+            local bp = parts:get(i)
+            if not bp:bandaged() and (bp:bitten() or bp:bleeding() or bp:scratched() or bp:isCut() or bp:deepWounded()
+               or bp:getBurnTime() > 0) then
+                local rank = (H and H.partRank and H.partRank(player, bp)) or 5
+                local health = bp:getHealth()
+                if rank < pr or (rank == pr and health < ph) then pick, pr, ph = bp, rank, health end
+            end
+        end
+        return pick
+    end)
+    if okB and best then
+        ISInventoryPaneContextMenu.applyBandage(item, best, player:getPlayerNum())
+    else
+        pcall(function() player:setHaloNote(ZeD.tr("UI_ZeD_Card_NoWoundToBandage")) end)
+    end
+end
+-- (KISS #54) "Jammed, press X": the jam says which key racks it, wherever a card shows Jammed. The key is the player's
+-- own Rack Firearm binding (the game's name for it); a key that is not bound, or any trouble reading it, gives plain Jammed.
+ZeD.ItemCard.jammedWords = function()
+    local okK, name = pcall(function()
+        local code = getCore():getKey("Rack Firearm")
+        if not code or code == 0 then return nil end
+        return getKeyName(code)
+    end)
+    if okK and name and name ~= "" then return ZeD.tr("UI_ZeD_JammedKey", tostring(name)) end
+    return ZeD.tr("UI_ZeD_Jammed")
+end
 local function formatFirearm(item)
     local s = {}
     local mn,mx = safeGet(item,"getMinDamage"),safeGet(item,"getMaxDamage")
     if mn and mx then table.insert(s,{label="Damage",value=string.format("%.1f - %.1f",mn,mx)}) end
     local r = safeGet(item,"getMaxRange"); if r and r>0 then table.insert(s,{label="Range",value=string.format("%.1f",r)}) end
     local c = safeGet(item,"getCriticalChance"); if c and c>0 then table.insert(s,{label="Crit",value=math.floor(c).."%"}) end
-    if safeGet(item,"isJammed") == true then table.insert(s,{label="Status",value=ZeD.tr("UI_ZeD_Jammed"),color=ZeD.T.danger}) end  -- (QA B5-11)
+    if safeGet(item,"isJammed") == true then table.insert(s,{label="Status",value=ZeD.ItemCard.jammedWords(),color=ZeD.T.danger}) end  -- (QA B5-11, KISS #54)
     local cur,mx2 = safeGet(item,"getCurrentAmmoCount"),safeGet(item,"getMaxAmmo")
     if mx2 and mx2>0 then table.insert(s,{label="Ammo",value=(cur or 0).."/"..mx2}) end
     -- (getAmmoType is an AmmoType object, not a string: ammoOf reads it and finds the ammo's own name;
@@ -323,28 +359,46 @@ VERB_DISPATCH.repair_all = function(card) queueRepairAll(card, "repair_all", tru
 
 VERB_DISPATCH.pad_all = function(card) queueRepairAll(card, "pad_all", false) end
 
+-- The first available fixer for the item: the one a Repair press spends (the game's strongest first). Returns the
+-- fixing's and the fixer's index plus the fixer's name as the game shows it, or nil. (KISS #57: the Repair button's
+-- help line names it, so one click never spends a fixer he did not know about)
+local function firstFixer(player, item)
+    local fixingList = FixingManager and FixingManager.getFixes(item)
+    if not fixingList or fixingList:isEmpty() then return nil end
+    for fi = 0, fixingList:size() - 1 do
+        local fixing = fixingList:get(fi)
+        for xi = 0, fixing:getFixers():size() - 1 do
+            local fixer = fixing:getFixers():get(xi)
+            if fixing:haveThisFixer(player, fixer, item) then
+                -- the item's own display name (as the game's repair menu shows it); the raw type if it has none
+                local full = fixing:getModule():getName() .. "." .. fixer:getFixerName()
+                local okN, nm = pcall(getItemNameFromFullType, full)
+                if not (okN and nm and nm ~= "") then nm = fixer:getFixerName() end
+                return fi, xi, nm
+            end
+        end
+    end
+    return nil
+end
+ZeD.ItemCard.firstFixerName = function(player, item)
+    local _, _, nm = firstFixer(player, item)
+    return nm
+end
+
 -- Shared: find the first available fixer for a given fixing, then delegate to
 -- vanilla onFix which handles transferIfNeeded + ISFixAction queuing.
 local function tryFixingManager(card)
     local player = getSpecificPlayer(card.playerNum)
     if not player then return end
     local item = card.item
-    local fixingList = FixingManager.getFixes(item)
-    if not fixingList or fixingList:isEmpty() then return end
-    -- Use first fixing with an available fixer
-    for fi = 0, fixingList:size() - 1 do
-        local fixing = fixingList:get(fi)
-        for xi = 0, fixing:getFixers():size() - 1 do
-            local fixer = fixing:getFixers():get(xi)
-            if fixing:haveThisFixer(player, fixer, item) then
-                ISInventoryPaneContextMenu.onFix(item, card.playerNum, fi, xi)
-                return
-            end
-        end
+    local fi, xi = firstFixer(player, item)
+    if fi then
+        ISInventoryPaneContextMenu.onFix(item, card.playerNum, fi, xi)
+        return
     end
     -- No fixer in the bags: the character says what the repair needs (a
     -- greyed verb still answers a press with its reason)
-    noteNeeds(card, "repair")
+    if FixingManager.getFixes(item) and not FixingManager.getFixes(item):isEmpty() then noteNeeds(card, "repair") end
 end
 
 VERB_DISPATCH.repair  = function(card) tryFixingManager(card) end
@@ -960,6 +1014,9 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
                 CM.readItem(item, playerNum)
             end
         end
+    elseif label == "BANDAGE" then
+        -- (KISS #29) this bandage on the worst wound that has none (the K1-1 care order), the game's own timed action
+        ZeD.ItemCard.bandageWorst(player, item)
     elseif label == "USE" then
         -- Drainable / generic — fall through to contextual double-click
         local stub = {player = playerNum}

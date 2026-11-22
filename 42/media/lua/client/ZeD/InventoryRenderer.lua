@@ -46,10 +46,26 @@ function ZeD.InventoryRenderer.catKey(item)
     if dc and dc ~= "" then return dc end
     return item:getCategory() or "Other"
 end
+-- (KISS #11) The group worn and held things stand in at the top of the player's own list, when the Worn and held
+-- setting lists them there (Settings.wornInList): its key, and the question the list asks.
+ZeD.InventoryRenderer.WORN_KEY = "zed:worn"
+function ZeD.InventoryRenderer.wornListed()
+    return ZeD.Settings and ZeD.Settings.wornInList and ZeD.Settings.wornInList() or false
+end
+-- The game's own mark for a worn or held thing (its small equipped icon, drawn over the row's icon corner), for a row
+-- of the worn group. (x, y, size: the row's icon box.)
+function ZeD.InventoryRenderer.drawWornMark(panel, x, y, size)
+    local R = ZeD.InventoryRenderer
+    if R._wornTex == nil then R._wornTex = getTexture("media/ui/icon.png") or false end
+    if not R._wornTex then return end
+    local m = math.max(8, math.floor(size / 2))
+    panel:drawTextureScaled(R._wornTex, x + size - m, y + size - m, m, m, 1, 1, 1, 1)
+end
 -- (kept per key: rows ask every frame; dropped when the game's language changes, ZeD._trGen)
 local _catLbl, _catGen = {}, -1
 function ZeD.InventoryRenderer.catLabel(key)
     key = tostring(key)
+    if key == ZeD.InventoryRenderer.WORN_KEY then return ZeD.tr("UI_ZeD_Inv_WornHeld") end   -- (KISS #11)
     -- a mod's group (ContainerGroups.lua): its words, asked fresh (a folder can be renamed)
     local own = ZeD.ContainerGroups.label(key)
     if own then return own end
@@ -484,7 +500,22 @@ function ZeD.InventoryRenderer.onViewZone(zid, content)
         else ZeD.InvFilter.act(S, key) end
         return
     end
+    if view == "all" then   -- (KISS #45: Pick all)
+        if content and content.zedSelectAll then content:zedSelectAll() end
+        return
+    end
     if view == "flip" then ZeD.InventoryRenderer.flipGridKey(key, content and content._playerObj) end
+    if view == "lootall" then ZeD.InventoryRenderer.lootAllOf(content) end   -- (KISS #18)
+end
+
+-- The heading's Loot all (the World window's list): everything wanted in the container on show comes over, as the
+-- band's Loot all does. (KISS #18)
+function ZeD.InventoryRenderer.lootAllOf(content)
+    local po = content and content._playerObj
+    local src = content and content._inventory
+    if not (po and src) then return end
+    if isGamePaused() then return end
+    ZeD.ContainerControls.lootAllFrom(po, src)
 end
 
 -- Double-click a row: vanilla's quick use. In your main inventory the item's
@@ -628,6 +659,35 @@ function ZeD.InventoryRenderer.padPromptB(w, el)
     if ZeD.InventoryRenderer.padMarkCount(w) == 0 then return false end
     return ZeD.tr("UI_ZeD_Inv_PromptClearMarks")
 end
+-- (KISS #30) Is this row's thing in the player's own bags (the main inventory or a bag they carry)? Hold A runs the game's
+-- quick use there and marks everywhere else.
+function ZeD.InventoryRenderer.padOwnBags(w, el)
+    local po = getSpecificPlayer(ZeD.playerNumOf(w))
+    local c = el and el.item and el.item:getContainer()
+    if not (po and c) then return false end
+    if c == po:getInventory() then return true end
+    local ok, r = pcall(function() return c:isInCharacterInventory(po) end)
+    return ok and r and true or false
+end
+-- (KISS #30) The word of the game's quick use of a thing (what hold X and, in his own bags, hold A run: the game's
+-- double-click): Eat, Drink, Take Pills, Bandage. nil when the thing has none we name.
+function ZeD.InventoryRenderer.padQuickWord(item)
+    if not item then return nil end
+    local R = ZeD.InventoryRenderer
+    if R.padIsFood(item) then return R.padEatWord(item) end
+    if R.padIsDrink(item) then return R.padDrinkWord(item) end
+    local okB, canB = pcall(function() return item:isCanBandage() end)
+    if okB and canB then return getText("ContextMenu_Bandage") end
+    if R.padIsUse(item) then
+        local okT, pill = pcall(function() return item:hasTag(ItemTag.CONSUMABLE) end)
+        if okT and pill then
+            local ok, own = pcall(function() return item:getCustomMenuOption() end)
+            if ok and own and own ~= "" then return tostring(own) end
+            return getText("ContextMenu_Take_pills")
+        end
+    end
+    return nil
+end
 -- (Nov 14 2026, punch list 223: X is the game's grab, so its word says where the row goes: Grab from the World
 -- window, Drop onto the floor, Move into a container; the marked words of the band's own button with marks.
 -- Nowhere to go (your side with no container across): no X.)
@@ -635,23 +695,31 @@ function ZeD.InventoryRenderer.padPromptX(w, el)
     local cnt = w and w._mainContent
     local CT = ZeD.ContainerControls
     local dest = cnt and CT and CT.otherInventory and CT.otherInventory(cnt)
-    if not dest then return false end
+    -- (KISS #30) hold X is the game's quick use, now named beside the tap: "Grab, hold: Eat"
+    local quick = el and el.item and ZeD.InventoryRenderer.padQuickWord(el.item)
+    if not dest then
+        if quick then return ZeD.tr("UI_ZeD_Prompt_Hold", quick) end
+        return false
+    end
     local toFloor = dest:getType() == "floor"
     local mine = cnt._ccSide == "char"
     if ZeD.InventoryRenderer.padMarkCount(w) > 0 then
         if not mine then return ZeD.tr("UI_ZeD_Controls_TakeMarked") end
         return ZeD.tr(toFloor and "UI_ZeD_Controls_DropMarked" or "UI_ZeD_Controls_MoveMarked")
     end
-    if not mine then return getText("ContextMenu_Grab") end
-    return toFloor and getText("ContextMenu_Drop") or ZeD.tr("UI_ZeD_Inv_PromptMove")
+    local tap
+    if not mine then tap = getText("ContextMenu_Grab")
+    else tap = toFloor and getText("ContextMenu_Drop") or ZeD.tr("UI_ZeD_Inv_PromptMove") end
+    if quick then return ZeD.tr("UI_ZeD_Prompt_TapHold", tap, quick) end
+    return tap
 end
 function ZeD.InventoryRenderer.padPromptHold(w, el)
-    -- (Nov 14 2026, punch list 225: on food, hold A eats: "Eat (hold)", the card's own word for it)
-    if el and ZeD.InventoryRenderer.padIsFood(el.item) then return ZeD.InventoryRenderer.padEatWord(el.item) end
-    -- (Nov 14 2026, punch list 228q: on a drink, hold A drinks: "Drink (hold)")
-    if el and ZeD.InventoryRenderer.padIsDrink(el.item) then return ZeD.InventoryRenderer.padDrinkWord(el.item) end
-    -- (Nov 14 2026, punch list 228q follow-up: on pills, smokes and the rest the card Uses, hold A uses: "Use (hold)")
-    if el and ZeD.InventoryRenderer.padIsUse(el.item) then return ZeD.InventoryRenderer.padUseWord() end
+    -- (KISS #30) in his own bags hold A runs the game's quick use and names it (Eat, Drink, Take Pills, Bandage);
+    -- anywhere else (a crate, the floor) hold A always marks, so a fridge of food can be marked
+    if el and ZeD.InventoryRenderer.padOwnBags(w, el) then
+        local quick = ZeD.InventoryRenderer.padQuickWord(el.item)
+        if quick then return quick end
+    end
     local sel = padSel(w, el)
     local marked = sel and el and el.item and sel[el.item]
     return ZeD.tr(marked and "UI_ZeD_Inv_PromptUnmark" or "UI_ZeD_Inv_PromptMark")
@@ -793,9 +861,12 @@ function ZeD.InventoryRenderer.padItemButtons(el)
     end
     el.onContextMenu = ZeD.InventoryRenderer.padMove
     el.onHoldActivate = function(w, e)
-        if ZeD.InventoryRenderer.padIsFood(e.item) then return ZeD.InventoryRenderer.padEat(w, e) end
-        if ZeD.InventoryRenderer.padIsDrink(e.item) then return ZeD.InventoryRenderer.padDrink(w, e) end   -- (punch list 228q)
-        if ZeD.InventoryRenderer.padIsUse(e.item) then return ZeD.InventoryRenderer.padUse(w, e) end
+        -- (KISS #30) the quick use only in his own bags (food, a drink, pills, a bandage); elsewhere hold A marks
+        if ZeD.InventoryRenderer.padOwnBags(w, e) and ZeD.InventoryRenderer.padQuickWord(e.item) then
+            if ZeD.InventoryRenderer.padIsFood(e.item) then return ZeD.InventoryRenderer.padEat(w, e) end
+            if ZeD.InventoryRenderer.padIsDrink(e.item) then return ZeD.InventoryRenderer.padDrink(w, e) end   -- (punch list 228q)
+            return ZeD.InventoryRenderer.padUse(w, e)   -- (pills, a bandage: the game's double-click)
+        end
         if mark then return mark(w, e) end
     end
     el.promptA = function(w, e)
@@ -988,6 +1059,22 @@ function ZeD.InventoryRenderer.toggleElements(rects)
                 onActivate = function(w, el) ZeD.InventoryRenderer.flipGridKey(el.key, w and w._playerObj) end,
             }
             if r.view == "filter" or r.view == "fbar" then filterElement(el) end
+            if r.view == "all" then
+                -- (KISS #45) A on Pick all picks every row, as the click does
+                el.promptA = ZeD.tr("UI_ZeD_Inv_PickAll")
+                el.onActivate = function(w, e)
+                    local cnt = w and w._mainContent
+                    if cnt and cnt.zedSelectAll then cnt:zedSelectAll() end
+                end
+            end
+            if r.view == "lootall" then
+                -- (KISS #18) the heading's Loot all: A takes everything wanted from the container on show
+                el.promptA = ZeD.ContainerControls.lootAllLabel()
+                el.onActivate = function(w, e)
+                    local cnt = w and w._mainContent
+                    if cnt then ZeD.InventoryRenderer.lootAllOf(cnt) end
+                end
+            end
             els[#els + 1] = el
         end
     end
@@ -1365,9 +1452,40 @@ local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
     local vWord = grid0 and ZeD.tr("UI_ZeD_Inv_GridView") or getText("IGUI_CraftingWindow_ListView")
     local fw = lite and M.buttonW(fWord) or bw
     local vw = lite and M.buttonW(vWord) or bw
-    local tW = vw + (withF and (fw + fgap) or 0)
+    -- (KISS #18) the World window's heading holds Loot all too, a word button left of the Filter: on a pad it is one Up
+    -- from the first row, so a full fridge is one Up and an A
+    local lootOn = ZeD.ContainerControls.headLootOn(self)
+    local lootWord = lootOn and ZeD.ContainerControls.lootAllLabel() or nil
+    local lw = lootOn and M.buttonW(lootWord) or 0
+    -- (KISS #45) a Pick all button beside the Filter (the window's zedSelectAll picks every row of the column)
+    local allWord = ZeD.tr("UI_ZeD_Inv_PickAll")
+    local aw = M.buttonW(allWord)
+    local tW = vw + (withF and (fw + fgap) or 0) + (lootOn and (lw + fgap) or 0) + aw + fgap
     local tx = xOff + right - tW
     local ty = barH + math.floor((areaH - bw) / 2)
+    if lootOn then
+        local id = "view:lootall:" .. GV.key
+        local o = _viewOpts
+        o.active, o.hover = false, ZeD.Atoms.mouseIn(self, tx, ty, lw, bw)
+        o.disabled = not ZeD.ContainerControls.headLootEnabled(self)
+        o.focus, o.hint, o.id = gpFocusedToggle(id, ZeD.playerNumOf(self)), lootWord, id
+        o.help = lootWord
+        M.drawButton(self, tx, ty, lw, bw, lootWord, "default", false, nil, o)
+        o.disabled = nil
+        GV.toggles[#GV.toggles + 1] = { x = tx, y = ty, w = lw, h = bw, view = "lootall", key = GV.key, id = id }
+        tx = tx + lw + fgap
+    end
+    do
+        local id = "view:all:" .. GV.key
+        local o = _viewOpts
+        o.active, o.hover = false, ZeD.Atoms.mouseIn(self, tx, ty, aw, bw)
+        o.disabled = nil
+        o.focus, o.hint, o.id = gpFocusedToggle(id, ZeD.playerNumOf(self)), allWord, id
+        o.help = ZeD.tr("UI_ZeD_Inv_PickAllHelp")
+        M.drawButton(self, tx, ty, aw, bw, allWord, "default", false, nil, o)
+        GV.toggles[#GV.toggles + 1] = { x = tx, y = ty, w = aw, h = bw, view = "all", key = GV.key, id = id }
+        tx = tx + aw + fgap
+    end
     if withF then
         local id = "view:filter:" .. GV.key
         local o = _viewOpts
@@ -2168,17 +2286,23 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
     -- what the player wears and holds, once for the list (an item held elsewhere: asked item by item)
     local held = isPlayerInv and items and heldSet(playerObj, inv) or nil
     local nShown = 0   -- (the things the rows show: the heading and the help line count these)
+    -- (KISS #11) with the setting on, what is worn or held stays in the list, in a group of its own at the top
+    local wornOn = isPlayerInv and ZeD.InventoryRenderer.wornListed()
+    local wornRows = {}   -- (the worn and held things, for the flat lists)
     if items then
         for i = 0, items:size() - 1 do
             local item = items:get(i)
             local shown = item and not item:isHidden()
+            local isWorn = false
             if shown and isPlayerInv then
-                if held and item:getContainer() == inv then shown = not held[item]
-                else shown = not heldByPlayer(playerObj, item) end
+                if held and item:getContainer() == inv then isWorn = held[item] and true or false
+                else isWorn = heldByPlayer(playerObj, item) end
+                if isWorn and not wornOn then shown = false end   -- (the Equipment tab shows it)
             end
             if shown and (not gate or ZeD.ContainerGates.keeps(gate, item)) then
                 -- a mod's group first (ContainerGroups.lua: a folder the player filed it in), else its category
                 local cat = ZeD.ContainerGroups.groupOf(item, inv, playerObj, isPlayerInv) or ZeD.InventoryRenderer.catKey(item)
+                if isWorn then cat = ZeD.InventoryRenderer.WORN_KEY end   -- (KISS #11)
                 catOf[item] = cat
                 -- the game's list ages every food it draws, and in single player nothing else does: a steak in a
                 -- freezer never froze while only this list showed it. Once per item per model build (about every
@@ -2189,6 +2313,7 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
                     catOrder[#catOrder + 1] = cat
                 end
                 groups[cat][#groups[cat] + 1] = item
+                if isWorn then wornRows[#wornRows + 1] = item end   -- (KISS #11)
                 nShown = nShown + 1
             end
         end
@@ -2265,6 +2390,14 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
     if useGroups then
         -- (a mod's ranked groups first, ContainerGroups.lua; then the categories, either way)
         ZeD.ContainerGroups.sortKeys(catOrder, not (sortCol == "cat" and not sortAsc))
+        -- (KISS #11) the worn and held group stands first, whichever way the rest is sorted
+        for ci = 2, #catOrder do
+            if catOrder[ci] == ZeD.InventoryRenderer.WORN_KEY then
+                table.remove(catOrder, ci)
+                table.insert(catOrder, 1, ZeD.InventoryRenderer.WORN_KEY)
+                break
+            end
+        end
         for _, cat in ipairs(catOrder) do
             sortItems(groups[cat], sortCol, sortAsc)
             if not (collapsed and collapsed[cat]) then
@@ -2288,8 +2421,13 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
         local all = {}
         for _, cat in ipairs(catOrder) do
             for _, item in ipairs(groups[cat]) do
-                all[#all + 1] = item
+                if catOf[item] ~= ZeD.InventoryRenderer.WORN_KEY then all[#all + 1] = item end   -- (KISS #11: worn ones first, below)
             end
+        end
+        -- (KISS #11) what is worn or held leads the flat list, sorted among themselves
+        if #wornRows > 0 then
+            sortItems(wornRows, sortCol, sortAsc)
+            emitStacks(wornRows)
         end
         sortItems(all, sortCol, sortAsc)
         emitStacks(all)
@@ -2310,8 +2448,11 @@ local function itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, co
     local n = items and items:size() or -1
     local w = inv and inv:getCapacityWeight() or -1
     local ph, sh = nil, nil
+    local wo = false   -- (KISS #11: the Worn and held choice and how many things are worn; the list is built again when they change)
     if isPlayerInv then
         ph, sh = playerObj:getPrimaryHandItem(), playerObj:getSecondaryHandItem()
+        local okW, wn = pcall(function() return playerObj:getWornItems():size() end)
+        wo = tostring(ZeD.InventoryRenderer.wornListed()) .. ":" .. tostring(okW and wn or 0)
     end
     local cf, ef = foldKey(collapsed), foldKey(expandedStacks)
     -- a mod's gate: its signature changes as it lets more show (ContainerGates.lua)
@@ -2336,7 +2477,7 @@ local function itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, co
     -- within MODEL_EVENT_MS of the last build: it waits that long), nothing it is built from changed
     if c and now < c.due and now >= c.t and (c.gen == _modelGen or now - c.t < MODEL_EVENT_MS)
        and c.n == n and c.w == w and c.sortCol == sortCol
-       and c.sortAsc == sortAsc and c.cf == cf and c.ef == ef and c.ph == ph and c.sh == sh
+       and c.sortAsc == sortAsc and c.cf == cf and c.ef == ef and c.ph == ph and c.sh == sh and c.wo == wo
        and c.isP == isPlayerInv and c.gs == gs and c.gg == gg then
         return c.m
     end
@@ -2353,7 +2494,7 @@ local function itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, co
     end
     c.t, c.due, c.gen = now, modelDue(now, self._modelPhase), _modelGen
     c.n, c.w, c.sortCol, c.sortAsc = n, w, sortCol, sortAsc
-    c.cf, c.ef, c.ph, c.sh, c.isP, c.gs, c.gg = cf, ef, ph, sh, isPlayerInv, gs, gg
+    c.cf, c.ef, c.ph, c.sh, c.isP, c.gs, c.gg, c.wo = cf, ef, ph, sh, isPlayerInv, gs, gg, wo
     c.m = buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, collapsed, expandedStacks)
     return c.m
 end
@@ -2400,7 +2541,7 @@ function ZeD.InventoryRenderer.liveCount(inv, playerObj)
     for i = 0, size - 1 do
         local item = items:get(i)
         local shown = item and not item:isHidden()
-        if shown and isP then
+        if shown and isP and not ZeD.InventoryRenderer.wornListed() then   -- (KISS #11: listed, the worn count too)
             if held and item:getContainer() == inv then shown = not held[item]
             else shown = not heldByPlayer(playerObj, item) end
         end
@@ -2699,6 +2840,10 @@ local function renderItemList(self)
     else
         totalContentH = self._gv.on and gridH(self._gv, gridCount(self._gv, flatItems)) or ((#flatItems + #M.heads) * rowH)
     end
+    -- (KISS #11) the Worn and held line ends the list when what is worn stays on the Equipment tab: one more row
+    -- (ContainerControls.wornLineOn; a flag on the panel, as this function is near Kahlua's 200 locals)
+    self._wornLine = not self._gv.on and ZeD.ContainerControls.wornLineOn(self) or false
+    if self._wornLine then totalContentH = totalContentH + rowH end
 
     local contentTop = hdrY + colHdrH
     local visibleH   = h - contentTop - self._ccH   -- (the container buttons' row below)
@@ -3040,6 +3185,10 @@ local function renderItemList(self)
             if tex then
                 local iconY = y + math.floor((rowH - iconW) / 2)
                 dTS(tex, padX, iconY, iconW, iconW, dimA, 1, 1, 1)
+                -- (KISS #11) a worn or held thing wears the game's equipped mark
+                if self._catOf and self._catOf[item] == ZeD.InventoryRenderer.WORN_KEY then
+                    ZeD.InventoryRenderer.drawWornMark(self, xOff + padX, iconY, iconW)
+                end
             end
         end
 
@@ -3195,6 +3344,10 @@ local function renderItemList(self)
             drawItemRow(item)
         end
     end
+    -- (KISS #11) the Worn and held line, under the last row
+    if self._wornLine then
+        ZeD.ContainerControls.drawWornLine(self, xOff, y, scrollX, rowH, contentTop, contentTop + visibleH)
+    end
 
     self:clearStencilRect()
 
@@ -3205,7 +3358,7 @@ local function renderItemList(self)
     -- EMPTY STATE
     -- --------------------------------------------------------
     -- (the library's empty line: F2 dim, at the list's text inset, 8u under its header)
-    if #catOrder == 0 then
+    if #catOrder == 0 and not self._wornLine then   -- (KISS #11: the Worn and held line stands in for it)
         -- (a mod's gate words its own: "Not searched.")
         ZeD.Molecules.drawEmptyLine(self, xOff + padX, contentTop + T.px(8), scrollX - padX * 2,
             ZeD.ContainerGates.emptyText(inv, playerObj) or ZeD.tr("UI_ZeD_Inv_Empty"))
@@ -3947,6 +4100,67 @@ local function handleDrop(content, items, srcInventory)
             )
         end
     end
+end
+
+-- ============================================================================
+-- NO ROOM (KISS #19). While a mouse drag from a ZeD list is over a container that cannot take what it carries (not
+-- enough room by weight, or the container refuses a thing), the drag chip turns the danger color and reads "No room"
+-- (Molecules.DragState:drawGhost asks this each frame). The game tints such rows red during its drag; a dead drop said
+-- nothing. The container under the pointer is found as the drop finds it: another column, the other window's list
+-- or column, a container's button, a rolled side's tab, a window's title bar.
+-- ============================================================================
+local _room = { rows = nil, dest = nil, t = 0, bad = false }   -- (asked again at most every 250 ms per drag and container)
+function ZeD.InventoryRenderer.dragNoRoom(pn)
+    local content, drag = ZeD.GridLayout.mouseDrag(pn)
+    if not (content and drag and drag.items and content._dragSourceInv ~= nil) then return false end
+    local src = content._dragSourceInv
+    local playerObj = content._playerObj or getSpecificPlayer(pn)
+    if not playerObj then return false end
+    -- the container under the pointer
+    local dest = ZeD.Curtain and ZeD.Curtain.dropTarget and ZeD.Curtain.dropTarget() or nil
+    if not dest then
+        local mx, my = content:getMouseX(), content:getMouseY()
+        if my >= 0 and my < content:getHeight() then
+            local _, cs = getColumnAtX(content, mx)
+            if cs then dest = cs.inventory end
+        end
+    end
+    local charWin = ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(pn)
+    local worldWin = ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn)
+    if not dest then
+        local other = nil
+        if charWin and charWin._contentPanel and charWin._contentPanel ~= content and charWin._contentPanel:isMouseOver() then
+            other = charWin._contentPanel
+        end
+        if not other and worldWin and worldWin._contentPanel and worldWin._contentPanel ~= content and worldWin._contentPanel:isMouseOver() then
+            other = worldWin._contentPanel
+        end
+        if other then
+            local _, cs = getColumnAtX(other, getMouseX() - other:getAbsoluteX())
+            dest = cs and cs.inventory or other._inventory
+        end
+    end
+    if not dest then dest = stripDropTarget(charWin) or stripDropTarget(worldWin) end
+    if not dest then
+        local srcWin = (charWin and charWin._contentPanel == content and charWin)
+            or (worldWin and worldWin._contentPanel == content and worldWin) or nil
+        dest = titleBarDropTarget(charWin, srcWin) or titleBarDropTarget(worldWin, srcWin)
+    end
+    -- nothing under the pointer, the same container, or the floor: no weight limit to read here
+    if not dest or dest == src or dest:getType() == "floor" then return false end
+    local now = getTimestampMs()
+    if _room.rows == drag.items and _room.dest == dest and now >= _room.t and now - _room.t < 250 then return _room.bad end
+    local bad = false
+    local total = 0
+    for _, item in ipairs(dragItems(content, drag.items, src)) do
+        if item:getContainer() ~= dest then
+            total = total + (item:getUnequippedWeight() or 0)
+            if not dest:isItemAllowed(item) then bad = true end
+        end
+    end
+    if not bad and total > 0 and not dest:hasRoomFor(playerObj, total) then bad = true end
+    _room.rows, _room.dest, _room.t, _room.bad = drag.items, dest, now, bad
+    return bad
 end
 
 -- ============================================================================

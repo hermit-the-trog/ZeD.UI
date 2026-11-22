@@ -120,6 +120,8 @@ function ZeD_MMWelcome:new()
     o.noResetControl = true
     o.way = 1             -- 1 pick your own, 2 load a setup, 3 skip
     o.input, o.tutorial = 1, 1
+    -- (KISS #53: Playing with starts on the device in use: a pad drives the window, so Controller)
+    if MM.gamepad() then o.input = 2 end
     o.focusId = "way:1"
     o.note = nil          -- a line in the band after Save or a failed Load
     return o
@@ -136,6 +138,7 @@ function ZeD_MMWelcome:onShow()
         end
     end
     self.way, self.note = 1, nil
+    self.input = MM.gamepad() and 2 or 1   -- (Playing with follows the device in use, KISS #53)
     self.focusId = "way:1"
 end
 
@@ -174,7 +177,12 @@ function ZeD_MMWelcome:saveSetup()
     MM.clickSound()
 end
 
-function ZeD_MMWelcome:close() self:skip() end
+-- (KISS #33: the close box keeps the picks, as Accept does; it no longer throws them back like Skip. A load or a skip
+-- picked as the way has nothing picked here, so it ends as Skip does.)
+function ZeD_MMWelcome:close()
+    if self.way == 1 then return self:done() end
+    return self:skip()
+end
 function ZeD_MMWelcome:back() self:skip() end
 
 -- a radio and its word; returns the width it took
@@ -199,8 +207,13 @@ function ZeD_MMWelcome:prerender()
     -- It is as tall as its rows: the intro, the three ways, the choices and Accent, the band and the help line.)
     local f2h, f3h = MM.fontH(T.fontF2), MM.fontH(T.fontF3)
     local rowH = math.max(T.buttonH, f2h) + T.px(8)
+    -- (KISS #53: the Style tip sits under the Style row, wrapped to the choices' column; its lines add to the height)
+    local tipPad = T.px(U.STACK_PAD)
+    local tipPrevW = math.floor((w - tipPad * 2) * 0.34)
+    local tipLines = ZeD.Atoms.wrapText(tr("UI_ZeD_Settings_LookStyleTip"), T.fontF3, w - tipPad * 2 - tipPrevW - T.px(16))
+    local tipH = #tipLines * f3h + T.px(6)
     local fit = T.titleBarH + T.px(U.STACK_PAD) * 2 + f2h + T.px(10) + (f2h + f3h + T.px(16)) + T.px(14)
-                + (#WL.ROWS + 1) * rowH + MM.bandH() + self:footerHeight()
+                + (#WL.ROWS + 1) * rowH + tipH + MM.bandH() + self:footerHeight()
     local h = math.min(L.th - barH - gap * 2, fit)
     local x = L.tx + math.floor((L.tw - w) / 2)
     local y = L.ty + barH + gap
@@ -248,7 +261,7 @@ function ZeD_MMWelcome:prerender()
     local labelW = T.px(120)
     local rh = math.max(T.buttonH, MM.fontH(f2)) + T.px(8)
     for r, row in ipairs(WL.ROWS) do
-        local ry = cy + (r - 1) * rh
+        local ry = cy + (r - 1) * rh + ((r > 1) and tipH or 0)   -- (rows below Style drop by the tip's height, KISS #53)
         local dl = live and d or { r = d.r, g = d.g, b = d.b, a = (d.a or 1) * T.disabledAlpha }
         self:drawText(tr(row.label), pad, ry + math.floor((rh - MM.fontH(f2)) / 2), dl.r, dl.g, dl.b, dl.a or 1, f2)
         local ix = pad + labelW
@@ -274,8 +287,13 @@ function ZeD_MMWelcome:prerender()
             ix = ix + iw + T.px(16)
         end
     end
+    -- the Style tip, under the Style row (what Full and Lite change; KISS #53)
+    local tdl = live and d or { r = d.r, g = d.g, b = d.b, a = (d.a or 1) * T.disabledAlpha }
+    for li, line in ipairs(tipLines) do
+        self:drawText(line, pad + labelW, cy + rh + (li - 1) * f3h, tdl.r, tdl.g, tdl.b, tdl.a or 1, f3)
+    end
     -- Accent: the swatches
-    local ar = cy + #WL.ROWS * rh
+    local ar = cy + #WL.ROWS * rh + tipH
     local s = S()
     local accents = (s and s.accentKeys) or {}
     local aopt = optOf("accentColor")
@@ -361,9 +379,12 @@ function ZeD_MMWelcome:render()
 end
 
 function ZeD_MMWelcome:joyB() self:skip() end
+-- (KISS #53: Y accepts on a pad, as the band's Accept does)
+function ZeD_MMWelcome:joyY() self:done() end
 function ZeD_MMWelcome:getFooterPrompts()
     if not MM.gamepad() then return nil end
-    return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = tr("UI_ZeD_Welcome_WaySkip") } }
+    return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = tr("UI_ZeD_Welcome_WaySkip") },
+             { glyph = "Y", label = getText("UI_btn_accept") } }   -- (KISS #53)
 end
 function ZeD_MMWelcome:keyEscape() self:skip(); return true end
 function ZeD_MMWelcome:keyOther(key)

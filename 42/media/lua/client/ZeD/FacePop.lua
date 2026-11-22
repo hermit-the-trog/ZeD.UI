@@ -344,11 +344,12 @@ function FP.takeRadio(chr, dev)
 end
 
 -- the controller's A at a machine: the Interact prompt names it (Close when it shows that machine) and opens it. It
--- takes an empty prompt, or the oven's Turn on / off (the face has the oven's switch).
+-- takes only an empty prompt: the oven's own Turn on / off stays the game's and only turns the stove on or off
+-- (the director's KISS #58 pick, over punch list 208's "Turn on opens the panel")
 function FP.padPrompt(bp, dir)
     if not FP.on() then return end
     local P0 = ISButtonPrompt
-    if bp.aPrompt ~= nil and bp.aFunc ~= P0.cmdToggleStove then return end
+    if bp.aPrompt ~= nil then return end
     local p = getSpecificPlayer(bp.player)
     if not p or p:getVehicle() then return end
     local sq1 = p:getCurrentSquare()

@@ -333,3 +333,69 @@ Q.isWater = isWater
 -- eat runs the opening recipe first (a sealed can opened, then eaten); drink sips water by thirst
 Q.eat = eat
 Q.drink = drink
+
+-- ---------------------------------------------------------------------------
+-- QUICK EAT, DRINK AND TREAT BY MOUSE (KISS #49): a click on the Hungry, Thirsty or a wound moodle (Bleeding,
+-- Injured) opens the short list the pad's Character wheel shows for Eat, Drink or Medicine, the best pick first, as a
+-- right-click menu at the pointer. The lists are the wheel's own (ZeD_DpadWheels: H.quick, C.medicine), so they keep
+-- its safe rules: no raw meat or known poison, no tainted water, never a good bandage off (QA K1-1 to K1-3).
+-- ZeD_Moodles.lua asks on a click; nil means not one of these, and the click goes on to the world.
+-- ---------------------------------------------------------------------------
+Q.MOODLE_LIST = { HUNGRY = "eat", THIRST = "drink", BLEEDING = "medicine", INJURED = "medicine" }
+
+--- The list for a moodle key ("HUNGRY" ...): entries { name, detail, run, off }, the best first; nil: not one of these.
+function Q.moodleList(playerObj, key)
+    local D = ZeD.DpadWheels
+    local what = Q.MOODLE_LIST[key]
+    if not (what and D and D.H) then return nil end
+    local pn = playerObj:getPlayerNum()
+    if what ~= "medicine" then
+        local list = D.H.quick(playerObj, what) or {}
+        if #list == 0 then
+            -- (the wheel's own reasons: "Can't eat more" when full, else nothing to eat or drink)
+            local why = (what == "eat" and Q.tooFull and Q.tooFull(playerObj)) and getText("Tooltip_CantEatMore")
+                or ZeD.tr(what == "eat" and "UI_ZeD_Wheel_NothingToEat" or "UI_ZeD_Wheel_NothingToDrink")
+            return {}, why
+        end
+        return list
+    end
+    local list = (D.C and D.C.medicine and D.C.medicine(playerObj, pn)) or {}
+    -- the pad's quick pick for Medicine first (the worst wound's treatment), as its chord takes it
+    local best = D.C and D.C.medicinePick and D.C.medicinePick(playerObj, pn)
+    if best then
+        local out = { best }
+        for _, e in ipairs(list) do if e ~= best and not (best.key and e.key == best.key and e.name == best.name) then out[#out + 1] = e end end
+        list = out
+    end
+    return list
+end
+
+--- A click on moodle `key` for player pn at screen x, y: the menu, true when it was one of these moodles.
+function Q.moodleMenu(pn, key, x, y)
+    if not Q.MOODLE_LIST[key] then return false end
+    local p = getSpecificPlayer(pn)
+    if not p or p:isDead() then return false end
+    if getGameSpeed and getGameSpeed() <= 0 then return false end   -- (paused: as the windows, nothing done)
+    local list, why = Q.moodleList(p, key)
+    if not list then return false end
+    if #list == 0 then
+        if why and HaloTextHelper then pcall(HaloTextHelper.addBadText, p, why) end
+        return true
+    end
+    local ctx = ISContextMenu.get(pn, x, y)
+    for _, e in ipairs(list) do
+        local label = e.name or "?"
+        if e.detail and e.detail ~= "" then label = label .. " | " .. tostring(e.detail) end
+        local opt = ctx:addOption(label, p, function(pl) if e.run then e.run(pl, pn) end end)
+        if e.off or not e.run then
+            opt.notAvailable = true
+            if e.off then
+                local tip = ISToolTip:new()
+                tip:initialise()
+                tip.description = tostring(e.off)
+                opt.toolTip = tip
+            end
+        end
+    end
+    return true
+end

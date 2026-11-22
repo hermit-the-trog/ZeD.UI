@@ -342,7 +342,8 @@ function M.CombatFacts(item)
          valueClass = _condClass(ratio), mirrorKey = "condition"},
     }
     -- the label alone with the red square, no value (QA B8-1)
-    if jammed then g3rows[#g3rows + 1] = {label = ZeD.tr("UI_ZeD_Jammed"), value = "", valueClass = "bad"} end
+    if jammed then g3rows[#g3rows + 1] = {label = (ZeD.ItemCard and ZeD.ItemCard.jammedWords and ZeD.ItemCard.jammedWords()) or ZeD.tr("UI_ZeD_Jammed"),
+                                            value = "", valueClass = "bad"} end   -- (names the Rack key: KISS #54)
     g3rows[#g3rows + 1] = {label = getText("Tooltip_weapon_Ammo"), value = ammoStr,
                            valueClass = (not hasAmmo) and "dim" or nil}
     panel.groups[#panel.groups + 1] = { rows = g3rows }

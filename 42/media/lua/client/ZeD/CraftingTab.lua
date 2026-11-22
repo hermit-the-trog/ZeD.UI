@@ -649,6 +649,8 @@ function ZeD.CraftingTab.focusKey(win)
     if not state then return nil end
     local view, st = stationView(win)
     local k = tostring(ZeD.Stations and ZeD.Stations.gen or 0) .. ":" .. tostring(state.stDropdownOpen) .. ":" .. tostring(state.stDropdownScroll or 0)
+    -- (the Station box shown or not moves the stops too) (KISS #48)
+    k = k .. ":" .. tostring(CC.stationShown(win, ZeD.Stations))
     if view and view.focusKey then k = k .. ":" .. tostring(view.focusKey(win, state, st)) end
     return k
 end

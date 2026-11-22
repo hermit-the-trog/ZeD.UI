@@ -1413,6 +1413,14 @@ function ZeD_DragState:drawGhost(panel)
     local fontH  = ZeD.TM:MeasureStringY(T.fontF3, "0")
     local gw     = T.px(58)
     local gh     = T.px(48) + fontH + pad
+    -- (KISS #19) over a container that cannot take what is carried: the chip turns the danger color and reads "No room"
+    local noRoom = false
+    if ZeD.InventoryRenderer and ZeD.InventoryRenderer.dragNoRoom then
+        local okR, bad = pcall(ZeD.InventoryRenderer.dragNoRoom, ZeD.playerNumOf(panel))
+        noRoom = okR and bad and true or false
+    end
+    local roomWord = noRoom and ZeD.tr("UI_ZeD_Drag_NoRoom") or nil
+    if roomWord then gw = math.max(gw, ZeD.TM:MeasureStringX(T.fontF3, roomWord) + pad * 2) end
 
     -- Convert screen coords to panel-local, offset so cursor is top-left
     local lx = self.ghostX - panel:getAbsoluteX() + T.px(12)
@@ -1438,7 +1446,7 @@ function ZeD_DragState:drawGhost(panel)
     -- Background + border
     local bg = T.surf2
     panel:drawRect(lx, ly, gw, gh, 0.85, bg.r, bg.g, bg.b)
-    local bc = T.accent
+    local bc = noRoom and T.danger or T.accent
     panel:drawRectBorder(lx, ly, gw, gh, 0.9, bc.r, bc.g, bc.b)
 
     -- Icon (centered horizontally)
@@ -1451,6 +1459,12 @@ function ZeD_DragState:drawGhost(panel)
     -- Weight (right) and quantity (left) below icon
     local ty = ly + pad + iconSz + pad
     local tc = T.textSec
+    if roomWord then
+        -- (KISS #19) the words replace the count and the weight while it cannot go in
+        local dc = T.danger
+        panel:drawText(roomWord, lx + math.floor((gw - ZeD.TM:MeasureStringX(T.fontF3, roomWord)) / 2), ty, dc.r, dc.g, dc.b, 1, T.fontF3)
+        return
+    end
     local wt = string.format("%.1f", item:getUnequippedWeight())
     local wx = lx + gw - pad - ZeD.TM:MeasureStringX(T.fontF3, wt)
     if self.ghostCount > 1 then

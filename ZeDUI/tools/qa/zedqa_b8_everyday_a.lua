@@ -124,10 +124,12 @@ end)
 step(1, function()
     p:setGodMod(true)
     if getGameSpeed() <= 0 then setGameSpeed(1) end
-    local Wd = ZeD.DpadWheels and ZeD.DpadWheels.Wd
-    local list = (Wd and Wd.map) and Wd.map(p, pn) or {}
-    check(#list == 1, "B7.1: the Map wheel has one slice (" .. #list .. ")")
-    check(list[1] and list[1].name == getText("IGUI_WorldMap_Toggle"), "B7.1: it is the World map (" .. tostring(list[1] and list[1].name) .. ")")
+    -- (KISS #36: the World wheel's Map slice opens the map at once, no inner ring)
+    local DW = ZeD.DpadWheels
+    local world = DW and DW.B and DW.B.world and DW.B.world(p, pn) or {}
+    local map = world[2]
+    check(map and map.name == ZeD.tr("UI_ZeD_Wheel_Map"), "B7.1: the World wheel's second slice is Map (" .. tostring(map and map.name) .. ")")
+    check(map and type(map.run) == "function" and map.sub == nil, "B7.1: Map opens the map at once (no inner ring)")
     local W = ZeD.Wheel
     check(W and type(W.isMiniMapCommand) == "function", "B7.1: ZeD.Wheel.isMiniMapCommand exists")
     if W and W.isMiniMapCommand and ISMiniMap then

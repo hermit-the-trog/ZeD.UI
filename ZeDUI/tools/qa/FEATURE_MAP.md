@@ -988,6 +988,59 @@ Three ways a player changes a look setting, and every one calls the same setters
 
 ---
 
+## KISS picks, batch K3 (Nov 22 2026, Build)
+
+The director's 46 design calls (`ZeDUI/qa/audits/2026-11-22_kiss_calls_K3.md`), built on Nov 22. Entry functions and pad
+paths are in each commit's code comments, tagged `(KISS #N)`; QA fills the columns and the Check when it proves each.
+
+| Feature | Owning file | Entry function(s) | Mouse path | Pad path | PASS measures | Needs | Check |
+|---|---|---|---|---|---|---|---|
+| Craft Max key | CraftingCore.lua | - | - | - | - | - | TODO |
+| Build and Craft amount hidden where the most is 1 | CraftingCore.lua | - | - | - | - | - | TODO |
+| Journal Open in Craft/Build | CraftingCore.lua, JournalTab.lua | - | - | - | - | - | TODO |
+| Escape closes an open recipe card | CraftingCore.lua | - | - | - | - | - | TODO |
+| Station box only when a station is in reach | CraftingCore.lua, CraftingTab.lua | - | - | - | - | - | TODO |
+| Text size default by screen height (Large under 1080 tall) | Settings.lua | - | - | - | - | - | TODO |
+| Options Back asks Keep editing, Discard changes or Apply | ZeD_MainMenuOptions.lua | - | - | - | - | - | TODO |
+| First-launch window: Style tip, Playing with from device, Y accepts, close box keeps picks | ZeD_MainMenuWelcome.lua | - | - | - | - | - | TODO |
+| Tour pauses the game; Show me around restarts it | ZeD_Tutorial.lua, ZeD_PausedLook.lua, ZeD_WindowMenu.lua | - | - | - | - | - | TODO |
+| F1 with no tab topic opens the book on its contents | ZeD_SurvivalGuide.lua, ZeD_SurvivalGuideBook.lua | - | - | - | - | - | TODO |
+| Car right-click: Enter Vehicle and Vehicle Mechanics | Overrides/VehicleMechanics.lua | - | - | - | - | - | TODO |
+| Health: left click on a wound opens treatments; empty menu names what's missing | HealthTab.lua | - | - | - | - | - | TODO |
+| Item card: Bandage verb and Take Pills | ItemCardOrganism.lua, ItemCard.lua | - | - | - | - | - | TODO |
+| Item card: Repair names the fixer | ItemCard.lua, ItemCardOrganism.lua | - | - | - | - | - | TODO |
+| Jammed names the Rack key | ItemCard.lua, ItemFactsPanel.lua, ZeD_LootCard.lua, ZeD_Belt.lua | - | - | - | - | - | TODO |
+| World window opens on the faced container; seated, no Floor, lands on the glove box or seat | ZeD_WorldWindow.lua | - | - | - | - | - | TODO |
+| Pad Y lands on the near container's first row; a later Y returns to the row it left | ZeD_WorldWindow.lua, Input/FocusManager.lua | - | - | - | - | - | TODO |
+| Container strip: plain click shows a container alone, Ctrl-click or hold A adds a column | ZeD_WorldWindow.lua, ZeD_CharacterWindow.lua | - | - | - | - | - | TODO |
+| The shown container is lit in the world (the game's highlight and outline option) | ZeD_WorldWindow.lua | - | - | - | - | - | TODO |
+| Worn and held in the inventory list (setting wornInList: top group, or a line to the Equipment tab) | Settings.lua, InventoryRenderer.lua, ContainerControls.lua | - | - | - | - | - | TODO |
+| List heading Loot all and Pick all buttons; X on a container's button loots it | InventoryRenderer.lua, ContainerControls.lua, ZeD_WorldWindow.lua | - | - | - | - | - | TODO |
+| Drag chip reads No room | InventoryRenderer.lua, Molecules.lua | - | - | - | - | - | TODO |
+| Grab one, half or all on a closed stack | ContainerControls.lua | - | - | - | - | - | TODO |
+| Hold A quick use only in own bags, footer names it | InventoryRenderer.lua | - | - | - | - | - | TODO |
+| Belt bag button opens both windows | ZeD_Belt.lua | - | - | - | - | - | TODO |
+| Belt speed keys beside the watch | ZeD_Belt.lua, ZeD_Watch.lua | - | - | - | - | - | TODO |
+| Hint strip's first-hours pad line (wheels, quick actions) | ZeD_HintStrip.lua | - | - | - | - | - | TODO |
+| D-pad Left hold opens Weapons | ZeD_DpadWheels.lua | - | - | - | - | - | TODO |
+| Seated D-pad Up opens the car's wheel | ZeD_DpadWheels.lua | - | - | - | - | - | TODO |
+| Dash switch hover names | ZeD_Dashboard.lua | - | - | - | - | - | TODO |
+| Moodle click quick list (eat, drink, treat) | ZeD_QuickWheel.lua, ZeD_Moodles.lua | - | - | - | - | - | TODO |
+| Tab side starts pinned | WindowHalves.lua | - | - | - | - | - | TODO |
+| Same key or Y closes what it opened | Overrides/CharacterInfo.lua, ZeD_WorldWindow.lua, Overrides/WorldMap.lua, MapsTab.lua, Input/FocusManager.lua | - | - | - | - | - | TODO |
+| No windows on the switch to a pad | Input/FocusManager.lua | - | - | - | - | - | TODO |
+| Quick chords inside windows | Input/FocusManager.lua | - | - | - | - | - | TODO |
+| Window menu: Style, Show me around, new order | ZeD_WindowMenu.lua | - | - | - | - | - | TODO |
+| Moves between bags while paused | ZeD_PausedLook.lua, EquipDoll.lua, HealthTab.lua, ZeD_Belt.lua | - | - | - | - | - | TODO |
+| The game's tab words (Inventory, Temperature, Info) | ZeD_CharacterWindow.lua | - | - | - | - | - | TODO |
+| Health tab pad stop starts on the worst wound | ZeD_CharacterWindow.lua | - | - | - | - | - | TODO |
+| Craft and Build: Build opens on Known, better empty line | BuildingTab.lua, CraftingCore.lua | - | - | - | - | - | TODO |
+| Right-click opens as the word list by default; Loot all and Transfer all word buttons | Settings.lua, ContainerControls.lua | - | - | - | - | - | TODO |
+| World wheel: Crafting by hand, nearest bench slice; Map opens at once | ZeD_DpadWheels.lua | - | - | - | - | - | TODO |
+| Belt count red only for ZeD's own errors | ZeD_Belt.lua | - | - | - | - | - | TODO |
+| Passenger keeps the belt, no dash | ZeD_Belt.lua, ZeD_Dashboard.lua | - | - | - | - | - | TODO |
+| Turn on only turns the stove on | Overrides/Stations.lua, FacePop.lua | - | - | - | - | - | TODO |
+
 ## Multiplayer, main menu and add-ons
 
 Paths are under `42/media/lua/client/ZeD/` unless shown (`shared/` = `42/media/lua/shared/ZeD/`). Line numbers are from the Nov 18 2026 tree.

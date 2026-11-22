@@ -1532,13 +1532,35 @@ end
 
 function CC.handleRecipeClick(state, recipeId)
     if state.selected == recipeId then
-        -- Toggle off: close craft card
-        CC.closeCraft(state)
+        -- A second click on the open row leaves its card open, so a double-click does not shut what
+        -- the first click opened; another row or Escape closes it (KISS #47)
+        return
     else
         -- Select new recipe: open or swap craft card
         CC.openCraft(state, recipeId)
     end
 end
+
+-- Escape (the prompts' key hook asks, as for the map pop-out): an open recipe card, drawn within the last
+-- half second, closes and the game's pause menu stays shut (KISS #47). Registered under ZeD.EscapeTakers.
+CC._cardStates = {}   -- the states that had a card open
+function CC.takeEscape()
+    local now = getTimestampMs()
+    local hit = nil
+    for state in pairs(CC._cardStates) do
+        if state.selected and state._cardDrawnAt and (now - state._cardDrawnAt) < 500 then
+            hit = state
+            break
+        end
+    end
+    if hit then
+        CC.closeCraft(hit)
+        return true
+    end
+    return false
+end
+ZeD.EscapeTakers = ZeD.EscapeTakers or {}
+ZeD.EscapeTakers.recipeCard = CC.takeEscape
 
 --- Opens the craft card on recipeId: no picks, amount 1, the split pane opening,
 --- the alternatives list left.
@@ -1726,22 +1748,34 @@ function CC.renderTabTitle(panel, x, y, w, config)
     return M.drawTabHeader(panel, x, y, w, title, false, false, true)
 end
 
+-- The Station box shows only when a station is in reach: one is bound, or one stands within the
+-- stations' reach (the dropdown would list it). With none, the box would read "Station: Hand" and
+-- take a third of the row for nothing (KISS #48).
+function CC.stationShown(win, ST)
+    local player = win and win._playerObj
+    if not (ST and player) then return false end
+    if ST.current(player) then return true end
+    local list = ST.nearby(player)
+    return list ~= nil and #list > 0
+end
+
 function CC.renderStaticHeader(panel, x, y, w, state, config, win)
     local T  = ZeD.T
     local A  = ZeD.Atoms
     local zones = state.zones
     local pfx = (config and config.prefix) or "jrecipe"
     local ST = config and config.stations and ZeD.Stations or nil
-    -- the title on its own row 1, the selects and the search on the row under it
-    local titleH = CC.renderTabTitle(panel, x, y, w, config)
-    y = y + titleH
+    -- no title row: the window's title bar already ends "+ Crafting" (KISS #48); the selects and the
+    -- search take the first row
+    local titleH = 0
+    local showSt = CC.stationShown(win, ST)
     local headerH = T.stripH  -- the selects' row, the shared strip
     local pad, gap = T.px(6), T.px(6)
     local ddH = T.inputH  -- the selects match the search field
     local rowY = y + math.floor((headerH - ddH) / 2)
     local ddX, ddW, searchX, searchW
 
-    if ST then
+    if showSt then
         -- Crafting: STATION, CATEGORY and the search in thirds; a select is never narrower
         -- than its label, its value and its arrow ("Category: All" v): the search gives it
         -- the room, down to half its own third (at 1280x720, UI scale 2.0, Large text an
@@ -1771,7 +1805,8 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
         zones[#zones + 1] = { type = "stationDropdown", x = stX, y = rowY, w = stW, h = ddH }
         state._stGeo = { x = stX, y = rowY + ddH, w = stW }
     else
-        -- Building: the Category select LEFT (~45%), the search RIGHT
+        -- Building, or Crafting with no station in reach: the Category select LEFT (~45%), the search RIGHT
+        state.stDropdownOpen = false   -- (no Station box now: a list left open for it goes)
         ddW = math.floor((w - pad * 2 - gap) * 0.45)
         ddX = x + pad
         searchX = ddX + ddW + gap
@@ -1938,7 +1973,15 @@ local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx, 
     local qtyW = math.max(bh, qtyTW + T.px(8))
     local stepW = bh * 2 + qtyW + 2 * T.px(4)
     local edge = T.px(8)
-    local narrow = (x + w - edge - M.buttonW(b.label) - gap - stepW - gap - x) < (leftNeed or 0)
+    -- (KISS #32) the amount shows only where more than one can be made (Build makes one at a time, so it
+    -- shows none), and a Max key follows its + to set the most the band already knows
+    local showSteps = rd ~= nil and maxQty > 1
+    local maxLabel = ZeD.tr("UI_ZeD_Craft_Max")
+    local maxW = M.buttonW(maxLabel)
+    -- the room the band's right part takes: Craft / Build, then (when shown) Max and the amount, with their spaces
+    local rightW = M.buttonW(b.label) + gap
+    if showSteps then rightW = rightW + gap + maxW + gap + stepW end
+    local narrow = (x + w - edge - rightW - x) < (leftNeed or 0)
     if narrow then
         -- (short of room the - n + become one amount box, "< 3 >": its halves,
         -- the wheel and the pad's Left / Right step it. The box is as narrow as
@@ -1946,6 +1989,7 @@ local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx, 
         -- and spaces 4u — so Sort and Show keep whole words)
         gap, edge = T.px(4), T.px(4)
         stepW = M.qtySpinW(qty)
+        maxW = ZeD.TM:MeasureStringX(T.fontF3, ZeD.btnCase(maxLabel)) + T.px(4) * 2   -- Max closes up as Craft does
         b.w = ZeD.TM:MeasureStringX(T.fontF3, ZeD.btnCase(b.label)) + T.px(4) * 2
         _bandSpec.edge = edge
     else
@@ -1953,12 +1997,13 @@ local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx, 
     end
     -- (the World window's pad stops rebuild when the band changes shape or recipe: stamped here,
     -- the frame its zones are made, not when the recipe is picked)
-    state._bandSingle = narrow
+    state._bandSingle = tostring(narrow) .. (showSteps and "+" or "-")   -- (the amount and Max shown or not change the stops too) (KISS #32)
     state._bandSel = rd and rd.entry and rd.entry.name or nil
     local _, out = M.drawBand(panel, x, y, w, _bandSpec)
     local r = out.buttons[1]
     local rx = r and r.x or (x + w - edge)
-    local sx = rx - gap - stepW
+    local maxX = rx - gap - maxW
+    local sx = showSteps and (maxX - gap - stepW) or rx
     local so = _bandStep
     so.focusId = nil
     so.narrow = narrow
@@ -1968,11 +2013,22 @@ local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx, 
         elseif fid == pfx .. ":actInc" then so.focusId = "inc"
         elseif fid == pfx .. ":actQty" then so.focusId = "qty" end
     end
-    local _, stepZones = M.drawQtyStepper(panel, sx, y + T.px(5), qty, maxQty, bh, (mx < 0) and "" or nil, so)
+    local stepZones = CC._noZones   -- (a shared empty list: nothing drawn, nothing to click)
+    if showSteps then
+        _, stepZones = M.drawQtyStepper(panel, sx, y + T.px(5), qty, maxQty, bh, (mx < 0) and "" or nil, so)
+        -- Max: sets the most the band knows; grayed once the amount is there (KISS #32)
+        local mo = CC._maxOpts
+        if not mo then mo = {}; CC._maxOpts = mo end
+        mo.win = state._focusWin
+        mo.disabled = qty >= maxQty
+        mo.hover = (mx >= 0) and ZeD.Atoms.mouseIn(panel, maxX, y + T.px(5), maxW, bh) or false
+        mo.focus = (fid == pfx .. ":actMax") and NO_FOCUS_OPTS or nil
+        M.drawButton(panel, maxX, y + T.px(5), maxW, bh, maxLabel, "default", false, nil, mo)
+    end
     if narrow then state._qtyBox = state._qtyBox or {} end
     local qb = state._qtyBox
     if qb then
-        qb.on, qb.x, qb.y, qb.w, qb.h = narrow and rd ~= nil, sx, y + T.px(5), stepW, bh
+        qb.on, qb.x, qb.y, qb.w, qb.h = narrow and showSteps, sx, y + T.px(5), stepW, bh
         qb.t = getTimestampMs()   -- (drawn this frame: a band no longer drawn takes no wheel)
     end
     -- the one box with nothing to step (the most is 1: Build, or materials for one): it stays a
@@ -1987,11 +2043,13 @@ local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx, 
             if narrow then z.single, z.bx, z.bw = true, sx, stepW end
             zones[#zones + 1] = z
         end
+        if showSteps then zones[#zones + 1] = { type = "action_max", x = maxX, y = y + T.px(5), w = maxW, h = bh } end
         if r then zones[#zones + 1] = { type = "action_build", x = r.x, y = r.y, w = r.w, h = r.h } end
     end
     return sx - gap, narrow
 end
 
+CC._noZones = {}
 function CC.renderBand(panel, x, y, w, state, config, rd)
     local T = ZeD.T
     local pfx = (config and config.prefix) or "jrecipe"
@@ -2026,9 +2084,23 @@ function CC.renderBand(panel, x, y, w, state, config, rd)
     -- the right: the amount and Craft / Build (the read-only list has none)
     local leftEnd, narrow
     if ro then
-        _bandSpecRO.win = state._focusWin
-        M.drawBand(panel, x, y, w, _bandSpecRO)
-        leftEnd = x + w - edge
+        -- (KISS #40) the Journal's list has one key at the right once a recipe is picked: Open in Craft / Build
+        local openLbl = rd and config.openLabel and config.openLabel(rd) or nil
+        if openLbl then
+            local b = _bandBtns[1]
+            b.label, b.variant, b.disabled, b.id, b.w = openLbl, "primary", false, "open", nil
+            b.hover = (mx < 0) and false or nil
+            b.focus = (fid == pfx .. ":actOpen") and NO_FOCUS_OPTS or nil
+            _bandSpec.win, _bandSpec.edge = state._focusWin, nil
+            local _, out = M.drawBand(panel, x, y, w, _bandSpec)
+            local r = out.buttons[1]
+            leftEnd = r and (r.x - gap) or (x + w - edge)
+            if r then state.zones[#state.zones + 1] = { type = "action_open", x = r.x, y = r.y, w = r.w, h = r.h, rd = rd, open = config.openAction } end
+        else
+            _bandSpecRO.win = state._focusWin
+            M.drawBand(panel, x, y, w, _bandSpecRO)
+            leftEnd = x + w - edge
+        end
         narrow = (leftEnd - x - edge - gap * nGaps) < catMin + sortMin + showMin
     else
         leftEnd, narrow = drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx,
@@ -3066,12 +3138,8 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         chipX = chipX + bw + T.px(4)
     end
 
-    -- Surface requirement (pre-baked during catalog build)
-    local needsSurface = entry.needSurface or false
-    if needsSurface then
-        bw = A.drawBadge(panel, ZeD.tr("IGUI_CraftingWindow_Surface"), chipX, curY, "warning")
-        chipX = chipX + bw + T.px(4)
-    end
+    -- No amber Surface square: a table's recipe reads like any other, and the line under the rows
+    -- ("Needs a table or counter nearby.") speaks only when none is near (KISS #35)
 
     -- Craft time (getTime returns seconds)
     if rd.craftTime and rd.craftTime > 0 then
@@ -3287,6 +3355,11 @@ end
 --- tab's recipes this frame ({ recipes, categories, flatRecipes }).
 function CC.render(panel, win, x, y, w, h, state, config, data)
     state.config = config   -- (the preview card reads the tab's prefix, label and start action from it)
+    -- an open card is on screen this frame: Escape may close it (CC.takeEscape) (KISS #47)
+    if state.selected then
+        state._cardDrawnAt = getTimestampMs()
+        CC._cardStates[state] = true
+    end
     local T = ZeD.T
 
     -- Load pins on first render (skip in readOnly — no pin system)
@@ -3780,6 +3853,15 @@ function CC.onClick(state, config, win, x, y, playerObj)
                 state.qty = math.min(maxQ, state.qty + 1)
                 return true
 
+            elseif zone.type == "action_open" then
+                -- the Journal's Open in Craft / Build: the config's own opener (KISS #40)
+                if zone.open then zone.open(win, state, zone.rd) end
+                return true
+
+            elseif zone.type == "action_max" then
+                state.qty = math.max(1, state._maxQty or state.qty)   -- the most the band knows (KISS #32)
+                return true
+
             elseif zone.type == "action_build" then
                 -- Delegate to tab-specific startAction
                 CC.runStart(win, state, config.startAction)
@@ -4270,6 +4352,26 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                 onActivate = function(w, el)
                     local maxQ = state._maxQty or 99
                     state.qty = math.min(maxQ, (state.qty or 1) + 1)
+                end,
+            }
+        elseif z.type == "action_open" then
+            elements[#elements + 1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = prefix .. ":actOpen",
+                craftKind = "actOpen",
+                onFocus = function(w, el) end,
+                onActivate = function(w, el)
+                    if z.open then z.open(w, state, z.rd) end   -- (KISS #40)
+                end,
+            }
+        elseif z.type == "action_max" then
+            elements[#elements + 1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = prefix .. ":actMax",
+                craftKind = "actMax",
+                onFocus = function(w, el) end,
+                onActivate = function(w, el)
+                    state.qty = math.max(1, state._maxQty or state.qty or 1)   -- (KISS #32)
                 end,
             }
         elseif z.type == "action_build" then

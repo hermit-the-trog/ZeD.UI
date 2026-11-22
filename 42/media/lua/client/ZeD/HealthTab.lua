@@ -837,7 +837,63 @@ function ZeD.HealthTab.treat(patient, doctor, bp, anchor, rx, ry, blocking)
     end
 
     ISHealthPanel.doBodyPartContextMenu(adapter, bp, rx or 0, ry or 0)
+    -- (KISS #29) the game opens nothing when no treatment fits; for one's own body the character says what is missing
+    if doctor == nil or doctor == patient then pcall(ZeD.HealthTab.sayNothingFits, patient, bp, dnum) end
     return adapter
+end
+
+--- (KISS #29) A treatment menu that came up empty names what is missing: "Left Forearm needs a bandage." or, with
+--- nothing wrong there, "Left Forearm: nothing to treat." Runs after the game built (and hid) the empty menu.
+function ZeD.HealthTab.sayNothingFits(patient, bp, playerNum)
+    local ctx = getPlayerContextMenu and getPlayerContextMenu(playerNum)
+    if not ctx or ctx:getIsVisible() then return end   -- a menu is up: nothing to say
+    local name = BodyPartType.getDisplayName(bp:getType())
+    local needs = {}
+    local bandaged = bp:bandaged()
+    local open = bp:scratched() or bp:isCut() or bp:bleeding() or bp:deepWounded() or (bp:getBurnTime() > 0)
+    if open and not bandaged then needs[#needs + 1] = ZeD.tr("UI_ZeD_Health_NeedBandage") end
+    if bp:deepWounded() and not bp:stitched() then needs[#needs + 1] = ZeD.tr("UI_ZeD_Health_NeedStitch") end
+    if bp:getFractureTime() > 0 and bp:getSplintFactor() == 0 then needs[#needs + 1] = ZeD.tr("UI_ZeD_Health_NeedSplint") end
+    if bp:haveGlass() or bp:haveBullet() then needs[#needs + 1] = ZeD.tr("UI_ZeD_Health_NeedTweezers") end
+    local text
+    if #needs > 0 then
+        text = ZeD.tr("UI_ZeD_Disclose_Needs", name, table.concat(needs, ", "))
+    else
+        text = ZeD.tr("UI_ZeD_Health_NothingToTreat", name)
+    end
+    patient:setHaloNote(text)
+end
+
+--- (KISS #29) A left press on a wound or a hurt part (the figure's part, or an injury row) opens that part's
+--- treatments, as the right-click does and as the tour says. The press only marks the part; the menu opens on the
+--- first frame after the button is up (HealthTab.render), so the release never lands on the menu it just opened.
+--- Returns true when a part was hit. Same hit tests as the right-click's (ZeD_CharacterWindow's _healthTreatAt).
+function ZeD.HealthTab.pressAt(win, x, y)
+    if win._healthBandY and y >= win._healthBandY then return false end
+    local fz = win._healthFigureZone
+    if fz and y < fz.y + fz.h then return false end
+    local sc = win._healthScroll
+    if sc and sc.visible and x >= sc.x then return false end
+    local part = nil
+    if win._healthFigureExpanded and win._healthBodyFigure then part = win._healthBodyFigure:hitTestAt(x, y) end
+    if not part then
+        for _, z in ipairs(win._healthInjuryZones or {}) do
+            if x >= z.x and x <= z.x + z.w and y >= z.y and y <= z.y + z.h then part = z.bodyPartName; break end
+        end
+    end
+    if not part then return false end
+    win._healthPress = { part = part, x = x, y = y, at = getTimestampMs() }
+    return true
+end
+
+--- The pending press opens its menu once the button is up (a press older than two seconds is dropped).
+local function openPendingPress(win, panel)
+    local pr = win._healthPress
+    if not pr then return end
+    if getTimestampMs() - pr.at > 2000 then win._healthPress = nil; return end
+    if isMouseButtonDown(0) then return end
+    win._healthPress = nil
+    ZeD.HealthTab._onPartClicked(win, pr.part, panel, pr.x, pr.y)
 end
 
 --- A drop on the Health tab: things dragged from a list and released over a body part of the figure, or over
@@ -852,6 +908,8 @@ function ZeD.HealthTab.takeDrop(pn, items)
     if not (panel and panel:isVisible()) then return false end
     local x, y = panel:getMouseX(), panel:getMouseY()
     if x < 0 or y < 0 or x >= panel:getWidth() or y >= panel:getHeight() then return false end
+    -- (paused, only moves between bags go: a drop on the page treats nothing; KISS #41)
+    if ZeD.PausedLook and ZeD.PausedLook.on() == true then return true end
     if win._healthMenuOpen then return false end
     if win._healthBandY and y >= win._healthBandY then return false end
     local fz = win._healthFigureZone
@@ -1345,7 +1403,10 @@ function ZeD.HealthTab.onClick(win, x, y)
     local bz = win._healthBand
     -- a fill block's head or row, inside the body's view (not under the header or the band)
     if not (bz and y >= bz.y) and inRect(win._healthView, x, y) and ZeD.TabFill.onClick(win, "health", x, y) then return true end
-    if not bz or y < bz.y or y >= bz.y + bz.h then return false end
+    if not bz or y < bz.y or y >= bz.y + bz.h then
+        -- (KISS #29) not the band: a wound or a hurt part under the press opens its treatments
+        return ZeD.HealthTab.pressAt(win, x, y)
+    end
     if inRect(bz.box, x, y) then ZeD.HealthTab.openMenu(win)
     elseif inRect(bz.dec, x, y) then ZeD.HealthTab.stepMinutes(win, -EXERCISE_TIME_STEP)
     elseif inRect(bz.inc, x, y) then ZeD.HealthTab.stepMinutes(win, EXERCISE_TIME_STEP)
@@ -1782,6 +1843,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     -- Capture LAST frame's injury Y-map before clearing so scroll-follow can
     -- read it; this frame's map is rebuilt during the injury loop below.
     win._healthContentPanel = panel
+    openPendingPress(win, panel)   -- (KISS #29)
     local lastInjuryYMap = win._healthInjuryYMap or {}
     win._healthInjuryZones = {}
     win._healthInjuryYMap  = {}

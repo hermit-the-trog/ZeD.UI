@@ -27,7 +27,7 @@
 --   * a dot on every option changed since the window opened (or the last Apply)
 --   * the option under the pointer (or the controller) explained in a panel
 --     at the bottom (vanilla's tooltips)
---   * Back with changes asks in the band at the foot: Keep editing or Discard changes
+--   * Back with changes asks in the band at the foot: Keep editing, Discard changes or Apply (KISS #33)
 --     (and a discard really reverts key bindings; vanilla keeps them for the next Apply)
 --   * the 20-second "keep these screen settings?" and "restart to apply"
 --     are band states, not pop-ups
@@ -928,7 +928,8 @@ end
 -- questions land on their main answer (confirm:yes) where they have one.
 -- (punch list 261: "Keep these display settings?" lands on Cancel, the old settings: a screen that can't be read
 -- must not be kept by one press)
-local SAFE_ANSWER = { back = "confirm:no", discard = "confirm:no", monitor = "confirm:no" }
+-- (KISS #33: Back's question lands on Apply, its main answer; nothing is lost by it)
+local SAFE_ANSWER = { back = "confirm:apply", discard = "confirm:no", monitor = "confirm:no" }
 function ZeD_MMOptions:setConfirm(mode)
     if self.confirm == mode then return end
     -- (B on a question goes back to the stop it was asked from)
@@ -2017,14 +2018,19 @@ function ZeD_MMOptions:buildStrip(stripY, stripH, w)
     local row = 1000
     local discardWord = ZeD.tr("UI_ZeD_MMWord_DiscardChanges")   -- (one wording everywhere, and it is the danger answer)
     if self.confirm == "back" or self.confirm == "discard" then
-        -- (Apply keeps the window open, so Back with changes only
-        -- asks whether to lose them; there is no Accept)
+        -- (Back with changes asks: Keep editing, Discard changes or Apply, which applies and closes; KISS #33)
         local n = self:changedCount()
         local ask = (n == 1) and ZeD.tr("UI_ZeD_Options_AskDiscardOne") or ZeD.tr("UI_ZeD_Options_AskDiscardMany", math.max(n, 1))
         local go = (self.confirm == "back") and function() self:discard() end or function() self:discardStay() end
-        UI.stripSpecs(self, stripY, w, row, {}, {
+        local answers = {
             { "confirm:no", ZeD.tr("UI_ZeD_MMWord_KeepEditing"), function() self:setConfirm(false) end, "default", false, ZeD.tr("UI_ZeD_MMHelp_KeepEditing") },
-            { "confirm:yes", discardWord, go, "danger", false, ZeD.tr("UI_ZeD_MMHelp_DiscardChanges") } }, ask)
+            { "confirm:yes", discardWord, go, "danger", false, ZeD.tr("UI_ZeD_MMHelp_DiscardChanges") } }
+        -- (KISS #33: Back's question offers Apply as its main answer, as the Mods screen offers Keep: it applies and
+        -- closes. The footer's Discard question stays two answers: Apply is right there beside it.)
+        if self.confirm == "back" then
+            answers[#answers + 1] = { "confirm:apply", getText("UI_btn_apply"), function() self:apply(true) end, "primary", false, ZeD.tr("UI_ZeD_MMHelp_Apply") }
+        end
+        UI.stripSpecs(self, stripY, w, row, {}, answers, ask)
     elseif self.confirm == "monitor" then
         local left = math.max(0, math.ceil(((self._monitorUntil or 0) - MM.now()) / 1000))
         if left <= 0 then self:answerMonitor(false); return self:buildStrip(stripY, stripH, w) end

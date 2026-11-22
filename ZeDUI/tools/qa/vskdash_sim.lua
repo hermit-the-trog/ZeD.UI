@@ -11,7 +11,7 @@
 --   LAMPS   amber, red, blink; each role on each plate: on a plate with the lamp it lights, on one without nothing is drawn and
 --           the Simple strip lists it; dark leaves ZeD's own lamp; check engine; the named constant
 --   GEAR, ODO, SPEED, STALL as published; made-up values stay where nothing is published
---   PASSENGER the World Scale and the odometer from any seat, and no provider run for a passenger
+--   PASSENGER a passenger has no dash (KISS #56): nothing polled or read for one
 --   BREAKS  a poll, provider, gear, odometer or scale that throws or lies: ZeD's own value, no error out of the dash
 --   SAFE MODE the real watchdog and the real ZeD.logOnce: another mod's failure never trips it
 --   MASK    (Nov 7 2026) Mask Filter Indicator through the dash's general hook D.addExtra: Simple's Readouts item, the
@@ -255,6 +255,7 @@ local function newDash() inst = ZeD_Dashboard:new(0); return inst end
 
 local SKIP = { pub = true, radioPart = true }
 local function dumpSt(st, skipPub)
+    if not st then return "(no dash: a passenger has none, KISS #56)" end
     local keys = {}
     for k in pairs(st) do if not SKIP[k] then keys[#keys + 1] = k end end
     table.sort(keys)
@@ -797,37 +798,16 @@ end
 section("PASSENGER")
 -- ---------------------------------------------------------------------------
 do
-    local K, rw = start("nyala", { passenger = true, kmh = 65 }, 0.65)
-    rw.temp, rw.unbelted, rw.oilLamp = 142, true, "crit"
-    K.gear = "N"
+    -- (KISS #56: a passenger gets no dash, as in the game, which shows its dashboard to the driver only; the belt
+    -- stays on the screen instead. So nothing is read or polled for a passenger)
+    local K = start("nyala", { passenger = true, kmh = 65 }, 0.65)
     settle()
+    check("a passenger has no dash: nothing read for it", inst._st == nil, tostring(inst._st))
     check("a passenger's dash never polls", K.polls == 0, K.polls)
-    check("a passenger reads the speed the car stands for, as the driver", near(st().speed_kmh, 100, 0.5), st().speed_kmh)
-    check("a passenger's temperature is ZeD's own", near(st().temp, 0.5, 0.01), st().temp)
-    check("a passenger's lamps are ZeD's own", not st().tempLamp and not st().beltLamp and not st().oilLamp)
-    check("a passenger's gear letter is ZeD's own: the gearbox is a provider", st().gearSel == "D", st().gearSel)
     local c0 = K.odoCalls or 0
-    for _ = 1, 600 do frame(16) end        -- 9.6 s at 60 fps
-    local calls = (K.odoCalls or 0) - c0
-    check("a passenger's figures are read five times a second", calls >= 44 and calls <= 50, calls)
-    K = start("dashelite", { passenger = true })
-    local made = st().odo
-    K.km, K.tripKm = 123513.5 * 1.609344, 5.15
-    frames(2, 200)
-    check("a passenger's Dash Elite shows Roadworthy's odometer", st().odoShownT == "123513" and st().odo ~= made, st().odoShownT)
-    env.simple = true
-    check("and a passenger's Simple dash", drewText(frame(0), "123513 mi"))
-    env.simple = false
-    K.held = true
-    seat(running(scriptOf("cossette"), { passenger = true, keysIn = false, running = false, rpm = 0, kmh = 0 }))
-    frames(3, 250)
-    check("a stall holds nothing up for a passenger", st().power == false and st().pub.stalled == nil, st().power)
-    K.odoThrows, VSK.Scale = true, "gone"
-    frames(3, 250)
-    check("a passenger with a broken odometer and scale: ZeD's own", st().pub.odoMiles == nil and st().pub.speedK == nil)
+    for _ = 1, 600 do frame(16) end
+    check("and reads no figures", ((K.odoCalls or 0) - c0) == 0, (K.odoCalls or 0) - c0)
     VSK = nil
-    frames(3, 250)
-    check("a passenger, no library: ZeD's own", st().pub == nil)
 end
 
 -- ---------------------------------------------------------------------------
@@ -1100,11 +1080,11 @@ do
     newFrame()
     check("Alert: the mark at a quarter or less", #marks == 1, #marks)
     MaskFilterIndicatorOptions.mode = 1
-    -- a passenger: after the word
+    -- a passenger: no dash, so no mark (KISS #56)
     seat(running(scriptOf("nyala"), { passenger = true }))
     newDash()
     newFrame()
-    check("a passenger: the mark after Passenger", marks[1] and marks[1].x > 12 + 20, marks[1] and marks[1].x)
+    check("a passenger: no dash, no mark", #marks == 0, #marks)
     -- a light top edge: the design's own ink, no shadow
     local lightId = nil
     for _, id in ipairs(DESIGNS) do if ZeD.DashPx.designs[id].passInk then lightId = id; break end end

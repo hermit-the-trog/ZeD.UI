@@ -139,7 +139,7 @@ local cut = dofile(ROOT .. "ZeDUI/tools/qa/cc_cut.lua")
 local CCSRC = readFile(CL .. "CraftingCore.lua")
 local okCut, errCut = pcall(cut, ROOT, CC, { "local function anyOpen(", "function CC.categoryLabel(",
     "function CC.activeCategoryLabel(", "local function drawCatSelect(", "function CC.placeSearch(",
-    "function CC.tabTitleText(", "function CC.renderTabTitle(",
+    "function CC.tabTitleText(", "function CC.renderTabTitle(", "function CC.stationShown(",
     "function CC.renderStaticHeader(" })
 check("the CraftingCore pieces cut and load", okCut, errCut)
 if okCut then
@@ -158,14 +158,20 @@ if okCut then
     local cat = SELECTS[#SELECTS]
     check("Building's select is labeled: 'Category: All'", cat and cat.label == "Category" and cat.value == "All",
         cat and (tostring(cat.label) .. " / " .. tostring(cat.value)))
-    check("Building opens with its title on row 1", TITLES[1] and TITLES[1].text == "Building" and TITLES[1].y == 0,
-        TITLES[1] and TITLES[1].text)
-    check("the select sits on the strip under the title", cat and cat.y >= T.stripH, cat and cat.y)
-    check("the header is the title row and the strip", ok and h == 2 * T.stripH, h)
+    -- (KISS #48, Nov 22 2026: no title row on Building or Crafting, the window's title bar says it; the Station
+    -- box shows only when a station is in reach)
+    check("Building has no title row", TITLES[1] == nil, TITLES[1] and TITLES[1].text)
+    check("the select sits on the first strip", cat and cat.y < T.stripH, cat and cat.y)
+    check("the header is the strip alone", ok and h == T.stripH, h)
+    ST.nearby = function() return {} end
     ok, h = header({ prefix = "craft", stations = true, titleVKey = "IGUI_CraftingWindow_Title" })
     check("Crafting's header draws", ok, h)
-    check("Crafting opens with its title", TITLES[1] and TITLES[1].text == "Crafting", TITLES[1] and TITLES[1].text)
-    check("Crafting's selects: 'Station: Hand' and 'Category: All'", SELECTS[1] and SELECTS[1].label == "Station"
+    check("Crafting has no title row", TITLES[1] == nil, TITLES[1] and TITLES[1].text)
+    check("Crafting with no station in reach: no Station box, only 'Category: All'", #SELECTS == 1 and SELECTS[1].label == "Category"
+        and SELECTS[1].value == "All", SELECTS[1] and SELECTS[1].label)
+    ST.nearby = function() return { { name = "Workbench" } } end
+    ok, h = header({ prefix = "craft", stations = true, titleVKey = "IGUI_CraftingWindow_Title" })
+    check("Crafting with a station in reach: 'Station: Hand' and 'Category: All'", SELECTS[1] and SELECTS[1].label == "Station"
         and SELECTS[1].value == "Hand" and SELECTS[2] and SELECTS[2].label == "Category" and SELECTS[2].value == "All")
 end
 do

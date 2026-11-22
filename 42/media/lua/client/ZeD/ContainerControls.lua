@@ -641,7 +641,8 @@ local function buildChar(content)
     else
         local xfer = transferAllItems(playerObj, inv, dest)
         moves[#moves + 1] = { id = "xfer", label = sentence(getText("IGUI_invpage_Transfer_all")), enabled = dest ~= nil and #xfer > 0,
-            icon = "tray_out", hint = sentence(getText("IGUI_invpage_Transfer_all")),
+            -- (no icon: Transfer all is a word button, a wrong guess dropped loose things on the floor; KISS #7)
+            hint = sentence(getText("IGUI_invpage_Transfer_all")),
             run = function(ct)
                 local d = otherInventory(ct)
                 CT.moveItems(playerObj, transferAllItems(playerObj, ct._inventory, d), d)
@@ -666,6 +667,48 @@ local function buildChar(content)
     return liteTrim(moves), addProviderSpecs(inventorySpecs(content, inv), "char", content, inv, dest)
 end
 
+--- Loot all: everything wanted in src comes over to d, as the band's Loot all does (walks there first unless src is
+--- the floor; a lone heavy thing is equipped the game's way). The one place the band's button, the list heading's
+--- and the controller's X on a container's button take from. (KISS #18)
+function CT.lootAll(playerObj, src, d)
+    if not (playerObj and src and d) then return end
+    local pn = playerObj:getPlayerNum()
+    if not isFloor(src) and not luautils.walkToContainer(src, pn) then return end
+    local items, heavy, n = takeAllItems(playerObj, src)
+    if heavy and n == 1 then
+        ISInventoryPaneContextMenu.equipHeavyItem(playerObj, heavy)
+        return
+    end
+    CT.moveItems(playerObj, items, d)
+end
+
+--- The words of the Loot all buttons (the game's, sentence case): the band's and the list heading's. (KISS #18)
+function CT.lootAllLabel() return sentence(getText("IGUI_invpage_Loot_all")) end
+
+--- True when the World window's list for this content shows the heading's Loot all: one container on show. (KISS #18)
+function CT.headLootOn(content)
+    return content ~= nil and content._ccSide == "world" and not content._compactMode
+        and content._playerObj ~= nil and content._inventory ~= nil
+end
+
+--- True when the heading's Loot all has something to take (the band's Loot all, as the row last built it said). (KISS #18)
+function CT.headLootEnabled(content)
+    local cc = content and content._cc
+    for _, m in ipairs(cc and cc.moves or {}) do
+        if m.id == "take" then return m.enabled and true or false end
+    end
+    return false
+end
+
+--- Loot all from src into the player's own inventory: what the World window's X on a container's button runs
+--- (KISS #18). False when there is nothing wanted to take.
+function CT.lootAllFrom(playerObj, src)
+    if not (playerObj and src) then return false end
+    if src:isEmptyOrUnwanted(playerObj) then return false end
+    CT.lootAll(playerObj, src, playerObj:getInventory())
+    return true
+end
+
 local function buildWorld(content)
     local playerObj = content._playerObj
     local pn = playerObj:getPlayerNum()
@@ -688,17 +731,9 @@ local function buildWorld(content)
             end }
     else
         moves[#moves + 1] = { id = "take", label = sentence(getText("IGUI_invpage_Loot_all")), enabled = not inv:isEmptyOrUnwanted(playerObj),
-            icon = "tray_in", hint = sentence(getText("IGUI_invpage_Loot_all")),
-            run = function(ct)
-                local src, d = ct._inventory, otherInventory(ct)
-                if not isFloor(src) and not luautils.walkToContainer(src, pn) then return end
-                local items, heavy, n = takeAllItems(playerObj, src)
-                if heavy and n == 1 then
-                    ISInventoryPaneContextMenu.equipHeavyItem(playerObj, heavy)
-                    return
-                end
-                CT.moveItems(playerObj, items, d)
-            end }
+            -- (no icon: Loot all is a word button; KISS #7)
+            hint = sentence(getText("IGUI_invpage_Loot_all")),
+            run = function(ct) CT.lootAll(playerObj, ct._inventory, otherInventory(ct)) end }   -- (KISS #18: one place)
     end
     local keep = function(item) return not item:isFavorite() and not item:isUnwanted(playerObj) end
     local same, sameSet = sameTypeItems(inv, dest, keep)
@@ -1052,6 +1087,62 @@ local function drawGateLine(content, B, top, h, xOff)
     end
 end
 
+-- ----------------------------------------------------------------------------
+-- THE WORN AND HELD LINE (KISS #11, option 2 of the Worn and held setting): with the things you wear and hold kept off
+-- the inventory list (they stand on the Equipment tab), the list ends with one line, "Worn and held: Equipment",
+-- which opens that tab. It stands in for "Nothing here." while you wear things. The renderer asks wornLineOn, adds a
+-- row's height to the list, and draws the line under the last row; a press on it is one more hit of the band (the
+-- window already sends "cc:" presses here), so the controller's ring zone has it as a stop too.
+-- ----------------------------------------------------------------------------
+--- True when this list (your own inventory, one container on show) should end with the line.
+function CT.wornLineOn(content)
+    if not (content and content._ccSide == "char" and content._playerObj and content._inventory) then return false end
+    local po = content._playerObj
+    if content._inventory ~= po:getInventory() then return false end
+    local R = ZeD.InventoryRenderer
+    if R and R.wornListed and R.wornListed() then return false end   -- (they are in the list: no line)
+    local ok, n = pcall(function()
+        local c = po:getWornItems():size()
+        if po:getPrimaryHandItem() then c = c + 1 end
+        if po:getSecondaryHandItem() then c = c + 1 end
+        return c
+    end)
+    return ok and n > 0
+end
+
+--- Draws the line at y (content-local), w wide and h tall, when it is in view between top and bottom, and makes it a
+--- hit of the band. xOff = the list column's x.
+function CT.drawWornLine(content, xOff, y, w, h, top, bottom)
+    local cc = content._cc
+    if not (cc and cc.hits) then return end
+    if y + h <= top or y >= bottom then return end
+    local T, A = ZeD.T, ZeD.Atoms
+    local label = ZeD.tr("UI_ZeD_Inv_WornLine")
+    local hover = content:isMouseOver() and A.mouseIn(content, xOff, y, w, h)
+    local focused = focusedKey(content) == "wornline"
+    if hover then
+        local hv = T.hover
+        content:drawRect(xOff, y, w, h, hv.a, hv.r, hv.g, hv.b)
+    end
+    if focused then
+        _ccFocus.win, _ccFocus.zone = content._ccWin, zoneName(content)
+        ZeD.Focus.mark(content, xOff, y, w, h, _ccFocus)
+    end
+    local tc = focused and (T.textOnFocus or T.toneNorm) or T.toneNorm
+    local f2 = T.fontF2
+    local pad = T.px(CT.PAD_X + 4)
+    content:drawText(A.truncateText(label, f2, w - pad * 2), xOff + pad, y + math.floor((h - ZeD.TM:getFontHeight(f2)) / 2),
+        tc.r, tc.g, tc.b, tc.a or 1, f2)
+    local spec = { id = "wornline", label = label, enabled = true, hint = label,
+        run = function(ct)
+            local pn = ZeD.playerNumOf(ct)
+            if ZeD_CharacterWindow and ZeD_CharacterWindow.openTab then ZeD_CharacterWindow.openTab(pn, "equip", false) end
+        end }
+    cc.hits[#cc.hits + 1] = { key = "wornline", label = label, spec = spec, x = xOff, y = y, w = w, h = h, enabled = true,
+        vx = xOff, vw = w }
+    content:addHitZone("cc:" .. #cc.hits, xOff, y, w, h)
+end
+
 --- Draws the band at top (content-local; xOff = the list column's x). The band
 --- is the library's (surface 2 without stacking, its structure line on top);
 --- the Delete all question takes it over as the question band (Cancel and the
@@ -1223,4 +1314,64 @@ function CT.syncFocus(win, content)
     end
     F.setRingZoneElements(win, zn, els, seat)
     F.setZoneFocusable(win, zn, #els > 0)
+end
+
+-- ----------------------------------------------------------------------------
+-- GRAB ONE, GRAB HALF, GRAB ALL (KISS #31)
+-- The game's right-click menu offers "Grab one / Grab half / Grab all" on a stack row of its own list, and only "Grab"
+-- on single things. ZeD's lists hand the menu a closed stack as its things, so a stack of 60 rounds got a Grab that
+-- took all 60. The game's doGrabMenu is wrapped: when the things it is given are exactly one closed stack of ZeD's
+-- lists, it adds the game's three choices (the same options and handlers the game's stack row gets; the handlers
+-- take any list of things). Anything else goes to the game's own doGrabMenu unchanged.
+-- ----------------------------------------------------------------------------
+-- is this list of things exactly one closed stack of a ZeD list (the main list or a column of either window)?
+local function isWholeStack(items, pn)
+    if type(items) ~= "table" or #items < 2 then return false end
+    for _, it in ipairs(items) do
+        if not instanceof(it, "InventoryItem") then return false end
+    end
+    local function fits(stacks)
+        if type(stacks) ~= "table" then return false end
+        for _, it in ipairs(items) do
+            local st = stacks[it]
+            if st and st.count == #items and st.items then
+                -- every thing of the list is in that stack
+                local inStack = {}
+                for _, s in ipairs(st.items) do inStack[s] = true end
+                for _, x in ipairs(items) do if not inStack[x] then return false end end
+                return true
+            end
+        end
+        return false
+    end
+    for _, W in ipairs({ ZeD_CharacterWindow, ZeD_WorldWindow }) do
+        local win = W and W.getWindow and W.getWindow(pn)
+        local c = win and win._mainContent
+        if c then
+            if fits(c._stacks) then return true end
+            for _, cs in ipairs(c._colStates or {}) do
+                if fits(cs.stacks) then return true end
+            end
+        end
+    end
+    return false
+end
+CT._isWholeStack = isWholeStack   -- (the test sim's way in)
+
+if ISInventoryPaneContextMenu and ISInventoryPaneContextMenu.doGrabMenu and not ISInventoryPaneContextMenu._zedGrabWrapped then
+    ISInventoryPaneContextMenu._zedGrabWrapped = true
+    local origGrabMenu = ISInventoryPaneContextMenu.doGrabMenu
+    ISInventoryPaneContextMenu.doGrabMenu = function(context, items, player)
+        local ok, whole = pcall(isWholeStack, items, player)
+        if ok and whole then
+            local dest = getPlayerInventory(player).inventory
+            -- (as the game's own stack row: a corpse or generator, or a thing the bag refuses, gets no Grab at all)
+            if isForceDropHeavyItem(items[1]) or not dest:isItemAllowed(items[1]) then return end
+            context:addOption(getText("ContextMenu_Grab_one"), items, ISInventoryPaneContextMenu.onGrabOneItems, player)
+            context:addOption(getText("ContextMenu_Grab_half"), items, ISInventoryPaneContextMenu.onGrabHalfItems, player)
+            context:addOption(getText("ContextMenu_Grab_all"), items, ISInventoryPaneContextMenu.onGrabItems, player)
+            return
+        end
+        return origGrabMenu(context, items, player)
+    end
 end

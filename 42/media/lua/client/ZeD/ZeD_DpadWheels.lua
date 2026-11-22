@@ -279,7 +279,8 @@ local function showFilled(pn, st)
     local last = slices[#slices]
     if last and W.isBack(last) then
         last.command = { D.back, pn }
-    else
+    elseif #st.path > 1 then
+        -- (a game-filled wheel opened first, the car's on D-pad Up seated, has no level to go back to: B closes it)
         menu:addSlice(getText("IGUI_Emote_Back"), texOf(BACK_TEX), D.back, pn)
     end
     present(menu, pn, st)
@@ -332,7 +333,7 @@ function D.back(pn)
     st.held = false
     G.level(st)
     -- the top level is built again: what is live may have changed
-    if #st.path == 1 then
+    if #st.path == 1 and not st.path[1].fill then
         local p = getSpecificPlayer(pn)
         st.path[1].entries = safe(D.B[D.DIRS[st.dir].build], p, pn) or {}
     end
@@ -387,9 +388,67 @@ function D.open(dir, joypadData, menu, engineShows)
     menu = menu or getPlayerRadialMenu(pn)
     local st = { dir = dir, path = {}, menu = menu, home = menu, engineShows = engineShows }
     G.begin(pn, st, menu)
-    st.path[1] = { title = ZeD.tr(d.title), entries = safe(D.B[d.build], p, pn) or {} }
+    if dir == "up" and p:getVehicle() then
+        -- seated, D-pad Up is the car's wheel at once, the game's place for it; on foot it stays Social (KISS #20)
+        st.path[1] = { title = ZeD.tr("UI_ZeD_Wheel_Vehicle"), fill = D.vehicleFill }
+    else
+        st.path[1] = { title = ZeD.tr(d.title), entries = safe(D.B[d.build], p, pn) or {} }
+    end
     D.state[pn] = st
+    -- (D-pad Left held, not tapped: the Weapons ring once it has been down HOLD_WEAPONS_MS, D.holdTick; KISS #21)
+    if dir == "left" then st.holdArm = true end
+    -- (a D-pad wheel opened is a use of the hint strip's first hours' line, "D-pad Wheels": KISS #26)
+    if dir ~= "select" and ZeD.HintStrip and ZeD.HintStrip.taught then pcall(ZeD.HintStrip.taught, "wheels") end
     show(pn)
+end
+
+-- ---------------------------------------------------------------------------
+-- D-pad Left held: the Weapons ring at once, the game's hold habit (its own D-pad Left wheel is the weapons, up
+-- while held); a tap still opens the Character wheel (KISS #21). Not with the Hold setting, where every wheel is
+-- up only while its direction is held, so holding is how the Character wheel itself is worked.
+-- ---------------------------------------------------------------------------
+D.HOLD_WEAPONS_MS = 300   -- the game's own first repeat of a held direction (JoypadControllerData:update)
+D.qaHeld = D.qaHeld or {}   -- pn -> ms the D-pad Left has been down: a held press with no pad (QA)
+
+-- how long this player's D-pad Left has been down (nil: it is up)
+local function leftHeldMs(pn)
+    local q = D.qaHeld[pn]
+    if q ~= nil then return q or nil end
+    local jd = JoypadState and JoypadState.players and JoypadState.players[pn + 1]
+    local c = jd and jd.controller
+    if not (c and c.left) then return nil end
+    return c.dtleft or 0
+end
+
+--- One frame of the hold rule for player pn's open wheel.
+function D.holdTick(pn)
+    local st = D.state[pn]
+    if not (st and st.holdArm) then return end
+    -- (only the Character wheel's own top level, with nothing pointed at yet)
+    if st.dir ~= "left" or #st.path ~= 1 or st.mode == "hold" or st.latch then st.holdArm = nil; return end
+    local ms = leftHeldMs(pn)
+    if not ms then st.holdArm = nil; return end   -- (let go first: it was a tap)
+    if ms < D.HOLD_WEAPONS_MS then return end
+    st.holdArm = nil
+    for _, e in ipairs(st.path[1].entries or {}) do
+        if e.sub == D.C.weapons then
+            if not e.off then D.enter(pn, e) end   -- (no weapon: the Character wheel stays, its Weapons slice saying why)
+            return
+        end
+    end
+end
+
+if Events and Events.OnRenderTick and not D._holdTickOn then
+    D._holdTickOn = true
+    -- (OnRenderTick, the event the wheels' gesture runs on: OnTick stops while paused)
+    Events.OnRenderTick.Add(function()
+        for pn = 0, 3 do
+            if D.state[pn] and D.state[pn].holdArm then
+                local ok, err = pcall(D.holdTick, pn)
+                if not ok then print("[ZeD] DpadWheels: hold: " .. tostring(err)) end
+            end
+        end
+    end)
 end
 
 -- the game's functions, kept for safe mode
@@ -1075,34 +1134,32 @@ function Wd.tabs(p, pn)
     return out
 end
 
--- (No mini-map in ZeD's wheels: the World window's map is the map. Its two
--- slices were the last two of this inner wheel, so taking them out moves no other slice: World map stays
--- first and Back stays last, as on every inner wheel. The Map slice keeps its place on the World wheel.)
-function Wd.map(p, pn)
+-- (No mini-map in ZeD's wheels: the World window's map is the map. The Map slice keeps its place on the World
+-- wheel and opens the map at once: its inner ring held only World map and Back (KISS #36).)
+function Wd.mapOff()
     local noMap = not (ISWorldMap and ISWorldMap.IsAllowed and ISWorldMap.IsAllowed())
-    return {
-        { name = getText("IGUI_WorldMap_Toggle"), icon = "map", run = function(pl, n) ISWorldMap.ToggleWorldMap(n) end,
-          off = noMap and tr("UI_ZeD_Wheel_NoWorldMap") or nil },
-    }
+    return noMap and tr("UI_ZeD_Wheel_NoWorldMap") or nil
 end
 
 function Wd.craft(p, pn)
-    -- Crafting at the nearest station in reach, named ("Workbench, 2 tiles"); else by hand
-    local st = ask("nearestStation", p, pn)
-    local S = ZeD.Stations
-    local detail = st and (tostring(st.name) .. ", " .. tostring(S.tilesText and S.tilesText(st.dist) or "")) or nil
-    local craftRun = function(pl, n) H.worldTab(pl, n, "craft") end
-    if st and S and S.open then
-        craftRun = function(pl, n)
-            if ZeD_CharacterWindow and ZeD_CharacterWindow.ensureBothOpenForGamepad then pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, n) end
-            S.open(pl, st.obj)
-        end
-    end
-    return {
-        { name = getText("IGUI_CraftingWindow_Title"), tab = "craft-tab-white", detail = detail, run = craftRun },
+    -- Crafting always opens by hand (the Craft tab), so a kitchen's oven no longer catches it; the nearest station
+    -- in reach gets a slice of its own, named for it ("Workbench", second line "2 tiles"). It goes last, so the
+    -- slices before it keep their places for the quick action chords (KISS #15)
+    local out = {
+        { name = getText("IGUI_CraftingWindow_Title"), tab = "craft-tab-white", run = function(pl, n) H.worldTab(pl, n, "craft") end },
         { name = tr("UI_ZeD_World_TabBuilding"), tab = "build-tab-white", run = function(pl, n) H.worldTab(pl, n, "build") end },
         { name = getText("IGUI_BackButton_Movable"), tab = "move-tab-white", run = function(pl, n) H.worldTab(pl, n, "furniture") end },
     }
+    local st = ask("nearestStation", p, pn)
+    local S = ZeD.Stations
+    if st and S and S.open then
+        out[#out + 1] = { name = tostring(st.name), icon = "toolbox", detail = S.tilesText and S.tilesText(st.dist) or nil,
+            run = function(pl, n)
+                if ZeD_CharacterWindow and ZeD_CharacterWindow.ensureBothOpenForGamepad then pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, n) end
+                S.open(pl, st.obj)
+            end }
+    end
+    return out
 end
 
 -- the game's Select wheel's search commands (search mode, a found item), and the Foraging tab
@@ -1126,6 +1183,10 @@ function Wd.search(p, pn)
     }
 end
 
+-- the car's wheel: the game's vehicle slices, then the Dashboard slice in the driver's seat (the World wheel's
+-- Vehicle slice, and D-pad Up seated: KISS #20)
+function D.vehicleFill(pl, n) ISVehicleMenu.showRadialMenu(pl); H.dashSlice(pl, n) end
+
 D.B.world = function(p, pn)
     local vehicle = ask("vehicleInReach", p, pn)
     local animal = ask("animalInReach", p, pn)
@@ -1134,8 +1195,9 @@ D.B.world = function(p, pn)
     for _, e in ipairs(lights) do if not e.off then anyLight = true end end
     return {
         { name = tr("UI_ZeD_Wheel_Tabs"), tab = "craft-tab-white", detail = tr("UI_ZeD_Wheel_WorldWindow"), sub = Wd.tabs },
-        { name = tr("UI_ZeD_Wheel_Map"), icon = "map", sub = Wd.map },
-        { name = tr("UI_ZeD_Wheel_Vehicle"), icon = "car", fill = function(pl, n) ISVehicleMenu.showRadialMenu(pl); H.dashSlice(pl, n) end,
+        -- (the map at once, the game's own toggle, which already lands on the Maps tab: KISS #36)
+        { name = tr("UI_ZeD_Wheel_Map"), icon = "map", run = function(pl, n) ISWorldMap.ToggleWorldMap(n) end, off = Wd.mapOff() },
+        { name = tr("UI_ZeD_Wheel_Vehicle"), icon = "car", fill = D.vehicleFill,
           off = (not vehicle) and tr("UI_ZeD_Wheel_NoVehicle") or nil },
         { name = tr("UI_ZeD_Wheel_Animal"), icon = "cow", fill = function(pl) AnimalContextMenu.showRadialMenu(pl) end,
           off = (not animal) and tr("UI_ZeD_Wheel_NoAnimal") or nil },

@@ -64,7 +64,8 @@ Q.DEFAULTS = {
     ["RB+A"]  = { "character:5",   { "UI_ZeD_Wheel_Character", "UI_ZeD_Wheel_Medicine" } },
     ["RB+B"]  = { "character:2",   { "UI_ZeD_Wheel_Character", "UI_ZeD_Wheel_Weapons" } },
     ["RB+X"]  = { "character:8:2", { "UI_ZeD_Wheel_Character", "UI_ZeD_Wheel_Use", "ContextMenu_Read" } },
-    ["RB+Y"]  = { "world:2:1",     { "UI_ZeD_Wheel_World", "UI_ZeD_Wheel_Map", "IGUI_WorldMap_Toggle" } },
+    -- (the World wheel's Map slice opens the map itself now, no inner ring: KISS #36)
+    ["RB+Y"]  = { "world:2",       { "UI_ZeD_Wheel_World", "UI_ZeD_Wheel_Map" } },
     ["RB+L3"] = { "now:3",         { "UI_ZeD_Wheel_HereNow", "UI_ZeD_Wheel_AutoWalk" } },
     ["RB+R3"] = { "now:2",         { "UI_ZeD_Wheel_HereNow", "UI_ZeD_Wheel_Crouch" } },
 }
@@ -214,6 +215,8 @@ end
 function Q.resolve(p, pn, path)
     local D = ZeD.DpadWheels
     if not (D and D.B and path) then return nil end
+    -- a chord saved on the old Map ring's World map slice is the Map slice now, which opens the map itself (KISS #36)
+    if path == "world:2:1" then path = "world:2" end
     local segs = {}
     for s in path:gmatch("[^:]+") do segs[#segs + 1] = s end
     local wheel = segs[1]
@@ -383,6 +386,8 @@ function Q.onPress(joypadData, button)
     mine[button] = true
     if bump == "RB" then Q.rbClaimed[joypadData.player] = { up = 0 } end   -- (this RB is the chord's, not the game's reload: QA K1-4)
     local chord = bump .. "+" .. face
+    -- (a use of the hint strip's first hours' line, "LB or RB + button Quick actions": KISS #26)
+    if ZeD.HintStrip and ZeD.HintStrip.taught then pcall(ZeD.HintStrip.taught, "chords") end
     local ok, err = pcall(Q.run, p, chord)
     if not ok then print("[ZeD] QuickChords: " .. chord .. ": " .. tostring(err)) end
     Q.lastChord = chord   -- (the last chord pressed, kept for testing)

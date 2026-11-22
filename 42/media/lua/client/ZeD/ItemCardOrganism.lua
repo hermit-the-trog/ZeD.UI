@@ -31,6 +31,7 @@ ZeD.ItemCard.VERB_KEYS = {
     USE = "UI_ZeD_Card_VerbUse", DRINK = "ContextMenu_Drink", WEAR = "ContextMenu_Wear",
     ["OFF HAND"] = "UI_ZeD_Card_VerbOffHand", MORE = "ContextMenu_More",
     WASH = "ContextMenu_Wash", REPAIR = "ContextMenu_Repair",
+    BANDAGE = "ContextMenu_Bandage",   -- (KISS #29: a bandage's card bandages, in the game's word)
     PAD = "UI_ZeD_Card_VerbPad", SHARPEN = "UI_ZeD_Card_VerbSharpen",
 }
 function ZeD.ItemCard.verbText(id)
@@ -484,7 +485,12 @@ local function headerVerbsForContext(ctx, item, playerObj)   -- (playerObj: the 
         -- USE is the game's double-click, which only takes pills and smokes (consumable, not a poison-show one):
         -- wipes, thread and the other drainables get no Use, it would do nothing (QA K2-7)
         local okT, usable = pcall(function() return item:hasTag(ItemTag.CONSUMABLE) and not item:hasTag(ItemTag.SHOW_POISON) end)
-        if okT and usable then primary = {id = "USE", label = VT("USE"), primary = true} end
+        if okT and usable then
+            -- (KISS #29) pills read the game's own words, Take Pills; a smoke keeps Use. Same USE action either way.
+            local okS, smoke = pcall(function() return item:hasTag(ItemTag.SMOKABLE) end)
+            local word = (okS and not smoke) and getText("ContextMenu_Take_pills") or VT("USE")
+            primary = {id = "USE", label = word, primary = true}
+        end
     elseif cat == "Fluid" then
         -- DRINK: so bottles and canteens have a card verb at all; only where the game offers it (QA K1-2)
         local ok, off = ZeD.ItemCard.canDrink(item, playerObj)
@@ -492,6 +498,9 @@ local function headerVerbsForContext(ctx, item, playerObj)   -- (playerObj: the 
             primary = {id = "DRINK", label = VT("DRINK"), primary = true}
             if off then primary.disabled, primary.offHelp = true, getText(off) end
         end
+    elseif safeGet(item, "isCanBandage") == true then
+        -- (KISS #29) a bandage's card bandages the worst wound, the game's Bandage (ItemCard's BANDAGE)
+        primary = {id = "BANDAGE", label = VT("BANDAGE"), primary = true}
     elseif cat == "Container" then
         -- WEAR: so a backpack can be put on from its card
         local loc = safeGet(item, "canBeEquipped")
@@ -1231,13 +1240,18 @@ local VERB_HELP = {
     EQUIP = "UI_ZeD_Card_HelpEquip", UNEQUIP = "UI_ZeD_Card_HelpUnequip", DROP = "UI_ZeD_Card_HelpDrop",
     TAKE = "UI_ZeD_Card_HelpTake", EAT = "UI_ZeD_Card_HelpEat", READ = "UI_ZeD_Card_HelpRead",
     USE = "UI_ZeD_Card_HelpUse", DRINK = "UI_ZeD_Card_HelpDrink", WEAR = "UI_ZeD_Card_HelpWear",
-    ["OFF HAND"] = "UI_ZeD_Card_HelpOffHand", MORE = "UI_ZeD_Card_HelpMore",
+    BANDAGE = "UI_ZeD_Card_HelpBandage", ["OFF HAND"] = "UI_ZeD_Card_HelpOffHand", MORE = "UI_ZeD_Card_HelpMore",
     wash = "UI_ZeD_Card_HelpWash", repair_all = "UI_ZeD_Card_HelpRepairHoles", pad_all = "UI_ZeD_Card_HelpPad",
     repair = "UI_ZeD_Card_HelpRepair", sharpen = "UI_ZeD_Card_HelpSharpen",
 }
-local function verbHelp(id, label)
+local function verbHelp(id, label, card)
     local k = VERB_HELP[id]
     if not k then return nil end
+    -- (KISS #57) Repair names the fixer one click will spend: "Repair: repair it with Duct Tape"
+    if id == "repair" and card and card.item and ZeD.ItemCard and ZeD.ItemCard.firstFixerName then
+        local okF, nm = pcall(ZeD.ItemCard.firstFixerName, getSpecificPlayer(card.playerNum or 0), card.item)
+        if okF and nm then return ZeD.tr("UI_ZeD_Card_HelpRepairWith", ZeD.btnCase(label or ""), nm) end
+    end
     return ZeD.tr(k, ZeD.btnCase(label or ""))
 end
 
@@ -1271,7 +1285,7 @@ local function drawCareBand(card, y, w, verbs, progressActive)
         b.label, b.id = v.label, v.key
         b.disabled = (progressActive or v.canDo == false) and true or false
         b.focus = card.focusFor and card:focusFor("verb_" .. tostring(v.key)) or nil
-        b.help = verbHelp(v.key, v.label)
+        b.help = verbHelp(v.key, v.label, card)
     end
     local _, out = ZeD.Molecules.drawBand(card, 0, y, w, _careSpec)
     return out.buttons
@@ -1432,7 +1446,7 @@ function ZeD_ItemCard:renderBody(ctx)
     local displayName = safeGet(item, "getDisplayName") or "???"
     -- each verb's help line words and, on the one the controller is on, its focus mark
     for i, v in ipairs(headerVerbs) do
-        v.help = v.offHelp or verbHelp(v.id, v.label)   -- (a grayed verb says the game's reason, QA K1-2)
+        v.help = v.offHelp or verbHelp(v.id, v.label, self)   -- (a grayed verb says the game's reason, QA K1-2)
         v.focus = self.focusFor and self:focusFor("hverb_" .. i) or nil
     end
     -- the back key's focus mark (when the controller is on it) and its help line words
