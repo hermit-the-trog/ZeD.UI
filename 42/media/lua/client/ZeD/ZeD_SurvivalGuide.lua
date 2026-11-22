@@ -18,7 +18,7 @@
 --
 -- The game's behaviour is kept: F1 and the controller's Help wheel toggle it, the game pauses
 -- while it is open, and other windows open it on a topic (SurvivalGuide.openEntry). F1 opens it on
--- the topic for what you are doing (the active Character or World tab). It no longer opens by
+-- the topic for what you are doing (the active Character or World tab), else the book on its contents (KISS #61). It no longer opens by
 -- itself when a game starts (punch list 122): ZeD_GuideBubble.lua offers it as a bubble out of
 -- the belt's Messages icon, once ever.
 -- ============================================================================
@@ -1711,12 +1711,12 @@ end
 
 --- Open on a topic: an id (tostring of a SurvivalGuideEntry) or a title key; the book or the window. Every open
 --- hides the spoilers again and reads the rules afresh.
-function W.open(pn, want)
+function W.open(pn, want, atContents)
     -- (the guide opened by any road ends the first-game bubble: nothing is left to offer)
     if ZeD.GuideBubble and ZeD.GuideBubble.done then ZeD.GuideBubble.done("opened") end
     W.spoil = {}
     W._rulesC = {}
-    if W.useBook() then return ZeD.GuideBook.open(pn or 0, want) end
+    if W.useBook() then return ZeD.GuideBook.open(pn or 0, want, atContents) end
     return W.openWindow(pn, want)
 end
 
@@ -1765,7 +1765,9 @@ function W.toggle(pn)
     if win and win:isReallyVisible() then win:close(); return end
     local B = ZeD.GuideBook
     if B and B.isOpen and B.isOpen(pn or 0) then B.close(pn or 0); return end
-    W.open(pn, W.contextTopicKey())
+    -- (KISS #61: with no tab topic to land on, the book opens on its contents)
+    local topic = W.contextTopicKey()
+    W.open(pn, topic, topic == nil)
 end
 
 --- Escape closes an open guide, window or book (ZeD.EscapeTakers); true when it took the key.

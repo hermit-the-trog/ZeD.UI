@@ -1995,7 +1995,7 @@ end
 -- ---------------------------------------------------------------------------
 --- Open player pn's book on a topic (an id, tostring of a SurvivalGuideEntry, or a title key), else at its first
 --- spread. The game pauses while it is open, and the game's "Game Paused" box is hidden.
-function B.open(pn, want)
+function B.open(pn, want, atContents)
     pn = pn or 0
     local bk = B.books[pn]
     if not bk then
@@ -2011,6 +2011,10 @@ function B.open(pn, want)
         local id = want
         if not bk.byId[id] then for _, t in ipairs(bk.flat) do if t.titleKey == want then id = t.id end end end
         if bk.byId[id] then bk:goToTopic(id) end
+    elseif atContents then
+        -- (KISS #61: F1 with no tab topic opens on the contents, not the copyright and title pages; the spread that
+        -- holds the contents' first page, as goToPage finds it, without the page-turn sound)
+        bk.spread = math.floor(((bk.contentsPage or 3) + 1) / 2)
     else
         bk.spread = 1
     end

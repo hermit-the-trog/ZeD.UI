@@ -34,6 +34,8 @@ local NOTE_PAD = 6
 
 -- paused: the game speed at 0 (the pause button, the pause menu, a mod's pause)
 function PL.on()
+    -- (KISS #51: the tour pauses the game itself while its balloons show; the windows it opens are not veiled for it)
+    if ZeD.Tutorial and ZeD.Tutorial.running and ZeD.Tutorial.running() == true then return false end
     local ok, sp = pcall(getGameSpeed)
     return ok and sp == 0 or false
 end
