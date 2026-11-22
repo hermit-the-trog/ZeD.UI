@@ -49,6 +49,9 @@
 --   (the save keeps an old hen house with a hen beside this square). Also said: what the campfire's own container
 --   holds as Take apart is confirmed (the game puts it all on the square), and, at the full fire, any kind of fuel in
 --   reach that was not at the first listing, with where it lies (the third run had 11 kinds there, the second 10).
+--   (Later the same day: that container holds the leftover of a fuel the game's add fuel used (a branch, an empty tin
+--   can), so exactly what it held is taken off at the put-back, or given back when it is the character's own; only
+--   anything else new on the square FAILs.)
 -- SAFETY (Nov 21 2026, the preflight; the same rule as bx_health.lua): the character must never die or stay hurt.
 --   God mode and invincible are put ON at the first step and stay on through the campfire and the fire scenes (the
 --   prelude's god mode is not relied on; when the game refuses it, outside -debug, nothing is lit and the run goes
@@ -324,6 +327,16 @@ function H.cfHolds()
         local items = H.campLua(S.cfSq):getIsoObject():getContainer():getItems()
         n = items:size()
         for i = 0, math.min(n, 6) - 1 do out[#out + 1] = tostring(items:get(i):getFullType()) end
+        -- (Nov 21 2026, the fourth run: the game's add fuel leaves a fuel's leftover in the campfire's own container (a
+        -- branch one run, an empty tin can the next) and Take apart puts the container on the square; what it holds now
+        -- is remembered, by thing and by kind, so the put-back takes exactly that off and FAILs on anything else)
+        S.cfHeld, S.cfHeldTypes = {}, {}
+        for i = 0, n - 1 do
+            local it = items:get(i)
+            S.cfHeld[it] = true
+            local ft = tostring(it:getFullType())
+            S.cfHeldTypes[ft] = (S.cfHeldTypes[ft] or 0) + 1
+        end
         read = true
     end)
     if not read then return "(its container could not be read)" end
@@ -415,14 +428,34 @@ function H.floorsBack()
                 if not f.objs[o] then
                     local name = at .. H.objName(o)
                     local fate = "left where it is"
-                    if S.touched[f.sq] and H.oursToTake(f.sq, o) then
+                    -- (what the campfire's own container held as Take apart was confirmed, put on its square by the
+                    -- game: the leftovers of the game's add fuel; taken off, or given back when it is the character's own)
+                    local gi = (f.sq == S.cfSq) and H.groundItem(o) or nil
+                    local held = false
+                    if gi and S.cfHeld then
+                        if S.cfHeld[gi] then held = true
+                        else
+                            local ft = tostring(gi:getFullType())
+                            if S.cfHeldTypes and (S.cfHeldTypes[ft] or 0) > 0 then S.cfHeldTypes[ft] = S.cfHeldTypes[ft] - 1; held = true end
+                        end
+                    end
+                    if held then
+                        H.takeOff(f.sq, o)
+                        if S.inv0[gi] then
+                            pcall(function() S.p:getInventory():AddItem(gi) end)
+                            fate = "the campfire's own leftover: given back to the character"
+                        else
+                            fate = "the campfire's own leftover: taken off"
+                        end
+                        S.tookOff[#S.tookOff + 1] = name .. " (" .. fate .. ")"
+                    elseif S.touched[f.sq] and H.oursToTake(f.sq, o) then
                         H.takeOff(f.sq, o)
                         S.tookOff[#S.tookOff + 1] = name
                         fate = "taken off"
                     else
                         S.strange[#S.strange + 1] = name .. (S.touched[f.sq] and " (not the script's to take)" or " (a square the script never touched)")
                     end
-                    if f.sq == S.cfSq then S.cfNew[#S.cfNew + 1] = name .. " (" .. fate .. ")" end
+                    if f.sq == S.cfSq and not held then S.cfNew[#S.cfNew + 1] = name .. " (" .. fate .. ")" end
                 end
             end
             for o, _ in pairs(f.objs) do
@@ -1890,7 +1923,7 @@ Q.step(2, function()
     -- (the campfire's square on its own: nothing may stay on it, taken off or not; the watch says when it came)
     if S.cfSq then
         local cfNew, came = S.cfNew or { "(the put-back's floor pass never ran)" }, S.cfCame or {}
-        Q.check(#cfNew == 0, "put back: the campfire's square holds only what it held before the campfire (the game's Take apart leaves it bare)",
+        Q.check(#cfNew == 0, "put back: the campfire's square holds only what it held before the campfire (Take apart leaves only its own container's things, taken off)",
             (#cfNew > 0 and table.concat(cfNew, "; ") or "nothing new") .. "; the watch saw come: " .. (#came > 0 and table.concat(came, "; ") or "nothing"))
     end
     Q.check(S.floorDiff == 0, "put back: the floors within 5 tiles are as found",
