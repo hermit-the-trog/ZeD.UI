@@ -13,8 +13,10 @@
 --      frame and then every frame for forty frames; a trip (the note), a second trip, a screen switched while
 --      tripped, the windows asked for while tripped, the option On and Off (which clears the trip); each time ZeD
 --      comes back as at the start.
---   3. LITE AND FULL flipped sixteen times two frames apart with tabs turning; then Lite (ZeD.Settings.lite(), the
---      additions on the Vanilla preset) and Full.
+--   3. LITE AND FULL flipped sixteen times two frames apart with tabs turning; then Lite picked the way ZeD setup
+--      picks it (ZeD.Settings.lite(); the additions' controls on the Vanilla preset and nothing stored until Apply,
+--      Build's W35), Lite the way the Select wheel picks it (ZeD.Settings.liteAdditions: the stored additions on the
+--      Vanilla preset at once), and Full (the additions' controls back as before Lite, Build's B6-4).
 --   4. THE KEYBOARD MAP opened and closed ten times in one frame; open: scrolled past both ends, a key cap clicked
 --      twice, an action set to wait for its key and answered with Escape (no key changes), closed while waiting,
 --      Escape from anywhere twice, the theme and text size changed under it. No binding is ever set.
@@ -23,10 +25,15 @@
 --      Back (asks), Escape, Back, Discard; opened and closed five times in one frame. Nothing is applied.
 --   6. THE CARD'S ITEM GONE: the pencil is removed while its card shows; the card must let go of it.
 -- What it puts back: every ZeD option's value (each one compared with the value read at the start, a check each),
+-- the options screen's held picks forgotten as its Discard does (ZeD.Settings.forgetHeldCustom),
 -- the theme, scale and look on screen, the character's copies (ZeD_Theme, ZeD_Gamepad, the windows' accents),
 -- ModOptions.ini line for line when anything wrote it, safe mode off and its trip file emptied, the keyboard map
 -- shut and the game's keys on, the pause menu shut, the windows where and as they were, the pencil taken back,
 -- game speed 1. It never applies Options (the game's options.ini is not written) and never sets a key.
+-- The character (Nov 21 2026, after the second run): nothing here hurts him, but the game plays through every part,
+-- so god mode and invincible are ON from the first step and stay ON when the script ends (never turned off here);
+-- the put-back heals him if anything is wrong (RestoreToFullHealth, no argument) and prints "put back: the character
+-- is alive and whole" as a PASS or a FAIL.
 if not (RT and ZeD and ZeD.Settings and ZeD.Safe) then
     print("ZEDQA bx_opt FAIL the kit (rt_kit.lua) or ZeD's settings and safe mode are not loaded")
     print("ZEDQA bx_opt VERDICT FAIL 1")
@@ -104,6 +111,75 @@ function H.few(list, n)
     return table.concat(out, "; ")
 end
 function H.note(s) if #S.bad < 40 then S.bad[#S.bad + 1] = s end end
+-- the character as the game has him now (the kit's RT.p is read once, when the kit loads)
+function H.me()
+    local p = nil
+    pcall(function() p = getSpecificPlayer(S.pn) end)
+    return p or S.p
+end
+-- what is wrong with him (an empty list: alive and whole), and his overall health. Never throws: a part of him that
+-- cannot be read counts as wrong. (Java calls checked with javap, 42.22: IsoGameCharacter isGodMod(), setGodMod(boolean),
+-- isInvincible(), setInvincible(boolean), isDead(), getBodyDamage(); BodyDamage getOverallBodyHealth(), IsInfected(),
+-- getBodyParts(), RestoreToFullHealth(), setInfected(boolean), setIsFakeInfected(boolean), setOverallBodyHealth(float);
+-- BodyPart HasInjury(), bleeding(), bitten(), scratched(), isCut(), deepWounded(), haveBullet(), haveGlass(),
+-- getBurnTime(), isInfectedWound(), getFractureTime(), RestoreToFullHealth())
+function H.hurt()
+    local p = H.me()
+    local bad = {}
+    local dead = true
+    pcall(function() dead = p:isDead() end)
+    if dead then bad[#bad + 1] = "dead" end
+    local bd = nil
+    pcall(function() bd = p:getBodyDamage() end)
+    if not bd then bad[#bad + 1] = "his body cannot be read"; return bad, nil end
+    local overall = nil
+    pcall(function() overall = bd:getOverallBodyHealth() end)
+    if not (overall and overall >= 99.5) then bad[#bad + 1] = "health " .. tostring(overall) end
+    local inf = nil
+    pcall(function() inf = bd:IsInfected() end)
+    if inf ~= false then bad[#bad + 1] = "infected " .. tostring(inf) end
+    local wounds, breaks, n = 0, 0, 0
+    local okP = pcall(function()
+        local parts = bd:getBodyParts()
+        n = parts:size()
+        for i = 0, n - 1 do
+            local b = parts:get(i)
+            local w, f = true, true
+            pcall(function()
+                w = b:HasInjury() or b:bleeding() or b:bitten() or b:scratched() or b:isCut() or b:deepWounded()
+                    or b:haveBullet() or b:haveGlass() or b:getBurnTime() > 0 or b:isInfectedWound()
+            end)
+            pcall(function() f = b:getFractureTime() > 0 end)
+            if w then wounds = wounds + 1 end
+            if f then breaks = breaks + 1 end
+        end
+    end)
+    if not (okP and n > 0) then bad[#bad + 1] = "his body parts cannot be read" end
+    if wounds > 0 then bad[#bad + 1] = wounds .. " wounded part(s)" end
+    if breaks > 0 then bad[#bad + 1] = breaks .. " fracture(s)" end
+    return bad, overall
+end
+-- every part and the whole body healed (the restores take no argument; the three setters take one)
+function H.heal()
+    local bd = nil
+    pcall(function() bd = H.me():getBodyDamage() end)
+    if not bd then return end
+    pcall(function()
+        local parts = bd:getBodyParts()
+        for i = 0, parts:size() - 1 do
+            local b = parts:get(i)
+            pcall(function() b:RestoreToFullHealth() end)
+        end
+    end)
+    pcall(function() bd:RestoreToFullHealth() end)
+    pcall(function() bd:setInfected(false) end)
+    pcall(function() bd:setIsFakeInfected(false) end)
+    pcall(function() bd:setOverallBodyHealth(100) end)
+end
+function H.keepSafe()
+    pcall(function() H.me():setGodMod(true) end)
+    pcall(function() H.me():setInvincible(true) end)
+end
 
 -- ===================================================================== helpers: ZeD's options
 function H.opts() local zo = nil; pcall(function() zo = PZAPI.ModOptions:getOptions("ZeD_UI") end); return zo end
@@ -114,6 +190,14 @@ function H.get(o)
     return v
 end
 function H.val(id) local o = H.opt(id); return o and H.get(o) or nil end
+-- the pick showing on an option's control (the options screen keeps it there until Apply), else the stored value
+function H.live(id)
+    local o = H.opt(id)
+    if not o then return nil end
+    local el = o.element
+    if o.type == "combobox" and el and el.selected ~= nil then return el.selected end
+    return H.get(o)
+end
 -- the values an option can take: a list's items, a tick box's two, a slider's ends and two steps inside
 function H.values(o)
     local out = {}
@@ -455,8 +539,17 @@ end
 -- ===================================================================== 0. as found
 Q.step(5, function()
     if ZEDQA_HOME then pcall(ZEDQA_HOME, "bx_opt") end
+    -- the character kept safe for the whole run and after it: the game plays through every part, so god mode and
+    -- invincible are ON from here and never turned off by this script (the put-back's last step reads him)
+    S.safe = {}
+    pcall(function() S.safe.god = H.me():isGodMod() end)
+    pcall(function() S.safe.inv = H.me():isInvincible() end)
+    H.keepSafe()
+    local bad0 = H.hurt()
+    S.safe.bad0 = table.concat(bad0, ", ")
+    if #bad0 > 0 then Q.say("note: the character came to this script not whole: " .. S.safe.bad0) end
     S.dead = false
-    pcall(function() S.dead = S.p:isDead() end)
+    pcall(function() S.dead = H.me():isDead() end)
     S.err0 = H.errs()
     S.errAll0 = S.err0
     S.speed0 = getGameSpeed()
@@ -790,11 +883,43 @@ end)
 Q.waitFor(10, 600, H.settled, function(ok)
     if not S.lookOpt then return end
     local P1 = St.ADDITION_PRESETS and St.ADDITION_PRESETS[1]
-    local off = {}
-    for id, v in pairs(P1 or {}) do if H.opt(id) and H.val(id) ~= v then off[#off + 1] = id .. "=" .. tostring(H.val(id)) end end
     Q.check(ok and St.lite() == true and H.val("lookStyle") == 2, "Lite picked: ZeD.Settings.lite() is true, the windows open", tostring(H.val("lookStyle")))
-    if P1 then Q.check(#off == 0, "Lite picked: every addition is on the Vanilla preset", table.concat(off, " "))
-    else Q.skip("Lite picked: every addition is on the Vanilla preset", "ZeD.Settings.ADDITION_PRESETS is not there to read") end
+    -- (Build's W35, 1cea31b69: Lite picked on the options screens sets the additions' CONTROLS to the Vanilla preset;
+    -- the stored values wait for Apply, which commits every control, so Discard can bring them back. The Select wheel
+    -- saves at once and calls ZeD.Settings.liteAdditions, which puts the Vanilla preset onto the stored values.)
+    if P1 then
+        local off, moved, nCtl, nAdd = {}, {}, 0, 0
+        for id, v in pairs(P1) do
+            local o = H.opt(id)
+            if o then
+                nAdd = nAdd + 1
+                if H.live(id) ~= v then off[#off + 1] = id .. "=" .. tostring(H.live(id)) end
+                if o.element then
+                    nCtl = nCtl + 1
+                    if H.get(o) ~= S.opt0[id] then moved[#moved + 1] = id .. "=" .. tostring(H.get(o)) .. " (was " .. tostring(S.opt0[id]) .. ")" end
+                end
+            end
+        end
+        S.liteCtl = nCtl
+        Q.check(nAdd > 0 and #off == 0, "Lite picked: every addition's control is on the Vanilla preset (what Apply saves)",
+            (#off > 0) and table.concat(off, " ") or (nAdd .. " additions, " .. nCtl .. " with a control on the options screen"))
+        if nCtl > 0 then
+            Q.check(#moved == 0, "Lite picked on the options screen: the stored additions wait for Apply, as found (W35: Discard brings them back)",
+                (#moved > 0) and table.concat(moved, " ") or (nCtl .. " read"))
+        else
+            Q.skip("Lite picked on the options screen: the stored additions wait for Apply, as found", "no options screen is built in this game, so a pick writes the option itself")
+        end
+        -- Lite the way the Select wheel picks it (its callback is ZeD.Settings.liteAdditions; the put-back of this part
+        -- sets every addition back as found)
+        local okw, errw = false, "ZeD.Settings.liteAdditions is not there"
+        if St.liteAdditions then okw, errw = pcall(St.liteAdditions) end
+        local offS = {}
+        for id, v in pairs(P1) do if H.opt(id) and H.val(id) ~= v then offS[#offS + 1] = id .. "=" .. tostring(H.val(id)) end end
+        Q.check(okw and nAdd > 0 and #offS == 0, "Lite picked on the Select wheel (liteAdditions): every stored addition is on the Vanilla preset",
+            (not okw) and tostring(errw) or ((#offS > 0) and table.concat(offS, " ") or (nAdd .. " additions read")))
+    else
+        Q.skip("Lite picked: the additions' controls, the stored additions and the Select wheel's Lite", "ZeD.Settings.ADDITION_PRESETS is not there to read")
+    end
     RT.bounds(Q, "Lite")
     H.cardWanted()
     H.turnTabs()
@@ -807,6 +932,19 @@ end)
 Q.waitFor(10, 600, H.settled, function(ok)
     if not S.lookOpt then return end
     Q.check(ok and St.lite() == false and H.val("lookStyle") == 1, "Full picked: ZeD.Settings.lite() is false, the windows open", tostring(H.val("lookStyle")))
+    -- (Build's B6-4, 4f790e78d: Full picked again puts the additions' controls back as they were before Lite, so an
+    -- Apply pressed later for anything else does not save every addition Off)
+    local P1 = St.ADDITION_PRESETS and St.ADDITION_PRESETS[1]
+    if P1 and (S.liteCtl or 0) > 0 then
+        local notBack = {}
+        for id in pairs(P1) do
+            local o = H.opt(id)
+            if o and o.element and H.live(id) ~= S.opt0[id] then notBack[#notBack + 1] = id .. "=" .. tostring(H.live(id)) .. " (was " .. tostring(S.opt0[id]) .. ")" end
+        end
+        Q.check(#notBack == 0, "Full picked again: the additions' controls are back as before Lite", #notBack > 0 and table.concat(notBack, " ") or (S.liteCtl .. " controls read"))
+    else
+        Q.skip("Full picked again: the additions' controls are back as before Lite", "no additions control on an options screen to read")
+    end
     RT.bounds(Q, "Full")
     H.restoreOne(S.lookOpt)
 end)
@@ -1121,6 +1259,14 @@ end)
 
 -- ===================================================================== put back
 Q.mark()
+-- the character first, in a step of its own (a fault in the steps below cannot skip it): healed if anything is wrong
+Q.step(2, function()
+    H.keepSafe()
+    local bad = H.hurt()
+    S.safe = S.safe or {}
+    S.safe.badEnd = table.concat(bad, ", ")
+    if #bad > 0 then H.heal() end
+end)
 Q.step(5, function()
     if S.faultWas and Sf.fault ~= S.faultWas then Sf.fault = S.faultWas end
     S.faultWas = nil
@@ -1154,6 +1300,9 @@ Q.step(5, function()
         if o and S.opt0[id] ~= nil and H.get(o) ~= S.opt0[id] then pcall(function() H.pick(o, S.opt0[id]) end) end
     end
     pcall(H.putOptions)
+    -- the options screen's held picks forgotten, as its Discard does (Settings.lua: the hand picks kept for Custom while
+    -- a preset is tried, and the additions Lite kept for Full, B6-4): every pick here was a screen pick never applied
+    pcall(function() if St.forgetHeldCustom then St.forgetHeldCustom() end end)
     pcall(Sf.reread)
     pcall(H.putLook)
     S.bad = {}
@@ -1235,5 +1384,25 @@ Q.step(5, function()
     local e = H.errs()
     if S.errAll0 and e then Q.check(e == S.errAll0, "the whole run: no Lua error", (e - S.errAll0) .. " new") end
     Q.check(S.nFaults == 0, "the whole run: no guarded fault reached safe mode's watchdog", S.nFaults .. " faults")
+end)
+-- the character, last and in a step of its own: healed once more if need be (BodyDamage and every part
+-- RestoreToFullHealth(), no argument), read, and god mode and invincible left ON (the world stays live after this script)
+Q.step(2, function()
+    local sf = S.safe or {}
+    H.keepSafe()
+    local bad, overall = H.hurt()
+    if #bad > 0 then
+        H.heal()
+        sf.badEnd = ((sf.badEnd and sf.badEnd ~= "") and (sf.badEnd .. "; then ") or "") .. table.concat(bad, ", ")
+        bad, overall = H.hurt()
+    end
+    local came = (sf.bad0 and sf.bad0 ~= "") and (", he came to this script with: " .. sf.bad0) or ""
+    Q.check(#bad == 0, "put back: the character is alive and whole (health 100, no wound, no fracture, not infected)",
+        (#bad == 0) and ("health " .. tostring(overall) .. ((sf.badEnd and sf.badEnd ~= "") and (", healed here (RestoreToFullHealth) from: " .. sf.badEnd) or ", whole when the put-back began, no heal needed") .. came)
+            or (table.concat(bad, ", ") .. " after the heal" .. came))
+    local god, inv = nil, nil
+    pcall(function() god = H.me():isGodMod() end)
+    pcall(function() inv = H.me():isInvincible() end)
+    Q.say("god mode " .. tostring(sf.god) .. " -> " .. tostring(god) .. ", invincible " .. tostring(sf.inv) .. " -> " .. tostring(inv) .. " (left ON)")
 end)
 Q.start()

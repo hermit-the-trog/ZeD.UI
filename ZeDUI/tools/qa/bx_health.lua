@@ -172,7 +172,8 @@ function X.healAll()
         pcall(function() b:RestoreToFullHealth() end)
         pcall(function() b:SetHealth(100) end)
     end
-    pcall(function() bd:RestoreToFullHealth() end)
+    -- (S.fullHeal: the game's own full heal ran without an error; the put-back's PASS/FAIL line says so)
+    S.fullHeal = pcall(function() bd:RestoreToFullHealth() end)
     pcall(function() bd:setInfected(false) end)
     pcall(function() bd:setIsFakeInfected(false) end)
     pcall(function() bd:setInfectionTime(-1) end)
@@ -649,7 +650,9 @@ X.treat("deep wound", "ContextMenu_Stitch", function(b) return b:stitched() end,
 X.treat("fracture", "ContextMenu_Splint", function(b) return b:getSplintFactor() > 0 end, "IGUI_health_Splinted", getText("IGUI_health_Fracture"))
 X.treat("bullet", "ContextMenu_Remove_Bullet", function(b) return not b:haveBullet() end, nil, getText("IGUI_health_LodgedBullet"))
 X.treat("glass", "ContextMenu_Remove_Glass", function(b) return not b:haveGlass() end, nil, ZeD.tr("UI_ZeD_Health_GlassShards"))
-X.treat("burn", "ContextMenu_Clean_Burn", function(b) return not b:isNeedBurnWash() end, nil, nil)
+-- (Nov 21 2026 review: the burn passed with the row still 'Burn (Need Cleaning)' one frame after the cleaning, as
+-- nothing was asked of the tab. Vanilla's panel and ZeD's tab both drop 'Need Cleaning' once the game's flag is off.)
+X.treat("burn", "ContextMenu_Clean_Burn", function(b) return not b:isNeedBurnWash() end, nil, ZeD.tr("IGUI_health_NeedCleaning"))
 X.treat("bite", "ContextMenu_Bandage", function(b) return b:bandaged() end, "IGUI_health_Bandaged", nil)
 -- 3e. the bleeding groin through the wheel's Medicine list
 Q.step(4, function()
@@ -715,8 +718,31 @@ end
 Q.step(4, function()
     local c = X.case("bite")
     Q.check(bd:IsInfected() == false, "the bite was kept as a wound only: the game says not infected", "infection level " .. tostring(st:get(CharacterStat.ZOMBIE_INFECTION)))
+    -- (Nov 21 2026, second run: this asked for the word Bitten on the BANDAGED hand and failed. The game's own
+    -- BodyPart.setBandaged(true, ...) lowers the part's bitten, scratched, cut, deep wound and bleeding flags and keeps
+    -- only their clocks; vanilla's health panel reads the same flags and says only Bandaged. So under the bandage the
+    -- tab must say what the game says; the bandage taken off, the game raises the bite again from its clock and the
+    -- tab must name it again.)
     local d = X.fresh()
-    if d and not c.off then Q.check(X.hasLabel(X.entry(d, c.list), X.word("IGUI_health_Bitten")), "the bitten hand is still named Bitten", X.labels(X.entry(d, c.list))) end
+    if d and not c.off then
+        local b = X.part(c)
+        Q.check(X.hasLabel(X.entry(d, c.list), X.word("IGUI_health_Bitten")) == b:bitten(), "the bitten hand: the tab says Bitten only when the game does",
+            "row: " .. X.labels(X.entry(d, c.list)) .. "; the game: bitten " .. tostring(b:bitten()) .. ", bandaged " .. tostring(b:bandaged()) .. ", bite clock " .. string.format("%.1f", b:getBiteTime()))
+        if b:bandaged() then pcall(function() b:setBandaged(false, 0) end) end
+        pcall(X.noInfection)
+        S.biteBack = b:bitten()
+        if not S.biteBack then Q.skip("the bandage off the bitten hand", "the game did not raise the bite again (bite clock " .. string.format("%.1f", b:getBiteTime()) .. ")") end
+    end
+end)
+X.untilMs(1500, function() return not S.biteBack or X.shownHas(X.case("bite"), X.word("IGUI_health_Bitten")) end, function(ok)
+    if not S.biteBack then return end
+    S.biteShown = ok
+    local e = X.entry(X.shown(), "Right Hand")
+    Q.check(ok, "the bandage off the bitten hand: the tab names it Bitten again", "row: " .. X.labels(e))
+    Q.check(not X.hasLabel(e, X.word("IGUI_health_Bandaged")), "and it no longer says Bandaged", "row: " .. X.labels(e))
+end)
+Q.step(2, function()
+    local c = X.case("bite")
     -- (SetBitten(false) FIRST: the game's SetBitten sets the part infected whatever its argument; the infection comes
     -- off after it, in this same call, before the game's next update can copy it to the body)
     pcall(function() local b = X.part(c); b:SetBitten(false); b:SetInfected(false); b:SetFakeInfected(false); b:setBiteTime(0); b:setBandaged(false, 0) end)
@@ -725,6 +751,9 @@ Q.step(4, function()
         "bitten " .. tostring(X.part(c):bitten()) .. ", infected " .. tostring(X.part(c):IsInfected()))
 end)
 X.untilMs(1500, function() return not X.shownHas(X.case("bite"), X.word("IGUI_health_Bitten")) end, function(ok)
+    -- (Nov 21 2026 review: only when the tab named the bite just before the cure. In the second run the hand was
+    -- still bandaged here, the tab had never said Bitten, and this passed on its first look whatever the tab did.)
+    if not S.biteShown then Q.skip("cured: the tab drops Bitten from the hand", "the tab did not name the bite before the cure"); return end
     Q.check(ok, "cured: the tab drops Bitten from the hand", X.labels(X.entry(X.shown(), "Right Hand")))
 end)
 Q.step(2, function()
@@ -938,13 +967,16 @@ function X.sleepUI()
     pcall(function() ui = getPlayerData(pn).sleepingUI end)
     return ui
 end
--- press Yes on the game's sleep question; save() is a no-op for the press (falling asleep saves the game)
+-- press Yes on the game's sleep question; save() is a no-op for the press (falling asleep saves the game). The third
+-- value says whether there was a question to press: with none, the game's onConfirmSleep is called directly so the
+-- scene can go on, and the caller's check FAILS (the wheel's Sleep raised no question).
 function X.confirmSleep(bed)
     local d = ISWorldObjectContextMenu.sleepDialog
+    local asked = (d ~= nil and d.yes ~= nil) and true or false
     local realSave = save
     save = function() end
     local ok, err = pcall(function()
-        if d and d.yes then d:onClick(d.yes)
+        if asked then d:onClick(d.yes)
         else
             if d then d:destroy() end
             ISWorldObjectContextMenu.sleepDialog = nil
@@ -952,7 +984,13 @@ function X.confirmSleep(bed)
         end
     end)
     save = realSave
-    return ok, err
+    return ok, err, asked
+end
+-- what the press did, for the check's line
+function X.confirmDetail(ok, err, asked)
+    if not asked then return "no question was up: the game's onConfirmSleep was called directly" end
+    if not ok then return tostring(err) end
+    return "the question's own Yes pressed"
 end
 function X.wake()
     pcall(function() getSleepingEvent():wakeUp(p) end)
@@ -1047,15 +1085,36 @@ X.untilMs(4000, function() if S.noWheel then return true end; local ok, r = pcal
     local ok1, e1 = pcall(r.run, p, pn)
     local ok2, e2 = pcall(r.run, p, pn)
     Q.check(ok1 and ok2, "Sleep pressed twice raises nothing", tostring(e1) .. " " .. tostring(e2))
-    local n = 0
-    for _, root in ipairs(RT.roots()) do if root.t and root.t == ISWorldObjectContextMenu.sleepDialog then n = n + 1 end end
-    Q.check(ISWorldObjectContextMenu.sleepDialog ~= nil and n == 1, "and the game asks once", n .. " questions up")
+    -- (Nov 21 2026, second run: the question was counted here, in the frame of the presses, and came to 0. The game's
+    -- UIManager.AddUI only queues a new window; it is on the screen's list after the next UI update. So: the game has
+    -- its question now, and the count waits until it is listed.)
+    S.asked = ISWorldObjectContextMenu.sleepDialog
+    Q.check(S.asked ~= nil, "and the game has its sleep question", tostring(S.asked ~= nil))
+end)
+-- every sleep question on screen (any window whose answer goes to the game's onConfirmSleep), and is the game's own
+-- one among them
+function X.sleepQuestions()
+    local n, own = 0, false
+    for _, root in ipairs(RT.roots()) do
+        local vis = false
+        pcall(function() vis = root.e:isVisible() end)
+        if vis and type(root.t) == "table" and root.t.onclick ~= nil and root.t.onclick == ISWorldObjectContextMenu.onConfirmSleep then
+            n = n + 1
+            if root.t == ISWorldObjectContextMenu.sleepDialog then own = true end
+        end
+    end
+    return n, own
+end
+X.untilMs(2000, function() return not S.canSleep or X.sleepQuestions() >= 1 end, function()
+    if not S.canSleep then return end
+    local n, own = X.sleepQuestions()
+    Q.check(n == 1 and own, "and it asks once for the two presses", n .. " question(s) up, the game's own one among them " .. tostring(own))
     RT.bounds(Q, "the sleep question up")
 end)
 Q.step(10, function()
     if not S.canSleep then return end
-    local ok, err = X.confirmSleep(nil)
-    Q.check(ok, "Yes on the sleep question", err)
+    local ok, err, asked = X.confirmSleep(nil)
+    Q.check(ok and asked, "Yes on the sleep question", X.confirmDetail(ok, err, asked))
 end)
 function X.asleepChecks(label)
     X.untilMs(5000, function() return not S.canSleep or p:isAsleep() end, function(ok)
@@ -1168,6 +1227,11 @@ function X.seatScene(label, prefixes, dy, wantBed, sleepToo)
         local okN, seat = pcall(DH.nearestSeat, p)
         Q.check(okN and seat == t.o, label .. ": the wheel's nearest seat is the one placed", tostring(seat))
         local sl = X.sitSlices()
+        -- (the seat's name is ISWorldObjectContextMenu.getMoveableDisplayName: the game has no global of that name)
+        local nm = nil
+        pcall(function() nm = ISWorldObjectContextMenu.getMoveableDisplayName(t.o) end)
+        if sl and sl[2] and nm then Q.check(X.has(sl[2].name, nm), label .. ": the wheel's seat slice names the seat", tostring(sl[2].name) .. " vs " .. tostring(nm))
+        elseif sl and sl[2] then Q.skip(label .. ": the wheel's seat slice names the seat", "the game has no name for this seat; the slice says " .. tostring(sl[2].name)) end
         t.run = sl and sl[2] and sl[2].run
         if not t.run then Q.skip(label .. ": sat on", "the wheel's seat slice is off: " .. tostring(sl and sl[2] and sl[2].off)); return end
         local ok, err = pcall(t.run, p, pn)
@@ -1187,8 +1251,11 @@ function X.seatScene(label, prefixes, dy, wantBed, sleepToo)
         if not t.sat then S.canSleep = false; return end
         local r = X.sleepSlice()
         local name = nil
-        pcall(function() name = getMoveableDisplayName(p:getSitOnFurnitureObject()) end)
-        if ok and r then Q.check(name == nil or r.detail == name, label .. ": the sleep slice names the seat", tostring(r.detail) .. " vs " .. tostring(name))
+        -- (Nov 21 2026, second run: a bare getMoveableDisplayName(...) here called nil, two Java exceptions in the log,
+        -- and left name nil, so the check below passed whatever the slice said)
+        pcall(function() name = ISWorldObjectContextMenu.getMoveableDisplayName(p:getSitOnFurnitureObject()) end)
+        if ok and r and name == nil then Q.skip(label .. ": the sleep slice names the seat", "the game has no name for this seat; the slice says " .. tostring(r.detail))
+        elseif ok and r then Q.check(r.detail == name, label .. ": the sleep slice names the seat", tostring(r.detail) .. " vs " .. tostring(name))
         else Q.skip(label .. ": the sleep slice names the seat", "the slice is off: " .. tostring(r and r.off)) end
         S.canSleep = (sleepToo and ok and r and r.run ~= nil) and true or false
         S.slept = false
@@ -1200,8 +1267,8 @@ function X.seatScene(label, prefixes, dy, wantBed, sleepToo)
     if sleepToo then
         Q.step(10, function()
             if not S.canSleep then return end
-            local ok, err = X.confirmSleep(t.o)
-            Q.check(ok, label .. ": Yes on the sleep question", err)
+            local ok, err, asked = X.confirmSleep(t.o)
+            Q.check(ok and asked, label .. ": Yes on the sleep question", X.confirmDetail(ok, err, asked))
         end)
         X.asleepChecks(label)
         Q.step(1, function() if S.slept then Q.say(label .. ": slept with bed type " .. tostring(p:getBedType())) end end)
@@ -1270,7 +1337,8 @@ X.untilMs(4000, function() return X.bodyClean() end, function()
         ok, why = X.bodyClean()
     end
     S.healed = ok
-    Q.check(ok, "put back: the character is alive and healed (health 100, no wound on any part, no fracture, not infected)", why)
+    Q.check(ok and S.fullHeal == true, "put back: the character is alive and healed by the game's full heal, BodyDamage:RestoreToFullHealth() (health 100, no wound on any part, no fracture, not infected)",
+        why .. "; the full heal ran " .. tostring(S.fullHeal))
     Q.say("the guard topped his health up " .. tostring(S.topUps or 0) .. " time(s) in the run")
 end)
 Q.step(4, function()

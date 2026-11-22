@@ -17,7 +17,7 @@
 --      by a resting pointer and every submenu row hovered (the player's report: a submenu drawn over its parent reset
 --      when hovered), once with the submenu laid over its parent as a narrow screen places it;
 --   6. 30 quick right-clicks in a row (two in one frame, a second click over an open menu, five ways to close);
---   7. the keyboard and the pad in both styles, 300 random navigation presses, a wheel spun for 45 frames;
+--   7. the keyboard and the pad in both styles, 300 random navigation presses, a wheel spun for 45 frames each way;
 --   8. menus opened by the pad; a right-click during a timed action; a right-click while dragging; walking away.
 -- Everything is put back: items, placed objects, the corpse, the car, the hen, the setting, the hands, the place.
 -- Safety: god mode and invincible are ON for the whole run (a zombie is made for the corpse, he stands in the open and
@@ -1490,38 +1490,72 @@ function H.stressEnd(sname)
     end
     Q.check(m ~= nil and not X.bad and not S.drawErr and settled, sname .. ": 300 random presses (keys, pad, wheel, pages, groups, submenus in and out) leave the menu whole", d)
 end
--- the wheel turned a notch a frame for 45 frames, then let go (the strip scrolls a looping track of three copies)
+-- the wheel turned a notch a frame for 45 frames, then let go, once down and once up (the strip scrolls a looping
+-- track of three copies). Each spin is watched from its third frame until half a second after its last notch, when
+-- the strip is at rest. (Nov 21 2026, the second run's review: the count used to stop 3 frames after the last notch.
+-- The committed code's blank strip comes later: after the wheel the strip slides on past the end of its track and
+-- shows no cells until the settle, from about 50 to 250 ms after the last notch, so the check passed on that code at
+-- the 64 and 90 frames a second of these runs. A wheel rolled up runs off the other end of the track: both ways turn.)
+S.SPIN_N, S.SPIN_REST = 45, 500
+function H.spinStart(m, dir)
+    H.stripTop(m)
+    return { dir = dir, f = 0, min = 999 }
+end
 function H.spinTick()
     local m = H.menu()
     local B = S.B
     if not (m and not m._levels and m._ctx.open) or S.drawErr then return true end
     if not m._ctx.truncating then B.skip = true; return true end
-    B.f = B.f + 1
-    if B.f > 2 then
+    local R = B[#B]
+    R.f = R.f + 1
+    if R.f > 2 then
         local n = H.cellsShown(m)
-        if n < B.min then B.min, B.at, B.pos = n, B.f, m._ctx.pos end
+        if n < R.min then
+            R.min, R.at, R.pos = n, R.f, m._ctx.pos
+            R.after = (R.f > S.SPIN_N) and (getTimestampMs() - R.lastMs) or nil
+            -- how far the drawn strip is from the place it is sliding to, in cells (Nov 21 2026, the second run: a
+            -- notch every drawn frame restarts the slide each frame, so the view stands still while the place runs on,
+            -- and each trip round the track then carries the still view a whole copy further out: 0 of 10 cells)
+            local stepW = ZeD.T.ctx.cellW + ZeD.T.ctx.gap
+            if stepW > 0 then R.lag = ((m._animToOriginX or 0) - (m._currentOriginX or 0)) / stepW end
+        end
     end
-    if B.f <= 45 then m:onMouseWheel(1) end
-    return B.f >= 48
+    if R.f <= S.SPIN_N then
+        m:onMouseWheel(R.dir)
+        R.lastMs = getTimestampMs()
+        return false
+    end
+    if R.f < S.SPIN_N + 3 or getTimestampMs() - R.lastMs < S.SPIN_REST then return false end
+    -- half a second after the last notch: the strip at rest; then the same spin up
+    R.restShown, R.restPos = H.cellsShown(m), m._ctx.pos
+    if #B < 2 then B[#B + 1] = H.spinStart(m, -1); return false end
+    return true
+end
+function H.spinWords(R, V)
+    if not (R and R.at) then return "not spun" end
+    return "fewest cells in the strip's box " .. R.min .. " of " .. V .. " (frame " .. R.at .. " of the spin, "
+        .. (R.after and ("about " .. R.after .. " ms after the last notch") or "while it turned") .. ", carousel place " .. tostring(R.pos)
+        .. (R.lag and string.format(", the drawn strip %.1f cells from where it is sliding to", R.lag) or "") .. ")"
+end
+function H.restWords(R, V, N)
+    if not (R and R.restShown) then return "not read (the spin did not come to rest in the frames allowed)" end
+    return R.restShown .. " cells of " .. V .. ", carousel place " .. tostring(R.restPos) .. " of " .. N
 end
 function H.spinEnd()
     local m = H.menu()
     local B = S.B
-    if B.skip then Q.skip("strip: the wheel spun for 45 frames never empties the strip", "this menu fits the strip (10 cells or fewer), nothing scrolls"); return end
+    local what = "strip: the wheel spun a notch a frame for 45 frames, down and then up, never leaves cells missing from the strip, while it turns or comes to rest"
+    if B.skip then Q.skip(what, "this menu fits the strip (10 cells or fewer), nothing scrolls"); return end
     if not (m and m._ctx.open) then Q.check(false, "strip: the strip is still open after the wheel"); return end
-    local V = math.min(#m._ctx.items, ZeD.T.ctx.maxVisible)
-    Q.check(B.min >= V and not S.drawErr, "strip: the wheel spun a notch a frame for 45 frames never leaves cells missing from the strip",
-        "fewest cells in the strip's box: " .. B.min .. " of " .. V .. (B.at and (" (frame " .. B.at .. " of the spin, carousel place " .. tostring(B.pos) .. ", its track holds " .. (3 * #m._ctx.items) .. " cells)") or "") .. (S.drawErr and ("; " .. S.drawErr) or ""))
-end
-function H.spinRest()
-    local m = H.menu()
-    if S.B.skip or not (m and m._ctx.open) then return end
-    local c = m._ctx
-    local N = #c.items
+    local N = #m._ctx.items
     local V = math.min(N, ZeD.T.ctx.maxVisible)
-    local shown = H.cellsShown(m)
-    Q.check(shown >= V and c.pos >= N + 1 and c.pos <= 2 * N, "strip: half a second after the wheel stops the strip is whole again",
-        shown .. " cells of " .. V .. ", carousel place " .. tostring(c.pos) .. " of " .. N)
+    local down, up = B[1], B[2]
+    Q.check(down ~= nil and up ~= nil and down.at ~= nil and up.at ~= nil and down.min >= V and up.min >= V and not S.drawErr, what,
+        "down: " .. H.spinWords(down, V) .. "; up: " .. H.spinWords(up, V) .. "; its track holds " .. (3 * N) .. " cells" .. (S.drawErr and ("; " .. S.drawErr) or ""))
+    local okD = down ~= nil and down.restShown ~= nil and down.restShown >= V and down.restPos >= N + 1 and down.restPos <= 2 * N
+    local okU = up ~= nil and up.restShown ~= nil and up.restShown >= V and up.restPos >= N + 1 and up.restPos <= 2 * N
+    Q.check(okD and okU, "strip: half a second after the wheel stops the strip is whole again",
+        "down: " .. H.restWords(down, V, N) .. "; up: " .. H.restWords(up, V, N))
 end
 function H.keySeq(style)
     local sname = (style == 2) and "list" or "strip"
@@ -1550,10 +1584,9 @@ function H.keySeq(style)
     Q.waitMs(450)
     step(2, function() if S.live then H.stressEnd(sname) end end)
     if style == 1 then
-        step(1, function() if S.live and H.menu() then H.stripTop(H.menu()); S.B = { f = 0, min = 999 } end end)
-        waitFor(2, 80, function() return not S.live or not S.B or H.spinTick() end, function() if S.live and S.B then H.spinEnd() end end)
-        Q.waitMs(500)
-        step(2, function() if S.live and S.B then H.spinRest() end end)
+        -- (the spin down, then the spin up, in one wait: each runs about 45 frames and half a second)
+        step(1, function() if S.live and H.menu() then S.B = { H.spinStart(H.menu(), 1) } end end)
+        waitFor(2, 900, function() return not S.live or not S.B or H.spinTick() end, function() if S.live and S.B then H.spinEnd() end end)
         step(2, function() if S.live then H.stripPadKeys() end end)
     else
         step(2, function() if S.live then H.listPadKeys() end end)

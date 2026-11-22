@@ -12,8 +12,9 @@
 --             close and away three times in a row
 --   seats     the seat key four times in a row (open, shut, open, shut); a move to the passenger seat through ZeD's
 --             seat window: the dash is read-only there (the ignition and the lights do nothing); back to the wheel
---             through the window; out by the game's Exit (the dash goes); the game's Enter as passenger interrupted,
---             then run; over to the driver's seat
+--             through the window; out by the game's Exit (the dash goes; the passenger door unlocked from the seat
+--             first, as the key was taken away); the game's Enter as passenger interrupted, then run; over to the
+--             driver's seat
 --   crash     a second car across the strip 14 tiles ahead; the police car is given real speed by
 --             BaseVehicle.addImpulse every frame (else by the cruise control), ZeD's dash read while it moves, and
 --             runs into the car. The game never damages the car of a driver in god mode, so the police car's front
@@ -22,8 +23,10 @@
 --             the worst part's card
 --   injury    every wound the game holds must be in ZeD's Health list; god mode keeps the crash from wounding, so one
 --             scratch is put on the left forearm (god mode off for a second, then healed) and looked for
---   removed   the crashed car removed from the world while its Vehicle tab, a part's card and ZeD's seat window are
---             open: the inspection ends, the tab drops the car, the card and the seat window close, nothing throws
+--   removed   the crashed car removed from the world (the game's permanentlyRemove, as a torched wreck or an admin's
+--             remove) while its Vehicle tab, a part's card and ZeD's seat window are open: the inspection ends, the
+--             tab drops the car, the card and the seat window close, nothing throws (each "closed" check runs only on
+--             what was open before; a NOTE names anything then queued for the character on the car that is gone)
 --   on foot   a sprint (the game's auto-walk, forced to a sprint) into the second car, into a wall and into a low
 --             fence built for it on the strip; after each: both windows up, the Health list right, everything on screen
 -- Put back: healed first, the walk off, the props closed, the built wall and fence removed, the two skills and the
@@ -167,6 +170,23 @@ function H.seatKey(car)
     local ok, e = pcall(ISVehicleMenu.onShowSeatUI, S.p, car or S.v)
     if not ok then Q.check(false, "the seat key: ZeD's code ran without an error", tostring(e)) end
 end
+-- a seat's door: locked or not (nil: no such door)
+function H.doorLocked(seat)
+    local l = nil
+    pcall(function()
+        local part = S.v:getPassengerDoor(seat)
+        local door = part and part:getDoor()
+        if door then l = door:isLocked() end
+    end)
+    return l
+end
+-- a seat's door unlocked by the game's own rule (BaseVehicle.toggleLockedDoor: the character seated in the car may
+-- unlock any door, with or without the key); what it was, then what it is now
+function H.unlockDoor(seat)
+    local was = H.doorLocked(seat)
+    if was then pcall(function() S.v:toggleLockedDoor(S.v:getPassengerDoor(seat), S.p, false) end) end
+    return was, H.doorLocked(seat)
+end
 function H.ms() local w = RT.ww(); return w and S.MT.getState(w) end
 function H.zone(id) local s = H.ms(); return s and s.byId and s.byId[id] end
 function H.inspected()
@@ -183,6 +203,18 @@ function H.live(v)
         while it:hasNext() do if it:next() == v then found = true end end
     end)
     return found
+end
+-- the game's actions queued for the character on the car that is gone, each named once in S.rmQueued
+function H.queuedOnGone()
+    pcall(function()
+        local q = ISTimedActionQueue.queues[S.p]
+        for _, a in ipairs((q and q.queue) or {}) do
+            if a.vehicle == S.v and not S.rmSeen[a] then
+                S.rmSeen[a] = true
+                S.rmQueued[#S.rmQueued + 1] = tostring(a.Type)
+            end
+        end
+    end)
 end
 function H.findKey(keyId)
     local got = nil
@@ -1045,6 +1077,12 @@ Q.waitFor(5, 300, function() local d = H.dash(); return H.seat() ~= 0 or H.over(
     if H.seat() ~= 0 then return end
     local d = H.dash()
     Q.check(H.vis(d) and d._driver == true, "seats: back at the wheel the dash is the driver's again", tostring(d and d._driver))
+    -- (Nov 21 2026, second run: the game's Enter as passenger below never seated him in 12 s. The key was taken away
+    -- for the hotwire, and a new car's doors are often all locked (Vehicles.Create.Door); the game's Exit unlocks
+    -- only the driver's door, and vanilla's Enter stops at a locked door when there is no key. So the passenger
+    -- door is unlocked here from the seat, by the game's own rule, as a player without the key does before getting out.)
+    local was, now = H.unlockDoor(1)
+    Q.say("NOTE the passenger door before the exit: locked " .. tostring(was) .. ", now " .. tostring(now))
     -- out by the game's own Exit, the engine left running
     pcall(ISVehicleMenu.onExit, S.p)
 end)
@@ -1079,8 +1117,10 @@ Q.waitFor(5, 3000, function() return not S.v or H.inCar() or H.over("enter", 120
     if not S.v then return end
     if not H.inCar() then
         H.stopActions()
+        local locked = H.doorLocked(1)
         local ok, why = ZEDQA_CAR_ENTER(S.v, 1)
-        Q.skip("into the passenger seat by the game's Enter", "not seated after 12 s: seated directly (" .. tostring(ok) .. " " .. tostring(why) .. ")")
+        Q.skip("into the passenger seat by the game's Enter", "not seated after 12 s (the passenger door locked " .. tostring(locked)
+            .. "): seated directly (" .. tostring(ok) .. " " .. tostring(why) .. ")")
     end
 end)
 Q.waitFor(5, 300, function() local d = H.dash(); return not H.inCar() or H.over("pd2", 3000) or (H.vis(d) and d._driver == false) end, function()
@@ -1273,17 +1313,28 @@ end)
 -- ===================================================================== the car removed while ZeD shows it
 Q.step(10, function()
     if not (S.v and H.live(S.v)) or S.p:getVehicle() ~= nil then return end
-    if H.dist(S.v) < 5.5 then H.seatKey(S.v) end
+    -- (on foot the seat window is vanilla's Enter vehicle, the radial's slice: ISVehicleMenu.onShowSeatUI)
+    S.rmKeyAt = H.dist(S.v)
+    if S.rmKeyAt < 5.5 then H.seatKey(S.v) end
 end)
 Q.waitMs(500)
 Q.step(1, function()
     if not (S.v and H.live(S.v)) then return end
     if S.p:getVehicle() ~= nil then Q.skip("a car removed while its Vehicle tab is open", "the character is still in a car"); return end
     local s, win = H.ms(), RT.ww()
-    Q.say("NOTE before the removal: inspected " .. tostring(H.inspected()) .. ", card " .. tostring(s and s.card) .. ", seat window "
-        .. tostring(H.seatWin() ~= nil) .. ", tab " .. tostring(win and win._activeTab))
+    -- (what is open before the removal: each "closed" check below runs only on what was open, so none passes on nothing)
+    pcall(function() S.rmInsp = S.MT.isInspected(S.v) end)
+    pcall(function() S.vId = S.v:getId() end)
+    S.rmCard, S.rmSeat = s and s.card, H.seatWin() ~= nil
+    Q.say("NOTE before the removal: inspected " .. tostring(S.rmInsp) .. " (car id " .. tostring(S.vId) .. "), card " .. tostring(S.rmCard)
+        .. ", seat window " .. tostring(S.rmSeat) .. ", tab " .. tostring(win and win._activeTab))
+    if S.rmKeyAt and S.rmKeyAt < 5.5 then
+        Q.check(S.rmSeat, "on foot beside the car: the seat key (vanilla's Enter vehicle) opens ZeD's seat window",
+            string.format("%.1f tiles from the car", S.rmKeyAt))
+    end
     if S.hornOn and H.has(S.v, "onHornStop") then pcall(function() S.v:onHornStop() end) end
     H.stopActions()   -- (no action of the game's left queued on a car about to go)
+    S.rmQueued, S.rmSeen = {}, {}
     ZEDQA_CAR_KEEP[S.v] = nil
     S.rmDone = pcall(function() S.v:permanentlyRemove() end)
     -- in the same tick, on what ZeD still holds from the last frame
@@ -1293,19 +1344,42 @@ Q.step(1, function()
         H.zed("the tab's refresh with the car just removed", S.MT.refresh, win)
         H.zed("the tab's controller stops with the car just removed", S.MT.buildFocusables, win)
     end
+    if S.rmDone then H.queuedOnGone() end
 end)
-Q.waitMs(1500)
+-- 1.5 s, with the character's queue read every frame, for a NOTE: what an inspection that ends with its car sends him
+-- to do on the car that is gone (MechanicsTab's endInspection queues the hood's close when the hood is open and he
+-- stands at it; vanilla's mechanics window does the same when it closes on a removed car, so this is no check)
+Q.waitFor(1, 1400, function()
+    if S.rmDone then H.queuedOnGone() end
+    return not S.rmDone or H.over("rmwait", 1500)
+end, function() end)
 Q.step(1, function()
     if not S.rmDone then return end
     local s, win = H.ms(), RT.ww()
     Q.check(not H.live(S.v), "removed: the car is gone from the world")
-    local okI, insp = H.zed("removed: isInspected on the car that is gone", S.MT.isInspected, S.v)
-    if okI then Q.check(insp == false, "removed with its Vehicle tab open: the inspection ended", tostring(insp)) end
+    if S.rmInsp then
+        local okI, insp = H.zed("removed: isInspected on the car that is gone", S.MT.isInspected, S.v)
+        if okI then Q.check(insp == false, "removed with its Vehicle tab open: the inspection ended", tostring(insp)) end
+    else
+        Q.skip("the inspection ending with its car", "the car was not inspected before the removal")
+    end
+    Q.say("NOTE queued for the character on the car that is gone: " .. ((#S.rmQueued > 0) and table.concat(S.rmQueued, ", ") or "nothing"))
     local listed = false
     for _, e in ipairs((s and s.vehicles) or {}) do if e.vehicle == S.v then listed = true end end
     Q.check(not listed, "removed: the Vehicle tab no longer lists the car")
-    Q.check(s ~= nil and s.card == nil, "removed: the part's card closed", tostring(s and s.card))
-    Q.check(H.seatWin() == nil, "removed: ZeD's seat window for the car closed")
+    if S.rmCard then
+        Q.check(s ~= nil and s.card == nil, "removed: the part's card closed", tostring(s and s.card))
+    else
+        Q.skip("the part's card closing with its car", "no card was open before the removal")
+    end
+    if S.rmSeat then
+        local w = H.seatWin()
+        Q.check(w == nil, "removed: ZeD's seat window for the car closed",
+            w and ("still up: " .. tostring(w.Type) .. ((w.vehicle == S.v) and ", on the car that is gone" or ", on another car")) or nil)
+    else
+        Q.skip("the seat window closing with its car", "it was not open before the removal (the character "
+            .. string.format("%.1f", S.rmKeyAt or -1) .. " tiles from the car; the seat key is pressed within 5.5)")
+    end
     Q.check(not H.vis(H.dash()), "removed: no dash shows")
     Q.check(win ~= nil and H.vis(win), "removed: the World window stays up")
     Q.say("NOTE after the removal: World tab " .. tostring(win and win._activeTab) .. ", tabs offered: " .. table.concat(RT.tabs(RT.worldStrip()), " "))

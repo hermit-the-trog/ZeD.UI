@@ -658,8 +658,23 @@ H.wait(3000, function() return not S.whArm or H.wheelUp() end, function(ok)
     if not S.whArm then return end
     local m = S.wh
     local _, _, _, cx, cy = ZeD.Wheel.geom(m)
-    H.try("emote wheel: a click in the dead middle", m.onMouseDown, m, cx, cy)
-    Q.check(ok and not H.wheelUp() and S.emoteRan == nil, "emote wheel: a click in its dead middle closes it and runs nothing", tostring(S.emoteRan))
+    S.midUp = ok
+    S.midFr = 0
+    S.midRan = H.try("emote wheel: a click in the dead middle", m.onMouseDown, m, cx, cy) and true or false
+end)
+-- (the game takes a closed wheel off the screen at its next UI update, not inside the click: UIManager.RemoveElement
+-- only lists it for removal and isReallyVisible reads the live list, so the wheel is looked at on later frames. A
+-- player sees it go at once, so it must be gone within 6 frames, as after the emote click above; the 3 s cap only
+-- keeps a wheel that stays up from holding the run)
+H.wait(3000, function()
+    S.midFr = (S.midFr or 0) + 1
+    return not S.whArm or not H.wheelUp()
+end, function(ok)
+    if not S.whArm then return end
+    local gone = ok and (S.midFr or 0) <= 6
+    Q.check(S.midUp and S.midRan and gone and S.emoteRan == nil, "emote wheel: a click in its dead middle closes it and runs nothing",
+        "wheel was up " .. tostring(S.midUp) .. ", click ran " .. tostring(S.midRan) .. ", wheel gone " .. tostring(ok) .. ", frames waited "
+        .. tostring(S.midFr) .. ", emote " .. tostring(S.emoteRan))
     H.openEmotes()
     RT.pairShut()
 end)

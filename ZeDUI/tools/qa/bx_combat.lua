@@ -9,8 +9,11 @@
 --   aim      aiming with both windows pinned (they stay), then unpinned with the pointer away (both roll up at once,
 --            under the 2 s they take without aim). A zombie is made 5 tiles ahead and shot through the game's own
 --            attack hook (ISReloadWeaponAction.attackHook, what a click calls); aim let go, the windows come back.
---   jam      the pistol jammed: the pouch and the facts still read, ZeD's firearm wheel offers Unjam, a press on it
---            racks the gun. The magazine ejected (ISEjectMagazine). An empty gun's click.
+--   jam      the pistol jammed: the pouch, its hover and the facts say Jammed (B5-11), and so must ZeD's loot card (the
+--            balloon on the gun's row and on the belt's hand box, which stands in for the game's tooltip, and the game's
+--            says "Weapon jammed. Rack it."); ZeD's firearm wheel offers Unjam, a press on it racks the gun, and the word
+--            goes. The magazine ejected (ISEjectMagazine). An empty gun's click. A gun the game jams by its own chance
+--            (JamGunChance, rolled on every rack) must read Jammed the same way; it does not fail the run.
 --   shotgun  loaded shell by shell (stopped part way, the windows closed and opened again), shot at a zombie 4 tiles off.
 --   rifle    a full magazine inserted, shot at a zombie 8 tiles off, racked by hand (the round comes back).
 --   swaps    the hands changed every frame for a dozen frames; empty hands: no pouch.
@@ -26,8 +29,11 @@
 -- the log. A scene that cannot be staged is a SKIP with its reason.
 -- Put back: aim, the pointer, the speed, the wheel, the hands, every zombie, corpse and blood splat made, everything
 -- given (and every round, magazine or gun of those types that was not there before), the kill count and ZeD_Kills, the
--- pouch switch, unlimited ammo, the pins, the tabs, the windows, the list's stacks, health, panic and stress, blood on
--- the clothes, the experience earned, the character home.
+-- pouch switch, unlimited ammo, the pins, the tabs, the windows, the list's stacks, health, blood on the clothes, the
+-- experience earned (a skill that went up a level is set back to its level, then its points), the character home.
+-- The heal (BodyDamage:RestoreToFullHealth()) resets every stat (Stats.resetStats), so the needs and moods found
+-- (hunger, thirst, panic, stress, tiredness and the rest) are set back after it; pain, sickness, poison, drink, fever
+-- and infection are not, so he is never put back hurt or ill.
 -- Safety (preflight, Nov 21 2026): god mode and invincible are turned ON in the first step and held on every tick
 -- until the last step (H.guardTick); he is also made invisible for the run, so the shots draw no zombie from the
 -- country round the strip (the game's attack hook makes its noise "unless invisible"). The put-back heals him
@@ -357,6 +363,9 @@ function H.beltDiff(g)
     if a.inGun ~= t.inGun then return "in the gun " .. tostring(a.inGun) .. ", the game " .. tostring(t.inGun) end
     if (a.chambered == true) ~= t.ch then return "chambered " .. tostring(a.chambered) .. ", the game " .. tostring(t.ch) end
     if a.loose ~= t.loose then return "loose rounds " .. tostring(a.loose) .. ", the game " .. tostring(t.loose) end
+    -- (a jam is part of the pouch's state since B5-11, f0189e024; the pouch counts again every 250 ms, so wait for it)
+    local jam = g.gun:isJammed() == true
+    if (a.jammed == true) ~= jam then return "jammed " .. tostring(a.jammed) .. ", the game " .. tostring(jam) end
     if #(a.mags or {}) ~= t.mags or sum ~= t.magRounds then
         return "magazines " .. #(a.mags or {}) .. " holding " .. sum .. ", the game " .. t.mags .. " holding " .. t.magRounds
     end
@@ -374,6 +383,15 @@ function H.wordsOk(g)
     local t = H.truth(g)
     local want = tostring(t.inGun) .. (t.ch and "+1" or "")
     if t.inGun == 0 and not t.ch then want = ZeD.textCase(ZeD.tr("UI_ZeD_Belt_AmmoEmpty")) end
+    -- a jammed gun says Jammed in place of its rounds, on the box and at the head of the hover's first line (B5-11,
+    -- f0189e024); a gun that is not jammed must not say it
+    local jamWord = ZeD.tr("UI_ZeD_Jammed")
+    local jam = g.gun:isJammed() == true
+    local l1Jam = type(l1) == "string" and l1:sub(1, #jamWord) == jamWord
+    if jam then want = ZeD.textCase(jamWord) end
+    if l1Jam ~= jam then
+        return false, "the hover's first line " .. (jam and "does not say" or "says") .. " Jammed, the gun jammed " .. tostring(jam) .. " | " .. tostring(count) .. " | " .. tostring(l1)
+    end
     return count == want, tostring(count) .. " (want " .. tostring(want) .. ") | " .. tostring(s1) .. " | " .. tostring(s2) .. " | " .. tostring(l1)
 end
 function H.factRow(panel, label)
@@ -392,12 +410,20 @@ function H.factsOk(g)
     for _, r in ipairs(type(stats) == "table" and stats or {}) do if r.label == "Ammo" then v = r.value end end
     local want = cur .. "/" .. max
     if v ~= want then return false, "itemFacts says " .. tostring(v) .. ", the gun " .. want end
+    -- a jammed gun has a Status row saying Jammed and its facts' Ammo row starts with the word (B5-11, f0189e024)
+    local jamWord = ZeD.tr("UI_ZeD_Jammed")
+    local jam = gun:isJammed() == true
+    local st = nil
+    for _, r in ipairs(type(stats) == "table" and stats or {}) do if r.label == "Status" and r.value == jamWord then st = r.value end end
+    if (st ~= nil) ~= jam then return false, "itemFacts' Jammed row is " .. (st and "there" or "missing") .. ", the gun jammed " .. tostring(jam) end
+    if jam then want = want .. ", Jammed" end
     if not (ZeD.ItemFactsPanel and ZeD.ItemFactsPanel.factsFor) then return true, want .. " (no facts panel module)" end
     local ok2, panel = pcall(ZeD.ItemFactsPanel.factsFor, gun, S.pn)
     if not ok2 then return false, "factsFor: " .. tostring(panel) end
     local r = H.factRow(panel, getText("Tooltip_weapon_Ammo"))
     local want2 = string.format("%d / %d", cur, max)
     if not (r and H.endsWith(r.value, want2)) then return false, "the facts panel says " .. tostring(r and r.value) .. ", the gun " .. want2 end
+    if (r.value:sub(1, #jamWord) == jamWord) ~= jam then return false, "the facts panel says " .. tostring(r.value) .. ", the gun jammed " .. tostring(jam) end
     return true, want
 end
 function H.card() local w = RT.cw(); return w and w._itemCard end
@@ -448,6 +474,46 @@ function H.checkAll(label, name)
         if not g or not H.cardOn(g.gun) then return end
         local d = H.cardDiff(g)
         Q.check(d == nil, label .. ": the open card follows the " .. name .. "'s rounds", d)
+    end)
+end
+-- ZeD's loot card for the gun: the balloon a player gets pointing at the gun's row in a list or at the belt's hand box
+-- with it held (ZeD_InvTip, ZeD_Belt's _tooltip). It stands in for the game's tooltip, and the game's says
+-- "Weapon jammed. Rack it." for a jammed gun (HandWeapon.DoTooltip, Tooltip_weapon_Jammed). Returns whether its title,
+-- tags or rows say the gun is jammed, and what it shows; nil and why when it cannot be read.
+function H.lootJam(g)
+    local LC = ZeD.LootCard
+    if not (LC and LC.content) then return nil, "no loot card module" end
+    local ok, c = pcall(LC.content, g.gun, S.p)
+    if not (ok and type(c) == "table") then return nil, "LootCard.content: " .. tostring(c) end
+    local sig = tostring(c.body and c.body.sig or "")
+    sig = sig:match("^(.-)@") or sig
+    local seen = tostring(c.title) .. " | " .. sig
+    local low = seen:lower()
+    local w1 = tostring(ZeD.tr("UI_ZeD_Jammed")):lower()
+    local w2 = tostring(getText("Tooltip_weapon_Jammed") or ""):lower()
+    local says = (w1 ~= "" and low:find(w1, 1, true) ~= nil) or (w2 ~= "" and low:find(w2, 1, true) ~= nil)
+    return says, seen
+end
+-- queue: the loot card says Jammed while the gun is jammed, and not once it is cleared (the card keeps its content half
+-- a second, LootCard.KEEP_MS, so wait for it)
+function H.lootCheck(label, name)
+    H.waitUntil(1500, function()
+        local g = S.g[name]
+        if g == nil then return true end
+        return H.lootJam(g) == (g.gun:isJammed() == true)
+    end, function()
+        local g = S.g[name]
+        if not g then return end
+        if not (ZeD.LootCard and ZeD.LootCard.content) then
+            Q.skip(label .. ": ZeD's loot card on the " .. name, "no loot card module, so the game's own tooltip shows (it says Weapon jammed)")
+            return
+        end
+        local jam = g.gun:isJammed() == true
+        local says, seen = H.lootJam(g)
+        if says == nil then Q.check(false, label .. ": ZeD's loot card reads the " .. name, seen); return end
+        Q.check(says == jam, label .. ": ZeD's loot card (the balloon pointing at the " .. name .. ": its row, the Equip tab, the belt's hand box) "
+            .. (jam and "says Jammed, as the game's tooltip it stands in for does" or "no longer says Jammed"),
+            "the gun jammed " .. tostring(jam) .. " | " .. tostring(seen))
     end)
 end
 
@@ -657,33 +723,49 @@ function H.xpBack()
     pcall(function()
         local xp = S.p:getXp()
         for _, r in ipairs(S.xp or {}) do
-            local now = xp:getXP(r.perk)
-            if now > r.xp + 0.001 then
+            if xp:getXP(r.perk) > r.xp + 0.001 or S.p:getPerkLevel(r.perk) ~= r.lvl then
                 grew = grew + 1
-                if xp.AddXPNoMultiplier then pcall(function() xp:AddXPNoMultiplier(r.perk, r.xp - now) end) end
+                -- (a negative AddXP takes points off but never a level, so the first run left a skill a level up: the
+                -- level and its start are set back first, then the points found above it, as the gallery's teardown does)
+                pcall(function()
+                    S.p:setPerkLevelDebug(r.perk, r.lvl)
+                    xp:setXPToLevel(r.perk, r.lvl)
+                    local now = xp:getXP(r.perk)
+                    if r.xp > now + 0.001 then xp:AddXPNoMultiplier(r.perk, r.xp - now) end
+                end)
                 if math.abs(xp:getXP(r.perk) - r.xp) > 0.01 or S.p:getPerkLevel(r.perk) ~= r.lvl then left = left + 1 end
             end
         end
     end)
+    pcall(function() SyncXp(S.p) end)
     Q.say("put back: experience grew in " .. grew .. " skills, " .. left .. " of them not back at the value found")
 end
+-- the needs and moods put back after the heal (BodyDamage:RestoreToFullHealth() resets every stat, Stats.resetStats).
+-- Pain, sickness, poison, food sickness, drink, temperature, wetness, fever and infection are left as the heal leaves
+-- them, so he is never put back hurt or ill.
+H.STATS = { "PANIC", "STRESS", "ENDURANCE", "FATIGUE", "HUNGER", "THIRST", "BOREDOM", "UNHAPPINESS", "ANGER",
+    "DISCOMFORT", "IDLENESS", "MORALE", "SANITY", "NICOTINE_WITHDRAWAL", "FITNESS" }
 function H.statSnap()
     S.stat = {}
     if not CharacterStat then return end
     local st = S.p:getStats()
-    for _, k in ipairs({ "PANIC", "STRESS", "ENDURANCE", "FATIGUE" }) do
-        local cs = CharacterStat[k]
-        if cs and st and st.get then pcall(function() S.stat[k] = st:get(cs) end) end
+    for _, k in ipairs(H.STATS) do
+        local okC, cs = pcall(function() return CharacterStat[k] end)
+        if okC and cs and st and st.get then pcall(function() S.stat[k] = st:get(cs) end) end
     end
 end
+-- heals (H.heal), then sets the needs and moods back as found; returns how many were set back of how many found
 function H.statBack()
     pcall(H.heal)
-    if not CharacterStat then return end
+    if not CharacterStat then return 0, 0 end
     local st = S.p:getStats()
+    local n, m = 0, 0
     for k, v in pairs(S.stat or {}) do
-        local cs = CharacterStat[k]
-        if cs and st and st.set then pcall(function() st:set(cs, v) end) end
+        m = m + 1
+        local okC, cs = pcall(function() return CharacterStat[k] end)
+        if okC and cs and st and st.set and pcall(function() st:set(cs, v) end) then n = n + 1 end
     end
+    return n, m
 end
 
 -- ===================================================================== nobody gets hurt
@@ -723,7 +805,7 @@ function H.heal()
             pcall(function() b:RestoreToFullHealth() end)
         end
     end)
-    pcall(function() bd:RestoreToFullHealth() end)
+    S.healRan = pcall(function() bd:RestoreToFullHealth() end)
     pcall(function() bd:setInfected(false) end)
     pcall(function() bd:setIsFakeInfected(false) end)
     pcall(function() if bd:getOverallBodyHealth() < 100 then bd:setOverallBodyHealth(100) end end)
@@ -1005,19 +1087,27 @@ Q.step(2, function()
     local g = S.g.pistol
     local m = g and g.mags[2]
     if not m then return end
+    -- (fast again, as for the first load. The game's action loads the magazine full or until the rounds run out; the 6
+    -- is only the count its label shows. The run of Nov 21 15:42 queued it at normal speed and the 12 rounds took the
+    -- whole 14 s, so the wait ran out with the magazine full.)
+    H.speed(2)
     pcall(function() ISTimedActionQueue.add(ISLoadBulletsInMagazine:new(S.p, m, 6)) end)
 end)
-H.waitUntil(14000, function()
+H.waitUntil(20000, function()
     local g = S.g.pistol
     local m = g and g.mags[2]
     return m == nil or (m:getCurrentAmmoCount() >= 6 and not H.busy())
 end, function(ok)
+    local busy = H.busy()
     H.stop(); H.speed(1)
     local g = S.g.pistol
     local m = g and g.mags[2]
     if not m then return end
-    Q.say("the second magazine holds " .. tostring(m:getCurrentAmmoCount()) .. " after the game's own loading (6 asked)")
-    if not ok then Q.skip("loading a magazine to the end", "the game's action did not reach 6 rounds in 14 s") end
+    Q.say("the second magazine holds " .. tostring(m:getCurrentAmmoCount()) .. " of " .. tostring(m:getMaxAmmo()) .. " after the game's own loading (it loads to full)")
+    if not ok then
+        Q.skip("loading a magazine to the end", "after 20 s the magazine holds " .. tostring(m:getCurrentAmmoCount()) .. " and the game's action is "
+            .. (busy and "still running" or "over"))
+    end
 end)
 H.checkAll("magazine loaded by the game's action", "pistol")
 -- the game's own reload: the best magazine in, a round racked
@@ -1082,6 +1172,13 @@ H.queueSpawn(1, 5, "pistol")
 H.queuePulls("pistol", 1, 5, 5, 0)
 Q.step(2, function()
     if S.aiming and not S.noFire and (S.fired.pistol or 0) == 0 and S.pulls > 0 then
+        local g = S.g.pistol
+        if g and g.gun:isJammed() then
+            -- (the game's own chance: the reload's rack rolls a jam, HandWeapon.checkJam, and a jammed gun only clicks)
+            Q.skip("the pistol's live fire", "the game jammed the pistol by its own chance before it fired, so its " .. S.pulls
+                .. " pulls only clicked; live fire stays on for the shotgun, the rifle and the bat")
+            return
+        end
         S.noFire = true
         Q.skip("live fire", "after " .. S.pulls .. " pulls of the game's attack hook no round left the pistol (aiming " .. tostring(S.p:isAiming()) .. ", attack started " .. tostring(S.p:isAttackStarted()) .. "); the kills go through the game's own Hit instead")
     end
@@ -1107,9 +1204,10 @@ Q.step(3, function()
     local g = S.g.pistol
     if not g then return end
     g.gun:setJammed(true)
-    Q.say("NOTE the pistol is jammed now: ZeD's pouch, card, facts and loot card have no word for a jam (the game's own tooltip, with Alt, says Weapon jammed); the firearm wheel and the right-click menu offer Unjam")
+    Q.say("the pistol is jammed now: the pouch, its hover, the facts and ZeD's loot card must say Jammed (B5-11; the game's own tooltip, with Alt, says Weapon jammed); the firearm wheel and the right-click menu offer Unjam")
 end)
 H.checkAll("pistol jammed", "pistol")
+H.lootCheck("pistol jammed", "pistol")
 Q.step(2, function()
     if not S.g.pistol then return end
     S.wheelOk = H.try("the firearm wheel opened on a jammed pistol", H.wheelOpen)
@@ -1174,6 +1272,7 @@ H.waitUntil(7000, function() local g = S.g.pistol; return g == nil or not S.unja
     g.gun:setJammed(false)
 end)
 H.checkAll("pistol unjammed", "pistol")
+H.lootCheck("pistol unjammed", "pistol")
 -- the magazine out through the game's own action
 Q.step(2, function()
     local g = S.g.pistol
@@ -1469,7 +1568,12 @@ Q.step(1, function()
     p:getModData().ZeD_Kills = W.kd
     if W.ammoBox ~= nil and ZeD.Settings and ZeD.Settings.ammoBoxOption then pcall(function() ZeD.Settings.ammoBoxOption:setValue(W.ammoBox) end) end
     if W.unlimited then H.call1(p, "setUnlimitedAmmo", true) end
-    H.bloodBack(); H.statBack(); H.xpBack()
+    H.bloodBack()
+    -- (experience first: setXPToLevel on Fitness also writes the FITNESS stat, which the stats below then set back)
+    H.xpBack()
+    local nS, mS = H.statBack()
+    Q.say("put back: healed with BodyDamage:RestoreToFullHealth() (ran " .. tostring(S.healRan) .. "), then the needs and moods it resets set back as found: "
+        .. tostring(nS) .. " of " .. tostring(mS))
 end)
 Q.step(2, function()
     local W = S.was
@@ -1536,10 +1640,11 @@ Q.step(4, function()
     local first = H.hurt()
     if first then
         Q.say("put back: the body was not whole (" .. first .. "); healed again")
-        H.heal()
+        pcall(H.statBack)
     end
     local bad = H.hurt()
-    Q.check(bad == nil, "put back: the character is alive and healed (health 100, no wound, no fracture, not infected, not dead)", bad or "alive and whole")
+    Q.check(bad == nil, "put back: the character is alive and healed (health 100, no wound, no fracture, not infected, not dead)",
+        (bad or "alive and whole") .. "; healed with BodyDamage:RestoreToFullHealth() in the put-back (ran " .. tostring(S.healRan) .. ")")
     -- (every living zombie within 40 tiles counts here, the world's or one of this run's objects come back as another)
     local near = H.strangers(40, true)
     local keep = bad ~= nil or near > 0 or mine > 0

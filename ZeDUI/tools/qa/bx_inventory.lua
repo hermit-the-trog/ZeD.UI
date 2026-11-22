@@ -11,8 +11,9 @@
 --   5. Loot all and Transfer all at their real length, cut short: both windows shut mid-transfer and opened again,
 --      the World window rolled up, the queue cleared (nothing lost, the lists agree with the containers);
 --   6. the player reports: a left click on a crate in the world (the game's own click handler) with both windows
---      shut, the World window rolled up, its inventory side rolled under its tab, the game paused, Loot columns
---      open: ZeD opens on that crate and the game's own pages are never drawn; two clicks two frames apart;
+--      shut, the World window rolled up, its inventory side rolled under its tab (as it starts to roll, and once it
+--      has), the game paused, Loot columns open: ZeD opens on that crate and the game's own pages are never drawn;
+--      two clicks two frames apart;
 --   7. eighteen container switches two frames apart (the list never draws another container's things, the drop
 --      target is the container shown), a late request that must not win over a newer one, eleven presses on the
 --      strip's buttons (columns), the empty crate (zero, one, zero);
@@ -55,7 +56,10 @@ function H.list(inv)
 end
 function H.size(inv) local n = -1; pcall(function() n = inv:getItems():size() end); return n end
 function H.where(it) local c = nil; pcall(function() c = it:getContainer() end); return c end
-function H.typeOf(inv) local t = "nothing"; pcall(function() t = tostring(inv:getType()) end); return t end
+function H.typeOf(inv)
+    if inv == nil then return "nothing" end   -- (never an index of nil: with -debug the game logs even a caught one)
+    local t = "nothing"; pcall(function() t = tostring(inv:getType()) end); return t
+end
 -- a container by the test's own name (every crate's type reads "crate": a line must say which one)
 function H.nameOf(inv)
     if inv == nil then return "nothing" end
@@ -1119,25 +1123,113 @@ step(20, function()
 end)
 -- 6d. the World window's inventory side rolled under its tab (a tab drawer open beside it)
 step(4, function()
-    S.k6d = false
+    S.k6d, S.k6x = false, false
     local ww = RT.ww()
     if not (ww and ww._halves and ww._curtain) then return end
     if not RT.worldTab("craft") then pcall(ZeD_WorldWindow.openTab, S.pn, "craft") end
 end)
-step(20, function()
-    local ww = RT.ww()
+-- the side rolled as the pointer's leaving rolls it (its timer run out, not by hand); false when it cannot roll here
+function H.rollSide(ww)
     local s = ww and ww._halves
     local can = false
     pcall(function() can = s ~= nil and ww._activeTab ~= "loot" and ww._curtain.canRoll() end)
-    if not can then return end
+    if not can then return false end
     H.setPins(ww, false, true)
     s.inv.rolled, s.inv.hand, s.inv.out = true, false, nil
+    return true
+end
+function H.titleH(ww)
+    local h = nil
+    pcall(function() h = ZeD.T.titleBarH end)
+    if not h then pcall(function() h = ww:titleBarHeight() end) end
+    return h or 0
+end
+-- the tab's fabric (WindowCurtain's rod): how tall it is now, where it is going, the window's height
+function H.tabWords(ww)
+    local rod = ww and ww._rod
+    if not rod then return "no tab" end
+    local winH = -1
+    pcall(function() winH = ww:getHeight() end)
+    return string.format("its tab %d px tall, going to %d px (the window %d px, its title bar %d px)",
+        math.floor(rod._h or -1), math.floor(rod._target or -1), math.floor(winH), math.floor(H.titleH(ww)))
+end
+-- 6d, first: the click lands just as the side starts to roll, before its tab has drawn once. A player's quick click
+-- can land so (the side's timer runs out on the update the release comes in). Staged on the window's first roll (the
+-- 6a click opened it afresh): its tab is new and only queued for the game's UI list, so a click on the next frame
+-- comes before the tab's first draw. The second run (Nov 21) found the side stuck there: rolled, the tab at full
+-- height and going nowhere, no tab to press, the hover no help (WindowCurtain C.unroll sets the tab's target to the
+-- height it already has, and only a tab that moves ever ends the unroll). This check FAILS until that is fixed.
+step(20, function()
+    local ww = RT.ww()
+    S.k6xNew = ww ~= nil and ww._rod == nil
+    S.k6x = H.rollSide(ww)
+    if not S.k6x then
+        Q.skip("a click on a crate just as the inventory side starts to roll under its tab", "the side cannot roll here (no tab drawer beside the list)")
+    end
 end)
-waitFor(2, 90, function() local ww = RT.ww(); return ww ~= nil and ww._rolled == true end, function(ok)
-    S.k6d = ok
+waitFor(1, 90, function() local ww = RT.ww(); return not S.k6x or (ww ~= nil and ww._rolled == true) end, function(ok)
+    if not S.k6x then return end
+    local why = nil
+    if not ok then why = "the side would not roll (the pointer rests on it)"
+    elseif not S.k6xNew then why = "the side rolled before in this window: its tab draws in the frame it rolls, before a click from here" end
+    if why then S.k6x = false; Q.skip("a click on a crate just as the inventory side starts to roll under its tab", why); return end
+    -- (the tab as the click finds it, read on the same tick just before the click)
+    local ev = Events.OnTickEvenPaused or Events.OnTick
+    local function probe()
+        ev.Remove(probe)
+        local w = RT.ww()
+        local rod = w and w._rod
+        S.k6xAt = { h = rod and rod._h, winH = w and w:getHeight(), rolled = w and w._rolled }
+    end
+    S.k6xAt = nil
+    ev.Add(probe)
+    H.clickOn(S.B.obj, S.B.inv)
+end)
+waitFor(2, 240, function() local ww = RT.ww(); return not S.k6x or (S.click.done and ww ~= nil and not ww._rolled) end, function(ok)
+    local ww = RT.ww()
+    if S.k6x then
+        local at = S.k6xAt
+        if not at then
+            Q.skip("a click on a crate just as the inventory side starts to roll under its tab", "no tick ran the click")
+        elseif not (at.rolled == true and at.h ~= nil and at.winH ~= nil and at.h >= at.winH) then
+            Q.skip("a click on a crate just as the inventory side starts to roll under its tab",
+                "its tab had drawn before the click came (" .. tostring(at.h) .. " of " .. tostring(at.winH) .. " px): that order did not come")
+        else
+            local rolled = ww ~= nil and ww._rolled == true
+            local rod = rolled and ww._rod or nil
+            local stuck = rod ~= nil and rod._h == rod._target and (rod._target or 0) > H.titleH(ww)
+            Q.check(ok, "a left click on a crate just as the inventory side starts to roll under its tab (the tab not drawn yet) still brings the side down",
+                "by " .. tostring(S.click.how) .. "; side rolled " .. tostring(rolled) .. (rolled and ("; " .. H.tabWords(ww)) or "")
+                .. (stuck and ": asked down before it had drawn once, it never moves (WindowCurtain C.unroll)" or "")
+                .. "; its list on " .. H.nameOf(H.wc() and H.wc()._inventory))
+        end
+    end
+    H.setPins(ww, true, true)
+    H.down(ww)
+end)
+-- 6d, second: a player's click once the side has rolled under its tab, the tab drawn up to its title bar as he sees it
+-- before he clicks (QA B5-1: a click on a crate in the world brings down a side the pointer rolled away)
+function H.sideRolledAway(ww)
+    local rod = ww and ww._rod
+    if not (ww and ww._rolled == true and rod and rod._h and rod._target) then return false end
+    return rod._target <= H.titleH(ww) and rod._h <= rod._target
+end
+step(20, function()
+    S.k6d = H.rollSide(RT.ww())
+    if not S.k6d then
+        Q.skip("click on a crate with the World window's inventory side rolled under its tab", "the side cannot roll here (no tab drawer beside the list)")
+    end
+end)
+waitFor(2, 240, function() return not S.k6d or H.sideRolledAway(RT.ww()) end, function(ok)
+    if not S.k6d then return end
     if not ok then
-        Q.skip("click on a crate with the World window's inventory side rolled under its tab",
-            "the side would not roll here (no room for a tab drawer beside the list, or the pointer rests on it)")
+        S.k6d = false
+        local ww = RT.ww()
+        if ww and ww._rolled then
+            Q.check(false, "the World window's inventory side rolls under its tab: the tab draws up to its title bar", H.tabWords(ww))
+        else
+            Q.skip("click on a crate with the World window's inventory side rolled under its tab", "the side would not roll here (the pointer rests on it)")
+        end
         return
     end
     S.van.n = 0
@@ -1147,8 +1239,10 @@ end)
 waitFor(2, 240, function() local ww = RT.ww(); return not S.k6d or (S.click.done and ww ~= nil and not ww._rolled and H.shows(S.A.inv)) end, function(ok)
     local ww = RT.ww()
     if S.k6d then
+        local rolled = ww ~= nil and ww._rolled == true
         Q.check(ok, "a left click on a crate with the inventory side rolled under its tab rolls the side down on that crate",
-            "by " .. tostring(S.click.how) .. "; side rolled " .. tostring(ww and ww._rolled) .. ", its list on " .. H.nameOf(H.wc() and H.wc()._inventory))
+            "by " .. tostring(S.click.how) .. "; side rolled " .. tostring(rolled) .. (rolled and ("; " .. H.tabWords(ww)) or "")
+            .. ", its list on " .. H.nameOf(H.wc() and H.wc()._inventory))
         Q.check(S.van.n == 0 and not H.vanShowing(), "the game's own pages are never drawn for the click on the rolled side", S.van.n .. " draws")
     end
     H.setPins(ww, true, true)
@@ -1544,9 +1638,17 @@ end)
 waitFor(4, 600, H.queueEmpty, function()
     H.cancelDrags()
     if not S.g9 then return end
+    -- (the list had moved to the floor, so the drop is the game's own drop: the thing lies on the ground. It reads
+    -- "in the floor" only once the floor's list has been built again, and in no container until then (the game's
+    -- IsoWorldInventoryObject sets the thing's container to nil as it lays it down); both are the ground. A thing in
+    -- no container and not on the ground is lost, and so is one in the floor's list with nothing on the ground: fails)
     local at = H.where(S.mover)
-    Q.check(at ~= nil and at ~= S.B.inv, "a drop on the list of a crate taken away mid-drag does not put the thing into the crate that is gone",
-        "it is in " .. ((at == S.bag) and "the bag" or ((at == S.B.inv) and "the crate that is gone" or H.typeOf(at))))
+    local ground = H.onFloor(S.mover)
+    local floorList = at ~= nil and H.typeOf(at) == "floor"
+    Q.check(at ~= S.B.inv and (ground or (at ~= nil and not floorList)), "a drop on the list of a crate taken away mid-drag does not put the thing into the crate that is gone",
+        "it is " .. ((at == S.bag) and "in the bag" or ((at == S.B.inv) and "in the crate that is gone"
+            or (ground and "on the ground" or (floorList and "in the floor's list but not on the ground"
+            or ((at ~= nil) and ("in " .. H.typeOf(at)) or "in nothing and not on the ground"))))))
     H.put(S.mover, S.bag)
 end)
 waitFor(2, 300, function() return not S.g9 or (not H.listed(RT.ww(), S.B.inv) and not H.shows(S.B.inv)) end, function(ok)
@@ -2110,15 +2212,18 @@ Q.step(10, function()
 end)
 -- the last line, in a step of its own (a fault in a step above cannot skip it): the character is whole
 Q.step(4, function()
+    H.guard()
     local why = H.hurt()
+    local found = why
     if why then
-        Q.say("NOTE the character was found hurt at the put-back (" .. why .. "): healed by the game's own full heal")
+        -- (the game's own full heal, no argument; only when he is hurt: it also resets every stat)
         pcall(function() S.p:getBodyDamage():RestoreToFullHealth() end)
         why = H.hurt()
     end
     local god, inv = false, false
     pcall(function() god = S.p:isGodMod(); inv = S.p:isInvincible() end)
     Q.check(why == nil, "the character ends whole: alive, health 100, no wound, no fracture, not infected",
-        (why or "whole") .. "; god mode " .. tostring(god) .. ", invincible " .. tostring(inv))
+        (why or "whole") .. (found and ("; found hurt at the put-back (" .. found .. "), healed by BodyDamage:RestoreToFullHealth()")
+            or "; whole when the put-back began, no heal needed") .. "; god mode " .. tostring(god) .. ", invincible " .. tostring(inv))
 end)
 Q.start()

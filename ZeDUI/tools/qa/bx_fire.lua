@@ -27,8 +27,11 @@
 -- PUT BACK: the print watch off, the menu shut, the actions stopped, the cursor dropped, the card closed, game speed
 --   1; the character not burning, every fire in a 15-tile radius of home out (each square checked), the campfire
 --   gone, the floors in a 5-tile radius as found; the body healed, the stats, god mode, invincible and the clothing's
---   condition as found; everything given (and the campfire's stones, the emptied sandbag) taken away, the hands, the
---   tabs and the windows as found; the character home. No ZeD option is changed.
+--   condition as found; everything given (and the campfire's stones, the emptied sandbag, the dirty bandage or rag)
+--   taken away, the hands, the tabs and the windows as found; the character home. No ZeD option is changed.
+--   What he carries, bags too, ends with each kind's count as found: the game's add fuel, light and first aid take the
+--   first of a kind they find, and his own come before the given ones, so when they used one of his, a given one of
+--   that kind stays in its place, or one of that kind is given back. Anything else of his that went is a FAIL.
 -- SAFETY (Nov 21 2026, the preflight; the same rule as bx_health.lua): the character must never die or stay hurt.
 --   God mode and invincible are put ON at the first step and stay on through the campfire and the fire scenes (the
 --   prelude's god mode is not relied on; when the game refuses it, outside -debug, nothing is lit and the run goes
@@ -65,7 +68,11 @@ local setSpeed = ZEDQA_SPEED or setGameSpeed
 S.RING2 = { { 2, 0 }, { -2, 0 }, { 0, 2 }, { 0, -2 }, { 2, 2 }, { -2, -2 }, { 2, -2 }, { -2, 2 } }
 S.FIRE = { { 0, -4 }, { 4, 0 }, { -4, 0 }, { 0, 4 }, { 4, -4 }, { -4, 4 } }
 S.STATS = { "PANIC", "STRESS", "PAIN", "FATIGUE", "ENDURANCE", "HUNGER", "THIRST", "BOREDOM", "UNHAPPINESS", "WETNESS", "SICKNESS", "FOOD_SICKNESS" }
-S.BYPRODUCT = { ["Base.Stone2"] = true, ["Base.EmptySandbag"] = true, ["Base.BandageDirty"] = true }
+-- (made during the run: Take apart gives 3 stones, the dirt bag's last use leaves an empty sandbag, Clean Burn turns
+-- the bandage it uses into a dirty one, or a rag into a dirty rag)
+S.BYPRODUCT = { ["Base.Stone2"] = true, ["Base.EmptySandbag"] = true, ["Base.BandageDirty"] = true, ["Base.RippedSheetsDirty"] = true }
+-- what the game's own actions in this script use up, by kind (H.usedBy adds the fire starter and anything that bandages)
+S.USEDBY = { ["Base.Plank"] = "the game's add fuel", ["Base.SheetPaper2"] = "the game's light" }
 S.FIG = "Left Forearm"
 
 -- ===================================================================== helpers: the queue
@@ -218,12 +225,25 @@ function H.floorsBack()
 end
 
 -- ===================================================================== helpers: the inventory
+-- everything the character carries: the main inventory and every bag in it, at any depth (the game's add fuel, light
+-- and first aid look in the bags too, and move a thing to the main inventory before they use it)
 function H.invItems()
-    local out = {}
-    pcall(function()
-        local items = S.p:getInventory():getItems()
-        for i = 0, items:size() - 1 do out[#out + 1] = items:get(i) end
-    end)
+    local out, todo, k = {}, {}, 1
+    pcall(function() todo[1] = S.p:getInventory() end)
+    while todo[k] and k <= 200 do
+        local box = todo[k]
+        pcall(function()
+            local items = box:getItems()
+            for i = 0, items:size() - 1 do
+                local it = items:get(i)
+                out[#out + 1] = it
+                local bag = false
+                pcall(function() bag = it:IsInventoryContainer() end)
+                if bag then pcall(function() todo[#todo + 1] = it:getInventory() end) end
+            end
+        end)
+        k = k + 1
+    end
     return out
 end
 function H.invSnap()
@@ -254,32 +274,82 @@ function H.drop(it)
     pcall(function() if S.p:getSecondaryHandItem() == it then S.p:setSecondaryHandItem(nil) end end)
     pcall(function() local c = it:getContainer(); if c then c:Remove(it) end end)
 end
--- everything this script brought is taken away. The game's add fuel takes "the first plank it finds": when it burnt
--- one of the character's own, one of the given ones stays in its place, so each type's count ends as found.
+-- which of the game's own actions in this script uses up a thing of this kind, or nil: add fuel takes a plank, light
+-- takes a sheet of paper and a use of the fire starter, Clean Burn and Bandage take anything that bandages
+function H.usedBy(it)
+    local by = nil
+    pcall(function() by = S.USEDBY[it:getFullType()] end)
+    if by then return by end
+    pcall(function()
+        local ty = it:getType()
+        if ty == "Lighter" or ty == "Matches" or it:hasTag(ItemTag.START_FIRE) then by = "the game's light (the fire starter)" end
+    end)
+    if by then return by end
+    pcall(function() if it:getBandagePower() > 0 then by = "the game's Clean Burn or Bandage" end end)
+    return by
+end
+-- everything this script brought is taken away, and every kind of thing he carries (bags too) ends with the count
+-- found. The game's add fuel, light and first aid take the first of a kind they find, and his own come first (a given
+-- thing goes to the end of the list): when one of his own was used, a given one of that kind stays in its place (a
+-- stand-in, its mark taken off); with no given one left to stand in, one of that kind is given back, but only for
+-- what those three use up (H.usedBy). Anything else of his that went is not given back: S.lost names it and the
+-- put-back FAILs on it (it could be ZeD's doing).
 function H.settle()
-    local have, fresh, gone, kept = {}, {}, 0, 0
+    local have, fresh, carried, gone, kept = {}, {}, {}, 0, 0
+    S.keptSet, S.keptTypes, S.backTypes, S.lost = {}, {}, {}, {}
+    -- (have: what stays of each kind, his own and anything the game made unmarked; fresh: what this run brought or made)
     for _, it in ipairs(H.invItems()) do
+        carried[it] = true
         local ft = it:getFullType()
-        if S.inv0[it] then have[ft] = (have[ft] or 0) + 1 elseif H.mine(it) then fresh[#fresh + 1] = it end
+        if not S.inv0[it] and H.mine(it) then fresh[#fresh + 1] = it else have[ft] = (have[ft] or 0) + 1 end
     end
     for _, it in ipairs(fresh) do
         local ft = it:getFullType()
         if (have[ft] or 0) < (S.cnt0[ft] or 0) then
             have[ft] = (have[ft] or 0) + 1
             kept = kept + 1
+            -- (it stands in for one of the character's own: no longer "given", and left() must not count it)
+            S.keptSet[it] = true
+            S.keptTypes[#S.keptTypes + 1] = ft
+            pcall(function() it:getModData().ZeDQA_spawned = nil end)
         else
             H.drop(it)
             gone = gone + 1
         end
     end
+    for it, _ in pairs(S.inv0) do
+        local ft = nil
+        if not carried[it] then pcall(function() ft = it:getFullType() end) end
+        if ft and (have[ft] or 0) < (S.cnt0[ft] or 0) then
+            have[ft] = (have[ft] or 0) + 1
+            local by, new = H.usedBy(it), nil
+            if by then pcall(function() new = S.p:getInventory():AddItem(ft) end) end
+            if new then
+                S.keptSet[new] = true
+                S.backTypes[#S.backTypes + 1] = ft
+            else
+                S.lost[#S.lost + 1] = ft .. (by and (" (used by " .. by .. ", not given back)") or "")
+            end
+        end
+    end
     return gone, kept
 end
+-- what is not as found: the given things still carried (the stand-ins and the things given back aside), and every
+-- kind of thing whose count is not the count at the start (bags too; his own things count as well)
 function H.left()
-    local n = 0
+    local extra, off, now = {}, {}, {}
     for _, it in ipairs(H.invItems()) do
-        if not S.inv0[it] and H.mine(it) then n = n + 1 end
+        local ft = it:getFullType()
+        now[ft] = (now[ft] or 0) + 1
+        if not S.inv0[it] and H.mine(it) and not (S.keptSet and S.keptSet[it]) then extra[#extra + 1] = ft end
     end
-    return n
+    for ft, c in pairs(S.cnt0) do
+        if (now[ft] or 0) ~= c then off[#off + 1] = ft .. " " .. c .. " -> " .. (now[ft] or 0) end
+    end
+    for ft, c in pairs(now) do
+        if S.cnt0[ft] == nil then off[#off + 1] = ft .. " 0 -> " .. c end
+    end
+    return extra, off
 end
 function H.count(ft)
     local n = 0
@@ -1573,7 +1643,8 @@ end)
 Q.step(2, function()
     if S.was.open == false then RT.pairShut() end
     Q.say("put back: " .. tostring(S.doused) .. " squares doused at the end, " .. tostring(S.gone) .. " things taken away, " .. tostring(S.kept)
-        .. " kept in place of the character's own that the game burnt, " .. tostring(S.floorFixed) .. " floors given their sprite back, "
+        .. " given things kept in place of the character's own that the game used, " .. tostring(S.backTypes and #S.backTypes or 0)
+        .. " of his given back, " .. tostring(S.floorFixed) .. " floors given their sprite back, "
         .. tostring(S.wornChanged) .. " worn things' condition restored, the fire restarted " .. tostring(S.restarts or 0) .. " times")
     local left = H.scan(15, false)
     Q.check(left == 0, "put back: no fire on any square within 15 tiles of home", left .. " squares")
@@ -1587,7 +1658,19 @@ Q.step(2, function()
     pcall(function() overall = S.p:getBodyDamage():getOverallBodyHealth() end)
     Q.check(overall >= 99, "put back: the body is healed", tostring(overall))
     Q.check(S.p:isGodMod() == (S.was.god and true or false), "put back: god mode as found", tostring(S.p:isGodMod()))
-    Q.check(H.left() == 0, "put back: everything given is taken away", H.left() .. " left")
+    -- (the game's add fuel, light and first aid take the first of a kind they find, and his own come first: a given
+    -- thing kept in place of one of his, or one given back, is not "left". Every kind of thing he carries, bags too,
+    -- must end with the count found.)
+    local extra, off = H.left()
+    local keptT, backT = S.keptTypes or {}, S.backTypes or {}
+    Q.check(#extra == 0 and #off == 0, "put back: everything given is taken away and he carries what he carried at the start (each kind's count, bags too)",
+        "given still carried: " .. (#extra > 0 and table.concat(extra, ", ") or "none")
+        .. "; count not as found: " .. (#off > 0 and table.concat(off, ", ") or "none")
+        .. "; " .. #keptT .. " given kept in place of his own the game used" .. (#keptT > 0 and (" (" .. table.concat(keptT, ", ") .. ")") or "")
+        .. "; " .. #backT .. " of his given back" .. (#backT > 0 and (" (" .. table.concat(backT, ", ") .. ")") or ""))
+    local lost = S.lost or { "(the put-back's count never ran)" }
+    Q.check(#lost == 0, "put back: nothing of his is gone but what the game's add fuel, light and first aid used up",
+        #lost > 0 and table.concat(lost, ", ") or "none")
     Q.check(S.wornN == #S.worn, "put back: the character wears as many things as at the start", tostring(S.wornN) .. " vs " .. #S.worn)
     Q.check(getGameSpeed() == 1, "put back: game speed 1", tostring(getGameSpeed()))
     Q.check(math.abs(S.p:getX() - (S.hx + 0.5)) <= 3 and math.abs(S.p:getY() - (S.hy + 0.5)) <= 3, "put back: the character is home",

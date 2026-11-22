@@ -37,7 +37,8 @@
 --   hen      picked up (the game's action) while its view is open, the roster agrees with the game; put down again
 --            (the game's drop); the hen that comes back is found and counted
 --   gone     the ewe ticked on the roster, its view opened, the ewe taken out of the world: the roster drops it by
---            itself, the view lets go of it, its tick goes, Milk and Walk to on it are refused without an error
+--            itself, the view lets go of it, its tick goes, Milk on it is refused without an error (Walk to on it is
+--            only said: it may walk to where she stood)
 --   hutch    a hen house with one hen: the card counts her; she is taken out under the card: the count follows; the
 --            house taken away under the card: the card closes
 --   remove   the zone's Remove asks, Cancel keeps the zone, Remove takes it and the page steps back to the overview
@@ -1165,7 +1166,8 @@ function H.takeTrough()
 end
 pause(1300)
 step(2, "trough", function()
-    Q.check(H.objOn(S.troughSq, "IsoFeedingTrough") == nil, "trough: taken away", "still there")
+    local trLeft = H.objOn(S.troughSq, "IsoFeedingTrough")
+    Q.check(trLeft == nil, "trough: taken away", trLeft and "still there" or "gone")
     Q.check(H.card() == nil, "trough: taken away under the card: the card closes", tostring(H.kind()))
     H.close()
     H.try("the poller's refresh with the trough gone (AP.refreshCache)", S.AP.refreshCache, S.pn)
@@ -1379,7 +1381,8 @@ wait(15000, "ranch", function() return not H.inRoster(S.ewe) end, function(ok)
         Q.check(ok, "gone: the roster drops an animal taken out of the world by itself (within 15 s)", "still on the roster: " .. tostring(H.inRoster(S.ewe)))
     end
     local st = H.st()
-    Q.check(not (st.view == "animal" and st.animalRef == S.ewe), "gone: the Animals tab lets go of the view of an animal that is gone", "view " .. tostring(st.view) .. ", still the ewe")
+    Q.check(not (st.view == "animal" and st.animalRef == S.ewe), "gone: the Animals tab lets go of the view of an animal that is gone",
+        "view " .. tostring(st.view) .. ((st.view == "animal" and st.animalRef == S.ewe) and ", still the ewe" or ""))
     S.AQ.forgetChecks()
     local okC, can = H.try("Milk asked of an animal that is gone (AQ.can)", S.AQ.can, "milk", S.p, S.ewe)
     Q.check(okC and can ~= true, "gone: Milk on an animal that is gone is refused", tostring(can))
@@ -1396,8 +1399,10 @@ step(2, "ranch", function()
     if S.eweKept then
         Q.skip("her row and her tick going with her", "the game's own zone list still holds her")
     else
-        Q.check(H.rosterRow(S.ewe) == nil, "gone: the zone's page draws no row for her", "a row is drawn")
-        Q.check(not S.AQ.isSelected(sel, S.ewe), "gone: her tick is gone with her", "still ticked")
+        local row = H.rosterRow(S.ewe)
+        Q.check(row == nil, "gone: the zone's page draws no row for her", row and "a row is drawn" or "no row")
+        local ticked = S.AQ.isSelected(sel, S.ewe)
+        Q.check(not ticked, "gone: her tick is gone with her", ticked and "still ticked" or "not ticked")
     end
     RT.bounds(Q, "the zone's page with the ewe gone")
 end)
@@ -1472,7 +1477,8 @@ function H.takeHutch()
 end
 pause(1300)
 step(2, "hutch", function()
-    Q.check(H.objOn(S.hutchSq, "IsoHutch") == nil, "hutch: taken away", "still there")
+    local huLeft = H.objOn(S.hutchSq, "IsoHutch")
+    Q.check(huLeft == nil, "hutch: taken away", huLeft and "still there" or "gone")
     Q.check(H.card() == nil, "hutch: taken away under the card: the card closes", tostring(H.kind()))
     H.close()
     H.try("the poller's refresh with the hen house gone (AP.refreshCache)", S.AP.refreshCache, S.pn)
@@ -1502,7 +1508,13 @@ end)
 pause(700)
 step(2, "ranch", function()
     local st = H.st()
-    Q.check(H.zoneObj() == nil and S.AP.getZoneSummary(S.zoneName, S.pn) == nil, "remove: Remove takes the zone away, on the Animals tab too", tostring(H.zoneObj() ~= nil))
+    -- (both halves are said in what it saw: the game's zone, and the Animals tab's own list. The game's removeZone
+    -- leaves each animal's getDZone() on the removed zone until the animal's next zone check, and the poller's
+    -- fallback "by its own zone" (AnimalsAlertPoller.lua) listed the removed zone again from it: run g6r, a ZeD fault)
+    local ghost = S.AP.getZoneSummary(S.zoneName, S.pn)
+    Q.check(H.zoneObj() == nil and ghost == nil, "remove: Remove takes the zone away, on the Animals tab too",
+        "the game still has the zone: " .. tostring(H.zoneObj() ~= nil) .. "; the Animals tab still lists it: " .. tostring(ghost ~= nil)
+        .. (ghost and (", with " .. tostring(ghost.count) .. " animals") or ""))
     Q.check(st.view == "overview" and st.zoneName == nil, "remove: the page steps back to the overview", tostring(st.view))
     RT.bounds(Q, "the overview with the zone gone and its animals still there")
 end)
