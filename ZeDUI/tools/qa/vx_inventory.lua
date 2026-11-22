@@ -40,6 +40,17 @@
 --  * W4: Cancel must stop the read within one second (a no-page book reads for about 20 s at normal speed on a
 --    one-hour day), so on the old code a read that ran on cannot end by itself inside the wait and pass.
 --  * W5: the seated list is read once the window has built it after the stage (its _containerAtMs stamp).)
+-- (Nov 21 2026, after the 16:03 run on 9053bdef9: two faults of the script's own, none of ZeD's. The W1 to W5
+--  checks are untouched and still fail on the old code.
+--  * "every thing the test made is gone" said 1 of 21 left: the Spoon the W5 drag put on the ground by the car door.
+--    With the car gone the character stood beside it, so the Floor list took it in (a thing in a list has that list
+--    as its container); moved home, the list was emptied and filled without it. Emptying leaves that link (the
+--    game's own loot window does the same on the same shared list) and the game's Remove clears it only for a thing
+--    still in the list, so a bare link read as "still in a container". A container now counts only when its list
+--    holds the thing, the put-back clears a leftover link, the Spoon is taken off the ground in the car clean-up and
+--    the line names what is left.
+--  * the put-back runs the car clean-up a second time, the car gone: the seat's window was looked up on no car, an
+--    error caught here but logged by the game. The lookup now stops when he is in no seat or the seat has no door.)
 
 if not (RT and RT.make) then
     print("ZEDQA vx_inv ERR the kit (rt_kit.lua) did not run first")
@@ -87,7 +98,18 @@ function H.list(inv)
     return out
 end
 function H.size(inv) local n = -1; pcall(function() n = inv:getItems():size() end); return n end
-function H.where(it) local c = nil; pcall(function() c = it:getContainer() end); return c end
+-- the container a thing is really in: its link, when that container's own list holds it. (A link alone can be stale:
+-- the Floor list is emptied and filled again at every build, the game's own and ZeD's, and the emptying leaves the
+-- link on a thing that is not put back in, one the character walked away from.)
+function H.where(it)
+    local c = nil
+    pcall(function() c = it:getContainer() end)
+    if c == nil then return nil end
+    local inList = true
+    pcall(function() inList = c:getItems():contains(it) end)
+    if not inList then return nil end
+    return c
+end
 function H.typeOf(inv) local t = "nothing"; pcall(function() t = tostring(inv:getType()) end); return t end
 function H.nm(it)
     if it == nil then return "nil" end
@@ -172,6 +194,8 @@ function H.removeItem(it)
     end)
     pcall(function() if it:getWorldItem() then it:setWorldItem(nil) end end)
     pcall(function() local c = it:getContainer(); if c then c:Remove(it) end end)
+    -- (Remove clears the link only when the thing is in that container's list: a stale link is cleared here)
+    pcall(function() if it:getContainer() ~= nil then it:setContainer(nil) end end)
 end
 function H.track(it)
     if it then
@@ -1061,7 +1085,11 @@ function H.seatWindow()
     local w = nil
     pcall(function()
         local v = S.p:getVehicle()
-        local door = v:getPassengerDoor(v:getSeat(S.p))
+        if not v then return end   -- (not seated: the put-back runs this a second time, the car gone)
+        local seat = v:getSeat(S.p)
+        if seat == nil or seat < 0 then return end
+        local door = v:getPassengerDoor(seat)
+        if not door then return end
         local part = VehicleUtils.getChildWindow(door)
         if part and part:getInventoryItem() then w = part:getWindow() end
     end)
@@ -1223,6 +1251,8 @@ function H.w5Back()
     H.stopActions()
     pcall(function() local win = H.seatWindow(); if win and S.winWas ~= nil then win:setOpen(S.winWas) end end)
     S.winWas = nil
+    -- (the thing dragged to the ground from the seat is taken away here, where it lies, before he is moved home)
+    if S.thing and H.onFloor(S.thing) then H.removeItem(S.thing) end
     H.removeItem(S.gloveThing); S.gloveThing = nil
     if S.v and ZEDQA_CAR_AWAY then pcall(ZEDQA_CAR_AWAY, S.v, S.key) end
     S.v, S.key = nil, nil
@@ -1294,9 +1324,15 @@ Q.step(20, function()
     pcall(function() health = S.p:getBodyDamage():getOverallBodyHealth() end)
     Q.check(not dead and health >= 99, "the character is alive and whole", "health " .. tostring(math.floor(health)))
     if S.invWas ~= nil then pcall(function() S.p:setInvincible(S.invWas) end) end
-    local left = 0
-    for _, it in ipairs(S.made) do if H.where(it) ~= nil or H.onFloor(it) then left = left + 1 end end
-    Q.check(left == 0, "every thing the test made is gone", left .. " of " .. #S.made .. " left")
+    local left, leftNames = 0, {}
+    for _, it in ipairs(S.made) do
+        local c, fl = H.where(it), H.onFloor(it)
+        if c ~= nil or fl then
+            left = left + 1
+            leftNames[#leftNames + 1] = H.nm(it) .. (fl and " on the ground" or (" in " .. H.typeOf(c)))
+        end
+    end
+    Q.check(left == 0, "every thing the test made is gone", left .. " of " .. #S.made .. " left" .. ((left > 0) and (": " .. table.concat(leftNames, "; ")) or ""))
     Q.check((S.stashBack or 0) == #S.stash, "the character's own sewing things are back where they were", tostring(S.stashBack) .. " of " .. #S.stash)
     if S.handWas then
         Q.check(S.p:getPrimaryHandItem() == S.handWas.p and S.p:getSecondaryHandItem() == S.handWas.s, "the hands hold what they held")

@@ -170,13 +170,30 @@ function H.designId(name)
     if not ok then id = "error: " .. tostring(err) end
     return tostring(id), own
 end
--- the badge lines the dash would paint for a car of this script name (a stand-in car object: it has no name of its
--- own in the game's tables, as a modded car without a translation, so the script name is read)
+-- a stand-in car for the badge lines, with what the dash asks of a real car (zombie.vehicles.BaseVehicle): getScript()
+-- and getId(). Its script is the game's own for a game car (so the name is the one the game writes, "Ranger Chevalier
+-- Nyala"); for a name the game does not know, a script that only says its name, as a modded car without a
+-- translation, so the dash falls back to the script name. (A bare table here made the dash call a method that is not
+-- there: caught by its pcall, but the game logs it and the runner counts it.)
+-- (A game car's name is read in the game's language, so the two game-car unit checks hold in English, the language
+-- of the vx runs. In French the fire truck is "Dash Bulldriver de Pompiers" and the dash paints DASH on its unit line,
+-- old code and new: a ZeD quirk with names that put the service after the maker, not W22.)
+function H.standIn(name)
+    local base = tostring(name):gsub("^Base%.", "")
+    local sc = nil
+    local sm = getScriptManager and getScriptManager()
+    if sm then sc = sm:getVehicle(name) end
+    if not sc then
+        sc = { getCarModelName = function() return nil end, getName = function() return base end }
+    end
+    return { getScript = function() return sc end, getId = function() return 0 end }
+end
+-- the badge lines the dash would paint for a car of this script name
 function H.badge(name)
     local b = nil
     local ok, err = pcall(function()
         local des, _, own = S.D._designFor(name)
-        b = S.D._badges(des, {}, name, own)
+        b = S.D._badges(des, H.standIn(name), name, own)
     end)
     if not ok then Q.say("NOTE the badge lines for " .. tostring(name) .. " could not be read: " .. tostring(err)) end
     return b
@@ -304,10 +321,10 @@ Q.step(5, function()
     Q.check(b ~= nil and not unit:find("FIRE", 1, true), "W22: a van called Firebird gets no FIRE engine line (old: FIRE - ENGINE nn)", "unit line " .. unit)
     b = H.badge("Base.PickUpVanLightsFire")
     unit = tostring(b and b.unit)
-    Q.check(b ~= nil and unit:find("FIRE", 1, true) ~= nil, "W22: the game's fire truck keeps its FIRE unit line", "unit line " .. unit)
+    Q.check(b ~= nil and unit:find("FIRE", 1, true) ~= nil, "W22: the game's fire truck keeps its FIRE unit line", "unit line " .. unit .. ", named " .. tostring(b and b.plainName))
     b = H.badge("Base.CarLightsRanger")
     unit = tostring(b and b.unit)
-    Q.check(b ~= nil and unit:find("RANGER", 1, true) ~= nil, "W22: the game's ranger car keeps its RANGER unit line", "unit line " .. unit)
+    Q.check(b ~= nil and unit:find("RANGER", 1, true) ~= nil, "W22: the game's ranger car keeps its RANGER unit line", "unit line " .. unit .. ", named " .. tostring(b and b.plainName))
 end)
 -- the dash on screen: the car under the character carries a modded name for a moment
 Q.step(5, function()

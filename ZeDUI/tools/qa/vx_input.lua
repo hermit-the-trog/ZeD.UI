@@ -22,6 +22,10 @@
 -- The menus are the game's own (ISInventoryPaneContextMenu.createMenu on a given item), with a few rows of the
 -- script's own added the way a mod adds them (OnFillInventoryObjectContextMenu), so a click is harmless and tells
 -- which row ran; the game's own rows are made harmless before any click.
+-- The short strip of W13 and W14 (10 or fewer actions): the first given thing whose menu is that short with three
+-- rows of ours; on a stocked character none is (10 to 15 actions of the game's own each, Nov 21 run), and then it is
+-- a menu of six rows of the script's own, opened the way a mod opens its own right-click menu (ISContextMenu.get
+-- and addOption). ZeD shows that one as the same strip: the strip's click and hover code does not look at the item.
 -- Put back: the keyboard, the map, the menus, the pointer, the Context menu setting, the car, the things given, the
 -- place, health; god mode and invincible are on for the whole run.
 
@@ -150,7 +154,8 @@ function H.closeMenu()
     H.mouseOff()
     S.m, S.tr = nil, nil
 end
--- a right-click on an item of the bag, as the game makes it; style 1 the strip, 2 the list
+-- a right-click on an item of the bag, as the game makes it; style 1 the strip, 2 the list.
+-- No item: a menu of the script's own rows only, as a mod opens its own menu (ISContextMenu.get, then addOption)
 function H.open(item, extras, nest, style)
     H.closeMenu()
     S.fired, S.openErr = {}, nil
@@ -159,7 +164,16 @@ function H.open(item, extras, nest, style)
     local x, y = H.spot()
     H.mouseOn(x, y)
     S.extras, S.nest = extras, nest
-    local ok, e = pcall(ISInventoryPaneContextMenu.createMenu, S.pn, true, { item }, x, y)
+    local ok, e
+    if item then
+        ok, e = pcall(ISInventoryPaneContextMenu.createMenu, S.pn, true, { item }, x, y)
+    else
+        ok, e = pcall(function()
+            local c = ISContextMenu.get(S.pn, x, y)
+            if not c then error("the game gave no menu to fill") end
+            H.fill(S.pn, c, nil)
+        end)
+    end
     S.extras, S.nest = 0, false
     if not ok then S.openErr = tostring(e) end
     S.askedAt = H.now()
@@ -508,12 +522,14 @@ end)
 Q.step(2, function() H.kmAway() end)
 
 -- ===================================================================== W13: a strip click runs the cell clicked
--- a menu of 10 or fewer actions (no carousel): the first thing whose menu is that short, three rows of ours added
-for i = 1, 4 do
+-- a menu of 10 or fewer actions (no carousel): the first thing whose menu is that short, three rows of ours added;
+-- when no thing's menu is that short (try 5), a menu of six rows of the script's own and nothing else
+for i = 1, 5 do
     Q.step(2, function()
-        if S.short or not S.cands[i] then return end
+        if S.shortFound or (i <= 4 and not S.cands[i]) then return end
         S.trying = i
-        H.open(S.cands[i], 3, false, 1)
+        S.tryN = (i <= 4) and 3 or 6
+        H.open(S.cands[i], S.tryN, false, 1)   -- (try 5: no thing, the script's own menu)
     end)
     Q.waitFor(1, 240, function() return S.trying ~= i or (H.opened() and (H.menu() == nil or H.zone(H.menu(), "ctxcell_1") ~= nil)) end, function()
         if S.trying ~= i then return end
@@ -521,20 +537,23 @@ for i = 1, 4 do
         local m = H.menu()
         local n = m and m._ctx and #(m._ctx.items or {}) or 0
         if m and m.Type == "ZeD_ContextMenu" and not m._ctx.truncating and n >= 4 then
-            S.short, S.m = S.cands[i], m
+            S.shortFound, S.short, S.shortN, S.m = true, S.cands[i], S.tryN, m
             H.stub(m)
             H.watch(m)
+            Q.say("NOTE W13 W14: the short strip is " .. ((i <= 4) and ("the menu of thing " .. i .. " with 3 rows of the script's own")
+                or "a menu of the script's own 6 rows, opened as a mod opens its own menu") .. ", " .. n .. " actions")
         else
-            Q.say("NOTE the menu of thing " .. i .. " is not a short strip (" .. tostring(m and m.Type) .. ", " .. n .. " actions"
-                .. (S.openErr and (", " .. S.openErr) or "") .. "): the next thing is tried")
+            Q.say("NOTE the menu of " .. ((i <= 4) and ("thing " .. i) or "the script's own 6 rows") .. " is not a short strip ("
+                .. tostring(m and m.Type) .. ", " .. n .. " actions" .. (S.openErr and (", " .. S.openErr) or "") .. ")"
+                .. ((i <= 4) and ": the next is tried" or ""))
             H.closeMenu()
         end
     end)
 end
 Q.step(2, function()
     local m = S.m
-    if not (S.short and m and m._ctx.open) then
-        Q.check(false, "W13 staged: an item's menu opened as an icon strip of 10 or fewer actions", #S.cands .. " things tried")
+    if not (S.shortFound and m and m._ctx.open) then
+        Q.check(false, "W13 staged: a menu opened as an icon strip of 10 or fewer actions", #S.cands .. " things and the script's own menu tried")
         return
     end
     local sel0 = m._ctx.selected
@@ -561,8 +580,8 @@ end)
 -- ===================================================================== W14: a resting pointer does not undo a step
 Q.step(3, function()
     S.w14 = false
-    if not S.short then Q.check(false, "W14 staged: an item's menu opened as an icon strip of 10 or fewer actions"); return end
-    H.open(S.short, 3, false, 1)
+    if not S.shortFound then Q.check(false, "W14 staged: a menu opened as an icon strip of 10 or fewer actions"); return end
+    H.open(S.short, S.shortN, false, 1)
     S.w14 = true
 end)
 Q.waitFor(1, 240, function() return not S.w14 or (H.opened() and (H.menu() == nil or H.zone(H.menu(), "ctxcell_2") ~= nil)) end, function()

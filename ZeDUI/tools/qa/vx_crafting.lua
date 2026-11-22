@@ -29,6 +29,10 @@
 --     Craft is dimmed. The first draft waited for the row to read ready, so it never reached Craft: the W23 proof
 --     never ran. Now the gap is its own scored line, and Craft is pressed (the press runs on a dimmed button too:
 --     CC.onClick does not look at the dim). The queued craft is read the frame of the press.
+--     After the 16:06 run (Nov 21, on 9053bdef9): that line was read one frame (34 ms) after the table and the
+--     things were given, before the list had asked the game again (CC.logicScan asks every 1.2 s), so it said
+--     Missing on the fixed code too (c500fbab2, B6-14, hands the scan the table). It now waits up to 8 s for the
+--     row to read ready and is scored then; the old code never reads ready, so it still fails there, 8 s later.
 --   * W24: the alternatives list DOES draw each type's "have/need" (Molecules.drawAltRow); the draft only said the
 --     number. Plank slots take one type (no list to open), so a slot with alternatives is found for it.
 --   * W25: the character carries things Make Stake takes (bx_craft's first run), so the draft's craft act always
@@ -813,9 +817,23 @@ end, function(ok)
     local list = H.gameList() or H.carried()
     local g = H.handCan(S.DRILL, list, S.d.surf)
     if g ~= true then Q.skip("W23 a chosen ingredient on an any-surface recipe", "the game itself would not start " .. S.DRILL .. " at this table (" .. tostring(g) .. ")"); S.d = nil; return end
-    -- a gap Build's W23 fix leaves (not the chosen-ingredients path): the list's own check, the one that lights Craft
-    Q.check(H.zedCan(rd), "W23: beside the table, with everything carried, the row says ready and Craft is lit, as the game would start it (the list asks with no table: CraftingTab.lua:574)",
-        "ZeD " .. tostring(rd.status) .. " / canStart " .. tostring(rd.canStart) .. ", the game with the table " .. tostring(g))
+    S.d.g, S.d.list, S.d.readyAt = g, list, getTimestampMs()
+end)
+-- the list's own check, the one that lights Craft (B6-14; the old code asked the game with no table, so the row
+-- stayed Missing for good). The list asks the game again every 1.2 s (CC.logicScan) and the card's start check
+-- follows the new answer, so the row is given up to 8 s, as a player standing by the table would see it turn;
+-- nothing is nudged from here. Scored when it reads ready or when the time is up, and the act goes on either way.
+H.wait(8000, function()
+    if not (S.d and S.d.g) then return true end
+    local rd = H.row(S.CT, S.DRILL)
+    return H.zedCan(rd) and rd.canStart == true
+end, function(ok)
+    if not (S.d and S.d.g) then return end
+    local rd, st = H.row(S.CT, S.DRILL), H.cst()
+    local list, g = S.d.list, S.d.g
+    if not rd then Q.check(false, "W23: Drill Plank's row is still in the list beside the table", "no row"); S.d = nil; return end
+    Q.check(ok and H.zedCan(rd) and rd.canStart == true, "W23: beside the table, with everything carried, the row says ready and Craft is lit within 8 s, as the game would start it (the old code: Missing for good, the list asked with no table)",
+        "ZeD " .. tostring(rd.status) .. " / canStart " .. tostring(rd.canStart) .. " after " .. tostring(getTimestampMs() - S.d.readyAt) .. " ms, the game with the table " .. tostring(g))
     if not H.zedCan(rd) then Q.say("note W23: Craft is pressed though it is dimmed (the press still runs: CC.onClick does not look at the dim)") end
     -- the type the game takes when left alone, and the other one: that one is chosen
     S.d.auto = H.autoType(S.DRILL, list, S.d.surf, S.d.set)
@@ -823,6 +841,7 @@ end, function(ok)
     S.d.other = (S.d.pick == S.PLANK) and S.BIGBRANCH or S.PLANK
     if not S.d.auto then Q.say("note W23: the game's own pick could not be read; " .. S.d.pick .. " is chosen, so the type check below may not tell old from new") end
     local z = H.plankSlot(st)
+    if not z then Q.check(false, "W23: the card still shows its plank row", "no row"); S.d = nil; return end
     S.d.idx = z.idx
     H.click(S.CT, z, "W23 the plank row")
     S.d.alt = Q.check(st.altSlotName ~= nil and st.altItems ~= nil, "W23: a click on the plank row opens its alternatives", tostring(st.altSlotName))
