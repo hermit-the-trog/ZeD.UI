@@ -1149,6 +1149,7 @@ local function rootChanged()
         S._reapplying = true
         pcall(reopenWindowsIfOpen)   -- close FIRST: the close path persists geometry divided by the current (old) scale
         pcall(ZeD.applyTheme)
+        if ZeD.PxIcon and ZeD.PxIcon.warmNow then pcall(ZeD.PxIcon.warmNow) end   -- ask for the strip's icons at the new size (QA B8-2)
         S._reapplying = false
     end
 end

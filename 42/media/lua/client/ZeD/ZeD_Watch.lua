@@ -438,6 +438,13 @@ function ZeD_Watch:new(playerNum)
     return o
 end
 
+-- True when the open window `win` overlaps the box (x, y, w, h). No window, or a hidden one: false. (QA B8-3)
+local function _overBox(win, x, y, w, h)
+    if not (win and win.getIsVisible and win:getIsVisible()) then return false end
+    local wx, wy = win:getX(), win:getY()
+    return x < wx + win:getWidth() and x + w > wx and y < wy + win:getHeight() and y + h > wy
+end
+
 function ZeD_Watch:_scale() local Sc = ZeD.Scale; return ((Sc and Sc.root and Sc.root()) or 1) * (W.scale or 1) end   -- root scale (1080p = 1.0)
 
 -- the panel sits where the Java clock sat, sized to the plate at k screen pixels per art pixel
@@ -452,17 +459,26 @@ function ZeD_Watch:_layout(frameW, frameH, k)
     -- QA's visual audit B1, Nov 20 2026: a wide World window (Crafting or Maps open) covered the corner clock.
     -- When the open World window's rect overlaps the clock's, the clock steps to the window's left side;
     -- when there is no room there, it steps below the window. No overlap: placed exactly as before.
+    -- (QA B8-3) Both of the player's windows count: the Character window stands just left of the World window,
+    -- so a step left of the World window lands under it. Look again after every step; at most 4 steps, and with
+    -- no clear spot the clock stays at the last one. No tables or closures: _overBox reads the windows directly.
     local WWin = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn)
-    if WWin and WWin.getIsVisible and WWin:getIsVisible() then
-        local wx, wy, ww, wh = WWin:getX(), WWin:getY(), WWin:getWidth(), WWin:getHeight()
-        if x < wx + ww and x + w > wx and y < wy + wh and y + h > wy then
-            local gap = 4 * k
-            local left = getPlayerScreenLeft(pn)
-            if wx - gap - w >= left then
-                x = wx - gap - w
-            elseif wy + wh + gap + h <= getPlayerScreenTop(pn) + getPlayerScreenHeight(pn) then
-                y = wy + wh + gap
-            end
+    local CWin = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(pn)
+    local gap = 4 * k
+    for _ = 1, 4 do
+        local over = nil
+        if _overBox(WWin, x, y, w, h) then over = WWin
+        elseif _overBox(CWin, x, y, w, h) then over = CWin end
+        if not over then break end   -- clear of both windows
+        local wx, wy = over:getX(), over:getY()   -- (screen edges are read only here, when a window is in the way)
+        local left = getPlayerScreenLeft(pn)
+        local bottom = getPlayerScreenTop(pn) + getPlayerScreenHeight(pn)
+        if wx - gap - w >= left then
+            x = wx - gap - w
+        elseif wy + over:getHeight() + gap + h <= bottom then
+            y = wy + over:getHeight() + gap
+        else
+            break   -- no room left or below: stay here
         end
     end
     if self:getWidth() ~= w then self:setWidth(w) end

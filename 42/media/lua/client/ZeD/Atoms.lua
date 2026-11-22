@@ -327,6 +327,42 @@ end
 --- True when ZeD has a pixel icon of this id.
 function PXI.has(id) return id ~= nil and pxTex(16, id) ~= nil end
 
+-- Pixel icons the right-click strip and list draw that ContextPxIcons does not name: ZeD's own rows (QA B8-2).
+local WARM_EXTRA = { "backpack", "plus", "trash", "outfit", "outfit_add", "outfit_remove", "loadout", "loadout_add", "loadout_remove" }
+local _warmed = {}   -- box size -> true once asked (cleared never: a size is asked once per game)
+
+--- Ask the game for every strip/list icon's picture at the size PXI.tex would draw in a box of `box` px, so the
+--- background load starts before a cell first draws (a loose picture is blank until it has loaded: knowledge bank
+--- Q247). The answers are NOT kept: an early answer could be nil if the texture system is not ready yet. Same flag
+--- (3 = nearest) as pxTex, because a texture's first load fixes its filtering (Q205). Once per box size. (QA B8-2)
+function PXI.warm(box)
+    box = tonumber(box) or 16
+    if _warmed[box] then return end
+    local map = ZeD.ContextPxIcons
+    if not map then return end   -- the icon table is not loaded yet: try again on the next call
+    _warmed[box] = true
+    -- the size PXI.tex would pick: the largest drawing not above the box, 16 under 16
+    local size = 16
+    for _, s in ipairs(PXI.SIZES) do
+        if s <= box then size = s; break end
+    end
+    local function ask(id)
+        local base = PXI.DIR .. size .. "/zw_" .. id
+        pcall(Texture.getSharedTexture, base .. ".png", 3)
+        if ZeD.PxIconMark and ZeD.PxIconMark[id] then pcall(Texture.getSharedTexture, base .. "_mk.png", 3) end
+    end
+    for _, id in pairs(map) do ask(id) end
+    for _, id in ipairs(WARM_EXTRA) do ask(id) end
+end
+
+--- Warm at the strip's and list's icon box (T.px(16)) now. (QA B8-2)
+function PXI.warmNow()
+    local T = ZeD.T
+    pcall(PXI.warm, (T and T.px and T.px(16)) or 16)
+end
+pcall(PXI.warmNow)   -- at game start (Lua load); ContextPxIcons may not be loaded yet, so also on OnGameStart (QA B8-2)
+if Events and Events.OnGameStart then Events.OnGameStart.Add(PXI.warmNow) end
+
 --- The color of icon `id`'s mark (ZeD.PxIconMark: "blue", "red" or "gold"; the older "add" reads as blue and
 --- "remove" as red), or nil when it has none.
 --- set: the theme's set { blue =, red =, gold = } (T.marks, on a theme surface; an older pair { add =, remove = }
