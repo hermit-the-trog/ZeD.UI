@@ -3144,8 +3144,29 @@ function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, is
     local markSq, markGap = T.px(6), T.px(5)
     local markW = markC and (markSq + markGap) or 0
     local labelStr = label or ""
-    local labelRoom = w - indent - vw - markW - T.px(8)
-    if needsProbe then labelRoom = labelRoom - T.px(10) end   -- the "*" badge after the label
+    local badgeW = needsProbe and T.px(10) or 0   -- the "*" badge after the label
+    local rowW = w - indent                        -- the width the row really has
+    local labelRoom = rowW - vw - markW - T.px(8) - badgeW
+    local labelNeed = ZeD.TM:MeasureStringX(labelFont, labelStr)
+
+    -- WRAP (QA B8-1): the value never draws left of x. When value plus square is wider than the row, or leaves the
+    -- label less room than it needs and under half the row, the label stays alone on line 1 and the value goes on
+    -- line 2, right-aligned (as drawCardStatRow's wrapValue does), cut with "..." only if the whole row is too narrow
+    local lineTwo = (vw + markW > rowW) or (labelRoom < labelNeed and labelRoom < rowW / 2)
+    local lines = 1
+    local vRowY = y     -- the top of the line the value sits on
+    if lineTwo then
+        lines = 2
+        vRowY = y + rowH
+        local vRoom = w - markW
+        if vw > vRoom and vRoom > 0 then
+            vStr = ZeD.Atoms.truncateText(vStr, valueFont, vRoom)
+            vw   = ZeD.TM:MeasureStringX(valueFont, vStr)
+        end
+        labelRoom = rowW - badgeW   -- the label has line 1 to itself
+    end
+    -- never hand truncateText a room of 0 or less (QA B8-1)
+    if labelRoom < 0 then labelRoom = 0 end
     labelStr = ZeD.Atoms.truncateText(labelStr, labelFont, labelRoom)
     panel:drawText(labelStr, x + indent, labelY,
         labelC.r, labelC.g, labelC.b, labelC.a or 1, labelFont)
@@ -3164,13 +3185,15 @@ function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, is
     end
 
     local vc   = _resolveStatValColor(valueClass, T)
-    panel:drawText(vStr, x + w - vw, valueY,
+    local vValueY = vRowY + math.floor((rowH - valueH) / 2)
+    -- x + w - vw never lands left of x now: the value fits the row or was cut above (QA B8-1)
+    panel:drawText(vStr, x + w - vw, vValueY,
         vc.r, vc.g, vc.b, vc.a or 1, valueFont)
     if markC then
-        ZeD.Atoms.drawStatusDot(panel, x + w - vw - markW, y + math.floor((rowH - markSq) / 2), markC, markSq)
+        ZeD.Atoms.drawStatusDot(panel, x + w - vw - markW, vRowY + math.floor((rowH - markSq) / 2), markC, markSq)
     end
 
-    return rowH
+    return rowH * lines   -- callers advance y by this, so line 2 never overlaps the row below (QA B8-1)
 end
 
 -- ============================================================================

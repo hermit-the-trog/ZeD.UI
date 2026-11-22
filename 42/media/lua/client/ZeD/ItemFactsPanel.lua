@@ -313,17 +313,18 @@ function M.CombatFacts(item)
         local cap = safeGet(item, "getMaxAmmo")
         if cap then ammoStr = ammoStr .. " | " .. string.format("%d / %d", safeGet(item, "getCurrentAmmoCount") or 0, cap) end
     end
-    -- a jammed gun says so beside its rounds (QA B5-11)
+    -- a jammed gun says so on its own row under Condition, as a bag shows Tainted (QA B5-11, B8-1): beside the
+    -- rounds it made the line wider than the narrow card (QA B8-1)
     local jammed = safeGet(item, "isJammed") == true
-    if jammed then ammoStr = ZeD.tr("UI_ZeD_Jammed") .. " | " .. ammoStr end
-    panel.groups[#panel.groups + 1] = {
-        rows = {
-            {label = getText("Tooltip_weapon_Condition"), value = (cond and condMax) and string.format("%d / %d", cond, condMax) or "-",
-             valueClass = _condClass(ratio), mirrorKey = "condition"},
-            {label = getText("Tooltip_weapon_Ammo"),      value = ammoStr,
-             valueClass = jammed and "bad" or ((not hasAmmo) and "dim" or nil)},
-        },
+    local g3rows = {
+        {label = getText("Tooltip_weapon_Condition"), value = (cond and condMax) and string.format("%d / %d", cond, condMax) or "-",
+         valueClass = _condClass(ratio), mirrorKey = "condition"},
     }
+    -- the label alone with the red square, no value (QA B8-1)
+    if jammed then g3rows[#g3rows + 1] = {label = ZeD.tr("UI_ZeD_Jammed"), value = "", valueClass = "bad"} end
+    g3rows[#g3rows + 1] = {label = getText("Tooltip_weapon_Ammo"), value = ammoStr,
+                           valueClass = (not hasAmmo) and "dim" or nil}
+    panel.groups[#panel.groups + 1] = { rows = g3rows }
 
     return panel
 end

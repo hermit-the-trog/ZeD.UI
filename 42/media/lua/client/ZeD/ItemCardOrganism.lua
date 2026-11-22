@@ -523,7 +523,9 @@ local function topStatsForItem(item, playerNum)
         local IR = ZeD.InventoryRenderer
         rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Kind"),
                            value = (IR and IR.catLabel) and IR.catLabel(subtype) or tostring(subtype)}
-        local wt = safeGet(item, "getActualWeight") or safeGet(item, "getWeight") or 0
+        -- getUnequippedWeight as the lists, the picked line and the game's tooltip read it (a gun with its magazine
+        -- and rounds, a bag with its contents); safeGet is a pcall, so the bare weight is the fallback (QA B8-1b)
+        local wt = safeGet(item, "getUnequippedWeight") or safeGet(item, "getActualWeight") or safeGet(item, "getWeight") or 0
         rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Weight"), value = string.format("%.1f kg", wt)}
     end
 
