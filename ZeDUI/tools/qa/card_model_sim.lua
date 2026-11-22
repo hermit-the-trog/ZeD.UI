@@ -501,6 +501,15 @@ if haveBase then
         o = string.sub(o, 1, at - 1) .. (tk:gsub("ContextMenu_Take", "ContextMenu_Grab")) .. string.sub(o, at + #tk)
         oldSrc[2].src = o
     end
+    -- (QA K1-13, Nov 22 2026) clothes read Wear, the game's word, carried into the old card so only the model is compared
+    local wearOld = 'if cat == "Clothing" then\n        primary = {id = "EQUIP", label = VT("EQUIP"), primary = true}'
+    local wearNew = 'if cat == "Clothing" then\n        primary = {id = "EQUIP", label = VT("WEAR"), primary = true}'
+    local wearDone = false
+    for _, os in ipairs(oldSrc) do
+        local at = os.src and string.find(os.src, wearOld, 1, true)
+        if at then os.src = string.sub(os.src, 1, at - 1) .. wearNew .. string.sub(os.src, at + #wearOld); wearDone = true end
+    end
+    check("K1-13: the old card's clothes verb carried to Wear", wearDone)
     local c = oldSrc[1].src
     local ctxOld = '    if cnt == player:getInventory() then return "inventory" end\n'
     local nc = newSrc[1].src

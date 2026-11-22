@@ -465,7 +465,8 @@ local function headerVerbsForContext(ctx, item, playerObj)   -- (playerObj: the 
     -- over first themselves, from the floor container the World window shares, as the game's context menu does.)
     local primary
     if cat == "Clothing" then
-        primary = {id = "EQUIP", label = VT("EQUIP"), primary = true}
+        -- (QA K1-13) clothes read Wear, the game's word, as a backpack's does; the same EQUIP action runs
+        primary = {id = "EQUIP", label = VT("WEAR"), primary = true}
     elseif cat == "Weapon" or cat == "Firearm" then
         primary = {id = "EQUIP", label = VT("EQUIP"), primary = true}
     elseif cat == "Food" then
