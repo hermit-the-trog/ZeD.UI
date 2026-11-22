@@ -461,6 +461,9 @@ local function buildSetup(realMods, byName)
                     r.zedOwn = true   -- (one of ZeD's own options: Find shows it on ZeD setup, G.findRows)
                     local c = copyRow(r, nil)
                     c.zedDefault = opt.zedDefault   -- (Settings.lua: the item it starts on)
+                    -- (the director, Nov 21 2026: Defaults keeps Style as it is, so a Lite player stays in Lite; the
+                    -- help still says "Default: Full")
+                    if opt.id == "lookStyle" then c.zedNoReset = true end
                     zrow[opt.id] = c
                     zorder[#zorder + 1] = opt.id
                 end

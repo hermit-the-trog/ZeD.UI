@@ -1989,7 +1989,7 @@ local function hiddenOff(o)
 end
 function ZeD_MMOptions:zedOffDefault()
     for _, r in ipairs(self:zedSetupRows()) do
-        if r.zedDefault and r.control and r.control.selected ~= r.zedDefault then return true end
+        if r.zedDefault and not r.zedNoReset and r.control and r.control.selected ~= r.zedDefault then return true end   -- (Style is left out)
         if r.kind == "chord" and not ZeD.QuickChords.isDefault(r.chord) then return true end
         if r.control and r.control.zedOffDefault and r.control.zedOffDefault() then return true end   -- (the screens' check boxes)
     end
@@ -1997,11 +1997,12 @@ function ZeD_MMOptions:zedOffDefault()
     return false
 end
 function ZeD_MMOptions:zedDefaults()
-    -- (QA B10-1) Style is reset too now: its trip to Full must not bring back the picks a Lite pick kept
+    -- (QA B10-1) a Style pick this visit kept picks for Full to bring back: Defaults sets every addition to its default,
+    -- so those picks must not come back later
     if ZeD.Settings and ZeD.Settings.forgetLiteFrom then ZeD.Settings.forgetLiteFrom() end
     for _, r in ipairs(self:zedSetupRows()) do
         local c = r.control
-        if r.zedDefault and c and not c.disabled and c.selected ~= r.zedDefault then setCombo(c, r.zedDefault) end
+        if r.zedDefault and not r.zedNoReset and c and not c.disabled and c.selected ~= r.zedDefault then setCombo(c, r.zedDefault) end   -- (Style is left out: Lite stays Lite)
         if c and c.zedResetDefault then c.zedResetDefault() end   -- (the screens' check boxes: every one ZeD's)
         if r.kind == "chord" then ZeD.QuickChords.reset(r.chord) end   -- (the chords keep no Apply: back to their start at once)
     end
