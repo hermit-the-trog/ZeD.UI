@@ -410,7 +410,7 @@ function H.factsOk(g)
     for _, r in ipairs(type(stats) == "table" and stats or {}) do if r.label == "Ammo" then v = r.value end end
     local want = cur .. "/" .. max
     if v ~= want then return false, "itemFacts says " .. tostring(v) .. ", the gun " .. want end
-    -- a jammed gun has a Status row saying Jammed and its facts' Ammo row starts with the word (B5-11, f0189e024)
+    -- a jammed gun has a Status row saying Jammed and its facts a Jammed row of their own (B5-11 f0189e024, B8-1 a9ac61c8c)
     local jamWord = ZeD.tr("UI_ZeD_Jammed")
     local jam = gun:isJammed() == true
     local st = nil
@@ -423,7 +423,11 @@ function H.factsOk(g)
     local r = H.factRow(panel, getText("Tooltip_weapon_Ammo"))
     local want2 = string.format("%d / %d", cur, max)
     if not (r and H.endsWith(r.value, want2)) then return false, "the facts panel says " .. tostring(r and r.value) .. ", the gun " .. want2 end
-    if (r.value:sub(1, #jamWord) == jamWord) ~= jam then return false, "the facts panel says " .. tostring(r.value) .. ", the gun jammed " .. tostring(jam) end
+    -- (Nov 21 2026, B8-1 a9ac61c8c: the jam is the facts' own row after Condition, {UI_ZeD_Jammed, "", bad}, so the
+    -- narrow card no longer pushes the Ammo row off its edge; the Ammo row is back to its rounds alone)
+    local jr = H.factRow(panel, jamWord)
+    if (jr ~= nil) ~= jam then return false, "the facts panel's Jammed row is " .. (jr and "there" or "missing") .. ", the gun jammed " .. tostring(jam) end
+    if r.value:sub(1, #jamWord) == jamWord then return false, "the facts panel's Ammo row still starts with Jammed: " .. tostring(r.value) end
     return true, want
 end
 function H.card() local w = RT.cw(); return w and w._itemCard end
