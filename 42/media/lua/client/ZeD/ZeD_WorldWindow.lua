@@ -2428,6 +2428,19 @@ _switchWorldTabForNav = function(win, content, tabId)
     if win._activeTab == tabId then
         -- (a drawer folded by the pointer keeps its tab selected: A on that tab brings it back)
         if ZeD.Halves and ZeD.Halves.foldedTab and ZeD.Halves.foldedTab(win) == tabId then ZeD.Halves.showAll(win); return true end
+        -- A on the tab already open folds it, as a click on it does (the strip's same-tab branch) (QA K2 review)
+        if tabId ~= "loot" and win._drawerOpen and win._drawerMode == "tab" then
+            if not win._invDrawerOpen then
+                win._invDrawerOpen = true
+                win._invDrawerTargetW = ZeD.T.px(win._baseInvW or 372)
+            end
+            win._activeTab  = "loot"
+            win._drawerOpen = false
+            win._drawerMode = nil
+            win._tabUnder   = nil
+            if _syncWorldRingZones then _syncWorldRingZones(win, content) end
+            return true
+        end
         return false
     end
     local T = ZeD.T
@@ -6035,7 +6048,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         if type(item) == "string" then return true end  -- not an item
         -- double-click: vanilla's quick use (InventoryRenderer.doubleClick)
         if not isCtrlKeyDown() and not isShiftKeyDown() and self._playerObj
-            and ZeD.InventoryRenderer.doubleClick(self, item, self._playerObj:getPlayerNum()) then
+            and ZeD.InventoryRenderer.doubleClick(self, item, self._playerObj:getPlayerNum(), (getColumnAtX(self, x))) then
             self._deferredSelect = nil
             return true
         end

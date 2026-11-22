@@ -2464,6 +2464,9 @@ function ZeD.MapsTab.takeEscape()
     for win in pairs(ZeD.MapsTab._openPops) do
         local pop = win._mapPopout
         if pop and pop:isReallyVisible() then
+            -- a focused note box keeps Escape (as the prompts' text boxes do), so a note being typed is not lost (QA K2 review)
+            local te = win._mapTextEntry
+            if te and te.isFocused and te:isFocused() and te:isReallyVisible() then return false end
             ZeD.MapsTab.closePopout(win)
             return true
         end

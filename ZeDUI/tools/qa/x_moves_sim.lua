@@ -125,9 +125,10 @@ do
         cut(O, "function ZeD.ItemCard.canDrink(item, playerObj)", "\nend"),
         cut(O, "function ZeD.ItemCard.tooFull(playerObj)", "\nend"),
         cut(O, "function ZeD.ItemCard.eatOff(item, playerObj)", "\nend"),
+        cut(O, "function ZeD.ItemCard.drainableUse(item)", "\nend"),   -- (QA K2 review)
     }
     local src = ""
-    for i = 1, 4 do
+    for i = 1, 5 do
         check("WIRED: the card's drink and eat rule piece " .. i .. " is found", parts[i] ~= nil)
         src = src .. (parts[i] or "")
     end
