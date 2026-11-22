@@ -941,7 +941,13 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
             CM.onGrabItems(items, playerNum)
         end
     elseif label == "EAT" then
-        if CM.eatItem then
+        -- stuffed: nothing, as the game's grayed Eat; else the quick wheel's eat, which runs the opening
+        -- recipe first (a sealed can is opened, then eaten), as the game's Open and eat does (QA K1-2)
+        if ZeD.ItemCard.eatOff and ZeD.ItemCard.eatOff(item, player) then return end
+        local Q = ZeD.QuickWheel
+        if Q and Q.eat then
+            Q.eat(player, item)
+        elseif CM.eatItem then
             CM.eatItem(item, 1, playerNum)
         end
     elseif label == "READ" then
@@ -962,7 +968,19 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
         end
     -- the verbs vanilla keeps in the context menu only
     elseif label == "DRINK" then
-        if CM.onDrinkFluid then CM.onDrinkFluid(item, 1, player, nil, item) end
+        -- only where the game offers Drink (ZeD.ItemCard.canDrink), and as its double-click drinks: water
+        -- by thirst, another beverage whole (ZeD_QuickWheel's drink) (QA K1-2)
+        local IC = ZeD.ItemCard
+        if IC.canDrink then
+            local ok, off = IC.canDrink(item, player)
+            if not ok or off then return end
+        end
+        local Q = ZeD.QuickWheel
+        if Q and Q.drink then
+            Q.drink(player, item)
+        elseif CM.onDrinkFluid then
+            CM.onDrinkFluid(item, 1, player, nil, item)
+        end
     elseif label == "WEAR" then
         if CM.onWearItems then CM.onWearItems(items, playerNum) end
     elseif label == "OFF HAND" then

@@ -361,6 +361,45 @@ local function categoryOf(item)
     return "Item"
 end
 
+-- The card's Drink and the controller's held A share this one rule (QA K1-2): Drink only where the
+-- game's own menu and double-click offer it (vanilla ISInventoryPaneContextMenu 437-443 and 2318-2322,
+-- ISInventoryPane 1039): fluid in it, not sealed, a beverage (water, pop, beer: never bleach, gasoline
+-- or rubbing alcohol), not known to be tainted, in a container of 3 L or less. Bleach keeps its Drink
+-- in the right-click menu only. Returns ok, then the game's reason when it is there but grayed
+-- (stuffed, and the drink feeds you: Too full to eat more).
+function ZeD.ItemCard.canDrink(item, playerObj)
+    local fc = safeGet(item, "getFluidContainer")
+    if not fc or safeGet(fc, "isEmpty") or safeGet(item, "isSealed") then return false end
+    local fluid = safeGet(fc, "getPrimaryFluid")
+    local okB, bev = pcall(function() return fluid:isCategory(FluidCategory.Beverage) end)
+    if not (okB and bev) then return false end
+    if safeGet(fc, "isTaintedStatusKnown") then return false end
+    local cap = safeGet(fc, "getCapacity")
+    if cap and cap > 3.0 then return false end
+    if playerObj and ZeD.ItemCard.tooFull(playerObj) then
+        local okH, feeds = pcall(function() return fc:getProperties():getHungerChange() ~= 0 end)
+        if okH and feeds then return true, "Tooltip_CantEatMore" end
+    end
+    return true
+end
+
+-- Stuffed: the game lets nothing more be eaten (vanilla ISInventoryPaneContextMenu 499-503 grays its Eat
+-- with Tooltip_CantEatMore; the Well Fed moodle at 3 or more, ZeD_QuickWheel's Q.tooFull) (QA K1-2)
+function ZeD.ItemCard.tooFull(playerObj)
+    local ok, full = pcall(function() return playerObj:getMoodles():getMoodleLevel(MoodleType.FOOD_EATEN) >= 3 end)
+    return ok and full or false
+end
+
+-- The card's Eat and the controller's held A share this one rule (QA K1-2): the game grays Eat when
+-- stuffed, on food that feeds (hunger below 0; a cigarette, which feeds nothing, is never grayed).
+-- Returns the game's reason key when grayed, else nil.
+function ZeD.ItemCard.eatOff(item, playerObj)
+    if not playerObj or not ZeD.ItemCard.tooFull(playerObj) then return nil end
+    local h = safeGet(item, "getHungChange")
+    if h and h < 0 then return "Tooltip_CantEatMore" end
+    return nil
+end
+
 -- ---------------------------------------------------------------------------
 -- Marks (FAV / NO-CRAFT / DISPOSE) - what the flag strip's chips show.
 -- Fav is the game's own favorite flag; nocraft and dispose read through
@@ -401,7 +440,7 @@ end
 -- cluster out right-aligned: the last entry (MORE) sits at the right edge,
 -- the primary (first) leftmost of the cluster.
 -- ---------------------------------------------------------------------------
-local function headerVerbsForContext(ctx, item)
+local function headerVerbsForContext(ctx, item, playerObj)   -- (playerObj: the stuffed test, QA K1-2)
     if not item then return {} end
     local cat = categoryOf(item)
 
@@ -435,15 +474,20 @@ local function headerVerbsForContext(ctx, item)
         -- drinks or chews it. EAT on a cigarette would read wrong.
         local own = safeGet(item, "getCustomMenuOption")
         primary = {id = "EAT", label = (own and own ~= "") and tostring(own) or VT("EAT"), primary = true}
+        -- stuffed: grayed with the game's reason, as its own Eat is (QA K1-2)
+        local off = ZeD.ItemCard.eatOff(item, playerObj)
+        if off then primary.disabled, primary.offHelp = true, getText(off) end
     elseif cat == "Literature" then
         primary = {id = "READ", label = VT("READ"), primary = true}
     elseif cat == "Drainable" then
         primary = {id = "USE", label = VT("USE"), primary = true}
     elseif cat == "Fluid" then
-        -- DRINK: so bottles and canteens have a card verb at all
-        local fc = safeGet(item, "getFluidContainer")
-        local empty = fc and safeGet(fc, "isEmpty")
-        if fc and not empty and not safeGet(item, "isSealed") then primary = {id = "DRINK", label = VT("DRINK"), primary = true} end
+        -- DRINK: so bottles and canteens have a card verb at all; only where the game offers it (QA K1-2)
+        local ok, off = ZeD.ItemCard.canDrink(item, playerObj)
+        if ok then
+            primary = {id = "DRINK", label = VT("DRINK"), primary = true}
+            if off then primary.disabled, primary.offHelp = true, getText(off) end
+        end
     elseif cat == "Container" then
         -- WEAR: so a backpack can be put on from its card
         local loc = safeGet(item, "canBeEquipped")
@@ -696,7 +740,7 @@ local function buildModel(card, item, ctx, playerNum, now, g1, g2, g3, g4, g5, g
     }
     m.cat    = categoryOf(item)
     m.marks  = readMarks(item, playerNum)
-    m.verbs  = headerVerbsForContext(ctx, item)
+    m.verbs  = headerVerbsForContext(ctx, item, getSpecificPlayer(playerNum or 0))
     m.stats  = topStatsForItem(item, playerNum)
     m.facts  = ZeD.ItemFactsPanel and ZeD.ItemFactsPanel.factsFor(item, playerNum) or nil
     local fk = m.facts and m.facts._key
@@ -1384,7 +1428,7 @@ function ZeD_ItemCard:renderBody(ctx)
     local displayName = safeGet(item, "getDisplayName") or "???"
     -- each verb's help line words and, on the one the controller is on, its focus mark
     for i, v in ipairs(headerVerbs) do
-        v.help = verbHelp(v.id, v.label)
+        v.help = v.offHelp or verbHelp(v.id, v.label)   -- (a grayed verb says the game's reason, QA K1-2)
         v.focus = self.focusFor and self:focusFor("hverb_" .. i) or nil
     end
     -- the back key's focus mark (when the controller is on it) and its help line words

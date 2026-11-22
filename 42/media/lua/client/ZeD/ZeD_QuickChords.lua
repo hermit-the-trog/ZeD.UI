@@ -32,6 +32,7 @@
 
 require "ISUI/Gamepad/JoyPadSetup"
 require "ZeD/Tr"
+require "ISUI/ISFirearmRadialMenu"   -- (its RB is wrapped below, QA K1-4)
 require "ZeD/SafeMode"
 
 ZeD = ZeD or {}
@@ -277,6 +278,7 @@ function Q.run(p, chord)
         act = bestOf(e, p, pn, 0)
         if not act then say(p, ZeD.tr("UI_ZeD_Wheel_NotNow")); return false end
     end
+    if act.off then say(p, act.off); return false end   -- (a pick that is there but can't run says why: Weapons with only the one in hand, QA K1-5)
     if not act.run then return false end
     local ok, err = pcall(act.run, p, pn)
     if not ok then print("[ZeD] QuickChords: " .. chord .. " (" .. path .. "): " .. tostring(err)) end
@@ -379,12 +381,83 @@ function Q.onPress(joypadData, button)
     local mine = consumed[joypadData.id]
     if not mine then mine = {}; consumed[joypadData.id] = mine end
     mine[button] = true
+    if bump == "RB" then Q.rbClaimed[joypadData.player] = { up = 0 } end   -- (this RB is the chord's, not the game's reload: QA K1-4)
     local chord = bump .. "+" .. face
     local ok, err = pcall(Q.run, p, chord)
     if not ok then print("[ZeD] QuickChords: " .. chord .. ": " .. tostring(err)) end
     Q.lastChord = chord   -- (the last chord pressed, kept for testing)
     return true
 end
+
+-- ---------------------------------------------------------------------------
+-- RB kept from the game's reload while it is half of a chord or of the zoom (QA K1-4)
+-- ---------------------------------------------------------------------------
+-- With a gun in hand the game reloads on an RB tapped (under half a second) and opens its firearm wheel on
+-- an RB held (ISFirearmRadialMenu.onJoypadButtonReleased / onRepeatRBumper). ZeD takes only the face
+-- button of a chord, so RB + A for a painkiller also swapped the magazine, and LB + RB (the zoom) too.
+-- player number -> { up = ticks RB has been up } while ZeD owns that RB press
+Q.rbClaimed = Q.rbClaimed or {}
+
+-- the pad's id for a player, nil when that player has none
+local function padOf(pn)
+    local jd = JoypadState and JoypadState.players and JoypadState.players[pn + 1]
+    return jd and jd.id or nil
+end
+
+-- is this player's RB press ZeD's? A chord claimed it (Q.onPress), or LB is down with it: the zoom
+local function rbClaimedNow(pn)
+    if Q.rbClaimed[pn] then return true end
+    local jid = padOf(pn)
+    if jid ~= nil and JoypadButton.LeftBump:isDown(jid) and JoypadButton.RightBump:isDown(jid) then
+        Q.rbClaimed[pn] = { up = 0 }
+        return true
+    end
+    return false
+end
+
+-- A claim whose release never reached the game's prompts (a window took the pad meanwhile) would block
+-- the next lone RB's reload: it goes once RB has been up a few ticks (a few, so the release itself,
+-- which may come a tick after RB reads up, still finds it)
+local function rbClaimTick()
+    local gone = nil
+    for pn, c in pairs(Q.rbClaimed) do
+        local jid = padOf(pn)
+        if jid ~= nil and JoypadButton.RightBump:isDown(jid) then c.up = 0 else c.up = c.up + 1 end
+        if c.up >= 3 then gone = gone or {}; gone[#gone + 1] = pn end
+    end
+    for _, pn in ipairs(gone or {}) do Q.rbClaimed[pn] = nil end   -- (dropped after the walk, not during it)
+end
+
+-- wraps the game's firearm wheel once (the _zedChords flag keeps a second call from wrapping the wrapper)
+local function applyFirearm()
+    if not ISFirearmRadialMenu or ISFirearmRadialMenu._zedChords then return end
+    ISFirearmRadialMenu._zedChords = true
+    local origRepeat = ISFirearmRadialMenu.onRepeatRBumper
+    ISFirearmRadialMenu.onRepeatRBumper = function(buttonPrompt, ...)
+        -- RB held as half of a chord or the zoom: no firearm wheel
+        if buttonPrompt and buttonPrompt.player and rbClaimedNow(buttonPrompt.player) then return end
+        return origRepeat(buttonPrompt, ...)
+    end
+    local origRelease = ISFirearmRadialMenu.onJoypadButtonReleased
+    ISFirearmRadialMenu.onJoypadButtonReleased = function(buttonPrompt, button, joypadData, ...)
+        local pn = buttonPrompt and buttonPrompt.player
+        if button == Joypad.RBumper and pn and Q.rbClaimed[pn] then
+            Q.rbClaimed[pn] = nil
+            -- the game's own release still runs, so its press time is cleared for the next RB, with the
+            -- reload stood down for this one call
+            local R = ISReloadWeaponAction
+            local begin = R and R.BeginAutomaticReload
+            if begin then R.BeginAutomaticReload = function() end end
+            local ok, err = pcall(origRelease, buttonPrompt, button, joypadData, ...)
+            if begin then R.BeginAutomaticReload = begin end
+            if not ok then print("[ZeD] QuickChords: firearm release: " .. tostring(err)) end
+            return
+        end
+        return origRelease(buttonPrompt, button, joypadData, ...)   -- (RB alone: the game's reload, untouched)
+    end
+    Events.OnTick.Add(rbClaimTick)
+end
+Q._applyFirearm = applyFirearm
 
 -- wraps vanilla's press and release once: it runs at load and again at game boot, and the _zedChords flag
 -- keeps the second call from wrapping the wrapper
@@ -422,3 +495,5 @@ end
 
 Events.OnGameBoot.Add(apply)
 apply()
+Events.OnGameBoot.Add(applyFirearm)   -- (QA K1-4)
+applyFirearm()

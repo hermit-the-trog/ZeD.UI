@@ -808,6 +808,14 @@ function H.weapons(p)
             if p:isEquipped(it) or it:getCondition() > k.item:getCondition() then k.item = it end
         end
     end
+    -- best condition first (its share of the most it can have), as the comment above and both specs
+    -- say; equal ones keep the bag's order (QA K1-5)
+    local function share(it) local mx = safe(function() return it:getConditionMax() end) or 0; return mx > 0 and it:getCondition() / mx or 0 end
+    for i, k in ipairs(order) do k.i, k.share = i, share(k.item) end
+    table.sort(order, function(a, b)
+        if a.share ~= b.share then return a.share > b.share end
+        return a.i < b.i
+    end)
     local out = {}
     for _, k in ipairs(order) do
         local it = k.item
@@ -818,7 +826,8 @@ function H.weapons(p)
             local slot = safe(function() return it:getAttachedSlot() end)
             where = slot and slot >= 0 and tr("UI_ZeD_Wheel_BeltSlot", slot + 1) or tr("UI_ZeD_Wheel_OnTheBelt")
         end
-        out[#out + 1] = { name = name, tex = it:getTex(), detail = where, key = it:getFullType(), run = function(pl) ISDPadWheels.onEquipPrimary(pl, it) end }
+        out[#out + 1] = { name = name, tex = it:getTex(), detail = where, key = it:getFullType(), item = it,   -- (item: the chord's pick reads it, QA K1-5)
+            run = function(pl) ISDPadWheels.onEquipPrimary(pl, it) end }
     end
     return out
 end
@@ -930,9 +939,21 @@ function C.weapons(p, pn)
     return out
 end
 
+-- a quick action chord's pick (ZeD_QuickChords): the best weapon not already in the main hand, since
+-- the game's equip (ISDPadWheels.onEquipPrimary) puts away the one in hand; with only that one, nothing
+-- (it says so) (QA K1-5)
+function C.weaponsPick(p, pn)
+    local held = p:getPrimaryHandItem()
+    for _, e in ipairs(H.weapons(p)) do
+        if e.run and not e.off and e.item ~= held then return e end
+    end
+    return { off = tr("UI_ZeD_Wheel_InYourHands") }   -- (no run: QuickChords says it and does nothing)
+end
+
 function C.medicine(p, pn)
-    local out = H.quick(p, "pills")
-    for _, e in ipairs(ask("treatments", p, pn) or {}) do out[#out + 1] = e end
+    -- wounds first, pills after them, so the cut at ten drops pills, not wounds (QA K1-1)
+    local out = ask("treatments", p, pn) or {}
+    for _, e in ipairs(H.quick(p, "pills")) do out[#out + 1] = e end
     while #out > 10 do out[#out] = nil end   -- (the Health tab and Back after them)
     out[#out + 1] = { name = ZeD_CharacterWindow.tabLabel(charTab("health")), tab = "health-tab-white", detail = tr("UI_ZeD_Wheel_EveryWound"), key = "health",
         run = function(pl, n) H.charTab(pl, n, "health") end }
@@ -940,9 +961,9 @@ function C.medicine(p, pn)
 end
 
 -- a quick action chord's pick (ZeD_QuickChords): the worst wound's treatment first, as the list puts
--- them in the wound's order, then the first medicine
+-- them worst wound first, in care order; never a good bandage off (e.pickable), then the first medicine (QA K1-1)
 function C.medicinePick(p, pn)
-    for _, e in ipairs(ask("treatments", p, pn) or {}) do if e.run and not e.off then return e end end
+    for _, e in ipairs(ask("treatments", p, pn) or {}) do if e.run and not e.off and e.pickable then return e end end
     for _, e in ipairs(H.quick(p, "pills")) do if e.run and not e.off then return e end end
     return nil
 end
@@ -997,7 +1018,7 @@ D.B.character = function(p, pn)
     local hurt = ZeD.QuickWheel and ZeD.QuickWheel.hurt and ZeD.QuickWheel.hurt(p)
     local ring = {
         { name = tr("UI_ZeD_Wheel_Tabs"), tab = "loot-tab-white", detail = tr("UI_ZeD_Wheel_CharacterWindow"), sub = C.tabs },
-        { name = tr("UI_ZeD_Wheel_Weapons"), icon = "r_weapons", best = true, sub = C.weapons, off = (#weapons == 0) and tr("UI_ZeD_Wheel_NoWeapon") or nil },
+        { name = tr("UI_ZeD_Wheel_Weapons"), icon = "r_weapons", best = true, sub = C.weapons, pick = C.weaponsPick, off = (#weapons == 0) and tr("UI_ZeD_Wheel_NoWeapon") or nil },
         { name = getText("ContextMenu_Eat"), icon = "apple", best = true, sub = function() return H.quick(p, "eat") end,
           off = (#eat == 0) and ((ZeD.QuickWheel.tooFull and ZeD.QuickWheel.tooFull(p)) and getText("Tooltip_CantEatMore")
               or tr("UI_ZeD_Wheel_NothingToEat")) or nil },
@@ -1290,9 +1311,41 @@ local function recorder()
     return r
 end
 
+-- How bad a part is, as the Health tab ranks it (HealthTab.lua classifyConditions
+-- and its sort): its worst condition (1 bitten, 2 danger, 3 warning, 4 cared for,
+-- 5 nothing), so the worst wound comes first, not the body's head-to-toe order (QA K1-1)
+function H.partRank(p, bp)
+    local doc = safe(function() return p:getPerkLevel(Perks.Doctor) end) or 0
+    local cheat = ISHealthPanel and ISHealthPanel.cheat
+    local bandaged = bp:bandaged()
+    local fractureT, splint = bp:getFractureTime(), bp:getSplintFactor()
+    local stiff, pain = bp:getStiffness(), bp:getAdditionalPain()
+    if bp:bitten() then return 1 end
+    if bp:bleeding() or bp:deepWounded()
+       or (bp:isInfectedWound() and not bandaged and (doc > 8 or bp:getWoundInfectionLevel() * 10 >= (2.5 - doc) or cheat))
+       or (fractureT > 0 and splint == 0)
+       or ((bp:haveBullet() or bp:haveGlass()) and not bandaged)
+       or stiff >= 20 or pain > 50 then return 2 end
+    if bp:scratched() or bp:isCut() or (bp:getBurnTime() > 0 and not bandaged)
+       or stiff >= 5 or pain > 10 or (bandaged and bp:getBandageLife() <= 0) then return 3 end
+    if bandaged or bp:stitched() or splint > 0
+       or bp:getPlantainFactor() > 0 or bp:getComfreyFactor() > 0 or bp:getGarlicFactor() > 0 then return 4 end
+    return 5
+end
+
+-- The care order inside one part, by the handler that made the option (vanilla's
+-- ISHealthPanel handlers carry their name in .Type): glass or bullet out, the
+-- burn cleaned, disinfect, stitch, then a bandage. A remove-option comes last and
+-- only a dirty bandage's may be picked (QA K1-1)
+H.CARE = { HRemoveGlass = 1, HRemoveBullet = 2, HCleanBurn = 3, HDisinfect = 4, HStitch = 5,
+           HApplyBandage = 6, HSplint = 7, HApplyPlantain = 8, HApplyComfrey = 8, HApplyGarlic = 8,
+           HRemoveBandage = 9, HRemoveStitch = 10, HRemoveSplint = 11 }
+
 -- Medicine and first aid: for every part that wants care, what vanilla's
 -- health panel offers (ISHealthPanel:doBodyPartContextMenu with ISContextMenu.get
--- answering the recorder), one slice per treatment, the part on the second line
+-- answering the recorder), one slice per treatment, the part on the second line.
+-- Worst part first, each part's options in care order; e.pickable says the quick
+-- chord may take it (QA K1-1)
 function H.treatments(p, pn)
     if not (ISHealthPanel and ISHealthPanel.doBodyPartContextMenu and ISContextMenu) then return {} end
     local adapter = { character = p, otherPlayer = nil, blockingMessage = nil, actions = {} }
@@ -1313,11 +1366,24 @@ function H.treatments(p, pn)
             pcall(ISHealthPanel.doBodyPartContextMenu, adapter, bp, 0, 0)
             ISContextMenu.get = origGet
             local part = safe(function() return BodyPartType.getDisplayName(bp:getType()) end)
+            local rank = safe(H.partRank, p, bp) or 5
+            local health = safe(function() return bp:getHealth() end) or 100
             local function leaves(opts, parent)
                 for _, o in ipairs(opts) do
                     if o.sub then leaves(o.sub.options, o.name)
                     elseif o.onSelect and not o.notAvailable then
+                        local kind = type(o.target) == "table" and o.target.Type or nil
+                        local care = H.CARE[kind] or 12
+                        local pick = care <= 8   -- (unknown or remove-options: never the chord's own pick)
+                        if kind == "HApplyBandage" and tostring(o.args[1] or ""):find("Dirty", 1, true) then
+                            care = care + 0.5   -- (a dirty bandage after every clean one carried)
+                        elseif kind == "HDisinfect" and (safe(function() return bp:getAlcoholLevel() end) or 0) > 0 then
+                            pick = false        -- (already disinfected: the next press moves on to the bandage)
+                        elseif kind == "HRemoveBandage" then
+                            pick = (safe(function() return bp:getBandageLife() end) or 1) <= 0   -- (only a dirty one)
+                        end
                         out[#out + 1] = { name = parent and (parent .. ": " .. tostring(o.name)) or tostring(o.name), detail = part, icon = "bandage",
+                            rank = rank, health = health, partIdx = i, care = care, pickable = pick, order = #out + 1,
                             run = function() o.onSelect(o.target, unpack(o.args, 1, o.n)) end }
                     end
                 end
@@ -1326,6 +1392,14 @@ function H.treatments(p, pn)
         end
     end
     ISContextMenu.get = origGet
+    -- worst part first, then the less healthy part, then the care order; ties keep vanilla's order (QA K1-1)
+    table.sort(out, function(a, b)
+        if a.rank ~= b.rank then return a.rank < b.rank end
+        if a.health ~= b.health then return a.health < b.health end
+        if a.partIdx ~= b.partIdx then return a.partIdx < b.partIdx end   -- (one part's options stay together)
+        if a.care ~= b.care then return a.care < b.care end
+        return a.order < b.order
+    end)
     return out
 end
 

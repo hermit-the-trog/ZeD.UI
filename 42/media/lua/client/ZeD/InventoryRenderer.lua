@@ -678,6 +678,11 @@ function ZeD.InventoryRenderer.padEat(w, el)
     local playerObj = getSpecificPlayer(pn)
     if not (item and playerObj and item:getContainer()) then return end
     if playerObj.isAsleep and playerObj:isAsleep() then return end
+    -- the card's own rule and verb (QA K1-2): stuffed, nothing (the game grays its Eat); else the eat that
+    -- runs the opening recipe first (ZeD_QuickWheel's)
+    local IC, Q = ZeD.ItemCard, ZeD.QuickWheel
+    if IC and IC.eatOff and IC.eatOff(item, playerObj) then return end
+    if Q and Q.eat then Q.eat(playerObj, item); return end
     if ISInventoryPaneContextMenu and ISInventoryPaneContextMenu.eatItem then ISInventoryPaneContextMenu.eatItem(item, 1, pn) end
 end
 -- (Nov 14 2026, punch list 228q: a drink is a hold too. A bottle, a can of pop, a canteen: the card's test for its
@@ -685,6 +690,10 @@ end
 -- bleach and petrol included, since the card's Drink was a tap)
 function ZeD.InventoryRenderer.padIsDrink(item)
     if not item then return false end
+    -- the card's own rule (QA K1-2): only a beverage the game offers Drink on, so a held A never drinks
+    -- bleach, gasoline or rubbing alcohol; anything else held marks
+    local IC = ZeD.ItemCard
+    if IC and IC.canDrink then return (IC.canDrink(item)) and true or false end
     local okF, fc = pcall(function() return item:getFluidContainer() end)
     if not (okF and fc) then return false end
     local okE, empty = pcall(function() return fc:isEmpty() end)
@@ -705,6 +714,13 @@ function ZeD.InventoryRenderer.padDrink(w, el)
     local playerObj = getSpecificPlayer(pn)
     if not (item and playerObj and item:getContainer()) then return end
     if playerObj.isAsleep and playerObj:isAsleep() then return end
+    -- the card's rule and verb (QA K1-2): grayed (too full) does nothing; water by thirst, another drink whole
+    local IC, Q = ZeD.ItemCard, ZeD.QuickWheel
+    if IC and IC.canDrink then
+        local ok, off = IC.canDrink(item, playerObj)
+        if not ok or off then return end
+    end
+    if Q and Q.drink then Q.drink(playerObj, item); return end
     local CM = ISInventoryPaneContextMenu
     if CM and CM.onDrinkFluid then CM.onDrinkFluid(item, 1, playerObj, nil, item) end
 end

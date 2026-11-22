@@ -113,6 +113,37 @@ ZeD.playerNumOf = function() return 0 end
 ZeD.uiSound = noop
 ZeD.InventoryRenderer = {}
 ZeD.Input.Detector = { getMode = function() return "gamepad" end }
+-- (QA K1-2) the card's one Drink / Eat rule (ZeD.ItemCard.canDrink, tooFull, eatOff), cut from ItemCardOrganism.lua,
+-- which the card and the held A both ask
+FluidCategory = { Beverage = "Beverage" }
+MoodleType = { FOOD_EATEN = "FOOD_EATEN" }
+ZeD.ItemCard = {}
+do
+    local O = readFile(Z .. "ItemCardOrganism.lua") or ""
+    local parts = {
+        cut(O, "local function safeGet(item, m, ...)", "\nend"),
+        cut(O, "function ZeD.ItemCard.canDrink(item, playerObj)", "\nend"),
+        cut(O, "function ZeD.ItemCard.tooFull(playerObj)", "\nend"),
+        cut(O, "function ZeD.ItemCard.eatOff(item, playerObj)", "\nend"),
+    }
+    local src = ""
+    for i = 1, 4 do
+        check("WIRED: the card's drink and eat rule piece " .. i .. " is found", parts[i] ~= nil)
+        src = src .. (parts[i] or "")
+    end
+    local fn, e = loadstring(src, "drink rule")
+    check("the card's drink and eat rule compiles", fn ~= nil, e)
+    if fn then fn() end
+end
+-- a fluid for the stubs: its categories, the game's tainted test, the container's size
+local function fluidOf(cats, opts)
+    opts = opts or {}
+    local fl = { isCategory = function(_, c) return cats[c] == true end }
+    return { isEmpty = function() return opts.empty == true end, getPrimaryFluid = function() return fl end,
+             isTaintedStatusKnown = function() return opts.tainted == true end,
+             getCapacity = function() return opts.cap or 1 end,
+             getProperties = function() return { getHungerChange = function() return opts.hunger or 0 end } end }
+end
 ZeD.Input.Action = { fromGamepadButton = function(b)
     if b == Joypad.AButton then return { "confirm" } end
     if b == Joypad.XButton then return { "context_menu" } end
@@ -288,10 +319,15 @@ hold(charW, Joypad.AButton)
 check("FOOD: A held on a row that is not food still marks", #logged("mark") == 1 and #logged("ISEatFoodAction") == 0)
 
 -- DRINK (punch list 228q)
-local WATER = { isEmpty = function() return false end }
+local WATER = fluidOf({ Beverage = true })
 local bottle = item("water bottle", MAIN, { fluid = WATER })
 check("DRINK: a bottle with water in it is a drink", IR.padIsDrink(bottle) == true)
-check("DRINK: ... an empty one is not", not IR.padIsDrink(item("empty", MAIN, { fluid = { isEmpty = function() return true end } })))
+check("DRINK: ... an empty one is not", not IR.padIsDrink(item("empty", MAIN, { fluid = fluidOf({ Beverage = true }, { empty = true }) })))
+-- (QA K1-2: only where the game offers Drink)
+check("DRINK: ... nor bleach (no beverage: its Drink stays in the right-click menu)", not IR.padIsDrink(item("bleach", MAIN, { fluid = fluidOf({ Poison = true }, { tainted = true }) })))
+check("DRINK: ... nor gasoline or rubbing alcohol (no beverage)", not IR.padIsDrink(item("gas can", MAIN, { fluid = fluidOf({ Fuel = true }, { cap = 10 }) })))
+check("DRINK: ... nor water known to be tainted", not IR.padIsDrink(item("tainted", MAIN, { fluid = fluidOf({ Beverage = true }, { tainted = true }) })))
+check("DRINK: ... nor a beverage in a container over 3 L", not IR.padIsDrink(item("big pot", MAIN, { fluid = fluidOf({ Beverage = true }, { cap = 5 }) })))
 check("DRINK: ... nor a sealed one (the card has no Drink for it)", not IR.padIsDrink(item("sealed", MAIN, { fluid = WATER, sealed = true })))
 focus(charW, itemStop(bottle))
 tap(charW, Joypad.AButton)
@@ -315,7 +351,7 @@ local orgParts = {
     cut(ORG, "ZeD.ItemCard.VERB_KEYS = {", "\nend", "function ZeD.ItemCard.verbText"),
     cut(ORG, "local function safeGet(item, m, ...)", "\nend"),
     cut(ORG, "local function categoryOf(item)", "\nend"),
-    cut(ORG, "local function headerVerbsForContext(ctx, item)", "\nend"),
+    cut(ORG, "local function headerVerbsForContext(ctx, item, playerObj)", "\nend"),
     cut(ORG, "local function compactVerbs(verbs, w)", "\nend"),
 }
 local orgSrc = ""
@@ -323,7 +359,7 @@ for i = 1, 5 do
     check("WIRED: the card's verb model piece " .. i .. " is found", orgParts[i] ~= nil)
     orgSrc = orgSrc .. (orgParts[i] or "")
 end
-ZeD.ItemCard = {}
+ZeD.ItemCard = ZeD.ItemCard or {}   -- (keeps the drink and eat rule loaded above)
 local VERBS
 do
     local fn, e = loadstring(orgSrc .. "\nreturn headerVerbsForContext, compactVerbs, categoryOf\n", "card verbs")
@@ -365,6 +401,11 @@ if VERBS then
     check("FLOOR: a book on the floor: Grab, Read, More", ids == "TAKE,READ,MORE", ids)
     ids = VERBS("container", bottle)
     check("DRINK: a bottle in a crate: Grab, Drink, More", ids == "TAKE,DRINK,MORE", ids)
+    -- (QA K1-2) the card's one bright button never drinks bleach or a gas can
+    ids = VERBS("inventory", item("bleach", MAIN, { fluid = fluidOf({ Poison = true }, { tainted = true }) }))
+    check("DRINK: bleach's card has no Drink (the right-click menu keeps it)", not ids:find("DRINK", 1, true), ids)
+    ids = VERBS("inventory", item("gas can", MAIN, { fluid = fluidOf({ Fuel = true }, { cap = 10 }) }))
+    check("DRINK: a gas can's card has no Drink", not ids:find("DRINK", 1, true), ids)
 end
 
 -- USE (punch list 228q follow-up)

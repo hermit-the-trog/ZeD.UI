@@ -66,8 +66,23 @@ local function isSmoke(it)
     return isSmokable(it) and _safe(function() return instanceof(it, "Food") end, false)
 end
 
-local function isFood(it)
+-- the game's double-click test for food (vanilla ISInventoryPane 990-995): never burnt food, food the
+-- character knows is poison, or raw food the game marks dangerous uncooked (raw chicken) (QA K1-3)
+local function unsafeFood(it, playerObj)
+    if _safe(function() return it:isBurnt() end, false) then return true end
+    if playerObj and _safe(function() return playerObj:isKnownPoison(it) end, false) then return true end
+    return _safe(function() return it:isbDangerousUncooked() and not it:isCooked() end, false)
+end
+
+-- fluid the character knows is tainted (the game's own word for it: bleach, or tainted water when the
+-- sandbox shows it); the game's double-click never drinks it (vanilla ISInventoryPane 1039, 1063) (QA K1-3)
+local function knownTainted(it)
+    return _safe(function() return it:getFluidContainer():isTaintedStatusKnown() end, false)
+end
+
+local function isFood(it, playerObj)
     if _safe(function() return it:getCategory() end, "") ~= "Food" then return false end
+    if unsafeFood(it, playerObj) then return false end   -- (QA K1-3)
     if isSmokable(it) then return false end
     if _safe(function() return it:getScriptItem():isCantEat() and not it:getScriptItem():getOpeningRecipe() end, false) then return false end
     local opt = _safe(function() return it:getCustomMenuOption() end, nil)
@@ -75,8 +90,9 @@ local function isFood(it)
     return _safe(function() return it:getHungChange() < 0 end, false) or _safe(function() return it:getOpeningRecipe() ~= nil end, false)
 end
 
-local function isFoodDrink(it)
+local function isFoodDrink(it, playerObj)
     return _safe(function() return it:getCategory() end, "") == "Food" and not isSmokable(it)
+        and not unsafeFood(it, playerObj)   -- (QA K1-3)
         and _safe(function() return it:getCustomMenuOption() end, nil) == drinkWord()
 end
 
@@ -122,6 +138,7 @@ local function byKind(list, better)
     local kinds, order = {}, {}
     for _, it in ipairs(list) do
         local ft = _safe(function() return it:getFullType() end, tostring(it))
+        if knownTainted(it) then ft = ft .. "|tainted" end   -- (a known-tainted bottle never folds into clean ones, QA K1-3)
         local k = kinds[ft]
         if not k then k = { item = it, n = 0 }; kinds[ft] = k; order[#order + 1] = k end
         k.n = k.n + 1
@@ -235,7 +252,8 @@ local GROUPS = {
     { id = "eat", label = "ContextMenu_Eat", test = isFood, act = eat,
       better = function(a, b) return spoilRank(a) < spoilRank(b) end, order = function(x, y) return spoilRank(x.item) < spoilRank(y.item) end,
       off = function(p) return Q.tooFull(p) end },
-    { id = "drink", label = "ContextMenu_Drink", test = function(it) return isWater(it) or isBeverage(it) or isFoodDrink(it) end, act = drink,
+    { id = "drink", label = "ContextMenu_Drink", act = drink,
+      test = function(it, p) return (isWater(it) or isBeverage(it) or isFoodDrink(it, p)) and not knownTainted(it) end,   -- (QA K1-3)
       order = function(x, y) return (isWater(x.item) and 0 or 1) < (isWater(y.item) and 0 or 1) end },
     { id = "smoke", label = "ContextMenu_Smoke", test = isSmoke, act = smoke, usable = canLight },
     { id = "pills", label = "ContextMenu_Take_pills", test = isPills, act = pills },
@@ -249,7 +267,7 @@ function Q.collect(playerObj, g)
     if g.off and g.off(playerObj) then return {} end
     local list = {}
     for _, it in ipairs(carried(playerObj)) do
-        if g.test(it) and (not g.usable or g.usable(playerObj, it)) then list[#list + 1] = it end
+        if g.test(it, playerObj) and (not g.usable or g.usable(playerObj, it)) then list[#list + 1] = it end
     end
     local kinds = byKind(list, g.better)
     if g.order then table.sort(kinds, g.order) end
@@ -311,3 +329,7 @@ function Q.group(id)
 end
 Q.hurt = hurt
 Q.isWater = isWater
+-- the eat and drink verbs, for the item card's Eat and Drink and the controller's held A (QA K1-2):
+-- eat runs the opening recipe first (a sealed can opened, then eaten); drink sips water by thirst
+Q.eat = eat
+Q.drink = drink

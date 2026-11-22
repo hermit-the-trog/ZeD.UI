@@ -116,7 +116,10 @@ local function itemBase(name, ft, f)
     return f
 end
 local FLUID = { amt = 0.8 }
-local FC = Obj("fluidContainer", { getAmount = function() return FLUID.amt end, isEmpty = function() return FLUID.amt <= 0 end })
+-- (QA K1-2: the card's Drink asks the game's rule: a beverage, not known tainted, 3 L or less; water is one)
+local WATER = Obj("fluid:Water", { isCategory = function(_, c) return c == "Beverage" end })
+local FC = Obj("fluidContainer", { getAmount = function() return FLUID.amt end, isEmpty = function() return FLUID.amt <= 0 end,
+    getPrimaryFluid = WATER, isTaintedStatusKnown = false, getCapacity = 1 })
 local BAG_ITEMS = { 1, 2, 3 }
 local BAG_INV = Obj("bagInv", { getCapacity = 15, getContentsWeight = function() return #BAG_ITEMS * 1.5 end,
     getItems = function() return jlist(BAG_ITEMS) end })
@@ -262,6 +265,7 @@ local function newEnv(label, sources, clock)
     env.getPlayer = function() return PLAYER end
     env.getSpecificPlayer = function() return PLAYER end
     env.instanceof = function(o, cls) return type(o) == "table" and o._is and o._is[cls] or false end
+    env.FluidCategory = { Beverage = "Beverage" }   -- (QA K1-2)
     env.ISPanel = { derive = function() return {} end }
     env.ISTimedActionQueue = { add = noop }
     env.Events = setmetatable({}, { __index = function() return { Add = noop, Remove = noop } end })
