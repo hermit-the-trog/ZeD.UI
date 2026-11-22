@@ -11,7 +11,8 @@ sys.path.insert(0, HERE); os.chdir(HERE)
 import d_skeleton as SK          # noqa: E402
 ROOT = os.path.join(HERE, "out", "mod", "ZeD-UI")
 SK.export(ROOT)
-SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "..", "body", "ZeD_BodyFigure.lua")
+SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "..", "..", "..", "42", "media", "lua", "client", "ZeD",
+                                                       "ZeD_BodyFigure.lua")      # the mod's own
 FAILS = []
 def check(what, ok, detail=""):
     print(("  ok   " if ok else "  FAIL ") + what + ("" if ok else "  " + str(detail)))
@@ -60,7 +61,7 @@ def lua_for(sex, light):
 
 def reference(sex, light, s, ox, oy, pw, ph, colors, hover=None):
     c = Canvas(pw + 2 * ox, ph + 2 * oy)
-    w, h = int(220 * s), int(260 * s)
+    w, h = int(SK.FW * s), int(SK.FH * s)
     x, y = ox + (pw - w) // 2, oy + (ph - h) // 2
     c.draw(f"media/textures/ZeD/body/fig-bg-{sex}-{'light' if light else 'dark'}.png", x, y, w, h, 1.0, *TINT)
     c.draw(f"media/textures/ZeD/body/{sex}-skeleton.png", x, y, w, h, 1, 1, 1, 1)
@@ -94,7 +95,10 @@ for sex in ("m", "f"):
     _near = int((_drawn & _top & (_d < 2.0)).sum())
     check(f"{sex}: head, shoulders and chest leave the outline showing", _near == 0, _near)
     for light in (False, True):
-        for (pw, ph, want_s) in ((220, 260, 1), (440, 520, 2), (300, 300, 1), (500, 700, 2), (165, 195, 0.75)):
+        # the figure's own frame at 1x and 2x, roomier panels that still take only 1x or 2x, and one smaller than 1x
+        # (Nov 21 2026: the frame is SK.FW x SK.FH now, the ruler's frame, no longer 220 x 260)
+        for (pw, ph, want_s) in ((SK.FW, SK.FH, 1), (2 * SK.FW, 2 * SK.FH, 2), (SK.FW + 44, SK.FH + 28, 1),
+                                 (2 * SK.FW + 44, 2 * SK.FH + 156, 2), (80, 204, 0.75)):
             L, g, fig = lua_for(sex, light)
             for k, (r, g_, b, a) in COLORS.items(): fig.setPartColor(fig, k, r, g_, b, a)
             ox, oy = 7, 5
@@ -114,7 +118,7 @@ for sex in ("m", "f"):
         # every part is hit where its bones are (at 2x): at least 85% of its pixels hit it
         L, g, fig = lua_for(sex, light)
         P = L.table(); P.drawTextureScaled = lambda *a: None; P.drawTextureScaledUniform = lambda *a: None
-        fig.drawAt(fig, P, 0, 0, 440, 520)
+        fig.drawAt(fig, P, 0, 0, 2 * SK.FW, 2 * SK.FH)
         for p in SK.PARTS:
             ys, xs = np.nonzero(owner == SK.PID[p])
             hits = [fig.hitTestAt(fig, int(x) * 2 + 1, int(y) * 2 + 1) for x, y in zip(xs[::3], ys[::3])]

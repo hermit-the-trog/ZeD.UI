@@ -1970,15 +1970,16 @@ end
 function ZeD.Molecules.layoutZoneA(x, y, w, figW, figH)
     local T = ZeD.T
     -- Pass contentW (post-scroll) as w so rightW is correct with or without scrollbar.
-    -- Layout: [8px] [220px figure] [10px gap] [rightW] [8px right pad]
-    -- With scroll (w=466):    rightW = 466-238-8 = 220
-    -- Without scroll (w=480): rightW = 480-238-8 = 234
+    -- Layout: [8px] [106px figure] [10px gap] [rightW] [8px right pad]
+    -- With scroll (w=466):    rightW = 466-124-8 = 334
+    -- Without scroll (w=480): rightW = 480-124-8 = 348
+    -- (Graphic cleanup, Nov 22 2026: the figure lost its room grid and went 220 -> 106 wide, so the text gains 114)
     local leftX  = x + T.px(TAB_HEADER_PAD)          -- 8px outer left pad
     local leftW  = T.sp.figureW                      -- the figure column: the figure at its whole zoom
     local rightX = leftX + leftW + T.px(TAB_COL_GAP) -- +10px column gap
     local rightW = w - T.px(TAB_HEADER_PAD) - rightX + x  -- fills to 8px from right edge
     return {
-        figX   = leftX + math.floor((leftW - figW) / 2),  -- figure centered in 220px column
+        figX   = leftX + math.floor((leftW - figW) / 2),  -- figure centered in its 106px column
         figY   = y,
         leftX  = leftX,
         leftW  = leftW,

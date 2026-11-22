@@ -1060,8 +1060,7 @@ local function drawFigure(panel, s, fx, fy, fw, fh, v, parts, hlId, unknown, wor
     local T = ZeD.T
     local dim = T.textDim
     s.figZones = {}
-    local gb = tex("gridbox")
-    if gb then panel:drawTextureScaledAspect(gb, fx, fy, fw, fh, 0.30, dim.r, dim.g, dim.b) end
+    -- (no grid box behind the car any more: the director wants the parts with no frame) (Graphic cleanup, Nov 22 2026)
     local prefix, props = overlayInfo(v)
     local F = ZeD.MechFigs
     local U = prefix and F and F.unions and F.unions[prefix]
