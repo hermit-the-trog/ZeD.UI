@@ -1413,6 +1413,17 @@ local _jrecipeConfig = {
     buildLabel  = nil,
     readOnly    = true,
     startAction = nil,
+    -- (KISS #40) the band's key: the picked recipe opened in the Craft or Build tab, by RecipeIndex.open
+    openLabel   = function(rd)
+        local e = rd and rd.entry
+        if not (e and e.recipe) then return nil end
+        return ZeD.tr(e.source == "build" and "UI_ZeD_Craft_OpenInBuild" or "UI_ZeD_Craft_OpenInCraft")
+    end,
+    openAction  = function(win, state, rd)
+        local RI, e = ZeD.RecipeIndex, rd and rd.entry
+        if not (RI and e and e.recipe) then return end
+        RI.open(win._playerObj, RI.rec(e.recipe, e.source == "build" and "build" or "craft"))
+    end,
 }
 
 local function getJRecipeState(win)
