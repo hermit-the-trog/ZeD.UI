@@ -718,7 +718,7 @@ ZeD.trDefaults({
     UI_ZeD_Dash_PromptDefrost = "Defrost", UI_ZeD_Dash_PromptClimateOff = "Climate off", UI_ZeD_Dash_PromptPress = "Press",
     UI_ZeD_Dash_PromptRemoveKey = "Remove key", UI_ZeD_Dash_PromptTuneMinus = "Tune -", UI_ZeD_Dash_PromptSeekBack = "Seek back",
     UI_ZeD_Dash_PromptStore = "Store", UI_ZeD_Dash_PromptDrive = "Drive", UI_ZeD_Dash_Passenger = "PASSENGER",
-    UI_ZeD_Dash_HintAxb = "A %1  X %2  B %3", UI_ZeD_Dash_HintAb = "A %1  B %2", UI_ZeD_Dash_HintWheel = "D-pad Right: Vehicle / Dashboard",
+    UI_ZeD_Dash_HintAxb = "A %1  X %2  B %3", UI_ZeD_Dash_HintAb = "A %1  B %2", UI_ZeD_Dash_HintWheel = "D-pad Right: Vehicle / Dashboard", UI_ZeD_Dash_HintWheelUp = "D-pad Up: Vehicle / Dashboard",
     UI_ZeD_Dash_UnitCab = "%1 - CAB %2", UI_ZeD_Dash_UnitEngine = "%1 - ENGINE %2", UI_ZeD_Dash_UnitUnit = "%1 - UNIT %2",
     UI_ZeD_Dash_AshOpen = "Open ash tray", UI_ZeD_Dash_AshClose = "Close ash tray",
     UI_ZeD_Dash_MeterOn = "Meter on", UI_ZeD_Dash_MeterOff = "Meter off",
@@ -2225,7 +2225,7 @@ function ZeD_Dashboard:_plain(des, st, k)
             if fe.promptX then prompts[#prompts + 1] = { glyph = "X", label = fe.promptX } end
             prompts[#prompts + 1] = { glyph = "B", label = fe.promptBWord or ZeD.tr("UI_ZeD_Dash_PromptDrive") }
         else
-            prompts = { ZeD.tr("UI_ZeD_Dash_HintWheel") }
+            prompts = { ZeD.tr("UI_ZeD_Dash_HintWheelUp") }   -- (seated, D-pad Up is the car's wheel: KISS #20)
         end
         ZeD.PadGlyphs.drawStrip(self, 0, bodyH, W, prompts)
     end
@@ -2269,6 +2269,8 @@ function ZeD_Dashboard:prerender()
     self._lastMs = now
     self._driver = _safe(function() return vehicle:isDriver(chr) end, false)
     if self._odoCar and not self._driver then self:_odoLeave() end    -- (moved out of the driver's seat)
+    -- (no dash for a passenger, as in the game: one that missed the seat change goes now; KISS #56)
+    if not self._driver then self:setVisible(false); self:_release(); self:_unregister(); return end
     local st = _state(vehicle, chr, self)
     local pubV = ZeD.ModSupport and ZeD.ModSupport.VSKDash
     if pubV then
@@ -2390,7 +2392,7 @@ function ZeD_Dashboard:prerender()
                 local pa, pb = self._focEl.promptA or ZeD.tr("UI_ZeD_Dash_PromptPress"), self._focEl.promptBWord or ZeD.tr("UI_ZeD_Dash_PromptDrive")
                 hint = self._focEl.promptX and ZeD.tr("UI_ZeD_Dash_HintAxb", pa, self._focEl.promptX, pb) or ZeD.tr("UI_ZeD_Dash_HintAb", pa, pb)
             else
-                hint = ZeD.tr("UI_ZeD_Dash_HintWheel")
+                hint = ZeD.tr("UI_ZeD_Dash_HintWheelUp")   -- (seated, D-pad Up is the car's wheel: KISS #20)
             end
             -- right-aligned in the room every plate leaves plain at the top edge's right end (DashPx.hintRight), on its
             -- dark strip
@@ -2400,6 +2402,7 @@ function ZeD_Dashboard:prerender()
         end
     end
     self:_lampHover(des, st, k)
+    if not self._lampHov then self:_switchHover(st) end   -- (a switch names itself on hover: KISS #46)
     self:_ring(Focus)
 end
 
@@ -2458,6 +2461,44 @@ function ZeD_Dashboard:_lampHover(des, st, k)
     if not lr then lr = {}; self._lampR = lr end
     lr.x, lr.y, lr.w, lr.h = hz.x * k, hz.y * k, hz.w * k, hz.h * k
     ZeD.Atoms.requestDetailCard(self, "lamp:" .. hz.id, { title = name, lines = lines }, self, lr)
+end
+
+-- A SWITCH NAMES ITSELF ON HOVER (KISS #46), in the game's words (its dashboard's hover texts) and its state; a dead
+-- one too (the key with no key in reach says the game's "No Key for this car found."). The rest name what they do.
+local function _onOff(on) return getText(on and "UI_On" or "UI_Off") end
+function D.switchWords(id, st)
+    st = st or {}
+    if id == "ignition" then
+        if st.hotwired then return getText("Tooltip_Dashboard_Hotwired") end
+        if st.keysIn then return getText("Tooltip_Dashboard_KeysIgnition") end
+        if st.hasKey then return getText("Tooltip_Dashboard_PutKeysInIgnition") end
+        return getText("Tooltip_Dashboard_NoKey")
+    end
+    if id == "lights" then return getText("Tooltip_Dashboard_Headlights") .. " | " .. _onOff(st.lights) end
+    if id == "lock" then return getText("Tooltip_Dashboard_LockedDoors") .. " | " .. _onOff(st.anyLocked) end
+    if id == "trunk" then return getText(st.trunkLocked and "Tooltip_Dashboard_TrunkLocked" or "Tooltip_Dashboard_TrunkUnlocked") end
+    if id == "heat" then return getText("Tooltip_Dashboard_Heater") .. " | " .. _onOff(st.heaterOn) end
+    if id == "pwr" or id == "vol" or id == "radio" then return getText("Tooltip_Dashboard_Radio") .. " | " .. _onOff(st.radioSwitch) end
+    if id == "cruise" then
+        local ok, w = pcall(function()
+            return getText("Tooltip_Dashboard_SpeedRegulator", getKeyName(Keyboard.KEY_LSHIFT),
+                getKeyName(getCore():getKey(KeybindId.FORWARD)), getKeyName(getCore():getKey(KeybindId.BACKWARD)))
+        end)
+        if ok and w then return w .. " | " .. _onOff(st.cruise) end
+    end
+    return ZeD.tr(_promptKey(id, st))
+end
+-- the switch under the pointer (live or dead: _control keeps both in _hit), its words in the library's hint
+function ZeD_Dashboard:_switchHover(st)
+    if not (self._over and st) then return end
+    local mx, my = self:getMouseX(), self:getMouseY()
+    for _, hr in ipairs(self._hit or {}) do
+        if mx >= hr.x and mx < hr.x + hr.w and my >= hr.y and my < hr.y + hr.h then
+            local ok, words = pcall(D.switchWords, hr.id, st)
+            if ok and words and words ~= "" then ZeD.Atoms.requestHint(self, "sw:" .. hr.id, words, self, hr) end
+            return
+        end
+    end
 end
 
 function ZeD_Dashboard:_fire(id, secondary)
@@ -2556,11 +2597,16 @@ function D.show(character)
     local pn = character.getPlayerNum and character:getPlayerNum() or 0
     local inst = D.install(pn)
     local vehicle = character:getVehicle()
-    if vehicle then
+    if vehicle and vehicle:isDriver(character) then
         inst.vehicle = vehicle
         inst:setVisible(true)
         -- (the driver's seat leaves the D-pad with the wheels: Vehicle > Dashboard hands it over)
-        if not vehicle:isDriver(character) then inst:_release(); inst:_unregister() end
+    elseif vehicle then
+        -- a passenger gets no dash, as in the game (ISVehicleDashboard shows only to the driver); the belt stays
+        -- on the screen instead (ZeD_Belt wanted: KISS #56)
+        if inst._odoCar then pcall(inst._odoLeave, inst) end    -- (moved over from the wheel: the last miles first)
+        inst.vehicle = nil
+        inst:setVisible(false); inst:_release(); inst:_unregister()
     else
         if inst._odoCar then pcall(inst._odoLeave, inst) end    -- (the last miles first: a hidden dash draws nothing)
         inst:setVisible(false); inst:_release(); inst:_unregister()

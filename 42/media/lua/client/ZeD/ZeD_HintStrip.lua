@@ -169,17 +169,54 @@ local function keyPrompts(pn, out)
     end
 end
 
+-- may the strip show anything for this player now?
+local function showing(pn)
+    if mode() == "off" then return false end
+    if ZeD.Safe and ZeD.Safe.on and ZeD.Safe.on() then return false end
+    local p = getSpecificPlayer(pn)
+    if not p or p:isDead() or p:isAsleep() then return false end
+    local sc = UIManager.getSpeedControls and UIManager.getSpeedControls()
+    if sc and sc:getCurrentGameSpeed() == 0 then return false end
+    if getFocusForPlayer(pn) ~= nil then return false end
+    return true
+end
+
 -- what to show for a player now (nil: nothing)
 function H.prompts(pn)
-    if mode() == "off" then return nil end
-    if ZeD.Safe and ZeD.Safe.on and ZeD.Safe.on() then return nil end
-    local p = getSpecificPlayer(pn)
-    if not p or p:isDead() or p:isAsleep() then return nil end
-    local sc = UIManager.getSpeedControls and UIManager.getSpeedControls()
-    if sc and sc:getCurrentGameSpeed() == 0 then return nil end
-    if getFocusForPlayer(pn) ~= nil then return nil end
+    if not showing(pn) then return nil end
     local out = {}
     if onPad(pn) then padPrompts(pn, out) else keyPrompts(pn, out) end
+    return (#out > 0) and out or nil
+end
+
+-- ---------------------------------------------------------------------------
+-- The pad's own line for the first hours, above the game's prompts: "D-pad Wheels  LB or RB + button Quick actions".
+-- ZeD's wheels and quick actions are nowhere in the game's prompts; each half goes once it has been used USES times
+-- (a D-pad wheel opened, a quick action run), whatever the strip's setting, Off aside (KISS #26).
+-- ---------------------------------------------------------------------------
+--- One use of a taught pad way: "wheels" (ZeD_DpadWheels, D.open) or "chords" (ZeD_QuickChords, Q.onPress).
+function H.taught(kind)
+    if not H.uses then loadUses() end
+    local k = "teach_" .. tostring(kind)
+    local n = H.uses[k] or 0
+    if n >= USES then return end   -- (spent: no more writes to the file)
+    H.uses[k] = n + 1
+    saveUses()
+end
+local function teachSpent(kind)
+    if not H.uses then loadUses() end
+    return (H.uses["teach_" .. kind] or 0) >= USES
+end
+
+--- The first hours' line for a player on a pad (nil: nothing to teach, or not now).
+function H.teach(pn)
+    if not (onPad(pn) and showing(pn)) then return nil end
+    local out = {}
+    if not teachSpent("wheels") then out[#out + 1] = { glyph = "D-PAD", label = ZeD.tr("UI_ZeD_Hint_Wheels") } end
+    if not teachSpent("chords") then
+        out[#out + 1] = { glyph = "LB", label = ZeD.tr("UI_ZeD_Hint_Or") }
+        out[#out + 1] = { glyph = "RB", label = ZeD.tr("UI_ZeD_Hint_QuickActions") }
+    end
     return (#out > 0) and out or nil
 end
 
@@ -212,14 +249,20 @@ function ZeD_HintStripHUD:onMouseWheel() return false end
 
 function ZeD_HintStripHUD:prerender()
     local T = ZeD.T
-    self._p = nil
+    self._p, self._t = nil, nil
     if not T then return end
     local ok, p = pcall(H.prompts, self.playerNum)
-    if not ok or not p then return end
+    if not ok then p = nil end
+    local okT, t = pcall(H.teach, self.playerNum)   -- (the pad's first hours' line, above the prompts: KISS #26)
+    if not okT then t = nil end
+    if not p and not t then return end
     local G = ZeD.PadGlyphs
     local pn = self.playerNum
-    local w = math.min(math.ceil(G.stripW(p, pn)) + 4, getPlayerScreenWidth(pn) - T.px(40))
-    local h = G.stripH()
+    local need = math.max(p and G.stripW(p, pn) or 0, t and G.stripW(t, pn) or 0)
+    local w = math.min(math.ceil(need) + 4, getPlayerScreenWidth(pn) - T.px(40))
+    local lineH = G.stripH()
+    -- (two lines: the taught line on top, a hair apart from the game's prompts under it)
+    local h = (p and t) and (lineH * 2 + T.px(2)) or lineH
     local x = getPlayerScreenLeft(pn) + math.floor((getPlayerScreenWidth(pn) - w) / 2)
     local y = getPlayerScreenTop(pn) + getPlayerScreenHeight(pn) - h - T.px(16)
     local belt = ZeD.Belt and ZeD.Belt.getHUD and ZeD.Belt.getHUD(pn)
@@ -234,7 +277,7 @@ function ZeD_HintStripHUD:prerender()
     if self:getY() ~= y then self:setY(y) end
     if self:getWidth() ~= w then self:setWidth(w) end
     if self:getHeight() ~= h then self:setHeight(h) end
-    self._p = p
+    self._p, self._t, self._lineH = p, t, lineH
 end
 
 -- True while the strip should step aside (punch list 131): a balloon of the belt's is up (its balloons stand right above
@@ -260,11 +303,22 @@ function H.covered(ax, ay, w, h, pn)
 end
 
 function ZeD_HintStripHUD:render()
-    if not self._p then return end
+    if not (self._p or self._t) then return end
     if H.covered(self:getAbsoluteX(), self:getAbsoluteY(), self.width, self.height, self.playerNum) then return end
     local T = ZeD.T
-    ZeD.PadGlyphs.drawStrip(self, 0, 0, self.width, self._p)
-    ZeD.Atoms.frame(self, 0, 0, self.width, self.height, T.borderS)
+    if not (self._p and self._t) then
+        -- one line: the game's prompts, or the pad's first hours' line alone
+        ZeD.PadGlyphs.drawStrip(self, 0, 0, self.width, self._p or self._t)
+        ZeD.Atoms.frame(self, 0, 0, self.width, self.height, T.borderS)
+        return
+    end
+    -- both: the taught line on top, the game's prompts at the bottom, each its own framed strip (KISS #26)
+    local lh = self._lineH
+    ZeD.PadGlyphs.drawStrip(self, 0, 0, self.width, self._t)
+    ZeD.Atoms.frame(self, 0, 0, self.width, lh, T.borderS)
+    local y = self.height - lh
+    ZeD.PadGlyphs.drawStrip(self, 0, y, self.width, self._p)
+    ZeD.Atoms.frame(self, 0, y, self.width, lh, T.borderS)
 end
 
 -- ---------------------------------------------------------------------------

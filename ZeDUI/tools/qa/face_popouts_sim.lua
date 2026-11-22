@@ -11,7 +11,7 @@
 --   CARD     an object card's face: its zones become controls, a press runs the zone, the primary control first
 --   ON       faces off (Simple) or safe mode: nothing pops out
 --   CLICK    a world click: not while aiming, within 3 tiles; the radio route the game's click sets off is taken
---   PROMPT   A at a machine: its name, Close when it shows; takes the oven's Turn on, never a door's prompt
+--   PROMPT   A at a machine: its name, Close when it shows; leaves the oven's Turn on (KISS #58) and a door's prompt
 --   WIRED    the ways in: Device Options, Stove settings (not Turn on: KISS #58), the cards' buttons and faces
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/face_popouts_sim.lua
 -- It prints FAIL lines and a last line "face_popouts_sim: N checks, M failed", and exits 1 if any failed.
@@ -434,7 +434,7 @@ do
     F.close(0)
     bp.aPrompt, bp.aFunc = "[ContextMenu_Turn_On]", ISButtonPrompt.cmdToggleStove
     bp:testInteractButtonAction("N")
-    check("PROMPT it takes the oven's Turn on", bp.aFunc == ISButtonPrompt.zedFacePop)
+    check("PROMPT it leaves the oven's Turn on to turn the stove on (KISS #58)", bp.aFunc == ISButtonPrompt.cmdToggleStove)
     bp.aPrompt, bp.aFunc = "[ContextMenu_Open_door]", nil
     bp:testInteractButtonAction("N")
     check("PROMPT never a door's prompt", bp.aPrompt == "[ContextMenu_Open_door]")

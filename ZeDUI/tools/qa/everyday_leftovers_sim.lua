@@ -5,7 +5,7 @@
 --   B6  HEATER   ZeD_Dashboard.heater turns the heater on (the key in) or off, keeps the temperature, says the game's
 --                "needs the key" when it cannot, lights the dash's climate controls, hands a driver's pad to the dash;
 --                declines when ZeD's dash is the game's (its switch), so Overrides/Heater.lua opens the game's window
---   B7  MINIMAP  the World wheel's Map wheel has no mini-map slices (World map alone, Back after it), and ZeD's
+--   B7  MINIMAP  the World wheel's Map slice opens the world map at once (KISS #36, no inner ring), and ZeD's
 --                wheels leave the game's mini-map commands out (ZeD.Wheel.isMiniMapCommand)
 --   B8  LABEL    a CD's label in the reader: its words as paragraphs, who made it, the recording's name; the carried
 --                CD found again by its label; Overrides/MediaLabel.lua sends ISMediaInfo.openPanel there (the
@@ -105,13 +105,17 @@ do
     check("ZeD_Wheel.lua loads", okW, errW)
     local okD, errD = loadZ("ZeD_DpadWheels.lua")
     check("ZeD_DpadWheels.lua loads", okD, errD)
-    local Wd = ZeD.DpadWheels.Wd
-    local list = (Wd and Wd.map) and Wd.map({}, 0) or {}
-    check("the Map wheel holds the World map alone", #list == 1, #list)
-    check("its slice is the World map", list[1] and list[1].name == "IGUI_WorldMap_Toggle", list[1] and list[1].name)
-    for _, e in ipairs(list) do
-        check("no mini-map slice (" .. tostring(e.name) .. ")", e.name ~= "IGUI_MiniMap_Toggle" and e.name ~= "IGUI_MiniMap_Focus")
-    end
+    -- (KISS #36: the World wheel's Map slice opens the map at once; no inner ring, so no mini-map slice anywhere)
+    local D = ZeD.DpadWheels
+    local okB, world = pcall(D.B.world, {}, 0)
+    local map = okB and type(world) == "table" and world[2] or nil
+    check("the World wheel's second slice is Map", map and map.name == "UI_ZeD_Wheel_Map", map and map.name)
+    check("Map opens the map at once (a run, no inner ring)", map and type(map.run) == "function" and map.sub == nil)
+    local toggled = nil
+    ISWorldMap.ToggleWorldMap = function(n) toggled = n end
+    if map and map.run then pcall(map.run, {}, 0) end
+    check("Map runs the game's world map toggle for the player", toggled == 0, toggled)
+    check("no Map ring is left (Wd.map)", D.Wd and D.Wd.map == nil)
     local W = ZeD.Wheel
     check("ZeD.Wheel.isMiniMapCommand exists", type(W.isMiniMapCommand) == "function")
     if type(W.isMiniMapCommand) == "function" then

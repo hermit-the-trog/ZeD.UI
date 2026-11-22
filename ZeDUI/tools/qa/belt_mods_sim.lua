@@ -404,6 +404,16 @@ do
     if a then OLD = OLD:sub(1, a - 1) .. "tm:MeasureStringX(f5, ZeD.textCase(text))" .. OLD:sub(a + #was) end
 end
 if OLD == "" then print("(git show " .. BASE .. " gave nothing: the SAME section is skipped)") end
+-- (KISS #16, Nov 22 2026: the bag button at the belt's left end is new on purpose; this compares everything else the
+-- belt draws, so the SAME runs use the belt with that one box left out)
+local NEW_SAME = NEW
+do
+    local bag = '    boxes[#boxes + 1] = { kind = "bag", x = x, y = math.floor((h - bagW) / 2), w = bagW, h = bagW }\n'
+        .. '    x = x + bagW + px(END_GAP)\n'
+    local a = NEW_SAME:find(bag, 1, true)
+    if a then NEW_SAME = NEW_SAME:sub(1, a - 1) .. NEW_SAME:sub(a + #bag) end
+    check("SAME: the bag button found to leave out", a ~= nil)
+end
 
 -- ---------------------------------------------------------------------------
 section("SAME: no mod on, the belt as before")
@@ -427,7 +437,7 @@ if OLD ~= "" then
             -- director's call, and belt_ring_sim checks them; this compares everything else the belt draws)
             boot(OLD); env.simple = simple; scenario(n); ZeD.Belt.cond = function() return nil end
             local a = frame(); local a2 = frame()
-            boot(NEW); env.simple = simple; scenario(n); ZeD.Belt.cond = function() return nil end
+            boot(NEW_SAME); env.simple = simple; scenario(n); ZeD.Belt.cond = function() return nil end
             local b = frame(); local b2 = frame()
             local nLines = select(2, string.gsub(b, "\n", "")) + 1
             check("SAME the frame draws (" .. (simple and "Simple" or "Full") .. " " .. n .. ")", nLines > 40, nLines)

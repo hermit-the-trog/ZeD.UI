@@ -21,8 +21,8 @@
 --           ask the server to save (send the car out), the tenths and a stop don't, and the engine off with nothing new
 --           since a tenth asks once; stopped, an older copy at the same odometer never undoes a press; the driver's
 --           figures the server sends the other seats go on their copy only, junk and another car's dropped, and a
---           driver keeps their own; a passenger asks for them as it sits down, again every 2 s until they come,
---           three times at most, and the driver never asks; the ash tray is the car's (modData ZeD_ash): on a server
+--           driver keeps their own; a passenger has no dash (KISS #56, as in the game) and so never asks, nor
+--           does the driver; the ash tray is the car's (modData ZeD_ash): on a server
 --           the press shows at once and asks the server (DP.ASH, its shape checked), whose copy, sent out, keeps it;
 --           single player keeps it on the car's modData
 --   SPLIT   split-screen (known issue Nov 7 2026): each local player gets a dash of their own; the second player's
@@ -490,7 +490,8 @@ do
     -- a passenger never counts or writes
     local pcar = drive("d6", { keysIn = true, running = true, kmh = 100, passenger = true, md = { ZeD_odo = 5000, ZeD_trip = 2 } })
     frames(40, 250)
-    check("a passenger reads the car's figures", near(st().odo, 5000, 1e-9) and near(st().trip, 2, 1e-9))
+    -- (KISS #56: no dash for a passenger, as in the game; the belt stays instead)
+    check("a passenger gets no dash", not inst:isVisible())
     check("a passenger doesn't count", pcar.md.ZeD_odo == 5000 and pcar.md.ZeD_trip == 2)
     -- reversing counts too (the speed's size)
     local rcar = drive("d6", { keysIn = true, running = true, kmh = -20, md = { ZeD_odo = 100, ZeD_trip = 0 } })
@@ -689,7 +690,9 @@ do
     frame(250)
     check("the driver moves to another seat: the rest goes", car.sent == before + 1, car.sent - before)
     check("another seat: save", lastSave() == true, tostring(lastSave()))
+    check("another seat: the dash goes (a passenger has none, KISS #56)", not inst:isVisible())
     car.passenger = nil
+    seat(car)   -- (back at the wheel: the seat change shows the dash again, OnSwitchVehicleSeat's D.show)
     frame(250)
     inst:_fire("tripReset", false)
     before = car.sent
@@ -913,94 +916,48 @@ do
         return n, last
     end
     check("the driver's dash never asks for the figures", asks() == 0, asks())
+    -- (KISS #56: a passenger has no dash, as in the game, so it never asks for the figures; the driver's figures the
+    -- server sends the other seats still go on their copy of the car)
     cc.passenger = true
     frame(250)
-    local nA, lastA = asks()
-    local keysA = 0
-    for _ in pairs(lastA or {}) do keysA = keysA + 1 end
-    check("a passenger's dash asks the server for the car's figures as it sits down", nA == 1 and lastA.veh == 21
-        and keysA == 1, nA)
-    frame(250)
-    check("and not again a moment later", asks() == 1, asks())
-    cc.md = { ZeD_odo = 600, ZeD_trip = 1, ZeD_odoTrip = false }
-    frame(250)
-    check("a passenger takes the server's figures as they come", st().odo == 600 and st().trip == 1, st().odo)
-    -- the figures the server took from the driver, sent to the other seats (DP.FIG): onto this copy of the car only
+    check("a passenger has no dash", not inst:isVisible())
+    check("and asks the server for nothing", asks() == 0, asks())
     local nSent = #SENT
     route(ZeD.DashProto.FIG, { veh = 21, odo = 610, trip = 2, show = true })
-    frame(250)
     check("a passenger: the driver's figures from the server go on this copy of the car", cc.md.ZeD_odo == 610
-        and cc.md.ZeD_trip == 2 and cc.md.ZeD_odoTrip == true and st().odo == 610 and st().odoTrip == true, st().odo)
+        and cc.md.ZeD_trip == 2 and cc.md.ZeD_odoTrip == true, cc.md.ZeD_odo)
     route(ZeD.DashProto.FIG, { veh = 99, odo = 620, trip = 2, show = true })
     route(ZeD.DashProto.FIG, { veh = 21, odo = 620, trip = 700, show = true })
     route(ZeD.DashProto.FIG, { veh = 21, odo = "lots", trip = 2, show = true })
     route(ZeD.DashProto.FIG, { veh = 21, odo = 0 / 0, trip = 2, show = true })
     route(ZeD.DashProto.FIG, { veh = 21, odo = 620, trip = 2, show = 1 })
     route(ZeD.DashProto.FIG, nil)
-    frame(250)
     check("another car's figures, a trip past the odometer, junk: nothing", cc.md.ZeD_odo == 610 and cc.md.ZeD_trip == 2
         and #env.errors == 0, cc.md.ZeD_odo)
-    check("a passenger sends nothing for them", #SENT == nSent, #SENT - nSent)
     frames(12, 250)
-    check("the figures came: the passenger asks no more", asks() == 1, asks())
+    check("a passenger sends nothing", #SENT == nSent, #SENT - nSent)
     cc.passenger = nil
+    seat(cc)   -- (back at the wheel: the seat change shows the dash again)
     frame(250)
     local O2 = st().odo
     route(ZeD.DashProto.FIG, { veh = 21, odo = O2 + 100, trip = 0, show = false })
     frame(250)
     check("at the wheel: the dash keeps its own figures", st().odo == O2 and cc.md.ZeD_odo == O2, st().odo - O2)
-    -- a passenger whose ask goes unanswered (the server doesn't see them seated yet, or holds no figures): again every
-    -- 2 s, three times at most; out and back in, it asks again
-    local a0 = asks()
-    local pq = drive("nyala", { keysIn = true, running = true, kmh = 0, id = 41, passenger = true,
-        md = { ZeD_odo = 900, ZeD_trip = 3 } })
-    check("a new passenger asks at once", asks() == a0 + 1, asks() - a0)
-    frames(7, 250)
-    check("no answer: not again inside 2 s", asks() == a0 + 1, asks() - a0)
-    frames(2, 250)
-    check("no answer after 2 s: asked again", asks() == a0 + 2, asks() - a0)
-    frames(40, 250)
-    check("three asks at most", asks() == a0 + 3, asks() - a0)
-    local _, la = asks()
-    check("each ask names the car", la.veh == 41, la.veh)
-    out()
-    seat(pq)
-    frame(250)
-    check("out and back in: asks again", asks() == a0 + 4, asks() - a0)
-    pq.passenger = nil
-    frames(12, 250)
-    check("at the wheel: no ask", asks() == a0 + 4, asks() - a0)
-    pq.passenger = true
-    frame(250)
-    check("back to a passenger seat: asks again", asks() == a0 + 5, asks() - a0)
-    -- the join rules answered (ZeD_ServerLink.lua, S.agreed counts them): until then the server refused every ask and send
-    frames(40, 250)
-    local a1 = asks()
-    check("a passenger's three asks spent", asks() == a0 + 7, asks() - a0)
-    ZeD.ServerPart.agreedN = (ZeD.ServerPart.agreedN or 0) + 1
-    frame(250)
-    check("the join rules answered: a passenger whose asks were refused asks again", asks() == a1 + 1, asks() - a1)
-    frames(40, 250)
-    check("and three times at most again", asks() == a1 + 3, asks() - a1)
-    pq.passenger = nil
+    -- the join rules answered (ZeD_ServerLink.lua, S.agreed counts them): until then the server refused every send
+    local pq = drive("nyala", { keysIn = true, running = true, kmh = 0, id = 41, md = { ZeD_odo = 900, ZeD_trip = 3 } })
     frame(250)
     inst:_fire("tripReset", false)
     local b0 = pq.sent
     pq.kmh = 100
     frames(4, 250)
     check("a driver under a tenth since the last send: nothing yet", pq.sent == b0, pq.sent - b0)
-    ZeD.ServerPart.agreedN = ZeD.ServerPart.agreedN + 1
+    ZeD.ServerPart.agreedN = (ZeD.ServerPart.agreedN or 0) + 1
     frame(250)
     check("the join rules answered: the driver's figures go at once (the server refused the ones before)", pq.sent == b0 + 1, pq.sent - b0)
     frames(4, 250)
     check("and only once", pq.sent == b0 + 1, pq.sent - b0)
     pq.kmh = 0
-    local aSP = asks()
-    env.client = false
-    drive("nyala", { keysIn = true, running = true, kmh = 0, id = 42, passenger = true, md = { ZeD_odo = 900, ZeD_trip = 3 } })
-    frames(12, 250)
-    check("single player: a passenger never asks", asks() == aSP, asks() - aSP)
-    env.client = true
+    check("no seat ever asked", asks() == 0, asks())
 
     -- the ash tray on a server: the car's, one tray a car (known issue Nov 7 2026: it was each player's, for the
     -- session). The press shows at once on this copy and asks the server, which writes its own and sends the car out
@@ -1106,10 +1063,11 @@ do
     local odo52 = c52.md.ZeD_odo
     route(ZeD.DashProto.FIG, { veh = 52, odo = 10, trip = 0, show = false })
     check("figures for a car a local player drives are not taken (its driver keeps their own)", c52.md.ZeD_odo == odo52)
-    -- the first player's passenger ask goes as them
+    -- the first player rides: no dash for them, so no ask (KISS #56: a passenger has no dash, as in the game)
     local askBy = nil
     for i = n0 + 1, #SENT do if SENT[i].command == ZeD.DashProto.ASK and SENT[i].args.veh == 51 then askBy = SENT[i].player end end
-    check("the first player's ask goes as the first player", askBy == P0, tostring(askBy))
+    check("the first player, a passenger, has no dash", d0 ~= nil and not d0:isVisible())
+    check("and asks nothing", askBy == nil, tostring(askBy))
     -- the server refuses the second player's figures: its answer reaches the second player's dash
     local o1 = d1 and d1._odoMine and d1._odoMine.odo or 0
     route(ZeD.DashProto.SYNC, { veh = 52, odo = o1 + 40, trip = 1, sent = o1 })
@@ -1120,11 +1078,14 @@ do
     c53.isDriver = function(self, p) return p == self.driverChr end
     c53.driverChr = P0
     cars[0], cars[1] = c53, c53
+    D.show(P0)   -- (the seat changes show or hide each player's dash, OnSwitchVehicleSeat)
+    D.show(P1)
     local n1 = #SENT
     for _ = 1, 3 do pre(d0); pre(d1) end
     local ask1 = nil
     for i = n1 + 1, #SENT do if SENT[i].command == ZeD.DashProto.ASK and SENT[i].args.veh == 53 then ask1 = SENT[i].player end end
-    check("the second player's ask goes as the second player", ask1 == P1, tostring(ask1))
+    check("the first player at the wheel: their dash shows", d0:isVisible())
+    check("the second player, now a passenger: no dash, no ask", not d1:isVisible() and ask1 == nil, tostring(ask1))
     local o53 = c53.md.ZeD_odo
     route(ZeD.DashProto.FIG, { veh = 53, odo = o53 - 5, trip = 0, show = false })
     check("figures for a car this client drives (another seat's) are not taken", c53.md.ZeD_odo == o53)

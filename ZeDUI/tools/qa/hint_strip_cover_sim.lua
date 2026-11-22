@@ -32,7 +32,7 @@ setmetatable(_G, nil)
 check("ZeD_HintStrip.lua loads on the stubs", fn and ok, err or e)
 local H = ZeD.HintStrip
 -- the strip at 800,1000, 300 x 24
-local strip = setmetatable({ _p = { 1 }, width = 300, height = 24, playerNum = 0,
+local strip = setmetatable({ _p = { 1 }, _t = false, width = 300, height = 24, playerNum = 0,
     getAbsoluteX = function() return 800 end, getAbsoluteY = function() return 1000 end }, { __index = ZeD_HintStripHUD })
 local function drawn(box, up)
     SLOT.box, UP, DRAWS = box, up, 0
