@@ -1370,6 +1370,16 @@ H.wait(3000, function()
     if S.off.row then return true end
     local c, w = RT.cw(), RT.ww()
     H.keep(c); H.keep(w)
+    -- (QA, Nov 22: the tour's Equipment step can leave the Equipment page up outside the tab drawer; staging only, not
+    -- under test: after 1.5 s it is folded back to the list the way the tab's own fold does, then Loot is pressed)
+    S.k14t = S.k14t or getTimestampMs()
+    if c and c._activeTab ~= "loot" and getTimestampMs() - S.k14t > 1500 and not S.k14forced then
+        S.k14forced = true
+        Q.say("K1-14 staging: the Character window still on " .. tostring(c._activeTab) .. ", folded back to the list")
+        c._activeTab, c._drawerOpen, c._drawerMode, c._tabUnder, c._equipSelected = "loot", false, nil, nil, nil
+        if not c._invDrawerOpen then c._invDrawerOpen = true; c._invDrawerTargetW = ZeD.T.px(c._baseInvW or 372) end
+        RT.charTab("loot")
+    end
     return c ~= nil and w ~= nil and c._activeTab == "loot" and w._activeTab == "loot"
 end, function(ok)
     if S.off.row then return end

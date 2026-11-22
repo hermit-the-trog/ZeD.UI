@@ -934,7 +934,14 @@ Q.step(5, function()
     local need = { "UI_ZeD_WinMenu_Theme", "UI_ZeD_WinMenu_Accent", "UI_ZeD_Settings_TextSize", "UI_ZeD_WinMenu_ResetThis",
                    "UI_ZeD_WinMenu_ResetBoth", "UI_ZeD_WinMenu_SavePos", "UI_ZeD_WinMenu_GoSaved", "UI_ZeD_WinMenu_Setup" }
     if SS.seeThroughKeys then need[#need + 1] = "UI_ZeD_Settings_SeeThrough" end
-    if SS.focusStyleKeys then need[#need + 1] = "UI_ZeD_Settings_FocusStyle" end
+    -- (QA, Nov 22: KISS #40, the director's pick: the controller's rows show only with a pad, so Controller highlight
+    -- is needed with a pad and must be absent without one)
+    local padHere = JoypadState and JoypadState.players and JoypadState.players[1] and true or false
+    if SS.focusStyleKeys and padHere then need[#need + 1] = "UI_ZeD_Settings_FocusStyle" end
+    if SS.focusStyleKeys and not padHere then
+        Q.check(not X.has(names, ZeD.tr("UI_ZeD_Settings_FocusStyle")), "Window menu: no Controller highlight row without a pad (KISS #40)",
+            #names .. " rows")
+    end
     if ZeD.Messages and ZeD.Messages.copyBugReport then need[#need + 1] = "UI_ZeD_Msg_BugReport" end
     -- (Nov 22 2026, QA K1-6: Hide the interface left the mouse's menu, since a mouse has no way back from it; the pad's
     -- View wheel keeps Hide and Show interface. Until beta 21c this list needed the Hide interface row.)

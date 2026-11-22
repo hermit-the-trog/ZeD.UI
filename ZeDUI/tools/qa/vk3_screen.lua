@@ -82,7 +82,11 @@
 --            (ZeD.Atoms.requestHint watched): every switch names itself; the game's dashboard words where the game has
 --            them (Tooltip_Dashboard_*: the key, Headlights, Locked doors, the trunk, Heater, Radio), and the switches
 --            with a state end " | On" or " | Off" (the game's UI_On / UI_Off). Old: a hover only washes the switch, no
---            name -> FAIL.
+--            name -> FAIL. The heat knob: with the dash lamps on, its hover is the heater's lamp card by design (the
+--            heater's lamp zone IS the heat switch's hit rect, ZeD_Dashboard.lua _lampZones; the card reads the game's
+--            "Heater", its condition and On / Off, and _switchHover steps aside), so ZeD.Atoms.requestDetailCard is
+--            watched too and a card whose lamp id is the switch's own id counts as that switch's words (marked "its
+--            lamp card"). That card is the same on the old code; every other switch still fails there.
 --   #46 (b)  The key: with no key on him, none in the lock (a key the car came with in the lock taken out first, as
 --            bx_vehicles.lua does) and the car not hotwired, it reads the game's "No Key for
 --            this car found." (Tooltip_Dashboard_NoKey); then, its key given (ZEDQA_CAR_PREP), "Put the keys in the
@@ -90,7 +94,8 @@
 --            painted blank yet; nothing here reads the art.)
 --   #60      Out of the car beside it: the game's right-click fill for a car (ISVehicleMenu.FillMenuOutsideVehicle,
 --            where the world's right-click on a car ends, ISVehicleMenu.lua:44-51) into a recorder menu (nothing shown,
---            nothing fired): it holds the game's "Enter Vehicle" (IGUI_EnterVehicle) running ISVehicleMenu.onEnter on
+--            nothing fired; the debug submenu's ISContextMenu:getNew handed a recorder for the fill's length, so no real
+--            submenu is built; every option and submenu option is listed with the function it would run): it holds the game's "Enter Vehicle" (IGUI_EnterVehicle) running ISVehicleMenu.onEnter on
 --            this car and "Vehicle Mechanics" (ContextMenu_VehicleMechanics) running ISVehicleMenu.onMechanic. Old:
 --            fuel, wash and trailer lines only -> FAIL.
 --
@@ -399,11 +404,32 @@ function S.hintWatch(on)
             end
             return orig(owner, key, text, ...)
         end
+        -- (QA's game run, Nov 22 2026: the heat knob read "no hint". With the dash lamps on, ZeD_Dashboard's
+        -- _lampZones puts the heater's lamp zone on the heat switch's own hit rect (by design, "the heater: its
+        -- button ... or the temperature control"), so the knob's hover is the heater's card: the game's "Heater",
+        -- its condition and On / Off (D.lampText), asked by requestDetailCard, and _switchHover steps aside. A card
+        -- whose lamp id is the switch's own id is that switch's hover, read here as its words.)
+        if type(A.requestDetailCard) == "function" and not k.cardOrig then
+            local origC = A.requestDetailCard
+            k.cardOrig = origC
+            A.requestDetailCard = function(owner, key, card, ...)
+                if owner ~= nil and owner == k.dash and type(key) == "string" and key:sub(1, 5) == "lamp:" and type(card) == "table" then
+                    local parts = { tostring(card.title or "") }
+                    for _, l in ipairs((type(card.lines) == "table" and card.lines) or {}) do parts[#parts + 1] = tostring(l) end
+                    k.cap = { id = key:sub(6), words = table.concat(parts, " | "), card = true }
+                end
+                return origC(owner, key, card, ...)
+            end
+        end
         return
     end
     if k.hintOrig and A then
         A.requestHint = k.hintOrig
         k.hintOrig = nil
+    end
+    if k.cardOrig and A then
+        A.requestDetailCard = k.cardOrig
+        k.cardOrig = nil
     end
 end
 -- the pointer the dash reads, set by the run (k.mx, k.my in the dash's own pixels; nil: off the dash)
@@ -637,8 +663,25 @@ function S.keyState()
     return st
 end
 -- a menu that records what the game's right-click fill adds (nothing drawn, nothing fired)
+-- (QA's game run, Nov 22 2026: in -debug the game's fill adds its debug "Vehicle" submenu by the class call
+-- ISContextMenu:getNew(context) (ISVehicleMenu.lua:722), which builds a real submenu off the parent's getX: the recorder
+-- had none, a Java exception. Now the recorder is marked, ISContextMenu.getNew hands a recorder to a recorder for the
+-- fill's length (S.k60fill), and the recorder answers the calls a parent menu gets)
 function S.recorder()
-    local r = { options = {}, numOptions = 1, player = S.pn }
+    local r = { options = {}, numOptions = 1, player = S.pn, _vk3rec = true, subOptionNums = 0, instanceMap = {}, subMenuPool = {} }
+    function r:getX() return 0 end
+    function r:getY() return 0 end
+    function r:getWidth() return 1 end
+    function r:getHeight() return 1 end
+    function r:clear() self.options = {}; self.numOptions = 1 end
+    function r:setFontFromOption() end
+    function r:addToUIManager() end
+    function r:removeFromUIManager() end
+    function r:bringToTop() end
+    function r:calcHeight() end
+    function r:calcWidth() return 1 end
+    function r:setWidth() end
+    function r:setForceCursorVisible() end
     function r:addOption(name, target, onSelect, ...)
         local o = { name = name, target = target, onSelect = onSelect, args = { ... } }
         self.options[#self.options + 1] = o
@@ -1222,7 +1265,10 @@ function S.sweepTick()
     if k.set then
         k.waited = k.waited + 1
         local cap = k.cap
-        if cap and k.got[cap.id] == nil then k.got[cap.id] = tostring(cap.words or "") end
+        if cap and k.got[cap.id] == nil then
+            k.got[cap.id] = tostring(cap.words or "")
+            if cap.card then k.byCard[cap.id] = true end
+        end
         if cap and cap.id == t.id then
             t.mx, t.my = k.mx, k.my   -- (the spot that named it: the key is pointed at there again)
             k.i, k.pt, k.set = k.i + 1, 1, false
@@ -1251,7 +1297,7 @@ function S.k46start()
     local k = S.k46
     local d = S.dash()
     k.dash = d
-    k.list, k.got, k.miss, k.i, k.pt, k.set = {}, {}, {}, 1, 1, false
+    k.list, k.got, k.miss, k.byCard, k.i, k.pt, k.set = {}, {}, {}, {}, 1, 1, false
     local seen = {}
     for _, hr in ipairs((d and d._hit) or {}) do
         if type(hr) == "table" and type(hr.id) == "string" and not seen[hr.id] and (hr.w or 0) > 2 and (hr.h or 0) > 2 then
@@ -1286,7 +1332,7 @@ function S.k46check(ok)
     local bad, said = {}, {}
     for _, t in ipairs(k.list) do
         local words = k.got[t.id]
-        said[#said + 1] = t.id .. ((t.live == false) and " (dead)" or "") .. ": " .. ((words ~= nil) and ("\"" .. words .. "\"") or "nothing")
+        said[#said + 1] = t.id .. ((t.live == false) and " (dead)" or "") .. (k.byCard[t.id] and " (its lamp card)" or "") .. ": " .. ((words ~= nil) and ("\"" .. words .. "\"") or "nothing")
         if not S.wordsOk(t.id, words) then bad[#bad + 1] = t.id end
     end
     Q.check(ok and #k.list > 0 and #bad == 0,
@@ -1302,6 +1348,39 @@ function S.k46hasIgnition()
 end
 
 -- ===================================================================== #60: a car's right-click
+-- the game's fill for a car into rec, with ISContextMenu.getNew handing a recorder to a recorder (no real submenu is
+-- built, nothing added to the UI); the game's getNew back at once, also when the fill throws
+function S.k60fill(V, rec, v)
+    local CM = ISContextMenu
+    local orig = CM and CM.getNew
+    if orig and not S.k60.newOrig then
+        S.k60.newOrig = orig
+        CM.getNew = function(self, parent, ...)
+            if type(parent) == "table" and parent._vk3rec then return S.recorder() end
+            return orig(self, parent, ...)
+        end
+    end
+    local ok, e = pcall(V.FillMenuOutsideVehicle, S.pn, rec, v, false)
+    S.k60back()
+    return ok, e
+end
+function S.k60back()
+    if S.k60.newOrig and ISContextMenu then
+        ISContextMenu.getNew = S.k60.newOrig
+        S.k60.newOrig = nil
+    end
+end
+-- a function's name in the game's vehicle menus (what an option would run), else "a function"
+function S.fnName(f)
+    if f == nil then return "nothing" end
+    for _, tn in ipairs({ "ISVehicleMenu", "ISVehiclePartMenu", "ISVehicleMechanics", "ISWorldObjectContextMenu", "ISVehicleTrailerUtils" }) do
+        local t = _G[tn]
+        if type(t) == "table" then
+            for k, fv in pairs(t) do if fv == f then return tn .. "." .. tostring(k) end end
+        end
+    end
+    return "a function"
+end
 function S.k60run()
     local V = ISVehicleMenu
     local c = S.car
@@ -1315,15 +1394,20 @@ function S.k60run()
         return
     end
     local rec = S.recorder()
-    local ok, e = pcall(V.FillMenuOutsideVehicle, S.pn, rec, c.v, false)
+    local ok, e = S.k60fill(V, rec, c.v)
     local wEnter, wMech = S.gt("IGUI_EnterVehicle"), S.gt("ContextMenu_VehicleMechanics")
     local enter, mech, names = nil, nil, {}
-    for _, o in ipairs(rec.options) do
-        names[#names + 1] = tostring(o.name)
-        local a1 = o.args and o.args[1]
-        if o.name == wEnter and o.onSelect == V.onEnter and a1 == c.v then enter = o end
-        if o.name == wMech and o.onSelect == V.onMechanic and a1 == c.v then mech = o end
+    -- every option, and in a submenu every option under it, by its words and the function it would run (none fired)
+    local function walk(r, pre, depth)
+        for _, o in ipairs((r and r.options) or {}) do
+            names[#names + 1] = pre .. tostring(o.name) .. " -> " .. S.fnName(o.onSelect)
+            local a1 = o.args and o.args[1]
+            if depth == 0 and o.name == wEnter and o.onSelect == V.onEnter and a1 == c.v then enter = o end
+            if depth == 0 and o.name == wMech and o.onSelect == V.onMechanic and a1 == c.v then mech = o end
+            if o.sub and depth < 2 then walk(o.sub, pre .. tostring(o.name) .. " > ", depth + 1) end
+        end
     end
+    walk(rec, "", 0)
     local dx, dy = 0, 0
     pcall(function() dx, dy = S.p:getX() - c.v:getX(), S.p:getY() - c.v:getY() end)
     Q.check(ok and enter ~= nil and mech ~= nil,
@@ -1635,6 +1719,7 @@ Q.step(3, function()
     S.k56.gaveUp = true   -- (a car the prelude's wait brings after this is taken away at once)
     S.mockOff()
     S.hintWatch(false)
+    S.k60back()
     S.k42back()
     S.k33back()
     S.closeWinMenu()
@@ -1704,7 +1789,7 @@ Q.step(10, function()
     local hint = Z.Atoms and Z.Atoms.requestHint or nil
     local G = Z.GuideBubble
     S.putBack(getFileWriter == S.was.fw and hint == S.was.hint and fg == S.was.fg and S.k33.stripOrig == nil and S.k61.doneOrig == nil
-        and S.k42.hook == nil and S.k46.mock == nil and (G == nil or G.done ~= nil),
+        and S.k42.hook == nil and S.k46.mock == nil and S.k46.cardOrig == nil and S.k60.newOrig == nil and (G == nil or G.done ~= nil),
         "the game's getFileWriter, ZeD's hint call, the main menu's switches and helpers, the belt's and the dash's own drawing as found",
         "getFileWriter " .. tostring(getFileWriter == S.was.fw) .. ", requestHint " .. tostring(hint == S.was.hint) .. ", forceGamepad "
         .. tostring(fg) .. " (found " .. tostring(S.was.fg) .. ")")

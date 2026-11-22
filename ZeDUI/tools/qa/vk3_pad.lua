@@ -793,8 +793,10 @@ function S.carLive(v)
     local cell = getCell()
     local list = cell and cell:getVehicles() or nil
     if not list then return false end
-    for i = 0, list:size() - 1 do
-        if list:get(i) == v then return true end
+    -- (QA, Nov 22: IsoCell.getVehicles is a Set on 42.2x, with no get(i): walked with its iterator, as vk1_pad does)
+    local it = list:iterator()
+    while it:hasNext() do
+        if it:next() == v then return true end
     end
     return false
 end
@@ -979,8 +981,12 @@ function S.queueC()
         if e then
             RT.padDir("down", ww)
             local _, zn, el = S.focusNow()
-            Q.say("NOTE #18 (no check): Down from the crate's last row (" .. S.elName(last) .. ") lands on " .. S.elName(el)
-                .. " (zone " .. tostring(zn) .. ", the button " .. tostring(el and el.ccKey) .. "; take = Loot all, floor = To floor, same = Same type)")
+            -- (QA, Nov 22: Build built this half of #18 in d0df24046: the band's entry stop is the take button. On
+            -- 0b366177e and on the first K3 merge Down landed on Same type in Full and To floor in Lite: FAIL there.)
+            Q.check(el ~= nil and el.ccKey == "take",
+                "K3 #18: Down from a crate's last row lands on Loot all, never To floor",
+                "Down from " .. S.elName(last) .. " lands on " .. S.elName(el) .. " (zone " .. tostring(zn) .. ", the button "
+                .. tostring(el and el.ccKey) .. "; take = Loot all, floor = To floor, same = Same type)")
         end
         -- (a) the top stop, then Up
         local top = S.listTop(ww, "worldMainInv")
