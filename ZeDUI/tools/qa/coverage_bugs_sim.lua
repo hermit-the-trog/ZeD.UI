@@ -1192,6 +1192,7 @@ do
     check("CAROUSEL ZeD_ContextMenu.lua reads", now ~= nil)
     local FNS = { "function ZeD_ContextMenu:next()", "function ZeD_ContextMenu:prev()", "function ZeD_ContextMenu:_anchorSlot(visibleCount)",
                   "function ZeD_ContextMenu:page(dir)", "function ZeD_ContextMenu:_scheduleSettle()", "function ZeD_ContextMenu:_settleCarousel()" }
+    local STEP = "function ZeD_ContextMenu:_stepPos(dir)"   -- (the step helper, QA B5-6; the committed code has none)
     local function probe(src)
         local parts = {}
         for _, f in ipairs(FNS) do
@@ -1199,6 +1200,7 @@ do
             if not c then return nil, f .. " not found" end
             parts[#parts + 1] = c
         end
+        parts[#parts + 1] = cut(src, STEP, "\nend") or ""
         local W = world({ ZeD_ContextMenu = {}, ZeD = { T = { ctx = { maxVisible = 7, cellW = 40, gap = 2, animMs = 180 } } },
                           getTimestampMs = function() return 0 end })
         local ok, err = run(W, table.concat(parts, "\n"), "ZeD_ContextMenu strip")
@@ -1227,7 +1229,7 @@ do
     local r, err = probe(now)
     check("CAROUSEL the strip runs", r ~= nil, err)
     if r then
-        check("CAROUSEL the spin took pos below 1 (the case itself)", r.spinPos0 == -1, r.spinPos0)
+        check("CAROUSEL the spin keeps pos in the middle copy even before the settle (QA B5-6)", r.spinPos0 >= 11 and r.spinPos0 <= 20, r.spinPos0)
         check("CAROUSEL the settle lands in the middle copy", r.spinPos >= 11 and r.spinPos <= 20, r.spinPos)
         check("CAROUSEL on the option the steps chose", at(r.spinPos) == r.spinSel and r.spinSel == 9, r.spinPos .. " / " .. r.spinSel)
         check("CAROUSEL a page left from there picks a real option (5)", r.pageSel == 5, r.pageSel)

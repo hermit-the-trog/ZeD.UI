@@ -2155,6 +2155,10 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
                 -- a mod's group first (ContainerGroups.lua: a folder the player filed it in), else its category
                 local cat = ZeD.ContainerGroups.groupOf(item, inv, playerObj, isPlayerInv) or ZeD.InventoryRenderer.catKey(item)
                 catOf[item] = cat
+                -- the game's list ages every food it draws, and in single player nothing else does: a steak in a
+                -- freezer never froze while only this list showed it. Once per item per model build (about every
+                -- second per visible column), as vanilla's refreshContainer does (QA B5-9)
+                if instanceof and instanceof(item, "Food") then pcall(item.updateAge, item) end
                 if not groups[cat] then
                     groups[cat] = {}
                     catOrder[#catOrder + 1] = cat

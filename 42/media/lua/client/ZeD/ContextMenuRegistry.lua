@@ -1098,6 +1098,28 @@ local function isJavaList(v)
     return type(v) == "userdata" and v.size ~= nil and v.get ~= nil
 end
 
+-- A world right-click's target as the game really sends it: a Lua table of IsoObjects (vanilla's
+-- ISObjectClickHandler builds it), where an inventory right-click's table holds items. The first entry tells
+-- them apart: a userdata that is no InventoryItem is a world object (QA B5-5)
+local function isWorldTable(v)
+    if type(v) ~= "table" then return false end
+    local first = v[1]
+    if type(first) ~= "userdata" then return false end
+    return not (instanceof and instanceof(first, "InventoryItem"))
+end
+
+-- A world target of either kind: how many objects it holds, and the one at index i (0-based, as a Java list is)
+local function worldCount(list)
+    if type(list) == "table" then return #list end
+    local sz = 0
+    pcall(function() sz = list:size() end)
+    return sz
+end
+local function worldGet(list, i)
+    if type(list) == "table" then return list[i + 1] end
+    return list:get(i)
+end
+
 -- The first InventoryItem of an inventory selection. An inventory right-click
 -- sends either { item1, item2, ... } or an ISInventoryPane-style wrapper
 -- { items = { item1, ... }, ... }; both are read.
@@ -1117,7 +1139,7 @@ function Registry.getMetaFor(target)
     if not target then return "" end
     -- a world right-click (a Java ArrayList): no item meta applies - the
     -- target card shows the object's name and the meta stays empty
-    if isJavaList(target) then return "" end
+    if isJavaList(target) or isWorldTable(target) then return "" end
     -- an inventory right-click: the first selected item speaks for the selection
     local item = target
     if type(target) == "table" then
@@ -1147,12 +1169,11 @@ end
 --   3. any IsoDeadBody
 -- Nothing fits: returns nil, and the caller shows the floor.
 local function pickWorldObject(list)
-    if not isJavaList(list) then return nil end
-    local sz = 0
-    pcall(function() sz = list:size() end)
+    if not (isJavaList(list) or isWorldTable(list)) then return nil end
+    local sz = worldCount(list)
     -- Pass 1: characters
     for i = 0, sz - 1 do
-        local obj = list:get(i)
+        local obj = worldGet(list, i)
         if obj and safeCall(obj, "getDescriptor") then
             return obj, (safeCall(obj, "getFullName")
                          or safeCall(obj, "getDisplayName")
@@ -1162,7 +1183,7 @@ local function pickWorldObject(list)
     end
     -- Pass 2: named objects
     for i = 0, sz - 1 do
-        local obj = list:get(i)
+        local obj = worldGet(list, i)
         if obj then
             local name = safeCall(obj, "getName") or safeCall(obj, "getObjectName")
             if name and name ~= "" and name ~= "null" and name ~= "IsoObject" then
@@ -1172,7 +1193,7 @@ local function pickWorldObject(list)
     end
     -- Pass 3: corpses, by class name (the getCorpse / isCorpse flags vary)
     for i = 0, sz - 1 do
-        local obj = list:get(i)
+        local obj = worldGet(list, i)
         if obj then
             local cls = safeCall(obj, "getClass")
             local clsName = cls and safeCall(cls, "getName") or ""
@@ -1191,7 +1212,7 @@ function Registry.getTargetDisplay(target)
     if not target then return "", nil end
 
     -- a world right-click (a Java ArrayList)
-    if isJavaList(target) then
+    if isJavaList(target) or isWorldTable(target) then
         local obj, name = pickWorldObject(target)
         if obj and name then
             local tex = safeCall(obj, "getTexture") or safeCall(obj, "getSprite")

@@ -289,6 +289,15 @@ function ZeD_ContextMenu:_layout(T)
     -- Kick a new animation if targets changed
     if self._animToOriginX ~= targetOriginX then
         self._animFromOriginX = self._currentOriginX or targetOriginX
+        -- A step on every frame restarts the slide from where it is drawn, so the picture falls ever further
+        -- behind its target and runs off the three copies (empty cells). Keep it within a few cells of the
+        -- target; the slide then starts at most that far away (QA B7-2)
+        local maxGap = 3 * step
+        if self._animFromOriginX < targetOriginX - maxGap then
+            self._animFromOriginX = targetOriginX - maxGap
+        elseif self._animFromOriginX > targetOriginX + maxGap then
+            self._animFromOriginX = targetOriginX + maxGap
+        end
         self._animToOriginX   = targetOriginX
         self._animStartMs     = getTimestampMs()
     end
@@ -494,13 +503,32 @@ end
 -- NAVIGATION — selection transitions
 -- ============================================================================
 
+-- One step along the carousel's track. Every step puts the settle off, so a wheel rolled without a 0.2 s rest
+-- could walk pos out of the three copies and leave the strip with no cells. When the step would leave the middle
+-- copy, pos moves one copy back first, the slide in flight with it (the copies are the same cells, so nothing
+-- moves on screen), as page() does (QA B5-6)
+function ZeD_ContextMenu:_stepPos(dir)
+    local N = #self._ctx.items
+    local ctx = ZeD.T.ctx
+    local newPos = self._ctx.pos + dir
+    if newPos < N + 1 or newPos > 2 * N then
+        local shift = (newPos > 2 * N) and -N or N
+        local px = shift * (ctx.cellW + ctx.gap)
+        self._ctx.pos = self._ctx.pos + shift
+        self._currentOriginX = (self._currentOriginX or 0) - px
+        self._animFromOriginX = (self._animFromOriginX or 0) - px
+        self._animToOriginX = (self._animToOriginX or 0) - px
+    end
+    self._ctx.pos = self._ctx.pos + dir
+end
+
 function ZeD_ContextMenu:next()
     local items = self._ctx.items
     local N = #items
     if N == 0 then return end
     self._ctx.selected = (self._ctx.selected % N) + 1
     if self._ctx.truncating then
-        self._ctx.pos = self._ctx.pos + 1
+        self:_stepPos(1)
         self:_scheduleSettle()
     end
 end
@@ -511,7 +539,7 @@ function ZeD_ContextMenu:prev()
     if N == 0 then return end
     self._ctx.selected = ((self._ctx.selected - 2 + N) % N) + 1
     if self._ctx.truncating then
-        self._ctx.pos = self._ctx.pos - 1
+        self:_stepPos(-1)
         self:_scheduleSettle()
     end
 end
@@ -782,12 +810,11 @@ function ZeD_ContextMenu:update()
     local my = self:getMouseY()
     local zone = self:hitZoneAt(mx, my)
     self._hoveredId = zone and zone.id or nil
-
-    -- Take the hovered cell only when the pointer moved since the last update, and never while the pad has the menu
-    -- (a resting pointer would undo D-pad, arrow key and wheel steps; beast W14)
+    -- Take the hovered cell only when the pointer moved since the last update
+    -- (a resting pointer would undo D-pad, arrow key and wheel steps; beast W14; a pad no longer blocks it, QA B6-5)
     local moved = (mx ~= self._lastMx or my ~= self._lastMy)
     self._lastMx, self._lastMy = mx, my
-    if not moved or self._joyfocus then zone = nil end
+    if not moved then zone = nil end
 
     -- If mouse-hover over a cell, update selection (mouse-track selection
     -- mirrors vanilla ISContextMenu).
