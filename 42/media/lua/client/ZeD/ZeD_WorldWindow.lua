@@ -464,7 +464,8 @@ _buildWorldLootFocusables = function(win)
                 end
                 w._activeContainer = el.containerIdx
                 w._viewedContainer = nil
-                w._mainVisible     = isFloor
+                -- (shown, floor or not: a hold A after it adds a column beside it, KISS #10)
+                w._mainVisible     = true
                 -- the pad goes on to the container's first item (once its
                 -- rows have drawn); an empty one keeps the focus here
                 local inv = cnt and cnt.inventory
@@ -531,7 +532,7 @@ _buildWorldLootFocusables = function(win)
                 end
                 w._activeContainer = el.containerIdx
                 w._viewedContainer = nil
-                w._mainVisible     = isFloor
+                w._mainVisible     = true   -- (shown: a hold A after it adds a column beside it, KISS #10)
                 -- the pad goes on to the container's first item (once its
                 -- rows have drawn); an empty one keeps the focus here
                 local inv = cnt and cnt.inventory
@@ -2517,6 +2518,13 @@ mcToggleWorldContainer = function(win, content, cIdx)
                 end
             end
         else
+            -- (KISS #10: Ctrl-click or hold A on the Floor while a container is on show alone adds the Floor beside it:
+            -- the shown one becomes a column first, so the Floor does not take its place)
+            local cur = containers[win._activeContainer]
+            if #(win._mcSelected) == 0 and win._mainVisible and cur and not cur.isFloor then
+                win._mcSelected[1] = win._activeContainer
+                enterWorldMC(win, content)
+            end
             if #(win._mcSelected) == 0 then
                 content._inventory = containers[cIdx].inventory
                 content._selectedItems = {}
@@ -2595,6 +2603,23 @@ mcToggleWorldContainer = function(win, content, cIdx)
     -- The column set changed — refresh the ring so the worldMC zones match
     -- the new _mcSelected.
     if _syncWorldRingZones then _syncWorldRingZones(win, content) end
+end
+
+-- (KISS #10) A plain click on a container's picture on Loot: that container alone. Any columns close, the list
+-- shows it, nothing stays picked. It counts as shown (_mainVisible), so a Ctrl-click or the pad's hold A after it
+-- adds a column beside it rather than in its place. A module field, not a local (this file is near Kahlua's limit).
+function ZeD_WorldWindow._showAlone(win, content, cIdx)
+    if not (win and content and win._containers and win._containers[cIdx]) then return end
+    local hadCols = #(win._mcSelected or {}) > 0
+    if hadCols and exitWorldMC then exitWorldMC(win, content) end
+    win._activeContainer = cIdx
+    win._viewedContainer = nil
+    win._mainVisible = true
+    content._inventory = win._containers[cIdx].inventory
+    content._selectedItems = {}
+    content._lastClickedItem = nil
+    -- (the columns' stops go with them)
+    if hadCols and _syncWorldRingZones then _syncWorldRingZones(win, content) end
 end
 
 -- ============================================================================
@@ -2824,7 +2849,7 @@ local function buildWorldContainers(playerObj)
     -- Seated in a vehicle: like vanilla's loot window (ISInventoryPage.refreshBackpacks' seated branch),
     -- list only that car's containers the seat can reach and the bags in them, the truck bed last.
     -- No 3x3 scan (no floor items, furniture or corpses beside the car, no filling unexplored ones as
-    -- you drive past); the floor entry below stays, empty. (beast W5)
+    -- you drive past). No Floor either: seated, the list is the car's alone (KISS #13). (beast W5)
     local seatedIn = playerObj:getVehicle()
     if seatedIn then
         for pass = 1, 2 do   -- pass 1: every part but the truck bed; pass 2: the truck bed
@@ -2841,6 +2866,7 @@ local function buildWorldContainers(playerObj)
                               or resolveContainerIcon(tostring(part:getId())) or resolveContainerIcon(part:getCategory() or ""),
                         isFloor = false,
                         sourceType = "vehicle",
+                        partId = part:getId(),   -- (the glove box is where the list lands seated) (KISS #13)
                     }
                     -- the bags on the seats and in the trunk (not the glove box's), as vanilla
                     if part:getId() and part:getId() ~= "GloveBox" then
@@ -2895,6 +2921,7 @@ local function buildWorldContainers(playerObj)
                                         texture = item:getTex(),
                                         isFloor = false,
                                         sourceType = "ground_container",
+                                        sq = gs,   -- (the square it is on: the one he faces shows first) (KISS #13)
                                     }
                                 end
                             end
@@ -2933,6 +2960,7 @@ local function buildWorldContainers(playerObj)
                                         texture = resolveContainerIcon(corpseType),
                                         isFloor = false,
                                         sourceType = "corpse",
+                                        sq = gs,   -- (KISS #13)
                                     }
                                 end
                             end
@@ -2979,6 +3007,7 @@ local function buildWorldContainers(playerObj)
                                             texture = resolveContainerIcon(container:getType()),
                                             isFloor = false,
                                             sourceType = "object",
+                                            sq = gs,   -- (KISS #13)
                                             locked = locked,
                                             isoObject = o,
                                         }
@@ -3018,6 +3047,7 @@ local function buildWorldContainers(playerObj)
                                           or resolveContainerIcon(tostring(part:getId())) or resolveContainerIcon(vehType),
                                     isFloor = false,
                                     sourceType = "vehicle",
+                                    sq = gs,   -- (KISS #13)
                                 }
                                 -- Bags on the seats and in the trunk get a button of their own,
                                 -- as in vanilla's loot window (not the glove box's)
@@ -3044,14 +3074,18 @@ local function buildWorldContainers(playerObj)
         end
     end   -- (the seated branch above) (beast W5)
 
-    -- Floor container always last in the list (the strip draws it pinned at the top)
-    containers[#containers + 1] = {
-        inventory = floorC,
-        name = getTextOrNull("IGUI_ContainerTitle_floor") or "Floor",
-        texture = resolveContainerIcon("floor"),
-        isFloor = true,
-        sourceType = "floor",
-    }
+    -- Floor container always last in the list (the strip draws it pinned at the top). Seated, none: the Floor beside
+    -- a car is always empty, and the list lands on the glove box or his seat instead (KISS #13). The strip, its
+    -- stops and the columns all test isFloor, so a list with no Floor draws the car's buttons alone.
+    if not seatedIn then
+        containers[#containers + 1] = {
+            inventory = floorC,
+            name = getTextOrNull("IGUI_ContainerTitle_floor") or "Floor",
+            texture = resolveContainerIcon("floor"),
+            isFloor = true,
+            sourceType = "floor",
+        }
+    end
 
     -- other mods' containers (ExtraContainers.lua): each one placed after the
     -- container it is carried in; the floor stays last
@@ -3063,6 +3097,52 @@ end
 -- CONTAINER STRIP — LEFT EDGE (mirrored from character window's right edge)
 -- Floor pinned top, sort row, scrollable container list below.
 -- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- (KISS #13) THE CONTAINER HE FACES SHOWS, as the game's loot page does (ISInventoryPage.refreshBackpacks):
+--   * seated: the glove box, else his own seat's container, else the car's first (there is no Floor seated);
+--   * on foot: the first container on the square he faces (the game's lookSquare, one step along getDir), else
+--     the first one in reach that is not locked, else the Floor.
+-- Returns an index into win._containers. faceOnly: only the faced square counts (nil when nothing is on it), for
+-- the turn rule in the strip's refresh. A field on the module table, not a local: this file is near Kahlua's limit.
+-- ----------------------------------------------------------------------------
+function ZeD_WorldWindow._pickShown(win, playerObj, faceOnly)
+    local list = win._containers or {}
+    if not playerObj then return #list > 0 and #list or nil end
+    local veh = playerObj:getVehicle()
+    if veh then
+        if faceOnly then return nil end
+        -- his seat's own container (the game's way to it: ISWorldObjectContextMenu, the seat UI)
+        local seatInv = nil
+        pcall(function()
+            local part = veh:getPartForSeatContainer(veh:getSeat(playerObj))
+            seatInv = part and part:getItemContainer() or nil
+        end)
+        local glove, seat = nil, nil
+        for i, c in ipairs(list) do
+            if c.partId == "GloveBox" and not glove then glove = i end
+            if seatInv and c.inventory == seatInv then seat = i end
+        end
+        return glove or seat or (#list > 0 and 1 or nil)
+    end
+    -- the square he faces: one step along his direction, as the game's lookSquare
+    local dir = playerObj:getDir()
+    local dx, dy = 0, 0
+    if dir == IsoDirections.NW or dir == IsoDirections.W or dir == IsoDirections.SW then dx = -1 end
+    if dir == IsoDirections.NE or dir == IsoDirections.E or dir == IsoDirections.SE then dx = 1 end
+    if dir == IsoDirections.NW or dir == IsoDirections.N or dir == IsoDirections.NE then dy = -1 end
+    if dir == IsoDirections.SW or dir == IsoDirections.S or dir == IsoDirections.SE then dy = 1 end
+    local lookSq = getCell():getGridSquare(math.floor(playerObj:getX()) + dx, math.floor(playerObj:getY()) + dy,
+                                           math.floor(playerObj:getZ()))
+    for i, c in ipairs(list) do
+        if lookSq and c.sq == lookSq and not c.locked and not c.isFloor then return i end
+    end
+    if faceOnly then return nil end
+    for i, c in ipairs(list) do
+        if not c.isFloor and not c.locked then return i end
+    end
+    return #list > 0 and #list or nil   -- (the Floor, always last)
+end
 
 -- A container viewed from another tab (a strip click there sets
 -- win._viewedContainer) wins over the list's selection, but only while the
@@ -3079,7 +3159,7 @@ local function _holdWorldView(win)
     local viewed, active = list[view], list[win._activeContainer]
     if viewed and win._activeTab == "loot" then
         win._activeContainer = view
-        win._mainVisible = viewed.isFloor and true or false
+        win._mainVisible = true   -- (KISS #10, as a plain click)
         win._viewedContainer, win._viewedOver = nil, nil
     elseif not viewed or not active or active.inventory ~= win._viewedOver then
         win._viewedContainer, win._viewedOver = nil, nil
@@ -3128,7 +3208,9 @@ local function drawWorldContainerStrip(self, win, content)
     local plSq = win._playerObj and win._playerObj:getCurrentSquare()
     local forced = (win._containerTimer or 0) >= 30
     local due = forced or nowMs >= (win._containerDueMs or 0)
-    if not due and (plSq ~= win._containerSq or win._containersDirty) then
+    -- (a turn reads the list again too: the container he now faces shows, KISS #13)
+    local plDir = win._playerObj and win._playerObj:getDir()
+    if not due and (plSq ~= win._containerSq or win._containersDirty or plDir ~= win._lookDir) then
         due = nowMs - (win._containerAtMs or 0) >= WREF.soonMs
     end
     if not due then
@@ -3142,7 +3224,8 @@ local function drawWorldContainerStrip(self, win, content)
 
         -- Remap _activeContainer by inventory identity (not raw index)
         local oldActive = oldContainers and oldContainers[win._activeContainer]
-        local newActiveIdx = #win._containers  -- default to floor
+        -- (gone, the container he faces or the first in reach shows, not the Floor: KISS #13)
+        local newActiveIdx = ZeD_WorldWindow._pickShown(win, win._playerObj) or #win._containers
         local activeGone = oldActive ~= nil
         if oldActive then
             for i, c in ipairs(win._containers) do
@@ -3150,6 +3233,31 @@ local function drawWorldContainerStrip(self, win, content)
                     newActiveIdx = i
                     activeGone = false
                     break
+                end
+            end
+        end
+        -- (KISS #13) As the game's page: a turn shows the first container on the square he now faces, and a list
+        -- that was the Floor alone shows the first container that comes into reach. Not while columns are open
+        -- (his own layout), nor while he works (a move turns him to its container, ISInventoryTransferAction: the
+        -- turn is taken as seen, so the list holds still under the move).
+        do
+            local faceDir = win._playerObj and win._playerObj:getDir()
+            local turned = faceDir ~= win._lookDir
+            win._lookDir = faceDir
+            local busy = win._playerObj and ((ISTimedActionQueue and ISTimedActionQueue.isPlayerDoingAction
+                and ISTimedActionQueue.isPlayerDoingAction(win._playerObj)) or win._playerObj:shouldBeTurning())
+            if #(win._mcSelected or {}) == 0 and not busy then
+                local pick = nil
+                if turned then pick = ZeD_WorldWindow._pickShown(win, win._playerObj, true) end
+                if not pick and oldActive and oldActive.isFloor and oldContainers and #oldContainers == 1
+                   and #win._containers > 1 then
+                    pick = ZeD_WorldWindow._pickShown(win, win._playerObj)
+                end
+                if pick and pick ~= newActiveIdx then
+                    newActiveIdx = pick
+                    win._mainVisible = true
+                    content._selectedItems = {}
+                    content._lastClickedItem = nil
                 end
             end
         end
@@ -3312,7 +3420,8 @@ local function drawWorldContainerStrip(self, win, content)
         -- (floor toggle = visibility, not membership), so position derived
         -- from mcCount instead of lookup.
         local mcCountF = #(win._mcSelected or {})
-        if mainVis and mcCountF > 0 then
+        -- (only while the Floor is the shown one: a crate shown with columns beside it carries the number, KISS #10)
+        if mainVis and isActive and mcCountF > 0 then
             local badge = tostring(mcCountF + 1)
             local bx = T.px(4)
             local by = curY + floorH - fontH - T.px(1)
@@ -3475,6 +3584,13 @@ local function drawWorldContainerStrip(self, win, content)
             end
 
             -- MC column badge number (bottom-left corner, mirrored from char window)
+            -- (the container on show with columns beside it is the last column, as the Floor's badge, KISS #10)
+            local mcCountL = #(win._mcSelected or {})
+            if isActive and not isMC and win._activeTab == "loot" and mcCountL > 0 then
+                local bc = onFocusC and T.textOnFocus or T.text
+                self:drawText(tostring(mcCountL + 1), T.px(4), drawY + T.px(CONTAINER_BTN_SZ) - fontH - T.px(1),
+                              bc.r, bc.g, bc.b, bc.a, font)
+            end
             if isMC then
                 local mcIdx = nil
                 for mi, mci in ipairs(win._mcSelected or {}) do
@@ -3625,6 +3741,7 @@ end
 -- left up with no World window behind it.
 local function _closeWorldWindow(w)
     ZeD_WorldWindow._endZoneDraw()
+    pcall(ZeD_WorldWindow._unlightAll, w)   -- (nothing stays lit in the world once the window closes, KISS #44)
     saveWorldState(w)
     if ZeD.MapsTab and ZeD.MapsTab.closePopout then ZeD.MapsTab.closePopout(w, true) end
     -- a look at a car ends with the window, and the hood it opened shuts (QA K1-9)
@@ -3717,9 +3834,11 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- Player ref
     win._playerObj = playerObj
 
-    -- Container state (floor is always last — default active)
+    -- Container state (floor is always last). The one shown first is the one he faces, seated the glove box or
+    -- his seat (KISS #13; the game's loot page), the Floor only when nothing else is in reach.
     win._containers = buildWorldContainers(playerObj)
-    win._activeContainer = #win._containers
+    win._activeContainer = ZeD_WorldWindow._pickShown(win, playerObj) or #win._containers
+    win._lookDir = playerObj:getDir()
     win._containerTimer = 0
     do
         local t0, sq0 = getTimestampMs(), playerObj:getCurrentSquare()
@@ -4027,8 +4146,13 @@ function ZeD_WorldWindow.toggle(playerNum)
             local cnt = win._containers[zid]
             if not cnt.locked then
                 if win._activeTab == "loot" then
-                    -- Loot tab: MC toggle (multi-column)
-                    mcToggleWorldContainer(win, content, zid)
+                    -- (KISS #10) Loot tab: a plain click shows this container alone, as the game's container
+                    -- button and the pad's tap A do; Ctrl-click adds it as a column (multi-column), as hold A does
+                    if isCtrlKeyDown() then
+                        mcToggleWorldContainer(win, content, zid)
+                    else
+                        ZeD_WorldWindow._showAlone(win, content, zid)
+                    end
                 else
                     -- Other tabs: toggle inventory drawer or switch container
                     local currentView = win._viewedContainer or win._activeContainer
@@ -6225,6 +6349,8 @@ function ZeD_WorldWindow.toggle(playerNum)
         -- (Loot with the drawer left in tab mode folds every frame the window shows, not only when the drawer draws)
         lootDrawerFallback(self)
         composeWorldTitle(self)
+        -- the container on show lit in the world (KISS #44; pcall: a light never stops the window drawing)
+        pcall(ZeD_WorldWindow._lightShown, self)
         origPrerender(self)
     end
 end
@@ -6341,7 +6467,7 @@ function ZeD_WorldWindow.selectContainer(inv, tries, pn)
                 if content and #(win._mcSelected or {}) > 0 and exitWorldMC then exitWorldMC(win, content) end
                 win._activeContainer = i
                 win._viewedContainer = nil
-                win._mainVisible = c.isFloor and true or false
+                win._mainVisible = true   -- (shown: a Ctrl-click or hold A after it adds a column beside it, KISS #10)
                 if content then
                     content._inventory = inv
                     content._selectedItems = {}
@@ -6382,6 +6508,210 @@ function ZeD_WorldWindow.selectContainer(inv, tries, pn)
     end
     ev.Add(tick)
     return false
+end
+
+-- ----------------------------------------------------------------------------
+-- (KISS #44) THE CONTAINER ON SHOW IS LIT IN THE WORLD, as the game's loot page lights it
+-- (ISInventoryPage:updateContainerHighlight and onMouseOverButton, read in the game's files):
+--   * the container on show (and each open Loot column) in the game's object highlight color, and outlined too
+--     while the game's own option "container outline" is on (getCore():getOptionDoContainerOutline());
+--   * the one under the pointer on the strip (or under the pad's mark there) outlined in the world item color,
+--     only with that option on, as the game's hover.
+-- The World window's list rolled away or the window rolled up: nothing is lit. A container with no object in the
+-- world (the Floor, a bag in a crate) and the player himself are never lit, as in the game. Another piece of the
+-- game lighting an object (the right-click menu's hover, through ISInventoryPage.OnObjectHighlighted) keeps it: ZeD
+-- leaves that object alone until it lets go, as the game's page does. Lit objects: win._lit[obj] = true.
+-- Module fields, not locals: this file is near Kahlua's limit.
+-- ----------------------------------------------------------------------------
+ZeD_WorldWindow._litElsewhere = ZeD_WorldWindow._litElsewhere or { {}, {}, {}, {} }
+
+-- the object a container belongs to in the world (the game's ISInventoryPage:getContainerParent), or nil
+function ZeD_WorldWindow._parentOf(inv)
+    if not inv then return nil end
+    local par = inv:getParent()
+    if par then return par end
+    local item = inv:getContainingItem()
+    return item and item:getWorldItem() or nil
+end
+
+function ZeD_WorldWindow._unlight(pn, obj)
+    pcall(function()
+        obj:setHighlighted(pn, false, false)
+        obj:setOutlineHighlight(pn, false)
+        obj:setOutlineHlAttached(pn, false)
+    end)
+end
+
+function ZeD_WorldWindow._unlightAll(win)
+    if not (win and win._lit) then return end
+    local pn = win.playerNum or 0
+    local elsewhere = ZeD_WorldWindow._litElsewhere[pn + 1] or {}
+    for obj in pairs(win._lit) do
+        if not elsewhere[obj] then ZeD_WorldWindow._unlight(pn, obj) end
+    end
+    win._lit = {}
+end
+
+function ZeD_WorldWindow._lightShown(win)
+    local pn = win.playerNum or 0
+    local list = win._containers or {}
+    local want = {}   -- object -> "show" | "hover"
+    local function add(ci, kind)
+        local c = ci and list[ci]
+        local obj = c and not c.isFloor and ZeD_WorldWindow._parentOf(c.inventory) or nil
+        -- (never the player himself; a body is lit, as the game's test)
+        if obj and ((not instanceof(obj, "IsoPlayer")) or instanceof(obj, "IsoDeadBody")) and not want[obj] then
+            want[obj] = kind
+        end
+    end
+    -- the list on show: not rolled up, its side not rolled under the rod
+    if not (win.windowShaded or win._rolled) then
+        if win._activeTab == "loot" then
+            if #(win._mcSelected or {}) == 0 or win._mainVisible then add(win._activeContainer, "show") end
+            for _, ci in ipairs(win._mcSelected or {}) do add(ci, "show") end
+        elseif win._invDrawerOpen then
+            add(win._viewedContainer or win._activeContainer, "show")
+        end
+        -- the strip's button under the pointer, or under the pad's mark
+        local strip = win._containerStrip
+        local hoverCI = nil
+        if strip and strip:isMouseOver() then
+            local z = strip:hitZoneAt(strip:getMouseX(), strip:getMouseY())
+            if z and type(z.id) == "number" then hoverCI = z.id end
+        end
+        local Focus = ZeD.Input and ZeD.Input.Focus
+        local zone = Focus and Focus.liveZone and Focus.liveZone(win)
+        if not hoverCI and zone and zone.zone == "worldContainerStrip" then
+            local el = Focus.liveElement(win)
+            hoverCI = el and el.containerIdx or nil
+        end
+        if hoverCI then add(hoverCI, "hover") end
+    end
+    local outline = getCore():getOptionDoContainerOutline()
+    local elsewhere = ZeD_WorldWindow._litElsewhere[pn + 1] or {}
+    local lit = win._lit or {}
+    -- what is no longer on show goes dark
+    for obj in pairs(lit) do
+        if not want[obj] then
+            if not elsewhere[obj] then ZeD_WorldWindow._unlight(pn, obj) end
+            lit[obj] = nil
+        end
+    end
+    -- the rest is lit every frame, as the game's page does it (another light on the object may have ended)
+    for obj, kind in pairs(want) do
+        if elsewhere[obj] then
+            lit[obj] = nil
+        elseif kind == "show" then
+            pcall(function()
+                local col = getCore():getObjectHighlitedColor()
+                obj:setHighlighted(pn, true, false)
+                obj:setOutlineHighlight(pn, outline and true or false)
+                obj:setOutlineHlAttached(pn, outline and true or false)
+                if outline then obj:setOutlineHighlightCol(pn, col:getR(), col:getG(), col:getB(), 1) end
+                obj:setHighlightColor(pn, col)
+            end)
+            lit[obj] = true
+        elseif outline then
+            pcall(function()
+                local col = getCore():getWorldItemHighlightColor()
+                obj:setHighlighted(pn, false, false)
+                obj:setOutlineHighlight(pn, true)
+                obj:setOutlineHlAttached(pn, true)
+                obj:setOutlineHighlightCol(pn, col:getR(), col:getG(), col:getB(), 1)
+            end)
+            lit[obj] = true
+        elseif lit[obj] then
+            -- (the outline option turned off while it was lit: dark)
+            ZeD_WorldWindow._unlight(pn, obj)
+            lit[obj] = nil
+        end
+    end
+    win._lit = lit
+end
+
+-- Another piece of the game lighting an object tells the game's pages (ISInventoryPage.OnObjectHighlighted): ZeD
+-- hears it too, so it never paints over that light (KISS #44). Wrapped once; the game's own pages still hear it.
+if ISInventoryPage and ISInventoryPage.OnObjectHighlighted and not ZeD_WorldWindow._hlWrapped then
+    ZeD_WorldWindow._hlWrapped = true
+    ZeD_WorldWindow._hlOrig = ISInventoryPage.OnObjectHighlighted
+    ISInventoryPage.OnObjectHighlighted = function(playerNum, object, isHighlighted)
+        local t = ZeD_WorldWindow._litElsewhere[(playerNum or 0) + 1]
+        if t and object then t[object] = isHighlighted or nil end
+        return ZeD_WorldWindow._hlOrig(playerNum, object, isHighlighted)
+    end
+end
+
+-- ----------------------------------------------------------------------------
+-- (KISS #8) WHERE THE PAD'S Y LANDS. The Y tap (FocusManager's _handleYTap, through Focus.yLand) still opens or
+-- shows both windows; only the landing is here:
+--   * a Y that hid the pair kept the row the pad was on (padYRemember); the next Y returns to it while it is
+--     still there (its window open, a World row's container still in reach);
+--   * else, near a container (one in reach that is not locked, seated the car's), the pad lands in the World
+--     window on Loot, on the container on show (the one he faces, KISS #13): its first row, or its button on the
+--     strip when it is empty;
+--   * else nothing here: the caller lands on the Character window, as before.
+-- Returns true when it took the pad. Module fields, not locals: this file is near Kahlua's limit.
+-- ----------------------------------------------------------------------------
+ZeD_WorldWindow._padYLeft = ZeD_WorldWindow._padYLeft or {}
+
+--- The pair is about to hide on a Y: keep where player pn's pad is (window, zone, row).
+function ZeD_WorldWindow.padYRemember(pn)
+    pn = pn or 0
+    ZeD_WorldWindow._padYLeft[pn] = nil
+    local F = ZeD.Input and ZeD.Input.Focus
+    local w = F and F.getFocusedWindow and F.getFocusedWindow(pn)
+    if not w then return end
+    local z = F.getFocusedZone(w)
+    local el = F.getFocusedElement(w)
+    ZeD_WorldWindow._padYLeft[pn] = { win = w, zone = z and z.zone, id = el and el.id, item = el and el.item }
+end
+
+--- Player pn's Y landing (above). back: the pair was hidden and comes back (a remembered row may count).
+function ZeD_WorldWindow.padYLand(pn, back)
+    pn = pn or 0
+    local F = ZeD.Input and ZeD.Input.Focus
+    if not (F and F.claimFocus and F.focusSoon) then return false end
+    local ww = _worldWins[pn]
+    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(pn)
+    local mem = ZeD_WorldWindow._padYLeft[pn]
+    ZeD_WorldWindow._padYLeft[pn] = nil
+    -- a later Y: back to the row it left
+    if back and mem and mem.win and (mem.win == ww or mem.win == cw) then
+        local still = true
+        if mem.item and mem.win == ww then
+            local inv = mem.item:getContainer()
+            still = inv ~= nil and ZeD_WorldWindow.inReach(inv, pn)
+        end
+        if still then
+            F.claimFocus(mem.win)
+            if mem.zone and (mem.item or mem.id) then
+                F.focusSoon(mem.win, mem.zone, function(e)
+                    if mem.item then return e.item == mem.item end
+                    return e.id == mem.id
+                end, 1)
+            end
+            return true
+        end
+    end
+    -- near a container: the World window's Loot, on the container on show
+    if not (ww and ww._playerObj and ww._mainContent) then return false end
+    local near = false
+    for _, c in ipairs(buildWorldContainers(ww._playerObj)) do
+        if not c.isFloor and not c.locked then near = true; break end
+    end
+    if not near then return false end
+    -- (the list is read afresh on its next drawing: a turn or a walk while the pair was hidden shows the container
+    -- he now faces, the strip's refresh, KISS #13)
+    ww._containerTimer = 30
+    if ww._activeTab ~= "loot" and _switchWorldTabForNav then _switchWorldTabForNav(ww, ww._mainContent, "loot") end
+    F.claimFocus(ww)
+    -- first its button on the strip (an empty container keeps the pad there, as a tap A on it), then its first row
+    F.focusSoon(ww, "worldContainerStrip", function(e) return e.containerIdx == ww._activeContainer end, 2)
+    F.focusSoon(ww, "worldMainInv", function(e)
+        local c = ww._containers and ww._containers[ww._activeContainer]
+        return e.item ~= nil and c ~= nil and e.item:getContainer() == c.inventory
+    end, 3)
+    return true
 end
 
 --- Shows a tab from code (stations, the crafting and build keys, wheels,

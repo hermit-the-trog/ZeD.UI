@@ -2398,6 +2398,16 @@ local function _closeAllWindows(pn)
     Focus.releaseFocus(pn)
 end
 
+-- (KISS #8) Where a Y lands: near a container the World window's Loot, on that container's first row, and after a Y
+-- that hid the pair the row it left (ZeD_WorldWindow.padYLand); else the Character window, as before. A field on
+-- Focus, not a local (this file is near Kahlua's local limit).
+function Focus.yLand(pn, charWin, back)
+    local WW = ZeD_WorldWindow
+    local ok, took = false, false
+    if WW and WW.padYLand then ok, took = pcall(WW.padYLand, pn, back) end
+    if not (ok and took) and charWin then Focus.claimFocus(charWin) end
+end
+
 -- Y tap: player pn's paired visibility toggle.
 --   both closed   → open both (Character focus)
 --   both visible  → hide both (windowshade, release focus)
@@ -2420,7 +2430,7 @@ local function _handleYTap(pn)
             CW.toggleBothPaired(pn)
         end
         local charWin = CW.getWindow and CW.getWindow(pn)
-        if charWin then Focus.claimFocus(charWin) end
+        Focus.yLand(pn, charWin, false)   -- (KISS #8)
         print("[ZeD.Input] Focus: Y tap - opened pair, Character focus" .. _who(pn))
         return
     end
@@ -2429,11 +2439,9 @@ local function _handleYTap(pn)
     if charOpen ~= worldOpen then
         if CW.ensureBothOpenForGamepad then CW.ensureBothOpenForGamepad(pn) end
         local charWin = CW.getWindow and CW.getWindow(pn)
-        if charWin then
-            Focus.showWin(charWin)
-            Focus.claimFocus(charWin)
-        end
+        if charWin then Focus.showWin(charWin) end
         Focus.showWin(WW.getWindow and WW.getWindow(pn))
+        Focus.yLand(pn, charWin, true)   -- (KISS #8; after both show, so the World window can take it)
         print("[ZeD.Input] Focus: Y tap - normalized pair, Character focus" .. _who(pn))
         return
     end
@@ -2452,6 +2460,8 @@ local function _handleYTap(pn)
 
     if bothVisible then
         local t0 = getTimestampMs()   -- (217: the hide's timing, Focus.lagClose)
+        -- (the row the pad is on, for the next Y to return to: KISS #8)
+        if WW.padYRemember then pcall(WW.padYRemember, pn) end
         if charWin.setWindowShaded  then charWin:setWindowShaded(true)  end
         if worldWin.setWindowShaded then worldWin:setWindowShaded(true) end
         Focus.releaseFocus(pn)
@@ -2463,7 +2473,7 @@ local function _handleYTap(pn)
     if bothShaded then
         Focus.showWin(charWin)
         Focus.showWin(worldWin)
-        Focus.claimFocus(charWin)
+        Focus.yLand(pn, charWin, true)   -- (KISS #8)
         print("[ZeD.Input] Focus: Y tap - unhide pair, Character focus" .. _who(pn))
         return
     end
@@ -2471,7 +2481,7 @@ local function _handleYTap(pn)
     -- One shaded one not: normalize to both-visible.
     if charShaded  then Focus.showWin(charWin)  end
     if worldShaded then Focus.showWin(worldWin) end
-    Focus.claimFocus(charWin)
+    Focus.yLand(pn, charWin, true)   -- (KISS #8)
     print("[ZeD.Input] Focus: Y tap - normalized visibility, Character focus" .. _who(pn))
 end
 

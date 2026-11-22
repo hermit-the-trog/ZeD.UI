@@ -90,6 +90,11 @@ local SQ = {}
 local function square(x, y) local k = x .. "," .. y; SQ[k] = SQ[k] or sqObj(x, y); return SQ[k] end
 local player = { sq = square(0, 0) }
 function player:getCurrentSquare() return self.sq end
+-- (KISS #13: the refresh reads his direction for the faced-container rule and whether he is busy; the stub picks
+-- what the old rule did, the Floor when the selection is gone and nothing on a turn, so old and new compare as before)
+function player:getDir() return "N" end
+function player:shouldBeTurning() return false end
+ZeD_WorldWindow = { _pickShown = function(win, p, faceOnly) if faceOnly then return nil end return #win._containers end }
 local function truth()
     local key = player.sq.key
     local base = world.lists[key] or { "crate", "shelf" }
