@@ -1187,6 +1187,30 @@ function X.placeRows(k)
         Q.check(X.same(g, S.pr.geo, 2), name .. ", Go to saved position: back in the bottom corner it was saved in", X.gs(S.pr.geo) .. " -> " .. X.gs(g))
         X.after(name .. ", Go to saved position")
     end)
+    -- (Nov 21 2026, QA B9-2) left in that corner, with no menu at all: the inventory key closes both windows and opens
+    -- them again, and this one comes back as it was (on a small screen the restore narrows it again, its edge kept)
+    Q.step(2, function()
+        if not S.pr.ok then return end
+        S.pr.geo2 = X.geo(X.win(k))
+        local ok, e = X.toggle()
+        if not ok then Q.check(false, name .. ", left in the corner: the inventory key closes the windows without an error", tostring(e)); S.pr.ok = false end
+    end)
+    Q.waitFor(1, 90, X.bothShut, function(ok)
+        if not S.pr.ok then return end
+        if not ok then Q.check(false, name .. ", left in the corner: the inventory key closes both windows", "still open after 90 frames"); S.pr.ok = false; return end
+        local ok2, e2 = X.toggle()
+        if not ok2 then Q.check(false, name .. ", left in the corner: the inventory key opens the windows again without an error", tostring(e2)); S.pr.ok = false end
+    end)
+    Q.waitFor(1, 90, X.bothOpen, function(ok)
+        if not S.pr.ok then return end
+        if not ok then Q.check(false, name .. ", left in the corner: the inventory key opens both windows again", "not both open after 90 frames"); S.pr.ok = false end
+    end)
+    Q.step(12, function()
+        if not S.pr.ok then return end
+        local g = X.geo(X.win(k))
+        Q.check(X.same(g, S.pr.geo2, 2), name .. ", left in the bottom corner, closed and opened again: the same place and width", X.gs(S.pr.geo2) .. " -> " .. X.gs(g))
+        X.after(name .. ", closed and opened again in the corner")
+    end)
 end
 -- the rows below the line: Bug report, the keyboard map, the controller map, Hide interface; ZeD setup said, not pressed
 function X.setupRows()

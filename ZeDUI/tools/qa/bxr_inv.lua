@@ -843,9 +843,43 @@ Q.waitFor(10, 400, function() return not S.jam or S.pouchJam() end, function(ok)
         .. " (Ammo on the belt on " .. tostring(S.ammo) .. ", Lite " .. tostring(ZeD.Settings.lite and ZeD.Settings.lite()) .. ")")
     S.clearChar()
 end)
+-- (QA retake, Nov 21: the card's Ammo row was cut in half at the card's bottom edge: the card is longer than the
+-- Character window at its height, and scrolls. The window is made as much taller as the card needs, as the freezer's
+-- World window is, so Jammed and the whole Ammo row show; S.clearChar moves it off him should it then reach down over
+-- him. Three tries: the card's length settles a frame after each. Put back right after the picture.)
+function S.cardGapC(item)
+    local w = S.CW()
+    local c = w and w._itemCard
+    if not (c and c.viewH and S.cardOn(item)) then return 0 end
+    return math.max(0, math.ceil((c._contentH or 0) - c:viewH()))
+end
+S.gunGrown = 0
+for _ = 1, 3 do
+    Q.still(6, function()
+        if not S.jam then return end
+        local gap = S.cardGapC(S.A.gun)
+        local w = S.CW()
+        if gap <= 0 or not w then return end
+        local T = ZeD.T
+        local H = S.core:getScreenHeight()
+        local h = w:getHeight() + gap + T.px(2)
+        if w:getY() + h > H - T.px(24) then h = H - T.px(24) - w:getY() end
+        if h <= w:getHeight() then return end
+        if S.was.cwH == nil then S.was.cwH = w:getHeight() end
+        S.gunGrown = S.gunGrown + (h - w:getHeight())
+        w:setHeight(h)
+    end)
+    Q.step(4, function() if S.jam then S.clearChar() end end)
+end
+function S.cwBack()
+    local w = S.CW()
+    if w and S.was.cwH ~= nil and w:getHeight() ~= S.was.cwH then pcall(function() w:setHeight(S.was.cwH) end) end
+    S.was.cwH = nil
+end
 -- what the pouch says, and what the card's facts say
 function S.jamWords(g)
-    local J = { status = "none", ammo = "?", pouch = "no pouch" }
+    -- (B8-1, a9ac61c8c: the jam is the facts' own Jammed row now, and the Ammo row is the rounds alone)
+    local J = { status = "none", ammo = "?", pouch = "no pouch", jamRow = false }
     pcall(function()
         for _, r in ipairs(ZeD.itemFacts(g) or {}) do
             if r.label == "Status" then J.status = tostring(r.value) end
@@ -853,14 +887,18 @@ function S.jamWords(g)
     end)
     pcall(function()
         local panel = ZeD.ItemFactsPanel.factsFor(g, S.pn)
-        local lbl = getText("Tooltip_weapon_Ammo")
+        local lbl, jw = getText("Tooltip_weapon_Ammo"), ZeD.tr("UI_ZeD_Jammed")
         for _, grp in ipairs(panel.groups or {}) do
-            for _, r in ipairs(grp.rows or {}) do if r.label == lbl then J.ammo = tostring(r.value) end end
+            for _, r in ipairs(grp.rows or {}) do
+                if r.label == lbl then J.ammo = tostring(r.value) end
+                if r.label == jw then J.jamRow = true end
+            end
         end
     end)
     pcall(function() local c = S.hud()._ammo; if c and c.gun == g then J.pouch = tostring(ZeD.Belt.ammoWords(c.a)) end end)
     return "the belt's ammo pouch reads \"" .. J.pouch .. "\" (jammed " .. tostring(S.pouchJam()) .. ")",
-        "the card's Status row reads \"" .. J.status .. "\", the facts' Ammo row \"" .. J.ammo .. "\" (the word is \"" .. tostring(ZeD.tr("UI_ZeD_Jammed")) .. "\")"
+        "the card's Status row reads \"" .. J.status .. "\", its own " .. tostring(ZeD.tr("UI_ZeD_Jammed")) .. " row is " .. (J.jamRow and "there" or "MISSING")
+        .. ", the facts' Ammo row \"" .. J.ammo .. "\""
 end
 Q.still(10, function()
     if not S.jam then return end
@@ -868,7 +906,11 @@ Q.still(10, function()
     local pw, cw = S.jamWords(g)
     S.jamSplit = not S.cardOn(g)
     if not S.jamSplit then
-        S.take("B5-11_jammed_pouch_card", "a jammed pistol held (" .. S.nm(g) .. "): " .. pw .. "; its card is open, " .. cw)
+        local gap = S.cardGapC(g)
+        S.take("B5-11_jammed_pouch_card", "a jammed pistol held (" .. S.nm(g) .. "): " .. pw .. "; its card is open, " .. cw
+            .. "; the Character window made " .. tostring(S.gunGrown) .. " px taller for the card, " .. ((gap <= 0) and "all of the card showing"
+            or ("NOTE: " .. gap .. " px of the card still under its bottom edge (the screen is too short for the whole card)"))
+            .. "; the other M9 Pistol row in the list is his own pistol on the belt, empty (the held one has no row)")
     elseif S.pouchJam() then
         -- (the card shut when the pistol went in the hand: the pouch now, the card in a picture of its own)
         S.take("B5-11_jammed_pouch", "a jammed pistol held (" .. S.nm(g) .. "): " .. pw .. " (its card shut when it went in the hand: the card is the next picture)")
@@ -877,7 +919,7 @@ Q.still(10, function()
     end
 end)
 -- out of the hand again (the hands as found): its row is back in the list; Ammo on the belt as found
-Q.step(6, function() if S.jam then S.handsBack() end; S.ammoBack() end)
+Q.step(6, function() S.cwBack(); if S.jam then S.handsBack() end; S.ammoBack() end)
 Q.step(20, function() S.A.gun2 = (S.jam and S.jamSplit) and S.A.gun or nil end)
 -- only when the card shut above: the card alone, the pistol carried (S.A.gun2 is nothing otherwise, and nothing opens)
 S.openCard("gun2", "B5-11 the pistol's card alone")
@@ -1306,17 +1348,35 @@ end
 -- no doorway or open side passes; failing that anywhere, the room's end behind it is enough). The three squares in
 -- front of him (east, south, south-east) must be clear floor: nothing stands between him and the camera. The best has
 -- the most free floor further out, then the nearest to the stock spot.
+-- (QA retake, Nov 21: a folding chair two squares out covered his knees and the edge of a glass partition ran down in
+-- front of him: a chair stands on a "free" square, and a partition stands on a square's edge. First the six squares
+-- in front of him must hold the floor and nothing else, no wall or partition on their edges either; only with no such
+-- spot in the store, today's test.)
+function S.bareSq(x, y, room)
+    local n = S.sq(x, y)
+    if not (S.sqFree(n) and n:getRoom() == room) then return false end
+    local k, w = 9, 9
+    pcall(function() k = n:getObjects():size(); w = n:getWorldObjects():size() end)
+    return k <= 1 and w == 0
+end
+S.FRONT6 = { { 1, 0 }, { 0, 1 }, { 1, 1 }, { 2, 1 }, { 1, 2 }, { 2, 2 } }
 function S.freezerSpot()
     local st = S.P.stock
     local home = st and S.sq(st[1], st[2])
     local room = home and home:getRoom()
     if not room then return nil end
+    for strict = 1, 2 do
     for pass = 1, 2 do
         local best = nil
         for _, q in ipairs(S.storeFloor()) do
             local here = S.sq(q[1], q[2])
             local front = S.roomFree(q[1], q[2], room) and S.roomFree(q[1] + 1, q[2], room) and S.roomFree(q[1], q[2] + 1, room)
                 and S.roomFree(q[1] + 1, q[2] + 1, room)
+            if front and strict == 1 then
+                for _, d in ipairs(S.FRONT6) do
+                    if front and not S.bareSq(q[1] + d[1], q[2] + d[2], room) then front = false end
+                end
+            end
             if front then
                 for _, o in ipairs({ { 0, -1, "N" }, { -1, 0, "W" } }) do
                     local f = S.sq(q[1] + o[1], q[2] + o[2])
@@ -1329,12 +1389,13 @@ function S.freezerSpot()
                         end
                         if o[3] == "N" then score = score + 5 end
                         score = score - (math.abs(q[1] - st[1]) + math.abs(q[2] - st[2])) * 0.1
-                        if not best or score > best.score then best = { score = score, q = { q[1], q[2] }, f = f, side = o[3], pass = pass } end
+                        if not best or score > best.score then best = { score = score, q = { q[1], q[2] }, f = f, side = o[3], pass = pass, strict = strict } end
                     end
                 end
             end
         end
         if best then return best end
+    end
     end
     return nil
 end
@@ -1369,7 +1430,8 @@ Q.step(20, function()
     G1.tp(S.frSpot.q, "SE")
     S.fr = true
     Q.say("B5-9: in the store at " .. S.frSpot.q[1] .. "," .. S.frSpot.q[2] .. ", the fridge's place on his " .. ((S.frSpot.side == "N") and "north" or "west") .. " side, "
-        .. ((S.frSpot.pass == 1) and "against a wall of its own" or "at the room's end (NOTE: no wall of its own found there, check the picture)"))
+        .. ((S.frSpot.pass == 1) and "against a wall of its own" or "at the room's end (NOTE: no wall of its own found there, check the picture)")
+        .. ((S.frSpot.strict == 1) and ", the six squares in front of him bare floor" or " (NOTE: no spot with the six squares in front of him bare: check for things in front of him)"))
 end)
 Q.step(40, function()
     if not S.fr then return end

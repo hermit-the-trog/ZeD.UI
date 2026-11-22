@@ -920,7 +920,46 @@ function X.sync(label)
         Q.check(r.n == zn, "moodles (" .. label .. "): the place counts " .. zn, tostring(r.n))
         Q.check(r.x >= 0 and r.y >= 0 and r.x + r.w <= sw and r.y + r.h <= sh, "moodles (" .. label .. "): all " .. zn .. " lie on the screen (" .. tostring(r.place) .. ")",
             string.format("%d,%d %dx%d in %dx%d", math.floor(r.x), math.floor(r.y), math.floor(r.w), math.floor(r.h), sw, sh))
+        if r.cols and r.cols > 1 then X.columns(label, r, zn, sw, sh) end
     end)
+end
+-- (Nov 21 2026, QA B9-1) a pile too tall for one column between the watch and the belt goes into columns: every
+-- moodle has a slot, each slot lies on the screen, the columns sit between the watch (or the top) and the belt line,
+-- the game's own column is out of sight while ZeD draws the copy, and the pointer on each slot names that moodle
+-- (the layer's pointer read stood in for, then taken away again)
+function X.columns(label, r, zn, sw, sh)
+    local L = MO.getLayer(pn)
+    if not L then return end
+    local per, size = r.perCol or 0, r.size or 0
+    Q.check(r.cols * per >= zn, "moodles (" .. label .. "): " .. r.cols .. " columns of " .. per .. " hold all " .. zn, tostring(r.cols * per))
+    local off = {}
+    for i = 1, zn do
+        local sx, sy = L:_slotXY(i)
+        local x, y = r.x + sx, r.y + sy
+        if x < 0 or y < 0 or x + size > sw or y + size > sh then off[#off + 1] = i .. "@" .. math.floor(x) .. "," .. math.floor(y) end
+    end
+    Q.check(#off == 0, "moodles (" .. label .. "): each of the " .. zn .. " slots in " .. r.cols .. " columns is on the screen", table.concat(off, " "))
+    local belt = L:_rowY(0)
+    local top = (r.place == "left") and getPlayerScreenTop(pn) or L:_rightY()
+    Q.check(r.y >= top - 1 and r.y + r.h <= belt + 1, "moodles (" .. label .. "): the columns sit between the " .. ((r.place == "left") and "top" or "watch") .. " and the belt line",
+        string.format("y %d..%d, room %d..%d", math.floor(r.y), math.floor(r.y + r.h), math.floor(top), math.floor(belt)))
+    local mui = L:vanilla()
+    local my = mui and mui:getY() or 0
+    Q.check(my < -5000, "moodles (" .. label .. "): the game's own column is out of sight while ZeD draws the columns", "its y " .. tostring(my))
+    local miss = {}
+    local ok, err = pcall(function()
+        L.isMouseOver = function() return true end
+        for i = 1, zn do
+            local sx, sy = L:_slotXY(i)
+            local cx, cy = sx + math.floor(size / 2), sy + math.floor(size / 2)
+            L.getMouseX = function() return cx end
+            L.getMouseY = function() return cy end
+            local okH, hi = pcall(L._hoverIndex, L)
+            if not (okH and hi == i) then miss[#miss + 1] = i .. "->" .. tostring(hi) end
+        end
+    end)
+    L.getMouseX, L.getMouseY, L.isMouseOver = nil, nil, nil
+    Q.check(ok and #miss == 0, "moodles (" .. label .. "): the pointer on each of the " .. zn .. " slots names that moodle", ok and table.concat(miss, " ") or tostring(err))
 end
 local M = {
     { id = "food poisoning", mood = "SICK", set = function() X.setStat("FOOD_SICKNESS", 0.8) end },

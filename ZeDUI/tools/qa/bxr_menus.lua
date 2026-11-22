@@ -160,6 +160,47 @@ end
 -- where to stand for a right-click at (fx, fy) on the thing at square (tx, ty): a bare square in the open with its
 -- three camera-side neighbours bare and the band past them open (S.clearAhead), to the LEFT of the click on screen, so the menu
 -- (it opens right and down from the click) is beside him and never on him
+-- (QA retake, Nov 21: a picket fence ran across him from the waist down in the window's picture, and a big bare tree's
+-- branches crossed his head and legs in the ground's, its trunk about eight squares out toward the camera. Neither the
+-- bare-square test nor clearAhead saw them: a fence or a wall stands on a square's edge, and a tree's crown reaches far
+-- up the screen.) No fence, wall or solid thing on the square, its own north and west edges included
+function S.noEdge(sq)
+    if not sq then return true end
+    local ok, bad = pcall(function()
+        return sq:Is(IsoFlagType.collideW) or sq:Is(IsoFlagType.collideN) or sq:Is(IsoFlagType.HoppableW) or sq:Is(IsoFlagType.HoppableN)
+            or sq:Is(IsoFlagType.WallW) or sq:Is(IsoFlagType.WallN) or sq:Is(IsoFlagType.WallNW) or sq:Is(IsoFlagType.TallHoppableW)
+            or sq:Is(IsoFlagType.TallHoppableN) or sq:Is(IsoFlagType.solid) or sq:Is(IsoFlagType.solidtrans)
+    end)
+    if not ok then return true end   -- (a square the test cannot read is let be, as before this test)
+    return not bad
+end
+-- no tree in the band toward the camera whose crown reaches over a character on (x, y): up to ten squares out along the
+-- diagonal toward the camera, four to either side of it (no remainder sign: Kahlua's % keeps a minus)
+function S.noTreesAhead(x, y)
+    for dy = 0, 10 do
+        for dx = 0, 10 do
+            if dx + dy >= 1 and math.abs(dx - dy) <= 4 then
+                local sq = S.sqAt(x + dx, y + dy)
+                local t = false
+                if sq then pcall(function() t = sq:HasTree() end) end
+                if t then return false end
+            end
+        end
+    end
+    return true
+end
+-- nothing drawn over him on (x, y): clearAhead, no fence or wall on the squares in front of him or in clearAhead's band,
+-- no tree whose crown reaches him (the list pictures' stand only; the open patch keeps clearAhead alone)
+function S.clearFront(x, y)
+    if not S.clearAhead(x, y) then return false end
+    for _, o in ipairs({ { 1, 0 }, { 0, 1 }, { 1, 1 } }) do
+        if not S.noEdge(S.sqAt(x + o[1], y + o[2])) then return false end
+    end
+    for _, o in ipairs(S.AHEAD) do
+        if not S.noEdge(S.sqAt(x + o[1], y + o[2])) then return false end
+    end
+    return S.noTreesAhead(x, y)
+end
 function S.standFor(fx, fy, tx, ty)
     local z = S.zoom()
     local need = 230 / z
@@ -174,7 +215,7 @@ function S.standFor(fx, fy, tx, ty)
                 local gy = ay - isoToScreenY(S.pn, x + 0.5, y + 0.5, 0)
                 if gx >= need and gx <= need * 3 then
                     local sc = math.abs(gy + 150 / z) + gx * 0.5
-                    if sc < bs and S.clearAhead(x, y) then best, bs = { x = x, y = y }, sc end
+                    if sc < bs and S.clearFront(x, y) then best, bs = { x = x, y = y }, sc end
                 end
             end
         end
@@ -262,12 +303,34 @@ function S.zoomDyn(get)
 end
 
 -- ----- the store's floor (the chair and the bed stand inside, not in a parking space)
--- a square of the store's room with its floor and nothing else on it (a wall on its far edges at most). loose: a
--- thing lying on the floor (a can, litter) is let be; never anything solid, never a body
+-- (QA retake, Nov 21: the store has no 3 x 3 of bare floor, so the chair and the bed went out on the parking lot, which
+-- the picture review called staged. A house near the site comes first now, in the room each belongs in. S.inside holds
+-- the room names wanted (name = score bonus) and the search's bounds while a house is searched and the seat placed;
+-- nil is the store, as before.)
+S.inside = nil
+function S.roomName(sq)
+    local nm = nil
+    pcall(function() local r = sq:getRoom(); nm = r and r:getName() or nil end)
+    return nm
+end
+function S.inPlace(sq)
+    local P = S.inside
+    if not P then return STORY.inRoom(sq:getX(), sq:getY()) end
+    local nm = S.roomName(sq)
+    return nm ~= nil and P.names[nm] ~= nil
+end
+-- the houses' rooms of these names within 60 squares of the site
+function S.houseArea(names)
+    local s = STORY.site
+    return { names = names, x0 = s.x0 - 60, y0 = s.y0 - 60, x1 = s.x1 + 60, y1 = s.y1 + 60 }
+end
+-- a square of the store's room (or, with S.inside, of a house room of those names) with its floor and nothing else on
+-- it (a wall on its far edges at most). loose: a thing lying on the floor (a can, litter) is let be; never anything
+-- solid, never a body
 function S.floorSq(sq, loose)
     local good = false
     pcall(function()
-        good = sq ~= nil and STORY.inRoom(sq:getX(), sq:getY()) and sq:getFloor() ~= nil and sq:isFree(false)
+        good = sq ~= nil and S.inPlace(sq) and sq:getFloor() ~= nil and sq:isFree(false)
             and sq:getStaticMovingObjects():size() == 0
             and (loose == true or (sq:getObjects():size() <= 2 and sq:getWorldObjects():size() == 0))
     end)
@@ -325,8 +388,9 @@ end
 -- such, loose: a thing lying on the floor round him let be (his own square and the seat's still bare). nil with no
 -- such block either way
 function S.findInside(extra)
-    local s = STORY.site
-    local c = S.P.centre or { (s.x0 + s.x1) / 2, (s.y0 + s.y1) / 2 }
+    local st = STORY.site
+    local s = S.inside or st
+    local c = S.P.centre or { (st.x0 + st.x1) / 2, (st.y0 + st.y1) / 2 }
     for pass = 1, 2 do
         local loose = pass == 2
         local best, bs = nil, -1e9
@@ -337,8 +401,10 @@ function S.findInside(extra)
                     local e = extra(x, y, loose)
                     if e then
                         local open = S.block(x, y, 5, loose)
-                        local sc = open * 10 - (math.abs(x - c[1]) + math.abs(y - c[2]))
-                        if sc > bs then best, bs = { x = x, y = y, open = open, extra = e, loose = loose }, sc end
+                        local room = S.roomName(S.sqAt(x, y))
+                        local bonus = (S.inside and room) and (S.inside.names[room] or 0) or 0
+                        local sc = open * 10 + bonus - (math.abs(x - c[1]) + math.abs(y - c[2]))
+                        if sc > bs then best, bs = { x = x, y = y, open = open, extra = e, loose = loose, room = room }, sc end
                     end
                 end
             end
@@ -1185,8 +1251,79 @@ function S.chairAt(x, y, okSq, seatOk)
 end
 -- the line's words for a place found inside
 function S.insideWords(spot, who)
-    return "inside the store (" .. spot.open .. " of the 25 squares toward the camera of " .. who
-        .. (spot.loose and " open floor, some with a can or litter lying on it: the store has no 3 x 3 of bare floor" or " bare floor") .. ")"
+    local place = S.inside and ("inside a house near the site, in its " .. tostring(spot.room or "room")) or "inside the store"
+    return place .. " (" .. spot.open .. " of the 25 squares toward the camera of " .. who
+        .. (spot.loose and (" open floor, some with a can or litter lying on it: " .. (S.inside and "no such room" or "the store") .. " has a 3 x 3 of bare floor") or " bare floor") .. ")"
+end
+-- (QA retake, Nov 21) a bed of the map in a house's bedroom near the site, on the far corner of a 3 x 3 block whose
+-- other squares are bare floor of its room (the bed's own other tile let be): he stands two squares toward the camera
+-- of it, on bare floor with nothing drawn in front of him, and the wheel's seat slice sits him on it. No other seat in
+-- the wheel's reach of where he stands. S.inside is left at the bedroom while the bed is used (S.floorSq reads it).
+function S.isBedTile(o)
+    local nm = nil
+    pcall(function() nm = o:getSprite():getName() end)
+    local n = 0
+    pcall(function() n = SeatingManager.getInstance():getTilePositionCount(o) end)
+    return n > 0 and nm ~= nil and nm:find("bedding", 1, true) ~= nil
+end
+function S.bedOn(sq)
+    local objs = sq and sq:getObjects() or nil
+    for i = 0, (objs and objs:size() or 0) - 1 do
+        local o = objs:get(i)
+        if S.isBedTile(o) then return o end
+    end
+    return nil
+end
+function S.otherSeatBy(x, y, bx, by)
+    local found = false
+    pcall(function()
+        local sm = SeatingManager.getInstance()
+        for yy = y - 3, y + 3 do
+            for xx = x - 3, x + 3 do
+                local sq = S.sqAt(xx, yy)
+                local objs = sq and sq:getObjects() or nil
+                for i = 0, (objs and objs:size() or 0) - 1 do
+                    local o = objs:get(i)
+                    local ours = math.abs(xx - bx) <= 1 and math.abs(yy - by) <= 1 and S.isBedTile(o)
+                    if not ours and sm:getTilePositionCount(o) > 0 then found = true end
+                end
+            end
+        end
+    end)
+    return found
+end
+function S.findBed()
+    S.inside = S.houseArea({ bedroom = 0 })
+    local s, st = S.inside, STORY.site
+    local c = S.P.centre or { (st.x0 + st.x1) / 2, (st.y0 + st.y1) / 2 }
+    local best, bs = nil, -1e9
+    for y = s.y0, s.y1 do
+        for x = s.x0, s.x1 do
+            local sq = S.sqAt(x, y)
+            local bed = (sq and S.roomName(sq) == "bedroom") and S.bedOn(sq) or nil
+            if bed then
+                local ok = true
+                for dy = 0, 2 do
+                    for dx = 0, 2 do
+                        if ok and not (dx == 0 and dy == 0) then
+                            local q = S.sqAt(x + dx, y + dy)
+                            local bare = S.floorSq(q) ~= nil and S.sameRoom(q, sq)
+                            local ownTile = dx <= 1 and dy <= 1 and q ~= nil and S.bedOn(q) ~= nil
+                            if not (bare or ownTile) then ok = false end
+                        end
+                    end
+                end
+                if ok and S.floorSq(S.sqAt(x + 2, y + 2)) and S.clearSq(S.sqAt(x + 3, y + 2)) and S.clearSq(S.sqAt(x + 2, y + 3))
+                   and S.clearSq(S.sqAt(x + 3, y + 3)) and not S.otherSeatBy(x + 2, y + 2, x, y) then
+                    local open = S.block(x, y, 5, false)
+                    local sc = open * 10 - (math.abs(x - c[1]) + math.abs(y - c[2]))
+                    if sc > bs then best, bs = { x = x, y = y, obj = bed, open = open }, sc end
+                end
+            end
+        end
+    end
+    if not best then S.inside = nil end
+    return best
 end
 S.ch = {}
 Q.step(10, function()
@@ -1194,21 +1331,29 @@ Q.step(10, function()
     local info = S.seatSprite(S.CHAIRS, false)
     if not info then S.skip("B7-3_wheel_sit_on_chair", "no chair sprite with seat places and a name"); return end
     local px, py, at, okSq = nil, nil, nil, S.floorSq
-    local spot = S.findInside(function(x, y, loose)
-        return S.chairAt(x, y, function(q) return S.floorSq(q, loose) end, S.floorSq)
-    end)
+    -- a house's living room first (then its dining room, kitchen or a bedroom), then the store, then the patch
+    local spot = nil
+    for _, names in ipairs({ { livingroom = 100, diningroom = 40, kitchen = 20, bedroom = 10 }, false }) do
+        S.inside = names and S.houseArea(names) or nil
+        spot = S.findInside(function(x, y, loose)
+            return S.chairAt(x, y, function(q) return S.floorSq(q, loose) end, S.floorSq)
+        end)
+        if spot then break end
+    end
     if spot then
         px, py, at = spot.x, spot.y, spot.extra
         S.ch.where = S.insideWords(spot, "him")
     else
+        S.inside = nil
         px, py, at, okSq = S.c.x, S.c.y, S.chairAt(S.c.x, S.c.y, S.goodSq), S.goodSq
         if not at and S.goodSq(S.sqAt(px - 2, py + 2)) then at = { px - 2, py + 2 } end
-        S.ch.where = "NOTE on the patch outside: the store has no 3 x 3 block of bare floor with room for a chair beside it"
+        S.ch.where = "NOTE on the patch outside: no house room near the site and not the store has a 3 x 3 block of bare floor with room for a chair beside it"
     end
-    if not at then S.skip("B7-3_wheel_sit_on_chair", "no bare square for the chair, inside the store or on the patch"); return end
+    if not at then S.inside = nil; S.skip("B7-3_wheel_sit_on_chair", "no bare square for the chair, in a house, inside the store or on the patch"); return end
     local face = S.dirTo(px + 0.5, py + 0.5, at[1] + 0.5, at[2] + 0.5)
     G1.tp({ px, py }, face)
     local o, why = S.placeSeat(info, okSq(S.sqAt(at[1], at[2])), okSq)
+    S.inside = nil
     if not o then S.skip("B7-3_wheel_sit_on_chair", "a chair could not be placed: " .. tostring(why)); return end
     S.ch.o = o
     S.ch.rel = math.max(math.abs(at[1] - px), math.abs(at[2] - py)) .. " squares " .. tostring(S.WORDS[face] or face) .. " of him"
@@ -1271,6 +1416,17 @@ Q.step(15, function()
         return true
     end
     local bx, by, okSq = nil, nil, S.floorSq
+    -- (QA retake, Nov 21) a bedroom's own bed in a house near the site first: he sits on it, nothing is placed
+    local mapBed = S.findBed()
+    S.inside = nil
+    if mapBed then
+        bx, by = mapBed.x, mapBed.y
+        S.bd.where = "in a house's bedroom near the site, on its own bed (" .. mapBed.open .. " of the 25 squares toward the camera of the bed bare floor)"
+        G1.tp({ bx + 2, by + 2 }, "NW")
+        S.bd.o, S.bd.mapBed = mapBed.obj, true
+        Q.say("the bedroom's own bed at " .. bx .. "," .. by .. ", north west of him, " .. S.bd.where)
+        return
+    end
     local spot = S.findInside(function(x, y)
         return S.floorSq(S.sqAt(x + 2, y + 2)) ~= nil and tilesOk(x, y) and not S.seatBy(x + 2, y + 2)
     end)

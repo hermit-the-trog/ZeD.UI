@@ -64,7 +64,10 @@ try {
     Write-T $ModOptions (($lines -join "`r`n") + "`r`n")
     Write-T (Join-Path $Lua "zedqa.autoload") "0"
     if ($Width -gt 0) {
-        $out = (& (Join-Path $PSScriptRoot "pzlaunchwin.ps1") -MainMenu -Width $Width -Height $Height 2>&1 | Out-String).Trim()
+        # (Nov 21 2026: the window launch also takes -NoSteam when ZEDQA_NOSTEAM is set, as the fullscreen launch below
+        # does: without it the game came up with Steam, never entered the main menu and the bridge never armed)
+        $out = $(if ($env:ZEDQA_NOSTEAM) { (& (Join-Path $PSScriptRoot "pzlaunchwin.ps1") -MainMenu -NoSteam -Width $Width -Height $Height 2>&1 | Out-String).Trim() }
+                 else { (& (Join-Path $PSScriptRoot "pzlaunchwin.ps1") -MainMenu -Width $Width -Height $Height 2>&1 | Out-String).Trim() })
         Write-Output "pzlaunchwin.ps1: $out"
     } else {
         Start-Process -FilePath (Join-Path $GameDir "ProjectZomboid64.exe") -ArgumentList $(if ($env:ZEDQA_NOSTEAM) { "-debug -nosteam" } else { "-debug" }) -WorkingDirectory $GameDir | Out-Null
