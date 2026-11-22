@@ -1046,7 +1046,6 @@ local SORT_FULL = {
     { id = "known",     key = "UI_ZeD_Craft_Known" },
     { id = "name",      key = "UI_ZeD_Craft_SortName" },
     { id = "freq",      key = "UI_ZeD_Craft_SortFreq" },
-    { id = "recent",    key = "UI_ZeD_Craft_SortRecent" },
 }
 local SORT_RO = { SORT_FULL[1], SORT_FULL[2], SORT_FULL[3] }
 local SHOW_FULL = {
@@ -1072,6 +1071,24 @@ local function modeLabel(modes, id)
         if modes[i].id == id then return modes[i].label end
     end
     return modes[1] and modes[1].label or ""
+end
+
+-- Every item name an ingredient slot takes, lowercased and joined (built on first search, then kept on the
+-- slot): validTypes holds each full type the slot accepts, where inp.name is only the first one. (QA K1-10)
+function CC.inputSearchText(inp)
+    if inp._allNames then return inp._allNames end
+    local parts = {}
+    local sm = getScriptManager and getScriptManager()
+    for ft, _ in pairs(inp.validTypes or {}) do
+        local nm = nil
+        pcall(function()
+            local sc = sm and sm:FindItem(ft)
+            if sc then nm = sc:getDisplayName() end
+        end)
+        if nm then parts[#parts + 1] = string.lower(tostring(nm)) end
+    end
+    inp._allNames = table.concat(parts, "|")
+    return inp._allNames
 end
 
 function CC.filterAndSort(data, state, config, win)
@@ -1100,7 +1117,8 @@ function CC.filterAndSort(data, state, config, win)
             local ingMatch = false
             if not nameMatch and not catMatch then
                 for _, inp in ipairs(entry.inputDefs) do
-                    if string.find(string.lower(inp.name), searchLower, 1, true) then
+                    if string.find(string.lower(inp.name), searchLower, 1, true)
+                        or string.find(CC.inputSearchText(inp), searchLower, 1, true) then -- every type the slot takes (QA K1-10)
                         ingMatch = true
                         break
                     end
@@ -1154,8 +1172,10 @@ function CC.filterAndSort(data, state, config, win)
 
     -- Pre-compute composite sort key based on active sort mode
     local sortMode = state.sort or "craftable"
+    -- Recent was dropped (it ordered exactly as Freq); an old saved pick reads as Freq (QA K1-12)
+    if sortMode == "recent" then sortMode = "freq" end
     local playerObj = nil
-    if sortMode == "freq" or sortMode == "recent" then
+    if sortMode == "freq" then
         -- (the counts are the window's character's: split view has a window per player; no window, player 1)
         playerObj = getSpecificPlayer((win and win.playerNum) or 0)
     end
@@ -1185,13 +1205,6 @@ function CC.filterAndSort(data, state, config, win)
             local count = 0
             if playerObj then count = CC.getCraftCount(playerObj, rd.entry.name, countKey) end
             sk = pin * 10000 + (9999 - math.min(9999, count))
-
-        elseif sortMode == "recent" then
-            -- Crafted ones first, most-crafted first: only counts are kept, no times,
-            -- so this orders as freq does
-            local count = 0
-            if playerObj then count = CC.getCraftCount(playerObj, rd.entry.name, countKey) end
-            sk = pin * 10000 + (count > 0 and 0 or 1) * 1000 + (9999 - math.min(9999, count))
 
         else
             sk = pin * 10000
@@ -1484,7 +1497,7 @@ function CC.createState()
         activeCat        = "all",
         search           = "",
         altSearch         = "",
-        sort             = "craftable", -- "craftable" | "known" | "name" | "freq" | "recent"
+        sort             = "craftable", -- "craftable" | "known" | "name" | "freq"
         showAll          = false,
         ownedOnly        = false,
         pinnedCollapsed  = false,
@@ -2877,6 +2890,36 @@ end
 -- RENDERING — Craft Card (the right pane, PANE_W_SPLIT = 240u when open)
 -- ============================================================================
 
+-- Which input the game says is short when every row reads green but the recipe still will not start
+-- (a spool with too few uses, a drainable the whole-item count passes): the game's own recipe data is
+-- asked per input, as fillPickSlot reads it. Returns the 1-based index into entry.inputDefs, or nil when
+-- every input is satisfied (or the game would not answer). Asked at most once a second per recipe. (QA K1-7)
+function CC.shortInputIdx(playerObj, entry)
+    if not (playerObj and entry and entry.recipe and entry.inputDefs and HandcraftLogic) then return nil end
+    local now = getTimestampMs and getTimestampMs() or 0
+    if entry._shortAt and now - entry._shortAt < 1000 then return entry._shortIdx end
+    entry._shortAt, entry._shortIdx = now, nil
+    pcall(function()
+        local logic = HandcraftLogic.new(playerObj, nil, nil)
+        logic:setContainers(CC.craftContainers(playerObj))
+        logic:setRecipe(entry.recipe)
+        logic:setManualSelectInputs(true)
+        logic:autoPopulateInputs()
+        local rdata = logic:getRecipeData()
+        for idx, def in ipairs(entry.inputDefs) do
+            local script = def.inputRef
+            if script and script:getResourceType() == ResourceType.Item then
+                local data = rdata:getDataForInputScript(script)
+                if data and not data:isInputItemsSatisfied() then
+                    entry._shortIdx = idx
+                    return
+                end
+            end
+        end
+    end)
+    return entry._shortIdx
+end
+
 function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     local T     = ZeD.T
     local A     = ZeD.Atoms
@@ -2920,8 +2963,29 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     end
     -- (QA's bug B12, Nov 20 2026: "Required (2/2)" with Craft dimmed was a riddle. Every item is here yet the
     -- recipe cannot start: it wants a workbench or station. One short dim line under the items says so.)
-    local benchLine = (not config.readOnly) and (not stNeed) and #(rd.ingredients or {}) > 0
+    local stuck = (not config.readOnly) and (not stNeed) and #(rd.ingredients or {}) > 0
         and (rd.missingCount or 0) == 0 and (rd.status == "missing" or rd.status == "station")
+    -- (QA K1-7) Every row green yet the game says no: ask the game which input is short and mark that row
+    -- red; failing that, word the line by cause: a table for an any-surface recipe, a bench for a bench recipe
+    local shortIdx, lineText = nil, nil
+    if stuck then
+        shortIdx = CC.shortInputIdx(playerObj, entry)
+        if not shortIdx then
+            local bench = nil
+            if ZeD.Stations and playerObj then
+                local st = ZeD.Stations.validate(playerObj)
+                if st and st.kind == "bench" then bench = st end
+            end
+            if entry.needSurface and not bench and not CC.craftSurface(playerObj, entry, bench) then
+                lineText = ZeD.tr("UI_ZeD_Craft_NeedsSurface")
+                -- (until the key is in UI.json the plain words stand in)
+                if lineText == "UI_ZeD_Craft_NeedsSurface" then lineText = "Needs a table or counter nearby." end
+            elseif rd.status == "station" or entry.stationInfo then
+                lineText = ZeD.tr("UI_ZeD_Craft_NeedsBench")
+            end
+        end
+    end
+    local benchLine = lineText ~= nil
     local benchH = benchLine and (T.fontF2H + T.px(4)) or 0
     local totalH = headerH + chipH + T.px(4) + needH + inputsH + benchH + T.px(4) + outputsH + learnH + actionH
 
@@ -3130,7 +3194,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
                 name = ing.name,
                 displayName = chosen and (ing.name .. ": " .. CC.typeName(chosen)) or ing.name,
                 iconTex = ing.iconTex,
-                have = ing.have,
+                have = (shortIdx == idx) and 0 or ing.have, -- the input the game says is short reads red (QA K1-7)
                 need = ing.need,
                 altCount = ing.altCount,
                 tag = CC.tagText(ing.tag, ing.altCount),
@@ -3161,7 +3225,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     end
     if benchLine then
         local dc = T.textDim
-        panel:drawText(CC.truncText(ZeD.tr("UI_ZeD_Craft_NeedsBench"), T.fontF2, contentW - T.px(12)),
+        panel:drawText(CC.truncText(lineText, T.fontF2, contentW - T.px(12)),
             x + T.px(6), curY + T.px(2), dc.r, dc.g, dc.b, dc.a or 1, T.fontF2)
         curY = curY + benchH
     end
@@ -3528,8 +3592,12 @@ function CC.renderCatDropdownOverlay(panel, state, data)
         local textY = ry + math.floor((rowH - tm:getFontHeight(font)) / 2)
         panel:drawText(label, ddX + T.px(6), textY, tc.r, tc.g, tc.b, tc.a or 1, font)
 
-        if cat.count then
-            local countStr = tostring(cat.count)
+        -- the number is what the list would show for this category (mode + search applied),
+        -- not the catalog total; the catalog total stays the fallback before the first filter
+        local shown = cat.count
+        if state.filteredCounts then shown = state.filteredCounts[cat.id] or 0 end -- (QA K1-12)
+        if shown then
+            local countStr = tostring(shown)
             A.drawTextRight(panel, countStr, ddX + ddW - T.px(6), textY, T.fontF1, onFocus and T.textOnFocus or T.textDim)
         end
     end

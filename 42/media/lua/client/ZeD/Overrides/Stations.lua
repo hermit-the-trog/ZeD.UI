@@ -41,6 +41,7 @@ local function focusRecipe(stateKey, searchKey, recipe, itemString, pn)
         local state = win and win[stateKey]
         if not state then return false end
         if text then
+            state.activeCat = "all" -- an item's Craft starts from every category, as a recipe open does (QA K1-10)
             local f = win[searchKey]
             if f and f.input then f.input:setText(text) end
             state.search = text
