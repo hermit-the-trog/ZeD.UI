@@ -1,8 +1,8 @@
 # Beast day pictures (Nov 21 2026, QA): 38 full-screen 4K pictures of the day's visible fixes
 
 Taken on Build's batch 10 code (2cff8f8f3; the menu pictures on f4104297c, same game code) and each zoom-checked
-against the gallery rules by an agent. Folders: Zomboid/Screenshots/beast_day_report_r2 (30) and _r3 (the 8 menu
-pictures). The report page carries them as JPGs. Captions are plain words for the director; notes name known flaws.
+against the gallery rules by an agent. Folders: Zomboid/Screenshots/beast_day_report_r2 (29), _r3 (6 menu pictures), _r4 (B3-1 after Defaults) and _r5 (the two
+wheel pictures). The report page carries them as JPGs. Captions are plain words for the director; notes name known flaws.
 
 ## Inventory and item cards
 
@@ -36,8 +36,8 @@ pictures). The report page carries them as JPGs. Captions are plain words for th
 - `beast_day_report_r3/W15_strip_at_rest.png` (W15 B8-2): Inventory window, top center: the long right-click strip just below Lighter shows an icon on every tile. Note: The two silver station wagons at the pumps are left over from earlier test runs in the QA save.
 - `beast_day_report_r3/W55_radio_open_no_hint.png` (W55): Walkie-talkie in his hand (right circle on the belt), out in the open: no hint strip above the belt. Note: The two silver station wagons at the pumps are left over from earlier test runs in the QA save.
 - `beast_day_report_r3/B6-7_radio_station_more.png` (B6-7): Walkie-talkie in hand next to a small clay kiln: Right Click More shows just above the belt, bottom center. Note: The kiln is placed for the shot. The two silver station wagons at the pumps are left over from earlier test runs in the QA save.
-- `beast_day_report_r3/B7-3_wheel_sit_on_chair.png` (B7-3): Controller wheel around him, center: the bubble names the seat, Sit on: Green Armchair, 2 tiles. Note: Staging note: the chair sits outside on the lot, since the store and the nearby houses had no clear floor for the shot. Two tries, so it stays. The two silver station wagons at the pumps are left over from earlier test runs in the QA save.
-- `beast_day_report_r3/B7-3_wheel_sleep_names_bed.png` (B7-3): Controller wheel around him on the bed, center: the bubble names it, Sleep: Single Bed with Black Frame. Note: Staging note: the bed sits outside on the lot, for the same reason as the chair. The two silver station wagons at the pumps are left over from earlier test runs in the QA save.
+- `beast_day_report_r5/B7-3_wheel_sit_on_chair.png` (B7-3 B12-1, retaken on the final code): The bubble sits centered above the ring with no tail. Controller wheel around him, center: the bubble names the seat, Sit on: Green Armchair, 2 tiles. Note: Staging note: the chair sits outside on the lot, since the store and the nearby houses had no clear floor for the shot. Two tries, so it stays. The two silver station wagons at the pumps are left over from earlier test runs in the QA save.
+- `beast_day_report_r5/B7-3_wheel_sleep_names_bed.png` (B7-3 B12-1, retaken on the final code): The bubble sits centered above the ring with no tail. Controller wheel around him on the bed, center: the bubble names it, Sleep: Single Bed with Black Frame. Note: Staging note: the bed sits outside on the lot, for the same reason as the chair. The two silver station wagons at the pumps are left over from earlier test runs in the QA save.
 
 ## Windows
 
@@ -53,6 +53,6 @@ pictures). The report page carries them as JPGs. Captions are plain words for th
 
 - `beast_day_report_r2/B3-2_lite_extras_on_additions_shown.png` (B3-2): Lite with the extras still on: under Style (Lite) and UI scale, the Additions group shows the Plus preset with every extra on.
 - `beast_day_report_r2/B3-2_lite_extras_vanilla_additions_out.png` (B3-2): Same page with the extras on Vanilla: the Additions group is gone, so Windows now follows UI scale directly (compare with the extras-on picture).
-- `beast_day_report_r2/B3-1_lite_after_defaults_extras_off.png` (B3-1 B10-1): After Reset to defaults in Lite: the Style row at the top now reads Full with its teal changed mark, waiting for Apply (before the fix it stayed on Lite); every extra below reads Off and Reset to defaults is grayed.
+- `beast_day_report_r4/B3-1_lite_after_defaults_extras_off.png` (B3-1 B10-1, retaken on the final code): After Reset to defaults in Lite, every extra is back on Vanilla and off, each with its teal changed mark, and the Style row stays on Lite with no mark (the director's call: Defaults keeps Style). Reset to defaults is grayed; nothing is applied until Apply.
 - `beast_day_report_r2/B7-5_before_remove_two_pens.png` (B7-5): Animals tab at the farm, top right: the farm's Home Pasture plus two new pens named North Pasture and Back Pen, each with its own card.
 - `beast_day_report_r2/B7-5_after_remove_card_gone.png` (B7-5): Right after Remove zone on Back Pen, top right: its card is gone at once while North Pasture's stays, and the herd totals move up under it.
