@@ -1065,6 +1065,14 @@ function CC.popModes(kind, config)
     return modes
 end
 
+-- The sort in use: Recent was dropped, so an old saved "recent" is Freq, for the label, the list and the open
+-- menu alike (QA K1 review: K1-12)
+function CC.sortOf(state)
+    local m = state and state.sort or "craftable"
+    if m == "recent" then m = "freq" end
+    return m
+end
+
 -- The label of a choice in a mode list (the box names the current one)
 local function modeLabel(modes, id)
     for i = 1, #modes do
@@ -1173,7 +1181,7 @@ function CC.filterAndSort(data, state, config, win)
 
     -- Pre-compute composite sort key based on active sort mode
     local sortMode = state.sort or "craftable"
-    -- Recent was dropped (it ordered exactly as Freq); an old saved pick reads as Freq (QA K1-12)
+    -- Recent was dropped (it ordered exactly as Freq); an old saved pick reads as Freq (QA K1-12; CC.sortOf says the same)
     if sortMode == "recent" then sortMode = "freq" end
     local playerObj = nil
     if sortMode == "freq" then
@@ -2070,7 +2078,7 @@ function CC.renderBand(panel, x, y, w, state, config, rd)
     local showModes = CC.popModes("show", config)
     -- every box keeps its label, "Sort: Craftable" (design review C2): short of room the words
     -- are cut, never swapped for the choice alone
-    local sortName = ZeD.tr("UI_ZeD_Craft_SortPick", modeLabel(sortModes, state.sort or "craftable"))
+    local sortName = ZeD.tr("UI_ZeD_Craft_SortPick", modeLabel(sortModes, CC.sortOf(state)))
     local showName = ZeD.tr("UI_ZeD_Craft_ShowToggle", modeLabel(showModes, CC.showMode(state, config)))
     local sortW, showW, sortC, showC = popWidths(state, config, sortModes, showModes)
     local catName = ro and CC.activeCategoryLabel(state) or nil
@@ -2178,7 +2186,7 @@ function CC.renderPopMenu(panel, state, config, kind)
         local rp = pfx .. P.row
         if string.sub(fid, 1, #rp) == rp then mo.focusId = string.sub(fid, #rp + 1) end
     end
-    local active = (kind == "show") and CC.showMode(state, config) or state.sort
+    local active = (kind == "show") and CC.showMode(state, config) or CC.sortOf(state)
     local _, _, zs = M.drawSortMenuList(panel, geo.x, geo.y, geo.modes, active, hoverId, mo)
     state[P.zones] = zs
 end
@@ -3994,7 +4002,7 @@ end
 local function popRowFocusables(state, prefix, kind)
     local P = POP[kind]
     local cfg = (prefix == "jrecipe") and RO_CFG or FULL_CFG
-    local cur = (kind == "show") and CC.showMode(state, cfg) or state.sort
+    local cur = (kind == "show") and CC.showMode(state, cfg) or CC.sortOf(state)
     local rowKind = (kind == "show") and "showRow" or "sortRow"
     local elements = {}
     for i, z in ipairs(state[P.zones]) do

@@ -2093,7 +2093,7 @@ local function drawWorldTabStrip(self, win)
     for _, tab in ipairs(WORLD_TABS) do
         if not isTabVisible(tab, win) then
             -- If the hidden tab was active, fall back to loot
-            if tab.id == win._activeTab then win._activeTab = "loot"; lootDrawerFallback(win) end
+            if tab.id == win._activeTab then if ZeD_WorldWindow._tabLeft then ZeD_WorldWindow._tabLeft(win) end; win._activeTab = "loot"; lootDrawerFallback(win) end
         else
             -- Group separator
             if tab.group ~= lastGroup then
@@ -2434,6 +2434,7 @@ _switchWorldTabForNav = function(win, content, tabId)
                 win._invDrawerOpen = true
                 win._invDrawerTargetW = ZeD.T.px(win._baseInvW or 372)
             end
+            if ZeD_WorldWindow._tabLeft then ZeD_WorldWindow._tabLeft(win) end   -- (QA K1 review: K1-9)
             win._activeTab  = "loot"
             win._drawerOpen = false
             win._drawerMode = nil
@@ -2449,6 +2450,7 @@ _switchWorldTabForNav = function(win, content, tabId)
     if tabId == "loot" then
         -- (a rolled side comes down first: the snap below measures the whole window)
         if win._rolled then ZeD.Curtain.finishUnroll(win) end
+        if ZeD_WorldWindow._tabLeft then ZeD_WorldWindow._tabLeft(win) end   -- (QA K1 review: K1-9)
         win._activeTab  = "loot"
         win._drawerMode = nil
         win._drawerOpen = false
@@ -2478,6 +2480,7 @@ _switchWorldTabForNav = function(win, content, tabId)
         win:setWidth(snapW)
         settleCapPush(win)
     end
+    if ZeD_WorldWindow._tabLeft then ZeD_WorldWindow._tabLeft(win) end   -- (QA K1 review: K1-9)
     win._activeTab  = tabId
     win._drawerMode = "tab"
     win._drawerOpen = true
@@ -4934,6 +4937,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                 -- A rolled side comes down first: the snap below measures the
                 -- whole window (the side was added on top of it afterwards).
                 if win._rolled then ZeD.Curtain.finishUnroll(win) end
+                if ZeD_WorldWindow._tabLeft then ZeD_WorldWindow._tabLeft(win) end   -- (QA K1 review: K1-9)
                 win._activeTab  = "loot"
                 win._drawerMode = nil
                 win._drawerOpen = false
@@ -4959,6 +4963,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                         win._invDrawerOpen = true
                         win._invDrawerTargetW = T.px(win._baseInvW or 372)
                     end
+                    if ZeD_WorldWindow._tabLeft then ZeD_WorldWindow._tabLeft(win) end   -- (QA K1 review: K1-9)
                     win._activeTab  = "loot"  -- back to inventory-only = loot view
                     win._drawerOpen = false
                     win._drawerMode = nil
@@ -4982,6 +4987,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                     settleCapPush(win)
                 end
                 -- Now open drawer from clean base
+                if ZeD_WorldWindow._tabLeft then ZeD_WorldWindow._tabLeft(win) end   -- (QA K1 review: K1-9)
                 win._activeTab  = tabId
                 win._drawerMode = "tab"
                 win._drawerOpen = true
@@ -6813,6 +6819,14 @@ function ZeD_WorldWindow.openTab(playerNum, tabId, toggle)
         Events.OnTick.Add(tick)
     end
     return true
+end
+
+-- Called just before the window leaves a tab: leaving the Vehicle tab ends the look at the car and shuts the hood it
+-- opened, as closing the window does (QA K1 review: K1-9).
+function ZeD_WorldWindow._tabLeft(win)
+    if not win or win._activeTab ~= "vehicle" then return end
+    local M = ZeD.MechanicsTab
+    if M and M.endLooks then pcall(M.endLooks, win._playerObj or getSpecificPlayer(win.playerNum or 0)) end
 end
 
 -- A livestock zone drawing in progress ends with the window: AnimalsTab holds
