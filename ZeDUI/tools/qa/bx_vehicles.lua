@@ -187,6 +187,84 @@ function H.unlockDoor(seat)
     if was then pcall(function() S.v:toggleLockedDoor(S.v:getPassengerDoor(seat), S.p, false) end) end
     return was, H.doorLocked(seat)
 end
+-- the car's seats emptied of the loot the game rolled into them; what each held, as text.
+-- (Nov 21 2026, third run: the pick of the passenger seat left him at the wheel, and later the game's own switch from
+-- that seat back to the wheel did nothing for 9 s. The run logged neither the seats nor the queue, so the cause is not
+-- shown. Not ZeD's: its pick is vanilla's useSeat line for line, unchanged since the run it passed, and the game's own
+-- switch failed too. One thing that changes from car to car is the loot: the police car's front passenger seat spawns
+-- with some (VehicleDistributions.PoliceSeatFront), and a seat holding more than a quarter of its capacity counts as
+-- taken (BaseVehicle.isSeatHoldingItems), which the game's switch refuses (ISSwitchVehicleSeat:isValid). Vanilla's
+-- pick first queues moves of the things to the rear seat behind (ISVehicleMenu.moveItemsFromSeat), so loot alone
+-- should only slow the pick; the driver's and the rear seats spawn empty. The seat checks are about the move, not the
+-- loot, so the seats are emptied here and luck is out of it; a failed move says the seat, the queue and the speed.)
+function H.seatsEmpty()
+    local out = {}
+    local n = 0
+    pcall(function() n = S.v:getMaxPassengers() end)
+    for i = 0, n - 1 do
+        pcall(function()
+            local part = S.v:getPartForSeatContainer(i)
+            local c = part and part:getItemContainer()
+            if not c then return end
+            local w, cap, things = c:getContentsWeight(), c:getCapacity(), c:getItems():size()
+            out[#out + 1] = "seat " .. i .. " " .. things .. " thing(s) " .. string.format("%.1f", w) .. " of " .. tostring(cap)
+                .. ((w * 4 > cap) and " (counted as taken)" or "")
+            if things > 0 then
+                c:removeAllItems()
+                pcall(function() c:setDrawDirty(true) end)
+            end
+            -- (a seat never looked into could be filled when first looked into: it is marked looked into)
+            pcall(function() c:setExplored(true) end)
+        end)
+    end
+    if #out == 0 then return " none read" end
+    return " " .. table.concat(out, ", ")
+end
+-- a seat as the game has it, for a failed move's detail (each reading on its own: one that throws loses only itself)
+function H.seatSays(i)
+    local w, cap, taken, can = nil, nil, nil, nil
+    pcall(function()
+        local c = S.v:getPartForSeatContainer(i):getItemContainer()
+        w, cap = c:getContentsWeight(), c:getCapacity()
+    end)
+    pcall(function() taken = S.v:isSeatOccupied(i) end)
+    local from = H.seat()
+    if from >= 0 and from ~= i then pcall(function() can = S.v:canSwitchSeat(from, i) end) end
+    return ", seat " .. i .. " holds " .. (w and string.format("%.1f", w) or "?") .. " of " .. tostring(cap)
+        .. ", counted as taken " .. tostring(taken) .. ", switch allowed " .. tostring(can)
+end
+-- the character's queue of the game's timed actions, in words: each action's type (a run of the same one counted),
+-- the first marked running once it has started; "nothing" for an empty queue
+function H.queueSays()
+    local out = {}
+    local last, count = nil, 0
+    pcall(function()
+        local q = ISTimedActionQueue.queues[S.p]
+        for i, a in ipairs((q and q.queue) or {}) do
+            local name = tostring(a.Type)
+            if i == 1 then
+                local on = false
+                pcall(function() on = a:isStarted() end)
+                if on then name = name .. " (running)" end
+            end
+            if name == last then
+                count = count + 1
+            else
+                if last then out[#out + 1] = last .. (count > 1 and (" x" .. count) or "") end
+                last, count = name, 1
+            end
+        end
+    end)
+    if last then out[#out + 1] = last .. (count > 1 and (" x" .. count) or "") end
+    if #out == 0 then return "nothing" end
+    return table.concat(out, ", ")
+end
+-- ZeD's seat window's reading of every seat, in order (you, person, items, empty, none)
+function H.kinds(w)
+    local out = {}
+    for _, st in ipairs((w and w._seats) or {}) do out[#out + 1] = tostring(st.kind) end
+    return table.concat(out, " ")
+end
 function H.ms() local w = RT.ww(); return w and S.MT.getState(w) end
 function H.zone(id) local s = H.ms(); return s and s.byId and s.byId[id] end
 function H.inspected()
@@ -1025,6 +1103,7 @@ Q.step(3, function() if H.inCar() then H.seatKey() end end)
 Q.step(10, function()
     if not H.inCar() then return end
     Q.check(H.seatWin() == nil, "seats: the seat key four times in a row leaves ZeD's seat window shut")
+    Q.say("NOTE the seats' loot before the seat checks (emptied):" .. H.seatsEmpty())
     H.seatKey()
 end)
 Q.waitFor(5, 300, function() local w = H.seatWin(); return not H.inCar() or H.over("sw0", 3000) or (w ~= nil and w._seats ~= nil) end, function()
@@ -1033,17 +1112,27 @@ Q.waitFor(5, 300, function() local w = H.seatWin(); return not H.inCar() or H.ov
     if not Q.check(w ~= nil and w._seats ~= nil, "seats: the seat key opens ZeD's seat window", tostring(w and w.Type)) then return end
     local n = 0
     pcall(function() n = S.v:getMaxPassengers() end)
-    Q.check(#w._seats == n and w._seats[1] ~= nil and w._seats[1].kind == "you", "seats: every seat listed, the driver's seat yours", #w._seats .. " of " .. n .. ", seat 1 " .. tostring(w._seats[1] and w._seats[1].kind))
+    Q.check(#w._seats == n and w._seats[1] ~= nil and w._seats[1].kind == "you", "seats: every seat listed, the driver's seat yours", #w._seats .. " of " .. n .. ", seat 1 " .. tostring(w._seats[1] and w._seats[1].kind) .. "; the seats: " .. H.kinds(w))
     RT.bounds(Q, "the seat window")
     H.zed("seats: the passenger seat picked", function() w:useSeat(1) end)
+    -- (what the pick queued, read at once: the game's actions are queued as the pick runs)
+    S.pickQ = H.queueSays()
 end)
 Q.waitFor(5, 1800, function() return not H.inCar() or H.seat() == 1 or H.over("to1", 10000) end, function()
     if not H.inCar() then return end
-    Q.check(H.seat() == 1, "seats: a pick in ZeD's seat window moves the character to the passenger seat", "seat " .. H.seat())
+    local moved = H.seat() == 1
+    -- (a failed move says what the game held against it: the seat as the game has it, what the pick queued, the queue
+    -- now and the car's speed)
+    Q.check(moved, "seats: a pick in ZeD's seat window moves the character to the passenger seat", "seat " .. H.seat()
+        .. (moved and "" or (H.seatSays(1) .. "; queued at the pick: " .. tostring(S.pickQ) .. "; the queue now: " .. H.queueSays()
+        .. "; the car at " .. string.format("%.1f", H.speed(S.v)) .. " km/h")))
     Q.check(H.seatWin() == nil, "seats: the pick shuts the seat window")
 end)
 Q.waitFor(5, 300, function() local d = H.dash(); return H.seat() ~= 1 or H.over("pd", 3000) or (H.vis(d) and d._driver == false) end, function()
-    if H.seat() ~= 1 then return end
+    if H.seat() ~= 1 then
+        if H.inCar() then Q.skip("passenger: the dash read-only, its ignition and lights, the move back by the seat window", "the character never reached the passenger seat") end
+        return
+    end
     local d = H.dash()
     Q.check(H.vis(d) and d._driver == false and d.vehicle == S.v, "passenger: ZeD's dash stays up, read-only", "driver " .. tostring(d and d._driver))
     local okC, can = H.zed("passenger: canTakePad", S.D.canTakePad, S.p)
@@ -1068,15 +1157,22 @@ Q.waitFor(5, 300, function() local w = H.seatWin(); return H.seat() ~= 1 or H.ov
     Q.check(w._playerSeat == 1 and w._seats[2] and w._seats[2].kind == "you", "seats: the passenger seat is yours now",
         "seat " .. tostring(w._playerSeat) .. ", seat 2 " .. tostring(w._seats[2] and w._seats[2].kind) .. ", seat 1 " .. tostring(w._seats[1] and w._seats[1].kind))
     H.zed("seats: the driver's seat picked", function() w:useSeat(0) end)
+    S.pickBack = true
+    S.pickBackQ = H.queueSays()
 end)
 Q.waitFor(5, 1800, function() return not H.inCar() or H.seat() == 0 or H.over("to0", 10000) end, function()
     if not H.inCar() then return end
-    Q.check(H.seat() == 0, "seats: a pick moves the character back to the wheel", "seat " .. H.seat())
+    -- (only after a pick back: with the first move failed he never left the wheel, and that is no move back. The
+    -- third run passed this line with no pick made.)
+    if not S.pickBack then return end
+    local moved = H.seat() == 0
+    Q.check(moved, "seats: a pick moves the character back to the wheel", "seat " .. H.seat()
+        .. (moved and "" or (H.seatSays(0) .. "; queued at the pick: " .. tostring(S.pickBackQ) .. "; the queue now: " .. H.queueSays())))
 end)
 Q.waitFor(5, 300, function() local d = H.dash(); return H.seat() ~= 0 or H.over("dd", 3000) or (H.vis(d) and d._driver == true) end, function()
     if H.seat() ~= 0 then return end
     local d = H.dash()
-    Q.check(H.vis(d) and d._driver == true, "seats: back at the wheel the dash is the driver's again", tostring(d and d._driver))
+    if S.pickBack then Q.check(H.vis(d) and d._driver == true, "seats: back at the wheel the dash is the driver's again", tostring(d and d._driver)) end
     -- (Nov 21 2026, second run: the game's Enter as passenger below never seated him in 12 s. The key was taken away
     -- for the hotwire, and a new car's doors are often all locked (Vehicles.Create.Door); the game's Exit unlocks
     -- only the driver's door, and vanilla's Enter stops at a locked door when there is no key. So the passenger
@@ -1127,12 +1223,16 @@ Q.waitFor(5, 300, function() local d = H.dash(); return not H.inCar() or H.over(
     if not H.inCar() then Q.check(false, "enter: the character is in the car as a passenger"); return end
     local d = H.dash()
     Q.check(H.seat() == 1 and H.vis(d) and d._driver == false, "enter: in as a passenger, the dash shows read-only", "seat " .. H.seat() .. ", driver " .. tostring(d and d._driver))
+    -- (the game's Enter seats him as its enter action starts, with the action and the door's close still queued: the
+    -- switch goes in behind them, and the queue at the call is kept for a failed switch's detail)
     pcall(ISVehicleMenu.onSwitchSeat, S.p, 0)
+    S.switchQ = H.queueSays()
 end)
 Q.waitFor(5, 1800, function() return not H.inCar() or H.seat() == 0 or H.over("to0b", 9000) end, function()
     if not S.v then return end
     if H.seat() ~= 0 then
-        Q.skip("over to the wheel by the game's switch", "seat " .. H.seat() .. " after 9 s: seated directly")
+        Q.skip("over to the wheel by the game's switch", "seat " .. H.seat() .. " after 9 s" .. H.seatSays(0) .. "; queued at the switch: "
+            .. tostring(S.switchQ) .. "; the queue now: " .. H.queueSays() .. ": seated directly")
         H.stopActions()
         H.exitNow()
         S.reseat = true

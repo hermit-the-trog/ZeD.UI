@@ -26,12 +26,29 @@
 --   the burn under the bandage as the game's panel does; a menu left open while the body heals, then picked.
 -- PUT BACK: the print watch off, the menu shut, the actions stopped, the cursor dropped, the card closed, game speed
 --   1; the character not burning, every fire in a 15-tile radius of home out (each square checked), the campfire
---   gone, the floors in a 5-tile radius as found; the body healed, the stats, god mode, invincible and the clothing's
+--   gone, the floors in a 5-tile radius as found (see FLOORS); the body healed, the stats, god mode, invincible and the clothing's
 --   condition as found; everything given (and the campfire's stones, the emptied sandbag, the dirty bandage or rag)
 --   taken away, the hands, the tabs and the windows as found; the character home. No ZeD option is changed.
 --   What he carries, bags too, ends with each kind's count as found: the game's add fuel, light and first aid take the
 --   first of a kind they find, and his own come before the given ones, so when they used one of his, a given one of
 --   that kind stays in its place, or one of that kind is given back. Anything else of his that went is a FAIL.
+-- FLOORS (Nov 21 2026, after the third run: 927,13040, the campfire's square, ended with one more object on it than
+--   at the start, same floor sprite, and the check could not say what it was): every square within 5 tiles is
+--   remembered with the very objects on it. At the put-back, an object that was not there at the start is named, and
+--   on a square the script itself built or lit on (the campfire's, the fires', any it doused) it is taken off with the
+--   game's own remove (IsoGridSquare.transmitRemoveItemFromSquare, what the game's Clear Ashes, campfire removal and
+--   pick-up use). A thing lying on the ground is taken off only when it is one the script gave or made; anything of
+--   the character's own, and anything new on a square the script never touched, stays and FAILs by name. At the
+--   start, a given thing an earlier run left on the ground (it carries the script's mark) is taken off the same way,
+--   and what lies on the squares two tiles from home is named, so the save does not collect leftovers run after run.
+-- THE CAMPFIRE'S SQUARE (Nov 21 2026, a second look at the third run): the game's Take apart leaves it bare, so
+--   anything new found on it at the put-back is a FAIL of its own, by name, even when the script could take it off
+--   ("the campfire's square holds only what it held before"); taking it off quietly could hide a fault of ZeD's. A watch
+--   on every tenth game tick says at once anything that comes onto it besides the campfire and its flame, a second
+--   campfire, and any animal that stands on it, with the time into the run, so the report shows the scene it came in
+--   (the save keeps an old hen house with a hen beside this square). Also said: what the campfire's own container
+--   holds as Take apart is confirmed (the game puts it all on the square), and, at the full fire, any kind of fuel in
+--   reach that was not at the first listing, with where it lies (the third run had 11 kinds there, the second 10).
 -- SAFETY (Nov 21 2026, the preflight; the same rule as bx_health.lua): the character must never die or stay hurt.
 --   God mode and invincible are put ON at the first step and stay on through the campfire and the fire scenes (the
 --   prelude's god mode is not relied on; when the game refuses it, outside -debug, nothing is lit and the run goes
@@ -60,7 +77,7 @@ end
 
 local Q = RT.make("bx_fire")
 Q.maxMs = 400000   -- (the whole script has 8 minutes: past 6 min 40 s it jumps to the put-back)
-local S = { p = RT.p, pn = RT.pn, inv0 = {}, cnt0 = {}, errs = {}, floors = {}, stats = {}, worn = {}, was = {} }
+local S = { p = RT.p, pn = RT.pn, inv0 = {}, cnt0 = {}, errs = {}, floors = {}, stats = {}, worn = {}, was = {}, touched = {} }
 local H = {}
 local OC = ZeD.ObjectCards
 local HT = ZeD.HealthTab
@@ -171,6 +188,7 @@ function H.hot(sq)
     return hot
 end
 function H.douse(sq)
+    S.touched[sq] = true
     pcall(function() sq:stopFire() end)
     pcall(function() sq:transmitStopFire() end)
     pcall(function() IsoFireManager.RemoveAllOn(sq) end)
@@ -189,6 +207,7 @@ function H.scan(r, fix)
     return n
 end
 function H.startFire(sq)
+    S.touched[sq] = true
     return pcall(function() IsoFireManager.StartFire(getCell(), sq, true, 100, 2000) end)
 end
 function H.floorKey(sq)
@@ -197,27 +216,218 @@ function H.floorKey(sq)
     return k
 end
 function H.floorName(k) return (tostring(k):match("^(.-)|")) or "" end
+-- the objects on a square, as a list of their own (the square's list changes while things are taken off)
+function H.objsOf(sq)
+    local out = {}
+    pcall(function()
+        local objs = sq:getObjects()
+        for i = 0, objs:size() - 1 do out[#out + 1] = objs:get(i) end
+    end)
+    return out
+end
+-- the thing lying on the ground that an object is (nil: not a thing on the ground)
+function H.groundItem(o)
+    local it = nil
+    pcall(function() if instanceof(o, "IsoWorldInventoryObject") then it = o:getItem() end end)
+    return it
+end
+-- what an object on a square is, in a few words: a thing on the ground by its kind, anything else by its class, its
+-- name when it has one (the campfire's is "Campfire") and its sprite
+function H.objName(o)
+    local n = "?"
+    pcall(function()
+        local it = H.groundItem(o)
+        if it then
+            n = "item " .. tostring(it:getFullType())
+        else
+            local sp = o:getSprite()
+            local nm = o:getName()
+            n = tostring(o:getObjectName()) .. ((nm and nm ~= "") and (" named " .. tostring(nm)) or "") .. " "
+                .. tostring((sp and sp:getName()) or o:getSpriteName())
+        end
+    end)
+    return n
+end
+-- the time into the run and the queue's step, for a line said outside the queue
+function H.since()
+    return string.format("%.1f s into the run, queue step %d", (getTimestampMs() - Q.t0) / 1000, Q.qi or 0)
+end
+-- the campfire's own objects on its square: the campfire (named "Campfire", as the game's campfire system finds it)
+-- and its flame (an IsoFire)
+function H.campfireOwn(o)
+    local own = false
+    pcall(function() own = instanceof(o, "IsoFire") or o:getName() == "Campfire" end)
+    return own
+end
+-- THE WATCH on the campfire's square (from its making to the end of the put-back; H.safety calls it every tenth tick):
+-- anything that comes onto it besides what was there before, the campfire and its flame is said at once, with the
+-- time into the run; so are a second campfire on it and any animal standing on it. S.cfCame keeps the lines.
+function H.watchCf()
+    local sq, was = S.cfSq, S.cfWas
+    if not (sq and was) then return end
+    S.cfSeen = S.cfSeen or {}
+    local fires = 0
+    for _, o in ipairs(H.objsOf(sq)) do
+        local own = H.campfireOwn(o)
+        if own and not instanceof(o, "IsoFire") then fires = fires + 1 end
+        if not was[o] and not own and not S.cfSeen[o] then
+            S.cfSeen[o] = true
+            local line = H.objName(o) .. ", first seen " .. H.since()
+            S.cfCame[#S.cfCame + 1] = line
+            Q.say("watch: " .. sq:getX() .. "," .. sq:getY() .. " (the campfire's square) got " .. line)
+        end
+    end
+    if fires > 1 and not S.cfTwoSaid then
+        S.cfTwoSaid = true
+        local line = fires .. " campfires at once, " .. H.since()
+        S.cfCame[#S.cfCame + 1] = line
+        Q.say("watch: " .. sq:getX() .. "," .. sq:getY() .. " (the campfire's square) holds " .. line)
+    end
+    local mo = nil
+    pcall(function() mo = sq:getMovingObjects() end)
+    for i = 0, (mo and mo:size() or 0) - 1 do
+        local a = mo:get(i)
+        if a and not S.cfSeen[a] and instanceof(a, "IsoAnimal") then
+            S.cfSeen[a] = true
+            local kind = "?"
+            pcall(function() kind = tostring(a:getAnimalType()) end)
+            Q.say("watch: an animal (" .. kind .. ") stands on " .. sq:getX() .. "," .. sq:getY() .. " (the campfire's square), " .. H.since())
+        end
+    end
+end
+-- where a thing is, in a few words: on the ground (its square), in his inventory, in a bag, or in a container (its
+-- kind and square)
+function H.whereIs(it)
+    local w = "?"
+    pcall(function()
+        local wi = it:getWorldItem()
+        local wsq = wi and wi:getSquare()
+        if wsq then w = "on the ground at " .. wsq:getX() .. "," .. wsq:getY(); return end
+        local c = it:getContainer()
+        if c == nil then w = "in no container"; return end
+        if c == S.p:getInventory() then w = "in his inventory"; return end
+        local bag = c:getContainingItem()
+        if bag then w = "in " .. tostring(bag:getFullType()); return end
+        local par = c:getParent()
+        local psq = par and par:getSquare()
+        w = "in a " .. tostring(c:getType()) .. " container" .. (psq and (" at " .. psq:getX() .. "," .. psq:getY()) or "")
+    end)
+    return w
+end
+-- what the campfire's own container holds (the game's removal puts it all on the campfire's square)
+function H.cfHolds()
+    local out, n, read = {}, 0, false
+    pcall(function()
+        local items = H.campLua(S.cfSq):getIsoObject():getContainer():getItems()
+        n = items:size()
+        for i = 0, math.min(n, 6) - 1 do out[#out + 1] = tostring(items:get(i):getFullType()) end
+        read = true
+    end)
+    if not read then return "(its container could not be read)" end
+    return n == 0 and "nothing" or (n .. " thing(s): " .. table.concat(out, ", ") .. (n > 6 and ", ..." or ""))
+end
+-- an object taken off its square the game's way (ISClearAshes, the campfire's removal and ISGrabItemAction all use
+-- transmitRemoveItemFromSquare; the rest is what ISGrabItemAction does for a thing on the ground)
+function H.takeOff(sq, o)
+    local it = H.groundItem(o)
+    pcall(function() sq:transmitRemoveItemFromSquare(o) end)
+    if it then
+        pcall(function() o:removeFromWorld() end)
+        pcall(function() o:removeFromSquare() end)
+        pcall(function() o:setSquare(nil) end)
+        pcall(function() it:setWorldItem(nil) end)
+    end
+    pcall(function() sq:RecalcProperties() end)
+    pcall(function() sq:RecalcAllWithNeighbours(true) end)
+end
+-- at the start, before the floors are remembered: a given thing an earlier run of a QA script left on the ground
+-- (it carries the mark H.give puts on) is taken off; what lies on the squares two tiles from home is named
+function H.sweepOld()
+    local took, lying = {}, {}
+    for dx = -5, 5 do
+        for dy = -5, 5 do
+            local sq = H.sq(dx, dy)
+            for _, o in ipairs(sq and H.objsOf(sq) or {}) do
+                local it = H.groundItem(o)
+                local marked = false
+                if it then pcall(function() marked = it:getModData().ZeDQA_spawned == true end) end
+                if marked then
+                    took[#took + 1] = sq:getX() .. "," .. sq:getY() .. " " .. H.objName(o)
+                    H.takeOff(sq, o)
+                end
+            end
+        end
+    end
+    for _, r in ipairs(S.RING2) do
+        local sq = H.sq(r[1], r[2])
+        local floor = nil
+        pcall(function() floor = sq:getFloor() end)
+        for _, o in ipairs(sq and H.objsOf(sq) or {}) do
+            if o ~= floor and #lying < 10 then lying[#lying + 1] = sq:getX() .. "," .. sq:getY() .. " " .. H.objName(o) end
+        end
+    end
+    if #took > 0 then Q.say("as found: " .. #took .. " given thing(s) an earlier run left on the ground, taken off: " .. table.concat(took, "; ")) end
+    Q.say("as found, on the squares two tiles from home besides their floor: " .. (#lying > 0 and table.concat(lying, "; ") or "nothing"))
+end
 function H.floorsSnap()
     for dx = -5, 5 do
         for dy = -5, 5 do
             local sq = H.sq(dx, dy)
-            if sq then S.floors[#S.floors + 1] = { sq = sq, k = H.floorKey(sq) } end
+            if sq then
+                local objs = {}
+                for _, o in ipairs(H.objsOf(sq)) do objs[o] = true end
+                S.floors[#S.floors + 1] = { sq = sq, k = H.floorKey(sq), objs = objs }
+            end
         end
     end
 end
--- floors as found: a floor the fire charred gets its own sprite back; returns how many still differ
+-- may the put-back take this new object off a square the script built or lit on? A thing on the ground: only one
+-- the script gave or made (never the character's own: that stays, and FAILs by name). Anything else that came onto
+-- such a square during the run (a burn mark, ashes, what is left of the campfire): yes, but never the floor itself.
+function H.oursToTake(sq, o)
+    local it = H.groundItem(o)
+    if it then return H.mine(it) end
+    local floor = nil
+    pcall(function() floor = sq:getFloor() end)
+    return o ~= floor
+end
+-- floors as found: a floor the fire charred gets its own sprite back, and what came onto a square the script built
+-- or lit on is taken off (S.tookOff names each); returns how many squares still differ. S.strange names every new
+-- object that was left where it is, S.floorGone every one remembered that is no longer there, and S.cfNew whatever
+-- was new on the campfire's square (compared object by object even when its count is as found), taken off or not.
 function H.floorsBack()
     local diff, fixed, first = 0, 0, nil
+    S.tookOff, S.strange, S.floorGone, S.cfNew = {}, {}, {}, {}
     for _, f in ipairs(S.floors) do
-        if H.floorKey(f.sq) ~= f.k then
+        if H.floorKey(f.sq) ~= f.k or f.sq == S.cfSq then
             if H.floorName(H.floorKey(f.sq)) ~= H.floorName(f.k) then
                 pcall(function() f.sq:getFloor():setSprite(getSprite(H.floorName(f.k))) end)
                 pcall(function() f.sq:RecalcProperties() end)
                 fixed = fixed + 1
             end
+            local at = f.sq:getX() .. "," .. f.sq:getY() .. " "
+            local now = {}
+            for _, o in ipairs(H.objsOf(f.sq)) do
+                now[o] = true
+                if not f.objs[o] then
+                    local name = at .. H.objName(o)
+                    local fate = "left where it is"
+                    if S.touched[f.sq] and H.oursToTake(f.sq, o) then
+                        H.takeOff(f.sq, o)
+                        S.tookOff[#S.tookOff + 1] = name
+                        fate = "taken off"
+                    else
+                        S.strange[#S.strange + 1] = name .. (S.touched[f.sq] and " (not the script's to take)" or " (a square the script never touched)")
+                    end
+                    if f.sq == S.cfSq then S.cfNew[#S.cfNew + 1] = name .. " (" .. fate .. ")" end
+                end
+            end
+            for o, _ in pairs(f.objs) do
+                if not now[o] then S.floorGone[#S.floorGone + 1] = at .. H.objName(o) end
+            end
             if H.floorKey(f.sq) ~= f.k then
                 diff = diff + 1
-                first = first or (f.sq:getX() .. "," .. f.sq:getY() .. " " .. f.k .. " -> " .. H.floorKey(f.sq))
+                first = first or (at .. f.k .. " -> " .. H.floorKey(f.sq))
             end
         end
     end
@@ -689,6 +899,9 @@ end
 -- THE GUARD, on every game tick from the first step to the end of the put-back (see SAFETY at the top)
 function H.safety()
     if not S.live then return end
+    -- (the watch on the campfire's square, every tenth tick, in a pcall of its own: it must never trip the guard)
+    S.wT = (S.wT or 0) + 1
+    if S.wT >= 10 then S.wT = 0; pcall(H.watchCf) end
     local ok, err = pcall(function()
         local p = S.p
         if p:isDead() then
@@ -907,6 +1120,7 @@ Q.step(5, function()
     H.invSnap()
     H.statsSnap()
     H.wornSnap()
+    H.sweepOld()
     H.floorsSnap()
     local was = S.was
     pcall(function() was.hand1, was.hand2 = S.p:getPrimaryHandItem(), S.p:getSecondaryHandItem() end)
@@ -938,6 +1152,11 @@ Q.step(5, function()
     if not sq then Q.skip("the campfire scenes", "no free outdoor square two tiles from home"); return end
     local ok, err = pcall(function() SCampfireSystem.instance:addCampfire(sq) end)
     S.cfSq = sq
+    S.touched[sq] = true
+    -- (the watch starts: what the square held before the campfire, from the floors remembered in step 0)
+    S.cfCame = {}
+    for _, f in ipairs(S.floors) do if f.sq == sq then S.cfWas = f.objs end end
+    if not S.cfWas then Q.say("NOTE the campfire's square is not among the floors remembered: no watch on it") end
     if not ok then Q.skip("the campfire scenes", "the game's campfire system refused: " .. tostring(err)) end
 end)
 H.wait(8000, function()
@@ -990,6 +1209,9 @@ H.wait(5000, function() return (not S.cfOk) or H.plankReady() end, function(ok)
     local d = H.fireD()
     local info = ISCampingMenu.getNearbyFuelInfo(S.p)
     Q.check(#d.fuelRows == #(info.fuelList or {}), "campfire: the card lists as many kinds of fuel as the game finds", #d.fuelRows .. " vs " .. #(info.fuelList or {}))
+    -- (the kinds at this first listing, for the full fire's: the third run listed 11 there, the second 10)
+    S.fuelKinds0 = {}
+    for _, r in ipairs(d.fuelRows) do S.fuelKinds0[tostring(r.fullType)] = true end
     S.fuel0 = H.game()
     H.addPlank("Add fuel (a plank)")
 end)
@@ -1070,6 +1292,13 @@ Q.step(2, function()
     local fits = 0
     for _, r in ipairs(d.fuelRows) do if r.fits then fits = fits + 1 end end
     Q.check(fits == 0, "campfire: full, every fuel row reads full (none can be added)", fits .. " of " .. #d.fuelRows .. " still offered")
+    -- (any kind of fuel in reach now that was not at the first listing, and where it lies: the character stands beside
+    -- the campfire now, so the squares round it are in reach)
+    local newKinds = {}
+    for _, r in ipairs(d.fuelRows) do
+        if S.fuelKinds0 and not S.fuelKinds0[tostring(r.fullType)] then newKinds[#newKinds + 1] = tostring(r.fullType) .. " (" .. H.whereIs(r.item) .. ")" end
+    end
+    if #newKinds > 0 then Q.say("campfire: kinds of fuel in reach that were not at the first listing: " .. table.concat(newKinds, "; ")) end
     RT.bounds(Q, "the campfire's card, full")
     pcall(function() H.srv():setFuel(math.min(S.fuelKeep or 120, 120)) end)
 end)
@@ -1203,6 +1432,7 @@ end)
 H.wait(3000, function() return (not S.takeArm) or H.zoneFid("oc:confirm:yes") ~= nil end, function(ok)
     if not S.takeArm then return end
     if not ok then Q.check(false, "campfire: the question shows a second time"); S.takeArm = false; return end
+    Q.say("campfire: as Take apart is confirmed, its own container holds " .. H.cfHolds() .. " (the game puts it all on its square)")
     H.run("oc:confirm:yes", "the question's Take apart")
 end)
 H.wait(20000, function() return (not S.takeArm) or H.campLua(S.cfSq) == nil end, function(ok)
@@ -1649,7 +1879,21 @@ Q.step(2, function()
     local left = H.scan(15, false)
     Q.check(left == 0, "put back: no fire on any square within 15 tiles of home", left .. " squares")
     Q.check(S.cfSq == nil or H.campLua(S.cfSq) == nil, "put back: the campfire is gone")
-    Q.check(S.floorDiff == 0, "put back: the floors within 5 tiles are as found", tostring(S.floorFirst))
+    local tookOff, strange, gone = S.tookOff or {}, S.strange or {}, S.floorGone or {}
+    if #tookOff > 0 then
+        Q.say("put back: " .. #tookOff .. " thing(s) that came onto the squares the script built or lit on, taken off with the game's own remove: "
+            .. table.concat(tookOff, "; "))
+    end
+    -- (the campfire's square on its own: nothing may stay on it, taken off or not; the watch says when it came)
+    if S.cfSq then
+        local cfNew, came = S.cfNew or { "(the put-back's floor pass never ran)" }, S.cfCame or {}
+        Q.check(#cfNew == 0, "put back: the campfire's square holds only what it held before the campfire (the game's Take apart leaves it bare)",
+            (#cfNew > 0 and table.concat(cfNew, "; ") or "nothing new") .. "; the watch saw come: " .. (#came > 0 and table.concat(came, "; ") or "nothing"))
+    end
+    Q.check(S.floorDiff == 0, "put back: the floors within 5 tiles are as found",
+        (S.floorFirst and (tostring(S.floorDiff) .. " square(s) differ, the first " .. S.floorFirst) or "every square as at the start")
+        .. "; taken off " .. #tookOff .. "; new and left where it is: " .. (#strange > 0 and table.concat(strange, "; ") or "nothing")
+        .. "; gone: " .. (#gone > 0 and table.concat(gone, "; ") or "nothing"))
     local onFire = true
     pcall(function() onFire = S.p:isOnFire() end)
     Q.check(H.alive() and not onFire, "put back: the character is alive and not burning")

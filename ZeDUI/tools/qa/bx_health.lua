@@ -118,6 +118,16 @@ function X.hasLabel(e, word)
     return false
 end
 function X.shownHas(c, word) return X.hasLabel(X.entry(X.shown(), c.list), word) end
+-- the game's word for a bandaged part, as vanilla's health panel picks it: 'Bandaged' while the bandage has life left,
+-- 'Dirty Bandage' once it has none (a dirty bandage put on, or a clean one used up by time and bleeding)
+function X.bandKey(b)
+    local life = 1
+    pcall(function() life = b:getBandageLife() end)
+    return life > 0 and "IGUI_health_Bandaged" or "IGUI_health_DirtyBandage"
+end
+function X.bandWord(b) return X.word(X.bandKey(b)) end
+-- either bandage word on a row
+function X.bandShown(e) return X.hasLabel(e, X.word("IGUI_health_Bandaged")) or X.hasLabel(e, X.word("IGUI_health_DirtyBandage")) end
 function X.healthTab()
     RT.pairOpen()
     local ok = false
@@ -249,6 +259,7 @@ function X.safety()
         -- the queue never came to the end of the put-back: heal here
         if getTimestampMs() - S.t0 > Q.maxMs + 120000 then
             S.live = false
+            if X.heldBack then pcall(X.heldBack) end
             X.healAll()
             p:setGodMod(true)
             p:setInvincible(true)
@@ -319,6 +330,12 @@ function X.pick(text)
             if o.subOption then
                 local sm = nil
                 pcall(function() sm = m:getSubMenu(o.subOption) end)
+                -- (Nov 21 2026, third run: the first entry was the character's own Dirty Bandage. The game's
+                -- ISApplyBandage gives a bandage whose type holds "Dirty" a life of 0, so the part reads 'Dirty
+                -- Bandage' from the first moment. A clean kind first; the entry's first parameter is the item type.)
+                for _, so in ipairs(sm and sm.options or {}) do
+                    if so.onSelect and not so.notAvailable and not X.has(so.param1, "Dirty") then return X.run(so) end
+                end
                 for _, so in ipairs(sm and sm.options or {}) do
                     if so.onSelect and not so.notAvailable then return X.run(so) end
                 end
@@ -349,6 +366,27 @@ function X.count(ft)
     local n = 0
     pcall(function() n = p:getInventory():getItemCountRecurse(ft) end)
     return n
+end
+-- the item kinds the open menu lists under an entry with a sub menu (each sub entry's first parameter is its type)
+function X.subKinds(text)
+    local t = {}
+    local m = X.menu()
+    for _, o in ipairs(m and m.options or {}) do
+        if X.has(o.name, text) and o.subOption then
+            local sm = nil
+            pcall(function() sm = m:getSubMenu(o.subOption) end)
+            for _, so in ipairs(sm and sm.options or {}) do t[#t + 1] = tostring(so.param1) end
+        end
+    end
+    return table.concat(t, ", ")
+end
+-- the character's own things held aside in 3c go back into the bag they came from (the same things). Safe to call
+-- twice: 3c calls it, and the put-back and the guard call it too in case the run stopped before 3c put them back.
+function X.heldBack()
+    local back = S.held or {}
+    S.held = {}
+    for _, h in ipairs(back) do pcall(function() h.con:AddItem(h.it) end) end
+    return #back
 end
 
 -- ===================================================================== 0. setup
@@ -542,10 +580,12 @@ function X.treat(id, menuKey, done, wantKey, goneWord)
     X.untilMs(1500, function()
         if t.off or not t.done then return true end
         local e = X.entry(X.shown(), c.list)
+        if wantKey == "IGUI_health_Bandaged" then wantKey = X.bandKey(X.part(c)) end
         return (not wantKey or X.hasLabel(e, X.word(wantKey))) and (not goneWord or not X.hasLabel(e, goneWord))
     end, function(ok)
         if t.off or not t.done then return end
         local e = X.entry(X.shown(), c.list)
+        if wantKey == "IGUI_health_Bandaged" then wantKey = X.bandKey(X.part(c)) end
         Q.check(ok, id .. ": the tab shows the treatment" .. (wantKey and (" ('" .. X.word(wantKey) .. "')") or "")
             .. (goneWord and (" and drops '" .. goneWord .. "'") or ""), "row: " .. X.labels(e))
         local fo, fd = X.figureOk(c.fig)
@@ -576,7 +616,7 @@ Q.step(1, function()
     local c = X.case("scratch")
     if not S.cutShort then return end
     Q.check(not X.part(c):bandaged(), "a bandage stopped half way: the hand is not bandaged")
-    Q.check(not X.shownHas(c, X.word("IGUI_health_Bandaged")), "and the tab does not say Bandaged", X.labels(X.entry(X.shown(), c.list)))
+    Q.check(not X.bandShown(X.entry(X.shown(), c.list)), "and the tab does not say Bandaged", X.labels(X.entry(X.shown(), c.list)))
     Q.check(X.count("Base.Bandage") == S.band0, "and the bandage is still in the inventory", X.count("Base.Bandage") .. " of " .. tostring(S.band0))
     Q.check(X.shownHas(c, X.caseWord(c)), "and the scratch is still listed")
 end)
@@ -599,9 +639,15 @@ X.untilMs(9000, function() return not S.away or X.part(X.case("scratch")):bandag
     Q.check(ok, "the bandage went on with the windows shut", "queue " .. X.queued())
     X.healthTab()
 end)
-X.untilMs(2500, function() return not S.away or X.shownHas(X.case("scratch"), X.word("IGUI_health_Bandaged")) end, function(ok)
+X.untilMs(2500, function() return not S.away or X.shownHas(X.case("scratch"), X.bandWord(X.part(X.case("scratch")))) end, function(ok)
     if not S.away then return end
-    Q.check(ok, "reopened on Health: the tab says Bandaged (nothing stale from before)", X.labels(X.entry(X.shown(), "Left Hand")))
+    -- (third run: this asked for 'Bandaged' whatever the bandage; the tab said 'Dirty Bandage', as the game did. The
+    -- word asked for is now the game's own for this bandage, and the other bandage word must not be there with it.)
+    local b = X.part(X.case("scratch"))
+    local e = X.entry(X.shown(), "Left Hand")
+    local other = X.bandKey(b) == "IGUI_health_Bandaged" and "IGUI_health_DirtyBandage" or "IGUI_health_Bandaged"
+    Q.check(ok and not X.hasLabel(e, X.word(other)), "reopened on Health: the tab says the game's word for the bandage, '" .. X.bandWord(b) .. "' (nothing stale from before)",
+        "row: " .. X.labels(e) .. "; the game: bandaged " .. tostring(b:bandaged()) .. ", bandage life " .. string.format("%.2f", b:getBandageLife()) .. ", " .. tostring(b:getBandageType()))
     RT.bounds(Q, "health tab reopened")
 end)
 -- 3c. disinfect, then a Bandage entry picked after the bandages left
@@ -611,14 +657,36 @@ Q.step(4, function()
     if c.off then return end
     X.click(c.fig)
     if not X.offered(X.word("ContextMenu_Bandage")) then Q.skip("a stale Bandage entry", "no Bandage in the menu"); X.closeMenu(); return end
-    S.gone = {}
-    pcall(function()
-        local inv = p:getInventory()
-        for _, ft in ipairs({ "Base.Bandage", "Base.AlcoholBandage", "Base.RippedSheets" }) do
-            local it = inv:FindAndReturn(ft)
-            while it do inv:Remove(it); S.gone[#S.gone + 1] = ft; it = inv:FindAndReturn(ft) end
+    -- (Nov 21 2026, review of the third run: only Bandage, Alcohol Bandage and Ripped Sheets were taken out, while the
+    -- game's Bandage entry lists every kind with a bandage power above 0, the character's own Dirty Bandage too. The
+    -- third run passed here only because 3b had used his up; with X.pick taking a clean one first his stays, and the
+    -- menu would still offer Bandage. So every such thing goes, in the main inventory and in every bag in it: the
+    -- ones this script gave are given again after, the character's own are held aside and put back, the same things
+    -- in the same bags.)
+    S.gone, S.held = {}, {}
+    local todo, k = { p:getInventory() }, 1
+    while todo[k] and k <= 50 do
+        local con, out = todo[k], {}
+        pcall(function()
+            local items = con:getItems()
+            for i = 0, items:size() - 1 do
+                local it = items:get(i)
+                pcall(function()
+                    if it:IsInventoryContainer() then todo[#todo + 1] = it:getInventory()
+                    elseif it:getBandagePower() > 0 then out[#out + 1] = it end
+                end)
+            end
+        end)
+        for _, it in ipairs(out) do
+            pcall(function()
+                local given = it:getModData().ZeDQA_spawned == true
+                con:Remove(it)
+                if given then S.gone[#S.gone + 1] = it:getFullType() else S.held[#S.held + 1] = { it = it, con = con } end
+            end)
         end
-    end)
+        k = k + 1
+    end
+    if #S.held > 0 then Q.say("held aside for the scene: " .. #S.held .. " bandage(s) of the character's own") end
     local ok, err = X.pick(X.word("ContextMenu_Bandage"))
     Q.check(ok or not X.has(err, "zed"), "Bandage picked after every bandage left the inventory raises nothing in ZeD", tostring(err))
     X.closeMenu()
@@ -630,8 +698,11 @@ Q.step(1, function()
     Q.check(not X.part(c):bandaged(), "no bandage, so nothing was bandaged", "queue " .. X.queued())
     X.clearQueue()
     local okC, eC = X.click(c.fig)
-    Q.check(okC and not X.offered(X.word("ContextMenu_Bandage")), "the menu opened again offers no Bandage", tostring(eC) .. " " .. table.concat(X.names(), " | "))
+    Q.check(okC and not X.offered(X.word("ContextMenu_Bandage")), "the menu opened again offers no Bandage", tostring(eC) .. " " .. table.concat(X.names(), " | ")
+        .. "; its Bandage kinds: " .. X.subKinds(X.word("ContextMenu_Bandage")))
     X.closeMenu()
+    local nBack = X.heldBack()
+    if nBack > 0 then Q.say("put back: the character's own " .. nBack .. " bandage(s), in the bags they came from") end
     RT.given = {}                       -- (the removed ones are gone; the new ones are given below)
     for _, ft in ipairs(S.gone) do RT.give(ft) end
     for _, ft in ipairs({ "Base.Disinfectant", "Base.AlcoholWipes", "Base.SutureNeedle", "Base.Needle", "Base.Thread", "Base.Tweezers",
@@ -662,6 +733,15 @@ Q.step(4, function()
     local ok, list = pcall(DH.treatments, p, pn)
     Q.check(ok and type(list) == "table" and #list > 0, "the wheel's Medicine list has treatments for the wounded body", ok and (#list .. " entries") or list)
     local partName = BodyPartType.getDisplayName(BodyPartType.Groin)
+    -- (a clean bandage first, as X.pick: the wheel lists the game's Bandage entries in the game's order, and the
+    -- character's own Dirty Bandage, put back after 3c, can come before the ones given. The given Bandage's entry is
+    -- named 'Bandage: <its name>'; any Bandage entry only if that one is not there.)
+    local bname = nil
+    pcall(function() bname = getItemNameFromFullType("Base.Bandage") end)
+    local clean = X.word("ContextMenu_Bandage") .. ": " .. tostring(bname)
+    for _, e in ipairs(ok and list or {}) do
+        if not S.wheelRun and e.detail == partName and e.name == clean then S.wheelRun = e end
+    end
     for _, e in ipairs(ok and list or {}) do
         if not S.wheelRun and e.detail == partName and X.has(e.name, X.word("ContextMenu_Bandage")) then S.wheelRun = e end
     end
@@ -672,8 +752,8 @@ end)
 X.untilMs(9000, function() return not S.wheelRun or X.part(X.case("bleeding")):bandaged() end, function(ok)
     if S.wheelRun then Q.check(ok, "the wheel's bandage went on the groin", "queue " .. X.queued()) end
 end)
-X.untilMs(1500, function() return not S.wheelRun or X.shownHas(X.case("bleeding"), X.word("IGUI_health_Bandaged")) end, function(ok)
-    if S.wheelRun then Q.check(ok, "and the tab says Bandaged for it", X.labels(X.entry(X.shown(), "Groin"))) end
+X.untilMs(1500, function() return not S.wheelRun or X.shownHas(X.case("bleeding"), X.bandWord(X.part(X.case("bleeding")))) end, function(ok)
+    if S.wheelRun then Q.check(ok, "and the tab says the game's word for its bandage ('" .. X.bandWord(X.part(X.case("bleeding"))) .. "')", X.labels(X.entry(X.shown(), "Groin"))) end
     X.speed(1)
     RT.bounds(Q, "health tab, treated")
 end)
@@ -739,7 +819,7 @@ X.untilMs(1500, function() return not S.biteBack or X.shownHas(X.case("bite"), X
     S.biteShown = ok
     local e = X.entry(X.shown(), "Right Hand")
     Q.check(ok, "the bandage off the bitten hand: the tab names it Bitten again", "row: " .. X.labels(e))
-    Q.check(not X.hasLabel(e, X.word("IGUI_health_Bandaged")), "and it no longer says Bandaged", "row: " .. X.labels(e))
+    Q.check(not X.bandShown(e), "and it no longer says Bandaged", "row: " .. X.labels(e))
 end)
 Q.step(2, function()
     local c = X.case("bite")
@@ -1367,6 +1447,8 @@ Q.step(4, function()
             if math.abs(gt:getTimeOfDay() - f.tod) > 0.05 then gt:setTimeOfDay(f.tod) end
         end)
     end
+    -- the character's own bandages, if the run stopped while 3c held them aside
+    pcall(X.heldBack)
     -- anything this script gave that a treatment moved out of the kit's list
     pcall(function()
         local inv = p:getInventory()
