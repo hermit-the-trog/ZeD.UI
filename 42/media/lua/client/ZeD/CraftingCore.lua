@@ -880,9 +880,17 @@ function CC.prebakeOutputs(recipe)
                         end
                     end
                 end
+                -- How many one craft makes, read as vanilla does (item outputs only; 1 when unreadable) (QA B10-2)
+                local amount = 1
+                pcall(function()
+                    if output:getResourceType() == ResourceType.Item then
+                        amount = math.max(1, output:getIntAmount())
+                    end
+                end)
                 outputDefs[#outputDefs + 1] = {
                     name       = CC.getOutputName(output),
                     validTypes = outTypes,
+                    amount     = amount,
                 }
             end
         end
@@ -898,7 +906,9 @@ function CC.outputsRepeatTitle(entry)
     if v == nil then
         v = false
         local defs = entry.outputDefs
-        if defs and #defs == 1 and defs[1].name and defs[1].name ~= "?" and entry.displayName then
+        -- (a yield above 1 keeps the section, or the amount would show nowhere) (QA B10-2)
+        if defs and #defs == 1 and defs[1].name and defs[1].name ~= "?" and entry.displayName
+           and (defs[1].amount or 1) <= 1 then
             v = string.find(string.lower(tostring(entry.displayName)), string.lower(tostring(defs[1].name)), 1, true) ~= nil
         end
         entry._outRepeats = v
@@ -1152,8 +1162,8 @@ function CC.filterAndSort(data, state, config, win)
         if sortMode == "craftable" then
             -- Craftable first, then missing, then locked; within tier, alphabetical
             local st = STATUS_RANK[rd.status] or 3
-            local mc = rd.missingCount or 0
-            sk = pin * 10000 + st * 1000 + mc * 10
+            -- (no missing-count term: only the open recipe has a count, so it demoted that row on every re-sort) (QA B10-4)
+            sk = pin * 10000 + st * 1000
 
         elseif sortMode == "known" then
             -- Known (learned) first, then unknown; within, alphabetical
@@ -2216,6 +2226,29 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
     -- content space)
     state._listGeo = { viewY = y, viewH = h, totalH = totalH }
 
+    -- (QA B10-4) After a re-sort, scroll so the open recipe's row sits at the same place in the view as before.
+    local hold = state._holdRow
+    state._holdRow = nil
+    if hold and needsScroll then
+        local cy, found = 0, false
+        for _, sec in ipairs(sections) do
+            if not sec.solo then cy = cy + catHdrH end
+            if not sec.collapsed then
+                for _, rd in ipairs(sec.items) do
+                    if rd.entry.name == hold.id then found = true; break end
+                    cy = cy + ROW_H
+                end
+            end
+            if found then break end
+        end
+        if found then
+            local span = math.max(1, totalH - h)
+            local want = math.max(0, math.min(span, cy - hold.rel))
+            scroll:setScrollPos(want / span)
+        end
+    end
+    state._scrollSeen = scroll.scrollPos
+
     -- Stencil clip
     panel:setStencilRect(x, y, contentW, h)
 
@@ -3070,8 +3103,8 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
                     name = outDef.name,
                     displayName = outDef.name,
                     iconTex = nil,
-                    have = 1,
-                    need = 1,
+                    have = outDef.amount or 1,  -- the yield of one craft (QA B10-2)
+                    need = outDef.amount or 1,
                     altCount = 0,
                     isKeep = true,
                 }
@@ -3164,6 +3197,19 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
     state.zones = {}
 
     -- Filter + sort (cached — only rebuild when dirty); the card follows the list
+    -- (QA B10-4) The open recipe's row keeps its place on screen across the re-sort: note its offset from the
+    -- list's top (last frame's zone, still holding the old position) and renderRecipeList scrolls to restore it.
+    -- Skipped when something else moved the scroll since the last draw (a wheel turn, a filter pick resetting it).
+    state._holdRow = nil
+    if state.filterDirty and state.selected and lastZones and state._listGeo and state.scroll
+       and state._scrollSeen == state.scroll.scrollPos then
+        for _, z in ipairs(lastZones) do
+            if z.type == "recipeRow" and tostring(z.id) == tostring(state.selected) then
+                state._holdRow = { id = state.selected, rel = z.y - state._listGeo.viewY }
+                break
+            end
+        end
+    end
     if state.filterDirty then CC.refilter(data, state, config, win) end
 
     -- Update split animation (real dt via getTimestampMs inside)
