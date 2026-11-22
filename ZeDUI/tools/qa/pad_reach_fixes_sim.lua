@@ -421,7 +421,8 @@ do
         if it.name == "UI_ZeD_WinMenu_Setup" then setupAt = i end
     end
     check("the window menu has Bug report", bug ~= nil)
-    check("just above ZeD setup", at and setupAt and at + 1 == setupAt)
+    -- (KISS #40: ZeD setup is near the top now; Bug report is the last row without a pad)
+    check("the last row without a pad, ZeD setup above it near the top", at and setupAt and at == #items and setupAt < at)
     if bug then bug.onFire() end
     check("it copies the caught errors for the window's player", copied == 1)
 end

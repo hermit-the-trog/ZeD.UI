@@ -24,8 +24,8 @@
 -- aiming escape rolls only the unpinned halves (FocusManager).
 --
 -- The pins are kept with the character (modData ZeD_WinPinned: charInv,
--- charTabs, worldInv, worldTabs). An older save's single pin (char, world)
--- pins both halves. The single key stays written as "both halves pinned" for
+-- charTabs, worldInv, worldTabs). The tab side starts pinned (KISS #9). An
+-- older save's single pin (char, world) pins both halves. The single key stays written as "both halves pinned" for
 -- anything that still reads it.
 --
 -- A window opts in with ZeD.Halves.attach(win, spec), after ZeD.Curtain.attach:
@@ -82,6 +82,16 @@ local function load(win)
             local old = t[s.key] == true
             i, d = old, old
             t[s.key .. "Inv"], t[s.key .. "Tabs"] = i, d
+        end
+        -- The tab side starts pinned: Health, Skills or Craft stay open while he reads them, until he closes the
+        -- page or unpins it; the inventory side keeps rolling as the game's does. Once per window for a save from
+        -- before (its unpinned tab side was the old default, not his pick); an unpin after that stays. (KISS #9)
+        -- (the once-flag lives beside the pins, not in them: a QA script that sets the pins table anew keeps it)
+        local once = md.ZeD_WinPinnedK9 or {}
+        md.ZeD_WinPinnedK9 = once
+        if not once[s.key] then
+            d = true
+            t[s.key .. "Tabs"], once[s.key] = true, true
         end
         s.inv.pinned, s.drawer.pinned = i == true, d == true
     end)
@@ -876,7 +886,7 @@ end
 function H.attach(win, spec)
     win._halves = spec
     spec.inv = { pinned = false, rolled = false, hand = false }
-    spec.drawer = { pinned = false, rolled = false }
+    spec.drawer = { pinned = true, rolled = false }   -- (the tab side starts pinned, KISS #9)
     load(win)
     local baseShade = win.setWindowShaded
     win.setWindowShaded = function(self, shaded)

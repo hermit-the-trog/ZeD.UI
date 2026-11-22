@@ -676,12 +676,21 @@ do
                 rec(pn, "toggle pair")
                 if canOpen(pn) then open("char", pn); open("world", pn) end
             end,
+            -- (the Y tap closes the pair now, KISS #25: the Character window's toggle closes it when open)
+            toggle = function(pn)
+                local w = WINS.char[pn or 0]
+                if w then w:close() else open("char", pn or 0) end
+            end,
         }
         ZeD_WorldWindow = {
             getWindow = function(pn) return WINS.world[pn or 0] end,
             isOpen = function(pn) return WINS.world[pn or 0] ~= nil end,
+            close = function(pn) local w = WINS.world[pn or 0]; if w then w:close() end end,
         }
         W.open = open
+        -- the pair opened as a pad's Y, LB or RB opens it (the switch to a pad opens nothing since KISS #14)
+        -- (then past the 600 ms aiming grace after the claim, as the old opening on the first press had been)
+        function W.openPair(pn) ZeD_CharacterWindow.ensureBothOpenForGamepad(pn); W.after(700) end
 
         -- the engine: a pad plays for a player; a press goes to that slot's focus, else to the controller
         function W.bind(pn, id)
@@ -772,7 +781,8 @@ do
         local s, at = steps(0)
         local P, R, D, U = W.press, W.release, W.dpad, W.dpadUp
         at(0, W.click)
-        at(1000, function() W.bind(0, 0); P(0, "A") end)
+        -- (KISS #14: the switch to a pad opens nothing now; the run opens the pair as LB, RB or Y would, at once)
+        at(1000, function() W.bind(0, 0); P(0, "A"); ZeD_CharacterWindow.ensureBothOpenForGamepad(0) end)
         at(1080, function() R(0, "A") end)
         at(1200, function() P(0, "Y") end); at(1300, function() R(0, "Y") end)
         at(1500, function() P(0, "Y") end); at(1600, function() R(0, "Y") end)
@@ -879,46 +889,63 @@ do
    10 p0 state nil - cues=false mode=unknown chord=IDLE slot=nil
    20 p0 [ZeD.Input] mode: unknown -> kbm
  1000 p0 game press A
- 1000 p0 state nil - cues=false mode=kbm chord=IDLE slot=nil
- 1000 p0 [ZeD.Input] mode: kbm -> gamepad
  1000 p0 pair
  1000 p0 open char0
  1000 p0 [ZeD.Input] Focus: register: char0 (1 registered)
  1000 p0 [ZeD.Input] Focus: claim: nil -> char0
  1000 p0 char0 r1 onFocus
  1000 p0 engine focus char0
- 1000 p0 ignore aim
  1000 p0 focus char0 <- nil
  1000 p0 open world0
  1000 p0 [ZeD.Input] Focus: register: world0 (2 registered)
  1000 p0 [ZeD.Input] Focus: claim: char0 -> world0
  1000 p0 world0 r1 onFocus
  1000 p0 engine focus world0
- 1000 p0 ignore aim
  1000 p0 focus world0 <- char0
+ 1000 p0 state world0 r1 cues=false mode=kbm chord=IDLE slot=world0
+ 1000 p0 [ZeD.Input] mode: kbm -> gamepad
  1080 p0 game release A
- 1080 p0 state world0 r1 cues=true mode=gamepad chord=IDLE slot=world0
+ 1080 p0 state world0 r1 cues=false mode=gamepad chord=IDLE slot=world0
  1200 p0 state world0 r1 cues=true mode=gamepad chord=IDLE slot=world0
  1300 p0 game release Y
  1300 p0 state world0 r1 cues=true mode=gamepad chord=IDLE slot=world0
- 1300 p0 shade char0
- 1300 p0 shade world0
+ 1300 p0 [ZeD.Input] Focus: unregister: world0 (1 registered)
+ 1300 p0 [ZeD.Input] Focus: transfer: world0 -> char0
+ 1300 p0 engine focus char0
+ 1300 p0 ignore aim
+ 1300 p0 focus char0 <- world0
+ 1300 p0 close world0
+ 1300 p0 [ZeD.Input] Focus: unregister: char0 (0 registered)
+ 1300 p0 [ZeD.Input] Focus: release: char0 -> nil
  1300 p0 engine focus nil
- 1300 p0 [ZeD.Input] Focus: release: world0 -> nil
- 1300 p0 focus nil <- world0
- 1300 p0 [ZeD.Input] Focus: Y tap - hide pair
+ 1300 p0 focus nil <- char0
+ 1300 p0 close char0
+ 1300 p0 [ZeD.Input] Focus: Y tap - close pair
  1340 p0 [ZeD.LagClose] hide 0 ms | next frames 0 10 10 10 10 ms | hide to last frame 40 ms
  1500 p0 game press Y
  1500 p0 state nil - cues=true mode=gamepad chord=IDLE slot=nil
  1600 p0 game release Y
  1600 p0 state nil - cues=true mode=gamepad chord=IDLE slot=nil
- 1600 p0 unshade char0
- 1600 p0 unshade world0
+ 1600 p0 pair
+ 1600 p0 open char0
+ 1600 p0 [ZeD.Input] Focus: register: char0 (1 registered)
  1600 p0 [ZeD.Input] Focus: claim: nil -> char0
+ 1600 p0 char0 r1 onFocus
  1600 p0 engine focus char0
  1600 p0 ignore aim
  1600 p0 focus char0 <- nil
- 1600 p0 [ZeD.Input] Focus: Y tap - unhide pair, Character focus
+ 1600 p0 open world0
+ 1600 p0 [ZeD.Input] Focus: register: world0 (2 registered)
+ 1600 p0 [ZeD.Input] Focus: claim: char0 -> world0
+ 1600 p0 world0 r1 onFocus
+ 1600 p0 engine focus world0
+ 1600 p0 ignore aim
+ 1600 p0 focus world0 <- char0
+ 1600 p0 [ZeD.Input] Focus: claim: world0 -> char0
+ 1600 p0 engine focus char0
+ 1600 p0 ignore aim
+ 1600 p0 focus char0 <- world0
+ 1600 p0 [ZeD.Input] Focus: Y tap - opened pair, Character focus
  1800 p0 [ZeD.Input] Focus: spatial down -> flat[2/6] (cone) zone=list [char0]
  1800 p0 char0 r2 onFocus
  1800 p0 state char0 r2 cues=true mode=gamepad chord=IDLE slot=char0
@@ -1151,7 +1178,7 @@ do
     ok, err = pcall(function()
         local W = world({ coop = { instance = { joypadData = { id = 2 }, playerIndex = 1 } } })
         W.bind(0, 0); W.bind(1, 1); W.CONN[2] = true
-        W.press(0, "A"); W.after(100); W.release(0, "A"); W.after(800)
+        W.press(0, "A"); W.after(100); W.release(0, "A"); W.after(800); W.openPair(0)   -- (KISS #14: the switch to a pad opens nothing; Y, LB or RB does)
         local fw = W.F.getFocusedWindow()
         check("S1 harness: the pad opened player 1's pair", fw == W.WINS.world[0], fw and fw._zedLabel)
         W.AX[2][2] = 1.0; W.after(100); W.AX[2][2] = 0; W.after(50)
@@ -1185,7 +1212,7 @@ do
     ok, err = pcall(function()
         local W = world()
         W.bind(0, 0); W.bind(1, 1)
-        W.press(0, "A"); W.after(100); W.release(0, "A"); W.after(800)
+        W.press(0, "A"); W.after(100); W.release(0, "A"); W.after(800); W.openPair(0)   -- (KISS #14: the switch to a pad opens nothing; Y, LB or RB does)
         local fw = W.F.getFocusedWindow()
         local slot2 = JoypadState.players[2]
         slot2.focus = fw
@@ -1215,7 +1242,7 @@ do
     ok, err = pcall(function()
         local W = world()
         W.bind(0, 0); W.bind(1, 1)
-        W.press(0, "A"); W.after(100); W.release(0, "A"); W.after(300)
+        W.press(0, "A"); W.after(100); W.release(0, "A"); W.after(300); W.openPair(0)   -- (KISS #14: the switch to a pad opens nothing; Y, LB or RB does)
         W.F.releaseFocus(); W.after(50)
         JoypadState.players[1].id = -1
         local n = W.mark()
@@ -1240,7 +1267,7 @@ do
     ok, err = pcall(function()
         local W = world()
         W.bind(0, 0); W.bind(1, 1)
-        W.press(0, "A"); W.after(100); W.release(0, "A"); W.after(300)
+        W.press(0, "A"); W.after(100); W.release(0, "A"); W.after(300); W.openPair(0)   -- (KISS #14: the switch to a pad opens nothing; Y, LB or RB does)
         W.press(1, "RightBump"); W.press(1, "A"); W.after(50); W.release(1, "A"); W.release(1, "RightBump"); W.after(50)
         check("U13 player 1's focused window does not block pad 2's quick chord", has(W.T, "p1 chord RB%+A"))
         W.BTN[0].RightBump = true
@@ -1273,7 +1300,7 @@ do
     ok, err = pcall(function()
         local W = world({ gate = GATE2 })
         W.bind(0, 0); W.bind(1, 1)
-        W.press(0, "A"); W.after(100); W.release(0, "A"); W.after(300)
+        W.press(0, "A"); W.after(100); W.release(0, "A"); W.after(300); W.openPair(0)   -- (KISS #14: the switch to a pad opens nothing; Y, LB or RB does)
         local w0 = W.F.getFocusedWindow()
         W.press(1, "Y"); W.after(50); W.release(1, "Y"); W.after(100)
         check("S1 harness: player 2's Y opened their pair", W.F.getFocusedWindow(1) == W.WINS.char[1])
@@ -1339,7 +1366,7 @@ do
         local W = world({ gate = GATE2 })
         local F = W.F
         W.bind(0, 0); W.bind(1, 1)
-        W.press(0, "A"); W.after(100); W.release(0, "A"); W.after(300)
+        W.press(0, "A"); W.after(100); W.release(0, "A"); W.after(300); W.openPair(0)   -- (KISS #14: the switch to a pad opens nothing; Y, LB or RB does)
         local w0 = F.getFocusedWindow()
         W.press(1, "Y"); W.after(50); W.release(1, "Y"); W.after(100)
         local w1 = F.getFocusedWindow(1)

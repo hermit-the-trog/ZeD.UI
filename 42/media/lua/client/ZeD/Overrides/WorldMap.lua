@@ -37,12 +37,18 @@ local function _zedOpenUnfolded(playerNum)
     if not (ZeD_WorldWindow and ZeD_WorldWindow.open and ZeD_WorldWindow.getWindow) then return false end
     if not getSpecificPlayer(playerNum) then return false end
 
+    local opened = false   -- (the World window opened here, only for the map: KISS #25)
     if not ZeD_WorldWindow.isOpen(playerNum) then
         local ok = pcall(ZeD_WorldWindow.open, playerNum)
         if not ok then return false end
+        opened = true
     end
     local win = ZeD_WorldWindow.getWindow(playerNum)
     if not win then return false end
+    -- the map put away by the Map key again, B or Escape closes a World window it opened with it
+    -- (MapsTab.closePopout); one that was up already stays (KISS #25)
+    if opened then win._mapOwnsWindow = true
+    elseif not win._mapPopout then win._mapOwnsWindow = nil end
     -- a paper map in the unfolded window (PaperMap.lua) is put away for the world map
     -- (the World window stays: the world map opens in it)
     if win._mapPopout and win._mapPaperItem then ZeD.MapsTab.closePopout(win, true) end

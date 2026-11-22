@@ -7,20 +7,22 @@
 -- right-aligned under the box, its choices in submenus with a check beside
 -- the one in use.
 --
---   (a window's own choices first: the chat window's Name color)
+--   Keyboard map, ZeD setup..., Show me around (the tour again)   (first: KISS #40)
+--   ----
+--   (a window's own choices: the chat window's Name color)
 --   Theme > Dark, Light, High contrast
 --   Accent > the nine (the Character and World windows: their own accent,
 --            and "Same as Accent color")
 --   Text size > Small, Large
---   See-through > 100% ... 60%, Solid while in use
---   Controller highlight > Pointing hand, Corner marks, One wash, Marching ants
+--   See-through > 100% ... 60%
+--   Style > Full, Lite
+--   Controller highlight > Pointing hand, Corner marks, One wash, Marching ants (with a pad)
 --   ----
 --   Reset this window (and Reset both windows on the Character / World pair)
 --   Save position, Go to saved position (greyed while nothing is saved)
 --   ----
 --   Bug report (the Select wheel's: caught errors onto the clipboard)
 --   Controller map (with a pad)
---   ZeD setup...
 --
 -- Before touching it: every choice calls what ZeD setup and the Select wheel
 -- call, so the three always agree and the choice is saved with the other ZeD
@@ -176,14 +178,29 @@ function WM.build(win)
     if not S then return {} end
     local items = {}
     local pair = win.pairKey and win:pairKey() or nil
-    -- a window's own choices first (the chat window's Name color, ZeD_Chat.lua)
+    -- (the window's player: their own theme in split view, PlayerTheme.lua; the check marks read what they draw in)
+    local pn = (ZeD.playerNumOf and ZeD.playerNumOf(win)) or win.playerNum or 0
+    -- (a pad's rows show only with a pad: KISS #40)
+    local pad = JoypadState and JoypadState.players and JoypadState.players[pn + 1] and true or false
+
+    -- First, the two he wants mid-game: the Keyboard map ("Keyboard display and binding assistance", beta 21) and
+    -- ZeD setup, then the tour again (ZeD_Tutorial). (KISS #40)
+    local KMap = ZeD.KeyboardMap
+    if KMap and KMap.open then
+        items[#items + 1] = { name = tr("UI_ZeD_KMap_Title"), category = "first", onFire = function() KMap.open(pn) end }
+    end
+    items[#items + 1] = { name = tr("UI_ZeD_WinMenu_Setup"), category = "first", onFire = function() WM.openSetup(win) end }
+    local TU = ZeD.Tutorial
+    if TU and TU.restart then
+        items[#items + 1] = { name = tr("UI_ZeD_Welcome_ShowMe"), category = "first", onFire = function() TU.restart(pn) end }
+    end
+
+    -- a window's own choices next (the chat window's Name color, ZeD_Chat.lua)
     if win.extraMenu then
         local ok, extra = pcall(win.extraMenu, win)
         if ok and type(extra) == "table" then for _, it in ipairs(extra) do items[#items + 1] = it end end
     end
 
-    -- (the window's player: their own theme in split view, PlayerTheme.lua; the check marks read what they draw in)
-    local pn = (ZeD.playerNumOf and ZeD.playerNumOf(win)) or win.playerNum or 0
     local function keys()
         if ZeD.Theme and ZeD.Theme.keysFor then return ZeD.Theme.keysFor(pn) end
         return ZeD.currentBase, ZeD.currentAccent
@@ -240,7 +257,23 @@ function WM.build(win)
         items[#items + 1] = see
     end
 
-    if S.focusStyleKeys then
+    -- Style, Full or Lite: the pad's wheel's choices (ZeD_DpadWheels' actionBarWheel, so Lite sets the additions
+    -- as ZeD setup does), with a check beside the one in use. (KISS #40)
+    local Z = ZeD.DpadWheels and ZeD.DpadWheels.Z
+    if S.lookStyleOption and Z and Z.actionBarWheel then
+        local okW, picks = pcall(Z.actionBarWheel)
+        if okW and type(picks) == "table" then
+            local style = { name = tr("UI_ZeD_Settings_LookStyle"), category = "look", children = {} }
+            for i, e in ipairs(picks) do
+                style.children[#style.children + 1] = leaf(e.name, function() if e.run then e.run() end end,
+                    function() local ok, v = pcall(function() return S.lookStyleOption:getValue() end); return ok and v == i end)
+            end
+            items[#items + 1] = style
+        end
+    end
+
+    -- (the controller's highlight only with a pad: KISS #40)
+    if S.focusStyleKeys and pad then
         local fs = { name = tr("UI_ZeD_Settings_FocusStyle"), category = "look", children = {} }
         for i, k in ipairs(S.focusStyleKeys) do
             fs.children[#fs.children + 1] = leaf(tr(S.focusStyleLabels[i]), function() S.setFocusStyle(k) end,
@@ -276,15 +309,10 @@ function WM.build(win)
     -- to do everything. They call what the wheel calls. The map is a controller's, so it shows only with a pad.
     -- Hide interface stays on the pad's View wheel only: a mouse has no way back from it (QA K1-6).)
     local CM = ZeD.ControllerMap
-    if CM and CM.open and JoypadState and JoypadState.players and JoypadState.players[pn + 1] then
+    if CM and CM.open and pad then
         items[#items + 1] = { name = tr("UI_ZeD_Wheel_ControllerMap"), category = "setup", onFire = function() CM.open(pn) end }
     end
-    -- (beta 21, the director: "Keyboard display and binding assistance": the keys, and a way to change them)
-    local KMap = ZeD.KeyboardMap
-    if KMap and KMap.open then
-        items[#items + 1] = { name = tr("UI_ZeD_KMap_Title"), category = "setup", onFire = function() KMap.open(pn) end }
-    end
-    items[#items + 1] = { name = tr("UI_ZeD_WinMenu_Setup"), category = "setup", onFire = function() WM.openSetup(win) end }
+    -- (the Keyboard map, ZeD setup and the tour are first now: KISS #40)
     return items
 end
 

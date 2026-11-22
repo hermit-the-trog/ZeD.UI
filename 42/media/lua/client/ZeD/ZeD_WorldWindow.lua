@@ -346,6 +346,24 @@ end
 -- win._containerOrder, forces sortMode = "dist", and rebuilds the strip's
 -- stops around the moved container. The floor container is pinned and not
 -- reorderable.
+-- (KISS #18) X on a container's button in the strip takes all from it into his inventory, as the band's Take all does
+-- (ContainerControls.lootAllFrom). Module fields, not locals: this file is near Kahlua's local limit.
+function ZeD_WorldWindow.padTakeAll(w, el)
+    local cnt = w and w._containers and w._containers[el.containerIdx]
+    if not (cnt and cnt.inventory and not cnt.locked and w._playerObj and ZeD.ContainerControls) then return end
+    if ZeD.ContainerControls.lootAllFrom(w._playerObj, cnt.inventory) then pcall(function() ZeD.uiSound("UIActivateButton") end) end
+end
+--- The X prompt on a container's button: the game's Take all, hidden while nothing there is wanted (or it is locked).
+function ZeD_WorldWindow.padTakeAllPrompt(w, el)
+    local cnt = w and w._containers and w._containers[el.containerIdx]
+    local po = w and w._playerObj
+    if not (cnt and cnt.inventory and po) or cnt.locked then return false end
+    local ok, none = pcall(function() return cnt.inventory:isEmptyOrUnwanted(po) end)
+    if not ok or none then return false end
+    local s = getText("IGUI_invpage_Loot_all")
+    return s:sub(1, 1) .. s:sub(2):lower()   -- (sentence case, as the band's button)
+end
+
 local function _gpReorderWorldContainer(win, containerIdx, dir)
     if not win or not containerIdx then return end
     local containers = win._containers
@@ -435,6 +453,7 @@ _buildWorldLootFocusables = function(win)
             x = 0, y = stripY, w = T.px(CONTAINER_STRIP_W), h = T.stripH - T.px(1),
             id = "container:" .. tostring(floorIdx),
             containerIdx = floorIdx,
+            onContextMenu = ZeD_WorldWindow.padTakeAll, promptX = ZeD_WorldWindow.padTakeAllPrompt,   -- (X: Take all, KISS #18)
             inventory = floorCnt.inventory,
             -- onFocus mutates nothing: D-pad cycling on the strip moves the
             -- focus cue only — the active container (=the currently-displayed
@@ -506,6 +525,7 @@ _buildWorldLootFocusables = function(win)
             x = 0, y = cy, w = T.px(CONTAINER_STRIP_W), h = T.px(CONTAINER_BTN_SZ),
             id = "container:" .. tostring(ci),
             containerIdx = ci,
+            onContextMenu = ZeD_WorldWindow.padTakeAll, promptX = ZeD_WorldWindow.padTakeAllPrompt,   -- (X: Take all, KISS #18)
             inventory = win._containers[ci] and win._containers[ci].inventory,
             -- onFocus mutates nothing: D-pad cycling on the strip moves the
             -- focus cue only — the active container (=the currently-displayed
@@ -5877,6 +5897,8 @@ function ZeD_WorldWindow.toggle(playerNum)
             local ccZone = self:hitZoneAt(x, y)
             local ccId = ccZone and ccZone.id
             if type(ccId) == "string" and ccId:sub(1, 3) == "cc:" and ZeD.ContainerControls then
+                -- (paused, the container buttons wait for play with the other actions: KISS #41)
+                if ZeD.PausedLook and ZeD.PausedLook.on() == true then return true end
                 ZeD.ContainerControls.press(self, tonumber(ccId:sub(4)))
                 return true
             end
@@ -6312,6 +6334,7 @@ function ZeD_WorldWindow.toggle(playerNum)
 
     content.onRightMouseUp = function(self, x, y)
         if self._drag:isActive() or self._drag:isPending() then return true end
+        if ZeD.PausedLook and ZeD.PausedLook.on() == true then return true end   -- (paused: no item menu, as the game's; KISS #41)
 
         local colIdx, colCs = getColumnAtX(self, x)
         local inv = (colCs and colCs.inventory) or self._inventory
@@ -6663,7 +6686,11 @@ function ZeD_WorldWindow.padYRemember(pn)
     if not w then return end
     local z = F.getFocusedZone(w)
     local el = F.getFocusedElement(w)
-    ZeD_WorldWindow._padYLeft[pn] = { win = w, zone = z and z.zone, id = el and el.id, item = el and el.item }
+    -- (which of the pair it was: a Y tap now closes the pair, so the next Y finds the row in the windows built anew;
+    -- KISS #25)
+    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(pn)
+    local kind = (w == _worldWins[pn] and "world") or (w == cw and "char") or nil
+    ZeD_WorldWindow._padYLeft[pn] = { win = w, kind = kind, zone = z and z.zone, id = el and el.id, item = el and el.item }
 end
 
 --- Player pn's Y landing (above). back: the pair was hidden and comes back (a remembered row may count).
@@ -6675,6 +6702,8 @@ function ZeD_WorldWindow.padYLand(pn, back)
     local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(pn)
     local mem = ZeD_WorldWindow._padYLeft[pn]
     ZeD_WorldWindow._padYLeft[pn] = nil
+    -- (the window of the pair it was on, as built now: the Y that closed the pair took the old ones, KISS #25)
+    if mem and mem.kind then mem.win = (mem.kind == "world") and ww or cw end
     -- a later Y: back to the row it left
     if back and mem and mem.win and (mem.win == ww or mem.win == cw) then
         local still = true
@@ -6724,9 +6753,11 @@ end
 --- can't open.
 function ZeD_WorldWindow.openTab(playerNum, tabId, toggle)
     if not ZeD.windowsFor(playerNum) then return false end   -- (split-screen: the game's own, ZeD.windowsFor)
+    local opened = false   -- (this press opened the window: KISS #25)
     if not _worldWins[playerNum or 0] then
         local ok = pcall(ZeD_WorldWindow.open, playerNum or 0)
         if not ok then return false end
+        opened = true
     end
     local win = _worldWins[playerNum or 0]
     if not win then return false end
@@ -6736,6 +6767,14 @@ function ZeD_WorldWindow.openTab(playerNum, tabId, toggle)
         win:setWindowShaded(false)
         win._outSince = getTimestampMs() + 500
     end
+    -- The same key again (Crafting, Build) closes what it opened, as the game's second press closes its window: a
+    -- World window this key opened on this tab closes again; one that was up already only folds the tab. (KISS #25)
+    if toggle and win._keyOpenedTab == tabId and ZeD_WorldWindow.isTabShowing(tabId, playerNum) then
+        win._keyOpenedTab = nil
+        ZeD_WorldWindow.close(playerNum or 0)
+        return true
+    end
+    win._keyOpenedTab = (toggle and opened) and tabId or nil
     if ZeD_WorldWindow.isTabShowing(tabId, playerNum) and not toggle then return true end
     local wantClick = true
     local function attempt()

@@ -2589,6 +2589,8 @@ function B.takeDrop(playerNum, items)
     if not (hud and hud._drawn and items and #items > 0) then return false end
     local mx, my = hud:getMouseX(), hud:getMouseY()
     if mx < 0 or my < 0 or mx >= hud:getWidth() or my >= hud:getHeight() then return false end
+    -- (KISS #41) paused, a drop on the belt does nothing (it would equip): taken, so it doesn't fall to the floor
+    if ZeD.PausedLook and ZeD.PausedLook.on and ZeD.PausedLook.on() == true then return true end
     local b = hud:boxAt(mx, my)
     if not b or b.kind == "bag" or b.kind == "speed" or b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" or b.kind == "chat" or b.kind == "pvp" or b.kind == "extra" then return true end   -- over the strap, the watch, the ammo box or the Messages note: no drop to the floor either
     local st, it = hud:_dropState(b, items)

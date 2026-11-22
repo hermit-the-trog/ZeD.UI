@@ -908,6 +908,8 @@ function ZeD.HealthTab.takeDrop(pn, items)
     if not (panel and panel:isVisible()) then return false end
     local x, y = panel:getMouseX(), panel:getMouseY()
     if x < 0 or y < 0 or x >= panel:getWidth() or y >= panel:getHeight() then return false end
+    -- (paused, only moves between bags go: a drop on the page treats nothing; KISS #41)
+    if ZeD.PausedLook and ZeD.PausedLook.on() == true then return true end
     if win._healthMenuOpen then return false end
     if win._healthBandY and y >= win._healthBandY then return false end
     local fz = win._healthFigureZone

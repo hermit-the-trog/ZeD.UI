@@ -1019,6 +1019,9 @@ function D.takeDrop(pn, items)
     if not (panel and panel:isVisible()) then return false end
     local mx, my = panel:getMouseX(), panel:getMouseY()
     if mx < 0 or my < 0 or mx >= panel:getWidth() or my >= panel:getHeight() then return false end
+    -- (paused, only moves between bags go: a drop on the page would put it on or belt it, so the page takes the drop
+    -- and does nothing; KISS #41)
+    if ZeD.PausedLook and ZeD.PausedLook.on() == true then return true end
     local clip = doll and win._equipDollClip
     if clip and not inZone(clip, mx, my) then return false end
     local hit
