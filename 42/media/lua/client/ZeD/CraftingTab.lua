@@ -275,7 +275,9 @@ function ZeD.CraftingTab.gatherData(playerObj, win)
         -- Learned check (force Lua boolean; pcall'd with its arguments, no closure)
         local learned = true
         if entry.needLearn then
-            local okK, known = pcall(playerObj.isRecipeKnown, playerObj, entry.recipe)
+            -- (QA B11-2) the second argument asks whether the player really knows it: with "See Not Known Recipes" on,
+            -- the one-argument form answers true without looking, so the row's status flipped every scan
+            local okK, known = pcall(playerObj.isRecipeKnown, playerObj, entry.recipe, true)
             learned = (okK and known) and true or false
         end
 

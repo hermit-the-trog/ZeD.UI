@@ -161,7 +161,7 @@ function RI.known(player, rec)
     local learned = true
     if rec.needLearn then
         learned = false
-        pcall(function() if player:isRecipeKnown(rec.recipe) then learned = true end end)
+        pcall(function() if player:isRecipeKnown(rec.recipe, true) then learned = true end end)   -- (really known: QA B11-2)
     end
     local hasSkill = true
     for _, s in ipairs(rec.skills or {}) do

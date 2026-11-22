@@ -5604,13 +5604,17 @@ function ZeD_WorldWindow.toggle(playerNum)
                 and #(win._mcSelected or {}) == 0 and (win._rolled or content:isVisible())
         end,
         chip = function()
-            local e = win._containers and win._containers[win._activeContainer]
+            -- (the container the list shows: a mouse pick on a non-Loot tab sets only the view) (QA B11-3)
+            local e = win._containers and win._containers[win._viewedContainer or win._activeContainer]
             local inv = e and e.inventory
             -- (what the list shows, not the raw count: a gate mod hides some) (QA B10-5)
             return e and e.name or ZeD.tr("UI_ZeD_World_Title"), inv and ZeD.InventoryRenderer.liveCount(inv, win._playerObj) or 0
         end,
         dropInv = function()
-            local e = win._containers and win._containers[win._activeContainer]
+            local e = win._containers and win._containers[win._viewedContainer or win._activeContainer]   -- (QA B11-3)
+            -- the rolled list is frozen and the game's transfer has no distance check: a container out of reach takes
+            -- no drop, as the title-bar drop refuses it (QA B11-3)
+            if e and not e.isFloor and not ZeD_WorldWindow.inReach(e.inventory, win.playerNum) then return nil end
             return e and e.inventory
         end,
         title = function()

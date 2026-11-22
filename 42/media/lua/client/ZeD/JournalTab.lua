@@ -784,7 +784,7 @@ function ZeD.JournalTab.gatherRecipeData(playerObj, win)
         local learned = true
         if entry.needLearn then
             learned = false
-            pcall(function() if playerObj:isRecipeKnown(entry.recipe) then learned = true end end)
+            pcall(function() if playerObj:isRecipeKnown(entry.recipe, true) then learned = true end end)   -- (really known: QA B11-2)
         end
 
         -- Status: known recipes show as craftable-style, unknown as locked

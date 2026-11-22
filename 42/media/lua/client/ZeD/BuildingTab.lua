@@ -245,8 +245,15 @@ function ZeD.BuildingTab.gatherData(playerObj, win)
 
         local status = hasSkill and "unlocked" or "locked"
 
-        -- (building recipes don't need to be learned)
-        local rd = CC.refreshRow(pool, entry, gen, prevGen, status, hasSkill, true, playerLevel)
+        -- (QA B11-2) some build recipes do need learning (metal and welding): ask whether the player really knows it
+        -- (the second argument), as the game's build window does; a recipe that needs none reads learned
+        local learned = true
+        if entry.recipe then
+            pcall(function()
+                if entry.recipe:needToBeLearn() and not playerObj:isRecipeKnown(entry.recipe, true) then learned = false end
+            end)
+        end
+        local rd = CC.refreshRow(pool, entry, gen, prevGen, status, hasSkill, learned, playerLevel)
         n = n + 1
         if recipes[n] ~= rd then recipes[n] = rd; changed = true end
     end
