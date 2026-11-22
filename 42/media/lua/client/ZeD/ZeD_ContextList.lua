@@ -347,7 +347,7 @@ function ZeD_ContextList:prerender()
             local name, tex = ZeD.ContextMenu.Registry.getTargetDisplay(self._ctx.target)
             -- a menu of its own may name itself (the mark strip's "Crowbar in lists", its icon)
             if self.headText then name, tex = self.headText, nil end
-            local d = T.textDim
+            local d = T.textSec or T.text   -- (the heading is content: textDim, the chrome tier, was too faint on Light; the director, Nov 22 2026)
             local tx = x + padX
             if self.headPx then
                 local isz = T.px(ICON)
