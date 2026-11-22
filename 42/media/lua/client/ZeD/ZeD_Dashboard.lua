@@ -209,6 +209,7 @@ local function _badges(design, vehicle, scriptName, ownFamily)
     end
     -- a game car whose name leads with the maker ("Dash Bulldriver de Pompiers") has no livery before it: the service
     -- is among the words after the maker; read the maker first, so the livery is not taken to be the maker (QA B7-7)
+    local fleetWord = nil   -- the service as the car's own name says it, painted on the plate (the director, Nov 21 2026)
     if not fleet and mi and ownFamily and livery == "" then
         for i = mi + 1, #words do
             local w = words[i]
@@ -216,14 +217,16 @@ local function _badges(design, vehicle, scriptName, ownFamily)
             if not svc then
                 for _, s in ipairs(SERVICES) do if w == s then svc = s; break end end
             end
-            if svc then fleet = svc; break end
+            -- (the director, Nov 21 2026: in French the service word is French too, so the plate paints the name's own
+            -- word, "POMPIERS - CAMION 17"; the English service still picks the unit word, CAMION for a fire engine)
+            if svc then fleet = svc; fleetWord = w; break end
         end
     end
     fleet = fleet or livery:match("^(%S+)") or make
     local id = 0; pcall(function() id = vehicle:getId() or 0 end)
     local wordKey = (fleet == "TAXI") and "UI_ZeD_Dash_UnitCab" or ((fleet == "FIRE") and "UI_ZeD_Dash_UnitEngine" or "UI_ZeD_Dash_UnitUnit")
     -- painted on the car: a plain hyphen, never a middle dot
-    local unit = ZeD.tr(wordKey, fleet, string.format("%02d", 10 + (id % 90)))
+    local unit = ZeD.tr(wordKey, fleetWord or fleet, string.format("%02d", 10 + (id % 90)))
     local sub = design.sub or ""
     local tag = (sub ~= "" and not model:find(sub, 1, true)) and sub or ""
     return { full = make .. " " .. model, make = make, model = model, sub = sub, tag = tag, unit = unit, livery = livery, name = name,
