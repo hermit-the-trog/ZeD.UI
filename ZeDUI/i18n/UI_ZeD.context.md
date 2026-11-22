@@ -29,7 +29,7 @@ Total keys: 5305.
 - [Dash](#dash) (65)
 - [Death](#death) (12)
 - [DescEdit](#descedit) (72)
-- [Desktop](#desktop) (7)
+- [Desktop](#desktop) (65)
 - [Disclose](#disclose) (3)
 - [Doll](#doll) (23)
 - [Drawer](#drawer) (2)
@@ -60,7 +60,7 @@ Total keys: 5305.
 - [Lock](#lock) (58)
 - [Looks](#looks) (11)
 - [Machine](#machine) (18)
-- [MainMenu](#mainmenu) (52)
+- [MainMenu](#mainmenu) (51)
 - [Map](#map) (81)
 - [Meta](#meta) (8)
 - [MMHelp](#mmhelp) (58)
@@ -1119,6 +1119,64 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Desktop_OneItem` | `1 item` | Trash window: count in the title bar | 10 |
 | `UI_ZeD_Desktop_PromptDpad` | `D-pad Move` | Desktop: controller legend along the foot of the screen (the word D-PAD names the controller's cross) | - |
 | `UI_ZeD_Desktop_Trash` | `Trash` | Desktop: name under the trash icon; title of the trash window | 14 |
+| `UI_ZeD_Desktop_Title` | `Desktop` | Desktop window (Settings, Desktop...): title bar. The desktop is the monitor's wallpaper behind the windows | 20 |
+| `UI_ZeD_Desktop_GroupGameArt` | `Game art` | Desktop window: heading over the game's own pictures (the title painting, the title video) | 24 |
+| `UI_ZeD_Desktop_GroupPatterns` | `Patterns` | Desktop window: heading over the repeating patterns drawn in the player's color | 24 |
+| `UI_ZeD_Desktop_GroupQuiet` | `Quiet` | Desktop window: heading over the plain, calm desktops (flat colors, faint patterns) | 24 |
+| `UI_ZeD_Desktop_GroupFun` | `Fun` | Desktop window: heading over the picture desktops (carpet, flannel, the flags) | 24 |
+| `UI_ZeD_Desktop_Help` | `%1: %2` | Desktop window, help line: %1 is a desktop's name, %2 its note (the _Note keys below) | - |
+| `UI_ZeD_Desktop_Foot` | `Patterns take your %1 from Options.` | Desktop window, band at the foot: %1 is the game's own "Color of Highlighted Container" option name (already translated by the game) | 70 |
+| `UI_ZeD_Desktop_Done` | `Done` | Desktop window: the button that closes it (the pick is already kept) | 12 |
+| `UI_ZeD_Desktop_Painting` | `Painting` | Desktop window: name under a swatch, the game's old title painting | 11 |
+| `UI_ZeD_Desktop_Painting_Note` | `the game's old title painting, dimmed behind the windows.` | Desktop window, help line: follows the name and a colon, so it starts in lower case | - |
+| `UI_ZeD_Desktop_Video` | `Title video` | Desktop window: name under a swatch, Build 42's title screen video | 11 |
+| `UI_ZeD_Desktop_Video_Note` | `Build 42's title video, playing on the monitor.` | Desktop window, help line: follows the name and a colon | - |
+| `UI_ZeD_Desktop_Classic` | `Classic` | Desktop window: name under a swatch, a checkerboard pattern | 11 |
+| `UI_ZeD_Desktop_Classic_Note` | `the checkerboard of 1993, in your color.` | Desktop window, help line: follows the name and a colon, so it starts in lower case | - |
+| `UI_ZeD_Desktop_Weave` | `Weave` | Desktop window: name under a swatch, a basket weave pattern | 11 |
+| `UI_ZeD_Desktop_Weave_Note` | `basket weave, two over two.` | Desktop window, help line: follows the name and a colon | - |
+| `UI_ZeD_Desktop_Bricks` | `Bricks` | Desktop window: name under a swatch, a brick wall pattern | 11 |
+| `UI_ZeD_Desktop_Bricks_Note` | `running bond, a mortar line between rows.` | Desktop window, help line: follows the name and a colon (running bond is the usual way bricks are laid) | - |
+| `UI_ZeD_Desktop_Diagonal` | `Diagonal` | Desktop window: name under a swatch, a pattern of slanted lines | 11 |
+| `UI_ZeD_Desktop_Diagonal_Note` | `a hairline every four dots, up to the right.` | Desktop window, help line: follows the name and a colon | - |
+| `UI_ZeD_Desktop_Grid` | `Graph` | Desktop window: name under a swatch, a graph paper pattern | 11 |
+| `UI_ZeD_Desktop_Grid_Note` | `graph paper, a line every eight dots.` | Desktop window, help line: follows the name and a colon | - |
+| `UI_ZeD_Desktop_Dots` | `Dots` | Desktop window: name under a swatch, a polka dot pattern | 11 |
+| `UI_ZeD_Desktop_Dots_Note` | `polka dots, every other row set over.` | Desktop window, help line: follows the name and a colon | - |
+| `UI_ZeD_Desktop_Zeds` | `Zeds` | Desktop window: name under a swatch, a pattern of ZeD's Z letter mark | 11 |
+| `UI_ZeD_Desktop_Zeds_Note` | `ZeD's own Z, every other row set over.` | Desktop window, help line: follows the name and a colon (ZeD is the mod's name, keep it) | - |
+| `UI_ZeD_Desktop_Disks` | `Disks` | Desktop window: name under a swatch, a pattern of floppy disks | 11 |
+| `UI_ZeD_Desktop_Disks_Note` | `the ZeD-GUI disk, every other row set over.` | Desktop window, help line: follows the name and a colon (ZeD-GUI is the mod's name, keep it) | - |
+| `UI_ZeD_Desktop_Camo` | `Camo` | Desktop window: name under a swatch, a camouflage pattern | 11 |
+| `UI_ZeD_Desktop_Camo_Note` | `woodland camo in four tones of your color.` | Desktop window, help line: follows the name and a colon | - |
+| `UI_ZeD_Desktop_Squiggle` | `Squiggle` | Desktop window: name under a swatch, an early 90s pattern of brush dabs and squiggly lines | 11 |
+| `UI_ZeD_Desktop_Squiggle_Note` | `brush dabs and squiggles, straight off a 1993 party aisle.` | Desktop window, help line: follows the name and a colon (the party aisle is the paper cups and plates aisle of a store) | - |
+| `UI_ZeD_Desktop_Solid` | `Solid` | Desktop window: name under a swatch, one flat color | 11 |
+| `UI_ZeD_Desktop_Solid_Note` | `your color alone, at a middle tone.` | Desktop window, help line: follows the name and a colon | - |
+| `UI_ZeD_Desktop_Accent` | `Accent` | Desktop window: name under a swatch, the theme's accent color, flat | 11 |
+| `UI_ZeD_Desktop_Accent_Note` | `flat, your theme's accent at a middle tone.` | Desktop window, help line: follows the name and a colon | - |
+| `UI_ZeD_Desktop_Slate` | `Slate` | Desktop window: name under a swatch, a flat blue-grey | 11 |
+| `UI_ZeD_Desktop_Slate_Note` | `flat, a cool blue-grey.` | Desktop window, help line: follows the name and a colon | - |
+| `UI_ZeD_Desktop_Fine` | `Fine` | Desktop window: name under a swatch, a very faint dot pattern | 11 |
+| `UI_ZeD_Desktop_Fine_Note` | `one dot in sixteen, barely there.` | Desktop window, help line: follows the name and a colon | - |
+| `UI_ZeD_Desktop_Pinstripe` | `Pinstripe` | Desktop window: name under a swatch, faint thin stripes | 11 |
+| `UI_ZeD_Desktop_Pinstripe_Note` | `a faint line every four dots, as on a title bar.` | Desktop window, help line: follows the name and a colon | - |
+| `UI_ZeD_Desktop_Topo` | `Topo` | Desktop window: name under a swatch, a topographic map picture (short for topographic) | 11 |
+| `UI_ZeD_Desktop_Topo_Note` | `Knox County from the air: contour lines, a creek in the valley.` | Desktop window, help line: follows the name and a colon (Knox County is the game's map, keep it) | - |
+| `UI_ZeD_Desktop_Carpet` | `Carpet` | Desktop window: name under a swatch, an arcade carpet picture | 11 |
+| `UI_ZeD_Desktop_Carpet_Note` | `the arcade's carpet, confetti on indigo.` | Desktop window, help line: follows the name and a colon | - |
+| `UI_ZeD_Desktop_Paneling` | `Paneling` | Desktop window: name under a swatch, wood wall paneling | 11 |
+| `UI_ZeD_Desktop_Paneling_Note` | `the den's pecan wall boards.` | Desktop window, help line: follows the name and a colon | - |
+| `UI_ZeD_Desktop_Flannel` | `Flannel` | Desktop window: name under a swatch, a plaid flannel shirt cloth | 11 |
+| `UI_ZeD_Desktop_Flannel_Note` | `plaid, red over maroon. It is 1993.` | Desktop window, help line: follows the name and a colon | - |
+| `UI_ZeD_Desktop_Stars` | `Stars` | Desktop window: name under a swatch, a night sky | 11 |
+| `UI_ZeD_Desktop_Stars_Note` | `a clear night, no lights for miles.` | Desktop window, help line: follows the name and a colon | - |
+| `UI_ZeD_Desktop_Tally` | `Tally` | Desktop window: name under a swatch, tally marks counting days on a wall | 11 |
+| `UI_ZeD_Desktop_Tally_Note` | `days counted in pencil on the plaster.` | Desktop window, help line: follows the name and a colon | - |
+| `UI_ZeD_Desktop_Usa` | `USA` | Desktop window: name under a swatch, the United States flag | 11 |
+| `UI_ZeD_Desktop_Usa_Note` | `the Stars and Stripes, faded by a few summers on the porch.` | Desktop window, help line: follows the name and a colon (the Stars and Stripes is the US flag's name) | - |
+| `UI_ZeD_Desktop_Kentucky` | `Kentucky` | Desktop window: name under a swatch, the flag of the US state of Kentucky | 11 |
+| `UI_ZeD_Desktop_Kentucky_Note` | `the Commonwealth's flag: the seal, its motto, goldenrod in bloom.` | Desktop window, help line: follows the name and a colon (the Commonwealth is Kentucky; the words on the flag itself are not translated) | - |
 
 ## Disclose
 
@@ -2224,8 +2282,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_MainMenu_TermsOfService` | `Terms of service` | Main menu bar, ZeD menu: opens the terms of service | - |
 | `UI_ZeD_MainMenu_UptimeHours` | `%1 h %2 min` | About block: uptime of an hour or more. %1 hours, %2 minutes (two digits) | - |
 | `UI_ZeD_MainMenu_UptimeMinutes` | `%1 min` | About block: uptime under an hour. %1 minutes | - |
-| `UI_ZeD_MainMenu_WallpaperNew` | `New wallpaper` | Main menu bar, Settings menu: picks the new title video as the desktop wallpaper | - |
-| `UI_ZeD_MainMenu_WallpaperOriginal` | `Original wallpaper` | Main menu bar, Settings menu: picks the painting as the desktop wallpaper | - |
+| `UI_ZeD_MainMenu_Desktop` | `Desktop...` | Main menu bar, Settings menu: opens the Desktop window, where the monitor's desktop (its wallpaper) is picked. The three dots say a window opens | 24 |
 
 ## Map
 

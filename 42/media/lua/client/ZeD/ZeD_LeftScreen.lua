@@ -195,7 +195,7 @@ function ZeD_LeftDesk:prerender()
         local L = MM.roomLayout()
         local t = getTimestampMs()
         MM.drawDesk(self, L, t)
-        MM.drawWallpaper(self, L, t)
+        MM.drawWallpaper(self, L, t)   -- (the chosen desktop, as on the main menu: Desktops, Nov 22 2026)
         local step, line = math.max(2, px(3)), math.max(1, px(1))
         for y = L.ty, L.ty + L.th - 1, step do self:drawRect(L.tx, y, L.tw, line, 0.11, 0, 0, 0) end
     end)

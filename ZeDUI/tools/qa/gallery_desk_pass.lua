@@ -12,24 +12,24 @@ local function shot(n)
     local ok, e = pcall(function() getCore():TakeFullScreenshot(n .. ".png") end)
     say("shot " .. n .. " " .. (ok and "ok" or ("ERR " .. tostring(e))))
 end
-local was = MM.wallpaper()
+local was = MM.desktop()
 local steps, t = {}, 0
 local function at(n, fn) steps[#steps + 1] = { n = n, fn = fn } end
 local function settle() MM.ctx.open = nil; MM.showView("main") end
 
 at(2, function()
     say("wallpaper was " .. tostring(was) .. " | video effects " .. tostring(getCore():getOptionDoVideoEffects()))
-    if MM.wallpaper() ~= "original" then MM.setWallpaper("original") end
+    if MM.desktop() ~= "painting" then MM.setDesktop("painting") end
     settle()
 end)
 at(240, function() shot("desk_01_painting") end)
 at(250, function() MM.ctx.open = "settings" end)
 at(300, function() shot("desk_02_painting_wallpaper_setting") end)
-at(310, function() MM.ctx.open = nil; MM.setWallpaper("new"); settle() end)
+at(310, function() MM.ctx.open = nil; MM.setDesktop("video"); settle() end)
 at(700, function() shot("desk_03_video") end)
 at(710, function() MM.ctx.open = "settings" end)
 at(760, function() shot("desk_04_video_wallpaper_setting") end)
-at(770, function() MM.ctx.open = nil; MM.setWallpaper("original"); MM.showView("trash") end)
+at(770, function() MM.ctx.open = nil; MM.setDesktop("painting"); MM.showView("trash") end)
 at(860, function()
     local w = MM.views and MM.views.trash and MM.views.trash.win
     say("trash file: " .. tostring(ZeD.tr("UI_ZeD_Desktop_FileName")) .. " | " .. tostring(ZeD.tr("UI_ZeD_Desktop_FileKind")))
@@ -37,8 +37,8 @@ at(860, function()
 end)
 at(870, function()
     MM.showView("main")
-    if was ~= MM.wallpaper() then MM.setWallpaper(was) end
-    say("wallpaper back to " .. tostring(MM.wallpaper()))
+    if was ~= MM.desktop() then MM.setDesktop(was) end
+    say("wallpaper back to " .. tostring(MM.desktop()))
     say("DONE")
 end)
 
