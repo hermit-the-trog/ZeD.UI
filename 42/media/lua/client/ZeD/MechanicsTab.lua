@@ -180,6 +180,33 @@ local function endInspection(vid, chr, gone)
     end
 end
 
+-- The look ends (and the hood it opened shuts, as vanilla's window does) when the World window closes while he
+-- stands at the hood (QA K1-9). Called from the World window's close. Past the hood's reach nothing is closed.
+function MT.endLooks(chr)
+    if not chr then return end
+    local ids = {}
+    for vid in pairs(INSP) do ids[#ids + 1] = vid end   -- (collected first: endInspection clears entries)
+    for _, vid in ipairs(ids) do
+        local e = INSP[vid]
+        local v = e and e.vehicle
+        if v then endInspection(vid, chr, carGone(v)) end
+    end
+end
+
+-- E at a hood that is open on a car already looked at: end the look and shut the hood instead of looking again
+-- (QA K1-9). True when it did so, so the caller skips vanilla's look.
+function MT.closeHoodLook(chr, vehicle, part)
+    if not (chr and vehicle and part) then return false end
+    local vid = vehicle:getId()
+    if not INSP[vid] then return false end
+    local ok, open = pcall(function() return part:getDoor() ~= nil and part:getDoor():isOpen() end)
+    if not (ok and open) then return false end
+    local e = INSP[vid]
+    e.hood = e.hood or part   -- (the hood he stands at is the one to shut, whoever opened it)
+    endInspection(vid, chr, false)
+    return true
+end
+
 function MT.buildVehicles(chr)
     local out = {}
     if not chr then return out end
@@ -437,13 +464,29 @@ function MT.forThisCar(name, v)
     return name
 end
 
-local function keyState(v, chr)
+-- hoodRule true: the hood's rule for the engine-work rows (anyone may work on a car once a door or window is open).
+-- Otherwise the ignition's: the key the car starts with (QA K1-11)
+local function keyState(v, chr, hoodRule)
     local eng = v:getPartById("Engine")
     local ok, have = pcall(function() return chr:getInventory():haveThisKeyId(v:getKeyId()) end)
     if ok and have then return ZeD.tr("UI_ZeD_Veh_KeyOnYou"), "pos" end
+    if not hoodRule then
+        -- a key left in the ignition starts the car (the game's own words, without its full stop)
+        local inIgn = false
+        pcall(function() inIgn = v:isKeysInIgnition() == true end)
+        if inIgn then
+            local w = txt("Tooltip_Dashboard_KeysIgnition", "Key in ignition")
+            return (string.gsub(w, "%.$", "")), "pos"
+        end
+    end
     if v:isHotwired() then return ZeD.tr("UI_ZeD_Veh_KeyHotwired"), "pos" end
-    if eng and VehicleUtils.RequiredKeyNotFound(eng, chr) then return ZeD.tr("UI_ZeD_Veh_NotFound"), "warn" end
-    return ZeD.tr("UI_ZeD_Veh_KeyNotNeeded"), "pos"
+    if hoodRule then
+        if eng and VehicleUtils.RequiredKeyNotFound(eng, chr) then return ZeD.tr("UI_ZeD_Veh_NotFound"), "warn" end
+        return ZeD.tr("UI_ZeD_Veh_KeyNotNeeded"), "pos"
+    end
+    -- Not needed only when the sandbox lets anyone start a car (VehicleEasyUse); else he has no key for it
+    if SandboxVars and SandboxVars.VehicleEasyUse then return ZeD.tr("UI_ZeD_Veh_KeyNotNeeded"), "pos" end
+    return ZeD.tr("UI_ZeD_Dash_PromptNoKey"), "warn"
 end
 
 -- ----------------------------------------------------------------------------
@@ -800,7 +843,7 @@ needsCompute = function(s, part, verb, chr, v)
             rows[#rows + 1] = { ok = partsOk, label = getItemName("Base.EngineParts") or "Spare Engine Parts", value = tostring(n) }
         end
         local keyMissing = VehicleUtils.RequiredKeyNotFound(part, chr)
-        local ks = keyState(v, chr)
+        local ks = keyState(v, chr, true)   -- (the hood's rule here, QA K1-11)
         rows[#rows + 1] = { ok = not keyMissing, label = getText("IGUI_ItemType_Key"), value = keyMissing and ZeD.tr("UI_ZeD_Veh_NotFound") or ks }
         for _, r in ipairs(rows) do if not r.ok and not r.soft then ok = false end end
         if verb == "takeParts" then rows[#rows + 1] = { ok = false, soft = true, label = ZeD.tr("UI_ZeD_Veh_LowersEngine"), value = "" } end

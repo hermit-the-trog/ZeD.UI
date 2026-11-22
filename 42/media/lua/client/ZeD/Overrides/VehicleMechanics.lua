@@ -41,14 +41,40 @@ local function apply()
             if ZeD.Safe.on() then return origOnMechanic(playerObj, vehicle) end
             local MT = ZeD and ZeD.MechanicsTab
             if MT and MT.isInspected and MT.isInspected(vehicle) and not playerObj:getVehicle() then
+                -- U with the Vehicle tab up closes it, as the game's U toggles its window; closing the World window ends
+                -- the look and shuts the hood (QA K1-9)
+                local pn = playerObj:getPlayerNum()
+                local W = ZeD_WorldWindow
+                local win = W and W.isOpen and W.isOpen(pn) and W.getWindow and W.getWindow(pn)
+                if win and win._activeTab == "vehicle" then
+                    pcall(W.close, pn)
+                    return
+                end
                 local ok, handled = pcall(MT.openFromAction, playerObj, vehicle, nil)
                 if ok and handled then return end
             end
             return origOnMechanic(playerObj, vehicle)
         end
     end
+    -- E at the hood: vanilla's Use.EngineDoor looks again on an open hood; on a car already looked at, the hood shuts
+    -- instead (QA K1-9). Vehicles loads after the client files, so this is tried again at game start.
+    if Vehicles and Vehicles.Use and Vehicles.Use.EngineDoor and not Vehicles.Use._zedHoodHooked then
+        Vehicles.Use._zedHoodHooked = true
+        local origUse = Vehicles.Use.EngineDoor
+        Vehicles.Use.EngineDoor = function(vehicle, part, character)
+            if not ZeD.Safe.on() then
+                local MT = ZeD and ZeD.MechanicsTab
+                local ok, done = pcall(function()
+                    return MT and MT.closeHoodLook and MT.closeHoodLook(character, vehicle, part)
+                end)
+                if ok and done then return end
+            end
+            return origUse(vehicle, part, character)
+        end
+    end
     print("[ZeD] Overrides/VehicleMechanics: mechanics window routed to the Vehicle tab")
 end
 
 if Events and Events.OnGameBoot then Events.OnGameBoot.Add(apply) end
+if Events and Events.OnGameStart then Events.OnGameStart.Add(apply) end   -- (the hood hook needs Vehicles, loaded later) (QA K1-9)
 apply()

@@ -3627,6 +3627,10 @@ local function _closeWorldWindow(w)
     ZeD_WorldWindow._endZoneDraw()
     saveWorldState(w)
     if ZeD.MapsTab and ZeD.MapsTab.closePopout then ZeD.MapsTab.closePopout(w, true) end
+    -- a look at a car ends with the window, and the hood it opened shuts (QA K1-9)
+    if ZeD.MechanicsTab and ZeD.MechanicsTab.endLooks then
+        pcall(ZeD.MechanicsTab.endLooks, w._playerObj or getSpecificPlayer(w.playerNum or 0))
+    end
     -- unregisterWindow releases focus if this window holds it
     if ZeD and ZeD.Input and ZeD.Input.Focus then ZeD.Input.Focus.unregisterWindow(w) end
     w:removeFromUIManager()
