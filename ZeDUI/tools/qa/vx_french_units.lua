@@ -7,8 +7,10 @@
 -- No car is spawned: the dash's own two steps (ZeD.Dashboard._designFor and _badges, exposed for QA probes) are asked
 -- with a stand-in car that answers getScript and getId only, so the name comes from the game's own French text
 -- (IGUI_VehicleName<model>) exactly as for a real car. For each of the game's fleet cars named in French, the unit line
--- must lead with the service (POLICE, FIRE, RANGER, SHERIFF, AMBULANCE, TAXI) and never with a maker. The English names
--- of the same cars are not in play here; vx_vehicles.lua covers English. Nothing is changed and nothing is written.
+-- must lead with the service and never with a maker. (The director, Nov 21 2026, fd4981a9f: the service is painted in
+-- French too, the word the car's own name uses: POMPIERS, FORESTIER, POLICE, SHERIFF, AMBULANCE, TAXI; the English
+-- service still picks the unit word, CAMION for a fire engine.) The English names of the same cars are not in play
+-- here; vx_vehicles.lua covers English. Nothing is changed and nothing is written.
 
 if not RT then
     print("ZEDQA vx_fr ERR the kit (rt_kit.lua) did not run first")
@@ -21,11 +23,11 @@ local Q = RT.make("vx_fr")
 Q.maxMs = 60000
 local S = {}
 
--- the game's fleet cars, by model, and the service their unit line must lead with
+-- the game's fleet cars, by model, and the service word (as the car's French name says it) their unit line must lead with
 S.CARS = {
-    { "CarLightsPolice", "POLICE" }, { "CarLightsRanger", "RANGER" }, { "PickUpTruckLightsFire", "FIRE" },
-    { "PickUpTruckLightsRanger", "RANGER" }, { "PickUpVanLightsFire", "FIRE" }, { "PickUpVanLightsPolice", "POLICE" },
-    { "PickUpVanLightsRanger", "RANGER" }, { "CarLightsBulletinSheriff", "SHERIFF" }, { "CarLightsMuldraughPolice", "POLICE" },
+    { "CarLightsPolice", "POLICE" }, { "CarLightsRanger", "FORESTIER" }, { "PickUpTruckLightsFire", "POMPIERS" },
+    { "PickUpTruckLightsRanger", "FORESTIER" }, { "PickUpVanLightsFire", "POMPIERS" }, { "PickUpVanLightsPolice", "POLICE" },
+    { "PickUpVanLightsRanger", "FORESTIER" }, { "CarLightsBulletinSheriff", "SHERIFF" }, { "CarLightsMuldraughPolice", "POLICE" },
     { "ModernCarLightsCityLouisvillePD", "POLICE" }, { "ModernCarLightsWestPoint", "POLICE" }, { "VanAmbulance", "AMBULANCE" },
     { "CarTaxi", "TAXI" },
 }

@@ -733,9 +733,11 @@ Q.step(3, function()
     local zo = H.opts()
     for _, o in ipairs((zo and zo.data) or {}) do if o.element then own[o.element] = tostring(o.id) end end
     local n, bad, noDef = 0, {}, {}
+    -- (Nov 21 2026, the director, 7d8dc58ce: Defaults leaves Style as it is, so a Lite player stays in Lite; its row keeps
+    -- its zedDefault for the help's "Default: Full" and carries zedNoReset, so it is not held to its default here)
     for _, r in ipairs(w:zedSetupRows() or {}) do
         local c = r.control
-        if r.zedDefault and c and not c.disabled then
+        if r.zedDefault and c and not c.disabled and not r.zedNoReset then
             n = n + 1
             if c.selected ~= r.zedDefault then bad[#bad + 1] = tostring(r.labelKey or r.label) .. "=" .. tostring(c.selected) end
         end

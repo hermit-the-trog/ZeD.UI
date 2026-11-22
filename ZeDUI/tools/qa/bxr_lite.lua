@@ -8,8 +8,8 @@
 --                                           rows under it read On, Reset to defaults (bottom row, by Back) is live, not
 --                                           yet pressed
 --   B3-1_lite_after_defaults_extras_off     after Reset to defaults (no Apply; Discard after), the same frame: the extras
---                                           read Off, Reset to defaults grays; Style should read Full (it read Lite on
---                                           Nov 21: B10-1, the line prints the row's live pick, never fixed words)
+--                                           read Off, Reset to defaults grays; Style stays Lite (the director, Nov 21,
+--                                           7d8dc58ce: Defaults leaves Style; the line prints the row's live pick)
 --   B7-5_before_remove_two_pens             the Animals tab's overview at the farm, two pens with animals
 --   B7-5_after_remove_card_gone             after Remove zone on one pen, its animals still standing there: its card gone
 -- The setup pictures: nothing is applied. The Options window is held solid (as with the pointer on it) and the pointer
@@ -347,7 +347,7 @@ Q.step(30, function()
         K.shot(name, "after Reset to defaults, nothing applied, the same frame (the Style row at the top, the " .. K.addTitle() .. " rows under it): the extras read "
             .. (off and "Off" or "NOT all Off") .. " (" .. K.extras() .. "; " .. K.loadoutsLine()
             .. "), Reset to defaults " .. ((h and h.disabled) and "grayed (nothing left off its default)" or "still live")
-            .. "; the Style row's pick reads " .. ((K.sel("lookStyle") == 1) and "Full" or ((K.sel("lookStyle") == 2) and "Lite (FAULT B10-1: Defaults skips Style)" or tostring(K.sel("lookStyle"))))
+            .. "; the Style row's pick reads " .. ((K.sel("lookStyle") == 2) and "Lite (kept by Defaults, the director's Nov 21 rule)" or ((K.sel("lookStyle") == 1) and "Full (NOTE: Defaults moved Style, against the director's Nov 21 rule)" or tostring(K.sel("lookStyle"))))
             .. ", UI scale Auto (2x at 4K, so the window draws larger than in the other pictures), nothing applied until Discard", true)
     else
         K.skip(name, "Defaults ran " .. tostring(S.defOk) .. ", the Style row in view " .. tostring(K.styleInView()) .. ", the " .. K.addTitle()
