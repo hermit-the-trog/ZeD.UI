@@ -349,7 +349,7 @@ ZeD.trDefaults({
     UI_ZeD_Belt_SlotKey = "%1 | key %2", UI_ZeD_Belt_Watch = "Watch", UI_ZeD_Belt_WatchSpeed = "Speed | %1x",
     UI_ZeD_Belt_WatchStart = "Start", UI_ZeD_Belt_WatchLight = "Light", UI_ZeD_Belt_WatchTuck = "%1 | Tuck away",
     UI_ZeD_Belt_WatchFull = "%1 | Full watch", UI_ZeD_Belt_Replace = "Replace %1",
-    UI_ZeD_Belt_InBags = "In your bags", UI_ZeD_Belt_BestLight = "Best light: %1",
+    UI_ZeD_Belt_InBags = "Also on you", UI_ZeD_Belt_BestLight = "Best light: %1",
     UI_ZeD_Belt_AmmoEmpty = "Empty", UI_ZeD_Belt_AmmoMags = "%1 mag", UI_ZeD_Belt_AmmoRounds = "%1 rds",
     UI_ZeD_Belt_AmmoBoxes = "+%1 box", UI_ZeD_Belt_AmmoGunEmpty = "%1 | empty",
     UI_ZeD_Belt_AmmoInMag = "%1 | %2 in the magazine", UI_ZeD_Belt_AmmoInCyl = "%1 | %2 in the cylinder",

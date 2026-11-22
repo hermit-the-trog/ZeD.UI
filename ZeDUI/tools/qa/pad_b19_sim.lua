@@ -196,17 +196,15 @@ if block then
     local byName = {}
     for _, it in ipairs(items) do byName[it.name] = it end
     check("228p: Controller map is in the menu with a pad", byName["UI_ZeD_Wheel_ControllerMap"] ~= nil and byName["UI_ZeD_Wheel_ControllerMap"].category == "setup")
-    check("228p: Hide interface is in the menu", byName["UI_ZeD_Wheel_HideInterface"] ~= nil and byName["UI_ZeD_Wheel_HideInterface"].category == "setup")
+    check("228p: Hide interface is not in the mouse's menu (QA K1-6)", byName["UI_ZeD_Wheel_HideInterface"] == nil)
     if byName["UI_ZeD_Wheel_ControllerMap"] then byName["UI_ZeD_Wheel_ControllerMap"].onFire() end
-    if byName["UI_ZeD_Wheel_HideInterface"] then byName["UI_ZeD_Wheel_HideInterface"].onFire() end
     check("228p: Controller map opens the wheel's map for this player", cmOpened == 0)
-    check("228p: Hide interface runs the wheel's own hide", hidden == 1)
     JoypadState = { players = {} }
     items = {}
     fn(items, tr, 0)
     local cm = false
     for _, it in ipairs(items) do if it.name == "UI_ZeD_Wheel_ControllerMap" then cm = true end end
-    check("228p: no pad, no Controller map (Hide interface stays)", not cm and #items == 1, #items)
+    check("228p: no pad, no Controller map, nothing else in the block", not cm and #items == 0, #items)
 end
 local dw = readSrc("ZeD_DpadWheels.lua")
 check("228p: the wheel's own hide is the one the menu calls (H.hideInterface)", has(dw, "function H.hideInterface()"))

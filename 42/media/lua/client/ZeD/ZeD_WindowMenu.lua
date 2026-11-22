@@ -19,7 +19,7 @@
 --   Save position, Go to saved position (greyed while nothing is saved)
 --   ----
 --   Bug report (the Select wheel's: caught errors onto the clipboard)
---   Controller map (with a pad), Hide interface (the Select wheel's too)
+--   Controller map (with a pad)
 --   ZeD setup...
 --
 -- Before touching it: every choice calls what ZeD setup and the Select wheel
@@ -272,9 +272,9 @@ function WM.build(win)
     if MS and MS.copyBugReport then
         items[#items + 1] = { name = tr("UI_ZeD_Msg_BugReport"), category = "setup", onFire = function() MS.copyBugReport(pn) end }
     end
-    -- (punch list 228p (beta 19, Nov 16 2026): the Select wheel's Controller map and Hide interface, here too: two ways
+    -- (punch list 228p (beta 19, Nov 16 2026): the Select wheel's Controller map, here too: two ways
     -- to do everything. They call what the wheel calls. The map is a controller's, so it shows only with a pad.
-    -- Hiding the interface hides this window too; the wheel's Show interface (or the game's Toggle UI key) brings it back.)
+    -- Hide interface stays on the pad's View wheel only: a mouse has no way back from it (QA K1-6).)
     local CM = ZeD.ControllerMap
     if CM and CM.open and JoypadState and JoypadState.players and JoypadState.players[pn + 1] then
         items[#items + 1] = { name = tr("UI_ZeD_Wheel_ControllerMap"), category = "setup", onFire = function() CM.open(pn) end }
@@ -283,10 +283,6 @@ function WM.build(win)
     local KMap = ZeD.KeyboardMap
     if KMap and KMap.open then
         items[#items + 1] = { name = tr("UI_ZeD_KMap_Title"), category = "setup", onFire = function() KMap.open(pn) end }
-    end
-    local WH = ZeD.DpadWheels and ZeD.DpadWheels.H
-    if WH and WH.hideInterface then
-        items[#items + 1] = { name = tr("UI_ZeD_Wheel_HideInterface"), category = "setup", onFire = function() WH.hideInterface() end }
     end
     items[#items + 1] = { name = tr("UI_ZeD_WinMenu_Setup"), category = "setup", onFire = function() WM.openSetup(win) end }
     return items
@@ -308,3 +304,38 @@ function WM.open(win)
     win._wboxOpen = true
     WM.current = m
 end
+
+-- Escape and Resume: the game hides every visible panel and shows them again by name (ISUIHandler.setVisibleAllUI),
+-- and the belt, watch and moodle layer do not all come back with it. After the game shows its UI, show ours again,
+-- unless the interface was hidden on purpose with Toggle UI (allUIVisible false). (QA K1-6)
+function WM.showHud()
+    if ISUIHandler and ISUIHandler.allUIVisible == false then return end
+    local B = ZeD.Belt
+    for _, hud in pairs(B and B._huds or {}) do
+        if hud.wanted and hud:wanted() then hud:setVisible(true) end
+    end
+    local W = ZeD.Watch
+    local w = W and W.getInstance and W.getInstance()
+    if w and not (ZeD.Safe and ZeD.Safe.on("watch")) then w:setVisible(true) end
+    local M = ZeD.Moodles
+    if M and not (ZeD.Safe and ZeD.Safe.on("moodles")) then
+        for _, layer in pairs(M._layers or {}) do
+            layer:setVisible(true)
+            if layer._note then layer._note:setVisible(true) end
+        end
+    end
+end
+
+-- wrap the game's show/hide once; it runs the game's own code first
+local function wrapShowAll()
+    if not ISUIHandler or ISUIHandler._zedShowWrapped or not ISUIHandler.setVisibleAllUI then return end
+    ISUIHandler._zedShowWrapped = true
+    local orig = ISUIHandler.setVisibleAllUI
+    ISUIHandler.setVisibleAllUI = function(visible, ...)
+        local r = orig(visible, ...)
+        if visible then pcall(WM.showHud) end
+        return r
+    end
+end
+wrapShowAll()
+if Events and Events.OnGameStart then Events.OnGameStart.Add(wrapShowAll) end

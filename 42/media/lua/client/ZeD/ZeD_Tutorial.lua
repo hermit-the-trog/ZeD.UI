@@ -241,9 +241,30 @@ end
 local R = { on = false, i = 0, pn = 0, mode = "mouse", layer = nil, keys = nil, content = nil, anchor = {} }
 TU._state = R   -- (the test sim's way in)
 
+-- the player's own key for the game's Toggle Inventory, which opens both windows (read as the guide bubble reads its
+-- key: the binding, else the default I) (QA K1-14)
+local function invKeyName()
+    local ok, code = pcall(function() return getCore():getKey("Toggle Inventory") end)
+    if ok and code and code ~= 0 then
+        local ok2, n = pcall(function() return getKeyName(code) end)
+        if ok2 and n and n ~= "" then return tostring(n) end
+    end
+    return "I"
+end
+
+-- the player's own key for the survival guide (F1 unless rebound), as the guide bubble names it
+local function guideKeyName()
+    local G = ZeD.Guide
+    if G and G.bubbleKey then
+        local ok, k = pcall(G.bubbleKey, 0)
+        if ok and k then return tostring(k) end
+    end
+    return "F1"
+end
+
 local function stepWords(st)
     local base = "UI_ZeD_Tut_" .. st.key
-    local text = tr(base .. "_Text")
+    local text = tr(base .. "_Text", invKeyName(), guideKeyName())
     if R.mode == "pad" then
         local p = tr(base .. "_Pad")
         if p and p ~= "" and p ~= base .. "_Pad" then text = p end   -- (a step with no controller words keeps the mouse's)

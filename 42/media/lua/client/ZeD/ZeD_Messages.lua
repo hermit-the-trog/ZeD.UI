@@ -255,7 +255,8 @@ end
 -- with the toast out of the belt's Messages note
 --- opts (optional): key = this notice again is the same line (a repeat toasts the line it has, adds none), run = what
 --- a click on the balloon and the line's Open button do, dismiss = what a right-click on the balloon does, ms = how
---- long the balloon stays, long = a long text (the balloon gets more lines), pn = the player whose belt it comes from.
+--- long the balloon stays, long = a long text (the balloon gets more lines), pn = the player whose belt it comes from,
+--- force = the balloon shows whatever ZeD setup's notices setting says (QA K1-15).
 --- The survival guide's bubble uses all of them (ZeD_GuideBubble.lua).
 function M.notice(head, text, opts)
     opts = opts or {}
@@ -267,7 +268,7 @@ function M.notice(head, text, opts)
         end
     end
     if not it then it = M.add(head, "mods", { k = "notice", text = text, key = opts.key, run = opts.run }) end
-    local t = toast("warn", head, head, text, opts.pn, false, { ms = opts.ms, run = opts.run, dismiss = opts.dismiss, long = opts.long, bare = opts.run ~= nil })
+    local t = toast("warn", head, head, text, opts.pn, opts.force == true, { ms = opts.ms, run = opts.run, dismiss = opts.dismiss, long = opts.long, bare = opts.run ~= nil })
     return it, t
 end
 

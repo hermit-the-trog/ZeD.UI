@@ -658,7 +658,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 |---|---|---|---|
 | `UI_ZeD_Belt_BestLight` | `Best light: %1` | Belt HUD, controller list row for the best light; %1 = the light's name | 40 |
 | `UI_ZeD_Belt_Both` | `Both` | Belt HUD, foot of the off hand when the main hand holds a two-handed item | 8 |
-| `UI_ZeD_Belt_InBags` | `In your bags` | Belt HUD, header of the controller list of weapons and lights in the bags | 20 |
+| `UI_ZeD_Belt_InBags` | `Also on you` | Belt HUD, header of the controller list of weapons and lights in the bags | 20 |
 | `UI_ZeD_Belt_InHand` | `In hand` | Belt HUD, foot of a slot whose item is in a hand | 8 |
 | `UI_ZeD_Belt_Replace` | `Replace %1` | Belt HUD, chip over a full slot while dragging an item onto it; %1 = the item now there | 40 |
 | `UI_ZeD_Belt_SlotAnkle` | `Ankle` | Belt HUD, name printed inside an empty ankle holster slot box | 9 |
@@ -697,9 +697,9 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | Key | English | Where it shows | Max |
 |---|---|---|---|
 | `UI_ZeD_Card_Any` | `Any` | Reading Facts: value of Level Range when a book has no level limits | 10 |
-| `UI_ZeD_Card_ChipDispose` | `Dispose` | Item card, chip that marks an item as unwanted | 10 |
-| `UI_ZeD_Card_ChipFav` | `Fav` | Item card, chip that marks an item favourite | 6 |
-| `UI_ZeD_Card_ChipNoCraft` | `No-craft` | Item card, chip that keeps an item out of recipes | 10 |
+| `UI_ZeD_Card_ChipDispose` | `Unwanted` | Item card, chip that marks an item as unwanted (the game's word) | 10 |
+| `UI_ZeD_Card_ChipFav` | `Favorite` | Item card, chip that marks an item favorite (the game's word) | 10 |
+| `UI_ZeD_Card_ChipNoCraft` | `Unusable in Recipes` | Item card, chip that keeps an item out of recipes | 10 |
 | `UI_ZeD_Card_Combat` | `Combat` | Item card top stats (clothing): combat speed modifier row label | 10 |
 | `UI_ZeD_Card_CondLossHit` | `Cond loss / hit` | Defense Facts: how much condition the garment loses per hit (wide card) | 20 |
 | `UI_ZeD_Card_Cotton` | `Cotton` | Item card, clothing: fabric shown when the garment names none | 10 |
@@ -881,6 +881,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Craft_FindRecipe` | `Find recipe magazine or schematic` | Journal recipe card: hint for a recipe that must be learned from a magazine | - |
 | `UI_ZeD_Craft_HowToLearn` | `How to learn` | Journal recipe card: section heading above skill requirements | 20 |
 | `UI_ZeD_Craft_Known` | `Known` | Craft, Build and Journal tabs: sort button, and the Show toggle value (recipes you know) | 10 |
+| `UI_ZeD_Craft_NeedsBench` | `Needs a workbench or station nearby.` | Craft tab, recipe card: line under a stuck Craft button when the recipe is made at a bench or station and none is near | - |
+| `UI_ZeD_Craft_NeedsSurface` | `Needs a table or counter nearby.` | Craft tab, recipe card: line under a stuck Craft button when the recipe can be made on any surface and no table or counter is near (QA K1-7) | - |
 | `UI_ZeD_Craft_NoAlts` | `No alternatives found` | Craft and Build tabs, alternatives list: empty state | - |
 | `UI_ZeD_Craft_NoneWithin` | `None within %1 tiles.` | Craft tab, recipe card: second line when no needed station is near | - |
 | `UI_ZeD_Craft_Pinned` | `Pinned` | Craft and Build tabs: section heading above pinned recipes | 20 |
@@ -928,7 +930,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_CW_TabHelp` | `%1: press to show it in the drawer` | Character window: help line over a tab name; %1 = the tab's name | - |
+| `UI_ZeD_CW_TabHelp` | `%1: press to open its tab` | Character window: help line over a tab name; %1 = the tab's name | - |
 | `UI_ZeD_CW_MainHelp` | `%1: press to show it` | Character window: help line over the main container (what you carry) in the container strip; %1 = its name | - |
 | `UI_ZeD_CW_BagHelp` | `%1: press to show it, or drag it up or down the strip` | Character window: help line over a bag or other container in the container strip; %1 = its name | - |
 | `UI_ZeD_CW_SortHelp` | `The order of the bags below: press for the next order` | Character window: help line over the button that changes the order of the bags in the container strip | - |
@@ -1163,11 +1165,11 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Equip_BeltFrom` | `From the %1` | Equipment tab (Character window), list view: under a belt slot's name; %1 is the worn item that gives the slot (a belt, a holster...) | 40 |
 | `UI_ZeD_Equip_BeltHeadLeft` | `The belt \| keys` | Equipment tab (Character window), list view: the belt's heading, one line over its rows in the group headers' look (' \| ' is ZeD's separator). The keys are the hotbar keys 1-8 | 28 |
 | `UI_ZeD_Equip_BestZone` | `Best zone` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): stat label above the most protected body part | 14 |
-| `UI_ZeD_Equip_ColBullet` | `Bul` | Equipment tab (Character window), list view: column head above the slot rows (fixed narrow column) - bullet protection | 4 |
+| `UI_ZeD_Equip_ColBullet` | `Bullet` | Equipment tab (Character window), list view: column head above the slot rows (fixed narrow column) - bullet protection | 4 |
 | `UI_ZeD_Equip_ColCond` | `Cond` | Equipment tab (Character window), list view: column head above the slot rows (fixed narrow column) - condition bar | 6 |
-| `UI_ZeD_Equip_ColScratch` | `Scr` | Equipment tab (Character window), list view: column head above the slot rows (fixed narrow column) - scratch protection | 4 |
+| `UI_ZeD_Equip_ColScratch` | `Scratch` | Equipment tab (Character window), list view: column head above the slot rows (fixed narrow column) - scratch protection | 4 |
 | `UI_ZeD_Equip_ColSlot` | `Slot` | Equipment tab (Character window), list view: column head above the slot rows (fixed narrow column) - slot the item is worn in | 8 |
-| `UI_ZeD_Equip_ColWeight` | `Wt` | Equipment tab (Character window), list view: column head above the slot rows (fixed narrow column) - weight | 4 |
+| `UI_ZeD_Equip_ColWeight` | `Weight` | Equipment tab (Character window), list view: column head above the slot rows (fixed narrow column) - weight | 4 |
 | `UI_ZeD_Equip_Defense` | `Defense` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): section heading (only used by the legacy header path) | 14 |
 | `UI_ZeD_Equip_Detach` | `Detach` | Equipment tab (Character window), list view: button on a belt slot row holding an item (shown in sentence case) | 12 |
 | `UI_ZeD_Equip_Empty` | `Empty` | Equipment tab (Character window), list view: belt slot row with nothing attached, in place of the item name | 12 |
@@ -1880,10 +1882,10 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Inv_ColCat` | `Cat` | Inventory list: column heading for the item category | 6 |
+| `UI_ZeD_Inv_ColCat` | `Category` | Inventory list: column heading for the item category | 6 |
 | `UI_ZeD_Inv_ColCond` | `Status` | Inventory list: column heading for each row's state (condition, fill, uses, freshness); the director, Nov 12: "Status" | 6 |
 | `UI_ZeD_Inv_ColName` | `Name` | Inventory list: column heading, and the name of the sort order in the grid's order line | 8 |
-| `UI_ZeD_Inv_ColWt` | `Wt` | Inventory list: column heading for item weight | 4 |
+| `UI_ZeD_Inv_ColWt` | `Weight` | Inventory list: column heading for item weight | 4 |
 | `UI_ZeD_Inv_Empty` | `Nothing here.` | Inventory list: centered message when a container, a floor tile or any list has no items | 24 |
 | `UI_ZeD_Inv_GridView` | `Grid view` | Inventory lists: hover hint on the view button in a column heading while the grid is on show (one button flips between list and grid) | - |
 | `UI_ZeD_Inv_ItemsMany` | `%1 items` | Inventory lists (both windows), compact container header: how many items it holds (several or none) | 12 |
@@ -1893,7 +1895,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Inv_PickedMany` | `%1 of %2 picked \| %3 kg` | Inventory side's help line (both windows, at rest): while several rows are picked, %1 how many things are picked, %2 how many the list or shown columns hold, %3 the picked things' weight (one decimal). Like a file browser's "3 of 48 selected" | 40 |
 | `UI_ZeD_Inv_PickedOne` | `%1 of %2 picked \| %3 kg` | Inventory side's help line (both windows, at rest): while one thing is picked (%1 is 1), %2 how many the list holds, %3 its weight | 40 |
 | `UI_ZeD_Inv_LoadKg` | `%1 kg` | Inventory headings (both windows): the weight a container with no capacity holds (the floor), where the others show `%1 / %2 kg`; %1 is the weight (one decimal). Use the same unit as UI_ZeD_Char_WeightOfMax | 10 |
-| `UI_ZeD_Inv_RowHelp` | `%1: LMB for its card, drag to move it, RMB for its menu` | Inventory list: help line over an item's row; %1 = the item's name. LMB / RMB: mouse button abbreviation, keep short | - |
+| `UI_ZeD_Inv_RowHelp` | `%1: Left Click for its card, drag to move it, Right Click for its menu` | Inventory list: help line over an item's row; %1 = the item's name. Left Click / Right Click are the game's words for the mouse buttons | - |
 | `UI_ZeD_Inv_ColHelp` | `Sort by %1: press again to turn the order around` | Inventory list: help line over a column heading; %1 = the heading's text | - |
 | `UI_ZeD_Inv_CatFoldHelp` | `Press to fold this group` | Inventory list, Equipment tab and item card lists: help line over the heading of a group that is open | - |
 | `UI_ZeD_Inv_CatOpenHelp` | `Press to open this group` | Inventory list, Equipment tab and item card lists: help line over the heading of a group that is folded | - |
@@ -3754,7 +3756,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 |---|---|---|---|
 | `UI_ZeD_Station_AnySurface` | `Any surface` | Craft tab, station dropdown: small note on the Hand row | 14 |
 | `UI_ZeD_Station_Fallback` | `Station` | Craft tab, station select and band: name when the station has none | - |
-| `UI_ZeD_Station_Hand` | `Hand` | Craft tab, station dropdown and select: crafting with no station, by hand | 18 |
+| `UI_ZeD_Station_Hand` | `By hand` | Craft tab, station dropdown and select: crafting with no station, by hand | 18 |
 | `UI_ZeD_Station_InReach` | `Within reach` | Craft tab, station dropdown: heading above the stations you can use | 24 |
 | `UI_ZeD_Station_InUse` | `In use` | Craft tab, station dropdown: small note on a station someone else is using | 14 |
 | `UI_ZeD_Station_KindAppliance` | `Appliance` | Craft tab, station band: kind word after the distance | 12 |

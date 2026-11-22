@@ -822,6 +822,9 @@ function ZeD_SearchField:createChildren()
     if ZeD.Text and ZeD.Text.ownPlaceholder then ZeD.Text.ownPlaceholder(entry, self.placeholder or "")
     else entry:setPlaceholderText(self.placeholder or "") end
     self._shownPlaceholder = self.placeholder or ""
+    -- the box's own clear X, as the game's recipe filter has it; clearing changes the text, which update() below
+    -- sees and sends to onFilter like a keystroke (QA K1-10)
+    pcall(function() entry:setClearButton(true) end)
     entry.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
     entry.borderColor = { r = 0, g = 0, b = 0, a = 0 }
     entry.onCommandEntered = function()
@@ -2727,9 +2730,10 @@ end
 ---                 ... } (a chip left out: the pointer is tested here); win }
 --- @return height
 local FLAG_CHIPS = {
-    { kind = "fav",     glyph = "*", key = "UI_ZeD_Card_ChipFav" },
-    { kind = "nocraft", glyph = "o", key = "UI_ZeD_Card_ChipNoCraft" },
-    { kind = "dispose", glyph = "x", key = "UI_ZeD_Card_ChipDispose" },
+    -- (the help line over each mark is the game's own word for the action, as the action strip's tooltips: QA K1-13)
+    { kind = "fav",     glyph = "*", key = "UI_ZeD_Card_ChipFav",     tipOn = "ContextMenu_Unfavorite",     tipOff = "IGUI_CraftUI_Favorite" },
+    { kind = "nocraft", glyph = "o", key = "UI_ZeD_Card_ChipNoCraft", tipOn = "ContextMenu_UnsetNoRecipes", tipOff = "ContextMenu_SetNoRecipes" },
+    { kind = "dispose", glyph = "x", key = "UI_ZeD_Card_ChipDispose", tipOn = "ContextMenu_Wanted",         tipOff = "ContextMenu_Unwanted" },
 }
 local _chipOpts = {}
 function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRects, opts)
@@ -2769,6 +2773,10 @@ function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRect
         if outRects then outRects[k] = outRects[k] or {} end
         cw = A.drawFlagChip(panel, cursorX, rowY, k, marks and marks[k] or false, c.glyph, label,
             outRects and outRects[k] or nil, compact, o)
+        -- the mark's help line while the pointer is on it (QA K1-13)
+        if o.hover and ZeD.Help and ZeD.Help.set then
+            ZeD.Help.set(opts.win or panel, ZeD.tr((marks and marks[k]) and c.tipOn or c.tipOff))
+        end
         cursorX = cursorX + cw + gap
     end
 

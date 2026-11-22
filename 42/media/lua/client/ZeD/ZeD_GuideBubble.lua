@@ -149,7 +149,7 @@ function G.tick(now)
     if held() then st.nextAt = now + G.RETRY_MS; return end
     local M = ZeD.Messages
     if not (M and M.notice) then return end
-    local _, t = M.notice(G.head(), G.text(0), { key = KEY, run = G.open, dismiss = G.dismiss, ms = G.SHOW_MS, long = true, pn = 0 })
+    local _, t = M.notice(G.head(), G.text(0), { key = KEY, run = G.open, dismiss = G.dismiss, ms = G.SHOW_MS, long = true, pn = 0, force = true })   -- shows even with balloons off: the first-game pointer to F1 (QA K1-15)
     if not t then
         -- the balloons are off in ZeD setup: the line waits in Messages, and the bubble is not offered again this game
         G.done("off")
