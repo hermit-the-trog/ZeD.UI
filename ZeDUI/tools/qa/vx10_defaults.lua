@@ -1,40 +1,83 @@
--- ZeDUI/tools/qa/vx10_defaults.lua  (Nov 21 2026, QA; tag vx10_def): the in-game proof of Build's fix for B10-1 of
--- QA batch 10 (ZeDUI/qa/audits/2026-11-21_beast_batch10.md; Build's fix: commit 9251ebdf6). Built on rt_kit.lua (the
--- global RT); run after zedqa_prelude.lua and rt_kit.lua. grep "ZEDQA vx10_def". No pictures.
+-- ZeDUI/tools/qa/vx10_defaults.lua  (Nov 21 2026, QA; tag vx10_def; reworked Nov 22 2026 to the director's rule in
+-- 7d8dc58ce): the in-game proof of ZeD setup's Reset to defaults as it stands. Built on rt_kit.lua (the global RT); run
+-- after zedqa_prelude.lua and rt_kit.lua. grep "ZEDQA vx10_def". No pictures.
 --
--- B10-1  Reset to defaults in ZeD setup skipped Style, Map and Restock. Settings.lua noted no default (zedDefault) for
---        lookStyle, mapLight and restock, so in Lite with everything else on its default the button sat gray from the
---        start and Defaults could never take a Lite player back to Full; the Style row's help band had no help line
---        and no "Default: Full".
--- The scene, in memory only: every ZeD setting's stored value put on the item it starts on (its zedDefault; an option
--- with none takes the item its mod declared, ZeD.ModOptionsOwners.default) and Style stored Lite, set as a value the
--- way bxr_lite.lua sets it (not picked, so the extras stay on their own defaults, the Vanilla preset); the look then
--- applied from those values as a game start applies it (ZeD.Settings.reapplyFromOptions). Both windows are shut
--- first (the UI scale's default can differ from the run's, and a scale change shuts open windows), and the game's save
--- of ModOptions.ini is held from the staging until every value is back as found: a stand-in counts the asks and
--- nothing is written. Then the pause menu, ZeD's Options, the ZeD setup page, the pointer the game reads held on the
--- window's title bar (no row lit by chance).
+-- B10-1     (QA batch 10, ZeDUI/qa/audits/2026-11-21_beast_batch10.md) Reset to defaults skipped Style, Map and
+--           Restock: Settings.lua noted no default (zedDefault) for lookStyle, mapLight and restock, and the Style row's
+--           help band had no help line and no "Default: Full". Build's fix, 9251ebdf6, gave the three their defaults,
+--           and Defaults then reset all three, Lite back to Full (this script passed on that code at 4K and 1280x800 on
+--           Nov 21: 17 pass).
+-- The rule now (the director, Nov 21 2026; Build's commit 7d8dc58ce): Reset to defaults LEAVES Style as it is, so a
+--           Lite player stays in Lite. The Style row keeps its default (Full), so its help band still shows its help
+--           line and "Default: Full", but the row carries zedNoReset: zedOffDefault does not count it and zedDefaults
+--           does not set it. Map and Restock keep their defaults and Defaults still resets them (9251ebdf6 stands for
+--           those two).
+--
+-- The scene, in memory only, in two parts. Both windows are shut first (the UI scale's default can differ from the
+-- run's, and a scale change shuts open windows), and the game's save of ModOptions.ini is held from the staging until
+-- every value is back as found: a stand-in counts the asks and nothing is written. While Options is up the pointer the
+-- game reads is held on the window's title bar (no row lit by chance).
+--   Part 1  every ZeD setting's stored value on the item it starts on (its zedDefault; an option with none takes the
+--           item its mod declared, ZeD.ModOptionsOwners.default) and Style stored Lite, set as a value the way
+--           bxr_lite.lua sets it (not picked, so the extras stay on their own defaults, the Vanilla preset); the look
+--           then applied from those values as a game start applies it (ZeD.Settings.reapplyFromOptions). Then the pause
+--           menu, ZeD's Options and the ZeD setup page: Style is the only setting off its default.
+--   Part 2  Back from Options with nothing changed, as a player leaves it; while the pause menu shows, ONE ordinary
+--           setting stored off its default: Ammo on the belt (ammoBox) On, with the preset row stored on Custom, the
+--           preset those values make; then Options again from the pause menu. So Reset to defaults is live for a reason
+--           other than Style and is pressed through its own button.
+--           Why Ammo on the belt: an addition with a plain row of its own (an on/off switch, Off its default; not a row
+--           that works several settings, not a screen a mod can take, not Loadouts, whose pick adds or takes away the
+--           Restock row), and On it restyles and rescales nothing and shuts no window (a Look row would). It is also
+--           the Lite player's own case: an extra kept on shows the Additions group in Lite (QA B3-2), and Defaults
+--           takes the extras back to Vanilla while Style stays Lite.
+--           Why the preset row with it: each open of Options (ZeD_MMOptions:onShow) runs ZeD.Settings.reconcileAdditions,
+--           which sets the stored preset to the one the stored additions make and, reading Custom, WRITES the Custom set
+--           file (ZeD_custom_additions.txt). Stored already on Custom, it finds nothing to set: no file, no save.
+--           (QA review, Nov 22 2026) The preset stored is Settings.lua's own reading, not a copy of its rule kept here:
+--           with Options shut every control sits on its stored value, so ZeD.Settings.syncAdditionsPreset puts the
+--           preset control on the preset the stored values make, and that item is stored. With a control off its
+--           stored value or no reading, part 2 is not staged.
 -- (QA review, Nov 21 2026) A screen switch a mod holds (ZeD_StepAside.lua handed that screen to the mod) is left as
 -- found: moved in memory, StepAside's look once a second (paused too) would take it for the player taking the screen
--- back and write its record file, Zomboid/Lua/ZeD_step_aside.txt. One that is on keeps the button live on any code,
--- so check "live" is then a SKIP with the reason, as for an add-on's row off its own default.
--- The checks, in the order they run:
---   live      before the press, Reset to defaults (the bottom row, by Back) is live. Old code: gray, since nothing it
---             reached was off its default (Style had no default to be off).
---   help      the pointer held on the Style row: the help band shows Style's help line (UI_ZeD_Settings_LookStyleTip)
---             and, in its right column, "Default: Full". Read from what the Options window draws that frame (its
---             drawText calls, by their place in the band), not from the row's fields. Old code: the band was empty.
---   press     Reset to defaults pressed through its button (the call a click makes; on a gray button the call the
---             button would make, so the old code's reach still shows). Then: the Style row reads Full, a change
---             waiting for Apply with its changed mark, the stored Style still Lite; the button grays; every one of
---             ZeD's own drop-downs and switches on the page has a default and sits on it (an add-on's may have none
---             by design, ZeD_MainMenuOptionGroups.lua addonRows); and ZeD's settings with no row on the page (Map
---             always, Restock while Lite leaves the extras out) each have a default and sit on it. Old code: Style
---             still Lite with no changed mark; the Style row with no default; Map and Restock with none.
---   discard   Discard changes in the footer, then the band's Discard changes: every control back on its stored pick
---             (Style Lite again, no changed mark, nothing waiting) and nothing applied (every stored value still the
---             staged one, Style still Lite, no save asked, ModOptions.ini line for line as found). This passes on the
---             old code too: it guards the fix's new reach into Style.
+-- back and write its record file, Zomboid/Lua/ZeD_step_aside.txt. One that is on keeps the button live on any code, so
+-- check "alone" is then a SKIP with the reason, as for an add-on's row off its own default.
+--
+-- The checks, in the order they run ("9251ebdf6 alone" is the code before 7d8dc58ce, when Defaults reset Style):
+--   scene 1  ZeD setup in Lite: the Style row reads Lite, every other setting on its default, nothing changed yet.
+--   alone    the Style row has its default (Full) and is off it, yet Reset to defaults (the bottom row, by Back) is gray
+--            and nothing counts as off its default: Style alone does not count. 9251ebdf6 alone: live (Style's default
+--            counted). Before 9251ebdf6: Style had no default to be off, so nothing is proven (FAIL).
+--   again    Options closes with Back (nothing waiting) and opens again from the pause menu. (Should part 2 not stage,
+--            a FAIL line says why, Options stays shut and the checks below are left out.)
+--   scene 2  ZeD setup in Lite shows the Additions group: the Ammo on the belt row reads On, the preset row Custom, the
+--            Style row Lite, every other setting on its default, nothing changed yet.
+--   live     Reset to defaults is live (Ammo on the belt is off its default).
+--   help     the pointer held on the Style row: the help band shows Style's help line (UI_ZeD_Settings_LookStyleTip)
+--            and, in its right column, "Default: Full". Read from what the Options window draws that frame (its
+--            drawText calls, by their place in the band), not from the row's fields. Before 9251ebdf6: an empty band.
+--   press    Reset to defaults pressed through its button (the call a click makes; on a gray button the call the
+--            button would make, said so, so a wrong reach still shows). Then:
+--   style    the Style row still reads Lite with NO changed mark (nothing waits for it); the stored Style still Lite.
+--            9251ebdf6 alone: Full, a change waiting with its changed mark.
+--   extra    the Ammo on the belt row back on its default (Off) with its changed mark and the preset row on its default
+--            (Vanilla), a change waiting for Apply; the stored Ammo on the belt still On (nothing applied).
+--   gray     the button grays and nothing counts as off its default, with Style still on Lite, off its default (Full).
+--            9251ebdf6 alone: gray, but only because Style went to Full, so the check fails on Style. Before 9251ebdf6:
+--            Style had no default to be off.
+--   rows     every one of ZeD's own drop-downs and switches on the page has a default (Style's too, for its help) and
+--            sits on it, but the one Defaults leaves alone (marked zedNoReset): Style and only Style, still on its pick
+--            from before the press (Lite). An add-on's row may have no default by design (ZeD_MainMenuOptionGroups.lua
+--            addonRows): counted, not checked. 9251ebdf6 alone: no row marked, Style on Full.
+--   hidden   ZeD's settings with no row on the page (Map always; Restock while Loadouts is off) each have a default and
+--            sit on it. Before 9251ebdf6: Map and Restock had none.
+--   discard  Discard changes in the footer, then the band's Discard changes: every control back on its stored pick
+--            (Style Lite, Ammo on the belt On, the preset Custom; no changed mark, nothing waiting) and nothing applied
+--            (every stored value still the staged one, Style still Lite, no save asked, ModOptions.ini line for line as
+--            found). It passes on 9251ebdf6 alone too: it guards Defaults' reach.
+-- If Defaults reset Style again (9251ebdf6 alone, before 7d8dc58ce), four checks FAIL: alone, style, gray and rows. The
+-- others pass there too. On the code before 9251ebdf6 (no default for Style, Map or Restock) five FAIL: alone and gray
+-- (Style had no default to be off), help, rows and hidden.
 -- Put back (also when a step throws or the time runs out): Options left on the page it had and the pause menu shut as
 -- found; every ZeD setting's stored value as found and the look applied again from them, then the look, the window
 -- accents and the character's copies exactly as found; the game's own pointer, save of ModOptions.ini, the window's
@@ -56,6 +99,8 @@ Q.maxMs = 240000                     -- (four minutes, then the put-back; the sc
 local S = { p = RT.p, opt0 = {}, staged = {}, nOpt = 0, saves = 0, cap = {}, capOn = false, qcCalls = 0 }
 local H = {}
 local St, MM, Sc, Sf = ZeD.Settings, ZeD.MainMenu, ZeD.Scale, ZeD.Safe
+-- part 2's one ordinary setting off its default (see the head): Ammo on the belt, item 2 On (item 1 Off, its default)
+local X = { id = "ammoBox", on = 2, name = "Ammo on the belt" }
 S.gmx0, S.gmy0 = getMouseX, getMouseY
 
 -- ===================================================================== helpers: the game
@@ -134,7 +179,8 @@ end
 -- ===================================================================== helpers: ZeD's settings
 function H.opts() local zo = nil; pcall(function() zo = PZAPI.ModOptions:getOptions("ZeD_UI") end); return zo end
 function H.opt(id) local zo = H.opts(); return zo and zo.dict and zo.dict[id] or nil end
-function H.val(id) local o = H.opt(id); local v = nil; pcall(function() v = o:getValue() end); return v end
+-- (asked first: no option, no call, so nothing throws, even caught; in -debug a caught throw still logs an exception)
+function H.val(id) local o = H.opt(id); local v = nil; if o then pcall(function() v = o:getValue() end) end; return v end
 function H.el(id) local o = H.opt(id); return o and o.element or nil end
 -- every one of ZeD's settings (all are drop-downs to ModOptions: Settings.lua)
 function H.combos()
@@ -144,7 +190,7 @@ function H.combos()
     return out
 end
 -- the item a setting starts on: its zedDefault (Settings.lua), else the item its mod declared before the saved values
--- were read (ZeD.ModOptionsOwners: the old code's Style, Map and Restock had only this one)
+-- were read (ZeD.ModOptionsOwners: the code before 9251ebdf6 gave Style, Map and Restock only this one)
 function H.defOf(o)
     if o.zedDefault ~= nil then return o.zedDefault end
     local d = nil
@@ -152,9 +198,16 @@ function H.defOf(o)
     if type(d) == "number" then return d end
     return nil
 end
-function H.lite() local v = false; pcall(function() v = St.lite() and true or false end); return v end
-function H.offVanilla() local v = nil; pcall(function() v = St.additionsOffVanilla() and true or false end); return v end
-function H.itemText(el, i) local t = nil; pcall(function() t = el:getOptionText(i) end); return tostring(t) end
+-- (the stored Style; the stored additions against the Vanilla preset)
+function H.lite() local v = false; if St.lite then pcall(function() v = St.lite() and true or false end) end; return v end
+function H.offVanilla() local v = nil; if St.additionsOffVanilla then pcall(function() v = St.additionsOffVanilla() and true or false end) end; return v end
+-- an item's words on a drop-down ("?" with no drop-down or no item to ask about)
+function H.itemText(el, i)
+    if not (el and i ~= nil and el.getOptionText) then return "?" end
+    local t = nil
+    pcall(function() t = el:getOptionText(i) end)
+    return tostring(t)
+end
 -- the screen switches a mod holds now (ZeD_StepAside.lua handed that screen to the mod): option id -> the screen.
 -- Left as found by the scene: StepAside reads the stored switch once a second, paused too, and a switch moved to Off
 -- would read as the player taking the screen back (its record file written, the hand-back forgotten)
@@ -170,8 +223,8 @@ function H.heldScreens()
     end)
     return out
 end
--- the scene, in memory: every setting on the item it starts on, Style on Lite. Returns how many, the ones moved, the
--- ones with no default found (left as they are) and the held screen switches left off their default
+-- part 1 of the scene, in memory: every setting on the item it starts on, Style on Lite. Returns how many, the ones
+-- moved, the ones with no default found (left as they are) and the held screen switches left off their default
 function H.stage()
     local n, moved, none, kept = 0, {}, {}, {}
     local held = H.heldScreens()
@@ -192,6 +245,43 @@ function H.stage()
         end
     end
     return n, moved, none, kept
+end
+-- part 2 of the scene (see the head): Ammo on the belt stored On, then the preset row stored on the preset the stored
+-- additions now make, as Apply would leave it, so the next open of Options (ZeD_MMOptions:onShow runs
+-- ZeD.Settings.reconcileAdditions) finds nothing to set: no Custom set file written, no save asked. (QA review) The
+-- preset is Settings.lua's own reading: with Options shut every control sits on its stored value (checked), so
+-- ZeD.Settings.syncAdditionsPreset puts the preset control on the preset the STORED values make. The control is
+-- cleared to 0 first, so a reading that did not run shows. Returns true and the preset's item, or false and why (then
+-- Options is not opened again, and the put-back runs)
+function H.stageExtra()
+    local o, po = H.opt(X.id), H.opt("additionsPreset")
+    local def = o and H.defOf(o)
+    if not (o and po and po.element and o.values and o.values[X.on] and def ~= nil and def ~= X.on and St.syncAdditionsPreset) then
+        return false, X.name .. " (" .. X.id .. ") or the preset row is missing, On is its default (default " .. tostring(def)
+            .. ") or Settings.lua has no syncAdditionsPreset"
+    end
+    pcall(function() o:setValue(X.on) end)
+    local off = H.liveOff()
+    local want = nil
+    if #off == 0 then
+        local pel = po.element
+        pel.selected = 0
+        pcall(St.syncAdditionsPreset)
+        want = pel.selected
+    end
+    if not (want and po.values and po.values[want]) then
+        pcall(function() o:setValue(def) end)
+        pcall(function() po:setValue(po.selected) end)   -- (its control back on its stored item)
+        return false, "Settings.lua's reading of the preset the stored additions make: " .. tostring(want)
+            .. " (controls off their stored value: " .. H.list(off) .. "); " .. X.name .. " put back Off"
+    end
+    pcall(function() po:setValue(want) end)
+    S.staged[X.id], S.staged.additionsPreset = X.on, want
+    if H.val(X.id) ~= X.on or H.val("additionsPreset") ~= want then
+        return false, X.name .. " stored " .. tostring(H.val(X.id)) .. ", the preset " .. tostring(H.val("additionsPreset"))
+            .. " (wanted " .. tostring(X.on) .. " and " .. tostring(want) .. ")"
+    end
+    return true, want
 end
 -- the staged settings whose control (Options open) is not on the staged item
 function H.notStaged()
@@ -231,6 +321,13 @@ function H.rowOf(id)
     for _, r in ipairs(H.rows()) do if r.control == el then return r end end
     return nil
 end
+-- whether a row shows its changed mark (a change waiting for Apply): true or false; nil with no row to ask about
+function H.marked(w, row)
+    if not (w and row) then return nil end
+    local m = nil
+    pcall(function() m = w:isChanged(row) and true or false end)
+    return m
+end
 -- a button of the window's bottom row, as the last frame built it (its id: "defaults", "discard", "confirm:yes")
 function H.spec(id)
     local w = H.W()
@@ -252,6 +349,19 @@ function H.ownName(c, m)
     pcall(function() if type(c) == "table" then mk = rawget(c, "zedMerged") end end)
     if mk then return "merged:" .. tostring(mk) end
     return nil
+end
+-- each of ZeD's own drop-downs and switches on ZeD setup: its pick now, by its name (H.ownName)
+function H.ownPicks()
+    local m = H.ownMap()
+    local t = {}
+    for _, r in ipairs(H.rows()) do
+        local c = r.control
+        if r.kind == "combo" and c then
+            local nm = H.ownName(c, m)
+            if nm then t[nm] = c.selected end
+        end
+    end
+    return t
 end
 -- the add-on rows on the page off their own default (each would keep the button live on any code: said in the scene)
 function H.addonOff()
@@ -332,7 +442,8 @@ function H.bandRead(w)
     if not (T and L) then return nil end
     local el = H.el("lookStyle")
     local full = ""
-    pcall(function() full = tostring(el:getOptionText(1) or "") end)
+    -- (asked first: no control, no call, so nothing throws, even caught)
+    if el and el.getOptionText then pcall(function() full = tostring(el:getOptionText(1) or "") end) end
     local dt = ZeD.tr("UI_ZeD_Options_DefaultIs", full)
     local tip = ZeD.tr("UI_ZeD_Settings_LookStyleTip")
     pcall(function() if MM.ui and MM.ui.plain then tip = MM.ui.plain(tip) end end)
@@ -385,9 +496,13 @@ function H.freeChords()
 end
 
 -- ----- the checks after the press, on the page's rows and on the settings with no row
+-- (7d8dc58ce) every one of ZeD's own rows has a default and sits on it, but the rows marked zedNoReset: those Defaults
+-- leaves as they were. Only Style's is marked, and it must still read its pick from before the press (S.pre: Lite).
+-- (9251ebdf6 alone: no row marked, Style on Full; before 9251ebdf6: the Style row with no default)
 function H.checkRows()
     local m = H.ownMap()
     local n, noDef, off, names, addon = 0, {}, {}, {}, 0
+    local alone, notStyle, styleAlone = {}, {}, false
     for _, r in ipairs(H.rows()) do
         local c = r.control
         if r.kind == "combo" and c then
@@ -395,16 +510,24 @@ function H.checkRows()
             if nm then
                 n = n + 1
                 names[nm] = true
-                if r.zedDefault == nil then noDef[#noDef + 1] = nm
-                elseif not c.disabled and c.selected ~= r.zedDefault then off[#off + 1] = nm .. "=" .. tostring(c.selected) .. " (default " .. tostring(r.zedDefault) .. ")" end
+                local was = S.pre and S.pre[nm]
+                if r.zedDefault == nil then noDef[#noDef + 1] = nm end
+                if r.zedNoReset then
+                    alone[#alone + 1] = nm .. "=" .. tostring(c.selected) .. " (before the press " .. tostring(was) .. ")"
+                    if nm ~= "lookStyle" then notStyle[#notStyle + 1] = nm
+                    elseif c.selected == was then styleAlone = true end
+                elseif r.zedDefault ~= nil and not c.disabled and c.selected ~= r.zedDefault then
+                    off[#off + 1] = nm .. "=" .. tostring(c.selected) .. " (default " .. tostring(r.zedDefault) .. ")"
+                end
             else
                 addon = addon + 1
             end
         end
     end
-    Q.check(n > 0 and names.lookStyle == true and #noDef == 0 and #off == 0,
-        "B10-1: after Reset to defaults every one of ZeD's own drop-downs and switches on ZeD setup has a default and sits on it (Style among them)",
+    Q.check(n > 0 and names.lookStyle == true and #noDef == 0 and #off == 0 and styleAlone and #notStyle == 0,
+        "7d8dc58ce: after Reset to defaults every one of ZeD's own drop-downs and switches on ZeD setup has a default (Style's too, for its help) and sits on it, but the one Defaults leaves alone: Style, still on Lite as before the press",
         n .. " of ZeD's rows, no default: " .. H.list(noDef) .. ", off their default: " .. H.list(off)
+        .. ", left alone by Defaults (zedNoReset): " .. H.list(alone) .. ((#notStyle > 0) and (" (not Style: " .. H.list(notStyle) .. ")") or "")
         .. ", other drop-downs left to their own rules (the game's settings, an add-on's): " .. addon)
 end
 function H.checkHidden()
@@ -426,7 +549,7 @@ function H.checkHidden()
     local mapAt = hasMap and "no row" or ((H.rowOf("mapLight") ~= nil) and "a row" or "nowhere")
     local resAt = hasRestock and "no row" or ((H.rowOf("restock") ~= nil) and "a row" or "nowhere")
     Q.check(#hid > 0 and #noDef == 0 and #off == 0 and mapAt ~= "nowhere" and resAt ~= "nowhere",
-        "B10-1: Reset to defaults also reaches ZeD's settings with no row on the page (Map; Restock while Lite leaves the extras out): each has a default and sits on it",
+        "B10-1: Reset to defaults still reaches ZeD's settings with no row on the page (Map always; Restock while Loadouts is off): each has a default and sits on it",
         #hid .. " settings with no row; Map: " .. mapAt .. ", Restock: " .. resAt .. "; no default: " .. H.list(noDef) .. ", off their default: " .. H.list(off))
 end
 
@@ -511,12 +634,12 @@ Q.step(5, function()
     S.shut = true          -- (the script shut them: the put-back opens them again and puts their layout back)
     RT.pairShut()
 end)
--- the scene, in memory only (the save held first: a save now would write Lite into the player's file)
+-- part 1 of the scene, in memory only (the save held first: a save now would write Lite into the player's file)
 Q.waitFor(5, 300, function() return not S.go or not RT.isOpen() end, function(ok)
     if not S.go then return end
     if not ok then Q.say("the windows did not shut; the run goes on with them open") end
     if not H.holdSave() then
-        Q.skip("B10-1: Reset to defaults in Lite", "the game's save of ModOptions.ini could not be held, so Style Lite is not staged (a save would write it)")
+        Q.skip("Reset to defaults in Lite (7d8dc58ce)", "the game's save of ModOptions.ini could not be held, so Style Lite is not staged (a save would write it)")
         S.go = false
         return
     end
@@ -525,7 +648,7 @@ Q.waitFor(5, 300, function() return not S.go or not RT.isOpen() end, function(ok
     S.kept = kept
     pcall(function() if St.forgetHeldCustom then St.forgetHeldCustom() end end)
     pcall(St.reapplyFromOptions)
-    Q.say("scene: " .. n .. " ZeD settings staged in memory, " .. #moved .. " moved (" .. H.list(moved) .. "); no default found for: " .. H.list(none)
+    Q.say("scene, part 1: " .. n .. " ZeD settings staged in memory, " .. #moved .. " moved (" .. H.list(moved) .. "); no default found for: " .. H.list(none)
         .. "; screen switches a mod holds, left as found off their default: " .. H.list(kept)
         .. " | Lite " .. tostring(H.lite()) .. ", extras off Vanilla " .. tostring(H.offVanilla()) .. ", " .. H.lookSay())
 end)
@@ -551,7 +674,7 @@ Q.waitFor(5, 300, function() return not S.go or H.optsUp() end, function(ok)
     H.park()
 end)
 
--- ===================================================================== the scene, and the button before the press
+-- ===================================================================== part 1: only Style off its default
 Q.step(6, function()
     if not S.go then return end
     local w = H.W()
@@ -568,19 +691,98 @@ Q.step(6, function()
         .. ", controls not on the staged item: " .. H.list(off) .. ", extras off Vanilla " .. tostring(H.offVanilla()) .. ", changes waiting " .. tostring(w:anyChanged())
         .. ", add-on rows off their default: " .. H.list(addon) .. ", screen switches a mod holds, off their default: " .. H.list(S.kept or {}))
     if not row then S.go = false; return end
-    local b = H.spec("defaults")
-    local live = nil
-    pcall(function() live = w:zedOffDefault() and true or false end)
+    local what = "7d8dc58ce: in Lite with every other setting on its default, Reset to defaults (bottom row, by Back) is gray: Style alone does not count"
     if #addon > 0 or #(S.kept or {}) > 0 then
         -- (another mod's setting off its own default, or a screen switch a mod holds left on, keeps the button live on any
         -- code: no proof either way)
-        Q.skip("B10-1: in Lite with every other setting on its default, Reset to defaults is live before it is pressed",
-            "the button is live whatever Style does: an add-on's row off its own default (" .. H.list(addon)
+        Q.skip(what, "the button is live whatever Style does: an add-on's row off its own default (" .. H.list(addon)
             .. "), a screen switch a mod holds left as found (" .. H.list(S.kept or {}) .. ")")
         return
     end
-    -- (old code: gray. Style had no default, Map and Restock none either, and everything else sat on its own)
-    Q.check(b ~= nil and not b.disabled, "B10-1: in Lite with every other setting on its default, Reset to defaults (bottom row, by Back) is live before it is pressed",
+    local b = H.spec("defaults")
+    local live = nil
+    pcall(function() live = w:zedOffDefault() and true or false end)
+    -- (9251ebdf6 alone: live. Style's default counted, and Style sat on Lite. QA review: Style must have its default and
+    -- be off it, or a gray button proves nothing: before 9251ebdf6 it was gray because Style had no default)
+    local styleOff = row.zedDefault ~= nil and el ~= nil and el.selected ~= row.zedDefault
+    Q.check(styleOff and b ~= nil and b.disabled == true and live == false, what,
+        "button drawn " .. tostring(b ~= nil) .. ", gray " .. tostring(b and b.disabled) .. ", something off its default " .. tostring(live)
+        .. "; the Style row reads " .. tostring(el and el.selected) .. ", its default " .. tostring(row.zedDefault)
+        .. ", left alone by Defaults (zedNoReset) " .. tostring(row.zedNoReset == true))
+end)
+
+-- ===================================================================== part 2: one ordinary setting off its default too
+-- (Back with nothing changed, as a player leaves ZeD setup; the setting stored while the pause menu shows; then Options
+-- again, which takes every value afresh as any open does: ZeD_MMOptions:onShow)
+Q.step(2, function()
+    if not S.go then return end
+    local w = H.W()
+    S.backHow = "Back"
+    S.backPlain = true
+    -- (nothing should wait here; if something does, it goes first, so Back leaves at once instead of asking, and check
+    -- "again", which claims a plain Back, fails)
+    if w.confirm or w:anyChanged() then
+        S.backPlain = false
+        S.backHow = "Discard changes first (confirm " .. tostring(w.confirm) .. ", changes waiting " .. tostring(w:anyChanged()) .. "), then Back"
+        pcall(function() w:discardStay() end)
+    end
+    pcall(function() w:back() end)
+end)
+Q.waitFor(2, 120, function() return not S.go or not H.optsUp() end, function(ok)
+    if not S.go then return end
+    S.backOk = ok and true or false
+    if not ok then return end
+    local staged, info = H.stageExtra()
+    if not staged then
+        -- (a change in Settings.lua, or a control off its stored value, stops it: Options is not opened again, every
+        -- check after it is left out, and the put-back runs)
+        S.go = Q.check(false, "part 2 of the scene: " .. X.name .. " stored On, the preset row on the preset those values make", tostring(info))
+        return
+    end
+    Q.say("scene, part 2: " .. X.name .. " (" .. X.id .. ") stored " .. tostring(H.val(X.id)) .. ", the preset row stored " .. tostring(H.val("additionsPreset"))
+        .. " (the preset the stored additions make: " .. tostring(info) .. "), extras off Vanilla " .. tostring(H.offVanilla()) .. ", Lite " .. tostring(H.lite())
+        .. ", pause menu up " .. tostring(H.menuUp()))
+    pcall(MM.openOptions)
+end)
+Q.waitFor(5, 300, function() return not S.go or not S.backOk or H.optsUp() end, function()
+    if not S.go then return end
+    local up = (S.backOk and H.optsUp()) and true or false
+    Q.check(up and S.backPlain == true, "ZeD's Options closes with Back (nothing waiting) and opens again from the pause menu",
+        "left with " .. tostring(S.backHow) .. ", closed " .. tostring(S.backOk) .. ", open again " .. tostring(H.optsUp()))
+    S.go = up
+    if not S.go then return end
+    local w = H.W()
+    pcall(function() for i, pg in ipairs(w:pages()) do if pg.setup then w.pageIdx = i end end end)
+    w.scroll = 0
+    w.focusId = nil
+    H.park()
+end)
+Q.step(6, function()
+    if not S.go then return end
+    local w = H.W()
+    H.park()
+    local pg = nil
+    pcall(function() pg = w:pages()[w.pageIdx] end)
+    local onSetup = pg ~= nil and pg.setup == true
+    local row, el = H.rowOf("lookStyle"), H.el("lookStyle")
+    local xrow, xel, pel = H.rowOf(X.id), H.el(X.id), H.el("additionsPreset")
+    local off = H.notStaged()
+    local waiting = w:anyChanged()
+    S.row, S.xrow = row, xrow
+    Q.check(onSetup and row ~= nil and el ~= nil and el.selected == 2 and H.lite() and xrow ~= nil and xel ~= nil and xel.selected == X.on
+        and pel ~= nil and pel.selected == S.staged.additionsPreset and #off == 0 and not waiting,
+        "the scene with one setting more, " .. X.name .. " stored On (the preset row on the preset those values make), Options opened again: ZeD setup in Lite shows the Additions group with the " .. X.name .. " row reading On, the Style row reading Lite, every other ZeD setting on its default, nothing changed yet",
+        "page " .. tostring(pg and pg.title) .. ", Style row " .. tostring(row ~= nil) .. " reading " .. tostring(el and el.selected) .. " (" .. H.itemText(el, el and el.selected) .. ")"
+        .. ", " .. X.name .. " row " .. tostring(xrow ~= nil) .. " reading " .. tostring(xel and xel.selected) .. " (" .. H.itemText(xel, xel and xel.selected) .. ")"
+        .. ", preset control " .. tostring(pel and pel.selected) .. " (" .. H.itemText(pel, pel and pel.selected) .. ")"
+        .. ", controls not on the staged item: " .. H.list(off) .. ", extras off Vanilla " .. tostring(H.offVanilla()) .. ", changes waiting " .. tostring(waiting)
+        .. ", screen switches a mod holds, off their default: " .. H.list(S.kept or {}))
+    if not row then S.go = false; return end
+    local b = H.spec("defaults")
+    local live = nil
+    pcall(function() live = w:zedOffDefault() and true or false end)
+    Q.check(b ~= nil and not b.disabled and live == true,
+        "with " .. X.name .. " On as well, Reset to defaults (bottom row, by Back) is live: it is pressed through its own button",
         "button drawn " .. tostring(b ~= nil) .. ", gray " .. tostring(b and b.disabled) .. ", something off its default " .. tostring(live))
 end)
 
@@ -617,8 +819,9 @@ Q.step(1, function()
             -- (the band holds three lines: a help line cut there must still be the help's start)
             local helpOk = helpJ ~= "" and B.tip ~= "" and B.tip:sub(1, #helpJ) == helpJ and (#helpJ == #B.tip or #B.help >= 3)
             local defOk = B.full ~= "" and defJ == B.dt
-            -- (old code: the row had no help key and no default, so the band drew nothing for it)
-            Q.check(helpOk and defOk, "B10-1: with the pointer on the Style row the help band shows Style's help line and, at its right, '" .. tostring(B.dt) .. "'",
+            -- (before 9251ebdf6: the row had no help key and no default, so the band drew nothing for it. 7d8dc58ce keeps
+            -- Style's default, so the band still says it although Defaults leaves Style alone)
+            Q.check(helpOk and defOk, "B10-1: with the pointer on the Style row the help band shows Style's help line and, at its right, '" .. tostring(B.dt) .. "' (still, though Defaults leaves Style alone)",
                 "help line: '" .. helpJ .. "' | right column: '" .. defJ .. "' | " .. #S.cap .. " texts drawn that frame, " .. tostring(S.pointWhy))
         end
     end
@@ -633,6 +836,7 @@ Q.step(3, function()
     local w = H.W()
     H.park()
     S.row = H.rowOf("lookStyle") or S.row
+    S.pre = H.ownPicks()   -- (each of ZeD's own rows' pick just before the press: the row Defaults leaves alone is held to it)
     H.holdChords()
     local b = H.spec("defaults")
     if b and not b.disabled and b.fn then
@@ -650,20 +854,34 @@ Q.step(3, function()
     local w = H.W()
     local row, el = H.rowOf("lookStyle") or S.row, H.el("lookStyle")
     local sel = el and el.selected
-    local mark = false
-    pcall(function() mark = w:isChanged(row) and true or false end)
+    local mark = H.marked(w, row)
     local waiting = w:anyChanged()
-    -- (old code: Style stayed on Lite, no changed mark)
-    Q.check(S.defOk and sel == 1 and mark and waiting and H.val("lookStyle") == 2 and H.lite(),
-        "B10-1: after Reset to defaults the Style row reads Full, a change waiting for Apply with its changed mark (the stored Style still Lite)",
-        "Style control " .. tostring(sel) .. " (" .. H.itemText(el, sel) .. "), changed mark " .. tostring(mark) .. ", changes waiting " .. tostring(waiting)
-        .. ", stored Style " .. tostring(H.val("lookStyle")) .. ", pressed through " .. tostring(S.defHow))
+    -- (9251ebdf6 alone: the Style row read Full, a change waiting with its changed mark)
+    Q.check(S.defOk == true and sel == 2 and mark == false and H.val("lookStyle") == 2 and H.lite(),
+        "7d8dc58ce: after Reset to defaults the Style row still reads Lite with no changed mark (nothing waits for it), and the stored Style is still Lite",
+        "Style control " .. tostring(sel) .. " (" .. H.itemText(el, sel) .. "), changed mark " .. tostring(mark) .. ", stored Style " .. tostring(H.val("lookStyle"))
+        .. ", pressed through " .. tostring(S.defHow))
+    local xo, po = H.opt(X.id), H.opt("additionsPreset")
+    local xel, pel = xo and xo.element, po and po.element
+    local xdef, pdef = xo and H.defOf(xo), po and H.defOf(po)
+    local xsel, psel = xel and xel.selected, pel and pel.selected
+    local xmark = H.marked(w, H.rowOf(X.id) or S.xrow)
+    local pmark = H.marked(w, H.rowOf("additionsPreset"))
+    Q.check(S.defOk == true and xdef ~= nil and xsel == xdef and xmark == true and pdef ~= nil and psel == pdef and waiting and H.val(X.id) == X.on,
+        "after Reset to defaults the " .. X.name .. " row is back on its default (Off) with its changed mark and the preset row on its default (Vanilla), a change waiting for Apply (the stored " .. X.name .. " still On: nothing applied)",
+        X.name .. " control " .. tostring(xsel) .. " (" .. H.itemText(xel, xsel) .. ", default " .. tostring(xdef) .. "), changed mark " .. tostring(xmark)
+        .. "; preset control " .. tostring(psel) .. " (" .. H.itemText(pel, psel) .. ", default " .. tostring(pdef) .. "), changed mark " .. tostring(pmark)
+        .. "; changes waiting " .. tostring(waiting) .. ", stored " .. X.name .. " " .. tostring(H.val(X.id)))
     local b = H.spec("defaults")
     local live = nil
     pcall(function() live = w:zedOffDefault() and true or false end)
-    Q.check(b ~= nil and b.disabled == true and live == false, "B10-1: after Reset to defaults the button grays: nothing on ZeD setup is left off its default",
-        "button drawn " .. tostring(b ~= nil) .. ", gray " .. tostring(b and b.disabled) .. ", something off its default " .. tostring(live))
-    -- (old code: the Style row with no default; Map and Restock with none among the settings with no row)
+    -- (9251ebdf6 alone: gray as well, but only because Style went to Full; this check needs Style still on Lite, off the
+    -- default its row has, so the gray proves Style does not count; before 9251ebdf6 the row had no default)
+    local sdef = row and row.zedDefault
+    Q.check(b ~= nil and b.disabled == true and live == false and sel == 2 and sdef ~= nil and sel ~= sdef,
+        "7d8dc58ce: after Reset to defaults the button grays while Style still reads Lite: nothing that counts is left off its default",
+        "button drawn " .. tostring(b ~= nil) .. ", gray " .. tostring(b and b.disabled) .. ", something off its default " .. tostring(live)
+        .. ", Style control " .. tostring(sel) .. " (" .. H.itemText(el, sel) .. "), its default " .. tostring(sdef))
     H.checkRows()
     H.checkHidden()
 end)
@@ -694,15 +912,18 @@ Q.step(3, function()
     if not S.go then return end
     local w = H.W()
     local row, el = H.rowOf("lookStyle") or S.row, H.el("lookStyle")
+    local xrow, xel = H.rowOf(X.id) or S.xrow, H.el(X.id)
     local lo, moved = H.liveOff(), H.storedMoved()
-    local mark = true
-    pcall(function() mark = w:isChanged(row) and true or false end)
+    local mark, xmark = H.marked(w, row), H.marked(w, xrow)
+    local waiting = w:anyChanged()
     local same, sameHow = H.fileSame("ModOptions.ini", S.ini0, S.iniState)
-    Q.check(#lo == 0 and el ~= nil and el.selected == 2 and not mark and not w:anyChanged() and not w.confirm and #moved == 0 and H.lite()
-        and S.saves == 0 and same ~= false,
-        "B10-1: Discard changes puts every row back on its stored pick (Style reads Lite again, no changed mark) and nothing was applied (the stored Style still Lite, nothing saved)",
+    -- (no Ammo on the belt row is the scene's fault, said by its own check: here only a mark it shows counts)
+    Q.check(#lo == 0 and el ~= nil and el.selected == 2 and mark == false and xel ~= nil and xel.selected == X.on and xmark ~= true
+        and not waiting and not w.confirm and #moved == 0 and H.lite() and H.val(X.id) == X.on and S.saves == 0 and same ~= false,
+        "Discard changes puts every row back on its stored pick (Style reads Lite, " .. X.name .. " On again, no changed mark) and nothing was applied (the stored Style still Lite, nothing saved)",
         "through " .. tostring(S.discHow) .. "; controls off their stored pick: " .. H.list(lo) .. ", Style control " .. tostring(el and el.selected)
-        .. ", changed mark " .. tostring(mark) .. ", changes waiting " .. tostring(w:anyChanged()) .. ", stored values moved: " .. H.list(moved)
+        .. ", changed mark " .. tostring(mark) .. ", " .. X.name .. " control " .. tostring(xel and xel.selected) .. ", changed mark " .. tostring(xmark)
+        .. ", changes waiting " .. tostring(waiting) .. ", stored values moved: " .. H.list(moved)
         .. ", saves asked " .. S.saves .. ", ModOptions.ini as found " .. tostring(same) .. " (" .. tostring(sameHow) .. ")")
 end)
 
