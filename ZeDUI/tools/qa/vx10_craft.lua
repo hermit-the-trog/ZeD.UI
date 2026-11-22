@@ -888,7 +888,9 @@ H.wait(8000, function() return S.dead or (H.showing() and H.cst() ~= nil and H.d
     -- a search found typed: emptied in its field and the tab together (H.setSearch), and the found one set back in
     -- the put-back (the tab's own search, S.keep.search: the field shows it again)
     local typed = ""
-    pcall(function() typed = RT.ww()._craftSearch:getText() or "" end)
+    local wwS = RT.ww()
+    local fS = wwS and wwS._craftSearch or nil   -- (asked first: no throw when the field is not there)
+    if fS then pcall(function() typed = fS:getText() or "" end) end
     if typed ~= "" or (st.search or "") ~= "" then
         S.searchWas = true
         H.setSearch(st, "")
@@ -1511,7 +1513,9 @@ Q.step(10, function()
             and (n.req and true or false) == (k.req and true or false) and (n.owned and true or false) == (k.owned and true or false)
         -- (the search field shows the list's search again)
         local field = nil
-        pcall(function() field = RT.ww()._craftSearch:getText() end)
+        local wwF = RT.ww()
+        local fF = wwF and wwF._craftSearch or nil   -- (asked first: no throw when the field is not there)
+        if fF then pcall(function() field = fF:getText() end) end
         if S.searchWas and field ~= nil and field ~= (k.search or "") then same = false end
         local scr = S.scrollNow ~= nil and math.abs(S.scrollNow - (k.scroll or 0)) < 0.0005
         Q.check(same and scr, "put back: the Crafting tab's Show, Sort, category, folds, search, open card and scroll as found",

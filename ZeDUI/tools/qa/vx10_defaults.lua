@@ -448,8 +448,11 @@ function H.putCopies()
         if ws and ws.world then ws.world.accentKey = S.wsW0 end
     end)
     ZeD._pendingCharAccent, ZeD._pendingWorldAccent = S.pendC0, S.pendW0
-    pcall(function() if S.cwAcc then RT.cw()._accentKey = S.cwAcc.k end end)
-    pcall(function() if S.wwAcc then RT.ww()._accentKey = S.wwAcc.k end end)
+    -- (a window that is not built has no accent to put back: asked first, so nothing throws, even caught; in -debug a
+    -- caught throw still counts as a new Lua error, Nov 21 run 1)
+    local cw, ww = RT.cw(), RT.ww()
+    if S.cwAcc and cw then pcall(function() cw._accentKey = S.cwAcc.k end) end
+    if S.wwAcc and ww then pcall(function() ww._accentKey = S.wwAcc.k end) end
 end
 -- the look as found: the see-through pick, the status set, the theme
 function H.putLook()

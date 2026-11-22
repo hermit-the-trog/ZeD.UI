@@ -216,13 +216,19 @@ function X.keepScroll(k, id)
     if id == nil or id == "loot" then return end
     local key = k .. ":" .. id
     if S.tsc[key] then return end
+    -- (a tab with no scroll of its own gives nil: asked first, so nothing throws, even caught; in -debug a caught throw
+    -- still logs a Java exception and the runner counts it, Nov 21 run 1)
     local pos = nil
-    pcall(function() pos = X.tabScroll(k, id).scrollPos end)
+    local sc = nil
+    pcall(function() sc = X.tabScroll(k, id) end)
+    if sc then pcall(function() pos = sc.scrollPos end) end
     S.tsc[key] = { k = k, id = id, pos = pos }
 end
 function X.tabScrollBack()
     for _, t in pairs(S.tsc) do
-        if t.pos ~= nil then pcall(function() X.tabScroll(t.k, t.id):setScrollPos(t.pos) end) end
+        local sc = nil
+        if t.pos ~= nil then pcall(function() sc = X.tabScroll(t.k, t.id) end) end
+        if sc then pcall(function() sc:setScrollPos(t.pos) end) end
     end
 end
 -- the next tab of S.TABS[k] the strip offers, pressed (S.try.cur; nil when none is left; a press that throws ends the
@@ -552,8 +558,10 @@ function X.gateGone()
 end
 
 -- ===================================================================== scroll, parts
-function X.scrollOf(k) local s = nil; pcall(function() s = X.content(k)._scroll.scrollPos end); return s end
-function X.scrollTo(k, pos) if pos ~= nil then pcall(function() X.content(k)._scroll:setScrollPos(pos) end) end end
+-- (asked step by step, so a missing list or scroll gives nil without a throw: a caught throw still logs in -debug)
+function X.scrollBar(k) local c = nil; pcall(function() c = X.content(k) end); return c and c._scroll or nil end
+function X.scrollOf(k) local sc, s = X.scrollBar(k), nil; if sc then pcall(function() s = sc.scrollPos end) end; return s end
+function X.scrollTo(k, pos) local sc = X.scrollBar(k); if pos ~= nil and sc then pcall(function() sc:setScrollPos(pos) end) end end
 -- a part that cannot go on: hard (a staging step that should work did not: a FAIL) or soft (this screen or this
 -- character cannot stage it: a SKIP); said once, in place of the part's checks
 function X.stop(key, why, hard)
@@ -938,7 +946,8 @@ step(2, function()
     end
     if #S.c.items < 3 then X.stop("C", "three things could not be made on the ground at his feet (" .. #S.c.items .. " made)", true); return end
     pcall(function() S.c.hideId = S.c.items[3]:getID() end)
-    pcall(function() RT.ww()._containerTimer = 30 end)   -- (the World list reads the ground afresh on its next frame)
+    local wwC = RT.ww()
+    if wwC then wwC._containerTimer = 30 end   -- (the World list reads the ground afresh on its next frame)
 end)
 waitFor(2, 300, function()
     if not S.ok.C then return true end
