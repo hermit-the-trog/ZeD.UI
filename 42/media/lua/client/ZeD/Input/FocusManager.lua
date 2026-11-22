@@ -2269,6 +2269,22 @@ local function _handleSpatialNav(w, dir)
         end
     end
 
+    -- (KISS #18) Up from a list row onto the list's heading lands on its Loot all, whatever heading button sits
+    -- nearest the row (on a narrow screen Pick all did, so A picked rows instead of taking all)
+    if dir == "up" and locator[logFromIdx] then
+        local fz = w._focusRing[locator[logFromIdx].zoneIdx]
+        local fe = fz and fz.elements and fz.elements[locator[logFromIdx].elementIdx]
+        local tzi = locator[newFlatIdx].zoneIdx
+        local tz = w._focusRing[tzi]
+        local te = tz and tz.elements and tz.elements[locator[newFlatIdx].elementIdx]
+        if fe and not fe.isViewToggle and te and te.isViewToggle and te.view ~= "lootall" then
+            for fi = 1, #locator do
+                local loc = locator[fi]
+                local e = loc.zoneIdx == tzi and tz.elements[loc.elementIdx]
+                if e and e.view == "lootall" and e.key == te.key then newFlatIdx = fi; break end
+            end
+        end
+    end
     if _preview then
         local z = w._focusRing[locator[newFlatIdx].zoneIdx]
         local e = z and z.elements and z.elements[locator[newFlatIdx].elementIdx]
