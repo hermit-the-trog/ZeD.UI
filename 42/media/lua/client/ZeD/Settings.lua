@@ -819,6 +819,9 @@ do
         autoLearn = "UI_ZeD_Settings_AutoLearn", runSneak = "UI_ZeD_Settings_RunSneak",
         uiSounds = "UI_ZeD_Settings_UiSounds",
         appliances = "UI_ZeD_Settings_Appliances",
+        -- (QA B10-1) Style, Map and Restock had no entry, so they had no default: Defaults skipped them and the help
+        -- band showed no "Default:" for them
+        lookStyle = "UI_ZeD_Settings_LookStyle", mapLight = "UI_ZeD_Settings_MapLight", restock = "UI_ZeD_Settings_Restock",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]
@@ -1084,7 +1087,9 @@ local function setUpAdditions()
         saveModOptions()
     end
     -- the options window's discard: the hand picks held for Custom go with the rest
-    function ZeD.Settings.forgetHeldCustom() held = nil; liteFrom = nil end   -- (and the picks Lite kept) (QA B6-4)
+    function ZeD.Settings.forgetHeldCustom() held = nil; liteFrom = nil end
+    -- (QA B10-1) Defaults sets Style back to Full along with every addition: the picks Lite kept must not come back
+    function ZeD.Settings.forgetLiteFrom() liteFrom = nil end   -- (and the picks Lite kept) (QA B6-4)
 
     -- A player who had ZeD before the additions' switches has ZeD's lines in ModOptions.ini. An addition that
     -- was on for them with no line of its own (Loadouts had no switch; a switch newer than their last save)

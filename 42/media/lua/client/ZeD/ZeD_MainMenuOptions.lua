@@ -1997,6 +1997,8 @@ function ZeD_MMOptions:zedOffDefault()
     return false
 end
 function ZeD_MMOptions:zedDefaults()
+    -- (QA B10-1) Style is reset too now: its trip to Full must not bring back the picks a Lite pick kept
+    if ZeD.Settings and ZeD.Settings.forgetLiteFrom then ZeD.Settings.forgetLiteFrom() end
     for _, r in ipairs(self:zedSetupRows()) do
         local c = r.control
         if r.zedDefault and c and not c.disabled and c.selected ~= r.zedDefault then setCombo(c, r.zedDefault) end
