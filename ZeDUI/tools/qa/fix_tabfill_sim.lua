@@ -66,7 +66,7 @@ ZeD = {
     T = setmetatable({
         px = function(n) return n end, fontF1 = "F1", fontF2 = "F2", fontF3 = "F3", fontF5 = "F3", selectionA = 0.3,
         fillBarH = 13, buttonH = 26, rowH = 24, scale = 1, disabledAlpha = 0.4, hair = 1,
-        sp = { scrollbarW = 14, afterLine = 10, afterGroove = 8, rowGap = 6, xs = 6, sm = 10, figureW = 220, figureH = 260 },
+        sp = { scrollbarW = 14, afterLine = 10, afterGroove = 8, rowGap = 6, xs = 6, sm = 10, figureW = 106, figureH = 272 },  -- (the figure without its grid) (Graphic cleanup, Nov 22 2026)
     }, { __index = function(t, k) local c = col(); rawset(t, k, c); return c end }),
     TM = { getFontHeight = function(_, f) return FH[f] or 19 end, MeasureStringX = function(_, f, s) return #tostring(s) * 7 end },
     tr = function(k, a) return k .. (a ~= nil and ("(" .. tostring(a) .. ")") or "") end,
@@ -344,8 +344,9 @@ if okH and HT then
 
     -- Every one of the game's overall words, in every language it ships, shows whole at 1x, the 1.5 step and
     -- 1.75x (the director's QA scale), Normal and Large text: wrapped to the Health tab's right column with the
-    -- scrollbar showing (layoutZoneA: the window's 480 less the 14 scrollbar, 8 + figure + 10 + 8, the figure 220
-    -- at its whole zoom: 220 wide at 1x and 1.5x, 330 at 1.75x). Widths are measured on the safe side: Fira's
+    -- scrollbar showing (layoutZoneA: the window's 480 less the 14 scrollbar, 8 + figure + 10 + 8, the figure 106
+    -- at its whole zoom: the column 334 wide at 1x, 448 at 1.5x and 558 at 1.75x, the figure drawn 2x at both; it was
+    -- 220 / 220 / 330 with the 220 grid figure) (Graphic cleanup, Nov 22 2026). Widths are measured on the safe side: Fira's
     -- letters at 0.6 em (mono, wider than the sans the line is drawn in), a CJK letter a whole em, a Thai mark none.
     local GAMEDIR = "E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/lua/shared/Translate/"
     local WORDS = { "ok", "Slight_damage", "Very_Minor_damage", "Minor_damage", "Moderate_damage", "Severe_damage",
@@ -381,7 +382,7 @@ if okH and HT then
     local realWrap, realMeasure = ZeD.Atoms.wrapText, ZeD.TM.MeasureStringX
     ZeD.Atoms.wrapText = wrapModel
     ZeD.TM.MeasureStringX = function(_, _, s) return cpW(tostring(s)) end
-    local STEPS = { { 1, 220, 13 }, { 1.5, 220, 19.5 }, { 1.75, 330, 22.75 }, { 1, 220, 15 }, { 1.5, 220, 22.5 }, { 1.75, 330, 26.25 } }
+    local STEPS = { { 1, 334, 13 }, { 1.5, 448, 19.5 }, { 1.75, 558, 22.75 }, { 1, 334, 15 }, { 1.5, 448, 22.5 }, { 1.75, 558, 26.25 } }
     local bad, seen, langsRead = {}, 0, 0
     for _, l in ipairs(VLANGS) do
         local j = readFile(GAMEDIR .. l .. "/IG_UI.json")

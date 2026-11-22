@@ -1,16 +1,18 @@
 """The body figure's skeletons in lit pixel art (director, Oct 17 2026: "rework the body skeleton and background and
 make female skelly"; lit pixel-art bones, the perspective grid redrawn, the flesh outline kept and refined).
 
-One 220 x 260 canvas for both sexes (the figure's own size, ZeD.Spacing.figureW / H, so the pixels land whole at 1x
-and 2x). Ivory bones lit from the top left like the plates; each bone belongs to one of the 17 body parts the Health,
-Thermal and Equipment tabs colour. Female: a smaller skull and jaw, narrower shoulders and ribcage, a wider, rounder
-pelvis, the thighs angled in toward the knees; her own silhouette.
+The bones are built on a 220 x 260 canvas (W, H) and ship in a narrower, taller frame, FW x FH (Nov 21 2026), the
+figure's own size (ZeD.Spacing.figureW / H, so the pixels land whole at 1x and 2x): the room grid is gone, a height
+ruler stands at the frame's left, and the tabs get the width back for their text. Ivory bones lit from the top left
+like the plates; each bone belongs to one of the 17 body parts the Health, Thermal and Equipment tabs colour. Female: a
+smaller skull and jaw, narrower shoulders and ribcage, a wider, rounder pelvis, the thighs angled in toward the knees;
+her own silhouette.
 
-Exports (media/textures/ZeD/body/):
-  <s>-skeleton.png        the whole skeleton, lit (drawn untinted over the grid)
-  <s>-<part>.png          each part's bones alone, same canvas (drawn tinted on top: injury, temperature, protection)
-  fig-bg-<s>-<dark|light>.png   the perspective grid and the flesh outline (drawn tinted by the theme)
-  and ZeD_BodyLayout.lua's tables (each part's hit rectangle, from its pixels)
+Exports (media/textures/ZeD/body/), every one FW x FH:
+  <s>-skeleton.png        the whole skeleton, lit (drawn untinted over the background)
+  <s>-<part>.png          each part's bones alone, same frame (drawn tinted on top: injury, temperature, protection)
+  fig-bg-<s>-<dark|light>.png   the height ruler and the flesh outline (drawn tinted by the theme)
+  _layout.lua.txt         ZeD_BodyFigure.lua's tables (each part's hit rectangle and the hit map, from its pixels)
 s = m / f. usage: python d_skeleton.py [mod root]"""
 import math
 import os
@@ -21,7 +23,7 @@ from PIL import Image
 from scipy import ndimage as ndi
 
 from physlib import *            # noqa: F401,F403
-from engine import add_ramp, OUTLINE
+from engine import add_ramp, OUTLINE, FONTS
 
 W, H = 220, 260
 CX = 110
@@ -679,90 +681,109 @@ def build(sex):
 
 
 # ---------------------------------------------------------------------------
+# the frame the figure ships in (Nov 21 2026, director: "remove the room grid from the health figure skeletons, the
+# background grid ... just a simple height ruler ... simple measurement lines on the left-hand side. And then increase
+# the horizontal space for the text next to it, so that the skeleton does not dominate as much"; then "let's go with a
+# little over 6 foot" and "It does not need a dotted line or text of the height. It's meant more of just a
+# suggestion."). The bones are still built on the W x H canvas above, so they come out pixel for pixel as before;
+# render() moves them DX, DY into this frame. Both moves are even, so the 2 x 2 hit map is the old one moved whole
+# cells.
+# ---------------------------------------------------------------------------
+FW, FH = 106, 272           # the frame: the ruler, a gap, the body, a little room at the right
+DX, DY = -50, 16            # the build canvas's (0, 0) lands at (-50, 16): his outline's left edge at x 19
+SOLE = 252                  # the soles' last row on the build canvas, both sexes
+HEAD_M = 6                  # the top of his head on the build canvas: 247 pixels tall, his 5'9"
+PX_FT = (SOLE + 1 - HEAD_M) / 5.75          # 42.96 pixels a foot; her 243 pixels come to 5'8"
+FLOOR = SOLE + 1 + DY       # the ruler's 0: the row under the soles, in the frame
+RULER_TOP_FT = 6.25         # the rail runs a little past 6 ft and stops open: no tick and no number up there
+RAIL_X = 7                  # the rail's column; the numbers sit left of it and the ticks run right, toward the body
+FOOT_TICK, HALF_TICK = 7, 4                 # tick lengths, the rail's own pixel counted
+RULER_NUMBERS = True        # 1' to 6' beside the foot ticks in the 3 x 5 face; False leaves the lines alone
+# the ruler's tones (alpha, tinted by the theme like the outline): a quiet suggestion, well under the outline's edge
+RAIL_A, FOOT_A, HALF_A, NUM_A = 0.30, 0.34, 0.22, 0.40
+
+
+def reframe(a):
+    """a build-canvas array (H x W, or H x W x n) moved DX, DY into the FH x FW frame. Nothing drawn may fall off."""
+    out = np.zeros((FH, FW) + a.shape[2:], a.dtype)
+    x0, x1 = max(0, -DX), min(W, FW - DX)           # the build canvas's columns and rows that land in the frame
+    y0, y1 = max(0, -DY), min(H, FH - DY)
+    out[y0 + DY:y1 + DY, x0 + DX:x1 + DX] = a[y0:y1, x0:x1]
+    lost = int(np.count_nonzero(a)) - int(np.count_nonzero(a[y0:y1, x0:x1]))
+    assert lost == 0, f"the frame cuts off {lost} drawn values"
+    return out
+
+
+# ---------------------------------------------------------------------------
 # the flesh outline: soft capsules round the bones, wider at the hips on her, a waist, the chest's contour
 # ---------------------------------------------------------------------------
 def silhouette(sex):
-    """the body's outline: the game's own body, traced (ref/outline_<s>.png)"""
-    return outline(sex)
+    """the body's outline in the frame: the game's own body, traced (ref/outline_<s>.png)"""
+    return reframe(outline(sex))
 
 
 # ---------------------------------------------------------------------------
-# the perspective grid: a room seen from the front, its back wall a grid, floor, ceiling and walls converging
+# the height ruler (Nov 21 2026): it took the room grid's place
 # ---------------------------------------------------------------------------
-def grid(light):
-    """tone image (0..1 per pixel) for the room: drawn tinted by the theme. Every line exactly one pixel wide (Oct 17
-    2026, director: "can those lines be even and fix line weights"): the back wall a grid of even 16-pixel squares, the
-    floor, ceiling and side walls running from each of its grid lines out to the frame, three depth bands evenly spaced
-    between the back wall and the frame. Two weights: the frame, the room's corners and the back wall's edge brighter,
-    everything else one softer tone"""
-    a = np.zeros((H, W), np.float32)
-    FRAME, GRID = 0.46, 0.20
+def text_px(s):
+    """s in the 3 x 5 face (engine's FONTS["35"]), one empty column between characters: a 5-row bool array"""
+    cols = []
+    for i, ch in enumerate(s):
+        if i:
+            cols.append(np.zeros((5, 1), bool))
+        cols.append(np.array([[c == "1" for c in r] for r in FONTS["35"][ch]], bool))
+    return np.hstack(cols)
 
-    def px_line(x0, y0, x1, y1, v):
-        # Bresenham: one pixel per step, never doubled
-        x0, y0, x1, y1 = int(round(x0)), int(round(y0)), int(round(x1)), int(round(y1))
-        dx, sx = abs(x1 - x0), (1 if x0 < x1 else -1)
-        dy, sy = -abs(y1 - y0), (1 if y0 < y1 else -1)
-        e = dx + dy
-        while True:
-            if 0 <= x0 < W and 0 <= y0 < H: a[y0, x0] = max(a[y0, x0], v)
-            if x0 == x1 and y0 == y1: break
-            e2 = 2 * e
-            if e2 >= dy: e += dy; x0 += sx
-            if e2 <= dx: e += dx; y0 += sy
 
-    CELL_ = 16
-    bx0, bx1 = 22, 22 + CELL_ * 11                # 22 .. 198
-    by0, by1 = 26, 26 + CELL_ * 13                # 26 .. 234
-    X1, Y1 = W - 1, H - 1
-    # the floor, ceiling and side walls: from each back-wall grid line straight out to the frame
-    def out_x(x): return (x - (bx0 + bx1) / 2.0) * X1 / (bx1 - bx0) + X1 / 2.0
-    def out_y(y): return (y - (by0 + by1) / 2.0) * Y1 / (by1 - by0) + Y1 / 2.0
-    for x in range(bx0 + CELL_, bx1, CELL_):
-        px_line(x, by1, out_x(x), Y1, GRID)
-        px_line(x, by0, out_x(x), 0, GRID)
-    for y in range(by0 + CELL_, by1, CELL_):
-        px_line(bx0, y, 0, out_y(y), GRID)
-        px_line(bx1, y, X1, out_y(y), GRID)
-    # three depth bands, evenly spaced between the back wall and the frame
-    for t in (0.25, 0.5, 0.75):
-        xx0, xx1 = bx0 * (1 - t), bx1 + (X1 - bx1) * t
-        yt, yb = by0 * (1 - t), by1 + (Y1 - by1) * t
-        px_line(xx0, yt, xx1, yt, GRID); px_line(xx0, yb, xx1, yb, GRID)
-        px_line(xx0, yt, xx0, yb, GRID); px_line(xx1, yt, xx1, yb, GRID)
-    # the back wall's grid
-    for x in range(bx0 + CELL_, bx1, CELL_): px_line(x, by0, x, by1, GRID)
-    for y in range(by0 + CELL_, by1, CELL_): px_line(bx0, y, bx1, y, GRID)
-    # the brighter lines: the room's corners, the back wall's edge, the frame
-    for (x0, y0, x1, y1) in ((0, 0, bx0, by0), (X1, 0, bx1, by0), (0, Y1, bx0, by1), (X1, Y1, bx1, by1)):
-        px_line(x0, y0, x1, y1, FRAME)
-    for (x0, y0, x1, y1) in ((bx0, by0, bx1, by0), (bx0, by1, bx1, by1), (bx0, by0, bx0, by1), (bx1, by0, bx1, by1)):
-        px_line(x0, y0, x1, y1, FRAME)
-    a[0, :] = FRAME; a[-1, :] = FRAME; a[:, 0] = FRAME; a[:, -1] = FRAME
+def ruler():
+    """tone image (0..1 per pixel) for the height ruler, in the frame: a rail up the left from the floor to a little
+    past 6 ft, a long tick every foot and a short one every half foot running right toward the body, and the feet
+    numbered 1' to 6' left of the rail. The scale is the figure's own: he stands 5'9" (247 pixels), she 5'8". No line
+    and no number mark his height: the ruler only suggests it."""
+    for sex in ("m", "f"):                          # the scale holds only while the traced feet stand where it says
+        ys = np.nonzero(outline(sex).any(1))[0]
+        assert ys.max() == SOLE and (sex == "f" or ys.min() == HEAD_M), (sex, ys.min(), ys.max())
+    a = np.zeros((FH, FW), np.float32)
+
+    def row(ft):
+        return int(round(FLOOR - ft * PX_FT))
+    top = row(RULER_TOP_FT)
+    assert top >= 0, top
+    a[top:FLOOR + 1, RAIL_X] = RAIL_A
+    for k in range(0, 13):                          # 0 to 6 ft by half feet
+        y = row(k / 2)
+        foot = k % 2 == 0
+        n, v = (FOOT_TICK, FOOT_A) if foot else (HALF_TICK, HALF_A)
+        a[y, RAIL_X:RAIL_X + n] = np.maximum(a[y, RAIL_X:RAIL_X + n], v)
+        if RULER_NUMBERS and foot and k:
+            t = text_px(f"{k // 2}'")
+            x1 = RAIL_X - 2                         # the number's last column; one clear column before the rail
+            x0 = x1 - t.shape[1] + 1
+            assert x0 >= 0, x0
+            sub = a[y - 2:y + 3, x0:x1 + 1]         # centered on its tick
+            sub[...] = np.maximum(sub, np.where(t, NUM_A, 0.0))
     return a
 
 
 def background(sex, light):
-    """the grid plus the flesh outline, as a white (dark themes) or near-black (light theme) picture with alpha; the
-    game tints it with the theme's colour"""
-    g = grid(light)
+    """the height ruler and the flesh outline, as a white (dark themes) or near-black (light theme) picture with alpha;
+    the game tints it with the theme's colour. The perspective grid that stood behind the body went on Nov 21 2026."""
     sil = silhouette(sex)
-    # the silhouette: a faint fill (hiding the grid behind the body a little) and a crisp one-pixel edge
+    # the silhouette: a faint fill and a crisp one-pixel edge
     edge = sil & ~ndi.binary_erosion(sil)
-    out_a = np.where(sil, 0.15, g)
+    out_a = np.where(sil, 0.15, ruler())
     out_a = np.where(edge, 0.62, out_a)
-    img = np.zeros((H, W, 4), np.uint8)
+    img = np.zeros((FH, FW, 4), np.uint8)
     col = (24, 24, 26) if light else (255, 255, 255)
     img[..., :3] = col
-    img[..., 3] = np.clip(out_a * 255, 0, 255).astype(np.uint8)
-    # the body's fill a touch lighter (dark themes) / darker (light theme) than the room so the figure stands forward
+    img[..., 3] = np.clip(np.round(out_a * 255), 0, 255).astype(np.uint8)
     return Image.fromarray(img, "RGBA")
 
 
 # ---------------------------------------------------------------------------
 def render(sex):
     """the lit skeleton, and each part's own pixels (owner of the topmost bone; the outline ring goes with the part
-    it rings)"""
+    it rings), in the frame"""
     S = build(sex)
     img = S.d.render(chrome_env="room")
     a = np.array(img)
@@ -773,13 +794,14 @@ def render(sex):
     if ring_.any():
         _, (iy, ix) = ndi.distance_transform_edt(owner == 0, return_indices=True)
         owner = np.where(ring_, owner[iy, ix], owner)
+    a, owner = reframe(a), reframe(owner)
     parts = {}
     for p in PARTS:
         m = owner == PID[p]
         pa = np.zeros_like(a)
         pa[m] = a[m]
         parts[p] = Image.fromarray(pa, "RGBA")
-    return img, parts, owner
+    return Image.fromarray(a, "RGBA"), parts, owner
 
 
 def hit_rects(owner, pad=3):
@@ -798,6 +820,7 @@ CELL, REACH = 2, 4
 def hit_map(owner):
     """which part a click lands on: one character per CELL x CELL cell ('a' = the first part in PARTS, '.' = none), the
     part whose bones are nearest within REACH pixels (so a click just beside a thin bone still counts)"""
+    oh, ow = owner.shape
     dist, (iy, ix) = ndi.distance_transform_edt(owner == 0, return_indices=True)
     near = np.where(dist <= REACH, owner[iy, ix], 0)
     # a cell's vote is weighted toward the smaller parts, so a thin one (the neck) is not outvoted at its edges by the
@@ -805,9 +828,9 @@ def hit_map(owner):
     area = np.bincount(owner.ravel(), minlength=len(PARTS) + 1).astype(np.float64)
     wgt = np.where(area > 0, 1.0 / np.sqrt(np.maximum(area, 1)), 0.0)
     rows = []
-    for y in range(0, H, CELL):
+    for y in range(0, oh, CELL):
         row = []
-        for x in range(0, W, CELL):
+        for x in range(0, ow, CELL):
             cell = near[y:y + CELL, x:x + CELL].ravel()
             cell = cell[cell > 0]
             if len(cell):
@@ -820,8 +843,8 @@ def hit_map(owner):
 
 
 def layout_lua(rects_by_sex, maps_by_sex=None):
-    """the Lua tables of each part's hit rectangle, per sex (drawn into ZeD_BodyFigure.lua)"""
-    lines = []
+    """the Lua tables of each part's hit rectangle, per sex (drawn into ZeD_BodyFigure.lua), all in the frame"""
+    lines = [f"-- generated by d_skeleton.py for a {FW} x {FH} canvas: CANVAS_W = {FW}, CANVAS_H = {FH}"]
     for sex in ("m", "f"):
         lines.append(f"local {sex.upper()}_HITS = {{   -- generated by d_skeleton.py: each part's pixels plus 3")
         for p in PARTS:
@@ -852,7 +875,7 @@ def export(root):
         maps[sex] = hit_map(owner)
     with open(os.path.join(dd, "_layout.lua.txt"), "w") as f:
         f.write(layout_lua(rects, maps) + "\n")
-    print("wrote the skeletons, parts and backgrounds to", dd)
+    print(f"wrote the skeletons, parts and backgrounds, {FW} x {FH}, to", dd)
     return rects
 
 

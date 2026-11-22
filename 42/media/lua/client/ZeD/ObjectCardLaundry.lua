@@ -334,6 +334,151 @@ end
 --- The laundry kind (FacePop.lua opens the pop-out on the same target the card works on).
 LD.def = def
 
+-- ---------------------------------------------------------------------------
+-- the wall behind the laundry machine (director, Nov 21 2026: "appliance cards that do not fill a full card width
+-- should receive a background similar to the tile background we gave to the industrial dishwasher. Just a wall of
+-- some sort. Keep it simple."; he picked a painted wall with a wood baseboard). The face keeps the machine's own
+-- shape, so the card's width either side is wall: paint with a light stipple, and a baseboard along the machine's
+-- foot. Colors as printed, shown at the paper tone like the dishwasher's tile. (Graphic cleanup, Nov 22 2026)
+-- ---------------------------------------------------------------------------
+local WALL_PRINTED = { paint = "#e6dfcf", speckHi = "#ece5d5", speckLo = "#ddd6c6",
+                       board = "#8c6a46", boardHi = "#b48c60", boardMid = "#a07a52", boardLo = "#5e4630" }
+local WALL = nil
+local function wallColors()
+    if WALL then return WALL end
+    WALL = {}
+    for key, v in pairs(WALL_PRINTED) do WALL[key] = ZeD.paperTone(P.color(v)) end
+    return WALL
+end
+-- a small repeatable number stream (kept under 2^31: Kahlua's % breaks past it), as the dishwasher's
+local function rng(seed)
+    local s = (seed % 65521) + 1
+    return function(n) s = (s * 75 + 74) % 65537; return s % n end
+end
+-- the baseboard's height in art px: about 4 inches against the machine's 27-inch front (12 on the main face, 16 @450)
+local function boardH(H) return math.floor(H * 0.046 + 0.5) end
+-- the paint and the baseboard from art x0 for aw, rows 0 .. H (the machine's foot at H)
+local function wallField(cv, x0, aw, H)
+    if aw <= 0 then return end
+    local C, bb = wallColors(), boardH(H)
+    P.rect(cv, x0, 0, aw, H - bb, C.paint)
+    P.rect(cv, x0, H - bb, aw, bb, C.board)
+    P.rect(cv, x0, H - bb, aw, 1, C.boardHi)          -- the board's lit top edge
+    P.rect(cv, x0, H - bb + 1, aw, 1, C.boardMid)
+    P.rect(cv, x0, H - 2, aw, 2, C.boardLo)           -- the shadow at the floor
+end
+-- the paint's stipple where the wall shows: a speck to every 64 art px, a fixed seed so it holds still
+local function wallSpecks(cv, x0, aw, H, seed)
+    if aw <= 0 then return end
+    local C, r = wallColors(), rng(seed)
+    local ph = H - boardH(H)
+    for _ = 1, math.floor(aw * ph / 64) do
+        local sx = r(aw)                                -- (one call at a time, in this order: the preview's order)
+        local sy = r(ph)
+        local c = (r(2) == 0) and C.speckHi or C.speckLo
+        P.rect(cv, x0 + sx, sy, 1, 1, c)
+    end
+end
+-- a column of screen pixels narrower than one art pixel at the card's edge, in the wall's colors
+local function wallSliver(card, sx, sw, y, k, H)
+    if sw <= 0 then return end
+    local C, bb = wallColors(), boardH(H)
+    local function band(y0, y1, c) card:drawRect(sx, y + y0 * k, sw, (y1 - y0) * k, 1, c.r, c.g, c.b) end
+    band(0, H - bb, C.paint); band(H - bb, H - 2, C.board); band(H - 2, H, C.boardLo)
+end
+--- The wall across the card behind a face drawn at screen x px0 (art 0) and zoom k, filling x .. x + w (it shows
+--- either side of the machine and round its edges), as the dishwasher's tileWall.
+local function drawWall(card, x, y, w, px0, des, k)
+    local H = des.h
+    local cv = P.canvas(card, px0, y, k)
+    local lg = px0 - x
+    local la = math.floor(lg / k)
+    local rx = px0 + des.w * k
+    local rg = x + w - rx
+    local ra = math.floor(rg / k)
+    wallField(cv, -la, la + des.w + ra, H)
+    wallSpecks(cv, -la, la, H, 7)
+    wallSpecks(cv, des.w, ra, H, 13)
+    wallSliver(card, x, lg - la * k, y, k, H)
+    wallSliver(card, rx + ra * k, rg - ra * k, y, k, H)
+end
+
+-- ---------------------------------------------------------------------------
+-- the floor round the top-loading washer (director, Nov 22 2026: "isn't one of the washer a top load? Therefore you
+-- would see the floor, not the wall and baseboard"). Its face looks down into the tub, so what shows either side of
+-- it is the floor, seen from above: vinyl tiles a foot square in two close shades, a few specks in each, columns from
+-- the machine's sides and rows from its front, and the machine's own shadow along each side. Paper tone, as the wall.
+-- (Graphic cleanup, Nov 22 2026)
+-- ---------------------------------------------------------------------------
+local FLOOR_PRINTED = { tileA = "#c3bdb0", tileB = "#bbb5a8", speckLo = "#a7a194", speckHi = "#d0cabd", seam = "#8e887b" }
+local FLOOR = nil
+local SHADOW = { r = 0, g = 0, b = 0 }
+local function floorColors()
+    if FLOOR then return FLOOR end
+    FLOOR = {}
+    for key, v in pairs(FLOOR_PRINTED) do FLOOR[key] = ZeD.paperTone(P.color(v)) end
+    return FLOOR
+end
+-- a tile a foot square, in art px: the machine is 0.786 m wide, so a foot is 0.388 of the face's width
+local function tileFt(faceW) return math.floor(faceW * 0.388 + 0.5) end
+-- one side of floor from art x0 for aw, rows 0 .. H (the machine's front at H); edge = the machine's side the
+-- columns start from, dir = -1 laying them leftward, 1 rightward; s = the tile
+local function floorSide(cv, x0, aw, H, edge, dir, s, seed)
+    if aw <= 0 then return end
+    local C, r = floorColors(), rng(seed)
+    local x1 = x0 + aw
+    local function clip(x, y, w, h, c)
+        local a, b = math.max(x, x0), math.min(x + w, x1)
+        local c0, c1 = math.max(y, 0), math.min(y + h, H)
+        if b > a and c1 > c0 then P.rect(cv, a, c0, b - a, c1 - c0, c) end
+    end
+    local cols, rows = math.floor(aw / s) + 1, math.floor(H / s) + 1
+    for row = 0, rows do
+        local ty = H - (row + 1) * s
+        for col = 0, cols do
+            local tx = (dir < 0) and (edge - (col + 1) * s) or (edge + col * s)
+            clip(tx, ty, s, s, ((row + col) % 2 == 0) and C.tileA or C.tileB)
+            clip(tx, ty, s, 1, C.seam)                                  -- the seam along its far edge
+            clip((dir < 0) and tx or (tx + s - 1), ty, 1, s, C.seam)    -- and along its outer side
+            for _ = 1, 6 do                                             -- (in this order: the preview's)
+                local sx = r(s - 4)
+                local sy = r(s - 4)
+                local c = (r(2) == 0) and C.speckLo or C.speckHi
+                clip(tx + 2 + sx, ty + 2 + sy, 1, 1, c)
+            end
+        end
+    end
+    P.rect(cv, (dir < 0) and (edge - 2) or edge, 0, 2, H, SHADOW, 0.25)   -- the machine's shadow along its side
+end
+-- a column of screen pixels narrower than one art pixel at the card's edge, in the floor's tile color
+local function floorSliver(card, sx, sw, y, k, H)
+    if sw <= 0 then return end
+    local c = floorColors().tileA
+    card:drawRect(sx, y, sw, H * k, 1, c.r, c.g, c.b)
+end
+--- The floor either side of a face drawn at screen x px0 (art 0) and zoom k, filling x .. x + w.
+local function drawFloor(card, x, y, w, px0, des, k)
+    local H = des.h
+    local cv = P.canvas(card, px0, y, k)
+    local lg = px0 - x
+    local la = math.floor(lg / k)
+    local rx = px0 + des.w * k
+    local rg = x + w - rx
+    local ra = math.floor(rg / k)
+    local s = tileFt(des.w)
+    floorSide(cv, -la, la, H, 0, -1, s, 7)
+    floorSide(cv, des.w, ra, H, des.w, 1, s, 13)
+    floorSliver(card, x, lg - la * k, y, k, H)
+    floorSliver(card, rx + ra * k, rg - ra * k, y, k, H)
+end
+
+--- The room either side of a face: the floor round the top-loading washer (seen from above), the wall behind the
+--- dryer and the combination washer-dryer (seen from the front).
+local function drawRoom(card, x, y, w, px0, des, k, faceId)
+    if P.baseId(faceId) == "washer" then return drawFloor(card, x, y, w, px0, des, k) end
+    return drawWall(card, x, y, w, px0, des, k)
+end
+
 -- the face (whole zoom, centred), its controls as zones, and the line under it
 local function drawFace(card, x, y, w, t)
     local T = ZeD.T
@@ -350,6 +495,7 @@ local function drawFace(card, x, y, w, t)
     local k = P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, room)   -- whole zoom, inside the card
     t._k = k
     local px0 = x + PL.centre(w, des.w, k)
+    drawRoom(card, x, y, w, px0, des, k, faceId)  -- (behind the face: the room either side of it) (Graphic cleanup, Nov 22 2026)
     OC.faceZone(card, px0, y, des.w * k, des.h * k, t.obj)   -- (a click away from the controls pops the face out)
     LD.face(card, px0, y, k, des, t)
     local h = des.h * k + T.px(6)
