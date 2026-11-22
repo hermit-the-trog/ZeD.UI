@@ -56,6 +56,32 @@ local function apply()
             return origOnMechanic(playerObj, vehicle)
         end
     end
+    -- (KISS #60) A car's right-click gets Enter Vehicle and Vehicle Mechanics, running the game's own onEnter and
+    -- onMechanic (the same calls E and U make), so a mouse player no longer right-clicks into an empty menu. The words
+    -- are the game's own keys. Not in safe mode, and not when the game only asks whether a menu would exist (test).
+    if ISVehicleMenu and ISVehicleMenu.FillMenuOutsideVehicle and not ISVehicleMenu._zedCarMenuHooked then
+        ISVehicleMenu._zedCarMenuHooked = true
+        local origFill = ISVehicleMenu.FillMenuOutsideVehicle
+        function ISVehicleMenu.FillMenuOutsideVehicle(player, context, vehicle, test, ...)
+            local r = origFill(player, context, vehicle, test, ...)
+            if test or ZeD.Safe.on() or not (context and vehicle) then return r end
+            pcall(function()
+                local playerObj = getSpecificPlayer(player)
+                if not playerObj or playerObj:getVehicle() then return end
+                -- the seat E would take (the game's best seat from where he stands); none: the first free fitted seat
+                local seat = vehicle:getBestSeat(playerObj)
+                if seat == nil or seat < 0 then
+                    seat = nil
+                    for i = 0, vehicle:getMaxPassengers() - 1 do
+                        if vehicle:isSeatInstalled(i) and not vehicle:isSeatOccupied(i) then seat = i; break end
+                    end
+                end
+                if seat then context:addOption(getText("IGUI_EnterVehicle"), playerObj, ISVehicleMenu.onEnter, vehicle, seat) end
+                context:addOption(getText("ContextMenu_VehicleMechanics"), playerObj, ISVehicleMenu.onMechanic, vehicle)
+            end)
+            return r
+        end
+    end
     -- E at the hood: vanilla's Use.EngineDoor looks again on an open hood; on a car already looked at, the hood shuts
     -- instead (QA K1-9). Vehicles loads after the client files, so this is tried again at game start.
     if Vehicles and Vehicles.Use and Vehicles.Use.EngineDoor and not Vehicles.Use._zedHoodHooked then
