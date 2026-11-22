@@ -181,14 +181,15 @@ end
 -- (QA: the keys read as see-through over the game; each sits on the balloon's own light paper, solid)
 function ZeD_TutorialKeys:prerender()
     local n, s = self:keyRects()
-    local pal = ZeD.Balloon and ZeD.Balloon.PALETTE
+    -- (the balloon's light palette is ZeD.Balloon.LIGHT; PALETTE never existed, so the plates took the theme's dark
+    -- surf2 in Dark: design system note, Nov 22 2026)
+    local pal = ZeD.Balloon and ZeD.Balloon.LIGHT
     local c = (pal and pal.surf2) or ZeD.T.surf2
     for _, r in ipairs({ n, s }) do
         if r.w > 0 then ZeD.Atoms.fillRounded(self, r.x, r.y, r.w, r.h, c.r, c.g, c.b, 1) end
     end
 end
-function ZeD_TutorialKeys:render()
-    local T = ZeD.T
+local function drawTourKeys(self)
     local n, s = self:keyRects()
     local mx, my = self:getMouseX(), self:getMouseY()
     local function over(r) return mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h end
@@ -196,6 +197,11 @@ function ZeD_TutorialKeys:render()
         ZeD.Molecules.drawButton(self, s.x, s.y, s.w, s.h, tr("UI_ZeD_Tut_Stop"), "default", self._down == "stop", nil, { hover = over(s) })
     end
     ZeD.Molecules.drawButton(self, n.x, n.y, n.w, n.h, self.nextWord or "", "primary", self._down == "next", nil, { hover = over(n), default = true })
+end
+function ZeD_TutorialKeys:render()
+    -- the keys' lines and words in the balloon's light palette too, so they match the paper they sit on in every theme
+    local B = ZeD.Balloon
+    if B and B.inLight then B.inLight(drawTourKeys, self) else drawTourKeys(self) end
 end
 function ZeD_TutorialKeys:onMouseDown(x, y)
     local n, s = self:keyRects()
