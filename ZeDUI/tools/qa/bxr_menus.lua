@@ -167,9 +167,9 @@ end
 function S.noEdge(sq)
     if not sq then return true end
     local ok, bad = pcall(function()
-        return sq:Is(IsoFlagType.collideW) or sq:Is(IsoFlagType.collideN) or sq:Is(IsoFlagType.HoppableW) or sq:Is(IsoFlagType.HoppableN)
-            or sq:Is(IsoFlagType.WallW) or sq:Is(IsoFlagType.WallN) or sq:Is(IsoFlagType.WallNW) or sq:Is(IsoFlagType.TallHoppableW)
-            or sq:Is(IsoFlagType.TallHoppableN) or sq:Is(IsoFlagType.solid) or sq:Is(IsoFlagType.solidtrans)
+        return sq:has(IsoFlagType.collideW) or sq:has(IsoFlagType.collideN) or sq:has(IsoFlagType.HoppableW) or sq:has(IsoFlagType.HoppableN)
+            or sq:has(IsoFlagType.WallW) or sq:has(IsoFlagType.WallN) or sq:has(IsoFlagType.WallNW) or sq:has(IsoFlagType.TallHoppableW)
+            or sq:has(IsoFlagType.TallHoppableN) or sq:has(IsoFlagType.solid) or sq:has(IsoFlagType.solidtrans)
     end)
     if not ok then return true end   -- (a square the test cannot read is let be, as before this test)
     return not bad

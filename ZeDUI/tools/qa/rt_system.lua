@@ -724,16 +724,31 @@ Q.step(3, function()
         end
     end    if QC then QC.reset = S.qcReset end
     S.qcReset = nil
-    local n, bad = 0, {}
+    -- (Nov 21 2026, QA B10-1, 9251ebdf6) Style, Map and Restock had no zedDefault, so Defaults skipped them and this
+    -- check never saw them. Each of ZeD's own drop-downs and switches on the page must have one: a row whose control is
+    -- one of ZeD's options' own, or the stand-in of a row that works several (G.MERGED, control.zedMerged). An add-on's
+    -- row may have none by design (ZeD_MainMenuOptionGroups.lua addonRows), and the screens' check boxes are no
+    -- drop-down (kind "tick").
+    local own = {}
+    local zo = H.opts()
+    for _, o in ipairs((zo and zo.data) or {}) do if o.element then own[o.element] = tostring(o.id) end end
+    local n, bad, noDef = 0, {}, {}
     for _, r in ipairs(w:zedSetupRows() or {}) do
         local c = r.control
         if r.zedDefault and c and not c.disabled then
             n = n + 1
             if c.selected ~= r.zedDefault then bad[#bad + 1] = tostring(r.labelKey or r.label) .. "=" .. tostring(c.selected) end
         end
+        if r.kind == "combo" and c and r.zedDefault == nil then
+            local merged = nil
+            pcall(function() if type(c) == "table" then merged = rawget(c, "zedMerged") end end)
+            local id = own[c] or (merged and ("merged:" .. tostring(merged))) or nil
+            if id then noDef[#noDef + 1] = id end
+        end
     end
-    Q.check(ok and n > 0 and #bad == 0, "ZeD setup, Defaults: every ZeD option's control is on the item it starts on",
-        n .. " rows" .. ((#bad > 0) and (", off: " .. table.concat(bad, " ")) or ""))
+    Q.check(ok and n > 0 and #bad == 0 and #noDef == 0, "ZeD setup, Defaults: every ZeD option's control is on the item it starts on (each of ZeD's own drop-downs and switches has one)",
+        n .. " rows" .. ((#bad > 0) and (", off: " .. table.concat(bad, " ")) or "")
+        .. ((#noDef > 0) and (", with no default, so Defaults skips them: " .. table.concat(noDef, " ")) or ""))
     local chordsDefault = true
     for _, c in ipairs((QC and QC.CHORDS) or {}) do if not QC.isDefault(c) then chordsDefault = false end end
     if chordsDefault then

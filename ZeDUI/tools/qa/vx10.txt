@@ -1,0 +1,6 @@
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+vx10_craft.lua | vx10_crf | timeout=360
+vx10_food.lua | vx10_food | timeout=200
+vx10_tab.lua | vx10_tab | timeout=300
+vx10_defaults.lua | vx10_def | timeout=360
