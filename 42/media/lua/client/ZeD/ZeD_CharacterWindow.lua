@@ -6944,12 +6944,17 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 and #(win._mcSelected or {}) == 0 and (win._rolled or content:isVisible())
         end,
         chip = function()
-            local inv = content._inventory
-            local e = win._containers and win._containers[win._activeContainer]
+            -- the name, the count and the drop target all come from the container being viewed (a bag picked by
+            -- mouse sets only _viewedContainer) (QA B10-5)
+            local e = win._containers and win._containers[win._viewedContainer or win._activeContainer]
+            local inv = (e and e.inventory) or content._inventory
             local name = (e and not e.isMain and e.name) or getText("IGUI_InventoryTooltip")
-            return name, inv and inv:getItems():size() or 0
+            return name, inv and ZeD.InventoryRenderer.liveCount(inv, win._playerObj) or 0   -- (what the list shows)
         end,
-        dropInv = function() return content._inventory end,
+        dropInv = function()
+            local e = win._containers and win._containers[win._viewedContainer or win._activeContainer]
+            return (e and e.inventory) or content._inventory
+        end,
         onChange = function(rolled)
             if not rolled and _syncRingZonesToActiveTab then _syncRingZonesToActiveTab(win, content) end
         end,

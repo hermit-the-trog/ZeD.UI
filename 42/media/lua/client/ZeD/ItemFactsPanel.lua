@@ -248,6 +248,27 @@ function M.NutritionFacts(item)
             rows[#rows + 1] = {label = getText("Tooltip_food_Fresh"), value = getText("Tooltip_food_Rotten"), valueClass = "bad"}
         elseif safeGet(item, "isFresh") then
             rows[#rows + 1] = {label = getText("Tooltip_food_Fresh"), value = getText("Tooltip_food_Fresh"), valueClass = "good"}
+        elseif (safeGet(item, "getOffAge") or 0) > 0 and (safeGet(item, "getOffAgeMax") or 0) < 1000000000 then
+            -- neither fresh nor rotten: stale, as the loot card says (QA B10-3)
+            rows[#rows + 1] = {label = getText("Tooltip_food_Fresh"), value = getText("Tooltip_food_Stale"), valueClass = "warn"}
+        end
+        -- one row for freezing: "Frozen" once solid, "Freezing" with its percent while it freezes or thaws. Warn
+        -- only while frozen and the food is not one meant to be frozen (the penalties need the flag) (QA B10-3)
+        do
+            local frozen = safeGet(item, "isFrozen")
+            local ftime  = safeGet(item, "getFreezingTime") or 0
+            if frozen or ftime > 0 then
+                local good = false
+                if frozen then
+                    local ok, tagged = pcall(function() return ItemTag and item:hasTag(ItemTag.GOOD_FROZEN) end)
+                    good = (ok and tagged) or safeGet(item, "getType") == "Icecream"
+                end
+                local value
+                if ftime > 0 and ftime < 100 then value = string.format("%d%%", math.floor(ftime + 0.5))
+                else value = getText("Tooltip_food_Frozen") end
+                rows[#rows + 1] = {label = frozen and getText("Tooltip_food_Frozen") or getText("IGUI_invpanel_FreezingTime"),
+                    value = value, valueClass = (frozen and not good) and "warn" or nil}
+            end
         end
         panel.groups[#panel.groups + 1] = { rows = rows }
     end

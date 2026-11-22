@@ -2344,6 +2344,54 @@ function ZeD.InventoryRenderer.shownCount(panel, inv, playerObj)
     return ZeD.ContainerGates.count(inv, playerObj)
 end
 
+--- How many things the list of inv would show, worked out on its own (no list needed): the number a rolled-up
+--- inventory tab gives, which must match the heading when it rolls down. Same filter as buildItemModel: not hidden,
+--- not worn or held (the player's own main inventory only), and what a mod's gate keeps. The list stops drawing
+--- while its side is rolled, so shownCount's model would be stale there; this counts itself, at most every 250 ms
+--- and again at once when the item count, worn count, hands or the gate change (QA B10-5).
+function ZeD.InventoryRenderer.liveCount(inv, playerObj)
+    local items = inv and inv:getItems()
+    if not items then return 0 end
+    local R = ZeD.InventoryRenderer
+    local cache = R._liveCache
+    if not cache then cache = {}; R._liveCache = cache; R._liveCacheN = 0 end
+    local gate = ZeD.ContainerGates.get(inv, playerObj)
+    local isP = playerObj and inv == playerObj:getInventory() or false
+    local size = items:size()
+    local wornN, ph, sh = 0, nil, nil
+    if isP then
+        local okW, wn = pcall(function() return playerObj:getWornItems():size() end)
+        wornN = okW and wn or 0
+        ph, sh = playerObj:getPrimaryHandItem(), playerObj:getSecondaryHandItem()
+    end
+    local sig = gate and gate.sig or nil
+    local now = getTimestampMs()
+    local c = cache[inv]
+    if c and c.size == size and c.wornN == wornN and c.ph == ph and c.sh == sh and c.sig == sig and now - c.t < 250 then
+        return c.n
+    end
+    local held = isP and heldSet(playerObj, inv) or nil
+    local n = 0
+    for i = 0, size - 1 do
+        local item = items:get(i)
+        local shown = item and not item:isHidden()
+        if shown and isP then
+            if held and item:getContainer() == inv then shown = not held[item]
+            else shown = not heldByPlayer(playerObj, item) end
+        end
+        if shown and (not gate or ZeD.ContainerGates.keeps(gate, item)) then n = n + 1 end
+    end
+    if not c then
+        -- (a handful of containers at a time: start over rather than keep every one ever seen)
+        if R._liveCacheN >= 64 then cache = {}; R._liveCache = cache; R._liveCacheN = 0 end
+        c = {}
+        cache[inv] = c
+        R._liveCacheN = R._liveCacheN + 1
+    end
+    c.size, c.wornN, c.ph, c.sh, c.sig, c.t, c.n = size, wornN, ph, sh, sig, now, n
+    return n
+end
+
 -- ============================================================================
 -- ROW PARTS (kept out of renderItemList, which sits near Kahlua's local limit)
 -- ============================================================================
