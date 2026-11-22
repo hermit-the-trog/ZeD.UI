@@ -141,8 +141,12 @@ local function buildBuildCatalog(playerObj)
                 pcall(function() if recipe:isAnySurfaceCraft() then needSurface = true end end)
             end
 
+            -- (QA B13-1) whether it must be learned (metal and welding), so Show: Known leaves the unlearned ones out
+            local needLearn = false
+            pcall(function() if recipe:needToBeLearn() then needLearn = true end end)
             local entry = {
                 recipe          = recipe,
+                needLearn       = needLearn,
                 element         = element,
                 displayName     = recipe:getTranslationName() or recipe:getName(),
                 name            = recipe:getName(),
@@ -243,16 +247,17 @@ function ZeD.BuildingTab.gatherData(playerObj, win)
             end
         end
 
-        local status = hasSkill and "unlocked" or "locked"
-
         -- (QA B11-2) some build recipes do need learning (metal and welding): ask whether the player really knows it
         -- (the second argument), as the game's build window does; a recipe that needs none reads learned
         local learned = true
-        if entry.recipe then
+        if entry.needLearn then
             pcall(function()
-                if entry.recipe:needToBeLearn() and not playerObj:isRecipeKnown(entry.recipe, true) then learned = false end
+                if not playerObj:isRecipeKnown(entry.recipe, true) then learned = false end
             end)
         end
+        -- (QA B13-1) the status weighs learned too, as the Craft tab's does: decided before it, the row read unlocked here
+        -- and locked in the scan, and flipped every refresh
+        local status = (hasSkill and learned) and "unlocked" or "locked"
         local rd = CC.refreshRow(pool, entry, gen, prevGen, status, hasSkill, learned, playerLevel)
         n = n + 1
         if recipes[n] ~= rd then recipes[n] = rd; changed = true end

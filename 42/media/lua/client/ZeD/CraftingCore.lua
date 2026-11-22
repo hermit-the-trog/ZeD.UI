@@ -1355,7 +1355,8 @@ function CC.gatherDetail(rd, playerObj, win, prefix)
     rd.skills       = skills
     rd.missingCount = missingCount
     rd.craftTime    = craftTime
-    if rd.status ~= "station" and not rd.fromLogic then   -- (vanilla's answer also weighs uses, fluids and the slot's picked items; this counts whole items)
+    -- (QA B13-2) a locked row stays locked: the card overwrote it and the scan wrote it back, every scan
+    if rd.status ~= "station" and rd.status ~= "locked" and not rd.fromLogic then   -- (vanilla's answer also weighs uses, fluids and the slot's picked items; this counts whole items)
         rd.status   = missingCount > 0 and "missing" or "craftable"
     end
 
