@@ -1,0 +1,11 @@
+0.3.0-beta21c
+
+A hotfix for beta 21b: 107 bugs found in a day of stress tests and code reading, all fixed and checked in game at 4K and Steam Deck size.
+
+- Saves and settings: Rename and Delete on Load Game and Profiles act on the one you opened them for. Reset settings no longer empties another mod's files. Reset to defaults keeps Lite in Lite. Trying Lite in ZeD setup and backing out keeps your extras.
+- Crafting and building: the ingredient you pick is the one used. Recipe cards show real amounts, in and out (4 planks, 4 bowls), and name what you will really get (Bowl of Soup from a pot of soup). The floor and nearby crates count. Build starts its placement cursor again. Rows for recipes you have not learned no longer flicker.
+- Inventory: Repair patches every hole in one press. Cancel on a book stops reading. A drag let go outside the window drops to the floor. In a car you see only the car's containers, and nothing goes out through a shut window. The Equip list shows every worn item. Food in ZeD's lists freezes, thaws and goes off. A jammed gun says Jammed.
+- Menus and controller: a strip click runs the cell you clicked; a fast wheel spin no longer blanks the strip; menus stay open in a moving car; the pad keyboard types on a click or tap; menu icons are never blank; the wheel's caption sits centered over the ring.
+- Windows and HUD: pins stay on their own item; a mod's note no longer unpauses the game; the corner clock steps clear of both windows; on a Deck, moodles that do not fit go in a second column and a window saved in a corner comes back at the right width.
+- Cars and animals: the key stays in while the starter turns; modded cars no longer get police or fire dashboards by name; French fleet cars paint their service in French. Animal zone drawing, highlights and rename boxes end when you leave the tab.
+- Speed: the Options window, Health tab, recipe list, title bar pins, fire card and keyboard map do far less work each frame.
