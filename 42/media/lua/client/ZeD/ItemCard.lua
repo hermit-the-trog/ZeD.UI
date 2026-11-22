@@ -928,7 +928,8 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
             ISTimedActionQueue.add(ISUnequipAction:new(player, item, 50))
         end
     elseif label == "DROP" then
-        if CM.onDropItems then CM.onDropItems(items, playerNum) end
+        -- seated with the window shut, nothing goes out to the ground, as vanilla greys its Drop (QA B6-9)
+        if CM.onDropItems and not ZeD.InventoryRenderer.carWindowShut(player) then CM.onDropItems(items, playerNum) end
     elseif label == "TAKE" then
         -- (Nov 14 2026, punch list 227: the button reads Grab, the game's word, and is the same move as X on a World
         -- window row: ContainerControls.grabItems walks over, a heavy thing alone goes in the hands, the floor's

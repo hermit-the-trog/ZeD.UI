@@ -218,6 +218,8 @@ function CT.moveItems(playerObj, items, dest)
     if #items == 0 then return end
     sortForTransfer(items)
     if isFloor(dest) then
+        -- seated with the window shut, nothing goes out to the ground (QA B6-9)
+        if ZeD.InventoryRenderer.carWindowShut(playerObj) then return end
         local drop = {}
         for _, item in ipairs(items) do
             if not item:isFavorite() and item:getContainer() ~= floor then drop[#drop + 1] = item end

@@ -3837,20 +3837,7 @@ local function handleDrop(content, items, srcInventory)
 
     -- Seated in a car, things go out to the ground only through the seat's door window when it is open, broken
     -- out or missing, as vanilla's loot pane rules (ISInventoryPane.lua ~1913-1931) (beast W5)
-    if (destIsFloor or not destContainer) and not srcIsFloor and playerObj:getVehicle() then
-        local shut = false
-        pcall(function()
-            local vehicle = playerObj:getVehicle()
-            local door = vehicle:getPassengerDoor(vehicle:getSeat(playerObj))
-            local windowPart = VehicleUtils.getChildWindow(door)
-            -- a window part with a pane in it (not one already smashed out) that can open and is closed
-            if windowPart and (not windowPart:getItemType() or windowPart:getInventoryItem()) then
-                local window = windowPart:getWindow()
-                if window and window:isOpenable() and not window:isOpen() then shut = true end
-            end
-        end)
-        if shut then return end
-    end
+    if (destIsFloor or not destContainer) and not srcIsFloor and ZeD.InventoryRenderer.carWindowShut(playerObj) then return end
 
     -- A mod's gate refuses things put into this container (ContainerGates.lua: Immersive
     -- Searching's never-searched container, as its hasRoomFor refuses them in vanilla's lists)
@@ -3886,6 +3873,28 @@ end
 -- The rest of the public table: the Character and World windows read these,
 -- the Equip tab its drops (handleDrop), and the F6 test window (TestInventory).
 -- ============================================================================
+
+--- (beast W5, QA B6-9) true when the player sits in a car and the seat's door window is shut: things then cannot go
+--- out to the ground (vanilla's loot pane test, ISInventoryPane.lua ~1913-1931; its Drop option is greyed the same way).
+--- A window broken out, missing or open, or no window at all, lets them out. Every way ZeD drops to the floor asks it.
+function ZeD.InventoryRenderer.carWindowShut(playerObj)
+    local shut = false
+    pcall(function()
+        local vehicle = playerObj and playerObj:getVehicle()
+        if not vehicle then return end
+        local door = vehicle:getPassengerDoor(vehicle:getSeat(playerObj))
+        -- an open door lets things out too (vanilla's Drop option checks the door before the window)
+        local dd = door and door:getDoor()
+        if dd and dd:isOpen() then return end
+        local windowPart = VehicleUtils.getChildWindow(door)
+        -- a window part with a pane in it (not one already smashed out) that can open and is closed
+        if windowPart and (not windowPart:getItemType() or windowPart:getInventoryItem()) then
+            local window = windowPart:getWindow()
+            if window and window:isOpenable() and not window:isOpen() then shut = true end
+        end
+    end)
+    return shut
+end
 
 ZeD.InventoryRenderer.renderItemList            = renderItemList
 ZeD.InventoryRenderer.renderMultiColumnContent   = renderMultiColumnContent

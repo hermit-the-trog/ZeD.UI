@@ -5630,6 +5630,8 @@ function ZeD_WorldWindow.toggle(playerNum)
         local srcIsFloor  = srcInv ~= nil and srcInv:getType() == "floor"
         local destIsFloor = destInv ~= nil and destInv:getType() == "floor"
         if srcIsFloor and destIsFloor then return end
+        -- seated with the window shut, nothing goes out to the ground (QA B6-9)
+        if destIsFloor and ZeD.InventoryRenderer.carWindowShut(playerObj) then return end
         -- a mod's gate refuses things into this container (ContainerGates.lua: never searched)
         if destInv and not destIsFloor and ZeD.ContainerGates.refuses(destInv, playerObj) then return end
         -- (Nov 15 2026, add-on hooks: what an add-on's rule refuses stays, the first reason over the head, ItemRules.lua)

@@ -1222,6 +1222,8 @@ function ZeD.EquipmentTab._handleAction(win, actionId, slot)
         -- Vanilla drop handles unequip + transfer to ground
         -- dropItem expects playerNum (integer), not playerObj
         local pNum = player:getPlayerNum()
+        -- seated with the window shut, nothing goes out to the ground, as vanilla greys its Drop (QA B6-9)
+        if ZeD.InventoryRenderer.carWindowShut(player) then return end
         ISInventoryPaneContextMenu.dropItem(slot.item, pNum)
         win._equipSelected = nil
         win._equipCache = nil
