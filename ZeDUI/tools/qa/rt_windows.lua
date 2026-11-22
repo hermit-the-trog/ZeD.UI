@@ -18,7 +18,8 @@
 --      units; Skills' grid fold, the title's health pixel, Show all after the pad's aim; Identity's trait stops.
 --   6. Inside the World tabs: Craft's Sort, Show and Category, a recipe pinned and unpinned by right-click;
 --      Foraging's focus drop-down and More detail; the extension tabs registered.
---   7. The window box's menu (its rows, Accent, on screen), Save / Go to saved position, Reset this / both.
+--   7. The window box's menu (its rows, Accent, on screen), Save / Go to saved position, Reset this / both. (Nov 22
+--      2026, QA K1-6: no Hide interface row in it any more; the pad's View wheel keeps that one.)
 --   8. Resize by the right edge (the pointer read as the drag reads it): narrower, past the cap, back.
 --   9. Layout kept per character over a close; the game's own pages hidden; World force close; paused, the
 --      Character window alone.
@@ -934,10 +935,25 @@ Q.step(5, function()
     if SS.seeThroughKeys then need[#need + 1] = "UI_ZeD_Settings_SeeThrough" end
     if SS.focusStyleKeys then need[#need + 1] = "UI_ZeD_Settings_FocusStyle" end
     if ZeD.Messages and ZeD.Messages.copyBugReport then need[#need + 1] = "UI_ZeD_Msg_BugReport" end
-    if ZeD.DpadWheels and ZeD.DpadWheels.H and ZeD.DpadWheels.H.hideInterface then need[#need + 1] = "UI_ZeD_Wheel_HideInterface" end
+    -- (Nov 22 2026, QA K1-6: Hide the interface left the mouse's menu, since a mouse has no way back from it; the pad's
+    -- View wheel keeps Hide and Show interface. Until beta 21c this list needed the Hide interface row.)
     local missing = {}
     for _, k in ipairs(need) do if not X.has(names, ZeD.tr(k)) then missing[#missing + 1] = k end end
     Q.check(#missing == 0, "Window menu: it has its rows (Theme to ZeD setup)", (#missing == 0) and (#names .. " rows") or ("missing " .. table.concat(missing, ", ")))
+    -- (QA K1-6) the row is gone from the menu the mouse opens, and the pad's View wheel (D-pad Down > View) still offers
+    -- it, under its own name (Show interface while the interface is hidden). On 2488ceead (beta 21c) the menu has the
+    -- row, so this FAILS there; on 0ebd56570 it PASSES.
+    local hideRow = X.has(names, ZeD.tr("UI_ZeD_Wheel_HideInterface")) or X.has(names, ZeD.tr("UI_ZeD_Wheel_ShowInterface"))
+    local onWheel = false
+    local DW = ZeD.DpadWheels
+    if DW and DW.N and DW.N.view then
+        local okV, view = pcall(DW.N.view, RT.p, pn)
+        for _, e in ipairs((okV and type(view) == "table") and view or {}) do
+            if e.run and (e.name == ZeD.tr("UI_ZeD_Wheel_HideInterface") or e.name == ZeD.tr("UI_ZeD_Wheel_ShowInterface")) then onWheel = true end
+        end
+    end
+    Q.check(not hideRow and onWheel, "Window menu: no Hide interface row (a mouse has no way back from it); the pad's View wheel keeps it (QA K1-6)",
+        "row in the menu " .. tostring(hideRow) .. ", on the View wheel " .. tostring(onWheel))
     -- Accent: a pick gives this window its own accent; "Same as Accent color" clears it (the rows' own onFire)
     local w = RT.cw()
     S.acc = w._accentKey

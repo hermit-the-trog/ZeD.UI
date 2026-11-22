@@ -12,7 +12,9 @@
 --      order; each step draws its balloon (Balloon.draw watched, pass-through) with the step's title, words and
 --      "step n of 7", pointing at the step's thing, on screen, not covering that thing; the keys sit on screen and
 --      off the balloon; the Character window step opens the Character window, the World window step the World
---      window; the last step's key reads Done; the layer under the balloon lets the pointer through;
+--      window; the last step's key reads Done; the layer under the balloon lets the pointer through; (Nov 22 2026,
+--      QA K1-14) the Character and World steps name the player's own Toggle Inventory key (I unless rebound) and the
+--      guide step the guide's own key (F1 unless rebound), read from the game's bindings;
 --   3. Done: the tour closes (its layer and keys gone from the screen) and the file says "0", so it never comes back;
 --   4. a step with nothing on screen is passed over (the watch step's thing made absent for the check);
 --   5. Stop tour (the keys panel's mouse handler) stops it at once and writes "0";
@@ -35,6 +37,18 @@ local H = {}
 -- ===================================================================== helpers
 function H.tr(k, ...) local s = nil; pcall(function(...) s = ZeD.tr(k, ...) end, ...); return s end
 function H.has(k) local s = H.tr(k); return s ~= nil and s ~= "" and s ~= k end
+-- (Nov 22 2026, QA K1-14) the player's own keys, read from the game's bindings as its Options list shows them: the
+-- game's Toggle Inventory, which opens both windows (I unless rebound), and the survival guide's (F1 unless rebound)
+function H.keyOf(id, dflt)
+    local code = 0
+    pcall(function() if KeybindId and KeybindId[id] then code = getCore():getKey(KeybindId[id]) end end)
+    local n = nil
+    if code and code ~= 0 then pcall(function() n = getKeyName(code) end) end
+    if n and n ~= "" then return tostring(n) end
+    return dflt
+end
+function H.invKey() return H.keyOf("TOGGLE_INVENTORY", "I") end
+function H.guideKey() return H.keyOf("TOGGLE_SURVIVAL_GUIDE", "F1") end
 function H.readWord()
     local l = nil
     pcall(function()
@@ -213,7 +227,19 @@ for i = 1, #((TU and TU.STEPS) or {}) do
         Q.check(fresh and L.box ~= nil, name .. ": its balloon is drawn", L and L.key or "no balloon")
         if not (fresh and L.box) then return end
         Q.check(L.c.title == H.tr("UI_ZeD_Tut_" .. st.key .. "_Title"), name .. ": the balloon has the step's title", L.c.title)
-        Q.check(L.c.lines[1] == H.tr("UI_ZeD_Tut_" .. st.key .. "_Text"), name .. ": the balloon has the step's words")
+        -- (Nov 22 2026, QA K1-14: the Character and World steps name the player's own key for the game's Toggle
+        -- Inventory, which opens both windows, and the guide step the guide's own key, filled into the words as %1 and
+        -- %2. Until beta 21c the words were fixed: "Tab opens it.", "I opens it." and "Press F1". The words check
+        -- below passes on both; the key check FAILS on 2488ceead, where the words have no key filled in, and PASSES on
+        -- 0ebd56570.)
+        local words = H.tr("UI_ZeD_Tut_" .. st.key .. "_Text", H.invKey(), H.guideKey())
+        Q.check(L.c.lines[1] == words, name .. ": the balloon has the step's words", tostring(L.c.lines[1]))
+        if st.key == "Char" or st.key == "World" or st.key == "Guide" then
+            local key = (st.key == "Guide") and H.guideKey() or H.invKey()
+            local said = tostring(L.c.lines[1])
+            Q.check(words ~= H.tr("UI_ZeD_Tut_" .. st.key .. "_Text") and said:find(key, 1, true) ~= nil and said:find("%", 1, true) == nil,
+                name .. ": its words name the player's own key, " .. key .. " (QA K1-14)", said)
+        end
         local cnt = L.c.lines[2] and L.c.lines[2].text
         Q.check(cnt == H.tr("UI_ZeD_Tut_StepOf", idx, #TU.STEPS), name .. ": it counts the step", cnt)
         Q.check(tgt ~= nil and math.abs(L.a.x - tgt.x) < 2 and math.abs(L.a.y - tgt.y) < 2, name .. ": the balloon points at its thing",

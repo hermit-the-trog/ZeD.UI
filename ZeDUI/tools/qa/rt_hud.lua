@@ -12,7 +12,8 @@
 --             logged in Messages; a game note (HaloTextHelper.addGoodText) shows in ZeD's bubble and fades
 --   forage    Overrides/ForagePins.lua: a find staged as zedqa_forage_pointer.lua stages it (tile 925,13040, the step
 --             back and the facing): ZeD's pin is drawn and the pointer is ZeD's hand at its set size and alpha (ISBaseIcon._zedHandSize), white; the eye note
---   guide     ZeD_GuideBubble.lua: a fresh machine's guide bubble comes out of the belt with the guide's words and fades
+--   guide     ZeD_GuideBubble.lua: a fresh machine's guide bubble comes out of the belt with the guide's words and fades,
+--             with ZeD setup's balloons Off (the default; Nov 22 2026, QA K1-15) and again with them On
 --   hint      ZeD_HintStrip.lua: at a door the strip shows above the belt, centred; paused it hides; First hours stops a
 --             hint after its three uses (counted in Zomboid/Lua/ZeD_hints.txt); Off takes it away
 -- (Nov 18 2026, QA, the ledger's HUD gaps closed here:)
@@ -754,6 +755,23 @@ function S.guideToast()
     for _, t in ipairs(Z.Messages.toasts) do if t.source == G.head() then return t end end
     return nil
 end
+-- a fresh machine's bubble armed: no flag file, no line in Messages, ZeD setup's balloons as asked (1 Off, 2 On), the
+-- game's "Show the guide on startup" on, and the clock short (first showing after 1 s, up 3 s)
+function S.guideArm(balloons)
+    local G, M = Z.GuideBubble, Z.Messages
+    M.sources[G.head()] = nil
+    for i = #M.toasts, 1, -1 do if M.toasts[i].source == G.head() then table.remove(M.toasts, i) end end
+    S.setOpt(Z.Settings.messagesToastOption, balloons)
+    S.writeFile(S.GFILE, "")
+    RT.core:setOptionShowSurvivalGuide(true)
+    G.start()
+    G.FIRST_MS, G.EVERY_MS, G.HOUR_MS, G.SHOW_MS = 1000, 600000, 3600000, 3000
+end
+-- (Nov 22 2026, QA K1-15: the bubble is the first game's pointer to F1, so it shows with ZeD setup's balloons Off, the
+-- default. Until beta 21c it was a plain balloon that ended at once with balloons Off, and this check turned balloons
+-- On first, which hid that. So the bubble is watched with balloons Off first, then once more with them On. On
+-- 2488ceead the Off check FAILS (the offer ends "off" with no bubble); on 0ebd56570 it PASSES. The On checks pass on
+-- both.)
 Q.step(5, function()
     local G, M = Z.GuideBubble, Z.Messages
     local core = RT.core
@@ -762,18 +780,15 @@ Q.step(5, function()
         FIRST = G.FIRST_MS, EVERY = G.EVERY_MS, HOUR = G.HOUR_MS, SHOW = G.SHOW_MS, st = G.st,
         show = core:getOptionShowSurvivalGuide(), toastOpt = S.opt(Z.Settings.messagesToastOption), src = M.sources[G.head()] }
     S.back.guide = true
-    M.sources[G.head()] = nil
-    for i = #M.toasts, 1, -1 do if M.toasts[i].source == G.head() then table.remove(M.toasts, i) end end
-    S.setOpt(Z.Settings.messagesToastOption, 2)
-    S.writeFile(S.GFILE, "")
-    core:setOptionShowSurvivalGuide(true)
-    G.start()
+    S.guideArm(1)
     Q.check(G.st ~= nil, "guide: a fresh machine arms the bubble")
-    G.FIRST_MS, G.EVERY_MS, G.HOUR_MS, G.SHOW_MS = 1000, 600000, 3600000, 3000
 end)
 Q.waitFor(1, 900, function() return S.guideToast() ~= nil end, function(ok)
     local t = S.guideToast()
-    if not Q.check(ok and t ~= nil, "guide: the bubble comes out") then return end
+    local on = Z.Settings.messagesToastOn()
+    local st = Z.GuideBubble.st
+    if not Q.check(ok and t ~= nil and not on, "guide: with balloons Off, ZeD setup's default, the bubble still comes out (QA K1-15)",
+        "balloons " .. (on and "On" or "Off") .. ", the offer " .. tostring(st and st.done and ("ended: " .. tostring(st.why)) or "open")) then return end
     Q.check(t.text == Z.GuideBubble.text(0), "guide: the guide's own words", t.text)
     Q.check(t.bare and t.long and (t.pn or 0) == 0, "guide: a long bare balloon for player one")
 end)
@@ -786,6 +801,14 @@ end)
 Q.waitFor(1, 900, function() return S.guideToast() == nil end, function(ok)
     Q.check(ok, "guide: the bubble goes by itself")
     Q.check(Z.GuideBubble.lineKept(), "guide: its line stays in Messages")
+    -- the same fresh machine with balloons On, as this check ran before K1-15
+    S.guideArm(2)
+end)
+Q.waitFor(1, 900, function() return S.guideToast() ~= nil end, function(ok)
+    Q.check(ok and Z.Settings.messagesToastOn(), "guide: with balloons On the bubble comes out too")
+end)
+Q.waitFor(1, 900, function() return S.guideToast() == nil end, function(ok)
+    Q.check(ok, "guide: with balloons On it goes by itself too")
     S.putGuide()
 end)
 function S.putGuide()

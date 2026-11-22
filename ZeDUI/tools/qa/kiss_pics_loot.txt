@@ -1,0 +1,16 @@
+# ZeDUI/tools/qa/kiss_pics_loot.txt (Nov 22 2026, QA): the KISS audit's pictures, part loot (kiss_loot.lua: the strip's one balloon, a click that adds a column, worn and held things missing from the list, the World window opening on the Floor, a drag into a full bag, the paused veil), on the 1.0 gallery's staging. 4K full screen only (kiss_pics_run.ps1 -Part loot).
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_story_stage.lua | sts | timeout=600
+gallery_unload.lua | unl | timeout=60
+gallery_v1_a_common.lua | g1c | timeout=60
+hfr_common.lua | hfrc | timeout=60
+kiss_loot.lua | kssl | timeout=1800
+gallery_reload.lua | rel | timeout=60
+gallery_story_teardown.lua | stt | timeout=600
+gallery_v1_a_end.lua | g1e | timeout=60
+gallery_t14_end.lua | g14e | timeout=60
