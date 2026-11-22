@@ -406,7 +406,7 @@ end
 if OLD == "" then print("(git show " .. BASE .. " gave nothing: the SAME section is skipped)") end
 -- (KISS #16, Nov 22 2026: the bag button at the belt's left end is new on purpose; this compares everything else the
 -- belt draws, so the SAME runs use the belt with that one box left out)
-local NEW_SAME = NEW
+local NEW_SAME = (NEW:gsub("\r\n", "\n"))   -- (a checkout with Windows line ends: the search below uses LF)
 do
     local bag = '    boxes[#boxes + 1] = { kind = "bag", x = x, y = math.floor((h - bagW) / 2), w = bagW, h = bagW }\n'
         .. '    x = x + bagW + px(END_GAP)\n'
