@@ -87,7 +87,10 @@ S.FIRE = { { 0, -4 }, { 4, 0 }, { -4, 0 }, { 0, 4 }, { 4, -4 }, { -4, 4 } }
 S.STATS = { "PANIC", "STRESS", "PAIN", "FATIGUE", "ENDURANCE", "HUNGER", "THIRST", "BOREDOM", "UNHAPPINESS", "WETNESS", "SICKNESS", "FOOD_SICKNESS" }
 -- (made during the run: Take apart gives 3 stones, the dirt bag's last use leaves an empty sandbag, Clean Burn turns
 -- the bandage it uses into a dirty one, or a rag into a dirty rag)
-S.BYPRODUCT = { ["Base.Stone2"] = true, ["Base.EmptySandbag"] = true, ["Base.BandageDirty"] = true, ["Base.RippedSheetsDirty"] = true }
+S.BYPRODUCT = { ["Base.Stone2"] = true, ["Base.EmptySandbag"] = true, ["Base.BandageDirty"] = true, ["Base.RippedSheetsDirty"] = true,
+    -- (Nov 21 2026, third and fourth runs: a branch comes onto the campfire's square about 20 s into the run, step 63,
+    -- while the fire burns; the floor's "|1 -> |2" was that branch, the floor key counting the square's objects)
+    ["Base.TreeBranch2"] = true }
 -- what the game's own actions in this script use up, by kind (H.usedBy adds the fire starter and anything that bandages)
 S.USEDBY = { ["Base.Plank"] = "the game's add fuel", ["Base.SheetPaper2"] = "the game's light" }
 S.FIG = "Left Forearm"
@@ -386,7 +389,7 @@ end
 -- such a square during the run (a burn mark, ashes, what is left of the campfire): yes, but never the floor itself.
 function H.oursToTake(sq, o)
     local it = H.groundItem(o)
-    if it then return H.mine(it) end
+    if it then return H.mine(it) and not (S.inv0 and S.inv0[it]) end   -- (never one of the character's own things)
     local floor = nil
     pcall(function() floor = sq:getFloor() end)
     return o ~= floor
