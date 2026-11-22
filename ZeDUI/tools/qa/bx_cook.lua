@@ -548,8 +548,12 @@ function H.modelFresh(item)
     local ok, now = pcall(ZeD.ItemFactsPanel.factsFor, item, S.pn)
     if not ok then return false, "factsFor: " .. tostring(now) end
     local a, b = H.rowsText(m.facts), H.rowsText(now)
-    local wt = 0
-    pcall(function() wt = item:getActualWeight() end)
+    -- (Nov 21 2026, B8-1b, a9ac61c8c: the card weighs the item as the lists, the picked line and the game's tooltip do,
+    -- getUnequippedWeight first: a bottle with its water, a gun with its magazine; this check followed the old bare weight)
+    local wt = nil
+    pcall(function() wt = item:getUnequippedWeight() end)
+    if wt == nil then pcall(function() wt = item:getActualWeight() end) end
+    wt = wt or 0
     local wr = H.row(m.stats, ZeD.tr("UI_ZeD_Weight"))
     local wantW = string.format("%.1f kg", wt)
     local good = a == b and wr ~= nil and wr.value == wantW

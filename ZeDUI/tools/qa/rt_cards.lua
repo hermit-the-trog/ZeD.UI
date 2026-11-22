@@ -487,8 +487,12 @@ end)
 Q.step(15, function()
     local c = H.card()
     local m = c and c._model
-    local wt = 0
-    pcall(function() wt = S.bat:getActualWeight() end)
+    -- (Nov 21 2026, B8-1b, a9ac61c8c: the card weighs an item as the lists and the game's tooltip do, getUnequippedWeight
+    -- first; for a bat the same as the bare weight)
+    local wt = nil
+    pcall(function() wt = S.bat:getUnequippedWeight() end)
+    if wt == nil then pcall(function() wt = S.bat:getActualWeight() end) end
+    wt = wt or 0
     local want = string.format("%.1f kg", wt)
     local r = m and H.row(m.stats, ZeD.tr("UI_ZeD_Weight"))
     Q.check(r ~= nil and r.value == want, "facts: the card shows the bat's weight", tostring(r and r.value) .. " (want " .. want .. ")")
