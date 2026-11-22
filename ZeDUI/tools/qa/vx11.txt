@@ -1,0 +1,4 @@
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+vx11_craft.lua | vx11_crf | timeout=420
+vx11_world_tab.lua | vx11_wtab | timeout=300
