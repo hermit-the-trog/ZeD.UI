@@ -178,19 +178,28 @@ local function craftData(d, t, player)
     d.outName = (out and out.name) or e.displayName
     local inv = call(player, "getInventory")
     -- An output written through a mapper (the item you get follows the item you put in: nails on a bat
-    -- give that bat's spiked kind) lists no possible result items; its mapper does. The result whose
-    -- pattern you carry is the one shown, else the mapper's first.
+    -- give that bat's spiked kind; Divide Food's bowl follows the food). Its possible results are the
+    -- mapper's, so the gate is the mapper itself, not an empty type list (that never opened: QA B11-1).
+    -- The result shown: the one the drawer's gather got from the game for what is in reach
+    -- (rd.outItems, CC.resolveMappedOutputs), else the one whose pattern you carry, else the mapper's first.
     local mappedBase = nil
-    if #types == 0 then
+    do
         local okM, results, mapper = pcall(function()
-            local outs = e.recipe:getOutputs()
-            local o0 = outs and outs:size() > 0 and outs:get(0) or nil
+            local o0 = out and out.outputRef or nil
+            if not o0 then
+                local outs = e.recipe:getOutputs()
+                o0 = outs and outs:size() > 0 and outs:get(0) or nil
+            end
             local mp = o0 and o0:getOutputMapper() or nil
             return mp and mp:getResultItems() or nil, mp
         end)
         if okM and results and results:size() > 0 then
-            local pick = nil
+            types = {}   -- (the mapper's results, listed once below; QA B11-1)
+            local o = t.obj
+            local rd = o and ((o.state and o.state._rdLast and o.state._rdLast.entry == e) and o.state._rdLast or o.rd) or nil
+            local pick = rd and rd.outItems and rd.outItems[1] or nil
             for i = 0, results:size() - 1 do
+                if pick then break end   -- (the game already named it for what is in reach)
                 local r = results:get(i)
                 local pat = call(mapper, "getPatternForResult", r)
                 if pat then

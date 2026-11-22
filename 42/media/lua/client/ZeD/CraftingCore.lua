@@ -887,10 +887,16 @@ function CC.prebakeOutputs(recipe)
                         amount = math.max(1, output:getIntAmount())
                     end
                 end)
+                -- An output written through a mapper (Divide Food: the bowl follows the food, the pot given
+                -- back follows the pot used) is named on the card from what is in reach (CC.resolveMappedOutputs);
+                -- name above is the mapper's first result, kept for when nothing in reach decides it (QA B11-1)
+                local okM, mp = pcall(function() return output:getOutputMapper() end)
                 outputDefs[#outputDefs + 1] = {
                     name       = CC.getOutputName(output),
                     validTypes = outTypes,
                     amount     = amount,
+                    mapped     = (okM and mp ~= nil) or nil,
+                    outputRef  = output,   -- keep ref for the mapper (QA B11-1)
                 }
             end
         end
@@ -1351,6 +1357,28 @@ function CC.gatherDetail(rd, playerObj, win, prefix)
     rd.craftTime    = craftTime
     if rd.status ~= "station" and not rd.fromLogic then   -- (vanilla's answer also weighs uses, fluids and the slot's picked items; this counts whole items)
         rd.status   = missingCount > 0 and "missing" or "craftable"
+    end
+
+    -- Outputs named through a mapper: asked of the game again only when the containers were gathered
+    -- again (every 1.5 s) or the card's picks changed, not every frame (QA B11-1)
+    if entry.outputDefs and entry._hasMapped ~= false then
+        if entry._hasMapped == nil then
+            -- (worked out once per recipe: most have no mapped output and skip all of this after)
+            entry._hasMapped = false
+            for _, od in ipairs(entry.outputDefs) do if od.mapped then entry._hasMapped = true; break end end
+        end
+        if entry._hasMapped then
+            local st = win["_" .. prefix .. "State"]
+            local p = st and st.picks and st.picks[entry.name] or nil
+            local sig = ""
+            if p then
+                for i = 1, #(entry.inputDefs or {}) do sig = sig .. tostring(p[i]) .. ";" end
+            end
+            if rd._outCont ~= containers or rd._outSig ~= sig then
+                rd._outCont, rd._outSig = containers, sig
+                rd.outNames, rd.outItems = CC.resolveMappedOutputs(playerObj, entry, p, containers)
+            end
+        end
     end
 
     return containers
@@ -2244,7 +2272,7 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
         if found then
             local span = math.max(1, totalH - h)
             local want = math.max(0, math.min(span, cy - hold.rel))
-            scroll:setScrollPos(want / span)
+            scroll:setScrollPos((want + 0.5) / span)   -- (+0.5: the bar draws floor(), so the exact share landed 1 px short) (QA B11-4)
         end
     end
     state._scrollSeen = scroll.scrollPos
@@ -2583,6 +2611,63 @@ function CC.pickedCraftAction(playerObj, state, entry, bench, containers, used, 
     end)
     if not (ok and action) then return nil end
     return action, theLogic
+end
+
+-- The names (and the game's item scripts) of a recipe's mapped outputs for what is in reach, as
+-- vanilla's craft window names them in manual select (ISWidgetOutput:updateValues): a logic in
+-- manual select fills its slots from the containers (autoPopulateInputs, as vanilla's panel does),
+-- the card's picked types go in their slots, then each output's mapper is asked for the result of
+-- those inputs (getOutputMapper():getOutputItem(the recipe data, true)). A pot of soup gives Bowl
+-- of Soup and the Cooking Pot back; a saucepan of rice, Bowl of Rice and the Saucepan.
+-- Returns two tables by output index (nil where the game gave nothing: the card keeps the def's
+-- first-result name), or nil, nil when the game would not answer. picks: the card's
+-- { [slotIdx] = full type } or nil. (QA B11-1)
+function CC.resolveMappedOutputs(playerObj, entry, picks, containers)
+    if not (playerObj and entry and entry.recipe and entry.outputDefs and containers) then return nil, nil end
+    local names, items = {}, {}
+    local ok = pcall(function()
+        local logic = HandcraftLogic.new(playerObj, nil, nil)
+        logic:setContainers(containers)
+        logic:setRecipe(entry.recipe)
+        logic:setManualSelectInputs(true)
+        logic:autoPopulateInputs()
+        if picks then
+            local defs = entry.inputDefs or {}
+            for idx = 1, #defs do
+                local script = defs[idx].inputRef
+                if picks[idx] and script and script:getResourceType() == ResourceType.Item then
+                    fillPickSlot(logic, script, containers, picks[idx], nil)
+                end
+            end
+            logic:setManualSelectInputScriptFilter(nil)
+        end
+        -- Each mapped output asked of the recipe's data as it now stands
+        local function ask()
+            local data = logic:getRecipeData()
+            local any = false
+            for i, od in ipairs(entry.outputDefs) do
+                if od.mapped and od.outputRef and not items[i] then
+                    local okI, it = pcall(function() return od.outputRef:getOutputMapper():getOutputItem(data, true) end)
+                    if okI and it then
+                        items[i] = it
+                        local okN, nm = pcall(function() return it:getDisplayName() end)
+                        if okN and nm then names[i] = nm end
+                    end
+                end
+                if od.mapped and not items[i] then any = true end
+            end
+            return any
+        end
+        -- (nothing named from the slots: asked again the way the game fills them for its own check,
+        -- canPerformCurrentRecipe out of manual select, as QA's in-game proof asked it)
+        if ask() then
+            logic:setManualSelectInputs(false)
+            logic:canPerformCurrentRecipe()
+            ask()
+        end
+    end)
+    if not ok then return nil, nil end
+    return names, items
 end
 
 -- Queue the crafts for the selected recipe when the player chose ingredients,
@@ -3098,10 +3183,12 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         curY = curY + catHdrH
 
         if not state.outCollapsed then
-            for _, outDef in ipairs(entry.outputDefs) do
+            local outNames = rd.outNames   -- (a mapped output's name for what is in reach: QA B11-1)
+            for oi, outDef in ipairs(entry.outputDefs) do
+                local nm = (outNames and outNames[oi]) or outDef.name
                 local outData = {
-                    name = outDef.name,
-                    displayName = outDef.name,
+                    name = nm,
+                    displayName = nm,
                     iconTex = nil,
                     have = outDef.amount or 1,  -- the yield of one craft (QA B10-2)
                     need = outDef.amount or 1,
@@ -3361,7 +3448,7 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
                             end
                             newOff = math.max(0, math.min(span, newOff))
                             if newOff ~= oldOff then
-                                state.scroll:setScrollPos(newOff / span)
+                                state.scroll:setScrollPos((newOff + 0.5) / span)   -- (+0.5 against the bar's floor(): QA B11-4)
                             end
                         end
                     end
