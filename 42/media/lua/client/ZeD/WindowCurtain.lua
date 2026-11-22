@@ -344,7 +344,9 @@ end
 function C.unroll(win)
     if not win._rolled then return end
     local rod = win._rod
-    if rod and rod:isVisible() then
+    -- (QA B7-1) a rod that has not moved yet (asked down on the same update it rolled up, before it drew once) would
+    -- never finish: its prerender finishes only while it is moving. So it rolls down only when it is above the bottom.
+    if rod and rod:isVisible() and (rod._h or 0) < win:getHeight() then
         rod._target = win:getHeight()       -- rolls down; finishUnroll at the bottom
     else
         C.finishUnroll(win)

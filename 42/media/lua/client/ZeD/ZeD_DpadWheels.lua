@@ -1352,7 +1352,7 @@ function H.sleep(p, pn)
         return { detail = tr("UI_ZeD_Wheel_SleepInCar"), run = function(pl) ISVehicleMenu.onSleep(pl, pl:getVehicle()) end }
     end
     local seat = safe(function() return p:isSittingOnFurniture() and p:getSitOnFurnitureObject() end) or nil
-    return { detail = seat and safe(getMoveableDisplayName, seat) or getText("ContextMenu_SleepOnGround"),
+    return { detail = seat and safe(ISWorldObjectContextMenu.getMoveableDisplayName, seat) or getText("ContextMenu_SleepOnGround"),
              run = function(pl, n) ISWorldObjectContextMenu.onSleep(seat, n) end }
 end
 
@@ -1548,7 +1548,7 @@ end
 function H.sitWheel(p, pn)
     local sitting = safe(function() return p:isSitOnGround() or p:isSittingOnFurniture() end)
     local seat, d = H.nearestSeat(p)
-    local seatName = seat and safe(getMoveableDisplayName, seat)
+    local seatName = seat and safe(ISWorldObjectContextMenu.getMoveableDisplayName, seat)
     return {
         { name = sitting and tr("UI_ZeD_Wheel_GetUp") or getText("ContextMenu_SitGround"),
           icon = sitting and "sit_ground_off" or "sit_ground",
