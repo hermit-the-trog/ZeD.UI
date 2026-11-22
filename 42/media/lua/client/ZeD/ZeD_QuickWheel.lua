@@ -77,7 +77,12 @@ end
 -- fluid the character knows is tainted (the game's own word for it: bleach, or tainted water when the
 -- sandbox shows it); the game's double-click never drinks it (vanilla ISInventoryPane 1039, 1063) (QA K1-3)
 local function knownTainted(it)
-    return _safe(function() return it:getFluidContainer():isTaintedStatusKnown() end, false)
+    -- (QA K1 review: most things have no fluid container; the bare call threw for every food, pill or book in a
+    -- quick list, and the game logs a throw inside pcall under -debug)
+    return _safe(function()
+        local fc = it.getFluidContainer and it:getFluidContainer()
+        return fc ~= nil and fc:isTaintedStatusKnown() == true
+    end, false)
 end
 
 local function isFood(it, playerObj)

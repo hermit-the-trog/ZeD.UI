@@ -1312,6 +1312,9 @@ function CT.syncFocus(win, content)
         for i, e in ipairs(els) do if e.ccKey == cc.askFrom then seat = i; break end end
         cc.askSeated, cc.askFrom = nil, nil
     end
+    -- (KISS #18) Down into the band always lands on Loot all ("take"), never on To floor or Same type
+    zone.entryElementIdx = nil
+    for i, e in ipairs(els) do if e.ccKey == "take" then zone.entryElementIdx = i; break end end
     F.setRingZoneElements(win, zn, els, seat)
     F.setZoneFocusable(win, zn, #els > 0)
 end

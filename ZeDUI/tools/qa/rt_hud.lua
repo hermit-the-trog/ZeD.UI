@@ -24,8 +24,9 @@
 --             transfer; an attach to the hotbar (useProgressBar false in the game) draws no bar
 --   balloon   Balloon.lua: one balloon at a time near the screen's corner, on screen; Escape's dismiss keeps it down
 --             until the focus moves to another control
---   paused    ZeD_PausedLook.lua: paused, the Character window's glass covers its list and eats presses, the tab strip
---             still switches tabs; playing again the glass is gone
+--   paused    ZeD_PausedLook.lua: paused, the Character window's glass covers its open page and eats presses, a veil
+--             on its item list lets them through (KISS #41: moves between bags wait for play), the tab strip still
+--             switches tabs; playing again the glass and the veil are gone
 --   pin       ZeD_Pins.lua: a skill row's right-click menu pins the skill; the title bar shows its level and XP
 --   popclear  PopClear.lua: a spot over a ZeD window moves clear of it (or stays only when neither side has room)
 --   prompts   ZeD_Prompt.lua / Overrides/Prompts.lua: the game's ISTextBox is ZeD's text prompt and OK hands the typed
@@ -1458,30 +1459,48 @@ Q.step(5, function()
     S.closeMenu()
     RT.pairOpen()
 end)
+-- (Nov 22 2026, KISS #41, the director's pick: moves between bags go while paused and run on play, as the game's drag
+-- does. The glass now lies over the open tab's page only and takes its presses; the item list gets a veil the mouse
+-- goes through (PL._glassList, its line "moves between bags wait for play"). Until K3 (0b366177e) one glass covered
+-- the page and the list and ate every press, and these checks read that. Skills is opened first, so there is a page.)
 Q.waitFor(5, 300, function() local w = RT.cw(); return w ~= nil and w:isReallyVisible() and w._mainContent ~= nil end, function(ok)
     if not Q.check(ok, "paused: the Character window is open") then S.plSkip = true; return end
     S.plTab = RT.cw()._activeTab
+    RT.charTab("skills")
+end)
+Q.waitFor(2, 120, function() local w = RT.cw(); return S.plSkip or (w ~= nil and w._activeTab == "skills" and w._drawerOpen == true and w._drawerPanel ~= nil) end, function(ok)
+    if S.plSkip then return end
+    if not Q.check(ok, "paused: the Skills page is open for the glass") then S.plSkip = true; return end
     S.pause(true)
 end)
+function S.inside(g, panel)
+    if not (g and panel) then return false end
+    local gx, gy, gw, gh = g:getAbsoluteX(), g:getAbsoluteY(), g:getWidth(), g:getHeight()
+    local mx, my = panel:getAbsoluteX() + math.floor(panel:getWidth() / 2), panel:getAbsoluteY() + math.floor(panel:getHeight() / 2)
+    return mx >= gx and mx < gx + gw and my >= gy and my < gy + gh
+end
 Q.step(10, function()
     if S.plSkip then return end
     local PL = Z.PausedLook
     local w = RT.cw()
-    local g = PL._glass
+    local g, v = PL._glass, PL._glassList
     Q.check(PL.on(), "paused: the game reads paused")
-    if not Q.check(g ~= nil and g.win == w and g:isVisible(), "paused: the glass lies on the Character window") then return end
-    local c = w._mainContent
-    local gx, gy, gw, gh = g:getAbsoluteX(), g:getAbsoluteY(), g:getWidth(), g:getHeight()
-    local mx, my = c:getAbsoluteX() + math.floor(c:getWidth() / 2), c:getAbsoluteY() + math.floor(c:getHeight() / 2)
-    Q.check(mx >= gx and mx < gx + gw and my >= gy and my < gy + gh, "paused: the glass covers the item list")
-    Q.check(g:onMouseDown(10, 10) == true and g:onRightMouseDown(10, 10) == true, "paused: the glass takes a press and a right press (nothing is used)")
+    if Q.check(g ~= nil and g.win == w and g:isVisible(), "paused: the glass lies on the Character window's open page") then
+        Q.check(S.inside(g, w._drawerPanel), "paused: the glass covers the tab's page")
+        Q.check(g:onMouseDown(10, 10) == true and g:onRightMouseDown(10, 10) == true, "paused: the glass takes a press and a right press (nothing on the page is used)")
+    end
+    if Q.check(v ~= nil and v.win == w and v:isVisible(), "paused: a veil lies on the item list (KISS #41)") then
+        Q.check(S.inside(v, w._mainContent), "paused: the veil covers the item list")
+        Q.check(v:onMouseDown(10, 10) ~= true and v:onRightMouseDown(10, 10) ~= true and not (g ~= nil and S.inside(g, w._mainContent)),
+            "paused: the veil lets a press through to the list, so a move between bags still goes (KISS #41)")
+    end
     local F = ZeD.Input and ZeD.Input.Focus
     local fz = F and F.liveZone and F.liveZone(w)
     local free = (fz and S.FREE[fz.zone]) and true or false
     Q.check(PL.blocks(w) == (not free), "paused: the pad's A and X are held outside the tab strip and the bags", fz and fz.zone or "no live zone")
     RT.bounds(Q, "paused Character window")
     S.plAlt = nil
-    for _, id in ipairs(RT.tabs(RT.charStrip())) do if not S.plAlt and id ~= S.plTab and id ~= "loot" then S.plAlt = id end end
+    for _, id in ipairs(RT.tabs(RT.charStrip())) do if not S.plAlt and id ~= "skills" and id ~= "loot" then S.plAlt = id end end
     if S.plAlt then RT.charTab(S.plAlt) end
 end)
 Q.step(15, function()
@@ -1493,8 +1512,8 @@ Q.step(15, function()
 end)
 Q.step(10, function()
     if S.plSkip then return end
-    local g = Z.PausedLook._glass
-    Q.check(not (g and g:isVisible()) and not Z.PausedLook.blocks(RT.cw()), "paused: playing again, the glass is gone")
+    local g, v = Z.PausedLook._glass, Z.PausedLook._glassList
+    Q.check(not (g and g:isVisible()) and not (v and v:isVisible()) and not Z.PausedLook.blocks(RT.cw()), "paused: playing again, the glass is gone (and the list's veil)")
 end)
 
 -- ===================================================================== pin a skill from its row's menu

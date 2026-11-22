@@ -1118,10 +1118,14 @@ Q.step(3, function()
     S.focus0 = St.focusStyle()
     S.errFocus = H.errs()
 end)
+-- (QA, Nov 22: KISS #40, the director's pick: the window box shows Controller highlight only with a pad, so with none
+-- joined the four picks are skipped, not failed)
+S.padHere = JoypadState and JoypadState.players and JoypadState.players[1] and true or false
 for i = 1, #((St and St.focusStyleKeys) or {}) do
-    Q.step(2, function() S.picked = H.menuPick(H.stub(), "UI_ZeD_Settings_FocusStyle", i) end)
+    Q.step(2, function() if S.padHere then S.picked = H.menuPick(H.stub(), "UI_ZeD_Settings_FocusStyle", i) end end)
     Q.step(6, function()
         local k = St.focusStyleKeys[i]
+        if not S.padHere then Q.skip("Controller highlight " .. k .. ": the window box's pick", "no pad joined: the row shows only with a pad (KISS #40)"); return end
         Q.check(S.picked and St.focusStyle() == k and H.val("focusStyle") == i, "Controller highlight " .. k .. ": the window box's pick is read and saved",
             tostring(St.focusStyle()) .. ", option " .. tostring(H.val("focusStyle")))
     end)

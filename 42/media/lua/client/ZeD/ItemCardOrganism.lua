@@ -394,6 +394,12 @@ end
 -- The card's Eat and the controller's held A share this one rule (QA K1-2): the game grays Eat when
 -- stuffed, on food that feeds (hunger below 0; a cigarette, which feeds nothing, is never grayed).
 -- Returns the game's reason key when grayed, else nil.
+-- Does a drainable get the card's Use? Only a consumable that isn't a poison-show one (pills, smokes): the game's
+-- double-click does nothing on wipes or thread. The card's verb and the pad row's hold-A share this (QA K2 review)
+function ZeD.ItemCard.drainableUse(item)
+    local okT, usable = pcall(function() return item:hasTag(ItemTag.CONSUMABLE) and not item:hasTag(ItemTag.SHOW_POISON) end)
+    return okT and usable and true or false
+end
 function ZeD.ItemCard.eatOff(item, playerObj)
     if not playerObj or not ZeD.ItemCard.tooFull(playerObj) then return nil end
     local h = safeGet(item, "getHungChange")
@@ -484,8 +490,7 @@ local function headerVerbsForContext(ctx, item, playerObj)   -- (playerObj: the 
     elseif cat == "Drainable" then
         -- USE is the game's double-click, which only takes pills and smokes (consumable, not a poison-show one):
         -- wipes, thread and the other drainables get no Use, it would do nothing (QA K2-7)
-        local okT, usable = pcall(function() return item:hasTag(ItemTag.CONSUMABLE) and not item:hasTag(ItemTag.SHOW_POISON) end)
-        if okT and usable then
+        if ZeD.ItemCard.drainableUse(item) then
             -- (KISS #29) pills read the game's own words, Take Pills; a smoke keeps Use. Same USE action either way.
             local okS, smoke = pcall(function() return item:hasTag(ItemTag.SMOKABLE) end)
             local word = (okS and not smoke) and getText("ContextMenu_Take_pills") or VT("USE")

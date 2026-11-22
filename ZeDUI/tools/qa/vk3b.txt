@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/vk3b.txt (Nov 22 2026, QA): the rerun of the three K3-run scripts fixed after their first game run (vk1_world's K1-14 staging, vk3_pad's car walk, vk3_screen's #46 and #60).
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+vk1_world.lua | vk1_wld | timeout=900
+vk3_pad.lua | vk3_pad | timeout=900
+vk3_screen.lua | vk3_scr | timeout=900

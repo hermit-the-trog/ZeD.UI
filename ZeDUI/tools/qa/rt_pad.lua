@@ -776,9 +776,11 @@ end)
 
 -- ===================================================================== the input mode and the flip to the pad
 -- (Nov 18 2026, the ledger) With no lock, a key press (OnKeyPressed with F15, a key nothing binds) reads "kbm";
--- players 2 to 4 always read "gamepad". From the pair shut, the lock to "gamepad" opens it (FocusManager's
--- _onModeChanged); a pad press shows the focus marks, and the flip to "kbm" hides them. The detector's switch waits
--- 200 ms after the last one, so each flip waits 300 ms. The auto flip to "gamepad" needs a real controller.
+-- players 2 to 4 always read "gamepad". From the pair shut, the lock to "gamepad" opens nothing (Nov 22 2026, KISS #14,
+-- the director's pick: a touch or a key and then the stick popped both windows open mid-walk; until K3 (0b366177e)
+-- FocusManager's _onModeChanged opened the pair and this checked it did); the pair is then opened as Y, LB or RB opens
+-- it; a pad press shows the focus marks, and the flip to "kbm" hides them. The detector's switch waits 200 ms after
+-- the last one, so each flip waits 300 ms. The auto flip to "gamepad" needs a real controller.
 Q.step(5, function()
     S.closeWheels()
     S.release()
@@ -812,8 +814,14 @@ end, function(ok)
 end)
 Q.waitMs(300)
 Q.step(1, function() Det.setLockedMode("gamepad") end)
+-- (a second of frames for anything the flip would open; nothing should)
+Q.waitFor(1, 60, function() return RT.isOpen() or (ZeD_WorldWindow.isOpen and ZeD_WorldWindow.isOpen(S.pn)) end, function(opened)
+    Q.check(not opened and not RT.isOpen() and Det.getMode(S.pn) == "gamepad",
+        "flip: locking the controller opens nothing, the pair stays shut (KISS #14)", "Character " .. tostring(RT.isOpen()) .. ", mode " .. tostring(Det.getMode(S.pn)))
+    pcall(CW.ensureBothOpenForGamepad, S.pn)   -- (the pair opened as the pad's Y, LB or RB opens it)
+end)
 Q.waitFor(1, 120, function() local w = RT.ww(); return RT.isOpen() and w ~= nil and w:isVisible() end, function(ok)
-    Q.check(ok, "flip: locking the controller opens the Character and World windows")
+    Q.check(ok, "flip: then the pad opens the Character and World windows (ensureBothOpenForGamepad, as Y, LB or RB)")
     local w = RT.cw()
     if w and w:isVisible() then
         if F.getFocusedWindow(S.pn) ~= w then F.claimFocus(w) end
@@ -937,10 +945,10 @@ Q.waitFor(2, 60, function() return not S.back.fish or S.fish.drawn ~= nil end, f
         "fishing: the line's tension is kept and drawn as the rod in hand", "drawn " .. tostring(S.fish.drawn) .. ", tension " .. tostring(S.fish.t))
     S.putFish()
 end)
--- back on the pad (the flip opens the pair; it is shut again)
+-- back on the pad (the flip opens nothing since KISS #14; the pair is shut, whatever is up)
 Q.waitMs(300)
 Q.step(1, function() Det.setLockedMode("gamepad") end)
-Q.waitFor(1, 120, function() return RT.isOpen() end, function()
+Q.step(10, function()
     S.release()
     RT.pairShut()
 end)
@@ -1166,9 +1174,12 @@ Q.step(10, function()
     Q.check(S.p:isSneaking() == S.sneakWas, "chord: again, and it stands as it was")
     RT.pairOpen()
 end)
--- (Nov 18 2026, the ledger) A ZeD window holding the pad: RB + R3 is not a chord (Q.onPress says false, the crouch
--- stays as it was), and the D-pad goes to that window, not a wheel (the onDisplay wrap's windowTakes: no wheel, the
--- focus moved). Q.onPress is asked straight, so the game's own R3 never runs.
+-- (Nov 18 2026, the ledger) A ZeD window holding the pad: the world's chord path (the game's press wrapper, Q.onPress)
+-- says false, so nothing runs there, and the D-pad goes to that window, not a wheel (the onDisplay wrap's windowTakes:
+-- no wheel, the focus moved). Q.onPress is asked straight, so the game's own R3 never runs.
+-- (Nov 22 2026, KISS #34, the director's pick: in a window a bumper held with a face button runs the quick action and
+-- never turns a tab. Until K3 (0b366177e) the chord did nothing in a window and this checked that; now the window's own
+-- pad path, FocusManager's Focus.padChord, runs it: checked after the D-pad, RB held (qaButton) and R3 on the window.)
 Q.step(20, function()
     local w = RT.cw()
     if not Q.check(w ~= nil and w:isVisible(), "chord: the Character window is open for the window checks") then return end
@@ -1184,7 +1195,7 @@ Q.step(5, function()
     local okP, r = pcall(C.onPress, { player = S.pn, id = 0 }, Joypad.RStickButton)
     C.qaBumper = nil
     Q.check(F.getFocusedWindow(S.pn) == w and okP and r == false and S.p:isSneaking() == S.sneakWas,
-        "chord: with a window holding the pad the chord does nothing", tostring(r))
+        "chord: with a window holding the pad the world's chord path runs nothing (the window's own path has it, KISS #34)", tostring(r))
     S.closeWheels()
     local z = F.getFocusedZone(w)
     local i0 = z and z.focusedElementIdx
@@ -1194,9 +1205,46 @@ Q.step(5, function()
     Q.check(D.state[S.pn] == nil and i0 ~= nil and i1 ~= nil and i1 ~= i0,
         "D-pad on a focused window: no wheel opens, the window's focus moves", tostring(i0) .. " to " .. tostring(i1))
     S.closeWheels()
+end)
+-- (KISS #34) the window's own path: RB held (Focus.qaButton) and down on the window, then R3: the chord runs (the
+-- character crouches), the focus stays, and the bumper's release turns no tab on either window
+Q.step(3, function()
+    local w = RT.cw()
+    S.wc = nil
+    if not (w and w:isVisible() and F.getFocusedWindow(S.pn) == w) then return end
+    local ww = RT.ww()
+    S.wc = { w = w, tabC = w._activeTab, tabW = ww and ww._activeTab, sneak = S.p:isSneaking() }
+    S.back.wc = true
+    Z.QuickChords.lastChord = nil
+    RT.pad("RightBump", true)
+    RT.padDown(Joypad.RBumper, w)
+    RT.padDown(Joypad.RStickButton, w)
+end)
+Q.step(3, function()
+    local c = S.wc
+    if not c then Q.check(false, "chord in a window: the Character window holds the pad for it"); return end
+    Q.check(Z.QuickChords.lastChord == "RB+R3" and S.p:isSneaking() ~= c.sneak and F.getFocusedWindow(S.pn) == c.w,
+        "chord: in a window, RB held with R3 runs the quick action (the character crouches), the window keeps the pad (KISS #34)",
+        "chord " .. tostring(Z.QuickChords.lastChord) .. ", crouched " .. tostring(S.p:isSneaking()))
+    RT.pad("RightBump", false)
+end)
+Q.step(6, function()
+    local c = S.wc
+    if not c then return end
+    local ww = RT.ww()
+    Q.check(c.w._activeTab == c.tabC and (ww and ww._activeTab) == c.tabW,
+        "chord: in a window the bumper's release after the chord turns no tab (KISS #34)",
+        "Character " .. tostring(c.tabC) .. " -> " .. tostring(c.w._activeTab) .. ", World " .. tostring(c.tabW) .. " -> " .. tostring(ww and ww._activeTab))
+    S.putWc()
     S.release()
     RT.pairShut()
 end)
+function S.putWc()
+    if not S.back.wc then return end
+    S.back.wc = nil
+    RT.pad("RightBump", nil)
+    if S.wc and S.p:isSneaking() ~= S.wc.sneak then pcall(function() S.p:setSneaking(S.wc.sneak) end) end
+end
 -- a chord that cannot run says why over the head (HaloTextHelper.addBadText, watched and kept quiet): on a slice
 -- that is off, its reason; on a slice that is gone, "gone" with the chord's words
 Q.step(5, function()
@@ -1402,7 +1450,7 @@ Q.mark()
 Q.step(5, function()
     S.closeWheels()
     S.putDraw(); S.putShout(); S.putZoom(); S.putMood(); S.putStyle(); S.putChords(); S.putPB(); S.putPlace(); S.putPF()
-    S.putRW(); S.putHL(); S.putPtr(); S.putRoute(); S.putGesture(); S.putHalo(); S.putMH(); S.putFish()
+    S.putRW(); S.putHL(); S.putPtr(); S.putRoute(); S.putGesture(); S.putHalo(); S.putMH(); S.putFish(); S.putWc()
     S.release()
     if S.back.view then S.back.view = nil; S.setOpt(Z.Settings.inventoryViewOption, S.invView) end
     if S.back.mode then

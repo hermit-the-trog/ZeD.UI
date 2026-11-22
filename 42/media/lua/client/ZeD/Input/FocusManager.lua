@@ -1286,6 +1286,11 @@ local function _applyFlatLanding(w, locator, oldFlatIdx, newFlatIdx)
     if not newZone then return end
 
     newZone.focusedElementIdx = newLoc.elementIdx
+    -- (KISS #18) a zone can name the element the D-pad lands on when it comes in from another zone (the container
+    -- band: Loot all, never the button that happens to sit under the row it left)
+    if oldZoneIdx ~= newZoneIdx and newZone.entryElementIdx and newZone.elements[newZone.entryElementIdx] then
+        newZone.focusedElementIdx = newZone.entryElementIdx
+    end
     w._focusIdx               = newZoneIdx
     w._focusPendingEntry      = nil   -- the player put focus somewhere: no entry seed after this
 

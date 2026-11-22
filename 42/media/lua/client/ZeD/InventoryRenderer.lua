@@ -523,7 +523,9 @@ end
 -- inventory (ISInventoryPane:onMouseUp's rule). True when this click was the
 -- second of a pair, so the window skips its select / drag.
 local DBL_MS = 400
-function ZeD.InventoryRenderer.doubleClick(win, item, playerNum)
+-- colIdx: the column the click is in (a multi-column view); the earlier release has cleared _dragSourceCol by now,
+-- so the caller names it (QA K2 review)
+function ZeD.InventoryRenderer.doubleClick(win, item, playerNum, colIdx)
     local now = getTimestampMs()
     local last = win._zedLastClick
     win._zedLastClick = { item = item, t = now }
@@ -535,7 +537,10 @@ function ZeD.InventoryRenderer.doubleClick(win, item, playerNum)
     local src = item and item:getContainer()
     local pl = getSpecificPlayer(playerNum)
     if src and pl and src ~= pl:getInventory() and ZeD.InventoryRenderer.dragItems then
+        local keepCol = win._dragSourceCol
+        win._dragSourceCol = colIdx   -- dragItems reads the stacks of this column
         local all = ZeD.InventoryRenderer.dragItems(win, { item }, src)
+        win._dragSourceCol = keepCol
         if all and #all > 1 then rows = all end
     end
     ZeD.InventoryRenderer.quickUse(item, playerNum, rows)
@@ -809,7 +814,8 @@ function ZeD.InventoryRenderer.padIsUse(item)
     local IC = ZeD.ItemCard
     if not (IC and IC.categoryOf) then return false end
     local ok, cat = pcall(IC.categoryOf, item)
-    return ok and cat == "Drainable"
+    -- a drainable gets Use only where the card gives it one: wipes and thread don't (QA K2 review)
+    return ok and cat == "Drainable" and IC.drainableUse and IC.drainableUse(item) or false
 end
 -- the card's Use word
 function ZeD.InventoryRenderer.padUseWord()

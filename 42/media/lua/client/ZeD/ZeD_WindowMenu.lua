@@ -361,7 +361,13 @@ local function wrapShowAll()
     local orig = ISUIHandler.setVisibleAllUI
     ISUIHandler.setVisibleAllUI = function(visible, ...)
         local r = orig(visible, ...)
-        if visible then pcall(WM.showHud) end
+        if visible then
+            -- Resume after Escape: the game just showed every panel it had hidden, even when the player had hidden the
+            -- interface (Toggle UI sets allUIVisible false first, and toggleUI sets it true before it calls here). So a
+            -- show that arrives while the flag is still false is a Resume: the interface is back, say so. (QA K1 review)
+            if ISUIHandler.allUIVisible == false then ISUIHandler.allUIVisible = true end
+            pcall(WM.showHud)
+        end
         return r
     end
 end

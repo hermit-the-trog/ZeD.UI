@@ -346,7 +346,9 @@ calcEquipColumnsRaw = function(w, win)
     local wtColW   = cw.wt
 
     -- Fixed-width protection columns
-    local protColW = math.floor(PROT_COL_W * scale)
+    -- the column is 32u at least and as wide as its longest head word, so "Scratch" and "Bullet" show whole in any
+    -- language; the narrow-card steps below shrink it back to the same measure (QA K1 review: K1-13)
+    local protColW = math.max(math.floor(PROT_COL_W * scale), (getNarrowColW()))
 
     -- Name fills remaining space
     local rightCols = slotColW + condColW + protColW * 3 + wtColW + padX
