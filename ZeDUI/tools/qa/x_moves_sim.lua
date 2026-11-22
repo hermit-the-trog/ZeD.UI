@@ -415,9 +415,17 @@ do
     instanceof = function(o, cls) return cls == "DrainableComboItem" and type(o) == "table" and o.drainable == true end
     local pills = item("pills", MAIN)
     pills.drainable = true
+    -- (QA K2-7) the card's Use is only for the game's consumables (pills, smokes); wipes and thread get none
+    local oldTag = ItemTag
+    ItemTag = { CONSUMABLE = "consumable", SHOW_POISON = "showpoison" }
+    pills.hasTag = function(_, t) return t == "consumable" end
+    local wipes = item("wipes", MAIN)
+    wipes.drainable = true
+    wipes.hasTag = function() return false end
     check("USE: pills (a drainable: the card's main verb is Use) are a use", IR.padIsUse(pills) == true)
     check("USE: ... a shirt is not", not IR.padIsUse(shirt))
     if VERBS then check("USE: ... and the card's own main verb for them is Use", VERBS("inventory", pills) == "USE,DROP,MORE", VERBS("inventory", pills)) end
+    if VERBS then check("USE: ... wipes and thread have no Use on the card (K2-7)", VERBS("inventory", wipes) == "DROP,MORE", VERBS("inventory", wipes)) end
     focus(charW, itemStop(pills))
     tap(charW, Joypad.AButton)
     check("USE: A tapped on a pills row never takes one", #logged("dblclick") == 0)
@@ -436,6 +444,7 @@ do
     charW._mainContent._selectedItems = {}
     charW._gpPaint = nil
     instanceof = oldInst
+    ItemTag = oldTag
 end
 
 local ICS = readFile(Z .. "ItemCard.lua") or ""

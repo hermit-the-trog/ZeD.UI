@@ -58,6 +58,7 @@ do
         local moved, dropped, worn, belted
         ZeD.EquipDoll = { takeDrop = function(_, items) if DOLL then worn = items[1]; return true end return false end }
         ZeD.Belt = { takeDrop = function(_, items) if BELT then belted = items[1]; return true end return false end }
+        ZeD.HealthTab = { takeDrop = function() return false end }   -- (QA K2-7: the Health tab takes no drop here)
         ZeD.Curtain = { dropTarget = function() return nil end }
         ZeD.ContainerGates = { refuses = function() return false end }
         IR.dirtyModels = function() end

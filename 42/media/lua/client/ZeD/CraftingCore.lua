@@ -1144,7 +1144,8 @@ function CC.filterAndSort(data, state, config, win)
         -- last ingredients, or a recipe opened from an item's card, stays listed)
         local modeOut = false
         local show = CC.showMode(state, config)
-        if not searchOut and not searching and show ~= "all" and entry.name ~= state.selected then
+        if not searchOut and not searching and show ~= "all" and entry.name ~= state.selected
+            and not pinSet[entry.name] then -- a pinned recipe stays listed under any Show (QA K2-3)
             if entry.needLearn and not rd.learned then modeOut = true
             elseif not rd.hasSkill then modeOut = true
             elseif show == "ready" and rd.status ~= "craftable" then modeOut = true end

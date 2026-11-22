@@ -2407,6 +2407,13 @@ end
 -- ids, so the controller stays on the same control when the form changes mid-drive)
 function ZeD_Dashboard:_ring(Focus)
     if Focus and Focus.setRingZoneElements then
+        -- the pad's first stop (plate and Lite strip both come here) is the ignition, whatever order the plate drew its controls in (QA K2-5)
+        for i, e in ipairs(self._elements) do
+            if e.id == "dash:ignition" then
+                if i > 1 then table.remove(self._elements, i); table.insert(self._elements, 1, e) end
+                break
+            end
+        end
         local zone = self._focusRing[1]
         local oldEl = zone.elements[zone.focusedElementIdx or 1]
         local keep = nil

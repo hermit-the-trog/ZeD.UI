@@ -510,6 +510,15 @@ if haveBase then
         if at then os.src = string.sub(os.src, 1, at - 1) .. wearNew .. string.sub(os.src, at + #wearOld); wearDone = true end
     end
     check("K1-13: the old card's clothes verb carried to Wear", wearDone)
+    -- (QA K2-7, Nov 22 2026) a drainable that is no pill or smoke gets no Use, carried into the old card the same way
+    local useOld = 'elseif cat == "Drainable" then\n        primary = {id = "USE", label = VT("USE"), primary = true}\n'
+    local useNew = 'elseif cat == "Drainable" then\n        local okT, usable = pcall(function() return item:hasTag(ItemTag.CONSUMABLE) and not item:hasTag(ItemTag.SHOW_POISON) end)\n        if okT and usable then primary = {id = "USE", label = VT("USE"), primary = true} end\n'
+    local useDone = false
+    for _, os in ipairs(oldSrc) do
+        local at = os.src and string.find(os.src, useOld, 1, true)
+        if at then os.src = string.sub(os.src, 1, at - 1) .. useNew .. string.sub(os.src, at + #useOld); useDone = true end
+    end
+    check("K2-7: the old card's Use carried (no Use on wipes and thread)", useDone)
     local c = oldSrc[1].src
     local ctxOld = '    if cnt == player:getInventory() then return "inventory" end\n'
     local nc = newSrc[1].src

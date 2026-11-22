@@ -4171,7 +4171,7 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Wheel_ControllerMap` | `Controller map` | D-pad wheels: Help slice: what every button does (not built yet) | 20 |
 | `UI_ZeD_Wheel_CraftBuild` | `Craft and build` | D-pad wheels: World wheel slice: crafting, building, furniture | 20 |
 | `UI_ZeD_Wheel_Crouch` | `Crouch` | D-pad wheels: Here and now slice: crouch on / off | 12 |
-| `UI_ZeD_Wheel_DashboardDetail` | `The D-pad on its controls. Back lets go.` | D-pad wheels: second line of the Dashboard slice in World > Vehicle (driver's seat): the controller moves to the dashboard's controls until B | 40 |
+| `UI_ZeD_Wheel_DashboardDetail` | `The D-pad on its controls. Drive lets go.` | D-pad wheels: second line of the Dashboard slice in World > Vehicle (driver's seat): the controller moves to the dashboard's controls until B (Drive) | 40 |
 | `UI_ZeD_Wheel_EveryRadio` | `Every radio you carry` | D-pad wheels: Second line of the Radio tab slice | 24 |
 | `UI_ZeD_Wheel_EveryWound` | `Every wound` | D-pad wheels: Second line of the Health tab slice in Medicine and first aid | 20 |
 | `UI_ZeD_Wheel_EverythingYouWear` | `Everything you wear` | D-pad wheels: Second line of the Equipment tab slice in Clothing | 24 |

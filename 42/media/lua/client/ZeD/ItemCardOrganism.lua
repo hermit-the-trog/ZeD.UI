@@ -481,7 +481,10 @@ local function headerVerbsForContext(ctx, item, playerObj)   -- (playerObj: the 
     elseif cat == "Literature" then
         primary = {id = "READ", label = VT("READ"), primary = true}
     elseif cat == "Drainable" then
-        primary = {id = "USE", label = VT("USE"), primary = true}
+        -- USE is the game's double-click, which only takes pills and smokes (consumable, not a poison-show one):
+        -- wipes, thread and the other drainables get no Use, it would do nothing (QA K2-7)
+        local okT, usable = pcall(function() return item:hasTag(ItemTag.CONSUMABLE) and not item:hasTag(ItemTag.SHOW_POISON) end)
+        if okT and usable then primary = {id = "USE", label = VT("USE"), primary = true} end
     elseif cat == "Fluid" then
         -- DRINK: so bottles and canteens have a card verb at all; only where the game offers it (QA K1-2)
         local ok, off = ZeD.ItemCard.canDrink(item, playerObj)

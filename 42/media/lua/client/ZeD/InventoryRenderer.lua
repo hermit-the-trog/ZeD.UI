@@ -498,7 +498,16 @@ function ZeD.InventoryRenderer.doubleClick(win, item, playerNum)
     win._zedLastClick = { item = item, t = now }
     if not (last and last.item == item and now - last.t <= DBL_MS) then return false end
     win._zedLastClick = nil
-    ZeD.InventoryRenderer.quickUse(item, playerNum)
+    -- a closed stack's row is the whole stack, as vanilla's double-click takes it (its rows beyond the first all
+    -- come over); an open stack's row, or a thing already in the main inventory, is the one thing (QA K2-8)
+    local rows = nil
+    local src = item and item:getContainer()
+    local pl = getSpecificPlayer(playerNum)
+    if src and pl and src ~= pl:getInventory() and ZeD.InventoryRenderer.dragItems then
+        local all = ZeD.InventoryRenderer.dragItems(win, { item }, src)
+        if all and #all > 1 then rows = all end
+    end
+    ZeD.InventoryRenderer.quickUse(item, playerNum, rows)
     return true
 end
 
@@ -926,7 +935,7 @@ end
 -- The quick use itself, for the double-click and the controller's hold X on
 -- a row. Vanilla's basic action does nothing for a thing in a crate, so, as
 -- vanilla's double-click does, a thing elsewhere comes over first.
-function ZeD.InventoryRenderer.quickUse(item, playerNum)
+function ZeD.InventoryRenderer.quickUse(item, playerNum, rows)   -- rows: the closed stack's things, if it is one (QA K2-8)
     local playerObj = getSpecificPlayer(playerNum)
     local src = item and item:getContainer()
     if not (playerObj and src) then return end
@@ -938,7 +947,7 @@ function ZeD.InventoryRenderer.quickUse(item, playerNum)
     elseif not (item:isHumanCorpse() and playerObj:getVehicle()) then
         local floor = src:getType() == "floor"
         if floor or luautils.walkToContainer(src, playerNum) then
-            ZeD.ContainerControls.moveItems(playerObj, { item }, mainInv)
+            ZeD.ContainerControls.moveItems(playerObj, rows or { item }, mainInv)
         end
     end
 end
@@ -3771,6 +3780,8 @@ local function dragItems(content, items, srcInventory)
     return out
 end
 
+ZeD.InventoryRenderer.dragItems = dragItems   -- (the double-click takes a closed stack the way a drag does, QA K2-8)
+
 local function handleDrop(content, items, srcInventory)
     if not items or #items == 0 then return end
     ZeD.InventoryRenderer.dirtyModels()   -- (a drop moves things: every list model rebuilds)
@@ -3782,6 +3793,12 @@ local function handleDrop(content, items, srcInventory)
     -- Over a slot of the Equip tab's doll: an item that fits it is worn there
     if ZeD.EquipDoll and ZeD.EquipDoll.takeDrop then
         local ok, took = pcall(ZeD.EquipDoll.takeDrop, playerNum, items)
+        if ok and took then return end
+    end
+
+    -- Over a body part or a wound row on the Health tab: the game's own treatment drop (a bandage on a wound) (QA K2-7)
+    if ZeD.HealthTab and ZeD.HealthTab.takeDrop then
+        local ok, took = pcall(ZeD.HealthTab.takeDrop, playerNum, items)
         if ok and took then return end
     end
 

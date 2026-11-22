@@ -840,6 +840,50 @@ function ZeD.HealthTab.treat(patient, doctor, bp, anchor, rx, ry, blocking)
     return adapter
 end
 
+--- A drop on the Health tab: things dragged from a list and released over a body part of the figure, or over
+--- an injury row, go to the game's own ISHealthPanel:dropItemsOnBodyPart (a bandage is put on, a poultice
+--- applied, and so on) through the same thin adapter. The same hit tests as the right-click treat menu
+--- (ZeD_CharacterWindow's _healthTreatAt). True when it took the drop. (QA K2-7)
+function ZeD.HealthTab.takeDrop(pn, items)
+    local win = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(pn)
+    if not (win and items and items[1]) then return false end
+    if win._drawerMode ~= "tab" or win._activeTab ~= "health" or (win._drawerEffW or 0) <= 0 then return false end
+    local panel = win._healthContentPanel
+    if not (panel and panel:isVisible()) then return false end
+    local x, y = panel:getMouseX(), panel:getMouseY()
+    if x < 0 or y < 0 or x >= panel:getWidth() or y >= panel:getHeight() then return false end
+    if win._healthMenuOpen then return false end
+    if win._healthBandY and y >= win._healthBandY then return false end
+    local fz = win._healthFigureZone
+    if fz and y < fz.y + fz.h then return false end
+    local sc = win._healthScroll
+    if sc and sc.visible and x >= sc.x then return false end
+    -- which part: the figure's (while it is open), else an injury row
+    local figureName = nil
+    if win._healthFigureExpanded and win._healthBodyFigure then
+        figureName = win._healthBodyFigure:hitTestAt(x, y)
+    end
+    if not figureName then
+        for _, z in ipairs(win._healthInjuryZones or {}) do
+            if x >= z.x and x <= z.x + z.w and y >= z.y and y <= z.y + z.h then figureName = z.bodyPartName; break end
+        end
+    end
+    if not figureName then return false end
+    ensureFigureToBPType()
+    local bpType = FIGURE_TO_BPTYPE[figureName]
+    local playerObj = win._playerObj
+    local bp = bpType and playerObj and playerObj:getBodyDamage():getBodyPart(bpType)
+    if not bp then return false end
+    -- the adapter stands in for vanilla's health panel (as in ZeD.HealthTab.treat); it is the patient's own body
+    local adapter = { character = playerObj, otherPlayer = nil, actions = {} }
+    function adapter:getDoctor() return self.character end
+    function adapter:getPatient() return self.character end
+    adapter.checkItems          = ISHealthPanel.checkItems
+    adapter.checkContainerItems = ISHealthPanel.checkContainerItems
+    ISHealthPanel.dropItemsOnBodyPart(adapter, bp, items)
+    return true
+end
+
 -- ============================================================================
 -- ZONE A RIGHT COLUMN: DEFAULT HEADER (summary dashboard)
 -- Returns curY (bottom of Zone A header content).
