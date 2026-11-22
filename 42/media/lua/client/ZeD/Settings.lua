@@ -160,9 +160,16 @@ end
 -- ----- TEXT SIZE -----
 textSize = opts:addComboBox("textSize", ZeD.tr("UI_ZeD_Settings_TextSize"),
     ZeD.tr("UI_ZeD_Settings_TextSizeTip"))
-for i, label in ipairs(sizeLabels) do
-    textSize:addItem(ZeD.tr(label), sizeKeys[i] == "small")  -- default: small
+-- Default: Large on a screen under 1080 tall (the Deck, 720p), Small above. Only a default: a saved pick wins. (KISS #12)
+local defaultSizeKey = "small"
+do
+    local okH, _, screenH = pcall(function() return ZeD.Scale.screenSize() end)
+    if okH and type(screenH) == "number" and screenH < ZeD.Scale.BASE_H then defaultSizeKey = "large" end
 end
+for i, label in ipairs(sizeLabels) do
+    textSize:addItem(ZeD.tr(label), sizeKeys[i] == defaultSizeKey)  -- default: by screen height (KISS #12)
+end
+ZeD.Settings.defaultSizeKey = defaultSizeKey
 
 -- ----- STATUS COLORS -----
 -- Good, warning and bad everywhere (condition and health bars, their readings, checks and crosses): each theme's
@@ -267,9 +274,25 @@ ZeD.Settings.inventoryViewOption = invView
 -- The right-click menu: the strip of icons, or a list of words (ZeD_ContextList).
 local ctxStyle = opts:addComboBox("contextStyle", ZeD.tr("UI_ZeD_Settings_ContextMenu"),
     ZeD.tr("UI_ZeD_Settings_ContextMenuTip"))
-ctxStyle:addItem(ZeD.tr("UI_ZeD_Settings_ContextStrip"), true)   -- default: the strip
-ctxStyle:addItem(ZeD.tr("UI_ZeD_Settings_ViewList"), false)
+-- The order is unchanged (a saved 1 is still the strip, 2 the list); only the default moved to
+-- the word list for new players, and the strip stays a choice in ZeD setup (KISS #7).
+ctxStyle:addItem(ZeD.tr("UI_ZeD_Settings_ContextStrip"), false)
+ctxStyle:addItem(ZeD.tr("UI_ZeD_Settings_ViewList"), true)   -- default: the list (KISS #7)
 ZeD.Settings.contextStyleOption = ctxStyle
+-- What you wear and hold: in their own group at the top of the inventory list (the default), or only on the
+-- Equipment tab, with one line at the list's end that opens the tab (InventoryRenderer, ContainerControls; KISS #11).
+local wornList = opts:addComboBox("wornInList", ZeD.tr("UI_ZeD_Settings_WornList"),
+    ZeD.tr("UI_ZeD_Settings_WornListTip"))
+wornList:addItem(ZeD.tr("UI_ZeD_Settings_WornListTop"), true)   -- default: a group at the top of the list
+wornList:addItem(ZeD.tr("UI_ZeD_Settings_WornListTab"), false)
+ZeD.Settings.wornListOption = wornList
+--- True when worn and held things are listed in the inventory list (the choice's first item, the default; true too
+--- before the option exists). (KISS #11)
+function ZeD.Settings.wornInList()
+    local o = ZeD.Settings.wornListOption
+    local ok, v = pcall(function() return o and o:getValue() end)
+    return not (ok and v == 2)
+end
 -- The watch you wear: a small one on the belt, outside the hand of its wrist
 -- (WatchMini.lua; its face pops the full watch up), or the full watch in the
 -- top right corner as before. No watch worn: the tape deck keys stay in the corner.
@@ -795,6 +818,7 @@ do
         statusColors = "UI_ZeD_Settings_StatusColors",
         moodlePlace = "UI_ZeD_Settings_Moodles", equipView = "UI_ZeD_Settings_EquipView",
         inventoryView = "UI_ZeD_Settings_Inventory", contextStyle = "UI_ZeD_Settings_ContextMenu",
+        wornInList = "UI_ZeD_Settings_WornList",
         watchPlace = "UI_ZeD_Settings_Watch", actionBar = "UI_ZeD_Settings_ActionBar",
         charAccent = "UI_ZeD_Settings_CharAccent", worldAccent = "UI_ZeD_Settings_WorldAccent",
         glyphDisplay = "UI_ZeD_Settings_Glyphs", inputModeLock = "UI_ZeD_Settings_InputLock",

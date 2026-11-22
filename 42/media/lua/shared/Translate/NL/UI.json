@@ -6157,6 +6157,7 @@
     "UI_ZeD_Log_T_RepSpam": "markeerde de melding over %1 als spam, ticket #%2",
     "UI_ZeD_Log_T_RepDeleted": "verwijderde de melding over %1, ticket #%2",
     "UI_ZeD_Char_PausedLook": "Gepauzeerd: alleen kijken tot het spel verdergaat",
+    "UI_ZeD_Char_PausedMoves": "Gepauzeerd: verplaatsen tussen tassen wacht tot het spel verdergaat",
     "UI_ZeD_Pad_Source": "Controllers",
     "UI_ZeD_Pad_PluggedIn": "Controller aangesloten",
     "UI_ZeD_Pad_Unplugged": "Controller losgekoppeld",
