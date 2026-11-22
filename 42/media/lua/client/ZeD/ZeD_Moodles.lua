@@ -10,6 +10,8 @@
 --   right   (default) vanilla's own MoodlesUI column on the right edge,
 --           centred on the screen's middle, kept under the watch
 --   left    vanilla's own column on the left edge, centred the same way
+--           (right / left: more moodles than fit between the watch and the belt
+--           run in columns instead, ZeD's copy as for the row; QA B9-1)
 --   bottom  a row above the belt (above the dashboard in a car). Vanilla's
 --           column only stacks downward, so ZeD draws a faithful copy of it:
 --           vanilla's textures for the Moodle size option, the backing tinted
@@ -310,6 +312,7 @@ function ZeD_MoodleLayer:_place()
     local place = M.place()
     self._mode = place
     self._rect = nil
+    self._cols = 1                                           -- (columns of moodles; right / left set it below) (QA B9-1)
     if not (p and mui) then self._show = false; return end
     local pn = self.playerNum
     -- a stand-in that draws the moodles in whole: nothing for ZeD to place or say (the game's
@@ -344,35 +347,74 @@ function ZeD_MoodleLayer:_place()
     self._size = size
     self._list = self:_activeList(p)
     local n = #self._list
-    local stackH = n > 0 and (n * size + (n - 1) * GAP) or 0
     local top = getPlayerScreenTop(pn)
-    local y = top + math.floor((getPlayerScreenHeight(pn) - stackH) / 2)
     local minY = place == "left" and top + T.px(10) or self:_rightY()
-    local maxY = self:_rowY(0) - stackH
+    local rowY0 = self:_rowY(0)
+    -- How many moodles fit one above the other between the top (the watch) and the belt line; past that
+    -- the stack wraps into more columns, each further in from the screen's edge (QA B9-1: on a Steam Deck
+    -- the 10th moodle on ran under the belt and off the screen)
+    local perCol = math.max(1, math.floor((rowY0 - minY + GAP) / (size + GAP)))
+    local cols = 1
+    if n > perCol then cols = math.ceil(n / perCol) end
+    self._cols, self._perCol = cols, perCol
+    local rows = (cols > 1) and perCol or n                  -- slots in the tallest column
+    local stackH = rows > 0 and (rows * size + (rows - 1) * GAP) or 0
+    local stackW = cols * size + (cols - 1) * GAP
+    local y = top + math.floor((getPlayerScreenHeight(pn) - stackH) / 2)
+    local maxY = rowY0 - stackH
     if y > maxY then y = maxY end
     if y < minY then y = minY end
+    if cols > 1 then y = minY end                            -- columns fill the room from its top (QA B9-1)
+    -- the last word: the stack never ends below the screen's foot (QA B9-1)
+    local footY = top + getPlayerScreenHeight(pn) - stackH
+    if y > footY then y = footY end
     local x
     if place == "left" then
         x = getPlayerScreenLeft(pn) + EDGE
     else
-        x = getPlayerScreenLeft(pn) + getPlayerScreenWidth(pn) - EDGE - size
+        x = getPlayerScreenLeft(pn) + getPlayerScreenWidth(pn) - EDGE - stackW
     end
-    if mui:getX() ~= x then mui:setX(x) end
-    if mui:getY() ~= y then mui:setY(y) end
+    if cols > 1 then
+        -- the game's column only stacks straight down, so in columns it goes out of sight (as for the row
+        -- below the screen) and ZeD draws its copy in prerender (QA B9-1)
+        if mui:getY() > -5000 then mui:setY(-10000) end
+    else
+        if mui:getX() ~= x then mui:setX(x) end
+        if mui:getY() ~= y then mui:setY(y) end
+    end
     -- (QA's release test, Nov 18 2026: the layer took the game column's height, which is the screen's, so from its y
     -- it ran ~970 px past the screen's foot at 4K, over the world along that edge. It is the stack's height now; the
     -- notes and balloons it draws beside the stack use _rect, not the layer's box.)
     local h = stackH
     if self:getX() ~= x then self:setX(x) end
     if self:getY() ~= y then self:setY(y) end
-    if self:getWidth() ~= size then self:setWidth(size) end
+    if self:getWidth() ~= stackW then self:setWidth(stackW) end
     if self:getHeight() ~= h then self:setHeight(h) end
-    self._rect = { place = place, x = x, y = y, w = size, h = stackH, size = size, n = n }
+    self._rect = { place = place, x = x, y = y, w = stackW, h = stackH, size = size, n = n }
+    -- (in columns only, so one column reads exactly as before: cols columns of up to perCol moodles, the first
+    -- column at the screen's edge, each next one size + 10 further in, each top to bottom in order) (QA B9-1)
+    if cols > 1 then self._rect.cols, self._rect.perCol = cols, perCol end
+end
+
+-- Where the idx-th moodle (1-based) sits in the layer: x, y. The row runs left to right; the columns run
+-- top to bottom, the first column at the screen's edge, each next one size + 10 further in (QA B9-1)
+function ZeD_MoodleLayer:_slotXY(idx)
+    local step = (self._size or 32) + GAP
+    if self._mode == "bottom" then return (idx - 1) * step, 0 end
+    local per = self._perCol or idx
+    local col = math.floor((idx - 1) / per)
+    local row = (idx - 1) - col * per
+    local cols = self._cols or 1
+    -- on the right the first column is the rightmost one in the layer; on the left, the leftmost
+    local vis = (self._mode == "left") and col or (cols - 1 - col)
+    return vis * step, row * step
 end
 
 --- Where ZeD put the moodles for this player this frame, in screen pixels:
 --- { place, x, y, w, h, size, n } (n moodles, size + 10 apart; a column for right /
 --- left, a row for bottom), or nil while they are not shown or ZeD is in safe mode.
+--- A stack too tall for one column also has cols and perCol: cols columns of up to perCol, the first at the
+--- screen's edge, each next one size + 10 further in, each top to bottom in order (QA B9-1).
 function M.rect(playerNum)
     local L = M._layers and M._layers[playerNum or 0]
     if not (L and L._show and L._rect) then return nil end
@@ -393,8 +435,15 @@ function ZeD_MoodleLayer:_hoverIndex()
         i = math.floor(mx / (size + GAP))
         if mx - i * (size + GAP) >= size then return nil end
     else
-        i = math.floor(my / (size + GAP))
-        if my - i * (size + GAP) >= size or mx >= size then return nil end
+        -- which column (counted across the layer from its left) and which slot down it (QA B9-1)
+        local vis = math.floor(mx / (size + GAP))
+        local row = math.floor(my / (size + GAP))
+        if my - row * (size + GAP) >= size or mx - vis * (size + GAP) >= size then return nil end
+        local cols = self._cols or 1
+        local col = (self._mode == "left") and vis or (cols - 1 - vis)   -- the first column is at the screen's edge
+        if col < 0 or col >= cols then return nil end
+        local per = (cols > 1) and (self._perCol or 1) or 0
+        i = col * per + row
     end
     if i < 0 or i >= #(self._list or {}) then return nil end
     return i + 1
@@ -429,7 +478,9 @@ function ZeD_MoodleLayer:_drawRow()
         if not w then w = { level = m.level, osc = 0 }; self._wig[m.key] = w end
         if w.level ~= m.level then w.level = m.level; w.osc = 1 end
         if w.osc > 0.01 then w.osc = w.osc - w.osc * 0.04 * frac else w.osc = 0 end
-        self:_drawMoodle(m, (i - 1) * (size + GAP) + math.floor(math.sin(self._step) * 15.6 * w.osc), 0)
+        -- (the row's slot, or a column's slot when the stack runs in columns, QA B9-1; the wiggle is sideways)
+        local sx, sy = self:_slotXY(i)
+        self:_drawMoodle(m, sx + math.floor(math.sin(self._step) * 15.6 * w.osc), sy)
     end
     -- forget the moodles that went away: one that comes back starts over like a new one,
     -- still until its level next changes
@@ -475,7 +526,7 @@ function ZeD_MoodleLayer:_drawChipRaw(m, idx, on, ox, oy)
     local rad = math.max(10.5, math.floor(hu / 3) + 0.5)
     local size = self._size
     local len = Bb.TRAIL_LEN * tk
-    local my = (idx - 1) * (size + GAP)
+    local mx, my = self:_slotXY(idx)                       -- the moodle's slot, its column's included (QA B9-1)
     local cx, cy, dir, tox, toy        -- the cloud and the trail's origin, in the layer (px); the trail's way
     if self._mode == "bottom" then
         local mcx = (idx - 1) * (size + GAP) + math.floor(size / 2)
@@ -489,12 +540,12 @@ function ZeD_MoodleLayer:_drawChipRaw(m, idx, on, ox, oy)
         dir, tox = "down", mcx
     elseif self._mode == "left" then
         toy = my + math.floor(size / 2)
-        tox = size + len + 2 * k
+        tox = mx + size + len + 2 * k
         cx, cy = tox + k, toy - math.floor(H / 2)
         dir = "left"
     else
         toy = my + math.floor(size / 2)
-        tox = -len - 2 * k
+        tox = mx - len - 2 * k
         cx, cy = tox - k - W, toy - math.floor(H / 2)
         dir = "right"
     end
@@ -569,7 +620,8 @@ function ZeD_MoodleLayer:prerender()
     self._chip = nil
     self._held = nil
     -- (a stand-in draws the row itself, at M.rect)
-    if self._show and self._mode == "bottom" and not M.standIn(self.playerNum) then self:_drawRow() end
+    -- (and in columns: the game's column is out of sight then, QA B9-1)
+    if self._show and (self._mode == "bottom" or (self._cols or 1) > 1) and not M.standIn(self.playerNum) then self:_drawRow() end
 end
 
 -- A press on the strip leaves the layer where it is (ISUIElement's onFocus brings a top-level panel to
@@ -623,10 +675,11 @@ function ZeD_MoodleLayer:_drawBalloon(m, idx, on, ox, oy)
     if not a then a = {}; self._ba = a end
     local lx, ly = self:getAbsoluteX(), self:getAbsoluteY()
     local side
+    local sx, sy = self:_slotXY(idx)                       -- the moodle's slot, its column's included (QA B9-1)
     if self._mode == "bottom" then
-        a.x, a.y, side = lx + (idx - 1) * (size + GAP), ly, "above"
+        a.x, a.y, side = lx + sx, ly, "above"
     else
-        a.x, a.y = lx, ly + (idx - 1) * (size + GAP)
+        a.x, a.y = lx + sx, ly + sy
         side = (self._mode == "left") and "right" or "left"
     end
     a.w, a.h, a.below, a.noFlip = size, size, nil, nil

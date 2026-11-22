@@ -21,7 +21,9 @@
 --     frame, in all three places;
 --   * in the row, the mod's own drawing is turned on its side: each plate the mod
 --     draws at "down the column" is drawn at "along the row" instead. The mod
---     still draws every plate and icon, with its own art, slide and wiggle.
+--     still draws every plate and icon, with its own art, slide and wiggle;
+--   * a stack too tall for one column runs in ZeD's columns: each plate goes from
+--     its slot down the one column to its slot in those columns (QA B9-1).
 -- When the mod hands the stack back to the game (its plates missing), ZeD works
 -- as without it. Safe mode: the mod's panel goes back to its own place.
 -- ZeD stores nothing.
@@ -99,7 +101,21 @@ local function note(self, x, y)
 end
 
 -- Column (right / left): drawn where the mod asks
+-- In columns (a stack too tall for one: ZeD.Moodles.rect has cols and perCol), each plate goes from
+-- its slot down the one column to its slot in ZeD's columns: the first column at the screen's edge,
+-- each next one size + 10 further in (QA B9-1)
 local function columnDraw(self, texture, x, y, a, r, g, b)
+    local grid = self._zedGrid
+    if grid then
+        local step = grid.size + 10
+        -- the nearest slot (an icon sits a little inside its plate; a plate can be mid-slide)
+        local slot = math.floor((y + step / 2) / step)
+        if slot < 0 then slot = 0 end
+        local col = math.floor(slot / grid.perCol)
+        local row = slot - col * grid.perCol
+        y = y - (slot - row) * step                          -- up to its slot in that column, slide kept
+        if grid.place == "left" then x = x + col * step else x = x + (grid.cols - 1 - col) * step end
+    end
     note(self, x, y)
     return baseDraw(self, texture, x, y, a, r, g, b)
 end
@@ -153,7 +169,8 @@ local function wrap()
     function UI:updateSlots(moodles, tick)
         local ok, err = pcall(origSlots, self, moodles, tick)
         if not ok then warnOnce("updateSlots", err) end
-        local row = self._zedRow
+        -- (in columns too: the panel then lies exactly over ZeD's columns, QA B9-1)
+        local row = self._zedRow or self._zedGrid
         if row then
             if self:getWidth() ~= row.w then self:setWidth(row.w) end
             if self:getHeight() ~= row.h then self:setHeight(row.h) end
@@ -167,6 +184,8 @@ local function wrap()
     function UI:render()
         local r = M.rect(self.playerNum)
         self._zedRow = (r and r.place == "bottom") and r or nil
+        -- a column stack too tall for one column runs in columns (QA B9-1)
+        self._zedGrid = (r and r.place ~= "bottom" and (r.cols or 1) > 1) and r or nil
         -- while ZeD places the moodles, the hover note is ZeD's: forget any moodle
         -- the mod last saw the pointer on (e.g. from safe mode), so it draws no text
         if r then self.mouseOverSlot = nil end
