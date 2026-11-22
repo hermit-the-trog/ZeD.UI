@@ -1131,7 +1131,16 @@ function ZeD_Window:_drawHelpLine(p, w, h, lit)
             -- (under a button band, the main menu's, the band's own surface: the band runs to the foot)
             local bandEnd = self._bandY and self._bandH and (self._bandY + self._bandH)
             local under = bandEnd and math.abs(bandEnd - fY) <= T.px(2)
-            ZeD.Surface.fill(p, 0, fY, w - grow, fH, under and "surf2" or "surf1")
+            -- (the director, Nov 22 2026: "It's not drawing the border lines in the footer when there is no hint":
+            -- an empty strip is drawn as the strip, with its line, just without words; under a button band it stays
+            -- the band's own surface, which already ends in its line)
+            if under then
+                ZeD.Surface.fill(p, 0, fY, w - grow, fH, "surf2")
+            else
+                ZeD.Surface.fill(p, 0, fY, w - grow, fH, "surf2")
+                local bs0 = T.borderS
+                p:drawRect(fw, fY, w - 2 * fw, T.hair, bs0.a, bs0.r, bs0.g, bs0.b)
+            end
             if grow > 0 then drawGrow(p, w - grow, h - grow, grow, false, false) end
             return
         end
