@@ -1733,7 +1733,7 @@ function ZeD_ItemCard:getActionStripElements()
     local hb = self._backBarRects
     if hb and hb.verbs and self._lastHeaderVerbs then
         local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
-        local firstStrip, anyPrimary = nil, false
+        local firstStrip, anyPrimary, moreEl = nil, false, nil
         for i, r in ipairs(hb.verbs) do
             local v = self._lastHeaderVerbs[i]
             if r and r.x and v and v.label then
@@ -1757,10 +1757,13 @@ function ZeD_ItemCard:getActionStripElements()
                     e.onActivate, e.onHoldActivate, e.promptHold = nil, run, v.label
                 end
                 firstStrip = firstStrip or els[#els]
+                if v.isMore then moreEl = els[#els] end
                 if v.primary then anyPrimary = true end
             end
         end
-        if firstStrip and not anyPrimary then firstStrip.isPrimary = true end
+        -- with no main verb the pad lands on More, never on Drop (A on the row opened the card, A again dropped it);
+        -- with no More either, nothing is pre-selected (QA K2 review)
+        if firstStrip and not anyPrimary and moreEl then moreEl.isPrimary = true end
     end
 
     -- The name row: A renames through the prompt (the controller keyboard

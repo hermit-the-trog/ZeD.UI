@@ -7215,7 +7215,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         end
         -- double-click: vanilla's quick use (InventoryRenderer.doubleClick)
         if not isCtrlKeyDown() and not isShiftKeyDown() and self._playerObj
-            and ZeD.InventoryRenderer.doubleClick(self, item, self._playerObj:getPlayerNum()) then
+            and ZeD.InventoryRenderer.doubleClick(self, item, self._playerObj:getPlayerNum(), (getColumnAtX(self, x))) then
             self._deferredSelect = nil
             return true
         end
