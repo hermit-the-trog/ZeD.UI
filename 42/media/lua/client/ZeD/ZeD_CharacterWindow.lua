@@ -339,8 +339,26 @@ local function applyCharState(win, cs)
     local w = T.px(wU)
     local h = math.max(win.minimumHeight or T.px(220), math.min(T.px(cs.h or 600), screenH - T.px(20)))
     if y + h > screenT + screenH then y = math.max(screenT, screenT + screenH - h) end
+    -- Where not even the smallest inventory fits beside a full card at the kept (right) edge, the saved 444-unit width
+    -- would be clamped wider than the window was: work out the fresh-open width from the kept edge BEFORE the clamp
+    -- (QA B9-2)
+    local preFrom, preTo
+    local keptEdge = T.px(cs.anchorRightEdge or (xU + wU))   -- (the saved right edge, before wU can change)
+    if ZeD.Scale and ZeD.Scale.fitInvW then
+        local _, noRoom = ZeD.Scale.fitInvW(T, math.min(win._maxWinW or math.floor(screenW * 0.5), keptEdge - screenL), TAB_STRIP_W + CONTAINER_STRIP_W)
+        if noRoom then
+            local freshU = ZeD.Scale.fitInvW(T, math.min(win._maxWinW or math.floor(screenW * 0.5), math.floor(screenW / 2) - T.px(5)), TAB_STRIP_W + CONTAINER_STRIP_W)
+            if type(freshU) == "number" and wU - TAB_STRIP_W - CONTAINER_STRIP_W > freshU then
+                preFrom, preTo = wU - TAB_STRIP_W - CONTAINER_STRIP_W, freshU
+                wU = TAB_STRIP_W + freshU + CONTAINER_STRIP_W
+                local w2 = T.px(wU)
+                x = x + w - w2         -- (the right edge stays)
+                w = w2
+            end
+        end
+    end
     -- Right-edge anchor follows x: keep the saved anchor/x relationship, shift both if clamped
-    local anchor = T.px(cs.anchorRightEdge or (xU + wU))
+    local anchor = keptEdge
     local clampedX = math.max(screenL, math.min(x, screenL + screenW - w))
     anchor = anchor + (clampedX - x)
     x = clampedX
@@ -356,6 +374,8 @@ local function applyCharState(win, cs)
         x = math.max(screenL, x + w - w2)
         w = w2
     end
+    -- (narrowed before the clamp above: the saved width is still the one it came from) (QA B9-2)
+    if preTo then win._fitFromInvW, win._fitInvW = preFrom, preTo end
     win:setX(x)
     win:setY(y)
     win:setWidth(w)

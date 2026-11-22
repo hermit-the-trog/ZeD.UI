@@ -106,14 +106,15 @@ S.INV_W_U, S.INV_MIN_U, S.FULL_CARD_U = 372, 200, 480
 
 --- The inventory width (design units) a window opens at where the usual one would shift: room = the most the window
 --- may be wide, screen px; stripsU = its two strips' width, design units. nil where the usual width fits, or where
---- nothing at the minimum would.
+--- nothing at the minimum would. A second return value tells the two nils apart: true where nothing fits (a restore
+--- at a cramped place then uses the fresh-open width), false/nil otherwise (QA B9-2).
 function S.fitInvW(T, room, stripsU)
     local half = math.floor((stripsU or 72) / 2)
     local function total(u) return T.px(half) + T.px(u) + T.px((stripsU or 72) - half) + T.px(S.FULL_CARD_U) end
-    if total(S.INV_W_U) <= room then return nil end
+    if total(S.INV_W_U) <= room then return nil, false end
     local u = math.floor((room - total(0)) / (T.scale or 1))
     while u >= S.INV_MIN_U and total(u) > room do u = u - 1 end
-    if u < S.INV_MIN_U then return nil end
+    if u < S.INV_MIN_U then return nil, true end   -- (nothing fits here) (QA B9-2)
     return math.min(u, S.INV_W_U)
 end
 

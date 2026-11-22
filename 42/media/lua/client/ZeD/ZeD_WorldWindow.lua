@@ -2685,6 +2685,21 @@ local function applyWorldState(win, ws)
     local w = T.px(wU)
     local h = math.max(win.minimumHeight or T.px(220), math.min(T.px(ws.h or 600), screenH - T.px(20)))
     if y + h > screenT + screenH then y = math.max(screenT, screenT + screenH - h) end
+    -- Where not even the smallest inventory fits beside a full card at the kept (left) edge, the saved 444-unit width
+    -- would be clamped wider than the window was: use the fresh-open width, measured from the kept edge BEFORE the
+    -- clamp pulls the window left (QA B9-2)
+    local preFrom, preTo
+    if ZeD.Scale and ZeD.Scale.fitInvW then
+        local _, noRoom = ZeD.Scale.fitInvW(T, math.min(win._maxWinW or math.floor(screenW * 0.5), screenL + screenW - x), CONTAINER_STRIP_W + ACTION_TAB_STRIP_W)
+        if noRoom then
+            local freshU = ZeD.Scale.fitInvW(T, math.min(win._maxWinW or math.floor(screenW * 0.5), screenW - (math.floor(screenW / 2) + T.px(5))), CONTAINER_STRIP_W + ACTION_TAB_STRIP_W)
+            if type(freshU) == "number" and wU - CONTAINER_STRIP_W - ACTION_TAB_STRIP_W > freshU then
+                preFrom, preTo = wU - CONTAINER_STRIP_W - ACTION_TAB_STRIP_W, freshU
+                wU = CONTAINER_STRIP_W + freshU + ACTION_TAB_STRIP_W
+                w = T.px(wU)
+            end
+        end
+    end
     x = math.max(screenL, math.min(x, screenL + screenW - w))
     -- a saved width wider than this screen lets a full card open beside it without shifting: the fitting width
     -- (ZeD.Scale.fitInvW; the director, Nov 11 2026; the window grows right, so its left edge stays)
@@ -2696,6 +2711,8 @@ local function applyWorldState(win, ws)
         wU = CONTAINER_STRIP_W + fitU + ACTION_TAB_STRIP_W
         w = T.px(wU)
     end
+    -- (narrowed before the clamp above: the saved width is still the one it came from) (QA B9-2)
+    if preTo then win._fitFromInvW, win._fitInvW = preFrom, preTo end
     win:setX(x)
     win:setY(y)
     win:setWidth(w)
