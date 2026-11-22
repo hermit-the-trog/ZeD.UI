@@ -1,0 +1,16 @@
+# ZeDUI/tools/qa/beast_report_lite.txt (Nov 21 2026, QA beast day): the beast day report's pictures for Lite's ZeD setup (B3-1, B3-2) and the Animals tab after Remove zone (B7-5) (bxr_lite.lua), on the 1.0 gallery's kit. 4K only. beast_report_run.ps1 -Part lite.
+# hotfix_inv.txt's shape with two changes, both for B7-5: zedqa_farm_spot.lua stands the character on the director's farm field (as hotfix_farm.txt), and the story stage and its teardown are left out (the Fossoil is far from the farm: leaving it unloads the stage's cars and the teardown could not take them away again).
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+zedqa_farm_spot.lua | farm | timeout=180
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_unload.lua | unl | timeout=60
+gallery_v1_a_common.lua | g1c | timeout=60
+hfr_common.lua | hfrc | timeout=60
+bxr_lite.lua | bxrl | timeout=1800
+gallery_reload.lua | rel | timeout=60
+gallery_v1_a_end.lua | g1e | timeout=60
+gallery_t14_end.lua | g14e | timeout=60
