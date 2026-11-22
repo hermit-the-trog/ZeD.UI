@@ -1317,6 +1317,33 @@ local function _switchTabForNav(win, content, tabId)
     return true
 end
 
+-- The belt's bag button (ZeD_Belt.lua): the open window on Loot with one bag alone, as a click on that bag's strip
+-- button shows it (_showAlone). inv: the bag's ItemContainer. False when the window is shut or the bag is not on
+-- the strip. Module fields, not locals (this file is near Kahlua's limit). (Belt row, the director, Nov 22 2026)
+function ZeD_CharacterWindow.containerIndex(pn, inv)
+    local win = _charWins[pn or 0]
+    for i, c in ipairs(win and win._containers or {}) do
+        if c.inventory == inv then return i end
+    end
+    return nil
+end
+function ZeD_CharacterWindow.showBagAlone(pn, inv)
+    local win = _charWins[pn or 0]
+    local content = win and win._mainContent
+    local idx = ZeD_CharacterWindow.containerIndex(pn, inv)
+    if not (content and idx) then return false end
+    -- (the strip's show-alone is a Loot tab click: an open tab drawer folds back to Loot first)
+    if win._activeTab ~= "loot" then _switchTabForNav(win, content, "loot") end
+    ZeD_CharacterWindow._showAlone(win, content, idx)
+    return true
+end
+-- true while the window shows that bag alone on Loot (the bag button's second click then closes the pair)
+function ZeD_CharacterWindow.showsBagAlone(pn, inv)
+    local win = _charWins[pn or 0]
+    local idx = ZeD_CharacterWindow.containerIndex(pn, inv)
+    return idx ~= nil and win._activeTab == "loot" and win._activeContainer == idx and #(win._mcSelected or {}) == 0
+end
+
 -- Forward-declare _buildInvRowFocusables so _buildLootFocusables'
 -- onConfirm closure can reference it (the Kahlua trap again: locals
 -- declared after a function aren't visible inside its closures).

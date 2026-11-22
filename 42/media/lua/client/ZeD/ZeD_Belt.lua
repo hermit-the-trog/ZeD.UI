@@ -1022,20 +1022,22 @@ end
 -- THE GAME'S SPEED KEYS BESIDE THE BELT'S WATCH (KISS #22): a row of five, one press each, as the game's corner keys
 -- (Pause, Play, Fast forward x1 and x2, Wait), the one in use lit. On a server the server sets the time: no row.
 B.SPEED_KEY, B.SPEED_GAP = 20, 2                         -- a key's size and the gap between keys (design units)
+-- the gap that sets the bag button off the belt on its left and the Messages note off it on its right: about one
+-- icon's worth, the bag button's own size (LAMP) (Belt row, the director, Nov 22 2026)
+B.ICON_GAP = LAMP
 B.SPEED_ICONS = { [0] = "pause", "play", "ff1", "ff2", "wait" }
 B.SPEED_WORDS = { [0] = "UI_optionscreen_binding_Pause", "IGUI_BackButton_Play", "IGUI_BackButton_FF1", "IGUI_BackButton_FF2", "IGUI_BackButton_FF3" }
--- the row's boxes from x (before: on the watch's left, so a WRIST gap after it), returns the new x
-function ZeD_BeltHUD:_speedBoxes(boxes, x, h, before)
+-- the row's boxes from x, first in the belt row, left of the bag button (an END_GAP after it); returns the new x
+-- (Belt row, the director, Nov 22 2026: moved from beside the watch, so nothing sits between the bag button and the belt)
+function ZeD_BeltHUD:_speedBoxes(boxes, x, h)
     if isClient() then return x end
     local px = ZeD.T.px
     local k, g = px(B.SPEED_KEY), px(B.SPEED_GAP)
-    if not before then x = x + px(WRIST) end
     for n = 0, 4 do
         boxes[#boxes + 1] = { kind = "speed", n = n, x = x, y = math.floor((h - k) / 2), w = k, h = k }
         x = x + k + ((n < 4) and g or 0)
     end
-    if before then x = x + px(WRIST) end
-    return x
+    return x + px(END_GAP)
 end
 -- the speed in use, as the watch reads it (0 paused .. 4 Wait)
 function B.speedNow()
@@ -1049,21 +1051,37 @@ function B.speedKey(n)
 end
 -- the bag button pressed: the windows as the inventory key opens them (mouse), or the pad's Y tap (pad: both open, the
 -- pad in the Character window) (KISS #16)
+-- With a bag picked (B.bagChosen) it opens the windows on that bag alone; the Pocket (the main inventory) as before.
+-- (Belt row, the director, Nov 22 2026)
 function B.bagAct(pn, pad)
     local CW = ZeD_CharacterWindow
     if not CW then return end
     pcall(function() ZeD.uiSound("UIActivateButton") end)
+    local okP, pick = pcall(B.bagChosen, getSpecificPlayer(pn or 0), pn)
+    if not okP then pick = nil end
+    local inv = pick and pick.id and pick.inv   -- nil: the Pocket
     if not pad then
-        if CW.toggleBothPaired then CW.toggleBothPaired(pn) end
+        -- a second click on the bag already showing alone closes the pair, as the Pocket's second click does
+        local both = CW.isOpen and CW.isOpen(pn) and ZeD_WorldWindow and ZeD_WorldWindow.isOpen and ZeD_WorldWindow.isOpen(pn)
+        if not inv or (both and CW.showsBagAlone and CW.showsBagAlone(pn, inv)) then
+            if CW.toggleBothPaired then CW.toggleBothPaired(pn) end
+            return
+        end
+        if not both and CW.toggleBothPaired then CW.toggleBothPaired(pn) end   -- (opens only what is shut)
+        if CW.showBagAlone then pcall(CW.showBagAlone, pn, inv) end
         return
     end
     if CW.ensureBothOpenForGamepad then pcall(CW.ensureBothOpenForGamepad, pn) end
     local win = CW.getWindow and CW.getWindow(pn)
     local F = ZeD.Input and ZeD.Input.Focus
     if win and F and F.claimFocus then pcall(F.claimFocus, win) end
+    if inv and CW.showBagAlone then pcall(CW.showBagAlone, pn, inv) end
 end
--- the bag button's hover words: the game's "Inventory", and its key
-function B.bagWords()
+-- the bag button's hover words: the game's "Inventory" and its key, or the picked bag's name
+function B.bagWords(pn)
+    local okP, pick = pcall(B.bagChosen, getSpecificPlayer(pn or 0), pn)
+    if not okP then pick = nil end
+    if pick and pick.id then return pick.name end
     local name = getText("IGUI_InventoryTooltip")
     local ok, key = pcall(function()
         local code = getCore():getKey("Toggle Inventory")
@@ -1071,6 +1089,65 @@ function B.bagWords()
     end)
     if ok and key and key ~= "" then return ZeD.tr("UI_ZeD_Belt_SlotKey", name, key) end
     return name
+end
+
+-- THE BAG BUTTON'S PICK (Belt row, the director, Nov 22 2026): a right-click (the pad's X) lists the Pocket and every
+-- bag he has on; the one picked is the button's icon and what its click opens, kept per character in his modData as
+-- { id, type } (never the item itself). A picked bag he no longer has on falls back to the Pocket, the pick kept for
+-- when it comes back on.
+B.BAG_KEY = "ZeD_BeltBag"
+B._bagCache = {}
+-- the Pocket and the bags he has on (the Character window's strip's rule: a container he wears or holds), in his
+-- inventory's order: { name, tex, inv, id (nil for the Pocket), ftype }
+function B.bagList(p)
+    local list = { { name = getText("IGUI_InventoryTooltip"), tex = getTexture("media/ui/Container_Pocket.png"), inv = p:getInventory() } }
+    local items = p:getInventory():getItems()
+    for i = 0, items:size() - 1 do
+        local it = items:get(i)
+        if call(it, "getCategory") == "Container" and p:isEquipped(it) and call(it, "getInventory") then
+            list[#list + 1] = { name = it:getName(), tex = it:getTex(), inv = it:getInventory(), id = it:getID(), ftype = it:getFullType() }
+        end
+    end
+    return list
+end
+-- the picked entry (the Pocket when none is picked or the bag is not on him), looked up twice a second
+function B.bagChosen(p, pn)
+    if not p then return nil end
+    local c = B._bagCache[pn or 0]
+    local now = getTimestampMs and getTimestampMs() or 0
+    if c and c.p == p and now - c.at < 500 then return c.e end
+    local list = B.bagList(p)
+    local rec = p:getModData()[B.BAG_KEY]
+    local e = list[1]
+    if type(rec) == "table" and rec.id then
+        -- the same bag by its id; else one of the same kind (the same backpack swapped for another)
+        local byType = nil
+        for i = 2, #list do
+            if list[i].id == rec.id then e = list[i]; byType = nil; break end
+            if not byType and list[i].ftype == rec.type then byType = list[i] end
+        end
+        if byType then e = byType end
+    end
+    B._bagCache[pn or 0] = { p = p, at = now, e = e }
+    return e
+end
+-- a pick from the list (ISContextMenu calls target, then the params: the target is nil)
+function B.bagPick(_, pn, id, ftype)
+    local p = getSpecificPlayer(pn or 0)
+    if not p then return end
+    p:getModData()[B.BAG_KEY] = id and { id = id, type = ftype } or nil
+    B._bagCache[pn or 0] = nil
+end
+-- the list as a ZeD context menu at (x, y), each row with its bag's icon; returns the menu
+function B.bagMenu(pn, x, y)
+    local p = getSpecificPlayer(pn or 0)
+    if not p then return nil end
+    local ctx = ISContextMenu.get(pn or 0, x, y)
+    for _, e in ipairs(B.bagList(p)) do
+        local opt = ctx:addOption(e.name, nil, B.bagPick, pn or 0, e.id, e.ftype)
+        opt.iconTexture = e.tex
+    end
+    return ctx
 end
 function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     local T = ZeD.T
@@ -1095,12 +1172,14 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     local handY = math.floor((h - hand) / 2)
     local by = math.floor((h - box) / 2)
     local watchBox = wItem and { kind = "watch", item = wItem, plate = wPlate, wrist = wWrist, y = math.floor((h - mh) / 2), w = mw, h = mh } or nil
-    -- the bag button, first at the belt's left end: one click or one A opens both windows (KISS #16)
+    -- the game's speed keys, first, while he wears a watch (KISS #22), then the bag button: one click or one A opens
+    -- both windows (KISS #16), then a gap of one icon (the bag button's size) before the belt (Belt row, the
+    -- director, Nov 22 2026: "it adds a little separation from the belt")
+    if watchBox then x = self:_speedBoxes(boxes, x, h) end
     local bagW = px(LAMP)
     boxes[#boxes + 1] = { kind = "bag", x = x, y = math.floor((h - bagW) / 2), w = bagW, h = bagW }
-    x = x + bagW + px(END_GAP)
+    x = x + bagW + px(B.ICON_GAP)
     if watchBox and wWrist ~= "right" then
-        x = self:_speedBoxes(boxes, x, h, true)   -- (the game's speed keys on the watch's outer side: KISS #22)
         watchBox.x = x
         boxes[#boxes + 1] = watchBox
         x = x + mw + px(WRIST)
@@ -1137,7 +1216,6 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
         watchBox.x = x
         boxes[#boxes + 1] = watchBox
         x = x + mw
-        x = self:_speedBoxes(boxes, x, h, false)   -- (the game's speed keys on the watch's outer side: KISS #22)
     end
     x = x + px(END_GAP)
     if B.simple() then
@@ -1153,7 +1231,7 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
         self._anchorX = math.floor((slotsX + x) / 2)
         x = self:_extraBoxes(boxes, x, by, box)
         if lamp then
-            x = x + px(END_GAP)
+            x = x + px(B.ICON_GAP)   -- (an icon's gap off the belt: Belt row, the director, Nov 22 2026)
             local lw = px(LAMP)
             boxes[#boxes + 1] = { kind = "lamp", x = x, y = math.floor((h - lw) / 2), w = lw, h = lw }
             x = x + lw
@@ -1195,7 +1273,7 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     x = self:_extraBoxes(boxes, x, by, box)
     -- the Messages note, last on the right, past the strap's end (only while Messages keeps anything)
     if lamp then
-        x = x + px(END_GAP)
+        x = x + px(B.ICON_GAP)   -- (an icon's gap off the belt: Belt row, the director, Nov 22 2026)
         local lw = px(LAMP)
         boxes[#boxes + 1] = { kind = "lamp", x = x, y = math.floor((h - lw) / 2), w = lw, h = lw }
         x = x + lw
@@ -1941,7 +2019,12 @@ function ZeD_BeltHUD:_drawButton(b, focus, hover, icon, lit)
     self:drawRectBorder(b.x, b.y, b.w, b.h, 1, bd.r, bd.g, bd.b)
     local ib = math.floor(b.h * 0.7)
     local ink = lit and (T.base or T.text) or T.text
-    ZeD.Atoms.drawPxIcon(self, icon, b.x + math.floor((b.w - ib) / 2), b.y + math.floor((b.h - ib) / 2), ib, 1, ink)
+    if type(icon) == "string" then
+        ZeD.Atoms.drawPxIcon(self, icon, b.x + math.floor((b.w - ib) / 2), b.y + math.floor((b.h - ib) / 2), ib, 1, ink)
+    elseif icon then
+        -- a texture (the bag button's Pocket or picked bag): its own colors, as the Character window's strip draws it
+        self:drawTextureScaledAspect(icon, b.x + math.floor((b.w - ib) / 2), b.y + math.floor((b.h - ib) / 2), ib, ib, 1, 1, 1, 1)
+    end
 end
 
 -- What the Messages note's count says (KISS #42): "ours" a new error from ZeD itself, "note" a new note (no error of
@@ -2254,7 +2337,10 @@ function ZeD_BeltHUD:_prerender()
         if fade then B.fadeTo(self, B.alphaFor(self, b.kind, b)) end
         local o = {}
         if b.kind == "bag" then
-            self:_drawButton(b, gpTarget == b, b == over and not dragging, "backpack", false)   -- (KISS #16)
+            -- (the picked bag's icon, the Pocket's by default: Belt row, the director, Nov 22 2026)
+            local okP, pick = pcall(B.bagChosen, self:player(), self.playerNum)
+            if not okP then pick = nil end
+            self:_drawButton(b, gpTarget == b, b == over and not dragging, (pick and pick.tex) or "backpack", false)   -- (KISS #16)
             if b == over and not dragging then self._hover = { b = b } end
         elseif b.kind == "speed" then
             -- the key of the speed in use lit (Wait's key for any speed past it) (KISS #22)
@@ -2344,7 +2430,7 @@ function ZeD_BeltHUD:_prerender()
     elseif hv and hv.b.kind == "hand" then
         hintKey, hintText = "hand" .. hv.b.which, B.handName(hv.b.which)
     elseif hv and hv.b.kind == "bag" then
-        hintKey, hintText = "bag", B.bagWords()
+        hintKey, hintText = "bag", B.bagWords(self.playerNum)
     elseif hv and hv.b.kind == "speed" then
         hintKey, hintText = "speed" .. hv.b.n, getText(B.SPEED_WORDS[hv.b.n])
     elseif hv and hv.b.kind == "lamp" then
@@ -2377,7 +2463,7 @@ function ZeD_BeltHUD:_prerender()
     elseif not hv and gpTarget and gpTarget.kind == "hand" then
         hintKey, hintText = "hand" .. gpTarget.which, B.handName(gpTarget.which)
     elseif not hv and gpTarget and gpTarget.kind == "bag" then
-        hintKey, hintText = "bag", B.bagWords()
+        hintKey, hintText = "bag", B.bagWords(self.playerNum)
     elseif not hv and gpTarget and gpTarget.kind == "speed" then
         hintKey, hintText = "speed" .. gpTarget.n, getText(B.SPEED_WORDS[gpTarget.n])
     elseif not hv and gpTarget and gpTarget.kind == "watch" then
@@ -2569,7 +2655,9 @@ function ZeD_BeltHUD:onRightMouseUp(x, y)
     if not self._drawn then return false end
     local b = self:boxAt(x, y)
     if not b then return false end
-    if b.kind == "bag" or b.kind == "speed" or b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" or b.kind == "chat" or b.kind == "pvp" then return true end
+    -- the bag button: the list of the Pocket and his bags, to pick the button's (Belt row, the director, Nov 22 2026)
+    if b.kind == "bag" then B.bagMenu(self.playerNum, getMouseX(), getMouseY()); return true end
+    if b.kind == "speed" or b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" or b.kind == "chat" or b.kind == "pvp" then return true end
     if b.kind == "extra" then self:_extraMenu(b, false); return true end
     local p = self:player()
     if b.kind == "slot" then
@@ -2731,7 +2819,17 @@ function ZeD_BeltHUD:onJoypadDown(button, joypadData)
     if not b then return end
     if b.kind == "bag" then
         -- A: both windows, the pad in the Character window, as Y's tap (KISS #16)
-        if button == Joypad.AButton then self._gp = nil; B.bagAct(self.playerNum, true) end
+        if button == Joypad.AButton then self._gp = nil; B.bagAct(self.playerNum, true)
+        elseif button == Joypad.XButton then
+            -- X: the pick list (the press that opens a slot's or a hand's menu), the pad in it, back to this box after
+            -- (Belt row, the director, Nov 22 2026)
+            local ctx = B.bagMenu(self.playerNum, self:getAbsoluteX() + b.x + math.floor(b.w / 2), self:getAbsoluteY() + b.y)
+            if ctx then
+                ctx.origin = self
+                ctx.mouseOver = 1
+                setJoypadFocus(self.playerNum, ctx)
+            end
+        end
         return
     end
     if b.kind == "speed" then

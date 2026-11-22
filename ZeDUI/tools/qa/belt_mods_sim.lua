@@ -409,10 +409,15 @@ if OLD == "" then print("(git show " .. BASE .. " gave nothing: the SAME section
 local NEW_SAME = (NEW:gsub("\r\n", "\n"))   -- (a checkout with Windows line ends: the search below uses LF)
 do
     local bag = '    boxes[#boxes + 1] = { kind = "bag", x = x, y = math.floor((h - bagW) / 2), w = bagW, h = bagW }\n'
-        .. '    x = x + bagW + px(END_GAP)\n'
+        .. '    x = x + bagW + px(B.ICON_GAP)\n'
     local a = NEW_SAME:find(bag, 1, true)
     if a then NEW_SAME = NEW_SAME:sub(1, a - 1) .. NEW_SAME:sub(a + #bag) end
     check("SAME: the bag button found to leave out", a ~= nil)
+    -- (Belt row, the director, Nov 22 2026: the Messages note set off the belt by an icon's gap, B.ICON_GAP, on
+    -- purpose; the SAME runs put the old END_GAP back so the rest is compared as before)
+    local n
+    NEW_SAME, n = NEW_SAME:gsub("x = x %+ px%(B%.ICON_GAP%)", "x = x + px(END_GAP)")
+    check("SAME: the note's icon gap found to put back (Lite and Full)", n == 2, n)
 end
 
 -- ---------------------------------------------------------------------------
@@ -1124,6 +1129,160 @@ do
     local log = frame()
     check("METER the hand ring of a bottle in the liquid blue", log:find(string.format("%.4f", ZeD.T.info.r), 1, true) ~= nil)
     ZeD.ItemMeter = nil
+end
+
+-- ---------------------------------------------------------------------------
+section("ROW: the belt row and the bag button's pick (Belt row, the director, Nov 22 2026)")
+-- ---------------------------------------------------------------------------
+-- Left to right: [speed keys] [bag button] (an icon's gap) [the belt: watch, hands, strap] (an icon's gap) [Messages
+-- note], in Full and Lite; the speed keys only with a watch on, none on a server. The bag button's right-click lists
+-- the Pocket and every bag he has on; the pick is kept in his modData as { id, type }, draws as the button's icon and
+-- is what its click opens; a bag he no longer has on falls back to the Pocket.
+do
+    boot(NEW)
+    local B = ZeD.Belt
+    local hud = B.getHUD()
+    local watch = item({ name = "Watch" })
+    local function kinds(boxes)
+        local t = {}
+        for _, b in ipairs(boxes) do t[#t + 1] = b.kind .. (b.n ~= nil and tostring(b.n) or "") .. (b.which or "") end
+        return table.concat(t, ",")
+    end
+    local slots2 = { { slot = { slotType = "SmallBeltLeft" } }, { slot = { slotType = "SmallBeltRight" } } }
+    local function find(boxes, kind)
+        for _, b in ipairs(boxes) do if b.kind == kind then return b end end
+    end
+    for _, simple in ipairs({ false, true }) do
+        env.simple = simple
+        local tag = simple and "Lite" or "Full"
+        for _, wrist in ipairs({ "left", "right" }) do
+            hud:_layout(slots2, watch, nil, wrist, true, false, false)
+            local bx = hud._boxes
+            local order = kinds(bx)
+            local want = (wrist == "left") and "speed0,speed1,speed2,speed3,speed4,bag,watch,hands,handp,slot,slot,lamp"
+                or "speed0,speed1,speed2,speed3,speed4,bag,hands,handp,watch,slot,slot,lamp"
+            check("ROW " .. tag .. " " .. wrist .. " wrist: speed keys, bag, the belt, the note in that order", order == want, order)
+            local bag, lamp = find(bx, "bag"), find(bx, "lamp")
+            local first = bx[7]   -- the belt's first box after the bag (the watch or the off hand)
+            check("ROW " .. tag .. " " .. wrist .. ": the bag button an icon (its own width) off the belt",
+                first.x - (bag.x + bag.w) == bag.w and B.ICON_GAP == 38, first.x - (bag.x + bag.w))
+            check("ROW " .. tag .. " " .. wrist .. ": the last speed key just left of the bag button (END_GAP, nothing between)",
+                bag.x - (bx[5].x + bx[5].w) == 10, bag.x - (bx[5].x + bx[5].w))
+            -- (the belt's right end: Full's strap, Lite's last slot)
+            local endX = hud._strap and (hud._strap.x + hud._strap.w) or (bx[#bx - 1].x + bx[#bx - 1].w)
+            check("ROW " .. tag .. " " .. wrist .. ": the note an icon off the belt", lamp.x - endX == lamp.w, lamp.x - endX)
+        end
+        hud:_layout({}, nil, nil, nil, false, false, false)
+        check("ROW " .. tag .. " no watch: no speed keys, the bag button first", kinds(hud._boxes) == "bag,hands,handp", kinds(hud._boxes))
+        isClient = function() return true end
+        hud:_layout({}, watch, nil, "left", false, false, false)
+        check("ROW " .. tag .. " on a server: no speed keys", kinds(hud._boxes) == "bag,watch,hands,handp", kinds(hud._boxes))
+        isClient = function() return false end
+    end
+    env.simple = false
+
+    -- his bags: a backpack he wears and a satchel in his hand; a third bag only carried (not on him)
+    local p = env.player
+    p.md = {}
+    function p:getModData() return self.md end
+    local function bag(id, ftype, name)
+        local b = item({ name = name })
+        b.binv = { name = name .. "Inv" }
+        function b:getCategory() return "Container" end
+        function b:getInventory() return self.binv end
+        function b:getName() return name end
+        function b:getTex() return { name = name .. "Tex" } end
+        function b:getID() return id end
+        function b:getFullType() return ftype end
+        return b
+    end
+    local pack = bag(11, "Base.Bag_ALICEpack", "ALICE Pack")
+    local satchel = bag(12, "Base.Bag_Satchel", "Satchel")
+    local spare = bag(13, "Base.Bag_Schoolbag", "School Bag")
+    local onHim = { [pack] = true, [satchel] = true }
+    local main = { name = "MainInv" }
+    local carried = { pack, satchel, spare }
+    function p:getInventory() return { getItems = function() return list(carried) end, name = "MainInv", main = main } end
+    function p:isEquipped(it) return onHim[it] == true end
+    local mainInv = p:getInventory()
+
+    local made = nil
+    ISContextMenu = { get = function(pn, x, y)
+        made = { options = {} }
+        function made:addOption(name, target, fn, a1, a2, a3)
+            local o = { name = name, target = target, fn = fn, a = { a1, a2, a3 } }
+            self.options[#self.options + 1] = o
+            return o
+        end
+        return made
+    end }
+    getTexture = function(path) return { name = path } end
+    local function pick(i) local o = made.options[i]; o.fn(o.target, o.a[1], o.a[2], o.a[3]) end
+
+    local list1 = B.bagList(p)
+    check("ROW the list: the Pocket and the two bags on him, not the one only carried", #list1 == 3 and list1[1].id == nil
+        and list1[2].id == 11 and list1[3].id == 12, #list1)
+    check("ROW the Pocket's word is the game's (the window's main button)", list1[1].name == "IGUI_InventoryTooltip", list1[1].name)
+    check("ROW the Pocket's icon is the game's pocket", list1[1].tex and list1[1].tex.name == "media/ui/Container_Pocket.png")
+    check("ROW nothing picked: the Pocket", B.bagChosen(p, 0).id == nil)
+
+    hud._boxes = nil
+    hud:_layout({}, nil, nil, nil, false, false, false)
+    hud._drawn = true
+    local bb = hud._boxes[1]
+    check("ROW a right-click on the bag button: the list, each row with its icon", hud:onRightMouseUp(bb.x + 2, bb.y + 2) == true
+        and made and #made.options == 3 and made.options[3].name == "Satchel" and made.options[3].iconTexture.name == "SatchelTex",
+        made and #made.options)
+    pick(3)
+    check("ROW picked: kept in his modData as id and type (never the item)", type(p.md.ZeD_BeltBag) == "table"
+        and p.md.ZeD_BeltBag.id == 12 and p.md.ZeD_BeltBag.type == "Base.Bag_Satchel" and p.md.ZeD_BeltBag.item == nil)
+    check("ROW picked: the button's entry is the satchel", B.bagChosen(p, 0).id == 12)
+    check("ROW picked: the hover words are its name", B.bagWords(0) == "Satchel", B.bagWords(0))
+
+    -- the click: both windows, then the satchel alone; again while it shows alone: the pair closes
+    local calls = {}
+    local open, shows = false, false
+    ZeD_CharacterWindow = {
+        isOpen = function() return open end,
+        toggleBothPaired = function() calls[#calls + 1] = "toggle"; open = not open end,
+        showBagAlone = function(pn, inv) calls[#calls + 1] = "alone:" .. tostring(inv and inv.name); shows = true; return true end,
+        showsBagAlone = function() return shows end,
+        ensureBothOpenForGamepad = function() calls[#calls + 1] = "padOpen"; open = true end,
+        getWindow = function() return nil end,
+    }
+    ZeD_WorldWindow = { isOpen = function() return open end }
+    B.bagAct(0, false)
+    check("ROW a click with the satchel picked: the pair opens on it alone", table.concat(calls, ",") == "toggle,alone:SatchelInv", table.concat(calls, ","))
+    calls = {}
+    B.bagAct(0, false)
+    check("ROW a second click while it shows alone: the pair closes", table.concat(calls, ",") == "toggle" and open == false, table.concat(calls, ","))
+    calls = {}; shows = false
+    B.bagAct(0, true)
+    check("ROW the pad's A: both open, the satchel alone", table.concat(calls, ",") == "padOpen,alone:SatchelInv", table.concat(calls, ","))
+
+    -- the satchel taken off: the Pocket, as today (the pick kept for when it comes back)
+    onHim[satchel] = nil
+    env.clock = env.clock + 1000
+    check("ROW the picked bag off him: the Pocket", B.bagChosen(p, 0).id == nil)
+    calls = {}; open = false
+    B.bagAct(0, false)
+    check("ROW then a click opens the pair as today", table.concat(calls, ",") == "toggle", table.concat(calls, ","))
+    check("ROW the pick kept", p.md.ZeD_BeltBag and p.md.ZeD_BeltBag.id == 12)
+    onHim[satchel] = true
+    env.clock = env.clock + 1000
+    check("ROW back on: the satchel again", B.bagChosen(p, 0).id == 12)
+
+    -- the pad's X: the same list, the pad in it
+    hud._gp = { idx = 1, inList = false, row = 1, list = {} }
+    hud._gpBox = function() return bb end
+    made = nil
+    env.joyFocus = nil
+    hud:onJoypadDown(Joypad.XButton)
+    check("ROW the pad's X on the bag button: the list, the pad in it", made ~= nil and #made.options == 3 and made.origin == hud)
+    pick(1)
+    env.clock = env.clock + 1000
+    check("ROW the Pocket picked again: the pick cleared", p.md.ZeD_BeltBag == nil and B.bagChosen(p, 0).id == nil)
+    ZeD_CharacterWindow, ZeD_WorldWindow = nil, nil
 end
 
 print(string.format("belt_mods_sim: %d checks, %d failed", checks, failed))
