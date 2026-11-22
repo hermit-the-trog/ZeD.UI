@@ -171,7 +171,7 @@ function S.look(pn)
     local s = MT and MT.getState and MT.getState(win)
     local e = s and s.vehicles and s.vehicles[s.idx]
     local v = e and e.vehicle
-    if v == nil or v:getSquare() == nil or not MT.isInspected(v) then return nil, win, chr, true end
+    if v == nil or (ZeD.carGone and ZeD.carGone(v)) or v:getSquare() == nil or not MT.isInspected(v) then return nil, win, chr, true end   -- (a removed car: QA B7-6)
     if win.windowShaded or not win:isReallyVisible() or not WW.isTabShowing("vehicle", pn) then
         return nil, win, chr, false, v
     end

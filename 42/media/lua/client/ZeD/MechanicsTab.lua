@@ -152,10 +152,22 @@ local function distTo(chr, v)
     return math.sqrt(dx * dx + dy * dy)
 end
 
-local function endInspection(vid, chr)
+-- True when the car is gone from the world. getSquare() only looks up the ground at the car's last x, y, z, so a car
+-- the game removed (a wreck scrapped with the torch, an admin, a mod) still has one; the car itself knows (QA B7-6).
+-- Shared: the seat windows and the Maskarad's mod support call it too.
+function ZeD.carGone(v)
+    if v == nil then return true end
+    local ok, removed = pcall(function() return v:isRemovedFromWorld() end)
+    if ok and removed == true then return true end
+    return v:getSquare() == nil   -- (unloaded ground)
+end
+local carGone = ZeD.carGone
+
+local function endInspection(vid, chr, gone)
     local e = INSP[vid]
-    INSP[vid] = nil
+    INSP[vid] = nil   -- (keyed by the car's id, which the game hands to the next car it adds: always dropped) (QA B7-6)
     if not e then return end
+    if gone then return end   -- (a car that is gone has no hood to close, no mechanic flag to clear) (QA B7-6)
     local v, hood = e.vehicle, e.hood
     if v then setMechOpen(v, false, chr) end
     -- vanilla closes the hood it opened when the window closes at the hood
@@ -179,7 +191,7 @@ function MT.buildVehicles(chr)
     local it = set:iterator()
     while it:hasNext() do
         local v = it:next()
-        if v and v:getSquare() and math.floor(v:getZ()) == cz then
+        if v and not carGone(v) and math.floor(v:getZ()) == cz then
             local d = distTo(chr, v)
             local vid = v:getId()
             if d <= REACH_TILES or ((INSP[vid] or PIN[vid]) and d <= KEEP_TILES) or inside == v then
@@ -196,7 +208,7 @@ function MT.buildVehicles(chr)
         local ok1, a = pcall(function() return v:getVehicleTowing() end)
         local ok2, b = pcall(function() return v:getVehicleTowedBy() end)
         for _, o in ipairs({ ok1 and a or false, ok2 and b or false }) do
-            if o and o:getSquare() and not have[o:getId()] then
+            if o and not carGone(o) and not have[o:getId()] then
                 have[o:getId()] = true
                 out[#out + 1] = { vehicle = o, id = o:getId(), dist = distTo(chr, o) }
             end
@@ -210,7 +222,7 @@ function MT.pin(v) if v then PIN[v:getId()] = v end end
 
 -- Within the tab's reach (vanilla's trailer menus skip their walk from here)
 function MT.inReach(chr, v)
-    return chr ~= nil and v ~= nil and v:getSquare() ~= nil
+    return chr ~= nil and v ~= nil and not carGone(v)
         and math.floor(v:getZ()) == math.floor(chr:getZ()) and distTo(chr, v) <= REACH_TILES
 end
 
@@ -226,11 +238,11 @@ function MT.refresh(win)
     -- inspections end past six tiles or when the vehicle is gone
     for vid, e in pairs(INSP) do
         local v = e.vehicle
-        local alive = v and v:getSquare() ~= nil
-        if not alive or distTo(chr, v) > KEEP_TILES then endInspection(vid, chr) end
+        local alive = v and not carGone(v)   -- (QA B7-6)
+        if not alive or distTo(chr, v) > KEEP_TILES then endInspection(vid, chr, not alive) end
     end
     for vid, v in pairs(PIN) do
-        if not v:getSquare() or distTo(chr, v) > KEEP_TILES then PIN[vid] = nil end
+        if carGone(v) or distTo(chr, v) > KEEP_TILES then PIN[vid] = nil end   -- (QA B7-6)
     end
     local want = s.pendingId or curId
     s.idx = 1
@@ -2235,7 +2247,7 @@ function MT.render(panel, win, x, y, w, h)
     local chr = win._playerObj or getSpecificPlayer(win.playerNum or 0)
     local e = currentEntry(s)
     if s.view ~= "animal" then TR.hideAvatar(s) end
-    if not chr or not e or not e.vehicle or not e.vehicle:getSquare() then
+    if not chr or not e or not e.vehicle or carGone(e.vehicle) then   -- (QA B7-6)
         TR.hideAvatar(s)
         -- nothing to list: one dim sentence at the text inset
         local pad0 = T.px(PAD)

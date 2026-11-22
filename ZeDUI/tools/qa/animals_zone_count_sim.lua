@@ -74,9 +74,14 @@ check("STRAY outside every zone counts in no zone row", placed == 2, placed)
 local other = zone("Other", 0, 0, 1, 1, 0, {})
 local hen2 = animal(104.5, 101.5, 0, other)
 CELL = { hen2 }
-ZONES = { coop }
+ZONES = { coop, other }   -- (the zone is still in the game's list: QA B7-5)
 animals, zoneMap, zoneList = discover(player)
 check("OWN ZONE wins over bounds", #(zoneMap[other] or {}) == 1 and #(zoneMap[coop] or {}) == 0)
+
+-- a removed zone (still the animal's own, no longer in the game's list) is not drawn or counted (QA B7-5)
+ZONES = { coop }
+animals, zoneMap, zoneList = discover(player)
+check("REMOVED own zone is not shown", zoneMap[other] == nil, tostring(zoneMap[other]))
 
 -- a zone whose bounds cannot be read: no error, the animal just stays unzoned
 local broken = { isStillStreamed = function() return true end, getAnimalsConnected = function() return jlist({}) end,

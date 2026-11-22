@@ -740,13 +740,13 @@ end
 -- ============================================================================
 
 local function renameZone(win)
+    local state = getState(win)
+    local zone = getZoneByName(state.zoneName)
+    if not zone then return end   -- (a zone already removed: no Save and Cancel band without a name box) (QA B7-5)
+
     -- Set rename mode — the band shows Save / Cancel / Reset, the info band the text entry
     win._animalsRenaming = true
     AT._editWins = AT._editWins or {}; AT._editWins[win] = true   -- (the tick watcher ends the edit when the tab goes) (QA B6-11)
-
-    local state = getState(win)
-    local zone = getZoneByName(state.zoneName)
-    if not zone then return end
 
     -- Create text entry as a child of the window (not the drawer panel)
     if not win._animalsRenameEntry then
@@ -807,7 +807,11 @@ end
 local function confirmRemoveZone(win)
     local state = getState(win)
     local zone = getZoneByName(state.zoneName)
-    if not zone then return end
+    if not zone then   -- (the zone is already gone: drop the question and step back) (QA B7-5)
+        win._animalsRemoveConfirm = false
+        navigateBack(win)
+        return
+    end
 
     local sq = getSquare(zone:getX(), zone:getY(), zone:getZ())
     if sq then sq:flagForHotSave() end

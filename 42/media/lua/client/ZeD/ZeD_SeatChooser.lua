@@ -601,7 +601,8 @@ function ZeD_SeatChooser:update()
     ZeD_Window.update(self)   -- the window box, the resize edges and the close box (closeAction)
     -- the car gone from the world or the character dead: it closes, rather than reading a
     -- vanished vehicle every frame
-    if not (self.vehicle and self.vehicle:getSquare()) or self.character:isDead() then self:close(); return end
+    local gone = ZeD.carGone and ZeD.carGone(self.vehicle) or not (self.vehicle and self.vehicle:getSquare())   -- (a removed car still has a square) (QA B7-6)
+    if gone or self.character:isDead() then self:close(); return end
     -- the controller that holds it
     local jf = nil
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]

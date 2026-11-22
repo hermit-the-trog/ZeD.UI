@@ -83,6 +83,8 @@ function LC.facts(item, chr)
         if safe(item, "isBurnt") then tags[#tags + 1] = { tr("UI_ZeD_Loot_Burnt"), "warn" } end
     end
     if safe(item, "isFrozen") then tags[#tags + 1] = { tr("UI_ZeD_Loot_Frozen"), nil } end
+    -- a jammed gun says so, as the game's own tooltip does (QA B7-4)
+    if safe(item, "isJammed") == true then tags[#tags + 1] = { tr("UI_ZeD_Jammed"), "bad" } end
 
     -- the item's one bar (ItemMeter.lua): its condition when it wears, how full when it holds or runs down
     local IM = ZeD.ItemMeter

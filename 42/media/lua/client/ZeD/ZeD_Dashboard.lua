@@ -152,6 +152,9 @@ local MAKERS = { CHEVALIER = "chevalier", DASH = "dash", FRANKLIN = "franklin", 
 local FAMILY_CAR = { { "StepVan", "CHEVALIER", "STEP VAN" } }
 -- the service a fleet livery names leads its unit plate ("Meade Sheriff" -> SHERIFF, "State Trooper" -> TROOPER)
 local SERVICES = { "POLICE", "SHERIFF", "TROOPER", "SWAT", "RANGER", "FIRE", "AMBULANCE", "TAXI" }
+-- the French fleet names put the service after the model ("Dash Bulldriver de Pompiers"); these words stand for a service
+-- there (the others, "Police" and "SWAT", are already in SERVICES) (QA B7-7)
+local SERVICE_WORDS = { POMPIERS = "FIRE", FORESTIER = "RANGER", PATROUILLEURS = "TROOPER" }
 
 local function _join(words, i, j)
     local s = ""
@@ -203,6 +206,18 @@ local function _badges(design, vehicle, scriptName, ownFamily)
     for _, s in ipairs(SERVICES) do
         -- a whole word of the livery ("RANGER" in "PARK RANGER", not in "FORD RANGER" -> only a livery word counts) (beast W22)
         if (" " .. livery .. " "):find(" " .. s .. " ", 1, true) then fleet = s; break end
+    end
+    -- a game car whose name leads with the maker ("Dash Bulldriver de Pompiers") has no livery before it: the service
+    -- is among the words after the maker; read the maker first, so the livery is not taken to be the maker (QA B7-7)
+    if not fleet and mi and ownFamily and livery == "" then
+        for i = mi + 1, #words do
+            local w = words[i]
+            local svc = SERVICE_WORDS[w]
+            if not svc then
+                for _, s in ipairs(SERVICES) do if w == s then svc = s; break end end
+            end
+            if svc then fleet = svc; break end
+        end
     end
     fleet = fleet or livery:match("^(%S+)") or make
     local id = 0; pcall(function() id = vehicle:getId() or 0 end)

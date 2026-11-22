@@ -97,9 +97,12 @@ local function discoverPlayerAnimals(player)
     -- counts zone:getAnimalsConnected(). An animal's getDZone() can stay empty long after it is placed (a
     -- spawned hen still had none 200 ticks on), so it is only the fallback below.
     local allZonesJava = DesignationZoneAnimal and DesignationZoneAnimal.getAllZones and DesignationZoneAnimal.getAllZones()
+    local live = nil   -- [zone] = true for every zone the game still lists (nil: no list to check against) (QA B7-5)
     if allZonesJava then
+        live = {}
         for i = 0, allZonesJava:size() - 1 do
             local zone = allZonesJava:get(i)
+            if zone then live[zone] = true end
             if zone and zone.isStillStreamed and zone:isStillStreamed() then
                 put(zone, nil)
                 local okC, conn = false, nil
@@ -118,7 +121,8 @@ local function discoverPlayerAnimals(player)
     for _, obj in ipairs(animals) do
         if not placed[obj] then
             local zone = obj.getDZone and obj:getDZone()
-            if zone then put(zone, obj) end
+            -- (a removed zone can still be an animal's own until its next zone check: only a listed zone counts) (QA B7-5)
+            if zone and (live == nil or live[zone]) then put(zone, obj) end
         end
     end
 

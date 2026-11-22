@@ -748,7 +748,8 @@ end
 function ZeD_SeatPopout:update()
     ISPanel.update(self)
     -- the car gone from the world or the character dead: it closes
-    if not (self.vehicle and self.vehicle:getSquare()) or self.character:isDead() then self:close(); return end
+    local gone = ZeD.carGone and ZeD.carGone(self.vehicle) or not (self.vehicle and self.vehicle:getSquare())   -- (a removed car still has a square) (QA B7-6)
+    if gone or self.character:isDead() then self:close(); return end
     local jf = nil
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
     if jd and jd.focus == self then jf = jd end
