@@ -2408,6 +2408,14 @@ function ZeD_BeltHUD:onMouseUp(x, y)
         -- another mod's box: its menu, on the release (a menu opened on the press could take the release)
         pcall(function() ZeD.uiSound("UIActivateButton") end)
         self:_extraMenu(b, false)
+    elseif b.kind == "hand" then
+        -- a click on a hand puts its item away, as the pad's A does (QA K2-2)
+        local pl = getSpecificPlayer(self.playerNum)
+        local item = pl and (b.which == "p" and pl:getPrimaryHandItem() or pl:getSecondaryHandItem())
+        if item then
+            pcall(function() ZeD.uiSound("UIActivateButton") end)
+            ISInventoryPaneContextMenu.unequipItem(item, self.playerNum)
+        end
     end
     return true
 end

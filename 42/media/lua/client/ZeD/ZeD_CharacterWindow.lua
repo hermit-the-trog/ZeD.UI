@@ -1204,6 +1204,20 @@ local function _switchTabForNav(win, content, tabId)
     if win._activeTab == tabId then
         -- (a drawer folded by the pointer keeps its tab selected: A on that tab brings it back)
         if ZeD.Halves and ZeD.Halves.foldedTab and ZeD.Halves.foldedTab(win) == tabId then ZeD.Halves.showAll(win); return true end
+        -- A on the tab already open folds it, as a click on it does (the strip's same-tab branch) (QA K2-4)
+        if tabId ~= "loot" and win._drawerOpen and win._drawerMode == "tab" then
+            if not win._invDrawerOpen then
+                win._invDrawerOpen = true
+                win._invDrawerTargetW = ZeD.T.px(win._baseInvW or 372)
+            end
+            win._activeTab  = "loot"
+            win._drawerOpen = false
+            win._drawerMode = nil
+            win._tabUnder   = nil
+            if tabId == "equip" then win._equipSelected = nil end
+            _syncRingZonesToActiveTab(win, content)
+            return true
+        end
         return false
     end
     local T = ZeD.T

@@ -2457,6 +2457,23 @@ function ZeD.MapsTab._buildPopoutStops(content, win, pop)
     Focus.setZoneFocusable(pop, "popMapContent", #wrapped > 0)
 end
 
+-- Escape (the prompts' key hook asks, as for the car radio): an open map pop-out closes and the
+-- game's pause menu stays shut. Registered below under ZeD.EscapeTakers. (QA K2-6)
+ZeD.MapsTab._openPops = ZeD.MapsTab._openPops or {}
+function ZeD.MapsTab.takeEscape()
+    for win in pairs(ZeD.MapsTab._openPops) do
+        local pop = win._mapPopout
+        if pop and pop:isReallyVisible() then
+            ZeD.MapsTab.closePopout(win)
+            return true
+        end
+        if not pop then ZeD.MapsTab._openPops[win] = nil end   -- (a stale entry goes)
+    end
+    return false
+end
+ZeD.EscapeTakers = ZeD.EscapeTakers or {}
+ZeD.EscapeTakers.mapPopout = ZeD.MapsTab.takeEscape
+
 -- paperItem: a map item read from the inventory (PaperMap.lua) is shown in the
 -- window in place of the world map, under its own name.
 function ZeD.MapsTab.openPopout(win, paperItem)
@@ -2541,6 +2558,7 @@ function ZeD.MapsTab.openPopout(win, paperItem)
     win._mapPaperItem = paperItem
     if paperItem then win._mapActiveTool, win._mapEdit = nil, nil end   -- (no world map tool carries onto the paper)
     win._mapPopout = pop
+    ZeD.MapsTab._openPops[win] = true   -- (Escape finds the open map through this) (QA K2-6)
 
     -- Gamepad registration: one content zone, elements rebuilt per frame.
     pop._focusRing = {
@@ -2570,6 +2588,7 @@ function ZeD.MapsTab.closePopout(win, keepWorld)
     if not pop then return end
     local paper = win._mapPaperItem ~= nil
     win._mapPopout = nil
+    ZeD.MapsTab._openPops[win] = nil
     win._mapPaperItem = nil
     win._mapDragging = false
     win._mapStyleMenuOpen = nil

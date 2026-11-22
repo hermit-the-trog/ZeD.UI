@@ -975,10 +975,9 @@ function ZeD_ContextMenu:onJoypadDown(button)
     end
 end
 
-function ZeD_ContextMenu:onJoypadDirUp(joypadData)
-    -- No-op: menu is horizontal, up/down have no meaning at top level
-end
-function ZeD_ContextMenu:onJoypadDirDown(joypadData) end
+-- Up and Down step the strip as Left and Right do: Up is back, Down is forward (QA K2-1)
+function ZeD_ContextMenu:onJoypadDirUp(joypadData) self:prev() end
+function ZeD_ContextMenu:onJoypadDirDown(joypadData) self:next() end
 
 function ZeD_ContextMenu:onJoypadDirLeft(joypadData)  self:prev() end
 function ZeD_ContextMenu:onJoypadDirRight(joypadData) self:next() end
