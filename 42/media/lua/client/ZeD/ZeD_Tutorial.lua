@@ -261,9 +261,16 @@ end
 -- the player's own key for the survival guide (F1 unless rebound), as the guide bubble names it
 local function guideKeyName()
     local G = ZeD.Guide
-    if G and G.bubbleKey then
-        local ok, k = pcall(G.bubbleKey, 0)
+    -- the tour runs in one mode (R.mode): the pad's words (the Help wheel) only for a tour run with the pad, the
+    -- player's key for a mouse tour even when a controller is joined (QA K1 review: K1-14)
+    if R.mode == "pad" and G and G.bubbleKey then
+        local ok, k = pcall(G.bubbleKey, R.pn)
         if ok and k then return tostring(k) end
+    end
+    local ok, code = pcall(function() return getCore():getKey(KeybindId.TOGGLE_SURVIVAL_GUIDE) end)
+    if ok and code and code ~= 0 then
+        local ok2, n = pcall(function() return getKeyName(code) end)
+        if ok2 and n and n ~= "" then return tostring(n) end
     end
     return "F1"
 end
