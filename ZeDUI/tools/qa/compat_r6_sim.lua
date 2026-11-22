@@ -204,7 +204,7 @@ local buildModel = loadModel()
 check("the list model cut from InventoryRenderer.lua", buildModel ~= nil)
 makeSorter = function() return function(x, y) return x.id < y.id end end
 stackWeight = function() return 0 end
-ZeD.InventoryRenderer = { catKey = function(it) return it.cat or "Misc" end }
+ZeD.InventoryRenderer = { catKey = function(it) return it.cat or "Misc" end, wornListed = function() return false end, WORN_KEY = "zed:worn" }   -- (KISS #11: the old, worn-hidden list)
 ZeD.ContainerGates = { get = function() return nil end, keeps = function() return true end }
 local function invOf(things)
     local t = {}

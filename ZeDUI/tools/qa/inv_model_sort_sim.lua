@@ -257,7 +257,7 @@ Events = {
 instanceof = function(o, cls) return type(o) == "table" and o._class == cls end
 
 ZeD = ZeD or {}
-ZeD.InventoryRenderer = {}
+ZeD.InventoryRenderer = { wornListed = function() return false end, WORN_KEY = "zed:worn" }   -- (KISS #11: the old, worn-hidden list)
 -- (the COND / AMT column's sort reads ItemMeter since Nov 11 2026, punch list 152: what the bar shows, not always the
 -- condition; item_meter_sim checks that rule. Here the old condition rule stands in, so ORDER still compares the
 -- model's plumbing against the frozen reference)

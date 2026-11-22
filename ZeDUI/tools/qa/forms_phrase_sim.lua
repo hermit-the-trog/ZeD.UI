@@ -130,7 +130,7 @@ for _, id in ipairs({ "actionBar", "modsStyle" }) do
     check(id .. ": default item 1", default(id) == 1, default(id))
 end
 check("contextStyle keeps its items", items("contextStyle") == "UI_ZeD_Settings_ContextStrip, UI_ZeD_Settings_ViewList"
-      and default("contextStyle") == 1, items("contextStyle") .. " / " .. tostring(default("contextStyle")))
+      and default("contextStyle") == 2, items("contextStyle") .. " / " .. tostring(default("contextStyle")))
 check("equipView keeps its items", items("equipView") == "UI_ZeD_Settings_ViewList, UI_ZeD_Settings_ViewDoll"
       and default("equipView") == 1, items("equipView") .. " / " .. tostring(default("equipView")))
 

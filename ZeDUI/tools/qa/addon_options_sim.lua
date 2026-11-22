@@ -112,7 +112,7 @@ local function zedCombo(id, n, def)
 end
 zedCombo("baseTheme", 3, 1); zedCombo("accentColor", 9, 1)
 -- (QA's visual noise audit, Nov 20 2026: Inventory has no row on ZeD setup now; Context menu stands for Windows)
-zedCombo("contextStyle", 2, 1)
+zedCombo("contextStyle", 2, 2)
 zedCombo("safeMode", 2, 1); zedCombo("testLanguage", 2, 1)
 
 -- the add-on, made as an add-on's file would: its combos (the defaults marked), a tick box
