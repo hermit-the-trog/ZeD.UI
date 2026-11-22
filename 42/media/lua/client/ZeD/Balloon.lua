@@ -748,7 +748,9 @@ function B.draw(p, c, a, pref, opts)
     local x, y = pl.x - ox, pl.y - oy
     B.drawBox(p, c, x, y, lay)
     _box.x, _box.y, _box.w, _box.h = x, y, lay.w, lay.h
-    drawTail(p, _box, pl, ox, oy)
+    -- (QA B12) opts.noTail: a caption with no pointer, as the wheels' approved look (zed_wheels_v1: centered over the
+    -- ring); the tail pointed at the top slice whatever the wheel named
+    if not opts.noTail then drawTail(p, _box, pl, ox, oy) end
     -- the slot
     local t = now()
     if S.key ~= key then

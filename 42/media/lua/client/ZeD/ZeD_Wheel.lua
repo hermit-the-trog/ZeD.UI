@@ -407,7 +407,9 @@ function W.draw(menu)
     if state then
         local apexY = cy - r - math.floor(cellOn / 2) - T.px(6)
         state.pointerDir = "down"
-        state.snug = true   -- (as wide as the words: a short second line keeps the bubble small)
+        -- (QA B12) the approved wheel look: a caption centered over the ring, no tail (a tail pointed at the top slice,
+        -- whichever slice the caption named)
+        state.noTail = true
         -- no room above (a wheel near the screen's top): under the ring instead
         if menu:getAbsoluteY() + apexY - T.px(80) < 0 then
             state.pointerDir = "up"

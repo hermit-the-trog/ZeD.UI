@@ -4573,11 +4573,13 @@ function ZeD.Molecules.drawContextBalloon(panel, centerX, apexY, state, T)
         a.x, a.y, a.w, a.h = x0 + r.x, y0 + r.y, r.w, r.h
     else
         a.x, a.y, a.w, a.h = x0 + centerX - 1, y0 + apexY - 1, 2, 1
+        -- (QA B12) no tail: the box centered on centerX (place puts the box's left edge INSET left of the tip)
+        if state.noTail then a.x = x0 + centerX - math.floor(Bn.layout(c).w / 2) + T.px(Bn.INSET) - 1 end
     end
     a.below = state.below and (y0 + state.below) or nil
     a.noFlip = state.noFlip
     local pref = (state.pointerDir == "up") and "below" or "above"
-    local x, y, w, h = Bn.draw(panel, c, a, pref, { key = state.key or sig, prio = 2, owner = panel })
+    local x, y, w, h = Bn.draw(panel, c, a, pref, { key = state.key or sig, prio = 2, owner = panel, noTail = state.noTail })
     if not x then return 0, 0, 0, 0 end
     return w, h, x, y
 end
