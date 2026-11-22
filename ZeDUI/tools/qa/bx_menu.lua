@@ -3,7 +3,8 @@
 --   lightning    a strike started (the painting's lightning, MM._life.zap), then held off for the whole run
 --   menu bar     every menu opened (rows, hit boxes, on screen), all of them flicked through; rows pressed through
 --                their pull-down hit: Credits, Terms, New game, Load game, Join, Host, Options, Mods, ZeD setup,
---                the wallpaper there and back; the power button and Exit ask and are answered No
+--                Desktop... (a swatch picked and the one found put back; Desktops, Nov 22 2026); the power button and
+--                Exit ask and are answered No
 --   desktop      the main window's close box, every icon clicked once (picks) and twice (opens), each window's
 --                close box
 --   windows      every desk window one after another (each on screen, one window up at a time), again with the
@@ -536,7 +537,7 @@ function X.start()
         keep.tut0 = K.readLines((WL and WL.TUTORIAL_FILE) or "ZeD_tutorial.txt")
         keep.seen0 = K.readLines((WL and WL.SEEN_FILE) or "ZeD_setup_seen.txt")
         keep.keys0 = K.readLines("keysB42.ini")
-        keep.wall0 = MM.wallpaper()
+        keep.wall0 = MM.desktop()
         keep.look0 = { ZeD.currentBase, ZeD.currentAccent, ZeD.currentSize }
         keep.mods0 = K.activated()
         keep.pad0 = MM.forceGamepad
@@ -662,18 +663,16 @@ function X.menuVisits()
     K.visitRest("Mods (Settings menu)", "mods", nil, K.leaveMods, "main")
     K.menuPress("ZeD setup (Settings menu)", "settings", function(it) return it.text == ZeD.tr("UI_ZeD_Welcome_MenuItem") end)
     K.visitRest("ZeD setup (Settings menu)", "welcome", nil, function() MM.showView("main") end, "main")
-    -- the wallpaper, there and back (the row that is not ticked, twice)
-    K.menuPress("Wallpaper (Settings menu)", "settings", function(it) return it.check == false end)
-    after(300, function()
-        if keep.skipNow then return end
-        check(MM.wallpaper() ~= keep.wall0, "Wallpaper: the other one is picked", tostring(MM.wallpaper()))
-        K.errCheck("Wallpaper")
-    end)
-    K.menuPress("Wallpaper back (Settings menu)", "settings", function(it) return it.check == false end)
-    after(300, function()
-        if MM.wallpaper() ~= keep.wall0 then pcall(MM.setWallpaper, keep.wall0) end
-        check(MM.wallpaper() == keep.wall0, "Wallpaper: back on the one found", tostring(MM.wallpaper()))
-    end)
+    -- the desktop (Desktops, Nov 22 2026: one row, Desktop..., opens the Desktop window): a swatch that is not the one
+    -- in use pressed, then the one found pressed again, then Done
+    K.menuPress("Desktop (Settings menu)", "settings", function(it) return it.text == ZeD.tr("UI_ZeD_MainMenu_Desktop") end)
+    K.visitRest("Desktop (Settings menu)", "desktopPick", function(w)
+        local other = (keep.wall0 == "slate") and "classic" or "slate"
+        K.press(w, "sw:" .. other)
+        check(MM.desktop() == other, "Desktop: the swatch pressed is the desktop", tostring(MM.desktop()))
+        K.press(w, "sw:" .. keep.wall0)
+        check(MM.desktop() == keep.wall0, "Desktop: back on the one found", tostring(MM.desktop()))
+    end, function(w) K.press(w, "done") end, "main")
 end
 
 -- 4: the power button and Exit: asked, answered No
@@ -2068,7 +2067,7 @@ function X.putBack()
         pcall(function() GameKeyboard.setDoLuaKeyPressed(true) end)
         MM.forceGamepad = keep.pad0
         pcall(function() JoypadState.controllerTest = nil end)
-        pcall(function() if keep.wall0 and MM.wallpaper() ~= keep.wall0 then MM.setWallpaper(keep.wall0) end end)
+        pcall(function() if keep.wall0 and MM.desktop() ~= keep.wall0 then MM.setDesktop(keep.wall0) end end)
         -- (the Mods screen's tab and box, should a part have stopped half way: the values only)
         pcall(function()
             local w = K.W()
@@ -2121,7 +2120,7 @@ function X.putBack()
         check(not keep.keysMoved and K.same(K.readLines("keysB42.ini"), keep.keys0), "put back: keysB42.ini line for line",
             keep.keysMoved and "a key was changed during the run: the file was written back as found" or nil)
         check(K.wouldReset() == nil, "put back: the mod list in memory is the one running (no Lua reload waiting)", K.wouldReset())
-        check(MM.wallpaper() == keep.wall0, "put back: the wallpaper as found", tostring(MM.wallpaper()))
+        check(MM.desktop() == keep.wall0, "put back: the desktop as found", tostring(MM.desktop()))
         check(K.activated() == keep.mods0, "put back: the mods in use are the ones found")
         check(MM.view == "main" and K.up("main") and MM.ctx.open == nil, "put back: the main window is up, no menu open", "view " .. tostring(MM.view))
     end)

@@ -1,0 +1,252 @@
+-- ZeDUI/art/desktops_20261122/_desktops.lua.txt
+-- REFERENCE for Build (Design, Nov 22 2026): the desktop options, the player's color brought to the middle tone, and
+-- how each kind of desktop draws into the monitor's tube and into a swatch. Design checked it against
+-- ZeDUI/tools/desktops/desktops.py in a sandbox (the handoff says how). Build fits it into ZeD_MainMenu.lua, or a file
+-- of its own that ZeD_MainMenu.lua requires: MM.drawWallpaper draws the chosen desktop through D.draw, and the
+-- Desktop window's swatches draw through D.drawChip.
+
+local D = {}
+
+D.DIR = "media/textures/ZeD/mainmenu/desktops/"
+
+-- ---------------------------------------------------------------------------
+-- THE OPTIONS
+-- ---------------------------------------------------------------------------
+-- The Desktop window's groups, in order. An option's name is the key "UI_ZeD_Desktop_" .. Id and its note
+-- "UI_ZeD_Desktop_" .. Id .. "_Note", where Id is the id with its first letter capitalized (D.nameKey, D.noteKey).
+D.GROUPS = {
+    { key = "UI_ZeD_Desktop_GroupGameArt", ids = { "painting", "video" } },
+    { key = "UI_ZeD_Desktop_GroupPatterns", ids = { "classic", "weave", "bricks", "diagonal", "grid", "dots", "zeds",
+                                                    "disks", "camo", "squiggle" } },
+    { key = "UI_ZeD_Desktop_GroupQuiet", ids = { "solid", "accent", "slate", "fine", "pinstripe" } },
+    { key = "UI_ZeD_Desktop_GroupFun", ids = { "topo", "carpet", "paneling", "flannel", "stars", "tally", "usa",
+                                               "kentucky" } },
+}
+
+-- What each option is. kind:
+--   game     the game's own pictures, the painting and the title video: MM.drawWallpaper keeps drawing them as now
+--   pattern  the player's color at the middle tone, then an overlay (tex, w x h dots) tiled over it at the dot zoom
+--   flat     the player's color at the middle tone, nothing over it
+--   accent   the theme's accent, its Dark value whatever the theme, at the middle tone
+--   fixed    one color, rgb (0..1)
+--   art      a tile in its own colors (tex, w x h dots) at the dot zoom; at: the dot a swatch starts from
+--   picture  a picture as big as the tube (tex, 960 x 720), drawn to fill it; chip: its small copy, for a swatch
+-- (The textures are repeated to about 128 dots a side, so a tube takes about 50 draws, 180 at 4K with UI scale 1.)
+D.OPT = {
+    painting  = { kind = "game" },
+    video     = { kind = "game" },
+    classic   = { kind = "pattern", tex = "ov_classic.png", w = 128, h = 128 },
+    weave     = { kind = "pattern", tex = "ov_weave.png", w = 128, h = 128 },
+    bricks    = { kind = "pattern", tex = "ov_bricks.png", w = 128, h = 128 },
+    diagonal  = { kind = "pattern", tex = "ov_diagonal.png", w = 128, h = 128 },
+    grid      = { kind = "pattern", tex = "ov_grid.png", w = 128, h = 128 },
+    dots      = { kind = "pattern", tex = "ov_dots.png", w = 128, h = 128 },
+    zeds      = { kind = "pattern", tex = "ov_zeds.png", w = 128, h = 128 },
+    disks     = { kind = "pattern", tex = "ov_disks.png", w = 120, h = 120 },
+    camo      = { kind = "pattern", tex = "ov_camo.png", w = 128, h = 128 },
+    squiggle  = { kind = "pattern", tex = "ov_squiggle.png", w = 120, h = 120 },
+    solid     = { kind = "flat" },
+    accent    = { kind = "accent" },
+    slate     = { kind = "fixed", rgb = { 0x5B / 255, 0x64 / 255, 0x74 / 255 } },
+    fine      = { kind = "pattern", tex = "ov_fine.png", w = 128, h = 128 },
+    pinstripe = { kind = "pattern", tex = "ov_pinstripe.png", w = 128, h = 128 },
+    topo      = { kind = "art", tex = "art_topo.png", w = 192, h = 192, at = { 40, 60 } },
+    carpet    = { kind = "art", tex = "art_carpet.png", w = 144, h = 144, at = { 4, 10 } },
+    paneling  = { kind = "art", tex = "art_paneling.png", w = 96, h = 96 },
+    flannel   = { kind = "art", tex = "art_flannel.png", w = 120, h = 120 },
+    stars     = { kind = "art", tex = "art_stars.png", w = 160, h = 160, at = { 30, 40 } },
+    tally     = { kind = "art", tex = "art_tally.png", w = 216, h = 160, at = { 4, 14 } },
+    usa       = { kind = "picture", tex = "pic_usa.png", chip = "chip_usa.png" },
+    kentucky  = { kind = "picture", tex = "pic_kentucky.png", chip = "chip_kentucky.png" },
+}
+
+local function cap(id) return id:sub(1, 1):upper() .. id:sub(2) end
+function D.nameKey(id) return "UI_ZeD_Desktop_" .. cap(id) end
+function D.noteKey(id) return "UI_ZeD_Desktop_" .. cap(id) .. "_Note" end
+
+-- ---------------------------------------------------------------------------
+-- THE CHOICE, kept where the wallpaper's was: Zomboid/Lua/ZeD_wallpaper.txt, one line, the option's id. The two old
+-- words still read: "original" was the painting, "new" the title video. Anything else, or no file: the painting.
+-- ---------------------------------------------------------------------------
+local OLD = { original = "painting", new = "video" }
+
+--- the option a line of the file names
+function D.idOf(line)
+    line = OLD[line] or line
+    if line and D.OPT[line] then return line end
+    return "painting"
+end
+
+-- ---------------------------------------------------------------------------
+-- THE PLAYER'S COLOR AT THE MIDDLE TONE (desktops.py tone()). OKLab (Bjorn Ottosson, 2020) has a lightness that looks
+-- the same in every hue, so "the middle" is the middle whatever the player picks. The hue is kept, the lightness set
+-- to the middle grey's (#6B6760), the strength held to 0.09 (about Windows 95's teal), and lowered further where the
+-- screen can't show that hue that strong at that lightness. White and black come out as the middle grey.
+-- ---------------------------------------------------------------------------
+local L_MID, C_MAX = 0.5152451091457795, 0.09
+local atan2 = math.atan2 or math.atan             -- (Lua 5.3 and later fold atan2 into atan)
+
+local function toLinear(c)                       -- a screen value 0..1 to light 0..1
+    if c <= 0.04045 then return c / 12.92 end
+    return ((c + 0.055) / 1.055) ^ 2.4
+end
+
+local function toScreen(c)                       -- light 0..1 to a screen value 0..1
+    if c < 0 then c = 0 elseif c > 1 then c = 1 end
+    if c <= 0.0031308 then return 12.92 * c end
+    return 1.055 * c ^ (1 / 2.4) - 0.055
+end
+
+-- the middle-tone color of strength C at hue h, as light (it may fall outside 0..1: the screen can't show it then)
+local function atMiddle(C, h)
+    local A, B = C * math.cos(h), C * math.sin(h)
+    local l = (L_MID + 0.3963377774 * A + 0.2158037573 * B) ^ 3
+    local m = (L_MID - 0.1055613458 * A - 0.0638541728 * B) ^ 3
+    local s = (L_MID - 0.0894841775 * A - 1.2914855480 * B) ^ 3
+    return 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+           -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+           -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
+end
+
+local function fits(C, h)
+    local r, g, b = atMiddle(C, h)
+    local lo, hi = -1e-9, 1 + 1e-9
+    return r >= lo and r <= hi and g >= lo and g <= hi and b >= lo and b <= hi
+end
+
+--- r, g, b (0..1) brought to the middle tone: returns r, g, b (0..1)
+function D.tone(r, g, b)
+    r, g, b = toLinear(r), toLinear(g), toLinear(b)
+    local l = (0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) ^ (1 / 3)
+    local m = (0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) ^ (1 / 3)
+    local s = (0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b) ^ (1 / 3)
+    local a = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s
+    local bb = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s
+    local h = atan2(bb, a)
+    local C = math.min(math.sqrt(a * a + bb * bb), C_MAX)
+    if not fits(C, h) then                       -- too strong for the screen this dark: the strongest that fits
+        local lo, hi = 0, C
+        for _ = 1, 32 do
+            local mid = (lo + hi) / 2
+            if fits(mid, h) then lo = mid else hi = mid end
+        end
+        C = lo
+    end
+    local R, G, B = atMiddle(C, h)
+    return toScreen(R), toScreen(G), toScreen(B)
+end
+
+-- a toned color is worked out again only when the color it comes from changes (Options can change it in play)
+local cache = {}
+local function toned(slot, r, g, b)
+    local c = cache[slot]
+    if not c or c.r ~= r or c.g ~= g or c.b ~= b then
+        local R, G, B = D.tone(r, g, b)
+        c = { r = r, g = g, b = b, R = R, G = G, B = B }
+        cache[slot] = c
+    end
+    return c.R, c.G, c.B
+end
+
+--- The ground of the patterns, Solid, Fine and Pinstripe: the game's Color of Highlighted Container (options.ini
+--- objHighlightColor; Options, Highlights in ZeD) at the middle tone.
+function D.ground()
+    local ci = getCore():getObjectHighlitedColor()
+    return toned("container", ci:getR(), ci:getG(), ci:getB())
+end
+
+--- Accent's color: the player's accent, its Dark value in any theme (the desktop is the same in every theme), toned.
+function D.accentGround()
+    local key = (ZeD.T and ZeD.T.accentKey) or ZeD.currentAccent
+    local set = ZeD.AccentColors[key] or ZeD.AccentColors.orange
+    local a = set.dark.accent
+    return toned("accent", a.r, a.g, a.b)
+end
+
+-- ---------------------------------------------------------------------------
+-- DRAWING
+-- ---------------------------------------------------------------------------
+-- The desktops' pixel art loads with nearest filtering, as the desk's does (ZeD_MainMenu.lua tex()), so every dot stays
+-- square at any zoom; a picture's small copy for a swatch loads smooth.
+local NEAREST = 3                                -- TextureFlags.FILTER_MIN_NEAREST 1 + FILTER_MAG_NEAREST 2
+local texs = {}
+local function tex(name, smooth)
+    local path = D.DIR .. name
+    local t = texs[path]
+    if t == nil then
+        if smooth then t = getTexture(path) else t = Texture.getSharedTexture(path, NEAREST) end
+        t = t or false
+        texs[path] = t
+    end
+    return t or nil
+end
+
+--- The dot zoom: the desktop icons' own whole zoom (ZeD_MainMenuDesktop.lua), 1 at 1080p, 2 at 4K with UI scale 1.75.
+--- A pattern's dot is an icon's pixel.
+function D.zoom()
+    return math.max(1, math.floor(((ZeD.T and ZeD.T.scale) or 1) + 0.5))
+end
+
+-- a texture of w x h dots tiled over the rect x, y, rw, rh at zoom k, its first copy's corner at ox, oy
+local function tiled(p, t, w, h, k, x, y, rw, rh, ox, oy)
+    local tw, th = w * k, h * k
+    p:setStencilRect(x, y, rw, rh)
+    for yy = oy, y + rh - 1, th do
+        for xx = ox, x + rw - 1, tw do
+            p:drawTextureScaled(t, xx, yy, tw, th, 1, 1, 1, 1)
+        end
+    end
+    p:clearStencilRect()
+end
+
+--- Draw desktop id into the rect x, y, w, h (the tube: L.tx, L.ty, L.tw, L.th), the tiles from its top left corner.
+--- Nothing dims it: these are made at the middle tone. Returns false for a "game" desktop, which MM.drawWallpaper
+--- draws as it does now.
+function D.draw(p, id, x, y, w, h)
+    local o = D.OPT[id]
+    if not o or o.kind == "game" then return false end
+    if o.kind == "picture" then
+        local t = tex(o.tex)
+        if t then p:drawTextureScaled(t, x, y, w, h, 1, 1, 1, 1) end   -- (the tube is always 4:3, as the picture)
+        return true
+    end
+    local r, g, b
+    if o.kind == "accent" then
+        r, g, b = D.accentGround()
+    elseif o.kind == "fixed" then
+        r, g, b = o.rgb[1], o.rgb[2], o.rgb[3]
+    elseif o.kind ~= "art" then
+        r, g, b = D.ground()
+    end
+    if r then p:drawRect(x, y, w, h, 1, r, g, b) end
+    if o.tex then
+        local t = tex(o.tex)
+        if t then tiled(p, t, o.w, o.h, D.zoom(), x, y, w, h, x, y) end
+    end
+    return true
+end
+
+--- A swatch in the Desktop window: the desktop itself in the rect at its own dot size (an art tile from its `at`
+--- dot), a picture as its small copy. Returns false for a "game" desktop: the window draws the game's own picture
+--- there (the painting's tiles, or the title video's frame), as MM.drawWallpaper does.
+function D.drawChip(p, id, x, y, w, h)
+    local o = D.OPT[id]
+    if not o or o.kind == "game" then return false end
+    if o.kind == "picture" then
+        local t = tex(o.chip, true)
+        if t then p:drawTextureScaled(t, x, y, w, h, 1, 1, 1, 1) end
+        return true
+    end
+    if o.kind == "art" then
+        local t = tex(o.tex)
+        if t then
+            local k = D.zoom()
+            local at = o.at or { 0, 0 }
+            tiled(p, t, o.w, o.h, k, x, y, w, h, x - at[1] * k, y - at[2] * k)
+        end
+        return true
+    end
+    return D.draw(p, id, x, y, w, h)
+end
+
+return D

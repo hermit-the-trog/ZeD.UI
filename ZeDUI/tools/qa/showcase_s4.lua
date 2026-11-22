@@ -151,8 +151,8 @@ at(2, function()
         end
     end
     -- the default wallpaper, the original painting (the old choice put back at the end)
-    keep.wall = MM.wallpaper()
-    if keep.wall ~= "original" then MM.setWallpaper("original") end
+    keep.wall = MM.desktop()
+    if keep.wall ~= "painting" then MM.setDesktop("painting") end
     MM.ctx.open = nil
     MM.showView("main")
     say("look " .. tostring(ZeD.currentBase) .. " " .. tostring(ZeD.currentAccent) .. " " .. tostring(ZeD.currentSize)
@@ -335,7 +335,7 @@ at(10, function()
         pcall(function() PZAPI.ModOptions:save() end)
     end
     if keep.menus then MM.menus = keep.menus end
-    if keep.wall and keep.wall ~= MM.wallpaper() then MM.setWallpaper(keep.wall) end
+    if keep.wall and keep.wall ~= MM.desktop() then MM.setDesktop(keep.wall) end
     pcall(function() Mouse.setCursorVisible(keep.cursor ~= false) end)
     MM._layout = nil
     w.sel, w.fsel, w.focusId = nil, nil, nil
@@ -343,7 +343,7 @@ at(10, function()
 end)
 at(25, function()
     say("view " .. tostring(MM.view) .. "; folders file " .. tostring(F.FILE) .. "; look " .. tostring(ZeD.currentBase) .. " " .. tostring(ZeD.currentAccent)
-        .. "; wallpaper " .. tostring(MM.wallpaper()))
+        .. "; wallpaper " .. tostring(MM.desktop()))
     say("DONE")
 end)
 

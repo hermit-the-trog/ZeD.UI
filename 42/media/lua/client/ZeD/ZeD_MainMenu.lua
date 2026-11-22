@@ -15,8 +15,9 @@
 -- bar and the Project Zomboid window, a ZeD window like the Character and
 -- World windows. Everything is placed from MM.layout(): the room, or on a
 -- screen too small for the 1080p menu (a Steam Deck, 720p) the desk leaning
--- in. The wallpaper is vanilla's old painting, or Build 42's title video (a
--- choice in Settings). Small life on the desk: the hard disk light, the floppy
+-- in. The wallpaper (the desktop) is vanilla's old painting, Build 42's title
+-- video, or one of ZeD OS's patterns, flats and pictures (Settings, Desktop...;
+-- ZeD_MainMenuDesktops.lua, Desktops, Nov 22 2026). Small life on the desk: the hard disk light, the floppy
 -- light, the warm light from off screen, lightning in the painting. None of it
 -- does anything; the case's power button is Quit. The same room comes back
 -- after a death (Overrides/Respawn.lua) and after a kick or a lost connection
@@ -48,6 +49,7 @@ require "ZeD/Input/SpatialNav"
 require "ZeD/ZeD_MouseTick"
 require "ZeD/PixelFonts"
 require "ZeD/MenuNote"
+require "ZeD/ZeD_MainMenuDesktops"   -- ZeD.Desktops: the desktop's options and drawing (Desktops, Nov 22 2026)
 
 ZeD = ZeD or {}
 ZeD.MainMenu = ZeD.MainMenu or {}
@@ -92,10 +94,10 @@ local WALL_ZAP_TILES = { "media/ui/Title_lightning.png", "media/ui/Title_lightni
 local WALL_W, WALL_H, WALL_SPLIT_X, WALL_SPLIT_Y, WALL_CROP_X = 1920, 1080, 1024, 1024, 470
 local WALL_DIM = 0.55        -- the wallpaper sits back behind the windows
 
--- The wallpaper choice: "original", the painting above, or
--- "new", Build 42's own title screen, a video (media/videos/title_screen_background.bik)
--- played on the tube. With the game's video effects off the painting stands in. Kept in
--- Zomboid/Lua/ZeD_wallpaper.txt.
+-- The desktop choice (Desktops, Nov 22 2026): an option id of ZeD.Desktops ("painting", the painting above;
+-- "video", Build 42's own title screen, a video (media/videos/title_screen_background.bik) played on the tube,
+-- with the painting standing in while the game's video effects are off; or a pattern, flat or picture). Kept in
+-- Zomboid/Lua/ZeD_wallpaper.txt, one line; the old words "original" and "new" still read (ZeD.Desktops.idOf).
 local WALL_FILE, WALL_VIDEO = "ZeD_wallpaper.txt", "title_screen_background.bik"
 local WALL_VIDEO_W, WALL_VIDEO_H = 1280, 720
 
@@ -530,25 +532,28 @@ function MM.drawNote(p, L, dipped)
     end
 end
 
---- The wallpaper choice, "original" (the painting) or "new" (the title video), read from its file once.
-function MM.wallpaper()
+--- The desktop choice, an option id of ZeD.Desktops ("painting", "video", "classic", ...), read from its file once.
+--- (Desktops, Nov 22 2026: was MM.wallpaper, "original" or "new"; ZeD.Desktops.idOf reads those old words, and
+--- anything it does not know, or no file, gives the painting)
+function MM.desktop()
     if MM._wall == nil then
-        MM._wall = "original"
+        local l = nil
         local r = getFileReader(WALL_FILE, false)
         if r then
-            local l = r:readLine()
+            l = r:readLine()
             r:close()
-            if l == "new" then MM._wall = "new" end
         end
+        MM._wall = ZeD.Desktops.idOf(l)
     end
     return MM._wall
 end
 
---- Choose the wallpaper and keep the choice in its file.
-function MM.setWallpaper(which)
-    MM._wall = which
+--- Choose the desktop and keep the choice in its file (the id, one line). An id that names nothing is the painting.
+function MM.setDesktop(id)
+    id = ZeD.Desktops.idOf(id)
+    MM._wall = id
     local wr = getFileWriter(WALL_FILE, true, false)
-    if wr then wr:write(which .. "\n"); wr:close() end
+    if wr then wr:write(id .. "\n"); wr:close() end
     clickSound()
 end
 
@@ -580,16 +585,26 @@ local function drawTiles(p, tiles, tx, ty, tw, th, alpha)
     return true
 end
 
---- The wallpaper fills the tube, dimmed: the title video when "new" is chosen, the game's video effects are on
---- and the video plays; else the painting (cut to its 4:3) with the lightning over it.
+--- The desktop fills the tube. ZeD OS's own desktops (patterns, flats, art tiles, the flags) draw through
+--- ZeD.Desktops.draw, undimmed: they are made at the middle tone. The game's two pictures draw as before (MM.drawGameArt).
+--- Both callers come here: the desk's prerender and the left screen's (ZeD_LeftScreen.lua). (Desktops, Nov 22 2026)
 function MM.drawWallpaper(p, L, t)
-    local tx, ty, tw, th = L.tx, L.ty, L.tw, L.th
-    -- the new one: Build 42's title video, cut to the tube's 4:3 (its middle, where the room is)
-    if MM.wallpaper() == "new" and getCore():getOptionDoVideoEffects() then
+    local id = MM.desktop()
+    if ZeD.Desktops.draw(p, id, L.tx, L.ty, L.tw, L.th) then return end
+    MM.drawGameArt(p, id, L.tx, L.ty, L.tw, L.th, t, true)
+end
+
+--- The game's own picture in the rect x, y, w, h (the tube, or a swatch of the Desktop window), dimmed by WALL_DIM: the
+--- title video when id is "video", the game's video effects are on and the video plays; else the painting (cut to its
+--- 4:3) with the lightning over it. fresh: advance the video a frame (the tube does; a swatch does only while the tube
+--- shows something else, so the video moves once a frame). (Desktops, Nov 22 2026: was the body of MM.drawWallpaper)
+function MM.drawGameArt(p, id, tx, ty, tw, th, t, fresh)
+    -- the title video, cut to the rect's 4:3 (its middle, where the room is)
+    if id == "video" and getCore():getOptionDoVideoEffects() then
         local v = wallVideo()
         if v then
             p:drawRect(tx, ty, tw, th, 1, 0, 0, 0)
-            v:RenderFrame()
+            if fresh then v:RenderFrame() end
             local vw = math.floor(th * 16 / 9)
             p:setStencilRect(tx, ty, tw, th)
             p:drawTextureScaled(v, tx - math.floor((vw - tw) / 2), ty, vw, th, 1, 1, 1, 1)
@@ -1106,10 +1121,10 @@ function MM.menuItems(key)
         if m and m.workshopOption then t[#t + 1] = { text = ZeD.btnCase(getText("UI_mainscreen_workshop")), fn = A.workshop } end
         -- (beta 21: the first-launch setup again, to pick, save or load a setup; ZeD_MainMenuWelcome.lua)
         if MM.openWelcome and not (m and m.inGame) then t[#t + 1] = { text = ZeD.tr("UI_ZeD_Welcome_MenuItem"), fn = function() MM.openWelcome() end } end
-        local wall = MM.wallpaper()
+        -- (Desktops, Nov 22 2026: one row, Desktop..., opens the Desktop window, ZeD_MainMenuDesktopPick.lua; it took the
+        -- place of the two wallpaper rows, Original wallpaper and New wallpaper)
         t[#t + 1] = "-"
-        t[#t + 1] = { text = ZeD.tr("UI_ZeD_MainMenu_WallpaperOriginal"), check = wall == "original", fn = function() MM.ctx.open = nil; MM.setWallpaper("original") end }
-        t[#t + 1] = { text = ZeD.tr("UI_ZeD_MainMenu_WallpaperNew"), check = wall == "new", fn = function() MM.ctx.open = nil; MM.setWallpaper("new") end }
+        t[#t + 1] = { text = ZeD.tr("UI_ZeD_MainMenu_Desktop"), disabled = not MM.openDesktopPick, fn = function() if MM.openDesktopPick then MM.openDesktopPick() end end }
         return t
     elseif key == "debug" then
         local t = { { text = "Reset Lua", fn = A.resetLua } }
