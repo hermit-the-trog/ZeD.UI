@@ -1090,6 +1090,14 @@ function S.seatJudge(seat, ok)
         for _, pr in ipairs(h._p) do words[#words + 1] = tostring(pr.glyph) .. " " .. tostring(pr.label) end
     end
     local simple = ZeD.Dashboard and ZeD.Dashboard.simple and ZeD.Dashboard.simple() or false
+    -- (QA, Nov 22: K3 #56, the director's pick, shows the dash to the driver only, as the game does; a passenger has
+    -- the belt and no dash, so the strip has no dash to clear there)
+    if seat == "the passenger seat" then
+        Q.check(not (d ~= nil and d:getIsVisible()) and h ~= nil and type(h._p) == "table",
+            "K1-8 the passenger seat: no dash for a passenger (K3 #56), and the hint strip shows its prompts",
+            "dash " .. tostring(d ~= nil and d:getIsVisible()) .. ", the strip's prompts " .. S.join(words))
+        return
+    end
     if not Q.check(up, "K1-8 " .. seat .. " (guard): ZeD's dash is up and the hint strip shows its prompts",
         "dash " .. tostring(d ~= nil and d:getIsVisible()) .. ", the strip's prompts " .. S.join(words)) then return end
     local rd, rh = S.rect(d), S.rect(h)

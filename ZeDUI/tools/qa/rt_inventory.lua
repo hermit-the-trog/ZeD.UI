@@ -99,14 +99,23 @@ function H.removeItem(it)
 end
 
 -- ===================================================================== what a list shows and draws
--- the things a list of inv shows: not hidden, and in the character's own inventory not worn or held
+-- the things a list of inv shows: not hidden, and in the character's own inventory not worn or held unless ZeD setup's
+-- "Worn and held things" lists them (Nov 22 2026, KISS #11, the director's pick: "In the list", the default, puts them
+-- in a group of their own at the top; until K3 (0b366177e) they were never listed and this left them out always)
+function H.wornListed()
+    local IR = ZeD.InventoryRenderer
+    local on = false
+    pcall(function() on = IR.wornListed() and true or false end)
+    return on
+end
 function H.expected(inv)
     local set, n = {}, 0
     local isP = inv == S.p:getInventory()
+    local wornOn = isP and H.wornListed()
     for _, it in ipairs(H.list(inv)) do
         local hidden = false
         pcall(function() hidden = it:isHidden() end)
-        if not hidden and not (isP and H.held(it)) then set[it] = true; n = n + 1 end
+        if not hidden and (wornOn or not (isP and H.held(it))) then set[it] = true; n = n + 1 end
     end
     return set, n
 end
@@ -147,14 +156,22 @@ function H.wtOf(c, it)
     end
     return it:getUnequippedWeight() or 0
 end
--- the rows (an open stack's own rows skipped) in the key's order: InventoryRenderer's sortItems and buildItemModel
+-- the rows (an open stack's own rows skipped) in the key's order: InventoryRenderer's sortItems and buildItemModel.
+-- (Nov 22 2026, KISS #11: in the character's own list the worn and held group, catOf "zed:worn", stands first whichever
+-- way the rest is sorted and is in the key's order among itself; the other rows start their own order after it)
 function H.order(c, key, asc)
     local IR, IM = ZeD.InventoryRenderer, ZeD.ItemMeter
+    local WK = IR.WORN_KEY
     local prev, pk, pnm = nil, nil, nil
     local n = 0
+    local inWorn = nil
     for _, it in ipairs(c._flatItems or {}) do
         if not (c._childParent and c._childParent[it]) then
             n = n + 1
+            local worn = (WK ~= nil and c._catOf ~= nil and c._catOf[it] == WK) and true or false
+            if worn and inWorn == false then return false, tostring(it:getName()) .. " (worn or held) after the other rows" end
+            if inWorn == true and not worn then prev = nil end
+            inWorn = worn
             local k, nm = nil, it:getName() or ""
             if key == "name" then k = string.lower(nm)
             elseif key == "cat" then k = tostring((c._catOf and c._catOf[it]) or IR.catKey(it))

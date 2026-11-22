@@ -1,0 +1,9 @@
+# ZeDUI/tools/qa/vk3.txt (Nov 22 2026, QA): the in-game proofs of KISS batch K3, the director's 46 picks (vk3_*), plus the K1 proofs refit for K3 (vk1_pad, vk1_world). Each K3 check fails on 0b366177e and passes on the K3 merge.
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+vk1_pad.lua | vk1_pad | timeout=900
+vk1_world.lua | vk1_wld | timeout=900
+vk3_win.lua | vk3_win | timeout=900
+vk3_pad.lua | vk3_pad | timeout=900
+vk3_craft.lua | vk3_cft | timeout=900
+vk3_screen.lua | vk3_scr | timeout=900

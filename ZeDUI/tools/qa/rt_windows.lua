@@ -9,7 +9,8 @@
 --      the window's update, as a press is), the rod's tab pressed rolls it down, and the window is back in the same
 --      box to the pixel, the other window untouched.
 --   4. The pad's Y through FocusManager (Focus.qaButton, the input mode locked to the pad for the run): a tap opens
---      the pair, a tap hides it (rolled), a tap shows it, a hold closes it.
+--      the pair, a tap closes it (Nov 22 2026, KISS #25: it used to roll it to two bars), a tap opens it again, a
+--      hold closes it.
 -- (Nov 18 2026, the FEATURE_MAP ledger's "Windows and tabs" gaps; each block names its rows)
 --   In the tab walk: the title names the open tab; the full-card tabs agree on one card, the others take the half card;
 --      every tab has its lit icon; each tab's zone is what the strip's hitZoneAt finds.
@@ -1189,12 +1190,17 @@ Q.waitFor(2, 300, function() return (not S.padOk) or bothOpen() end, function(ok
 end)
 Q.step(20, function() if S.padOk then RT.bounds(Q, "opened by the pad") end end)
 yTap()
-Q.waitFor(2, 300, function() return (not S.padOk) or rolledBoth() end, function(ok)
-    if S.padOk then Q.check(ok, "pad: a second tap of Y rolls both windows up (hidden)") end
+-- (Nov 22 2026, KISS #25, the director's pick: a tap of Y closes both, as the game's Y puts its inventory away. Until
+-- K3 (0b366177e) the second tap rolled both up to two bars that only a hold cleared, and this check read rolledBoth.)
+Q.waitFor(2, 300, function() return (not S.padOk) or bothShut() end, function(ok)
+    if S.padOk then
+        Q.check(ok and not rolledBoth(), "pad: a second tap of Y closes both windows (KISS #25)",
+            "Character " .. tostring(RT.isOpen()) .. ", World " .. tostring(worldOpen()) .. ", rolled " .. tostring(rolledBoth()))
+    end
 end)
 yTap()
 Q.waitFor(2, 300, function() return (not S.padOk) or (bothOpen() and not RT.focus().isRolled(RT.cw()) and not RT.focus().isRolled(RT.ww())) end, function(ok)
-    if S.padOk then Q.check(ok, "pad: a third tap of Y brings both windows back") end
+    if S.padOk then Q.check(ok, "pad: a third tap of Y opens both windows again, neither rolled") end
 end)
 -- a hold past the hold time (gp.holdMs, 400 ms) closes the pair
 Q.step(10, function() if S.padOk then yDown() end end)

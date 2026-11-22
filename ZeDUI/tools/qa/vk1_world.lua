@@ -1355,6 +1355,14 @@ end)
 H.wait(4000, function() return H.charOpen() and H.worldOpen() end, function(ok)
     if not H.must(ok, "K1-14 staging: both windows open for the row on the controller") then S.off.row = true; return end
     H.holdBoth()
+    -- (QA, Nov 22: K3 #9 keeps the tab side open until it is closed, so a click on Loot no longer folds an open tab:
+    -- the open tab is pressed again, the way a player closes it)
+    local c = RT.cw()
+    if c and c._activeTab ~= "loot" and c._tabStripPanel and c._tabStripPanel._hitZones then
+        for _, z in ipairs(c._tabStripPanel._hitZones) do
+            if z.id == "tab:" .. tostring(c._activeTab) then c._tabStripPanel:onMouseDown(z.x + 2, z.y + 2); break end
+        end
+    end
     RT.charTab("loot")
     RT.worldTab("loot")
 end)
@@ -1365,6 +1373,10 @@ H.wait(3000, function()
     return c ~= nil and w ~= nil and c._activeTab == "loot" and w._activeTab == "loot"
 end, function(ok)
     if S.off.row then return end
+    if not ok then
+        local c, w = RT.cw(), RT.ww()
+        Q.say("K1-14 staging detail: Character tab " .. tostring(c and c._activeTab) .. ", World tab " .. tostring(w and w._activeTab))
+    end
     if not H.must(ok, "K1-14 staging: both windows on their lists (Loot)") then S.off.row = true; return end
     -- a kitchen tool he does not carry, so its row is its own
     local have = {}

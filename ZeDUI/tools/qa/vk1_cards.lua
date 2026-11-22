@@ -1239,6 +1239,13 @@ end, function(ok)
     local cur = nil
     pcall(function() cur = ZeD.Stations.current(S.p) end)
     if cur then Q.skip(label, "a station is bound (" .. tostring(cur.name) .. "): the select names it"); return end
+    -- (QA, Nov 22: K3 #48, the director's pick, shows the Station box only when a station is in reach, so with none the
+    -- select is not drawn at all; the K1-13 wording is then moot)
+    if v == nil then
+        local near = nil
+        pcall(function() near = ZeD.Stations.nearby(S.p) end)
+        if not (near and #near > 0) then Q.skip(label, "no station in reach: K3 #48 draws no Station box"); return end
+    end
     Q.check(ok and v ~= nil and v.v == S.WORDS.hand, label, "the select " .. H.q(S.wStation) .. " is drawn reading " .. H.q(v and v.v) .. (ok and "" or " (no frame drawn in 6 s)"))
 end)
 
