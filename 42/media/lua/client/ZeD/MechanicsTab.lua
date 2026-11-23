@@ -1108,7 +1108,9 @@ local function drawFigure(panel, s, fx, fy, fw, fh, v, parts, hlId, unknown, wor
                         local c, a
                         if unknown then c, a = dim, 0.55
                         elseif rimOnly then c, a = T.danger, pulse
-                        else c, a = statusColor(T, p.cond), 0.95 end
+                        -- (the director, Nov 22 2026: the parts were "shockingly bright compared to other UI elements";
+                        -- the condition color now sits at the lit part's own strength, not near full)
+                        else c, a = statusColor(T, p.cond), 0.7 end
                         panel:drawTextureScaledAspect(t, lx, ly, lw, lh, a, c.r, c.g, c.b)
                         if hlId == p.id or workId == p.id then
                             local full = tex(key) or t
