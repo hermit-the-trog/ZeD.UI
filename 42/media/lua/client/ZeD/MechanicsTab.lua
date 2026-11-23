@@ -1089,18 +1089,38 @@ local function drawFigure(panel, s, fx, fy, fw, fh, v, parts, hlId, unknown, wor
         if not L then return nil end
         return ox + (L.x - U.x) * sc, oy + (L.y - U.y) * sc, L.w * sc, L.h * sc
     end
+    -- the figure's alphas by theme (Car diagram per theme, Nov 22 2026; the director: "on a light screen or on the
+    -- light theme, the vehicle diagram looks muddy"): the theme's mechFig token (Tokens.lua), Dark's numbers when a
+    -- theme sets none. lift takes a status color that far toward white for the fill (Light's are dark text colors);
+    -- each lifted color is made once and kept.
+    local look = T.mechFig
+    if not look then
+        F._look = F._look or { baseA = 0.45, washA = 0.22, partA = 0.70, wearA = 0.90, lift = 0 }
+        look = F._look
+    end
+    local function fill(c)
+        local k = look.lift or 0
+        if k <= 0 then return c end
+        F._lifted = F._lifted or {}
+        local e = F._lifted[c]
+        if not e or e.k ~= k then
+            e = { k = k, col = ZeD.colorBlend(c, { r = 1, g = 1, b = 1 }, k) }
+            F._lifted[c] = e
+        end
+        return e.col
+    end
     local bt = tex(prefix .. "base")
     local bx, by, bw, bh = rectOf(prefix .. "base")
     if bt and bx then
-        panel:drawTextureScaledAspect(bt, bx, by, bw, bh, 0.45, dim.r, dim.g, dim.b)
+        panel:drawTextureScaledAspect(bt, bx, by, bw, bh, look.baseA, dim.r, dim.g, dim.b)
         -- (Car parts to the sides, Nov 22 2026; the director: the parts with no condition of their own, "the frame,
         -- the roof, tow hitch, etc., could those take on the average condition color of the vehicle? Very light
         -- alpha on that.") They are all in the base layer: a light wash of the vehicle's overall condition color
         -- (the summary's Overall, the parts' own bands), so the car reads as a whole. No wear on it; none on an
         -- uninspected car, whose condition is not known yet.
         if not unknown then
-            local oc = statusColor(T, overallCond(v))
-            panel:drawTextureScaledAspect(bt, bx, by, bw, bh, 0.22, oc.r, oc.g, oc.b)
+            local oc = fill(statusColor(T, overallCond(v)))
+            panel:drawTextureScaledAspect(bt, bx, by, bw, bh, look.washA, oc.r, oc.g, oc.b)
         end
     end
     local pulse = 0.35 + 0.5 * (0.5 + 0.5 * math.sin(now() / 260))
@@ -1121,7 +1141,7 @@ local function drawFigure(panel, s, fx, fy, fw, fh, v, parts, hlId, unknown, wor
                         elseif rimOnly then c, a = T.danger, pulse
                         -- (the director, Nov 22 2026: the parts were "shockingly bright compared to other UI elements";
                         -- the condition color now sits at the lit part's own strength, not near full)
-                        else c, a = statusColor(T, p.cond), 0.7 end
+                        else c, a = fill(statusColor(T, p.cond)), look.partA end
                         panel:drawTextureScaledAspect(t, lx, ly, lw, lh, a, c.r, c.g, c.b)
                         -- (Car wear, Nov 22 2026; the director: a red part "would have a lot of rust spots all over
                         -- it", a yellow one "a little bit of rust or a scratch", green "pristine") the part's wear,
@@ -1131,7 +1151,7 @@ local function drawFigure(panel, s, fx, fy, fw, fh, v, parts, hlId, unknown, wor
                         if not rimOnly then
                             local lit = ZeD.Atoms.statusSegsLit((p.cond or 0) / 100)
                             local wt = (lit <= 1 and tex(key .. "_wear2")) or (lit <= 3 and tex(key .. "_wear1")) or nil
-                            if wt then panel:drawTextureScaledAspect(wt, lx, ly, lw, lh, 0.9, 1, 1, 1) end
+                            if wt then panel:drawTextureScaledAspect(wt, lx, ly, lw, lh, look.wearA, 1, 1, 1) end
                         end
                         if hlId == p.id or workId == p.id then
                             local full = tex(key) or t
