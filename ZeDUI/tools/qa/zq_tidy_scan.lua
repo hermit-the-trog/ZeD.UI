@@ -32,7 +32,8 @@ Q.step(2, function()
                 for i = 0, (bodies and bodies:size() or 0) - 1 do
                     local b = bodies:get(i)
                     local kind = "zombie"
-                    pcall(function() if b:isAnimal() then kind = "animal " .. tostring(b:getAnimalType and b:getAnimalType() or "?") end end)
+                    pcall(function() if b:isAnimal() then kind = "animal" end end)
+                    pcall(function() if kind == "animal" then kind = "animal " .. tostring(b:getAnimalType()) end end)
                     S.bump(corpses, kind)
                     if #corpseAt < 12 then corpseAt[#corpseAt + 1] = kind .. "@" .. x .. "," .. y end
                 end
