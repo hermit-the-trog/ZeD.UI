@@ -25,18 +25,25 @@
 --   list      the Health tab lists each strained part with the game's words (IGUI_health_MinorStiffness or
 --             IGUI_health_Stiffness) and its severity (warning / danger), drawn as an injury row; the part under 5
 --             is not listed
---   figure    each strained part is handed its health tint (strain costs no health, so no wound colour) and its
---             strain for the figure's detail view; the figure drew the part
---   overall   the overall health and the game's word for it are as before (no wound made up); the summary is not
---             "No injuries" and counts the strained parts, nothing more; every new condition is a strain word
+--   figure    each strained part with no wound shows the strain tint (T.strainMinor at 10, T.strainHeavy at 40;
+--             the director's pick A1, Nov 22 2026), a part with a wound (health 80 or less, a condition that is not
+--             care, a mod's line) its health colour, and carries its strain for the figure's detail view; the
+--             figure drew the part. The Thermal figure and Equipment's defense figure show the same strain tint on
+--             the strained arms with no wound. (A build before the strain tint, no HealthTab.figureColor or
+--             T.strainMinor: the health tint as before, the other figures skipped.)
+--   overall   the overall health and the game's word for it are as before (no wound made up); the summary counts
+--             the strain apart from the injuries (pick B1): no new injury, strainedCount up by the parts newly
+--             strained, and its lines read "No injuries, Muscle Strain: N" (or "X of 17 injured" over "Muscle
+--             Strain: N of 17" with wounds); every new condition is a strain word. (Before the strain tint: the
+--             summary is not "No injuries" and counts the strained parts as injured, nothing more.)
 --   band      the exercise block of the picked exercise drew, with the game's stiffness lines and a regularity;
 --             exerted past the game's line (Endurance level 3) Start is off and the block says why
 --   fill      the Muscle Strain block under the injuries names each strained part with the right word, the
 --             Moodles block names Endurance and Tired; RT.bounds on the tab
 -- Also: the game's own arm strain (addBothArmMuscleStrain) lands on the six parts staged here (skipped with the
 -- sandbox's Muscle Strain Factor at 0), and no Lua error in the run.
--- Puts back: each part's stiffness, endurance, fatigue and pain exactly as found, god mode, the figure's fold, the
--- Health tab's window pair open or shut, and its tab. Nothing is given; the character stays well.
+-- Puts back: each part's stiffness, endurance, fatigue and pain exactly as found, god mode, the Health and Thermal
+-- figures' folds, the Equip tab's picked slot, the window pair open or shut, and its tab. Nothing is given; the character stays well.
 local Q = RT.make("rt_strain")
 Q.maxMs = 600000                     -- (the runner gives this script 900 s: the put-back runs before that)
 local S = { p = RT.p, pn = RT.pn, back = {}, base = {} }
@@ -121,7 +128,41 @@ function S.tint(h)
     if h > 20 then return T.danger end
     return { r = 0.95, g = 0.15, b = 0.15 }
 end
+-- a build with the strain tint (the director's picks A1 and B1, Nov 22 2026): HealthTab.figureColor and the tokens
+function S.strainBuild()
+    local HT, T = Z.HealthTab, Z.T
+    return HT ~= nil and HT.figureColor ~= nil and HT.strainColor ~= nil and HT.summaryLines ~= nil and HT.healthColor ~= nil
+        and T ~= nil and T.strainMinor ~= nil and T.strainHeavy ~= nil
+end
+-- the strain tint for a stage (minor under 20, heavy from 20)
+function S.strainWant(L) local T = Z.T; return (L and L.stiff >= 20) and T.strainHeavy or T.strainMinor end
+-- does a wound show on a figure part (Build's rule, read here from the data: health 80 or less, a condition that is
+-- not care, or another mod's line on the part)
+function S.woundOn(data, fn, hp)
+    if hp <= 80 then return true, "health " .. tostring(hp) end
+    if data.extraByFigureName and data.extraByFigureName[fn] then return true, "a mod's line" end
+    for _, c in ipairs(data.condsByFigureName and data.condsByFigureName[fn] or {}) do
+        if not c.care then return true, tostring(c.label) end
+    end
+    return false, nil
+end
+-- the colour a strained part should draw in, and why: on a strain build the strain tint unless a wound shows
+function S.figWant(data, fn, hp, L)
+    if not S.strainBuild() then return S.tint(hp), "health" end
+    local wound, why = S.woundOn(data, fn, hp)
+    if wound then return Z.HealthTab.healthColor(hp), "wound: " .. tostring(why) end
+    return S.strainWant(L), "strain"
+end
 function S.near(a, b) return type(a) == "number" and type(b) == "number" and math.abs(a - b) < 0.002 end
+function S.sameC(a, b) return a ~= nil and b ~= nil and S.near(a.r, b.r) and S.near(a.g, b.g) and S.near(a.b, b.b) end
+function S.cText(c) return c and string.format("%.2f,%.2f,%.2f", c.r or -1, c.g or -1, c.b or -1) or "none" end
+-- how the strained count moves from the start: the arms newly at 5 or more, less the part under 5 if it was strained
+function S.newStrain()
+    local d = 0
+    for _, n in ipairs(S.ARMS) do if (S.sf0[n] or 0) < 5 then d = d + 1 end end
+    if (S.sf0[S.UNDER] or 0) >= 5 then d = d - 1 end
+    return d
+end
 function S.rectsMeet(ax, ay, aw, ah, bx, by, bw, bh) return ax < bx + bw and bx < ax + aw and ay < by + bh and by < ay + ah end
 
 -- ===================================================================== the stage, held every player update
@@ -237,6 +278,7 @@ Q.step(10, function()
     local okD, data = pcall(Z.HealthTab.gatherData, S.p)
     if okD and data then
         S.base.overall, S.base.wounded = data.overall, data.woundedCount or 0
+        S.base.strained = data.strainedCount or 0       -- (a build with the strain tint; nil before it)
         S.base.conds = {}
         for _, e in ipairs(data.entries or {}) do
             local nm = S.typeOf(e.bodyPart)
@@ -252,6 +294,7 @@ Q.step(10, function()
     local ms = S.medSlice()
     S.base.medOff = ms and ms.off or nil
     S.base.chord = S.chordAct()
+    Q.say("this build " .. (S.strainBuild() and "has the strain tint (HealthTab.figureColor, T.strainMinor)" or "has no strain tint (the old expectations)"))
     Q.say("before: Medicine " .. (S.base.medOff and ("off (" .. tostring(S.base.medOff) .. ")") or (#S.base.med .. " rows"))
         .. "; RB+A " .. tostring(S.base.chord))
     RT.pairShut()
@@ -379,6 +422,98 @@ function S.checkWheel(lab)
     S.closeWheels()
 end
 
+-- the summary on a build with the strain tint (pick B1): strain counted apart from the injuries, in the game's words
+function S.checkSummary(lab, data, L)
+    local HT = Z.HealthTab
+    local wantS = (S.base.strained or 0) + S.newStrain()
+    local lv = (L.stiff >= 20) and 2 or 1
+    Q.check(not HT.calm(data) and data.woundedCount == (S.base.wounded or 0) and data.strainedCount == wantS
+        and type(data.strainWorst) == "number" and data.strainWorst >= lv,
+        lab .. " overall: the summary counts the strain apart from the injuries (no new injury, the strained parts counted)",
+        "wounded " .. tostring(data.woundedCount) .. " (before " .. tostring(S.base.wounded) .. "), strained "
+        .. tostring(data.strainedCount) .. " (want " .. wantS .. "), worst " .. tostring(data.strainWorst))
+    local okL, lines = pcall(HT.summaryLines, data)
+    if not Q.check(okL and type(lines) == "table" and #lines > 0, lab .. " overall: the summary's lines are made",
+        okL and "" or tostring(lines)) then return end
+    local word = S.heavyLbl()          -- the game's own "Muscle Strain" (IGUI_health_Stiffness)
+    local want = {}
+    if (S.base.wounded or 0) == 0 then
+        want[1] = Z.tr("UI_ZeD_Health_NoInjuriesStrain", word, wantS)
+    else
+        want[1] = Z.tr("UI_ZeD_Health_InjuredOf", S.base.wounded, data.totalParts)
+        want[2] = Z.tr("UI_ZeD_Health_StrainOf", word, wantS, data.totalParts)
+    end
+    local got = {}
+    for _, ln in ipairs(lines) do got[#got + 1] = tostring(ln.text) end
+    local okT = #got == #want
+    for i = 1, #want do
+        if got[i] ~= want[i] then okT = false end
+    end
+    -- the strain line names the game's word and the count (a missing key would show its name)
+    local sl = got[#got] or ""
+    okT = okT and sl:find(word, 1, true) ~= nil and sl:find(tostring(wantS), 1, true) ~= nil
+    Q.check(okT, lab .. " overall: the summary reads " .. ((S.base.wounded or 0) == 0 and "\"No injuries, Muscle Strain: N\""
+        or "\"X of 17 injured\" over \"Muscle Strain: N of 17\""), table.concat(got, " / "))
+    local dot = lines[#lines] and lines[#lines].dot or nil
+    local wantDot = HT.strainColor(data.strainWorst or lv)
+    Q.check(S.sameC(dot, wantDot), lab .. " overall: the summary's strain line has its dot in the strain tint",
+        S.cText(dot) .. ", want " .. S.cText(wantDot))
+end
+
+-- the Thermal figure and Equipment's defense figure: the strained arms with no wound show the strain tint
+S.OTHER = { thermal = "Thermal", equip = "Equipment's defense" }
+function S.otherFig(w, which)
+    if not w then return nil end
+    if which == "thermal" then return w._thermalBodyFigure end
+    return w._equipDefBodyFigure
+end
+-- the strained arms the figure misses, as "name tint"; nil with no figure drawn
+function S.figMisses(which)
+    local w = RT.cw()
+    local fig = S.otherFig(w, which)
+    local want = S.strainWant(S.want)
+    if not (fig and fig.colorMap and want) then return nil end
+    local miss = {}
+    for _, a in ipairs(S.clean or {}) do
+        local c = fig.colorMap[a.fn]
+        if not S.sameC(c, want) then miss[#miss + 1] = a.n .. " " .. S.cText(c) end
+    end
+    return miss
+end
+function S.openOther(which)
+    S.otherOpen = false
+    if not S.strainBuild() then return end
+    local w = RT.cw()
+    if not w then return end
+    if which == "thermal" and not w._thermalFigureExpanded then
+        if S.thermWas == nil then S.thermWas = false end
+        w._thermalFigureExpanded = true
+    end
+    if which == "equip" and w._equipSelected then
+        if S.equipSelWas == nil then S.equipSelWas = w._equipSelected end
+        w._equipSelected = nil
+    end
+    S.otherOpen = RT.charTab(which)
+end
+function S.otherReady(which)
+    if not S.strainBuild() or not S.otherOpen then return true end
+    local w = RT.cw()
+    if not (w and w._activeTab == which) then return false end
+    local miss = S.figMisses(which)
+    return miss ~= nil and #miss == 0
+end
+function S.checkOther(lab, which, ok)
+    local what = lab .. " " .. S.OTHER[which] .. " figure: the strained arms show the strain tint"
+    if not S.strainBuild() then Q.skip(what, "this build has no strain tint (HealthTab.figureColor, T.strainMinor)"); return end
+    if not Q.check(S.otherOpen == true, lab .. " " .. S.OTHER[which] .. ": the tab opens on the Character window") then return end
+    if #(S.clean or {}) == 0 then Q.skip(what, "a wound shows on every strained arm (its colour wins there)"); return end
+    local miss = S.figMisses(which)
+    local w = RT.cw()
+    Q.check(ok and miss ~= nil and #miss == 0, what .. " (no wound on them)",
+        tostring(w and w._activeTab) .. ", want " .. S.cText(S.strainWant(S.want)) .. "; "
+        .. (miss == nil and "no figure drawn" or (#miss == 0 and (#S.clean .. " arms") or ("missing " .. table.concat(miss, "; ")))))
+end
+
 -- the Health tab shows this stage (its own throttled reads have caught up)
 function S.healthReady()
     local w = RT.cw()
@@ -429,14 +564,37 @@ function S.checkHealth(lab, ok)
         local okR, rs = pcall(fig.getPartRects, fig)
         for _, r in ipairs(okR and rs or {}) do rects[tostring(r.name)] = true end
     end
+    local strainOn = S.strainBuild()
+    S.clean = {}
+    if strainOn then
+        -- the strain tint is its own: apart from the health tints (the token, not a fallback to one of them)
+        local sw, T = S.strainWant(L), Z.T
+        Q.check(sw ~= nil and not S.sameC(sw, T.positive) and not S.sameC(sw, T.warning) and not S.sameC(sw, T.danger)
+            and not S.sameC(T.strainMinor, T.strainHeavy),
+            lab .. " figure: the " .. (heavy and "heavy" or "minor") .. " strain tint is its own (not a health tint, minor and heavy apart)",
+            "minor " .. S.cText(T.strainMinor) .. ", heavy " .. S.cText(T.strainHeavy))
+    end
     for _, n in ipairs(S.ARMS) do
         local fn = S.figOf(data, n)
         local hp = fn and data.partHealth[fn] or nil
         local c = fig and fn and fig.colorMap and fig.colorMap[fn] or nil
-        local want = hp and S.tint(hp) or nil
-        Q.check(c ~= nil and want ~= nil and S.near(c.r, want.r) and S.near(c.g, want.g) and S.near(c.b, want.b),
-            lab .. " figure: " .. n .. " is tinted for its health (strain costs no health: no wound colour)",
-            tostring(fn) .. " " .. tostring(hp) .. "% " .. (c and string.format("%.2f,%.2f,%.2f", c.r, c.g, c.b) or "no tint"))
+        local want, why = nil, "no health"
+        if hp then want, why = S.figWant(data, fn, hp, L) end
+        local okC = c ~= nil and S.sameC(c, want)
+        local detail = tostring(fn) .. " " .. tostring(hp) .. "% " .. S.cText(c) .. ", want " .. S.cText(want) .. " (" .. tostring(why) .. ")"
+        if strainOn and hp then
+            -- the read behind it (partStrain, partWound) and the medical card's path (HealthTab.figureColor) agree
+            local lv = (L.stiff >= 20) and 2 or 1
+            local wound = S.woundOn(data, fn, hp)
+            local okF, fc = pcall(Z.HealthTab.figureColor, data, fn, hp)
+            okC = okC and data.partStrain ~= nil and data.partStrain[fn] == lv and data.partWound ~= nil
+                and (data.partWound[fn] == true) == wound and okF and S.sameC(fc, want)
+            detail = detail .. "; partStrain " .. tostring(data.partStrain and data.partStrain[fn]) .. ", partWound "
+                .. tostring(data.partWound and data.partWound[fn]) .. ", figureColor " .. (okF and S.cText(fc) or tostring(fc))
+            if not wound then S.clean[#S.clean + 1] = { n = n, fn = fn } end
+        end
+        Q.check(okC, lab .. " figure: " .. n .. (strainOn and " shows the strain tint (its health colour where a wound shows)"
+            or " is tinted for its health (strain costs no health: no wound colour)"), detail)
         Q.check(fn ~= nil and S.hasCond(data.condsByFigureName[fn], lbl, sev) and rects[tostring(fn)] == true,
             lab .. " figure: " .. n .. " is drawn and carries its strain for the detail view", tostring(fn))
     end
@@ -458,14 +616,18 @@ function S.checkHealth(lab, ok)
     end
     Q.check(#others == 0, lab .. " overall: every new condition is a strain word",
         #others == 0 and (newLbl .. " new") or table.concat(others, "; "))
-    local strainedNew = 0
-    for _, n in ipairs(S.ARMS) do
-        local was = S.base.conds and S.base.conds[n] or nil
-        if not (was and #was > 0) then strainedNew = strainedNew + 1 end
+    if strainOn then
+        S.checkSummary(lab, data, L)
+    else
+        local strainedNew = 0
+        for _, n in ipairs(S.ARMS) do
+            local was = S.base.conds and S.base.conds[n] or nil
+            if not (was and #was > 0) then strainedNew = strainedNew + 1 end
+        end
+        Q.check(not HT.calm(data) and data.woundedCount == (S.base.wounded or 0) + strainedNew,
+            lab .. " overall: the summary counts the strained parts, nothing more",
+            Z.tr("UI_ZeD_Health_InjuredOf", data.woundedCount, data.totalParts) .. " (before " .. tostring(S.base.wounded) .. ")")
     end
-    Q.check(not HT.calm(data) and data.woundedCount == (S.base.wounded or 0) + strainedNew,
-        lab .. " overall: the summary counts the strained parts, nothing more",
-        Z.tr("UI_ZeD_Health_InjuredOf", data.woundedCount, data.totalParts) .. " (before " .. tostring(S.base.wounded) .. ")")
     -- the exercise band and its block
     local sel = HT.selectedExercise(w)
     Q.check(w._healthInfoShown == sel, lab .. " band: the picked exercise's block drew", tostring(sel))
@@ -521,7 +683,7 @@ end
 
 for _, L in ipairs(S.LEVELS) do
     local lab = L.name
-    Q.step(5, function() S.stage(L) end)
+    Q.step(5, function() S.clean = nil; S.stage(L) end)
     -- (god mode keeps the moodles off: off for the run, put back at the end, as rt_hud does)
     Q.step(30, function()
         if S.moodle("ENDURANCE") == 0 or S.moodle("TIRED") == 0 or not S.near(S.stiff("Hand_L"), L.stiff) then
@@ -558,6 +720,11 @@ for _, L in ipairs(S.LEVELS) do
         Q.check(RT.charTab("health"), lab .. ": the Health tab is on the Character window's strip")
     end)
     Q.waitFor(5, 300, function() return S.healthReady() end, function(ok) S.checkHealth(lab, ok) end)
+    -- the Thermal and Equip tabs' figures (their strain reads every 15 frames or 250 ms)
+    for _, which in ipairs({ "thermal", "equip" }) do
+        Q.step(5, function() S.openOther(which) end)
+        Q.waitFor(5, 120, function() return S.otherReady(which) end, function(ok) S.checkOther(lab, which, ok) end)
+    end
     Q.step(5, function() RT.pairShut() end)
 end
 
@@ -580,6 +747,8 @@ Q.step(5, function()
     Q.check(S.putExact == true, "put back: each part's stiffness, endurance and fatigue exactly as found", tostring(S.putExact))
     local w = RT.cw()
     if w and S.figWas == false then w._healthFigureExpanded = false end
+    if w and S.thermWas == false then w._thermalFigureExpanded = false end
+    if w and S.equipSelWas then w._equipSelected = S.equipSelWas end
     if S.pairWas then
         RT.pairOpen()
     else
