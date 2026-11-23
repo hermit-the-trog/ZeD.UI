@@ -1,0 +1,4 @@
+# zq_tidy_scan alone (QA, Nov 23 2026): what lies round the QA character, before a tidy
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+zq_tidy_scan.lua | zq_scan | timeout=300
