@@ -230,5 +230,67 @@ do
     ZeD.PhysPx, ZeD.T.px = mock, mockPx
 end
 
+-- the same cards at 1x (1080p and 1280x800, zoom 1): a card 278 tall, the full width (480) and 336, the view from
+-- y 26 to the card's bottom and to a status band's top (40 short). QA saw washer.png at 59,34 230x262 run 18 px past
+-- the card's bottom. Pixel art never draws at a fractional zoom: the zoom is whole and at least 1; the big face where
+-- it and its rows fit the view, else the narrow face (_n) where it fits, else the narrow face at 1x, clipped by the
+-- card's stencil. Centred either way. (QA laundry 1x, Nov 22 2026)
+do
+    local mock, mockPx = ZeD.PhysPx, ZeD.T.px
+    ZeD.PhysPx = nil
+    local okP = loadFile(CLIENT .. "PhysPx.lua")
+    local X = ZeD.PhysPx
+    ZeD.PhysPx = X
+    local SCALE = 1
+    ZeD.T.px = function(n) return n * SCALE end
+    local savedScale = ZeD.Scale
+    ZeD.Scale = { root = function() return SCALE end, artZoom = function() return 1 end }
+    check("LAUNDRY 1x: the real PhysPx loads", okP and X and X.widths ~= nil)
+    if okP and X and X.widths and LD and LD._fitFace then
+        local H, viewY = 278, 26
+        for _, W in ipairs({ 480, 336 }) do
+            for _, viewH in ipairs({ H - viewY, H - viewY - 40 }) do
+                local bw = W - 20
+                for _, face in ipairs({ "washer", "dryer", "washer_dryer" }) do
+                    local t = { pid = face, d = { dryerOnly = (face == "dryer") } }
+                    local c = { _viewY = viewY, _viewH = viewH }
+                    local des, fid, k = LD._fitFace(c, t, bw, SCALE)
+                    local say = "LAUNDRY 1x " .. W .. " card, view " .. viewH .. ", " .. face
+                    check(say .. ": a face and a whole zoom of at least 1", des ~= nil and k and k >= 1 and k == math.floor(k), tostring(k))
+                    if des then
+                        local rows = (face == "dryer") and 1 or 2
+                        local extra = 8 + 6 + rows * 20 + 18
+                        local fitsH = des.h * k + extra <= viewH
+                        local narrow = (fid == X.narrow[face])
+                        local kind = narrow and "narrow" or "big"
+                        check(say .. ": the face is the big one or the narrow one", narrow or (fid and fid:find("^" .. face) ~= nil
+                            and not fid:find("_n$")), tostring(fid))
+                        -- it fits, or it is the narrow face at 1x clipped by the stencil (case 3)
+                        check(say .. " (" .. tostring(fid) .. " at " .. k .. "x): the face and its rows fit the view, or it is the clipped narrow case",
+                            fitsH or (narrow and k == 1), (des.h * k + extra) .. " > " .. viewH)
+                        check(say .. ": the face lies inside the card's width", des.w * k <= bw, des.w * k)
+                        -- the narrow face only where no big face fits at 1x
+                        if narrow then
+                            local bigFits = false
+                            for _, id in pairs(X.widths[face]) do
+                                local bd = X.plates[id]
+                                if bd and bd.w <= bw and bd.h + extra <= viewH then bigFits = true end
+                            end
+                            check(say .. ": narrow only where no big face fits", not bigFits)
+                        end
+                        -- centred: the same room either side, within the pixel PL.centre's floor gives the right
+                        local px0 = math.floor((bw - des.w * k) / 2)
+                        local right = bw - (px0 + des.w * k)
+                        check(say .. ": the face is centred", right - px0 >= 0 and right - px0 < 2, px0 .. " / " .. right)
+                        print("  " .. say .. " picks " .. tostring(fid) .. " (" .. kind .. ") at " .. k .. "x, "
+                            .. (des.w * k) .. " x " .. (des.h * k) .. (fitsH and ", fits" or ", clipped by the stencil"))
+                    end
+                end
+            end
+        end
+    end
+    ZeD.PhysPx, ZeD.T.px, ZeD.Scale = mock, mockPx, savedScale
+end
+
 print("gc_qa_cleanup_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end

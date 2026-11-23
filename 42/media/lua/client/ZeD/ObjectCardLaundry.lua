@@ -503,11 +503,14 @@ local function drawRoom(card, x, y, w, px0, des, k, faceId)
 end
 LD._drawRoom = drawRoom  -- (for gc_qa_cleanup_sim.lua; the card draws it through drawFace) (QA cleanup run, Nov 22 2026)
 
--- The face, its id and the whole zoom for a card with `room` px across and the view the body scrolls in (card._viewH):
--- the widest face at the largest whole zoom that fits the width, stepping the zoom down while the face and the
--- readings under it do not fit the view's height (else the face runs past the card's bottom, and its picture with
--- it). At the lowest zoom, the widest face whose height fits, else the shortest. Never a fractional zoom.
--- (QA laundry 4K, Nov 22 2026)
+-- The face, its id and the whole zoom for a card with `room` px across and the view the body scrolls in (card._viewH).
+-- Pixel art never draws at a fractional zoom (as the car, the figure frame and the icons), so, in order:
+--   1. the big face at the largest whole zoom (1 or more) where it fits the width and it and the readings under it fit
+--      the view's height (else the face runs past the card's bottom, and its picture with it); at 1x the widest of
+--      the plate's big faces that fits;
+--   2. else the narrow face (PhysPx.narrow, about 130 x 190) at the largest whole zoom that fits, centred;
+--   3. else the narrow face at 1x, centred, the card's stencil clipping what runs past it. Never below 1x.
+-- (QA laundry 4K, Nov 22 2026; QA laundry 1x, Nov 22 2026: 18 px past the card's bottom at 1080p and 1280x800)
 local function fitFace(card, t, room, scale)
     local T, X = ZeD.T, ZeD.PhysPx
     local d = t.d
@@ -518,27 +521,32 @@ local function fitFace(card, t, room, scale)
     local function fits(des, k) return des.w * k <= room and (not viewH or des.h * k + extra <= viewH) end
     local des0 = P.pick(t.pid, room)
     if not des0 then return nil, t.pid, 1 end
-    local k0 = P.k(scale)
-    -- at 1x (the Deck, the narrow cards) the face is as it always was: the card scrolls it, nothing steps down
-    if k0 <= 1 then return des0, select(2, P.pick(t.pid, room)), P.kFit(scale, des0.w, room) end
+    local k0 = math.max(1, P.k(scale))
+    -- 1. the big face, the largest whole zoom first
     for k = k0, 1, -1 do
         local des, id = P.pick(t.pid, room, k)
-        if fits(des, k) then return des, id, k end
+        if des and fits(des, k) then return des, id, k end
     end
-    -- nothing fits at 1x as picked: the widest of the plate's faces that does, else the shortest of them
+    -- (at 1x: the widest of the plate's big faces that fits, when the one picked by width does not)
     local keys = {}
     for key in pairs((X.widths and X.widths[t.pid]) or {}) do keys[#keys + 1] = key end
     table.sort(keys, function(a, b) return a > b end)
-    local best, bestId = nil, nil
     for _, key in ipairs(keys) do
         local id = X.widths[t.pid][key]
         local des = X.plates[id]
-        if des and key <= room then
-            if fits(des, 1) then return des, id, 1 end
-            if not best or des.h < best.h then best, bestId = des, id end
-        end
+        if des and fits(des, 1) then return des, id, 1 end
     end
-    if best then return best, bestId, 1 end
+    -- 2. the narrow face at the largest whole zoom that fits
+    local nid = X.narrow and X.narrow[t.pid]
+    local nd = nid and X.plates[nid]
+    if nd then
+        for k = k0, 1, -1 do
+            if fits(nd, k) then return nd, nid, k end
+        end
+        -- 3. the narrow face at 1x; the card's stencil clips what runs past it
+        return nd, nid, 1
+    end
+    -- (a plate with no narrow face: the one picked by width at 1x, clipped the same way)
     local des, id = P.pick(t.pid, room, 1)
     return des, id, 1
 end
