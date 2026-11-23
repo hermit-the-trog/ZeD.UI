@@ -594,6 +594,7 @@ function S.exercise(id, first)
         local cur = nil
         pcall(function() cur = S.fitness():getCurrentExe() end)
         t.on = ok and a ~= nil and a.exercise == id
+        if a ~= nil then t.first = S.exeState(a) end
         Q.check(t.on and cur ~= nil, lab .. ": the game's ISFitnessAction for it is at the queue's head",
             "head " .. tostring(a and a.Type) .. " " .. tostring(a and a.exercise) .. ", current exercise " .. tostring(cur ~= nil))
         if not t.on then S.clearQueue() end
@@ -616,7 +617,7 @@ function S.exercise(id, first)
             if up ~= S.inList(regs, r) then wrong[#wrong + 1] = r .. (up and " rose" or " did not rise") end
         end
         local reg1 = S.reg(id)
-        if reps < 1 then Q.say("NOTE " .. lab .. ": the session's last look before it ended | " .. tostring(t.last)) end
+        if reps < 1 then Q.say("NOTE " .. lab .. ": the session at its start | " .. tostring(t.first) .. " || its last look before it ended | " .. tostring(t.last)) end
         Q.check(reps >= 1, lab .. ": repetitions done", reps .. " repetitions" .. ((a and a.Type == "ISFitnessAction") and "" or " (the session had ended on its own)"))
         Q.check(reg1 > t.reg0, lab .. ": its regularity rose", S.n(t.reg0) .. " to " .. S.n(reg1))
         Q.check(#wrong == 0, lab .. ": the pending strain rose in exactly its regions (" .. table.concat(regs, ", ") .. ")",
