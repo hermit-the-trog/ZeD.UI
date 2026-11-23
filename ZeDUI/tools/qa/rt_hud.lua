@@ -37,8 +37,8 @@
 --   alone     ZeD_CharacterWindow.toggle opens the Character window without the World window, on Loot; UI scale Auto's
 --             root is the screen height over 1080, held to 0.75 .. 4, times the font knob
 --   column    the game's left-edge column shows no hands and no window buttons
---   keys      a number key held opens its slot's list at the slot; its release draws nothing; the Messages note opens
---             the Messages window
+--   keys      a number key held opens its slot's list at the slot; its release draws nothing; the Messages notice in
+--             the screen's corner (ZeD_ErrorBox.lua, Nov 22 2026: the note left the belt) opens the Messages window
 --   more      the action bar's queue count; the watch's light; an item pinned from its own menu, and a fourth pin
 --             taking off the oldest with a note; the run button's hold crouching and standing (RunSneak's QA hook)
 -- Every surface: RT.bounds. Puts back: every option, the stats, hands, worn watch, the watch's saved spot, Messages,
@@ -304,25 +304,43 @@ Q.step(10, function()
     pcall(function() S.p:setPrimaryHandItem(S.hk.hands[1]); S.p:setSecondaryHandItem(S.hk.hands[2]) end)
     S.closeMenu()
 end)
--- (Nov 18 2026: the belt shows the Messages note only while ZeD.Messages holds a note (ZeD_Belt: count() > 0). In the
--- full run an earlier area leaves one; run alone there is none. The check stages its own note and clears it after.)
+-- (Nov 18 2026: the Messages note showed only while ZeD.Messages held a note. Nov 22 2026, the error box (2db43d57a):
+-- the note left the belt for the screen's bottom right corner, ZeD.ErrorBox._note, shown while anything is unread and
+-- a few seconds after something new. The check stages its own unread note (always: an unread line keeps the notice
+-- up) and clears it after. The click is the notice's own mouse handler (ZeD.ErrorBox.press, as a click does).)
 Q.step(5, function()
     local M = ZeD.Messages
-    if M and M.count() == 0 then
-        pcall(function() M.add("ZeDQA rt_hud", "mods", { head = "QA", text = "a note for the belt's Messages note check" }) end)
+    if M then
+        pcall(function() M.add("ZeDQA rt_hud", "mods", { head = "QA", text = "a note for the Messages notice check" }) end)
         S.msgStaged = true
     end
 end)
-Q.step(5, function()
-    local hud = S.hud()
-    local _, b = S.boxIdx("lamp")
+Q.waitFor(2, 120, function()
+    local el = Z.ErrorBox and Z.ErrorBox._note
+    return el ~= nil and el:getIsVisible()
+end, function(ok)
+    local E = Z.ErrorBox
+    local el = E and E._note
     local MW = ZeD.MessagesWindow
-    if not Q.check(hud ~= nil and b ~= nil and MW ~= nil, "belt: the Messages note is on the belt") then S.lampSkip = true; if S.msgStaged then pcall(function() ZeD.Messages.clear("ZeDQA rt_hud") end); S.msgStaged = nil end; return end
+    local x, y, w, h = 0, 0, 0, 0
+    if el then x, y, w, h = el:getX(), el:getY(), el:getWidth(), el:getHeight() end
+    -- (the bottom right corner: its right and bottom edges within its own size plus the game box's width of the screen's)
+    local corner = el ~= nil and x + w >= S.sw - w - 100 - ZeD.T.px(10) - 2 and y + h >= S.sh - ZeD.T.px(10) - 2 and S.onScreen(x, y, w, h)
+    if not Q.check(ok and el ~= nil and corner and MW ~= nil, "notice: with a new note, the Messages notice shows in the screen's bottom right corner",
+        string.format("%d,%d %dx%d on %dx%d", x, y, w, h, S.sw, S.sh)) then
+        S.lampSkip = true
+        if S.msgStaged then pcall(function() ZeD.Messages.clear("ZeDQA rt_hud") end); S.msgStaged = nil end
+        return
+    end
+    -- (where Messages' balloons come out, read while it shows: its top middle)
+    S.noteAx, S.noteAy = E.anchor(S.pn)
+    S.noteBox = { x = x, y = y, w = w, h = h }
     local w0 = MW.get(S.pn)
     S.msgWas = w0 ~= nil and w0:isReallyVisible()
     S.toastsWas = Z.Messages.toasts   -- (the window's open clears the toasts: put back after)
     S.back.lamp = true
-    hud:onMouseDown(b.x + math.floor(b.w / 2), b.y + math.floor(b.h / 2))
+    el:onMouseDown(math.floor(w / 2), math.floor(h / 2))
+    pcall(function() el:onMouseUp(math.floor(w / 2), math.floor(h / 2)) end)
 end)
 Q.waitFor(2, 60, function()
     if S.lampSkip then return true end
@@ -331,13 +349,12 @@ Q.waitFor(2, 60, function()
 end, function(ok)
     if S.lampSkip then return end
     local w = ZeD.MessagesWindow.get(S.pn)
-    Q.check(ok and w ~= nil, "belt: a click on the Messages note opens the Messages window")
-    if w then Q.check(S.onScreen(w:getX(), w:getY(), w:getWidth(), w:getHeight()), "belt: the Messages window is on screen") end
+    Q.check(ok and w ~= nil, "notice: a click on the Messages notice opens the Messages window")
+    if w then Q.check(S.onScreen(w:getX(), w:getY(), w:getWidth(), w:getHeight()), "notice: the Messages window is on screen") end
     RT.bounds(Q, "the Messages window")
-    local hud = S.hud()
-    local ax, ay = Z.Belt.noteAnchor(S.pn)
-    Q.check(hud ~= nil and ax ~= nil and ax >= hud:getX() and ax <= hud:getX() + hud:getWidth() and ay >= hud:getY() and ay <= hud:getY() + hud:getHeight(),
-        "belt: the note's anchor is a point on the belt", tostring(ax) .. "," .. tostring(ay))
+    local ax, ay, nb = S.noteAx, S.noteAy, S.noteBox
+    Q.check(nb ~= nil and ax ~= nil and ax >= nb.x and ax <= nb.x + nb.w and ay >= nb.y - 1 and ay <= nb.y + nb.h,
+        "notice: Messages' balloons come out of the notice (ZeD.ErrorBox.anchor is a point on it)", tostring(ax) .. "," .. tostring(ay))
     S.putLamp()
     if S.msgStaged then pcall(function() ZeD.Messages.clear("ZeDQA rt_hud") end); S.msgStaged = nil end
 end)
@@ -795,8 +812,14 @@ Q.waitFor(1, 900, function() return S.guideToast() ~= nil end, function(ok)
 end)
 Q.step(10, function()
     if not S.guideToast() then return end
-    local anchor = Z.Belt.noteAnchor and Z.Belt.noteAnchor(S.pn)
-    Q.check(anchor ~= nil, "guide: it comes out of the belt's Messages note")
+    -- (Nov 22 2026: the balloons come out of the Messages notice in the screen's corner, ZeD.ErrorBox.anchor; it shows
+    -- while a balloon is up)
+    local E = Z.ErrorBox
+    local ax, ay = nil, nil
+    if E and E.anchor then ax, ay = E.anchor(S.pn) end
+    local el = E and E._note
+    local on = el ~= nil and ax ~= nil and ax >= el:getX() and ax <= el:getX() + el:getWidth() and ay >= el:getY() - 1 and ay <= el:getY() + el:getHeight()
+    Q.check(on, "guide: it comes out of the Messages notice in the screen's corner", tostring(ax) .. "," .. tostring(ay))
     RT.bounds(Q, "guide bubble")
 end)
 Q.waitFor(1, 900, function() return S.guideToast() == nil end, function(ok)

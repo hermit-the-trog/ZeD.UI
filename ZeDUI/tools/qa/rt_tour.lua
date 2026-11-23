@@ -181,9 +181,10 @@ end)
 Q.step(10, function()
     Q.check(not H.vis(RT.cw()) and not H.vis(RT.ww()), "mouse: both windows are shut before the tour starts")
     H.watchStart()
-    -- (a Messages note staged, so the belt draws its lamp for step 7; cleared at Done)
+    -- (an unread Messages note staged, so the corner notice shows for step 7 (Nov 22 2026: the note left the belt for
+    -- ZeD.ErrorBox's corner notice, up while anything is unread); cleared at Done)
     local M = ZeD.Messages
-    if M and M.count and M.count() == 0 then pcall(function() M.add("ZeDQA rt_tour", "mods", { head = "QA", text = "a note for the tour's Messages step" }) end); S.msgStaged = true end
+    if M and M.add then pcall(function() M.add("ZeDQA rt_tour", "mods", { head = "QA", text = "a note for the tour's Messages step" }) end); S.msgStaged = true end
     H.writeWord("1")
     S.visited = {}
     TU.start(S.pn, "mouse")
@@ -275,15 +276,20 @@ for i = 1, #((TU and TU.STEPS) or {}) do
                 tostring(cw and cw._activeTab))
         end
         if st.key == "Guide" then
-            -- (Nov 19 2026, the director's markup: step 7 points at the belt's Messages note, the HUD's "lamp" box;
-            -- the whole belt only when no note is drawn. A note is staged before the walk, so the lamp is drawn.)
-            local hud = ZeD.Belt and ZeD.Belt.getHUD and ZeD.Belt.getHUD(S.pn)
-            local lamp = nil
-            for _, b in ipairs((hud and hud._boxes) or {}) do if b.kind == "lamp" then lamp = b end end
+            -- (Nov 19 2026, the director's markup: step 7 points at the Messages note. Nov 22 2026, the error box
+            -- (2db43d57a): the note left the belt for the screen's bottom right corner; the step points at the notice's
+            -- place, ZeD.ErrorBox.rect(), and keeps the notice up while it points (ZeD.ErrorBox.showFor).)
+            local E = ZeD.ErrorBox
             local lr = nil
-            if hud and lamp then lr = { x = hud:getAbsoluteX() + lamp.x, y = hud:getAbsoluteY() + lamp.y, w = lamp.w, h = lamp.h } end
-            Q.check(lr ~= nil and math.abs(L.a.x - lr.x) < 2 and math.abs(L.a.y - lr.y) < 2 and math.abs(L.a.w - lr.w) < 2,
-                name .. ": it points at the belt's Messages note (the lamp box)", "anchor " .. H.rs(L.a) .. ", lamp " .. H.rs(lr))
+            if E and E.rect then
+                local okR, x, y, s = pcall(E.rect)
+                if okR and x then lr = { x = x, y = y, w = s, h = s } end
+            end
+            local el = E and E._note
+            local shown = el ~= nil and el:getIsVisible()
+            Q.check(lr ~= nil and math.abs(L.a.x - lr.x) < 2 and math.abs(L.a.y - lr.y) < 2 and math.abs(L.a.w - lr.w) < 2 and shown,
+                name .. ": it points at the Messages notice in the screen's corner, and the notice shows", "anchor " .. H.rs(L.a)
+                .. ", the notice " .. H.rs(lr) .. ", shown " .. tostring(shown))
         end
         if st.key == "Card" then
             -- (Nov 19 2026: the card step opens an item's card, ensureCard; the director's "Yes, fix it first")

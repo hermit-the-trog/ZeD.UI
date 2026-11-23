@@ -10,27 +10,35 @@
 -- How to read the log: the proofs are the lines that start "BELT"; each FAILS on ba8084973 and PASSES on 313d74d0e.
 -- A part that cannot be staged FAILS with "(staging)" in its words. "NOTE" lines are readings. The "put back" checks
 -- at the end pass on both: the run left him as it found him.
+-- (Refit Nov 22 2026, QA, for the error box, 2db43d57a, merged in main at 0fb94f8ff. The director: "Time controls to
+-- the right side of the belt, not on the left. And since the note's moving into the corner, they can take the spot
+-- where the note was." Now BELT 1 to 4 read: the bag button first, an icon's gap, the belt, an icon's gap, the five
+-- speed keys, ALWAYS (watch or not, Full and Lite; none on a server), and NO Messages note on the belt (it is the
+-- corner notice, ZeD_ErrorBox.lua). BELT 1 to 4 FAIL on 313d74d0e (the keys left of the bag button, only with a
+-- watch, the note on the belt) and PASS on 0fb94f8ff. The beltfix: the Character window's shown set counts
+-- _containers[_viewedContainer or _activeContainer] when no column is picked, whatever _mainVisible is, as its draw.)
 --
 -- The belt's boxes are read as the belt laid them out (hud._boxes, left to right, in its own coordinates). "An icon's
 -- gap" is the bag button's own size, ZeD.T.px(B.ICON_GAP), 38 design units (the old code has no B.ICON_GAP: 38, the
 -- bag button's size LAMP, is the director's "an icon's worth"), within 2 px. The belt starts at the first box after
 -- the bag button (the watch on the left wrist, else the off hand) and ends at the right edge of the strap or the last
--- box before the Messages note. The pointer is the one thing faked for a press: the global getMouseX / getMouseY
+-- box before the speed keys. The pointer is the one thing faked for a press: the global getMouseX / getMouseY
 -- answer the bag button's middle for that call only, and the belt's own handlers run (onMouseDown / onMouseUp,
 -- onRightMouseDown / onRightMouseUp, onJoypadDown with the belt's pad mark on the bag button). The bag button's icon
 -- is read as the belt draws it: its _drawButton watched (the icon it is handed for the box of kind "bag").
 --
 -- The checks:
---   BELT 1  Full, no watch worn: no speed keys; the bag button first; an icon's gap from it to the belt (the off
---           hand), nothing between; an icon's gap from the belt to the Messages note. Old: 10 px gaps -> FAIL.
---   BELT 2  Full, a digital watch given and worn on the LEFT wrist: five speed keys, all left of the bag button; the
---           bag button, an icon's gap, then the watch beside the off hand; nothing between; the note an icon's gap
---           off the belt. Old: the keys sit between the bag button and the watch -> FAIL. Picture vk4_belt_full.
---   BELT 3  The same with the watch on the RIGHT wrist (the watch past the main hand). Old: the keys past the
---           watch, right of the bag button -> FAIL.
---   BELT 4  Lite (Style set by value): no speed keys on the belt (the watch is in the corner in Lite); the bag button
---           first, an icon's gap to the off hand, the note an icon's gap off the last slot. Old: 10 px -> FAIL.
---           Picture vk4_belt_lite.
+--   BELT 1  Full, no watch worn: the bag button first; an icon's gap from it to the belt (the off hand), nothing
+--           between; an icon's gap from the belt's end to five speed keys (none on a server), nothing past them but
+--           chat and PvP; no Messages note on the belt (a Messages line is staged, so the old belt would draw one).
+--           313d74d0e: no keys without a watch, the note on the belt -> FAIL.
+--   BELT 2  Full, a digital watch given and worn on the LEFT wrist: the bag button, an icon's gap, then the watch
+--           beside the off hand; nothing between; the five keys an icon's gap off the belt's end; no note.
+--           313d74d0e: the keys left of the bag button -> FAIL. Picture vk4_belt_full.
+--   BELT 3  The same with the watch on the RIGHT wrist (the watch past the main hand). 313d74d0e -> FAIL.
+--   BELT 4  Lite (Style set by value, a watch worn: Lite keeps it in the corner): the bag button first, an icon's gap
+--           to the off hand, the five keys an icon's gap off the last slot, no note. 313d74d0e: no keys in Lite, the
+--           note -> FAIL. Picture vk4_belt_lite.
 --   BELT 5  Default, no pick (his modData ZeD_BeltBag cleared for the run): the button wears the pocket
 --           (media/ui/Container_Pocket.png) and a click opens the pair with his main inventory on show. Old: the
 --           button draws ZeD's "backpack" drawing -> FAIL.
@@ -144,6 +152,8 @@ function H.box(kind, which)
     end
     return nil
 end
+-- the speed keys laid out (or a server, where none are wanted): the belt row as it is now
+function H.keysIn() return S.server or H.box("speed") ~= nil end
 function H.bagIdx()
     for i, b in ipairs(H.boxes()) do if b.kind == "bag" then return i end end
     return nil
@@ -289,8 +299,8 @@ function H.gpOff()
 end
 
 -- ===================================================================== the belt's layout read
--- r: { ok, why = {...}, text } for Full or Lite; wantSpeed: five keys left of the bag button (else none);
--- wantWatch: "left" / "right" / nil (no watch box)
+-- r: { ok, why = {...}, text } for Full or Lite; wantSpeed: five keys an icon's gap past the belt's end (else none,
+-- on a server); wantWatch: "left" / "right" / nil (no watch box). No Messages note ("lamp") on the belt ever.
 function H.layout(wantSpeed, wantWatch)
     local bx = H.boxes()
     local r = { why = {} }
@@ -303,20 +313,20 @@ function H.layout(wantSpeed, wantWatch)
     end
     local bag = bx[bi]
     local bagR = bag.x + bag.w
-    local nSp, spLeft = 0, true
+    local nSp, sp1, spLast = 0, nil, nil
     for i, b in ipairs(bx) do
         if b.kind == "speed" then
             nSp = nSp + 1
-            if b.x + b.w > bag.x then spLeft = false end
-        elseif i < bi then
-            r.why[#r.why + 1] = tostring(b.kind) .. " left of the bag button"
+            if not sp1 then sp1 = b end
+            spLast = b
         end
+        if i < bi then r.why[#r.why + 1] = tostring(b.kind) .. " left of the bag button" end
+        if b.kind == "lamp" then r.why[#r.why + 1] = "a Messages note on the belt (it is the corner notice now)" end
     end
     if wantSpeed then
         if nSp ~= 5 then r.why[#r.why + 1] = nSp .. " speed keys, not 5" end
-        if not spLeft then r.why[#r.why + 1] = "a speed key right of the bag button's left edge" end
     elseif nSp > 0 then
-        r.why[#r.why + 1] = nSp .. " speed keys on the belt (none wanted here)"
+        r.why[#r.why + 1] = nSp .. " speed keys on the belt (none wanted here: a server)"
     end
     -- the belt's first box after the bag button, and the gap
     local nx = bx[bi + 1]
@@ -334,25 +344,32 @@ function H.layout(wantSpeed, wantWatch)
         end
     end
     H.watchRead(r, bx, wantWatch)
-    -- the belt's right end and the note
-    local lamp = nil
-    for _, b in ipairs(bx) do if b.kind == "lamp" and not lamp then lamp = b end end
+    -- the belt's right end (the strap's end, or the last box of the belt before the keys) and the speed keys after it
     local g2 = nil
-    if not lamp then r.why[#r.why + 1] = "no Messages note on the belt (staging)"
-    else
+    if sp1 then
         local right = 0
         local hud = H.hud()
         local st = hud and hud._strap
         if st then right = st.x + st.w end
         for _, b in ipairs(bx) do
-            if b ~= lamp and b.x < lamp.x and b.x + b.w > right then right = b.x + b.w end
+            if b.kind ~= "speed" and b.kind ~= "chat" and b.kind ~= "pvp" and b ~= bag and b.x < sp1.x and b.x + b.w > right then right = b.x + b.w end
         end
-        g2 = lamp.x - right
-        if math.abs(g2 - ig) > 2 then r.why[#r.why + 1] = "belt to note " .. H.num(g2) .. " px, not " .. H.num(ig) end
+        g2 = sp1.x - right
+        if math.abs(g2 - ig) > 2 then r.why[#r.why + 1] = "belt to the speed keys " .. H.num(g2) .. " px, not " .. H.num(ig) end
+        if sp1.x <= bagR then r.why[#r.why + 1] = "a speed key left of the belt" end
+        -- (nothing but the keys between the first key and the last; past them only chat and PvP, on a server)
+        for _, b in ipairs(bx) do
+            if b.kind ~= "speed" and b.x + b.w > sp1.x and b.x < spLast.x + spLast.w then
+                r.why[#r.why + 1] = tostring(b.kind) .. " among the speed keys"
+            end
+            if b.kind ~= "speed" and b.kind ~= "chat" and b.kind ~= "pvp" and b.x >= spLast.x + spLast.w then
+                r.why[#r.why + 1] = tostring(b.kind) .. " past the speed keys"
+            end
+        end
     end
     r.ok = #r.why == 0
-    r.text = "icon gap " .. H.num(ig) .. " px (the bag button " .. H.num(bag.w) .. " wide); speed keys " .. nSp .. ", all left of the bag button "
-        .. tostring(nSp > 0 and spLeft) .. "; bag to belt " .. H.num(g1) .. " px (first: " .. tostring(nx and nx.kind) .. "), belt to note "
+    r.text = "icon gap " .. H.num(ig) .. " px (the bag button " .. H.num(bag.w) .. " wide); speed keys " .. nSp .. ", the first at "
+        .. H.num(sp1 and sp1.x) .. "; bag to belt " .. H.num(g1) .. " px (first: " .. tostring(nx and nx.kind) .. "), belt to the keys "
         .. H.num(g2) .. " px; " .. tostring(r.watch or "no watch box") .. "; boxes: " .. H.kinds()
         .. ((#r.why > 0) and ("; WRONG: " .. table.concat(r.why, "; ")) or "")
     return r
@@ -487,20 +504,23 @@ function H.placeBack(w, g)
         if w:getY() ~= g.y then w:setY(g.y) end
     end)
 end
--- the lists the Character window shows side by side now: its columns, and the one on show
+-- the lists the Character window shows side by side now, as its draw picks them (beltfix, Nov 22 2026: with no column
+-- picked the window draws _containers[_viewedContainer or _activeContainer] whatever _mainVisible is; with columns,
+-- each column and, while _mainVisible, the main inventory, _containers[1])
 function H.shownSet()
     local w = RT.cw()
     local out, seen = {}, {}
     if not w then return out end
-    for _, j in ipairs(w._mcSelected or {}) do
+    local mc = w._mcSelected or {}
+    for _, j in ipairs(mc) do
         local e = w._containers and w._containers[j]
         if e and not seen[e.inventory] then seen[e.inventory] = true; out[#out + 1] = e.inventory end
     end
-    if w._mainVisible then
-        local j = w._viewedContainer or w._activeContainer
-        local e = w._containers and w._containers[j]
-        if e and not seen[e.inventory] then seen[e.inventory] = true; out[#out + 1] = e.inventory end
-    end
+    local j = nil
+    if #mc == 0 then j = w._viewedContainer or w._activeContainer
+    elseif w._mainVisible then j = 1 end
+    local e = j and w._containers and w._containers[j]
+    if e and not seen[e.inventory] then seen[e.inventory] = true; out[#out + 1] = e.inventory end
     return out
 end
 function H.main() return S.p:getInventory() end
@@ -667,7 +687,9 @@ function H.hasPad()
     return yes
 end
 
--- ===================================================================== the Messages note (staged when empty)
+-- ===================================================================== a Messages line (staged when empty)
+-- (Nov 22 2026: the old belt drew its note while Messages held a line; one is staged so "no note on the belt" means
+-- something. Already read, so the corner notice only shows its few seconds.)
 function H.noteStage()
     local M = ZeD and ZeD.Messages
     if not (M and M.count and M.sources) then return end
@@ -752,10 +774,10 @@ H.wait(6000, function() return S.dead or (H.none() and H.drawnOk() and not H.lit
 end)
 
 -- ===================================================================== BELT 1 and 5: Full, no watch; the default pick
-H.settle(S.CACHE_MS, 4000, function() return not S.ok or (H.drawnSince(S.t) ~= nil and H.box("lamp") ~= nil) end, function(ok)
+H.settle(S.CACHE_MS, 4000, function() return not S.ok or (H.drawnSince(S.t) ~= nil and H.keysIn()) end, function(ok)
     if not S.ok then return end
-    local r = H.layout(false, nil)
-    Q.check(ok and r.ok, "BELT 1: Full, no watch: no speed keys, the bag button first, an icon's gap to the belt and from the belt to the note, nothing between",
+    local r = H.layout(not S.server, nil)
+    Q.check(ok and r.ok, "BELT 1: Full, no watch: the bag button first, an icon's gap to the belt, an icon's gap from the belt to the five speed keys (none on a server), no note on the belt, nothing between",
         r.text)
     local k = S.k
     k.defIcon = H.drawnSince(S.t)
@@ -785,12 +807,12 @@ end)
 H.settle(300, 4000, function()
     if not S.ok or not S.k.wornL then return true end
     local w = H.box("watch")
-    return w ~= nil and w.wrist == "left" and H.box("lamp") ~= nil
+    return w ~= nil and w.wrist == "left" and H.keysIn()
 end, function(ok)
     if not S.ok then return end
     local r = H.layout(not S.server, "left")
-    Q.check(ok and S.k.wornL and r.ok, "BELT 2: Full, a watch on the left wrist: the speed keys left of the bag button, an icon's gap to the belt "
-        .. "(the watch beside the off hand) and to the note, nothing between", "a " .. tostring(S.watchL and H.itemShow(S.watchL))
+    Q.check(ok and S.k.wornL and r.ok, "BELT 2: Full, a watch on the left wrist: the bag button first, an icon's gap to the belt "
+        .. "(the watch beside the off hand), an icon's gap to the speed keys, no note on the belt, nothing between", "a " .. tostring(S.watchL and H.itemShow(S.watchL))
         .. " given and worn " .. tostring(S.k.wornL) .. "; " .. r.text .. (S.server and " (on a server: no speed keys wanted)" or ""))
     H.park(true)
 end)
@@ -807,12 +829,12 @@ end)
 H.settle(300, 4000, function()
     if not S.ok or not S.k.wornR then return true end
     local w = H.box("watch")
-    return w ~= nil and w.wrist == "right" and H.box("lamp") ~= nil
+    return w ~= nil and w.wrist == "right" and H.keysIn()
 end, function(ok)
     if not S.ok then return end
     local r = H.layout(not S.server, "right")
-    Q.check(ok and S.k.wornR and r.ok, "BELT 3: Full, a watch on the right wrist: the speed keys left of the bag button, an icon's gap to the "
-        .. "belt and to the note, nothing between, the watch past the main hand", "a " .. tostring(S.watchR and H.itemShow(S.watchR))
+    Q.check(ok and S.k.wornR and r.ok, "BELT 3: Full, a watch on the right wrist: the bag button first, an icon's gap to the "
+        .. "belt and from it to the speed keys, no note on the belt, nothing between, the watch past the main hand", "a " .. tostring(S.watchR and H.itemShow(S.watchR))
         .. " given and worn " .. tostring(S.k.wornR) .. "; " .. r.text)
 end)
 
@@ -820,12 +842,12 @@ end)
 Q.step(2, function() if S.ok then H.optSet(H.styleOpt(), 2) end end)
 H.settle(300, 4000, function()
     local hud = H.hud()
-    return not S.ok or (H.lite() and hud ~= nil and hud._strap == nil and H.box("lamp") ~= nil and H.bagIdx() ~= nil)
+    return not S.ok or (H.lite() and hud ~= nil and hud._strap == nil and H.keysIn() and H.bagIdx() ~= nil)
 end, function(ok)
     if not S.ok then return end
-    local r = H.layout(false, nil)
-    Q.check(ok and r.ok, "BELT 4: Lite: no speed keys on the belt, the bag button first, an icon's gap to the belt and from the last slot to "
-        .. "the note, nothing between", "Lite " .. tostring(H.lite()) .. " (a watch worn: Lite keeps it in the corner); " .. r.text)
+    local r = H.layout(not S.server, nil)
+    Q.check(ok and r.ok, "BELT 4: Lite: the bag button first, an icon's gap to the belt and from the last slot to "
+        .. "the five speed keys (none on a server), no note on the belt, nothing between", "Lite " .. tostring(H.lite()) .. " (a watch worn: Lite keeps it in the corner); " .. r.text)
     H.park(true)
 end)
 Q.step(4, function() if S.ok then H.shot("belt_lite") end end)

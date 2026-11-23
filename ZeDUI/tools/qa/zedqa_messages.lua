@@ -1,7 +1,9 @@
 -- ZeDUI/tools/qa/zedqa_messages.lua  (Oct 24 2026)
 -- Messages (MESSAGES_SPEC.md): another mod's notes kept in one window, its
 -- questions still asked (and copied), errors filed per mod, the toast, the
--- belt's envelope, the window's buttons (mouse and controller), the per-mod
+-- Messages notice (the belt's envelope until the error box, 2db43d57a, Nov 22
+-- 2026: now the corner notice, ZeD.ErrorBox._note), the window's buttons
+-- (mouse and controller), the per-mod
 -- pop-up switch, Clear. The other mod is a test source (ZeD.Messages.qaSource);
 -- one Lua error is made on purpose (expect= in the manifest).
 -- Everything is put back: the store emptied, the switch off, the window shut.
@@ -27,10 +29,11 @@ local function onColl() calls.coll = calls.coll + 1 end
 local function onAsk(_, button) calls.ask = calls.ask + 1; calls.askAnswer = button and button.internal end
 local catchWas = ZeD.Settings.messagesCatchOption and ZeD.Settings.messagesCatchOption:getValue()
 local toastWas = ZeD.Settings.messagesToastOption and ZeD.Settings.messagesToastOption:getValue()
-local function lampBox()
-    local hud = ZeD.Belt and ZeD.Belt._hud
-    for _, b in ipairs(hud and hud._boxes or {}) do if b.kind == "lamp" then return b end end
-    return nil
+-- (Nov 22 2026, the error box: the belt's note is the corner notice now, ZeD.ErrorBox._note, shown while anything is
+-- unread, a few seconds after something new and while a balloon is up)
+local function noticeShown()
+    local el = ZeD.ErrorBox and ZeD.ErrorBox._note
+    return el ~= nil and el:getIsVisible()
 end
 local function onScreen(o) return o and o.javaObject and o:isReallyVisible() or false end
 
@@ -39,11 +42,13 @@ step(10, function()
     pcall(function() ZeD.Settings.messagesCatchOption:setValue(2); ZeD.Settings.messagesToastOption:setValue(2) end)
     MS.setPopups(SRC, false)
     MS.qaSource = SRC
+    -- (an earlier script's few seconds of the notice ended: the notice is up then only for what is unread)
+    if ZeD.ErrorBox then ZeD.ErrorBox._until = 0 end
 end)
--- (checked a few ticks after the clear: the belt drops the envelope on its next layout, and an
+-- (checked a few ticks after the clear: the notice hides on its next frame, and an
 -- earlier script in the run may have left one; Oct 27 2026)
 step(10, function()
-    check(lampBox() == nil, "nothing kept: no envelope on the belt")
+    check(not noticeShown(), "nothing kept: no Messages notice in the corner")
 end)
 
 -- a note (one OK) from another mod: kept, not shown, a toast, the envelope with a count
@@ -72,8 +77,7 @@ step(20, function()
     check(getGameSpeed() > 0, "the game runs on after the mod paused it for its note (speed " .. tostring(getGameSpeed()) .. ")")
 end)
 step(10, function()
-    local b = lampBox()
-    check(b ~= nil, "the envelope is on the belt")
+    check(noticeShown(), "the Messages notice shows in the corner")
     shot("belt_toast")
 end)
 

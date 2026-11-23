@@ -55,11 +55,12 @@
 --            file (Zomboid/Lua/ZeD_tutorial.txt) is never written: Lua's getFileWriter refuses that name (and the
 --            setup and guide-bubble files) while the tour runs and stops. Old: no row, so the tour is started by
 --            TU.start, its first-launch call: it runs over the live game -> FAIL.
---   #42      The belt's Messages note: every unread message set read for the test (put back after), then one unread
+--   #42      The Messages notice's count (the belt's note until the error box, 2db43d57a: now the corner notice,
+--            ZeD.ErrorBox._note): every unread message set read for the test (put back after), then one unread
 --            error from another mod ("QA vk3 Other Mod", as ZeD_Messages files a stack's mod): the count's badge is
 --            drawn gray (the theme's textDim), not the danger red; then one unread error of ZeD's own (its source named
---            by ZeD's mod name, as a ZeD stack names it): red. The badge's color is read as the belt draws it (its
---            _drawLamp watched for one frame: the badge's drawRect before the count's drawText). Old: red for both ->
+--            by ZeD's mod name, as a ZeD stack names it): red. The badge's color is read as the notice draws it (its
+--            prerender watched for one frame: the badge's drawRect before the count's drawText). Old: red for both ->
 --            FAIL.
 --   #61      Style Full (the value only: Lite's guide is the window, the book is Full's), both windows shut so no tab
 --            gives a topic (W.contextTopicKey nil), F1's own call (ZeD_SurvivalGuide.lua onKey: W.toggle(0)): the book
@@ -69,7 +70,9 @@
 --            opens on spread 1 -> FAIL.
 --   #22 (a)  Style Full and the Watch on the belt (values only, ZeD's defaults), a digital wrist watch worn (given, as
 --            rt_hud.lua; his own when he wears one): the belt holds a row of five speed keys (Pause, Play, Fast forward
---            x1 and x2, Wait) beside its watch. Old: the watch's SPEED and START pushers only -> FAIL.
+--            x1 and x2, Wait) at the belt row's right end, an icon's gap (ZeD.Belt.ICON_GAP) past the belt (the error
+--            box, 2db43d57a: where the Messages note was; before it they sat left of the bag button). Old: the watch's
+--            SPEED and START pushers only -> FAIL.
 --   #22 (b)  Each key pressed once through the belt's own mouse handler (onMouseDown at the key's middle) sets that
 --            speed, read from the game's speed controls (getCurrentGameSpeed): Pause 0, x1 2, x2 3, Wait 4, Play 1 (in
 --            that order, two frames at each fast speed). Old: no keys -> FAIL.
@@ -1000,13 +1003,13 @@ end
 -- ===================================================================== #42: the belt's note count
 function S.k42stage()
     local M = Z.Messages
-    local hud = S.hud()
+    -- (Nov 22 2026, the error box: the count is the corner notice's, ZeD.ErrorBox._note; it shows while anything is unread)
+    local note = Z.ErrorBox and Z.ErrorBox._note
     local k = S.k42
-    if not (M and M.sources and M.unread and hud and Z.T and Z.T.danger and Z.T.textDim) then
-        S.fail("belt", "ZeD's Messages, the belt and the theme's colors are loaded (Messages " .. tostring(M ~= nil) .. ", the belt " .. tostring(hud ~= nil) .. ")")
+    if not (M and M.sources and M.unread and note and Z.T and Z.T.danger and Z.T.textDim) then
+        S.fail("belt", "ZeD's Messages, the Messages notice and the theme's colors are loaded (Messages " .. tostring(M ~= nil) .. ", the notice " .. tostring(note ~= nil) .. ")")
         return
     end
-    if not S.beltShown() then S.fail("belt", "the belt is not on screen"); return end
     -- ZeD's own errors are filed under ZeD's mod name (ZeD_Messages fileError: the stack's "((MOD:name))")
     k.ours = "ZeD-GUI [BETA]"
     pcall(function()
@@ -1022,7 +1025,7 @@ function S.k42stage()
             end
         end
     end
-    S.beltWatch(hud)
+    S.beltWatch(note)
     S.fakeErr(S.OTHER)
     k.t0 = getTimestampMs()
     k.count = nil
@@ -1037,15 +1040,16 @@ function S.fakeErr(name)
     k.made[name] = true
     if type(M.seq) == "number" then M.seq = M.seq + 1 end
 end
--- the belt's note watched: the badge's color, the one drawRect before the count's drawText inside _drawLamp
+-- the Messages notice watched (the corner notice, ZeD_ErrorNotice; the belt's _drawLamp before the error box): the
+-- badge's color, the last drawRect before the count's drawText inside its prerender
 function S.beltWatch(hud)
     local k = S.k42
     if k.hook then return end
-    k.hook = { hud = hud, dl = rawget(hud, "_drawLamp"), dr = rawget(hud, "drawRect"), dt = rawget(hud, "drawText") }
-    local baseLamp, baseRect, baseText = hud._drawLamp, hud.drawRect, hud.drawText
-    hud._drawLamp = function(self, b, f, h)
+    k.hook = { hud = hud, dl = rawget(hud, "prerender"), dr = rawget(hud, "drawRect"), dt = rawget(hud, "drawText") }
+    local baseLamp, baseRect, baseText = hud.prerender, hud.drawRect, hud.drawText
+    hud.prerender = function(self, ...)
         k.inLamp, k.rect = true, nil
-        local ok, e = pcall(baseLamp, self, b, f, h)
+        local ok, e = pcall(baseLamp, self, ...)
         k.inLamp = false
         if not ok then k.err = tostring(e) end
     end
@@ -1063,7 +1067,7 @@ function S.beltUnwatch()
     local h = k.hook
     if not h then return end
     k.hook = nil
-    h.hud._drawLamp, h.hud.drawRect, h.hud.drawText = h.dl, h.dr, h.dt
+    h.hud.prerender, h.hud.drawRect, h.hud.drawText = h.dl, h.dr, h.dt
 end
 -- the messages as found: the test's errors gone, a set-aside source back, every read mark back
 function S.k42back()
@@ -1095,7 +1099,7 @@ function S.k42check(ok)
     local gray = o ~= nil and S.near(o.c, T.textDim) and not S.near(o.c, T.danger)
     local red = z ~= nil and S.near(z.c, T.danger)
     Q.check(ok and gray and red,
-        "K3 #42: the belt's note count is red only for ZeD's own errors; another mod's error is counted in gray",
+        "K3 #42: the Messages notice's count is red only for ZeD's own errors; another mod's error is counted in gray",
         "another mod's error alone: the count " .. tostring(o and o.text) .. " on " .. S.rgb(o and o.c) .. "; ZeD's own (\"" .. tostring(k.ours)
         .. "\"): " .. tostring(z and z.text) .. " on " .. S.rgb(z and z.c) .. " (the theme's red " .. S.rgb(T.danger) .. ", gray "
         .. S.rgb(T.textDim) .. ")" .. (k.err and ("; ERR " .. k.err) or ""))
@@ -1189,7 +1193,7 @@ function S.k22back()
     if md then md.ZeD_WatchPop = k.pop end
     if St and S.was.taken then S.optSet(St.watchPlaceOption, S.was.watch) end
 end
--- the speed keys beside the belt's watch: { watch = box, keys = { [n] = box } } once the watch is on the belt
+-- the speed keys on the belt, with the watch on it: { watch = box, keys = { [n] = box } } once the watch is on the belt
 function S.k22row()
     local wb = S.boxes("watch")[1]
     if not wb then return nil end
@@ -1215,15 +1219,25 @@ function S.k22rowCheck(ok)
             hi = (hi == nil or b.x + b.w > hi) and (b.x + b.w) or hi
         end
     end
-    -- (QA, Nov 22: the director's belt row) the row sits left of the bag button, not beside the watch (313d74d0e);
-    -- the old "within three keys of the watch" distance is dropped
+    -- (QA, Nov 22: the director's belt row, then the error box, 2db43d57a: "Time controls to the right side of the belt,
+    -- not on the left... they can take the spot where the note was.") The row starts an icon's gap past the belt's end
+    -- (the strap's end, or the last box of the belt before the keys), right of the bag button; nothing among the keys.
     local wb = r.watch
     local bag = S.boxes("bag")[1]
-    local left = all and hi ~= nil and bag ~= nil and hi <= bag.x
-    Q.check(all and left, "K3 #22 (a): a row of five speed keys (Pause, Play, x1, x2, Wait) sits on the belt, left of the bag button, while a watch is on",
-        "speed keys " .. tostring(r.n) .. ((#said > 0) and (" (" .. table.concat(said, ", ") .. ")") or "") .. "; the row's right edge "
-        .. S.num(hi) .. ", the bag button at " .. S.num(bag and bag.x) .. "; the watch at " .. S.num(wb.x) .. " (" .. S.num(wb.w) .. " wide, "
-        .. tostring(wb.wrist) .. " wrist); " .. tostring(k.how))
+    local hud = S.hud()
+    local st = hud and hud._strap
+    local right = st and (st.x + st.w) or 0
+    for _, b in ipairs((hud and hud._boxes) or {}) do
+        if lo ~= nil and b ~= bag and b.kind ~= "speed" and b.kind ~= "chat" and b.kind ~= "pvp" and b.x < lo and b.x + b.w > right then right = b.x + b.w end
+        if lo ~= nil and hi ~= nil and b.kind ~= "speed" and b.x + b.w > lo and b.x < hi then all = false end
+    end
+    local ig = Z.T.px((Z.Belt and Z.Belt.ICON_GAP) or 38)
+    local gap = lo and (lo - right) or nil
+    local after = all and lo ~= nil and bag ~= nil and lo >= bag.x + bag.w and gap ~= nil and math.abs(gap - ig) <= 2
+    Q.check(all and after, "K3 #22 (a): a row of five speed keys (Pause, Play, x1, x2, Wait) sits at the belt row's right end, an icon's gap past the belt",
+        "speed keys " .. tostring(r.n) .. ((#said > 0) and (" (" .. table.concat(said, ", ") .. ")") or "") .. "; the row from "
+        .. S.num(lo) .. " to " .. S.num(hi) .. ", the belt's end " .. S.num(right) .. " (gap " .. S.num(gap) .. ", an icon " .. S.num(ig) .. "), the bag button at "
+        .. S.num(bag and bag.x) .. "; the watch at " .. S.num(wb.x) .. " (" .. S.num(wb.w) .. " wide, " .. tostring(wb.wrist) .. " wrist); " .. tostring(k.how))
 end
 function S.k22press(n)
     local k = S.k22
@@ -1250,7 +1264,7 @@ function S.k22check()
         local good = (n == 4 and type(got) == "number" and got >= 4) or got == n
         if not good then bad[#bad + 1] = tostring(n) end
     end
-    -- (QA, Nov 22: the director's belt row) the keys now sit left of the bag button: the words say "on the belt"
+    -- (QA, Nov 22: the director's belt row) the keys sit at the belt row's right end: the words say "on the belt"
     Q.check(#bad == 0, "K3 #22 (b): one press of each speed key on the belt sets that speed",
         table.concat(said, ", ") .. " (the game's speed controls: 0 paused, 1 x1, 2 x5, 3 x20, 4 Wait)"
         .. ((#bad > 0) and ("; wrong: " .. table.concat(bad, ", ")) or ""))
@@ -1539,7 +1553,7 @@ end)
 S.waitUntil(3000, function() return S.off.belt or S.k42fresh() end, function(ok)
     if S.off.belt then return end
     if not ok then
-        Q.check(false, "K3 #42 staging: the belt draws its note's count for an unread error (not proven)", "no count drawn in 3 s" .. (S.k42.err and ("; ERR " .. S.k42.err) or ""))
+        Q.check(false, "K3 #42 staging: the Messages notice draws its count for an unread error (not proven)", "no count drawn in 3 s" .. (S.k42.err and ("; ERR " .. S.k42.err) or ""))
         S.k42back()
         S.off.belt = true
         return
@@ -1577,7 +1591,7 @@ Q.step(5, function()
     if S.gameSpeed() ~= 1 then S.speed(1) end   -- (the book's close sets x1; the run's speed is x1 until the put-back)
 end)
 
--- ===================================================================== #22: the speed keys beside the belt's watch
+-- ===================================================================== #22: the speed keys at the belt's right end
 Q.step(3, function()
     if S.off.speed then return end
     S.k22stage()

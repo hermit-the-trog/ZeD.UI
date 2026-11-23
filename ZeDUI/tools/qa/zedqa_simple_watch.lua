@@ -8,7 +8,8 @@ local setGameSpeed = ZEDQA_SPEED or setGameSpeed   -- (Nov 13 2026: the prelude'
 --      Start/Pause, Speed, Alarm, Set (zqa_sw_1_worn). Start pauses and runs the game, Speed steps it, Alarm sets and
 --      clears the watch's alarm.
 --   2. Set (zqa_sw_2_set): the alarm hour, -, +, On/off, Done. + and - step the watch's alarm hour; On/off; Done.
---   3. no watch worn (zqa_sw_3_nowatch): Game speed with Pause, x1, x2, x3, each setting the game's speed.
+--   3. no watch worn (zqa_sw_3_nowatch): nothing on the watch's spot (no hits, width 0: since Nov 22 2026 the speed
+--      keys are the belt row's); W.act("speed0".."speed2") still sets the game's speed.
 --   4. the watch on the belt (watch place: belt): the plain time box on the belt (zqa_sw_4_belt_box), and the plain
 --      watch popped above it as a click on the box pops it (zqa_sw_4_belt_popped).
 --   5. Watch set back to Full: the watch's own art at once (zqa_sw_5_full).
@@ -143,7 +144,11 @@ step(10, function() p:removeWornItem(watch) end)
 step(40, function()
     local w = inst()
     say("3: buttons " .. ids())
-    check(w and w:getIsVisible() and ids() == "speed0,speed1,speed2,speed3", "60 watch 3: no watch worn: Game speed with Pause, x1, x2, x3 (" .. ids() .. ")")
+    -- (Nov 22 2026, the simple watch and the error box, 62a92a3d0 / 2db43d57a: the game speed's keys live in one spot,
+    -- the belt row's right end, watch or no watch; with no watch worn the watch shows nothing here: no hits, width 0.
+    -- W.act("speedN") still sets the speed, as the belt's keys press it.)
+    local wd = w and w:getWidth() or -1
+    check(w ~= nil and ids() == "" and wd == 0, "60 watch 3: no watch worn: nothing on the watch's spot (no hits, width 0; the speed keys are the belt's) (hits '" .. ids() .. "', width " .. tostring(wd) .. ")")
     shot("3_nowatch")
     W.act("speed2")
 end)
