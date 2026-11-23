@@ -412,6 +412,8 @@ ZeD.HealthTab.healthColor = getHealthColor
 -- MUSCLE STRAIN ON THE FIGURE (Strain, the director, Nov 22 2026): a strained part takes a tint of its
 -- own (the theme's strainMinor / strainHeavy), at the levels the game's health panel names it: Minor
 -- Muscle Strain at 5 or more, Muscle Strain at 20 or more. A wound's colour wins on the same part.
+-- The Health tab's figure and the medical check's only: Thermal and Equipment's defense view keep their
+-- own colours ("No, Health only.", the director, Nov 22 2026).
 
 --- 1 (minor) or 2 (heavy) for a part's stiffness, nil under 5
 function ZeD.HealthTab.strainLevel(stiffness)
@@ -1068,35 +1070,6 @@ function ZeD.HealthTab.drawSummary(panel, data, x, y)
         y = y + secH + T.sp.sm
     end
     return y
-end
-
---- The parts with muscle strain and no wound, for the figures that colour by something else (Thermal,
---- Equipment's defense view): figureName -> 1 (minor) or 2 (heavy). Read with their own data, every
---- quarter second or so, never per frame. (Strain, the director, Nov 22 2026)
-function ZeD.HealthTab.strainMap(playerObj)
-    local out = {}
-    local bd = playerObj and playerObj:getBodyDamage()
-    if not bd then return out end
-    ensureBodyPartTypes()
-    if _typeToFigureFrom ~= BODY_PART_TYPES then
-        _typeToFigure = {}
-        for _, bt in ipairs(BODY_PART_TYPES) do _typeToFigure[bt.type] = bt.figure end
-        _typeToFigureFrom = BODY_PART_TYPES
-    end
-    local doctorLevel = playerObj:getPerkLevel(Perks.Doctor)
-    local parts = bd:getBodyParts()
-    for i = 1, parts:size() do
-        local bp = parts:get(i - 1)
-        local lv = ZeD.HealthTab.strainLevel(bp:getStiffness())
-        local name = lv and _typeToFigure[bp:getType()]
-        if name then
-            -- (the same wound rule as the Health figure: a wound's colour wins there, so the part is left out here)
-            local conds = classifyConditions(bp, doctorLevel)
-            if heldBack(playerObj, bp) then conds = careOnly(conds) end
-            if not woundShows(conds, bp:getHealth(), extraLines(playerObj, bp)) then out[name] = lv end
-        end
-    end
-    return out
 end
 
 -- ============================================================================

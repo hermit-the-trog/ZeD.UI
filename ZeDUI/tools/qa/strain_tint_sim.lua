@@ -2,7 +2,8 @@
 -- Health summary, with no game running. The director's calls (QA's questions A1 and B1):
 --   A1  strained parts show on the body figure in a tint of their own (the theme's strainMinor / strainHeavy), minor at
 --       5 or more and heavy at 20 or more (the game's health panel: Minor Muscle Strain / Muscle Strain); a wound's
---       colour wins on the same part; on the Health tab, Thermal, Equipment's defense view and the medical card
+--       colour wins on the same part; on the Health tab's figure and the medical card's only ("No, Health only.":
+--       Thermal and Equipment's defense view keep their temperature and defense colours)
 --   B1  the summary counts strain apart from injuries: strain alone reads "No injuries, Muscle Strain: 6" (the game's
 --       own word, IGUI_health_Stiffness); wounds and strain give the injured count, then "Muscle Strain: 6 of 17"
 -- The REAL HealthTab.lua runs on Lua 5.1 stubs of the body (17 parts). It checks:
@@ -12,9 +13,8 @@
 --            tint (care is no wound); an unstrained part keeps its health colour
 --   COUNTS   strainedCount is every part at 5 or more; woundedCount leaves out a part with strain alone; strainWorst
 --   SUMMARY  the four cases' words and dots; the line count the measure reads is the lines drawn
---   MAP      strainMap (Thermal's and the defense figure's read): the strained parts with no wound, by figure name
---   WIRING   ThermalTab and ProtectionTab put the map on their data; ThermalTab's and EquipmentTab's figure draws give a
---            strained part its tint; ObjectCardMedic draws with figureColor and drawSummary (trade_medic_sim runs it)
+--   WIRING   ObjectCardMedic draws with figureColor and drawSummary (trade_medic_sim runs it); ThermalTab, ProtectionTab
+--            and EquipmentTab read no strain and draw no strain tint (Health only); HealthTab has no strainMap left
 --   WORDS    the two new keys in EN and NL UI.json and the translators' context file, with their placeholders
 -- What it can't show: the tints on screen (QA's rt_strain in game).
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/strain_tint_sim.lua
@@ -130,7 +130,7 @@ local function same(a, b) return a and b and a.r == b.r and a.g == b.g and a.b =
 -- ---------------------------------------------------------------------------
 section("LEVEL")
 check("the helpers are on ZeD.HealthTab", H.strainLevel and H.strainColor and H.figureColor and H.summaryLines
-      and H.summaryLineCount and H.drawSummary and H.strainMap)
+      and H.summaryLineCount and H.drawSummary)
 if H.strainLevel then
     check("4.9: no strain", H.strainLevel(4.9) == nil)
     check("5: minor", H.strainLevel(5) == 1)
@@ -224,35 +224,22 @@ if H.drawSummary then
 end
 
 -- ---------------------------------------------------------------------------
-section("MAP (Thermal's and the defense figure's read)")
-if H.strainMap then
-    local m = H.strainMap(newPlayer(newBody(states)))
-    check("map: the minor part", m["Right Forearm"] == 1)
-    check("map: the heavy part", m["Right Upper Arm"] == 2 and m["Left Upper Leg"] == 2)
-    check("map: care alone stays in", m["Right Hand"] == 1)
-    check("map: a wound or 80% leaves the part out", m["Left Hand"] == nil and m["Left Upper Arm"] == nil)
-    check("map: under 5 is out", m["Left Forearm"] == nil)
-    local n = 0
-    for _ in pairs(m) do n = n + 1 end
-    check("map: four parts", n == 4, n)
-    check("map: no player, no error", pcall(H.strainMap, nil))
-end
-
--- ---------------------------------------------------------------------------
-section("WIRING")
+section("WIRING (Health and the medical card only)")
 local thermal = readFile(Z .. "ThermalTab.lua") or ""
 local equip = readFile(Z .. "EquipmentTab.lua") or ""
 local prot = readFile(Z .. "ProtectionTab.lua") or ""
 local medic = readFile(Z .. "ObjectCardMedic.lua") or ""
-check("Thermal's data carries the map", thermal:find("strain    = ZeD.HealthTab and ZeD.HealthTab.strainMap and ZeD.HealthTab.strainMap(playerObj)", 1, true) ~= nil)
-check("Thermal's figure gives a strained part its tint",
-      thermal:find("local lv = data.strain and data.strain[partName]\n        if lv then color = ZeD.HealthTab.strainColor(lv) end\n        fig:setPartColor(partName", 1, true) ~= nil)
-check("the defense data carries the map", prot:find("strain         = ZeD.HealthTab and ZeD.HealthTab.strainMap and ZeD.HealthTab.strainMap(playerObj)", 1, true) ~= nil)
-check("the defense figure gives a strained part its tint",
-      equip:find("local lv = figureName and protData.strain and protData.strain[figureName]\n        if lv then color = ZeD.HealthTab.strainColor(lv) end", 1, true) ~= nil)
+check("the Health figure draws with figureColor", src and src:find("local color = ZeD.HealthTab.figureColor(data, figureName, health)", 1, true) ~= nil)
 check("the medical card's figure reads figureColor", medic:find("ZeD.HealthTab.figureColor(d, fname, health)", 1, true) ~= nil)
 check("the medical card's summary is drawSummary", medic:find("ZeD.HealthTab.drawSummary(card, d, rx, y)", 1, true) ~= nil)
 check("the medical card keeps no health colour of its own", medic:find("local function healthColor", 1, true) == nil)
+local function noStrain(s) return not s:find("strainMap", 1, true) and not s:find("strainColor", 1, true)
+    and not s:find("strainMinor", 1, true) and not s:find("strainHeavy", 1, true) and not s:find(".strain", 1, true) end
+check("Thermal reads no strain and draws no strain tint", noStrain(thermal))
+check("Equipment's defense figure draws no strain tint", noStrain(equip))
+check("the defense data reads no strain", noStrain(prot))
+check("Thermal's figure: its view colour as before", thermal:find("local color = getThermalColor(uiVal, viewIdx)\n        fig:setPartColor(partName", 1, true) ~= nil)
+check("no strainMap left in HealthTab (nothing reads it)", src and not src:find("strainMap", 1, true) and H.strainMap == nil)
 
 -- ---------------------------------------------------------------------------
 section("WORDS")
