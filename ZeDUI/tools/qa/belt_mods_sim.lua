@@ -13,7 +13,7 @@
 --   ICR      Item Condition Restored's number on the strips and rings: liquid in T.info, its one-color styles in
 --            T.positive, multicolor graduated, None and items it has nothing for back to ZeD's own condition; a
 --            meter that throws is skipped
---   MASK     Mask Filter Indicator's box: after the strap and before the Messages note, the mask's picture, its filter
+--   MASK     Mask Filter Indicator's box: after the strap (and before the speed keys), the mask's picture, its filter
 --            on the strip, the spares badge, the lamp (tank on, filter draining), Alert only when low, the hint, the
 --            mod's menu from a click, a right-click, A and X (the pad's anchored on the box, focus in it), no drop on it,
 --            the mod's strip parked while the belt is in charge and its own again in safe mode
@@ -21,7 +21,7 @@
 --            in safe mode), keepShown for ZeD's windows (its keepInventory option) and for a belt in use; the slide the
 --            mod sets for a frame is not undone by the belt, and the belt is home again between frames; the split
 --            (Nov 7 2026, the director: the slots only): the strap, buckle and slots through the mod's stand-in where it
---            slid them, the hands and the Messages note on the real element at home, and without the split all of it
+--            slid them, the hands and the bag button on the real element at home, and without the split all of it
 --   MSB      Minimal Sidebar: the belt's fade (ZeD.Belt.addAlpha) with the mod's rates and options: the strap, buckle and slots
 --            fade out until the pointer is within the margin, a hand that holds something stays and an empty one fades,
 --            Animation Speed scales both, Enable Mod off draws the belt as it is, the controller, a drag and a menu keep it
@@ -184,6 +184,8 @@ local function installGlobals()
     getSoundManager = function() return { playUISound = function() end } end
     setJoypadFocus = function(n, what) env.joyFocus = what end
     Joypad = { AButton = 1, BButton = 2, XButton = 3, YButton = 4 }
+    -- (the speed keys draw on every belt now, the game's speed read for the one lit: time controls, Nov 22 2026)
+    UIManager = { getSpeedControls = function() return { getCurrentGameSpeed = function() return 1 end } end }
     ISUIHandler = nil
     ISMouseDrag = nil
     ISToolTipInv = { new = function(_, it)
@@ -413,11 +415,13 @@ do
     local a = NEW_SAME:find(bag, 1, true)
     if a then NEW_SAME = NEW_SAME:sub(1, a - 1) .. NEW_SAME:sub(a + #bag) end
     check("SAME: the bag button found to leave out", a ~= nil)
-    -- (Belt row, the director, Nov 22 2026: the Messages note set off the belt by an icon's gap, B.ICON_GAP, on
-    -- purpose; the SAME runs put the old END_GAP back so the rest is compared as before)
-    local n
-    NEW_SAME, n = NEW_SAME:gsub("x = x %+ px%(B%.ICON_GAP%)", "x = x + px(END_GAP)")
-    check("SAME: the note's icon gap found to put back (Lite and Full)", n == 2, n)
+    -- (the Messages note left the belt for the screen's corner and the speed keys took its place, an icon's gap
+    -- off the belt, on every belt but a server's: Error box and time controls, the director, Nov 22 2026. The SAME
+    -- runs keep the note's count at 0 and wear no watch, so the old belt drew neither; the speed keys are new on
+    -- purpose and left out here, so the rest is compared as before)
+    local nSp
+    NEW_SAME, nSp = NEW_SAME:gsub("\n *x = self:_speedBoxes%(boxes, x, h%)", "")
+    check("SAME: the speed keys found to leave out (Lite and Full)", nSp == 2, nSp)
 end
 
 -- ---------------------------------------------------------------------------
@@ -516,9 +520,11 @@ env.spares = 2
 env.clock = env.clock + 1000
 frame()
 local xb, xi = boxOf("extra")
-local lb, li = boxOf("lamp")
 check("MASK the box is there", xb ~= nil)
-check("MASK after the strap, before the Messages note", xb and lb and xi < li and xb.x > hud._strap.x + hud._strap.w - 1 and xb.x < lb.x)
+-- (the Messages note left the belt, Nov 22 2026: the box is the last after the strap with no watch on)
+check("MASK after the strap, before the speed keys", xb and hud._boxes[xi + 1] and hud._boxes[xi + 1].kind == "speed"
+    and xb.x > hud._strap.x + hud._strap.w - 1)
+check("MASK no Messages note on the belt (it is in the screen's corner)", boxOf("lamp") == nil)
 check("MASK a slot's size", xb and xb.w == 44 and xb.h == 44)
 check("MASK the filter on the strip, graduated", #env.bars >= 1 and env.bars[#env.bars].f == 0.64 and env.bars[#env.bars].graduated == true)
 local log2 = table.concat(LOG, "\n")
@@ -644,7 +650,7 @@ check("AHB the slide holds through the belt's drawing", hud._y == homeY + 40)
 fire("OnTick")
 check("AHB home again between frames", hud._y == homeY)
 -- the slots only (the director, Nov 7 2026): while the mod draws, the strap, buckle and slots go through its stand-in
--- where it slid them; the hands, the Messages note and the rest on the real element at home
+-- where it slid them; the hands, the bag button and the rest on the real element at home
 do
     local seen = {}
     local function spy(name)
@@ -658,7 +664,7 @@ do
         return orig
     end
     local spied = {}
-    for _, n in ipairs({ "_drawBox", "_drawStrap", "_drawBuckle", "_drawLamp" }) do spied[n] = spy(n) end
+    for _, n in ipairs({ "_drawBox", "_drawStrap", "_drawBuckle", "_drawButton" }) do spied[n] = spy(n) end
     local real = { tag = "real" }
     function real:getX() return self._x end
     function real:getY() return self._y end
@@ -686,8 +692,9 @@ do
     check("AHB split: the slots through the mod's fade, where it slid them", (slid.slot or 0) == 3 and home.slot == nil, (slid.slot or 0) .. "/" .. tostring(home.slot))
     check("AHB split: the strap and buckle with them", slid._drawStrap == 1 and slid._drawBuckle == 1 and home._drawStrap == nil)
     check("AHB split: the hands stay, at home and unfaded", home.hand == 2 and slid.hand == nil, tostring(home.hand) .. "/" .. tostring(slid.hand))
-    check("AHB split: the Messages note stays", home._drawLamp == 1 and slid._drawLamp == nil)
-    check("AHB split: nothing drawn anywhere else", #seen == (slid.slot or 0) + 2 + 2 + 1, #seen)
+    -- (the buttons: the bag button and the five speed keys, Nov 22 2026)
+    check("AHB split: the bag button and the speed keys stay", home._drawButton == 6 and slid._drawButton == nil, home._drawButton)
+    check("AHB split: nothing drawn anywhere else", #seen == (slid.slot or 0) + 2 + 2 + 6, #seen)
     check("AHB split: the real element at home after the drawing (the mod restores its own after)", real._x == hx and real._y == hy)
     hud._ahbBusy, hud.javaObject = nil, real
     -- slid with no fade this frame: the javaObject is the real one, only moved
@@ -703,7 +710,7 @@ do
     seen = {}
     frame()
     local all = kinds("real", hy)
-    check("AHB no split between the mod's frames", (all.slot or 0) == 3 and all.hand == 2 and #seen == 8, #seen)
+    check("AHB no split between the mod's frames", (all.slot or 0) == 3 and all.hand == 2 and #seen == 13, #seen)
     -- the proof can fail: without the split hook the hands slide and fade with the slots (the whole belt hid)
     ZeD.Belt._splits = {}
     real._x, real._y = hx, hy + 40
@@ -753,7 +760,7 @@ end
 local msbSeen
 local function msbSpy()
     local spied = {}
-    for _, name in ipairs({ "_drawBox", "_drawStrap", "_drawBuckle", "_drawLamp" }) do
+    for _, name in ipairs({ "_drawBox", "_drawStrap", "_drawBuckle", "_drawButton" }) do
         local orig = ZeD_BeltHUD[name]
         spied[name] = orig
         ZeD_BeltHUD[name] = function(self, b, ...)
@@ -791,7 +798,8 @@ check("MSB the file answers with the mod on", type(MS) == "table")
 check("MSB the belt has one alpha provider", #ZeD.Belt._alphas == 1)
 local real0 = hud.javaObject
 local spied = msbSpy()
--- the pointer far away: the strap, buckle and slots fade out; the held hand stays; the empty hand fades; the note stays
+-- the pointer far away: the strap, buckle and slots fade out; the held hand stays; the empty hand fades; the bag button
+-- stays
 env.mouseX, env.mouseY = -500, -500
 msbRun(1)
 check("MSB the first frame starts shown and begins to fade (1.0x: a tenth of the gap)", math.abs(msbAlpha("slot") - 0.9) < 0.001, msbAlpha("slot"))
@@ -800,7 +808,7 @@ check("MSB far pointer: the slots fade out", msbAlpha("slot") == 0, msbAlpha("sl
 check("MSB the strap and the buckle fade with them", msbAlpha("_drawStrap") == 0 and msbAlpha("_drawBuckle") == 0)
 check("MSB the hand that holds something stays", msbAlpha("hand", "p") == 1, msbAlpha("hand", "p"))
 check("MSB the empty hand fades", msbAlpha("hand", "s") == 0, msbAlpha("hand", "s"))
-check("MSB the Messages note stays", msbAlpha("_drawLamp") == 1, msbAlpha("_drawLamp"))
+check("MSB the bag button stays", msbAlpha("_drawButton") == 1, msbAlpha("_drawButton"))
 check("MSB the belt's element is the real one after the drawing", hud.javaObject == real0)
 -- a faded part draws nothing through the stand-in; a half-faded one draws at half
 do
@@ -1134,8 +1142,9 @@ end
 -- ---------------------------------------------------------------------------
 section("ROW: the belt row and the bag button's pick (Belt row, the director, Nov 22 2026)")
 -- ---------------------------------------------------------------------------
--- Left to right: [speed keys] [bag button] (an icon's gap) [the belt: watch, hands, strap] (an icon's gap) [Messages
--- note], in Full and Lite; the speed keys only with a watch on, none on a server. The bag button's right-click lists
+-- Left to right: [bag button] (an icon's gap) [the belt: watch, hands, strap] (an icon's gap, where the Messages note
+-- was) [speed keys] [chat, PvP], in Full and Lite; the speed keys only with a watch on, none on a server (time controls,
+-- the director, Nov 22 2026; the note is in the screen's corner, ZeD_ErrorBox.lua). The bag button's right-click lists
 -- the Pocket and every bag he has on; the pick is kept in his modData as { id, type }, draws as the button's icon and
 -- is what its click opens; a bag he no longer has on falls back to the Pocket.
 do
@@ -1156,26 +1165,29 @@ do
         env.simple = simple
         local tag = simple and "Lite" or "Full"
         for _, wrist in ipairs({ "left", "right" }) do
-            hud:_layout(slots2, watch, nil, wrist, true, false, false)
+            hud:_layout(slots2, watch, nil, wrist, false, false)
             local bx = hud._boxes
             local order = kinds(bx)
-            local want = (wrist == "left") and "speed0,speed1,speed2,speed3,speed4,bag,watch,hands,handp,slot,slot,lamp"
-                or "speed0,speed1,speed2,speed3,speed4,bag,hands,handp,watch,slot,slot,lamp"
-            check("ROW " .. tag .. " " .. wrist .. " wrist: speed keys, bag, the belt, the note in that order", order == want, order)
-            local bag, lamp = find(bx, "bag"), find(bx, "lamp")
-            local first = bx[7]   -- the belt's first box after the bag (the watch or the off hand)
+            local want = (wrist == "left") and "bag,watch,hands,handp,slot,slot,speed0,speed1,speed2,speed3,speed4"
+                or "bag,hands,handp,watch,slot,slot,speed0,speed1,speed2,speed3,speed4"
+            check("ROW " .. tag .. " " .. wrist .. " wrist: bag, the belt, the speed keys in that order", order == want, order)
+            local bag, sp0 = find(bx, "bag"), find(bx, "speed")
+            local first = bx[2]   -- the belt's first box after the bag (the watch or the off hand)
+            check("ROW " .. tag .. " " .. wrist .. ": the bag button first, at the row's left end", bag.x == 0, bag.x)
             check("ROW " .. tag .. " " .. wrist .. ": the bag button an icon (its own width) off the belt",
                 first.x - (bag.x + bag.w) == bag.w and B.ICON_GAP == 38, first.x - (bag.x + bag.w))
-            check("ROW " .. tag .. " " .. wrist .. ": the last speed key just left of the bag button (END_GAP, nothing between)",
-                bag.x - (bx[5].x + bx[5].w) == 10, bag.x - (bx[5].x + bx[5].w))
             -- (the belt's right end: Full's strap, Lite's last slot)
-            local endX = hud._strap and (hud._strap.x + hud._strap.w) or (bx[#bx - 1].x + bx[#bx - 1].w)
-            check("ROW " .. tag .. " " .. wrist .. ": the note an icon off the belt", lamp.x - endX == lamp.w, lamp.x - endX)
+            local endX = hud._strap and (hud._strap.x + hud._strap.w) or (bx[6].x + bx[6].w)
+            check("ROW " .. tag .. " " .. wrist .. ": the first speed key an icon off the belt (the note's old place)",
+                sp0.x - endX == bag.w, sp0.x - endX)
+            check("ROW " .. tag .. " " .. wrist .. ": no Messages note on the belt", find(bx, "lamp") == nil)
         end
-        hud:_layout({}, nil, nil, nil, false, false, false)
-        check("ROW " .. tag .. " no watch: no speed keys, the bag button first", kinds(hud._boxes) == "bag,hands,handp", kinds(hud._boxes))
+        hud:_layout({}, nil, nil, nil, false, false)
+        -- (the speed keys with or without a watch: "put the time controls in the same spot no matter what", Nov 22 2026)
+        check("ROW " .. tag .. " no watch: the speed keys all the same, the bag button first",
+            kinds(hud._boxes) == "bag,hands,handp,speed0,speed1,speed2,speed3,speed4", kinds(hud._boxes))
         isClient = function() return true end
-        hud:_layout({}, watch, nil, "left", false, false, false)
+        hud:_layout({}, watch, nil, "left", false, false)
         check("ROW " .. tag .. " on a server: no speed keys", kinds(hud._boxes) == "bag,watch,hands,handp", kinds(hud._boxes))
         isClient = function() return false end
     end
@@ -1227,7 +1239,7 @@ do
     check("ROW nothing picked: the Pocket", B.bagChosen(p, 0).id == nil)
 
     hud._boxes = nil
-    hud:_layout({}, nil, nil, nil, false, false, false)
+    hud:_layout({}, nil, nil, nil, false, false)
     hud._drawn = true
     local bb = hud._boxes[1]
     check("ROW a right-click on the bag button: the list, each row with its icon", hud:onRightMouseUp(bb.x + 2, bb.y + 2) == true
@@ -1283,6 +1295,139 @@ do
     env.clock = env.clock + 1000
     check("ROW the Pocket picked again: the pick cleared", p.md.ZeD_BeltBag == nil and B.bagChosen(p, 0).id == nil)
     ZeD_CharacterWindow, ZeD_WorldWindow = nil, nil
+end
+
+-- ---------------------------------------------------------------------------
+section("NOTE: the Messages note off the belt, the pad on to the corner notice, the buckle opens Info (Nov 22 2026)")
+-- ---------------------------------------------------------------------------
+-- Error box, the director, Nov 22 2026: the note left the belt for the screen's corner (ZeD_ErrorBox.lua); the pad
+-- past the row's right end steps onto it while it shows, A opens Messages, Left comes back. Buckle, the director, Nov 22
+-- 2026: a left click on Full's buckle opens the Character window on Info ("identity"), as the game's key does (the
+-- same toggle, KISS #25); a hover hint names the tab; Lite has no buckle.
+do
+    boot(NEW)
+    local B = ZeD.Belt
+    local hud = B.getHUD()
+    env.messages = 3
+    env.player.pri, env.player.sec = nil, nil
+    env.hotbar.attachedItems = { [1] = item({ name = "Knife", class = "HandWeapon", cond = 6, condMax = 10 }) }
+    frame()
+    local function has(kind) for _, b in ipairs(hud._boxes) do if b.kind == kind then return true end end return false end
+    check("NOTE Messages keeps lines: still no note on the belt", not has("lamp"))
+    check("NOTE no _drawLamp left on the belt", ZeD_BeltHUD._drawLamp == nil and B.noteAnchor == nil)
+
+    -- the pad: the row's last box, then Right
+    local shows, padOn, pressed = true, nil, 0
+    ZeD.windowsFor = ZeD.windowsFor or function() return false end   -- (leaving the pad asks whose windows these are)
+    ZeD.ErrorBox = { padReach = function(pn) return pn == 0 and shows end, setPad = function(on) padOn = on end,
+                     press = function() pressed = pressed + 1 end }
+    hud._gp = { idx = #hud._boxes, inList = false, row = 1, list = {} }
+    env.joyFocus = hud
+    hud:onJoypadDirRight()
+    check("NOTE Right past the row's end: on the corner notice", hud._gp and hud._gp.notice == true and padOn == true)
+    check("NOTE ... no belt box keeps the pad", hud:_gpBox() == nil)
+    hud:onJoypadDirLeft()
+    check("NOTE Left: back on the row's last box", hud._gp and not hud._gp.notice and padOn == false and hud._gp.idx == #hud._boxes)
+    hud:onJoypadDirRight()
+    hud:onJoypadDown(Joypad.AButton)
+    check("NOTE A on the notice: Messages (the notice's press), the pad off the belt", pressed == 1 and hud._gp == nil and padOn == false)
+    hud._gp = { idx = #hud._boxes, inList = false, row = 1, list = {} }
+    hud:onJoypadDirRight()
+    hud:onJoypadDirRight()
+    check("NOTE Right again on the notice: the pad leaves", hud._gp == nil and padOn == false)
+    hud._gp = { idx = #hud._boxes, inList = false, row = 1, list = {} }
+    hud:onJoypadDirRight()
+    hud:onJoypadDown(Joypad.BButton)
+    check("NOTE B on the notice: the pad leaves", hud._gp == nil and padOn == false)
+    shows = false
+    hud._gp = { idx = #hud._boxes, inList = false, row = 1, list = {} }
+    hud:onJoypadDirRight()
+    check("NOTE no notice showing: Right past the end leaves, as before", hud._gp == nil)
+    ZeD.ErrorBox = nil
+    hud._gp = { idx = #hud._boxes, inList = false, row = 1, list = {} }
+    hud:onJoypadDirRight()
+    check("NOTE no ZeD_ErrorBox at all: leaves", hud._gp == nil)
+
+    -- the buckle
+    local calls = {}
+    ZeD_CharacterWindow = { openTab = function(pn, tab, tog) calls[#calls + 1] = tostring(pn) .. ":" .. tab .. ":" .. tostring(tog); return true end }
+    frame()
+    local k = hud._buckle
+    check("NOTE Full has a buckle", k ~= nil)
+    if k then
+        hud._drawn = true
+        local took = hud:onMouseDown(k.x + 2, k.y + 2)
+        check("NOTE a click on the buckle: Info, the key's toggle", took == true and calls[1] == "0:identity:true", calls[1])
+        env.mouseX, env.mouseY = hud._x + k.x + 3, hud._y + k.y + 3
+        env.hints = {}
+        frame()
+        local hint = nil
+        for _, h in ipairs(env.hints) do if h.key == "buckle" then hint = h end end
+        check("NOTE the buckle's hint names the tab (the game's Info)", hint and hint.words == "IGUI_XP_Info", hint and hint.words)
+        env.mouseX, env.mouseY = -100, -100
+        -- ZeD's windows given back: openTab says no, the game's own window on Info
+        local viewed = nil
+        ZeD_CharacterWindow.openTab = function() return false end
+        getPlayerInfoPanel = function() return { toggleView = function(_, v) viewed = v end } end
+        hud:onMouseDown(k.x + 2, k.y + 2)
+        check("NOTE the windows given back: the game's own window on Info", viewed ~= nil, viewed)
+        getPlayerInfoPanel = nil
+    end
+    env.simple = true
+    calls = {}
+    ZeD_CharacterWindow.openTab = function(pn, tab, tog) calls[#calls + 1] = tab; return true end
+    frame()
+    check("NOTE Lite: no buckle", hud._buckle == nil and hud:_overBuckle(0, 0) == false)
+    env.simple = false
+    ZeD_CharacterWindow = nil
+    env.messages = 0
+
+    -- THE SPEED KEYS STAY PUT (time controls, the director, Nov 22 2026: "put the time controls in the same spot no
+    -- matter what"): the driver loses the belt (KISS #56) but keeps the speed keys, drawn alone where the whole belt
+    -- puts them; none on a server
+    for _, simple in ipairs({ false, true }) do
+        env.simple = simple
+        local tag = simple and "Lite" or "Full"
+        env.mouseX, env.mouseY = -100, -100
+        frame()
+        local home = {}
+        for _, b in ipairs(hud._boxes) do if b.kind == "speed" then home[b.n] = { hud._x + b.x, hud._y + b.y } end end
+        check("KEYS " .. tag .. ": five speed keys on foot, no watch", home[0] ~= nil and home[4] ~= nil)
+        local p = env.player
+        local car = { isDriver = function() return true end }
+        p.getVehicle = function() return car end
+        check("KEYS " .. tag .. " driving: the belt is not wanted, the keys are", hud:wanted() == false and hud:keysOnly() == true)
+        local seen = {}
+        local origBtn, origBox = ZeD_BeltHUD._drawButton, ZeD_BeltHUD._drawBox
+        ZeD_BeltHUD._drawButton = function(self, b, ...) seen[#seen + 1] = b.kind; return origBtn(self, b, ...) end
+        ZeD_BeltHUD._drawBox = function(self, b, ...) seen[#seen + 1] = b.kind; return origBox(self, b, ...) end
+        frame()
+        ZeD_BeltHUD._drawButton, ZeD_BeltHUD._drawBox = origBtn, origBox
+        check("KEYS " .. tag .. " driving: only the five speed keys draw", table.concat(seen, ",") == "speed,speed,speed,speed,speed", table.concat(seen, ","))
+        local same = true
+        for _, b in ipairs(hud._boxes) do
+            if b.kind == "speed" and not (home[b.n] and home[b.n][1] == hud._x + b.x and home[b.n][2] == hud._y + b.y) then same = false end
+        end
+        check("KEYS " .. tag .. " driving: the keys in the very same screen spot", same)
+        local pressed = nil
+        local origKey = B.speedKey
+        B.speedKey = function(n) pressed = n end
+        local k2, sl = nil, nil
+        for _, b in ipairs(hud._boxes) do
+            if b.kind == "speed" and b.n == 2 then k2 = b end
+            if b.kind == "hand" and not sl then sl = b end
+        end
+        check("KEYS " .. tag .. " driving: a click on a key presses it", hud:onMouseDown(k2.x + 1, k2.y + 1) == true and pressed == 2, pressed)
+        check("KEYS " .. tag .. " driving: a click where a hand would be passes through", hud:onMouseDown(sl.x + 2, sl.y + 2) == false)
+        B.speedKey = origKey
+        isClient = function() return true end
+        check("KEYS " .. tag .. " driving on a server: no keys", hud:keysOnly() == false)
+        isClient = function() return false end
+        p.getVehicle = function() return nil end
+        frame()
+        check("KEYS " .. tag .. " out of the car: the whole belt again", hud._drawn == true)
+    end
+    env.simple = false
 end
 
 print(string.format("belt_mods_sim: %d checks, %d failed", checks, failed))

@@ -9,8 +9,9 @@
 -- (ZeD_MessagesWindow.lua) presses its buttons, which still run the mod's
 -- callback. A question still asks at once; its answer is copied here. The game's
 -- own error list is read every two seconds and filed per mod. A toast says
--- what came (ZeD_MessagesWindow.lua draws it); the belt shows a paper note with
--- the count while anything is kept (ZeD_Belt.lua).
+-- what came (ZeD_MessagesWindow.lua draws it); a paper note with the count stands
+-- in the screen's bottom right corner where the game's red error box was, while
+-- anything is new (ZeD_ErrorBox.lua; on the belt before, Nov 22 2026).
 --
 -- Who opened a pop-up: the nearest Lua file on the call stack that belongs to
 -- another mod (the game's call-frame functions; the mod folder in its path).
