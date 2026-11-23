@@ -24,7 +24,7 @@
 --
 -- Two forms (the "Belt" option, a full and a simple version, as the
 -- action bar and the context menu have): Full, the leather strap with each slot's material and the profession buckle;
--- Simple (Lite), the same hands, slots, ammo tab and note with no strap, no buckle and no wrist watch (Lite takes the
+-- Simple (Lite), the same hands, slots and ammo tab with no strap, no buckle and no wrist watch (Lite takes the
 -- watch off the belt: ZeD_Watch.lua W.beltMode), the slots evenly
 -- spaced after the hands, the middle of the slots on the screen's centre (where Full puts its buckle, so the slots
 -- stay put while the hands change). Everything the belt does is the same in both.
@@ -57,8 +57,9 @@ local STRAP_H = 30
 local BOTTOM = 16          -- above the bottom of the screen
 local DRAG_PX = 5          -- design units before a press becomes a drag
 local WRIST = 8            -- the mini watch's gap from its hand circle (WatchMini.lua)
-local LAMP = 38            -- the Messages note (MESSAGES_SPEC.md), last on the right, while Messages keeps anything
--- on a server: the chat key next to the Messages note (LAMP's size), and the PvP marker
+local LAMP = 38            -- an icon button's size: the bag button, the chat key (the Messages note's size: the note is
+                           -- in the screen's corner now, ZeD_ErrorBox.lua; Error box, the director, Nov 22 2026)
+-- on a server: the chat key at the row's right end (LAMP's size), and the PvP marker
 -- (a status dot and "PvP on" / "PvP off", the seconds left while it switches, an outline inside a non-PvP zone)
 local PVP_H, PVP_PAD = 26, 8
 local AMMO_W = 100         -- the ammo tab's words and rounds, one segment per round. The tab comes out from under the
@@ -452,7 +453,7 @@ end
 --                       the condition's graduated colors),
 --                       or nil to leave the item to the next meter and then to ZeD's own condition. where: "slot" or
 --                       "hand". Item Condition Restored (ModSupport/ItemConditionRestored.lua) is the first.
---   B.addBox(id, spec)  a box of the mod's own, a slot's size, after the strap (before the Messages note), while
+--   B.addBox(id, spec)  a box of the mod's own, a slot's size, after the strap (before the speed keys), while
 --                       spec.state(playerObj) returns a table: { item, meter (0..1 or nil: no strip), kind, lit (the
 --                       lamp of a light that is on), badge (a few characters on the box's top left, as a slot's key),
 --                       key (a string: a change lays the belt out again) }. spec.hint(st) words the hover hint;
@@ -485,7 +486,7 @@ end
 -- B.addSplit(id, fn): fn(hud) gives the belt's real Java element while a mod is drawing this frame through a stand-in
 -- of its own (the element moved, or its javaObject swapped for one that changes every draw), for the hotbar's part of
 -- the belt only: the strap, the buckle and the slots take the mod's drawing; the hands, the ammo tab, the watch, the
--- Messages note, the chat key, the PvP marker, other mods' boxes, the hover boxes and the tooltip are drawn on the
+-- bag button, the speed keys, the chat key, the PvP marker, other mods' boxes, the hover boxes and the tooltip are drawn on the
 -- real element at the belt's home. nil: no split this frame. (So Auto-Hide Hotbar hides
 -- the belt's item slots only.)
 B._splits = B._splits or {}
@@ -502,7 +503,8 @@ end
 -- something) fades the belt's parts the same way. spec.frame(hud) runs once at the start of each frame the belt draws
 -- (the mod's own step); spec.alpha(hud, kind, box) returns 0..1 for a part or nil to leave it. kind: "strap" (the
 -- strap and the buckle), "slot" (box.i), "hand" (box.which "p" or "s"), "ammo" (the tab under the main hand), "watch",
--- "lamp" (the Messages note), "chat", "pvp", "extra" (another mod's box). Providers multiply. Every draw of the part
+-- "bag", "speed", "chat", "pvp", "extra" (another mod's box) (the Messages note, "lamp", left the belt for the screen's
+-- corner: ZeD_ErrorBox.lua, Nov 22 2026). Providers multiply. Every draw of the part
 -- goes through a stand-in for the belt's Java element that scales its alpha; a part at 0 is not drawn. While a mod
 -- holds the belt's drawing with B.addSplit (Auto-Hide Hotbar) the fade stands aside for that frame.
 B._alphas = B._alphas or {}
@@ -923,6 +925,23 @@ function ZeD_BeltHUD:wanted()
     return B.hotbar(self.playerNum) ~= nil
 end
 
+-- THE SPEED KEYS STAY PUT (time controls, the director, Nov 22 2026: "put the time controls in the same spot no matter
+-- what"): while the belt hides from the driver (KISS #56) the panel stays up at its home with the speed keys alone,
+-- laid out as the whole belt is, so the keys never move; nothing else of the belt draws or takes a click. Not on a
+-- server (the server sets the time), and not where the whole belt is away for another reason (safe mode, the UI
+-- hidden, the tutorial, no character).
+function ZeD_BeltHUD:keysOnly()
+    -- (the driver's seat first: the cheap test that rules out most ticks)
+    local p = self:player()
+    if not p or p:isDead() then return false end
+    local v = p:getVehicle()
+    if not (v and B.driving(v, p)) then return false end
+    if (isClient and isClient()) or ZeD.Safe.on("belt") then return false end
+    if ISUIHandler and ISUIHandler.allUIVisible == false then return false end
+    if tostring(getCore():getGameMode()) == "Tutorial" then return false end
+    return B.hotbar(self.playerNum) ~= nil
+end
+
 -- The layout, kept while nothing it is built from changes (a draw-cost saving): the token table
 -- (theme, accent, text size, UI scale and art zoom all make a new one), the character, the slots and their kinds,
 -- the worn watch and its plate and wrist; the slots' materials are looked up again every second. Only
@@ -934,7 +953,6 @@ function ZeD_BeltHUD:_layoutCached(slots)
     if ZeD.Watch and ZeD.Watch.beltWatch then wItem, wPlate, wWrist = ZeD.Watch.beltWatch(p) end
     local L = self._lk
     local n = #slots
-    local lamp = ZeD.Messages and ZeD.Messages.count() > 0 or false
     local chat = (ZeD.Chat and ZeD.Chat.onBelt and ZeD.Chat.onBelt()) or false
     local pvp = B.pvpWords(p) or false
     -- (the gun's capacity too: the ammo tab is as wide as its rounds need)
@@ -947,7 +965,7 @@ function ZeD_BeltHUD:_layoutCached(slots)
     local simple = B.simple()
     local xsig = self:_extrasNow(p)    -- (other mods' boxes, B.addBox: which show, and their layout keys)
     local dirty = L == nil or L.T ~= T or L.p ~= p or L.n ~= n or L.wItem ~= wItem or L.wPlate ~= wPlate
-        or L.wWrist ~= wWrist or L.lamp ~= lamp or L.ammo ~= ammo or L.two ~= two or L.simple ~= simple or L.chat ~= chat or L.pvp ~= pvp
+        or L.wWrist ~= wWrist or L.ammo ~= ammo or L.two ~= two or L.simple ~= simple or L.chat ~= chat or L.pvp ~= pvp
         or L.xsig ~= xsig or not self._provAt or now - self._provAt > 1000
     if not dirty then
         local types = L.types
@@ -958,13 +976,13 @@ function ZeD_BeltHUD:_layoutCached(slots)
     end
     if dirty then
         self._tailChat, self._tailPvp = chat, pvp
-        local w, h = self:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
+        local w, h = self:_layout(slots, wItem, wPlate, wWrist, ammo, two)
         local types = {}
         for i = 1, n do
             local s = slots[i]
             types[i] = s and s.slot and s.slot.slotType
         end
-        self._lk = { T = T, p = p, n = n, wItem = wItem, wPlate = wPlate, wWrist = wWrist, lamp = lamp, ammo = ammo, two = two,
+        self._lk = { T = T, p = p, n = n, wItem = wItem, wPlate = wPlate, wWrist = wWrist, ammo = ammo, two = two,
                      simple = simple, types = types, w = w, h = h, chat = chat, pvp = pvp, xsig = xsig }
         return w, h
     end
@@ -1019,25 +1037,29 @@ function ZeD_BeltHUD:_extraMenu(b, pad)
 end
 
 -- Layout: boxes keyed for hit testing; returns the panel size
--- THE GAME'S SPEED KEYS BESIDE THE BELT'S WATCH (KISS #22): a row of five, one press each, as the game's corner keys
+-- THE GAME'S SPEED KEYS AT THE BELT ROW'S RIGHT END (KISS #22; the one place for them, time controls, the director,
+-- Nov 22 2026): a row of five, one press each, as the game's corner keys
 -- (Pause, Play, Fast forward x1 and x2, Wait), the one in use lit. On a server the server sets the time: no row.
 B.SPEED_KEY, B.SPEED_GAP = 20, 2                         -- a key's size and the gap between keys (design units)
--- the gap that sets the bag button off the belt on its left and the Messages note off it on its right: about one
--- icon's worth, the bag button's own size (LAMP) (Belt row, the director, Nov 22 2026)
+-- the gap that sets the bag button off the belt on its left and the speed keys off it on its right: about one
+-- icon's worth, the bag button's own size (LAMP) (Belt row, the director, Nov 22 2026; the speed keys took the
+-- Messages note's place: time controls, the director, Nov 22 2026)
 B.ICON_GAP = LAMP
 B.SPEED_ICONS = { [0] = "pause", "play", "ff1", "ff2", "wait" }
 B.SPEED_WORDS = { [0] = "UI_optionscreen_binding_Pause", "IGUI_BackButton_Play", "IGUI_BackButton_FF1", "IGUI_BackButton_FF2", "IGUI_BackButton_FF3" }
--- the row's boxes from x, first in the belt row, left of the bag button (an END_GAP after it); returns the new x
--- (Belt row, the director, Nov 22 2026: moved from beside the watch, so nothing sits between the bag button and the belt)
+-- the row's boxes from x, on the belt's right, an icon's gap (B.ICON_GAP) after its end; returns the new x
+-- (time controls, the director, Nov 22 2026: "Time controls to the right side of the belt, not on the left. And
+-- since the note's moving into the corner, they can take the spot where the note was.")
 function ZeD_BeltHUD:_speedBoxes(boxes, x, h)
     if isClient() then return x end
     local px = ZeD.T.px
     local k, g = px(B.SPEED_KEY), px(B.SPEED_GAP)
+    x = x + px(B.ICON_GAP)
     for n = 0, 4 do
         boxes[#boxes + 1] = { kind = "speed", n = n, x = x, y = math.floor((h - k) / 2), w = k, h = k }
         x = x + k + ((n < 4) and g or 0)
     end
-    return x + px(END_GAP)
+    return x
 end
 -- the speed in use, as the watch reads it (0 paused .. 4 Wait)
 function B.speedNow()
@@ -1077,6 +1099,30 @@ function B.bagAct(pn, pad)
     if win and F and F.claimFocus then pcall(F.claimFocus, win) end
     if inv and CW.showBagAlone then pcall(CW.showBagAlone, pn, inv) end
 end
+-- THE BUCKLE OPENS INFO (buckle, the director, Nov 22 2026: "Clicking LMB on the belt buckle opens up the character
+-- tab."): a left click on Full's profession buckle opens the Character window on its Info tab (the game's "Info" page,
+-- tab id "identity"), as the game's Info key does: shut, it opens on Info; open on another tab, it goes to Info;
+-- showing Info after this click opened it, it closes again (KISS #25, Overrides/CharacterInfo.lua openTab's toggle).
+-- Lite has no buckle. The buckle is not a pad stop (the pad walks the boxes).
+B.BUCKLE_TAB = "identity"
+function B.buckleAct(pn)
+    pcall(function() ZeD.uiSound("UIActivateButton") end)
+    local CW = ZeD_CharacterWindow
+    local ok, done = false, false
+    if CW and CW.openTab then ok, done = pcall(CW.openTab, pn or 0, B.BUCKLE_TAB, true) end
+    if ok and done then return end
+    -- (ZeD's windows given back: the game's own window on its Info page, as the game's key opens it)
+    pcall(function()
+        local w = getPlayerInfoPanel(pn or 0)
+        if w then w:toggleView(xpSystemText and xpSystemText.info or getText("IGUI_XP_Info")) end
+    end)
+end
+-- true over the buckle's place (Full only: Lite has none), x and y in the belt's pixels
+function ZeD_BeltHUD:_overBuckle(x, y)
+    local k = self._buckle
+    return k ~= nil and not B.simple() and x >= k.x and x < k.x + k.w and y >= k.y and y < k.y + k.h
+end
+
 -- the bag button's hover words: the game's "Inventory" and its key, or the picked bag's name
 function B.bagWords(pn)
     local okP, pick = pcall(B.bagChosen, getSpecificPlayer(pn or 0), pn)
@@ -1143,13 +1189,19 @@ function B.bagMenu(pn, x, y)
     local p = getSpecificPlayer(pn or 0)
     if not p then return nil end
     local ctx = ISContextMenu.get(pn or 0, x, y)
+    -- the rows in the order added (the Pocket first), each drawn with its own icon, not ZeD's name-to-icon map
+    -- (QA belt row run, Nov 22 2026)
+    ctx.zedKeepOrder = true
     for _, e in ipairs(B.bagList(p)) do
         local opt = ctx:addOption(e.name, nil, B.bagPick, pn or 0, e.id, e.ftype)
         opt.iconTexture = e.tex
     end
     return ctx
 end
-function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
+-- (the row, left to right: the bag button, an icon's gap, the belt, an icon's gap, the speed keys (always, none on a
+-- server), then the chat key and the PvP marker on a server. The Messages note left the row for the screen's corner:
+-- ZeD_ErrorBox.lua, Error box, the director, Nov 22 2026)
+function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, ammo, two)
     local T = ZeD.T
     local px = T.px
     local n = #slots
@@ -1172,10 +1224,9 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     local handY = math.floor((h - hand) / 2)
     local by = math.floor((h - box) / 2)
     local watchBox = wItem and { kind = "watch", item = wItem, plate = wPlate, wrist = wWrist, y = math.floor((h - mh) / 2), w = mw, h = mh } or nil
-    -- the game's speed keys, first, while he wears a watch (KISS #22), then the bag button: one click or one A opens
-    -- both windows (KISS #16), then a gap of one icon (the bag button's size) before the belt (Belt row, the
-    -- director, Nov 22 2026: "it adds a little separation from the belt")
-    if watchBox then x = self:_speedBoxes(boxes, x, h) end
+    -- the bag button first: one click or one A opens both windows (KISS #16), then a gap of one icon (the bag
+    -- button's size) before the belt (Belt row, the director, Nov 22 2026: "it adds a little separation from the
+    -- belt"). The speed keys are on the belt's right now (time controls, the director, Nov 22 2026)
     local bagW = px(LAMP)
     boxes[#boxes + 1] = { kind = "bag", x = x, y = math.floor((h - bagW) / 2), w = bagW, h = bagW }
     x = x + bagW + px(B.ICON_GAP)
@@ -1230,12 +1281,10 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
         if n > 0 then x = x - px(SIMPLE_GAP) end
         self._anchorX = math.floor((slotsX + x) / 2)
         x = self:_extraBoxes(boxes, x, by, box)
-        if lamp then
-            x = x + px(B.ICON_GAP)   -- (an icon's gap off the belt: Belt row, the director, Nov 22 2026)
-            local lw = px(LAMP)
-            boxes[#boxes + 1] = { kind = "lamp", x = x, y = math.floor((h - lw) / 2), w = lw, h = lw }
-            x = x + lw
-        end
+        -- the game's speed keys (KISS #22), always, an icon's gap off the belt where the Messages note was: the one
+        -- place for the time controls (time controls, the director, Nov 22 2026: "put the time controls in the same spot
+        -- no matter what"; none on a server, _speedBoxes)
+        x = self:_speedBoxes(boxes, x, h)
         x = self:_tailBoxes(boxes, x, h)
         self._boxes = boxes
         self._strap, self._buckle, self._runs, self._closure = nil, nil, nil, nil
@@ -1271,13 +1320,10 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     local strapW = x - strapX
     -- other mods' boxes (B.addBox), past the strap's end
     x = self:_extraBoxes(boxes, x, by, box)
-    -- the Messages note, last on the right, past the strap's end (only while Messages keeps anything)
-    if lamp then
-        x = x + px(B.ICON_GAP)   -- (an icon's gap off the belt: Belt row, the director, Nov 22 2026)
-        local lw = px(LAMP)
-        boxes[#boxes + 1] = { kind = "lamp", x = x, y = math.floor((h - lw) / 2), w = lw, h = lw }
-        x = x + lw
-    end
+    -- the game's speed keys (KISS #22), always, an icon's gap past the strap's end where the Messages note was: the one
+    -- place for the time controls (time controls, the director, Nov 22 2026: "put the time controls in the same spot no
+    -- matter what"; none on a server, _speedBoxes)
+    x = self:_speedBoxes(boxes, x, h)
     x = self:_tailBoxes(boxes, x, h)
     self._boxes = boxes
     local strapH = STRAP_H * T.art   -- the strap art's height at its whole zoom (STRAP_TEX_H texels)
@@ -1346,7 +1392,7 @@ end
 -- What a box would do with the current drag: "fit" / "no" / nil
 function ZeD_BeltHUD:_dropState(b, items)
     if not items then return nil end
-    if b.kind == "bag" or b.kind == "speed" or b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" or b.kind == "chat" or b.kind == "pvp" or b.kind == "extra" then return "no" end
+    if b.kind == "bag" or b.kind == "speed" or b.kind == "watch" or b.kind == "ammo" or b.kind == "chat" or b.kind == "pvp" or b.kind == "extra" then return "no" end
     if b.kind == "hand" then
         for _, it in ipairs(items) do if B.handTakes(it) then return "fit", it end end
         return "no"
@@ -1933,7 +1979,8 @@ function B.pvpWords(p)
     return t .. (pv.zone and "|z" or "")
 end
 
--- the tail after the Messages note: the chat key, then the PvP marker; returns the new x
+-- the tail at the row's right end (after the belt, or the speed keys): the chat key, then the PvP marker; returns the
+-- new x
 function ZeD_BeltHUD:_tailBoxes(boxes, x, h)
     local T = ZeD.T
     local px = T.px
@@ -1957,7 +2004,7 @@ function ZeD_BeltHUD:_tailBoxes(boxes, x, h)
     return x
 end
 
--- the chat key: a box with a speech balloon in whole pixels and the count of new lines, as the Messages note
+-- the chat key: a box with a speech balloon in whole pixels and the count of new lines, as the Messages notice
 function ZeD_BeltHUD:_drawChat(b, focus, hover)
     local T = ZeD.T
     local s1, bd, ac = T.surf1, T.borderS, T.accent
@@ -2052,39 +2099,8 @@ function B.lampTone()
     return nil
 end
 
--- the Messages note (MESSAGES_SPEC.md): a box with a paper note (the map flyer's, no pin) and the count of what is
--- new (the danger red when an error is new, the accent for a note)
-local lampTex = nil
-function ZeD_BeltHUD:_drawLamp(b, focus, hover)
-    local T = ZeD.T
-    local s1, bd, ac = T.surf1, T.borderS, T.accent
-    self:drawRect(b.x, b.y, b.w, b.h, 0.92, s1.r, s1.g, s1.b)
-    if focus then padMark(self, b, false)
-    elseif hover then hoverWash(self, b, false) end
-    self:drawRectBorder(b.x, b.y, b.w, b.h, 1, bd.r, bd.g, bd.b)
-    -- the map's flyer note without its pin, pixel art at a whole zoom
-    if lampTex == nil then lampTex = getTexture("media/textures/ZeD/icons/msg_note.png") or false end
-    if lampTex then
-        local k = math.max(1, math.floor(b.h * 0.75 / 14))
-        local iw, ih = 13 * k, 14 * k
-        self:drawTextureScaledAspect(lampTex, b.x + math.floor((b.w - iw) / 2), b.y + math.floor((b.h - ih) / 2), iw, ih, 1, 1, 1, 1)
-    end
-    local un = ZeD.Messages.unread()
-    if un > 0 then
-        local t = tostring(un > 99 and "99" or un)
-        local f = T.fontF1
-        local tw, th = ZeD.TM:MeasureStringX(f, t), ZeD.TM:getFontHeight(f)
-        local pw, ph = tw + T.px(6), th + T.px(2)
-        local bx, by = b.x + b.w - pw + T.px(4), b.y - T.px(4)
-        -- red only for a new error of ZeD's own, the accent for a new note; only other mods' (or the game's) new
-        -- errors: gray, nothing he can fix (KISS #42)
-        local tone = B.lampTone()
-        local c = (tone == "ours" and T.danger) or (tone == "note" and ac) or T.textDim
-        local ink = T.base or { r = 0.05, g = 0.05, b = 0.05 }
-        self:drawRect(bx, by, pw, ph, 1, c.r, c.g, c.b)
-        self:drawText(t, bx + T.px(3), by + T.px(1), ink.r, ink.g, ink.b, 1, f)
-    end
-end
+-- (the Messages note that stood here is the notice in the screen's corner now, ZeD_ErrorBox.lua; B.lampTone above
+-- still says its count's color: Error box, the director, Nov 22 2026)
 
 -- the gun's state (B.ammo), counted again every AMMO_MS and at once when the main hand changes
 function ZeD_BeltHUD:_ammoState(p)
@@ -2264,7 +2280,13 @@ function ZeD_BeltHUD:_prerender()
         self._out, self._press = nil, nil
         self:setCapture(false)
     end
-    if not self:wanted() then self._drawn = false; return end
+    -- (the driver: the speed keys alone, in their own place: keysOnly)
+    local keysOnly = false
+    if not self:wanted() then
+        self._drawn = false
+        keysOnly = self:keysOnly()
+        if not keysOnly then self._keysDrawn = false; return end
+    end
     if ZeD.trTestOn then ZeD.trTestOn() end   -- keeps the test-language state fresh for the kept names
     local slots = B.slots(self.playerNum)
     local w, h = self:_layoutCached(slots)
@@ -2286,6 +2308,8 @@ function ZeD_BeltHUD:_prerender()
     end
     if self:getWidth() ~= w then self:setWidth(w) end
     if self:getHeight() ~= h then self:setHeight(h) end
+    self._keysDrawn = true
+    if keysOnly then self:_drawKeysOnly(); return end
     self._drawn = true
     -- (B.addAlpha: a mod that fades the HUD; its steps for this frame)
     if #B._alphas > 0 then B.alphaFrame(self) else self._alphaOn = false end
@@ -2348,9 +2372,6 @@ function ZeD_BeltHUD:_prerender()
             local lit = (sp == b.n) or (b.n == 4 and sp > 4)
             self:_drawButton(b, gpTarget == b, b == over and not dragging, B.SPEED_ICONS[b.n], lit)
             if b == over and not dragging then self._hover = { b = b } end
-        elseif b.kind == "lamp" then
-            self:_drawLamp(b, gpTarget == b, b == over and not dragging)
-            if b == over and not dragging then self._hover = { b = b } end
         elseif b.kind == "chat" then
             self:_drawChat(b, gpTarget == b, b == over and not dragging)
             if b == over and not dragging then self._hover = { b = b } end
@@ -2386,7 +2407,7 @@ function ZeD_BeltHUD:_prerender()
             o.item, o.key, o.label, o.inHand = s.item, s.key, s.short, s.inHand
             o.lit = s.item and not instanceof(s.item, "HandWeapon") and call(s.item, "canBeActivated") and call(s.item, "isActivated")
         end
-        if b.kind ~= "bag" and b.kind ~= "speed" and b.kind ~= "watch" and b.kind ~= "lamp" and b.kind ~= "ammo" and b.kind ~= "chat" and b.kind ~= "pvp" then
+        if b.kind ~= "bag" and b.kind ~= "speed" and b.kind ~= "watch" and b.kind ~= "ammo" and b.kind ~= "chat" and b.kind ~= "pvp" then
             -- a drag in progress lights the boxes that take it (and dims the rest)
             if dragging then
                 local st = self:_dropState(b, dragging)
@@ -2433,9 +2454,9 @@ function ZeD_BeltHUD:_prerender()
         hintKey, hintText = "bag", B.bagWords(self.playerNum)
     elseif hv and hv.b.kind == "speed" then
         hintKey, hintText = "speed" .. hv.b.n, getText(B.SPEED_WORDS[hv.b.n])
-    elseif hv and hv.b.kind == "lamp" then
-        local un = ZeD.Messages.unread()
-        hintKey, hintText = "lamp", ZeD.tr(un > 0 and "UI_ZeD_Msg_LampNew" or "UI_ZeD_Msg_Title", un)
+    elseif not hv and not dragging and not self._out and self:_overBuckle(mx, my) then
+        -- the buckle: the tab its click opens, the game's word for it (buckle, the director, Nov 22 2026)
+        hintKey, hintText = "buckle", getText("IGUI_XP_Info")
     elseif hv and hv.b.kind == "chat" then
         local un = ZeD.Chat and ZeD.Chat.unread and ZeD.Chat.unread() or 0
         hintKey, hintText = "chat", ZeD.tr(un > 0 and "UI_ZeD_Chat_KeyNew" or "UI_ZeD_Chat_Title", un)
@@ -2471,9 +2492,10 @@ function ZeD_BeltHUD:_prerender()
         hintKey, hintText = "watchpad", ZeD.tr("UI_ZeD_Belt_WatchFull", call(gpTarget.item, "getDisplayName") or ZeD.tr("UI_ZeD_Belt_Watch"))
     end
     -- the hint's balloon stands above its box; the game's item box stands above the balloon
-    local hb = (hv and hv.b) or (hintText and gpTarget) or nil
+    local hb = (hv and hv.b) or (hintKey == "buckle" and self._buckle) or (hintText and gpTarget) or nil
     if hintText and hb then
-        A.requestHint(self, hintKey, hintText, self, hb, (not hv) and HINT_NOW or nil)
+        -- (the pointer on the buckle waits the usual hover delay; the pad's focus shows at once)
+        A.requestHint(self, hintKey, hintText, self, hb, (not hv and hintKey ~= "buckle") and HINT_NOW or nil)
         local hc = self._hintC
         if not hc or hc.title ~= hintText then hc = { kind = "plain", title = hintText }; self._hintC = hc end
         tipUp = ZeD.Balloon and ZeD.Balloon.stackHeight(hc) or nil
@@ -2499,6 +2521,23 @@ function ZeD_BeltHUD:_prerender()
 end
 
 function ZeD_BeltHUD:render() end
+
+-- the driver's frame (keysOnly): the speed keys where the whole belt puts them, their hover wash and hint, nothing else
+-- (time controls, the director, Nov 22 2026)
+function ZeD_BeltHUD:_drawKeysOnly()
+    local mx, my = self:getMouseX(), self:getMouseY()
+    local over = nil
+    local sp = B.speedNow()
+    for _, b in ipairs(self._boxes) do
+        if b.kind == "speed" then
+            local hover = mx >= b.x and my >= b.y and mx < b.x + b.w and my < b.y + b.h
+            if hover then over = b end
+            self:_drawButton(b, false, hover, B.SPEED_ICONS[b.n], (sp == b.n) or (b.n == 4 and sp > 4))
+        end
+    end
+    if over then ZeD.Atoms.requestHint(self, "speed" .. over.n, getText(B.SPEED_WORDS[over.n]), self, over, nil) end
+    ZeD.Focus.drawOverlay(self, self)
+end
 
 -- THE HELD ITEM'S CARD (punch list 135; the director, Nov 9 2026: "Balloon it too"; Nov 11, after hovering the main
 -- hand with an item held: "belt tooltips for items is still vanilla game UI"; rulings: the loot card, Alt for the
@@ -2544,16 +2583,18 @@ end
 -- Mouse (a top-level panel gets its own events; clicks off a box pass through)
 -- ----------------------------------------------------------------------------
 function ZeD_BeltHUD:onMouseDown(x, y)
-    if not self._drawn then return false end
+    if not self._drawn then
+        -- the driver's speed keys alone (keysOnly): only they take a click
+        if not self._keysDrawn then return false end
+        local k = self:boxAt(x, y)
+        if k and k.kind == "speed" then B.speedKey(k.n); return true end
+        return false
+    end
     local b = self:boxAt(x, y)
+    if not b and self:_overBuckle(x, y) then B.buckleAct(self.playerNum); return true end   -- (the buckle: Info)
     if not b then return false end
     if b.kind == "bag" then B.bagAct(self.playerNum, false); return true end   -- (KISS #16)
     if b.kind == "speed" then B.speedKey(b.n); return true end              -- (KISS #22)
-    if b.kind == "lamp" then
-        pcall(function() ZeD.uiSound("UIActivateButton") end)
-        ZeD.Messages.open()
-        return true
-    end
     if b.kind == "chat" or b.kind == "pvp" then
         pcall(function() ZeD.uiSound("UIActivateButton") end)
         B.tailAct(b.kind)
@@ -2657,7 +2698,7 @@ function ZeD_BeltHUD:onRightMouseUp(x, y)
     if not b then return false end
     -- the bag button: the list of the Pocket and his bags, to pick the button's (Belt row, the director, Nov 22 2026)
     if b.kind == "bag" then B.bagMenu(self.playerNum, getMouseX(), getMouseY()); return true end
-    if b.kind == "speed" or b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" or b.kind == "chat" or b.kind == "pvp" then return true end
+    if b.kind == "speed" or b.kind == "watch" or b.kind == "ammo" or b.kind == "chat" or b.kind == "pvp" then return true end
     if b.kind == "extra" then self:_extraMenu(b, false); return true end
     local p = self:player()
     if b.kind == "slot" then
@@ -2680,7 +2721,7 @@ function B.takeDrop(playerNum, items)
     -- (KISS #41) paused, a drop on the belt does nothing (it would equip): taken, so it doesn't fall to the floor
     if ZeD.PausedLook and ZeD.PausedLook.on and ZeD.PausedLook.on() == true then return true end
     local b = hud:boxAt(mx, my)
-    if not b or b.kind == "bag" or b.kind == "speed" or b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" or b.kind == "chat" or b.kind == "pvp" or b.kind == "extra" then return true end   -- over the strap, the watch, the ammo box or the Messages note: no drop to the floor either
+    if not b or b.kind == "bag" or b.kind == "speed" or b.kind == "watch" or b.kind == "ammo" or b.kind == "chat" or b.kind == "pvp" or b.kind == "extra" then return true end   -- over the strap, the watch, the ammo box, a key: no drop to the floor either
     local st, it = hud:_dropState(b, items)
     if st ~= "fit" then return true end
     if b.kind == "hand" then
@@ -2726,7 +2767,7 @@ end
 -- ----------------------------------------------------------------------------
 function ZeD_BeltHUD:_gpBox()
     local g = self._gp
-    if not g then return nil end
+    if not g or g.notice then return nil end   -- (on the Messages notice: no belt box has the pad)
     return self._boxes[g.idx]
 end
 
@@ -2750,6 +2791,7 @@ end
 -- (control returns to the spot it came from)
 function ZeD_BeltHUD:_leavePad()
     self._gp = nil
+    if ZeD.ErrorBox and ZeD.ErrorBox.setPad then ZeD.ErrorBox.setPad(false) end   -- (off the Messages notice too)
     -- (the full watch opened from here holds the pad: it is the watch's to give back, never taken from it here)
     local jd = JoypadState and JoypadState.players and JoypadState.players[(self.playerNum or 0) + 1]
     local wi = ZeD.Watch and ZeD.Watch.getInstance and ZeD.Watch.getInstance()
@@ -2772,21 +2814,35 @@ function ZeD_BeltHUD:_padStep(i, d)
     while self._boxes[i] and self._boxes[i].kind == "ammo" do i = i + d end
     return self._boxes[i] and i or nil
 end
+-- THE MESSAGES NOTICE ON THE PAD: past the row's right end the pad steps onto the notice in the screen's corner (the
+-- Messages note that was the row's last box, ZeD_ErrorBox.lua) while it shows; A opens Messages, Left comes back to
+-- the row, anything else leaves. (Error box, the director, Nov 22 2026)
+function ZeD_BeltHUD:_padNotice(on)
+    local g = self._gp
+    if g then g.notice = on and true or nil end
+    local E = ZeD.ErrorBox
+    if E and E.setPad then E.setPad(on) end
+end
 function ZeD_BeltHUD:onJoypadDirLeft()
     local g = self._gp
     if not g or g.inList then return end
+    if g.notice then self:_padNotice(false); return end   -- (back on the row's last box)
     local i = self:_padStep(g.idx, -1)
     if i then g.idx = i else self:_leavePad() end
 end
 function ZeD_BeltHUD:onJoypadDirRight()
     local g = self._gp
     if not g or g.inList then return end
+    if g.notice then self:_leavePad(); return end
     local i = self:_padStep(g.idx, 1)
-    if i then g.idx = i else self:_leavePad() end
+    if i then g.idx = i; return end
+    local E = ZeD.ErrorBox
+    if E and E.padReach and E.padReach(self.playerNum) then self:_padNotice(true) else self:_leavePad() end
 end
 function ZeD_BeltHUD:onJoypadDirUp()
     local g = self._gp
     if not g then return end
+    if g.notice then self:_leavePad(); return end
     if not g.inList then
         if #g.list > 0 then g.inList, g.row = true, #g.list else self:_leavePad() end
     elseif g.row > 1 then g.row = g.row - 1 end
@@ -2794,7 +2850,7 @@ end
 function ZeD_BeltHUD:onJoypadDirDown()
     local g = self._gp
     if not g then return end
-    if not g.inList then self:_leavePad(); return end
+    if g.notice or not g.inList then self:_leavePad(); return end
     if g.row < #g.list then g.row = g.row + 1 else g.inList = false end
 end
 
@@ -2805,6 +2861,15 @@ function ZeD_BeltHUD:onJoypadDown(button, joypadData)
     local p = self:player()
     if button == Joypad.BButton then
         if g.inList then g.inList = false else self:_leavePad() end
+        return
+    end
+    if g.notice then
+        -- A on the Messages notice: Messages opens, as a click on it (the belt's note's A before)
+        if button == Joypad.AButton then
+            self:_leavePad()
+            local E = ZeD.ErrorBox
+            if E and E.press then E.press() end
+        end
         return
     end
     if g.inList then
@@ -2834,10 +2899,6 @@ function ZeD_BeltHUD:onJoypadDown(button, joypadData)
     end
     if b.kind == "speed" then
         if button == Joypad.AButton then B.speedKey(b.n) end   -- (KISS #22)
-        return
-    end
-    if b.kind == "lamp" then
-        if button == Joypad.AButton then ZeD.Messages.open() end
         return
     end
     if b.kind == "chat" or b.kind == "pvp" then
@@ -2969,27 +3030,16 @@ end
 -- pn: the local player's number (nil: the first player's belt)
 function B.getHUD(pn) return B._huds[pn or 0] end
 
--- Where ZeD's notices come out. Every notice is a speech or thought bubble popping out of the one notification
--- icon that keeps errors and other mods' pop-ups, so they all come from one
--- place: the top middle of the Messages note on the belt, in screen pixels, while the belt and its note are on
--- the screen; nil otherwise (in a vehicle seat, the UI hidden, safe mode, nothing kept: ZeD_MessagesWindow's
--- bubbles then come from the bottom middle of the screen, above the dash when one shows).
--- pn: the player the notice is for: that player's belt (B._huds[pn], a belt per player), else player one's
-function B.noteAnchor(pn)
-    local hud = B._huds and B._huds[pn or 0]
-    if not hud then hud = (B._huds and B._huds[0]) or B._hud end
-    if not (hud and hud._drawn and hud:getIsVisible()) then return nil end
-    for _, b in ipairs(hud._boxes or {}) do
-        if b.kind == "lamp" then return hud:getX() + b.x + math.floor(b.w / 2), hud:getY() + b.y end
-    end
-    return nil
-end
+-- (Where ZeD's notices come out was the belt's Messages note, B.noteAnchor; the note is the notice in the screen's
+-- corner now and the balloons come out of it: ZeD.ErrorBox.anchor. Error box, the director, Nov 22 2026)
 
 -- hidden while it should not show (a top-level panel would still catch clicks)
 local function visibilityTick()
     for _, hud in pairs(B._huds) do
         local want = hud:wanted()
-        if want ~= hud:getIsVisible() then hud:setVisible(want) end
+        -- (the driver keeps the panel up for the speed keys alone, keysOnly: time controls, the director, Nov 22 2026)
+        local vis = want or (hud.keysOnly ~= nil and hud:keysOnly())
+        if vis ~= hud:getIsVisible() then hud:setVisible(vis) end
         -- back home between frames (a mod that slides the belt while it draws: Auto-Hide Hotbar; _prerender)
         if want and hud._homeX and (hud:getX() ~= hud._homeX or hud:getY() ~= hud._homeY) then
             hud:setX(hud._homeX); hud:setY(hud._homeY)

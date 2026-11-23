@@ -610,6 +610,9 @@ for _, sc in ipairs({
     { "screenWheels",    "wheels",    "UI_ZeD_Settings_ScreenWheels" },
     { "screenCharInfo",  "charinfo",  "UI_ZeD_Settings_ScreenCharInfo" },
     { "screenConsole",   "console",   "UI_ZeD_Settings_ScreenConsole" },   -- (debug mode only: the Lua console)
+    -- (the game's red error box: ZeD hides it and stands its own notice there; On brings the game's box back,
+    -- ZeD_ErrorBox.lua) (Error box, the director, Nov 22 2026)
+    { "screenErrorBox",  "errorbox",  "UI_ZeD_Settings_ScreenErrorBox" },
 }) do
     local o = opts:addComboBox(sc[1], ZeD.tr(sc[3]), ZeD.tr(sc[3] .. "Tip"))
     o:addItem(getText("UI_Off"), true)   -- default: ZeD's
@@ -834,7 +837,8 @@ do
         screenWindows = "UI_ZeD_Settings_ScreenWindows", screenBelt = "UI_ZeD_Settings_ScreenBelt",
         screenWatch = "UI_ZeD_Settings_ScreenWatch", screenDashboard = "UI_ZeD_Settings_ScreenDashboard",
         screenMoodles = "UI_ZeD_Settings_ScreenMoodles", screenWheels = "UI_ZeD_Settings_ScreenWheels",
-        screenCharInfo = "UI_ZeD_Settings_ScreenCharInfo", screenConsole = "UI_ZeD_Settings_ScreenConsole", beltStyle = "UI_ZeD_Settings_Belt",
+        screenCharInfo = "UI_ZeD_Settings_ScreenCharInfo", screenConsole = "UI_ZeD_Settings_ScreenConsole",
+        screenErrorBox = "UI_ZeD_Settings_ScreenErrorBox", beltStyle = "UI_ZeD_Settings_Belt",
         devicesStyle = "UI_ZeD_Settings_Devices", watchStyle = "UI_ZeD_Settings_WatchStyle", dashStyle = "UI_ZeD_Settings_Dash",
         guideStyle = "UI_ZeD_Settings_Guide", modsStyle = "UI_ZeD_Settings_Mods", identityStyle = "UI_ZeD_Settings_Identity",
         hiddenFacts = "UI_ZeD_Settings_HiddenFacts",
