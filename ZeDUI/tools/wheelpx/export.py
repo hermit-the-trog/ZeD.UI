@@ -51,7 +51,7 @@ def main(game=False):
             im.save(path, optimize=True); written += 1
     for id_ in kit.ICONS:      # (a HOLES icon's base leaves its mark's pixels clear: marks.base_image)
         save(id_, MK.base_image(id_, 16), MK.base_image(id_, 24))
-    for id_ in MK.MARKS:
+    for id_ in list(MK.MARKS) + list(MK.STRIP):     # (STRIP: the inventory strips' own marks, Nov 22 2026)
         save(id_ + "_mk", MK.mark_image(id_, 16), MK.mark_image(id_, 24))
     used = M.used()
     data = {
@@ -109,6 +109,14 @@ def write_ctx_lua():
               "-- as blue and red).",
               "ZeD.PxIconMark = {"]
     for i in sorted(MK.MARKS): lines.append('    ["%s"] = "%s",' % (i, MK.MARKS[i]))
+    lines.append("}")
+    lines += ["",
+              "-- ZeD.PxIconStripMark: the inventory lists' heading and footer band icons (the Filter, the",
+              "-- view button, Same type, the object buttons) whose mark only those strips color, in the",
+              "-- menus' palette and meanings (Icon color, the director, Nov 22 2026). The menus and the",
+              "-- wheels draw these icons in ink as before. Their marks' pictures sit with the menus'.",
+              "ZeD.PxIconStripMark = {"]
+    for i in sorted(MK.STRIP): lines.append('    ["%s"] = "%s",' % (i, MK.STRIP[i]))
     lines.append("}")
     with open(CTX_LUA, "w", encoding="utf-8", newline="\n") as f: f.write("\n".join(lines) + "\n")
     print(CTX_LUA, len(M.CTX), "pictures")

@@ -518,3 +518,21 @@ ZeD.PxIconMark = {
     ["zoom_in"] = "blue",
     ["zoom_out"] = "red",
 }
+
+-- ZeD.PxIconStripMark: the inventory lists' heading and footer band icons (the Filter, the
+-- view button, Same type, the object buttons) whose mark only those strips color, in the
+-- menus' palette and meanings (Icon color, the director, Nov 22 2026). The menus and the
+-- wheels draw these icons in ink as before. Their marks' pictures sit with the menus'.
+ZeD.PxIconStripMark = {
+    ["campfire"] = "gold",
+    ["extinguisher"] = "red",
+    ["filter"] = "blue",
+    ["gears"] = "gold",
+    ["match"] = "gold",
+    ["padlock"] = "gold",
+    ["power"] = "gold",
+    ["same_nearby"] = "red",
+    ["same_type"] = "blue",
+    ["view_grid"] = "blue",
+    ["view_list"] = "blue",
+}

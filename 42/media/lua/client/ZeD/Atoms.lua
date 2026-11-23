@@ -349,10 +349,14 @@ function PXI.warm(box)
     local function ask(id)
         local base = PXI.DIR .. size .. "/zw_" .. id
         pcall(Texture.getSharedTexture, base .. ".png", 3)
-        if ZeD.PxIconMark and ZeD.PxIconMark[id] then pcall(Texture.getSharedTexture, base .. "_mk.png", 3) end
+        if (ZeD.PxIconMark and ZeD.PxIconMark[id]) or (ZeD.PxIconStripMark and ZeD.PxIconStripMark[id]) then
+            pcall(Texture.getSharedTexture, base .. "_mk.png", 3)
+        end
     end
     for _, id in pairs(map) do ask(id) end
     for _, id in ipairs(WARM_EXTRA) do ask(id) end
+    -- (the inventory strips' icons and their marks: Icon color, the director, Nov 22 2026)
+    for id in pairs(ZeD.PxIconStripMark or {}) do ask(id) end
 end
 
 --- Warm at the strip's and list's icon box (T.px(16)) now. (QA B8-2)
@@ -367,11 +371,13 @@ if Events and Events.OnGameStart then Events.OnGameStart.Add(PXI.warmNow) end
 --- "remove" as red), or nil when it has none.
 --- set: the theme's set { blue =, red =, gold = } (T.marks, on a theme surface; an older pair { add =, remove = }
 --- still works), or nil for the paper's set (ZeD.Ctx.markBlue / markRed / markGold: the strip and the wheels).
+--- kind: the mark's color named by the caller ("blue", "red" or "gold"), in place of ZeD.PxIconMark's: the inventory
+--- strips' buttons (ZeD.PxIconStripMark, a Same type that puts in). (Icon color, the director, Nov 22 2026)
 local MARK_KIND = { add = "blue", remove = "red", blue = "blue", red = "red", gold = "gold" }
 local MARK_PAPER = { blue = "markBlue", red = "markRed", gold = "markGold" }
 local MARK_OLD = { blue = "add", red = "remove" }
-function PXI.markColor(id, set)
-    local kind = id and ZeD.PxIconMark and MARK_KIND[ZeD.PxIconMark[id]]
+function PXI.markColor(id, set, kind)
+    kind = MARK_KIND[kind or (id and ZeD.PxIconMark and ZeD.PxIconMark[id])]
     if not kind then return nil end
     if type(set) == "table" then
         local c = set[kind] or (MARK_OLD[kind] and set[MARK_OLD[kind]])
@@ -387,14 +393,16 @@ end
 --- (zw_<id>_mk.png at the same size) over the whole icon: true for the paper's set, or a set { blue =, red =, gold = }
 --- (T.marks on a theme surface). Callers ask for it at rest only: a pointed cell or row draws the whole icon in its
 --- one tint, marks included.
-function ZeD.Atoms.drawPxIcon(panel, id, x, y, box, alpha, tint, marks)
+--- markKind: the mark's color by name, in place of ZeD.PxIconMark's (PXI.markColor; the inventory strips: Icon color,
+--- the director, Nov 22 2026).
+function ZeD.Atoms.drawPxIcon(panel, id, x, y, box, alpha, tint, marks, markKind)
     local tex, s = PXI.tex(id, box)
     if not tex then return end
     local c = tint or ZeD.T.text
     local o = math.floor((box - s) / 2)
     panel:drawTextureScaledAspect(tex, x + o, y + o, s, s, alpha or 1, c.r, c.g, c.b)
     if marks then
-        local mc = PXI.markColor(id, marks)
+        local mc = PXI.markColor(id, marks, markKind)
         local mt = mc and pxTex(s, id .. "_mk")
         if mt then panel:drawTextureScaledAspect(mt, x + o, y + o, s, s, alpha or 1, mc.r, mc.g, mc.b) end
     end

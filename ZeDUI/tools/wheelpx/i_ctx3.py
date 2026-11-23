@@ -191,7 +191,8 @@ def filter_(c, s):
     u = U(s)
     c.poly(P(s, [(1.5, 1.5), (14.5, 1.5), (9.2, 7.5), (9.2, 10), (6.8, 10), (6.8, 7.5)]))
     c.rect(u(1.5), u(3), u(14.5) - u(1.5), W(s, 1, 1.5), v=0)                    # its rim
-    drop(c, s, 8, 11, 4.6)
+    with c.mark():   # (the drop: the strips' blue, the heading's Filter; Icon color, the director, Nov 22 2026)
+        drop(c, s, 8, 11, 4.6)
 
 
 @icon("watering_can", "ctx3", "a watering can, its spout and rose: water a plant, pour water", ["Pour Water", "Water Plant"])

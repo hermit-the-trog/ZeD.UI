@@ -1043,6 +1043,9 @@ paths are in each commit's code comments, tagged `(KISS #N)`; QA fills the colum
 | Passenger keeps the belt, no dash | ZeD_Belt.lua, ZeD_Dashboard.lua | - | - | - | - | - | elsewhere: the K3 proof run, vk3_screen.lua (KISS #56) |
 | Turn on only turns the stove on | Overrides/Stations.lua, FacePop.lua | - | - | - | - | - | elsewhere: the K3 proof run, vk3_craft.lua (KISS #58) |
 
+| Each Loot column's heading has its own Take all | ContainerControls.lua, InventoryRenderer.lua | - | - | - | - | - | TODO |
+| Pad: Up from the window's top wraps to the footer band; Down from the band goes to the list's top row | Input/FocusManager.lua | - | - | - | - | - | TODO |
+| Heading and footer icons carry the menu's touch of color (strip marks) | Molecules.lua, Atoms.lua, ContextPxIcons.lua | - | - | - | - | - | TODO |
 ## Multiplayer, main menu and add-ons
 
 Paths are under `42/media/lua/client/ZeD/` unless shown (`shared/` = `42/media/lua/shared/ZeD/`). Line numbers are from the Nov 18 2026 tree.

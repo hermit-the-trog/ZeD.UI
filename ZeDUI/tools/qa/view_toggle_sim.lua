@@ -264,6 +264,49 @@ for _, r in ipairs(G2.toggles) do lastR = math.max(lastR, r.x + r.w) end
 check("ORDER compact: icon, name and weight right of the buttons", ic2[1] and ic2[1] > lastR and at2["Crate"] > ic2[1]
     and at2["12.5 / 20"] and at2["12.5 / 20"] > lastR, tostring(ic2[1]) .. " " .. tostring(at2["Crate"]) .. " " .. tostring(at2["12.5 / 20"]))
 
+section("COLUMN LOOT")
+-- (Header order, the director, Nov 22 2026: a Loot view of several columns has no footer band, so each column's
+-- heading has its own Take all, first among its buttons, taking from that column's container into the bag on show)
+do
+    local G3 = placed(true, true)
+    check("COLUMN LOOT: a column's heading leads with its Take all", G3.toggles[1] and G3.toggles[1].view == "lootall"
+        and G3.toggles[1].key == CRATE and G3.toggles[1].x == 6, G3.toggles[1] and G3.toggles[1].view)
+    local took = {}
+    local saveCC = ZeD.ContainerControls
+    ZeD.ContainerControls = setmetatable({
+        lootAllFrom = function(po, src, dest) took[#took + 1] = { src = src, dest = dest } return true end,
+        otherInventory = function() return "bag on show" end,
+    }, { __index = saveCC })
+    local savePaused = isGamePaused
+    isGamePaused = function() return false end
+    local invA, invB = { key = "A" }, { key = "B" }
+    local cols = { _playerObj = {}, _inventory = invB, _colStates = { { inventory = invA }, { inventory = invB } } }
+    took = {}
+    R.lootAllOf(cols, "A")
+    check("COLUMN LOOT: the key picks its column's container, not the last one bound", took[1] and took[1].src == invA, took[1] and took[1].src and took[1].src.key)
+    check("COLUMN LOOT: into the Character window's bag on show", took[1] and took[1].dest == "bag on show")
+    took = {}
+    R.onViewZone("view:lootall:A", cols)
+    check("COLUMN LOOT: a click on column A's Take all takes from A", took[1] and took[1].src == invA)
+    took = {}
+    local els = R.toggleElements({ { x = 0, y = 0, w = 40, h = 20, view = "lootall", key = "B" } })
+    if els[1] then els[1].onActivate({ _mainContent = cols }, els[1]) end
+    check("COLUMN LOOT: A on column B's Take all takes from B", took[1] and took[1].src == invB)
+    took = {}
+    R.lootAllOf(cols, "nobody")
+    check("COLUMN LOOT: a key no column has takes nothing", #took == 0, #took)
+    took = {}
+    R.lootAllOf({ _playerObj = {}, _inventory = invA, _colStates = { { inventory = invA } } }, "zzz")
+    check("COLUMN LOOT: one list takes from its own container", took[1] and took[1].src == invA)
+    ZeD.ContainerControls, isGamePaused = saveCC, savePaused
+    local CC = readFile("42/media/lua/client/ZeD/ContainerControls.lua")
+    local on = CC:match("\nfunction CT%.headLootOn%(.-\nend\n") or ""
+    check("COLUMN LOOT: headLootOn lets a column (compact) heading have it", on ~= "" and not on:find("_compactMode", 1, true))
+    local en = CC:match("\nfunction CT%.headLootEnabled%(.-\nend\n") or ""
+    check("COLUMN LOOT: headLootEnabled asks the column's own container", en:find("content._compactMode", 1, true) ~= nil
+        and en:find("isEmptyOrUnwanted", 1, true) ~= nil)
+end
+
 section("WINDOWS")
 local CW = readFile("42/media/lua/client/ZeD/ZeD_CharacterWindow.lua")
 local WW = readFile("42/media/lua/client/ZeD/ZeD_WorldWindow.lua")

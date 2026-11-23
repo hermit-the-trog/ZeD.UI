@@ -71,6 +71,23 @@ for id, kind in pairs(MARK) do
     end
 end
 check("TABLE: 71 icons take a mark", nMarks == 71, nMarks)
+-- (Icon color, the director, Nov 22 2026) the inventory strips' own marks: apart from the menus' table, each with
+-- its mark's picture at every size
+local STRIPMARK = ZeD.PxIconStripMark or {}
+local nStrip = 0
+for id, kind in pairs(STRIPMARK) do
+    nStrip = nStrip + 1
+    check("STRIP: " .. id .. " is blue, red or gold", kind == "blue" or kind == "red" or kind == "gold", kind)
+    check("STRIP: " .. id .. " is not in the menus' table (the menus keep it ink)", MARK[id] == nil)
+    for _, s in ipairs(SIZES) do
+        check("STRIP: " .. id .. " has its " .. s .. " and its mark", exists(pic(s, id)) and exists(pic(s, id .. "_mk")))
+    end
+end
+check("STRIP: 11 strip icons take a mark", nStrip == 11, nStrip)
+for _, id in ipairs({ "filter", "view_list", "view_grid", "same_type", "same_nearby", "power", "match", "campfire",
+                      "gears", "extinguisher", "padlock", "tray_in", "tray_out", "to_floor", "trash" }) do
+    check("STRIP: the strips' " .. id .. " has a mark (theirs or the menus')", STRIPMARK[id] ~= nil or MARK[id] ~= nil)
+end
 -- the handoff's pairs, both sides
 local PAIRS = {
     { "plus", "minus" }, { "equip", "unequip" }, { "tray_in", "tray_out" }, { "mag_in", "mag_out" },
@@ -320,6 +337,68 @@ if M and M.drawContextCell and ZeD.T then
     check("CELL: a picture that isn't tinted gets no mark", #d == 1, #d)
 else
     check("CELL: drawContextCell", false)
+end
+
+-- ---------------------------------------------------------------------------
+-- STRIP (Icon color, the director, Nov 22 2026): the inventory lists' heading and footer band icon buttons
+-- (Molecules.drawIconButton with marks) color the mark at rest, in the theme's set, as the menu does
+-- ---------------------------------------------------------------------------
+if M and M.drawIconButton and ZeD.T then
+    ZeD.PxIconStripMark = STRIPMARK
+    local A2 = ZeD.Atoms
+    for _, f in ipairs({ "fillRounded", "borderRounded", "requestHint", "padHelp", "windowOf" }) do
+        if not A2[f] then A2[f] = function() end end
+    end
+    pcall(ZeD.applyTheme, "dark", "teal", "small")
+    local T = ZeD.T
+    local function btn(icon, opts)
+        local p = panel()
+        local ok, err = pcall(M.drawIconButton, p, 0, 0, 24, icon, opts)
+        if not ok then print("  (drawIconButton: " .. tostring(err) .. ")") end
+        local tex = {}
+        for _, d in ipairs(p.draws) do if d.path then tex[#tex + 1] = d end end
+        return tex
+    end
+    local m = T.marks
+    local d = btn("filter", { marks = m })
+    check("STRIP: the Filter at rest: the funnel, then its drop in the theme's blue", #d == 2 and d[2].path:find("zw_filter_mk", 1, true)
+        and d[2].r == m.blue.r and d[2].b == m.blue.b, #d)
+    d = btn("view_list", { marks = m })
+    check("STRIP: the view button's bullets in the blue", #d == 2 and d[2].r == m.blue.r, #d)
+    d = btn("same_type", { marks = m })
+    check("STRIP: Same type (World: Take) in the blue", #d == 2 and d[2].r == m.blue.r, #d)
+    d = btn("same_type", { marks = m, markKind = "red" })
+    check("STRIP: Same type (Character: Put in) in the red", #d == 2 and d[2].r == m.red.r and d[2].g == m.red.g, #d)
+    d = btn("tray_out", { marks = m })
+    check("STRIP: Take marked's / Transfer's tray keeps the menu's own mark", #d == 2 and d[2].r == m.red.r, #d)
+    d = btn("power", { marks = m })
+    check("STRIP: a stove's switch: its stem in the gold", #d == 2 and d[2].r == m.gold.r, #d)
+    d = btn("filter", { marks = m, hover = true })
+    check("STRIP: pointed at: one tint, no mark", #d == 1, #d)
+    d = btn("filter", { marks = m, active = true })
+    check("STRIP: lit (the Filter open): one tint, no mark", #d == 1, #d)
+    d = btn("trash", { marks = m, tint = T.danger })
+    check("STRIP: the bin in the warning color keeps its one tint", #d == 1, #d)
+    d = btn("filter", { marks = m, disabled = true })
+    check("STRIP: greyed, the mark still shows at the button's alpha", #d == 2 and d[2].a == T.disabledAlpha, #d)
+    d = btn("filter", {})
+    check("STRIP: without marks (every other icon button) only the icon", #d == 1, #d)
+    pcall(ZeD.applyTheme, "light", "teal", "small")
+    d = btn("filter", { marks = ZeD.T.marks })
+    check("STRIP: Light: the theme's own blue", #d == 2 and near(d[2], 0x1D, 0x5A, 0xB9), #d)
+    pcall(ZeD.applyTheme, "dark", "teal", "small")
+else
+    check("STRIP: drawIconButton", false)
+end
+-- the strips ask for it: the heading's Filter and view button, the band's icon buttons
+do
+    local function rf(p) local f = io.open(p, "rb"); local s = f and f:read("*a") or ""; if f then f:close() end return s end
+    local IR, CC = rf(CLIENT .. "InventoryRenderer.lua"), rf(CLIENT .. "ContainerControls.lua")
+    local n = 0
+    for _ in IR:gmatch("o%.marks = T%.marks") do n = n + 1 end
+    check("STRIP: the heading's Filter and view button ask for marks", n == 2, n)
+    check("STRIP: the band's icon buttons ask for marks", CC:find("o.marks, o.markKind = T.marks, s and s.mark or nil", 1, true) ~= nil)
+    check("STRIP: the Character window's Same type puts in: red", CC:find('mark = "red",   -- (Put in', 1, true) ~= nil)
 end
 
 print("menu_marks_sim: " .. checks .. " checks, " .. failed .. " failed")

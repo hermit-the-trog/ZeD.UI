@@ -505,14 +505,23 @@ function ZeD.InventoryRenderer.onViewZone(zid, content)
         return
     end
     if view == "flip" then ZeD.InventoryRenderer.flipGridKey(key, content and content._playerObj) end
-    if view == "lootall" then ZeD.InventoryRenderer.lootAllOf(content) end   -- (KISS #18)
+    if view == "lootall" then ZeD.InventoryRenderer.lootAllOf(content, key) end   -- (KISS #18; key: its column's)
 end
 
 -- The heading's Loot all (the World window's list): everything wanted in the container on show comes over, as the
 -- band's Loot all does. (KISS #18)
-function ZeD.InventoryRenderer.lootAllOf(content)
+-- key: the heading's container key (its toggle's); in a Loot view of several columns the column with that key is
+-- the one taken from, not the list the panel was last bound to. (Header order, the director, Nov 22 2026)
+function ZeD.InventoryRenderer.lootAllOf(content, key)
     local po = content and content._playerObj
     local src = content and content._inventory
+    local cols = content and content._colStates
+    if key and cols and #cols > 1 then
+        src = nil
+        for _, cs in ipairs(cols) do
+            if cs.inventory and containerKey(cs.inventory, po) == key then src = cs.inventory; break end
+        end
+    end
     if not (po and src) then return end
     if isGamePaused() then return end
     -- (Nov 22 2026, "Number 1": into the bag on show, where the band's Loot all put them; it is the only one now)
@@ -1079,7 +1088,7 @@ function ZeD.InventoryRenderer.toggleElements(rects)
                 el.promptA = ZeD.ContainerControls.lootAllLabel()
                 el.onActivate = function(w, e)
                     local cnt = w and w._mainContent
-                    if cnt then ZeD.InventoryRenderer.lootAllOf(cnt) end
+                    if cnt then ZeD.InventoryRenderer.lootAllOf(cnt, e.key) end   -- (its own column's: Header order, Nov 22 2026)
                 end
             end
             els[#els + 1] = el
@@ -1507,7 +1516,9 @@ local function drawViewToggle(self, GV, xOff, left, barH, areaH, padX, measure)
             o.hover = ZeD.Atoms.mouseIn(self, tx, ty, fw, bw)
             M.drawButton(self, tx, ty, fw, bw, fWord, "default", false, S.open and liteOpen() or nil, o)
         else
+            o.marks = T.marks   -- (its drop in the theme's blue at rest, as the menu's marks: Icon color, Nov 22 2026)
             M.drawIconButton(self, tx, ty, bw, "filter", o)   -- (the ZeD pixel funnel)
+            o.marks = nil
         end
         GV.toggles[#GV.toggles + 1] = { x = tx, y = ty, w = fw, h = bw, view = "filter", key = GV.key, id = id }
         tx = tx + fw + fgap
@@ -1532,7 +1543,9 @@ local function drawViewToggle(self, GV, xOff, left, barH, areaH, padX, measure)
         o.hover = ZeD.Atoms.mouseIn(self, tx, ty, vw, bw)
         M.drawButton(self, tx, ty, vw, bw, vWord, "default", false, nil, o)
     else
+        o.marks = T.marks   -- (the bullets or the first tile in the theme's blue at rest: Icon color, Nov 22 2026)
         M.drawIconButton(self, tx, ty, bw, grid and "view_grid" or "view_list", o)   -- (ZeD pixel icons)
+        o.marks = nil
     end
     GV.toggles[#GV.toggles + 1] = { x = tx, y = ty, w = vw, h = bw, view = "flip", key = GV.key, id = id }
     return tW + padX

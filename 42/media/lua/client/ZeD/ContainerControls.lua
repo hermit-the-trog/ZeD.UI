@@ -652,6 +652,7 @@ local function buildChar(content)
     local same, sameSet = sameTypeItems(inv, dest, keep)
     moves[#moves + 1] = { id = "same", label = ZeD.tr("UI_ZeD_Controls_SameType"), enabled = #same > 0, marks = sameSet,
         icon = "same_type", hint = ZeD.tr("UI_ZeD_Controls_HintPutInKinds"),
+        mark = "red",   -- (Put in: the menu's red; the World window's Same type takes, blue. Icon color, Nov 22 2026)
         run = function(ct)
             local d = otherInventory(ct)
             CT.moveItems(playerObj, (sameTypeItems(ct._inventory, d, keep)), d)
@@ -686,14 +687,39 @@ end
 function CT.lootAllLabel() return sentence(getText("IGUI_invpage_Loot_all")) end
 
 --- True when the World window's list for this content shows the heading's Loot all: one container on show. (KISS #18)
+-- (Header order, the director, Nov 22 2026: every Loot column's heading too, _compactMode on. The band is not drawn
+-- in columns, so a column's heading is the only Take all it has.)
 function CT.headLootOn(content)
-    return content ~= nil and content._ccSide == "world" and not content._compactMode
+    return content ~= nil and content._ccSide == "world"
         and content._playerObj ~= nil and content._inventory ~= nil
 end
+
+-- A Loot column's "anything to take", per container: asked every frame by each column's heading, so the answer is
+-- kept a moment (the band's row keeps its own the same way). (Header order, the director, Nov 22 2026)
+CT._colLoot, CT._colLootN = CT._colLoot or {}, CT._colLootN or 0
+CT.COL_LOOT_MS = 500
 
 --- True when the heading's Loot all has something to take (as the band's row last built it said). (KISS #18;
 --- Nov 22 2026: read from cc.lootEnabled, the band no longer has a Loot all of its own)
 function CT.headLootEnabled(content)
+    if content and content._compactMode then
+        -- a column among several: its own container, not the window's (Header order, the director, Nov 22 2026)
+        local inv, po = content._inventory, content._playerObj
+        if not (inv and po) then return false end
+        local now = getTimestampMs()
+        local c = CT._colLoot[inv]
+        if not c or now - c.at > CT.COL_LOOT_MS or now < c.at then
+            if not c then
+                -- (a new container: past 64 kept, start over, so the containers walked away from are let go)
+                if CT._colLootN >= 64 then CT._colLoot, CT._colLootN = {}, 0 end
+                CT._colLootN = CT._colLootN + 1
+                c = {}
+            end
+            c.at, c.on = now, not inv:isEmptyOrUnwanted(po)
+            CT._colLoot[inv] = c
+        end
+        return c.on
+    end
     local cc = content and content._cc
     return (cc and cc.lootEnabled) and true or false
 end
@@ -1020,6 +1046,9 @@ local function drawStrip(content, strip, name, top, h, xOff)
                 -- (Delete all's bin keeps the warning colour; the rest the text colour)
                 o.tint = danger and T.danger or nil
                 o.iconSize = isz
+                -- (Icon color, the director, Nov 22 2026: the icon's mark in the theme's color at rest, as the
+                -- right-click menu's; s.mark names it where the button's side picks it, a Same type that puts in)
+                o.marks, o.markKind = T.marks, s and s.mark or nil
                 M.drawIconButton(content, x, y, bh, r.icon, o)
             else
                 local o = _ccBtn

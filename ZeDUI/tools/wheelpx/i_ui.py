@@ -15,26 +15,36 @@ favourite mod, i_row).
   pencil       a pencil: draw on the map
   stop         an octagon with a bar: the prompt's stop (a costly step)
 """
+import contextlib
+
 from kit import icon
 from i_row import _arrow
 
 
 @icon("view_list", "ui", "three lines with their bullets: list view", ["list"])
 def view_list(c, s):
+    # (the bullets: the strips' blue, the view on show; Icon color, the director, Nov 22 2026)
     if s == 16:
-        for y in (2, 7, 12): c.rect(1, y, 2, 2); c.rect(5, y, 10, 2)
+        for y in (2, 7, 12):
+            with c.mark(): c.rect(1, y, 2, 2)
+            c.rect(5, y, 10, 2)
     else:
-        for y in (2, 10, 18): c.rect(1, y, 4, 4); c.rect(8, y, 15, 4)
+        for y in (2, 10, 18):
+            with c.mark(): c.rect(1, y, 4, 4)
+            c.rect(8, y, 15, 4)
 
 
 @icon("view_grid", "ui", "four tiles: grid view, pictures", ["apps"])
 def view_grid(c, s):
+    # (the first tile: the strips' blue, the view on show; Icon color, the director, Nov 22 2026)
     if s == 16:
         for x in (1, 9):
-            for y in (1, 9): c.rect(x, y, 6, 6)
+            for y in (1, 9):
+                with (c.mark() if (x, y) == (1, 1) else contextlib.nullcontext()): c.rect(x, y, 6, 6)
     else:
         for x in (1, 13):
-            for y in (1, 13): c.rect(x, y, 10, 10)
+            for y in (1, 13):
+                with (c.mark() if (x, y) == (1, 1) else contextlib.nullcontext()): c.rect(x, y, 10, 10)
 
 
 def _corners(c, s, out):
