@@ -1,0 +1,4 @@
+# hg_fit_ctl alone (QA, Nov 23 2026): ZeD's exercise start against the game's own, 28 sessions
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+hg_fit_ctl.lua | hg_ctl | timeout=1500
