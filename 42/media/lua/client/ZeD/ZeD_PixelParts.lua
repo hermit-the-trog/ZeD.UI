@@ -102,11 +102,13 @@ end
 --- its scrollbar): the widest of its widths that fits at the plates' whole zoom; where none does, its narrow
 --- face (PhysPx.narrow) when the main face is wider than the room (the rule the radio tab uses for a ham set),
 --- else the main face. Returns the plate and its id; (nil, pid) when there is no such plate.
-function P.pick(pid, availW)
+function P.pick(pid, availW, zoom)
     local X = ZeD.PhysPx
     local des = X and X.plates[pid]
     if not des then return nil, pid end
-    local k0 = P.k((ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root()) or 1)
+    -- zoom (optional): a whole zoom below the scale's own, for a caller that dropped one step to fit its height
+    -- (QA laundry 4K, Nov 22 2026)
+    local k0 = zoom or P.k((ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root()) or 1)
     local wid, ww = P.pickWidth(pid, availW, k0)
     if ww then return X.plates[wid], wid end
     local nid = X.narrow and X.narrow[pid]
