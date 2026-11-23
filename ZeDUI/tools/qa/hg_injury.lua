@@ -201,6 +201,8 @@ function S.snapDiff(a, b)
         local x, y = a[k], b[k]
         local same
         if type(x) == "number" and type(y) == "number" then same = math.abs(x - y) < ((k == "health") and 0.5 or 0.01)
+        -- (a part with no bandage can keep the last bandage's type name in the game: the name counts only on a bandaged part)
+        elseif k == "bandageType" and not a.bandaged and not b.bandaged then same = true
         elseif k == "bandageType" or k == "splintItem" then same = tostring(x or "") == tostring(y or "")
         else same = (x == y) end
         if not same then diff[#diff + 1] = k .. " " .. tostring(y) .. " (was " .. tostring(x) .. ")" end

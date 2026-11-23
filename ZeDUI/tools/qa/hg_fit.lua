@@ -83,6 +83,23 @@ function S.n(v)
     return tostring(math.floor(x * 100 + 0.5) / 100)
 end
 function S.near(a, b, e) return type(a) == "number" and type(b) == "number" and math.abs(a - b) <= (e or 0.002) end
+-- (why a session ends with no repetition: the character's state and the things ISFitnessAction:update stops on)
+function S.exeState(a)
+    local o = {}
+    local function add(k, f) local ok, v = pcall(f); o[#o + 1] = k .. " " .. (ok and tostring(v) or "?") end
+    add("state", function() return S.p:getCurrentState() == FitnessState.instance() and "fitness" or tostring(S.p:getCurrentState()) end)
+    add("endurance moodle", function() return S.p:getMoodles():getMoodleLevel(MoodleType.ENDURANCE) end)
+    add("ms left", function() return a.endMS - getGameTime():getCalender():getTimeInMillis() end)
+    add("aiming", function() return S.p:isAiming() end)
+    add("climbing", function() return S.p:isClimbing() end)
+    add("sitting", function() return S.p:isSittingOnFurniture() end)
+    add("moving", function() return S.p:pressedMovement(true) end)
+    add("ExerciseStarted", function() return S.p:getVariableString("ExerciseStarted") end)
+    add("ExerciseEnded", function() return S.p:getVariableString("ExerciseEnded") end)
+    add("ExerciseType", function() return S.p:getVariableString("ExerciseType") end)
+    add("reps", function() return a.repnb end)
+    return table.concat(o, ", ")
+end
 function S.speed(n)
     if n == nil then return end
     local f = ZEDQA_SPEED or setGameSpeed
@@ -584,7 +601,7 @@ function S.exercise(id, first)
     S.until1(2, 2400, function()
         if t.off or not t.on then return true end
         local a = S.head()
-        if a and a.Type == "ISFitnessAction" then t.reps = math.max(t.reps or 0, a.repnb or 0) end
+        if a and a.Type == "ISFitnessAction" then t.reps = math.max(t.reps or 0, a.repnb or 0); t.last = S.exeState(a) end
         return a == nil or a.Type ~= "ISFitnessAction" or (a.repnb or 0) >= 3
     end, function(ok)
         if t.off or not t.on then return end
@@ -599,6 +616,7 @@ function S.exercise(id, first)
             if up ~= S.inList(regs, r) then wrong[#wrong + 1] = r .. (up and " rose" or " did not rise") end
         end
         local reg1 = S.reg(id)
+        if reps < 1 then Q.say("NOTE " .. lab .. ": the session's last look before it ended | " .. tostring(t.last)) end
         Q.check(reps >= 1, lab .. ": repetitions done", reps .. " repetitions" .. ((a and a.Type == "ISFitnessAction") and "" or " (the session had ended on its own)"))
         Q.check(reg1 > t.reg0, lab .. ": its regularity rose", S.n(t.reg0) .. " to " .. S.n(reg1))
         Q.check(#wrong == 0, lab .. ": the pending strain rose in exactly its regions (" .. table.concat(regs, ", ") .. ")",
