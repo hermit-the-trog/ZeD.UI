@@ -1705,7 +1705,7 @@ function ZeD.HealthTab._reequipTick(playerObj)
     ZeD.HealthTab._reequip[pn] = nil
     ZeD.HealthTab._putGearBack(playerObj, note)
 end
-if not ZeD.HealthTab._reequipHooked then
+if not ZeD.HealthTab._reequipHooked and Events and Events.OnPlayerUpdate then   -- (no Events in some sims)
     ZeD.HealthTab._reequipHooked = true
     Events.OnPlayerUpdate.Add(function(p) ZeD.HealthTab._reequipTick(p) end)
 end

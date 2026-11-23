@@ -573,7 +573,7 @@ function S.gearCheck()
     Q.check(inHand and worn,
         "gear: after the exercise the hammer is back in the hand and the bag back on, as vanilla's fitness window does",
         "hand " .. S.itemName(S.p:getPrimaryHandItem()) .. ", bag worn " .. tostring(worn)
-        .. ((inHand and worn) and "" or "; vanilla's ISFitnessUI:update (ISFitnessUI.lua:213-229) puts them back when the exercise ends; ZeD's HealthTab._startExercise (HealthTab.lua:1448-1470) takes them off and nothing puts them back"))
+        .. ((inHand and worn) and "" or "; vanilla's ISFitnessUI:update (ISFitnessUI.lua:213-229) puts them back when the exercise ends; ZeD's note (HealthTab._reequip) should do the same"))
 end
 
 -- ===================================================================== each exercise
@@ -680,10 +680,18 @@ function S.exercise(id, first)
     -- lands ends at once with no repetition. Seen on every second exercise, Nov 23 2026: the next waits it out.)
     Q.waitMs(8000)
     if first then
-        Q.waitMs(2500)
-        Q.step(1, function()
-            if S.dead then return end
+        -- (Build, Nov 23 2026, fix/fitgear: the note ZeD.HealthTab._reequip[pn] is put back by timed actions once the
+        -- session is over, then cleared: wait for the hammer and the bag, up to 15 s)
+        S.until1(5, 900, function()
+            if not t.on then return true end
+            return S.p:getPrimaryHandItem() == S.hammer and S.gearBag ~= nil and S.isWorn(S.gearBag)
+        end, function()
             if t.on then S.gearCheck() else Q.skip("gear: the hammer and the bag after the exercise", "squats did not start") end
+            if t.on then
+                local note = nil
+                pcall(function() note = Z.HealthTab._reequip and Z.HealthTab._reequip[S.p:getPlayerNum()] end)
+                Q.check(note == nil, "gear: the note of what to put back is cleared once used", tostring(note))
+            end
         end)
     end
     -- the strain 12 game hours later, where the game lays it
