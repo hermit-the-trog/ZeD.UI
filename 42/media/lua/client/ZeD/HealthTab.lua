@@ -1677,7 +1677,7 @@ function ZeD.HealthTab._putGearBack(playerObj, note)
     local inv = playerObj:getInventory()
     for _, e in ipairs(note.list) do
         local item = e.item
-        if item and inv:contains(item) then
+        if item and inv:contains(item) and not ZeD.HealthTab._gearBack(playerObj, e) then
             if e.kind == "primary" then
                 ISWorldObjectContextMenu.equip(playerObj, playerObj:getPrimaryHandItem(), item, true, false)
             elseif e.kind == "secondary" then
@@ -1691,7 +1691,41 @@ function ZeD.HealthTab._putGearBack(playerObj, note)
     end
 end
 
---- The watcher: once a noted player's session is over, put the gear back.
+--- true when a noted item is back where it was (or is no longer carried, so there is nothing to put back)
+local function gearBack(playerObj, e)
+    local item = e.item
+    if not item or not playerObj:getInventory():contains(item) then return true end
+    if e.kind == "primary" then return playerObj:getPrimaryHandItem() == item end
+    if e.kind == "secondary" then return playerObj:getSecondaryHandItem() == item end
+    if e.kind == "twohands" then
+        return playerObj:getPrimaryHandItem() == item and playerObj:getSecondaryHandItem() == item
+    end
+    local worn = playerObj:getWornItems()
+    for i = 0, worn:size() - 1 do
+        if worn:get(i):getItem() == item then return true end
+    end
+    return false
+end
+ZeD.HealthTab._gearBack = gearBack
+
+--- true while the character is still busy: an action in the queue, or not yet back to standing idle (the
+--- fitness animation's way out). The game's fitness stop clears the whole action queue a moment after the
+--- exercise is cleared (ISBaseTimedAction.stop -> resetQueue), so anything queued before then is lost.
+local function gearBusy(playerObj)
+    local q = ISTimedActionQueue.getTimedActionQueue(playerObj)
+    if q and q.queue and q.queue[1] then return true end
+    if IdleState and IdleState.instance then
+        local ok, idle = pcall(function() return playerObj:isCurrentState(IdleState.instance()) end)
+        if ok and not idle then return true end
+    end
+    return false
+end
+
+local GEAR_TRIES  = 2       -- the put-back is queued at most twice (a second time if the first was cut off)
+local GEAR_WAITMS = 60000   -- a note still waiting a minute after the session is dropped (the player moved on)
+
+--- The watcher: once a noted player's session is over and the character stands idle with nothing queued,
+--- queue the gear back on; keep the note until every item is really back (QA hg5, Nov 23 2026).
 function ZeD.HealthTab._reequipTick(playerObj)
     if not playerObj then return end
     local pn = playerObj:getPlayerNum()
@@ -1702,7 +1736,21 @@ function ZeD.HealthTab._reequipTick(playerObj)
         return
     end
     if playerObj:getFitness():getCurrentExe() then return end   -- still exercising
-    ZeD.HealthTab._reequip[pn] = nil
+    local now = getTimestampMs()
+    note.endedAt = note.endedAt or now
+    if gearBusy(playerObj) then
+        if now - note.endedAt > GEAR_WAITMS then ZeD.HealthTab._reequip[pn] = nil end
+        return
+    end
+    local allBack = true
+    for _, e in ipairs(note.list) do
+        if not gearBack(playerObj, e) then allBack = false; break end
+    end
+    if allBack or (note.tries or 0) >= GEAR_TRIES then
+        ZeD.HealthTab._reequip[pn] = nil
+        return
+    end
+    note.tries = (note.tries or 0) + 1
     ZeD.HealthTab._putGearBack(playerObj, note)
 end
 if not ZeD.HealthTab._reequipHooked and Events and Events.OnPlayerUpdate then   -- (no Events in some sims)
