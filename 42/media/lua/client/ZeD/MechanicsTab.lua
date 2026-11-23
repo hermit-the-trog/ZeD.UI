@@ -37,6 +37,7 @@ require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/MechFigs"
 require "ZeD/MechTrailer"
+require "ZeD/ZeD_Popups"
 require "ZeD/RadioTab"   -- (ZeD.SubTabs, the sub-page tab strip)
 
 ZeD = ZeD or {}
@@ -2153,11 +2154,16 @@ local function renderFooter(panel, win, s, x, y, w, v, chr, inspected, cm, barSh
             modes[cur].label, tight)
         if hov then ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Craft_SortHelp")) end
         stamp(s, "mech:sortMenu", sx, by, sortW, bh, function() s.sortOpen = not s.sortOpen end, { footer = true })
-        s.sortGeo = { x = sx, y = by - M.popupListH(#modes), w = sortW, modes = modes, cur = modes[cur].id }
+        s.sortGeo = { x = sx, y = by - M.popupListH(#modes), w = sortW, modes = modes, cur = modes[cur].id,
+                      by = by, bh = bh }   -- (by, bh: the box, inside the list for ZeD.Popups)
     else
         s.sortOpen, s.sortGeo = nil, nil
     end
 end
+
+-- ZeD.Popups' hooks for the footer's Sort list (ZeD_Popups.lua)
+function MT.sortIsOpen(s) return s.sortOpen == true end
+function MT.closeSort(s) s.sortOpen = nil end
 
 -- The footer's Sort list, open: drawn last, over the columns, upward from its box
 local _sortListOpts = {}
@@ -2177,8 +2183,14 @@ local function renderSortList(panel, s, chr)
         _sortListOpts.focusId = gp:sub(14)
         _sortListOpts.focus = focusFor(s, gp)
     end
-    local _, _, zs = M.drawSortMenuList(panel, g.x, g.y, g.modes, g.cur, hoverId, _sortListOpts)
+    local lw, lh, zs = M.drawSortMenuList(panel, g.x, g.y, g.modes, g.cur, hoverId, _sortListOpts)
     s.sortZones = zs
+    -- the list and its box count as inside; a press elsewhere, the tab hidden, an action or a walk shuts it
+    -- (ZeD_Popups.lua, the director, Nov 23 2026)
+    if ZeD.Popups then
+        local po = ZeD.Popups.opts(s, "mech:sort", MT.sortIsOpen, chr and chr:getPlayerNum() or 0)
+        ZeD.Popups.shownAt(po.key, panel, MT.closeSort, po, g.x, g.y, lw, lh, g.x, g.by, g.w, g.bh)
+    end
     for _, z in ipairs(zs) do
         local id = z.id
         if z.disabled and hoverId == id then ZeD.Help.set(panel, condGateText()) end

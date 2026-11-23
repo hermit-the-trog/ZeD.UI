@@ -24,6 +24,7 @@ require "ZeD/Molecules"
 require "ZeD/ZeD_BodyFigure"
 require "XpSystem/ISUI/ISHealthPanel"
 require "ZeD/ZeD_TabFill"
+require "ZeD/ZeD_Popups"
 
 ZeD = ZeD or {}
 ZeD.HealthTab = {}
@@ -1873,6 +1874,9 @@ function ZeD.HealthTab.openMenu(win)
     win._healthMenuZones = nil
 end
 
+--- True while the exercise or treat list is open (ZeD.Popups lets go of a list its owner shut).
+function ZeD.HealthTab.menuIsOpen(win) return win._healthMenuOpen == true end
+
 --- Shut the list; pickId, when given, becomes the picked exercise.
 function ZeD.HealthTab.closeMenu(win, pickId)
     if pickId then win._healthExerciseSel = pickId end
@@ -2158,8 +2162,15 @@ function ZeD.HealthTab._renderMenu(panel, win)
     -- (Nov 14 2026, punch list 230: the focused exercise's help words, beside it once the pad rests on it)
     local tipId = hoverId or o.focusId
     local gy = math.max(0, bz.box.y - M.popupListH(n))
-    local _, _, zs = M.drawSortMenuList(panel, bz.box.x, gy, modes, selId, hoverId, o)
+    local lw, lh, zs = M.drawSortMenuList(panel, bz.box.x, gy, modes, selId, hoverId, o)
     win._healthMenuZones = zs
+    -- the list and its box count as inside; a press elsewhere, the tab hidden, an action or a walk shuts it
+    -- (ZeD_Popups.lua, the director, Nov 23 2026)
+    if ZeD.Popups then
+        local po = ZeD.Popups.opts(win, "health", ZeD.HealthTab.menuIsOpen, win.playerNum or 0)
+        ZeD.Popups.shownAt(po.key, panel, ZeD.HealthTab.closeMenu, po,
+            bz.box.x, gy, lw, lh, bz.box.x, bz.box.y, bz.box.w, bz.box.h)
+    end
     if tipId and ZeD.Help then
         local words
         if treat then words = ZeD.tr("UI_ZeD_Health_HelpTreat", ZeD.partLabel(tipId))

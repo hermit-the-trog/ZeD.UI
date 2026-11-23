@@ -32,6 +32,7 @@ require "ZeD/ZeD_PrintPage"
 require "ZeD/ZeD_Reader"
 require "ZeD/ZeD_WriteNoteAction"
 require "ZeD/ZeD_TabFill"
+require "ZeD/ZeD_Popups"
 require "ZeD/ReadMarks"   -- (UI_ZeD_Read_Unread: the one word for an unread piece, as the item lists; punch list 175a, A2)
 
 ZeD = ZeD or {}
@@ -628,8 +629,15 @@ local function drawPapersBand(panel, win, x, y, w, frozen)
         local f = focusOf(win, "jr:showRow:" .. m.id)
         if f then mo.focusId, mo.focus = m.id, f; break end
     end
-    local _, _, zs = M.drawSortMenuList(panel, bx, by - M.popupListH(#modes), modes, s.filter, hoverId, mo)
+    local gy = by - M.popupListH(#modes)
+    local lw, lh, zs = M.drawSortMenuList(panel, bx, gy, modes, s.filter, hoverId, mo)
     s.showZones = zs
+    -- the list and its box count as inside; a press elsewhere, the page hidden, an action or a walk shuts it
+    -- (ZeD_Popups.lua, the director, Nov 23 2026)
+    if ZeD.Popups then
+        local po = ZeD.Popups.opts(win, "papers", J.showIsOpen, win.playerNum or 0)
+        ZeD.Popups.shownAt(po.key, panel, J.shutList, po, bx, gy, lw, lh, bx, by, bw, bh)
+    end
     for _, z in ipairs(zs) do
         local fid = z.id
         zone(win, { id = "showRow:" .. fid, x = z.x, y = z.y, w = z.w, h = z.h, fixed = true, row = true,
@@ -663,6 +671,8 @@ function J.listOpen(win)
     local s = st(win)
     return s.showOpen == true and s.showZones ~= nil
 end
+--- True while the band's Show list is open (ZeD.Popups lets go of a list its owner shut).
+function J.showIsOpen(win) return st(win).showOpen == true end
 --- Shut the band's Show list.
 function J.shutList(win)
     local s = st(win)

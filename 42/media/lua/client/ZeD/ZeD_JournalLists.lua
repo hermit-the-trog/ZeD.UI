@@ -37,6 +37,7 @@ require "ZeD/Atoms"
 require "ZeD/Molecules"
 require "ZeD/ZeD_Lists"
 require "ZeD/ZeD_ListsMenu"
+require "ZeD/ZeD_Popups"
 
 ZeD = ZeD or {}
 ZeD.JournalLists = ZeD.JournalLists or {}
@@ -782,8 +783,15 @@ local function drawFilterList(panel, win, bx, by, bw, modes)
         local f = focusOf(win, "filterRow:" .. m.id)
         if f then mo.focusId, mo.focus = m.id, f; break end
     end
-    local _, _, zs = M.drawSortMenuList(panel, bx, by - M.popupListH(#modes), modes, s.filter, hoverId, mo)
+    local gy = by - M.popupListH(#modes)
+    local lw, lh, zs = M.drawSortMenuList(panel, bx, gy, modes, s.filter, hoverId, mo)
     s.filterZones = zs
+    -- the list and its box count as inside; a press elsewhere, the page hidden, an action or a walk shuts it
+    -- (ZeD_Popups.lua, the director, Nov 23 2026)
+    if ZeD.Popups then
+        local po = ZeD.Popups.opts(win, "loadouts", JL.filterIsOpen, win.playerNum or 0)
+        ZeD.Popups.shownAt(po.key, panel, JL.shutList, po, bx, gy, lw, lh, bx, by, bw, ZeD.T.buttonH)
+    end
     for _, z in ipairs(zs) do
         local fid = z.id
         zone(win, { id = "filterRow:" .. fid, x = z.x, y = z.y, w = z.w, h = z.h, row = true,
@@ -893,6 +901,8 @@ function JL.listOpen(win)
     local s = st(win)
     return s.filterOpen == true and s.filterZones ~= nil
 end
+--- True while the band's filter list is open (ZeD.Popups lets go of a list its owner shut).
+function JL.filterIsOpen(win) return st(win).filterOpen == true end
 --- Shuts the band's filter list.
 function JL.shutList(win)
     local s = st(win)

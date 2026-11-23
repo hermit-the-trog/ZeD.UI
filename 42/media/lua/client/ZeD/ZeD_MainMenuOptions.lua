@@ -1910,6 +1910,7 @@ function ZeD_MMOptions:render()
     end
     -- anywhere else closes it
     self._paletteRect = { x = ax + px, y = ay + py, w = pw, h = ph }
+    MM.palShown(self, "palette:" .. tostring(self.kind))   -- (ZeD.Popups: not drawn, it shuts)
 end
 
 -- ACTIVATING A ROW (A on a controller; on the keyboard Return is Apply, see keyOther) ---------------

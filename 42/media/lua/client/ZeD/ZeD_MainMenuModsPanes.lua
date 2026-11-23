@@ -207,6 +207,7 @@ function ZeD_MMMods:drawPalette()
         self._hits[#self._hits + 1] = { id = "mods:pal:" .. i, x = ax + cx, y = ay + cy, w = cell, h = cell, fn = function() self:pickColor(col) end }
     end
     self._paletteRect = { x = ax + px, y = ay + py, w = pw, h = ph }
+    MM.palShown(self, "palette:mods")   -- (ZeD.Popups: not drawn, it shuts)
 end
 
 --- A click outside the palette closes it.

@@ -1657,8 +1657,21 @@ function ZeD_Dropdown:render()
                 ZeD.Atoms.drawTriangleDown(self, self.width - T.px(12), listY + listH - T.px(8), T.px(5), ac)
             end
         end
+
+        -- the open list tells ZeD.Popups it was drawn: the box and its list count as inside; a press elsewhere,
+        -- the owner hiding it (another tab), an action or a walk shuts it (the director, Nov 23 2026).
+        -- popKey / popPlayer: set by the owner (ForagingTab: "forage:focus", its window's player)
+        if ZeD.Popups then
+            if not self._popSlot then self._popSlot = self.popKey or ("dropdown@" .. tostring(self)) end
+            local po = ZeD.Popups.opts(self, self._popSlot, ZeD_Dropdown.listIsOpen, self.popPlayer)
+            ZeD.Popups.shownAt(po.key, self, ZeD_Dropdown.closeList, po, 0, 0, self.width, listY + listH)
+        end
     end
 end
+
+-- ZeD.Popups' hooks: open while isOpen; the shut is the outside click's (onOtherBodyClick)
+function ZeD_Dropdown.listIsOpen(dd) return dd.isOpen == true end
+function ZeD_Dropdown.closeList(dd) dd:onOtherBodyClick() end
 
 function ZeD_Dropdown:onMouseDown(x, y)
     if self.disabled then return true end
@@ -1730,6 +1743,8 @@ function ZeD_Dropdown:onMouseWheel(del)
     return false
 end
 
+-- (shut the open list. The engine never calls it; ZeD.Popups does, on a press outside it or when it was not
+-- drawn: ZeD_Dropdown.closeList)
 function ZeD_Dropdown:onOtherBodyClick()
     if self.isOpen then
         self.isOpen = false

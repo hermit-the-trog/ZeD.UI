@@ -29,6 +29,7 @@ require "ISUI/ISPanel"
 require "ZeD/ZeD_Panel"
 require "ZeD/Atoms"
 require "ZeD/ContextMenuRegistry"
+require "ZeD/ZeD_Popups"
 
 ZeD_ContextList = ZeD_Panel:derive("ZeD_ContextList")
 
@@ -260,7 +261,11 @@ function ZeD_ContextList:confirm(li)
     if not (r and live(r.def)) then return end
     if disabled(r.def, self._ctx.target) then return end
     if self:_openSub(li, true) then return end
-    if r.def.onFire then pcall(r.def.onFire, self._ctx.target) end
+    -- (fired through ZeD.Popups.firing: an action the row queues does not shut a list that stays open, keepOpen)
+    if r.def.onFire then
+        if ZeD.Popups then pcall(ZeD.Popups.firing, r.def.onFire, self._ctx.target)
+        else pcall(r.def.onFire, self._ctx.target) end
+    end
     if r.def.keepOpen and self._ctx.open then return end
     self:close()
 end
@@ -322,8 +327,19 @@ end
 -- drawing
 -- ----------------------------------------------------------------------------
 local _focus, _dim = { focused = true, pad = true }, {}
+
+-- ZeD.Popups' hooks (ZeD_Popups.lua, the director, Nov 23 2026): the list shuts itself on a press outside, Esc / B
+-- and walking away; ZeD.Popups adds the rest of rule c: an action queued, or a key meant for the game.
+function ZeD_ContextList.popIsOpen(l) return l._ctx.open == true end
+function ZeD_ContextList.popClose(l) l:close() end
+
 function ZeD_ContextList:prerender()
     if not self._ctx.open then return end
+    if ZeD.Popups then
+        local po = ZeD.Popups.opts(self, "ctx", ZeD_ContextList.popIsOpen, self.player)
+        po.selfClosing, po.noMove = true, true
+        ZeD.Popups.shown(po.key, nil, ZeD_ContextList.popClose, po)
+    end
     self:clearHitZones()
     local hl = nil   -- the row that lights the game's outline, found while the rows draw
     local A = ZeD.Atoms

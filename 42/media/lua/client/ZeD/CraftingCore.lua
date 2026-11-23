@@ -19,6 +19,7 @@ require "ZeD/Tr"
 require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
+require "ZeD/ZeD_Popups"
 
 ZeD = ZeD or {}
 ZeD.CraftingCore = ZeD.CraftingCore or {}
@@ -1711,6 +1712,7 @@ local function drawCatSelect(panel, state, pfx, x, y, w, h, label, up)
     local g = state._ddGeo or {}
     state._ddGeo = g
     g.x, g.w = x, w
+    g.bx, g.by, g.bw, g.bh = x, y, w, h   -- (the box itself: inside the list for ZeD.Popups)
     if up then
         g.y = y - math.min(#(state.categoryList or {}), DD_MAX_VIS) * ZeD.T.px(DD_ROW_H)
     else
@@ -1945,6 +1947,7 @@ local function drawPopBox(panel, state, kind, x, y, w, h, label, modes, frozen, 
     local g = state[P.geo] or {}
     state[P.geo] = g
     g.x, g.y, g.w, g.modes = x, y - M.popupListH(#modes), w, modes
+    g.by, g.bh = y, h   -- (the box itself: inside the list for ZeD.Popups)
 end
 
 -- The amount and Craft / Build at the band's right; returns the x the left part ends at,
@@ -2187,8 +2190,9 @@ function CC.renderPopMenu(panel, state, config, kind)
         if string.sub(fid, 1, #rp) == rp then mo.focusId = string.sub(fid, #rp + 1) end
     end
     local active = (kind == "show") and CC.showMode(state, config) or CC.sortOf(state)
-    local _, _, zs = M.drawSortMenuList(panel, geo.x, geo.y, geo.modes, active, hoverId, mo)
+    local lw, lh, zs = M.drawSortMenuList(panel, geo.x, geo.y, geo.modes, active, hoverId, mo)
     state[P.zones] = zs
+    geo.lw, geo.lh = lw, lh   -- (the open list's size, for ZeD.Popups: CC.popupsShown)
 end
 
 function CC.renderSortMenu(panel, state, config) CC.renderPopMenu(panel, state, config, "sort") end
@@ -2199,6 +2203,39 @@ function CC.openPopMenu(state, kind)
     state.showMenuOpen = (kind == "show")
     state.catDropdownOpen = false
     state.stDropdownOpen = false
+end
+
+-- ZeD.Popups' hooks for the band's lists and the Category select's (ZeD_Popups.lua)
+function CC.sortIsOpen(state) return state.sortMenuOpen == true end
+function CC.showIsOpen(state) return state.showMenuOpen == true end
+function CC.catIsOpen(state) return state.catDropdownOpen == true end
+function CC.closeCatDropdown(state)
+    state.catDropdownOpen = false
+    state.catDropdownScroll = 0
+end
+
+--- The open lists of one tab's pipeline (Journal Recipes, Craft, Build) tell ZeD.Popups they were drawn this
+--- frame: the list and its box count as inside. Keys "<prefix>:sort|show|cat:<player>".
+function CC.popupsShown(panel, win, state, config)
+    local Pp = ZeD.Popups
+    if not Pp then return end
+    local pfx = (config and config.prefix) or "jrecipe"
+    local pn = (win and win.playerNum) or 0
+    local g = state._sortMenuGeo
+    if state.sortMenuOpen and g and g.lw then
+        local po = Pp.opts(state, pfx .. ":sort", CC.sortIsOpen, pn)
+        Pp.shownAt(po.key, panel, CC.closeSortMenu, po, g.x, g.y, g.lw, g.lh, g.x, g.by, g.w, g.bh)
+    end
+    g = state._showMenuGeo
+    if state.showMenuOpen and g and g.lw then
+        local po = Pp.opts(state, pfx .. ":show", CC.showIsOpen, pn)
+        Pp.shownAt(po.key, panel, CC.closeShowMenu, po, g.x, g.y, g.lw, g.lh, g.x, g.by, g.w, g.bh)
+    end
+    g = state._ddGeo
+    if state.catDropdownOpen and g and g.lh then
+        local po = Pp.opts(state, pfx .. ":cat", CC.catIsOpen, pn)
+        Pp.shownAt(po.key, panel, CC.closeCatDropdown, po, g.x, g.y, g.w, g.lh, g.bx, g.by, g.bw, g.bh)
+    end
 end
 
 -- Shut a pop-up list. The controller returns to the box it came from.
@@ -3543,6 +3580,9 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
     -- The band's Sort and Show pop-up lists (they open upward from their boxes)
     if state.sortMenuOpen then CC.renderPopMenu(panel, state, config, "sort") end
     if state.showMenuOpen then CC.renderPopMenu(panel, state, config, "show") end
+    -- the lists drawn this frame tell ZeD.Popups they are open (a press outside, the tab hidden, an action or a
+    -- walk shuts them; the director, Nov 23 2026)
+    CC.popupsShown(panel, win, state, config)
 
     -- Station dropdown overlay (crafting)
     if config.stations and ZeD.Stations then
@@ -3698,6 +3738,7 @@ function CC.renderCatDropdownOverlay(panel, state, data)
 
     -- Border on top of everything
     panel:drawRectBorder(ddX, ddY, ddW, listH, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
+    geo.lh = listH   -- (the open list's height, for ZeD.Popups: CC.popupsShown)
 
     panel:clearStencilRect()
 end

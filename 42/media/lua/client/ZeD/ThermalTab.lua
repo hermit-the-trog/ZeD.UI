@@ -17,6 +17,7 @@ require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/ZeD_BodyFigure"
 require "ZeD/ZeD_TabFill"
+require "ZeD/ZeD_Popups"
 
 ZeD = ZeD or {}
 ZeD.ThermalTab = {}
@@ -449,6 +450,9 @@ function ZeD.ThermalTab.openMenu(win)
     win._thermalMenuZones = nil
 end
 
+--- True while the View list is open (ZeD.Popups lets go of a list its owner shut).
+function ZeD.ThermalTab.menuIsOpen(win) return win._thermalMenuOpen == true end
+
 --- Shut the list; pickIdx, when given, becomes the chosen view. The Character
 --- window also calls it when the tab is left, the drawer folds or a card opens.
 function ZeD.ThermalTab.closeMenu(win, pickIdx)
@@ -545,8 +549,15 @@ function ZeD.ThermalTab._renderMenu(panel, win)
     local el = F and F.liveElement and F.liveElement(win)
     if el and el.menuRowId then o.focusId = el.menuRowId end
     local gy = math.max(0, bz.box.y - M.popupListH(n))
-    local _, _, zs = M.drawSortMenuList(panel, bz.box.x, gy, _menuModes, win._thermalView or 1, hoverId, o)
+    local lw, lh, zs = M.drawSortMenuList(panel, bz.box.x, gy, _menuModes, win._thermalView or 1, hoverId, o)
     win._thermalMenuZones = zs
+    -- the list and its box count as inside; a press elsewhere, the tab hidden, an action or a walk shuts it
+    -- (ZeD_Popups.lua, the director, Nov 23 2026)
+    if ZeD.Popups then
+        local po = ZeD.Popups.opts(win, "thermal", ZeD.ThermalTab.menuIsOpen, win.playerNum or 0)
+        ZeD.Popups.shownAt(po.key, panel, ZeD.ThermalTab.closeMenu, po,
+            bz.box.x, gy, lw, lh, bz.box.x, bz.box.y, bz.box.w, bz.box.h)
+    end
     if hoverId and ZeD.Help then
         ZeD.Help.set(win, ZeD.tr("UI_ZeD_Thermal_HelpView", _menuModes[hoverId].label))
     end
