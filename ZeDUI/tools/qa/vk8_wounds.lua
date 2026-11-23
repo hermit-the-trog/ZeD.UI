@@ -19,17 +19,18 @@
 --   start     a new figure starts with wounds = {} and skinTone = 0; god mode off, the guard on; First Aid 0
 --   health    each staged part on the Health tab's figure: the read, the figure's table and the draws; no infected
 --             ring at First Aid 0; the skin tone is the character's (skinToneOf) and tints the skin; the chart draws
---             in the frame's margins (lines, the floor, words where the lines hold them)
+--             in the frame's margins: the lines on both sides and the floor, no script (Design, Nov 23 2026)
 --   tone      the character's skin tone changed (HumanVisual.setSkinTextureIndex, put back at once): the figure
 --             follows and the skin's tint changes
 --   first aid First Aid 10: the infected ring shows round the scratch (picture vk8_health_wounds)
 --   thermal   the Thermal and the Equipment defense figures draw no wound (their own colors), the chart by design
 --   card      the medical check card (a stand-in patient: his own body) held to 336 and to the 220 half card: each
---             staged part on the card's figure; the frame, then the chart, then the focus marks and the figure; 336
---             in halves shows the lines only, 220 stacked the words (Build; at 4K and 1080p, Design's table), and the
---             words always where the lines hold them (pictures vk8_medcard_336, vk8_medcard_220)
---   lite      Lite: the height chart shows as in Full (the director, Nov 22: litechart; lines, the floor, words by the
---             same margin rule) and the wounds still draw (picture vk8_lite); Full keeps the chart
+--             staged part on the card's figure; the frame, then the chart, then the focus marks and the figure; at both
+--             widths the chart is the lines and the floor, no script (pictures vk8_medcard_336, vk8_medcard_220)
+--   lite      Lite: the height chart shows as in Full (the director, Nov 22: litechart; the lines and the floor) and
+--             the wounds still draw (picture vk8_lite); Full keeps the chart
+-- (Nov 23 2026, the director: "remove the notes, move the skelly up the measure will stop at their height": the chart's
+-- script is gone, so no fig-notes-* picture may draw; the lines stop under the head, in the same one picture a side.)
 -- Puts back: each staged part exactly as found (every flag and clock, the bandage, splint, stitches, fracture, health,
 -- stiffness, pain), every part's health, the pain stat, First Aid, the skin tone, ISHealthPanel.cheat, Style, god mode,
 -- invincible, the game speed, the card closed, the folds, the windows and the tab; no wrapper left. No Lua error.
@@ -41,7 +42,6 @@ local S = { p = RT.p, pn = RT.pn, found = {}, rec = {}, chart = {}, ord = {}, se
 local Z = ZeD
 
 S.INF = 0.1                          -- the scratch's wound infection: hidden to First Aid 0 (1 < 2.5), shown to 9+
-S.NOTE_W = { left = 23, right = 24 } -- the widest script picture a side (ZeD_BodyFigure CHART.notes, both sexes)
 S.CHART_M = 2                        -- the art pixels the lines keep clear (CHART.margin)
 S.SKIN = { { r = 1.000, g = 0.849, b = 0.677 }, { r = 0.996, g = 0.750, b = 0.518 }, { r = 0.862, g = 0.629, b = 0.426 },
            { r = 0.548, g = 0.352, b = 0.222 }, { r = 0.372, g = 0.246, b = 0.130 } }   -- (ZeD_BodyFigure SKIN_TINT, tones 0 to 4)
@@ -535,26 +535,27 @@ function S.tintText(c) return c and string.format("%.3f,%.3f,%.3f", c.r or -1, c
 function S.sameTint(a, b) return a ~= nil and b ~= nil and S.near(a.r, b.r) and S.near(a.g, b.g) and S.near(a.b, b.b) end
 
 -- ===================================================================== the chart
--- each margin's width in art pixels and whether its words fit (drawChart's own rule)
-function S.wordsWant(L)
-    if not (L and tonumber(L.zoom) and L.zoom > 0 and L.figX and L.frameX and L.frameW and L.figW) then return nil, nil, nil, nil end
+-- each margin's width in art pixels (drawChart's own rule)
+function S.margins(L)
+    if not (L and tonumber(L.zoom) and L.zoom > 0 and L.figX and L.frameX and L.frameW and L.figW) then
+        return nil, nil
+    end
     local line = Z.T.px(1)
     local z = L.zoom
     local sideL = math.floor((L.figX - (L.frameX + line)) / z)
     local sideR = math.floor((L.frameX + L.frameW - line - (L.figX + L.figW)) / z)
-    local m = S.CHART_M
-    return (sideL - 2 * m) >= S.NOTE_W.left, (sideR - 2 * m) >= S.NOTE_W.right, sideL, sideR
+    return sideL, sideR
 end
 function S.chartRead(fig)
     local C = fig and S.chart[fig] or nil
     if not C then return nil end
-    local o = { n = #C.list, lines = 0, left = 0, right = 0, rects = 0, out = 0, L = C.L, lite = C.lite }
+    local o = { n = #C.list, lines = 0, script = 0, other = 0, rects = 0, out = 0, L = C.L, lite = C.lite }
     local L = C.L
     for _, d in ipairs(C.list) do
         if d.fn == "drawRect" then o.rects = o.rects + 1
         elseif S.has(d.name, "fig-chart-lines") then o.lines = o.lines + 1
-        elseif S.has(d.name, "fig-notes-") then
-            if S.has(d.name, "-left") then o.left = o.left + 1 else o.right = o.right + 1 end
+        elseif S.has(d.name, "fig-notes-") then o.script = o.script + 1      -- (the script went on Nov 23 2026)
+        else o.other = o.other + 1
         end
         -- (every picture in the frame's margins: inside the frame, off the figure's canvas)
         if d.fn ~= "drawRect" and L and L.frameX and L.figX then
@@ -565,23 +566,22 @@ function S.chartRead(fig)
             if not (inFrame and offFig) then o.out = o.out + 1 end
         end
     end
-    o.wantL, o.wantR, o.sideL, o.sideR = S.wordsWant(L)
+    o.sideL, o.sideR = S.margins(L)
     return o
 end
 function S.chartText(o)
     if not o then return "no chart call" end
-    return "lines " .. o.lines .. ", words left " .. o.left .. " right " .. o.right .. ", floor " .. o.rects
-        .. ", outside the margins " .. o.out .. "; margins " .. tostring(o.sideL) .. " / " .. tostring(o.sideR)
-        .. " art px (words fit " .. tostring(o.wantL) .. " / " .. tostring(o.wantR) .. "), "
-        .. ((o.L and o.L.two) and "halves" or "stacked") .. ", zoom " .. tostring(o.L and o.L.zoom)
+    return o.n .. " draws: lines " .. o.lines .. ", floor " .. o.rects .. ", script " .. o.script
+        .. ", other pictures " .. o.other .. ", outside the margins " .. o.out .. "; margins " .. tostring(o.sideL)
+        .. " / " .. tostring(o.sideR) .. " art px, " .. ((o.L and o.L.two) and "halves" or "stacked") .. ", zoom "
+        .. tostring(o.L and o.L.zoom)
 end
 -- the chart as drawChart's rule says for these margins: lines where they are longer than the clearances, the floor,
--- the words where the lines hold them, nothing outside the margins
+-- no script and no other picture, nothing outside the margins, four draws at most
 function S.chartAsRule(o)
     if not (o and o.sideL and o.sideR) then return false end
     local wantLines = ((o.sideL > 2 * S.CHART_M) and 1 or 0) + ((o.sideR > 2 * S.CHART_M) and 1 or 0)
-    return o.lines == wantLines and o.rects >= 1 and (o.left > 0) == (o.wantL == true) and (o.right > 0) == (o.wantR == true)
-        and o.out == 0
+    return o.lines == wantLines and o.rects >= 1 and o.script == 0 and o.other == 0 and o.out == 0 and o.n <= 4
 end
 
 -- ===================================================================== windows, the card, the pictures
@@ -833,8 +833,11 @@ S.recQ(S.healthFig, function(ok, fig)
     -- the chart in Full
     local o = S.chartRead(fig)
     Q.check(o ~= nil and o.lite == false and S.chartAsRule(o),
-        "Health (Full): the height chart draws in the frame's margins (lines, the floor, words where the lines hold them)", S.chartText(o))
-    Q.check(o ~= nil and o.left > 0 and o.right > 0, "Health (Full): words on both sides (Design's table: the Health tab on every screen)", S.chartText(o))
+        "Health (Full): the height chart draws in the frame's margins (the lines, the floor, no script)",
+        S.chartText(o))
+    Q.check(o ~= nil and o.lines == 2 and o.script == 0,
+        "Health (Full): the lines on both sides and no script (the director, Nov 23 2026: \"remove the notes\")",
+        S.chartText(o))
 end)
 
 -- ===================================================================== the skin tone changed
@@ -971,16 +974,10 @@ for _, K in ipairs(S.CARDS) do
         Q.check(okO, lab .. ": the frame draws first, then the chart, then the focus marks and the figure",
             last and table.concat(last, ", ") or "no whole frame recorded")
         local o = S.chartRead(fig)
-        Q.check(o ~= nil and S.chartAsRule(o), lab .. ": the chart draws in the frame's margins, words exactly where the lines hold them",
-            S.chartText(o))
-        local wantWords = (K.w == 220)
-        local what = lab .. (wantWords and ": the chart shows the words (Build: the 220 drawer card)" or ": the chart shows the lines only (Build: the 336 card)")
-        if S.screenH() >= 1000 then
-            local words = o ~= nil and (o.left + o.right) > 0
-            Q.check(o ~= nil and o.lines > 0 and words == wantWords, what, S.chartText(o))
-        else
-            Q.skip(what, "a screen under 1000 px tall (Design's table: at 1280x800 the 336 card stacks with words, the 220 card keeps the lines); the rule above holds it: " .. S.chartText(o))
-        end
+        Q.check(o ~= nil and S.chartAsRule(o),
+            lab .. ": the chart draws in the frame's margins (the lines, the floor, no script)", S.chartText(o))
+        Q.check(o ~= nil and o.lines > 0 and o.script == 0,
+            lab .. ": the chart shows the lines and no script at this width (Design, Nov 23 2026)", S.chartText(o))
     end)
     S.shot(K.shot, "the medical check card (a stand-in patient: his own body), " .. K.say .. ", First Aid 10",
         function() return S.medOff and "the medical card did not open" or nil end)
@@ -1004,7 +1001,7 @@ S.recQ(S.healthFig, function(ok, fig)
     local R = fig and S.rec[fig]
     local o = S.chartRead(fig)
     Q.check(S.lite() and o ~= nil and o.n > 0 and S.chartAsRule(o),
-        "Lite: the height chart shows in the frame's margins, as Full does (lines, the floor, words where the lines hold them)",
+        "Lite: the height chart shows in the frame's margins, as Full does (the lines, the floor, no script)",
         "lite " .. tostring(S.lite()) .. "; " .. S.chartText(o))
     Q.check(R ~= nil and #R.list > 0 and #S.drawsNamed(R, "mark-") > 0, "Lite: the wounds still draw on the Health figure",
         tostring(R and #R.list) .. " wound draws")

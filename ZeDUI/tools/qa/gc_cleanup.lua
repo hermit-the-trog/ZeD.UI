@@ -1,6 +1,6 @@
 -- ZeDUI/tools/qa/gc_cleanup.lua  (Nov 22 2026, QA; tag gc_cln): Design's graphic cleanup in game (handoff
 -- ZeDUI/HANDOFF_design_graphic_cleanup_20261121.md, commit 01a436b52, merged in ba8084973), its "## QA" list: the body
--- figure (canvas 106 x 272, no grid, the height ruler; Health, Thermal, Equipment's defense view, the medical check
+-- figure (canvas 106 x 254, no grid, the height ruler; Health, Thermal, Equipment's defense view, the medical check
 -- card), the Vehicle tab (the parts out of their boxes, no grid box, the car centered at 2x at 4K) and the laundry
 -- card's room (the tile floor round the top-loading washer, the painted wall and baseboard behind the dryer and the
 -- washer-dryer). Pictures on the 1.0 gallery's staging (kiss_loot.lua: HFR.init, S.DIR, S.shot, the pointer the game
@@ -28,8 +28,8 @@
 --                                          (its narrow face, 130 x 190 in the 138 body at 1x); the washer's face popped out
 --                                          (FacePop.open). The faces' ids are logged (t._face)
 -- Checks (Q.check, "ZEDQA gc_cln PASS|FAIL ..."):
---   canvas      ZeD.Spacing.figureW / figureH are 106 / 272, T.sp's are those at T.art, and the figure's background
---               (fig-bg-*) is drawn 106 x 272 at the figure's whole zoom from a 106 x 272 picture: each tab, each
+--   canvas      ZeD.Spacing.figureW / figureH are 106 / 254, T.sp's are those at T.art, and the figure's background
+--               (fig-bg-*) is drawn 106 x 254 at the figure's whole zoom from a 106 x 254 picture: each tab, each
 --               theme on Health, the medical card
 --   no grid     no texture named *grid* drawn by the panel in that frame (its draws recorded for one frame)
 --   parts       every part getPartRects gives (17) hovers and selects by mouse at a point inside its focus box that
@@ -491,10 +491,11 @@ function S.figCheck(label, R, fig)
         n = n + 1
     end
     local art = T.art or 1
-    local tok = Sp.figureW == 106 and Sp.figureH == 272 and T.sp.figureW == 106 * art and T.sp.figureH == 272 * art
-    local drawn = bg ~= nil and s ~= nil and math.abs(bg.w - 106 * s) < 0.6 and math.abs(bg.h - 272 * s) < 0.6
-    local pic = bg ~= nil and bg.tw == 106 and bg.th == 272
-    Q.check(tok and drawn and pic, label .. ": the figure's canvas is 106 x 272 (T.sp.figureW / figureH), drawn whole at its zoom",
+    -- (Nov 23 2026, the director: "move the skelly up the measure will stop at their height": 254 rows, was 272)
+    local tok = Sp.figureW == 106 and Sp.figureH == 254 and T.sp.figureW == 106 * art and T.sp.figureH == 254 * art
+    local drawn = bg ~= nil and s ~= nil and math.abs(bg.w - 106 * s) < 0.6 and math.abs(bg.h - 254 * s) < 0.6
+    local pic = bg ~= nil and bg.tw == 106 and bg.th == 254
+    Q.check(tok and drawn and pic, label .. ": the figure's canvas is 106 x 254 (T.sp.figureW / figureH), drawn whole at its zoom",
         "tokens " .. tostring(Sp.figureW) .. " x " .. tostring(Sp.figureH) .. ", T.sp " .. tostring(T.sp.figureW) .. " x "
         .. tostring(T.sp.figureH) .. " at T.art " .. tostring(art) .. "; the background " .. (bg and (tostring(bg.name) .. " drawn "
         .. S.n(bg.w) .. " x " .. S.n(bg.h) .. " from a " .. tostring(bg.tw) .. " x " .. tostring(bg.th) .. " picture") or "not drawn")
@@ -771,9 +772,10 @@ function S.partBad(L, name, why)
     L.i, L.phase, L.wait, L.t = L.i + 1, 0, 0, nil
     if S.scrollBack(L) then L.wait = 1 end
 end
--- (QA, Nov 22: at default sizes the 272-unit figure is taller than Health's and Thermal's scroll area, so the feet
--- sat below it.) The tab's body scrolled so the part's focus box stands in its view (the scrollbar's own
--- setScrollPos; the span from its bar ratio, scrollH / totalH); the position found is kept and put back after the part.
+-- (QA, Nov 22: at default sizes the 272-unit figure was taller than Health's and Thermal's scroll area, so the feet
+-- sat below it; Nov 23 2026 it is 254 units, and a part still out of the view is scrolled to.) The tab's body scrolled
+-- so the part's focus box stands in its view (the scrollbar's own setScrollPos; the span from its bar ratio, scrollH /
+-- totalH); the position found is kept and put back after the part.
 function S.scrollOf(L, cw) return (L.C.scroll and cw) and cw[L.C.scroll] or nil end
 function S.scrollInto(L, cw, r)
     local view = L.C.view and cw[L.C.view]
