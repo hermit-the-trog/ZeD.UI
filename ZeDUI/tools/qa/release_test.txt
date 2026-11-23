@@ -17,4 +17,5 @@ rt_addon.lua | rt_addon | timeout=1800
 rt_lite.lua | rt_lite | timeout=1800
 rt_kbmap.lua | rt_kbmap | timeout=900
 rt_tour.lua | rt_tour | timeout=600
+rt_strain.lua | rt_strain | timeout=900
 rt_system.lua | rt_sys | timeout=1800

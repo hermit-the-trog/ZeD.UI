@@ -1160,8 +1160,19 @@ end)
 
 -- ===================================================================== 7. the container buttons
 step(4, function()
-    local ok, why = H.ccPress(H.wc(), "take")
-    Q.check(ok, "the crate's Loot all button presses", why)
+    -- (QA, Nov 22 2026, refit for branch header, the director's "Number 1": there the band has no Loot all and the
+    -- list heading's Take all, zone view:lootall:<key>, is the only one. The band's is pressed where it is (main
+    -- before that merge); where the band has none, the heading's. A band Loot all that is off, or none anywhere, FAILS.)
+    local wc = H.wc()
+    local ok, why = H.ccPress(wc, "take")
+    if not ok and why == "no button take" then
+        local z = H.zoneStarts(wc, "view:lootall:")
+        if z and z.w > 0 then
+            H.click(wc, z)
+            ok, why = true, "the heading's Loot all (" .. tostring(z.id) .. ")"
+        else why = "no Loot all in the band nor in the heading" end
+    end
+    Q.check(ok, "the crate's Loot all button presses (the band's, or the heading's where the band has none)", why)
 end)
 waitFor(10, 900, H.queueEmpty, function()
     -- (a thing the bag has no room for stays, as the game's transfer refuses it)

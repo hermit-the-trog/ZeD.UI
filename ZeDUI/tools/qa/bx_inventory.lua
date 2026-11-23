@@ -321,6 +321,8 @@ function H.bandWord(c, id)
     for _, h in ipairs((c and c._cc and c._cc.hits) or {}) do
         if h.spec and h.spec.id == id then return tostring(h.spec.label) end
     end
+    -- (branch header, "Number 1": the World band has no Loot all; it is in the list's heading)
+    if id == "take" then return "no button (Loot all is in the heading)" end
     return "no button"
 end
 
@@ -469,6 +471,26 @@ function H.press(c, id)
             if not ok then S.errs = S.errs + 1; return false, "the press threw: " .. tostring(err), true end
             return true, tostring(h.spec.label)
         end
+    end
+    -- (QA, Nov 22 2026, refit for branch header, the director's "Number 1": there the World band has no Loot all;
+    -- with no row marked "take" is the list heading's Take all, zone view:lootall:<key>. The band is tried first, so
+    -- the press is the band's before that merge (and its Take marked with rows marked) and the heading's after.)
+    if id == "take" then
+        for _, z in ipairs((c and c._hitZones) or {}) do
+            if type(z.id) == "string" and z.id:sub(1, 13) == "view:lootall:" then
+                -- (off as the band's was off: nothing wanted to take)
+                local on = true
+                pcall(function() on = ZeD.ContainerControls.headLootEnabled(c) and true or false end)
+                if not on then return false, "Loot all (the heading's) is off" end
+                local ok, err = pcall(function()
+                    if z.w > 0 then c:onMouseDown(z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2))
+                    else ZeD.InventoryRenderer.onViewZone(z.id, c) end
+                end)
+                if not ok then S.errs = S.errs + 1; return false, "the press threw: " .. tostring(err), true end
+                return true, "Loot all (the heading's)"
+            end
+        end
+        return false, "no button take, no Loot all in the heading"
     end
     return false, "no button " .. id
 end

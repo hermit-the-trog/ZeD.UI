@@ -1,0 +1,14 @@
+# ZeDUI/tools/qa/gd_ads.txt (Nov 22 2026, QA): the F1 survival guide book's ad pages after inkads (gd_ads.lua: every ad page in the book's page model checked for one ink, no reversed type, the dealt ad pictures drawn; at most 24 pictures to Screenshots/gd_ads_<page>.png) on the 1.0 gallery's look, as gc_cleanup.txt. No story stage. 4K full screen.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_unload.lua | unl | timeout=60
+gallery_v1_a_common.lua | g1c | timeout=60
+hfr_common.lua | hfrc | timeout=60
+gd_ads.lua | gd_ads | timeout=900
+gallery_reload.lua | rel | timeout=60
+gallery_v1_a_end.lua | g1e | timeout=60
+gallery_t14_end.lua | g14e | timeout=60

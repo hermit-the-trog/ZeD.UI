@@ -10,11 +10,14 @@
 --   2. buttons (Molecules.lua): ZeD.Molecules.lite(); liteKind gives Cancel and No and a danger button "bad", a
 --      primary "good", a plain one nothing; liteColor is the game's own good and bad colors (Accessibility); and a
 --      button really drawn in Lite (the watch's speed row, the speed in use is primary) is filled with the good color
---      under a line two hairlines thick
+--      under a line two hairlines thick (Simple watch, Nov 22 2026: where the watch's speed keys are the belt's,
+--      W.drawSpeedKey, and no Lite button is drawn, a SKIP; the keys drawn are checked instead, one in five lit)
 --   3. dashboard (ZeD_Dashboard.lua): D._designFor gives every car, a pickup and a police car, the Dash Elite;
 --      D._cabinOf gives it the black cabin
 --   4. watch (ZeD_Watch.lua): W.lite(), W.beltMode() false (the corner); its keys are the speed row speed0 to speed3
---      (SKIP on a server, where the speed is not the player's)
+--      (SKIP on a server, where the speed is not the player's). The Simple watch (Nov 22 2026, W.drawSpeedKey
+--      loaded): the alarm line, the face (fold) and the belt's five keys speed0 to speed4, in any order; folded, the
+--      fold and the five keys. Either shape passes only with the code that makes it.
 --   5. device faces (PlainFace.lua): every radio plate's plain controls, ZeD.PlainFace.controlsFor, have no preset
 --      keys, no memory key and no dial lamp; every plate with a power row in Full keeps it
 --   6. windows (InventoryRenderer.lua, ContainerControls.lua, ItemCardOrganism.lua): the inventory's List or Grid
@@ -232,12 +235,46 @@ function H.recStart()
         if #S.rec < 400 then S.rec[#S.rec + 1] = r end
         if not ok then error(err) end
     end
+    -- (Simple watch, Nov 22 2026: the watch's speed keys are the belt's, ZeD.Watch.drawSpeedKey: each key drawn and
+    -- each lit one counted, pass-through)
+    S.keyN, S.keyLit = 0, 0
+    local W = ZeD.Watch
+    S.keyWas = W and W.drawSpeedKey or nil
+    if S.keyWas then
+        W.drawSpeedKey = function(panel, x, y, k, n, lit, hover, focus)
+            S.keyN = S.keyN + 1
+            if lit then S.keyLit = S.keyLit + 1 end
+            return S.keyWas(panel, x, y, k, n, lit, hover, focus)
+        end
+    end
 end
 function H.recStop()
     if not S.recOn then return end
     S.recOn = false
     M.drawButton = S.drawWas
+    if S.keyWas then ZeD.Watch.drawSpeedKey = S.keyWas end
+    S.keyWas = nil
 end
+-- the watch's click areas by id, in order
+function H.watchIds(inst)
+    local ids = {}
+    for _, h in ipairs((inst and inst._hit) or {}) do ids[#ids + 1] = tostring(h.id) end
+    return ids
+end
+-- ids holds exactly the words of want (space separated), each once, in any order
+function H.idsAre(ids, want)
+    local need, n = {}, 0
+    for w in want:gmatch("%S+") do need[w] = true; n = n + 1 end
+    if #ids ~= n then return false end
+    local seen = {}
+    for _, id in ipairs(ids) do
+        if not need[id] or seen[id] then return false end
+        seen[id] = true
+    end
+    return true
+end
+-- the Simple watch of Nov 22 2026 is loaded (the belt's speed keys on the watch)
+function H.simpleWatch() return ZeD.Watch ~= nil and ZeD.Watch.drawSpeedKey ~= nil end
 
 -- ===================================================================== picking Style (Lite 2, Full 1) as a player
 -- picks it: the pause menu, Options, ZeD setup, the Style row stepped to it, Apply; then onRows(w, rows) reads ZeD
@@ -402,15 +439,19 @@ Q.step(30, function()
     if S.server then
         Q.skip("Lite watch: its keys are the speed row speed0 to speed3", "on a server the speed is not the player's")
     else
-        local ids = {}
-        for _, h in ipairs((inst and inst._hit) or {}) do ids[#ids + 1] = tostring(h.id) end
+        local ids = H.watchIds(inst)
         local want = "speed0 speed1 speed2 speed3"
         local four = table.concat({ ids[1] or "", ids[2] or "", ids[3] or "", ids[4] or "" }, " ")
         local rest = {}
         for i = 5, #ids do rest[ids[i]] = true end
         -- (Nov 19 2026, the folding watch: after the speed row, the face (fold) and the alarm line (alarmline))
-        Q.check(inst ~= nil and four == want and rest.fold and rest.alarmline and #ids == 6,
-            "Lite watch: its keys are the speed row speed0 to speed3, then the face and the alarm line", table.concat(ids, " "))
+        local okOld = four == want and rest.fold and rest.alarmline and #ids == 6
+        -- (Simple watch, Nov 22 2026: the alarm line, the face and the belt's five keys, speed0 to speed4)
+        local okNew = H.idsAre(ids, "alarmline fold speed0 speed1 speed2 speed3 speed4")
+        local okIds = (okOld and not H.simpleWatch()) or (okNew and H.simpleWatch())
+        Q.check(inst ~= nil and okIds,
+            "Lite watch: its keys are the speed row (speed0 to speed3, or the belt's five on the Simple watch), the face and the alarm line",
+            table.concat(ids, " ") .. (H.simpleWatch() and " (Simple watch)" or ""))
     end
     if inst and inst:isVisible() and inst:getWidth() > 0 then RT.bounds(Q, "Lite: the watch in its corner") end
     -- a button really drawn in Lite: the watch's speed row, the speed in use primary, filled with the good color
@@ -426,6 +467,13 @@ Q.step(30, function()
     end
     if S.server then
         Q.skip("Lite buttons: a primary button is drawn filled with the good color under a two-hairline line", "no speed row on a server")
+    elseif not hit and H.simpleWatch() then
+        -- (Simple watch, Nov 22 2026: the watch's speed keys are the belt's, not Lite buttons; the keys checked instead)
+        Q.skip("Lite buttons: a primary button is drawn filled with the good color under a two-hairline line",
+            "the watch's speed keys are the belt's (W.drawSpeedKey); " .. seen .. " buttons drawn, none primary and good")
+        Q.check((S.keyN or 0) > 0 and S.keyN % 5 == 0 and S.keyLit * 5 == S.keyN,
+            "Lite watch: the belt's five speed keys are drawn, the one in use lit",
+            tostring(S.keyN) .. " keys drawn, " .. tostring(S.keyLit) .. " lit")
     else
         local lc = hit and hit.lineRGB
         Q.check(hit ~= nil and hit.lines == 2 and hit.doubles == 0 and lc ~= nil and H.same(lc[1], lc[2], lc[3], S.good[1], S.good[2], S.good[3]),
@@ -475,7 +523,8 @@ function H.watchTextStart(inst)
 end
 function H.watchTextStop() if S.wInst and S.wDrawWas then S.wInst.drawText = S.wDrawWas end; S.wInst, S.wDrawWas = nil, nil end
 function H.timeColor()
-    for s, c in pairs(S.wtxt or {}) do if s:match("^%d+:%d%d$") then return c, s end end
+    -- (the Simple watch, Nov 22 2026: the big time carries its seconds, 9:41:00)
+    for s, c in pairs(S.wtxt or {}) do if s:match("^%d+:%d%d$") or s:match("^%d+:%d%d:%d%d$") then return c, s end end
     return nil
 end
 Q.step(5, function()
@@ -502,10 +551,12 @@ end)
 Q.step(10, function()
     local inst = S.wi
     if not inst then return end
-    local ids = {}
-    for _, h in ipairs(inst._hit or {}) do ids[#ids + 1] = tostring(h.id) end
-    Q.check(inst._plainThin == true and inst:getHeight() < S.wH0 and table.concat(ids, " ") == "fold",
-        "Lite watch fold: a click on the face folds it to one line (shorter, the strip is one fold hit)",
+    local ids = H.watchIds(inst)
+    -- (Simple watch, Nov 22 2026: the belt's five keys stay under the strip; off a server only)
+    local okFold = (table.concat(ids, " ") == "fold" and (not H.simpleWatch() or S.server))
+        or (H.simpleWatch() and not S.server and H.idsAre(ids, "fold speed0 speed1 speed2 speed3 speed4"))
+    Q.check(inst._plainThin == true and inst:getHeight() < S.wH0 and okFold,
+        "Lite watch fold: a click on the face folds it to one line (shorter, the strip is one fold hit, and the belt's five keys on the Simple watch)",
         "thin " .. tostring(inst._plainThin) .. ", h " .. inst:getHeight() .. " < " .. tostring(S.wH0) .. ", hits " .. table.concat(ids, " "))
     local c, s = H.timeColor()
     local A = ZeD.T.accent

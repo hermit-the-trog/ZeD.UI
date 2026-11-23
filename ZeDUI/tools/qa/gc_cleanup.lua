@@ -11,9 +11,9 @@
 --                                          off, bleeding stopped, healed after), Dark, Light, High Contrast
 --   thermal_dark, equip_defense_dark       the Thermal tab; the Equipment tab with its list folded so the Defense view
 --                                          (the figure) stands under the header
---   medcard_336, medcard_220               the medical check card (ObjectCardMedic.lua) held so its BODY is 336 units
---                                          wide (two columns, the text column 336 - figure - 10), and held to the half
---                                          card, 220 (stacked). In single player there is no other player to check:
+--   medcard_336, medcard_220               the medical check card (ObjectCardMedic.lua) held to a 336-unit card (halves
+--                                          at 4K and 1080p, stacked at 1280x800) and to the half card, 220 (stacked),
+--                                          Build's two widths (figgap). In single player there is no other player to check:
 --                                          the patient is a stand-in table that answers every call with the
 --                                          character's own (his body, his name), opened through the kind's own
 --                                          resolve and ZeD_WorldWindow.openObjectCard, as OC.open does. The card's
@@ -21,10 +21,11 @@
 --   vehicle_tab, vehicle_part_missing      a Base.CarNormal (the prelude's ZEDQA_CAR_WAIT), repaired, the Vehicle tab
 --                                          opened as the mechanics key does (MechanicsTab.openFromAction); then its
 --                                          battery taken out, its windshield smashed and a tire worn down
---   laundry_washer_full / _narrow, laundry_dryer_full / _narrow, laundry_combo_full, laundry_popout
+--   laundry_washer_full / _narrow / _half, laundry_dryer_full / _narrow, laundry_combo_full, laundry_popout
 --                                          a washer, a dryer and a washer-dryer placed one square from him (the
 --                                          game's tiles, as rt_cards.lua finds them); each card on the full card and
---                                          held to a 336-unit body (the main face); the washer's face popped out
+--                                          held to a 336-unit body (the main face); the washer on the half card, 220
+--                                          (its narrow face, 130 x 190 in the 138 body at 1x); the washer's face popped out
 --                                          (FacePop.open). The faces' ids are logged (t._face)
 -- Checks (Q.check, "ZEDQA gc_cln PASS|FAIL ..."):
 --   canvas      ZeD.Spacing.figureW / figureH are 106 / 272, T.sp's are those at T.art, and the figure's background
@@ -37,11 +38,23 @@
 --               part's stop found by FocusManager.focusWhere, its rect the focus box, the tab's own field set by
 --               onFocus; A through Focus.qaButton and dispatchJoypadDown; Health: A opens the part's treatment,
 --               recorded and not run)
---   medical     the card's own layout: at body 336 the figure at the body's left and the text column beside it; on
---               the half card the figure centered and the text under it (ZeD_BodyFigure.drawAt and
---               HealthTab.drawOverall / _renderDetailView recorded for one frame on the card)
+--   frame       (figgap bc8ea8f29, the director: "the skeleton needs to take up half of the card. And it sits in a
+--               frame just like the vehicle and its parts sit in a frame taking up half a card.") On Health (each
+--               theme), Thermal, Equipment's defense view and the medical card, from the layout the panel drew with
+--               (Molecules.drawFigureFrame wrapped) and its draws that frame: the frame drawn, a one-unit T.borderS line
+--               on its four sides; the figure centered in it at a whole zoom (the largest the frame holds, at most
+--               T.art), inset 10 from its top; halves or stacked by the rule (halves only where a half holds the
+--               figure at its art zoom inside the inset) and by Build's table for the screen (by its height, at the
+--               table's UI scale): 4K at 1.75 Health halves 2x (frame 384 x 580), the 336 card halves 2x, 220 stacked;
+--               1080p Health halves 1x (220 x 292), 336 halves 1x, 220 stacked; 1280x800 Health halves 1x (164 x 288),
+--               336 stacked, 220 stacked; a tab on the half drawer stacks; other screens the rule alone (the frame
+--               size against the table is a NOTE); the text column starts in the right half after the 10 gap (stacked:
+--               under the frame, 8 below), no text inside the frame. Health on the 220 drawer stacks (the layout alone)
+--   medical     the card's figure layout spans the card's body and the figure (ZeD_BodyFigure.drawAt) is drawn where it
+--               says; the text column (HealthTab.drawOverall / _renderDetailView) where the layout puts it
 --   laundry     at 480, a 336-unit body and the half card, for each machine: nothing the card draws lies outside its
---               rect, and the room fills the body from edge to edge on the face's rows (the card's draws recorded)
+--               rect, and the room fills the body from edge to edge on the face's rows (the card's draws recorded);
+--               strict on all three widths for all three machines (Build's narrow faces fit the half card's body)
 --   vehicle     no grid box drawn; the car's base picture is MechFigs' size (no callout boxes baked in); the car is
 --               centered in the diagram's room at a whole zoom (2 at 4K); the missing battery and the smashed
 --               windshield draw their rims
@@ -49,7 +62,7 @@
 -- the hover tests; the real pointer hidden; ZeD's input mode locked to the mouse; the window in the picture held "in
 -- use". Every picture waits for the windows to stop moving and for 3.6 s with no new Lua error.
 -- What it puts back: the theme (base, accent, size) as found, the wounds healed (only parts it hurt; the body made
--- whole if it lost health), the treatment call, the figure and draw wrappers, the pad's focus and its A, the card's
+-- whole if it lost health), the treatment call, the figure, frame and draw wrappers, the pad's focus and its A, the card's
 -- width hold, the card and the pop-out closed, the machines removed, the car's look ended and the car removed, the
 -- tabs' figure folds, the equipment list fold, the hover and pad fields, the input lock, the pointer swap, the windows'
 -- "in use" test, both windows' places, sizes, pins and tabs (ZEDQA_LAYOUT_BACK), the pair as found, him where he stood.
@@ -80,6 +93,19 @@ S.MACHINES = { { key = "washer", cls = "IsoClothingWasher" }, { key = "dryer", c
                { key = "combo", cls = "IsoCombinationWasherDryer" } }
 S.REC_FNS = { "drawRect", "drawRectBorder", "drawTexture", "drawTextureScaled", "drawTextureScaledAspect",
               "drawTextureScaledUniform", "drawTextZoomed" }
+S.FIG_FNS = { "drawRect", "drawRectBorder", "drawTexture", "drawTextureScaled", "drawTextureScaledAspect",
+              "drawTextureScaledUniform", "drawTextZoomed", "drawText", "drawTextRight", "drawTextCentre" }
+-- Build's table for the figure in its frame (figgap bc8ea8f29, figure_frame_sim.lua), by screen height at its UI scale:
+-- the Health tab on the full drawer (its frame w x h with the scroll bar showing), the medical card 336 and 220 wide
+S.EXPECT = {
+    [2160] = { name = "4K at 1.75", scale = 1.75, health = { two = true, zoom = 2, w = 384, h = 580 },
+               med336 = { two = true, zoom = 2 }, med220 = { two = false } },
+    [1080] = { name = "1080p at 1.0", scale = 1.0, health = { two = true, zoom = 1, w = 220, h = 292 },
+               med336 = { two = true, zoom = 1 }, med220 = { two = false } },
+    [800]  = { name = "1280x800 at 0.75", scale = 0.75, health = { two = true, zoom = 1, w = 164, h = 288 },
+               med336 = { two = false }, med220 = { two = false } },
+}
+S.frames = {}
 
 -- ===================================================================== the checks (rt_kit.lua's way)
 Q.pass, Q.fail, Q.skips = 0, 0, 0
@@ -248,12 +274,16 @@ function S.texInfo(tex)
     if tw == nil then pcall(function() tw = tex:getWidth(); th = tex:getHeight() end) end
     return nm, tw, th
 end
-function S.recAdd(R, fn, a1, a2, a3, a4, a5)
+function S.recAdd(R, fn, a1, a2, a3, a4, a5, a6, a7, a8)
     local d = { fn = fn }
     if fn == "drawRect" or fn == "drawRectBorder" then
         d.x, d.y, d.w, d.h = a1, a2, a3, a4
+        d.a, d.r, d.g, d.b = tonumber(a5), tonumber(a6), tonumber(a7), tonumber(a8)
     elseif fn == "drawTextZoomed" then
         d.x, d.y, d.w, d.h, d.text = a2, a3, 0, 0, true
+    elseif fn == "drawText" or fn == "drawTextRight" or fn == "drawTextCentre" then
+        -- (the frame check's text: where the figure's text column starts; x is the left, right or middle as named)
+        d.x, d.y, d.w, d.h, d.text, d.str = a2, a3, 0, 0, true, tostring(a1)
     else
         d.name, d.tw, d.th = S.texInfo(a1)
         d.x, d.y = a2, a3
@@ -265,16 +295,17 @@ function S.recAdd(R, fn, a1, a2, a3, a4, a5)
     R.list[#R.list + 1] = d
 end
 function S.recFn(R, fn, orig)
-    return function(self, a1, a2, a3, a4, a5, ...)
-        pcall(S.recAdd, R, fn, a1, a2, a3, a4, a5)
-        return orig(self, a1, a2, a3, a4, a5, ...)
+    return function(self, a1, a2, a3, a4, a5, a6, a7, a8, ...)
+        pcall(S.recAdd, R, fn, a1, a2, a3, a4, a5, a6, a7, a8)
+        return orig(self, a1, a2, a3, a4, a5, a6, a7, a8, ...)
     end
 end
-function S.recOn(key, panel)
+-- fns: the draw calls to record (S.REC_FNS when nil; the figure's frame check adds the text calls, S.FIG_FNS)
+function S.recOn(key, panel, fns)
     S.recOff(key)
     if not panel then return false end
-    local R = { panel = panel, own = {}, list = {} }
-    for _, fn in ipairs(S.REC_FNS) do
+    local R = { panel = panel, own = {}, list = {}, fns = fns or S.REC_FNS }
+    for _, fn in ipairs(R.fns) do
         R.own[fn] = rawget(panel, fn) or false
         local orig = panel[fn]
         if orig then panel[fn] = S.recFn(R, fn, orig) end
@@ -285,7 +316,7 @@ end
 function S.recOff(key)
     local R = S.rec[key]
     if not R then return nil end
-    for _, fn in ipairs(S.REC_FNS) do
+    for _, fn in ipairs(R.fns) do
         local o = R.own[fn]
         if o then R.panel[fn] = o else R.panel[fn] = nil end
     end
@@ -475,13 +506,195 @@ function S.figCheckQ(id, label)
     local C = S.TABS[id]
     Q.step(2, function()
         local cw = S.CW()
-        if not C.off and cw then S.recOn("fig", cw._drawerPanel) end
+        if not C.off and cw then
+            S.frames[cw._drawerPanel] = nil
+            S.recOn("fig", cw._drawerPanel, S.FIG_FNS)
+        end
     end)
     Q.step(1, function()
         local R = S.recOff("fig")
         if C.off then return end
-        S.figCheck(label or C.label, R, S.fig(id))
+        local cw = S.CW()
+        local fig = S.fig(id)
+        S.figCheck(label or C.label, R, fig)
+        local panel = cw and cw._drawerPanel
+        S.frameCheck(label or C.label, R, panel and S.frames[panel] or nil, fig, S.tabExpect(id), nil)
     end)
+end
+
+-- ===================================================================== the figure in its frame (figgap, Nov 22 2026)
+-- the director: "the skeleton needs to take up half of the card. And it sits in a frame just like the vehicle and its
+-- parts sit in a frame taking up half a card." Molecules.drawFigureFrame wrapped to keep the layout each panel drew
+-- with (figureFrame's table: two, zoom, frame, figure and text rects); its draws recorded the same frame.
+function S.frameWrap(on)
+    local M = ZeD.Molecules
+    if on then
+        if S.dff0 or not (M and M.drawFigureFrame) then return end
+        S.dff0 = M.drawFigureFrame
+        M.drawFigureFrame = function(panel, L, ...)
+            if panel and type(L) == "table" then S.frames[panel] = L end
+            return S.dff0(panel, L, ...)
+        end
+        return
+    end
+    if S.dff0 then M.drawFigureFrame = S.dff0; S.dff0 = nil end
+    S.frames = {}
+end
+-- Build's row for this screen (by its height, at the table's UI scale), else nil (the rule alone)
+function S.screenRow()
+    local T = ZeD.T
+    local row = S.EXPECT[S.core:getScreenHeight()]
+    if row and math.abs((T.scale or 1) - row.scale) > 0.01 then return nil end
+    return row
+end
+-- what a tab's figure should do: the full drawer at Build's sizes takes the Health row (Thermal and Equipment share
+-- the drawer and layoutZoneA); the half drawer (220) stacks; else the rule alone
+function S.tabExpect(id)
+    local T = ZeD.T
+    local cw = S.CW()
+    local dw = cw and tonumber(cw._drawerEffW) or nil
+    if dw and math.abs(dw - T.px(220)) <= 1.5 then return { two = false, src = "the half drawer (220): stacked" } end
+    local row = S.screenRow()
+    if dw and row and math.abs(dw - T.px(480)) <= 1.5 then
+        local e = row.health
+        return { two = e.two, zoom = e.zoom, w = (id == "health") and e.w or nil, h = (id == "health") and e.h or nil,
+                 src = "Build's table, " .. row.name .. ", the full drawer" }
+    end
+    return { src = "the rule (screen " .. S.core:getScreenWidth() .. " x " .. S.core:getScreenHeight() .. ", UI scale "
+        .. tostring(T.scale) .. ", drawer " .. S.n(dw) .. " px)" }
+end
+function S.medExpect(key)
+    local row = S.screenRow()
+    local e = row and row[key]
+    if e then return { two = e.two, zoom = e.zoom, src = "Build's table, " .. row.name } end
+    return { src = "the rule (screen " .. S.core:getScreenWidth() .. " x " .. S.core:getScreenHeight() .. ", UI scale "
+        .. tostring(ZeD.T.scale) .. ")" }
+end
+function S.near(a, b, tol) return a ~= nil and b ~= nil and math.abs(a - b) <= (tol or 1) end
+-- the frame's four sides among the recorded rects: the one-unit T.borderS line round the frame's rect (Atoms.frame)
+function S.frameSides(R, L)
+    local T = ZeD.T
+    local t = T.px(1)
+    local c = T.borderS or {}
+    local sides = { top = false, bottom = false, left = false, right = false }
+    local colorOk = true
+    for _, d in ipairs((R and R.list) or {}) do
+        if d.fn == "drawRect" then
+            local side = nil
+            if S.near(d.x, L.frameX, 0.5) and S.near(d.w, L.frameW, 0.5) and S.near(d.h, t, 0.5) then
+                if S.near(d.y, L.frameY, 0.5) then side = "top"
+                elseif S.near(d.y, L.frameY + L.frameH - t, 0.5) then side = "bottom" end
+            elseif S.near(d.w, t, 0.5) and S.near(d.y, L.frameY + t, 0.5) and S.near(d.h, L.frameH - 2 * t, 0.5) then
+                if S.near(d.x, L.frameX, 0.5) then side = "left"
+                elseif S.near(d.x, L.frameX + L.frameW - t, 0.5) then side = "right" end
+            end
+            if side then
+                sides[side] = true
+                if not (S.near(d.r, c.r, 0.01) and S.near(d.g, c.g, 0.01) and S.near(d.b, c.b, 0.01)) then colorOk = false end
+            end
+        end
+    end
+    local n = 0
+    for _, k in ipairs({ "top", "bottom", "left", "right" }) do if sides[k] then n = n + 1 end end
+    return n, colorOk
+end
+-- L: the layout the panel drew with; fig: the ZeD_BodyFigure; E: what it should do (S.tabExpect / S.medExpect);
+-- tx: the medical card's text column as drawn ({ x, y, w }), else the recorded text calls say where the text starts
+function S.frameCheck(label, R, L, fig, E, tx)
+    local T = ZeD.T
+    if not L then
+        Q.check(false, label .. ": the figure sits in its frame (Molecules.drawFigureFrame drawn)",
+            (ZeD.Molecules.drawFigureFrame and "drawFigureFrame was not called for this panel this frame")
+            or "ZeD.Molecules.drawFigureFrame is missing: this build is not the figgap branch")
+        return
+    end
+    local inset, gap, art = T.px(10), T.px(10), T.art or 1
+    local cw, ch = T.sp.figureW / art, T.sp.figureH / art
+    local frameSay = "frame " .. S.n(L.frameX) .. "," .. S.n(L.frameY) .. " " .. S.n(L.frameW) .. " x " .. S.n(L.frameH)
+    -- 1. the frame's line
+    local n, colorOk = S.frameSides(R, L)
+    Q.check(n == 4 and colorOk, label .. ": the figure's frame is drawn, a one-unit T.borderS line (the Vehicle pane's)",
+        frameSay .. "; sides found " .. n .. " of 4 at " .. T.px(1) .. " px, color T.borderS " .. tostring(colorOk))
+    -- 2. the figure centered in the frame at a whole zoom
+    local bg = nil
+    for _, d in ipairs((R and R.list) or {}) do
+        local nm = d.name and string.lower(tostring(d.name)) or ""
+        if nm:find("fig-bg-", 1, true) and S.near(d.y, L.figY, 1.5) then bg = d end
+    end
+    local wantZoom = math.floor((L.frameW - inset * 2) / cw + 1e-6)
+    if wantZoom > art then wantZoom = art end
+    if wantZoom < 1 then wantZoom = 1 end
+    local s = fig and fig._drawAtS
+    local whole = L.zoom ~= nil and L.zoom == math.floor(L.zoom) and L.zoom == wantZoom and s == L.zoom
+    local left = bg and (bg.x - L.frameX) or nil
+    local right = bg and ((L.frameX + L.frameW) - (bg.x + bg.w)) or nil
+    local centered = bg ~= nil and math.abs(left - right) <= 1 and S.near(bg.w, cw * L.zoom, 0.6) and S.near(bg.h, ch * L.zoom, 0.6)
+        and S.near(bg.y - L.frameY, inset, 1) and S.near(L.frameH, ch * L.zoom + inset * 2, 1)
+    Q.check(whole and centered, label .. ": the figure is centered in its frame at a whole zoom",
+        "zoom " .. tostring(L.zoom) .. " (drawn at " .. tostring(s) .. "; the largest whole zoom the frame holds, at most T.art "
+        .. art .. ": " .. wantZoom .. "); figure " .. (bg and (S.n(bg.x) .. "," .. S.n(bg.y) .. " " .. S.n(bg.w) .. " x " .. S.n(bg.h)
+        .. ", " .. S.n(left) .. " px from the frame's left, " .. S.n(right) .. " from its right, " .. S.n(bg.y - L.frameY)
+        .. " from its top (inset " .. inset .. ")") or "background not drawn") .. "; " .. frameSay)
+    -- 3. halves or stacked: the rule (a half holds the figure at its art zoom inside the inset), and Build's table
+    local spanW = L.two and (L.rightX + L.rightW - L.frameX) or L.frameW
+    local half = math.floor((spanW - gap) / 2)
+    local ruleTwo = half - inset * 2 >= T.sp.figureW
+    local shape = L.two and S.near(L.frameW, half, 1) and S.near(L.rightW, spanW - half - gap, 1)
+    if not L.two then shape = S.near(L.frameW, spanW, 1) end
+    local ok = (L.two == ruleTwo) and shape and (E.two == nil or L.two == E.two) and (E.zoom == nil or L.zoom == E.zoom)
+    local want = (E.two == nil) and (ruleTwo and "halves" or "stacked") or (E.two and "halves" or "stacked")
+    Q.check(ok, label .. ": " .. want .. (E.zoom and (" at " .. E.zoom .. "x") or "") .. " (" .. tostring(E.src) .. ")",
+        (L.two and "halves" or "stacked") .. " at " .. tostring(L.zoom) .. "x; span " .. S.n(spanW) .. " px, a half " .. half
+        .. " px holds the figure (" .. T.sp.figureW .. " px at T.art) inside the inset: " .. tostring(ruleTwo) .. "; " .. frameSay
+        .. ", text " .. S.n(L.rightX) .. "," .. S.n(L.rightY) .. " " .. S.n(L.rightW) .. " wide")
+    if E.w and E.h then
+        local same = S.near(L.frameW, E.w, 1) and S.near(L.frameH, E.h, 1)
+        Q.say("NOTE " .. label .. ": frame " .. S.n(L.frameW) .. " x " .. S.n(L.frameH) .. ", Build's table " .. E.w .. " x " .. E.h
+            .. (same and " (the same)" or " (differs: the table counts the scroll bar showing)"))
+    end
+    -- 4. the text column: in the right half beside the frame, or under it when stacked; none inside the frame
+    local fx2, fy2 = L.frameX + L.frameW, L.frameY + L.frameH
+    local inFrame, beside, under, minX, minY = 0, 0, 0, nil, nil
+    for _, d in ipairs((R and R.list) or {}) do
+        if d.text and d.str ~= nil then
+            local inBand = d.y >= L.frameY - 0.5 and d.y < fy2
+            if inBand and d.x >= L.frameX - 0.5 and d.x < fx2 then inFrame = inFrame + 1
+            elseif inBand and d.x >= fx2 then
+                beside = beside + 1
+                if not minX or d.x < minX then minX = d.x end
+            elseif d.y >= fy2 then
+                under = under + 1
+                if not minY or d.y < minY then minY = d.y end
+            end
+        end
+    end
+    local txSay = tx and (", the column drawn at " .. S.n(tx.x) .. "," .. S.n(tx.y) .. " " .. S.n(tx.w) .. " wide") or ""
+    local tOk, tWhat
+    if L.two then
+        tWhat = "the text column starts in the right half"
+        tOk = L.rightX >= L.frameX + spanW / 2 - 0.5 and L.rightX >= fx2 + gap - 1 and S.near(L.rightY, L.frameY, 0.5) and inFrame == 0
+        if tx then tOk = tOk and S.near(tx.x, L.rightX, 1) and S.near(tx.y, L.rightY, 1) and S.near(tx.w, L.rightW, 1)
+        else tOk = tOk and beside > 0 and minX >= L.rightX - 1 end
+    else
+        tWhat = "stacked: the text under the frame, full width"
+        tOk = S.near(L.rightX, L.frameX, 0.5) and L.rightY >= fy2 + T.px(8) - 1 and inFrame == 0
+        if tx then tOk = tOk and S.near(tx.x, L.rightX, 1) and S.near(tx.y, L.rightY, 1)
+        else tOk = tOk and under > 0 and minY >= L.rightY - 1 end
+    end
+    Q.check(tOk, label .. ": " .. tWhat, "text column at " .. S.n(L.rightX) .. "," .. S.n(L.rightY) .. " (" .. S.n(L.rightW)
+        .. " wide; the half line at " .. S.n(L.frameX + spanW / 2) .. ", the frame's right at " .. S.n(fx2) .. ", its foot at "
+        .. S.n(fy2) .. "); texts drawn: " .. inFrame .. " inside the frame, " .. beside .. " beside it (leftmost at " .. S.n(minX)
+        .. "), " .. under .. " under it (topmost at " .. S.n(minY) .. ")" .. txSay)
+end
+-- the Health tab on the half drawer (220) stacks: the layout alone, on the live layoutZoneA (QA cannot hold the drawer
+-- at 220 without changing the window; the drawer is the full card at these sizes)
+function S.health220()
+    local T = ZeD.T
+    local L = nil
+    pcall(function() L = ZeD.Molecules.layoutZoneA(0, 0, T.px(220) - T.sp.scrollbarW) end)
+    local two = L and L.two
+    Q.check(L ~= nil and two == false, "Health at the 220 drawer width stacks (layoutZoneA on the 220 card less the scroll bar)",
+        L and ("two " .. tostring(two) .. ", zoom " .. tostring(L.zoom) .. ", frame " .. S.n(L.frameW) .. " x " .. S.n(L.frameH)) or "no layout")
 end
 
 -- ===================================================================== every part by mouse and by pad
@@ -813,31 +1026,31 @@ function S.bodyOf(card)
     local pad = T.px(10)
     return pad, card:getWidth() - sb - 2 * pad
 end
-function S.medCheck(M)
+-- the card's own layout (Molecules.figureFrame on the card's body): the frame from the body's left across the body,
+-- the figure drawn where the layout puts it, then the frame check (S.frameCheck) on Build's table for the card's width
+function S.medCheck(M, R)
     local T = ZeD.T
     local card = S.card()
     local f, tx = S.medRec and S.medRec.fig, S.medRec and S.medRec.text
+    local label = "medical card (" .. M.say .. ")"
     if not (card and f and tx) then
-        Q.check(false, "medical card (" .. M.say .. "): the figure and the text column are drawn", "figure " .. tostring(f ~= nil) .. ", text " .. tostring(tx ~= nil))
+        Q.check(false, label .. ": the figure and the text column are drawn", "figure " .. tostring(f ~= nil) .. ", text " .. tostring(tx ~= nil))
         return
     end
+    local L = S.frames[card]
     local bx, bw = S.bodyOf(card)
-    local figW, figH = T.sp.figureW, T.sp.figureH
-    local ok, want
-    if M.two then
-        want = "the figure at the body's left, the text column beside it"
-        local cx, cw = bx + figW + T.px(10), bw - figW - T.px(10)
-        ok = math.abs(f.x - bx) <= 1 and math.abs(tx.x - cx) <= 1 and math.abs(tx.w - cw) <= 1 and math.abs(tx.y - f.y) <= 1
-    else
-        want = "the figure centered, the text under it at the body's full width"
-        local fx = bx + math.floor((bw - figW) / 2)
-        ok = math.abs(f.x - fx) <= 1 and math.abs(tx.x - bx) <= 1 and math.abs(tx.w - bw) <= 1 and math.abs(tx.y - (f.y + figH + T.px(8))) <= 1
-    end
     local sc = T.scale or 1
-    Q.check(ok, "medical card (" .. M.say .. "): " .. want,
-        "card " .. S.n(card:getWidth() / sc) .. " units, body " .. S.n(bw / sc) .. " units (two columns from "
-        .. S.n((figW + T.px(170)) / sc) .. "); figure at " .. S.n(f.x) .. "," .. S.n(f.y) .. " " .. S.n(f.w) .. " x " .. S.n(f.h)
-        .. "; text (" .. tostring(tx.how) .. ") at " .. S.n(tx.x) .. "," .. S.n(tx.y) .. ", " .. S.n(tx.w) .. " px = " .. S.n(tx.w / sc) .. " units")
+    if L then
+        local spanW = L.two and (L.rightX + L.rightW - L.frameX) or L.frameW
+        Q.check(S.near(L.frameX, bx, 1) and S.near(spanW, bw, 1) and S.near(f.x, L.figX, 1) and S.near(f.y, L.figY, 1)
+            and S.near(f.w, L.figW, 1) and S.near(f.h, L.figH, 1),
+            label .. ": the figure's layout spans the card's body and the figure is drawn where it says",
+            "card " .. S.n(card:getWidth() / sc) .. " units, body " .. S.n(bx) .. " + " .. S.n(bw) .. " px (" .. S.n(bw / sc)
+            .. " units); layout from " .. S.n(L.frameX) .. ", " .. S.n(spanW) .. " px; figure drawn " .. S.n(f.x) .. "," .. S.n(f.y)
+            .. " " .. S.n(f.w) .. " x " .. S.n(f.h) .. ", laid out " .. S.n(L.figX) .. "," .. S.n(L.figY) .. " " .. S.n(L.figW)
+            .. " x " .. S.n(L.figH) .. "; text (" .. tostring(tx.how) .. ")")
+    end
+    S.frameCheck(label, R, L, f.obj, S.medExpect(M.key), tx)
 end
 function S.medStep(M)
     Q.step(5, function()
@@ -852,13 +1065,15 @@ function S.medStep(M)
     Q.step(1, function()
         if S.medOff then return end
         S.medWrap(true)
-        S.recOn("card", S.card())
+        local card = S.card()
+        if card then S.frames[card] = nil end
+        S.recOn("card", card, S.FIG_FNS)
     end)
     Q.step(1, function()
         local R = S.recOff("card")
         S.medWrap(false)
         if S.medOff then return end
-        S.medCheck(M)
+        S.medCheck(M, R)
         S.figCheck("medical card (" .. M.say .. ")", R, S.medRec and S.medRec.fig and S.medRec.fig.obj)
     end)
     Q.step(2, function()
@@ -946,9 +1161,10 @@ function S.standing()
     return n
 end
 -- the room behind the face fills the body edge to edge, and nothing the card draws lies outside it
--- known: true for the one case with a known overhang waiting on a design call (the washer's narrow face on the half
--- card, QA Nov 22): a NOTE with the overhang in px instead of a FAIL; every other case stays strict
-function S.roomCheck(label, R, card, t, known)
+-- Strict on every card width, the half card (220) too: Build's washer branch draws all three narrow faces 130 x 190
+-- to fit the 138-unit body at 1x (4 px each side; 2x on the 4K half card), so the washer's old overhang NOTE is gone
+-- and any draw outside the card FAILs, with the overhang in px (QA, Nov 22)
+function S.roomCheck(label, R, card, t)
     local T = ZeD.T
     local W, H = card:getWidth(), card:getHeight()
     local out, outSay = 0, nil
@@ -994,11 +1210,7 @@ function S.roomCheck(label, R, card, t, known)
     local detail = "face " .. tostring(t._face) .. " at zoom " .. tostring(k) .. "; card " .. S.n(W) .. " x " .. S.n(H) .. " px, body "
         .. S.n(bx) .. " .. " .. S.n(bx + bw) .. "; on the face's rows " .. nb .. " rects from " .. S.n(minX) .. " to " .. S.n(maxR)
         .. "; " .. #R.list .. " draws, " .. out .. " outside the card" .. (outSay and (" (first: " .. outSay .. "; " .. ovSay .. ")") or "")
-    if known and not (out == 0 and edges) then
-        Q.say("NOTE " .. what .. ": not so, a known overhang waiting on a design call (not counted): " .. ovSay .. " | " .. detail)
-        return
-    end
-    Q.check(out == 0 and edges, what, detail)
+    Q.check(out == 0 and edges, what, detail .. ((out > 0) and ("; " .. ovSay) or ""))
 end
 S.WIDTHS = { full = { say = "the full card", mode = nil }, narrow = { say = "a 336-unit body", mode = { body = 336 } },
              half = { say = "the half card (220)", mode = { card = 220 } } }
@@ -1030,7 +1242,7 @@ function S.laundryRun(m, wkey, shot)
         if not m.obj then Q.skip(label, "the machine was not placed"); return end
         local card, t = S.card(), S.entryT()
         if not (R and card and t and t.obj == m.obj) then Q.check(false, label .. ": the card's draws recorded (staging)"); return end
-        S.roomCheck(label, R, card, t, m.key == "washer" and wkey == "half")
+        S.roomCheck(label, R, card, t)
     end)
     if shot then
         Q.step(2, function()
@@ -1193,6 +1405,7 @@ Q.step(5, function()
         pcall(function() S.was.infected = bd:isInfected() == true end)
     end
     S.lock("kbm")
+    S.frameWrap(true)
     S.park()
     S.openPair()
     Q.say("found: theme " .. tostring(S.was.base) .. " / " .. tostring(S.was.accent) .. " / " .. tostring(S.was.size) .. ", health "
@@ -1213,6 +1426,7 @@ end)
 -- ===================================================================== the body figure: Health, Thermal, Equipment
 S.tabStage("health")
 S.figCheckQ("health")
+Q.step(1, function() S.health220() end)
 Q.step(1, function() S.clickWrap(true) end)
 S.partsQ("health", "mouse")
 S.partsQ("health", "pad")
@@ -1250,8 +1464,8 @@ end, function(ok)
     if S.medOff then return end
     if not ok then S.medOff = true; Q.check(false, "the medical check card reads the body (staging)") end
 end)
-S.medStep({ mode = { body = 336 }, two = true, say = "a 336-unit body", shot = "medcard_336" })
-S.medStep({ mode = { card = 220 }, two = false, say = "the half card, 220", shot = "medcard_220" })
+S.medStep({ mode = { card = 336 }, key = "med336", say = "the 336 card", shot = "medcard_336" })
+S.medStep({ mode = { card = 220 }, key = "med220", say = "the half card, 220", shot = "medcard_220" })
 Q.step(5, function()
     S.cardMode = nil
     S.closeCard()
@@ -1262,7 +1476,7 @@ end)
 Q.step(10, function() S.placeMachines() end)
 S.laundryRun(S.MACHINES[1], "full", "laundry_washer_full")
 S.laundryRun(S.MACHINES[1], "narrow", "laundry_washer_narrow")
-S.laundryRun(S.MACHINES[1], "half", nil)
+S.laundryRun(S.MACHINES[1], "half", "laundry_washer_half")
 S.laundryRun(S.MACHINES[2], "full", "laundry_dryer_full")
 S.laundryRun(S.MACHINES[2], "narrow", "laundry_dryer_narrow")
 S.laundryRun(S.MACHINES[2], "half", nil)
@@ -1353,6 +1567,7 @@ end)
 Q.mark()
 Q.step(5, function()
     S.recAllOff()
+    S.frameWrap(false)
     S.medWrap(false)
     S.clickWrap(false)
     pcall(S.F.qaButton, "A", nil, S.pn)
@@ -1394,7 +1609,7 @@ Q.step(30, function()
     if S.Det and S.Det.getMode then pcall(function() mode = tostring(S.Det.getMode(S.pn)) end) end
     local bd = S.bd()
     if bd then pcall(function() hp = bd:getOverallBodyHealth() end) end
-    local hooked = (ZeD_BodyFigure.drawAt ~= nil and S.med0 == nil and S.click0 == nil and S.hooked == nil) and "none" or "SOME LEFT"
+    local hooked = (ZeD_BodyFigure.drawAt ~= nil and S.med0 == nil and S.click0 == nil and S.hooked == nil and S.dff0 == nil) and "none" or "SOME LEFT"
     Q.say("put back: theme " .. tostring(ZeD.currentBase) .. " / " .. tostring(ZeD.currentAccent) .. " / " .. tostring(ZeD.currentSize)
         .. " (found " .. tostring(S.was.base) .. " / " .. tostring(S.was.accent) .. " / " .. tostring(S.was.size) .. "), health "
         .. S.n(hp) .. " (found " .. S.n(S.was.hp) .. "), machines still standing " .. S.standing() .. ", car in the world "

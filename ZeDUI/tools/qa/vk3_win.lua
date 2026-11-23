@@ -62,7 +62,8 @@
 --        Old: its default is the strip, the right-click opens ZeD_ContextMenu -> FAIL.
 --   #7b  Loot all and Transfer all are word buttons. The band under crate B's list and under his own list, as laid
 --        out (content._cc.bottom.rects): "take" (Loot all) and "xfer" (Transfer all) have no icon and read the
---        game's words. Old: both are pictures (tray_in, tray_out) -> FAIL.
+--        game's words. Old: both are pictures (tray_in, tray_out) -> FAIL. (Branch header, "Number 1": the World
+--        band has no Loot all; then the crate's heading's view:lootall: word button stands in for it.)
 --   #19  The drag chip reads No room over a container that cannot take the drag. Crate A's capacity set to 2 for
 --        this check (the run's crate); a sledgehammer (6.0) dragged from his list (press and a 40 px move: the drag
 --        is live) and held over crate A's list; the drag's chip drawn (ZeD_DragState:drawGhost, into a recorder that
@@ -1519,9 +1520,24 @@ Q.step(1, function()
         return "icon " .. tostring(r.icon) .. ", words \"" .. tostring(r.label) .. "\", " .. H.num(r.w) .. " px wide"
     end
     local function word(r, w) return r ~= nil and tostring(r.label):lower() == w:lower() end
-    Q.check(take ~= nil and xfer ~= nil and take.icon == nil and xfer.icon == nil and word(take, lootW) and word(xfer, xferW),
-        "#7: Loot all and Transfer all are word buttons in the lists' bands (old: pictures only)",
-        "crate B's band, Loot all: " .. said(take) .. "; his inventory's band, Transfer all: " .. said(xfer) .. " (the game's words: " .. lootW .. ", " .. xferW .. ")")
+    -- (QA, Nov 22 2026, refit for branch header, the director's "Number 1": there the World band has no Loot all;
+    -- the list heading's Take all (zone view:lootall:<key>, always drawn as the game's words) is the only one.
+    -- Either passes: the band's Loot all as a word button (main before that merge), or no band Loot all and the
+    -- heading's in its place. A band Loot all drawn as a picture, or no Loot all anywhere, FAILS.)
+    local headZ = nil
+    local wc = H.content("w")
+    for _, z in ipairs((wc and wc._hitZones) or {}) do
+        if type(z.id) == "string" and z.id:sub(1, 13) == "view:lootall:" then headZ = z; break end
+    end
+    local headW = nil
+    pcall(function() headW = ZeD.ContainerControls.lootAllLabel() end)
+    local headOk = take == nil and headZ ~= nil and tostring(headW):lower() == lootW:lower()
+    local bandOk = take ~= nil and take.icon == nil and word(take, lootW)
+    Q.check(xfer ~= nil and xfer.icon == nil and word(xfer, xferW) and (bandOk or headOk),
+        "#7: Loot all and Transfer all are word buttons (Loot all in crate B's band, or in its heading where the band has none; old: pictures only)",
+        "crate B's band, Loot all: " .. said(take) .. "; its heading's Loot all: "
+        .. (headZ and (tostring(headZ.id) .. ", words \"" .. tostring(headW) .. "\"") or "none")
+        .. "; his inventory's band, Transfer all: " .. said(xfer) .. " (the game's words: " .. lootW .. ", " .. xferW .. ")")
 end)
 
 -- ===================================================================== #19: No room on the drag chip

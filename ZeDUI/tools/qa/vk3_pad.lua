@@ -983,10 +983,16 @@ function S.queueC()
             local _, zn, el = S.focusNow()
             -- (QA, Nov 22: Build built this half of #18 in d0df24046: the band's entry stop is the take button. On
             -- 0b366177e and on the first K3 merge Down landed on Same type in Full and To floor in Lite: FAIL there.)
-            Q.check(el ~= nil and el.ccKey == "take",
-                "K3 #18: Down from a crate's last row lands on Loot all, never To floor",
-                "Down from " .. S.elName(last) .. " lands on " .. S.elName(el) .. " (zone " .. tostring(zn) .. ", the button "
-                .. tostring(el and el.ccKey) .. "; take = Loot all, floor = To floor, same = Same type)")
+            -- (QA, Nov 22 2026, refit for branch header d179355c4, the director's "Number 1": the band has no Loot all
+            -- there; Down past the last row wraps to the heading's Take all (view:lootall:<key>). Either Loot all
+            -- passes: the band's (main before that merge) or the heading's. Still strict: To floor, Same type or any
+            -- other stop FAILS.)
+            local headLoot = el ~= nil and type(el.id) == "string" and el.id:sub(1, 13) == "view:lootall:"
+            Q.check(el ~= nil and (el.ccKey == "take" or headLoot),
+                "K3 #18: Down from a crate's last row lands on Loot all (the band's, or the heading's Take all), never To floor",
+                "Down from " .. S.elName(last) .. " lands on " .. S.elName(el) .. " (zone " .. tostring(zn) .. ", id "
+                .. tostring(el and el.id) .. ", the band button " .. tostring(el and el.ccKey)
+                .. "; take = Loot all, floor = To floor, same = Same type; view:lootall: = the heading's Take all)")
         end
         -- (a) the top stop, then Up
         local top = S.listTop(ww, "worldMainInv")

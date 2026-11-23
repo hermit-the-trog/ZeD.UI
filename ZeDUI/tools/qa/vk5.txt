@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/vk5.txt (Nov 22 2026, QA): the in-game proof of branch header (head d179355c4): the inventory headings' order (buttons, icon and name, weight and count), the World band without Take all, a Take all per Loot column, the pad's band loop, the strip icons' marks. Each HDR, BAND, PAD, COL and MARK check fails on main and passes on d179355c4. Pictures: Zomboid/Screenshots/vk5_header_full_dark, vk5_header_lite_dark, vk5_header_full_light, vk5_columns_two, vk5_band_hc.
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+vk5_header.lua | vk5_hdr | timeout=900
