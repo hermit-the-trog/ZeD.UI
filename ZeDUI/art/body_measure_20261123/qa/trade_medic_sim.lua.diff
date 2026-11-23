@@ -1,0 +1,20 @@
+--- a/ZeDUI/tools/qa/trade_medic_sim.lua
++++ b/ZeDUI/tools/qa/trade_medic_sim.lua
+@@ -499,7 +499,7 @@
+     strainMinor = col(.8, .7, .95), strainHeavy = col(.55, .25, .8),   -- (Strain, the director, Nov 22 2026)
+     stripe = col(1, 1, 1), surf1 = col(0, 0, 0), surf2 = col(.1, .1, .1), iconWhite = col(1, 1, 1), selectionA = 0.3, fillBarH = 8,
+     line = function(n) return n end,
+-    sp = { scrollbarW = 12, figureW = 106, figureH = 272, rowGap = 6, afterLine = 10, afterGroove = 8, xs = 6, sm = 10, badgeGap = 4, buttonPadX = 8 },
++    sp = { scrollbarW = 12, figureW = 106, figureH = 254, rowGap = 6, afterLine = 10, afterGroove = 8, xs = 6, sm = 10, badgeGap = 4, buttonPadX = 8 },
+ }
+ ZeD.TM = { getFontHeight = function() return 14 end, MeasureStringX = function(_, f, s) return #tostring(s or "") * 7 end }
+ local BANDS = {}
+@@ -1060,7 +1060,7 @@
+         CARD.width = 480
+         draw()
+         local at = fig and fig.at or {}
+-        check("full card: the figure at 1x (106 x 272)", at[3] == 106 and at[4] == 272, tostring(at[3]) .. "x" .. tostring(at[4]))
++        check("full card: the figure at 1x (106 x 254)", at[3] == 106 and at[4] == 254, tostring(at[3]) .. "x" .. tostring(at[4]))
+         local mid = (at[1] or 0) + 53
+         check("full card: the figure centered in the left half", mid > 100 and mid < 130, mid)
+         local rects = fig and fig:getPartRects() or {}

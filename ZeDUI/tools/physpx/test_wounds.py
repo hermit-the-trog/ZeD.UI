@@ -176,7 +176,8 @@ STATES = [("hurt", WS.SOME), ("every", WS.EVERY), ("edge", EDGE)]
 
 for sex in ("m", "f"):
     for light in (False, True):
-        for (pw, ph, want_s) in ((SK.FW, SK.FH, 1), (2 * SK.FW, 2 * SK.FH, 2), (80, 204, 0.75)):
+        # (Nov 23 2026: the panel under 1x is half the canvas high, 0.5, as 204 rows were 0.75 of the 272 before)
+        for (pw, ph, want_s) in ((SK.FW, SK.FH, 1), (2 * SK.FW, 2 * SK.FH, 2), (80, SK.FH // 2, 0.5)):
             for sname, state in STATES:
                 for tone in ((0, 1, 2, 3, 4) if (pw, sname) == (SK.FW, "every") else (1,)):
                     L, g, fig = lua_for(sex, light)

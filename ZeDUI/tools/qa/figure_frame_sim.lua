@@ -28,11 +28,11 @@ local FRAMES = {}
 ZeD = { Molecules = {}, Atoms = { frame = function(p, x, y, w, h, c, al, t) FRAMES[#FRAMES + 1] = { x = x, y = y, w = w, h = h, c = c, t = t } end } }
 local BORDER_S = { r = 0.5, g = 0.5, b = 0.5, a = 1 }
 -- the look at a UI scale: T.px rounds design units to whole px (Tokens.lua), T.art the nearest whole zoom (Scale.lua),
--- the figure's box the canvas (106 x 272) at T.art
+-- the figure's box the canvas (106 x 254: the measure stops at the head, Nov 23 2026) at T.art
 local function look(sc)
     local art = math.max(1, math.floor(sc + 0.5 + 1e-6))
     ZeD.T = { px = function(u) return math.floor(u * sc + 0.5) end, art = art, borderS = BORDER_S,
-              sp = { figureW = 106 * art, figureH = 272 * art, scrollbarW = math.floor(14 * sc + 0.5) } }
+              sp = { figureW = 106 * art, figureH = 254 * art, scrollbarW = math.floor(14 * sc + 0.5) } }
     return ZeD.T
 end
 look(1)
@@ -46,7 +46,7 @@ local M = ZeD.Molecules
 local function sane(name, L, x, w)
     local T = ZeD.T
     check(name .. ": a whole zoom, at least 1, at most the art's", L.zoom == math.floor(L.zoom) and L.zoom >= 1 and L.zoom <= T.art, L.zoom)
-    check(name .. ": the figure is the canvas at that zoom", L.figW == 106 * L.zoom and L.figH == 272 * L.zoom, L.figW .. "x" .. L.figH)
+    check(name .. ": the figure is the canvas at that zoom", L.figW == 106 * L.zoom and L.figH == 254 * L.zoom, L.figW .. "x" .. L.figH)
     check(name .. ": the figure inside the frame", L.figX >= L.frameX and L.figX + L.figW <= L.frameX + L.frameW
         and L.figY >= L.frameY and L.figY + L.figH <= L.frameY + L.frameH)
     local left, right = L.figX - L.frameX, (L.frameX + L.frameW) - (L.figX + L.figW)

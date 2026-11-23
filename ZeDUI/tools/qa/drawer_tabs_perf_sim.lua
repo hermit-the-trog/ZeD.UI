@@ -543,6 +543,15 @@ local function newWorld(label, getSrc)
     end
     local Z = env.ZeD
     world.ZeD = Z
+    -- the figure frame a tab draws, kept for the pointer's path (runTab): the path follows the figure and the rows
+    -- under it, so a taller or shorter canvas does not put the pointer over other rows (body measure, Nov 23 2026)
+    if Z and Z.Molecules and Z.Molecules.drawFigureFrame then
+        local drawFigureFrame = Z.Molecules.drawFigureFrame
+        Z.Molecules.drawFigureFrame = function(panel, L, ...)
+            world.figL = L
+            return drawFigureFrame(panel, L, ...)
+        end
+    end
     -- what the tabs read of the rest of ZeD
     -- a surface strip's claim on the window body goes in the frame's log with the draws; the help line's words
     -- in their own list (only their order among themselves counts: a stamp, read after the frame)
@@ -682,6 +691,9 @@ local function stackRoom(n)
     return r + a - b + c - d + e - f + g - h
 end
 
+-- the canvas height, in art rows, the pointer's path was laid out on (main until Nov 23 2026: 106 x 272)
+local PATH_CANVAS_H = 272
+
 -- one tab, N frames. mode "log": every draw of every frame written down; "count": the instructions (a count
 -- hook) and the calls; "mem": the memory a frame allocates (nothing else running: no log, no hook)
 local function runTab(world, tab, frames, pointer, mode, profile)
@@ -697,6 +709,7 @@ local function runTab(world, tab, frames, pointer, mode, profile)
     local W, H = tab.W or 840, 1500   -- (the full card at 4K 1.75x: 480 units)
     if tab.setup then tab.setup(Z, win) end
     local frameState = {}
+    world.figL = nil   -- (this tab's figure frame, once it has drawn one: see the pointer below)
     local out = { frames = {}, cmds = {}, helps = {}, instr = 0, alloc = 0 }
     world.counts = newCounts()
     C = world.counts
@@ -727,7 +740,19 @@ local function runTab(world, tab, frames, pointer, mode, profile)
         if pointer then
             -- (down the card in small steps, in turn over the left and right columns' bars, the names, the figure)
             local XS = { 365, 395, 785, 805, 520, 150, 300, 700 }
-            panel.mx, panel.my = XS[(f % #XS) + 1], 40 + (f * 11) % 1460
+            local px, py = XS[(f % #XS) + 1], 40 + (f * 11) % 1460
+            -- The path is laid out on the figure's 272-row canvas. The figure stands on the canvas's floor, so rows
+            -- cut from (or added to) the canvas's top move the figure and everything under the frame up (or down)
+            -- by d; the pointer moves with them, or the old and the new layout would be pointed at different rows
+            -- and their memory a frame would differ for that alone. The text beside the frame stays put down to
+            -- the old frame's bottom. (The frame comes from the frame before: the layout is the same every frame.)
+            local L = world.figL
+            if L and L.zoom and L.figH then
+                local d = L.figH - L.zoom * PATH_CANVAS_H
+                local leftOfText = px < L.frameX + L.frameW
+                if (leftOfText and py >= L.figY) or py >= L.frameY + L.frameH - d then py = py + d end
+            end
+            panel.mx, panel.my = px, py
         else
             panel.mx, panel.my = -500, -500
         end
