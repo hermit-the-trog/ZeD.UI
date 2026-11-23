@@ -40,7 +40,8 @@ RAMPS["l"] = ink_ramp(0.78, 0.04)        # light: white paint, glass, cotton
 RAMPS["w"] = ink_ramp(0.55, 0.00)        # paper-white: a label's ground, a mattress cover
 RAMPS["chrome"] = ink_ramp(1.00, 0.00)   # chrome: everything it reflects, black to paper
 RAMPS["p"] = [tint(1.0)] * 8             # print: ink, flat
-RAMPS["pw"] = [tint(0.0)] * 8            # print: paper, flat (reversed-out type)
+RAMPS["pw"] = [tint(0.0)] * 8            # print: paper, flat (only for light, never for type: the book prints
+                                         # in one ink, no reversed type) (One ink, the director, Nov 22 2026)
 OUTLINE = tint(1.0)
 
 DESIGNS = {}
@@ -177,14 +178,14 @@ def ready_prep(d):
     cy = Cyl(d, 8, 84, 10)
     for vv in (29, 92):
         r = band_v(d, body, cy, vv, vv + 1); d.h[r] -= 0.8; d.dark[r] = 0.25                 # the rolled beads
-    lab = band_v(d, body, cy, 37, 82, "d")
+    lab = band_v(d, body, cy, 37, 82, "w")   # (a pale label printed in the ink, not ink with paper type) (One ink, the director, Nov 22 2026)
     for vv in (37, 81):
         e = band_v(d, body, cy, vv, vv + 1); d.h[e] += 0.4                                    # the label's lapped edges
     rim = top & ~ellipse_m(d, 46, 24, 33, 8); d.h[rim] += 1.2
-    print_wrap(d, body, cy, "SURVIVAL", 42, "pw")
-    print_wrap(d, body, cy, "BEEF STEW", 50, "pw")
-    print_wrap(d, body, cy, "25 YR", 60, "pw", font="57")
-    print_wrap(d, body, cy, "NET 3 LB", 72, "pw")
+    print_wrap(d, body, cy, "SURVIVAL", 42, "p")
+    print_wrap(d, body, cy, "BEEF STEW", 50, "p")
+    print_wrap(d, body, cy, "25 YR", 60, "p", font="57")
+    print_wrap(d, body, cy, "NET 3 LB", 72, "p")
     # the water cube (the director, Nov 6: "what if we instead put it in a plastic cube, like a big water cube, on a
     # crate or pallet"; then his two photos of one, "water tank pallet": ZeD_design_refs/ads/refs/ibc_ref_1.jpg, _2.jpg):
     # an IBC tote, seen in the cookie box's three-quarter axes. On a wooden pallet (deck boards over blocks, the fork
@@ -394,8 +395,8 @@ def better_bed(d):
             x, y = P(i * L / 7, j * Wd / 3, MT); d.well(Mask(d.W, d.H).ellipse(x, y, 1.4, 0.9).get(), 1.4, bevel=1.2)
     # the label sewn on the side
     lx, ly = P(L - 30, 0, 20)
-    d.slab(Mask(d.W, d.H).rect(lx, ly - 10, 18, 9).get(), 17.5, "d", bevel=0.6, polish=0.3)
-    d.text("2000", int(round(lx + 9)), int(round(ly - 8)), "pw", align="c")
+    d.slab(Mask(d.W, d.H).rect(lx, ly - 10, 18, 9).get(), 17.5, "l", bevel=0.6, polish=0.3)
+    d.text("2000", int(round(lx + 9)), int(round(ly - 8)), "p", align="c")   # (ink on a pale label) (One ink, the director, Nov 22 2026)
     # the pillow: a soft box lying on the top by the head, its corners pulled in, puffed in the middle
     pl = [(3, 4), (30, 4), (30, Wd - 4), (3, Wd - 4)]
     cushion = Mask(d.W, d.H)
@@ -761,8 +762,7 @@ def greene(d):
     d.slab(box, 12, "l", bevel=1.5, polish=0.3)
     bside = Mask(d.W, d.H).poly([(130, 10), (138, 14), (140, 50), (132, 50)]).get()
     d.slab(bside, 8, "m", bevel=1, polish=0.3)
-    d.paint(Mask(d.W, d.H).poly([(101, 22), (131, 18), (131, 30), (101, 34)]).get(), "d")
-    d.text("RICE", 116, 22, "pw", align="c")
+    d.text("RICE", 116, 22, "p", align="c")   # (in ink on the box, no dark band) (One ink, the director, Nov 22 2026)
     d.ramp_h(front, 10, 10, axis="x", mat="w", polish=0.15)
     d.ramp_h(gus, 3, 10, axis="x", mat="l", polish=0.15)
     d.grain_pebble(front | gus, 0.06, seed=4)
@@ -777,8 +777,8 @@ def greene(d):
     for cx, cy in ((34, 146), (64, 148)):
         body, top = cyl_v(d, cx - 14, cx + 14, cy - 34, cy - 4, 14, "chrome", polish=0.9, top_ry=14 * VIEW, bot_ry=14 * VIEW, on=10)
         c = Cyl(d, cx - 14, cx + 14, 14 * VIEW)
-        band_v(d, body, c, cy - 28, cy - 10, "d")
-        print_wrap(d, body, c, "BEANS" if cx < 50 else "PEAS", cy - 23, "pw")
+        band_v(d, body, c, cy - 28, cy - 10, "w")   # (a pale label, ink type) (One ink, the director, Nov 22 2026)
+        print_wrap(d, body, c, "BEANS" if cx < 50 else "PEAS", cy - 23, "p")
 
 
 @design(120, 160)
@@ -1039,15 +1039,15 @@ def westpoint(d):
     # the man: his middle (the outline's x 86) on the sheet's middle, his feet off the foot of the sheet
     H_ = 116; sc = H_ / 273
     sil = outline(d, "refs/avatar_outline.png", int(round(55 - 86 * sc)), 138 - H_, H_) & sheet
-    d.paint(sil, "k")
+    d.paint(sil, "m")   # (a mid-tone figure so its rings and numbers print in ink) (One ink, the director, Nov 22 2026)
     CX, CY = 55, 96
     for rx, ry, n in ((6, 8, "10"), (12, 16, "9"), (18, 24, "8"), (25, 32, "7")):
         ring = (np.abs(np.hypot((X - CX) / rx, (Y - CY) / ry) - 1) * min(rx, ry) < 0.6) & sil
-        d.paint(ring, "pw")
-        d.text(n, CX, int(CY - ry + 2), "pw", align="c")
+        d.paint(ring, "p")
+        d.text(n, CX, int(CY - ry + 2), "p", align="c")
     HX, HY = 56, 47
     ring = (np.abs(np.hypot((X - HX) / 5, (Y - HY) / 7) - 1) * 5 < 0.55) & sil
-    d.paint(ring, "pw")                                                                       # the head's ring
+    d.paint(ring, "p")                                                                        # the head's ring
     for hx_, hy in ((53, 99), (56, 97), (55, 102), (58, 100), (51, 101), (71, 113), (56, 46)):
         d.paint(Mask(d.W, d.H).ellipse(hx_, hy, 1.4, 1.4).get() & sheet, "pw")                # the holes: the paper torn
         d.paint(Mask(d.W, d.H).ellipse(hx_, hy, 0.6, 0.6).get() & sheet, "p")
@@ -1111,7 +1111,7 @@ def time4sport(d):
                 d.seam(g & (np.abs(X - k - (Y - cy) * 0.5) < 0.5), 0.3)
         d.text(label, int(round(x0 + L * 0.74)), int(round(cy - 2)), ink, align="c")
         return m
-    bat(4, 12, 142, 5.3, 1.9, 3.3, "d", 0.7, "SUPER SLUGGER", "pw")
+    bat(4, 12, 142, 5.3, 1.9, 3.3, "l", 0.7, "SUPER SLUGGER", "p")   # (a pale ash bat, ink label) (One ink, the director, Nov 22 2026)
     bat(4, 36, 142, 5.3, 1.9, 3.3, "m", 0.6, "WOOD SLUGGER", "p")
     bat(4, 60, 142, 5.2, 1.9, 3.3, "chrome", 1.0, "ALUMINUM SLUGGER", "p", grip=True)
     bat(4, 84, 120, 4.6, 1.7, 3.0, "m", 0.6, "YOUTH SLUGGER", "p")
@@ -1144,10 +1144,10 @@ def zippee(d):
     d.flat(lens, 15, "l", polish=1.0)
     d.dome(102, 82, 1.2, 4, 1, "w", polish=1.0, on="add")
     for cx in (112, 130):
-        body, top = cyl_v(d, cx - 9, cx + 9, 22, 62, 11, "d", polish=0.8, top_ry=9 * VIEW, bot_ry=9 * VIEW)
+        body, top = cyl_v(d, cx - 9, cx + 9, 22, 62, 11, "l", polish=0.8, top_ry=9 * VIEW, bot_ry=9 * VIEW)   # (pale, ink D) (One ink, the director, Nov 22 2026)
         c = Cyl(d, cx - 9, cx + 9, 9 * VIEW)
         band_v(d, body, c, 22, 30, "chrome")
-        print_wrap(d, body, c, "D", 40, "pw", font="57")
+        print_wrap(d, body, c, "D", 40, "p", font="57")
         d.dome(cx, 20, 3.2, 2, 3, "chrome", on=11)
 
 @design(84, 108)

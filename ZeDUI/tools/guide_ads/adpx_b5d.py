@@ -258,12 +258,13 @@ def homeward(d):
         d.well(Mask(d.W, d.H).ellipse(hx, 43.5, 1.2, 1.2).get(), 1, mat="k")
     d.text("FOR", 72, 50, "p", font="57", scale=2, align="c")
     d.text("SALE", 72, 67, "p", font="57", scale=2, align="c")
-    d.paint(Mask(d.W, d.H).rect(37, 84, 70, 9).get(), "p")
-    d.text("HOMEWARD", 72, 86, "pw", align="c")
+    d.paint(Mask(d.W, d.H).rect(37, 83, 70, 1).get(), "p")   # (a rule over the name, not an ink band) (One ink, the director, Nov 22 2026)
+    d.text("HOMEWARD", 72, 86, "p", align="c")
     # the SOLD rider, clipped on the sign's top edge between the hooks
     rd = Mask(d.W, d.H).rect(57, 31, 30, 11).get()
-    d.slab(rd, 11, "k", bevel=0.8, polish=0.3)
-    d.text("SOLD", 72, 33, "pw", font="57", align="c")
+    d.slab(rd, 11, "l", bevel=0.8, polish=0.3)
+    d.paint(rd & ~Mask(d.W, d.H).rect(58, 32, 28, 9).get(), "p")   # (a pale rider, ink edge) (One ink, the director, Nov 22 2026)
+    d.text("SOLD", 72, 33, "p", font="57", align="c")
     for cx_ in (61, 83):
         d.slab(Mask(d.W, d.H).rect(cx_ - 1.5, 40, 3, 4).get(), 12, "chrome", bevel=0.5, polish=1.0)  # its clips
     tufts(d, 4, 30, 115, seed=2, n=6)
@@ -626,8 +627,8 @@ def voice(d):
         pts = [(x, yy + 2.6 * math.sin((x - x0) * 0.42 + k * 1.7) * (0.3 + 0.7 * math.sin(math.pi * (x - x0) / (x1 - x0))))
                for x in np.linspace(x0 + 4, x1 - 4, 80)]
         d.paint(Mask(d.W, d.H).line(pts, 1.2).get() & cover, "l")
-    d.paint(Mask(d.W, d.H).rect(x0 + 3, y0 + 3, x1 - x0 - 6, 21).get(), "p")
-    d.text("THROW", int((x0 + x1) / 2), y0 + 7, "pw", font="57", scale=2, align="c")
+    d.paint(Mask(d.W, d.H).rect(x0 + 3, y0 + 24, x1 - x0 - 6, 1).get(), "p")   # (a rule under the title, not an ink band) (One ink, the director, Nov 22 2026)
+    d.text("THROW", int((x0 + x1) / 2), y0 + 7, "p", font="57", scale=2, align="c")
     t = textmask(d, "YOUR", int((x0 + x1) / 2), 36, font="57", scale=2) | textmask(d, "VOICE", int((x0 + x1) / 2), 56, font="57", scale=2)
     halo = (E.edt(~t) <= 1.5) & ~t
     d.paint(halo & cover, "w"); d.paint(t, "p")

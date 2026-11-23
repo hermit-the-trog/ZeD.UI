@@ -1,4 +1,5 @@
 // render every ad (or the ones named): out/preview/<name>.png on paper, out/final/<name>.png ink on transparent, 2x
+// then run `python one_ink.py`: the game's pictures carry the ink alone (One ink, the director, Nov 22 2026)
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
 (async () => {
   const names = process.argv.slice(2).length ? process.argv.slice(2) : fs.readdirSync('src').filter(f => f.endsWith('.html')).map(f => f.slice(0, -5));

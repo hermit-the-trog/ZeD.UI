@@ -93,7 +93,8 @@ ZeD.GuideAds = {
 local TOP = 34
 
 local INK = { r = 0.137, g = 0.165, b = 0.227 }
--- PAPER is the stock's own color, kept for words printed in it on ink; PAGE is the sheet as drawn, at the
+-- PAPER is the stock's own color (the thumb index's number on its dark tab; the ads never print in it: one ink,
+-- the director, Nov 22 2026); PAGE is the sheet as drawn, at the
 -- paper tone (Tokens.lua: no large near-white areas)
 local PAPER = { r = 0.961, g = 0.925, b = 0.824 }
 local PAGE = ZeD.paperTone(PAPER)
@@ -1574,7 +1575,9 @@ local function houseAdTry(w, u, g, sz, down)
         yy = yy + bp * U.LEAD
         text(F.text, l.s, ix, yy, bp, INK, l.w, "inner")
     end
-    -- the price in a black box at the right: its words, half its size clear on each side
+    -- the price in a ruled box at the right: its words, half its size clear on each side. The book prints in its one
+    -- ink on the paper, never paper-colored words on an ink block, so the box is the frame's weight of rule and the
+    -- price is in the ink (One ink, the director, Nov 22 2026)
     yy = yy + bp * U.LEAD * 0.8 * g
     local boxY = yy
     local pp = sz.price
@@ -1592,11 +1595,11 @@ local function houseAdTry(w, u, g, sz, down)
     local pH = unit5 * (0.64 + 0.36 * (math.max(#pls, 2) - 1))
     local px0 = ix + iw - priceW
     L.price = { x = px0, y = pY, w = priceW, h = pH, pad = pp * 0.5 }
-    rect(px0, pY, priceW, pH, INK, "price")
+    for i = 0, lw - 1 do border(px0 + i, pY + i, priceW - i * 2, pH - i * 2, "price") end
     local pc = px0 + priceW / 2
     for i, l in ipairs(pls) do
         local by = (#pls == 1) and (pY + pH * 0.6) or (pY + unit5 * (0.42 + 0.36 * (i - 1)))
-        text(F.sansB, l.s, pc - l.w / 2, by, pp, PAPER, l.w, "price", "price")
+        text(F.sansB, l.s, pc - l.w / 2, by, pp, INK, l.w, "price", "price")
     end
     -- the titles, each with its tick box, in a ruled box at the left
     local listW = iw - priceW - 10 * u
