@@ -298,9 +298,7 @@ def rusty_rifle(d):
     front = Mask(d.W, d.H).rect(x0, front_top, x1 - x0, front_bot - front_top).get()
     d.slab(front, 16, "w", bevel=1.2, polish=0.3); d.dark[front] = 0
     d.flat(Mask(d.W, d.H).rect(x0, front_top, x1 - x0, 2).get(), 17, "l", polish=0.3)          # the wall's cut edge
-    band_ = Mask(d.W, d.H).rect(x0, front_top + 6, x1 - x0, 11).get()
-    d.paint(band_, "d")
-    d.paint(type_at(d, "RIFLE CARTRIDGES", 62, front_top + 9), "pw")
+    d.paint(type_at(d, "RIFLE CARTRIDGES", 62, front_top + 9), "p")   # (ink on the box, no dark band) (One ink, the director, Nov 22 2026)
     d.paint(type_at(d, "KEEP AWAY FROM CHILDREN", 62, front_top + 19), "p")
     # two loose rounds lying on the table in front, side on, each a little turned
     def round_lying(xb, yb, ang, L=44.0):
@@ -594,8 +592,8 @@ def worm_of_books(d):
     base = 82
     b1m = book(d, 64, base, 104, 66, 15, math.radians(-6.0), front="spine", cover="m", title="FIRST AID",
                title_mat="p")[3]
-    b2m = book(d, 70, base - 15, 96, 62, 15, math.radians(8.0), front="spine", cover="d", title="WESTERNS",
-               title_mat="pw", under=b1m)[3]
+    b2m = book(d, 70, base - 15, 96, 62, 15, math.radians(8.0), front="spine", cover="l", title="WESTERNS",
+               title_mat="p", under=b1m)[3]   # (a pale cover, its title in ink) (One ink, the director, Nov 22 2026)
     L3, W3, T3, a3, c3, y3 = 88, 58, 13, math.radians(-13.0), 63, base - 30
     top, fr, en, b3m, fp, P = book(d, c3, y3, L3, W3, T3, a3, front="pages", cover="k", under=b1m | b2m)
     # the stamped rule round the top cover, laid in the cover's plane (a line across the depth is 1/VIEW thick there)

@@ -1469,7 +1469,10 @@ local function oldAd(u, m)
     yy = yy + lineH * 0.6
     add({ k = "b", x = ix, y = boxY, w = listW, h = yy - boxY })
     local pY, pH = boxY + 10 * u, 70 * u
-    add({ k = "r", x = ix + iw - priceW, y = pY, w = priceW, h = pH })
+    -- (the price box: once a filled ink block, now ruled at the frame's weight, same place and size; one ink, the
+    -- director, Nov 22 2026)
+    local lw = math.max(1, math.floor(2 * u))
+    for i = 0, lw - 1 do add({ k = "b", x = ix + iw - priceW + i, y = pY + i, w = priceW - i * 2, h = pH - i * 2 }) end
     local pc = ix + iw - priceW / 2
     local pw = {}
     for wd in T("Price"):gmatch("%S+") do pw[#pw + 1] = wd end
@@ -1653,6 +1656,13 @@ do
     check("a long price a size down", pls[1] and pls[1].px < 14 - 0.001, pls[1] and pls[1].px)
     local badD = faults(D, 1)
     check("a long price keeps inside its box", #badD == 0, badD[1])
+    -- one ink (the director, Nov 22 2026: "There should only be black ink."): every word and every filled shape in the
+    -- house ad prints in the book's dark ink, none in the paper's color on an ink block
+    local light = nil
+    for _, o in ipairs(D.ops) do
+        if (o.k == "t" or o.k == "r") and o.c and (o.c.r + o.c.g + o.c.b) > 1.5 then light = o.s or (o.k .. " " .. tostring(o.grp)) end
+    end
+    check("the house ad prints in one ink: no light words or blocks", light == nil, light)
 
     -- a headline word too wide for the frame, in a language that spaces its words: the headline a size down (22 at
     -- Small), the word whole; a Chinese or Japanese headline too long for a line wraps at its own size instead
@@ -1716,7 +1726,8 @@ do
     check("flooded: the last try runs past the frame (the test is real)", #dropped > 0)
     local has = { priceBox = false, priceText = false, listBox = false, listText = false, tick = false }
     for _, o in ipairs(FL.ops) do
-        if o.k == "r" and math.abs(o.x - FL.price.x) < 0.001 and math.abs(o.w - FL.price.w) < 0.001 then has.priceBox = true end
+        -- (the price box is a ruled box now, its outer rule at the box's own x and width) (One ink, the director, Nov 22 2026)
+        if o.k == "b" and math.abs(o.x - FL.price.x) < 0.001 and math.abs(o.w - FL.price.w) < 0.001 then has.priceBox = true end
         if o.k == "t" and o.box == "price" then has.priceText = true end
         if o.k == "b" and math.abs(o.x - FL.list.x) < 0.001 and math.abs(o.w - FL.list.w) < 0.001 then has.listBox = true end
         if o.k == "b" and o.w < 20 then has.tick = true end

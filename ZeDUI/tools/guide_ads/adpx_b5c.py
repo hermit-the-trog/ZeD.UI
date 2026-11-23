@@ -461,7 +461,7 @@ def rosewood_fire_first_aid(d):
     for y in (68, 76):
         d.slab(Mask(d.W, d.H).rect(x0 + 2, y, x1 - x0 - 4, 2).get(), 21, "m", bevel=0.8, polish=0.6)
     # FIRST AID, stenciled on the lid's front (in the face's plane: the face is square to us)
-    d.paint(stencil(d, "FIRST AID", 60, 36) & front, "pw")
+    d.paint(stencil(d, "FIRST AID", 60, 36) & front, "p")   # (stenciled in ink) (One ink, the director, Nov 22 2026)
     # the draw latch on the seam: the plate on the lid, the hook over the base's keeper
     d.slab(Mask(d.W, d.H).rrect(54, 50, 12, 8, 1.5).get(), 23, "chrome", bevel=1, polish=0.9)
     d.slab(Mask(d.W, d.H).rrect(56, 57, 8, 7, 1.5).get(), 24, "chrome", bevel=1, polish=0.9)

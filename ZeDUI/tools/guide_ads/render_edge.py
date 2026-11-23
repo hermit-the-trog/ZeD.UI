@@ -4,6 +4,8 @@ transparent, each cropped to #ad; prints each ad's size and OVERFLOW for anythin
 python render_edge.py [--out DIR] [--edge PATH] [name ...]
 Edge runs on a fresh profile in a temp folder, and only the Edge this script starts is closed (by its PID)."""
 import argparse, base64, glob, json, os, shutil, socket, struct, subprocess, sys, tempfile, time, urllib.request
+from PIL import Image
+from one_ink import one_ink   # (One ink, the director, Nov 22 2026)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
@@ -91,7 +93,9 @@ def start_edge(edge, profile):
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     port_file, t0 = os.path.join(profile, "DevToolsActivePort"), time.time()
     while time.time() - t0 < 30:
-        if proc.poll() is not None: raise RuntimeError("Edge exited at start (code %s)" % proc.returncode)
+        # (Edge's launcher may hand off to a relaunched browser and exit 0: then keep waiting for the port file;
+        # only a non-zero exit is a failed start) (One ink, the director, Nov 22 2026)
+        if proc.poll() not in (None, 0): raise RuntimeError("Edge exited at start (code %s)" % proc.returncode)
         try:
             port = int(open(port_file).read().split()[0])
             for t in json.load(urllib.request.urlopen("http://127.0.0.1:%d/json/list" % port, timeout=5)):
@@ -115,6 +119,17 @@ def stop_edge(proc, cdp):
         proc.wait(10)
 
 
+def stop_profile(profile):
+    """A relaunched Edge is not under our PID: close any Edge still running on this script's own temp profile (its
+    folder name is unique to this run, so no other Edge is touched). (One ink, the director, Nov 22 2026)"""
+    if os.name != "nt": return
+    time.sleep(1)
+    ps = ("Get-CimInstance Win32_Process -Filter \"Name='msedge.exe'\" | Where-Object { $_.CommandLine -like '*%s*' "
+          "-and $_.CommandLine -notlike '*--type=*' } | ForEach-Object { taskkill /PID $_.ProcessId /T /F }"
+          % os.path.basename(profile))
+    subprocess.run(["powershell", "-NoProfile", "-Command", ps], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 def render(cdp, src, out, name):
     url = "file:///" + os.path.join(src, name + ".html").replace("\\", "/")
     for hsh, sub, omit in (("", "preview", False), ("#final", "final", True)):
@@ -134,6 +149,9 @@ def render(cdp, src, out, name):
         shot = cdp("Page.captureScreenshot", format="png", captureBeyondViewport=True,
                    clip={"x": x, "y": y, "width": w, "height": h, "scale": 1})
         with open(os.path.join(out, sub, name + ".png"), "wb") as f: f.write(base64.b64decode(shot["data"]))
+        if omit:   # the game's picture: the ink alone, no paper-colored pixel left in it (One ink, the director, Nov 22 2026)
+            p_ = os.path.join(out, sub, name + ".png")
+            one_ink(Image.open(p_)).save(p_)
         if not omit:
             of = cdp.js(OVERFLOW_JS)
             print(name, "%gx%g" % (w, h), "OVERFLOW " + ",".join(map(str, of)) if of else "", flush=True)
@@ -161,6 +179,7 @@ def main():
         for n in names: render(cdp, src, a.out, n)
     finally:
         if proc: stop_edge(proc, cdp)
+        stop_profile(profile)
         shutil.rmtree(profile, ignore_errors=True)
 
 
