@@ -64,12 +64,19 @@ add_ramp("foam", "#e7ecef", light=1.04, dark=0.58)   # the head of foam and the 
 NARROW = 300
 ASPECT = 0.786 / 0.895        # the model's front: width over height
 TAU = 2 * math.pi
+# the narrow face fits the half card's 138-unit body at 1x with 4 px of room either side, so nothing overhangs it
+# (it was 188 x 214, and the card cannot draw a plate below 1x). Narrower than the model's proportions: the panel's
+# lettering keeps its size, so the console stacks its rows and the face stands taller to hold the door or the tub.
+# (Narrow washer, the director, Nov 22 2026)
+NARROW_W, NARROW_H = 130, 190
+TIGHT = 150                   # a face narrower than this lays its console out for the narrow face
 
 
 def _geom(W):
     """the slot W the card fills -> (narrow, face width, face height)"""
     narrow = W < NARROW
-    H = 214 if narrow else int(round(W * 0.78))
+    if narrow: return narrow, NARROW_W, NARROW_H
+    H = int(round(W * 0.78))
     return narrow, int(round(H * ASPECT)), H
 
 
@@ -181,6 +188,11 @@ METER_W = text_w("WATER") + 4 + 25
 def right_controls(p, W, py, zp, rows2, ink="paint_w"):
     """the power button at the panel's right and the cycle gauge beside it: one row (a big gauge, its label under it)
     or the two-row panel's first row (a smaller gauge whose label lines up with POWER's)"""
+    if W < TIGHT:                 # the narrow face: both pulled in to the right, clear of the brand or the mode keys
+        bx, by = W - 22, py + 14  # (Narrow washer, the director, Nov 22 2026)
+        power_button(p, bx, by, zp, ink=ink)
+        cycle_gauge(p, bx - 28, by - 2, 8, zp, ink=ink)
+        return bx - 28 - 10
     bx = W - 16 - 10 if not rows2 else W - 24
     if not rows2:
         by = py + 16
@@ -526,6 +538,7 @@ def console(p, W, py, ph):
 def brand_plate(p, W, py, ph, rows2, zp):
     d = p.d
     dw_, dh_ = (64, ph - 10) if not rows2 else (60, 22)
+    if W < TIGHT: dw_ = 52        # the narrow face: just wide enough for TECHNOLOGIES (Narrow washer, Nov 22 2026)
     dx_, dy_ = (15 if not rows2 else 14), py + 5
     d.slab(Mask(W, p.H).rrect(dx_, dy_, dw_, dh_, 2).get(), 0.8, "lb_white", bevel=0.8, polish=0.5, on=zp)
     p.label("PREMIUM", dx_ + dw_ // 2, dy_ + (dh_ - 12) // 2, "lb_blue_dk", align="c", auto_ink=False)
@@ -702,10 +715,11 @@ def washer(W=392, worn_=True, clothes=False, water_lv=0):
     p = Plate("washer" + ("_n" if narrow else ""), Wf, H, seed=501, title="Premium Technologies washer")
     d = p.d
     rows2 = Wf < 300
+    tight = Wf < TIGHT
     legends = [("WASH", "phWash"), ("RINSE", "phRinse"), ("SPIN", "phSpin")]
     body(p, Wf, H)
     py = 8
-    ph = 40 if not rows2 else 50
+    ph = 40 if not rows2 else (50 if not tight else 60)   # (the narrow face: the meter gets a row of its own)
     zp = console(p, Wf, py, ph)
     kick_y = kick(p, Wf, H)
     dx_, dw_ = brand_plate(p, Wf, py, ph, rows2, zp)
@@ -714,6 +728,9 @@ def washer(W=392, worn_=True, clothes=False, water_lv=0):
         x0 = dx_ + dw_ + 12
         phase_window(p, x0, py + 8, legends, zp, extra=("FILL", "noWater"))
         water_meter(p, x0, py + 25, zp)
+    elif tight:                   # the narrow face: the phase lamps, the water meter under them (Narrow washer, Nov 22 2026)
+        phase_window(p, 15, py + 33, legends, zp, extra=("FILL", "noWater"))
+        water_meter(p, 15, py + 49, zp)
     else:
         phase_window(p, 15, py + 33, legends, zp, extra=("FILL", "noWater"))
         water_meter(p, 15 + phase_w(legends, ("FILL", "noWater")) + 8, py + 35, zp)
@@ -809,18 +826,21 @@ def combo(W=392, worn_=True, clothes=False, water_lv=0):
     pw = phase_w(legends, ("FILL", "noWater"))
     rows2 = Wf < 330
     rows3 = rows2 and 14 + pw + 8 + METER_W > Wf - 12
+    tight = Wf < TIGHT            # the narrow face: even the phase lamps alone are wider than it (Narrow washer, Nov 22 2026)
     body(p, Wf, H)
     py = 8
     ph = 40 if not rows2 else (52 if not rows3 else 64)
     zp = panel(p, Wf, py, ph, mat="lb_grey")
     kick_y = kick(p, Wf, H)
-    MB.valutech_logo(p, 14 + 36, py + 6)
+    kw, kstep = (34, 37) if not tight else (25, 27)     # (the narrow face: narrower mode keys, the logo over them,
+    if not tight: MB.valutech_logo(p, 14 + 36, py + 6)  # its letters closer, all clear of the cycle gauge)
+    else: MB.valutech_logo(p, 14 + 26, py + 6, gap=1)
     # the mode keys: two push keys under the logo, each with its lamp
     ky = py + 18
     for i, (t, src) in enumerate((("WASH", "modeWash"), ("DRY", "modeDry"))):
-        kx = 14 + i * 37
-        PR.radio_key(p, f"mode_{t.lower()}", kx, ky, 34, 12, t, mat="lb_white", lab_mat="paint_k", z=1.4)
-        lx = kx + 30
+        kx = 14 + i * kstep
+        PR.radio_key(p, f"mode_{t.lower()}", kx, ky, kw, 12, t, mat="lb_white", lab_mat="paint_k", z=1.4)
+        lx = kx + kw - 4
         d.dome(lx, ky - 3, 1.6, 1.6, 0.8, "jewel_off", polish=0.9, on=zp)
         p.lamp(disc(d, lx, ky - 3, 1.5), src, "#7dff9a")
     # the two keys are one control in the game (set the other mode): both ask for it, Code sends the mode named
@@ -831,6 +851,10 @@ def combo(W=392, worn_=True, clothes=False, water_lv=0):
         x0 = 14 + 2 * 37 + 8
         phase_window(p, x0, py + 8, legends, zp, extra=("FILL", "noWater"))
         water_meter(p, x0, py + 25, zp, ink="paint_k")
+    elif tight:                   # the washer's lamps and FILL, then the dryer's beside the water meter (Nov 22 2026)
+        phase_window(p, 14, py + 35, legends[:3], zp, extra=("FILL", "noWater"))
+        w = phase_window(p, 14, py + 51, legends[3:], zp)
+        water_meter(p, 14 + w + 8, py + 53, zp, ink="paint_k")
     elif not rows3:
         phase_window(p, 14, py + 35, legends, zp, extra=("FILL", "noWater"))
         water_meter(p, 14 + pw + 8, py + 37, zp, ink="paint_k")

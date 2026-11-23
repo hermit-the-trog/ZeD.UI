@@ -101,8 +101,9 @@ end
 -- LAUNDRY
 -- ===========================================================================
 local function plate(w, h) return { w = w, h = h } end
-ZeD.PhysPx = { plates = { washer = plate(233, 214), washer_n = plate(188, 214), dryer = plate(233, 250),
-                          dryer_n = plate(188, 250), washer_dryer = plate(233, 250), washer_dryer_n = plate(188, 250) },
+-- (the narrow faces as redrawn to fit the half card's 138 body at 1x: 130 x 190; Narrow washer, the director, Nov 22 2026)
+ZeD.PhysPx = { plates = { washer = plate(233, 214), washer_n = plate(130, 190), dryer = plate(233, 250),
+                          dryer_n = plate(130, 190), washer_dryer = plate(233, 250), washer_dryer_n = plate(130, 190) },
                narrow = { washer = "washer_n", dryer = "dryer_n", washer_dryer = "washer_dryer_n" } }
 ZeD.ObjectCards = { ui = {}, call = noop, register = noop, spriteIcon = noop, faceZone = noop }
 ZeD.Plate = { centre = function(aw, w, k) return math.floor((aw - w * k) / 2) end }
@@ -156,6 +157,27 @@ if ok and LD and LD._drawRoom then
                 if des.w * k < bw then check(say .. ": the room draws", #c.list > 0, #c.list) end
                 check(say .. ": no backdrop draw outside the card's face area", out == 0,
                     out .. " of " .. #c.list .. " outside, first " .. tostring(first))
+            end
+        end
+    end
+end
+
+-- the real narrow faces (PhysPx.lua, not the stand-in above) fit the half card's 138-unit body at 1x, the card's
+-- smallest zoom, so nothing overhangs it (Narrow washer, the director, Nov 22 2026)
+do
+    local mock = ZeD.PhysPx
+    local okP, errP = loadFile(CLIENT .. "PhysPx.lua")
+    check("LAUNDRY PhysPx.lua loads", okP, errP)
+    local X = ZeD.PhysPx
+    ZeD.PhysPx = mock
+    if okP and X and X.plates then
+        for _, fid in ipairs({ "washer_n", "dryer_n", "washer_dryer_n" }) do
+            local des = X.plates[fid]
+            check("LAUNDRY " .. fid .. " fits the half card's 138 body at 1x", des ~= nil and des.w <= 138,
+                des and (des.w .. " x " .. des.h) or "missing")
+            for _, h in ipairs((des and des.hits) or {}) do
+                check("LAUNDRY " .. fid .. " control " .. h.id .. " lies on the face", h.x >= 0 and h.y >= 0
+                    and h.x + h.w <= des.w and h.y + h.h <= des.h, h.x .. "," .. h.y .. " " .. h.w .. "x" .. h.h)
             end
         end
     end
