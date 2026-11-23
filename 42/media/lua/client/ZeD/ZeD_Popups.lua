@@ -76,8 +76,9 @@ function P._close(key, e, why)
     if P._isOpen(e) and e.closer then
         local ok, err = pcall(e.closer, e.arg)
         if not ok then print("[ZeD] Popups: close " .. tostring(key) .. " (" .. tostring(why) .. "): " .. tostring(err)) end
+        -- (for QA: what shut last and why; only a list this shut, not one its owner had already shut)
+        P.lastClosed, P.lastWhy = key, why
     end
-    P.lastClosed, P.lastWhy = key, why   -- (for QA: what shut last and why)
 end
 
 --- An open list calls this on every frame it draws.
@@ -159,7 +160,7 @@ function P.opts(owner, slot, isOpen, player)
     if not all then all = {}; owner._zedPopOpts = all end
     local o = all[slot]
     if not o or o.player ~= player then
-        o = { arg = owner, isOpen = isOpen, player = player, key = slot .. ":" .. tostring(player) }
+        o = { arg = owner, isOpen = isOpen, player = player, key = (player ~= nil) and (slot .. ":" .. tostring(player)) or slot }
         all[slot] = o
     end
     return o
@@ -284,6 +285,9 @@ function P.onAction(action)
         local ok, n = pcall(chr.getPlayerNum, chr)
         if ok then pn = n end
     end
+    -- an action of no player we can name (an NPC, an animal, a script) shuts nobody's list: in split screen it
+    -- must not shut another player's (QA, Nov 23 2026)
+    if pn == nil then return end
     P._closePlayer(pn, "action")
 end
 
