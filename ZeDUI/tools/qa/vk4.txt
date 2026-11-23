@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/vk4.txt (Nov 22 2026, QA): the in-game proof of the director's belt row notes (Build's 313d74d0e on branch k3): the speed keys left of the bag button, an icon's gap each side of the belt, the bag button's pick (right-click or pad X). Each BELT check fails on ba8084973 and passes on 313d74d0e. Pictures: Zomboid/Screenshots/vk4_belt_full, vk4_belt_lite, vk4_belt_menu, vk4_belt_picked.
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+vk4_belt.lua | vk4_belt | timeout=900

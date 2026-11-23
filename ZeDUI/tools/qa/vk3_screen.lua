@@ -1215,13 +1215,15 @@ function S.k22rowCheck(ok)
             hi = (hi == nil or b.x + b.w > hi) and (b.x + b.w) or hi
         end
     end
-    -- beside the watch: the row's near edge within three keys' width of the watch's box
+    -- (QA, Nov 22: the director's belt row) the row sits left of the bag button, not beside the watch (313d74d0e);
+    -- the old "within three keys of the watch" distance is dropped
     local wb = r.watch
-    local kw = (r.keys[0] and r.keys[0].w) or 0
-    local beside = all and lo ~= nil and (math.abs(wb.x - hi) <= 3 * kw or math.abs(lo - (wb.x + wb.w)) <= 3 * kw)
-    Q.check(all and beside, "K3 #22 (a): a row of five speed keys (Pause, Play, x1, x2, Wait) sits beside the belt's watch",
-        "speed keys " .. tostring(r.n) .. ((#said > 0) and (" (" .. table.concat(said, ", ") .. ")") or "") .. "; the watch at "
-        .. S.num(wb.x) .. " (" .. S.num(wb.w) .. " wide, " .. tostring(wb.wrist) .. " wrist); " .. tostring(k.how))
+    local bag = S.boxes("bag")[1]
+    local left = all and hi ~= nil and bag ~= nil and hi <= bag.x
+    Q.check(all and left, "K3 #22 (a): a row of five speed keys (Pause, Play, x1, x2, Wait) sits on the belt, left of the bag button, while a watch is on",
+        "speed keys " .. tostring(r.n) .. ((#said > 0) and (" (" .. table.concat(said, ", ") .. ")") or "") .. "; the row's right edge "
+        .. S.num(hi) .. ", the bag button at " .. S.num(bag and bag.x) .. "; the watch at " .. S.num(wb.x) .. " (" .. S.num(wb.w) .. " wide, "
+        .. tostring(wb.wrist) .. " wrist); " .. tostring(k.how))
 end
 function S.k22press(n)
     local k = S.k22
@@ -1248,7 +1250,8 @@ function S.k22check()
         local good = (n == 4 and type(got) == "number" and got >= 4) or got == n
         if not good then bad[#bad + 1] = tostring(n) end
     end
-    Q.check(#bad == 0, "K3 #22 (b): one press of each speed key beside the watch sets that speed",
+    -- (QA, Nov 22: the director's belt row) the keys now sit left of the bag button: the words say "on the belt"
+    Q.check(#bad == 0, "K3 #22 (b): one press of each speed key on the belt sets that speed",
         table.concat(said, ", ") .. " (the game's speed controls: 0 paused, 1 x1, 2 x5, 3 x20, 4 Wait)"
         .. ((#bad > 0) and ("; wrong: " .. table.concat(bad, ", ")) or ""))
 end

@@ -1,0 +1,14 @@
+# ZeDUI/tools/qa/gc_cleanup.txt (Nov 22 2026, QA): Design's graphic cleanup in game (gc_cleanup.lua: the body figure's canvas, no grid and every part by mouse and pad on Health, Thermal, Equipment's defense view and the medical card; the Vehicle tab's car; the laundry card's floor and wall), pictures to Screenshots/gc_cln_<name>.png on the 1.0 gallery's look. No story stage: the car needs the drag strip (ZEDQA_HOME). 4K full screen.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_b11_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_b10_glasses.lua | gls | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_unload.lua | unl | timeout=60
+gallery_v1_a_common.lua | g1c | timeout=60
+hfr_common.lua | hfrc | timeout=60
+gc_cleanup.lua | gc_cln | timeout=1200
+gallery_reload.lua | rel | timeout=60
+gallery_v1_a_end.lua | g1e | timeout=60
+gallery_t14_end.lua | g14e | timeout=60

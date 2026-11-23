@@ -118,7 +118,8 @@ function G1.clean(Q)
     G1.glasses(Q)
     G1.noPain()
     -- the search overlay (it blurs everything outside a ring round the character): off, as the story stage does
-    pcall(function() STORY.noSearch() end)
+    -- (QA, Nov 22: a run with no story stage, gc_cleanup, has no STORY table: indexing it threw under -debug)
+    if STORY and STORY.noSearch then pcall(STORY.noSearch) end
 end
 -- the game's build line ("42.22.2 <sha> pzBullet(...)", bottom right): vanilla's own WaterMarkUI panel
 -- (ISVersionWaterMark.lua) hidden; G1.showWatermark (gallery_v1_a_end.lua) shows it again. No ZeD calls.
