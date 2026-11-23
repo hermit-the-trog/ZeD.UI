@@ -669,6 +669,19 @@ local function objectIconOf(option)
     return nil
 end
 
+--- True when the game's menu (or the menu its submenu hangs from) set zedKeepOrder = true: both looks keep its
+--- rows in the order they were added and draw each option's own iconTexture (no name-to-icon map, no regrouping,
+--- no pins first, no "More" flattening). ISContextMenu.get clears it (Overrides/ContextMenu.lua), so a caller sets
+--- it after get, before the next frame. (QA belt row run, Nov 22 2026)
+function Registry.keepsOrder(menu)
+    local m, hops = menu, 0
+    while type(m) == "table" and hops < 8 do
+        if m.zedKeepOrder == true then return true end
+        m, hops = m.parent, hops + 1
+    end
+    return false
+end
+
 -- Translate a single vanilla option into an ActionDef
 local function makeActionDef(option, index, vanillaMenu, target)
     local def = {}
@@ -684,9 +697,19 @@ local function makeActionDef(option, index, vanillaMenu, target)
     -- them to the cell's foreground color (iconTintable = true). Vanilla's
     -- iconTexture / itemForTexture are already colored and must not be
     -- tinted: an item sprite collapsed to one color is destroyed.
-    def.iconTexture, def.pxIcon = resolveIconForName(option.name)
+    -- A menu that set zedKeepOrder (the belt's bag menu) draws each row's own icon as it was added: no
+    -- name-to-icon map, no bag fallback, no tint, and one group for every row, so no rule splits the rows.
+    -- (QA belt row run, Nov 22 2026)
+    local keep = Registry.keepsOrder ~= nil and Registry.keepsOrder(vanillaMenu)
+    if keep then
+        def.category = "ACTION"
+        def.iconTexture = option.iconTexture or nil
+    else
+        def.iconTexture, def.pxIcon = resolveIconForName(option.name)
+    end
     if def.iconTexture then
-        def.iconTintable = true
+        -- (a kept-order row's own texture is already colored: never tinted)
+        def.iconTintable = not keep
     else
         def.iconTexture = option.iconTexture or nil
         if not def.iconTexture and option.itemForTexture and option.itemForTexture.getTexture then
@@ -705,7 +728,7 @@ local function makeActionDef(option, index, vanillaMenu, target)
     -- (Nov 21 2026, QA B0-1) A row whose target is a bag (vanilla's Move to lists each worn or
     -- held bag by its own name, with the bag's ItemContainer as param1) gets the backpack icon
     -- when its name found none: Fanny Pack, Leather Satchel and every modded bag read alike.
-    if not def.iconTexture and ZeD.PxIcon and ZeD.PxIcon.has("backpack") then
+    if not keep and not def.iconTexture and ZeD.PxIcon and ZeD.PxIcon.has("backpack") then
         local ok, isBag = pcall(function()
             local c = option.param1
             return c and instanceof(c, "ItemContainer") and c:getContainingItem() ~= nil
@@ -714,7 +737,7 @@ local function makeActionDef(option, index, vanillaMenu, target)
             def.iconTexture, def.pxIcon, def.iconTintable = ZeD.PxIcon.tex("backpack", 16), "backpack", true
         end
     end
-    if not def.iconTexture then   -- (punch list 200; untinted, cropped to its drawn pixels)
+    if not keep and not def.iconTexture then   -- (punch list 200; untinted, cropped to its drawn pixels)
         def.iconTexture = objectIconOf(option)
         def.iconTrim = def.iconTexture ~= nil
     end
@@ -916,6 +939,11 @@ function Registry.buildActionsFromVanilla(options, target, vanillaMenu)
     for i, opt in ipairs(options) do
         tree[#tree + 1] = makeActionDef(opt, i, vanillaMenu, target)
     end
+    -- a kept-order menu stays as built; the mark tells applyPins to leave it be (QA belt row run, Nov 22 2026)
+    if Registry.keepsOrder(vanillaMenu) then
+        tree.zedKeepOrder = true
+        return tree
+    end
     flattenMoreSubmenus(tree)
     return tree
 end
@@ -961,6 +989,8 @@ end
 --- Lua's table.sort is not stable, so the order comes from buckets instead:
 --- pinned in input order, then the rest in input order.
 function Registry.applyPins(tree, _target, pn)
+    -- (a kept-order menu's rows stay in the order they were added: Registry.keepsOrder) (QA belt row run, Nov 22 2026)
+    if tree and tree.zedKeepOrder then return tree end
     local pins = getPinsModData(pn) or {}
     -- Mark pinned flags first
     for _, def in ipairs(tree) do

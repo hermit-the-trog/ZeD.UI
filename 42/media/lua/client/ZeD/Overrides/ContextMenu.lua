@@ -180,6 +180,9 @@ ISContextMenu.get = function(player, x, y)
         context._zedAnchorMode = "cursor"
         context._zedAnchorX = x
         context._zedAnchorY = y
+        -- (the menu is reused: a kept order (Registry.keepsOrder) is for the one menu that asked, set after this
+        -- get) (QA belt row run, Nov 22 2026)
+        context.zedKeepOrder = nil
     end
     return context
 end
