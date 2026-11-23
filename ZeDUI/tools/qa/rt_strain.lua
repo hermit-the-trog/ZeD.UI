@@ -643,7 +643,11 @@ function S.checkHealth(lab, ok)
     end
     -- the exercise band and its block
     local sel = HT.selectedExercise(w)
-    Q.check(w._healthInfoShown == sel, lab .. " band: the picked exercise's block drew", tostring(sel))
+    -- (the treatment card, Nov 23 2026: with strain listed, the list takes the exercise block's place in the middle
+    -- column; the footer keeps the picked exercise and Start)
+    Q.check(sel ~= nil and w._healthInfoShown == nil and w._healthMiddle == "injuries" and w._healthFooterMode == "exercise",
+        lab .. " band: the strain list takes the exercise block's place, the footer keeps the picked exercise",
+        tostring(sel) .. "; block " .. tostring(w._healthInfoShown) .. ", middle " .. tostring(w._healthMiddle) .. ", footer " .. tostring(w._healthFooterMode))
     local okI, info = pcall(HT.exerciseInfo, S.p, sel)
     if Q.check(okI and info ~= nil and type(info.regularity) == "number", lab .. " band: the block has its regularity",
         okI and info and tostring(info.regularity) or tostring(info)) then
