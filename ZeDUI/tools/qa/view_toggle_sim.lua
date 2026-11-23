@@ -217,11 +217,52 @@ local NAME_W = #"Inventory" * 7
 local room, drawn = narrow(160, "0.0 / 8 kg", "63 items")
 check("ROOM narrow: the whole name fits", room and room >= NAME_W, room)
 check("ROOM narrow: the count and the weight give way", not drawn["63 items"] and not drawn["0.0 / 8 kg"])
-room, drawn = narrow(200, "0.0 / 8 kg", "1234567890 items")
+-- (Header order, Nov 22 2026: the drop rule now measures every heading button, Pick all too (PA); the old sum left it
+-- out, so 200 kept a weight that cut the name. 200 + PA is the same room the old case meant.)
+room, drawn = narrow(200 + PA, "0.0 / 8 kg", "1234567890 items")
 check("ROOM narrow: a long count goes first, the name fits", room and room >= NAME_W and not drawn["1234567890 items"], room)
 check("ROOM narrow: the weight stays where it leaves the name whole", drawn["0.0 / 8 kg"] == true)
 room, drawn = narrow(420, "0.0 / 8 kg", "63 items")
 check("ROOM wide: both stay where the name fits", drawn["0.0 / 8 kg"] and drawn["63 items"] and room == 420 - (70 + 30) - 6 - 12, room)
+
+section("ORDER")
+-- (Header order, the director, Nov 22 2026: "buttons, icon, container name, and then the weight and items". The
+-- heading's buttons start at its left edge (padX), the name sits right of the last one, the weight right-aligned.)
+local function placed(compact, loot)
+    local p3 = mkPanel("Crate", compact, true)
+    p3._containerInfo.texture = "tex"
+    local at = {}
+    function p3:drawText(s, x) at[s] = x end
+    local icons = {}
+    local saveIcon = ZeD.Atoms.drawIcon
+    ZeD.Atoms.drawIcon = function(_, _, x) icons[#icons + 1] = x end
+    local saveOn, saveEn = ZeD.ContainerControls.headLootOn, ZeD.ContainerControls.headLootEnabled
+    if loot then ZeD.ContainerControls.headLootOn = function() return true end end
+    BUTTONS, NAME_ROOM, WORD_BUTTONS = {}, nil, {}
+    local G = { key = CRATE, toggles = {}, on = R.isGridKey(CRATE) }
+    drawColumnHeading(p3, G, 0, 420, 20, 60, 6, 14, 14)
+    ZeD.Atoms.drawIcon = saveIcon
+    ZeD.ContainerControls.headLootOn, ZeD.ContainerControls.headLootEnabled = saveOn, saveEn
+    return G, at, icons
+end
+local G1, at1, ic1 = placed(false, true)
+local views = {}
+for i, r in ipairs(G1.toggles) do views[i] = r.view end
+check("ORDER: the buttons left to right: Loot all, Pick all, Filter, view", table.concat(views, ",") == "lootall,all,filter,flip", table.concat(views, ","))
+check("ORDER: the first button starts at the heading's left (padX)", G1.toggles[1] and G1.toggles[1].x == 6, G1.toggles[1] and G1.toggles[1].x)
+local lastR = 0
+for _, r in ipairs(G1.toggles) do lastR = math.max(lastR, r.x + r.w) end
+check("ORDER: the icon right of the last button", ic1[1] and ic1[1] > lastR, tostring(ic1[1]) .. " vs " .. lastR)
+check("ORDER: the name right of the icon", at1["Crate"] and ic1[1] and at1["Crate"] > ic1[1], at1["Crate"])
+check("ORDER: the weight right-aligned (ends at colW - padX)", at1["12.5 / 20"] == 420 - #"12.5 / 20" * 7 - 6, at1["12.5 / 20"])
+check("ORDER: the count right-aligned under it", at1["9 items"] == 420 - #"9 items" * 7 - 6, at1["9 items"])
+check("ORDER: the name's room ends before the weight stack", NAME_ROOM and at1["Crate"] + NAME_ROOM <= 420 - #"12.5 / 20" * 7 - 6, NAME_ROOM)
+local G2, at2, ic2 = placed(true, false)
+check("ORDER compact: the first button at the left", G2.toggles[1] and G2.toggles[1].x == 6 and G2.toggles[1].view == "all")
+lastR = 0
+for _, r in ipairs(G2.toggles) do lastR = math.max(lastR, r.x + r.w) end
+check("ORDER compact: icon, name and weight right of the buttons", ic2[1] and ic2[1] > lastR and at2["Crate"] > ic2[1]
+    and at2["12.5 / 20"] and at2["12.5 / 20"] > lastR, tostring(ic2[1]) .. " " .. tostring(at2["Crate"]) .. " " .. tostring(at2["12.5 / 20"]))
 
 section("WINDOWS")
 local CW = readFile("42/media/lua/client/ZeD/ZeD_CharacterWindow.lua")

@@ -691,21 +691,21 @@ function CT.headLootOn(content)
         and content._playerObj ~= nil and content._inventory ~= nil
 end
 
---- True when the heading's Loot all has something to take (the band's Loot all, as the row last built it said). (KISS #18)
+--- True when the heading's Loot all has something to take (as the band's row last built it said). (KISS #18;
+--- Nov 22 2026: read from cc.lootEnabled, the band no longer has a Loot all of its own)
 function CT.headLootEnabled(content)
     local cc = content and content._cc
-    for _, m in ipairs(cc and cc.moves or {}) do
-        if m.id == "take" then return m.enabled and true or false end
-    end
-    return false
+    return (cc and cc.lootEnabled) and true or false
 end
 
 --- Loot all from src into the player's own inventory: what the World window's X on a container's button runs
 --- (KISS #18). False when there is nothing wanted to take.
-function CT.lootAllFrom(playerObj, src)
+-- dest: where the things go; nil is his main inventory. (Nov 22 2026, "Number 1": the heading's Loot all, now the
+-- only one, passes the band's own destination, the bag on show in the Character window, as the band's did.)
+function CT.lootAllFrom(playerObj, src, dest)
     if not (playerObj and src) then return false end
     if src:isEmptyOrUnwanted(playerObj) then return false end
-    CT.lootAll(playerObj, src, playerObj:getInventory())
+    CT.lootAll(playerObj, src, dest or playerObj:getInventory())
     return true
 end
 
@@ -729,12 +729,12 @@ local function buildWorld(content)
                 ZeD.InventoryRenderer.padClearMarksOf(ct)
                 CT.moveItems(playerObj, items, d)
             end }
-    else
-        moves[#moves + 1] = { id = "take", label = sentence(getText("IGUI_invpage_Loot_all")), enabled = not inv:isEmptyOrUnwanted(playerObj),
-            -- (no icon: Loot all is a word button; KISS #7)
-            hint = sentence(getText("IGUI_invpage_Loot_all")),
-            run = function(ct) CT.lootAll(playerObj, ct._inventory, otherInventory(ct)) end }   -- (KISS #18: one place)
     end
+    -- (Take all in the header only, the director's call "Number 1", Nov 22 2026: the band's Loot all is gone; the
+    -- list heading's stays, first in its row. The band keeps "Take marked" above: with rows marked it takes those
+    -- only, which the heading's button does not. Whether the heading's has anything to take rides on the state.)
+    local cc = content._cc
+    if cc then cc.lootEnabled = not inv:isEmptyOrUnwanted(playerObj) end
     local keep = function(item) return not item:isFavorite() and not item:isUnwanted(playerObj) end
     local same, sameSet = sameTypeItems(inv, dest, keep)
     moves[#moves + 1] = { id = "same", label = ZeD.tr("UI_ZeD_Controls_SameType"), enabled = #same > 0, marks = sameSet,
@@ -1312,9 +1312,9 @@ function CT.syncFocus(win, content)
         for i, e in ipairs(els) do if e.ccKey == cc.askFrom then seat = i; break end end
         cc.askSeated, cc.askFrom = nil, nil
     end
-    -- (KISS #18) Down into the band always lands on Loot all ("take"), never on To floor or Same type
+    -- (KISS #18 had Down into the band land on its Loot all; that button is gone (Nov 22 2026, "Number 1"): Down past
+    -- the list's last row wraps to the heading's Take all instead, FocusManager's Focus._lootAllWrap)
     zone.entryElementIdx = nil
-    for i, e in ipairs(els) do if e.ccKey == "take" then zone.entryElementIdx = i; break end end
     F.setRingZoneElements(win, zn, els, seat)
     F.setZoneFocusable(win, zn, #els > 0)
 end

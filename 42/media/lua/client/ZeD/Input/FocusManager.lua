@@ -1884,6 +1884,27 @@ local function _viewOf(w, el)
     return nil
 end
 
+-- (Take all in the header only, the director's call "Number 1", Nov 22 2026; Header order) Down past a list's last
+-- row wraps to its heading's Take all (Loot all): the footer band has no Take all any more, so Down never lands on
+-- To floor or another band button. fromFlat: the focused stop; toFlat: the spatial pick, nil when there was none.
+-- Returns the Loot all's flat index, or nil to keep the pick. A pick in the same zone is another row: no wrap.
+-- (Kept on Focus, not a file local: this file is large.)
+function Focus._lootAllWrap(w, locator, fromFlat, toFlat)
+    local fl = fromFlat and locator[fromFlat]
+    if not fl then return nil end
+    local fz = w._focusRing[fl.zoneIdx]
+    local fe = fz and fz.elements and fz.elements[fl.elementIdx]
+    if not fe or fe.isViewToggle then return nil end
+    local tl = toFlat and locator[toFlat]
+    if tl and tl.zoneIdx == fl.zoneIdx then return nil end
+    for fi = 1, #locator do
+        local loc = locator[fi]
+        local e = loc.zoneIdx == fl.zoneIdx and fz.elements[loc.elementIdx]
+        if e and e.isViewToggle and e.view == "lootall" then return fi end
+    end
+    return nil
+end
+
 local function _handleSpatialNav(w, dir)
     _fresh(w)
     if not w or not w._focusRing then return end
@@ -2093,6 +2114,11 @@ local function _handleSpatialNav(w, dir)
         local fz = fl and w._focusRing[fl.zoneIdx] and w._focusRing[fl.zoneIdx].zone
         if type(tz) == "string" and tz:sub(-9) == "TitlePins" and tz ~= fz then newPickIdx = nil end
     end
+    -- (Header order, Nov 22 2026) Down from a list's last row with nothing under it: the heading's Take all
+    if not newPickIdx and dir == "down" then
+        local wrap = Focus._lootAllWrap(w, locator, _findCurrentFlatIdx(w, locator), nil)
+        if wrap then searchEls, searchLoc, newPickIdx, pass = elements, locator, wrap, "wrap" end
+    end
     if not newPickIdx then
         -- nothing more that way in this window: Left / Right go on to the
         -- other window when it sits that way on screen (the pair side by
@@ -2284,6 +2310,12 @@ local function _handleSpatialNav(w, dir)
                 if e and e.view == "lootall" and e.key == te.key then newFlatIdx = fi; break end
             end
         end
+    end
+    -- (Header order, Nov 22 2026) Down from a list's last row onto anything outside the list (the footer band):
+    -- wraps to the heading's Take all instead
+    if dir == "down" and newFlatIdx ~= logFromIdx then
+        local wrap = Focus._lootAllWrap(w, locator, logFromIdx, newFlatIdx)
+        if wrap then newFlatIdx, pass = wrap, "wrap" end
     end
     if _preview then
         local z = w._focusRing[locator[newFlatIdx].zoneIdx]

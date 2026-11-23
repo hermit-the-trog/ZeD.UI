@@ -1160,8 +1160,11 @@ end)
 
 -- ===================================================================== 7. the container buttons
 step(4, function()
-    local ok, why = H.ccPress(H.wc(), "take")
-    Q.check(ok, "the crate's Loot all button presses", why)
+    -- (Nov 22 2026, the director's "Number 1": Loot all lives in the list's heading only, the band has none)
+    local wc = H.wc()
+    local z = H.zoneStarts(wc, "view:lootall:")
+    if Q.check(z ~= nil, "the crate's heading has the Loot all button") then H.click(wc, z) end
+    Q.check(not H.ccPress(wc, "take"), "the crate's button band has no Loot all of its own")
 end)
 waitFor(10, 900, H.queueEmpty, function()
     -- (a thing the bag has no room for stays, as the game's transfer refuses it)

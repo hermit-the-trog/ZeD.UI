@@ -1513,8 +1513,10 @@ Q.step(1, function()
         return "icon " .. tostring(r.icon) .. ", words \"" .. tostring(r.label) .. "\", " .. H.num(r.w) .. " px wide"
     end
     local function word(r, w) return r ~= nil and tostring(r.label):lower() == w:lower() end
-    Q.check(take ~= nil and xfer ~= nil and take.icon == nil and xfer.icon == nil and word(take, lootW) and word(xfer, xferW),
-        "#7: Loot all and Transfer all are word buttons in the lists' bands (old: pictures only)",
+    -- (Nov 22 2026, the director's "Number 1": the World band's Loot all is gone, the heading's word button stays:
+    -- the band must have none, Transfer all stays a word button)
+    Q.check(take == nil and xfer ~= nil and xfer.icon == nil and word(xfer, xferW),
+        "#7: Transfer all is a word button in the band; the World band has no Loot all (the heading has it)",
         "crate B's band, Loot all: " .. said(take) .. "; his inventory's band, Transfer all: " .. said(xfer) .. " (the game's words: " .. lootW .. ", " .. xferW .. ")")
 end)
 
