@@ -8,8 +8,11 @@ like the plates; each bone belongs to one of the 17 body parts the Health, Therm
 smaller skull and jaw, narrower shoulders and ribcage, a wider, rounder pelvis, the thighs angled in toward the knees;
 her own silhouette.
 
+The flesh (Nov 22 2026, d_flesh.py): the muscles, tendons and vessels fill the traced body under the bones, one pixel
+in from the outline, so the figure no longer sits in a gray cutout. It is baked into <s>-skeleton.png, under the bones.
+
 Exports (media/textures/ZeD/body/), every one FW x FH:
-  <s>-skeleton.png        the whole skeleton, lit (drawn untinted over the background)
+  <s>-skeleton.png        the flesh and the whole skeleton on it, lit (drawn untinted over the background)
   <s>-<part>.png          each part's bones alone, same frame (drawn tinted on top: injury, temperature, protection)
   fig-bg-<s>-<dark|light>.png   the height ruler and the flesh outline (drawn tinted by the theme)
   _layout.lua.txt         ZeD_BodyFigure.lua's tables (each part's hit rectangle and the hit map, from its pixels)
@@ -860,13 +863,30 @@ def layout_lua(rects_by_sex, maps_by_sex=None):
     return "\n".join(lines)
 
 
+FLESH = True                # the flesh under the bones (Nov 22 2026); False ships the bare skeleton as before
+
+
+def with_flesh(sex, img):
+    """the skeleton (an RGBA image in the frame) laid over the flesh (d_flesh.py): bone wherever there is bone, flesh
+    showing round it inside the body"""
+    import d_flesh                                  # (here, not at the top: d_flesh imports this module)
+    under = d_flesh.flesh(sex).astype(np.float32) / 255.0
+    top = np.array(img).astype(np.float32) / 255.0
+    a = top[..., 3:4]
+    rgb = top[..., :3] * a + under[..., :3] * under[..., 3:4] * (1 - a)
+    alpha = a + under[..., 3:4] * (1 - a)
+    rgb = np.where(alpha > 0, rgb / np.maximum(alpha, 1e-6), 0)
+    out = np.concatenate([rgb, alpha], axis=2)
+    return Image.fromarray(np.clip(np.round(out * 255), 0, 255).astype(np.uint8), "RGBA")
+
+
 def export(root):
     dd = os.path.join(root, "42", "media", "textures", "ZeD", "body")
     os.makedirs(dd, exist_ok=True)
     rects, maps = {}, {}
     for sex in ("m", "f"):
         img, parts, owner = render(sex)
-        img.save(os.path.join(dd, f"{sex}-skeleton.png"))
+        (with_flesh(sex, img) if FLESH else img).save(os.path.join(dd, f"{sex}-skeleton.png"))
         for p, im in parts.items():
             im.save(os.path.join(dd, f"{sex}-{p}.png"))
         for light in (False, True):

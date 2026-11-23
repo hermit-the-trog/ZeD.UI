@@ -122,7 +122,9 @@ local function installZeD()
         if ok then return r end
         return nil
     end }
-    ZeD_BodyFigure = {}
+    -- gatherData hands the figure its wounds and the skin tone (Design, Nov 22 2026). woundsFrom reads nothing of the
+    -- part (classifyConditions keeps what it reads), so the getter count stays the tab's own
+    ZeD_BodyFigure = { woundsFrom = function() return nil end, skinToneOf = function() return 0 end }
 end
 
 -- ---------------------------------------------------------------------------
@@ -186,7 +188,9 @@ local NewHealth = ZeD.HealthTab
 local function oldShape(d)
     local o = {}
     for k, v in pairs(d) do
-        if k ~= "strainedCount" and k ~= "strainWorst" and k ~= "partStrain" and k ~= "partWound" then o[k] = v end
+        -- (the figure's wounds and the skin tone are new the same way: Design, Nov 22 2026)
+        if k ~= "strainedCount" and k ~= "strainWorst" and k ~= "partStrain" and k ~= "partWound"
+           and k ~= "woundsByFigure" and k ~= "skinTone" then o[k] = v end
     end
     local function plain(conds)
         local out = {}

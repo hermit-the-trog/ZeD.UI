@@ -1,0 +1,15 @@
+--- a/ZeDUI/tools/qa/trade_medic_sim.lua
++++ b/ZeDUI/tools/qa/trade_medic_sim.lua
+@@ -583,6 +583,12 @@
+ function ZeD_BodyFigure:clearColors() self.colors = {} end
+ function ZeD_BodyFigure:setPartColor(n, r, g, b) self.colors[n] = { r, g, b } end
+ function ZeD_BodyFigure:drawAt(panel, x, y, w, h) self.at = { x, y, w, h } end
++-- the wounds and skin tone gatherData hands the figure, and the card's wounds and chart (Design, Nov 22 2026)
++function ZeD_BodyFigure.woundsFrom() return nil end
++function ZeD_BodyFigure.skinToneOf() return 0 end
++function ZeD_BodyFigure:setSkinTone() end
++function ZeD_BodyFigure:setPartWounds() end
++function ZeD_BodyFigure:drawChart() end
+ function ZeD_BodyFigure:getPartRects()
+     local x, y = self.at[1], self.at[2]
+     return { { name = "Upper Torso", x = x + 90, y = y + 60, w = 40, h = 50 }, { name = "Left Hand", x = x + 20, y = y + 130, w = 16, h = 16 } }

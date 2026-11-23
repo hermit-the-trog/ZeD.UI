@@ -151,6 +151,7 @@ local HITS = {
 ZeD_BodyFigure = { new = function()
     local fig = { x = 0, y = 0 }
     fig.initialise, fig.loadTextures, fig.setSex, fig.setPartColor = noop, noop, noop, noop
+    fig.drawChart, fig.setSkinTone, fig.setPartWounds = noop, noop, noop   -- (the chart and the wounds, Nov 22 2026)
     function fig:drawAt(panel, px, py) self.x, self.y = px, py end
     function fig:getPartRects()
         local out = {}
@@ -159,6 +160,9 @@ ZeD_BodyFigure = { new = function()
     end
     return fig
 end }
+-- the wounds and skin tone gatherData hands the figure (Design, Nov 22 2026)
+ZeD_BodyFigure.woundsFrom = function() return nil end
+ZeD_BodyFigure.skinToneOf = function() return 0 end
 local okT, errT = load(CLIENT .. "ThermalTab.lua")
 check("ThermalTab.lua loads", okT, errT)
 

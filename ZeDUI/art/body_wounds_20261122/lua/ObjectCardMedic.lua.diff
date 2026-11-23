@@ -1,0 +1,23 @@
+--- a/42/media/lua/client/ZeD/ObjectCardMedic.lua
++++ b/42/media/lua/client/ZeD/ObjectCardMedic.lua
+@@ -300,12 +300,19 @@
+         local c = ZeD.HealthTab.figureColor(d, fname, health)
+         fig:setPartColor(fname, c.r, c.g, c.b, 0.65)
+     end
++    -- the patient's wounds and their care, on their own skin, as the Health tab draws them (Design, Nov 22 2026)
++    fig:setSkinTone(d.skinTone)
++    for fname in pairs(d.partHealth) do
++        fig:setPartWounds(fname, d.woundsByFigure and d.woundsByFigure[fname])
++    end
+     fig.selectedPart = active
++    -- the frame and its chart first: the controller's marks and the figure sit on them (Figure frame, Nov 22 2026)
++    ZeD.Molecules.drawFigureFrame(card, L)
++    fig:drawChart(card, L)
+     for _, r in ipairs(t._rects or {}) do
+         local fo = card:focusOf("mc:fig:" .. r.name)
+         if fo then ZeD.Focus.mark(card, r.x, r.y, r.w, r.h, fo) end
+     end
+-    ZeD.Molecules.drawFigureFrame(card, L)
+     fig:drawAt(card, L.figX, L.figY, L.figW, L.figH)   -- (at the layout's whole zoom; the stops follow: getPartRects)
+     t._rects = fig:getPartRects()
+     for _, r in ipairs(t._rects) do

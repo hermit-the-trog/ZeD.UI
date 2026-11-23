@@ -79,6 +79,12 @@ function ZeD_BodyFigure:loadTextures() end
 function ZeD_BodyFigure:setSex() end
 function ZeD_BodyFigure:setPartColor(n, r, g, b, a) self.colors[n] = { r = r, g = g, b = b, a = a } end
 function ZeD_BodyFigure:drawAt() end
+-- the wounds and skin tone gatherData hands the figure, and the tab's wounds and chart (Design, Nov 22 2026)
+function ZeD_BodyFigure.woundsFrom() return nil end
+function ZeD_BodyFigure.skinToneOf() return 0 end
+function ZeD_BodyFigure:setSkinTone() end
+function ZeD_BodyFigure:setPartWounds() end
+function ZeD_BodyFigure:drawChart() end
 local DRAWN = {}
 ZeD = {
     T = { px = function(n) return n end, sp = { sm = 10, xs = 6 }, fontF1 = "F1", fontF2 = "F2",

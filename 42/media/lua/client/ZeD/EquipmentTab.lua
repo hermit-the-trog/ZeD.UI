@@ -608,11 +608,13 @@ local function _ensureDefBodyFigure(win)
     return win._equipDefBodyFigure
 end
 
-local function _drawDefenseFigure(panel, win, protData, px, py, pw, ph)
+local function _drawDefenseFigure(panel, win, protData, px, py, pw, ph, frame)
     local fig = _ensureDefBodyFigure(win)
     if protData.isFemale ~= nil then
         fig:setSex(protData.isFemale)
     end
+    -- the height chart in the frame's margins, under the figure (Figure frame, Nov 22 2026)
+    if frame then fig:drawChart(panel, frame) end
     -- (no clearColors: every part the figure maps is coloured again below each frame, in tables it reuses)
     local ALL_PARTS    = ZeD.ProtectionTab.ALL_PARTS
     local PART_TO_FIG  = ZeD.ProtectionTab.PART_TO_FIGURE
@@ -729,7 +731,7 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
 
     -- Left half: the body figure in its frame, at the layout's whole zoom (Figure frame, the director, Nov 22 2026)
     M.drawFigureFrame(panel, layout)
-    _drawDefenseFigure(panel, win, protData, layout.figX, layout.figY, layout.figW, layout.figH)
+    _drawDefenseFigure(panel, win, protData, layout.figX, layout.figY, layout.figW, layout.figH, layout)
 
     -- Right column: hover detail OR default stats
     local rightX = layout.rightX
