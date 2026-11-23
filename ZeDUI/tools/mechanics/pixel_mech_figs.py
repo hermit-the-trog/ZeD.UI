@@ -156,73 +156,72 @@ def build(body, out):
 # Car parts to the sides (Car parts to the sides, Nov 22 2026; the director: "move all of the car parts to one side
 # or the other side of the car ... just like the brakes and the shocks ... Then the car figure can hopefully get a
 # little larger because it gains some vertical space"). The game's overlay puts the engine and battery above the car
-# and the gas tank and muffler below it. They go into the two side columns where the brakes and springs stand: the
-# engine and battery on the left (the front parts), the gas tank and muffler on the right (fuel and exhaust), each
-# stack centred in the column's free run between the front and rear wheel parts. The engine, gas tank and muffler
-# lie on their side (turned a quarter) so the columns stay narrow; they are shaded after turning, so the light still
-# comes from the top left. Nothing stays above or below the car, so the canvas is the car's height.
+# and the gas tank and muffler below it. They go into the two side columns with the brakes and springs: the engine
+# and battery on the left (the front parts), the gas tank and muffler on the right (fuel and exhaust). The engine,
+# gas tank and muffler lie on their side (turned a quarter) so the columns stay narrow; they are shaded after
+# turning, so the light still comes from the top left. Nothing stays above or below the car, so the canvas is the
+# car's height.
+# Then (the director, same day: "Space out the vehicle parts a little more on each side. Just balance everything
+# out.") each column is laid out again as six rows, the same on both sides: front spring, front brake, engine / gas
+# tank, battery / muffler, rear spring, rear brake. A row is as tall as the taller of its two parts, and the rows
+# are spread evenly over the car's height with equal gaps between them and above and below (space evenly). Both
+# columns are as wide as the widest part in either, stand CLEAR cells off the body, and each part is centred in its
+# cell, so left and right mirror each other. The trailers have no parts to move and keep the game's layout.
 # ---------------------------------------------------------------------------------------------------------------
 MOVE = [("engine", "left", True), ("battery", "left", False),
         ("gastank", "right", True), ("muffler", "right", True)]
-PADX = 24        # cells added each side of the overlay canvas: the turned parts may stand past its edges
-STACK_GAP = 3    # cells between two parts stacked in a column
-CLEAR = 4        # the least gap between a column part and the car body
+ROWS = [("suspension_front_left", "suspension_front_right"), ("brake_front_left", "brake_front_right"),
+        ("engine", "gastank"), ("battery", "muffler"),
+        ("suspension_rear_left", "suspension_rear_right"), ("brake_rear_left", "brake_rear_right")]
+TURN = {n: turn for n, side, turn in MOVE}
+PADX = 24        # cells added each side of the overlay canvas: the columns may stand past its edges
+CLEAR = 6        # cells between a column and the car body (4 before the director's spacing note)
 
 
 def to_sides(out_layers, layers, lines):
-    """moves the MOVE parts into the side columns; out_layers is changed in place, every layer padded by PADX"""
+    """lays the side columns out again (ROWS); out_layers is changed in place, every layer padded by PADX"""
     for n in list(out_layers):
         t, m = out_layers[n]
         out_layers[n] = (np.pad(t, ((0, 0), (PADX, PADX))), np.pad(m, ((0, 0), (PADX, PADX))))
     lines = np.pad(lines, ((0, 0), (PADX, PADX)))
-    movers = [(n, side, turn) for n, side, turn in MOVE if n in out_layers]
-    if not movers: return
+    if not any(n in out_layers for n, side, turn in MOVE): return
     bm = out_layers["base"][1]
     ys, xs = np.nonzero(bm)
     car_y0, car_y1, car_x0, car_x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
-    for side in ("left", "right"):
-        stack = [(n, turn) for n, s, turn in movers if s == side]
-        if not stack: continue
-        # the column: the brakes and springs on this side (their centre line and the rows they take)
-        col = [n for n in out_layers if n.endswith("_" + side) and ("brake" in n or "suspension" in n)]
-        busy = np.zeros(bm.shape[0], bool)
-        cxs = []
-        for n in col:
-            yy, xx = np.nonzero(out_layers[n][1])
-            busy[yy.min():yy.max() + 1] = True
-            cxs.append((xx.min() + xx.max() + 1) / 2.0)
-        cx = np.mean(cxs) if cxs else (car_x0 - 12 if side == "left" else car_x1 + 12)
-        # each part cut out of its layer (turned when it lies on its side), its own detail lines kept
-        pieces = []
-        for n, turn in stack:
+    # each part cut out of its layer (turned when it lies on its side), its own detail lines kept on the turned
+    # ones (they are shaded again after turning); the others keep their tones as they are
+    cut = {}
+    for pair in ROWS:
+        for n in pair:
+            if n not in out_layers: continue
             t, m = out_layers[n]
             yy, xx = np.nonzero(m)
             y0, y1, x0, x1 = yy.min(), yy.max() + 1, xx.min(), xx.max() + 1
-            mc = m[y0:y1, x0:x1]
-            dc = mc & lines[y0:y1, x0:x1] & ndi.binary_erosion(mc)
-            if turn: mc, dc = np.rot90(mc), np.rot90(dc)
-            tc = np.where(dc, 70, tone_for(n, mc, None))
-            pieces.append((n, tc, mc))
-        # the longest free run of rows inside the car's height (between the front and rear wheel parts)
-        best, run0 = (0, car_y0, car_y0), None
-        for y in range(car_y0, car_y1 + 1):
-            free = y < car_y1 and not busy[y]
-            if free and run0 is None: run0 = y
-            if not free and run0 is not None:
-                if y - run0 > best[0]: best = (y - run0, run0, y)
-                run0 = None
-        need = sum(p[2].shape[0] for p in pieces) + STACK_GAP * (len(pieces) - 1)
-        if need > best[0]: print(f"  warning: the {side} stack ({need} rows) is taller than its free run ({best[0]})")
-        y = best[1] + (best[0] - need) // 2
-        for n, tc, mc in pieces:
+            mc, tc = m[y0:y1, x0:x1], t[y0:y1, x0:x1]
+            if TURN.get(n):
+                dc = mc & lines[y0:y1, x0:x1] & ndi.binary_erosion(mc)
+                mc, dc = np.rot90(mc), np.rot90(dc)
+                tc = np.where(dc, 70, tone_for(n, mc, None))
+            cut[n] = (tc, mc)
+    rows = [pair for pair in ROWS if any(n in cut for n in pair)]
+    rh = [max(cut[n][1].shape[0] for n in pair if n in cut) for pair in rows]
+    cw = max(m.shape[1] for t, m in cut.values())
+    gap = (car_y1 - car_y0 - sum(rh)) / float(len(rows) + 1)
+    if gap < 2: print(f"  warning: the side columns are tight (a gap of {gap:.1f} rows)")
+    centre = {0: car_x0 - CLEAR - cw / 2.0, 1: car_x1 + CLEAR + cw / 2.0}   # left and right column centre lines
+    y = car_y0 + gap
+    for pair, h_row in zip(rows, rh):
+        for k, n in enumerate(pair):
+            if n not in cut: continue
+            tc, mc = cut[n]
             h, w = mc.shape
-            x = int(round(cx - w / 2.0))
-            if side == "left": x = min(x, car_x0 - CLEAR - w)       # never closer to the body than CLEAR
-            else: x = max(x, car_x1 + CLEAR)
+            x = int(round(centre[k] - w / 2.0))
+            yy = int(round(y + (h_row - h) / 2.0))
             nt, nm = np.zeros(bm.shape, np.float32), np.zeros(bm.shape, bool)
-            nt[y:y + h, x:x + w], nm[y:y + h, x:x + w] = np.where(mc, tc, 0), mc
+            nt[yy:yy + h, x:x + w], nm[yy:yy + h, x:x + w] = np.where(mc, tc, 0), mc
             out_layers[n] = (nt, nm)
-            y += h + STACK_GAP
+        y += h_row + gap
+    print(f"  columns {cw} wide, {CLEAR} off the body; rows {rh}, gap {gap:.1f}")
 
 
 def save_layers(body, out, out_layers):
