@@ -837,6 +837,13 @@ end
 local nextErr = 0
 local function frame()
     local t = now()
+    -- (QA EB 12g, Nov 22 2026) the errors are read as soon as the game's count moves (one number a frame), so a repeat
+    -- late in the error marker's hold stretches it before the fall starts; the places file keeps the two-second clock
+    local moved = getLuaDebuggerErrorCount and (safe(getLuaDebuggerErrorCount) or errSeen) ~= errSeen
+    if moved then
+        local okE, errE = pcall(M.readErrors)
+        if not okE then ZeD.logOnce("messages: reading the errors", errE) end
+    end
     if t >= nextErr then
         nextErr = t + 2000
         local okE, errE = pcall(M.readErrors)
