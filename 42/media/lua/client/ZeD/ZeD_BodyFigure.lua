@@ -1016,6 +1016,18 @@ end
 -- how much of a tint a boneLift figure (Health, the medical card) lays on its bones: 0 is the white bone, 1 the full
 -- token. At 0.55 a red danger tint keeps the bone's light at about 0.6 of white, well above the flesh.
 local BONE_TINT = 0.55
+-- the least light a tinted bone keeps, as a share of the untinted bone (QA, Nov 23 2026: Light's darker danger
+-- token turned the femur brown at 0.55). A dark token is mixed further toward white so the lifted tint's
+-- luminance is at least this, in every theme; its hue stays.
+local BONE_KEEP = 0.75
+
+--- How far toward the token a bone is tinted: BONE_TINT, less for a dark token, so 1 - (1 - L) * k >= BONE_KEEP
+--- (L the token's luminance, Rec. 601 weights).
+function ZeD_BodyFigure.boneTintK(c)
+    local L = 0.299 * c.r + 0.587 * c.g + 0.114 * c.b
+    if L >= 1 then return BONE_TINT end
+    return math.min(BONE_TINT, (1 - BONE_KEEP) / (1 - L))
+end
 
 -- the parts over the skeleton: tinted where the tab has something to say, dim otherwise
 function ZeD_BodyFigure:_drawParts(panel, xOff, yOff, s)
@@ -1034,7 +1046,7 @@ function ZeD_BodyFigure:_drawParts(panel, xOff, yOff, s)
                     -- the bones keep their light: the tint is lifted toward white before it multiplies the lit bone,
                     -- so a coloured bone stays well above the flesh behind it in every theme (the director, Nov 23
                     -- 2026: "I can't see the skeleton")
-                    local k = BONE_TINT
+                    local k = ZeD_BodyFigure.boneTintK(color)
                     panel:drawTextureScaledUniform(tex, dx, dy, s, 1.0,
                         1 - (1 - color.r) * k, 1 - (1 - color.g) * k, 1 - (1 - color.b) * k)
                 else
