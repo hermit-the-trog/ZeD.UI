@@ -499,6 +499,8 @@ ZeD.Spacing = {
     figurePadTop  = 12,   -- padding above body figure in Health/Protection/Thermal tabs
     figureW       = 106,  -- body figure width  (shared by Health/Protection/Thermal; was 220 with the grid) (Graphic cleanup, Nov 22 2026)
     figureH       = 272,  -- body figure height (shared by Health/Protection/Thermal; was 260) (Graphic cleanup, Nov 22 2026)
+    figureGap     = 10,   -- space between the body figure and its text column (Health, Thermal, Equipment defense, medical card) (Figure gap, Nov 22 2026)
+    figureTextMax = 0,    -- the most width that text column takes; 0 = no cap, the spare room goes to the right edge (Figure gap, Nov 22 2026)
     pillBtnPadV   = 10,   -- vertical padding added to secH for pill-style buttons
 }
 
@@ -1269,6 +1271,7 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     -- so the Health, Thermal and Equip layouts make room for the size it really is
     T.sp.figureW = ZeD.Spacing.figureW * T.art
     T.sp.figureH = ZeD.Spacing.figureH * T.art
+    -- the gap and the text cap scale like any spacing (the loop above did it; 0 stays 0) (Figure gap, Nov 22 2026)
     -- the System 7 groove: a dark and a light hairline (ZeD.Atoms.drawGroove)
     T.grooveH = 2 * T.hair
     -- Context-menu tokens — static, not theme-dependent (see ZeD.Ctx definition above)
@@ -1543,6 +1546,17 @@ function ZeD.colorSync(target, source, alphaOverride)
     target.g = source.g
     target.b = source.b
     target.a = alphaOverride or source.a
+end
+
+-- Figure spacing, live (Figure gap, Nov 22 2026): sets the gap between the body figure and its text column and the
+-- most width that column takes (design units; textMax 0 or nil = no cap). The numbers go to ZeD.Spacing, which every
+-- theme rebuild copies into T.sp, so they survive a re-theme; the live T.sp is updated now too (one shared table).
+function ZeD.setFigureSpacing(gap, textMax)
+    if type(gap) == "number" then ZeD.Spacing.figureGap = gap end
+    ZeD.Spacing.figureTextMax = (type(textMax) == "number" and textMax > 0) and textMax or 0
+    local T = ZeD.T
+    T.sp.figureGap     = T.px(ZeD.Spacing.figureGap)
+    T.sp.figureTextMax = T.px(ZeD.Spacing.figureTextMax)
 end
 
 -- ---------------------------------------------------------------------------

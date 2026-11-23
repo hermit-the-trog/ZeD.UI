@@ -332,7 +332,11 @@ function def.body(card, x, y, w, t, doctor)
     end
     -- beside it (under it on a narrow card): the part in hand, else the summary
     local rx, ry, rw
-    if two then rx, ry, rw = x + figW + T.px(10), y, w - figW - T.px(10)
+    if two then
+        -- the gap and the text cap are the Health tab's tokens (Figure gap, Nov 22 2026)
+        rx, ry, rw = x + figW + T.sp.figureGap, y, w - figW - T.sp.figureGap
+        local cap = T.sp.figureTextMax
+        if cap and cap > 0 and rw > cap then rw = cap end
     else rx, ry, rw = x, y + figH + T.px(8), w end
     local bottom
     if active and d.partHealth[active] then

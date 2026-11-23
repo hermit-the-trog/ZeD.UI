@@ -1976,8 +1976,12 @@ function ZeD.Molecules.layoutZoneA(x, y, w, figW, figH)
     -- (Graphic cleanup, Nov 22 2026: the figure lost its room grid and went 220 -> 106 wide, so the text gains 114)
     local leftX  = x + T.px(TAB_HEADER_PAD)          -- 8px outer left pad
     local leftW  = T.sp.figureW                      -- the figure column: the figure at its whole zoom
-    local rightX = leftX + leftW + T.px(TAB_COL_GAP) -- +10px column gap
+    -- the gap is T.sp.figureGap (10 by default; read fresh, so a QA script can move it) (Figure gap, Nov 22 2026)
+    local rightX = leftX + leftW + T.sp.figureGap
     local rightW = w - T.px(TAB_HEADER_PAD) - rightX + x  -- fills to 8px from right edge
+    -- a cap on the text column (0 = none): the spare room goes to the right edge, not into the line length (Figure gap, Nov 22 2026)
+    local cap = T.sp.figureTextMax
+    if cap and cap > 0 and rightW > cap then rightW = cap end
     return {
         figX   = leftX + math.floor((leftW - figW) / 2),  -- figure centered in its 106px column
         figY   = y,

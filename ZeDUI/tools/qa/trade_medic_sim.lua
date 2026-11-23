@@ -498,7 +498,7 @@ ZeD.T = {
     positive = col(0, 1, 0), warning = col(1, 1, 0), danger = col(1, 0, 0), border = col(.3, .3, .3), borderS = col(.5, .5, .5),
     stripe = col(1, 1, 1), surf1 = col(0, 0, 0), surf2 = col(.1, .1, .1), iconWhite = col(1, 1, 1), selectionA = 0.3, fillBarH = 8,
     line = function(n) return n end,
-    sp = { scrollbarW = 12, figureW = 106, figureH = 272, rowGap = 6, afterLine = 10, afterGroove = 8, xs = 6, sm = 10, badgeGap = 4, buttonPadX = 8 },
+    sp = { scrollbarW = 12, figureW = 106, figureH = 272, figureGap = 10, figureTextMax = 0, rowGap = 6, afterLine = 10, afterGroove = 8, xs = 6, sm = 10, badgeGap = 4, buttonPadX = 8 },
 }
 ZeD.TM = { getFontHeight = function() return 14 end, MeasureStringX = function(_, f, s) return #tostring(s or "") * 7 end }
 local BANDS = {}
