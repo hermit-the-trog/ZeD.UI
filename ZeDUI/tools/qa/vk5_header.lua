@@ -21,7 +21,8 @@
 --
 -- The scene: two crates (carpentry_01_16) on free squares beside him: crate A holds an apple and a box of nails,
 -- crate B a pencil and a pen. Given to him: a box of nails (so Same type has something to move both ways) and a
--- school bag (in his inventory, the Character window's bag for the columns' check). ZeD's input mode locked to the
+-- school bag (the Character window's bag for NARROW and the columns' check; from NARROW on it is worn on his back, or
+-- held when the back is taken, as the strip lists only bags he wears or holds). ZeD's input mode locked to the
 -- mouse for the reads and the pictures, to the controller for the pad's walk (vx12_wheel.lua's lock).
 -- What is read, never pixels written in (4K at UI scale 1.75 and 1280x800 alike): a heading as its list draws it in
 -- one frame, ZeD.Atoms.drawIcon (the container's icon), the list's own drawText (the name in F4, the weight in F1,
@@ -245,6 +246,119 @@ function H.charShows(inv)
     local c = cw and cw._mainContent
     return c ~= nil and inv ~= nil and cw._activeTab == "loot" and not H.rolled(cw) and c._inventory == inv
         and c._containerInfo ~= nil and #(c._viewToggleRects or {}) > 0
+end
+-- ===================================================================== the school bag on him (staging fix, Nov 22 2026)
+-- The Character window's strip (buildContainers in ZeD_CharacterWindow.lua) lists his main inventory, then each bag in
+-- it he wears or holds (playerObj:isEquipped) and key rings; a bag only carried is not on it, so showBagAlone waits for
+-- it and gives up on his inventory. So the given school bag goes on: on its slot (canBeEquipped, the back) when that is
+-- free, by setWornItem and the game's clothing-updated event as vk4_belt.lua wears one; else in a free hand (the off
+-- hand first); else in the off hand, what it held put back after. H.bagOff puts both hands and every worn thing back.
+function H.wornList()
+    local out = {}
+    local wl = nil
+    pcall(function() wl = S.p:getWornItems() end)
+    if not wl then return out end
+    pcall(function()
+        for i = 0, wl:size() - 1 do
+            local wi = wl:get(i)
+            local it, loc = nil, nil
+            if wi then
+                it = wi:getItem()
+                loc = wi:getLocation()
+            end
+            if it and loc ~= nil then out[#out + 1] = { loc = loc, item = it } end
+        end
+    end)
+    return out
+end
+function H.thingName(it)
+    if not it then return "nothing" end
+    local nm = nil
+    pcall(function() nm = it:getDisplayName() end)
+    return tostring(nm or "a thing")
+end
+function H.clothes() pcall(function() triggerEvent("OnClothingUpdated", S.p) end) end
+function H.bagEquipped()
+    local on = false
+    pcall(function() on = S.p:isEquipped(S.bag) and true or false end)
+    return on
+end
+function H.bagListed()
+    local CW = ZeD_CharacterWindow
+    if not (CW and CW.containerIndex and S.bagInv) then return false end
+    local ok, i = pcall(CW.containerIndex, S.pn, S.bagInv)
+    return ok and i ~= nil
+end
+function H.bagOn()
+    if not (S.bag and S.p) or S.bagHow then return end
+    local p = S.p
+    S.bagWas = { worn = H.wornList() }
+    pcall(function() S.bagWas.ph = p:getPrimaryHandItem() end)
+    pcall(function() S.bagWas.sh = p:getSecondaryHandItem() end)
+    local loc, held = nil, nil
+    pcall(function()
+        loc = S.bag:canBeEquipped()
+        if loc == nil or loc == "" then loc = S.bag:getBodyLocation() end
+    end)
+    if loc == "" then loc = nil end
+    if loc ~= nil then pcall(function() held = p:getWornItem(loc) end) end
+    if loc ~= nil and held == nil then
+        pcall(function() p:setWornItem(loc, S.bag) end)
+        H.clothes()
+        S.bagHow = "worn on " .. tostring(loc)
+        if H.bagEquipped() then return end
+        H.bagOff()
+        S.bagWas = { worn = H.wornList() }
+        pcall(function() S.bagWas.ph = p:getPrimaryHandItem() end)
+        pcall(function() S.bagWas.sh = p:getSecondaryHandItem() end)
+    end
+    if S.bagWas.sh == nil then
+        pcall(function() p:setSecondaryHandItem(S.bag) end)
+        S.bagHow = "in his off hand"
+    elseif S.bagWas.ph == nil then
+        pcall(function() p:setPrimaryHandItem(S.bag) end)
+        S.bagHow = "in his main hand"
+    else
+        pcall(function() p:setSecondaryHandItem(S.bag) end)
+        S.bagHow = "in his off hand (" .. H.thingName(S.bagWas.sh) .. " put back after)"
+    end
+    local cw = RT.cw()
+    if cw then cw._containerTimer = 30 end
+end
+function H.bagOff()
+    if not (S.bag and S.p and S.bagWas) then return end
+    local p = S.p
+    if H.bagEquipped() then
+        pcall(function() p:removeWornItem(S.bag) end)
+        pcall(function() if p:getPrimaryHandItem() == S.bag then p:setPrimaryHandItem(nil) end end)
+        pcall(function() if p:getSecondaryHandItem() == S.bag then p:setSecondaryHandItem(nil) end end)
+    end
+    for _, e in ipairs(S.bagWas.worn or {}) do
+        local now = nil
+        pcall(function() now = p:getWornItem(e.loc) end)
+        if now ~= e.item then pcall(function() p:setWornItem(e.loc, e.item) end) end
+    end
+    pcall(function() if p:getPrimaryHandItem() ~= S.bagWas.ph then p:setPrimaryHandItem(S.bagWas.ph) end end)
+    pcall(function() if p:getSecondaryHandItem() ~= S.bagWas.sh then p:setSecondaryHandItem(S.bagWas.sh) end end)
+    H.clothes()
+    S.bagHow = nil
+end
+-- words for the put-back check: the bag still on him, a hand or a worn thing not as found; nil when all is back
+function H.bagBackWords()
+    if not (S.p and S.bagWas) then return nil end
+    local bad = {}
+    if S.bag and H.bagEquipped() then bad[#bad + 1] = "the school bag still on him" end
+    for _, e in ipairs(S.bagWas.worn or {}) do
+        local now = nil
+        pcall(function() now = S.p:getWornItem(e.loc) end)
+        if now ~= e.item then bad[#bad + 1] = H.thingName(e.item) .. " not worn again" end
+    end
+    local ph, sh = nil, nil
+    pcall(function() ph = S.p:getPrimaryHandItem() end)
+    pcall(function() sh = S.p:getSecondaryHandItem() end)
+    if ph ~= S.bagWas.ph or sh ~= S.bagWas.sh then bad[#bad + 1] = "his hands hold " .. H.thingName(ph) .. " / " .. H.thingName(sh) .. ", not as found" end
+    if #bad == 0 then return nil end
+    return table.concat(bad, "; ")
 end
 
 -- ===================================================================== the input mode ZeD reads (vk3_pad.lua)
@@ -977,17 +1091,31 @@ Q.step(1, function() if not S.dead then H.style(1) end end)
 Q.waitMs(600)
 
 -- ===================================================================== 4b: NARROW (the name always wins; at 1280x800 the Deck case)
+-- (the school bag goes on him first, so the strip lists it; it stays on through COL and comes off in the put-back)
 Q.step(1, function()
     if S.dead then return end
+    H.bagOn()
+end)
+H.waitUntil(3000, function()
+    if S.dead then return true end
+    return H.bagEquipped() and H.bagListed()
+end, function(ok)
+    if S.dead then return end
+    Q.say("NOTE the school bag " .. tostring(S.bagHow) .. ": equipped " .. tostring(H.bagEquipped()) .. ", on the Character window's strip " .. tostring(H.bagListed()))
+    if not ok then H.fail("NARROW", "the school bag on him and on the Character window's strip (" .. tostring(S.bagHow) .. ", equipped "
+        .. tostring(H.bagEquipped()) .. ", listed " .. tostring(H.bagListed()) .. ")") end
+end)
+Q.step(1, function()
+    if S.dead or S.off.NARROW then return end
     H.charOn(S.bagInv)
     H.worldOn(S.ca.inv)
     S.k.nar.geoC, S.k.nar.geoW = H.geo(RT.cw()), H.geo(RT.ww())
 end)
 H.waitUntil(4000, function()
-    if S.dead then return true end
+    if S.dead or S.off.NARROW then return true end
     return H.charShows(S.bagInv) and H.worldShows(S.ca.inv)
 end, function(ok)
-    if S.dead then return end
+    if S.dead or S.off.NARROW then return end
     if not ok then
         H.fail("NARROW", "the school bag alone in the Character window (" .. tostring(H.charShows(S.bagInv)) .. ") and crate A alone in the World window ("
             .. tostring(H.worldShows(S.ca.inv)) .. ")")
@@ -1138,11 +1266,12 @@ H.waitUntil(3000, function() return S.dead or H.mode() == "kbm" end, function() 
 -- ===================================================================== 6: two Loot columns, the bag on show
 Q.step(1, function()
     if S.dead then return end
+    H.bagOn()
     H.worldOn(S.ca.inv)
 end)
 H.waitUntil(4000, function()
     if S.dead then return true end
-    local ci = ZeD_CharacterWindow.containerIndex and ZeD_CharacterWindow.containerIndex(S.pn, S.bagInv) or nil
+    local ci =ZeD_CharacterWindow.containerIndex and ZeD_CharacterWindow.containerIndex(S.pn, S.bagInv) or nil
     return H.worldShows(S.ca.inv) and ci ~= nil
 end, function(ok)
     if S.dead then return end
@@ -1233,6 +1362,7 @@ Q.step(1, function()
     H.modeBack()
     H.rmCrate(S.ca)
     H.rmCrate(S.cb)
+    H.bagOff()
     RT.takeBack()
     local ww = RT.ww()
     if ww then ww._containerTimer = 30 end
@@ -1271,6 +1401,8 @@ Q.step(1, function()
     local kept = false
     pcall(function() kept = S.nails ~= nil and S.p:getInventory():containsID(S.nails:getID()) end)
     if kept then why[#why + 1] = "the given nails still in his inventory" end
+    local bagWhy = H.bagBackWords()
+    if bagWhy then why[#why + 1] = bagWhy end
     if S.stuck then why[#why + 1] = "a watched or faked function was replaced by someone else meanwhile" end
     if S.leaked then why[#why + 1] = S.leaked .. " timed actions reached the real queue (cleared)" end
     if S.queued then why[#why + 1] = S.queued .. " timed actions queued at the end (cleared)" end
