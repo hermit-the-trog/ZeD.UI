@@ -263,6 +263,10 @@ end
 -- Each getter the rules read more than once is read once into a
 -- local (the same values: nothing changes the part in between); the part's stiffness and pain go
 -- back to gatherData, so it does not read them again.
+-- What it reads of the wounds and their care it keeps in SEEN as it goes, for the body figure's
+-- marks (ZeD_BodyFigure.woundsFrom): one table, filled again for each part, so the figure reads
+-- nothing of the part a second time (Design, Nov 22 2026). gatherData adds held.
+local SEEN = {}
 local function classifyConditions(bp, doctorLevel)
     local conds = {}
     local doc = doctorLevel or 0
@@ -271,17 +275,22 @@ local function classifyConditions(bp, doctorLevel)
     local fractureT = bp:getFractureTime()
     local splint = bp:getSplintFactor()
     local word
+    local seen = SEEN                       -- what the figure's marks read (SEEN above), filled as the list reads
+    seen.bandaged, seen.fracture, seen.splint = bandaged, fractureT > 0, splint > 0
 
     -- The words are vanilla's own health-panel words where it has them (IGUI_health_*);
     -- the few it lacks are ZeD keys. They are read here, every time the tab re-reads the
     -- body (a few times a second), so a change of language shows within moments.
-    if bp:bitten() then
+    seen.bitten = bp:bitten()
+    if seen.bitten then
         conds[#conds + 1] = { label = getText("IGUI_health_Bitten"), severity = "critical" }
     end
-    if bp:bleeding() then
+    seen.bleed = bp:bleeding()
+    if seen.bleed then
         conds[#conds + 1] = { label = getText("IGUI_health_Bleeding"), severity = "danger" }
     end
-    if bp:deepWounded() then
+    seen.deep = bp:deepWounded()
+    if seen.deep then
         word = nil
         if doc > 4 or cheat then
             local t = bp:getDeepWoundTime()
@@ -290,8 +299,9 @@ local function classifyConditions(bp, doctorLevel)
         end
         conds[#conds + 1] = { label = qualify(getText("IGUI_health_DeepWound"), word), severity = "danger" }
     end
-    if bp:isInfectedWound() and not bandaged
-       and (doc > 8 or bp:getWoundInfectionLevel() * 10 >= (2.5 - doc) or cheat) then
+    seen.infected = bp:isInfectedWound() and not bandaged
+       and (doc > 8 or bp:getWoundInfectionLevel() * 10 >= (2.5 - doc) or cheat) or false
+    if seen.infected then
         conds[#conds + 1] = { label = getText("IGUI_health_Infected"), severity = "danger" }
     end
     if fractureT > 0 and splint == 0 then
@@ -302,14 +312,17 @@ local function classifyConditions(bp, doctorLevel)
         end
         conds[#conds + 1] = { label = qualify(getText("IGUI_health_Fracture"), word), severity = "danger" }
     end
-    if bp:haveBullet() and not bandaged then
+    seen.bullet = bp:haveBullet()
+    if seen.bullet and not bandaged then
         conds[#conds + 1] = { label = getText("IGUI_health_LodgedBullet"), severity = "danger" }
     end
-    if bp:haveGlass() and not bandaged then
+    seen.glass = bp:haveGlass()
+    if seen.glass and not bandaged then
         conds[#conds + 1] = { label = ZeD.tr("UI_ZeD_Health_GlassShards"), severity = "danger" }
     end
 
-    if bp:scratched() then
+    seen.scratch = bp:scratched()
+    if seen.scratch then
         word = nil
         if doc > 2 or cheat then
             local t = bp:getScratchTime()
@@ -318,7 +331,8 @@ local function classifyConditions(bp, doctorLevel)
         end
         conds[#conds + 1] = { label = qualify(getText("IGUI_health_Scratch"), word), severity = "warning" }
     end
-    if bp:isCut() then
+    seen.cut = bp:isCut()
+    if seen.cut then
         word = nil
         if doc > 2 or cheat then
             local t = bp:getCutTime()
@@ -327,7 +341,8 @@ local function classifyConditions(bp, doctorLevel)
         end
         conds[#conds + 1] = { label = qualify(getText("IGUI_health_Cut"), word), severity = "warning" }
     end
-    if bp:getBurnTime() > 0 and not bandaged then
+    seen.burn = bp:getBurnTime() > 0
+    if seen.burn and not bandaged then
         word = nil
         if (doc > 4 or cheat) and bp:isNeedBurnWash() then word = ZeD.tr("IGUI_health_NeedCleaning") end
         conds[#conds + 1] = { label = qualify(ZeD.tr("UI_ZeD_Health_Burn"), word), severity = "warning" }
@@ -354,14 +369,17 @@ local function classifyConditions(bp, doctorLevel)
         end
     end
 
+    seen.clean = false
     if bandaged then
-        if bp:getBandageLife() > 0 then
+        seen.clean = bp:getBandageLife() > 0
+        if seen.clean then
             conds[#conds + 1] = { label = getText("IGUI_health_Bandaged"), severity = "positive", care = true }
         else
             conds[#conds + 1] = { label = getText("IGUI_health_DirtyBandage"), severity = "warning", care = true }
         end
     end
-    if bp:stitched() then
+    seen.stitched = bp:stitched()
+    if seen.stitched then
         word = nil
         if doc > 6 or cheat then
             word = (bp:getStitchTime() > 40) and getText("IGUI_health_Good") or ZeD.tr("IGUI_health_NeedTime")
@@ -687,6 +705,7 @@ function ZeD.HealthTab.gatherData(playerObj, opts)
     local partHealth = {}        -- figureName → health%
     local condsByFigureName = {} -- figureName → conditions array
     local extraByFigureName = {} -- figureName → other mods' lines (see EXTRAS above)
+    local woundsByFigure = {}    -- figureName → what the figure draws on the part (ZeD_BodyFigure.woundsFrom)
 
     -- Build a lookup: BodyPartType → figure name (once per BODY_PART_TYPES table; read only)
     if _typeToFigureFrom ~= BODY_PART_TYPES then
@@ -712,7 +731,8 @@ function ZeD.HealthTab.gatherData(playerObj, opts)
         local health = bp:getHealth()
         local conds, stiffness, pain = classifyConditions(bp, doctorLevel)
         -- a part another mod holds back until it is examined names no wound
-        if heldBack(playerObj, bp) then conds = careOnly(conds) end
+        local held = heldBack(playerObj, bp)
+        if held then conds = careOnly(conds) end
         -- other mods' wound details for this part (nil without any); the injury list
         -- carries them as tags too, the detail view draws them as lines
         local extra = extraLines(playerObj, bp)
@@ -730,6 +750,10 @@ function ZeD.HealthTab.gatherData(playerObj, opts)
         if figureName then
             partByFigure[figureName] = bp
             partHealth[figureName] = health
+            -- the wounds the figure draws, from what the list just read of the part, by the list's own rules
+            -- (a held-back part shows only its care) (Design, Nov 22 2026)
+            SEEN.held = held
+            woundsByFigure[figureName] = ZeD_BodyFigure.woundsFrom(SEEN)
             partStrain[figureName] = strainLv
             if woundShows(conds, health, extra) then partWound[figureName] = true end
             if #conds > 0 then
@@ -790,6 +814,8 @@ function ZeD.HealthTab.gatherData(playerObj, opts)
         extraByFigureName = extraByFigureName,
         isFemale         = playerObj:isFemale(),
         partByFigure     = partByFigure,
+        woundsByFigure   = woundsByFigure,
+        skinTone         = ZeD_BodyFigure.skinToneOf(playerObj),
     }
 end
 
@@ -807,12 +833,15 @@ function ZeD.HealthTab._ensureBodyFigure(win)
     return win._healthBodyFigure
 end
 
-function ZeD.HealthTab._drawBodyFigure(panel, win, data, px, py, pw, ph)
+function ZeD.HealthTab._drawBodyFigure(panel, win, data, px, py, pw, ph, frame)
     local fig = ZeD.HealthTab._ensureBodyFigure(win)
 
     if data.isFemale ~= nil then
         fig:setSex(data.isFemale)
     end
+
+    -- the height chart in the frame's margins, under the controller's mark and the figure (Figure frame, Nov 22 2026)
+    if frame then fig:drawChart(panel, frame) end
 
     -- Color every part by health percentage (always visible, green when healthy), a strained part
     -- without a wound in the strain tint (Strain, the director, Nov 22 2026)
@@ -820,6 +849,11 @@ function ZeD.HealthTab._drawBodyFigure(panel, win, data, px, py, pw, ph)
     for figureName, health in pairs(data.partHealth) do
         local color = ZeD.HealthTab.figureColor(data, figureName, health)
         fig:setPartColor(figureName, color.r, color.g, color.b, 0.65)
+    end
+    -- the wounds and their care over the parts, on the character's own skin (Design, Nov 22 2026)
+    fig:setSkinTone(data.skinTone)
+    for figureName in pairs(data.partHealth) do
+        fig:setPartWounds(figureName, data.woundsByFigure and data.woundsByFigure[figureName])
     end
 
     -- Read the _healthActivePart resolved at the top of HealthTab.render (the
@@ -2105,7 +2139,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         -- drew (drawAt keeps it: hitTestAt, getPartRects) (Figure frame, the director, Nov 22 2026)
         M.drawFigureFrame(panel, layout)
         ZeD.HealthTab._drawBodyFigure(panel, win, data,
-            layout.figX, layout.figY, layout.figW, layout.figH)
+            layout.figX, layout.figY, layout.figW, layout.figH, layout)
 
         -- The detail view reads _healthActivePart (the controller's focus
         -- overrides mouse hover).

@@ -1,0 +1,28 @@
+--- a/42/media/lua/client/ZeD/ThermalTab.lua
++++ b/42/media/lua/client/ZeD/ThermalTab.lua
+@@ -335,7 +335,7 @@
+         -- the figure in its frame at the layout's whole zoom (Figure frame, the director, Nov 22 2026)
+         M.drawFigureFrame(panel, layout)
+         ZeD.ThermalTab._drawBodyFigure(panel, win, data,
+-            layout.figX, layout.figY, layout.figW, layout.figH)
++            layout.figX, layout.figY, layout.figW, layout.figH, layout)
+ 
+         -- (the readings stay: a pointed part shows in the picked region's block under the grid)
+         ZeD.ThermalTab._renderHeader(panel, win, data,
+@@ -567,12 +567,15 @@
+     return win._thermalBodyFigure
+ end
+ 
+-function ZeD.ThermalTab._drawBodyFigure(panel, win, data, px, py, pw, ph)
++function ZeD.ThermalTab._drawBodyFigure(panel, win, data, px, py, pw, ph, frame)
+     local fig = ZeD.ThermalTab._ensureBodyFigure(win)
+ 
+     if data.isFemale ~= nil then
+         fig:setSex(data.isFemale)
+     end
++
++    -- the height chart in the frame's margins, under the controller's mark and the figure (Figure frame, Nov 22 2026)
++    if frame then fig:drawChart(panel, frame) end
+ 
+     -- Color by active view metric
+     local viewIdx = win._thermalView or 1

@@ -258,7 +258,8 @@ local function installZeD()
     end
     ZeD.logOnce = function(k, m) FAULTS[#FAULTS + 1] = tostring(k) .. ": " .. tostring(m) end
     ZeD.textCase = function(s) return s end
-    ZeD_BodyFigure = {}
+    -- gatherData hands the figure its wounds and the skin tone (Design, Nov 22 2026)
+    ZeD_BodyFigure = { woundsFrom = function() return nil end, skinToneOf = function() return 0 end }
 end
 
 -- a fresh game: Wounds Overhaul loaded when woOn, ZeD's tab from source, the support file when withSupport
