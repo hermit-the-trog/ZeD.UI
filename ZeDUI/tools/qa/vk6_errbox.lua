@@ -1091,6 +1091,8 @@ Q.step(4, function()
     H.markAllRead()
     S.M.toasts = {}
     S.k.before = H.errCounts()
+    -- (QA, Nov 22: Build asked for the Messages read log around the repeats; switched off in the put-back below)
+    pcall(function() if ZeD.Messages then ZeD.Messages.qaLog = true end end)
     H.raiseGame("game")
 end)
 H.wait(9000, function() return H.mkGone() or H.mkPhase() ~= nil end, function(ok)
@@ -1143,6 +1145,7 @@ end, function(ok)
         "falling seen " .. tostring(not S.k.noFall) .. ", last up while falling " .. H.num(S.k.pDown) .. "; then " .. tostring(S.k.phUp) .. " at " .. H.num(S.k.pUp)
         .. "; down in between " .. tostring(S.k.fellOut) .. ((S.k.noFall or S.k.fellOut) and " (staging: the error came after the fall ended)" or ""))
 end)
+Q.step(1, function() pcall(function() if ZeD.Messages then ZeD.Messages.qaLog = nil end end) end)
 -- EB 12i: a note gets no marker
 H.wait(8000, function() return H.mkGone() or H.mkDown() end, function(ok)
     if H.mkGone() then return end
