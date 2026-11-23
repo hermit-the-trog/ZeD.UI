@@ -308,14 +308,16 @@ backs = 0
 E.frame()
 check("MARK a new ZeD error: shown, starting at the screen's bottom edge", mk.visible == true and mk.y == SH and E._mk.phase == "up", mk.y)
 check("MARK ... at the notice's x and width", mk.x == el.x and mk.width == el.width, tostring(mk.x) .. "," .. tostring(el.x))
-check("MARK ... sent to the back of the UI list as it starts (under the hint strip)", backs == 1, backs)
+check("MARK ... sent to the back of the UI list as it starts (under the hint strip)", backs >= 1, backs)
 check("MARK ... red (ZeD's own)", E._mk.kind == "ours" and E._mk.count == 1)
 drawn = {}
 ZeD_ErrorMarker.prerender(mk)
 check("MARK ZeD's own: drawn in the danger red", drawn[1] and drawn[1].r == ZeD.T.danger.r and drawn[1].g == ZeD.T.danger.g)
 
 local function at(ms) NOW = T0 + ms; E.frame() end
+local backs0 = backs
 at(100)
+check("MARK ... and again each frame it shows (QA EB 12c: other pieces sent back after it)", backs > backs0, backs)
 check("MARK 0.1 s: a fifth of the way up (linear)", mk.y == SH - math.floor(D * 0.2 + 0.5), mk.y)
 check("MARK 0.1 s: below the notice's bottom, the notice not moved yet", el.y == REST, el.y)
 at(250)

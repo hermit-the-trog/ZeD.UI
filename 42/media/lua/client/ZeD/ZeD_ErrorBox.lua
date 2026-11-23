@@ -452,6 +452,10 @@ function E.frame()
             if mk.y ~= top then mk:setY(top) end
             if mk.width ~= mw then mk:setWidth(mw) end
             if mk.height ~= mh then mk:setHeight(mh) end
+            -- (QA EB 12c at 1280x800, Nov 22 2026: other HUD pieces sent to the back after the slide began left the
+            -- marker over the hint strip; to the back every frame it shows, a few seconds at a time, so the strip and
+            -- the rest of the HUD always draw over it)
+            pcall(function() mk:backMost() end)
         end
         if on ~= mk:getIsVisible() then mk:setVisible(on) end
     end
