@@ -2316,7 +2316,11 @@ function ZeD_BeltHUD:_prerender()
         -- the driver's keys stand just above a dash that is up, never on it; the x stays (QA 4K, Nov 22 2026).
         -- The panel itself moves, so the mouse and pad hits (panel pixels) follow the keys drawn
         local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance(self.playerNum)
-        if dash and dash:getIsVisible() and dash.vehicle then
+        -- (QA, Nov 22 2026: on the first frame the dash stands at 0,0 until its _layout puts it flush on the screen's
+        -- bottom edge; lifting over that sent the keys to the top for a frame, so no lift until it is laid out)
+        local pn = self.playerNum
+        local laidOut = dash and math.abs(dash:getY() + dash:getHeight() - (getPlayerScreenTop(pn) + getPlayerScreenHeight(pn))) <= 1
+        if dash and laidOut and dash:getIsVisible() and dash.vehicle then
             sy = B.keysClearOfDash(self._boxes, sy, dash:getY(), T.px(6))
         end
     end

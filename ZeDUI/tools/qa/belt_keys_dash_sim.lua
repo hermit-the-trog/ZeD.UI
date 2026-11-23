@@ -66,6 +66,9 @@ local a = pr:find("if keysOnly then", 1, true)
 local c = pr:find("sy = B.keysClearOfDash(self._boxes, sy, dash:getY(), T.px(6))", 1, true)
 ok(a ~= nil and c ~= nil and a < c, "_prerender lifts sy for the keys-only panel")
 ok(pr:find("dash:getIsVisible() and dash.vehicle", 1, true) ~= nil, "only a dash that is up counts")
+-- (QA: the first frame's dash stands at 0,0 before its _layout) no lift until the dash sits flush on the screen's bottom
+local lo = pr:find("local laidOut = dash and math.abs(dash:getY() + dash:getHeight() - (getPlayerScreenTop(pn) + getPlayerScreenHeight(pn))) <= 1", 1, true)
+ok(lo ~= nil and c ~= nil and lo < c and pr:find("if dash and laidOut and", 1, true) ~= nil, "no lift until the dash is laid out (flush on the screen's bottom)")
 local home = pr:find("self._homeX, self._homeY = sx, sy", 1, true)
 ok(c ~= nil and home ~= nil and c < home, "the lifted top becomes the panel's home (visibilityTick keeps it)")
 
