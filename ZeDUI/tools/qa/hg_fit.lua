@@ -427,8 +427,31 @@ function S.errStep(lab)
 end
 
 -- ===================================================================== start
+-- (the game's own bug, Nov 23 2026, hg_fit_ctl: in this world the calendar's millisecond time jumps a year back and
+-- forth between reads, so ISFitnessAction:new can take an end time a year in the past and its first update stops the
+-- session with no repetition; the game's own fitness window start did it 5 times in 10, ZeD's 1 in 11. For the run
+-- the session's end time is set again from the clock it is read against, and each time is counted in a NOTE.)
+function S.calWrap()
+    if S.upd0 or not ISFitnessAction then return end
+    S.upd0 = ISFitnessAction.update
+    S.calFix = 0
+    ISFitnessAction.update = function(self)
+        pcall(function()
+            local now = getGameTime():getCalender():getTimeInMillis()
+            local span = (tonumber(self.timeToExe) or 10) * 60000
+            local left = (self.endMS or 0) - now
+            if left < -60000 or left > span + 3600000 then self.endMS = now + span; S.calFix = S.calFix + 1 end
+        end)
+        return S.upd0(self)
+    end
+end
+function S.calUnwrap()
+    if S.upd0 and ISFitnessAction then ISFitnessAction.update = S.upd0 end
+    S.upd0 = nil
+end
 function S.start()
     S.err0 = S.errN()
+    S.calWrap()
     S.e0 = S.err0
     local HT = Z.HealthTab
     local ready = HT ~= nil and HT.startSelected ~= nil and HT.canStart ~= nil and HT.closeMenu ~= nil and HT.stepMinutes ~= nil
@@ -867,6 +890,8 @@ end
 function S.buildPutBack()
     Q.mark()
     Q.step(5, function()
+        S.calUnwrap()
+        Q.say("NOTE the game's calendar jumped a year under a session " .. tostring(S.calFix) .. " time(s) in this run (its end time set again each time)")
         if not S.back.on then return end
         S.putBack()
         if S.found.pair then RT.pairOpen() else RT.pairShut() end
