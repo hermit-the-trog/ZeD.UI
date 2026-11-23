@@ -232,8 +232,9 @@ end
 
 -- the same cards at 1x (1080p and 1280x800, zoom 1): a card 278 tall, the full width (480) and 336, the view from
 -- y 26 to the card's bottom and to a status band's top (40 short). QA saw washer.png at 59,34 230x262 run 18 px past
--- the card's bottom: the face is now drawn smaller where 1x does not fit, its aspect kept, and centred, so the face
--- and the rows under it end inside the view. (QA laundry 1x, Nov 22 2026)
+-- the card's bottom. Pixel art never draws at a fractional zoom: the zoom is whole and at least 1; the big face where
+-- it and its rows fit the view, else the narrow face (_n) where it fits, else the narrow face at 1x, clipped by the
+-- card's stencil. Centred either way. (QA laundry 1x, Nov 22 2026)
 do
     local mock, mockPx = ZeD.PhysPx, ZeD.T.px
     ZeD.PhysPx = nil
@@ -255,25 +256,34 @@ do
                     local c = { _viewY = viewY, _viewH = viewH }
                     local des, fid, k = LD._fitFace(c, t, bw, SCALE)
                     local say = "LAUNDRY 1x " .. W .. " card, view " .. viewH .. ", " .. face
-                    check(say .. ": a face and a zoom", des ~= nil and k and k > 0 and k <= 1, tostring(k))
+                    check(say .. ": a face and a whole zoom of at least 1", des ~= nil and k and k >= 1 and k == math.floor(k), tostring(k))
                     if des then
-                        local top = viewY + 8
                         local rows = (face == "dryer") and 1 or 2
-                        -- (drawFace rounds the face's height up)
-                        local bottom = top + math.ceil(des.h * k) + 6 + rows * 20 + 18
-                        check(say .. " (" .. tostring(fid) .. " at " .. string.format("%.3f", k) .. "x): the face and its rows end inside the view",
-                            bottom <= viewY + viewH + 0.01, bottom .. " > " .. (viewY + viewH))
-                        check(say .. ": the face lies inside the card's width", des.w * k <= bw + 0.01, des.w * k)
+                        local extra = 8 + 6 + rows * 20 + 18
+                        local fitsH = des.h * k + extra <= viewH
+                        local narrow = (fid == X.narrow[face])
+                        local kind = narrow and "narrow" or "big"
+                        check(say .. ": the face is the big one or the narrow one", narrow or (fid and fid:find("^" .. face) ~= nil
+                            and not fid:find("_n$")), tostring(fid))
+                        -- it fits, or it is the narrow face at 1x clipped by the stencil (case 3)
+                        check(say .. " (" .. tostring(fid) .. " at " .. k .. "x): the face and its rows fit the view, or it is the clipped narrow case",
+                            fitsH or (narrow and k == 1), (des.h * k + extra) .. " > " .. viewH)
+                        check(say .. ": the face lies inside the card's width", des.w * k <= bw, des.w * k)
+                        -- the narrow face only where no big face fits at 1x
+                        if narrow then
+                            local bigFits = false
+                            for _, id in pairs(X.widths[face]) do
+                                local bd = X.plates[id]
+                                if bd and bd.w <= bw and bd.h + extra <= viewH then bigFits = true end
+                            end
+                            check(say .. ": narrow only where no big face fits", not bigFits)
+                        end
                         -- centred: the same room either side, within the pixel PL.centre's floor gives the right
                         local px0 = math.floor((bw - des.w * k) / 2)
                         local right = bw - (px0 + des.w * k)
                         check(say .. ": the face is centred", right - px0 >= 0 and right - px0 < 2, px0 .. " / " .. right)
-                        print("  " .. say .. " picks " .. tostring(fid) .. " at " .. string.format("%.3f", k) .. "x, "
-                            .. string.format("%.0f x %.0f", des.w * k, des.h * k))
-                        -- the aspect is kept: one zoom for both sides (fitFace returns one k); a face that fits at 1x stays 1x
-                        if des.w <= bw and des.h + 8 + 6 + rows * 20 + 18 <= viewH then
-                            check(say .. ": a face that fits stays at 1x", k == 1, k)
-                        end
+                        print("  " .. say .. " picks " .. tostring(fid) .. " (" .. kind .. ") at " .. k .. "x, "
+                            .. (des.w * k) .. " x " .. (des.h * k) .. (fitsH and ", fits" or ", clipped by the stencil"))
                     end
                 end
             end
