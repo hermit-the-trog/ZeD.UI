@@ -6717,6 +6717,39 @@ if ISInventoryPage and ISInventoryPage.OnObjectHighlighted and not ZeD_WorldWind
     end
 end
 
+-- (QA #44, Nov 22 2026) The game's own loot and inventory pages light their container too. ZeD hides them, but a
+-- hidden page is still updated (the engine's UIElement.update tests only "enabled", not "visible"), and
+-- ISInventoryPage:update calls updateContainerHighlight every 100 ms: the hidden loot page lit the container it had
+-- picked itself (the crate he faces, crate A) again and again, so A stayed lit after a click showed crate B, however
+-- often ZeD put it out. While ZeD's windows stand in for the pages, a hidden page lights nothing: its last light goes
+-- out once and it lets go of it. A page on show (safe mode, a page shown for a frame) works as the game's.
+function ZeD_WorldWindow._pageLightIsZeDs(page)
+    if not page or page:getIsVisible() then return false end
+    if ZeD.Safe and ZeD.Safe.on("windows") then return false end
+    return ZeD.windowsFor(page.player or 0) == true
+end
+
+function ZeD_WorldWindow._pageLightOut(page)
+    local inv = page.coloredInv
+    if not inv then return end
+    page.coloredInv = nil
+    local pn = page.player or 0
+    local obj = ZeD_WorldWindow._parentOf(inv)
+    -- (left lit when ZeD's World window lights it itself, or when a menu holds its light)
+    if obj and not ZeD_WorldWindow._litTable(pn)[obj] and not ZeD_WorldWindow._elsewhereHolds(pn, obj) then
+        ZeD_WorldWindow._unlight(pn, obj)
+    end
+end
+
+if ISInventoryPage and ISInventoryPage.updateContainerHighlight and not ZeD_WorldWindow._pageHlWrapped then
+    ZeD_WorldWindow._pageHlWrapped = true
+    ZeD_WorldWindow._pageHlOrig = ISInventoryPage.updateContainerHighlight
+    ISInventoryPage.updateContainerHighlight = function(self)
+        if ZeD_WorldWindow._pageLightIsZeDs(self) then return ZeD_WorldWindow._pageLightOut(self) end
+        return ZeD_WorldWindow._pageHlOrig(self)
+    end
+end
+
 -- ----------------------------------------------------------------------------
 -- (KISS #8) WHERE THE PAD'S Y LANDS. The Y tap (FocusManager's _handleYTap, through Focus.yLand) still opens or
 -- shows both windows; only the landing is here:
