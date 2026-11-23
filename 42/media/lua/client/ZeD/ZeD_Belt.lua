@@ -942,6 +942,22 @@ function ZeD_BeltHUD:keysOnly()
     return B.hotbar(self.playerNum) ~= nil
 end
 
+-- The driver's speed keys over a dash (QA 4K, Nov 22 2026: at the belt's home they drew inside the dash's plate).
+-- Given the panel's home top sy, its boxes (panel pixels), the dash's top edge on screen (nil: no dash up) and the gap,
+-- returns the panel's top: sy when the keys already clear the dash, else lifted so the lowest key's bottom stands gap
+-- above the dash's top (the same rule the hint strip keeps). Only the top changes: the keys keep their x.
+function B.keysClearOfDash(boxes, sy, dashTop, gap)
+    if not dashTop then return sy end
+    local bot = nil   -- the lowest key's bottom edge, in panel pixels
+    for _, b in ipairs(boxes or {}) do
+        if b.kind == "speed" and (not bot or b.y + b.h > bot) then bot = b.y + b.h end
+    end
+    if not bot then return sy end
+    local limit = dashTop - gap   -- (where the keys' bottom may reach at most)
+    if sy + bot > limit then return limit - bot end
+    return sy
+end
+
 -- The layout, kept while nothing it is built from changes (a draw-cost saving): the token table
 -- (theme, accent, text size, UI scale and art zoom all make a new one), the character, the slots and their kinds,
 -- the worn watch and its plate and wrist; the slots' materials are looked up again every second. Only
@@ -2296,6 +2312,14 @@ function ZeD_BeltHUD:_prerender()
     local bx = b and (b.x + math.floor(b.w / 2)) or self._anchorX or math.floor(w / 2)   -- (Simple: the slots' middle)
     local sx = getPlayerScreenLeft(self.playerNum) + math.floor(getPlayerScreenWidth(self.playerNum) / 2) - bx
     local sy = getPlayerScreenTop(self.playerNum) + getPlayerScreenHeight(self.playerNum) - h - T.px(BOTTOM)
+    if keysOnly then
+        -- the driver's keys stand just above a dash that is up, never on it; the x stays (QA 4K, Nov 22 2026).
+        -- The panel itself moves, so the mouse and pad hits (panel pixels) follow the keys drawn
+        local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance(self.playerNum)
+        if dash and dash:getIsVisible() and dash.vehicle then
+            sy = B.keysClearOfDash(self._boxes, sy, dash:getY(), T.px(6))
+        end
+    end
     -- (while a mod holds the belt for its drawing, B.addHold: set only when the home moves, so the mod's slide for this
     -- frame stands; the mod puts the belt back after, and visibilityTick puts it home between frames)
     if B.held(self) then

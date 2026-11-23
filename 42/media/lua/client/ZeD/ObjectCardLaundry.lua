@@ -506,7 +506,9 @@ LD._drawRoom = drawRoom  -- (for gc_qa_cleanup_sim.lua; the card draws it throug
 -- The face, its id and the whole zoom for a card with `room` px across and the view the body scrolls in (card._viewH):
 -- the widest face at the largest whole zoom that fits the width, stepping the zoom down while the face and the
 -- readings under it do not fit the view's height (else the face runs past the card's bottom, and its picture with
--- it). At the lowest zoom, the widest face whose height fits, else the shortest. Never a fractional zoom.
+-- it). At the lowest zoom, the widest face whose height fits, else the shortest. A whole zoom wherever one fits;
+-- where even 1x runs past the width or the view's height (1x on a short card), the face is drawn smaller, its aspect
+-- kept, by the smaller of the two fits (QA laundry 1x, Nov 22 2026: 18 px past the card's bottom at 1080p and 1280x800).
 -- (QA laundry 4K, Nov 22 2026)
 local function fitFace(card, t, room, scale)
     local T, X = ZeD.T, ZeD.PhysPx
@@ -516,11 +518,24 @@ local function fitFace(card, t, room, scale)
     -- dryer's) and what is inside, and the body's closing gap
     local extra = T.px(8) + T.px(6) + ((d and d.dryerOnly) and 1 or 2) * T.px(20) + T.px(18)
     local function fits(des, k) return des.w * k <= room and (not viewH or des.h * k + extra <= viewH) end
+    -- the zoom k, or less where the face at k still runs past the room's width or the view's height: the smaller of
+    -- the two fits, so the aspect is kept (drawFace centres it across). The height fit is to a whole pixel, so the
+    -- rows under the face (drawFace rounds the face's height up) stay inside the view too (QA laundry 1x, Nov 22 2026)
+    local function shrink(des, k)
+        local s = k
+        if des.w * s > room then s = room / des.w end
+        if viewH then
+            local hT = math.max(1, math.floor(viewH - extra))   -- (the face's most height, in screen px)
+            if des.h * s > hT then s = hT / des.h end
+        end
+        return s
+    end
     local des0 = P.pick(t.pid, room)
     if not des0 then return nil, t.pid, 1 end
     local k0 = P.k(scale)
-    -- at 1x (the Deck, the narrow cards) the face is as it always was: the card scrolls it, nothing steps down
-    if k0 <= 1 then return des0, select(2, P.pick(t.pid, room)), P.kFit(scale, des0.w, room) end
+    -- at 1x (the Deck, the narrow cards) the face picked is as it always was, drawn smaller only where it would run
+    -- past the card (shrink) (QA laundry 1x, Nov 22 2026)
+    if k0 <= 1 then return des0, select(2, P.pick(t.pid, room)), shrink(des0, P.kFit(scale, des0.w, room)) end
     for k = k0, 1, -1 do
         local des, id = P.pick(t.pid, room, k)
         if fits(des, k) then return des, id, k end
@@ -538,9 +553,9 @@ local function fitFace(card, t, room, scale)
             if not best or des.h < best.h then best, bestId = des, id end
         end
     end
-    if best then return best, bestId, 1 end
+    if best then return best, bestId, shrink(best, 1) end
     local des, id = P.pick(t.pid, room, 1)
-    return des, id, 1
+    return des, id, des and shrink(des, 1) or 1
 end
 
 LD._fitFace = fitFace   -- (for gc_qa_cleanup_sim.lua) (QA laundry 4K, Nov 22 2026)
@@ -562,7 +577,8 @@ local function drawFace(card, x, y, w, t)
     drawRoom(card, x, y, w, px0, des, k, faceId)  -- (behind the face: the room either side of it) (Graphic cleanup, Nov 22 2026)
     OC.faceZone(card, px0, y, des.w * k, des.h * k, t.obj)   -- (a click away from the controls pops the face out)
     LD.face(card, px0, y, k, des, t)
-    local h = des.h * k + T.px(6)
+    -- (the face's height rounded up: below 1x it can be a part pixel, and the rows under it stay on whole pixels)
+    local h = math.ceil(des.h * k) + T.px(6)
     local water = (d.cap > 0) and ZeD.tr("UI_ZeD_Laundry_WaterOf", string.format("%.1f", d.fluid), math.floor(d.cap + 0.5))
         or ZeD.tr("UI_ZeD_Laundry_WaterL", string.format("%.1f", d.fluid))
     local inside = (d.n == 0) and ZeD.tr("IGUI_None") or ZeD.tr(d.n == 1 and "UI_ZeD_Laundry_ItemsOne" or "UI_ZeD_Laundry_ItemsMany", d.n)
