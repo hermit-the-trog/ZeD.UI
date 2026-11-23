@@ -513,16 +513,85 @@ end
 
 -- ---------------------------------------------------------------------------
 -- THE SIMPLE WATCH (the watchSimple setting): a plain clock box in
--- ZeD's own parts, with the same readings and the same buttons as the watch (their ids go to _act unchanged).
--- Worn: the time large, the weekday and date, the temperature, the game's speed and the alarm, then Start or Pause,
--- Speed, Alarm and Set; while setting, the alarm hour with - and + and Done. No watch: the four speed keys.
+-- ZeD's own parts, with the same readings as the watch (the ids go to _act unchanged).
+-- Worn: a plain face, the time large with its seconds, the weekday and date, the temperature and the alarm; while
+-- setting, the alarm hour with - and + and Done. Under the face, the belt's five speed keys (Simple watch, the
+-- director, Nov 22 2026). No watch: the speed keys alone.
 -- ---------------------------------------------------------------------------
 --- The watchSimple setting is on.
 function W.simple() return ZeD.Settings and ZeD.Settings.watchSimple and ZeD.Settings.watchSimple() or false end
 --- Lite (beta 21): the plain clock with the speed as one pick-one row.
 function W.lite() return ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite() or false end
 
+-- THE GAME'S SPEED KEYS, SHARED (Simple watch, the director, Nov 22 2026): "move the time controls out of the simple
+-- watch ... we're using the same buttons we use down in the belt below, with a little bit of padding between." The
+-- belt's five keys (KISS #22, ZeD_Belt.lua's _speedBoxes and _drawButton): Pause, Play, Fast forward x1, x2, Wait, the
+-- one in use lit. Drawn here so the Simple watch's row and (later) the belt can share one look.
+-- (the same numbers as the belt's B.SPEED_KEY, B.SPEED_GAP, B.SPEED_ICONS and B.SPEED_WORDS)
+W.SPEED_KEY, W.SPEED_GAP = 20, 2       -- a key's size and the gap between keys (design units)
+W.SPEED_ROW_GAP = 6                    -- the room between the Simple watch's face and its row of keys (design units)
+W.SPEED_ICONS = { [0] = "pause", "play", "ff1", "ff2", "wait" }
+W.SPEED_WORDS = { [0] = "UI_optionscreen_binding_Pause", "IGUI_BackButton_Play", "IGUI_BackButton_FF1", "IGUI_BackButton_FF2", "IGUI_BackButton_FF3" }
+--- The key for speed n (0 paused .. 4 Wait) is lit at speed sp (Wait's key for any speed past it).
+function W.speedLit(n, sp) return (sp == n) or (n == 4 and sp > 4) end
+--- The row's width in screen pixels (five keys and four gaps).
+function W.speedRowW() local px = ZeD.T.px; return 5 * px(W.SPEED_KEY) + 4 * px(W.SPEED_GAP) end
+--- One speed key as the belt draws it: the box (the accent when lit), the pad's mark (focus) or the pointer's wash
+--- (hover), the border, the icon. panel: the panel to draw in; (x, y): its corner; k: its size in screen pixels.
+function W.drawSpeedKey(panel, x, y, k, n, lit, hover, focus)
+    local T = ZeD.T
+    local s1, bd = T.surf1, T.borderS
+    local fill = lit and T.accent or s1
+    panel:drawRect(x, y, k, k, lit and 1 or 0.92, fill.r, fill.g, fill.b)
+    if focus then
+        local F = ZeD.Focus
+        if F and F.mark then F.mark(panel, x, y, k, k, { win = panel, focused = true }) end
+    elseif hover then
+        -- (the pointer's wash is off while the controller's marks show, as the belt's)
+        local IF = ZeD.Input and ZeD.Input.Focus
+        if not (IF and IF.cuesVisible and IF.cuesVisible(panel.playerNum)) then
+            local hv = T.hover
+            panel:drawRect(x, y, k, k, hv.a or 0.2, hv.r, hv.g, hv.b)
+        end
+    end
+    panel:drawRectBorder(x, y, k, k, 1, bd.r, bd.g, bd.b)
+    local ib = math.floor(k * 0.7)   -- the icon, 7 tenths of the key, centred
+    local ink = lit and (T.base or T.text) or T.text
+    ZeD.Atoms.drawPxIcon(panel, W.SPEED_ICONS[n], x + math.floor((k - ib) / 2), y + math.floor((k - ib) / 2), ib, 1, ink)
+end
+--- The hover words of speed key n (the belt's: the game's own words for its keys).
+function W.speedWords(n) return getText(W.SPEED_WORDS[n]) end
+
+-- the Simple watch's row of speed keys at (x, y): drawn, its click areas added to self._hit (ids "speed0" .. "speed4",
+-- which _act sends to _setSpeed), and the hover words asked for. Nothing on a server (the server sets the time).
+local _hintNow = { now = true }   -- (the controller's focus: the words once the pad has rested on the key)
+function ZeD_Watch:_speedRow(x, y, speed)
+    if _serverTime() then return end
+    local px = ZeD.T.px
+    local k, g = px(W.SPEED_KEY), px(W.SPEED_GAP)
+    local hits = self._hit
+    local mx, my = self:getMouseX(), self:getMouseY()
+    local over = self:isMouseOver()
+    local padOn = self:padOn()
+    for n = 0, 4 do
+        local kx = x + n * (k + g)
+        local id = "speed" .. n
+        local hov = over and mx >= kx and mx < kx + k and my >= y and my < y + k
+        local foc = padOn and self._padId == id
+        W.drawSpeedKey(self, kx, y, k, n, W.speedLit(n, speed), hov, foc)
+        -- marked: the pad's mark is drawn here, under the icon, as the belt's (_padDraw leaves it alone)
+        local hr = { id = id, x = kx, y = y, w = k, h = k, marked = true }
+        hits[#hits + 1] = hr
+        if hov then ZeD.Atoms.requestHint(self, id, W.speedWords(n), self, hr); self._hintAsked = true
+        elseif foc then ZeD.Atoms.requestHint(self, id, W.speedWords(n), self, hr, _hintNow); self._hintAsked = true end
+    end
+end
+
 local PLAIN_W, PLAIN_PAD, PLAIN_GAP = 150, 8, 4
+-- (Simple watch, the director, Nov 22 2026) The face holds only the readings: the time with its seconds, the weekday and
+-- date over the temperature and the alarm. The game's speed keys stand under it in their own row (_speedRow), apart
+-- from the face by W.SPEED_ROW_GAP; the panel is the face and the row. Clicking the alarm opens its setting (the
+-- set mode keeps its own - + and Done keys inside the face: they set the alarm, not the time).
 function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
     local T = ZeD.T
     local px = T.px
@@ -538,67 +607,85 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
     local btns = {}
     local h
     local topH = nil
+    -- the speed keys' row under the face: off on a server (the server sets the time), as the belt's
+    local rowOn = not _serverTime()
+    local rowW, rowH = W.speedRowW(), px(W.SPEED_KEY)
+    local rowGap = px(W.SPEED_ROW_GAP)
+    self._hintAsked = false
+    local hits = self._hit
+    for i = #hits, 1, -1 do hits[i] = nil end
+    -- no watch: no face to read, only the speed keys; on a server only the words "Server time"
     if not item then
-        if _serverTime() then
-            h = pad + fh2 + pad   -- (only the words: no speed keys on a server)
-        else
-            h = pad + fh2 + gap + bh + pad
-            for i = 0, 3 do btns[#btns + 1] = { id = "speed" .. i, text = ZeD.tr("UI_ZeD_WatchPlain_Speed" .. i), on = (speed == i) or (i == 3 and speed > 3) } end
+        if rowOn then
+            self:_layout(rowW, rowH, 1)
+            self._s = 1
+            self:_speedRow(0, 0, speed)
+            return
         end
-    else
-        _reading(rd, player, item, speed, self._setOpen, armed, alarmHour)
-        -- (the director, Nov 19 2026, on beta 21's report: "time can be large enough to take up two lines, and then
-        -- stack day and temperature on the right. Time is on the left." The top block is the time beside a column of
-        -- two lines, the weekday and date over the temperature, both right-aligned; it is as tall as the taller.)
-        topH = math.max(bigH, 2 * fh2 + gap)
-        h = pad + topH + gap + fh2 + gap + bh + pad
-        if self._setOpen then
-            btns = { { id = "setdn", text = "-" }, { id = "setup", text = "+" }, { id = "alarmtoggle", text = ZeD.tr("UI_ZeD_WatchPlain_AlarmOnOff") }, { id = "set", text = ZeD.tr("UI_ZeD_WatchPlain_Done") } }
-        elseif W.lite() then
-            -- (beta 21, Lite: the clock in the corner as the game's own, and the game's speed as one pick-one row
-            -- in place of Start, Speed, Alarm and Set: "more radio buttons than click buttons", the director. On a
-            -- server the speed is not the player's: no row.)
-            if not _serverTime() then
-                for i = 0, 3 do btns[#btns + 1] = { id = "speed" .. i, text = ZeD.tr("UI_ZeD_WatchPlain_Speed" .. i), on = (speed == i) or (i == 3 and speed > 3) } end
-            end
-        elseif _serverTime() then
-            btns = { { id = "alarm", text = ZeD.tr("UI_ZeD_WatchPlain_AlarmBtn") },
-                     { id = "set", text = ZeD.tr("UI_ZeD_WatchPlain_Set") } }
-        else
-            btns = { { id = "start", text = ZeD.tr(speed == 0 and "UI_ZeD_WatchPlain_Start" or "UI_ZeD_WatchPlain_Pause") },
-                     { id = "speed", text = ZeD.tr("UI_ZeD_WatchPlain_SpeedBtn") },
-                     { id = "alarm", text = ZeD.tr("UI_ZeD_WatchPlain_AlarmBtn") },
-                     { id = "set", text = ZeD.tr("UI_ZeD_WatchPlain_Set") } }
-        end
+        h = pad + fh2 + pad
+        self:_layout(w, h, 1)
+        self._s = 1
+        ZeD.Surface.fill(self, 0, 0, w, h, "surf2")
+        local b0 = T.borderS
+        self:drawRectBorder(0, 0, w, h, b0.a or 1, b0.r, b0.g, b0.b)
+        local td0 = T.textDim
+        self:drawText(ZeD.tr("UI_ZeD_WatchPlain_ServerTime"), pad, pad, td0.r, td0.g, td0.b, td0.a or 1, f2)
+        return
     end
-    if item and #btns == 0 then h = h - bh - gap end   -- (Lite on a server: no row, no room for one)
-    -- (QA's visual noise audit 6, Nov 20 2026: in Lite "Speed x1" sat over the lit x1 key, which says it. The speed
-    -- line goes and the alarm moves up beside the temperature. On a server the line stays: it says "Server time".)
-    local liteTop = item and W.lite() and not self._setOpen
-    if liteTop and not _serverTime() then h = h - fh2 - gap end
-    -- as wide as the buttons' words need (each its text and a margin), never narrower than the design width
-    -- (the buttons share the width equally, so each must hold the widest word)
+    _reading(rd, player, item, speed, self._setOpen, armed, alarmHour)
+    -- (the director, Nov 19 2026, on beta 21's report: "time can be large enough to take up two lines, and then
+    -- stack day and temperature on the right. Time is on the left." The top block is the time beside a column of
+    -- two lines, the weekday and date over the temperature, both right-aligned; it is as tall as the taller.)
+    topH = math.max(bigH, 2 * fh2 + gap)
+    h = pad + topH + pad
+    if self._setOpen then
+        btns = { { id = "setdn", text = "-" }, { id = "setup", text = "+" }, { id = "alarmtoggle", text = ZeD.tr("UI_ZeD_WatchPlain_AlarmOnOff") }, { id = "set", text = ZeD.tr("UI_ZeD_WatchPlain_Done") } }
+    elseif _serverTime() then
+        h = h + gap + fh2   -- (a server: the line "Server time" under the top block, in place of the keys)
+    end
+    -- (QA's visual noise audit 6, Nov 20 2026, then every Simple watch, Nov 22 2026: the lit speed key says the speed,
+    -- so no speed line; the alarm sits beside the temperature. On a server the line stays: it says "Server time".)
+    local faceTop = not self._setOpen
+    -- as wide as the set mode's buttons' words need (each its text and a margin), never narrower than the design
+    -- width (the buttons share the width equally, so each must hold the widest word)
     local widest = 0
     for _, bt in ipairs(btns) do widest = math.max(widest, ZeD.Molecules.buttonW(bt.text)) end
     local need = 2 * pad + (#btns - 1) * gap + #btns * widest
     if need > w then w = need end
-    -- the top block's width: the time and its seconds, a gap, the wider of the two right-hand lines
-    if item and not self._setOpen then
-        local t0 = (rd.time or ""):gsub("^%s+", "")
-        local tw0 = (hf and z) and ZeD.Text.width(hf, t0, z) or tm:MeasureStringX(T.fontF5, t0)
-        local tail0 = (rd.sec and (":" .. rd.sec) or "") .. (rd.pm and (" " .. ZeD.tr("UI_ZeD_WatchPlain_PM")) or "")
+    -- (Simple watch, the director, Nov 22 2026: "make the seconds the same text size as the hours and minutes." The
+    -- time is one string, 12:34:56, in the big type. Its width is taken with every digit an 8 too, so the face does
+    -- not grow and shrink as the seconds tick.)
+    local tBig = (rd.time or ""):gsub("^%s+", "")
+    if rd.sec then tBig = tBig .. ":" .. rd.sec end
+    local function bigW(s) return (hf and z) and ZeD.Text.width(hf, s, z) or tm:MeasureStringX(T.fontF5, s) end
+    -- the top block's width: the time, its PM, a gap, the wider of the two right-hand lines
+    if faceTop then
+        local tw0 = math.max(bigW(tBig), bigW((tBig:gsub("%d", "8"))))
+        local tail0 = rd.pm and (" " .. ZeD.tr("UI_ZeD_WatchPlain_PM")) or ""
         local tailW = (tail0 ~= "") and (px(3) + tm:MeasureStringX(f1, tail0)) or 0
         local dayW = tm:MeasureStringX(f2, (rd.day or "") .. " " .. (rd.mon and (rd.mon .. " ") or "") .. (rd.date or ""))
         local tempW = rd.temp and tm:MeasureStringX(f2, tostring(rd.temp) .. (rd.tempUnit or "")) or 0
-        if liteTop then   -- (the alarm shares the temperature's line)
-            local al0 = armed and ZeD.tr("UI_ZeD_WatchPlain_AlarmAt", rd.almTime or (tostring(alarmHour) .. ":00")) or ZeD.tr("UI_ZeD_WatchPlain_AlarmOff")
-            tempW =tempW + ((tempW > 0) and px(10) or 0) + tm:MeasureStringX(f2, al0) + (armed and px(10) or 0)
-        end
+        -- (the alarm shares the temperature's line)
+        local al0 = armed and ZeD.tr("UI_ZeD_WatchPlain_AlarmAt", rd.almTime or (tostring(alarmHour) .. ":00")) or ZeD.tr("UI_ZeD_WatchPlain_AlarmOff")
+        tempW = tempW + ((tempW > 0) and px(10) or 0) + tm:MeasureStringX(f2, al0) + (armed and px(10) or 0)
         local needTop = 2 * pad + tw0 + tailW + px(12) + math.max(dayW, tempW)
         if needTop > w then w = needTop end
     end
+    if rowOn and w < rowW then w = rowW end   -- (the face at least as wide as the keys under it)
+    -- the panel: the face, then (off a server) the room and the row of keys, right edges lined up. Placed before
+    -- anything draws (a draw lands where the panel is at that moment)
+    local function place(fw, fh)
+        local ph = fh
+        if rowOn then ph = fh + rowGap + rowH end
+        self:_layout(fw, ph, 1)
+        if self._belt then self:_placePopped(fw, ph) end
+        self._s = 1
+    end
+    local function row(fw, fh)
+        if rowOn then self:_speedRow(fw - rowW, fh + rowGap, speed) end
+    end
     -- folded (a click on the face): one thin line, the time, the date and the temperature; a click unfolds it
-    if item and self._plainThin and not self._setOpen then
+    if self._plainThin and not self._setOpen then
         local tt = (rd.time or ""):gsub("^%s+", "") .. (rd.pm and (" " .. ZeD.tr("UI_ZeD_WatchPlain_PM")) or "")
         local dd = (rd.day or "") .. " " .. (rd.mon and (rd.mon .. " ") or "") .. (rd.date or "")
         local te = rd.temp and (tostring(rd.temp) .. (rd.tempUnit or "")) or nil
@@ -606,10 +693,9 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         local tw1, dw1 = tm:MeasureStringX(f2, tt), tm:MeasureStringX(f2, dd)
         local ew1 = te and tm:MeasureStringX(f2, te) or 0
         local sw = 2 * px(6) + tw1 + sep + dw1 + (te and (sep + ew1) or 0)
+        if rowOn and sw < rowW then sw = rowW end
         local sh = px(4) + fh2 + px(4)
-        self:_layout(sw, sh, 1)
-        if self._belt then self:_placePopped(sw, sh) end
-        self._s = 1
+        place(sw, sh)
         ZeD.Surface.fill(self, 0, 0, sw, sh, "surf2")
         local bb = T.borderS
         self:drawRectBorder(0, 0, sw, sh, bb.a or 1, bb.r, bb.g, bb.b)
@@ -619,32 +705,25 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         self:drawText(tt, x1, px(4), ac1.r, ac1.g, ac1.b, ac1.a or 1, f2)
         self:drawText(dd, x1 + tw1 + sep, px(4), c1.r, c1.g, c1.b, c1.a or 1, f2)
         if te then self:drawText(te, sw - px(6) - ew1, px(4), c1.r, c1.g, c1.b, c1.a or 1, f2) end
-        local hits0 = self._hit
-        for i = #hits0, 1, -1 do hits0[i] = nil end
-        hits0[1] = { id = "fold", x = 0, y = 0, w = sw, h = sh }
+        hits[#hits + 1] = { id = "fold", x = 0, y = 0, w = sw, h = sh }
+        row(sw, sh)
         return
     end
     -- set mode: the help line wraps to the box (the normal face, not the mono one)
     local helpLines = nil
-    if item and self._setOpen then
+    if self._setOpen then
         helpLines = ZeD.Atoms.wrapText(ZeD.tr("UI_ZeD_WatchPlain_SetHelp"), f2, w - 2 * pad)
         h = pad + bigH + gap + #helpLines * fh2 + gap + bh + pad
     end
-    -- placed as the watch is: at the clock's corner, or popped above the belt
-    self:_layout(w, h, 1)
-    if self._belt and item then self:_placePopped(w, h) end
-    self._s = 1
-    -- the box
+    place(w, h)
+    -- the face
     ZeD.Surface.fill(self, 0, 0, w, h, "surf2")
     local b = T.borderS
     self:drawRectBorder(0, 0, w, h, b.a or 1, b.r, b.g, b.b)
     local tc, td = T.text, T.textDim
     local y = pad
     local alarmHit, faceHit = nil, nil   -- (the face's fold area and the alarm line's, when drawn)
-    if not item then
-        self:drawText(ZeD.tr(_serverTime() and "UI_ZeD_WatchPlain_ServerTime" or "UI_ZeD_WatchPlain_GameSpeed"), pad, y, td.r, td.g, td.b, td.a or 1, f2)
-        y = y + fh2 + gap
-    elseif self._setOpen then
+    if self._setOpen then
         local s = armed and ZeD.tr("UI_ZeD_WatchPlain_AlarmAt", string.format("%d:00", alarmHour)) or ZeD.tr("UI_ZeD_WatchPlain_AlarmOff")
         if hf and z then ZeD.Text.draw(self, hf, s, pad, y, z * 0.7, tc.r, tc.g, tc.b, tc.a or 1, "l")
         else self:drawText(s, pad, y, tc.r, tc.g, tc.b, tc.a or 1, T.fontF5) end
@@ -655,16 +734,15 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         end
         y = y + gap
     else
-        local t = (rd.time or ""):gsub("^%s+", "")
         local ty = y + math.floor(((topH or bigH) - bigH) / 2)   -- (the time centred in the top block)
         local ac = T.accent   -- (the time in the accent color, the director, Nov 19 2026)
-        if hf and z then ZeD.Text.draw(self, hf, t, pad, ty, z, ac.r, ac.g, ac.b, ac.a or 1, "l")
-        else self:drawText(t, pad, ty, ac.r, ac.g, ac.b, ac.a or 1, T.fontF5) end
-        local tw = (hf and z) and ZeD.Text.width(hf, t, z) or tm:MeasureStringX(T.fontF5, t)
-        local tail = (rd.sec and (":" .. rd.sec) or "") .. (rd.pm and (" " .. ZeD.tr("UI_ZeD_WatchPlain_PM")) or "")
-        -- (the director, Nov 19 2026, on beta 21's report: "Seconds is below baseline". The seconds stood on the foot of
-        -- the time's line box, which sits under its baseline by the bigger face's descent. Both faces are ZeD's atlas
-        -- (baseline 60 of a 77 px line, Scale.lua ZED_BASE), so the small line goes down by that share of the
+        if hf and z then ZeD.Text.draw(self, hf, tBig, pad, ty, z, ac.r, ac.g, ac.b, ac.a or 1, "l")
+        else self:drawText(tBig, pad, ty, ac.r, ac.g, ac.b, ac.a or 1, T.fontF5) end
+        local tw = bigW(tBig)
+        local tail = rd.pm and (" " .. ZeD.tr("UI_ZeD_WatchPlain_PM")) or ""
+        -- (the director, Nov 19 2026, on beta 21's report: "Seconds is below baseline". The small PM stood on the foot
+        -- of the time's line box, which sits under its baseline by the bigger face's descent. Both faces are ZeD's
+        -- atlas (baseline 60 of a 77 px line, Scale.lua ZED_BASE), so the small line goes down by that share of the
         -- difference in line heights and its baseline meets the time's.)
         if tail ~= "" then self:drawText(tail, pad + tw + px(3), ty + math.floor((bigH - fh1) * 60 / 77 + 0.5), td.r, td.g, td.b, td.a or 1, f1) end
         -- the right-hand column, right-aligned: the weekday and date, then the temperature under it
@@ -679,32 +757,23 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
             self:drawText(ts, w - pad - tempW1, cy + fh2 + gap, tc.r, tc.g, tc.b, tc.a or 1, f2)
         end
         y = y + th + gap
-        -- the game's speed, the alarm at the right (a status dot when it is set); in Lite the alarm sits left of
-        -- the temperature and the speed line is only the server's note
+        -- the alarm left of the temperature (a status dot when it is set); on a server the line "Server time"
         local al = armed and ZeD.tr("UI_ZeD_WatchPlain_AlarmAt", rd.almTime or string.format("%d:00", alarmHour)) or ZeD.tr("UI_ZeD_WatchPlain_AlarmOff")
         local aw = tm:MeasureStringX(f2, al)
-        local ax, ay = w - pad - aw, y
-        if liteTop then
-            ax = w - pad - tempW1 - ((tempW1 > 0) and px(10) or 0) - aw
-            ay = cy + fh2 + gap
-        end
-        if (not liteTop) or _serverTime() then
-            local sp = _serverTime() and ZeD.tr("UI_ZeD_WatchPlain_ServerTime")
-                or ((speed == 0) and ZeD.tr("UI_ZeD_WatchPlain_Paused") or ZeD.tr("UI_ZeD_WatchPlain_SpeedN", tostring(speed)))
-            self:drawText(sp, pad, y, td.r, td.g, td.b, td.a or 1, f2)
+        local ax = w - pad - tempW1 - ((tempW1 > 0) and px(10) or 0) - aw
+        local ay = cy + fh2 + gap
+        if _serverTime() then
+            self:drawText(ZeD.tr("UI_ZeD_WatchPlain_ServerTime"), pad, y, td.r, td.g, td.b, td.a or 1, f2)
         end
         self:drawText(al, ax, ay, td.r, td.g, td.b, td.a or 1, f2)
         alarmHit = { id = "alarmline", x = ax - px(14), y = ay - px(2), w = aw + px(14), h = fh2 + px(4) }
         faceHit = { id = "fold", x = 0, y = 0, w = w, h = pad + (topH or bigH) }
         if armed then
-            local ds = px(6)
-            ZeD.Atoms.drawStatusDot(self, ax - ds - px(4), ay + math.floor((fh2 - ds) / 2), T.accent, ds)
+            local dsz = px(6)
+            ZeD.Atoms.drawStatusDot(self, ax - dsz - px(4), ay + math.floor((fh2 - dsz) / 2), T.accent, dsz)
         end
-        if (not liteTop) or _serverTime() then y = y + fh2 + gap end
     end
-    -- the buttons, evenly across the box; their ids are the watch's own
-    local hits = self._hit
-    for i = #hits, 1, -1 do hits[i] = nil end
+    -- the set mode's buttons, evenly across the face; their ids are the watch's own
     local n = #btns
     local bw = (n > 0) and math.floor((w - 2 * pad - (n - 1) * gap) / n) or 0
     local mx, my = self:getMouseX(), self:getMouseY()
@@ -716,6 +785,7 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
     end
     if alarmHit then hits[#hits + 1] = alarmHit end
     if faceHit then hits[#hits + 1] = faceHit end
+    row(w, h)
 end
 
 function ZeD_Watch:_canvas(k)
@@ -760,7 +830,7 @@ function ZeD_Watch:prerender()
     if item ~= self._item then self._setOpen = false; self._litUntil = 0 end   -- a different watch: nothing carries over
     self._item = item
 
-    if not item and W.simple() then pcall(self._plain, self, player, nil, speed, false, 6); self:_padDraw(speed); return end
+    if not item and W.simple() then pcall(self._plain, self, player, nil, speed, false, 6); self:_padDraw(speed); self:_hintDraw(); return end
     if not item then
         -- no watch: the tape deck keys, the key for the game's speed sitting down
         local X = ZeD.PhysPx
@@ -804,6 +874,7 @@ function ZeD_Watch:prerender()
         local okP, eP = pcall(self._plain, self, player, item, speed, armedS, hourS)
         if not okP then ZeD.logOnce("watch plain", eP) end
         self:_padDraw(speed)
+        self:_hintDraw()
         return
     end
     self:_layout(des.w, des.h, k); self._s = k
@@ -1085,6 +1156,8 @@ function W.padLabel(id, speed)
     if id == "setdn" then return "-" end
     if id == "setup" then return "+" end
     local n = id and id:match("^speed(%d)$")
+    -- (the Simple watch's keys are the belt's: their words too. Simple watch, the director, Nov 22 2026)
+    if n and (W.simple() or n == "4") then return W.speedWords(tonumber(n)) end
     if n then return ZeD.tr("UI_ZeD_WatchPlain_Speed" .. n) end
     return nil
 end
@@ -1117,7 +1190,7 @@ function ZeD_Watch:_padDraw(speed)
     if not self:padOn() then return end
     self:_padSettle()
     local h = self:_padHit()
-    if h then
+    if h and not h.marked then   -- (a speed key draws its own mark, under its icon: _speedRow)
         local o = self:padGrabbed() and _markGrab or _markOpts
         o.win = self
         ZeD.Focus.mark(self, h.x, h.y, h.w, h.h, o)
@@ -1136,6 +1209,13 @@ function ZeD_Watch:_padDraw(speed)
         PG.drawStrip(self, sx, sy, sw, items)
     end
     if ZeD.Focus.drawOverlay then ZeD.Focus.drawOverlay(self, self) end
+end
+
+-- the pointer's hover words on a speed key (_speedRow asked for them): drawn by the overlay pass, which _padDraw
+-- already ran when the pad is on the watch
+function ZeD_Watch:_hintDraw()
+    if not self._hintAsked or self:padOn() then return end
+    if ZeD.Focus and ZeD.Focus.drawOverlay then ZeD.Focus.drawOverlay(self, self) end
 end
 
 -- ---------------------------------------------------------------------------
