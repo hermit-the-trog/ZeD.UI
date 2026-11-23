@@ -145,8 +145,17 @@ do
         ZeD.Molecules = {
             drawStatRowDot = function() return 19 + 4 end,
             drawFillBar = function() return ZeD.T.fillBarH end,
-            layoutZoneA = function(x, y, w) return { rightW = w - 238 - 8 } end,
         }
+        -- Zone A's real layout (Molecules.lua: the figure in its frame, the left half; the text the right half), at 1x
+        -- with the figure's real width and a short one, so the zone's height is the text's and the measure is read
+        -- line by line (Figure frame, the director, Nov 22 2026)
+        ZeD.T.art, ZeD.T.sp.figureW, ZeD.T.sp.figureH = 1, 106, 20
+        local mol = readFile(DIR .. "Molecules.lua") or ""
+        local fa = mol:find("local FIG_FRAME_INSET", 1, true)
+        local fb = fa and mol:find("\n-- 11. STAT ROW", fa, true)
+        local ffn = fa and fb and loadstring("local TAB_HEADER_PAD, TAB_COL_GAP = 8, 10\n" .. mol:sub(fa, fb), "=Molecules.lua (figure frame)")
+        check("Molecules' figure frame layout loads", ffn ~= nil)
+        if ffn then ffn() end
         local chunk, err = loadstring(src:sub(a, b - 1) .. src:sub(c, e + 4), "=HealthTab.lua (cut)")
         check("the Overall pieces cut and load", chunk ~= nil, err)
         if chunk then
@@ -163,7 +172,11 @@ do
             local lines = #H.overallLines(data, T.fontF2, rightW)
             check("the word takes more than one line here", lines > 1, lines)
             local measured = H._measureZoneA(data, w, {})
-            check("the measure is the draw (the word's lines counted)", measured == drawn, measured .. " vs " .. drawn)
+            -- (the zone is the taller of the frame and the text: Molecules.figureZoneH) (Figure frame, the director, Nov 22 2026)
+            local L = ZeD.Molecules.layoutZoneA(0, 0, w - T.sp.scrollbarW)
+            check("the frame is shorter than the text here", L.frameH < drawn, L.frameH .. " vs " .. drawn)
+            check("the measure is the draw (the word's lines counted)", measured == ZeD.Molecules.figureZoneH(L, drawn), measured .. " vs " .. drawn)
+            check("the text takes the right half (1x: 8 + 222 + 10 + 222 + 8 at 470)", rightW == 222, rightW)
             -- wider (no scroll bar): the draw never runs past the measure
             local wide = ZeD.Molecules.layoutZoneA(0, 0, w).rightW
             local drawnWide = H.drawOverall(nil, 0, 0, wide, data) + 14 + T.sp.sm

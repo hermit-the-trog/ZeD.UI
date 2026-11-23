@@ -1644,7 +1644,7 @@ function ZeD.HealthTab._measureExerciseInfo(win, w)
     local T, TM = ZeD.T, ZeD.TM
     local playerObj = win and win._playerObj
     if not playerObj or not FitnessExercises or not FitnessExercises.exercisesType then return 0 end
-    local wrapW = math.max(T.px(60), ZeD.Molecules.layoutZoneA(0, 0, w - T.sp.scrollbarW, 0, 0).rightW)
+    local wrapW = math.max(T.px(60), ZeD.Molecules.layoutZoneA(0, 0, w - T.sp.scrollbarW).rightW)
     -- (the key reads the 250 ms exercise state, not a live search each frame) (beast W18)
     local exSt = exerciseState(win)
     local sig = { wrapW, tostring(T.scale), TM:getFontHeight(T.fontF1), TM:getFontHeight(T.fontF2),
@@ -1673,7 +1673,8 @@ end
 -- ZONE A HEIGHT MEASUREMENT (for scroll math)
 -- ============================================================================
 
--- (the figure's box is T.sp.figureW / figureH: the canvas at the whole zoom it draws at)
+-- (the figure sits in its frame, the left half of the card, the text the right half; a card too narrow for halves
+-- stacks them: Molecules.figureFrame) (Figure frame, the director, Nov 22 2026)
 
 function ZeD.HealthTab._measureZoneA(data, rw, win)
     local T     = ZeD.T
@@ -1682,6 +1683,8 @@ function ZeD.HealthTab._measureZoneA(data, rw, win)
     -- Right column: summary section (its heading lives in the disclosure header): Overall's row
     -- and bar, the game's word for it (drawOverall: its wrapped lines, then a gap), the summary line
     local rightH = 0
+    -- the layout at the narrowest the body draws (the scroll bar showing): never short of the draw
+    local L = ZeD.Molecules.layoutZoneA(0, 0, rw - T.sp.scrollbarW)
     local f2H = ZeD.TM:getFontHeight(T.fontF2)
     local statRowH = math.max(secH, f2H) + T.px(4)
     local calm = ZeD.HealthTab.calm(data)   -- (calm: the bar alone, as drawOverall draws it)
@@ -1690,15 +1693,14 @@ function ZeD.HealthTab._measureZoneA(data, rw, win)
     -- (counted at the narrowest the column draws, the scroll bar showing: never short of the draw;
     -- left out, the scroll range caught up a frame late, from what the last frame drew)
     if data and not calm then
-        local narrowW = ZeD.Molecules.layoutZoneA(0, 0, rw - T.sp.scrollbarW, 0, 0).rightW
-        rightH = rightH + ZeD.HealthTab.overallLineCount(data, T.fontF2, narrowW) * f2H + T.sp.xs
+        rightH = rightH + ZeD.HealthTab.overallLineCount(data, T.fontF2, L.rightW) * f2H + T.sp.xs
     end
     rightH = rightH + secH + T.sp.sm
 
     -- Right column: the picked exercise's info block (its controls are the footer band's)
     rightH = rightH + ZeD.HealthTab._measureExerciseInfo(win, rw)
 
-    return math.max(T.sp.figureH, rightH)   -- the figure at the whole zoom it draws at
+    return ZeD.Molecules.figureZoneH(L, rightH)   -- the frame and the text, beside or stacked (Figure frame, the director, Nov 22 2026)
 end
 
 -- ============================================================================
@@ -1979,10 +1981,13 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     -- (_healthFigureZone is stamped at the TOP of render, not here)
 
     if figureExpanded then
-        local layout = M.layoutZoneA(x, curY, contentW, T.sp.figureW, T.sp.figureH)
+        local layout = M.layoutZoneA(x, curY, contentW)
 
+        -- the figure in its frame at the layout's whole zoom; the hover, the clicks and the pad stops read where it
+        -- drew (drawAt keeps it: hitTestAt, getPartRects) (Figure frame, the director, Nov 22 2026)
+        M.drawFigureFrame(panel, layout)
         ZeD.HealthTab._drawBodyFigure(panel, win, data,
-            layout.figX, layout.figY, T.sp.figureW, T.sp.figureH)
+            layout.figX, layout.figY, layout.figW, layout.figH)
 
         -- The detail view reads _healthActivePart (the controller's focus
         -- overrides mouse hover).
@@ -1998,7 +2003,8 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
 
         -- (a right column taller than the measure pushes the injury list
         -- down instead of running under it)
-        curY = math.max(curY + zoneABodyH, (rightBottom or 0) + padTop + pad)
+        -- (and never above the frame's foot) (Figure frame, the director, Nov 22 2026)
+        curY = math.max(curY + zoneABodyH, (rightBottom or 0) + padTop + pad, layout.frameY + layout.frameH + padTop + pad)
     end
 
     -- ================================================================

@@ -22,7 +22,7 @@ ZeD = ZeD or {}
 ZeD_BodyFigure = ISPanel:derive("ZeD_BodyFigure")
 
 -- Scale: canvas sizes, layouts and hit rects stay in CANVAS units (= texture px). drawAt()/render() fit the
--- canvas into the caller's rect with factor s, and the callers pass scaled rects (T.sp.figureW/H),
+-- canvas into the caller's rect with factor s, and the callers pass scaled rects (figureFrame's figW/H),
 -- so drawn size and hit rects follow the root scale through s. Wrapping these numbers in T.px would double-scale.
 local CANVAS_W = 106   -- (Graphic cleanup, Nov 22 2026: was 220 x 260; the grid gave way to a slim ruler)
 local CANVAS_H = 272
@@ -31,8 +31,9 @@ local DIR = "media/textures/ZeD/body/"
 local NEAREST = 3
 
 -- the scale the canvas is drawn at in a w x h rect: the largest whole multiple that fits (below 1, as it fits).
--- The tabs hand it T.sp.figureW x figureH, the canvas at T.art (the nearest whole zoom to the scale: 2 at
--- 1.75), so the figure fills its box at every scale step.
+-- The tabs and the medical card hand it Molecules.figureFrame's figW x figH, the canvas at the frame's whole zoom
+-- (at most T.art, the nearest whole zoom to the scale: 2 at 1.75), so the figure fills its box at every scale step.
+-- (Figure frame, the director, Nov 22 2026)
 local function _fit(w, h)
     local s = math.min(w / CANVAS_W, h / CANVAS_H)
     if s >= 1 then s = math.floor(s + 1e-6) end
