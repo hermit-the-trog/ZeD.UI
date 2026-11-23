@@ -257,7 +257,10 @@ do
         -- each shown or hidden on its own: the second player in a car, the first on foot
         inCar[1] = {}
         fire("OnTick")
-        check("the second player in a car: their belt hides", b1 and not b1:getIsVisible())
+        -- (the driver's belt hides but its panel stays up for the speed keys alone, in their same spot: time controls,
+        -- the director, Nov 22 2026; ZeD_BeltHUD:keysOnly)
+        check("the second player in a car: their belt hides", b1 and not b1:wanted())
+        check("... their speed keys stay (the panel up for them alone)", b1 and b1:keysOnly() and b1:getIsVisible())
         check("the first player's stays", b0 and b0:getIsVisible())
         -- a drop goes to the belt of the player who dropped it
         if b1 and b0 then

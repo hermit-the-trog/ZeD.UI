@@ -484,7 +484,7 @@ local VANILLA = {
 -- ---------------------------------------------------------------------------
 local USED = { Molecules = {}, Atoms = {} }
 local function recorder(kind, impl)
-    return setmetatable({}, { __index = function(t, k)
+    return setmetatable({}, { __impl = impl, __index = function(t, k)
         USED[kind][k] = true
         local f = impl[k] or function() return 0 end
         return f
@@ -530,6 +530,23 @@ ZeD.Molecules = recorder("Molecules", {
     drawStatRowDot = function() return 18 end,
     drawFillBar = function() return 8 end,
 })
+-- the medical card's figure layout, the real one (Molecules.lua's figureFrame, figureZoneH, drawFigureFrame: the figure
+-- in its frame, the left half; the text the right half, or under it on a narrow card) (Figure frame, the director, Nov 22 2026)
+do
+    local mol = readFile(ZL .. "client/ZeD/Molecules.lua") or ""
+    local a = mol:find("local FIG_FRAME_INSET", 1, true)
+    local b = a and mol:find("\n-- 11. STAT ROW", a, true)
+    local real = {}
+    local saved = ZeD.Molecules
+    ZeD.Molecules = real
+    local fn = a and b and loadstring("local TAB_HEADER_PAD, TAB_COL_GAP = 8, 10\n" .. mol:sub(a, b), "=Molecules.lua (figure frame)")
+    if fn then fn() end
+    ZeD.Molecules = saved
+    FIGURE_FRAME_LOADED = real.figureFrame ~= nil
+    -- the recorder hands these out (and still checks their names against the real file)
+    local impl = getmetatable(saved).__impl
+    for k, f in pairs(real) do impl[k] = f end
+end
 ZeD.Atoms = recorder("Atoms", {
     textCase = function(s) return s end,
     truncateText = function(s) return s end,
@@ -559,12 +576,12 @@ ZeD_ScrollbarState = { new = function()
     return { scrollPos = 0, visible = false, setScrollPos = function(s, v) s.scrollPos = v end, setBarSize = function() end, draw = function() end }
 end }
 ZeD_BodyFigure = ISUIElement:derive("ZeD_BodyFigure")
-function ZeD_BodyFigure:new() local o = ISUIElement.new(self, 0, 0, 100, 100); o.colors = {}; return o end
+function ZeD_BodyFigure:new() local o = ISUIElement.new(self, 0, 0, 100, 100); o.colors = {}; LAST_FIG = o; return o end
 function ZeD_BodyFigure:loadTextures() end
 function ZeD_BodyFigure:setSex() end
 function ZeD_BodyFigure:clearColors() self.colors = {} end
 function ZeD_BodyFigure:setPartColor(n, r, g, b) self.colors[n] = { r, g, b } end
-function ZeD_BodyFigure:drawAt(panel, x, y, w, h) self.at = { x, y } end
+function ZeD_BodyFigure:drawAt(panel, x, y, w, h) self.at = { x, y, w, h } end
 function ZeD_BodyFigure:getPartRects()
     local x, y = self.at[1], self.at[2]
     return { { name = "Upper Torso", x = x + 90, y = y + 60, w = 40, h = 50 }, { name = "Left Hand", x = x + 20, y = y + 130, w = 16, h = 16 } }
@@ -1027,6 +1044,28 @@ if CARD.entry and CARD.entry.def.id == "medic" then
     local t = CARD.entry.t
     draw()
     check("a server: the remote body is read", t.d and math.floor(t.d.overall + 0.5) == 72)
+    do -- (Figure frame, the director, Nov 22 2026) the figure in its frame, the left half of the card, at a whole zoom;
+       -- the text the right half; a card too narrow for halves stacks the frame over the text
+        check("the real figure frame layout is loaded", FIGURE_FRAME_LOADED == true)
+        check("the frame is drawn (the Vehicle tab's line)", USED.Atoms.frame == true)
+        local fig = LAST_FIG
+        local cw0 = CARD.width
+        CARD.width = 480
+        draw()
+        local at = fig and fig.at or {}
+        check("full card: the figure at 1x (106 x 272)", at[3] == 106 and at[4] == 272, tostring(at[3]) .. "x" .. tostring(at[4]))
+        local mid = (at[1] or 0) + 53
+        check("full card: the figure centered in the left half", mid > 100 and mid < 130, mid)
+        local rects = fig and fig:getPartRects() or {}
+        check("full card: the figure's stops follow it", rects[1] and rects[1].x == at[1] + 90)
+        CARD.width = 220
+        draw()
+        at = fig and fig.at or {}
+        mid = (at[1] or 0) + 53
+        check("the 220 card: stacked, the figure centered across the card", mid > 95 and mid < 115, mid)
+        CARD.width = cw0
+        draw()
+    end
     check("title: vanilla's words with their name", CARD.entry.def.title(t) == getText("IGUI_health_playerHealth", "Bobby"))
     local en = t.d and t.d.entries[1]
     check("the injury list: the left hand first", en and en.name ~= nil and en.bodyPart == hand)

@@ -205,7 +205,7 @@ G.ZED_GROUPS = {
         { "wheelOpen", nil, merge = "wheels" }, { "wheelDeadZone", "scale" }, { "runSneak", "onoff" } } },
     -- (the twelve chords, ZeD_QuickChords; not ModOptions: rows of their own)
     { "UI_ZeD_Options_ZedChords", {}, chords = true },
-    -- (the seven screens a player can give back are one row of check boxes under Safe mode, the sentence they shared
+    -- (the eight screens a player can give back (the game's error box the eighth, Nov 22 2026) are one row of check boxes under Safe mode, the sentence they shared
     -- said once in the help: ticked, that screen is the game's own. Playing with (the input mode lock) moved here from
     -- Controls; the Lua console's switch and the test language show in debug mode only.)
     { "UI_ZeD_Options_ZedTrouble", { { "safeMode", "onoff", under = "UI_ZeD_Options_UnderSafeMode" },
@@ -220,7 +220,7 @@ G.ZED_GROUPS = {
 -- too. ZeD setup's Defaults still puts each back.
 G.SETUP_HIDDEN = { "mapLight", "solidInUse", "healthBlink", "gridTint", "inventoryView", "equipView", "charAccent", "worldAccent",
                    "readNext", "dimRead", "messagesToast", "autoLearn", "wheelCommit", "wheelToggle",
-                   "screenBelt", "screenWatch", "screenDashboard", "screenMoodles", "screenWheels", "screenCharInfo" }
+                   "screenBelt", "screenWatch", "screenDashboard", "screenMoodles", "screenWheels", "screenCharInfo", "screenErrorBox" }
 
 -- (QA's visual noise audit, Nov 20 2026) One row on ZeD setup that reads and writes several options. Not an option of
 -- its own: what it shows is read from the options under it each time, and a pick sets each of them as a click on its
@@ -271,7 +271,9 @@ G.MERGED = {
         ticks = { { "screenWindows", "UI_ZeD_Options_GiveWindows", "windows" }, { "screenBelt", "UI_ZeD_Options_GiveBelt", "belt" },
                   { "screenWatch", "UI_ZeD_Options_GiveWatch" }, { "screenDashboard", "UI_ZeD_Options_GiveDashboard", "dashboard" },
                   { "screenMoodles", "UI_ZeD_Options_GiveMoodles" }, { "screenWheels", "UI_ZeD_Options_GiveWheels", "wheels" },
-                  { "screenCharInfo", "UI_ZeD_Options_GiveCharInfo", "charinfo" } } },
+                  { "screenCharInfo", "UI_ZeD_Options_GiveCharInfo", "charinfo" },
+                  -- (the game's red error box back: Error box, the director, Nov 22 2026)
+                  { "screenErrorBox", "UI_ZeD_Options_GiveErrorBox" } } },
 }
 
 -- a ZeD option's live pick (on the screen, Apply or not), else its stored value

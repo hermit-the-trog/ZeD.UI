@@ -1108,8 +1108,20 @@ local function drawFigure(panel, s, fx, fy, fw, fh, v, parts, hlId, unknown, wor
                         local c, a
                         if unknown then c, a = dim, 0.55
                         elseif rimOnly then c, a = T.danger, pulse
-                        else c, a = statusColor(T, p.cond), 0.95 end
+                        -- (the director, Nov 22 2026: the parts were "shockingly bright compared to other UI elements";
+                        -- the condition color now sits at the lit part's own strength, not near full)
+                        else c, a = statusColor(T, p.cond), 0.7 end
                         panel:drawTextureScaledAspect(t, lx, ly, lw, lh, a, c.r, c.g, c.b)
+                        -- (Car wear, Nov 22 2026; the director: a red part "would have a lot of rust spots all over
+                        -- it", a yellow one "a little bit of rust or a scratch", green "pristine") the part's wear,
+                        -- baked to its shape, over the tint and untinted (the rust keeps its own colour). The band is
+                        -- statusColor's: four or five segments lit is green (none), two or three yellow (light),
+                        -- one or none red (heavy). A missing, smashed or uninspected part keeps its rim alone.
+                        if not rimOnly then
+                            local lit = ZeD.Atoms.statusSegsLit((p.cond or 0) / 100)
+                            local wt = (lit <= 1 and tex(key .. "_wear2")) or (lit <= 3 and tex(key .. "_wear1")) or nil
+                            if wt then panel:drawTextureScaledAspect(wt, lx, ly, lw, lh, 0.9, 1, 1, 1) end
+                        end
                         if hlId == p.id or workId == p.id then
                             local full = tex(key) or t
                             panel:drawTextureScaledAspect(full, lx, ly, lw, lh, 0.75, ac.r, ac.g, ac.b)

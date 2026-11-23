@@ -11,7 +11,8 @@
 -- it (the plain words for what the pointer is over, the controller's prompts).
 -- Mouse and controller (D-pad between the list, the cards' buttons and the band;
 -- A presses, B closes; the cards are a panel A takes and the D-pad scrolls, B lets
--- go). Its notices are speech balloons out of the Messages note on the belt for
+-- go). Its notices are speech balloons out of the Messages notice in the screen's
+-- corner (ZeD_ErrorBox.lua; the belt's note before, Nov 22 2026) for
 -- six seconds, so every notice comes out of the one place
 -- (they were corner toasts once; ZeD_Bubbles.layoutNoticeBalloons); a click
 -- opens the window on that source.
@@ -1098,13 +1099,15 @@ function ZeD_DashNote:onMouseDown(x, y)
     return true
 end
 
--- where a player's balloons come from (screen pixels), and whether they point at a note: that player's belt note,
--- else the dash's note while driving, else the bottom middle of that player's screen without a tail
+-- where a player's balloons come from (screen pixels), and whether they point at a note: the Messages notice in the
+-- screen's corner while it shows on that player's part of the screen (the belt's note before: Error box, the
+-- director, Nov 22 2026), else the dash's note while driving, else the bottom middle of that player's screen without a
+-- tail
 function W.noticeAnchor(pn)
     pn = pn or 0
-    local B = ZeD.Belt
+    local E = ZeD.ErrorBox
     local ax, ay = nil, nil
-    if B and B.noteAnchor then ax, ay = B.noteAnchor(pn) end
+    if E and E.anchor then ax, ay = E.anchor(pn) end
     if ax then return ax, ay - ZeD.T.px(U.NOTICE_LIFT), true end
     if pn == 0 then
         local nx, ny, nw = W.dashNoteRect()

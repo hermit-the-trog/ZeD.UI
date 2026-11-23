@@ -58,11 +58,13 @@ def _sheets(c, s, ox=0, oy=0):
     if s == 16:
         c.rect(ox + 1, oy + 1, 9, 9); c.rect(ox + 2, oy + 2, 7, 7, v=0)
         c.rect(ox + 4, oy + 4, 11, 11, v=0)
-        c.rect(ox + 5, oy + 5, 9, 9)
+        with c.mark():   # (the front sheet: the strips' mark, Take blue, Put in red; Icon color, the director, Nov 22 2026)
+            c.rect(ox + 5, oy + 5, 9, 9)
     else:
         c.rect(ox + 1, oy + 1, 14, 14); c.rect(ox + 3, oy + 3, 10, 10, v=0)
         c.rect(ox + 7, oy + 7, 16, 16, v=0)
-        c.rect(ox + 9, oy + 9, 14, 14)
+        with c.mark():
+            c.rect(ox + 9, oy + 9, 14, 14)
 
 
 @icon("same_type", "row", "two sheets, one over the other: the same type", ["UI_ZeD_Controls_SameType"])
@@ -134,18 +136,20 @@ def power(c, s):
     if s == 16:
         c.oring(8, 8.5, 6.6, 2)
         c.rect(6, 0, 4, 7, v=0)
-        c.rect(7, 1, 2, 7)
+        with c.mark():   # (the stem: the strips' gold, power; Icon color, the director, Nov 22 2026)
+            c.rect(7, 1, 2, 7)
     else:
         c.oring(12, 12.5, 10.6, 3)
         c.rect(9, 0, 6, 10, v=0)
-        c.rect(10.5, 1, 3, 11)
+        with c.mark():
+            c.rect(10.5, 1, 3, 11)
 
 
 # ------------------------------------------------------------------ fire: the match, the extinguisher
 @icon("match", "row", "a struck match, its flame: light a fire", ["ContextMenu_Light"])
 def match(c, s):
     if s == 16:
-        c.grid(["..........#.....",
+        g = ["..........#.....",
                 ".........##.....",
                 "........####....",
                 "........#.##....",
@@ -159,9 +163,12 @@ def match(c, s):
                 "....##..........",
                 "...##...........",
                 "..##............",
-                ".##............."], oy=0)
+                ".##............."]
+        c.grid(g, oy=0)
+        with c.mark():   # (the flame: the strips' gold, fire; Icon color, the director, Nov 22 2026)
+            c.grid(g[:7], oy=0)
     else:
-        c.grid(["...............#........",
+        g = ["...............#........",
                 "..............##........",
                 ".............####.......",
                 "............#####.......",
@@ -184,13 +191,16 @@ def match(c, s):
                 "...###..................",
                 "..###...................",
                 ".###....................",
-                ".##....................."], oy=0)
+                ".##....................."]
+        c.grid(g, oy=0)
+        with c.mark():
+            c.grid(g[:12], oy=0)
 
 
 @icon("extinguisher", "row", "a fire extinguisher, its hose and horn: put a fire out", ["UI_ZeD_Controls_PutOut"])
 def extinguisher(c, s):
     if s == 16:
-        c.grid(["..######........",
+        g = ["..######........",
                 "....##.......##.",
                 "...####....####.",
                 "...############.",
@@ -203,9 +213,12 @@ def extinguisher(c, s):
                 "..######........",
                 "..######........",
                 "..######........",
-                "...####........."], oy=1)
+                "...####........."]
+        c.grid(g, oy=1)
+        with c.mark():   # (the hose and horn: the strips' red, put out; Icon color, the director, Nov 22 2026)
+            c.grid([r[8:] for r in g[:6]], ox=8, oy=1)
     else:
-        c.grid(["...#########............",
+        g = ["...#########............",
                 "...#########............",
                 ".......##...............",
                 "......####..........###.",
@@ -226,7 +239,10 @@ def extinguisher(c, s):
                 "...##########...........",
                 "...##########...........",
                 "...##########...........",
-                "....########............"], oy=1)
+                "....########............"]
+        c.grid(g, oy=1)
+        with c.mark():
+            c.grid([r[12:] for r in g[:9]], ox=12, oy=1)
 
 
 # ------------------------------------------------------------------ the item card's marks (Fav, No-craft, Dispose)

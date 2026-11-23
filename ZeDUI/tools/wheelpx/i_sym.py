@@ -174,6 +174,13 @@ def _cog(c, cx, cy, r, teeth, tw, th, hole):
 def gears(c, s):
     if s == 16: _cog(c, 8, 8, 4.6, 8, 2.6, 2.2, 1.9)
     else: _cog(c, 12, 12, 7.2, 8, 3.8, 3.4, 3)
+    # (the hub, a ring round the hole: the strips' gold, a stove's or a machine's settings; Icon color, the director, Nov 22 2026. The disc fills
+    # the hole on the icon too, so the hole is cut again after: the icon's pixels stay as they were)
+    with c.mark():
+        if s == 16: c.dot(8, 8, 3.2)
+        else: c.dot(12, 12, 5)
+    if s == 16: c.dot(8, 8, 1.9, v=0)
+    else: c.dot(12, 12, 3, v=0)
 
 
 def _mag(c, s):

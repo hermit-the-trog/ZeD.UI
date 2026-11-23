@@ -145,14 +145,16 @@ TU.STEPS = {
     -- (the director, Nov 19 2026, on beta 21's report: the guide step pointed at the whole belt. It points at the belt's
     -- Messages note, where ZeD's guide bubble comes out on the first game with ZeD and where the guide's line stays;
     -- the whole belt only when the note is not drawn)
+    -- (Error box, the director, Nov 22 2026: the note is the Messages notice in the screen's corner now; the step keeps
+    -- it up while it points at it, ZeD.ErrorBox.showFor)
     { key = "Guide", target = function(pn)
-        local hud = ZeD.Belt and ZeD.Belt.getHUD and ZeD.Belt.getHUD(pn)
-        local r = rectOf(hud)
-        if not r then return nil end
-        for _, b in ipairs(hud._boxes or {}) do
-            if b.kind == "lamp" and b.w and b.w > 0 then return { x = r.x + b.x, y = r.y + b.y, w = b.w, h = b.h } end
+        local E = ZeD.ErrorBox
+        if E and E.rect and E.showFor and (pn or 0) == 0 then
+            E.showFor(1000)
+            local x, y, s = E.rect()
+            return { x = x, y = y, w = s, h = s }
         end
-        return r
+        return rectOf(ZeD.Belt and ZeD.Belt.getHUD and ZeD.Belt.getHUD(pn))
     end, pref = "above" },
 }
 

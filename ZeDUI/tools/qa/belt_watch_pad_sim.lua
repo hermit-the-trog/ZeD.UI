@@ -206,8 +206,10 @@ check("250/251: the belt gone: B gives the pad to the game", JoypadState.players
 JoypadState.players[2] = { controller = controller }
 check("251: the second player's pad: no", W.padOpen(1, nil) == false)
 -- the controls' words: every control the plates carry has one
+-- (Time buttons, the director, Nov 22 2026: the tape deck's speed0 .. speed3 are gone from the watch; the speed keys
+-- are the belt row's, their words the game's own: hud_perf_sim checks W.padLabel for them)
 local named = true
-for _, id in ipairs({ "start", "speed", "alarm", "set", "crown", "light", "setdn", "setup", "alarmtoggle", "speed0", "speed3" }) do
+for _, id in ipairs({ "start", "speed", "alarm", "set", "crown", "light", "setdn", "setup", "alarmtoggle" }) do
     if not W.padLabel(id, 1) then named = false; print("     no words for " .. id) end
 end
 check("251: every control has its words on the strip", named)

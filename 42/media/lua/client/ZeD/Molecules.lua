@@ -332,7 +332,11 @@ end
 --              drawing the picture in (x, y, size) in `color` (alpha applied)
 -- @param opts  optional { hover, active, disabled, pressed, focus (mark opts or
 --              true), hint = its name (shown after the delay), id = a key for the
---              hint, help, win, iconSize (default 16u), tint }
+--              hint, help, win, iconSize (default 16u), tint,
+--              marks = a theme's mark set (T.marks): a ZeD pixel icon's mark in its color at rest, as the right-click
+--              menu's (Icon color, the director, Nov 22 2026), markKind = that mark's color by name ("blue", "red",
+--              "gold") where the button's own meaning picks it, else ZeD.PxIconStripMark's (a list for an icon of
+--              more than one mark: the Filter's red and blue), else ZeD.PxIconMark's }
 -- @return x, y, w, h
 local _icC, _icFocus, _icHint = {}, {}, {}
 -- (opts.hintSide: "right" / "left" for a button in a column; the focus's balloon shows without the pause)
@@ -379,8 +383,13 @@ function ZeD.Molecules.drawIconButton(panel, x, y, size, icon, opts)
     if type(icon) == "function" then
         icon(panel, ix, iy, isz, withAlpha(_icC, ic, alpha))
     elseif type(icon) == "string" then
-        -- a ZeD pixel icon by its id: its drawing for this box, pixel for pixel
-        A.drawPxIcon(panel, icon, ix, iy, isz, (ic.a or 1) * alpha, ic)
+        -- a ZeD pixel icon by its id: its drawing for this box, pixel for pixel. Its mark colored at rest only, as the
+        -- menu's: not lit, not pointed at, not under the pad's focus (those draw the whole icon in one tint), not in a
+        -- caller's own tint (a bin in the warning color). (Icon color, the director, Nov 22 2026)
+        local mk = opts.marks
+        if mk and (active or onFocus or opts.tint or (opts.hover and not opts.disabled)) then mk = nil end
+        local kind = mk and (opts.markKind or (ZeD.PxIconStripMark and ZeD.PxIconStripMark[icon])) or nil
+        A.drawPxIcon(panel, icon, ix, iy, isz, (ic.a or 1) * alpha, ic, mk, kind)
     elseif icon then
         A.drawIcon(panel, icon, ix, iy, isz, (ic.a or 1) * alpha, ic)
     end
@@ -1960,33 +1969,76 @@ function ZeD.Molecules.getTabPadTop()
     return ZeD.T.px(TAB_HEADER_PAD_T)
 end
 
---- Compute Zone A two-column layout (figure left, stats right).
--- Call once per frame. Returns a table of pixel positions.
--- @param x, y   Top-left of the content area (y should include padTop)
--- @param w      Full tab content width
--- @param figW   Body figure width
--- @param figH   Body figure height
--- @return table { figX, figY, rightX, rightY, rightW, leftW }
-function ZeD.Molecules.layoutZoneA(x, y, w, figW, figH)
+-- ============================================================================
+-- THE BODY FIGURE IN ITS FRAME (Figure frame, the director, Nov 22 2026)
+-- "I think the skeleton needs to take up half of the card. And it sits in a frame just like the vehicle and its
+-- parts sit in a frame taking up half a card." The frame copies the Vehicle tab's pane (MechanicsTab.lua): a one-unit
+-- line in T.borderS (the line beside the car's pane), the window's own surface inside it (no fill, no grid), and the
+-- figure kept PAD = 10 units in from its edges. Used by the Health, Thermal and Equipment defense tabs (through
+-- layoutZoneA) and the medical check card (ObjectCardMedic.lua).
+-- ============================================================================
+local FIG_FRAME_INSET = 10   -- figure to frame line, design units (MechanicsTab's PAD) (Figure frame, the director, Nov 22 2026)
+
+--- Lay out the figure's frame and its text in the span x .. x + w.
+-- Wide enough: the frame takes the left half, a column gap, the text the right half. Too narrow for halves (a half
+-- cannot hold the figure at its art zoom inside the inset: the 220 drawer card): the frame takes the whole width and
+-- the text goes under it. The skeleton is centered in the frame at a WHOLE zoom (screen px per art px), the largest
+-- that fits the frame's inside, never above T.art (the zoom pixel art draws at: 1 at 1080p and 1280x800, 2 at 4K at
+-- 1.75) and never below 1, so the pixel art stays crisp; the frame is as tall as the figure at that zoom plus the inset.
+-- @return { two, zoom, frameX, frameY, frameW, frameH, figX, figY, figW, figH, rightX, rightY, rightW }
+function ZeD.Molecules.figureFrame(x, y, w)
     local T = ZeD.T
-    -- Pass contentW (post-scroll) as w so rightW is correct with or without scrollbar.
-    -- Layout: [8px] [106px figure] [10px gap] [rightW] [8px right pad]
-    -- With scroll (w=466):    rightW = 466-124-8 = 334
-    -- Without scroll (w=480): rightW = 480-124-8 = 348
-    -- (Graphic cleanup, Nov 22 2026: the figure lost its room grid and went 220 -> 106 wide, so the text gains 114)
-    local leftX  = x + T.px(TAB_HEADER_PAD)          -- 8px outer left pad
-    local leftW  = T.sp.figureW                      -- the figure column: the figure at its whole zoom
-    local rightX = leftX + leftW + T.px(TAB_COL_GAP) -- +10px column gap
-    local rightW = w - T.px(TAB_HEADER_PAD) - rightX + x  -- fills to 8px from right edge
-    return {
-        figX   = leftX + math.floor((leftW - figW) / 2),  -- figure centered in its 106px column
-        figY   = y,
-        leftX  = leftX,
-        leftW  = leftW,
-        rightX = rightX,
-        rightY = y,
-        rightW = rightW,
+    local inset = T.px(FIG_FRAME_INSET)
+    local gap = T.px(TAB_COL_GAP)
+    local art = T.art or 1
+    -- the canvas in art pixels (106 x 272): T.sp.figureW / H are the canvas at the art zoom
+    local cw, ch = T.sp.figureW / art, T.sp.figureH / art
+    local half = math.floor((w - gap) / 2)
+    -- halves only where a half holds the figure at its art zoom inside the inset; else stack, the frame full width
+    local two = half - inset * 2 >= T.sp.figureW
+    local frameW = two and half or w
+    -- the largest whole zoom that fits inside the frame, capped at the art zoom, at least 1
+    local zoom = math.floor((frameW - inset * 2) / cw + 1e-6)
+    if zoom > art then zoom = art end
+    if zoom < 1 then zoom = 1 end
+    local figW, figH = cw * zoom, ch * zoom
+    local frameH = figH + inset * 2
+    local L = {
+        two = two, zoom = zoom,
+        frameX = x, frameY = y, frameW = frameW, frameH = frameH,
+        figX = x + math.floor((frameW - figW) / 2),   -- centered across the frame
+        figY = y + inset,
+        figW = figW, figH = figH,
     }
+    if two then
+        L.rightX, L.rightY, L.rightW = x + half + gap, y, w - half - gap
+    else
+        L.rightX, L.rightY, L.rightW = x, y + frameH + T.px(8), w   -- under the frame (the stacked card's 8-unit gap)
+    end
+    return L
+end
+
+--- The height a figure layout takes with a text column rightH tall: beside the frame, the taller of the two;
+--- stacked, the frame, the gap and the text.
+function ZeD.Molecules.figureZoneH(L, rightH)
+    return math.max(L.frameH, (L.rightY - L.frameY) + (rightH or 0))
+end
+
+--- Draw the frame of a figureFrame / layoutZoneA layout: the Vehicle tab pane's one-unit T.borderS line, no fill.
+function ZeD.Molecules.drawFigureFrame(panel, L)
+    local T = ZeD.T
+    ZeD.Atoms.frame(panel, L.frameX, L.frameY, L.frameW, L.frameH, T.borderS, nil, T.px(1))
+end
+
+--- Compute Zone A two-column layout (figure left in its frame, stats right) for a tab.
+-- Call once per frame. Returns figureFrame's table for the tab's content less its 8-unit side pads.
+-- @param x, y   Top-left of the content area (y should include padTop)
+-- @param w      Full tab content width (pass contentW, post-scroll, so rightW is right with or without scrollbar)
+-- (Figure frame, the director, Nov 22 2026: the figure's 106-unit column and its 10-unit gap gave way to halves;
+-- at 1x a 466 content width is 8 + 220 frame + 10 + 220 text + 8)
+function ZeD.Molecules.layoutZoneA(x, y, w)
+    local pad = ZeD.T.px(TAB_HEADER_PAD)
+    return ZeD.Molecules.figureFrame(x + pad, y, w - pad * 2)
 end
 
 -- ============================================================================

@@ -10,6 +10,14 @@ The plan is `docs/plans/GUIDE_ADS_PLAN.md`.
    Playwright: `out/preview/` on the book's paper for review, `out/final/` ink on transparent for the game.
    Without Node: `python render_edge.py [--out DIR] [name ...]` does the same in headless Edge (stdlib DevTools, fresh
    temp profile, closes only its own Edge); text edges differ slightly from the Linux renders, layout and art do not.
+3. One ink (the director, Nov 22 2026: "There should only be black ink."): the game's pictures carry the ink alone.
+   `render_edge.py` runs `one_ink.py` on every `out/final/` picture itself; after `render.js` run
+   `python one_ink.py`. Each pixel becomes the ink at the share of ink it held (bare paper comes out clear), so no
+   paper-colored pixel reaches the game, where the page is drawn darker than the paper and such pixels read as white
+   ink. The sources print no reversed type: a block with words in it is a ruled box (`.inv`, `.foot`, and ad.js
+   turns any other ink block with words the same way), a burst is an outline, and labels in the pictures are ink on a
+   pale ground (the `pw` ramp is for light only, never for type). Then copy `out/final/*.png` to
+   `42/media/textures/ZeD/guide/ads/`.
 
 Sizes in design px (screen px at 1080p): full 440x628, half 440x310, third 440x205, quarter 215x310.
 Fonts in `fonts/`: Old Standard TT, Open Sans, Caveat (the game's own print faces, OFL), Oswald, Alfa Slab One, Rye

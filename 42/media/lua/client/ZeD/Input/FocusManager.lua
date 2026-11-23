@@ -1884,6 +1884,82 @@ local function _viewOf(w, el)
     return nil
 end
 
+-- (Take all in the header only, the director's call "Number 1", Nov 22 2026; Header order) Down past a list's last
+-- row wraps to its heading's Take all (Loot all): the footer band has no Take all any more, so Down never lands on
+-- To floor or another band button. fromFlat: the focused stop; toFlat: the spatial pick, nil when there was none.
+-- Returns the Loot all's flat index, or nil to keep the pick. A pick in the same zone is another row: no wrap.
+-- (Kept on Focus, not a file local: this file is large.)
+function Focus._lootAllWrap(w, locator, fromFlat, toFlat)
+    local fl = fromFlat and locator[fromFlat]
+    if not fl then return nil end
+    local fz = w._focusRing[fl.zoneIdx]
+    local fe = fz and fz.elements and fz.elements[fl.elementIdx]
+    if not fe or fe.isViewToggle then return nil end
+    local tl = toFlat and locator[toFlat]
+    if tl and tl.zoneIdx == fl.zoneIdx then return nil end
+    -- (Header order, the director, Nov 22 2026) a row of a Loot column (fe.colIdx): its own column's Take all,
+    -- matched by the toggle's key, the column's container key; a plain list's zone holds only its own
+    local key
+    local cnt = w._mainContent
+    local cs = fe.colIdx and cnt and cnt._colStates and cnt._colStates[fe.colIdx]
+    if cs and cs.inventory and ZeD.InventoryRenderer and ZeD.InventoryRenderer.containerKey then
+        key = ZeD.InventoryRenderer.containerKey(cs.inventory, cnt._playerObj)
+    end
+    local first
+    for fi = 1, #locator do
+        local loc = locator[fi]
+        local e = loc.zoneIdx == fl.zoneIdx and fz.elements[loc.elementIdx]
+        if e and e.isViewToggle and e.view == "lootall" then
+            if not key or e.key == key then return fi end
+            first = first or fi
+        end
+    end
+    return first
+end
+
+-- (Header order, the director, Nov 22 2026) The footer band's way in, now Down past the list's last row wraps to the
+-- heading's Take all (above): Up with nothing above it in the window (from the title bar, or a heading with no bar
+-- over it) wraps on round to the band's first button, and Down from the band goes to the list's first row on show.
+-- The loop both ways: band, Down, rows, Down, heading's Take all, Up, title bar, Up, band. Only where the wrap to
+-- Take all is in effect (a heading with a Take all stop); the Character window's band keeps its plain Down.
+-- fromFlat: the focused stop; toFlat: the spatial pick (nil: none). Returns a flat index, or nil to keep the pick.
+Focus._BAND_ZONES = { charCtl = true, worldCtl = true }   -- (on Focus, not a file local: this file is large)
+function Focus._bandWrap(w, locator, fromFlat, toFlat, dir)
+    local fl = fromFlat and locator[fromFlat]
+    if not fl or (dir ~= "up" and dir ~= "down") then return nil end
+    local ring = w._focusRing
+    local fz = ring[fl.zoneIdx]
+    local fromBand = fz and Focus._BAND_ZONES[fz.zone] or false
+    -- the heading's Take all (its zone is the list's) and the band's first button
+    local lootFi, bandFi
+    for fi = 1, #locator do
+        local loc = locator[fi]
+        local z = ring[loc.zoneIdx]
+        local e = z and z.elements and z.elements[loc.elementIdx]
+        if e then
+            if not lootFi and e.isViewToggle and e.view == "lootall" then lootFi = fi end
+            if Focus._BAND_ZONES[z.zone] and (not bandFi or loc.elementIdx < locator[bandFi].elementIdx) then bandFi = fi end
+        end
+    end
+    if not (lootFi and bandFi) then return nil end
+    if dir == "up" then
+        if toFlat or fromBand then return nil end   -- (something above, or the band's own Up: the list's last row)
+        return bandFi
+    end
+    if not fromBand then return nil end
+    -- Down from the band: the list's top row on show (an item's row), else its Take all
+    local lz = locator[lootFi].zoneIdx
+    local best, bestY
+    for fi = 1, #locator do
+        local loc = locator[fi]
+        local e = loc.zoneIdx == lz and ring[lz].elements[loc.elementIdx]
+        if e and e.item and not e.offscreen and type(e.y) == "number" and (not bestY or e.y < bestY) then
+            best, bestY = fi, e.y
+        end
+    end
+    return best or lootFi
+end
+
 local function _handleSpatialNav(w, dir)
     _fresh(w)
     if not w or not w._focusRing then return end
@@ -2093,6 +2169,17 @@ local function _handleSpatialNav(w, dir)
         local fz = fl and w._focusRing[fl.zoneIdx] and w._focusRing[fl.zoneIdx].zone
         if type(tz) == "string" and tz:sub(-9) == "TitlePins" and tz ~= fz then newPickIdx = nil end
     end
+    -- (Header order, Nov 22 2026) Down from a list's last row with nothing under it: the heading's Take all
+    if not newPickIdx and dir == "down" then
+        local wrap = Focus._lootAllWrap(w, locator, _findCurrentFlatIdx(w, locator), nil)
+        if wrap then searchEls, searchLoc, newPickIdx, pass = elements, locator, wrap, "wrap" end
+    end
+    -- (Header order, Nov 22 2026) Up with nothing above: on round to the footer band; Down from the band with
+    -- nothing under it: the list's first row (Focus._bandWrap)
+    if not newPickIdx and (dir == "up" or dir == "down") then
+        local wrap = Focus._bandWrap(w, locator, _findCurrentFlatIdx(w, locator), nil, dir)
+        if wrap then searchEls, searchLoc, newPickIdx, pass = elements, locator, wrap, "wrap" end
+    end
     if not newPickIdx then
         -- nothing more that way in this window: Left / Right go on to the
         -- other window when it sits that way on screen (the pair side by
@@ -2284,6 +2371,18 @@ local function _handleSpatialNav(w, dir)
                 if e and e.view == "lootall" and e.key == te.key then newFlatIdx = fi; break end
             end
         end
+    end
+    -- (Header order, Nov 22 2026) Down from a list's last row onto anything outside the list (the footer band):
+    -- wraps to the heading's Take all instead
+    if dir == "down" and newFlatIdx ~= logFromIdx then
+        local wrap = Focus._lootAllWrap(w, locator, logFromIdx, newFlatIdx)
+        if wrap then newFlatIdx, pass = wrap, "wrap" end
+    end
+    -- (Header order, Nov 22 2026) Down from the footer band onto anything (the drawer's foot beside it): the list's
+    -- first row on show instead
+    if dir == "down" and newFlatIdx ~= logFromIdx then
+        local wrap = Focus._bandWrap(w, locator, logFromIdx, newFlatIdx, dir)
+        if wrap then newFlatIdx, pass = wrap, "wrap" end
     end
     if _preview then
         local z = w._focusRing[locator[newFlatIdx].zoneIdx]

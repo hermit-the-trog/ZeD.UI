@@ -68,13 +68,47 @@ HOLES = set(_R1.HOLES)
 
 WHOLE = {"plus", "minus", "move_up", "move_down", "r_favorite"}   # the glyph is all mark
 
+# STRIP (Icon color, the director, Nov 22 2026: "Let's give the header and footer icons a little taste of color, just
+# like we did for context menus."): the inventory lists' heading and footer band icons that have no mark in the menus,
+# with the menus' palette and meanings. Kept apart from MARKS so the right-click menu and the wheels, which draw these
+# icons too (Filter water, Light fire, the vehicle's padlock, the cog), stay as signed off; only the strips color them.
+# export.py writes their zw_<id>_mk.png beside the menus' and the table ZeD.PxIconStripMark. A strip button may name
+# another kind for its own side (Same type: Take blue in the World window, Put in red in the Character window).
+# The strips' icons already in MARKS keep their menu marks there: tray_in, tray_out, to_floor, trash.
+STRIP = {
+    "filter": BLUE,          # the drop under the funnel: what comes through
+    "view_list": BLUE,       # the bullets: the view on show
+    "view_grid": BLUE,       # the first tile: the view on show
+    "same_type": BLUE,       # the front sheet: Take (World); the Character window's Put in draws it red
+    "same_nearby": RED,      # the arrows out to every container nearby: Put in
+    "power": GOLD,           # the stem: power
+    "match": GOLD,           # the flame: fire
+    "campfire": GOLD,        # the flame: fire (Add fuel)
+    "gears": GOLD,           # the hub: a stove's or a machine's settings (heat, power)
+    "extinguisher": RED,     # the hose and horn: put out, off
+    "padlock": GOLD,         # the shackle: kept (lock the trunk)
+}
+# STRIP_MORE: a strip icon's further marks, each in a color of its own: id -> the kinds of mark layers 2, 3, ...
+# (kit.C.mark(n)), exported as zw_<id>_mk<n>.png. The director, Nov 22 2026, of the Filter: its top bar split down
+# the middle, "blue on the left-hand side, red on the right-hand side. So when those two pass through the filter
+# cone, only blue comes out." (Mark 1: the bar's left half and the drop, blue; mark 2: the bar's right half, red.)
+STRIP_MORE = {
+    "filter": [RED],
+}
 
-def mark_image(id_, size):
-    """the icon's mark pixels (white on clear) at 16 or 24, or None"""
+
+def strip_kinds(id_):
+    """a strip icon's mark kinds, layer 1 first: [kind] or [kind, kind2, ...]"""
+    return [STRIP[id_]] + list(STRIP_MORE.get(id_, []))
+
+
+def mark_image(id_, size, n=1):
+    """the icon's mark pixels (white on clear) at 16 or 24, or None; n: the mark layer (STRIP_MORE's are 2, 3, ...)"""
     import kit
-    if id_ not in MARKS: return None
+    if id_ not in MARKS and id_ not in STRIP: return None
+    if n > 1 and n - 1 > len(STRIP_MORE.get(id_, [])): return None
     if id_ in WHOLE: return kit.render(id_, size)
-    return kit.render_mark(id_, size)
+    return kit.render_mark(id_, size, n)
 
 
 def base_image(id_, size):
@@ -95,7 +129,22 @@ def check():
     (unless WHOLE). Returns a list of problems."""
     import kit
     bad = []
-    for id_, kind in MARKS.items():
+    both = dict(STRIP); both.update(MARKS)
+    for id_ in STRIP:
+        if id_ in MARKS: bad.append("%s: in MARKS and STRIP" % id_)
+    for id_, more in STRIP_MORE.items():
+        if id_ not in STRIP: bad.append("%s: in STRIP_MORE, not STRIP" % id_); continue
+        for k, kind in enumerate(more):
+            if kind not in KINDS: bad.append("%s mark %d: kind %r" % (id_, k + 2, kind))
+            for sz in (16, 24):
+                m = mark_image(id_, sz, k + 2)
+                if m is None: bad.append("%s %d: no pixels on mark %d" % (id_, sz, k + 2)); continue
+                # the layers never share a pixel (each pixel one color)
+                for j in range(1, k + 2):
+                    o = mark_image(id_, sz, j)
+                    if o is not None and any(a and b for a, b in zip(m.getchannel("A").tobytes(), o.getchannel("A").tobytes())):
+                        bad.append("%s %d: marks %d and %d overlap" % (id_, sz, j, k + 2))
+    for id_, kind in both.items():
         if kind not in KINDS: bad.append("%s: kind %r" % (id_, kind)); continue
         if id_ not in kit.ICONS: bad.append("%s: no such icon" % id_); continue
         for sz in (16, 24):
@@ -116,5 +165,5 @@ if __name__ == "__main__":
     import allicons  # noqa: F401
     problems = check()
     for p in problems: print("FAIL", p)
-    print("marks:", len(MARKS), "icons,", len(problems), "problems")
+    print("marks:", len(MARKS), "icons,", len(STRIP), "strip icons,", len(problems), "problems")
     sys.exit(1 if problems else 0)

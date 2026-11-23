@@ -635,10 +635,12 @@ local function _measureDefenseDashboard(win, protData, w)
     -- The defense body always shows (no disclosure of its own); the pinned
     -- header toggles the equipped INVENTORY list instead.
     local pad    = ZeD.Molecules.getTabPad()
-    local figH = T.sp.figureH
     local rightColH = ZeD.ProtectionTab._measureRightColumn(protData)
     -- no top padding here: render puts figureGap above the body instead
-    local contentH = math.max(figH, rightColH) + pad
+    -- (the figure in its frame, the left half, the stats the right half or under it on a narrow card: measured at
+    -- the narrowest the body draws, the scroll bar showing) (Figure frame, the director, Nov 22 2026)
+    local L = ZeD.Molecules.layoutZoneA(0, 0, w - T.sp.scrollbarW)
+    local contentH = ZeD.Molecules.figureZoneH(L, rightColH) + pad
     return headerH + contentH
 end
 
@@ -722,13 +724,12 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
     -- --- Dashboard content ---
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
 
-    local figW = T.sp.figureW
-    local figH = T.sp.figureH
     local contentY = y + headerH
-    local layout = ZeD.Molecules.layoutZoneA(x, contentY, w, figW, figH)
+    local layout = ZeD.Molecules.layoutZoneA(x, contentY, w)
 
-    -- Left column: body figure
-    _drawDefenseFigure(panel, win, protData, layout.figX, layout.figY, figW, figH)
+    -- Left half: the body figure in its frame, at the layout's whole zoom (Figure frame, the director, Nov 22 2026)
+    M.drawFigureFrame(panel, layout)
+    _drawDefenseFigure(panel, win, protData, layout.figX, layout.figY, layout.figW, layout.figH)
 
     -- Right column: hover detail OR default stats
     local rightX = layout.rightX
@@ -799,7 +800,7 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
     end
 
     local rightColH = ZeD.ProtectionTab._measureRightColumn(protData)
-    local totalH = math.max(figH, rightColH) + pad * 2
+    local totalH = M.figureZoneH(layout, rightColH) + pad * 2   -- (the frame and the stats) (Figure frame, the director, Nov 22 2026)
     return headerH + totalH
 end
 

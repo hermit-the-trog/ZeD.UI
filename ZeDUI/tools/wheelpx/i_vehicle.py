@@ -212,14 +212,16 @@ def _lock(c, s, shut):
         c.rrect(2, 7, 12, 8, 1)
         c.dot(8, 10, 1.3, v=0); c.rect(7.5, 10, 1, 3, v=0)
         if shut:
-            c.arc(8, 6, 3.2, 180, 360, 1.6, caps=False); c.rect(4, 6, 2, 1); c.rect(10, 6, 2, 1)
+            with c.mark():   # (the shackle: the strips' gold, kept; Icon color, the director, Nov 22 2026)
+                c.arc(8, 6, 3.2, 180, 360, 1.6, caps=False); c.rect(4, 6, 2, 1); c.rect(10, 6, 2, 1)
         else:
             c.arc(10.5, 4, 3.2, 180, 360, 1.6, caps=False); c.rect(12.5, 4, 2, 3); c.rect(6.5, 4, 2, 1)
     else:
         c.rrect(3, 11, 18, 12, 2)
         c.dot(12, 15.5, 2, v=0); c.rect(11.2, 15.5, 1.6, 4.5, v=0)
         if shut:
-            c.arc(12, 8.5, 5, 180, 360, 2.6, caps=False); c.rect(5.7, 8.5, 2.6, 2.5); c.rect(15.7, 8.5, 2.6, 2.5)
+            with c.mark():
+                c.arc(12, 8.5, 5, 180, 360, 2.6, caps=False); c.rect(5.7, 8.5, 2.6, 2.5); c.rect(15.7, 8.5, 2.6, 2.5)
         else:
             c.arc(16, 5.5, 5, 180, 360, 2.6, caps=False); c.rect(19.7, 5.5, 2.6, 5.5); c.rect(9.7, 5.5, 2.6, 2)
 

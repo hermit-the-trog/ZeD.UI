@@ -1327,19 +1327,58 @@ function ZeD_CharacterWindow.containerIndex(pn, inv)
     end
     return nil
 end
+-- (QA belt row run, Nov 22 2026) A bag not in the window's list yet (the list is rebuilt twice a second: a bag just
+-- put on, a window still being built) is kept as pending on the window, win._bagAlonePending, and the strip's draw
+-- applies it on the first frame whose list has it (_applyBagPending). It gives up after BAG_PENDING_MS or
+-- BAG_PENDING_FRAMES, whichever is later, and shows the main inventory instead. Returns true when shown or pending.
+ZeD_CharacterWindow.BAG_PENDING_MS, ZeD_CharacterWindow.BAG_PENDING_FRAMES = 1500, 90
 function ZeD_CharacterWindow.showBagAlone(pn, inv)
     local win = _charWins[pn or 0]
-    local content = win and win._mainContent
+    if not (win and inv) then return false end
+    local content = win._mainContent
     local idx = ZeD_CharacterWindow.containerIndex(pn, inv)
-    if not (content and idx) then return false end
+    if not (content and idx) then
+        -- (not on the strip yet: wait for it; the list is rebuilt on the next frame, win._containerTimer = 30)
+        win._bagAlonePending = { inv = inv, frames = 0, untilMs = getTimestampMs() + ZeD_CharacterWindow.BAG_PENDING_MS }
+        win._containerTimer = 30
+        return true
+    end
+    win._bagAlonePending = nil
     -- (the strip's show-alone is a Loot tab click: an open tab drawer folds back to Loot first)
     if win._activeTab ~= "loot" then _switchTabForNav(win, content, "loot") end
     ZeD_CharacterWindow._showAlone(win, content, idx)
     return true
 end
--- true while the window shows that bag alone on Loot (the bag button's second click then closes the pair)
+-- A pending bag (showBagAlone above), tried once per frame from the strip's draw after its list refresh: shown when
+-- the list has it, else counted; past both bounds the main inventory shows alone and the wait ends.
+function ZeD_CharacterWindow._applyBagPending(win, content)
+    local pend = win and win._bagAlonePending
+    if not (pend and content) then return end
+    for i, c in ipairs(win._containers or {}) do
+        if c.inventory == pend.inv then
+            win._bagAlonePending = nil
+            if win._activeTab ~= "loot" then _switchTabForNav(win, content, "loot") end
+            ZeD_CharacterWindow._showAlone(win, content, i)
+            return
+        end
+    end
+    pend.frames = pend.frames + 1
+    if pend.frames >= ZeD_CharacterWindow.BAG_PENDING_FRAMES and getTimestampMs() >= pend.untilMs then
+        win._bagAlonePending = nil
+        if win._activeTab ~= "loot" then _switchTabForNav(win, content, "loot") end
+        ZeD_CharacterWindow._showAlone(win, content, 1)
+        return
+    end
+    -- (ask for a fresh list on the next frame while waiting, not only every 500 ms)
+    win._containerTimer = 30
+end
+-- true while the window shows that bag alone on Loot, or is about to (pending): the bag button's second click then
+-- closes the pair
 function ZeD_CharacterWindow.showsBagAlone(pn, inv)
     local win = _charWins[pn or 0]
+    if not win then return false end
+    local pend = win._bagAlonePending
+    if pend and pend.inv == inv then return true end
     local idx = ZeD_CharacterWindow.containerIndex(pn, inv)
     return idx ~= nil and win._activeTab == "loot" and win._activeContainer == idx and #(win._mcSelected or {}) == 0
 end
@@ -3895,6 +3934,8 @@ local function drawContainerStrip(self, win, content)
         win._containerTimer = 0
         win._containerDueMs = nowMs + 500
         remapCharContainers(win, content, win._containers, buildContainers(win._playerObj))
+        -- (a bag the belt's bag button asked for before the list had it: QA belt row run, Nov 22 2026)
+        if win._bagAlonePending then ZeD_CharacterWindow._applyBagPending(win, content) end
 
         -- Refresh equipped radios + clamp browse index.
         win._radios = ZeD.RadioTab.buildEquippedRadios(win._playerObj)

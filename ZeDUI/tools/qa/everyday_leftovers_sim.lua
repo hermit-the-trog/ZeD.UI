@@ -455,10 +455,10 @@ do
         local _, y0 = B.layoutNoticeBalloons({ { lines = { "A" }, tw = 6 } }, -500, 500, false)
         check("no note on the screen: no tail room", y0 == -B.GAP - B.boxH(1), y0)
     end
-    -- the toasts window draws them out of the belt's note
+    -- the toasts window draws them out of the Messages notice in the screen's corner (the belt's note before, Nov 22 2026)
     local src = io.open(CLIENT .. "ZeD_MessagesWindow.lua"):read("*a")
     check("the toasts no longer stand in the top right corner", src:find("TOAST_RIGHT", 1, true) == nil)
-    check("the toasts come out of the belt's note", src:find("B.noteAnchor", 1, true) ~= nil and src:find("layoutNoticeBalloons", 1, true) ~= nil)
+    check("the toasts come out of the corner notice", src:find("E.anchor", 1, true) ~= nil and src:find("layoutNoticeBalloons", 1, true) ~= nil)
 end
 
 -- ===========================================================================
@@ -742,25 +742,12 @@ do
         check("ZeD.MiniMapOff.hide exists", false)
     end
 
-    -- 5. each player's notices from that player's belt; player one's when there is one belt
+    -- 5. the notices came out of each player's belt note; the note left the belt for the screen's corner (Error box,
+    -- the director, Nov 22 2026): the belt has no anchor of its own now (ZeD_ErrorBox.lua's E.anchor, below)
     ZeD.Belt = {}
     local okB, errB = loadZ("ZeD_Belt.lua")
     check("ZeD_Belt.lua loads", okB, errB)
-    local B = ZeD.Belt
-    local function hud(x, lampX)
-        return { _drawn = true, getIsVisible = function() return true end, getX = function() return x end,
-                 getY = function() return 700 end, _boxes = { { kind = "slot", x = 0, y = 0, w = 10, h = 10 }, { kind = "lamp", x = lampX, y = 4, w = 38, h = 38 } } }
-    end
-    B._hud = hud(100, 500)
-    B._huds = nil
-    local ax = B.noteAnchor(1)
-    check("one belt: player two's notice from player one's note", ax == 100 + 500 + 19, ax)
-    B._huds = { [0] = hud(100, 500), [1] = hud(1000, 400) }
-    check("a belt per player: player two's from player two's note", B.noteAnchor(1) == 1000 + 400 + 19, B.noteAnchor(1))
-    check("... player one's from player one's", B.noteAnchor(0) == 619)
-    check("no belt for player three: player one's", B.noteAnchor(2) == 619)
-    B._huds, B._hud = nil, nil
-    check("no belt at all: none", B.noteAnchor(0) == nil)
+    check("the belt has no note to anchor the notices any more", ZeD.Belt.noteAnchor == nil)
 
     -- notices addressed to a player
     ZeD.MessagesWindow = {}
@@ -774,6 +761,11 @@ do
         local p0, p1 = W.toastsFor(0, all), W.toastsFor(1, all)
         check("player one's balloons: theirs and a player gone's", #p0 == 2 and p0[1].head == "a" and p0[2].head == "c", #p0)
         check("player two's: theirs", #p1 == 1 and p1[1].head == "b")
+        -- 1. the corner notice while it shows on this player's part of the screen: the balloons out of it
+        ZeD.ErrorBox = { anchor = function(pn) if pn == 0 then return 1800, 1000 end return nil end }
+        local cx, cy, ct = W.noticeAnchor(0)
+        check("the corner notice: the balloons out of its top middle, with the tail", cx == 1800 and cy == 1000 - 4 and ct == true, tostring(cx) .. "," .. tostring(cy))
+        ZeD.ErrorBox = { anchor = function() return nil end }   -- (no notice showing)
         -- 2. driving: the dash's note, the bubbles out of it
         ZeD.Messages.count = function() return 1 end
         local dash = { getIsVisible = function() return true end, getX = function() return 560 end, getY = function() return 900 end,
