@@ -1,0 +1,8 @@
+# ZeDUI/tools/qa/hg_tint.txt (Nov 23 2026, QA): the Health figure's tint, Build's fix/notint (c4f2f1de7). The director, Nov 23 2026: "the problem is that I can't see the skeleton." In Dark, Light and High contrast: the healthy body has no tint on any part and the figure keeps its bones light (boneLift); a scratch, a deep wound and a bite take their list dot's severity token, minor and heavy strain their strain tints, every other part none; the medical check card (336 units) the same; Thermal unchanged (no boneLift). God mode is off while it runs (hg_injury's guard); every part, the theme, the card and the windows are put back.
+# Pictures: Zomboid/Screenshots/hg_tint_<dark|light|hc>_<healthy|hurt|medcard>_<w>x<h>, hg_tint_dark_thermal_<w>x<h>; each logs "NOTE rect <file> <health|card|thermal> figure=x,y,w,h ..." in screen pixels to crop the figure.
+# Run both sizes:
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/hg_tint.txt -Mode fullscreen4k -Report hg_tint_4k
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/hg_tint.txt -Mode windowed -Width 1280 -Height 800 -Report hg_tint_deck
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+hg_tint.lua | hg_tint | timeout=1200
