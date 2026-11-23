@@ -34,6 +34,7 @@ Total keys: 5307.
 - [Doll](#doll) (23)
 - [Drawer](#drawer) (2)
 - [Equip](#equip) (39)
+- [ErrorBox](#errorbox) (1)
 - [ETW](#etw) (7)
 - [Farm](#farm) (50)
 - [Find](#find) (12)
@@ -1264,6 +1265,12 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Equip_ZonePct` | `%1 (%2)` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): value under Worst/Best Zone; %1 is a body part name, %2 its bite protection as a percentage | 36 |
 | `UI_ZeD_Equip_ZoneUncovered` | `%1 (no protection)` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): value under Worst Zone when nothing worn protects that part (no garment covers it in the game's protection: a baseball cap gives the head none). Not that nothing is worn there; %1 is a body part name | 36 |
 | `UI_ZeD_Equip_BeltRowHelp` | `%1 on the belt: %2 is the button at the right` | Equipment tab, list view: help line over a belt slot row; %1 = the item's name (or Empty), %2 = the label of the row's button | - |
+
+## ErrorBox
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_ErrorBox_Marker` | `Error` | The small red (or gray) box that slides up from the screen's bottom right corner for a few seconds when a new error comes in, under the Messages notice; the count of new errors on the line under it. A single word, as short as your language has it (the box is narrow) | 6 |
 
 ## ETW
 

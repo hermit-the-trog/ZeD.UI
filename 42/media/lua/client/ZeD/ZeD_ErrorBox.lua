@@ -31,8 +31,16 @@
 -- with the paper note and the count of what is new: red only for a new error of ZeD's own, the accent for a note, gray
 -- for other mods' or the game's errors (K3 #42, ZeD.Belt.lampTone). It shows while anything is unread, and for a few
 -- seconds after something new comes in (the count of what Messages holds rose: a new note, a new error entry); then it
--- hides itself, as the game's box did. No slide and no fade: it shows and hides plainly. A click, or A when the pad
--- reaches it from the belt's right end, opens Messages. Messages' balloons come out of it.
+-- hides itself, as the game's box did. No fade: it shows and hides plainly. A click, or A when the pad reaches it from
+-- the belt's right end, opens Messages. Messages' balloons come out of it.
+--
+-- THE MARKER (ZeD's own red box in the game's box's place): when a new error is filed, a box the notice's width rises
+-- from the screen's bottom edge under the notice and lifts the notice with it, holds about 3 s and slides back down,
+-- the marker off the screen and the notice to its place. A plain linear slide, 0.5 s up and 0.5 s down, as the game's
+-- box moved; the one motion ZeD allows here. Red for ZeD's own errors, gray for other mods' or the game's; notes get
+-- none. More errors while it is up keep it up longer. (Error marker, the director, Nov 22 2026: "a red box the width
+-- of the message box, and it comes from the bottom of the screen up. It bumps the message box up with it, and then it
+-- drops back down")
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -280,14 +288,177 @@ function ZeD_ErrorNotice:onMouseDown(x, y)
 end
 function ZeD_ErrorNotice:onMouseUp(x, y) return true end
 
+-- ---------------------------------------------------------------------------
+-- THE MARKER: what it shows and when (Error marker, the director, Nov 22 2026)
+-- ---------------------------------------------------------------------------
+E.RISE_MS = 500    -- the slide up (the game's box took about half a second)
+E.HOLD_MS = 3000   -- how long it stays up after the last new error (the game's box's few seconds)
+E.FALL_MS = 500    -- the slide back down
+-- the marker's state: phase nil (down, hidden), "up" (rising), "hold" or "down" (falling); p how far up, 0 to 1;
+-- t the last frame's time; holdEnd when the hold ends; count the errors filed since it started; kind "ours" or "others"
+E._mk = E._mk or { phase = nil, p = 0, t = 0, holdEnd = 0, count = 0, kind = nil }
+
+--- The error entries Messages has filed, ZeD's own and everyone else's: the totals of each error line's count.
+function E.errorTotals()
+    local M = ZeD.Messages
+    local B = ZeD.Belt
+    local ours, others = 0, 0
+    for name, s in pairs(M and M.sources or {}) do
+        if s.kind == "err" then
+            -- (the same test as the badge's red: ZeD's own mod name)
+            local mine
+            if B and B.isZeDSource then mine = B.isZeDSource(name) else mine = tostring(name):sub(1, 7) == "ZeD-GUI" end
+            for _, it in ipairs(s.items or {}) do
+                if mine then ours = ours + (it.count or 0) else others = others + (it.count or 0) end
+            end
+        end
+    end
+    return ours, others
+end
+
+--- True while the marker may show: a character, not safe mode, and the game's own box hidden (with it given back, or
+--- up for the FPS graph or the locked pointer, the game's box shows and there is no second one).
+function E.markAllowed()
+    if not (getPlayer and getPlayer()) then return false end
+    if ZeD.Safe and ZeD.Safe.on and ZeD.Safe.on() then return false end
+    return E.hideWanted()
+end
+
+-- moves the marker on by dt ms; it can cross from one phase to the next within one frame (a long frame)
+local function markAdvance(k, dt, now)
+    for _ = 1, 3 do
+        if k.phase == "up" then
+            k.p = k.p + dt / E.RISE_MS
+            if k.p < 1 then return end
+            dt = (k.p - 1) * E.RISE_MS   -- (the time since it reached the top)
+            k.p = 1
+            k.phase = "hold"
+            k.holdEnd = math.max(k.holdEnd or 0, now - dt + E.HOLD_MS)
+        elseif k.phase == "hold" then
+            if now < k.holdEnd then return end
+            dt = now - k.holdEnd   -- (the time since the hold ended)
+            k.phase = "down"
+        elseif k.phase == "down" then
+            k.p = k.p - dt / E.FALL_MS
+            if k.p > 0 then return end
+            k.phase, k.p, k.count, k.kind = nil, 0, 0, nil
+            return
+        else
+            return
+        end
+    end
+end
+
+--- Once a frame: reads the new error entries and moves the marker. Returns its state (E._mk).
+function E.markStep(now)
+    local k = E._mk
+    local ours, others = E.errorTotals()
+    -- (the first look, and a fall when a line is deleted, start nothing)
+    local dOurs = math.max(0, ours - (E._mkOurs or ours))
+    local dOthers = math.max(0, others - (E._mkOthers or others))
+    E._mkOurs, E._mkOthers = ours, others
+    if not E.markAllowed() then
+        k.phase, k.p, k.count, k.kind, k.t = nil, 0, 0, nil, now
+        return k
+    end
+    markAdvance(k, math.max(0, now - (k.t or now)), now)
+    k.t = now
+    local new = dOurs + dOthers
+    if new > 0 then
+        k.count = (k.count or 0) + new
+        -- (red once one of ZeD's own came in; gray for other mods' or the game's)
+        if dOurs > 0 then k.kind = "ours" elseif not k.kind then k.kind = "others" end
+        if k.phase == nil then
+            k.phase, k.p = "up", 0
+            -- (under the hint strip and the rest of the HUD: to the back of the UI list each time it starts)
+            if E._marker then pcall(function() E._marker:backMost() end) end
+        elseif k.phase == "down" then
+            k.phase = "up"   -- (back up from where it is, no jump)
+        end
+        -- (more while it is up: the hold runs on from the newest, the slide does not start again)
+        k.holdEnd = math.max(k.holdEnd or 0, now + E.HOLD_MS)
+    end
+    return k
+end
+
+--- The marker's size in pixels: the notice's width, two lines of the badge's font high.
+function E.markSize()
+    local T = ZeD.T
+    local fh = ZeD.TM and ZeD.TM.getFontHeight and ZeD.TM:getFontHeight(T.fontF1) or T.px(14)
+    return T.px(E.NOTE_U), fh * 2 + T.px(6)
+end
+
+ZeD_ErrorMarker = ZeD_Panel:derive("ZeD_ErrorMarker")
+
+function ZeD_ErrorMarker:new()
+    local o = ZeD_Panel:new(0, 0, 10, 10)
+    setmetatable(o, self)
+    self.__index = self
+    o.playerNum = 0
+    o._zedLabel = "ErrorMarker"
+    o.anchorRight, o.anchorBottom = false, false
+    return o
+end
+
+function ZeD_ErrorMarker:prerender()
+    local T = ZeD.T
+    if not T then return end
+    local w, h = self.width, self.height
+    local k = E._mk
+    -- red for ZeD's own errors, gray for other mods' or the game's (the badge's colors)
+    local c = (k.kind == "ours") and T.danger or T.textDim
+    self:drawRect(0, 0, w, h, 1, c.r, c.g, c.b)
+    if self:isMouseOver() then local hv = T.hover; self:drawRect(0, 0, w, h, hv.a or 0.2, hv.r, hv.g, hv.b) end
+    local bd = T.borderS
+    self:drawRectBorder(0, 0, w, h, 1, bd.r, bd.g, bd.b)
+    local ink = T.base or { r = 0.05, g = 0.05, b = 0.05 }
+    local tm = ZeD.TM
+    local word = ZeD.tr("UI_ZeD_ErrorBox_Marker")
+    local num = tostring(math.min(k.count or 0, 99))
+    -- (the badge's font; the small one when this language's word is wider than the box)
+    local f = T.fontF1
+    if tm:MeasureStringX(f, word) > w - T.px(4) then f = T.fontF5 end
+    local fh = tm:getFontHeight(f)
+    local top = math.floor((h - fh * 2) / 2)
+    self:drawText(word, math.floor((w - tm:MeasureStringX(f, word)) / 2), top, ink.r, ink.g, ink.b, 1, f)
+    self:drawText(num, math.floor((w - tm:MeasureStringX(f, num)) / 2), top + fh, ink.r, ink.g, ink.b, 1, f)
+end
+function ZeD_ErrorMarker:render() end
+
+-- a click opens Messages, as the notice does
+function ZeD_ErrorMarker:onMouseDown(x, y)
+    E.press()
+    return true
+end
+function ZeD_ErrorMarker:onMouseUp(x, y) return true end
+
 -- shown or not, and where, before each frame draws (a hidden element gets no prerender to show itself again)
 function E.frame()
     local el = E._note
     if not (el and ZeD.T) then return end
     local now = getTimestampMs and getTimestampMs() or 0
+    local k = E.markStep(now)
     local want = E.wanted(now)
+    -- the marker: its top p of the way from the screen's bottom edge to EDGE_U above its height
+    local mk = E._marker
+    local top = nil
+    if mk then
+        local on = k.phase ~= nil
+        if on then
+            local x = E.rect()
+            local mw, mh = E.markSize()
+            top = getCore():getScreenHeight() - math.floor((mh + ZeD.T.px(E.EDGE_U)) * k.p + 0.5)
+            if mk.x ~= x then mk:setX(x) end
+            if mk.y ~= top then mk:setY(top) end
+            if mk.width ~= mw then mk:setWidth(mw) end
+            if mk.height ~= mh then mk:setHeight(mh) end
+        end
+        if on ~= mk:getIsVisible() then mk:setVisible(on) end
+    end
     if want then
         local x, y, s = E.rect()
+        -- (the marker pushes the notice up once its top reaches the notice's bottom: lifted by its height at the top)
+        if top then y = math.min(y, top - s) end
         if el.x ~= x then el:setX(x) end
         if el.y ~= y then el:setY(y) end
         if el.width ~= s then el:setWidth(s); el:setHeight(s) end
@@ -305,6 +476,14 @@ function E.install()
     el:setVisible(false)
     E._note = el
     E._seen = E.arrivals()   -- (what Messages already holds is not new)
+    -- the marker: under the HUD, not always on top (Error marker, the director, Nov 22 2026)
+    local mk = ZeD_ErrorMarker:new()
+    mk:initialise()
+    mk:addToUIManager()
+    mk:setVisible(false)
+    pcall(function() mk:backMost() end)
+    E._marker = mk
+    E._mkOurs, E._mkOthers = E.errorTotals()   -- (errors filed before the game started are not new)
     return el
 end
 
