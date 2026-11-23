@@ -242,6 +242,28 @@ def rim_of(m):
     return to_rgba(np.where(e, 255.0, 0.0), e)
 
 
+def hitch_gap(lines, filled, car):
+    """the open space inside a trailer's tow hitch (Car parts to the sides, Nov 22 2026; the director: "The tow hitch
+    extensions ... are square tubing that come to an intersection where the tow hitch is. So there's no panel in the
+    middle."). Filling the car's outline also filled the triangle the two arms close with the trailer's front, so it
+    came out a grey panel. That triangle is a hole in the line art that starts in a point (one or two cells wide at
+    its top) a little under the ball, about half fills its box (a triangle) and sits in the car's top third; the
+    ball's own ring (right at the top) and the panels (square, or wide at the top) are left alone. Returns its cells."""
+    gap = np.zeros_like(car)
+    ys, xs = np.nonzero(car)
+    top, H = ys.min(), ys.max() + 1 - ys.min()
+    lab, k = ndi.label(filled & ~lines)
+    for i in range(1, k + 1):
+        hy, hx = np.nonzero(lab == i)
+        n = len(hy)
+        if n < 10: continue
+        h, w = hy.max() - hy.min() + 1, hx.max() - hx.min() + 1
+        tip = int((hy == hy.min()).sum())
+        if tip <= 2 and n / float(w * h) <= 0.7 and hy.min() > top + 4 and hy.min() < top + H / 3.0:
+            gap |= lab == i
+    return gap
+
+
 def build(body, out):
     os.makedirs(out, exist_ok=True)
     files = sorted(glob.glob(os.path.join(SRC, body + "_*.png")))
@@ -266,6 +288,7 @@ def build(body, out):
     for _ in range(2):          # the first cell of a leader comes back with the outline: a nub, one side touching
         nb = ndi.convolve(car.astype(np.uint8), np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]], np.uint8), mode="constant")
         car &= ~(car & (nb <= 1))
+    if "trailer" in body: car &= ~hitch_gap(lines, filled, car)
     body_m = car & ~parts
     bt = shade(body_m, 95, 135, 70, depth=4.0, outline=None)
     bt = np.where(car & ~ndi.binary_erosion(car), 230, bt)             # the car's own outline, light
@@ -360,6 +383,9 @@ def save_layers(body, out, out_layers):
     return out_layers
 
 
+BODY_TINT_A = 0.22   # the base wash's alpha, the same number drawFigure uses (MechanicsTab.lua)
+
+
 def preview(body, out_layers, path, scale=3, cond=None):
     """the figure as the tab draws it: the base dim, each part tinted by a condition colour"""
     H, W = next(iter(out_layers.values()))[1].shape
@@ -372,6 +398,12 @@ def preview(body, out_layers, path, scale=3, cond=None):
     dim = (150, 150, 140)
     over(*out_layers["base"], dim, 0.6)
     cols = {"good": (90, 200, 110), "warn": (230, 170, 60), "bad": (225, 70, 60)}
+    # the base's light wash in the vehicle's overall condition color, as the tab draws it (Nov 22 2026): the mean of
+    # the parts' sample conditions (good 80, warn 40, bad 10), banded as the status bars band it
+    names = [n for n in out_layers if n != "base"]
+    bands = [cond.get(n, "good") if isinstance(cond, dict) else (cond or "good") for n in names]
+    mean = sum({"good": 80, "warn": 40, "bad": 10}[b] for b in bands) / float(max(1, len(bands)))
+    over(*out_layers["base"], cols["good" if mean > 60 else "warn" if mean > 20 else "bad"], BODY_TINT_A)
     for i, (n, (t, m)) in enumerate(out_layers.items()):
         if n == "base": continue
         c = cond.get(n, "good") if isinstance(cond, dict) else (cond or "good")
@@ -413,7 +445,7 @@ def compare(body, out_layers, path):
         if not os.path.exists(p): continue
         im = np.asarray(Image.open(p).convert("RGBA")).astype(np.float32)
         col = (150, 150, 140) if n == "base" else cols[cond.get(n, "good")]
-        al = (0.45 if n == "base" else 0.95) * im[..., 3:4] / 255.0
+        al = (0.45 if n == "base" else 0.7) * im[..., 3:4] / 255.0   # the tab's 0.7 (Nov 22 2026)
         src = im[..., :3] / 255.0 * np.asarray(col, np.float32)
         sub = old[y - uy0:y - uy0 + h, x - ux0:x - ux0 + w]
         sub[...] = sub * (1 - al) + src * al

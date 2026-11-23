@@ -1091,7 +1091,18 @@ local function drawFigure(panel, s, fx, fy, fw, fh, v, parts, hlId, unknown, wor
     end
     local bt = tex(prefix .. "base")
     local bx, by, bw, bh = rectOf(prefix .. "base")
-    if bt and bx then panel:drawTextureScaledAspect(bt, bx, by, bw, bh, 0.45, dim.r, dim.g, dim.b) end
+    if bt and bx then
+        panel:drawTextureScaledAspect(bt, bx, by, bw, bh, 0.45, dim.r, dim.g, dim.b)
+        -- (Car parts to the sides, Nov 22 2026; the director: the parts with no condition of their own, "the frame,
+        -- the roof, tow hitch, etc., could those take on the average condition color of the vehicle? Very light
+        -- alpha on that.") They are all in the base layer: a light wash of the vehicle's overall condition color
+        -- (the summary's Overall, the parts' own bands), so the car reads as a whole. No wear on it; none on an
+        -- uninspected car, whose condition is not known yet.
+        if not unknown then
+            local oc = statusColor(T, overallCond(v))
+            panel:drawTextureScaledAspect(bt, bx, by, bw, bh, 0.22, oc.r, oc.g, oc.b)
+        end
+    end
     local pulse = 0.35 + 0.5 * (0.5 + 0.5 * math.sin(now() / 260))
     local ac = T.accent
     for _, p in ipairs(parts) do
