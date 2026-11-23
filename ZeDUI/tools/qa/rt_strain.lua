@@ -467,7 +467,9 @@ function S.otherFig(w, which)
     if which == "thermal" then return w._thermalBodyFigure end
     return w._equipDefBodyFigure
 end
--- the strained arms the figure misses, as "name tint"; nil with no figure drawn
+-- (QA, Nov 22: the director, "No, Health only": the strain tint is the Health tab's and the medical card's only;
+-- Thermal and Equipment keep their own colors) the strained arms the figure wrongly tints with strain, as "name tint";
+-- nil with no figure drawn
 function S.figMisses(which)
     local w = RT.cw()
     local fig = S.otherFig(w, which)
@@ -476,7 +478,7 @@ function S.figMisses(which)
     local miss = {}
     for _, a in ipairs(S.clean or {}) do
         local c = fig.colorMap[a.fn]
-        if not S.sameC(c, want) then miss[#miss + 1] = a.n .. " " .. S.cText(c) end
+        if S.sameC(c, want) then miss[#miss + 1] = a.n .. " " .. S.cText(c) end
     end
     return miss
 end
@@ -499,11 +501,10 @@ function S.otherReady(which)
     if not S.strainBuild() or not S.otherOpen then return true end
     local w = RT.cw()
     if not (w and w._activeTab == which) then return false end
-    local miss = S.figMisses(which)
-    return miss ~= nil and #miss == 0
+    return S.figMisses(which) ~= nil
 end
 function S.checkOther(lab, which, ok)
-    local what = lab .. " " .. S.OTHER[which] .. " figure: the strained arms show the strain tint"
+    local what = lab .. " " .. S.OTHER[which] .. " figure: the strained arms keep this tab's own colors, no strain tint (Health only)"
     if not S.strainBuild() then Q.skip(what, "this build has no strain tint (HealthTab.figureColor, T.strainMinor)"); return end
     if not Q.check(S.otherOpen == true, lab .. " " .. S.OTHER[which] .. ": the tab opens on the Character window") then return end
     if #(S.clean or {}) == 0 then Q.skip(what, "a wound shows on every strained arm (its colour wins there)"); return end
@@ -511,7 +512,7 @@ function S.checkOther(lab, which, ok)
     local w = RT.cw()
     Q.check(ok and miss ~= nil and #miss == 0, what .. " (no wound on them)",
         tostring(w and w._activeTab) .. ", want " .. S.cText(S.strainWant(S.want)) .. "; "
-        .. (miss == nil and "no figure drawn" or (#miss == 0 and (#S.clean .. " arms") or ("missing " .. table.concat(miss, "; ")))))
+        .. (miss == nil and "no figure drawn" or (#miss == 0 and (#S.clean .. " arms in their own colors") or ("strain-tinted " .. table.concat(miss, "; ")))))
 end
 
 -- the Health tab shows this stage (its own throttled reads have caught up)
