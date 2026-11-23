@@ -1219,7 +1219,37 @@ end
 -- Strict on every card width, the half card (220) too: Build's washer branch draws all three narrow faces 130 x 190
 -- to fit the 138-unit body at 1x (4 px each side; 2x on the 4K half card), so the washer's old overhang NOTE is gone
 -- and any draw outside the card FAILs, with the overhang in px (QA, Nov 22)
-function S.roomCheck(label, R, card, t)
+-- (QA, Nov 23: Build's cardtitle: the card's heading gives way for its name: the full-view key goes first (level 1),
+-- then the "n / m" count (2), then the arrows (3), so the name keeps at least three letters; card._headFit holds the
+-- level. Read from one recorded frame: the title's drawText in the heading band and the frame's hit zones)
+function S.titleCheck(label, R, card, wkey)
+    local fit = card._headFit
+    local zs = card._lastZones or card._zones or {}
+    local has = {}
+    for _, z in ipairs(zs) do if z.fid then has[z.fid] = true end end
+    local T = ZeD.T
+    local band = (card.headerH and card:headerH()) or T.px(40)
+    local title = nil
+    for _, d in ipairs(R.list) do
+        if d.fn == "drawText" and d.str and d.y < band and not d.str:match("^%d+ / %d+$") then
+            if not title or #d.str > #title then title = d.str end
+        end
+    end
+    local letters = 0
+    if title then
+        local core = title:gsub("%.%.%.$", "")
+        letters = #core:gsub("[^%a]", "")
+    end
+    local ok = fit ~= nil and letters >= 3 and ((fit >= 1) == (not has["oc:pop"])) and ((fit >= 3) == (not has["oc:next"]))
+    if wkey == nil or wkey == "full" then ok = ok and fit == 0 end
+    Q.check(ok, label .. ": the heading keeps the name (3 letters at least), the full-view key, then the count, then the arrows giving way",
+        "level " .. tostring(fit) .. "; title \"" .. tostring(title) .. "\" (" .. letters .. " letters); full-view key " .. tostring(has["oc:pop"] == true)
+        .. ", arrows " .. tostring(has["oc:next"] == true))
+end
+function S.roomCheck(label, R0, card, t)
+    -- (text draws are the heading's, read by S.titleCheck; the room check reads shapes and pictures only)
+    local R = { list = {} }
+    for _, d in ipairs(R0.list) do if not d.str then R.list[#R.list + 1] = d end end
     local T = ZeD.T
     local W, H = card:getWidth(), card:getHeight()
     local out, outSay = 0, nil
@@ -1293,13 +1323,14 @@ function S.laundryRun(m, wkey, shot)
         if not ok then Q.check(false, label .. ": the card opens on the machine (staging)", "card on " .. tostring(t and t.obj)) end
     end)
     Q.still(10, function() end)
-    Q.step(1, function() if m.obj then S.recOn("card", S.card()) end end)
+    Q.step(1, function() if m.obj then S.recOn("card", S.card(), S.FIG_FNS) end end)
     Q.step(1, function()
         local R = S.recOff("card")
         if not m.obj then Q.skip(label, "the machine was not placed"); return end
         local card, t = S.card(), S.entryT()
         if not (R and card and t and t.obj == m.obj) then Q.check(false, label .. ": the card's draws recorded (staging)"); return end
         S.roomCheck(label, R, card, t)
+        S.titleCheck(label, R, card, wkey)
     end)
     if shot then
         Q.step(2, function()
