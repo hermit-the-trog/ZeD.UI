@@ -1,0 +1,7 @@
+# ZeDUI/tools/qa/pp_close.txt (Nov 23 2026, QA): pop-up lists shut when they are not in use, Build's fix/popclose (2624e9444, ZeD_Popups.lua). The director, Nov 23 2026: "Drop-down list selection boxes should disappear if they aren't used." Every in-game list (Health exercise and Treat, Temperature, Journal recipes, Papers and Loadouts, Cooking, Craft, Station, Build, Mechanics, Maps, Foraging, a ZeD_ContextList) opened by its own opener, then shut by a left press in the world and in the other window, a right press, a game key, a timed action, a walk start, its tab changed (and the windows shut for two of them); its own keys keep it; a pick shuts it; openCount() == 0 after each. Main menu lists and the multiplayer card pickers are SKIPs. Everything is put back; no new Lua error.
+# Run both sizes:
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/pp_close.txt -Mode fullscreen4k -Report pp_close_4k
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/pp_close.txt -Mode windowed -Width 1280 -Height 800 -Report pp_close_deck
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+pp_close.lua | pp_close | timeout=1500
