@@ -501,7 +501,49 @@ local function drawRoom(card, x, y, w, px0, des, k, faceId)
     else drawWall(ROOM_CLIP, x, y, w, px0, des, k) end
     ROOM_CLIP.card = nil   -- (the card is not held on to between frames)
 end
-LD._drawRoom = drawRoom   -- (for gc_qa_cleanup_sim.lua; the card draws it through drawFace) (QA cleanup run, Nov 22 2026)
+LD._drawRoom = drawRoom  -- (for gc_qa_cleanup_sim.lua; the card draws it through drawFace) (QA cleanup run, Nov 22 2026)
+
+-- The face, its id and the whole zoom for a card with `room` px across and the view the body scrolls in (card._viewH):
+-- the widest face at the largest whole zoom that fits the width, stepping the zoom down while the face and the
+-- readings under it do not fit the view's height (else the face runs past the card's bottom, and its picture with
+-- it). At the lowest zoom, the widest face whose height fits, else the shortest. Never a fractional zoom.
+-- (QA laundry 4K, Nov 22 2026)
+local function fitFace(card, t, room, scale)
+    local T, X = ZeD.T, ZeD.PhysPx
+    local d = t.d
+    local viewH = card._viewH
+    -- what stands in the body besides the face: the top gap, the gap under it, a row each for the water (not a
+    -- dryer's) and what is inside, and the body's closing gap
+    local extra = T.px(8) + T.px(6) + ((d and d.dryerOnly) and 1 or 2) * T.px(20) + T.px(18)
+    local function fits(des, k) return des.w * k <= room and (not viewH or des.h * k + extra <= viewH) end
+    local des0 = P.pick(t.pid, room)
+    if not des0 then return nil, t.pid, 1 end
+    local k0 = P.k(scale)
+    -- at 1x (the Deck, the narrow cards) the face is as it always was: the card scrolls it, nothing steps down
+    if k0 <= 1 then return des0, select(2, P.pick(t.pid, room)), P.kFit(scale, des0.w, room) end
+    for k = k0, 1, -1 do
+        local des, id = P.pick(t.pid, room, k)
+        if fits(des, k) then return des, id, k end
+    end
+    -- nothing fits at 1x as picked: the widest of the plate's faces that does, else the shortest of them
+    local keys = {}
+    for key in pairs((X.widths and X.widths[t.pid]) or {}) do keys[#keys + 1] = key end
+    table.sort(keys, function(a, b) return a > b end)
+    local best, bestId = nil, nil
+    for _, key in ipairs(keys) do
+        local id = X.widths[t.pid][key]
+        local des = X.plates[id]
+        if des and key <= room then
+            if fits(des, 1) then return des, id, 1 end
+            if not best or des.h < best.h then best, bestId = des, id end
+        end
+    end
+    if best then return best, bestId, 1 end
+    local des, id = P.pick(t.pid, room, 1)
+    return des, id, 1
+end
+
+LD._fitFace = fitFace   -- (for gc_qa_cleanup_sim.lua) (QA laundry 4K, Nov 22 2026)
 
 -- the face (whole zoom, centred), its controls as zones, and the line under it
 local function drawFace(card, x, y, w, t)
@@ -512,12 +554,10 @@ local function drawFace(card, x, y, w, t)
     -- the width that fills the card, else the narrow face where the main face at the whole zoom does not fit it
     -- (the card's plate room, the same with or without its scrollbar)
     local room = card._plateRoom or w
-    local des, faceId = P.pick(t.pid, room)
-    if not des then return 0 end
-    t._face, t._k = faceId, nil   -- (the face drawn and its zoom, for the QA bridge)
     local Sc = ZeD.Scale
-    local k = P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, room)   -- whole zoom, inside the card
-    t._k = k
+    local des, faceId, k = fitFace(card, t, room, (Sc and Sc.root and Sc.root()) or 1)
+    if not des then return 0 end
+    t._face, t._k = faceId, k   -- (the face drawn and its zoom, for the QA bridge)
     local px0 = x + PL.centre(w, des.w, k)
     drawRoom(card, x, y, w, px0, des, k, faceId)  -- (behind the face: the room either side of it) (Graphic cleanup, Nov 22 2026)
     OC.faceZone(card, px0, y, des.w * k, des.h * k, t.obj)   -- (a click away from the controls pops the face out)

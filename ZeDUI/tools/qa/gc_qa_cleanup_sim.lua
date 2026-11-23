@@ -183,5 +183,52 @@ do
     end
 end
 
+-- the full card at 4K (840 x 650, UI scale 1.75) with the real faces: the face picked and its whole zoom leave the
+-- face, its gaps and the readings under it inside the view's height, so nothing it draws (the face's pictures, the
+-- room either side) lies outside the card. (QA laundry 4K, Nov 22 2026)
+do
+    local mock, mockPx = ZeD.PhysPx, ZeD.T.px
+    ZeD.PhysPx = nil
+    local okP = loadFile(CLIENT .. "PhysPx.lua")
+    local X = ZeD.PhysPx
+    ZeD.PhysPx = X
+    local SCALE = 1.75
+    ZeD.T.px = function(n) return n * SCALE end
+    local P = ZeD.PixelParts or ZeD.Px
+    check("LAUNDRY 4K: the real PhysPx loads", okP and X and X.widths ~= nil)
+    if okP and X and X.widths and LD and LD._fitFace and LD._drawRoom then
+        local W, H = 840, 650
+        local viewY, viewH = 26 * 2, H - 40 * 2
+        local bx, bw = 18, 804
+        for _, face in ipairs({ "washer", "dryer", "washer_dryer" }) do
+            local t = { pid = face, d = { dryerOnly = (face == "dryer") } }
+            local c = { W = W, H = H, _viewY = viewY, _viewH = viewH, list = {} }
+            function c:getWidth() return self.W end
+            function c:getHeight() return self.H end
+            function c:drawRect(x, y, w, h) self.list[#self.list + 1] = { x = x, y = y, w = w, h = h } end
+            local des, fid, k = LD._fitFace(c, t, bw, SCALE)
+            local say = "LAUNDRY 4K full card " .. face
+            check(say .. ": a face and a whole zoom", des ~= nil and k == math.floor(k) and k >= 1, tostring(k))
+            if des then
+                local top = viewY + 8 * SCALE
+                local rows = (face == "dryer") and 1 or 2
+                local bottom = top + des.h * k + 6 * SCALE + rows * 20 * SCALE + 18 * SCALE
+                check(say .. " (" .. tostring(fid) .. " at " .. k .. "x): the face and its readings end inside the view",
+                    bottom <= viewY + viewH + 0.01, bottom .. " > " .. (viewY + viewH))
+                check(say .. ": the face lies inside the card's width", des.w * k <= bw, des.w * k)
+                local px0 = bx + math.floor((bw - des.w * k) / 2)
+                LD._drawRoom(c, bx, top, bw, px0, des, k, fid)
+                local out = 0
+                for _, d in ipairs(c.list) do
+                    if d.x < 0 or d.x + d.w > W or d.y < viewY - 0.01 or d.y + d.h > viewY + viewH + 0.01 then out = out + 1 end
+                end
+                check(say .. ": no room draw outside the card", out == 0, out)
+                print("  " .. say .. " picks " .. tostring(fid) .. " at " .. k .. "x")
+            end
+        end
+    end
+    ZeD.PhysPx, ZeD.T.px = mock, mockPx
+end
+
 print("gc_qa_cleanup_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end
