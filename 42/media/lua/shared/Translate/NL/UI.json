@@ -1198,6 +1198,8 @@
     "UI_ZeD_Health_Moodles": "Toestanden",
     "UI_ZeD_Health_NoInjuries": "Geen verwondingen",
     "UI_ZeD_Health_NoInjuriesLow": "Geen wonden, lage gezondheid",
+    "UI_ZeD_Health_NoInjuriesStrain": "Geen verwondingen, %1: %2",
+    "UI_ZeD_Health_StrainOf": "%1: %2 van %3",
     "UI_ZeD_Health_Overall": "Algemeen",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "Start",

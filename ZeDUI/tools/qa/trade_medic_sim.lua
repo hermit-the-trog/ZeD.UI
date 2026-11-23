@@ -496,6 +496,7 @@ ZeD.T = {
     px = function(v) return v end, buttonH = 22, hair = 1, stripH = 37, sortBarH = 20, sortFont = "F1", fontF1 = "F1", fontF2 = "F2", fontF3 = "F3", fontF4 = "F4", fontF5 = "F5",
     text = col(1, 1, 1), textDim = col(.6, .6, .6), textHead = col(1, 1, 1), textOnFocus = col(0, 0, 0), accent = col(.4, .6, 1),
     positive = col(0, 1, 0), warning = col(1, 1, 0), danger = col(1, 0, 0), border = col(.3, .3, .3), borderS = col(.5, .5, .5),
+    strainMinor = col(.8, .7, .95), strainHeavy = col(.55, .25, .8),   -- (Strain, the director, Nov 22 2026)
     stripe = col(1, 1, 1), surf1 = col(0, 0, 0), surf2 = col(.1, .1, .1), iconWhite = col(1, 1, 1), selectionA = 0.3, fillBarH = 8,
     line = function(n) return n end,
     sp = { scrollbarW = 12, figureW = 106, figureH = 272, rowGap = 6, afterLine = 10, afterGroove = 8, xs = 6, sm = 10, badgeGap = 4, buttonPadX = 8 },
@@ -1115,6 +1116,47 @@ if CARD.entry and CARD.entry.def.id == "medic" then
     label = en.conditions[1].label
     check("a First Aid 5 doctor: the severity", label == getText("UI_ZeD_Health_Qualified", getText("IGUI_health_DeepWound"), getText("IGUI_health_Severe")) or label:find(getText("IGUI_health_Severe"), 1, true) ~= nil, label)
     check("a First Aid 5 doctor: their pain", t.pain == 3)
+    do -- MUSCLE STRAIN (Strain, the director, Nov 22 2026): a strained part with no wound takes the strain tint on the
+       -- figure (minor at 5, heavy at 20, as the game's health panel names them); a wound's colour wins on the same part;
+       -- the summary counts strain apart from the injuries, with the game's "Muscle Strain"
+        local def = CARD.entry.def
+        local rb = P2.remote
+        local fa = rb.byType[BodyPartType.ForeArm_R]
+        local ua = rb.byType[BodyPartType.UpperArm_R]
+        local fl = rb.byType[BodyPartType.ForeArm_L]
+        local lh = rb.byType[BodyPartType.Hand_L]   -- the deep wound
+        fa.f.getStiffness = 10; ua.f.getStiffness = 40; fl.f.getStiffness = 4; lh.f.getStiffness = 40
+        def.refresh(t, P1)
+        draw()
+        local fig = LAST_FIG
+        local function colorIs(name, c) local got = fig and fig.colors[name]; return got and got[1] == c.r and got[2] == c.g and got[3] == c.b end
+        check("strain: a minor strain (10) on the figure in the minor tint", colorIs("Right Forearm", ZeD.T.strainMinor))
+        check("strain: a heavy strain (40) on the figure in the heavy tint", colorIs("Right Upper Arm", ZeD.T.strainHeavy))
+        check("strain: under 5 is no strain (the health colour)", colorIs("Left Forearm", ZeD.T.positive))
+        check("strain: a wound's colour wins on a strained part", not colorIs("Left Hand", ZeD.T.strainHeavy) and not colorIs("Left Hand", ZeD.T.strainMinor))
+        check("strain: the counts (1 wounded, 3 strained)", t.d.woundedCount == 1 and t.d.strainedCount == 3, tostring(t.d.woundedCount) .. "/" .. tostring(t.d.strainedCount))
+        local function drawnText(s) for _, d in ipairs(DRAWN) do if d.body == s then return true end end return false end
+        local strainWord = getText("IGUI_health_Stiffness")
+        check("strain: the game's word is Muscle Strain", strainWord == "Muscle Strain", strainWord)
+        check("strain: wounds and strain: the injured count", drawnText(getText("UI_ZeD_Health_InjuredOf", 1, 17)))
+        check("strain: wounds and strain: the strained count on its own line", drawnText("Muscle Strain: 3 of 17"))
+        -- strain alone: no injuries, the strained count
+        lh.f.deepWounded = nil; lh.f.getDeepWoundTime = nil; local lhHealth = lh.health; lh.health = 100
+        def.refresh(t, P1)
+        draw()
+        check("strain alone: no wound counted", t.d.woundedCount == 0 and t.d.strainedCount == 3, t.d.woundedCount)
+        check("strain alone: \"No injuries, Muscle Strain: 3\"", drawnText("No injuries, Muscle Strain: 3"))
+        local injured = false
+        for _, d in ipairs(DRAWN) do if d.body and tostring(d.body):find("injured", 1, true) then injured = true end end
+        check("strain alone: never \"of 17 injured\"", not injured)
+        check("strain alone: the hand's heavy strain in the heavy tint now", colorIs("Left Hand", ZeD.T.strainHeavy))
+        -- put back
+        lh.f.deepWounded = true; lh.f.getDeepWoundTime = 12; lh.health = lhHealth
+        fa.f.getStiffness = nil; ua.f.getStiffness = nil; fl.f.getStiffness = nil; lh.f.getStiffness = nil
+        def.refresh(t, P1)
+        draw()
+        check("strain: put back, no strain counted", t.d.strainedCount == 0)
+    end
     -- the parts are stops that open the game's treatment menu
     local rowZ = zone("mc:part:" .. tostring(en.name))
     local figZ = zone("mc:fig:Upper Torso")

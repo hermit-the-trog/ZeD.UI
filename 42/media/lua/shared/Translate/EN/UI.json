@@ -1212,6 +1212,8 @@
     "UI_ZeD_Health_NeedTweezers": "tweezers",
     "UI_ZeD_Health_NothingToTreat": "%1: nothing to treat.",
     "UI_ZeD_Health_NoInjuriesLow": "No injuries, low body health",
+    "UI_ZeD_Health_NoInjuriesStrain": "No injuries, %1: %2",
+    "UI_ZeD_Health_StrainOf": "%1: %2 of %3",
     "UI_ZeD_Health_Overall": "Overall",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "Start",

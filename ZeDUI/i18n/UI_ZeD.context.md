@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Only the pixel-face words are capitals: the action bar labels (READING, CHEWING) and the marks on the dash, watch and radio. They stay capitals in your language. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey), for headings, column heads, tags, buttons and status words alike; write yours the way your language writes a heading or a button, not in capitals.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head arrives in whatever case the game text has, and ZeD sets it in sentence case.
 
-Total keys: 5305.
+Total keys: 5307.
 
 ## Areas
 
@@ -1812,6 +1812,8 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Health_NeedTweezers` | `tweezers` | Health tab: what glass or a bullet's empty treatment menu is missing, in lower case, filling %2 of "%1 needs %2." | - |
 | `UI_ZeD_Health_NothingToTreat` | `%1: nothing to treat.` | Health tab: the character's line when a body part with nothing wrong has no treatments; %1 = the part's name | - |
 | `UI_ZeD_Health_NoInjuriesLow` | `No injuries, low body health` | Health tab (Character window): summary line (with a yellow dot) when nothing is wounded but some body part has reduced health (hunger, illness, cold) | 32 |
+| `UI_ZeD_Health_NoInjuriesStrain` | `No injuries, %1: %2` | Health tab and the medical check: summary line (with a violet dot) when nothing is wounded but some body parts have muscle strain; %1 = the game's own word "Muscle Strain" (IGUI_health_Stiffness), %2 = how many body parts are strained | 32 |
+| `UI_ZeD_Health_StrainOf` | `%1: %2 of %3` | Health tab and the medical check: the summary's second line, under "%1 of %2 injured", when there are wounds and muscle strain; %1 = the game's own word "Muscle Strain" (IGUI_health_Stiffness), %2 = how many body parts are strained, %3 = how many body parts there are | 28 |
 | `UI_ZeD_Health_Overall` | `Overall` | Health tab (Character window): stat row label at the top of the summary, before the overall body health percentage | 12 |
 | `UI_ZeD_Health_Qualified` | `%1 (%2)` | Health tab (Character window): a condition with its severity or state in a badge, e.g. Deep Wound (Severe), Stitched (Good); %1 the condition, %2 the severity word | 28 |
 | `UI_ZeD_Health_HelpExercise` | `Do %1 for %2 minutes.` | Health tab (Character window): help line while the pointer is on an exercise button; %1 = the exercise's name, %2 = the session length in minutes | - |

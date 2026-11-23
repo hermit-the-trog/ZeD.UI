@@ -73,6 +73,10 @@ ZeD.BaseThemes = {
         dangerText   = hex("#DE7045"),
         info     = hex("#5A8A9A"),
         violet   = hex("#9A6AC4"),                   -- a ticket's Appeal label
+        -- muscle strain on the body figure (minor at 5 or more, heavy at 20 or more): its own violet, apart from the
+        -- health tints by hue and by lightness (minor pale, heavy deep) (Strain, the director, Nov 22 2026)
+        strainMinor = hex("#D2B4F5"),
+        strainHeavy = hex("#8A3CCF"),
         -- Border weight (pixels) — High Contrast overrides this
         borderW  = 1,
         -- Disabled opacity
@@ -156,6 +160,10 @@ ZeD.BaseThemes = {
         dangerText   = hex("#7A2A11"),
         info     = hex("#1A5566"),
         violet   = hex("#552288"),
+        -- muscle strain on the body figure (minor at 5 or more, heavy at 20 or more): its own violet, apart from the
+        -- health tints by hue and by lightness (minor pale, heavy deep) (Strain, the director, Nov 22 2026)
+        strainMinor = hex("#9A6CCC"),
+        strainHeavy = hex("#4E1A88"),
         borderW  = 1,
         -- (a grayed label at 0.42 read 2.2 : 1 on these surfaces, "nearly invisible"; 0.6 is 3.3 : 1 or more, as Dark reads at its 0.42)
         disabledAlpha = 0.6,
@@ -224,6 +232,10 @@ ZeD.BaseThemes = {
         dangerText   = hex("#FF5533"),
         info     = hex("#44CCFF"),
         violet   = hex("#CC99FF"),
+        -- muscle strain on the body figure (minor at 5 or more, heavy at 20 or more): its own violet, apart from the
+        -- health tints by hue and by lightness (minor pale, heavy deep) (Strain, the director, Nov 22 2026)
+        strainMinor = hex("#E6C3FF"),
+        strainHeavy = hex("#B45CFF"),
         borderW  = 2,     -- thicker borders for accessibility
         -- (0.55: a grayed label 5.2 : 1 or more on these surfaces, as High Contrast should read; at 0.42 it read 3.7 : 1)
         disabledAlpha = 0.55,
@@ -902,9 +914,14 @@ ZeD.T = {}
 -- ---------------------------------------------------------------------------
 ZeD.StatusColors = {
     cb = {
-        dark  = { positive = hex("#4491E2"), warning = hex("#F0D060"), danger = hex("#D9572A") },
-        light = { positive = hex("#014E8E"), warning = hex("#8C6E00"), danger = hex("#6E1E00") },
-        hicon = { positive = hex("#5AAEFF"), warning = hex("#FFDD33"), danger = hex("#E84A22") },
+        -- (strain: pink to magenta here, as violet reads as this set's blue under deuteranopia and protanopia; minor
+        -- pale and heavy deep, so the two and the status colors stay apart by lightness too) (Strain, the director, Nov 22 2026)
+        dark  = { positive = hex("#4491E2"), warning = hex("#F0D060"), danger = hex("#D9572A"),
+                  strainMinor = hex("#F2A8E6"), strainHeavy = hex("#B8288A") },
+        light = { positive = hex("#014E8E"), warning = hex("#8C6E00"), danger = hex("#6E1E00"),
+                  strainMinor = hex("#C060B0"), strainHeavy = hex("#4A0838") },
+        hicon = { positive = hex("#5AAEFF"), warning = hex("#FFDD33"), danger = hex("#E84A22"),
+                  strainMinor = hex("#FFC2F0"), strainHeavy = hex("#E0389E") },
     },
 }
 ZeD.currentStatus = "standard"    -- "standard" or "cb" (Settings.lua's Status colors)
@@ -1004,6 +1021,9 @@ function ZeD.buildColors(P, baseKey, accentKey, statusKey, seePick)
     T.danger   = st.danger
     T.warning  = st.warning
     T.positive = st.positive
+    -- the body figure's muscle strain tints, from the same set (Strain, the director, Nov 22 2026)
+    T.strainMinor = st.strainMinor or base.strainMinor
+    T.strainHeavy = st.strainHeavy or base.strainHeavy
     T.info     = base.info
     T.violet   = base.violet
 

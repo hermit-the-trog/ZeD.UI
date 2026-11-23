@@ -228,16 +228,6 @@ local function figure()
     return FIG
 end
 
--- the red for 20 percent or less, one table (beast W19)
-local LOW_HEALTH_RED = { r = 0.95, g = 0.15, b = 0.15, a = 1.0 }
-local function healthColor(health)
-    local T = ZeD.T
-    if health > 80 then return T.positive end
-    if health > 50 then return T.warning end
-    if health > 20 then return T.danger end
-    return LOW_HEALTH_RED
-end
-
 -- the summary column (the Health tab's, without your own exercise): overall, wounded, their pain
 local function summary(card, t, rx, ry, rw)
     local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
@@ -248,15 +238,8 @@ local function summary(card, t, rx, ry, rw)
     local y = ry
     -- (the Health tab's overall block: the row, the bar and the game's own word under them)
     y = ZeD.HealthTab.drawOverall(card, rx, y, rw, d)
-    local wounded = d.woundedCount or d.injuredCount
-    if wounded == 0 then
-        local c = (d.injuredCount > 0) and T.warning or T.positive
-        A.drawStatusDot(card, rx, y + math.floor((bodyFH - dotSz) / 2), c, dotSz)
-        A.drawBody(card, (d.injuredCount > 0) and ZeD.tr("UI_ZeD_Health_NoInjuriesLow") or ZeD.tr("UI_ZeD_Health_NoInjuries"), rx + dotSz + dotGap, y)
-    else
-        A.drawBody(card, ZeD.tr("UI_ZeD_Health_InjuredOf", wounded, d.totalParts), rx, y)
-    end
-    y = y + secH + T.sp.sm
+    -- (the Health tab's summary: wounds counted, muscle strain apart) (Strain, the director, Nov 22 2026)
+    y = ZeD.HealthTab.drawSummary(card, d, rx, y)
     if t.pain then
         A.drawStatusDot(card, rx, y + math.floor((bodyFH - dotSz) / 2), (t.pain >= 3) and T.danger or T.warning, dotSz)
         A.drawBody(card, getText("Moodles_Pain_lvl" .. tostring(t.pain)), rx + dotSz + dotGap, y)
@@ -307,13 +290,14 @@ function def.body(card, x, y, w, t, doctor)
     -- (the 220 drawer card) stacks the frame over the text (Figure frame, the director, Nov 22 2026)
     local L = ZeD.Molecules.figureFrame(x, y, w)
     local active = activePart(card, t)
-    -- the figure: each part in its health's colour; the controller's mark under the focused part
+    -- the figure: each part in its health's colour (a strained part with no wound in the strain tint, as the
+    -- Health tab's: HealthTab.figureColor) (Strain, the director, Nov 22 2026); the controller's mark under the focused part
     -- (last frame's rects, as the Health tab draws it), the part a stop that opens the treatment menu
     local fig = figure()
     if d.isFemale ~= nil then fig:setSex(d.isFemale) end
     -- (no clearColors: the check maps every body part each frame, and the figure reuses its colour tables) (beast W19)
     for fname, health in pairs(d.partHealth) do
-        local c = healthColor(health)
+        local c = ZeD.HealthTab.figureColor(d, fname, health)
         fig:setPartColor(fname, c.r, c.g, c.b, 0.65)
     end
     fig.selectedPart = active

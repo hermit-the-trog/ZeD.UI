@@ -179,6 +179,39 @@ installZeD()
 run(healthNew, "HealthTab")
 local newGather = ZeD.HealthTab.gatherData
 local NewHealth = ZeD.HealthTab
+-- The muscle strain additions (Strain, the director, Nov 22 2026) are new on purpose: the counts and maps
+-- (strainedCount, strainWorst, partStrain, partWound), the strain mark on a condition, and woundedCount, which
+-- no longer counts a part with strain alone. The rest is compared with the old data; the new fields are checked
+-- against the body itself.
+local function oldShape(d)
+    local o = {}
+    for k, v in pairs(d) do
+        if k ~= "strainedCount" and k ~= "strainWorst" and k ~= "partStrain" and k ~= "partWound" then o[k] = v end
+    end
+    local function plain(conds)
+        local out = {}
+        for i, cd in ipairs(conds) do
+            local c = {}
+            for k, v in pairs(cd) do if k ~= "strain" then c[k] = v end end
+            out[i] = c
+        end
+        return out
+    end
+    o.entries = {}
+    local wounded = 0
+    for i, e in ipairs(d.entries) do
+        local ne = {}
+        for k, v in pairs(e) do ne[k] = v end
+        ne.conditions = plain(e.conditions)
+        o.entries[i] = ne
+        if #e.conditions > 0 then wounded = wounded + 1 end
+    end
+    o.condsByFigureName = {}
+    for k, v in pairs(d.condsByFigureName) do o.condsByFigureName[k] = plain(v) end
+    o.woundedCount = wounded   -- (the old count: every listed part with a condition)
+    return o
+end
+local strainBad = 0
 local oldCalls, newCalls, bodies, diffs, conds = 0, 0, 0, 0, 0
 for b = 1, 400 do
     local body = newBody()
@@ -195,8 +228,19 @@ for b = 1, 400 do
     local c2 = newGather(p)
     bodies = bodies + 1
     for _, e in ipairs(c.entries) do conds = conds + #e.conditions end
-    if not (same(a, c) and same(c, c2)) then diffs = diffs + 1 end
+    if not (same(a, oldShape(c)) and same(c, c2)) then diffs = diffs + 1 end
+    -- the strain count is every part at 5 or more; the wound count leaves out a part with strain alone
+    local nStrain, nWound = 0, 0
+    local parts = body.getBodyParts()
+    for i = 0, parts:size() - 1 do
+        if parts:get(i):getStiffness() >= 5 then nStrain = nStrain + 1 end
+    end
+    for _, e in ipairs(c.entries) do
+        for _, cd in ipairs(e.conditions) do if not cd.strain then nWound = nWound + 1; break end end
+    end
+    if c.strainedCount ~= nStrain or c.woundedCount ~= nWound then strainBad = strainBad + 1 end
 end
+check("HEALTH: strain counted apart from wounds (Strain, Nov 22 2026)", strainBad == 0, strainBad .. " of 400 bodies")
 ISHealthPanel.cheat = false
 check("HEALTH: the same data for every body", diffs == 0, diffs .. " of " .. bodies .. " differ")
 check("HEALTH: fewer getter calls", newCalls < oldCalls, oldCalls .. " -> " .. newCalls)
@@ -215,7 +259,7 @@ do
         local doc = ({ 0, 3, 5, 7, 9 })[b % 5 + 1]
         ISHealthPanel.cheat = (b % 7 == 0)
         local p = newPlayer(body, doc)
-        if not same(oldGather(p), badGather(p)) then d = d + 1 end
+        if not same(oldGather(p), oldShape(badGather(p))) then d = d + 1 end
     end
     ISHealthPanel.cheat = false
     check("HEALTH: a changed rule shows as a difference (the check is not blind)", d > 0, d)
