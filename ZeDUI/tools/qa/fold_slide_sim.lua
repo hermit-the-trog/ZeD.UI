@@ -46,7 +46,10 @@ local T = { px = function(v) return math.floor(v * SC + 0.5) end, scale = SC }
 local SCREEN = 1280
 getCore = function() return { getScreenWidth = function() return SCREEN end, getScreenHeight = function() return 800 end } end
 local FOLD = nil
-ZeD = { Halves = { foldedTab = function() return FOLD end }, Curtain = { sync = function() end } }
+-- (Grid width, Nov 22 2026: the width model now asks ZeD.Halves.gridHug, which leaves a list's side alone; these runs
+-- are lists, so it hands the width back, and invMin is the inventory's 200 units)
+ZeD = { Halves = { foldedTab = function() return FOLD end, gridHug = function(_, _, invW) return invW end,
+                   invMin = function() return T.px(200) end }, Curtain = { sync = function() end } }
 -- the screen a window lives on (ZeD.screenOf, the real one cut from Organisms.lua: the width model and snapShut read it)
 do
     local fo = io.open(ROOT .. "42/media/lua/client/ZeD/Organisms.lua", "rb")

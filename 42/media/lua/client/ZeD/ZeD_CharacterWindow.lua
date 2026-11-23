@@ -5336,11 +5336,15 @@ function ZeD_CharacterWindow.toggle(playerNum)
         local cStripW = win._rolled and 0 or T.px(CONTAINER_STRIP_W)
         local invW = win._rolled and 0 or (win:getWidth() - T.px(TAB_STRIP_W) - effectiveW - cStripW)
         invW = math.max(invW, 0)
+        -- (Grid width, the director, Nov 22 2026) a grid side hugs its whole cells: the window's width follows
+        -- (ZeD.Halves.gridHug; at rest or under a drag, never while a drawer slides)
+        invW = ZeD.Halves.gridHug(win, content, invW, drawerDelta == 0 and not folded, maxW)
 
         -- Track baseInvW ONLY when user manually resized (not from our snaps).
         -- Compare current width to what _baseInvW would produce — if different, user dragged.
         -- (not while a drawer is folded: the width the cap holds back would be saved as a narrower inventory)
-        if drawerDelta == 0 and effectiveW == 0 and not mcActive and invW > 0 and not folded then
+        -- (nor while a grid hugs its cells: _baseInvW stays the list's width, given back when the list returns)
+        if drawerDelta == 0 and effectiveW == 0 and not mcActive and invW > 0 and not folded and not win._gridHug then
             local expectedW = T.px(TAB_STRIP_W) + T.px(win._baseInvW or 372) + T.px(CONTAINER_STRIP_W)
             if win:getWidth() ~= expectedW then
                 -- _baseInvW is stored in design units (screen px / T.scale);
@@ -5351,7 +5355,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
         -- Dynamic min/max
         -- (never above the maximum, so a resize drag and the cap above agree)
-        win.minimumWidth = math.min(maxW, T.px(TAB_STRIP_W) + effectiveW + (win._invDrawerOpen and not win._rolled and T.px(200) or 0) + cStripW)
+        -- (the inventory's least: 200 units, a little under while a grid hugs three cells, ZeD.Halves.invMin)
+        win.minimumWidth = math.min(maxW, T.px(TAB_STRIP_W) + effectiveW + (win._invDrawerOpen and not win._rolled and ZeD.Halves.invMin(win, content) or 0) + cStripW)
         win.maximumWidth = maxW
 
         -- ── MC eviction: check columns fit at MIN_COL_W ──────────

@@ -315,6 +315,9 @@ local function ccLayout(self, hdrY, barH, colW)
     if CTL and self._ccSide and not self._compactMode and hdrY > barH then
         local ok, h = pcall(CTL.layout, self, colW)
         if ok then self._ccH = h or 0 else ZeD.logOnce("ContainerControls layout", h) end
+    elseif CTL and self._compactMode and hdrY > barH and CTL.headLootOn(self) then
+        -- (Transfer in the footer, the director, Nov 22 2026) a Loot column's own foot: its Take all (drawColumnFoot)
+        self._ccH = ZeD.Molecules.bandH()
     else
         self._ccMarks = nil
         if self._cc then self._cc.layout = nil end
@@ -322,6 +325,7 @@ local function ccLayout(self, hdrY, barH, colW)
 end
 
 local function ccDraw(self, colW, xOff)
+    if self._compactMode then return ZeD.InventoryRenderer.drawColumnFoot(self, self._gv, xOff, colW) end
     local ok, e = pcall(ZeD.ContainerControls.draw, self, self:getHeight() - self._ccH, colW, xOff, true)
     if not ok then ZeD.logOnce("ContainerControls draw", e) end
 end
@@ -419,6 +423,48 @@ function ZeD.InventoryRenderer.flipGridKey(key, playerObj)
     return true
 end
 
+-- (List columns, the director, Nov 22 2026) the sort a list draws with: its own, but a sort on the Status column
+-- while the list has dropped it sorts by Name (the heading underlines Name, the only key with a heading that
+-- matches). The choice itself is kept, so the Status sort comes back with the column when the list widens. A sort by
+-- Category stays as it is with its column hidden: it groups the rows under category headings, which say it. The
+-- grid has no columns and every key, so it keeps every sort. Asks the grid choice only on that rare case.
+function ZeD.InventoryRenderer.listSort(panel, col, showCond)
+    if col ~= "cond" or showCond then return col end
+    local p = panel._playerObj
+    if ZeD.InventoryRenderer.isGridKey(containerKeyOf(panel._inventory, p), p or getSpecificPlayer(0)) then return col end
+    return "name"
+end
+
+-- ---------------------------------------------------------------------------
+-- (Grid width, the director, Nov 22 2026: "In grid mode, can the width of the inventory hug the grid width? That
+-- is, shrink to reduce white space.") The width a grid column takes for whole cells: its left pad, n cells and the
+-- n - 1 gaps between them, its right pad and the scrollbar's gutter (the grid keeps it as the list does; gridState's
+-- cols is the inverse of this). colW: the width to snap (px); how: "up" (the least whole width at or past colW),
+-- true (the nearest whole width: a drag), else the widest whole width at or under it. Always at least one cell.
+-- Returns the width (px).
+function ZeD.InventoryRenderer.gridHugW(colW, how)
+    local T = ZeD.T
+    local step = T.px(GRID_CELL) + T.px(GRID_GAP)
+    local frame = T.sp.sm * 2 + T.sp.scrollbarW - T.px(GRID_GAP)   -- (n cells and n - 1 gaps: n steps less a gap)
+    local n = (colW - frame) / step
+    if how == "up" then n = math.ceil(n - 1e-6) elseif how then n = math.floor(n + 0.5) else n = math.floor(n + 1e-6) end
+    return math.max(1, n) * step + frame
+end
+
+-- The inventory side's width (px) for n grid columns side by side (Loot columns: n - 1 transfer strips xferW wide
+-- between them; one column: n = 1, xferW 0) snapped to whole cells, each column as gridHugW snaps it (how). Never
+-- under the narrowest whole width: one column, the widest at or under the inventory's 200-unit minimum (three cells;
+-- the heading stacks its name over the weight there, headStacks); several, the least at or past MIN_COL_W, so the
+-- windows' eviction (a column under MIN_COL_W) never fires on a snap.
+function ZeD.InventoryRenderer.hugInvW(invW, n, xferW, how)
+    local R, T = ZeD.InventoryRenderer, ZeD.T
+    n, xferW = math.max(1, n or 1), xferW or 0
+    local per = R.gridHugW((invW - (n - 1) * xferW) / n, how)
+    local least = (n > 1) and R.gridHugW(T.px(R.MIN_COL_W), "up") or R.gridHugW(T.px(200))
+    if per < least then per = least end
+    return n * per + (n - 1) * xferW
+end
+
 -- ---------------------------------------------------------------------------
 -- The controller's L3 / R3 in a window: view-only changes (sort, List |
 -- Grid), and only while a window holds the pad. They act on the list the
@@ -448,6 +494,10 @@ function ZeD.InventoryRenderer.padSort(win)
         local i = 1
         for k, c in ipairs(SORT_COLS) do if c == cur then i = k end end
         nxt, nxtAsc = SORT_COLS[i % #SORT_COLS + 1], true
+        -- (List columns, the director, Nov 22 2026) a list whose Status column is hidden skips it: that sort would
+        -- show as Name (listSort), a press that seemed to do nothing. The grid has every key (its bar lists them).
+        local shown = cs or cnt
+        if nxt == "cond" and shown._showCond == false then nxt = SORT_COLS[(i + 1) % #SORT_COLS + 1] end
     end
     if cs then
         cs.sortCol, cs.sortAsc = nxt, nxtAsc
@@ -1442,8 +1492,10 @@ end
 -- view), solid accent as the chosen view; a press flips to the other (the director, Nov 11: one button, not a List
 -- and a Grid side by side). Starts at column-local x `left`, in the column heading (top barH, height areaH); names
 -- its view in a hint after the pause (the library's). Stamps GV.toggles (panel coords). Returns the width taken
--- (with its gap). (Header order, the director, Nov 22 2026: the heading's buttons come first, at its left, then the
--- container's icon and name, the weight and count at the right; they used to sit right of the name.)
+-- (with its gap). (Buttons right, the director, Nov 22 2026: "Buttons in headers and footers. Let's keep it
+-- consistent, move them to the right, because on any dialogue or in other places, they're always on the right."
+-- The heading reads [icon] [name] ... [weight and count] [buttons], the buttons at its right end in a dialog's
+-- order, Take all first; this replaces the same morning's buttons-first order.)
 -- measure: true returns the width only, drawing and stamping nothing (the heading works out the name's room first).
 local _viewOpts = {}
 local _liteOpen = { fill = { r = 0, g = 0, b = 0, a = 0 } }
@@ -1464,37 +1516,35 @@ local function drawViewToggle(self, GV, xOff, left, barH, areaH, padX, measure)
     local fgap = T.px(6)
     -- (beta 21, Lite: the two keys say what they are in words, "Filter" and "List" or "Grid", in place of the funnel
     -- and the view's picture: the director's answer to "buttons not obvious")
-    local lite = M.lite and M.lite()
+    -- (Name first, QA's Lite finding, Nov 22 2026: a short heading's buttons give way before its name, GV.headLevel
+    -- from headFit: 1 Lite's words become the pictures, 2 no view flip, 3 no Filter either, 4 no Pick all either)
+    local lvl = GV.headLevel or 0
+    local lite = M.lite and M.lite() and lvl < 1
+    if lvl >= 3 and withF then
+        withF = false
+        -- (the Filter's key gave way, its open bar has not: the bar's stops still ride with the toggles)
+        if S.open and not measure then for _, r in ipairs(S.rects) do GV.toggles[#GV.toggles + 1] = r end end
+    end
     local grid0 = GV.on and true or false
     local fWord = ZeD.tr("UI_ZeD_Inv_Filter")
     local vWord = grid0 and ZeD.tr("UI_ZeD_Inv_GridView") or getText("IGUI_CraftingWindow_ListView")
     local fw = lite and M.buttonW(fWord) or bw
     local vw = lite and M.buttonW(vWord) or bw
-    -- (KISS #18) the World window's heading holds Loot all too, a word button left of the Filter: on a pad it is one Up
-    -- from the first row, so a full fridge is one Up and an A
-    local lootOn = ZeD.ContainerControls.headLootOn(self)
-    local lootWord = lootOn and ZeD.ContainerControls.lootAllLabel() or nil
-    local lw = lootOn and M.buttonW(lootWord) or 0
+    -- (Selection in the header, the director, Nov 22 2026: "Transfer buttons, always in the footer. Selection buttons,
+    -- always in the header." The heading's Take all (KISS #18) went back to the footer: ContainerControls' band, and
+    -- a Loot column's own foot, drawColumnFoot. The heading holds Pick all, the Filter and the view flip only.)
     -- (KISS #45) a Pick all button beside the Filter (the window's zedSelectAll picks every row of the column)
     local allWord = ZeD.tr("UI_ZeD_Inv_PickAll")
+    local allOn = lvl < 4
+    local flipOn = lvl < 2
     local aw = M.buttonW(allWord)
-    local tW = vw + (withF and (fw + fgap) or 0) + (lootOn and (lw + fgap) or 0) + aw + fgap
-    if measure then return tW + padX end   -- (Header order, the director, Nov 22 2026)
-    local tx = xOff + left   -- (the buttons from the heading's left edge, Loot all first: Header order, Nov 22 2026)
+    local tW = (flipOn and vw or 0) + (withF and (fw + fgap) or 0) + (allOn and (aw + fgap) or 0)
+    if not flipOn and tW > 0 then tW = tW - fgap end   -- (the last button has no gap after it)
+    if tW <= 0 then return 0 end
+    if measure then return tW + padX end
+    local tx = xOff + left   -- (left: where the heading puts the run, at its right end: Buttons right)
     local ty = barH + math.floor((areaH - bw) / 2)
-    if lootOn then
-        local id = "view:lootall:" .. GV.key
-        local o = _viewOpts
-        o.active, o.hover = false, ZeD.Atoms.mouseIn(self, tx, ty, lw, bw)
-        o.disabled = not ZeD.ContainerControls.headLootEnabled(self)
-        o.focus, o.hint, o.id = gpFocusedToggle(id, ZeD.playerNumOf(self)), lootWord, id
-        o.help = lootWord
-        M.drawButton(self, tx, ty, lw, bw, lootWord, "default", false, nil, o)
-        o.disabled = nil
-        GV.toggles[#GV.toggles + 1] = { x = tx, y = ty, w = lw, h = bw, view = "lootall", key = GV.key, id = id }
-        tx = tx + lw + fgap
-    end
-    do
+    if allOn then
         local id = "view:all:" .. GV.key
         local o = _viewOpts
         o.active, o.hover = false, ZeD.Atoms.mouseIn(self, tx, ty, aw, bw)
@@ -1528,6 +1578,7 @@ local function drawViewToggle(self, GV, xOff, left, barH, areaH, padX, measure)
             for _, r in ipairs(S.rects) do GV.toggles[#GV.toggles + 1] = r end
         end
     end
+    if not flipOn then return tW + padX end
     -- (one id whichever view is on show: the pad's stop keeps its place across the flip)
     local grid = GV.on and true or false
     local id = "view:flip:" .. GV.key
@@ -1953,22 +2004,29 @@ local function drawColumnHeading(self, GV, xOff, colW, barH, hdrY, padX, secFH, 
     local cntW   = ZeD.TM:MeasureStringX(T.fontF5, cntStr)
     local gap    = T.px(2)
     local f4FH   = ZeD.TM:getFontHeight(T.fontF4)
-    if self._compactMode and (f4FH + gap + secFH) <= infoAreaH then
+    -- (Name first, Nov 22 2026: the buttons give way before the name does; headFit sets GV.headLevel)
+    ZeD.InventoryRenderer.headFit(self, GV, colW, padX, infoAreaH, f4FH)
+    -- (Grid width, the director, Nov 22 2026: a grid hugging its cells runs down to three; there the heading takes
+    -- this same narrow step where one row would drop the weight, so the buttons, the name and the weight all stay)
+    if (self._compactMode or ZeD.InventoryRenderer.headStacks(self, GV, colW, padX, wtW, f4FH, infoAreaH))
+       and (f4FH + gap + secFH) <= infoAreaH then
         -- A column among several is narrow (about 210 px): the weight stack and the toggle on the
         -- right would leave the name three or four letters ("Sma..."). Here the name takes the whole line
-        -- right of the buttons, and the weight and the item count sit under it.
-        -- (Header order, Nov 22 2026: the buttons first at the left, the name and weight right of them)
-        local togW = drawViewToggle(self, GV, xOff, padX, barH, infoAreaH, padX)
+        -- left of the buttons, and the weight and the item count sit under it.
+        -- (Buttons right, the director, Nov 22 2026: the buttons at the heading's right end, the name and weight
+        -- from its left edge)
+        local togW = drawViewToggle(self, GV, xOff, padX, barH, infoAreaH, padX, true)   -- (their width, with a pad)
+        drawViewToggle(self, GV, xOff, colW - togW, barH, infoAreaH, padX)
         local totalH = f4FH + gap + secFH
         local topY   = barH + math.floor((infoAreaH - totalH) / 2)
         local htc, ntc = T.toneHi, T.toneNorm
-        local cx = padX + togW   -- (past the buttons and their gap)
+        local cx = padX
         local lineX = cx         -- (the weight line starts under the icon)
         if ci.texture then
             ZeD.Atoms.drawIcon(self, ci.texture, xOff + cx, topY, f4FH, 1, T.iconTone or T.iconWhite)
             cx = cx + f4FH + T.sp.iconGap
         end
-        local maxNameW = colW - cx - padX   -- (cx already counts the buttons)
+        local maxNameW = colW - togW - cx - padX   -- (ends a pad short of the buttons)
         if maxNameW > 0 then
             local name = ZeD.Atoms.truncateText(ci.name or "", T.fontF4, maxNameW)
             self:drawText(name, xOff + cx, topY, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF4)
@@ -2009,22 +2067,83 @@ local function drawColumnHeading(self, GV, xOff, colW, barH, hdrY, padX, secFH, 
     local stackY = barH + math.max(0, math.floor((infoAreaH - stackH) / 2))
     local htc    = T.toneHi
     local ntc    = T.toneNorm
-    if wtStr then self:drawText(wtStr, xOff + colW - wtW - padX, stackY, htc.r, htc.g, htc.b, htc.a, T.fontF1) end
-    if cntStr then self:drawText(cntStr, xOff + colW - cntW - padX, stackY + secFH + gap, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF5) end
-    -- Left: the buttons first (the zones go in after the hit zones are cleared; Header order, Nov 22 2026)
-    drawViewToggle(self, GV, xOff, padX, barH, infoAreaH, padX)
-    -- then icon + name (F4 norm), vertically centred in info area, right of the buttons
+    -- (Buttons right, the director, Nov 22 2026: the stack sits left of the buttons, which end the heading)
+    local stackR = colW - togW - padX   -- (the stack's right edge: a pad short of the buttons)
+    if wtStr then self:drawText(wtStr, xOff + stackR - wtW, stackY, htc.r, htc.g, htc.b, htc.a, T.fontF1) end
+    if cntStr then self:drawText(cntStr, xOff + stackR - cntW, stackY + secFH + gap, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF5) end
+    -- the buttons at the right end (the zones go in after the hit zones are cleared)
+    drawViewToggle(self, GV, xOff, colW - togW, barH, infoAreaH, padX)
+    -- then icon + name (F4 norm) from the heading's left edge, vertically centred in info area; the name truncates
+    -- first, before the weight and the buttons
     local nameY = barH + math.floor((infoAreaH - f4FH) / 2)
-    local cx    = padX + togW
+    local cx    = padX
     if ci.texture then
         ZeD.Atoms.drawIcon(self, ci.texture, xOff + cx, nameY, f4FH, 1, T.iconTone or T.iconWhite)
         cx = cx + f4FH + T.sp.iconGap
     end
-    local maxNameW = colW - stackW - cx - padX * 2
+    local maxNameW = stackR - stackW - cx - padX
     if maxNameW > 0 then
         local name = ZeD.Atoms.truncateText(ci.name or "", T.fontF4, maxNameW)
         self:drawText(name, xOff + cx, nameY, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF4)
     end
+end
+
+-- (Transfer in the footer, the director, Nov 22 2026: "Transfer buttons, always in the footer. Selection buttons,
+-- always in the header.") A Loot column's foot: the band's surface along the column's bottom (self._ccH high, set by
+-- ccLayout) and its own Take all at the right end, as a dialog's footer. Its stop and its press are the heading's
+-- old Take all's ("view:lootall:<key>", lootAllOf takes from this column's container), so the pad finds it in the
+-- column's own zone: Down past the column's last row lands on it (FocusManager's Focus._lootAllWrap, matched by key).
+local _footOpts = {}
+function ZeD.InventoryRenderer.drawColumnFoot(self, GV, xOff, colW)
+    if not (GV and GV.key) then return end
+    local T, M, A = ZeD.T, ZeD.Molecules, ZeD.Atoms
+    local CTL = ZeD.ContainerControls
+    local h = self._ccH
+    local top = self:getHeight() - h
+    ZeD.Surface.fill(self, xOff, top, colW, h, "surf2")
+    A.drawDividerH(self, xOff, top, colW, true)
+    local word = CTL.lootAllLabel()
+    local padX = T.px(CTL.PAD_X or 10)
+    local bw = T.buttonH
+    local lw = math.min(M.buttonW(word), colW - padX * 2)
+    local tx, ty = xOff + colW - padX - lw, top + math.floor((h - bw) / 2)
+    local id = "view:lootall:" .. GV.key
+    local o = _footOpts
+    o.active, o.hover = false, A.mouseIn(self, tx, ty, lw, bw)
+    o.disabled = not CTL.headLootEnabled(self)
+    o.focus, o.hint, o.id, o.help = gpFocusedToggle(id, ZeD.playerNumOf(self)), word, id, word
+    M.drawButton(self, tx, ty, lw, bw, word, "default", false, nil, o)
+    GV.toggles[#GV.toggles + 1] = { x = tx, y = ty, w = lw, h = bw, view = "lootall", key = GV.key, id = id }
+end
+
+-- (Name first, QA's Lite finding, Nov 22 2026; the director's rule "name always wins") How far a heading's buttons give
+-- way so its name keeps at least its first three letters and the dots: GV.headLevel, the first level that fits (0 all
+-- as they are; 1 Lite's words drawn as the pictures, as in Full; 2 the view flip goes, the least used, R3 still
+-- flips; 3 the Filter goes too; 4 Pick all goes too, the window's own Pick all key still picks). The weight and
+-- count give way after that, by drawColumnHeading's own rule. Measures only (five widths at most).
+function ZeD.InventoryRenderer.headFit(self, GV, colW, padX, areaH, f4FH)
+    GV.headLevel = 0
+    local ci = self._containerInfo
+    if not (ci and GV.key) then return end
+    local T, tm = ZeD.T, ZeD.TM
+    local name = ci.name or ""
+    local nameMin = math.min(tm:MeasureStringX(T.fontF4, name), tm:MeasureStringX(T.fontF4, name:sub(1, 3) .. "..."))
+    local lead = padX + (ci.texture and (f4FH + T.sp.iconGap) or 0) + nameMin + padX * 2   -- (a pad each side of the name)
+    for lvl = 0, 4 do
+        GV.headLevel = lvl
+        if lead + drawViewToggle(self, GV, 0, padX, 0, areaH, padX, true) <= colW then return end
+    end
+end
+
+-- (Grid width, the director, Nov 22 2026) does a grid's heading on one row lose its weight to the name (the test
+-- drawColumnHeading's one-row layout makes below)? Then it takes the stacked step, the name over the weight, as a
+-- column among several does. A list keeps its one row as before. wtW: the weight's width (0: none).
+function ZeD.InventoryRenderer.headStacks(self, GV, colW, padX, wtW, f4FH, areaH)
+    if not (GV and GV.on) or (wtW or 0) <= 0 then return false end
+    local T, ci = ZeD.T, self._containerInfo
+    local togW = drawViewToggle(self, GV, 0, padX, 0, areaH, padX, true)   -- (measure only: draws nothing)
+    local lead = padX + togW + (ci.texture and (f4FH + T.sp.iconGap) or 0)
+    return lead + ZeD.TM:MeasureStringX(T.fontF4, ci.name or "") + padX * 2 + wtW > colW
 end
 
 -- The grid by category: each category's heading (as the list's: fold on a
@@ -2132,16 +2251,20 @@ end
 ZeD.InventoryRenderer._readTagW = readTagW
 
 -- Which of the Category and Status columns a list row keeps, given the room past the name's least width (room)
--- and the two columns' widths. Both when both fit; else Status drops first, then Category, as always. With read
--- marks on, Category gives way before Status when Status alone fits: Status carries the read word (Unread, Read),
--- and the row's category is the group heading over it (punch list 175f(1): at Large text the Status column
--- dropped and the tag lost its word). Returns showCond, showCat.
-local function fitColumns(room, catW, condW, readOn)
-    if catW + condW <= room then return true, true end
-    if readOn and condW <= room then return true, false end
-    return false, catW <= room
+-- and the two columns' widths. (List columns, the director, Nov 22 2026: "Name always wins. Weight comes in second
+-- place. Category comes in third place. And if there's room, it shows condition.") The name and the weight always
+-- stay; Category shows when it fits; Status only after Category, and only where the name still keeps condName more
+-- than its least width (COND_NAME_U), so the usual 372-unit list shows the category, not the bar. Read marks no
+-- longer win Status the room: with Status hidden the mark and its word sit after the name (readTagW), as at
+-- Large text. Returns showCond, showCat.
+local function fitColumns(room, catW, condW, condName)
+    if catW > room then return false, false end
+    return catW + condW + (condName or 0) <= room, true
 end
 ZeD.InventoryRenderer._fitColumns = fitColumns
+-- the least width (design units) a name keeps beside the Status column: past MIN_NAME's 100 (List columns, the
+-- director, Nov 22 2026)
+ZeD.InventoryRenderer.COND_NAME_U = 140
 
 -- A grid cell names its item in a hint, a readable row or cell shows its read
 -- card: the library's hover boxes, asked of the window's overlay (which keeps
@@ -2747,25 +2870,23 @@ local function renderItemList(self)
     local MIN_NAME = T.px(100)   -- (names before categories: at Large text the category drops before names crush)
     local catColW  = colWData.cat
     local condColW = colWData.cond
-    local wtColW   = colWData.wt
+    -- (a column among several, Loot columns: the compact weight column, never resized)
+    local wtColW   = self._compactMode and colWData.wtC or colWData.wt
     local showCond = true
     local showCat  = true
 
-    -- Force compact in multi-column: NAME + WT only
-    if self._compactMode then
-        showCond = false
-        condColW = 0
-        showCat  = false
-        catColW  = 0
-        wtColW   = wtFit(colWData, colWData.wtC, colW - nameX - padX - scrollW, MIN_NAME)
-    else
-        local wtD = colWData.wt - wtShare(colWData, colWData.wt)   -- (the unit's width: the bracket drops no column)
-        -- (Status first, then Category; with read marks on, Category before Status: fitColumns)
-        showCond, showCat = fitColumns(colW - nameX - wtD - padX - scrollW - MIN_NAME, catColW, condColW, readOn)
-        if not showCond then condColW = 0 end
-        if not showCat then catColW = 0 end
-        wtColW = wtFit(colWData, colWData.wt, colW - nameX - catColW - condColW - padX - scrollW, MIN_NAME)
-    end
+    -- (List columns, the director, Nov 22 2026) one priority for every list, a column among several too (it used to
+    -- show the name and the weight alone): the name, the weight, then Category where it fits, then Status where the
+    -- name keeps COND_NAME_U beside it (fitColumns). The widths were measured once above, so this is sums only.
+    local wtD = wtColW - wtShare(colWData, wtColW)   -- (the unit's width: the bracket drops no column)
+    showCond, showCat = fitColumns(colW - nameX - wtD - padX - scrollW - MIN_NAME, catColW, condColW,
+        T.px(ZeD.InventoryRenderer.COND_NAME_U) - MIN_NAME)
+    if not showCond then condColW = 0 end
+    if not showCat then catColW = 0 end
+    wtColW = wtFit(colWData, wtColW, colW - nameX - catColW - condColW - padX - scrollW, MIN_NAME)
+    -- (the panel keeps which show: the controller's L3 sort skips a hidden Status, renderMultiColumnContent copies
+    -- them to each column; fields, not locals: this function is near Kahlua's 200-local limit)
+    self._showCat, self._showCond = showCat, showCond
 
     -- Column X positions (all column-local, 0-based)
     local nameW   = colW - nameX - catColW - condColW - wtColW - padX - scrollW
@@ -2799,7 +2920,8 @@ local function renderItemList(self)
     local playerObj = self._playerObj
     local isPlayerInv = playerObj and inv and inv == playerObj:getInventory()
 
-    local sortCol  = self._sortCol or "name"
+    -- (List columns, the director, Nov 22 2026: a sort on a column the list has dropped falls back; listSort)
+    local sortCol  = ZeD.InventoryRenderer.listSort(self, self._sortCol or "name", showCond)
     local sortAsc  = self._sortAsc
     local collapsed = self._collapsedGroups
 
@@ -2841,6 +2963,15 @@ local function renderItemList(self)
     -- sets self._gv.L and the rows the pad and the drag read; nothing without an add-on. No new locals here: this
     -- function sits near Kahlua's 200-local limit)
     ZeD.GridLayout.attach(self, self._gv, M, inv, playerObj, useGroups, catHdrH, colW - scrollW - padX * 2)
+    -- (List columns, Nov 22 2026: the grid's bar has every sort key, so nothing counts as hidden there)
+    if self._gv.on then self._showCat, self._showCond = true, true end
+    -- (Grid width, the director, Nov 22 2026) a list alone on its panel tells the window whether it hugs: a grid of
+    -- ZeD's own cells (an add-on's layout sizes its own squares, so it is left as it is). renderMultiColumnContent
+    -- sets these for side-by-side columns. The windows read them (ZeD.Halves.gridHug).
+    if not self._compactMode then
+        self._hugN = (self._gv.on and not self._gv.L) and 1 or nil
+        self._hugXfer, self._hugCols = 0, 1
+    end
 
     -- No head row over an empty list (QA's visual noise audit 2, Nov 20 2026: "Name Cat Status Wt" over "Nothing
     -- here.") nor over a grid, which has no columns (audit 36): the grid's sort keys come with its Filter bar, under
@@ -3091,7 +3222,7 @@ local function renderItemList(self)
     for _, def in ipairs(colDefs) do
         hZ("hdr:" .. def[2], def[4], hdrY, def[5], colHdrH)
     end
-    if self._ccH > 0 then ZeD.ContainerControls.addZones(self) end
+    if self._ccH > 0 and not self._compactMode then ZeD.ContainerControls.addZones(self) end   -- (a column's foot: its toggle)
     -- the view button (its rects are panel coords already)
     addToggleZones(self, self._gv)
 
@@ -3677,6 +3808,7 @@ local function renderMultiColumnContent(self)
             cs.openHeads       = self._openHeads   -- (punch list 245: its open stacks' header rows)
             cs.catHeads        = self._useGroups and self._catOrder or nil   -- (punch list 256: its category headings)
             cs.catGroups       = self._stackedGroups
+            cs._showCond       = self._showCond   -- (List columns, Nov 22 2026: the pad's L3 skips a hidden Status)
         else
             renderItemList(self)
         end
@@ -3712,6 +3844,10 @@ local function renderMultiColumnContent(self)
 
     -- Clear all hit zones once
     self:clearHitZones()
+
+    -- (Grid width, the director, Nov 22 2026) the windows hug side-by-side columns only when every one is a grid of
+    -- ZeD's own cells (one list among them keeps the list's width); set after the columns draw, read next frame
+    local allGrid = true
 
     -- the window's one Filter across these columns: which containers show, where its bar sits
     filterFrame(self, true)
@@ -3776,6 +3912,8 @@ local function renderMultiColumnContent(self)
             cs.openHeads       = self._openHeads   -- (punch list 245: its open stacks' header rows)
             cs.catHeads        = self._useGroups and self._catOrder or nil   -- (punch list 256: its category headings)
             cs.catGroups       = self._stackedGroups
+            cs._showCond       = self._showCond   -- (List columns, Nov 22 2026: the pad's L3 skips a hidden Status)
+            if not (self._gv and self._gv.on and not self._gv.L) then allGrid = false end
             -- Each column keeps its own row-Y map, so the per-column controller
             -- zones (charMC1.., worldMC1..) can read each row's y to move between
             -- rows. Each column's renderItemList call writes to
@@ -3799,6 +3937,9 @@ local function renderMultiColumnContent(self)
             cs.gridLayoutGen   = self._gridLayoutGen
         end
     end
+
+    self._hugN = allGrid and N or nil
+    self._hugXfer, self._hugCols = xferW, N
 
     -- Draw XFER strips between columns
     local activeCol = self._activeCol or 1

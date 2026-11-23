@@ -883,6 +883,86 @@ end
 --- curtain still answer every other caller: a shade or unshade from anywhere
 --- else (a double-click, Y, a tab's key) rolls or unrolls both halves with it,
 --- and a roll or unroll of the curtain by hand moves the inventory half.
+-- ---------------------------------------------------------------------------
+-- Grid width (the director, Nov 22 2026: "In grid mode, can the width of the inventory hug the grid width? That is,
+-- shrink to reduce white space.")
+-- While the inventory side shows only grids of ZeD's own cells (content._hugN, set by InventoryRenderer each frame:
+-- the number of columns, side by side or one), the window's width is set so the side is whole cells and their
+-- margins (InventoryRenderer.hugInvW): at rest the widest whole width at or under what it has, so the grid shrinks;
+-- under a resize drag the nearest whole width, worked out again from the pointer each frame, so the drag snaps by
+-- whole cells and is never fought. The tab half and the drawer are left as they are: only the window's width
+-- changes, by the inventory side's difference. The edge kept is the one not dragged; at rest the window's own (the
+-- Character window's right edge, its anchor; the World window's left). Back to a list, the side gets its list width
+-- again: one column, the window's saved inventory width (_baseInvW, never changed while hugging); side-by-side
+-- columns, the width they had before hugging when their count is the same. Left alone while a drawer slides, while
+-- the cap holds back part of an opened drawer (_drawerCapLost: given back as it closes), rolled or hidden.
+-- ---------------------------------------------------------------------------
+
+-- Resize the window so its inventory side goes from invW to want (px), within maxW; returns the side's new width.
+local function hugResize(win, invW, want, maxW)
+    local w0, x0 = win:getWidth(), win:getX()
+    local nw = math.min(w0 + (want - invW), maxW)
+    if nw == w0 then return invW end
+    -- (Java's setWidth clamps to minimumWidth: lower it first; the window sets its own again after this, H.invMin)
+    if nw < (win.minimumWidth or 0) then win.minimumWidth = nw end
+    win:setWidth(nw)
+    local keepRight
+    if win._resizing then
+        keepRight = (win._resizeMode == "w" or win._resizeMode == "sw")   -- (the left edge is the one dragged)
+    else
+        keepRight = win._anchorRightEdge ~= nil
+    end
+    -- (width first, then x: setX clamps against the current width)
+    if keepRight then win:setX(x0 + w0 - win:getWidth()) end
+    if win._lastSetX ~= nil then win._lastSetX = win:getX() end
+    if win._anchorRightEdge ~= nil then win._anchorRightEdge = win:getX() + win:getWidth() - (win._drawerCapPush or 0) end
+    return invW + (win:getWidth() - w0)
+end
+
+--- The window's inventory side after the grid's hug (call where the side's width is the residual, every frame).
+--- invW: the side's width (px); still: no drawer sliding this frame; maxW: the window's widest. Returns the width.
+function H.gridHug(win, content, invW, still, maxW)
+    local R = ZeD.InventoryRenderer
+    if not (R and R.hugInvW and content) then return invW end
+    if not still or win._rolled or invW <= 0 or not content:getIsVisible() or (win._drawerCapLost or 0) > 0 then
+        return invW
+    end
+    local n = content._hugN
+    local g = win._gridHug
+    if not n then
+        if not g then return invW end
+        -- back to a list: its width again
+        win._gridHug = nil
+        local want
+        if g.n == 1 and (content._hugCols or 1) == 1 and (win._drawerEffW or 0) < 1 then
+            want = ZeD.T.px(win._baseInvW or 372)
+        elseif g.n == (content._hugCols or 1) then
+            want = g.from
+        end
+        if not want then return invW end
+        return hugResize(win, invW, want, maxW)
+    end
+    -- (a new count of columns starts from the width it has now: the windows set that count's own width first)
+    if not g or g.n ~= n then win._gridHug = { n = n, from = invW } end
+    local xfer = content._hugXfer or 0
+    local want = R.hugInvW(invW, n, xfer, win._resizing == true)
+    -- (the nearest whole width may be past the window's widest: the one under it)
+    if want > invW and win:getWidth() + (want - invW) > maxW then want = R.hugInvW(invW, n, xfer, false) end
+    if want == invW then return invW end
+    return hugResize(win, invW, want, maxW)
+end
+
+--- The least inventory side the window allows (px): its 200 units, or, while one grid column hugs, the narrowest
+--- whole width (three cells, a little under 200 units), so the window's minimum never holds it past its cells.
+function H.invMin(win, content)
+    local T, R = ZeD.T, ZeD.InventoryRenderer
+    local least = T.px(200)
+    if win._gridHug and content and content._hugN == 1 and R and R.hugInvW then
+        least = math.min(least, R.hugInvW(0, 1, 0, false))
+    end
+    return least
+end
+
 function H.attach(win, spec)
     win._halves = spec
     spec.inv = { pinned = false, rolled = false, hand = false }

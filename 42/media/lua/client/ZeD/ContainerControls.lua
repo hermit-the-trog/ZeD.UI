@@ -686,11 +686,11 @@ end
 --- The words of the Loot all buttons (the game's, sentence case): the band's and the list heading's. (KISS #18)
 function CT.lootAllLabel() return sentence(getText("IGUI_invpage_Loot_all")) end
 
---- True when the World window's list for this content shows the heading's Loot all: one container on show. (KISS #18)
--- (Header order, the director, Nov 22 2026: every Loot column's heading too, _compactMode on. The band is not drawn
--- in columns, so a column's heading is the only Take all it has.)
+--- True when a World window Loot column (a column among several, _compactMode) shows its own foot with Take all
+--- (InventoryRenderer.drawColumnFoot). The window's single list has the band's Take all instead. (KISS #18;
+--- Transfer in the footer, the director, Nov 22 2026: no Take all in any heading.)
 function CT.headLootOn(content)
-    return content ~= nil and content._ccSide == "world"
+    return content ~= nil and content._ccSide == "world" and content._compactMode == true
         and content._playerObj ~= nil and content._inventory ~= nil
 end
 
@@ -755,10 +755,15 @@ local function buildWorld(content)
                 ZeD.InventoryRenderer.padClearMarksOf(ct)
                 CT.moveItems(playerObj, items, d)
             end }
+    else
+        -- (Transfer in the footer, the director, Nov 22 2026: "Transfer buttons, always in the footer. Selection
+        -- buttons, always in the header." Take all is back in the band, first, after the same day's "Number 1" had
+        -- moved it to the heading)
+        moves[#moves + 1] = { id = "take", label = CT.lootAllLabel(), enabled = not inv:isEmptyOrUnwanted(playerObj),
+            -- (no icon: Loot all is a word button; KISS #7)
+            hint = CT.lootAllLabel(),
+            run = function(ct) CT.lootAll(playerObj, ct._inventory, otherInventory(ct)) end }   -- (KISS #18: one place)
     end
-    -- (Take all in the header only, the director's call "Number 1", Nov 22 2026: the band's Loot all is gone; the
-    -- list heading's stays, first in its row. The band keeps "Take marked" above: with rows marked it takes those
-    -- only, which the heading's button does not. Whether the heading's has anything to take rides on the state.)
     local cc = content._cc
     if cc then cc.lootEnabled = not inv:isEmptyOrUnwanted(playerObj) end
     local keep = function(item) return not item:isFavorite() and not item:isUnwanted(playerObj) end
@@ -913,8 +918,11 @@ local function gapBetween(a, b)
 end
 
 -- Lays the band's buttons out between x0 and x1 (column-local): the moves
--- (icons, from the left), a divider, the container's own buttons (words first,
--- then icons, at the right). When they do not fit: one ribbon between two
+-- (icons), a divider, the container's own buttons (words first, then icons), the
+-- whole run right-aligned at x1 as a dialog's footer (Buttons right, the director,
+-- Nov 22 2026: "move them to the right, because on any dialogue or in other places,
+-- they're always on the right"; the moves used to start at the band's left). The
+-- order among them is kept. When they do not fit: one ribbon between two
 -- arrows, each rect keeping tx, its place along the ribbon (draw scrolls it);
 -- divX is the divider's place the same way.
 local function layRow(moves, objs, x0, x1)
@@ -936,7 +944,9 @@ local function layRow(moves, objs, x0, x1)
     local row = { rects = rects, x0 = x0, x1 = x1 }
     local ox
     if total <= x1 - x0 then
-        for _, r in ipairs(rects) do r.tx = x0 + r.tx end
+        -- (the moves start where the run ends at x1: the band's spare room is left of them, Buttons right)
+        local lead = x0 + (x1 - x0) - total
+        for _, r in ipairs(rects) do r.tx = lead + r.tx end
         ox = x1 - objW
         if both then row.divX = ox - T.px(CT.DIV_PAD) - T.px(1) end
     else
@@ -1341,9 +1351,11 @@ function CT.syncFocus(win, content)
         for i, e in ipairs(els) do if e.ccKey == cc.askFrom then seat = i; break end end
         cc.askSeated, cc.askFrom = nil, nil
     end
-    -- (KISS #18 had Down into the band land on its Loot all; that button is gone (Nov 22 2026, "Number 1"): Down past
-    -- the list's last row wraps to the heading's Take all instead, FocusManager's Focus._lootAllWrap)
+    -- (KISS #18; Transfer in the footer, the director, Nov 22 2026) Down into the band always lands on its first
+    -- move: the World window's Take all (or Take marked), the Character window's Transfer all (or Move marked), never
+    -- To floor or Same type. FocusManager's Focus._lootAllWrap sends Down past the list's last row here too.
     zone.entryElementIdx = nil
+    for i, e in ipairs(els) do if e.ccKey == "take" or e.ccKey == "xfer" then zone.entryElementIdx = i; break end end
     F.setRingZoneElements(win, zn, els, seat)
     F.setZoneFocusable(win, zn, #els > 0)
 end
