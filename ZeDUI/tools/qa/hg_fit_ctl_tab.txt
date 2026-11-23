@@ -1,0 +1,5 @@
+# hg_fit_ctl_tab alone (QA, Nov 23 2026): the control with the Health tab open
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+hg_fit_ctl_tab.lua | hg_ctt | timeout=1500
+hg_injury.lua | hg_inj | timeout=1800
