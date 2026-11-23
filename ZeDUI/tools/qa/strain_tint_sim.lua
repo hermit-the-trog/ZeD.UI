@@ -272,6 +272,27 @@ local bodyfig = readFile(Z .. "ZeD_BodyFigure.lua") or ""
 check("a lifted tint mixes toward white before it multiplies the bone", bodyfig:find("1 - (1 - color.r) * k", 1, true) ~= nil)
 local bt = tonumber(bodyfig:match("local BONE_TINT = ([%d%.]+)"))
 check("the lift keeps a danger red bone light (BONE_TINT 0.4 to 0.7)", bt and bt >= 0.4 and bt <= 0.7, bt)
+do  -- every theme's severity and strain tokens keep a tinted bone at 0.75 of its light (QA, Nov 23 2026: Light's danger)
+    local fsrc = bodyfig:match("(function ZeD_BodyFigure%.boneTintK.-\nend)")
+    local keep = tonumber(bodyfig:match("local BONE_KEEP = ([%d%.]+)"))
+    check("boneTintK is there, BONE_KEEP 0.75", fsrc ~= nil and keep == 0.75, keep)
+    if fsrc then
+        local env = { ZeD_BodyFigure = {}, math = math }
+        local f = loadstring("local BONE_TINT, BONE_KEEP = " .. tostring(bt) .. ", " .. tostring(keep) .. "\n" .. fsrc)
+        if f then setfenv(f, env); f() end
+        local K = env.ZeD_BodyFigure.boneTintK
+        local toks = readFile(ROOT .. "42/media/lua/shared/ZeD/Tokens.lua") or ""
+        local n, worst = 0, 1
+        for h in toks:gmatch('%a+%s*=%s*hex%("#(%x%x%x%x%x%x)"%)') do
+            local c = { r = tonumber(h:sub(1, 2), 16) / 255, g = tonumber(h:sub(3, 4), 16) / 255, b = tonumber(h:sub(5, 6), 16) / 255 }
+            local k = K and K(c) or 1
+            local L = 0.299 * (1 - (1 - c.r) * k) + 0.587 * (1 - (1 - c.g) * k) + 0.114 * (1 - (1 - c.b) * k)
+            n = n + 1
+            if L < worst then worst = L end
+        end
+        check("no token tints a bone below 0.75 of its light (" .. n .. " tokens)", K ~= nil and n > 20 and worst >= 0.749, worst)
+    end
+end
 check("a part with nothing to say draws no veil on a boneLift figure", bodyfig:find("elseif self.boneLift then", 1, true) ~= nil)
 check("Thermal and Equipment's figures are not lifted", not thermal:find("boneLift", 1, true)
     and not (readFile(Z .. "EquipmentTab.lua") or ""):find("boneLift", 1, true))
