@@ -474,10 +474,34 @@ end
 
 --- The room either side of a face: the floor round the top-loading washer (seen from above), the wall behind the
 --- dryer and the combination washer-dryer (seen from the front).
-local function drawRoom(card, x, y, w, px0, des, k, faceId)
-    if P.baseId(faceId) == "washer" then return drawFloor(card, x, y, w, px0, des, k) end
-    return drawWall(card, x, y, w, px0, des, k)
+-- Every room draw goes through this stand-in for the card: it cuts each rect to the face area (x0 .. x1, y0 .. y1)
+-- and drops what is left of it outside, so no backdrop rect runs past the card's edge or its scrolled view. One
+-- table kept and reused, so a frame makes no garbage. (The card already draws its body inside a stencil, so the
+-- picture is the same; the draws themselves now stay inside.) (QA cleanup run, Nov 22 2026)
+local ROOM_CLIP = {}
+function ROOM_CLIP:drawRect(sx, sy, sw, sh, a, r, g, b)
+    local cx0, cy0 = math.max(sx, self.x0), math.max(sy, self.y0)
+    local cx1, cy1 = math.min(sx + sw, self.x1), math.min(sy + sh, self.y1)
+    if cx1 > cx0 and cy1 > cy0 then self.card:drawRect(cx0, cy0, cx1 - cx0, cy1 - cy0, a, r, g, b) end
 end
+local function drawRoom(card, x, y, w, px0, des, k, faceId)
+    -- the face area: the body's width and the face's rows, kept inside the card and inside the view the card
+    -- scrolls its body in (card._viewY / _viewH, ObjectCards.lua: the same rect as its stencil) (QA cleanup run, Nov 22 2026)
+    local x0, x1, y0, y1 = x, x + w, y, y + des.h * k
+    local cw = card.getWidth and card:getWidth() or nil
+    local ch = card.getHeight and card:getHeight() or nil
+    if cw then x0, x1 = math.max(x0, 0), math.min(x1, cw) end
+    if ch then y0, y1 = math.max(y0, 0), math.min(y1, ch) end
+    if card._viewY and card._viewH then
+        y0, y1 = math.max(y0, card._viewY), math.min(y1, card._viewY + card._viewH)
+    end
+    if x1 <= x0 or y1 <= y0 then return end   -- (the face is scrolled out of view: no room to draw)
+    ROOM_CLIP.card, ROOM_CLIP.x0, ROOM_CLIP.x1, ROOM_CLIP.y0, ROOM_CLIP.y1 = card, x0, x1, y0, y1
+    if P.baseId(faceId) == "washer" then drawFloor(ROOM_CLIP, x, y, w, px0, des, k)
+    else drawWall(ROOM_CLIP, x, y, w, px0, des, k) end
+    ROOM_CLIP.card = nil   -- (the card is not held on to between frames)
+end
+LD._drawRoom = drawRoom   -- (for gc_qa_cleanup_sim.lua; the card draws it through drawFace) (QA cleanup run, Nov 22 2026)
 
 -- the face (whole zoom, centred), its controls as zones, and the line under it
 local function drawFace(card, x, y, w, t)
