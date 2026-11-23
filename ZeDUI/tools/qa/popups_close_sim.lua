@@ -335,5 +335,31 @@ for i = 1, #pp do if string.byte(pp, i) > 127 then bad = i; break end end
 check("ZeD_Popups.lua is ASCII only", bad == nil, bad)
 check("ZeD_Popups.lua calls no next()", not string.find(pp, "[^%w_]next%s*%("))
 
+-- ---------------------------------------------------------------------------
+-- QA's notes (Nov 23 2026)
+-- ---------------------------------------------------------------------------
+P.closeAll()
+-- 1. an action no player can be named for shuts nobody's list (split screen)
+local s1, s2 = owner("s1"), owner("s2")
+local o1, o2 = { player = 0 }, { player = 1 }
+frame(function() draw(s1, "n1:0", o1); draw(s2, "n1:1", o2) end)
+P.onAction({ character = nil })
+frame(function() draw(s1, "n1:0", o1); draw(s2, "n1:1", o2) end)
+check("note 1: an action with no player shuts no list", s1.open and s2.open)
+P.onAction({ character = { getPlayerNum = function() return 1 end } })
+check("note 1: player 1's action shuts only player 1's list", s1.open and not s2.open)
+P.closeAll()
+-- 2. lastWhy is only set for a list this shut, not one its owner already shut
+local w = owner("w")
+frame(function() draw(w, "n2:0", { player = 0 }) end)
+P.lastWhy, P.lastClosed = "before", nil
+w.open = false                       -- the owner shuts it (a pick)
+frame(function() end); frame(function() end); frame(function() end)
+check("note 2: a list its owner shut leaves lastWhy alone", P.lastWhy == "before" and P.openCount() == 0, tostring(P.lastWhy))
+-- 3. a list with no player keys as the slot alone
+local nobody = {}
+check("note 3: no player: the key is the slot alone", P.opts(nobody, "palette:mods", isOpen, nil).key == "palette:mods")
+check("note 3: a player: slot:player", P.opts({}, "health", isOpen, 0).key == "health:0")
+
 print("popups_close_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end
