@@ -247,6 +247,42 @@ function ZeD_HintStripHUD:onRightMouseUp() return false end
 function ZeD_HintStripHUD:onMouseMove() return false end
 function ZeD_HintStripHUD:onMouseWheel() return false end
 
+-- Where the strip (x, y, w, h) stands so it is clear of the moodles' rect mr (ZeD.Moodles.rect: place, x, y, w, h, n),
+-- inside the player's screen box (sx, sy, sw, sh), with gap px between them. The row (bottom) is always stood above, as
+-- it sits in the belt's band; a column (right / left) only matters when the strip reaches it, and then the strip
+-- goes beside it (the room on the centre side), else above it, else under it. (QA rt_strain, Nov 22 2026)
+function H.clearOf(x, y, w, h, mr, sx, sy, sw, sh, gap)
+    if not (mr and (mr.n or 0) > 0) then return x, y end
+    local meetX = x < mr.x + mr.w + gap and mr.x < x + w + gap
+    if mr.place == "bottom" then
+        if meetX then
+            local above = mr.y - h - gap
+            if above >= sy then return x, math.min(y, above) end
+            -- no room above the row: beside it (left of it, else right of it)
+            if mr.x - gap - w >= sx then return mr.x - gap - w, y end
+            if mr.x + mr.w + gap + w <= sx + sw then return mr.x + mr.w + gap, y end
+            return x, math.min(y, above)
+        end
+        return x, y
+    end
+    local meetY = y < mr.y + mr.h + gap and mr.y < y + h + gap
+    if not (meetX and meetY) then return x, y end
+    -- beside the column, on the side that faces the screen's middle
+    local left = mr.x - gap - w
+    local right = mr.x + mr.w + gap
+    if mr.place == "left" then
+        if right + w <= sx + sw then return right, y end
+        if left >= sx then return left, y end
+    else
+        if left >= sx then return left, y end
+        if right + w <= sx + sw then return right, y end
+    end
+    -- no room beside: above it, else under it
+    local above = mr.y - h - gap
+    if above >= sy then return x, above end
+    return x, math.min(y, mr.y + mr.h + gap)
+end
+
 function ZeD_HintStripHUD:prerender()
     local T = ZeD.T
     self._p, self._t = nil, nil
@@ -255,7 +291,12 @@ function ZeD_HintStripHUD:prerender()
     if not ok then p = nil end
     local okT, t = pcall(H.teach, self.playerNum)   -- (the pad's first hours' line, above the prompts: KISS #26)
     if not okT then t = nil end
-    if not p and not t then return end
+    if not p and not t then
+        -- nothing to show: a 0 x 0 box, so the stale size and place of the last frame never sit over a moodle (QA rt_strain, Nov 22 2026)
+        if self:getWidth() ~= 0 then self:setWidth(0) end
+        if self:getHeight() ~= 0 then self:setHeight(0) end
+        return
+    end
     local G = ZeD.PadGlyphs
     local pn = self.playerNum
     local need = math.max(p and G.stripW(p, pn) or 0, t and G.stripW(t, pn) or 0)
@@ -271,8 +312,10 @@ function ZeD_HintStripHUD:prerender()
     local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance(pn)
     if dash and dash:getIsVisible() and dash.vehicle then y = math.min(y, dash:getY() - h - T.px(6)) end
     -- (Nov 14 2026, punch list 193: moodles placed above the belt sit in the same band, so the strip goes above them)
+    -- (QA rt_strain, Nov 22 2026: at 1280x800 the strip stood over the Endurance and Tired moodles. It now clears the
+    -- moodles' whole rect in every layout: row above, columns beside; H.clearOf holds the rule)
     local mr = ZeD.Moodles and ZeD.Moodles.rect and ZeD.Moodles.rect(pn)
-    if mr and mr.place == "bottom" and (mr.n or 0) > 0 then y = math.min(y, mr.y - h - T.px(6)) end
+    x, y = H.clearOf(x, y, w, h, mr, getPlayerScreenLeft(pn), getPlayerScreenTop(pn), getPlayerScreenWidth(pn), getPlayerScreenHeight(pn), T.px(6))
     if self:getX() ~= x then self:setX(x) end
     if self:getY() ~= y then self:setY(y) end
     if self:getWidth() ~= w then self:setWidth(w) end
