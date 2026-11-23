@@ -1951,22 +1951,36 @@ function Focus._bandWrap(w, locator, fromFlat, toFlat, dir)
         end
     end
     if not (lootFi and bandFi) then return nil end
+    local lz = locator[lootFi].zoneIdx
+    -- the list's top (or, with last, bottom) row on show: an item's row
+    local function edgeRow(last)
+        local best, bestY
+        for fi = 1, #locator do
+            local loc = locator[fi]
+            local e = loc.zoneIdx == lz and ring[lz].elements[loc.elementIdx]
+            if e and e.item and not e.offscreen and type(e.y) == "number"
+                and (not bestY or (last and e.y > bestY) or (not last and e.y < bestY)) then
+                best, bestY = fi, e.y
+            end
+        end
+        return best
+    end
     if dir == "up" then
-        if toFlat or fromBand then return nil end   -- (something above, or the band's own Up: the list's last row)
-        return bandFi
+        if not fromBand then
+            if toFlat then return nil end   -- (something above: kept)
+            return bandFi
+        end
+        -- (QA PAD 3, Nov 22 2026) Up from the band: the list's last row on show, not the heading's Pick all the
+        -- spatial pick may land on (the buttons at the right end line up); a pick that is already a row is kept
+        local te = toFlat and locator[toFlat]
+        local tz = te and ring[te.zoneIdx]
+        local tel = tz and tz.elements and tz.elements[te.elementIdx]
+        if tel and te.zoneIdx == lz and tel.item then return nil end
+        return edgeRow(true) or lootFi
     end
     if not fromBand then return nil end
     -- Down from the band: the list's top row on show (an item's row), else its heading's Pick all
-    local lz = locator[lootFi].zoneIdx
-    local best, bestY
-    for fi = 1, #locator do
-        local loc = locator[fi]
-        local e = loc.zoneIdx == lz and ring[lz].elements[loc.elementIdx]
-        if e and e.item and not e.offscreen and type(e.y) == "number" and (not bestY or e.y < bestY) then
-            best, bestY = fi, e.y
-        end
-    end
-    return best or lootFi
+    return edgeRow(false) or lootFi
 end
 
 local function _handleSpatialNav(w, dir)
@@ -2390,7 +2404,7 @@ local function _handleSpatialNav(w, dir)
     end
     -- (Header order, Nov 22 2026) Down from the footer band onto anything (the drawer's foot beside it): the list's
     -- first row on show instead
-    if dir == "down" and newFlatIdx ~= logFromIdx then
+    if (dir == "down" or dir == "up") and newFlatIdx ~= logFromIdx then   -- (up: QA PAD 3, the band's Up)
         local wrap = Focus._bandWrap(w, locator, logFromIdx, newFlatIdx, dir)
         if wrap then newFlatIdx, pass = wrap, "wrap" end
     end
