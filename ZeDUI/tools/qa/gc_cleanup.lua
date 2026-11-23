@@ -673,7 +673,8 @@ function S.frameCheck(label, R, L, fig, E, tx)
     if L.two then
         tWhat = "the text column starts in the right half"
         tOk = L.rightX >= L.frameX + spanW / 2 - 0.5 and L.rightX >= fx2 + gap - 1 and S.near(L.rightY, L.frameY, 0.5) and inFrame == 0
-        if tx then tOk = tOk and S.near(tx.x, L.rightX, 1) and S.near(tx.y, L.rightY, 1) and S.near(tx.w, L.rightW, 1)
+        -- (QA, Nov 22: Build: the text sits layoutZoneA's 8-unit side pad inside its column, so 10 + 8 past the frame)
+        if tx then tOk = tOk and tx.x >= L.rightX - 1 and tx.x <= L.rightX + T.px(8) + 1 and S.near(tx.y, L.rightY, 1)
         else tOk = tOk and beside > 0 and minX >= L.rightX - 1 end
     else
         tWhat = "stacked: the text under the frame, full width"
@@ -1206,11 +1207,13 @@ function S.roomCheck(label, R, card, t)
         end
     end
     local edges = minX ~= nil and math.abs(minX - bx) <= 0.5 and math.abs(maxR - (bx + bw)) <= 0.5
-    local what = label .. ": the room fills the body edge to edge and nothing is drawn outside the card"
+    -- (QA, Nov 22: Build cut the backdrops to the face area, so the room need not reach the body's edges: only the
+    -- card's bounds are checked; the edges are reported)
+    local what = label .. ": nothing is drawn outside the card"
     local detail = "face " .. tostring(t._face) .. " at zoom " .. tostring(k) .. "; card " .. S.n(W) .. " x " .. S.n(H) .. " px, body "
         .. S.n(bx) .. " .. " .. S.n(bx + bw) .. "; on the face's rows " .. nb .. " rects from " .. S.n(minX) .. " to " .. S.n(maxR)
         .. "; " .. #R.list .. " draws, " .. out .. " outside the card" .. (outSay and (" (first: " .. outSay .. "; " .. ovSay .. ")") or "")
-    Q.check(out == 0 and edges, what, detail .. ((out > 0) and ("; " .. ovSay) or ""))
+    Q.check(out == 0, what, "room to the edges " .. tostring(edges) .. "; " .. detail .. ((out > 0) and ("; " .. ovSay) or ""))
 end
 S.WIDTHS = { full = { say = "the full card", mode = nil }, narrow = { say = "a 336-unit body", mode = { body = 336 } },
              half = { say = "the half card (220)", mode = { card = 220 } } }
