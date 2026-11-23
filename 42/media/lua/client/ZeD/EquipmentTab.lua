@@ -621,6 +621,9 @@ local function _drawDefenseFigure(panel, win, protData, px, py, pw, ph)
         local def       = protData.partDefense[partStr] or -1
         local color     = colorForDef(def)
         local figureName = PART_TO_FIG[partStr]
+        -- a strained part with no wound shows its strain tint, as on the Health figure (Strain, the director, Nov 22 2026)
+        local lv = figureName and protData.strain and protData.strain[figureName]
+        if lv then color = ZeD.HealthTab.strainColor(lv) end
         if figureName then
             fig:setPartColor(figureName, color.r, color.g, color.b, 0.65)
         end

@@ -9,6 +9,10 @@
 --   TEXT      the status text shades in both sets read at least 4.5 : 1 on surfaces 1 and 2 (drawn solid)
 --   APART     in the color blind set, good, warning and bad differ by at least 20 (CIELAB) under deuteranopia,
 --             protanopia and tritanopia (the swatch page's numbers)
+--   STRAIN    (Strain, the director, Nov 22 2026) the body figure's muscle strain tints, minor and heavy, in T for every
+--             theme and both sets (the set's own where it has them); drawn as the figure draws a part (0.65 over
+--             surface 1) they stand apart from the health tints (good, warning, bad, the low-health red) under normal
+--             sight and the three color blindnesses, and minor and heavy differ by lightness, not hue alone
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/status_colors_sim.lua
 
 local ROOT = string.gsub(arg and arg[0] or "", "ZeDUI[/\\]tools[/\\]qa[/\\]status_colors_sim%.lua$", "")
@@ -164,6 +168,31 @@ for _, tk in ipairs({ "dark", "light", "hicon" }) do
         local g, y, r = sim(CB.positive, v), sim(CB.warning, v), sim(CB.danger, v)
         local m = math.min(dE(g, y), dE(g, r), dE(y, r))
         check(("APART cb %s %s: the three at least 20 apart"):format(tk, v), m >= 20, string.format("%.1f", m))
+    end
+    -- STRAIN: both sets (the color blind one is on now)
+    for _, setIdx in ipairs({ 2, 1 }) do
+        apply(tk, setIdx)
+        local T2 = ZeD.T
+        local setName = (setIdx == 2) and "cb" or "standard"
+        local want = (setIdx == 2) and CB or B
+        check(("STRAIN %s %s: the set's minor and heavy tints in T"):format(setName, tk),
+              T2.strainMinor and T2.strainHeavy and same(T2.strainMinor, want.strainMinor) and same(T2.strainHeavy, want.strainHeavy))
+        if T2.strainMinor and T2.strainHeavy then
+            local bg = T2.surf1
+            local function over(c) return { r = c.r * 0.65 + bg.r * 0.35, g = c.g * 0.65 + bg.g * 0.35, b = c.b * 0.65 + bg.b * 0.35 } end
+            local health = { T2.positive, T2.warning, T2.danger, { r = 0.95, g = 0.15, b = 0.15 } }
+            local worst, worstMH = 1e9, 1e9
+            for _, v in ipairs({ "none", "deutan", "protan", "tritan" }) do
+                local function s(c) c = over(c); return v == "none" and c or sim(c, v) end
+                local mn, hv = s(T2.strainMinor), s(T2.strainHeavy)
+                for _, hc in ipairs(health) do worst = math.min(worst, dE(mn, s(hc)), dE(hv, s(hc))) end
+                worstMH = math.min(worstMH, dE(mn, hv))
+            end
+            check(("STRAIN %s %s: apart from the health tints (9 or more, every sight)"):format(setName, tk), worst >= 9, string.format("%.1f", worst)); print(("   strain %s %s: %.1f from the health tints, %.1f minor to heavy"):format(setName, tk, worst, worstMH))
+            check(("STRAIN %s %s: minor and heavy apart (13 or more, every sight)"):format(setName, tk), worstMH >= 13, string.format("%.1f", worstMH))
+            local lm, lh = lab(over(T2.strainMinor)), lab(over(T2.strainHeavy))
+            check(("STRAIN %s %s: minor and heavy differ by lightness (15 or more)"):format(setName, tk), math.abs(lm - lh) >= 15, string.format("%.1f", math.abs(lm - lh)))
+        end
     end
     -- back to Standard
     apply(tk, 1)

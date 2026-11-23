@@ -206,6 +206,8 @@ function ZeD.ThermalTab.gatherData(playerObj)
         windTemp  = windTemp,
         heatGen   = (okH and type(heat) == "number") and heat or nil,
         nodes     = nodes,
+        -- the parts with muscle strain and no wound (the figure tints them) (Strain, the director, Nov 22 2026)
+        strain    = ZeD.HealthTab and ZeD.HealthTab.strainMap and ZeD.HealthTab.strainMap(playerObj) or nil,
         partOrder = PART_ORDER,
         isFemale  = playerObj:isFemale(),
     }
@@ -582,6 +584,9 @@ function ZeD.ThermalTab._drawBodyFigure(panel, win, data, px, py, pw, ph)
     for partName, nodeData in pairs(data.nodes) do
         local uiVal = nodeData[uiKey] or 0
         local color = getThermalColor(uiVal, viewIdx)
+        -- a strained part with no wound shows its strain tint, as on the Health figure (Strain, the director, Nov 22 2026)
+        local lv = data.strain and data.strain[partName]
+        if lv then color = ZeD.HealthTab.strainColor(lv) end
         fig:setPartColor(partName, color.r, color.g, color.b, 0.65)
     end
 

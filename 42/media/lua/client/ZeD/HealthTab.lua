@@ -333,13 +333,14 @@ local function classifyConditions(bp, doctorLevel)
         conds[#conds + 1] = { label = qualify(ZeD.tr("UI_ZeD_Health_Burn"), word), severity = "warning" }
     end
 
-    -- Stiffness / muscle strain (exercise soreness)
+    -- Stiffness / muscle strain (exercise soreness); strain = true: the summary counts it apart from
+    -- the injuries (Strain, the director, Nov 22 2026)
     local stiffness = bp:getStiffness()
     if stiffness >= 5 then
         if stiffness < 20 then
-            conds[#conds + 1] = { label = getText("IGUI_health_MinorStiffness"), severity = "warning", care = true }
+            conds[#conds + 1] = { label = getText("IGUI_health_MinorStiffness"), severity = "warning", care = true, strain = true }
         else
-            conds[#conds + 1] = { label = getText("IGUI_health_Stiffness"), severity = "danger", care = true }
+            conds[#conds + 1] = { label = getText("IGUI_health_Stiffness"), severity = "danger", care = true, strain = true }
         end
     end
 
@@ -405,6 +406,47 @@ local function getHealthColor(health)
     if health > 50  then return T.warning  end
     if health > 20  then return T.danger   end
     return LOW_HEALTH_RED
+end
+ZeD.HealthTab.healthColor = getHealthColor
+
+-- MUSCLE STRAIN ON THE FIGURE (Strain, the director, Nov 22 2026): a strained part takes a tint of its
+-- own (the theme's strainMinor / strainHeavy), at the levels the game's health panel names it: Minor
+-- Muscle Strain at 5 or more, Muscle Strain at 20 or more. A wound's colour wins on the same part.
+
+--- 1 (minor) or 2 (heavy) for a part's stiffness, nil under 5
+function ZeD.HealthTab.strainLevel(stiffness)
+    if not stiffness or stiffness < 5 then return nil end
+    return (stiffness >= 20) and 2 or 1
+end
+
+--- the theme's tint for a strain level (1 or 2); nil for none
+function ZeD.HealthTab.strainColor(level)
+    if not level then return nil end
+    local T = ZeD.T
+    if level >= 2 then return T.strainHeavy or T.danger end
+    return T.strainMinor or T.warning
+end
+
+-- A wound shows on a part: its health tint is not the healthy one (80 or less), another mod names
+-- something there, or a condition that is not care (care: pain, strain, bandage, stitches, splint,
+-- poultice; classifyConditions marks them) is on it
+local function woundShows(conds, health, extra)
+    if health <= 80 or extra then return true end
+    for _, c in ipairs(conds) do
+        if not c.care then return true end
+    end
+    return false
+end
+ZeD.HealthTab.woundShows = woundShows
+
+--- The colour a part draws in on the Health figure (and the medical check's): the strain tint where
+--- the part is strained and no wound shows, else its health colour. data is gatherData's read.
+function ZeD.HealthTab.figureColor(data, figureName, health)
+    local lv = data.partStrain and data.partStrain[figureName]
+    if lv and not (data.partWound and data.partWound[figureName]) then
+        return ZeD.HealthTab.strainColor(lv)
+    end
+    return getHealthColor(health)
 end
 
 -- ============================================================================
@@ -658,6 +700,10 @@ function ZeD.HealthTab.gatherData(playerObj, opts)
     -- check of another player passes the doctor's own)
     local doctorLevel = (opts and opts.doctorLevel) or playerObj:getPerkLevel(Perks.Doctor)
     local partByFigure = {}      -- figureName -> the BodyPart (the medical check treats it)
+    -- (Strain, the director, Nov 22 2026)
+    local partStrain = {}        -- figureName -> 1 (minor) or 2 (heavy) muscle strain
+    local partWound  = {}        -- figureName -> true where a wound shows (its colour wins over strain)
+    local strainedCount, strainWorst = 0, nil
 
     for i = 1, nParts do
         local bp = parts:get(i - 1)
@@ -673,9 +719,17 @@ function ZeD.HealthTab.gatherData(playerObj, opts)
         local figureName = typeToFigure[bpType]
 
         -- Store health and conditions for ALL parts (figure needs full map)
+        -- every strained part counts, the figure's or not (Strain, the director, Nov 22 2026)
+        local strainLv = ZeD.HealthTab.strainLevel(stiffness)
+        if strainLv then
+            strainedCount = strainedCount + 1
+            if not strainWorst or strainLv > strainWorst then strainWorst = strainLv end
+        end
         if figureName then
             partByFigure[figureName] = bp
             partHealth[figureName] = health
+            partStrain[figureName] = strainLv
+            if woundShows(conds, health, extra) then partWound[figureName] = true end
             if #conds > 0 then
                 condsByFigureName[figureName] = conds
             end
@@ -714,8 +768,21 @@ function ZeD.HealthTab.gatherData(playerObj, opts)
         totalParts        = nParts,
         injuredCount      = #entries,
         -- "injured" means a wound/condition; reduced health alone (hunger,
-        -- sickness, cold) is listed but not called an injury.
-        woundedCount      = (function() local c = 0; for _, e in ipairs(entries) do if #e.conditions > 0 then c = c + 1 end end; return c end)(),
+        -- sickness, cold) is listed but not called an injury, and muscle strain is counted
+        -- apart (strainedCount) (Strain, the director, Nov 22 2026).
+        woundedCount      = (function()
+            local c = 0
+            for _, e in ipairs(entries) do
+                for _, cd in ipairs(e.conditions) do
+                    if not cd.strain then c = c + 1; break end
+                end
+            end
+            return c
+        end)(),
+        strainedCount     = strainedCount,
+        strainWorst       = strainWorst,
+        partStrain        = partStrain,
+        partWound         = partWound,
         partHealth        = partHealth,
         condsByFigureName = condsByFigureName,
         extraByFigureName = extraByFigureName,
@@ -745,10 +812,11 @@ function ZeD.HealthTab._drawBodyFigure(panel, win, data, px, py, pw, ph)
         fig:setSex(data.isFemale)
     end
 
-    -- Color every part by health percentage (always visible, green when healthy)
+    -- Color every part by health percentage (always visible, green when healthy), a strained part
+    -- without a wound in the strain tint (Strain, the director, Nov 22 2026)
     -- (no clearColors: gatherData maps every part each time, and the figure reuses its colour tables) (beast W19)
     for figureName, health in pairs(data.partHealth) do
-        local color = getHealthColor(health)
+        local color = ZeD.HealthTab.figureColor(data, figureName, health)
         fig:setPartColor(figureName, color.r, color.g, color.b, 0.65)
     end
 
@@ -943,6 +1011,95 @@ function ZeD.HealthTab.takeDrop(pn, items)
 end
 
 -- ============================================================================
+-- THE SUMMARY LINE (the Health tab's and the medical check's)
+-- Count WOUNDS, not low health. A hungry character with every part
+-- at 77% is not "17 of 17 injured"; low health shows as a dim note.
+-- Muscle strain is counted apart, in the game's words (Strain, the director, Nov 22 2026):
+--   strain only:       "No injuries, Muscle Strain: 6" (the dot in the strain tint)
+--   wounds and strain: "3 of 17 injured", then "Muscle Strain: 6 of 17" on a line of its own
+-- ============================================================================
+
+--- The summary's lines for a read: a list of { text, dot } (dot: a colour, or nil for none)
+function ZeD.HealthTab.summaryLines(data)
+    local T = ZeD.T
+    local wounded = data.woundedCount or data.injuredCount
+    local strained = data.strainedCount or 0
+    local strainWord = getText("IGUI_health_Stiffness")   -- the game's own "Muscle Strain"
+    local out = {}
+    if wounded == 0 then
+        if strained > 0 then
+            out[1] = { text = ZeD.tr("UI_ZeD_Health_NoInjuriesStrain", strainWord, strained),
+                       dot = ZeD.HealthTab.strainColor(data.strainWorst or 1) }
+        else
+            -- (a part listed for low health alone: the yellow dot and the low-health words)
+            out[1] = { text = (data.injuredCount > 0) and ZeD.tr("UI_ZeD_Health_NoInjuriesLow") or ZeD.tr("UI_ZeD_Health_NoInjuries"),
+                       dot = (data.injuredCount > 0) and T.warning or T.positive }
+        end
+    else
+        out[1] = { text = ZeD.tr("UI_ZeD_Health_InjuredOf", wounded, data.totalParts) }
+        if strained > 0 then
+            out[2] = { text = ZeD.tr("UI_ZeD_Health_StrainOf", strainWord, strained, data.totalParts),
+                       dot = ZeD.HealthTab.strainColor(data.strainWorst or 1) }
+        end
+    end
+    return out
+end
+
+--- How many lines the summary takes for a read (the measure's count)
+function ZeD.HealthTab.summaryLineCount(data)
+    if not data then return 1 end
+    local wounded = data.woundedCount or data.injuredCount or 0
+    return (wounded > 0 and (data.strainedCount or 0) > 0) and 2 or 1
+end
+
+--- Draw the summary's lines at (x, y); returns the y under them
+function ZeD.HealthTab.drawSummary(panel, data, x, y)
+    local T, A = ZeD.T, ZeD.Atoms
+    local secH = ZeD.TM:getFontHeight(T.fontF1)
+    local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
+    local dotSz, dotGap = T.px(6), T.px(4)
+    for _, ln in ipairs(ZeD.HealthTab.summaryLines(data)) do
+        if ln.dot then
+            A.drawStatusDot(panel, x, y + math.floor((bodyFH - dotSz) / 2), ln.dot, dotSz)
+            A.drawBody(panel, ln.text, x + dotSz + dotGap, y)
+        else
+            A.drawBody(panel, ln.text, x, y)
+        end
+        y = y + secH + T.sp.sm
+    end
+    return y
+end
+
+--- The parts with muscle strain and no wound, for the figures that colour by something else (Thermal,
+--- Equipment's defense view): figureName -> 1 (minor) or 2 (heavy). Read with their own data, every
+--- quarter second or so, never per frame. (Strain, the director, Nov 22 2026)
+function ZeD.HealthTab.strainMap(playerObj)
+    local out = {}
+    local bd = playerObj and playerObj:getBodyDamage()
+    if not bd then return out end
+    ensureBodyPartTypes()
+    if _typeToFigureFrom ~= BODY_PART_TYPES then
+        _typeToFigure = {}
+        for _, bt in ipairs(BODY_PART_TYPES) do _typeToFigure[bt.type] = bt.figure end
+        _typeToFigureFrom = BODY_PART_TYPES
+    end
+    local doctorLevel = playerObj:getPerkLevel(Perks.Doctor)
+    local parts = bd:getBodyParts()
+    for i = 1, parts:size() do
+        local bp = parts:get(i - 1)
+        local lv = ZeD.HealthTab.strainLevel(bp:getStiffness())
+        local name = lv and _typeToFigure[bp:getType()]
+        if name then
+            -- (the same wound rule as the Health figure: a wound's colour wins there, so the part is left out here)
+            local conds = classifyConditions(bp, doctorLevel)
+            if heldBack(playerObj, bp) then conds = careOnly(conds) end
+            if not woundShows(conds, bp:getHealth(), extraLines(playerObj, bp)) then out[name] = lv end
+        end
+    end
+    return out
+end
+
+-- ============================================================================
 -- ZONE A RIGHT COLUMN: DEFAULT HEADER (summary dashboard)
 -- Returns curY (bottom of Zone A header content).
 -- ============================================================================
@@ -960,21 +1117,8 @@ function ZeD.HealthTab._renderHeader(panel, win, data, rx, ry, rw)
     -- Overall Body Status) on its own line
     curY = ZeD.HealthTab.drawOverall(panel, rx, curY, rw, data)
 
-    -- Summary line
-    -- Count WOUNDS, not low health. A hungry character with every part
-    -- at 77% is not "17 of 17 injured"; low health shows as a dim note.
-    local wounded = data.woundedCount or data.injuredCount
-    if wounded == 0 then
-        local dotSz = T.px(6)
-        local dotGap = T.px(4)
-        local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
-        local dotC = (data.injuredCount > 0) and T.warning or T.positive
-        A.drawStatusDot(panel, rx, curY + math.floor((bodyFH - dotSz) / 2), dotC, dotSz)
-        A.drawBody(panel, (data.injuredCount > 0) and ZeD.tr("UI_ZeD_Health_NoInjuriesLow") or ZeD.tr("UI_ZeD_Health_NoInjuries"), rx + dotSz + dotGap, curY)
-    else
-        A.drawBody(panel, ZeD.tr("UI_ZeD_Health_InjuredOf", wounded, data.totalParts), rx, curY)
-    end
-    curY = curY + secH + T.sp.sm
+    -- Summary line(s) (drawSummary above)
+    curY = ZeD.HealthTab.drawSummary(panel, data, rx, curY)
 
     -- What vanilla's fitness window says about the picked exercise: description,
     -- stiffness, regularity, warnings (the exercise itself is picked in the band)
@@ -1695,7 +1839,8 @@ function ZeD.HealthTab._measureZoneA(data, rw, win)
     if data and not calm then
         rightH = rightH + ZeD.HealthTab.overallLineCount(data, T.fontF2, L.rightW) * f2H + T.sp.xs
     end
-    rightH = rightH + secH + T.sp.sm
+    -- (the summary: one line, or two with wounds and muscle strain) (Strain, the director, Nov 22 2026)
+    rightH = rightH + (secH + T.sp.sm) * ZeD.HealthTab.summaryLineCount(data)
 
     -- Right column: the picked exercise's info block (its controls are the footer band's)
     rightH = rightH + ZeD.HealthTab._measureExerciseInfo(win, rw)

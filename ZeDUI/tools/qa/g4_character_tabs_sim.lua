@@ -156,7 +156,11 @@ do
         local ffn = fa and fb and loadstring("local TAB_HEADER_PAD, TAB_COL_GAP = 8, 10\n" .. mol:sub(fa, fb), "=Molecules.lua (figure frame)")
         check("Molecules' figure frame layout loads", ffn ~= nil)
         if ffn then ffn() end
-        local chunk, err = loadstring(src:sub(a, b - 1) .. src:sub(c, e + 4), "=HealthTab.lua (cut)")
+        -- (and the summary's line count, which the measure reads: Strain, the director, Nov 22 2026)
+        local sa = src:find("function ZeD.HealthTab.summaryLineCount(", 1, true)
+        local se = sa and src:find("\nend\n", sa, true)
+        check("the summary's line count is in the file", sa and se)
+        local chunk, err = loadstring(src:sub(a, b - 1) .. src:sub(c, e + 4) .. (sa and se and src:sub(sa, se + 4) or ""), "=HealthTab.lua (cut)")
         check("the Overall pieces cut and load", chunk ~= nil, err)
         if chunk then
             chunk()

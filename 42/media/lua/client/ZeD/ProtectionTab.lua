@@ -301,6 +301,9 @@ function ZeD.ProtectionTab.gatherData(playerObj)
         totalGarments  = #garments,
         totalParts     = #ALL_PARTS,
         isFemale       = playerObj:isFemale(),
+        -- the parts with muscle strain and no wound, figure name -> 1 or 2 (Equipment's defense figure tints
+        -- them) (Strain, the director, Nov 22 2026)
+        strain         = ZeD.HealthTab and ZeD.HealthTab.strainMap and ZeD.HealthTab.strainMap(playerObj) or nil,
     }
 end
 
