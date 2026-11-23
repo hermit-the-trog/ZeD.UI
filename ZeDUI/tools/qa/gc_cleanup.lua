@@ -979,7 +979,37 @@ function S.closeCard()
     if S.card() then pcall(ZeD_WorldWindow.closeObjectCard, S.pn) end
 end
 -- the card's width held by its own prerender: mode { body = units } (the body that wide) or { card = units }
+-- the held width a card mode asks for, in px (nil with no mode)
+function S.heldW(card)
+    local m = S.cardMode
+    if not m then return nil end
+    local T = ZeD.T
+    if m.card then return T.px(m.card) end
+    local sb = (card and card.scroll and card.scroll.visible) and T.sp.scrollbarW or 0
+    return T.px(m.body) + 2 * T.px(10) + sb
+end
+-- (QA, Nov 23: Build's cardfill: one place decides an object card's drawer width, ZeD_WorldWindow.objectDrawerW,
+-- and the card fills the drawer it is given. Narrowing only the card left the 480 drawer's leftover as an empty
+-- column the director saw; the held width now narrows the drawer, so the card fills it as in play)
+function S.drawerHook()
+    local WW = ZeD_WorldWindow
+    if S.drawerOrig or not (WW and WW.objectDrawerW) then return end
+    S.drawerOrig = WW.objectDrawerW
+    WW.objectDrawerW = function(def, base)
+        local ww = S.WW()
+        local w = S.heldW(ww and ww._objectCard)
+        if w then return w end
+        return S.drawerOrig(def, base)
+    end
+end
+function S.drawerUnhook()
+    if S.drawerOrig and ZeD_WorldWindow then ZeD_WorldWindow.objectDrawerW = S.drawerOrig end
+    S.drawerOrig = nil
+end
 function S.cardHook()
+    S.drawerHook()
+    -- with objectDrawerW (cardfill) the drawer carries the width and the card fills it: nothing more to hold
+    if S.drawerOrig then return end
     local ww = S.WW()
     local card = ww and ww._objectCard
     if not card or S.hooked == card then return end
@@ -1004,6 +1034,7 @@ end
 function S.cardUnhook()
     local card = S.hooked
     S.cardMode = nil
+    S.drawerUnhook()
     if not card then return end
     if S.hookOwn then card.prerender = S.hookOwn else card.prerender = nil end
     S.hooked, S.hookOwn = nil, nil
