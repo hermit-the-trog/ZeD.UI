@@ -4,8 +4,8 @@
 --            book and a skill book) starts "Unread", not the game's "Unread."; the Papers rows and the Papers and
 --            Books rows under "No notebook on you" say UI_ZeD_Read_Unread, not "Not read yet" or the game's "Unread.";
 --            UI_ZeD_Read_Unread has a word and no period in all 28 UI.json
---   LARGE    175f(1): the real fitColumns keeps Status over Category when read marks are on and only one fits (and
---            drops as before with them off); the list asks it with readOn; the real readTagW holds the mark and the
+--   LARGE    the real fitColumns keeps Category over Status (List columns, Nov 22 2026, replacing 175f(1)'s read-marks
+--            order) and Status only past condName; the list asks it so; the real readTagW holds the mark and the
 --            word, and the real drawReadCond given that width draws the word after the name (at Small and Large text)
 --   LIGHT    175f(2): the real J.paperTones gives an unread paper row's title and kind line a colour that keeps
 --            4.5 : 1 on the window over either world, in Dark, Light and High contrast; the list's "Dim read items"
@@ -164,19 +164,23 @@ chunk[#chunk + 1] = "return drawReadCond, readTagW, fitColumns"
 local okI, drawReadCond, readTagW, fitColumns = pcall(function() return assert(loadstring(table.concat(chunk, "\n"), "@IR pieces"))() end)
 check("LARGE the pieces load", okI, drawReadCond)
 if okI and fitColumns then
-    -- room past the name's least width; Category 80, Status 70
-    local c1, k1 = fitColumns(200, 80, 70, true)
+    -- room past the name's least width; Category 80, Status 70. (List columns, the director, Nov 22 2026: Category
+    -- comes before Status whether read marks are on or not; Status only where the name keeps condName more; this
+    -- replaces 175f(1)'s "Status over Category with read marks on")
+    local c1, k1 = fitColumns(200, 80, 70, 0)
     check("LARGE both fit: both kept", c1 == true and k1 == true)
-    local c2, k2 = fitColumns(100, 80, 70, true)
-    check("LARGE read marks on, one fits: Status kept, Category dropped", c2 == true and k2 == false, tostring(c2) .. "/" .. tostring(k2))
-    local c3, k3 = fitColumns(100, 80, 70, false)
-    check("LARGE read marks off, one fits: as before, Status dropped, Category kept", c3 == false and k3 == true, tostring(c3) .. "/" .. tostring(k3))
-    local c4, k4 = fitColumns(60, 80, 70, true)
+    local c2, k2 = fitColumns(100, 80, 70, 0)
+    check("LARGE one fits: Category kept, Status dropped", c2 == false and k2 == true, tostring(c2) .. "/" .. tostring(k2))
+    local c4, k4 = fitColumns(60, 80, 70, 0)
     check("LARGE nothing fits: both dropped", c4 == false and k4 == false)
-    local c5, k5 = fitColumns(75, 80, 70, false)
-    check("LARGE read marks off, neither alone of Category fits: both dropped", c5 == false and k5 == false)
+    local c5, k5 = fitColumns(170, 80, 70, 40)
+    check("LARGE both fit but the name would keep under condName more: Status dropped", c5 == false and k5 == true, tostring(c5) .. "/" .. tostring(k5))
+    local c6, k6 = fitColumns(190, 80, 70, 40)
+    check("LARGE room for both and condName: both kept", c6 == true and k6 == true, tostring(c6) .. "/" .. tostring(k6))
 end
-check("LARGE the list asks fitColumns with readOn", IR:find("fitColumns(colW - nameX - wtD - padX - scrollW - MIN_NAME, catColW, condColW, readOn)", 1, true) ~= nil)
+check("LARGE the list asks fitColumns with the name's extra beside Status",
+    IR:find("fitColumns(colW - nameX - wtD - padX - scrollW - MIN_NAME, catColW, condColW,", 1, true) ~= nil
+    and IR:find("T.px(ZeD.InventoryRenderer.COND_NAME_U) - MIN_NAME)", 1, true) ~= nil)
 check("LARGE a hidden Status column puts the mark and its word after the name",
     IR:find("(rs and not showCond) and readTagW(rs) or 0", 1, true) ~= nil
     and IR:find("drawReadCond(self, rs, xOff + afterName, y, rowH, dotW + math.floor(padX / 2), padX, focusTxt)", 1, true) ~= nil)

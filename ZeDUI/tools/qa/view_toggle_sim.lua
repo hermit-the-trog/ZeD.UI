@@ -80,7 +80,7 @@ ZeD.Molecules = {
 ZeD.Molecules.buttonW = function(label) return 40 end
 local WORD_BUTTONS = {}
 ZeD.Molecules.drawButton = function(p, x, y, w, h, label, style, a, b, o) WORD_BUTTONS[#WORD_BUTTONS + 1] = { label = label, id = o and o.id } end
-ZeD.ContainerControls = { headLootOn = function() return false end, headLootEnabled = function() return false end, lootAllLabel = function() return "Loot all" end }
+ZeD.ContainerControls = { PAD_X = 8, headLootOn = function() return false end, headLootEnabled = function() return false end, lootAllLabel = function() return "Loot all" end }
 local PA = 40 + 6   -- (Pick all's width and its gap)
 ZeD.InvFilter = { act = function() end, clear = function() end, active = function() return false end }
 ZeD.InventoryRenderer = {}
@@ -226,9 +226,11 @@ room, drawn = narrow(420, "0.0 / 8 kg", "63 items")
 check("ROOM wide: both stay where the name fits", drawn["0.0 / 8 kg"] and drawn["63 items"] and room == 420 - (70 + 30) - 6 - 12, room)
 
 section("ORDER")
--- (Header order, the director, Nov 22 2026: "buttons, icon, container name, and then the weight and items". The
--- heading's buttons start at its left edge (padX), the name sits right of the last one, the weight right-aligned.)
-local function placed(compact, loot)
+-- (Buttons right, the director, Nov 22 2026: "move them to the right, because on any dialogue or in other places,
+-- they're always on the right"; Selection in the header, the same day: "Transfer buttons, always in the footer.
+-- Selection buttons, always in the header." The heading reads [icon] [name] ... [weight and count] [Pick all, Filter,
+-- view], the buttons ending at the heading's right edge less padX; no Take all in any heading.)
+local function placed(compact, loot, colW)
     local p3 = mkPanel("Crate", compact, true)
     p3._containerInfo.texture = "tex"
     local at = {}
@@ -240,7 +242,7 @@ local function placed(compact, loot)
     if loot then ZeD.ContainerControls.headLootOn = function() return true end end
     BUTTONS, NAME_ROOM, WORD_BUTTONS = {}, nil, {}
     local G = { key = CRATE, toggles = {}, on = R.isGridKey(CRATE) }
-    drawColumnHeading(p3, G, 0, 420, 20, 60, 6, 14, 14)
+    drawColumnHeading(p3, G, 0, colW or 420, 20, 60, 6, 14, 14)
     ZeD.Atoms.drawIcon = saveIcon
     ZeD.ContainerControls.headLootOn, ZeD.ContainerControls.headLootEnabled = saveOn, saveEn
     return G, at, icons
@@ -248,29 +250,123 @@ end
 local G1, at1, ic1 = placed(false, true)
 local views = {}
 for i, r in ipairs(G1.toggles) do views[i] = r.view end
-check("ORDER: the buttons left to right: Loot all, Pick all, Filter, view", table.concat(views, ",") == "lootall,all,filter,flip", table.concat(views, ","))
-check("ORDER: the first button starts at the heading's left (padX)", G1.toggles[1] and G1.toggles[1].x == 6, G1.toggles[1] and G1.toggles[1].x)
-local lastR = 0
-for _, r in ipairs(G1.toggles) do lastR = math.max(lastR, r.x + r.w) end
-check("ORDER: the icon right of the last button", ic1[1] and ic1[1] > lastR, tostring(ic1[1]) .. " vs " .. lastR)
-check("ORDER: the name right of the icon", at1["Crate"] and ic1[1] and at1["Crate"] > ic1[1], at1["Crate"])
-check("ORDER: the weight right-aligned (ends at colW - padX)", at1["12.5 / 20"] == 420 - #"12.5 / 20" * 7 - 6, at1["12.5 / 20"])
-check("ORDER: the count right-aligned under it", at1["9 items"] == 420 - #"9 items" * 7 - 6, at1["9 items"])
-check("ORDER: the name's room ends before the weight stack", NAME_ROOM and at1["Crate"] + NAME_ROOM <= 420 - #"12.5 / 20" * 7 - 6, NAME_ROOM)
-local G2, at2, ic2 = placed(true, false)
-check("ORDER compact: the first button at the left", G2.toggles[1] and G2.toggles[1].x == 6 and G2.toggles[1].view == "all")
-lastR = 0
-for _, r in ipairs(G2.toggles) do lastR = math.max(lastR, r.x + r.w) end
-check("ORDER compact: icon, name and weight right of the buttons", ic2[1] and ic2[1] > lastR and at2["Crate"] > ic2[1]
-    and at2["12.5 / 20"] and at2["12.5 / 20"] > lastR, tostring(ic2[1]) .. " " .. tostring(at2["Crate"]) .. " " .. tostring(at2["12.5 / 20"]))
+check("ORDER: the buttons left to right: Pick all, Filter, view (no Take all, even where a Take all was on)",
+    table.concat(views, ",") == "all,filter,flip", table.concat(views, ","))
+local lastR, firstL = 0, 9999
+for _, r in ipairs(G1.toggles) do lastR = math.max(lastR, r.x + r.w); firstL = math.min(firstL, r.x) end
+check("ORDER: the last button ends at the heading's right less padX", lastR == 420 - 6, lastR)
+check("ORDER: the icon at the heading's left (padX)", ic1[1] == 6, ic1[1])
+check("ORDER: the name right of the icon", at1["Crate"] and at1["Crate"] > ic1[1], at1["Crate"])
+check("ORDER: the weight right-aligned a pad short of the buttons", at1["12.5 / 20"] == firstL - 6 - #"12.5 / 20" * 7, at1["12.5 / 20"])
+check("ORDER: the count right-aligned under it", at1["9 items"] == firstL - 6 - #"9 items" * 7, at1["9 items"])
+check("ORDER: the name's room ends before the weight stack", NAME_ROOM and at1["Crate"] + NAME_ROOM <= at1["12.5 / 20"], NAME_ROOM)
+local G2, at2, ic2 = placed(true, false, 210)
+lastR, firstL = 0, 9999
+for _, r in ipairs(G2.toggles) do lastR = math.max(lastR, r.x + r.w); firstL = math.min(firstL, r.x) end
+check("ORDER compact: the buttons end at the right less padX", lastR == 210 - 6 and G2.toggles[1].view == "all", lastR)
+check("ORDER compact: icon, name and weight left of the buttons", ic2[1] == 6 and at2["Crate"] > ic2[1]
+    and at2["12.5 / 20"] == 6 and at2["Crate"] + (NAME_ROOM or 0) <= firstL, tostring(ic2[1]) .. " " .. tostring(at2["Crate"]) .. " " .. tostring(at2["12.5 / 20"]))
+
+section("NAME FIRST")
+-- (QA's Lite finding, Nov 22 2026: in Lite the World window's heading drew no name. The buttons give way first:
+-- Lite's words become the pictures, then the view flip goes, then the Filter, then Pick all; then the weight and count.)
+-- QA's widths: Pick all 145, Filter 122, List 154 (Lite words), the column 639 wide (its right edge at 651, 12 in)
+do
+    local saveW, saveLite = ZeD.Molecules.buttonW, ZeD.Molecules.lite
+    local WORDW = { UI_ZeD_Inv_PickAll = 145, UI_ZeD_Inv_Filter = 122, IGUI_CraftingWindow_ListView = 154, UI_ZeD_Inv_GridView = 154 }
+    ZeD.Molecules.buttonW = function(label) return WORDW[label] or 40 end
+    ZeD.Molecules.lite = function() return true end
+    local function liteHead(colW, name)
+        local p4 = mkPanel(name or "Kitchen Counter", false, true)
+        p4._containerInfo.texture = "tex"
+        local at = {}
+        function p4:drawText(s, x) at[s] = x end
+        BUTTONS, NAME_ROOM, WORD_BUTTONS = {}, nil, {}
+        local G = { key = CRATE, toggles = {}, on = false }
+        drawColumnHeading(p4, G, 0, colW, 20, 60, 6, 14, 14)
+        local v = {}
+        for i, r in ipairs(G.toggles) do v[i] = r.view end
+        return G.headLevel, table.concat(v, ","), NAME_ROOM, at
+    end
+    local nameMin = #"Kit..." * 7
+    local lvl, v, room = liteHead(639)
+    check("NAME FIRST 639 (QA's column): the name keeps a few letters and the dots", room and room >= nameMin, room)
+    check("NAME FIRST 639: Lite's words stay where they and the name fit", lvl == 0 and v == "all,filter,flip", tostring(lvl) .. " " .. v)
+    -- the steps, widest first, at this sim's sizes (padX 6, icon 14 + 4, 7 px a letter, buttons 24 square)
+    local steps, last, bad = {}, nil, nil
+    for w = 700, 80, -1 do
+        local l, _, r = liteHead(w)
+        if l ~= last then steps[#steps + 1] = w .. ":" .. tostring(l); last = l end
+        if not bad and not (r and r >= nameMin) then bad = w .. " room " .. tostring(r) end
+    end
+    print("   Lite heading steps (width:level): " .. table.concat(steps, " "))
+    check("NAME FIRST: from 700 down to 80 the name always keeps its few letters", bad == nil, bad)
+    local l1, v1 = liteHead(500)
+    check("NAME FIRST 500: Lite's words become the pictures first", l1 == 1 and v1 == "all,filter,flip", tostring(l1) .. " " .. v1)
+    local l2, v2 = liteHead(270)
+    check("NAME FIRST 270: then the view flip goes", l2 == 2 and v2 == "all,filter", tostring(l2) .. " " .. v2)
+    local l3, v3 = liteHead(240)
+    check("NAME FIRST 240: then the Filter", l3 == 3 and v3 == "all", tostring(l3) .. " " .. v3)
+    local l4, v4, r4, at4 = liteHead(150)
+    check("NAME FIRST 150: then Pick all", l4 == 4 and v4 == "", tostring(l4) .. " " .. v4)
+    check("NAME FIRST 150: the weight and count give way after the buttons", r4 and r4 >= nameMin and not at4["9 items"], r4)
+    ZeD.Molecules.buttonW, ZeD.Molecules.lite = saveW, saveLite
+end
+
+section("DECK")
+-- (QA, Nov 22 2026: at 1280 x 800 the Full heading dropped the name too.) Both windows at UI scale 0.75: the list opens
+-- 296 units wide (222 px), its pad 8, the buttons 20 square, letters about 5 px, Pick all's word button 46 px. Full
+-- (pictures) and Lite (words: Filter 38, List 32): the name shows, a few letters and the dots at least; the buttons
+-- give way first, then the weight and count.
+do
+    local saveW, saveLite, saveTM, saveBH = ZeD.Molecules.buttonW, ZeD.Molecules.lite, ZeD.TM.MeasureStringX, ZeD.T.buttonH
+    local WORDW = { UI_ZeD_Inv_PickAll = 46, UI_ZeD_Inv_Filter = 38, IGUI_CraftingWindow_ListView = 32, UI_ZeD_Inv_GridView = 32 }
+    ZeD.Molecules.buttonW = function(label) return WORDW[label] or 40 end
+    ZeD.TM.MeasureStringX = function(_, font, s) return #tostring(s) * 5 end
+    ZeD.T.buttonH = 20
+    for _, win in ipairs({ { "Character", "Inventory", "12.5 / 20", "9 items" }, { "World", "Kitchen Counter", "3.1 / 50", "14 items" } }) do
+        for _, lite in ipairs({ false, true }) do
+            ZeD.Molecules.lite = function() return lite end
+            for _, colW in ipairs({ 222, 180 }) do
+                local p5 = mkPanel(win[2], false, true)
+                p5._containerInfo.texture = "tex"
+                p5._containerInfo.stats, p5._containerInfo.count = win[3], win[4]
+                local at = {}
+                function p5:drawText(s, x) at[s] = x end
+                BUTTONS, NAME_ROOM, WORD_BUTTONS = {}, nil, {}
+                local G = { key = CRATE, toggles = {}, on = false }
+                drawColumnHeading(p5, G, 0, colW, 15, 45, 8, 11, 11)
+                local nameMin = #(win[2]:sub(1, 3) .. "...") * 5
+                local lastR = 0
+                for _, r in ipairs(G.toggles) do lastR = math.max(lastR, r.x + r.w) end
+                check("DECK " .. win[1] .. (lite and " Lite " or " Full ") .. colW .. " px: the name shows (a few letters and the dots at least)",
+                    NAME_ROOM and NAME_ROOM >= nameMin and lastR <= colW - 8,
+                    tostring(NAME_ROOM) .. " room, level " .. tostring(G.headLevel) .. ", buttons end " .. lastR)
+            end
+        end
+    end
+    ZeD.Molecules.buttonW, ZeD.Molecules.lite, ZeD.TM.MeasureStringX, ZeD.T.buttonH = saveW, saveLite, saveTM, saveBH
+end
 
 section("COLUMN LOOT")
--- (Header order, the director, Nov 22 2026: a Loot view of several columns has no footer band, so each column's
--- heading has its own Take all, first among its buttons, taking from that column's container into the bag on show)
+-- (Transfer in the footer, the director, Nov 22 2026: a Loot column's Take all sits in the column's own foot,
+-- drawColumnFoot, right-aligned, its stop and press the same "view:lootall:<key>" as before)
 do
-    local G3 = placed(true, true)
-    check("COLUMN LOOT: a column's heading leads with its Take all", G3.toggles[1] and G3.toggles[1].view == "lootall"
-        and G3.toggles[1].key == CRATE and G3.toggles[1].x == 6, G3.toggles[1] and G3.toggles[1].view)
+    local G3 = placed(true, true, 210)
+    check("COLUMN LOOT: no Take all in a column's heading", G3.toggles[1] and G3.toggles[1].view == "all")
+    local foot = { _ccH = 34, _compactMode = true, _ccSide = "world" }
+    function foot:getHeight() return 300 end
+    local saveS, saveDiv = ZeD.Surface, ZeD.Atoms.drawDividerH
+    ZeD.Surface = { fill = function() end }
+    ZeD.Atoms.drawDividerH = function() end
+    WORD_BUTTONS = {}
+    local GF = { key = CRATE, toggles = {} }
+    R.drawColumnFoot(foot, GF, 100, 210)
+    ZeD.Surface, ZeD.Atoms.drawDividerH = saveS, saveDiv
+    local t = GF.toggles[1]
+    check("COLUMN LOOT: the foot holds the column's Take all", t and t.view == "lootall" and t.key == CRATE and t.id == "view:lootall:" .. CRATE
+        and WORD_BUTTONS[1] and WORD_BUTTONS[1].label == "Loot all")
+    check("COLUMN LOOT: right-aligned in the foot, inside the column's bottom", t and t.x + t.w == 100 + 210 - 8 and t.y >= 300 - 34, t and (t.x + t.w))
     local took = {}
     local saveCC = ZeD.ContainerControls
     ZeD.ContainerControls = setmetatable({
@@ -301,7 +397,7 @@ do
     ZeD.ContainerControls, isGamePaused = saveCC, savePaused
     local CC = readFile("42/media/lua/client/ZeD/ContainerControls.lua")
     local on = CC:match("\nfunction CT%.headLootOn%(.-\nend\n") or ""
-    check("COLUMN LOOT: headLootOn lets a column (compact) heading have it", on ~= "" and not on:find("_compactMode", 1, true))
+    check("COLUMN LOOT: headLootOn is a column's (compact) foot only", on:find("content._compactMode == true", 1, true) ~= nil)
     local en = CC:match("\nfunction CT%.headLootEnabled%(.-\nend\n") or ""
     check("COLUMN LOOT: headLootEnabled asks the column's own container", en:find("content._compactMode", 1, true) ~= nil
         and en:find("isEmptyOrUnwanted", 1, true) ~= nil)
