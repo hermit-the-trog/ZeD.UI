@@ -193,6 +193,12 @@ def filter_(c, s):
     c.rect(u(1.5), u(3), u(14.5) - u(1.5), W(s, 1, 1.5), v=0)                    # its rim
     with c.mark():   # (the drop: the strips' blue, the heading's Filter; Icon color, the director, Nov 22 2026)
         drop(c, s, 8, 11, 4.6)
+    # (the director, Nov 22 2026: "the filter button, the top line. Divide that into two lines down the middle. Blue on
+    # the left-hand side, red on the right-hand side. So when those two pass through the filter cone, only blue comes
+    # out." The top bar, above the rim's cut: its left half on mark 1 with the drop (blue), its right half on mark 2
+    # (red). Marked only: the icon's pixels stay as they were.)
+    with c.mark(1, only=True): c.rect(0, 0, u(8), u(3))
+    with c.mark(2, only=True): c.rect(u(8), 0, s - u(8), u(3))
 
 
 @icon("watering_can", "ctx3", "a watering can, its spout and rose: water a plant, pour water", ["Pour Water", "Water Plant"])

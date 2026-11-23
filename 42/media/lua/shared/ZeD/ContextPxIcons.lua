@@ -523,10 +523,12 @@ ZeD.PxIconMark = {
 -- view button, Same type, the object buttons) whose mark only those strips color, in the
 -- menus' palette and meanings (Icon color, the director, Nov 22 2026). The menus and the
 -- wheels draw these icons in ink as before. Their marks' pictures sit with the menus'.
+-- A list is an icon with more than one mark, each its own color: the first is zw_<id>_mk.png,
+-- the next zw_<id>_mk2.png and on (the Filter: red and blue go in, only blue comes out).
 ZeD.PxIconStripMark = {
     ["campfire"] = "gold",
     ["extinguisher"] = "red",
-    ["filter"] = "blue",
+    ["filter"] = { "blue", "red" },
     ["gears"] = "gold",
     ["match"] = "gold",
     ["padlock"] = "gold",

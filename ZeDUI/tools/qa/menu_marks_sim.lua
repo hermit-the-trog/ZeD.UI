@@ -75,14 +75,24 @@ check("TABLE: 71 icons take a mark", nMarks == 71, nMarks)
 -- its mark's picture at every size
 local STRIPMARK = ZeD.PxIconStripMark or {}
 local nStrip = 0
+local function isKind(k) return k == "blue" or k == "red" or k == "gold" end
 for id, kind in pairs(STRIPMARK) do
     nStrip = nStrip + 1
-    check("STRIP: " .. id .. " is blue, red or gold", kind == "blue" or kind == "red" or kind == "gold", kind)
-    check("STRIP: " .. id .. " is not in the menus' table (the menus keep it ink)", MARK[id] == nil)
-    for _, s in ipairs(SIZES) do
-        check("STRIP: " .. id .. " has its " .. s .. " and its mark", exists(pic(s, id)) and exists(pic(s, id .. "_mk")))
+    -- (a list: an icon with more than one mark, each its own picture, _mk, _mk2, ...; the Filter, Nov 22 2026)
+    local kinds = type(kind) == "table" and kind or { kind }
+    for i, k in ipairs(kinds) do
+        check("STRIP: " .. id .. " mark " .. i .. " is blue, red or gold", isKind(k), tostring(k))
+        for _, s in ipairs(SIZES) do
+            local mk = id .. "_mk" .. (i > 1 and tostring(i) or "")
+            check("STRIP: " .. id .. " has its " .. s .. " and its mark " .. i, exists(pic(s, id)) and exists(pic(s, mk)))
+        end
     end
+    check("STRIP: " .. id .. " is not in the menus' table (the menus keep it ink)", MARK[id] == nil)
 end
+-- the director, Nov 22 2026: the Filter's top bar split, blue left and red right; its drop blue alone
+local fk = STRIPMARK.filter
+check("STRIP: the Filter has two marks, blue then red", type(fk) == "table" and fk[1] == "blue" and fk[2] == "red" and #fk == 2)
+check("STRIP: the menus' filter has no mark (Filter water stays ink)", MARK.filter == nil)
 check("STRIP: 11 strip icons take a mark", nStrip == 11, nStrip)
 for _, id in ipairs({ "filter", "view_list", "view_grid", "same_type", "same_nearby", "power", "match", "campfire",
                       "gears", "extinguisher", "padlock", "tray_in", "tray_out", "to_floor", "trash" }) do
@@ -361,8 +371,19 @@ if M and M.drawIconButton and ZeD.T then
     end
     local m = T.marks
     local d = btn("filter", { marks = m })
-    check("STRIP: the Filter at rest: the funnel, then its drop in the theme's blue", #d == 2 and d[2].path:find("zw_filter_mk", 1, true)
-        and d[2].r == m.blue.r and d[2].b == m.blue.b, #d)
+    check("STRIP: the Filter at rest: the funnel, then the bar's left half and the drop in the theme's blue",
+        #d == 3 and d[2].path:find("zw_filter_mk.png", 1, true) and d[2].r == m.blue.r and d[2].b == m.blue.b, #d)
+    check("STRIP: ... then the bar's right half in the theme's red", d[3] and d[3].path:find("zw_filter_mk2.png", 1, true)
+        and d[3].r == m.red.r and d[3].g == m.red.g, d[3] and d[3].path)
+    check("STRIP: the marks sit exactly on the icon", d[3] and d[3].x == d[1].x and d[3].y == d[1].y and d[3].w == d[1].w)
+    for _, box in ipairs({ 16, 32 }) do
+        local p2 = panel()
+        A.drawPxIcon(p2, "filter", 0, 0, box, 1, INK, m, STRIPMARK.filter)
+        check("STRIP: the Filter at " .. box .. " (1x, 2x): both marks at " .. box, #p2.draws == 3
+            and p2.draws[2].path:find("/" .. box .. "/zw_filter_mk.png", 1, true) and p2.draws[3].path:find("/" .. box .. "/zw_filter_mk2.png", 1, true))
+    end
+    local p3 = panel(); A.drawPxIcon(p3, "filter", 0, 0, 16, 1, INK, true)
+    check("STRIP: the menus' own call (no strip kinds) draws the filter in ink only", #p3.draws == 1, #p3.draws)
     d = btn("view_list", { marks = m })
     check("STRIP: the view button's bullets in the blue", #d == 2 and d[2].r == m.blue.r, #d)
     d = btn("same_type", { marks = m })
@@ -380,12 +401,15 @@ if M and M.drawIconButton and ZeD.T then
     d = btn("trash", { marks = m, tint = T.danger })
     check("STRIP: the bin in the warning color keeps its one tint", #d == 1, #d)
     d = btn("filter", { marks = m, disabled = true })
-    check("STRIP: greyed, the mark still shows at the button's alpha", #d == 2 and d[2].a == T.disabledAlpha, #d)
+    check("STRIP: greyed, both marks still show at the button's alpha", #d == 3 and d[2].a == T.disabledAlpha and d[3].a == T.disabledAlpha, #d)
     d = btn("filter", {})
     check("STRIP: without marks (every other icon button) only the icon", #d == 1, #d)
     pcall(ZeD.applyTheme, "light", "teal", "small")
     d = btn("filter", { marks = ZeD.T.marks })
-    check("STRIP: Light: the theme's own blue", #d == 2 and near(d[2], 0x1D, 0x5A, 0xB9), #d)
+    check("STRIP: Light: the theme's own blue and red", #d == 3 and near(d[2], 0x1D, 0x5A, 0xB9) and near(d[3], 0xB8, 0x14, 0x40), #d)
+    pcall(ZeD.applyTheme, "hicon", "teal", "small")
+    d = btn("filter", { marks = ZeD.T.marks })
+    check("STRIP: High contrast: its blue and red", #d == 3 and near(d[2], 0x5A, 0xA2, 0xFF) and near(d[3], 0xDC, 0x32, 0x50), #d)
     pcall(ZeD.applyTheme, "dark", "teal", "small")
 else
     check("STRIP: drawIconButton", false)

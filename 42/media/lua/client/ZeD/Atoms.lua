@@ -349,8 +349,13 @@ function PXI.warm(box)
     local function ask(id)
         local base = PXI.DIR .. size .. "/zw_" .. id
         pcall(Texture.getSharedTexture, base .. ".png", 3)
-        if (ZeD.PxIconMark and ZeD.PxIconMark[id]) or (ZeD.PxIconStripMark and ZeD.PxIconStripMark[id]) then
+        local sm = ZeD.PxIconStripMark and ZeD.PxIconStripMark[id]
+        if (ZeD.PxIconMark and ZeD.PxIconMark[id]) or sm then
             pcall(Texture.getSharedTexture, base .. "_mk.png", 3)
+        end
+        -- (a strip icon with more than one mark: its further pictures, _mk2 and on; the Filter, Nov 22 2026)
+        if type(sm) == "table" then
+            for i = 2, #sm do pcall(Texture.getSharedTexture, base .. "_mk" .. i .. ".png", 3) end
         end
     end
     for _, id in pairs(map) do ask(id) end
@@ -394,7 +399,8 @@ end
 --- (T.marks on a theme surface). Callers ask for it at rest only: a pointed cell or row draws the whole icon in its
 --- one tint, marks included.
 --- markKind: the mark's color by name, in place of ZeD.PxIconMark's (PXI.markColor; the inventory strips: Icon color,
---- the director, Nov 22 2026).
+--- the director, Nov 22 2026). A list of names is an icon with more than one mark, each its own color: the first
+--- name colors zw_<id>_mk.png, the second zw_<id>_mk2.png, and on (the strip's Filter: red and blue in, blue out).
 function ZeD.Atoms.drawPxIcon(panel, id, x, y, box, alpha, tint, marks, markKind)
     local tex, s = PXI.tex(id, box)
     if not tex then return end
@@ -402,9 +408,17 @@ function ZeD.Atoms.drawPxIcon(panel, id, x, y, box, alpha, tint, marks, markKind
     local o = math.floor((box - s) / 2)
     panel:drawTextureScaledAspect(tex, x + o, y + o, s, s, alpha or 1, c.r, c.g, c.b)
     if marks then
-        local mc = PXI.markColor(id, marks, markKind)
-        local mt = mc and pxTex(s, id .. "_mk")
-        if mt then panel:drawTextureScaledAspect(mt, x + o, y + o, s, s, alpha or 1, mc.r, mc.g, mc.b) end
+        if type(markKind) == "table" then
+            for i, k in ipairs(markKind) do
+                local mc = PXI.markColor(id, marks, k)
+                local mt = mc and pxTex(s, id .. "_mk" .. (i > 1 and tostring(i) or ""))
+                if mt then panel:drawTextureScaledAspect(mt, x + o, y + o, s, s, alpha or 1, mc.r, mc.g, mc.b) end
+            end
+        else
+            local mc = PXI.markColor(id, marks, markKind)
+            local mt = mc and pxTex(s, id .. "_mk")
+            if mt then panel:drawTextureScaledAspect(mt, x + o, y + o, s, s, alpha or 1, mc.r, mc.g, mc.b) end
+        end
     end
 end
 

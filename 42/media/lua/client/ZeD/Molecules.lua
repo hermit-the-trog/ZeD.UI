@@ -335,7 +335,8 @@ end
 --              hint, help, win, iconSize (default 16u), tint,
 --              marks = a theme's mark set (T.marks): a ZeD pixel icon's mark in its color at rest, as the right-click
 --              menu's (Icon color, the director, Nov 22 2026), markKind = that mark's color by name ("blue", "red",
---              "gold") where the button's own meaning picks it, else ZeD.PxIconStripMark's, else ZeD.PxIconMark's }
+--              "gold") where the button's own meaning picks it, else ZeD.PxIconStripMark's (a list for an icon of
+--              more than one mark: the Filter's red and blue), else ZeD.PxIconMark's }
 -- @return x, y, w, h
 local _icC, _icFocus, _icHint = {}, {}, {}
 -- (opts.hintSide: "right" / "left" for a button in a column; the focus's balloon shows without the pause)

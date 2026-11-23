@@ -45,15 +45,22 @@ class C:
         # the mark layer: the pixels that tell an icon from its twin (a plus or minus, an in or out arrow, the strike
         # of an "off"). Whatever is drawn inside mark() lands here too; the menus color those pixels (marks.py).
         s.mk = Image.new("L", s.im.size, 0)
+        # (Icon color, the director, Nov 22 2026: a second mark in a second color, the strip's Filter: red and blue in
+        # its top bar, only blue out of the funnel) layer n > 1: s.mks[n], exported as zw_<id>_mk<n>.png
+        s.mks = {1: s.mk}
         s._marking = 0
 
     @contextlib.contextmanager
-    def mark(s):
-        """draw the block's shapes on the mark layer as well as on the icon"""
+    def mark(s, n=1, only=False):
+        """draw the block's shapes on the mark layer as well as on the icon. n: which mark layer (1, the icon's
+        one mark; 2 and on, a further mark in a color of its own). only: on the mark layer alone, the icon's pixels
+        left as they are (the mark keeps only the pixels the icon has: get_mark)"""
         if s._marking:
             yield s; return
+        if n not in s.mks: s.mks[n] = Image.new("L", s.im.size, 0)
         main = s.d
-        s.d = _Tee(main, ImageDraw.Draw(s.mk)); s._marking = 1
+        md = ImageDraw.Draw(s.mks[n])
+        s.d = md if only else _Tee(main, md); s._marking = 1
         try:
             yield s
         finally:
@@ -236,7 +243,9 @@ class C:
 
     def transpose(s, how):
         """turn or mirror the icon and its mark layer together"""
-        s.im = s.im.transpose(how); s.mk = s.mk.transpose(how); s.d = ImageDraw.Draw(s.im); return s
+        s.im = s.im.transpose(how)
+        for k in list(s.mks): s.mks[k] = s.mks[k].transpose(how)
+        s.mk = s.mks[1]; s.d = ImageDraw.Draw(s.im); return s
 
     def flip_v(s): return s.transpose(Image.FLIP_TOP_BOTTOM)
 
@@ -249,10 +258,11 @@ class C:
         out.putalpha(s._cut(s.im))
         return out
 
-    def get_mark(s):
-        """the icon's pixels that are on the mark layer (white on clear), or None when it has none"""
+    def get_mark(s, n=1):
+        """the icon's pixels that are on mark layer n (white on clear), or None when it has none"""
         from PIL import ImageChops
-        a = ImageChops.multiply(s._cut(s.im), s._cut(s.mk))
+        if n not in s.mks: return None
+        a = ImageChops.multiply(s._cut(s.im), s._cut(s.mks[n]))
         if not a.getbbox(): return None
         out = Image.new("RGBA", (s.n, s.n), (255, 255, 255, 0))
         out.putalpha(a)
@@ -279,8 +289,8 @@ def render(id_, s):
     return canvas(id_, s).get()
 
 
-def render_mark(id_, s):
-    return canvas(id_, s).get_mark()
+def render_mark(id_, s, n=1):
+    return canvas(id_, s).get_mark(n)
 
 
 def from_grid(rows):
