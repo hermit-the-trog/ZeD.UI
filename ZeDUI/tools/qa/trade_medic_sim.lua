@@ -582,6 +582,7 @@ function ZeD_BodyFigure:loadTextures() end
 function ZeD_BodyFigure:setSex() end
 function ZeD_BodyFigure:clearColors() self.colors = {} end
 function ZeD_BodyFigure:setPartColor(n, r, g, b) self.colors[n] = { r, g, b } end
+function ZeD_BodyFigure:clearPartColor(n) self.colors[n] = nil end
 function ZeD_BodyFigure:drawAt(panel, x, y, w, h) self.at = { x, y, w, h } end
 -- the wounds and skin tone gatherData hands the figure, and the card's wounds and chart (Design, Nov 22 2026)
 function ZeD_BodyFigure.woundsFrom() return nil end
@@ -1138,7 +1139,7 @@ if CARD.entry and CARD.entry.def.id == "medic" then
         local function colorIs(name, c) local got = fig and fig.colors[name]; return got and got[1] == c.r and got[2] == c.g and got[3] == c.b end
         check("strain: a minor strain (10) on the figure in the minor tint", colorIs("Right Forearm", ZeD.T.strainMinor))
         check("strain: a heavy strain (40) on the figure in the heavy tint", colorIs("Right Upper Arm", ZeD.T.strainHeavy))
-        check("strain: under 5 is no strain (the health colour)", colorIs("Left Forearm", ZeD.T.positive))
+        check("strain: under 5 is no strain (a healthy part: no tint)", fig ~= nil and fig.colors["Left Forearm"] == nil)
         check("strain: a wound's colour wins on a strained part", not colorIs("Left Hand", ZeD.T.strainHeavy) and not colorIs("Left Hand", ZeD.T.strainMinor))
         check("strain: the counts (1 wounded, 3 strained)", t.d.woundedCount == 1 and t.d.strainedCount == 3, tostring(t.d.woundedCount) .. "/" .. tostring(t.d.strainedCount))
         local function drawnText(s) for _, d in ipairs(DRAWN) do if d.body == s then return true end end return false end

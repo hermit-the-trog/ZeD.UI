@@ -125,7 +125,7 @@ end
 
 ZeD_BodyFigure = { new = function()
     -- (drawChart: the height chart in the defense figure's frame, Design, Nov 22 2026)
-    return { initialise = noop, loadTextures = noop, setSex = noop, setPartColor = noop, drawChart = noop,
+    return { initialise = noop, loadTextures = noop, setSex = noop, setPartColor = noop, clearPartColor = noop, drawChart = noop,
              drawAt = function(self) self.drawn = (self.drawn or 0) + 1 end, getPartRects = function() return {} end }
 end }
 

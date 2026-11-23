@@ -78,6 +78,7 @@ function ZeD_BodyFigure:initialise() end
 function ZeD_BodyFigure:loadTextures() end
 function ZeD_BodyFigure:setSex() end
 function ZeD_BodyFigure:setPartColor(n, r, g, b, a) self.colors[n] = { r = r, g = g, b = b, a = a } end
+function ZeD_BodyFigure:clearPartColor(n) self.colors[n] = nil end
 function ZeD_BodyFigure:drawAt() end
 -- the wounds and skin tone gatherData hands the figure, and the tab's wounds and chart (Design, Nov 22 2026)
 function ZeD_BodyFigure.woundsFrom() return nil end
@@ -165,12 +166,15 @@ local fig = win._healthBodyFigure
 local function tint(n) return fig and fig.colors[n] end
 check("a minor strain (10) in the minor tint", same(tint("Right Forearm"), ZeD.T.strainMinor))
 check("a heavy strain (40) in the heavy tint", same(tint("Right Upper Arm"), ZeD.T.strainHeavy))
-check("under 5: the health colour", same(tint("Left Forearm"), ZeD.T.positive))
+check("under 5: no tint (a healthy part, the director Nov 23)", tint("Left Forearm") == nil)
 check("health 80 wins over strain (the warning colour)", same(tint("Left Upper Arm"), ZeD.T.warning))
-check("a wound wins over strain (a scratch: the health colour)", same(tint("Left Hand"), ZeD.T.positive))
+do  -- a wound wins over strain: the scratch's severity, the colour of its dot in the list (the director, Nov 23 2026)
+    local sev = data.partSev and data.partSev["Left Hand"]
+    check("a wound wins over strain (a scratch: its severity colour)", sev ~= nil and sev ~= "ok" and same(tint("Left Hand"), ZeD.T[sev == "critical" and "danger" or sev]), sev)
+end
 check("care alone is no wound (bandage, pain, stitches): the strain tint", same(tint("Right Hand"), ZeD.T.strainMinor))
 check("heavy at 95% health: the heavy tint", same(tint("Left Upper Leg"), ZeD.T.strainHeavy))
-check("an unstrained part: its health colour", same(tint("Head"), ZeD.T.positive))
+check("an unstrained healthy part: no tint", tint("Head") == nil)
 check("the tint draws at the figure's alpha (0.65)", tint("Right Forearm") and tint("Right Forearm").a == 0.65)
 -- another mod's line on a strained part: a wound shows
 if H.figureColor then
@@ -235,8 +239,8 @@ local thermal = readFile(Z .. "ThermalTab.lua") or ""
 local equip = readFile(Z .. "EquipmentTab.lua") or ""
 local prot = readFile(Z .. "ProtectionTab.lua") or ""
 local medic = readFile(Z .. "ObjectCardMedic.lua") or ""
-check("the Health figure draws with figureColor", src and src:find("local color = ZeD.HealthTab.figureColor(data, figureName, health)", 1, true) ~= nil)
-check("the medical card's figure reads figureColor", medic:find("ZeD.HealthTab.figureColor(d, fname, health)", 1, true) ~= nil)
+check("the Health figure draws with figureColor", src and src:find("ZeD.HealthTab.tintPart(fig, data, figureName, health)", 1, true) ~= nil)
+check("the medical card's figure reads figureColor", medic:find("ZeD.HealthTab.tintPart(fig, d, fname, health)", 1, true) ~= nil)
 check("the medical card's summary is drawSummary", medic:find("ZeD.HealthTab.drawSummary(card, d, rx, y)", 1, true) ~= nil)
 check("the medical card keeps no health colour of its own", medic:find("local function healthColor", 1, true) == nil)
 local function noStrain(s) return not s:find("strainMap", 1, true) and not s:find("strainColor", 1, true)
@@ -261,5 +265,15 @@ check("NL: both keys, their own words, every placeholder", nl1 and nl2 and nl1 ~
 check("context rows for both keys", ctx:find("| `UI_ZeD_Health_NoInjuriesStrain` |", 1, true) and ctx:find("| `UI_ZeD_Health_StrainOf` |", 1, true))
 check("the game's word, not ours", src and src:find('getText("IGUI_health_Stiffness")   -- the game\'s own "Muscle Strain"', 1, true) ~= nil)
 
+section("BONES (the director, Nov 23 2026: the skeleton always easy to see)")
+check("the Health figure lifts its tint (boneLift)", fig ~= nil and fig.boneLift == true)
+check("the medical card's figure lifts its tint", medic:find("FIG.boneLift = true", 1, true) ~= nil)
+local bodyfig = readFile(Z .. "ZeD_BodyFigure.lua") or ""
+check("a lifted tint mixes toward white before it multiplies the bone", bodyfig:find("1 - (1 - color.r) * k", 1, true) ~= nil)
+local bt = tonumber(bodyfig:match("local BONE_TINT = ([%d%.]+)"))
+check("the lift keeps a danger red bone light (BONE_TINT 0.4 to 0.7)", bt and bt >= 0.4 and bt <= 0.7, bt)
+check("a part with nothing to say draws no veil on a boneLift figure", bodyfig:find("elseif self.boneLift then", 1, true) ~= nil)
+check("Thermal and Equipment's figures are not lifted", not thermal:find("boneLift", 1, true)
+    and not (readFile(Z .. "EquipmentTab.lua") or ""):find("boneLift", 1, true))
 print("strain_tint_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end
