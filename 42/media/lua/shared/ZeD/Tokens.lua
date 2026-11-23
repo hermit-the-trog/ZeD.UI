@@ -524,7 +524,7 @@ ZeD.Spacing = {
                           -- (both follow the text size: applyTheme sets them from the shared rows)
     figurePadTop  = 12,   -- padding above body figure in Health/Protection/Thermal tabs
     figureW       = 106,  -- body figure width  (shared by Health/Protection/Thermal; was 220 with the grid) (Graphic cleanup, Nov 22 2026)
-    figureH       = 272,  -- body figure height (shared by Health/Protection/Thermal; was 260) (Graphic cleanup, Nov 22 2026)
+    figureH       = 254,  -- body figure height (shared by Health/Protection/Thermal; 272 until Nov 23 2026)
     pillBtnPadV   = 10,   -- vertical padding added to secH for pill-style buttons
 }
 

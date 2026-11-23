@@ -1,0 +1,12 @@
+--- a/ZeDUI/tools/qa/gc_qa_cleanup_sim.lua
++++ b/ZeDUI/tools/qa/gc_qa_cleanup_sim.lua
+@@ -68,7 +68,8 @@
+ local ok, err = loadFile(CLIENT .. "ZeD_BodyFigure.lua")
+ check("FIGURE ZeD_BodyFigure.lua loads", ok, err)
+ local panel = { drawTextureScaled = noop, drawTextureScaledUniform = noop }
+-local SIZES = { { 106, 272, "1x" }, { 212, 544, "2x" }, { 318, 816, "3x" }, { 80, 205, "below 1x" } }
++-- (the canvas 106 x 254 since Nov 23 2026: the measure stops at the head)
++local SIZES = { { 106, 254, "1x" }, { 212, 508, "2x" }, { 318, 762, "3x" }, { 80, 192, "below 1x" } }
+ if ok then
+     for _, fem in ipairs({ false, true }) do
+         for _, sz in ipairs(SIZES) do

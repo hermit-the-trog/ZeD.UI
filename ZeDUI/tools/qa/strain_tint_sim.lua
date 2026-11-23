@@ -159,7 +159,7 @@ local states = {
 }
 local data = H.gatherData and H.gatherData(newPlayer(newBody(states))) or {}
 local win = { _playerObj = nil }
-local okDraw, errDraw = pcall(H._drawBodyFigure, nil, win, data, 0, 0, 106, 272)
+local okDraw, errDraw = pcall(H._drawBodyFigure, nil, win, data, 0, 0, 106, 254)
 check("the figure draws without an error", okDraw, errDraw)
 local fig = win._healthBodyFigure
 local function tint(n) return fig and fig.colors[n] end

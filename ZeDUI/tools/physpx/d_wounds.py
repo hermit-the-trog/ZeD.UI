@@ -55,6 +55,10 @@ RIMS = {"glass": ((36, 56, 70), 0.85)}
 GAUZE = [(244, 240, 230), (214, 208, 196), (170, 162, 150), (118, 110, 100)]   # light, shade, fold, rim
 WOOD = [(196, 150, 92), (150, 106, 60), (98, 66, 36)]                          # top, face, rim
 DIRTY = [(150, 34, 28), (122, 24, 22), (184, 128, 92)]                         # the blot, its heart, its seep
+# the dirty gauze's noise lies on the body, not on the frame: one field over the build canvas's rows -16 to 255 and
+# columns 50 to 155 (the frame as it stood when the director passed the wounds, Nov 22 2026), cut to the frame where it
+# stands now, so moving the frame (Nov 23 2026: 18 rows up) leaves the blood's edge as it was
+DIRTY_NOISE = dict(top=-16, left=50, shape=(272, 106), seed=3, sigma=1.2)
 CRACK = (44, 26, 20)
 CHIP = (246, 238, 214)                      # the broken bone's edge, catching the light
 SHADOW_A = 0.35                             # gauze and boards cast a pixel of shadow down and right, on the body
@@ -254,6 +258,16 @@ def shadow_of(mask, body):
     return sh & ~mask & body.inside
 
 
+def dirty_noise():
+    """the dirty gauze's noise in the frame (FH x FW): a smoothed, normalized random field laid on the body"""
+    n = DIRTY_NOISE
+    rnd = ndi.gaussian_filter(np.random.default_rng(n["seed"]).random(n["shape"]), n["sigma"])
+    rnd = (rnd - rnd.mean()) / (rnd.std() + 1e-6)
+    y0, x0 = -S.DY - n["top"], -S.DX - n["left"]          # the frame's (0, 0) in the field
+    assert 0 <= y0 and y0 + S.FH <= n["shape"][0] and 0 <= x0 and x0 + S.FW <= n["shape"][1], (y0, x0)
+    return rnd[y0:y0 + S.FH, x0:x0 + S.FW]
+
+
 def bandage(body, p, dirty=False):
     """gauze wrapped round the middle of the part, a pixel proud of the body either side; the turns run on the slant"""
     reg = body.region[p]
@@ -298,8 +312,7 @@ def bandage(body, p, dirty=False):
         ys_, xs_ = np.nonzero(m)
         cx, cy = xs_.mean() + 0.5, ys_.mean() + 0.5   # (the gauze's own middle: the head's is above the face)
         r = np.hypot(body.XX + 0.5 - cx, (body.YY + 0.5 - cy) / 1.4)
-        rnd = ndi.gaussian_filter(np.random.default_rng(3).random(m.shape), 1.2)
-        rnd = (rnd - rnd.mean()) / (rnd.std() + 1e-6)
+        rnd = dirty_noise()                       # (on the body: the same blood wherever the frame stands)
 
         def one(mask):                            # the piece round the middle only, no spatter
             lab, _ = ndi.label(mask)

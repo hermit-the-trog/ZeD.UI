@@ -1,0 +1,97 @@
+--- a/ZeDUI/tools/physpx/d_skeleton.py
++++ b/ZeDUI/tools/physpx/d_skeleton.py
+@@ -1,12 +1,12 @@
+ """The body figure's skeletons in lit pixel art (director, Oct 17 2026: "rework the body skeleton and background and
+ make female skelly"; lit pixel-art bones, the perspective grid redrawn, the flesh outline kept and refined).
+ 
+-The bones are built on a 220 x 260 canvas (W, H) and ship in a narrower, taller frame, FW x FH (Nov 21 2026), the
+-figure's own size (ZeD.Spacing.figureW / H, so the pixels land whole at 1x and 2x): the room grid is gone, a height
+-ruler stands at the frame's left, and the tabs get the width back for their text. Ivory bones lit from the top left
+-like the plates; each bone belongs to one of the 17 body parts the Health, Thermal and Equipment tabs colour. Female: a
+-smaller skull and jaw, narrower shoulders and ribcage, a wider, rounder pelvis, the thighs angled in toward the knees;
+-her own silhouette.
++The bones are built on a 220 x 260 canvas (W, H) and ship in a narrower frame, FW x FH (Nov 21 2026), the figure's own
++size (ZeD.Spacing.figureW / H, so the pixels land whole at 1x and 2x): the room grid is gone, a height ruler stands at
++the frame's left, up to the top of the head (Nov 23 2026), and the tabs get the width back for their text. Ivory bones
++lit from the top left like the plates; each bone belongs to one of the 17 body parts the Health, Thermal and Equipment
++tabs colour. Female: a smaller skull and jaw, narrower shoulders and ribcage, a wider, rounder pelvis, the thighs
++angled in toward the knees; her own silhouette.
+ 
+ The flesh (Nov 22 2026, d_flesh.py): the muscles, tendons and vessels fill the traced body under the bones, one pixel
+ in from the outline, so the figure no longer sits in a gray cutout. It is baked into <s>-skeleton.png, under the bones.
+@@ -690,18 +690,19 @@
+ # little over 6 foot" and "It does not need a dotted line or text of the height. It's meant more of just a
+ # suggestion."). The bones are still built on the W x H canvas above, so they come out pixel for pixel as before;
+ # render() moves them DX, DY into this frame. Both moves are even, so the 2 x 2 hit map is the old one moved whole
+-# cells.
++# cells. (Nov 23 2026, the director: "move the skelly up the measure will stop at their height": the ruler ends at the
++# top of the head, so the frame's top now stops just over his head, and the figure sits 18 rows higher.)
+ # ---------------------------------------------------------------------------
+-FW, FH = 106, 272           # the frame: the ruler, a gap, the body, a little room at the right
+-DX, DY = -50, 16            # the build canvas's (0, 0) lands at (-50, 16): his outline's left edge at x 19
++FW, FH = 106, 254           # the frame: the ruler, a gap, the body, a little room at the right; 4 rows over his head
++DX, DY = -50, -2            # the build canvas's (0, 0) lands at (-50, -2): his outline's left edge at x 19, his head's
++#                             top at row 4, hers at row 8
+ SOLE = 252                  # the soles' last row on the build canvas, both sexes
+ HEAD_M = 6                  # the top of his head on the build canvas: 247 pixels tall, his 5'9"
+ PX_FT = (SOLE + 1 - HEAD_M) / 5.75          # 42.96 pixels a foot; her 243 pixels come to 5'8"
+ FLOOR = SOLE + 1 + DY       # the ruler's 0: the row under the soles, in the frame
+-RULER_TOP_FT = 6.25         # the rail runs a little past 6 ft and stops open: no tick and no number up there
+ RAIL_X = 7                  # the rail's column; the numbers sit left of it and the ticks run right, toward the body
+ FOOT_TICK, HALF_TICK = 7, 4                 # tick lengths, the rail's own pixel counted
+-RULER_NUMBERS = True        # 1' to 6' beside the foot ticks in the 3 x 5 face; False leaves the lines alone
++RULER_NUMBERS = True        # the feet numbered under the head (1' to 5') in the 3 x 5 face; False: the lines alone
+ # the ruler's tones (alpha, tinted by the theme like the outline): a quiet suggestion, well under the outline's edge
+ RAIL_A, FOOT_A, HALF_A, NUM_A = 0.30, 0.34, 0.22, 0.40
+ 
+@@ -738,23 +739,31 @@
+     return np.hstack(cols)
+ 
+ 
+-def ruler():
+-    """tone image (0..1 per pixel) for the height ruler, in the frame: a rail up the left from the floor to a little
+-    past 6 ft, a long tick every foot and a short one every half foot running right toward the body, and the feet
+-    numbered 1' to 6' left of the rail. The scale is the figure's own: he stands 5'9" (247 pixels), she 5'8". No line
+-    and no number mark his height: the ruler only suggests it."""
+-    for sex in ("m", "f"):                          # the scale holds only while the traced feet stand where it says
+-        ys = np.nonzero(outline(sex).any(1))[0]
+-        assert ys.max() == SOLE and (sex == "f" or ys.min() == HEAD_M), (sex, ys.min(), ys.max())
++def head_top(sex):
++    """the top row of the figure's head, in the frame (the top of the traced outline)"""
++    return int(np.nonzero(outline(sex).any(1))[0].min()) + DY
++
++
++def ruler(sex):
++    """tone image (0..1 per pixel) for the height ruler, in the frame: a rail up the left from the floor to the top of
++    the figure's head (the director, Nov 23 2026: "the measure will stop at their height"), a long tick every foot and
++    a short one every half foot below it, running right toward the body, and the feet numbered left of the rail. The
++    scale is the figure's own: he stands 5'9" (247 pixels), she 5'8". The rail's end is the only mark of the height:
++    no line and no number say it, so the ruler still only suggests it."""
++    for sx in ("m", "f"):                           # the scale holds only while the traced feet stand where it says
++        ys = np.nonzero(outline(sx).any(1))[0]
++        assert ys.max() == SOLE and (sx == "f" or ys.min() == HEAD_M), (sx, ys.min(), ys.max())
+     a = np.zeros((FH, FW), np.float32)
+ 
+     def row(ft):
+         return int(round(FLOOR - ft * PX_FT))
+-    top = row(RULER_TOP_FT)
++    top = head_top(sex)
+     assert top >= 0, top
+     a[top:FLOOR + 1, RAIL_X] = RAIL_A
+-    for k in range(0, 13):                          # 0 to 6 ft by half feet
++    for k in range(0, 13):                          # 0 ft up by half feet, below the head's top
+         y = row(k / 2)
++        if y <= top:
++            break
+         foot = k % 2 == 0
+         n, v = (FOOT_TICK, FOOT_A) if foot else (HALF_TICK, HALF_A)
+         a[y, RAIL_X:RAIL_X + n] = np.maximum(a[y, RAIL_X:RAIL_X + n], v)
+@@ -774,7 +783,7 @@
+     sil = silhouette(sex)
+     # the silhouette: a faint fill and a crisp one-pixel edge
+     edge = sil & ~ndi.binary_erosion(sil)
+-    out_a = np.where(sil, 0.15, ruler())
++    out_a = np.where(sil, 0.15, ruler(sex))
+     out_a = np.where(edge, 0.62, out_a)
+     img = np.zeros((FH, FW, 4), np.uint8)
+     col = (24, 24, 26) if light else (255, 255, 255)

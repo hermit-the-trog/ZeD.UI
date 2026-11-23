@@ -1,6 +1,6 @@
 """The body figure's height chart outside the game (the director, Nov 22 2026: "Draw a diagram background. Very simple,
-just to fill in the empty white space on each side.", then the height chart with old script beside each part, and of
-the mock, "I like it.").
+just to fill in the empty white space on each side.", and of the mock, "I like it."; Nov 23 2026: "remove the notes,
+move the skelly up the measure will stop at their height. reason, not filling the space with useful info.").
 
 The real ZeD_BodyFigure.lua draws the chart in the margins of the figure's frame, and the real Molecules.lua lays the
 frame out (figureFrame and layoutZoneA, with drawFigureFrame and Atoms.frame). The checks:
@@ -9,17 +9,21 @@ frame out (figureFrame and layoutZoneA, with drawFigureFrame and Atoms.frame). T
   level in 255 (d_chart.approved, the mock's layout). Both sexes, all three bases, at 4K (1.75), 1080p (1.0) and
   1280x800 (0.75): on the Health tab, on the medical card in halves and stacked, at the narrowest halves, and in a span
   too narrow for the figure.
-- Every line and picture sits inside the frame's line, on the art's pixel grid, in the ruler's ink and tint, and
-  nothing of it lies under the figure's own pixels. Six draws at most, no table made, and none at all in Lite.
-- A side shows its words only where its lines are long enough for its widest word, and keeps its lines. The Health tab
-  shows all of the script on all three screens.
-- The chart's pictures exist, load once each and are nearest-filtered, and the table's sizes are theirs.
+- Every line sits inside the frame's line, on the art's pixel grid, in the ruler's ink and tint, and nothing of it lies
+  under the figure's own pixels. The lines' picture is the only picture: no script. Four draws at most, the same for
+  him and her, no table made, and Lite draws the same chart as Full.
+- The measure stops at the character's height: the ruler's rail ends at the top of the head, nothing of the ruler
+  stands above it, and the chart's lines are the ruler's ticks under both heads (half a foot up to 5 1/2 ft). He stands
+  5'9" and she 5'8", 4 and 8 rows under the canvas's top, and the canvas is the figure's own size in the Lua and the
+  tokens (106 x 254).
+- The lines' picture exists, loads once and is nearest-filtered.
 - The figure's CHART table is d_chart.py's.
 - The four places the figure sits draw the chart after the frame and before the controller's mark and the figure.
 
 usage: python test_chart.py [Lua folder [preview.png]]
   Lua folder: holds ZeD_BodyFigure, Molecules, Atoms, HealthTab, ThermalTab, EquipmentTab and ObjectCardMedic (.lua);
-  default the mod's own. preview.png: also writes the chart as the game draws it, for review."""
+  default the mod's own (Tokens.lua is looked for in ../../shared/ZeD beside it, as the mod lays it out). preview.png:
+  also writes the chart as the game draws it, for review."""
 import os
 import re
 import sys
@@ -62,11 +66,17 @@ THEMES = {
 }
 ICON = (240, 240, 235)
 CACHE = {}
+MISSING = set()                  # pictures drawn that the tools did not make (drawn as nothing, and a check fails)
 
 
 def tex(path):
     if path not in CACHE:
-        CACHE[path] = np.asarray(Image.open(os.path.join(ROOT, "42", path)).convert("RGBA")).astype(np.float32) / 255
+        full = os.path.join(ROOT, "42", path)
+        if os.path.exists(full):
+            CACHE[path] = np.asarray(Image.open(full).convert("RGBA")).astype(np.float32) / 255
+        else:
+            MISSING.add(path)
+            CACHE[path] = np.zeros((1, 1, 4), np.float32)
     return CACHE[path]
 
 
@@ -149,7 +159,7 @@ def lua_for(scale, base, sex):
     L.execute(f'''local sc, art = {scale!r}, {art}
         ZeD.T.px = function(u) return math.floor(u * sc + 0.5) end
         ZeD.T.art = art
-        ZeD.T.sp = {{ figureW = 106 * art, figureH = 272 * art, scrollbarW = math.floor(14 * sc + 0.5) }}
+        ZeD.T.sp = {{ figureW = {SK.FW} * art, figureH = {SK.FH} * art, scrollbarW = math.floor(14 * sc + 0.5) }}
         ZeD.T.baseKey = "{base}"
         ZeD.currentBase = "{base}"''')
 
@@ -190,10 +200,8 @@ def lay(Lo):
     return {k: Lo[k] for k in ("two", "zoom", "frameX", "frameY", "frameW", "frameH", "figX", "figY", "figW", "figH")}
 
 
-# the script's pictures' widths, and the figure's own pixels (background, skeleton, parts) in art pixels
+# the lines' picture, and the figure's own pixels (background, skeleton, parts) in art pixels
 LINES = "fig-chart-lines.png"
-NOTE_W = {sex: {side: tex(f"media/textures/ZeD/body/fig-notes-{sex}-{side}.png").shape[1] for side in ("left", "right")}
-          for sex in ("m", "f")}
 FIGURE_A = {}
 for sex in ("m", "f"):
     a = np.zeros((SK.FH, SK.FW), np.float32)
@@ -280,7 +288,7 @@ for sname, scale in SCREENS:
                         alpha_ok = a == DC.FLOOR_A
                     else:
                         _, path, x, y, w, h, a, r, gg, b = c
-                        alpha_ok = a == (1 if path.endswith(LINES) else DC.NOTE_A)
+                        alpha_ok = a == 1
                     inside = inL <= x and x + w <= inR and inT <= y and y + h <= inB
                     grid = (x - Ld["figX"]) % z == 0 and (y - Ld["figY"]) % z == 0 and w % z == 0 and h % z == 0
                     color = max(abs(r - ink[0]), abs(gg - ink[1]), abs(b - ink[2])) < 1e-9
@@ -302,16 +310,11 @@ for sname, scale in SCREENS:
                         if 0 <= row < SK.FH and c1 > c0:
                             under += int(FIGURE_A[sex][row, c0:c1].sum())
                 check(f"{name}: nothing of the chart lies under the figure", under == 0, under)
-                # the script: a side's words where its lines are long enough for its widest, and only there
-                want = sorted(f"media/textures/ZeD/body/fig-notes-{sex}-{side}.png"
-                              for side, sd in (("left", sideL), ("right", sideR))
-                              if sd - 2 * DC.MARGIN >= NOTE_W[sex][side])
-                got = sorted(c[1] for c in chart if c[0] == "tex" and "fig-notes-" in c[1])
-                check(f"{name}: the script where its lines hold it", got == want, (got, sideL, sideR))
-                if lname == "Health":
-                    check(f"{name}: the Health tab shows all of the script", len(got) == 2, (sideL, sideR))
+                # no script (Nov 23 2026: "remove the notes"): the lines' picture is the only one drawn
+                others = sorted({c[1] for c in chart if c[0] == "tex" and not c[1].endswith(LINES)})
+                check(f"{name}: no picture but the lines'", not others, others)
                 # the lines: their picture on each side with room for them, the whole canvas high; the floor in
-                # one or two pieces; six draws at most
+                # one or two pieces; four draws at most
                 lines = [c for c in chart if c[0] == "tex" and c[1].endswith(LINES)]
                 want_lines = int(sideL - 2 * DC.MARGIN > 0) + int(sideR - 2 * DC.MARGIN > 0)
                 check(f"{name}: the lines on each side with room for them", len(lines) == want_lines and all(
@@ -319,18 +322,22 @@ for sname, scale in SCREENS:
                 floor = [c for c in chart if c[0] == "rect"]
                 check(f"{name}: the floor in at most two pieces, on its row",
                       1 <= len(floor) <= 2 and all(c[2] == Ld["figY"] + SK.FLOOR * z for c in floor), floor)
-                check(f"{name}: six draws at most", len(chart) <= 6, len(chart))
+                check(f"{name}: four draws at most", len(chart) <= 4, len(chart))
 
-# ---- the pictures: they exist, each loads once, nearest-filtered (NEAREST = 3, as the figure's own)
-note_asks = [(p, f) for p, f in ASKED if "fig-notes-" in p or p.endswith(LINES)]
-check("the chart's pictures were asked for", len({p for p, _ in note_asks}) == 5, sorted({p for p, _ in note_asks}))
-check("every chart picture asked for exists", all(os.path.exists(os.path.join(ROOT, "42", p)) for p, _ in note_asks),
-      sorted({p for p, _ in note_asks}))
-check("the chart's pictures are nearest-filtered", all(f == 3 for _, f in note_asks))
+check("every picture drawn is one the tools make", not MISSING, sorted(MISSING))
+
+# ---- the picture: it exists, loads once, nearest-filtered (NEAREST = 3, as the figure's own); no script is asked for
+line_asks = [(p, f) for p, f in ASKED if p.endswith(LINES)]
+check("the lines' picture was asked for", len({p for p, _ in line_asks}) == 1, sorted({p for p, _ in line_asks}))
+check("the lines' picture exists", all(os.path.exists(os.path.join(ROOT, "42", p)) for p, _ in line_asks),
+      sorted({p for p, _ in line_asks}))
+check("the lines' picture is nearest-filtered", all(f == 3 for _, f in line_asks))
+notes = sorted({p for p, _ in ASKED if "fig-notes-" in p})
+check("no script picture is asked for (the notes went on Nov 23 2026)", not notes, notes)
 col = tex("media/textures/ZeD/body/" + LINES)
 check("the lines' picture is a column the canvas high, each line on its row", col.shape[:2] == (SK.FH, 1) and all(
-    abs(col[y, 0, 3] - a) < 0.5 / 255 for y, a in zip(DC.ROWS, DC.ALPHAS)) and int((col[..., 3] > 0).sum()) == 12,
-      col.shape)
+    abs(col[y, 0, 3] - a) < 0.5 / 255 for y, a in zip(DC.ROWS, DC.ALPHAS)) and int((col[..., 3] > 0).sum()) == len(
+    DC.ROWS), (col.shape, int((col[..., 3] > 0).sum())))
 # (each Lua above is a fresh one: within one, a picture loads once however often it is drawn)
 L, g, fig = lua_for(1.0, "dark", "m")
 ASKED.clear()
@@ -339,16 +346,22 @@ P = panel(L, cv)
 Lo = g.ZeD.Molecules.layoutZoneA(0, 0, 466)
 for _ in range(3):
     fig.drawChart(fig, P, Lo)
-asks = [p for p, _ in ASKED if "fig-notes-" in p or p.endswith(LINES)]
-check("a chart picture loads once, however often drawn", sorted(asks) == sorted(set(asks)) and len(asks) == 3, asks)
-fig.setSex(fig, True)
+asks = [p for p, _ in ASKED if p.endswith(LINES)]
+check("the lines' picture loads once, however often drawn", len(asks) == 1, asks)
+# his chart and hers are the same draws: the lines stop under both heads
+n0 = len(cv.calls)
 fig.drawChart(fig, P, Lo)
-check("her script is her own pictures", any("fig-notes-f-left" in p for p, _ in ASKED), ASKED)
-# Lite draws none of it
+his = cv.calls[n0:]
+fig.setSex(fig, True)
+n0 = len(cv.calls)
+fig.drawChart(fig, P, Lo)
+hers = cv.calls[n0:]
+check("his chart and hers are the same draws", his == hers and len(his) == 4, (his, hers))
+# Lite draws the same chart (the director, Nov 22 2026: the chart shows in Lite too, as the flesh and the wounds do)
 g.LITE = True
 n0 = len(cv.calls)
 fig.drawChart(fig, P, Lo)
-check("Lite: no chart", len(cv.calls) == n0, cv.calls[n0:])
+check("Lite: the same chart as Full", cv.calls[n0:] == hers, cv.calls[n0:])
 g.LITE = False
 # no table made a frame, once the pictures are loaded (a panel in Lua; the JIT off, the collector stopped): against the
 # same frames with one colorBlend each, the table drawAt's tint makes
@@ -371,13 +384,46 @@ made, blend = L.execute('''local fig, Lo = ...
     return grew(false), grew(true)''', fig, Lo)
 check("drawChart makes no table a frame", blend > 10 and made < blend / 20, f"{made:.2f} KB over 500 frames ({blend:.2f} "
       "with a colorBlend each)")
-# the table's sizes are the pictures' own
+
+# ---- the measure stops at the character's height (Nov 23 2026: "move the skelly up the measure will stop at their
+# height")
 for sex in ("m", "f"):
-    for side in ("left", "right"):
-        im = tex(f"media/textures/ZeD/body/fig-notes-{sex}-{side}.png")
-        n = DC.notes(sex)[side]
-        check(f"{sex} {side}: the table's size is the picture's", (n[2], n[3]) == (im.shape[1], im.shape[0]),
-              ((n[2], n[3]), im.shape[:2]))
+    top = SK.head_top(sex)
+    feet_in = round((SK.FLOOR - top) / SK.PX_FT * 12)
+    check(f"{sex}: the figure stands {feet_in // 12}'{feet_in % 12}\" on the ruler's scale",
+          feet_in == (69 if sex == "m" else 68), feet_in)
+    check(f"{sex}: the head's top {top} rows under the canvas's top (his 4, hers 8, as the mock passed)",
+          top == (4 if sex == "m" else 8), top)
+    ru = SK.ruler(sex)
+    rail = np.nonzero(ru[:, SK.RAIL_X])[0]
+    check(f"{sex}: the rail runs from the floor up to the top of the head and stops",
+          rail.min() == top and rail.max() == SK.FLOOR and len(rail) == SK.FLOOR - top + 1,
+          (rail.min(), rail.max(), len(rail)))
+    ticks = [int(y) for y in np.nonzero(ru[:, SK.RAIL_X + 1])[0]]
+    check(f"{sex}: the ruler's ticks are the floor and the chart's lines, all under the head",
+          ticks == sorted([SK.FLOOR] + DC.ROWS) and min(ticks) > top, (ticks, top))
+    for light in (False, True):
+        bg = np.asarray(SK.background(sex, light))[..., 3]
+        check(f"{sex} {'light' if light else 'dark'}: nothing of the ruler or the body above the head's top",
+              int(bg[:top].max(initial=0)) == 0 and int(bg[top].max()) > 0, int(bg[:top].max(initial=0)))
+check("the lines run half a foot up to 5 1/2 ft, each foot stronger, the next half foot over both heads",
+      DC.ROWS == [DC.row_ft(k / 2) for k in range(1, 12)] and DC.ALPHAS == [DC.FOOT_A if k % 2 == 0 else DC.HALF_A
+                                                                             for k in range(1, 12)]
+      and all(DC.row_ft(6) <= SK.head_top(sex) < DC.ROWS[-1] for sex in ("m", "f")), (DC.ROWS, DC.ALPHAS))
+# the canvas is the figure's own size in the Lua and in the tokens (ZeD.Spacing.figureW / H: the frames and the tabs)
+cw = re.search(r"\nlocal CANVAS_W\s*=\s*(\d+)", FIG)
+ch = re.search(r"\nlocal CANVAS_H\s*=\s*(\d+)", FIG)
+check(f"ZeD_BodyFigure.lua's canvas is {SK.FW} x {SK.FH}", cw and ch and (int(cw.group(1)), int(ch.group(1))) == (
+    SK.FW, SK.FH), (cw and cw.group(1), ch and ch.group(1)))
+TOKENS = os.path.join(CLIENT, "..", "..", "shared", "ZeD", "Tokens.lua")
+if os.path.exists(TOKENS):
+    tok = open(TOKENS, "rb").read().decode("utf-8")
+    tw = re.search(r"\n\s*figureW\s*=\s*(\d+)\s*,", tok)
+    th_ = re.search(r"\n\s*figureH\s*=\s*(\d+)\s*,", tok)
+    check(f"Tokens.lua's figure is {SK.FW} x {SK.FH}", tw and th_ and (int(tw.group(1)), int(th_.group(1))) == (
+        SK.FW, SK.FH), (tw and tw.group(1), th_ and th_.group(1)))
+else:
+    print("  (no Tokens.lua at " + os.path.normpath(TOKENS) + ": its figureW and figureH were not checked)")
 
 # ---- the figure's CHART table is d_chart.py's
 m = re.search(r"\nlocal CHART = \{.*?\n\}\n", FIG, re.S)
@@ -433,7 +479,7 @@ if PREVIEW:
              ("4K (1.75)", "Health", "light", "f", "her, Light"),
              ("4K (1.75)", "Health", "hicon", "m", "High Contrast, a yellow accent"),
              ("4K (1.75)", "medic 220 (stacked)", "dark", "f", "medical card, 220 drawer"),
-             ("4K (1.75)", "medic 336", "dark", "m", "medical card, 336: lines only"),
+             ("4K (1.75)", "medic 336", "dark", "m", "medical card, 336"),
              ("1080p (1.0)", "Health", "dark", "m", "Health tab, 1080p (1x)"),
              ("1280x800 (0.75)", "Health", "dark", "m", "Steam Deck (1x)")]
     tiles = []

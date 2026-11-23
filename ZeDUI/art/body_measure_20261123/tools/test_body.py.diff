@@ -1,0 +1,15 @@
+--- a/ZeDUI/tools/physpx/test_body.py
++++ b/ZeDUI/tools/physpx/test_body.py
+@@ -96,9 +96,10 @@
+     check(f"{sex}: head, shoulders and chest leave the outline showing", _near == 0, _near)
+     for light in (False, True):
+         # the figure's own frame at 1x and 2x, roomier panels that still take only 1x or 2x, and one smaller than 1x
+-        # (Nov 21 2026: the frame is SK.FW x SK.FH now, the ruler's frame, no longer 220 x 260)
++        # (Nov 21 2026: the frame is SK.FW x SK.FH now, the ruler's frame, no longer 220 x 260; Nov 23 2026: 254 rows
++        # high, so the panel under 1x is half the canvas high, 0.5, where 204 rows were 0.75 of 272)
+         for (pw, ph, want_s) in ((SK.FW, SK.FH, 1), (2 * SK.FW, 2 * SK.FH, 2), (SK.FW + 44, SK.FH + 28, 1),
+-                                 (2 * SK.FW + 44, 2 * SK.FH + 156, 2), (80, 204, 0.75)):
++                                 (2 * SK.FW + 44, 2 * SK.FH + 156, 2), (80, SK.FH // 2, 0.5)):
+             L, g, fig = lua_for(sex, light)
+             for k, (r, g_, b, a) in COLORS.items(): fig.setPartColor(fig, k, r, g_, b, a)
+             ox, oy = 7, 5

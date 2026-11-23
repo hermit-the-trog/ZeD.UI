@@ -1991,7 +1991,7 @@ function ZeD.Molecules.figureFrame(x, y, w)
     local inset = T.px(FIG_FRAME_INSET)
     local gap = T.px(TAB_COL_GAP)
     local art = T.art or 1
-    -- the canvas in art pixels (106 x 272): T.sp.figureW / H are the canvas at the art zoom
+    -- the canvas in art pixels (106 x 254): T.sp.figureW / H are the canvas at the art zoom
     local cw, ch = T.sp.figureW / art, T.sp.figureH / art
     local half = math.floor((w - gap) / 2)
     -- halves only where a half holds the figure at its art zoom inside the inset; else stack, the frame full width

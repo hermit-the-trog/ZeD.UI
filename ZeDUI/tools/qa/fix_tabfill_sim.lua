@@ -66,7 +66,7 @@ ZeD = {
     T = setmetatable({
         px = function(n) return n end, fontF1 = "F1", fontF2 = "F2", fontF3 = "F3", fontF5 = "F3", selectionA = 0.3,
         fillBarH = 13, buttonH = 26, rowH = 24, scale = 1, art = 1, disabledAlpha = 0.4, hair = 1,
-        sp = { scrollbarW = 14, afterLine = 10, afterGroove = 8, rowGap = 6, xs = 6, sm = 10, figureW = 106, figureH = 272 },  -- (the figure without its grid) (Graphic cleanup, Nov 22 2026)
+        sp = { scrollbarW = 14, afterLine = 10, afterGroove = 8, rowGap = 6, xs = 6, sm = 10, figureW = 106, figureH = 254 },  -- (the figure without its grid) (Graphic cleanup, Nov 22 2026; 254: Nov 23)
     }, { __index = function(t, k) local c = col(); rawset(t, k, c); return c end }),
     TM = { getFontHeight = function(_, f) return FH[f] or 19 end, MeasureStringX = function(_, f, s) return #tostring(s) * 7 end },
     tr = function(k, a) return k .. (a ~= nil and ("(" .. tostring(a) .. ")") or "") end,
