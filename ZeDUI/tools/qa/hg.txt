@@ -1,0 +1,13 @@
+# ZeDUI/tools/qa/hg.txt (Nov 23 2026, QA): the Health tab, the whole gamut. The director, Nov 23 2026: "QA the health panel today. Do all the workouts. Get the muscle strain, fatigue in every muscle. Injuries, do all the injuries on every limb. Treat every injury with every type of bandage, every type of treatment. Run the whole gamut. I don't want to get anybody killed because our mod doesn't work in the health panel."
+#   hg_injury.lua  every injury state (22) on every body part (17): ZeD's list against vanilla's rule at First Aid 10 and 0, the figure's tint and mark, the summary; every state on one limb; a wound on all 17 (pictures hg_inj_limb_*, hg_inj_limb_care_*, hg_inj_all17_*)
+#   hg_treat.lua   every treatment through ZeD's own part menu with every qualifying item (11 bandage kinds on all 17 parts, disinfect, poultices, clean burn, stitch with every needle and thread, glass and bullet with every tool and by hand, splints), what the game must not offer, ZeD's "nothing fits" line, the medical check card's menu
+#   hg_fit.lua     all 7 exercises started from the Health tab (regularity, the pending strain by region, the weapon and bag after), strain minor and heavy on every part and on all 17, endurance and tiredness at every moodle step, pain and a heavy load against Start (picture hg_fit_strain17_*)
+# God mode is off while each runs (a guard on every tick: no zombie infection, health topped up; under 35 god mode back ON); each puts every part, stat and thing back.
+# Run both sizes:
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/hg.txt -Mode fullscreen4k -Report hg_4k
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/hg.txt -Mode windowed -Width 1280 -Height 800 -Report hg_deck
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+hg_injury.lua | hg_inj | timeout=1800
+hg_treat.lua | hg_trt | timeout=1800
+hg_fit.lua | hg_fit | timeout=1800
