@@ -633,20 +633,33 @@ local function plainOf(src)
     local b = src:find("\nfunction ", a + 10, true)
     return a, (b or #src)
 end
+local noWatchSpliced = true   -- (the BASE copy took the checkout's no-watch branch: see below)
 if srcWB and srcWA then
     local a1, b1 = plainOf(srcWB)
     local a2, b2 = plainOf(srcWA)
-    -- (Simple watch, the director, Nov 22 2026: the face lost its time buttons for the belt's five speed keys in a row
-    -- under it, drawn by the shared block just above _plain; the BASE copy takes that block too, and _hintDraw)
+    -- (Simple watch, the director, Nov 22 2026: the face lost its time buttons; the shared speed key block just above
+    -- _plain stays for the belt (Time buttons, Nov 22 2026). The BASE copy takes that block too.)
     local shared = srcWA:find("-- THE GAME'S SPEED KEYS, SHARED", 1, true)
     if shared and a2 and shared < a2 then a2 = shared end
-    local hd1 = srcWA:find("function ZeD_Watch:_hintDraw(", 1, true)
-    local hd2 = hd1 and srcWA:find("\nend", hd1, true)
-    local hintDraw = (hd1 and hd2) and (srcWA:sub(hd1, hd2 + 4) .. "\n") or ""
     -- (a BASE without the pad on the watch: the pad is never on it)
-    hintDraw = hintDraw .. "if not ZeD_Watch.padOn then function ZeD_Watch:padOn() return false end end\n"
+    local padShim = "if not ZeD_Watch.padOn then function ZeD_Watch:padOn() return false end end\n"
     if a1 and a2 then
-        srcWB = srcWB:sub(1, a1 - 1) .. "if not W.lite then function W.lite() return false end end\n" .. srcWA:sub(a2, b2) .. hintDraw .. srcWB:sub(b1 + 1)
+        srcWB = srcWB:sub(1, a1 - 1) .. "if not W.lite then function W.lite() return false end end\n" .. srcWA:sub(a2, b2) .. padShim .. srcWB:sub(b1 + 1)
+        -- (Time buttons, the director, Nov 22 2026: "put the time controls in the same spot no matter what." No watch,
+        -- the panel shows nothing: the tape deck and the Simple watch's no-watch keys went for the belt row's keys.
+        -- The BASE copy takes the checkout's no-watch branch in prerender, so the rest still compares frame for frame.)
+        local endMark = "\n        return\n    end\n"
+        srcWB = srcWB:gsub("\r\n", "\n")   -- (git's copy has CRLF line ends: the marks are matched on LF)
+        local srcWAn = srcWA:gsub("\r\n", "\n")
+        local nb1 = srcWB:find("    if not item and W.simple() then", 1, true)
+        local nb2 = nb1 and srcWB:find(endMark, nb1, true)
+        local na1 = srcWAn:find("    if not item then\n        -- (Time buttons", 1, true)
+        local na2 = na1 and srcWAn:find(endMark, na1, true)
+        if nb1 and nb2 and na1 and na2 then
+            srcWB = srcWB:sub(1, nb1 - 1) .. srcWAn:sub(na1, na2 + #endMark - 1) .. srcWB:sub(nb2 + #endMark)
+        else
+            noWatchSpliced = false
+        end
         -- (and the month on the reading, which only the plain face writes)
         local was = "rd.date = tostring(day)"
         local at = srcWB:find(was, 1, true)
@@ -654,6 +667,7 @@ if srcWB and srcWA then
     end
 end
 check("watch: the BASE copy is readable through git", srcWB ~= nil)
+check("watch: the BASE copy took the checkout's no-watch branch", noWatchSpliced)
 check("watch: the checkout's copy is readable", srcWA ~= nil)
 check("watch: ZeD_Plate.lua's PL.controls cut out", CONTROLS ~= nil)
 if srcWB and srcWA and CONTROLS then
@@ -662,7 +676,7 @@ if srcWB and srcWA and CONTROLS then
     check("watch: after loads on the stubs", B.ok, B.err)
 
     section("The watch: identical every frame")
-    local diff, first, sawPlain, sawDeck, sawPop, sawBulb = 0, nil, false, false, false, false
+    local diff, first, sawPlain, sawBare, sawPop, sawBulb = 0, nil, false, false, false, false
     for f = 0, WATCH_FRAMES - 1 do
         local s = WATCH_SCRIPT[f]
         if s then s(A); s(B) end
@@ -674,15 +688,17 @@ if srcWB and srcWA and CONTROLS then
         if not (okA and okB) then check("watch: frame " .. f .. " runs", false, tostring(fa) .. " / " .. tostring(fb)); break end
         if fa ~= fb then diff = diff + 1; first = first or { f = f, a = fa, b = fb } end
         if fa:find("fill ", 1, true) then sawPlain = true end
-        if fa:find("speed0@", 1, true) then sawDeck = true end
+        -- (no watch: the panel at no size, no click areas: no tape deck, no keys. Time buttons, Nov 22 2026)
+        local ia0 = A.env.ZeD.Watch.getInstance()
+        if f > 105 and f < 128 and ia0 and ia0.w == 0 and #ia0._hit == 0 then sawBare = true end
         if fa:find("bulb=true", 1, true) then sawBulb = true end
         local ia = A.env.ZeD.Watch.getInstance()
         if ia and ia._belt and ia._popped and ia.w > 0 then sawPop = true end
     end
     check("watch: " .. WATCH_FRAMES .. " frames, every one the same (spot, click areas, plate state, LCD, belt, small watch, parking)",
         diff == 0, first and ("frame " .. first.f .. ":\nBEFORE\n" .. first.a .. "\nAFTER\n" .. first.b))
-    check("watch: the script drew the tape deck, the bulb, the popped watch and the Simple watch", sawDeck and sawBulb and sawPop and sawPlain,
-        ser({ sawDeck, sawBulb, sawPop, sawPlain }))
+    check("watch: the script drew nothing with no watch, the bulb, the popped watch and the Simple watch", sawBare and sawBulb and sawPop and sawPlain,
+        ser({ sawBare, sawBulb, sawPop, sawPlain }))
     print(string.format("   game calls over %d frames: getWornItems %d -> %d, isAlarmSet %d -> %d, getHour %d -> %d",
         WATCH_FRAMES, A.calls.worn, B.calls.worn, A.calls.alarm, B.calls.alarm, A.calls.hourGet, B.calls.hourGet))
     check("watch: getWornItems fewer", B.calls.worn < A.calls.worn, A.calls.worn .. " -> " .. B.calls.worn)
@@ -725,10 +741,11 @@ if srcWB and srcWA and CONTROLS then
     print(string.format("   belt watch (tucked): %.0f -> %.0f bytes a frame, getWornItems %.1f -> %.1f a frame", bb2, ab2, bw2, aw2))
     check("watch (belt): one worn-items walk a frame (was " .. bw2 .. ")", aw2 == 1, aw2)
 
-    -- (Simple watch, the director, Nov 22 2026: "simple watch is just a very simple watch face ... using the same
-    -- buttons we use down in the belt below, with a little bit of padding between"; and "make the seconds the same
-    -- text size as the hours and minutes.") The checkout's Simple watch: a face, then the belt's five speed keys.
-    section("The Simple watch: a face, then the belt's speed keys")
+    -- (Simple watch, the director, Nov 22 2026: "simple watch is just a very simple watch face"; "make the seconds the
+    -- same text size as the hours and minutes." Then Time buttons, the director, Nov 22 2026: "put the time controls in
+    -- the same spot no matter what." The face has no speed keys; they live at the belt row's right end. The shared
+    -- W.drawSpeedKey, W.SPEED_*, W.speedLit and W.speedWords stay for the belt to draw with.)
+    section("The Simple watch: the face alone, no time buttons")
     local SW = watchWorld(srcWA, "simple")
     fire(SW.env, "OnGameStart")
     SW.simple = true
@@ -743,77 +760,70 @@ if srcWB and srcWA and CONTROLS then
         return out
     end
     local function hitOf(id) for _, h in ipairs(si._hit) do if h.id == id then return h end end return nil end
+    local function noSpeedHits() for _, h in ipairs(si._hit) do if h.id:sub(1, 5) == "speed" then return false end end return true end
     local function faceOf(s)
         local fw, fh = s:match("fill {1=<panel>,2=0,3=0,4=(%d+),5=(%d+),6=surf2}")
         return tonumber(fw), tonumber(fh)
     end
-    local KEY, KGAP, RGAP = SWW.SPEED_KEY, SWW.SPEED_GAP, SWW.SPEED_ROW_GAP   -- (the stub's px is 1:1)
-    check("simple: the shared sizes are the belt's (20 a key, 2 between) and 6 under the face",
-        KEY == 20 and KGAP == 2 and RGAP == 6, ser({ KEY, KGAP, RGAP }))
+    check("time buttons: the shared sizes stay the belt's (20 a key, 2 between), the watch's own row gap gone",
+        SWW.SPEED_KEY == 20 and SWW.SPEED_GAP == 2 and SWW.SPEED_ROW_GAP == nil, ser({ SWW.SPEED_KEY, SWW.SPEED_GAP, SWW.SPEED_ROW_GAP }))
+    check("time buttons: the shared exports stay (drawSpeedKey, speedLit, speedWords, SPEED_ICONS, SPEED_WORDS)",
+        type(SWW.drawSpeedKey) == "function" and type(SWW.speedLit) == "function" and type(SWW.speedWords) == "function"
+        and SWW.SPEED_ICONS and SWW.SPEED_ICONS[4] == "wait" and SWW.SPEED_WORDS and SWW.SPEED_WORDS[1] == "IGUI_BackButton_Play")
+    check("time buttons: the lit rule (x5 lights the third key; past Wait lights Wait's)",
+        SWW.speedLit(2, 2) and not SWW.speedLit(1, 2) and SWW.speedLit(4, 5) and not SWW.speedLit(3, 5))
     SW.speed = 2
     local s1 = sframe()
     local fw, fh = faceOf(s1)
     check("simple: the face is drawn", fw ~= nil, s1)
-    local allKeys, rowOk = true, true
-    for n = 0, 4 do
-        local h = hitOf("speed" .. n)
-        if not h then allKeys = false
-        elseif not (h.w == KEY and h.h == KEY and h.y == (fh or 0) + RGAP and h.x == si.w - (5 - n) * KEY - (4 - n) * KGAP) then rowOk = false end
-    end
-    check("simple: five speed keys, speed0 to speed4", allKeys, s1)
-    check("simple: the keys in one row under the face, 6 below it, right edges lined up", rowOk, s1)
-    check("simple: the panel is the face, the room and the row", fh and si.h == fh + RGAP + KEY and si.w == fw, ser({ si.w, si.h, fw, fh }))
+    check("simple: no speed keys on the watch (no click areas speed0 .. speed4)", noSpeedHits(), s1)
+    check("simple: no key drawn (no box, no icon)", not s1:find("rect {", 1, true) and not s1:find("icon {", 1, true), s1)
+    check("simple: the panel is the face alone", fh and si.h == fh and si.w == fw, ser({ si.w, si.h, fw, fh }))
     local noOld = true
     for _, id in ipairs({ "start", "speed", "alarm", "set" }) do if hitOf(id) then noOld = false end end
     check("simple: no Start, Speed, Alarm or Set button on the face", noOld and not s1:find("button {", 1, true), s1)
     check("simple: the alarm line and the face's fold stay", hitOf("alarmline") ~= nil and hitOf("fold") ~= nil)
-    check("simple: the key in use lit (x5: the third key in the accent)", s1:find("rect {1=" .. hitOf("speed2").x .. ",2=" .. hitOf("speed2").y .. ",3=20,4=20,5=1,6=1,7=0.5,8=0}", 1, true) ~= nil, s1)
-    check("simple: the keys carry the belt's icons", s1:find("2=pause", 1, true) and s1:find("2=wait", 1, true), s1)
     -- the seconds in the time's own type: one string HH:MM:SS in font 5 (the stub's big font), no small seconds
     check("simple: the time and its seconds one string in the big type", s1:find("chip text {1=9:41:%d%d,[^}]*8=5}") ~= nil, s1)
     -- the width holds the whole string with every digit an 8 (the stub measures 6 a character: 7 for "8:88:88")
     check("simple: the face is wide enough for the time with its seconds", fw and fw >= 2 * 8 + 7 * 6, fw)
-    -- a press on a key: the game's speed button (x5: Fast Forward x 1; Wait for the fifth)
+    -- the belt's keys press through W.act("speedN") (B.speedKey): x5 is Fast Forward x 1, the fifth Wait
     SW.log = {}
-    si:onMouseDown(hitOf("speed2").x + 1, hitOf("speed2").y + 1)
-    si:onMouseDown(hitOf("speed4").x + 1, hitOf("speed4").y + 1)
-    check("simple: a key press sets the game's speed", SW.log[1] == "button Fast Forward x 1" and SW.log[2] == "button Wait", ser(SW.log))
-    -- the pointer over a key: the hover wash and the belt's words
-    SW.mouseOver = true
-    SW.MX, SW.MY = si.x + hitOf("speed1").x + 2, si.y + hitOf("speed1").y + 2
-    local s2 = sframe()
-    check("simple: the pointer's words on a key are the belt's", s2:find("hint speed1 IGUI_BackButton_Play", 1, true) ~= nil, s2)
-    check("simple: the pointer's wash on that key", s2:find("rect {1=" .. hitOf("speed1").x .. ",2=" .. hitOf("speed1").y .. ",3=20,4=20,5=0.2", 1, true) ~= nil, s2)
-    SW.mouseOver = false
-    check("simple: the pad's words for the keys are the belt's", SWW.padLabel("speed1", 1) == "IGUI_BackButton_Play" and SWW.padLabel("speed4", 1) == "IGUI_BackButton_FF3")
-    -- folded: one thin line, the keys still under it
+    SWW.act("speed2")
+    SWW.act("speed4")
+    check("time buttons: the belt's presses (W.act speed2, speed4) set the game's speed", SW.log[1] == "button Fast Forward x 1" and SW.log[2] == "button Wait", ser(SW.log))
+    check("time buttons: the pad's words for a speed key are the belt's", SWW.padLabel("speed1", 1) == "IGUI_BackButton_Play" and SWW.padLabel("speed0", 1) == "UI_optionscreen_binding_Pause" and SWW.padLabel("speed4", 1) == "IGUI_BackButton_FF3")
+    -- folded: one thin line, nothing under it
     si:_act("fold")
     local s3 = sframe()
-    local tw, th = faceOf(s3)
-    check("simple (folded): the keys under the thin line", th and hitOf("speed0") and hitOf("speed0").y == th + RGAP and si.h == th + RGAP + KEY, s3)
+    local _, th = faceOf(s3)
+    check("simple (folded): the thin line alone", th and si.h == th and noSpeedHits(), s3)
     si:_act("fold")
-    -- the alarm's setting: its own keys in the face, the speed keys still under it
+    -- the alarm's setting: its own keys in the face, no speed keys
     si:_act("alarmline")
     local s4 = sframe()
     local _, sh4 = faceOf(s4)
-    check("simple (setting the alarm): - + and Done in the face, the speed keys under it",
-        hitOf("setup") and hitOf("set") and hitOf("speed0") and hitOf("speed0").y == sh4 + RGAP, s4)
+    check("simple (setting the alarm): - + and Done in the face, the panel the face alone",
+        hitOf("setup") and hitOf("set") and noSpeedHits() and sh4 and si.h == sh4, s4)
     si:_act("set")
-    -- on a server: no keys, the face alone with "Server time"
+    -- on a server: the face with "Server time"
     SW.client = true
     local s5 = sframe()
     local _, sh5 = faceOf(s5)
-    check("simple (server): no speed keys, the face alone", not hitOf("speed0") and sh5 and si.h == sh5 and s5:find("UI_ZeD_WatchPlain_ServerTime", 1, true), s5)
+    check("simple (server): the face alone with Server time", noSpeedHits() and sh5 and si.h == sh5 and s5:find("UI_ZeD_WatchPlain_ServerTime", 1, true), s5)
     SW.client = false
-    -- no watch: the five keys alone, no face
+    -- no watch: nothing (the panel at no size, no click areas), Simple or not, server or not
     SW.worn = {}
     local s6 = sframe()
-    check("simple (no watch): the five keys alone", not s6:find("fill ", 1, true) and hitOf("speed4") and si.w == 5 * KEY + 4 * KGAP and si.h == KEY, s6)
+    check("simple (no watch): nothing drawn, no size, no click areas", not s6:find("fill ", 1, true) and si.w == 0 and si.h == 0 and #si._hit == 0, s6)
+    SW.simple = false
+    local s6b = sframe()
+    check("no watch (not Simple): no tape deck, nothing drawn", not s6b:find("tex ", 1, true) and si.w == 0 and #si._hit == 0, s6b)
     SW.client = true
     local s7 = sframe()
-    check("simple (no watch, server): the words, no keys", not hitOf("speed0") and s7:find("UI_ZeD_WatchPlain_ServerTime", 1, true), s7)
-    SW.client = false
-    -- the step aside (QA B8-3) with the new size: a World window over the corner moves the whole panel left of it
+    check("no watch (server): nothing drawn", not s7:find("fill ", 1, true) and si.w == 0 and #si._hit == 0, s7)
+    SW.client, SW.simple = false, true
+    -- the step aside (QA B8-3): a World window over the corner moves the face left of it
     wear(SW, "Base.WristWatch_Left_DigitalBlack", "LeftWrist", true)
     sframe()
     local x0, y0 = si.x, si.y
@@ -826,7 +836,7 @@ if srcWB and srcWA and CONTROLS then
     SW.env.getPlayerScreenHeight = function() return 1080 end
     SW.env.ZeD_WorldWindow = { getWindow = function() return win end }
     sframe()
-    check("simple: steps aside from an open window, keys and all", si.x + si.w <= win.x and si.y == y0, ser({ si.x, si.w, win.x }))
+    check("simple: steps aside from an open window", si.x + si.w <= win.x and si.y == y0, ser({ si.x, si.w, win.x }))
     SW.env.ZeD_WorldWindow = nil
     check("simple: no frame logged an error", #swErr == 0, swErr[1])
     local _ = swIt

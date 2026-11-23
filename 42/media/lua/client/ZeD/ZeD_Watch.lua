@@ -25,7 +25,8 @@
 --          setting; its hands and index dots glow in the dark.
 -- At night every watch's screen and dial go faint (still readable); the plate
 -- art carries a "dark" picture and its live parts carry night colours.
--- No watch worn: a boom box's tape deck keys set the game speed.
+-- No watch worn: nothing shows here. The game speed's keys live in one spot, the belt row's right end, watch or
+-- no watch (Time buttons, the director, Nov 22 2026; the tape deck keys that stood here are gone).
 --
 -- ON THE BELT (the "Watch" option, default): the worn watch shows
 -- small on the belt (WatchMini.lua, laid out by ZeD_Belt.lua) and this panel
@@ -52,7 +53,7 @@
 --   alarm  arms or disarms the alarm         set, crown  open / close the alarm's setting
 --   light  lights the watch (Timez, CaZio)   setdn, setup  the alarm hour -1 / +1 while setting
 --                                             (one hour past 23 or before 0 is OFF)
---   speed0..speed3  the no-watch tape deck keys
+--   speed0..speed4  set that speed (0 paused .. 4 Wait): the belt's speed keys press these through W.act
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -515,8 +516,8 @@ end
 -- THE SIMPLE WATCH (the watchSimple setting): a plain clock box in
 -- ZeD's own parts, with the same readings as the watch (the ids go to _act unchanged).
 -- Worn: a plain face, the time large with its seconds, the weekday and date, the temperature and the alarm; while
--- setting, the alarm hour with - and + and Done. Under the face, the belt's five speed keys (Simple watch, the
--- director, Nov 22 2026). No watch: the speed keys alone.
+-- setting, the alarm hour with - and + and Done. No time buttons: the game's speed keys live in one spot, the belt
+-- row's right end, whatever the watch (Time buttons, the director, Nov 22 2026). No watch: nothing.
 -- ---------------------------------------------------------------------------
 --- The watchSimple setting is on.
 function W.simple() return ZeD.Settings and ZeD.Settings.watchSimple and ZeD.Settings.watchSimple() or false end
@@ -526,10 +527,10 @@ function W.lite() return ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lit
 -- THE GAME'S SPEED KEYS, SHARED (Simple watch, the director, Nov 22 2026): "move the time controls out of the simple
 -- watch ... we're using the same buttons we use down in the belt below, with a little bit of padding between." The
 -- belt's five keys (KISS #22, ZeD_Belt.lua's _speedBoxes and _drawButton): Pause, Play, Fast forward x1, x2, Wait, the
--- one in use lit. Drawn here so the Simple watch's row and (later) the belt can share one look.
+-- one in use lit. (Time buttons, the director, Nov 22 2026: "put the time controls in the same spot no matter what."
+-- The watch draws no keys of its own now; these are kept for the belt row's right end, the one spot, to draw with.)
 -- (the same numbers as the belt's B.SPEED_KEY, B.SPEED_GAP, B.SPEED_ICONS and B.SPEED_WORDS)
 W.SPEED_KEY, W.SPEED_GAP = 20, 2       -- a key's size and the gap between keys (design units)
-W.SPEED_ROW_GAP = 6                    -- the room between the Simple watch's face and its row of keys (design units)
 W.SPEED_ICONS = { [0] = "pause", "play", "ff1", "ff2", "wait" }
 W.SPEED_WORDS = { [0] = "UI_optionscreen_binding_Pause", "IGUI_BackButton_Play", "IGUI_BackButton_FF1", "IGUI_BackButton_FF2", "IGUI_BackButton_FF3" }
 --- The key for speed n (0 paused .. 4 Wait) is lit at speed sp (Wait's key for any speed past it).
@@ -562,36 +563,11 @@ end
 --- The hover words of speed key n (the belt's: the game's own words for its keys).
 function W.speedWords(n) return getText(W.SPEED_WORDS[n]) end
 
--- the Simple watch's row of speed keys at (x, y): drawn, its click areas added to self._hit (ids "speed0" .. "speed4",
--- which _act sends to _setSpeed), and the hover words asked for. Nothing on a server (the server sets the time).
-local _hintNow = { now = true }   -- (the controller's focus: the words once the pad has rested on the key)
-function ZeD_Watch:_speedRow(x, y, speed)
-    if _serverTime() then return end
-    local px = ZeD.T.px
-    local k, g = px(W.SPEED_KEY), px(W.SPEED_GAP)
-    local hits = self._hit
-    local mx, my = self:getMouseX(), self:getMouseY()
-    local over = self:isMouseOver()
-    local padOn = self:padOn()
-    for n = 0, 4 do
-        local kx = x + n * (k + g)
-        local id = "speed" .. n
-        local hov = over and mx >= kx and mx < kx + k and my >= y and my < y + k
-        local foc = padOn and self._padId == id
-        W.drawSpeedKey(self, kx, y, k, n, W.speedLit(n, speed), hov, foc)
-        -- marked: the pad's mark is drawn here, under the icon, as the belt's (_padDraw leaves it alone)
-        local hr = { id = id, x = kx, y = y, w = k, h = k, marked = true }
-        hits[#hits + 1] = hr
-        if hov then ZeD.Atoms.requestHint(self, id, W.speedWords(n), self, hr); self._hintAsked = true
-        elseif foc then ZeD.Atoms.requestHint(self, id, W.speedWords(n), self, hr, _hintNow); self._hintAsked = true end
-    end
-end
-
 local PLAIN_W, PLAIN_PAD, PLAIN_GAP = 150, 8, 4
 -- (Simple watch, the director, Nov 22 2026) The face holds only the readings: the time with its seconds, the weekday and
--- date over the temperature and the alarm. The game's speed keys stand under it in their own row (_speedRow), apart
--- from the face by W.SPEED_ROW_GAP; the panel is the face and the row. Clicking the alarm opens its setting (the
--- set mode keeps its own - + and Done keys inside the face: they set the alarm, not the time).
+-- date over the temperature and the alarm; the panel is the face alone (the speed keys are the belt row's: Time
+-- buttons, the director, Nov 22 2026). Clicking the alarm opens its setting (the set mode keeps its own - + and Done
+-- keys inside the face: they set the alarm, not the time).
 function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
     local T = ZeD.T
     local px = T.px
@@ -607,31 +583,10 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
     local btns = {}
     local h
     local topH = nil
-    -- the speed keys' row under the face: off on a server (the server sets the time), as the belt's
-    local rowOn = not _serverTime()
-    local rowW, rowH = W.speedRowW(), px(W.SPEED_KEY)
-    local rowGap = px(W.SPEED_ROW_GAP)
-    self._hintAsked = false
     local hits = self._hit
     for i = #hits, 1, -1 do hits[i] = nil end
-    -- no watch: no face to read, only the speed keys; on a server only the words "Server time"
-    if not item then
-        if rowOn then
-            self:_layout(rowW, rowH, 1)
-            self._s = 1
-            self:_speedRow(0, 0, speed)
-            return
-        end
-        h = pad + fh2 + pad
-        self:_layout(w, h, 1)
-        self._s = 1
-        ZeD.Surface.fill(self, 0, 0, w, h, "surf2")
-        local b0 = T.borderS
-        self:drawRectBorder(0, 0, w, h, b0.a or 1, b0.r, b0.g, b0.b)
-        local td0 = T.textDim
-        self:drawText(ZeD.tr("UI_ZeD_WatchPlain_ServerTime"), pad, pad, td0.r, td0.g, td0.b, td0.a or 1, f2)
-        return
-    end
+    -- no watch: no face (prerender does not ask; the speed keys are the belt row's) (Time buttons, the director, Nov 22 2026)
+    if not item then return end
     _reading(rd, player, item, speed, self._setOpen, armed, alarmHour)
     -- (the director, Nov 19 2026, on beta 21's report: "time can be large enough to take up two lines, and then
     -- stack day and temperature on the right. Time is on the left." The top block is the time beside a column of
@@ -641,10 +596,10 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
     if self._setOpen then
         btns = { { id = "setdn", text = "-" }, { id = "setup", text = "+" }, { id = "alarmtoggle", text = ZeD.tr("UI_ZeD_WatchPlain_AlarmOnOff") }, { id = "set", text = ZeD.tr("UI_ZeD_WatchPlain_Done") } }
     elseif _serverTime() then
-        h = h + gap + fh2   -- (a server: the line "Server time" under the top block, in place of the keys)
+        h = h + gap + fh2   -- (a server: the line "Server time" under the top block)
     end
-    -- (QA's visual noise audit 6, Nov 20 2026, then every Simple watch, Nov 22 2026: the lit speed key says the speed,
-    -- so no speed line; the alarm sits beside the temperature. On a server the line stays: it says "Server time".)
+    -- (QA's visual noise audit 6, Nov 20 2026, then every Simple watch, Nov 22 2026: the belt's lit speed key says the
+    -- speed, so no speed line; the alarm sits beside the temperature. On a server the line stays: it says "Server time".)
     local faceTop = not self._setOpen
     -- as wide as the set mode's buttons' words need (each its text and a margin), never narrower than the design
     -- width (the buttons share the width equally, so each must hold the widest word)
@@ -671,18 +626,11 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         local needTop = 2 * pad + tw0 + tailW + px(12) + math.max(dayW, tempW)
         if needTop > w then w = needTop end
     end
-    if rowOn and w < rowW then w = rowW end   -- (the face at least as wide as the keys under it)
-    -- the panel: the face, then (off a server) the room and the row of keys, right edges lined up. Placed before
-    -- anything draws (a draw lands where the panel is at that moment)
+    -- the panel is the face. Placed before anything draws (a draw lands where the panel is at that moment)
     local function place(fw, fh)
-        local ph = fh
-        if rowOn then ph = fh + rowGap + rowH end
-        self:_layout(fw, ph, 1)
-        if self._belt then self:_placePopped(fw, ph) end
+        self:_layout(fw, fh, 1)
+        if self._belt then self:_placePopped(fw, fh) end
         self._s = 1
-    end
-    local function row(fw, fh)
-        if rowOn then self:_speedRow(fw - rowW, fh + rowGap, speed) end
     end
     -- folded (a click on the face): one thin line, the time, the date and the temperature; a click unfolds it
     if self._plainThin and not self._setOpen then
@@ -693,7 +641,6 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         local tw1, dw1 = tm:MeasureStringX(f2, tt), tm:MeasureStringX(f2, dd)
         local ew1 = te and tm:MeasureStringX(f2, te) or 0
         local sw = 2 * px(6) + tw1 + sep + dw1 + (te and (sep + ew1) or 0)
-        if rowOn and sw < rowW then sw = rowW end
         local sh = px(4) + fh2 + px(4)
         place(sw, sh)
         ZeD.Surface.fill(self, 0, 0, sw, sh, "surf2")
@@ -706,7 +653,6 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         self:drawText(dd, x1 + tw1 + sep, px(4), c1.r, c1.g, c1.b, c1.a or 1, f2)
         if te then self:drawText(te, sw - px(6) - ew1, px(4), c1.r, c1.g, c1.b, c1.a or 1, f2) end
         hits[#hits + 1] = { id = "fold", x = 0, y = 0, w = sw, h = sh }
-        row(sw, sh)
         return
     end
     -- set mode: the help line wraps to the box (the normal face, not the mono one)
@@ -785,7 +731,6 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
     end
     if alarmHit then hits[#hits + 1] = alarmHit end
     if faceHit then hits[#hits + 1] = faceHit end
-    row(w, h)
 end
 
 function ZeD_Watch:_canvas(k)
@@ -830,22 +775,12 @@ function ZeD_Watch:prerender()
     if item ~= self._item then self._setOpen = false; self._litUntil = 0 end   -- a different watch: nothing carries over
     self._item = item
 
-    if not item and W.simple() then pcall(self._plain, self, player, nil, speed, false, 6); self:_padDraw(speed); self:_hintDraw(); return end
     if not item then
-        -- no watch: the tape deck keys, the key for the game's speed sitting down
-        local X = ZeD.PhysPx
-        local des = X and X.plates and X.plates.speed_keys
-        if not des then return end
-        self:_layout(des.w, des.h, k); self._s = k
-        local st = self._keySt or {}; self._keySt = st
-        -- the deck has no key for x40 (Wait): its top key stays down for it
-        for i = 0, 3 do st["speed" .. i] = (speed == i) or (i == 3 and speed > 3) end
-        local ctx = self._keyCtx
-        if not ctx then ctx = { tex = function(name) return ZeD.Px.tex(X.texdir .. name .. ".png") end }; self._keyCtx = ctx end
-        local okD, eD = pcall(PLT.draw, self:_canvas(k), des, st, ctx)
-        if not okD then ZeD.logOnce("watch plate", eD); return end
-        self:_hitsFrom(des, st, k)
-        self:_padDraw(speed)
+        -- (Time buttons, the director, Nov 22 2026: "put the time controls in the same spot no matter what." No watch:
+        -- nothing here. The tape deck keys, and the Simple watch's row of keys, gave way to the belt row's speed keys.)
+        if self:getWidth() ~= 0 then self:setWidth(0); self:setHeight(0) end
+        for i = #self._hit, 1, -1 do self._hit[i] = nil end
+        if self:padOn() then self:padLeave() end   -- (the pad on it as the watch came off: the pad goes back)
         return
     end
 
@@ -874,7 +809,6 @@ function ZeD_Watch:prerender()
         local okP, eP = pcall(self._plain, self, player, item, speed, armedS, hourS)
         if not okP then ZeD.logOnce("watch plain", eP) end
         self:_padDraw(speed)
-        self:_hintDraw()
         return
     end
     self:_layout(des.w, des.h, k); self._s = k
@@ -914,7 +848,7 @@ function ZeD_Watch:render() end   -- (everything draws in prerender)
 
 function ZeD_Watch:_act(id)
     local item = self._item
-    if id:sub(1, 5) == "speed" and #id == 6 then _setSpeed(tonumber(id:sub(6))); return end   -- the tape deck keys
+    if id:sub(1, 5) == "speed" and #id == 6 then _setSpeed(tonumber(id:sub(6))); return end   -- the belt's speed keys (B.speedKey)
     if id == "speed" then _actSpeed(); return end
     if id == "start" then _actStart(); return end   -- (both nothing on a server: _setSpeed)
     if not item then return end
@@ -1009,7 +943,7 @@ function ZeD_Watch:onMouseUpOutside(x, y) self:onMouseUp(x, y) end
 
 -- ---------------------------------------------------------------------------
 -- CONTROLLER (Nov 16 2026, punch list 251): the machine faces' "A grabs, D-pad turns" (TwoWayFull.lua). The D-pad
--- walks the watch's controls; A presses a key (Start, Alarm, Light, the set mode's - and +, the tape deck keys).
+-- walks the watch's controls; A presses a key (Start, Alarm, Light, the set mode's - and +).
 -- The setting key (SET, or the crown) and SPEED are grabbed with A: the D-pad then sets the alarm hour (Up / Right
 -- one hour on, Down / Left one back; past 23 or before 0 is OFF) or the game speed (Up / Right faster, Down / Left
 -- slower); A or B lets go, and letting go of the setting key closes the setting. B (nothing grabbed) gives the pad
@@ -1017,7 +951,7 @@ function ZeD_Watch:onMouseUpOutside(x, y) self:onMouseUp(x, y) end
 -- Ways in: the belt's watch (A) and the Character wheel's Use, Watch, Open the watch.
 -- ---------------------------------------------------------------------------
 local PAD_GRAB = { set = true, crown = true, speed = true }   -- the controls A grabs
-local PAD_LAND = { "start", "speed0", "set", "crown" }       -- where the pad lands first: the first of these there is
+local PAD_LAND = { "start", "set", "crown" }       -- where the pad lands first: the first of these there is
 W.PAD_GRAB = PAD_GRAB
 
 --- The pad of this watch's player is on it.
@@ -1156,9 +1090,8 @@ function W.padLabel(id, speed)
     if id == "setdn" then return "-" end
     if id == "setup" then return "+" end
     local n = id and id:match("^speed(%d)$")
-    -- (the Simple watch's keys are the belt's: their words too. Simple watch, the director, Nov 22 2026)
-    if n and (W.simple() or n == "4") then return W.speedWords(tonumber(n)) end
-    if n then return ZeD.tr("UI_ZeD_WatchPlain_Speed" .. n) end
+    -- (the speed keys are the belt row's: their words, the game's own. Time buttons, the director, Nov 22 2026)
+    if n then return W.speedWords(tonumber(n)) end
     return nil
 end
 
@@ -1190,7 +1123,7 @@ function ZeD_Watch:_padDraw(speed)
     if not self:padOn() then return end
     self:_padSettle()
     local h = self:_padHit()
-    if h and not h.marked then   -- (a speed key draws its own mark, under its icon: _speedRow)
+    if h then
         local o = self:padGrabbed() and _markGrab or _markOpts
         o.win = self
         ZeD.Focus.mark(self, h.x, h.y, h.w, h.h, o)
@@ -1209,13 +1142,6 @@ function ZeD_Watch:_padDraw(speed)
         PG.drawStrip(self, sx, sy, sw, items)
     end
     if ZeD.Focus.drawOverlay then ZeD.Focus.drawOverlay(self, self) end
-end
-
--- the pointer's hover words on a speed key (_speedRow asked for them): drawn by the overlay pass, which _padDraw
--- already ran when the pad is on the watch
-function ZeD_Watch:_hintDraw()
-    if not self._hintAsked or self:padOn() then return end
-    if ZeD.Focus and ZeD.Focus.drawOverlay then ZeD.Focus.drawOverlay(self, self) end
 end
 
 -- ---------------------------------------------------------------------------
