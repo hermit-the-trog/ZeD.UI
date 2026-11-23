@@ -765,6 +765,7 @@ local function drawHeader(panel, win, x, y, w)
         dd.onChange = function(self, selectedId)
             applyForagingFocus(win, selectedId)
         end
+        dd.popKey, dd.popPlayer = "forage:focus", win.playerNum or 0   -- (its ZeD.Popups key and player)
         panel:addChild(dd)
         win._forageDropdown = dd
     end

@@ -37,6 +37,7 @@
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/Molecules"
+require "ZeD/ZeD_Popups"
 require "ZeD/Tr"
 require "ZeD/ZeD_TicketProto"
 require "ZeD/ZeD_ServerLink"
@@ -1288,9 +1289,24 @@ function D.drawPopup(panel, win, t, top, bottom)
         local f = D.focusOf(win, t.prefix .. "row:" .. tostring(m.id))
         if f then o.focusId, o.focus = m.id, f end
     end
-    local _, _, zones = M.drawSortMenuList(panel, box.bx, ly, modes, D.popupActive(t, pop.key), hover, o)
+    local lw, lh, zones = M.drawSortMenuList(panel, box.bx, ly, modes, D.popupActive(t, pop.key), hover, o)
     pop.zones = zones
+    -- the list and its box count as inside; a press elsewhere, the card hidden, an action or a walk shuts it
+    -- (ZeD_Popups.lua, the director, Nov 23 2026). Its arg is this very list (pop): a press that opened another
+    -- box's list in its place never shuts the new one.
+    pop._t = t
+    local po = pop._po
+    if not ZeD.Popups then return end
+    if not po then
+        po = ZeD.Popups.opts(pop, "tk:" .. tostring(t.prefix), TC.popIsOpen, win and win.playerNum or 0)
+        pop._po = po
+    end
+    ZeD.Popups.shownAt(po.key, panel, TC.shutPopup, po, box.bx, ly, lw, lh, box.bx, box.by, box.w, box.h)
 end
+
+-- ZeD.Popups' hooks: the list (pop) is open while its card still holds it; the shut leaves the focus alone
+function TC.popIsOpen(pop) return pop._t ~= nil and pop._t.popup == pop end
+function TC.shutPopup(pop) if pop._t and pop._t.popup == pop then pop._t.popup = nil end end
 
 function D.popupClick(st, t, x, y)
     for _, z in ipairs(t.popup.zones or {}) do

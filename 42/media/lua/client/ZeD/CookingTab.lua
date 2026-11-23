@@ -26,6 +26,7 @@ require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/Molecules"
 require "ZeD/CraftingCore"
+require "ZeD/ZeD_Popups"
 require "ZeD/ZeD_TabPx"
 require "ZeD/ZeD_CharacterWindow"
 require "TimedActions/ISAddItemInRecipe"
@@ -610,7 +611,8 @@ local function renderHeader(panel, s, x, y, w, chr)
     for _, key in ipairs(s.dishList or {}) do
         modes[#modes + 1] = { id = "dish:" .. key, label = C.dishes[key] and C.dishes[key].label or key }
     end
-    s.dishGeo = { x = dx, y = by + bh, w = dishW, modes = modes, cur = s.dish and ("dish:" .. s.dish) or nil }
+    s.dishGeo = { x = dx, y = by + bh, w = dishW, modes = modes, cur = s.dish and ("dish:" .. s.dish) or nil,
+                  bx = dx, by = by, bh = bh }   -- (bx, by, bh: the box, inside the list for ZeD.Popups)
 
     local b = curBase(s)
     local bx = dx + dishW + gap
@@ -623,7 +625,8 @@ local function renderHeader(panel, s, x, y, w, chr)
         bmodes[#bmodes + 1] = { id = "base:" .. i, label = o.name,
                                 aside = o.ok and o.where or ZeD.tr("UI_ZeD_Cook_NeedsWater"), disabled = not o.ok }
     end
-    s.baseGeo = { x = bx, y = by + bh, w = baseW, modes = bmodes, cur = "base:" .. tostring(s.baseIdx) }
+    s.baseGeo = { x = bx, y = by + bh, w = baseW, modes = bmodes, cur = "base:" .. tostring(s.baseIdx),
+                  bx = bx, by = by, bh = bh }   -- (bx, by, bh: the box, inside the list for ZeD.Popups)
     return titleH + h
 end
 
@@ -960,8 +963,17 @@ local function renderBand(panel, win, s, x, y, w, chr)
     M.drawPopupMenu(panel, sx, by, sw, bh, label, hov or s.popup == "sort", focusFor(s, "cook:sort"), false, nil, tight)
     if hov then help(panel, "UI_ZeD_Craft_SortHelp") end
     stamp(s, "cook:sort", sx, by, sw, bh, function() s.popup = (s.popup ~= "sort") and "sort" or nil end, { footer = true, box = true })
-    s.sortGeo = { x = sx, y = by - M.popupListH(#modes), w = sw, modes = modes, cur = s.sort }
+    s.sortGeo = { x = sx, y = by - M.popupListH(#modes), w = sw, modes = modes, cur = s.sort,
+                  bx = sx, by = by, bh = bh }   -- (bx, by, bh: the box, inside the list for ZeD.Popups)
 end
+
+-- ZeD.Popups' hooks (ZeD_Popups.lua): each list open by its own kind, and the shut
+CK.popIsOpen = {
+    dish = function(s) return s.popup == "dish" end,
+    base = function(s) return s.popup == "base" end,
+    sort = function(s) return s.popup == "sort" end,
+}
+function CK.closePopup(s) s.popup = nil end
 
 -- The open pop-up list (Dish, the base, Sort), drawn last over the columns
 local _popOpts = {}
@@ -979,8 +991,14 @@ local function renderPopup(panel, s, chr)
     _popOpts.minW, _popOpts.focusId, _popOpts.focus = g.w, nil, nil
     local gp = s.gpId
     if gp and gp:sub(1, 9) == "cook:pop:" then _popOpts.focusId, _popOpts.focus = gp:sub(10), focusFor(s, gp) end
-    local _, _, zs = M.drawSortMenuList(panel, g.x, g.y, g.modes, g.cur, hoverId, _popOpts)
+    local lw, lh, zs = M.drawSortMenuList(panel, g.x, g.y, g.modes, g.cur, hoverId, _popOpts)
     s.popZones = zs
+    -- the list and its box count as inside; a press elsewhere, the tab hidden, an action or a walk shuts it
+    -- (ZeD_Popups.lua, the director, Nov 23 2026). One key per list: a press on another list's box opens that one.
+    if ZeD.Popups then
+        local po = ZeD.Popups.opts(s, "cook:" .. which, CK.popIsOpen[which], (s.win and s.win.playerNum) or 0)
+        ZeD.Popups.shownAt(po.key, panel, CK.closePopup, po, g.x, g.y, lw, lh, g.bx, g.by, g.w, g.bh)
+    end
     for _, z in ipairs(zs) do
         local id = z.id
         stamp(s, "cook:pop:" .. id, z.x, z.y, z.w, z.h, function()

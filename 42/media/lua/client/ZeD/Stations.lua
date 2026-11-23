@@ -24,6 +24,7 @@
 
 require "ZeD/Tr"
 require "ZeD/CraftingCore"
+require "ZeD/ZeD_Popups"
 
 ZeD = ZeD or {}
 ZeD.Stations = ZeD.Stations or {}
@@ -693,7 +694,7 @@ function ST.drawDropdown(panel, geo, rows, scrollOff, current, focusId, prefix)
     end
     panel:drawRectBorder(geo.x, geo.y, geo.w, listH, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
     panel:clearStencilRect()
-    return lay
+    return lay, listH
 end
 
 -- What the band says about a station's state, and the dot colour for it.
@@ -770,8 +771,33 @@ function ST.drawDropdownFor(panel, state, player, focusId, prefix)
     state._stRows = rows
     local ms = ST.dropdownMaxScroll(rows)
     state.stDropdownScroll = math.max(0, math.min(ms, state.stDropdownScroll or 0))
-    state._stLayout = ST.drawDropdown(panel, state._stGeo, rows, state.stDropdownScroll,
+    local lay, listH = ST.drawDropdown(panel, state._stGeo, rows, state.stDropdownScroll,
         ST.current(player), focusId, prefix or "craft")
+    state._stLayout = lay
+    ST.popupShown(panel, state, player, listH)
+end
+
+-- ZeD.Popups' hooks for the station select's list (ZeD_Popups.lua, the director, Nov 23 2026)
+function ST.dropdownIsOpen(state) return state.stDropdownOpen == true end
+function ST.closeDropdown(state)
+    state.stDropdownOpen = false
+    state.stDropdownScroll = 0
+end
+
+--- The open list tells ZeD.Popups it was drawn this frame: the list and its select (the view's
+--- "stationDropdown" zone) count as inside; a press elsewhere, the view hidden, an action or a walk shuts it.
+function ST.popupShown(panel, state, player, listH)
+    local Pp = ZeD.Popups
+    local geo = state._stGeo
+    if not (Pp and geo) then return end
+    local bx, by, bw, bh = nil, nil, nil, nil
+    for _, z in ipairs(state.zones or {}) do
+        if z.type == "stationDropdown" then bx, by, bw, bh = z.x, z.y, z.w, z.h; break end
+    end
+    local pn = 0
+    if player and player.getPlayerNum then pn = player:getPlayerNum() end
+    local po = Pp.opts(state, "station", ST.dropdownIsOpen, pn)
+    Pp.shownAt(po.key, panel, ST.closeDropdown, po, geo.x, geo.y, geo.w, listH or 0, bx, by, bw, bh)
 end
 
 -- Choose a row: Hand unbinds, a station binds. Headers and taken stations

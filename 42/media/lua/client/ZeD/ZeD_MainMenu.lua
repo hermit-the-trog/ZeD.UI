@@ -47,6 +47,7 @@ require "ISUI/ISPanel"
 require "ZeD/Organisms"
 require "ZeD/Input/SpatialNav"
 require "ZeD/ZeD_MouseTick"
+require "ZeD/ZeD_Popups"
 require "ZeD/PixelFonts"
 require "ZeD/MenuNote"
 require "ZeD/ZeD_MainMenuDesktops"   -- ZeD.Desktops: the desktop's options and drawing (Desktops, Nov 22 2026)
@@ -1807,11 +1808,31 @@ function MM.dropLive()
     return live
 end
 
+-- ZeD.Popups' hooks for the open menu or pop-up (ZeD_Popups.lua, the director, Nov 23 2026): no player (rule c
+-- off), and MM.pointer already shuts it on a press outside (that press only shuts it, as before: noPress). What
+-- ZeD.Popups adds is the shut when the menu is not drawn (its window hid).
+function MM.popIsOpen() return MM.ctx.open ~= nil end
+function MM.popClose() MM.ctx.open = nil end
+MM._popOpts = { noPlayer = true, noPress = true, isOpen = MM.popIsOpen }
+
+-- The colour palettes (Options, Looks, Mods: w._palette) the same way: their windows shut them on a press
+-- outside already (noPress); ZeD.Popups adds the shut when the palette is not drawn. slot names the window.
+function MM.palIsOpen(w) return w._palette ~= nil end
+function MM.palClose(w) w._palette = nil end
+function MM.palShown(w, slot)
+    local Pp, r = ZeD.Popups, w._paletteRect
+    if not (Pp and r) then return end
+    local po = Pp.opts(w, slot, MM.palIsOpen, nil)
+    po.noPlayer, po.noPress = true, true
+    Pp.shownAt(po.key, nil, MM.palClose, po, r.x, r.y, r.w, r.h)
+end
+
 function ZeD_MMDrop:prerender()
     self._hits = {}
     local key = MM.ctx.open
     local items, pos, pop = MM.openItems()
     if not items then return end
+    if ZeD.Popups then ZeD.Popups.shown("mm:menu", nil, MM.popClose, MM._popOpts) end
     local bar = MM.root and MM.root.bar
     local T = ZeD.T
     local font, f1, f3 = T.fontF2, T.fontF1, T.fontF3

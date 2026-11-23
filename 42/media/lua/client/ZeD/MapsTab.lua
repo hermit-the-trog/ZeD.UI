@@ -15,6 +15,7 @@ require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/MapsTabExt"
+require "ZeD/ZeD_Popups"
 require "ISUI/Maps/ISMapDefinitions"
 
 ZeD = ZeD or {}
@@ -324,6 +325,11 @@ local function _closeStyleMenu(win, fromPad)
     win._mapStyleMenuZones = nil
     if fromPad then _padLand(win, "map:style:menu") end
 end
+
+-- ZeD.Popups' hooks for the style list (ZeD_Popups.lua: a press elsewhere, the tab hidden, an action or a walk
+-- shuts it; the director, Nov 23 2026). On the module table: this file keeps no more file-level locals.
+function ZeD.MapsTab.styleMenuIsOpen(win) return win._mapStyleMenuOpen == true end
+function ZeD.MapsTab.closeStyleMenu(win) _closeStyleMenu(win, false) end
 
 -- A press (tab coordinates) while the list is open: a choice is taken, and any
 -- press shuts the list. True when the list was open (the press was its).
@@ -1074,10 +1080,20 @@ local function _drawStyleMenu(target, win, ox, oy)
     o.focus = o.focusId and FOCUS or nil
     o.minW = geo.w
     local mp = win._worldMapPanel
-    local _, _, zs = ZeD.Molecules.drawSortMenuList(target, geo.x - ox, geo.y - oy, _styleModes,
+    local lw, lh, zs = ZeD.Molecules.drawSortMenuList(target, geo.x - ox, geo.y - oy, _styleModes,
         mp and mp.style or "survey", hoverId, o)
     for _, z in ipairs(zs or {}) do z.x, z.y = z.x + ox, z.y + oy end
     win._mapStyleMenuZones = zs
+    -- the list and its box (both kept in the tab's coordinates: less ox, oy on the target) count as inside
+    local po = ZeD.Popups and ZeD.Popups.opts(win, "maps:style", ZeD.MapsTab.styleMenuIsOpen, win.playerNum or 0)
+    local bz = win._mapStyleMenuZone
+    if not po then   -- (ZeD.Popups not loaded: nothing to tell)
+    elseif bz then
+        ZeD.Popups.shownAt(po.key, target, ZeD.MapsTab.closeStyleMenu, po, geo.x - ox, geo.y - oy, lw, lh,
+            bz.x - ox, bz.y - oy, bz.w, bz.h)
+    else
+        ZeD.Popups.shownAt(po.key, target, ZeD.MapsTab.closeStyleMenu, po, geo.x - ox, geo.y - oy, lw, lh)
+    end
     if hoverId then ZeD.Help.set(target, ZeD.tr(STYLE_HELP[hoverId])) end
 end
 
