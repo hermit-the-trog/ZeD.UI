@@ -9,7 +9,10 @@ usage: py pixel_mech_figs.py [stage dir] [--preview DIR]
   bakes every body shape in the game's overlay folder (SRC) to the stage dir (default ZeDUI/art/mech_pixel):
   textures/zm_*.png and MechFigs.lua; installing them is copying textures/ over 42/media/textures/ZeD/mech/ and
   MechFigs.lua over 42/media/lua/client/ZeD/MechFigs.lua (the tab no longer draws zm_gridbox.png, Nov 21 2026).
-  --preview DIR also writes each body tinted with sample conditions at 2x (4K), and the sedan beside today's figure."""
+  --preview DIR also writes each body tinted with sample conditions at 2x (4K), and each body beside the figure the
+  repo has installed now (_compare_<body>.png, compare_all.png): run it before installing to get before / after.
+Nov 22 2026 (Car parts to the sides): the engine, battery, gas tank and muffler stand in the side columns with the
+brakes and springs (to_sides below); the canvas is the car's height."""
 import os, sys, glob
 import numpy as np
 from PIL import Image
@@ -145,6 +148,84 @@ def build(body, out):
         icon = not any(k in n for k in ("window", "wheel", "light", "door", "hood", "trunk", "bed", "roof"))
         detail = m & lines & ndi.binary_erosion(m) & icon        # only the callout icons: the leaders cross the panels
         out_layers[n] = (np.where(detail, 70, tt), m)
+    to_sides(out_layers, layers, lines)
+    return save_layers(body, out, out_layers)
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Car parts to the sides (Car parts to the sides, Nov 22 2026; the director: "move all of the car parts to one side
+# or the other side of the car ... just like the brakes and the shocks ... Then the car figure can hopefully get a
+# little larger because it gains some vertical space"). The game's overlay puts the engine and battery above the car
+# and the gas tank and muffler below it. They go into the two side columns where the brakes and springs stand: the
+# engine and battery on the left (the front parts), the gas tank and muffler on the right (fuel and exhaust), each
+# stack centred in the column's free run between the front and rear wheel parts. The engine, gas tank and muffler
+# lie on their side (turned a quarter) so the columns stay narrow; they are shaded after turning, so the light still
+# comes from the top left. Nothing stays above or below the car, so the canvas is the car's height.
+# ---------------------------------------------------------------------------------------------------------------
+MOVE = [("engine", "left", True), ("battery", "left", False),
+        ("gastank", "right", True), ("muffler", "right", True)]
+PADX = 24        # cells added each side of the overlay canvas: the turned parts may stand past its edges
+STACK_GAP = 3    # cells between two parts stacked in a column
+CLEAR = 4        # the least gap between a column part and the car body
+
+
+def to_sides(out_layers, layers, lines):
+    """moves the MOVE parts into the side columns; out_layers is changed in place, every layer padded by PADX"""
+    for n in list(out_layers):
+        t, m = out_layers[n]
+        out_layers[n] = (np.pad(t, ((0, 0), (PADX, PADX))), np.pad(m, ((0, 0), (PADX, PADX))))
+    lines = np.pad(lines, ((0, 0), (PADX, PADX)))
+    movers = [(n, side, turn) for n, side, turn in MOVE if n in out_layers]
+    if not movers: return
+    bm = out_layers["base"][1]
+    ys, xs = np.nonzero(bm)
+    car_y0, car_y1, car_x0, car_x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+    for side in ("left", "right"):
+        stack = [(n, turn) for n, s, turn in movers if s == side]
+        if not stack: continue
+        # the column: the brakes and springs on this side (their centre line and the rows they take)
+        col = [n for n in out_layers if n.endswith("_" + side) and ("brake" in n or "suspension" in n)]
+        busy = np.zeros(bm.shape[0], bool)
+        cxs = []
+        for n in col:
+            yy, xx = np.nonzero(out_layers[n][1])
+            busy[yy.min():yy.max() + 1] = True
+            cxs.append((xx.min() + xx.max() + 1) / 2.0)
+        cx = np.mean(cxs) if cxs else (car_x0 - 12 if side == "left" else car_x1 + 12)
+        # each part cut out of its layer (turned when it lies on its side), its own detail lines kept
+        pieces = []
+        for n, turn in stack:
+            t, m = out_layers[n]
+            yy, xx = np.nonzero(m)
+            y0, y1, x0, x1 = yy.min(), yy.max() + 1, xx.min(), xx.max() + 1
+            mc = m[y0:y1, x0:x1]
+            dc = mc & lines[y0:y1, x0:x1] & ndi.binary_erosion(mc)
+            if turn: mc, dc = np.rot90(mc), np.rot90(dc)
+            tc = np.where(dc, 70, tone_for(n, mc, None))
+            pieces.append((n, tc, mc))
+        # the longest free run of rows inside the car's height (between the front and rear wheel parts)
+        best, run0 = (0, car_y0, car_y0), None
+        for y in range(car_y0, car_y1 + 1):
+            free = y < car_y1 and not busy[y]
+            if free and run0 is None: run0 = y
+            if not free and run0 is not None:
+                if y - run0 > best[0]: best = (y - run0, run0, y)
+                run0 = None
+        need = sum(p[2].shape[0] for p in pieces) + STACK_GAP * (len(pieces) - 1)
+        if need > best[0]: print(f"  warning: the {side} stack ({need} rows) is taller than its free run ({best[0]})")
+        y = best[1] + (best[0] - need) // 2
+        for n, tc, mc in pieces:
+            h, w = mc.shape
+            x = int(round(cx - w / 2.0))
+            if side == "left": x = min(x, car_x0 - CLEAR - w)       # never closer to the body than CLEAR
+            else: x = max(x, car_x1 + CLEAR)
+            nt, nm = np.zeros(bm.shape, np.float32), np.zeros(bm.shape, bool)
+            nt[y:y + h, x:x + w], nm[y:y + h, x:x + w] = np.where(mc, tc, 0), mc
+            out_layers[n] = (nt, nm)
+            y += h + STACK_GAP
+
+
+def save_layers(body, out, out_layers):
     for n, (t, m) in out_layers.items():
         Image.fromarray(to_rgba(t, m)).save(os.path.join(out, f"{body}_{n}.png"))
         if n != "base": Image.fromarray(rim_of(m)).save(os.path.join(out, f"{body}_{n}_rim.png"))
@@ -167,6 +248,12 @@ def preview(body, out_layers, path, scale=3, cond=None):
         if n == "base": continue
         c = (cond or {}).get(n, "good")
         over(t, m, cols[c], 0.95)
+    # cropped to the figure's union, as the tab fits it (Car parts to the sides, Nov 22 2026)
+    allm = np.zeros((H, W), bool)
+    for t, m in out_layers.values(): allm |= m
+    ys, xs = np.nonzero(allm)
+    img = img[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+    H, W = img.shape[:2]
     im = Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)).resize((W * scale, H * scale), Image.NEAREST)
     im.save(path)
 
@@ -197,11 +284,19 @@ def compare(body, out_layers, path):
         sub[...] = sub * (1 - al) + src * al
     old_im = Image.fromarray(old.astype(np.uint8))
     new_im = Image.open(os.path.join(os.path.dirname(path), f"_preview_{body}.png"))
-    # today's figure is baked for 2x; the new art is 1 px per design unit, so 2x for 4K
-    H = max(old_im.height, new_im.height)
+    # both at 2x (the new preview is written at 2x; today's figure is 1 art px per design unit too), the same
+    # scale side by side, so the heights compare (Car parts to the sides, Nov 22 2026)
+    old_im = old_im.resize((old_im.width * 2, old_im.height * 2), Image.NEAREST)
+    from PIL import ImageDraw
+    top = 22
+    H = max(old_im.height, new_im.height) + top
     S = Image.new("RGB", (old_im.width + new_im.width + 30, H), (20, 21, 24))
-    S.paste(old_im, (0, 0)); S.paste(new_im, (old_im.width + 30, 0))
+    S.paste(old_im, (0, top)); S.paste(new_im, (old_im.width + 30, top))
+    d = ImageDraw.Draw(S)
+    d.text((2, 4), f"{body} before {old_im.width // 2}x{old_im.height // 2}", fill=(200, 200, 200))
+    d.text((old_im.width + 32, 4), f"after {new_im.width // 2}x{new_im.height // 2}", fill=(200, 200, 200))
     S.save(path)
+    return S
 
 
 COND = {"brake_front_left": "bad", "wheel_front_left": "bad", "battery": "warn", "window_rear_left": "warn",
@@ -272,4 +367,16 @@ if __name__ == "__main__":
         for b in sorted(os.path.basename(f)[:-len("_base.png")] for f in glob.glob(os.path.join(SRC, "*_base.png"))):
             L = build(b, os.path.join(prev, "_layers"))
             preview(b, L, os.path.join(prev, f"_preview_{b}.png"), scale=2, cond=COND)
-        compare("4door", build("4door", os.path.join(prev, "_layers")), os.path.join(prev, "_compare_4door_4k.png"))
+        # before (the repo's figure as installed now: run --preview BEFORE copying the new bake in) and after, per
+        # body, and all 13 on one sheet (Car parts to the sides, Nov 22 2026)
+        sheets = []
+        for b in sorted(os.path.basename(f)[:-len("_base.png")] for f in glob.glob(os.path.join(SRC, "*_base.png"))):
+            sheets.append(compare(b, None, os.path.join(prev, f"_compare_{b}.png")))
+        import shutil
+        shutil.rmtree(os.path.join(prev, "_layers"), ignore_errors=True)
+        cols = 4
+        cw, ch = max(i.width for i in sheets) + 20, max(i.height for i in sheets) + 20
+        rows = (len(sheets) + cols - 1) // cols
+        sheet = Image.new("RGB", (cw * cols, ch * rows), (20, 21, 24))
+        for i, im in enumerate(sheets): sheet.paste(im, ((i % cols) * cw + 10, (i // cols) * ch + 10))
+        sheet.save(os.path.join(prev, "compare_all.png"))
