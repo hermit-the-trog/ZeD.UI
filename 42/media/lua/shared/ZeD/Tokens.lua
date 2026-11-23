@@ -103,6 +103,10 @@ ZeD.BaseThemes = {
         -- Resize ridge opacities
         ridgeLightA = 0.40,
         ridgeDarkA  = 0.20,
+        -- the Vehicle tab's car figure (MechanicsTab drawFigure; Car diagram per theme, Nov 22 2026): the base's alpha
+        -- in textDim, the overall wash's, a part's condition color's, the untinted wear's, and lift, how far the
+        -- status color is taken toward white for the fill (0: as is).
+        mechFig = { baseA = 0.45, washA = 0.22, partA = 0.70, wearA = 0.90, lift = 0.00 },   -- (the director approved it)
         -- Drawer background overlay: dark = subtle black scrim, light = near-white lift
         drawerBg    = rgba(0.0, 0.0, 0.0, 0.15),
         -- Soiled condition flags (inventory row dock labels)
@@ -182,6 +186,12 @@ ZeD.BaseThemes = {
         badgeBgA = 0.12,
         ridgeLightA = 0.50,
         ridgeDarkA  = 0.25,
+        -- the Vehicle tab's car figure (MechanicsTab drawFigure; Car diagram per theme, Nov 22 2026): the base's alpha
+        -- in textDim, the overall wash's, a part's condition color's, the untinted wear's, and lift, how far the
+        -- status color is taken toward white for the fill (0: as is).
+        -- Light's status colors are dark (made for text), and at 0.7 over the pale ground with a grey base under
+        -- them the car read muddy (the director): the parts near opaque and a shade lifted, the base lighter.
+        mechFig = { baseA = 0.30, washA = 0.18, partA = 0.95, wearA = 1.00, lift = 0.15 },
         -- Drawer background: subtle white lift over surf1 (just a tad lighter than item card)
         drawerBg    = rgba(1.0, 1.0, 1.0, 0.12),
         -- Soiled condition flags (darker for contrast on light surfaces)
@@ -254,6 +264,10 @@ ZeD.BaseThemes = {
         badgeBgA = 0.15,
         ridgeLightA = 0.50,
         ridgeDarkA  = 0.30,
+        -- the Vehicle tab's car figure (MechanicsTab drawFigure; Car diagram per theme, Nov 22 2026): the base's alpha
+        -- in textDim, the overall wash's, a part's condition color's, the untinted wear's, and lift, how far the
+        -- status color is taken toward white for the fill (0: as is).
+        mechFig = { baseA = 0.45, washA = 0.22, partA = 0.70, wearA = 0.90, lift = 0.00 },   -- (Dark's: it reads crisp)
         -- Drawer background: same black scrim as dark theme
         drawerBg    = rgba(0.0, 0.0, 0.0, 0.15),
         -- Soiled condition flags (bright/saturated for max contrast)
@@ -1052,6 +1066,7 @@ function ZeD.buildColors(P, baseKey, accentKey, statusKey, seePick)
     T.ridgeLightA      = base.ridgeLightA
     T.ridgeDarkA       = base.ridgeDarkA
     T.drawerBg         = base.drawerBg
+    T.mechFig          = base.mechFig   -- the car figure's alphas (Car diagram per theme, Nov 22 2026)
 
     -- Soiled condition colors
     T.soiledWet   = base.soiledWet
