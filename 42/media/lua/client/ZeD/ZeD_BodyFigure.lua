@@ -1013,6 +1013,10 @@ function ZeD_BodyFigure:drawChart(panel, L)
     if b1 > b0 then panel:drawRect(b0, fy, b1 - b0, z, C.floorA, r, g, b) end
 end
 
+-- how much of a tint a boneLift figure (Health, the medical card) lays on its bones: 0 is the white bone, 1 the full
+-- token. At 0.55 a red danger tint keeps the bone's light at about 0.6 of white, well above the flesh.
+local BONE_TINT = 0.55
+
 -- the parts over the skeleton: tinted where the tab has something to say, dim otherwise
 function ZeD_BodyFigure:_drawParts(panel, xOff, yOff, s)
     for _, entry in ipairs(self.activeLayout) do
@@ -1026,9 +1030,19 @@ function ZeD_BodyFigure:_drawParts(panel, xOff, yOff, s)
             if color then
                 if isHovered then
                     panel:drawTextureScaledUniform(tex, dx, dy, s, 1.0, 1, 1, 1)
+                elseif self.boneLift then
+                    -- the bones keep their light: the tint is lifted toward white before it multiplies the lit bone,
+                    -- so a coloured bone stays well above the flesh behind it in every theme (the director, Nov 23
+                    -- 2026: "I can't see the skeleton")
+                    local k = BONE_TINT
+                    panel:drawTextureScaledUniform(tex, dx, dy, s, 1.0,
+                        1 - (1 - color.r) * k, 1 - (1 - color.g) * k, 1 - (1 - color.b) * k)
                 else
                     panel:drawTextureScaledUniform(tex, dx, dy, s, color.a or 0.9, color.r, color.g, color.b)
                 end
+            elseif self.boneLift then
+                -- nothing to say: the skeleton as drawn, no dim veil over the bones; a hovered part a touch brighter
+                if isHovered then panel:drawTextureScaledUniform(tex, dx, dy, s, 0.35, 1, 1, 1) end
             else
                 local a = isHovered and 0.20 or 0.10
                 panel:drawTextureScaledUniform(tex, dx, dy, s, a, ZeD.T.textDim.r, ZeD.T.textDim.g, ZeD.T.textDim.b)
@@ -1049,6 +1063,11 @@ function ZeD_BodyFigure:setPartColor(displayName, r, g, b, a)
     else
         self.colorMap[displayName] = {r=r, g=g, b=b, a=a or 1.0}
     end
+end
+
+--- one part back to no tint (drawn dim, the skeleton bright under it)
+function ZeD_BodyFigure:clearPartColor(displayName)
+    self.colorMap[displayName] = nil
 end
 
 function ZeD_BodyFigure:clearColors()

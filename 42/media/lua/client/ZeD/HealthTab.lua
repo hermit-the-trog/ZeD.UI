@@ -464,12 +464,26 @@ ZeD.HealthTab.woundShows = woundShows
 
 --- The colour a part draws in on the Health figure (and the medical check's): the strain tint where
 --- the part is strained and no wound shows, else its health colour. data is gatherData's read.
+--- Nil for a healthy part: no tint, so the white skeleton shows bright (the director, Nov 23 2026: "instead of
+--- 100% being green, can it just be no color").
 function ZeD.HealthTab.figureColor(data, figureName, health)
+    local wound = data.partWound and data.partWound[figureName]
     local lv = data.partStrain and data.partStrain[figureName]
-    if lv and not (data.partWound and data.partWound[figureName]) then
+    if lv and not wound then
         return ZeD.HealthTab.strainColor(lv)
     end
-    return getHealthColor(health)
+    if not wound then return nil end
+    -- an injured part: the worst injury's severity, the colour of its dot in the list (the director, Nov 23 2026:
+    -- "keep the injury severity color"); a part hurt with no condition named falls back to its health colour
+    local sev = data.partSev and data.partSev[figureName]
+    return (sev and sevColor(sev)) or getHealthColor(health)
+end
+
+--- Tint a figure part with figureColor's colour, or clear it for a healthy part (one call for the tab and the card).
+function ZeD.HealthTab.tintPart(fig, data, figureName, health)
+    local c = ZeD.HealthTab.figureColor(data, figureName, health)
+    if c then fig:setPartColor(figureName, c.r, c.g, c.b, 0.65)
+    else fig:clearPartColor(figureName) end
 end
 
 -- ============================================================================
@@ -727,6 +741,7 @@ function ZeD.HealthTab.gatherData(playerObj, opts)
     -- (Strain, the director, Nov 22 2026)
     local partStrain = {}        -- figureName -> 1 (minor) or 2 (heavy) muscle strain
     local partWound  = {}        -- figureName -> true where a wound shows (its colour wins over strain)
+    local partSev    = {}        -- figureName -> the worst severity the list's dot shows (the figure's tint, Nov 23 2026)
     local strainedCount, strainWorst = 0, nil
 
     for i = 1, nParts do
@@ -759,6 +774,11 @@ function ZeD.HealthTab.gatherData(playerObj, opts)
             woundsByFigure[figureName] = ZeD_BodyFigure.woundsFrom(SEEN)
             partStrain[figureName] = strainLv
             if woundShows(conds, health, extra) then partWound[figureName] = true end
+            -- the worst condition that is not strain (strain keeps its own tint; the list is worst first)
+            partSev[figureName] = nil
+            for _, c in ipairs(listConds) do
+                if not c.strain then partSev[figureName] = c.severity; break end
+            end
             if #conds > 0 then
                 condsByFigureName[figureName] = conds
             end
@@ -812,6 +832,7 @@ function ZeD.HealthTab.gatherData(playerObj, opts)
         strainWorst       = strainWorst,
         partStrain        = partStrain,
         partWound         = partWound,
+        partSev           = partSev,
         partHealth        = partHealth,
         condsByFigureName = condsByFigureName,
         extraByFigureName = extraByFigureName,
@@ -831,6 +852,7 @@ function ZeD.HealthTab._ensureBodyFigure(win)
         local fig = ZeD_BodyFigure:new(0, 0, 100, 100)  -- placeholder size: drawAt() is given the real (scaled) rect
         fig:initialise()
         fig:loadTextures()
+        fig.boneLift = true   -- the tint keeps the bones light (the director, Nov 23 2026)
         win._healthBodyFigure = fig
     end
     return win._healthBodyFigure
@@ -846,12 +868,11 @@ function ZeD.HealthTab._drawBodyFigure(panel, win, data, px, py, pw, ph, frame)
     -- the height chart in the frame's margins, under the controller's mark and the figure (Figure frame, Nov 22 2026)
     if frame then fig:drawChart(panel, frame) end
 
-    -- Color every part by health percentage (always visible, green when healthy), a strained part
-    -- without a wound in the strain tint (Strain, the director, Nov 22 2026)
+    -- Color a hurt part by its health, a strained part without a wound in the strain tint (Strain, the director,
+    -- Nov 22 2026); a healthy part takes no tint (the director, Nov 23 2026)
     -- (no clearColors: gatherData maps every part each time, and the figure reuses its colour tables) (beast W19)
     for figureName, health in pairs(data.partHealth) do
-        local color = ZeD.HealthTab.figureColor(data, figureName, health)
-        fig:setPartColor(figureName, color.r, color.g, color.b, 0.65)
+        ZeD.HealthTab.tintPart(fig, data, figureName, health)
     end
     -- the wounds and their care over the parts, on the character's own skin (Design, Nov 22 2026)
     fig:setSkinTone(data.skinTone)

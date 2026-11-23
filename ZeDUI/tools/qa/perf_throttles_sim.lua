@@ -190,7 +190,8 @@ local function oldShape(d)
     for k, v in pairs(d) do
         -- (the figure's wounds and the skin tone are new the same way: Design, Nov 22 2026)
         if k ~= "strainedCount" and k ~= "strainWorst" and k ~= "partStrain" and k ~= "partWound"
-           and k ~= "woundsByFigure" and k ~= "skinTone" then o[k] = v end
+           and k ~= "woundsByFigure" and k ~= "skinTone"
+           and k ~= "partSev" then o[k] = v end   -- (the figure's severity tint, the director, Nov 23 2026)
     end
     local function plain(conds)
         local out = {}

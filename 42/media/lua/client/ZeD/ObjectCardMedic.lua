@@ -224,6 +224,7 @@ local function figure()
         FIG = ZeD_BodyFigure:new(0, 0, 100, 100)
         FIG:initialise()
         FIG:loadTextures()
+        FIG.boneLift = true   -- the tint keeps the bones light, as the Health tab's (the director, Nov 23 2026)
     end
     return FIG
 end
@@ -297,8 +298,7 @@ function def.body(card, x, y, w, t, doctor)
     if d.isFemale ~= nil then fig:setSex(d.isFemale) end
     -- (no clearColors: the check maps every body part each frame, and the figure reuses its colour tables) (beast W19)
     for fname, health in pairs(d.partHealth) do
-        local c = ZeD.HealthTab.figureColor(d, fname, health)
-        fig:setPartColor(fname, c.r, c.g, c.b, 0.65)
+        ZeD.HealthTab.tintPart(fig, d, fname, health)   -- (a healthy part: no tint, the director, Nov 23 2026)
     end
     -- the patient's wounds and their care, on their own skin, as the Health tab draws them (Design, Nov 22 2026)
     fig:setSkinTone(d.skinTone)
