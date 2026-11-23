@@ -1035,8 +1035,43 @@ local function tagMark(c, markC)
     return s
 end
 
+-- (Name first, QA Nov 23 2026: the laundry's half card read "Wh..."; the director's rule, as the inventory headings'
+-- InventoryRenderer.headFit) How far the header's right-hand buttons give way so the name keeps its room. Returns
+-- the level, the first that fits the whole name: 0 all shown; 1 the full-view key goes (the face still pops out
+-- from a click on the face, a click on the machine in the world, A at the machine, or its info row: FacePop.lua);
+-- 2 the "n / m" count goes too (the arrows stay). When even level 2 cuts the name, it stays at 2 unless that leaves
+-- less than three letters and the dots; then 3: the arrows go too (walking to the next one still opens its card).
+-- w: the card's width; cx: where the name starts; hasPop / browse: the buttons this card has; countW: the count's
+-- width; pillW: the state tag's width with its gap (0: none). Measures only.
+function ZeD_ObjectCard:headFit(w, cx, name, hasPop, browse, countW, pillW)
+    local T, tm = ZeD.T, ZeD.TM
+    local nf, bsz = T.fontF4, T.buttonH
+    local nameW = tm:MeasureStringX(nf, name)
+    -- (the tag and its gap beside the name; a narrow card's tag moves to its own row when the name needs the room:
+    -- drawHeader's pillBelow)
+    local tagW = (pillW > 0 and w >= T.px(300)) and (pillW + T.px(10)) or 0
+    -- (the last level that changes anything: no arrows, no count to drop; no key, nothing at level 1)
+    local top = browse and 2 or (hasPop and 1 or 0)
+    local room2 = 0
+    for lvl = 0, top do
+        local r = w - T.px(8) - cx - tagW
+        if hasPop and lvl < 1 then r = r - bsz - T.px(10) end              -- (the full-view key and its gap)
+        if browse then
+            r = r - bsz * 2 - T.px(6) - T.px(10)                           -- (the two arrows, their gaps)
+            if lvl < 2 then r = r - countW - T.px(6) end                   -- (the count between them)
+        end
+        if nameW <= r then return lvl end
+        room2 = r
+    end
+    -- (the floor: three letters and the dots, or the whole name when it is shorter)
+    local floorW = math.min(nameW, tm:MeasureStringX(nf, string.sub(name, 1, 3) .. "..."))
+    if browse and room2 < floorW then return 3 end
+    return top
+end
+
 -- The header (37u, a structure line under): the back key, the thing's icon, its name and state
--- tag, and on the right the browse buttons when more of the same kind are in reach.
+-- tag, and on the right the browse buttons when more of the same kind are in reach. The buttons give way to the
+-- name (headFit); a button that gives way is not drawn and stamps no zone, so it has no click and no pad stop.
 function ZeD_ObjectCard:drawHeader(e, hh, win)
     local T, tm = ZeD.T, ZeD.TM
     local def, t = e.def, e.t
@@ -1065,8 +1100,21 @@ function ZeD_ObjectCard:drawHeader(e, hh, win)
     -- (Nov 15 2026, pop-outs) a machine's face pops out on its own: the button the radio tab has (expand, or contract
     -- while it shows). (Nov 15 2026, punch list 248, the director: in the header's top right corner, right of the
     -- browse arrows, so the controller always has a stop at the top of a face, as the radio tab and the craft tab's
-    -- stations have)
-    if def.popOut and kindCall(e, def.popOut, t) and t.obj then
+    -- stations have). It is the first to give way to the name (headFit).
+    -- (the name, its tag and the browse count first: headFit weighs them against the buttons)
+    local f3 = T.fontF3
+    local pillTxt, pillC, pillMark = kindCall(e, def.pill, t)
+    local mark = pillTxt and tagMark(pillC, pillMark) or nil
+    local pillW = pillTxt and (UI.tagW(pillTxt, mark ~= nil) + T.px(8)) or 0
+    local nf = T.fontF4
+    local name = tostring(kindCall(e, def.title, t) or "?")
+    local hasPop = (def.popOut and kindCall(e, def.popOut, t) and t.obj) and true or false
+    local browse = (e.list and #e.list > 1) and true or false
+    local txt = browse and (tostring(e.idx or 1) .. " / " .. tostring(#e.list)) or ""
+    local tw = browse and tm:MeasureStringX(f3, txt) or 0
+    local fit = self:headFit(w, cx, name, hasPop, browse, tw, pillW)
+    self._headFit = fit   -- (for the sims and QA: 0 all shown, 1 no full-view key, 2 no count, 3 no arrows)
+    if hasPop and fit < 1 then
         local TF = ZeD.TwoWayFull
         local open = TF and TF.showingObj and TF.showingObj(self.playerNum, t.obj) or false
         local popX = rightX - bsz
@@ -1079,30 +1127,27 @@ function ZeD_ObjectCard:drawHeader(e, hh, win)
         rightX = popX - T.px(10)
     end
     -- browse (right, left of the pop-out button)
-    if e.list and #e.list > 1 then
-        local f3 = T.fontF3
-        local txt = tostring(e.idx or 1) .. " / " .. tostring(#e.list)
+    if browse and fit < 3 then
         local nextX = rightX - bsz
         M.drawIconButton(self, nextX, by, bsz, GLYPH_NEXT, { hover = hv == "oc:next", focus = self:focusOf("oc:next"),
             hint = ZeD.tr("UI_ZeD_ObjCard_Next"), id = "oc:next", win = win })
         self:zone({ fid = "oc:next", x = nextX, y = by, w = bsz, h = bsz, help = ZeD.tr("UI_ZeD_ObjCard_HelpNext"),
             run = function() OC.browse(e, 1); self._confirm = nil; self.scroll:setScrollPos(0) end })
-        local tw = tm:MeasureStringX(f3, txt)
-        local tx = nextX - T.px(6) - tw
-        self:drawText(txt, tx, by + math.floor((bsz - tm:getFontHeight(f3)) / 2), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f3)
-        local prevX = tx - T.px(6) - bsz
+        -- (the count "n / m" between the arrows, unless it gave way to the name: then the arrows sit side by side)
+        local prevX = nextX - T.px(6) - bsz
+        if fit < 2 then
+            local tx = nextX - T.px(6) - tw
+            self:drawText(txt, tx, by + math.floor((bsz - tm:getFontHeight(f3)) / 2), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f3)
+            prevX = tx - T.px(6) - bsz
+        end
         M.drawIconButton(self, prevX, by, bsz, GLYPH_PREV, { hover = hv == "oc:prev", focus = self:focusOf("oc:prev"),
             hint = ZeD.tr("UI_ZeD_ObjCard_Prev"), id = "oc:prev", win = win })
         self:zone({ fid = "oc:prev", x = prevX, y = by, w = bsz, h = bsz, help = ZeD.tr("UI_ZeD_ObjCard_HelpPrev"),
             run = function() OC.browse(e, -1); self._confirm = nil; self.scroll:setScrollPos(0) end })
         rightX = prevX - T.px(10)
     end
-    local pillTxt, pillC, pillMark = kindCall(e, def.pill, t)
-    local mark = pillTxt and tagMark(pillC, pillMark) or nil
-    local pillW = pillTxt and (UI.tagW(pillTxt, mark ~= nil) + T.px(8)) or 0
-    local nf = T.fontF4
-    local name = kindCall(e, def.title, t) or "?"
-    local nameRoom = rightX - cx - pillW - T.px(10)
+    -- (the tag's room and its gap; with no tag the name runs to the buttons' own gap: QA Nov 23 2026)
+    local nameRoom = rightX - cx - (pillTxt and (pillW + T.px(10)) or 0)
     -- A narrow card (the half card, 220) with no room for the whole name beside the tag:
     -- the tag goes to a row of its own under the header (prerender draws it), and the name takes the
     -- whole row. A full card never does this, so its header is unchanged.
