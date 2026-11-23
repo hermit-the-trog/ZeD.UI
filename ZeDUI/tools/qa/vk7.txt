@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/vk7.txt (Nov 22 2026, QA): the in-game proof of branch listgrid (head 1916f88ab), the director's two inventory notes: the grid view hugs whole cells (GRID 1-2, both windows), a drag snaps to the nearest cell (DRAG), List gives the saved width back (BACK 1-2); the list's columns by priority, name, weight, Category, then Status with room (LIST 1-3); the heading's name drawn at the windows' least width in Full and Lite (NARROW). Each passes on listgrid; main may fail them (the merge follows). Run at 4K, 1080p and 1280x800 (LIST 3's Deck check runs on a screen 1280 px wide or less). Pictures: Zomboid/Screenshots/vk7_grid_<W>x<H>, vk7_list_372, vk7_list_<units> (the first width with Status; on a deck also the Deck's 222 px).
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+vk7_listgrid.lua | vk7_lg | timeout=900

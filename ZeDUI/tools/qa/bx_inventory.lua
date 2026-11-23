@@ -321,8 +321,8 @@ function H.bandWord(c, id)
     for _, h in ipairs((c and c._cc and c._cc.hits) or {}) do
         if h.spec and h.spec.id == id then return tostring(h.spec.label) end
     end
-    -- (branch header, "Number 1": the World band has no Loot all; it is in the list's heading)
-    if id == "take" then return "no button (Loot all is in the heading)" end
+    -- (branch listgrid, Nov 22 2026: the World band holds Take all again; a Loot column's is in its own foot)
+    if id == "take" and c ~= nil and c._colStates ~= nil and #c._colStates > 0 then return "no button (Loot columns: each column's foot)" end
     return "no button"
 end
 
@@ -472,25 +472,26 @@ function H.press(c, id)
             return true, tostring(h.spec.label)
         end
     end
-    -- (QA, Nov 22 2026, refit for branch header, the director's "Number 1": there the World band has no Loot all;
-    -- with no row marked "take" is the list heading's Take all, zone view:lootall:<key>. The band is tried first, so
-    -- the press is the band's before that merge (and its Take marked with rows marked) and the heading's after.)
-    if id == "take" then
+    -- (QA, Nov 22 2026, refit for branch listgrid 1916f88ab, the director's "Transfer buttons, always in the footer":
+    -- the World band's Take all ("take") is back and pressed above. view:lootall:<key> is now a Loot column's own
+    -- foot, so it stands in only while the list is in Loot columns (content._colStates); a single list with no band
+    -- Take all is "no button take".)
+    if id == "take" and c ~= nil and c._colStates ~= nil and #c._colStates > 0 then
         for _, z in ipairs((c and c._hitZones) or {}) do
             if type(z.id) == "string" and z.id:sub(1, 13) == "view:lootall:" then
                 -- (off as the band's was off: nothing wanted to take)
                 local on = true
                 pcall(function() on = ZeD.ContainerControls.headLootEnabled(c) and true or false end)
-                if not on then return false, "Loot all (the heading's) is off" end
+                if not on then return false, "Loot all (the column's foot) is off" end
                 local ok, err = pcall(function()
                     if z.w > 0 then c:onMouseDown(z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2))
                     else ZeD.InventoryRenderer.onViewZone(z.id, c) end
                 end)
                 if not ok then S.errs = S.errs + 1; return false, "the press threw: " .. tostring(err), true end
-                return true, "Loot all (the heading's)"
+                return true, "Loot all (the column's foot)"
             end
         end
-        return false, "no button take, no Loot all in the heading"
+        return false, "no button take, no Loot all in the columns' feet"
     end
     return false, "no button " .. id
 end

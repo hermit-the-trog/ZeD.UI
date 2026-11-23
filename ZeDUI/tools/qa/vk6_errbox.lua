@@ -57,6 +57,18 @@
 --   EB 10  The tour's Guide step's target is the notice's place (ZeD.ErrorBox.rect()). rt_tour.lua walks it.
 --   EB 11  Split screen: a split speed strip on show (a stand-in for ZeD.SplitSpeed._instance: a second player cannot
 --          be staged by a script) puts the notice left of it (E.rect()).
+--   EB 12  The error marker (Build's errmark branch; the director's Nov 22 marker): on a build without it
+--          (no ZeD.ErrorBox.markSize, main) every EB 12 check is a SKIP with that reason and the rest still runs.
+--          EB 12a ZeD's own error: the marker rises (ZeD.ErrorBox._marker shown, _mk.kind "ours", the count).
+--          EB 12b fully up its y is the screen's height - (markH + T.px(10)) (markH: E.markSize()'s second value),
+--          under the notice and its width, and the notice's y is its rest y - markH. Picture vk6_err_marker: the
+--          red marker fully up under the lifted notice. EB 12c the hint strip draws over it (before it in the
+--          game's UI list). EB 12d a click on the marker opens Messages. EB 12e gone at about 4 s (0.5 up, 3 held,
+--          0.5 down), the notice back at rest. EB 12f the game's error: kind "others" (gray). EB 12g two errors 2 s
+--          apart: still fully up at 3.6 s. EB 12h an error while it falls: back up from where it is, no jump, never
+--          down in between. EB 12i a note: no marker (_mk.phase nil throughout).
+--          The EB checks that read the notice's place after an error read the rest place (E.rect) or wait until
+--          the marker is down first (EB 5d's anchor).
 --   Side effects not staged: the sleeping overlay (vanilla draws nothing in OnSleepingTick; sleeping is not staged),
 --   ActiveMods.renderUI and the debug overlays (debug options only) are SKIPs with the reason.
 --
@@ -130,6 +142,21 @@ function H.joy() local jd = nil; pcall(function() jd = JoypadState.players[S.pn 
 function H.shot(name)
     local ok, e = pcall(function() getCore():TakeFullScreenshot("vk6_" .. name .. ".png") end)
     if ok then Q.say("NOTE picture Zomboid/Screenshots/vk6_" .. name .. ".png") else Q.say("NOTE the picture " .. name .. " was not taken: " .. tostring(e)) end
+end
+-- the error marker (Build's errmark): its state and element, nil on a build without it
+function H.mk() return S.E and S.E._mk or nil end
+function H.mkEl() return S.E and S.E._marker or nil end
+function H.mkPhase() local k = H.mk(); if k then return k.phase end; return nil end
+function H.mkShown() local m = H.mkEl(); return m ~= nil and m:getIsVisible() end
+-- down and hidden (always true on a build without the marker)
+function H.mkDown() if not S.mkOn then return true end; return H.mkPhase() == nil and not H.mkShown() end
+-- where a UI element stands in the game's UI list (the draw order: a later one draws over), or nil
+function H.uiIndex(el)
+    if not (el and el.javaObject) then return nil end
+    local ui = UIManager.getUI()
+    if not ui then return nil end
+    for i = 0, ui:size() - 1 do if ui:get(i) == el.javaObject then return i end end
+    return nil
 end
 -- waits by the clock: cond() every frame from the start, at most ms; fn(ok)
 function H.wait(ms, cond, fn)
@@ -402,6 +429,7 @@ Q.step(3, function()
     S.was.toasts = S.M.toasts
     S.was.split = ZeD.SplitSpeed and ZeD.SplitSpeed._instance or nil
     S.server = (isClient and isClient()) and true or false
+    S.mkOn = E.markSize ~= nil and E._mk ~= nil   -- (Build's errmark: the error marker)
     -- every error source as found (the run's errors are filed into them), and the read marks
     S.was.errs = {}
     for name, s in pairs(S.M.sources) do
@@ -423,7 +451,8 @@ Q.step(3, function()
     Q.say("start: screen " .. H.sw() .. "x" .. H.sh() .. ", ZeD's scale " .. tostring(ZeD.T.scale) .. "; offscreen UI " .. tostring(S.was.fbo)
         .. ", lock cursor " .. tostring(S.was.lock) .. "; Error box " .. tostring(S.was.err) .. ", Safe mode " .. tostring(S.was.safe)
         .. ", Style " .. tostring(S.was.style) .. "; FPS graph " .. tostring(S.was.fps) .. "; the game's error count " .. H.errCount()
-        .. "; unread lines set read " .. #S.wasUnread .. "; on a server " .. tostring(S.server) .. "; a pad " .. tostring(jd ~= nil))
+        .. "; unread lines set read " .. #S.wasUnread .. "; on a server " .. tostring(S.server) .. "; a pad " .. tostring(jd ~= nil)
+        .. "; the error marker " .. tostring(S.mkOn))
 end)
 H.wait(4000, function() return S.dead or (H.charOpen() and H.worldOpen()) end, function(ok)
     if S.dead then return end
@@ -710,6 +739,11 @@ H.wait(3000, function() return not S.ok or not H.safeOn() end, function(ok)
 end)
 
 -- ===================================================================== EB 5d, 5e: a note, the balloons, and the hide
+-- (the notice's place is read through E.anchor: the error marker down first, so the notice stands at rest)
+H.wait(8000, function() return not S.ok or H.mkDown() end, function(ok)
+    if not S.ok then return end
+    if not ok then Q.say("NOTE the error marker was still up before EB 5d (phase " .. tostring(H.mkPhase()) .. "): the notice read lifted") end
+end)
 Q.step(10, function()
     if not S.ok then return end
     pcall(function() S.M.clear(S.SRC) end)
@@ -863,21 +897,36 @@ H.wait(3000, function() return not S.ok or not H.charOpen() end, function(ok)
     S.k.b2ok = ok and S.k.b2
     RT.pairOpen()
 end)
+-- "another tab": Skills (else Health), never the identity tab: it IS Info (#59 renamed Identity to Info), and the
+-- buckle on Info shuts the window (QA, Nov 22: the run sat on identity, so the click toggled it shut). The buckle is
+-- clicked only once the window shows that tab.
 H.wait(4000, function() return not S.ok or H.charOpen() end, function(ok)
     if not S.ok then return end
-    local other = nil
-    for _, id in ipairs(RT.tabs(RT.charStrip())) do if not other and id ~= "identity" then other = id end end
-    if other then RT.charTab(other) end
-    S.k.other = other
+    local offered, first = {}, nil
+    for _, id in ipairs(RT.tabs(RT.charStrip())) do
+        offered[id] = true
+        if not first and id ~= "identity" then first = id end
+    end
+    -- (the strip's hit zones can lag the frame the window opens: Skills, which every character has)
+    S.k.other = (offered.skills and "skills") or (offered.health and "health") or first or "skills"
+    RT.charTab(S.k.other)
+    S.k.otherT = getTimestampMs()
 end)
-Q.step(10, function()
+H.wait(4000, function()
+    if not S.ok then return true end
+    if H.cwTab() == S.k.other then return true end
+    -- (pressed again at most every half second until the window shows it)
+    if getTimestampMs() - (S.k.otherT or 0) >= 500 then RT.charTab(S.k.other); S.k.otherT = getTimestampMs() end
+    return false
+end, function(ok)
     if not S.ok then return end
     S.k.otherOn = H.cwTab()
+    S.k.otherOk = ok and S.k.otherOn == S.k.other and S.k.otherOn ~= "identity"
     S.k.b3, S.k.b3why = H.buckleClick()
 end)
 H.wait(3000, function() return not S.ok or (H.charOpen() and H.cwTab() == "identity") end, function(ok)
     if not S.ok then return end
-    S.k.b3ok = ok and S.k.b3 and S.k.otherOn ~= "identity"
+    S.k.b3ok = ok and S.k.b3 and S.k.otherOk == true
     -- the hover hint: the belt's pointer reading on the buckle's middle
     local hud = H.hud()
     local k = hud and hud._buckle
@@ -899,7 +948,7 @@ Q.step(30, function()
     Q.check(S.k.b1ok and S.k.b2ok and S.k.b3ok and hint == info,
         "EB 9: the buckle (Full): a click opens the Character window on Info, a second click closes it, from another tab it goes to Info, its hint says Info",
         "shut -> " .. tostring(S.k.b1ok) .. " (" .. tostring(S.k.b1why) .. "); again -> closed " .. tostring(S.k.b2ok) .. "; on " .. tostring(S.k.otherOn)
-        .. " -> Info " .. tostring(S.k.b3ok) .. "; the hint " .. tostring(hint) .. " (" .. tostring(info) .. ")")
+        .. " (asked for " .. tostring(S.k.other) .. ", shown " .. tostring(S.k.otherOk) .. ") -> Info " .. tostring(S.k.b3ok) .. "; the hint " .. tostring(hint) .. " (" .. tostring(info) .. ")")
     H.optSet(H.styleOpt(), 2)
 end)
 H.wait(4000, function() local hud = H.hud(); return not S.ok or (H.lite() and hud ~= nil and hud._drawn == true and hud._buckle == nil) end, function(ok)
@@ -935,6 +984,183 @@ Q.step(4, function()
     local want = okR and (stripX - s - ZeD.T.px(S.E.EDGE_U)) or nil
     Q.check(okR and want ~= nil and x <= want + 1, "EB 11: split screen: the notice stands left of the corner speed strip (a stand-in strip; E.rect)",
         "the strip at x " .. H.num(stripX) .. ", the notice at x " .. H.num(x) .. " (at most " .. H.num(want) .. ")")
+end)
+
+-- ===================================================================== EB 12: the error marker (Build's errmark)
+function H.mkGone() return not S.ok or S.k.noMk == true end
+Q.step(4, function()
+    if not S.ok then return end
+    if not S.mkOn then
+        S.k.noMk = true
+        Q.skip("EB 12: the error marker (rise, hold, fall, the lifted notice, colors, click, draw order, notes)",
+            "ZeD.ErrorBox.markSize is not there: this build has no error marker (Build's errmark branch adds it)")
+        return
+    end
+    H.msgClose()
+    H.markAllRead()
+    S.M.toasts = {}
+    -- (the marker shows only with the clip on: the cursor lock off, as the start set it; the put-back restores it)
+    if not H.hide() then pcall(function() getCore():setOptionLockCursorToWindow(false) end) end
+end)
+H.wait(8000, function() return H.mkGone() or (H.hide() and H.mkDown()) end, function(ok)
+    if H.mkGone() then return end
+    if not ok then
+        S.k.noMk = true
+        Q.check(false, "EB 12: the marker down and the clip on before the marker's run (staging)", "phase " .. tostring(H.mkPhase()) .. ", hideWanted " .. tostring(H.hide()))
+        return
+    end
+    S.k.before = H.errCounts()
+    H.raiseZeD()
+end)
+-- EB 12a, 12b, 12c: ZeD's error, up
+H.wait(9000, function() return H.mkGone() or H.mkPhase() ~= nil end, function(ok)
+    if H.mkGone() then return end
+    if not ok then
+        S.k.noMk = true
+        Q.check(false, "EB 12a: ZeD's own error starts the marker", "the error filed: " .. tostring((H.risen(S.k.before))) .. "; phase " .. tostring(H.mkPhase()))
+        return
+    end
+    local k = H.mk() or {}
+    -- (its start: the hold's end less HOLD_MS, set in the frame the error came; one error so far)
+    S.k.mStart = (k.holdEnd or 0) - (S.E.HOLD_MS or 3000)
+end)
+H.wait(3000, function() return H.mkGone() or H.mkPhase() == "hold" end, function(ok)
+    if H.mkGone() then return end
+    local E, T = S.E, ZeD.T
+    local k = H.mk() or {}
+    local m, el = H.mkEl(), H.note()
+    local _, mh = E.markSize()
+    local _, restY = E.rect()
+    local want = H.sh() - (mh + T.px(10))
+    local my, mx, mw = -1, -1, -1
+    if m then my, mx, mw = m:getY(), m:getX(), m:getWidth() end
+    local ny, nx = -1, -1
+    if el then ny, nx = el:getY(), el:getX() end
+    local ms = getTimestampMs() - (S.k.mStart or 0)
+    local word = ZeD.tr("UI_ZeD_ErrorBox_Marker")
+    Q.check(ok and H.mkShown() and k.kind == "ours" and (k.count or 0) >= 1 and ms >= 400 and ms <= 1500 and word ~= "UI_ZeD_ErrorBox_Marker",
+        "EB 12a: ZeD's own error: the marker rises (ZeD.ErrorBox._marker shown, kind ours, red), \"Error\" and the count of new errors",
+        "phase " .. tostring(k.phase) .. ", shown " .. tostring(H.mkShown()) .. ", kind " .. tostring(k.kind) .. ", count " .. tostring(k.count) .. ", the word "
+        .. tostring(word) .. "; fully up after " .. H.num(ms) .. " ms (RISE_MS " .. tostring(E.RISE_MS) .. ")")
+    Q.check(ok and m ~= nil and math.abs(my - want) <= 1 and math.abs(mx - nx) <= 1 and math.abs(mw - T.px(E.NOTE_U)) <= 1 and H.noteShown()
+        and math.abs(ny - (restY - mh)) <= 1,
+        "EB 12b: fully up the marker stands 10 units above the screen's bottom edge, under the notice and its width, the notice lifted by exactly its height",
+        "the marker at " .. H.num(mx) .. "," .. H.num(my) .. " (y " .. H.num(want) .. " = " .. H.sh() .. " - (" .. H.num(mh) .. " + " .. H.num(T.px(10)) .. ")), "
+        .. H.num(mw) .. " wide (" .. H.num(T.px(E.NOTE_U)) .. "); the notice shown " .. tostring(H.noteShown()) .. " at " .. H.num(nx) .. "," .. H.num(ny)
+        .. " (rest y " .. H.num(restY) .. " - " .. H.num(mh) .. " = " .. H.num(restY - mh) .. ")")
+    local hs = nil
+    if ZeD.HintStrip and ZeD.HintStrip._huds then hs = ZeD.HintStrip._huds[S.pn] end
+    if hs == nil then
+        Q.skip("EB 12c: the hint strip draws over the marker", "no hint strip element in this game (ZeD.HintStrip._huds)")
+    else
+        local iM, iH = H.uiIndex(m), H.uiIndex(hs)
+        Q.check(iM ~= nil and iH ~= nil and iM < iH, "EB 12c: the hint strip draws over the marker (before it in the game's UI list)",
+            "the marker at " .. tostring(iM) .. ", the hint strip at " .. tostring(iH))
+    end
+    H.shot("err_marker")
+end)
+-- EB 12d: a click on the marker (after the picture)
+Q.step(10, function()
+    if H.mkGone() then return end
+    local m = H.mkEl()
+    S.k.mkClick = false
+    if m and m:getIsVisible() then
+        local w, h = m:getWidth(), m:getHeight()
+        S.k.mkClick = pcall(function() m:onMouseDown(math.floor(w / 2), math.floor(h / 2)); m:onMouseUp(math.floor(w / 2), math.floor(h / 2)) end)
+    end
+end)
+H.wait(3000, function() return H.mkGone() or H.msgOpen() end, function(ok)
+    if H.mkGone() then return end
+    Q.check(ok and S.k.mkClick == true, "EB 12d: a click on the marker opens Messages", "clicked " .. tostring(S.k.mkClick) .. ", Messages open " .. tostring(H.msgOpen()))
+    H.msgClose()
+end)
+-- EB 12e: down by itself at about 4 s, the notice back at rest
+H.wait(8000, function() return H.mkGone() or H.mkDown() end, function(ok)
+    if H.mkGone() then return end
+    local ms = getTimestampMs() - (S.k.mStart or 0)
+    local el = H.note()
+    local _, restY = S.E.rect()
+    local ny = el and el:getY() or -1
+    Q.check(ok and ms >= 3700 and ms <= 5000 and H.noteShown() and math.abs(ny - restY) <= 1,
+        "EB 12e: the marker is gone at about 4 s (0.5 up, 3 held, 0.5 down) and the notice is back at rest",
+        "gone " .. tostring(ok) .. " after " .. H.num(ms) .. " ms; the notice shown " .. tostring(H.noteShown()) .. " at y " .. H.num(ny) .. " (rest " .. H.num(restY) .. ")")
+end)
+-- EB 12f, 12g: the game's error, gray; a second 2 s later stretches the hold
+Q.step(4, function()
+    if H.mkGone() then return end
+    H.markAllRead()
+    S.M.toasts = {}
+    S.k.before = H.errCounts()
+    H.raiseGame("game")
+end)
+H.wait(9000, function() return H.mkGone() or H.mkPhase() ~= nil end, function(ok)
+    if H.mkGone() then return end
+    local k = H.mk() or {}
+    if not ok then
+        S.k.noMk = true
+        Q.check(false, "EB 12f: the game's error starts the marker", "the error filed: " .. tostring((H.risen(S.k.before))) .. "; phase " .. tostring(k.phase))
+        return
+    end
+    S.k.m2 = (k.holdEnd or 0) - (S.E.HOLD_MS or 3000)
+    S.k.kind2 = k.kind
+end)
+H.wait(3000, function() return H.mkGone() or getTimestampMs() >= (S.k.m2 or 0) + 2000 end, function()
+    if H.mkGone() then return end
+    S.k.before2 = H.errCounts()
+    H.raiseGame("game")
+end)
+H.wait(3000, function() return H.mkGone() or getTimestampMs() >= (S.k.m2 or 0) + 3600 end, function()
+    if H.mkGone() then return end
+    local k = H.mk() or {}
+    local ms = getTimestampMs() - (S.k.m2 or 0)
+    local words2, ours2, others2 = H.risen(S.k.before2)
+    Q.check(S.k.kind2 == "others" and k.kind == "others", "EB 12f: the game's error: the marker is gray (kind others)",
+        "kind at the start " .. tostring(S.k.kind2) .. ", now " .. tostring(k.kind))
+    Q.check(others2 and not ours2 and k.phase == "hold" and (k.p or 0) >= 1 and H.mkShown() and (k.count or 0) >= 2 and ms < 5000,
+        "EB 12g: two errors 2 s apart: the marker is still fully up at 3.6 s (the second stretches the hold)",
+        "the second filed: " .. tostring(words2) .. "; at " .. H.num(ms) .. " ms: phase " .. tostring(k.phase) .. ", up " .. H.num(k.p) .. ", shown " .. tostring(H.mkShown())
+        .. ", count " .. tostring(k.count) .. ", the hold ends at " .. H.num((k.holdEnd or 0) - (S.k.m2 or 0)) .. " ms")
+end)
+-- EB 12h: an error while it falls sends it back up from where it is
+H.wait(4000, function() return H.mkGone() or H.mkPhase() == "down" end, function(ok)
+    if H.mkGone() then return end
+    if not ok then S.k.noFall = true; return end
+    S.k.pDown = (H.mk() or {}).p
+    S.k.fellOut, S.k.pUp, S.k.phUp = false, nil, nil
+    H.raiseGame("game")
+end)
+H.wait(3000, function()
+    if H.mkGone() or S.k.noFall then return true end
+    local k = H.mk() or {}
+    if k.phase == nil then S.k.fellOut = true end
+    if k.phase == "down" then S.k.pDown = k.p end
+    if k.phase == "up" or k.phase == "hold" then S.k.pUp, S.k.phUp = k.p, k.phase; return true end
+    return false
+end, function(ok)
+    if H.mkGone() then return end
+    Q.check(ok and not S.k.noFall and not S.k.fellOut and S.k.phUp == "up" and (S.k.pUp or 0) > 0.05 and (S.k.pUp or 1) < 1 and H.mkShown(),
+        "EB 12h: an error while the marker falls sends it back up from where it is (no jump, never down in between)",
+        "falling seen " .. tostring(not S.k.noFall) .. ", last up while falling " .. H.num(S.k.pDown) .. "; then " .. tostring(S.k.phUp) .. " at " .. H.num(S.k.pUp)
+        .. "; down in between " .. tostring(S.k.fellOut) .. ((S.k.noFall or S.k.fellOut) and " (staging: the error came after the fall ended)" or ""))
+end)
+-- EB 12i: a note gets no marker
+H.wait(8000, function() return H.mkGone() or H.mkDown() end, function(ok)
+    if H.mkGone() then return end
+    if not ok then S.k.noMk = true; Q.check(false, "EB 12i: the marker down before the note (staging)", "phase " .. tostring(H.mkPhase())); return end
+    H.markAllRead()
+    S.M.toasts = {}
+    S.k.noteMk = false
+    S.M.add(S.SRC, "mods", { head = "QA", text = "vk6_err: a note, no marker" })
+end)
+H.wait(1500, function()
+    if H.mkGone() then return true end
+    if H.mkPhase() ~= nil or H.mkShown() then S.k.noteMk = true end
+    return false
+end, function()
+    if H.mkGone() then return end
+    Q.check(H.noteShown() and not S.k.noteMk and H.mkPhase() == nil, "EB 12i: a note: the notice shows and no marker comes (_mk.phase nil throughout)",
+        "the notice shown " .. tostring(H.noteShown()) .. ", a marker seen " .. tostring(S.k.noteMk) .. ", phase " .. tostring(H.mkPhase()))
+    pcall(function() S.M.clear(S.SRC) end)
 end)
 
 -- ===================================================================== side effects that are not staged

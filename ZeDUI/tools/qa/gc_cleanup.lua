@@ -518,7 +518,17 @@ function S.figCheckQ(id, label)
         local fig = S.fig(id)
         S.figCheck(label or C.label, R, fig)
         local panel = cw and cw._drawerPanel
-        S.frameCheck(label or C.label, R, panel and S.frames[panel] or nil, fig, S.tabExpect(id), nil)
+        -- the tab's scrolling body as it drew (Health's _healthView, Thermal's _thermalBodyRect): the pinned band
+        -- and header lie outside it (QA, Nov 22: the band's exercise box and time, and Thermal's View box, sit at the
+        -- card's left under a short view, inside the frame's rows, and were counted as text inside the frame)
+        local view = (cw and C.view) and cw[C.view] or nil
+        if type(view) ~= "table" then view = nil end
+        -- (Equipment stamps its view as _equipRowClip's y0 .. y1, the stencil the defense view draws in)
+        local clip = (id == "equip" and cw) and cw._equipRowClip or nil
+        if not view and type(clip) == "table" and tonumber(clip.y0) and tonumber(clip.y1) then
+            view = { y = tonumber(clip.y0), h = tonumber(clip.y1) - tonumber(clip.y0) }
+        end
+        S.frameCheck(label or C.label, R, panel and S.frames[panel] or nil, fig, S.tabExpect(id), nil, view)
     end)
 end
 
@@ -600,7 +610,9 @@ function S.frameSides(R, L)
 end
 -- L: the layout the panel drew with; fig: the ZeD_BodyFigure; E: what it should do (S.tabExpect / S.medExpect);
 -- tx: the medical card's text column as drawn ({ x, y, w }), else the recorded text calls say where the text starts
-function S.frameCheck(label, R, L, fig, E, tx)
+-- view: the tab's scrolling body ({ x, y, w, h }, the stencil it draws in), nil for the card: text drawn above or
+-- below it is the pinned header and footer band (or scrolled out of sight), not the column, and is left out
+function S.frameCheck(label, R, L, fig, E, tx, view)
     local T = ZeD.T
     if not L then
         Q.check(false, label .. ": the figure sits in its frame (Molecules.drawFigureFrame drawn)",
@@ -655,10 +667,18 @@ function S.frameCheck(label, R, L, fig, E, tx)
     -- 4. the text column: in the right half beside the frame, or under it when stacked; none inside the frame
     local fx2, fy2 = L.frameX + L.frameW, L.frameY + L.frameH
     local inFrame, beside, under, minX, minY = 0, 0, 0, nil, nil
+    local pinned, inSay = 0, {}
+    local vy0 = view and tonumber(view.y) or nil
+    local vy1 = (vy0 and tonumber(view.h)) and (vy0 + tonumber(view.h)) or nil
     for _, d in ipairs((R and R.list) or {}) do
-        if d.text and d.str ~= nil then
+        local outView = vy0 ~= nil and vy1 ~= nil and (d.y < vy0 - 0.5 or d.y >= vy1)
+        if d.text and d.str ~= nil and outView then
+            pinned = pinned + 1
+        elseif d.text and d.str ~= nil then
             local inBand = d.y >= L.frameY - 0.5 and d.y < fy2
-            if inBand and d.x >= L.frameX - 0.5 and d.x < fx2 then inFrame = inFrame + 1
+            if inBand and d.x >= L.frameX - 0.5 and d.x < fx2 then
+                inFrame = inFrame + 1
+                if #inSay < 3 then inSay[#inSay + 1] = "\"" .. d.str .. "\" at " .. S.n(d.x) .. "," .. S.n(d.y) end
             elseif inBand and d.x >= fx2 then
                 beside = beside + 1
                 if not minX or d.x < minX then minX = d.x end
@@ -684,8 +704,11 @@ function S.frameCheck(label, R, L, fig, E, tx)
     end
     Q.check(tOk, label .. ": " .. tWhat, "text column at " .. S.n(L.rightX) .. "," .. S.n(L.rightY) .. " (" .. S.n(L.rightW)
         .. " wide; the half line at " .. S.n(L.frameX + spanW / 2) .. ", the frame's right at " .. S.n(fx2) .. ", its foot at "
-        .. S.n(fy2) .. "); texts drawn: " .. inFrame .. " inside the frame, " .. beside .. " beside it (leftmost at " .. S.n(minX)
-        .. "), " .. under .. " under it (topmost at " .. S.n(minY) .. ")" .. txSay)
+        .. S.n(fy2) .. "); texts drawn: " .. inFrame .. " inside the frame"
+        .. ((#inSay > 0) and (" (" .. table.concat(inSay, "; ") .. ")") or "") .. ", " .. beside .. " beside it (leftmost at "
+        .. S.n(minX) .. "), " .. under .. " under it (topmost at " .. S.n(minY) .. ")" .. txSay
+        .. (view and (", " .. pinned .. " outside the body's view " .. S.n(vy0) .. ".." .. S.n(vy1)
+        .. " (the pinned header and band, left out)") or ""))
 end
 -- the Health tab on the half drawer (220) stacks: the layout alone, on the live layoutZoneA (QA cannot hold the drawer
 -- at 220 without changing the window; the drawer is the full card at these sizes)

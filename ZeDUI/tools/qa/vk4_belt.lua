@@ -588,7 +588,8 @@ function H.closeMenu()
     if m then pcall(function() m:close() end) end
     pcall(function() local c = H.ctx(); if c and c:isAnyVisible() then c:hideAndChildren() end end)
 end
--- the game's menu's options as built: { name, icon (its texture's name), opt }
+-- the game's menu's options as built: { name, icon (its texture's name), opt, id }. id: the bag the row picks, the
+-- option's param2 (B.bagMenu: addOption(name, nil, B.bagPick, pn, id, ftype)); nil for Inventory (the Pocket)
 function H.vanillaRows()
     local rows = {}
     local c = H.ctx()
@@ -597,11 +598,14 @@ function H.vanillaRows()
     local n = (c.numOptions or (#opts + 1)) - 1
     for i = 1, n do
         local o = opts[i]
-        if type(o) == "table" then rows[#rows + 1] = { name = tostring(o.name), icon = H.texName(o.iconTexture), opt = o } end
+        if type(o) == "table" then
+            rows[#rows + 1] = { name = tostring(o.name), icon = H.texName(o.iconTexture), opt = o, id = o.param2, ftype = o.param3 }
+        end
     end
     return rows
 end
--- ZeD's menu's rows as it draws them (nil: ZeD's menu is not up): { name, shown, zed, def }
+-- ZeD's menu's rows as it draws them (nil: ZeD's menu is not up): { name, shown, zed, def, ref, id }. ref: the game's
+-- option the row was made from (def.vanillaRef), id its param2 (the bag it picks)
 function H.zedRows()
     local m = H.menu()
     if not (m and m._ctx and m._ctx.open) then return nil end
@@ -611,16 +615,38 @@ function H.zedRows()
         if def.check ~= nil then shown = "a checkbox"
         elseif def.pxIcon then shown = "ZeD drawing " .. tostring(def.pxIcon)
         elseif def.iconTexture then shown = H.texName(def.iconTexture) end
-        out[#out + 1] = { name = tostring(def.name), shown = shown, zed = def.pxIcon ~= nil or def.iconTintable == true, def = def }
+        local ref = type(def.vanillaRef) == "table" and def.vanillaRef or nil
+        out[#out + 1] = { name = tostring(def.name), shown = shown, zed = def.pxIcon ~= nil or def.iconTintable == true, def = def,
+                          ref = ref, id = ref and ref.param2 or nil }
     end
     return out
 end
+-- (each row with the bag it carries: two bags can share a name, the story kit's Fanny Pack and a given one)
 function H.rowsText(rows, key)
     local out = {}
-    for _, r in ipairs(rows or {}) do out[#out + 1] = r.name .. " [" .. tostring(r[key]) .. "]" end
+    for _, r in ipairs(rows or {}) do
+        out[#out + 1] = r.name .. " [" .. tostring(r[key]) .. "]" .. ((r.id ~= nil) and (" (bag id " .. tostring(r.id)
+            .. ((r.ftype ~= nil) and (", " .. tostring(r.ftype)) or "") .. ")") or "")
+    end
     return table.concat(out, "; ")
 end
 function H.nameIs(row, it) return row ~= nil and (row.name == H.itemName(it) or row.name == H.itemShow(it)) end
+-- the row that picks this bag: by the id the row carries (its option's param2); by name only when no row carries one
+-- (QA, Nov 22: the QA character wears two bags named "Fanny Pack", Item_FannyPack and Item_Fannypack_Sport2, so a
+-- match by name took the other bag's row). used: rows already matched to a bag, never matched twice
+function H.rowFor(rows, it, used)
+    local id = H.itemId(it)
+    local anyId = false
+    for i = 2, #rows do
+        if rows[i].id ~= nil then anyId = true end
+        if id ~= nil and rows[i].id == id and not used[i] then used[i] = true; return rows[i], "id" end
+    end
+    if anyId then return nil, "id" end
+    for i = 2, #rows do
+        if not used[i] and H.nameIs(rows[i], it) then used[i] = true; return rows[i], "name" end
+    end
+    return nil, "name"
+end
 
 -- ===================================================================== settings (values only), the speed, the lock
 function H.optVal(o) local v = nil; if o then pcall(function() v = o:getValue() end) end; return v end
@@ -910,12 +936,17 @@ function H.listCheck(up, rows, label, how)
     if up and not (first and first.name == inv) then why[#why + 1] = "the first row is " .. tostring(first and first.name) .. ", not " .. inv end
     if up and first and first.icon ~= pocket then why[#why + 1] = "Inventory's icon is " .. tostring(first.icon) .. ", not the pocket " .. pocket end
     local on = H.bagsOn()
+    local used, how2 = {}, "id"
     for _, it in ipairs(on) do
-        local found = nil
-        for i = 2, #rows do if not found and H.nameIs(rows[i], it) then found = rows[i] end end
-        if up and not found then why[#why + 1] = "no row for " .. H.itemShow(it)
-        elseif found and found.icon ~= H.itemTex(it) then why[#why + 1] = found.name .. " shows " .. tostring(found.icon) .. ", not its own " .. H.itemTex(it) end
+        local found, by = H.rowFor(rows, it, used)
+        how2 = by
+        if up and not found then why[#why + 1] = "no row for " .. H.itemShow(it) .. " (" .. tostring(H.itemType(it)) .. ", id " .. tostring(H.itemId(it)) .. ")"
+        elseif found and found.icon ~= H.itemTex(it) then
+            why[#why + 1] = found.name .. " (bag id " .. tostring(found.id) .. ") shows " .. tostring(found.icon) .. ", not its own "
+                .. H.itemTex(it) .. " (" .. tostring(H.itemType(it)) .. ")"
+        end
     end
+    how = tostring(how) .. "; rows matched to bags by " .. ((how2 == "id") and "the bag id each row carries" or "name (no row carries an id)")
     if up and #rows ~= 1 + #on then why[#why + 1] = #rows .. " rows for Inventory and " .. #on .. " bags" end
     return Q.check(#why == 0, label, tostring(how) .. "; rows: " .. H.rowsText(rows, "icon") .. ((#why > 0) and ("; WRONG: " .. table.concat(why, "; ")) or ""))
 end
@@ -927,16 +958,25 @@ function H.drawCheck(up, rows, zrows)
         Q.check(#rows > 0, label, "ZeD's menu is not up: the game's own menu shows the rows as built (" .. H.rowsText(rows, "icon") .. ")")
         return
     end
-    local own = {}
-    for _, r in ipairs(rows) do own[r.name] = r.icon end
+    -- each drawn row against the built row it was made from (its def.vanillaRef, the game's option): two bags can
+    -- share a name, so a name keys only when ZeD's row names no option
+    local own, ownById, ownByName = {}, {}, {}
+    for _, r in ipairs(rows) do
+        if r.opt then own[r.opt] = r.icon end
+        if r.id ~= nil then ownById[r.id] = r.icon end
+        if ownByName[r.name] == nil then ownByName[r.name] = r.icon end
+    end
     local why = {}
     local inv = getText("IGUI_InventoryTooltip")
     if not (zrows[1] and zrows[1].name == inv) then why[#why + 1] = "the first row drawn is " .. tostring(zrows[1] and zrows[1].name) .. ", not " .. inv end
     for _, z in ipairs(zrows) do
-        local o = own[z.name]
-        if o == nil then why[#why + 1] = "a row not in the list: " .. z.name
+        local o = z.ref and own[z.ref] or nil
+        if o == nil and z.id ~= nil then o = ownById[z.id] end
+        if o == nil and z.id == nil then o = ownByName[z.name] end
+        if o == nil then why[#why + 1] = "a row not in the list: " .. z.name .. ((z.id ~= nil) and (" (bag id " .. tostring(z.id) .. ")") or "")
         elseif z.shown ~= o then
-            why[#why + 1] = "'" .. z.name .. "' draws " .. z.shown .. (z.zed and " (ZeD's map icon)" or "") .. ", not its own " .. o
+            why[#why + 1] = "'" .. z.name .. "'" .. ((z.id ~= nil) and (" (bag id " .. tostring(z.id) .. ")") or "") .. " draws "
+                .. z.shown .. (z.zed and " (ZeD's map icon)" or "") .. ", not its own " .. o
         end
     end
     if #zrows ~= #rows then why[#why + 1] = #zrows .. " rows drawn, " .. #rows .. " built" end

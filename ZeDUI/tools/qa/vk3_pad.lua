@@ -21,10 +21,14 @@
 --        then the poll's release) and Y again from the world: the pad is back on the nail's row. Old: the first Y rolls
 --        both windows to bars, the second unrolls them with the Character window's focus.
 --   #18  the crate on show in the World window (selectContainer when not; the old code opens on the Floor).
+--        (Refit Nov 22 2026 for branch listgrid 1916f88ab, the director: "Transfer buttons, always in the footer.
+--        Selection buttons, always in the header." Take all is back in the World band, first; the heading holds Pick
+--        all, the Filter and the view flip only.)
 --        (a) the pad on the list's top stop, pad Up (FocusManager's own D-pad dispatch): the pad is on the heading's
---        Loot all (view:lootall). Old: no such button (the heading has the Filter and the view button).
---        (b) A tapped there takes everything from the crate: one move each of the apple and the nail into his
---        inventory, caught at ISTimedActionQueue.add by a recorder that queues nothing. Old: never reached.
+--        Pick all (view:all:<key>). Main (heading Take all): view:lootall -> FAIL.
+--        (b) the pad put on the band's Take all (worldCtl, ccKey "take"), A tapped there takes everything from the
+--        crate: one move each of the apple and the nail into his inventory, caught at ISTimedActionQueue.add by a
+--        recorder that queues nothing. Main: the band has no Take all -> FAIL.
 --        (c) the pad on the crate's button on the strip, X tapped: the same moves. Old: X there does nothing.
 --        NOTE (no check): where Down from the crate's last row lands in the button row (the pick's "lands on Loot all,
 --        never To floor"). Build changed no landing rule for it: Loot all only became a word button, and the stop is
@@ -983,18 +987,16 @@ function S.queueC()
             local _, zn, el = S.focusNow()
             -- (QA, Nov 22: Build built this half of #18 in d0df24046: the band's entry stop is the take button. On
             -- 0b366177e and on the first K3 merge Down landed on Same type in Full and To floor in Lite: FAIL there.)
-            -- (QA, Nov 22 2026, refit for branch header d179355c4, the director's "Number 1": the band has no Loot all
-            -- there; Down past the last row wraps to the heading's Take all (view:lootall:<key>). Either Loot all
-            -- passes: the band's (main before that merge) or the heading's. Still strict: To floor, Same type or any
-            -- other stop FAILS.)
-            local headLoot = el ~= nil and type(el.id) == "string" and el.id:sub(1, 13) == "view:lootall:"
-            Q.check(el ~= nil and (el.ccKey == "take" or headLoot),
-                "K3 #18: Down from a crate's last row lands on Loot all (the band's, or the heading's Take all), never To floor",
+            -- (QA, Nov 22 2026, refit for branch listgrid 1916f88ab, the director's "Transfer buttons, always in the
+            -- footer": Take all is back in the band, first, and Down past the last row lands on it (worldCtl:take).
+            -- Strict: the heading's old Take all, To floor, Same type or any other stop FAILS.)
+            Q.check(el ~= nil and zn == "worldCtl" and el.ccKey == "take",
+                "K3 #18: Down from a crate's last row lands on the footer band's Take all (worldCtl:take), never To floor",
                 "Down from " .. S.elName(last) .. " lands on " .. S.elName(el) .. " (zone " .. tostring(zn) .. ", id "
                 .. tostring(el and el.id) .. ", the band button " .. tostring(el and el.ccKey)
-                .. "; take = Loot all, floor = To floor, same = Same type; view:lootall: = the heading's Take all)")
+                .. "; take = Take all, floor = To floor, same = Same type; view:lootall: = main's heading Take all)")
         end
-        -- (a) the top stop, then Up
+        -- (a) the top stop, then Up: the heading's Pick all (selection in the header)
         local top = S.listTop(ww, "worldMainInv")
         local t = top and S.F.focusWhere(ww, "worldMainInv", function(x) return x == top end) or nil
         if not t then S.fail("k18", "the pad could not be put on the list's top stop"); return end
@@ -1003,10 +1005,14 @@ function S.queueC()
         local _, zn, el = S.focusNow()
         S.k18.up = el
         S.k18.upSay = S.focusSay()
-        S.k18.on = el ~= nil and type(el.id) == "string" and el.id:sub(1, 13) == "view:lootall:"
-        Q.check(S.k18.on, "#18 (a): on a pad, Loot all sits in the list's heading, one Up from the first row",
+        local onAll = el ~= nil and type(el.id) == "string" and el.id:sub(1, 9) == "view:all:"
+        Q.check(onAll, "#18 (a): on a pad, one Up from the list's first row lands on the heading's Pick all (view:all), not a move",
             "from the top stop (" .. S.k18.top .. ") Up lands on " .. S.k18.upSay .. ", its A word " .. tostring(el and el.promptA)
-            .. " (old code: the heading has no Loot all)")
+            .. " (main: the heading's Take all, view:lootall)")
+        -- (b) the band's Take all: the pad put on it, then A
+        local tk = S.F.focusWhere(ww, "worldCtl", function(x) return x.ccKey == "take" end)
+        S.k18.takeSay = S.focusSay()
+        S.k18.on = tk ~= nil and tk.ccKey == "take"
         if S.k18.on then S.dryOn() end
     end)
     S.tap("k18", "A", Joypad.AButton, function() if S.k18.on then return RT.ww() end; return nil end, 120)
@@ -1016,10 +1022,10 @@ function S.queueC()
         if S.off.k18 then return end
         local all, a, n = S.takesBoth(d and d.acts)
         Q.check(S.k18.on == true and all,
-            "#18 (b): A on the heading's Loot all takes everything from the crate (the moves recorded, nothing moved)",
-            "A on " .. tostring(S.k18.upSay) .. " recorded: " .. S.actWords(d and d.acts) .. "; the apple's move " .. tostring(a)
-            .. ", the nail's " .. tostring(n) .. (S.k18.on and "" or "; not pressed: Up did not reach a Loot all")
-            .. " (old code: no Loot all in the heading)")
+            "#18 (b): A on the footer band's Take all (worldCtl:take) takes everything from the crate (the moves recorded, nothing moved)",
+            "A on " .. tostring(S.k18.takeSay) .. " recorded: " .. S.actWords(d and d.acts) .. "; the apple's move " .. tostring(a)
+            .. ", the nail's " .. tostring(n) .. (S.k18.on and "" or "; not pressed: the band has no Take all stop")
+            .. " (main: no Take all in the band)")
         -- (c) the crate's button on the strip, then X
         local ww = RT.ww()
         local idx = nil

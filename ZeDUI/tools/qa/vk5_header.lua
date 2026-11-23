@@ -5,9 +5,19 @@
 -- "give the header and footer icons a little taste of color, just like we did for context menus."
 -- Built on rt_kit.lua (the global RT), run after zedqa_prelude.lua. grep "ZEDQA vk5_hdr". Manifest: vk5.txt.
 --
--- How to read the log: the proofs are the lines that start "HDR", "BAND", "PAD", "COL" and "MARK"; each FAILS on
--- main (b643c516e) and PASSES on d179355c4. A part that cannot be staged FAILS with "(staging)" in its words (a part
--- not proven is never a SKIP). "NOTE" lines are readings. The "put back" check at the end passes on both.
+-- REFIT (Nov 22 2026, QA) for branch listgrid, head 1916f88ab. The director the same evening: "Buttons in headers and
+-- footers... move them to the right"; "Transfer buttons, always in the footer. Selection buttons, always in the
+-- header."; "Name always wins." So a heading now reads [icon] [name] ... [weight and count] [Pick all, Filter, view
+-- flip], no Take all in any heading; the World band has Take all first, right-aligned; each Loot column has its own
+-- foot with its Take all (view:lootall:<key>); pad Up from the top row lands on Pick all (view:all:<key>), Down past
+-- the last row on the band's Take all (worldCtl:take). HDR 1-4, BAND, PAD 1, PAD 2 and COL below say the new order;
+-- NARROW is new (the name keeps three letters and the dots at a narrow heading). They FAIL on main (header's order)
+-- and PASS on listgrid; MARK and PAD 3 are unchanged. Run it at 4K and at 1280x800 (the Deck size: NARROW is the
+-- Lite and Deck case there).
+--
+-- How to read the log: the proofs are the lines that start "HDR", "BAND", "PAD", "COL", "NARROW" and "MARK". A part
+-- that cannot be staged FAILS with "(staging)" in its words (a part not proven is never a SKIP). "NOTE" lines are
+-- readings. The "put back" check at the end passes on both.
 --
 -- The scene: two crates (carpentry_01_16) on free squares beside him: crate A holds an apple and a box of nails,
 -- crate B a pencil and a pen. Given to him: a box of nails (so Same type has something to move both ways) and a
@@ -21,36 +31,48 @@
 -- with its getMouseX / getMouseY on the Same type button's middle (hovered); for the pictures the cursor is hidden.
 --
 -- The checks:
---   HDR 1  Full, Dark, crate A on show alone in the World window: its heading's buttons all left of the container's
---          icon, Take all the leftmost; the icon left of the name; the weight right-aligned at the column's right
---          (within three insets), right of the name and every button, the count's right edge on the weight's (a
---          weight or count the heading drops where it would cut the name, by design, is said in the words, not failed).
---          Main: the buttons sit right of the name -> FAIL. Picture vk5_header_full_dark.
---   HDR 2  The same in the Character window (his inventory alone; its heading has no Take all). Main -> FAIL.
+--   HDR 1  Full, Dark, crate A on show alone in the World window: the container's icon at the heading's left pad
+--          (within 2 px of the column's left plus its inset), the name right of the icon, the weight right of the
+--          name, every button right of the weight and the name, Pick all the leftmost button, the buttons ending at
+--          the column's right (within two insets), the count's right edge on the weight's, no Take all
+--          (view:lootall) in the heading (a weight or count the heading drops where it would cut the name, by
+--          design, is said in the words, not failed). Main: the buttons first at the left, Take all among them ->
+--          FAIL. Picture vk5_header_full_dark.
+--   HDR 2  The same in the Character window (his inventory alone). Main -> FAIL.
 --   HDR 3  HDR 1 with Style Lite (word buttons). Main -> FAIL. Picture vk5_header_lite_dark.
 --   HDR 4  HDR 2 with Style Lite. Main -> FAIL.
---   BAND   The World window's footer band (content._cc: its moves and laid-out rects, no rows marked) has no Take
---          all ("take"); Same type is there. Main: the band's Loot all -> FAIL.
+--   BAND   The World window's footer band (content._cc: its moves and laid-out rects, no rows marked) has Take all
+--          ("take") as its first button and Same type; both bands (World and Character) are right-aligned: not a
+--          ribbon, the last button ending at the band's right end (x1, within 1 px), room left of the first. Main:
+--          no Take all in the band, the moves from the left -> FAIL.
+--   NARROW Both windows narrowed to their least width (the window's own minimumWidth: the inventory's 200 units),
+--          crate A in the World window, the school bag ("School Bag") in the Character window, Full and then Lite:
+--          each heading draws the container's name whole or its first three letters and the dots, left of every
+--          button (GV.headLevel, the buttons that gave way, said in the words). Main: Lite's word buttons squeeze
+--          the name out -> FAIL. Pictures vk5_narrow_full, vk5_narrow_lite. At 1280x800 this is the Deck case.
 --   MARK 1 At rest (the lists not under the pointer), the band's Same type and the heading's view button draw their
 --          icon's mark (drawPxIcon handed a mark set) in both windows; hovered (the World list's pointer on Same
 --          type), the World Same type draws no mark. Main: no mark ever handed -> FAIL.
 --   MARK 2 Same type's mark color as handed and solved (ZeD.PxIcon.markColor): the theme's blue (T.marks.blue) in
 --          the World window (Take), red (T.marks.red) in the Character window (Put in). Main: none -> FAIL.
---   PAD 1  Full, the controller, crate A alone: pad Up from the list's top stop and pad Down from its last row both
---          land on the heading's Take all (view:lootall:). Main: Down lands on the band's Loot all -> FAIL.
---   PAD 2  From the heading's Take all: Up leaves the list for the title bar (a stop outside the list and the band),
+--   PAD 1  Full, the controller, crate A alone: pad Up from the list's top stop lands on the heading's Pick all
+--          (view:all:), pad Down from its last row on the band's Take all (worldCtl, ccKey "take"). Main: both on the
+--          heading's Take all -> FAIL.
+--   PAD 2  From the heading's Pick all: Up leaves the list for the title bar (a stop outside the list and the band),
 --          further Ups (at most three) wrap to the footer band without passing the list, and Right walks the band
---          (another band stop). Main: nothing wraps to the band -> FAIL.
+--          (another band stop). Main: the start is the heading's Take all -> FAIL.
 --   PAD 3  From the band's first stop, Down lands on the list's first row on show; from the band, Up lands on its
 --          last row on show. Main: Down from the band does not reach the list -> FAIL.
---          NOTE: the Character window's band, Down (Build: it keeps its plain Down; read, not checked).
+--          NOTE: the Character window's band, Down (listgrid: the loop holds in both windows, so Down goes to the list; read, not checked).
 --   COL    Crate A on show, crate B added as a column (ZeD_WorldWindow.toggleColumn, the strip's Ctrl-click), the
---          school bag shown alone in the Character window: each column's heading has a Take all, and a press on it
---          (the list's own onMouseDown at that button's middle) takes that column's crate, both things, from that
+--          school bag shown alone in the Character window: each column has a Take all in its own foot (its
+--          view:lootall: rect in the column's bottom band, inside the column, none in its heading), and a press on
+--          it (the list's own onMouseDown at that button's middle) takes that column's crate, both things, from that
 --          crate only, into the school bag (the moves recorded at ISTimedActionQueue.add, nothing moved). Main:
---          a column's heading has no Take all -> FAIL. Picture vk5_columns_two (before the presses).
+--          the Take all sits in each column's heading -> FAIL. Picture vk5_columns_two (before the presses).
 -- Pictures (Zomboid/Screenshots/vk5_<name>.png, cursor hidden, the lists at rest): header_full_dark,
--- header_lite_dark, header_full_light (Light), columns_two, band_hc (High contrast: the band and the heading).
+-- header_lite_dark, header_full_light (Light), columns_two, band_hc (High contrast: the band and the heading),
+-- narrow_full, narrow_lite.
 --
 -- Safety: nothing is eaten, moved or used: the presses that could move things run with ISTimedActionQueue.add /
 -- addAfter recording and queuing nothing (vk1_pad.lua's recorder), and an action that reaches the real queue anyway
@@ -58,8 +80,9 @@
 -- watched drawing and the faked pointer readings gone, the cursor shown; the columns closed; the pad's focus let go;
 -- Style and the theme as found (values only, never saved); the input lock and the mode ZeD read; both crates and
 -- what is in them removed, the nails and the bag taken back; the windows open or shut as found, where and as big as
--- they were, on their tabs. No option is saved, no file is written but the five pictures.
--- Not run in game yet; parse-checked with the game's Kahlua compiler (KCheck).
+-- they were, on their tabs, each window's saved inventory width (_baseInvW) as found (NARROW resizes them). No option
+-- is saved, no file is written but the seven pictures.
+-- The refit is not run in game yet; parse-checked with the game's Kahlua compiler (KCheck).
 
 if not (RT and RT.make) then
     print("ZEDQA vk5_hdr ERR the kit (rt_kit.lua) did not run first")
@@ -70,14 +93,15 @@ end
 
 local Q = RT.make("vk5_hdr")
 Q.maxMs = 600000   -- (ten minutes, then the put-back; a run takes about two)
-local S = { p = RT.p, pn = RT.pn, was = { geo = {}, tab = {} }, k = { pad = {}, col = {}, mk = {} }, fakes = {} }
+local S = { p = RT.p, pn = RT.pn, was = { geo = {}, tab = {}, invW = {} }, k = { pad = {}, col = {}, mk = {}, nar = {} }, fakes = {} }
 local H = {}
 S.Z = ZeD or {}
 S.F = S.Z.Input and S.Z.Input.Focus
 S.Det = S.Z.Input and S.Z.Input.Detector
 S.St, S.CT, S.IR = S.Z.Settings, S.Z.ContainerControls, S.Z.InventoryRenderer
 S.AROUND = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 }, { 1, 1 }, { -1, 1 }, { 1, -1 }, { -1, -1 } }
-S.HEAD_VIEWS = { lootall = true, all = true, filter = true, flip = true }
+-- (listgrid: the heading's buttons; Take all, "lootall", is a Loot column's foot now, never a heading's)
+S.HEAD_VIEWS = { all = true, filter = true, flip = true }
 
 -- ===================================================================== words and numbers
 function H.num(v)
@@ -442,8 +466,9 @@ function H.header(k, r)
             b.l = math.min(b.l or t.x, t.x)
             b.r = math.max(b.r or (t.x + t.w), t.x + t.w)
             b.words = (b.words and (b.words .. ", ") or "") .. tostring(t.view) .. "@" .. H.num(t.x)
-            if t.view == "lootall" then b.loot = t.x end
+            if t.view == "all" then b.all = t.x end
         end
+        if t.view == "lootall" then b.loot = t.x end
     end
     local ic = nil
     for _, e in ipairs(r.icons[c] or {}) do
@@ -456,35 +481,88 @@ function H.header(k, r)
         if e.font == T.fontF5 and ci.count and ci.count ~= "" and e.text == ci.count and (ct == nil or e.y < ct.y) then ct = e end
     end
     local why = {}
-    if b.n < 2 then why[#why + 1] = "fewer than two buttons stamped" end
+    -- (listgrid, "Name always wins": a short heading drops the view flip, then Filter, then Pick all; Pick all stays
+    -- at a usual width, so one button at least)
+    if b.n < 1 then why[#why + 1] = "no heading button stamped" end
     if not nm then why[#why + 1] = "no name drawn" end
     -- (no weight drawn: the heading drops it where it would cut the name, by design; said in the words, not a FAIL)
     local nR = nm and (nm.x + H.measure(T.fontF4, nm.text)) or nil
     local wR = wt and (wt.x + H.measure(T.fontF1, wt.text)) or nil
     local cR = ct and (ct.x + H.measure(T.fontF5, ct.text)) or nil
-    local colR = (c._renderXOffset or 0) + (c._renderW or c:getWidth())
+    local colL = c._renderXOffset or 0
+    local colR = colL + (c._renderW or c:getWidth())
     local inset = (T.sp and T.sp.sm) or T.px(10)
-    if b.n > 0 and nm then
-        if ic then
-            if b.r > ic.x + 1 then why[#why + 1] = "a button runs right of the icon" end
-            if ic.x + ic.s > nm.x + 1 then why[#why + 1] = "the icon is not left of the name" end
-        elseif b.r > nm.x + 1 then
-            why[#why + 1] = "a button runs right of the name"
-        end
-    end
-    if k == "w" and (b.loot == nil or b.loot > (b.l or 0) + 1) then why[#why + 1] = "Take all is not the leftmost button" end
-    if k == "c" and b.loot ~= nil then why[#why + 1] = "the Character window's heading has a Take all" end
+    -- (listgrid, Buttons right: [icon] [name] ... [weight and count] [Pick all, Filter, view flip])
+    if ic and math.abs(ic.x - (colL + inset)) > 2 then why[#why + 1] = "the icon is not at the heading's left pad" end
+    if ic and nm and ic.x + ic.s > nm.x + 1 then why[#why + 1] = "the icon is not left of the name" end
+    if b.n > 0 and nm and b.l < nR - 1 then why[#why + 1] = "a button sits left of the name's end" end
+    if b.n > 0 and (colR - b.r < -1 or colR - b.r > inset * 2) then why[#why + 1] = "the buttons do not end at the column's right" end
+    if b.n > 0 and (b.all == nil or b.all > b.l + 1) then why[#why + 1] = "Pick all is not the first (leftmost) button" end
+    if b.loot ~= nil then why[#why + 1] = "the heading has a Take all (view:lootall)" end
     if wt and nm and wt.x < nR - 1 then why[#why + 1] = "the weight is not right of the name" end
-    if wt and b.r and wR < b.r then why[#why + 1] = "a button runs right of the weight" end
-    if wR and (colR - wR < -1 or colR - wR > inset * 3) then why[#why + 1] = "the weight is not at the column's right" end
+    if wR and b.n > 0 and wR > b.l + 1 then why[#why + 1] = "the weight runs into the buttons" end
     if cR and wR and math.abs(cR - wR) > 1 then why[#why + 1] = "the count's right edge is not the weight's" end
-    local words = "buttons [" .. tostring(b.words) .. "] ending " .. H.num(b.r) .. "; icon " .. (ic and ("at " .. H.num(ic.x) .. ", " .. H.num(ic.s) .. " wide") or "none drawn")
+    local words = "buttons [" .. tostring(b.words) .. "] " .. H.num(b.l) .. ".." .. H.num(b.r) .. "; icon " .. (ic and ("at " .. H.num(ic.x) .. ", " .. H.num(ic.s) .. " wide") or "none drawn")
         .. "; name \"" .. tostring(nm and nm.text) .. "\" " .. H.num(nm and nm.x) .. ".." .. H.num(nR)
         .. "; weight \"" .. tostring(wt and wt.text) .. "\" ending " .. H.num(wR) .. "; count \"" .. tostring(ct and ct.text) .. "\" ending " .. H.num(cR)
-        .. "; column right " .. H.num(colR)
+        .. "; column " .. H.num(colL) .. ".." .. H.num(colR) .. ", inset " .. H.num(inset) .. "; Take all in the heading " .. tostring(b.loot ~= nil) .. "; headLevel " .. tostring(c._gv and c._gv.headLevel)
     if #why > 0 then words = words .. " -> " .. table.concat(why, "; ") end
     return #why == 0, words
 end
+-- (NARROW, listgrid "Name always wins") one window's heading name in frame r: drawn whole, or its first three
+-- letters and the dots, and left of every heading button; ok, words
+function H.nameDrawn(k, r)
+    local c = H.content(k)
+    if not (c and r) then return false, "no list" end
+    local ci = c._containerInfo
+    if not ci then return false, "the list has no heading (_containerInfo)" end
+    local T = ZeD.T
+    local name = tostring(ci.name or "")
+    local nm = nil
+    for _, e in ipairs(r.texts[c] or {}) do
+        if e.font == T.fontF4 and H.namePart(e.text, name) and (nm == nil or e.y < nm.y) then nm = e end
+    end
+    local bl, nb = nil, 0
+    for _, t in ipairs(c._viewToggleRects or {}) do
+        if S.HEAD_VIEWS[t.view] then
+            nb = nb + 1
+            bl = math.min(bl or t.x, t.x)
+        end
+    end
+    local whole = nm ~= nil and nm.text == name
+    local cut = nm ~= nil and #name > 3 and #nm.text >= 6 and nm.text:sub(-3) == "..." and nm.text:sub(1, 3) == name:sub(1, 3)
+    local nR = nm and (nm.x + H.measure(T.fontF4, nm.text)) or nil
+    local clear = nR ~= nil and (bl == nil or nR <= bl + 1)
+    local lvl = c._gv and c._gv.headLevel or nil
+    local words = "name \"" .. name .. "\" drawn as \"" .. tostring(nm and nm.text) .. "\" " .. H.num(nm and nm.x) .. ".." .. H.num(nR)
+        .. "; " .. nb .. " heading buttons from " .. H.num(bl) .. "; headLevel " .. tostring(lvl) .. "; the list " .. H.num(c:getWidth()) .. " px wide"
+    return (whole or cut) and clear, words
+end
+-- both windows at their least width (the window's own minimumWidth); their saved list widths kept for the put-back
+function H.narrow()
+    for _, k in ipairs({ "c", "w" }) do
+        local w = H.win(k)
+        if w then
+            if S.was.invW[k] == nil then S.was.invW[k] = w._baseInvW or false end
+            local m = w.minimumWidth or w:getWidth()
+            if w:getWidth() > m then
+                local right = w:getX() + w:getWidth()
+                w:setWidth(m)
+                if k == "c" then w:setX(right - w:getWidth()) end
+                if w._anchorRightEdge ~= nil then w._anchorRightEdge = w:getX() + w:getWidth() end
+            end
+        end
+    end
+end
+-- the saved list widths as found (after the windows are set back where they were)
+function H.baseBack()
+    for _, k in ipairs({ "c", "w" }) do
+        local w = H.win(k)
+        local v = S.was.invW[k]
+        if w and v ~= nil then w._baseInvW = (v ~= false) and v or nil end
+    end
+end
+
 -- the band's ids and keys (no rows marked)
 function H.band(c)
     local cc = c and c._cc
@@ -499,6 +577,23 @@ function H.band(c)
         if rr.key == "take" then take = true end
     end
     return #rects, take, same, table.concat(keys, ", ")
+end
+-- (listgrid, Buttons right) a band laid out as a dialog's footer: not a ribbon, its last button ending at the band's
+-- right end x1 (1 px), room left of its first; ok, the first button's key, words
+function H.bandRight(c)
+    local row = c and c._cc and c._cc.bottom
+    local rects = (row and row.rects) or {}
+    if #rects == 0 then return false, nil, "no band laid out" end
+    local l, r = nil, nil
+    for _, rr in ipairs(rects) do
+        local x = tonumber(rr.tx) or 0
+        if l == nil or x < l then l = x end
+        if r == nil or x + (rr.w or 0) > r then r = x + (rr.w or 0) end
+    end
+    local x0, x1 = tonumber(row.x0) or 0, tonumber(row.x1) or 0
+    local ok = row.scroll == nil and math.abs(r - x1) <= 1 and l > x0 + 1
+    return ok, rects[1].key, "buttons " .. H.num(l) .. ".." .. H.num(r) .. " in the band's " .. H.num(x0) .. ".." .. H.num(x1)
+        .. ((row.scroll ~= nil) and " (a ribbon: too many to lay out)" or "") .. ", first " .. tostring(rects[1].key)
 end
 
 -- ===================================================================== the icon marks as handed
@@ -703,6 +798,8 @@ function H.focusSay()
     return wn .. ", zone " .. tostring(zn) .. ", on " .. H.elName(el)
 end
 function H.isLoot(e) return e ~= nil and type(e.id) == "string" and e.id:sub(1, 13) == "view:lootall:" end
+function H.isAll(e) return e ~= nil and type(e.id) == "string" and e.id:sub(1, 9) == "view:all:" end
+function H.isTake(zn, e) return zn == "worldCtl" and e ~= nil and e.ccKey == "take" end
 function H.step(dir, w)
     RT.padDir(dir, w)
     local _, zn, el = H.focusNow()
@@ -799,12 +896,16 @@ Q.step(3, function()
     local r = H.recOff()
     H.fakeOff()
     local okW, wW = H.header("w", r)
-    Q.check(okW, "HDR 1: World heading (Full): buttons, then the icon and name, then the weight and count at the right (crate A)", wW)
+    Q.check(okW, "HDR 1: World heading (Full): the icon at the left pad, the name, the weight and count, Pick all, Filter and the view flip at the right end, no Take all (crate A)", wW)
     local okC, wC = H.header("c", r)
-    Q.check(okC, "HDR 2: Character heading (Full): buttons, then the icon and name, then the weight and count at the right (his inventory)", wC)
+    Q.check(okC, "HDR 2: Character heading (Full): the icon at the left pad, the name, the weight and count, the buttons at the right end, no Take all (his inventory)", wC)
     local n, take, same, keys = H.band(H.content("w"))
-    Q.check(n > 0 and not take and same, "BAND: the World window's footer band has no Take all (the heading keeps it); Same type is there",
-        n .. " buttons laid out: [" .. keys .. "], a take move " .. tostring(take) .. ", Same type " .. tostring(same))
+    local rW, firstW, wordsW = H.bandRight(H.content("w"))
+    local rC, _, wordsC = H.bandRight(H.content("c"))
+    Q.check(n > 0 and take and firstW == "take" and same and rW and rC,
+        "BAND: the World band has Take all first and Same type; the World and Character bands are right-aligned as a dialog's footer",
+        n .. " buttons laid out: [" .. keys .. "], a take move " .. tostring(take) .. ", Same type " .. tostring(same)
+        .. "; World " .. wordsW .. "; Character " .. wordsC)
     local cw, ww = H.content("c"), H.content("w")
     S.k.mk.rest = { ws = H.pxOf(r, ww, S.SAME), wv = H.pxOf(r, ww, S.VIEW), cs = H.pxOf(r, cw, S.SAME), cv = H.pxOf(r, cw, S.VIEW) }
     -- the World list's pointer on Same type's middle for the next frames (hovered)
@@ -865,15 +966,71 @@ Q.step(3, function()
     H.fakeOff()
     local lite = H.lite()
     local okW, wW = H.header("w", r)
-    Q.check(lite and okW, "HDR 3: World heading (Lite): buttons, then the icon and name, then the weight and count at the right",
+    Q.check(lite and okW, "HDR 3: World heading (Lite): the icon at the left pad, the name, the weight and count, the buttons at the right end, no Take all",
         "Lite " .. tostring(lite) .. "; " .. wW)
     local okC, wC = H.header("c", r)
-    Q.check(lite and okC, "HDR 4: Character heading (Lite): buttons, then the icon and name, then the weight and count at the right",
+    Q.check(lite and okC, "HDR 4: Character heading (Lite): the icon at the left pad, the name, the weight and count, the buttons at the right end",
         "Lite " .. tostring(lite) .. "; " .. wC)
 end)
 H.shot("header_lite_dark")
 Q.step(1, function() if not S.dead then H.style(1) end end)
 Q.waitMs(600)
+
+-- ===================================================================== 4b: NARROW (the name always wins; at 1280x800 the Deck case)
+Q.step(1, function()
+    if S.dead then return end
+    H.charOn(S.bagInv)
+    H.worldOn(S.ca.inv)
+    S.k.nar.geoC, S.k.nar.geoW = H.geo(RT.cw()), H.geo(RT.ww())
+end)
+H.waitUntil(4000, function()
+    if S.dead then return true end
+    return H.charShows(S.bagInv) and H.worldShows(S.ca.inv)
+end, function(ok)
+    if S.dead then return end
+    if not ok then
+        H.fail("NARROW", "the school bag alone in the Character window (" .. tostring(H.charShows(S.bagInv)) .. ") and crate A alone in the World window ("
+            .. tostring(H.worldShows(S.ca.inv)) .. ")")
+        return
+    end
+    H.narrow()
+end)
+Q.waitMs(400)
+-- (again: the windows set their minimum each frame, a narrower list can lower it once)
+Q.step(1, function() if not (S.dead or S.off.NARROW) then H.narrow() end end)
+Q.waitMs(600)
+function H.narrowRead(style, label, shotName)
+    Q.step(1, function() if not (S.dead or S.off.NARROW) then H.style(style) end end)
+    Q.waitMs(900)
+    Q.step(1, function()
+        if S.dead or S.off.NARROW then return end
+        H.rest()
+        H.recOn()
+    end)
+    Q.step(3, function()
+        if S.dead or S.off.NARROW then return end
+        local r = H.recOff()
+        H.fakeOff()
+        local okW, wW = H.nameDrawn("w", r)
+        local okC, wC = H.nameDrawn("c", r)
+        Q.check(okW and okC and (style ~= 2 or H.lite()),
+            "NARROW " .. label .. ": at the windows' least width each heading draws its container's name (whole, or three letters and the dots) left of its buttons",
+            "Lite " .. tostring(H.lite()) .. ", screen " .. getCore():getScreenWidth() .. "x" .. getCore():getScreenHeight()
+            .. "; World (crate A): " .. wW .. "; Character (school bag): " .. wC)
+    end)
+    H.shot(shotName)
+end
+H.narrowRead(1, "(Full)", "narrow_full")
+H.narrowRead(2, "(Lite)", "narrow_lite")
+Q.step(1, function()
+    if S.dead then return end
+    H.style(1)
+    if S.k.nar.geoC then H.placeBack(RT.cw(), S.k.nar.geoC) end
+    if S.k.nar.geoW then H.placeBack(RT.ww(), S.k.nar.geoW) end
+end)
+Q.waitMs(400)
+Q.step(1, function() if not S.dead then H.baseBack() end end)
+Q.waitMs(300)
 
 -- ===================================================================== 5: the pad on the World window (Full)
 Q.step(1, function()
@@ -901,7 +1058,7 @@ end, function(ok)
     end
     local F, P = S.F, S.k.pad
     F.claimFocus(ww)
-    -- PAD 1: Up from the top stop, Down from the last row
+    -- PAD 1: Up from the top stop (the heading's Pick all), Down from the last row (the band's Take all)
     local top = H.listTop(ww, "worldMainInv")
     local t = top and F.focusWhere(ww, "worldMainInv", function(x) return x == top end) or nil
     if t then
@@ -912,13 +1069,15 @@ end, function(ok)
     local last = rows[#rows]
     local l = last and F.focusWhere(ww, "worldMainInv", function(x) return x == last end) or nil
     if l then
-        local _, e = H.step("down", ww)
-        P.dn, P.dnSay = e, H.focusSay()
+        local zd, e = H.step("down", ww)
+        P.dn, P.dnZ, P.dnSay = e, zd, H.focusSay()
     end
-    Q.check(H.isLoot(P.up) and H.isLoot(P.dn), "PAD 1: pad Up from the list's top stop and Down from its last row both land on the heading's Take all",
-        "Up from " .. H.elName(t) .. ": " .. tostring(P.upSay) .. "; Down from " .. H.elName(l) .. ": " .. tostring(P.dnSay))
-    -- PAD 2: from the heading's Take all, Up to the title bar, Up wraps to the band, Right walks it
-    local la = F.focusWhere(ww, "worldMainInv", function(x) return H.isLoot(x) end)
+    Q.check(H.isAll(P.up) and H.isTake(P.dnZ, P.dn),
+        "PAD 1: pad Up from the list's top stop lands on the heading's Pick all (view:all), Down from its last row on the band's Take all (worldCtl:take)",
+        "Up from " .. H.elName(t) .. ": " .. tostring(P.upSay) .. "; Down from " .. H.elName(l) .. ": " .. tostring(P.dnSay)
+        .. ", its band key " .. tostring(P.dn and P.dn.ccKey))
+    -- PAD 2: from the heading's Pick all, Up to the title bar, Up wraps to the band, Right walks it
+    local la = F.focusWhere(ww, "worldMainInv", function(x) return H.isAll(x) end)
     local path, first, reached, walk = {}, false, false, false
     if la then
         local z1 = H.step("up", ww)
@@ -939,7 +1098,7 @@ end, function(ok)
         end
     end
     Q.check(la ~= nil and first and reached and walk,
-        "PAD 2: from the heading's Take all, Up goes to the title bar, Up again wraps to the footer band, and Right walks the band",
+        "PAD 2: from the heading's Pick all, Up goes to the title bar, Up again wraps to the footer band, and Right walks the band",
         "from " .. H.elName(la) .. ": " .. table.concat(path, " | "))
     -- PAD 3: the band's Down and Up
     rows = H.rows(ww, "worldMainInv")
@@ -956,14 +1115,14 @@ end, function(ok)
         "PAD 3: from the footer band, Down lands on the list's first row on show and Up on its last row on show",
         "Down from " .. H.elName(b) .. ": " .. tostring(P.dSay) .. " (first row " .. H.elName(fr) .. "); Up from the band: " .. tostring(P.uSay)
         .. " (last row " .. H.elName(lr) .. ")")
-    -- NOTE: the Character window's band keeps its plain Down
+    -- NOTE: the Character window's band (listgrid: the loop holds in both windows)
     local cw = RT.cw()
     if cw then
         F.claimFocus(cw)
         local cb = F.focusWhere(cw, "charCtl", nil)
         if cb then
             H.step("down", cw)
-            Q.say("NOTE the Character window's band, Down from " .. H.elName(cb) .. ": " .. H.focusSay() .. " (Build: plain Down, no wrap to the list)")
+            Q.say("NOTE the Character window's band, Down from " .. H.elName(cb) .. ": " .. H.focusSay() .. " (listgrid: the list's first row on show, the loop in both windows)")
         else
             Q.say("NOTE the Character window's band has no pad stop here")
         end
@@ -1016,15 +1175,30 @@ Q.step(1, function()
     local c = H.content("w")
     local words, allOk, seen = {}, true, 0
     local dest0 = S.CT.otherInventory and S.CT.otherInventory(c) or nil
+    -- (listgrid: the column's Take all is in its own foot, the band's height along the column's bottom, at the
+    -- column's right end, where the heading's buttons end too; no Take all in the heading)
+    local bandH = 0
+    pcall(function() bandH = ZeD.Molecules.bandH() end)
+    local panH = c and c:getHeight() or 0
     for i, cs in ipairs((c and c._colStates) or {}) do
         local crate = (cs.inventory == S.ca.inv and S.ca) or ((cs.inventory == S.cb.inv) and S.cb) or nil
-        local hit = nil
-        for _, t in ipairs(cs.viewToggleRects or {}) do if t.view == "lootall" then hit = t end end
+        local hit, nLoot, headR = nil, 0, nil
+        for _, t in ipairs(cs.viewToggleRects or {}) do
+            if t.view == "lootall" then hit = t; nLoot = nLoot + 1 end
+            if S.HEAD_VIEWS[t.view] then headR = math.max(headR or (t.x + t.w), t.x + t.w) end
+        end
         local w = "column " .. i .. " (" .. ((crate == S.ca) and "crate A" or ((crate == S.cb) and "crate B" or "?")) .. "): "
         if crate then seen = seen + 1 end
-        if not (crate and hit) then
+        local inFoot = hit ~= nil and bandH > 0 and hit.y >= panH - bandH - 1 and hit.y + hit.h <= panH + 1
+            and headR ~= nil and math.abs((hit.x + hit.w) - headR) <= 2 and nLoot == 1
+        if hit then
+            w = w .. "Take all at " .. H.num(hit.x) .. "," .. H.num(hit.y) .. " " .. H.num(hit.w) .. "x" .. H.num(hit.h)
+                .. " (the foot " .. H.num(panH - bandH) .. ".." .. H.num(panH) .. ", the heading's buttons end " .. H.num(headR)
+                .. ", " .. nLoot .. " Take all rects) in its foot " .. tostring(inFoot) .. "; "
+        end
+        if not (crate and hit and inFoot) then
             allOk = false
-            words[#words + 1] = w .. "no Take all in its heading"
+            words[#words + 1] = w .. (hit and "not in the column's foot" or "no Take all in its foot")
         else
             local d = H.dryOn()
             local lx, ly = hit.x + math.floor(hit.w / 2), hit.y + math.floor(hit.h / 2)
@@ -1036,7 +1210,7 @@ Q.step(1, function()
                 .. H.actWords(d.acts) .. "; " .. tw
         end
     end
-    Q.check(allOk and seen == 2, "COL: each Loot column's heading has its own Take all, taking that column's crate into the Character window's bag on show",
+    Q.check(allOk and seen == 2, "COL: each Loot column has its own Take all in its foot (not its heading), taking that column's crate into the Character window's bag on show",
         table.concat(words, " | ") .. "; the bag on show is the band's destination " .. tostring(dest0 ~= nil and dest0 == S.bagInv)
         .. " (moves recorded, nothing moved)")
 end)
@@ -1083,6 +1257,7 @@ Q.step(1, function()
     if S.was.world then H.placeBack(RT.ww(), S.was.geo.w) end
 end)
 Q.waitMs(300)
+Q.step(1, function() if S.was.taken then H.baseBack() end end)
 Q.step(1, function()
     if not S.was.taken then return end
     local cw, ww = RT.cw(), RT.ww()

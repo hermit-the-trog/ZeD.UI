@@ -1160,19 +1160,23 @@ end)
 
 -- ===================================================================== 7. the container buttons
 step(4, function()
-    -- (QA, Nov 22 2026, refit for branch header, the director's "Number 1": there the band has no Loot all and the
-    -- list heading's Take all, zone view:lootall:<key>, is the only one. The band's is pressed where it is (main
-    -- before that merge); where the band has none, the heading's. A band Loot all that is off, or none anywhere, FAILS.)
+    -- (QA, Nov 22 2026, refit for branch listgrid 1916f88ab, the director's "Transfer buttons, always in the footer":
+    -- the band's Take all ("take") is back and is the one pressed. view:lootall:<key> is now a Loot column's own foot,
+    -- so it stands in only where the list is in Loot columns (content._colStates); a single list with no band Take
+    -- all FAILS.)
     local wc = H.wc()
     local ok, why = H.ccPress(wc, "take")
-    if not ok and why == "no button take" then
+    local cols = wc ~= nil and wc._colStates ~= nil and #wc._colStates > 0
+    if not ok and why == "no button take" and cols then
         local z = H.zoneStarts(wc, "view:lootall:")
         if z and z.w > 0 then
             H.click(wc, z)
-            ok, why = true, "the heading's Loot all (" .. tostring(z.id) .. ")"
-        else why = "no Loot all in the band nor in the heading" end
+            ok, why = true, "the Loot column's foot Take all (" .. tostring(z.id) .. ")"
+        else why = "no Take all in the band nor in the column's foot" end
+    elseif not ok and why == "no button take" then
+        why = "no Take all in the World band (a single list: the band holds it)"
     end
-    Q.check(ok, "the crate's Loot all button presses (the band's, or the heading's where the band has none)", why)
+    Q.check(ok, "the crate's Loot all button presses (the band's; a Loot column's foot only in columns)", why)
 end)
 waitFor(10, 900, H.queueEmpty, function()
     -- (a thing the bag has no room for stays, as the game's transfer refuses it)
