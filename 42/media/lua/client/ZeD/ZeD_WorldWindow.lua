@@ -6584,18 +6584,50 @@ function ZeD_WorldWindow._unlight(pn, obj)
     end)
 end
 
+-- (QA belt row run, Nov 22 2026: #44 at 4K, crate A stayed lit after a plain click showed crate B.) What ZeD lit is
+-- kept per player, not per window: a light a World window left (one closed by a path that did not put it out, or one
+-- built again over it) is still known, so the window on show puts it out once it is no longer wanted.
+ZeD_WorldWindow._litFor = ZeD_WorldWindow._litFor or {}
+function ZeD_WorldWindow._litTable(pn)
+    local t = ZeD_WorldWindow._litFor[pn + 1]
+    if not t then t = {}; ZeD_WorldWindow._litFor[pn + 1] = t end
+    return t
+end
+
+-- Another piece of the game holds the light on an object only while a menu of that player is up (the right-click
+-- menu's hover, the disassemble menu: they let go when it closes). With no menu up, a mark left behind is stale and
+-- dropped, so ZeD can put the object out. (QA belt row run, Nov 22 2026)
+function ZeD_WorldWindow._elsewhereHolds(pn, obj)
+    local elsewhere = ZeD_WorldWindow._litElsewhere[pn + 1]
+    if not (elsewhere and elsewhere[obj]) then return false end
+    local up = false
+    pcall(function()
+        local c = getPlayerContextMenu(pn)
+        up = c ~= nil and (c:getIsVisible() or (c._zedMenu ~= nil and c._zedMenu._ctx ~= nil and c._zedMenu._ctx.open == true))
+    end)
+    if not up then elsewhere[obj] = nil end
+    return up
+end
+
 function ZeD_WorldWindow._unlightAll(win)
-    if not (win and win._lit) then return end
+    if not win then return end
     local pn = win.playerNum or 0
-    local elsewhere = ZeD_WorldWindow._litElsewhere[pn + 1] or {}
-    for obj in pairs(win._lit) do
-        if not elsewhere[obj] then ZeD_WorldWindow._unlight(pn, obj) end
+    local lit = ZeD_WorldWindow._litTable(pn)
+    -- (keys gathered first: a table is not changed while pairs walks it, Kahlua)
+    local objs = {}
+    for obj in pairs(lit) do objs[#objs + 1] = obj end
+    for _, obj in ipairs(objs) do
+        if not ZeD_WorldWindow._elsewhereHolds(pn, obj) then ZeD_WorldWindow._unlight(pn, obj) end
+        lit[obj] = nil
     end
-    win._lit = {}
+    win._lit = lit
 end
 
 function ZeD_WorldWindow._lightShown(win)
     local pn = win.playerNum or 0
+    -- (a World window that is not the player's window now lights nothing: only the one on show decides) (QA belt row
+    -- run, Nov 22 2026)
+    if _worldWins[pn] ~= win then return end
     local list = win._containers or {}
     local want = {}   -- object -> "show" | "hover"
     local function add(ci, kind)
@@ -6630,18 +6662,20 @@ function ZeD_WorldWindow._lightShown(win)
         if hoverCI then add(hoverCI, "hover") end
     end
     local outline = getCore():getOptionDoContainerOutline()
-    local elsewhere = ZeD_WorldWindow._litElsewhere[pn + 1] or {}
-    local lit = win._lit or {}
-    -- what is no longer on show goes dark
+    local lit = ZeD_WorldWindow._litTable(pn)
+    -- what is no longer on show goes dark: highlight and outline off (keys gathered first: a table is not changed
+    -- while pairs walks it, Kahlua) (QA belt row run, Nov 22 2026)
+    local gone = {}
     for obj in pairs(lit) do
-        if not want[obj] then
-            if not elsewhere[obj] then ZeD_WorldWindow._unlight(pn, obj) end
-            lit[obj] = nil
-        end
+        if not want[obj] then gone[#gone + 1] = obj end
+    end
+    for _, obj in ipairs(gone) do
+        if not ZeD_WorldWindow._elsewhereHolds(pn, obj) then ZeD_WorldWindow._unlight(pn, obj) end
+        lit[obj] = nil
     end
     -- the rest is lit every frame, as the game's page does it (another light on the object may have ended)
     for obj, kind in pairs(want) do
-        if elsewhere[obj] then
+        if ZeD_WorldWindow._elsewhereHolds(pn, obj) then
             lit[obj] = nil
         elseif kind == "show" then
             pcall(function()
@@ -6849,6 +6883,8 @@ end
 --- ordinary close fails on it. pn: whose window (nil: the first player's).
 function ZeD_WorldWindow.forceClose(pn)
     ZeD_WorldWindow._endZoneDraw()
+    -- (nothing it lit stays lit, whichever way the close goes) (QA belt row run, Nov 22 2026)
+    if _worldWins[pn or 0] then pcall(ZeD_WorldWindow._unlightAll, _worldWins[pn or 0]) end
     local ok = pcall(ZeD_WorldWindow.close, pn)
     if ok and not _worldWins[pn or 0] then return end
     local w = _worldWins[pn or 0]
