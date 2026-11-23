@@ -1,0 +1,4 @@
+# rt_strain alone (QA, Nov 23 2026)
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+rt_strain.lua | rt_strain | timeout=900
