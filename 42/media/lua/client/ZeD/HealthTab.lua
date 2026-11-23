@@ -1434,6 +1434,76 @@ function ZeD.HealthTab.selectedExercise(win)
     return win and win._healthExerciseSel or "squats"
 end
 
+-- ----------------------------------------------------------------------------
+-- PUTTING GEAR BACK after a session (vanilla ISFitnessUI:update, lines 213-229).
+-- The game's fitness window notes what it took off (hands and worn bags) and puts
+-- it back once the session ends (getCurrentExe() goes nil). ZeD's Start takes the
+-- same things off, so it keeps the same note per player and a watcher puts them
+-- back, whether or not the Health tab is still open.
+-- ----------------------------------------------------------------------------
+ZeD.HealthTab._reequip = ZeD.HealthTab._reequip or {}   -- [playerNum] = { player = IsoPlayer, list = { {kind, item}, ... } }
+
+--- Note what the session takes off, before it is taken off (vanilla equipItems order).
+--- Returns the note's list (also used by the sim).
+function ZeD.HealthTab._noteGear(playerObj)
+    local list = {}
+    local prim = playerObj:getPrimaryHandItem()
+    if prim and playerObj:isItemInBothHands(prim) then
+        list[#list + 1] = { kind = "twohands", item = prim }
+    else
+        if prim then list[#list + 1] = { kind = "primary", item = prim } end
+        local sec = playerObj:getSecondaryHandItem()
+        if sec and sec ~= prim then list[#list + 1] = { kind = "secondary", item = sec } end
+    end
+    local worn = playerObj:getWornItems()
+    for i = 0, worn:size() - 1 do
+        local item = worn:get(i):getItem()
+        if item and instanceof(item, "InventoryContainer") then
+            list[#list + 1] = { kind = "worn", item = item }
+        end
+    end
+    ZeD.HealthTab._reequip[playerObj:getPlayerNum()] = { player = playerObj, list = list }
+    return list
+end
+
+--- Put a player's noted gear back (vanilla's calls); items no longer carried are skipped.
+function ZeD.HealthTab._putGearBack(playerObj, note)
+    local inv = playerObj:getInventory()
+    for _, e in ipairs(note.list) do
+        local item = e.item
+        if item and inv:contains(item) then
+            if e.kind == "primary" then
+                ISWorldObjectContextMenu.equip(playerObj, playerObj:getPrimaryHandItem(), item, true, false)
+            elseif e.kind == "secondary" then
+                ISWorldObjectContextMenu.equip(playerObj, playerObj:getSecondaryHandItem(), item, false, false)
+            elseif e.kind == "twohands" then
+                ISWorldObjectContextMenu.equip(playerObj, playerObj:getPrimaryHandItem(), item, true, true)
+            elseif not playerObj:isEquipped(item) then
+                ISInventoryPaneContextMenu.wearItem(item, playerObj:getPlayerNum())
+            end
+        end
+    end
+end
+
+--- The watcher: once a noted player's session is over, put the gear back.
+function ZeD.HealthTab._reequipTick(playerObj)
+    if not playerObj then return end
+    local pn = playerObj:getPlayerNum()
+    local note = ZeD.HealthTab._reequip[pn]
+    if not note then return end
+    if note.player ~= playerObj or playerObj:isDead() then      -- a new character in that seat
+        ZeD.HealthTab._reequip[pn] = nil
+        return
+    end
+    if playerObj:getFitness():getCurrentExe() then return end   -- still exercising
+    ZeD.HealthTab._reequip[pn] = nil
+    ZeD.HealthTab._putGearBack(playerObj, note)
+end
+if not ZeD.HealthTab._reequipHooked and Events and Events.OnPlayerUpdate then   -- (no Events in some sims)
+    ZeD.HealthTab._reequipHooked = true
+    Events.OnPlayerUpdate.Add(function(p) ZeD.HealthTab._reequipTick(p) end)
+end
+
 -- Start exercise (replicates vanilla ISFitnessUI:equipItems + onClick OK)
 function ZeD.HealthTab._startExercise(playerObj, exerciseId, minutes)
     if not FitnessExercises or not FitnessExercises.exercisesType then return end
@@ -1444,6 +1514,9 @@ function ZeD.HealthTab._startExercise(playerObj, exerciseId, minutes)
     if exeData.item and not playerObj:getInventory():contains(exeData.item, true) then
         return
     end
+
+    -- Note the hands and bags first, so they go back on when the session ends
+    ZeD.HealthTab._noteGear(playerObj)
 
     -- Equip/unequip (replicate vanilla ISFitnessUI:equipItems)
     if not exeData.prop then
