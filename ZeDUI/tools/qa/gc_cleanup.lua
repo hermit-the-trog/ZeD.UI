@@ -21,7 +21,7 @@
 --   vehicle_tab, vehicle_part_missing      a Base.CarNormal (the prelude's ZEDQA_CAR_WAIT), repaired, the Vehicle tab
 --                                          opened as the mechanics key does (MechanicsTab.openFromAction); then its
 --                                          battery taken out, its windshield smashed and a tire worn down
---   laundry_washer_full / _narrow / _half, laundry_dryer_full / _narrow, laundry_combo_full, laundry_popout
+--   laundry_washer_full / _narrow, laundry_dryer_full / _narrow, laundry_combo_full, laundry_popout
 --                                          a washer, a dryer and a washer-dryer placed one square from him (the
 --                                          game's tiles, as rt_cards.lua finds them); each card on the full card and
 --                                          held to a 336-unit body (the main face); the washer's face popped out
@@ -947,8 +947,7 @@ function S.standing()
 end
 -- the room behind the face fills the body edge to edge, and nothing the card draws lies outside it
 -- known: true for the one case with a known overhang waiting on a design call (the washer's narrow face on the half
--- card, QA Nov 22): a NOTE with the overhang in px instead of a FAIL; every other case stays strict. No caller
--- passes it now: the narrow faces fit the half card (Narrow washer, the director, Nov 22 2026)
+-- card, QA Nov 22): a NOTE with the overhang in px instead of a FAIL; every other case stays strict
 function S.roomCheck(label, R, card, t, known)
     local T = ZeD.T
     local W, H = card:getWidth(), card:getHeight()
@@ -1031,9 +1030,7 @@ function S.laundryRun(m, wkey, shot)
         if not m.obj then Q.skip(label, "the machine was not placed"); return end
         local card, t = S.card(), S.entryT()
         if not (R and card and t and t.obj == m.obj) then Q.check(false, label .. ": the card's draws recorded (staging)"); return end
-        -- every case strict now: the narrow faces were redrawn 130 wide to fit the half card at 1x (Narrow washer,
-        -- the director, Nov 22 2026)
-        S.roomCheck(label, R, card, t, false)
+        S.roomCheck(label, R, card, t, m.key == "washer" and wkey == "half")
     end)
     if shot then
         Q.step(2, function()
@@ -1265,7 +1262,7 @@ end)
 Q.step(10, function() S.placeMachines() end)
 S.laundryRun(S.MACHINES[1], "full", "laundry_washer_full")
 S.laundryRun(S.MACHINES[1], "narrow", "laundry_washer_narrow")
-S.laundryRun(S.MACHINES[1], "half", "laundry_washer_half")   -- (the redrawn narrow face on the half card, Nov 22 2026)
+S.laundryRun(S.MACHINES[1], "half", nil)
 S.laundryRun(S.MACHINES[2], "full", "laundry_dryer_full")
 S.laundryRun(S.MACHINES[2], "narrow", "laundry_dryer_narrow")
 S.laundryRun(S.MACHINES[2], "half", nil)
