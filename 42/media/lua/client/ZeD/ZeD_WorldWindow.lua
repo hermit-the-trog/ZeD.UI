@@ -2147,6 +2147,24 @@ local function drawWorldTabStrip(self, win)
     self:clearStencilRect()
 end
 
+--- The drawer's width for an open object card, in screen px (def: the card's kind; base: the tab's card under it, 0
+--- when there is none). A kind marked half (the padlock, the recipe preview) is the half card, over a wider tab's card
+--- as an item card lies; every other kind is the full card. The one place the object card's drawer width is decided:
+--- QA's runs that picture a card at another width (336, 220) set it here, so the drawer itself is that wide and the
+--- card still fills it (they once narrowed only the card and left an empty strip before the tabs: object card fill).
+function ZeD_WorldWindow.objectDrawerW(def, base)
+    local T = ZeD.T
+    if def and def.half then return math.max(base or 0, T.px(ITEM_CARD_W)) end
+    return T.px(OBJECT_CARD_W)
+end
+
+--- The object card's width in a drawer effectiveW px wide: the whole drawer, so its scroll bar sits against the tab
+--- strip; a half kind over a wider tab's card keeps the half card (the tab shows beside it). (object card fill)
+function ZeD_WorldWindow.objectCardW(def, effectiveW)
+    if def and def.half then return math.min(effectiveW, ZeD.T.px(ITEM_CARD_W)) end
+    return effectiveW
+end
+
 --- A tab's card in the World window: the half card or the full card, never a width between
 --- (want: the tab's own width; heldIn: the window cannot hold the full card beside the
 --- inventory). The radio tab is the full card wherever it fits, but for a half-card device
@@ -2197,9 +2215,7 @@ local function getWorldTargetDrawerW(win)
         -- the object card needs the full card, over a tab or on its own
         -- (a kind marked half, the recipe preview, is the half card over the tab's card like an item card)
         if win._drawerObject and win._drawerItem == nil then
-            local d = win._drawerObject.def
-            if d and d.half then return math.max(base, T.px(ITEM_CARD_W)) end
-            return T.px(OBJECT_CARD_W)
+            return ZeD_WorldWindow.objectDrawerW(win._drawerObject.def, base)
         end
         return base
     end
@@ -4420,7 +4436,8 @@ function ZeD_WorldWindow.toggle(playerNum)
         elseif showObj then
             self:setX(drawer:getX())
             local od = win._drawerObject and win._drawerObject.def
-            self:setWidth(math.min(effectiveW, T.px((od and od.half) and ITEM_CARD_W or OBJECT_CARD_W)))
+            -- the card fills the drawer it is given (no strip left between its scroll bar and the tabs) (object card fill)
+            self:setWidth(ZeD_WorldWindow.objectCardW(od, effectiveW))
             objCard:setX(0)
             objCard:setY(0)
             objCard:setWidth(self:getWidth())
@@ -4685,7 +4702,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                     -- (an object card lies there the same way)
                     local od = win._drawerObject and win._drawerObject.def
                     local coverL = (win._drawerItem ~= nil) and math.min(effectiveW, T.px(ITEM_CARD_W))
-                        or ((win._drawerObject ~= nil) and math.min(effectiveW, T.px((od and od.half) and ITEM_CARD_W or OBJECT_CARD_W))) or nil
+                        or ((win._drawerObject ~= nil) and ZeD_WorldWindow.objectCardW(od, effectiveW)) or nil
                     if coverL and coverL > 0 then
                         self:clearStencilRect()
                         self:setStencilRect(coverL, 0, effectiveW - coverL, dh)
