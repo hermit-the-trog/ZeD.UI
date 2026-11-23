@@ -665,6 +665,10 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Belt_SlotAnkle` | `Ankle` | Belt HUD, name printed inside an empty ankle holster slot box | 9 |
 | `UI_ZeD_Belt_SlotBeltL` | `Belt L` | Belt HUD, name printed inside an empty hotbar slot box (waist belt, left) | 9 |
 | `UI_ZeD_Belt_SlotBeltR` | `Belt R` | Belt HUD, name printed inside an empty hotbar slot box (waist belt, right) | 9 |
+| `UI_ZeD_Belt_SlotBelt` | `Belt` | Belt HUD, name printed inside an empty waist belt slot box; the side shows separately as UI_ZeD_Belt_SideL / SideR | 9 |
+| `UI_ZeD_Belt_SlotWeb` | `Web` | Belt HUD, name printed inside an empty webbing slot box; the side shows separately | 9 |
+| `UI_ZeD_Belt_SideL` | `L` | Belt HUD, one-letter mark in the top right corner of a slot on the character's left (belt, holster, webbing) | 2 |
+| `UI_ZeD_Belt_SideR` | `R` | Belt HUD, one-letter mark in the top right corner of a slot on the character's right | 2 |
 | `UI_ZeD_Belt_SlotHolster` | `Holster` | Belt HUD, name printed inside an empty holster slot box | 9 |
 | `UI_ZeD_Belt_SlotHolsterL` | `Holster L` | Belt HUD, name printed inside an empty left holster slot box | 9 |
 | `UI_ZeD_Belt_SlotKey` | `%1 \| key %2` | Belt HUD, chip above a hovered slot; %1 = the slot's name, %2 = the key bound to it | 40 |

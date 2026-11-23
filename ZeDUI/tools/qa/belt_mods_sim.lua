@@ -422,6 +422,17 @@ do
     local nSp
     NEW_SAME, nSp = NEW_SAME:gsub("\n *x = self:_speedBoxes%(boxes, x, h%)", "")
     check("SAME: the speed keys found to leave out (Lite and Full)", nSp == 2, nSp)
+    -- (the side mark in a slot's top right corner, and the plain "Belt" / "Web" / "Holster" it lets the empty slot
+    -- say, are new on purpose: the director, Nov 23 2026. The SAME runs put the old names back and the mark out)
+    local nSide, nB, nH, nW
+    NEW_SAME, nSide = NEW_SAME:gsub("\n *o%.side = B%.sideMark%(s%.slot and s%.slot%.slotType%)", "")
+    NEW_SAME, nB = NEW_SAME:gsub('SmallBeltLeft = "UI_ZeD_Belt_SlotBelt", SmallBeltRight = "UI_ZeD_Belt_SlotBelt"',
+        'SmallBeltLeft = "UI_ZeD_Belt_SlotBeltL", SmallBeltRight = "UI_ZeD_Belt_SlotBeltR"')
+    NEW_SAME, nH = NEW_SAME:gsub('HolsterLeft = "UI_ZeD_Belt_SlotHolster"', 'HolsterLeft = "UI_ZeD_Belt_SlotHolsterL"')
+    NEW_SAME, nW = NEW_SAME:gsub('WebbingLeft = "UI_ZeD_Belt_SlotWeb", WebbingRight = "UI_ZeD_Belt_SlotWeb"',
+        'WebbingLeft = "UI_ZeD_Belt_SlotWebL", WebbingRight = "UI_ZeD_Belt_SlotWebR"')
+    check("SAME: the side mark and the plain names found to put back", nSide == 1 and nB == 1 and nH == 1 and nW == 1,
+        tostring(nSide) .. tostring(nB) .. tostring(nH) .. tostring(nW))
 end
 
 -- ---------------------------------------------------------------------------
@@ -1428,6 +1439,23 @@ do
         check("KEYS " .. tag .. " out of the car: the whole belt again", hud._drawn == true)
     end
     env.simple = false
+end
+
+-- ---------------------------------------------------------------------------
+section("SIDE: the belt's left and right slots carry L / R in the top right corner (the director, Nov 23 2026)")
+-- ---------------------------------------------------------------------------
+do
+    boot(NEW); env.simple = false; scenario(2)
+    local log = frame()
+    check("SIDE the empty left and right belt slots say Belt, not Belt L / Belt R",
+        log:find("drawText Belt ", 1, true) ~= nil and not log:find("drawText Belt L", 1, true)
+        and not log:find("drawText Belt R", 1, true))
+    check("SIDE an L and an R are drawn", log:find("drawText L ", 1, true) ~= nil and log:find("drawText R ", 1, true) ~= nil)
+    check("SIDE the Back slot has no side mark", ZeD.Belt.sideMark("Back") == nil)
+    check("SIDE the left slots read L, the right R", ZeD.Belt.sideMark("SmallBeltLeft") == "L"
+        and ZeD.Belt.sideMark("HolsterRight") == "R" and ZeD.Belt.sideMark("WebbingLeft") == "L")
+    check("SIDE the left belt's empty name is the plain word", ZeD.Belt.shortName("SmallBeltLeft") == "Belt"
+        and ZeD.Belt.shortName("WebbingRight") == "Web" and ZeD.Belt.shortName("HolsterLeft") == "Holster")
 end
 
 print(string.format("belt_mods_sim: %d checks, %d failed", checks, failed))

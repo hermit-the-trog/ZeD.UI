@@ -335,17 +335,20 @@ function B.keyLabel(i)
 end
 
 -- slot type -> the key of its short name on the box (Back is vanilla's own word, below)
+-- (a slot on one side names only its kind; its side is the L / R mark in the box's top right corner: the director,
+-- Nov 23 2026: "a left and right indicator up in the corner" rather than "Belt L, Belt R")
 local SHORT = {
-    SmallBeltLeft = "UI_ZeD_Belt_SlotBeltL", SmallBeltRight = "UI_ZeD_Belt_SlotBeltR",
-    HolsterRight = "UI_ZeD_Belt_SlotHolster", HolsterLeft = "UI_ZeD_Belt_SlotHolsterL",
+    SmallBeltLeft = "UI_ZeD_Belt_SlotBelt", SmallBeltRight = "UI_ZeD_Belt_SlotBelt",
+    HolsterRight = "UI_ZeD_Belt_SlotHolster", HolsterLeft = "UI_ZeD_Belt_SlotHolster",
     HolsterShoulder = "UI_ZeD_Belt_SlotShoulder", HolsterAnkle = "UI_ZeD_Belt_SlotAnkle",
-    WebbingLeft = "UI_ZeD_Belt_SlotWebL", WebbingRight = "UI_ZeD_Belt_SlotWebR",
+    WebbingLeft = "UI_ZeD_Belt_SlotWeb", WebbingRight = "UI_ZeD_Belt_SlotWeb",
     BedrollBottom = "UI_ZeD_Belt_SlotPack", BedrollBottomBig = "UI_ZeD_Belt_SlotPack", BedrollBottomALICE = "UI_ZeD_Belt_SlotPack",
 }
 ZeD.trDefaults({
     UI_ZeD_Belt_SlotBeltL = "Belt L", UI_ZeD_Belt_SlotBeltR = "Belt R", UI_ZeD_Belt_SlotHolster = "Holster",
     UI_ZeD_Belt_SlotHolsterL = "Holster L", UI_ZeD_Belt_SlotShoulder = "Shoulder", UI_ZeD_Belt_SlotAnkle = "Ankle",
     UI_ZeD_Belt_SlotWebL = "Web L", UI_ZeD_Belt_SlotWebR = "Web R", UI_ZeD_Belt_SlotPack = "Pack",
+    UI_ZeD_Belt_SlotBelt = "Belt", UI_ZeD_Belt_SlotWeb = "Web", UI_ZeD_Belt_SideL = "L", UI_ZeD_Belt_SideR = "R",
     UI_ZeD_Belt_Tag = "Belt %1", UI_ZeD_Belt_InHand = "In hand",
     UI_ZeD_Belt_SlotKey = "%1 | key %2", UI_ZeD_Belt_Watch = "Watch", UI_ZeD_Belt_WatchSpeed = "Speed | %1x",
     UI_ZeD_Belt_WatchStart = "Start", UI_ZeD_Belt_WatchLight = "Light", UI_ZeD_Belt_WatchTuck = "%1 | Tuck away",
@@ -407,6 +410,27 @@ function B.handName(which)
     c[k] = s
     return s
 end
+-- slot type -> its side ("L" / "R"), for the mark in the box's top right corner; a slot with no side has none
+local SIDE = {
+    SmallBeltLeft = "L", SmallBeltRight = "R", HolsterLeft = "L", HolsterRight = "R",
+    WebbingLeft = "L", WebbingRight = "R",
+}
+B.SIDE = SIDE
+--- The side mark's word for a slot type (the player's language: "L" / "R" in English), or nil for a slot with no side.
+function B.sideMark(slotType)
+    local sd = SIDE[slotType or ""]
+    if not sd then return nil end
+    -- (kept with the other names until the language changes: no frame rebuilds it)
+    local c = names().short
+    local k = "side:" .. sd
+    local s = c[k]
+    if not s then
+        s = ZeD.tr(sd == "L" and "UI_ZeD_Belt_SideL" or "UI_ZeD_Belt_SideR")
+        c[k] = s
+    end
+    return s
+end
+
 function B.slotName(slot)
     if not slot then return "" end
     local c = names().slot
@@ -1953,10 +1977,22 @@ function ZeD_BeltHUD:_drawBox(b, o)
         local tc = o.key and T.textOnAccent or (o.badge and T.text) or T.textDim
         self:drawText(txt, b.x + math.floor((kw - tm:MeasureStringX(f1, txt)) / 2), b.y, tc.r, tc.g, tc.b, 1, f1)
     end
+    -- the side the slot is on, in the top right corner, as the key sits in the top left (the director, Nov 23 2026):
+    -- the key's tag in the dim fill, so the number stays the one in the accent
+    local sideH = 0
+    if o.side and not round then
+        local f1 = T.fontF1
+        local sh = tm:getFontHeight(f1)
+        local sw = math.max(tm:MeasureStringX(f1, o.side) + T.px(6), sh)
+        local tc = onFocus and T.textOnFocus or T.text
+        self:drawRect(b.x + b.w - sw, b.y, sw, sh, 1, col(T.surf3))
+        self:drawText(o.side, b.x + b.w - sw + math.floor((sw - tm:MeasureStringX(f1, o.side)) / 2), b.y, tc.r, tc.g, tc.b, 1, f1)
+        sideH = sh
+    end
     -- a light or walkie that is on
     if o.lit and not o.inHand then
         local d = T.px(6)
-        local lx, ly = b.x + b.w - d - T.px(3), b.y + T.px(3)
+        local lx, ly = b.x + b.w - d - T.px(3), b.y + T.px(3) + sideH   -- (under the side mark)
         if round then                                       -- on the circle's upper right, inside its edge
             local rad = b.w / 2
             lx = b.x + math.floor(rad + rad * 0.62 - d / 2) - T.px(2); ly = b.y + math.floor(rad - rad * 0.62 - d / 2) + T.px(2)
@@ -2433,6 +2469,7 @@ function ZeD_BeltHUD:_prerender()
         else
             local s = b.s
             o.item, o.key, o.label, o.inHand = s.item, s.key, s.short, s.inHand
+            o.side = B.sideMark(s.slot and s.slot.slotType)
             o.lit = s.item and not instanceof(s.item, "HandWeapon") and call(s.item, "canBeActivated") and call(s.item, "isActivated")
         end
         if b.kind ~= "bag" and b.kind ~= "speed" and b.kind ~= "watch" and b.kind ~= "ammo" and b.kind ~= "chat" and b.kind ~= "pvp" then
