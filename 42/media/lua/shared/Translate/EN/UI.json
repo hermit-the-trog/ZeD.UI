@@ -2218,6 +2218,7 @@
     "UI_ZeD_Options_GiveWheels": "Quick wheels",
     "UI_ZeD_Options_GiveCharInfo": "Character info",
     "UI_ZeD_Options_GiveErrorBox": "Error box",
+    "UI_ZeD_ErrorBox_Marker": "Error",
     "UI_ZeD_Options_WhyFontSize": "ZeD's windows grow with the game's font size.",
     "UI_ZeD_Options_WhyMoodleSize": "ZeD places the moodles and sizes its moodle row from it.",
     "UI_ZeD_Options_WhyTooltipFont": "ZeD's tooltips and the item tooltip's facts are sized by it.",

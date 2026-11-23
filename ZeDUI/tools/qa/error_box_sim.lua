@@ -10,6 +10,9 @@
 --           after; a fall (a line read) starts nothing; safe mode and no character hide it
 --   CLICK   a click on the notice opens Messages (the belt's note did before)
 --   PLACE   the bottom right corner; left of the game's box while that is given back; the balloons' anchor
+--   MARK    the marker (Error marker, Nov 22 2026): the slide's positions over time, the notice lifted by the marker's
+--           height, the hold stretched by repeat errors, red for ZeD's own and gray for others', none for notes, in
+--           safe mode, with the game's box given back or with no character; a click opens Messages
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/error_box_sim.lua
 -- It prints FAIL lines and a last line "error_box_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -259,6 +262,143 @@ check("CLICK the notice: Messages opens, with the button sound", opened == 1 and
 check("CLICK the pad from the belt: player one only, while it shows", E.padReach(0) == true and E.padReach(1) == false)
 el.visible = false
 check("CLICK hidden: no pad stop", E.padReach(0) == false)
+
+-- ---------------------------------------------------------------------------
+-- MARK  the marker (Error marker, the director, Nov 22 2026): a box the notice's width rises from the screen's bottom
+--       edge when a new error is filed, lifts the notice, holds HOLD_MS and slides back down; linear, RISE_MS up and
+--       FALL_MS down; more errors while it is up stretch the hold; red for ZeD's own, gray for others'; none for notes,
+--       in safe mode, with the game's box given back or with no character
+-- ---------------------------------------------------------------------------
+local drawn = {}
+function ZeD_Panel:drawRect(x, y, w, h, a, r, g, b) drawn[#drawn + 1] = { r = r, g = g, b = b } end
+function ZeD_Panel:drawRectBorder() end
+function ZeD_Panel:drawText() end
+function ZeD_Panel:isMouseOver() return false end
+local backs = 0
+function ZeD_Panel:backMost() backs = backs + 1 end
+ZeD.TM = { getFontHeight = function() return 14 end, MeasureStringX = function(_, f, s) return #s * 7 end }
+ZeD.T.danger = { r = 0.9, g = 0.1, b = 0.1 }
+ZeD.T.textDim = { r = 0.5, g = 0.5, b = 0.5 }
+ZeD.T.borderS = { r = 0.2, g = 0.2, b = 0.2 }
+ZeD.T.hover = { r = 1, g = 1, b = 1, a = 0.2 }
+ZeD.T.fontF1, ZeD.T.fontF5 = "F1", "F5"
+
+M.sources = { Halo = { kind = "halo", items = { { read = true } } } }
+M.toasts = {}
+E._note = nil
+E._marker = nil
+E._mk = { phase = nil, p = 0, t = 0, holdEnd = 0, count = 0, kind = nil }
+E.install()
+el = E._note
+local mk = E._marker
+local REST = SH - E.NOTE_U - E.EDGE_U
+local MW, MH = E.markSize()
+local D = MH + E.EDGE_U   -- (how far the marker's top travels)
+check("MARK made at the game's start: hidden, on the UI list, not always on top, at the back", mk and mk.visible == false
+    and mk.onList and backs >= 1)
+check("MARK size: the notice's width, two lines of the badge's font high", MW == E.NOTE_U and MH == 14 * 2 + 6, MW .. "x" .. MH)
+check("MARK the timings: 0.5 s up, 3 s held, 0.5 s down", E.RISE_MS == 500 and E.HOLD_MS == 3000 and E.FALL_MS == 500)
+E.frame()
+check("MARK nothing new: hidden", mk.visible == false)
+
+local T0 = NOW
+local zedErr = { read = false, count = 1 }
+M.sources["ZeD-GUI"] = { kind = "err", items = { zedErr } }
+backs = 0
+E.frame()
+check("MARK a new ZeD error: shown, starting at the screen's bottom edge", mk.visible == true and mk.y == SH and E._mk.phase == "up", mk.y)
+check("MARK ... at the notice's x and width", mk.x == el.x and mk.width == el.width, tostring(mk.x) .. "," .. tostring(el.x))
+check("MARK ... sent to the back of the UI list as it starts (under the hint strip)", backs == 1, backs)
+check("MARK ... red (ZeD's own)", E._mk.kind == "ours" and E._mk.count == 1)
+drawn = {}
+ZeD_ErrorMarker.prerender(mk)
+check("MARK ZeD's own: drawn in the danger red", drawn[1] and drawn[1].r == ZeD.T.danger.r and drawn[1].g == ZeD.T.danger.g)
+
+local function at(ms) NOW = T0 + ms; E.frame() end
+at(100)
+check("MARK 0.1 s: a fifth of the way up (linear)", mk.y == SH - math.floor(D * 0.2 + 0.5), mk.y)
+check("MARK 0.1 s: below the notice's bottom, the notice not moved yet", el.y == REST, el.y)
+at(250)
+check("MARK 0.25 s: half way up", mk.y == SH - math.floor(D * 0.5 + 0.5), mk.y)
+check("MARK 0.25 s: the notice rides on its top", el.y == mk.y - E.NOTE_U and el.y < REST, el.y)
+at(500)
+check("MARK 0.5 s: at the top, EDGE_U above the bottom", mk.y == SH - D and E._mk.phase == "hold", mk.y)
+check("MARK 0.5 s: the notice lifted by the marker's height", el.y == REST - MH, el.y)
+at(3499)
+check("MARK 3.499 s: still held", mk.y == SH - D and el.y == REST - MH)
+at(3750)
+check("MARK 3.75 s: half way down", E._mk.phase == "down" and mk.y == SH - math.floor(D * 0.5 + 0.5), mk.y)
+check("MARK 3.75 s: the notice comes down with it", el.y == mk.y - E.NOTE_U, el.y)
+at(4000)
+check("MARK 4 s: gone, the notice back in its place", mk.visible == false and E._mk.phase == nil and el.y == REST, el.y)
+check("MARK gone: its count cleared", E._mk.count == 0 and E._mk.kind == nil)
+
+-- another mod's error: gray; repeats while it is up stretch the hold, never start the slide again
+T0 = NOW + 10000
+at(0)
+local modErr = { read = false, count = 1 }
+M.sources.ModX = { kind = "err", items = { modErr } }
+at(0)
+check("MARK another mod's error: shown, gray", mk.visible == true and E._mk.kind == "others")
+drawn = {}
+ZeD_ErrorMarker.prerender(mk)
+check("MARK others': drawn in the badge's gray", drawn[1] and drawn[1].r == ZeD.T.textDim.r)
+at(500)
+modErr.count = 2
+at(2000)
+check("MARK a repeat while held: no new slide, the count up", E._mk.phase == "hold" and E._mk.p == 1 and E._mk.count == 2)
+at(3600)
+check("MARK the hold runs on from the repeat (would have fallen at 3.5 s)", E._mk.phase == "hold" and mk.y == SH - D)
+at(4999)
+check("MARK ... up to 3 s after the repeat", E._mk.phase == "hold")
+at(5250)
+check("MARK ... then down", E._mk.phase == "down" and mk.y == SH - math.floor(D * 0.5 + 0.5), mk.y)
+modErr.count = 3
+at(5250)
+check("MARK a new one while falling: back up from where it is, no jump", E._mk.phase == "up" and mk.y == SH - math.floor(D * 0.5 + 0.5), mk.y)
+at(5500)
+check("MARK ... at the top again a quarter second later", E._mk.phase == "hold" and mk.y == SH - D, mk.y)
+zedErr.count = 2
+at(5600)
+check("MARK one of ZeD's own in the same run: red from then on", E._mk.kind == "ours" and E._mk.count == 4, E._mk.count)
+at(9100)
+check("MARK all down at last", mk.visible == false and el.y == REST)
+
+-- notes: no marker (the badge only)
+T0 = NOW + 10000
+M.sources.ModN = { kind = "mods", items = { { read = false } } }
+at(0)
+check("MARK a note: the notice shows, no marker", el.visible == true and mk.visible == false and E._mk.phase == nil)
+
+-- never in safe mode, with the game's box given back, with no character
+SAFE = true
+modErr.count = 4
+at(100)
+check("MARK safe mode: none", mk.visible == false)
+SAFE = false
+at(200)
+check("MARK safe mode off: the error filed in it starts nothing", mk.visible == false)
+PIECE = true
+modErr.count = 5
+at(300)
+check("MARK the game's box given back: none (the game's own box shows)", mk.visible == false)
+PIECE = false
+PLAYER = nil
+modErr.count = 6
+at(400)
+check("MARK no character: none", mk.visible == false)
+PLAYER = {}
+modErr.count = 7
+at(500)
+check("MARK back: a new error shows it", mk.visible == true)
+SAFE = true
+at(600)
+check("MARK safe mode while it is up: gone at once", mk.visible == false and E._mk.phase == nil)
+SAFE = false
+
+-- a click on the marker opens Messages
+opened = 0
+check("MARK a click: Messages opens", ZeD_ErrorMarker.onMouseDown(mk, 3, 3) == true and opened == 1)
 
 print(string.format("error_box_sim: %d checks, %d failed", checks, failed))
 os.exit(failed == 0 and 0 or 1)
