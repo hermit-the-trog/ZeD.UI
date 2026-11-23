@@ -609,7 +609,11 @@ function S.exercise(id, first)
         if t.off or not t.on then return true end
         local cur = nil
         pcall(function() cur = S.fitness():getCurrentExe() end)
-        return not S.exercising() and cur == nil
+        -- (and out of the game's fitness state: ISFitnessAction:start skips its set-up while the last exercise's
+        -- state is still on, so the next exercise would end at once with no repetition)
+        local inFit = false
+        pcall(function() inFit = S.p:getCurrentState() == FitnessState.instance() end)
+        return not S.exercising() and cur == nil and not inFit
     end, function(ok)
         if t.off or not t.on then return end
         Q.check(ok, lab .. ": stopped, the queue free", "head " .. tostring(S.head() and S.head().Type))
@@ -717,10 +721,14 @@ function S.moodleCase(lab, key, W, wantLevel)
         local w = RT.cw()
         Z.HealthTab.closeMenu(w, "squats")
         S.stage(W)
+        S.reread = nil
         S.refresh()
     end)
     S.until1(3, 600, function()
-        return S.moodle(key) >= wantLevel and S.fresh()
+        -- (the block is read again once the game's moodle has come on: the fill rebuilt before it would be stale)
+        if S.moodle(key) < wantLevel then return false end
+        if not S.reread then S.reread = true; S.refresh(); return false end
+        return S.fresh()
     end, function(ok)
         local lvl = S.moodle(key)
         if not ok and lvl < 1 then

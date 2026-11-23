@@ -247,11 +247,13 @@ function S.restore(bp, f)
     if f.stitched then pcall(function() bp:setStitched(true) end) end
     if f.splint then
         pcall(function() bp:setSplint(true, f.splintFactor or 0) end)
-        if f.splintItem then pcall(function() bp:setSplintItem(f.splintItem) end) end
     end
+    -- (the splint's item is kept apart from the splint itself: put back as found, nil too)
+    pcall(function() bp:setSplintItem(f.splintItem) end)
     if f.infectedWound then pcall(function() bp:setInfectedWound(true) end) end
     if f.burnWash then pcall(function() bp:setNeedBurnWash(true) end) end
-    if f.bandaged then pcall(function() bp:setBandaged(true, f.bandageLife or 0, false, f.bandageType) end) end
+    -- (the body's SetBandaged, as ISApplyBandage does: the part's own setBandaged leaves the bandage type out)
+    if f.bandaged then pcall(function() S.bd():SetBandaged(bp:getIndex(), true, f.bandageLife or 0, false, f.bandageType) end) end
     for _, s in ipairs(S.SETS) do
         local v, m = f[s[2]], s[1]
         if type(v) == "number" then pcall(function() bp[m](bp, v) end) end
