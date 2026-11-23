@@ -505,17 +505,27 @@ function ZeD.InventoryRenderer.onViewZone(zid, content)
         return
     end
     if view == "flip" then ZeD.InventoryRenderer.flipGridKey(key, content and content._playerObj) end
-    if view == "lootall" then ZeD.InventoryRenderer.lootAllOf(content) end   -- (KISS #18)
+    if view == "lootall" then ZeD.InventoryRenderer.lootAllOf(content, key) end   -- (KISS #18; key: its column's)
 end
 
 -- The heading's Loot all (the World window's list): everything wanted in the container on show comes over, as the
 -- band's Loot all does. (KISS #18)
-function ZeD.InventoryRenderer.lootAllOf(content)
+-- key: the heading's container key (its toggle's); in a Loot view of several columns the column with that key is
+-- the one taken from, not the list the panel was last bound to. (Header order, the director, Nov 22 2026)
+function ZeD.InventoryRenderer.lootAllOf(content, key)
     local po = content and content._playerObj
     local src = content and content._inventory
+    local cols = content and content._colStates
+    if key and cols and #cols > 1 then
+        src = nil
+        for _, cs in ipairs(cols) do
+            if cs.inventory and containerKey(cs.inventory, po) == key then src = cs.inventory; break end
+        end
+    end
     if not (po and src) then return end
     if isGamePaused() then return end
-    ZeD.ContainerControls.lootAllFrom(po, src)
+    -- (Nov 22 2026, "Number 1": into the bag on show, where the band's Loot all put them; it is the only one now)
+    ZeD.ContainerControls.lootAllFrom(po, src, ZeD.ContainerControls.otherInventory(content))
 end
 
 -- Double-click a row: vanilla's quick use. In your main inventory the item's
@@ -1078,7 +1088,7 @@ function ZeD.InventoryRenderer.toggleElements(rects)
                 el.promptA = ZeD.ContainerControls.lootAllLabel()
                 el.onActivate = function(w, e)
                     local cnt = w and w._mainContent
-                    if cnt then ZeD.InventoryRenderer.lootAllOf(cnt) end
+                    if cnt then ZeD.InventoryRenderer.lootAllOf(cnt, e.key) end   -- (its own column's: Header order, Nov 22 2026)
                 end
             end
             els[#els + 1] = el
@@ -1430,9 +1440,11 @@ end
 
 -- The view button: one icon button showing the view on show (the list's picture in list view, the grid's in grid
 -- view), solid accent as the chosen view; a press flips to the other (the director, Nov 11: one button, not a List
--- and a Grid side by side). Ends at column-local x `right`, in the column heading (top barH, height areaH); names
+-- and a Grid side by side). Starts at column-local x `left`, in the column heading (top barH, height areaH); names
 -- its view in a hint after the pause (the library's). Stamps GV.toggles (panel coords). Returns the width taken
--- (with its gap).
+-- (with its gap). (Header order, the director, Nov 22 2026: the heading's buttons come first, at its left, then the
+-- container's icon and name, the weight and count at the right; they used to sit right of the name.)
+-- measure: true returns the width only, drawing and stamping nothing (the heading works out the name's room first).
 local _viewOpts = {}
 local _liteOpen = { fill = { r = 0, g = 0, b = 0, a = 0 } }
 local function liteOpen()   -- (Lite's Filter key while its bar is open: the selection wash under the word)
@@ -1440,7 +1452,7 @@ local function liteOpen()   -- (Lite's Filter key while its bar is open: the sel
     f.r, f.g, f.b, f.a = ac.r, ac.g, ac.b, ZeD.T.selectionA
     return _liteOpen
 end
-local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
+local function drawViewToggle(self, GV, xOff, left, barH, areaH, padX, measure)
     if not GV.key then return 0 end
     local T = ZeD.T
     local M = ZeD.Molecules
@@ -1467,7 +1479,8 @@ local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
     local allWord = ZeD.tr("UI_ZeD_Inv_PickAll")
     local aw = M.buttonW(allWord)
     local tW = vw + (withF and (fw + fgap) or 0) + (lootOn and (lw + fgap) or 0) + aw + fgap
-    local tx = xOff + right - tW
+    if measure then return tW + padX end   -- (Header order, the director, Nov 22 2026)
+    local tx = xOff + left   -- (the buttons from the heading's left edge, Loot all first: Header order, Nov 22 2026)
     local ty = barH + math.floor((areaH - bw) / 2)
     if lootOn then
         local id = "view:lootall:" .. GV.key
@@ -1503,7 +1516,9 @@ local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
             o.hover = ZeD.Atoms.mouseIn(self, tx, ty, fw, bw)
             M.drawButton(self, tx, ty, fw, bw, fWord, "default", false, S.open and liteOpen() or nil, o)
         else
+            o.marks = T.marks   -- (its drop in the theme's blue at rest, as the menu's marks: Icon color, Nov 22 2026)
             M.drawIconButton(self, tx, ty, bw, "filter", o)   -- (the ZeD pixel funnel)
+            o.marks = nil
         end
         GV.toggles[#GV.toggles + 1] = { x = tx, y = ty, w = fw, h = bw, view = "filter", key = GV.key, id = id }
         tx = tx + fw + fgap
@@ -1528,7 +1543,9 @@ local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
         o.hover = ZeD.Atoms.mouseIn(self, tx, ty, vw, bw)
         M.drawButton(self, tx, ty, vw, bw, vWord, "default", false, nil, o)
     else
+        o.marks = T.marks   -- (the bullets or the first tile in the theme's blue at rest: Icon color, Nov 22 2026)
         M.drawIconButton(self, tx, ty, bw, grid and "view_grid" or "view_list", o)   -- (ZeD pixel icons)
+        o.marks = nil
     end
     GV.toggles[#GV.toggles + 1] = { x = tx, y = ty, w = vw, h = bw, view = "flip", key = GV.key, id = id }
     return tW + padX
@@ -1918,8 +1935,9 @@ local function drawGridList(self, GV, list, y)
     return y + gridH(GV, n)
 end
 
--- The column's heading: the container's icon and name on the left; its
--- weight over its item count on the right, the view button left of them.
+-- The column's heading: its buttons at the left, then the container's icon and
+-- name; its weight over its item count on the right. (Header order, the director,
+-- Nov 22 2026: the buttons and the icon and name switched places.)
 -- (Kept out of renderItemList: in -debug the game's compiler keeps every
 -- local a function declares, block or not, and stops at 200; renderItemList
 -- runs close to that limit.)
@@ -1938,17 +1956,19 @@ local function drawColumnHeading(self, GV, xOff, colW, barH, hdrY, padX, secFH, 
     if self._compactMode and (f4FH + gap + secFH) <= infoAreaH then
         -- A column among several is narrow (about 210 px): the weight stack and the toggle on the
         -- right would leave the name three or four letters ("Sma..."). Here the name takes the whole line
-        -- (the toggle is the only thing right of it), and the weight and the item count sit under it.
-        local togW = drawViewToggle(self, GV, xOff, colW - padX, barH, infoAreaH, padX)
+        -- right of the buttons, and the weight and the item count sit under it.
+        -- (Header order, Nov 22 2026: the buttons first at the left, the name and weight right of them)
+        local togW = drawViewToggle(self, GV, xOff, padX, barH, infoAreaH, padX)
         local totalH = f4FH + gap + secFH
         local topY   = barH + math.floor((infoAreaH - totalH) / 2)
         local htc, ntc = T.toneHi, T.toneNorm
-        local cx = padX
+        local cx = padX + togW   -- (past the buttons and their gap)
+        local lineX = cx         -- (the weight line starts under the icon)
         if ci.texture then
             ZeD.Atoms.drawIcon(self, ci.texture, xOff + cx, topY, f4FH, 1, T.iconTone or T.iconWhite)
             cx = cx + f4FH + T.sp.iconGap
         end
-        local maxNameW = colW - togW - cx - padX
+        local maxNameW = colW - cx - padX   -- (cx already counts the buttons)
         if maxNameW > 0 then
             local name = ZeD.Atoms.truncateText(ci.name or "", T.fontF4, maxNameW)
             self:drawText(name, xOff + cx, topY, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF4)
@@ -1957,9 +1977,9 @@ local function drawColumnHeading(self, GV, xOff, colW, barH, hdrY, padX, secFH, 
         local lineY = topY + f4FH + gap
         local lineW = colW - togW - padX * 2
         if wtW <= lineW then
-            self:drawText(wtStr, xOff + padX, lineY, htc.r, htc.g, htc.b, htc.a, T.fontF1)
-            local cx2 = padX + wtW + T.px(8)
-            if cx2 + cntW <= padX + lineW then
+            self:drawText(wtStr, xOff + lineX, lineY, htc.r, htc.g, htc.b, htc.a, T.fontF1)
+            local cx2 = lineX + wtW + T.px(8)
+            if cx2 + cntW <= lineX + lineW then
                 self:drawText(cntStr, xOff + cx2, lineY + math.max(0, secFH - f5FH), ntc.r, ntc.g, ntc.b, ntc.a, T.fontF5)
             end
         end
@@ -1976,13 +1996,12 @@ local function drawColumnHeading(self, GV, xOff, colW, barH, hdrY, padX, secFH, 
     if stackH > infoAreaH then wtStr, wtW, stackH = nil, 0, 0 end
     -- and where the stack would cut the container's name (a narrow window at Large text: "Invent..."), the count
     -- goes, then the weight; the title bar shows the weight and the foot line the count. The buttons' width is
-    -- drawViewToggle's, worked out ahead.
+    -- drawViewToggle's own, measured (Header order, Nov 22 2026: it counts every button now, Loot all and Pick
+    -- all too; the old sum had only the Filter and the view button).
+    local togW = drawViewToggle(self, GV, xOff, padX, barH, infoAreaH, padX, true)
     do
-        local bw = math.max(T.px(16), math.min(T.buttonH, infoAreaH - T.px(4)))
-        local fs = self._zedFilter
-        local togW = GV.key and (bw + ((fs ~= nil and fs.shown) and (bw + T.px(6)) or 0) + padX) or 0
-        local lead = padX + (ci.texture and (f4FH + T.sp.iconGap) or 0)
-        local need = lead + ZeD.TM:MeasureStringX(T.fontF4, ci.name or "") + padX * 2 + togW
+        local lead = padX + togW + (ci.texture and (f4FH + T.sp.iconGap) or 0)
+        local need = lead + ZeD.TM:MeasureStringX(T.fontF4, ci.name or "") + padX * 2
         if cntStr and need + math.max(wtW, cntW) > colW then cntStr, cntW = nil, 0 end
         if wtStr and need + wtW > colW then wtStr, wtW = nil, 0 end
     end
@@ -1992,11 +2011,11 @@ local function drawColumnHeading(self, GV, xOff, colW, barH, hdrY, padX, secFH, 
     local ntc    = T.toneNorm
     if wtStr then self:drawText(wtStr, xOff + colW - wtW - padX, stackY, htc.r, htc.g, htc.b, htc.a, T.fontF1) end
     if cntStr then self:drawText(cntStr, xOff + colW - cntW - padX, stackY + secFH + gap, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF5) end
-    -- the view button, left of the weight (the zones go in after the hit zones are cleared)
-    stackW = stackW + drawViewToggle(self, GV, xOff, colW - stackW - padX * 2, barH, infoAreaH, padX)
-    -- Left: icon + name (F4 norm), vertically centred in info area
+    -- Left: the buttons first (the zones go in after the hit zones are cleared; Header order, Nov 22 2026)
+    drawViewToggle(self, GV, xOff, padX, barH, infoAreaH, padX)
+    -- then icon + name (F4 norm), vertically centred in info area, right of the buttons
     local nameY = barH + math.floor((infoAreaH - f4FH) / 2)
-    local cx    = padX
+    local cx    = padX + togW
     if ci.texture then
         ZeD.Atoms.drawIcon(self, ci.texture, xOff + cx, nameY, f4FH, 1, T.iconTone or T.iconWhite)
         cx = cx + f4FH + T.sp.iconGap

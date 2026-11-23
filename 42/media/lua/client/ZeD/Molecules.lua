@@ -332,7 +332,11 @@ end
 --              drawing the picture in (x, y, size) in `color` (alpha applied)
 -- @param opts  optional { hover, active, disabled, pressed, focus (mark opts or
 --              true), hint = its name (shown after the delay), id = a key for the
---              hint, help, win, iconSize (default 16u), tint }
+--              hint, help, win, iconSize (default 16u), tint,
+--              marks = a theme's mark set (T.marks): a ZeD pixel icon's mark in its color at rest, as the right-click
+--              menu's (Icon color, the director, Nov 22 2026), markKind = that mark's color by name ("blue", "red",
+--              "gold") where the button's own meaning picks it, else ZeD.PxIconStripMark's (a list for an icon of
+--              more than one mark: the Filter's red and blue), else ZeD.PxIconMark's }
 -- @return x, y, w, h
 local _icC, _icFocus, _icHint = {}, {}, {}
 -- (opts.hintSide: "right" / "left" for a button in a column; the focus's balloon shows without the pause)
@@ -379,8 +383,13 @@ function ZeD.Molecules.drawIconButton(panel, x, y, size, icon, opts)
     if type(icon) == "function" then
         icon(panel, ix, iy, isz, withAlpha(_icC, ic, alpha))
     elseif type(icon) == "string" then
-        -- a ZeD pixel icon by its id: its drawing for this box, pixel for pixel
-        A.drawPxIcon(panel, icon, ix, iy, isz, (ic.a or 1) * alpha, ic)
+        -- a ZeD pixel icon by its id: its drawing for this box, pixel for pixel. Its mark colored at rest only, as the
+        -- menu's: not lit, not pointed at, not under the pad's focus (those draw the whole icon in one tint), not in a
+        -- caller's own tint (a bin in the warning color). (Icon color, the director, Nov 22 2026)
+        local mk = opts.marks
+        if mk and (active or onFocus or opts.tint or (opts.hover and not opts.disabled)) then mk = nil end
+        local kind = mk and (opts.markKind or (ZeD.PxIconStripMark and ZeD.PxIconStripMark[icon])) or nil
+        A.drawPxIcon(panel, icon, ix, iy, isz, (ic.a or 1) * alpha, ic, mk, kind)
     elseif icon then
         A.drawIcon(panel, icon, ix, iy, isz, (ic.a or 1) * alpha, ic)
     end
