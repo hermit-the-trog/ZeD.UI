@@ -458,20 +458,6 @@ end
 -- ===================================================================== the container buttons
 function H.press(c, id)
     local cc = c and c._cc
-    -- (Nov 22 2026, the director's "Number 1": the World band has no Loot all; with no row marked, "take" is the
-    -- list heading's Loot all, zone view:lootall:<key>. With rows marked the band's Take marked still answers.)
-    local marked = 0
-    pcall(function() marked = ZeD.InventoryRenderer.padMarkCountOf(c) end)
-    if id == "take" and marked == 0 then
-        for _, z in ipairs(c and c._hitZones or {}) do
-            if type(z.id) == "string" and z.id:sub(1, 13) == "view:lootall:" then
-                local ok, err = pcall(function() ZeD.InventoryRenderer.onViewZone(z.id, c) end)
-                if not ok then S.errs = S.errs + 1; return false, "the press threw: " .. tostring(err), true end
-                return true, "Loot all (heading)"
-            end
-        end
-        return false, "no Loot all in the heading"
-    end
     for i, h in ipairs(cc and cc.hits or {}) do
         if h.spec and h.spec.id == id then
             if not h.spec.enabled then return false, tostring(h.spec.label) .. " is off" end

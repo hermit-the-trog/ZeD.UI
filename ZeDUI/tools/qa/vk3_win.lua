@@ -1099,15 +1099,21 @@ end, function(ok)
     local lx, ly = bag.x + math.floor(bag.w / 2), bag.y + math.floor(bag.h / 2)
     local gx, gy = hud:getAbsoluteX() + lx, hud:getAbsoluteY() + ly
     T.okP, T.err = H.atPointer(gx, gy, function() hud:onMouseDown(lx, ly); hud:onMouseUp(lx, ly) end)
+    -- (QA, Nov 22: the director's belt row) the bag button is the leftmost of the belt's own boxes: only the speed
+    -- keys (with a watch on, 313d74d0e) may sit left of it
     T.first = true
-    for _, b in ipairs(hud._boxes or {}) do if b.x < bag.x then T.first = false end end
+    T.leftOf = {}
+    for _, b in ipairs(hud._boxes or {}) do
+        if b.x < bag.x and b.kind ~= "speed" then T.first = false; T.leftOf[#T.leftOf + 1] = tostring(b.kind) end
+    end
     T.go = true
 end)
 H.wait(3000, function() return not S.k16.go or H.both() end, function(ok)
     local T = S.k16
     if not T.go then return end
     Q.check(ok and T.okP and T.first, "#16: the bag button at the belt's left end opens both windows (old: no bag button on the belt)",
-        "pressed the bag box (the leftmost box " .. tostring(T.first) .. "), the press ran " .. tostring(T.okP) .. (T.okP and "" or (": " .. tostring(T.err)))
+        "pressed the bag box (the leftmost of the belt's own boxes, speed keys aside " .. tostring(T.first)
+        .. ((#(T.leftOf or {}) > 0) and (", left of it: " .. table.concat(T.leftOf, ", ")) or "") .. "), the press ran " .. tostring(T.okP) .. (T.okP and "" or (": " .. tostring(T.err)))
         .. "; within 3 s both open " .. tostring(H.both()) .. " (Character " .. tostring(H.charOpen()) .. ", World " .. tostring(H.worldOpen()) .. ")")
     H.shutAll()
 end)
@@ -1513,10 +1519,8 @@ Q.step(1, function()
         return "icon " .. tostring(r.icon) .. ", words \"" .. tostring(r.label) .. "\", " .. H.num(r.w) .. " px wide"
     end
     local function word(r, w) return r ~= nil and tostring(r.label):lower() == w:lower() end
-    -- (Nov 22 2026, the director's "Number 1": the World band's Loot all is gone, the heading's word button stays:
-    -- the band must have none, Transfer all stays a word button)
-    Q.check(take == nil and xfer ~= nil and xfer.icon == nil and word(xfer, xferW),
-        "#7: Transfer all is a word button in the band; the World band has no Loot all (the heading has it)",
+    Q.check(take ~= nil and xfer ~= nil and take.icon == nil and xfer.icon == nil and word(take, lootW) and word(xfer, xferW),
+        "#7: Loot all and Transfer all are word buttons in the lists' bands (old: pictures only)",
         "crate B's band, Loot all: " .. said(take) .. "; his inventory's band, Transfer all: " .. said(xfer) .. " (the game's words: " .. lootW .. ", " .. xferW .. ")")
 end)
 

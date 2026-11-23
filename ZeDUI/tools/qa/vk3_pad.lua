@@ -983,12 +983,10 @@ function S.queueC()
             local _, zn, el = S.focusNow()
             -- (QA, Nov 22: Build built this half of #18 in d0df24046: the band's entry stop is the take button. On
             -- 0b366177e and on the first K3 merge Down landed on Same type in Full and To floor in Lite: FAIL there.)
-            -- (Nov 22 2026, the director's "Number 1": the band has no Loot all now; Down past the last row wraps to
-            -- the heading's Loot all, view:lootall)
-            Q.check(el ~= nil and type(el.id) == "string" and el.id:sub(1, 13) == "view:lootall:",
-                "K3 #18: Down from a crate's last row wraps to the heading's Loot all, never To floor",
-                "Down from " .. S.elName(last) .. " lands on " .. S.elName(el) .. " (zone " .. tostring(zn) .. ", id "
-                .. tostring(el and el.id) .. ", band key " .. tostring(el and el.ccKey) .. ")")
+            Q.check(el ~= nil and el.ccKey == "take",
+                "K3 #18: Down from a crate's last row lands on Loot all, never To floor",
+                "Down from " .. S.elName(last) .. " lands on " .. S.elName(el) .. " (zone " .. tostring(zn) .. ", the button "
+                .. tostring(el and el.ccKey) .. "; take = Loot all, floor = To floor, same = Same type)")
         end
         -- (a) the top stop, then Up
         local top = S.listTop(ww, "worldMainInv")
