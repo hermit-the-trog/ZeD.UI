@@ -1022,6 +1022,7 @@ paths are in each commit's code comments, tagged `(KISS #N)`; QA fills the colum
 | Hold A quick use only in own bags, footer names it | InventoryRenderer.lua | - | - | - | - | - | elsewhere: the K3 proof run, vk3_pad.lua (KISS #30) |
 | Belt bag button opens both windows | ZeD_Belt.lua | - | - | - | - | - | elsewhere: the K3 proof run, vk3_win.lua (KISS #16) |
 | Belt speed keys beside the watch | ZeD_Belt.lua, ZeD_Watch.lua | - | - | - | - | - | elsewhere: the K3 proof run, vk3_screen.lua (KISS #22) |
+| Belt bag button pick: right-click (pad X) lists Inventory (the pocket) and every bag he has on; the pick is its icon and its click opens that bag alone; the row reads speed keys, bag button, an icon's gap, belt, an icon's gap, note | ZeD_Belt.lua, ZeD_CharacterWindow.lua | `B.bagMenu`, `B.bagChosen`, `B.bagAct`, `ZeD_CharacterWindow.showBagAlone` | right-click the bag button, pick a bag, click it | X on the bag button, A | the button draws the bag's icon; the Character window on Loot shows that bag alone; his modData `ZeD_BeltBag` holds { id, type } | the bag taken off: the pocket again | TODO |
 | Hint strip's first-hours pad line (wheels, quick actions) | ZeD_HintStrip.lua | - | - | - | - | - | elsewhere: the K3 proof run, vk3_pad.lua (KISS #26) |
 | D-pad Left hold opens Weapons | ZeD_DpadWheels.lua | - | - | - | - | - | elsewhere: the K3 proof run, vk3_pad.lua (KISS #21) |
 | Seated D-pad Up opens the car's wheel | ZeD_DpadWheels.lua | - | - | - | - | - | elsewhere: the K3 proof run, vk3_pad.lua (KISS #20) |
