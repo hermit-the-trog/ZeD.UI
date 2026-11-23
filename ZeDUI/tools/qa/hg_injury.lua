@@ -970,8 +970,10 @@ function S.buildLimb()
 end
 
 -- ===================================================================== a wound on every part
-S.ALL17 = { "scratch", "laceration", "burn", "fracture", "lodged bullet", "stitches", "deep wound", "glass",
-            "burn needing a wash", "scratch", "laceration", "fracture", "burn", "wound infection", "scratch", "laceration", "bite" }
+-- (only wounds that stay put while the picture is taken: a lone stitch or a lone wound infection can be cleared by
+-- the game within frames, and the run of Nov 23 2026 pictured "16 of 17 injured")
+S.ALL17 = { "scratch", "laceration", "burn", "fracture", "lodged bullet", "deep wound", "deep wound", "glass",
+            "burn needing a wash", "scratch", "laceration", "fracture", "burn", "glass", "scratch", "laceration", "bite" }
 function S.buildAll17()
     Q.step(2, function()
         if S.dead then return end
@@ -1026,11 +1028,32 @@ function S.buildAll17()
         local view = w and w._healthView
         local zones = w and w._healthInjuryZones or {}
         local last = zones[#zones]
-        Q.check(view ~= nil and last ~= nil and last.y + last.h <= view.y + view.h + 1 and last.y >= view.y - 1,
-            "all 17: scrolled to the bottom, the last row is in view",
+        -- (QA, Nov 23 2026: the fill blocks (Moodles, Fitness, Regularity, Strain) sit under the injury list, so at
+        -- the very bottom the last injury row is above the view: it must not be below it, and a scroll to it shows it)
+        Q.check(view ~= nil and last ~= nil and last.y + last.h <= view.y + view.h + 1,
+            "all 17: scrolled to the bottom, the last injury row is not cut off below the content",
             last and string.format("row %d..%d, view %d..%d", math.floor(last.y), math.floor(last.y + last.h),
                 math.floor(view.y), math.floor(view.y + view.h)) or "no row")
         RT.bounds(Q, "all 17, bottom of the list")
+        local sc = w and w._healthScroll
+        local span = (w and w._healthDrawnH or 0) - (view and view.h or 0)
+        if sc and view and last and span > 0 then
+            -- the row's place in the content (at the bottom the content is moved up by the whole span)
+            local bottom = last.y + last.h - view.y + span
+            S.rowPos = math.max(0, math.min(1, (bottom - view.h + 4) / span))
+            pcall(function() sc:setScrollPos(S.rowPos) end)
+        end
+    end)
+    Q.step(4, function()
+        if S.dead or not S.tall then return end
+        local w = RT.cw()
+        local view = w and w._healthView
+        local zones = w and w._healthInjuryZones or {}
+        local last = zones[#zones]
+        Q.check(view ~= nil and last ~= nil and last.y + last.h <= view.y + view.h + 1 and last.y >= view.y - 1,
+            "all 17: scrolled to it, the last injury row comes into view",
+            (last and view) and string.format("scroll %.2f; row %d..%d, view %d..%d", S.rowPos or -1, math.floor(last.y),
+                math.floor(last.y + last.h), math.floor(view.y), math.floor(view.y + view.h)) or "no row")
         local sc = w and w._healthScroll
         if sc then pcall(function() sc:setScrollPos(S.scrollWas or 0) end) end
     end)
