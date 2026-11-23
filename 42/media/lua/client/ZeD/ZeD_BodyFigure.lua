@@ -1000,10 +1000,9 @@ end
 --- Draw the height chart in the margins of the figure's frame: six draws, and no table made.
 -- L is the layout Molecules.figureFrame (or layoutZoneA) gave, and the figure is drawn at its figX, figY, figW, figH
 -- (drawAt), as the tabs and the medical card draw it. Call this after Molecules.drawFigureFrame and before the
--- controller's mark and drawAt, so the mark and the figure sit on the chart. Lite draws none.
+-- controller's mark and drawAt, so the mark and the figure sit on the chart. Full and Lite alike.
 function ZeD_BodyFigure:drawChart(panel, L)
-    -- Lite puts away the extras the game itself does not have (Settings.lua, Lite or Full): the frame stays plain
-    if ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite() then return end
+    -- (the director, Nov 22 2026: the chart shows in Lite too, as the flesh and the wounds do)
     local T = ZeD.T
     local C = CHART
     local z = L.zoom                                    -- screen pixels per art pixel: the figure's whole zoom
