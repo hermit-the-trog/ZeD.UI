@@ -1,0 +1,4 @@
+# hg_fit alone (QA, Nov 23 2026)
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+hg_fit.lua | hg_fit | timeout=1800

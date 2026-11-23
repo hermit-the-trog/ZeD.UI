@@ -637,6 +637,10 @@ function S.exercise(id, first)
         Q.check(ok, lab .. ": stopped, the queue free", "head " .. tostring(S.head() and S.head().Type))
         S.speed(1)
     end)
+    -- (the stopped session's way out of its animation ends with the game's "FitnessFinished" event, and
+    -- ISFitnessAction:animEvent stops whatever exercise is running when it lands: a session started before it
+    -- lands ends at once with no repetition. Seen on every second exercise, Nov 23 2026: the next waits it out.)
+    Q.waitMs(8000)
     if first then
         Q.waitMs(2500)
         Q.step(1, function()
