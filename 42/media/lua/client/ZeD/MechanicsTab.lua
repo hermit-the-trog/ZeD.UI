@@ -49,7 +49,7 @@ local MT = ZeD.MechanicsTab
 local REACH_TILES   = 4.5    -- tiles from the vehicle centre: the tab offers it
 local KEEP_TILES    = 6      -- tiles: an inspection lasts until you walk past this (vanilla)
 local PAD           = 10
-local FIG_H         = 258    -- the diagram's height in the right column (the pixel-art bodies are 256 rows)
+local FIG_H         = 258    -- the most height the diagram takes in the right column (the figures are at most 169 rows since Nov 22 2026; drawFigure uses only what its zoom needs)
 local COL_GAP       = 12
 local ROW_H         = 24
 local CAT_H         = 15     -- the library's category row
@@ -1064,14 +1064,26 @@ local function drawFigure(panel, s, fx, fy, fw, fh, v, parts, hlId, unknown, wor
     local prefix, props = overlayInfo(v)
     local F = ZeD.MechFigs
     local U = prefix and F and F.unions and F.unions[prefix]
-    if not U then return end
-    local sc = math.min(fw / U.w, fh / U.h)
-    -- whole screen pixels per art pixel where that keeps most of the box (1080p 1x, 4K 2x), so the
-    -- pixel art stays even; between whole scales (1.75) the fit scale, drawn nearest
-    local sci = math.floor(sc + 1e-6)
-    if sci >= 1 and sci / sc >= 0.85 then sc = sci end
+    if not U then return fh end
+    -- (Car parts to the sides, Nov 22 2026) every part now stands beside the car, so each figure is only the
+    -- car's height. One zoom for every body shape, fitted to the biggest figure (so a trailer and a car keep
+    -- their sizes and the summary below does not jump between vehicles), in whole screen pixels per art
+    -- pixel (1080p and 1280x800 1x, 4K at 1.75 2x) so the pixel art stays even, never below 1x: a box too
+    -- small for 1x (a narrowed drawer) shows the figure at 1x, centred and clipped by the column. The box is
+    -- then only as tall as that figure: the rest goes to the summary under it.
+    if not F.maxW then
+        local mw, mh = 1, 1
+        for _, u in pairs(F.unions) do
+            if u.w > mw then mw = u.w end
+            if u.h > mh then mh = u.h end
+        end
+        F.maxW, F.maxH = mw, mh
+    end
+    local sc = math.min(fw / F.maxW, fh / F.maxH)
+    sc = math.max(1, math.floor(sc + 1e-6))   -- a whole zoom, at least 1 (QA, Nov 22 2026)
+    local boxH = F.maxH * sc
     local ox = fx + math.floor((fw - U.w * sc) / 2)
-    local oy = fy + math.floor((fh - U.h * sc) / 2)
+    local oy = fy + math.floor((boxH - U.h * sc) / 2)
     local function rectOf(key)
         local L = F.layers[key]
         if not L then return nil end
@@ -1126,6 +1138,7 @@ local function drawFigure(panel, s, fx, fy, fw, fh, v, parts, hlId, unknown, wor
             end
         end
     end
+    return boxH   -- the height the figure took (Car parts to the sides, Nov 22 2026)
 end
 
 local function figurePartAt(s, x, y)
@@ -1706,7 +1719,8 @@ local function renderDiagram(panel, win, s, x, top, w, bodyH, v, chr, inspected,
     panel:setStencilRect(x, top, w, bodyH)
     local cy = top - s.cardScroll + pad
     local figW, figH = cw - pad * 2, T.px(FIG_H)
-    drawFigure(panel, s, x + pad, cy, figW, figH, v, parts, s.hl, not inspected, s.working)
+    -- FIG_H is the most the figure may take; it hands back what it used (Car parts to the sides, Nov 22 2026)
+    figH = drawFigure(panel, s, x + pad, cy, figW, figH, v, parts, s.hl, not inspected, s.working) or figH
     s.figClip = clip
     cy = cy + figH + T.px(COL_GAP)
     local sx, sw = x + pad, cw - pad * 2
