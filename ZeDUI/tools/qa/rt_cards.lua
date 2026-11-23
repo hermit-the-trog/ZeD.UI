@@ -81,11 +81,26 @@ function H.rowZone(item)
     for _, z in ipairs((c and c._hitZones) or {}) do if z.id == item then return z end end
     return nil
 end
--- (a condition, every frame: the row drawn last frame, else the list one step further down; wraps at the end)
+-- a point of the row's zone that a press reaches (the list's hitZoneAt answers the row there). A row half under the
+-- heading or the footer band (Nov 22 2026: transfer buttons in the footer) gives its press to what is drawn over it,
+-- so the zone's middle is not enough (the Deck, Nov 22: a press there went to the band and the pencil left the bag)
+function H.clickPoint(c, z, item)
+    if not (c and z and c.hitZoneAt) then return nil end
+    local x = z.x + math.floor(z.w / 2)
+    for _, f in ipairs({ 0.5, 0.3, 0.7, 0.15, 0.85 }) do
+        local y = z.y + math.floor(z.h * f)
+        local hz = c:hitZoneAt(x, y)
+        if hz ~= nil and hz.id == item then return x, y end
+    end
+    return nil
+end
+-- (a condition, every frame: the row drawn last frame where a press reaches it, else the list one step further down;
+-- wraps at the end)
 function H.seekRow(item)
     local c = H.content()
     if not c then return false end
-    if H.rowZone(item) then return true end
+    local z0 = H.rowZone(item)
+    if z0 and H.clickPoint(c, z0, item) ~= nil then return true end
     local sc = c._scroll
     if sc and sc.setScrollPos then
         S.seekPos = (S.seekPos or -0.1) + 0.1
@@ -99,7 +114,9 @@ function H.click(item)
     local c = H.content()
     local z = H.rowZone(item)
     if not (c and z) then return false end
-    local x, y = z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2)
+    local x, y = H.clickPoint(c, z, item)
+    if not x then return false end
+    c._zedLastClick = nil   -- (never a double-click: that would be the quick use)
     c:onMouseDown(x, y)
     c:onMouseUp(x, y)
     return true

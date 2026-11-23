@@ -28,7 +28,8 @@
 --             staged part on the card's figure; the frame, then the chart, then the focus marks and the figure; 336
 --             in halves shows the lines only, 220 stacked the words (Build; at 4K and 1080p, Design's table), and the
 --             words always where the lines hold them (pictures vk8_medcard_336, vk8_medcard_220)
---   lite      Lite: no chart, the wounds still draw (picture vk8_lite); Full brings the chart back
+--   lite      Lite: the height chart shows as in Full (the director, Nov 22: litechart; lines, the floor, words by the
+--             same margin rule) and the wounds still draw (picture vk8_lite); Full keeps the chart
 -- Puts back: each staged part exactly as found (every flag and clock, the bandage, splint, stitches, fracture, health,
 -- stiffness, pain), every part's health, the pain stat, First Aid, the skin tone, ISHealthPanel.cheat, Style, god mode,
 -- invincible, the game speed, the card closed, the folds, the windows and the tab; no wrapper left. No Lua error.
@@ -617,7 +618,9 @@ function S.proxyOf(pl)
         local m = nil
         pcall(function() m = pl[k] end)
         if m == nil then return nil end
-        local f = function(self, a1, a2, a3, a4) return m(pl, a1, a2, a3, a4) end
+        -- (the call's own arguments, as many as it gave: a Java method takes its exact count, and four nils handed
+        -- to getX() threw "expected 0 arguments, got 4" in the medic kind's resolve, Nov 22 2026)
+        local f = function(self, ...) return m(pl, ...) end
         rawset(t, k, f)
         return f
     end })
@@ -988,7 +991,9 @@ Q.step(3, function()
     S.cardUnhook()
 end)
 
--- ===================================================================== Lite: no chart, the wounds stay
+-- ===================================================================== Lite: the chart as in Full, the wounds stay
+-- (the director, Nov 22 2026, "Yes": the height chart shows in Lite too (branch litechart). On a main without it the
+-- Lite chart check fails: Lite drew no chart there)
 Q.step(5, function()
     if S.dead then return end
     RT.charTab("health")
@@ -998,17 +1003,18 @@ Q.waitMs(600)
 S.recQ(S.healthFig, function(ok, fig)
     local R = fig and S.rec[fig]
     local o = S.chartRead(fig)
-    Q.check(S.lite() and o ~= nil and o.n == 0, "Lite: the figure frame draws no chart (drawChart called, nothing drawn)",
-        "lite " .. tostring(S.lite()) .. "; " .. (o and (o.n .. " chart draws") or "no chart call"))
+    Q.check(S.lite() and o ~= nil and o.n > 0 and S.chartAsRule(o),
+        "Lite: the height chart shows in the frame's margins, as Full does (lines, the floor, words where the lines hold them)",
+        "lite " .. tostring(S.lite()) .. "; " .. S.chartText(o))
     Q.check(R ~= nil and #R.list > 0 and #S.drawsNamed(R, "mark-") > 0, "Lite: the wounds still draw on the Health figure",
         tostring(R and #R.list) .. " wound draws")
 end)
-S.shot("vk8_lite", "the Health tab in Lite: the wounds on the figure, no chart in the frame")
+S.shot("vk8_lite", "the Health tab in Lite: the wounds on the figure, the height chart in the frame")
 Q.step(2, function() S.setStyle(1) end)
 Q.waitMs(600)
 S.recQ(S.healthFig, function(ok, fig)
     local o = S.chartRead(fig)
-    Q.check(not S.lite() and o ~= nil and o.n > 0 and S.chartAsRule(o), "Full again: the chart comes back at once", S.chartText(o))
+    Q.check(not S.lite() and o ~= nil and o.n > 0 and S.chartAsRule(o), "Full again: the chart is drawn at once", S.chartText(o))
 end)
 
 -- ===================================================================== put back

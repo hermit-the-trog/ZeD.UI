@@ -153,10 +153,23 @@ function H.rowZone(item)
     return nil
 end
 -- (a condition, every frame: the row drawn, else the list one step further down; wraps at the end)
+-- a point of the row's zone that a press reaches (the list's hitZoneAt answers the row there): a row half under the
+-- heading or the footer band (Nov 22 2026: transfer buttons in the footer) gives its press to what is drawn over it
+function H.clickPoint(c, z, item)
+    if not (c and z and c.hitZoneAt) then return nil end
+    local x = z.x + math.floor(z.w / 2)
+    for _, f in ipairs({ 0.5, 0.3, 0.7, 0.15, 0.85 }) do
+        local y = z.y + math.floor(z.h * f)
+        local hz = c:hitZoneAt(x, y)
+        if hz ~= nil and hz.id == item then return x, y end
+    end
+    return nil
+end
 function H.seekRow(item)
     local c = H.content()
     if not (c and item) then return false end
-    if H.rowZone(item) then return true end
+    local z0 = H.rowZone(item)
+    if z0 and H.clickPoint(c, z0, item) ~= nil then return true end
     local sc = c._scroll
     if sc and sc.setScrollPos then
         S.seekPos = (S.seekPos or -0.1) + 0.1
@@ -170,7 +183,8 @@ function H.click(item)
     local c = H.content()
     local z = H.rowZone(item)
     if not (c and z) then return false end
-    local x, y = z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2)
+    local x, y = H.clickPoint(c, z, item)
+    if not x then return false end
     c._zedLastClick = nil   -- (never a double-click: that would be the quick use)
     c:onMouseDown(x, y)
     c:onMouseUp(x, y)
@@ -613,17 +627,36 @@ end)
 Q.step(30, function()
     local c = H.content()
     local fl = H.toggle("flip")
-    if not Q.check(fl ~= nil, "Lite windows: the inventory has its List or Grid key") then return end
-    local grid = c._gv and c._gv.on
+    -- (Name first, the director, Nov 22 2026: a short heading's buttons give way before its name, GV.headLevel from
+    -- headFit: 1 Lite's words drawn as the pictures, 2 no view flip, 3 no Filter either, 4 no Pick all either. So the
+    -- words are checked against the level the heading took, not at a fixed width: the Deck's heading takes level 1)
+    local lvl = (c and c._gv and c._gv.headLevel) or 0
+    local lvlW = " (the heading's level " .. tostring(lvl) .. ")"
+    local grid = c and c._gv and c._gv.on
     local word = grid and ZeD.tr("UI_ZeD_Inv_GridView") or getText("IGUI_CraftingWindow_ListView")
-    Q.check(fl.w == M.buttonW(word), "Lite windows: List or Grid is drawn as its word",
-        tostring(word) .. ": " .. tostring(fl.w) .. " wide, the word's button " .. tostring(M.buttonW(word)))
+    if lvl >= 2 then
+        Q.check(fl == nil, "Lite windows: a short heading drops its List or Grid key (by design: the name first)",
+            (fl and "still drawn" or "none") .. lvlW)
+    elseif Q.check(fl ~= nil, "Lite windows: the inventory has its List or Grid key", lvlW) then
+        if lvl == 0 then
+            Q.check(fl.w == M.buttonW(word), "Lite windows: List or Grid is drawn as its word",
+                tostring(word) .. ": " .. tostring(fl.w) .. " wide, the word's button " .. tostring(M.buttonW(word)) .. lvlW)
+        else
+            Q.check(fl.w == fl.h and fl.w < M.buttonW(word), "Lite windows: a short heading draws List or Grid as its square picture (by design: the name first)",
+                tostring(fl.w) .. "x" .. tostring(fl.h) .. ", the word's button " .. tostring(M.buttonW(word)) .. lvlW)
+        end
+    end
     local ft = H.toggle("filter")
-    if ft then
-        local fw = ZeD.tr("UI_ZeD_Inv_Filter")
-        Q.check(ft.w == M.buttonW(fw), "Lite windows: Filter is drawn as its word", tostring(ft.w) .. " wide, the word's button " .. tostring(M.buttonW(fw)))
+    local fw = ZeD.tr("UI_ZeD_Inv_Filter")
+    if lvl >= 3 then
+        Q.check(ft == nil, "Lite windows: a short heading drops its Filter key (by design: the name first)", (ft and "still drawn" or "none") .. lvlW)
+    elseif not ft then
+        Q.skip("Lite windows: Filter is drawn as its word", "this list has no Filter key" .. lvlW)
+    elseif lvl == 0 then
+        Q.check(ft.w == M.buttonW(fw), "Lite windows: Filter is drawn as its word", tostring(ft.w) .. " wide, the word's button " .. tostring(M.buttonW(fw)) .. lvlW)
     else
-        Q.skip("Lite windows: Filter is drawn as its word", "this list has no Filter key")
+        Q.check(ft.w == ft.h and ft.w < M.buttonW(fw), "Lite windows: a short heading draws Filter as its picture (by design: the name first)",
+            tostring(ft.w) .. "x" .. tostring(ft.h) .. ", the word's button " .. tostring(M.buttonW(fw)) .. lvlW)
     end
     local ids = H.moveIds()
     Q.check(#ids > 0 and not H.has(ids, "same") and not H.has(ids, "near"), "Lite windows: no Same type or Same type nearby button",
@@ -686,7 +719,13 @@ Q.step(30, function()
 end)
 Q.step(30, function()
     local fl = H.toggle("flip")
-    Q.check(fl ~= nil and fl.w == fl.h, "Full windows: List or Grid is the square picture key again", fl and (fl.w .. "x" .. fl.h) or "no key")
+    local c = H.content()
+    local lvl = (c and c._gv and c._gv.headLevel) or 0
+    if fl == nil and lvl >= 2 then
+        Q.skip("Full windows: List or Grid is the square picture key again", "a short heading drops it (the heading's level " .. lvl .. ", by design)")
+    else
+        Q.check(fl ~= nil and fl.w == fl.h, "Full windows: List or Grid is the square picture key again", fl and (fl.w .. "x" .. fl.h) or "no key")
+    end
     local ids = H.moveIds()
     Q.check(H.has(ids, "same") and H.has(ids, "near"), "Full windows: Same type and Same type nearby come back", table.concat(ids, " "))
     S.seekPos = nil
@@ -698,7 +737,7 @@ Q.step(20, function()
     local card = RT.cw() and RT.cw()._itemCard
     local fr = card and card._flagRects
     Q.check(H.cardOn(S.pencil) and fr ~= nil and fr.fav ~= nil and fr.fav.x ~= nil, "Full windows: the item card has its marks strip again",
-        fr and fr.fav and tostring(fr.fav.x) or "no rects")
+        "the pencil's card open " .. tostring(H.cardOn(S.pencil)) .. "; Favorite at x " .. (fr and fr.fav and tostring(fr.fav.x) or "no rects"))
     if H.cardOn(S.pencil) then H.click(S.pencil) end
 end)
 

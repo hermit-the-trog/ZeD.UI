@@ -174,6 +174,9 @@ function H.order(c, key, asc)
             inWorn = worn
             local k, nm = nil, it:getName() or ""
             if key == "name" then k = string.lower(nm)
+            -- (Nov 22 2026: inside the worn and held group, Sort by Category orders the rows by each thing's own
+            -- category, then name (buildItemModel: sortItems(groups[WORN_KEY], "cat")); their catOf is the group's key)
+            elseif key == "cat" and worn then k = tostring(IR.catKey(it))
             elseif key == "cat" then k = tostring((c._catOf and c._catOf[it]) or IR.catKey(it))
             elseif key == "cond" then k = IM.sortKey(it)
             else k = H.wtOf(c, it) end

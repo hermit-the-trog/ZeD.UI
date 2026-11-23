@@ -1412,8 +1412,13 @@ function S.carLive(v)
     local vs = nil
     pcall(function() vs = getCell():getVehicles() end)
     if not vs then return false end
+    -- (the cell's vehicles are a set, not a list: no get(i), and under -debug the nil call threw a Java exception
+    -- even inside pcall; walked with its iterator, as gallery_cinema_lib.lua does)
+    local it = nil
+    pcall(function() it = vs:iterator() end)
+    if not it then return false end
     pcall(function()
-        for i = 0, vs:size() - 1 do if vs:get(i) == v then live = true end end
+        while it:hasNext() do if it:next() == v then live = true end end
     end)
     return live
 end

@@ -1318,11 +1318,21 @@ Q.step(1, function()
         end
         local w = "column " .. i .. " (" .. ((crate == S.ca) and "crate A" or ((crate == S.cb) and "crate B" or "?")) .. "): "
         if crate then seen = seen + 1 end
+        -- (Nov 22 2026: the foot is a dialog's footer as the band is, its last button ending the band's own pad
+        -- (ContainerControls.PAD_X) from the column's right edge; the heading keeps its own inset (T.sp.sm). So the
+        -- foot's right end is the heading's buttons' end moved by the difference of the two insets, as the single
+        -- list's band (BAND above) ends 4 px right of its heading's buttons at 4K)
+        local footR = nil
+        local CT = ZeD.ContainerControls
+        if headR ~= nil and ZeD.T and ZeD.T.sp and ZeD.T.sp.sm then
+            footR = headR + ZeD.T.sp.sm - ZeD.T.px((CT and CT.PAD_X) or 10)
+        end
         local inFoot = hit ~= nil and bandH > 0 and hit.y >= panH - bandH - 1 and hit.y + hit.h <= panH + 1
-            and headR ~= nil and math.abs((hit.x + hit.w) - headR) <= 2 and nLoot == 1
+            and headR ~= nil and footR ~= nil and math.abs((hit.x + hit.w) - footR) <= 2 and nLoot == 1
         if hit then
             w = w .. "Take all at " .. H.num(hit.x) .. "," .. H.num(hit.y) .. " " .. H.num(hit.w) .. "x" .. H.num(hit.h)
                 .. " (the foot " .. H.num(panH - bandH) .. ".." .. H.num(panH) .. ", the heading's buttons end " .. H.num(headR)
+                .. ", the footer's buttons should end " .. H.num(footR)
                 .. ", " .. nLoot .. " Take all rects) in its foot " .. tostring(inFoot) .. "; "
         end
         if not (crate and hit and inFoot) then

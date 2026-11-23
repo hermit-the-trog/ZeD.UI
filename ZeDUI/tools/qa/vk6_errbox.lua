@@ -49,9 +49,10 @@
 --          Left back to the same box, Right and A open Messages (the pad leaves the belt), Up leaves, B leaves.
 --   EB 7   The belt row: five speed keys (none on a server) after the belt, no Messages note on the belt (vk4_belt.lua
 --          BELT 1 to 4 read the whole row in Full and Lite).
---   EB 8   Driving (the prelude's pickup, the driver's seat): the belt hides and the five keys stay at the very same
---          screen spot (keysOnly), clear of the dash; a key pressed there sets the speed. A passenger keeps the whole
---          belt.
+--   EB 8   Driving (the prelude's pickup, the driver's seat): the belt hides and the five keys keep their x at the
+--          same spot (keysOnly), lifted just above the dash where their home is on it (dashkeys, Nov 22: the lowest
+--          key's bottom 6 units over the dash's top), clear of the dash; a key pressed there sets the speed. A
+--          passenger keeps the whole belt.
 --   EB 9   The buckle (Full): a click opens the Character window on Info, a second click closes it; open on another
 --          tab, a click goes to Info; the pointer on it asks the hint "Info" (IGUI_XP_Info); Lite has no buckle.
 --   EB 10  The tour's Guide step's target is the notice's place (ZeD.ErrorBox.rect()). rt_tour.lua walks it.
@@ -250,6 +251,15 @@ function H.raiseGame(which)
         local function qaErrboxGame() Events.OnTick.Remove(qaErrboxGame); local t = nil; return t.qaErrboxGame end
         Events.OnTick.Add(qaErrboxGame)
     end
+end
+-- (EB 12g, 12h, Nov 22 2026: Messages reads the game's errors on its own two-second clock (ZeD_Messages.lua frame,
+-- nextErr), so an error raised 2 s into the hold was filed up to 2 s later, after the hold had ended: the qaLog showed
+-- every entry read, separator and exception, only late. The marker's checks are about a filed error, so these steps
+-- read the errors at once, as that clock's next read would, every frame while they wait; readErrors is a no-op while
+-- the game's count has not moved.)
+function H.readNow()
+    local M = ZeD.Messages
+    if M and M.readErrors then pcall(M.readErrors) end
 end
 -- ZeD's own: raised inside ZeD's code (ZeD.Belt.isZeDSource's tostring), so its stack names ZeD-GUI
 function H.raiseZeD()
@@ -1111,7 +1121,7 @@ H.wait(3000, function() return H.mkGone() or getTimestampMs() >= (S.k.m2 or 0) +
     S.k.before2 = H.errCounts()
     H.raiseGame("game")
 end)
-H.wait(3000, function() return H.mkGone() or getTimestampMs() >= (S.k.m2 or 0) + 3600 end, function()
+H.wait(3000, function() H.readNow(); return H.mkGone() or getTimestampMs() >= (S.k.m2 or 0) + 3600 end, function()
     if H.mkGone() then return end
     local k = H.mk() or {}
     local ms = getTimestampMs() - (S.k.m2 or 0)
@@ -1133,6 +1143,7 @@ H.wait(4000, function() return H.mkGone() or H.mkPhase() == "down" end, function
 end)
 H.wait(3000, function()
     if H.mkGone() or S.k.noFall then return true end
+    H.readNow()
     local k = H.mk() or {}
     if k.phase == nil then S.k.fellOut = true end
     if k.phase == "down" then S.k.pDown = k.p end
@@ -1221,32 +1232,52 @@ end)
 H.wait(4000, function()
     if S.k.noCar then return true end
     local hud = H.hud()
-    return S.k.inDriver and hud ~= nil and hud._keysDrawn == true and hud._drawn == false
+    if not (S.k.inDriver and hud ~= nil and hud._keysDrawn == true and hud._drawn == false) then S.k.keySig, S.k.keyStill = nil, 0; return false end
+    -- (settled: the keys at one spot for 10 frames; the dash places itself in its own first frames, and the keys
+    -- follow its top the frame after)
+    local sig = H.keysText(H.keysAbs())
+    if sig == S.k.keySig then S.k.keyStill = (S.k.keyStill or 0) + 1 else S.k.keySig, S.k.keyStill = sig, 0 end
+    return S.k.keyStill >= 10
 end, function(ok)
     if S.k.noCar then return end
     local hud = H.hud()
     local keys1 = H.keysAbs()
+    -- (dashkeys, the director, Nov 22 2026: the keys keep their spot, but where a dash is up and the spot is on it
+    -- they lift so the lowest key's bottom stands T.px(6) above the dash's top (ZeD.Belt.keysClearOfDash); the x
+    -- never moves)
+    local D = ZeD.Dashboard
+    local dash = D and D.getInstance and D.getInstance(S.pn)
+    local dx, dy, dw, dh = nil, nil, nil, nil
+    local dashText = "no dash on screen"
+    if dash and dash:isVisible() then
+        dx, dy, dw, dh = dash:getAbsoluteX(), dash:getAbsoluteY(), dash:getWidth(), dash:getHeight()
+        dashText = "the dash " .. H.num(dx) .. "," .. H.num(dy) .. " " .. H.num(dw) .. "x" .. H.num(dh)
+    end
+    local function onDash(t)
+        if not dx then return false end
+        for _, k in ipairs(t) do
+            if k.x < dx + dw and k.x + k.w > dx and k.y < dy + dh and k.y + k.h > dy then return true end
+        end
+        return false
+    end
+    local homeOnDash = onDash(S.k.keys0)
+    local clear = not onDash(keys1)
+    local lift = 0
+    if homeOnDash then
+        local bot0 = nil
+        for _, k in ipairs(S.k.keys0) do if not bot0 or k.y + k.h > bot0 then bot0 = k.y + k.h end end
+        lift = (bot0 or 0) - (dy - ZeD.T.px(6))
+    end
     local same = #keys1 == 5 and #S.k.keys0 == 5
     for i, k in ipairs(keys1) do
         local k0 = S.k.keys0[i]
-        if not (k0 and k0.n == k.n and math.abs(k0.x - k.x) <= 1 and math.abs(k0.y - k.y) <= 1) then same = false end
-    end
-    -- clear of the dash
-    local D = ZeD.Dashboard
-    local dash = D and D.getInstance and D.getInstance(S.pn)
-    local clear, dashText = true, "no dash on screen"
-    if dash and dash:isVisible() then
-        local dx, dy, dw, dh = dash:getAbsoluteX(), dash:getAbsoluteY(), dash:getWidth(), dash:getHeight()
-        dashText = "the dash " .. H.num(dx) .. "," .. H.num(dy) .. " " .. H.num(dw) .. "x" .. H.num(dh)
-        for _, k in ipairs(keys1) do
-            if k.x < dx + dw and k.x + k.w > dx and k.y < dy + dh and k.y + k.h > dy then clear = false end
-        end
+        if not (k0 and k0.n == k.n and math.abs(k0.x - k.x) <= 1 and math.abs((k0.y - lift) - k.y) <= 1) then same = false end
     end
     Q.check(ok and same and clear,
-        "EB 8: driving: the belt hides and the five speed keys stay at the very same screen spot, clear of the dash",
-        "in the driver's seat " .. tostring(S.k.inDriver) .. " (" .. tostring(S.k.enterWhy) .. "); keys only " .. tostring(hud and hud._keysDrawn) .. ", the belt drawn "
-        .. tostring(hud and hud._drawn) .. "; before " .. H.keysText(S.k.keys0) .. "; driving " .. H.keysText(keys1) .. "; " .. dashText .. ", clear "
-        .. tostring(clear))
+        "EB 8: driving: the belt hides and the five speed keys keep their x at the same spot, lifted just above the dash when the dash is up there",
+        "in the driver's seat " .. tostring(S.k.inDriver) .. " (" .. tostring(S.k.enterWhy) .. "); settled " .. tostring(ok) .. "; keys only " .. tostring(hud and hud._keysDrawn) .. ", the belt drawn "
+        .. tostring(hud and hud._drawn) .. "; before " .. H.keysText(S.k.keys0) .. "; driving " .. H.keysText(keys1) .. "; " .. dashText
+        .. "; the home spot on the dash " .. tostring(homeOnDash) .. ", want lifted by " .. H.num(lift) .. ", clear " .. tostring(clear))
     H.shot("err_driving")
     -- a key pressed where it is drawn: x2 (speed 2), read a few frames on, then Play
     local k2 = nil
