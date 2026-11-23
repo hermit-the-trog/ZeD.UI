@@ -1,8 +1,8 @@
 -- ZeDUI/tools/qa/paper_tone_b10_sim.lua  (Nov 8 2026): no large near-white areas, with no game running. Every big
--- light sheet ZeD draws sits at the paper tone (Tokens.lua's PAPER_TONE, 0.70 of its printed brightness), and the
+-- light sheet ZeD draws sits at the paper tone (Tokens.lua's PAPER_TONE, 0.77 of its printed brightness), and the
 -- words on it still read 4.5 : 1.
---   TOKEN    PAPER_TONE is 0.70; paperTone keeps the hue (each channel times 0.70) and makes a new table;
---            paperToneOver lays black at 0.30, which brings any pixel under it to 0.70
+--   TOKEN    PAPER_TONE is 0.77; paperTone keeps the hue (each channel times 0.77) and makes a new table;
+--            paperToneOver lays black at 0.23, which brings any pixel under it to 0.77
 --   SHEETS   the guide's book page, its rules bar and page edge, the button pictures' paper; the reader's page,
 --            a picture's box, the notebook's paper, rules and margin; the Journal's notebook and paper thumbnails;
 --            the printed page ZeD sets itself; the desk's sticky note: each defined as paperTone of its old color,
@@ -30,11 +30,11 @@ local okT, errT = pcall(function() assert(loadstring(slurp(LUA .. "shared/ZeD/To
 if not okT then print("NOTE Tokens.lua's own applyTheme stopped on the stubs: " .. tostring(errT)) end
 ok(ZeD.paperTone and ZeD.paperToneOver and ZeD.contrast, "TOKEN Tokens.lua gives paperTone, paperToneOver and contrast")
 
-local K = 0.70
+local K = 0.77   -- (Nov 22 2026, the director: 10% lighter than 0.70)
 local function near(a, b) return math.abs(a - b) < 1e-6 end
 
 -- TOKEN
-ok(ZeD.PAPER_TONE == K, "TOKEN PAPER_TONE is 0.70")
+ok(ZeD.PAPER_TONE == K, "TOKEN PAPER_TONE is 0.77")
 do
     local src = { r = 0.961, g = 0.925, b = 0.824, a = 0.5 }
     local t = ZeD.paperTone(src)

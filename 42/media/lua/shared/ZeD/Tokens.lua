@@ -1390,12 +1390,13 @@ end
 -- ---------------------------------------------------------------------------
 -- PAPER TONE: no large near-white areas
 -- Every big light sheet ZeD draws (the guide's book page, a paper map, the reader's
--- page, notebooks, the desk's sticky note) sits at 70% of its printed brightness:
+-- page, notebooks, the desk's sticky note) sits at 77% of its printed brightness (70% until Nov 22 2026; the director:
+-- "make paper white like 10% lighter... we may have gone a little too dark"):
 -- a bright page in a dark game glares the way the game's snow does. Only the paper
 -- and its light fills dim; ink and pictures keep their colors, and each surface's
 -- text is checked for 4.5 : 1 on the dimmer paper (paper_tone_b10_sim.lua).
 -- ---------------------------------------------------------------------------
-ZeD.PAPER_TONE = 0.70
+ZeD.PAPER_TONE = 0.77
 
 --- A paper color at the paper tone: the same hue, each channel times PAPER_TONE. A new table.
 function ZeD.paperTone(c)
