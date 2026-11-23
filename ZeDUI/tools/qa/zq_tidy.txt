@@ -1,0 +1,4 @@
+# zq_tidy alone (QA, Nov 23 2026): the drag strip round Angel tidied (corpses, blood, dead plots, junk)
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+zq_tidy.lua | zq_tidy | timeout=300
