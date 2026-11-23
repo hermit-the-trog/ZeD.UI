@@ -41,12 +41,24 @@
 --   card       the medical check card (a stand-in patient: his own body): each of three parts' menu from the card
 --              is the Health tab's menu, the doctor is the character and the patient the stand-in (the actions are
 --              not run: the game's timed actions turn the doctor to face a real patient)
+--   footer     (Nov 23 2026, Build's treatment card, main cc9f08686) a deep wound on the left hand and a scratch on the
+--              right foot: the footer is Treat (win._healthFooterMode), its list (HealthTab.treatParts) holds only them,
+--              worst first, the picked part (selectedTreatPart) is the worst until one is picked; a pick is kept; a
+--              strained third part is listed in the middle but not in the Treat list; Treat (treatSelected) runs the
+--              same menu as a click on the picked part on the figure (recorded), the game's real menu once (shut
+--              again), and a mouse press on Treat opens it once the button is up; the picked part healed falls back to
+--              the worst. The pad: the band's stops are the part box and Treat; A on the box opens the list
+--              (health:treatRow:<part>), A on a row picks it with the pad back on the box, B shuts it with no pick, A on
+--              Treat opens the game's menu. A click on the box opens the list over the footer (picture
+--              hg_trt_footer_<w>x<h>); the wounds healed with the list open: the footer is the exercise's again (strain
+--              alone keeps it) and the list is shut
 --   put back   every part, the inventory (nothing left from the run, nothing of the character's used), First Aid and
 --              its XP; no Lua error
 -- Puts back: every part exactly as found, the zombie infection off as found, the pain, panic and stress stats, First
 -- Aid level and XP, ISHealthPanel.cheat, god mode, invincible, the game speed, the container list, ISContextMenu.get,
--- the Health tab's sayNothingFits, the medical card closed, the figure's fold, the windows and the tab; the bag and
--- every item given or made by a treatment taken back.
+-- the Health tab's sayNothingFits, the medical card closed, the figure's fold, the windows and the tab, the Treat
+-- footer's pick and its list shut, the game's context menu shut, the pad's focus and ZeD's input mode lock as found;
+-- the bag and every item given or made by a treatment taken back.
 if not RT then print("ZEDQA hg_trt ERR rt_kit.lua did not run first"); print("ZEDQA hg_trt DONE"); return end
 local Q = RT.make("hg_trt")
 Q.maxMs = 1500000                    -- (the runner gives this script 1800 s: the put-back runs before that)
@@ -1128,6 +1140,487 @@ function S.buildCard()
     S.groupDone("card")
 end
 
+-- ===================================================================== the Treat footer (Build's treatment card)
+-- HealthTab.lua (main cc9f08686): while a part the game's treatment menu can act on is listed, the footer band is the
+-- part pop-up ("Injury: <part>", HealthTab.treatParts, worst first) and Treat where Start was (treatSelected: the
+-- game's menu for the picked part, the same as a click on it); strain alone keeps the exercise's band.
+S.PK = { worst = "Hand_L", other = "Foot_R", strain = "UpperArm_R" }
+function S.treatRows(d)
+    local rows = {}
+    if d then
+        local ok, r = pcall(Z.HealthTab.treatParts, d)
+        if ok and type(r) == "table" then rows = r end
+    end
+    return rows
+end
+function S.listRows(d)
+    local rows = {}
+    if d then
+        local ok, r = pcall(Z.HealthTab.injuryList, d)
+        if ok and type(r) == "table" then rows = r end
+    end
+    return rows
+end
+function S.rowOf(rows, bpName)
+    for i, r in ipairs(rows or {}) do
+        if S.typeOf(r.bodyPart) == bpName then return r, i end
+    end
+    return nil, nil
+end
+function S.rowsText(rows)
+    local t = {}
+    for _, r in ipairs(rows or {}) do t[#t + 1] = tostring(r.name) .. (r.treat and "" or " (strain)") end
+    return #t > 0 and table.concat(t, ", ") or "none"
+end
+-- the picked part's name (selectedTreatPart: the worst until one is picked)
+function S.selName()
+    local w = RT.cw()
+    local r = nil
+    if w then pcall(function() r = Z.HealthTab.selectedTreatPart(w) end) end
+    return r and r.name or nil
+end
+-- the game's context menu of the character: up, its options, shut
+function S.ctx() local m = nil; pcall(function() m = getPlayerContextMenu(S.pn) end); return m end
+function S.ctxUp()
+    local m = S.ctx()
+    local v = false
+    if m then pcall(function() v = m:getIsVisible() end) end
+    return v and true or false, m
+end
+function S.ctxN(m) local n = 0; if m then pcall(function() n = (m.numOptions or 1) - 1 end) end; return n end
+function S.ctxShut()
+    local v, m = S.ctxUp()
+    if v and m then pcall(function() m:hideAndChildren() end) end
+end
+-- the pad's stops on the Character window (its focus ring, built afresh as a press builds it)
+function S.ring()
+    local w = RT.cw()
+    if w and w._focusFresh then pcall(w._focusFresh, w) end
+end
+function S.stopById(id)
+    local w = RT.cw()
+    for _, z in ipairs(w and w._focusRing or {}) do
+        for _, el in ipairs(z.elements or {}) do
+            if el.id == id then return el, z end
+        end
+    end
+    return nil, nil
+end
+function S.stopIds(prefix)
+    local out = {}
+    local w = RT.cw()
+    for _, z in ipairs(w and w._focusRing or {}) do
+        for _, el in ipairs(z.elements or {}) do
+            if type(el.id) == "string" and el.id:sub(1, #prefix) == prefix then out[#out + 1] = el.id end
+        end
+    end
+    return out
+end
+function S.focusedId()
+    local w, F = RT.cw(), RT.focus()
+    local e = nil
+    if w and F then pcall(function() e = F.getFocusedElement(w) end) end
+    return e and tostring(e.id) or "nil"
+end
+function S.focusOn(id)
+    local w, F = RT.cw(), RT.focus()
+    if not (w and F and F.focusWhere) then return false end
+    local e = nil
+    pcall(function() e = F.focusWhere(w, "charTabContent", function(x) return x.id == id end) end)
+    if not e then
+        S.ring()
+        local _, z = S.stopById(id)
+        if z then pcall(function() e = F.focusWhere(w, z.zone, function(x) return x.id == id end) end) end
+    end
+    return e ~= nil
+end
+-- the pad for the Character window: ZeD's input mode locked to the controller (rt_cards' H.padOn), the window holding
+-- the pad; let go: the pad as found, the lock as found
+function S.padOn()
+    pcall(function() local md = S.p:getModData().ZeD_Gamepad; S.lockWas = md and md.inputModeLock end)
+    local F = RT.focus()
+    if F then pcall(function() S.focusWas = F.getFocusedWindow(S.pn) end) end
+    pcall(function() ZeD.Input.Detector.setLockedMode("gamepad") end)
+    local w = RT.cw()
+    if w and F then pcall(F.claimFocus, w) end
+    S.padIsOn = true
+end
+function S.padOff()
+    if not S.padIsOn then return end
+    S.padIsOn = nil
+    RT.pad("A", nil)
+    S.aDown = nil
+    local F = RT.focus()
+    if F then
+        if S.focusWas then pcall(F.claimFocus, S.focusWas) else pcall(F.releaseFocus, S.pn) end
+    end
+    S.focusWas = nil
+    pcall(function()
+        local Dt = ZeD.Input.Detector
+        Dt.setLockedMode(nil)
+        if S.lockWas == "kbm" or S.lockWas == "gamepad" then Dt.setLockedMode(S.lockWas) end
+    end)
+end
+-- A tapped through FocusManager (its QA hook holds the button four frames; its tick fires onActivate as A comes up)
+function S.tapA(t)
+    Q.step(1, function()
+        if t.off or S.dead or not (S.padIsOn and t.padOk) then return end
+        local w = RT.cw()
+        if not w then return end
+        RT.pad("A", true)
+        RT.padDown(Joypad.AButton, w)
+        S.aDown = true
+    end)
+    Q.step(4, function() if S.aDown then RT.pad("A", false) end end)
+    Q.step(4, function() if S.aDown then RT.pad("A", nil); S.aDown = nil end end)
+end
+-- pictures (hg_injury's): the pointer parked off the window and hidden for the shot
+function S.sizeTag()
+    local w, h = 0, 0
+    pcall(function() w, h = RT.core:getScreenWidth(), RT.core:getScreenHeight() end)
+    return math.floor(w) .. "x" .. math.floor(h)
+end
+function S.park(on)
+    if on then
+        if not S.parked then
+            S.parked = { mx = getMouseX, my = getMouseY }
+            getMouseX = function() return -9000 end
+            getMouseY = function() return -9000 end
+        end
+        pcall(function() Mouse.setCursorVisible(false) end)
+        return
+    end
+    if S.parked then
+        getMouseX, getMouseY = S.parked.mx, S.parked.my
+        S.parked = nil
+        pcall(function() Mouse.setCursorVisible(true) end)
+    end
+end
+function S.shot(name, what)
+    Q.step(1, function() if not S.dead then S.park(true) end end)
+    Q.step(4, function()
+        if S.dead then S.park(false); return end
+        local file = name .. ".png"
+        local ok, e = pcall(function() getCore():TakeFullScreenshot(file) end)
+        if ok then Q.say("NOTE picture Zomboid/Screenshots/" .. file .. " | " .. what)
+        else Q.say("NOTE the picture " .. name .. " was not taken: " .. tostring(e)) end
+        S.park(false)
+    end)
+    Q.waitMs(1500)
+end
+function S.bandText(bz)
+    if not bz then return "no band" end
+    local function r(x) return x and (tostring(x.w) .. "x" .. tostring(x.h)) or "none" end
+    return "box " .. r(bz.box) .. ", Treat " .. r(bz.start) .. ", - " .. r(bz.dec) .. ", + " .. r(bz.inc)
+end
+-- the picker: two wounds, the list, the default, a pick, strain on a third part
+function S.buildPicker(t)
+    Q.step(2, function()
+        if S.dead then t.off = true; return end
+        local HT = Z.HealthTab
+        local w = RT.cw()
+        if not (w and HT.treatParts and HT.injuryList and HT.selectedTreatPart and HT.pickTreatPart and HT.treatSelected and HT.onClick) then
+            t.off = true
+            Q.skip("footer: the Treat footer", "HealthTab.treatParts, injuryList, selectedTreatPart, pickTreatPart, treatSelected or onClick is not in this build")
+            return
+        end
+        if not S.found.treatSelRec then S.found.treatSelRec = true; S.found.treatSel = w._healthTreatSel end
+        w._healthTreatSel = nil
+        RT.charTab("health")
+        S.sweep()
+        S.clearQueue()
+        S.ctxShut()
+        local a = S.stageOn(S.PK.worst, "deep")
+        local b = S.stageOn(S.PK.other, "scratch")
+        -- (a bandage in the bag: both parts' menus then offer something)
+        S.put("Base.Bandage")
+        if not (a and b) then t.off = true; Q.check(false, "footer: a deep wound and a scratch staged"); return end
+        S.refresh()
+    end)
+    S.until1(2, 240, function()
+        if t.off then return true end
+        local d, w = S.data(), RT.cw()
+        local bz = w and w._healthBand
+        return d ~= nil and d ~= S.oldData and #S.treatRows(d) == 2 and w._healthFooterMode == "treat"
+            and bz ~= nil and bz.dec ~= nil and bz.dec.w == 0
+    end, function(ok)
+        if t.off then return end
+        local d, w = S.data(), RT.cw()
+        if not w then t.off = true; Q.check(false, "footer: the Character window is there"); return end
+        local rows = S.treatRows(d)
+        local r1, r2 = rows[1], rows[2]
+        local bad = {}
+        if not ok then bad[1] = "the tab did not read the two wounds within 240 frames" end
+        if w._healthFooterMode ~= "treat" then bad[#bad + 1] = "footer " .. tostring(w._healthFooterMode) end
+        if not (#rows == 2 and r1 and S.typeOf(r1.bodyPart) == S.PK.worst and r2 and S.typeOf(r2.bodyPart) == S.PK.other) then
+            bad[#bad + 1] = "the list [" .. S.rowsText(rows) .. "], want the deep wound (" .. S.PK.worst .. ") then the scratch (" .. S.PK.other .. ")"
+        end
+        for _, r in ipairs(rows) do
+            if not r.treat then bad[#bad + 1] = tostring(r.name) .. " is no wound row" end
+        end
+        local sel = S.selName()
+        if not (r1 and sel == r1.name) then bad[#bad + 1] = "picked " .. tostring(sel) .. ", want the worst" end
+        Q.check(#bad == 0, "picker: with a wound on two parts the footer is Treat and its list holds only them, worst first",
+            #bad == 0 and ("[" .. S.rowsText(rows) .. "], picked " .. tostring(sel)) or table.concat(bad, "; "))
+        t.worst, t.other = r1 and r1.name or nil, r2 and r2.name or nil
+        local bz = w._healthBand
+        Q.check(bz ~= nil and (bz.start.w or 0) > 0 and bz.dec.w == 0 and bz.inc.w == 0 and (bz.box.w or 0) > 0,
+            "picker: Treat sits where Start is, beside the part box, with no time step", S.bandText(bz))
+        -- a pick is kept
+        if t.other then pcall(Z.HealthTab.pickTreatPart, w, t.other) end
+        local s2 = S.selName()
+        Q.check(t.other ~= nil and w._healthTreatSel == t.other and s2 == t.other and w._healthMenuOpen ~= true,
+            "picker: a pick is kept (selectedTreatPart is the picked part), the list shut", "picked " .. tostring(s2))
+        -- strain on a third part
+        local bp = S.part(S.PK.strain)
+        S.restore(bp, S.base[S.PK.strain] or S.CLEAN)
+        pcall(function() bp:setStiffness(40) end)
+        S.refresh()
+    end)
+    S.until1(2, 240, function()
+        if t.off then return true end
+        local d = S.data()
+        return d ~= nil and d ~= S.oldData and (d.strainedCount or 0) >= 1
+    end, function(ok)
+        if t.off then return end
+        local d, w = S.data(), RT.cw()
+        local rows, list = S.treatRows(d), S.listRows(d)
+        local sr = S.rowOf(list, S.PK.strain)
+        local inTreat = S.rowOf(rows, S.PK.strain) ~= nil
+        Q.check(ok and sr ~= nil and sr.treat == false and not inTreat and #rows == 2 and w ~= nil and w._healthFooterMode == "treat"
+            and S.selName() == t.other,
+            "picker: a strained part is listed in the middle but not in the Treat list (the pick kept)",
+            "Treat list [" .. S.rowsText(rows) .. "], middle [" .. S.rowsText(list) .. "], picked " .. tostring(S.selName()))
+    end)
+end
+-- Treat: the recorded menu against the figure's, the game's real menu once, the mouse press; then the fallback
+function S.buildTreat(t)
+    Q.step(2, function()
+        if t.off or S.dead then return end
+        local w = RT.cw()
+        local rec = S.recorder()
+        local orig = ISContextMenu.get
+        ISContextMenu.get = function() return rec end
+        local okT, res = pcall(Z.HealthTab.treatSelected, w)
+        ISContextMenu.get = orig
+        local fig = S.partOf(S.PK.other).fig
+        local figRec = S.menuOf(fig)
+        local a, b = S.menuText(rec), S.menuText(figRec)
+        Q.check(okT and res == true and #S.leaves(rec) > 0 and a == b,
+            "treat: the Treat button opens the same menu as a click on the picked part on the figure",
+            "Treat: " .. a .. (okT and "" or (" (error " .. tostring(res) .. ")")) .. " | the figure's " .. fig .. ": " .. b)
+        -- the game's real menu, once, shut again
+        S.ctxShut()
+        local okR, err = pcall(Z.HealthTab.treatSelected, w)
+        local up, m = S.ctxUp()
+        local n = up and S.ctxN(m) or 0
+        S.ctxShut()
+        local still = S.ctxUp()
+        Q.check(okR and up and n > 0 and not still, "treat: Treat opens the game's own menu with the picked part's options (shut again after)",
+            "shown " .. tostring(up) .. ", " .. n .. " option(s), up after the shut " .. tostring(still) .. (okR and "" or ("; error " .. tostring(err))))
+        -- the mouse: a press on Treat only marks it (win._healthPress.treat); the menu opens once the button is up
+        local bz = w and w._healthBand
+        local s = bz and bz.start
+        t.pressOk = false
+        if s and (s.w or 0) > 0 then
+            local okC, took = pcall(Z.HealthTab.onClick, w, s.x + math.floor(s.w / 2), s.y + math.floor(s.h / 2))
+            t.pressOk = okC and took == true and type(w._healthPress) == "table" and w._healthPress.treat == true
+        end
+    end)
+    S.until1(1, 120, function() return t.off or (S.ctxUp()) end, function(ok)
+        if t.off then return end
+        local up, m = S.ctxUp()
+        local n = up and S.ctxN(m) or 0
+        local w = RT.cw()
+        S.ctxShut()
+        Q.check(ok and t.pressOk and up and n > 0 and w ~= nil and w._healthPress == nil,
+            "treat: a mouse press on Treat opens the game's menu once the button is up",
+            "pressed " .. tostring(t.pressOk) .. ", shown " .. tostring(up) .. ", " .. n .. " option(s)")
+        if w then w._healthPress = nil end
+    end)
+    -- the picked part healed: the pick falls back to the worst
+    Q.step(1, function()
+        if t.off or S.dead then return end
+        S.putPart(S.PK.other)
+        S.refresh()
+    end)
+    S.until1(2, 240, function()
+        if t.off then return true end
+        local d = S.data()
+        return d ~= nil and d ~= S.oldData and #S.treatRows(d) == 1
+    end, function(ok)
+        if t.off then return end
+        local w = RT.cw()
+        local sel = S.selName()
+        Q.check(ok and sel ~= nil and sel == t.worst and w ~= nil and w._healthTreatSel == nil,
+            "picker: the picked part healed, the pick falls back to the worst",
+            "picked " .. tostring(sel) .. ", the pick kept " .. tostring(w and w._healthTreatSel))
+    end)
+end
+-- the pad: the band's stops, A opens the list, A on a row picks it, B shuts it, A on Treat
+function S.buildTreatPad(t)
+    Q.step(1, function()
+        if t.off or S.dead then return end
+        S.stageOn(S.PK.other, "scratch")
+        S.refresh()
+        S.padOn()
+    end)
+    S.until1(2, 240, function()
+        if t.off then return true end
+        local d, w = S.data(), RT.cw()
+        return d ~= nil and d ~= S.oldData and #S.treatRows(d) == 2 and w ~= nil and w._healthFooterMode == "treat"
+    end, function(ok)
+        if t.off then return end
+        local on = S.focusOn("health:treatPart")
+        local box, tr = S.stopById("health:treatPart"), S.stopById("health:treat")
+        local gone = S.stopById("health:time:dec") == nil and S.stopById("health:time:inc") == nil
+            and S.stopById("health:start") == nil and S.stopById("health:exercise") == nil
+        Q.check(ok and on and box ~= nil and tr ~= nil and gone and S.focusedId() == "health:treatPart",
+            "pad: in treat mode the band's stops are the part box and Treat (no time step, no Start)",
+            "on " .. S.focusedId() .. ", box " .. tostring(box ~= nil) .. ", Treat " .. tostring(tr ~= nil) .. ", the exercise's stops gone " .. tostring(gone))
+        t.padOk = on and true or false
+        if not t.padOk then
+            Q.skip("pad: the list's rows, a pick, B and Treat", "the pad's focus could not be put on health:treatPart")
+        end
+    end)
+    S.tapA(t)
+    S.until1(2, 120, function()
+        if t.off or not t.padOk then return true end
+        local w = RT.cw()
+        S.ring()
+        return w ~= nil and w._healthMenuOpen == true and #S.stopIds("health:treatRow:") > 0
+    end, function(ok)
+        if t.off or not t.padOk then return end
+        local ids = S.stopIds("health:treatRow:")
+        local want = { "health:treatRow:" .. tostring(t.worst), "health:treatRow:" .. tostring(t.other) }
+        Q.check(ok and S.sameSet(ids, want) and S.focusedId() == want[1],
+            "pad: A on the box opens the list; its stops are health:treatRow:<part>, the focus on the picked part",
+            "rows [" .. table.concat(ids, ", ") .. "], on " .. S.focusedId())
+        t.rowOn = S.focusOn(want[2])
+    end)
+    S.tapA(t)
+    S.until1(2, 120, function()
+        if t.off or not t.padOk then return true end
+        local w = RT.cw()
+        S.ring()
+        return w ~= nil and w._healthMenuOpen ~= true and S.focusedId() == "health:treatPart"
+    end, function(ok)
+        if t.off or not t.padOk then return end
+        local w = RT.cw()
+        Q.check(ok and t.rowOn and w ~= nil and w._healthTreatSel == t.other and S.selName() == t.other,
+            "pad: A on a row picks that part, shuts the list and the pad is back on the box",
+            "picked " .. tostring(S.selName()) .. ", on " .. S.focusedId() .. ", list open " .. tostring(w and w._healthMenuOpen))
+    end)
+    -- open it again, then B
+    S.tapA(t)
+    S.until1(2, 120, function()
+        if t.off or not t.padOk then return true end
+        local w = RT.cw()
+        S.ring()
+        return w ~= nil and w._healthMenuOpen == true and #S.stopIds("health:treatRow:") > 0
+    end, function(ok)
+        if t.off or not t.padOk then return end
+        t.reopen = ok
+        local w = RT.cw()
+        if ok and w then RT.padDown(Joypad.BButton, w) end
+    end)
+    S.until1(2, 120, function()
+        if t.off or not t.padOk then return true end
+        local w = RT.cw()
+        S.ring()
+        return w ~= nil and w._healthMenuOpen ~= true and S.focusedId() == "health:treatPart"
+    end, function(ok)
+        if t.off or not t.padOk then return end
+        Q.check(ok and t.reopen and S.selName() == t.other, "pad: B shuts the list without a pick, the pad back on the box",
+            "opened again " .. tostring(t.reopen) .. ", picked " .. tostring(S.selName()) .. ", on " .. S.focusedId())
+        S.ctxShut()
+        t.trOn = S.focusOn("health:treat")
+    end)
+    S.tapA(t)
+    S.until1(2, 120, function()
+        if t.off or not t.padOk then return true end
+        return (S.ctxUp())
+    end, function(ok)
+        if t.off or not t.padOk then return end
+        local up, m = S.ctxUp()
+        local n = up and S.ctxN(m) or 0
+        S.ctxShut()
+        Q.check(ok and t.trOn and up and n > 0, "pad: A on Treat opens the game's menu for the picked part",
+            "on Treat " .. tostring(t.trOn) .. ", shown " .. tostring(up) .. ", " .. n .. " option(s)")
+    end)
+    Q.step(2, function() S.ctxShut(); S.padOff() end)
+end
+-- the list open by a click (the picture), then the wounds healed under it: the footer flips back, the list shuts
+function S.buildTreatFlip(t)
+    Q.step(2, function()
+        if t.off or S.dead then return end
+        S.ctxShut()
+        local w = RT.cw()
+        local bz = w and w._healthBand
+        local b = bz and bz.box
+        t.boxOk = false
+        if b and (b.w or 0) > 0 and w._healthMenuOpen ~= true then
+            local okC, took = pcall(Z.HealthTab.onClick, w, b.x + math.floor(b.w / 2), b.y + math.floor(b.h / 2))
+            t.boxOk = okC and took == true
+        end
+    end)
+    S.until1(2, 120, function()
+        if t.off then return true end
+        local w = RT.cw()
+        return w ~= nil and w._healthMenuOpen == true and w._healthMenuZones ~= nil and #w._healthMenuZones == 2
+    end, function(ok)
+        if t.off then return end
+        local w = RT.cw()
+        local ids = {}
+        for _, z in ipairs(w and w._healthMenuZones or {}) do ids[#ids + 1] = tostring(z.id) end
+        Q.check(ok and t.boxOk and S.sameSet(ids, { tostring(t.worst), tostring(t.other) }),
+            "picker: a click on the box opens the list over the footer with the two wounded parts", "[" .. table.concat(ids, ", ") .. "]")
+        RT.bounds(Q, "the Treat list open")
+    end)
+    S.shot("hg_trt_footer_" .. S.sizeTag(), "the Health tab's Treat footer with its part list open (a deep wound on the left hand, a scratch on the right foot, a strained right upper arm)")
+    Q.step(1, function()
+        if t.off or S.dead then return end
+        local w = RT.cw()
+        t.openBefore = w ~= nil and w._healthMenuOpen == true
+        S.putPart(S.PK.worst)
+        S.putPart(S.PK.other)
+        S.refresh()
+    end)
+    S.until1(2, 240, function()
+        if t.off then return true end
+        local d, w = S.data(), RT.cw()
+        return d ~= nil and d ~= S.oldData and #S.treatRows(d) == 0 and w ~= nil and w._healthFooterMode == "exercise"
+    end, function(ok)
+        if t.off then return end
+        local d, w = S.data(), RT.cw()
+        local sr = S.rowOf(S.listRows(d), S.PK.strain)
+        Q.check(ok and t.openBefore and w ~= nil and w._healthMenuOpen ~= true and w._healthFooterMode == "exercise" and sr ~= nil,
+            "mode flip: the wounds healed with the list open, the footer is the exercise's again (strain alone keeps it) and the list is shut",
+            "open before " .. tostring(t.openBefore) .. ", open now " .. tostring(w and w._healthMenuOpen) .. "; footer "
+            .. tostring(w and w._healthFooterMode) .. "; the strain still listed " .. tostring(sr ~= nil))
+    end)
+end
+function S.buildTreatFooter()
+    local t = {}
+    S.buildPicker(t)
+    S.buildTreat(t)
+    S.buildTreatPad(t)
+    S.buildTreatFlip(t)
+    Q.step(1, function()
+        S.padOff()
+        S.ctxShut()
+        local w = RT.cw()
+        if w and w._healthMenuOpen then pcall(Z.HealthTab.closeMenu, w) end
+        if w and S.found.treatSelRec then w._healthTreatSel = S.found.treatSel end
+        if S.dead then return end
+        S.putPart(S.PK.worst)
+        S.putPart(S.PK.other)
+        S.putPart(S.PK.strain)
+        S.sweep()
+    end)
+    S.groupDone("treat footer")
+end
+
 -- ===================================================================== start
 function S.hold(w)
     if not w then return end
@@ -1238,6 +1731,7 @@ function S.build()
     Q.step(1, function() S.speed(1) end)
     S.buildNothing()
     S.buildCard()
+    S.buildTreatFooter()
 end
 
 -- ===================================================================== put back
@@ -1246,6 +1740,13 @@ function S.putBack()
     S.back.on = nil
     S.clearQueue()
     if S.card() then pcall(ZeD_WorldWindow.closeObjectCard, S.pn) end
+    -- (the Treat footer's run: the pad, the pointer, the game's menu, the list and the pick)
+    S.padOff()
+    S.park(false)
+    S.ctxShut()
+    local cw = RT.cw()
+    if cw and cw._healthMenuOpen then pcall(Z.HealthTab.closeMenu, cw) end
+    if cw and S.found.treatSelRec then cw._healthTreatSel = S.found.treatSel end
     S.sayOff()
     S.isoOff()
     S.unholdAll()
@@ -1296,6 +1797,10 @@ function S.buildPutBack()
         Q.check(ISInventoryPaneContextMenu.getContainers ~= nil and S.gc0 == nil and Z.HealthTab.sayNothingFits == (S.sayBack or Z.HealthTab.sayNothingFits)
             and S.card() == nil and #S.held == 0,
             "put back: the game's container list, ZeD's sayNothingFits, the card closed, no window held")
+        Q.check(not (S.ctxUp()) and S.padIsOn == nil and S.parked == nil and not (w and w._healthMenuOpen == true)
+            and (not S.found.treatSelRec or (w ~= nil and w._healthTreatSel == S.found.treatSel)),
+            "put back: no game menu up, the Treat list shut and its pick as found, the pad and the pointer let go",
+            "menu up " .. tostring((S.ctxUp())) .. ", list open " .. tostring(w and w._healthMenuOpen) .. ", pick " .. tostring(w and w._healthTreatSel))
         local missing, extra = 0, 0
         local seen = {}
         pcall(function()

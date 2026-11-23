@@ -20,6 +20,16 @@
 --             inside the part's rect, or <sex>-<part>-bandage / -fracture / -splint), nothing for strain, pain and
 --             poultices; (c) the summary: wounded and strained counts and the summary line ("1 of 17 injured" or
 --             "No injuries, Muscle Strain: 1")
+--   middle    (Nov 23 2026, Build's treatment card, main cc9f08686) for each state on each part, one more line: the
+--             summary's middle column lists the part (win._healthMiddle "injuries", HealthTab.injuryList holds its row
+--             with the list's words, win._healthInjuryShown the rows, win._healthInfoShown nil, the list's height the
+--             room the measure gave it: nothing overlaps) and the footer is Treat (win._healthFooterMode "treat") for
+--             anything but strain, the exercise's for minor and heavy strain alone; read with the read the summary
+--             drew (a wrap on HealthTab._renderHeader keeps it); a clean body at the start and after the put-back:
+--             the exercise's info and footer
+--   order     a bite, a deep wound, a fracture, a scratch, a heavy and a minor strain at once: injuryList puts the
+--             wounds first, worst first (severity, then lower health), the strain after, heavy before minor; every
+--             row drawn, the footer Treat; every ZeD window on screen (picture hg_inj_middle_<w>x<h>)
 --   words     no word on the list is a raw translation key
 --   state     per state: no Lua error over its 17 parts; every part put back exactly (snapDiff empty)
 --   first aid at First Aid 0 the same oracle on a forearm and a shin: the severity words hidden, a faint wound
@@ -28,12 +38,14 @@
 --             holds every word, the row is inside the tab, each tag fits the row's width, the row is as tall as its
 --             wrapped tags; every ZeD window on screen (pictures hg_inj_limb_<w>x<h>, hg_inj_limb_care_<w>x<h>)
 --   all 17    a wound on every part: "17 of 17 injured", 17 rows; the list scrolls when it is taller than the view
---             and the last row comes into view at the bottom; every ZeD window on screen (picture hg_inj_all17_<w>x<h>)
+--             and the last row comes into view at the bottom; every ZeD window on screen (picture hg_inj_all17_<w>x<h>);
+--             the middle column lists all 17 with room for them, the footer Treat
 --   put back  every part exactly as found, the character alive, not infected, no new wound; no Lua error
 -- Puts back: every part as found (every flag and clock: bandage and its type, splint and its item, stitches, fracture,
 -- burn and its wash, bullet, glass, bite, infection, alcohol, poultices, health, stiffness, pain), the zombie
 -- infection off as found, the pain stat, First Aid, ISHealthPanel.cheat, god mode, invincible, the game speed, the
--- figure's fold, the list's scroll, the windows and the tab; the figure's draw wrapper off. Nothing is given.
+-- figure's fold, the list's scroll, the windows and the tab; the figure's and the summary's draw wrappers off.
+-- Nothing is given.
 if not RT then print("ZEDQA hg_inj ERR rt_kit.lua did not run first"); print("ZEDQA hg_inj DONE"); return end
 local Q = RT.make("hg_inj")
 Q.maxMs = 1500000                    -- (the runner gives this script 1800 s: the put-back runs before that)
@@ -510,7 +522,14 @@ end
 function S.wrapOn()
     if S.w0 then return end
     local F = ZeD_BodyFigure
-    S.w0 = { wounds = F._drawWounds }
+    S.w0 = { wounds = F._drawWounds, header = Z.HealthTab._renderHeader }
+    -- (the summary's column: the read it drew is kept, so the middle column's stamps are read with that read and a
+    -- frame of the hover detail view, which draws no summary, is never taken for the list)
+    local origH = S.w0.header
+    Z.HealthTab._renderHeader = function(panel, win, data, rx, ry, rw)
+        if win ~= nil and win == RT.cw() then S.hdrData = data end
+        return origH(panel, win, data, rx, ry, rw)
+    end
     local orig = S.w0.wounds
     F._drawWounds = function(self, panel, xOff, yOff, s)
         local R = { panel = panel, s = s, x = xOff, y = yOff, list = {} }
@@ -526,6 +545,7 @@ end
 function S.wrapOff()
     if not S.w0 then return end
     ZeD_BodyFigure._drawWounds = S.w0.wounds
+    Z.HealthTab._renderHeader = S.w0.header
     S.wBack = S.w0.wounds
     S.w0 = nil
 end
@@ -700,6 +720,114 @@ function S.sumProblems(d, got)
     if want and text ~= want then bad[#bad + 1] = "summary \"" .. text .. "\", want \"" .. want .. "\"" end
     return bad
 end
+
+-- ===================================================================== the middle column and the footer
+-- Build's treatment card (HealthTab.lua, main cc9f08686): with a part listed the summary's middle column lists the
+-- hurt parts (win._healthMiddle "injuries", _renderInjuryInfo) where the exercise's info was; the footer is Treat
+-- (win._healthFooterMode "treat") while a part has a condition other than strain (treatParts, woundedCount's rule).
+S.SEV = { critical = 1, danger = 2, warning = 3, positive = 4, ok = 5 }   -- (HealthTab.lua's SEV_ORDER)
+function S.rowOf(rows, bpName)
+    for i, r in ipairs(rows or {}) do
+        if S.typeOf(r.bodyPart) == bpName then return r, i end
+    end
+    return nil, nil
+end
+function S.rowsText(rows)
+    local t = {}
+    for _, r in ipairs(rows or {}) do
+        local how = r.strainLv and ("strain " .. tostring(r.strainLv)) or (tostring(r.worstSev) .. ", health " .. S.n(r.health))
+        t[#t + 1] = tostring(S.typeOf(r.bodyPart)) .. " (" .. how .. ")"
+    end
+    return #t > 0 and table.concat(t, ", ") or "no rows"
+end
+function S.listRows(d)
+    local rows = {}
+    if d then
+        local ok, r = pcall(Z.HealthTab.injuryList, d)
+        if ok and type(r) == "table" then rows = r end
+    end
+    return rows
+end
+-- what the middle column and the footer show, against want = { middle = "injuries" | "exercise", footer = "treat" |
+-- "exercise", rows = a count or nil, parts = { bp names listed } }; the stamps are the summary's own, so its read
+-- must be d (S.hdrData, the wrap on _renderHeader); returns the problems and injuryList's rows
+function S.midProblems(d, want)
+    local bad = {}
+    local w = RT.cw()
+    if not (w and d) then bad[1] = "no window or no read"; return bad, {} end
+    if S.hdrData ~= d then
+        bad[#bad + 1] = "the summary's column did not draw this read"
+            .. (w._healthActivePart and (" (the detail view of " .. tostring(w._healthActivePart) .. " drew)") or "")
+    end
+    local okL, rows = pcall(Z.HealthTab.injuryList, d)
+    if not (okL and type(rows) == "table") then bad[#bad + 1] = "injuryList: " .. tostring(rows); rows = {} end
+    if w._healthMiddle ~= want.middle then bad[#bad + 1] = "middle " .. tostring(w._healthMiddle) .. ", want " .. want.middle end
+    local used, room = w._healthInfoUsedH, w._healthInfoH
+    local numbers = type(used) == "number" and type(room) == "number"
+    if want.middle == "injuries" then
+        if w._healthInjuryShown ~= #rows or #rows < 1 then
+            bad[#bad + 1] = "rows drawn " .. tostring(w._healthInjuryShown) .. ", injuryList " .. #rows
+        end
+        if w._healthInfoShown ~= nil then bad[#bad + 1] = "the exercise's info drew as well (" .. tostring(w._healthInfoShown) .. ")" end
+        if not (numbers and math.abs(used - room) < 0.5) then
+            bad[#bad + 1] = "the list used " .. tostring(used) .. " of the room " .. tostring(room) .. " (it must be the measure's: nothing overlaps)"
+        end
+    else
+        if (w._healthInjuryShown or 0) ~= 0 or #rows ~= 0 then
+            bad[#bad + 1] = "rows drawn " .. tostring(w._healthInjuryShown) .. ", injuryList " .. #rows .. " (want none)"
+        end
+        local okS, sel = pcall(Z.HealthTab.selectedExercise, w)
+        if w._healthInfoShown == nil or (okS and sel ~= nil and w._healthInfoShown ~= sel) then
+            bad[#bad + 1] = "the exercise's info " .. tostring(w._healthInfoShown) .. ", picked " .. tostring(sel)
+        end
+        if not (numbers and used <= room + 0.5) then bad[#bad + 1] = "the info used " .. tostring(used) .. " of the room " .. tostring(room) end
+    end
+    if want.rows and #rows ~= want.rows then bad[#bad + 1] = #rows .. " rows, want " .. want.rows end
+    for _, bp in ipairs(want.parts or {}) do
+        if not S.rowOf(rows, bp) then bad[#bad + 1] = bp .. " is not in the list" end
+    end
+    if w._healthFooterMode ~= want.footer then bad[#bad + 1] = "footer " .. tostring(w._healthFooterMode) .. ", want " .. want.footer end
+    return bad, rows
+end
+function S.midText(rows)
+    local w = RT.cw()
+    return tostring(w and w._healthMiddle) .. ", " .. #rows .. " row(s): " .. S.rowsText(rows) .. "; footer "
+        .. tostring(w and w._healthFooterMode) .. "; height " .. tostring(w and w._healthInfoUsedH) .. " of " .. tostring(w and w._healthInfoH)
+end
+-- (d) one staged state: the part listed with the list's own words, a wound row (Treat) for anything but strain, a
+-- strain row at its level for strain alone (the exercise's footer kept)
+function S.midCombo(P, ST, d, got, lab)
+    local wounded = false
+    for _, s in ipairs(got) do
+        if not S.isStrainWord(s) then wounded = true end
+    end
+    local listed = #got > 0
+    local bad, rows = S.midProblems(d, { middle = listed and "injuries" or "exercise", footer = wounded and "treat" or "exercise",
+        parts = listed and { P.bp } or nil })
+    local r = S.rowOf(rows, P.bp)
+    if r then
+        if not S.sameSet(S.labels(r), got) then bad[#bad + 1] = "its row says [" .. table.concat(S.labels(r), ", ") .. "]" end
+        if (r.treat and true or false) ~= wounded then bad[#bad + 1] = "its row's treat is " .. tostring(r.treat) end
+        if ST.strain and r.strainLv ~= ST.strain then bad[#bad + 1] = "its strain level " .. tostring(r.strainLv) .. ", want " .. ST.strain end
+    end
+    Q.check(#bad == 0, lab .. ": " .. ST.id .. " on " .. P.bp .. ": the middle column lists the part and the footer is "
+        .. (wounded and "Treat" or "the exercise's"), #bad == 0 and S.midText(rows) or table.concat(bad, "; "))
+end
+-- with nothing listed (a fresh read of the clean body, drawn by the summary): the exercise's info and footer
+function S.cleanMid(lab)
+    Q.step(1, function() if not S.dead then S.refresh() end end)
+    S.until1(2, 240, function()
+        local d = S.data()
+        return d ~= nil and d ~= S.oldData and d.woundedCount == 0 and (d.strainedCount or 0) == 0 and S.hdrData == d
+    end, function(ok)
+        local d = S.data()
+        local w = RT.cw()
+        local bad = S.midProblems(d, { middle = "exercise", footer = "exercise", rows = 0 })
+        if not ok then table.insert(bad, 1, "no clean read drawn by the summary within 240 frames") end
+        Q.check(#bad == 0, lab .. ": with nothing listed the middle column is the exercise's info and the footer the exercise's",
+            #bad == 0 and ("the info of " .. tostring(w and w._healthInfoShown)) or table.concat(bad, "; "))
+    end)
+end
 -- one combination: stage, wait for the read and the draw, check, put back
 function S.combo(P, ST, doc, lab)
     local t = {}
@@ -732,6 +860,7 @@ function S.combo(P, ST, doc, lab)
         end
         Q.check(#why == 0, lab .. ": " .. ST.id .. " on " .. P.bp .. ": the list, the figure and the summary",
             #why == 0 and table.concat(got, ", ") or table.concat(why, "; "))
+        if d then S.midCombo(P, ST, d, got, lab) end
         -- put back at once, read at once
         local base = S.base[P.bp] or S.CLEAN
         S.restore(bp, base)
@@ -758,7 +887,8 @@ function S.start()
     local HT = Z.HealthTab
     local F = ZeD_BodyFigure
     local ready = HT ~= nil and HT.gatherData ~= nil and HT.summaryLines ~= nil and HT.figureColor ~= nil
-        and HT.healthColor ~= nil and HT.strainColor ~= nil and F ~= nil and F._drawWounds ~= nil and S.bd() ~= nil
+        and HT.healthColor ~= nil and HT.strainColor ~= nil and HT._renderHeader ~= nil and F ~= nil and F._drawWounds ~= nil
+        and S.bd() ~= nil
     if not Q.check(ready, "the Health tab, its summary, figureColor and the body figure are loaded") then
         S.dead = true
         return
@@ -804,6 +934,9 @@ function S.start()
     Q.check(S.doc() == S.DOC, "First Aid is " .. S.DOC .. " for the list checks", tostring(S.doc()))
     S.wrapOn()
     S.wKeep = S.w0.wounds
+    S.hKeep = S.w0.header
+    Q.check(HT.injuryList ~= nil and HT.treatParts ~= nil and HT.footerMode ~= nil,
+        "the treatment card's reads are loaded (HealthTab.injuryList, treatParts, footerMode)")
     RT.pairOpen()
 end
 
@@ -828,6 +961,7 @@ function S.build()
         Q.check(ok, "the tab reads the clean body: nothing wounded, nothing strained",
             "wounded " .. tostring(d and d.woundedCount) .. ", strained " .. tostring(d and d.strainedCount))
     end)
+    S.cleanMid("start")
     -- every state on every part
     for _, ST in ipairs(S.STATES) do
         for _, P in ipairs(S.PARTS) do
@@ -842,6 +976,7 @@ function S.build()
     S.buildFirstAid0()
     S.buildLimb()
     S.buildAll17()
+    S.buildOrder()
 end
 
 -- ===================================================================== First Aid 0: what vanilla hides
@@ -930,6 +1065,11 @@ function S.limbCheck(lab, ok)
     local bad = S.rowFits(e and e.name, e)
     Q.check(#bad == 0, lab .. ": the row is inside the tab, each tag fits, the row is as tall as its tags",
         #bad == 0 and (#got .. " tags") or table.concat(bad, "; "))
+    local mb, rows = S.midProblems(d, { middle = "injuries", footer = "treat", rows = 1, parts = { S.LIMB } })
+    local r = S.rowOf(rows, S.LIMB)
+    if r and not S.sameSet(S.labels(r), got) then mb[#mb + 1] = "the middle column's row says [" .. table.concat(S.labels(r), ", ") .. "]" end
+    Q.check(#mb == 0, lab .. ": the middle column lists the limb with every word and the footer is Treat",
+        #mb == 0 and S.midText(rows) or table.concat(mb, "; "))
     RT.bounds(Q, lab)
 end
 function S.buildLimb()
@@ -1009,6 +1149,12 @@ function S.buildAll17()
             "drawn " .. tostring(w and w._healthDrawnH and math.floor(w._healthDrawnH)) .. ", view " .. tostring(view and math.floor(view.h))
             .. ", scroll bar " .. tostring(sc and sc.visible))
         S.tall = tall
+        -- (Build's rule: the column lists every row, _healthInjuryShown = #injuryList, and the measure gives it all
+        -- the room it takes, so nothing under it overlaps)
+        local mb, rows = S.midProblems(d, { middle = "injuries", footer = "treat", rows = 17 })
+        Q.check(#mb == 0, "all 17: the middle column lists all 17 parts with room for them, the footer is Treat",
+            #mb == 0 and (#rows .. " rows drawn " .. tostring(w and w._healthInjuryShown) .. ", height " .. tostring(w and w._healthInfoUsedH)
+                .. " of " .. tostring(w and w._healthInfoH) .. ", footer " .. tostring(w and w._healthFooterMode)) or table.concat(mb, "; "))
         RT.bounds(Q, "all 17, top of the list")
     end)
     S.shot("hg_inj_all17_" .. S.sizeTag(), "the Health tab with a wound on every part (17 of 17 injured)")
@@ -1068,6 +1214,84 @@ function S.buildAll17()
     S.stateDone({ id = "a wound on every part" }, "all 17")
 end
 
+-- ===================================================================== the middle column's order
+-- a bite (critical), a deep wound and a fracture (danger: lower health first), a scratch (warning), a heavy and a minor
+-- strain: the wounds first, worst first, then the strain, heavy first (HealthTab.injuryList)
+S.ORDER = { { "ForeArm_R", "bite" }, { "Hand_L", "deep wound" }, { "LowerLeg_L", "fracture" }, { "Foot_R", "scratch" },
+            { "UpperArm_R", "heavy strain" }, { "UpperLeg_L", "minor strain" } }
+function S.orderProblems(rows)
+    local bad = {}
+    local strainSeen, lastRank, lastH, lastLv = false, 0, -1, 9
+    for _, r in ipairs(rows) do
+        local nm = tostring(S.typeOf(r.bodyPart))
+        if r.treat then
+            local rk = S.SEV[r.worstSev] or 99
+            local h = tonumber(r.health) or 0
+            if strainSeen then bad[#bad + 1] = nm .. " (a wound) comes after a strain row" end
+            if rk < lastRank or (rk == lastRank and h < lastH - 0.01) then
+                bad[#bad + 1] = nm .. " is out of order (worst first: severity, then lower health)"
+            end
+            lastRank, lastH = rk, h
+        else
+            strainSeen = true
+            local lv = tonumber(r.strainLv) or 0
+            if lv > lastLv then bad[#bad + 1] = nm .. " (strain " .. lv .. ") comes after a lighter strain" end
+            lastLv = lv
+        end
+    end
+    if #rows ~= #S.ORDER then bad[#bad + 1] = #rows .. " rows, want " .. #S.ORDER end
+    local first, last = rows[1], rows[#rows]
+    if not (first and S.typeOf(first.bodyPart) == "ForeArm_R") then bad[#bad + 1] = "the bite (critical) is not first" end
+    if not (last and S.typeOf(last.bodyPart) == "UpperLeg_L" and last.strainLv == 1) then bad[#bad + 1] = "the minor strain is not last" end
+    local hv, iH = S.rowOf(rows, "UpperArm_R")
+    local _, iF = S.rowOf(rows, "Foot_R")
+    if not (hv and hv.treat == false and hv.strainLv == 2) then bad[#bad + 1] = "the heavy strain is no strain row at level 2" end
+    if not (iF and iH and iH == iF + 1) then bad[#bad + 1] = "the scratch is not the last wound row, just above the heavy strain" end
+    return bad
+end
+function S.buildOrder()
+    Q.step(2, function()
+        if S.dead then return end
+        local miss = {}
+        for _, o in ipairs(S.ORDER) do
+            local ST, bp = S.stateById(o[2]), S.part(o[1])
+            S.restore(bp, S.base[o[1]])
+            if not (ST and bp and pcall(ST.apply, bp)) then miss[#miss + 1] = o[1] end
+        end
+        if #miss > 0 then Q.check(false, "order: the wounds and the strain staged", "not taken: " .. table.concat(miss, ", ")) end
+        S.refresh()
+    end)
+    S.until1(2, 240, function()
+        local d = S.data()
+        return d ~= nil and d ~= S.oldData and d.woundedCount == 4 and (d.strainedCount or 0) == 2 and S.hdrData == d
+    end, function(ok)
+        local d = S.data()
+        local rows = S.listRows(d)
+        local bad = S.orderProblems(rows)
+        if not ok then
+            table.insert(bad, 1, "the summary did not draw 4 wounded and 2 strained parts within 240 frames (wounded "
+                .. tostring(d and d.woundedCount) .. ", strained " .. tostring(d and d.strainedCount) .. ")")
+        end
+        Q.check(#bad == 0, "order: the middle column lists wounds before strain, worst first, heavy strain before minor",
+            S.rowsText(rows) .. ((#bad > 0) and ("; " .. table.concat(bad, "; ")) or ""))
+        local mb = S.midProblems(d, { middle = "injuries", footer = "treat", rows = #S.ORDER })
+        Q.check(#mb == 0, "order: the middle column draws every row with room for it, the footer is Treat",
+            #mb == 0 and S.midText(rows) or table.concat(mb, "; "))
+        RT.bounds(Q, "the middle column with wounds and strain")
+    end)
+    S.shot("hg_inj_middle_" .. S.sizeTag(), "the Health tab with a bite, a deep wound, a fracture, a scratch and two strained parts: the middle column's list and the Treat footer")
+    Q.step(1, function()
+        if S.dead then return end
+        for _, o in ipairs(S.ORDER) do
+            local bp = S.part(o[1])
+            S.restore(bp, S.base[o[1]])
+            for _, x in ipairs(S.snapDiff(S.base[o[1]], S.snap(bp))) do S.pbBad[#S.pbBad + 1] = o[1] .. " " .. x end
+        end
+    end)
+    S.cleanMid("order, put back")
+    S.stateDone({ id = "wounds and strain together" }, "order")
+end
+
 -- ===================================================================== put back
 function S.putBack()
     if not S.back.on then return end
@@ -1117,8 +1341,9 @@ function S.buildPutBack()
         end
         local w = RT.cw()
         if f.pair and f.tab then Q.check(w ~= nil and w._activeTab == f.tab, "put back: the Character window's tab", tostring(w and w._activeTab)) end
-        Q.check(ZeD_BodyFigure._drawWounds == S.wKeep and #S.held == 0 and S.parked == nil,
-            "put back: the figure's own wounds pass, no window held, the pointer the game's")
+        Q.check(ZeD_BodyFigure._drawWounds == S.wKeep and Z.HealthTab._renderHeader == (S.hKeep or Z.HealthTab._renderHeader)
+            and #S.held == 0 and S.parked == nil,
+            "put back: the figure's own wounds pass and the summary's own draw, no window held, the pointer the game's")
         Q.check(S.doc() == f.doc and (not ISHealthPanel or ISHealthPanel.cheat == f.cheat),
             "put back: First Aid and the debug cheat as found",
             "First Aid " .. tostring(S.doc()) .. ", cheat " .. tostring(ISHealthPanel and ISHealthPanel.cheat))
