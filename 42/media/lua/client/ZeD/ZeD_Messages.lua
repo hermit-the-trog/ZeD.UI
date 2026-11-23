@@ -654,6 +654,9 @@ function M.readErrors()
             fileError(pending and (pending .. "\n" .. s) or s)
             pending = nil
         elseif string.find(s, "^%s*%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-") then
+            -- (QA EB 12g, Nov 22 2026: a repeat of the same error came in with no exception entry of its own and
+            -- was lost here when the next separator replaced it; a head still waiting is an error of its own)
+            if pending then fileError(pending) end
             pending = s
         elseif pending then
             pending = pending .. "\n" .. s
@@ -661,6 +664,12 @@ function M.readErrors()
             local t = lastErr.texts
             t[#t] = t[#t] .. "\n" .. s
         end
+    end
+    -- (QA EB 12g) one error's entries are all written before the frame reads them, so a head with no exception
+    -- after it at the end of a read is a whole error (a repeat the game logged without its exception entry)
+    if pending then
+        fileError(pending)
+        pending = nil
     end
 end
 

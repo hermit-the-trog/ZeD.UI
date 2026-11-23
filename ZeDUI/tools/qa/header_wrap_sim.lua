@@ -194,6 +194,22 @@ do
     end
     expect("scrolled: band Down -> the top row on show (row 6)", scrolled, "worldCtl:same", "down", "invrow:6")
     expect("scrolled: the last row on show Down -> the band's Take all", scrolled, "invrow:12", "down", "worldCtl:take")
+    -- (QA PAD 3) Up from the band with the heading's Pick all straight above it (both at the right end): still the
+    -- list's last row on show, never Pick all
+    local function pickAbove()
+        local w = scrolled()
+        local take, pick
+        for _, z in ipairs(w._focusRing) do
+            for _, e in ipairs(z.elements or {}) do
+                if e.id == "worldCtl:take" or (e.ccKey == "take") then take = take or e end
+                if e.isViewToggle and e.view == "all" then pick = e end
+            end
+        end
+        if take and pick then pick.x = take.x end
+        return w
+    end
+    local pu = go(pickAbove, "worldCtl:take", "up")
+    check("band Up with Pick all above it -> the last row on show, not Pick all", pu == "invrow:12", pu)
 end
 -- no band on show (nothing to do with this container): Up from the bar goes nowhere, as before
 do
