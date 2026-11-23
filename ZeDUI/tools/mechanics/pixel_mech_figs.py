@@ -82,7 +82,101 @@ def lamp(m):
 
 
 def panel(m):
-    return shade(m, 235, 255, 185, depth=6.0, outline=140)
+    """a body panel (door, hood, trunk, bed, roof): the raised shading, then its own pressed detail (Car wear, Nov 22
+    2026; the director: "the body parts can take on some more texturing, like the glass"): a soft highlight band across
+    it from the top left; on a panel wide and tall enough two creases along its length, each a darker pixel line with a
+    lit one beside it, the way a pressed hood or trunk lid catches the light; on a door its belt line. All greys, so
+    the condition tint still works."""
+    t = shade(m, 235, 255, 185, depth=6.0, outline=140)
+    inner = m & ndi.binary_erosion(m, iterations=2)
+    if not inner.any(): return t
+    ys, xs = np.nonzero(m)
+    y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+    yy, xx = np.mgrid[0:m.shape[0], 0:m.shape[1]]
+    # the highlight band: a two-pixel diagonal a fifth of the way in, one step lighter
+    sxy = (xx - x0) + (yy - y0)
+    span = max(1, (x1 - x0) + (y1 - y0))
+    band = inner & (sxy >= int(span * 0.22)) & (sxy < int(span * 0.22) + 2)
+    t = np.where(band, np.minimum(t + 20, 255), t)
+    w, h = x1 - x0, y1 - y0
+    if w >= 10 and h >= 10:
+        # two creases running up and down the figure (front to back on the car)
+        for f in (0.3, 0.7):
+            cx = x0 + int(round(w * f))
+            t = np.where(inner & (xx == cx), np.maximum(t - 40, 0), t)
+            t = np.where(inner & (xx == cx + 1), np.minimum(t + 20, 255), t)
+    elif h >= 10:
+        # a door: its belt line, a darker row a third of the way down with a lit row under it
+        cy = y0 + int(round(h * 0.35))
+        t = np.where(inner & (yy == cy), np.maximum(t - 40, 0), t)
+        t = np.where(inner & (yy == cy + 1), np.minimum(t + 20, 255), t)
+    return np.where(m, t, 0).astype(np.float32)
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Wear by condition (Car wear, Nov 22 2026; the director: "based on condition, like a red part would have a lot of
+# rust spots all over it. A yellow part would have maybe a little bit of rust or a scratch. And green would be, you
+# know, pristine."). Each part gets two overlays the size of its own texture, masked to its shape inside its outline:
+#   zm_<key>_wear1.png  light (the warn band): a scratch or two and a speck or two of rust
+#   zm_<key>_wear2.png  heavy (the bad band): rust spots all over, a fine speckle between them, a few scratches
+# Rust is a fixed rust colour (the tab draws the overlay untinted); scratches are light lines. Glass, tyres and lamps
+# do not rust: they get scuffs and cracks only (light lines; the heavy one more of them). Each part's pattern is
+# seeded from its own name, so a bake is the same every time and nothing changes frame to frame.
+# ---------------------------------------------------------------------------------------------------------------
+RUST = [(84, 42, 22), (112, 58, 30), (150, 86, 42)]     # deep, mid and a lighter flaking rust
+SCRATCH = (196, 192, 184)     # a light line, not white: bright specks read as noise
+
+
+def wear(key, m, heavy):
+    """the RGBA wear overlay for one part (key: <body>_<part>; m: its cropped mask)"""
+    import zlib
+    rng = np.random.default_rng(zlib.crc32((key + ("_2" if heavy else "_1")).encode()))
+    H, W = m.shape
+    out = np.zeros((H, W, 4), np.uint8)
+    inner = (m & ndi.binary_erosion(m)) if min(H, W) >= 3 else m.copy()
+    if not inner.any(): return out
+    no_rust = any(k in key for k in ("window", "wheel", "light"))
+    area = int(inner.sum())
+    YY, XX = np.mgrid[0:H, 0:W]
+
+    def put(mask, col):
+        mask = mask & inner
+        out[mask, 0], out[mask, 1], out[mask, 2], out[mask, 3] = col[0], col[1], col[2], 255
+
+    def anywhere():
+        ys, xs = np.nonzero(inner)
+        i = rng.integers(len(ys))
+        return ys[i], xs[i]
+
+    def scratch():
+        y, x = anywhere()
+        dy, dx = [(1, 1), (1, -1), (0, 1), (1, 0), (1, 2), (2, 1)][rng.integers(6)]
+        mk = np.zeros_like(inner)
+        for k in range(int(rng.integers(3, 6))):
+            yy, xx = int(round(y + dy * k * 0.5)), int(round(x + dx * k * 0.5))
+            if 0 <= yy < H and 0 <= xx < W: mk[yy, xx] = True
+        put(mk, SCRATCH)
+
+    def spot(r):
+        y, x = anywhere()
+        d = (YY - y) ** 2 + (XX - x) ** 2
+        blob = d <= r * r + int(rng.integers(0, 2))
+        put(blob, RUST[1])
+        put(blob & (d <= max(0, (r - 1) ** 2)), RUST[0])                 # a deeper heart
+        if r >= 2: put(blob & (d > (r - 0.5) ** 2) & (rng.random((H, W)) < 0.5), RUST[2])   # a ragged, flaking edge
+
+    if not heavy:
+        for _ in range(1 if area < 40 else 2): scratch()
+        if not no_rust:
+            for _ in range(1 if area < 60 else 2): spot(0 if area < 30 else 1)
+    else:
+        for _ in range(max(1, area // 220)): scratch()
+        if no_rust:
+            for _ in range(max(1, area // 140)): scratch()               # a cracked pane, a scuffed tyre
+        else:
+            for _ in range(max(2, area // 35)): spot(int(rng.integers(0, 3 if area >= 60 else 2)))
+            put(inner & (rng.random((H, W)) < 0.03), RUST[1])             # a fine speckle between the spots
+    return out
 
 
 def part_metal(m, a_full):
@@ -245,8 +339,15 @@ def preview(body, out_layers, path, scale=3, cond=None):
     cols = {"good": (90, 200, 110), "warn": (230, 170, 60), "bad": (225, 70, 60)}
     for i, (n, (t, m)) in enumerate(out_layers.items()):
         if n == "base": continue
-        c = (cond or {}).get(n, "good")
-        over(t, m, cols[c], 0.95)
+        c = cond.get(n, "good") if isinstance(cond, dict) else (cond or "good")
+        over(t, m, cols[c], 0.7)       # the tab's strength for a part's condition colour (Nov 22 2026)
+        if c != "good" and m.any():    # and its wear on top, untinted, as the tab draws it (Car wear, Nov 22 2026)
+            ys, xs = np.nonzero(m)
+            y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+            wv = wear(body + "_" + n, m[y0:y1, x0:x1], c == "bad").astype(np.float32)
+            a = wv[..., 3:4] / 255.0
+            sub = img[y0:y1, x0:x1]
+            sub[...] = sub * (1 - a) + wv[..., :3] * a
     # cropped to the figure's union, as the tab fits it (Car parts to the sides, Nov 22 2026)
     allm = np.zeros((H, W), bool)
     for t, m in out_layers.values(): allm |= m
@@ -324,6 +425,10 @@ def bake_all(stage):
             Image.fromarray(to_rgba(t, m)[y0:y1, x0:x1]).save(os.path.join(tex_dir, f"zm_{key}.png"), optimize=True)
             if n != "base":
                 Image.fromarray(rim_of(m)[y0:y1, x0:x1]).save(os.path.join(tex_dir, f"zm_{key}_rim.png"), optimize=True)
+                # the wear overlays, the layer's own size, so the tab draws them in the part's rect (Car wear, Nov 22 2026)
+                for k, heavy in ((1, False), (2, True)):
+                    Image.fromarray(wear(key, m[y0:y1, x0:x1], heavy)).save(
+                        os.path.join(tex_dir, f"zm_{key}_wear{k}.png"), optimize=True)
             anchors[key] = (int(x0), int(y0), int(x1 - x0), int(y1 - y0))
             p = b + "_"
             u = unions.get(p)
@@ -379,3 +484,26 @@ if __name__ == "__main__":
         sheet = Image.new("RGB", (cw * cols, ch * rows), (20, 21, 24))
         for i, im in enumerate(sheets): sheet.paste(im, ((i % cols) * cw + 10, (i // cols) * ch + 10))
         sheet.save(os.path.join(prev, "compare_all.png"))
+        # wear sheets (Car wear, Nov 22 2026): each body all good, all warn and all bad side by side, all 13 on one
+        from PIL import ImageDraw
+        wears = []
+        for b in sorted(os.path.basename(f)[:-len("_base.png")] for f in glob.glob(os.path.join(SRC, "*_base.png"))):
+            L = build(b, os.path.join(prev, "_layers"))
+            ims = []
+            for c in ("good", "warn", "bad"):
+                pth = os.path.join(prev, f"_wear_{b}_{c}.png")
+                preview(b, L, pth, scale=3, cond=c)
+                ims.append(Image.open(pth).convert("RGB")); os.remove(pth)
+            top = 22
+            S = Image.new("RGB", (sum(i.width for i in ims) + 40, max(i.height for i in ims) + top), (20, 21, 24))
+            d = ImageDraw.Draw(S); x = 0
+            for c, im in zip(("good (green): pristine", "warn (yellow): light wear", "bad (red): heavy rust"), ims):
+                S.paste(im, (x, top)); d.text((x + 2, 4), f"{b}  {c}", fill=(200, 200, 200)); x += im.width + 20
+            S.save(os.path.join(prev, f"wear_{b}.png")); wears.append(S)
+        shutil.rmtree(os.path.join(prev, "_layers"), ignore_errors=True)
+        cols = 2
+        cw, ch = max(i.width for i in wears) + 20, max(i.height for i in wears) + 20
+        rows = (len(wears) + cols - 1) // cols
+        sheet = Image.new("RGB", (cw * cols, ch * rows), (20, 21, 24))
+        for i, im in enumerate(wears): sheet.paste(im, ((i % cols) * cw + 10, (i // cols) * ch + 10))
+        sheet.save(os.path.join(prev, "wear_all.png"))
