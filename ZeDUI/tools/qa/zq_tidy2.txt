@@ -1,0 +1,4 @@
+# zq_tidy2 alone (QA, Nov 23 2026): the dug patches in the field round Angel cleared
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+zq_tidy2.lua | zq_tidy2 | timeout=300
