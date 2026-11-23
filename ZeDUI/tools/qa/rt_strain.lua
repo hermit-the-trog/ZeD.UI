@@ -520,7 +520,8 @@ function S.healthReady()
     local w = RT.cw()
     if not (w and w._activeTab == "health" and w._drawerOpen ~= false) then return false end
     local data, fill = w._healthCache, w._healthFill
-    if not (data and fill and w._healthInfoShown) then return false end
+    -- (Nov 23 2026, the treatment card: with strain listed, the middle column is the injury list, not the exercise info)
+    if not (data and fill and (w._healthInfoShown or w._healthMiddle == "injuries")) then return false end
     local L = S.want
     local lbl = (L.stiff < 20) and S.minorLbl() or S.heavyLbl()
     for _, n in ipairs(S.ARMS) do
@@ -554,6 +555,17 @@ function S.checkHealth(lab, ok)
             e and (tostring(e.name) .. ", worst " .. tostring(e.worstSev)) or "not listed")
         if e then Q.check(zones[tostring(e.name)] == true, lab .. " list: " .. n .. "'s injury row is drawn") end
     end
+    -- the treatment card (the director, Nov 23 2026: "Muscle strain should also show up there"; strain alone keeps
+    -- the exercise footer, as the game has no treatment for it)
+    local hasWound = false
+    for _, e in ipairs(data.entries or {}) do
+        for _, c in ipairs(e.conditions or {}) do if not c.strain then hasWound = true end end
+    end
+    Q.check(w._healthMiddle == "injuries" and (tonumber(w._healthInjuryShown) or 0) >= #S.ARMS
+        and (hasWound or w._healthFooterMode == "exercise"),
+        lab .. " list: the middle column lists the strained arms and, with strain alone, the footer stays the exercise's",
+        "middle " .. tostring(w._healthMiddle) .. ", rows " .. tostring(w._healthInjuryShown) .. ", footer " .. tostring(w._healthFooterMode)
+        .. ", a wound listed " .. tostring(hasWound))
     local eu = S.entryOf(data, S.UNDER)
     local wasListed = S.base.conds and S.base.conds[S.UNDER] ~= nil
     Q.check(wasListed or eu == nil, lab .. " list: " .. S.UNDER .. " at stiffness " .. tostring(L.under) .. " (under 5) is not listed",
