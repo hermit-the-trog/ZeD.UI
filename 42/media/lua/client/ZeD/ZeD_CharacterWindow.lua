@@ -2725,26 +2725,54 @@ end
 -- exercise list open the stops are its rows instead (the current exercise first; A
 -- picks, B shuts it); shutting it returns the pad to the box. The band is pinned, so
 -- its stops are bandStop (the body's scroll-follow ignores them). Start keeps the
--- focus after it is pressed (same id, nothing rebuilt).
+-- focus after it is pressed (same id, nothing rebuilt). With a part to treat
+-- (win._healthFooterMode "treat") the stops are the part pop-up (health:treatPart,
+-- its rows health:treatRow:<part>) and Treat (health:treat), the same pattern.
 local function _buildHealthBandFocusables(win)
     local bz = win and win._healthBand
     if not bz or not bz.box.w then return {} end
     local H = ZeD.HealthTab
     local elements = {}
+    -- with a part to treat the band is the treatment's: the part pop-up and Treat, the same pattern (the director,
+    -- Nov 23 2026)
+    local treat = win._healthFooterMode == "treat"
     if win._healthMenuOpen and win._healthMenuZones then
-        local sel = H.selectedExercise(win)
+        local sel
+        if treat then
+            local r = H.selectedTreatPart(win)
+            sel = r and r.name
+        else
+            sel = H.selectedExercise(win)
+        end
         for i, z in ipairs(win._healthMenuZones) do
             elements[#elements + 1] = {
                 x = z.x, y = z.y, w = z.w, h = z.h,
-                id = "health:menuRow:" .. tostring(z.id),
+                id = (treat and "health:treatRow:" or "health:menuRow:") .. tostring(z.id),
                 menuRowId = z.id,
                 onFocus = function(w, el) end,
-                onActivate = function(w, el) H.closeMenu(w, el.menuRowId) end,
+                onActivate = treat and function(w, el) H.pickTreatPart(w, el.menuRowId) end
+                    or function(w, el) H.closeMenu(w, el.menuRowId) end,
                 onCancel = function(w, el) H.closeMenu(w) end,
             }
             if z.id == sel then elements._focusIdx = i end
         end
         elements._menuRows = true
+        return elements
+    end
+    if treat then
+        elements[1] = {
+            x = bz.box.x, y = bz.box.y, w = bz.box.w, h = bz.box.h,
+            id = "health:treatPart", bandStop = true,
+            onFocus = function(w, el) end,
+            onActivate = function(w, el) H.openMenu(w) end,
+        }
+        elements[2] = {
+            x = bz.start.x, y = bz.start.y, w = bz.start.w, h = bz.start.h,
+            id = "health:treat", bandStop = true,
+            promptA = ZeD.tr("UI_ZeD_Health_Treat"),
+            onFocus = function(w, el) end,
+            onActivate = function(w, el) H.treatSelected(w) end,
+        }
         return elements
     end
     elements[1] = {
@@ -2944,7 +2972,7 @@ local function _buildHealthFocusables(win)
     for i = 1, #fill do elements[#elements + 1] = fill[i] end
     for i = 1, #band do
         elements[#elements + 1] = band[i]
-        if win._healthReturnToMenu and band[i].id == "health:exercise" then
+        if win._healthReturnToMenu and (band[i].id == "health:exercise" or band[i].id == "health:treatPart") then
             elements._focusIdx = #elements
             win._healthReturnToMenu = nil
         end

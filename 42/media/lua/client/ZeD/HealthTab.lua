@@ -8,6 +8,9 @@
 -- Under it the fill blocks: the moodles that are on, Fitness and Strength,
 -- each exercise's regularity (a row picks it for the band) and muscle strain.
 -- The footer band is pinned: the exercise pop-up, the session time, Start.
+-- With an injury the tab is a treatment card (the director, Nov 23 2026): the
+-- summary's column lists the hurt parts and muscle strain, worst first, and
+-- the band picks a part and Treat opens the game's treatment menu for it.
 -- What the tab reveals follows vanilla's health panel at the viewer's First
 -- Aid level, and a part's treatment menu is vanilla's own. Other mods add
 -- wound details through EXTRAS; the medical check of another player
@@ -997,6 +1000,8 @@ local function openPendingPress(win, panel)
     if getTimestampMs() - pr.at > 2000 then win._healthPress = nil; return end
     if isMouseButtonDown(0) then return end
     win._healthPress = nil
+    -- (a press on the band's Treat: the picked part's menu, at the button) (the director, Nov 23 2026)
+    if pr.treat then ZeD.HealthTab.treatSelected(win); return end
     ZeD.HealthTab._onPartClicked(win, pr.part, panel, pr.x, pr.y)
 end
 
@@ -1107,6 +1112,199 @@ function ZeD.HealthTab.drawSummary(panel, data, x, y)
 end
 
 -- ============================================================================
+-- THE TREATMENT CARD (the director, Nov 23 2026): with an injury, the middle
+-- column lists each hurt part, worst first, in place of the exercise's info, and
+-- the footer band picks a part and opens the game's treatment menu for it (Treat,
+-- where Start is). Muscle strain is listed too, but the game has no treatment for
+-- it: strain alone keeps the exercise footer, and a part with strain alone is not
+-- in the Treat pop-up. With nothing listed the column and the band are the
+-- exercise's, as before.
+-- ============================================================================
+
+-- a read of the body as given, or read from a player first
+local function asRead(data)
+    if data ~= nil and (type(data) ~= "table" or (data.entries == nil and data.getBodyDamage)) then
+        return ZeD.HealthTab.gatherData(data)
+    end
+    return data
+end
+
+--- The middle column's rows, from one read of the body (gatherData's table; a player is read first).
+--- Each part with a condition: a "wound" row when one of its conditions is not strain (woundedCount's rule, so a
+--- part with care alone, a bandage, stitches or pain, is listed and can be treated: the game's menu changes or
+--- takes off a bandage), else a "strain" row. Wounds come first, worst first (SEV_ORDER, then lower health: the
+--- order of data.entries), then the strained parts, heavy first. A part listed below for low health alone is no
+--- row here. Each row: { name, health, conditions, worstSev, bodyPart, treat = true for a wound, strainLv }.
+--- Kept on the read (a new read every 250 ms).
+function ZeD.HealthTab.injuryList(data)
+    data = asRead(data)
+    if not data then return {} end
+    if data.injuryRows then return data.injuryRows end
+    local rows, strained = {}, {}
+    for _, e in ipairs(data.entries or {}) do
+        local conds = e.conditions or {}
+        if #conds > 0 then
+            local wound = false
+            for _, c in ipairs(conds) do
+                if not c.strain then wound = true; break end
+            end
+            local row = { name = e.name, health = e.health, conditions = conds, worstSev = e.worstSev,
+                          bodyPart = e.bodyPart, treat = wound }
+            if wound then
+                rows[#rows + 1] = row
+            else
+                -- (strain alone: its worst word is Muscle Strain, "danger", at 20 or more)
+                row.strainLv = (e.worstSev == "danger") and 2 or 1
+                strained[#strained + 1] = row
+            end
+        end
+    end
+    for _, r in ipairs(strained) do rows[#rows + 1] = r end
+    data.injuryRows = rows
+    return rows
+end
+
+--- The Treat pop-up's parts: the wound rows of injuryList, in its order (worst first). Kept on the read.
+function ZeD.HealthTab.treatParts(data)
+    data = asRead(data)
+    if not data then return {} end
+    if data.treatRows then return data.treatRows end
+    local out = {}
+    for _, r in ipairs(ZeD.HealthTab.injuryList(data)) do
+        if r.treat then out[#out + 1] = r end
+    end
+    data.treatRows = out
+    return out
+end
+
+--- "treat" while a part the game's treatment menu can act on is listed, else "exercise" (strain alone keeps the
+--- exercise). Stamped on the window as win._healthFooterMode (the pad's stops and QA read it).
+function ZeD.HealthTab.footerMode(win)
+    if not win then return "exercise" end
+    local data = win._healthCache
+    if not data and win._playerObj then
+        data = ZeD.HealthTab.gatherData(win._playerObj)
+        win._healthCache = data
+    end
+    local mode = (#ZeD.HealthTab.treatParts(data) > 0) and "treat" or "exercise"
+    win._healthFooterMode = mode
+    return mode
+end
+
+--- The part the Treat pop-up has picked (a row of treatParts), per window: the worst until one is picked; once the
+--- picked part heals, the worst again (the pick is dropped). Nil with nothing to treat.
+function ZeD.HealthTab.selectedTreatPart(win)
+    if not win then return nil end
+    local rows = ZeD.HealthTab.treatParts(win._healthCache)
+    if #rows == 0 then return nil end
+    local sel = win._healthTreatSel
+    if sel then
+        for _, r in ipairs(rows) do
+            if r.name == sel then return r end
+        end
+        win._healthTreatSel = nil   -- (healed: back to the worst)
+    end
+    return rows[1]
+end
+
+--- Shut the pop-up list; pickName, when given, becomes the picked part (the pad goes back to the box).
+function ZeD.HealthTab.pickTreatPart(win, pickName)
+    if pickName then win._healthTreatSel = pickName end
+    win._healthMenuOpen = false
+    win._healthMenuZones = nil
+    win._healthReturnToMenu = true
+end
+
+--- Treat: the game's treatment menu for the picked part, the same menu a click on that part of the figure opens,
+--- anchored at the Treat button. Returns true when it asked for the menu.
+function ZeD.HealthTab.treatSelected(win)
+    local row = ZeD.HealthTab.selectedTreatPart(win)
+    local p = win and win._playerObj
+    if not (row and row.bodyPart and p) then return false end
+    local anchor = win._healthContentPanel or win
+    local b = win._healthBand and win._healthBand.start
+    ZeD.HealthTab.treat(p, nil, row.bodyPart, anchor, b and b.x or 0, b and b.y or 0, nil)
+    return true
+end
+
+-- One row's dot: a strained part's in the strain tint (as the figure and the summary draw it), else the worst
+-- condition's status colour
+local function injuryDot(r)
+    if r.strainLv then return ZeD.HealthTab.strainColor(r.strainLv) end
+    return sevColor(r.worstSev)
+end
+
+-- Lays the rows out for a column width w (no drawing): the status dot, the part's name wrapped beside it, its
+-- condition words under the name (the condition tags, their squares under the dot). Returns { items, h }.
+local function layoutInjuryList(rows, w)
+    local T, A, TM = ZeD.T, ZeD.Atoms, ZeD.TM
+    local f2 = T.fontF2
+    local h2 = TM:getFontHeight(f2)
+    local lg, sg = T.px(2), T.sp.xs
+    local hang = tagHang()                           -- (the words start past the dot, as the tags' words do)
+    local textW = math.max(T.px(20), w - hang)
+    local items, y = {}, 0
+    for _, r in ipairs(rows) do
+        local lines = A.wrapText(ZeD.partLabel(r.name), f2, textW)
+        local nameH = #lines * (h2 + lg)
+        local tagsH = condTags(nil, r.conditions, 0, 0, textW, hang)
+        items[#items + 1] = { y = y, lines = lines, tagsY = y + nameH, conds = r.conditions, dot = injuryDot(r) }
+        y = y + nameH + ((tagsH > 0) and (tagsH + lg) or 0) + sg
+    end
+    return { items = items, h = y, fh = h2, lg = lg, hang = hang, textW = textW }
+end
+
+-- The layout for a read at a width, kept on the window under slot (the draw's and the measure's apart, as their
+-- widths can differ): rebuilt only when the rows' words, the width or the fonts change, checked once per read.
+local function injuryLayout(win, slot, data, w)
+    local c = win[slot]
+    if c and c.data == data and c.w == w then return c.lay end
+    local T, TM = ZeD.T, ZeD.TM
+    local rows = ZeD.HealthTab.injuryList(data)
+    local sig = { tostring(w), tostring(T.scale), TM:getFontHeight(T.fontF1), TM:getFontHeight(T.fontF2) }
+    for _, r in ipairs(rows) do
+        sig[#sig + 1] = r.name
+        sig[#sig + 1] = tostring(r.strainLv or r.worstSev)
+        for _, cd in ipairs(r.conditions) do sig[#sig + 1] = cd.label end
+    end
+    local key = table.concat(sig, "|")
+    if not (c and c.key == key) then
+        c = { key = key, lay = layoutInjuryList(rows, w) }
+        win[slot] = c
+    end
+    c.data, c.w = data, w
+    return c.lay
+end
+
+local function drawInjuryList(panel, x, y, lay)
+    local T, A = ZeD.T, ZeD.Atoms
+    local dotSz = T.px(6)
+    for _, it in ipairs(lay.items) do
+        local iy = y + it.y
+        if it.dot then A.drawStatusDot(panel, x, iy + math.floor((lay.fh - dotSz) / 2), it.dot, dotSz) end
+        for i, line in ipairs(it.lines) do
+            A.drawBody(panel, line, x + lay.hang, iy + (i - 1) * (lay.fh + lay.lg))
+        end
+        condTags(panel, it.conds, x + lay.hang, y + it.tagsY, lay.textW, lay.hang)
+    end
+end
+
+--- Divider, then the injury list (injuryList) in the middle column, where the exercise's info is with no injury.
+--- Its room is the measure's (_measureExerciseInfo), so nothing under it overlaps.
+function ZeD.HealthTab._renderInjuryInfo(panel, win, data, rx, ry, rw)
+    local T, A = ZeD.T, ZeD.Atoms
+    local w = math.min(rw, win._healthInfoW or rw)
+    A.drawDividerH(panel, rx, ry, rw)
+    local y = ry + T.px(1) + T.sp.afterGroove
+    local lay = injuryLayout(win, "_healthInjLay", data, w)
+    drawInjuryList(panel, rx, y, lay)
+    win._healthInfoShown = nil                                  -- (no exercise described this frame)
+    win._healthInjuryShown = #ZeD.HealthTab.injuryList(data)   -- how many rows the column listed (QA reads it)
+    win._healthInfoUsedH = lay.h
+    return y + math.max(win._healthInfoH or 0, lay.h)
+end
+
+-- ============================================================================
 -- ZONE A RIGHT COLUMN: DEFAULT HEADER (summary dashboard)
 -- Returns curY (bottom of Zone A header content).
 -- ============================================================================
@@ -1127,9 +1325,17 @@ function ZeD.HealthTab._renderHeader(panel, win, data, rx, ry, rw)
     -- Summary line(s) (drawSummary above)
     curY = ZeD.HealthTab.drawSummary(panel, data, rx, curY)
 
-    -- What vanilla's fitness window says about the picked exercise: description,
+    -- With an injury or muscle strain: each hurt part, worst first (the director, Nov 23 2026).
+    -- Else what vanilla's fitness window says about the picked exercise: description,
     -- stiffness, regularity, warnings (the exercise itself is picked in the band)
-    curY = ZeD.HealthTab._renderExerciseInfo(panel, win, rx, curY, rw)
+    if #ZeD.HealthTab.injuryList(data) > 0 then
+        win._healthMiddle = "injuries"   -- (what the column shows: QA reads it)
+        curY = ZeD.HealthTab._renderInjuryInfo(panel, win, data, rx, curY, rw)
+    else
+        win._healthMiddle = "exercise"
+        win._healthInjuryShown = 0
+        curY = ZeD.HealthTab._renderExerciseInfo(panel, win, rx, curY, rw)
+    end
 
     return curY
 end
@@ -1614,10 +1820,11 @@ end
 --- else the box opens it, - and + step the time, Start starts. Returns true when the press
 --- was the band's (the whole band swallows it).
 function ZeD.HealthTab.onClick(win, x, y)
+    local treat = win._healthFooterMode == "treat"   -- (the band is the treatment's: the director, Nov 23 2026)
     if win._healthMenuOpen then
         for _, z in ipairs(win._healthMenuZones or {}) do
             if inRect(z, x, y) then
-                ZeD.HealthTab.closeMenu(win, z.id)
+                if treat then ZeD.HealthTab.pickTreatPart(win, z.id) else ZeD.HealthTab.closeMenu(win, z.id) end
                 return true
             end
         end
@@ -1632,6 +1839,11 @@ function ZeD.HealthTab.onClick(win, x, y)
         return ZeD.HealthTab.pressAt(win, x, y)
     end
     if inRect(bz.box, x, y) then ZeD.HealthTab.openMenu(win)
+    elseif treat then
+        -- Treat opens the game's menu once the button is up (openPendingPress), so the release never lands on it
+        if inRect(bz.start, x, y) and ZeD.HealthTab.selectedTreatPart(win) then
+            win._healthPress = { treat = true, x = x, y = y, at = getTimestampMs() }
+        end
     elseif inRect(bz.dec, x, y) then ZeD.HealthTab.stepMinutes(win, -EXERCISE_TIME_STEP)
     elseif inRect(bz.inc, x, y) then ZeD.HealthTab.stepMinutes(win, EXERCISE_TIME_STEP)
     elseif inRect(bz.start, x, y) then ZeD.HealthTab.startSelected(win) end
@@ -1694,8 +1906,59 @@ local function drawTimeStep(panel, win, bz, x, by, readW, mins, open)
     setRect(bz.inc, incX, by, bh, bh)
 end
 
+-- The treatment band (the director, Nov 23 2026): [Injury: Left Hand v]   [Treat]. The pop-up holds the parts
+-- the game's treatment menu can act on, worst first; Treat opens that menu for the picked one. No time step.
+local function renderTreatBand(panel, win, x, y, w)
+    local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
+    local bh, edge, gap = T.buttonH, T.px(8), T.px(8)
+    local by = y + T.px(5)
+    local row = ZeD.HealthTab.selectedTreatPart(win)
+    local partName = row and ZeD.partLabel(row.name) or ""
+    local open = win._healthMenuOpen == true
+    local bz = bandZones(win)
+    bz.y, bz.h = y, M.bandH()
+    setRect(bz.dec, 0, 0, 0, 0)   -- (no time step: its rects take no press)
+    setRect(bz.inc, 0, 0, 0, 0)
+
+    -- Treat, primary at the right, where Start is (its rect is bz.start)
+    local lbl = ZeD.tr("UI_ZeD_Health_Treat")
+    local btnW = M.buttonW(lbl)
+    local btnX = x + w - edge - btnW
+    local sb = _bandBtns[1]
+    sb.label, sb.variant, sb.disabled, sb.id, sb.w = lbl, "primary", row == nil, "treat", btnW
+    sb.hover = (not open) and A.mouseIn(panel, btnX, by, btnW, bh)
+    sb.focus = focusOf(win, "health:treat")
+    sb.help = (sb.hover or sb.focus) and row and ZeD.tr("UI_ZeD_Health_HelpTreat", partName) or nil
+    _bandSpec.win = win
+    M.drawBand(panel, x, y, w, _bandSpec)
+    setRect(bz.start, btnX, by, btnW, bh)
+
+    -- the pop-up box: as wide as its widest part, so picking another never moves it (measured once per read)
+    local data = win._healthCache
+    local nat = data and data.treatNatW
+    if data and not nat then
+        nat = 0
+        for _, r in ipairs(ZeD.HealthTab.treatParts(data)) do
+            local nw = M.popupMenuW(ZeD.tr("UI_ZeD_Health_TreatPick", ZeD.partLabel(r.name)))
+            if nw > nat then nat = nw end
+        end
+        data.treatNatW = nat
+    end
+    local boxX = x + edge
+    local boxW = math.max(T.px(40), math.min(nat or 0, btnX - gap - boxX))
+    local hov = (not open) and A.mouseIn(panel, boxX, by, boxW, bh)
+    if hov and ZeD.Help then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Health_HelpTreatPick")) end
+    local boxFo = focusOf(win, "health:treatPart")
+    M.drawPopupMenu(panel, boxX, by, boxW, bh, ZeD.tr("UI_ZeD_Health_TreatPick", partName),
+        hov or open, boxFo, row == nil, partName)   -- (the part alone when both do not fit)
+    setRect(bz.box, boxX, by, boxW, bh)
+    if boxFo and not open then A.padHelp(panel, ZeD.tr("UI_ZeD_Health_HelpTreatPick"), bz.box) end
+end
+
 -- The band at the card's foot, top-left (x, y): [Exercise: Squats v]  Time (minutes) - 10 +   [Start]
+-- (with an injury to treat, the treatment band instead: renderTreatBand)
 function ZeD.HealthTab._renderBand(panel, win, x, y, w)
+    if win._healthFooterMode == "treat" then return renderTreatBand(panel, win, x, y, w) end
     local T, A, M, TM = ZeD.T, ZeD.Atoms, ZeD.Molecules, ZeD.TM
     local bh, edge, gap = T.buttonH, T.px(8), T.px(8)
     local by = y + T.px(5)
@@ -1780,6 +2043,7 @@ function ZeD.HealthTab._renderBand(panel, win, x, y, w)
 end
 
 local _menuModes = {}
+local _treatModes = {}   -- (the treatment band's list: the parts to treat)
 local _menuOpts = {}
 
 -- The open exercise list, drawn LAST (over the body and the band), hanging up from the
@@ -1789,11 +2053,29 @@ function ZeD.HealthTab._renderMenu(panel, win)
     local bz = win._healthBand
     if not (win._healthMenuOpen and bz) then return end
     local M, A = ZeD.Molecules, ZeD.Atoms
-    local n = #EXERCISES
-    for i = 1, n do
-        local m = _menuModes[i]
-        if not m then m = {}; _menuModes[i] = m end
-        m.id, m.label = EXERCISES[i], ZeD.HealthTab.exerciseLabel(EXERCISES[i])
+    -- the treatment band's list holds the parts to treat, worst first (the director, Nov 23 2026)
+    local treat = win._healthFooterMode == "treat"
+    local modes, selId, n = _menuModes, nil, 0
+    if treat then
+        modes = _treatModes
+        local rows = ZeD.HealthTab.treatParts(win._healthCache)
+        n = #rows
+        for i = 1, n do
+            local m = modes[i]
+            if not m then m = {}; modes[i] = m end
+            m.id, m.label = rows[i].name, ZeD.partLabel(rows[i].name)
+        end
+        for i = #modes, n + 1, -1 do modes[i] = nil end   -- (fewer parts than last time)
+        local sr = ZeD.HealthTab.selectedTreatPart(win)
+        selId = sr and sr.name
+    else
+        n = #EXERCISES
+        for i = 1, n do
+            local m = _menuModes[i]
+            if not m then m = {}; _menuModes[i] = m end
+            m.id, m.label = EXERCISES[i], ZeD.HealthTab.exerciseLabel(EXERCISES[i])
+        end
+        selId = ZeD.HealthTab.selectedExercise(win)
     end
     local hoverId = nil
     for _, z in ipairs(win._healthMenuZones or {}) do
@@ -1807,11 +2089,15 @@ function ZeD.HealthTab._renderMenu(panel, win)
     -- (Nov 14 2026, punch list 230: the focused exercise's help words, beside it once the pad rests on it)
     local tipId = hoverId or o.focusId
     local gy = math.max(0, bz.box.y - M.popupListH(n))
-    local _, _, zs = M.drawSortMenuList(panel, bz.box.x, gy, _menuModes, ZeD.HealthTab.selectedExercise(win), hoverId, o)
+    local _, _, zs = M.drawSortMenuList(panel, bz.box.x, gy, modes, selId, hoverId, o)
     win._healthMenuZones = zs
     if tipId and ZeD.Help then
-        local words = ZeD.tr("UI_ZeD_Health_HelpExercise", ZeD.HealthTab.exerciseLabel(tipId),
-            ZeD.HealthTab.getExerciseMinutes(win))
+        local words
+        if treat then words = ZeD.tr("UI_ZeD_Health_HelpTreat", ZeD.partLabel(tipId))
+        else
+            words = ZeD.tr("UI_ZeD_Health_HelpExercise", ZeD.HealthTab.exerciseLabel(tipId),
+                ZeD.HealthTab.getExerciseMinutes(win))
+        end
         if hoverId then ZeD.Help.set(win, words)
         else
             for _, z in ipairs(zs or {}) do
@@ -1864,8 +2150,18 @@ end
 -- exercise's block at the narrowest column width (scrollbar present). Stamps
 -- _healthInfoW / _healthInfoH on the window for the renderer. Cached on what
 -- changes the layout (width, fonts, which warnings apply).
-function ZeD.HealthTab._measureExerciseInfo(win, w)
+function ZeD.HealthTab._measureExerciseInfo(win, w, data)
     local T, TM = ZeD.T, ZeD.TM
+    -- with an injury the column lists the hurt parts instead: their room, at the same narrowest width (the director,
+    -- Nov 23 2026)
+    data = data or (win and win._healthCache)
+    if win and data and #ZeD.HealthTab.injuryList(data) > 0 then
+        local wrapW = math.max(T.px(60), ZeD.Molecules.layoutZoneA(0, 0, w - T.sp.scrollbarW).rightW)
+        local lay = injuryLayout(win, "_healthInjMeas", data, wrapW)
+        win._healthInfoW = wrapW
+        win._healthInfoH = lay.h
+        return T.px(1) + T.sp.afterGroove + lay.h
+    end
     local playerObj = win and win._playerObj
     if not playerObj or not FitnessExercises or not FitnessExercises.exercisesType then return 0 end
     local wrapW = math.max(T.px(60), ZeD.Molecules.layoutZoneA(0, 0, w - T.sp.scrollbarW).rightW)
@@ -1922,8 +2218,9 @@ function ZeD.HealthTab._measureZoneA(data, rw, win)
     -- (the summary: one line, or two with wounds and muscle strain) (Strain, the director, Nov 22 2026)
     rightH = rightH + (secH + T.sp.sm) * ZeD.HealthTab.summaryLineCount(data)
 
-    -- Right column: the picked exercise's info block (its controls are the footer band's)
-    rightH = rightH + ZeD.HealthTab._measureExerciseInfo(win, rw)
+    -- Right column: the picked exercise's info block (its controls are the footer band's), or with an injury the
+    -- injury list (the director, Nov 23 2026)
+    rightH = rightH + ZeD.HealthTab._measureExerciseInfo(win, rw, data)
 
     return ZeD.Molecules.figureZoneH(L, rightH)   -- the frame and the text, beside or stacked (Figure frame, the director, Nov 22 2026)
 end
@@ -2056,6 +2353,10 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         win._healthCache = ZeD.HealthTab.gatherData(win._playerObj)
     end
     local data = win._healthCache
+    -- the footer band: the treatment's while a part can be treated, else the exercise's; an open list of the other
+    -- kind is shut when it changes (the last wound healed, or a new one) (the director, Nov 23 2026)
+    local wasMode = win._healthFooterMode
+    if ZeD.HealthTab.footerMode(win) ~= wasMode and wasMode and win._healthMenuOpen then ZeD.HealthTab.closeMenu(win) end
     if dueMs(win, "_healthFillAt", 500, not win._healthFill) then
         win._healthFill = ZeD.HealthTab.gatherFill(win._playerObj)
     end

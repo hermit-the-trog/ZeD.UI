@@ -1827,6 +1827,10 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Health_HelpHeader` | `Show or hide the body figure.` | Health tab (Character window): help line while the pointer is on the Health header above the body figure | - |
 | `UI_ZeD_Health_HelpTimeLess` | `Make the session 10 minutes shorter.` | Health tab (Character window): help line while the pointer is on the minus button beside the exercise session length | - |
 | `UI_ZeD_Health_HelpTimeMore` | `Make the session 10 minutes longer.` | Health tab (Character window): help line while the pointer is on the plus button beside the exercise session length | - |
+| `UI_ZeD_Health_Treat` | `Treat` | Health tab (Character window): the footer band's primary button while a body part is injured; it opens the game's treatment menu for the part picked beside it (where Start is with no injury) | 12 |
+| `UI_ZeD_Health_TreatPick` | `Injury: %1` | Health tab (Character window): the footer band's pop-up box while a body part is injured; %1 = the picked body part's name (Left Hand). Its list holds the injured parts, worst first | 24 |
+| `UI_ZeD_Health_HelpTreat` | `Show the treatments for %1.` | Health tab (Character window): help line while the pointer is on Treat or an injured part in its pop-up list; %1 = the body part's name | - |
+| `UI_ZeD_Health_HelpTreatPick` | `Choose the part to treat.` | Health tab (Character window): help line while the pointer is on the injured part pop-up box in the footer band | - |
 
 ## Hint
 

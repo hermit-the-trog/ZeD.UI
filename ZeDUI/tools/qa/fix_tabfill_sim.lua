@@ -55,6 +55,12 @@ end
 -- THE LOOK at 1x (1080p, Normal text): tokens, a text manager 7 px a letter, a panel that draws nothing
 -- ---------------------------------------------------------------------------
 require = function() return nil end
+-- (HealthTab hooks its gear watcher on OnPlayerUpdate when it loads, Nov 23 2026: the game's events, added to nothing)
+Events = setmetatable({}, { __index = function(t, k)
+    local e = { Add = function() end, Remove = function() end }
+    rawset(t, k, e)
+    return e
+end })
 getTimestampMs = function() return 100000 end
 getText = function(k, a) if a ~= nil then return k .. "(" .. tostring(a) .. ")" end return k end
 getCore = function() return nil end
