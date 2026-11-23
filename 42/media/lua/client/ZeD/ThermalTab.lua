@@ -256,10 +256,6 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     end
     win._thermalActivePart = activePart
 
-    -- Fixed figure size
-    local figW = T.sp.figureW
-    local figH = T.sp.figureH
-
     -- Right column height (for zone A height measurement): the Core / Air / Wind readings and the gauge
     local rightColH = ZeD.ThermalTab._measureReadings()
 
@@ -268,7 +264,9 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     local figureExpanded = win._thermalFigureExpanded
 
     -- Zone A scrollable body height (figure + padding, no section header — it's pinned)
-    local figureContentH = math.max(figH, rightColH) + pad
+    -- (the figure in its frame, the left half, the readings the right half or under it on a narrow card: measured
+    -- at the narrowest the body draws, the scroll bar showing) (Figure frame, the director, Nov 22 2026)
+    local figureContentH = M.figureZoneH(M.layoutZoneA(0, 0, w - T.sp.scrollbarW), rightColH) + pad
     -- (with the figure folded away the readings stay, full width, above the grid)
     local zoneAH = figureExpanded and figureContentH or (rightColH + pad)
 
@@ -333,9 +331,11 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     local curY = drawY
     if figureExpanded then
         -- layoutZoneA receives contentW (post-scroll) so rightW is correct with/without scrollbar
-        local layout = M.layoutZoneA(x, curY, contentW, figW, figH)
+        local layout = M.layoutZoneA(x, curY, contentW)
+        -- the figure in its frame at the layout's whole zoom (Figure frame, the director, Nov 22 2026)
+        M.drawFigureFrame(panel, layout)
         ZeD.ThermalTab._drawBodyFigure(panel, win, data,
-            layout.figX, layout.figY, figW, figH)
+            layout.figX, layout.figY, layout.figW, layout.figH)
 
         -- (the readings stay: a pointed part shows in the picked region's block under the grid)
         ZeD.ThermalTab._renderHeader(panel, win, data,

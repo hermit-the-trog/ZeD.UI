@@ -65,8 +65,8 @@ local FH = { F1 = 14, F2 = 19, F3 = 14 }
 ZeD = {
     T = setmetatable({
         px = function(n) return n end, fontF1 = "F1", fontF2 = "F2", fontF3 = "F3", fontF5 = "F3", selectionA = 0.3,
-        fillBarH = 13, buttonH = 26, rowH = 24, scale = 1, disabledAlpha = 0.4, hair = 1,
-        sp = { scrollbarW = 14, afterLine = 10, afterGroove = 8, rowGap = 6, xs = 6, sm = 10, figureW = 106, figureH = 272, figureGap = 10, figureTextMax = 0 },  -- (the figure without its grid) (Graphic cleanup, Nov 22 2026)
+        fillBarH = 13, buttonH = 26, rowH = 24, scale = 1, art = 1, disabledAlpha = 0.4, hair = 1,
+        sp = { scrollbarW = 14, afterLine = 10, afterGroove = 8, rowGap = 6, xs = 6, sm = 10, figureW = 106, figureH = 272 },  -- (the figure without its grid) (Graphic cleanup, Nov 22 2026)
     }, { __index = function(t, k) local c = col(); rawset(t, k, c); return c end }),
     TM = { getFontHeight = function(_, f) return FH[f] or 19 end, MeasureStringX = function(_, f, s) return #tostring(s) * 7 end },
     tr = function(k, a) return k .. (a ~= nil and ("(" .. tostring(a) .. ")") or "") end,
@@ -87,19 +87,13 @@ ZeD.Atoms = {
     statusColor = function() return col() end,
     wrapText = function(text, font, w) return { tostring(text) } end,
     truncateText = function(s) return s end,
-    drawDividerH = noop, drawBody = noop,
+    drawDividerH = noop, drawBody = noop, frame = noop,
 }
 -- the molecules the tabs call, at their real sizes (Molecules.lua: the tab header 37, the pads 8, the band
 -- buttonH + 10, Zone A's columns)
 ZeD.Molecules = {
     getTabPad = function() return 8 end, getTabPadTop = function() return 8 end, getTabHeaderH = function() return 37 end,
     bandH = function() return ZeD.T.buttonH + 10 end,
-    layoutZoneA = function(x, y, w, figW, figH)
-        local leftX = x + 8
-        local rightX = leftX + ZeD.T.sp.figureW + 10
-        return { figX = leftX + math.floor((ZeD.T.sp.figureW - figW) / 2), figY = y, leftX = leftX, leftW = ZeD.T.sp.figureW,
-                 rightX = rightX, rightY = y, rightW = w - 8 - rightX + x }
-    end,
     drawStatRow = function() return 16 end,
     drawStatRowDot = function(panel, x, y, w, label, value) panel.rows = panel.rows or {}; panel.rows[label] = value; return 16 end,
     drawFillBar = function() return 13 end,
@@ -109,6 +103,16 @@ ZeD.Molecules = {
     drawStatBarRow = function() return math.max(FH.F3, FH.F2) + 8 end,
     drawCategoryRow = function() return 20 end,
 }
+-- Zone A's layout, the real one (Molecules.lua's figureFrame, figureZoneH, drawFigureFrame, layoutZoneA: the figure in
+-- its frame, the left half; the text the right half) (Figure frame, the director, Nov 22 2026)
+do
+    local mol = readFile(CLIENT .. "Molecules.lua") or ""
+    local a = mol:find("local FIG_FRAME_INSET", 1, true)
+    local b = a and mol:find("\n-- 11. STAT ROW", a, true)
+    local fn = a and b and loadstring("local TAB_HEADER_PAD, TAB_COL_GAP = 8, 10\n" .. mol:sub(a, b), "=Molecules.lua (figure frame)")
+    check("Molecules' figure frame layout loads", fn ~= nil)
+    if fn then fn() end
+end
 local function newPanel()
     return setmetatable({ mx = -1, my = -1 }, { __index = function(t, k)
         if type(k) == "string" and (k:find("draw", 1, true) == 1 or k:find("Stencil", 1, true)) then return noop end
@@ -344,9 +348,9 @@ if okH and HT then
 
     -- Every one of the game's overall words, in every language it ships, shows whole at 1x, the 1.5 step and
     -- 1.75x (the director's QA scale), Normal and Large text: wrapped to the Health tab's right column with the
-    -- scrollbar showing (layoutZoneA: the window's 480 less the 14 scrollbar, 8 + figure + 10 + 8, the figure 106
-    -- at its whole zoom: the column 334 wide at 1x, 448 at 1.5x and 558 at 1.75x, the figure drawn 2x at both; it was
-    -- 220 / 220 / 330 with the 220 grid figure) (Graphic cleanup, Nov 22 2026). Widths are measured on the safe side: Fira's
+    -- scrollbar showing (layoutZoneA: the window's 480 less the 14 scrollbar, 8 + frame + 10 + text + 8, the figure in
+    -- its frame taking the left half: the column 220 wide at 1x, 330 at 1.5x and 385 at 1.75x; it was 334 / 448 / 558
+    -- beside the bare 106 figure) (Figure frame, the director, Nov 22 2026). Widths are measured on the safe side: Fira's
     -- letters at 0.6 em (mono, wider than the sans the line is drawn in), a CJK letter a whole em, a Thai mark none.
     local GAMEDIR = "E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/lua/shared/Translate/"
     local WORDS = { "ok", "Slight_damage", "Very_Minor_damage", "Minor_damage", "Moderate_damage", "Severe_damage",
@@ -382,7 +386,7 @@ if okH and HT then
     local realWrap, realMeasure = ZeD.Atoms.wrapText, ZeD.TM.MeasureStringX
     ZeD.Atoms.wrapText = wrapModel
     ZeD.TM.MeasureStringX = function(_, _, s) return cpW(tostring(s)) end
-    local STEPS = { { 1, 334, 13 }, { 1.5, 448, 19.5 }, { 1.75, 558, 22.75 }, { 1, 334, 15 }, { 1.5, 448, 22.5 }, { 1.75, 558, 26.25 } }
+    local STEPS = { { 1, 220, 13 }, { 1.5, 330, 19.5 }, { 1.75, 385, 22.75 }, { 1, 220, 15 }, { 1.5, 330, 22.5 }, { 1.75, 385, 26.25 } }
     local bad, seen, langsRead = {}, 0, 0
     for _, l in ipairs(VLANGS) do
         local j = readFile(GAMEDIR .. l .. "/IG_UI.json")

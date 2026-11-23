@@ -303,9 +303,9 @@ function def.body(card, x, y, w, t, doctor)
     local d = t.d
     if not d then return 0 end
     local y0 = y
-    local figW, figH = T.sp.figureW, T.sp.figureH
-    local two = w >= figW + T.px(170)
-    local fx = two and x or (x + math.floor((w - figW) / 2))
+    -- the figure in its frame, the left half of the card, the text the right half; a card too narrow for halves
+    -- (the 220 drawer card) stacks the frame over the text (Figure frame, the director, Nov 22 2026)
+    local L = ZeD.Molecules.figureFrame(x, y, w)
     local active = activePart(card, t)
     -- the figure: each part in its health's colour; the controller's mark under the focused part
     -- (last frame's rects, as the Health tab draws it), the part a stop that opens the treatment menu
@@ -321,7 +321,8 @@ function def.body(card, x, y, w, t, doctor)
         local fo = card:focusOf("mc:fig:" .. r.name)
         if fo then ZeD.Focus.mark(card, r.x, r.y, r.w, r.h, fo) end
     end
-    fig:drawAt(card, fx, y, figW, figH)
+    ZeD.Molecules.drawFigureFrame(card, L)
+    fig:drawAt(card, L.figX, L.figY, L.figW, L.figH)   -- (at the layout's whole zoom; the stops follow: getPartRects)
     t._rects = fig:getPartRects()
     for _, r in ipairs(t._rects) do
         local bp = d.partByFigure and d.partByFigure[r.name]
@@ -331,20 +332,14 @@ function def.body(card, x, y, w, t, doctor)
             run = function(c) treat(card, t, bp, rr.x, rr.y, rr.h) end })
     end
     -- beside it (under it on a narrow card): the part in hand, else the summary
-    local rx, ry, rw
-    if two then
-        -- the gap and the text cap are the Health tab's tokens (Figure gap, Nov 22 2026)
-        rx, ry, rw = x + figW + T.sp.figureGap, y, w - figW - T.sp.figureGap
-        local cap = T.sp.figureTextMax
-        if cap and cap > 0 and rw > cap then rw = cap end
-    else rx, ry, rw = x, y + figH + T.px(8), w end
+    local rx, ry, rw = L.rightX, L.rightY, L.rightW
     local bottom
     if active and d.partHealth[active] then
         bottom = ZeD.HealthTab._renderDetailView(card, t.fakeWin, d, active, rx, ry, rw)
     else
         bottom = summary(card, t, rx, ry, rw)
     end
-    y = math.max(two and (y + figH) or 0, bottom or ry) + T.px(10)
+    y = math.max(L.frameY + L.frameH, bottom or ry) + T.px(10)   -- (past the frame's foot and the text's)
     -- the injury list
     if #d.entries > 0 then
         A.drawDividerH(card, x, y, w, true)
