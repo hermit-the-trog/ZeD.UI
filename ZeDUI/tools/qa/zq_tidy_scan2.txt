@@ -1,0 +1,4 @@
+# zq_tidy_scan2 alone (QA, Nov 23 2026)
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+zq_tidy_scan2.lua | zq_scan2 | timeout=300
