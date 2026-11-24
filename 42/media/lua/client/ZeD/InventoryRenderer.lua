@@ -2555,11 +2555,13 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
     if useGroups then
         -- (a mod's ranked groups first, ContainerGroups.lua; then the categories, either way)
         ZeD.ContainerGroups.sortKeys(catOrder, not (sortCol == "cat" and not sortAsc))
-        -- (KISS #11) the worn and held group stands first, whichever way the rest is sorted
-        for ci = 2, #catOrder do
+        -- (KISS #11) the worn and held group stands last, whichever way the rest is sorted: what is in the pockets
+        -- before what is worn, as the game's list does (its sorts put equipped things last; the director, Nov 23 2026:
+        -- "you want to access the things that are in your pockets before the things that you're wearing")
+        for ci = 1, #catOrder - 1 do
             if catOrder[ci] == ZeD.InventoryRenderer.WORN_KEY then
                 table.remove(catOrder, ci)
-                table.insert(catOrder, 1, ZeD.InventoryRenderer.WORN_KEY)
+                catOrder[#catOrder + 1] = ZeD.InventoryRenderer.WORN_KEY
                 break
             end
         end
@@ -2586,16 +2588,17 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
         local all = {}
         for _, cat in ipairs(catOrder) do
             for _, item in ipairs(groups[cat]) do
-                if catOf[item] ~= ZeD.InventoryRenderer.WORN_KEY then all[#all + 1] = item end   -- (KISS #11: worn ones first, below)
+                if catOf[item] ~= ZeD.InventoryRenderer.WORN_KEY then all[#all + 1] = item end   -- (KISS #11: worn ones last, below)
             end
         end
-        -- (KISS #11) what is worn or held leads the flat list, sorted among themselves
+        sortItems(all, sortCol, sortAsc)
+        emitStacks(all)
+        -- (KISS #11) what is worn or held ends the flat list, sorted among themselves (as the game's sorts put
+        -- equipped things last: the director, Nov 23 2026)
         if #wornRows > 0 then
             sortItems(wornRows, sortCol, sortAsc)
             emitStacks(wornRows)
         end
-        sortItems(all, sortCol, sortAsc)
-        emitStacks(all)
     end
 
     return {
