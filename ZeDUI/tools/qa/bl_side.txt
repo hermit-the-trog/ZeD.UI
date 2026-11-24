@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/bl_side.txt (Nov 23 2026, QA): the in-game proof of the director's belt side marks (Build's 3fd6221dd on branch fix/beltside): an L or R tag in the top right corner of each side slot (belt, holster, webbing), the key-number tag's size on the dim fill, the plain "Belt" / "Web" / "Holster" on an empty side slot, no mark on Back, Shoulder, Ankle or Pack, a lit light's lamp under the mark. Proofs: the "SIDE" lines. Pictures: Zomboid/Screenshots/bl_side_empty_<w>x<h>, bl_side_items_<w>x<h>, bl_side_lamp_<w>x<h>.
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+bl_side.lua | bl_side | timeout=900
