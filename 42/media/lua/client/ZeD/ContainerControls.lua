@@ -204,8 +204,9 @@ end
 -- ----------------------------------------------------------------------------
 --- Moves items into dest, each by vanilla's transfer action; dest = the floor
 --- drops them instead (favourites stay put). A container whose gate refuses
---- things takes nothing.
-function CT.moveItems(playerObj, items, dest)
+--- things takes nothing. unequip = true (Move To on a held item): a held or worn item is taken off just before its own
+--- transfer, so a refused move leaves it in the hand (L1-1).
+function CT.moveItems(playerObj, items, dest, unequip)
     if not (playerObj and dest and items and #items > 0) then return end
     -- a mod's gate refuses things into this container (ContainerGates.lua: never searched)
     if not isFloor(dest) and ZeD.ContainerGates.refuses(dest, playerObj) then return end
@@ -239,7 +240,15 @@ function CT.moveItems(playerObj, items, dest)
                 ISTimedActionQueue.add(ISGrabCorpseItem:new(playerObj, item))
                 break
             end
-            ISTimedActionQueue.add(ISInventoryTransferUtil.newInventoryTransferAction(playerObj, item, src, dest))
+            -- take it off first, only now the move is sure to be queued (L1-1)
+            if unequip and playerObj:isEquipped(item) then
+                local off = ISUnequipAction:new(playerObj, item, 50)
+                off._zedApart = true   -- (a move the player asked for, never part of an action's run: ZeD_PutBack.lua) (L1-3)
+                ISTimedActionQueue.add(off)
+            end
+            local move = ISInventoryTransferUtil.newInventoryTransferAction(playerObj, item, src, dest)
+            move._zedApart = true   -- (the player's own move: Put things back never counts it as an action's) (L1-3)
+            ISTimedActionQueue.add(move)
         end
     end
 end
@@ -779,6 +788,9 @@ local function buildWorld(content)
         moves[#moves + 1] = { id = "floor", label = ZeD.tr("UI_ZeD_Controls_ToFloor"), enabled = not inv:isEmpty(),
             icon = "to_floor", hint = ZeD.tr("UI_ZeD_Controls_HintToFloor"),
             run = function(ct)
+                -- seated with the window shut, nothing goes out to the ground: ZeD's other floor moves refuse the
+                -- same way (moveItems, handleDrop; QA B6-9) (L1-4)
+                if ZeD.InventoryRenderer.carWindowShut(playerObj) then return end
                 local src = ct._inventory
                 local items = {}
                 local it = src:getItems()

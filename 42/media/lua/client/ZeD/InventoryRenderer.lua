@@ -585,7 +585,9 @@ end
 local DBL_MS = 400
 -- colIdx: the column the click is in (a multi-column view); the earlier release has cleared _dragSourceCol by now,
 -- so the caller names it (QA K2 review)
-function ZeD.InventoryRenderer.doubleClick(win, item, playerNum, colIdx)
+-- shift: Shift is held (the game's Shift + double-click: a garment taken from elsewhere is worn too, L1-5). The first
+-- click of a pair still does its Shift selection in the window; only the second one is the quick use.
+function ZeD.InventoryRenderer.doubleClick(win, item, playerNum, colIdx, shift)
     local now = getTimestampMs()
     local last = win._zedLastClick
     win._zedLastClick = { item = item, t = now }
@@ -603,7 +605,16 @@ function ZeD.InventoryRenderer.doubleClick(win, item, playerNum, colIdx)
         win._dragSourceCol = keepCol
         if all and #all > 1 then rows = all end
     end
-    ZeD.InventoryRenderer.quickUse(item, playerNum, rows)
+    -- the game wears only from a stack's own row (ISInventoryPane:onMouseDoubleClick's group row), not from one
+    -- thing of an opened stack: a thing whose stack holds more but came alone is such a thing (L1-5)
+    local wear = shift == true
+    if wear and not rows then
+        local cs = colIdx and win._colStates and win._colStates[colIdx] or nil
+        local stacks = (cs and cs.stacks) or win._stacks
+        local stk = stacks and stacks[item]
+        if stk and stk.count and stk.count > 1 then wear = false end
+    end
+    ZeD.InventoryRenderer.quickUse(item, playerNum, rows, wear)
     return true
 end
 
@@ -1072,7 +1083,8 @@ end
 -- The quick use itself, for the double-click and the controller's hold X on
 -- a row. Vanilla's basic action does nothing for a thing in a crate, so, as
 -- vanilla's double-click does, a thing elsewhere comes over first.
-function ZeD.InventoryRenderer.quickUse(item, playerNum, rows)   -- rows: the closed stack's things, if it is one (QA K2-8)
+-- wear: the game's Shift + double-click, each garment that comes over (not a broken one) is put on after (L1-5)
+function ZeD.InventoryRenderer.quickUse(item, playerNum, rows, wear)   -- rows: the closed stack's things, if it is one (QA K2-8)
     local playerObj = getSpecificPlayer(playerNum)
     local src = item and item:getContainer()
     if not (playerObj and src) then return end
@@ -1085,6 +1097,11 @@ function ZeD.InventoryRenderer.quickUse(item, playerNum, rows)   -- rows: the cl
         local floor = src:getType() == "floor"
         if floor or luautils.walkToContainer(src, playerNum) then
             ZeD.ContainerControls.moveItems(playerObj, rows or { item }, mainInv)
+            if wear then
+                for _, it in ipairs(rows or { item }) do
+                    if instanceof(it, "Clothing") and not it:isBroken() then ISTimedActionQueue.add(ISWearClothing:new(playerObj, it)) end
+                end
+            end
         end
     end
 end
@@ -4261,9 +4278,9 @@ local function handleDrop(content, items, srcInventory)
             ZeD_WorldWindow.transferFromFloor(playerObj, item, destContainer)
         elseif destContainer:isItemAllowed(item) then
             -- vanilla's own transfer time (as its loot window's drag and drop)
-            ISTimedActionQueue.add(
-                ISInventoryTransferUtil.newInventoryTransferAction(playerObj, item, srcContainer, destContainer)
-            )
+            local move = ISInventoryTransferUtil.newInventoryTransferAction(playerObj, item, srcContainer, destContainer)
+            move._zedApart = true   -- (a drag: never part of an action's run, ZeD_PutBack.lua) (L1-3)
+            ISTimedActionQueue.add(move)
         end
     end
 end

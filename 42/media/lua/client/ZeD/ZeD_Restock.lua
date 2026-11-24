@@ -121,6 +121,9 @@ local function contName(o, c)
     local key = "IGUI_ContainerTitle_" .. ty
     local t = getText(key)
     if t ~= key then title = t end
+    -- a container renamed the game's way goes by its own name, as the loot window shows it (L1-7)
+    local custom = call(c, "getCustomName")
+    if custom then title = custom end
     return title
 end
 R.contName = contName

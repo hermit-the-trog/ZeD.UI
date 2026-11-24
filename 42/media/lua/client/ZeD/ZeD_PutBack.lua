@@ -50,6 +50,9 @@ Events.OnTick.Add(function() tick = tick + 1 end)
 local runs = {}       -- character -> the run being queued this tick
 local byMain = {}     -- main action -> its run
 PB.queuing = false    -- (ZeD's own moves back are never noted as a run)
+-- things on their way into the main inventory by a move the player asked for (an action marked _zedApart: ZeD's
+-- Move To, Loot all, a drag). They are never an action's leftovers to put back. item -> true (L1-3)
+PB.incoming = PB.incoming or {}
 -- (a test hook: zedqa_put_back.lua sets PB.debug for a line per step)
 local function trace(s) if PB.debug then print("[ZeD] PutBack: " .. s) end end
 
@@ -63,6 +66,13 @@ end
 -- an action queued: part of this tick's run for its character
 function PB.noted(action)
     if PB.queuing or not on() or type(action) ~= "table" then return end
+    -- a move the player asked for (ZeD's Move To, Loot all, a drag) is never part of an action's run, even when it
+    -- is queued in the same tick as the action; what it brings in is remembered so it is not taken for the
+    -- action's new thing either (QA lv_move 15) (L1-3)
+    if action._zedApart then
+        if action.Type == "ISInventoryTransferAction" and action.item then PB.incoming[action.item] = true end
+        return
+    end
     local chr = action.character
     if not (chr and instanceof(chr, "IsoPlayer") and chr:isLocalPlayer()) then return end
     local run = runs[chr]
@@ -70,6 +80,10 @@ function PB.noted(action)
         run = { chr = chr, tick = tick, moved = {}, order = {}, gameBack = {}, equips = false,
                 hands = { chr:getPrimaryHandItem(), chr:getSecondaryHandItem() }, before = itemsOf(chr:getInventory()) }
         runs[chr] = run
+        -- (what has already arrived is in run.before, so it can never look new: it needs no remembering) (L1-3)
+        local arrived = {}
+        for item in pairs(PB.incoming) do if run.before[item] then arrived[#arrived + 1] = item end end
+        for _, item in ipairs(arrived) do PB.incoming[item] = nil end
     end
     local t = action.Type
     local main = chr:getInventory()
@@ -119,7 +133,7 @@ local function finish(run)
     -- one thing used up and something new in its place (an opened can, an empty bottle): that goes back there
     if #gone == 1 then
         local fresh = {}
-        for item in pairs(now) do if not run.before[item] and not run.moved[item] then fresh[#fresh + 1] = item end end
+        for item in pairs(now) do if not run.before[item] and not run.moved[item] and not PB.incoming[item] then fresh[#fresh + 1] = item end end
         if #fresh >= 1 and #fresh <= 2 then for _, item in ipairs(fresh) do backs[#backs + 1] = { item, gone[1].src } end end
     end
     PB.queuing = true

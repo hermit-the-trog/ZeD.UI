@@ -154,6 +154,9 @@ local function whereOf(item, chr)
     if c:getType() == "floor" then return getText("ContextMenu_Floor") end
     local ci = c:getContainingItem()
     if ci then return ci:getName() end
+    -- a container renamed the game's way goes by its own name (ISInventoryPage) (L1-7)
+    local custom = c.getCustomName and c:getCustomName()
+    if custom then return custom end
     local t = getTextOrNull and getTextOrNull("IGUI_ContainerTitle_" .. tostring(c:getType())) or nil
     return t or tostring(c:getType())
 end
