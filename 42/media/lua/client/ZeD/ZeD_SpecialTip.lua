@@ -332,10 +332,15 @@ function ST.charScreenRect(pn, chr)
     local x, y, z = chr:getX(), chr:getY(), chr:getZ()
     local fx, fy = isoToScreenX(pn, x, y, z), isoToScreenY(pn, x, y, z)
     local hy = isoToScreenY(pn, x, y, z + ST.HEAD_Z)
-    local zoom = 1
-    pcall(function() zoom = getCore():getZoom(pn) end)
-    if not zoom or zoom <= 0 then zoom = 1 end
-    local tw = 64 / zoom   -- (a tile's width on the screen at this zoom)
+    -- a tile's width on the screen, measured, not assumed (QA, Nov 23 2026: B42's tiles are not 64 px): one step
+    -- +x and -y is one tile straight across the screen, whatever the zoom and the tile scale
+    local tw = math.abs(isoToScreenX(pn, x + 1, y - 1, z) - fx)
+    if not tw or tw <= 0 then
+        local zoom = 1
+        pcall(function() zoom = getCore():getZoom(pn) end)
+        if not zoom or zoom <= 0 then zoom = 1 end
+        tw = 64 / zoom
+    end
     local halfW = tw * 0.4
     local pad = tw * 0.1
     return { x = fx - halfW, y = hy - pad, w = halfW * 2, h = (fy - hy) + pad * 2 }
@@ -369,6 +374,15 @@ function ST.onTip(tooltip, square)
         end
     end
     if not facts then return end
+    -- another balloon holds the slot: ZeD's would not draw, so the game's box stands this frame (QA, Nov 23 2026:
+    -- never neither)
+    local B = ZeD.Balloon
+    if B and B.claim and not B.claim("specialtip:" .. tostring(facts.kind)) then
+        for _, k in ipairs(kinds) do
+            if k[1] and k[3] == facts.kind then k[1](tooltip, square) end
+        end
+        return
+    end
     facts.square = square
     facts.frame = ST._frame
     ST._hover = facts
