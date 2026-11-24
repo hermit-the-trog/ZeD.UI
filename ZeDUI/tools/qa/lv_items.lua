@@ -1414,14 +1414,31 @@ function S.case19()
         T.rows = #(S.wc() and S.wc()._flatItems or {})
         if not Q.check(ok, "19 Ctrl+A: crate A's list shows its rows", T.rows .. " rows") then T.off = true; return end
         S.clearSel(S.wc())
-        S.keysOn(Keyboard and Keyboard.KEY_A)
+        -- (the director, Nov 23 2026, in Build's session: "Keep double-click": no Ctrl+A, as on Nov 10 (punch list 146);
+        -- a double press on the list's empty space picks every row (ZeD_BoxSelect.doubleEmpty))
+        local wc = S.wc()
+        local px, py = nil, nil
+        if wc then
+            local h = wc:getHeight()
+            for yy = h - 6, math.floor(h / 2), -8 do
+                local z = nil
+                pcall(function() z = wc:hitZoneAt(24, yy) end)
+                if z == nil then px, py = 24, yy; break end
+            end
+        end
+        T.at = px and (px .. "," .. py) or "no empty space found"
+        if px then
+            pcall(function() wc:onMouseDown(px, py) end)
+            pcall(function() wc:onMouseUp(px, py) end)
+            pcall(function() wc:onMouseDown(px, py) end)
+            pcall(function() wc:onMouseUp(px, py) end)
+        end
     end)
     Q.step(8, function()
-        S.keysOff()
         if S.dead or T.off then return end
         local n = S.selCount(S.wc())
-        Q.check(n == T.rows and n > 0, "19 Ctrl+A picks every row of the list, as the game's (ISInventoryPane:update)",
-            n .. " of " .. T.rows .. " rows picked with Ctrl and A held for 8 frames" .. ((n == T.rows and n > 0) and "" or "; GAP vs the game: ZeD has no Ctrl+A (no KEY_A handler in its lists; Pick all is the heading's button, KISS #45)"))
+        Q.check(n == T.rows and n > 0, "19 a double-click on the list's empty space picks every row (the director's choice over Ctrl+A)",
+            n .. " of " .. T.rows .. " rows picked, the double press at " .. tostring(T.at))
         S.clearSel(S.wc())
     end)
     Q.step(2, function() if not S.dead then S.caseClean() end end)
