@@ -1,0 +1,11 @@
+# ZeDUI/tools/qa/lv.txt (Nov 23 2026, QA): Loot and inventory, the whole gamut, in the style of the Health sweep (hg.txt). The QA character starts on the drag strip (925,13040); lv_move spawns its own car there for case 8 (the prelude's ZEDQA_CAR_WAIT, its key by ZEDQA_CAR_PREP, taken away by ZEDQA_CAR_AWAY; the cell's cars walked with getVehicles():iterator()).
+#   lv_move.lua   moving things and containers: Same type and Same type nearby (Lite recorded), Grab one / half / all, favorites, held and belt things and the key ring through Transfer all, worn bag to worn bag, the generator lifted, a car's trunk, glove box and seat (seated: no Floor, To floor), a padlocked crate with and without its key, the floor (a drop, an overflow past 50 kg, grabs walked away from), Put in, Loot all's destination, Transfer all with the World window shut, Move To refused on a held thing, Put things back (pictures lv_move_car_*, lv_move_locked_*)
+#   lv_items.lua  special things and the item menu: ZeD's menu against the game's own for pills, a lighter, a water bottle, a sealed can, rotten food, a magazine, a firearm, a key, a book, a radio and a furniture piece, one action of each run; Rename a bag, Unpack, Favorite, Wanted; Shift + double-click on a garment; Ctrl+A; 150 nails by drag, Move To and Loot all; a crate's own name (picture lv_items_menu_*)
+# Every move is counted by item id in every container it touches; each script puts every thing, the crates, the car, the hands, the clothes, the settings and the windows back.
+# Run both sizes:
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/lv.txt -Mode fullscreen4k -Report lv_4k
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/lv.txt -Mode windowed -Width 1280 -Height 800 -Report lv_deck
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+lv_move.lua | lv_move | timeout=1800
+lv_items.lua | lv_items | timeout=1800
