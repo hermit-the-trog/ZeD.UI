@@ -1,0 +1,8 @@
+# ZeDUI/tools/qa/dz_look.txt (Nov 23 2026, QA): Design's two handoffs on main (1bedb2505), their QA lists in game. Part A, the Vehicle tab (HANDOFF_design_car_parts_glass_20261123.md): a sedan, a van, a pickup, a sports car and the horse trailer spawned on the drag strip; every part drawn from its own picture with a hit box, green, yellow and red wear, the cracked and missing glass, no side part over another or the body, the zoom (2x at 4K, 1x on the Deck) and centering, every part lit and chosen by the mouse and the pad with a lit box that fits its picture. Part B, the belt (HANDOFF_design_belt_blocks_20261123.md): every box a white block, the hands round, the L and R tags, an empty slot's name, the condition strip, the lit lamp, the speed keys, the off hand peeking, the ammo tab, and a drag lighting the boxes that take it. Dark, Light, High contrast and an accent change. Everything put back; no new Lua error.
+# Pictures: Zomboid/Screenshots/dz_car_<kind>_<dark|light|hc>_<w>x<h>, dz_car_sedan_accent_<w>x<h>, dz_belt_<dark|light|hc|accent>_peek_<w>x<h>, dz_belt_<dark|light|hc|accent>_<w>x<h>, dz_belt_drag_<w>x<h>.
+# Run both sizes (window layout reset by the script):
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/dz_look.txt -Mode fullscreen4k -Report dz_look_4k
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/dz_look.txt -Mode windowed -Width 1280 -Height 800 -Report dz_look_deck
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+dz_look.lua | dz_look | timeout=2400
