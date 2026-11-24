@@ -1,0 +1,10 @@
+# ZeDUI/tools/qa/mp_chatwin.txt (Nov 23 2026, QA): the chat window's default place by the chat key, roll down and up, pin and ghost, the saved line (Build's fix/chatwin 5068465a7). NEEDS -Mp: the chat window lives only on a server.
+# The test server first, then the run (both sizes):
+#   pwsh -File ZeDUI/tools/qa/mp_server.ps1 -Start -Mods "ZeD_UI;ZeDQAShim"
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Mp -Manifest ZeDUI/tools/qa/mp_chatwin.txt -Mode fullscreen4k -Report mp_chatwin_4k
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Mp -Manifest ZeDUI/tools/qa/mp_chatwin.txt -Mode windowed -Width 1280 -Height 800 -Report mp_chatwin_deck
+# Pictures: Zomboid/Screenshots/mp_chatwin_open_<w>x<h>, mp_chatwin_rolled_<w>x<h>, mp_chatwin_ghost_<dark|light|hc>_<w>x<h>.
+# Lua/ZeD_chatwin.txt is put back by the script itself (no runner guard lists it).
+zedqa_pin_windows.lua | pnw | timeout=60
+rt_kit.lua | rtk | timeout=60
+mp_chatwin.lua | mp_chatwin | timeout=900
