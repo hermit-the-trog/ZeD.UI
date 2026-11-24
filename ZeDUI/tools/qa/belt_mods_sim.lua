@@ -433,6 +433,45 @@ do
         'WebbingLeft = "UI_ZeD_Belt_SlotWebL", WebbingRight = "UI_ZeD_Belt_SlotWebR"')
     check("SAME: the side mark and the plain names found to put back", nSide == 1 and nB == 1 and nH == 1 and nW == 1,
         tostring(nSide) .. tostring(nB) .. tostring(nH) .. tostring(nW))
+    -- (the white blocks, the director, Nov 23 2026: every box on the row is the wheels' cell, paper with a one-unit
+    -- ink edge and System 7's hard shadow, the hands round; new on purpose. The SAME runs put the boxes' old fills,
+    -- edges and inks back, so the rest is compared as before. The bag, the speed keys, the chat key and the PvP
+    -- marker are not on the SAME belts, nor a drag or a side mark, so only the slots' and the hands' drawing is put back)
+    local UNBLOCK = {
+        { [==[
+    -- (the peeking off hand holds the main hand's item: a busy hand's fill)
+    local bg = (o.item or o.peek) and T.surf2 or T.surf1
+    local round = b.kind == "hand"
+    -- a fill over the whole box: the hands' a circle, the slots' a square
+    local function fill(a, c)
+        if round then disc(self, b.x, b.y, b.w, a, c) else self:drawRect(b.x, b.y, b.w, b.h, a, col(c)) end
+    end
+    fill(0.95, bg)
+]==], [==[
+    local round = b.kind == "hand"
+    -- a fill over the whole box: the hands' a circle, the slots' a square
+    local function fill(a, c)
+        if round then disc(self, b.x, b.y, b.w, a, c) else self:drawRect(b.x, b.y, b.w, b.h, a, col(c)) end
+    end
+    -- the white block: its hard shadow, then the paper (WHITE BLOCKS)
+    blockShadow(self, b.x, b.y, b.w, b.h, round)
+    fill(1, PAPER)
+]==] },
+        { "local dc = onFocus and T.textOnFocus or T.textDim\n        ZeD.Atoms.drawPxIcon",
+          "local dc = onFocus and T.textOnFocus or INK\n        ZeD.Atoms.drawPxIcon" },
+        { "local dc = onFocus and T.textOnFocus or T.textDim\n        self:drawText(label",
+          "local dc = onFocus and T.textOnFocus or INK_DIM\n        self:drawText(label" },
+        { "else local fs = T.frameS or T.borderS; ring(self, b.x, b.y, b.w, p1 * 2, fs.a or 1, fs) end",
+          "else ring(self, b.x, b.y, b.w, T.hair, 1, INK) end" },
+        { "        frameBox(self, b.x, b.y, b.w, b.h, T)\n    end\n    -- the foot",
+          "        inkEdge(self, b.x, b.y, b.w, b.h)\n    end\n    -- the foot" },
+    }
+    local nBlk = 0
+    for _, pair in ipairs(UNBLOCK) do
+        local a = NEW_SAME:find(pair[2], 1, true)
+        if a then NEW_SAME = NEW_SAME:sub(1, a - 1) .. pair[1] .. NEW_SAME:sub(a + #pair[2]); nBlk = nBlk + 1 end
+    end
+    check("SAME: the white blocks found to put back", nBlk == #UNBLOCK, nBlk)
 end
 
 -- ---------------------------------------------------------------------------

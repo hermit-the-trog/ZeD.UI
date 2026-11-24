@@ -12,7 +12,9 @@
 -- theme-neutral: the character's profession buckle, 25
 -- designs, the plain KENTUCKY plate for any other), the hotbar slots as ZeD boxes on the strap (a little taller
 -- than it) on either side of the buckle in key order, the hands as circles
--- beside it. The boxes follow the ZeD base and accent.
+-- beside it. Every box on the row is the wheels' white block (paper, a one-unit
+-- ink edge, System 7's hard shadow: WHITE BLOCKS below), the same in every theme;
+-- the accent marks a key's tag, the speed in use and a drop that fits.
 --
 -- Vanilla's ISHotbar instance stays the data model (its slots, attachments,
 -- refresh on clothing changes, key handlers); Overrides/Belt.lua parks its
@@ -424,6 +426,22 @@ B.SIDE_BLACK, B.SIDE_WHITE = SIDE_BLACK, SIDE_WHITE
 -- a lit lamp's amber, the same in every theme (a light that is on glows; it is not a status word)
 local LAMP_ON = { r = 1.0, g = 0.78, b = 0.24 }
 B.LAMP_ON = LAMP_ON
+-- WHITE BLOCKS (the director, Nov 23 2026: "The icon frames on the belt and other icons on the HUD strip currently
+-- just look way too modern and boring. We have on the rotary wheels, there are those white block frames. We could do
+-- something like that. I think that would read better than the current cleanly drawn square and circles."; then, of
+-- the hands, "Keep B round. Stay round."): every box on the belt row is the wheels' cell (ZeD_Wheel.lua drawCell,
+-- ZeD.Molecules.drawContextCell): paper, a one-unit ink edge and System 7's hard shadow (ZeD.Atoms.drawHardShadow),
+-- in the context strip's locked paper and ink, so the row reads the same in every theme. The hands stay round: a
+-- paper disc, a one-unit ink ring, the same shadow as a disc one unit right and down. On the paper: the pictures in
+-- their own colors, the icons and words in ink (an empty slot's name dimmed). The accent still marks a key's tag, the
+-- speed in use (the wheel's pointed cell: the accent with its bright edge) and a drop that fits; a box that will not
+-- take what is dragged goes grey under an ink wash.
+local PAPER = { r = 0.95, g = 0.95, b = 0.95, a = 1 }
+local INK = { r = 0.08, g = 0.08, b = 0.08, a = 1 }
+local INK_DIM = { r = 0.08, g = 0.08, b = 0.08, a = 0.6 }   -- an empty slot's name
+local SHADOW = { r = 0, g = 0, b = 0, a = 1 }               -- (at 0.5, as drawHardShadow)
+local NO_A = 0.45                                           -- the ink wash on a box that will not take the drag
+B.PAPER, B.INK = PAPER, INK
 --- The side mark's word for a slot type (the player's language: "L" / "R" in English), or nil for a slot with no side.
 function B.sideMark(slotType)
     local sd = SIDE[slotType or ""]
@@ -1569,6 +1587,17 @@ local function roundDraw(p, x, y, e, a, c)
 end
 local function disc(p, x, y, s, a, c) roundDraw(p, x, y, roundShape(s, nil), a, c) end
 local function ring(p, x, y, s, t, a, c) roundDraw(p, x, y, roundShape(s, t), a, c) end
+-- a white block's hard shadow (WHITE BLOCKS): System 7's one unit right and down at 0.5, round under a round box
+local function blockShadow(p, x, y, w, h, round)
+    local u = ZeD.T.hair
+    if round then disc(p, x + u, y + u, w, 0.5, SHADOW) else ZeD.Atoms.drawHardShadow(p, x, y, w, h) end
+end
+-- a white block's one-unit edge (the ink, or c): T.hair one-pixel borders, nested, as frameBox drew its lines. The
+-- belt draws every frame, so this is one Java call a pixel of the edge's width where ZeD.Atoms.frame makes four
+local function inkEdge(p, x, y, w, h, c)
+    c = c or INK
+    for i = 0, ZeD.T.hair - 1 do p:drawRectBorder(x + i, y + i, w - 2 * i, h - 2 * i, c.a or 1, c.r, c.g, c.b) end
+end
 -- the part of a round shape inside (rx, ry, rw, rh) of its box: the same picture, cut (or its rows, cut)
 local function roundDrawPart(p, x, y, e, a, c, rx, ry, rw, rh)
     local x0, y0 = math.max(rx, e.ox), math.max(ry, e.oy)
@@ -1890,14 +1919,14 @@ local SLOT_PIC = 28
 function ZeD_BeltHUD:_drawBox(b, o)
     local T, tm = ZeD.T, ZeD.TM
     local p1 = T.px(1)
-    -- (the peeking off hand holds the main hand's item: a busy hand's fill)
-    local bg = (o.item or o.peek) and T.surf2 or T.surf1
     local round = b.kind == "hand"
     -- a fill over the whole box: the hands' a circle, the slots' a square
     local function fill(a, c)
         if round then disc(self, b.x, b.y, b.w, a, c) else self:drawRect(b.x, b.y, b.w, b.h, a, col(c)) end
     end
-    fill(0.95, bg)
+    -- the white block: its hard shadow, then the paper (WHITE BLOCKS)
+    blockShadow(self, b.x, b.y, b.w, b.h, round)
+    fill(1, PAPER)
     if o.state == "fit" then fill(0.14, T.accent) end
     if o.state == "fitHover" then fill(0.22, T.accent) end
     -- the controller's mark, or the pointer's wash: under the picture and the words
@@ -1918,7 +1947,7 @@ function ZeD_BeltHUD:_drawBox(b, o)
     elseif o.icon then
         -- an empty hand's icon, dim like the slots' names, centred in the ring (the main hand's larger)
         local box = T.px((b.which == "p") and HAND_ICON or HAND_ICON_OFF)
-        local dc = onFocus and T.textOnFocus or T.textDim
+        local dc = onFocus and T.textOnFocus or INK
         ZeD.Atoms.drawPxIcon(self, o.icon, b.x + math.floor((b.w - box) / 2), b.y + math.floor((b.h - box) / 2), box, dc.a or 1, dc)
     elseif o.label then
         local f5 = T.fontF5
@@ -1931,15 +1960,14 @@ function ZeD_BeltHUD:_drawBox(b, o)
             label = label:gsub("%s+$", "") .. "."
             lw = tm:MeasureStringX(f5, label)
         end
-        local dc = onFocus and T.textOnFocus or T.textDim
+        local dc = onFocus and T.textOnFocus or INK_DIM
         self:drawText(label, b.x + math.floor((b.w - lw) / 2), b.y + math.floor((b.h - tm:getFontHeight(f5)) / 2), dc.r, dc.g, dc.b, dc.a or 1, f5)
     end
-    -- border: dashed accent while drawn, accent while a drop fits, else the line (round on the hands)
+    -- border: dashed accent while drawn, accent while a drop fits, else the block's ink edge (round on the hands)
     if round then
-        -- (two design units: the hands' circles carry a thicker outline than the slots' one-unit frame)
         if o.state == "fit" then ring(self, b.x, b.y, b.w, p1 * 2, 1, T.accent)
         elseif o.state == "fitHover" then ring(self, b.x, b.y, b.w, p1 * 3, 1, T.accent)
-        else local fs = T.frameS or T.borderS; ring(self, b.x, b.y, b.w, p1 * 2, fs.a or 1, fs) end
+        else ring(self, b.x, b.y, b.w, T.hair, 1, INK) end
     elseif o.inHand then
         dashedBorder(self, b.x, b.y, b.w, b.h, T.accent, p1)
     elseif o.state == "fit" then
@@ -1948,7 +1976,7 @@ function ZeD_BeltHUD:_drawBox(b, o)
         self:drawRectBorder(b.x, b.y, b.w, b.h, 1, col(T.accent))
         self:drawRectBorder(b.x + p1, b.y + p1, b.w - p1 * 2, b.h - p1 * 2, 1, col(T.accent))
     else
-        frameBox(self, b.x, b.y, b.w, b.h, T)
+        inkEdge(self, b.x, b.y, b.w, b.h)
     end
     -- the foot: In hand as a tag, or the condition (the framed ring inside the hands' outline, the framed strip on
     -- the slots)
@@ -2003,6 +2031,8 @@ function ZeD_BeltHUD:_drawBox(b, o)
         local boxC = o.sideR and SIDE_WHITE or SIDE_BLACK
         local tc = o.sideR and SIDE_BLACK or SIDE_WHITE
         self:drawRect(b.x + b.w - sw, b.y, sw, sh, 1, boxC.r, boxC.g, boxC.b)
+        -- (the white box on the paper: its ink edge, carrying on the block's own)
+        if o.sideR then inkEdge(self, b.x + b.w - sw, b.y, sw, sh, SIDE_BLACK) end
         self:drawText(side, b.x + b.w - sw + math.floor((sw - tm:MeasureStringX(f1, side)) / 2), b.y, tc.r, tc.g, tc.b, 1, f1)
         sideH = sh
     end
@@ -2021,7 +2051,7 @@ function ZeD_BeltHUD:_drawBox(b, o)
         ZeD.Atoms.drawLamp(self, lx - p1, ly - p1, d + 2 * p1, SIDE_BLACK)
         ZeD.Atoms.drawLamp(self, lx, ly, d, LAMP_ON)
     end
-    if o.state == "no" then fill(0.6, T.base) end
+    if o.state == "no" then fill(NO_A, INK) end
 end
 
 -- a press on the chat key or the PvP marker (pad: from the controller)
@@ -2080,15 +2110,16 @@ end
 -- the chat key: a box with a speech balloon in whole pixels and the count of new lines, as the Messages notice
 function ZeD_BeltHUD:_drawChat(b, focus, hover)
     local T = ZeD.T
-    local s1, bd, ac = T.surf1, T.borderS, T.accent
-    self:drawRect(b.x, b.y, b.w, b.h, 0.92, s1.r, s1.g, s1.b)
+    local s1, ac = PAPER, T.accent      -- (the white block: the balloon in ink, its words' dots in the paper)
+    blockShadow(self, b.x, b.y, b.w, b.h, false)
+    self:drawRect(b.x, b.y, b.w, b.h, 1, s1.r, s1.g, s1.b)
     if focus then padMark(self, b, false)
     elseif hover then hoverWash(self, b, false) end
-    self:drawRectBorder(b.x, b.y, b.w, b.h, 1, bd.r, bd.g, bd.b)
+    inkEdge(self, b.x, b.y, b.w, b.h)
     local k = math.max(1, math.floor(b.h / 19))
     local bw, bh = 12 * k, 8 * k
     local bx, by = b.x + math.floor((b.w - bw) / 2), b.y + math.floor((b.h - bh - 2 * k) / 2)
-    local c = T.text
+    local c = INK
     self:drawRect(bx + k, by, bw - 2 * k, bh, 1, c.r, c.g, c.b)
     self:drawRect(bx, by + k, bw, bh - 2 * k, 1, c.r, c.g, c.b)
     self:drawRect(bx + 2 * k, by + bh, 2 * k, k, 1, c.r, c.g, c.b)
@@ -2112,33 +2143,35 @@ end
 -- accent while inside a non-PvP zone
 function ZeD_BeltHUD:_drawPvp(b, focus, hover)
     local T = ZeD.T
-    local s1, bd = T.surf1, T.borderS
-    self:drawRect(b.x, b.y, b.w, b.h, 0.92, s1.r, s1.g, s1.b)
+    blockShadow(self, b.x, b.y, b.w, b.h, false)
+    self:drawRect(b.x, b.y, b.w, b.h, 1, PAPER.r, PAPER.g, PAPER.b)
     if focus then padMark(self, b, false)
     elseif hover then hoverWash(self, b, false) end
-    local oc = b.zone and T.accent or bd
-    self:drawRectBorder(b.x, b.y, b.w, b.h, 1, oc.r, oc.g, oc.b)
+    -- (the block's ink edge; the accent's double line inside a non-PvP zone)
+    local oc = b.zone and T.accent or INK
+    inkEdge(self, b.x, b.y, b.w, b.h, oc)
     if b.zone then self:drawRectBorder(b.x + T.px(2), b.y + T.px(2), b.w - T.px(4), b.h - T.px(4), 1, oc.r, oc.g, oc.b) end
     local pv = B._pvp
     local ds = T.px(6)
     local dc = (pv and pv.on) and T.danger or T.positive
     local fh = ZeD.TM:getFontHeight(T.fontF2)
     ZeD.Atoms.drawStatusDot(self, b.x + T.px(PVP_PAD), b.y + math.floor((b.h - ds) / 2), dc, ds)
-    local tc = T.text
+    local tc = INK
     self:drawText(b.words, b.x + T.px(PVP_PAD) + ds + T.px(4), b.y + math.floor((b.h - fh) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
 end
 
--- a button box (the bag, a speed key: KISS #16, #22): the box, the hover wash or the pad's mark, an icon
+-- a button box (the bag, a speed key: KISS #16, #22): the white block, the hover wash or the pad's mark, an icon. The
+-- speed in use is the wheel's pointed cell: the accent, its bright edge, the icon in the accent's text color
 function ZeD_BeltHUD:_drawButton(b, focus, hover, icon, lit)
     local T = ZeD.T
-    local s1, bd = T.surf1, T.borderS
-    local fill = lit and T.accent or s1
-    self:drawRect(b.x, b.y, b.w, b.h, lit and 1 or 0.92, fill.r, fill.g, fill.b)
+    blockShadow(self, b.x, b.y, b.w, b.h, false)
+    local fill = lit and T.accent or PAPER
+    self:drawRect(b.x, b.y, b.w, b.h, 1, fill.r, fill.g, fill.b)
     if focus then padMark(self, b, false)
     elseif hover then hoverWash(self, b, false) end
-    self:drawRectBorder(b.x, b.y, b.w, b.h, 1, bd.r, bd.g, bd.b)
+    inkEdge(self, b.x, b.y, b.w, b.h, lit and (T.accentBright or T.accent) or INK)
     local ib = math.floor(b.h * 0.7)
-    local ink = lit and (T.base or T.text) or T.text
+    local ink = lit and (T.textOnAccent or T.base or T.text) or INK
     if type(icon) == "string" then
         ZeD.Atoms.drawPxIcon(self, icon, b.x + math.floor((b.w - ib) / 2), b.y + math.floor((b.h - ib) / 2), ib, 1, ink)
     elseif icon then
