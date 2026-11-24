@@ -88,6 +88,14 @@ def main():
     # 4. the side columns: six rows top to bottom, none touching the next, each row's two parts on one line, and the
     #    two columns mirrored about the car
     bodies = sorted({k.split("_", 1)[0] for k in layers})
+    # (QA, Nov 23 2026) a trailer's left and right pairs stand at one height: its springs and brakes row by row
+    for b in bodies:
+        if b + "_engine" in layers: continue
+        for pos in ("front", "rear"):
+            for part in ("suspension", "brake"):
+                l, r = layers.get(f"{b}_{part}_{pos}_left"), layers.get(f"{b}_{part}_{pos}_right")
+                if l and r:
+                    check(l[1] == r[1], f"{b}: {part} {pos} left and right on one line ({l[1]} / {r[1]})")
     for b in bodies:
         if b + "_engine" not in layers: continue                  # (the trailers keep the game's layout)
         base = layers[b + "_base"]

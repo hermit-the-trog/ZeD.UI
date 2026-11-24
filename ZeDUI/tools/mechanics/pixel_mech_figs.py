@@ -688,12 +688,18 @@ def redraw_callouts(out_layers):
 
     done = set()
     if not any(n in out_layers for n, side, turn in MOVE):          # a trailer: the game's places, pairs kept apart
+        # (QA, Nov 23 2026: the game's left and right icons stand a pixel apart, so each side's own centre set the left
+        # and right pairs a pixel apart in height; both sides now share the mean of their two centres)
+        def pair_mid(pos, side):
+            sp, br = f"suspension_{pos}_{side}", f"brake_{pos}_{side}"
+            return (old[sp][0] + old[br][1]) / 2.0 if (sp in old and br in old) else None
         for side in ("left", "right"):
             for pos in ("front", "rear"):
                 sp, br = f"suspension_{pos}_{side}", f"brake_{pos}_{side}"
                 if sp in old and br in old:
                     hs, hb = len(SPRING), len(BRAKE)
-                    mid = (old[sp][0] + old[br][1]) / 2.0
+                    mids = [m for m in (pair_mid(pos, "left"), pair_mid(pos, "right")) if m is not None]
+                    mid = sum(mids) / len(mids)
                     top = mid - (hs + PAIR_GAP + hb) / 2.0
                     place(sp, top, (old[sp][2] + old[sp][3]) / 2.0)
                     place(br, top + hs + PAIR_GAP, (old[br][2] + old[br][3]) / 2.0)
