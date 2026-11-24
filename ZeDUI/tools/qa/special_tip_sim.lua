@@ -250,6 +250,25 @@ ST._hover = nil
 zedHandler(t4, getSquare(101, 100, 0))
 ok(ST._hover == nil and t4:getHeight() == 0, "MUTE a trough handler that wasn't kept aside: ZeD draws nothing over it")
 ST.gameTrough = keepT
+-- (QA, Nov 23 2026) another balloon holds the slot: the game's box stands, never neither
+gameCalls = 0
+ZeD.Balloon.claim = function() return false end
+local t5 = tip()
+local m5 = ST.muted
+ST._hover = nil
+zedHandler(t5, getSquare(101, 100, 0))
+ok(gameCalls == 1 and ST.muted == m5 and ST._hover == nil and t5:getHeight() == 0,
+    "MUTE the balloon slot held: the game's trough box draws instead, ZeD stands aside")
+ZeD.Balloon.claim = nil
+-- (QA, Nov 23 2026) the character's width is a measured tile, not 64 assumed
+local cr = ST.charScreenRect(0, PLAYER)
+local tile = math.abs(isoToScreenX(0, 101, 99, 0) - isoToScreenX(0, 100, 100, 0))
+ok(math.abs(cr.w - tile * 0.8) < 0.01, "PLACE the character is 0.8 of a measured tile wide")
+local wasX = isoToScreenX
+isoToScreenX = function(pn, x, y, z) return (x - y) * 64 + 960 end   -- tiles twice as wide (B42's 128)
+cr = ST.charScreenRect(0, PLAYER)
+ok(math.abs(cr.w - 128 * 0.8) < 0.01, "PLACE a 128-wide tile widens the character's rect with it")
+isoToScreenX = wasX
 
 -- ---------------------------------------------------------------- FRAMES
 ST._frame = 20
