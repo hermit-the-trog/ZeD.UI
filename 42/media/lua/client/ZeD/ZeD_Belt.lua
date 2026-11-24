@@ -1983,10 +1983,17 @@ function ZeD_BeltHUD:_drawBox(b, o)
     if o.side and not round then
         local f1 = T.fontF1
         local sh = tm:getFontHeight(f1)
-        local sw = math.max(tm:MeasureStringX(f1, o.side) + T.px(6), sh)
+        -- (a longer side word, e.g. Turkish "Sol" / "Sag", may not crowd the key's tag: past half the box less a
+        -- gap it is cut to its first letter)
+        local side = o.side
+        local maxW = math.floor(b.w / 2) - T.px(2)
+        if tm:MeasureStringX(f1, side) + T.px(6) > maxW then
+            side = side:match("^[\1-\127\194-\244][\128-\191]*") or side
+        end
+        local sw = math.min(math.max(tm:MeasureStringX(f1, side) + T.px(6), sh), maxW)
         local tc = onFocus and T.textOnFocus or T.text
         self:drawRect(b.x + b.w - sw, b.y, sw, sh, 1, col(T.surf3))
-        self:drawText(o.side, b.x + b.w - sw + math.floor((sw - tm:MeasureStringX(f1, o.side)) / 2), b.y, tc.r, tc.g, tc.b, 1, f1)
+        self:drawText(side, b.x + b.w - sw + math.floor((sw - tm:MeasureStringX(f1, side)) / 2), b.y, tc.r, tc.g, tc.b, 1, f1)
         sideH = sh
     end
     -- a light or walkie that is on

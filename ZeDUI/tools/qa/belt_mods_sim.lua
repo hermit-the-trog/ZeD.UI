@@ -1454,6 +1454,14 @@ do
     check("SIDE the Back slot has no side mark", ZeD.Belt.sideMark("Back") == nil)
     check("SIDE the left slots read L, the right R", ZeD.Belt.sideMark("SmallBeltLeft") == "L"
         and ZeD.Belt.sideMark("HolsterRight") == "R" and ZeD.Belt.sideMark("WebbingLeft") == "L")
+    -- (QA's note: a long side word is cut to its first letter, a whole UTF-8 character)
+    local pat = NEW:match('side:match%("(%^%[[^"]+)"%)')
+    check("SIDE a long side word is cut by the first-letter pattern", pat ~= nil)
+    if pat then
+        local p2 = loadstring('return "' .. pat .. '"')()
+        check("SIDE the cut keeps a whole letter (Sag -> S, a CJK side whole)",
+            ("Sa\196\159"):match(p2) == "S" and ("\229\183\166"):match(p2) == "\229\183\166")
+    end
     check("SIDE the left belt's empty name is the plain word", ZeD.Belt.shortName("SmallBeltLeft") == "Belt"
         and ZeD.Belt.shortName("WebbingRight") == "Web" and ZeD.Belt.shortName("HolsterLeft") == "Holster")
 end
