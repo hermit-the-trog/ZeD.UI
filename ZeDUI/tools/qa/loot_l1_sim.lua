@@ -303,10 +303,10 @@ local wwin = { _mainContent = content }
 function wwin:isVisible() return true end
 ZeD_WorldWindow = { getWindow = function() return wwin end }
 ZeD_CharacterWindow = { getWindow = function() return nil end }
--- (held for the director: Ctrl+A was replaced by the double-click on Nov 10, punch list 146; these checks run only
--- once ZeD_BoxSelect has BS.ctrlA again)
+-- (the director, Nov 23 2026: "Keep double-click". Ctrl+A stays out, as on Nov 10, punch list 146; these checks
+-- would run only if ZeD_BoxSelect ever had BS.ctrlA again)
 local bsSrc = readFile(Z .. "ZeD_BoxSelect.lua") or ""
-if not bsSrc:find("function BS.ctrlA", 1, true) then print("(L1-6 Ctrl+A held for the director: skipped)") end
+if not bsSrc:find("function BS.ctrlA", 1, true) then print("(L1-6 Ctrl+A: the director keeps the double-click; skipped)") end
 if bsSrc:find("function BS.ctrlA", 1, true) and run("L1-6 ZeD_BoxSelect.lua", bsSrc) then
     local frame = hooks.OnPreUIDraw and hooks.OnPreUIDraw[1]
     check("L1-6 hooked on the frame", frame ~= nil)
