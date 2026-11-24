@@ -422,6 +422,11 @@ do
     local nSp
     NEW_SAME, nSp = NEW_SAME:gsub("\n *x = self:_speedBoxes%(boxes, x, h%)", "")
     check("SAME: the speed keys found to leave out (Lite and Full)", nSp == 2, nSp)
+    -- (the Messages notice's place on the row, after the speed keys and before the chat key, is new on purpose: Belt
+    -- row, the director, Nov 23 2026. The SAME runs have no ZeD.ErrorBox, so no place is made; it is left out here too)
+    local nNo
+    NEW_SAME, nNo = NEW_SAME:gsub("\n *x = self:_noticeBox%(boxes, x, h%)", "")
+    check("SAME: the Messages notice's place found to leave out", nNo == 1, nNo)
     -- (the side mark in a slot's top right corner, and the plain "Belt" / "Web" / "Holster" it lets the empty slot
     -- say, are new on purpose: the director, Nov 23 2026. The SAME runs put the old names back and the mark out)
     local nSide, nB, nH, nW
@@ -1353,10 +1358,11 @@ do
 end
 
 -- ---------------------------------------------------------------------------
-section("NOTE: the Messages note off the belt, the pad on to the corner notice, the buckle opens Info (Nov 22 2026)")
+section("NOTE: no old note on the belt, the pad on the row's Messages notice, the buckle opens Info (Nov 22-23 2026)")
 -- ---------------------------------------------------------------------------
--- Error box, the director, Nov 22 2026: the note left the belt for the screen's corner (ZeD_ErrorBox.lua); the pad
--- past the row's right end steps onto it while it shows, A opens Messages, Left comes back. Buckle, the director, Nov 22
+-- Error box, the director, Nov 22 2026: the old note ("lamp") left the belt; Belt row, the director, Nov 23 2026: the
+-- Messages notice (ZeD_ErrorBox.lua's element) is back on the row after the speed keys, a "notice" box the pad walks in
+-- row order; A on it opens Messages, Left and Right walk on as on any box. Buckle, the director, Nov 22
 -- 2026: a left click on Full's buckle opens the Character window on Info ("identity"), as the game's key does (the
 -- same toggle, KISS #25); a hover hint names the tab; Lite has no buckle.
 do
@@ -1371,37 +1377,43 @@ do
     check("NOTE Messages keeps lines: still no note on the belt", not has("lamp"))
     check("NOTE no _drawLamp left on the belt", ZeD_BeltHUD._drawLamp == nil and B.noteAnchor == nil)
 
-    -- the pad: the row's last box, then Right
-    local shows, padOn, pressed = true, nil, 0
+    -- the pad: the Messages notice is the row's box after the speed keys (single player: the row's last)
+    local rowOn, pressed = true, 0
     ZeD.windowsFor = ZeD.windowsFor or function() return false end   -- (leaving the pad asks whose windows these are)
-    ZeD.ErrorBox = { padReach = function(pn) return pn == 0 and shows end, setPad = function(on) padOn = on end,
-                     press = function() pressed = pressed + 1 end }
-    hud._gp = { idx = #hud._boxes, inList = false, row = 1, list = {} }
+    ZeD.ErrorBox = { rowWanted = function() return rowOn end, press = function() pressed = pressed + 1 end }
+    frame()
+    local last = hud._boxes[#hud._boxes]
+    check("NOTE the notice's place: the row's last box in single player", last and last.kind == "notice")
+    check("NOTE ... right after the last speed key", hud._boxes[#hud._boxes - 1] and hud._boxes[#hud._boxes - 1].kind == "speed"
+        and hud._boxes[#hud._boxes - 1].n == 4)
+    hud._gp = { idx = #hud._boxes - 1, inList = false, row = 1, list = {} }
     env.joyFocus = hud
     hud:onJoypadDirRight()
-    check("NOTE Right past the row's end: on the corner notice", hud._gp and hud._gp.notice == true and padOn == true)
-    check("NOTE ... no belt box keeps the pad", hud:_gpBox() == nil)
+    check("NOTE Right from the last speed key: on the notice (row order)", hud._gp and hud._gp.idx == #hud._boxes
+        and hud:_gpBox() == last)
     hud:onJoypadDirLeft()
-    check("NOTE Left: back on the row's last box", hud._gp and not hud._gp.notice and padOn == false and hud._gp.idx == #hud._boxes)
+    check("NOTE Left: back on the last speed key", hud._gp and hud._gp.idx == #hud._boxes - 1)
     hud:onJoypadDirRight()
     hud:onJoypadDown(Joypad.AButton)
-    check("NOTE A on the notice: Messages (the notice's press), the pad off the belt", pressed == 1 and hud._gp == nil and padOn == false)
+    check("NOTE A on the notice: Messages (the notice's press), the pad off the belt", pressed == 1 and hud._gp == nil)
     hud._gp = { idx = #hud._boxes, inList = false, row = 1, list = {} }
     hud:onJoypadDirRight()
-    hud:onJoypadDirRight()
-    check("NOTE Right again on the notice: the pad leaves", hud._gp == nil and padOn == false)
+    check("NOTE Right past the notice (the row's end): the pad leaves", hud._gp == nil)
     hud._gp = { idx = #hud._boxes, inList = false, row = 1, list = {} }
-    hud:onJoypadDirRight()
     hud:onJoypadDown(Joypad.BButton)
-    check("NOTE B on the notice: the pad leaves", hud._gp == nil and padOn == false)
-    shows = false
-    hud._gp = { idx = #hud._boxes, inList = false, row = 1, list = {} }
-    hud:onJoypadDirRight()
-    check("NOTE no notice showing: Right past the end leaves, as before", hud._gp == nil)
+    check("NOTE B on the notice: the pad leaves", hud._gp == nil)
+    -- the belt draws nothing on the notice's place (its own element does)
+    local L = frame()
+    check("NOTE the belt draws nothing in the notice's place", not L:find("drawRect " .. string.format("%.4f", last.x) .. " ", 1, true))
+    rowOn = false
+    frame()
+    check("NOTE the notice may not show (safe mode, no Messages): no place on the row", hud._boxes[#hud._boxes].kind == "speed")
     ZeD.ErrorBox = nil
+    frame()
+    check("NOTE no ZeD_ErrorBox at all: no place, the row ends on the speed keys", hud._boxes[#hud._boxes].kind == "speed")
     hud._gp = { idx = #hud._boxes, inList = false, row = 1, list = {} }
     hud:onJoypadDirRight()
-    check("NOTE no ZeD_ErrorBox at all: leaves", hud._gp == nil)
+    check("NOTE ... Right past the end leaves, as before", hud._gp == nil)
 
     -- the buckle
     local calls = {}

@@ -4121,10 +4121,11 @@ local function handleDrop(content, items, srcInventory)
         if ok and took then return end
     end
 
-    -- Over the belt (HUD): attach to a slot or equip into a hand. The belt
+    -- Over the belt (HUD): attach to a slot, equip into a hand, or into the bag button's bag (with the list and its
+    -- container, so a row brings its closed stack: Belt row, Nov 23 2026). The belt
     -- answers first, or a release over it would drop the items on the floor.
     if ZeD.Belt and ZeD.Belt.takeDrop then
-        local ok, took = pcall(ZeD.Belt.takeDrop, playerNum, items)
+        local ok, took = pcall(ZeD.Belt.takeDrop, playerNum, items, content, srcContainer)
         if ok and took then return end
     end
 
