@@ -114,6 +114,8 @@ function S.colName(r)
     if not r then return "none" end
     local T = ZeD.T
     if S.sameCol(r, T.surf3) then return "surf3" end
+    if ZeD.Belt and S.sameCol(r, ZeD.Belt.SIDE_BLACK) then return "the black box" end
+    if ZeD.Belt and S.sameCol(r, ZeD.Belt.SIDE_WHITE) then return "the white box" end
     if S.sameCol(r, T.accent) then return "the accent" end
     return "rgb " .. S.num(r.r) .. "/" .. S.num(r.g) .. "/" .. S.num(r.b)
 end
@@ -304,7 +306,12 @@ function S.markRead(rec, e)
         if kt and key ~= nil and #tostring(key) == 1 and not S.near(kt.w, mk.w) then
             why[#why + 1] = "the mark is " .. S.num(mk.w) .. " wide, the key tag " .. S.num(kt.w)
         end
-        if not S.sameCol(mk, T.surf3) then why[#why + 1] = "the mark's fill is " .. S.colName(mk) .. ", not surf3" end
+        -- (the director, Nov 23 2026, fix/sideink: "Black box, white text" on one side and the negative on the other:
+        -- L a near-black box with light text, R the reverse, in every theme; surf3 before that)
+        local B = ZeD.Belt or {}
+        local inkFill = (e.sd == "L") and B.SIDE_BLACK or B.SIDE_WHITE
+        if inkFill == nil then inkFill = T.surf3 end
+        if not S.sameCol(mk, inkFill) then why[#why + 1] = "the mark's fill is " .. S.colName(mk) .. ", not the " .. ((e.sd == "L") and "black" or "white") .. " box" end
         local lt = nil
         for _, t in ipairs(rec.texts) do
             if t.s == want and type(t.x) == "number" and t.x >= mk.x - 1 and t.x < mk.x + mk.w and S.near(t.y, mk.y) then lt = t end
@@ -610,7 +617,7 @@ S.readAndShot("SIDE 1 to 3 (empty)", function(rec)
     local old = S.oldDrawn(rec)
     for _, e in ipairs(S.SIDES) do
         local r = S.markRead(rec, e)
-        Q.check(r.ok, "SIDE 1 " .. e.t .. " (empty): the " .. e.sd .. " mark in the top right corner, the key tag's size, on surf3 "
+        Q.check(r.ok, "SIDE 1 " .. e.t .. " (empty): the " .. e.sd .. " mark in the top right corner, the key tag's size, in its ink (L a black box, R a white box) "
             .. "(not the accent), the key tag on the accent", r.text)
         -- the plain name
         local b = r.box
@@ -646,10 +653,12 @@ S.readAndShot("SIDE 1 to 3 (empty)", function(rec)
 end, "empty", "the six side slots empty: Belt, Holster and Web, each with its L or R mark in the top right corner")
 
 -- ===================================================================== SIDE 4: an item on each side slot
-Q.step(2, function()
-    if not S.ok then return end
-    local words = {}
-    for _, e in ipairs(S.SIDES) do
+-- (QA, Nov 23 2026: one at a time, each waited out: queued together only the first landed, the game's attach
+-- action of each replacing the last)
+S.attachWords = {}
+for _, e in ipairs(S.SIDES) do
+    Q.step(2, function()
+        if not S.ok then return end
         local it = S.give(e.item)
         S.items[e.t] = it
         local i = S.idxOf(e.t)
@@ -659,10 +668,15 @@ Q.step(2, function()
             ok = okA and r == true
         end
         if ok then S.queued = true end
-        words[#words + 1] = e.item .. " to " .. e.t .. " (slot " .. tostring(i) .. ") " .. (ok and "queued" or "REFUSED")
-    end
-    S.k.attachWords = table.concat(words, ", ")
-end)
+        S.attachWords[#S.attachWords + 1] = e.item .. " to " .. e.t .. " (slot " .. tostring(i) .. ") " .. (ok and "queued" or "REFUSED")
+        S.k.attachWords = table.concat(S.attachWords, ", ")
+    end)
+    S.wait(15000, function()
+        if not S.ok then return true end
+        local i = S.idxOf(e.t)
+        return i ~= nil and S.items[e.t] ~= nil and S.attached(i) == S.items[e.t]
+    end, function() end)
+end
 S.wait(45000, function()
     if not S.ok then return true end
     for _, e in ipairs(S.SIDES) do
@@ -689,7 +703,7 @@ S.readAndShot("SIDE 4 (items)", function(rec)
             for _, d in ipairs(rec.texs) do if d.tex == tex and S.inside(d, r.box) then icon = true end end
         end
         Q.check(on and icon and r.ok, "SIDE 4 " .. e.t .. " (with " .. e.item .. "): the item on the slot, its icon drawn in the box, "
-            .. "the " .. e.sd .. " mark still in the top right corner on surf3, the key tag on the accent",
+            .. "the " .. e.sd .. " mark still in the top right corner in its ink, the key tag on the accent",
             "on the slot " .. tostring(on) .. ", its icon drawn " .. tostring(icon) .. "; " .. r.text)
     end
 end, "items", "an item on each side slot (screwdriver, hammer, two pistols, a hunting knife, the flashlight off), the marks kept")
