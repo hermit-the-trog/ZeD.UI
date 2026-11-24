@@ -1,0 +1,9 @@
+# ZeDUI/tools/qa/hs_tip.txt (Nov 23 2026, QA): the trough and farm plot hover facts in ZeD's balloon, Build's fix/specialtip (main 39159199c). The director, Nov 23 2026: "Redraw." At the farm with troughs (1635,14221) the game's DoSpecialTooltip event is fired with a real ObjectTooltip (triggerEvent, every handler runs): .captured is 2; a trough with water, empty and with feed shows the game's own words in ZeD's balloon, off the character and inside the screen; a planted plot at Farming 3 and 6 (the next phase at 6 only); nothing at Farming 2, 14+ tiles away or with the right button held; the balloon goes within 3 frames; Safe mode brings the game's box back; a mod's handler added after load still runs (NOTE: its background).
+# Pictures: Zomboid/Screenshots/hs_tip_trough_<w>x<h>, hs_tip_farm_<w>x<h>, hs_tip_modline_<w>x<h> (pointer hidden, windows shut).
+# Puts back: the character on the drag strip exactly (place and facing), Farming level and XP, the trough as found, the plot removed, the test handler, Safe mode, the time of day, the window pair.
+# Run both sizes:
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/hs_tip.txt -Mode fullscreen4k -Report hs_tip_4k
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/hs_tip.txt -Mode windowed -Width 1280 -Height 800 -Report hs_tip_deck
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+hs_tip.lua | hs_tip | timeout=900
