@@ -25,6 +25,8 @@
 -- Every surface is measured with RT.bounds. Put back: the cards closed, the actions stopped, the pad let go and the
 -- input mode unlocked, the stacks and the list's scroll as they were, the hands as they were, everything placed or
 -- built taken away, the things given taken back (the dropped pencil off the floor), both windows on Loot.
+-- (Nov 23 2026, QA: the card's plug-in points (Build's fix/plugins) keep the Lists mark's rect in card._markRects.lists
+-- in place of card._listsRect; H.listsRect reads whichever this build has, so the Lite check runs on both.)
 
 if not RT then
     print("ZEDQA rt_cards ERR the kit (rt_kit.lua) did not run first")
@@ -130,6 +132,13 @@ function H.queueClick(item, label)
     end)
 end
 function H.card() local w = RT.cw(); return w and w._itemCard end
+-- the card's Lists mark's rect, or nil: card._markRects.lists with the plug-in points (Nov 23 2026), else card._listsRect
+function H.listsRect(c)
+    if not c then return nil end
+    local mr = c._markRects
+    if type(mr) == "table" then return mr.lists end
+    return c._listsRect
+end
 function H.cardOn(item)
     local w = RT.cw()
     local c = w and w._itemCard
@@ -579,7 +588,7 @@ Q.waitFor(4, 240, function() return S.liteCard or H.focusCardId("toggle_lists") 
     if S.liteCard then
         S.armA = false
         local on = H.cardOn(S.bat)
-        Q.check(on and H.card()._listsRect == nil and not H.focusCardId("toggle_lists"),
+        Q.check(on and H.listsRect(H.card()) == nil and not H.focusCardId("toggle_lists"),
             "lists (Lite): the card has no Lists mark and the pad has no stop for it (toggle_lists)",
             "card " .. tostring(on) .. ", Loadouts on " .. tostring(ZeD.Lists and ZeD.Lists.on()))
         return

@@ -14,6 +14,9 @@
 --     lists section.
 -- Puts back the character's lists, the menu look and the tab; takes the items
 -- back. Screenshots/zqa_ls_*.png. grep "ZEDQA ls".
+-- (Nov 23 2026, QA: the card's plug-in points (Build's fix/plugins) keep the Lists mark's rect in card._markRects.lists
+-- and press a mark with ZeD.ItemCard.activateMark(card, "lists", false); the mark strip's steps read and call
+-- whichever this build has: card._listsRect and card:openListsPopup() before it.)
 local p = getPlayer()
 local pn = p:getPlayerNum()
 local L, LU, JL = ZeD.Lists, ZeD.ListsUI, ZeD.JournalLists
@@ -363,7 +366,12 @@ stillStep(function()
     local c = cw()._itemCard
     local marks = ZeD.ItemCard.readMarks(crowbar, pn)
     check(marks.lists == true, "mark strip: Lists lit (" .. tostring(marks.listsText) .. ")")
-    check(c and c._listsRect ~= nil, "mark strip: the Lists button is drawn")
+    -- (the plug-in points: card._markRects.lists; before them card._listsRect. Nov 23 2026)
+    local lr = nil
+    if c then
+        if type(c._markRects) == "table" then lr = c._markRects.lists else lr = c._listsRect end
+    end
+    check(lr ~= nil, "mark strip: the Lists button is drawn")
     local found = false
     for _, e in ipairs(c and c:getActionStripElements() or {}) do if e.id == "toggle_lists" then found = true end end
     check(found, "mark strip: the Lists button is a pad stop")
@@ -377,7 +385,10 @@ step(15, function()
 end)
 step(10, function()
     local c = cw()._itemCard
-    if c then c:openListsPopup() end
+    -- (the plug-in points press a mark through ZeD.ItemCard.activateMark; before them the card's own openListsPopup)
+    local IC = ZeD.ItemCard
+    if c and IC and IC.activateMark then IC.activateMark(c, "lists", false)
+    elseif c and c.openListsPopup then c:openListsPopup() end
 end)
 step(10, function()
     local m = LU.popup

@@ -113,6 +113,8 @@
 -- placed, sized and on the tabs found; the input lock and the mode ZeD reads. No option is saved, no file written,
 -- ZEDQA_LAYOUT_BACK is never called.
 -- Not run offline; parse-checked with the game's Kahlua compiler (KCheck).
+-- (Nov 23 2026, QA: ZeD's plug-in points (Build's fix/plugins) splice an add-on's rows into a ZeD setup group;
+-- H.inGroups reads G.groupRows(g) where it exists, else the group's own list, g[2].)
 
 if not (RT and RT.make) then
     print("ZEDQA vk3_win ERR the kit (rt_kit.lua) did not run first")
@@ -728,7 +730,10 @@ function H.optVal(o) local v = nil; if o then pcall(function() v = o:getValue() 
 function H.inGroups(id)
     local G = ZeD and ZeD.MainMenu and ZeD.MainMenu.optionGroups
     for _, g in ipairs((G and G.ZED_GROUPS) or {}) do
-        for _, e in ipairs((type(g) == "table" and g[2]) or {}) do
+        -- (Nov 23 2026: with the plug-in points, G.groupRows(g) is the group's rows with an add-on's spliced in)
+        local rows = nil
+        if type(g) == "table" then rows = (G.groupRows and G.groupRows(g)) or g[2] end
+        for _, e in ipairs(rows or {}) do
             if type(e) == "table" and e[1] == id then return true end
         end
     end

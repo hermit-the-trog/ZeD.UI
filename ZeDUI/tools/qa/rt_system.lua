@@ -44,6 +44,8 @@
 -- Every setting is put back exactly (the option values, the file, the scale, the theme, the windows): every ZeD
 -- option's value in memory is kept at the start and set back at the end, and ModOptions.ini is written back line for
 -- line (the window box's picks save it at once).
+-- (Nov 23 2026, QA: ZeD's plug-in points (Build's fix/plugins) splice an add-on's rows into a ZeD setup group; the
+-- group check reads G.groupRows(grp) where it exists, else the group's own list, grp[2].)
 if not RT then
     print("ZEDQA rt_sys FAIL the kit (rt_kit.lua) is not loaded")
     print("ZEDQA rt_sys VERDICT FAIL 1")
@@ -536,7 +538,8 @@ Q.step(2, function()
         if gone then
             if heads[tostring(title)] then bad[#bad + 1] = "Lite shows heading " .. tostring(grp[1]) end
         elseif title == grp[1] or not heads[tostring(title)] then bad[#bad + 1] = "heading " .. tostring(grp[1]) end
-        for _, e in ipairs(grp[2] or {}) do
+        -- (Nov 23 2026: with the plug-in points, G.groupRows(grp) is the group's rows with an add-on's spliced in)
+        for _, e in ipairs((G.groupRows and G.groupRows(grp)) or grp[2] or {}) do
             local o = H.opt(e[1])
             if o and o.element then
                 local r = H.setupRow(w, e[1])

@@ -15,6 +15,8 @@
 --   * a picture of the guide's ZeD setup chapter
 -- Manual: the rows drawn on screen in ZeD setup (main menu or Options), the Find box, other languages' fit at the Deck / 720p with
 -- Large text. Nothing is changed. grep "ZEDQA b8fm". Picture zqa_b8_forms_guide.png.
+-- (Nov 23 2026, QA: ZeD's plug-in points (Build's fix/plugins) splice an add-on's rows into a ZeD setup group; the
+-- groups are read through optionGroups.groupRows(g) where it exists, else the group's own list, g[2].)
 local TAG = "b8fm"
 local function say(s) print("ZEDQA " .. TAG .. " " .. tostring(s)) end
 local pass, fail = 0, 0
@@ -38,7 +40,8 @@ step(10, function()
     local rows, where, count = {}, {}, {}
     for _, g in ipairs(og.ZED_GROUPS) do
         rows[g[1]] = {}
-        for i, r in ipairs(g[2] or {}) do
+        -- (Nov 23 2026: with the plug-in points, og.groupRows(g) is the group's rows with an add-on's spliced in)
+        for i, r in ipairs((og.groupRows and og.groupRows(g)) or g[2] or {}) do
             rows[g[1]][i] = r[1]
             where[r[1]] = g[1]
             count[r[1]] = (count[r[1]] or 0) + 1

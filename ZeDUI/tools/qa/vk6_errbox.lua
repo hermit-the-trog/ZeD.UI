@@ -44,11 +44,14 @@
 --   EB 5c  ZeD's own error: filed under ZeD (B.isZeDSource), the count drawn red (T.danger). Picture vk6_err_zed.
 --   EB 5d  A note (a Messages line of a test source): the count in the accent color; Messages' balloons come out of
 --          the notice (ZeD.MessagesWindow.noticeAnchor answers ZeD.ErrorBox.anchor's point, pointing).
---   EB 5e  All read: the notice goes by itself about six seconds after the note came (E.SHOW_MS, 4.5 to 8 s).
---   EB 6   The pad: on the belt's last box, Right lands on the notice (E.padOn, its pad mark drawn, its hint asked),
---          Left back to the same box, Right and A open Messages (the pad leaves the belt), Up leaves, B leaves.
---   EB 7   The belt row: five speed keys (none on a server) after the belt, no Messages note on the belt (vk4_belt.lua
---          BELT 1 to 4 read the whole row in Full and Lite).
+--   EB 5e  All read: the notice goes by itself about six seconds after the note came (E.SHOW_MS, 4.5 to 8 s), in the
+--          corner (Nov 23 2026: the belt away; on the row it stays while the belt draws).
+--   EB 6   The pad (Nov 23 2026: the notice is a stop in the belt's walk): on the box before it (the last speed key),
+--          Right lands on the notice (its row box, E.padOn, its pad mark drawn, its hint asked), Left back to the same
+--          box, Right and A open Messages (the pad leaves the belt), Up leaves, B leaves.
+--   EB 7   The belt row: five speed keys (none on a server) after the belt, then the Messages notice's place (Nov 23
+--          2026: single player's row ends with it), no old "lamp" box (vk4_belt.lua BELT 1 to 4 read the whole row in
+--          Full and Lite; bl_side.lua the groups' gaps).
 --   EB 8   Driving (the prelude's pickup, the driver's seat): the belt hides and the five keys keep their x at the
 --          same spot (keysOnly), lifted just above the dash where their home is on it (dashkeys, Nov 22: the lowest
 --          key's bottom 6 units over the dash's top), clear of the dash; a key pressed there sets the speed. A
@@ -70,6 +73,14 @@
 --          down in between. EB 12i a note: no marker (_mk.phase nil throughout).
 --          The EB checks that read the notice's place after an error read the rest place (E.rect) or wait until
 --          the marker is down first (EB 5d's anchor).
+-- (Nov 23 2026, QA, Build's fix/beltrow2 on main 99d56a202, the director's "Belt, space, time, space, messages, chat":
+-- the notice stands on player one's belt row after the speed keys, shown all the time the belt draws, and falls back to
+-- the screen's bottom right corner while the belt is away. The corner's checks, EB 1e to 4a, 5e and 11, put the belt
+-- away with the game's Toggle UI flag alone (ISUIHandler.allUIVisible false, the belt's own wanted() test; H.away), so
+-- the rest of the UI still draws; their words are unchanged. EB 12b: the marker now ends where the notice's bottom
+-- rests, on the row or in the corner: fully up its y is the notice's rest y + its size - markH (in the corner that is
+-- the screen's height - (markH + T.px(10)) as before), the notice lifted by markH. EB 12c: the belt draws over it too
+-- (the marker goes to the back of the UI list at each start). EB 6, EB 7: the notice is the row's box "notice".)
 --   Side effects not staged: the sleeping overlay (vanilla draws nothing in OnSleepingTick; sleeping is not staged),
 --   ActiveMods.renderUI and the debug overlays (debug options only) are SKIPs with the reason.
 --
@@ -79,7 +90,7 @@
 -- as found; ISFPS.start as found; Messages: every error source as found (the run's error entries gone, the error
 -- places file written again from them), the test note gone, every read mark as found, the balloons as found, the
 -- Messages window open or shut as found; the radio out of his hand and taken back; the car taken away and him back where
--- he was; the windows open or shut as found; the pad's focus; the game speed. No option is saved; the files written
+-- he was; the windows open or shut as found; the pad's focus; the game speed; the Toggle UI flag. No option is saved; the files written
 -- are the pictures (and ZeD's own error places file, rewritten as found).
 -- Not run in game yet; parse-checked with the game's Kahlua compiler (KCheck).
 
@@ -177,6 +188,30 @@ function H.atPointer(gx, gy, fn)
     local ok, err = pcall(fn)
     getMouseX, getMouseY = ox, oy
     return ok, err
+end
+-- (Nov 23 2026, Build's fix/beltrow2) the belt away (on) or back (off) by the game's Toggle UI flag alone,
+-- ISUIHandler.allUIVisible (the belt's own wanted() test): the notice then stands in the corner, the rest of the UI
+-- still draws. The flag found is kept once and put back by the put-back too.
+function H.away(on)
+    if not ISUIHandler then return false end
+    if on then
+        if not S.k.awaySet then S.was.ui = ISUIHandler.allUIVisible; S.k.awaySet = true end
+        ISUIHandler.allUIVisible = false
+        return true
+    end
+    if S.k.awaySet then ISUIHandler.allUIVisible = S.was.ui; S.k.awaySet = nil end
+    return true
+end
+-- true while the notice's place is on the belt row (ZeD.ErrorBox.rect()'s fourth value)
+function H.onRow()
+    if not (S.E and S.E.rect) then return false end
+    local ok, _, _, _, r4 = pcall(S.E.rect)
+    return ok and r4 == true
+end
+-- the notice's box on the belt row: its index in hud._boxes, or nil
+function H.noticeIdx(hud)
+    for i, b in ipairs((hud and hud._boxes) or {}) do if b.kind == "notice" then return i end end
+    return nil
 end
 
 -- ===================================================================== Messages: the error sources and the read marks
@@ -612,6 +647,8 @@ Q.step(4, function()
     if not S.ok then return end
     pcall(function() getCore():setOptionLockCursorToWindow(true) end)
     S.k.lockSet = true
+    -- (Nov 23 2026: the belt away until EB 4a's end, so the notice stands in the corner beside the game's box)
+    H.away(true)
 end)
 Q.step(10, function()
     if not S.ok then return end
@@ -627,7 +664,7 @@ Q.step(20, function()
     Q.check(lock and not fbo and not H.hide() and p ~= nil and p.n > 0 and p.clip == 0 and math.abs(x - want) <= 1,
         "EB 1e: Lock cursor to window with the offscreen UI off: no clip (the game's box and pointer show), the notice left of the game's box",
         "lock " .. tostring(lock) .. ", offscreen UI " .. tostring(fbo) .. ", hideWanted " .. tostring(H.hide()) .. ", E.postDraw " .. tostring(p and p.n)
-        .. ", the clip " .. tostring(p and p.clip) .. "; the notice at x " .. H.num(x) .. " (left of the box: " .. H.num(want) .. ")")
+        .. ", the clip " .. tostring(p and p.clip) .. "; the notice at x " .. H.num(x) .. " (left of the box: " .. H.num(want) .. "), on the row " .. tostring(H.onRow()))
     H.shot("err_lockcursor")
     pcall(function() getCore():setOptionUIFBO(true) end)
 end)
@@ -706,9 +743,10 @@ Q.step(10, function()
     Q.check(S.k.boxBack and H.noteShown() and math.abs(x - want) <= 1 and math.abs(ex - want) <= 1,
         "EB 4a: Error box on (Safe mode's row): no clip, the game's box back and the notice left of it",
         "hideWanted " .. tostring(H.hide()) .. "; the notice shown " .. tostring(H.noteShown()) .. " at x " .. H.num(ex) .. " (left of the box: "
-        .. H.num(want) .. ")")
+        .. H.num(want) .. "), on the row " .. tostring(H.onRow()))
     H.shot("err_box_back")
     H.optSet(H.errOpt(), S.was.err or 1)
+    H.away(false)   -- (the belt back: Nov 23 2026)
 end)
 H.wait(2500, function() return not S.ok or H.hide() end, function(ok)
     if not S.ok then return end
@@ -779,27 +817,42 @@ H.wait(2000, function() return not S.ok or (H.noteShown() and H.badgeSince(S.k.t
         "EB 5d: a note: the notice shows, its count in the accent color, and Messages' balloons come out of it",
         "tone " .. tostring(tone) .. ", the count " .. tostring(l and l.text) .. " on " .. H.rgb(l and l.c) .. " (accent " .. H.rgb(T.accent) .. "); the notice's anchor "
         .. tostring(ax) .. "," .. tostring(ay) .. ", the balloons' " .. tostring(nx) .. "," .. tostring(ny) .. " pointing " .. tostring(point))
-    -- all read now: the notice goes by itself SHOW_MS after the note came
+    -- all read now: the notice goes by itself SHOW_MS after the note came (Nov 23 2026: in the corner, the belt away;
+    -- on the row it stays while the belt draws)
     pcall(function() S.M.markRead(S.SRC) end)
     S.M.toasts = {}
+    S.k.rowStays = H.onRow()
+    H.away(true)
 end)
 H.wait(10000, function() return not S.ok or not H.noteShown() end, function(ok)
     if not S.ok then return end
     local ms = getTimestampMs() - S.k.t5
     local show = (S.E and S.E.SHOW_MS) or 6000
-    Q.check(ok and ms >= show - 1500 and ms <= show + 2000, "EB 5e: all read: the notice goes by itself about six seconds after the note came",
-        "gone " .. tostring(ok) .. " after " .. ms .. " ms (SHOW_MS " .. show .. ")")
+    local corner = not H.onRow()
+    H.away(false)
+    Q.check(ok and corner and ms >= show - 1500 and ms <= show + 2000, "EB 5e: all read: the notice goes by itself about six seconds after the note came",
+        "gone " .. tostring(ok) .. " after " .. ms .. " ms (SHOW_MS " .. show .. "), in the corner " .. tostring(corner) .. " (on the row before " .. tostring(S.k.rowStays) .. ")")
 end)
 
 -- ===================================================================== EB 6: the pad on the notice
+-- (Nov 23 2026, Build's fix/beltrow2: the notice is the row's box "notice", walked in row order; the pad starts on the
+-- box before it, the last speed key in single player)
 function H.padSet()
     local hud = H.hud()
     if not hud then return nil end
-    hud._gp = { idx = #(hud._boxes or {}), inList = false, row = 1, list = {} }
+    local ni = H.noticeIdx(hud)
+    hud._gp = { idx = ni and (ni - 1) or #(hud._boxes or {}), inList = false, row = 1, list = {} }
     S.k.gpSet = true
     local jd = H.joy()
     if jd then pcall(setJoypadFocus, S.pn, hud); S.k.joyTaken = true end
     return hud
+end
+-- true while the belt's pad walk is on the notice's row box
+function H.padOnNotice(hud)
+    if not (hud and hud._gp) then return false end
+    local b = nil
+    pcall(function() b = hud:_gpBox() end)
+    return b ~= nil and b.kind == "notice"
 end
 Q.step(4, function()
     if not S.ok then return end
@@ -808,71 +861,78 @@ end)
 H.wait(2000, function() return not S.ok or H.noteShown() end, function(ok)
     if not S.ok then return end
     local hud = H.padSet()
-    if not (ok and hud) then S.k.noPad = true; Q.check(false, "EB 6: the notice shows and the belt takes the pad (staging)"); return end
+    if not (ok and hud and H.noticeIdx(hud)) then S.k.noPad = true; Q.check(false, "EB 6: the notice shows on the row and the belt takes the pad (staging)"); return end
     H.markSpy(true)
     S.k.lastIdx = hud._gp.idx
     pcall(function() hud:onJoypadDirRight() end)
-    S.k.onNotice = hud._gp ~= nil and hud._gp.notice == true and S.E.padOn()
+    S.k.onNotice = H.padOnNotice(hud) and S.E.padOn()
 end)
 Q.step(20, function()
     if not S.ok or S.k.noPad then return end
     local hud = H.hud()
+    if not hud then S.k.noPad = true; return end
     local mk = S.mk
     local hint = mk and mk.hints.note
     S.k.marked = mk ~= nil and mk.marks > 0
     S.k.hint = hint
     pcall(function() hud:onJoypadDirLeft() end)
     local g = hud._gp
-    S.k.back = g ~= nil and not g.notice and g.idx == S.k.lastIdx and not S.E.padOn()
+    S.k.back = g ~= nil and not H.padOnNotice(hud) and g.idx == S.k.lastIdx and not S.E.padOn()
     pcall(function() hud:onJoypadDirRight() end)
-    S.k.again = hud._gp ~= nil and hud._gp.notice == true
+    S.k.again = H.padOnNotice(hud)
     pcall(function() hud:onJoypadDown(Joypad.AButton, H.joy()) end)
 end)
 H.wait(3000, function() return not S.ok or S.k.noPad or H.msgOpen() end, function(ok)
     if not S.ok or S.k.noPad then return end
     local hud = H.hud()
+    if not hud then return end
     local left = hud._gp == nil
     H.msgClose()
     -- Up leaves, B leaves
     H.padSet()
     pcall(function() hud:onJoypadDirRight() end)
-    local on1 = hud._gp ~= nil and hud._gp.notice == true
+    local on1 = H.padOnNotice(hud)
     pcall(function() hud:onJoypadDirUp() end)
     local upLeft = hud._gp == nil and not S.E.padOn()
     H.padSet()
     pcall(function() hud:onJoypadDirRight() end)
-    local on2 = hud._gp ~= nil and hud._gp.notice == true
+    local on2 = H.padOnNotice(hud)
     pcall(function() hud:onJoypadDown(Joypad.BButton, H.joy()) end)
     local bLeft = hud._gp == nil and not S.E.padOn()
     Q.check(S.k.onNotice and S.k.marked and S.k.hint ~= nil and S.k.back and S.k.again and ok and left and on1 and upLeft and on2 and bLeft,
-        "EB 6: the pad: Right past the belt's last box lands on the notice (its pad mark and hint), Left back, A opens Messages, Up and B leave",
+        "EB 6: the pad: Right from the last speed key lands on the notice on the row (its pad mark and hint), Left back, A opens Messages, Up and B leave",
         "on the notice " .. tostring(S.k.onNotice) .. ", its mark drawn " .. tostring(S.k.marked) .. ", its hint " .. tostring(S.k.hint) .. "; Left back to box "
         .. tostring(S.k.lastIdx) .. " " .. tostring(S.k.back) .. "; Right again " .. tostring(S.k.again) .. ", A: Messages " .. tostring(ok) .. ", the belt let go "
         .. tostring(left) .. "; Up leaves " .. tostring(on1 and upLeft) .. "; B leaves " .. tostring(on2 and bLeft))
     H.markSpy(false)
     H.msgClose()
-    if hud then hud._gp = nil end
+    hud._gp = nil
     S.k.gpSet = nil
     pcall(function() S.M.clear(S.SRC) end)
 end)
 
 -- ===================================================================== EB 7: the belt row
+-- (Nov 23 2026: the Messages notice's place after the speed keys; single player's row ends with it)
 Q.step(4, function()
     if not S.ok then return end
     local hud = H.hud()
-    local n, lamp, first, bagR = 0, false, nil, nil
-    for _, b in ipairs((hud and hud._boxes) or {}) do
-        if b.kind == "speed" then n = n + 1; if not first then first = b end end
+    local n, lamp, first, bagR, lastSpeed = 0, false, nil, nil, nil
+    for i, b in ipairs((hud and hud._boxes) or {}) do
+        if b.kind == "speed" then n = n + 1; lastSpeed = i; if not first then first = b end end
         if b.kind == "lamp" then lamp = true end
         if b.kind == "bag" then bagR = b.x + b.w end
     end
+    local ni = H.noticeIdx(hud)
+    local nb = #((hud and hud._boxes) or {})
+    local noticeOk = ni ~= nil and (S.server or (lastSpeed ~= nil and ni == lastSpeed + 1 and ni == nb))
     local st = hud and hud._strap
     local endX = st and (st.x + st.w) or 0
     local want = S.server and 0 or 5
-    Q.check(hud ~= nil and n == want and not lamp and (S.server or (first ~= nil and bagR ~= nil and first.x > endX and first.x > bagR)),
-        "EB 7: the belt row: five speed keys after the belt (none on a server), no Messages note on the belt",
+    Q.check(hud ~= nil and n == want and not lamp and noticeOk and (S.server or (first ~= nil and bagR ~= nil and first.x > endX and first.x > bagR)),
+        "EB 7: the belt row: five speed keys after the belt (none on a server), then the Messages notice's place, no old note box",
         "keys " .. n .. ", the first at " .. H.num(first and first.x) .. " (the strap's end " .. H.num(endX) .. ", the bag button's right " .. H.num(bagR)
-        .. "); a note box " .. tostring(lamp) .. "; vk4_belt.lua reads the whole row")
+        .. "); the notice box " .. tostring(ni) .. " of " .. nb .. " (the last key " .. tostring(lastSpeed) .. "); an old lamp box " .. tostring(lamp)
+        .. "; vk4_belt.lua reads the whole row")
 end)
 
 -- ===================================================================== EB 9: the buckle
@@ -989,7 +1049,10 @@ Q.step(4, function()
     ZeD.SplitSpeed = ZeD.SplitSpeed or {}
     local stripX = H.sw() - ZeD.T.px(200)
     ZeD.SplitSpeed._instance = { isVisible = function() return true end, getX = function() return stripX end }
+    -- (Nov 23 2026: the strip is the corner's matter: the belt away for this one read, E.rect reads it at once)
+    H.away(true)
     local okR, x, _, s = pcall(S.E.rect)
+    H.away(false)
     ZeD.SplitSpeed._instance = S.was.split
     local want = okR and (stripX - s - ZeD.T.px(S.E.EDGE_U)) or nil
     Q.check(okR and want ~= nil and x <= want + 1, "EB 11: split screen: the notice stands left of the corner speed strip (a stand-in strip; E.rect)",
@@ -1040,8 +1103,12 @@ H.wait(3000, function() return H.mkGone() or H.mkPhase() == "hold" end, function
     local k = H.mk() or {}
     local m, el = H.mkEl(), H.note()
     local _, mh = E.markSize()
-    local _, restY = E.rect()
-    local want = H.sh() - (mh + T.px(10))
+    -- (Nov 23 2026, Build's fix/beltrow2: the marker ends where the notice's bottom rests, on the belt row or in the
+    -- corner: its top fully up is the screen's height less (markH + the room under the notice's rest bottom), as
+    -- ZeD_ErrorBox.lua E.frame works it; in the corner that room is T.px(10))
+    local _, restY, rs, onRow = E.rect()
+    local under = math.max(0, H.sh() - (restY + rs))
+    local want = H.sh() - (mh + under)
     local my, mx, mw = -1, -1, -1
     if m then my, mx, mw = m:getY(), m:getX(), m:getWidth() end
     local ny, nx = -1, -1
@@ -1054,8 +1121,8 @@ H.wait(3000, function() return H.mkGone() or H.mkPhase() == "hold" end, function
         .. tostring(word) .. "; fully up after " .. H.num(ms) .. " ms (RISE_MS " .. tostring(E.RISE_MS) .. ")")
     Q.check(ok and m ~= nil and math.abs(my - want) <= 1 and math.abs(mx - nx) <= 1 and math.abs(mw - T.px(E.NOTE_U)) <= 1 and H.noteShown()
         and math.abs(ny - (restY - mh)) <= 1,
-        "EB 12b: fully up the marker stands 10 units above the screen's bottom edge, under the notice and its width, the notice lifted by exactly its height",
-        "the marker at " .. H.num(mx) .. "," .. H.num(my) .. " (y " .. H.num(want) .. " = " .. H.sh() .. " - (" .. H.num(mh) .. " + " .. H.num(T.px(10)) .. ")), "
+        "EB 12b: fully up the marker's bottom stands where the notice's bottom rests (on the belt row or in the corner), under the notice and its width, the notice lifted by exactly its height",
+        "the marker at " .. H.num(mx) .. "," .. H.num(my) .. " (y " .. H.num(want) .. " = " .. H.sh() .. " - (" .. H.num(mh) .. " + " .. H.num(under) .. "), the notice on the row " .. tostring(onRow) .. "), "
         .. H.num(mw) .. " wide (" .. H.num(T.px(E.NOTE_U)) .. "); the notice shown " .. tostring(H.noteShown()) .. " at " .. H.num(nx) .. "," .. H.num(ny)
         .. " (rest y " .. H.num(restY) .. " - " .. H.num(mh) .. " = " .. H.num(restY - mh) .. ")")
     local hs = nil
@@ -1064,8 +1131,11 @@ H.wait(3000, function() return H.mkGone() or H.mkPhase() == "hold" end, function
         Q.skip("EB 12c: the hint strip draws over the marker", "no hint strip element in this game (ZeD.HintStrip._huds)")
     else
         local iM, iH = H.uiIndex(m), H.uiIndex(hs)
-        Q.check(iM ~= nil and iH ~= nil and iM < iH, "EB 12c: the hint strip draws over the marker (before it in the game's UI list)",
-            "the marker at " .. tostring(iM) .. ", the hint strip at " .. tostring(iH))
+        -- (Nov 23 2026: on the row it rises past the belt's place too; the marker goes to the back of the UI list at
+        -- each start, so the belt draws over it as well)
+        local iB = H.uiIndex(H.hud())
+        Q.check(iM ~= nil and iH ~= nil and iM < iH and (iB == nil or iM < iB), "EB 12c: the hint strip draws over the marker (before it in the game's UI list)",
+            "the marker at " .. tostring(iM) .. ", the hint strip at " .. tostring(iH) .. ", the belt at " .. tostring(iB))
     end
     H.shot("err_marker")
 end)
@@ -1334,6 +1404,7 @@ Q.step(2, function()
     if hud and S.k.gpSet then hud._gp = nil end
     S.k.gpSet = nil
     if ZeD.SplitSpeed then ZeD.SplitSpeed._instance = S.was.split end
+    H.away(false)   -- (the Toggle UI flag as found: Nov 23 2026)
     -- the car away, him back where he was
     if S.car then
         pcall(ZEDQA_CAR_AWAY, S.car.v)
@@ -1406,7 +1477,7 @@ Q.step(10, function()
     local home = dx * dx + dy * dy <= 2.25
     Q.check(c:getOptionUIFBO() == S.was.fbo and c:getOptionLockCursorToWindow() == S.was.lock and H.optVal(H.errOpt()) == S.was.err
         and H.optVal(H.safeOpt()) == S.was.safe and H.optVal(H.styleOpt()) == S.was.style and (not ISFPS or ISFPS.start == S.was.fps)
-        and (S.E == nil or S.E.off == S.was.off),
+        and (S.E == nil or S.E.off == S.was.off) and S.k.awaySet == nil,
         "put back: the offscreen UI, the cursor lock, Error box, Safe mode, Style and the FPS graph's flag as found",
         "offscreen UI " .. tostring(c:getOptionUIFBO()) .. " (" .. tostring(S.was.fbo) .. "), lock " .. tostring(c:getOptionLockCursorToWindow()) .. " ("
         .. tostring(S.was.lock) .. "), Error box " .. tostring(H.optVal(H.errOpt())) .. " (" .. tostring(S.was.err) .. "), Safe mode "

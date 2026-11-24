@@ -39,6 +39,13 @@
 --   column    the game's left-edge column shows no hands and no window buttons
 --   keys      a number key held opens its slot's list at the slot; its release draws nothing; the Messages notice in
 --             the screen's corner (ZeD_ErrorBox.lua, Nov 22 2026: the note left the belt) opens the Messages window
+-- (Nov 23 2026, QA, Build's fix/beltrow2 on main 99d56a202: the director's "Belt, space, time, space, messages, chat"
+-- put the notice back on player one's belt row:)
+--   notice    while the belt draws the Messages notice stands on the row (ZeD.Belt.noticeScreen(0) is its place,
+--             ZeD.ErrorBox.rect()'s fourth value true) and single player's row ends with it after the speed keys (on
+--             a server the chat key follows it); a click opens Messages and the balloons come out of it; with the
+--             belt away (the game's Toggle UI flag, ISUIHandler.allUIVisible false, the belt's own wanted() test) it
+--             falls back to the screen's bottom right corner; the guide bubble comes out of it where it stands
 --   more      the action bar's queue count; the watch's light; an item pinned from its own menu, and a fourth pin
 --             taking off the oldest with a note; the run button's hold crouching and standing (RunSneak's QA hook)
 -- Every surface: RT.bounds. Puts back: every option, the stats, hands, worn watch, the watch's saved spot, Messages,
@@ -308,6 +315,9 @@ end)
 -- the note left the belt for the screen's bottom right corner, ZeD.ErrorBox._note, shown while anything is unread and
 -- a few seconds after something new. The check stages its own unread note (always: an unread line keeps the notice
 -- up) and clears it after. The click is the notice's own mouse handler (ZeD.ErrorBox.press, as a click does).)
+-- (Nov 23 2026, Build's fix/beltrow2: the notice is back on player one's belt row after the speed keys, shown all the
+-- time the belt draws; the corner is its fallback while the belt is away. The first checks read it on the row; the
+-- corner is staged after the click with the game's Toggle UI flag.)
 Q.step(5, function()
     local M = ZeD.Messages
     if M then
@@ -324,14 +334,40 @@ end, function(ok)
     local MW = ZeD.MessagesWindow
     local x, y, w, h = 0, 0, 0, 0
     if el then x, y, w, h = el:getX(), el:getY(), el:getWidth(), el:getHeight() end
-    -- (the bottom right corner: its right and bottom edges within its own size plus the game box's width of the screen's)
-    local corner = el ~= nil and x + w >= S.sw - w - 100 - ZeD.T.px(10) - 2 and y + h >= S.sh - ZeD.T.px(10) - 2 and S.onScreen(x, y, w, h)
-    if not Q.check(ok and el ~= nil and corner and MW ~= nil, "notice: with a new note, the Messages notice shows in the screen's bottom right corner",
-        string.format("%d,%d %dx%d on %dx%d", x, y, w, h, S.sw, S.sh)) then
+    -- (on the row: the belt's place for it, ZeD.Belt.noticeScreen(0), and ZeD.ErrorBox.rect()'s fourth value true)
+    local hud = S.hud()
+    local okN, nx, ny = false, nil, nil
+    if Z.Belt and Z.Belt.noticeScreen then okN, nx, ny = pcall(Z.Belt.noticeScreen, 0) end
+    if not okN then nx, ny = nil, nil end
+    local onRow = false
+    if E and E.rect then
+        local okR, _, _, _, r4 = pcall(E.rect)
+        onRow = okR and r4 == true
+    end
+    -- (an error marker up lifts the notice by its height: then it stands no lower than its row place)
+    local lifted = E ~= nil and E._mk ~= nil and E._mk.phase ~= nil
+    local atRow = nx ~= nil and ny ~= nil and math.abs(x - nx) <= 1 and (math.abs(y - ny) <= 1 or (lifted and y <= ny))
+    local drawn = hud ~= nil and hud._drawn == true
+    if not Q.check(ok and el ~= nil and drawn and atRow and onRow and S.onScreen(x, y, w, h) and MW ~= nil,
+        "notice: while the belt draws, the Messages notice stands on the belt row (ZeD.Belt.noticeScreen(0), ZeD.ErrorBox.rect() on the row)",
+        string.format("%d,%d %dx%d on %dx%d", x, y, w, h, S.sw, S.sh) .. "; the row place " .. tostring(nx) .. "," .. tostring(ny)
+        .. ", rect on the row " .. tostring(onRow) .. ", the belt drawn " .. tostring(drawn) .. ", the marker up " .. tostring(lifted)) then
         S.lampSkip = true
         if S.msgStaged then pcall(function() ZeD.Messages.clear("ZeDQA rt_hud") end); S.msgStaged = nil end
         return
     end
+    -- (the row's order: the speed keys, then the notice; single player's row ends with it, on a server the chat key
+    -- follows it and there are no speed keys)
+    local kinds = {}
+    for _, b in ipairs(hud._boxes or {}) do kinds[#kinds + 1] = tostring(b.kind) end
+    local ni = nil
+    for i, k in ipairs(kinds) do if k == "notice" then ni = i end end
+    local server = (isClient and isClient()) and true or false
+    local orderOk = false
+    if ni and server then orderOk = kinds[ni + 1] == "chat"
+    elseif ni then orderOk = ni == #kinds and kinds[ni - 1] == "speed" end
+    Q.check(orderOk, "notice: the belt row ends with the Messages notice after the speed keys (single player; on a server the chat key follows it)",
+        (server and "server: " or "single player: ") .. table.concat(kinds, ","))
     -- (where Messages' balloons come out, read while it shows: its top middle)
     S.noteAx, S.noteAy = E.anchor(S.pn)
     S.noteBox = { x = x, y = y, w = w, h = h }
@@ -363,6 +399,49 @@ function S.putLamp()
     S.back.lamp = nil
     if not S.msgWas then pcall(function() local w = ZeD.MessagesWindow.get(S.pn); if w and w:isReallyVisible() then w:close() end end) end
     if S.toastsWas then Z.Messages.toasts = S.toastsWas end
+end
+-- (Nov 23 2026: the corner fallback. The belt is put away by the game's Toggle UI flag alone (ISUIHandler.allUIVisible
+-- false: the belt's own wanted() test, ZeD_BeltHUD:wanted), not ISUIHandler.toggleUI, so the rest of the UI still
+-- draws and the notice can be read; driving, death and the tutorial are dearer to stage. A new note starts the corner
+-- notice's few seconds. The flag is put back at once after, and by the put-back.)
+Q.step(5, function()
+    if S.lampSkip then return end
+    if not (ISUIHandler and Z.ErrorBox and Z.ErrorBox.rect) then
+        S.awaySkip = true
+        Q.skip("notice: the corner fallback", "no ISUIHandler in this game to put the belt away")
+        return
+    end
+    S.uiWas = ISUIHandler.allUIVisible
+    S.back.away = true
+    ISUIHandler.allUIVisible = false
+    pcall(function() ZeD.Messages.add("ZeDQA rt_hud", "mods", { head = "QA", text = "a note for the notice's corner" }) end)
+    S.msgStaged = true
+end)
+Q.waitFor(2, 120, function()
+    if S.lampSkip or S.awaySkip then return true end
+    local E = Z.ErrorBox
+    local el = E._note
+    local okR, rx, _, _, r4 = pcall(E.rect)
+    return okR and r4 == false and el ~= nil and el:getIsVisible() and math.abs(el:getX() - rx) <= 1
+end, function(ok)
+    if S.lampSkip or S.awaySkip then return end
+    local E = Z.ErrorBox
+    local el = E._note
+    local okR, rx, ry, _, r4 = pcall(E.rect)
+    local x, y, w, h = 0, 0, 0, 0
+    if el then x, y, w, h = el:getX(), el:getY(), el:getWidth(), el:getHeight() end
+    -- (the bottom right corner: its right and bottom edges within its own size plus the game box's width of the screen's)
+    local corner = el ~= nil and x + w >= S.sw - w - 100 - ZeD.T.px(10) - 2 and y + h >= S.sh - ZeD.T.px(10) - 2 and S.onScreen(x, y, w, h)
+    Q.check(ok and okR and r4 == false and corner and el:getIsVisible(),
+        "notice: with the belt away (the interface hidden), the Messages notice falls back to the screen's bottom right corner",
+        string.format("%d,%d %dx%d on %dx%d", x, y, w, h, S.sw, S.sh) .. "; rect " .. tostring(rx) .. "," .. tostring(ry) .. " on the row " .. tostring(r4))
+    S.putAway()
+    if S.msgStaged then pcall(function() ZeD.Messages.clear("ZeDQA rt_hud") end); S.msgStaged = nil end
+end)
+function S.putAway()
+    if not S.back.away then return end
+    S.back.away = nil
+    if ISUIHandler then ISUIHandler.allUIVisible = S.uiWas end
 end
 
 -- ===================================================================== the Simple belt
@@ -813,13 +892,21 @@ end)
 Q.step(10, function()
     if not S.guideToast() then return end
     -- (Nov 22 2026: the balloons come out of the Messages notice in the screen's corner, ZeD.ErrorBox.anchor; it shows
-    -- while a balloon is up)
+    -- while a balloon is up. Nov 23 2026, Build's fix/beltrow2: the notice stands on the belt row while the belt draws,
+    -- the corner only while the belt is away; the check follows its place, ZeD.ErrorBox.rect(), wherever that is.)
     local E = Z.ErrorBox
     local ax, ay = nil, nil
     if E and E.anchor then ax, ay = E.anchor(S.pn) end
     local el = E and E._note
+    local rx, r4 = nil, nil
+    if E and E.rect then
+        local okR, x1, _, _, o4 = pcall(E.rect)
+        if okR then rx, r4 = x1, o4 end
+    end
     local on = el ~= nil and ax ~= nil and ax >= el:getX() and ax <= el:getX() + el:getWidth() and ay >= el:getY() - 1 and ay <= el:getY() + el:getHeight()
-    Q.check(on, "guide: it comes out of the Messages notice in the screen's corner", tostring(ax) .. "," .. tostring(ay))
+        and rx ~= nil and math.abs(el:getX() - rx) <= 1
+    Q.check(on, "guide: it comes out of the Messages notice where it stands (on the belt row while the belt draws, else the screen's corner)",
+        tostring(ax) .. "," .. tostring(ay) .. "; the notice's place x " .. tostring(rx) .. ", on the row " .. tostring(r4))
     RT.bounds(Q, "guide bubble")
 end)
 Q.waitFor(1, 900, function() return S.guideToast() == nil end, function(ok)
@@ -1945,7 +2032,7 @@ Q.mark()
 Q.step(5, function()
     pcall(function() S.p:StopAllActionQueue() end)
     if S.paused then S.pause(false) end
-    S.putRs(); S.putLamp()
+    S.putRs(); S.putLamp(); S.putAway()
     S.putPrompts(); S.putBalloon(); S.putPins(); S.putMiniMap(); S.putRc(); S.putAttach(); S.putBeltStyle(); S.putAbStyle()
     S.putHands(); S.putWatch(); S.putMoodles(); S.putHalo(); S.putGuide(); S.putHint(); S.putForage()
     pcall(function() S.p:setZ(S.home.z); S.p:setLastZ(S.home.z) end)

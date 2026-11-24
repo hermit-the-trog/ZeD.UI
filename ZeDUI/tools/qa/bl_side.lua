@@ -39,10 +39,24 @@
 --              bl_side_items_<w>x<h>
 --   SIDE 5     the flashlight turned on (setActivated(true)): the lamp draws inside its box, its top at or below the
 --              side mark's bottom, inside the box's right edge. Picture bl_side_lamp_<w>x<h>
+-- (Nov 23 2026, QA, Build's fix/beltrow2 on main 99d56a202, the director's "Belt, space, time, space, messages, chat"
+-- and "Bag lights, speed keys grey"; the bag button's pick set to the Pocket for these:)
+--   BAG 1      the row's box kinds end "...speed, notice" (single player) and each group is one B.ICON_GAP apart: the
+--              bag button, the hands, the belt (the strap in Full, the slots in Lite), the five speed keys, the notice
+--   BAG 2      a pen in a bag he carries (not worn) dragged (ISMouseDrag.dragging, one recorded frame): the bag
+--              button's _dropState is "fit", hud._bagDrop.fit, ZeD.Belt.bagTakes gives the Pocket and the pen, the
+--              button draws the accent's wash
+--   BAG 3      under that drag the five speed keys draw the ink wash (gray)
+--   BAG 4      a pencil already in the Pocket dragged: "no", nothing that fits, the button gray, the keys gray
+--   BAG 5      the pen dropped on the bag button (ZeD.Belt.takeDrop, as InventoryRenderer.handleDrop calls it, the
+--              belt's pointer read on the button): its item id in the Pocket, not in his bag
+--   BAG 6      a closed stack of three dropped on it (a stand-in list content with the stack model InventoryRenderer
+--              builds, the stack not open): all three ids in the Pocket
 --   put back   (below)
 --
 -- Puts back (also when a step throws or the time runs out): the one-frame recorder gone (_prerender, the belt's draw
--- methods, ZeD.Atoms.drawLamp as found), the pointer and the cursor as found; the flashlight off; the run's items off
+-- methods, ZeD.Atoms.drawLamp as found), the pointer and the cursor as found; the drag (ISMouseDrag.dragging), the
+-- belt's pointer read and the bag button's pick (his modData ZeD_BeltBag) as found; the flashlight off; the run's items off
 -- the hotbar and taken away; the run's gear taken off and away, every worn item of his as found; the hotbar's slots in
 -- the found order with his items on their found slots (his modData "hotbar" as found); both windows shut, then open
 -- or shut as found, placed and on their tabs, his modData ZeD_WinState as found; the game speed. Checked: the worn
@@ -769,11 +783,304 @@ Q.step(2, function()
     if fl then pcall(function() fl:setActivated(false) end) end
 end)
 
+-- ===================================================================== BAG: the row's groups, the bag button under a drag
+-- (Nov 23 2026, QA, Build's fix/beltrow2 on main 99d56a202. The director: "Belt, space, time, space, messages, chat"
+-- and "Bag lights, speed keys grey".) The bag button's pick is set to the Pocket for these (his modData ZeD_BeltBag
+-- put back after). The drags are ISMouseDrag.dragging set to the run's items for one recorded frame (as a ZeD list's
+-- drag sets it), the pointer parked off the belt. The drops are ZeD.Belt.takeDrop, as InventoryRenderer.handleDrop
+-- calls it, with the belt's own pointer read on the bag button's middle for that one call. The closed stack's list is a
+-- stand-in content with the stack model InventoryRenderer builds (its _stacks entry for the row, the stack not open),
+-- so IR.dragItems brings the whole stack as a real list's drag does.
+S.BAG_KINDS = { "Base.Bag_Schoolbag", "Base.Plasticbag" }
+S.PEN_KINDS = { "Base.Pen", "Base.Pencil" }
+function S.px(n) local v = nil; pcall(function() v = ZeD.T.px(n) end); return v end
+function S.kindBoxes(kind)
+    local out = {}
+    local hud = S.hud()
+    for _, b in ipairs((hud and hud._boxes) or {}) do if b.kind == kind then out[#out + 1] = b end end
+    return out
+end
+function S.addTo(c, ft)
+    local it = nil
+    pcall(function() it = c:AddItem(ft) end)
+    if it then
+        pcall(function() it:getModData().ZeDQA_spawned = true end)
+        RT.given[#RT.given + 1] = it
+        S.given[#S.given + 1] = it
+    end
+    return it
+end
+function S.idOf(it) local id = nil; pcall(function() id = it:getID() end); return id end
+function S.idIn(inv, id)
+    local found = false
+    if not (inv and id) then return false end
+    pcall(function()
+        local items = inv:getItems()
+        for i = 0, items:size() - 1 do if items:get(i):getID() == id then found = true; break end end
+    end)
+    return found
+end
+function S.pocket() local c = nil; pcall(function() c = S.p:getInventory() end); return c end
+-- the bag button's pick set to the Pocket (his modData ZeD_BeltBag as found kept once), and put back
+function S.pickPocket()
+    local B = ZeD.Belt
+    local key = B and B.BAG_KEY
+    if not key then return false end
+    local md = S.md()
+    if not S.was.bagPick then S.was.bagPick = { had = md[key] ~= nil, v = S.copy(md[key]) } end
+    md[key] = nil
+    if B._bagCache then B._bagCache[S.pn] = nil end
+    return true
+end
+function S.pickBack()
+    local B = ZeD.Belt
+    local key = B and B.BAG_KEY
+    if not (key and S.was.bagPick) then return end
+    local md = S.md()
+    if S.was.bagPick.had then md[key] = S.copy(S.was.bagPick.v) else md[key] = nil end
+    if B._bagCache then B._bagCache[S.pn] = nil end
+    S.k.pickBack = true
+end
+-- a drag: ISMouseDrag.dragging as a ZeD list's drag sets it (the found value kept once), and let go
+function S.dragOn(items)
+    if not ISMouseDrag then return false end
+    if not S.k.dragSet then S.was.drag = { d = ISMouseDrag.dragging }; S.k.dragSet = true end
+    ISMouseDrag.dragging = items
+    return true
+end
+function S.dragOff()
+    if S.k.dragSet and ISMouseDrag and S.was.drag then ISMouseDrag.dragging = S.was.drag.d end
+    S.k.dragSet = nil
+end
+-- the belt's own pointer read on box b's middle (its instance fields as found kept), and back
+function S.pointAt(b)
+    local hud = S.hud()
+    if not (hud and b) then return false end
+    if not S.pointed then S.pointed = { hud = hud, hx = rawget(hud, "getMouseX"), hy = rawget(hud, "getMouseY") } end
+    local lx, ly = b.x + math.floor(b.w / 2), b.y + math.floor(b.h / 2)
+    hud.getMouseX = function() return lx end
+    hud.getMouseY = function() return ly end
+    return true
+end
+function S.pointBack()
+    local pk = S.pointed
+    if not pk then return end
+    S.pointed = nil
+    pk.hud.getMouseX, pk.hud.getMouseY = pk.hx, pk.hy
+end
+-- a box's wash in the recorded frame: a rect over the whole box in color c, its alpha within tol of a
+function S.wash(rec, b, c, a, tol)
+    if not (rec and b and c) then return false end
+    for _, r in ipairs(rec.rects) do
+        if S.near(r.x, b.x) and S.near(r.y, b.y) and S.near(r.w, b.w) and S.near(r.h, b.h) and type(r.a) == "number"
+            and S.near(r.a, a, tol) and S.sameCol(r, c) then return true end
+    end
+    return false
+end
+-- the five speed keys grayed: each with the slots' ink wash (ZeD_Belt.lua NO_A 0.45, B.INK) in the frame
+function S.keysGray(rec)
+    local keys = S.kindBoxes("speed")
+    local n = 0
+    local ink = ZeD.Belt and ZeD.Belt.INK
+    for _, b in ipairs(keys) do if S.wash(rec, b, ink, 0.45, 0.02) then n = n + 1 end end
+    return n, #keys
+end
+-- one recorded frame under a drag of getItems(), the pointer parked; fn(rec, items) reads it while the drag is on
+function S.dragFrame(label, getItems, fn)
+    Q.step(2, function()
+        if not S.ok or S.bagSkip then return end
+        local items = getItems()
+        S.park(true)
+        if not (items and S.dragOn(items)) then S.recErr = "nothing to drag (or no ISMouseDrag)"; S.recDone = true; return end
+        if not S.arm() then S.recErr = "the belt or its _prerender is missing"; S.recDone = true end
+    end)
+    Q.waitFor(1, 300, function() return not S.ok or S.bagSkip or S.recDone == true end, function()
+        if not S.ok or S.bagSkip then return end
+        S.disarm()
+        if S.recOk(label) then fn(S.rec, getItems()) end
+        S.dragOff()
+        S.park(false)
+    end)
+end
+
+Q.step(3, function()
+    if not S.ok then return end
+    local B = ZeD.Belt
+    local ready = B.bagTakes ~= nil and B.takeDrop ~= nil and B.noticeScreen ~= nil and type(ZeD_BeltHUD._dropState) == "function"
+        and B.BAG_KEY ~= nil and B.ICON_GAP ~= nil and ISMouseDrag ~= nil and ZeD.InventoryRenderer ~= nil
+        and ZeD.InventoryRenderer.dragItems ~= nil
+    if not Q.check(ready, "BAG: the bag button's drop (ZeD.Belt.bagTakes, takeDrop, _dropState) and the notice's row place are there (Build's fix/beltrow2) (staging)") then
+        S.bagSkip = true
+        return
+    end
+    S.pickPocket()
+    -- a bag he carries (not worn: not on the bag button's list), a pen and a stack of three in it; a pencil in the Pocket
+    for _, ft in ipairs(S.BAG_KINDS) do
+        if not S.bagInv then
+            local it = S.give(ft)
+            local c = nil
+            if it then pcall(function() c = it:getInventory() end) end
+            if c then S.bagIt, S.bagInv = it, c end
+        end
+    end
+    S.three = {}
+    if S.bagInv then
+        for _, ft in ipairs(S.PEN_KINDS) do
+            if not S.one then
+                S.one = S.addTo(S.bagInv, ft)
+                if S.one then S.oneFt = ft end
+            end
+        end
+        local sft = (S.oneFt == "Base.Pen") and "Base.Pencil" or "Base.Pen"
+        for _ = 1, 3 do
+            local it = S.addTo(S.bagInv, sft)
+            if it then S.three[#S.three + 1] = it end
+        end
+    end
+    S.inPocket = S.give("Base.Pencil")
+    if not Q.check(S.bagInv ~= nil and S.one ~= nil and #S.three == 3 and S.inPocket ~= nil,
+        "BAG: staging: a bag he carries with a pen and a stack of three in it, a pencil in the Pocket, the bag button on the Pocket",
+        "bag " .. tostring(S.bagIt and S.itemShow(S.bagIt)) .. ", the one " .. tostring(S.oneFt) .. ", the stack " .. #S.three
+        .. ", the Pocket's pencil " .. tostring(S.inPocket ~= nil)) then
+        S.bagSkip = true
+    end
+end)
+Q.waitMs(400)
+-- BAG 1: the row's order and its even group space
+Q.step(2, function()
+    if not S.ok or S.bagSkip then return end
+    local hud = S.hud()
+    local boxes = (hud and hud._boxes) or {}
+    local kinds = {}
+    for _, b in ipairs(boxes) do kinds[#kinds + 1] = tostring(b.kind) end
+    local gap = S.px(ZeD.Belt.ICON_GAP)
+    local bag = S.kindBoxes("bag")[1]
+    local keys = S.kindBoxes("speed")
+    local note = S.kindBoxes("notice")[1]
+    local handsL, handsR, beltL, beltR = nil, nil, nil, nil
+    for _, b in ipairs(boxes) do
+        local r = b.x + b.w
+        if b.kind == "hand" or b.kind == "watch" or b.kind == "ammo" then
+            if not handsL or b.x < handsL then handsL = b.x end
+            if not handsR or r > handsR then handsR = r end
+        elseif b.kind == "slot" or b.kind == "extra" then
+            if b.kind == "slot" and (not beltL or b.x < beltL) then beltL = b.x end
+            if not beltR or r > beltR then beltR = r end
+        end
+    end
+    -- (the Full belt's strap is the belt group: from the strap's left end to its right, past the slots' own edges)
+    local st = hud and hud._strap
+    if st then
+        beltL = st.x
+        if not beltR or st.x + st.w > beltR then beltR = st.x + st.w end
+    end
+    local first, last = keys[1], keys[#keys]
+    local g1 = (bag and handsL) and (handsL - (bag.x + bag.w)) or nil
+    local g2 = (handsR and beltL) and (beltL - handsR) or nil
+    local g3 = (first and beltR) and (first.x - beltR) or nil
+    local g4 = (note and last) and (note.x - (last.x + last.w)) or nil
+    local even = gap ~= nil and S.near(g1, gap) and S.near(g2, gap) and S.near(g3, gap) and S.near(g4, gap)
+    local ends = #kinds > 1 and kinds[#kinds] == "notice" and kinds[#kinds - 1] == "speed" and #keys == 5
+    Q.check(ends and even, "BAG 1: the belt row ends with the Messages notice after the five speed keys, each group one B.ICON_GAP apart (bag button, hands, belt, speed keys, notice)",
+        "kinds " .. table.concat(kinds, ",") .. "; the gaps " .. S.num(g1) .. ", " .. S.num(g2) .. ", " .. S.num(g3) .. ", " .. S.num(g4)
+        .. " (B.ICON_GAP " .. S.num(gap) .. " px); Lite " .. tostring(st == nil))
+end)
+-- BAG 2, BAG 3: a pen from the bag he carries: the Pocket takes it, the button lit; the speed keys gray
+S.dragFrame("BAG 2 (a pen from his bag)", function() return S.one and { S.one } or nil end, function(rec, items)
+    local hud = S.hud()
+    local bb = S.kindBoxes("bag")[1]
+    local st = nil
+    if hud and bb then pcall(function() st = hud:_dropState(bb, items) end) end
+    local dest, list = nil, nil
+    pcall(function() dest, list = ZeD.Belt.bagTakes(S.pn, items) end)
+    list = list or {}
+    local fitC = hud ~= nil and hud._bagDrop ~= nil and hud._bagDrop.fit == true
+    local lit = S.wash(rec, bb, ZeD.T.accent, 0.14, 0.02)
+    local pk = S.pocket()
+    Q.check(st == "fit" and fitC and dest ~= nil and dest == pk and #list == 1 and list[1] == S.one and lit,
+        "BAG 2: under a drag of a pen from a bag he carries, the bag button's _dropState is fit (the Pocket takes it) and it draws the accent's wash",
+        "_dropState " .. tostring(st) .. ", _bagDrop.fit " .. tostring(fitC) .. "; bagTakes: the Pocket " .. tostring(dest ~= nil and dest == pk)
+        .. ", " .. #list .. " that fit; the accent's wash drawn " .. tostring(lit))
+    local n, of = S.keysGray(rec)
+    Q.check(of == 5 and n == 5, "BAG 3: under a drag the five speed keys draw gray (the ink wash over each)", n .. " of " .. of .. " keys gray")
+end)
+-- BAG 4: a pencil already in the Pocket: the button grays
+S.dragFrame("BAG 4 (a pencil in the Pocket)", function() return S.inPocket and { S.inPocket } or nil end, function(rec, items)
+    local hud = S.hud()
+    local bb = S.kindBoxes("bag")[1]
+    local st = nil
+    if hud and bb then pcall(function() st = hud:_dropState(bb, items) end) end
+    local list = nil
+    pcall(function() local _, l = ZeD.Belt.bagTakes(S.pn, items); list = l end)
+    list = list or {}
+    local gray = S.wash(rec, bb, ZeD.Belt.INK, 0.45, 0.02)
+    local lit = S.wash(rec, bb, ZeD.T.accent, 0.14, 0.02)
+    local n, of = S.keysGray(rec)
+    Q.check(st == "no" and #list == 0 and gray and not lit and n == 5,
+        "BAG 4: under a drag of a pencil already in the Pocket, the bag button's _dropState is no and it draws gray (the speed keys too)",
+        "_dropState " .. tostring(st) .. ", " .. #list .. " that fit; gray " .. tostring(gray) .. ", the accent's wash " .. tostring(lit) .. "; " .. n .. " of " .. of .. " keys gray")
+end)
+-- BAG 5: a drop of the pen on the bag button
+Q.step(2, function()
+    if not S.ok or S.bagSkip then return end
+    local bb = S.kindBoxes("bag")[1]
+    S.oneId = S.idOf(S.one)
+    S.k.drop1 = false
+    if bb and S.pointAt(bb) then
+        local ok, took = pcall(ZeD.Belt.takeDrop, S.pn, { S.one })
+        S.k.drop1 = ok and took == true
+        S.queued = true
+    end
+    S.pointBack()
+end)
+S.wait(8000, function() return not S.ok or S.bagSkip or S.idIn(S.pocket(), S.oneId) end, function(ok)
+    if not S.ok or S.bagSkip then return end
+    local inP, inB = S.idIn(S.pocket(), S.oneId), S.idIn(S.bagInv, S.oneId)
+    Q.check(ok and S.k.drop1 and inP and not inB,
+        "BAG 5: a drop on the bag button moves the pen into the Pocket (counted by its item id)",
+        "takeDrop took it " .. tostring(S.k.drop1) .. "; id " .. tostring(S.oneId) .. " in the Pocket " .. tostring(inP) .. ", still in his bag " .. tostring(inB))
+end)
+-- BAG 6: a closed stack of three dropped on it (its row's item, the list's stack model with the stack not open)
+Q.step(2, function()
+    if not S.ok or S.bagSkip then return end
+    local bb = S.kindBoxes("bag")[1]
+    local t = S.three
+    S.threeIds = { S.idOf(t[1]), S.idOf(t[2]), S.idOf(t[3]) }
+    local stk = { rep = t[1], items = { t[1], t[2], t[3] }, count = 3, key = "ZeDQA bl_side stack" }
+    local content = { _dragSourceInv = S.bagInv, _inventory = S.bagInv, _playerObj = S.p, _stacks = {}, _expandedStacks = {} }
+    content._stacks[t[1]] = stk
+    S.k.drop3 = false
+    if bb and S.pointAt(bb) then
+        local ok, took = pcall(ZeD.Belt.takeDrop, S.pn, { t[1] }, content, S.bagInv)
+        S.k.drop3 = ok and took == true
+        S.queued = true
+    end
+    S.pointBack()
+end)
+function S.threeIn(inv)
+    local n = 0
+    for _, id in ipairs(S.threeIds or {}) do if S.idIn(inv, id) then n = n + 1 end end
+    return n
+end
+S.wait(10000, function() return not S.ok or S.bagSkip or S.threeIn(S.pocket()) == 3 end, function(ok)
+    if not S.ok or S.bagSkip then return end
+    local inP, inB = S.threeIn(S.pocket()), S.threeIn(S.bagInv)
+    Q.check(ok and S.k.drop3 and inP == 3 and inB == 0,
+        "BAG 6: a closed stack of 3 dropped on the bag button moves all 3 into the Pocket",
+        "takeDrop took it " .. tostring(S.k.drop3) .. "; in the Pocket " .. inP .. " of 3 (by id), still in his bag " .. inB)
+end)
+Q.step(2, function()
+    S.dragOff()
+    S.pointBack()
+    S.pickBack()
+end)
+
 -- ===================================================================== put back
 Q.mark()
 Q.step(2, function()
     S.disarm()
     S.park(false)
+    S.dragOff(); S.pointBack(); S.pickBack()   -- (the BAG checks: Nov 23 2026)
     for _, it in ipairs(S.given) do pcall(function() if it:isActivated() then it:setActivated(false) end end) end
     if S.queued then pcall(function() ISTimedActionQueue.clear(S.p) end) end
     local hb = S.hb()
@@ -868,6 +1175,19 @@ Q.step(4, function()
     Q.check(clean, "put back: no wrapper left (the belt's _prerender, its draw methods and pointer reads, ZeD.Atoms.drawLamp, the global pointer)",
         "belt fields " .. tostring(rawOk) .. ", _prerender " .. tostring(ZeD_BeltHUD._prerender == S.origPreFound) .. ", drawLamp "
         .. tostring(ZeD.Atoms.drawLamp == S.origLamp) .. ", pointer " .. tostring(getMouseX == S.gmx and getMouseY == S.gmy))
+    -- the BAG checks' drag, the belt's pointer read and the bag button's pick (Nov 23 2026)
+    if S.was.bagPick then
+        local key = ZeD.Belt and ZeD.Belt.BAG_KEY
+        local now = key and S.md()[key] or nil
+        local was = S.was.bagPick.v
+        local same = (now == nil and was == nil) or (type(now) == "table" and type(was) == "table" and now.id == was.id and now.type == was.type)
+        local dragWas = S.was.drag and S.was.drag.d or nil
+        local dragNow = ISMouseDrag and ISMouseDrag.dragging or nil
+        Q.check(same and S.k.dragSet == nil and S.pointed == nil and dragNow == dragWas,
+            "put back: the bag button's pick (his modData ZeD_BeltBag), the drag and the belt's pointer read as found",
+            "pick " .. tostring(type(now) == "table" and now.type or now) .. " (found " .. tostring(type(was) == "table" and was.type or was)
+            .. "); dragging " .. tostring(dragNow ~= nil) .. " (found " .. tostring(dragWas ~= nil) .. ")")
+    end
     -- the windows, the speed
     local cw, ww = S.charOpen(), S.worldOpen()
     Q.check(cw == (S.was.char == true) and ww == (S.was.world == true) and getGameSpeed() == S.was.speed,
