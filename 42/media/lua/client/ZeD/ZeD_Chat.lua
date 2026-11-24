@@ -7,6 +7,10 @@
 --   * a chat window you drag and size, which stays where you put it (kept in Lua/ZeD_chatwin.txt). Tabs as the
 --     game's: General, Faction, Safehouse, Private, Admin (Faction and Safehouse while you have one, Admin for
 --     admins). When idle it dims where it is; a new line brings it back to full strength. No fading out.
+--     It first opens at the foot of the screen, just right of the belt's chat key. The roll box after its title rolls
+--     it down to its title bar on the screen's bottom edge (the box again, a press on the bar, the chat key or T bring it
+--     back up). The pin box keeps it open; pinned, with the pointer off it, it ghosts: its surfaces nearly clear, its
+--     words whole (the director, Nov 23 2026).
 --   * the game's chat key (T) opens it with the line to type in; on a controller the chat key opens it to read,
 --     and the pad keyboard opens only when you pick the line (A on it).
 --   * pick a line for what you can do about its sender: Report to the admins,
@@ -34,7 +38,11 @@ local C = ZeD.Chat
 local MAX_LINES = 300            -- the oldest go first (FIFO)
 local IDLE_MS = 12000            -- no new line, no typing, no pointer for this long: the window dims
 local DIM_A = 0.35               -- the dimmed window's surfaces and words
-local U = { W = 440, H = 260, MIN_W = 300, MIN_H = 160, PAD = 8, GAP = 6, LINE_GAP = 2 }   -- design units
+-- (W 440 to 360 and MIN_W 300 to 260: "a little more narrow", the director, Nov 23 2026)
+local U = { W = 360, H = 260, MIN_W = 260, MIN_H = 160, PAD = 8, GAP = 6, LINE_GAP = 2 }   -- design units
+-- pinned, the pointer off it: the alpha of every surface and line (its words stay whole) (the director, Nov 23 2026)
+local GHOST_A = 0.15
+C.GHOST_A = GHOST_A
 local MUTE_FILE = "ZeD_chatmute.txt"
 local MUTE_MAX = 200             -- names kept for one server, oldest out
 local NOTE_MS = 6000             -- a press's answer stays in the help line this long
@@ -132,7 +140,8 @@ function C.onMessage(message)
     -- (muted by you: the line is kept for Unmute, and wakes nothing)
     if author and C.mutedByMe(author) then return end
     C.lastLineAt = getTimestampMs()
-    if not (win and win:getIsVisible()) then C.unreadN = C.unreadN + 1 end
+    -- (rolled down, only its title bar shows: the chat key counts the line, and the window stays down)
+    if not (win and win:getIsVisible() and not win.windowShaded) then C.unreadN = C.unreadN + 1 end
 end
 
 -- a repeating server message (ZeD_ServerAdmin.lua): server Lua cannot reach the game's chat, so it arrives here and goes
@@ -144,7 +153,7 @@ function C.serverLine(text)
     while #L > MAX_LINES do table.remove(L, 1) end
     C.lastLineAt = getTimestampMs()
     local win = C.win
-    if not (win and win:getIsVisible()) then C.unreadN = C.unreadN + 1 end
+    if not (win and win:getIsVisible() and not win.windowShaded) then C.unreadN = C.unreadN + 1 end   -- (rolled down: counted too)
     if win then win._dirty = true end
 end
 
@@ -562,7 +571,8 @@ function ZeD_ChatWindow:createChildren()
     local win = self
     entry.onCommandEntered = function() win:submit() end
     -- (Escape leaves the line, as the game's chat does)
-    entry.onOtherKey = function(_, key) if key == Keyboard.KEY_ESCAPE then entry:unfocus() end end
+    -- (the time is kept: a pinned window eats that Escape, so it does not also reach the game, onKeyPress)
+    entry.onOtherKey = function(_, key) if key == Keyboard.KEY_ESCAPE then win._escAt = getTimestampMs(); entry:unfocus() end end
     self:addChild(entry)
     self.input = entry
 end
@@ -605,8 +615,156 @@ end
 -- dimmed: the surfaces at DIM_A while idle (at once, no fade: ZeD has no animation), else as any window;
 -- only where See-through works (Dark): Light and High Contrast always draw the window solid (the director, Nov 12 2026)
 function ZeD_ChatWindow:_surfaceAlpha(T)
+    if self._ghost then return GHOST_A end   -- (pinned, the pointer off it: in every theme)
     if self._dim and ZeD.seeThroughWorks() then return DIM_A end
     return ZeD_Window._surfaceAlpha(self, T)
+end
+
+-- ---------------------------------------------------------------------------
+-- PINNED AND GHOSTED (the director, Nov 23 2026: "when you pin it and move the mouse off it, the window goes
+-- transparent except for the text ... sort of ghosts out of the way"). It still takes clicks where it is: it is a
+-- window, and the pointer on it brings it back to full at once (no animation: ZeD has none).
+-- ---------------------------------------------------------------------------
+-- ghosted this frame: pinned, and nothing on it (the pointer, the line being typed in, the pad, a drag or a resize)
+function ZeD_ChatWindow:_ghostNow()
+    if not self.pinned then return false end
+    if self.moving or self._resizing then return false end
+    if self.joyfocus then return false end
+    if self.input and self.input:isFocused() then return false end
+    return not self:isMouseOver()
+end
+
+-- the lines that frame the window and its parts go nearly clear with the surfaces (ZeD_Window swaps the surfaces)
+local GHOST_KEYS = { "border", "borderS" }
+function ZeD_ChatWindow:_swapSurfaces()
+    ZeD_Window._swapSurfaces(self)
+    if not self._ghost then return end
+    local T = ZeD.T
+    local saved = self._ghostSaved
+    if not saved then saved = {}; self._ghostSaved = saved end
+    local mine = self._ghostMine
+    if not mine then mine = {}; self._ghostMine = mine end
+    for _, k in ipairs(GHOST_KEYS) do
+        local c = T[k]
+        if c then
+            saved[k] = c
+            local m = mine[k]
+            if not m then m = {}; mine[k] = m end
+            m.r, m.g, m.b, m.a = c.r, c.g, c.b, (c.a or 1) * GHOST_A
+            T[k] = m
+        end
+    end
+    self._ghostT = T   -- (put back on the same table in _restoreSurfaces)
+end
+function ZeD_ChatWindow:_restoreSurfaces()
+    local T = self._ghostT
+    if T then
+        for _, k in ipairs(GHOST_KEYS) do
+            if self._ghostSaved[k] then T[k] = self._ghostSaved[k] end
+        end
+        self._ghostT = nil
+    end
+    ZeD_Window._restoreSurfaces(self)
+end
+
+-- words drawn on a ghosted window: a 1-unit edge in the opposite tone all round (dark under light words, light under
+-- dark ones), so they read on grass, on snow and on dark ground in every theme
+function C.inkText(p, s, x, y, c, f)
+    local u = ZeD.T.px(1)
+    local e = (lum(c) > 0.35) and 0 or 1
+    local ea = 0.85
+    p:drawText(s, x - u, y, e, e, e, ea, f)
+    p:drawText(s, x + u, y, e, e, e, ea, f)
+    p:drawText(s, x, y - u, e, e, e, ea, f)
+    p:drawText(s, x, y + u, e, e, e, ea, f)
+    p:drawText(s, x, y, c.r, c.g, c.b, 1, f)
+end
+
+-- the pin box: its own words in the help line (the window's are about rolling up, which this window does not do by
+-- itself)
+function ZeD_ChatWindow:pinRect()
+    local box = self:windowBoxRect()
+    if not box then return nil end
+    local r = self._pinRect
+    if not r then r = {}; self._pinRect = r end
+    r.x, r.y, r.w, r.h = box.x - ZeD.T.sp.sm - box.w, box.y, box.w, box.h
+    return r
+end
+function ZeD_ChatWindow:_watchBoxes()
+    ZeD_Window._watchBoxes(self)
+    if self._pinHover then self._updHelp = tr(self.pinned and "UI_ZeD_Chat_HelpUnpin" or "UI_ZeD_Chat_HelpPin") end
+end
+function ZeD_ChatWindow:onPinChange() C.savePlace(self) end
+
+-- ---------------------------------------------------------------------------
+-- ROLLED DOWN: only the title bar shows, where the window's bottom was (the director, Nov 23 2026: "disclose or
+-- roll down into the bottom of the screen and a way to bring it back up"). ZeD's window shade, made to drop.
+-- ---------------------------------------------------------------------------
+-- (every way it rolls goes through here: the roll box, a double press on the title bar, the pad's X, the chat key)
+function ZeD_ChatWindow:setWindowShaded(shaded)
+    shaded = shaded and true or false
+    if (self.windowShaded and true or false) == shaded then return end
+    local tbH = self:titleBarHeight()
+    -- the bottom edge it keeps: the window's foot, or the rolled bar's
+    local bottom = self:getY() + (self.windowShaded and tbH or self:getHeight())
+    if shaded then
+        if self.input then self.input:unfocus() end
+        self.picked = nil
+        if self.joyfocus then setJoypadFocus(self.playerNum, nil); self.joyfocus = nil end   -- (nothing to steer: the pad goes back to the game)
+    end
+    ZeD_Window.setWindowShaded(self, shaded)
+    local h = shaded and tbH or self:getHeight()
+    local sh = getCore():getScreenHeight()
+    self:setY(math.max(0, math.min(bottom - h, sh - h)))
+    if not shaded then
+        -- (up again: the lines are in view, the count on the chat key goes)
+        C.unreadN = 0
+        self._usedAt = getTimestampMs()
+    end
+    C.savePlace(self)
+end
+
+-- the roll box after the title: the curtain's box (WindowCurtain.lua), a down triangle (roll down), up while rolled
+function ZeD_ChatWindow:_drawRollBox(tbH)
+    local T = ZeD.T
+    local tbp = T.sp.titleBoxPad
+    local s = T.closeBoxSz
+    local titleX = T.sp.sm + T.closeBoxSz + T.sp.md
+    local r = self._rollRect
+    if not r then r = {}; self._rollRect = r end
+    r.x, r.y, r.w, r.h = titleX + (self._titleShownW or 0) + tbp + T.px(2), math.floor((tbH - s) / 2), s, s
+    local over = self:isMouseOver() and ZeD.Atoms.mouseIn(self, r.x, r.y, r.w, r.h)
+    local bg = over and T.hover or T.surf2
+    self:drawRect(r.x, r.y, r.w, r.h, 1, bg.r, bg.g, bg.b)
+    ZeD.Atoms.frame(self, r.x, r.y, r.w, r.h, T.borderS)
+    local tri = math.max(T.px(5), math.min(T.px(7), s - T.px(6)))
+    local tx, ty = r.x + math.floor((r.w - tri) / 2), r.y + math.floor((r.h - tri) / 2)
+    if self.windowShaded then ZeD.Atoms.drawTriangleUp(self, tx, ty, tri, T.textDim)
+    else ZeD.Atoms.drawTriangleDown(self, tx, ty, tri, T.textDim) end
+    if over and ZeD.Help and ZeD.Help.set then
+        ZeD.Help.set(self, tr(self.windowShaded and "UI_ZeD_Chat_HelpRollUp" or "UI_ZeD_Chat_HelpRollDown"))
+    end
+end
+
+-- the title bar: ZeD's, with the roll box after the title; ghosted, its surface nearly clear and the title alone
+function ZeD_ChatWindow:_drawTitleBar(w, tbH)
+    local T = ZeD.T
+    if self._ghost then
+        ZeD.Surface.fill(self, 0, 0, w, tbH, "surf2")   -- (at the ghost's alpha: _swapSurfaces)
+        local f3 = T.fontF3
+        local th = T.textHead
+        local y = math.floor((tbH - (T.fontF3H or ZeD.TM:getFontHeight(f3))) / 2)
+        C.inkText(self, tostring(self.title or ""), T.sp.sm + T.closeBoxSz + T.sp.md, y, th, f3)
+        if not self.windowShaded then
+            local bs = T.borderS
+            self:drawRect(0, tbH - T.hair, w, T.hair, bs.a or 1, bs.r, bs.g, bs.b)
+        end
+        return
+    end
+    -- (room kept after the title for the roll box: ZeD_Window cuts the title and stops the stats before it)
+    self._titleReserve = T.closeBoxSz + T.sp.titleBoxPad + T.px(2)
+    ZeD_Window._drawTitleBar(self, w, tbH)
+    self:_drawRollBox(tbH)
 end
 
 -- the lines of the open tab, wrapped to the width (built again when the lines, the tab or the width change)
@@ -659,11 +817,16 @@ end
 function ZeD_ChatWindow:prerender()
     local T = ZeD.T
     if not T then return end
-    if not C.active() then self:close(); return end
-    self.minimumWidth, self.minimumHeight = px(U.MIN_W), px(U.MIN_H)
+    if not C.active() then self:close(true); return end   -- (the server gone: the pin kept)
     self.title = tr("UI_ZeD_Chat_Title")
     self._dim = ZeD.seeThroughWorks() and self:_idle()   -- (the words' wash too: solid themes never dim)
+    self._ghost = self:_ghostNow()
+    if self._ghost then self._dim = false end   -- (ghosted: no wash, the words stay whole)
     ZeD_Window.prerender(self)
+    -- (after the frame's own, which sets every window's shared minimum: this one may be narrower)
+    self.minimumWidth = px(U.MIN_W)
+    self.minimumHeight = self.windowShaded and self:titleBarHeight() or px(U.MIN_H)
+    if self.windowShaded then return end   -- (rolled down: the title bar alone)
     local ok, err = pcall(self._drawBody, self)
     if not ok then ZeD.logOnce("chat window", err) end
 end
@@ -687,11 +850,30 @@ function ZeD_ChatWindow:_drawBody()
     -- the tabs
     local tx, ty = pad, top + px(U.GAP)
     self._tabHits = {}
+    -- (the narrower window, Nov 23 2026: when every tab a player has does not fit the row at the tabs' own padding, the
+    -- padding gives way, down to 3 units, so an admin's five tabs in a long language still fit)
+    local f2 = T.fontF2
+    local words, textW = {}, 0
     for i, t in ipairs(tabs) do
-        local label = tr(t.key)
-        local hov = (not cues) and my >= ty and my < ty + T.tabH and mx >= tx and mx < tx + M.buttonW(label)
+        words[i] = ZeD.Atoms.textCase(tr(t.key))
+        textW = textW + ZeD.TM:MeasureStringX(f2, words[i])
+    end
+    local padX = T.sp.tabPadX
+    local gaps = px(2) * math.max(0, #tabs - 1)
+    if #tabs > 0 and textW + 2 * padX * #tabs + gaps > w - 2 * pad then
+        padX = math.max(px(3), math.floor((w - 2 * pad - textW - gaps) / (2 * #tabs)))
+    end
+    for i, t in ipairs(tabs) do
+        local label = words[i]
+        local lw = ZeD.TM:MeasureStringX(f2, label) + 2 * padX
+        local hov = (not cues) and my >= ty and my < ty + T.tabH and mx >= tx and mx < tx + lw
         local foc = (self.joyfocus and self.zone == "tabs" and C.tab == t.id) and { win = self } or nil
-        local tw = M.drawTab(self, tx, ty, label, C.tab == t.id, hov, false, { focus = foc })
+        local tw = M.drawTab(self, tx, ty, label, C.tab == t.id, hov, false, { focus = foc, padX = padX })
+        if self._ghost then
+            -- (ghosted: the tab's words again over its own, whole and edged)
+            local fy = ty + math.floor((T.tabH - ZeD.TM:getFontHeight(f2)) / 2)
+            C.inkText(self, label, tx + padX, fy, (C.tab == t.id) and T.textHead or T.text, f2)
+        end
         self._tabHits[#self._tabHits + 1] = { x = tx, y = ty, w = tw, h = T.tabH, id = t.id }
         tx = tx + tw + px(2)
     end
@@ -723,8 +905,21 @@ function ZeD_ChatWindow:_drawBody()
     local slow = C.slowLeft()
     local mutedMe = ZeD.Admin and ZeD.Admin.isMuted and ZeD.Admin.isMuted(ZeD.Admin.me())
     local sendHelp = (mutedMe and tr("UI_ZeD_Adm_YouMuted")) or ((slow > 0) and tr("UI_ZeD_Chat_Slow", slow)) or tr("UI_ZeD_Chat_HelpSend")
-    M.drawButton(self, sx, iy, sw, ih, sendLabel, "primary", shov and isMouseButtonDown(0), nil,
+    -- (ghosted: the button's ring nearly clear with the surfaces, its word whole)
+    local sendCols = nil
+    if self._ghost then
+        local a = T.accent
+        sendCols = { border = { r = a.r, g = a.g, b = a.b, a = (a.a or 1) * GHOST_A } }
+    end
+    M.drawButton(self, sx, iy, sw, ih, sendLabel, "primary", shov and isMouseButtonDown(0), sendCols,
         { hover = shov, disabled = slow > 0 or mutedMe, win = self, help = sendHelp })
+    if self._ghost then
+        -- (its word again over its own, edged, where drawButton centers it)
+        local f3 = T.fontF3
+        local sl = ZeD.btnCase and ZeD.btnCase(sendLabel) or sendLabel
+        local stw, sth = ZeD.TM:MeasureStringX(f3, sl), ZeD.TM:getFontHeight(f3)
+        C.inkText(self, sl, sx + math.floor((sw - stw) / 2), iy + math.floor((ih - sth) / 2), T.text, f3)
+    end
     self._sendRect = { x = sx, y = iy, w = sw, h = ih }
     self._inputRect = { x = pad, y = iy, w = iw, h = ih }
     -- the lines, newest at the bottom, between the tabs and the line to type in
@@ -802,7 +997,15 @@ function ZeD_ChatWindow:_drawLines(x, y, w, h)
             end
             if onF then c = T.textOnFocus end
             if can and not r.acts and r.s ~= "" then self._rowHits[#self._rowHits + 1] = { y = ry, h = lh, ln = r.ln } end
-            if r.first and r.headW > 0 then
+            if self._ghost then
+                -- (ghosted: the words whole, with an edge so they read over the world)
+                if r.first and r.headW > 0 then
+                    C.inkText(self, (r.head:gsub("%s+$", "")), x, ry, C.nameInk(r.ln.author) or hd, f)
+                    C.inkText(self, r.s:sub(#r.head + 1), x + r.headW, ry, c, f)
+                else
+                    C.inkText(self, r.s, x, ry, c, f)
+                end
+            elseif r.first and r.headW > 0 then
                 local nc = onF and T.textOnFocus or C.nameInk(r.ln.author) or hd
                 self:drawText((r.head:gsub("%s+$", "")), x, ry, nc.r, nc.g, nc.b, nc.a or 1, f)
                 self:drawText(r.s:sub(#r.head + 1), x + r.headW, ry, c.r, c.g, c.b, c.a or 1, f)
@@ -842,6 +1045,7 @@ function ZeD_ChatWindow:render() ZeD_Window.render(self) end
 
 -- the help line's words for what the pointer is over (the window's footer)
 function ZeD_ChatWindow:getStatusLine()
+    if self._ghost then return nil end   -- (ghosted: the help line says nothing)
     local note = C.noteNow()
     if note then return note end
     if C.slowLeft() > 0 then return tr("UI_ZeD_Chat_Slow", C.slowLeft()) end
@@ -857,7 +1061,21 @@ function ZeD_ChatWindow:closeAction()
     pcall(function() ZeD.uiSound("UIActivateButton") end)
     self:close()
 end
-function ZeD_ChatWindow:close()
+-- ghosted, the title bar's boxes aren't drawn, so they take no press either (QA, Nov 23 2026): a press in the frame the
+-- pointer arrives would land on a box the player can't see. The ghost lifts at once with the pointer on the window.
+function ZeD_ChatWindow:_watchBoxes()
+    if self._ghost then
+        self._boxPrevDown = isMouseButtonDown(0)
+        self._closeWasDown, self._wboxWasDown, self._closeHover, self._wboxHover = false, false, false, false
+        return
+    end
+    return ZeD_Window._watchBoxes(self)
+end
+
+-- keepPin: closed by the game, not the player (the server gone, safe mode): the pin is kept so a pinned window
+-- reopens on the next join (QA, Nov 23 2026: a close at quit or disconnect wrote pinned 0)
+function ZeD_ChatWindow:close(keepPin)
+    if not keepPin then self.pinned = false end   -- (closing unpins it: the close box, B, Escape on an unpinned window)
     C.savePlace(self)
     if self.input then self.input:unfocus() end
     self:setVisible(false)
@@ -877,9 +1095,26 @@ end
 function ZeD_ChatWindow:onMouseDown(x, y)
     if not self:getIsVisible() then return true end
     self._usedAt = getTimestampMs()
+    -- (ghosted: this press only brings it back; the roll box it can't see takes nothing: QA, Nov 23 2026)
+    if self._ghost then self._ghost = false; return true end
     local cb = self:closeRect()
     if cb and inRect(cb, x, y) then return true end
     if inRect(self:windowBoxRect(), x, y) then return true end
+    if inRect(self:pinRect(), x, y) then return true end   -- (the pin answers on release: ZeD_Window._watchBoxes)
+    if inRect(self._rollRect, x, y) then
+        pcall(function() ZeD.uiSound("UIActivateTab") end)
+        self:setWindowShaded(not self.windowShaded)
+        return true
+    end
+    if self.windowShaded then
+        -- rolled down: a press on the bar brings it back up on release, unless it was a drag (onMouseUp); no double
+        -- press, which would roll it again
+        if y < self:titleBarHeight() then
+            self._rollPress = { x = getMouseX(), y = getMouseY() }
+            self._lastTitleClick = nil
+        end
+        return ZeD_Window.onMouseDown(self, x, y)
+    end
     for _, t in ipairs(self._tabHits or {}) do
         if inRect(t, x, y) then self:pickTab(t.id); return true end
     end
@@ -919,6 +1154,23 @@ function ZeD_ChatWindow:_runAction(b)
     if not ok then ZeD.logOnce("chat action " .. tostring(b.id), err) end
 end
 
+-- the press on a rolled bar that did not move it (within 4 units): up again
+function ZeD_ChatWindow:onMouseUp(x, y)
+    local p = self._rollPress
+    self._rollPress = nil
+    local r = ZeD_Window.onMouseUp(self, x, y)
+    if p and self.windowShaded and math.abs(getMouseX() - p.x) + math.abs(getMouseY() - p.y) <= px(4) then
+        pcall(function() ZeD.uiSound("UIActivateTab") end)
+        self:setWindowShaded(false)
+        self._lastTitleClick = nil
+    end
+    return r
+end
+function ZeD_ChatWindow:onMouseUpOutside(x, y)
+    self._rollPress = nil
+    return ZeD_Window.onMouseUpOutside(self, x, y)
+end
+
 function ZeD_ChatWindow:onMouseWheel(del)
     local lh = ZeD.TM:getFontHeight(ZeD.T.fontF2) + px(U.LINE_GAP)
     self.scroll = math.max(0, math.min(self._maxScroll or 0, self.scroll - del * lh * 3))
@@ -939,9 +1191,26 @@ function ZeD_ChatWindow:update()
     if not (self._saveAt and now - self._saveAt < 2000) then self._saveAt = now; C.savePlace(self) end
 end
 
-function ZeD_ChatWindow:isKeyConsumed(key) return key == Keyboard.KEY_ESCAPE end
+-- pinned, Escape only leaves the line being typed in (the window stays); with nothing to leave, it is the game's
+function ZeD_ChatWindow:_escLeavesLine()
+    if self.input and self.input:isFocused() then return true end
+    return self._escAt ~= nil and getTimestampMs() - self._escAt < 250   -- (the line's own Escape just left it)
+end
+function ZeD_ChatWindow:isKeyConsumed(key)
+    if key ~= Keyboard.KEY_ESCAPE then return false end
+    if self.pinned then return self:_escLeavesLine() end
+    return true
+end
 function ZeD_ChatWindow:onKeyPress(key)
-    if key == Keyboard.KEY_ESCAPE then self:close(); GameKeyboard.eatKeyPress(key) end
+    if key ~= Keyboard.KEY_ESCAPE then return end
+    if self.pinned then
+        if self:_escLeavesLine() then
+            if self.input then self.input:unfocus() end
+            GameKeyboard.eatKeyPress(key)
+        end
+        return
+    end
+    self:close(); GameKeyboard.eatKeyPress(key)
 end
 
 -- the controller: the tabs (left / right), the lines (up / down: step, then scroll), the line to type in (A: the pad keyboard)
@@ -955,6 +1224,13 @@ function ZeD_ChatWindow:onJoypadDown(button, jd)
             return
         end
         self:close()
+        return
+    end
+    -- X rolls it down to its title bar and gives the pad back to the game (setWindowShaded); the belt's chat key or the
+    -- wheel's Chat brings it up again (the director, Nov 23 2026)
+    if button == Joypad.XButton then
+        pcall(function() ZeD.uiSound("UIActivateTab") end)
+        self:setWindowShaded(true)
         return
     end
     if button == Joypad.AButton and self.zone == "lines" and self.cur then
@@ -1088,19 +1364,26 @@ function ZeD_ChatWindow:getFooterPrompts()
     if self.zone == "input" then P[#P + 1] = { glyph = "A", label = tr("UI_ZeD_Chat_PadType") } end
     if self.zone == "box" then P[#P + 1] = { glyph = "A", label = tr("UI_ZeD_Prompt_Menu") } end
     if (self.zone == "lines" and self.cur) or self.zone == "acts" then P[#P + 1] = { glyph = "A", label = tr("UI_ZeD_Chat_PadPick") } end
+    P[#P + 1] = { glyph = "X", label = tr("UI_ZeD_Chat_PadRollDown") }
     P[#P + 1] = { glyph = "B", label = self.zone == "acts" and tr("UI_ZeD_Tk_PromptBack") or getText("UI_Close") }
     return P
 end
 
 -- ---------------------------------------------------------------------------
--- ITS PLACE, kept on this computer (Lua/ZeD_chatwin.txt: x y w h in design units, and the tab)
+-- ITS PLACE, kept on this computer (Lua/ZeD_chatwin.txt: "v2 x y w h tab rolled pinned", x y w h in design units of
+-- the whole window, rolled or not; rolled and pinned 1 or 0). A line without the "v2" is from before the window's new
+-- first place by the chat key (Nov 23 2026) and is read as no place, once: everyone sees the new place.
 -- ---------------------------------------------------------------------------
 function C.savePlace(win)
     if not win then return end
     local T = ZeD.T
     local sc = (T and T.scale) or 1
-    local s = string.format("%d %d %d %d %s", math.floor(win:getX() / sc), math.floor(win:getY() / sc),
-        math.floor(win:getWidth() / sc), math.floor((win.windowShaded and win.preShadeHeight or win:getHeight()) / sc), C.tab)
+    local h = (win.windowShaded and win.preShadeHeight) or win:getHeight()
+    local y = win:getY()
+    -- (rolled down, the bar sits where the window's foot was: its top is the bar's foot less the whole height)
+    if win.windowShaded then y = y + win:titleBarHeight() - h end
+    local s = string.format("v2 %d %d %d %d %s %d %d", math.floor(win:getX() / sc), math.floor(y / sc),
+        math.floor(win:getWidth() / sc), math.floor(h / sc), C.tab, win.windowShaded and 1 or 0, win.pinned and 1 or 0)
     if s == C._savedPlace then return end
     C._savedPlace = s
     pcall(function()
@@ -1114,9 +1397,35 @@ local function readPlace()
     local l = r:readLine()
     r:close()
     if not l then return nil end
-    local x, y, w, h, tab = l:match("^(%-?%d+) (%-?%d+) (%d+) (%d+) ?(%a*)")
-    if not x then return nil end
-    return tonumber(x), tonumber(y), tonumber(w), tonumber(h), tab
+    local x, y, w, h, tab, rolled, pinned = l:match("^v2 (%-?%d+) (%-?%d+) (%d+) (%d+) ?(%a*) ?(%d?) ?(%d?)")
+    if not x then return nil end   -- (an old line, or none)
+    return tonumber(x), tonumber(y), tonumber(w), tonumber(h), tab, rolled == "1", pinned == "1"
+end
+C._readPlace = readPlace   -- (for the sims)
+
+-- the first place: its foot on the screen's foot, its left edge an icon's gap (the belt row's group space, B.ICON_GAP)
+-- right of the belt's chat key, and past the PvP marker when the server shows one right after the key, so the window
+-- does not cover it; on the screen. No belt or no chat key: the old place, low on the left (the director, Nov 23 2026)
+function C.defaultPlace(w, h, sw, sh)
+    local Bt = ZeD.Belt
+    local hud = Bt and Bt.getHUD and Bt.getHUD(0)
+    local key = nil
+    if hud and hud._boxes and hud:getIsVisible() then
+        for _, b in ipairs(hud._boxes) do
+            if b.kind == "chat" then key = b
+            elseif key and b.kind == "pvp" then key = b end
+        end
+    end
+    if not key then return px(15), sh - h - px(140) end
+    local x = hud:getAbsoluteX() + key.x + key.w + px(Bt.ICON_GAP or 38)
+    x = math.max(0, math.min(x, sw - w))
+    local y = math.max(0, sh - h)
+    -- a narrow screen pushed it back over the belt row (it would cover the row's right end): it stands on the row
+    -- instead, its foot a gap above the row's top (QA, Nov 23 2026)
+    local hx, hy = hud:getAbsoluteX(), hud:getAbsoluteY()
+    local rowR = hx + key.x + key.w
+    if x < rowR and y + h > hy then y = math.max(0, hy - h - px(Bt.ICON_GAP or 38) / 2) end
+    return x, y
 end
 
 -- ---------------------------------------------------------------------------
@@ -1129,11 +1438,15 @@ function C.open(typing, pad)
         local T = ZeD.T
         local sc = (T and T.scale) or 1
         local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
-        -- (pcall, not safe(): safe() hands back only the first value, and readPlace returns five)
-        local ok, x, y, w, h, tab = pcall(readPlace)
+        -- (pcall, not safe(): safe() hands back only the first value, and readPlace returns seven)
+        local ok, x, y, w, h, tab, rolled, pinned = pcall(readPlace)
         if not ok then x = nil end
         if x and y and w and h then x, y, w, h = x * sc, y * sc, w * sc, h * sc
-        else w, h = px(U.W), px(U.H); x, y = px(15), sh - h - px(140) end
+        else
+            w, h = px(U.W), px(U.H)
+            x, y = C.defaultPlace(w, h, sw, sh)
+            rolled, pinned = false, false
+        end
         -- (on the screen, whatever screen it was kept on)
         w = math.min(w, sw); h = math.min(h, sh)
         x = math.max(0, math.min(x, sw - w)); y = math.max(0, math.min(y, sh - h))
@@ -1143,11 +1456,16 @@ function C.open(typing, pad)
         win:instantiate()
         win:addToUIManager()
         win:setAlwaysOnTop(true)
+        win.pinned = pinned and true or false
         C.win = win
+        -- (kept rolled down: only a pinned window coming back by itself stays down, C.tick; any key brings it up below)
+        if rolled and C._openRolled then win:setWindowShaded(true) end
     end
     win:setVisible(true)
+    -- the chat key, the belt's key, the wheel's Chat: a rolled window comes back up
+    if win.windowShaded and not C._openRolled then win:setWindowShaded(false) end
     win._usedAt = getTimestampMs()
-    C.unreadN = 0
+    if not win.windowShaded then C.unreadN = 0 end
     if pad then
         -- pad: true (player 1's) or the player's number, so players 2-4 open it on their own pads; the window is one,
         -- and the player who opened it last holds it
@@ -1165,8 +1483,17 @@ function C.open(typing, pad)
     end
     return win
 end
+-- the belt's chat key: rolled down, it comes up; pinned, it rolls down and stays (a pinned window closes only by its
+-- close box or B); else it opens or closes
 function C.toggle(pad)
-    if C.win and C.win:getIsVisible() then C.win:close() else C.open(false, pad) end
+    local w = C.win
+    if w and w:getIsVisible() then
+        if w.windowShaded then C.open(false, pad)
+        elseif w.pinned then w:setWindowShaded(true)
+        else w:close() end
+    else
+        C.open(false, pad)
+    end
 end
 
 -- the game's chat key opens ZeD's window with the line to type in (the game's own handler stays for safe mode)
@@ -1192,6 +1519,16 @@ function C.tick()
         if C._keysBackIn <= 0 then C._keysBackIn = nil; pcall(doKeyPress, true) end
     end
     if not C.active() then return end
+    -- a window left pinned when the player last left comes back by itself, once, where it was and rolled as it was
+    if not C._pinChecked and ZeD.T and getPlayer() then
+        C._pinChecked = true
+        local ok, x, _, _, _, _, rolled, pinned = pcall(readPlace)
+        if ok and x and pinned and not C.win then
+            C._openRolled = rolled
+            pcall(C.open, false)
+            C._openRolled = nil
+        end
+    end
     local gc = ISChat and ISChat.instance
     if gc and gc:getIsVisible() then
         pcall(function() gc:unfocus() end)
@@ -1209,7 +1546,7 @@ end
 if ZeD.Safe and ZeD.Safe.register then
     ZeD.Safe.register("chat", {
         leave = function()
-            if C.win then C.win:close() end
+            if C.win then C.win:close(true) end   -- (safe mode: the pin kept)
             local gc = ISChat and ISChat.instance
             if gc then gc:setVisible(true) end
         end,
