@@ -27,15 +27,19 @@
 --   * The game's own mouse pointer when "Lock cursor to window" is on and the offscreen UI is off: the clip stays off
 --     then (Core.EndFrameUI draws that pointer after the box).
 --
--- ZeD'S NOTICE (the Messages note that was on the belt, its role and look): a small box at the screen's bottom right
--- with the paper note and the count of what is new: red only for a new error of ZeD's own, the accent for a note, gray
--- for other mods' or the game's errors (K3 #42, ZeD.Belt.lampTone). It shows while anything is unread, and for a few
--- seconds after something new comes in (the count of what Messages holds rose: a new note, a new error entry); then it
--- hides itself, as the game's box did. No fade: it shows and hides plainly. A click, or A when the pad reaches it from
--- the belt's right end, opens Messages. Messages' balloons come out of it.
+-- ZeD'S NOTICE (the Messages note that was on the belt, its role and look): a small box with the paper note and the
+-- count of what is new: red only for a new error of ZeD's own, the accent for a note, gray for other mods' or the
+-- game's errors (K3 #42, ZeD.Belt.lampTone). It stands on player one's belt row, after the speed keys and before the
+-- chat key, and shows there all the time the belt draws (Belt row, the director, Nov 23 2026: "Belt, space, time,
+-- space, messages, chat"; ZeD.Belt.noticeScreen). While the belt is away (driving, hidden, dead) it falls back to the
+-- screen's bottom right corner, so an error is never lost: there it shows while anything is unread, and for a few
+-- seconds after something new comes in (the count of what Messages holds rose: a new note, a new error entry); then
+-- it hides itself, as the game's box did. No fade: it shows and hides plainly. A click, or A when the belt's pad walk
+-- reaches it, opens Messages. Messages' balloons come out of it, on the row or in the corner.
 --
 -- THE MARKER (ZeD's own red box in the game's box's place): when a new error is filed, a box the notice's width rises
--- from the screen's bottom edge under the notice and lifts the notice with it, holds about 3 s and slides back down,
+-- from the screen's bottom edge under the notice (on the row or in the corner, the same way: it ends where the
+-- notice's bottom stood) and lifts the notice with it, holds about 3 s and slides back down,
 -- the marker off the screen and the notice to its place. A plain linear slide, 0.5 s up and 0.5 s down, as the game's
 -- box moved; the one motion ZeD allows here. Red for ZeD's own errors, gray for other mods' or the game's; notes get
 -- none. More errors while it is up keep it up longer. (Error marker, the director, Nov 22 2026: "a red box the width
@@ -171,9 +175,24 @@ function E.wanted(now)
     return #(M.toasts or {}) > 0
 end
 
---- The notice's place on the whole screen: x, y, size. The bottom right corner, EDGE_U in; left of the game's own
---- box while that is given back, and left of the split-screen speed strip while it shows.
+--- True while the notice may show at all (a character, not safe mode, Messages loaded): player one's belt row then
+--- keeps its place for it (ZeD.Belt.noticeOnRow). (Belt row, the director, Nov 23 2026)
+function E.rowWanted()
+    if not (getPlayer and getPlayer()) then return false end
+    if ZeD.Safe and ZeD.Safe.on and ZeD.Safe.on() then return false end
+    return ZeD.Messages ~= nil
+end
+
+--- The notice's place on the whole screen: x, y, size, and true when that is on the belt row. On player one's row
+--- while the belt draws it a place (ZeD.Belt.noticeScreen: after the speed keys, before the chat key); else the bottom
+--- right corner, EDGE_U in; left of the game's own box while that is given back, and left of the split-screen speed
+--- strip while it shows.
 function E.rect()
+    local B = ZeD.Belt
+    if B and B.noticeScreen then
+        local ok, rx, ry, rs = pcall(B.noticeScreen, 0)
+        if ok and rx then return rx, ry, rs, true end
+    end
     local T = ZeD.T
     local s = T.px(E.NOTE_U)
     local edge = T.px(E.EDGE_U)
@@ -183,7 +202,7 @@ function E.rect()
     if not E.hideWanted() then x = x - E.GAME_BOX_W end
     local SS = ZeD.SplitSpeed and ZeD.SplitSpeed._instance
     if SS and SS:isVisible() then x = math.min(x, SS:getX() - s - edge) end
-    return x, y, s
+    return x, y, s, false
 end
 
 --- Where Messages' balloons come out (screen pixels): the notice's top middle while it shows on this player's part
@@ -203,18 +222,17 @@ end
 function E.padReach(pn)
     return (pn or 0) == 0 and E._note ~= nil and E._note:getIsVisible()
 end
---- The belt's pad steps on (true) or off (nil) the notice.
-function E.setPad(on) E._pad = on and true or nil end
---- True while player one's pad is on the notice: the belt says so, and the belt still holds the pad (another window
---- that took the pad leaves no mark behind here).
+--- True while player one's pad is on the notice: the belt's pad walk is on its place on the row ("notice", in row
+--- order), and the belt still holds the pad (another window that took the pad leaves no mark behind here).
+--- (Belt row, the director, Nov 23 2026)
 function E.padOn()
-    if not E._pad then return false end
     local B = ZeD.Belt
     local hud = B and B.getHUD and B.getHUD(0)
+    if not (hud and hud._gp and hud._gpBox) then return false end
     local jd = JoypadState and JoypadState.players and JoypadState.players[1]
-    if hud and hud._gp and hud._gp.notice and not (jd and jd.focus ~= hud) then return true end
-    E._pad = nil
-    return false
+    if jd and jd.focus ~= hud then return false end
+    local b = hud:_gpBox()
+    return b ~= nil and b.kind == "notice" and not hud._gp.inList
 end
 
 --- A click or A on the notice: Messages opens (the belt's note opened it before).
@@ -439,15 +457,22 @@ function E.frame()
     local now = getTimestampMs and getTimestampMs() or 0
     local k = E.markStep(now)
     local want = E.wanted(now)
-    -- the marker: its top p of the way from the screen's bottom edge to EDGE_U above its height
+    -- the notice's place: on player one's belt row (shown all the time the belt draws), or the corner
+    local nx, ny, ns, onRow = E.rect()
+    if onRow then want = true end
+    -- the marker: its top p of the way from the screen's bottom edge to its own height above where the notice's
+    -- bottom stands (the corner's EDGE_U; on the row the belt's place), so at the top it fills the notice's place and
+    -- the notice rides on it, the same on the row as in the corner (Belt row, the director, Nov 23 2026)
     local mk = E._marker
     local top = nil
     if mk then
         local on = k.phase ~= nil
         if on then
-            local x = E.rect()
+            local x = nx
             local mw, mh = E.markSize()
-            top = getCore():getScreenHeight() - math.floor((mh + ZeD.T.px(E.EDGE_U)) * k.p + 0.5)
+            local sh = getCore():getScreenHeight()
+            local under = math.max(0, sh - (ny + ns))   -- (from the notice's bottom to the screen's bottom edge)
+            top = sh - math.floor((mh + under) * k.p + 0.5)
             if mk.x ~= x then mk:setX(x) end
             if mk.y ~= top then mk:setY(top) end
             if mk.width ~= mw then mk:setWidth(mw) end
@@ -460,7 +485,7 @@ function E.frame()
         if on ~= mk:getIsVisible() then mk:setVisible(on) end
     end
     if want then
-        local x, y, s = E.rect()
+        local x, y, s = nx, ny, ns
         -- (the marker pushes the notice up once its top reaches the notice's bottom: lifted by its height at the top)
         if top then y = math.min(y, top - s) end
         if el.x ~= x then el:setX(x) end
