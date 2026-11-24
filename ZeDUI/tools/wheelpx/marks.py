@@ -53,9 +53,8 @@ MARKS = {
     "zoom_in": ADD, "zoom_out": REMOVE,
     "move_up": ADD, "move_down": REMOVE,
     "box_up": ADD, "box_down": REMOVE,
-    # the lists' own (in the game from Nov 10 2026: Save to outfit / loadout, the Equip bar's Save): a new pair, the
-    # same rule
-    "outfit_add": ADD, "outfit_remove": REMOVE, "loadout_add": ADD, "loadout_remove": REMOVE,
+    # (the lists' own pair, outfit_add / outfit_remove and loadout_add / loadout_remove, went with the add-on
+    # ZeD-GUI: Loadouts in 1.0: it colors them with ZeD.PxIcon.addMark and draws them with tools/wheelpx/export_lists.py)
     # Equip Primary / Equip Secondary: the which-hand arrow goes blue in the menus, so the row reads as the add side of
     # Equip / Unequip beside Unequip's red minus (the director, Nov 10 2026, after QA's Mac run; the handoff had kept
     # them ink as arrows that say where). Only the menus color marks: the belt's hands stay ink.

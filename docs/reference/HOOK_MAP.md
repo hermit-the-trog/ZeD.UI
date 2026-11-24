@@ -112,8 +112,8 @@ The Maps tab and the Skills tab each have a small general hook for this (Oct 26 
 ## ZeD's own plug-in points for add-ons (1.0, Nov 23 2026)
 
 Not vanilla hooks: the points ZeD keeps stable for add-ons (`ZeD.API.VERSION` 1, `client/ZeD/ZeD_AddonAPI.lua`; the
-guide with examples is `docs/ADDON_API.md`). Loadouts and outfits (with Restock) runs on them alone, ready to leave
-ZeD as its own add-on. Each is idle with nothing registered, runs an add-on's callbacks in pcall (an error logged
+guide with examples is `docs/ADDON_API.md`). Loadouts and outfits (with Restock) runs on them alone, as its own
+add-on since 1.0: ZeD-GUI: Loadouts (mod id ZeDLoadouts). Each is idle with nothing registered, runs an add-on's callbacks in pcall (an error logged
 once), and a second registration of an id replaces the first. Sim `ZeDUI/tools/qa/plugin_points_sim.lua`.
 
 | Point | Where | Used by |

@@ -240,13 +240,11 @@ check("LIGHT the list's dimmed read name is T.textDim, not faded",
 -- ---------------------------------------------------------------------------
 section("HEADS")
 -- ---------------------------------------------------------------------------
-local JL = readFile(CL .. "ZeD_JournalLists.lua")
 check("HEADS ZeD_JournalReaders: no drawSectionHeader left", not JR:find("drawSectionHeader", 1, true))
-check("HEADS ZeD_JournalLists: no drawSectionHeader left", not JL:find("drawSectionHeader", 1, true))
 local sec = cutFn(JR, "local function section(") or ""
 check("HEADS the reader's section head is the small mono line, no triangle", sec:find("drawCategoryRow(", 1, true) ~= nil and sec:find("noArrow = true", 1, true) ~= nil)
-check("HEADS the loadout's sections fold on the small mono line",
-    JL:find("M.drawCategoryRow(panel, x, cy, w, label, #sec.lines, not folded, { hover = hover, focus = focusOf(win, id), h = h, inset = T.px(6) })", 1, true) ~= nil)
+-- (the Loadouts page's HEADS checks moved with ZeD_JournalLists.lua to the add-on ZeD-GUI: Loadouts, Nov 23 2026: its
+-- tests/source_sim.lua)
 
 print("g2_read_marks_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end

@@ -12,8 +12,7 @@
 --   FURNITURE   the selected row's Target button takes the row's ink (an accent ring on the accent wash read poorly);
 --            the chip at the cursor's tile stays clear of the game's version mark in the lower right corner: its
 --            version line and the lines it stacks above it (the position line under -debug, one per cheat on)
---   LISTS    the Journal's empty loadout and outfit lines name the item's menu, not a mouse button, in all 28
---            languages, each with the menu option's own words, a context row and a machine-draft note
+--   (LISTS, the Journal's empty loadout and outfit lines, went with the add-on ZeD-GUI: Loadouts: its tests/source_sim.lua)
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/fix_shared_misc_sim.lua
 -- It prints FAIL lines and a last line "fix_shared_misc_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -332,41 +331,8 @@ do
     end
 end
 
--- ---------------------------------------------------------------------------
-section("LISTS: the empty lines name the item's menu, not a mouse button")
--- ---------------------------------------------------------------------------
-do
-    local MOUSE = { "RMB", "PPM", "ПКМ", "右鍵", "右键", "右クリック", "우클릭", "คลิกขวา", "sağ tık", "clic droit", "Rechtsklick" }
-    local langs = { "AR", "CA", "CH", "CN", "CS", "DA", "DE", "EN", "ES", "ES_CL", "ES_MX", "FI", "FR", "HU", "ID", "IT", "JP",
-                    "KO", "NL", "NO", "PL", "PT", "PTBR", "RO", "RU", "TH", "TR", "UA" }
-    local bad, missing, noOption = {}, {}, {}
-    local function value(s, key) return s:match('"' .. key .. '"%s*:%s*"([^"]*)"') end
-    for _, L in ipairs(langs) do
-        local s = readFile("42/media/lua/shared/Translate/" .. L .. "/UI.json")
-        if not s then missing[#missing + 1] = L else
-            for _, pair in ipairs({ { "UI_ZeD_Lists_EmptySec", "UI_ZeD_Lists_SaveToLoadout" }, { "UI_ZeD_Lists_EmptyWorn", "UI_ZeD_Lists_SaveToOutfit" } }) do
-                local v, opt = value(s, pair[1]), value(s, pair[2])
-                if not v then missing[#missing + 1] = L .. ":" .. pair[1] else
-                    for _, m in ipairs(MOUSE) do if v:find(m, 1, true) then bad[#bad + 1] = L .. ":" .. pair[1] end end
-                    if not (opt and v:find(opt, 1, true)) then noOption[#noOption + 1] = L .. ":" .. pair[1] end
-                end
-            end
-        end
-    end
-    check("all 28 languages have both lines", #missing == 0, table.concat(missing, " "))
-    check("no line names a mouse button (a controller opens the item's menu too)", #bad == 0, table.concat(bad, " "))
-    check("each names the menu's option as the language's menu writes it", #noOption == 0, table.concat(noOption, " "))
-    local ctx = readFile("ZeDUI/i18n/UI_ZeD.context.md") or ""
-    check("the context file has a row for each", ctx:find("`UI_ZeD_Lists_EmptySec`", 1, true) ~= nil and ctx:find("`UI_ZeD_Lists_EmptyWorn`", 1, true) ~= nil)
-    local notes = 0
-    for _, L in ipairs(langs) do
-        if L ~= "EN" then
-            local n = readFile("ZeDUI/i18n/mt_notes/" .. L .. ".txt") or ""
-            if n:find("UI_ZeD_Lists_EmptySec and UI_ZeD_Lists_EmptyWorn reworded", 1, true) then notes = notes + 1 end
-        end
-    end
-    check("each machine draft is labeled in its language's notes", notes == 27, notes)
-end
+-- (LISTS, the empty lines' words in 28 languages, moved with the Loadouts keys to the add-on ZeD-GUI: Loadouts,
+-- Nov 23 2026: its tests/source_sim.lua, WORDS)
 
 print(string.format("fix_shared_misc_sim: %d checks, %d failed", checks, failed))
 if failed > 0 then os.exit(1) end

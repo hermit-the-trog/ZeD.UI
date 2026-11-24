@@ -182,7 +182,7 @@ G.ZED_GROUPS = {
     -- presets' table is in Settings.lua's setUpAdditions. Put back, Messages and Sandbox in game
     -- have no groups of their own; Ammo on the belt, Moodle notices and Dashboard lamps (once in
     -- HUD) and the read marks (once in Windows) live here too. An add-on's switches join this group with
-    -- ZeD.Options.addRows: Loadouts and outfits, and Restock, after Hidden facts.)
+    -- ZeD.Options.addRows: the add-on ZeD-GUI: Loadouts puts Loadouts and outfits, and Restock, after Hidden facts.)
     { "UI_ZeD_Options_ZedAdditions", { { "additionsPreset", "radio", short = { "UI_ZeD_Settings_PresetVanilla", "UI_ZeD_Options_PresetPlus", "UI_ZeD_Options_PresetAccessible", "Sandbox_Custom" } },
         -- (QA's visual noise audit, Nov 20 2026: Read marks, Next level on skill books and Dim read items are one
         -- three-way row; Keep notes in Messages and its toast one; Hidden facts takes Recipes skills teach. Each such

@@ -1,6 +1,7 @@
 -- ZeDUI/tools/qa/plugin_points_sim.lua  (Nov 23 2026, Build; the 1.0 plug-in points, brief_plugins.md)
--- ZeD's general plug-in points for add-ons, with no game running. Loadouts and outfits (and Restock) moved onto them
--- and will leave ZeD for their own add-on; this checks the points themselves, each run from its real source:
+-- ZeD's general plug-in points for add-ons, with no game running. Loadouts and outfits (and Restock) moved onto them,
+-- then left ZeD for their own add-on, ZeD-GUI: Loadouts (Nov 23 2026; its tests/ check the feature on these points);
+-- this checks the points themselves, each run from its real source, with ZeD alone:
 --   API       ZeD_AddonAPI.lua: a registry keeps order and replaces the same id; a throwing callback is caught and
 --             logged once
 --   EQUIP     ZeD.EquipmentTab.addSection (and its takeover): idle with nothing registered (no height, no drawing,
@@ -14,11 +15,13 @@
 --             chips and no stop with none; a test mark draws its chip and words, a section its height, a gen moves
 --             the model's key; a throwing state or section is contained
 --   OPTIONS   ZeD.Options.addRows / joinPreset / showIf, G.groupRows / G.stateKey and Settings.lua's joinAddition:
---             ZeD's groups as they are with none; rows spliced in place; a joined option follows the presets,
---             starts on for a player who had ZeD before it, and an add-on's own owner works too
+--             ZeD's groups as they are with none; rows spliced in place; a test add-on's joined options (made the way
+--             the Loadouts add-on makes its two) follow the presets, start on for a player who had ZeD before them, and
+--             a saved line wins; ZeD itself makes no Loadouts or Restock option
 --   ICONS     ZeD.PxIcon.addWarm / addMark
---   SOURCE    no ZeD file outside Loadouts' six names EL. / JL. / ZeD.Lists / ZeD.ListsUI / ZeD.Restock /
---             ZeD_RestockPin / ZeD.EquipLoadout / ZeD.JournalLists or requires them (comments aside)
+--   SOURCE    Loadouts' six files are gone from ZeD, and no ZeD file names EL. / JL. / ZeD.Lists / ZeD.ListsUI /
+--             ZeD.Restock / ZeD_RestockPin / ZeD.EquipLoadout / ZeD.JournalLists or requires them (comments aside), nor
+--             the two option ids; the lists' pixel icons are gone from ZeD's pictures
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/plugin_points_sim.lua
 -- It prints FAIL lines and a last line "plugin_points_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -480,24 +483,32 @@ local function newOpts()
 end
 local lastOpts
 local realRequire = require
-local LISTS_SRC = readFile(Z .. "ZeD_Lists.lua")
-local joinBlock = cut(LISTS_SRC, "if ZeD.Options and ZeD.Options.addRows and ZeD.Options.joinPreset then", "\nend\n")
-check("OPTIONS: Loadouts' joins found in ZeD_Lists.lua", joinBlock ~= nil)
-local function loadSettings(ini, joinFirst, addonOwner)
+-- (1.0) The Loadouts add-on makes its two options under its own owner and joins them as below (its Options.lua; its
+-- tests/options_sim.lua runs that file on ZeD's Settings.lua). Here a test add-on does the same, so the points are
+-- checked with ZeD alone.
+local OWNER = "TestAddon"
+local joinBlock = [[
+ZeD.Options.addRows { owner = "TestAddon", into = "UI_ZeD_Options_ZedAdditions", afterRow = "hiddenFacts",
+    rows = { { "sw", "onoff" }, { "way", "radio", showIf = "sw" } } }
+ZeD.Options.joinPreset { owner = "TestAddon", id = "sw", presets = { 1, 2, 2 }, wasOn = 2 }
+ZeD.Options.joinPreset { owner = "TestAddon", id = "way", presets = { nil, 2, 3 } }
+]]
+local function loadSettings(ini, joinFirst)
     FILES["ModOptions.ini"] = ini
     freshZeD()
     run("AddonOptions.lua", AO_SRC)
     OPTS = {}
-    if addonOwner then
-        local ao = newOpts()
-        local x = ao:addComboBox("x")
-        x:addItem("Off", true); x:addItem("On", false)
-        OPTS[addonOwner] = ao
-    end
+    -- the test add-on's options: a switch (Off, On) and a three-way pick (the middle one first)
+    local ao = newOpts()
+    local sw = ao:addComboBox("sw")
+    sw:addItem("Off", true); sw:addItem("On", false)
+    local way = ao:addComboBox("way")
+    way:addItem("A", false); way:addItem("B", true); way:addItem("C", false)
+    OPTS[OWNER] = ao
     PZAPI = { ModOptions = { create = function() lastOpts = newOpts(); return lastOpts end, save = noop, load = noop,
         getOptions = function(_, owner) return OPTS[owner] end } }
     require = function() end
-    if joinFirst then run("ZeD_Lists.lua (the joins, before Settings)", joinBlock) end
+    if joinFirst then run("the test add-on's joins (before Settings)", joinBlock) end
     local chunk, err = loadfile(Z .. "Settings.lua")
     check("Settings.lua loads", chunk ~= nil, err)
     local ok, e = pcall(chunk)
@@ -511,43 +522,48 @@ local function inIds(id)
 end
 local o = loadSettings(nil)
 if o then
-    check("SETTINGS idle: Loadouts and Restock are no additions", not inIds("loadouts") and not inIds("restock"))
-    check("SETTINGS idle: no preset names them", ZeD.Settings.ADDITION_PRESETS[2].loadouts == nil and ZeD.Settings.ADDITION_PRESETS[3].restock == nil)
-    run("ZeD_Lists.lua (the joins)", joinBlock)
-    check("SETTINGS: joined, both are additions", inIds("loadouts") and inIds("restock"))
+    check("SETTINGS: ZeD makes no Loadouts or Restock option (the add-on's own now)", o.dict.loadouts == nil and o.dict.restock == nil)
+    check("SETTINGS: no accessor left for them", ZeD.Settings.loadoutsOn == nil and ZeD.Settings.loadoutsOption == nil
+        and ZeD.Settings.restockOption == nil)
+    check("SETTINGS idle: no add-on option is an addition", not inIds("loadouts") and not inIds("restock") and not inIds(OWNER .. ".sw"))
+    check("SETTINGS idle: no preset names them", ZeD.Settings.ADDITION_PRESETS[2].loadouts == nil and ZeD.Settings.ADDITION_PRESETS[3].restock == nil
+        and ZeD.Settings.ADDITION_PRESETS[2][OWNER .. ".sw"] == nil)
+    run("the test add-on's joins", joinBlock)
+    check("SETTINGS: joined, both are additions (by owner.id)", inIds(OWNER .. ".sw") and inIds(OWNER .. ".way"))
     local P = ZeD.Settings.ADDITION_PRESETS
-    check("SETTINGS: the presets as they were (Vanilla off, Plus on with Casual, Accessible on with Accessible)",
-        P[1].loadouts == 1 and P[1].restock == nil and P[2].loadouts == 2 and P[2].restock == 2 and P[3].loadouts == 2 and P[3].restock == 3)
+    check("SETTINGS: the presets as asked (Vanilla off, Plus on with B, Accessible on with C)",
+        P[1][OWNER .. ".sw"] == 1 and P[1][OWNER .. ".way"] == nil and P[2][OWNER .. ".sw"] == 2 and P[2][OWNER .. ".way"] == 2
+        and P[3][OWNER .. ".sw"] == 2 and P[3][OWNER .. ".way"] == 3)
+    local ad = OPTS[OWNER].dict
     o.dict.additionsPreset.onChange(nil, 3)
-    check("SETTINGS: Vanilla Accessible sets them", o.dict.loadouts:getValue() == 2 and o.dict.restock:getValue() == 3)
+    check("SETTINGS: Vanilla Accessible sets them", ad.sw:getValue() == 2 and ad.way:getValue() == 3)
     o.dict.additionsPreset.onChange(nil, 1)
-    check("SETTINGS: Vanilla turns Loadouts off, leaves Restock", o.dict.loadouts:getValue() == 1 and o.dict.restock:getValue() == 3)
-    check("SETTINGS: a change to it re-reads the preset (its onChange)", type(o.dict.loadouts.onChange) == "function")
+    check("SETTINGS: Vanilla turns the switch off, leaves the pick", ad.sw:getValue() == 1 and ad.way:getValue() == 3)
+    check("SETTINGS: a change to it re-reads the preset (its onChange)", type(ad.sw.onChange) == "function")
     check("SETTINGS: the rows go into Additions after Hidden facts", ZeD.Options.rowAdds[1] and ZeD.Options.rowAdds[1].into == "UI_ZeD_Options_ZedAdditions"
-        and ZeD.Options.rowAdds[1].afterRow == "hiddenFacts" and ZeD.Options.rowAdds[1].rows[2].showIf == "loadouts")
+        and ZeD.Options.rowAdds[1].afterRow == "hiddenFacts" and ZeD.Options.rowAdds[1].rows[2].showIf == "sw")
 end
--- a player who had ZeD before the Loadouts switch (ZeD's lines, none for it): it starts on; a saved Off stays
-o = loadSettings(table.concat({ "|ZeD_UI|ammoBox|2", "|ZeD_UI|additionsPreset|4" }, "\n"))
+-- a player who had ZeD before the add-on (ZeD's lines, none of its own): the switch starts on; savedValue reads lines
+o = loadSettings(table.concat({ "|ZeD_UI|ammoBox|2", "|ZeD_UI|additionsPreset|4", "|ZeD_UI|loadouts|1" }, "\n"))
 if o then
-    run("ZeD_Lists.lua (the joins)", joinBlock)
-    check("SETTINGS: an existing player starts with Loadouts on", o.dict.loadouts:getValue() == 2)
-    check("SETTINGS: savedValue reads the file", ZeD.Settings.savedValue("ZeD_UI", "ammoBox") == 2 and ZeD.Settings.savedValue("ZeD_UI", "loadouts") == nil)
+    run("the test add-on's joins", joinBlock)
+    check("SETTINGS: an existing player starts with the switch on (wasOn)", OPTS[OWNER].dict.sw:getValue() == 2)
+    check("SETTINGS: savedValue reads the file, any owner (a value saved under ZeD_UI before an option moved)",
+        ZeD.Settings.savedValue("ZeD_UI", "ammoBox") == 2 and ZeD.Settings.savedValue("ZeD_UI", "loadouts") == 1
+        and ZeD.Settings.savedValue(OWNER, "sw") == nil)
 end
-o = loadSettings(table.concat({ "|ZeD_UI|ammoBox|2", "|ZeD_UI|loadouts|1" }, "\n"))
+o = loadSettings(table.concat({ "|ZeD_UI|ammoBox|2", "|TestAddon|sw|1" }, "\n"))
 if o then
-    run("ZeD_Lists.lua (the joins)", joinBlock)
-    check("SETTINGS: a saved line wins (no start-on)", o.dict.loadouts:getValue() == 1)
+    run("the test add-on's joins", joinBlock)
+    check("SETTINGS: a saved line of its own wins (no start-on)", OPTS[OWNER].dict.sw:getValue() == 1)
+    check("SETTINGS: savedValue reads an add-on's own line", ZeD.Settings.savedValue(OWNER, "sw") == 1)
 end
 o = loadSettings(nil, true)
-if o then check("SETTINGS: joins made before Settings loads are taken when it does", inIds("loadouts") and ZeD.Settings.ADDITION_PRESETS[2].loadouts == 2) end
-o = loadSettings(nil, false, "TestAddon")
+if o then check("SETTINGS: joins made before Settings loads are taken when it does", inIds(OWNER .. ".sw") and ZeD.Settings.ADDITION_PRESETS[2][OWNER .. ".sw"] == 2) end
+o = loadSettings(nil)
 if o then
-    ZeD.Options.joinPreset { owner = "TestAddon", id = "x", presets = { 1, 2, 2 } }
-    check("SETTINGS: an add-on's own option joins by owner.id", inIds("TestAddon.x"))
-    o.dict.additionsPreset.onChange(nil, 2)
-    check("SETTINGS: the preset sets an add-on's own option", OPTS.TestAddon.dict.x:getValue() == 2)
-    ZeD.Options.joinPreset { owner = "TestAddon", id = "missing", presets = { 1, 2, 2 } }
-    check("SETTINGS: an option that is not there is left out", not inIds("TestAddon.missing"))
+    ZeD.Options.joinPreset { owner = OWNER, id = "missing", presets = { 1, 2, 2 } }
+    check("SETTINGS: an option that is not there is left out", not inIds(OWNER .. ".missing"))
 end
 
 -- ===========================================================================
@@ -582,7 +598,7 @@ local SIX = { ["ZeD_Lists.lua"] = true, ["ZeD_ListsMenu.lua"] = true, ["ZeD_Equi
               ["ZeD_JournalLists.lua"] = true, ["ZeD_Restock.lua"] = true, ["ZeD_RestockPin.lua"] = true }
 local BAD = { "%f[%w_]EL%.", "%f[%w_]JL%.", "ZeD%.Lists%f[^%w_]", "ZeD%.ListsUI", "ZeD%.Restock", "ZeD_RestockPin",
               "ZeD%.EquipLoadout", "ZeD%.JournalLists", "require%s*%(?%s*[\"']ZeD/ZeD_Lists", "require%s*%(?%s*[\"']ZeD/ZeD_EquipLoadout",
-              "require%s*%(?%s*[\"']ZeD/ZeD_JournalLists", "require%s*%(?%s*[\"']ZeD/ZeD_Restock" }
+              "require%s*%(?%s*[\"']ZeD/ZeD_JournalLists", "require%s*%(?%s*[\"']ZeD/ZeD_Restock", "ZeDLoadouts" }
 local files = {}
 local root = (ROOT ~= "" and ROOT or ".\\"):gsub("/", "\\")
 local okP, pipe = pcall(io.popen, 'dir /s /b "' .. root .. '42\\media\\lua\\*.lua" 2>nul')
@@ -591,32 +607,43 @@ if okP and pipe then
     pipe:close()
 end
 check("SOURCE: the Lua files listed", #files > 100, #files)
-local hits, optHits = {}, {}
+local hits, optHits, here = {}, {}, {}
 for _, path in ipairs(files) do
     local name = path:match("([^\\/]+)$")
-    if not SIX[name] then
-        local src = readFile(path) or ""
-        local n = 0
-        for line in (src .. "\n"):gmatch("(.-)\n") do
-            n = n + 1
-            -- (comments aside: the words may say where a thing went; the code may not name it)
-            local code = line:gsub("%-%-.*$", "")
-            for _, pat in ipairs(BAD) do
-                if code:find(pat) then hits[#hits + 1] = name .. ":" .. n .. " " .. pat; break end
-            end
-            if code:find('"loadouts"', 1, true) or code:find('"restock"', 1, true) then optHits[name] = true end
+    if SIX[name] then here[#here + 1] = path end
+    local src = readFile(path) or ""
+    local n = 0
+    for line in (src .. "\n"):gmatch("(.-)\n") do
+        n = n + 1
+        -- (comments aside: the words may say where a thing went; the code may not name it)
+        local code = line:gsub("%-%-.*$", "")
+        for _, pat in ipairs(BAD) do
+            if code:find(pat) then hits[#hits + 1] = name .. ":" .. n .. " " .. pat; break end
         end
+        if code:find('"loadouts"', 1, true) or code:find('"restock"', 1, true) then optHits[#optHits + 1] = name .. ":" .. n end
     end
 end
-check("SOURCE: no ZeD file outside the six names them or requires them", #hits == 0, table.concat(hits, "; "))
--- the two option ids: only Settings.lua still makes the options (owner ZeD_UI, until the add-on owns them)
+-- (1.0, Nov 23 2026) the six went to the add-on ZeD-GUI: Loadouts (42/media/lua/client/ZeDLoadouts/ there)
+check("SOURCE: Loadouts' six files are gone from ZeD", #here == 0, table.concat(here, "; "))
+check("SOURCE: no ZeD file names them or requires them", #hits == 0, table.concat(hits, "; "))
+-- (the two option ids: Settings.lua's one-time repair keeps them in REPAIR_IDS, the ids beta 6 had; nothing else)
 local others = {}
-for name in pairs(optHits) do if name ~= "Settings.lua" then others[#others + 1] = name end end
-check("SOURCE: the option ids only where Settings.lua makes them", #others == 0, table.concat(others, ", "))
--- and the six register themselves once every file has loaded
-for _, f in ipairs({ "ZeD_EquipLoadout.lua", "ZeD_JournalLists.lua", "ZeD_ListsMenu.lua" }) do
-    check("SOURCE: " .. f .. " registers on OnGameBoot", has(readFile(Z .. f), "Events.OnGameBoot.Add("))
+for _, h in ipairs(optHits) do if not h:find("^Settings%.lua:") then others[#others + 1] = h end end
+check("SOURCE: no ZeD file but Settings.lua's old repair list names the two option ids (the add-on makes them)", #others == 0,
+    table.concat(others, ", "))
+check("SOURCE: and Settings.lua only there", #optHits <= 1, table.concat(optHits, ", "))
+-- the lists' pixel icons went with them (the add-on ships media/textures/ZeD/wheel/<size>/zw_<id>.png itself)
+local left = {}
+for _, sz in ipairs({ 16, 24, 32, 48 }) do
+    for _, id in ipairs({ "outfit", "loadout", "outfit_add", "loadout_add", "outfit_remove", "loadout_remove",
+                          "outfit_add_mk", "loadout_add_mk", "outfit_remove_mk", "loadout_remove_mk" }) do
+        local f = io.open(ROOT .. "42/media/textures/ZeD/wheel/" .. sz .. "/zw_" .. id .. ".png", "rb")
+        if f then f:close(); left[#left + 1] = sz .. "/" .. id end
+    end
 end
+check("SOURCE: the lists' pixel icons are gone from ZeD", #left == 0, table.concat(left, " "))
+local CTX = readFile(ROOT .. "42/media/lua/shared/ZeD/ContextPxIcons.lua") or ""
+check("SOURCE: ZeD's mark table colors none of their marks", not has(CTX, '"loadout_add"') and not has(CTX, '"outfit_remove"'))
 
 print("plugin_points_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end

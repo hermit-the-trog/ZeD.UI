@@ -1,8 +1,8 @@
 # ZeD-GUI add-on API (1.0)
 
-*Nov 23 2026. The plug-in points ZeD keeps stable for add-ons, with the Loadouts and outfits feature as the worked
-example: it talks to ZeD only through these (`ZeD_EquipLoadout.lua`, `ZeD_JournalLists.lua`, `ZeD_ListsMenu.lua`,
-`ZeD_Lists.lua`). The code of each point is in the file named, with the same fields in a comment block.*
+*Nov 23 2026. The plug-in points ZeD keeps stable for add-ons, with the add-on ZeD-GUI: Loadouts as the worked
+example (Loadouts, outfits and Restock left ZeD for it in 1.0; it talks to ZeD only through these, and its files are
+listed at the end). The code of each point is in the file named, with the same fields in a comment block.*
 
 An add-on is a separate mod that requires ZeD-GUI (`require=\ZeD_UI` in its `mod.info`). It never reaches into
 ZeD's private code: its `local` functions, its windows' `_fields`. It uses the calls below and the game's own hooks.
@@ -111,17 +111,19 @@ part of the card's model (kept a moment): anything it shows must move a gen when
 - `ZeD.Settings.savedValue(owner, id)`: a value ModOptions.ini had when the game started (to carry a value saved
   under another owner).
 
-Loadouts (`ZeD_Lists.lua`):
+Loadouts (`ZeDLoadouts/Options.lua`): the add-on makes its two options under its own owner, at file load, then
 
 ```lua
-ZeD.Options.addRows { owner = "ZeD_UI", into = "UI_ZeD_Options_ZedAdditions", afterRow = "hiddenFacts",
-    rows = { { "loadouts", "onoff" }, { "restock", "radio", showIf = "loadouts" } } }
-ZeD.Options.joinPreset { owner = "ZeD_UI", id = "loadouts", presets = { 1, 2, 2 }, wasOn = 2 }
-ZeD.Options.joinPreset { owner = "ZeD_UI", id = "restock", presets = { nil, 2, 3 } }
+ZeD.Options.addRows { owner = "ZeDLoadouts", into = "UI_ZeD_Options_ZedAdditions", afterRow = "hiddenFacts",
+    rows = { { "loadouts", "onoff", default = 1, nameKey = "UI_ZeD_Settings_Loadouts", tipKey = "UI_ZeD_Settings_LoadoutsTip" },
+             { "restock", "radio", default = 2, showIf = "loadouts", nameKey = "UI_ZeD_Settings_Restock",
+               tipKey = "UI_ZeD_Settings_RestockTip" } } }
+ZeD.Options.joinPreset { owner = "ZeDLoadouts", id = "loadouts", presets = { 1, 2, 2 }, wasOn = 2 }
+ZeD.Options.joinPreset { owner = "ZeDLoadouts", id = "restock", presets = { nil, 2, 3 } }
 ```
 
-(The two options are still made by ZeD's `Settings.lua` under ZeD's owner until Loadouts ships as its own mod; then
-the add-on makes them under its own owner and carries the player's values with `savedValue("ZeD_UI", "loadouts")`.)
+Before 1.0 ZeD's own `Settings.lua` made the two under ZeD's owner. The add-on carries a player's values once: while
+`ZeD.Settings.savedValue("ZeDLoadouts", id)` is nil and `savedValue("ZeD_UI", id)` holds a number, it sets that.
 
 ### Pixel icons (`Atoms.lua`)
 
@@ -144,3 +146,29 @@ stays after the press, for ticking boxes); Loadouts' item-card pop-up uses all t
 `ZeD.ContainerGates.add`, `ZeD.ContainerGroups.add`, `ZeD.SkillsTab.addExtras`, `ZeD.HealthTab.addExtras`,
 `ZeD.MapsTab.addExtension`, `ZeD.ItemFactsPanel.register`, `ZeD.ObjectCards.register`. `docs/reference/HOOK_MAP.md`
 lists them with the mods that use them.
+
+## The worked example: ZeD-GUI: Loadouts
+
+A separate mod since 1.0 (folder `ZeD-Loadouts`, `id=ZeDLoadouts`, `require=\ZeD_UI`). Its Lua lives in
+`42/media/lua/client/ZeDLoadouts/` (not `client/ZeD/`: a file at the same path as one of ZeD's would shadow it or
+be shadowed), and every file starts with the version check, so with ZeD missing or older than 1.0 it does nothing and
+says so once in the console:
+
+```lua
+require "ZeDLoadouts/Options"
+if not ZeDLoadouts.ready() then return end   -- ZeD.API.VERSION 1 or later
+```
+
+| File | What it is | The points it uses |
+|---|---|---|
+| `Options.lua` | the check, the two options (`loadouts`, `restock`), the carry from ZeD's owner | `ZeD.Options.addRows`, `joinPreset`, `ZeD.Settings.savedValue` |
+| `ZeD_Lists.lua` | the lists' data and rules, kept in the character's mod data (`ZeD_Lists`) | none (data only) |
+| `ZeD_ListsMenu.lua` | right-click Save to loadout / outfit, the item card's Lists mark and "In lists" section | the right-click rows' `zedPx` / `zedCategory` / `zedCheck`, `ZeD_ContextList`, `ZeD.ItemCard.addMark` / `addSection` / `addGen`, `ZeD.PxIcon.addWarm` / `addMark` |
+| `ZeD_EquipLoadout.lua` | the Equip tab's Loadouts fold, the to-do, the doll's missing pieces, the Loadouts ring | `ZeD.EquipmentTab.addSection` (with a takeover), `ZeD.EquipDoll.addOverlay`, `ZeD.DpadWheels.addSlice` / `openCharTab` |
+| `ZeD_JournalLists.lua` | the Journal's Loadouts page | `ZeD.JournalTab.addPage` / `openPage`, `ZeD.Popups` |
+| `ZeD_Restock.lua` | Restock and Unpack: the plan and the game's own timed actions | none (the game's actions) |
+| `ZeD_RestockPin.lua` | the pinned to-do while a run goes | ZeD's atoms |
+
+Its words are in its own `42/media/lua/shared/Translate/<LANG>/UI.json` (the game merges every mod's), its six pixel
+icons in its own `42/media/textures/ZeD/wheel/<size>/zw_<id>.png` (ZeD.PxIcon finds them through the game's merged
+files), and its tests in `tests/` (run against ZeD with `ZED_ROOT` set).

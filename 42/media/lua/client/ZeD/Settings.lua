@@ -252,16 +252,6 @@ equipView:addItem(ZeD.tr("UI_ZeD_Settings_ViewList"), true)  -- default: the lis
 equipView:addItem(ZeD.tr("UI_ZeD_Settings_ViewDoll"), false)
 ZeD.Settings.equipViewOption = equipView
 
--- ----- RESTOCK -----
--- How the Equip tab's Restock and Unpack go (ZeD_Restock.lua reads it each time): Hardcore takes
--- from what is in reach now, Casual (the default) as containers come into reach, Accessible walks
--- the building for you. The choice lives here, never in a first-run question.
-local restock = opts:addComboBox("restock", ZeD.tr("UI_ZeD_Settings_Restock"), ZeD.tr("UI_ZeD_Settings_RestockTip"))
-restock:addItem(ZeD.tr("UI_ZeD_Settings_RestockHardcore"), false)
-restock:addItem(ZeD.tr("UI_ZeD_Settings_RestockCasual"), true)   -- default
-restock:addItem(ZeD.tr("UI_ZeD_Settings_RestockAccessible"), false)
-ZeD.Settings.restockOption = restock
-
 -- ----- THE OTHER VIEW CHOICES: all lists or all grids for the most used
 -- menus -----
 -- The inventory's view for every container that hasn't one of its own (each
@@ -571,18 +561,9 @@ ZeD.Settings.hiddenActions = function()
     return (ok and hiddenKeys[tonumber(i) or 1]) or "folded"
 end
 
--- ----- LOADOUTS AND OUTFITS (one switch for all of it; Restock follows
--- Loadouts) -----
--- The Equip tab's Loadouts fold and its to-do, the Journal's Loadouts page, the item card's Lists mark, the
--- right-click Save to outfit / Save to loadout, the controller's Loadouts ring, and Restock with its pinned
--- list. Off hides them all and Restock does nothing; the saved loadouts and outfits stay with the character,
--- so turning it back on brings every one back. Each place asks ZeD.Lists.on() as it draws, so a change applies
--- at once. Off for a new player; a player who had ZeD before this switch keeps it on (see the additions, below).
-local loadouts = opts:addComboBox("loadouts", ZeD.tr("UI_ZeD_Settings_Loadouts"), ZeD.tr("UI_ZeD_Settings_LoadoutsTip"))
-loadouts:addItem(getText("UI_Off"), true)   -- default
-loadouts:addItem(getText("UI_On"), false)   -- (item 1 Off, item 2 On: ZeD setup's on/off switch)
-ZeD.Settings.loadoutsOption = loadouts
-ZeD.Settings.loadoutsOn = function() return (loadouts:getValue() or 1) == 2 end
+-- (1.0, Nov 23 2026) Loadouts and outfits, and Restock, are the add-on ZeD-GUI: Loadouts now: it makes the two
+-- options under its own owner (ZeDLoadouts) and carries a player's saved "loadouts" and "restock" from ZeD_UI's
+-- lines with ZeD.Settings.savedValue, below.
 
 -- ----- THE ADDITIONS' PRESET -----
 -- Vanilla (a new player's start), Vanilla Plus, Vanilla Accessible, or Custom: what the switches for the things
@@ -802,7 +783,7 @@ ZeD.Settings.uiSoundVolume = function() return uiSoundKeys[liveIdx(uiSounds) or 
 
 -- ----- ADDITIONAL APPLIANCE SUPPORT (Nov 15 2026, appliances) -----
 -- Makes more of the game's appliances work, the espresso machine first (Appliances.lua reads it each time a menu or
--- the A prompt is built, so a change applies at once). An addition, shown with Restock in ZeD setup, and off in every
+-- the A prompt is built, so a change applies at once). An addition, shown in ZeD setup's Additions group, and off in every
 -- preset, Vanilla Plus included: a player gets it only by switching it on. Off, ZeD adds nothing to any appliance.
 local appliances = onSwitch("appliances", "UI_ZeD_Settings_Appliances", "UI_ZeD_Settings_AppliancesTip")
 ZeD.Settings.appliancesOption = appliances
@@ -833,7 +814,7 @@ do
         sandboxInGame = "UI_ZeD_Settings_SandboxIG", dimRead = "UI_ZeD_Settings_DimRead",
         ammoBox = "UI_ZeD_Settings_AmmoBox", readMarks = "UI_ZeD_Settings_ReadMarks", readNext = "UI_ZeD_Settings_ReadNext",
         dashLamps = "UI_ZeD_Settings_DashLamps", moodleNotices = "UI_ZeD_Settings_MoodleNotices",
-        loadouts = "UI_ZeD_Settings_Loadouts", additionsPreset = "UI_ZeD_Settings_Preset",
+        additionsPreset = "UI_ZeD_Settings_Preset",
         screenWindows = "UI_ZeD_Settings_ScreenWindows", screenBelt = "UI_ZeD_Settings_ScreenBelt",
         screenWatch = "UI_ZeD_Settings_ScreenWatch", screenDashboard = "UI_ZeD_Settings_ScreenDashboard",
         screenMoodles = "UI_ZeD_Settings_ScreenMoodles", screenWheels = "UI_ZeD_Settings_ScreenWheels",
@@ -847,9 +828,9 @@ do
         autoLearn = "UI_ZeD_Settings_AutoLearn", runSneak = "UI_ZeD_Settings_RunSneak",
         uiSounds = "UI_ZeD_Settings_UiSounds",
         appliances = "UI_ZeD_Settings_Appliances",
-        -- (QA B10-1) Style, Map and Restock had no entry, so they had no default: Defaults skipped them and the help
+        -- (QA B10-1) Style and Map had no entry, so they had no default: Defaults skipped them and the help
         -- band showed no "Default:" for them
-        lookStyle = "UI_ZeD_Settings_LookStyle", mapLight = "UI_ZeD_Settings_MapLight", restock = "UI_ZeD_Settings_Restock",
+        lookStyle = "UI_ZeD_Settings_LookStyle", mapLight = "UI_ZeD_Settings_MapLight",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]

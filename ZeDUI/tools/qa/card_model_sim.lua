@@ -8,7 +8,8 @@
 -- Every frame each card draws into its own log (every draw call and every molecule's arguments, tables written out
 -- whole). The logs must match frame by frame, across: steady frames; condition; uses; fluid; rounds; a bite eaten;
 -- the pages read; a bag's contents; worn, then dropped on the ground, then into a crate (the item moving container);
--- a mark set from the card; a loadout changed and the Loadouts switch; an action starting, ticking, turning
+-- a mark set from the card; a loadout changed with no Loadouts add-on (1.0: the card stays as it is; the add-on's
+-- tests/card_lists_sim.lua has the Lists mark); an action starting, ticking, turning
 -- dangerous and ending (ItemActionManager); a mod registering a facts panel; the language; the test language; the
 -- theme and the text size (a new ZeD.T); a fold toggled; another item set and back; the drawer narrowed.
 -- Then it counts the calls into the game (each item, player or container getter) and the ZeD.tr calls per frame,
@@ -563,28 +564,14 @@ else
 end
 section("NEW: the card files in the working tree")
 local NEW = newEnv("NEW", newSrc, clock)
--- (Nov 23 2026, the 1.0 plug-in points) the Lists mark, the "In lists" section and the lists' generations left the
--- card files: Loadouts registers them (ZeD_ListsMenu.lua's LU.register, ZeD.ItemCard.addMark / addSection / addGen).
--- The new card gets them as the game does, the real functions cut from ZeD_ListsMenu.lua run on the same stubs, so
--- the comparison with the old card (which drew them itself) still holds frame by frame.
-do
-    local lm = readFile("42/media/lua/client/ZeD/ZeD_ListsMenu.lua") or ""
-    Lists.ICON = Lists.ICON or { loadout = "loadout", outfit = "outfit" }   -- (the mark's icon id: ZeD_Lists.lua's L.ICON)
-    local parts = { "local L, LU = ZeD.Lists, ZeD.ListsUI\n" }
-    for _, fn in ipairs({ "function LU.markState(", "function LU.markActivate(", "function LU.drawInLists(", "function LU.register()" }) do
-        local c = cut(lm, fn, "\nend\n")
-        check("plug-in: ZeD_ListsMenu.lua has " .. fn, c ~= nil)
-        parts[#parts + 1] = c or ""
-    end
-    local f, err = loadstring(table.concat(parts) .. "LU.register()\n", "=NEW:ZeD_ListsMenu.lua (cut)")
-    check("plug-in: Loadouts' card parts load", f ~= nil, err)
-    if f then
-        setfenv(f, NEW)
-        local ok, e = pcall(f)
-        check("plug-in: Loadouts registers its mark, section and gens on the new card", ok and NEW.ZeD.ItemCard._marks.byId.lists ~= nil
-            and NEW.ZeD.ItemCard._sections.byId.lists ~= nil and #NEW.ZeD.ItemCard._gens.list == 2, e)
-    end
-end
+-- (Nov 23 2026, 1.0) Loadouts left ZeD for its own add-on, ZeD-GUI: Loadouts, which registers the Lists mark, the
+-- "In lists" section and the lists' generations through ZeD.ItemCard.addMark / addSection / addGen (its
+-- tests/card_lists_sim.lua compares that card with the old one). Here ZeD runs alone: nothing is registered on the new
+-- card, and the old card (which drew them itself) runs with the Loadouts switch held off (LISTS.on, below), so the
+-- frames must match a card with no Lists mark and no "In lists" section.
+LISTS.on = false
+check("ZeD alone: no mark, section or generation registered on the new card", NEW.ZeD.ItemCard._marks.byId.lists == nil
+    and NEW.ZeD.ItemCard._sections.byId.lists == nil and #NEW.ZeD.ItemCard._gens.list == 0)
 check("the old files are not the new ones (the comparison means something)",
     not haveBase or oldSrc[2].src ~= newSrc[2].src)
 check("the new card keeps a model", type(NEW.ZeD_ItemCard._cardModel) == "function")
@@ -778,8 +765,8 @@ NEW.ZeD.ActionStrip.setState(ITEMS.shirt, "unwanted", true, 0);  frames3("shirt:
 NEW.ZeD.ActionStrip.setState(ITEMS.shirt, "protect", true, 0);   frames3("shirt: no craft")
 LISTS.hits[ITEMS.shirt] = { { list = { name = "Raid" }, line = { place = "worn", rule = "any" } } }
 Lists.gen = Lists.gen + 1;                    frames3("shirt: put on a loadout")
-LISTS.on = false;                             frames3("Loadouts and outfits off")
-LISTS.on = true;                              frames3("Loadouts and outfits on")
+-- (1.0: the switch is the add-on's; with ZeD alone it stays off, and a list changing moves nothing on the card)
+frames3("Loadouts and outfits off (ZeD alone)")
 
 section("Actions (ItemActionManager)")
 setItem(ITEMS.book)

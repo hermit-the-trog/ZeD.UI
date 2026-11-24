@@ -10,7 +10,7 @@
 --         with one radio), A shows that radio; no "< Secondary (1) >" pager left (drawDrawerInternalHeader)
 --       * Vehicle: a tab per vehicle ("mech:veh:<n>" stamps, a press shows it, list from the top, no part chosen);
 --         no pager, no "mech:prev" / "mech:next"
---       * Journal: the pages as tabs ("jtab:<page>" stops; A or a press opens the page; Loadouts only while on);
+--       * Journal: the pages as tabs ("jtab:<page>" stops; A or a press opens the page; an add-on's page only while it shows);
 --         no "Page: Journal" pop-up (UI_ZeD_Journal_PagePick) and no modal page list
 --   C1  Journal and Maps open with the tab's title (drawTabHeader); the Journal's search sits at its title's right;
 --       the Maps pop-out (its own window title) has none
@@ -325,12 +325,12 @@ ZeD.JournalReaders = { beginFrame = function() end, listOpen = function() return
     searchVisible = function() return false end, searchHint = function() return "" end,
     renderNotebooks = function() end, renderPapers = function() end }
 ZeD.CraftingCore = {}
-ZeD.Lists = { on = function() return true end }
--- (Nov 23 2026, the 1.0 plug-in points) the Loadouts page is an add-on's now: ZeD's add-on API, then the page
--- registered as ZeD_JournalLists.lua's JL.register does it (ZeD.JournalTab.addPage, shown while the switch is on)
+-- (Nov 23 2026, the 1.0 plug-in points) a fifth page is an add-on's (ZeD-GUI: Loadouts' page left ZeD with it): ZeD's
+-- add-on API, then a test page registered as an add-on does (ZeD.JournalTab.addPage, shown while its switch is on)
+local testPageOn = true
 dofile(SRC .. "ZeD_AddonAPI.lua")
 dofile(SRC .. "JournalTab.lua")
-ZeD.JournalTab.addPage("loadouts", { key = "UI_ZeD_Journal_TabLoadouts", order = 10, visible = function() return ZeD.Lists.on() end,
+ZeD.JournalTab.addPage("testpage", { key = "UI_Test_PageTab", order = 10, visible = function() return testPageOn end,
     listOpen = function() return false end, shutList = function() end, placeSearch = function() end, render = function() end })
 require = realRequire
 local JT = ZeD.JournalTab
@@ -347,7 +347,7 @@ check("Journal renders", ok, err)
 -- (Nov 20 2026, QA's visual noise audit 3: no title word over the pages, the title bar names the tab; the row is the
 -- search's)
 check("Journal: the header row carries no title word", headers[1] == "", headers[1])
-check("Journal: five page tabs (Loadouts on)", #tabsDrawn == 5, #tabsDrawn)
+check("Journal: five page tabs (the add-on's page shown)", #tabsDrawn == 5, #tabsDrawn)
 check("Journal: Notebooks is the open tab", tabsDrawn[2] and tabsDrawn[2].active == true)
 local stops = JT.headerFocusables(jw)
 check("Journal: a stop per tab", #stops == 5 and stops[4].id == "jtab:4", stops[4] and stops[4].id)
@@ -356,10 +356,10 @@ check("Journal: A on Recipes opens it", jw._journalSubTab == 4, jw._journalSubTa
 local z = jw._journalTabZones[3]
 check("Journal: a press on Papers opens it", JT.onHeaderClick(jw, z.x + 2, z.y + 2) == true and jw._journalSubTab == 3, jw._journalSubTab)
 check("Journal: no page list to hold the pad", JT.pageMenuOpen(jw) == false)
-ZeD.Lists.on = function() return false end
+testPageOn = false
 tabsDrawn = {}
 pcall(JT.render, p, jw, 0, 0, 480, 400)
-check("Journal: Loadouts off, four tabs", #tabsDrawn == 4, #tabsDrawn)
+check("Journal: the add-on's page hidden, ZeD's four tabs", #tabsDrawn == 4, #tabsDrawn)
 local jsrc = read(SRC .. "JournalTab.lua")
 check("Journal: no Page: pop-up", not has(jsrc, "UI_ZeD_Journal_PagePick") and not has(jsrc, "drawPopupMenu(panel, bx, rowY"))
 check("Journal: the kills head is the one section style", not has(jsrc, "drawSectionHeader") and has(jsrc, "M.drawCategoryRow(panel, x, curY, drawW, getText(\"IGUI_char_Zombies_Killed\")"))
