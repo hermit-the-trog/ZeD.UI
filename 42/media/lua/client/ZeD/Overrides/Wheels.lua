@@ -250,6 +250,20 @@ local function hookRoutes()
             return orig(character)
         end
     end
+    -- ... and its restore on load: the game registers the search window with its layout manager
+    -- (ISLayoutManager.RegisterWindow('ISSearchWindow', ...), Lua/layout.ini), and a saved visible=true put it back on
+    -- screen at every load, past the route above. ZeD keeps the place and size the game restores and hides the window
+    -- (the next save writes visible=false); Safe mode keeps the game's own restore. (QA, Nov 24 2026; the director:
+    -- "Both (1 and 2)")
+    if ISSearchWindow and not ISSearchWindow._zedRestore then
+        ISSearchWindow._zedRestore = true
+        local origRestore = ISSearchWindow.RestoreLayout
+        ISSearchWindow.RestoreLayout = function(self, name, layout)
+            if origRestore then origRestore(self, name, layout) end
+            if ZeD.Safe.on("wheels") then return end
+            if self and self.setVisible then self:setVisible(false) end
+        end
+    end
     -- the livestock zone panel (D-pad Right's Designated Zones, the screen icons): the Animals tab
     if ISDesignationZonePanel and ISDesignationZonePanel.toggleZoneUI and not ISDesignationZonePanel._zedRoute then
         ISDesignationZonePanel._zedRoute = true
