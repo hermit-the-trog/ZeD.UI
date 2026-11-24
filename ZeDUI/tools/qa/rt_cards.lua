@@ -505,11 +505,17 @@ Q.waitFor(2, 120, function() return H.ctxMenu() ~= nil end, function(ok)
 end)
 
 -- Eat: A held on the card's Eat (the game's ISEatFoodAction)
-Q.step(10, function() end)
+-- (QA, Nov 23 2026: other runs that eat leave him full, the card then reads "Eat more" and the game queues nothing:
+-- he is made a little hungry for this step and his hunger put back after it)
+Q.step(10, function()
+    pcall(function() S.hungerWas = S.p:getStats():get(CharacterStat.HUNGER) end)
+    pcall(function() S.p:getStats():set(CharacterStat.HUNGER, 0.3) end)
+end)
 H.queueVerb("EAT", "eat", 600)
 Q.waitFor(2, 120, function() return H.queueHead() == "ISEatFoodAction" end, function(ok)
     Q.check(ok, "eat: A held on Eat queues the game's own eat (ISEatFoodAction)", H.queueHead())
     H.stopActions()
+    if S.hungerWas ~= nil then pcall(function() S.p:getStats():set(CharacterStat.HUNGER, S.hungerWas) end) end
 end)
 
 -- ===================================================================== item card: the mouse

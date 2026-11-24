@@ -166,7 +166,7 @@ function H.wtOf(c, it)
     return it:getUnequippedWeight() or 0
 end
 -- the rows (an open stack's own rows skipped) in the key's order: InventoryRenderer's sortItems and buildItemModel.
--- (Nov 22 2026, KISS #11: in the character's own list the worn and held group, catOf "zed:worn", stands first whichever
+-- (Nov 22 2026, KISS #11; Nov 23: last, fix/wornlast: in the character's own list the worn and held group, catOf "zed:worn", stands last whichever
 -- way the rest is sorted and is in the key's order among itself; the other rows start their own order after it)
 function H.order(c, key, asc)
     local IR, IM = ZeD.InventoryRenderer, ZeD.ItemMeter
@@ -178,8 +178,10 @@ function H.order(c, key, asc)
         if not (c._childParent and c._childParent[it]) then
             n = n + 1
             local worn = (WK ~= nil and c._catOf ~= nil and c._catOf[it] == WK) and true or false
-            if worn and inWorn == false then return false, tostring(it:getName()) .. " (worn or held) after the other rows" end
-            if inWorn == true and not worn then prev = nil end
+            -- (the director, Nov 23 2026, fix/wornlast: "Items in the inventory not worn or held should be above items worn or
+            -- held ... Just like the vanilla game does it": the worn and held group now ends the list)
+            if (not worn) and inWorn == true then return false, tostring(it:getName()) .. " (not worn) after the worn and held rows" end
+            if inWorn == false and worn then prev = nil end
             inWorn = worn
             local k, nm = nil, it:getName() or ""
             if key == "name" then k = string.lower(nm)

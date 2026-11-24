@@ -1485,12 +1485,12 @@ function S.case8()
         -- (QA, Nov 23 2026, after the first run: a car's trunk was not listed from its area at CarNormal; the pickup, whose bed
         -- bx_inventory reaches from the bed's area centre, stands in for the trunk. A trunk door, if any, opened and unlocked)
         pcall(function()
-            local d = T.car:getPartById("TrunkDoor"):getDoor()
-            d:setLocked(false)
-            d:setOpen(true)
+            local part = T.car:getPartById("TrunkDoor")
+            local d = part and part:getDoor()
+            if d then d:setLocked(false); d:setOpen(true) end
         end)
         local c = nil
-        pcall(function() c = T.car:getAreaCenter(T.car:getPartById("TruckBed"):getArea()) end)
+        pcall(function() local bed = T.car:getPartById("TruckBed"); if bed then c = T.car:getAreaCenter(bed:getArea()) end end)
         if c then pcall(function() S.p:teleportTo(c:getX(), c:getY(), 0) end) end
         T.atTrunk = c ~= nil
         pcall(function() RT.ww()._containerTimer = 30 end)
@@ -1516,7 +1516,7 @@ function S.case8()
         if not T.seated then Q.skip("8 car, seated", "the character could not be seated: " .. tostring(why or okE)) return end
         pcall(function()
             local door = T.car:getPassengerDoor(T.car:getSeat(S.p))
-            pcall(function() door:getDoor():setOpen(false) end)
+            pcall(function() local dd = door and door:getDoor(); if dd then dd:setOpen(false) end end)
             pcall(function() VehicleUtils.getChildWindow(door):getWindow():setOpen(false) end)
         end)
         pcall(function() RT.ww()._containerTimer = 30 end)
