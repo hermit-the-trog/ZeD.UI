@@ -506,7 +506,9 @@ Q.waitFor(5, 300, function() return MM.pauseOpts ~= nil and MM.pauseOpts:isVisib
     local copies = {}
     for _, r in ipairs(w:zedSetupRows() or {}) do
         local nm = r.setupCopy and r.opt and r.opt.name
-        if nm and not tostring(nm):find("ZeD_UI.", 1, true) then copies[#copies + 1] = nm end   -- (ZeD's own rows are ModOptions "ZeD_UI.<id>")
+        -- (ZeD's own rows are ModOptions "ZeD_UI.<id>", an add-on's "<its mod id>.<id>" (ZeD-GUI: Loadouts'
+        -- "ZeDLoadouts.loadouts", Nov 24): a ModOptions name has a dot, a game setting's never does)
+        if nm and not tostring(nm):find(".", 1, true) then copies[#copies + 1] = nm end
     end
     Q.check(#copies == 0 and origs.fontSize ~= nil, "ZeD setup: no copies of the game's settings; Font size is in its own group",
         #copies .. " copies" .. ((#copies > 0) and (": " .. table.concat(copies, " ")) or "") .. ", Font size row " .. tostring(origs.fontSize ~= nil))

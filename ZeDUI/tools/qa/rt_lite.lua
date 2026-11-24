@@ -45,8 +45,18 @@ local St, M, MM = ZeD.Settings, ZeD.Molecules, ZeD.MainMenu
 
 -- ===================================================================== helpers
 function H.opts() local zo = nil; pcall(function() zo = PZAPI.ModOptions:getOptions("ZeD_UI") end); return zo end
-function H.opt(id) local zo = H.opts(); return zo and zo.dict and zo.dict[id] or nil end
-function H.val(id) local o = H.opt(id); local v = nil; pcall(function() v = o:getValue() end); return v end
+-- (an add-on's joined addition is keyed "<its mod id>.<id>" (ZeD-GUI: Loadouts' "ZeDLoadouts.loadouts", Nov 24):
+-- read from that mod's own options; never index a missing option, even in a pcall: -debug logs it as a Lua error)
+function H.opt(id)
+    local owner, key = tostring(id):match("^([^%.]+)%.(.+)$")
+    if owner then
+        local zo = nil
+        pcall(function() zo = PZAPI.ModOptions:getOptions(owner) end)
+        return zo and zo.dict and zo.dict[key] or nil
+    end
+    local zo = H.opts(); return zo and zo.dict and zo.dict[id] or nil
+end
+function H.val(id) local o = H.opt(id); if o == nil then return nil end; local v = nil; pcall(function() v = o:getValue() end); return v end
 function H.menuUp()
     local up = false
     pcall(function() up = MainScreen.instance ~= nil and MainScreen.instance:isVisible() end)

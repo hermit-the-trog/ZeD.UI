@@ -619,8 +619,14 @@ function S.build5()
         local w = S.w()
         local a = nil
         if w then pcall(function() a = w:_surfaceAlpha(ZeD.T) end) end
+        -- (Nov 24: still ghosted on two runs: the detail says whether the pointer stand-in is on this window)
+        local hooked = w ~= nil and rawget(w, "isMouseOver") == S.fakeOver
+        local over, now = nil, nil
+        if w then pcall(function() over = w:isMouseOver() end); pcall(function() now = w:_ghostNow() end) end
         Q.check(w ~= nil and w._ghost == false and S.inkN == 0, "5 ghost: the pointer on it brings it back at once (the next frame)",
-            "_ghost " .. tostring(w and w._ghost) .. ", _surfaceAlpha " .. tostring(a) .. ", C.inkText calls " .. tostring(S.inkN))
+            "_ghost " .. tostring(w and w._ghost) .. ", _surfaceAlpha " .. tostring(a) .. ", C.inkText calls " .. tostring(S.inkN)
+            .. "; stand-in on it " .. tostring(hooked) .. ", isMouseOver " .. tostring(over) .. ", _ghostNow " .. tostring(now)
+            .. ", same window " .. tostring(w == C.win))
         S.over = false
     end)
     -- a press on a tab of the ghosted window lands
