@@ -1334,7 +1334,10 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, ammo, two)
         boxes[#boxes + 1] = watchBox
         x = x + mw
     end
-    x = x + px(END_GAP)
+    -- the hands and the belt are set apart by the same icon's gap as the bag button and the speed keys (the
+    -- director, Nov 23 2026: "Add a space between primary and the belt ... watch, secondary, primary, watch, space,
+    -- belt"; every group's space even)
+    x = x + px(B.ICON_GAP)
     if B.simple() then
         -- the Simple belt: the slots evenly spaced after the hands, no strap and no buckle. The middle of the slots
         -- goes on the screen's centre, as Full's buckle does (centred on its own width, a second
@@ -2088,7 +2091,8 @@ function ZeD_BeltHUD:_tailBoxes(boxes, x, h)
     local T = ZeD.T
     local px = T.px
     if self._tailChat then
-        x = x + px(END_GAP)
+        -- (the speed keys and the chat key: the row's even group space, the director, Nov 23 2026)
+        x = x + px(B.ICON_GAP)
         local lw = px(LAMP)
         boxes[#boxes + 1] = { kind = "chat", x = x, y = math.floor((h - lw) / 2), w = lw, h = lw }
         x = x + lw
