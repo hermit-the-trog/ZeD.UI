@@ -13,10 +13,10 @@ Writes 42/media/textures/ZeD/mainmenu/icons/<name>.png:
   options   Options (the control panel)         mods      Mods (a folder with a gear)
   trash     the Trash (full: there is a file in it)
   computer  the Computer (inside the Trash: the old joke of throwing the computer away)
-  uploader  the Mod Uploader (the Workshop window: the Mods folder with an up arrow)
+  uploader  the Mod Uploader (the Workshop window: a satellite dish beaming its waves, Nov 23 2026)
   cletusworks  CletusWorks, the notepad (a page of handwriting and a pencil)
   note      a CletusWorks document on the desktop (a page of typed lines)
-  mail      ProtoPOP3 Mail (an envelope and its stamp under a modem's waves)
+  mail      ProtoPOP3 Mail (a rural mailbox on its post, the red flag up, Nov 23 2026)
   documents Documents (the lilac folder with two pages showing: the notepad's notes)
   pasties   Pasties, the sticky notes (a pad of yellow notes, the top one's corner lifting: Nov 10 2026)
 
@@ -240,37 +240,73 @@ def icon_computer():
     return ic
 
 
-GN = (90, 170, 90, 255)       # an arrow's lit green
-GND = (40, 100, 40, 255)      # its shade
+# Drawn pixel by pixel (Nov 23 2026): a letter a pixel, '.' clear. The two icons that had a modem's waves drawn in
+# black and dark grey (the director: "the signal indicator on those icons cannot be read on the desktop or any dark
+# surface") are pictures that need no waves of their own to read, or carry them in white with a black edge.
+GRID = {"K": K, "W": W, "L": L, "M": M, "D": D, "R": R, "B": BR,
+        "m": (178, 178, 178, 255),    # between light and mid grey
+        "n": (120, 120, 120, 255),    # between mid and dark grey
+        "r": (130, 36, 28, 255),      # the flag's shade
+        "w": (186, 140, 92, 255),     # the post's lit face
+        "b": (100, 66, 40, 255)}      # the post's shade
 
 
-def up_arrow(ic, cx, top, h, half=4, shaft=2):
-    """a fat up arrow: a triangle head (half wide each side) over a shaft, a 1-px black outline"""
-    for i in range(half + 1):
-        ic.hline(cx - i, cx + i, top + i, K)
-        if i > 0:
-            ic.hline(cx - i + 1, cx + i - 1, top + i, GN)
-    yb = top + half + 1
-    ic.hline(cx - half, cx + half, yb, K)
-    ic.box(cx - shaft, yb, cx + shaft, top + h, GN)
-    ic.vline(cx + shaft - 1, yb + 1, top + h - 1, GND)
+def from_grid(rows):
+    """an icon from its letter rows (32 of 32)"""
+    assert len(rows) == 32 and all(len(r) == 32 for r in rows), "32 rows of 32"
+    ic = Icon()
+    for y, row in enumerate(rows):
+        for x, c in enumerate(row):
+            if c != ".":
+                ic.p(x, y, GRID[c])
+    return ic
+
+
+# the Mod Uploader (the director, Nov 23 2026: "can mod upload be a satellite dish beaming a signal", then "the
+# satellite just needs a fidelity pass"): the dish on its mount, tipped up to the right. You see into the bowl:
+# dark under its lit upper-left lip, lighter down at its lower right, the rim's thickness lit along the upper left.
+# The feed horn sits at the focus on an arm out of the dish's middle; three waves go out of the horn, white with a
+# black edge so they read on the desktop, a dark window and a light one. The mount: a bracket on the dish's back, a
+# pole and its foot.
+DISH = [
+    ".....................KKWWWKKK...",
+    "......................KKKWWWKK..",
+    "....................KKKKKKKWWKK.",
+    "....................KWWKKKKKWWKK",
+    "....................KKWWWKKKKWWK",
+    ".....................KKKWWKKKKWK",
+    "...................KKKKKKWWKKKWW",
+    "...................KWWKKKKWWKKKW",
+    "......KK...........KKWWWKKKWKKKW",
+    "....KKWWKKK.........KKKWKKKWWKKK",
+    "....KWMMWWWKK.........KWWKKKWK.K",
+    "....KWMMMMnWWK........KKWK.KKK..",
+    "....KWMMMnnnnWK.KKKK...KKK......",
+    "....KWMMnnnnnmWKKLMK............",
+    ".....KWnnnnnmmmWKMMK............",
+    ".....KWnnnnmmKDDKKKK............",
+    "......KLnnmKDDmmLK..............",
+    "......KLnmmmmmmLLK..............",
+    ".......KLmmmmmLLLmK.............",
+    ".......KKLmmmLLLLmK.............",
+    ".......KMKLLLLLLLmK.............",
+    ".......KDDKKLmmLLmK.............",
+    ".......KDDDDKKKmmKK.............",
+    ".......KKKKKK..KK...............",
+    "........KLmK....................",
+    "........KLmK....................",
+    "........KLmK....................",
+    "........KLmK....................",
+    "....KKKKKKKKKKKK................",
+    "....KMMMMMMMMMMK................",
+    "....KDKDDDDDDKDK................",
+    "....KKKKKKKKKKKK................",
+]
 
 
 def icon_uploader():
-    """the Mod Uploader (the Workshop window; Oct 25 2026, the director's pick of three: "C: Mods folder
-    sent up"): the Mods icon's lilac folder, an up arrow out of it and a modem's waves"""
-    import math
-    ic = Icon()
-    ic.box(3, 10, 11, 14, F)                      # the folder's tab, then its body
-    ic.box(3, 13, 25, 29, F)
-    ic.hline(4, 10, 11, W); ic.hline(4, 24, 14, W)
-    ic.rect(4, 26, 24, 28, FD)
-    for i, r in enumerate((3, 6, 9)):             # the waves, top right
-        for a in range(0, 91, 6):
-            ic.p(22 + int(round(r * math.cos(math.radians(a)))), 10 - int(round(r * math.sin(math.radians(a)))), K if i != 1 else D)
-    ic.rect(21, 9, 22, 10, K)
-    up_arrow(ic, 14, 1, 21, half=5, shaft=2)
-    return ic
+    """the Mod Uploader: the dish beaming (DISH)"""
+    return from_grid(DISH)
 
 
 PK = (230, 150, 160, 255)     # an eraser's pink
@@ -320,21 +356,51 @@ def icon_note():
     return ic
 
 
+# ProtoPOP3 Mail (the director, Nov 23 2026: "The email icon should just be an icon of a mailbox with a red flag up",
+# then, of a side-on box, "Mailbox looks a little too much like an upside down taco"): a rural mailbox in three-
+# quarter view, so its own shape shows. The door, the arch, faces us at the left, lit at its top and left, its latch
+# high on it. The round roof (lit along its top) and the flat near side (mid grey, darker at its foot) go back and a
+# little up to the round back at the right. The red flag is up on the near side toward the back, its plate pointing
+# back, clear of the roof. The wooden post stands under the middle of the box.
+MAILBOX = [
+    "......................KKKKKKKKK.",
+    "......................KRRRRRRrK.",
+    "......................KRRRRRRrK.",
+    "......................KRRRRRRrK.",
+    "......................KRRRRRRrK.",
+    "......................KrrrrrrrK.",
+    "......................KKKKKKKKK.",
+    "......................KRK.......",
+    "...................KKKKRK.......",
+    "...............KKKKWWWKRKKK.....",
+    "...........KKKKWWWWLLLKRKWK.....",
+    "....KKKKKKKWWWWLLLLLLLKRKLLK....",
+    "..KKWWWWWKKLLLLLLLLLLLKRKmmK....",
+    "..KWWWLLLWKLLLLLLLLLmmKRKMMK....",
+    ".KWLLKKKLLmKLLLmmmmmMMKRKMMK....",
+    ".KWLLLLLLLmKmmmMMMMMMMKRKMMK....",
+    ".KWLLLLLLLmKMMMMMMMMMMKKKMMK....",
+    ".KWLLLLLLLmKMMMMMMMMMMKRKMMK....",
+    ".KWLLLLLLLmKMMMMMMMMMMKKKMMK....",
+    ".KWLLLLLLLmKMMMMMMMMMMMMMMMK....",
+    ".KWLLLLLLLmKMMMMMMMMMMMMMDDK....",
+    ".KWLLLLLLLmKMMMMMMMMDDDDDKKK....",
+    ".KWLLLLLLLmKMMMDDDDDKKKKK.......",
+    ".KmmmmmmmmmKDDDKKKKK............",
+    ".KKKKKKKKKKKKKKKbbbK............",
+    "...............KwBbK............",
+    "...............KwBbK............",
+    "...............KwBbK............",
+    "...............KwBbK............",
+    "...............KwBbK............",
+    "...............KwBbK............",
+    "...............KKKKK............",
+]
+
+
 def icon_mail():
-    """Mail (punch list 104): an envelope with its stamp, and the modem's waves over it (mail went when you dialed in)"""
-    import math
-    ic = Icon()
-    ic.box(2, 11, 29, 28, W)                        # the envelope
-    ic.line(3, 12, 15, 21, K); ic.line(28, 12, 16, 21, K)   # the flap
-    ic.line(3, 27, 12, 19, M); ic.line(28, 27, 19, 19, M)   # its folds
-    ic.box(22, 13, 27, 18, R)                       # the stamp
-    ic.rect(23, 14, 26, 17, PK)
-    ic.rect(24, 15, 25, 16, R)
-    for i, r in enumerate((3, 6, 9)):              # the waves, up and right from the envelope's corner
-        for a in range(0, 91, 6):
-            ic.p(4 + int(round(r * math.cos(math.radians(a)))), 9 - int(round(r * math.sin(math.radians(a)))), K if i != 1 else D)
-    ic.rect(3, 8, 4, 9, K)
-    return ic
+    """ProtoPOP3 Mail: the mailbox, its flag up (MAILBOX)"""
+    return from_grid(MAILBOX)
 
 
 def icon_documents():

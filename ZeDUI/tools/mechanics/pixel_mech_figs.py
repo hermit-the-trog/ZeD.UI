@@ -12,8 +12,12 @@ usage: py pixel_mech_figs.py [stage dir] [--preview DIR]
   --preview DIR also writes each body tinted with sample conditions at 2x (4K), and each body beside the figure the
   repo has installed now (_compare_<body>.png, compare_all.png): run it before installing to get before / after.
 Nov 22 2026 (Car parts to the sides): the engine, battery, gas tank and muffler stand in the side columns with the
-brakes and springs (to_sides below); the canvas is the car's height."""
-import os, sys, glob
+brakes and springs (to_sides below); the canvas is the car's height.
+Nov 23 2026 (Car parts drawn): the brakes and springs are drawn here pixel by pixel (BRAKE and SPRING below) instead
+of baked down from the game's icons, which came out blobby and scribbly at this size; the battery and the muffler too
+(BATTERY, MUFFLER), and then the engine and the gas tank (ENGINE, TANK), which now stand the way the column has them
+instead of turned on their side. The same day the glass's wear became cracks that run and branch (cracks())."""
+import os, sys, glob, math, zlib
 import numpy as np
 from PIL import Image
 from scipy import ndimage as ndi
@@ -126,8 +130,10 @@ def panel(m):
 # downward and along the edges than up and into the middle of the panel. Both overlays share the seeds and the
 # ragged edge, so a red part shows its yellow spots grown bigger. Layered like patina: a dark core, an orange-brown
 # body and a lighter broken rim with a few flakes past it. Rust is a fixed rust colour (the tab draws the overlay
-# untinted); scratches are light lines. Glass, tyres and lamps do not rust: they get scuffs and cracks only (light
-# lines; the heavy one more of them). Everything is seeded from the part's own name: a bake is the same every time.
+# untinted); scratches are light lines. Glass, tyres and lamps do not rust. Tyres and lamps get scuffs (light lines; the
+# heavy one more of them). The glass cracks (Nov 23 2026; the director: "make the cracks in the windshield and window
+# glass look like cracks running ... Fractaling"): a strike in the pane with cracks running out of it and branching
+# (cracks() below). Everything is seeded from the part's own name: a bake is the same every time.
 # ---------------------------------------------------------------------------------------------------------------
 RUST_CORE = (78, 38, 20)       # the deep pitted heart
 RUST_BODY = (128, 66, 30)      # the orange-brown spread
@@ -135,6 +141,140 @@ RUST_EDGE = (164, 98, 50)      # the lighter, broken rim where the paint is lift
 SCRATCH = (196, 192, 184)      # a light line, not white: bright specks read as noise
 SPLOTCH_R = (0.10, 0.38)       # a splotch's reach in the light and heavy wear, times the root of the part's area
 SPLOTCH_MAX = (4.0, 13.0)      # and its most, in art px
+# a glass crack is cut into the pane, not drawn on it (the director, Nov 23 2026: "They're just a little too bright.
+# They need some bevel or depth or something to not be just white lines"): a dark cut, and under it, a pixel down and
+# right, its lit lip, the wall of the crack that faces the light from the top left
+CRACK = (40, 38, 36)           # the cut
+CRACK_LIP = (165, 170, 174)    # its lit lip, soft (a bright one read as a white line again)
+CHIP = (30, 28, 26)            # the strike, the deepest point
+
+
+# Glass cracks (Nov 23 2026; the director: "make the cracks in the windshield and window glass look like cracks
+# running ... Fractaling"): a strike in the pane, cracks running out of it with a slight waver, branching as they go,
+# each branch running shorter; a crack that meets another stops there, as cracks do. The yellow overlay is the red
+# one's start: the strike as a chip with its main crack partly run; the red one has every crack run out (rings round
+# the strike were tried: at this size they drew loops, not a web).
+def _rng(key, *path):
+    return np.random.default_rng(zlib.crc32(("crack:" + key + ":" + ":".join(map(str, path))).encode()))
+
+
+def cracks(key, inner, heavy):
+    """(crack mask, chip mask) for one pane; inner is the pane inside its outline"""
+    H, W = inner.shape
+    out = np.zeros((H, W), bool)
+    chip = np.zeros((H, W), bool)
+    area = int(inner.sum())
+    if area < 6: return out, chip
+    ys, xs = np.nonzero(inner)
+    # the pane's size and its long axis
+    h, w = ys.max() - ys.min() + 1, xs.max() - xs.min() + 1
+    S = float(max(h, w))
+    narrow = min(h, w) <= 6
+    along = math.pi / 2 if h > w else 0.0
+    # never more glass cracked than this: a share of a big pane; a narrow one has room for its crack's length
+    cap = int(max(area * (0.24 if heavy else 0.10), S * (1.4 if heavy else 0.7)))
+    g = 1.0 if heavy else (0.35 if narrow else 0.5)     # the yellow crack is the red one part run
+    # the strike: away from the edge where the pane allows, a little low on a wide pane (where the stones hit)
+    d = ndi.distance_transform_edt(inner)
+    r0 = _rng(key, "strike")
+    YY, XX = np.mgrid[0:H, 0:W]
+    wgt = np.where(inner, np.clip(d - 1.0, 0.2, 3.0) ** 2, 0.0)
+    # toward the middle of the pane's length (a strike at the very end only cracks the corner)
+    if w >= h: mid = 1.0 - np.abs(XX - xs.mean()) / (w / 2.0)
+    else: mid = 1.0 - np.abs(YY - ys.mean()) / (h / 2.0)
+    wgt = wgt * np.clip(mid, 0.05, 1.0) ** 1.5
+    if not narrow and w > h: wgt = wgt * (0.7 + 0.6 * YY / float(H))
+    p = wgt[ys, xs] / wgt[ys, xs].sum()
+    i0 = int(r0.choice(len(ys), p=p))
+    sy, sx = int(ys[i0]), int(xs[i0])
+    chip[sy, sx] = True
+    owner = np.full((H, W), -1, np.int32)               # which crack drew each pixel (a crack stops on another)
+    owner[sy, sx] = 0
+    count = [1]
+    nid = [1]
+
+    def clump(y, x):
+        """would cracking (y, x) fill a 2 x 2 block? (the strike's own ring of pixels may: the cracks leave it there)"""
+        if abs(y - sy) <= 1 and abs(x - sx) <= 1: return False
+        c = owner >= 0
+        for oy in (-1, 0):
+            for ox in (-1, 0):
+                y0, x0 = y + oy, x + ox
+                if 0 <= y0 and y0 + 1 < H and 0 <= x0 and x0 + 1 < W:
+                    blk = c[y0:y0 + 2, x0:x0 + 2].copy(); blk[y - y0, x - x0] = True
+                    if blk.all(): return True
+        return False
+
+    def walk(y, x, ang, length, depth, path, parent):
+        """one crack from (y, x) on heading ang, one pixel a step along its main axis; it branches as it runs"""
+        rg = _rng(key, *path)
+        me = nid[0]; nid[0] += 1
+        fy, fx = float(y), float(x)
+
+        def ahead(a):                        # the next point on heading a: one pixel along the main axis
+            dx, dy = math.cos(a), math.sin(a)
+            s = max(abs(dx), abs(dy))
+            return fy + dy / s, fx + dx / s
+
+        def inside(q):
+            qy, qx = int(round(q[0])), int(round(q[1]))
+            return 0 <= qy < H and 0 <= qx < W and inner[qy, qx]
+
+        head, drift, bounces = ang, 0.0, 0
+        for step in range(int(length * g)):
+            # a crack runs on in its heading with a slight waver (it never curls back), and now and then kinks
+            drift = 0.8 * drift + rg.normal(0.0, 0.09)
+            if rg.random() < 0.07: head += (1 if rg.random() < 0.5 else -1) * rg.uniform(0.15, 0.4)
+            ang = head + drift
+            q = ahead(ang)
+            if not inside(q):
+                # in a narrow pane a crack glances off the frame and runs on, zig-zagging (a lightning bolt); in a
+                # big one it runs into the frame and stops
+                if not narrow or bounces >= 4: return
+                flip = (math.pi - ang) if h > w else -ang                  # off a long side (an end stops it)
+                if not inside(ahead(flip)): return
+                jig = flip + rg.normal(0.0, 0.2)                           # each leg its own slant
+                head, drift, bounces = (jig if inside(ahead(jig)) else flip), 0.0, bounces + 1
+                q = ahead(head)
+            if count[0] >= cap: return
+            fy, fx = q
+            py, px = int(round(fy)), int(round(fx))
+            # met another crack: join it and stop. For its first steps a crack still runs beside the one it left
+            # and the others leaving the same point, so those do not count yet.
+            y0_, x0_ = max(0, py - 1), max(0, px - 1)
+            nb = owner[y0_:py + 2, x0_:px + 2]
+            hit = (nb >= 0) & (nb != me)
+            if step < 4:
+                ny, nx = np.mgrid[y0_:y0_ + nb.shape[0], x0_:x0_ + nb.shape[1]]
+                hit &= (nb != parent) & ((np.abs(ny - y) > 2) | (np.abs(nx - x) > 2))
+            if hit.any():
+                if owner[py, px] < 0 and not clump(py, px): out[py, px] = True; owner[py, px] = me; count[0] += 1
+                return
+            if owner[py, px] < 0:
+                if clump(py, px): return             # a crack is a line: it never fills a 2 x 2 block
+                out[py, px] = True; owner[py, px] = me; count[0] += 1
+            # a branch: off to one side, shorter, and branching less
+            pb = (0.075, 0.05, 0.0)[min(depth, 2)]
+            if step >= 4 and rg.random() < pb:
+                side = 1 if rg.random() < 0.5 else -1
+                walk(py, px, ang + side * rg.uniform(0.3, 0.75), length * rg.uniform(0.3, 0.55), depth + 1,
+                     path + (step,), me)
+
+    # the main crack, both ways through the strike, along the pane (across a wide one, within a turn of its axis)
+    rm = _rng(key, "main")
+    base = along + (rm.choice([-1, 1]) * rm.uniform(0.45, 0.75) if narrow else
+                    float(np.clip(rm.normal(0.0, 0.45), -0.7, 0.7)))
+    if min(h, w) <= 2: base = along          # a pane a pixel or two across: the crack runs straight along it
+    walk(sy, sx, base, S * 0.9, 0, ("m", 0), 0)
+    walk(sy, sx, base + math.pi, S * 0.7, 0, ("m", 1), 0)
+    if heavy:
+        # the strike's other cracks, running out all round it
+        k = 1 if narrow else (2 if min(h, w) <= 12 else (3 if area < 400 else 4))
+        for j in range(k):
+            a = base + (j + 1) * 2 * math.pi / (k + 2) + rm.normal(0.0, 0.25)
+            walk(sy, sx, a, S * rm.uniform(0.3, 0.6), 1, ("r", j), 0)
+    out &= ~chip
+    return out, chip
 
 
 def wear(key, m, heavy):
@@ -167,9 +307,16 @@ def wear(key, m, heavy):
         put(mk, SCRATCH)
 
     if no_rust:
+        if "window" in key:                  # glass: cracks running out of a strike (Nov 23 2026)
+            cr, chip = cracks(key, inner, heavy)
+            cut = cr | chip
+            lip = np.zeros_like(cut)
+            lip[1:, 1:] = cut[:-1, :-1]      # a pixel down and right of the cut
+            put(lip & ~cut, CRACK_LIP); put(cr, CRACK); put(chip, CHIP)
+            return out
         for _ in range(1 if area < 40 else 2): scratch()
         if heavy:
-            for _ in range(max(1, area // 260)): scratch()               # a cracked pane, a scuffed tyre
+            for _ in range(max(1, area // 260)): scratch()               # a scuffed tyre, a lamp
         return out
 
     # where water sits: near an edge or seam (the outline, and the part's own detail lines show as its edge) and
@@ -300,8 +447,260 @@ def build(body, out):
         icon = not any(k in n for k in ("window", "wheel", "light", "door", "hood", "trunk", "bed", "roof"))
         detail = m & lines & ndi.binary_erosion(m) & icon        # only the callout icons: the leaders cross the panels
         out_layers[n] = (np.where(detail, 70, tt), m)
+    redraw_callouts(out_layers)          # the drawn parts (Nov 23 2026)
     to_sides(out_layers, layers, lines)
     return save_layers(body, out, out_layers)
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Car parts drawn (Nov 23 2026; the director: "The vehicle parts, could you please redraw the suspension
+# and brakes? They just don't read well. Kind of blobby or scribbly, or both.", then "the muffler and battery could
+# use a little extra attention as well", then "fidelity pass on the engine and fuel tank as well"). The game's icons
+# are 32 overlay pixels square; baked down to 16 art pixels, the spring's diagonal coils turned to hatching, the
+# disc's lug holes and caliper to a blob and the battery's top to a tangle of lines, and the engine and the tank,
+# turned on their side, to scribbles. These six are drawn at their own size instead, one picture each, used for every
+# body shape, left and right alike (the game's own icons are not mirrored either):
+#   BRAKE   the disc face on, its swept face ringed off from its lip, its hat with four lug nuts and the axle, the
+#           caliper a dark block clamped over the rim at the top right and standing out past it, its pad line and a
+#           bolt lit (the game's icon, the right way round; "The brakes look great")
+#   SPRING  a coilover upright: an eye at each end, a spring seat under the top eye and over the bottom one, and
+#           three coils round the damper, each coil open (the panel shows through) with its far side dark behind
+#           the damper and its near side in front of it, the wire and the damper lit at the left and shaded at the
+#           right so they read round
+#   BATTERY the case from the front: two terminal posts on its lid, a seam under the lid, a label band across the
+#           case with the minus and the plus each under its own post
+#   MUFFLER the canister lying on its side as the column has it, round (a lit band near its top, a shaded one near
+#           its foot), its rolled crimps near each end (a dark line, a lit one), the pipe in at the left and
+#           the tailpipe out at the right, a little lower (drawn lying down, as the column has it)
+#   ENGINE  the engine from the side, standing (the way the check-engine light draws one, so it reads as an engine):
+#           the block, the head on it with the head gasket between them and four plug boots along it, the finned
+#           valve cover on the head with the oil cap, the oil pan under the block with its sump deeper at the back
+#           and the drain plug, the fan edge on at the front on its shaft through the water pump pulley, and the
+#           exhaust manifold off the back of the head and down the back (23 wide, as the game's engine was, so the
+#           figure is no wider and the tab's zoom does not change)
+#   TANK    the gas tank lying as it does under a car: its two pressed halves with the seam round the middle
+#           standing out at the ends, round (a lit band near its top, a shaded one near its foot), two straps round
+#           it, the filler neck up and out at the front end with its cap, and the fuel line out low at the back
+# The letters are tones (TONES): a grey, or a bevelled region (face, lit top / left edge, shaded bottom / right edge),
+# so the light still comes from the top left and the tab's condition tint keeps the shading. A sprite stands where
+# the game's icon stood (its centre); the cars' side columns then lay it out with the rest (to_sides). The trailers
+# keep the game's places, a spring over its brake: each pair is set round the pair's old centre, PAIR_GAP apart, so
+# the taller spring does not run into its brake.
+# ---------------------------------------------------------------------------------------------------------------
+BRAKE = [
+    ".......xxxx....",
+    ".......xcccxx..",
+    "....ooooxcicxx.",
+    "..oofffffxccicx",
+    ".offnnnnffxcicx",
+    ".ofnffffnfxcicx",
+    "ofnffhhhfnfxccx",
+    "ofnfhlhlhfnxccx",
+    "ofnfhhdhhfnxxxx",
+    "ofnfhlhlhfnfo..",
+    "ofnffhhhffnfo..",
+    ".ofnffffnnfo...",
+    ".offnnnnnffo...",
+    "..oofffffoo....",
+    "....ooooo......",
+]
+SPRING = [                 # (9 wide: the director, Nov 23 2026: "The shocks are just a little bit too wide")
+    "...ooo...",
+    "..oeeeo..",
+    "..oeDeo..",
+    ".ooeeeoo.",
+    "opppppppo",
+    ".oBjkgBo.",
+    "oS.jkg.zo",
+    ".oSssszo.",
+    ".oBjkgBo.",
+    "oS.jkg.zo",
+    ".oSssszo.",
+    ".oBjkgBo.",
+    "oS.jkg.zo",
+    ".oSssszo.",
+    "opppppppo",
+    ".ooeeeoo.",
+    "..oeDeo..",
+    "..oeeeo..",
+    "...ooo...",
+]
+BATTERY = [
+    "..ooo.....ooo..",
+    "..oto.....oto..",
+    "ooooooooooooooo",
+    "oaaaaaaaaaaaaao",
+    "ommmmmmmmmmmmmo",
+    "offfffffffffffo",
+    "oyyyyyyyyyydyyo",
+    "oydddyyyyydddyo",
+    "oyyyyyyyyyydyyo",
+    "offfffffffffffo",
+    "ooooooooooooooo",
+]
+MUFFLER = [
+    "........oooooooooooooo........",
+    ".......ofmSfffffffffmSo.......",
+    ".......oSmSSSSSSSSSSmSo.......",
+    "oooooooofmSfffffffffmSo.......",
+    "oqqqqqqofmSfffffffffmSoooooooo",
+    "oooooooofmSfffffffffmSoqqqqqqd",
+    ".......ozmzzzzzzzzzzmzo.......",
+    ".......ofmffffffffffmfo.......",
+    "........oooooooooooooo........",
+]
+ENGINE = [
+    ".........ooooo.........",
+    ".........olllo.........",
+    "........ooooooooo......",
+    ".......ooaaaaaaaoo.....",
+    "ooo....oaSaSaSaSao.....",
+    "oco....oaSaSaSaSao.....",
+    "oco..ooooooooooooooo...",
+    "oco..ohhhhhhhhhhhhhoooo",
+    "oco..ohdhhdhhdhhdhhqqqo",
+    "ocoooohhhhhhhhhhhhhqqqo",
+    "ocoeeommmmmmmmmmmmmoqqo",
+    "oceeeofffffffffffffoqqo",
+    "oceeeofffffffffffffoqqo",
+    "ocoeeofffffffffffffoqqo",
+    "ocoooofffffffffffffoqqo",
+    "oco..offfffffffffffoqqo",
+    "oco..offfffffffffffoqqo",
+    "oco..oooooooooooooooooo",
+    "ooo...opppppppppppo....",
+    "......ooooopppppppo....",
+    "..........oooooDooo....",
+    "..............ooo......",
+]
+TANK = [
+    "ooooo........................",
+    "orrro........................",
+    "orrroo.......................",
+    "oooqqoo......................",
+    "..ooqqoo.....................",
+    "...ooqqoooo........ooo.......",
+    "....ooqqouoooooooooouooooo...",
+    "...ooffffuffffffffffuffffoo..",
+    "...ofSSSSuSSSSSSSSSSuSSSSfo..",
+    "...offfffuffffffffffufffffo..",
+    "...offfffuffffffffffufffffo..",
+    "..oofffffuffffffffffufffffoo.",
+    "..ommmmmmummmmmmmmmmummmmmmoo",
+    "..oofffffuffffffffffufffffqqo",
+    "...offfffuffffffffffufffffooo",
+    "...ofzzzzuzzzzzzzzzzuzzzzfo..",
+    "...ooffffuffffffffffuffffoo..",
+    "....ooooouoooooooooouooooo...",
+    "........ooo........ooo.......",
+]
+TONES = {
+    "o": 150,                  # the outline, as the other callout parts have it
+    "f": (235, 255, 195),      # the disc's face
+    "h": (190, 225, 160),      # the disc's hat, the engine's head
+    "l": 245,                  # a lug nut, the engine's oil cap
+    "d": 70, "D": 70,          # the axle, an eye's hole, a plug boot, the drain plug
+    "c": (150, 180, 120),      # the caliper, the engine's fan
+    "x": 90,                   # the caliper's outline: darker, so it stands off the disc
+    "e": (200, 230, 165),      # an eye, the fan's shaft and the water pump pulley
+    "p": (205, 235, 170),      # a spring seat, the oil pan
+    "s": 235,                  # a coil's near side
+    "B": 105,                  # a coil's far side, behind the damper
+    "k": 150,                  # the damper
+    "t": (200, 230, 165),      # a battery terminal
+    "a": (205, 235, 170),      # the battery's lid, the valve cover
+    "m": 175,                  # a seam: under the battery's lid, the muffler's crimps, the head gasket, the tank's
+    "q": (190, 220, 150),      # a pipe (the exhaust manifold, the filler neck and the fuel line too)
+    # the fidelity pass (the director, Nov 23 2026: "Give each of the car parts one more fidelity pass")
+    "n": 205,                  # the ring round the disc's swept face
+    "i": 205,                  # the caliper's pad line and its bolt
+    "S": 255,                  # a lit pixel on a round part: a coil's left, the muffler's and the tank's lit band,
+                               # the valve cover's fins
+    "z": 190,                  # a shaded pixel on a round part: a coil's right, the muffler's and the tank's foot band
+    "j": 180,                  # the damper's lit side
+    "g": 115,                  # the damper's shaded side
+    "y": 210,                  # the battery's label band
+    "r": (215, 245, 180),      # the gas cap
+    "u": 120,                  # a strap round the tank
+}
+PAIR_GAP = 3       # rows between a trailer's spring and its brake
+
+
+def half_up(v):
+    """a place to a whole pixel, halves up: Python's round() takes halves to the even number, which set a column's
+    odd-width parts a pixel apart (a spring a pixel right of its brake)"""
+    return int(math.floor(v + 0.5))
+
+
+def bevel(reg, face, hi, lo):
+    """a region's tones: its top / left edge lit, its bottom / right edge shaded (a pixel on both stays the face)"""
+    p = np.pad(reg, 1)
+    lit = reg & ~(p[:-2, 1:-1] & p[1:-1, :-2])            # nothing of it above or to the left
+    sh = reg & ~(p[2:, 1:-1] & p[1:-1, 2:])               # nothing of it below or to the right
+    t = np.full(reg.shape, float(face), np.float32)
+    t[sh & ~lit] = lo
+    t[lit & ~sh] = hi
+    return t
+
+
+def sprite(rows):
+    """a drawn picture: (tones, mask)"""
+    W = len(rows[0])
+    assert all(len(r) == W for r in rows), "every row the same width"
+    g = np.array([list(r) for r in rows], dtype="<U1")
+    t = np.zeros(g.shape, np.float32)
+    for ch, spec in TONES.items():
+        reg = g == ch
+        if not reg.any(): continue
+        t[reg] = bevel(reg, *spec)[reg] if isinstance(spec, tuple) else spec
+    return t, g != "."
+
+
+def drawn_for(name):
+    if name.startswith("brake_"): return BRAKE
+    if name.startswith("suspension_"): return SPRING
+    if name == "battery": return BATTERY
+    if name == "muffler": return MUFFLER
+    if name == "engine": return ENGINE
+    if name == "gastank": return TANK
+    return None
+
+
+def redraw_callouts(out_layers):
+    """the drawn parts swapped in for the baked ones (in place), each centred where the game's icon stood; a
+    trailer's spring and brake set as a pair round the pair's old centre (the cars' columns are laid out after)"""
+    old = {}
+    for n, (t, m) in out_layers.items():
+        if drawn_for(n) and m.any():
+            ys, xs = np.nonzero(m)
+            old[n] = (ys.min(), ys.max() + 1, xs.min(), xs.max() + 1)
+    if not old: return
+    Hc, Wc = next(iter(out_layers.values()))[1].shape
+
+    def place(n, top, cx):
+        t, m = sprite(drawn_for(n))
+        h, w = m.shape
+        x = half_up(cx - w / 2.0)
+        x = min(max(x, 0), Wc - w); top = min(max(half_up(top), 0), Hc - h)
+        nt, nm = np.zeros((Hc, Wc), np.float32), np.zeros((Hc, Wc), bool)
+        nt[top:top + h, x:x + w], nm[top:top + h, x:x + w] = np.where(m, t, 0), m
+        out_layers[n] = (nt, nm)
+
+    done = set()
+    if not any(n in out_layers for n, side, turn in MOVE):          # a trailer: the game's places, pairs kept apart
+        for side in ("left", "right"):
+            for pos in ("front", "rear"):
+                sp, br = f"suspension_{pos}_{side}", f"brake_{pos}_{side}"
+                if sp in old and br in old:
+                    hs, hb = len(SPRING), len(BRAKE)
+                    mid = (old[sp][0] + old[br][1]) / 2.0
+                    top = mid - (hs + PAIR_GAP + hb) / 2.0
+                    place(sp, top, (old[sp][2] + old[sp][3]) / 2.0)
+                    place(br, top + hs + PAIR_GAP, (old[br][2] + old[br][3]) / 2.0)
+                    done |= {sp, br}
+    for n, (y0, y1, x0, x1) in old.items():
+        if n not in done:
+            place(n, (y0 + y1) / 2.0 - len(drawn_for(n)) / 2.0, (x0 + x1) / 2.0)
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -309,9 +708,10 @@ def build(body, out):
 # or the other side of the car ... just like the brakes and the shocks ... Then the car figure can hopefully get a
 # little larger because it gains some vertical space"). The game's overlay puts the engine and battery above the car
 # and the gas tank and muffler below it. They go into the two side columns with the brakes and springs: the engine
-# and battery on the left (the front parts), the gas tank and muffler on the right (fuel and exhaust). The engine,
-# gas tank and muffler lie on their side (turned a quarter) so the columns stay narrow; they are shaded after
-# turning, so the light still comes from the top left. Nothing stays above or below the car, so the canvas is the
+# and battery on the left (the front parts), the gas tank and muffler on the right (fuel and exhaust). Baked from the
+# game's icons, the engine, gas tank and muffler lay on their side (turned a quarter, then shaded) so the columns
+# stayed narrow; all four are drawn now (Nov 23 2026, above), each the way the column has it, so nothing is turned
+# (TURN is kept for a part baked from the game's icon). Nothing stays above or below the car, so the canvas is the
 # car's height.
 # Then (the director, same day: "Space out the vehicle parts a little more on each side. Just balance everything
 # out.") each column is laid out again as six rows, the same on both sides: front spring, front brake, engine / gas
@@ -350,7 +750,7 @@ def to_sides(out_layers, layers, lines):
             yy, xx = np.nonzero(m)
             y0, y1, x0, x1 = yy.min(), yy.max() + 1, xx.min(), xx.max() + 1
             mc, tc = m[y0:y1, x0:x1], t[y0:y1, x0:x1]
-            if TURN.get(n):
+            if TURN.get(n) and not drawn_for(n):         # (a drawn part is drawn the way the column has it)
                 dc = mc & lines[y0:y1, x0:x1] & ndi.binary_erosion(mc)
                 mc, dc = np.rot90(mc), np.rot90(dc)
                 tc = np.where(dc, 70, tone_for(n, mc, None))
@@ -367,8 +767,8 @@ def to_sides(out_layers, layers, lines):
             if n not in cut: continue
             tc, mc = cut[n]
             h, w = mc.shape
-            x = int(round(centre[k] - w / 2.0))
-            yy = int(round(y + (h_row - h) / 2.0))
+            x = half_up(centre[k] - w / 2.0)
+            yy = half_up(y + (h_row - h) / 2.0)
             nt, nm = np.zeros(bm.shape, np.float32), np.zeros(bm.shape, bool)
             nt[yy:yy + h, x:x + w], nm[yy:yy + h, x:x + w] = np.where(mc, tc, 0), mc
             out_layers[n] = (nt, nm)
