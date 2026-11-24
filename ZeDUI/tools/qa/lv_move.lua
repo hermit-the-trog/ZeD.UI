@@ -1375,7 +1375,11 @@ function S.carLive(v)
 end
 function S.carInv(T, partId)
     local inv = nil
-    pcall(function() inv = T.car:getPartById(partId):getItemContainer() end)
+    -- (never index a call that can give nil, even in pcall: -debug logs the caught exception, 401 times on Nov 23)
+    pcall(function()
+        local part = T.car and T.car:getPartById(partId)
+        if part then inv = part:getItemContainer() end
+    end)
     return inv
 end
 -- Loot all from a car's container into the held bag on show, then Transfer all back

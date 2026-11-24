@@ -155,7 +155,7 @@ function S.copy(t, depth)
     return o
 end
 function S.md() return S.p:getModData() end
-function S.itemShow(it) local n = nil; pcall(function() n = it:getDisplayName() end); return tostring(n) end
+function S.itemShow(it) if it == nil then return "nil" end; local n = nil; pcall(function() n = it:getDisplayName() end); return tostring(n) end
 -- waits by the clock (bl_side.lua's)
 function S.wait(ms, cond, fn)
     local st = {}
