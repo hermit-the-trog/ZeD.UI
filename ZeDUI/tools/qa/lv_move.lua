@@ -42,11 +42,11 @@
 --             squares away and back: every thing in the bag or still on the floor, none lost
 --   11 put in the item menu's "Put in <container>" (the game's, left in by ItemMenu.lua): with crate B then A shown,
 --             which container it names and where the thing goes (a FAIL if anywhere but the container on show)
---   12 loot   Loot all with a worn backpack on show in the Character window: the check is "Loot all puts the things
---             in the main inventory, as the game does"; a FAIL is a design call for the director (ZeD sends them to
---             the bag on show)
---   13 shut   Transfer all on the player's side with the World window shut: on or off, checked against the game's
---             (a design call for the director)
+--   12 loot   Loot all with a worn backpack on show in the Character window: the things go into the bag on show
+--             (the director, Nov 24 2026: "Loot all goes into the active container")
+--   13 shut   Transfer all on the player's side with the World window shut: on, as the game's, and pressed with a bag
+--             of two test things on show, both land on the floor at his feet (the director, Nov 24 2026; Build
+--             fix/xferfloor, ContainerControls transferDest)
 --   14 refuse Move To on a held thing into a container that refuses it (a gate) and into a full crate: the thing
 --             stays held or lands in the crate, never unequipped and left (ItemMenu.lua onMove)
 --   15 back   Put things back after an action, on for this case only: an apple eaten from crate A while another
@@ -1890,9 +1890,8 @@ function S.case12()
         end
         local ok, d = S.audit(T.c0, function(it, k0) if k0 == "crate A" then local w = S.where(it); if w == S.bag then return "bag" end; return "backpack" end end)
         Q.check(ok, "12 loot all: every thing leaves crate A into one of his containers, nothing lost or doubled", d)
-        Q.check(inMain == 3, "12 loot all: Loot all puts the things in the main inventory, as the game does",
-            inMain .. " in the main inventory, " .. inPack .. " in the backpack on show"
-            .. ((inMain == 3) and "" or "; DESIGN CALL for the director: ZeD sends Loot all to the bag on show (ContainerControls.lua buildWorld's take, otherInventory; lootAllFrom), the game to the main inventory (ISInventoryPane:lootAll)"))
+        Q.check(inPack == 3, "12 loot all: Loot all puts the things in the bag on show (the active container, the director's call)",
+            inPack .. " in the backpack on show, " .. inMain .. " in the main inventory")
     end)
     Q.step(2, function()
         if S.dead then return end
@@ -1917,9 +1916,53 @@ function S.case13()
         local sp = S.spec(S.cc(), "xfer")
         local lp = nil
         pcall(function() lp = getPlayerLoot(S.pn).inventory end)
-        Q.check(sp ~= nil and sp.enabled, "13 shut: with the World window shut, Transfer all on the player's side is on, as the game's (it goes to the game's loot container)",
-            S.specText(sp) .. "; the game's would go to " .. S.typeOf(lp)
-            .. ((sp and sp.enabled) and "" or "; DESIGN CALL for the director: ZeD's Transfer all needs the World window open on a container (ContainerControls.lua buildChar: enabled = dest ~= nil)"))
+        if not Q.check(sp ~= nil and sp.enabled, "13 shut: with the World window shut, Transfer all on the player's side is on, as the game's (to the floor)",
+            S.specText(sp) .. "; the game's would go to " .. S.typeOf(lp)) then T.off = true; return end
+        -- a bag of two test things on show, so Transfer all moves only them
+        S.caseMade = {}
+        local bk = S.unique(S.BACKS)
+        T.k = S.unique(S.SMALL)
+        if not (bk and T.k) then T.off = true; Q.skip("13 shut: Transfer all drops on the floor", "no backpack or small kind left"); return end
+        T.pack = S.give(bk)
+        pcall(function() T.pack:setName("LV Floor Pack"); T.pack:setCustomName(true) end)
+        T.how = S.wearOrHold(T.pack)
+        T.pinv = T.pack:getInventory()
+        T.things = { S.add(T.pinv, T.k), S.add(T.pinv, T.k) }
+        S.listView(T.pinv)
+        S.dirty()
+    end)
+    S.wait(4, 300, function() return T.off or S.listed(RT.cw(), T.pinv) end, function(ok)
+        if T.off then return end
+        if not ok then T.off = true; Q.check(false, "13 shut: the test bag is on the Character window's buttons", T.how); return end
+        S.showBag(T.pinv)
+        S.rebuild()
+    end)
+    S.wait(4, 300, function()
+        if T.off then return true end
+        local sp = S.spec(S.cc(), "xfer")
+        return S.charShows(T.pinv) and sp ~= nil and sp.enabled
+    end, function(ok)
+        if T.off then return end
+        if not ok then T.off = true; Q.check(false, "13 shut: the test bag on show, Transfer all on"); return end
+        local okP, why = S.press(S.cc(), "xfer")
+        if not Q.check(okP, "13 shut: Transfer all presses with the test bag on show", why) then T.off = true end
+    end)
+    S.wait(4, 900, S.settled(8), function()
+        if T.off then return end
+        local onFloor, other = 0, {}
+        for _, it in ipairs(T.things) do
+            local c = S.where(it)
+            local ty = nil
+            if c then pcall(function() ty = c:getType() end) end
+            if ty == "floor" or (it and it:getWorldItem() ~= nil) then onFloor = onFloor + 1 else other[#other + 1] = S.typeOf(c) end
+        end
+        Q.check(onFloor == #T.things, "13 shut: Transfer all with the World window shut drops the bag's things on the floor at his feet",
+            onFloor .. " of " .. #T.things .. " on the floor" .. ((#other > 0) and ("; the others in " .. table.concat(other, ", ")) or ""))
+    end)
+    Q.step(2, function()
+        if S.dead then return end
+        S.showBag(S.bag)
+        S.caseClean()
         pcall(ZeD_WorldWindow.open, S.pn)
     end)
     S.wait(4, 300, function() return S.worldOpen() end, function(ok)
