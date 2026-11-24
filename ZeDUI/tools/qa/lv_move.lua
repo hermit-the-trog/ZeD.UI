@@ -216,6 +216,21 @@ function S.known(ft)
     return ok
 end
 -- a kind the character carries none of and the test has not used yet
+function S.uniqueFits(kinds, inv, n)
+    local room = 0
+    pcall(function() room = inv:getEffectiveCapacity(S.p) - inv:getContentsWeight() end)
+    local own = S.p:getInventory()
+    for _, ft in ipairs(kinds) do
+        if not S.used[ft] and S.known(ft) then
+            local have, w = 1, nil
+            pcall(function() have = own:getCountTypeRecurse(ft) end)
+            local si = getScriptManager():FindItem(ft)
+            if si then pcall(function() w = si:getActualWeight() end) end
+            if have == 0 and w ~= nil and w * n <= room - 0.05 then S.used[ft] = true; return ft end
+        end
+    end
+    return nil
+end
 function S.unique(kinds)
     local own = S.p:getInventory()
     for _, ft in ipairs(kinds) do
@@ -1216,8 +1231,10 @@ function S.case6()
         T.howB = S.wearOrHold(T.back)
         T.howF = S.wearOrHold(T.front)
         T.binv, T.finv = T.back:getInventory(), T.front:getInventory()
-        T.k = S.unique(S.SMALL)
-        if not T.k then T.off = true; Q.skip("6 worn bag to worn bag", "no small kind left"); return end
+        -- (Build, Nov 23 2026: the worn front bag is the fanny pack, capacity 1: five Woodglue (1.0 each) could never fit;
+        -- the kind is picked light enough that five fit in the front bag's free room)
+        T.k = S.uniqueFits(S.SMALL, T.finv, 5)
+        if not T.k then T.off = true; Q.skip("6 worn bag to worn bag", "no small kind light enough for five in the front bag"); return end
         for _ = 1, 5 do S.add(T.binv, T.k) end
         S.listView(T.binv)
         S.listView(T.finv)
