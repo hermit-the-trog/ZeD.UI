@@ -433,6 +433,11 @@ do
         'WebbingLeft = "UI_ZeD_Belt_SlotWebL", WebbingRight = "UI_ZeD_Belt_SlotWebR"')
     check("SAME: the side mark and the plain names found to put back", nSide == 1 and nB == 1 and nH == 1 and nW == 1,
         tostring(nSide) .. tostring(nB) .. tostring(nH) .. tostring(nW))
+    -- (the hands and the belt set an icon's gap apart, the row's even group space, are new on purpose: the director,
+    -- Nov 23 2026. The SAME runs put the old END_GAP back)
+    local nGap
+    NEW_SAME, nGap = NEW_SAME:gsub("\n    x = x %+ px%(B%.ICON_GAP%)\n    if B%.simple%(%) then", "\n    x = x + px(END_GAP)\n    if B.simple() then")
+    check("SAME: the hands' new gap found to put back", nGap == 1, nGap)
     -- (the white blocks, the director, Nov 23 2026: every box on the row is the wheels' cell, paper with a one-unit
     -- ink edge and System 7's hard shadow, the hands round; new on purpose. The SAME runs put the boxes' old fills,
     -- edges and inks back, so the rest is compared as before. The bag, the speed keys, the chat key and the PvP
