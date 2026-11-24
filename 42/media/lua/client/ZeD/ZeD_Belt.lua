@@ -416,6 +416,11 @@ local SIDE = {
     WebbingLeft = "L", WebbingRight = "R",
 }
 B.SIDE = SIDE
+-- the side tags' two inks, the same in every theme: the near black and the toned-down white the accent tags' text
+-- uses (no pure white: the whites are toned down)
+local SIDE_BLACK = { r = 0x0C / 255, g = 0x0C / 255, b = 0x0C / 255 }
+local SIDE_WHITE = { r = 0xF2 / 255, g = 0xF0 / 255, b = 0xEC / 255 }
+B.SIDE_BLACK, B.SIDE_WHITE = SIDE_BLACK, SIDE_WHITE
 --- The side mark's word for a slot type (the player's language: "L" / "R" in English), or nil for a slot with no side.
 function B.sideMark(slotType)
     local sd = SIDE[slotType or ""]
@@ -1977,8 +1982,7 @@ function ZeD_BeltHUD:_drawBox(b, o)
         local tc = o.key and T.textOnAccent or (o.badge and T.text) or T.textDim
         self:drawText(txt, b.x + math.floor((kw - tm:MeasureStringX(f1, txt)) / 2), b.y, tc.r, tc.g, tc.b, 1, f1)
     end
-    -- the side the slot is on, in the top right corner, as the key sits in the top left (the director, Nov 23 2026):
-    -- the key's tag in the dim fill, so the number stays the one in the accent
+    -- the side the slot is on, in the top right corner, as the key sits in the top left (the director, Nov 23 2026)
     local sideH = 0
     if o.side and not round then
         local f1 = T.fontF1
@@ -1991,8 +1995,11 @@ function ZeD_BeltHUD:_drawBox(b, o)
             side = side:match("^[\1-\127\194-\244][\128-\191]*") or side
         end
         local sw = math.min(math.max(tm:MeasureStringX(f1, side) + T.px(6), sh), maxW)
-        local tc = onFocus and T.textOnFocus or T.text
-        self:drawRect(b.x + b.w - sw, b.y, sw, sh, 1, col(T.surf3))
+        -- left and right are each other's negative, in every theme (the director, Nov 23 2026: "Black box, white
+        -- text" for one, "Black text, white box" for the other): L the black box, R the white box
+        local boxC = o.sideR and SIDE_WHITE or SIDE_BLACK
+        local tc = o.sideR and SIDE_BLACK or SIDE_WHITE
+        self:drawRect(b.x + b.w - sw, b.y, sw, sh, 1, boxC.r, boxC.g, boxC.b)
         self:drawText(side, b.x + b.w - sw + math.floor((sw - tm:MeasureStringX(f1, side)) / 2), b.y, tc.r, tc.g, tc.b, 1, f1)
         sideH = sh
     end
@@ -2477,6 +2484,7 @@ function ZeD_BeltHUD:_prerender()
             local s = b.s
             o.item, o.key, o.label, o.inHand = s.item, s.key, s.short, s.inHand
             o.side = B.sideMark(s.slot and s.slot.slotType)
+            o.sideR = o.side ~= nil and SIDE[s.slot.slotType] == "R"
             o.lit = s.item and not instanceof(s.item, "HandWeapon") and call(s.item, "canBeActivated") and call(s.item, "isActivated")
         end
         if b.kind ~= "bag" and b.kind ~= "speed" and b.kind ~= "watch" and b.kind ~= "ammo" and b.kind ~= "chat" and b.kind ~= "pvp" then

@@ -1454,6 +1454,12 @@ do
     check("SIDE the Back slot has no side mark", ZeD.Belt.sideMark("Back") == nil)
     check("SIDE the left slots read L, the right R", ZeD.Belt.sideMark("SmallBeltLeft") == "L"
         and ZeD.Belt.sideMark("HolsterRight") == "R" and ZeD.Belt.sideMark("WebbingLeft") == "L")
+    -- L and R are each other's negative (the director, Nov 23 2026): L a black box with white text, R the reverse
+    check("SIDE L is the black box, R the white box", NEW:find("local boxC = o.sideR and SIDE_WHITE or SIDE_BLACK", 1, true) ~= nil
+        and NEW:find("local tc = o.sideR and SIDE_BLACK or SIDE_WHITE", 1, true) ~= nil
+        and NEW:find('o.sideR = o.side ~= nil and SIDE[s.slot.slotType] == "R"', 1, true) ~= nil)
+    check("SIDE the inks: near black and the toned-down white", ZeD.Belt.SIDE_BLACK and ZeD.Belt.SIDE_BLACK.r < 0.1
+        and ZeD.Belt.SIDE_WHITE and ZeD.Belt.SIDE_WHITE.r > 0.9 and ZeD.Belt.SIDE_WHITE.r < 1)
     -- (QA's note: a long side word is cut to its first letter, a whole UTF-8 character)
     local pat = NEW:match('side:match%("(%^%[[^"]+)"%)')
     check("SIDE a long side word is cut by the first-letter pattern", pat ~= nil)
