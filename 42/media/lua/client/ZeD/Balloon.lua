@@ -574,6 +574,8 @@ local function stColor(st)
     local T = T_()
     if st == "ok" then return T.positiveText or T.positive end
     if st == "bad" then return T.dangerText or T.danger end
+    -- (the farm plot's orange water level and its next phase: ZeD_SpecialTip.lua, Nov 23 2026)
+    if st == "warn" then return T.warning or T.text end
     return T.text
 end
 B.stColor = stColor
@@ -604,6 +606,8 @@ function B.drawWords(p, c, x, y, lay)
     local cy = y + lay.padY
     local tk = lay.tk
     local headC = lay.plain and T.text or T.textHead
+    -- c.titleColor: a title whose color says something (a dead plant's title in the bad color: ZeD_SpecialTip.lua)
+    if c.titleColor then headC = lightOf(c.titleColor) or headC end
     local pathC = T.textSec or T.textDim
     for _, ln in ipairs(lay.tLines) do
         for _, wd in ipairs(ln) do
@@ -743,7 +747,10 @@ function B.draw(p, c, a, pref, opts)
     -- (opts.bounds { x, y, w, h }, screen px: the box stays inside them, as a window's overlay clips at its edges;
     -- punch list 230, a trait's card at the ID card's foot was cut off by the window's lower edge)
     local bd = opts.bounds
-    local pl = bd and B.place(lay, a, pref or "above", bd.x, bd.y, bd.w, bd.h) or B.place(lay, a, pref or "above")
+    -- opts.place: a placement the caller worked out itself, the same fields B.place returns (the hover facts of a
+    -- trough or farm plot keep off the character: ZeD_SpecialTip.lua, Nov 23 2026)
+    local pl = opts.place
+    if not pl then pl = bd and B.place(lay, a, pref or "above", bd.x, bd.y, bd.w, bd.h) or B.place(lay, a, pref or "above") end
     local ox, oy = p:getAbsoluteX(), p:getAbsoluteY()
     local x, y = pl.x - ox, pl.y - oy
     B.drawBox(p, c, x, y, lay)
