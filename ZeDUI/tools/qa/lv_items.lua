@@ -5,20 +5,21 @@
 -- On the drag strip one crate (A, an IsoObject as rt_inventory makes it) stands beside the character; the things are
 -- given to his main inventory (RT.give) or made in the crate, and taken away again. The item menu is the game's
 -- ISInventoryPaneContextMenu.createMenu, as a right-click on a row calls it; ZeD's menu is built from it on its next
--- draw and its rows are picked by name (rt_inventory's pick). The game's own menu for the same things is built the same
--- way with ZeD set aside for that one call (ZeD.Safe.on answering true, ISContextMenu.get handing out a hidden
--- recorder, so no menu shows): every option the game builds must be in ZeD's menu. Moves are counted by item id in
--- every container they touch (S.census / S.audit). Timed actions run instant (the game's own cheat).
+-- draw and its rows are picked by name (rt_inventory's pick, through submenus where a row sits in one). The game's
+-- menu for the same right-click is read from the game's own ISContextMenu that createMenu filled and ZeD hides (every
+-- row and submenu row, the game's Debug submenu aside): every one of its rows must be in ZeD's menu. (Nov 23 2026,
+-- after the first run: a second build with ZeD set aside threw in the game's own handlers, three Lua errors a menu.)
+-- Moves are counted by item id in every container they touch (S.census / S.audit). Timed actions run instant.
 -- Already covered elsewhere and not repeated: rt_cards (the card's eat, rename, read, equip, drop), rt_inventory
 -- (Move To, double-click take and equip), lv_move.lua (moves and containers).
 -- Checks:
 --   setup     both windows open, the Character window on the main inventory, crate A shown in the World window
 --   16 kinds  for each kind: pills (Take pills), a lighter, a water bottle (Drink, Pour on ground), a sealed can (with
 --             a tin opener), rotten food, a magazine (Insert bullets), a firearm (Insert magazine), a key, a book
---             (Read), a portable radio, a furniture piece (Place): (a) ZeD's item menu holds every option the game's
---             own menu builds (the names compared, the missing ones named; what ZeD adds noted); (b) the kind's key
+--             (Read), a portable radio, a furniture piece (Place): (a) ZeD's item menu holds every row of the game's
+--             menu for the right-click, debug rows aside (the missing ones named); (b) the kind's key
 --             options are there; (c) one action runs and completes: the pills' uses drop, the water drops, the
---             magazine takes bullets, the firearm takes the magazine, the book's read moves on, the radio's
+--             magazine takes bullets, the firearm takes the magazine, the book is marked read, the radio's
 --             double-click puts it in a hand, the rotten food's double-click does not eat it (picture
 --             lv_items_menu_<w>x<h>: the firearm's menu); the furniture piece stays in its bag through Transfer all
 --             to the floor (the game's rule: a piece that cannot lie on the floor stays)
@@ -611,16 +612,43 @@ function S.pick(m, names)
     end
     return true, "picked"
 end
+-- a def's children, the lazy ones filled as the menu's own drill-in fills them (ContextMenuRegistry.childrenOf)
+function S.kids(m, d)
+    if d and d.subOption and not (d.children and #d.children > 0) then
+        local R = ZeD.ContextMenu and ZeD.ContextMenu.Registry
+        if R and R.childrenOf then pcall(R.childrenOf, d, m and m._ctx and m._ctx.target) end
+    end
+    return d and d.children or nil
+end
 function S.menuNames(m)
     local out = {}
-    local function walk(defs)
+    local function walk(defs, depth)
+        if depth > 6 then return end
         for _, d in ipairs(defs or {}) do
             out[#out + 1] = tostring(d.name)
-            if d.children then walk(d.children) end
+            walk(S.kids(m, d), depth + 1)
         end
     end
-    walk(m and m._ctx and m._ctx.actions)
+    walk(m and m._ctx and m._ctx.actions, 0)
     return out
+end
+-- the row names from the top down to the first row named nm, at any depth (nil when there is none)
+function S.pathTo(m, nm)
+    local function find(defs, depth)
+        if depth > 6 then return nil end
+        for _, d in ipairs(defs or {}) do
+            if S.same(d.name, nm) then return { tostring(d.name) } end
+        end
+        for _, d in ipairs(defs or {}) do
+            local sub = find(S.kids(m, d), depth + 1)
+            if sub then
+                table.insert(sub, 1, tostring(d.name))
+                return sub
+            end
+        end
+        return nil
+    end
+    return find(m and m._ctx and m._ctx.actions, 0)
 end
 -- the game's own option behind a vanilla handler (its name), from the menu ZeD was built from
 function S.ctxOptionBy(onSelect)
@@ -837,69 +865,31 @@ function S.keysOff()
     S.kd = nil
 end
 
--- ===================================================================== the game's own menu, ZeD set aside for one call
-function S.noop() return nil end
-S.RECMT = { __index = function() return S.noop end }
--- a hidden stand-in for ISContextMenu: it keeps the options (and their submenus) and shows nothing
-function S.recorder(pn)
-    local r = { options = {}, numOptions = 1, player = pn }
-    function r:addOption(name, target, onSelect)
-        local o = { name = name, target = target, onSelect = onSelect, id = self.numOptions }
-        self.options[#self.options + 1] = o
-        self.numOptions = self.numOptions + 1
-        return o
-    end
-    r.addOptionOnTop = r.addOption
-    r.addDebugOption = r.addOption
-    r.addColorBoxOption = r.addOption
-    r.addActionsOption = r.addOption
-    r.addGetUpOption = r.addOption
-    function r:insertOptionAfter(prev, name, target, onSelect) return self:addOption(name, target, onSelect) end
-    function r:getNew() return S.recorder(pn) end
-    function r:addSubMenu(option, child) if type(option) == "table" then option.sub = child end end
-    function r:getOptionFromName(name)
-        for _, o in ipairs(self.options) do if o.name == name then return o end end
-        return nil
-    end
-    function r:removeOptionByName(name)
-        for i = #self.options, 1, -1 do
-            if self.options[i].name == name then table.remove(self.options, i); self.numOptions = self.numOptions - 1; return end
-        end
-    end
-    function r:removeLastOption()
-        if #self.options > 0 then table.remove(self.options); self.numOptions = self.numOptions - 1 end
-    end
-    function r:isEmpty() return #self.options == 0 end
-    function r:getMenuOptionNames()
-        local t = {}
-        for _, o in ipairs(self.options) do t[o.name] = o end
-        return t
-    end
-    function r:setVisible() end
-    function r:getIsVisible() return false end
-    function r:isReallyVisible() return false end
-    setmetatable(r, S.RECMT)
-    return r
-end
-function S.gameMenu(items, inInv)
-    local rec = S.recorder(S.pn)
-    local oldGet, oldSafe = ISContextMenu.get, ZeD.Safe.on
-    ISContextMenu.get = function() return rec end
-    ZeD.Safe.on = function() return true end
-    local ok, err = pcall(ISInventoryPaneContextMenu.createMenu, S.pn, inInv, items, 0, 0)
-    ISContextMenu.get = oldGet
-    ZeD.Safe.on = oldSafe
-    return ok, err, rec
-end
-function S.recNames(rec)
+-- ===================================================================== the game's own menu for this right-click
+-- (QA, Nov 23 2026, after the first run: building the game's menu a second time with ZeD set aside fed a hidden stand-in
+-- to every mod's and the game's own menu handlers, and the game's ISRemoveItemTool asks the real ISContextMenu for a
+-- submenu of it: three Lua errors per menu. The game's menu is read instead from the game's own ISContextMenu that the
+-- right-click filled and that ZeD hides and builds its rows from: every option and submenu row, the game's debug rows
+-- (its Debug submenu, -debug builds only) aside.)
+function S.ctxNames()
     local out = {}
-    local function walk(r)
-        for _, o in ipairs((type(r) == "table" and rawget(r, "options")) or {}) do
-            if o.name ~= nil then out[#out + 1] = tostring(o.name) end
-            if type(rawget(o, "sub")) == "table" then walk(o.sub) end
+    local dbg = getText("ContextMenu_Debug")
+    local function walk(c, depth)
+        if depth > 6 or type(c) ~= "table" then return end
+        for _, o in ipairs(c.options or {}) do
+            if o.name ~= nil and o.name ~= dbg then
+                out[#out + 1] = tostring(o.name)
+                if o.subOption then
+                    local sub = nil
+                    pcall(function() sub = c:getSubMenu(o.subOption) end)
+                    walk(sub, depth + 1)
+                end
+            end
         end
     end
-    walk(rec)
+    local ctx = nil
+    pcall(function() ctx = getPlayerContextMenu(S.pn) end)
+    walk(ctx, 0)
     return out
 end
 function S.isMore(nm)
@@ -1050,6 +1040,8 @@ S.KINDS = {
           pcall(function() local fc = T.it:getFluidContainer(); fc:Empty(); fc:addFluid(FluidType.Water, fc:getCapacity()) end)
           S.setStat("THIRST", 0.3)
       end,
+      -- (the game offers Drink from a water source only while thirst is over 0.1: set again just before each menu)
+      menuPrep = function(T) S.setStat("THIRST", 0.3) end,
       keys = function(T) return { S.custom(T.it, "ContextMenu_Drink") } end,
       act = { how = "menu", what = "Drink (a quarter) runs: the water in the bottle drops",
               path = function(T) return { S.custom(T.it, "ContextMenu_Drink"), getText("ContextMenu_Eat_Quarter") } end,
@@ -1105,22 +1097,28 @@ S.KINDS = {
       skip = "a key onto a key ring is lv_move's case 5: the key's options are compared only" },
     { id = "book", ft = "Base.Book",
       keys = function() return { getText("ContextMenu_Read") } end,
-      act = { how = "menu", what = "Read runs and completes: the game's read record moves (pages read, or boredom down)",
+      -- (QA, Nov 23 2026, after the first run: a generic book has no pages (getNumberOfPages -1) and the character was
+      -- not bored, so neither moved. The game's ISReadABook:complete sets the book's read pages to its page count, -1 for
+      -- a generic book, and marks its literature title read when it has one: those are the marks of a finished read.)
+      act = { how = "menu", what = "Read runs and completes: the game's ISReadABook:complete marks the book read (its read pages set to its page count, its title read)",
               path = function() return { getText("ContextMenu_Read") } end,
               before = function(T)
-                  local ip = nil
-                  pcall(function() ip = T.it:getAlreadyReadPages() end)
-                  return { p = S.readPages(S.ft(T.it)), i = ip, b = S.statOf("BOREDOM"), u = S.statOf("UNHAPPINESS") }
+                  local r = { p = S.readPages(S.ft(T.it)), b = S.statOf("BOREDOM") }
+                  pcall(function() r.i = T.it:getAlreadyReadPages(); r.n = T.it:getNumberOfPages() end)
+                  pcall(function() r.title = T.it:getModData().literatureTitle end)
+                  if r.title then pcall(function() r.lit = S.p:isLiteratureRead(r.title) end) end
+                  return r
               end,
               after = function(T, b)
-                  local ip = nil
+                  local ip, lit = nil, nil
                   pcall(function() ip = T.it:getAlreadyReadPages() end)
-                  local p, bo, un = S.readPages(S.ft(T.it)), S.statOf("BOREDOM"), S.statOf("UNHAPPINESS")
-                  local moved = (p ~= nil and b.p ~= nil and p > b.p) or (ip ~= nil and b.i ~= nil and ip > b.i)
-                      or (bo ~= nil and b.b ~= nil and bo < b.b - 0.0001) or (un ~= nil and b.u ~= nil and un < b.u - 0.0001)
-                  return moved and S.queueEmpty(), "pages (his) " .. tostring(b.p) .. " -> " .. tostring(p) .. ", (the book's) "
-                      .. tostring(b.i) .. " -> " .. tostring(ip) .. ", boredom " .. tostring(b.b) .. " -> " .. tostring(bo)
-                      .. ", unhappiness " .. tostring(b.u) .. " -> " .. tostring(un)
+                  if b.title then pcall(function() lit = S.p:isLiteratureRead(b.title) end) end
+                  local p, bo = S.readPages(S.ft(T.it)), S.statOf("BOREDOM")
+                  local done = (b.n ~= nil and ip == b.n and b.i ~= b.n) or (lit == true and b.lit ~= true)
+                      or (p ~= nil and b.p ~= nil and p > b.p) or (bo ~= nil and b.b ~= nil and bo < b.b - 0.0001)
+                  return done and S.queueEmpty(), "the book's read pages " .. tostring(b.i) .. " -> " .. tostring(ip) .. " (its page count "
+                      .. tostring(b.n) .. "), title " .. tostring(b.title) .. " read " .. tostring(b.lit) .. " -> " .. tostring(lit)
+                      .. ", his pages " .. tostring(b.p) .. " -> " .. tostring(p) .. ", boredom " .. tostring(b.b) .. " -> " .. tostring(bo)
               end } },
     { id = "portable radio", ft = "Base.RadioRed",
       act = { how = "dbl", what = "a double-click (the quick use) in the bag puts the radio in a hand",
@@ -1153,6 +1151,12 @@ function S.kindAct(K, T)
         local okP, why = false, "no ZeD menu"
         if ok then
             local names = S.menuNames(S.menu())
+            -- (a row inside a submenu, B42's Fluid among them: picked through its submenus)
+            local lead = S.pathTo(S.menu(), path[1])
+            if lead and #lead > 1 then
+                for i = 2, #path do lead[#lead + 1] = path[i] end
+                path = lead
+            end
             okP, why = S.pick(S.menu(), path)
             if not okP then why = why .. "; the menu: " .. table.concat(names, ", ") end
         end
@@ -1177,23 +1181,18 @@ function S.kindCase(K)
     end)
     S.step(4, function()
         if T.off then return end
-        local ok, err, rec = S.gameMenu({ T.it }, true)
-        T.gameOk, T.gameErr = ok, err
-        T.game = ok and S.recNames(rec) or {}
+        if K.menuPrep then pcall(K.menuPrep, T) end
         S.openMenu({ T.it }, true)
     end)
     S.wait(2, 120, function() return T.off or S.menu() ~= nil end, function(ok)
         if T.off then return end
         if not Q.check(ok, "16 " .. K.id .. ": the item menu opens (ZeD's menu)") then T.off = true; return end
         local zed = S.menuNames(S.menu())
-        if T.gameOk then
-            local miss, extra = S.missing(T.game, zed)
-            Q.check(#miss == 0 and #T.game > 0, "16 " .. K.id .. ": ZeD's item menu holds every option the game's own menu builds",
-                "game " .. #T.game .. " names, ZeD " .. #zed .. ((#miss > 0) and ("; MISSING: " .. table.concat(miss, ", ")) or "")
-                .. "; ZeD adds: " .. ((#extra > 0) and table.concat(extra, ", ") or "nothing"))
-        else
-            Q.skip("16 " .. K.id .. ": the game's own menu compared", "it could not be built with ZeD set aside: " .. tostring(T.gameErr))
-        end
+        local game = S.ctxNames()
+        local miss, extra = S.missing(game, zed)
+        Q.check(#miss == 0 and #game > 0, "16 " .. K.id .. ": ZeD's item menu shows every option of the game's menu for this right-click (the game's own hidden menu, its debug rows aside)",
+            "game " .. #game .. " names, ZeD " .. #zed .. ((#miss > 0) and ("; MISSING: " .. table.concat(miss, ", ")) or "")
+            .. "; ZeD's rows the game's menu lacks: " .. ((#extra > 0) and table.concat(extra, ", ") or "none"))
         local keys = K.keys and K.keys(T) or {}
         if #keys > 0 then
             local z = S.setOf(zed)
@@ -1260,6 +1259,12 @@ function S.round(T, label, getItems, inInv, getPath, verify, between)
         local okP, why = false, "no ZeD menu"
         if ok then
             local names = S.menuNames(S.menu())
+            -- (a row inside a submenu, B42's Fluid among them: picked through its submenus)
+            local lead = S.pathTo(S.menu(), path[1])
+            if lead and #lead > 1 then
+                for i = 2, #path do lead[#lead + 1] = path[i] end
+                path = lead
+            end
             okP, why = S.pick(S.menu(), path)
             if not okP then why = why .. "; the menu: " .. table.concat(names, ", ") end
         end

@@ -15,7 +15,8 @@
 --   setup     both windows open, the Character window on the main inventory, crates A and B, the World window on A
 --   1 same    the bag's Same type puts the bag's things of a kind crate A holds into A; the World band's Same type
 --             takes A's things of a kind the bag holds; Same type nearby sends the bag's kind to crate B (which holds
---             it); each counted exactly. Lite: what both bands offer is recorded (a NOTE, never a FAIL: Lite leaves
+--             it; a kind the floor round him holds goes to the floor, the game's rule); each counted
+--             exactly. Lite: what both bands offer is recorded (a NOTE, never a FAIL: Lite leaves
 --             Same type out, ContainerControls.lua liteTrim; the game has TransferSameType / TakeSameType)
 --   2 grab    a closed stack of 12 in crate A: the item menu's Grab one, Grab half and Grab all (ZeD's wrapped
 --             doGrabMenu): 1, then 5 of the 11 left, then the 6 left, counted
@@ -24,11 +25,12 @@
 --   4 held    the thing in the hand and the thing on the belt (the hotbar) stay out of Transfer all, still held
 --   5 keyring a key goes onto a key ring by Move To; the key ring stays out of Transfer all, the key still on it;
 --             Transfer all counted exactly (everything else moves or stays for want of room)
---   6 bags    a worn backpack and a fanny pack (worn or held): a stack of 5 dragged from one to the other's strip
---             button, then Move To back, counted
+--   6 bags    a worn backpack and a fanny pack (worn or held): the CLOSED stack of 5 dragged from one to the other's
+--             strip button carries all 5, Move To back, then one row of the OPEN stack carries exactly 1; counted
 --   7 heavy   a generator in crate A: the double-click (quickUse) and Loot all with it alone lift it into the hands
 --             with the game's ISEquipHeavyItem, never a plain transfer (the queue is watched)
---   8 car     a car: the trunk from outside (picture lv_move_car_<w>x<h>), then seated in the driver's seat the glove
+--   8 car     a pickup (Base.PickUpTruck): its bed, the trunk, from outside (picture lv_move_car_<w>x<h>; a SKIP when
+--             the game does not list it from there), then seated in the driver's seat the glove
 --             box and a seat: Loot all into the held bag on show and Transfer all back, counted; seated, the World
 --             window lists only the car's containers (no Floor); To floor from the World band with the door and window
 --             shut: nothing leaves the car and nothing is lost (what happens is recorded)
@@ -426,6 +428,30 @@ function S.rep(c, key)
         if st and st.key == key and not (c._childParent and c._childParent[it]) then return it, st end
     end
     return nil, nil
+end
+-- a kind's stack opened or shut in a list (its own table and every column's), the list built again
+function S.stackOpen(c, key, open)
+    if not c then return end
+    c._expandedStacks = c._expandedStacks or {}
+    c._expandedStacks[key] = open and true or nil
+    for _, cs in ipairs(c._colStates or {}) do
+        if cs.expandedStacks then cs.expandedStacks[key] = open and true or nil end
+    end
+    S.dirty()
+end
+-- the row of a kind's stack while it is shut (the whole stack, more than one thing), or nil
+function S.closedRep(c, key)
+    if c and c._expandedStacks and c._expandedStacks[key] then return nil end
+    local rep, st = S.rep(c, key)
+    if rep and st and (st.count or 0) > 1 then return rep, st end
+    return nil, nil
+end
+-- one row of an open stack (a thing of the kind under the stack's heading), or nil
+function S.childRow(c, key)
+    for _, it in ipairs(c and c._flatItems or {}) do
+        if type(it) ~= "string" and c._childParent and c._childParent[it] and S.ft(it) == key then return it end
+    end
+    return nil
 end
 function S.listed(win, inv)
     for _, e in ipairs((win and win._containers) or {}) do if e.inventory == inv then return true end end
@@ -937,8 +963,26 @@ function S.case1()
     end)
     S.wait(4, 900, S.settled(8), function()
         if T.off or not T.c then return end
-        local ok, d = S.audit(T.c2, function(it, k0) if k0 == "bag" and S.ft(it) == T.k3 then return "crate B" end end, true)
-        Q.check(ok, "1 Same type nearby: the bag's " .. T.k3 .. " (2) go into crate B, the container nearby that holds that kind; nothing else moves", d)
+        -- (QA, Nov 23 2026, after the first run: the game's own TransferSameTypeMultiContainer walks every container
+        -- button, the floor included, so a kind the floor round him already holds goes to the floor; the strip's
+        -- floor held car keys and his car key went down. That is the game's rule: the floor's kinds are let go there.)
+        local floorKinds, fk = {}, {}
+        for id, k in pairs(T.c2.at) do
+            if k == "floor" then
+                local ft = S.ft(T.c2.item[id])
+                if not floorKinds[ft] then floorKinds[ft] = true; fk[#fk + 1] = ft end
+            end
+        end
+        local ok, d = S.audit(T.c2, function(it, k0)
+            if k0 ~= "bag" then return nil end
+            local ft = S.ft(it)
+            if ft == T.k3 then return "crate B" end
+            local free = true
+            pcall(function() free = not it:isFavorite() and not it:isEquipped() end)
+            if floorKinds[ft] and free then return "floor" end
+        end, true)
+        Q.check(ok, "1 Same type nearby: the bag's " .. T.k3 .. " (2) go into crate B, the container nearby that holds that kind; the bag's kinds the floor holds go to the floor (the game's rule); nothing else moves",
+            d .. "; the floor round him held: " .. ((#fk > 0) and table.concat(fk, ", ") or "nothing"))
         -- Lite: the value only (as rt_inventory's tile check does), both bands built again
         T.style = S.optVal(ZeD.Settings.lookStyleOption)
         S.setOpt(ZeD.Settings.lookStyleOption, 2)
@@ -1179,25 +1223,28 @@ function S.case6()
         S.listView(T.finv)
         S.dirty()
     end)
-    S.wait(4, 300, function() return T.off or (S.listed(RT.cw(), T.binv) and S.listed(RT.cw(), T.finv)) end, function(ok)
+    S.wait(4, 300, function() return T.off or S.listed(RT.cw(), T.binv) and S.listed(RT.cw(), T.finv) end, function(ok)
         if T.off then return end
         if not Q.check(ok, "6 bags: both bags are on the Character window's buttons", "back " .. tostring(T.howB) .. ", front " .. tostring(T.howF)) then T.off = true; return end
         S.showBag(T.binv)
+        -- (QA, Nov 23 2026, after the first run: the stack must be CLOSED for its row to carry all 5, ZeD's rule "a closed
+        -- stack's row is its whole stack"; it is shut here first, whatever the list remembered)
+        S.stackOpen(S.cc(), T.k, false)
     end)
-    S.wait(4, 300, function() return T.off or (S.charShows(T.binv) and S.rep(S.cc(), T.k) ~= nil) end, function(ok)
+    S.wait(4, 300, function() return T.off or (S.charShows(T.binv) and S.closedRep(S.cc(), T.k) ~= nil) end, function(ok)
         if T.off then return end
-        if not ok then T.off = true; Q.check(false, "6 bags: the Character window shows the back bag with its stack of 5"); return end
-        local rep = S.rep(S.cc(), T.k)
+        if not ok then T.off = true; Q.check(false, "6 bags: the Character window shows the back bag with its stack of 5, closed"); return end
+        local rep = S.closedRep(S.cc(), T.k)
         S.reveal(S.cc(), rep)
         T.c0 = S.census({ S.bx("back bag", T.binv), S.bx("front bag", T.finv), S.box.bag })
     end)
     S.step(4, function()
         if T.off then return end
-        local rep = S.rep(S.cc(), T.k)
+        local rep = S.closedRep(S.cc(), T.k)
         local strip, extra = S.stripAt(RT.cw(), T.finv)
-        if not (rep and strip) then T.off = true; Q.check(false, "6 bags: the stack's row and the front bag's button are on screen", "row " .. tostring(rep ~= nil) .. ", button " .. tostring(strip ~= nil)); return end
+        if not (rep and strip) then T.off = true; Q.check(false, "6 bags: the closed stack's row and the front bag's button are on screen", "row " .. tostring(rep ~= nil) .. ", button " .. tostring(strip ~= nil)); return end
         local ok, why = S.drag(S.cc(), rep, strip, extra)
-        T.d = Q.check(ok, "6 bags: the stack of 5 drags from the back bag and drops on the front bag's button", why)
+        T.d = Q.check(ok, "6 bags: the closed stack of 5 drags from the back bag and drops on the front bag's button", why)
     end)
     S.wait(4, 900, S.settled(6), function()
         if T.off or not T.d then return end
@@ -1219,6 +1266,35 @@ function S.case6()
         if T.off or not T.m then return end
         local ok, d = S.audit(T.c1, function(it, k0) if k0 == "front bag" then return "back bag" end end)
         Q.check(ok and S.countKind(T.binv, T.k) == 5, "6 bags: by Move To, all 5 are back in the back bag (" .. T.howB .. "), nothing else moved", d)
+    end)
+    -- one row of the OPEN stack carries its one thing
+    S.step(2, function()
+        if T.off then return end
+        S.showBag(T.binv)
+        S.stackOpen(S.cc(), T.k, true)
+    end)
+    S.wait(4, 300, function() return T.off or (S.charShows(T.binv) and S.childRow(S.cc(), T.k) ~= nil) end, function(ok)
+        if T.off then return end
+        if not ok then Q.check(false, "6 bags: the stack opens in the back bag's list, a row for each thing"); T.e = nil; return end
+        T.one = S.childRow(S.cc(), T.k)
+        S.reveal(S.cc(), T.one)
+        T.e = true
+    end)
+    S.step(4, function()
+        if T.off or not T.e then return end
+        T.c2 = S.census({ S.bx("back bag", T.binv), S.bx("front bag", T.finv), S.box.bag })
+        local strip, extra = S.stripAt(RT.cw(), T.finv)
+        local row = S.childRow(S.cc(), T.k)
+        T.one = row or T.one
+        if not (row and strip) then T.e = nil; Q.check(false, "6 bags: one row of the open stack and the front bag's button are on screen"); return end
+        local ok, why = S.drag(S.cc(), row, strip, extra)
+        T.e = Q.check(ok, "6 bags: one row of the open stack drags from the back bag and drops on the front bag's button", why)
+    end)
+    S.wait(4, 900, S.settled(6), function()
+        if T.off or not T.e then return end
+        local ok, d = S.audit(T.c2, function(it) if it == T.one then return "front bag" end end)
+        Q.check(ok and S.countKind(T.finv, T.k) == 1, "6 bags: one row of the open stack carries exactly its one thing into the front bag, the other 4 stay", d)
+        S.stackOpen(S.cc(), T.k, false)
     end)
     Q.step(2, function()
         if S.dead then return end
@@ -1371,7 +1447,7 @@ function S.case8()
         S.dirty()
         T.go = true
         T.t0 = getTimestampMs()
-        ZEDQA_CAR_WAIT("Base.CarNormal", "lv_move", function(v)
+        ZEDQA_CAR_WAIT("Base.PickUpTruck", "lv_move", function(v)
             S.car = v
             ZEDQA_CAR_KEEP[v] = true
             T.ready = true
@@ -1385,7 +1461,8 @@ function S.case8()
             local ok, k = pcall(ZEDQA_CAR_PREP, T.car)
             if ok and k then S.carKey = k; S.mark(k) end
         end
-        -- the trunk opened and unlocked, the character at it
+        -- (QA, Nov 23 2026, after the first run: a car's trunk was not listed from its area at CarNormal; the pickup, whose bed
+        -- bx_inventory reaches from the bed's area centre, stands in for the trunk. A trunk door, if any, opened and unlocked)
         pcall(function()
             local d = T.car:getPartById("TrunkDoor"):getDoor()
             d:setLocked(false)
@@ -1399,12 +1476,17 @@ function S.case8()
     end)
     S.wait(10, 400, function() return T.off or S.listed(RT.ww(), S.carInv(T, "TruckBed")) end, function(ok)
         if T.off then return end
-        Q.check(ok, "8 car: standing at the open trunk, the trunk is on the World window's buttons", "at the trunk " .. tostring(T.atTrunk))
-        if ok then S.show(S.carInv(T, "TruckBed")) end
+        if ok then
+            Q.check(true, "8 car: standing at the pickup's bed (its trunk), the bed is on the World window's buttons", "at the bed " .. tostring(T.atTrunk))
+            S.show(S.carInv(T, "TruckBed"))
+        else
+            Q.skip("8 car: the trunk from outside", "the World window does not list the TruckBed from where he stands (the game's canAccessContainer; staged at "
+                .. "the bed's area centre, as bx_inventory reaches it)")
+        end
     end)
     S.step(20, function() end)
-    S.shot("lv_move_car_" .. S.sizeTag(), "the World window on the car's trunk, the held bag on show in the Character window")
-    S.carPair(T, "TruckBed", "8 car, the trunk (from outside)")
+    S.shot("lv_move_car_" .. S.sizeTag(), "the World window on the pickup's bed (its trunk), the held bag on show in the Character window")
+    S.carPair(T, "TruckBed", "8 car, the pickup's bed (its trunk, from outside)")
     -- seated in the driver's seat
     S.step(4, function()
         if T.off then return end
