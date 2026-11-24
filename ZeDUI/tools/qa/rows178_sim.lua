@@ -382,7 +382,7 @@ check("CONTENT the column header's words are in the sort font", hdrBlock:find("T
 check("CONTENT the grid's sort keys are measured in the sort font", (cutFn(IRS, "local function gridSortDefs(") or ""):find("T.sortFont", 1, true) ~= nil)
 -- nothing copies the rows at load
 for _, rel in ipairs({ "Molecules.lua", "CraftingCore.lua", "MapsTab.lua", "EquipmentTab.lua", "MechanicsTab.lua", "RadioTab.lua",
-                       "CookingTab.lua", "ObjectCards.lua", "ZeD_EquipLoadout.lua", "ForagingTab.lua" }) do
+                       "CookingTab.lua", "ObjectCards.lua", "ForagingTab.lua" }) do   -- (ZeD_EquipLoadout.lua: the add-on's tests)
     local src = readFile(CL .. rel)
     local copy = src:match("\nlocal [%w_]+%s*=%s*%(?ZeD%.Spacing and ZeD%.Spacing%.tabHeaderH%)?[^\n]*")
               or src:match("\nlocal [%w_]+%s*=%s*%(?ZeD%.Spacing and ZeD%.Spacing%.colHdrH%)?[^\n]*")

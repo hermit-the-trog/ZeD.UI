@@ -389,7 +389,7 @@ local function rowKey(r)
 end
 
 -- a ZeD setup row that works only while another of ZeD's switches is on (ZeD_MainMenuOptionGroups'
--- needs: Restock needs Loadouts and outfits): true while that switch's live pick, Apply or not, is Off. Such a row
+-- needs: a row that works only with another switch on): true while that switch's live pick, Apply or not, is Off. Such a row
 -- dims, takes no click or press, and the controller passes over it; its pick is kept for when the switch comes on.
 -- See-through and Solid while in use work in the Dark theme only (ZeD.seeThroughWorks: Light and High Contrast draw
 -- the windows solid): outside Dark their rows dim the same way, and the help line is See-through's, which says so.
@@ -641,7 +641,7 @@ function ZeD_MMOptions:rowsFor(page)
     -- (Nov 15 2026, add-on hooks: rev goes up each time an add-on adds a group, ZeD.Options.addGroup, so a group
     -- added while the window is open shows at once; with none added it stays 0 and only the two seconds count)
     local rev = (ZeD.Options and ZeD.Options.rev) or 0
-    -- (QA's visual noise audit, Nov 20 2026: rows come and go with Style, Loadouts' pick and debug mode; a change builds again at once)
+    -- (QA's visual noise audit, Nov 20 2026: rows come and go with Style, a showIf switch's pick and debug mode; a change builds again at once)
     local st = MM.optionGroups.stateKey and MM.optionGroups.stateKey() or ""
     -- (beast W39) past two seconds the pages' marks are checked: unchanged, the groups stay as built
     if gc and now - gc.at >= 2000 and gc.rev == rev and gc.st == st and gc.sig == self:vpagesSig() then gc.at = now end

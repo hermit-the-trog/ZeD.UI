@@ -181,17 +181,17 @@ G.ZED_GROUPS = {
     -- (everything vanilla does not do, in one group after the look, the preset first; the
     -- presets' table is in Settings.lua's setUpAdditions. Put back, Messages and Sandbox in game
     -- have no groups of their own; Ammo on the belt, Moodle notices and Dashboard lamps (once in
-    -- HUD) and Restock and the read marks (once in Windows) live here too.)
+    -- HUD) and the read marks (once in Windows) live here too. An add-on's switches join this group with
+    -- ZeD.Options.addRows: the add-on ZeD-GUI: Loadouts puts Loadouts and outfits, and Restock, after Hidden facts.)
     { "UI_ZeD_Options_ZedAdditions", { { "additionsPreset", "radio", short = { "UI_ZeD_Settings_PresetVanilla", "UI_ZeD_Options_PresetPlus", "UI_ZeD_Options_PresetAccessible", "Sandbox_Custom" } },
         -- (QA's visual noise audit, Nov 20 2026: Read marks, Next level on skill books and Dim read items are one
         -- three-way row; Keep notes in Messages and its toast one; Hidden facts takes Recipes skills teach. Each such
         -- row works the options under it, G.MERGED below.)
         { "ammoBox", "onoff" }, { "readMarks", "radio", merge = "readMarks" }, { "dashLamps", "onoff" },
         { "moodleNotices", "onoff" }, { "messagesCatch", "radio", merge = "messages" }, { "haloBubble", "onoff" }, { "hintStrip", "radio" }, { "putBack", "onoff" },
-        { "sandboxInGame", "onoff", under = "UI_ZeD_Options_UnderSandboxIG" }, { "hiddenFacts", "radio", merge = "hiddenFacts" }, { "loadouts", "onoff" },
-        -- (Restock works only with a loadout: its row is hidden while Loadouts is off. The audit: hiding is quieter
+        { "sandboxInGame", "onoff", under = "UI_ZeD_Options_UnderSandboxIG" }, { "hiddenFacts", "radio", merge = "hiddenFacts" },
+        -- (a row with showIf = another option's id is hidden while that one is off. The audit: hiding is quieter
         -- than the dimmed row with its reason line.)
-        { "restock", "radio", showIf = "loadouts" },
         -- (Nov 15 2026, appliances: Additional appliance support, Appliances.lua)
         { "appliances", "onoff" } } },
     -- (the audit: Inventory has the view button in every column header, Equipped items the Equip tab's own switch,
@@ -349,13 +349,57 @@ local function mergedControl(key, d, zo)
     return c
 end
 
+--- A ZeD group's rows with an add-on's spliced in (ZeD.Options.addRows: after the row its afterRow names, else at
+--- the group's end). An add-on's row of another owner comes as a copy carrying _owner; ZeD_UI's as it is.
+function G.groupRows(grp)
+    local adds = ZeD.Options and ZeD.Options.rowAdds
+    if not (adds and #adds > 0) then return grp[2] end
+    local mine = {}
+    for _, a in ipairs(adds) do if a.into == grp[1] then mine[#mine + 1] = a end end
+    if #mine == 0 then return grp[2] end
+    local function put(out, a)
+        for _, r in ipairs(a.rows) do
+            if a.owner == "ZeD_UI" then out[#out + 1] = r
+            else
+                local c = {}
+                for k, v in pairs(r) do c[k] = v end
+                c._owner = a.owner
+                out[#out + 1] = c
+            end
+        end
+    end
+    local out, done = {}, {}
+    for _, e in ipairs(grp[2]) do
+        out[#out + 1] = e
+        for i, a in ipairs(mine) do
+            if not done[i] and a.afterRow == e[1] then put(out, a); done[i] = true end
+        end
+    end
+    for i, a in ipairs(mine) do if not done[i] then put(out, a) end end
+    return out
+end
+
 --- What the setup page's rows depend on besides the options' own values: Style (Lite leaves out groups and rows),
---- Loadouts' live pick (Restock shows only while it is on) and debug mode. ZeD_MainMenuOptions builds again when it changes.
+--- the live pick of every option a row's showIf names (ZeD's rows, an add-on's rows and groups: such a row shows
+--- only while that one is on) and debug mode. ZeD_MainMenuOptions builds again when it changes.
 function G.stateKey()
     local lite = ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite()
-    local zo = PZAPI and PZAPI.ModOptions and PZAPI.ModOptions:getOptions("ZeD_UI")
+    local MO = PZAPI and PZAPI.ModOptions
     local dbg = isDebugEnabled and isDebugEnabled()
-    return tostring(lite) .. ":" .. tostring(liveOf(zo, "loadouts")) .. ":" .. tostring(dbg)
+    local parts = {}
+    local function add(owner, e)
+        if e.showIf then
+            local zo = MO and MO:getOptions(e._owner or owner)
+            parts[#parts + 1] = tostring(liveOf(zo, e.showIf))
+        end
+    end
+    for _, grp in ipairs(G.ZED_GROUPS) do
+        for _, e in ipairs(G.groupRows(grp)) do add("ZeD_UI", e) end
+    end
+    for _, a in ipairs(ZeD.Options and ZeD.Options.groups or {}) do
+        for _, e in ipairs(a.rows) do add(a.owner, e) end
+    end
+    return tostring(lite) .. ":" .. table.concat(parts, ",") .. ":" .. tostring(dbg)
 end
 
 -- a shallow copy carrying a note under its name (ZeD setup's copies; the
@@ -408,7 +452,9 @@ local function addonRows(a, mods)
     for _, e in ipairs(a.rows) do
         local id = e[1]
         local opt = zo.dict and zo.dict[id]
-        if not opt then
+        if e.showIf and liveOf(zo, e.showIf) ~= 2 then
+            -- (showIf: hidden while that switch of the add-on's is off; the page rebuilds when it flips, G.stateKey)
+        elseif not opt then
             AO.logOnce("option:" .. a.owner .. ":" .. id, a.owner .. " has no option " .. id .. ": its row on ZeD setup is skipped")
         elseif opt.element and not seen[id] then
             -- (no element yet: vanilla has not built the Mods page; ZeD's own rows wait the same way)
@@ -524,8 +570,8 @@ local function buildSetup(realMods, byName)
       if lite and G.LITE_HIDES[grp[1]] and not keepShown then
         -- (a group Lite leaves out: its options are hidden, so none of them turns up under Other instead, and
         -- through hide() they reach G.hiddenOpts, so ZeD setup's Defaults resets them too (QA B3-1))
-        for _, e in ipairs(grp[2]) do
-            hide(e[1])
+        for _, e in ipairs(G.groupRows(grp)) do
+            if not e._owner then hide(e[1]) end   -- (an add-on's own option is not ZeD's to hide)
             local d = e.merge and G.MERGED[e.merge]
             for _, id in ipairs((d and d.ids) or {}) do hide(id) end
         end
@@ -536,13 +582,21 @@ local function buildSetup(realMods, byName)
             -- the quick action chords: a row each (ZeD_MainMenuOptions draws a "chord" row)
             for _, c in ipairs(ZeD.QuickChords and ZeD.QuickChords.CHORDS or {}) do list[#list + 1] = { kind = "chord", chord = c, label = "" } end
         end
-        for _, e in ipairs(grp[2]) do
+        for _, e in ipairs(G.groupRows(grp)) do
+            -- (an add-on's row of another owner, ZeD.Options.addRows: its row built from its own options)
+            local own = e._owner
             local c = zrow[e[1]]
+            if own then
+                local built = addonRows({ owner = own, rows = { e } }, mods)
+                c = built[1]
+            end
+            local pkey = own and (own .. "." .. e[1]) or e[1]
+            local ozo = own and PZAPI.ModOptions:getOptions(own) or zo
             local off = (e.fullOnly and lite) or (e.debugOnly and not dbg)
-                or (e.showIf and liveOf(zo, e.showIf) ~= 2)
+                or (e.showIf and liveOf(ozo, e.showIf) ~= 2)
             if c and off then
-                hide(e[1])
-            elseif c and not placed[e[1]] then
+                if not own then hide(e[1]) end
+            elseif c and not placed[pkey] then
                 styleRow(c, e)
                 local d = e.merge and G.MERGED[e.merge]
                 if d then
@@ -572,7 +626,7 @@ local function buildSetup(realMods, byName)
                     for _, id in ipairs(c.zedIds) do placed[id] = true end
                 end
                 list[#list + 1] = c
-                placed[e[1]] = true
+                placed[pkey] = true
             end
         end
         if #list > 0 then

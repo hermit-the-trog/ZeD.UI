@@ -13,9 +13,96 @@ require "ISUI/ISPanel"
 require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
+require "ZeD/ZeD_AddonAPI"
 ZeD = ZeD or {}
 ZeD_ItemCard = ISPanel:derive("ZeD_ItemCard")
 ZeD.ItemCard = ZeD.ItemCard or {}
+
+-- ============================================================================
+-- PLUG-IN POINTS ON THE ITEM CARD (1.0 add-on API; docs/ADDON_API.md)
+--   ZeD.ItemCard.addMark(id, def): a mark on the mark strip, after Favorite, No craft and Dispose.
+--     order                   lower first among the add-ons' marks (default 100)
+--     state(item, pn)         -> { on = bool, text = words after it (dim, while there is room),
+--                             hint = the help line over it } or nil (nil: no mark on this card)
+--     icon                    its ZeD pixel icon id (lit in the accent while on)
+--     label                   its words (a translation key, or plain words)
+--     activate(card, rect, pad)  a press on it (rect: its screen rect; pad: true from the controller)
+--     ZeD gives it the pad stop "toggle_<id>", the pointer's press, the hover and the focus mark;
+--     Lite (no mark strip) shows none.
+--   ZeD.ItemCard.addSection(id, def): a section in the card's body, after the facts, before "Used to make".
+--     order                   lower first (default 100)
+--     draw(card, item, x, y, w, compact) -> its height (0: nothing drawn)
+--   ZeD.ItemCard.addGen(id, fn): fn() -> a value; the card's model is built again when it changes
+--     (a mark's state is part of the model, kept for a moment, so a change must say so).
+-- Nothing registered: the strip has its three marks, the body its own sections, as before.
+-- ============================================================================
+ZeD.ItemCard._marks = ZeD.ItemCard._marks or { list = {}, byId = {}, rev = 0 }   -- (a registry, the shape ZeD.API.registry makes: nothing needs the API until one registers)
+ZeD.ItemCard._sections = ZeD.ItemCard._sections or { list = {}, byId = {}, rev = 0 }
+ZeD.ItemCard._gens = ZeD.ItemCard._gens or { list = {}, byId = {}, rev = 0 }
+ZeD.ItemCard._genSeen = ZeD.ItemCard._genSeen or {}
+ZeD.ItemCard._genN = ZeD.ItemCard._genN or 0
+
+function ZeD.ItemCard.addMark(id, def)
+    if type(def) ~= "table" then return false end
+    -- (the names the card uses each frame, made once: the model's fields and the pad stop)
+    def._textKey, def._hintKey, def._stopId = tostring(id) .. "Text", tostring(id) .. "Hint", "toggle_" .. tostring(id)
+    local ok = ZeD.API.add(ZeD.ItemCard._marks, "card mark", id, def)
+    -- its icon on the chip (ZeD.Atoms.drawFlagChip draws FLAG_ICON[kind])
+    if ok and def.icon and ZeD.Atoms and type(ZeD.Atoms.FLAG_ICON) == "table" then ZeD.Atoms.FLAG_ICON[id] = def.icon end
+    return ok
+end
+function ZeD.ItemCard.addSection(id, def)
+    return ZeD.API.add(ZeD.ItemCard._sections, "card section", id, def)
+end
+function ZeD.ItemCard.addGen(id, fn)
+    if type(fn) ~= "function" then return false end
+    return ZeD.API.add(ZeD.ItemCard._gens, "card gen", id, { fn = fn })
+end
+
+--- A number that changes whenever any registered gen's value changes (it joins the model's cache key).
+function ZeD.ItemCard.genKey()
+    local seen = ZeD.ItemCard._genSeen
+    for _, def in ipairs(ZeD.ItemCard._gens.list) do
+        local v = ZeD.API.call("card gen " .. def.id, def.fn)
+        if v ~= seen[def.id] then
+            seen[def.id] = v
+            ZeD.ItemCard._genN = ZeD.ItemCard._genN + 1
+        end
+    end
+    return ZeD.ItemCard._genN
+end
+
+--- The registered marks' states into the model's marks m: m[id] = on, m[id .. "Text"], m[id .. "Hint"]
+--- (a mark whose state is nil is left out: no chip, no stop).
+function ZeD.ItemCard.markStates(m, item, pn)
+    for _, def in ipairs(ZeD.ItemCard._marks.list) do
+        local st = def.state and ZeD.API.call("card mark " .. def.id .. " state", def.state, item, pn)
+        if type(st) == "table" then
+            m[def.id] = st.on and true or false
+            m[def._textKey] = st.text
+            m[def._hintKey] = st.hint
+        end
+    end
+end
+
+--- Draw the registered body sections from y down; returns their height together.
+function ZeD.ItemCard.drawSections(card, item, x, y, w, compact)
+    local h = 0
+    for _, def in ipairs(ZeD.ItemCard._sections.list) do
+        if def.draw then
+            h = h + (tonumber(ZeD.API.call("card section " .. def.id .. " draw", def.draw, card, item, x, y + h, w, compact)) or 0)
+        end
+    end
+    return h
+end
+
+--- A registered mark pressed (pad: from the controller): its activate, with its rect on the screen.
+function ZeD.ItemCard.activateMark(card, id, pad)
+    local def = ZeD.ItemCard._marks.byId[id]
+    local r = card and card._markRects and card._markRects[id]
+    if not (def and def.activate and r and card.item) then return end
+    ZeD.API.call("card mark " .. id .. " activate", def.activate, card, r, pad and true or false)
+end
 -- A body row is a controller stop only while all of it is inside the body's view (card-local top..bottom)
 function ZeD.ItemCard.rowInView(y, h, top, bottom)
     if not (top and bottom) then return true end
@@ -1418,12 +1505,15 @@ function ZeD_ItemCard:_pointer()
     self.verbHover    = newVerbHover
     self.verbWasDown  = down and (newVerbHover ~= nil)
 
-    -- The mark strip's Lists button: released on it, the lists' pop-up
-    do
-        local r = self._listsRect
-        local inL = r and mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h or false
-        if self._listsWasDown and not down and inL then self:openListsPopup() end
-        self._listsWasDown = down and inL
+    -- An add-on's mark on the strip (ZeD.ItemCard.addMark): released on it, its activate
+    if self._markRects then
+        local wd = self._markWasDown
+        if not wd then wd = {}; self._markWasDown = wd end
+        for id, r in pairs(self._markRects) do
+            local inM = r and mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h or false
+            if wd[id] and not down and inM then ZeD.ItemCard.activateMark(self, id, false) end
+            wd[id] = down and inM
+        end
     end
 
     -- Fold toggle click detection (disclosure headers in scrollable body)
@@ -1699,7 +1789,7 @@ end
 -- Return the card's focusable elements, in order: the progress band's
 -- Cancel (while an action runs), the header verbs (the primary is where the
 -- controller lands), the name row, the folded row and its greyed verbs, the
--- mark chips (FAV / PROTECT / UNWANTED), the Lists mark, then the care verbs.
+-- mark chips (FAV / PROTECT / UNWANTED), an add-on's marks (addMark), then the care verbs.
 function ZeD_ItemCard:getActionStripElements()
     if not self.item then return {} end
     local els  = {}
@@ -1825,15 +1915,18 @@ function ZeD_ItemCard:getActionStripElements()
         end
     end
 
-    -- the Lists mark: A opens the lists' pop-up (it takes the pad; B closes it, back here)
-    if self._listsRect then
-        local r = self._listsRect
-        els[#els + 1] = {
-            x = r.x, y = r.y, w = r.w, h = r.h,
-            id = "toggle_lists",
-            onFocus = function() card._gpFocusedBtnId = "toggle_lists" end,
-            onActivate = function() card:openListsPopup() end,
-        }
+    -- an add-on's marks (ZeD.ItemCard.addMark): A is its activate, as a press is
+    for _, def in ipairs(ZeD.ItemCard._marks and ZeD.ItemCard._marks.list or {}) do
+        local r = self._markRects and self._markRects[def.id]
+        if r then
+            local eid, mid = def._stopId, def.id
+            els[#els + 1] = {
+                x = r.x, y = r.y, w = r.w, h = r.h,
+                id = eid,
+                onFocus = function() card._gpFocusedBtnId = eid end,
+                onActivate = function() ZeD.ItemCard.activateMark(card, mid, true) end,
+            }
+        end
     end
 
     for i, vdef in ipairs(self._verbDefs or {}) do
@@ -1989,16 +2082,6 @@ function ZeD_ItemCard:focusFor(id)
     if not ZeD.Atoms.isAncestor(w, self) then return nil end
     _cardFocus.win, _cardFocus.zone = w, zone.zone
     return _cardFocus
-end
-
---- The mark strip's Lists button: the loadouts and outfits by name, with checkboxes
---- (ZeD_ListsMenu.lua), dropped from the button's lower left
-function ZeD_ItemCard:openListsPopup()
-    local r = self._listsRect
-    local LU = ZeD.ListsUI
-    if not (r and LU and self.item) then return end
-    pcall(function() ZeD.uiSound("UIActivateButton") end)
-    LU.openPopup(self.playerNum or 0, self.item, r.x - ZeD.T.px(4), r.y + r.h + ZeD.T.px(4))
 end
 
 --- Open or fold the card's folded row (remembered per item category for the session)

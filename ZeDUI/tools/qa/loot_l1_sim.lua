@@ -344,14 +344,8 @@ if run("L1-7 containerTitle", (cut(IMsrc, "local function containerTitle(", "\ne
     c._custom = "Tools"
     check("L1-7 world menu: a renamed crate goes by its name", containerTitle(c) == "Tools")
 end
-if run("L1-7 Restock contName", "R = {}\n" .. (cut(readFile(Z .. "ZeD_Restock.lua"), "local function call(", "\nend\n") or "")
-        .. (cut(readFile(Z .. "ZeD_Restock.lua"), "local function contName(", "\nend\n") or "") .. "R.contName = contName\n") then
-    local c = mkInv("crate")
-    local o = { getName = function() return "" end }
-    check("L1-7 Restock: a crate is Crate", R.contName(o, c) == "Crate")
-    c._custom = "Tools"
-    check("L1-7 Restock: a renamed crate goes by its name", R.contName(o, c) == "Tools")
-end
+-- (L1-7's Restock check moved with ZeD_Restock.lua to the add-on ZeD-GUI: Loadouts, Nov 23 2026: its tests/source_sim.lua,
+-- NAMES)
 for _, f in ipairs({ "ZeD_WorldWindow.lua", "CookingTab.lua", "MechanicsTab.lua" }) do
     local s = readFile(Z .. f) or ""
     check("L1-7 " .. f .. " reads the container's custom name", s:find("getCustomName and container:getCustomName()", 1, true) ~= nil

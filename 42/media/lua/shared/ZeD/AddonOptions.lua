@@ -29,7 +29,7 @@
 -- again replaces the earlier one (so a reloaded file does not show it twice).
 --
 -- Each row: { option id, style, under =, short =, needs =, needsNot =,
--- needsWhy =, nameKey =, tipKey =, default = }.
+-- needsWhy =, showIf =, nameKey =, tipKey =, default = }.
 --   style      "radio", "onoff" (item 1 Off, item 2 On), "scale" (a stepped
 --              slider, its readout the item's words) or nil (the pop-up menu).
 --              ("swatch" is ZeD's accent wells and means nothing for an add-on.)
@@ -38,6 +38,10 @@
 --   needs      another option id of the SAME add-on: this row dims while that
 --              one is not item 2 (On); needsNot dims it while that one is On;
 --              needsWhy is the help band's words while dimmed (a key)
+--   showIf     another option id of the SAME add-on: this row is not shown at
+--              all while that one is not item 2 (On) (quieter than a dimmed
+--              row: Restock while Loadouts is off). The page rebuilds when the
+--              switch is flipped, Apply or not.
 --   nameKey    the name read through ZeD.tr each frame (else the name the
 --              option was made with, as the Mods page shows it)
 --   tipKey     the help band's words through ZeD.tr (else the option's own
@@ -55,6 +59,27 @@
 --
 -- ZeD.Options.VERSION: 1. An add-on checks it before calling:
 --     if ZeD and ZeD.Options and (ZeD.Options.VERSION or 0) >= 1 then ... end
+--
+-- (1.0, Nov 23 2026) Two more, for an add-on whose switches sit among ZeD's own:
+--
+--   ZeD.Options.addRows { owner =, into =, afterRow =, rows = { ... } }
+--     its rows inside one of ZeD's groups instead of a group of their own:
+--     into = the ZeD group's title key ("UI_ZeD_Options_ZedAdditions"), afterRow =
+--     the option id of ZeD's row they follow (none, or one not in that group: the
+--     group's end). The rows have the shape above. owner may be "ZeD_UI" for an
+--     option ZeD itself makes for the add-on.
+--
+--   ZeD.Options.joinPreset { owner =, id =, presets = { v1, v2, v3 }, wasOn = item }
+--     the option becomes one of ZeD's additions: the Additions preset (1 Vanilla,
+--     2 Vanilla Plus, 3 Vanilla Accessible) sets it to presets[i] (nil: that
+--     preset leaves it as it is and does not look at it), a change to it makes the
+--     preset read Custom, Lite and ZeD setup's Defaults put it to presets[1].
+--     wasOn: a player who had ZeD's options saved before this option existed (no
+--     line for it in ModOptions.ini) starts on this item instead of the default
+--     ("start on for existing players"). Join at file load, as the option is made.
+--     ZeD.Settings.savedValue(owner, id) reads a saved value from ModOptions.ini
+--     as the game started (an add-on carrying a value ZeD saved under its own
+--     owner before the option moved: ZeD.Settings.savedValue("ZeD_UI", "loadouts")).
 -- ============================================================================
 
 -- Reload-safe: loading this file twice keeps what was added (an add-on that
@@ -73,6 +98,48 @@ function O.logOnce(key, msg)
     if O.logged[key] then return end
     O.logged[key] = true
     print("[ZeD] Options: " .. tostring(msg))
+end
+
+O.rowAdds = O.rowAdds or {}       -- addRows' entries: { owner, into, afterRow, rows }
+O.presetJoins = O.presetJoins or {}   -- joinPreset's entries, in the order they came
+
+--- Put an add-on's rows inside one of ZeD's groups (the header above).
+function O.addRows(spec, more)
+    if spec == O then spec = more end
+    if type(spec) ~= "table" or type(spec.owner) ~= "string" or type(spec.into) ~= "string" or type(spec.rows) ~= "table" then
+        O.logOnce("addRows:bad", "addRows needs { owner =, into =, rows = }: left out")
+        return false
+    end
+    local rows = {}
+    for _, e in ipairs(spec.rows) do
+        if type(e) == "table" and type(e[1]) == "string" and e[1] ~= "" then rows[#rows + 1] = e end
+    end
+    local a = { owner = spec.owner, into = spec.into, afterRow = spec.afterRow, rows = rows }
+    -- the same owner, group and place again: replace it
+    local at = nil
+    for i, old in ipairs(O.rowAdds) do
+        if old.owner == a.owner and old.into == a.into and old.afterRow == a.afterRow then at = i end
+    end
+    if at then O.rowAdds[at] = a else O.rowAdds[#O.rowAdds + 1] = a end
+    O.rev = O.rev + 1
+    return true
+end
+
+--- An option joins ZeD's additions and their presets (the header above). Settings.lua takes it at once when it
+--- has loaded, else when it loads.
+function O.joinPreset(spec, more)
+    if spec == O then spec = more end
+    if type(spec) ~= "table" or type(spec.owner) ~= "string" or type(spec.id) ~= "string" then
+        O.logOnce("joinPreset:bad", "joinPreset needs { owner =, id = }: left out")
+        return false
+    end
+    for i, old in ipairs(O.presetJoins) do
+        if old.owner == spec.owner and old.id == spec.id then table.remove(O.presetJoins, i); break end
+    end
+    O.presetJoins[#O.presetJoins + 1] = spec
+    if ZeD.Settings and ZeD.Settings.joinAddition then ZeD.Settings.joinAddition(spec) end
+    O.rev = O.rev + 1
+    return true
 end
 
 --- Add (or replace) an add-on's group on ZeD setup. The header above has the fields.

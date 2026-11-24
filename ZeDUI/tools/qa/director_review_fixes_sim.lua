@@ -366,49 +366,8 @@ do
     end
 end
 
-section("LOADOUTS: the empty line wraps")
-do
-    local src = readFile("42/media/lua/client/ZeD/ZeD_EquipLoadout.lua") or ""
-    local piece = cutFn(src, "local function wrapEmpty(")
-    check("wrapEmpty cut", piece ~= nil)
-    if piece then
-        ZeD.tr = function(k) return (k == "UI_ZeD_EqBar_EmptyLine") and "lists from the Journal, to restock before you head out" or k end
-        ZeD.Atoms = { wrapText = function(text, _, w)
-            local out, line = {}, ""
-            for word in tostring(text):gmatch("%S+") do
-                local try = (line == "") and word or (line .. " " .. word)
-                if #try * 8 > w and line ~= "" then out[#out + 1] = line; line = word else line = try end
-            end
-            if line ~= "" or #out == 0 then out[#out + 1] = line end
-            return out
-        end }
-        local chunk, err = loadstring("local BAR_ROW = 38\nlocal emptyWrap = {}\nlocal function fh(f) return ZeD.TM:getFontHeight(f) end\n"
-            .. piece .. "return wrapEmpty\n", "=ZeD_EquipLoadout.lua (cut)")
-        check("it loads", chunk ~= nil, err)
-        if chunk then
-            local wrapEmpty = chunk()
-            -- the second row at 1080p 1x (the drawer's 460): the line, Restock 0:00, Save
-            local empty = { k = "empty", w = 320 }
-            local row = { empty, { k = "verb", w = 104, right = true }, { k = "save", w = 52, right = true } }
-            local h = wrapEmpty(row, 460)
-            local words = table.concat(empty.lines or {}, " ")
-            check("every word kept", words == "lists from the Journal, to restock before you head out", words)
-            check("more than one line, the row as tall as its lines", #empty.lines > 1 and h == math.max(38, #empty.lines * F1_H + 8),
-                #(empty.lines or {}) .. " lines, " .. h)
-            local room = 460 - 16 - 104 - 8 - 52 - 8
-            local fits = true
-            for _, s in ipairs(empty.lines) do if #s * 8 > room then fits = false end end
-            check("each line fits the room the draw gives it", fits)
-            -- the Deck: narrower still, more lines, still whole
-            local deck = { k = "empty", w = 320 }
-            wrapEmpty({ deck, { k = "verb", w = 104, right = true }, { k = "save", w = 52, right = true } }, 340)
-            check("at the Deck every word kept", table.concat(deck.lines, " ") == words)
-            check("a row with no empty line keeps its height", wrapEmpty({ { k = "ready", w = 80 } }, 460) == 38)
-        end
-    end
-    check("the line is no longer cut", not src:find('trunc(ZeD.tr("UI_ZeD_EqBar_EmptyLine")', 1, true))
-    check("the bar's height sums its rows", src:find("for _, rh in ipairs(hs) do h = h + rh end", 1, true) ~= nil)
-end
+-- (LOADOUTS, the Equip bar's empty line wrapping, moved with ZeD_EquipLoadout.lua to the add-on ZeD-GUI: Loadouts,
+-- Nov 23 2026: its tests/source_sim.lua, EMPTY)
 
 print(string.format("director_review_fixes_sim: %d checks, %d failed", checks, failed))
 if failed > 0 then os.exit(1) end

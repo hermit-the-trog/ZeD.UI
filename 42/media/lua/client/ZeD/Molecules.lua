@@ -2862,29 +2862,37 @@ function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRect
         cursorX = cursorX + cw + gap
     end
 
-    -- The fourth mark: Lists, lit in the accent when the item
-    -- is on any loadout or outfit (marks.lists; nil: no button), its words after it
-    -- (marks.listsText, "in 1 loadout", in T.textDim while there is room: the lit icon is the status)
-    if marks and marks.lists ~= nil then
-        local label = ZeD.tr("UI_ZeD_Lists_Lists")
+    -- An add-on's marks after the three (ZeD.ItemCard.addMark; Loadouts' Lists, lit in the accent when the
+    -- item is on any loadout or outfit): marks[id] (nil: no button), its words after it (marks[id .. "Text"],
+    -- "in 1 loadout", in T.textDim while there is room: the lit icon is the status), its help marks[id .. "Hint"]
+    local IC = ZeD.ItemCard
+    for _, def in ipairs(marks and IC and IC._marks and IC._marks.list or NO_OPTS) do
+      local k = def.id
+      if marks[k] ~= nil then
+        local label = ZeD.tr(def.label or k)
+        if def.icon and type(A.FLAG_ICON) == "table" and not A.FLAG_ICON[k] then A.FLAG_ICON[k] = def.icon end
         local cw = A.flagChipW(label, compact)
         local o = _chipOpts
-        if hov and hov.lists ~= nil then o.hover = hov.lists
+        if hov and hov[k] ~= nil then o.hover = hov[k]
         else o.hover = A.mouseIn(panel, cursorX, rowY, cw, chipH) end
-        o.focus = partFocus(opts, "lists")
-        if outRects then outRects.lists = outRects.lists or {} end
-        cw = A.drawFlagChip(panel, cursorX, rowY, "lists", marks.lists and true or false, nil, label,
-            outRects and outRects.lists or nil, compact, o)
-        if o.hover and marks.listsHint and ZeD.Help and ZeD.Help.set then ZeD.Help.set(opts.win or panel, marks.listsHint) end
+        o.focus = partFocus(opts, k)
+        if outRects then outRects[k] = outRects[k] or {} end
+        cw = A.drawFlagChip(panel, cursorX, rowY, k, marks[k] and true or false, nil, label,
+            outRects and outRects[k] or nil, compact, o)
+        local hint = marks[def._hintKey]
+        if o.hover and hint and ZeD.Help and ZeD.Help.set then ZeD.Help.set(opts.win or panel, hint) end
         cursorX = cursorX + cw + gap
-        local s = marks.listsText
+        local s = marks[def._textKey]
         if s and s ~= "" then
             local room = x + w - padX - cursorX
-            if ZeD.TM:MeasureStringX(font, s) <= room then
+            local sw = ZeD.TM:MeasureStringX(font, s)
+            if sw <= room then
                 local dc = T.textDim
                 panel:drawText(s, cursorX, labelTY, dc.r, dc.g, dc.b, dc.a or 1, font)
+                cursorX = cursorX + sw + gap   -- (a next mark starts after the words)
             end
         end
+      end
     end
 
     return h

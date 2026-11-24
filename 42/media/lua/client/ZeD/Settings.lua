@@ -252,16 +252,6 @@ equipView:addItem(ZeD.tr("UI_ZeD_Settings_ViewList"), true)  -- default: the lis
 equipView:addItem(ZeD.tr("UI_ZeD_Settings_ViewDoll"), false)
 ZeD.Settings.equipViewOption = equipView
 
--- ----- RESTOCK -----
--- How the Equip tab's Restock and Unpack go (ZeD_Restock.lua reads it each time): Hardcore takes
--- from what is in reach now, Casual (the default) as containers come into reach, Accessible walks
--- the building for you. The choice lives here, never in a first-run question.
-local restock = opts:addComboBox("restock", ZeD.tr("UI_ZeD_Settings_Restock"), ZeD.tr("UI_ZeD_Settings_RestockTip"))
-restock:addItem(ZeD.tr("UI_ZeD_Settings_RestockHardcore"), false)
-restock:addItem(ZeD.tr("UI_ZeD_Settings_RestockCasual"), true)   -- default
-restock:addItem(ZeD.tr("UI_ZeD_Settings_RestockAccessible"), false)
-ZeD.Settings.restockOption = restock
-
 -- ----- THE OTHER VIEW CHOICES: all lists or all grids for the most used
 -- menus -----
 -- The inventory's view for every container that hasn't one of its own (each
@@ -571,18 +561,9 @@ ZeD.Settings.hiddenActions = function()
     return (ok and hiddenKeys[tonumber(i) or 1]) or "folded"
 end
 
--- ----- LOADOUTS AND OUTFITS (one switch for all of it; Restock follows
--- Loadouts) -----
--- The Equip tab's Loadouts fold and its to-do, the Journal's Loadouts page, the item card's Lists mark, the
--- right-click Save to outfit / Save to loadout, the controller's Loadouts ring, and Restock with its pinned
--- list. Off hides them all and Restock does nothing; the saved loadouts and outfits stay with the character,
--- so turning it back on brings every one back. Each place asks ZeD.Lists.on() as it draws, so a change applies
--- at once. Off for a new player; a player who had ZeD before this switch keeps it on (see the additions, below).
-local loadouts = opts:addComboBox("loadouts", ZeD.tr("UI_ZeD_Settings_Loadouts"), ZeD.tr("UI_ZeD_Settings_LoadoutsTip"))
-loadouts:addItem(getText("UI_Off"), true)   -- default
-loadouts:addItem(getText("UI_On"), false)   -- (item 1 Off, item 2 On: ZeD setup's on/off switch)
-ZeD.Settings.loadoutsOption = loadouts
-ZeD.Settings.loadoutsOn = function() return (loadouts:getValue() or 1) == 2 end
+-- (1.0, Nov 23 2026) Loadouts and outfits, and Restock, are the add-on ZeD-GUI: Loadouts now: it makes the two
+-- options under its own owner (ZeDLoadouts) and carries a player's saved "loadouts" and "restock" from ZeD_UI's
+-- lines with ZeD.Settings.savedValue, below.
 
 -- ----- THE ADDITIONS' PRESET -----
 -- Vanilla (a new player's start), Vanilla Plus, Vanilla Accessible, or Custom: what the switches for the things
@@ -802,7 +783,7 @@ ZeD.Settings.uiSoundVolume = function() return uiSoundKeys[liveIdx(uiSounds) or 
 
 -- ----- ADDITIONAL APPLIANCE SUPPORT (Nov 15 2026, appliances) -----
 -- Makes more of the game's appliances work, the espresso machine first (Appliances.lua reads it each time a menu or
--- the A prompt is built, so a change applies at once). An addition, shown with Restock in ZeD setup, and off in every
+-- the A prompt is built, so a change applies at once). An addition, shown in ZeD setup's Additions group, and off in every
 -- preset, Vanilla Plus included: a player gets it only by switching it on. Off, ZeD adds nothing to any appliance.
 local appliances = onSwitch("appliances", "UI_ZeD_Settings_Appliances", "UI_ZeD_Settings_AppliancesTip")
 ZeD.Settings.appliancesOption = appliances
@@ -833,7 +814,7 @@ do
         sandboxInGame = "UI_ZeD_Settings_SandboxIG", dimRead = "UI_ZeD_Settings_DimRead",
         ammoBox = "UI_ZeD_Settings_AmmoBox", readMarks = "UI_ZeD_Settings_ReadMarks", readNext = "UI_ZeD_Settings_ReadNext",
         dashLamps = "UI_ZeD_Settings_DashLamps", moodleNotices = "UI_ZeD_Settings_MoodleNotices",
-        loadouts = "UI_ZeD_Settings_Loadouts", additionsPreset = "UI_ZeD_Settings_Preset",
+        additionsPreset = "UI_ZeD_Settings_Preset",
         screenWindows = "UI_ZeD_Settings_ScreenWindows", screenBelt = "UI_ZeD_Settings_ScreenBelt",
         screenWatch = "UI_ZeD_Settings_ScreenWatch", screenDashboard = "UI_ZeD_Settings_ScreenDashboard",
         screenMoodles = "UI_ZeD_Settings_ScreenMoodles", screenWheels = "UI_ZeD_Settings_ScreenWheels",
@@ -847,9 +828,9 @@ do
         autoLearn = "UI_ZeD_Settings_AutoLearn", runSneak = "UI_ZeD_Settings_RunSneak",
         uiSounds = "UI_ZeD_Settings_UiSounds",
         appliances = "UI_ZeD_Settings_Appliances",
-        -- (QA B10-1) Style, Map and Restock had no entry, so they had no default: Defaults skipped them and the help
+        -- (QA B10-1) Style and Map had no entry, so they had no default: Defaults skipped them and the help
         -- band showed no "Default:" for them
-        lookStyle = "UI_ZeD_Settings_LookStyle", mapLight = "UI_ZeD_Settings_MapLight", restock = "UI_ZeD_Settings_Restock",
+        lookStyle = "UI_ZeD_Settings_LookStyle", mapLight = "UI_ZeD_Settings_MapLight",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]
@@ -880,34 +861,43 @@ local function setUpAdditions()
     local OFF, ON = 1, 2
     local CUSTOM = 4
     local CUSTOM_FILE = "ZeD_custom_additions.txt"   -- (Zomboid/Lua: <option id>=<item>, a line each)
-    -- every addition a preset sets, by option id (restock: 1 Hardcore, 2 Casual, 3 Accessible)
+    -- every addition a preset sets, by option id; an add-on's option joins with ZeD.Options.joinPreset (below), its
+    -- key "<owner>.<id>" (an option ZeD makes for an add-on, owner ZeD_UI, keeps its plain id)
     local IDS = { "ammoBox", "readMarks", "readNext", "dimRead", "dashLamps", "moodleNotices",
-                  "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "loadouts", "restock", "devicesStyle", "watchStyle", "dashStyle",
+                  "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "devicesStyle", "watchStyle", "dashStyle",
                   "guideStyle", "modsStyle", "identityStyle", "haloBubble", "hiddenFacts", "autoLearn", "appliances" }
     -- THE PRESETS, by the preset's item: the item each addition is set to. An id a preset leaves out is left as
-    -- it is and does not count when the values are matched to a preset (Vanilla leaves Restock: it does nothing
-    -- while Loadouts is off). A new addition joins by putting its id in IDS and a row in each preset,
-    -- as the Full-or-simple rows did (Immersive for Vanilla Plus, Simple for Vanilla Accessible).
+    -- it is and does not count when the values are matched to a preset. A new addition of ZeD's joins by putting
+    -- its id in IDS and a row in each preset, as the Full-or-simple rows did (Immersive for Vanilla Plus, Simple
+    -- for Vanilla Accessible); an add-on's by ZeD.Options.joinPreset.
     local PRESETS = {
         -- 1 Vanilla: every addition off
         { ammoBox = OFF, readMarks = OFF, readNext = OFF, dimRead = OFF, dashLamps = OFF, moodleNotices = OFF,
-          messagesCatch = OFF, messagesToast = OFF, putBack = OFF, sandboxInGame = OFF, loadouts = OFF, haloBubble = OFF,
+          messagesCatch = OFF, messagesToast = OFF, putBack = OFF, sandboxInGame = OFF, haloBubble = OFF,
           hiddenFacts = 1, autoLearn = OFF, appliances = OFF },
-        -- 2 Vanilla Plus: every addition on, Restock Casual (Additional appliance support stays off: Nov 15 2026, appliances)
+        -- 2 Vanilla Plus: every addition on (Additional appliance support stays off: Nov 15 2026, appliances)
         { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
-          messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 2,
+          messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON,
           devicesStyle = 1, watchStyle = 1, dashStyle = 1, guideStyle = 1, modsStyle = 1, identityStyle = 1, haloBubble = ON,
           hiddenFacts = 1, autoLearn = OFF, appliances = OFF },
-        -- 3 Vanilla Accessible: every addition on, Restock Accessible (Additional appliance support off, as in every preset)
+        -- 3 Vanilla Accessible: every addition on (Additional appliance support off, as in every preset)
         { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
-          messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 3,
+          messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON,
           devicesStyle = 2, watchStyle = 2, dashStyle = 2, guideStyle = 2, modsStyle = 2, identityStyle = 2, haloBubble = ON,
           hiddenFacts = 2, autoLearn = ON, appliances = OFF },
     }
     ZeD.Settings.ADDITION_IDS = IDS
     ZeD.Settings.ADDITION_PRESETS = PRESETS
 
-    local function opt(id) return opts.dict and opts.dict[id] end
+    -- an addition's option by its key: ZeD's own by id, an add-on's by "<owner>.<id>" (ZeD.Options.joinPreset)
+    local function opt(id)
+        local own, oid = string.match(id, "^([%w_]+)%.([%w_]+)$")
+        if own then
+            local zo = PZAPI and PZAPI.ModOptions and PZAPI.ModOptions:getOptions(own)
+            return zo and zo.dict and zo.dict[oid] or nil
+        end
+        return opts.dict and opts.dict[id]
+    end
     local function live(id) local o = opt(id); return o and liveIdx(o) end      -- the pick on the screen
     local function stored(id) local o = opt(id); return o and o:getValue() end  -- the value applied
     -- the preset the values make (read(id): an addition's item), else Custom
@@ -955,7 +945,7 @@ local function setUpAdditions()
         local ok2 = pcall(function()
             local l = r:readLine()
             while l do
-                local id, v = l:match("^(%w+)=(%d+)")
+                local id, v = l:match("^([%w_%.]+)=(%d+)")   -- (an add-on's key is "<owner>.<id>")
                 if id then out[id] = tonumber(v) end
                 l = r:readLine()
             end
@@ -1020,7 +1010,7 @@ local function setUpAdditions()
     -- stayed as they were. Every way to pick Lite now puts the Vanilla preset onto the options themselves.)
     function ZeD.Settings.liteAdditions()
         for id, v in pairs(PRESETS[1] or {}) do
-            local o = opts.dict and opts.dict[id]
+            local o = opt(id)   -- (an add-on's joined option too)
             if o and o.setValue then pcall(o.setValue, o, v) end
         end
         if additionsPreset.setValue then pcall(additionsPreset.setValue, additionsPreset, 1) end
@@ -1120,10 +1110,12 @@ local function setUpAdditions()
     function ZeD.Settings.forgetLiteFrom() liteFrom = nil end   -- (and the picks Lite kept) (QA B6-4)
 
     -- A player who had ZeD before the additions' switches has ZeD's lines in ModOptions.ini. An addition that
-    -- was on for them with no line of its own (Loadouts had no switch; a switch newer than their last save)
+    -- was on for them with no line of its own (a switch newer than their last save)
     -- starts on, as they had it: existing players keep their saved settings. Read here, at file load, before the game reads the
-    -- file into the options (a saved line still wins) and after the defaults above were noted.
-    local WAS_ON = { "ammoBox", "readMarks", "readNext", "dashLamps", "moodleNotices", "messagesCatch", "messagesToast", "loadouts" }
+    -- file into the options (a saved line still wins) and after the defaults above were noted. (An add-on's option
+    -- joined with ZeD.Options.joinPreset's wasOn gets the same, in ZeD.Settings.joinAddition below.)
+    local WAS_ON = { "ammoBox", "readMarks", "readNext", "dashLamps", "moodleNotices", "messagesCatch", "messagesToast" }
+    local iniHad, iniVal = false, {}   -- (every owner's saved lines, by "<owner>.<id>": joinAddition and savedValue)
     local ok, r = pcall(function() return getFileReader("ModOptions.ini", false) end)
     if ok and r then
         local had, has, val = false, {}, {}
@@ -1132,10 +1124,13 @@ local function setUpAdditions()
             while l do
                 local id, v = l:match("|ZeD_UI|([%w_]+)|(%d*)")
                 if id then had = true; has[id] = true; val[id] = tonumber(v) end
+                local own, oid, ov = l:match("|([%w_]+)|([%w_]+)|(%d*)")
+                if own then iniVal[own .. "." .. oid] = tonumber(ov) or false end
                 l = r:readLine()
             end
         end)
         pcall(function() r:close() end)
+        iniHad = had
         savedHas = has
         if had then
             for _, id in ipairs(WAS_ON) do
@@ -1154,6 +1149,38 @@ local function setUpAdditions()
             end
         end
     end
+
+    --- (1.0 add-on API) A value saved in ModOptions.ini as the game started, by its owner and option id: the item
+    --- number, false for a line with no number, nil when there is no line. (An add-on whose option moved from ZeD's
+    --- owner to its own carries the player's value with savedValue("ZeD_UI", id).)
+    function ZeD.Settings.savedValue(owner, id)
+        return iniVal[tostring(owner) .. "." .. tostring(id)]
+    end
+
+    --- (1.0 add-on API) An option joins the additions (ZeD.Options.joinPreset; shared/ZeD/AddonOptions.lua has the
+    --- fields): its key in IDS, its item in each preset, a change to it re-reads the preset, and wasOn for a player
+    --- who had ZeD's options saved with no line for it.
+    function ZeD.Settings.joinAddition(j)
+        if type(j) ~= "table" then return false end
+        local key = (j.owner == "ZeD_UI") and j.id or (tostring(j.owner) .. "." .. tostring(j.id))
+        local o = opt(key)
+        if not o then
+            if ZeD.Options and ZeD.Options.logOnce then
+                ZeD.Options.logOnce("join:" .. key, "joinPreset: no option " .. key .. " (make it before joining): left out")
+            end
+            return false
+        end
+        local have = false
+        for _, k in ipairs(IDS) do if k == key then have = true end end
+        if not have then IDS[#IDS + 1] = key end
+        for i = 1, #PRESETS do PRESETS[i][key] = j.presets and j.presets[i] or nil end
+        o.onChange = function() ZeD.Settings.syncAdditionsPreset() end
+        -- start on for a player who had ZeD before this option (their file has ZeD's lines, none for it)
+        if j.wasOn and iniHad and iniVal[tostring(j.owner) .. "." .. tostring(j.id)] == nil then o:setValue(j.wasOn) end
+        return true
+    end
+    -- the options that joined before this file loaded (an add-on's file loading first)
+    for _, j in ipairs(ZeD.Options and ZeD.Options.presetJoins or {}) do ZeD.Settings.joinAddition(j) end
 end
 setUpAdditions()
 
