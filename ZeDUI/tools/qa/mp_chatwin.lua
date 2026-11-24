@@ -115,17 +115,20 @@ end
 
 -- the window, with the pointer on or off it as the run says (S.over): its own isMouseOver, on the instance
 function S.fakeOver() return S.over end
+-- (Nov 24: the window can already carry an isMouseOver of its own on the instance (two runs: the stand-in was never
+-- put on, the pointer-on check failed): the stand-in goes on over it, and the one it covered is put back)
 function S.w()
     local w = C.win
-    if w and rawget(w, "isMouseOver") == nil then
+    if w and rawget(w, "isMouseOver") ~= S.fakeOver then
+        S.hooked[#S.hooked + 1] = { w = w, was = rawget(w, "isMouseOver") }
         w.isMouseOver = S.fakeOver
-        S.hooked[#S.hooked + 1] = w
     end
     return w
 end
 function S.unhook()
-    for _, w in ipairs(S.hooked) do
-        if rawget(w, "isMouseOver") == S.fakeOver then w.isMouseOver = nil end
+    for i = #S.hooked, 1, -1 do
+        local h = S.hooked[i]
+        if rawget(h.w, "isMouseOver") == S.fakeOver then h.w.isMouseOver = h.was end
     end
     S.hooked = {}
 end
