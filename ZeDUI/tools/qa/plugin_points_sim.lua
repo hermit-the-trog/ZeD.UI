@@ -38,6 +38,17 @@ local function check(name, ok, detail)
 end
 local function section(s) print("-- " .. s) end
 local function noop() end
+
+-- The game's Kahlua tonumber takes a second argument as the base even when it is nil, and then casts a number first
+-- argument to a string and throws (QA batch 1 on fce776668: tonumber(ZeD.API.call(...)) got API.call's two values and
+-- the Equip tab threw every frame). lua51 lets that pass, so this sim's tonumber throws the same way.
+local luaTonumber = tonumber
+tonumber = function(...)
+    if select("#", ...) >= 2 and type((...)) == "number" then
+        error("Kahlua tonumber: a number with a second argument (Double cannot be cast to String)", 2)
+    end
+    return luaTonumber(...)
+end
 local function readFile(p)
     local f = io.open(p, "rb")
     if not f then return nil end

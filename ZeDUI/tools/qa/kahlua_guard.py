@@ -17,6 +17,7 @@ if "--path" in sys.argv:
         sys.exit(2)
 MISSING = ["next"]   # add others as they are found (verify against the game first)
 pat = re.compile(r"(?<![\w.:])(%s)\s*\(" % "|".join(MISSING))
+MULTI = re.compile(r"(?<![\w.:])tonumber\s*\(\s*(ZeD\.API|API)\.call\s*\(")   # functions that return two values
 bad = []
 for d, _, fs in os.walk(ROOT):
     for f in fs:
@@ -25,7 +26,9 @@ for d, _, fs in os.walk(ROOT):
         p = os.path.join(d, f)
         for n, line in enumerate(open(p, encoding="utf-8", errors="replace"), 1):
             code = line.split("--", 1)[0]
-            if pat.search(code):
+            # Kahlua's tonumber takes a nil second argument as a base and throws on a number, so a call that returns
+            # two values must sit in its own parentheses inside tonumber (QA batch 1, Nov 24 2026: ZeD.API.call).
+            if pat.search(code) or MULTI.search(code):
                 bad.append("%s:%d: %s" % (os.path.relpath(p, ROOT), n, line.strip()))
 for b in bad:
     print("KAHLUA:", b)

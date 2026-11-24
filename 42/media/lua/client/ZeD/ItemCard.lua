@@ -90,7 +90,7 @@ function ZeD.ItemCard.drawSections(card, item, x, y, w, compact)
     local h = 0
     for _, def in ipairs(ZeD.ItemCard._sections.list) do
         if def.draw then
-            h = h + (tonumber(ZeD.API.call("card section " .. def.id .. " draw", def.draw, card, item, x, y + h, w, compact)) or 0)
+            h = h + (tonumber((ZeD.API.call("card section " .. def.id .. " draw", def.draw, card, item, x, y + h, w, compact))) or 0)
         end
     end
     return h
