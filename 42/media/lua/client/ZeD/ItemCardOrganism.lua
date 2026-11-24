@@ -427,17 +427,9 @@ local function readMarks(item, playerNum)
         if ok2 then nc = v2 and true or false end
     end
     local m = {fav = fav, nocraft = nc, dispose = dis}
-    -- the fourth mark: lit when the item is on any loadout or outfit (ZeD_Lists.lua).
-    -- While Loadouts and outfits is off (Settings.lua) there is no mark at all: no button, no stop
-    local L, LU = ZeD.Lists, ZeD.ListsUI
-    local p = L and L.on() and getSpecificPlayer(playerNum or 0)
-    if p then
-        local ok3, hits = pcall(L.listsWith, p, item)
-        hits = ok3 and hits or {}
-        m.lists = #hits > 0
-        m.listsText = LU and LU.inText(p, item) or nil
-        m.listsHint = (#hits > 0) and ZeD.tr("UI_ZeD_Lists_HelpMarkIn", L.namesFor(p, item)) or ZeD.tr("UI_ZeD_Lists_HelpMark")
-    end
+    -- an add-on's marks after the three (ZeD.ItemCard.addMark): m[id], m[id .. "Text"], m[id .. "Hint"];
+    -- a mark whose state is nil (its add-on switched off) is no button and no stop
+    if ZeD.ItemCard and ZeD.ItemCard.markStates then ZeD.ItemCard.markStates(m, item, playerNum or 0) end
     return m
 end
 
@@ -683,8 +675,8 @@ end
 -- a container, on the ground), the item moving container, its condition, the
 -- favorite mark, its uses, fluid (and a fluid container sealed or opened) or rounds, a bite eaten, food cooked, burnt or gone off, the
 -- pages read, a bag's contents, an action starting
--- or ending (ItemActionManager.gen), a mark set (ActionStrip.gen), a loadout
--- changed (Lists.gen) or the switch, a mod's facts panel registered
+-- or ending (ItemActionManager.gen), a mark set (ActionStrip.gen), an add-on's
+-- value (ZeD.ItemCard.addGen: Loadouts' lists changed or its switch), a mod's facts panel registered
 -- (ItemFactsPanel.gen), the language or the test language, the theme or the
 -- text size (a new ZeD.T); setItem and the fold toggles drop it (ItemCard.lua,
 -- self._model = nil). What must move every frame is drawn live: the
@@ -736,18 +728,15 @@ end
 
 -- the generations kept outside the card that the model hangs on (nil when a module is not loaded)
 local function gens()
-    local IAM, AS, FP, L = ZeD.ItemActionManager, ZeD.ActionStrip, ZeD.ItemFactsPanel, ZeD.Lists
-    local listsOn = false
-    if L and L.on then
-        local ok, v = pcall(L.on)
-        listsOn = ok and v and true or false
-    end
+    local IAM, AS, FP, IC = ZeD.ItemActionManager, ZeD.ActionStrip, ZeD.ItemFactsPanel, ZeD.ItemCard
+    -- (the add-ons' values, ZeD.ItemCard.addGen: one number that moves when any of them changes)
+    local addonGen = IC and IC.genKey and IC.genKey() or 0
     local testOn = false
     if ZeD.trTestOn then
         local ok, v = pcall(ZeD.trTestOn)
         testOn = ok and v and true or false
     end
-    return IAM and IAM.gen, AS and AS.gen, FP and FP.gen, L and L.gen, listsOn,
+    return IAM and IAM.gen, AS and AS.gen, FP and FP.gen, addonGen, false,
         ZeD.T, ZeD._trGen, testOn
 end
 
@@ -833,8 +822,16 @@ local function stampGamepadFields(card, markRects, verbStripRects, verbList, can
     card.toggleRects[1] = markRects and abs(markRects.fav)
     card.toggleRects[2] = markRects and abs(markRects.nocraft)
     card.toggleRects[3] = markRects and abs(markRects.dispose)
-    -- the Lists mark (not a toggle: it opens the lists' pop-up; ItemCard.lua)
-    card._listsRect = markRects and markRects.lists and markRects.lists.x and abs(markRects.lists) or nil
+    -- an add-on's marks (not toggles: each its own activate; ZeD.ItemCard.addMark), by id
+    local mr = nil
+    for _, def in ipairs(ZeD.ItemCard and ZeD.ItemCard._marks and ZeD.ItemCard._marks.list or {}) do
+        local r = markRects and markRects[def.id]
+        if r and r.x then
+            mr = mr or {}
+            mr[def.id] = abs(r)
+        end
+    end
+    card._markRects = mr
 
     -- Maintenance verb strip → verbRects + _verbDefs (gamepad: A activates).
     card.verbRects = {}
@@ -1328,26 +1325,6 @@ local function drawCareNeeds(card, x, y, w, shown, hidden)
     return h + rh
 end
 
--- The "In lists" section: each loadout or outfit the item is on, with the
--- line's place and rule. Nothing when it is on none, or Loadouts and outfits is off. Returns the height.
-local function drawInLists(card, item, x, y, w, compact)
-    local L = ZeD.Lists
-    local p = L and L.on() and getSpecificPlayer(card.playerNum or 0)
-    if not p then return 0 end
-    local ok, hits = pcall(L.listsWith, p, item)
-    if not ok or #hits == 0 then return 0 end
-    local M, T = ZeD.Molecules, ZeD.T
-    local gap = math.max(compact and T.px(14) or T.px(16), math.floor((T.fontF4H or ZeD.TM:getFontHeight(T.fontF4)) * 1.0))
-    local cy = y + gap
-    cy = cy + M.drawFactsTitle(card, x, cy, w, ZeD.tr("UI_ZeD_Lists_InListsTitle"), compact)
-    cy = cy + M.drawFactsRuleThick(card, x, cy, w) + T.px(2)
-    for _, h in ipairs(hits) do
-        local ln = h.line
-        cy = cy + M.drawFactsRow(card, x, cy, w, h.list.name, L.placeText(ln.place) .. ", " .. L.ruleText(ln), nil, true)
-    end
-    return cy - y
-end
-
 -- What the character can make with the item: the game's own list of the recipes the item goes
 -- into, as it would list them for the character (ZeD.RecipeIndex: its script item's getUsedInRecipes, the world's
 -- See Not Known Recipes, each recipe's OnAddToMenu check), each Known or Unknown as the Craft tab's card says it,
@@ -1433,7 +1410,7 @@ function ZeD_ItemCard:renderBody(ctx)
     self._foldHitRects  = {}
     self._zoneDockRects = {}
     local backBarRects  = {back = nil, verbs = {}}
-    local flagRects     = {fav = {}, nocraft = {}, dispose = {}, lists = {}}
+    local flagRects     = {fav = {}, nocraft = {}, dispose = {}}   -- (an add-on mark's rect: Molecules makes it)
     local verbStripRects = {}
     local cancelRect    = nil
 
@@ -1522,12 +1499,14 @@ function ZeD_ItemCard:renderBody(ctx)
     if self.focusFor then
         fp.fav, fp.nocraft, fp.dispose =
             self:focusFor("toggle_fav"), self:focusFor("toggle_protect"), self:focusFor("toggle_unwanted")
-        fp.lists = self:focusFor("toggle_lists")
+        -- (an add-on's marks: their stops are "toggle_<id>", ZeD.ItemCard.addMark)
+        for _, def in ipairs(ZeD.ItemCard and ZeD.ItemCard._marks and ZeD.ItemCard._marks.list or {}) do fp[def.id] = self:focusFor(def._stopId) end
     else
-        fp.fav, fp.nocraft, fp.dispose, fp.lists = nil, nil, nil, nil
+        fp.fav, fp.nocraft, fp.dispose = nil, nil, nil
+        for _, def in ipairs(ZeD.ItemCard and ZeD.ItemCard._marks and ZeD.ItemCard._marks.list or {}) do fp[def.id] = nil end
     end
     fo.win = self
-    -- (beta 21, Lite: the marks strip (Favorite, No-craft, Dispose, Lists) is ZeD's own; Lite leaves it out, and the game's
+    -- (beta 21, Lite: the marks strip (Favorite, No-craft, Dispose, an add-on's) is ZeD's own; Lite leaves it out, and the game's
     -- Favorite is still in More, the full right-click menu. No rects, so no clicks and no controller stops land there.)
     local fsH = 0
     if not (ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite()) then fsH = M.drawCardFlagStrip(self, 0, cy, w, marks, compact, flagRects, fo) end
@@ -1580,8 +1559,8 @@ function ZeD_ItemCard:renderBody(ctx)
                 bodyX, bodyY - scrollOff, innerW, compact, scrollOff,
                 self._headH + bodyH, model)
         end
-        -- the loadouts and outfits it is on
-        contentH = (contentH or 0) + drawInLists(self, item, bodyX, bodyY - scrollOff + (contentH or 0), innerW, compact)
+        -- an add-on's sections (ZeD.ItemCard.addSection; Loadouts: the loadouts and outfits it is on)
+        contentH = (contentH or 0) + ZeD.ItemCard.drawSections(self, item, bodyX, bodyY - scrollOff + (contentH or 0), innerW, compact)
         -- what the character can make with it
         contentH = (contentH or 0) + drawMakes(self, item, bodyX, bodyY - scrollOff + (contentH or 0), innerW, compact,
             self._headH, self._headH + bodyH)

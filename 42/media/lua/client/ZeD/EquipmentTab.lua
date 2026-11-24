@@ -17,11 +17,144 @@ require "ZeD/Molecules"
 require "ZeD/ZeD_BodyFigure"
 require "ZeD/ProtectionTab"
 require "ZeD/EquipDoll"
-require "ZeD/ZeD_EquipLoadout"
-require "ZeD/ZeD_RestockPin"
+require "ZeD/ZeD_AddonAPI"
 
 ZeD = ZeD or {}
-ZeD.EquipmentTab = {}
+-- (kept when it is there: an add-on's sections registered before this file loads stay)
+ZeD.EquipmentTab = ZeD.EquipmentTab or {}
+
+-- ============================================================================
+-- PLUG-IN POINT: SECTIONS UNDER THE DOLL AND THE LISTS (1.0 add-on API; docs/ADDON_API.md)
+--   ZeD.EquipmentTab.addSection(id, def), def:
+--     order               lower draws first (default 100)
+--     visible(win)        false: no height, no drawing, no stops (default: shown)
+--     beginFrame(win)     every frame the tab draws, before anything (start the frame's zones)
+--     h(win, w)           its height at width w (the doll's width, so its rows do not move
+--                         with the scrollbar)
+--     draw(panel, win, x, y, w, view) -> height drawn; view = the tab scroll's rect in the
+--                         panel's coords (what lies outside it takes no press)
+--     onClick(win, x, y)  true when it took the press (drawer coords)
+--     focusables(win, elements)  append its controller stops (list and doll views)
+--     land(win, elements) every build of the stops: set elements._focusIdx to land the focus
+--     scrollKey(win)      a string; the stops are built again when it changes
+--     takeover(win)       nil, or { render(panel, win, x, y, w, h), focusables(win),
+--                         scroll(win), scrollKey(win), onClick(win, x, y) }: the section
+--                         takes the whole drawer (where the item card opens). While it does,
+--                         ZeD hides the card, the slots' zones and the tab's scroll, and the
+--                         controller's stops are the takeover's alone (modal).
+-- Nothing registered: the tab draws, scrolls and takes the pad exactly as with none.
+-- ============================================================================
+ZeD.EquipmentTab._sections = ZeD.EquipmentTab._sections or { list = {}, byId = {}, rev = 0 }   -- (a registry, the shape ZeD.API.registry makes: nothing needs the API until one registers)
+
+function ZeD.EquipmentTab.addSection(id, def)
+    return ZeD.API.add(ZeD.EquipmentTab._sections, "equip section", id, def)
+end
+
+-- a section shown this frame (its visible(), pcall'd; an error hides it)
+function ZeD.EquipmentTab._shown(win, def)
+    if not def.visible then return true end
+    return ZeD.API.call("equip section " .. def.id .. " visible", def.visible, win) and true or false
+end
+
+--- Every section's beginFrame (the tab calls it first each frame).
+function ZeD.EquipmentTab.extBegin(win)
+    for _, def in ipairs(ZeD.EquipmentTab._sections.list) do
+        if def.beginFrame then ZeD.API.call("equip section " .. def.id .. " beginFrame", def.beginFrame, win) end
+    end
+end
+
+--- The takeover holding the drawer now, or nil (the first section that asks).
+function ZeD.EquipmentTab.extTakeover(win)
+    if not win then return nil end
+    for _, def in ipairs(ZeD.EquipmentTab._sections.list) do
+        if def.takeover then
+            local t = ZeD.API.call("equip section " .. def.id .. " takeover", def.takeover, win)
+            if type(t) == "table" then t._def = def; return t end
+        end
+    end
+    return nil
+end
+
+--- The sections' height together at width w (0 with none shown).
+function ZeD.EquipmentTab.extH(win, w)
+    local h = 0
+    for _, def in ipairs(ZeD.EquipmentTab._sections.list) do
+        if def.h and ZeD.EquipmentTab._shown(win, def) then
+            h = h + (tonumber(ZeD.API.call("equip section " .. def.id .. " h", def.h, win, w)) or 0)
+        end
+    end
+    return h
+end
+
+--- Draw the sections from y down; returns the height drawn.
+function ZeD.EquipmentTab.extDraw(panel, win, x, y, w, view)
+    local h = 0
+    for _, def in ipairs(ZeD.EquipmentTab._sections.list) do
+        if def.draw and ZeD.EquipmentTab._shown(win, def) then
+            h = h + (tonumber(ZeD.API.call("equip section " .. def.id .. " draw", def.draw, panel, win, x, y + h, w, view)) or 0)
+        end
+    end
+    return h
+end
+
+--- A press in the drawer: the takeover's (it takes every press it claims), else a section's. True when taken.
+function ZeD.EquipmentTab.extClick(win, x, y)
+    for _, def in ipairs(ZeD.EquipmentTab._sections.list) do
+        if def.onClick and ZeD.API.call("equip section " .. def.id .. " onClick", def.onClick, win, x, y) then return true end
+    end
+    return false
+end
+
+--- The sections' controller stops, appended to the tab's own; then where each lands the focus.
+function ZeD.EquipmentTab.extFocusables(win, elements)
+    for _, def in ipairs(ZeD.EquipmentTab._sections.list) do
+        if def.focusables and ZeD.EquipmentTab._shown(win, def) then
+            ZeD.API.call("equip section " .. def.id .. " focusables", def.focusables, win, elements)
+        end
+    end
+    for _, def in ipairs(ZeD.EquipmentTab._sections.list) do
+        if def.land then ZeD.API.call("equip section " .. def.id .. " land", def.land, win, elements) end
+    end
+end
+
+--- The takeover's stops (modal), or nil when none holds the drawer.
+function ZeD.EquipmentTab.extTakeoverFocusables(win)
+    local t = ZeD.EquipmentTab.extTakeover(win)
+    if not t then return nil end
+    return ZeD.API.call("equip takeover " .. t._def.id .. " focusables", t.focusables, win) or {}
+end
+
+--- The scroll the wheel moves: the takeover's, else nil (the tab's own).
+function ZeD.EquipmentTab.extScroll(win)
+    local t = ZeD.EquipmentTab.extTakeover(win)
+    if not (t and t.scroll) then return nil end
+    return ZeD.API.call("equip takeover " .. t._def.id .. " scroll", t.scroll, win)
+end
+
+--- What moves the sections' stops ("" with none).
+function ZeD.EquipmentTab.extScrollKey(win)
+    local list = ZeD.EquipmentTab._sections.list
+    if #list == 0 then return "" end
+    local parts = {}
+    for _, def in ipairs(list) do
+        if def.scrollKey then parts[#parts + 1] = tostring(ZeD.API.call("equip section " .. def.id .. " scrollKey", def.scrollKey, win) or "") end
+    end
+    return table.concat(parts, ";")
+end
+
+-- ----------------------------------------------------------------------------
+-- The Equip tab's state an add-on may read or set (instead of the window's fields)
+-- ----------------------------------------------------------------------------
+--- The id of the Equip tab's stop the controller is on (nil: none yet).
+function ZeD.EquipmentTab.focus(win) return win and win._gpFocusedEquipSlot or nil end
+--- Put the controller's focus on the stop with this id (nil: the tab picks its first stop again).
+function ZeD.EquipmentTab.setFocus(win, id) if win then win._gpFocusedEquipSlot = id end end
+--- Close the slot's item card (back to the list or the doll).
+function ZeD.EquipmentTab.clearSelection(win) if win then win._equipSelected = nil end end
+--- Tell the pad's scroll-follow where a stop is (y in the drawer), so focusing it scrolls it into view.
+function ZeD.EquipmentTab.followY(win, id, y)
+    if win and win._equipSlotYMap and id then win._equipSlotYMap[id] = y end
+end
 
 -- The tab's data refreshes run on the clock, not on frames drawn: 15 frames is 250 ms at 60 FPS
 -- but runs 2.4-4 times as often at 144-240 Hz. True once periodMs has
@@ -1408,17 +1541,18 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     win._equipDollEmpty = nil
     win._equipDollShown = false   -- the doll's model + line layer follow this (CharacterWindow)
     win._equipViewZones = nil
-    -- The loadouts' bar and to-do (ZeD_EquipLoadout.lua): the to-do opens where the card opens
-    local EL = ZeD.EquipLoadout
-    if EL then EL.beginFrame(win) end
-    if EL and EL.todoOpen(win) then
+    -- An add-on's sections start their frame; a takeover (addSection's def.takeover) holds the
+    -- drawer where the card opens: the card, the slots' zones and the scroll are put away first
+    ZeD.EquipmentTab.extBegin(win)
+    local takeover = ZeD.EquipmentTab.extTakeover(win)
+    if takeover then
         if panel._equipCard then panel._equipCard:setVisible(false) end
         win._equipSelected = nil
         win._equipSlotZones, win._equipBeltZones, win._equipGroupZones = {}, {}, {}
         win._equipDefenseZone = nil
         if win._equipScroll then win._equipScroll.visible = false end
         win._equipDollStale = true   -- (the doll gathers once when it shows again)
-        EL.renderTodo(panel, win, x, y, w, h)
+        ZeD.API.call("equip takeover " .. takeover._def.id .. " render", takeover.render, panel, win, x, y, w, h)
         return
     end
     if win._equipSelected then
@@ -1507,11 +1641,10 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     -- Column headers (20px) always in scroll area
     local headerH = T.stripH   -- row 1
     local listExpanded = win._equipListExpanded
-    -- the loadouts: a fold under the doll and the lists, shut until opened, in both views
-    -- (ZeD_EquipLoadout.lua). It is measured and drawn at the doll's width, so its rows
-    -- do not change with the scrollbar.
+    -- an add-on's sections (addSection) under the doll and the lists, in both views. They are
+    -- measured and drawn at the doll's width, so their rows do not change with the scrollbar.
     local loW = w - T.sp.scrollbarW
-    local loH = EL and EL.sectionH(win, loW) or 0
+    local loH = ZeD.EquipmentTab.extH(win, loW)
 
     -- Measure scrollable content
     local defDashH = _measureDefenseDashboard(win, protData, w)
@@ -1741,9 +1874,9 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     end
     win._equipBeltZones = beltZones
 
-    -- the loadouts' fold, under the doll and the lists
-    if EL and loH > 0 then
-        drawY = drawY + EL.drawSection(panel, win, x, drawY, loW, { x = x, y = scrollY, w = contentW, h = scrollH })
+    -- the add-ons' sections, under the doll and the lists
+    if loH > 0 then
+        drawY = drawY + ZeD.EquipmentTab.extDraw(panel, win, x, drawY, loW, { x = x, y = scrollY, w = contentW, h = scrollH })
     end
 
     -- Defense body (figure + stats) — always shown at the bottom of the tab,

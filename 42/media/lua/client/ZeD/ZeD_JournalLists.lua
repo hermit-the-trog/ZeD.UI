@@ -24,11 +24,13 @@
 --     too little room for the name beside the amount and the switch.
 -- One scroll for the panes (the page scrolls as one). The data is ZeD_Lists.lua.
 --
--- Hit zones are stamped each frame into win._jlZones (drawer coordinates); the
--- Character window routes clicks (JL.onClick, JL.onRightClick), the wheel
--- (JL.scroll) and the controller (JL.focusables, ids "jl:...") here.
+-- Hit zones are stamped each frame into win._jlZones (drawer coordinates; this
+-- file's own field on the window). The page is registered with ZeD's add-on API
+-- (ZeD.JournalTab.addPage, at the end of this file): the Journal routes clicks
+-- (JL.onClick, JL.onRightClick), the wheel (JL.scroll) and the controller
+-- (JL.focusables, ids "jl:...") here.
 -- With Loadouts and outfits off (Settings.lua) the page is not in the Journal's
--- Page pop-up (JournalTab), and these find nothing to draw, press or stop on
+-- tab strip (its visible()), and these find nothing to draw, press or stop on
 -- (L.on() at each way in).
 -- ============================================================================
 
@@ -67,7 +69,7 @@ JL.state = st
 --- The page's scrollbar state, handed out by the Character window's scroll dispatch.
 function JL.scroll(win) return st(win).scroll end
 
-local function player(win) return win and win._playerObj end
+local function player(win) return ZeD.API and ZeD.API.player(win) or nil end
 local function pnum(win) return (ZeD.playerNumOf and ZeD.playerNumOf(win)) or (win and win.playerNum) or 0 end
 
 local function zone(win, z)
@@ -721,7 +723,7 @@ local function searchField(win)
         s.search = text or ""
         s.scroll:setScrollPos(0)
     end
-    win._drawerPanel:addChild(f)
+    ZeD_CharacterWindow.drawerPanel(win):addChild(f)
     win._jlSearch = f
     return f
 end
@@ -915,7 +917,7 @@ function JL.syncChildren(win, onPage)
     local f = win._jlSearch
     if not f then return end
     local s = st(win)
-    local show = onPage and s.searchShown ~= false and win._drawerItem == nil and not s.ask
+    local show = onPage and s.searchShown ~= false and not ZeD_CharacterWindow.cardOpen(win) and not s.ask
     if f:isVisible() ~= show then f:setVisible(show and true or false) end
     if not show and f.input and f.input:isFocused() then f.input:unfocus() end
 end
@@ -1003,7 +1005,7 @@ function JL.focusables(win)
         s.land = nil
         return out
     end
-    local dp = win._drawerPanel
+    local dp = ZeD_CharacterWindow.drawerPanel(win)
     -- the band's filter list open: its rows alone (the current choice first)
     local rowsOnly = JL.listOpen(win)
     if rowsOnly then s.land = "jl:filterRow:" .. tostring(s.filter) end
@@ -1044,3 +1046,31 @@ function JL.scrollKey(win)
         .. ":" .. tostring(s.step) .. ":" .. tostring(L.gen) .. ":" .. tostring(s.search) .. ":" .. tostring(s.stacked)
         .. ":" .. tostring(s.filterOpen)
 end
+
+-- ---------------------------------------------------------------------------
+-- REGISTERED WITH ZeD (the add-on API, ZeD_AddonAPI.lua), once every file has loaded:
+-- the Journal's Loadouts page, after ZeD's four
+-- ---------------------------------------------------------------------------
+function JL.register()
+    if not (ZeD.API and (ZeD.API.VERSION or 0) >= 1 and ZeD.JournalTab and ZeD.JournalTab.addPage) then return end
+    ZeD.JournalTab.addPage("loadouts", {
+        key = "UI_ZeD_Journal_TabLoadouts",
+        order = 10,
+        visible = function() return L.on() end,
+        render = function(panel, win, x, y, w, h) JL.render(panel, win, x, y, w, h) end,
+        onClick = function(win, x, y) return JL.onClick(win, x, y) end,
+        onRightClick = function(win, x, y) return JL.onRightClick(win, x, y) end,
+        focusables = function(win) return JL.focusables(win) end,
+        -- (the question before a delete holds the pad alone)
+        modal = function(win) return st(win).ask and true or false end,
+        scroll = function(win) return JL.scroll(win) end,
+        scrollKey = function(win) return JL.scrollKey(win) end,
+        syncChildren = function(win, shown) JL.syncChildren(win, shown) end,
+        -- the header's search stop focuses the page's own box while it shows
+        searchField = function(win) if st(win).searchShown ~= false then return win._jlSearch end return nil end,
+        placeSearch = function(win, x, y, w, h) JL.placeSearch(win, x, y, w, h) end,
+        listOpen = function(win) return JL.listOpen(win) end,
+        shutList = function(win) JL.shutList(win) end,
+    })
+end
+if Events and Events.OnGameBoot then Events.OnGameBoot.Add(JL.register) end

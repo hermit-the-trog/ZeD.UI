@@ -326,9 +326,12 @@ ZeD.JournalReaders = { beginFrame = function() end, listOpen = function() return
     renderNotebooks = function() end, renderPapers = function() end }
 ZeD.CraftingCore = {}
 ZeD.Lists = { on = function() return true end }
-ZeD.JournalLists = { listOpen = function() return false end, shutList = function() end, placeSearch = function() end,
-    render = function() end }
+-- (Nov 23 2026, the 1.0 plug-in points) the Loadouts page is an add-on's now: ZeD's add-on API, then the page
+-- registered as ZeD_JournalLists.lua's JL.register does it (ZeD.JournalTab.addPage, shown while the switch is on)
+dofile(SRC .. "ZeD_AddonAPI.lua")
 dofile(SRC .. "JournalTab.lua")
+ZeD.JournalTab.addPage("loadouts", { key = "UI_ZeD_Journal_TabLoadouts", order = 10, visible = function() return ZeD.Lists.on() end,
+    listOpen = function() return false end, shutList = function() end, placeSearch = function() end, render = function() end })
 require = realRequire
 local JT = ZeD.JournalTab
 local jw = { _journalSubTab = 2 }

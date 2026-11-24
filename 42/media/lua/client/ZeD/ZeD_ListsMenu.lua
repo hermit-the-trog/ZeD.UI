@@ -14,7 +14,9 @@
 --     drills into the same names (ContextMenuRegistry reads zedCheck / zedPx).
 --   * The item card's mark strip, its fourth button (Lists): a pop-up in the
 --     context list's look with the lists and checkboxes (it stays open while
---     you tick), New, and the outfits only for things you wear.
+--     you tick), New, and the outfits only for things you wear. With the card's
+--     "In lists" section, registered with ZeD's add-on API at the end of this
+--     file (ZeD.ItemCard.addMark / addSection / addGen).
 --   * The name prompt every new list and rename asks through (ZeD's prompt:
 --     vanilla's ISTextBox, which Overrides/Prompts.lua builds as ZeD_Prompt).
 -- The data and its rules are ZeD_Lists.lua.
@@ -224,3 +226,73 @@ function LU.inText(p, item)
     if kinds.outfit then return ZeD.tr(n == 1 and "UI_ZeD_Lists_InOutfitOne" or "UI_ZeD_Lists_InOutfitMany", n) end
     return ZeD.tr(n == 1 and "UI_ZeD_Lists_InLoadoutOne" or "UI_ZeD_Lists_InLoadoutMany", n)
 end
+
+-- ---------------------------------------------------------------------------
+-- THE ITEM CARD (registered with ZeD's add-on API, ZeD_AddonAPI.lua)
+-- ---------------------------------------------------------------------------
+--- The Lists mark's state on a card: lit when the item is on any loadout or outfit, the words after it and its
+--- help line. While Loadouts and outfits is off (Settings.lua) there is no mark at all: no button, no stop (nil).
+function LU.markState(item, pn)
+    local p = L.on() and getSpecificPlayer(pn or 0)
+    if not p then return nil end
+    local ok3, hits = pcall(L.listsWith, p, item)
+    hits = ok3 and hits or {}
+    return { on = #hits > 0, text = LU.inText(p, item),
+             hint = (#hits > 0) and ZeD.tr("UI_ZeD_Lists_HelpMarkIn", L.namesFor(p, item)) or ZeD.tr("UI_ZeD_Lists_HelpMark") }
+end
+
+--- The Lists mark pressed (or A on it): the loadouts and outfits by name, with checkboxes, dropped from the
+--- button's lower left (r: its rect on the screen)
+function LU.markActivate(card, r)
+    if not (r and card and card.item) then return end
+    pcall(function() ZeD.uiSound("UIActivateButton") end)
+    LU.openPopup(card.playerNum or 0, card.item, r.x - ZeD.T.px(4), r.y + r.h + ZeD.T.px(4))
+end
+
+--- The card's "In lists" section: each loadout or outfit the item is on, with the line's place and rule.
+--- Nothing when it is on none, or Loadouts and outfits is off. Returns the height.
+function LU.drawInLists(card, item, x, y, w, compact)
+    local p = L.on() and getSpecificPlayer(card.playerNum or 0)
+    if not p then return 0 end
+    local ok, hits = pcall(L.listsWith, p, item)
+    if not ok or #hits == 0 then return 0 end
+    local M, T = ZeD.Molecules, ZeD.T
+    local gap = math.max(compact and T.px(14) or T.px(16), math.floor((T.fontF4H or ZeD.TM:getFontHeight(T.fontF4)) * 1.0))
+    local cy = y + gap
+    cy = cy + M.drawFactsTitle(card, x, cy, w, ZeD.tr("UI_ZeD_Lists_InListsTitle"), compact)
+    cy = cy + M.drawFactsRuleThick(card, x, cy, w) + T.px(2)
+    for _, h in ipairs(hits) do
+        local ln = h.line
+        cy = cy + M.drawFactsRow(card, x, cy, w, h.list.name, L.placeText(ln.place) .. ", " .. L.ruleText(ln), nil, true)
+    end
+    return cy - y
+end
+
+function LU.register()
+    if not (ZeD.API and (ZeD.API.VERSION or 0) >= 1) then return end
+    local IC = ZeD.ItemCard
+    if IC and IC.addMark then
+        IC.addMark("lists", { order = 10, icon = L.ICON.loadout, label = "UI_ZeD_Lists_Lists",
+            state = LU.markState, activate = LU.markActivate })
+        IC.addSection("lists", { order = 10, draw = LU.drawInLists })
+        -- the card's model is built again when a list changes or the switch flips
+        IC.addGen("lists", function() return L.gen end)
+        IC.addGen("lists.on", function() return L.on() end)
+    end
+    -- the lists' pixel icons (ZeD_Lists.lua's L.ICON and their plus and minus) warmed with ZeD's own, and the
+    -- plus blue, the minus red
+    local PXI = ZeD.PxIcon
+    if PXI and PXI.addWarm then
+        local ids = {}
+        for _, kind in ipairs(L.KINDS) do
+            local id = L.ICON[kind]
+            ids[#ids + 1] = id
+            ids[#ids + 1] = id .. "_add"
+            ids[#ids + 1] = id .. "_remove"
+            PXI.addMark(id .. "_add", "blue")
+            PXI.addMark(id .. "_remove", "red")
+        end
+        PXI.addWarm(ids)
+    end
+end
+if Events and Events.OnGameBoot then Events.OnGameBoot.Add(LU.register) end

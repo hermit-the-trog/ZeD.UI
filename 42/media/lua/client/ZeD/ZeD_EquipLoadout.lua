@@ -1,8 +1,11 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_EquipLoadout.lua
 -- ============================================================================
 -- THE EQUIP TAB'S LOADOUTS: THE BAR, THE GHOSTS, THE TO-DO
--- Client. A renderer the Character window's Equip tab calls, no class of its
--- own. Loadout lists live in the Journal tab; here is where one is applied
+-- Client. Talks to ZeD only through its add-on API (ZeD_AddonAPI.lua): a
+-- section of the Equip tab with its takeover (ZeD.EquipmentTab.addSection), an
+-- overlay on the doll (ZeD.EquipDoll.addOverlay) and the Loadouts slice on the
+-- Character wheel (ZeD.DpadWheels.addSlice), registered at the end of this
+-- file. Loadout lists live in the Journal tab; here is where one is applied
 -- and stocked.
 --
 --   * The bar in a Loadouts fold under the doll and the lists, shut until opened
@@ -13,8 +16,8 @@
 --     carry as a loadout). Nothing picked: "No outfit", "No loadout" and a dim
 --     line. The full card (480 units) holds it in two rows.
 --   * What's missing shows where it goes: each unmet line with a place on the
---     doll draws its item faint (36%) in a dashed accent box (EquipDoll asks
---     EL.ghosts / EL.drawGhost).
+--     doll draws its item faint (36%) in a dashed accent box (the doll's
+--     overlay: EL.ghosts / EL.drawGhost).
 --   * The to-do opens in the drawer where the item card opens, at the full card
 --     (480), with the card's back key: Restock (the default), Open in Journal,
 --     Unpack (dim until you're home). The title (the loadout, "loadout | 9
@@ -26,8 +29,9 @@
 --     that fit, with Make it N days. Home from a trip: Loot, Leftovers, Stays on
 --     you. Taking the last of something asks first, in the band at the foot.
 -- The wide layout's columns stack at 480. One scroll for the to-do.
--- Hit zones stamped each frame into win._elZones (drawer coords); the Character
--- window routes clicks, the wheel and the controller (ids "el:...") here.
+-- Hit zones stamped each frame into win._elZones (drawer coords; this file's own
+-- field on the window); the Equip tab routes clicks, the wheel and the
+-- controller (ids "el:...") here through the section.
 -- With Loadouts and outfits off (Settings.lua) the fold
 -- measures 0, nothing is drawn or stamped, no ghost shows on the doll, the to-do
 -- does not open and a press finds nothing (L.on() at each way in).
@@ -69,7 +73,16 @@ end
 EL.state = st
 EL.pending = EL.pending or {}   -- per player: open the to-do when the Equip tab next draws (the wheel)
 
-local function player(win) return win and win._playerObj end
+local function player(win) return ZeD.API and ZeD.API.player(win) or nil end
+-- the Equip tab's controller focus, through its API (ZeD.EquipmentTab.focus / setFocus)
+local function focused(win)
+    local E = ZeD.EquipmentTab
+    return E and E.focus and E.focus(win) or nil
+end
+local function setFocused(win, id)
+    local E = ZeD.EquipmentTab
+    if E and E.setFocus then E.setFocus(win, id) end
+end
 local function pnum(win) return (ZeD.playerNumOf and ZeD.playerNumOf(win)) or (win and win.playerNum) or 0 end
 
 local function zone(win, z)
@@ -81,7 +94,7 @@ end
 -- the controller's mark options for element "el:<id>" (the window focused, the pad in the tab)
 local _focusOpts = {}
 local function focusOf(win, id)
-    if win._gpFocusedEquipSlot ~= "el:" .. id then return nil end
+    if focused(win) ~= "el:" .. id then return nil end
     local F = ZeD.Input and ZeD.Input.Focus
     local z = F and F.liveZone and F.liveZone(win)
     if not (z and z.zone == "charTabContent") then return nil end
@@ -258,15 +271,15 @@ function EL.openTodo(win)
     s.todo, s.ask, s.step = true, nil, nil
     s.land = "v1"
     s.scroll:setScrollPos(0)
-    win._equipSelected = nil
-    win._gpFocusedEquipSlot = nil
+    if ZeD.EquipmentTab and ZeD.EquipmentTab.clearSelection then ZeD.EquipmentTab.clearSelection(win) end
+    setFocused(win, nil)
     EL.plan(win, true)
 end
 function EL.closeTodo(win)
     local s = st(win)
     s.todo, s.ask, s.step = false, nil, nil
     s.land = "ready"
-    win._gpFocusedEquipSlot = nil
+    setFocused(win, nil)
     -- back to "ready n of m" in the fold, opened if the to-do came from the wheel's ring
     if EL.openFor then EL.openFor[pnum(win)] = true end
 end
@@ -280,17 +293,12 @@ local function restock(win, kind)
     EL.plan(win, true)
 end
 
---- Open in Journal: the Loadouts page, that list chosen.
+--- Open in Journal: the Loadouts page, that list chosen (ZeD_CharacterWindow.openTab and
+--- ZeD.JournalTab.openPage, the add-on API).
 function EL.openJournal(win, listId)
     if not L.on() then return end
-    local strip = win._tabStripPanel
-    if win._activeTab ~= "journal" and strip and strip._hitZones then
-        for _, z in ipairs(strip._hitZones) do
-            if z.id == "tab:journal" then strip:onMouseDown(z.x + 2, z.y + 2); break end
-        end
-    end
-    win._activeTab = "journal"
-    win._journalSubTab = 5
+    if ZeD_CharacterWindow and ZeD_CharacterWindow.openTab then pcall(ZeD_CharacterWindow.openTab, pnum(win), "journal") end
+    if ZeD.JournalTab and ZeD.JournalTab.openPage then ZeD.JournalTab.openPage(win, "loadouts") end
     if ZeD.JournalLists and listId then ZeD.JournalLists.select(win, listId) end
     st(win).todo = false
 end
@@ -627,7 +635,7 @@ function EL.drawSection(panel, win, x, y, w, view)
     for i = first + 1, #(win._elZones or {}) do
         local z = win._elZones[i]
         z.view = view
-        if win._equipSlotYMap then win._equipSlotYMap["el:" .. z.id] = z.y end   -- (the pad's scroll-follow)
+        if ZeD.EquipmentTab and ZeD.EquipmentTab.followY then ZeD.EquipmentTab.followY(win, "el:" .. z.id, z.y) end   -- (the pad's scroll-follow)
     end
     -- the wheel's pick: open the to-do once the tab draws
     if EL.pending[pnum(win)] then EL.pending[pnum(win)] = nil; EL.openTodo(win) end
@@ -644,7 +652,6 @@ function EL.ghosts(win, bands)
     local plan = EL.plan(win)
     if not plan then return nil end
     local D = ZeD.EquipDoll
-    local data = win._equipDollData
     local out = nil
     for _, row in ipairs(plan.rows) do
         if row.state ~= "on" then
@@ -653,10 +660,7 @@ function EL.ghosts(win, bands)
             if pl == "hand:main" then id = "main"
             elseif pl == "hand:off" then id = "off"
             elseif pl:sub(1, 5) == "worn:" then id = D and D.slotForLoc and D.slotForLoc(pl:sub(6), bands)
-            elseif pl:sub(1, 5) == "belt:" and data then
-                for _, b in ipairs(data.belt or {}) do
-                    if b.slot and tostring(b.slot.slotType) == pl:sub(6) then id = "belt" .. tostring(b.i); break end
-                end
+            elseif pl:sub(1, 5) == "belt:" then id = D and D.beltSlotFor and D.beltSlotFor(win, pl:sub(6))
             end
             if id then
                 out = out or {}
@@ -714,7 +718,7 @@ local function framed(panel, win, x, y, w, h, draw)
         sc:setScrollPos(0)
     end
     -- the controller's focus kept in view (last frame's zones; only when the focus moves)
-    local fid = win._gpFocusedEquipSlot
+    local fid = focused(win)
     if needs and fid and fid ~= s.pinned and s.lastZones then
         for _, z in ipairs(s.lastZones) do
             if "el:" .. z.id == fid and z.scrolls then
@@ -1211,7 +1215,7 @@ local function drawUnpack(panel, win, x, y, w, up)
                 ent.fn = function()
                     local z = nil
                     for _, zz in ipairs(win._elZones or {}) do if zz.id == "loot:" .. cat then z = zz end end
-                    if z then pickPlace(win._drawerPanel, win, z, cat) end
+                    if z then pickPlace(ZeD_CharacterWindow.drawerPanel(win), win, z, cat) end
                 end
             end
             cy = cy + todoLine(panel, win, "loot:" .. e0.cat .. ((e0.state == "put") and (":" .. e0.item:getFullType()) or ""), x, cy, w, ent)
@@ -1378,7 +1382,7 @@ end
 local function element(win, z, dp)
     local s = st(win)
     local el = { x = z.x, y = z.y, w = z.w, h = z.h, id = "el:" .. z.id, slotType = "el:" .. z.id,
-                 onFocus = function(w, e) w._gpFocusedEquipSlot = e.slotType end }
+                 onFocus = function(w, e) setFocused(w, e.slotType) end }
     if z.fn then el.onActivate = function() z.fn() end end
     if z.dpad then el.onDpadDir = function(w, e, dir) return z.dpad(dir) end end
     if z.cancel then el.onCancel = function() z.cancel(); return true end
@@ -1405,15 +1409,15 @@ function EL.focusables(win)
             local b = r[k]
             if b then
                 out[#out + 1] = { x = b.x, y = b.y, w = b.w, h = b.h, id = "el:ask:" .. k, slotType = "el:ask:" .. k,
-                    onFocus = function(w, e) w._gpFocusedEquipSlot = e.slotType end,
+                    onFocus = function(w, e) setFocused(w, e.slotType) end,
                     onActivate = function(w) answer(w, k == "verb") end,
                     onCancel = function(w) answer(w, false) end }
             end
         end
         EL.land(win, out)
-        if out[1] and not (win._gpFocusedEquipSlot or ""):find("^el:ask:") then
+        if out[1] and not (focused(win) or ""):find("^el:ask:") then
             out._focusIdx = 1
-            win._gpFocusedEquipSlot = out[1].slotType
+            setFocused(win, out[1].slotType)
         end
         return out
     end
@@ -1422,8 +1426,8 @@ function EL.focusables(win)
         if (z.fn or z.dpad) and not z.mouseOnly and inView then out[#out + 1] = element(win, z) end
     end
     EL.land(win, out)
-    if out[1] and not out._focusIdx and not win._gpFocusedEquipSlot then
-        win._gpFocusedEquipSlot = out[1].slotType
+    if out[1] and not out._focusIdx and not focused(win) then
+        setFocused(win, out[1].slotType)
     end
     return out
 end
@@ -1435,7 +1439,7 @@ function EL.land(win, elements)
     for i, e in ipairs(elements) do
         if e.id == "el:" .. s.land then
             elements._focusIdx = i
-            win._gpFocusedEquipSlot = e.slotType
+            setFocused(win, e.slotType)
             s.land, s.landTries = nil, nil
             return
         end
@@ -1460,6 +1464,71 @@ function EL.fromWheel(p, pn, listId)
     if not L.on() then return end
     R.setLoadout(p, listId)
     EL.pending[pn] = true
-    local H = ZeD.DpadWheels and ZeD.DpadWheels.H
-    if H and H.charTab then H.charTab(p, pn, "equip") end
+    local DW = ZeD.DpadWheels
+    if DW and DW.openCharTab then DW.openCharTab(p, pn, "equip") end
 end
+
+-- the Loadouts ring: one slice per saved loadout; a pick sets it in the
+-- Equip tab's bar and opens its to-do (EL.fromWheel)
+function EL.wheelRing(p, pn)
+    local out = {}
+    if not L.on() then return out end   -- (Loadouts and outfits off: Settings.lua)
+    local max = (ZeD.DpadWheels and ZeD.DpadWheels.MAX_INNER) or 11
+    for _, l in ipairs(L.all(p, "loadout")) do
+        local id = l.id
+        out[#out + 1] = { name = l.name, icon = L.icon("loadout"), detail = L.countText(l), key = "loadout" .. tostring(id),
+            run = function(pl, n) EL.fromWheel(pl, n, id) end }
+        if #out >= max then break end
+    end
+    return out
+end
+
+-- ---------------------------------------------------------------------------
+-- REGISTERED WITH ZeD (the add-on API, ZeD_AddonAPI.lua), once every file has loaded
+-- ---------------------------------------------------------------------------
+-- The to-do's takeover of the Equip drawer: its parts, one table (no table a frame)
+local TAKEOVER = {
+    render = function(panel, win, x, y, w, h) EL.renderTodo(panel, win, x, y, w, h) end,
+    focusables = function(win) return EL.focusables(win) end,
+    scroll = function(win) return EL.scrollFor(win) end,
+    scrollKey = function(win) return EL.scrollKey(win) end,
+}
+
+function EL.register()
+    if not (ZeD.API and (ZeD.API.VERSION or 0) >= 1) then return end
+    -- the Loadouts fold under the doll and the lists, and the to-do in the drawer while it is open
+    if ZeD.EquipmentTab and ZeD.EquipmentTab.addSection then
+        ZeD.EquipmentTab.addSection("loadouts", {
+            order = 10,
+            visible = function(win) return L.on() and player(win) ~= nil end,
+            beginFrame = function(win) EL.beginFrame(win) end,
+            h = function(win, w) return EL.sectionH(win, w) end,
+            draw = function(panel, win, x, y, w, view) return EL.drawSection(panel, win, x, y, w, view) end,
+            onClick = function(win, x, y) return EL.onClick(win, x, y) end,
+            focusables = function(win, elements) EL.barFocusables(win, elements) end,
+            land = function(win, elements) EL.land(win, elements) end,
+            scrollKey = function(win) return EL.scrollKey(win) end,
+            takeover = function(win) return EL.todoOpen(win) and TAKEOVER or nil end,
+        })
+    end
+    -- what the loadout and outfit applied are missing, faint in the doll's empty slots
+    if ZeD.EquipDoll and ZeD.EquipDoll.addOverlay then
+        ZeD.EquipDoll.addOverlay("loadouts", {
+            order = 10,
+            slots = function(win, bands) return EL.ghosts(win, bands) end,
+            draw = function(panel, x, y, size, g) EL.drawGhost(panel, x, y, size, g) end,
+        })
+    end
+    -- the Loadouts slice on the Character wheel (after ZeD's own, before the belt)
+    if ZeD.DpadWheels and ZeD.DpadWheels.addSlice then
+        ZeD.DpadWheels.addSlice("character", "loadouts", {
+            order = 10,
+            visible = function() return L.on() end,
+            entry = function(p, pn)
+                return { name = ZeD.tr("UI_ZeD_Wheel_Loadouts"), icon = L.icon("loadout"), detail = ZeD.tr("UI_ZeD_Wheel_LoadoutsDetail"),
+                    sub = EL.wheelRing, off = (#L.all(p, "loadout") == 0) and ZeD.tr("UI_ZeD_Wheel_NoLoadouts") or nil }
+            end,
+        })
+    end
+end
+if Events and Events.OnGameBoot then Events.OnGameBoot.Add(EL.register) end

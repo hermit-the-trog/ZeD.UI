@@ -552,6 +552,13 @@ end
 base.ZeD_ScrollbarState = { new = function() return {} end }
 local cNew, cOld = { plans = 0 }, { plans = 0 }
 local zNew, zOld = zedFor(cNew), zedFor(cOld)
+-- (Nov 23 2026, the 1.0 plug-in points) the new file asks ZeD's add-on API for the window's player (ZeD.API.player):
+-- the real ZeD_AddonAPI.lua on the new stubs
+do
+    local api = readFile(ZD .. "ZeD_AddonAPI.lua")
+    check("ZeD_AddonAPI.lua found", api ~= nil)
+    if api then pcall(load, api, "@ZeD_AddonAPI.lua", zNew) end
+end
 local okN, eN = pcall(load, elNew or "", "@ZeD_EquipLoadout.lua", zNew)
 local okO, eO = pcall(load, elOld or "", "@ZeD_EquipLoadout.lua(" .. PRE .. ")", zOld)
 check("ZeD_EquipLoadout.lua loads on the stubs", okN and okO, tostring(eN) .. " / " .. tostring(eO))

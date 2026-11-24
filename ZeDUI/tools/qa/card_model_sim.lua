@@ -368,6 +368,14 @@ local function newEnv(label, sources, clock)
     setfenv(fn, env)
     fn()
 
+    -- (Nov 23 2026, the 1.0 plug-in points) ZeD's add-on API (ZeD_AddonAPI.lua), which the card's registries stand
+    -- on, in every env; harmless for the old card, which never asks for it
+    do
+        local api = assert(readFile("42/media/lua/client/ZeD/ZeD_AddonAPI.lua"), "ZeD_AddonAPI.lua")
+        local f = assert(loadstring(api, "=" .. label .. ":ZeD_AddonAPI.lua"))
+        setfenv(f, env)
+        f()
+    end
     for _, s in ipairs(sources) do
         local f, err = loadstring(s.src, "=" .. label .. ":" .. s.name)
         assert(f, err)
@@ -555,6 +563,28 @@ else
 end
 section("NEW: the card files in the working tree")
 local NEW = newEnv("NEW", newSrc, clock)
+-- (Nov 23 2026, the 1.0 plug-in points) the Lists mark, the "In lists" section and the lists' generations left the
+-- card files: Loadouts registers them (ZeD_ListsMenu.lua's LU.register, ZeD.ItemCard.addMark / addSection / addGen).
+-- The new card gets them as the game does, the real functions cut from ZeD_ListsMenu.lua run on the same stubs, so
+-- the comparison with the old card (which drew them itself) still holds frame by frame.
+do
+    local lm = readFile("42/media/lua/client/ZeD/ZeD_ListsMenu.lua") or ""
+    Lists.ICON = Lists.ICON or { loadout = "loadout", outfit = "outfit" }   -- (the mark's icon id: ZeD_Lists.lua's L.ICON)
+    local parts = { "local L, LU = ZeD.Lists, ZeD.ListsUI\n" }
+    for _, fn in ipairs({ "function LU.markState(", "function LU.markActivate(", "function LU.drawInLists(", "function LU.register()" }) do
+        local c = cut(lm, fn, "\nend\n")
+        check("plug-in: ZeD_ListsMenu.lua has " .. fn, c ~= nil)
+        parts[#parts + 1] = c or ""
+    end
+    local f, err = loadstring(table.concat(parts) .. "LU.register()\n", "=NEW:ZeD_ListsMenu.lua (cut)")
+    check("plug-in: Loadouts' card parts load", f ~= nil, err)
+    if f then
+        setfenv(f, NEW)
+        local ok, e = pcall(f)
+        check("plug-in: Loadouts registers its mark, section and gens on the new card", ok and NEW.ZeD.ItemCard._marks.byId.lists ~= nil
+            and NEW.ZeD.ItemCard._sections.byId.lists ~= nil and #NEW.ZeD.ItemCard._gens.list == 2, e)
+    end
+end
 check("the old files are not the new ones (the comparison means something)",
     not haveBase or oldSrc[2].src ~= newSrc[2].src)
 check("the new card keeps a model", type(NEW.ZeD_ItemCard._cardModel) == "function")

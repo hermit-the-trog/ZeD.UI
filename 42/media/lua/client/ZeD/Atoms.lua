@@ -328,8 +328,24 @@ end
 function PXI.has(id) return id ~= nil and pxTex(16, id) ~= nil end
 
 -- Pixel icons the right-click strip and list draw that ContextPxIcons does not name: ZeD's own rows (QA B8-2).
-local WARM_EXTRA = { "backpack", "plus", "trash", "outfit", "outfit_add", "outfit_remove", "loadout", "loadout_add", "loadout_remove" }
+-- (an add-on's own rows add theirs with PXI.addWarm, below)
+local WARM_EXTRA = { "backpack", "plus", "trash" }
 local _warmed = {}   -- box size -> true once asked (cleared never: a size is asked once per game)
+PXI._warmAdded = PXI._warmAdded or {}   -- the add-ons' icon ids (PXI.addWarm)
+
+-- ask the game for icon id's picture (and its marks' pictures) at size px: the texture starts loading
+local function warmOne(size, id)
+    local base = PXI.DIR .. size .. "/zw_" .. id
+    pcall(Texture.getSharedTexture, base .. ".png", 3)
+    local sm = ZeD.PxIconStripMark and ZeD.PxIconStripMark[id]
+    if (ZeD.PxIconMark and ZeD.PxIconMark[id]) or sm then
+        pcall(Texture.getSharedTexture, base .. "_mk.png", 3)
+    end
+    -- (a strip icon with more than one mark: its further pictures, _mk2 and on; the Filter, Nov 22 2026)
+    if type(sm) == "table" then
+        for i = 2, #sm do pcall(Texture.getSharedTexture, base .. "_mk" .. i .. ".png", 3) end
+    end
+end
 
 --- Ask the game for every strip/list icon's picture at the size PXI.tex would draw in a box of `box` px, so the
 --- background load starts before a cell first draws (a loose picture is blank until it has loaded: knowledge bank
@@ -346,22 +362,40 @@ function PXI.warm(box)
     for _, s in ipairs(PXI.SIZES) do
         if s <= box then size = s; break end
     end
-    local function ask(id)
-        local base = PXI.DIR .. size .. "/zw_" .. id
-        pcall(Texture.getSharedTexture, base .. ".png", 3)
-        local sm = ZeD.PxIconStripMark and ZeD.PxIconStripMark[id]
-        if (ZeD.PxIconMark and ZeD.PxIconMark[id]) or sm then
-            pcall(Texture.getSharedTexture, base .. "_mk.png", 3)
-        end
-        -- (a strip icon with more than one mark: its further pictures, _mk2 and on; the Filter, Nov 22 2026)
-        if type(sm) == "table" then
-            for i = 2, #sm do pcall(Texture.getSharedTexture, base .. "_mk" .. i .. ".png", 3) end
+    _warmed[box] = size   -- (the size asked at this box: an add-on's icons added later are asked there too)
+    for _, id in pairs(map) do warmOne(size, id) end
+    for _, id in ipairs(WARM_EXTRA) do warmOne(size, id) end
+    for _, id in ipairs(PXI._warmAdded) do warmOne(size, id) end
+    -- (the inventory strips' icons and their marks: Icon color, the director, Nov 22 2026)
+    for id in pairs(ZeD.PxIconStripMark or {}) do warmOne(size, id) end
+end
+
+--- (1.0 add-on API, ZeD_AddonAPI.lua) An add-on's pixel icons its right-click rows and lists draw, warmed with
+--- ZeD's own so they never draw blank the first time. ids: a list of ZeD pixel icon ids. Any time: icons added after
+--- the warm-up are asked for at once.
+function PXI.addWarm(ids)
+    if type(ids) ~= "table" then return end
+    for _, id in ipairs(ids) do
+        if type(id) == "string" then
+            local have = false
+            for _, old in ipairs(PXI._warmAdded) do if old == id then have = true end end
+            if not have then
+                PXI._warmAdded[#PXI._warmAdded + 1] = id
+                for _, size in pairs(_warmed) do
+                    if type(size) == "number" then warmOne(size, id) end
+                end
+            end
         end
     end
-    for _, id in pairs(map) do ask(id) end
-    for _, id in ipairs(WARM_EXTRA) do ask(id) end
-    -- (the inventory strips' icons and their marks: Icon color, the director, Nov 22 2026)
-    for id in pairs(ZeD.PxIconStripMark or {}) do ask(id) end
+end
+
+--- (1.0 add-on API) The color of an icon's mark (its plus, minus or arrow): "blue", "red" or "gold", as
+--- ZeD.PxIconMark holds them. An id ZeD already colors keeps its color. Draws zw_<id>_mk.png over the ink.
+function PXI.addMark(id, color)
+    if type(id) ~= "string" or (color ~= "blue" and color ~= "red" and color ~= "gold") then return false end
+    ZeD.PxIconMark = ZeD.PxIconMark or {}
+    if ZeD.PxIconMark[id] == nil then ZeD.PxIconMark[id] = color end
+    return true
 end
 
 --- Warm at the strip's and list's icon box (T.px(16)) now. (QA B8-2)
@@ -1804,8 +1838,9 @@ end
 --   "dispose" danger   (the bin)
 -- The narrow card's chip is the icon alone. No tinted fill, no coloured words.
 -- ============================================================================
-ZeD.Atoms.FLAG_ICON = { fav = "star", nocraft = "craft_off", dispose = "trash", lists = "view_list" }
--- (lists: the loadouts' list icon; ZeD_Lists.lua's L.ICON.loadout sets it once loaded, so a swap there follows)
+ZeD.Atoms.FLAG_ICON = ZeD.Atoms.FLAG_ICON or {}
+ZeD.Atoms.FLAG_ICON.fav, ZeD.Atoms.FLAG_ICON.nocraft, ZeD.Atoms.FLAG_ICON.dispose = "star", "craft_off", "trash"
+-- (an add-on's mark puts its own icon here: ZeD.ItemCard.addMark's def.icon)
 ZeD.Atoms.FLAG_CHIP_H = 22   -- design units: the chip's height (the 16u icon box and 3u each side)
 
 --- A flag chip's width (compact: the icon alone).

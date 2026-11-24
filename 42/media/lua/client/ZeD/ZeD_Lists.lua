@@ -865,5 +865,18 @@ function L.check(p)
     return bad == nil, bad
 end
 
--- the item card's mark strip draws its Lists button with the loadout's icon
-if ZeD.Atoms and ZeD.Atoms.FLAG_ICON then ZeD.Atoms.FLAG_ICON.lists = L.ICON.loadout end
+-- ---------------------------------------------------------------------------
+-- THE TWO SWITCHES ON ZeD SETUP (the add-on API's options: shared/ZeD/AddonOptions.lua)
+-- ---------------------------------------------------------------------------
+-- Loadouts and outfits, and Restock under it (shown only while Loadouts is on), go in ZeD's Additions group after
+-- Hidden facts, and join the Additions preset: Vanilla leaves Loadouts off (Restock as it is), Vanilla Plus turns it on
+-- with Restock Casual, Vanilla Accessible with Restock Accessible. A player who had ZeD's options saved before the
+-- Loadouts switch existed starts with it on. (The options themselves are still made by Settings.lua under ZeD's owner,
+-- ZeD_UI, so every saved value keeps its meaning; at file load, as the options are.)
+if ZeD.Options and ZeD.Options.addRows and ZeD.Options.joinPreset then
+    ZeD.Options.addRows { owner = "ZeD_UI", into = "UI_ZeD_Options_ZedAdditions", afterRow = "hiddenFacts",
+        rows = { { "loadouts", "onoff" }, { "restock", "radio", showIf = "loadouts" } } }
+    ZeD.Options.joinPreset { owner = "ZeD_UI", id = "loadouts", presets = { 1, 2, 2 }, wasOn = 2 }
+    -- (Vanilla leaves Restock as it is: it does nothing while Loadouts is off)
+    ZeD.Options.joinPreset { owner = "ZeD_UI", id = "restock", presets = { nil, 2, 3 } }
+end

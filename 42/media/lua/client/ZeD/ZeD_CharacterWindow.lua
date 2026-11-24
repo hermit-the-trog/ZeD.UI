@@ -835,15 +835,15 @@ local function getActiveScroll(win)
             return ZeD.JournalReaders and ZeD.JournalReaders.scroll(win) or nil
         end
         if subIdx == 4 then return nil end    -- Recipes: scroll handled by CraftingCore
-        if subIdx == 5 then                   -- Loadouts (ZeD_JournalLists)
-            return ZeD.JournalLists and ZeD.JournalLists.scroll(win) or nil
+        if ZeD.JournalTab.pageDef(subIdx) then   -- an add-on's page (ZeD.JournalTab.addPage)
+            return ZeD.JournalTab.pageScroll(win)
         end
         return win._journalScroll
     end
     if win._activeTab == "identity" then return win._identityScroll end
     if win._activeTab == "equip"    then
-        -- the loadouts' to-do scrolls on its own (ZeD_EquipLoadout)
-        return (ZeD.EquipLoadout and ZeD.EquipLoadout.scrollFor(win)) or win._equipScroll
+        -- an add-on's takeover of the drawer scrolls on its own (ZeD.EquipmentTab.addSection)
+        return (ZeD.EquipmentTab and ZeD.EquipmentTab.extScroll(win)) or win._equipScroll
     end
     return ZeD_CharacterWindow.extScroll(win)
 end
@@ -965,6 +965,14 @@ function ZeD_CharacterWindow.addTab(def)
     end
     table.insert(CHAR_TABS, at, def)
 end
+-- The window's parts an add-on may read (1.0 add-on API, ZeD_AddonAPI.lua), instead of its fields:
+--- The tab drawer's panel (an add-on's own child panels, a search box, go on it), or nil.
+function ZeD_CharacterWindow.drawerPanel(win) return win and win._drawerPanel or nil end
+--- True while an item card is open in the drawer (over the tab).
+function ZeD_CharacterWindow.cardOpen(win) return win ~= nil and win._drawerItem ~= nil end
+--- The id of the tab showing ("equip", "journal", an added tab's id), or nil.
+function ZeD_CharacterWindow.activeTab(win) return win and win._activeTab or nil end
+
 -- The added tabs' dispatchers live on the module, not as locals: they are
 -- called from the window's own functions, which are near Kahlua's limit of locals.
 function ZeD_CharacterWindow.extScroll(win)
@@ -2369,8 +2377,9 @@ end
 local function _equipFindHit(el) return el.item ~= nil end
 
 local function _buildEquipmentFocusables(win)
-    -- the loadouts' to-do holds the drawer (ZeD_EquipLoadout): its stops alone
-    if win and ZeD.EquipLoadout and ZeD.EquipLoadout.todoOpen(win) then return ZeD.EquipLoadout.focusables(win) end
+    -- an add-on's takeover holds the drawer (ZeD.EquipmentTab.addSection): its stops alone
+    local takeoverEls = win and ZeD.EquipmentTab and ZeD.EquipmentTab.extTakeoverFocusables(win)
+    if takeoverEls then return takeoverEls end
     local elements = {}
 
     -- CARD MODE branch: the Equip tab's own item card (a ZeD_ItemCard in the
@@ -2647,9 +2656,8 @@ local function _buildEquipmentFocusables(win)
         }
     end
 
-    -- the loadouts' fold under the doll and the lists (ZeD_EquipLoadout), and where the focus lands after its to-do
-    if win and ZeD.EquipLoadout then ZeD.EquipLoadout.barFocusables(win, elements) end
-    if win and ZeD.EquipLoadout then ZeD.EquipLoadout.land(win, elements) end
+    -- an add-on's sections under the doll and the lists (ZeD.EquipmentTab.addSection), and where each lands the focus
+    if win and ZeD.EquipmentTab then ZeD.EquipmentTab.extFocusables(win, elements) end
     -- Back from a card: focus returns to the slot or row that opened it
     local equipGone = nil
     if win and win._equipCardSeed and not win._equipSelected then
@@ -3407,10 +3415,11 @@ local function _buildJournalFocusables(win)
         subEls = ZeD.JournalReaders and ZeD.JournalReaders.focusables(win) or {}
     elseif sub == 4 then
         subEls = _buildJournalRecipesFocusables(win)
-    elseif sub == 5 then
-        -- Loadouts (ZeD_JournalLists stamps its own zones); its question band holds the pad alone
-        subEls = ZeD.JournalLists and ZeD.JournalLists.focusables(win) or {}
-        if ZeD.JournalLists and ZeD.JournalLists.state(win).ask then return subEls end
+    elseif ZeD.JournalTab.pageDef(sub) then
+        -- an add-on's page (ZeD.JournalTab.addPage stamps its own zones); a modal page (a question band) holds the pad alone
+        local modal
+        subEls, modal = ZeD.JournalTab.pageFocusables(win)
+        if modal then return subEls end
     end
     for i = 1, #subEls do elements[#elements + 1] = subEls[i] end
     -- a page's own pop-up list open: its rows alone, modal
@@ -4742,7 +4751,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._thermalFigureZone     = nil
 
     -- Journal tab state
-    win._journalSubTab      = 1     -- the open page: 1=Journal, 2=Notebooks, 3=Papers, 4=Recipes, 5=Loadouts
+    win._journalSubTab      = 1     -- the open page: 1=Journal, 2=Notebooks, 3=Papers, 4=Recipes, 5 on an add-on's
     win._journalSubTabZones = nil   -- (nothing reads it: the pages are the header's Page pop-up, not a strip)
     win._mapDragging        = false -- (a map pan-drag; Maps is the World window's, see the map state below)
     win._journalScroll = ZeD_ScrollbarState:new()
@@ -5473,7 +5482,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         local JR = ZeD.JournalReaders
         win._flyerSearch:setVisible(showJournal and JR ~= nil and JR.searchVisible(win, subIdx))
         if JR then JR.syncChildren(win, showJournal and subIdx == 2) end
-        if ZeD.JournalLists then ZeD.JournalLists.syncChildren(win, showJournal and subIdx == 5) end
+        ZeD.JournalTab.syncPageChildren(win, showJournal)   -- (an add-on page's own children, ZeD.JournalTab.addPage)
         -- (No map panel here: the Maps page is the World window's, MapsTab.)
 
         -- other mods' tabs place or hide their own window-parented children
@@ -5740,8 +5749,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
             if win._activeTab == "identity" and ZeD.IdentityTab.onClick and ZeD.IdentityTab.onClick(win, x, y) then return true end
             -- Equipment tab click routing
             if win._activeTab == "equip" then
-                -- the loadouts' bar and to-do (ZeD_EquipLoadout); the to-do takes every press
-                if ZeD.EquipLoadout and ZeD.EquipLoadout.onClick(win, x, y) then return true end
+                -- an add-on's sections and takeover (ZeD.EquipmentTab.addSection); a takeover takes every press
+                if ZeD.EquipmentTab and ZeD.EquipmentTab.extClick(win, x, y) then return true end
                 -- The List | Doll toggle, and a doll card's layer strip (EquipDoll.lua)
                 if ZeD.EquipDoll and ZeD.EquipDoll.onClick(win, x, y) then return true end
                 -- Card mode: back button
@@ -5897,9 +5906,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
             if win._activeTab == "journal" and ZeD.JournalReaders and ZeD.JournalReaders.onClick(win, x, y) then
                 return true
             end
-            -- Loadouts (ZeD_JournalLists stamps the zones)
-            if win._activeTab == "journal" and (win._journalSubTab or 1) == 5 and ZeD.JournalLists
-               and ZeD.JournalLists.onClick(win, x, y) then
+            -- an add-on's page (ZeD.JournalTab.addPage stamps its zones)
+            if win._activeTab == "journal" and ZeD.JournalTab.pageClick(win, x, y) then
                 return true
             end
             -- Journal Recipes sub-tab: delegate to CraftingCore via JournalTab
@@ -6057,9 +6065,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 end
             end
         end
-        -- the Journal's Loadouts page: a line's Remove, a list's Rename / Delete
-        if win._activeTab == "journal" and win._drawerMode == "tab" and (win._journalSubTab or 1) == 5
-           and ZeD.JournalLists and ZeD.JournalLists.onRightClick(win, x, y) then
+        -- an add-on's Journal page (ZeD.JournalTab.addPage; Loadouts: a line's Remove, a list's Rename / Delete)
+        if win._activeTab == "journal" and win._drawerMode == "tab" and ZeD.JournalTab.pageRightClick(win, x, y) then
             return true
         end
         -- Health: the body figure or an injury row opens vanilla's treatment menu
@@ -6752,9 +6759,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 scrollKey = ZeD.JournalReaders.scrollKey(win)
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
-            -- Loadouts: its scroll, the list chosen, the filter, the question, the lines
-            if win._activeTab == "journal" and jsub == 5 and ZeD.JournalLists then
-                scrollKey = ZeD.JournalLists.scrollKey(win)
+            -- an add-on's page: its own key (ZeD.JournalTab.addPage's scrollKey)
+            if win._activeTab == "journal" and ZeD.JournalTab.pageDef(jsub) then
+                scrollKey = ZeD.JournalTab.pageScrollKey(win)
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
             -- Journal: its last stop, Save, sits in the band and never moves, so the
@@ -6787,7 +6794,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 scrollKey = tostring(sc and sc.scrollPos or 0) .. ":" .. tostring(ZeD.EquipDoll and ZeD.EquipDoll.view())
                     .. ":" .. tostring(dp and dp:getWidth()) .. ":" .. tostring(dp and dp:getHeight())
                     .. ":" .. tostring(win._equipSelected) .. ":" .. tostring(win._equipLayer)
-                    .. ":" .. (ZeD.EquipLoadout and ZeD.EquipLoadout.scrollKey(win) or "")
+                    .. ":" .. (ZeD.EquipmentTab and ZeD.EquipmentTab.extScrollKey(win) or "")
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
             -- Health and Thermal: the last stop is in the pinned
