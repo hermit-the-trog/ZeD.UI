@@ -377,6 +377,20 @@ local function otherInventory(content)
 end
 CT.otherInventory = otherInventory
 
+-- Transfer all's destination: the other window's container, or, from your side with the World window shut (or with
+-- no container across), the floor at your feet, as the game's own Transfer all does: its hidden loot pane is the floor
+-- then (ISInventoryPane:transferAll, toFloor). Only Transfer all falls back; a single row's move (the controller's X,
+-- a drag) keeps "nowhere to go" so nothing drops by accident. (The director, Nov 24 2026: "transfer all would
+-- transfer to the floor, wouldn't it?")
+local function transferDest(content)
+    local d = otherInventory(content)
+    if d or content._ccSide ~= "char" then return d end
+    local pn = ZeD.playerNumOf(content)
+    if ISInventoryPage and ISInventoryPage.GetFloorContainer then return ISInventoryPage.GetFloorContainer(pn) end
+    return zedFloor(pn)
+end
+CT.transferDest = transferDest
+
 --- (Nov 14 2026, punch list 223: the controller's X on a row is the game's grab, ISInventoryPane:doGrabOnJoypadSelected)
 --- The items go to the other window's container by the band's own move (CT.moveItems: the game's transfer actions,
 --- the floor's rules, a gate's refusal). From the World window: walk to the container first, as Take does, and a
@@ -636,24 +650,26 @@ local function buildChar(content)
     local marked = markedOf(content)
     if marked then
         -- the controller's marks: with rows marked, the move is of the marked rows only
-        local toFloor = dest ~= nil and isFloor(dest)
+        local xdest = transferDest(content)
+        local toFloor = xdest ~= nil and isFloor(xdest)
         moves[#moves + 1] = { id = "xfer", label = ZeD.tr(toFloor and "UI_ZeD_Controls_DropMarked" or "UI_ZeD_Controls_MoveMarked"),
-            enabled = dest ~= nil, marks = markedSet(marked),
+            enabled = xdest ~= nil, marks = markedSet(marked),
             icon = "tray_out", hint = ZeD.tr(toFloor and "UI_ZeD_Controls_HintDropMarked" or "UI_ZeD_Controls_HintMoveMarked", #marked),
             run = function(ct)
-                local d = otherInventory(ct)
+                local d = transferDest(ct)
                 local items = markedOf(ct)
                 if not (items and d) then return end
                 ZeD.InventoryRenderer.padClearMarksOf(ct)
                 CT.moveItems(playerObj, items, d)
             end }
     else
-        local xfer = transferAllItems(playerObj, inv, dest)
-        moves[#moves + 1] = { id = "xfer", label = sentence(getText("IGUI_invpage_Transfer_all")), enabled = dest ~= nil and #xfer > 0,
+        local xdest = transferDest(content)
+        local xfer = transferAllItems(playerObj, inv, xdest)
+        moves[#moves + 1] = { id = "xfer", label = sentence(getText("IGUI_invpage_Transfer_all")), enabled = xdest ~= nil and #xfer > 0,
             -- (no icon: Transfer all is a word button, a wrong guess dropped loose things on the floor; KISS #7)
             hint = sentence(getText("IGUI_invpage_Transfer_all")),
             run = function(ct)
-                local d = otherInventory(ct)
+                local d = transferDest(ct)
                 CT.moveItems(playerObj, transferAllItems(playerObj, ct._inventory, d), d)
             end }
     end
