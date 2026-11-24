@@ -3,6 +3,11 @@
 -- change reads Custom, Custom brings the hand picks back, Apply writes them; Loadouts off hides its surfaces, on
 -- brings them back; the preset and Restock words printed ("Access"); a shot of the Restock row dimmed while the
 -- Loadouts pick is Off. "ZEDQA r1819 ..." PASS / FAIL lines, ending DONE. Screenshots/zqa_r1819_*.png.
+-- (Nov 23 2026, QA: the Loadouts split moves "loadouts" and "restock" to the add-on ZeD-GUI: Loadouts, PZAPI.ModOptions
+-- "ZeDLoadouts"; its preset keys are "ZeDLoadouts.loadouts" and "ZeDLoadouts.restock". opt(id) reads an add-on key
+-- there, and "loadouts" / "restock" there too where the add-on's options are loaded, else ZeD_UI's. Since the split
+-- the Restock row is hidden, not dimmed, while Loadouts is Off (the dim shots then show no row). ZeD alone after the
+-- split has no Loadouts: the script says "not run".)
 local G = "run"
 local function say(s) print("ZEDQA r1819 " .. tostring(s)) end
 local fails = 0
@@ -10,9 +15,16 @@ local function check(ok, what, extra) if not ok then fails = fails + 1 end; say(
 local p = getPlayer(); local pn = p:getPlayerNum()
 local S, L, EL, MM = ZeD.Settings, ZeD.Lists, ZeD.EquipLoadout, ZeD.MainMenu
 local O = PZAPI.ModOptions:getOptions("ZeD_UI")
+local LOO = PZAPI.ModOptions:getOptions("ZeDLoadouts")   -- (the add-on's options, nil without it)
 local IDS = S.ADDITION_IDS
 local PRESETS = S.ADDITION_PRESETS
-local function opt(id) return O.dict[id] end
+local function opt(id)
+    local a = string.match(id, "^ZeDLoadouts%.(.+)$")
+    if a then return LOO and LOO.dict and LOO.dict[a] or nil end
+    if LOO and LOO.dict and (id == "loadouts" or id == "restock") then return LOO.dict[id] end
+    return O.dict[id]
+end
+if not (opt("loadouts") and opt("restock") and L and EL) then say("not run: no Loadouts on this build (ZeD-GUI: Loadouts is not loaded)"); say("DONE (0 failed)"); return end
 local function live(id) local o = opt(id); local el = o.element; return (el and el.selected) or o:getValue() end
 local function presetLive() local el = S.additionsPresetOption.element; return el and el.selected end
 local function pick(n) S.additionsPresetOption.onChange(nil, n) end

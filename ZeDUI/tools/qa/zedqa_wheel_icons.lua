@@ -44,11 +44,17 @@ local IDS = {
     "seek", "gears", "zoom_in", "zoom_out", "theme", "textsize", "focus", "scale", "seethrough", "progress", "inbox",
     "smiley", "guide", "gamepad", "alarm", "heart", "safemode", "crate", "jacket", "thermometer", "idcard", "pencil", "bug",   -- (Nov 8 QA: the Lua console slice, debug mode)
     "notebook", "skills", "craft", "bricks", "mirror", "traits",
-    -- (beta 11, punch list 140: the lists got their own icons, ZeD_Lists.lua L.ICON = { outfit = "outfit",
-    -- loadout = "loadout" }, zw_loadout / zw_outfit drawn at 16/24/32/48 with _add / _remove versions)
-    "loadout", "outfit", "loadout_add", "loadout_remove", "outfit_add", "outfit_remove",
     "rod",   -- (Nov 12 2026: the Fishing tab's slice; the list was behind, so the first main run read it as "no icon")
 }
+-- (beta 11, punch list 140: the lists got their own icons, ZeD_Lists.lua L.ICON = { outfit = "outfit",
+-- loadout = "loadout" }, zw_loadout / zw_outfit drawn at 16/24/32/48 with _add / _remove versions.
+-- Nov 23 2026, QA: the Loadouts split moved these six to the add-on ZeD-GUI: Loadouts' own
+-- media/textures/ZeD/wheel; they are asked for only where Loadouts is loaded, built in or the add-on.)
+if ZeD.Lists then
+    for _, id in ipairs({ "loadout", "outfit", "loadout_add", "loadout_remove", "outfit_add", "outfit_remove" }) do IDS[#IDS + 1] = id end
+else
+    say("NOTE no Loadouts loaded (ZeD-GUI: Loadouts is the add-on's since the split): its six icons are not asked for")
+end
 -- vanilla's words: { key, picture or false, id }
 local TEXT = {
     { "UI_optionscreen_binding_Toggle Survival Guide", false, "guide" }, { "IGUI_MiniMap_Toggle", false, "minimap" },

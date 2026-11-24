@@ -1,0 +1,10 @@
+# ZeDUI/tools/qa/ad_split_with.txt  (Nov 23 2026, QA): the Loadouts split, ZeD PLUS the add-on ZeD-GUI: Loadouts.
+# ad_split.lua checks that each plug-in point holds the add-on's part and works once (fold, page, slice, mark, menu
+# rows, ZeD setup rows).
+# Mod list: ZeD_UI and ZeDLoadouts (mods\ZeD-Loadouts, require=\ZeD_UI), ZeD first. Saves/Sandbox/ZeD-QA/mods.txt
+# reads "mod = ZeD_UI," then "mod = ZeDLoadouts,"; for zedqa_mods_run.ps1 the list file holds the line ZeDLoadouts and
+# the run takes -ZeDFirst. On a build with Loadouts built in (no ZeD.API) the script is one SKIP (the add-on stays off).
+#   pwsh -File ZeDUI/tools/qa/zedqa_mods_run.ps1 -ModList <a file with the line ZeDLoadouts> -ZeDFirst -Mode fullscreen4k -Manifest ZeDUI/tools/qa/ad_split_with.txt
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+ad_split.lua | ad_split | timeout=900

@@ -1,0 +1,8 @@
+# ZeDUI/tools/qa/ad_split_alone.txt  (Nov 23 2026, QA): the Loadouts split, ZeD ALONE. ad_split.lua checks that ZeD
+# without the add-on ZeD-GUI: Loadouts has no Loadouts anywhere and every plug-in point is idle and invisible.
+# Mod list: ZeD_UI only, WITHOUT ZeDLoadouts. Saves/Sandbox/ZeD-QA/mods.txt as it stands (mod = ZeD_UI, alone), and
+# zed_only_mods.txt empty for zedqa_mods_run.ps1. On a build with Loadouts built in (no ZeD.API) the script is one SKIP.
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/ad_split_alone.txt -Mode fullscreen4k -Report ad_split_alone
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+ad_split.lua | ad_split | timeout=900

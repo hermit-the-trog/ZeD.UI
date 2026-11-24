@@ -20,10 +20,19 @@
 -- Everything is put back: the sorts, the views, the filter, the scroll, the columns, the tabs, the bag's own things,
 -- the crate and what was in it, the floor. Timed actions run instant for the run (put back after).
 -- Copy to Zomboid/Lua/ after rt_kit.lua; grep "ZEDQA rt_inv".
+-- (Nov 23 2026, QA: the Loadouts split moves Loadouts, Restock and their switches to the add-on ZeD-GUI: Loadouts;
+-- H.loadOpt() reads its ZeDLoadouts.loadoutsOption / restockOption where it is loaded, else ZeD.Settings' from
+-- before the split. With neither, ZeD alone after the split, the restock pin is a SKIP.)
 
 local Q = RT.make("rt_inv")
 local S = { p = RT.p, pn = RT.pn, crateGiven = {}, scroll = {}, grid = {}, dead = false }
 local H = {}
+-- the table that holds the Loadouts and Restock switches: the add-on's ZeDLoadouts (since the split), else ZeD.Settings
+function H.loadOpt()
+    local LO = ZeDLoadouts
+    if type(LO) == "table" and LO.loadoutsOption then return LO end
+    return ZeD.Settings
+end
 local NIL = {}
 
 -- a step that does nothing once the setup failed (the put-back steps use Q.step itself)
@@ -1674,7 +1683,12 @@ end
 -- inventory (in reach: no walk), and once the list is done the pin goes. Put back: the list deleted, the applied
 -- loadout, home, trip and run as found, the switches, the thing taken away.
 step(4, function()
-    local L, R, St = ZeD.Lists, ZeD.Restock, ZeD.Settings
+    local L, R, St = ZeD.Lists, ZeD.Restock, H.loadOpt()
+    if not (L or (St and St.loadoutsOption)) then
+        -- (ZeD alone after the split: Loadouts and Restock are the add-on's, and it is not loaded)
+        Q.skip("restock: the to-do pins at the screen's left edge while it runs", "ZeD-GUI: Loadouts is not loaded: Restock is the add-on's since the split")
+        return
+    end
     if not (L and L.create and R and R.start and ZeD.RestockPin and St and St.loadoutsOption and St.restockOption) then
         Q.check(false, "restock: ZeD.Lists, ZeD.Restock, the pin and their switches are loaded"); return
     end
@@ -1771,7 +1785,7 @@ waitFor(4, 900, function() return S.rsRun == nil or H.pin() == nil end, function
 end)
 function H.restockBack()
     if not S.rs then return end
-    local L, R, St = ZeD.Lists, ZeD.Restock, ZeD.Settings
+    local L, R, St = ZeD.Lists, ZeD.Restock, H.loadOpt()
     pcall(function() if S.rsRun and not S.rsRun.done then R.stop(S.p, nil) end end)
     pcall(function() R.runs[S.pn] = S.rs.run end)
     pcall(function() ZeD.RestockPin.hide(S.pn) end)

@@ -25,8 +25,26 @@
 --             holding the pad, the D-pad going to that window, the moodles' hover balloon, the fishing rod's tension
 -- Every surface: RT.bounds. Puts back: the input mode, the focus, the windows, the options (inventory view, moodles'
 -- place, Put things back, auto-drink), the chords file, the zoom, the stats, the pointer, the stand-ins.
+-- (Nov 23 2026, QA: the Loadouts split moves the "loadouts" option to the add-on ZeD-GUI: Loadouts, PZAPI.ModOptions
+-- "ZeDLoadouts", its preset key "ZeDLoadouts.loadouts". The Lite pick's check reads it there where the add-on's
+-- options are loaded, else ZeD's own; the add-on's combo boxes are kept and put back with ZeD's, S.keyOpt.)
 local Q = RT.make("rt_pad")
 local S = { p = RT.p, pn = RT.pn, back = {}, extra = {} }
+-- an option by its keep key: "<id>" is ZeD's (ZeD_UI), "ZeDLoadouts.<id>" the add-on's (nil when it is not loaded)
+function S.keyOpt(k)
+    local own, oid = "ZeD_UI", k
+    local a = string.match(k, "^ZeDLoadouts%.(.+)$")
+    if a then own, oid = "ZeDLoadouts", a end
+    local zo = nil
+    pcall(function() zo = PZAPI.ModOptions:getOptions(own) end)
+    return zo and zo.dict and zo.dict[oid] or nil
+end
+-- the Loadouts switch's preset key: the add-on's where its options are loaded, else ZeD's own from before the split
+function S.loKey()
+    local lo = nil
+    pcall(function() lo = PZAPI.ModOptions:getOptions("ZeDLoadouts") end)
+    return lo and "ZeDLoadouts.loadouts" or "loadouts"
+end
 local Z = ZeD
 local F = RT.focus()
 local Det = Z.Input and Z.Input.Detector
@@ -450,10 +468,8 @@ end
 -- Every ZeD combo box is kept first and put back after (the scripts after this one expect the additions on).
 function S.putStyle()
     if not S.styleKeep then return end
-    local zo = nil
-    pcall(function() zo = PZAPI.ModOptions:getOptions("ZeD_UI") end)
-    for id, v in pairs(S.styleKeep) do
-        local o = zo and zo.dict and zo.dict[id]
+    for k, v in pairs(S.styleKeep) do
+        local o = S.keyOpt(k)
         if o and o.selected ~= v then pcall(function() o:setValue(v) end) end
     end
     S.styleKeep = nil
@@ -467,6 +483,12 @@ Q.step(10, function()
     pcall(function() zo = PZAPI.ModOptions:getOptions("ZeD_UI") end)
     for _, o in ipairs((zo and zo.data) or {}) do
         if o.type == "combobox" and o.id then S.styleKeep[o.id] = o.selected end
+    end
+    -- (the add-on ZeD-GUI: Loadouts' combo boxes too: Lite sets its Loadouts switch to its preset's item, the split)
+    local lo = nil
+    pcall(function() lo = PZAPI.ModOptions:getOptions("ZeDLoadouts") end)
+    for _, o in ipairs((lo and lo.data) or {}) do
+        if o.type == "combobox" and o.id then S.styleKeep["ZeDLoadouts." .. tostring(o.id)] = o.selected end
     end
     S.styleFound = S.copy(S.styleKeep)   -- (as found, for the put-back check: the Light + Lite run starts in Lite)
     S.back.style = true
@@ -485,10 +507,9 @@ end)
 Q.step(10, function()
     local St = Z.Settings
     local on = {}
-    for _, id in ipairs({ "ammoBox", "readMarks", "readNext", "dimRead", "dashLamps", "moodleNotices", "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "loadouts" }) do
-        local zo = nil
-        pcall(function() zo = PZAPI.ModOptions:getOptions("ZeD_UI") end)
-        local o = zo and zo.dict and zo.dict[id]
+    -- (the Loadouts switch by its preset key: "ZeDLoadouts.loadouts" with the add-on since the split, else "loadouts")
+    for _, id in ipairs({ "ammoBox", "readMarks", "readNext", "dimRead", "dashLamps", "moodleNotices", "messagesCatch", "messagesToast", "putBack", "sandboxInGame", S.loKey() }) do
+        local o = S.keyOpt(id)
         if o and o.selected ~= 1 then on[#on + 1] = id .. "=" .. tostring(o.selected) end
     end
     Q.check(St.lite() == true, "select: the Style pick sets Lite", tostring(S.opt(St.lookStyleOption)))
@@ -498,10 +519,9 @@ Q.step(10, function()
 end)
 Q.step(10, function()
     -- (every kept combo box back as found, Style among them: Full or Lite, whichever the run is in, as rt_lite's put back checks)
-    local zo, bad = nil, {}
-    pcall(function() zo = PZAPI.ModOptions:getOptions("ZeD_UI") end)
+    local bad = {}
     for id, v in pairs(S.styleFound or {}) do
-        local o = zo and zo.dict and zo.dict[id]
+        local o = S.keyOpt(id)   -- (ZeD's and, since the split, the add-on's)
         if o and o.selected ~= v then bad[#bad + 1] = id .. "=" .. tostring(o.selected) end
     end
     local was = S.styleFound and S.styleFound.lookStyle

@@ -126,6 +126,9 @@
 -- (Nov 22 2026, review: W2 dropped UI_ZeD_Inv_RowHelp, a key no ZeD code draws; D2 reads the hint strip's held-A
 -- word too; D3 compares the opening recipe without its module; the gas can goes back after D2; with no tool that
 -- the old search misses, T1 and T3 still run and T2 alone says SKIP; the NOTE lines the header names are printed.)
+-- (Nov 23 2026, QA: the Loadouts split: UI_ZeD_Settings_RestockTip, UI_ZeD_Settings_LoadoutsTip and UI_ZeD_Todo_HelpBack
+-- are the add-on ZeD-GUI: Loadouts' keys (its own UI.json). With Loadouts loaded (built in or the add-on) they are
+-- checked as before; ZeD alone after the split has no such words, and the tab-name check leaves them out, said so.)
 
 if not (RT and RT.make) then
     print("ZEDQA vk1_cc ERR the kit (rt_kit.lua) did not run first")
@@ -188,6 +191,8 @@ S.WORDS = {
         { "UI_ZeD_Options_MootCraftingXP", "Crafting tab" }, { "UI_ZeD_CW_TabHelp", "open its tab" },
         { "UI_ZeD_Curtain_RollHelp", "title bar" }, { "UI_ZeD_Win_HelpPinTabs", "Pin the tabs" },
         { "UI_ZeD_Win_HelpUnpinTabs", "Unpin the tabs" } },
+    -- (the add-on ZeD-GUI: Loadouts' keys since the split: left out of the tab check when no Loadouts is loaded)
+    tabsAddon = { UI_ZeD_Settings_RestockTip = true, UI_ZeD_Settings_LoadoutsTip = true, UI_ZeD_Todo_HelpBack = true },
     tabsNot = { "Craft tab", "Build tab", "Equip tab", "drawer" },
     bags = { "UI_ZeD_Belt_InBags", "Also on you" },
     tips = { { "UI_ZeD_Options_WheelsTip", "A takes and B closes" }, { "UI_ZeD_Options_MsgNotesTip", "and a click opens Messages" } },
@@ -1161,18 +1166,27 @@ Q.step(2, function()
     Q.check(bad == 0, "K1-13: the help lines that name a mouse button say the game's " .. L0 .. " and " .. L1 .. ", never LMB or RMB (" .. #W.mouse
         .. " lines; old code: LMB and RMB)", (bad == 0) and ("all " .. #W.mouse .. " read so, e.g. UI_ZeD_Map_HelpMarkGrid " .. H.q(H.tr("UI_ZeD_Map_HelpMarkGrid"))) or table.concat(parts, "; "))
     parts, bad = {}, 0
+    -- (the Loadouts split: no Loadouts loaded, built in or the add-on, leaves its three keys out of the check)
+    local noLo = ZeD.Lists == nil
+    local nT, leftOut = 0, {}
     for _, kv in ipairs(W.tabs) do
-        local s = H.tr(kv[1])
-        local stale = nil
-        for _, o in ipairs(W.tabsNot) do if H.has(s, o) then stale = o end end
-        if stale or not H.has(s, kv[2]) then
-            bad = bad + 1
-            parts[#parts + 1] = kv[1] .. " " .. H.q(s) .. (stale and (" (says " .. H.q(stale) .. ")") or (" (no " .. H.q(kv[2]) .. ")"))
+        if noLo and W.tabsAddon[kv[1]] then
+            leftOut[#leftOut + 1] = kv[1]
+        else
+            nT = nT + 1
+            local s = H.tr(kv[1])
+            local stale = nil
+            for _, o in ipairs(W.tabsNot) do if H.has(s, o) then stale = o end end
+            if stale or not H.has(s, kv[2]) then
+                bad = bad + 1
+                parts[#parts + 1] = kv[1] .. " " .. H.q(s) .. (stale and (" (says " .. H.q(stale) .. ")") or (" (no " .. H.q(kv[2]) .. ")"))
+            end
         end
     end
+    if #leftOut > 0 then Q.say("NOTE K1-13: left out, ZeD-GUI: Loadouts' words with no Loadouts loaded: " .. table.concat(leftOut, ", ")) end
     Q.check(bad == 0, "K1-13: the help lines name the tabs by their own names (Crafting, Building, Equipment), the tab strip's help says press to open its tab, and none speaks of a drawer ("
-        .. #W.tabs .. " lines; old code: Craft or Build tab, Equip tab, show it in the drawer, the tab drawer)",
-        (bad == 0) and ("all " .. #W.tabs .. " read so, e.g. UI_ZeD_Card_MakesHelp " .. H.q(H.tr("UI_ZeD_Card_MakesHelp")) .. ", UI_ZeD_CW_TabHelp " .. H.q(H.tr("UI_ZeD_CW_TabHelp"))) or table.concat(parts, "; "))
+        .. nT .. " lines; old code: Craft or Build tab, Equip tab, show it in the drawer, the tab drawer)",
+        (bad == 0) and ("all " .. nT .. " read so, e.g. UI_ZeD_Card_MakesHelp " .. H.q(H.tr("UI_ZeD_Card_MakesHelp")) .. ", UI_ZeD_CW_TabHelp " .. H.q(H.tr("UI_ZeD_CW_TabHelp"))) or table.concat(parts, "; "))
     local bags = H.tr(W.bags[1])
     Q.check(bags == W.bags[2], "K1-13: the pad's In your bags heading (the belt's list of what else he carries) reads Also on you (old code: In your bags)",
         W.bags[1] .. " " .. H.q(bags))

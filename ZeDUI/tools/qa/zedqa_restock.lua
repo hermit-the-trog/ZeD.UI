@@ -21,12 +21,22 @@
 --   * the pad: the Loadouts ring, A restocks in the to-do, B back to the bar.
 -- Puts everything back (lists, setting, items, built things, the set-aside
 -- things, the character home). Screenshots/zqa_rst_*.png. grep "ZEDQA rst".
+-- (Nov 23 2026, QA: the Loadouts split moves Loadouts and Restock to the add-on ZeD-GUI: Loadouts; the Restock switch
+-- is read through rsSw(): ZeDLoadouts.restockOption where the add-on is loaded, else ZeD.Settings.restockOption.
+-- ZeD alone after the split has neither: the script says "not run" and stops.)
 if ZEDQA_HOME then ZEDQA_HOME("rst") end   -- (punch list 47: open ground first; an earlier script can leave the character indoors)
 local p = getPlayer()
 local pn = p:getPlayerNum()
 local foldWas = nil   -- (the Loadouts fold, put back at the end)
 local L, R, EL = ZeD.Lists, ZeD.Restock, ZeD.EquipLoadout
 local function say(s) print("ZEDQA rst " .. tostring(s)) end
+-- the Restock switch: the add-on's (since the split), else ZeD's own
+local function rsSw()
+    local LO = ZeDLoadouts
+    if type(LO) == "table" and LO.restockOption then return LO.restockOption end
+    return ZeD.Settings and ZeD.Settings.restockOption or nil
+end
+if not (L and R and EL and rsSw()) then say("not run: Loadouts and Restock are not loaded (ZeD-GUI: Loadouts is not on the mod list)"); say("DONE"); return end
 local function shot(n) pcall(function() getCore():TakeFullScreenshot("zqa_rst_" .. n .. ".png") end) end
 local function cw() return ZeD_CharacterWindow.getWindow() end
 local fails = 0
@@ -63,7 +73,7 @@ local function deepCopy(t)
 end
 local md = p:getModData()
 local savedLists = deepCopy(md.ZeD_Lists)
-local restockWas = ZeD.Settings.restockOption:getValue()
+local restockWas = rsSw():getValue()
 local viewWas = ZeD.EquipDoll.view()
 local HOME = { x = 925.5, y = 13040.5, z = 0 }
 local before = {}          -- item ids on the character at the start
@@ -471,7 +481,7 @@ end)
 -- B5 Hardcore: the time on the button, the takes, never the locked locker -------
 local hc = {}
 step(5, function()
-    ZeD.Settings.restockOption:setValue(1)
+    rsSw():setValue(1)
     check(R.mode() == "hardcore", "the setting: Hardcore")
     local w = cw()
     local plan = EL.plan(w, true)
@@ -517,7 +527,7 @@ step(10, function()
         if ln.type == "Base.Bandage" or ln.kind == "water" or ln.type == "Base.Katana" then L.removeLine(p, loId, ln.id) end
     end
     reset()
-    ZeD.Settings.restockOption:setValue(3)
+    rsSw():setValue(3)
     R.start(p, "restock")
 end)
 step(30, function()
@@ -591,7 +601,7 @@ end, "the accessible walk")
 local cas = {}
 step(30, function()
     reset()
-    ZeD.Settings.restockOption:setValue(2)
+    rsSw():setValue(2)
     local run = R.start(p, "restock")
     run.z0 = 99
 end)
@@ -736,7 +746,7 @@ step(5, function()
     end
     check(a and a.state == "put" and a.dest and a.dest.obj == crateA, "the kind's place is kept: " .. tostring(a and a.dest and a.dest.name))
     check(b2 and b2.state == "put" and b2.dest and b2.dest.obj == crateA, "a second of that kind goes there without asking")
-    ZeD.Settings.restockOption:setValue(1)
+    rsSw():setValue(1)
     local run = R.start(p, "unpack")
     run.z0 = 99
 end)
@@ -758,7 +768,7 @@ step(10, function()
     local names = {}
     for _, e in ipairs(subs) do names[#names + 1] = e.name end
     check(#subs == #L.all(p, "loadout"), "one slice per loadout: " .. table.concat(names, ", "))
-    ZeD.Settings.restockOption:setValue(2)   -- (Casual: the long haul has takes, so Restock is live)
+    rsSw():setValue(2)   -- (Casual: the long haul has takes, so Restock is live)
     for _, e in ipairs(subs) do if e.name == "QA long haul" then e.run(p, pn) end end
 end)
 step(60, function()
@@ -814,7 +824,7 @@ step(10, function()
     R.touch()
     R.runs[pn] = nil
     ZeD.RestockPin.hide(pn)
-    ZeD.Settings.restockOption:setValue(restockWas)
+    rsSw():setValue(restockWas)
     ZeD.EquipDoll.setView(viewWas)
     EL.openFor[pn] = foldWas
     local w = cw()

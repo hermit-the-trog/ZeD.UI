@@ -13,6 +13,12 @@
          release_test.txt runs, and those words must be in that script (so a reworded or removed check shows up).
     zedqa_run.ps1 runs this first for the release test and will not start the game while it fails.
       pwsh -File ZeDUI/tools/qa/rt_coverage.ps1            (exit 0 clean, 1 with the problems listed)
+    (Nov 23 2026, QA: the Loadouts split. The add-on ZeD-GUI: Loadouts, mods\ZeD-Loadouts beside ZeD-UI, is read too
+    when it is there: its Lua under 42/media/lua counts as code, each file named "ZeD-Loadouts/<file>" for one in
+    client/ZeDLoadouts/ ("ZeD-Loadouts/<path under 42/media/lua>" elsewhere). An owning-file cell "ZeD-Loadouts/<file>"
+    is a file of the add-on's tree and owns it there; a cell without the prefix names a file of ZeD's own tree only.
+    Rule 3 holds the add-on's files to a row once the map names any "ZeD-Loadouts/" file: before the split's map
+    lands, the add-on's own files are read for the function search but not asked to have rows.)
 #>
 param([string]$Map = "", [switch]$Quiet)
 $ErrorActionPreference = "Stop"
@@ -23,6 +29,7 @@ $shared = Join-Path $root "42\media\lua\shared\ZeD"
 if (-not $Map) { $Map = Join-Path $qa "FEATURE_MAP.md" }
 $plumbFile = Join-Path $qa "rt_coverage_plumbing.txt"
 $problems = New-Object System.Collections.Generic.List[string]
+$AP = "ZeD-Loadouts/"   # (the prefix of the add-on's files, in the map and in $files)
 
 # ---- the code: every ZeD Lua file, and all of its text for the function search
 $files = @(Get-ChildItem $client, $shared -Recurse -Filter *.lua | ForEach-Object {
@@ -31,6 +38,34 @@ $files = @(Get-ChildItem $client, $shared -Recurse -Filter *.lua | ForEach-Objec
     $rel.Replace('\', '/')
 })
 $text = (Get-ChildItem $client, $shared -Recurse -Filter *.lua | ForEach-Object { [IO.File]::ReadAllText($_.FullName) }) -join "`n"
+
+# ---- the add-on ZeD-GUI: Loadouts (its own repo, beside ZeD-UI; else in the user's Zomboid\mods), when it is there
+$addonRoot = $null
+foreach ($cand in @((Join-Path (Split-Path $root -Parent) "ZeD-Loadouts"), (Join-Path $env:USERPROFILE "Zomboid\mods\ZeD-Loadouts"))) {
+    if (-not $addonRoot -and (Test-Path (Join-Path $cand "42\media\lua"))) { $addonRoot = (Resolve-Path $cand).Path }
+}
+$addonFiles = @()
+if ($addonRoot) {
+    $aLua = Join-Path $addonRoot "42\media\lua"
+    $aClient = Join-Path $aLua "client\ZeDLoadouts"
+    $aSrc = @(Get-ChildItem $aLua -Recurse -Filter *.lua)
+    $addonFiles = @($aSrc | ForEach-Object {
+        if ($_.FullName.StartsWith($aClient + "\")) { $rel = $_.FullName.Substring($aClient.Length + 1) }
+        else { $rel = $_.FullName.Substring($aLua.Length + 1) }
+        $AP + $rel.Replace('\', '/')
+    })
+    $files += $addonFiles
+    if ($aSrc.Count -gt 0) { $text += "`n" + (($aSrc | ForEach-Object { [IO.File]::ReadAllText($_.FullName) }) -join "`n") }
+}
+# a cell's file among the code: "ZeD-Loadouts/<file>" in the add-on's tree only, any other in ZeD's own only
+function Find-Owned([string]$o) {
+    if ($o.StartsWith($AP)) {
+        $rest = $o.Substring($AP.Length)
+        return @($files | Where-Object { $_.StartsWith($AP) -and ($_ -eq $o -or $_.EndsWith("/" + $rest)) })
+    }
+    return @($files | Where-Object { -not $_.StartsWith($AP) -and ($_ -eq $o -or $_.EndsWith("/" + $o)) })
+}
+$mapNamesAddon = $false
 
 # ---- the release test's tags, and each tag's script text (a claimed check's words must be in it)
 $tags = @()
@@ -80,14 +115,18 @@ foreach ($l in Get-Content $Map) {
     }
     $prevOwners = $owners
     foreach ($o in $owners) {
-        $hit = @($files | Where-Object { $_ -eq $o -or $_.EndsWith("/" + $o) })
-        if ($hit.Count -eq 0) { $problems.Add("'$feat': its owning file $o is gone (a removed feature: take the row and its check out)") }
+        if ($o.StartsWith($AP)) { $mapNamesAddon = $true }
+        $hit = Find-Owned $o
+        if ($hit.Count -eq 0) {
+            if ($o.StartsWith($AP) -and -not $addonRoot) { $problems.Add("'$feat': its owning file $o is in the add-on ZeD-GUI: Loadouts, which is not beside ZeD-UI (mods\ZeD-Loadouts)") }
+            else { $problems.Add("'$feat': its owning file $o is gone (a removed feature: take the row and its check out)") }
+        }
         else { foreach ($h in $hit) { $owned[$h] = $true } }
     }
-    # files named in the entry column count as owned too (a function in another file)
-    foreach ($m in [regex]::Matches($entry, '([A-Za-z0-9_/]+\.lua)')) {
+    # files named in the entry column count as owned too (a function in another file; "ZeD-Loadouts/<file>" the add-on's)
+    foreach ($m in [regex]::Matches($entry, '((?:ZeD-Loadouts/)?[A-Za-z0-9_/]+\.lua)')) {
         $o = $m.Groups[1].Value -replace '^42/media/lua/client/ZeD/', '' -replace '^(42/media/lua/)?shared/ZeD/', 'shared/'
-        foreach ($h in @($files | Where-Object { $_ -eq $o -or $_.EndsWith("/" + $o) })) { $owned[$h] = $true }
+        foreach ($h in (Find-Owned $o)) { $owned[$h] = $true }
     }
     # 2b. the entry functions: at least one named function still in the code
     $names = @([regex]::Matches($entry, '`([^`]+)`') | ForEach-Object {
@@ -105,11 +144,14 @@ foreach ($l in Get-Content $Map) {
 $plumb = @()
 if (Test-Path $plumbFile) { $plumb = @(Get-Content $plumbFile | Where-Object { $_ -match '^\s*[^#\s]' } | ForEach-Object { ($_ -split '\s+#')[0].Trim() }) }
 foreach ($f in $files) {
+    # (the add-on's files are held to a row once the map names the add-on's tree: the Loadouts split's map)
+    if ($f.StartsWith($AP) -and -not $mapNamesAddon) { continue }
     if (-not $owned.ContainsKey($f) -and $plumb -notcontains $f) { $problems.Add("$f is owned by no feature row and is not plumbing: a feature added without a row in FEATURE_MAP.md?") }
 }
 foreach ($p in $plumb) { if ($files -notcontains $p) { $problems.Add("plumbing list names $p, which is gone: take it off rt_coverage_plumbing.txt") } }
 
-$sum = "rt_coverage: $rows feature rows, $($files.Count) ZeD files ($($owned.Count) owned by rows, $($plumb.Count) plumbing), $($problems.Count) problem(s)"
+$aSum = $(if ($addonRoot) { " + $($addonFiles.Count) ZeD-GUI: Loadouts files$(if (-not $mapNamesAddon) { ' (not in the map yet)' })" } else { "" })
+$sum = "rt_coverage: $rows feature rows, $($files.Count - $addonFiles.Count) ZeD files$aSum ($($owned.Count) owned by rows, $($plumb.Count) plumbing), $($problems.Count) problem(s)"
 if (-not $Quiet -or $problems.Count -gt 0) { foreach ($p in $problems) { "FAIL $p" } }
 $sum
 if ($problems.Count -gt 0) { exit 1 } else { exit 0 }

@@ -46,6 +46,12 @@
 -- line (the window box's picks save it at once).
 -- (Nov 23 2026, QA: ZeD's plug-in points (Build's fix/plugins) splice an add-on's rows into a ZeD setup group; the
 -- group check reads G.groupRows(grp) where it exists, else the group's own list, grp[2].)
+-- (Nov 23 2026, QA: the Loadouts split (Build's try/split) moves the "loadouts" and "restock" options to the add-on
+-- ZeD-GUI: Loadouts, PZAPI.ModOptions "ZeDLoadouts", spliced into the Additions group with addRows (_owner
+-- "ZeDLoadouts"). H.anyOpt(id) reads ZeD's option, else the add-on's; ZeD setup's rows are found by either; the
+-- add-on's values are kept and put back with ZeD's (keys "ZeDLoadouts.<id>"). Restock: with the add-on's options
+-- loaded its row shows only while Loadouts is on (showIf); on a build with Loadouts built in, the old check (with
+-- Loadouts Off its row takes no change); with neither, ZeD alone after the split, a SKIP.)
 if not RT then
     print("ZEDQA rt_sys FAIL the kit (rt_kit.lua) is not loaded")
     print("ZEDQA rt_sys VERDICT FAIL 1")
@@ -159,6 +165,22 @@ end
 -- ZeD's options (PZAPI.ModOptions "ZeD_UI") and one of them by id
 function H.opts() local zo = nil; pcall(function() zo = PZAPI.ModOptions:getOptions("ZeD_UI") end); return zo end
 function H.opt(id) local zo = H.opts(); return zo and zo.dict and zo.dict[id] or nil end
+-- (Nov 23 2026, the Loadouts split) the add-on ZeD-GUI: Loadouts' options (PZAPI.ModOptions "ZeDLoadouts"), nil
+-- without them; an option by id, ZeD's first, else the add-on's; an option by its keep key ("<id>" for ZeD's,
+-- "ZeDLoadouts.<id>" for the add-on's)
+function H.loOpts() local zo = nil; pcall(function() zo = PZAPI.ModOptions:getOptions("ZeDLoadouts") end); return zo end
+function H.anyOpt(id)
+    local o = H.opt(id)
+    if o then return o end
+    local lo = H.loOpts()
+    return lo and lo.dict and lo.dict[id] or nil
+end
+function H.optByKey(k)
+    local oid = string.match(k, "^ZeDLoadouts%.(.+)$")
+    if not oid then return H.opt(k) end
+    local lo = H.loOpts()
+    return lo and lo.dict and lo.dict[oid] or nil
+end
 function H.val(id) local o = H.opt(id); local v = nil; pcall(function() v = o:getValue() end); return v end
 -- the pick on the screen (Options open: its control), else the stored one
 function H.live(o) if not o then return nil end; local el = o.element; return (el and el.selected) or o:getValue() end
@@ -202,9 +224,8 @@ end
 -- every ZeD option's value back as the script found it (in memory; the file is written back on its own), and the
 -- copies Settings.lua keeps on the character
 function H.putOptions()
-    local zo = H.opts()
-    for id, v in pairs(S.opt0 or {}) do
-        local o = zo and zo.dict and zo.dict[id]
+    for k, v in pairs(S.opt0 or {}) do
+        local o = H.optByKey(k)   -- (ZeD's by id, the add-on's by "ZeDLoadouts.<id>": the Loadouts split)
         if o and (o.selected ~= v or (o.element and o.element.selected ~= v)) then pcall(function() o:setValue(v) end) end
     end
     pcall(function()
@@ -225,18 +246,24 @@ function H.putLook()
     pcall(function() if ZeD_Window and ZeD_Window.clearPaletteCache then ZeD_Window.clearPaletteCache() end end)
     pcall(ZeD.applyTheme, S.base0, S.accent0, S.size0)
 end
--- the ids of ZeD's options whose control (Options open) is not on the stored pick
+-- the ids of ZeD's options whose control (Options open) is not on the stored pick (and the add-on ZeD-GUI: Loadouts'
+-- where it is loaded: its rows are on ZeD setup since the split)
 function H.liveOff()
     local bad = {}
     local zo = H.opts()
     for _, o in ipairs((zo and zo.data) or {}) do
         if o.type == "combobox" and o.element and o.element.selected ~= o.selected then bad[#bad + 1] = tostring(o.id) end
     end
+    local lo = H.loOpts()
+    for _, o in ipairs((lo and lo.data) or {}) do
+        if o.type == "combobox" and o.element and o.element.selected ~= o.selected then bad[#bad + 1] = "ZeDLoadouts." .. tostring(o.id) end
+    end
     return bad
 end
--- ZeD setup's row for one of ZeD's options, and a row stepped to item want as the pad's Left / Right do
+-- ZeD setup's row for one of ZeD's options (or the add-on's, H.anyOpt), and a row stepped to item want as the pad's
+-- Left / Right do
 function H.setupRow(w, id)
-    local o = H.opt(id)
+    local o = H.anyOpt(id)
     local el = o and o.element
     if not el then return nil end
     local rows = {}
@@ -290,6 +317,11 @@ Q.step(5, function()
     local zo = H.opts()
     for _, o in ipairs((zo and zo.data) or {}) do
         if o.type == "combobox" and o.id then S.opt0[o.id] = o.selected end
+    end
+    -- (the Loadouts split: the add-on's "loadouts" and "restock" are on ZeD setup too, kept as "ZeDLoadouts.<id>")
+    local lo = H.loOpts()
+    for _, o in ipairs((lo and lo.data) or {}) do
+        if o.type == "combobox" and o.id then S.opt0["ZeDLoadouts." .. tostring(o.id)] = o.selected end
     end
     pcall(function()
         local md = p:getModData()
@@ -665,8 +697,49 @@ Q.step(3, function()
 end)
 -- (Nov 18 2026, the ledger) Restock needs Loadouts: with Loadouts Off, A (activateRow) and Left / Right (nudge) on
 -- Restock change nothing; with Loadouts On the same nudge changes it; then Discard
+-- (Nov 23 2026, the Loadouts split) With the add-on ZeD-GUI: Loadouts' options loaded (PZAPI.ModOptions "ZeDLoadouts")
+-- the rule is the add-on's showIf: the Restock row shows only while the Loadouts pick is On, and takes a change then.
+-- Its Loadouts row stepped On, Off and On again (not applied), the page's rows read each time, then Discard. A build
+-- with Loadouts built in keeps the old check below; ZeD alone after the split has neither row (a SKIP).
+function H.loMode()
+    if H.loOpts() then return "addon" end
+    if (St and St.loadoutsOption) or H.opt("loadouts") then return "builtin" end
+    return "none"
+end
 Q.step(3, function()
     if not S.o2 then return end
+    local w = MM.pauseOpts
+    local mode = H.loMode()
+    if mode == "none" then
+        Q.skip("Restock needs Loadouts: its row shows only while Loadouts is on", "ZeD-GUI: Loadouts is not loaded: ZeD alone has no Loadouts or Restock row since the split")
+        return
+    end
+    if mode ~= "addon" then return end
+    local rL = H.setupRow(w, "loadouts")
+    if not rL and St.lite and St.lite() then
+        Q.skip("Restock needs Loadouts: its row shows only while Loadouts is on", "Style is Lite, and Lite leaves the Additions group out of ZeD setup")
+        return
+    end
+    if not Q.check(rL ~= nil, "ZeD setup has the Loadouts row (the add-on's, owner ZeDLoadouts)") then return end
+    H.nudgeTo(w, rL, 2)
+    local onRow = H.setupRow(w, "restock")
+    rL = H.setupRow(w, "loadouts") or rL
+    H.nudgeTo(w, rL, 1)
+    local offRow = H.setupRow(w, "restock")
+    rL = H.setupRow(w, "loadouts") or rL
+    H.nudgeTo(w, rL, 2)
+    local back = H.setupRow(w, "restock")
+    local r0 = back and back.control and back.control.selected
+    if back then pcall(function() w:nudge(back, (r0 == 1) and 1 or -1) end) end
+    local r1 = back and back.control and back.control.selected
+    Q.check(onRow ~= nil and offRow == nil and back ~= nil and r0 ~= nil and r1 ~= r0,
+        "Restock needs Loadouts: its row shows only while Loadouts is on, and takes a change then (the add-on's showIf)",
+        "Loadouts On: Restock row " .. tostring(onRow ~= nil) .. ", Off: " .. tostring(offRow ~= nil) .. ", On again: " .. tostring(back ~= nil)
+        .. ", nudged " .. tostring(r0) .. " -> " .. tostring(r1))
+    pcall(function() w:discardStay() end)
+end)
+Q.step(3, function()
+    if not S.o2 or H.loMode() ~= "builtin" then return end
     local w = MM.pauseOpts
     local rL, rR = H.setupRow(w, "loadouts"), H.setupRow(w, "restock")
     -- (Nov 21 2026, the Light and Lite run) Lite leaves Loadouts and Restock out of ZeD setup with the Additions group:
@@ -709,18 +782,19 @@ Q.step(3, function()
     -- and Defaults puts them on their first item (Off).
     S.liteHid = nil
     if St.lite and St.lite() then
-        local function sel(id) local o = H.opt(id); return o and o.element and o.element.selected end
+        local function sel(id) local o = H.anyOpt(id); return o and o.element and o.element.selected end
         S.liteHid = { b = { sel("ammoBox"), sel("readMarks"), sel("loadouts") }, live = w:zedOffDefault() and true or false }
     end
     local ok = pcall(function() w:zedDefaults() end)
     if S.liteHid then
-        local function sel(id) local o = H.opt(id); return o and o.element and o.element.selected end
+        local function sel(id) local o = H.anyOpt(id); return o and o.element and o.element.selected end
         local b = S.liteHid.b
         local was = tostring(b[1]) .. "/" .. tostring(b[2]) .. "/" .. tostring(b[3])
         if (b[1] ~= nil and b[1] ~= 1) or (b[2] ~= nil and b[2] ~= 1) or (b[3] ~= nil and b[3] ~= 1) then
             Q.check(S.liteHid.live, "ZeD setup (Lite): with an extra still on, Defaults is live", "ammo box/read marks/loadouts " .. was)
             local a1, a2, a3 = sel("ammoBox"), sel("readMarks"), sel("loadouts")
-            Q.check(a1 == 1 and a2 == 1 and a3 == 1, "ZeD setup (Lite): Defaults puts the extras (ammo box, read marks, loadouts) on their first item",
+            -- (Loadouts: the add-on's since the split; ZeD alone has no such option, nil before and after)
+            Q.check(a1 == 1 and a2 == 1 and (a3 == 1 or (a3 == nil and b[3] == nil)), "ZeD setup (Lite): Defaults puts the extras (ammo box, read marks, loadouts) on their first item",
                 "ammo box/read marks/loadouts " .. was .. " -> " .. tostring(a1) .. "/" .. tostring(a2) .. "/" .. tostring(a3))
         else
             Q.skip("ZeD setup (Lite): Defaults on the extras", "none of them was on (" .. was .. ")")
@@ -2000,10 +2074,10 @@ end, function()
     Q.check((not S.abWas or St.lookStyleOption:getValue() == S.abWas) and (not S.scaleWas or S.scaleOpt:getValue() == S.scaleWas)
         and (not S.safeWas or S.safeOpt:getValue() == S.safeWas) and (not S.base0 or ZeD.currentBase == S.base0),
         "put back: every setting this script changed is as it was")
-    local zo, off = H.opts(), {}
-    for id, v in pairs(S.opt0 or {}) do
-        local o = zo and zo.dict and zo.dict[id]
-        if o and o.selected ~= v then off[#off + 1] = id end
+    local off = {}
+    for k, v in pairs(S.opt0 or {}) do
+        local o = H.optByKey(k)   -- (ZeD's and, since the split, the add-on's)
+        if o and o.selected ~= v then off[#off + 1] = k end
     end
     Q.check(#off == 0 and ZeD.currentAccent == S.accent0 and ZeD.currentSize == S.size0 and ZeD.currentStatus == (S.look0 and S.look0.status)
         and ZeD.surfaceAlpha == (S.look0 and S.look0.a),

@@ -27,6 +27,9 @@
 -- built taken away, the things given taken back (the dropped pencil off the floor), both windows on Loot.
 -- (Nov 23 2026, QA: the card's plug-in points (Build's fix/plugins) keep the Lists mark's rect in card._markRects.lists
 -- in place of card._listsRect; H.listsRect reads whichever this build has, so the Lite check runs on both.)
+-- (Nov 23 2026, QA: the Loadouts split (Build's try/split) moves the Loadouts switch to the add-on ZeD-GUI: Loadouts,
+-- ZeDLoadouts.loadoutsOption; H.loadOpt() reads the add-on's where it is loaded, else ZeD.Settings' from before the
+-- split. With neither (ZeD alone after the split) the Lists mark is not ZeD's: its checks are a SKIP.)
 
 if not RT then
     print("ZEDQA rt_cards ERR the kit (rt_kit.lua) did not run first")
@@ -138,6 +141,13 @@ function H.listsRect(c)
     local mr = c._markRects
     if type(mr) == "table" then return mr.lists end
     return c._listsRect
+end
+-- the table that holds the Loadouts switch (loadoutsOption, restockOption): the add-on's ZeDLoadouts where it is
+-- loaded (Nov 23 2026, the split), else ZeD.Settings (Loadouts built in)
+function H.loadOpt()
+    local LO = ZeDLoadouts
+    if type(LO) == "table" and LO.loadoutsOption then return LO end
+    return ZeD.Settings
 end
 function H.cardOn(item)
     local w = RT.cw()
@@ -578,13 +588,21 @@ end)
 -- Lite step 4; rt_lite checks the strip is gone). In Lite, with Loadouts on, the mark is checked absent and the pop-up is a SKIP.)
 Q.step(2, function()
     S.liteCard = (ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite()) and true or false
-    local o = ZeD.Settings and ZeD.Settings.loadoutsOption
+    local LT = H.loadOpt()
+    local o = LT and LT.loadoutsOption
+    S.noLists = (o == nil)
     if o then
         S.loadWas = o:getValue()
         if S.loadWas ~= 2 then pcall(function() o:setValue(2) end) end
     end
 end)
-Q.waitFor(4, 240, function() return S.liteCard or H.focusCardId("toggle_lists") end, function(ok)
+Q.waitFor(4, 240, function() return S.liteCard or S.noLists or H.focusCardId("toggle_lists") end, function(ok)
+    if S.noLists then
+        S.armA = false
+        Q.skip("lists: the card shows its Lists mark and the pad's focus lands on it (toggle_lists)",
+            "ZeD-GUI: Loadouts is not loaded: since the split the Lists mark is the add-on's (ad_split checks ZeD alone has none)")
+        return
+    end
     if S.liteCard then
         S.armA = false
         local on = H.cardOn(S.bat)
@@ -597,9 +615,12 @@ Q.waitFor(4, 240, function() return S.liteCard or H.focusCardId("toggle_lists") 
     Q.check(ok, "lists: the card shows its Lists mark and the pad's focus lands on it (toggle_lists)", tostring(ZeD.Lists and ZeD.Lists.on()))
 end)
 H.queueA(0)
-Q.waitFor(2, 120, function() local LU = ZeD.ListsUI; return S.liteCard or (LU and LU.popup and LU.popup._ctx and LU.popup._ctx.open) end, function(ok)
+Q.waitFor(2, 120, function() local LU = ZeD.ListsUI; return S.liteCard or S.noLists or (LU and LU.popup and LU.popup._ctx and LU.popup._ctx.open) end, function(ok)
     local m = ZeD.ListsUI and ZeD.ListsUI.popup
-    if S.liteCard then
+    if S.noLists then
+        ok = false
+        Q.skip("lists: A on the Lists mark opens the lists' pop-up", "ZeD-GUI: Loadouts is not loaded")
+    elseif S.liteCard then
         ok = false
         Q.skip("lists: A on the Lists mark opens the lists' pop-up", "Lite: the item card has no Lists mark")
     else
@@ -615,7 +636,8 @@ Q.waitFor(2, 120, function() local LU = ZeD.ListsUI; return S.liteCard or (LU an
             lv and (math.floor(lv.x) .. "+" .. math.floor(lv.w) .. " vs card " .. tostring(cx and math.floor(cx))))
         pcall(function() m:close() end)
     end
-    local o = ZeD.Settings and ZeD.Settings.loadoutsOption
+    local LT = H.loadOpt()
+    local o = LT and LT.loadoutsOption
     if o and S.loadWas then pcall(function() o:setValue(S.loadWas) end) end
 end)
 
@@ -2252,8 +2274,8 @@ Q.step(5, function()
     -- (what the card checks change, as found: a run cut short leaves them)
     pcall(function() local m = H.ctxMenu(); if m then m:close() end end)
     pcall(function() local t = H.textPrompt(); if t then H.promptAnswer(t, false) end end)
-    pcall(function() local m = ZeD.ListsUI.popup; if m and m._ctx.open then m:close() end end)
-    pcall(function() if S.loadWas then ZeD.Settings.loadoutsOption:setValue(S.loadWas) end end)
+    pcall(function() local LU = ZeD.ListsUI; local m = LU and LU.popup; if m and m._ctx and m._ctx.open then m:close() end end)   -- (no ListsUI: ZeD alone after the split)
+    pcall(function() local LT = H.loadOpt(); local o = LT and LT.loadoutsOption; if S.loadWas and o then o:setValue(S.loadWas) end end)
     pcall(function() if S.batName and S.bat:getName() ~= S.batName then S.bat:setName(S.batName); S.bat:setCustomName(false) end end)
     pcall(function() local w = RT.cw(); if w then w._equipSelected = nil end end)
     pcall(function() local st = H.craftState(); if st and st.selected then ZeD.CraftingCore.closeCraft(st) end end)

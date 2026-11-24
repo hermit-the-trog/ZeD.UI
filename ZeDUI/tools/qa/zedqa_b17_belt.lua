@@ -24,6 +24,9 @@
 -- Puts back: the watch worn before, the alarm, Loadouts, the Watch option, game speed 1, the oven, the car and its
 -- key, the volume and power, every window opened here, the pad's focus handed back, input mode back to auto.
 -- grep "ZEDQA b17b".
+-- (Nov 23 2026, QA: the Loadouts split moves the Loadouts switch to the add-on ZeD-GUI: Loadouts; S.loadOpt() reads
+-- ZeDLoadouts where it is loaded, else ZeD.Settings. With neither, ZeD alone after the split, the wheel has 9 slices
+-- with no Loadouts ring either way.)
 local p = getPlayer()
 local pn = p:getPlayerNum()
 local function say(s) print("ZEDQA b17b " .. tostring(s)) end
@@ -35,6 +38,13 @@ local function step(n, fn) Q[#Q + 1] = { n = n, fn = fn } end
 local Focus, Det, Bt, Wt, Dw = ZeD.Input and ZeD.Input.Focus, ZeD.Input and ZeD.Input.Detector, ZeD.Belt, ZeD.Watch, ZeD.DpadWheels
 if not (Focus and Det and Bt and Bt.focus and Wt and Wt.padOpen and Dw and ZeD.padStart) then say("ERR beta 17's belt, watch or padStart is not loaded"); say("DONE"); return end
 local S = { pauseN = 0, home = { x = p:getX(), y = p:getY(), z = p:getZ() } }
+-- the table that holds the Loadouts switch: the add-on's ZeDLoadouts (since the split), else ZeD.Settings
+function S.loadOpt()
+    local LO = ZeDLoadouts
+    if type(LO) == "table" and LO.loadoutsOption then return LO end
+    return ZeD.Settings
+end
+function S.loSw() local t = S.loadOpt(); return t and t.loadoutsOption or nil end
 local function desc(o) if o == nil then return "the game" end return tostring(o._zedLabel or o.Type or o) end
 local function speed() local sc = UIManager.getSpeedControls(); return sc and sc:getCurrentGameSpeed() or -1 end
 local function hud() return Bt.getHUD(pn) end
@@ -91,7 +101,7 @@ step(10, function()
     pcall(Focus.releaseFocus, pn)
     Det.setLockedMode(Det.MODE_GAMEPAD)
     if speed() ~= 1 then setGameSpeed(1) end
-    S.loadWas = ZeD.Settings.loadoutsOption:getValue()
+    if S.loSw() then S.loadWas = S.loSw():getValue() end
     S.placeWas = ZeD.Settings.watchPlaceOption:getValue()
     ZeD.Settings.watchPlaceOption:setValue(1)
     -- a Timez on the left wrist (it has the light), the watch worn now kept aside
@@ -129,13 +139,14 @@ local function wheelCount(tag, want)
     return last
 end
 step(5, function()
-    ZeD.Settings.loadoutsOption:setValue(1)
-    wheelCount("Loadouts off", 9)
+    local o = S.loSw()
+    if o then o:setValue(1) end
+    wheelCount(o and "Loadouts off" or "no Loadouts (ZeD-GUI: Loadouts not loaded)", 9)
     wheelClose()
-    ZeD.Settings.loadoutsOption:setValue(2)
+    if o then o:setValue(2) end
 end)
 step(5, function()
-    wheelCount("Loadouts on", 10)
+    if S.loSw() then wheelCount("Loadouts on", 10) else say("not run: Loadouts on (ZeD-GUI: Loadouts is not loaded: no Loadouts ring)") end
     if not jd then say("not run: the pad on the belt (no controller bound: setJoypadFocus needs one)"); return end
     -- (the slice taken from the opened wheel, as the pad takes it)
     wheelOpen()
@@ -521,7 +532,7 @@ step(10, function()
     if S.stove then pcall(function() local sq = S.stove:getSquare(); if sq then sq:transmitRemoveItemFromSquare(S.stove); sq:RemoveTileObject(S.stove) end end) end
     pcall(function() if S.wore then p:removeWornItem(S.wore, false); p:getInventory():Remove(S.wore) end end)
     pcall(function() if S.kit then p:setWornItem(S.kitLoc, S.kit) end end)
-    if S.loadWas then ZeD.Settings.loadoutsOption:setValue(S.loadWas) end
+    if S.loadWas and S.loSw() then S.loSw():setValue(S.loadWas) end
     if S.placeWas then ZeD.Settings.watchPlaceOption:setValue(S.placeWas) end
     pcall(function() local m = MainScreen.instance; if m and m.inGame and m:isReallyVisible() and jd and jd.controller then JoypadControllerData.onPauseButtonPressed(jd.controller) end end)
     wheelClose()
@@ -532,7 +543,7 @@ step(10, function()
     moveTo(S.home.x, S.home.y, S.home.z)
     if speed() ~= 1 then setGameSpeed(1) end
     Det.setLockedMode(Det.MODE_KBM); Det.setLockedMode(nil)
-    say("put back: Loadouts " .. tostring(ZeD.Settings.loadoutsOption:getValue()) .. ", Watch " .. tostring(ZeD.Settings.watchPlaceOption:getValue()) ..
+    say("put back: Loadouts " .. tostring(S.loSw() and S.loSw():getValue()) .. ", Watch " .. tostring(ZeD.Settings.watchPlaceOption:getValue()) ..
         ", speed " .. speed() .. ", pad on " .. desc(focus()))
     say(fails == 0 and "all checks passed" or (fails .. " failed"))
     say("DONE")

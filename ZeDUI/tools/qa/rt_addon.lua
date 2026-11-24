@@ -684,9 +684,15 @@ end, function(ok)
 end)
 
 -- Loadouts (FEATURE_MAP "Loadouts page: new, rename, delete, amounts"): ZeD.Lists, the model the Loadouts page's
--- New, Rename, Delete and amount boxes call; a list made, renamed, given a line and an amount, then deleted
+-- New, Rename, Delete and amount boxes call; a list made, renamed, given a line and an amount, then deleted.
+-- (Nov 23 2026, QA: the Loadouts split makes ZeD.Lists the add-on ZeD-GUI: Loadouts' module: with ZeD alone after the
+-- split (ZeD.API there, no ZeD.Lists) these checks are a SKIP; ad_split checks ZeD alone has no Loadouts.)
 Q.step(3, function()
     local L = ZeD.Lists
+    if not L and ZeD.API then
+        Q.skip("Loadouts: a new list is saved with the character, by its name", "ZeD-GUI: Loadouts is not loaded: ZeD.Lists is the add-on's since the split")
+        return
+    end
     if not (L and L.create and L.store) then Q.check(false, "Loadouts: ZeD.Lists is loaded"); return end
     local s = L.store(RT.p)
     local n0, next0 = #s.lists, s.nextId
