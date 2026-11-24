@@ -421,6 +421,9 @@ B.SIDE = SIDE
 local SIDE_BLACK = { r = 0x0C / 255, g = 0x0C / 255, b = 0x0C / 255 }
 local SIDE_WHITE = { r = 0xF2 / 255, g = 0xF0 / 255, b = 0xEC / 255 }
 B.SIDE_BLACK, B.SIDE_WHITE = SIDE_BLACK, SIDE_WHITE
+-- a lit lamp's amber, the same in every theme (a light that is on glows; it is not a status word)
+local LAMP_ON = { r = 1.0, g = 0.78, b = 0.24 }
+B.LAMP_ON = LAMP_ON
 --- The side mark's word for a slot type (the player's language: "L" / "R" in English), or nil for a slot with no side.
 function B.sideMark(slotType)
     local sd = SIDE[slotType or ""]
@@ -2012,7 +2015,11 @@ function ZeD_BeltHUD:_drawBox(b, o)
             lx = b.x + math.floor(rad + rad * 0.62 - d / 2) - T.px(2); ly = b.y + math.floor(rad - rad * 0.62 - d / 2) + T.px(2)
         end
         -- a lamp on a lit light: hardware, so it stays round (status marks are squares; a lamp is a lamp)
-        ZeD.Atoms.drawLamp(self, lx, ly, d, T.warningText)
+        -- a lamp that is on glows the same in every theme: a bright amber on a thin near-black rim (QA, Nov 23 2026:
+        -- the warning text colour it drew in is darkened to read as text, and in Light it was a brown dot, unlit)
+        local p1 = T.px(1)
+        ZeD.Atoms.drawLamp(self, lx - p1, ly - p1, d + 2 * p1, SIDE_BLACK)
+        ZeD.Atoms.drawLamp(self, lx, ly, d, LAMP_ON)
     end
     if o.state == "no" then fill(0.6, T.base) end
 end

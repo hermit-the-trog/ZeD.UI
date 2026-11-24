@@ -1460,6 +1460,12 @@ do
         and NEW:find('o.sideR = o.side ~= nil and SIDE[s.slot.slotType] == "R"', 1, true) ~= nil)
     check("SIDE the inks: near black and the toned-down white", ZeD.Belt.SIDE_BLACK and ZeD.Belt.SIDE_BLACK.r < 0.1
         and ZeD.Belt.SIDE_WHITE and ZeD.Belt.SIDE_WHITE.r > 0.9 and ZeD.Belt.SIDE_WHITE.r < 1)
+    -- a lit lamp glows the same in every theme: bright amber on a near-black rim (QA, Nov 23 2026)
+    check("LAMP a lit lamp draws in the fixed amber on a rim, not the warning text colour",
+        ZeD.Belt.LAMP_ON and ZeD.Belt.LAMP_ON.r == 1.0 and ZeD.Belt.LAMP_ON.g > 0.7
+        and NEW:find("ZeD.Atoms.drawLamp(self, lx, ly, d, LAMP_ON)", 1, true) ~= nil
+        and NEW:find("ZeD.Atoms.drawLamp(self, lx - p1, ly - p1, d + 2 * p1, SIDE_BLACK)", 1, true) ~= nil
+        and not NEW:find("drawLamp(self, lx, ly, d, T.warningText)", 1, true))
     -- (QA's note: a long side word is cut to its first letter, a whole UTF-8 character)
     local pat = NEW:match('side:match%("(%^%[[^"]+)"%)')
     check("SIDE a long side word is cut by the first-letter pattern", pat ~= nil)
