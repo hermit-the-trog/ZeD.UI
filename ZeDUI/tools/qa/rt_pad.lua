@@ -995,6 +995,22 @@ Q.waitFor(2, 60, function() local w = RT.ww(); return w ~= nil and w:isVisible()
     RT.bounds(Q, "World window on Foraging")
     S.putRoute()
 end)
+-- the game's search window restored from Lua/layout.ini with visible=true stays hidden, at the saved place (Build
+-- fix/searchwin, Overrides/Wheels.lua's ISSearchWindow.RestoreLayout wrap; the director, Nov 24 2026: "Both (1 and 2)").
+-- Run through the game's own path (ISLayoutManager.CallRestoreLayout, as a load does), with a saved line of its own;
+-- the window's place and visibility put back after.
+Q.step(3, function()
+    local sw = ISSearchWindow and ISSearchWindow.players and ISSearchWindow.players[S.p]
+    if not sw then Q.skip("routes: the game's search window restored as open stays hidden", "no search window for the player"); return end
+    if ZeD.Safe and ZeD.Safe.on and ZeD.Safe.on("wheels") then Q.skip("routes: the game's search window restored as open stays hidden", "Safe mode has the wheels: the game's own restore"); return end
+    local was = { v = sw:getIsVisible(), x = sw:getX(), y = sw:getY() }
+    local ok, err = pcall(ISLayoutManager.CallRestoreLayout, "ISSearchWindow", { x = "121", y = "301", visible = "true", pin = "true" })
+    local vis, x, y = sw:getIsVisible(), sw:getX(), sw:getY()
+    Q.check(ok and not vis and math.floor(x + 0.5) == 121 and math.floor(y + 0.5) == 301,
+        "routes: the game's search window restored as open (layout visible=true) stays hidden, at its saved place",
+        "restore " .. tostring(ok) .. (ok and "" or (" " .. tostring(err))) .. ", visible " .. tostring(vis) .. ", at " .. tostring(x) .. "," .. tostring(y))
+    pcall(function() sw:setX(was.x); sw:setY(was.y); sw:setVisible(was.v) end)
+end)
 function S.putRoute()
     if not S.back.route then return end
     S.back.route = nil
