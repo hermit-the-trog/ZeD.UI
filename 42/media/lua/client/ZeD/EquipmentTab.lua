@@ -80,7 +80,7 @@ function ZeD.EquipmentTab.extH(win, w)
     local h = 0
     for _, def in ipairs(ZeD.EquipmentTab._sections.list) do
         if def.h and ZeD.EquipmentTab._shown(win, def) then
-            h = h + (tonumber(ZeD.API.call("equip section " .. def.id .. " h", def.h, win, w)) or 0)
+            h = h + (tonumber((ZeD.API.call("equip section " .. def.id .. " h", def.h, win, w))) or 0)
         end
     end
     return h
@@ -91,7 +91,7 @@ function ZeD.EquipmentTab.extDraw(panel, win, x, y, w, view)
     local h = 0
     for _, def in ipairs(ZeD.EquipmentTab._sections.list) do
         if def.draw and ZeD.EquipmentTab._shown(win, def) then
-            h = h + (tonumber(ZeD.API.call("equip section " .. def.id .. " draw", def.draw, panel, win, x, y + h, w, view)) or 0)
+            h = h + (tonumber((ZeD.API.call("equip section " .. def.id .. " draw", def.draw, panel, win, x, y + h, w, view))) or 0)
         end
     end
     return h
