@@ -507,15 +507,27 @@ end)
 -- Eat: A held on the card's Eat (the game's ISEatFoodAction)
 -- (QA, Nov 23 2026: other runs that eat leave him full, the card then reads "Eat more" and the game queues nothing:
 -- he is made a little hungry for this step and his hunger put back after it)
+-- (Nov 24: hunger alone is not enough: the card reads "Eat more" while the Well Fed moodle is at 3 or more, and that
+-- moodle follows the body's food timer: it is emptied for the step and put back after)
 Q.step(10, function()
     pcall(function() S.hungerWas = S.p:getStats():get(CharacterStat.HUNGER) end)
     pcall(function() S.p:getStats():set(CharacterStat.HUNGER, 0.3) end)
+    pcall(function() S.foodTimerWas = S.p:getBodyDamage():getHealthFromFoodTimer() end)
+    pcall(function() S.p:getBodyDamage():setHealthFromFoodTimer(0) end)
+end)
+Q.waitFor(2, 240, function()
+    local lvl = 0
+    pcall(function() lvl = S.p:getMoodles():getMoodleLevel(MoodleType.FOOD_EATEN) end)
+    return lvl < 3
+end, function(ok)
+    if not ok then Q.say("NOTE eat: the Well Fed moodle is still 3 or more after the food timer was emptied") end
 end)
 H.queueVerb("EAT", "eat", 600)
 Q.waitFor(2, 120, function() return H.queueHead() == "ISEatFoodAction" end, function(ok)
     Q.check(ok, "eat: A held on Eat queues the game's own eat (ISEatFoodAction)", H.queueHead())
     H.stopActions()
     if S.hungerWas ~= nil then pcall(function() S.p:getStats():set(CharacterStat.HUNGER, S.hungerWas) end) end
+    if S.foodTimerWas ~= nil then pcall(function() S.p:getBodyDamage():setHealthFromFoodTimer(S.foodTimerWas) end) end
 end)
 
 -- ===================================================================== item card: the mouse

@@ -30,7 +30,8 @@
 --                     closes it and unpins it (the saved line's pinned field 1, then 0)
 --   5 ghost           pinned, the pointer off it, not typing: _ghost true, _surfaceAlpha(ZeD.T) == C.GHOST_A == 0.15 and
 --                     the edged words drawn (C.inkText) in Dark, Light and High contrast; the pointer on it: _ghost false
---                     on the next frame; a press on a tab of the ghosted window changes the tab
+--                     on the next frame; a press on a tab of the ghosted window only lifts the ghost (the tab stays:
+--                     nothing invisible can be hit, Build 504ac8ebd on QA's note), a second press changes the tab
 --   6 saved line      the file starts "v2 " with x y w h tab rolled pinned; an old line (no v2) reads as no place
 --                     (C._readPlace nil), the chat key then opens it at the default place, and the line it writes reads
 --                     as a place again (once)
@@ -609,6 +610,7 @@ function S.build5()
     -- the pointer on it: back to full on the next frame
     Q.step(2, function()
         if S.dead then return end
+        S.w()   -- (the window may be a new one since the chat key opened it again: its pointer hooked before the frame)
         S.over = true
     end)
     Q.step(1, function() S.inkN = 0 end)
@@ -631,10 +633,17 @@ function S.build5()
         end
         if not hit then Q.skip("5 ghost: a press on a tab of the ghosted window", "only one tab shows"); return end
         S.tab0, S.tabTo = C.tab, hit.id
-        w:onMouseDown(hit.x + math.floor(hit.w / 2), hit.y + math.floor(hit.h / 2))
-        w:onMouseUp(hit.x + math.floor(hit.w / 2), hit.y + math.floor(hit.h / 2))
-        Q.check(C.tab == hit.id and w._ghost == true, "5 ghost: a press on a tab of the ghosted window lands (the tab changes)",
-            "tab " .. tostring(S.tab0) .. " to " .. tostring(C.tab) .. " (pressed " .. tostring(hit.id) .. "); still ghosted " .. tostring(w._ghost))
+        local px, py = hit.x + math.floor(hit.w / 2), hit.y + math.floor(hit.h / 2)
+        w:onMouseDown(px, py)
+        w:onMouseUp(px, py)
+        Q.check(C.tab == S.tab0 and w._ghost == false, "5 ghost: a press on a tab of the ghosted window only lifts the ghost (the tab stays)",
+            "tab " .. tostring(S.tab0) .. " to " .. tostring(C.tab) .. " (pressed " .. tostring(hit.id) .. "); ghosted " .. tostring(w._ghost))
+        -- (the second press, the window whole now: it lands)
+        w:onMouseDown(px, py)
+        w:onMouseUp(px, py)
+        Q.check(C.tab == hit.id, "5 ghost: a second press on the tab lands (the tab changes)",
+            "tab " .. tostring(S.tab0) .. " to " .. tostring(C.tab) .. " (pressed " .. tostring(hit.id) .. ")")
+        if C.tab ~= S.tab0 then C.tab = S.tab0 end   -- (the tab as found)
     end)
 end
 
