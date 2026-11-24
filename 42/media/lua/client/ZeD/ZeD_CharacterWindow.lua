@@ -7315,8 +7315,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
             self._zedLastClick = nil
         end
         -- double-click: vanilla's quick use (InventoryRenderer.doubleClick)
-        if not isCtrlKeyDown() and not isShiftKeyDown() and self._playerObj
-            and ZeD.InventoryRenderer.doubleClick(self, item, self._playerObj:getPlayerNum(), (getColumnAtX(self, x))) then
+        -- (Shift too, as the game: Shift + double-click takes a garment and wears it; the first click of the pair
+        -- still does Shift's run selection below, L1-5)
+        if not isCtrlKeyDown() and self._playerObj
+            and ZeD.InventoryRenderer.doubleClick(self, item, self._playerObj:getPlayerNum(), (getColumnAtX(self, x)), isShiftKeyDown()) then
             self._deferredSelect = nil
             return true
         end

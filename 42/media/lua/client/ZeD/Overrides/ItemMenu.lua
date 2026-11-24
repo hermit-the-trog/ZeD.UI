@@ -56,10 +56,9 @@ local function onMove(items, dest, pn)
     if dest:getType() ~= "floor" and not luautils.walkToContainer(dest, pn) then return end
     -- Like vanilla's onMoveItemsTo, a favourite moves when the player asks for it by
     -- name. Which destinations are offered for a favourite is decided in addMoveTo.
-    for _, it in ipairs(items) do
-        if playerObj:isEquipped(it) then ISTimedActionQueue.add(ISUnequipAction:new(playerObj, it, 50)) end
-    end
-    CT.moveItems(playerObj, items, dest)
+    -- A held or worn item comes off inside the move, just before its transfer: a gate or rule that refuses the
+    -- destination leaves it in the hand (L1-1). The floor's drop takes things off by itself (vanilla's dropItem).
+    CT.moveItems(playerObj, items, dest, true)
 end
 
 local function addMoveTo(context, playerObj, pn, items)
@@ -238,12 +237,20 @@ end
 
 -- Take all on a container's world menu
 local function containerTitle(c)
+    -- a container renamed the game's way goes by its own name (ISInventoryPage) (L1-7)
+    local custom = c.getCustomName and c:getCustomName()
+    if custom then return custom end
     return getTextOrNull("IGUI_ContainerTitle_" .. tostring(c:getType())) or tostring(c:getType())
 end
 
-local function padlocked(obj)
+-- The game's own lock rule for a container on the ground (ISInventoryPage's refreshBackpacks, the same one the
+-- World window uses): only a built object (IsoThumpable) locked to this character is shut; a padlock opens for
+-- whoever carries its key. A combination lock stays shut (isLockedToCharacter). (L1-2)
+local function lockedTo(obj, playerObj)
     local ok, r = pcall(function()
-        return (obj.isLockedByPadlock and obj:isLockedByPadlock()) or (obj.getLockedByCode and obj:getLockedByCode() > 0)
+        if not instanceof(obj, "IsoThumpable") then return false end
+        if obj:isLockedByPadlock() and playerObj:getInventory():haveThisKeyId(obj:getKeyId()) then return false end
+        return obj:isLockedToCharacter(playerObj)
     end)
     return ok and r or false
 end
@@ -254,7 +261,7 @@ local function onFillWorld(pn, context, worldobjects, test)
     if not (playerObj and context and worldobjects) or playerObj:getVehicle() then return end
     local found, seen = {}, {}
     for _, obj in ipairs(worldobjects) do
-        if obj and not seen[obj] and obj.getContainerCount and not padlocked(obj) then
+        if obj and not seen[obj] and obj.getContainerCount and not lockedTo(obj, playerObj) then
             seen[obj] = true
             for i = 0, obj:getContainerCount() - 1 do
                 local c = obj:getContainerByIndex(i)

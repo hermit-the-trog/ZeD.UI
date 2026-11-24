@@ -512,6 +512,9 @@ local function locOf(item, chr)
     if ci then return ci:getName() end
     local ok, vp = pcall(function() return c:getVehiclePart() end)
     if ok and vp then return partName(vp:getId()) end
+    -- a container renamed the game's way goes by its own name (ISInventoryPage) (L1-7)
+    local custom = c.getCustomName and c:getCustomName()
+    if custom then return custom end
     return txt("IGUI_ContainerTitle_" .. tostring(c:getType()), tostring(c:getType()))
 end
 

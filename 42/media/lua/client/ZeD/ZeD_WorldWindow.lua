@@ -3042,6 +3042,9 @@ local function buildWorldContainers(playerObj)
                                         if translated ~= transKey then
                                             title = translated
                                         end
+                                        -- a container renamed the game's way shows its own name (ISInventoryPage) (L1-7)
+                                        local custom = container.getCustomName and container:getCustomName()
+                                        if custom then title = custom end
 
                                         local locked = false
                                         if instanceof(o, "IsoThumpable") then
@@ -3752,7 +3755,9 @@ function ZeD_WorldWindow.transferFromFloor(playerObj, item, destInv)
     local src = item:getContainer()
     if not src or src:getType() ~= "floor" or src == destInv then return false end
     if not destInv:isItemAllowed(item) then return false end
-    ISTimedActionQueue.add(ISInventoryTransferUtil.newInventoryTransferAction(playerObj, item, src, destInv))
+    local move = ISInventoryTransferUtil.newInventoryTransferAction(playerObj, item, src, destInv)
+    move._zedApart = true   -- (the player's own move: Put things back never counts it as an action's, ZeD_PutBack.lua) (L1-3)
+    ISTimedActionQueue.add(move)
     return true
 end
 
@@ -5857,9 +5862,9 @@ function ZeD_WorldWindow.toggle(playerNum)
                 ZeD_WorldWindow.transferFromFloor(playerObj, item, destInv)
             else
                 if item:getContainer() == srcInv and destInv:isItemAllowed(item) then
-                    ISTimedActionQueue.add(
-                        ISInventoryTransferUtil.newInventoryTransferAction(playerObj, item, srcInv, destInv)
-                    )
+                    local move = ISInventoryTransferUtil.newInventoryTransferAction(playerObj, item, srcInv, destInv)
+                    move._zedApart = true   -- (a drag: never part of an action's run, ZeD_PutBack.lua) (L1-3)
+                    ISTimedActionQueue.add(move)
                 end
             end
         end
@@ -6075,8 +6080,10 @@ function ZeD_WorldWindow.toggle(playerNum)
         local item = zid
         if type(item) == "string" then return true end  -- not an item
         -- double-click: vanilla's quick use (InventoryRenderer.doubleClick)
-        if not isCtrlKeyDown() and not isShiftKeyDown() and self._playerObj
-            and ZeD.InventoryRenderer.doubleClick(self, item, self._playerObj:getPlayerNum(), (getColumnAtX(self, x))) then
+        -- (Shift too, as the game: Shift + double-click takes a garment and wears it; the first click of the pair
+        -- still does Shift's run selection below, L1-5)
+        if not isCtrlKeyDown() and self._playerObj
+            and ZeD.InventoryRenderer.doubleClick(self, item, self._playerObj:getPlayerNum(), (getColumnAtX(self, x)), isShiftKeyDown()) then
             self._deferredSelect = nil
             return true
         end
