@@ -740,6 +740,30 @@ S.readAndShot("SIDE 5 (the lamp)", function(rec)
     Q.check(#why == 0, "SIDE 5 " .. S.LAMP_T .. ": a lit flashlight's lamp draws under the R mark, inside the box",
         "lamp " .. S.rectText(lamp) .. "; " .. r.text .. ((#why > 0) and ("; WRONG: " .. table.concat(why, "; ")) or ""))
 end, "lamp", "the flashlight on the right webbing lit: its lamp under the R mark")
+-- (Build, Nov 23 2026, c5f185743: the lit lamp drew in T.warningText, a dark brown in Light; now a fixed amber,
+-- ZeD.Belt.LAMP_ON, on a near-black rim, in every theme. Taken again in Dark, then the theme put back.)
+S.LAMP_AMBER = function() return ZeD.Belt and ZeD.Belt.LAMP_ON or { r = 1.0, g = 0.78, b = 0.24 } end
+Q.step(2, function()
+    S.themeWas = ZeD.currentBase
+    if ZeD.currentBase ~= "dark" then pcall(ZeD.applyTheme, "dark", ZeD.currentAccent, ZeD.currentSize) end
+end)
+Q.waitMs(800)
+S.readAndShot("SIDE 5 (the lamp, Dark)", function(rec)
+    local e = S.SIDE_BY[S.LAMP_T]
+    local r = S.markRead(rec, e)
+    local lamp = nil
+    if r.box then
+        for _, d in ipairs(rec.lamps) do if S.inside(d, r.box) then lamp = d end end
+    end
+    local amber = S.LAMP_AMBER()
+    local colOk = lamp ~= nil and (lamp.r == nil or S.sameCol(lamp, amber))
+    Q.check(lamp ~= nil and colOk and ZeD.currentBase == "dark",
+        "SIDE 5 " .. S.LAMP_T .. " (Dark): the lit lamp draws in the fixed amber under the mark",
+        "theme " .. tostring(ZeD.currentBase) .. "; lamp " .. S.rectText(lamp) .. " in " .. S.colName(lamp))
+end, "lamp_dark", "the flashlight on the right webbing lit, in the Dark theme")
+Q.step(2, function()
+    if S.themeWas and ZeD.currentBase ~= S.themeWas then pcall(ZeD.applyTheme, S.themeWas, ZeD.currentAccent, ZeD.currentSize) end
+end)
 Q.step(2, function()
     local fl = S.items[S.LAMP_T]
     if fl then pcall(function() fl:setActivated(false) end) end
