@@ -337,6 +337,10 @@ function S.wayCheck(L, wy, t)
         Q.check(S.flag(L) and S.has(L.key) and P.lastWhy ~= "move", what, d)
     elseif wy.pick then
         Q.check(t.picked == true and not S.flag(L) and S.count() == 0, what, d)
+    elseif wy.why == "hidden" then
+        -- (Build, fix/popnotes: a list its owner shut itself, as the window does on a tab change, leaves lastWhy as it
+        -- was; either way the list must be shut with nothing left)
+        Q.check(S.closedNow(L) and ((P.lastWhy == "hidden" and P.lastClosed == L.key) or P.lastClosed ~= L.key), what, d)
     else
         Q.check(S.closedNow(L) and P.lastWhy == wy.why and P.lastClosed == L.key, what, d)
     end
