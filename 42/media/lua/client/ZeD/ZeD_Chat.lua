@@ -817,7 +817,7 @@ end
 function ZeD_ChatWindow:prerender()
     local T = ZeD.T
     if not T then return end
-    if not C.active() then self:close(); return end
+    if not C.active() then self:close(true); return end   -- (the server gone: the pin kept)
     self.title = tr("UI_ZeD_Chat_Title")
     self._dim = ZeD.seeThroughWorks() and self:_idle()   -- (the words' wash too: solid themes never dim)
     self._ghost = self:_ghostNow()
@@ -1061,8 +1061,21 @@ function ZeD_ChatWindow:closeAction()
     pcall(function() ZeD.uiSound("UIActivateButton") end)
     self:close()
 end
-function ZeD_ChatWindow:close()
-    self.pinned = false   -- (closing unpins it: the close box, B, Escape on an unpinned window)
+-- ghosted, the title bar's boxes aren't drawn, so they take no press either (QA, Nov 23 2026): a press in the frame the
+-- pointer arrives would land on a box the player can't see. The ghost lifts at once with the pointer on the window.
+function ZeD_ChatWindow:_watchBoxes()
+    if self._ghost then
+        self._boxPrevDown = isMouseButtonDown(0)
+        self._closeWasDown, self._wboxWasDown, self._closeHover, self._wboxHover = false, false, false, false
+        return
+    end
+    return ZeD_Window._watchBoxes(self)
+end
+
+-- keepPin: closed by the game, not the player (the server gone, safe mode): the pin is kept so a pinned window
+-- reopens on the next join (QA, Nov 23 2026: a close at quit or disconnect wrote pinned 0)
+function ZeD_ChatWindow:close(keepPin)
+    if not keepPin then self.pinned = false end   -- (closing unpins it: the close box, B, Escape on an unpinned window)
     C.savePlace(self)
     if self.input then self.input:unfocus() end
     self:setVisible(false)
@@ -1082,6 +1095,8 @@ end
 function ZeD_ChatWindow:onMouseDown(x, y)
     if not self:getIsVisible() then return true end
     self._usedAt = getTimestampMs()
+    -- (ghosted: this press only brings it back; the roll box it can't see takes nothing: QA, Nov 23 2026)
+    if self._ghost then self._ghost = false; return true end
     local cb = self:closeRect()
     if cb and inRect(cb, x, y) then return true end
     if inRect(self:windowBoxRect(), x, y) then return true end
@@ -1403,7 +1418,14 @@ function C.defaultPlace(w, h, sw, sh)
     end
     if not key then return px(15), sh - h - px(140) end
     local x = hud:getAbsoluteX() + key.x + key.w + px(Bt.ICON_GAP or 38)
-    return math.max(0, math.min(x, sw - w)), math.max(0, sh - h)
+    x = math.max(0, math.min(x, sw - w))
+    local y = math.max(0, sh - h)
+    -- a narrow screen pushed it back over the belt row (it would cover the row's right end): it stands on the row
+    -- instead, its foot a gap above the row's top (QA, Nov 23 2026)
+    local hx, hy = hud:getAbsoluteX(), hud:getAbsoluteY()
+    local rowR = hx + key.x + key.w
+    if x < rowR and y + h > hy then y = math.max(0, hy - h - px(Bt.ICON_GAP or 38) / 2) end
+    return x, y
 end
 
 -- ---------------------------------------------------------------------------
@@ -1524,7 +1546,7 @@ end
 if ZeD.Safe and ZeD.Safe.register then
     ZeD.Safe.register("chat", {
         leave = function()
-            if C.win then C.win:close() end
+            if C.win then C.win:close(true) end   -- (safe mode: the pin kept)
             local gc = ISChat and ISChat.instance
             if gc then gc:setVisible(true) end
         end,

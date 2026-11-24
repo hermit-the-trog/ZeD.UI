@@ -110,6 +110,7 @@ ZeD.Molecules = { drawEmptyLine = function() end }
 local HUD = { _boxes = {}, visible = true, ax = 600 }
 function HUD:getIsVisible() return self.visible end
 function HUD:getAbsoluteX() return self.ax end
+function HUD:getAbsoluteY() return (SH or 1080) - 50 end   -- (the row 50 high at the screen's foot)
 local hudOn = true
 ZeD.Belt = { ICON_GAP = 38, getHUD = function() return hudOn and HUD or nil end }
 
@@ -225,6 +226,8 @@ HUD.ax = 1700
 fresh(); FILES = {}
 w = C.open(false)
 check("PLACE: on the screen when the key is far right", w.x == SW - 360, w.x)
+-- (QA, Nov 23 2026) pushed back over the row, it stands on the row: its foot above the row's top
+check("PLACE: pushed over the belt row, its foot above the row", w.y + w.height <= SH - 50, w.y)
 w:close()
 HUD.ax = 600
 HUD._boxes[3] = { kind = "pvp", x = 560, y = 0, w = 90, h = 30 }
@@ -414,6 +417,26 @@ w:_drawLines(10, 40, 300, 150)
 local plain = true
 for _, d in ipairs(drawn) do if d.a ~= 1 then plain = false end end
 check("GHOST: unpinned words drawn once, no edge", plain and #drawn >= 3, #drawn)
+w:close()
+
+-- (QA, Nov 23 2026) closed by the game (the server gone, safe mode): the pin kept; by the player: unpinned
+fresh(); FILES = {}
+w = C.open(false)
+w.pinned = true
+w:close(true)
+check("KEEP: a close by the game keeps the pin", w.pinned == true)
+w = C.open(false)
+w.pinned = true
+w:close()
+check("KEEP: the player's close unpins", w.pinned == false)
+-- ghosted, a press only brings the window back
+fresh(); FILES = {}
+w = C.open(false)
+w._ghost = true
+local shadedBefore = w.windowShaded
+local took = w:onMouseDown(1, 1)
+check("GHOST: a press on a ghosted window lifts the ghost and does nothing else",
+    took == true and w._ghost == false and w.windowShaded == shadedBefore)
 w:close()
 
 print("chat_window_sim: " .. checks .. " checks, " .. failed .. " failed")
