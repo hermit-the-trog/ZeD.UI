@@ -277,7 +277,19 @@ Q.step(3, function()
 end)
 
 -- ===================================================================== 2. the item card (a click on the hammer's row)
-Q.step(3, function() RT.charTab("loot"); S.seekPos = nil end)
+Q.step(3, function()
+    RT.charTab("loot"); S.seekPos = nil
+    -- (Nov 24: the hammer on its own row: a QA character can carry other hammers, and a shut stack's row is its first
+    -- item, not ours. Its stack opened as rt_cards does, put back at the end)
+    local c = H.content()
+    local ft = nil
+    pcall(function() ft = S.hammer:getFullType() end)
+    if c and ft then
+        c._expandedStacks = c._expandedStacks or {}
+        S.stackFt, S.stackWas = ft, c._expandedStacks[ft]
+        c._expandedStacks[ft] = true
+    end
+end)
 Q.waitFor(2, 240, function() return H.seekRow(S.hammer) end, function(ok)
     Q.check(ok, "card: the hammer's row is in the Character window's list", H.nm(S.hammer))
     if ok then H.click(S.hammer) end
@@ -513,6 +525,8 @@ Q.step(5, function()
     end
     local w = RT.cw()
     if w and S.subWas and ZeD.JournalTab and ZeD.JournalTab.setPage then pcall(ZeD.JournalTab.setPage, w, S.subWas) end
+    local c = H.content()
+    if c and S.stackFt and c._expandedStacks then c._expandedStacks[S.stackFt] = S.stackWas end
     if S.tabWas then RT.charTab(S.tabWas) end
 end)
 Q.step(5, function()
