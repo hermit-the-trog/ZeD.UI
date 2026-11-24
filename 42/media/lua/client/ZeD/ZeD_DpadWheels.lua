@@ -32,6 +32,7 @@ require "ZeD/ZeD_WheelGesture"
 require "ZeD/ZeD_QuickWheel"
 require "ZeD/Tr"
 require "ZeD/SafeMode"
+require "ZeD/ZeD_AddonAPI"
 
 ZeD = ZeD or {}
 ZeD.DpadWheels = ZeD.DpadWheels or {}
@@ -40,6 +41,41 @@ local W = ZeD.Wheel
 local G = ZeD.WheelGesture
 
 local MAX_INNER = 11                      -- an inner wheel's items (Back is the 12th; there is no paging)
+D.MAX_INNER = MAX_INNER                   -- (an add-on's inner ring keeps to it too: addSlice below)
+
+-- ============================================================================
+-- PLUG-IN POINT: A SLICE ON A WHEEL (1.0 add-on API; docs/ADDON_API.md)
+--   ZeD.DpadWheels.addSlice(wheel, id, def); wheel: "character" (the Character wheel: an
+--   add-on's slices go after ZeD's own, before the belt, so no slice of ZeD's moves). def:
+--     order            lower first among the add-ons' slices (default 100)
+--     visible(p, pn)   false: no slice (default: shown)
+--     entry(p, pn)     -> the slice, the shape ZeD's own slices have: { name, icon (a ZeD pixel
+--                      icon id) or tex, detail, off (the words while it can do nothing), and
+--                      sub(p, pn) -> the inner ring's slices { name, icon, detail, key, run(p, pn) }
+--                      (D.MAX_INNER at most), or run(p, pn) }
+--   ZeD.DpadWheels.openCharTab(p, pn, tabId): the pair open on a Character tab, the pad in it.
+-- Nothing registered: the wheel is ZeD's own slices, as before.
+-- ============================================================================
+D._slices = D._slices or {}   -- [wheel] = registry
+function D.addSlice(wheel, id, def)
+    if type(wheel) ~= "string" then return false end
+    D._slices[wheel] = D._slices[wheel] or ZeD.API.registry()
+    return ZeD.API.add(D._slices[wheel], "wheel slice " .. wheel, id, def)
+end
+--- The add-ons' slices for this wheel, appended to ring.
+function D.addonSlices(wheel, ring, p, pn)
+    local reg = D._slices[wheel]
+    if not reg then return ring end
+    for _, def in ipairs(reg.list) do
+        local shown = true
+        if def.visible then shown = ZeD.API.call("wheel slice " .. def.id .. " visible", def.visible, p, pn) and true or false end
+        if shown then
+            local s = ZeD.API.call("wheel slice " .. def.id .. " entry", def.entry, p, pn)
+            if type(s) == "table" then ring[#ring + 1] = s end
+        end
+    end
+    return ring
+end
 local BACK_TEX = "media/ui/emotes/back.png"
 local CHEVRON = "  +  "                     -- (the window titles' own separator, "Character  +  Eat": no breadcrumb arrows)
 
@@ -781,6 +817,7 @@ function H.charTab(p, pn, id)
     end
     Events.OnTick.Add(tick)
 end
+D.openCharTab = H.charTab   -- (the public name: ZeD_AddonAPI.lua)
 
 -- the pair open on a World tab, the pad in the World window
 function H.worldTab(p, pn, id)
@@ -1053,21 +1090,6 @@ function C.use(p, pn)
     }
 end
 
--- the Loadouts ring: one slice per saved loadout; a pick sets it in the
--- Equip tab's bar and opens its to-do (ZeD_EquipLoadout.fromWheel)
-function C.loadouts(p, pn)
-    local out = {}
-    local L = ZeD.Lists
-    if not (L and L.on()) then return out end   -- (Loadouts and outfits off: Settings.lua)
-    for _, l in ipairs(L.all(p, "loadout")) do
-        local id = l.id
-        out[#out + 1] = { name = l.name, icon = L.icon("loadout"), detail = L.countText(l), key = "loadout" .. tostring(id),
-            run = function(pl, n) if ZeD.EquipLoadout then ZeD.EquipLoadout.fromWheel(pl, n, id) end end }
-        if #out >= MAX_INNER then break end
-    end
-    return out
-end
-
 D.B.character = function(p, pn)
     local weapons, eat, drink = H.weapons(p), H.quick(p, "eat"), H.quick(p, "drink")
     local pills = H.quick(p, "pills")
@@ -1090,11 +1112,8 @@ D.B.character = function(p, pn)
           off = (#clothing == 0) and tr("UI_ZeD_Wheel_NothingToChange") or nil },
         { name = tr("UI_ZeD_Wheel_Use"), icon = "backpack", detail = tr("UI_ZeD_Wheel_UseDetail"), sub = C.use },
     }
-    -- the Loadouts ring only while Loadouts and outfits is on (Settings.lua)
-    if ZeD.Lists and ZeD.Lists.on() then
-        ring[#ring + 1] = { name = tr("UI_ZeD_Wheel_Loadouts"), icon = ZeD.Lists.icon("loadout"), detail = tr("UI_ZeD_Wheel_LoadoutsDetail"),
-          sub = C.loadouts, off = (#ZeD.Lists.all(p, "loadout") == 0) and tr("UI_ZeD_Wheel_NoLoadouts") or nil }
-    end
+    -- an add-on's slices (D.addSlice "character"; Loadouts' ring while Loadouts and outfits is on)
+    D.addonSlices("character", ring, p, pn)
     -- the belt last, so no slice before it moves (punch list 250: the pad onto the belt, H.belt)
     local belt = ask("belt", p, pn)
     if belt then ring[#ring + 1] = belt end

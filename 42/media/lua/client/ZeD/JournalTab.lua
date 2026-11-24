@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/JournalTab.lua
 -- ============================================================================
--- JOURNAL TAB — client; the Character window's journal drawer. Five pages,
+-- JOURNAL TAB — client; the Character window's journal drawer. Four pages and an add-on's (addPage),
 -- picked from the tab strip under the tab's title (the search at the title's
 -- right). Each page's own controls sit in a band at its foot; Notebooks has
 -- none.
@@ -11,7 +11,7 @@
 --   Papers:    carried newspapers, flyers, brochures; quick look (ZeD_JournalReaders)
 --   Recipes:   every craft + build recipe grouped by category, read-only
 --              (CraftingCore draws it)
---   Loadouts:  the saved loadouts and outfits and their lines (ZeD_JournalLists)
+--   an add-on's pages after them (ZeD.JournalTab.addPage; Loadouts is one)
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -21,11 +21,12 @@ require "ZeD/Molecules"
 require "ZeD/CraftingCore"
 require "ZeD/RadioTab"   -- (ZeD.SubTabs, the sub-page tab strip)
 require "ZeD/ZeD_JournalReaders"
-require "ZeD/ZeD_JournalLists"
 require "ZeD/KillTracker"
+require "ZeD/ZeD_AddonAPI"
 
 ZeD = ZeD or {}
-ZeD.JournalTab = {}
+-- (kept when it is there: an add-on's pages registered before this file loads stay)
+ZeD.JournalTab = ZeD.JournalTab or {}
 
 -- The controller's mark options for the element with this id: set only when the
 -- window is the focused one, the controller is in use and that element has the focus.
@@ -112,18 +113,80 @@ local truncText = ZeD.Atoms.truncateText
 local _killsOpts = {}   -- the kills head's opts (M.drawCategoryRow), reused each frame
 
 -- The pages the header's tab strip offers. The Character window reads these
--- by index (win._journalSubTab): 1 Journal, 2 Notebooks, 3 Papers, 4 Recipes.
+-- by index (win._journalSubTab): 1 Journal, 2 Notebooks, 3 Papers, 4 Recipes,
+-- then an add-on's pages (addPage, below) from 5 on, in their order.
 local SUB_TABS = {
     { id = "journal",   key = "UI_ZeD_Journal_TabJournal" },
     { id = "notebooks", key = "UI_ZeD_Journal_TabNotebooks" },
     { id = "papers",    key = "UI_ZeD_Journal_TabPapers" },
     { id = "recipes",   key = "IGUI_LiteratureUI_Recipes" },   -- (the game's own "Recipes")
-    -- on the end, so 1 to 4 keep their numbers
-    { id = "loadouts",  key = "UI_ZeD_Journal_TabLoadouts" },
 }
--- Loadouts is in the tab strip only while Loadouts and outfits is on (Settings.lua)
+local OWN_PAGES = #SUB_TABS   -- ZeD's own pages; an add-on's come after, so 1 to 4 keep their numbers
+
+-- ============================================================================
+-- PLUG-IN POINT: A PAGE OF THE JOURNAL (1.0 add-on API; docs/ADDON_API.md)
+--   ZeD.JournalTab.addPage(id, def), def:
+--     key                 the tab's words (a translation key, or plain words)
+--     order               lower comes first after ZeD's four pages (default 100)
+--     visible()           false: not in the strip (an open page then goes back to the first)
+--     render(panel, win, x, y, w, h)   draw the page under the header
+--     onClick(win, x, y) / onRightClick(win, x, y)   true when taken (drawer coords)
+--     focusables(win)     its controller stops (a list; _focusIdx lands the focus)
+--     modal(win)          true: its stops alone hold the pad (a question band)
+--     scroll(win)         the ZeD_ScrollbarState the wheel moves
+--     scrollKey(win)      a string; the stops are built again when it changes
+--     syncChildren(win, shown)   every frame: show or hide its own child panels
+--     searchField(win)    its search box (an ISTextEntryBox it made) while it has one, else nil:
+--                         the header's search stop focuses it
+--     placeSearch(win, x, y, w, h)   put its search box where the header's search goes
+--     listOpen(win) / shutList(win)  its own pop-up list open / shut it (the Page strip, the tab left)
+-- Nothing registered: the strip holds ZeD's four pages, as before.
+-- ============================================================================
+ZeD.JournalTab._pages = ZeD.JournalTab._pages or { list = {}, byId = {}, rev = 0 }   -- (a registry, the shape ZeD.API.registry makes: nothing needs the API until one registers)
+
+-- the strip's list: ZeD's four pages, then the registered ones in their order (an index is kept by id)
+local function syncPages()
+    for i = #SUB_TABS, OWN_PAGES + 1, -1 do SUB_TABS[i] = nil end
+    for _, def in ipairs(ZeD.JournalTab._pages.list) do
+        SUB_TABS[#SUB_TABS + 1] = { id = def.id, key = def.key or def.id, def = def }
+    end
+end
+
+function ZeD.JournalTab.addPage(id, def)
+    local ok = ZeD.API.add(ZeD.JournalTab._pages, "journal page", id, def)
+    if ok then syncPages() end
+    return ok
+end
+syncPages()   -- (pages added before this file loaded)
+
+-- the registered page at index idx (nil for ZeD's own and an index past the end)
+local function addPageAt(idx)
+    local tab = idx and SUB_TABS[idx]
+    return tab and tab.def or nil
+end
+ZeD.JournalTab.pageDef = addPageAt
+
+-- call the open page's def[name](win, ...) safely when it has one (nil otherwise)
+local function pageCall(win, name, ...)
+    local def = addPageAt(win and win._journalSubTab)
+    if not (def and def[name]) then return nil end
+    return ZeD.API.call("journal page " .. def.id .. " " .. name, def[name], win, ...)
+end
+ZeD.JournalTab.pageCall = pageCall
+
+-- An add-on's page is in the tab strip only while its visible() says so
 local function subTabShown(tab)
-    return tab.id ~= "loadouts" or (ZeD.Lists ~= nil and ZeD.Lists.on())
+    local def = tab and tab.def
+    if not (def and def.visible) then return true end
+    return ZeD.API.call("journal page " .. def.id .. " visible", def.visible) and true or false
+end
+
+--- The index of the page with this id (ZeD's "journal", "notebooks", "papers", "recipes", or an add-on's), or nil.
+function ZeD.JournalTab.pageIndex(id)
+    for i, tab in ipairs(SUB_TABS) do
+        if tab.id == id then return i end
+    end
+    return nil
 end
 
 -- ============================================================================
@@ -1506,8 +1569,8 @@ local function cuesOn()
     return F and F.cuesVisible and F.cuesVisible() or false
 end
 
--- A page's own list open (Recipes: Category, Sort, Show; Papers: Show; Loadouts: the
--- filter): its rows alone are the controller's stops.
+-- A page's own list open (Recipes: Category, Sort, Show; Papers: Show; an add-on's page:
+-- its listOpen): its rows alone are the controller's stops.
 function ZeD.JournalTab.pageListOpen(win)
     local sub = win and win._journalSubTab or 1
     if sub == 4 then
@@ -1517,8 +1580,8 @@ function ZeD.JournalTab.pageListOpen(win)
             or (s.showMenuOpen and s._showMenuZones)) and true or false
     elseif sub == 3 then
         return ZeD.JournalReaders.listOpen(win)
-    elseif sub == 5 and ZeD.JournalLists then
-        return ZeD.JournalLists.listOpen(win)
+    elseif sub > OWN_PAGES then
+        return pageCall(win, "listOpen") and true or false
     end
     return false
 end
@@ -1528,10 +1591,13 @@ local function shutPageLists(win)
     local s = win._jrecipeState
     if s then s.catDropdownOpen, s.sortMenuOpen, s.showMenuOpen = false, false, false end
     ZeD.JournalReaders.shutList(win)
-    if ZeD.JournalLists then ZeD.JournalLists.shutList(win) end
+    -- (every add-on page's own list, not only the open page's)
+    for _, def in ipairs(ZeD.JournalTab._pages.list) do
+        if def.shutList then ZeD.API.call("journal page " .. def.id .. " shutList", def.shutList, win) end
+    end
 end
 
---- Open a page of the Journal (1 Journal, 2 Notebooks, 3 Papers, 4 Recipes, 5 Loadouts):
+--- Open a page of the Journal (1 Journal, 2 Notebooks, 3 Papers, 4 Recipes, 5 on an add-on's):
 -- the search fields clear, so a stale filter does not follow to another page.
 function ZeD.JournalTab.setPage(win, idx)
     if not (win and SUB_TABS[idx]) or win._journalSubTab == idx then return end
@@ -1547,6 +1613,49 @@ function ZeD.JournalTab.setPage(win, idx)
     end
 end
 
+--- Open the Journal page with this id (ZeD's or an add-on's) on win, or on player number pn's
+--- Character window (the window must be open on the Journal tab to show it: ZeD_CharacterWindow.openTab).
+--- True when the page is there to open.
+function ZeD.JournalTab.openPage(winOrPn, pageId)
+    local win = winOrPn
+    if type(winOrPn) == "number" then
+        win = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow(winOrPn)
+    end
+    local idx = ZeD.JournalTab.pageIndex(pageId)
+    if not (win and idx) then return false end
+    ZeD.JournalTab.setPage(win, idx)
+    return true
+end
+
+-- The open add-on page's parts the Character window asks for (each nil / false / {} with none open)
+--- The open add-on page's scroll (the wheel's), or nil.
+function ZeD.JournalTab.pageScroll(win) return pageCall(win, "scroll") end
+--- The open add-on page's controller stops and whether they hold the pad alone (modal).
+function ZeD.JournalTab.pageFocusables(win)
+    if not addPageAt(win and win._journalSubTab) then return {}, false end
+    local els = pageCall(win, "focusables")
+    if type(els) ~= "table" then els = {} end
+    return els, pageCall(win, "modal") and true or false
+end
+--- A press on the open add-on page; true when taken.
+function ZeD.JournalTab.pageClick(win, x, y) return pageCall(win, "onClick", x, y) and true or false end
+function ZeD.JournalTab.pageRightClick(win, x, y) return pageCall(win, "onRightClick", x, y) and true or false end
+--- What moves the open add-on page's stops (nil with none open).
+function ZeD.JournalTab.pageScrollKey(win)
+    if not addPageAt(win and win._journalSubTab) then return nil end
+    return tostring(pageCall(win, "scrollKey") or "")
+end
+--- Every add-on page shows or hides its own children (shown: the Journal tab is up on that page).
+function ZeD.JournalTab.syncPageChildren(win, journalShown)
+    local cur = win and win._journalSubTab or 1
+    for i = OWN_PAGES + 1, #SUB_TABS do
+        local def = SUB_TABS[i].def
+        if def and def.syncChildren then
+            ZeD.API.call("journal page " .. def.id .. " syncChildren", def.syncChildren, win, journalShown and cur == i)
+        end
+    end
+end
+
 -- The page's search field at (x, y, w, h); a page whose list has no search right now
 -- (a paper's quick look) shows the box greyed.
 local function placeSearch(panel, win, page, x, y, w, h)
@@ -1556,7 +1665,8 @@ local function placeSearch(panel, win, page, x, y, w, h)
     local fz = win._journalFindZone or {}
     win._journalFindZone = fz
     fz.x, fz.y, fz.w, fz.h, fz.field = x, y, w, h, nil
-    if page == 5 and ZeD.JournalLists and ZeD.JournalLists.state(win).searchShown ~= false then fz.field = win._jlSearch end
+    local pdef = page > OWN_PAGES and addPageAt(page) or nil
+    if pdef and pdef.searchField then fz.field = pageCall(win, "searchField") end
     if page == 1 then f = win._journalSearch
     elseif page == 2 or page == 3 then
         if ZeD.JournalReaders.searchVisible(win, page) then
@@ -1566,8 +1676,9 @@ local function placeSearch(panel, win, page, x, y, w, h)
     elseif page == 4 then
         ZeD.CraftingCore.placeSearch(win, _jrecipeConfig, getJRecipeState(win), x, y, w, h)
         return
-    elseif page == 5 and ZeD.JournalLists then
-        ZeD.JournalLists.placeSearch(win, x, y, w, h)
+    elseif page > OWN_PAGES then
+        -- an add-on's page places its own search box (none: the header's place stays empty)
+        if pdef and pdef.placeSearch then pageCall(win, "placeSearch", x, y, w, h) end
         local mf = fz.field and focusOf(win, "journal:__find")
         if mf and ZeD.Focus and ZeD.Focus.mark then ZeD.Focus.mark(panel, x, y, w, h, mf) end
         return
@@ -1793,7 +1904,7 @@ function ZeD.JournalTab.listsOpen(win)
     local s = win._jrecipeState
     if s and (s.catDropdownOpen or s.sortMenuOpen or s.showMenuOpen) then return true end
     local sub = win._journalSubTab or 1
-    return (sub == 3 or sub == 5) and ZeD.JournalTab.pageListOpen(win) or false
+    return (sub == 3 or sub > OWN_PAGES) and ZeD.JournalTab.pageListOpen(win) or false
 end
 
 --- The Page list open: never now (the pages are a tab strip, punch list 175 C4); kept for the window's builder.
@@ -1809,7 +1920,7 @@ function ZeD.JournalTab.render(panel, win, x, y, w, h)
     if not (win._journalSubTab and SUB_TABS[win._journalSubTab]) then
         win._journalSubTab = 1
     end
-    -- a page switched off while it was open (Loadouts): back to the log
+    -- a page switched off while it was open (an add-on's visible() false): back to the log
     if not subTabShown(SUB_TABS[win._journalSubTab]) then
         win._journalSubTab = 1
     end
@@ -1825,7 +1936,7 @@ function ZeD.JournalTab.render(panel, win, x, y, w, h)
     local contentY = y + headerH
     local contentH = h - headerH
 
-    -- Route to the open page (1 Journal, 2 Notebooks, 3 Papers, 4 Recipes, 5 Loadouts)
+    -- Route to the open page (1 Journal, 2 Notebooks, 3 Papers, 4 Recipes, 5 on an add-on's)
     local activeIdx = win._journalSubTab
     if activeIdx == 1 then
         renderJournal(panel, win, x, contentY, w, contentH)
@@ -1835,8 +1946,9 @@ function ZeD.JournalTab.render(panel, win, x, y, w, h)
         ZeD.JournalReaders.renderPapers(panel, win, x, contentY, w, contentH)
     elseif activeIdx == 4 then
         renderRecipes(panel, win, x, contentY, w, contentH)
-    elseif activeIdx == 5 and ZeD.JournalLists then
-        ZeD.JournalLists.render(panel, win, x, contentY, w, contentH)
+    elseif activeIdx > OWN_PAGES then
+        local def = addPageAt(activeIdx)
+        if def and def.render then ZeD.API.call("journal page " .. def.id .. " render", def.render, panel, win, x, contentY, w, contentH) end
     end
 
 end

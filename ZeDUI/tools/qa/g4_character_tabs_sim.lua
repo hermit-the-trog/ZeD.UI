@@ -222,7 +222,9 @@ end
 section("HEADS: the tab's title and one section style")
 -- ---------------------------------------------------------------------------
 do
-    local files = { "HealthTab.lua", "ProtectionTab.lua", "EquipmentTab.lua", "ZeD_EquipLoadout.lua", "IdentityTab.lua",
+    -- (ZeD_EquipLoadout.lua and its three Loadouts checks went with the add-on ZeD-GUI: Loadouts, Nov 23 2026: its
+    -- tests/source_sim.lua, HEADS)
+    local files = { "HealthTab.lua", "ProtectionTab.lua", "EquipmentTab.lua", "IdentityTab.lua",
                     "ThermalTab.lua", "ZeD_HairBeard.lua", "SkillsTab.lua" }
     local src = {}
     for _, f in ipairs(files) do
@@ -233,11 +235,6 @@ do
         local n = select(2, src[f]:gsub("drawTabHeader%(", ""))
         check(f .. ": at most one title (the tab's own)", n <= 1, n)
     end
-    check("Loadouts: the fold is no second title under Equipped", not src["ZeD_EquipLoadout.lua"]:find("drawTabHeader(", 1, true))
-    check("Loadouts: the fold's head is the 20u mono line",
-        src["ZeD_EquipLoadout.lua"]:find("local function headH() return ZeD.T.px(20) end", 1, true) ~= nil)
-    check("Loadouts: the to-do's sections are the mono line",
-        select(2, src["ZeD_EquipLoadout.lua"]:gsub("drawCategoryRow%(", "")) >= 2)
     check("Equipped: no large-title section (fontF4 heading)", not src["EquipmentTab.lua"]:find("T.fontF4, nil, pad, headerH", 1, true))
     check("Equipped: a group's row is at least the fold head's 20u",
         src["EquipmentTab.lua"]:find("local GROUP_H    = 20", 1, true) ~= nil)

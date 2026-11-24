@@ -307,7 +307,7 @@ local wired = {
     { "HealthTab.lua", "ZeD.Popups.shownAt(po.key, panel, ZeD.HealthTab.closeMenu" },
     { "ThermalTab.lua", "ZeD.Popups.shownAt(po.key, panel, ZeD.ThermalTab.closeMenu" },
     { "ZeD_JournalReaders.lua", "ZeD.Popups.shownAt(po.key, panel, J.shutList" },
-    { "ZeD_JournalLists.lua", "ZeD.Popups.shownAt(po.key, panel, JL.shutList" },
+    -- (ZeD_JournalLists.lua's list went with the add-on ZeD-GUI: Loadouts, Nov 23 2026: its tests/source_sim.lua)
     { "CraftingCore.lua", "CC.popupsShown(panel, win, state, config)" },
     { "CraftingCore.lua", "Pp.shownAt(po.key, panel, CC.closeCatDropdown" },
     { "Stations.lua", "Pp.shownAt(po.key, panel, ST.closeDropdown" },

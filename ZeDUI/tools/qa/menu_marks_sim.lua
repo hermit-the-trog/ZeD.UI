@@ -70,7 +70,8 @@ for id, kind in pairs(MARK) do
         check("TABLE: " .. id .. " has its mark at " .. s, exists(pic(s, id .. "_mk")))
     end
 end
-check("TABLE: 71 icons take a mark", nMarks == 71, nMarks)
+-- (67 since 1.0: the lists' four, outfit_add / _remove and loadout_add / _remove, went with the add-on ZeD-GUI: Loadouts)
+check("TABLE: 67 icons take a mark", nMarks == 67, nMarks)
 -- (Icon color, the director, Nov 22 2026) the inventory strips' own marks: apart from the menus' table, each with
 -- its mark's picture at every size
 local STRIPMARK = ZeD.PxIconStripMark or {}
@@ -104,7 +105,7 @@ local PAIRS = {
     { "rounds_in", "rounds_out" }, { "battery_in", "battery_out" }, { "fill", "empty" },
     { "safehouse_claim", "safehouse_release" }, { "car_enter", "car_exit" }, { "window_open", "window_close" },
     { "zoom_in", "zoom_out" }, { "move_up", "move_down" }, { "box_up", "box_down" }, { "autowalk", "autowalk_off" },
-    { "outfit_add", "outfit_remove" }, { "loadout_add", "loadout_remove" },
+    -- (the lists' pair, outfit and loadout, is the add-on ZeD-GUI: Loadouts' own since 1.0)
 }
 for _, p in ipairs(PAIRS) do
     check("TABLE: " .. p[1] .. " is blue", MARK[p[1]] == "blue", MARK[p[1]])
@@ -272,24 +273,12 @@ if A and A.drawPxIcon then
     check("DRAW: ... and leaves a gold mark ink", ZeD.PxIcon.markColor("r_light", oldPair) == nil)
     ZeD.PxIconMark.zz_old_add, ZeD.PxIconMark.zz_old_remove = nil, nil
 
-    -- LISTS: the outfit and loadout icons are in the game (the director, Nov 10 2026), their plus and minus versions on
-    -- the rows that add to a list (ZeD_Lists.lua's L.icon)
-    setmetatable(_G, { __index = function() return stub end })
-    local okL, errL = load(CLIENT .. "ZeD_Lists.lua")
-    setmetatable(_G, nil)
-    local Lst = rawget(ZeD, "Lists")
-    check("LISTS: ZeD_Lists.lua loads on the stubs", okL and Lst and Lst.icon, errL)
-    if Lst and Lst.icon then
-        check("LISTS: an outfit is the shirt on its hanger", Lst.icon("outfit") == "outfit", Lst.icon("outfit"))
-        check("LISTS: a loadout is the clipboard", Lst.icon("loadout") == "loadout", Lst.icon("loadout"))
-        check("LISTS: Save to outfit takes its plus", Lst.icon("outfit", "add") == "outfit_add", Lst.icon("outfit", "add"))
-        check("LISTS: Save to loadout takes its plus", Lst.icon("loadout", "add") == "loadout_add", Lst.icon("loadout", "add"))
-        check("LISTS: and the minus is there for a take-out row", Lst.icon("loadout", "remove") == "loadout_remove")
-        for _, id in ipairs({ "outfit", "loadout", "outfit_add", "loadout_add", "outfit_remove", "loadout_remove" }) do
-            for _, sz in ipairs(SIZES) do check("LISTS: " .. id .. " is in the mod at " .. sz, exists(pic(sz, id))) end
-        end
-        local pl = panel(); A.drawPxIcon(pl, Lst.icon("outfit", "add"), 0, 0, 16, 1, INK, true)
-        check("LISTS: Save to outfit's plus is blue at rest", #pl.draws == 2 and near(pl.draws[2], 0x1F, 0x5F, 0xC4))
+    -- LISTS (1.0, Nov 23 2026): the outfit and loadout icons went with Loadouts to the add-on ZeD-GUI: Loadouts (its
+    -- tests/source_sim.lua checks L.icon and the pictures; it colors their marks with ZeD.PxIcon.addMark). ZeD alone
+    -- ships none of them and colors none of their marks.
+    for _, id in ipairs({ "outfit", "loadout", "outfit_add", "loadout_add", "outfit_remove", "loadout_remove" }) do
+        for _, sz in ipairs(SIZES) do check("LISTS: " .. id .. " is no longer ZeD's at " .. sz, not exists(pic(sz, id))) end
+        check("LISTS: ZeD's own table colors no mark of " .. id, ZeD.PxIconMark[id] == nil)
     end
 
     -- LIST: the theme's own set on its surfaces (round 1b, Nov 16 2026: the design's dark set; Light the light set

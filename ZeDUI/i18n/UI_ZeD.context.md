@@ -6050,12 +6050,10 @@ Staff-only cards that take over the game's admin windows. Button and tag lengths
 | `UI_ZeD_Settings_UiSoundsQuiet` | `Quiet` | ZeD setup > Windows, UI sounds: the second choice, the clicks played softer | 12 |
 | `UI_ZeD_Inv_PromptType` | `Type` | Controller prompt on the Filter field and on the Skills and Equipment tabs' Find fields: A opens the on-screen keyboard | 10 |
 
-## Lists (the Journal's loadouts and outfits)
+## Button map and test (the Lists rows here went with the add-on ZeD-GUI: Loadouts in 1.0)
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Lists_EmptySec` | `Nothing here yet. Add what you carry, or open an item's menu: Save to loadout.` | Character window, Journal tab, Lists: the one dim line in a loadout's empty section. After the colon, the item menu's option as `UI_ZeD_Lists_SaveToLoadout` has it. No mouse words: a controller opens the item's menu too | - |
-| `UI_ZeD_Lists_EmptyWorn` | `Nothing here yet. Add what you wear, or open a piece's menu: Save to outfit.` | Character window, Journal tab, Lists: the one dim line in an outfit's empty section. After the colon, the menu's option as `UI_ZeD_Lists_SaveToOutfit` has it. No mouse words | - |
 | `UI_ZeD_PadFig_RoleLT` | `Map: zoom out` | Options > Controls > Button map and test: the left trigger's label, what ZeD does with it (zooms the map out) | 22 |
 | `UI_ZeD_PadFig_RoleLB` | `Character tabs` | Button map and test: the left bumper's label (it steps through the Character window's tabs) | 22 |
 | `UI_ZeD_PadFig_RoleDPad` | `Move, or a wheel` | Button map and test: the D-pad's label (moves between controls in a window; with no window open a tap opens a wheel) | 22 |

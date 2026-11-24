@@ -2,7 +2,7 @@
 -- ============================================================================
 -- THE EQUIP TAB'S DOLL VIEW - client; data and draw helpers for the Equip
 -- drawer, no class of its own (ZeD_CharacterWindow and EquipmentTab call in;
--- InventoryRenderer asks takeDrop about drops; ZeD_EquipLoadout, slotForLoc).
+-- InventoryRenderer asks takeDrop about drops; an add-on's overlay, slotForLoc).
 --
 -- The character's own 3D model (the Identity tab's ISUI3DModel, full body)
 -- standing on the panel (no frame), the worn slots in a column either side,
@@ -34,10 +34,56 @@
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/Tr"
+require "ZeD/ZeD_AddonAPI"
 
 ZeD = ZeD or {}
 ZeD.EquipDoll = ZeD.EquipDoll or {}
 local D = ZeD.EquipDoll
+
+-- ============================================================================
+-- PLUG-IN POINT: MARKS IN THE DOLL'S EMPTY SLOTS (1.0 add-on API; docs/ADDON_API.md)
+--   ZeD.EquipDoll.addOverlay(id, def), def:
+--     order                    lower asks first; the first to mark a slot draws it (default 100)
+--     slots(win, bands)        -> { [doll slot id] = g } or nil: what to mark where (bands: the small
+--                              slots' bands show; D.slotForLoc and D.beltSlotFor name the slots)
+--     draw(panel, x, y, size, g)  draw mark g in the empty slot box (x, y, size)
+-- A small-slot row with a mark shows even while it holds nothing. Nothing registered: no slot is marked.
+-- ============================================================================
+D._overlays = D._overlays or { list = {}, byId = {}, rev = 0 }   -- (a registry, the shape ZeD.API.registry makes: nothing needs the API until one registers)
+function D.addOverlay(id, def)
+    return ZeD.API.add(D._overlays, "doll overlay", id, def)
+end
+
+--- This frame's marks: { [slot id] = g } and { [slot id] = the overlay that marked it }, or nil, nil.
+function D.overlayMarks(win, bands)
+    local marks, by = nil, nil
+    for _, def in ipairs(D._overlays.list) do
+        local got = def.slots and ZeD.API.call("doll overlay " .. def.id .. " slots", def.slots, win, bands)
+        if type(got) == "table" then
+            for sid, g in pairs(got) do
+                marks = marks or {}
+                by = by or {}
+                if marks[sid] == nil then marks[sid], by[sid] = g, def end
+            end
+        end
+    end
+    return marks, by
+end
+
+--- Draw slot id's mark (from overlayMarks) in its empty box.
+function D.drawOverlay(panel, bx, by0, b, marks, by, id)
+    local def = by and by[id]
+    if def and def.draw then ZeD.API.call("doll overlay " .. def.id .. " draw", def.draw, panel, bx, by0, b, marks[id]) end
+end
+
+--- The doll's slot id for the belt slot whose slotType is this ("belt<n>"), or nil.
+function D.beltSlotFor(win, slotType)
+    local data = win and win._equipDollData
+    for _, b in ipairs(data and data.belt or {}) do
+        if b.slot and tostring(b.slot.slotType) == tostring(slotType) then return "belt" .. tostring(b.i) end
+    end
+    return nil
+end
 
 -- Every x below is a design unit of the doll at scale 1. The Equip drawer is the full card (480 units, 466 beside
 -- its scrollbar), so the doll with both bands of small slots is 466 wide - sized for the full card, not the half
@@ -202,7 +248,7 @@ local function splitCol(id)
 end
 
 --- The doll slot a worn location shows in: a small slot's id while the bands show, else its big slot's
---- (the loadouts' missing things are drawn there: ZeD_EquipLoadout.ghosts).
+--- (an add-on's overlay marks a worn place there: D.addOverlay).
 function D.slotForLoc(loc, bands)
     if not loc then return nil end
     if bands then return LOC_TO_SMALL[loc] or LOC_TO_BIG[loc] end
@@ -679,9 +725,8 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
 
     local zones, beltZones, empties, rects = boxList(win, "_dollZones"), {}, boxList(win, "_dollEmpty"), boxList(win, "_dollRects")
     local hint = nil
-    -- what the loadout and outfit applied are missing, where it goes (ZeD_EquipLoadout)
-    local EL = ZeD.EquipLoadout
-    local ghosts = EL and EL.ghosts and EL.ghosts(win, bands) or nil
+    -- an add-on's marks in the empty slots (D.addOverlay; Loadouts: what is missing, where it goes)
+    local ghosts, ghostBy = D.overlayMarks(win, bands)
     win._equipDollGhosts = ghosts
     for _, def in ipairs(D.SLOTS) do
         local sx0, sy0
@@ -694,7 +739,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         local label = wd.label[def]
         if not label then label = ZeD.textCase(ZeD.tr(def.key)); wd.label[def] = label end
         local over, foc = drawBox(panel, win, bx, by, b, item, #items, key, nil, label, mx, my)
-        if not item and ghosts and ghosts[def.id] then EL.drawGhost(panel, bx, by, b, ghosts[def.id]) end
+        if not item and ghosts and ghosts[def.id] then D.drawOverlay(panel, bx, by, b, ghosts, ghostBy, def.id) end
         if found and not found.hit[key] then TF.dim(panel, bx, by, b, b + win._findDollLabelH) end
         slotBox(rects, bx, by, b, b).id = def.id
         if item then
@@ -742,7 +787,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
             local place = wd.place[sm]
             if not place then place = ZeD.tr(sm.place); wd.place[sm] = place end
             local over, foc = drawSmall(panel, win, sbx, sby, ss, item, #items, key, sm.letter, place, mx, my, k)
-            if not item and ghosts and ghosts[sm.id] then EL.drawGhost(panel, sbx, sby, ss, ghosts[sm.id]) end
+            if not item and ghosts and ghosts[sm.id] then D.drawOverlay(panel, sbx, sby, ss, ghosts, ghostBy, sm.id) end
             if found and not found.hit[key] then TF.dim(panel, sbx, sby, ss, ss) end
             slotBox(rects, sbx, sby, ss, ss).id = sm.id
             local ptext = wd.ptext[sm]
@@ -764,7 +809,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         local bx, by = ox + P(bx0 + off + BOX_IN) + belowS, y + P(by0)
         local over, foc = drawBox(panel, win, bx, by, b, item, 1, key, beltKey, label, mx, my)
         local gid = beltSlot and ("belt" .. tostring(beltSlot.i)) or (key and key:sub(6))
-        if not item and ghosts and gid and ghosts[gid] then EL.drawGhost(panel, bx, by, b, ghosts[gid]) end
+        if not item and ghosts and gid and ghosts[gid] then D.drawOverlay(panel, bx, by, b, ghosts, ghostBy, gid) end
         local fd = win._findDollRes
         if fd and not fd.hit[key] then ZeD.TabFind.dim(panel, bx, by, b, b + win._findDollLabelH) end
         win._equipSlotYMap[key] = by
