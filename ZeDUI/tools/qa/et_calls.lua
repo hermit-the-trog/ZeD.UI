@@ -2584,6 +2584,9 @@ function S.dropLeg(T, D)
         local w = RT.cw()
         if w and w._equipScroll and w._equipScroll.visible then pcall(function() w._equipScroll:setScrollPos(1) end) end
     end)
+    -- (a few frames for the doll to draw at the new scroll: its boxes and clip are set while it draws, so a box read
+    -- the frame after the scroll still has the old place)
+    S.waitIdle(8)
     S.wait(10, 120, function() return T.off or not L.it or (S.eqReady("doll") and S.rect(D.box) ~= nil) end, function(ok)
         if T.off or not L.it then return end
         if not Q.check(ok, "9 drop: the doll's " .. D.box .. " box is drawn") then return end
