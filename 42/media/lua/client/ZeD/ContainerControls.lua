@@ -377,6 +377,16 @@ local function otherInventory(content)
 end
 CT.otherInventory = otherInventory
 
+--- Where a take lands: the bag on show in the Character window, else his main inventory. The game's own takes fill its
+--- inventory page's selected bag (ISInventoryPane's double-click: getPlayerInventory(pn).inventory), and ZeD's Loot all
+--- and pad X on a row already went to the bag on show (the director, Nov 24 2026); the double-click, the card's Grab,
+--- pad X on a container's button and the item menu's Loot all now land there too. (QA's loot KISS test, Nov 24 2026)
+function CT.takeDest(playerObj)
+    if not playerObj then return nil end
+    local cc = charContent(playerObj:getPlayerNum())
+    return (cc and cc._ccEntry and cc._inventory) or playerObj:getInventory()
+end
+
 -- Transfer all's destination: the other window's container, or, from your side with the World window shut (or with
 -- no container across), the floor at your feet, as the game's own Transfer all does: its hidden loot pane is the floor
 -- then (ISInventoryPane:transferAll, toFloor). Only Transfer all falls back; a single row's move (the controller's X,
@@ -630,9 +640,10 @@ local function markedSet(items)
     return set
 end
 
--- (beta 21, Lite: "If vanilla does it, so does Lite": the game's windows have Transfer all and Loot all, not ZeD's
--- Same type and Same type nearby, so Lite leaves those two out)
-local LITE_DROP = { same = true, near = true }
+-- (beta 21, Lite: "If vanilla does it, so does Lite". The game has Same type and Same type nearby too, in its
+-- inventory page and loot page handlers (TransferSameType, TakeSameType), so Lite keeps them (QA's loot KISS test,
+-- Nov 24 2026); the trim stays for a move the game lacks)
+local LITE_DROP = {}
 local function liteTrim(moves)
     if not (ZeD.Settings and ZeD.Settings.lite and ZeD.Settings.lite()) then return moves end
     for i = #moves, 1, -1 do
@@ -801,8 +812,12 @@ local function buildWorld(content)
             CT.moveItems(playerObj, (sameTypeItems(src, d, keep)), d)
         end }
     if not onFloor then
-        moves[#moves + 1] = { id = "floor", label = ZeD.tr("UI_ZeD_Controls_ToFloor"), enabled = not inv:isEmpty(),
+        -- seated with the window shut it greys and says why, as the game greys its Drop (ISInventoryPaneContextMenu,
+        -- ContextMenu_DropFromVehicle) (QA's loot KISS test, Nov 24 2026)
+        local shut = ZeD.InventoryRenderer.carWindowShut(playerObj)
+        moves[#moves + 1] = { id = "floor", label = ZeD.tr("UI_ZeD_Controls_ToFloor"), enabled = not inv:isEmpty() and not shut,
             icon = "to_floor", hint = ZeD.tr("UI_ZeD_Controls_HintToFloor"),
+            help = shut and getText("ContextMenu_DropFromVehicle") or nil,
             run = function(ct)
                 -- seated with the window shut, nothing goes out to the ground: ZeD's other floor moves refuse the
                 -- same way (moveItems, handleDrop; QA B6-9) (L1-4)

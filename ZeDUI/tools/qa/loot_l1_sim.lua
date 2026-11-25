@@ -238,7 +238,8 @@ function PW:getVehicle() return nil end
 getSpecificPlayer = function() return PW end
 ISInventoryPane = { doContextualDblClick = noop }
 local moved = {}
-ZeD.ContainerControls = { moveItems = function(_, items) for _, it in ipairs(items) do moved[#moved + 1] = it end end }
+ZeD.ContainerControls = { moveItems = function(_, items) for _, it in ipairs(items) do moved[#moved + 1] = it end end,
+    takeDest = function(p) return p:getInventory() end }   -- (the bag on show: the main inventory here; loot KISS, Nov 24 2026)
 local stackOf = {}
 ZeD.InventoryRenderer.dragItems = function(_, items) return items end
 if run("L1-5 quickUse", cut(IRsrc, "function ZeD.InventoryRenderer.quickUse(", "\nend\n"))

@@ -223,7 +223,7 @@ local function onFillInventory(pn, context, rawItems)
 
     local src = items[1]:getContainer()
     if hadLoot and src then
-        context:addOption(txt("IGUI_invpage_Loot_all", "Loot all"), playerObj, CT.takeAll, src, playerObj:getInventory())
+        context:addOption(txt("IGUI_invpage_Loot_all", "Loot all"), playerObj, CT.takeAll, src, CT.takeDest(playerObj))   -- (the bag on show)
     end
     local wInv = worldActive(pn)
     if hadXfer and src and (wInv or floorInv(pn)) then
