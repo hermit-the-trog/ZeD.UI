@@ -1572,6 +1572,9 @@ function S.carPair(T, partId, label)
     S.wait(6, 300, function() return L.off or S.listed(RT.ww(), L.inv) end, function(ok)
         if L.off then return end
         if not ok then L.off = true; Q.skip(label .. ": Loot all and Transfer all", "the World window does not list the " .. partId .. " from here (the game's canAccessContainer)"); return end
+        -- (QA, Nov 24 2026: the spawned car's own random loot taken out first, so a full bag never decides the count;
+        -- a sandbag the 4K run's bed held stayed behind among 7 that had no room)
+        for _, it in ipairs(S.list(L.inv)) do S.removeItem(it) end
         L.made = {}
         for _ = 1, 3 do L.made[#L.made + 1] = S.add(L.inv, T.kCar) end
         S.listView(L.inv)
@@ -2115,13 +2118,11 @@ function S.case12()
         local ok, err = pcall(ZeD_WorldWindow.padTakeAll, w, { containerIdx = idx })
         return ok, tostring(err)
     end)
-    S.takeWay(T, "the item menu's " .. getText("IGUI_invpage_Loot_all"), function(it)
-        S.openMenu({ it }, false)
-        return true, "", true
-    end, function(it)
-        local okP, why = S.pick(S.menu(), { getText("IGUI_invpage_Loot_all") })
-        if not okP then S.closeMenu() end
-        return okP, why
+    -- (QA, Nov 24 2026, after the first run: the game's item menu has its Take All row only with a controller bound,
+    -- ISInventoryPaneContextMenu.lua:657, playerObj:getJoypadBind() ~= -1; the run has none. ZeD's row takes into
+    -- CT.takeDest since f67b7cf36, Overrides/ItemMenu.lua:226)
+    S.step(1, function()
+        Q.skip("12 takes, the item menu's " .. getText("IGUI_invpage_Loot_all"), "the game's item menu offers it only with a controller bound (ISInventoryPaneContextMenu.lua:657); this run has none")
     end)
     Q.step(2, function()
         if S.dead then return end
