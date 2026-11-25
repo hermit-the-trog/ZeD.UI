@@ -139,5 +139,9 @@ print("-- HOVER")
 check("HOVER: folded clears the hover", has(TT, "if not win._thermalFigureExpanded then win._thermalHoveredPart = nil end"))
 check("HOVER: clipped to the body's view", has(CW, "win._thermalHoveredPart = inView and win._thermalBodyFigure:hitTestAt(mx, my) or nil"))
 
+print("-- COLDRAG")
+check("COLDRAG: a dragged width no longer turns the fitting off", not has(ET, "if not (win and win._equipColWidths) and nameW < need then"))
+check("COLDRAG: with dragged widths the steps run once the name would fall under its least", has(ET, "if win and win._equipColWidths then need = T.px(40) end"))
+
 print("eq_thermal_fixes_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end

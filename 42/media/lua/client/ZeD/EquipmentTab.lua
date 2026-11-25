@@ -515,7 +515,11 @@ calcEquipColumnsRaw = function(w, win)
     -- three protection columns together).
     local slotShort, slotPad, wtPad, protOn, wtOn = false, padX, padX, true, true
     local need = (win and win._equipNameNeed) or 0
-    if not (win and win._equipColWidths) and nameW < need then
+    -- A width the player dragged is kept while the row fits: the steps then only run when the
+    -- name would fall under its 40u least, i.e. the columns would run past the card's edge (the
+    -- half card, Large text), and they go only as far as giving the name that least back (QA eq_tab 7, S6)
+    if win and win._equipColWidths then need = T.px(40) end
+    if nameW < need then
         local tight = T.px(4)
         local sw = getShortColW() - sp.sm * 2 + tight * 2
         if sw < slotColW then
