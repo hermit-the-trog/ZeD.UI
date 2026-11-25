@@ -936,6 +936,30 @@ function CC.prebakeSkills(recipe)
     return skillDefs
 end
 
+--- The first required skill the player is short of, in the game's words ("Requires Carpentry Level 3", as the
+--- game's recipe header writes it, ISWidgetTitleHeader); nil when none is short or it cannot be read.
+--- (QA cb sweep, Nov 25 2026, B10: the card never named the skill)
+function CC.shortSkillText(recipe, playerObj)
+    if not (recipe and playerObj) then return nil end
+    local out = nil
+    pcall(function()
+        for i = 0, recipe:getRequiredSkillCount() - 1 do
+            local rs = recipe:getRequiredSkill(i)
+            local has = nil
+            if CraftRecipeManager and CraftRecipeManager.hasPlayerRequiredSkill then
+                has = CraftRecipeManager.hasPlayerRequiredSkill(rs, playerObj)
+            end
+            if has == nil then has = playerObj:getPerkLevel(rs:getPerk()) >= rs:getLevel() end
+            if not has then
+                out = getText("IGUI_CraftingWindow_Requires2") .. " " .. tostring(rs:getPerk():getName()) .. " "
+                    .. getText("IGUI_CraftingWindow_Level") .. " " .. tostring(rs:getLevel())
+                return
+            end
+        end
+    end)
+    return out
+end
+
 --- Resolve a recipe's category from script definition, with skill fallback.
 function CC.resolveCategory(recipe, skillName)
     local category = nil
@@ -3187,13 +3211,22 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
 
     -- Chip row: KNOWN/UNKNOWN, SURFACE, the craft time, the station chip
     local chipX = x + T.px(6)
-    -- In readOnly (Journal), show accessibility: learned AND has skill
-    local isAccessible = rd.learned and (rd.hasSkill ~= false)
     -- (QA's visual noise audit 30, Nov 20 2026: "Known" sat on every known recipe; only "not known" is news)
+    -- (QA cb sweep, Nov 25 2026, B10) "Unknown" only when the recipe is not known: one short of skill and needing
+    -- no learning wore it too, and the skill was never named. Outside the Journal (whose rows list the skills) the
+    -- first skill short is named in the game's own words ("Requires Carpentry Level 3", ISWidgetTitleHeader).
     local bw
-    if not isAccessible then
+    if rd.learned == false then
         bw = A.drawBadge(panel, ZeD.tr("UI_ZeD_Craft_BadgeUnknown"), chipX, curY, "danger")
         chipX = chipX + bw + T.px(4)
+    end
+    if rd.hasSkill == false and not (config and config.readOnly) then
+        local need = CC.shortSkillText(entry.recipe, playerObj)
+        if need then
+            need = CC.truncText(need, T.fontF3, math.max(T.px(40), contentW - (chipX - x) - T.px(6) - 2 * T.sp.badgePadX))
+            bw = A.drawBadge(panel, need, chipX, curY, "danger", nil, nil, true)
+            chipX = chipX + bw + T.px(4)
+        end
     end
 
     -- No amber Surface square: a table's recipe reads like any other, and the line under the rows
