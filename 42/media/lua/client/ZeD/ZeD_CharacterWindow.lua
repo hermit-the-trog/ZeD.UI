@@ -5072,6 +5072,34 @@ function ZeD_CharacterWindow.toggle(playerNum)
     identityModel._didDrag = false
     win._identityModel = identityModel
 
+    -- A figure (an ISUI3DModel) over a frame partly scrolled out of its view keeps its size: the element is only as
+    -- tall as the part that shows, and the camera's zoom and y offset are scaled so the figure stays where the whole
+    -- frame would draw it, cut at the view's edge like the rest of the page (the director, Nov 25 2026: "Shouldn't it
+    -- just scroll away?"; before, the whole body was fitted to the part showing, so it shrank as the page scrolled).
+    -- The game's figure camera (UI3DModel, not isometric) is 2 * (25 - zoom) / sqrt(2048) world units tall, centred
+    -- in the element; a y offset of 0 is its own default, -0.5 (the same maths as the hair rows, ZeD_HairBeard
+    -- fitFigure). ct / cb: the frame's pixels cut at its top / bottom. Returns false when too little shows.
+    win._fitFigureCut = function(m, x, frameY, w, fullH, ct, cb, z0, yo0)
+        local T = ZeD.T
+        local h = fullH - ct - cb
+        if h <= T.px(6) then return false end
+        local z, yo = z0, yo0
+        if ct > 0 or cb > 0 then
+            local size = 25 - z0
+            if yo == 0 then yo = -0.5 end
+            z = 25 - size * h / fullH
+            yo = yo + (ct - cb) * size / (fullH * math.sqrt(2048))
+            if yo == 0 then yo = 0.0001 end   -- (0 would be the game's default again)
+        end
+        m:setX(x)
+        m:setY(frameY + ct)
+        m:setWidth(w)
+        m:setHeight(h)
+        m:setZoom(z)
+        m:setYOffset(yo)
+        return true
+    end
+
     -- The model in its photo frame, for this frame's rect; true when it shows. Run here from the
     -- drawer's prerender, and again from IdentityTab.render once the card has published its rect,
     -- so a change of style or photo moves the model in the same frame as the card.
@@ -5095,19 +5123,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
         else
             top = math.max(top, ZeD.Molecules.getTabHeaderH())
         end
-        local avH = bot - top
-        if avH <= T.px(20) then return false end   -- hide only if clipped to nothing
-        identityModel:setX(T.px(TAB_STRIP_W) + pr.x)
-        identityModel:setY(win:getBodyY() + top)
-        identityModel:setWidth(pr.w)
-        identityModel:setHeight(avH)
-        -- the bust's crop or the whole body
-        if pr.expanded then
-            identityModel:setZoom(win._identityCustomZoom)
-            identityModel:setYOffset(0)
-        else
-            identityModel:setZoom(BUST_ZOOM)
-            identityModel:setYOffset(BUST_Y_OFFSET)
+        if bot - top <= T.px(20) then return false end   -- hide only if clipped to nothing
+        -- the bust's crop or the whole body, at the frame's own size, cut at the view's edge (_fitFigureCut)
+        local z0, yo0 = BUST_ZOOM, BUST_Y_OFFSET
+        if pr.expanded then z0, yo0 = win._identityCustomZoom, 0 end
+        if not win._fitFigureCut(identityModel, T.px(TAB_STRIP_W) + pr.x, win:getBodyY() + pr.y, pr.w, pr.h,
+                                 top - pr.y, pr.y + pr.h - bot, z0, yo0) then
+            return false
         end
         -- the portrait studio's camera button in the photo's bottom right corner, over the figure (punch list 145)
         local cam = win._studioBtn
@@ -5548,8 +5570,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 end
 
                 -- The Equip tab's doll (EquipDoll.lua): the same model, full body, in the
-                -- doll's photo frame. A model can't be clipped, so a frame partly
-                -- scrolled out shrinks to the part showing (as the Identity photo does).
+                -- doll's photo frame. A frame partly scrolled out keeps the figure's size, cut at
+                -- the view's edge (_fitFigureCut), as the Identity photo does.
                 local dollLayer = win._equipDollLayer
                 local showLines = false
                 if not showAvatar and win._equipDollShown and win._equipDollPhoto
@@ -5563,14 +5585,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
                         top = math.max(top, clip.y)
                         bot = math.min(bot, clip.y + clip.h)
                     end
-                    if bot - top > T.px(40) then
+                    if bot - top > T.px(6) and win._fitFigureCut(model, T.px(TAB_STRIP_W) + ph.x, bY + ph.y, ph.w, ph.h,
+                                                                 top - ph.y, ph.y + ph.h - bot, 0, 0) then
                         showAvatar = true
-                        model:setX(T.px(TAB_STRIP_W) + ph.x)
-                        model:setY(bY + top)
-                        model:setWidth(ph.w)
-                        model:setHeight(bot - top)
-                        model:setZoom(0)
-                        model:setYOffset(0)
                     end
                     showLines = true
                 end
