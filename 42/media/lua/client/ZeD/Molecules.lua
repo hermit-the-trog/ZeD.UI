@@ -1032,7 +1032,13 @@ end
 -- This avoids Java child event dispatch issues entirely.
 
 ZeD_ScrollbarState = {}
-ZeD_ScrollbarState.__index = ZeD_ScrollbarState
+-- width and arrowH, unless a caller sets them, are the token's at each read: a bar made before a text-size or
+-- UI-scale change keeps the width its x was placed by (QA's scroll bar audit: a 1-3 px gap at its right after
+-- Small to Large on Equipment, Thermal and most tabs, Nov 25 2026)
+ZeD_ScrollbarState.__index = function(o, k)
+    if k == "width" or k == "arrowH" then return ZeD.T.sp.scrollbarW end
+    return ZeD_ScrollbarState[k]
+end
 
 function ZeD_ScrollbarState:new()
     local o = {}
@@ -1040,9 +1046,8 @@ function ZeD_ScrollbarState:new()
     local T = ZeD.T
     o.x = 0
     o.y = 0
-    o.width = T.sp.scrollbarW
+    -- (width, arrowH: the token's, read live by __index; arrows are square)
     o.height = T.px(100)
-    o.arrowH = T.sp.scrollbarW    -- arrows are square
     o.reserveBottom = 0           -- pixels to leave empty at the bottom
                                   -- (for grow box / resize grip integration)
     o.scrollPos = 0               -- 0.0 to 1.0
@@ -1095,13 +1100,31 @@ function ZeD_ScrollbarState:setScrollPos(pos)
 end
 
 --- Draw the scrollbar onto a parent panel at (self.x, self.y)
+--- Its outline lands on the frame's line: the box is drawn one hairline past its right, top and bottom, where
+--- the divider, heading rule and footer rule are, so the edge is one line, not two (the director, Nov 25 2026:
+--- "one consistent 1 pixel line on the edges"). The press area is the bar's own rect, as before. A bar whose
+--- rect already holds the frame's line on a side says so: self.inRight / inTop / inBottom (the Messages window's
+--- right edge, the item card lying over a tab at its right). Over a grow box (reserveBottom) the bottom stays.
 function ZeD_ScrollbarState:draw(panel)
     if not self.visible then return end
     local T = ZeD.T
     local A = ZeD.Atoms
+    local hl = T.px(1)
+    local outR = self.inRight and 0 or hl
+    local outT = self.inTop and 0 or hl
+    local outB = (self.inBottom or (self.reserveBottom or 0) > 0) and 0 or hl
+    -- at the panel's own edge the frame's line is inside the panel, the bar's own line on it: nothing past the panel
+    -- (the console's pages and log, a window's right edge)
+    local pw = panel.getWidth and panel:getWidth() or nil
+    local ph = panel.getHeight and panel:getHeight() or nil
+    if pw and self.x + self.width + outR > pw then outR = 0 end
+    if self.y - outT < 0 then outT = 0 end
+    if ph and self.y + self.height + outB > ph then outB = 0 end
     local ox = self.x
-    local oy = self.y
-    local w = self.width
+    local oy = self.y - outT
+    local w = self.width + outR
+    local fullH = self.height + outT + outB
+    local aH = (self.arrowH > 0) and (self.arrowH + outR) or 0   -- (the arrows stay square at the drawn width)
 
     -- Clear stale hover states when mouse is outside the scrollbar rect
     if not self.dragging then
@@ -1117,25 +1140,26 @@ function ZeD_ScrollbarState:draw(panel)
     end
 
     -- Track — extends from below up arrow to above the reserved bottom (grow box)
-    local trackH = self:getTrackHeight()
-    A.drawScrollTrack(panel, ox, oy + self.arrowH, w, trackH)
+    local trackH = fullH - aH * 2 - (self.reserveBottom or 0)
+    A.drawScrollTrack(panel, ox, oy + aH, w, trackH)
 
     -- (arrowH 0: a list too short for them, MM.scrollBar; the track takes the whole height)
-    if self.arrowH > 0 then
+    if aH > 0 then
         -- Up arrow
         local upState = self.upPressed and "active" or (self.upHover and "hover" or "default")
-        A.drawScrollArrow(panel, ox, oy, self.arrowH, "up", upState)
+        A.drawScrollArrow(panel, ox, oy, aH, "up", upState)
 
         -- Down arrow — sits flush against the top of the reserved area (grow box)
-        local downY = oy + self.arrowH + trackH
+        local downY = oy + aH + trackH
         local downState = self.downPressed and "active" or (self.downHover and "hover" or "default")
-        A.drawScrollArrow(panel, ox, downY, self.arrowH, "down", downState)
+        A.drawScrollArrow(panel, ox, downY, aH, "down", downState)
     end
 
-    -- Thumb
+    -- Thumb (where the press reads it, within a hairline: the drawn track is the press track's size and a little)
     if self.barSizeRatio < 1.0 then
-        local thumbY = self:getThumbY()
-        local thumbH = self:getThumbHeight()
+        local thumbH = math.min(self:getThumbHeight(), math.max(0, trackH))
+        local range = trackH - thumbH
+        local thumbY = aH + ((range > 0) and math.floor(range * self.scrollPos) or 0)
         local bg
         if self.dragging then
             bg = T.accent

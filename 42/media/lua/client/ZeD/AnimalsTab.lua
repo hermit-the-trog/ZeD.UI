@@ -2603,7 +2603,7 @@ local function drawZoneBody(panel, win, x, top, w, h, summary, player)
     win._animalsZoneClip = nil
 
     if needsScroll then
-        M.scrollBar(panel, win, "an:roster", x + contentW + T.px(2), top, scrollW - T.px(2), h,
+        M.scrollBar(panel, win, "an:roster", x + contentW, top, scrollW, h,
             zs.scrollY, totalH, function(v) zs.scrollY = v end, { step = rowH })
     end
 
@@ -3176,7 +3176,7 @@ local function renderRanchAnimal(panel, win, x, y, w, h)
 
     needsScroll = totalContentH > bodyH
     if needsScroll then
-        ZeD.Molecules.scrollBar(panel, win, "an:detail", x + w - scrollW, bodyTop, scrollW - T.px(2), bodyH,
+        ZeD.Molecules.scrollBar(panel, win, "an:detail", x + w - scrollW, bodyTop, scrollW, bodyH,   -- (14u, flush: QA scroll bar audit)
             ds.scrollY, totalContentH, function(v) ds.scrollY = v end, { step = T.px(VITAL_ROW_H) })
     end
 
@@ -3423,7 +3423,7 @@ local function renderButcherOverview(panel, win, x, y, w, h)
     panel:clearStencilRect()
 
     if needsScroll then
-        ZeD.Molecules.scrollBar(panel, win, "an:butcher", x + contentW + T.px(2), rosterTop, scrollW - T.px(2), rosterH,
+        ZeD.Molecules.scrollBar(panel, win, "an:butcher", x + contentW, rosterTop, scrollW, rosterH,
             bs.scrollY, totalContentH, function(v) bs.scrollY = v end, { step = T.px(BROW_H) })
     end
 

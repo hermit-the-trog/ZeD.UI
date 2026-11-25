@@ -1653,6 +1653,8 @@ function ZeD_ItemCard:prerender()
                 self._sb.width  = T.sp.scrollbarW
                 self._sb.arrowH = T.sp.scrollbarW
                 self._sb.x      = self:getWidth() - T.sp.scrollbarW
+                -- lying over a tab at its right, the card draws its own right line inside its rect
+                self._sb.inRight = (self.overlayEdge == "right")
                 self._sb.y      = headH
                 self._sb.height = viewH
                 self._sb:setBarSize(viewH / contentH)
