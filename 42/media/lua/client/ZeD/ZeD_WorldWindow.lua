@@ -1215,8 +1215,10 @@ end
 -- cursor on success — getCell():setDrag()).
 local function _buildWorldBuildFocusables(win)
     if not (ZeD and ZeD.CraftingCore and ZeD.BuildingTab) then return {} end
-    return ZeD.CraftingCore.buildFocusables(win, win and win._buildState,
+    local els = ZeD.CraftingCore.buildFocusables(win, win and win._buildState,
         "build", "ZeD_BuildPins", ZeD.BuildingTab.startBuild)
+    if ZeD.BuildingTab.cardCancels then ZeD.BuildingTab.cardCancels(win, els) end
+    return els
 end
 
 -- Build panel-level focusables for a World tab (the worldTabContent zone).
@@ -3908,6 +3910,9 @@ local function _closeWorldWindow(w)
     if ZeD.MechanicsTab and ZeD.MechanicsTab.endLooks then
         pcall(ZeD.MechanicsTab.endLooks, w._playerObj or getSpecificPlayer(w.playerNum or 0))
     end
+    -- the build cursor the Build tab started goes with the window, as the game's build window's close clears
+    -- its cursor (ISBuildPanel.lua:405-407) (QA cb sweep, Nov 25 2026, B5)
+    if ZeD.BuildingTab and ZeD.BuildingTab.dropCursor then pcall(ZeD.BuildingTab.dropCursor, w.playerNum or 0) end
     -- unregisterWindow releases focus if this window holds it
     if ZeD and ZeD.Input and ZeD.Input.Focus then ZeD.Input.Focus.unregisterWindow(w) end
     w:removeFromUIManager()

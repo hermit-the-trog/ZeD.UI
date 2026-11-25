@@ -178,8 +178,10 @@ end
 --- actions are queued) and returns the list of items to put back (for CC.returnCraftInputs).
 --- seen (optional): items already moved for an earlier craft of the batch (a tool each craft
 --- shares); they are skipped and the ones moved here are added. (beast W25)
+--- The second return is every item moved here, kept or not: when the walk to the bench or the
+--- table then fails, no craft is queued and all of them go back (QA cb sweep, Nov 25 2026, C9).
 function CC.moveCraftInputs(playerObj, logic, seen)
-    local back = {}
+    local back, all = {}, {}
     pcall(function()
         if logic:getRecipe():isCanBeDoneFromFloor() then return end
         local data = logic:getRecipeData()
@@ -200,11 +202,12 @@ function CC.moveCraftInputs(playerObj, logic, seen)
             if item and item:getContainer() ~= inv and not (seen and seen[item]) then
                 if seen then seen[item] = true end
                 ISInventoryPaneContextMenu.transferIfNeeded(playerObj, item)
+                all[#all + 1] = item
                 if itemsToReturn:contains(item) then back[#back + 1] = item end
             end
         end
     end)
-    return back
+    return back, all
 end
 
 --- Queues the kept inputs CC.moveCraftInputs moved back to their containers (after the crafts).
@@ -212,6 +215,79 @@ end
 function CC.returnCraftInputs(playerObj, back)
     if not (back and #back > 0) then return end
     pcall(ISCraftingUI.ReturnItemsToOriginalContainer, playerObj, back)
+end
+
+-- ----------------------------------------------------------------------------
+-- A craft in progress (QA cb sweep, Nov 25 2026, C1 and C19). The game's craft window grays Craft
+-- while its craft runs and refuses a second press (ISWidgetHandCraftControl:startHandcraft asks
+-- isCraftActionInProgress). ZeD queues its own actions, so it keeps them on the window and Craft
+-- stays gray while any of them is still in the player's queue (waiting, walking or running): the
+-- inputs of a queued craft are not used until it ends, so a second press with materials for one
+-- passed the start check and queued a craft that ran its whole time and made nothing.
+-- ----------------------------------------------------------------------------
+
+--- Keeps the craft actions just queued on the window (win._craftQueued), for CC.craftBusy.
+function CC.trackCraftActions(win, actions)
+    if not (win and actions and #actions > 0) then return end
+    local list = win._craftQueued or {}
+    for i = 1, #actions do list[#list + 1] = actions[i] end
+    win._craftQueued = list
+end
+
+--- True while a craft ZeD queued is still in the player's action queue. The list empties itself
+--- once none is left.
+function CC.craftBusy(win, playerObj)
+    local list = win and win._craftQueued
+    if not list then return false end
+    local busy = false
+    pcall(function()
+        local q = ISTimedActionQueue.getTimedActionQueue(playerObj or win._playerObj)
+        if not (q and q.queue) then return end
+        for i = 1, #list do
+            if q:indexOf(list[i]) ~= -1 then busy = true; return end
+        end
+    end)
+    if not busy then win._craftQueued = nil end
+    return busy
+end
+
+--- Counts a craft in the use counts (Freq, Most used) when it starts, not at the press: a batch of
+--- three counts three, a craft the game refuses at its start counts none. (C19)
+local function countOnStart(target, action)
+    if target and target.player and target.name then
+        CC.incrementCraftCount(target.player, target.name, target.key or "ZeD_CraftCounts")
+    end
+end
+
+--- The start of a craft ZeD built itself (no chosen inputs). The game's own start asks
+--- canPerformCurrentRecipe only for chosen inputs (ISHandcraftAction:start), so a craft whose
+--- inputs were used up by the one before it ran its whole time and made nothing. Asked here the
+--- way the game's start asks it, and stopped the same way (forceStop) when it fails. (C1)
+function CC.checkedCraftStart(self)
+    if not self.force and not self.manualInputs then
+        local ok = true
+        pcall(function()
+            local l = HandcraftLogic.new(self.character, self.craftBench, self.isoObject)
+            l:setContainers(self.containers)
+            l:setRecipe(self.craftRecipe)
+            ok = l:canPerformCurrentRecipe() and true or false
+        end)
+        if not ok then
+            self:forceStop()
+            return
+        end
+    end
+    return ISHandcraftAction.start(self)
+end
+
+--- Readies a craft action ZeD queues: its use count goes up when it starts (countKey: the tab's
+--- key), and one built without chosen inputs asks the start check at its start.
+function CC.prepCraftAction(action, playerObj, recipeName, countKey)
+    if not action then return end
+    if action.setOnStart then
+        action:setOnStart(countOnStart, { player = playerObj, name = recipeName, key = countKey })
+    end
+    if not action.manualInputs then action.start = CC.checkedCraftStart end
 end
 
 --- An any-surface recipe in Hand mode: the table or counter it is made on, found as vanilla's
@@ -697,6 +773,7 @@ function CC.togglePin(win, recipeName, pinKey, stateKey, dirtyKey)
     for i, name in ipairs(pins) do
         if name == recipeName then
             table.remove(pins, i)
+            CC.setGameFavourite(win, recipeName, pinKey, false)   -- (C18)
             win[stateKey] = pins
             win[dirtyKey] = true
             CC.savePins(win, pinKey, stateKey)
@@ -706,12 +783,84 @@ function CC.togglePin(win, recipeName, pinKey, stateKey, dirtyKey)
 
     -- Add pin (FIFO eviction if at max)
     if #pins >= CC.MAX_PINS then
-        table.remove(pins, 1)
+        local gone = table.remove(pins, 1)
+        CC.setGameFavourite(win, gone, pinKey, false)   -- (else the game's flag pins it again: C18)
     end
     pins[#pins + 1] = recipeName
+    CC.setGameFavourite(win, recipeName, pinKey, true)   -- (C18)
     win[stateKey] = pins
     win[dirtyKey] = true
     CC.savePins(win, pinKey, stateKey)
+end
+
+-- ----------------------------------------------------------------------------
+-- The game's recipe favourites (QA cb sweep, Nov 25 2026, C18). The game keeps a favourite as a
+-- flag in the player's mod data, under BaseCraftingLogic.getFavouriteModDataString(recipe), and
+-- lists it first (ISRecipeScrollingListBox, the item menu). ZeD's pins were its own: a recipe the
+-- game held as a favourite was not in the Pinned group. The Craft tab's pins now take in the
+-- game's favourites, and a pin or unpin in ZeD sets the game's flag, as the game's star does.
+-- ----------------------------------------------------------------------------
+
+--- Pin keys whose pins are the game's favourites too (the Craft tab's).
+CC.GAME_FAV_PINS = { ZeD_CraftPins = true }
+
+--- Sets the game's favourite flag for recipeName, as the game's star does
+--- (ISWidgetTitleHeader: modData[favString] = true or false). Only for a key in CC.GAME_FAV_PINS.
+function CC.setGameFavourite(win, recipeName, pinKey, on)
+    if not (recipeName and pinKey and CC.GAME_FAV_PINS[pinKey] and win and win._playerObj) then return end
+    pcall(function()
+        local key = BaseCraftingLogic.getFavouriteModDataString(recipeName)
+        if key then win._playerObj:getModData()[key] = on and true or false end
+    end)
+end
+
+--- Adds to the pins every recipe of flatRecipes the game holds as a favourite (its flag true).
+--- They are not written to ZeD's own pin list until a pin changes; unpinning one clears the game's
+--- flag too. Returns true when a pin was added.
+function CC.mergeGameFavourites(win, pinKey, stateKey, flatRecipes)
+    if not (CC.GAME_FAV_PINS[pinKey] and win and win._playerObj and flatRecipes) then return false end
+    local ok0, md = pcall(function() return win._playerObj:getModData() end)
+    if not (ok0 and md) then return false end
+    local pins = win[stateKey] or {}
+    local have = {}
+    for _, n in ipairs(pins) do have[n] = true end
+    local added = false
+    -- (a pin taken in from the game's flag goes when the game's flag is cleared there; one ZeD
+    -- saved is the player's own and stays)
+    local merged = win[stateKey .. "Fav"] or {}
+    win[stateKey .. "Fav"] = merged
+    local saved = {}
+    for _, n in ipairs(md[pinKey] or {}) do saved[n] = true end
+    for i = #pins, 1, -1 do
+        local n = pins[i]
+        if merged[n] and not saved[n] then
+            local k = false
+            pcall(function() k = BaseCraftingLogic.getFavouriteModDataString(n) or false end)
+            if k and md[k] ~= true then
+                table.remove(pins, i)
+                have[n] = nil
+                merged[n] = nil
+                added = true
+            end
+        end
+    end
+    for _, entry in ipairs(flatRecipes) do
+        local key = entry._favKey
+        if key == nil then
+            -- (the game's string, asked once per recipe and kept on the catalog entry)
+            key = false
+            pcall(function() key = BaseCraftingLogic.getFavouriteModDataString(entry.name) or false end)
+            entry._favKey = key
+        end
+        if key and md[key] == true and not have[entry.name] then
+            pins[#pins + 1] = entry.name
+            have[entry.name] = true
+            merged[entry.name] = true
+            added = true
+        end
+    end
+    if added then win[stateKey] = pins end
+    return added   -- (true when the pins changed, added or taken away)
 end
 
 function CC.isPinned(win, recipeName, stateKey)
@@ -825,9 +974,9 @@ function CC.prebakeInputs(recipe)
                 -- items, so an input counted in uses (thread, glue, tape: a drainable item, not
                 -- isItemCount) keeps 1: one item may hold every use it needs. (beast W24)
                 local amount = 1
+                local usesBased = false   -- (kept on the def: the card's game count reads it, CC.gameInputCounts)
                 pcall(function()
                     if input:getResourceType() ~= ResourceType.Item then return end
-                    local usesBased = false
                     if not input:isItemCount() and okP and possible then
                         for j = 0, possible:size() - 1 do
                             local item = possible:get(j)
@@ -853,6 +1002,7 @@ function CC.prebakeInputs(recipe)
                     altCount   = altCount > 1 and altCount or 0,  -- 0 or 1 = specific item
                     tag        = tag,
                     amount     = amount,  -- items the input takes (beast W24)
+                    usesBased  = usesBased,  -- counted in uses: one item may hold every use it needs
                     inputRef   = input,  -- keep ref for alt enumeration
                 }
             end
@@ -934,6 +1084,30 @@ function CC.prebakeSkills(recipe)
         }
     end
     return skillDefs
+end
+
+--- The first required skill the player is short of, in the game's words ("Requires Carpentry Level 3", as the
+--- game's recipe header writes it, ISWidgetTitleHeader); nil when none is short or it cannot be read.
+--- (QA cb sweep, Nov 25 2026, B10: the card never named the skill)
+function CC.shortSkillText(recipe, playerObj)
+    if not (recipe and playerObj) then return nil end
+    local out = nil
+    pcall(function()
+        for i = 0, recipe:getRequiredSkillCount() - 1 do
+            local rs = recipe:getRequiredSkill(i)
+            local has = nil
+            if CraftRecipeManager and CraftRecipeManager.hasPlayerRequiredSkill then
+                has = CraftRecipeManager.hasPlayerRequiredSkill(rs, playerObj)
+            end
+            if has == nil then has = playerObj:getPerkLevel(rs:getPerk()) >= rs:getLevel() end
+            if not has then
+                out = getText("IGUI_CraftingWindow_Requires2") .. " " .. tostring(rs:getPerk():getName()) .. " "
+                    .. getText("IGUI_CraftingWindow_Level") .. " " .. tostring(rs:getLevel())
+                return
+            end
+        end
+    end)
+    return out
 end
 
 --- Resolve a recipe's category from script definition, with skill fallback.
@@ -1408,6 +1582,50 @@ function CC.gatherDetail(rd, playerObj, win, prefix)
     return containers
 end
 
+--- The card's have counts as the game's craft window counts them (QA cb sweep, Nov 25 2026, C4).
+--- The game's input widget shows logic:getInputCount(input) of / need (ISWidgetInput:updateValues):
+--- the items its logic fills the slot with, which leaves out what the game will not use (a
+--- favorite, a worn T-shirt, a dull knife, rotten bread, a No-craft item, a broken tool, each by
+--- the recipe's own flags). Counting every item of the type read 1/1 where the game said 0.
+--- logic: a HandcraftLogic with the containers and the recipe set (setRecipe fills the slots).
+--- Returns { [input index] = have } for item inputs; a slot counted in uses (thread, glue) gives
+--- its need when the game says it is covered, else 0. nil when there is no logic.
+function CC.gameInputCounts(logic, entry)
+    if not (logic and entry and entry.inputDefs) then return nil end
+    local counts = {}
+    for i, inp in ipairs(entry.inputDefs) do
+        local script = inp.inputRef
+        if script then
+            pcall(function()
+                if script:getResourceType() ~= ResourceType.Item then return end
+                if inp.usesBased then
+                    counts[i] = logic:isInputSatisfied(script) and (inp.amount or 1) or 0
+                else
+                    counts[i] = logic:getInputCount(script)
+                end
+            end)
+        end
+    end
+    return counts
+end
+
+--- Puts the game's counts (CC.gameInputCounts) on the card's rows and works out again how many
+--- slots are short; the row's status follows only where the card set it (not the game's list
+--- answer, a station row or a locked one), as CC.gatherDetail does. (C4)
+function CC.applyGameCounts(rd, counts)
+    if not (rd and counts and rd.ingredients) then return end
+    local missing = 0
+    for i, ing in ipairs(rd.ingredients) do
+        local c = counts[i]
+        if type(c) == "number" then ing.have = c end
+        if (ing.have or 0) < (ing.need or 1) then missing = missing + 1 end
+    end
+    rd.missingCount = missing
+    if rd.status ~= "station" and rd.status ~= "locked" and not rd.fromLogic then
+        rd.status = missing > 0 and "missing" or "craftable"
+    end
+end
+
 -- ============================================================================
 -- ALT ENUMERATION — the alternative items for one ingredient slot: what is in
 -- reach, grouped by type, then every other type the slot takes (the Owned
@@ -1553,6 +1771,19 @@ end
 -- Escape (the prompts' key hook asks, as for the map pop-out): an open recipe card, drawn within the last
 -- half second, closes and the game's pause menu stays shut (KISS #47). Registered under ZeD.EscapeTakers.
 CC._cardStates = {}   -- the states that had a card open
+-- (a state whose card was last drawn a while ago, its window shut or the card closed, is dropped, so a World window
+-- opened again and again does not keep every old state alive: QA's read, Nov 25 2026)
+local CARD_STALE_MS = 5000
+function CC.pruneCardStates(now)
+    local old = nil
+    for state in pairs(CC._cardStates) do
+        if not state.selected or not state._cardDrawnAt or now - state._cardDrawnAt > CARD_STALE_MS then
+            old = old or {}
+            old[#old + 1] = state
+        end
+    end
+    if old then for _, s in ipairs(old) do CC._cardStates[s] = nil end end
+end
 function CC.takeEscape()
     local now = getTimestampMs()
     local hit = nil
@@ -1969,7 +2200,10 @@ local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx, 
         if state.qty < 1 then state.qty = 1 end
         qty = state.qty
         -- (rd.canStart: the craft's own start check, false when it would refuse; the Craft tab sets it)
+        -- (rd.busy: a craft ZeD queued is still waiting or running; gray, as the game's Craft is while
+        -- its craft runs: QA cb sweep, Nov 25 2026, C1)
         canCraft = rd.status == "craftable" and rd.learned ~= false and maxQty > 0 and rd.canStart ~= false
+            and not rd.busy
     end
     -- the band: surface 2, the structure line, Craft / Build (primary) at the right
     local b = _bandBtns[1]
@@ -2745,6 +2979,23 @@ function CC.pickedCraftAction(playerObj, state, entry, bench, containers, used, 
     return action, theLogic
 end
 
+--- How many crafts the chosen ingredients cover, at most cap: the batch CC.startPickedCraft would
+--- queue, worked out the same way (one craft after another, each skipping the items the ones before
+--- it take). The game's Max counts only the chosen items (ISWidgetHandCraftControl: Max and the
+--- amount box read getPossibleCraftCount with the player's own picks); the band offered the
+--- automatic count, 5, then queued 3 with no word said (QA cb sweep, Nov 25 2026, C7).
+--- nil when nothing is chosen for the recipe.
+function CC.pickedCraftCount(playerObj, state, entry, bench, containers, surface, cap)
+    local picks = state and state.picks and entry and state.picks[entry.name]
+    if not (picks and hasAny(picks)) then return nil end
+    local used, n = {}, 0
+    for i = 1, math.max(1, cap or 1) do
+        if not CC.pickedCraftAction(playerObj, state, entry, bench, containers, used, surface) then break end
+        n = i
+    end
+    return n
+end
+
 -- The names (and the game's item scripts) of a recipe's mapped outputs for what is in reach, as
 -- vanilla's craft window names them in manual select (ISWidgetOutput:updateValues): a logic in
 -- manual select fills its slots from the containers (autoPopulateInputs, as vanilla's panel does),
@@ -2816,6 +3067,9 @@ function CC.startPickedCraft(win, state)
     local entry = state._selEntry
     local picks = state.picks and name and state.picks[name]
     if not (playerObj and entry and entry.name == name and entry.recipe and picks and hasAny(picks)) then return false end
+    -- a craft ZeD queued is still waiting or running: the press is taken and nothing is queued, as
+    -- the usual start refuses it (QA cb sweep, Nov 25 2026, C1)
+    if CC.craftBusy(win, playerObj) then return true end
 
     -- at a bench: still bound and carrying this recipe, as the usual start checks
     local bench = nil
@@ -2848,23 +3102,33 @@ function CC.startPickedCraft(win, state)
 
     -- inputs off the floor or out of a crate move into the inventory first, as vanilla's craft
     -- window moves them (before its walk); the kept ones go back after the crafts (beast W25)
-    local back, moved = {}, {}
+    local back, moved, all = {}, {}, {}
     for i = 1, #logics do
         if logics[i] then
-            for _, it in ipairs(CC.moveCraftInputs(playerObj, logics[i], moved)) do back[#back + 1] = it end
+            local b, a = CC.moveCraftInputs(playerObj, logics[i], moved)
+            for _, it in ipairs(b) do back[#back + 1] = it end
+            for _, it in ipairs(a) do all[#all + 1] = it end
         end
     end
 
-    -- walk to the bench, or to the any-surface recipe's table (beast W23)
+    -- walk to the bench, or to the any-surface recipe's table (beast W23). No way there: nothing is
+    -- queued and every input moved above goes back (QA cb sweep, Nov 25 2026, C9)
     local at = bench and bench.obj or surface
-    if at and ISEntityUI and ISEntityUI.WalkToEntity and not ISEntityUI.WalkToEntity(playerObj, at) then return true end
-    local queued = pcall(function()
-        for i = 1, #actions do ISTimedActionQueue.add(actions[i]) end
+    if at and ISEntityUI and ISEntityUI.WalkToEntity and not ISEntityUI.WalkToEntity(playerObj, at) then
+        CC.returnCraftInputs(playerObj, all)
+        return true
+    end
+    local queued = {}
+    pcall(function()
+        for i = 1, #actions do
+            -- (counted when each craft starts, not at the press: C19)
+            CC.prepCraftAction(actions[i], playerObj, name, state._countKey or "ZeD_CraftCounts")
+            ISTimedActionQueue.add(actions[i])
+            queued[#queued + 1] = actions[i]
+        end
     end)
     CC.returnCraftInputs(playerObj, back)
-    if queued then
-        CC.incrementCraftCount(playerObj, name, state._countKey or "ZeD_CraftCounts")
-    end
+    CC.trackCraftActions(win, queued)   -- (Craft stays gray while they are queued: C1)
 
     state.qty = 1
     state.filterDirty = true
@@ -3174,13 +3438,22 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
 
     -- Chip row: KNOWN/UNKNOWN, SURFACE, the craft time, the station chip
     local chipX = x + T.px(6)
-    -- In readOnly (Journal), show accessibility: learned AND has skill
-    local isAccessible = rd.learned and (rd.hasSkill ~= false)
     -- (QA's visual noise audit 30, Nov 20 2026: "Known" sat on every known recipe; only "not known" is news)
+    -- (QA cb sweep, Nov 25 2026, B10) "Unknown" only when the recipe is not known: one short of skill and needing
+    -- no learning wore it too, and the skill was never named. Outside the Journal (whose rows list the skills) the
+    -- first skill short is named in the game's own words ("Requires Carpentry Level 3", ISWidgetTitleHeader).
     local bw
-    if not isAccessible then
+    if rd.learned == false then
         bw = A.drawBadge(panel, ZeD.tr("UI_ZeD_Craft_BadgeUnknown"), chipX, curY, "danger")
         chipX = chipX + bw + T.px(4)
+    end
+    if rd.hasSkill == false and not (config and config.readOnly) then
+        local need = CC.shortSkillText(entry.recipe, playerObj)
+        if need then
+            need = CC.truncText(need, T.fontF3, math.max(T.px(40), contentW - (chipX - x) - T.px(6) - 2 * T.sp.badgePadX))
+            bw = A.drawBadge(panel, need, chipX, curY, "danger", nil, nil, true)
+            chipX = chipX + bw + T.px(4)
+        end
     end
 
     -- No amber Surface square: a table's recipe reads like any other, and the line under the rows
@@ -3403,6 +3676,7 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
     -- an open card is on screen this frame: Escape may close it (CC.takeEscape) (KISS #47)
     if state.selected then
         state._cardDrawnAt = getTimestampMs()
+        if not CC._cardStates[state] then CC.pruneCardStates(state._cardDrawnAt) end   -- (only when one is added)
         CC._cardStates[state] = true
     end
     local T = ZeD.T
@@ -3413,6 +3687,13 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
             state.pinsLoaded = true
             CC.loadPins(win, config.pinKey, "_" .. config.prefix .. "Pins")
             state.pins = win["_" .. config.prefix .. "Pins"] or {}
+        end
+        -- The game's favourites join the Craft tab's pins: at once, then every 2 s (a star set in the
+        -- game's own window, the item menu). (QA cb sweep, Nov 25 2026, C18)
+        if CC.GAME_FAV_PINS[config.pinKey or ""] and CC.due(win, "_" .. config.prefix .. "FavAt", 2000) then
+            if CC.mergeGameFavourites(win, config.pinKey, "_" .. config.prefix .. "Pins", data and data.flatRecipes) then
+                state.filterDirty = true
+            end
         end
         -- Sync pins from win state
         state.pins = win["_" .. config.prefix .. "Pins"] or {}
@@ -3997,6 +4278,17 @@ end
 -- list is the Journal's, prefix "jrecipe")
 local RO_CFG, FULL_CFG = { readOnly = true }, {}
 
+--- Scrolls the open category list just enough that its catIdx-th row is in view (C12).
+function CC.catScrollTo(state, catIdx)
+    local total = #(state.categoryList or {})
+    local off = state.catDropdownScroll or 0
+    if not catIdx then return end
+    if catIdx - 1 < off then off = catIdx - 1
+    elseif catIdx > off + DD_MAX_VIS then off = catIdx - DD_MAX_VIS end
+    off = math.max(0, math.min(math.max(0, total - DD_MAX_VIS), off))
+    state.catDropdownScroll = off
+end
+
 -- The open category list's rows as the controller's stops. B shuts the list; a choice or
 -- B brings the focus back to the select.
 local function catRowFocusables(state, prefix)
@@ -4006,23 +4298,31 @@ local function catRowFocusables(state, prefix)
     local rowH = T.px(DD_ROW_H)
     local scrollOff = state.catDropdownScroll or 0
     local elements = {}
-    local visCount = math.min(#cats - scrollOff, DD_MAX_VIS)
     local function shut()
         state.catDropdownOpen = false
         state.catDropdownScroll = 0
         state._gpReturnTo = "catDrop"
     end
-    for vi = 1, visCount do
-        local catIdx = scrollOff + vi
+    -- Every category is a stop, not only the 14 rows in view: one out of view sits where it would
+    -- be drawn, above or below the list, and landing on it scrolls the list to it. The stops were
+    -- the rows in view and only the wheel scrolled, so the pad never reached past the 14th of
+    -- B42's 24 categories (QA cb sweep, Nov 25 2026, C12). The list is the only zone while it is
+    -- open, so the rows out of view take no other zone's moves. A scroll changes the stops' key
+    -- (the World window's scrollKey reads catDropdownScroll) and they are laid out again, each in
+    -- its own place in the list, so the focus stays on the same category.
+    for catIdx = 1, #cats do
         local cat = cats[catIdx]
         if cat then
+            local vi = catIdx - scrollOff
             elements[#elements + 1] = {
                 x = geo.x, y = geo.y + (vi - 1) * rowH, w = geo.w, h = rowH,
                 id = prefix .. ":cat:" .. tostring(cat.id),
                 craftKind = "catRow",
                 journalKind = (prefix == "jrecipe") and "jrecipeCat" or nil,
                 catId = cat.id,
-                onFocus = function(w, el) end,
+                catIdx = catIdx,
+                offscreen = (vi < 1 or vi > DD_MAX_VIS) or nil,   -- (never a stop for another zone's move)
+                onFocus = function(w, el) CC.catScrollTo(state, el.catIdx) end,
                 onActivate = function(w, el)
                     state.activeCat = el.catId
                     state.filterDirty = true
@@ -4466,6 +4766,34 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
         end
         state._gpReturnTo = nil
     end
+    -- B with a recipe card open shuts the card (in the alternatives, leaves them first) and the
+    -- focus goes back to its row. With nothing to back out of, B fell to the controller's default,
+    -- stop the running action: B on the card cancelled the craft. The game's B shuts its craft
+    -- window and the craft goes on (QA cb sweep, Nov 25 2026, C13). Escape shuts the card for the
+    -- mouse and keys (CC.takeEscape). Only stops with no B of their own; a bound station's leave
+    -- (below) takes B once the card is shut.
+    if prefix == "craft" and state.selected then
+        for _, el in ipairs(elements) do
+            if not el.onCancel then
+                el.onCancel = function(w, _el) return CC.padBack(state) end
+                el.promptB = getText("UI_Close")
+            end
+        end
+    end
     if ZeD.Stations then ZeD.Stations.addLeaveCancel(elements, win, prefix) end
     return elements
+end
+
+--- The pad's B on the Craft tab while a card is open (C13): leaves the alternatives, else shuts
+--- the card and brings the focus back to the recipe's row. Never touches the action queue.
+function CC.padBack(state)
+    if state.altSlotName then
+        CC.exitAltMode(state)
+        return true
+    end
+    local name = state.selected
+    if not name then return true end   -- (stops a frame old: the card already shut; still never the craft)
+    CC.closeCraft(state)
+    state._gpReturnTo = "row:" .. tostring(name)
+    return true
 end

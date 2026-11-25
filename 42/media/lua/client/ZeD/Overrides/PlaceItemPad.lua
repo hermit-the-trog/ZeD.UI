@@ -171,9 +171,43 @@ wrapDoorPrompt()
 Events.OnGameBoot.Add(wrapDoorPrompt)
 Events.OnGameStart.Add(wrapDoorPrompt)
 
+-- ============================================================================
+-- A ON THE GAME'S BUILD CURSOR, ON A CONTROLLER (QA cb sweep, Nov 25 2026, B1).
+--
+-- The build cursor (ISBuildIsoEntity, the Build tab's and the game's own build
+-- window's) has the same gap as Place Item above: its joypad handler
+-- (ISBuildingObject:onJoypadPressButton) turns it with LB and RB and cancels it
+-- with B, but has no case for A, and DoTileBuilding's joypad branch never sets
+-- the build flag, though the prompt reads "A Build". QA proved it at 4K: A over
+-- a clear tile did nothing and nothing was queued.
+--
+-- Here A, with the tile valid (canBeBuild, which the cursor's isValid already
+-- reads false while blockBuild is set), sets the build flag, as the mouse's
+-- release does; the game's per-frame DoTileBuilding then runs tryBuild, its walk
+-- and its timed action. The other cursors (paint, wallpaper, furniture, destroy)
+-- have their own A and are left alone.
+-- ============================================================================
+local function applyBuild()
+    if not ISBuildIsoEntity or ISBuildIsoEntity._zedPadA then return end
+    ISBuildIsoEntity._zedPadA = true
+    local orig = ISBuildIsoEntity.onJoypadPressButton
+    function ISBuildIsoEntity:onJoypadPressButton(joypadIndex, joypadData, button)
+        if button == Joypad.AButton then
+            if self.canBeBuild and not self.blockBuild then self.build = true end
+            return
+        end
+        if orig then return orig(self, joypadIndex, joypadData, button) end
+    end
+    print("[ZeD] PlaceItemPad: A places with the game's build cursor on a controller")
+end
+
 -- (ISPlace3DItemCursor is server Lua, which loads with the save, after the client files and after
 -- OnGameBoot: the playtest found the wrap never on. It goes on when the game starts, or a player is made.)
 Events.OnGameBoot.Add(apply)
 Events.OnGameStart.Add(apply)
 Events.OnCreatePlayer.Add(apply)
 apply()
+Events.OnGameBoot.Add(applyBuild)
+Events.OnGameStart.Add(applyBuild)
+Events.OnCreatePlayer.Add(applyBuild)
+applyBuild()
