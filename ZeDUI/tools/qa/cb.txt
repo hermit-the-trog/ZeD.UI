@@ -1,6 +1,7 @@
 # ZeDUI/tools/qa/cb.txt (Nov 25 2026, QA): the World window's Crafting and Building tabs, the whole gamut, in the style of the Equipment and Thermal sweeps (et.txt). The Crafting map: ZeDUI/qa/audits/2026-11-25_map_crafting.md.
 #   cr_tab.lua  the Crafting tab: the list (Category, search, pins and the game's favourites C18, Show, recipe at hand C3, skill, learning), the card's counts against the game (C4), which item a craft takes (C5), Craft twice (C1) and a batch losing an input against the game's own batch (C2), batch counts (C7), inputs from the floor, a crate and a corpse and a failed walk (C9, C10), a grayed Craft (C6), a table 1 and 2 squares away and a pottery wheel bound, let go on window close, walking away and pad B (C8, C11), the pad end to end (C12, C13, C14), the 480 and 220 card and Large text (pictures cr_*)
 #   bd_tab.lua  the Building tab (written alongside)
+#   bd_b7_game.lua  B7 asked of the game: its own build window (not ZeD's tab), the cross placed 6 to 9 tiles from its materials (crate, floor): B7GAME lines and a NOTE to set beside bd_tab's
 # Each script puts back every thing, object, skill, recipe, cheat, setting and window it changed.
 # Run both sizes:
 #   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/cb.txt -Mode fullscreen4k -Report cb_4k
@@ -9,3 +10,4 @@ zedqa_prelude.lua | pre | timeout=120
 rt_kit.lua | rtk | timeout=60
 cr_tab.lua | cr_tab | timeout=2400
 bd_tab.lua | bd_tab | timeout=2400
+bd_b7_game.lua | bd_b7_game | timeout=900
