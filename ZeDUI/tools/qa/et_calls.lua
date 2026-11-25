@@ -47,7 +47,7 @@
 --           row (the list) and a belt box (the doll) detach it. A single click opens the card only after DOUBLE_MS.
 --           Pictures et_calls_wearmenu_list_<w>x<h>, et_calls_wearmenu_doll_<w>x<h>
 --   6 belt  Held and Belt folded: every belt slot, filled and empty, has its row, as many as the hotbar's availableSlot
---   7 both  a two-handed weapon in both hands: the list's SEC row keeps it as bothHands and draws "<name> (both hands)"
+--   7 both  a two-handed weapon in both hands: the list's SEC row keeps it as bothHands and draws "(both hands)" whole
 --           dimmed with its icon at alpha 0.4; the doll's data.offBoth is set and its Off box draws the icon at 0.35;
 --           with a one-handed weapon none of that. Pictures et_calls_bothhands_<list|doll>_<theme>_<w>x<h>
 --   8 card  the game's rule (Build 5b73df5b0): a one-handed knife in the main hand shows UNEQUIP, OFF HAND, DROP, MORE;
@@ -2274,7 +2274,9 @@ function S.bothList(T, it, two)
     local sec = S.slotDef(data, "SEC")
     local y0 = w and w._equipSlotYMap and w._equipSlotYMap.SEC
     local texts, texs = S.inBand(sp and sp.texts, y0, ZeD.T.rowH), S.inBand(sp and sp.texs, y0, ZeD.T.rowH)
-    local exp = ZeD.tr("UI_ZeD_Equip_BothHands", S.nm(it))
+    -- (Build 54f01e215: the words alone, "(both hands)", so a long name can't cut them; the dimmed icon is the weapon)
+    local exp = (ZeD.tr("UI_ZeD_Equip_BothHands", ""):gsub("^%s+", ""))
+    exp = (exp:gsub("%s+$", ""))
     local hit = nil
     for _, t in ipairs(texts) do if S.textMatch(t.s, exp) then hit = t end end
     local lab = two and "7 list, a two-handed weapon in both hands" or "7 list, a one-handed weapon in the main hand"
@@ -2282,7 +2284,8 @@ function S.bothList(T, it, two)
         Q.check(sec ~= nil and sec.bothHands == it and sec.item == nil, lab .. ": the SEC slot keeps it as bothHands (no thing of its own)",
             "bothHands " .. S.nm(sec and sec.bothHands) .. ", item " .. S.nm(sec and sec.item))
         local dc = ZeD.T.textDim or ZeD.T.textSec
-        Q.check(hit ~= nil and S.sameC(hit, dc), lab .. ": the SEC row draws \"" .. exp .. "\" (UI_ZeD_Equip_BothHands), dimmed",
+        -- (whole: a cut "..." form passed before and hid the words the director's call is about)
+        Q.check(hit ~= nil and tostring(hit.s) == exp and S.sameC(hit, dc), lab .. ": the SEC row draws \"" .. exp .. "\" (UI_ZeD_Equip_BothHands) whole, not cut, dimmed",
             "drawn in the row: " .. S.textsText(texts) .. (hit and ("; its colour " .. S.cText(hit) .. ", the dim text " .. S.cText(dc)) or ""))
         Q.check(S.alphaIn(texs, 0.4) ~= nil, lab .. ": the SEC row's icon is drawn at alpha 0.4", "the row's icons at alpha " .. S.alphas(texs))
     else
