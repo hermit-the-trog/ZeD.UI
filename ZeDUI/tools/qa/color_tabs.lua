@@ -281,10 +281,20 @@ function S.mkObj(sq, sprite, kinds)
 end
 function S.rmObj(c)
     if not (c and c.obj) then return end
-    pcall(function()
-        local sq = c.obj:getSquare() or c.sq
-        if sq then pcall(function() sq:transmitRemoveItemFromSquare(c.obj) end); sq:RemoveTileObject(c.obj) end
-    end)
+    -- (each way the game has, each in its own pcall: one that throws must not stop the next; then the square c was
+    -- laid on, in case the object's own square is nil by now)
+    local o = c.obj
+    for _, sq in ipairs({ (function() local q = nil; pcall(function() q = o:getSquare() end); return q end)(), c.sq }) do
+        if sq then
+            pcall(function() sq:transmitRemoveItemFromSquare(o) end)
+            pcall(function() sq:RemoveTileObject(o) end)
+            pcall(function() sq:getObjects():remove(o) end)
+            pcall(function() sq:getSpecialObjects():remove(o) end)
+            pcall(function() sq:RecalcProperties() end)
+        end
+    end
+    pcall(function() o:removeFromWorld() end)
+    pcall(function() o:removeFromSquare() end)
 end
 function S.objLeft(c)
     if not (c and c.obj) then return false end
@@ -1190,7 +1200,9 @@ function S.buildPutBack()
         Q.check(wornExtra == 0 and wornGone == 0, "put back: he wears what he wore", wornExtra .. " more, " .. wornGone .. " gone")
         local ol = 0
         for _, c in ipairs(S.objs) do if S.objLeft(c) then ol = ol + 1 end end
-        Q.check(ol == 0, "put back: the crate and every object laid are gone", ol .. " of " .. #S.objs .. " left")
+        local leftNames = {}
+        for _, c in ipairs(S.objs) do if S.objLeft(c) then leftNames[#leftNames + 1] = tostring(c.sprite) .. " (" .. tostring(c.types) .. ")" end end
+        Q.check(ol == 0, "put back: the crate and every object laid are gone", ol .. " of " .. #S.objs .. " left" .. ((#leftNames > 0) and (": " .. table.concat(leftNames, ", ")) or ""))
         Q.check(ZeD.currentBase == f.base and ZeD.currentAccent == f.accent and S.optVal(S.zopt("baseTheme")) == f.baseIdx
             and S.optVal(S.zopt("accentColor")) == f.accIdx, "put back: the theme and the accent as found (and their options)",
             tostring(ZeD.currentBase) .. " " .. tostring(ZeD.currentAccent) .. " (found " .. tostring(f.base) .. " " .. tostring(f.accent) .. ")")
