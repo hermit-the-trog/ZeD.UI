@@ -1,0 +1,11 @@
+# ZeDUI/tools/qa/et.txt (Nov 24 2026, QA): the Character window's Equipment and Thermal tabs, the whole gamut, in the style of the Health and loot sweeps (hg.txt, lv.txt). The Equipment map: ZeDUI/qa/audits/2026-11-24_map_equipment.md.
+#   eq_tab.lua  the Equipment tab: every body location in the List and Doll views, layers and the layer strip, UNEQUIP and DROP by mouse and pad (S1), the belt rows (ATTACH, DETACH, PUT BACK, S4, keys past 8, a holster taken off), the doll (empty slots, a hat on a hood S2, the D-pad, the bands), Defense against the game's getBodyPartClothingDefense, the columns and S6, garment states, the hands, Find, Worn and held, Lite, the menu's look, the pad end to end, seated DROP (pictures eq_*)
+#   th_tab.lua  the Thermal tab (written alongside)
+# Each script puts back every thing, setting and window it changed (eq_tab sets the character's own outfit aside and wears it again at the end).
+# Run both sizes:
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/et.txt -Mode fullscreen4k -Report et_4k
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/et.txt -Mode windowed -Width 1280 -Height 800 -Report et_deck
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+eq_tab.lua | eq_tab | timeout=1800
+th_tab.lua | th_tab | timeout=1800
