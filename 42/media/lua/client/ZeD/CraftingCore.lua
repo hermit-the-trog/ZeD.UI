@@ -3312,7 +3312,15 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     -- the first skill short, named on a chip row of its own: on the chip row beside Unknown and the time it was cut
     -- to "Req..." on the 480 card (QA cb sweep rerun, Nov 25 2026, B10)
     local needSkill = (rd.hasSkill == false and not config.readOnly) and CC.shortSkillText(entry.recipe, playerObj) or nil
-    if needSkill then chipH = chipH * 2 + T.px(4) end
+    -- (a line of its own under the chips, wrapped, never cut: as a chip it was still cut to "Req..." at the
+    -- found size on the 480 card, QA cb sweep rerun 2; wrapped to the card's width less the bar and the mark)
+    local skillLines, skillStep = nil, 0
+    if needSkill then
+        skillStep = ZeD.TM:getFontHeight(T.fontF2) + T.px(2)
+        skillLines = ZeD.Atoms.wrapText(needSkill, T.fontF2, math.max(T.px(40), w - T.sp.scrollbarW - T.px(24)))
+        if type(skillLines) ~= "table" then skillLines = { needSkill } end
+        chipH = chipH + T.px(4) + #skillLines * skillStep
+    end
     local inputsH = ROW_H + #(rd.ingredients or {}) * ROW_H  -- header + rows
     local outputsH = CC.outputsRepeatTitle(entry) and 0 or (ROW_H + #(entry.outputDefs or {}) * ROW_H)
     local actionH = 0   -- (the amount and Craft / Build live in the card's band, CC.renderBand)
@@ -3443,10 +3451,16 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         bw = A.drawBadge(panel, ZeD.tr("UI_ZeD_Craft_BadgeUnknown"), chipX, curY, "danger")
         chipX = chipX + bw + T.px(4)
     end
-    if needSkill then
-        -- (on the second chip row, the card's whole width: chipH holds both rows)
-        local need = CC.truncText(needSkill, T.fontF3, math.max(T.px(40), contentW - T.px(12) - 2 * T.sp.badgePadX))
-        A.drawBadge(panel, need, x + T.px(6), curY + T.px(26), "danger", nil, nil, true)
+    if skillLines then
+        -- (under the chip row: the danger square and the game's words, wrapped; chipH holds them)
+        local sq, f2 = T.px(6), T.fontF2
+        local sy = curY + T.px(26)
+        local fh = ZeD.TM:getFontHeight(f2)
+        A.drawStatusDot(panel, x + T.px(6), sy + math.floor((fh - sq) / 2), T.danger, sq)
+        local tc = T.text
+        for i, line in ipairs(skillLines) do
+            panel:drawText(line, x + T.px(18), sy + (i - 1) * skillStep, tc.r, tc.g, tc.b, tc.a or 1, f2)
+        end
     end
 
     -- No amber Surface square: a table's recipe reads like any other, and the line under the rows
@@ -3818,20 +3832,45 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
     -- never wider than the tab: on the half card (220u) the split's 240u list ran past its edge, and with it each
     -- row's pin star (QA cb sweep, Nov 25 2026, cr_tab case 10: 10 px out at 4K, 4 px at 1280x800)
     if listW > w then listW = w end
+    -- Too narrow for the two panes side by side (the half card, 220u): the card takes the list's place, as the
+    -- Equipment tab's item card does there, with a Back key over it to return to the list (Escape, the pad's B
+    -- and the row again close it too). Beside the list it lay off the tab and never showed (QA cb sweep, Nov 25
+    -- 2026, the half card's pictures).
+    local stacked = (splitFrac > 0) and w < T.px(CC.PANE_W_SPLIT) * 2
+    if stacked then listW, cardW = 0, w end
 
     -- Left pane: recipe list or alt list
-    if state.altSlotName then
-        CC.renderAltList(panel, x, curY, listW, panesH, state)
+    if listW > 0 then
+        if state.altSlotName then
+            CC.renderAltList(panel, x, curY, listW, panesH, state)
+        else
+            CC.renderRecipeList(panel, x, curY, listW, panesH, state, config, data, win._playerObj)
+        end
     else
-        CC.renderRecipeList(panel, x, curY, listW, panesH, state, config, data, win._playerObj)
+        state._listGeo = nil
     end
 
     -- Right pane: craft card (only when split > 0)
     if cardW > 0 and selRd then
         local cardX = x + listW
-        -- Vertical divider between panes
-        panel:drawRect(cardX, curY, T.px(1), panesH, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
-        CC.renderCraftCard(panel, cardX + T.px(1), curY, cardW - T.px(1), panesH, state, config, selRd, win._playerObj)
+        local cardY, cardH = curY, panesH
+        if stacked then
+            -- the Back key's row over the card (the half card's stacked view)
+            local backH = T.buttonH + T.px(8)
+            local label = ZeD.tr("UI_ZeD_CtxMenu_Back")
+            local bw = M.buttonW(label)
+            local bx, by = x + T.px(6), curY + T.px(4)
+            M.drawButton(panel, bx, by, bw, T.buttonH, label, "default", false, nil,
+                { hover = ZeD.Atoms.mouseIn(panel, bx, by, bw, T.buttonH) })
+            state.zones[#state.zones + 1] = { type = "cardBack", x = bx, y = by, w = bw, h = T.buttonH }
+            ZeD.Atoms.drawDividerH(panel, x, curY + backH - T.px(1), w, true)
+            cardY, cardH = curY + backH, panesH - backH
+            CC.renderCraftCard(panel, cardX, cardY, cardW, cardH, state, config, selRd, win._playerObj)
+        else
+            -- Vertical divider between panes
+            panel:drawRect(cardX, curY, T.px(1), panesH, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
+            CC.renderCraftCard(panel, cardX + T.px(1), curY, cardW - T.px(1), panesH, state, config, selRd, win._playerObj)
+        end
     end
 
     -- (Nov 14 2026, punch list 198: the panes' own clips leave their area one stencil level up when they clear
@@ -4093,6 +4132,11 @@ function CC.onClick(state, config, win, x, y, playerObj)
 
             if zone.type == "detailIcon" then
                 CC.openPreview(win, state, playerObj)
+                return true
+
+            elseif zone.type == "cardBack" then
+                -- the half card's stacked card: back to the list (the card closes, as Escape and B close it)
+                CC.closeCraft(state)
                 return true
 
             elseif zone.type == "recipeRow" then

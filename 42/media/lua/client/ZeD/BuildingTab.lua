@@ -478,6 +478,43 @@ function ZeD.BuildingTab.startBuild(win, state)
         end
         pcall(function() logic:addEventListener("onStopCraft", onStop, a) end)
         pcall(function() logic:addEventListener("onUpdateContainers", onContainers, a) end)
+        -- (B7, QA cb sweep, Nov 25 2026) A cross placed 8 tiles from the crate holding its materials ran its build
+        -- to the end and made nothing: the logic's containers, read again where the player stands, no longer held
+        -- the crate when the build ended. The craft window's rule, as CC.moveCraftInputs does for crafts: the
+        -- recipe's inputs not on the player are moved into the inventory before the walk, so the build has them;
+        -- the kept ones (tools) go back after it, and every moved one goes back when the walk fails (no build).
+        buildEntity.tryBuild = function(self, bx, by, bz)
+            local keep, all = {}, {}
+            pcall(function()
+                local lg = self.buildPanelLogic
+                if not lg then return end
+                lg:canPerformCurrentRecipe()   -- (fills the recipe's inputs from the containers)
+                local data = lg:getRecipeData()
+                if not data then return end
+                local items = data:getAllInputItems()
+                local back = data:getAllPutBackInputItems()
+                local inv = playerObj:getInventory()
+                for i = 0, items:size() - 1 do
+                    local it = items:get(i)
+                    if it and it:getContainer() ~= inv then
+                        ISInventoryPaneContextMenu.transferIfNeeded(playerObj, it)
+                        all[#all + 1] = it
+                        if back:contains(it) then keep[#keep + 1] = it end
+                    end
+                end
+            end)
+            local q = ISTimedActionQueue.getTimedActionQueue(playerObj)
+            local before = (q and q.queue) and #q.queue or 0
+            ISBuildIsoEntity.tryBuild(self, bx, by, bz)
+            local built = false
+            local after = q and q.queue
+            if after then
+                for i = math.max(1, before), #after do
+                    if after[i] and after[i].Type == "ISBuildAction" then built = true end
+                end
+            end
+            if #all > 0 then CC.returnCraftInputs(playerObj, built and keep or all) end
+        end
         _active[pn] = a
 
         getCell():setDrag(buildEntity, pn)
