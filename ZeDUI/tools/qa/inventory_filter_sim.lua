@@ -4,9 +4,11 @@
 -- runs them on stub panels.
 --   NAME      the typed text matches names holding it, any case ("can": Canned Corn, Can Opener, Candle)
 --   CATEGORY  a chip keeps one category; several chips widen; text and chips together narrow
---   DIM       the rows stay (the model is the same with or without a filter); a row that does not match is drawn
---             faded (a rect at DIM_A), one that matches is not, the matched letters underlined; the row the
---             controller is on never fades; a category row with nothing matching fades
+--   DIM       the built model is the same with or without a filter (the list draws IF.view of it, which leaves
+--             out what does not match since loot KISS call 7, Nov 24 2026: loot_calls_card_sim.lua); the row marks:
+--             a row that does not match is drawn faded (a rect at DIM_A: left for a stack kept by a renamed thing
+--             in it), one that matches is not, the matched letters underlined; the row the controller is on never
+--             fades; a category row with nothing matching fades
 --   COUNT     items, not rows ("8 of 50": a stack of 4 counts 4); "Nothing matches"; the plain count when idle
 --   CLEAR     Clear empties text and chips and keeps the bar open; the Filter button shuts and clears
 --   SAVED     the filter is written to every container the window shows (by its key), taken back by a new window
@@ -266,7 +268,7 @@ IF.setQuery(S, "can")
 local ME = model(CHAR, { ["Base.CannedCorn"] = true, ["Base.Bandage"] = true })
 local M0 = model(CHAR, { ["Base.CannedCorn"] = true, ["Base.Bandage"] = true })
 frame(charP, false, { ME })
-check("DIM: the rows are the same with the filter on (nothing hidden)", #ME.flatItems == #M0.flatItems, #ME.flatItems .. " vs " .. #M0.flatItems)
+check("DIM: the built model is the same with the filter on (IF.view hides, call 7)", #ME.flatItems == #M0.flatItems, #ME.flatItems .. " vs " .. #M0.flatItems)
 local fr = charP._fres
 check("DIM: the list knows the filter narrows", fr ~= nil and fr.active)
 local dimmed, bright, underlined = 0, 0, 0

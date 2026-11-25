@@ -1210,8 +1210,9 @@ end
 -- ---------------------------------------------------------------------------
 -- The narrow card's header verbs: its main verb and MORE (everything else is in MORE's menu), with Grab before
 -- them when the thing is in the world's container (Nov 14 2026, punch list 227, the design lead: "the top two
--- options ... up there for controller"; Grab is not one of the two). Grab gives way when the three would not fit
--- beside the close key (drawCardBackBar's compact sizes; X on the row still grabs).
+-- options ... up there for controller"; Grab is not one of the two). When the three would not fit
+-- beside the close key (drawCardBackBar's compact sizes), Grab stays and the main verb goes into More instead: the
+-- thing is not his yet, so Grab is the button he needs (loot KISS call 4, the director, Nov 24 2026).
 -- ---------------------------------------------------------------------------
 local function compactVerbs(verbs, w)
     local primary
@@ -1230,7 +1231,13 @@ local function compactVerbs(verbs, w)
         for _, v in ipairs({ grab, out[1], out[2] }) do
             need = need + ZeD.TM:MeasureStringX(T.fontF3, ZeD.btnCase(v.label or "")) + pad * 2 + gap
         end
-        if need <= room then table.insert(out, 1, grab) end
+        if need <= room then
+            table.insert(out, 1, grab)
+        else
+            -- no room for all three: Grab and More stay, and the main verb goes into More (its menu is the item's
+            -- whole context menu, which holds it) (loot KISS call 4, the director, Nov 24 2026)
+            out = moreV and { grab, moreV } or { grab }
+        end
     end
     return out
 end
