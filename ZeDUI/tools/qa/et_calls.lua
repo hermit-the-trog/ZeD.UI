@@ -2587,13 +2587,29 @@ function S.dropLeg(T, D)
     -- (a few frames for the doll to draw at the new scroll: its boxes and clip are set while it draws, so a box read
     -- the frame after the scroll still has the old place; then, if the box sits outside the doll's clip, the other end)
     S.waitIdle(8)
+    -- the hand boxes sit between the figure and the Defense block, so neither end of the scroll may show them: read the
+    -- box at the top (y0) and at the bottom (y1); the span is y0 - y1, and the scroll that centres the box follows
     S.step(2, function()
+        L.y0 = nil
         if T.off or not L.it then return end
         local w = RT.cw()
         local r, c = S.rect(D.box), w and w._equipDollClip
         if r and c and not (r.y >= c.y and r.y + r.h <= c.y + c.h) and w._equipScroll and w._equipScroll.visible then
+            L.y0 = r.y
             pcall(function() w._equipScroll:setScrollPos(1) end)
         end
+    end)
+    S.waitIdle(8)
+    S.step(2, function()
+        if T.off or not L.it or not L.y0 then return end
+        local w = RT.cw()
+        local r, c = S.rect(D.box), w and w._equipDollClip
+        if not (r and c) then return end
+        local span = L.y0 - r.y
+        if span <= 0 then return end
+        local off = L.y0 - (c.y + math.floor((c.h - r.h) / 2))
+        local pos = math.max(0, math.min(1, off / span))
+        pcall(function() w._equipScroll:setScrollPos(pos) end)
     end)
     S.waitIdle(8)
     S.wait(10, 120, function() return T.off or not L.it or (S.eqReady("doll") and S.rect(D.box) ~= nil) end, function(ok)
