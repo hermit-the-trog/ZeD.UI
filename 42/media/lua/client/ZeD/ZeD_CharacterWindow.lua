@@ -2321,6 +2321,13 @@ local function _equipSlotOnActivate(w, el)
         }
     end
 end
+-- A on an empty slot (a list row or a doll box): its list of what fits, at the slot (the director's call 5)
+local function _equipEmptyOnActivate(w, el)
+    local p = w._itemDrawerPanel
+    local ax = (p and p:getAbsoluteX() or 0) + (el.x or 0) + math.floor((el.w or 0) / 2)
+    local ay = (p and p:getAbsoluteY() or 0) + (el.y or 0) + (el.h or 0)
+    ZeD.EquipmentTab.openWearMenu(w, el.slotType, ax, ay)
+end
 local function _equipSlotOnContextMenu(w, el)
     -- Gamepad X opens the same ZeD context menu RMB does
     -- (parity with inv-row context menu pattern). Anchored at the
@@ -2644,8 +2651,8 @@ local function _buildEquipmentFocusables(win)
         end
     end
 
-    -- The doll's empty slots: stops for the pad so moves keep to its columns
-    -- and rows; nothing to open (no onActivate).
+    -- The doll's empty slots, and the list's empty rows: stops for the pad (the doll's moves keep to its
+    -- columns and rows); A opens the list of what fits (the director's call 5, Nov 25 2026)
     for _, z in ipairs((not finding) and win and win._equipDollEmpty or {}) do
         elements[#elements + 1] = {
             x = z.x, y = z.y, w = z.w, h = z.h,
@@ -2653,6 +2660,17 @@ local function _buildEquipmentFocusables(win)
             onFocus = _equipStopOnFocus,
             onDpadDir = _equipDollDpad,
             dpadExits = true,   -- (Up / Down and the doll's outer edge say false: the D-pad leaves)
+            onActivate = _equipEmptyOnActivate,
+        }
+    end
+    for _, z in ipairs((not finding) and win and win._equipListEmpty or {}) do
+        elements[#elements + 1] = {
+            x = z.x, y = z.y, w = z.w, h = z.h,
+            id = "equipslot:" .. z.type, slotType = z.type,
+            onFocus = _equipStopOnFocus,
+            onDpadDir = _equipDollDpad,
+            dpadExits = true,
+            onActivate = _equipEmptyOnActivate,
         }
     end
 
@@ -5857,6 +5875,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 -- selects (the item card); moved off, it is the inventory's drag
                 -- (EquipmentTab.pressSlot and its siblings below).
                 if ZeD.EquipmentTab.pressSlot(win, self, x, y) then return true end
+                -- an empty slot: its list of what fits, on the release over it (as ATTACH's: the director's call 5)
+                local ez = ZeD.EquipmentTab.emptyAt(win, x, y)
+                if ez then win._wearPress = ez.type; return true end
             end
             -- Journal header: the Page box opens its list; the open list takes every click
             -- (the pages were once a sub-tab strip, hence _journalSubTab)
@@ -5996,6 +6017,16 @@ function ZeD_CharacterWindow.toggle(playerNum)
     end
 
     drawer.onMouseUp = function(self, x, y)
+        -- An empty slot pressed: its list, if released over the same slot
+        local wp = win._wearPress
+        if wp then
+            win._wearPress = nil
+            local ez = ZeD.EquipmentTab.emptyAt(win, x, y)
+            if ez and ez.type == wp then
+                ZeD.EquipmentTab.openWearMenu(win, wp, self:getAbsoluteX() + ez.x + math.floor(ez.w / 2), self:getAbsoluteY() + ez.y + ez.h)
+            end
+            return true
+        end
         -- A belt row's button: run its verb if released over the button pressed
         local pr = win._beltPress
         if pr then
@@ -6028,6 +6059,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
     drawer.onMouseUpOutside = function(self, x, y)
         win._beltPress = nil
+        win._wearPress = nil
         -- Equipment row drag released outside the drawer: the drop
         if ZeD.EquipmentTab.dragRelease(win, self) then return true end
         -- Equipment column drag release (outside panel)

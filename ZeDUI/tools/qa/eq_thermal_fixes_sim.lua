@@ -115,7 +115,7 @@ if dsrc then
         check("DROP: the game's reason", v.offHelp == "T:ContextMenu_DropFromVehicle")
     end
 end
-check("DROP: the equipped card uses it", has(ICO, "            dropVerb(playerObj),"))
+check("DROP: the equipped card uses it", has(ICO, "out[#out + 1] = dropVerb(playerObj)"))
 check("DROP: the bag card uses it", has(ICO, "verbs[#verbs + 1] = dropVerb(playerObj)"))
 
 print("-- COLS")

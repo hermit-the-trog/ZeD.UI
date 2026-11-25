@@ -323,7 +323,7 @@ function D.gather(p, pn, bands)
     end
     out.main = call(p, "getPrimaryHandItem")
     local off = call(p, "getSecondaryHandItem")
-    if off ~= out.main then out.off = off end
+    if off ~= out.main then out.off = off elseif off then out.offBoth = off end   -- (a two-handed weapon: the director's call 7)
     local B = ZeD.Belt
     if B and B.slots then
         local ok, s = pcall(B.slots, pn or 0)
@@ -813,11 +813,25 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         local fd = win._findDollRes
         if fd and not fd.hit[key] then ZeD.TabFind.dim(panel, bx, by, b, b + win._findDollLabelH) end
         win._equipSlotYMap[key] = by
+        -- the hands' boxes take a weapon's drop (takeDrop: "main" / "off", the director's call 9)
+        if key == "doll:main" or key == "doll:off" then slotBox(rects, bx, by, b, b).id = key:sub(6) end
         if item then
             local zb = slotBox(zones, bx, by, b, b); zb.type, zb.item = key, item
             itemTip(panel, win, item, bx, by, b, over, foc)
         elseif not beltSlot then
             slotBox(empties, bx, by, b, b).type = key
+            if key == "doll:off" and data.offBoth then
+                -- the main hand's two-handed weapon, dimmed, "both hands" (the director's call 7)
+                local tex = itemTex(data.offBoth)
+                local isz = math.floor(b * 36 / 58)
+                if tex then panel:drawTextureScaledAspect(tex, bx + math.floor((b - isz) / 2), by + math.floor((b - isz) / 2), isz, isz, 0.35, 1, 1, 1) end
+                if over or foc then
+                    hint = { key = key, text = ZeD.tr("UI_ZeD_Equip_BothHands", call(data.offBoth, "getDisplayName") or "?"),
+                             x = bx, y = by, w = b, now = not over }
+                end
+            elseif over or foc then
+                hint = { key = key, text = ZeD.tr("UI_ZeD_Doll_EmptyHint", label), x = bx, y = by, w = b, now = not over }
+            end
         elseif beltSlot then
             -- an empty belt slot: A / a click opens its attach list (the list's ATTACH)
             local fid = "belt:" .. tostring(beltSlot.i)
@@ -1072,6 +1086,17 @@ function D.takeDrop(pn, items)
     local hit
     for _, r in ipairs(doll and win._equipDollAll or {}) do
         if inZone(r, mx, my) then hit = r; break end
+    end
+    -- a weapon on the Main or Off box goes to that hand (the director's call 9, Nov 25 2026)
+    if hit and (hit.id == "doll:main" or hit.id == "doll:off" or hit.id == "main" or hit.id == "off") then
+        local main = (hit.id == "doll:main" or hit.id == "main")
+        for _, item in ipairs(items) do
+            if instanceof(item, "HandWeapon") then
+                ZeD.EquipmentTab.toHand(item, pn, main)
+                win._equipDollTimer = 99
+                return true
+            end
+        end
     end
     if hit then
         local p = getSpecificPlayer(pn)
