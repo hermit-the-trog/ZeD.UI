@@ -359,10 +359,11 @@ do
     check("SKILL: Unknown is drawn only when the recipe is not known", has(CCS, "if rd.learned == false then\n        bw = A.drawBadge(panel, ZeD.tr(\"UI_ZeD_Craft_BadgeUnknown\")"))
     check("SKILL: the old rule (Unknown for short of skill) is gone", not has(CCS, "local isAccessible = rd.learned and (rd.hasSkill ~= false)"))
     check("SKILL: the skill chip, outside the Journal", has(CCS, "local needSkill = (rd.hasSkill == false and not config.readOnly) and CC.shortSkillText(entry.recipe, playerObj) or nil"))
-    check("SKILL: on a chip row of its own, the card's width (the rerun: it was cut to Req...)", has(CCS, "if needSkill then chipH = chipH * 2 + T.px(4) end")
-        and has(CCS, "A.drawBadge(panel, need, x + T.px(6), curY + T.px(26), \"danger\", nil, nil, true)"))
     check("HALF: on a tab too narrow for two panes the card takes the list's place, with Back", has(CCS, "local stacked = (splitFrac > 0) and w < T.px(CC.PANE_W_SPLIT) * 2")
         and has(CCS, "if stacked then listW, cardW = 0, w end") and has(CCS, 'type = "cardBack"') and has(CCS, 'elseif zone.type == "cardBack" then'))
+    check("B7: the build's inputs move into the inventory before the walk, the kept ones back after", has(readFile(Z .. "BuildingTab.lua"), "buildEntity.tryBuild = function(self, bx, by, bz)")
+        and has(readFile(Z .. "BuildingTab.lua"), "if #all > 0 then CC.returnCraftInputs(playerObj, built and keep or all) end"))
+    check("B10: the short skill on a wrapped line of its own, never cut", has(CCS, "skillLines = ZeD.Atoms.wrapText(needSkill, T.fontF2,") and not has(CCS, "CC.truncText(needSkill"))
     check("STAR: the split list never wider than the tab (half card, cr_tab case 10)", has(CCS, "if listW > w then listW = w end"))
     check("FACE: the preview's Build reads the facing at the press", has(readFile(Z .. "ObjectCardPreview.lua"), "o.state._buildFace = { name = tc.entry.name, nSprite = NSPRITE_OF[fc.idx] }"))
 end
