@@ -308,6 +308,7 @@ function CT.takeAll(playerObj, src, dest)
         return
     end
     CT.moveItems(playerObj, items, dest)
+    if ZeD.SmartAttach then ZeD.SmartAttach.after(playerObj, items) end   -- (smart attach, the director, Nov 24 2026)
 end
 
 --- Transfer all from src into dest (walks to dest first unless it is the floor).
@@ -402,6 +403,21 @@ local function transferDest(content)
 end
 CT.transferDest = transferDest
 
+--- True when dest can't take these things: it refuses one of them, or their weight (the ones not in it already) does
+--- not fit. The drag chip's own test (InventoryRenderer.dragNoRoom); the floor has no limit here.
+--- (loot KISS call 6, the director, Nov 24 2026)
+function CT.noRoom(playerObj, items, dest)
+    if not (playerObj and dest and items) or isFloor(dest) then return false end
+    local total = 0
+    for _, item in ipairs(items) do
+        if item:getContainer() ~= dest then
+            if not dest:isItemAllowed(item) then return true end
+            total = total + (item:getUnequippedWeight() or 0)
+        end
+    end
+    return total > 0 and not dest:hasRoomFor(playerObj, total)
+end
+
 --- (Nov 14 2026, punch list 223: the controller's X on a row is the game's grab, ISInventoryPane:doGrabOnJoypadSelected)
 --- The items go to the other window's container by the band's own move (CT.moveItems: the game's transfer actions,
 --- the floor's rules, a gate's refusal). From the World window: walk to the container first, as Take does, and a
@@ -410,7 +426,18 @@ function CT.moveToOther(content, items)
     local playerObj = content and content._playerObj
     local dest = content and otherInventory(content)
     if not (playerObj and dest and items and #items > 0) then return false end
-    if content._ccSide ~= "char" then return CT.grabItems(playerObj, items, dest) end
+    if playerObj.isAsleep and playerObj:isAsleep() then return false end   -- (both moves below refuse asleep too)
+    -- (loot KISS call 6, the director, Nov 24 2026) a bag that can't take them: "No room" over his head, nothing moves.
+    -- A heavy thing alone out of the world goes into the hands, not the bag, so it is not asked.
+    local heavyGrab = content._ccSide ~= "char" and #items == 1 and isForceDropHeavyItem and isForceDropHeavyItem(items[1])
+    if not heavyGrab and CT.noRoom(playerObj, items, dest) then
+        if ZeD.Bubbles and ZeD.Bubbles.note then
+            pcall(ZeD.Bubbles.note, playerObj:getPlayerNum(), ZeD.tr("UI_ZeD_Drag_NoRoom"), "bad")
+        end
+        CT.lastNoRoom = getTimestampMs and getTimestampMs() or 0   -- (QA reads it: when pad X last said No room)
+        return false
+    end
+    if content._ccSide ~= "char" then local ok = CT.grabItems(playerObj, items, dest); if ok and ZeD.SmartAttach then ZeD.SmartAttach.after(playerObj, items) end; return ok end   -- (smart attach, the director, Nov 24 2026)
     if playerObj.isAsleep and playerObj:isAsleep() then return false end
     CT.moveItems(playerObj, items, dest)
     return true
@@ -718,6 +745,7 @@ function CT.lootAll(playerObj, src, d)
         return
     end
     CT.moveItems(playerObj, items, d)
+    if ZeD.SmartAttach then ZeD.SmartAttach.after(playerObj, items) end   -- (smart attach, the director, Nov 24 2026)
 end
 
 --- The words of the Loot all buttons (the game's, sentence case): the band's and the list heading's. (KISS #18)

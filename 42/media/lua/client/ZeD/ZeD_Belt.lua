@@ -2385,8 +2385,10 @@ end
 -- round set apart at the front
 function ZeD_BeltHUD:_drawAmmo(t, a)
     local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
-    local s2 = T.surf2
-    self:drawRect(t.x, t.y, t.w, t.h, 0.95, s2.r, s2.g, s2.b)
+    -- the white block, as every other box on the row (WHITE BLOCKS; the director, Nov 24 2026: the ammo tab "did not
+    -- receive the updated background and framing"): its hard shadow, then the paper
+    blockShadow(self, t.x, t.y, t.w, t.h, false)
+    self:drawRect(t.x, t.y, t.w, t.h, 1, PAPER.r, PAPER.g, PAPER.b)
     -- (the words and rounds: the part of the tab out from under the circle)
     local b = { x = t.cx or t.x, y = t.y, w = t.x + t.w - (t.cx or t.x), h = t.h }
     local ink = B.ammoInk(a)
@@ -2408,22 +2410,20 @@ function ZeD_BeltHUD:_drawAmmo(t, a)
     local cf = T.fontF3
     local ch = tm:getFontHeight(cf)
     local cx, cy = b.x + T.px(4 + AMMO_ICON + 6), b.y + math.floor((topH - ch) / 2)
-    local tc = ink.text
+    local tc = INK   -- (ink on the paper; ammoInk's text is for a dark ground)
     self:drawText(count, cx, cy, tc.r, tc.g, tc.b, tc.a or 1, cf)
     if ink.mark then
         A.drawStatusDot(self, cx + tm:MeasureStringX(cf, count) + T.px(4), cy + math.floor((ch - T.px(6)) / 2), ink.mark, T.px(6))
     end
-    local f5, dc = T.fontF5, T.textDim
+    local f5, dc = T.fontF5, INK_DIM   -- (what is carried: dimmed ink, as an empty slot's name)
     local f5h = tm:getFontHeight(f5)
     local lines = s2w and 2 or 1
     local ly = b.y + math.floor((topH - f5h * lines) / 2)
     local rx = b.x + b.w - T.px(5)
     A.drawTextRight(self, s1, rx, ly, f5, dc)
     if s2w then A.drawTextRight(self, s2w, rx, ly + f5h, f5, dc) end
-    -- the outline, the hands' own (two units, T.frameS): the tab reads as part of the gun's circle
-    local fs, p1 = T.frameS or T.borderS, T.px(1)
-    self:drawRectBorder(t.x, t.y, t.w, t.h, fs.a or 1, fs.r, fs.g, fs.b)
-    self:drawRectBorder(t.x + p1, t.y + p1, t.w - 2 * p1, t.h - 2 * p1, fs.a or 1, fs.r, fs.g, fs.b)
+    -- the block's one-unit ink edge, the hands' ring's own weight: the tab reads as part of the gun's circle
+    inkEdge(self, t.x, t.y, t.w, t.h)
     -- the rounds, inside the strip's frame and a pixel clear of it
     local bw = T.line(T.borderW)
     local ix, iy, iw, ih = sx + bw, sy + bw, sw - 2 * bw, stripH - 2 * bw
