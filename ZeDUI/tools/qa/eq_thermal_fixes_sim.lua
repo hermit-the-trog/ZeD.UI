@@ -85,6 +85,12 @@ check("PIN: jacket taken off, sweater shown: closes", closes("doll:torso", "doll
 check("PIN: layer strip to the sweater, jacket still on: stays", not closes("doll:torso", "doll:torso", "jacket", "sweater", true))
 check("PIN: a new slot: stays", not closes("doll:torso", "doll:hands", "jacket", "ring", false))
 
+-- the pin is fresh on each opening: the selection-change block clears it (QA eq_tab 8)
+do
+    local blk = cut(ET, "if win._equipSelected ~= win._equipSelPrev then", "\n    end\n")
+    check("PIN: a new opening (or the list between) clears the pin", blk ~= nil and has(blk, "win._equipPinKey, win._equipPinItem = nil, nil"))
+end
+
 print("-- WEAR")
 check("WEAR: the doll's drop uses onWearItems", has(ED, "ISInventoryPaneContextMenu.onWearItems({ item }, pn)"))
 check("WEAR: no direct wearItem left on the drop", not has(ED, "ISInventoryPaneContextMenu.wearItem(item, pn)"))
