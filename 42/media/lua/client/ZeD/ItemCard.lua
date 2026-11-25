@@ -1078,6 +1078,7 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
         local CT = ZeD.ContainerControls
         if CT and CT.grabItems then
             CT.grabItems(player, items, CT.takeDest and CT.takeDest(player) or player:getInventory())   -- (the bag on show)
+            if ZeD.SmartAttach then ZeD.SmartAttach.after(player, items) end   -- (smart attach, the director, Nov 24 2026)
         elseif CM.onGrabItems then
             CM.onGrabItems(items, playerNum)
         end

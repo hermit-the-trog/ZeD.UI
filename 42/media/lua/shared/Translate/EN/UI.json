@@ -4155,6 +4155,8 @@
     "UI_ZeD_Options_ZedAdditions": "Additions",
     "UI_ZeD_Settings_Appliances": "Additional appliance support",
     "UI_ZeD_Settings_AppliancesTip": "Makes more of the game's appliances work, starting with the espresso machine. With this on, taking ZeD out of a save is riskier: things these appliances hold or made can be lost.",
+    "UI_ZeD_Settings_SmartAttach": "Attach looted tools and weapons",
+    "UI_ZeD_Settings_SmartAttachTip": "Things you take that hang on the belt or back go on an empty slot, never in place of what hangs there. A weapon that breaks in your hands is swapped for the most worn spare you carry. Takes game time.",
     "UI_ZeD_Espresso_Make": "Make espresso",
     "UI_ZeD_Espresso_NeedPower": "The espresso machine needs power.",
     "UI_ZeD_Espresso_NeedThings": "Needs water, coffee and an empty mug.",
