@@ -32,8 +32,10 @@
 --       refresh and "locked" after each scan: S.FLICKER below), so no wait here asks for the list to fall quiet. The
 --       card is opened at a calm moment (H.calm: the next row refresh and scan both 0.7 s away, no row changed since
 --       the last sort), after a fresh sort with no card open (the old code too then has the row in its place by name).
---     * the card opened from the row and shut by a second click before that refresh and scan (no other sort and no
---       status change between; else tried once more): the offset before and after the shut. The old code sorted on
+--     * the card opened from the row and shut by Escape before that refresh and scan (no other sort and no status
+--       change between; else tried once more): the offset before and after the shut. (Nov 25 2026, KISS #47: a second
+--       click on the open row leaves its card open; the click is still made and must keep the card, then Escape,
+--       CC.takeEscape, shuts it. The check used to shut it with that second click.) The old code sorted on
 --       the shut with the open recipe's missing count (key 12010 against the others' 12000: after every missing and
 --       station row), so the row jumped down the list.
 --     * the card open (opened at a calm moment, the first change made before the next scan): 2 planks dropped at his
@@ -1172,14 +1174,26 @@ function H.closeTry(n)
         T.snap = H.snapStatus()
         T.fc, T.pos, T.miss = st.filteredCache, st.scroll.scrollPos, rd.missingCount
         T.shutAt = getTimestampMs()
+        -- (KISS #47, CraftingCore.handleRecipeClick: a second click on the open row leaves its card open; another row or
+        -- Escape, CC.takeEscape, shuts it. The click is made and must keep the card; Escape then shuts it, with the
+        -- same re-sort the old click's shut made: closeCraft marks the list for a new sort)
         local z = H.rowZone(S.MOLD)
         if z and H.inView(z) then
-            H.click(z, "B10-4, the card shut")
+            H.click(z, "B10-4, a second click on the open row")
+            if st.selected ~= S.MOLD then
+                T.go = false
+                Q.check(false, "B10-4: a second click on the open recipe's row leaves its card open (KISS #47)", "the open card: " .. tostring(st.selected))
+                return
+            end
         else
-            pcall(S.CC.closeCraft, st)
-            Q.say("note B10-4: the mold's row is out of view with its card open (" .. H.n(T.rel) .. " px): the card is shut from code")
+            Q.say("note B10-4: the mold's row is out of view with its card open (" .. H.n(T.rel) .. " px): no second click, Escape alone")
         end
-        if st.selected ~= nil then T.go = false; Q.check(false, "B10-4: a click on the open recipe's row shuts its card", "the open card: " .. tostring(st.selected)) end
+        local okE, took = pcall(S.CC.takeEscape)
+        if not (okE and took) then
+            pcall(S.CC.closeCraft, st)
+            Q.say("note B10-4: Escape did not take the card (" .. tostring(took) .. "): it is shut from code")
+        end
+        if st.selected ~= nil then T.go = false; Q.check(false, "B10-4: Escape shuts the open recipe's card (KISS #47)", "the open card: " .. tostring(st.selected)) end
     end)
     H.frames(4000, 0, function()
         if not T.go then return "now" end

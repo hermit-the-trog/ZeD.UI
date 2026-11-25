@@ -1,7 +1,8 @@
 -- ZeDUI/tools/qa/bx_craft.lua  (Nov 21 2026, QA beast mode): craft, build, dismantle, whittle and tinker through ZeD,
 -- fast and in odd orders. Needs zedqa_prelude.lua and rt_kit.lua first. grep "ZEDQA bx_crf".
 --   CRAFT (World window, Crafting tab; CraftingTab.lua + CraftingCore.lua): the search field (nothing found, then the
---     stake), a row click opens the card, five more clicks toggle it, the Sort list and a pin (right-click) open and
+--     stake), a row click opens the card, five more clicks leave it open and Escape shuts it (KISS #47), the Sort
+--     list and a pin (right-click) open and
 --     shut; Make Stake with the branch missing (Craft pressed: nothing queued, nothing counted), once, many (the
 --     amount stepped past both ends, then a batch) with the tab switched and the windows shut and reopened mid-craft,
 --     cancelled mid-craft, Craft pressed twice in one frame; Carve Spear with the stick taken away the frame Craft is
@@ -537,16 +538,35 @@ H.wait(3000, function() return not S.typed or (H.cst().search == S.stakeWord and
     Q.check(ok, "search: the stake's own name finds Make Stake", tostring(S.stakeWord) .. ": " .. n .. " rows")
     Q.check(n >= 1 and n < (S.rowsAll or 0), "search: the list is narrowed (fewer rows than everything)", n .. " of " .. tostring(S.rowsAll))
 end)
--- the row: a click opens the card, five more toggle it (shut, open, ...), the pin by right-click, the Sort list
+-- the row: a click opens the card, five more leave it open, Escape shuts it, the pin by right-click, the Sort list
+-- (Nov 25 2026, KISS #47: a second click on the open row no longer shuts its card, so a double-click does not shut
+-- what the first click opened; another row or Escape closes it, CraftingCore.handleRecipeClick and CC.takeEscape.
+-- This check expected the old toggle, open, shut, ..., and failed on the current code. Neither a click on an empty
+-- spot nor the pad's B shuts the card in the current code: Escape is the shut checked here.)
 H.wait(3000, function() return not S.craftOk or H.zone(H.cst(), "recipeRow", S.STAKE) ~= nil end, function(ok)
     if not S.craftOk then return end
     local st = H.cst()
     local z = H.zone(st, "recipeRow", S.STAKE)
-    if not z then Q.skip("row: clicks toggle the card", "Make Stake has no row in view"); return end
+    if not z then Q.skip("row: clicks on the open row keep the card", "Make Stake has no row in view"); S.rowOpen = false; return end
     H.click(S.CT, z, "row")
     Q.check(st.selected == S.STAKE and st.splitTarget == 1, "row: a click on Make Stake opens its card", tostring(st.selected))
     for _ = 1, 5 do H.click(S.CT, z, "row") end
-    Q.check(st.selected == nil and st.splitTarget == 0, "row: five more clicks on the same spot leave the card shut (open, shut, ...)", tostring(st.selected))
+    S.rowOpen = Q.check(st.selected == S.STAKE and st.splitTarget == 1, "row: five more clicks on the same spot leave the card open (KISS #47)", tostring(st.selected))
+end)
+-- (Escape takes the card only once it has been drawn open: CC.takeEscape asks for a draw in the last half second)
+Q.step(6, function()
+    if not (S.craftOk and S.rowOpen) then return end
+    local st = H.cst()
+    local okE, took = pcall(S.CC.takeEscape)
+    Q.check(okE and took == true and st.selected == nil and st.splitTarget == 0, "row: Escape shuts the open card (KISS #47, CC.takeEscape)",
+        "taken " .. tostring(took) .. ", the card " .. tostring(st.selected))
+    if st.selected then pcall(S.CC.closeCraft, st) end
+end)
+H.wait(3000, function() return not S.craftOk or (H.cst().splitFrac or 0) <= 0.01 and H.zone(H.cst(), "recipeRow", S.STAKE) ~= nil end, function()
+    if not S.craftOk then return end
+    local st = H.cst()
+    local z = H.zone(st, "recipeRow", S.STAKE)
+    if not z then Q.skip("pin: a right-click on the row", "Make Stake has no row in view"); return end
     local w = RT.ww()
     local was = S.CC.isPinned(w, S.STAKE, "_craftPins")
     H.click(S.CT, z, "pin", true)
