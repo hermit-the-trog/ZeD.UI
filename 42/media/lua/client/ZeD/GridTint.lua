@@ -107,3 +107,80 @@ function G.of(T, tex, force)
     end
     return t[1], t[2], t[3]
 end
+
+-- ============================================================================
+-- THE CONTAINER STRIPS' TINTED BUTTONS (the director, Nov 25 2026; mock-up ZeDUI/mockups/container_tabs_color_v4.html,
+-- "Stronger tint" and "Wash and frame"). Always on: each container button of both windows is filled with a stronger
+-- tint of its picture's main color than the grid's tiles take; the shown one keeps today's accent wash over it and
+-- gains a frame (the accent's bright tone; on Light a darker accent), so the selection reads over any tint.
+-- The colors: ZeD.ContainerTints (the game's Container_* pictures, the world's containers and the main inventory)
+-- or ZeD.ItemTints (a bag's item icon); a picture in neither (another mod's) takes the neutral gray.
+-- ============================================================================
+G.STRIP = {
+    light = { l = 0.80, s = 0.60 },
+    dark  = { l = 0.26, s = 0.50 },
+    hicon = { l = 0.20, s = 0.55 },
+}
+G._strip = G._strip or {}   -- per texture: { raw = 0xRRGGBB, [baseKey] = { r, g, b } }
+
+--- A container button's picture's main color, 0xRRGGBB (a neutral gray when it has none known)
+function G.stripRaw(tex)
+    if not tex then return 0x808080 end
+    local c = G._strip[tex]
+    if c then return c.raw end
+    local ok, n = pcall(function() return tex:getName() end)
+    local name = ok and type(n) == "string" and n or ""
+    name = name:gsub("\\", "/")
+    name = name:match("([^/]+)$") or name
+    name = name:gsub("%.[pP][nN][gG]$", "")
+    local raw = ZeD.ContainerTints and ZeD.ContainerTints[name]
+    if not raw then
+        local k = G.key(name)
+        raw = k and ZeD.ItemTints and ZeD.ItemTints[k] or nil
+    end
+    c = { raw = raw or 0x808080 }
+    G._strip[tex] = c
+    return c.raw
+end
+
+--- The button's fill on the theme T: r, g, b
+function G.stripFill(T, tex)
+    local bk = (T and G.STRIP[T.baseKey]) and T.baseKey or "dark"
+    G.stripRaw(tex)
+    local c = G._strip[tex or false] or { raw = 0x808080 }
+    if not tex then G._strip[false] = c end
+    local t = c[bk]
+    if not t then
+        local r, g, b = G.apply(c.raw, G.STRIP[bk])
+        t = { r, g, b }
+        c[bk] = t
+    end
+    return t[1], t[2], t[3]
+end
+
+--- One container button's background in (x, y, w, h) of panel: the tint, then the shown look (the accent wash
+--- and the frame) or the pointer's hover wash. The icon and the controller's mark go on after, as before.
+function G.stripCell(panel, x, y, w, h, tex, lit, hover)
+    local T = ZeD.T
+    local r, g, b = G.stripFill(T, tex)
+    panel:drawRect(x, y, w, h, 1, r, g, b)
+    if lit then
+        local ac = T.accent
+        panel:drawRect(x, y, w, h, T.selectionA or 0.30, ac.r, ac.g, ac.b)
+        local f = T.px(2)
+        local fr, fg, fb
+        if T.baseKey == "light" then
+            fr, fg, fb = ac.r * 0.72, ac.g * 0.72, ac.b * 0.72
+        else
+            local br = T.accentBright or ac
+            fr, fg, fb = br.r, br.g, br.b
+        end
+        panel:drawRect(x, y, w, f, 1, fr, fg, fb)
+        panel:drawRect(x, y + h - f, w, f, 1, fr, fg, fb)
+        panel:drawRect(x, y, f, h, 1, fr, fg, fb)
+        panel:drawRect(x + w - f, y, f, h, 1, fr, fg, fb)
+    elseif hover then
+        local hv = T.hover
+        panel:drawRect(x, y, w, h, hv.a, hv.r, hv.g, hv.b)
+    end
+end

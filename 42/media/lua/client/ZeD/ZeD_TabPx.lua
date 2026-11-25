@@ -23,6 +23,7 @@
 -- ============================================================================
 
 require "ZeD/ZeD_PixelParts"
+require "ZeD/ZeD_TabColorArt"   -- (the tabs' color icons: TP.drawIcon)
 
 ZeD = ZeD or {}
 ZeD.TabPx = ZeD.TabPx or {}
@@ -157,12 +158,64 @@ local function iconTex(id)
     return t
 end
 
+-- ---------------------------------------------------------------------------
+-- THE ICONS IN COLOR (the director, Nov 25 2026; mock-up ZeDUI/mockups/container_tabs_color_v4.html, the picks
+-- "Multicolor" and "Lit accent panel"). A tab with color art (ZeD.TabColorArt, made by ZeDUI/tools/tabpx/
+-- color_icons.py with its pictures in TabIcons/color/) draws it in its own three colors, in place of the accent
+-- tones: the Dark set on Dark and High contrast, the darker Light set on Light; on the lit accent panel (the shown
+-- tab, or the controller's one-wash mark) whichever set has more of its pixels 3:1 or more off the panel. The same
+-- one-pixel shadow under it. Tabs with no color art (the add-ons' and the server's tabs) keep the accent tones.
+-- ---------------------------------------------------------------------------
+TP.COLOR_DIR = "media/textures/ZeD/TabIcons/color/"
+local _color = {}
+local function colorTex(id)
+    local t = _color[id]
+    if t then return t end
+    local P = ZeD.Px
+    t = { dark = P.tex(TP.COLOR_DIR .. id .. ".png") or false, light = P.tex(TP.COLOR_DIR .. id .. "_light.png") or false,
+          sh = P.tex(TP.COLOR_DIR .. id .. "_sh.png") or false }
+    _color[id] = t
+    return t
+end
+-- the share of a set's pixels standing 3:1 or more off bg
+local function share(set, bg)
+    local n, ok = 0, 0
+    for _, c in ipairs(set) do
+        n = n + c.n
+        if ZeD.contrast(c, bg) >= 3 then ok = ok + c.n end
+    end
+    return n > 0 and ok / n or 0
+end
+TP._colorShare = share
+local _panel = {}
+--- Which color set a tab draws: "dark" or "light" (nil: it has no color art)
+function TP.colorSet(id, isActive)
+    local art = ZeD.TabColorArt and ZeD.TabColorArt[id]
+    if not art then return nil end
+    local T = ZeD.T
+    if isActive then
+        local bg = shade(_panel, T.accent, 0.85)
+        return (share(art.light, bg) > share(art.dark, bg)) and "light" or "dark"
+    end
+    return (T.baseKey == "light") and "light" or "dark"
+end
+
 -- the icon centred on (cx, cy)
 function TP.drawIcon(el, id, cx, cy, isActive)
     if not TP.ICONS[id] then return false end
     local k = TP.k()
     local sz = 16 * k
     local ix, iy = cx - math.floor(sz / 2), cy - math.floor(sz / 2)
+    local set = TP.colorSet(id, isActive)
+    if set then
+        local ct = colorTex(id)
+        local pic = ct[set]
+        if pic then
+            if ct.sh then el:drawTextureScaled(ct.sh, ix + k, iy + k, sz, sz, isActive and 0.25 or 0.55, 0, 0, 0) end
+            el:drawTextureScaled(pic, ix, iy, sz, sz, 1, 1, 1, 1)
+            return true
+        end
+    end
     local it = iconTex(id)
     local sh = it.sh
     if sh then el:drawTextureScaled(sh, ix + k, iy + k, sz, sz, isActive and 0.25 or 0.55, 0, 0, 0) end

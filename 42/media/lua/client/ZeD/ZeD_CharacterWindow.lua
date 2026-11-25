@@ -4054,14 +4054,10 @@ local function drawContainerStrip(self, win, content)
         else
             mainVis = win._invDrawerOpen and (win._viewedContainer == nil)
         end
-        -- the one selected look (the shown bag), the hover wash, then the controller's mark
-        if mainVis then
-            local ac = T.accent
-            self:drawRect(T.px(1), curY, w - T.px(1), mainH, selA, ac.r, ac.g, ac.b)
-        elseif isHover then
-            local hv = T.hover
-            self:drawRect(T.px(1), curY, w - T.px(1), mainH, hv.a, hv.r, hv.g, hv.b)
-        end
+        -- the button's tint of its picture's color, the one selected look (the shown bag: the wash and the frame) or
+        -- the hover wash, then the controller's mark (ZeD.GridTint.stripCell; the director, Nov 25 2026)
+        ZeD.GridTint.stripCell(self, T.px(1), curY, w - T.px(1), mainH,
+            mainCnt.texture or (ZeD.genericContainerTex and ZeD.genericContainerTex()), mainVis, isHover)
         if isHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_CW_MainHelp", mainCnt.name or "")) end
         local onFocusM = false
         if gpFocusedCI == 1 then
@@ -4211,13 +4207,9 @@ local function drawContainerStrip(self, win, content)
             -- One selected look for a shown bag (viewed, or one of the Loot
             -- tab's columns): the T.selectionA wash; else the hover wash. The
             -- controller's mark goes on after, so it shows on a selected bag.
-            if isMcSel or isViewed then
-                local ac = T.accent
-                self:drawRect(T.px(1), btnY, w - T.px(1), T.px(CONTAINER_BTN_SZ), selA, ac.r, ac.g, ac.b)
-            elseif isHover then
-                local hv = T.hover
-                self:drawRect(T.px(1), btnY, w - T.px(1), T.px(CONTAINER_BTN_SZ), hv.a, hv.r, hv.g, hv.b)
-            end
+            -- (on the button's tint of its picture's color: ZeD.GridTint.stripCell, the director, Nov 25 2026)
+            ZeD.GridTint.stripCell(self, T.px(1), btnY, w - T.px(1), T.px(CONTAINER_BTN_SZ),
+                cnt.texture or (ZeD.genericContainerTex and ZeD.genericContainerTex()), isMcSel or isViewed, isHover)
             if isHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_CW_BagHelp", cnt.name or "")) end
             local onFocusC = false
             if gpFocusedCI == ci then
