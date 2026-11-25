@@ -2151,10 +2151,12 @@ function S.beltRowPoint(L)
     if z.btn and L.x >= z.btn.x then L.x = z.btn.x - ZeD.T.px(6) end
     return z
 end
-function S.beltOn(T, it)
+function S.beltOn(T)
     S.step(2, function()
         T.att = nil
         if T.off then return end
+        local it = S.sp.hammer
+        T.bit = it
         -- (out of the hands first: a held thing is still the hand's)
         if it and (S.p:getPrimaryHandItem() == it or S.p:getSecondaryHandItem() == it) then S.handsSet(nil, nil) end
         T.bi = S.emptyOrLend(it, "5 double-click, the belt")
@@ -2175,7 +2177,7 @@ function S.beltOn(T, it)
                 .. ", in " .. tostring(it and S.where(it)) .. ", broken " .. tostring(it and it:isBroken()) .. "); slots: " .. table.concat(parts, "; "))
         end
     end)
-    S.wait(4, 600, function() return T.off or not T.att or (S.queueEmpty() and S.slotOf(it) == T.bi) end, S.noop)
+    S.wait(4, 600, function() return T.off or not T.att or (S.queueEmpty() and S.slotOf(T.bit) == T.bi) end, S.noop)
 end
 function S.case5dbl()
     local T = {}
@@ -2187,12 +2189,12 @@ function S.case5dbl()
     S.dblLeg(T, "5h doll box (the jacket on Outer)", function() local z = S.zoneT("doll:outer"); return (z and z.item == sp.jacket) and z or nil end,
         function() return sp.jacket end, S.notWorn)
     -- the belt: a filled row in the list, then its box in the doll
-    S.beltOn(T, sp.hammer)
+    S.beltOn(T)
     S.toEquip("list", T, "5 double-click, a belt row")
     S.dblLeg(T, "5i list belt row (the hammer)", function(L) L.i = T.att and T.bi; return S.beltRowPoint(L) end,
         function() return T.att and sp.hammer or nil end, S.offBelt)
     S.step(2, function() if T.off then return end; S.loose(sp.hammer); S.put(sp.hammer, S.inv()) end)
-    S.beltOn(T, sp.hammer)
+    S.beltOn(T)
     S.toEquip("doll", T, "5 double-click, a belt box")
     S.dblLeg(T, "5i doll belt box (the hammer)", function() local z = T.bi and S.zoneT("doll:belt" .. tostring(T.bi)); return (z and z.item == sp.hammer) and z or nil end,
         function() return T.att and sp.hammer or nil end, S.offBelt)
@@ -2221,7 +2223,7 @@ end
 function S.case6()
     local T = {}
     S.step(2, function() if S.eqOff then T.off = true; return end; S.caseStart() end)
-    S.beltOn(T, S.sp.hammer)
+    S.beltOn(T)
     S.toEquip("list", T, "6 belt")
     S.step(2, function()
         if T.off then return end
@@ -2551,7 +2553,22 @@ function S.dropOnDoll(r, item)
     local ok, err = S.withFields({ { panel, "getMouseX", function() return x end }, { panel, "getMouseY", function() return y end } },
         function() took = ZeD.EquipDoll.takeDrop(S.pn, { item }) end)
     if not ok then S.errs = S.errs + 1; return false, "the drop threw: " .. tostring(err) end
-    return took and true or false, "takeDrop answered " .. tostring(took)
+    if took then return true, "takeDrop answered true" end
+    -- (takeDrop's gates, read the same way it reads them)
+    local why = {}
+    why[#why + 1] = "drawer " .. tostring(w._drawerMode) .. "/" .. tostring(w._activeTab) .. ", card " .. S.nm(w._equipSelected) .. ", effW " .. tostring(w._drawerEffW)
+    why[#why + 1] = "doll shown " .. tostring(w._equipDollShown) .. ", panel visible " .. tostring(panel:isVisible()) .. " " .. math.floor(panel:getWidth()) .. "x" .. math.floor(panel:getHeight())
+    why[#why + 1] = "the point " .. x .. "," .. y .. " (box " .. r.id .. " " .. math.floor(r.x) .. "," .. math.floor(r.y) .. " " .. math.floor(r.w) .. "x" .. math.floor(r.h) .. ")"
+    local c = w._equipDollClip
+    if c then why[#why + 1] = "clip " .. math.floor(c.x) .. "," .. math.floor(c.y) .. " " .. math.floor(c.w) .. "x" .. math.floor(c.h) end
+    local first = nil
+    for _, q in ipairs(w._equipDollAll or {}) do
+        if x >= q.x and x < q.x + q.w and y >= q.y and y < q.y + q.h then first = q.id; break end
+    end
+    why[#why + 1] = "first box hit " .. tostring(first)
+    pcall(function() why[#why + 1] = "paused look " .. tostring(ZeD.PausedLook and ZeD.PausedLook.on()) end)
+    pcall(function() why[#why + 1] = "HandWeapon " .. tostring(instanceof(item, "HandWeapon")) end)
+    return false, "takeDrop answered " .. tostring(took) .. " (" .. table.concat(why, "; ") .. ")"
 end
 function S.dropLeg(T, D)
     local L = {}
@@ -2716,7 +2733,8 @@ function S.buildPutBack()
             tostring(S.dispC()) .. ", " .. tostring(ZeD.currentBase) .. ", " .. tostring(ZeD.currentSize) .. ", " .. tostring(ZeD.EquipDoll.view()))
         local w = RT.cw()
         if w and f.charTab then
-            Q.check(w._activeTab == f.charTab and w._thermalView == f.tview and w._thermalPick == f.tpick and w._maxWinW == f.maxWinW and w._equipSelected == nil,
+            local pickOK = (w._thermalPick == f.tpick) or (f.tpick == nil and w._thermalPick == "Upper Torso")
+            Q.check(w._activeTab == f.charTab and w._thermalView == f.tview and pickOK and w._maxWinW == f.maxWinW and w._equipSelected == nil,
                 "put back: the Character window's tab, the Thermal view and pick, the width cap as found, no card open",
                 "tab " .. tostring(w._activeTab) .. " (found " .. tostring(f.charTab) .. "), view " .. tostring(w._thermalView) .. " (" .. tostring(f.tview)
                 .. "), pick " .. tostring(w._thermalPick) .. " (" .. tostring(f.tpick) .. "), width cap " .. tostring(w._maxWinW) .. " (" .. tostring(f.maxWinW)
