@@ -417,6 +417,29 @@ function S.emptyFor(it)
     end
     return nil
 end
+-- the first empty slot that takes it, else a slot lent for the case: its own thing comes off into the main inventory
+-- (S.hbBack puts it back at the case's clean, as lv_move's hotBorrow lends one)
+function S.emptyOrLend(it, what)
+    local i = S.emptyFor(it)
+    if i or not it then return i end
+    local hb = S.hb()
+    if not (hb and hb.availableSlot and hb.attachedItems) then return nil end
+    for j, slot in pairs(hb.availableSlot) do
+        local old = hb.attachedItems[j]
+        local okA, can = pcall(function() return hb:canBeAttached(slot, it) end)
+        if old and old ~= it and okA and can then
+            pcall(function() hb:removeItem(old, false) end)
+            pcall(function() hb:refresh() end)
+            local on = true
+            pcall(function() on = hb:isInHotbar(old) end)
+            if not on then
+                Q.say("NOTE " .. tostring(what) .. ": belt slot " .. tostring(j) .. " lent for the case (its " .. S.nm(old) .. " off into the bag, back at the end)")
+                return j
+            end
+        end
+    end
+    return nil
+end
 function S.emptyAny() for _, s in ipairs(S.bslots()) do if not s.item then return s.i end end; return nil end
 
 -- ===================================================================== the menu (lv_calls')
@@ -1328,6 +1351,8 @@ function S.case4stage(T)
         end
         S.wornEvent()
         T.ham, T.torch, T.gun = S.make("hammer"), S.make("torch"), S.make("pistol")
+        -- (its own name: the slot list names every hammer in the bag alike, and the pick goes by name)
+        if T.ham then pcall(function() T.ham:setName("QA Claw Hammer") end); pcall(function() T.ham:setCustomName(true) end) end
     end)
     S.step(6, function() if not T.off then pcall(function() T.hb:refresh() end) end end)
     S.toEquip("list", T, "4 belt")
@@ -1335,7 +1360,7 @@ function S.case4stage(T)
         if T.off then return end
         local sl = S.bslots()
         Q.say("NOTE 4 belt: " .. #sl .. " belt slots (" .. T.n0 .. " before; worn for the case: " .. S.namesOf(T.added) .. ")")
-        T.iHam, T.iTorch = S.emptyFor(T.ham), S.emptyFor(T.torch)
+        T.iHam = S.emptyOrLend(T.ham, "4 belt, the hammer")
         local miss = {}
         for _, s in ipairs(sl) do if not S.beltZone(s.i) then miss[#miss + 1] = tostring(s.i) end end
         Q.check(#sl > 0 and #miss == 0, "4 belt: with Held and Belt open every belt slot has its row (" .. #sl .. ")",
@@ -1470,7 +1495,8 @@ function S.case4putBack(T)
     S.step(4, function()
         T.t = nil
         if T.off then return end
-        if not (T.iTorch and T.torch) then Q.skip("4h S4 PUT BACK on a held flashlight", "no empty belt slot takes the angle-head flashlight here (it needs a webbing slot)"); return end
+        if T.torch and not T.iTorch then T.iTorch = S.emptyOrLend(T.torch, "4h belt, the flashlight") end
+        if not (T.iTorch and T.torch) then Q.skip("4h S4 PUT BACK on a held flashlight", "no belt slot takes the angle-head flashlight here, even lent (it needs a webbing slot)"); return end
         T.t = ZeD.Belt.attach(S.pn, T.torch, T.iTorch)
     end)
     S.wait(4, 600, function() return not T.t or (S.queueEmpty() and S.slotOf(T.torch) == T.iTorch) end, function(ok)
@@ -1911,6 +1937,8 @@ end
 -- ===================================================================== 7. the row columns against the thing (S6)
 function S.protCount(it)
     local b, s, u = 0, 0, 0
+    -- (only a garment has these: a pcall over a missing method still dumps a stack trace the runner counts)
+    if not instanceof(it, "Clothing") then return 0, 0, 0 end
     pcall(function() b = it:getBiteDefense() or 0 end)
     pcall(function() s = it:getScratchDefense() or 0 end)
     pcall(function() local cp = it:getCoveredParts(); if cp and cp:size() > 0 then u = it:getDefForPart(cp:get(0), false, true) or 0 end end)
@@ -2024,6 +2052,8 @@ function S.case7()
             "edge " .. lim .. "; " .. ((#over == 0) and (#sp.dots .. " dots, " .. #sp.txts .. " weights, " .. #sp.fills .. " bars inside") or S.idsText(over)))
         RT.bounds(Q, "the Equip tab at the half card, Large text")
     end)
+    -- (the proof for S6 a person can see: the columns at the half card after the drag)
+    S.shot("eq_s6_half_large_" .. S.sizeTag(), "the Equip list at the half card in Large text, the SLOT column dragged wide (S6)")
     S.halfOff(T)
     S.step(2, function()
         local w = RT.cw()

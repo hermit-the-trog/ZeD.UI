@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/et_eq_only.txt (Nov 24 2026, QA): eq_tab alone (et.txt without th_tab), for reruns after a fix to the Equipment sweep.
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+eq_tab.lua | eq_tab | timeout=1800
