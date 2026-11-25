@@ -1,0 +1,9 @@
+# ZeDUI/tools/qa/lv_calls.txt (Nov 24 2026, QA): the calls Build merged on Nov 24 2026 (main at fab001ccf, then the smart menu at c6dafe460), each checked in the running game. The QA character starts on the drag strip (925,13040); lv_calls makes crates A and B beside him, as lv_move does.
+#   lv_calls.lua  A the Filter hides (category counts, Nothing matches, Clear); E the narrow card leads with Grab (Large text, More holds Eat); B smart attach on Loot all (off, a full slot, two hammers); C a spare to hand when the weapon breaks; F pad X says No room; G the pad's help line Loot all; J pad A on a closed stack (Grab one / half / all), B opens it; H pad RB to the next container; I pad Y lands on the crate he faces; P the menu guess setting (Off, Lite); O main use; N repeat; M last move; L needs; D the smart attach setting in ZeD setup (never applied); K the belt's ammo tab and Messages notice in Dark, Light and High contrast (pictures lv_calls_belt_<theme>_<w>x<h>)
+# Every thing it makes is taken away; it puts back the hands, the belt slots it lent, the settings (smart attach, menu guess, Style, text size, theme, Ammo on the belt), the stats, the input lock and the pad focus, the windows and the container on show.
+# Run both sizes:
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/lv_calls.txt -Mode fullscreen4k -Report lv_calls_4k
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/lv_calls.txt -Mode windowed -Width 1280 -Height 800 -Report lv_calls_deck
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+lv_calls.lua | lv_calls | timeout=1800
