@@ -1468,12 +1468,17 @@ function S.addonPic(cb)
     S.step(1, function()
         if st.off then return end
         local p = S.addon
+        st.panel = p
         S.addonOff()
         S.iconsBack()
-        Q.check(p ~= nil and not S.inUI(p), "the add-on panel (" .. cb.theme .. ", " .. cb.accent .. "): taken off the screen after its picture")
         local bad = S.iconsNotBack()
         Q.check(#bad == 0, "the add-on panel (" .. cb.theme .. ", " .. cb.accent .. "): TabPx.ICONS as found again",
             (#bad == 0) and table.concat(S.OFF, ", ") or table.concat(bad, "; "))
+    end)
+    -- (the UI manager drops a removed element on its next pass: asked a few frames on)
+    S.step(4, function()
+        if st.off then return end
+        Q.check(st.panel ~= nil and not S.inUI(st.panel), "the add-on panel (" .. cb.theme .. ", " .. cb.accent .. "): taken off the screen after its picture")
     end)
 end
 
