@@ -364,6 +364,70 @@ function ZeD_WorldWindow.padTakeAllPrompt(w, el)
     return s:sub(1, 1) .. s:sub(2):lower()   -- (sentence case, as the band's button)
 end
 
+-- True while player pn's pad is on the World window's own list (the worldMainInv zone: its rows, an open stack's or a
+-- category's heading), one container on show and no columns. Returns the window too. (loot KISS calls 1 and 2, the
+-- director, Nov 24 2026)
+function ZeD_WorldWindow.padOnRows(w)
+    local F = ZeD.Input and ZeD.Input.Focus
+    if not (w and F and F.getFocusedZone) then return false end
+    local z = F.getFocusedZone(w)
+    if not (z and z.zone == "worldMainInv") then return false end
+    if w._mcSelected and #w._mcSelected > 0 then return false end   -- (columns: Left and RB mean other things there)
+    -- (another tab showing a container viewed over the selection: Left lands on the selection's button, not this one)
+    if w._viewedContainer and w._viewedContainer ~= w._activeContainer then return false end
+    return w._activeContainer ~= nil
+end
+
+--- (loot KISS call 1, the director, Nov 24 2026) The help line's way to Loot all while the pad is on a container's
+--- rows: "Left X Take all" (Left lands on the container's button, _worldStripLandOn; X there is padTakeAll). The
+--- word is the X prompt's on that button, so it hides when that one does (nothing wanted, locked). nil: no prompt.
+function ZeD_WorldWindow.padTakeAllHint(w)
+    if not ZeD_WorldWindow.padOnRows(w) then return nil end
+    local word = ZeD_WorldWindow.padTakeAllPrompt(w, { containerIdx = w._activeContainer })
+    if not word then return nil end
+    -- (the left arrow, then X: ZeD_PadGlyphs draws them as the D-pad's left arm and the X button)
+    return { glyph = "\226\134\144 X", label = word }
+end
+
+--- (loot KISS call 2, the director, Nov 24 2026) RB tapped while the pad is on the list's rows: the next container,
+--- as the game's RB on its loot page (ISInventoryPage:selectNextContainer, nextUnlockedContainer with wrap): down the
+--- strip's order (the Floor at the top, then the list as drawn), past locked ones, round to the top after the last.
+--- It is A on that container's button (its rows show, the pad goes on to its first row). True when it took the press;
+--- false leaves RB to turn the tabs, as everywhere else.
+function ZeD_WorldWindow.padNextContainer(pn)
+    local w = ZeD_WorldWindow.getWindow(pn or 0)   -- (_worldWins is declared further down the file)
+    local F = ZeD.Input and ZeD.Input.Focus
+    if not (w and F and F.getFocusedWindow and F.getFocusedWindow(pn or 0) == w) then return false end
+    if not ZeD_WorldWindow.padOnRows(w) then return false end
+    local cnts = w._containers or {}
+    -- the strip's order: the Floor (last in the list, drawn at the top), then the others as drawn
+    local order = {}
+    if cnts[#cnts] and cnts[#cnts].isFloor then order[1] = #cnts end
+    for _, ci in ipairs(_worldStripListOrder(w)) do order[#order + 1] = ci end
+    local at = 0
+    for i, ci in ipairs(order) do if ci == w._activeContainer then at = i; break end end
+    local pick = nil
+    -- (every other container once; all of them when the one on show is not on the strip)
+    for step = 1, (at == 0) and #order or (#order - 1) do
+        -- (at + step, wrapped to 1..#order; both sides positive, so Kahlua's % is safe here)
+        local ci = order[((at - 1 + step) % #order) + 1]
+        if ci and cnts[ci] and not cnts[ci].locked then pick = ci; break end
+    end
+    if not pick then return true end   -- (no other open container: RB does nothing here, as the game's)
+    -- A on that container's button, as a tap on the strip (onActivate: shows it, the pad goes to its first row)
+    local zone = nil
+    for _, z in ipairs(w._focusRing or {}) do if z.zone == "worldContainerStrip" then zone = z; break end end
+    for _, e in ipairs((zone and zone.elements) or {}) do
+        if e.containerIdx == pick and e.onActivate then
+            pcall(function() ZeD.uiSound("UISelectListItem") end)
+            local ok, err = pcall(e.onActivate, w, e)
+            if not ok then print("[ZeD] World: RB next container: " .. tostring(err)) end
+            return true
+        end
+    end
+    return true
+end
+
 local function _gpReorderWorldContainer(win, containerIdx, dir)
     if not win or not containerIdx then return end
     local containers = win._containers
@@ -6814,10 +6878,11 @@ end
 -- (KISS #8) WHERE THE PAD'S Y LANDS. The Y tap (FocusManager's _handleYTap, through Focus.yLand) still opens or
 -- shows both windows; only the landing is here:
 --   * a Y that hid the pair kept the row the pad was on (padYRemember); the next Y returns to it while it is
---     still there (its window open, a World row's container still in reach);
+--     still there (its window open, a World row's container still in reach); by a container, only when it is a
+--     row of the container he faces now (loot KISS call 3, the director, Nov 24 2026);
 --   * else, near a container (one in reach that is not locked, seated the car's), the pad lands in the World
---     window on Loot, on the container on show (the one he faces, KISS #13): its first row, or its button on the
---     strip when it is empty;
+--     window on Loot, on the container he faces (KISS #13; shown even when the old one is still in reach, call 3):
+--     its first row, or its button on the strip when it is empty;
 --   * else nothing here: the caller lands on the Character window, as before.
 -- Returns true when it took the pad. Module fields, not locals: this file is near Kahlua's limit.
 -- ----------------------------------------------------------------------------
@@ -6839,6 +6904,22 @@ function ZeD_WorldWindow.padYRemember(pn)
     ZeD_WorldWindow._padYLeft[pn] = { win = w, kind = kind, zone = z and z.zone, id = el and el.id, item = el and el.item }
 end
 
+--- (loot KISS call 3, the director, Nov 24 2026) The container the World window would show for him now (a fresh look:
+--- the one on the square he faces, else the first in reach, _pickShown), or nil when no container that is not locked
+--- is in reach (the Floor alone does not count).
+function ZeD_WorldWindow._padYFaced(ww)
+    local po = ww and ww._playerObj
+    if not po then return nil end
+    local list = buildWorldContainers(po)
+    local near = false
+    for _, c in ipairs(list) do
+        if not c.isFloor and not c.locked then near = true; break end
+    end
+    if not near then return nil end
+    local i = ZeD_WorldWindow._pickShown({ _containers = list }, po)
+    return i and list[i] and list[i].inventory or nil
+end
+
 --- Player pn's Y landing (above). back: the pair was hidden and comes back (a remembered row may count).
 function ZeD_WorldWindow.padYLand(pn, back)
     pn = pn or 0
@@ -6850,10 +6931,16 @@ function ZeD_WorldWindow.padYLand(pn, back)
     ZeD_WorldWindow._padYLeft[pn] = nil
     -- (the window of the pair it was on, as built now: the Y that closed the pair took the old ones, KISS #25)
     if mem and mem.kind then mem.win = (mem.kind == "world") and ww or cw end
+    -- (loot KISS call 3, the director, Nov 24 2026) the container he faces now, when one is in reach (nil: none)
+    local faced = ZeD_WorldWindow._padYFaced(ww)
     -- a later Y: back to the row it left
     if back and mem and mem.win and (mem.win == ww or mem.win == cw) then
         local still = true
-        if mem.item and mem.win == ww then
+        if faced then
+            -- (call 3) by a container the pad lands on the one he faces: the row it left comes back only when it is
+            -- a row of that same container (anything else, the Character window's too, gives way to it)
+            still = mem.win == ww and mem.item ~= nil and mem.item:getContainer() == faced
+        elseif mem.item and mem.win == ww then
             local inv = mem.item:getContainer()
             still = inv ~= nil and ZeD_WorldWindow.inReach(inv, pn)
         end
@@ -6868,16 +6955,25 @@ function ZeD_WorldWindow.padYLand(pn, back)
             return true
         end
     end
-    -- near a container: the World window's Loot, on the container on show
+    -- near a container: the World window's Loot, on the container he faces
     if not (ww and ww._playerObj and ww._mainContent) then return false end
-    local near = false
-    for _, c in ipairs(buildWorldContainers(ww._playerObj)) do
-        if not c.isFloor and not c.locked then near = true; break end
-    end
-    if not near then return false end
+    if not faced then return false end   -- (no container in reach that is not locked)
     -- (the list is read afresh on its next drawing: a turn or a walk while the pair was hidden shows the container
     -- he now faces, the strip's refresh, KISS #13)
     ww._containerTimer = 30
+    -- (call 3) the faced container is the one on show, even when the old one is still in reach: by index when the
+    -- list has it already (the refresh keeps it by its inventory); else the refresh's turn rule shows the one on the
+    -- square he faces. Not while columns are open (his own layout, as the refresh's rule).
+    if #(ww._mcSelected or {}) == 0 then
+        local idx = nil
+        for i, c in ipairs(ww._containers or {}) do if c.inventory == faced then idx = i; break end end
+        if idx then
+            if idx ~= ww._activeContainer and ww._mainContent then ww._mainContent._selectedItems = {} end
+            ww._activeContainer, ww._viewedContainer, ww._mainVisible = idx, nil, true
+        else
+            ww._lookDir = nil
+        end
+    end
     if ww._activeTab ~= "loot" and _switchWorldTabForNav then _switchWorldTabForNav(ww, ww._mainContent, "loot") end
     F.claimFocus(ww)
     -- first its button on the strip (an empty container keeps the pad there, as a tap A on it), then its first row

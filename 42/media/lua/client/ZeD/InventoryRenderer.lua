@@ -530,8 +530,14 @@ function ZeD.InventoryRenderer.padPrompts(win)
     local c = idx and win._containers and win._containers[idx]
     local key = c and c.inventory and containerKey(c.inventory, win._playerObj or getSpecificPlayer(0))
     local grid = key and ZeD.InventoryRenderer.isGridKey(key, win._playerObj)
-    return { { glyph = "L3", label = ZeD.tr("UI_ZeD_Prompt_Sort") },
-             { glyph = "R3", label = ZeD.tr(grid and "UI_ZeD_Settings_ViewList" or "UI_ZeD_Settings_ViewGrid") } }
+    local out = { { glyph = "L3", label = ZeD.tr("UI_ZeD_Prompt_Sort") },
+                  { glyph = "R3", label = ZeD.tr(grid and "UI_ZeD_Settings_ViewList" or "UI_ZeD_Settings_ViewGrid") } }
+    -- (loot KISS call 1, the director, Nov 24 2026) on a container's rows in the World window, the way to Loot all:
+    -- "Left X Take all", after L3 and R3 so a narrow line drops those first
+    local WW = ZeD_WorldWindow
+    local hint = WW and WW.padTakeAllHint and WW.padTakeAllHint(win)
+    if hint then out[#out + 1] = hint end
+    return out
 end
 
 -- a heading zone was clicked: the view button's "view:flip:<key>"; the Filter's "view:filter:<key>" and its bar's
@@ -927,6 +933,27 @@ function ZeD.InventoryRenderer.padMove(w, el)
         padRefresh(w, cnt)
     end
 end
+-- (loot KISS call 5, the director, Nov 24 2026) Is this row a closed stack in the World window, of things not his,
+-- with nothing marked? Then A is the game's menu straight away (Grab one, Grab half, Grab all: ContainerControls'
+-- doGrabMenu wrap, KISS #31), as the game's A on its loot page, and B opens the stack (the game's B,
+-- ISInventoryPane:doJoypadExpandCollapse). A closed stack in his own bags keeps A opening it.
+function ZeD.InventoryRenderer.padStackMenu(w, el)
+    if not (el and el.item and w) then return false end
+    local WW = ZeD_WorldWindow
+    if not (WW and WW.getWindow and WW.getWindow(ZeD.playerNumOf(w)) == w) then return false end
+    if ZeD.InventoryRenderer.padMarkCount(w) > 0 then return false end   -- (marks: the menu would be theirs)
+    if ZeD.InventoryRenderer.padOwnBags(w, el) then return false end
+    return padIsStack(w, el)
+end
+-- (call 5) B may open the stack: padStackMenu, in a list (a grid shows no open stacks)
+function ZeD.InventoryRenderer.padStackOpens(w, el)
+    if not ZeD.InventoryRenderer.padStackMenu(w, el) then return false end
+    local po = w._playerObj or getSpecificPlayer(ZeD.playerNumOf(w))
+    local inv = el.item:getContainer()
+    local key = inv and containerKey(inv, po)
+    return not (key and ZeD.InventoryRenderer.isGridKey(key, po))
+end
+
 -- an item row's or cell's controller buttons, on top of what its builder gave it: the builder's onContextMenu
 -- (the game's menu) moves to A on an open card, X becomes the move, hold A on food eats
 function ZeD.InventoryRenderer.padItemButtons(el)
@@ -934,7 +961,31 @@ function ZeD.InventoryRenderer.padItemButtons(el)
     el.onItemMenu = menu
     el.onActivate = function(w, e)
         if menu and ZeD.InventoryRenderer.padCardOpen(w, e) then return menu(w, e) end
+        if menu and ZeD.InventoryRenderer.padStackMenu(w, e) then return menu(w, e) end   -- (loot KISS call 5)
         if tap then return tap(w, e) end
+    end
+    -- (loot KISS call 5) B on such a stack opens it (A, its old way, is the menu now); a running action is still
+    -- B's first, as the game's B; marks are still B's to clear (padCancel)
+    local cancel, promptB = el.onCancel, el.promptB
+    el.onCancel = function(w, e)
+        if tap and ZeD.InventoryRenderer.padStackOpens(w, e) then
+            local F = ZeD.Input and ZeD.Input.Focus
+            if F and F.actionToCancel and F.actionToCancel(ZeD.playerNumOf(w)) then return false end
+            tap(w, e)
+            return true
+        end
+        if cancel then return cancel(w, e) end
+        return false
+    end
+    el.promptB = function(w, e)
+        if tap and ZeD.InventoryRenderer.padStackOpens(w, e) then
+            local F = ZeD.Input and ZeD.Input.Focus
+            if F and F.actionToCancel and F.actionToCancel(ZeD.playerNumOf(w)) then return false end
+            return ZeD.tr("IGUI_Open")
+        end
+        if not cancel then return false end   -- (no B here before: none now)
+        if type(promptB) == "function" then return promptB(w, e) end
+        return promptB
     end
     el.onContextMenu = ZeD.InventoryRenderer.padMove
     el.onHoldActivate = function(w, e)
@@ -948,6 +999,7 @@ function ZeD.InventoryRenderer.padItemButtons(el)
     end
     el.promptA = function(w, e)
         if menu and ZeD.InventoryRenderer.padCardOpen(w, e) then return ZeD.tr("UI_ZeD_Prompt_Menu") end
+        if menu and ZeD.InventoryRenderer.padStackMenu(w, e) then return ZeD.tr("UI_ZeD_Prompt_Menu") end   -- (loot KISS call 5)
         return nil
     end
     el.promptX = ZeD.InventoryRenderer.padPromptX
