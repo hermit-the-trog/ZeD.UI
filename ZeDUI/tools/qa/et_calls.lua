@@ -930,6 +930,10 @@ function S.openRow(T, key, itemFn, label)
 end
 -- queue: a row's card opened by the pad (focus on its stop, A)
 function S.openRowPad(T, key, itemFn, label)
+    -- (the card shut first, and a few frames for the tab to draw its rows again: with a card open the pad's stops are
+    -- the card's, so a row can't take the focus in the same frame the card shuts)
+    S.step(2, function() if not T.off then S.cardClose() end end)
+    S.waitIdle(8)
     S.step(2, function()
         T[key] = nil
         T[key .. "It"] = nil
@@ -2151,9 +2155,25 @@ function S.beltOn(T, it)
     S.step(2, function()
         T.att = nil
         if T.off then return end
+        -- (out of the hands first: a held thing is still the hand's)
+        if it and (S.p:getPrimaryHandItem() == it or S.p:getSecondaryHandItem() == it) then S.handsSet(nil, nil) end
         T.bi = S.emptyOrLend(it, "5 double-click, the belt")
         if T.bi then T.att = ZeD.Belt.attach(S.pn, it, T.bi) end
-        if not T.att then Q.skip("5 double-click on the belt", "no belt slot takes the spare hammer here, even lent") end
+        if not T.att then
+            -- say why: each slot's name, what it takes, what it holds, and the hammer's own attachment type and place
+            local hb, parts = S.hb(), {}
+            for j, slot in pairs((hb and hb.availableSlot) or {}) do
+                local takes = {}
+                pcall(function() for k, _ in pairs(slot.def.attachments) do takes[#takes + 1] = tostring(k) end end)
+                local nm = "?"
+                pcall(function() nm = tostring(slot.def.name or slot.slotType) end)
+                parts[#parts + 1] = tostring(j) .. " " .. nm .. " takes [" .. table.concat(takes, " ") .. "] holds " .. S.nm(hb.attachedItems and hb.attachedItems[j])
+            end
+            local at = "?"
+            if it then pcall(function() at = tostring(it:getAttachmentType()) end) end
+            Q.skip("5 double-click on the belt", "no belt slot takes the spare hammer here, even lent: the hammer " .. S.nm(it) .. " (type " .. at
+                .. ", in " .. tostring(it and S.where(it)) .. ", broken " .. tostring(it and it:isBroken()) .. "); slots: " .. table.concat(parts, "; "))
+        end
     end)
     S.wait(4, 600, function() return T.off or not T.att or (S.queueEmpty() and S.slotOf(it) == T.bi) end, S.noop)
 end
@@ -2378,7 +2398,7 @@ function S.card8leg(T, how, pad)
     end)
     S.waitIdle(10)
     S.openFor(L, "a", knife, pad)
-    S.step(6, function() if S.verbCheck(L, "a", "main") then S.pressVerb(L, "a", "OFF HAND") end end)
+    S.step(6, function() S.verbCheck(L, "a", "main"); if L.a and S.inList(S.cardIdList(), "OFF HAND") then S.pressVerb(L, "a", "OFF HAND") end end)
     if pad then S.tapA(function() return L.v end) end
     S.wait(4, 900, S.settled(10), S.noop)
     S.step(10, function()
@@ -2398,7 +2418,7 @@ function S.card8leg(T, how, pad)
     S.waitIdle(10)
     S.step(2, function() L.b = nil end)
     S.openFor(L, "b", two, pad)
-    S.step(6, function() if S.verbCheck(L, "b", "twomain") then S.pressVerb(L, "b", "TWO HANDS") end end)
+    S.step(6, function() S.verbCheck(L, "b", "twomain"); if L.b and S.inList(S.cardIdList(), "TWO HANDS") then S.pressVerb(L, "b", "TWO HANDS") end end)
     if pad then S.tapA(function() return L.v end) end
     S.wait(4, 900, S.settled(10), S.noop)
     S.step(10, function()
@@ -2543,6 +2563,9 @@ function S.dropLeg(T, D)
         S.loose(L.it)
         S.put(L.it, S.inv())
         S.handsSet(nil, nil)
+        S.cardClose()
+        local w = RT.cw()
+        if w and w._equipScroll and w._equipScroll.visible then pcall(function() w._equipScroll:setScrollPos(1) end) end
     end)
     S.wait(10, 120, function() return T.off or not L.it or (S.eqReady("doll") and S.rect(D.box) ~= nil) end, function(ok)
         if T.off or not L.it then return end
@@ -2645,6 +2668,7 @@ function S.buildPutBack()
     end)
     Q.step(20, function()
         local f = S.found
+        S.cardClose()
         if f.charTab then RT.charTab(f.charTab) end
         S.instant(f.inst)
         local w = RT.cw()
@@ -2694,7 +2718,9 @@ function S.buildPutBack()
         if w and f.charTab then
             Q.check(w._activeTab == f.charTab and w._thermalView == f.tview and w._thermalPick == f.tpick and w._maxWinW == f.maxWinW and w._equipSelected == nil,
                 "put back: the Character window's tab, the Thermal view and pick, the width cap as found, no card open",
-                "tab " .. tostring(w._activeTab) .. ", view " .. tostring(w._thermalView) .. ", pick " .. tostring(w._thermalPick))
+                "tab " .. tostring(w._activeTab) .. " (found " .. tostring(f.charTab) .. "), view " .. tostring(w._thermalView) .. " (" .. tostring(f.tview)
+                .. "), pick " .. tostring(w._thermalPick) .. " (" .. tostring(f.tpick) .. "), width cap " .. tostring(w._maxWinW) .. " (" .. tostring(f.maxWinW)
+                .. "), card " .. S.nm(w._equipSelected))
         end
         local held = nil
         pcall(function() held = S.F.getFocusedWindow(S.pn) end)
