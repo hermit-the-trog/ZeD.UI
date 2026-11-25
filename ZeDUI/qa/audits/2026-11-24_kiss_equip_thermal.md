@@ -22,13 +22,15 @@ The director, Nov 23 2026: "With every one of these micro QA passes, also do a K
 
 ## Bugs (to Build, with evidence; every one seen at both sizes)
 
+All fixed: merged as 1b46b3cac, then cd282e09b for a card that wouldn't open after Build's first fix to bug 1. et.txt is green on cd282e09b at both sizes (eq_tab 191, th_tab 189).
+
 1. **Taking off a layer.** UNEQUIP or DROP on a layered slot's card turns the card into the layer underneath. On the pad, A then A takes off the jacket and the sweater both.
 2. **Hat over a hood.** A hat dropped on the doll with a hood up takes the hoodie off; the game's Wear lowers the hood.
 3. **Drop in a car.** Seated with the window shut, the card's DROP does nothing and says nothing; the game grays Drop and says why.
 4. **Narrow Thermal card.** On the 220 card no grid cell shows its body part's name (all 17, both text sizes).
 5. **Stuck detail box.** Folding the figure by pad while the mouse rests on a part leaves the detail box on that part.
 6. **Hover through the heading.** The pointer on the pinned "Body figure" heading hovers the part hidden beneath it.
-7. (Being confirmed with a picture) After a column is dragged wider, the protection dots draw past the card's edge on the narrow card.
+7. After a column is dragged wider, the protection dots draw past the card's edge on the narrow card.
 
 ## Checked and fine
 
