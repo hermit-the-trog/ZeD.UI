@@ -1986,7 +1986,10 @@ function ZeD.Molecules.drawTabHeader(panel, x, y, w, text, expanded, hovered, no
 
     -- Bottom 1px rule extending edge-to-edge with the inventory column header
     -- on the opposite panel — same divider line, no bg fill.
-    ZeD.Atoms.drawDividerH(panel, x, y + h - T.px(1), fullW, true)
+    -- (its bottom on the strip's bottom at every weight: in High Contrast the rule is two hairlines, and drawn from
+    -- h - 1 its second one lay under the tab's first row, hidden by the rows and showing in a scroll bar's column, so
+    -- the bar's top read twice the rule's weight; QA's HC hand measures, Nov 25 2026)
+    ZeD.Atoms.drawDividerH(panel, x, y + h - T.px(1) - (T.line(T.borderW) - T.line(1)), fullW, true)   -- (unchanged at one hairline)
 
     return h
 end
