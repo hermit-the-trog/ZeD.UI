@@ -307,6 +307,7 @@ function CT.takeAll(playerObj, src, dest)
         return
     end
     CT.moveItems(playerObj, items, dest)
+    if ZeD.SmartAttach then ZeD.SmartAttach.after(playerObj, items) end   -- (smart attach, the director, Nov 24 2026)
 end
 
 --- Transfer all from src into dest (walks to dest first unless it is the floor).
@@ -409,7 +410,7 @@ function CT.moveToOther(content, items)
     local playerObj = content and content._playerObj
     local dest = content and otherInventory(content)
     if not (playerObj and dest and items and #items > 0) then return false end
-    if content._ccSide ~= "char" then return CT.grabItems(playerObj, items, dest) end
+    if content._ccSide ~= "char" then local ok = CT.grabItems(playerObj, items, dest); if ok and ZeD.SmartAttach then ZeD.SmartAttach.after(playerObj, items) end; return ok end   -- (smart attach, the director, Nov 24 2026)
     if playerObj.isAsleep and playerObj:isAsleep() then return false end
     CT.moveItems(playerObj, items, dest)
     return true
@@ -717,6 +718,7 @@ function CT.lootAll(playerObj, src, d)
         return
     end
     CT.moveItems(playerObj, items, d)
+    if ZeD.SmartAttach then ZeD.SmartAttach.after(playerObj, items) end   -- (smart attach, the director, Nov 24 2026)
 end
 
 --- The words of the Loot all buttons (the game's, sentence case): the band's and the list heading's. (KISS #18)

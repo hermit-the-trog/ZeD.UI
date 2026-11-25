@@ -789,6 +789,14 @@ local appliances = onSwitch("appliances", "UI_ZeD_Settings_Appliances", "UI_ZeD_
 ZeD.Settings.appliancesOption = appliances
 ZeD.Settings.appliancesOn = function() return (appliances:getValue() or 1) == 2 end
 
+-- ----- ATTACH LOOTED TOOLS AND WEAPONS (smart attach, the director, Nov 24 2026) -----
+-- A plain take of something that hangs on the belt or back puts it on an empty slot, and a weapon that breaks in the
+-- hands is swapped for the most worn spare (ZeD_SmartAttach.lua reads it each time, so a change applies at once).
+-- An addition: on in the Access preset, off in Vanilla and Plus (and so in Lite).
+local smartAttach = onSwitch("smartAttach", "UI_ZeD_Settings_SmartAttach", "UI_ZeD_Settings_SmartAttachTip")
+ZeD.Settings.smartAttachOption = smartAttach
+ZeD.Settings.smartAttachOn = function() return (smartAttach:getValue() or 1) == 2 end
+
 -- ----- THE KEYS OF THE OPTION NAMES -----
 -- ModOptions keeps each name as the text the option was made with, which is read once, here at
 -- file load, so the test language could never stretch it. Each option also keeps the key of its
@@ -828,6 +836,7 @@ do
         autoLearn = "UI_ZeD_Settings_AutoLearn", runSneak = "UI_ZeD_Settings_RunSneak",
         uiSounds = "UI_ZeD_Settings_UiSounds",
         appliances = "UI_ZeD_Settings_Appliances",
+        smartAttach = "UI_ZeD_Settings_SmartAttach",   -- (smart attach, the director, Nov 24 2026)
         -- (QA B10-1) Style and Map had no entry, so they had no default: Defaults skipped them and the help
         -- band showed no "Default:" for them
         lookStyle = "UI_ZeD_Settings_LookStyle", mapLight = "UI_ZeD_Settings_MapLight",
@@ -865,7 +874,8 @@ local function setUpAdditions()
     -- key "<owner>.<id>" (an option ZeD makes for an add-on, owner ZeD_UI, keeps its plain id)
     local IDS = { "ammoBox", "readMarks", "readNext", "dimRead", "dashLamps", "moodleNotices",
                   "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "devicesStyle", "watchStyle", "dashStyle",
-                  "guideStyle", "modsStyle", "identityStyle", "haloBubble", "hiddenFacts", "autoLearn", "appliances" }
+                  "guideStyle", "modsStyle", "identityStyle", "haloBubble", "hiddenFacts", "autoLearn", "appliances",
+                  "smartAttach" }   -- (smart attach, the director, Nov 24 2026)
     -- THE PRESETS, by the preset's item: the item each addition is set to. An id a preset leaves out is left as
     -- it is and does not count when the values are matched to a preset. A new addition of ZeD's joins by putting
     -- its id in IDS and a row in each preset, as the Full-or-simple rows did (Immersive for Vanilla Plus, Simple
@@ -874,17 +884,17 @@ local function setUpAdditions()
         -- 1 Vanilla: every addition off
         { ammoBox = OFF, readMarks = OFF, readNext = OFF, dimRead = OFF, dashLamps = OFF, moodleNotices = OFF,
           messagesCatch = OFF, messagesToast = OFF, putBack = OFF, sandboxInGame = OFF, haloBubble = OFF,
-          hiddenFacts = 1, autoLearn = OFF, appliances = OFF },
+          hiddenFacts = 1, autoLearn = OFF, appliances = OFF, smartAttach = OFF },
         -- 2 Vanilla Plus: every addition on (Additional appliance support stays off: Nov 15 2026, appliances)
         { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
           messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON,
           devicesStyle = 1, watchStyle = 1, dashStyle = 1, guideStyle = 1, modsStyle = 1, identityStyle = 1, haloBubble = ON,
-          hiddenFacts = 1, autoLearn = OFF, appliances = OFF },
+          hiddenFacts = 1, autoLearn = OFF, appliances = OFF, smartAttach = OFF },
         -- 3 Vanilla Accessible: every addition on (Additional appliance support off, as in every preset)
         { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
           messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON,
           devicesStyle = 2, watchStyle = 2, dashStyle = 2, guideStyle = 2, modsStyle = 2, identityStyle = 2, haloBubble = ON,
-          hiddenFacts = 2, autoLearn = ON, appliances = OFF },
+          hiddenFacts = 2, autoLearn = ON, appliances = OFF, smartAttach = ON },   -- (smart attach: Access only)
     }
     ZeD.Settings.ADDITION_IDS = IDS
     ZeD.Settings.ADDITION_PRESETS = PRESETS
@@ -1142,7 +1152,8 @@ local function setUpAdditions()
             -- reading Custom. The Identity row joined in beta 6, and Hidden facts after beta 7.)
             if val.additionsPreset == 3 then
                 -- (Recipes skills teach joined the presets after the rest: item 2 is On)
-                for _, id in ipairs({ "devicesStyle", "watchStyle", "dashStyle", "identityStyle", "hiddenFacts", "autoLearn" }) do
+                -- (Attach looted tools and weapons joined on Nov 24 2026: an Access player gets it On, smart attach)
+                for _, id in ipairs({ "devicesStyle", "watchStyle", "dashStyle", "identityStyle", "hiddenFacts", "autoLearn", "smartAttach" }) do
                     local o = opt(id)
                     if o and not has[id] then o:setValue(2) end
                 end

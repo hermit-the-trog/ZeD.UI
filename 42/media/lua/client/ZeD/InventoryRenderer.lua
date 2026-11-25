@@ -1100,6 +1100,7 @@ function ZeD.InventoryRenderer.quickUse(item, playerNum, rows, wear)   -- rows: 
         local floor = src:getType() == "floor"
         if floor or luautils.walkToContainer(src, playerNum) then
             ZeD.ContainerControls.moveItems(playerObj, rows or { item }, dest)
+            if not wear and ZeD.SmartAttach then ZeD.SmartAttach.after(playerObj, rows or { item }) end   -- (smart attach, the director, Nov 24 2026)
             if wear then
                 for _, it in ipairs(rows or { item }) do
                     if instanceof(it, "Clothing") and not it:isBroken() then ISTimedActionQueue.add(ISWearClothing:new(playerObj, it)) end

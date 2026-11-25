@@ -238,7 +238,9 @@ function PW:getVehicle() return nil end
 getSpecificPlayer = function() return PW end
 ISInventoryPane = { doContextualDblClick = noop }
 local moved = {}
-ZeD.ContainerControls = { moveItems = function(_, items) for _, it in ipairs(items) do moved[#moved + 1] = it end end }
+ZeD.ContainerControls = { moveItems = function(_, items) for _, it in ipairs(items) do moved[#moved + 1] = it end end,
+    -- (QA's loot KISS test, Nov 24 2026: quickUse asks where a take lands; no bag on show here, the main inventory)
+    takeDest = function(p) return p:getInventory() end }
 local stackOf = {}
 ZeD.InventoryRenderer.dragItems = function(_, items) return items end
 if run("L1-5 quickUse", cut(IRsrc, "function ZeD.InventoryRenderer.quickUse(", "\nend\n"))

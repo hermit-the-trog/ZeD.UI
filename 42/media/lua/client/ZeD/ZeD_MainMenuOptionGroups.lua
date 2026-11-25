@@ -193,7 +193,9 @@ G.ZED_GROUPS = {
         -- (a row with showIf = another option's id is hidden while that one is off. The audit: hiding is quieter
         -- than the dimmed row with its reason line.)
         -- (Nov 15 2026, appliances: Additional appliance support, Appliances.lua)
-        { "appliances", "onoff" } } },
+        { "appliances", "onoff" },
+        -- (smart attach, the director, Nov 24 2026: Attach looted tools and weapons, ZeD_SmartAttach.lua)
+        { "smartAttach", "onoff" } } },
     -- (the audit: Inventory has the view button in every column header, Equipped items the Equip tab's own switch,
     -- the window accents each window's menu; Hidden actions has one-word choices, the help band explains them)
     { "UI_ZeD_Options_ZedWindows", { { "contextStyle", "radio" }, { "wornInList", "radio" }, { "uiSounds", "radio" }, { "hiddenActions", "radio" } } },
