@@ -3739,27 +3739,27 @@ local function drawWorldContainerStrip(self, win, content)
         local arrowY = h - scrollArrowH
         ZeD.Surface.fill(self, 0, arrowY, w - T.px(1), scrollArrowH, "surf2")
         A.drawDividerH(self, 0, arrowY, w - T.px(1), true)
-        local halfW = math.floor(w / 2)
-        if not cuesOn and my >= arrowY and my < h and mx >= 0 and mx < w - T.px(1) then
+        -- the row's inside between the strip's lines, two equal halves; each arrow centred in its half
+        local L, M, R = A.stripArrowHalves(w)
+        local aS = T.px(5)
+        if not cuesOn and my >= arrowY and my < h and mx >= L and mx < R then
             local hv = T.hover
-            local hx = (mx < halfW) and 0 or halfW
-            self:drawRect(hx, arrowY + T.px(1), ((mx < halfW) and halfW or (w - T.px(1) - halfW)), scrollArrowH - T.px(1), hv.a, hv.r, hv.g, hv.b)
+            local hx, hw = L, M - L
+            if mx >= M then hx, hw = M, R - M end
+            self:drawRect(hx, arrowY + T.px(1), hw, scrollArrowH - T.px(1), hv.a, hv.r, hv.g, hv.b)
         end
+        local arY = arrowY + T.px(1) + math.floor((scrollArrowH - T.px(1) - aS) / 2)   -- (centred under the row's top line)
 
         -- Up arrow (left half)
         local arrowColor = scrollOff > 0 and T.text or T.textDim
-        local upX = math.floor(w / 4)
-        local upY = arrowY + math.floor(scrollArrowH / 2) - T.px(1)
-        A.drawTriangleUp(self, upX, upY, T.px(5), arrowColor)
-        self:addHitZone("scroll_up", 0, arrowY, math.floor(w / 2), scrollArrowH)
+        A.drawTriangleUp(self, A.stripArrowX(L, M, aS), arY, aS, arrowColor)
+        self:addHitZone("scroll_up", 0, arrowY, M, scrollArrowH)
 
         -- Down arrow (right half)
         local maxScroll = totalListH - listAreaH
         local downColor = scrollOff < maxScroll and T.text or T.textDim
-        local dnX = math.floor(w * 3 / 4)
-        local dnY = arrowY + math.floor(scrollArrowH / 2) - T.px(1)
-        A.drawTriangleDown(self, dnX, dnY, T.px(5), downColor)
-        self:addHitZone("scroll_down", math.floor(w / 2), arrowY, math.floor(w / 2), scrollArrowH)
+        A.drawTriangleDown(self, A.stripArrowX(M, R, aS), arY, aS, downColor)
+        self:addHitZone("scroll_down", M, arrowY, w - M, scrollArrowH)
     end
 end
 

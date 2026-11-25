@@ -352,6 +352,21 @@ function ZeD.Atoms.drawTriangleUp(panel, x, y, size, color)
     _drawArrow(panel, "up", x, y, size, color)
 end
 
+--- A container strip's [^ v] row, w wide: its inside between the strip's left and right lines (one hairline
+--- each), split in two equal halves. Returns L, M, R: the up half is [L, M), the down half [M, R). The arrows
+--- centre in their halves (stripArrowX), and the hover and the press areas are the halves (the director, Nov 25
+--- 2026: "the scroll buttons on the container strip are not on center"; they were centred on w/2 of the strip's
+--- full width, lines and all, and the World strip's drawn from the half's middle).
+function ZeD.Atoms.stripArrowHalves(w)
+    local hl = ZeD.T.px(1)
+    local L, R = hl, w - hl
+    return L, L + math.floor((R - L) / 2), R
+end
+--- An arrow's x (its size s box) centred in [a, b)
+function ZeD.Atoms.stripArrowX(a, b, s)
+    return a + math.floor((b - a - math.floor(s)) / 2)
+end
+
 -- ---------------------------------------------------------------------------
 -- DISCLOSURE TRIANGLE — Left-pointing (back/submenu navigation)
 -- ---------------------------------------------------------------------------

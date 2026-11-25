@@ -4292,33 +4292,36 @@ local function drawContainerStrip(self, win, content)
         local sep2 = T.borderS
         self:drawRect(0, arrowY, w, T.px(1), sep2.a, sep2.r, sep2.g, sep2.b)
 
-        local halfW = math.floor(w / 2)
+        -- the row's inside between the strip's lines, two equal halves; each arrow centred in its half (the director)
+        local L, M, R = A.stripArrowHalves(w)
+        local aS = T.px(ARROW_SZ)
+        local arY = arrowY + T.px(1) + math.floor((scrollArrowH - T.px(1) - aS) / 2)   -- (centred under the row's top line)
         local maxScroll = totalListH - listAreaH
         local canScrollUp   = scrollOff > 0
         local canScrollDown = scrollOff < maxScroll
 
         -- Up button (left half)
-        local hoverUp = canScrollUp and (mx >= 0 and mx < halfW and my >= arrowY and my < h) and not cuesOn
+        local hoverUp = canScrollUp and (mx >= L and mx < M and my >= arrowY and my < h) and not cuesOn
         if hoverUp then
             local hv = T.hover
-            self:drawRect(T.px(1), arrowY + T.px(1), halfW - T.px(1), scrollArrowH - T.px(1), hv.a, hv.r, hv.g, hv.b)
+            self:drawRect(L, arrowY + T.px(1), M - L, scrollArrowH - T.px(1), hv.a, hv.r, hv.g, hv.b)
         end
         local upC = canScrollUp and (hoverUp and T.text or T.textDim) or T.border
-        A.drawTriangleUp(self, math.floor((halfW - T.px(ARROW_SZ)) / 2), arrowY + math.floor((scrollArrowH - T.px(ARROW_SZ)) / 2), T.px(ARROW_SZ), upC)
+        A.drawTriangleUp(self, A.stripArrowX(L, M, aS), arY, aS, upC)
         if canScrollUp then
-            self:addHitZone("strip_scroll_up", 0, arrowY, halfW, scrollArrowH)
+            self:addHitZone("strip_scroll_up", 0, arrowY, M, scrollArrowH)
         end
 
         -- Down button (right half)
-        local hoverDn = canScrollDown and (mx >= halfW and mx < w and my >= arrowY and my < h) and not cuesOn
+        local hoverDn = canScrollDown and (mx >= M and mx < w and my >= arrowY and my < h) and not cuesOn
         if hoverDn then
             local hv = T.hover
-            self:drawRect(halfW, arrowY + T.px(1), halfW, scrollArrowH - T.px(1), hv.a, hv.r, hv.g, hv.b)
+            self:drawRect(M, arrowY + T.px(1), R - M, scrollArrowH - T.px(1), hv.a, hv.r, hv.g, hv.b)
         end
         local dnC = canScrollDown and (hoverDn and T.text or T.textDim) or T.border
-        A.drawTriangleDown(self, halfW + math.floor((halfW - T.px(ARROW_SZ)) / 2), arrowY + math.floor((scrollArrowH - T.px(ARROW_SZ)) / 2), T.px(ARROW_SZ), dnC)
+        A.drawTriangleDown(self, A.stripArrowX(M, R, aS), arY, aS, dnC)
         if canScrollDown then
-            self:addHitZone("strip_scroll_down", halfW, arrowY, halfW, scrollArrowH)
+            self:addHitZone("strip_scroll_down", M, arrowY, w - M, scrollArrowH)
         end
     end
 end
