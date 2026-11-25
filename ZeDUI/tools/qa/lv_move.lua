@@ -1721,6 +1721,14 @@ function S.case8()
         local cx, cy = math.floor(T.car:getX()), math.floor(T.car:getY())
         T.c0 = S.census({ S.bx("glove box", T.gb), S.box.bag, S.bx("held bag", T.binv), { key = "floor", floor = true, x = cx, y = cy, z = 0, r = 5 } })
         local sp = S.spec(S.wc(), "floor")
+        -- (QA's loot KISS test, Nov 24 2026, fixed in f67b7cf36: shut in, To floor greys and says why, as the game's Drop)
+        if shut then
+            Q.check(sp ~= nil and not sp.enabled and tostring(sp.help) == getText("ContextMenu_DropFromVehicle"),
+                "8 car, To floor seated with the window shut: To floor is grayed and says why in the game's words (ContextMenu_DropFromVehicle)",
+                sp and ("on " .. tostring(sp.enabled) .. ", help \"" .. tostring(sp.help) .. "\"") or ("no To floor: " .. S.specIds(S.wc())))
+        else
+            Q.say("NOTE 8 car, To floor seated: the window is not shut here (carWindowShut false), the grayed To floor is not checked")
+        end
         local okP, why = false, "no To floor on the glove box's band: " .. S.specIds(S.wc())
         if ok and sp and sp.enabled then okP, why = S.press(S.wc(), "floor") end
         T.f = okP
@@ -2015,6 +2023,39 @@ function S.case11()
 end
 
 -- ===================================================================== 12. Loot all's destination with a bag on show
+-- one way to take a thing from crate A with the backpack on show: it lands in the backpack, nothing else moves.
+-- run(it) starts it; when it opens the item menu (its third result true), pick(it) picks the row once the menu is up.
+function S.takeWay(T, how, run, pick)
+    local C = {}
+    S.step(2, function()
+        if T.off then return end
+        C.it = S.add(S.A.inv, T.k)
+        S.showBag(T.pinv)
+        S.show(S.A.inv)
+        S.dirty()
+        S.rebuild()
+    end)
+    S.wait(4, 300, function() return T.off or (S.charShows(T.pinv) and S.shows(S.A.inv)) end, function(ok)
+        if T.off then return end
+        if not (ok and C.it) then C.off = true; Q.check(false, "12 takes, " .. how .. ": the backpack on show and crate A in the World window"); return end
+        C.c0 = S.census({ S.box.bag, S.bx("backpack", T.pinv), S.box.A })
+        local okR, why, menu = run(C.it)
+        C.menu = menu
+        if not okR then C.off = true; S.errs = S.errs + 1; Q.check(false, "12 takes, " .. how .. ": it runs", why) end
+    end)
+    S.wait(2, 120, function() return T.off or C.off or not C.menu or S.menu() ~= nil end, function(ok)
+        if T.off or C.off or not C.menu then return end
+        local okP, why = false, "no ZeD menu"
+        if ok then okP, why = pick(C.it) end
+        if not Q.check(okP, "12 takes, " .. how .. ": the row runs", why) then C.off = true end
+    end)
+    S.wait(4, 900, S.settled(8), function()
+        if T.off or C.off then return end
+        local ok, d = S.audit(C.c0, function(it) if it == C.it then return "backpack" end end)
+        Q.check(ok and S.where(C.it) == T.pinv, "12 takes: " .. how .. " puts the thing in the bag on show (the backpack), as Loot all does",
+            S.whereText(C.it) .. "; " .. d)
+    end)
+end
 function S.case12()
     local T = {}
     S.step(2, function()
@@ -2057,6 +2098,30 @@ function S.case12()
         Q.check(ok, "12 loot all: every thing leaves crate A into one of his containers, nothing lost or doubled", d)
         Q.check(inPack == 3, "12 loot all: Loot all puts the things in the bag on show (the active container, the director's call)",
             inPack .. " in the backpack on show, " .. inMain .. " in the main inventory")
+    end)
+    -- (QA's loot KISS test, Nov 24 2026, fixed in f67b7cf36: every other way to take lands in the bag on show too)
+    S.takeWay(T, "the double-click (quickUse)", function(it)
+        local ok, err = pcall(ZeD.InventoryRenderer.quickUse, it, S.pn, nil)
+        return ok, tostring(err)
+    end)
+    S.takeWay(T, "the card's Grab", function(it)
+        local ok, err = pcall(ZeD_ItemCard._dispatchHeaderVerb, { item = it, playerNum = S.pn }, "TAKE")
+        return ok, tostring(err)
+    end)
+    S.takeWay(T, "pad X on crate A's button", function(it)
+        local w, idx = RT.ww(), nil
+        for i, e in ipairs((w and w._containers) or {}) do if e.inventory == S.A.inv then idx = i end end
+        if not idx then return false, "crate A is not on the World window's buttons" end
+        local ok, err = pcall(ZeD_WorldWindow.padTakeAll, w, { containerIdx = idx })
+        return ok, tostring(err)
+    end)
+    S.takeWay(T, "the item menu's " .. getText("IGUI_invpage_Loot_all"), function(it)
+        S.openMenu({ it }, false)
+        return true, "", true
+    end, function(it)
+        local okP, why = S.pick(S.menu(), { getText("IGUI_invpage_Loot_all") })
+        if not okP then S.closeMenu() end
+        return okP, why
     end)
     Q.step(2, function()
         if S.dead then return end
