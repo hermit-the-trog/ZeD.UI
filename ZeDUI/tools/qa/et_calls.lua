@@ -2582,14 +2582,26 @@ function S.dropLeg(T, D)
         S.handsSet(nil, nil)
         S.cardClose()
         local w = RT.cw()
-        if w and w._equipScroll and w._equipScroll.visible then pcall(function() w._equipScroll:setScrollPos(1) end) end
+        if w and w._equipScroll and w._equipScroll.visible then pcall(function() w._equipScroll:setScrollPos(0) end) end
     end)
     -- (a few frames for the doll to draw at the new scroll: its boxes and clip are set while it draws, so a box read
-    -- the frame after the scroll still has the old place)
+    -- the frame after the scroll still has the old place; then, if the box sits outside the doll's clip, the other end)
+    S.waitIdle(8)
+    S.step(2, function()
+        if T.off or not L.it then return end
+        local w = RT.cw()
+        local r, c = S.rect(D.box), w and w._equipDollClip
+        if r and c and not (r.y >= c.y and r.y + r.h <= c.y + c.h) and w._equipScroll and w._equipScroll.visible then
+            pcall(function() w._equipScroll:setScrollPos(1) end)
+        end
+    end)
     S.waitIdle(8)
     S.wait(10, 120, function() return T.off or not L.it or (S.eqReady("doll") and S.rect(D.box) ~= nil) end, function(ok)
         if T.off or not L.it then return end
-        if not Q.check(ok, "9 drop: the doll's " .. D.box .. " box is drawn") then return end
+        local r, c = S.rect(D.box), RT.cw() and RT.cw()._equipDollClip
+        local inView = r ~= nil and (c == nil or (r.y >= c.y and r.y + r.h <= c.y + c.h))
+        if not Q.check(ok and inView, "9 drop: the doll's " .. D.box .. " box is drawn in view",
+            r and (math.floor(r.y) .. "+" .. math.floor(r.h) .. (c and (" in the clip " .. math.floor(c.y) .. "+" .. math.floor(c.h)) or "")) or "no box") then return end
         L.res, L.why = S.dropOnDoll(S.rect(D.box), L.it)
         L.go = true
     end)
