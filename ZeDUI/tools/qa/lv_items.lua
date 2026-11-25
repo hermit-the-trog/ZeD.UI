@@ -59,9 +59,14 @@ S.PIECES = { "furniture_seating_indoor_01_0", "furniture_seating_indoor_02_0", "
 -- ===================================================================== small helpers
 -- (QA, Nov 23 2026: once he has read a generic book the game offers Reread, not Read, and a reread moves no mark:
 -- the run of the action to its end is then the proof)
-function S.bookWord()
+-- (QA, Nov 24 2026, after the deck run: the game's menu says Reread when the book's literature title is read,
+-- ISInventoryPaneContextMenu recentlyRead, so a run after another that read the same title meets Reread)
+function S.bookWord(it)
     local read = false
     pcall(function() local l = S.p:getAlreadyReadBook(); read = l ~= nil and l:contains("Base.Book") end)
+    if not read and it then
+        pcall(function() local t = it:getModData().literatureTitle; read = t ~= nil and S.p:isLiteratureRead(t) end)
+    end
     return getText(read and "ContextMenu_ReRead" or "ContextMenu_Read")
 end
 function S.errN() local n = nil; pcall(function() n = getLuaDebuggerErrorCount() end); return n end
@@ -1103,15 +1108,15 @@ S.KINDS = {
     { id = "key", ft = "Base.Key1",
       skip = "a key onto a key ring is lv_move's case 5: the key's options are compared only" },
     { id = "book", ft = "Base.Book",
-      keys = function() return { S.bookWord() } end,
+      keys = function(T) return { S.bookWord(T and T.it) } end,
       -- (QA, Nov 23 2026, after the first run: a generic book has no pages (getNumberOfPages -1) and the character was
       -- not bored, so neither moved. The game's ISReadABook:complete sets the book's read pages to its page count, -1 for
       -- a generic book, and marks its literature title read when it has one: those are the marks of a finished read.)
       act = { how = "menu", what = "Read runs and completes: the game's ISReadABook:complete marks the book read (its read pages set to its page count, its title read)",
-              path = function() return { S.bookWord() } end,
+              path = function(T) return { S.bookWord(T and T.it) } end,
               before = function(T)
                   local r = { p = S.readPages(S.ft(T.it)), b = S.statOf("BOREDOM") }
-                  r.reread = S.bookWord() == getText("ContextMenu_ReRead")
+                  r.reread = S.bookWord(T.it) == getText("ContextMenu_ReRead")
                   pcall(function() r.i = T.it:getAlreadyReadPages(); r.n = T.it:getNumberOfPages() end)
                   pcall(function() r.title = T.it:getModData().literatureTitle end)
                   if r.title then pcall(function() r.lit = S.p:isLiteratureRead(r.title) end) end

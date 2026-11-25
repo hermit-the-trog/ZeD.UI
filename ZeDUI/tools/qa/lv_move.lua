@@ -23,12 +23,15 @@
 --   3 fav     a favorite stays out of Transfer all; a favorite dragged into crate A stays in the bag (the game's
 --             transfer refuses it, ISInventoryTransferAction:transferItem), any message over the head recorded
 --   4 held    the thing in the hand and the thing on the belt (the hotbar) stay out of Transfer all, still held
+--             (a belt slot is borrowed when none is free: its own thing comes off and goes back after, checked)
 --   5 keyring a key goes onto a key ring by Move To; the key ring stays out of Transfer all, the key still on it;
 --             Transfer all counted exactly (everything else moves or stays for want of room)
 --   6 bags    a worn backpack and a fanny pack (worn or held): the CLOSED stack of 5 dragged from one to the other's
 --             strip button carries all 5, Move To back, then one row of the OPEN stack carries exactly 1; counted
 --   7 heavy   a generator in crate A: the double-click (quickUse) and Loot all with it alone lift it into the hands
---             with the game's ISEquipHeavyItem, never a plain transfer (the queue is watched)
+--             with the game's ISEquipHeavyItem, never a plain transfer (the queue is watched); then a body put away
+--             in crate A (a corpse item made from a fresh body): the double-click and Loot all grab it with the game's
+--             ISGrabCorpseItem, never a plain transfer, and he drags the body; let go and taken away after
 --   8 car     a pickup (Base.PickUpTruck): its bed, the trunk, from outside (picture lv_move_car_<w>x<h>; a SKIP when
 --             the game does not list it from there), then seated in the driver's seat the glove
 --             box and a seat: Loot all into the held bag on show and Transfer all back, counted; seated, the World
@@ -1109,6 +1112,41 @@ function S.hotAttach(it)
     end
     return false, "no free belt slot takes it"
 end
+-- (QA, Nov 24 2026: the test character's belt slots are all taken, so case 4 skipped. A slot that takes the tool is
+-- borrowed: its own thing comes off the belt (it stays in the bag), the tool goes on, and S.hotGiveBack puts it back)
+function S.hotBorrow(it)
+    local hb = nil
+    pcall(function() hb = getPlayerHotbar(S.pn) end)
+    if not (hb and hb.availableSlot and hb.attachedItems) then return false, "no hotbar" end
+    for i, slot in pairs(hb.availableSlot) do
+        local old = hb.attachedItems[i]
+        local okA, can = pcall(function() return hb:canBeAttached(slot, it) end)
+        if old and old ~= it and okA and can then
+            local att, oldAtt = nil, nil
+            pcall(function() att = slot.def.attachments[it:getAttachmentType()] end)
+            pcall(function() oldAtt = slot.def.attachments[old:getAttachmentType()] end)
+            if att and oldAtt then
+                local lent = { item = old, att = oldAtt, i = i, def = slot.def }
+                pcall(function() hb:removeItem(old, false) end)
+                pcall(function() hb:attachItem(it, att, i, slot.def, false) end)
+                local on = false
+                pcall(function() on = hb:isInHotbar(it) end)
+                if on then return true, "slot " .. tostring(i) .. " (" .. tostring(slot.name) .. "), lent by " .. S.ft(old), lent end
+                S.hotGiveBack(lent, it)
+            end
+        end
+    end
+    return false, "no belt slot takes it, even with its own thing taken off"
+end
+-- the lent belt thing back on its slot (the borrowed tool taken off first, if it is still there)
+function S.hotGiveBack(lent, it)
+    if not lent then return end
+    local hb = nil
+    pcall(function() hb = getPlayerHotbar(S.pn) end)
+    if not hb then return end
+    if it then pcall(function() if hb:isInHotbar(it) then hb:removeItem(it, false) end end) end
+    pcall(function() if not hb:isInHotbar(lent.item) then hb:attachItem(lent.item, lent.att, lent.i, lent.def, false) end end)
+end
 function S.inHotbar(it)
     local on = false
     pcall(function() on = getPlayerHotbar(S.pn):isInHotbar(it) end)
@@ -1137,6 +1175,15 @@ function S.case345()
                 local it = S.give(ft)
                 local ok, why = S.hotAttach(it)
                 if ok then T.hot, T.hotWhy = it, why; S.used[ft] = true else S.removeItem(it) end
+            end
+        end
+        if not T.hot then
+            for _, ft in ipairs(S.TOOLS) do
+                if not T.hot and not S.used[ft] and S.known(ft) then
+                    local it = S.give(ft)
+                    local ok, why, lent = S.hotBorrow(it)
+                    if ok then T.hot, T.hotWhy, T.lent = it, why, lent; S.used[ft] = true else S.removeItem(it) end
+                end
             end
         end
         T.ring = S.give("Base.KeyRing")
@@ -1213,7 +1260,13 @@ function S.case345()
         Q.check(ok and S.where(T.fav) == S.bag, "3 favorites: a favorite dragged into a crate stays in the bag (the game's transfer refuses it), nothing else moves",
             d .. "; NOTE " .. saidT .. " (ZeD shows none of its own, InventoryRenderer.lua handleDrop)")
     end)
-    Q.step(2, function() if not S.dead then S.caseClean() end end)
+    Q.step(2, function()
+        if not S.dead then S.caseClean() end
+        S.hotGiveBack(T.lent, T.hot)
+        if T.lent then
+            Q.check(S.inHotbar(T.lent.item), "4 held things: the belt thing that lent its slot is back on the belt", S.ft(T.lent.item) .. " " .. S.whereText(T.lent.item))
+        end
+    end)
     S.caseEnd("3-5 favorites, held things, the key ring")
 end
 
@@ -1376,8 +1429,115 @@ function S.case7()
         S.loose(T.gen)
         S.caseClean()
     end)
-    S.step(1, function() Q.skip("7 heavy: a corpse lifted", "a corpse item needs a dead body behind it: only the generator is staged") end)
+    -- 7b. a body put away in crate A (QA, Nov 24 2026; was a SKIP): the game's double-click and Loot all grab a corpse
+    -- item with ISGrabCorpseItem (ISInventoryPane:doContextualDblClick, lootAll), never a plain transfer, and he drags it
+    S.corpsePair(T, "the double-click (quickUse) in crate A", function()
+        local ok, err = pcall(ZeD.InventoryRenderer.quickUse, T.corpse, S.pn, nil)
+        if not ok then S.errs = S.errs + 1; Q.check(false, "7 heavy: quickUse ran on the corpse", tostring(err)) end
+    end)
+    S.corpsePair(T, "Loot all with it alone in the container", function()
+        local okP, why = false, "crate A does not hold the corpse alone, or no Loot all: " .. S.size(S.A.inv) .. " things"
+        if S.size(S.A.inv) == 1 and S.spec(S.wc(), "take") ~= nil then okP, why = S.press(S.wc(), "take") end
+        Q.check(okP, "7 heavy: Loot all presses with the corpse alone in crate A", why)
+    end)
+    Q.step(2, function() S.bodiesAway(T); if not S.dead then S.caseClean() end end)
+    Q.step(4, function()
+        if not T.b0 then return end
+        local left = 0
+        for _, b in ipairs(S.bodiesNear(8)) do if not T.b0[b] then left = left + 1 end end
+        Q.check(left == 0, "7 heavy: no body the case made is left near him", left .. " left")
+    end)
     S.caseEnd("7 heavy")
+end
+function S.dragging() local d = false; pcall(function() d = S.p:isDraggingCorpse() end); return d and true or false end
+function S.bodiesNear(r)
+    local out = {}
+    pcall(function()
+        local cx, cy, z = math.floor(S.p:getX()), math.floor(S.p:getY()), math.floor(S.p:getZ())
+        for x = cx - r, cx + r do
+            for y = cy - r, cy + r do
+                local sq = getCell():getGridSquare(x, y, z)
+                local bl = sq and sq:getDeadBodys()
+                if bl then for i = 0, bl:size() - 1 do out[#out + 1] = bl:get(i) end end
+            end
+        end
+    end)
+    return out
+end
+-- every body near him the case did not find there at its start, taken away (the one he let go of)
+function S.bodiesAway(T)
+    if not T.b0 then return end
+    for _, b in ipairs(S.bodiesNear(8)) do
+        if not T.b0[b] then
+            pcall(function() local sq = b:getSquare(); if sq then sq:removeCorpse(b, false) end end)
+            pcall(function() b:removeFromWorld() end)
+            pcall(function() b:removeFromSquare() end)
+        end
+    end
+end
+-- a human corpse item (the game's CorpseMale or CorpseFemale: a body put away in a container) made in inv from a fresh
+-- body on a spare square; the zombie and the body on the ground taken away, only the item stays
+function S.mkCorpse(inv)
+    local sq = S.spare[2] or S.spare[1]
+    if not sq then return nil, "no free square round him" end
+    local z, body, item = nil, nil, nil
+    local ok, err = pcall(function()
+        z = createZombie(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ(), nil, 0, IsoDirections.S)
+    end)
+    if not (ok and z) then return nil, "no zombie could be made: " .. tostring(err) end
+    pcall(function() body = IsoDeadBody.new(z, false, false) end)
+    if not body then pcall(function() body = IsoDeadBody.new(z, false) end) end
+    if body then pcall(function() item = body:getItem() end) end
+    pcall(function() z:removeFromWorld() end)
+    pcall(function() z:removeFromSquare() end)
+    if body then
+        pcall(function() local bs = body:getSquare(); if bs then bs:removeCorpse(body, false) end end)
+        pcall(function() body:removeFromWorld() end)
+        pcall(function() body:removeFromSquare() end)
+    end
+    if not item then return nil, body and "the body gave no corpse item" or "no body could be made from the zombie" end
+    pcall(function() inv:AddItem(item) end)
+    if S.where(item) ~= inv then return nil, "crate A did not take the corpse item" end
+    local human = false
+    pcall(function() human = item:isHumanCorpse() end)
+    if not human then S.removeItem(item); return nil, "the corpse item is not a human corpse (" .. S.ft(item) .. ")" end
+    return S.mark(item)
+end
+-- one way to lift a corpse in crate A: made, the way run with the queue watched, checked, let go, the body taken away
+function S.corpsePair(T, how, run)
+    local C = {}
+    S.step(2, function()
+        if not T.b0 then T.b0 = {}; for _, b in ipairs(S.bodiesNear(8)) do T.b0[b] = true end end
+        local it, why = S.mkCorpse(S.A.inv)
+        if not it then C.off = true; Q.skip("7 heavy: a corpse lifted (" .. how .. ")", tostring(why)); return end
+        T.corpse = it
+        S.dirty()
+        S.show(S.A.inv)
+        S.rebuild()
+    end)
+    S.wait(6, 200, function() return C.off or (S.shows(S.A.inv) and S.spec(S.wc(), "take") ~= nil) end, function()
+        if C.off then return end
+        S.qOn()
+        run()
+    end)
+    S.wait(4, 900, function() return C.off or (S.dragging() and S.queueEmpty()) end, function(ok)
+        if C.off then return end
+        local grab = S.qHas("ISGrabCorpseItem", T.corpse)
+        local plain = S.qHas("ISInventoryTransferAction", T.corpse)
+        local drag = S.dragging()
+        Q.check(grab and not plain and drag, "7 heavy: " .. how .. " grabs the corpse the game's way (ISGrabCorpseItem), never a plain transfer, and he drags the body",
+            "queued: " .. S.qText() .. "; dragging " .. tostring(drag) .. "; the corpse item " .. S.whereText(T.corpse))
+        S.qOff()
+        pcall(function() S.p:setDoGrappleLetGo() end)
+    end)
+    S.wait(4, 600, function() return C.off or not S.dragging() end, function(ok)
+        if C.off then return end
+        if not ok then Q.say("NOTE 7 heavy: he still drags the body after letting go (" .. how .. ")") end
+        S.bodiesAway(T)
+        S.removeItem(T.corpse)
+        S.handsBack()
+        S.dirty()
+    end)
 end
 
 -- ===================================================================== 8. a car: trunk, glove box, a seat; seated; To floor
@@ -1394,7 +1554,9 @@ function S.carInv(T, partId)
     local inv = nil
     -- (never index a call that can give nil, even in pcall: -debug logs the caught exception, 401 times on Nov 23)
     pcall(function()
+        -- (QA, Nov 24 2026: the pickup's bed is the part TruckBedOpen in 42.22, its area TruckBed; bx_inventory takes either)
         local part = T.car and T.car:getPartById(partId)
+        if not part and T.car and partId == "TruckBed" then part = T.car:getPartById("TruckBedOpen") end
         if part then inv = part:getItemContainer() end
     end)
     return inv
@@ -1490,7 +1652,7 @@ function S.case8()
             if d then d:setLocked(false); d:setOpen(true) end
         end)
         local c = nil
-        pcall(function() local bed = T.car:getPartById("TruckBed"); if bed then c = T.car:getAreaCenter(bed:getArea()) end end)
+        pcall(function() local bed = T.car:getPartById("TruckBed") or T.car:getPartById("TruckBedOpen"); if bed then c = T.car:getAreaCenter(bed:getArea()) end end)
         if c then pcall(function() S.p:teleportTo(c:getX(), c:getY(), 0) end) end
         T.atTrunk = c ~= nil
         pcall(function() RT.ww()._containerTimer = 30 end)
@@ -1810,6 +1972,9 @@ function S.case11()
         T.k = S.unique(S.SMALL)
         T.it = T.k and S.give(T.k)
         if not T.it then T.off = true; Q.skip("11 put in", "no small kind left"); return end
+        -- (QA, Nov 24 2026: the game's hidden loot page put on crate B by the game's own call first, so where it sits is
+        -- known, not left to chance: a body let go of nearby had left it on the body in one run; ZeD then shows A)
+        pcall(function() getPlayerLoot(S.pn):setNewContainer(S.B.inv) end)
         S.show(S.B.inv)
     end)
     S.wait(4, 300, function() return T.off or S.shows(S.B.inv) end, function() if not T.off then S.show(S.A.inv) end end)
@@ -2096,9 +2261,23 @@ function S.case15()
         T.stats = S.statsSnap()
         T.was = S.optVal(ZeD.Settings.putBackOption)
         S.setOpt(ZeD.Settings.putBackOption, 2)
+        -- (QA, Nov 24 2026, after the deck run: the game will not start an eat with the Well Fed moodle at 3 or more,
+        -- ISEatFoodAction:isValidStart, and that moodle follows the food timer: emptied for the case, put back after)
+        pcall(function() T.foodTimer = S.p:getBodyDamage():getHealthFromFoodTimer() end)
+        pcall(function() S.p:getBodyDamage():setHealthFromFoodTimer(0) end)
         S.show(S.A.inv)
     end)
-    S.step(10, function()
+    S.wait(2, 240, function()
+        if T.off then return true end
+        local lvl = 0
+        pcall(function() lvl = S.p:getMoodles():getMoodleLevel(MoodleType.FOOD_EATEN) end)
+        return lvl < 3
+    end, function(ok)
+        if T.off then return end
+        if not ok then Q.say("NOTE 15 put back: the Well Fed moodle is still 3 or more after the food timer was emptied (the game refuses the eat)") end
+        T.on = ZeD.PutBack.on and ZeD.PutBack.on()
+    end)
+    S.step(2, function()
         if T.off then return end
         T.on = ZeD.PutBack.on and ZeD.PutBack.on()
         T.c0 = S.census({ S.box.bag, S.box.A })
@@ -2116,6 +2295,7 @@ function S.case15()
             .. ((S.where(T.other) == S.A.inv) and " (ZeD_PutBack.lua finish counts it as the eat's run and sends it back)" or ""))
         S.setOpt(ZeD.Settings.putBackOption, T.was)
         S.statsBack(T.stats)
+        if T.foodTimer then pcall(function() S.p:getBodyDamage():setHealthFromFoodTimer(T.foodTimer) end) end
         Q.check(S.optVal(ZeD.Settings.putBackOption) == T.was, "15 put back: the setting is back as found", tostring(S.optVal(ZeD.Settings.putBackOption)))
         S.caseClean()
     end)
