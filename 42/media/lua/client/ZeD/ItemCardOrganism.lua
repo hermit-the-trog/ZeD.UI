@@ -469,7 +469,9 @@ local function headerVerbsForContext(ctx, item, playerObj)   -- (playerObj: the 
             local pri, sec = playerObj:getPrimaryHandItem(), playerObj:getSecondaryHandItem()
             if pri == item or sec == item then
                 if pri == item then out[#out + 1] = {id = "OFF HAND", label = VT("OFF HAND"), primary = false, keepCompact = true} end
-                if not (pri == item and sec == item) then
+                -- (as the game offers Equip in Both Hands: a two-handed weapon, or one that needs both hands; QA's read)
+                local twoOK = safeGet(item, "isTwoHandWeapon") == true or safeGet(item, "isRequiresEquippedBothHands") == true
+                if twoOK and not (pri == item and sec == item) then
                     out[#out + 1] = {id = "TWO HANDS", label = VT("TWO HANDS"), primary = false, keepCompact = true}
                 end
             end

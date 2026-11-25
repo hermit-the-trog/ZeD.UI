@@ -78,7 +78,7 @@ if TH.coreLook then
     end
     check("CORE: every level its own segments (Hypothermia 3 and 4 apart)", distinct)
 end
-check("CORE: the meter draws coreLook", has(TT, "local lit, col = ZeD.ThermalTab.coreLook(data.coreTemp)"))
+check("CORE: the meter draws coreLook", has(TT, "local lit, col = ZeD.ThermalTab.coreLook(data.coreTemp,"))
 
 print("-- WETC / WETW")
 if TH.wetColor then
@@ -97,7 +97,7 @@ check("WETC: the detail rows", has(TT, "wet and ZeD.ThermalTab.wetColor(uiVal) o
 check("WETW: the detail rows' word", has(TT, "getText(wet and ZeD.ThermalTab.wetWordKey(uiVal) or F.scaleWord("))
 
 print("-- PCT")
-check("PCT: the grid reads %", has(TT, 'valStr = math.floor(uiVal * 100 + 0.5) .. "%"'))
+check("PCT: the grid reads %", has(TT, 'valStr = math.floor(fillPct * 100 + 0.5) .. "%"'))
 check("PCT: no 0.59 left", not has(TT, 'string.format("%.2f", uiVal)'))
 
 print("-- WEAR")
@@ -187,7 +187,7 @@ if csrc and hsrc and catsrc and sgsrc then
     check("CARD: loads", fn ~= nil, e)
     local hv = fn and fn()
     if hv then
-        local gun = { _cat = "Weapon" }
+        local gun = { _cat = "Weapon", isTwoHandWeapon = function() return true end }
         local function ids(pri, sec)
             local p = { getPrimaryHandItem = function() return pri end, getSecondaryHandItem = function() return sec end }
             local out = {}
@@ -197,6 +197,11 @@ if csrc and hsrc and catsrc and sgsrc then
         check("CARD: in the main hand: Off hand, Two hands", ids(gun, nil) == "UNEQUIP,OFF HAND,TWO HANDS,DROP,MORE", ids(gun, nil))
         check("CARD: in both: Off hand only", ids(gun, gun) == "UNEQUIP,OFF HAND,DROP,MORE", ids(gun, gun))
         check("CARD: in the off hand: Two hands", ids(nil, gun) == "UNEQUIP,TWO HANDS,DROP,MORE", ids(nil, gun))
+        local knife = { _cat = "Weapon", isTwoHandWeapon = function() return false end, isRequiresEquippedBothHands = function() return false end }
+        local kp = { getPrimaryHandItem = function() return knife end, getSecondaryHandItem = function() return nil end }
+        local ko = {}
+        for _, v in ipairs(hv("equipped", knife, kp)) do ko[#ko + 1] = v.id end
+        check("CARD: a knife: Off hand, no Two hands (the game's rule)", table.concat(ko, ",") == "UNEQUIP,OFF HAND,DROP,MORE", table.concat(ko, ","))
         local coat = { _cat = "Clothing" }
         local p = { getPrimaryHandItem = function() return nil end, getSecondaryHandItem = function() return nil end }
         local out = {}
@@ -211,6 +216,13 @@ check("CARD: EN words", has(EN, '"UI_ZeD_Card_VerbTwoHands": "Two hands"') and h
 print("-- HAND")
 check("HAND: the hand boxes take drops", has(ED, 'if key == "doll:main" or key == "doll:off" then slotBox(rects, bx, by, b, b).id = key:sub(6) end'))
 check("HAND: a weapon goes to that hand", has(ED, "ZeD.EquipmentTab.toHand(item, pn, main)"))
+
+print("-- QA's reads (Nov 25 2026)")
+check("READ 1: a list belt row's double-click takes it off", has(ET, "function ZeD.EquipmentTab.beltRowClick(win, zone)") and has(CW, "if ZeD.EquipmentTab.beltRowClick(win, zone) then return true end"))
+check("READ 2: Two hands as the game offers it", has(ICO, 'safeGet(item, "isTwoHandWeapon") == true or safeGet(item, "isRequiresEquippedBothHands") == true'))
+check("READ 3: the meter reads the moodles", has(TT, "ZeD.ThermalTab.coreLook(data.coreTemp, ZeD.ThermalTab.moodleLevel(win._playerObj))") and has(TT, "MoodleType.HYPOTHERMIA"))
+check("READ 4: the grid % clamped as the rows", has(TT, 'valStr = math.floor(fillPct * 100 + 0.5) .. "%"'))
+check("READ 5: a stale click wait is dropped, and a tab switch clears it", has(ET, "if age > ZeD.EquipmentTab.DOUBLE_MS + 500 then") and has(CW, "win._equipSelected = nil; win._equipClickWait = nil end"))
 
 print("et_calls_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end

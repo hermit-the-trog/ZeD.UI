@@ -166,9 +166,21 @@ end
 -- the core meter by level: each level its own segments and color; green only with no moodle on
 -- (lit: Hypothermia 4..1 = 1..4, none = 5, Hyperthermia 1..4 = 7..10)
 local CORE_LIT = { [-4] = 1, [-3] = 2, [-2] = 3, [-1] = 4, [0] = 5, [1] = 7, [2] = 8, [3] = 9, [4] = 10 }
-function ZeD.ThermalTab.coreLook(c)
+--- The moodles' own level, -4..4 (Hypothermia negative), or nil with no player to read: the game holds a
+--- moodle back at times (drunk, Hypothermia 1), and the meter follows the moodle (QA's read, Nov 25 2026)
+function ZeD.ThermalTab.moodleLevel(playerObj)
+    if not (playerObj and MoodleType) then return nil end
+    local ok, m = pcall(playerObj.getMoodles, playerObj)
+    if not ok or not m then return nil end
+    local ok1, hypo = pcall(m.getMoodleLevel, m, MoodleType.HYPOTHERMIA)
+    local ok2, hyper = pcall(m.getMoodleLevel, m, MoodleType.HYPERTHERMIA)
+    if not (ok1 and ok2) then return nil end
+    if (hypo or 0) > 0 then return -math.min(4, hypo) end
+    return math.min(4, hyper or 0)
+end
+function ZeD.ThermalTab.coreLook(c, lvIn)
     local T = ZeD.T
-    local lv = ZeD.ThermalTab.coreLevel(c)
+    local lv = lvIn or ZeD.ThermalTab.coreLevel(c)
     local col = T.tempNorm
     if lv == -1 then col = T.tempCool elseif lv < -1 then col = T.tempCold
     elseif lv == 1 then col = T.tempWarm elseif lv > 1 then col = T.tempHot end
@@ -471,7 +483,7 @@ function ZeD.ThermalTab._renderHeader(panel, win, data, rx, ry, rw)
     -- the core temperature's meter: one look per moodle level, green only with no Hypothermia or
     -- Hyperthermia moodle on (the director's call 1, Nov 25 2026)
     do
-        local lit, col = ZeD.ThermalTab.coreLook(data.coreTemp)
+        local lit, col = ZeD.ThermalTab.coreLook(data.coreTemp, ZeD.ThermalTab.moodleLevel(win._playerObj))
         ZeD.Atoms.drawSegFill(panel, rx, curY, rw, T.fillBarH, ZeD.Atoms.FILL_SEGS, lit, col)
     end
     curY = curY + T.fillBarH + T.px(10)
@@ -753,7 +765,7 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
         if view.format == "temp" then
             valStr = ZeD.ThermalTab.tempText(rawVal, celsius)
         else
-            valStr = math.floor(uiVal * 100 + 0.5) .. "%"   -- (as the detail box reads it: the director's call 3)
+            valStr = math.floor(fillPct * 100 + 0.5) .. "%"   -- (as the detail box reads it: the director's call 3)
         end
 
         -- the cell: the picked one in the accent wash, the pointer's hover, the controller's mark; a press
