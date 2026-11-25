@@ -157,8 +157,13 @@ local function onKey(key)
             if not (top.entry and top.entry:isFocused()) then top:pressPrimary(); return end
         end
     end
+    -- (QA cb sweep, Nov 25 2026, B4) a cursor up (a build, Place item, paint) wins: the game's Escape drops the
+    -- dragged thing before anything else (MainScreen.lua:1713-1716), so the takers are skipped and the key goes on
+    -- to it. The recipe card, drawn in the last half second, took the first press and the cursor needed a second.
+    local cell = getCell and getCell()
+    local dragUp = cell ~= nil and cell:getDrag(0) ~= nil
     -- other ZeD surfaces that Escape puts away first (the seat chooser, the siren controller)
-    if not pauseUp and isEscape(key) and ZeD.EscapeTakers then
+    if not pauseUp and not dragUp and isEscape(key) and ZeD.EscapeTakers then
         for _, take in pairs(ZeD.EscapeTakers) do if take() then return end end
     end
     if previousToggle then return previousToggle(key) end

@@ -29,6 +29,8 @@ local def = { id = "preview", half = true }
 local FACE_KEYS = { N = "UI_ZeD_Track_CompassN", E = "UI_ZeD_Track_CompassE", S = "UI_ZeD_Track_CompassS", W = "UI_ZeD_Track_CompassW" }
 local PICTURE_H = 220        -- design units: the picture box on a build card
 local ITEM_ICON = 40         -- the item's picture on a craft card
+-- the game's face index (0 N, 1 W, 2 S, 3 E) as the build cursor's nSprite (1 W, 2 N, 3 E, 4 S): ISBuildIsoEntity:getFace
+local NSPRITE_OF = { [0] = 2, [1] = 1, [2] = 4, [3] = 3 }
 
 -- o: { entry, rd, state, win, config } from CraftingCore.openPreview
 function def.resolve(player, o)
@@ -71,7 +73,8 @@ local function buildData(d, t, player)
         for i = 0, 3 do
             local f = call(info, "getFace", i)
             if f then
-                local face = { name = tostring(call(f, "getFaceName") or ""), tiles = {} }
+                -- (idx: the game's face index, 0 N, 1 W, 2 S, 3 E, so the cursor can start on it: B6)
+                local face = { name = tostring(call(f, "getFaceName") or ""), tiles = {}, idx = i }
                 local fw, fh, fz = call(f, "getWidth") or 1, call(f, "getHeight") or 1, call(f, "getzLayers") or 1
                 for z = 0, fz - 1 do
                     for y = 0, fh - 1 do
@@ -363,6 +366,11 @@ function def.body(card, x, y, w, t, player)
             if t.face < 1 then t.face = n elseif t.face > n then t.face = 1 end
         end
         local face = (n > 0) and d.faces[t.face] or nil
+        -- (B6, QA cb sweep, Nov 25 2026) the facing shown is left on the drawer's state, so Build (here or the
+        -- drawer's) starts the cursor on it: the cursor's nSprite for the game's face index
+        if face and face.idx and t.obj.state then
+            t.obj.state._buildFace = { name = t.entry.name, nSprite = NSPRITE_OF[face.idx] }
+        end
         local boxH = T.px(PICTURE_H)
         UI.fill(card, x, cy, w, boxH, "surf2")
         if face then
@@ -379,11 +387,14 @@ function def.body(card, x, y, w, t, player)
             local bw = UI.buttonW("<")
             UI.button(card, x, cy, "<", { w = bw, h = bh, hover = UI.hovered(card, "oc:faceL"), focus = card:focusOf("oc:faceL") })
             -- (the index wraps at the press itself, so it is never 0 or past the end between frames)
+            -- (B6, QA cb sweep, Nov 25 2026) The faces are listed in the game's index order, N W S E, and ">" stepped
+            -- that way, the opposite of the build cursor's RB and R (W N E S, ISBuildingObject). ">" now steps as RB
+            -- turns (back down the list) and "<" as LB, so the card and the cursor turn the same way.
             card:zone({ fid = "oc:faceL", x = x, y = cy, w = bw, h = bh, body = true, help = ZeD.tr("UI_ZeD_Preview_TurnLeft"),
-                run = function() t.face = (t.face > 1) and (t.face - 1) or n end })
+                run = function() t.face = (t.face < n) and (t.face + 1) or 1 end })
             UI.button(card, x + w - bw, cy, ">", { w = bw, h = bh, hover = UI.hovered(card, "oc:faceR"), focus = card:focusOf("oc:faceR") })
             card:zone({ fid = "oc:faceR", x = x + w - bw, y = cy, w = bw, h = bh, body = true, help = ZeD.tr("UI_ZeD_Preview_TurnRight"),
-                run = function() t.face = (t.face < n) and (t.face + 1) or 1 end })
+                run = function() t.face = (t.face > 1) and (t.face - 1) or n end })
             local nm = face and face.name or ""
             if FACE_KEYS[nm] then nm = ZeD.tr(FACE_KEYS[nm]) end
             local label = (nm ~= "") and ZeD.tr("UI_ZeD_Preview_Facing", nm) or ""
