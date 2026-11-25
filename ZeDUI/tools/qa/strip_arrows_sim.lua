@@ -27,30 +27,36 @@ end
 local function has(s, x) return string.find(s, x, 1, true) ~= nil end
 
 local AX = readFile(Z .. "AtomExtensions.lua")
-local src = cut(AX, "function ZeD.Atoms.stripArrowHalves(w)", "\nend\n")
+local src = cut(AX, "function ZeD.Atoms.stripArrowHalves(w, lineL, lineR)", "\nend\n")
 local src2 = cut(AX, "function ZeD.Atoms.stripArrowX(a, b, s)", "\nend\n")
 check("HALVES: found", src ~= nil and src2 ~= nil)
 for _, sc in ipairs({ 1, 1.75, 2 }) do
+    for _, sides in ipairs({ { true, true }, { true, false }, { false, true } }) do
     ZeD = { Atoms = {}, T = { px = function(n) return math.floor(n * sc + 0.5) end } }
     if src and src2 then
         assert(loadstring(src .. src2))()
         local A, T = ZeD.Atoms, ZeD.T
         local w = T.px(36)
-        local L, M, R = A.stripArrowHalves(w)
+        local L, M, M2, R = A.stripArrowHalves(w, sides[1], sides[2])
         local s = T.px(5)
-        local ux, dx = A.stripArrowX(L, M, s), A.stripArrowX(M, R, s)
-        local tag = "scale " .. sc
-        check("HALVES " .. tag .. ": the inside is between the lines", L == T.px(1) and R == w - T.px(1))
-        check("HALVES " .. tag .. ": two equal halves (within a pixel)", math.abs((M - L) - (R - M)) <= 1)
+        local ux, dx = A.stripArrowX(L, M, s), A.stripArrowX(M2, R, s)
+        local tag = "scale " .. sc .. (sides[1] and " L" or "") .. (sides[2] and " R" or "")
+        check("HALVES " .. tag .. ": the inside is between the strip's own lines", L == (sides[1] and T.px(1) or 0) and R == (sides[2] and w - T.px(1) or w))
+        check("HALVES " .. tag .. ": the dividing line a hairline wide", M2 - M == T.px(1))
+        check("HALVES " .. tag .. ": two equal halves (within a pixel)", math.abs((M - L) - (R - M2)) <= 1)
         local pairC = ((ux + s / 2) + (dx + s / 2)) / 2
         local inC = (L + R) / 2
         check("HALVES " .. tag .. ": the pair centred on the inside (within a pixel)", math.abs(pairC - inC) <= 1, pairC .. " vs " .. inC)
-        check("HALVES " .. tag .. ": each arrow in its half's middle", math.abs((ux + s / 2) - (L + M) / 2) <= 1 and math.abs((dx + s / 2) - (M + R) / 2) <= 1)
+        check("HALVES " .. tag .. ": each arrow in its half's middle", math.abs((ux + s / 2) - (L + M) / 2) <= 1 and math.abs((dx + s / 2) - (M2 + R) / 2) <= 1)
+    end
     end
 end
 local CW = readFile(Z .. "ZeD_CharacterWindow.lua")
 local WW = readFile(Z .. "ZeD_WorldWindow.lua")
-check("WIRED: the Character window's container strip", has(CW, 'A.drawTriangleUp(self, A.stripArrowX(L, M, aS), arY, aS, upC)') and has(CW, 'self:addHitZone("strip_scroll_down", M, arrowY, w - M, scrollArrowH)'))
+check("WIRED: the Character window's container strip", has(CW, 'self:addHitZone("strip_scroll_down", M2, arrowY, w - M2, scrollArrowH)'))
+check("WIRED: the Character window's tab strip", has(CW, 'self:addHitZone("tab_scroll_down", M2, rowY, w - M2, arrowRowH)'))
+check("WIRED: the World window's tab strip", has(WW, 'self:addHitZone("tab_scroll_down", M2, rowY, w - M2, arrowRowH)'))
+check("WIRED: the line between up and down on all four", select(2, string.gsub(CW .. WW, "A.stripArrowLine%(self, M, M2, ", "")) == 4)
 check("WIRED: the World window's container strip", has(WW, 'A.drawTriangleUp(self, A.stripArrowX(L, M, aS), arY, aS, arrowColor)') and not has(WW, "local upX = math.floor(w / 4)"))
 
 print("strip_arrows_sim: " .. checks .. " checks, " .. failed .. " failed")

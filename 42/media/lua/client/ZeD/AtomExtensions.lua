@@ -352,15 +352,24 @@ function ZeD.Atoms.drawTriangleUp(panel, x, y, size, color)
     _drawArrow(panel, "up", x, y, size, color)
 end
 
---- A container strip's [^ v] row, w wide: its inside between the strip's left and right lines (one hairline
---- each), split in two equal halves. Returns L, M, R: the up half is [L, M), the down half [M, R). The arrows
---- centre in their halves (stripArrowX), and the hover and the press areas are the halves (the director, Nov 25
---- 2026: "the scroll buttons on the container strip are not on center"; they were centred on w/2 of the strip's
---- full width, lines and all, and the World strip's drawn from the half's middle).
-function ZeD.Atoms.stripArrowHalves(w)
+--- A strip's [^ v] scroll row, w wide (the container strips and the window tab strips): its inside between the
+--- strip's own left and right lines (lineL / lineR: true where the strip draws that line inside its w), split in
+--- two equal halves by a vertical hairline (the director, Nov 25 2026: "Maybe there should be a line dividing up
+--- and down as well"). Returns L, M, M2, R: the up half [L, M), the line [M, M2), the down half [M2, R). The arrows
+--- centre in their halves (stripArrowX); the hover fills and the press areas end at the line (the director:
+--- "the scroll buttons on the container strip are not on center"; they were centred on w/2 of the full width).
+function ZeD.Atoms.stripArrowHalves(w, lineL, lineR)
     local hl = ZeD.T.px(1)
-    local L, R = hl, w - hl
-    return L, L + math.floor((R - L) / 2), R
+    local L = (lineL == false) and 0 or hl
+    local R = (lineR == false) and w or (w - hl)
+    local half = math.floor((R - L - hl) / 2)
+    local M = L + half
+    return L, M, M + hl, R
+end
+--- The line between the halves, in the separator's colour, from the row's top line (y) to its bottom (y2)
+function ZeD.Atoms.stripArrowLine(panel, M, M2, y, y2)
+    local c = ZeD.T.borderS
+    panel:drawRect(M, y, M2 - M, y2 - y, c.a or 1, c.r, c.g, c.b)
 end
 --- An arrow's x (its size s box) centred in [a, b)
 function ZeD.Atoms.stripArrowX(a, b, s)

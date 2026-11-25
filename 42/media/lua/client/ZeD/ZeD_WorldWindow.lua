@@ -2110,31 +2110,34 @@ local function drawWorldTabStrip(self, win)
         local sep = T.borderS
         self:drawRect(0, rowY, w, T.px(1), sep.a, sep.r, sep.g, sep.b)
 
-        local halfW = math.floor(w / 2)
+        -- the row's inside, two equal halves with the line between, each arrow centred in its half (the director)
+        local L, M, M2, R = A.stripArrowHalves(w, true, false)
+        local arrowSz = T.px(5)
+        local arY = rowY + T.px(1) + math.floor((arrowRowH - T.px(1) - arrowSz) / 2)
+        A.stripArrowLine(self, M, M2, rowY, h)
 
         -- Up button (left half)
-        local hoverUp = canScrollUp and (mx >= 0 and mx < halfW and my >= rowY and my < h) and not cuesOn
+        local hoverUp = canScrollUp and (mx >= L and mx < M and my >= rowY and my < h) and not cuesOn
         if hoverUp then
             local hv = T.hover   -- (the hover wash)
-            self:drawRect(T.px(1), rowY + T.px(1), halfW - T.px(1), arrowRowH - T.px(1), hv.a, hv.r, hv.g, hv.b)
+            self:drawRect(L, rowY + T.px(1), M - L, arrowRowH - T.px(1), hv.a, hv.r, hv.g, hv.b)
         end
         local upC = canScrollUp and (hoverUp and T.text or T.textDim) or T.border
-        local arrowSz = T.px(5)
-        A.drawTriangleUp(self, math.floor((halfW - arrowSz) / 2), rowY + math.floor((arrowRowH - arrowSz) / 2), arrowSz, upC)
+        A.drawTriangleUp(self, A.stripArrowX(L, M, arrowSz), arY, arrowSz, upC)
         if canScrollUp then
-            self:addHitZone("tab_scroll_up", 0, rowY, halfW, arrowRowH)
+            self:addHitZone("tab_scroll_up", 0, rowY, M, arrowRowH)
         end
 
         -- Down button (right half)
-        local hoverDn = canScrollDown and (mx >= halfW and mx < w and my >= rowY and my < h) and not cuesOn
+        local hoverDn = canScrollDown and (mx >= M2 and mx < w and my >= rowY and my < h) and not cuesOn
         if hoverDn then
             local hv = T.hover   -- (the hover wash)
-            self:drawRect(halfW, rowY + T.px(1), w - halfW, arrowRowH - T.px(1), hv.a, hv.r, hv.g, hv.b)
+            self:drawRect(M2, rowY + T.px(1), R - M2, arrowRowH - T.px(1), hv.a, hv.r, hv.g, hv.b)
         end
         local dnC = canScrollDown and (hoverDn and T.text or T.textDim) or T.border
-        A.drawTriangleDown(self, halfW + math.floor((halfW - arrowSz) / 2), rowY + math.floor((arrowRowH - arrowSz) / 2), arrowSz, dnC)
+        A.drawTriangleDown(self, A.stripArrowX(M2, R, arrowSz), arY, arrowSz, dnC)
         if canScrollDown then
-            self:addHitZone("tab_scroll_down", halfW, rowY, halfW, arrowRowH)
+            self:addHitZone("tab_scroll_down", M2, rowY, w - M2, arrowRowH)
         end
     else
         win._actionTabScrollOffset = 0
@@ -3740,14 +3743,15 @@ local function drawWorldContainerStrip(self, win, content)
         ZeD.Surface.fill(self, 0, arrowY, w - T.px(1), scrollArrowH, "surf2")
         A.drawDividerH(self, 0, arrowY, w - T.px(1), true)
         -- the row's inside between the strip's lines, two equal halves; each arrow centred in its half
-        local L, M, R = A.stripArrowHalves(w)
+        local L, M, M2, R = A.stripArrowHalves(w, true, true)
         local aS = T.px(5)
-        if not cuesOn and my >= arrowY and my < h and mx >= L and mx < R then
+        if not cuesOn and my >= arrowY and my < h and ((mx >= L and mx < M) or (mx >= M2 and mx < R)) then
             local hv = T.hover
             local hx, hw = L, M - L
-            if mx >= M then hx, hw = M, R - M end
+            if mx >= M2 then hx, hw = M2, R - M2 end
             self:drawRect(hx, arrowY + T.px(1), hw, scrollArrowH - T.px(1), hv.a, hv.r, hv.g, hv.b)
         end
+        A.stripArrowLine(self, M, M2, arrowY, h)
         local arY = arrowY + T.px(1) + math.floor((scrollArrowH - T.px(1) - aS) / 2)   -- (centred under the row's top line)
 
         -- Up arrow (left half)
@@ -3758,8 +3762,8 @@ local function drawWorldContainerStrip(self, win, content)
         -- Down arrow (right half)
         local maxScroll = totalListH - listAreaH
         local downColor = scrollOff < maxScroll and T.text or T.textDim
-        A.drawTriangleDown(self, A.stripArrowX(M, R, aS), arY, aS, downColor)
-        self:addHitZone("scroll_down", M, arrowY, w - M, scrollArrowH)
+        A.drawTriangleDown(self, A.stripArrowX(M2, R, aS), arY, aS, downColor)
+        self:addHitZone("scroll_down", M2, arrowY, w - M2, scrollArrowH)
     end
 end
 
