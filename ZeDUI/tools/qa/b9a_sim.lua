@@ -174,7 +174,7 @@ do
                 return true
             end,
         }
-        ISInventoryPaneContextMenu = { wearItem = function(item) wornItem = item end }
+        ISInventoryPaneContextMenu = { wearItem = function(item) wornItem = item end, onWearItems = function(items) wornItem = items[1] end }   -- (the drop wears by onWearItems, QA S2)
         getSpecificPlayer = function() return { isEquippedClothing = function() return false end } end
         local MX, MY = 0, 0
         local panel = { getMouseX = function() return MX end, getMouseY = function() return MY end,

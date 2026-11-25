@@ -439,6 +439,17 @@ end
 -- cluster out right-aligned: the last entry (MORE) sits at the right edge,
 -- the primary (first) leftmost of the cluster.
 -- ---------------------------------------------------------------------------
+-- DROP: seated with the window shut nothing goes out to the ground, so it is grayed with the game's
+-- reason, as the game's own Drop and the loot To floor are (QA eq_tab 14)
+local function dropVerb(playerObj)
+    local v = {id = "DROP", label = ZeD.ItemCard.verbText("DROP"), primary = false}
+    local IR = ZeD.InventoryRenderer
+    if playerObj and IR and IR.carWindowShut and IR.carWindowShut(playerObj) then
+        v.disabled, v.offHelp = true, getText("ContextMenu_DropFromVehicle")
+    end
+    return v
+end
+
 local function headerVerbsForContext(ctx, item, playerObj)   -- (playerObj: the stuffed test, QA K1-2)
     if not item then return {} end
     local cat = categoryOf(item)
@@ -452,7 +463,7 @@ local function headerVerbsForContext(ctx, item, playerObj)   -- (playerObj: the 
     if ctx == "equipped" then
         return {
             {id = "UNEQUIP", label = VT("UNEQUIP"), primary = true},
-            {id = "DROP",    label = VT("DROP"),    primary = false},
+            dropVerb(playerObj),
             more,
         }
     end
@@ -513,7 +524,7 @@ local function headerVerbsForContext(ctx, item, playerObj)   -- (playerObj: the 
     if ctx == "container" or ctx == "ground" then
         table.insert(verbs, 1, {id = "TAKE", label = VT("TAKE"), primary = (primary == nil)})
     elseif ctx == "inventory" then
-        verbs[#verbs + 1] = {id = "DROP", label = VT("DROP"), primary = false}
+        verbs[#verbs + 1] = dropVerb(playerObj)
     end
     verbs[#verbs + 1] = more
     return verbs

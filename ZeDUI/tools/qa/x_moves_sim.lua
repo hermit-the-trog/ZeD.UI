@@ -355,11 +355,12 @@ local orgParts = {
     cut(ORG, "ZeD.ItemCard.VERB_KEYS = {", "\nend", "function ZeD.ItemCard.verbText"),
     cut(ORG, "local function safeGet(item, m, ...)", "\nend"),
     cut(ORG, "local function categoryOf(item)", "\nend"),
+    cut(ORG, "local function dropVerb(playerObj)", "\nend"),   -- (the Drop verb, grayed in a shut car, QA eq_tab 14)
     cut(ORG, "local function headerVerbsForContext(ctx, item, playerObj)", "\nend"),
     cut(ORG, "local function compactVerbs(verbs, w)", "\nend"),
 }
 local orgSrc = ""
-for i = 1, 5 do
+for i = 1, 6 do
     check("WIRED: the card's verb model piece " .. i .. " is found", orgParts[i] ~= nil)
     orgSrc = orgSrc .. (orgParts[i] or "")
 end
