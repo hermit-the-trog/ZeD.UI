@@ -7,9 +7,9 @@ pixel map in three letters (a, b, c) and two palettes, "pal" for Dark and High c
 map "pxLight") drawn darker for Light. Equipment is the olive field jacket (the director's pick, art "equip_field").
 
 Writes, for each tab:
-  media/textures/ZeD/TabIcons/color/<id>.png        the Dark set, full color
-  media/textures/ZeD/TabIcons/color/<id>_light.png  the Light set
-  media/textures/ZeD/TabIcons/color/<id>_sh.png     the drop shadow mask (the icon's shape, white; drawn black)
+  media/textures/ZeD/TabIcons/color/zedtabc_<id>.png        the Dark set, full color
+  media/textures/ZeD/TabIcons/color/zedtabc_<id>_light.png  the Light set
+  media/textures/ZeD/TabIcons/color/zedtabc_<id>_sh.png     the drop shadow mask (the icon's shape, white; drawn black)
 and 42/media/lua/client/ZeD/ZeD_TabColorArt.lua: each set's three colors and how many pixels each covers, so the
 lit panel can take whichever set stands off it better (ZeD.TabPx.drawIcon). Run with the ComfyUI venv's Python.
 """
@@ -26,6 +26,9 @@ LUA = os.path.join(ROOT, "42", "media", "lua", "client", "ZeD", "ZeD_TabColorArt
 TABS = ["loot", "equip", "health", "thermal", "identity", "journal", "skills",
         "craft", "build", "furniture", "maps", "forage", "animals", "vehicle"]
 ART_OF = {"equip": "equip_field"}
+# a name no game texture shares: the game finds a texture by its bare name too, and "health" drew another picture
+# (QA, Nov 25 2026: a black box with garbled marks for the Health tab)
+PREFIX = "zedtabc_"
 
 
 def rgb(h):
@@ -53,14 +56,14 @@ def main():
         a = art[ART_OF.get(tab, tab)]
         dark, dc = picture(a["px"], a["pal"])
         light, lc = picture(a.get("pxLight", a["px"]), a.get("palLight", a["pal"]))
-        dark.save(os.path.join(TEX, tab + ".png"))
-        light.save(os.path.join(TEX, tab + "_light.png"))
+        dark.save(os.path.join(TEX, PREFIX + tab + ".png"))
+        light.save(os.path.join(TEX, PREFIX + tab + "_light.png"))
         sh = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
         for y, row in enumerate(a["px"]):
             for x, ch in enumerate(row):
                 if ch != ".":
                     sh.putpixel((x, y), (255, 255, 255, 255))
-        sh.save(os.path.join(TEX, tab + "_sh.png"))
+        sh.save(os.path.join(TEX, PREFIX + tab + "_sh.png"))
 
         def lua_set(pal, counts):
             cs = ", ".join("{ r = %.4f, g = %.4f, b = %.4f, n = %d }" % (r / 255, g / 255, b / 255, n)

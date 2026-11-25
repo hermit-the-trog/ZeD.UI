@@ -181,8 +181,11 @@ local function colorTex(id)
     local t = _color[id]
     if t then return t end
     local P = ZeD.Px
-    t = { dark = P.tex(TP.COLOR_DIR .. id .. ".png") or false, light = P.tex(TP.COLOR_DIR .. id .. "_light.png") or false,
-          sh = P.tex(TP.COLOR_DIR .. id .. "_sh.png") or false }
+    -- ("zedtabc_": a name no game texture shares; the game also finds a texture by its bare name, and "health" drew
+    -- another picture, QA Nov 25 2026)
+    local base = TP.COLOR_DIR .. "zedtabc_" .. id
+    t = { dark = P.tex(base .. ".png") or false, light = P.tex(base .. "_light.png") or false,
+          sh = P.tex(base .. "_sh.png") or false }
     _color[id] = t
     return t
 end
