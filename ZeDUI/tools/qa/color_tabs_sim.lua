@@ -3,7 +3,7 @@
 --   STRIP  ZeD.GridTint.stripFill / stripCell (the real file): each container button takes the stronger tint of its
 --          picture's color (ContainerTints, ItemTints, else neutral gray); the shown one the wash and the frame
 --   TABS   ZeD.TabPx.colorSet: the Dark set on Dark and High contrast, the Light set on Light, and on the lit panel
---          the set that stands off it better; every one of the 14 tabs has its art and pictures
+--          the set that stands off it better; every one of the 22 tabs has its art and pictures
 --   WIRED  both windows' container buttons draw through stripCell
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/color_tabs_sim.lua
 
@@ -62,7 +62,8 @@ check("STRIP: hovered: the tint and the hover wash", #draws == 2 and draws[2].a 
 
 print("-- TABS")
 assert(loadfile(Z .. "ZeD_TabColorArt.lua"))()
-local TABS = { "loot", "equip", "health", "thermal", "identity", "journal", "skills", "craft", "build", "furniture", "maps", "forage", "animals", "vehicle" }
+local TABS = { "loot", "equip", "health", "thermal", "identity", "journal", "skills", "craft", "build", "furniture", "maps", "forage", "animals", "vehicle",
+               "radio", "tv", "admin", "server", "cooking", "fishing", "appearance", "traits" }   -- (the other 8, Nov 25 2026)
 for _, id in ipairs(TABS) do
     local a = ZeD.TabColorArt[id]
     check("TABS: " .. id .. ": art with two sets of three colors", a and #a.dark == 3 and #a.light == 3)
@@ -87,7 +88,7 @@ if a1 and a2 then
         check("TABS: High contrast: the Dark set", TP.colorSet("health", false) == "dark")
         ZeD.T.baseKey = "light"
         check("TABS: Light: the Light set", TP.colorSet("health", false) == "light")
-        check("TABS: a tab with no color art: none (the accent tones)", TP.colorSet("radio", false) == nil)
+        check("TABS: a tab with no color art: none (the accent tones)", TP.colorSet("someAddonTab", false) == nil)
         ZeD.T.baseKey = "dark"
         local s = TP.colorSet("journal", true)
         local bg = { r = ACC.r * 0.85, g = ACC.g * 0.85, b = ACC.b * 0.85 }
