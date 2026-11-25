@@ -669,10 +669,13 @@ Q.step(30, function()
             tostring(ft.w) .. "x" .. tostring(ft.h) .. ", the word's button " .. tostring(M.buttonW(fw)) .. lvlW)
     end
     local ids = H.moveIds()
-    Q.check(#ids > 0 and not H.has(ids, "same") and not H.has(ids, "near"), "Lite windows: no Same type or Same type nearby button",
+    -- (QA's loot KISS test, Nov 24 2026, fixed in f67b7cf36: the game's windows have Same type and Same type nearby,
+    -- ISUI/InventoryWindow/Handlers/TransferSameType.lua and LootWindow/Handlers/TakeSameType.lua, so by Lite's own rule
+    -- "if vanilla does it, so does Lite" they stay; the trim drops nothing of these three)
+    Q.check(#ids > 0 and H.has(ids, "same") and H.has(ids, "near"), "Lite windows: Same type and Same type nearby stay, as in the game's windows",
         table.concat(ids, " "))
     local cut = ZeD.ContainerControls._liteTrim({ { id = "xfer" }, { id = "same" }, { id = "near" } })
-    Q.check(#cut == 1 and cut[1].id == "xfer", "Lite windows: the container buttons' trim keeps Transfer all only", #cut .. " left")
+    Q.check(#cut == 3, "Lite windows: the container buttons' trim keeps Transfer all, Same type and Same type nearby", #cut .. " left")
     S.seekPos = nil
 end)
 Q.waitFor(1, 240, function() return H.seekRow(S.pencil) end, function(ok)
