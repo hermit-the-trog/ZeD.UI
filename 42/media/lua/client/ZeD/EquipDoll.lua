@@ -1080,7 +1080,8 @@ function D.takeDrop(pn, items)
             local loc = wearLoc(item)
             local id = loc and (bands and (LOC_TO_SMALL[loc] or LOC_TO_BIG[loc]) or LOC_FOLD[loc])
             if id == hit.id and not call(p, "isEquippedClothing", item) then
-                ISInventoryPaneContextMenu.wearItem(item, pn)
+                -- the game's Wear: a hat lowers a raised hood first, so the hoodie stays on (QA eq_tab 5d, S2)
+                ISInventoryPaneContextMenu.onWearItems({ item }, pn)
                 win._equipDollTimer = 99    -- the slots read the new clothes at once
                 return true
             end

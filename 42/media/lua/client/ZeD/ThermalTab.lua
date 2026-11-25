@@ -249,6 +249,9 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     -- view. Stashed on win so _drawBodyFigure reads the same value for
     -- fig.selectedPart (the white highlight).
     -- (the live element: the controller leads only while it is in use)
+    -- (a folded figure has no hovered part: a fold by the pad with the pointer resting on a part left it
+    -- stuck there, and the block showed that part instead of the pick, QA T8)
+    if not win._thermalFigureExpanded then win._thermalHoveredPart = nil end
     local activePart = win._thermalHoveredPart
     do
         local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
@@ -631,6 +634,18 @@ function ZeD.ThermalTab.cellH()
     return math.max(TM:getFontHeight(T.fontF3), TM:getFontHeight(T.fontF2)) + T.px(8)
 end
 
+--- The grid's columns at listW wide: 2, or 1 where a half-width cell (Molecules.drawStatBarRow: the value
+--- badge, the bar at the right) would leave its part's name under about six letters, as on the 220 card (QA T7).
+function ZeD.ThermalTab.gridCols(listW, celsius)
+    local T, TM, A = ZeD.T, ZeD.TM, ZeD.Atoms
+    if celsius == nil then celsius = ZeD.ThermalTab.useCelsius() end
+    local colW = math.floor((listW - T.sp.sm) / 2)
+    local barW = math.max(A.fillBarMinW(), math.min(A.rowBarW(), math.floor(colW * 0.4)))
+    local valW = math.max(TM:MeasureStringX(T.fontF3, ZeD.ThermalTab.tempText(36.6, celsius)), TM:MeasureStringX(T.fontF3, "0.00"))
+    local room = colW - T.px(4) - barW - T.px(6) - (valW + T.px(10)) - T.px(6)
+    return (room >= TM:MeasureStringX(T.fontF2, "Forear")) and 2 or 1
+end
+
 ZeD.ThermalTab._headOpts = {}
 function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
     local T    = ZeD.T
@@ -661,10 +676,11 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
         ZeD.tr("UI_ZeD_Thermal_ByRegion", ZeD.ThermalTab.labelOf(view)), nil, true, ho)
     drawY = drawY + T.sp.xs
 
-    -- Two-column body part grid
+    -- Two-column body part grid (one column where two would leave a cell no room for its part's name)
     win._thermalHoverCell = nil
     local colGap = T.sp.sm
-    local colW = math.floor((listW - colGap) / 2)
+    local nCols = ZeD.ThermalTab.gridCols(listW, celsius)
+    local colW = (nCols == 2) and math.floor((listW - colGap) / 2) or listW
     local leftY  = drawY
     local rightY = drawY
     local rowGap = T.sp.xs
@@ -672,7 +688,7 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
     for i, partName in ipairs(data.partOrder) do
         local nodeData = data.nodes[partName]
 
-        local isLeft = ((i - 1) % 2 == 0)
+        local isLeft = (nCols == 1) or ((i - 1) % 2 == 0)
         local cx = isLeft and listX or (listX + colW + colGap)
         local cy = isLeft and leftY or rightY
 
@@ -720,7 +736,8 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
         z.x, z.y, z.w, z.h, z.partName, z.fn, z.read = cx, cy, colW, cellH, partName, fn, false
         local rowH = M.drawStatBarRow(panel, cx, cy, colW, valStr, ZeD.partLabel(partName), fillPct, fc, T.toneNorm, true)
 
-        if isLeft then leftY = cy + rowH + rowGap
+        if nCols == 1 then leftY = cy + rowH + rowGap
+        elseif isLeft then leftY = cy + rowH + rowGap
         else rightY = cy + rowH + rowGap end
     end
 
@@ -800,7 +817,7 @@ function ZeD.ThermalTab._measureGridContent(data, listW, scrollW)
     local lblH = ZeD.TM:getFontHeight(T.fontF2)
     local rowH = math.max(valH, lblH) + T.px(8)
     local rowGap = T.sp.xs
-    local numRows = math.ceil(#PART_ORDER / 2)
+    local numRows = math.ceil(#PART_ORDER / ZeD.ThermalTab.gridCols(listW))
     total = total + numRows * (rowH + rowGap)
 
     return total

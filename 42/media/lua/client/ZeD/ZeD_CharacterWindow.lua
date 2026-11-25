@@ -5660,8 +5660,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- Thermal figure hover (only when figure expanded)
         if win._activeTab == "thermal" and win._thermalBodyFigure and win._thermalFigureExpanded then
             local mx, my = self:getMouseX(), self:getMouseY()
-            local hitPart = win._thermalBodyFigure:hitTestAt(mx, my)
-            win._thermalHoveredPart = hitPart
+            -- only inside the body's view, under the pinned heading: a part scrolled up behind
+            -- the Body figure heading is not hovered through it (QA T9)
+            local r = win._thermalBodyRect
+            local inView = r and mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h
+            win._thermalHoveredPart = inView and win._thermalBodyFigure:hitTestAt(mx, my) or nil
         end
         -- Equipment defense figure hover
         if win._activeTab == "equip" and win._equipDefBodyFigure and not win._equipSelected then

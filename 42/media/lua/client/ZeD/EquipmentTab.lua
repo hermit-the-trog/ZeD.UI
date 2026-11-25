@@ -151,6 +151,20 @@ function ZeD.EquipmentTab.focus(win) return win and win._gpFocusedEquipSlot or n
 function ZeD.EquipmentTab.setFocus(win, id) if win then win._gpFocusedEquipSlot = id end end
 --- Close the slot's item card (back to the list or the doll).
 function ZeD.EquipmentTab.clearSelection(win) if win then win._equipSelected = nil end end
+--- True while the item is still on the character: worn, in a hand or on a belt slot.
+--- (False once it is unequipped into the bag or dropped; the card's pin reads it.)
+function ZeD.EquipmentTab.stillOn(playerObj, item)
+    if not (playerObj and item) then return false end
+    if item:getContainer() ~= playerObj:getInventory() then return false end   -- dropped or moved away
+    if playerObj:getPrimaryHandItem() == item or playerObj:getSecondaryHandItem() == item then return true end
+    local worn = playerObj:getWornItems()
+    if worn then
+        local ok, on = pcall(worn.contains, worn, item)
+        if ok and on then return true end
+    end
+    if item.getAttachedSlot and (item:getAttachedSlot() or -1) > -1 then return true end   -- on the belt
+    return false
+end
 --- Tell the pad's scroll-follow where a stop is (y in the drawer), so focusing it scrolls it into view.
 function ZeD.EquipmentTab.followY(win, id, y)
     if win and win._equipSlotYMap and id then win._equipSlotYMap[id] = y end
@@ -1577,9 +1591,21 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
             end
         end
 
+        -- The card is pinned to the thing it shows, not only to its slot: once that thing is off the
+        -- character (the card's Unequip or Drop finished), a layered slot would resolve to the layer
+        -- under it (the sweater under a taken-off jacket, the other ring). The card closes instead,
+        -- as a single-layer slot's does, and the focus goes back to the slot (QA eq_tab 3b/3c/3e, S1).
+        -- A layer change on the strip keeps the old thing on, so the pin just follows it.
+        if selSlot and selSlot.item and win._equipPinKey == win._equipSelected and win._equipPinItem
+           and win._equipPinItem ~= selSlot.item and not ZeD.EquipmentTab.stillOn(win._playerObj, win._equipPinItem) then
+            selSlot = nil
+        end
+        win._equipPinKey = win._equipSelected
+        win._equipPinItem = selSlot and selSlot.item or nil
         -- If selected item was unequipped externally, revert to list mode
         if not selSlot or not selSlot.item then
             win._equipSelected = nil
+            win._equipPinKey, win._equipPinItem = nil, nil
         else
             -- Card mode delegates to a ZeD_ItemCard child — the same organism
             -- the inventory drawer uses. The tab keeps its own card instance
