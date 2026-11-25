@@ -519,7 +519,8 @@ function ZeD_MMWorkshop:drawFolders(x, y, w, h)
     end
     self:clearStencilRect()
     if over then
-        MM.scrollBar(self, "ws:ftrack", x + w, vy, sbW - T.px(1), vh, self.scroll, total, function(v) self.scroll = v end, { step = rh })
+        MM.scrollBar(self, "ws:ftrack", x + w - T.px(1), vy, sbW, vh,   -- (14u inside the box line: QA scroll bar audit)
+            self.scroll, total, function(v) self.scroll = v end, { step = rh })
     end
 end
 

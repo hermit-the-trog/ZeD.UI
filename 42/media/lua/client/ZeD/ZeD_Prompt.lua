@@ -823,7 +823,7 @@ function ZeD_Prompt:layout()
         self._scroll = clamp(self._scroll or 0, 0, self._maxScroll)
         g.rich = { x = padL, y = tbH + padT, w = cw, h = viewH }
         if self._maxScroll > 0 then
-            g.sb = { x = w - padR - sbW + T.px(4), y = tbH + padT, w = sbW - T.px(4), h = viewH }
+            g.sb = { x = w - padR - sbW, y = tbH + padT, w = sbW, h = viewH }   -- (14u: QA scroll bar audit)
         end
         bodyH = padT + viewH + T.px(U.PARA_GAP)
     elseif K == "text" then

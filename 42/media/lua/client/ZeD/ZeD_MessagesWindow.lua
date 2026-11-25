@@ -342,6 +342,7 @@ function ZeD_MessagesWindow:layout()
     sb.visible = g.needsBar == true
     sb.width, sb.arrowH = sbW, sbW
     sb.x, sb.y, sb.height = w - sbW, ca.y, ca.h
+    sb.inRight = true   -- (its rect holds the window's right line: the bar's line is the frame's)
     sb:setBarSize(ca.h / math.max(1, ch))
     if not sb.dragging then sb.scrollPos = maxS > 0 and math.min(1, self.scroll / maxS) or 0 end
     g.sb = sb
