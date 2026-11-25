@@ -1,0 +1,11 @@
+# ZeDUI/tools/qa/strip_arrows.txt (Nov 25 2026, QA): the strips' bottom [^ v] scroll rows in the running game, after Build's fix (fix/striparrows: ZeD.Atoms.stripArrowHalves / stripArrowX / stripArrowLine). The director: "the scroll buttons on the container strip are not on center", then "Maybe there should be a line dividing up and down as well", and asked whether the window tab strips scroll.
+#   strip_arrows.lua  the four strips (the Character window's container strip and tab strip, the World window's container strip and tab strip), each made to overflow (key rings carried and crates laid round him for the container strips, the window made as short as it goes for the tab strips and for a container strip that still fits), its scroll offset set half way; the strip atoms wrapped for the run (the w passed to Halves, the L, M, M2, R returned, the line and both arrows as drawn). CHECK the row shows (needsScroll), the up and down hit zones meet at the divider and cover the row, each arrow's box centre within 1 px of its half's centre, the divider line drawn with sane coordinates. A picture strip_<cw|ww>_<containers|tabs>_<dark|hicon>_<w>x<h> and a STRIP line per strip in Dark and High contrast.
+# It puts back the theme, both windows' heights and the layout, the key rings, the crates, both windows' tabs, every strip's scroll offset, him where he stood, the pointer and the atoms.
+# Run both sizes:
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/strip_arrows.txt -Mode fullscreen4k -Report strip_4k
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/strip_arrows.txt -Mode windowed -Width 1280 -Height 800 -Report strip_deck
+# Measure each run's pictures (before the next run overwrites them: the pictures land in Zomboid/Screenshots, the STRIP lines in Zomboid/console.txt):
+#   python -I strip_measure.py --console %USERPROFILE%/Zomboid/console.txt --pics %USERPROFILE%/Zomboid/Screenshots --crops <a folder for the 8x crops>
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+strip_arrows.lua | strip_arrows | timeout=900
