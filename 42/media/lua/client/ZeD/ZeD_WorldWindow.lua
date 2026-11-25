@@ -3665,7 +3665,7 @@ local function drawWorldContainerStrip(self, win, content)
                 onFocusC = ZeD.Focus.mark(self, 0, drawY, w - T.px(1), T.px(CONTAINER_BTN_SZ), stripFocus)
             end
 
-            -- (a locked container: its dim icon and the padlock below say it; no tinted fill)
+            -- (a locked container: its dim icon and the padlock below say it, on the same tint as any other)
 
             -- Icon (the game's own box when it has none of its own; ZeD.genericContainerTex)
             local tex = cnt.texture or ZeD.genericContainerTex()

@@ -66,7 +66,7 @@ local TABS = { "loot", "equip", "health", "thermal", "identity", "journal", "ski
 for _, id in ipairs(TABS) do
     local a = ZeD.TabColorArt[id]
     check("TABS: " .. id .. ": art with two sets of three colors", a and #a.dark == 3 and #a.light == 3)
-    local d = ROOT .. "42/media/textures/ZeD/TabIcons/color/" .. id
+    local d = ROOT .. "42/media/textures/ZeD/TabIcons/color/zedtabc_" .. id
     check("TABS: " .. id .. ": its three pictures", exists(d .. ".png") and exists(d .. "_light.png") and exists(d .. "_sh.png"))
 end
 -- colorSet, cut from ZeD_TabPx.lua

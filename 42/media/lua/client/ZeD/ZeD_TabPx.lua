@@ -11,7 +11,8 @@
 --   * the pointer's hover is the T.hover wash; the controller's focus is the
 --     player's focus mark (ZeD.Focus.mark), on the active tab too
 -- Everything is coloured from ZeD.T every frame, so all 3 bases x 9 accents
--- keep working; nothing is baked in colour.
+-- keep working; nothing is baked in colour, but the 14 tabs' color icons
+-- (the director, Nov 25 2026: TP.colorSet, below), drawn in their own colors.
 --
 -- The icons: ZeDUI/tools/tabpx/icons.py, exported as five white tone masks
 -- and a shadow mask per icon (media/textures/ZeD/TabIcons/px/<id>_<tone>.png),
@@ -109,6 +110,7 @@ local function rect(el, x, y, w, h, c, a) if w > 0 and h > 0 then el:drawRect(x,
 -- one tab
 -- ---------------------------------------------------------------------------
 local _markOpts = {}
+local _washBg = {}
 --- Draw one tab inside (x, y, w, h) of el: its background (the active panel, or
 --- the hover wash), the controller's focus mark and its icon. `line` = the
 --- strip's 1-pixel line width (T.px(1)).
@@ -142,8 +144,15 @@ function TP.drawTab(el, x, y, w, h, id, isActive, isWashed, line, opts)
         end
         if opts.help and ZeD.Help and ZeD.Help.set then ZeD.Help.set(el, opts.help) end
     end
-    -- (on the one-wash mark the icon takes its pressed-in tones, which lean to the ink that reads on the accent)
-    TP.drawIcon(el, id, x + math.floor(w / 2), y + math.floor(h / 2), isActive or onWash)
+    -- (on the one-wash mark the icon takes its pressed-in tones, which lean to the ink that reads on the accent; a
+    -- color icon there picks its set against that mark's wash, not the lit panel: QA's read, Nov 25 2026)
+    local bg = nil
+    if onWash and not isActive then
+        local T = ZeD.T
+        local s1 = T.surf1 or T.base
+        bg = mix(_washBg, s1, T.accent, 0.55)
+    end
+    TP.drawIcon(el, id, x + math.floor(w / 2), y + math.floor(h / 2), isActive or onWash, bg)
 end
 
 -- an icon's six pictures (the shadow, then the five tones), looked up once
@@ -172,8 +181,11 @@ local function colorTex(id)
     local t = _color[id]
     if t then return t end
     local P = ZeD.Px
-    t = { dark = P.tex(TP.COLOR_DIR .. id .. ".png") or false, light = P.tex(TP.COLOR_DIR .. id .. "_light.png") or false,
-          sh = P.tex(TP.COLOR_DIR .. id .. "_sh.png") or false }
+    -- ("zedtabc_": a name no game texture shares; the game also finds a texture by its bare name, and "health" drew
+    -- another picture, QA Nov 25 2026)
+    local base = TP.COLOR_DIR .. "zedtabc_" .. id
+    t = { dark = P.tex(base .. ".png") or false, light = P.tex(base .. "_light.png") or false,
+          sh = P.tex(base .. "_sh.png") or false }
     _color[id] = t
     return t
 end
@@ -188,25 +200,26 @@ local function share(set, bg)
 end
 TP._colorShare = share
 local _panel = {}
---- Which color set a tab draws: "dark" or "light" (nil: it has no color art)
-function TP.colorSet(id, isActive)
+--- Which color set a tab draws: "dark" or "light" (nil: it has no color art). bg: what is behind it when that is
+--- not the lit panel (the controller's one-wash mark)
+function TP.colorSet(id, isActive, bg)
     local art = ZeD.TabColorArt and ZeD.TabColorArt[id]
     if not art then return nil end
     local T = ZeD.T
     if isActive then
-        local bg = shade(_panel, T.accent, 0.85)
+        bg = bg or shade(_panel, T.accent, 0.85)
         return (share(art.light, bg) > share(art.dark, bg)) and "light" or "dark"
     end
     return (T.baseKey == "light") and "light" or "dark"
 end
 
 -- the icon centred on (cx, cy)
-function TP.drawIcon(el, id, cx, cy, isActive)
+function TP.drawIcon(el, id, cx, cy, isActive, bg)
     if not TP.ICONS[id] then return false end
     local k = TP.k()
     local sz = 16 * k
     local ix, iy = cx - math.floor(sz / 2), cy - math.floor(sz / 2)
-    local set = TP.colorSet(id, isActive)
+    local set = TP.colorSet(id, isActive, bg)
     if set then
         local ct = colorTex(id)
         local pic = ct[set]
