@@ -353,15 +353,25 @@ function ZeD.Atoms.drawTriangleUp(panel, x, y, size, color)
 end
 
 --- A strip's [^ v] scroll row, w wide (the container strips and the window tab strips): its inside between the
---- strip's own left and right lines (lineL / lineR: true where the strip draws that line inside its w), split in
+--- strip's own left and right lines (kindL / kindR: what lies on that side, below), split in
 --- two equal halves by a vertical hairline (the director, Nov 25 2026: "Maybe there should be a line dividing up
 --- and down as well"). Returns L, M, M2, R: the up half [L, M), the line [M, M2), the down half [M2, R). The arrows
 --- centre in their halves (stripArrowX); the hover fills and the press areas end at the line (the director:
 --- "the scroll buttons on the container strip are not on center"; they were centred on w/2 of the full width).
-function ZeD.Atoms.stripArrowHalves(w, lineL, lineR)
+-- Each side's kind, by what lies there (QA's measures at 4K, Dark and High Contrast, Nov 25 2026):
+--   "own"   the strip's own hairline inside its w (one hairline in every theme)
+--   "frame" the window's frame or the drawer's divider inside its w (the border weight: two hairlines in HC)
+--   "edge"  the frame just outside its w: nothing inside, but High Contrast's heavier frame reaches in by its extra
+local function stripInset(kind)
+    local T = ZeD.T
+    if kind == "own" then return T.px(1) end
+    if kind == "frame" then return T.line(T.borderW) end
+    return T.line(T.borderW) - T.line(1)   -- "edge"
+end
+function ZeD.Atoms.stripArrowHalves(w, kindL, kindR)
     local hl = ZeD.T.px(1)
-    local L = (lineL == false) and 0 or hl
-    local R = (lineR == false) and w or (w - hl)
+    local L = stripInset(kindL)
+    local R = w - stripInset(kindR)
     local half = math.floor((R - L - hl) / 2)
     local M = L + half
     return L, M, M + hl, R

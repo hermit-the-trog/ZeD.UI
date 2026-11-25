@@ -2111,7 +2111,7 @@ local function drawWorldTabStrip(self, win)
         self:drawRect(0, rowY, w, T.px(1), sep.a, sep.r, sep.g, sep.b)
 
         -- the row's inside, two equal halves with the line between, each arrow centred in its half (the director)
-        local L, M, M2, R = A.stripArrowHalves(w, true, false)
+        local L, M, M2, R = A.stripArrowHalves(w, "own", "edge")   -- (the tabs: its own line left, the frame just past the right)
         local arrowSz = T.px(5)
         local arY = rowY + T.px(1) + math.floor((arrowRowH - T.px(1) - arrowSz) / 2)
         A.stripArrowLine(self, M, M2, rowY, h)
@@ -3743,7 +3743,7 @@ local function drawWorldContainerStrip(self, win, content)
         ZeD.Surface.fill(self, 0, arrowY, w - T.px(1), scrollArrowH, "surf2")
         A.drawDividerH(self, 0, arrowY, w - T.px(1), true)
         -- the row's inside between the strip's lines, two equal halves; each arrow centred in its half
-        local L, M, M2, R = A.stripArrowHalves(w, true, true)
+        local L, M, M2, R = A.stripArrowHalves(w, "frame", "own")   -- (the containers: the divider left, its own line right)
         local aS = T.px(5)
         if not cuesOn and my >= arrowY and my < h and ((mx >= L and mx < M) or (mx >= M2 and mx < R)) then
             local hv = T.hover
