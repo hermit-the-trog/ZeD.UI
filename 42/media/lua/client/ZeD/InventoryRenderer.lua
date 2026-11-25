@@ -530,8 +530,14 @@ function ZeD.InventoryRenderer.padPrompts(win)
     local c = idx and win._containers and win._containers[idx]
     local key = c and c.inventory and containerKey(c.inventory, win._playerObj or getSpecificPlayer(0))
     local grid = key and ZeD.InventoryRenderer.isGridKey(key, win._playerObj)
-    return { { glyph = "L3", label = ZeD.tr("UI_ZeD_Prompt_Sort") },
-             { glyph = "R3", label = ZeD.tr(grid and "UI_ZeD_Settings_ViewList" or "UI_ZeD_Settings_ViewGrid") } }
+    local out = { { glyph = "L3", label = ZeD.tr("UI_ZeD_Prompt_Sort") },
+                  { glyph = "R3", label = ZeD.tr(grid and "UI_ZeD_Settings_ViewList" or "UI_ZeD_Settings_ViewGrid") } }
+    -- (loot KISS call 1, the director, Nov 24 2026) on a container's rows in the World window, the way to Loot all:
+    -- "Left X Take all", after L3 and R3 so a narrow line drops those first
+    local WW = ZeD_WorldWindow
+    local hint = WW and WW.padTakeAllHint and WW.padTakeAllHint(win)
+    if hint then out[#out + 1] = hint end
+    return out
 end
 
 -- a heading zone was clicked: the view button's "view:flip:<key>"; the Filter's "view:filter:<key>" and its bar's
@@ -927,6 +933,27 @@ function ZeD.InventoryRenderer.padMove(w, el)
         padRefresh(w, cnt)
     end
 end
+-- (loot KISS call 5, the director, Nov 24 2026) Is this row a closed stack in the World window, of things not his,
+-- with nothing marked? Then A is the game's menu straight away (Grab one, Grab half, Grab all: ContainerControls'
+-- doGrabMenu wrap, KISS #31), as the game's A on its loot page, and B opens the stack (the game's B,
+-- ISInventoryPane:doJoypadExpandCollapse). A closed stack in his own bags keeps A opening it.
+function ZeD.InventoryRenderer.padStackMenu(w, el)
+    if not (el and el.item and w) then return false end
+    local WW = ZeD_WorldWindow
+    if not (WW and WW.getWindow and WW.getWindow(ZeD.playerNumOf(w)) == w) then return false end
+    if ZeD.InventoryRenderer.padMarkCount(w) > 0 then return false end   -- (marks: the menu would be theirs)
+    if ZeD.InventoryRenderer.padOwnBags(w, el) then return false end
+    return padIsStack(w, el)
+end
+-- (call 5) B may open the stack: padStackMenu, in a list (a grid shows no open stacks)
+function ZeD.InventoryRenderer.padStackOpens(w, el)
+    if not ZeD.InventoryRenderer.padStackMenu(w, el) then return false end
+    local po = w._playerObj or getSpecificPlayer(ZeD.playerNumOf(w))
+    local inv = el.item:getContainer()
+    local key = inv and containerKey(inv, po)
+    return not (key and ZeD.InventoryRenderer.isGridKey(key, po))
+end
+
 -- an item row's or cell's controller buttons, on top of what its builder gave it: the builder's onContextMenu
 -- (the game's menu) moves to A on an open card, X becomes the move, hold A on food eats
 function ZeD.InventoryRenderer.padItemButtons(el)
@@ -934,7 +961,31 @@ function ZeD.InventoryRenderer.padItemButtons(el)
     el.onItemMenu = menu
     el.onActivate = function(w, e)
         if menu and ZeD.InventoryRenderer.padCardOpen(w, e) then return menu(w, e) end
+        if menu and ZeD.InventoryRenderer.padStackMenu(w, e) then return menu(w, e) end   -- (loot KISS call 5)
         if tap then return tap(w, e) end
+    end
+    -- (loot KISS call 5) B on such a stack opens it (A, its old way, is the menu now); a running action is still
+    -- B's first, as the game's B; marks are still B's to clear (padCancel)
+    local cancel, promptB = el.onCancel, el.promptB
+    el.onCancel = function(w, e)
+        if tap and ZeD.InventoryRenderer.padStackOpens(w, e) then
+            local F = ZeD.Input and ZeD.Input.Focus
+            if F and F.actionToCancel and F.actionToCancel(ZeD.playerNumOf(w)) then return false end
+            tap(w, e)
+            return true
+        end
+        if cancel then return cancel(w, e) end
+        return false
+    end
+    el.promptB = function(w, e)
+        if tap and ZeD.InventoryRenderer.padStackOpens(w, e) then
+            local F = ZeD.Input and ZeD.Input.Focus
+            if F and F.actionToCancel and F.actionToCancel(ZeD.playerNumOf(w)) then return false end
+            return ZeD.tr("IGUI_Open")
+        end
+        if not cancel then return false end   -- (no B here before: none now)
+        if type(promptB) == "function" then return promptB(w, e) end
+        return promptB
     end
     el.onContextMenu = ZeD.InventoryRenderer.padMove
     el.onHoldActivate = function(w, e)
@@ -948,6 +999,7 @@ function ZeD.InventoryRenderer.padItemButtons(el)
     end
     el.promptA = function(w, e)
         if menu and ZeD.InventoryRenderer.padCardOpen(w, e) then return ZeD.tr("UI_ZeD_Prompt_Menu") end
+        if menu and ZeD.InventoryRenderer.padStackMenu(w, e) then return ZeD.tr("UI_ZeD_Prompt_Menu") end   -- (loot KISS call 5)
         return nil
     end
     el.promptX = ZeD.InventoryRenderer.padPromptX
@@ -1100,6 +1152,7 @@ function ZeD.InventoryRenderer.quickUse(item, playerNum, rows, wear)   -- rows: 
         local floor = src:getType() == "floor"
         if floor or luautils.walkToContainer(src, playerNum) then
             ZeD.ContainerControls.moveItems(playerObj, rows or { item }, dest)
+            if not wear and ZeD.SmartAttach then ZeD.SmartAttach.after(playerObj, rows or { item }) end   -- (smart attach, the director, Nov 24 2026)
             if wear then
                 for _, it in ipairs(rows or { item }) do
                     if instanceof(it, "Clothing") and not it:isBroken() then ISTimedActionQueue.add(ISWearClothing:new(playerObj, it)) end
@@ -1439,13 +1492,16 @@ local function filterFrame(self, multi)
     end
 end
 
--- a column's model drew: its matches join the window's count; its rows dim by self._fres while something narrows
+-- a column's model drew: its matches join the window's count (from the whole model). Returns the model to draw:
+-- while something narrows, the one with the rows that don't match left out (IF.view: loot KISS call 7, the
+-- director, Nov 24 2026; they used to stay, dimmed), else M itself.
 local function filterColumn(self, M)
     local S = self._zedFilter
-    if not (S and S.shown and S.open) then self._fres = nil; return end
+    if not (S and S.shown and S.open) then self._fres = nil; return M end
     local res = IFL.result(S, M)
     IFL.frameAdd(S, res)
     self._fres = res.active and res or nil
+    return IFL.view(M, res)
 end
 
 -- the frame's end: the bar, after the columns, so its count is this frame's
@@ -1461,7 +1517,8 @@ local function filterEnd(self)
 end
 
 -- a row or a cell that does not match: faded toward the window's base, in place. Its hit zone stays, so it is still
--- picked, dragged and given its menu.
+-- picked, dragged and given its menu. (Since loot KISS call 7 a row that doesn't match is hidden, IF.view; this is
+-- left for a stack's row kept because another thing in the stack matches, a renamed one.)
 local function filterDim(self, x, y, w, h)
     local b = ZeD.T.base
     self:drawRect(x, y, w, h, IFL.DIM_A, b.r, b.g, b.b)
@@ -2959,7 +3016,9 @@ local function renderItemList(self)
         ZeD.InventoryRenderer.isGridKey(containerKeyOf(inv, playerObj), playerObj or getSpecificPlayer(0)) and NO_OPEN or self._expandedStacks)
     -- a container this list starts showing while on screen: a mod's pick hook (ContainerGates.seen)
     ZeD.ContainerGates.seen(self, inv, playerObj)
-    filterColumn(self, M)   -- (this list's matches, kept until the filter or the model changes)
+    -- (this list's matches, kept until the filter or the model changes; M becomes the matching rows only while the
+    -- Filter narrows: loot KISS call 7, the director, Nov 24 2026)
+    M = filterColumn(self, M)
     local groups, catOrder, flatItems = M.groups, M.catOrder, M.flatItems
     local useGroups, stackedGroups, catRowCount = M.useGroups, M.stackedGroups, M.catRowCount
     local childParent = M.childParent
@@ -3539,8 +3598,11 @@ local function renderItemList(self)
     -- (the library's empty line: F2 dim, at the list's text inset, 8u under its header)
     if #catOrder == 0 and not self._wornLine then   -- (KISS #11: the Worn and held line stands in for it)
         -- (a mod's gate words its own: "Not searched.")
+        -- (the Filter hid every row of a list that has things: "Nothing matches", the Filter bar's word, never
+        -- "Nothing here."; loot KISS call 7, the director, Nov 24 2026)
         ZeD.Molecules.drawEmptyLine(self, xOff + padX, contentTop + T.px(8), scrollX - padX * 2,
-            ZeD.ContainerGates.emptyText(inv, playerObj) or ZeD.tr("UI_ZeD_Inv_Empty"))
+            (self._fres and self._fres.total > 0 and ZeD.tr("UI_ZeD_Inv_FilterNone"))
+            or ZeD.ContainerGates.emptyText(inv, playerObj) or ZeD.tr("UI_ZeD_Inv_Empty"))
     end
 
     -- --------------------------------------------------------

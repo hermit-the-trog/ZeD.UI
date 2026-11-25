@@ -171,6 +171,9 @@ if moveSrc then
     check("CT.moveToOther compiles", fn ~= nil, e)
     if fn then fn(CT, function(inv) return inv ~= nil and inv:getType() == "floor" end) end
 end
+-- (loot KISS call 6, Nov 24 2026: moveToOther asks CT.noRoom first; here every bag has room. The No room case is
+-- loot_calls_noroom_sim.lua's.)
+CT.noRoom = function() return false end
 
 local IRS = readFile(Z .. "InventoryRenderer.lua") or ""
 -- (Nov 15 2026, add-on hooks: padItemButtons hands each stop to GridLayout.padButtons; the real file, no add-on)
@@ -385,7 +388,8 @@ if VERBS then
     ids = VERBS("container", crayfish, 220)
     check("CARD: the narrow card keeps Grab, Eat, More where they fit", ids == "TAKE,EAT,MORE", ids)
     ids = VERBS("container", crayfish, 120)
-    check("CARD: ... and drops Grab first where they don't", ids == "EAT,MORE", ids)
+    -- (loot KISS call 4, the director, Nov 24 2026: Grab stays; the main verb goes into More instead)
+    check("CARD: ... and keeps Grab, More where they don't (Eat goes into More)", ids == "TAKE,MORE", ids)
     ids = VERBS("inventory", crayfish)
     check("CARD: food in your inventory: Eat, Drop, More (two verbs kept)", ids == "EAT,DROP,MORE", ids)
     ids = VERBS("inventory", crayfish, 220)
