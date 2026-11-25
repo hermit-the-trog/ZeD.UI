@@ -1113,13 +1113,9 @@ function ZeD_ScrollbarState:draw(panel)
     local outR = self.inRight and 0 or hl
     local outT = self.inTop and 0 or hl
     local outB = (self.inBottom or (self.reserveBottom or 0) > 0) and 0 or hl
-    -- at the panel's own edge the frame's line is inside the panel, the bar's own line on it: nothing past the panel
-    -- (the console's pages and log, a window's right edge)
-    local pw = panel.getWidth and panel:getWidth() or nil
-    local ph = panel.getHeight and panel:getHeight() or nil
-    if pw and self.x + self.width + outR > pw then outR = 0 end
-    if self.y - outT < 0 then outT = 0 end
-    if ph and self.y + self.height + outB > ph then outB = 0 end
+    -- (past the panel's own edge too: the Character drawer's divider and footer rule are drawn just outside the
+    -- drawer panel, and the bar's line has to land on them; QA's hand measures, Nov 25 2026. A bar at a window's
+    -- own edge, whose rect holds the frame's line, says so with inRight / inTop / inBottom: the console, Messages.)
     local ox = self.x
     local oy = self.y - outT
     local w = self.width + outR
@@ -1303,6 +1299,8 @@ function ZeD.Molecules.scrollBar(panel, win, key, x, y, w, h, scroll, total, set
     sb.arrowH = (h >= w * 2 + T.px(24)) and w or 0
     sb.visible = true
     sb.lineH = opts and opts.step or nil
+    -- the sides whose frame line is inside the bar's rect (a window's own edge): drawn there, not one hairline past
+    sb.inRight, sb.inTop, sb.inBottom = opts and opts.inRight or nil, opts and opts.inTop or nil, opts and opts.inBottom or nil
     sb.rangePx = maxS
     sb._set, sb._max = set, maxS
     sb:setBarSize(view / math.max(1, total))

@@ -193,7 +193,7 @@ function W:_drawHelp(x, y, w, h, joy)
     self:clearStencilRect()
     if total > h then
         local win = self
-        M.scrollBar(self, nil, "help", x + w - sbW, y, sbW, h, self.hScroll, total, function(v) win.hScroll = v end, { step = step2 })
+        M.scrollBar(self, nil, "help", x + w - sbW, y, sbW, h, self.hScroll, total, function(v) win.hScroll = v end, { step = step2, inRight = true })   -- (the window's right edge: its line is the frame's)
     end
     self._hRect = { x = x, y = y, w = iw, h = h }
 end
@@ -476,7 +476,7 @@ function W:_cmdList(x, y, w, h, joy, server)
     self:clearStencilRect()
     if bar then
         local win = self
-        M.scrollBar(self, nil, "cmds", x + w - sbW, y, sbW, h, self.cScroll, total, function(v) win.cScroll = v end, { step = rowH })
+        M.scrollBar(self, nil, "cmds", x + w - sbW, y, sbW, h, self.cScroll, total, function(v) win.cScroll = v end, { step = rowH, inRight = true })   -- (the window's right edge)
     end
 end
 
