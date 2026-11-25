@@ -362,9 +362,11 @@ end
 --   "own"   the strip's own hairline inside its w (one hairline in every theme)
 --   "frame" the window's frame or the drawer's divider inside its w (the border weight: two hairlines in HC)
 --   "edge"  the frame just outside its w: nothing inside, but High Contrast's heavier frame reaches in by its extra
+--   "own+edge" its own hairline with the frame just past it (the Character window's bag strip's right)
 local function stripInset(kind)
     local T = ZeD.T
     if kind == "own" then return T.px(1) end
+    if kind == "own+edge" then return T.px(1) + T.line(T.borderW) - T.line(1) end
     if kind == "frame" then return T.line(T.borderW) end
     return T.line(T.borderW) - T.line(1)   -- "edge"
 end

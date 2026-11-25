@@ -33,7 +33,7 @@ local src2 = cut(AX, "function ZeD.Atoms.stripArrowX(a, b, s)", "\nend\n")
 check("HALVES: found", src ~= nil and srcH ~= nil and src2 ~= nil)
 for _, sc in ipairs({ 1, 1.75, 2 }) do
   for _, bw in ipairs({ 1, 2 }) do
-    for _, sides in ipairs({ { "frame", "own" }, { "frame", "edge" }, { "own", "edge" } }) do
+    for _, sides in ipairs({ { "frame", "own" }, { "own", "own+edge" }, { "own", "edge" } }) do
     local function px(n) return math.floor(n * sc + 0.5) end
     ZeD = { Atoms = {}, T = { px = px, borderW = bw, line = function(u) return u * px(1) end } }
     if src and srcH and src2 then
@@ -43,7 +43,7 @@ for _, sc in ipairs({ 1, 1.75, 2 }) do
         local L, M, M2, R = A.stripArrowHalves(w, sides[1], sides[2])
         local s = T.px(5)
         local ux, dx = A.stripArrowX(L, M, s), A.stripArrowX(M2, R, s)
-        local function inset(k) if k == "own" then return px(1) elseif k == "frame" then return bw * px(1) end return (bw - 1) * px(1) end
+        local function inset(k) if k == "own" then return px(1) elseif k == "frame" then return bw * px(1) elseif k == "own+edge" then return px(1) + (bw - 1) * px(1) end return (bw - 1) * px(1) end
         local tag = "scale " .. sc .. " bw " .. bw .. " " .. sides[1] .. "/" .. sides[2]
         check("HALVES " .. tag .. ": the inside is inside the lines by their weight", L == inset(sides[1]) and R == w - inset(sides[2]), L .. "," .. R)
         check("HALVES " .. tag .. ": the dividing line a hairline wide", M2 - M == T.px(1))
@@ -60,7 +60,7 @@ check("WIRED: the Character window's container strip", has(CW, 'self:addHitZone(
 check("WIRED: the Character window's tab strip", has(CW, 'self:addHitZone("tab_scroll_down", M2, rowY, w - M2, arrowRowH)'))
 check("WIRED: the World window's tab strip", has(WW, 'self:addHitZone("tab_scroll_down", M2, rowY, w - M2, arrowRowH)'))
 check("WIRED: the line between up and down on all four", select(2, string.gsub(CW .. WW, "A.stripArrowLine%(self, M, M2, ", "")) == 4)
-check("WIRED: each strip's sides (QA's measures)", has(CW, 'A.stripArrowHalves(w, "frame", "own")') and has(CW, 'A.stripArrowHalves(w, "frame", "edge")') and has(WW, 'A.stripArrowHalves(w, "own", "edge")') and has(WW, 'A.stripArrowHalves(w, "frame", "own")'))
+check("WIRED: each strip's sides (QA's measures)", has(CW, 'A.stripArrowHalves(w, "frame", "own")') and has(CW, 'A.stripArrowHalves(w, "own", "own+edge")') and has(WW, 'A.stripArrowHalves(w, "own", "edge")') and has(WW, 'A.stripArrowHalves(w, "frame", "own")'))
 check("WIRED: the World window's container strip", has(WW, 'A.drawTriangleUp(self, A.stripArrowX(L, M, aS), arY, aS, arrowColor)') and not has(WW, "local upX = math.floor(w / 4)"))
 
 print("strip_arrows_sim: " .. checks .. " checks, " .. failed .. " failed")
