@@ -57,8 +57,9 @@ local function buildData(d, t, player)
     local okL, logic = pcall(function()
         local l = BuildLogic.new(player, nil, nil)
         -- (getSelectedBuildObject reads a recipe-to-entity lookup that only getAllBuildableRecipes fills:
-        -- without this call it threw on every refresh)
-        l:getAllBuildableRecipes()
+        -- without this call it threw on every refresh; and, as the game's ISBuildPanel and BuildingTab do, the list
+        -- is set back with setRecipes, or getSelectedBuildObject throws a NullPointerException: QA B5-8)
+        l:setRecipes(l:getAllBuildableRecipes())
         l:setRecipe(e.recipe)
         return l
     end)

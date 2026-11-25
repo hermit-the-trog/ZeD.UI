@@ -1553,6 +1553,19 @@ end
 -- Escape (the prompts' key hook asks, as for the map pop-out): an open recipe card, drawn within the last
 -- half second, closes and the game's pause menu stays shut (KISS #47). Registered under ZeD.EscapeTakers.
 CC._cardStates = {}   -- the states that had a card open
+-- (a state whose card was last drawn a while ago, its window shut or the card closed, is dropped, so a World window
+-- opened again and again does not keep every old state alive: QA's read, Nov 25 2026)
+local CARD_STALE_MS = 5000
+function CC.pruneCardStates(now)
+    local old = nil
+    for state in pairs(CC._cardStates) do
+        if not state.selected or not state._cardDrawnAt or now - state._cardDrawnAt > CARD_STALE_MS then
+            old = old or {}
+            old[#old + 1] = state
+        end
+    end
+    if old then for _, s in ipairs(old) do CC._cardStates[s] = nil end end
+end
 function CC.takeEscape()
     local now = getTimestampMs()
     local hit = nil
@@ -3403,6 +3416,7 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
     -- an open card is on screen this frame: Escape may close it (CC.takeEscape) (KISS #47)
     if state.selected then
         state._cardDrawnAt = getTimestampMs()
+        if not CC._cardStates[state] then CC.pruneCardStates(state._cardDrawnAt) end   -- (only when one is added)
         CC._cardStates[state] = true
     end
     local T = ZeD.T
