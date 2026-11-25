@@ -171,6 +171,9 @@ if moveSrc then
     check("CT.moveToOther compiles", fn ~= nil, e)
     if fn then fn(CT, function(inv) return inv ~= nil and inv:getType() == "floor" end) end
 end
+-- (loot KISS call 6, Nov 24 2026: moveToOther asks CT.noRoom first; here every bag has room. The No room case is
+-- loot_calls_noroom_sim.lua's.)
+CT.noRoom = function() return false end
 
 local IRS = readFile(Z .. "InventoryRenderer.lua") or ""
 -- (Nov 15 2026, add-on hooks: padItemButtons hands each stop to GridLayout.padButtons; the real file, no add-on)
