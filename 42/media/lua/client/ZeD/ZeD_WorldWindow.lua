@@ -3775,6 +3775,19 @@ function ZeD_WorldWindow.isOpen(pn)
     return _worldWins[pn or 0] ~= nil
 end
 
+--- The picture the strip shows for a container: its button's own (a body, a car's part, a crate) while the window
+--- lists it, else the game's icon for its type, else the game's box. Never nil. (A menu row that names a container,
+--- Move to's loot row among them, draws it: QA rt_menus, Nov 24 2026, "no icon: Corpse".)
+function ZeD_WorldWindow.containerIcon(inv, pn)
+    if not inv then return ZeD.genericContainerTex() end
+    local win = _worldWins[pn or 0]
+    for _, c in ipairs(win and win._containers or {}) do
+        if c.inventory == inv and c.texture then return c.texture end
+    end
+    local ok, t = pcall(function() return inv:getType() end)
+    return (ok and t and resolveContainerIcon(t)) or ZeD.genericContainerTex()
+end
+
 --- The game's hidden loot page put on the container this window shows. The item menu's "Put in Container (X)" and the
 --- Move to submenu's loot entry read that page (getPlayerLoot(pn).inventory, ISInventoryPaneContextMenu), so they name
 --- and fill what he sees, never a crate or a body the page last held. With the window shut the page goes on the floor,
