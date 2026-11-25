@@ -295,9 +295,15 @@ function H.xpBack()
                     S.p:setPerkLevelDebug(r.perk, r.lvl)
                     xp:setXPToLevel(r.perk, r.lvl)
                     local now = xp:getXP(r.perk)
-                    if r.xp > now + 0.001 then xp:AddXPNoMultiplier(r.perk, r.xp - now) end
+                    -- (either way: a level's floor can sit above the XP found, so the gap may be negative)
+                    if math.abs(r.xp - now) > 0.001 then xp:AddXPNoMultiplier(r.perk, r.xp - now) end
                 end)
-                if math.abs(xp:getXP(r.perk) - r.xp) > 0.01 or S.p:getPerkLevel(r.perk) ~= r.lvl then left = left + 1 end
+                local nx, nl2 = xp:getXP(r.perk), S.p:getPerkLevel(r.perk)
+                if math.abs(nx - r.xp) > 0.01 or nl2 ~= r.lvl then
+                    left = left + 1
+                    S.xpLeftText = (S.xpLeftText or "") .. tostring(r.perk) .. " level " .. tostring(nl2) .. " (found " .. tostring(r.lvl) .. ") xp "
+                        .. string.format("%.2f", nx) .. " (found " .. string.format("%.2f", r.xp) .. "); "
+                end
             end
         end
     end)
@@ -2212,7 +2218,7 @@ H.step(10, function()
     local known = 0
     for _, nm in ipairs(S.learned) do pcall(function() if S.p:getKnownRecipes():contains(nm) then known = known + 1 end end) end
     Q.check((S.xpLeft or 0) == 0 and known == 0, "put back: the skills (level and XP) and the recipes known as found",
-        tostring(S.xpGrew) .. " skills changed, " .. tostring(S.xpLeft) .. " not back; " .. known .. " of " .. #S.learned .. " recipes learned still known")
+        tostring(S.xpGrew) .. " skills changed, " .. tostring(S.xpLeft) .. " not back" .. (S.xpLeftText and (": " .. S.xpLeftText) or "") .. "; " .. known .. " of " .. #S.learned .. " recipes learned still known")
     local st = H.bst()
     Q.check(S.w0 == nil and getGameSpeed() == 1 and (st == nil or (st.selected == nil and (st.search or "") == "")),
         "put back: the wrappers off, game speed 1, the Building tab's card shut and its search empty",

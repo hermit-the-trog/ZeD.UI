@@ -1731,6 +1731,9 @@ function S.case4batch(T, who)
         else
             local l = H.logic(S.R.stake)
             local acts = nil
+            -- (as the game's own craft panel sets it up: ISHandCraftPanel.lua:355 setManualSelectInputs(true); without it the
+            -- game's batch path throws at ISHandcraftAction.lua:404)
+            pcall(function() l:setManualSelectInputs(true) end)
             pcall(function() l:canPerformCurrentRecipe(); acts = ISEntityUI.HandcraftStartMultiple(S.p, l, false, 3, true) end)
             T.gameActs = acts and #acts or 0
         end
@@ -1833,6 +1836,7 @@ function S.case5over()
         T.after = st.qty
         local l = H.logic(S.R.stake)
         local acts = "?"
+        pcall(function() l:setManualSelectInputs(true) end)
         pcall(function() l:canPerformCurrentRecipe(); local a = ISEntityUI.HandcraftStartMultiple(S.p, l, false, T.amount, false); acts = a and #a or "refused" end)
         T.game = acts
     end)
