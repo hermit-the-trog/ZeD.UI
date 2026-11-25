@@ -7,7 +7,7 @@
 --      windows; the rows must stand in the key's order (the renderer's rules, zedqa_sort_groups.lua's checks);
 --   2. list and grid: every thing the container shows has a drawn row / cell (the rows' and cells' places stamped
 --      by the renderer), a stack's row standing for its whole stack; the view button flips the view;
---   3. the filter: its button opens the bar, the typed text marks the rows that match (the rest dim), Clear and the
+--   3. the filter: its button opens the bar, the typed text shows the rows that match (the rest hide), Clear and the
 --      button put it away;
 --   4. a stack: its row shows the total weight in brackets (zedqa_wt_bracket.lua), its triangle opens it, every
 --      thing gets its own row under a header that keeps the total;
@@ -575,9 +575,11 @@ step(6, function()
         if want then hit = hit + 1 else miss = miss + 1 end
         if want ~= got then wrong[#wrong + 1] = tostring(it:getName()) end
     end
-    Q.check(fr ~= nil and hit > 0 and miss > 0 and #wrong == 0,
-        "the filter \"" .. S.query .. "\" marks the rows whose name holds it and dims the rest",
-        hit .. " match, " .. miss .. " dim" .. ((#wrong > 0) and ("; wrong: " .. table.concat(wrong, ", ")) or ""))
+    -- (the director's loot KISS call 7, Nov 24 2026: the Filter hides the rows that do not match, it no longer dims them)
+    Q.check(fr ~= nil and hit > 0 and miss == 0 and #wrong == 0 and (fr.total or 0) > (fr.matched or 0),
+        "the filter \"" .. S.query .. "\" shows the rows whose name holds it and hides the rest",
+        hit .. " shown, " .. miss .. " shown that do not match; " .. tostring(fr and fr.matched) .. " of " .. tostring(fr and fr.total) .. " match"
+        .. ((#wrong > 0) and ("; wrong: " .. table.concat(wrong, ", ")) or ""))
     RT.bounds(Q, "the filter bar open")
 end)
 step(2, function()
@@ -591,7 +593,7 @@ step(4, function()
     Q.check(S.clearZone and wc._fres == nil and not ZeD.InvFilter.active(S.F), "Clear shows every row again",
         "button " .. tostring(S.clearZone) .. ", text \"" .. tostring(S.F and S.F.q) .. "\"")
 end)
--- a category chip (the bar's "view:fbar:chip:<category>"): the rows of that category match, the rest dim; the
+-- a category chip (the bar's "view:fbar:chip:<category>"): the rows of that category show, the rest hide; the
 -- filter is saved on the crate's key, a container with no place (the floor) keeps none, and the crate shown again
 -- takes its filter back (InventoryFilter's sync); Clear takes it off the crate's key
 S.chipPre = "view:fbar:chip:"
@@ -615,9 +617,10 @@ step(6, function()
         if want then hit = hit + 1 else miss = miss + 1 end
         if want ~= got then wrong[#wrong + 1] = tostring(it:getName()) end
     end
-    Q.check(S.F.cats[S.chip] == true and fr ~= nil and hit > 0 and #wrong == 0,
-        "the chip " .. S.chip .. " marks that category's rows and dims the rest",
-        hit .. " match, " .. miss .. " dim" .. ((#wrong > 0) and ("; wrong: " .. table.concat(wrong, ", ")) or ""))
+    Q.check(S.F.cats[S.chip] == true and fr ~= nil and hit > 0 and miss == 0 and #wrong == 0,
+        "the chip " .. S.chip .. " shows that category's rows and hides the rest",
+        hit .. " shown, " .. miss .. " shown of another category; " .. tostring(fr and fr.matched) .. " of " .. tostring(fr and fr.total) .. " match"
+        .. ((#wrong > 0) and ("; wrong: " .. table.concat(wrong, ", ")) or ""))
     local st = S.p:getModData().ZeD_Filters
     Q.check(st ~= nil and S.crateKey ~= nil and st[S.crateKey] == ZeD.InvFilter.encode(S.F),
         "the filter is saved on the crate's key", tostring(S.crateKey) .. " = " .. tostring(st and S.crateKey and st[S.crateKey]))

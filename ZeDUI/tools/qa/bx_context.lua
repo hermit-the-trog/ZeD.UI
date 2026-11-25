@@ -1096,6 +1096,7 @@ function H.edgeEnd()
     local d
     if V.strip then
         d = (V.flipped and "the strip under the pointer, its balloon below" or "the strip over the pointer, its balloon above")
+            .. ((V.m and V.m._zedGuessIdx) and " (opened on its best guess: that cell on the pointer)" or "")
             .. ", " .. V.opened .. " submenu opened by a click"
     else
         d = V.opened .. " submenus opened by a resting pointer, " .. V.rows .. " submenu rows hovered, " .. V.over .. " of them over the parent"
@@ -1648,8 +1649,20 @@ function H.padSeq(style, world)
         local m = H.menu()
         if not m then Q.check(false, lbl .. ": the menu stays open"); S.live = false; return end
         if m._levels then H.listOnScreen(S.padV, m) else H.stripOnScreen(S.padV, m) end
-        local first = m._levels and (m._levels[1].sel == m:_firstLive(m._levels[1], 1, 1) and m._nav == "pad") or (not m._levels and m._ctx.selected == 1)
-        Q.check(#S.padV.bad == 0 and first and not S.drawErr, lbl .. ": on screen, the first row marked for the pad",
+        -- (smart menu, c6dafe460, Nov 24 2026: an item menu opens on its best guess, m._zedGuessIdx, the def's index in
+        -- the top level's items; without a guess, the first live row as before. ZeD_ContextList open, ZeD_ContextMenu:open)
+        local first
+        if m._levels then
+            local L1 = m._levels[1]
+            local want = m:_firstLive(L1, 1, 1)
+            local gDef = m._zedGuessIdx and L1.items and L1.items[m._zedGuessIdx]
+            if gDef then for ri, r in ipairs(L1.rows or {}) do if r.def == gDef then want = ri; break end end end
+            first = L1.sel == want and m._nav == "pad"
+        else
+            first = m._ctx.selected == (m._zedGuessIdx or 1)
+        end
+        Q.check(#S.padV.bad == 0 and first and not S.drawErr, lbl .. ": on screen, the first row (or the menu's best guess, "
+            .. tostring(m._zedGuessRule or "none") .. ") marked for the pad",
             "anchor " .. tostring(m.anchorMode) .. " at " .. H.fl(m._anchorX) .. "," .. H.fl(m._anchorY) .. ((#S.padV.bad > 0) and ("; " .. H.join(S.padV.bad, 3)) or "") .. (S.drawErr and ("; " .. S.drawErr) or ""))
         RT.bounds(Q, lbl)
         m:onJoypadDown(Joypad.BButton)
