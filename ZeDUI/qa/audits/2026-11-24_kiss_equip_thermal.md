@@ -42,7 +42,9 @@ All fixed: merged as 1b46b3cac, then cd282e09b for a card that wouldn't open aft
 
 ## Design calls for the director
 
-See the closing message (numbered choices), each with the data the sweep recorded:
+**Decided Nov 25 2026:** the director picked option 1 on all nine ("One for all nine"), relayed to Build. In short: the core meter follows the moodle levels; wetness uses the game's green-to-blue colors and its WET moodle steps and words; % in both the grid and the detail box; an empty slot opens a list of what fits and a double-click takes off; empty belt slots always show; a two-handed weapon shows dimmed in the off hand as "both hands"; Off hand and Two hands become card buttons; a drop on the doll's Main or Off box goes to that hand.
+
+Each call with the data the sweep recorded:
 - **Core meter.** At 36.2 C the game shows Hypothermia 1 and ZeD's meter is green. At 37.3 C there is no moodle and the meter is amber. Hypothermia 3 and 4 both show 1 segment.
 - **Wetness colors.** Dry shows the "cold" blue and soaked the "hot" red. The game's wetness view goes from green (dry) to blue (soaked).
 - **One reading, two ways.** Upper Torso wind resistance reads 0.59 in the grid, 59% in the detail box and 2.34 in the game's own panel.
