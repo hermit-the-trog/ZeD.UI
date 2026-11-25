@@ -225,6 +225,9 @@ function Restore-ZeDSettings([string]$Keep) {
 # vanilla text in a capture can't drift (the Mac rig's "Scale with window height" blew it up at 4K, Nov 10). The
 # director's own line goes back once the game has closed; a missing key is added for the run and taken out after.
 $PinFontSize = 2
+# (Nov 25 2026, the director: "change the font size in the QA runs for 4K to 26 pixel instead of 19 pixel": a 4K run
+# pins fontSize=3 (26px); the windowed runs (1280x800 and the rest) keep 19px. ZEDQA_FONTSIZE below still wins.)
+if ($Mode -eq "fullscreen4k") { $PinFontSize = 3 }
 # (Nov 17 2026, the director: a vanilla capture is taken at the vanilla game's default font setting. The game's own default
 # is 6, "Scale with window height" (Core: IntegerConfigOption("fontSize", 1, 6, 6)); zedqa_mods_run.ps1 -NoZeD sets it.)
 if ($env:ZEDQA_FONTSIZE -match '^[1-6]$') { $PinFontSize = [int]$env:ZEDQA_FONTSIZE }
