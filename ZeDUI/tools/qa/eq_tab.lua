@@ -36,14 +36,16 @@
 --              a filled row detaches at once (S5 NOTE); pad X opens the thing's menu, on an empty row the slot's list;
 --              a right-click opens the menu; the slot's key puts the hammer in the hand, the row says PUT BACK, PUT
 --              BACK puts it back; S4: a flashlight on its webbing slot held in the hand, PUT BACK must put it back
---              and not switch its light (FAIL); the ninth row has no key ("-"); S8 NOTE (Held and Belt folded hides the
---              empty slots); the shoulder holster's row names it (Slot from <provider>), then the holster taken off:
+--              and not switch its light (FAIL); the ninth row has no key ("-"); S8, the director's call 6 (Nov 25
+--              2026): with Held and Belt folded every belt slot, the empty ones too, keeps its row (FAIL otherwise);
+--              the shoulder holster's row names it (Slot from <provider>), then the holster taken off:
 --              its row goes and the pistol on it is back in the inventory, off the belt
---   5 doll     a click on a filled box opens its card; a click or A on an empty slot opens nothing (S7 NOTE); a
+--   5 doll     a click on a filled box opens its card (after DOUBLE_MS: the director's call 5); S7, call 5: a click or
+--              A on an empty slot opens its list of what fits (lastWearMenu; et_calls 5 checks the list itself); a
 --              click on an empty belt box opens its attach list; S2: a beanie dropped on the Head box while a hoodie's
---              hood is up must keep the hoodie on with its hood lowered, as the game's Wear does (FAIL); S3 NOTE: a
---              hammer dropped on the Main box; the D-pad from the first filled box reaches every filled box; on the full
---              card the bands show (the rings in their own small slots), on the half card they fold (the rings in Hands)
+--              hood is up must keep the hoodie on with its hood lowered, as the game's Wear does (FAIL); S3, call 9: a
+--              hammer dropped on the Main box goes to the main hand (FAIL otherwise; et_calls 9 has the rest); the
+--              D-pad from the first filled box reaches every filled box; on the full card the bands show (the rings in their own small slots), on the half card they fold (the rings in Hands)
 --   6 defense  for each of the game's 17 parts (and Back, index 17) ZeD's bite, scratch and bullet against the
 --              game's getBodyPartClothingDefense (what ISCharacterProtection shows), within 1 (FAIL past it); the
 --              average, grade, worst and best zone agree with the per-part numbers; the block shows the same numbers;
@@ -58,7 +60,8 @@
 --              opened from its row: the card's zones show it (ItemDetail.getZones: wet, blood, dirt, TORN, the patch's
 --              material, condition 0); WASH offered when dirty or bloody and not when clean, REPAIR when holed; S12
 --              NOTE: the row's Inspect opens which card
---   9 hands    S9 NOTE: a two-handed axe shows in PRI, what SEC and the doll's Off box show; a knife and a hammer in
+--   9 hands    S9, the director's call 7: a two-handed axe shows in PRI and the doll's Main; SEC keeps it as bothHands
+--              and the doll's Off box as offBoth (FAIL otherwise; et_calls 7 checks the drawing); a knife and a hammer in
 --              PRI and SEC and the doll's Main and Off; a bag held in the off hand in SEC; a lit hurricane lantern's
 --              UNEQUIP from its card leaves no lit lantern in the hand or the inventory (the game's own rule); the
 --              watch in WCH and the doll's left wrist
@@ -815,9 +818,11 @@ function S.openRow(T, key, itemFn, label)
         T[key .. "Row"] = Q.check(ok, label .. ": the row of " .. S.nm(it) .. " is drawn on the tab")
         if T[key .. "Row"] then S.clickZone(S.slotZone(it)) end
     end)
-    S.wait(2, 120, function() return T.off or not T[key .. "Row"] or S.cardOn(T[key .. "It"]) end, function(ok)
+    -- (one click opens the card once ZeD.EquipmentTab.DOUBLE_MS is up, the director's call 5: a second click inside it
+    -- takes the thing off instead; et_calls 5 checks both)
+    S.wait(2, 150, function() return T.off or not T[key .. "Row"] or S.cardOn(T[key .. "It"]) end, function(ok)
         if T.off or not T[key .. "Row"] then return end
-        T[key] = Q.check(ok, label .. ": a click on its row opens its card", "the card shows " .. S.nm(S.cardItem()))
+        T[key] = Q.check(ok, label .. ": a click on its row opens its card (after DOUBLE_MS)", "the card shows " .. S.nm(S.cardItem()))
     end)
 end
 -- queue: a row's card opened by the pad (focus on its stop, A)
@@ -1227,8 +1232,10 @@ function S.case3()
     S.step(6, function()
         if not T.a then return end
         local ids = S.cardIds()
-        Q.check(S.cardVerbIdx("UNEQUIP") ~= nil and S.cardVerbIdx("DROP") ~= nil and S.cardVerbIdx("MORE") ~= nil,
-            "3a off: the worn cap's card offers UNEQUIP, DROP and MORE", ids)
+        -- (the director's call 8 adds OFF HAND and TWO HANDS to an equipped weapon's card only: et_calls 8)
+        Q.check(S.cardVerbIdx("UNEQUIP") ~= nil and S.cardVerbIdx("DROP") ~= nil and S.cardVerbIdx("MORE") ~= nil
+            and S.cardVerbIdx("OFF HAND") == nil and S.cardVerbIdx("TWO HANDS") == nil,
+            "3a off: the worn cap's card offers UNEQUIP, DROP and MORE (no hand buttons: it is no weapon)", ids)
         RT.bounds(Q, "the Equip tab's card")
         local ok, why = S.cardClick("UNEQUIP")
         T.a = Q.check(ok, "3a off: UNEQUIP pressed on the cap's card (the mouse)", why)
@@ -1550,8 +1557,13 @@ function S.case4slots(T)
         local sl = S.bslots()
         local filled = 0
         for _, s in ipairs(sl) do if s.item then filled = filled + 1 end end
-        Q.say("NOTE 4k S8: with Held and Belt folded the tab shows " .. #(w._equipBeltZones or {}) .. " belt rows of " .. #sl
-            .. " slots (" .. filled .. " filled): the empty slots stay hidden until the group opens")
+        -- (the director's call 6, Nov 25 2026: every belt slot keeps its row while folded; it was S8, a NOTE that the
+        -- empty slots hid. et_calls 6 has the same check against the hotbar's slot count.)
+        local miss = {}
+        for _, s in ipairs(sl) do if not S.beltZone(s.i) then miss[#miss + 1] = tostring(s.i) .. (s.item and " (filled)" or " (empty)") end end
+        Q.check(#sl > 0 and #miss == 0 and #(w._equipBeltZones or {}) == #sl,
+            "4k S8: with Held and Belt folded every belt slot, filled and empty, keeps its row (the director's call 6)",
+            #(w._equipBeltZones or {}) .. " belt rows of " .. #sl .. " slots (" .. filled .. " filled)" .. ((#miss > 0) and ("; no row for " .. S.idsText(miss)) or ""))
         w._equipExpanded.held = true
     end)
     -- 4i the shoulder holster's slot, then the holster taken off
@@ -1639,21 +1651,29 @@ function S.case5basic(T)
         if not e then Q.skip("5b doll, an empty slot", "the doll shows no empty slot"); return end
         T.e = { type = e.type, x = e.x, y = e.y, w = e.w, h = e.h }
         S.closeMenu()
+        ZeD.EquipmentTab.lastWearMenu = nil
         S.clickZone(T.e)
     end)
-    S.step(6, function()
+    -- (S7 was a NOTE that an empty slot took no press; the director's call 5, Nov 25 2026: a press or A on an empty
+    -- slot opens the list of what the player carries that fits it. et_calls 5 checks the list's count and the pick.)
+    S.wait(2, 90, function() return not T.e or S.menuUp() end, function(ok)
         if not T.e then return end
-        Q.check(RT.cw()._equipSelected == nil and not S.menuUp(), "5b doll: a click on an empty slot opens nothing (no card, no menu)",
-            T.e.type .. ": selected " .. tostring(RT.cw()._equipSelected))
-        Q.say("NOTE 5b S7: an empty doll slot (" .. T.e.type .. ") takes no press; the tab has no way to put something on by the pad or from the List view (a drop on the doll, mouse only, wears)")
+        local lw = ZeD.EquipmentTab.lastWearMenu
+        Q.check(ok and RT.cw()._equipSelected == nil and lw ~= nil and lw.key == T.e.type,
+            "5b doll S7: a click on an empty slot opens its list of what fits (no card; the director's call 5)",
+            T.e.type .. ": menu up " .. tostring(S.menuUp()) .. ", lastWearMenu " .. tostring(lw and lw.key) .. " n " .. tostring(lw and lw.n)
+            .. ", selected " .. tostring(RT.cw()._equipSelected))
+        S.closeMenu()
+        ZeD.EquipmentTab.lastWearMenu = nil
         T.pe = S.padOn() and S.focusEl("equipslot:" .. T.e.type)
         if not T.pe then Q.say("NOTE 5b doll: the pad's focus could not be put on the empty slot " .. T.e.type .. " (on " .. tostring(S.focusedId()) .. ")") end
     end)
     S.tapA(function() return T.pe end)
-    S.step(6, function()
+    S.wait(2, 90, function() return not T.pe or S.menuUp() end, function(ok)
         if T.pe then
-            Q.check(RT.cw()._equipSelected == nil and not S.menuUp(), "5b doll: A on an empty slot opens nothing either",
-                "selected " .. tostring(RT.cw()._equipSelected))
+            local lw = ZeD.EquipmentTab.lastWearMenu
+            Q.check(ok and RT.cw()._equipSelected == nil and lw ~= nil and lw.key == T.e.type, "5b doll S7: A on an empty slot opens the same list",
+                "menu up " .. tostring(S.menuUp()) .. ", lastWearMenu " .. tostring(lw and lw.key) .. ", selected " .. tostring(RT.cw()._equipSelected))
         end
         S.padOff()
         S.closeMenu()
@@ -1727,8 +1747,10 @@ function S.case5drops(T)
     S.wait(4, 600, S.settled(10), S.noop)
     S.step(6, function()
         if not T.m then return end
-        Q.say("NOTE 5e S3: a hammer dropped on the doll's Main box: the drop taker answered " .. tostring(T.mTook) .. ", the main hand holds "
-            .. S.nm(S.p:getPrimaryHandItem()) .. " (the Main and Off boxes take no drop; a weapon goes in the hand from its card or menu)")
+        -- (S3 was a NOTE that the hand boxes took no drop; the director's call 9, Nov 25 2026: a weapon dropped on the
+        -- Main box goes to the main hand. et_calls 9 checks Off, a two-handed weapon and a non-weapon too.)
+        Q.check(T.mTook == true and S.p:getPrimaryHandItem() == T.hammer, "5e S3: a hammer dropped on the doll's Main box goes to the main hand (the director's call 9)",
+            "the drop taker answered " .. tostring(T.mTook) .. ", the main hand holds " .. S.nm(S.p:getPrimaryHandItem()))
         local w = RT.cw()
         if w._equipScroll then pcall(function() w._equipScroll:setScrollPos(0) end) end
     end)
@@ -2221,9 +2243,14 @@ function S.case9()
         local dd = ZeD.EquipDoll.gather(S.p, S.pn, true)
         Q.check(T.axe ~= nil and pri == T.axe, "9a hands: a two-handed axe held in both hands shows in the PRI row and the doll's Main box",
             "PRI " .. S.nm(pri) .. ", Main " .. S.nm(dd.main))
-        Q.say("NOTE 9a S9: with the two-handed axe the SEC row shows " .. (sec and S.nm(sec) or "nothing (it reads ---)") .. " and the doll's Off box "
-            .. (dd.off and S.nm(dd.off) or "nothing") .. "; the game holds the axe in both hands (getSecondaryHandItem is the axe: "
-            .. tostring(S.p:getSecondaryHandItem() == T.axe) .. ")")
+        -- (S9 was a NOTE that SEC read "---" and the Off box stood empty; the director's call 7, Nov 25 2026: the off hand
+        -- shows the two-handed weapon dimmed, "both hands". et_calls 7 checks the words, the dim and the icons' alpha.)
+        local secDef = nil
+        for _, g in ipairs(data.groups or {}) do for _, s in ipairs(g.slots or {}) do if s.type == "SEC" then secDef = s end end end
+        Q.check(T.axe ~= nil and sec == nil and secDef ~= nil and secDef.bothHands == T.axe and dd.offBoth == T.axe and dd.off == nil,
+            "9a S9: the axe held in both hands: the SEC row keeps it as bothHands and the doll's Off box as offBoth (the director's call 7)",
+            "SEC item " .. S.nm(sec) .. ", bothHands " .. S.nm(secDef and secDef.bothHands) .. "; Off " .. S.nm(dd.off) .. ", offBoth " .. S.nm(dd.offBoth)
+            .. "; the game's off hand is the axe " .. tostring(S.p:getSecondaryHandItem() == T.axe))
         S.hands(T.knife, T.ham)
     end)
     S.step(6, function()
@@ -2544,7 +2571,9 @@ function S.case13theme(T, th, all)
     S.shot("eq_doll_" .. tag, th.word .. ": the doll, the stocked outfit (layer plates, the bands, the belt boxes)")
     if all then
         S.step(2, function() if not T.off then S.clickZone(S.zoneT("doll:outer")) end end)
-        S.step(20, S.noop)
+        -- (a single click opens the card once DOUBLE_MS is up, the director's call 5: waited for, not 20 frames)
+        S.wait(2, 150, function() return T.off or S.cardOn(S.base.jacket) end, S.noop)
+        S.step(10, S.noop)
         S.shot("eq_card_layers_" .. tag, th.word .. ": the jacket's card from the doll's Outer box, its layer strip (layer 1 of 2)")
         S.step(2, function() S.cardClose() end)
         S.toEquip("list", T, "13 pictures (" .. th.word .. ")")

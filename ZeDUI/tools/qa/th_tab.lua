@@ -28,24 +28,27 @@
 --              change unit on the next frame; the oven's own isCelsius set opposite: Thermal follows the display option
 --              (NOTE T6: ThermalTab.lua's comment says the oven reads the same setting; it reads isCelsius); both put back
 --   views      each of the 7 views picked from the View list (a click on the box, a click on its row): the figure's 17
---              parts each take the colour band of their reading; the grid's 17 cells (two columns) each show a value;
---              Head, Left Hand and Right Foot match the game's getter for that view; NOTE T3 for insulation and wind
---              (the cell's 0.xx, the picked row's %, the game's raw value)
+--              parts each take the colour band of their reading (the Wetness view the WET steps' green to blue, the
+--              director's call 2); the grid's 17 cells (two columns) each show a value; Head, Left Hand and Right Foot
+--              match the game's getter for that view (a percent view reads NN%, the getter x 100); T3, the director's
+--              call 3: for insulation and wind the cell and the picked row read the same NN% (FAIL otherwise)
 --   clothes    naked: the game's insulation and wind resistance low on all 17 parts and ZeD's insulation and wind cells
 --              equal the game's on all 17; a stocked layered outfit (given): the game's values rise and ZeD's 17 cells
 --              follow (NOTE any part at 100%); one bare hand (a hole in the left glove): the game's Left Hand drops below
 --              the Right and ZeD's cells show it (SKIP if the game does not drop it); the outfit off, the clothes found
 --              back on exactly
 --   wet        body and clothing wetness held at dry, 0.3, 0.6 and soaked, then wet clothes on a dry body: the picked
---              block's body and clothing wetness rows match the game (value and Dry / Soaked by halves); NOTE T4 table
---              (the game's WET moodle level against ZeD's word) and NOTE T2 (the colours, dry in the cold colour)
+--              block's body and clothing wetness rows match the game: the value, and (the director's calls 2 and 4,
+--              Nov 25 2026, were T2 and T4) the word and the colour of the WET moodle's step (cuts 0.15 / 0.40 / 0.70 /
+--              0.90: Dry, Moodles_Wet_lvl1..4; green to blue); NOTE T4 table (the game's WET moodle level against the word)
 --   core       the core held at 37.0, 37.3, 37.6, 39.2, 40.2, 41.2, 36.8, 36.2, 34.5, 29 and 24 until the moodles
---              settle: Core matches the game; the meter lights max(1, tenths of (core - 30) / 12) in the colour of its
---              fifth; FAIL if the meter reads normal (green) while the game shows Hypothermia or Hyperthermia at level
---              2 or higher; NOTE T1 table (moodle levels against the meter); NOTE T5 at 41.2, 29 and 24 (skin words and
---              colours)
+--              settle: Core matches the game; T1, the director's call 1: the meter draws the game's moodle level's look
+--              (Hypothermia 4..1 lit 1..4, none 5, Hyperthermia 1..4 lit 7..10; Hypo 1 tempCool, 2-4 tempCold, Hyper 1
+--              tempWarm, 2-4 tempHot); FAIL if the meter reads normal (green) while the game shows a moodle; NOTE T1 table
+--              (moodle levels against the meter); NOTE T5 at 41.2, 29 and 24 (skin words and colours); et_calls 1 sweeps
+--              every cut
 --   themes     Dark, Light and High contrast, each with a cold (33.0) and a hot (40.5) core: the meter takes the theme's
---              own colour token; pictures th_skinTemp_<theme>_<cold|hot>_<w>x<h>; NOTE High contrast's five temperature
+--              own colour token for the game's moodle level; pictures th_skinTemp_<theme>_<cold|hot>_<w>x<h>; NOTE High contrast's five temperature
 --              colours equal Dark's
 --   pad        from the figure's heading the D-pad Down walks the stops in order (heading, parts, cells, block head,
 --              rows, View box: the zone's order is checked on every step); A on a cell picks it; A on the View box
@@ -114,9 +117,14 @@ S.ROWS = {
     { ui = "getSecondaryDeltaUI", w = { "IGUI_Temp_Shivering", "IGUI_Temp_Normal", "IGUI_Temp_Perspiring" } },
     { ui = "getInsulationUI", raw = "getInsulation", w = { "IGUI_Temp_Low", "IGUI_Temp_Med", "IGUI_Temp_High" } },
     { ui = "getWindresistUI", raw = "getWindresist", w = { "IGUI_Temp_Low", "IGUI_Temp_Med", "IGUI_Temp_High" } },
-    { ui = "getBodyWetnessUI", w = { "IGUI_Temp_Dry", false, "IGUI_Temp_Soaked" } },
-    { ui = "getClothingWetnessUI", w = { "IGUI_Temp_Dry", false, "IGUI_Temp_Soaked" } },
+    -- (wet: the word is the WET moodle's step, the director's call 4: IGUI_Temp_Dry, Moodles_Wet_lvl1..4)
+    { ui = "getBodyWetnessUI", w = { "IGUI_Temp_Dry", false, "IGUI_Temp_Soaked" }, wet = true },
+    { ui = "getClothingWetnessUI", w = { "IGUI_Temp_Dry", false, "IGUI_Temp_Soaked" }, wet = true },
 }
+-- the WET moodle's steps (the director's calls 2 and 4) and Build's core meter by moodle level (call 1: Hypothermia
+-- negative; the lit segments)
+S.WET_CUTS = { 0.15, 0.40, 0.70, 0.90 }
+S.CORE_LIT = { [-4] = 1, [-3] = 2, [-2] = 3, [-1] = 4, [0] = 5, [1] = 7, [2] = 8, [3] = 9, [4] = 10 }
 S.CORES = { 37.0, 37.3, 37.6, 39.2, 40.2, 41.2, 36.8, 36.2, 34.5, 29, 24 }
 S.BANDS = { "tempCold", "tempCool", "tempNorm", "tempWarm", "tempHot" }
 S.BAND_WORD = { tempCold = "cold (blue)", tempCool = "cool (teal)", tempNorm = "normal (green)", tempWarm = "warm (amber)",
@@ -280,6 +288,39 @@ function S.bandOf(c)
     return "none"
 end
 function S.bw(b) return S.BAND_WORD[b or "none"] or tostring(b) end
+-- the WET step of a 0..1 wetness, its word key and its colour (dry green, half way to teal, teal, half way to blue,
+-- blue), worked out from the theme's tokens (the director's calls 2 and 4); near a cut either step passes
+function S.wetLv(v) local lv = 0; for i, c in ipairs(S.WET_CUTS) do if (v or 0) >= c then lv = i end end; return lv end
+function S.nearWet(v) for _, c in ipairs(S.WET_CUTS) do if math.abs((v or 0) - c) < 0.01 then return true end end; return false end
+function S.wetKey(lv) return (lv == 0) and "IGUI_Temp_Dry" or ("Moodles_Wet_lvl" .. lv) end
+function S.mixC(a, b) return { r = (a.r + b.r) / 2, g = (a.g + b.g) / 2, b = (a.b + b.b) / 2 } end
+function S.wetWant(lv)
+    local T = ZeD.T
+    if lv == 0 then return T.tempNorm elseif lv == 1 then return S.mixC(T.tempNorm, T.tempCool) elseif lv == 2 then return T.tempCool
+    elseif lv == 3 then return S.mixC(T.tempCool, T.tempCold) end
+    return T.tempCold
+end
+function S.wetOK(c, v)
+    if c == nil or v == nil then return false end
+    if S.sameC(c, S.wetWant(S.wetLv(v))) then return true end
+    if S.nearWet(v) then return S.sameC(c, S.wetWant(S.wetLv(v - 0.011))) or S.sameC(c, S.wetWant(S.wetLv(v + 0.011))) end
+    return false
+end
+function S.wetWordOK(word, v)
+    if v == nil then return false end
+    if tostring(word) == getText(S.wetKey(S.wetLv(v))) then return true end
+    if S.nearWet(v) then return tostring(word) == getText(S.wetKey(S.wetLv(v - 0.011))) or tostring(word) == getText(S.wetKey(S.wetLv(v + 0.011))) end
+    return false
+end
+-- the game's temperature moodle as one level (Hypothermia negative) and Build's token for it (call 1)
+function S.coreLv()
+    local hypo, hyper = S.moodle("HYPOTHERMIA"), S.moodle("HYPERTHERMIA")
+    return ((hyper > 0) and hyper or -hypo), hypo, hyper
+end
+function S.coreTok(lv)
+    if lv == 0 then return "tempNorm" elseif lv == -1 then return "tempCool" elseif lv < -1 then return "tempCold" elseif lv == 1 then return "tempWarm" end
+    return "tempHot"
+end
 
 -- ===================================================================== the draw, recorded (wrappers on for the run)
 -- S.rec.header = { rows = { {label, value} x4 }, seg = { n, lit, color }, data, game, t }
@@ -810,8 +851,15 @@ function S.pickedCheck(lab, name)
         else
             okV = v ~= nil and ui ~= nil and math.abs(v - math.floor(S.clamp01(ui) * 100 + 0.5)) <= 2
         end
-        local wantW = (ui ~= nil) and getText(S.third(S.clamp01(ui), R.w[1], R.w[2], R.w[3])) or "?"
-        local okW = tostring(row.word) == wantW or S.nearCut(ui, R.w[2] ~= false)
+        local wantW, okW
+        if R.wet then
+            -- (the director's call 4: the WET moodle's step and words, not Dry / Soaked by halves)
+            wantW = (ui ~= nil) and getText(S.wetKey(S.wetLv(S.clamp01(ui)))) or "?"
+            okW = S.wetWordOK(row.word, ui and S.clamp01(ui))
+        else
+            wantW = (ui ~= nil) and getText(S.third(S.clamp01(ui), R.w[1], R.w[2], R.w[3])) or "?"
+            okW = tostring(row.word) == wantW or S.nearCut(ui, R.w[2] ~= false)
+        end
         seen[#seen + 1] = tostring(row.value) .. " " .. tostring(row.word)
         if not (okV and okW) then
             bad[#bad + 1] = i .. " " .. tostring(row.label) .. ": " .. tostring(row.value) .. " " .. tostring(row.word) .. " (the game "
@@ -833,9 +881,11 @@ function S.cellsCheck(lab, i, names)
         local c = S.cellOf(name)
         local v = c and S.num(c.value)
         local gv = V.temp and S.nv(name, V.get) or S.nv(name, V.ui)
-        local exp = V.temp and S.toUnit(gv, cel) or gv
-        local tol = V.temp and S.tol(cel) * 2 or 0.02
-        if not (v and exp and math.abs(v - exp) <= tol) then bad[#bad + 1] = name .. " " .. tostring(c and c.value) .. " (the game " .. S.n2(exp) .. ")" end
+        -- (a percent view reads NN%, the getter x 100, as the picked block does: the director's call 3; it read 0.xx)
+        local exp = V.temp and S.toUnit(gv, cel) or (gv and gv * 100)
+        local tol = V.temp and S.tol(cel) * 2 or 2
+        local pct = V.temp or string.match(tostring(c and c.value), "^%-?%d+%%$") ~= nil
+        if not (v and exp and pct and math.abs(v - exp) <= tol) then bad[#bad + 1] = name .. " " .. tostring(c and c.value) .. " (the game " .. S.n2(exp) .. (V.temp and "" or "%") .. ")" end
         seen[#seen + 1] = name .. " " .. tostring(c and c.value)
     end
     Q.check(#bad == 0, lab .. ": the grid's " .. V.id .. " cells match the game's " .. (V.temp and V.get or V.ui) .. " (" .. #names .. " parts)",
@@ -1097,14 +1147,21 @@ function S.viewChecks(i, lab)
     local fig = w and w._thermalBodyFigure
     local cm = fig and fig.colorMap or {}
     local bad, n = {}, 0
+    -- (the Wetness view: the WET moodle's steps, green when dry to blue when soaked, the director's call 2)
+    local wetV = V.id == "wetness"
     for _, P in ipairs(S.PARTS) do
         local c = cm[P.name]
         local nd = d and d.nodes and d.nodes[P.name]
         local uiv = nd and nd[key]
-        if c and uiv ~= nil and S.bandOK(S.bandOf(c), uiv) then n = n + 1
+        local good
+        if wetV then good = c ~= nil and uiv ~= nil and S.wetOK(c, S.clamp01(uiv))
+        else good = c ~= nil and uiv ~= nil and S.bandOK(S.bandOf(c), uiv) end
+        if good then n = n + 1
+        elseif wetV then bad[#bad + 1] = P.name .. " " .. S.cText(c) .. ", its reading " .. S.n2(uiv) .. " (WET step " .. S.wetLv(S.clamp01(uiv)) .. ") wants " .. S.cText(S.wetWant(S.wetLv(S.clamp01(uiv))))
         else bad[#bad + 1] = P.name .. " " .. S.bw(S.bandOf(c)) .. " (" .. S.cText(c) .. "), its reading " .. S.n2(uiv) .. " wants " .. S.bw(S.bandFor(uiv)) end
     end
-    Q.check(#bad == 0, lab .. ": the figure's 17 parts each take the colour of their reading", #bad == 0 and (n .. " parts") or table.concat(bad, "; "))
+    Q.check(#bad == 0, lab .. ": the figure's 17 parts each take the colour of their reading" .. (wetV and " (the WET steps, green to blue)" or ""),
+        #bad == 0 and (n .. " parts") or table.concat(bad, "; "))
     -- the grid: 17 cells, each with a value
     local g = S.rec.grid
     local empty = {}
@@ -1114,12 +1171,17 @@ function S.viewChecks(i, lab)
     S.cellsCheck(lab, i, S.SAMPLE)
     if V.id == "insul" or V.id == "wind" then
         local name = w._thermalPick or "Upper Torso"
-        local c = S.cellOf(name)
         local pk = S.rec.picked
+        -- (the part the block shows, by its title: the pointer resting on a cell shows that one instead of the pick)
+        for _, P in ipairs(S.PARTS) do if pk and pk.title and S.labelOf(P.name) == tostring(pk.title) then name = P.name end end
+        local c = S.cellOf(name)
         local row = pk and pk.rows[(V.id == "insul") and 5 or 6]
-        S.note("T3 " .. V.id .. ", " .. name .. ": the cell shows " .. tostring(c and c.value) .. ", the picked row " .. tostring(row and row.value)
-            .. ", the game's raw " .. V.get .. " " .. S.n2(S.nv(name, V.get)) .. " and its UI value " .. S.n2(S.nv(name, V.ui))
-            .. " (the same reading in two units; the game's panel prints the raw value)")
+        -- (T3 was a NOTE: the cell read 0.xx and the row %; the director's call 3, Nov 25 2026: one unit, the row's %.
+        -- et_calls 3 checks every percent view on four parts)
+        local cv, rv = tostring(c and c.value), tostring(row and row.value)
+        Q.check(c ~= nil and row ~= nil and cv == rv and string.match(cv, "^%-?%d+%%$") ~= nil,
+            "T3 " .. V.id .. ", " .. name .. ": the cell and the picked row read the same NN% (the director's call 3)",
+            "cell " .. cv .. ", row " .. rv .. "; the game's raw " .. V.get .. " " .. S.n2(S.nv(name, V.get)) .. ", its UI value " .. S.n2(S.nv(name, V.ui)))
     end
 end
 function S.caseViews()
@@ -1278,21 +1340,29 @@ function S.wetState(W)
         local pk = S.rec.picked
         local name = S.pickName()
         local r7, r8 = pk and pk.rows[7], pk and pk.rows[8]
-        local bad = {}
+        local bad, badC = {}, {}
+        -- (the director's calls 2 and 4, Nov 25 2026, were T2 and T4: the word and the colour are the WET moodle's step
+        -- of the value, IGUI_Temp_Dry / Moodles_Wet_lvl1..4, green when dry to blue when soaked; et_calls 2 and 4 hold
+        -- the figure and the grid too, at every step)
         for k, R in ipairs({ { row = r7, ui = "getBodyWetnessUI" }, { row = r8, ui = "getClothingWetnessUI" } }) do
             local ui = S.nv(name, R.ui)
+            local u = ui and S.clamp01(ui)
             local v = R.row and S.num(R.row.value)
-            local wantW = ui and getText(S.third(S.clamp01(ui), "IGUI_Temp_Dry", false, "IGUI_Temp_Soaked")) or "?"
-            local okV = v ~= nil and ui ~= nil and math.abs(v - math.floor(S.clamp01(ui) * 100 + 0.5)) <= 2
-            local okW = R.row ~= nil and (tostring(R.row.word) == wantW or S.nearCut(ui, false))
+            local wantW = u and getText(S.wetKey(S.wetLv(u))) or "?"
+            local okV = v ~= nil and ui ~= nil and math.abs(v - math.floor(u * 100 + 0.5)) <= 2
+            local okW = R.row ~= nil and S.wetWordOK(R.row.word, u)
             if not (okV and okW) then bad[#bad + 1] = (k == 1 and "body " or "clothing ") .. tostring(R.row and R.row.value) .. " " .. tostring(R.row and R.row.word) .. " (the game " .. S.n2(ui) .. ", " .. wantW .. ")" end
+            if not (R.row ~= nil and S.wetOK(R.row.color, u)) then
+                badC[#badC + 1] = (k == 1 and "body " or "clothing ") .. S.cText(R.row and R.row.color) .. " (step " .. S.wetLv(u) .. " wants " .. S.cText(u and S.wetWant(S.wetLv(u))) .. ")"
+            end
         end
-        Q.check(#bad == 0 and r7 ~= nil and r8 ~= nil, lab .. ": the picked block's body and clothing wetness rows match the game (value, Dry or Soaked by halves)",
+        Q.check(#bad == 0 and r7 ~= nil and r8 ~= nil, lab .. ": the picked block's body and clothing wetness rows match the game (value, and the WET moodle's step word)",
             #bad == 0 and (tostring(r7 and r7.value) .. " " .. tostring(r7 and r7.word) .. ", " .. tostring(r8 and r8.value) .. " " .. tostring(r8 and r8.word)) or table.concat(bad, "; "))
+        Q.check(#badC == 0 and r7 ~= nil and r8 ~= nil, lab .. ": both wetness rows take the WET step's colour (green when dry to blue when soaked)",
+            #badC == 0 and (S.cText(r7 and r7.color) .. ", " .. S.cText(r8 and r8.color)) or table.concat(badC, "; "))
         S.wetRows[#S.wetRows + 1] = W.lab .. ": WET moodle " .. S.moodle("WET") .. " (stat " .. S.n1(S.stat("WETNESS")) .. "); body "
-            .. tostring(r7 and r7.value) .. " " .. tostring(r7 and r7.word) .. " in " .. S.bw(S.bandOf(r7 and r7.color)) .. "; clothing "
-            .. tostring(r8 and r8.value) .. " " .. tostring(r8 and r8.word) .. " in " .. S.bw(S.bandOf(r8 and r8.color))
-        if W.lab == "dry" then S.dryBand = S.bandOf(r7 and r7.color) end
+            .. tostring(r7 and r7.value) .. " " .. tostring(r7 and r7.word) .. " " .. S.cText(r7 and r7.color) .. "; clothing "
+            .. tostring(r8 and r8.value) .. " " .. tostring(r8 and r8.word) .. " " .. S.cText(r8 and r8.color)
     end)
 end
 function S.pickName() local w = RT.cw(); return (w and w._thermalPick) or "Upper Torso" end
@@ -1307,10 +1377,8 @@ function S.caseWet()
         S.unstage()
         S.wetBack()
         S.back.wet = nil
-        S.note("T4 wetness words (a design call): the game's WET moodle fires at 15, 40, 70 and 90 of 100; ZeD's rows read Dry below 0.5:")
+        S.note("T4 wetness words (the director's call 4): the game's WET moodle fires at 15, 40, 70 and 90 of 100; ZeD's rows read its step:")
         for _, r in ipairs(S.wetRows) do S.note("T4 | " .. r) end
-        S.note("T2 wetness colours (a design call): the rows take the temperature colours; dry shows " .. S.bw(S.dryBand)
-            .. (S.dryBand == "tempCold" and " (the cold colour for dry)" or "") .. "; the game's own wetness views go green when dry and blue when soaked")
     end)
     S.waitIdle(3)
     S.step(1, function()
@@ -1358,14 +1426,15 @@ function S.coreHold(c, lab, maxF)
     end)
     return st
 end
--- the core meter as drawn: lit segments and band against (core - 30) / 12
+-- the core meter as drawn, and what Build's table wants for the game's moodle level now (the director's call 1, Nov 25
+-- 2026: it lit tenths of (core - 30) / 12 in that fifth's colour before)
 function S.meter()
     local h = S.hdr()
     local seg = h and h.seg
-    local v = h and h.data and ((h.data.coreTemp or 0) - 30) / 12 or 0
-    local wantLit = math.max(1, ZeD.Atoms.fillSegsLit(S.clamp01(v)))
+    local lv = S.coreLv()
+    local wantLit, tok = S.CORE_LIT[lv], S.coreTok(lv)
     local band = S.bandOf(seg and seg.color)
-    return seg, v, wantLit, band
+    return seg, lv, wantLit, band, tok
 end
 function S.skinNote(lab)
     local pk = S.rec.picked
@@ -1388,16 +1457,26 @@ function S.coreState(c)
         local g = h.game or {}
         local cel = S.celsius()
         local hypo, hyper = S.moodle("HYPOTHERMIA"), S.moodle("HYPERTHERMIA")
-        local seg, v, wantLit, band = S.meter()
+        local seg, lv, wantLit, band, tok = S.meter()
         S.tempRow(lab, "Core", h.rows[1] and h.rows[1].value, h.data and h.data.coreTemp, g.core, "getCoreCelcius", cel)
         local shown = S.num(h.rows[1] and h.rows[1].value)
         Q.check(shown ~= nil and g.stat ~= nil and math.abs(shown - S.toUnit(g.stat, cel)) <= S.tol(cel), lab .. ": Core matches the game's TEMPERATURE stat",
             "shown " .. tostring(h.rows[1] and h.rows[1].value) .. ", the stat " .. S.n2(g.stat) .. " C")
-        Q.check(seg ~= nil and seg.lit == wantLit and S.bandOK(band, v),
-            lab .. ": the core meter lights " .. wantLit .. " of 10 in the " .. S.bw(S.bandFor(v)) .. " colour ((core - 30) / 12 by fifths)",
-            "lit " .. tostring(seg and seg.lit) .. ", " .. S.bw(band) .. " (" .. S.cText(seg and seg.color) .. ")")
-        Q.check(not (band == "tempNorm" and (hypo >= 2 or hyper >= 2)),
-            lab .. ": the core meter never reads normal (green) while the game shows a temperature moodle at level 2 or higher",
+        local okLook = seg ~= nil and seg.lit == wantLit and band == tok and not (hypo > 0 and hyper > 0)
+        local intox = S.stat("INTOXICATION") or 0
+        if not okLook and intox > 30 and seg ~= nil and h.data then
+            -- (drunk, the game holds Hypothermia 1 back while the core is past its cut; the meter reads the core: noted)
+            local zl = ZeD.ThermalTab.coreLevel(h.data.coreTemp)
+            if seg.lit == S.CORE_LIT[zl] and band == S.coreTok(zl) then
+                okLook = true
+                S.note(lab .. ": intoxication " .. S.n1(intox) .. ": the moodle reads level " .. lv .. ", the meter the core's level " .. zl .. " (et_calls 1 holds intoxication at 0)")
+            end
+        end
+        Q.check(okLook,
+            lab .. ": the core meter lights " .. tostring(wantLit) .. " of 10 in " .. S.bw(tok) .. " (the game's moodle level " .. lv .. ", the director's call 1)",
+            "lit " .. tostring(seg and seg.lit) .. ", " .. S.bw(band) .. " (" .. S.cText(seg and seg.color) .. "); Hypothermia " .. hypo .. ", Hyperthermia " .. hyper)
+        Q.check(not (band == "tempNorm" and (hypo >= 1 or hyper >= 1)),
+            lab .. ": the core meter never reads normal (green) while the game shows a temperature moodle",
             "meter " .. S.bw(band) .. ", Hypothermia " .. hypo .. ", Hyperthermia " .. hyper)
         S.t1[#S.t1 + 1] = "set " .. c .. " | core " .. S.n2(g.core) .. " | stat " .. S.n2(g.stat) .. " | ZeD " .. tostring(h.rows[1] and h.rows[1].value)
             .. " | Hypothermia " .. hypo .. " | Hyperthermia " .. hyper .. " | meter " .. tostring(seg and seg.lit) .. " of 10 " .. S.bw(band)
@@ -1417,8 +1496,8 @@ function S.caseCore()
     for _, c in ipairs(S.CORES) do S.coreState(c) end
     S.coreBack("core sweep")
     S.step(1, function()
-        S.note("T1 the core meter against the game's moodles (a design call for the director; intoxication " .. S.n2(S.found.stats.INTOXICATION)
-            .. ", Hypothermia 1 needs 30 or less): the meter's bands cut at 32.4, 34.8, 37.2 and 39.6 C; the game's moodles at 36.5, 35, 30 and 25 (cold) and 37.5, 39, 40 and 41 (hot)")
+        S.note("T1 the core meter against the game's moodles (the director's call 1: one look per moodle level; intoxication " .. S.n2(S.found.stats.INTOXICATION)
+            .. ", Hypothermia 1 needs 30 or less): the game's moodles at 36.5, 35, 30 and 25 (cold) and 37.5, 39, 40 and 41 (hot); the core caps at 40.0")
         for _, r in ipairs(S.t1) do S.note("T1 | " .. r) end
     end)
     S.caseEnd("core sweep")
@@ -1444,8 +1523,8 @@ function S.caseThemes()
             local lab = "themes " .. th.say .. ", a " .. k.w .. " core"
             S.coreHold(k.c, lab, 1200)
             S.readThen(lab, function()
-                local seg, v, wantLit, band = S.meter()
-                local tok = S.bandFor(v)
+                -- (the token is the game's moodle level's, the director's call 1; it was (core - 30) / 12's fifth)
+                local seg, lv, wantLit, band, tok = S.meter()
                 local B = ZeD.BaseThemes and ZeD.BaseThemes[th.key]
                 Q.check(seg ~= nil and S.sameC(seg.color, ZeD.T[tok]) and B ~= nil and S.sameC(ZeD.T[tok], B[tok]),
                     lab .. ": the core meter takes " .. th.say .. "'s own " .. tok .. " colour", S.cText(seg and seg.color) .. " (the theme's " .. S.cText(B and B[tok]) .. ")")
