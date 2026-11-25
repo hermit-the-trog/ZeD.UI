@@ -3317,6 +3317,10 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     -- Measure total card content height
     local headerH = T.px(60)  -- icon + name + description estimate
     local chipH = T.px(22)
+    -- the first skill short, named on a chip row of its own: on the chip row beside Unknown and the time it was cut
+    -- to "Req..." on the 480 card (QA cb sweep rerun, Nov 25 2026, B10)
+    local needSkill = (rd.hasSkill == false and not config.readOnly) and CC.shortSkillText(entry.recipe, playerObj) or nil
+    if needSkill then chipH = chipH * 2 + T.px(4) end
     local inputsH = ROW_H + #(rd.ingredients or {}) * ROW_H  -- header + rows
     local outputsH = CC.outputsRepeatTitle(entry) and 0 or (ROW_H + #(entry.outputDefs or {}) * ROW_H)
     local actionH = 0   -- (the amount and Craft / Build live in the card's band, CC.renderBand)
@@ -3447,13 +3451,10 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         bw = A.drawBadge(panel, ZeD.tr("UI_ZeD_Craft_BadgeUnknown"), chipX, curY, "danger")
         chipX = chipX + bw + T.px(4)
     end
-    if rd.hasSkill == false and not (config and config.readOnly) then
-        local need = CC.shortSkillText(entry.recipe, playerObj)
-        if need then
-            need = CC.truncText(need, T.fontF3, math.max(T.px(40), contentW - (chipX - x) - T.px(6) - 2 * T.sp.badgePadX))
-            bw = A.drawBadge(panel, need, chipX, curY, "danger", nil, nil, true)
-            chipX = chipX + bw + T.px(4)
-        end
+    if needSkill then
+        -- (on the second chip row, the card's whole width: chipH holds both rows)
+        local need = CC.truncText(needSkill, T.fontF3, math.max(T.px(40), contentW - T.px(12) - 2 * T.sp.badgePadX))
+        A.drawBadge(panel, need, x + T.px(6), curY + T.px(26), "danger", nil, nil, true)
     end
 
     -- No amber Surface square: a table's recipe reads like any other, and the line under the rows
