@@ -73,6 +73,7 @@ UIFont = setmetatable({}, { __index = function(_, k) return k end })
 local ROOTSC = 1
 ZeD = {}
 ZeD.Scale = { root = function() return ROOTSC end }
+ZeD.GridTint = { stripCell = function() end }   -- (the container buttons' tint, Nov 25 2026: not what this sim measures)
 ZeD.Text = { checkRoleFonts = function() return false end }
 -- a role font's line: the face's 77/64 of its px at the root (the atlas metrics); a character 0.6 of the px
 local function fontPx(f) return (ZeD.T and ZeD.T.fontPx and ZeD.T.fontPx[f]) or 10 end

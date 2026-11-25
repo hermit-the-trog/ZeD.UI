@@ -3506,13 +3506,8 @@ local function drawWorldContainerStrip(self, win, content)
         end
         -- the one selected look (the shown container), the hover wash, then the controller's mark
         local floorOn = mainVis and (isActive or isMC)
-        if floorOn then
-            local ac = T.accent
-            self:drawRect(0, curY, w - T.px(1), floorH, selA, ac.r, ac.g, ac.b)
-        elseif isHover then
-            local hv = T.hover
-            self:drawRect(0, curY, w - T.px(1), floorH, hv.a, hv.r, hv.g, hv.b)
-        end
+        -- (on the button's tint of its picture's color, with the wash and the frame when shown: the director, Nov 25 2026)
+        ZeD.GridTint.stripCell(self, 0, curY, w - T.px(1), floorH, floorCnt.texture or ZeD.genericContainerTex(), floorOn, isHover)
         if isHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_World_FloorHelp")) end
         local onFocusF = false
         if gpFocusedCI == floorIdx then
@@ -3659,13 +3654,9 @@ local function drawWorldContainerStrip(self, win, content)
             -- One selected look for a shown container (active, viewed, or one of
             -- the Loot tab's columns): the T.selectionA wash; else the hover wash.
             -- The controller's mark goes on after, so it shows on a selected one.
-            if isOn then
-                local ac = T.accent
-                self:drawRect(0, drawY, w - T.px(1), T.px(CONTAINER_BTN_SZ), selA, ac.r, ac.g, ac.b)
-            elseif isHover then
-                local hv = T.hover
-                self:drawRect(0, drawY, w - T.px(1), T.px(CONTAINER_BTN_SZ), hv.a, hv.r, hv.g, hv.b)
-            end
+            -- (on the button's tint of its picture's color: ZeD.GridTint.stripCell, the director, Nov 25 2026)
+            ZeD.GridTint.stripCell(self, 0, drawY, w - T.px(1), T.px(CONTAINER_BTN_SZ),
+                cnt.texture or ZeD.genericContainerTex(), isOn, isHover)
             if isHover then
                 ZeD.Help.set(self, ZeD.tr(cnt.locked and "UI_ZeD_World_LockedHelp" or "UI_ZeD_World_ContainerHelp", cnt.name or ""))
             end
