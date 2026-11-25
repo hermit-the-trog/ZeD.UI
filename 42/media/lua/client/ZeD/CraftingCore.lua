@@ -2758,27 +2758,19 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
 
                 -- Click zones (readOnly: full row, no star) — stamped UNCONDITIONALLY.
                 zi = zi + 1
+                -- (the tables are kept from frame to frame; every field is set each frame all the same, so a kept
+                -- zone always says this frame's row)
                 local rz = zlist[zi]
-                if not rz then
-                    rz = {
-                        type = "recipeRow", id = name,
-                        x = x, y = curY, w = config.readOnly and contentW or (contentW - T.px(18)), h = ROW_H,
-                        _scrolled = true,
-                    }
-                    zlist[zi] = rz
-                end
+                if not rz then rz = { _scrolled = true }; zlist[zi] = rz end
+                rz.type, rz.id = "recipeRow", name
+                rz.x, rz.y, rz.w, rz.h = x, curY, config.readOnly and contentW or (contentW - T.px(18)), ROW_H
                 zones[#zones + 1] = rz
                 if not config.readOnly then
                     zi = zi + 1
                     local sz = zlist[zi]
-                    if not sz then
-                        sz = {
-                            type = "recipeStar", id = name,
-                            x = x + contentW - T.px(18), y = curY, w = T.px(18), h = ROW_H,
-                            _scrolled = true,
-                        }
-                        zlist[zi] = sz
-                    end
+                    if not sz then sz = { _scrolled = true }; zlist[zi] = sz end
+                    sz.type, sz.id = "recipeStar", name
+                    sz.x, sz.y, sz.w, sz.h = x + contentW - T.px(18), curY, T.px(18), ROW_H
                     zones[#zones + 1] = sz
                 end
                 curY = curY + ROW_H
@@ -3823,6 +3815,9 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
         listW = math.floor(w - splitFrac * T.px(CC.PANE_W_SPLIT))
         cardW = math.floor(splitFrac * T.px(CC.PANE_W_SPLIT))
     end
+    -- never wider than the tab: on the half card (220u) the split's 240u list ran past its edge, and with it each
+    -- row's pin star (QA cb sweep, Nov 25 2026, cr_tab case 10: 10 px out at 4K, 4 px at 1280x800)
+    if listW > w then listW = w end
 
     -- Left pane: recipe list or alt list
     if state.altSlotName then

@@ -361,6 +361,7 @@ do
     check("SKILL: the skill chip, outside the Journal", has(CCS, "local needSkill = (rd.hasSkill == false and not config.readOnly) and CC.shortSkillText(entry.recipe, playerObj) or nil"))
     check("SKILL: on a chip row of its own, the card's width (the rerun: it was cut to Req...)", has(CCS, "if needSkill then chipH = chipH * 2 + T.px(4) end")
         and has(CCS, "A.drawBadge(panel, need, x + T.px(6), curY + T.px(26), \"danger\", nil, nil, true)"))
+    check("STAR: the split list never wider than the tab (half card, cr_tab case 10)", has(CCS, "if listW > w then listW = w end"))
     check("FACE: the preview's Build reads the facing at the press", has(readFile(Z .. "ObjectCardPreview.lua"), "o.state._buildFace = { name = tc.entry.name, nSprite = NSPRITE_OF[fc.idx] }"))
 end
 
