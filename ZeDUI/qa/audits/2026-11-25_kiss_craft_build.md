@@ -33,6 +33,8 @@ Build merged fixes as 60a9d636d. The rerun found 13 fixed. Still open and with B
 - B7: a build placed far from its materials runs its whole time for nothing.
 - New, small: on the half card, the pin star's zone runs past the tab's edge.
 
+**B7 against the game** (bd_b7_game, Nov 25): the game's own build window builds in the same far case. With the materials in a crate 8 tiles off, it builds and takes them from the crate. With them on the floor, it builds and uses nothing (a free build, likely a game bug). So ZeD must change: move the inputs into the inventory before the walk, as its craft window does.
+
 ## Design calls for the director
 
 Asked as numbered choices in chat. Option 1 is QA's pick in each.
