@@ -946,13 +946,13 @@ function S.setup()
             end
             for _, suf in ipairs({ ".png", "_light.png", "_sh.png" }) do
                 local t = nil
-                pcall(function() t = ZeD.Px.tex(TP.COLOR_DIR .. id .. suf) end)
+                pcall(function() t = ZeD.Px.tex(TP.COLOR_DIR .. "zedtabc_" .. id .. suf) end)   -- (Build 0bfeef129: a prefix no game texture shares)
                 if not t then missPic[#missPic + 1] = id .. suf end
             end
         end
         Q.check(#missArt == 0, "setup: ZeD.TabColorArt has both 3-color sets for the 14 tabs (and TabPx.has them)",
             (#missArt == 0) and "14 tabs" or table.concat(missArt, ", "))
-        Q.check(#missPic == 0, "setup: every color tab's three pictures load (<id>.png, <id>_light.png, <id>_sh.png)",
+        Q.check(#missPic == 0, "setup: every color tab's three pictures load (zedtabc_<id>.png, _light, _sh)",
             (#missPic == 0) and "42 pictures" or table.concat(missPic, ", "))
         for _, id in ipairs({ "radio", "tv", "cooking", "admin", "server" }) do
             if art and art[id] then S.note("the tab " .. id .. " has color art (the brief says it keeps the accent tones)") end
