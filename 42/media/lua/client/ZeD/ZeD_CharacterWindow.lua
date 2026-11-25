@@ -5617,7 +5617,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         if drawDrawer then
             local dh = self:getHeight()
             -- Always stencil-clip drawer content to prevent child overflow (dropdowns, etc.)
-            self:setStencilRect(0, 0, effectiveW, dh)
+            self:setStencilRect(0, 0, effectiveW + ZeD.T.px(1), dh + ZeD.T.px(1))   -- (+1 hairline: a scroll bar's right and bottom lines land on the divider and footer rule; QA sb_edges)
 
             -- Drawer background fill (theme-aware tonal separation)
             local db = T.drawerBg
@@ -5656,7 +5656,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     for _ = 1, (self._zedStencilN or 0) - clipsBefore + self._coverClears do self:clearStencilRect() end
                     if not okR then
                         self:clearStencilRect()
-                        self:setStencilRect(0, 0, effectiveW, dh)
+                        self:setStencilRect(0, 0, effectiveW + ZeD.T.px(1), dh + ZeD.T.px(1))   -- (+1 hairline: a scroll bar's right and bottom lines land on the divider and footer rule; QA sb_edges)
                         ZeD.logOnce("tab " .. tostring(win._activeTab), errR)
                     end
                 else

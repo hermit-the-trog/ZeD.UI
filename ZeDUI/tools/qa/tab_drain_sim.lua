@@ -62,7 +62,7 @@ ZeD_Panel.__index = ZeD_Panel
 
 -- (the drawer's error fallback logs once; the sim only notes it)
 local logged = 0
-local ZeD = { logOnce = function() logged = logged + 1 end }
+local ZeD = { logOnce = function() logged = logged + 1 end, T = { px = function(n) return n end } }   -- (T.px: the drawer stencil a hairline wider)
 
 -- A window's cover helpers and the drawer's tab block (from "local clipsBefore" to the error fallback's end),
 -- built into a function the sim can call. With noDrain, the drain line is taken out (the check that the sim has teeth).
