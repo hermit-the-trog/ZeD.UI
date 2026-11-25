@@ -1252,7 +1252,7 @@ local function _switchTabForNav(win, content, tabId)
             win._drawerOpen = false
             win._drawerMode = nil
             win._tabUnder   = nil
-            if tabId == "equip" then win._equipSelected = nil end
+            if tabId == "equip" then win._equipSelected = nil; win._equipClickWait = nil end
             _syncRingZonesToActiveTab(win, content)
             return true
         end
@@ -4908,7 +4908,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     win._drawerMode = nil
                     win._tabUnder = nil
                     -- Keep _viewedContainer so L-tab returns to last viewed container
-                    if tabId == "equip" then win._equipSelected = nil end
+                    if tabId == "equip" then win._equipSelected = nil; win._equipClickWait = nil end
                 else
                     if not win._drawerOpen then
                         win._preDrawerW = win:getWidth()
@@ -5868,6 +5868,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
                            and y >= b.y and y <= b.y + b.h then
                             win._beltPress = { i = zone.i, action = zone.action }
                             return true
+                        end
+                    end
+                    -- a filled belt row off its button: a double-click takes it off the belt (the director's call 5)
+                    for _, zone in ipairs(win._equipBeltZones) do
+                        if zone.item and zone.w and x >= zone.x and x <= zone.x + zone.w
+                           and y >= zone.y and y <= zone.y + zone.h then
+                            if ZeD.EquipmentTab.beltRowClick(win, zone) then return true end
                         end
                     end
                 end

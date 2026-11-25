@@ -403,6 +403,21 @@ end
 -- A click on a filled slot waits this long for a second one: two take it off, one opens its card
 ZeD.EquipmentTab.DOUBLE_MS = 300
 
+--- A click on a filled belt row of the list (not its button): two in time take the thing off the belt
+--- (the list's belt rows are not slot zones, so pressSlot never sees them; QA's read, Nov 25 2026)
+function ZeD.EquipmentTab.beltRowClick(win, zone)
+    if not (win and zone and zone.item) then return false end
+    local now = getTimestampMs()
+    local w1 = win._beltClickWait
+    if w1 and w1.item == zone.item and now - w1.t <= ZeD.EquipmentTab.DOUBLE_MS then
+        win._beltClickWait = nil
+        ZeD.EquipmentTab.takeOff(win, zone.item)
+    else
+        win._beltClickWait = { item = zone.item, t = now }
+    end
+    return true
+end
+
 --- The empty slot under (x, y), drawer-local: a list row or a doll box (not a belt slot: its own ATTACH).
 function ZeD.EquipmentTab.emptyAt(win, x, y)
     if not win or win._equipSelected then return nil end
@@ -1700,10 +1715,16 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     -- CARD MODE — selected slot inspection
     -- ================================================================
     -- a single click's card, once the double-click's time is up
+    -- (a wait the tab never drew through, a tab switch or a fold, is dropped, not opened late: QA's read)
     local cw1 = win._equipClickWait
-    if cw1 and getTimestampMs() - cw1.t > ZeD.EquipmentTab.DOUBLE_MS then
-        win._equipClickWait = nil
-        if not win._equipSelected then selectSlot(win, cw1.type) end
+    if cw1 then
+        local age = getTimestampMs() - cw1.t
+        if age > ZeD.EquipmentTab.DOUBLE_MS + 500 then
+            win._equipClickWait = nil
+        elseif age > ZeD.EquipmentTab.DOUBLE_MS then
+            win._equipClickWait = nil
+            if not win._equipSelected then selectSlot(win, cw1.type) end
+        end
     end
     -- a new selection starts at its outermost layer
     if win._equipSelected ~= win._equipSelPrev then
