@@ -1439,13 +1439,16 @@ local function filterFrame(self, multi)
     end
 end
 
--- a column's model drew: its matches join the window's count; its rows dim by self._fres while something narrows
+-- a column's model drew: its matches join the window's count (from the whole model). Returns the model to draw:
+-- while something narrows, the one with the rows that don't match left out (IF.view: loot KISS call 7, the
+-- director, Nov 24 2026; they used to stay, dimmed), else M itself.
 local function filterColumn(self, M)
     local S = self._zedFilter
-    if not (S and S.shown and S.open) then self._fres = nil; return end
+    if not (S and S.shown and S.open) then self._fres = nil; return M end
     local res = IFL.result(S, M)
     IFL.frameAdd(S, res)
     self._fres = res.active and res or nil
+    return IFL.view(M, res)
 end
 
 -- the frame's end: the bar, after the columns, so its count is this frame's
@@ -1461,7 +1464,8 @@ local function filterEnd(self)
 end
 
 -- a row or a cell that does not match: faded toward the window's base, in place. Its hit zone stays, so it is still
--- picked, dragged and given its menu.
+-- picked, dragged and given its menu. (Since loot KISS call 7 a row that doesn't match is hidden, IF.view; this is
+-- left for a stack's row kept because another thing in the stack matches, a renamed one.)
 local function filterDim(self, x, y, w, h)
     local b = ZeD.T.base
     self:drawRect(x, y, w, h, IFL.DIM_A, b.r, b.g, b.b)
@@ -2959,7 +2963,9 @@ local function renderItemList(self)
         ZeD.InventoryRenderer.isGridKey(containerKeyOf(inv, playerObj), playerObj or getSpecificPlayer(0)) and NO_OPEN or self._expandedStacks)
     -- a container this list starts showing while on screen: a mod's pick hook (ContainerGates.seen)
     ZeD.ContainerGates.seen(self, inv, playerObj)
-    filterColumn(self, M)   -- (this list's matches, kept until the filter or the model changes)
+    -- (this list's matches, kept until the filter or the model changes; M becomes the matching rows only while the
+    -- Filter narrows: loot KISS call 7, the director, Nov 24 2026)
+    M = filterColumn(self, M)
     local groups, catOrder, flatItems = M.groups, M.catOrder, M.flatItems
     local useGroups, stackedGroups, catRowCount = M.useGroups, M.stackedGroups, M.catRowCount
     local childParent = M.childParent
@@ -3539,8 +3545,11 @@ local function renderItemList(self)
     -- (the library's empty line: F2 dim, at the list's text inset, 8u under its header)
     if #catOrder == 0 and not self._wornLine then   -- (KISS #11: the Worn and held line stands in for it)
         -- (a mod's gate words its own: "Not searched.")
+        -- (the Filter hid every row of a list that has things: "Nothing matches", the Filter bar's word, never
+        -- "Nothing here."; loot KISS call 7, the director, Nov 24 2026)
         ZeD.Molecules.drawEmptyLine(self, xOff + padX, contentTop + T.px(8), scrollX - padX * 2,
-            ZeD.ContainerGates.emptyText(inv, playerObj) or ZeD.tr("UI_ZeD_Inv_Empty"))
+            (self._fres and self._fres.total > 0 and ZeD.tr("UI_ZeD_Inv_FilterNone"))
+            or ZeD.ContainerGates.emptyText(inv, playerObj) or ZeD.tr("UI_ZeD_Inv_Empty"))
     end
 
     -- --------------------------------------------------------

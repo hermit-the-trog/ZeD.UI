@@ -7,8 +7,10 @@
 -- One filter per window: it narrows every column the window shows (the
 -- Character window's inventory and bags, the World window's containers). A name
 -- holding the typed text (any case), in one of the picked categories (any of
--- them). What does not match is dimmed in place, never hidden: the rows keep
--- their places, their clicks, their drags and their menus.
+-- them). What does not match is hidden: its row (and a category with nothing
+-- matching) leaves the list, the grid and the controller's stops while the
+-- filter narrows, and comes back when it is cleared (IF.view; loot KISS call 7,
+-- the director, Nov 24 2026: it used to be dimmed in place).
 --
 -- Saved per container, as the list or grid view is: the window's filter is written to
 -- every container it is narrowing (the character's mod data, by the container's
@@ -260,6 +262,69 @@ function IF.result(S, M)
     end
     M._fres, M._fgen, M._fS = res, S.gen, S
     return res
+end
+
+--- The list model M with what does not match left out (loot KISS call 7, the director, Nov 24 2026: the Filter
+--- hides the rows that don't match; it used to dim them). res: IF.result(S, M), made from the whole M, so the
+--- counts ("3 of 12", the chips) still count everything. Returns M itself while nothing narrows. The same fields as
+--- M: a category with nothing matching goes (the grouped list's heading, the flat list's catOrder), a folded one
+--- stays while something in it matches; groups[cat] keeps only the matches, so a heading's count is theirs; a
+--- stack's row stays when any thing in it matches; an open stack's header row stays above its first kept row.
+--- Kept on M until the filter changes or M is built again (no tables made per frame).
+function IF.view(M, res)
+    if not (M and res and res.active) then return M end
+    if M._fview and M._fviewRes == res then return M._fview end
+    local match, stacks, cp = res.match, M.stacks or {}, M.childParent or {}
+    local V = { useGroups = M.useGroups, stacks = M.stacks, childParent = M.childParent, catOf = M.catOf,
+                nShown = M.nShown, groups = {}, catOrder = {}, flatItems = {}, stackedGroups = {},
+                catRowCount = {}, heads = {}, headOf = {} }
+    local headDone = {}   -- (an open stack's header, once: above the first of its rows that stays)
+    -- a row stays when its thing matches, or (a closed stack's row) any thing in its stack does
+    local function keeps(item)
+        if match[item] then return true end
+        local s = stacks[item]
+        if s and s.items then
+            for _, it in ipairs(s.items) do if match[it] then return true end end
+        end
+        return false
+    end
+    -- the kept rows of list, onto out and V.flatItems; returns how many open-stack headers came with them
+    local function keepRows(list, out)
+        local nh = 0
+        for _, item in ipairs(list) do
+            if keeps(item) then
+                local s = cp[item]   -- (a row under an open stack's header)
+                if s and not headDone[s] then
+                    headDone[s] = true
+                    V.heads[#V.heads + 1] = s
+                    V.headOf[item] = s
+                    nh = nh + 1
+                end
+                if out then out[#out + 1] = item end
+                V.flatItems[#V.flatItems + 1] = item
+            end
+        end
+        return nh
+    end
+    for _, cat in ipairs(M.catOrder or {}) do
+        if (res.catMatched[cat] or 0) > 0 then
+            V.catOrder[#V.catOrder + 1] = cat
+            local g = {}
+            for _, item in ipairs(M.groups[cat] or {}) do
+                if match[item] then g[#g + 1] = item end
+            end
+            V.groups[cat] = g
+            if M.useGroups then
+                local rows = {}
+                local nh = keepRows(M.stackedGroups[cat] or {}, rows)
+                V.stackedGroups[cat], V.catRowCount[cat] = rows, #rows + nh
+            end
+        end
+    end
+    -- the flat list (no headings): its rows in their own order, every category together
+    if not M.useGroups then keepRows(M.flatItems or {}, nil) end
+    M._fview, M._fviewRes = V, res
+    return V
 end
 
 -- two counts that read the same: totals, and the chips in order with their keys, words, numbers and picks
