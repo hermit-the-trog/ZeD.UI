@@ -1,12 +1,13 @@
 -- ZeDUI/tools/qa/color_tabs.lua  (Nov 25 2026, QA; tag color_tabs): the full-color tab icons and the pastel container
 -- buttons, in the running game on the QA save. The director picked them from the mock-up
 -- ZeDUI/mockups/container_tabs_color_v4.html ("Multicolor", "Lit accent panel", "Stronger tint", "Wash and frame").
--- Build's change (feat/colortabs, 85b6338db):
---   * the 14 tabs with color art (ZeD.TabColorArt; pictures media/textures/ZeD/TabIcons/color/<id>.png, <id>_light.png,
---     <id>_sh.png) draw in their own three colors: ZeD.TabPx.colorSet(id, isActive) gives "dark" on Dark and High
---     contrast, "light" on Light; on the lit panel (accent x0.85) the set with more of its pixels 3:1 off the panel.
---     The shadow is alpha 0.55, 0.25 on the panel. Radio, TV, admin, server, cooking, fishing, appearance and traits
---     keep the accent tones.
+-- Build's change (feat/colortabs, 85b6338db; the other 8 tabs, feat/colortabs8, 580bb49a3):
+--   * the tabs with color art (ZeD.TabColorArt; pictures media/textures/ZeD/TabIcons/color/zedtabc_<id>.png,
+--     _light.png, _sh.png) draw in their own three colors: ZeD.TabPx.colorSet(id, isActive) gives "dark" on Dark and
+--     High contrast, "light" on Light; on the lit panel (accent x0.85) the set with more of its pixels 3:1 off the
+--     panel. The shadow is alpha 0.55, 0.25 on the panel. The tab list is read from ZeD.TabColorArt when the script
+--     starts (S.readArt; 14 before feat/colortabs8, 22 after), with the window(s) each lives in from the windows' own
+--     tab lists (ZeD_CharacterWindow.TABS, ZeD_WorldWindow.TABS); a window's tab with no art is named in a NOTE.
 --   * every container button of both strips is filled by ZeD.GridTint.stripCell(panel, x, y, w, h, tex, lit, hover):
 --     G.apply(raw, G.STRIP[baseKey]) (Light l .80 s .60, Dark l .26 s .50, High contrast l .20 s .55), raw from
 --     ZeD.ContainerTints (Container_* pictures), else ZeD.ItemTints (a bag's icon), else neutral gray 0x808080; the
@@ -26,6 +27,12 @@
 --     (fridge, stove, counter, ...), each made only when its sprite gives a container; a duffel bag on his square
 --   * for the Vehicle tab: a car (the prelude's ZEDQA_CAR_WAIT), him beside it, its tab opened the mechanics key's way
 --   * both windows' own accents (win._accentKey) set to follow the global accent for the run
+--   * the tabs that show in context, after the car (S.CTX; each CHECKed shown): a radio in his off hand (Character
+--     Radio), a fishing rod in his main hand (World Fishing), bread slices and cheese carried (Character Cooking: a
+--     dish's base on him and a fit for it), a TV set (IsoTelevision) on a free square beside him (the World Radio tab
+--     draws "tv"). Admin (World) and Server (Character) want a server (isClient()): SKIP in single player. Appearance
+--     (SPNCC) and Traits (EvolvingTraitsWorld, traitsAsSkills) are add-ons' tabs, not loaded on the QA save: no window
+--     offers them. Every tab with art no strip shows (S.OFF) is drawn on the add-on panel instead.
 -- 1. Containers, in Dark, Light and High contrast (the accent as found), both windows on Loot, a crate shown on the
 --    World window:
 --   * CHECK every button in view got a fill (an opaque rect over the whole cell, the first thing the cell draws)
@@ -36,24 +43,32 @@
 --   * pictures ctab_containers_<cw|ww>_<theme>_<w>x<h>, a CTAB line per button in view
 -- 2. Tabs: Dark with orange, teal, red and mono; Light and High contrast with orange and teal. Equipment shown on the
 --    Character window, Crafting on the World window:
---   * CHECK colorSet(id, false) is "dark" on Dark and High contrast, "light" on Light, for all 14
+--   * CHECK colorSet(id, false) is "dark" on Dark and High contrast, "light" on Light, for every tab with art (a plain
+--     call: the add-ons' tabs too)
 --   * CHECK colorSet(id, true) is the set with the larger share of pixels 3:1 off the lit panel (a TSET line each)
---   * CHECK every colored tab of the window drew, the shown one lit, each icon in the set colorSet gives
+--   * CHECK every colored tab the window shows drew, the shown one lit, each icon in the set colorSet gives (a tab its
+--     rule hides is named in a NOTE)
 --   * pictures ctab_tabs_<cw|ww>_<theme>_<accent>_<w>x<h>, a CTAB line per tab
---   * close-ups in Dark orange, Dark teal and Light orange: each colored tab of each window lit once (both windows in
---     one picture), ctab_lit_<cw id>_<ww id>_<theme>_<accent>_<w>x<h>
+--   * close-ups in Dark orange, Dark teal and Light orange: each colored tab each window shows lit once, a Character
+--     tab and a World tab per picture, ctab_lit_<cw id>_<ww id>_<theme>_<accent>_<w>x<h> (the ids the tabs draw: the
+--     World Radio tab with the TV set is "tv")
+--   * the add-on panel in the same three: a panel of the script's own (an ISPanel, on the screen for its picture)
+--     draws each tab of S.OFF through ZeD.TabPx.drawTab, unlit and lit, their TabPx.ICONS flags set for it; CHECK each
+--     drew in colorSet's set; ctab_addon_<theme>_<accent>_<w>x<h> (CTAB lines win=ad); then CHECK the panel is off
+--     the screen and the ICONS flags as found
 -- 3. CHECK no new Lua error.
 --
 -- The CTAB lines (for ctab_measure.py; abs = screen pixels; colors rrggbb):
 --   ZEDQA color_tabs CTAB pic=<p> kind=btn win=<cw|ww> theme=<t> accent=<a> i=<n> x= y= w= h= u=<px per unit>
 --     lit=0|1 hov=0|1 src=<ct|it|gray> tex=<picture name> raw=<rrggbb> fill=<rrggbb> exp=<rrggbb (the fill with the
 --     washes over it: the pixel to expect)> frame=<rrggbb|none> fw=<frame px> icon=<x>,<y>,<size> draws=<n>
---   ZEDQA color_tabs CTAB pic=<p> kind=tab win=<cw|ww> theme=<t> accent=<a> id=<id> x= y= w= h= lit=0|1 wash=0|1
+--   ZEDQA color_tabs CTAB pic=<p> kind=tab win=<cw|ww|ad> theme=<t> accent=<a> id=<id> x= y= w= h= lit=0|1 wash=0|1
 --     foc=0|1 set=<dark|light|accent> k=<k> ix= iy= sz=<16k> panel=<rrggbb (accent x0.85)> acc=<rrggbb> line=<px>
 --     vis=0|1 pal=<rrggbb:n,rrggbb:n,rrggbb:n|none>
 -- Puts back: the theme and the accent (and their options), both windows' own accents, both windows' tabs and every
 -- strip's scroll offset, the World window's shown container, the bags, the key ring, the floor bag, the crate and the
--- objects, the car (the look ended), him where he stood, the pointer and the wrapped draws.
+-- objects, the radio, the rod, the dish's items, his hands as found, the TV set, the add-on panel and the ICONS flags,
+-- the car (the look ended), him where he stood, the pointer and the wrapped draws.
 if not RT then print("ZEDQA color_tabs ERR rt_kit.lua did not run first"); print("ZEDQA color_tabs DONE"); return end
 local Q = RT.make("color_tabs")
 Q.maxMs = 1080000                    -- (the runner gives this script 1200 s: the put-back runs before that)
@@ -62,11 +77,21 @@ local S = { p = RT.p, pn = RT.pn, found = {}, back = {}, made = {}, worn = {}, f
 
 -- ===================================================================== constants
 S.TAG = "color_tabs"
-S.IDS = { "loot", "equip", "health", "thermal", "identity", "journal", "skills", "craft", "build", "furniture", "maps",
-          "forage", "animals", "vehicle" }
-S.CW_TABS = { "loot", "equip", "health", "thermal", "identity", "journal", "skills" }
-S.WW_TABS = { "loot", "craft", "build", "furniture", "maps", "forage", "animals", "vehicle" }
+-- the tabs with color art are read from ZeD.TabColorArt when the script starts (S.readArt): S.IDS every id with art,
+-- S.CW_TABS / S.WW_TABS each window's tab ids (its TABS list, the add-ons' tabs that loaded included) whose picture
+-- has art, S.HOME[id] the window(s) that offer it ("cw", "ww", "cw+ww", nil for none)
+S.IDS, S.CW_TABS, S.WW_TABS, S.HOME = {}, {}, {}, {}
 S.CW_SHOWN, S.WW_SHOWN = "equip", "craft"
+-- staging the tabs that show in context (each list tried in order, the first item the game knows given)
+S.RADIOS = { "Base.RadioRed", "Base.RadioBlack", "Base.WalkieTalkie1" }   -- in his off hand: the Character Radio tab
+S.RODS = { "Base.FishingRod", "Base.CraftedFishingRod" }                  -- in his main hand: the World Fishing tab
+S.DISHES = { { "Base.BreadSlices", "Base.Cheese" }, { "Base.Bowl", "Base.Lettuce" } }   -- a dish's base and a fit for
+                                                                          -- it, carried: the Character Cooking tab
+S.TVS = { "appliances_television_01_5", "appliances_television_01_0", "appliances_television_01_3" }   -- a TV set beside
+                                                                          -- him: the World Radio tab draws "tv"
+-- why a tab's rule cannot be met in a single-player run (its icon is drawn on the add-on panel instead)
+S.WHY = { admin = "its rule wants a server and an admin (isClient() and getRole():hasAdminTool()); a single-player run has none",
+          server = "its rule wants a server (isClient()); a single-player run has none" }
 -- the brief's rule per theme (G.STRIP is checked against it)
 S.STRIP = { light = { l = 0.80, s = 0.60 }, dark = { l = 0.26, s = 0.50 }, hicon = { l = 0.20, s = 0.55 } }
 S.THEMES = { "dark", "light", "hicon" }
@@ -169,6 +194,7 @@ function S.hsl(r, g, b)
 end
 function S.hueGap(a, b) local d = math.abs(a - b); if d > 0.5 then d = 1 - d end; return d end
 function S.isItem(it) return it ~= nil and instanceof(it, "InventoryItem") end
+function S.ft(it) local t = "none"; if S.isItem(it) then pcall(function() t = it:getFullType() end) end; return tostring(t) end
 function S.win(key) if key == "cw" then return RT.cw() end; return RT.ww() end
 function S.shade(c, f)
     local function cl(v) if v < 0 then return 0 elseif v > 1 then return 1 end; return v end
@@ -356,7 +382,8 @@ function S.park(on)
         pcall(function() Mouse.setCursorVisible(true) end)
     end
 end
--- a picture, then after(name) (its CTAB lines)
+-- a picture, then after(name) (its CTAB lines); name and what may be functions (read when the picture is taken), gate
+-- one that says whether to take it
 function S.shot(name, what, gate, after)
     local st = {}
     Q.step(1, function()
@@ -373,7 +400,9 @@ function S.shot(name, what, gate, after)
         local ok, e = pcall(function() getCore():TakeFullScreenshot(file) end)
         if ok then
             S.shots[#S.shots + 1] = file
-            Q.say("NOTE picture Zomboid/Screenshots/" .. file .. " | " .. tostring(what))
+            local wh = what
+            if type(what) == "function" then pcall(function() wh = what() end) end
+            Q.say("NOTE picture Zomboid/Screenshots/" .. file .. " | " .. tostring(wh))
             if after then
                 local ok2, e2 = pcall(after, tostring(nm))
                 if not ok2 then S.errs = S.errs + 1; S.note("the lines for " .. tostring(nm) .. " threw: " .. tostring(e2)) end
@@ -499,20 +528,21 @@ function S.spyOn()
         end
         return sp.own.drawTab(el, x, y, w, h, id, isActive, isWashed, line, opts)
     end
-    TP.drawIcon = function(el, id, cx, cy, isActive)
+    -- (bg: what is behind the icon when it is not the lit panel, the controller's one-wash mark; passed on as given)
+    TP.drawIcon = function(el, id, cx, cy, isActive, bg)
         if type(el) == "table" then
             local list = S.listFor(sp.icons, el)
             if #list < 40 then
                 local T = ZeD.T
                 local set = nil
-                pcall(function() set = TP.colorSet(id, isActive) end)
+                pcall(function() set = TP.colorSet(id, isActive, bg) end)
                 local k = 1
                 pcall(function() k = TP.k() end)
                 list[#list + 1] = { id = id, cx = cx, cy = cy, act = isActive and true or false, set = set, k = k,
                                     acc = S.copyC(T and T.accent), base = T and T.baseKey }
             end
         end
-        return sp.own.drawIcon(el, id, cx, cy, isActive)
+        return sp.own.drawIcon(el, id, cx, cy, isActive, bg)
     end
     S.spy = sp
     return true
@@ -701,6 +731,78 @@ function S.cellLines(wk, theme, pic)
     end
 end
 
+-- ===================================================================== the tabs with art (read at run time)
+function S.winMod(wk) if wk == "cw" then return ZeD_CharacterWindow end; return ZeD_WorldWindow end
+-- a window's tab list (ZeD_CharacterWindow.TABS / ZeD_WorldWindow.TABS: the add-ons' tabs that loaded are in it)
+function S.tabDefs(wk)
+    local M = S.winMod(wk)
+    if M and type(M.TABS) == "table" then return M.TABS end
+    return {}
+end
+-- the pictures a tab can draw: its own, and the TV's on the World Radio tab (while a TV set shows on it)
+function S.drawIds(tab)
+    local out = { tab.id }
+    if type(tab.tv) == "table" and type(tab.tv.px) == "string" then out[#out + 1] = tab.tv.px end
+    return out
+end
+-- the picture a tab draws now (ZeD_WorldWindow.tabIcon, as the strip asks it)
+function S.drawIdOf(wk, tab)
+    if wk == "ww" and type(tab.tv) == "table" then
+        local w = RT.ww()
+        local id = nil
+        if w then pcall(function() id = ZeD_WorldWindow.tabIcon(tab, w) end) end
+        if type(id) == "string" then return id end
+    end
+    return tab.id
+end
+-- the tab's own rule (isTabVisible)
+function S.tabVisible(wk, tab)
+    local M, w = S.winMod(wk), S.win(wk)
+    if not (M and w and M.isTabVisible) then return false end
+    local v = false
+    pcall(function() v = M.isTabVisible(tab, w) and true or false end)
+    return v
+end
+-- every id with art (S.IDS), each window's tab ids that draw art (S.CW_TABS, S.WW_TABS), the window(s) each art id
+-- lives in (S.HOME) and the pictures the windows draw that have no art yet (S.NOART)
+function S.readArt()
+    local art = (ZeD and ZeD.TabColorArt) or {}
+    local ids = {}
+    for id, _ in pairs(art) do if type(id) == "string" then ids[#ids + 1] = id end end
+    table.sort(ids)
+    S.IDS, S.HOME, S.NOART = ids, {}, {}
+    for _, wk in ipairs({ "cw", "ww" }) do
+        local list = {}
+        for _, tab in ipairs(S.tabDefs(wk)) do
+            local has = false
+            for _, d in ipairs(S.drawIds(tab)) do
+                if art[d] then
+                    has = true
+                    S.HOME[d] = S.HOME[d] and (S.HOME[d] .. "+" .. wk) or wk
+                elseif not S.inList(S.NOART, d) then S.NOART[#S.NOART + 1] = d end
+            end
+            if has then list[#list + 1] = tab.id end
+        end
+        if wk == "cw" then S.CW_TABS = list else S.WW_TABS = list end
+    end
+end
+-- a window's colored tabs now, in strip order: { id = the picture it draws, tab = the tab's id, vis = its rule shows it }
+function S.wantTabs(wk)
+    local art = ZeD.TabColorArt or {}
+    local out = {}
+    for _, tab in ipairs(S.tabDefs(wk)) do
+        local d = S.drawIdOf(wk, tab)
+        if art[d] then out[#out + 1] = { id = d, tab = tab.id, vis = S.tabVisible(wk, tab) } end
+    end
+    return out
+end
+-- the shown ones only
+function S.shownTabs(wk)
+    local out = {}
+    for _, e in ipairs(S.wantTabs(wk)) do if e.vis then out[#out + 1] = e end end
+    return out
+end
+
 -- ===================================================================== the tabs
 function S.stripOf(wk) local w = S.win(wk); if not w then return nil end; return (wk == "cw") and w._tabStripPanel or w._actionTabStrip end
 function S.offField(wk) return (wk == "cw") and "_tabScrollOffset" or "_actionTabScrollOffset" end
@@ -709,11 +811,11 @@ function S.tabsOf(wk)
     if not (p and S.spy) then return nil, nil, p end
     return S.fresh(S.spy.tabs, p), S.fresh(S.spy.icons, p), p
 end
-function S.iconFor(icons, id)
-    for _, ic in ipairs(icons or {}) do if ic.id == id then return ic end end
+-- act (optional): the one drawn lit (true) or unlit (false), for a panel that draws an id twice
+function S.iconFor(icons, id, act)
+    for _, ic in ipairs(icons or {}) do if ic.id == id and (act == nil or ic.act == act) then return ic end end
     return nil
 end
-function S.wantTabs(wk) return (wk == "cw") and S.CW_TABS or S.WW_TABS end
 -- the shown tab in view (the strip scrolled to it when it is not)
 function S.reveal(wk, id)
     local tabs, _, p = S.tabsOf(wk)
@@ -767,10 +869,11 @@ function S.setChecks(cb)
             .. " panel=" .. S.hexC(bg) .. " shareDark=" .. S.f2(sd) .. " shareLight=" .. S.f2(sl))
     end
     local lab = cb.theme .. ", " .. cb.accent
-    Q.check(#badU == 0, "tabs (" .. lab .. "): colorSet(id, false) is \"" .. want .. "\" for all 14",
-        (#badU == 0) and "all 14" or table.concat(badU, ", "))
-    Q.check(#badL == 0, "tabs (" .. lab .. "): colorSet(id, true) is the set with more pixels 3:1 off the lit panel " .. S.hexC(bg),
-        (#badL == 0) and "all 14" or table.concat(badL, "; "))
+    local all = "all " .. #S.IDS
+    Q.check(#S.IDS > 0 and #badU == 0, "tabs (" .. lab .. "): colorSet(id, false) is \"" .. want .. "\" for every tab with art",
+        (#badU == 0) and all or table.concat(badU, ", "))
+    Q.check(#S.IDS > 0 and #badL == 0, "tabs (" .. lab .. "): colorSet(id, true) is the set with more pixels 3:1 off the lit panel " .. S.hexC(bg),
+        (#badL == 0) and all or table.concat(badL, "; "))
     if #low > 0 then S.note("tabs (" .. lab .. "): on the lit panel these keep under half their pixels at 3:1 (palette counts): " .. table.concat(low, ", ")) end
 end
 -- the window's colored tabs drew, the shown one lit, each icon in colorSet's set
@@ -778,33 +881,49 @@ function S.drawChecks(wk, shown, cb)
     local lab = ((wk == "cw") and "the Character window's" or "the World window's") .. " tabs (" .. cb.theme .. ", " .. cb.accent .. ", " .. shown .. " shown)"
     local tabs, icons = S.tabsOf(wk)
     if not tabs then Q.check(false, lab .. ": the strip drew its tabs through TabPx.drawTab", "no drawTab call on the strip lately"); return end
-    local miss, bad = {}, {}
+    local miss, bad, hidden, n = {}, {}, {}, 0
     local offered = RT.tabs(S.stripOf(wk))
-    for _, id in ipairs(S.wantTabs(wk)) do
+    -- (a tab its rule hides now, and the strip does not offer, is not missing: it is named once in a NOTE)
+    for _, e in ipairs(S.wantTabs(wk)) do
+        local id = e.id
         local t = nil
         for _, x in ipairs(tabs) do if x.id == id then t = x end end
         local ic = S.iconFor(icons, id)
         if not t then
-            if S.inList(offered, id) or id ~= "vehicle" then miss[#miss + 1] = id end
+            if e.vis or S.inList(offered, e.tab) then miss[#miss + 1] = id else hidden[#hidden + 1] = id end
         else
+            n = n + 1
             local wantSet = nil
             pcall(function() wantSet = ZeD.TabPx.colorSet(id, t.act) end)
-            if t.act ~= (id == shown) then bad[#bad + 1] = id .. " lit " .. tostring(t.act) end
+            if t.act ~= (e.tab == shown) then bad[#bad + 1] = id .. " lit " .. tostring(t.act) end
             if not ic then bad[#bad + 1] = id .. " no icon drawn"
             elseif ic.set ~= wantSet or ic.act ~= t.act then bad[#bad + 1] = id .. " icon set " .. tostring(ic.set) .. " (want " .. tostring(wantSet) .. ")" end
         end
     end
     Q.check(#miss == 0 and #bad == 0, lab .. ": every colored tab drew, only the shown one lit, each icon in colorSet's set",
-        ((#miss > 0) and ("not drawn: " .. table.concat(miss, ", ") .. "; ") or "") .. ((#bad > 0) and table.concat(bad, "; ") or (#tabs .. " tabs drawn")))
+        ((#miss > 0) and ("not drawn: " .. table.concat(miss, ", ") .. "; ") or "") .. ((#bad > 0) and table.concat(bad, "; ") or (n .. " colored tabs drawn")))
+    local hs = table.concat(hidden, ", ")
+    S.hidSaid = S.hidSaid or {}
+    if hs ~= (S.hidSaid[wk] or "") then
+        S.hidSaid[wk] = hs
+        if hs ~= "" then S.note(lab .. ": not shown now (their rule): " .. hs) end
+    end
 end
-function S.tabLines(wk, cb, pic)
-    local tabs, icons, p = S.tabsOf(wk)
+-- panel (optional): a panel of the script's own (the add-on panel, wk "ad") in place of the window's strip
+function S.tabLines(wk, cb, pic, panel)
+    local tabs, icons, p = nil, nil, nil
+    if panel then
+        p = panel
+        if S.spy then tabs, icons = S.fresh(S.spy.tabs, panel), S.fresh(S.spy.icons, panel) end
+    else tabs, icons, p = S.tabsOf(wk) end
     if not tabs then S.note(pic .. ": no tab drew on the " .. wk .. " strip in the frame before the picture"); return end
     local ax, ay = S.absOf(p)
     local ph = p:getHeight()
     local art = ZeD.TabColorArt or {}
     for _, t in ipairs(tabs) do
-        local ic = S.iconFor(icons, t.id)
+        local want = nil
+        if panel then want = t.act end
+        local ic = S.iconFor(icons, t.id, want)
         local k = ic and ic.k or 1
         local sz = 16 * k
         local ix = ic and (ic.cx - math.floor(sz / 2)) or (t.x + math.floor(t.w / 2) - math.floor(sz / 2))
@@ -894,6 +1013,7 @@ function S.setup()
             for i = 0, items:size() - 1 do f.inv0[items:get(i)] = true end
         end)
         f.worn0 = S.wornSet()
+        pcall(function() f.hand1, f.hand2 = S.p:getPrimaryHandItem(), S.p:getSecondaryHandItem() end)
         S.back.on = true
         RT.pairOpen()
         if ZEDQA_HOME then pcall(ZEDQA_HOME, S.TAG) end
@@ -938,10 +1058,13 @@ function S.setup()
         end
         Q.check(#bad == 0, "setup: G.STRIP is the picked rule (Light l .80 s .60, Dark l .26 s .50, High contrast l .20 s .55)",
             (#bad == 0) and "as picked" or table.concat(bad, "; "))
-        local missArt, missPic = {}, {}
+        -- (the tab list is the art's own, read when the script started: S.readArt)
+        local missArt, missPic, homes, none = {}, {}, {}, {}
         for _, id in ipairs(S.IDS) do
             local a = art and art[id]
-            if not (a and type(a.dark) == "table" and #a.dark == 3 and type(a.light) == "table" and #a.light == 3 and TP.has(id)) then
+            -- (TabPx.has only for a tab a window offers: an add-on's tab registers its icon only when the add-on loads)
+            if not (a and type(a.dark) == "table" and #a.dark == 3 and type(a.light) == "table" and #a.light == 3
+                    and (S.HOME[id] == nil or TP.has(id))) then
                 missArt[#missArt + 1] = id
             end
             for _, suf in ipairs({ ".png", "_light.png", "_sh.png" }) do
@@ -949,14 +1072,18 @@ function S.setup()
                 pcall(function() t = ZeD.Px.tex(TP.COLOR_DIR .. "zedtabc_" .. id .. suf) end)   -- (Build 0bfeef129: a prefix no game texture shares)
                 if not t then missPic[#missPic + 1] = id .. suf end
             end
+            if S.HOME[id] then homes[#homes + 1] = id .. " " .. S.HOME[id] else none[#none + 1] = id end
         end
-        Q.check(#missArt == 0, "setup: ZeD.TabColorArt has both 3-color sets for the 14 tabs (and TabPx.has them)",
-            (#missArt == 0) and "14 tabs" or table.concat(missArt, ", "))
-        Q.check(#missPic == 0, "setup: every color tab's three pictures load (zedtabc_<id>.png, _light, _sh)",
-            (#missPic == 0) and "42 pictures" or table.concat(missPic, ", "))
-        for _, id in ipairs({ "radio", "tv", "cooking", "admin", "server" }) do
-            if art and art[id] then S.note("the tab " .. id .. " has color art (the brief says it keeps the accent tones)") end
+        Q.check(#S.IDS > 0 and #missArt == 0, "setup: ZeD.TabColorArt has both 3-color sets for every tab with art (and TabPx.has the ones a window offers)",
+            (#missArt == 0) and (#S.IDS .. " tabs: " .. table.concat(S.IDS, ", ")) or table.concat(missArt, ", "))
+        Q.check(#S.IDS > 0 and #missPic == 0, "setup: every color tab's three pictures load (zedtabc_<id>.png, _light, _sh)",
+            (#missPic == 0) and ((#S.IDS * 3) .. " pictures") or table.concat(missPic, ", "))
+        Q.say("found: the tabs with art and their windows: " .. table.concat(homes, ", "))
+        if #none > 0 then
+            S.note("no window offers " .. table.concat(none, ", ") .. " in this run (an add-on's tab: its add-on is not loaded, mods.txt):"
+                .. " colorSet is checked as a plain call and the icon is drawn on the add-on panel (ctab_addon_*)")
         end
+        if #S.NOART > 0 then S.note("tabs with no color art yet (they keep the accent tones): " .. table.concat(S.NOART, ", ")) end
     end)
 end
 
@@ -1069,34 +1196,290 @@ function S.tabPics(cb)
             nil, function(pic) S.tabLines(wk, cb, pic) end)
     end
 end
--- each colored tab of each window lit once (both windows in one picture)
+-- each colored tab each window shows now lit once, a Character tab and a World tab per picture (both windows in one
+-- picture). The slots are counted from the windows' tab lists when the script starts; which tab a slot shows is read
+-- when it comes (the tabs their rule hides left out), and a slot past both windows' shown tabs takes no picture.
 function S.closeUps(cb)
     local n = math.max(#S.CW_TABS, #S.WW_TABS)
     for i = 1, n do
-        local cwId = S.CW_TABS[i] or S.CW_TABS[1]
-        local wwId = S.WW_TABS[i] or S.WW_TABS[1]
         local T = {}
         S.step(2, function()
-            T.ww = wwId
-            if wwId == "vehicle" and not S.inList(RT.tabs(RT.worldStrip()), "vehicle") then T.ww = "loot"; S.note("close-up " .. i .. ": no Vehicle tab offered, Loot instead") end
-            S.tabTo(cwId, T.ww)
+            local cl, wl = S.shownTabs("cw"), S.shownTabs("ww")
+            if i > #cl and i > #wl then T.off = true; return end
+            local c, w = cl[i] or cl[1], wl[i] or wl[1]
+            if not (c and w) then T.off = true; S.note("close-up " .. i .. ": a window shows no colored tab"); return end
+            T.cw, T.cwD, T.ww, T.wwD = c.tab, c.id, w.tab, w.id
+            -- (a tab past the strip's end has no hit zone: scrolled into view first)
+            S.reveal("cw", T.cwD); S.reveal("ww", T.wwD)
         end)
-        S.settle("close-up " .. cwId .. "/" .. wwId)
-        S.step(1, function() S.reveal("cw", cwId); S.reveal("ww", T.ww) end)
+        S.waitIdle(4)
+        S.step(1, function() if T.off then return end; S.tabTo(T.cw, T.ww) end)
+        S.settle("close-up " .. i)
+        S.step(1, function() if T.off then return end; S.reveal("cw", T.cwD); S.reveal("ww", T.wwD) end)
         S.waitIdle(6)
         S.step(1, function()
+            if T.off then return end
             local cw, ww = RT.cw(), RT.ww()
-            Q.check(cw ~= nil and ww ~= nil and cw._activeTab == cwId and ww._activeTab == T.ww,
-                "close-up (" .. cb.theme .. ", " .. cb.accent .. "): " .. cwId .. " and " .. tostring(T.ww) .. " shown",
+            Q.check(cw ~= nil and ww ~= nil and cw._activeTab == T.cw and ww._activeTab == T.ww,
+                "close-up (" .. cb.theme .. ", " .. cb.accent .. "): " .. T.cwD .. " and " .. T.wwD .. " shown",
                 tostring(cw and cw._activeTab) .. " / " .. tostring(ww and ww._activeTab))
         end)
-        S.shot(function() return "ctab_lit_" .. cwId .. "_" .. tostring(T.ww) .. "_" .. cb.theme .. "_" .. cb.accent .. "_" .. S.sizeTag() end,
-            "the tabs " .. cwId .. " and " .. wwId .. " lit, " .. cb.theme .. " " .. cb.accent, nil,
+        S.shot(function() return "ctab_lit_" .. tostring(T.cwD) .. "_" .. tostring(T.wwD) .. "_" .. cb.theme .. "_" .. cb.accent .. "_" .. S.sizeTag() end,
+            function() return "the tabs " .. tostring(T.cwD) .. " and " .. tostring(T.wwD) .. " lit, " .. cb.theme .. " " .. cb.accent end,
+            function() return not T.off end,
             function(pic) S.tabLines("cw", cb, pic); S.tabLines("ww", cb, pic) end)
     end
 end
+
+-- ===================================================================== the tabs that show in context
+-- each staged tab: the picture it draws, its window, the tab's id there and what makes it show
+S.CTX = {
+    { id = "radio", wk = "cw", tab = "radio", how = "a radio in his off hand" },
+    { id = "cooking", wk = "cw", tab = "cooking", how = "a dish's base and a fit for it carried" },
+    { id = "tv", wk = "ww", tab = "radio", how = "a TV set beside him: the Radio tab draws the TV" },
+    { id = "fishing", wk = "ww", tab = "fishing", how = "a fishing rod in his main hand" },
+}
+function S.giveOne(list, what)
+    local ft = nil
+    for _, f in ipairs(list) do if not ft and S.known(f) then ft = f end end
+    if not ft then return nil, what .. ": none of " .. table.concat(list, ", ") .. " is an item this game knows" end
+    local it = S.mark(RT.give(ft), S.made)
+    if not it then return nil, what .. ": " .. ft .. " could not be given" end
+    return it, what .. ": " .. ft
+end
+-- a TV set (IsoTelevision, bx_world's way) on a free square beside him, in S.objs (taken away with the rest)
+function S.layTV()
+    if not IsoTelevision then return nil, "a TV set: no IsoTelevision in this build" end
+    local spr = nil
+    for _, s in ipairs(S.TVS) do
+        local ok = false
+        if not spr then pcall(function() ok = getSprite(s) ~= nil end) end
+        if ok then spr = s end
+    end
+    if not spr then return nil, "a TV set: none of the sprites " .. table.concat(S.TVS, ", ") .. " is known" end
+    for _, sq in ipairs(S.freeSquares()) do
+        local car = nil
+        pcall(function() car = sq:getVehicleContainer() end)
+        if car == nil then
+            local o = nil
+            pcall(function() o = IsoTelevision.new(getCell(), sq, getSprite(spr)) end)
+            if o ~= nil and instanceof(o, "IsoWaveSignal") then
+                local put = false
+                pcall(function() sq:AddTileObject(o); put = true end)
+                if put then
+                    S.objs[#S.objs + 1] = { obj = o, sq = sq, sprite = spr, types = "tv set" }
+                    pcall(function() local d = o:getDeviceData(); if d then d:setIsTurnedOn(false) end end)
+                    local at = "?"
+                    pcall(function() at = S.i(sq:getX()) .. "," .. S.i(sq:getY()) end)
+                    return o, "a TV set: " .. spr .. " at " .. at
+                end
+            end
+        end
+    end
+    return nil, "a TV set: no free square beside him took it"
+end
+-- the staged tab's window offers it, drawing its picture
+function S.ctxShows(e)
+    for _, tab in ipairs(S.tabDefs(e.wk)) do
+        if tab.id == e.tab then return S.tabVisible(e.wk, tab) and S.drawIdOf(e.wk, tab) == e.id end
+    end
+    return false
+end
+-- after the car (he may stand beside it now): the radio, the rod, the dish and the TV set; then which tabs with art
+-- no strip shows in this run (S.OFF: drawn on the add-on panel)
+function S.ctxStage()
+    S.step(2, function()
+        local said = {}
+        local radio, s1 = S.giveOne(S.RADIOS, "a radio")
+        local rod, s2 = S.giveOne(S.RODS, "a fishing rod")
+        said[#said + 1] = s1
+        said[#said + 1] = s2
+        S.back.hands = true
+        if S.isItem(rod) then pcall(function() S.p:setPrimaryHandItem(rod) end) end
+        if S.isItem(radio) then pcall(function() S.p:setSecondaryHandItem(radio) end) end
+        local dish = nil
+        for _, pair in ipairs(S.DISHES) do
+            if not dish and S.known(pair[1]) and S.known(pair[2]) then
+                local a = S.mark(RT.give(pair[1]), S.made)
+                local b = S.mark(RT.give(pair[2]), S.made)
+                if a and b then dish = pair[1] .. " and " .. pair[2] end
+            end
+        end
+        said[#said + 1] = "a dish: " .. tostring(dish or "none of " .. #S.DISHES .. " pairs could be given")
+        local _, s3 = S.layTV()
+        said[#said + 1] = s3
+        local cw, ww = RT.cw(), RT.ww()
+        if cw then cw._containerTimer = 30 end   -- (the Character window reads his hands' radios with its list)
+        if ww then ww._containerTimer = 30; ww._radioSq = false end   -- (the World window its 9 squares' radios)
+        pcall(function() triggerEvent("OnContainerUpdate") end)
+        Q.say("staged for the tabs in context: " .. table.concat(said, "; "))
+    end)
+    S.wait(10, 600, function()
+        for _, e in ipairs(S.CTX) do if S.HOME[e.id] and not S.ctxShows(e) then return false end end
+        return true
+    end, function(ok)
+        for _, e in ipairs(S.CTX) do
+            local win = (e.wk == "cw") and "Character" or "World"
+            if not S.HOME[e.id] then S.note("the tab " .. e.id .. " has no art or no window offers it: not staged")
+            else
+                Q.check(S.ctxShows(e), "staged: the " .. win .. " window shows the tab " .. e.tab .. " drawing " .. e.id .. " (" .. e.how .. ")",
+                    "offered: " .. table.concat(RT.tabs(S.stripOf(e.wk)), ", "))
+            end
+        end
+        -- the tabs with art no strip shows now
+        local on = {}
+        for _, wk in ipairs({ "cw", "ww" }) do for _, x in ipairs(S.shownTabs(wk)) do on[x.id] = true end end
+        S.OFF = {}
+        for _, id in ipairs(S.IDS) do
+            if not on[id] then
+                S.OFF[#S.OFF + 1] = id
+                if S.WHY[id] and S.HOME[id] then
+                    Q.skip("the tab " .. id .. " on the " .. ((S.HOME[id] == "cw") and "Character" or "World") .. " window's strip",
+                        S.WHY[id] .. "; its icon is drawn on the add-on panel (ctab_addon_*)")
+                elseif not S.HOME[id] then
+                    S.note("the tab " .. id .. ": no window offers it (its add-on is not loaded, mods.txt); drawn on the add-on panel (ctab_addon_*)")
+                else
+                    S.note("the tab " .. id .. ": its rule hides it in this run; drawn on the add-on panel (ctab_addon_*)")
+                end
+            end
+        end
+        Q.say("found: tabs with art not on a strip now: " .. ((#S.OFF > 0) and table.concat(S.OFF, ", ") or "none"))
+    end)
+end
+
+-- ===================================================================== the add-on panel
+-- the tabs with art no strip shows in this run (an add-on's that is not loaded, a server's) drawn through
+-- ZeD.TabPx.drawTab, the strips' own draw, on a panel of the script's own: each id unlit and lit. Their ICONS flags
+-- are set for the picture and put back right after (S.iconsSaved keeps each one's value as found).
+function S.iconsOn()
+    local TP = ZeD.TabPx
+    S.iconsSaved = S.iconsSaved or {}
+    for _, id in ipairs(S.OFF or {}) do
+        if S.iconsSaved[id] == nil then S.iconsSaved[id] = { v = rawget(TP.ICONS, id) } end
+        TP.ICONS[id] = true
+    end
+end
+function S.iconsBack()
+    local TP = ZeD and ZeD.TabPx
+    if not (TP and TP.ICONS) then return end
+    for id, s in pairs(S.iconsSaved or {}) do TP.ICONS[id] = s.v end
+end
+function S.iconsNotBack()
+    local TP, bad = ZeD.TabPx, {}
+    for id, s in pairs(S.iconsSaved or {}) do
+        if rawget(TP.ICONS, id) ~= s.v then bad[#bad + 1] = id .. " " .. tostring(rawget(TP.ICONS, id)) .. " (found " .. tostring(s.v) .. ")" end
+    end
+    return bad
+end
+function S.inUI(p)
+    local inside = false
+    if p and p.javaObject then pcall(function() inside = UIManager.getUI():contains(p.javaObject) and true or false end) end
+    return inside
+end
+function S.addonLay()
+    local T = ZeD.T
+    local strip = RT.charStrip()
+    local tw = T.px(40)
+    if strip then pcall(function() tw = strip:getWidth() - T.px(1) end) end
+    local th = (T.stripH or T.px(36)) - T.px(1)
+    local gap = T.px(8)
+    local w = gap + 2 * (tw + gap)
+    local h = gap + #S.OFF * (th + gap)
+    local sw, sh = S.screen()
+    local p = ISPanel:new(math.floor((sw - w) / 2), math.floor((sh - h) / 2), w, h)
+    p:initialise()
+    p.zedqaCells = {}
+    for i, id in ipairs(S.OFF) do
+        for c = 0, 1 do
+            p.zedqaCells[#p.zedqaCells + 1] = { id = id, lit = (c == 1), x = gap + c * (tw + gap), y = gap + (i - 1) * (th + gap) }
+        end
+    end
+    -- (unlit on the strips' ground, T.surf1, as drawTab's own wash reads it; lit on drawTab's own panel)
+    p.prerender = function(self)
+        local T2 = ZeD.T
+        local bg = T2.surf1 or T2.base
+        if bg then self:drawRect(0, 0, self.width, self.height, 1, bg.r, bg.g, bg.b) end
+        for _, c in ipairs(self.zedqaCells) do
+            ZeD.TabPx.drawTab(self, c.x, c.y, tw, th, c.id, c.lit, false, T2.px(1), nil)
+        end
+    end
+    p.render = function() end
+    p:addToUIManager()
+    pcall(function() p:bringToTop() end)
+    S.addon = p
+    S.addonMade = S.addonMade or {}
+    S.addonMade[#S.addonMade + 1] = p
+end
+function S.addonOff()
+    local p = S.addon
+    if not p then return end
+    S.addon = nil
+    pcall(function() p:setVisible(false) end)
+    pcall(function() p:removeFromUIManager() end)
+end
+-- every id drew unlit and lit, each icon in colorSet's set
+function S.addonChecks(cb)
+    local lab = "the add-on panel (" .. cb.theme .. ", " .. cb.accent .. ")"
+    local p = S.addon
+    local tabs = p and S.spy and S.fresh(S.spy.tabs, p)
+    local icons = p and S.spy and S.fresh(S.spy.icons, p)
+    if not tabs then Q.check(false, lab .. ": its tabs drew through TabPx.drawTab", "no drawTab call on the panel lately"); return end
+    local bad, n = {}, 0
+    for _, id in ipairs(S.OFF) do
+        for _, lit in ipairs({ false, true }) do
+            local t = nil
+            for _, x in ipairs(tabs) do if x.id == id and x.act == lit then t = x end end
+            local ic = S.iconFor(icons, id, lit)
+            local wantSet = nil
+            pcall(function() wantSet = ZeD.TabPx.colorSet(id, lit) end)
+            local how = id .. (lit and " lit" or " unlit")
+            if not t then bad[#bad + 1] = how .. " not drawn"
+            elseif not ic then bad[#bad + 1] = how .. " no icon drawn"
+            elseif ic.set ~= wantSet or wantSet == nil then bad[#bad + 1] = how .. " icon set " .. tostring(ic.set) .. " (want " .. tostring(wantSet) .. ")"
+            else n = n + 1 end
+        end
+    end
+    Q.check(#bad == 0, lab .. ": " .. table.concat(S.OFF, ", ") .. " each drew unlit and lit, each icon in colorSet's set",
+        (#bad == 0) and (n .. " drawn") or table.concat(bad, "; "))
+end
+function S.addonPic(cb)
+    local st = {}
+    S.step(1, function()
+        if not (S.OFF and #S.OFF > 0) then st.off = true; return end
+        local ok, e = pcall(function() S.iconsOn(); S.addonLay() end)
+        if not ok then
+            st.off = true
+            S.errs = S.errs + 1
+            S.addonOff()
+            S.iconsBack()
+            Q.check(false, "the add-on panel (" .. cb.theme .. ", " .. cb.accent .. "): laid", tostring(e))
+        end
+    end)
+    S.waitIdle(6)
+    S.step(1, function()
+        if st.off then return end
+        local ok, e = pcall(S.addonChecks, cb)
+        if not ok then S.errs = S.errs + 1; Q.check(false, "the add-on panel (" .. cb.theme .. ", " .. cb.accent .. "): the checks ran without an error", tostring(e)) end
+    end)
+    S.shot(function() return "ctab_addon_" .. cb.theme .. "_" .. cb.accent .. "_" .. S.sizeTag() end,
+        function() return "the tabs no strip shows (" .. table.concat(S.OFF or {}, ", ") .. ") unlit and lit, " .. cb.theme .. " " .. cb.accent end,
+        function() return not st.off end,
+        function(pic) S.tabLines("ad", cb, pic, S.addon) end)
+    S.step(1, function()
+        if st.off then return end
+        local p = S.addon
+        S.addonOff()
+        S.iconsBack()
+        Q.check(p ~= nil and not S.inUI(p), "the add-on panel (" .. cb.theme .. ", " .. cb.accent .. "): taken off the screen after its picture")
+        local bad = S.iconsNotBack()
+        Q.check(#bad == 0, "the add-on panel (" .. cb.theme .. ", " .. cb.accent .. "): TabPx.ICONS as found again",
+            (#bad == 0) and table.concat(S.OFF, ", ") or table.concat(bad, "; "))
+    end)
+end
+
 function S.tabs()
     S.carStage()
+    S.ctxStage()
     for _, cb in ipairs(S.COMBOS) do
         S.step(2, function()
             if not (ZeD.AccentColors and ZeD.AccentColors[cb.accent]) then S.note("no accent " .. cb.accent .. " in this build") end
@@ -1108,11 +1491,12 @@ function S.tabs()
                 .. " " .. S.hexC(ZeD.T.accent) .. ", the lit panel " .. S.hexC(S.shade(ZeD.T.accent, 0.85)))
         end)
         S.tabPics(cb)
-        if cb.close then S.closeUps(cb) end
+        if cb.close then S.closeUps(cb); S.addonPic(cb) end
     end
 end
 
 function S.build()
+    S.readArt()   -- (the tab lists, before the steps are laid: the close-ups' slots are counted from them)
     S.setup()
     S.containers()
     S.tabs()
@@ -1123,11 +1507,19 @@ function S.putBack()
     if not S.back.on then return end
     S.back.on = nil
     S.park(false)
+    S.addonOff()
+    S.iconsBack()
     S.lookBack()
     S.winAccentBack()
     S.carAway()
     S.clearObjects()
     for _, it in ipairs(S.made) do S.removeItem(it) end
+    if S.back.hands then
+        S.back.hands = nil
+        local f = S.found
+        pcall(function() S.p:setPrimaryHandItem(f.hand1) end)
+        pcall(function() S.p:setSecondaryHandItem(f.hand2) end)
+    end
     pcall(function() triggerEvent("OnClothingUpdated", S.p) end)
     local cw, ww = RT.cw(), RT.ww()
     if cw then cw._containerTimer = 30 end
@@ -1186,7 +1578,11 @@ function S.buildPutBack()
         end
         for _, it in ipairs(S.made) do if still(it) then left = left + 1 end end
         for _, it in ipairs(S.floorMade) do if still(it) then left = left + 1 end end
-        Q.check(left == 0, "put back: every bag, key ring and floor bag given is gone", left .. " of " .. (#S.made + #S.floorMade) .. " left")
+        Q.check(left == 0, "put back: every bag, key ring, floor bag, radio, rod and dish item given is gone", left .. " of " .. (#S.made + #S.floorMade) .. " left")
+        local h1, h2 = nil, nil
+        pcall(function() h1, h2 = S.p:getPrimaryHandItem(), S.p:getSecondaryHandItem() end)
+        Q.check(h1 == f.hand1 and h2 == f.hand2, "put back: his hands hold what they held",
+            "main " .. S.ft(h1) .. ", off " .. S.ft(h2) .. " (found " .. S.ft(f.hand1) .. ", " .. S.ft(f.hand2) .. ")")
         local extra = 0
         pcall(function()
             local items = S.p:getInventory():getItems()
@@ -1202,7 +1598,14 @@ function S.buildPutBack()
         for _, c in ipairs(S.objs) do if S.objLeft(c) then ol = ol + 1 end end
         local leftNames = {}
         for _, c in ipairs(S.objs) do if S.objLeft(c) then leftNames[#leftNames + 1] = tostring(c.sprite) .. " (" .. tostring(c.types) .. ")" end end
-        Q.check(ol == 0, "put back: the crate and every object laid are gone", ol .. " of " .. #S.objs .. " left" .. ((#leftNames > 0) and (": " .. table.concat(leftNames, ", ")) or ""))
+        Q.check(ol == 0, "put back: the crate, every object laid and the TV set are gone", ol .. " of " .. #S.objs .. " left" .. ((#leftNames > 0) and (": " .. table.concat(leftNames, ", ")) or ""))
+        if S.addonMade then
+            local still = 0
+            for _, p in ipairs(S.addonMade) do if S.inUI(p) then still = still + 1 end end
+            local bad = S.iconsNotBack()
+            Q.check(still == 0 and S.addon == nil and #bad == 0, "put back: the add-on panel is off the screen and TabPx.ICONS as found",
+                still .. " of " .. #S.addonMade .. " panels on the screen" .. ((#bad > 0) and ("; ICONS " .. table.concat(bad, "; ")) or ""))
+        end
         Q.check(ZeD.currentBase == f.base and ZeD.currentAccent == f.accent and S.optVal(S.zopt("baseTheme")) == f.baseIdx
             and S.optVal(S.zopt("accentColor")) == f.accIdx, "put back: the theme and the accent as found (and their options)",
             tostring(ZeD.currentBase) .. " " .. tostring(ZeD.currentAccent) .. " (found " .. tostring(f.base) .. " " .. tostring(f.accent) .. ")")
