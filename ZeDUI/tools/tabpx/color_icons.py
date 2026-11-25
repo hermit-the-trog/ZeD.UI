@@ -2,7 +2,7 @@
 
     python -I ZeDUI/tools/tabpx/color_icons.py <art.json>
 
-art.json: the mock-up's ART table (ZeDUI/mockups/container_tabs_color_v4.html, `const ART`): per tab id a 16 x 16
+art.json: the mock-up's ART table (ZeDUI/mockups/container_tabs_color_v5_art.json; v4's page held the first 14): per tab id a 16 x 16
 pixel map in three letters (a, b, c) and two palettes, "pal" for Dark and High contrast and "palLight" (with its own
 map "pxLight") drawn darker for Light. Equipment is the olive field jacket (the director's pick, art "equip_field").
 
@@ -24,7 +24,9 @@ ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
 TEX = os.path.join(ROOT, "42", "media", "textures", "ZeD", "TabIcons", "color")
 LUA = os.path.join(ROOT, "42", "media", "lua", "client", "ZeD", "ZeD_TabColorArt.lua")
 TABS = ["loot", "equip", "health", "thermal", "identity", "journal", "skills",
-        "craft", "build", "furniture", "maps", "forage", "animals", "vehicle"]
+        "craft", "build", "furniture", "maps", "forage", "animals", "vehicle",
+        # the other 8 (the director, Nov 25 2026: "Approved, have Build add them to the game"; mock-up v5)
+        "radio", "tv", "admin", "server", "cooking", "fishing", "appearance", "traits"]
 ART_OF = {"equip": "equip_field"}
 # a name no game texture shares: the game finds a texture by its bare name too, and "health" drew another picture
 # (QA, Nov 25 2026: a black box with garbled marks for the Health tab)
