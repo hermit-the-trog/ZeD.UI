@@ -1125,8 +1125,19 @@ function S.buildPutBack()
         local f = S.found
         if not f.base then Q.skip("put back", "nothing was staged"); return end
         local left = 0
-        for _, it in ipairs(S.made) do if S.where(it) ~= nil or S.onFloor(it) then left = left + 1 end end
-        for _, it in ipairs(S.floorMade) do if S.where(it) ~= nil or S.onFloor(it) then left = left + 1 end end
+        -- (gone = no container holds it and no square shows it: a removed item keeps its old container field, so the
+        -- container is asked whether it still holds it, and the world item whether it still has a square)
+        local function still(it)
+            if not S.isItem(it) then return false end
+            local c = S.where(it)
+            local held = false
+            if c then pcall(function() held = c:contains(it) end) end
+            local laid = false
+            pcall(function() local wo = it:getWorldItem(); laid = wo ~= nil and wo:getSquare() ~= nil end)
+            return held or laid
+        end
+        for _, it in ipairs(S.made) do if still(it) then left = left + 1 end end
+        for _, it in ipairs(S.floorMade) do if still(it) then left = left + 1 end end
         Q.check(left == 0, "put back: every thing the test gave or laid on the floor is gone", left .. " of " .. (#S.made + #S.floorMade) .. " left")
         local extra = 0
         pcall(function()
