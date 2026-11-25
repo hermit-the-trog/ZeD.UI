@@ -3137,7 +3137,13 @@ local function _holdTicks(s, jid, pn)
                 s.bSteps = (s.bSteps or 0) + 1   -- (a chord after it undoes it: Focus.padChord, KISS #34)
             end
         else
-            if s.win and not s.bCancel and s.bLast == 0 then _stepTab(side, pn, 1) end
+            if s.win and not s.bCancel and s.bLast == 0 then
+                -- (loot KISS call 2, the director, Nov 24 2026) RB tapped on the World window's rows goes to the next
+                -- container, as the game's RB does; anywhere else it turns the tabs
+                local WW = ZeD_WorldWindow
+                local took = side == "world" and WW and WW.padNextContainer and WW.padNextContainer(pn)
+                if not took then _stepTab(side, pn, 1) end
+            end
             s.bHeld, s.bStart, s.bLast, s.bCancel, s.bChord, s.bSteps = nil, 0, 0, false, nil, 0
         end
     end
