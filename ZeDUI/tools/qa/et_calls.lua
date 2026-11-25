@@ -50,9 +50,10 @@
 --   7 both  a two-handed weapon in both hands: the list's SEC row keeps it as bothHands and draws "<name> (both hands)"
 --           dimmed with its icon at alpha 0.4; the doll's data.offBoth is set and its Off box draws the icon at 0.35;
 --           with a one-handed weapon none of that. Pictures et_calls_bothhands_<list|doll>_<theme>_<w>x<h>
---   8 card  a one-handed weapon in the main hand, its equipped card: UNEQUIP, OFF HAND, TWO HANDS, DROP, MORE; OFF HAND
---           moves it to the off hand (the card then UNEQUIP, TWO HANDS, DROP, MORE); TWO HANDS puts it in both (UNEQUIP,
---           OFF HAND, DROP, MORE); by the mouse and by the pad; the 480 card and the 220 card at the text size found and
+--   8 card  the game's rule (Build 5b73df5b0): a one-handed knife in the main hand shows UNEQUIP, OFF HAND, DROP, MORE;
+--           OFF HAND moves it to the off hand (then UNEQUIP, DROP, MORE); a two-handed weapon in the main hand only shows
+--           UNEQUIP, OFF HAND, TWO HANDS, DROP, MORE and TWO HANDS puts it in both (then UNEQUIP, OFF HAND, DROP, MORE);
+--           by the mouse and by the pad; the fit passes use the two-handed weapon's five buttons; the 480 card and the 220 card at the text size found and
 --           in Large text: every button inside the back bar, none over another or the close key; on the 220 card the
 --           hand buttons sit before MORE or in More's menu. Pictures et_calls_card<480|220>_<textsize>_<w>x<h>
 --   9 drop  a drop on the doll: a one-handed weapon on Main is the primary, a weapon on Off the secondary, a two-handed
@@ -132,8 +133,11 @@ S.DOLL_LOCS = {
 }
 S.NONE_LIST = { "MSK", "SHD", "EYE", "ARM", "KNE", "EAR", "WCH" }
 S.NONE_DOLL = { "doll:eyes" }
-S.HANDVERBS = { main = { "UNEQUIP", "OFF HAND", "TWO HANDS", "DROP", "MORE" }, off = { "UNEQUIP", "TWO HANDS", "DROP", "MORE" },
+-- (the game's rule, fixed by Build 5b73df5b0: TWO HANDS only for isTwoHandWeapon or RequiresEquippedBothHands; OFF HAND while in the main hand)
+S.HANDVERBS = { main = { "UNEQUIP", "OFF HAND", "DROP", "MORE" }, off = { "UNEQUIP", "DROP", "MORE" },
+                twomain = { "UNEQUIP", "OFF HAND", "TWO HANDS", "DROP", "MORE" },
                 both = { "UNEQUIP", "OFF HAND", "DROP", "MORE" } }
+S.STATE_VERBWORD = { main = "in the main hand", off = "in the off hand", twomain = "in the main hand (a two-handed weapon)", both = "in both hands" }
 S.STATE_WORD = { main = "in the main hand", off = "in the off hand", both = "in both hands", none = "in no hand" }
 S.DROPS = {
     { k = "knife", box = "main", want = "pri", lab = "a one-handed weapon dropped on the Main box goes to the main hand" },
@@ -2345,7 +2349,7 @@ function S.verbCheck(L, key, state)
     local ids = S.cardIdList()
     local compact = S.isHalf()
     local want = S.HANDVERBS[state]
-    return Q.check(S.verbsOK(ids, want, compact), L.lab .. ": the weapon " .. S.STATE_WORD[state] .. ", its card shows " .. table.concat(want, ", ")
+    return Q.check(S.verbsOK(ids, want, compact), L.lab .. ": the weapon " .. S.STATE_VERBWORD[state] .. ", its card shows " .. table.concat(want, ", ")
         .. (compact and " (the half card: the hand buttons that fit, before MORE)" or ""), "the card shows " .. S.idsText(ids))
 end
 function S.pressVerb(L, key, id)
@@ -2382,14 +2386,26 @@ function S.card8leg(T, how, pad)
         Q.check(S.handState(S.sp.knife) == "off", L.lab .. ": OFF HAND moves the weapon to the off hand", "it is " .. S.STATE_WORD[S.handState(S.sp.knife)])
     end)
     S.openFor(L, "b", knife, pad)
-    S.step(6, function() if S.verbCheck(L, "b", "off") then S.pressVerb(L, "b", "TWO HANDS") end end)
+    S.step(6, function() S.verbCheck(L, "b", "off") end)
+    -- the two-handed weapon held in the main hand only: TWO HANDS shows, and puts it in both hands
+    local two = function() return T.two end
+    S.step(2, function()
+        S.padOff()
+        S.cardClose()
+        if T.off or not T.two then L.b = nil; L.c = nil; return end
+        S.handsSet(T.two, nil)
+    end)
+    S.waitIdle(10)
+    S.step(2, function() L.b = nil end)
+    S.openFor(L, "b", two, pad)
+    S.step(6, function() if S.verbCheck(L, "b", "twomain") then S.pressVerb(L, "b", "TWO HANDS") end end)
     if pad then S.tapA(function() return L.v end) end
     S.wait(4, 900, S.settled(10), S.noop)
     S.step(10, function()
         if not L.v then return end
-        Q.check(S.handState(S.sp.knife) == "both", L.lab .. ": TWO HANDS puts the weapon in both hands", "it is " .. S.STATE_WORD[S.handState(S.sp.knife)])
+        Q.check(S.handState(T.two) == "both", L.lab .. ": TWO HANDS puts the two-handed weapon in both hands", "it is " .. S.STATE_WORD[S.handState(T.two)])
     end)
-    S.openFor(L, "c", knife, pad)
+    S.openFor(L, "c", two, pad)
     S.step(6, function() S.verbCheck(L, "c", "both") end)
     S.step(2, function() S.padOff(); S.cardClose() end)
 end
@@ -2419,8 +2435,8 @@ function S.fitCheck(F, card)
     F.cardOK = Q.check(#ids >= 2 and #bad == 0, lab .. ": the card's buttons (" .. S.idsText(ids) .. ") sit inside its back bar, none over another or the close key",
         "the card " .. math.floor(cw) .. " px" .. ((#bad > 0) and ("; " .. table.concat(bad, "; ")) or ""))
     local compact = (card == 220)
-    Q.check(S.verbsOK(ids, S.HANDVERBS.main, compact), lab .. ": the weapon in the main hand, the buttons are "
-        .. (compact and "UNEQUIP, the hand buttons that fit, MORE" or table.concat(S.HANDVERBS.main, ", ")), "shows " .. S.idsText(ids))
+    Q.check(S.verbsOK(ids, S.HANDVERBS.twomain, compact), lab .. ": the two-handed weapon in the main hand, the buttons are "
+        .. (compact and "UNEQUIP, the hand buttons that fit, MORE" or table.concat(S.HANDVERBS.twomain, ", ")), "shows " .. S.idsText(ids))
     F.missing = {}
     if compact then
         for _, id in ipairs({ "OFF HAND", "TWO HANDS" }) do if not S.inList(ids, id) then F.missing[#F.missing + 1] = id end end
@@ -2436,7 +2452,8 @@ function S.cardFitPass(T, card, sz)
         if card == 220 and not T.half then F.off = true; Q.skip(F.lab, "the half card could not be brought about here"); return end
         if sz == "large" then S.sizeSet("large") else S.sizeBack() end
         S.cardClose()
-        S.handsSet(S.sp.knife, nil)
+        if not T.two then F.off = true; Q.skip(F.lab, "no two-handed weapon could be made, so the five-button card can't be staged"); return end
+        S.handsSet(T.two, nil)
     end)
     S.waitIdle(30)
     S.toEquip("list", F, "8 the " .. card .. " card")
@@ -2448,10 +2465,10 @@ function S.cardFitPass(T, card, sz)
             Q.skip(F.lab, "the drawer stands at " .. math.floor(RT.cw()._drawerEffW or 0) .. " px here, not the " .. card .. " card (" .. ZeD.T.px(card) .. " px)")
         end
     end)
-    S.openRow(F, "f", function() return S.sp.knife end, "8 the " .. card .. " card")
+    S.openRow(F, "f", function() return T.two end, "8 the " .. card .. " card")
     S.step(6, function() if F.f then S.fitCheck(F, card) end end)
     S.shot(function() return "et_calls_card" .. card .. "_" .. tostring(ZeD.currentSize) .. "_" .. S.sizeTag() end,
-        "the knife's equipped card on the " .. card .. " card: its buttons in the back bar", function() return F.f and true or false end)
+        "a two-handed weapon's equipped card (main hand only, all five buttons) on the " .. card .. " card: its buttons in the back bar", function() return F.f and true or false end)
     if card == 220 then
         S.step(2, function()
             F.more = nil
@@ -2481,6 +2498,8 @@ function S.case8()
     S.step(2, function()
         if S.eqOff then T.off = true; return end
         S.caseStart()
+        T.two = S.twoKind()
+        if not T.two then Q.say("NOTE 8 card: no weapon the game marks two-handed could be made; the TWO HANDS legs and the fit passes SKIP") end
         S.handsSet(S.sp.knife, nil)
     end)
     S.toEquip("list", T, "8 card")
