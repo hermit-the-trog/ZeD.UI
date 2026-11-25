@@ -1424,6 +1424,15 @@ function C.mouse()
         local oc = RT.ww()._objectCard
         local n = #(t.d.faces or {})
         T.pFirst = t.d.faces[t.face] and t.d.faces[t.face].name
+        -- the order the preview's ">" really steps (read, not assumed): a full turn, back to the start (Build's B6 fix
+        -- makes ">" step as RB turns the cursor; the pad case checks RB against this)
+        S.previewOrder = { T.pFirst }
+        for k = 1, n do
+            for _, z in ipairs(oc._zones or {}) do
+                if z.fid == "oc:faceR" and z.run then pcall(z.run) end
+            end
+            if k < n then S.previewOrder[#S.previewOrder + 1] = t.d.faces[t.face] and t.d.faces[t.face].name end
+        end
         T.pSteps = 0
         for _ = 1, 2 do
             for _, z in ipairs(oc._zones or {}) do
@@ -1616,7 +1625,8 @@ function C.pad()
         local cur = H.drag()
         if not H.isBuildCur(cur) then Q.skip("pad (B6): RB turns the way the preview's > steps", "the cursor went (" .. H.dragType(cur) .. ")"); return end
         local rd = H.row(T.name)
-        local P = H.faceNames(rd.entry)
+        -- (the order the preview's ">" stepped in the mouse case, when it was read there; else the game's index order)
+        local P = (S.previewOrder and #S.previewOrder >= 3) and S.previewOrder or H.faceNames(rd.entry)
         local R = { H.faceName(cur) }
         for _ = 1, 4 do H.ctlPress(Joypad.RBumper); R[#R + 1] = H.faceName(cur) end
         H.ctlPress(Joypad.LBumper)
