@@ -378,13 +378,45 @@ local function gatherDetail(rd, playerObj, win)
             and chk.status == rd.status and chk.learned == rd.learned) then
         chk = { name = entry.name, cont = containers, bench = benchKey, status = rd.status, learned = rd.learned, ok = nil, most = 1 }
         win._craftStartChk = chk
+        local surface = craftSurface(playerObj, entry, bench)
+        local logic = nil
         if entry.recipe and rd.status == "craftable" then
-            chk.ok, chk.most = ZeD.CraftingTab.startCheck(playerObj, bench, containers, entry.recipe, entry.allowBatch,
-                craftSurface(playerObj, entry, bench))
+            chk.ok, chk.most, logic = ZeD.CraftingTab.startCheck(playerObj, bench, containers, entry.recipe, entry.allowBatch,
+                surface)
         end
+        -- The card's have counts, as the game's craft window counts them (QA cb sweep, Nov 25 2026,
+        -- C4): the start check's logic when it ran, else one made for the count alone
+        if not logic and entry.recipe then
+            pcall(function()
+                local l = HandcraftLogic.new(playerObj, bench and bench.comp or nil, bench and bench.obj or surface or nil)
+                l:setContainers(containers)
+                l:setRecipe(entry.recipe)
+                logic = l
+            end)
+        end
+        chk.counts = CC.gameInputCounts(logic, entry)
+        chk.surface = surface
+    end
+    CC.applyGameCounts(rd, chk.counts)
+
+    -- Chosen ingredients: Max and the amount count only the crafts they cover, as the game's Max does
+    -- (QA cb sweep, Nov 25 2026, C7). Worked out again when the picks or the check above change.
+    local most = chk.most
+    local state = win._craftState
+    local picks = state and state.picks and state.picks[entry.name]
+    if chk.ok and picks then
+        local sig = ""
+        for i = 1, #(entry.inputDefs or {}) do sig = sig .. tostring(picks[i]) .. ";" end
+        if chk.pickSig ~= sig then
+            chk.pickSig = sig
+            chk.pickMost = CC.pickedCraftCount(playerObj, state, entry, bench, containers, chk.surface, chk.most or 1)
+        end
+        if chk.pickMost then most = math.min(most or 1, chk.pickMost) end
     end
     rd.canStart = chk.ok
-    rd.maxBatchQty = chk.most
+    rd.maxBatchQty = most
+    -- Craft grays while a craft ZeD queued is still waiting or running (C1)
+    rd.busy = CC.craftBusy(win, playerObj)
 end
 
 -- ============================================================================
@@ -405,6 +437,11 @@ function ZeD.CraftingTab.startCraft(win, state)
 
     local recipe = entry.recipe
     local qty = state.qty or 1
+
+    -- A craft ZeD queued is still waiting or running: refused, as the game's window refuses a
+    -- second press while its craft runs (QA cb sweep, Nov 25 2026, C1). The click and the pad's A
+    -- both come here.
+    if CC.craftBusy(win, playerObj) then return end
 
     -- At a bench: still bound and in reach, walk over if needed (vanilla's
     -- HandcraftStartMultiple does the same), and the action carries the bench
@@ -439,18 +476,26 @@ function ZeD.CraftingTab.startCraft(win, state)
     -- inputs off the floor or out of a crate move into the inventory first when the recipe cannot
     -- be made from the floor, as vanilla's craft window does before its walk (startHandcraft); the
     -- kept ones are queued back after the crafts (beast W25)
-    local back = checkLogic and CC.moveCraftInputs(playerObj, checkLogic) or {}
+    local back, moved = {}, {}
+    if checkLogic then back, moved = CC.moveCraftInputs(playerObj, checkLogic) end
 
-    -- walk to the bench, or to an any-surface recipe's table (as vanilla's HandcraftStart does)
+    -- walk to the bench, or to an any-surface recipe's table (as vanilla's HandcraftStart does).
+    -- No way there: no craft is queued, and every input moved above goes back where it was, as the
+    -- game's window sends its kept inputs back when its walk fails (QA cb sweep, Nov 25 2026, C9:
+    -- the moves stood, no craft, the plank and the screwdriver left in the inventory)
     local at = bench and bench.obj or surface
-    if at and ISEntityUI and ISEntityUI.WalkToEntity and not ISEntityUI.WalkToEntity(playerObj, at) then return end
+    if at and ISEntityUI and ISEntityUI.WalkToEntity and not ISEntityUI.WalkToEntity(playerObj, at) then
+        CC.returnCraftInputs(playerObj, moved)
+        return
+    end
 
     -- Build actions directly — ISHandcraftAction:new calls
     -- convertToPZNetTable(manualInputs) which crashes on nil AND false.
     -- But :start() needs manualInputs to be falsy so it auto-resolves
     -- inputs from the recipe.  Fix: construct via ISBaseTimedAction:new
     -- and set fields manually, skipping convertToPZNetTable entirely.
-    local craftOk = pcall(function()
+    local queued = {}
+    pcall(function()
         for i = 1, qty do
             local action = ISBaseTimedAction.new(ISHandcraftAction, playerObj)
             action.stopOnAim    = false
@@ -469,15 +514,15 @@ function ZeD.CraftingTab.startCraft(win, state)
             if playerObj:hasTrait(CharacterTrait.ALL_THUMBS) or playerObj:isWearingAwkwardGloves() then
                 action.stopOnWalk = true
             end
+            -- (its use count goes up when it starts, and its start asks the game's check: C1, C19)
+            CC.prepCraftAction(action, playerObj, recipeName, "ZeD_CraftCounts")
             ISTimedActionQueue.add(action)
+            queued[#queued + 1] = action
         end
     end)
     CC.returnCraftInputs(playerObj, back)   -- (beast W25)
-
-    -- Increment craft count only if execution succeeded
-    if craftOk then
-        CC.incrementCraftCount(playerObj, recipeName, "ZeD_CraftCounts")
-    end
+    -- Craft stays gray while these are in the queue (C1)
+    CC.trackCraftActions(win, queued)
 
     -- Reset state
     state.qty = 1
