@@ -351,7 +351,7 @@ end
 function ZeD_WorldWindow.padTakeAll(w, el)
     local cnt = w and w._containers and w._containers[el.containerIdx]
     if not (cnt and cnt.inventory and not cnt.locked and w._playerObj and ZeD.ContainerControls) then return end
-    if ZeD.ContainerControls.lootAllFrom(w._playerObj, cnt.inventory) then pcall(function() ZeD.uiSound("UIActivateButton") end) end
+    if ZeD.ContainerControls.lootAllFrom(w._playerObj, cnt.inventory, ZeD.ContainerControls.takeDest(w._playerObj)) then pcall(function() ZeD.uiSound("UIActivateButton") end) end
 end
 --- The X prompt on a container's button: the game's Take all, hidden while nothing there is wanted (or it is locked).
 function ZeD_WorldWindow.padTakeAllPrompt(w, el)
@@ -3709,6 +3709,37 @@ end
 --- True while the World window is open. pn: whose window (nil: the first player's).
 function ZeD_WorldWindow.isOpen(pn)
     return _worldWins[pn or 0] ~= nil
+end
+
+--- The game's hidden loot page put on the container this window shows. The item menu's "Put in Container (X)" and the
+--- Move to submenu's loot entry read that page (getPlayerLoot(pn).inventory, ISInventoryPaneContextMenu), so they name
+--- and fill what he sees, never a crate or a body the page last held. With the window shut the page goes on the floor,
+--- where the game drops both rows. Returns the page's old fields when it changed them (old.open: the window is up),
+--- else nil. (QA's loot KISS test, Nov 24 2026: the battery went into a body beside the crate on show)
+function ZeD_WorldWindow.syncLootPage(pn)
+    pn = pn or 0
+    if ZeD.Safe.on("windows") or not ZeD.windowsFor(pn) then return nil end
+    local vl = getPlayerLoot(pn)
+    if not (vl and vl.inventoryPane) then return nil end
+    local win = _worldWins[pn]
+    local c = win and win._containers and win._containers[win._viewedContainer or win._activeContainer]
+    local inv, name = c and c.inventory, c and c.name
+    local open = inv ~= nil
+    if not inv then inv = ISInventoryPage.GetFloorContainer and ISInventoryPage.GetFloorContainer(pn) end
+    if not inv or (vl.inventory == inv and vl.inventoryPane.inventory == inv) then return nil end
+    local old = { inventory = vl.inventory, pane = vl.inventoryPane.inventory, last = vl.inventoryPane.lastinventory,
+                  title = vl.title, open = open }
+    vl.inventory, vl.inventoryPane.inventory, vl.inventoryPane.lastinventory = inv, inv, inv
+    if name then vl.title = name end
+    return old
+end
+--- Gives the page back what syncLootPage changed (the menu's build with the window shut: the window's own way in,
+--- "open on the page's container", stays as it was).
+function ZeD_WorldWindow.restoreLootPage(pn, old)
+    local vl = old and getPlayerLoot(pn or 0)
+    if not (vl and vl.inventoryPane) then return end
+    vl.inventory, vl.inventoryPane.inventory, vl.inventoryPane.lastinventory = old.inventory, old.pane, old.last
+    vl.title = old.title
 end
 
 --- Rebuilds the controller's stops for the tab now showing (Reset windows calls

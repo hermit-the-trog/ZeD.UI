@@ -2569,7 +2569,7 @@
     "UI_ZeD_Settings_ContextMenuTip": "The right-click menu: a strip of icons with the target and what the action needs, or a list, one action to a row, as the game's own.",
     "UI_ZeD_Settings_ContextStrip": "Icon strip",
     "UI_ZeD_Settings_WornList": "Worn and held things",
-    "UI_ZeD_Settings_WornListTip": "Where the things you wear and hold show: in their own group at the top of the inventory list, where a double-click takes one off, or only on the Equipment tab, with a line at the end of the list that opens it.",
+    "UI_ZeD_Settings_WornListTip": "Where the things you wear and hold show: in their own group at the end of the inventory list, where a double-click takes one off, or only on the Equipment tab, with a line at the end of the list that opens it.",
     "UI_ZeD_Settings_WornListTop": "In the list",
     "UI_ZeD_Settings_WornListTab": "On the Equipment tab",
     "UI_ZeD_Settings_Dark": "Dark",

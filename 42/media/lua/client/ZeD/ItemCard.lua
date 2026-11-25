@@ -1077,7 +1077,7 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
         -- things go by ZeD_WorldWindow.transferFromFloor, all into your inventory)
         local CT = ZeD.ContainerControls
         if CT and CT.grabItems then
-            CT.grabItems(player, items, player:getInventory())
+            CT.grabItems(player, items, CT.takeDest and CT.takeDest(player) or player:getInventory())   -- (the bag on show)
         elseif CM.onGrabItems then
             CM.onGrabItems(items, playerNum)
         end

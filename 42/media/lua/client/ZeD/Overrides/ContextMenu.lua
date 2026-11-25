@@ -234,7 +234,12 @@ local origInvCreateMenu = V.invCreateMenu
 function ISInventoryPaneContextMenu.createMenu(player, isInInv, items, x, y, origin)
     -- (origin: vanilla's sixth argument, passed through as it came)
     if ZeD.Safe.on() then return origInvCreateMenu(player, isInInv, items, x, y, origin) end
+    -- (the game's rows that read its hidden loot page, Put in Container and Move to's loot entry, follow the World
+    -- window's container; with the window shut they drop, and the page gets back what it held. QA's loot KISS test)
+    local W = ZeD_WorldWindow
+    local lootOld = W and W.syncLootPage and W.syncLootPage(player)
     local menu = origInvCreateMenu(player, isInInv, items, x, y, origin)
+    if lootOld and not lootOld.open then W.restoreLootPage(player, lootOld) end
     if menu then
         menu._zedTarget = items
         if _isGamepadActive(player) then
@@ -268,6 +273,18 @@ end
 -- This is our signal to forget any previously-spawned ZeD menu and let the
 -- next prerender frame build a fresh one.
 -- ---------------------------------------------------------------------------
+-- Put in Container's own run reads the page again on the click: the container on show then, as the row named it.
+-- (With the window shut since the menu opened, the page keeps the container the row named.)
+local origPutItems = ISInventoryPaneContextMenu.onPutItems
+ISInventoryPaneContextMenu.onPutItems = function(items, player)
+    local W = ZeD_WorldWindow
+    if origPutItems and not ZeD.Safe.on() and W and W.syncLootPage then
+        local old = W.syncLootPage(player)
+        if old and not old.open then W.restoreLootPage(player, old) end
+    end
+    if origPutItems then return origPutItems(items, player) end
+end
+
 local origClear = V.clear
 function ISContextMenu:clear()
     origClear(self)

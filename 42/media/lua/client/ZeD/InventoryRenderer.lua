@@ -1089,14 +1089,17 @@ function ZeD.InventoryRenderer.quickUse(item, playerNum, rows, wear)   -- rows: 
     local src = item and item:getContainer()
     if not (playerObj and src) then return end
     local mainInv = playerObj:getInventory()
-    if src == mainInv then
+    -- (into the bag on show, as the game's double-click fills its page's selected bag; a Shift + double-click wears,
+    -- so it comes to the main inventory first. A thing already in that bag is used, as in the game. QA's loot KISS)
+    local dest = wear and mainInv or ZeD.ContainerControls.takeDest(playerObj) or mainInv
+    if src == mainInv or src == dest then
         ISInventoryPane.doContextualDblClick({ player = playerNum }, item)
     elseif isForceDropHeavyItem and isForceDropHeavyItem(item) then
         ISInventoryPaneContextMenu.equipHeavyItem(playerObj, item)
     elseif not (item:isHumanCorpse() and playerObj:getVehicle()) then
         local floor = src:getType() == "floor"
         if floor or luautils.walkToContainer(src, playerNum) then
-            ZeD.ContainerControls.moveItems(playerObj, rows or { item }, mainInv)
+            ZeD.ContainerControls.moveItems(playerObj, rows or { item }, dest)
             if wear then
                 for _, it in ipairs(rows or { item }) do
                     if instanceof(it, "Clothing") and not it:isBroken() then ISTimedActionQueue.add(ISWearClothing:new(playerObj, it)) end
@@ -2451,7 +2454,7 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
     -- what the player wears and holds, once for the list (an item held elsewhere: asked item by item)
     local held = isPlayerInv and items and heldSet(playerObj, inv) or nil
     local nShown = 0   -- (the things the rows show: the heading and the help line count these)
-    -- (KISS #11) with the setting on, what is worn or held stays in the list, in a group of its own at the top
+    -- (KISS #11) with the setting on, what is worn or held stays in the list, in a group of its own at the end (the director, Nov 23 2026)
     local wornOn = isPlayerInv and ZeD.InventoryRenderer.wornListed()
     local wornRows = {}   -- (the worn and held things, for the flat lists)
     if items then
