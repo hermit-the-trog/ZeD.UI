@@ -198,7 +198,7 @@ G.ZED_GROUPS = {
         { "smartAttach", "onoff" } } },
     -- (the audit: Inventory has the view button in every column header, Equipped items the Equip tab's own switch,
     -- the window accents each window's menu; Hidden actions has one-word choices, the help band explains them)
-    { "UI_ZeD_Options_ZedWindows", { { "contextStyle", "radio" }, { "wornInList", "radio" }, { "uiSounds", "radio" }, { "hiddenActions", "radio" } } },
+    { "UI_ZeD_Options_ZedWindows", { { "contextStyle", "radio" }, { "menuGuess", "onoff" }, { "wornInList", "radio" }, { "uiSounds", "radio" }, { "hiddenActions", "radio" } } },
     -- (Lite's clock is always in the corner: the Watch row shows in Full only)
     { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio", fullOnly = true } } },
     -- (the button pictures: Auto, which follows the game's own controller button style, or Letters; how the wheels are

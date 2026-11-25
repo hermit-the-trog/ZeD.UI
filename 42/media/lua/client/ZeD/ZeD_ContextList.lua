@@ -170,8 +170,35 @@ function ZeD_ContextList:open()
         x = psL + math.floor((psW - top.w) / 2)
         y = psT + psH - top.h - ZeD.T.px(140)
     end
-    self:_place(top, x, y, nil)
     top.sel = self:_firstLive(top, 1, 1) or 1
+    -- The menu's best guess is the row it opens on (Overrides/ContextMenu.lua sets _zedGuessIdx). Opened by the mouse,
+    -- the list opens with that row under the pointer, clamped to the screen as before; a row the clamp moves off the
+    -- pointer stays lit as the selection until the mouse moves (_guessHold). (smart menu, the director, Nov 24 2026)
+    local gDef = self._zedGuessIdx and top.items[self._zedGuessIdx]
+    local gRow = nil
+    for ri, r in ipairs(top.rows) do
+        if gDef and r.def == gDef then gRow = ri; break end
+    end
+    self._guessHold = false
+    local ry = nil   -- (the guessed row's top, from the level's top, when it goes under the pointer)
+    if gRow then
+        top.sel = gRow
+        if self._zedGuessUnder and self.anchorMode ~= "dock" and ZeD.MenuGuess then
+            local T = ZeD.T
+            ry = T.px(PAD_Y) + (top.head and T.px(HEAD_H) or 0)
+            for ri = 1, gRow - 1 do ry = ry + (top.rows[ri].sep and T.px(SEP_H) or T.px(ROW_H)) end
+            -- (the pointer a margin in from the row's left edge, at its middle height)
+            x, y = ZeD.MenuGuess.place(self._anchorX, self._anchorY, T.px(PAD_X), ry + math.floor(T.px(ROW_H) / 2),
+                top.w, T.px(ROW_H) / 2, top.w, top.h, getCore():getScreenWidth(), getCore():getScreenHeight(), T.px(8))
+        end
+    end
+    self:_place(top, x, y, nil)
+    if ry then
+        -- the clamp moved the row off the pointer: it stays lit as the selection anyway
+        local ax, ay = self._anchorX, self._anchorY
+        local onRow = ax >= top.x and ax < top.x + top.w and ay >= top.y + ry and ay < top.y + ry + ZeD.T.px(ROW_H)
+        self._guessHold = not onRow
+    end
     self._levels = { top }
     -- opened by the pad, the first row is marked at once; with the mouse, only the row it is on
     -- (the list's own player's input: in split screen each player's is their own)
@@ -261,6 +288,17 @@ function ZeD_ContextList:confirm(li)
     if not (r and live(r.def)) then return end
     if disabled(r.def, self._ctx.target) then return end
     if self:_openSub(li, true) then return end
+    -- (an item menu remembers the pick for its kind of item: the next one starts there; smart menu, the director,
+    -- Nov 24 2026)
+    if self._zedGuessType and ZeD.MenuGuess then
+        local names, parents = self:_pathTo(li), {}
+        names[#names + 1] = r.def.name
+        for k = 1, li - 1 do
+            local pr = self._levels[k] and self._levels[k + 1] and self._levels[k].rows[self._levels[k + 1].parentRow]
+            if pr and pr.def then parents[#parents + 1] = pr.def end
+        end
+        pcall(ZeD.MenuGuess.notePick, self.player, self._zedGuessType, names, r.def, parents)
+    end
     -- (fired through ZeD.Popups.firing: an action the row queues does not shut a list that stays open, keepOpen)
     if r.def.onFire then
         if ZeD.Popups then pcall(ZeD.Popups.firing, r.def.onFire, self._ctx.target)
@@ -397,6 +435,9 @@ function ZeD_ContextList:prerender()
                 r.y = cy - y
                 local off = disabled(def, self._ctx.target)
                 local over = li == topLi and mx >= x and mx < x + w and my >= cy and my < cy + rowH
+                -- (the best guess the clamp kept off the pointer reads as pointed until the mouse moves; smart menu,
+                -- the director, Nov 24 2026)
+                if li == 1 and self._guessHold then over = true end
                 local isSel = (lv.sel == ri)
                 local openParent = self._levels[li + 1] and self._levels[li + 1].parentRow == ri
                 -- the row the cue is on, the deepest level's winning (a submenu with nothing picked
@@ -617,6 +658,7 @@ function ZeD_ContextList:update()
     end
     self._lastMx, self._lastMy = mx, my
     self._nav = "mouse"
+    self._guessHold = false   -- (the mouse moved: the pointer picks again; smart menu, the director, Nov 24 2026)
     local li, ri = rowAt(self, mx, my)
     if not li then return end
     local lv = self._levels[li]

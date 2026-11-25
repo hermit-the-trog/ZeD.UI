@@ -2568,6 +2568,8 @@
     "UI_ZeD_Settings_ContextMenu": "Context menu",
     "UI_ZeD_Settings_ContextMenuTip": "The right-click menu: a strip of icons with the target and what the action needs, or a list, one action to a row, as the game's own.",
     "UI_ZeD_Settings_ContextStrip": "Icon strip",
+    "UI_ZeD_Settings_MenuGuess": "Menu opens on its best guess",
+    "UI_ZeD_Settings_MenuGuessTip": "An item's right-click menu opens on the action you most likely want: Eat when you are hungry, Drink when thirsty, a bandage when hurt; else moving it to the container you just moved things into, what you picked last time on that kind of item, or its main use. With the mouse it opens under the pointer.",
     "UI_ZeD_Settings_WornList": "Worn and held things",
     "UI_ZeD_Settings_WornListTip": "Where the things you wear and hold show: in their own group at the end of the inventory list, where a double-click takes one off, or only on the Equipment tab, with a line at the end of the list that opens it.",
     "UI_ZeD_Settings_WornListTop": "In the list",

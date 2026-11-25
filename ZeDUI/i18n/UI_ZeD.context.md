@@ -3682,6 +3682,8 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Settings_ContextMenu` | `Context menu` | Options > Mods > ZeD-GUI: name of the right-click menu style setting | - |
 | `UI_ZeD_Settings_ContextMenuTip` | `The right-click menu: a strip of icons with the target and what the action needs, or a list, one action to a row, as the game's own.` | Options > Mods > ZeD-GUI: hover help | - |
 | `UI_ZeD_Settings_ContextStrip` | `Icon strip` | Options > Mods > ZeD-GUI: choice of the Context menu setting | - |
+| `UI_ZeD_Settings_MenuGuess` | `Menu opens on its best guess` | Options > Mods > ZeD-GUI and ZeD setup > Windows: name of the on/off setting that makes an item's right-click menu open with the likeliest action selected | - |
+| `UI_ZeD_Settings_MenuGuessTip` | `An item's right-click menu opens on the action you most likely want: Eat when you are hungry, Drink when thirsty, a bandage when hurt; else moving it to the container you just moved things into, what you picked last time on that kind of item, or its main use. With the mouse it opens under the pointer.` | Options > Mods > ZeD-GUI: hover help; ZeD setup: help line | - |
 | `UI_ZeD_Settings_WornList` | `Worn and held things` | Options > Mods > ZeD-GUI: name of the setting for where worn and held things show | - |
 | `UI_ZeD_Settings_WornListTip` | `Where the things you wear and hold show: in their own group at the top of the inventory list, where a double-click takes one off, or only on the Equipment tab, with a line at the end of the list that opens it.` | Options > Mods > ZeD-GUI: hover help | - |
 | `UI_ZeD_Settings_WornListTop` | `In the list` | Options > Mods > ZeD-GUI: choice of the Worn and held things setting | - |

@@ -269,6 +269,13 @@ local ctxStyle = opts:addComboBox("contextStyle", ZeD.tr("UI_ZeD_Settings_Contex
 ctxStyle:addItem(ZeD.tr("UI_ZeD_Settings_ContextStrip"), false)
 ctxStyle:addItem(ZeD.tr("UI_ZeD_Settings_ViewList"), true)   -- default: the list (KISS #7)
 ZeD.Settings.contextStyleOption = ctxStyle
+-- The right-click menu on an item opens on its best guess (ZeD_MenuGuess.lua): Eat when hungry, the container just
+-- moved into, the last pick on that kind of item, its main use. Item 1 Off, item 2 On (an on/off row); On is the
+-- default, Lite too (it changes no look). (smart menu, the director, Nov 24 2026)
+local menuGuess = opts:addComboBox("menuGuess", ZeD.tr("UI_ZeD_Settings_MenuGuess"), ZeD.tr("UI_ZeD_Settings_MenuGuessTip"))
+menuGuess:addItem(getText("UI_Off"), false)
+menuGuess:addItem(getText("UI_On"), true)   -- default
+ZeD.Settings.menuGuessOption = menuGuess
 -- What you wear and hold: in their own group at the top of the inventory list (the default), or only on the
 -- Equipment tab, with one line at the list's end that opens the tab (InventoryRenderer, ContainerControls; KISS #11).
 local wornList = opts:addComboBox("wornInList", ZeD.tr("UI_ZeD_Settings_WornList"),
@@ -810,6 +817,7 @@ do
         statusColors = "UI_ZeD_Settings_StatusColors",
         moodlePlace = "UI_ZeD_Settings_Moodles", equipView = "UI_ZeD_Settings_EquipView",
         inventoryView = "UI_ZeD_Settings_Inventory", contextStyle = "UI_ZeD_Settings_ContextMenu",
+        menuGuess = "UI_ZeD_Settings_MenuGuess",
         wornInList = "UI_ZeD_Settings_WornList",
         watchPlace = "UI_ZeD_Settings_Watch", actionBar = "UI_ZeD_Settings_ActionBar",
         charAccent = "UI_ZeD_Settings_CharAccent", worldAccent = "UI_ZeD_Settings_WorldAccent",
