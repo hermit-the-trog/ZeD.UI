@@ -1130,6 +1130,9 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
         if CM.onWearItems then CM.onWearItems(items, playerNum) end
     elseif label == "OFF HAND" then
         if CM.OnSecondWeapon then CM.OnSecondWeapon(items, playerNum) end
+    elseif label == "TWO HANDS" then
+        -- the game's Equip in Both Hands (the director's call 8, Nov 25 2026)
+        if CM.OnTwoHandsEquip then CM.OnTwoHandsEquip(items, playerNum) end
     elseif label == "MORE" then
         -- the item's whole context menu (ZeD's look, the player's choice of
         -- strip or list), opened under the MORE button

@@ -196,7 +196,7 @@ do
     check("the skill rows say dpadExits", cw:find("onDpadDir = _skillRowOnDpadDir,%s*\n%s*dpadExits = true") ~= nil)
     local n = 0
     for _ in cw:gmatch("onDpadDir = _equipDollDpad,%s*\n%s*dpadExits = true") do n = n + 1 end
-    check("the doll's slots say dpadExits (both builders)", n == 2, n)
+    check("the doll's slots say dpadExits (both builders, and the list's empty rows: the director's call 5)", n == 3, n)
     -- and the dry run hands it on
     if Focus and Focus.previewMove then
         local w = { _zedLabel = "x", _focusIdx = 1, _focusRing = { { zone = "z", focusable = true, focusedElementIdx = 1,

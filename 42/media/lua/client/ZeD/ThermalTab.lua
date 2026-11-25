@@ -151,6 +151,59 @@ local function getThermalColor(pct)
     return T.tempHot
 end
 
+-- The core temperature's moodle level, the game's own cuts (the director's call 1, Nov 25 2026):
+-- Hypothermia below 36.5, 35, 30 and 25 C (-1..-4), Hyperthermia above 37.5, 39, 40 and 41 C (1..4), else 0.
+local HYPO_CUTS  = { 36.5, 35, 30, 25 }
+local HYPER_CUTS = { 37.5, 39, 40, 41 }
+function ZeD.ThermalTab.coreLevel(c)
+    c = c or 37
+    local lv = 0
+    for i, cut in ipairs(HYPO_CUTS) do if c < cut then lv = -i end end
+    if lv ~= 0 then return lv end
+    for i, cut in ipairs(HYPER_CUTS) do if c > cut then lv = i end end
+    return lv
+end
+-- the core meter by level: each level its own segments and color; green only with no moodle on
+-- (lit: Hypothermia 4..1 = 1..4, none = 5, Hyperthermia 1..4 = 7..10)
+local CORE_LIT = { [-4] = 1, [-3] = 2, [-2] = 3, [-1] = 4, [0] = 5, [1] = 7, [2] = 8, [3] = 9, [4] = 10 }
+function ZeD.ThermalTab.coreLook(c)
+    local T = ZeD.T
+    local lv = ZeD.ThermalTab.coreLevel(c)
+    local col = T.tempNorm
+    if lv == -1 then col = T.tempCool elseif lv < -1 then col = T.tempCold
+    elseif lv == 1 then col = T.tempWarm elseif lv > 1 then col = T.tempHot end
+    return CORE_LIT[lv], col, lv
+end
+
+-- The WET moodle's steps (15, 40, 70 and 90 of 100) and its own words (the director's call 4)
+local WET_CUTS = { 0.15, 0.40, 0.70, 0.90 }
+function ZeD.ThermalTab.wetLevel(v)
+    local lv = 0
+    for i, cut in ipairs(WET_CUTS) do if (v or 0) >= cut then lv = i end end
+    return lv
+end
+function ZeD.ThermalTab.wetWordKey(v)
+    local lv = ZeD.ThermalTab.wetLevel(v)
+    return lv == 0 and "IGUI_Temp_Dry" or ("Moodles_Wet_lvl" .. lv)
+end
+-- Wetness in the game's own scheme, green when dry to blue when soaked (call 2), one flat color per
+-- moodle step: dry the green, then halfway to the teal, the teal, halfway to the blue, the blue
+local _wetMix = { {}, {} }
+local function mix(out, a, b)
+    out.r, out.g, out.b, out.a = (a.r + b.r) / 2, (a.g + b.g) / 2, (a.b + b.b) / 2, 1
+    return out
+end
+function ZeD.ThermalTab.wetColor(v)
+    local T = ZeD.T
+    local lv = ZeD.ThermalTab.wetLevel(v)
+    if lv == 0 then return T.tempNorm end
+    if lv == 1 then return mix(_wetMix[1], T.tempNorm, T.tempCool) end
+    if lv == 2 then return T.tempCool end
+    if lv == 3 then return mix(_wetMix[2], T.tempCool, T.tempCold) end
+    return T.tempCold
+end
+local function isWetGetter(g) return g == "getBodyWetness" or g == "getClothingWetness" end
+
 -- ============================================================================
 -- DATA GATHERING (getNodeForType per part, as vanilla's own panels read it)
 -- ============================================================================
@@ -402,13 +455,6 @@ function ZeD.ThermalTab._measureReadings()
     return 4 * (readingRowH() + T.sp.rowGap) + T.fillBarH + T.px(10)   -- (one meter: audit 41)
 end
 
--- a 0..1 reading as a stepped meter: ten flat segments in the thermal color of where it stands
--- (the segmented meters' look; no running blend of colors)
-local function drawStepped(panel, x, y, w, h, v)
-    local A = ZeD.Atoms
-    v = math.max(0, math.min(1, v or 0))
-    A.drawSegFill(panel, x, y, w, h, A.FILL_SEGS, math.max(1, A.fillSegsLit(v)), getThermalColor(v))
-end
 
 function ZeD.ThermalTab._renderHeader(panel, win, data, rx, ry, rw)
     local T = ZeD.T
@@ -422,8 +468,12 @@ function ZeD.ThermalTab._renderHeader(panel, win, data, rx, ry, rw)
     -- speed. The core's meter now sits under Core, body heat is its word alone, and the row is "Wind chill".)
     curY = curY + M.drawStatRow(panel, rx, curY, rw, ZeD.tr("UI_ZeD_Thermal_Core"),
         ZeD.ThermalTab.tempText(data.coreTemp, celsius), T.toneNorm) + T.sp.rowGap
-    -- the core temperature's meter: the standard bar height, 30 to 42 C across it, in steps
-    drawStepped(panel, rx, curY, rw, T.fillBarH, (data.coreTemp - 30) / 12)
+    -- the core temperature's meter: one look per moodle level, green only with no Hypothermia or
+    -- Hyperthermia moodle on (the director's call 1, Nov 25 2026)
+    do
+        local lit, col = ZeD.ThermalTab.coreLook(data.coreTemp)
+        ZeD.Atoms.drawSegFill(panel, rx, curY, rw, T.fillBarH, ZeD.Atoms.FILL_SEGS, lit, col)
+    end
     curY = curY + T.fillBarH + T.px(10)
     curY = curY + M.drawStatRow(panel, rx, curY, rw, ZeD.tr("UI_ZeD_Thermal_Air"),
         ZeD.ThermalTab.tempText(data.airTemp, celsius), T.toneNorm) + T.sp.rowGap
@@ -598,7 +648,7 @@ function ZeD.ThermalTab._drawBodyFigure(panel, win, data, px, py, pw, ph, frame)
 
     for partName, nodeData in pairs(data.nodes) do
         local uiVal = nodeData[uiKey] or 0
-        local color = getThermalColor(uiVal, viewIdx)
+        local color = (view.id == "wetness") and ZeD.ThermalTab.wetColor(uiVal) or getThermalColor(uiVal)
         fig:setPartColor(partName, color.r, color.g, color.b, 0.65)
     end
 
@@ -641,7 +691,7 @@ function ZeD.ThermalTab.gridCols(listW, celsius)
     if celsius == nil then celsius = ZeD.ThermalTab.useCelsius() end
     local colW = math.floor((listW - T.sp.sm) / 2)
     local barW = math.max(A.fillBarMinW(), math.min(A.rowBarW(), math.floor(colW * 0.4)))
-    local valW = math.max(TM:MeasureStringX(T.fontF3, ZeD.ThermalTab.tempText(36.6, celsius)), TM:MeasureStringX(T.fontF3, "0.00"))
+    local valW = math.max(TM:MeasureStringX(T.fontF3, ZeD.ThermalTab.tempText(36.6, celsius)), TM:MeasureStringX(T.fontF3, "100%"))
     local room = colW - T.px(4) - barW - T.px(6) - (valW + T.px(10)) - T.px(6)
     return (room >= TM:MeasureStringX(T.fontF2, "Forear")) and 2 or 1
 end
@@ -696,14 +746,14 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
         local uiVal = nodeData and nodeData[uiKey] or 0
         local rawVal = nodeData and nodeData[rawKey] or 0
         local fillPct = math.max(0, math.min(1, uiVal))
-        local fc = getThermalColor(fillPct)
+        local fc = (view.id == "wetness") and ZeD.ThermalTab.wetColor(fillPct) or getThermalColor(fillPct)
 
         -- Format value based on view type
         local valStr
         if view.format == "temp" then
             valStr = ZeD.ThermalTab.tempText(rawVal, celsius)
         else
-            valStr = string.format("%.2f", uiVal)
+            valStr = math.floor(uiVal * 100 + 0.5) .. "%"   -- (as the detail box reads it: the director's call 3)
         end
 
         -- the cell: the picked one in the accent wash, the pointer's hover, the controller's mark; a press
@@ -787,9 +837,10 @@ function ZeD.ThermalTab._renderPicked(panel, win, data, x, y, w)
         r.label = ZeD.ThermalTab.labelOf(row)
         if row.getter == "getSkinCelcius" then r.value = ZeD.ThermalTab.tempText(nodeData[row.getter] or 0, celsius)
         else r.value = math.floor(uiVal * 100 + 0.5) .. "%" end
-        r.bar, r.barColor = uiVal, getThermalColor(uiVal)
+        local wet = isWetGetter(row.getter)
+        r.bar, r.barColor = uiVal, wet and ZeD.ThermalTab.wetColor(uiVal) or getThermalColor(uiVal)
         local sc = row.scale
-        r.word = getText(F.scaleWord(uiVal, sc[1], sc[2], sc[3]))
+        r.word = getText(wet and ZeD.ThermalTab.wetWordKey(uiVal) or F.scaleWord(uiVal, sc[1], sc[2], sc[3]))
         wordW = math.max(wordW, ZeD.TM:MeasureStringX(ZeD.T.fontF1, r.word))
     end
     for i = 1, #DETAIL_ROWS do _pickedRows[i].wordW = wordW end

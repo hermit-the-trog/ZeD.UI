@@ -288,6 +288,133 @@ for gi, group in ipairs(EQUIP_GROUPS) do
 end
 
 -- ============================================================================
+-- WEARING FROM AN EMPTY SLOT, TAKING OFF BY A DOUBLE-CLICK, A HAND'S DROP
+-- (the director's calls 5 and 9, Nov 25 2026). An empty slot (a list row or a doll box, a click or
+-- the pad's A) opens a list of what the player carries that fits it, as ATTACH does for a belt slot;
+-- a pick wears it by the game's own Wear (onWearItems), or takes a weapon in that hand.
+-- ============================================================================
+local function _wornLocOf(item)
+    local sg = ZeD.Atoms.safeGet
+    local l = nil
+    if sg(item, "IsClothing") or sg(item, "IsInventoryContainer") then l = sg(item, "getBodyLocation") end
+    if l == nil or tostring(l) == "" then l = sg(item, "canBeEquipped") end
+    if l == nil or tostring(l) == "" then return nil end
+    local ls = string.lower(tostring(l))
+    local c = ls:find(":")
+    if c then ls = ls:sub(c + 1) end
+    return (ls:gsub("_", ""))
+end
+
+--- A hand slot's key: the list's PRI / SEC, the doll's Main / Off. Returns isHand, isMainHand.
+function ZeD.EquipmentTab.handOf(key)
+    if key == "PRI" or key == "doll:main" then return true, true end
+    if key == "SEC" or key == "doll:off" then return true, false end
+    return false, false
+end
+
+--- True when a carried item goes in the slot (key: a list slot type or a doll key): a weapon for a
+--- hand; else a thing worn where that slot shows it (bands: the doll's small slots are showing).
+function ZeD.EquipmentTab.fits(key, item, bands)
+    if not item then return false end
+    if ZeD.EquipmentTab.handOf(key) then
+        return instanceof(item, "HandWeapon") and (ZeD.Atoms.safeGet(item, "getCondition") or 0) > 0
+    end
+    local loc = _wornLocOf(item)
+    if not loc then return false end
+    if ZeD.EquipDoll and ZeD.EquipDoll.isDollKey(key) then return ZeD.EquipDoll.slotForLoc(loc, bands) == key:sub(6) end
+    local m = LOCATION_TO_SLOT[loc]
+    return m ~= nil and EQUIP_GROUPS[m.gi].slots[m.si].type == key
+end
+
+--- What the player carries that fits the slot and is not on: the main inventory and the bags in it,
+--- one of each name (a stack of socks is one pick).
+function ZeD.EquipmentTab.fitting(playerObj, key, bands)
+    local out, seen = {}, {}
+    local function scan(inv, depth)
+        local items = inv and inv:getItems()
+        if not items then return end
+        for n = 0, items:size() - 1 do
+            local it = items:get(n)
+            if it and not ZeD.EquipmentTab.stillOn(playerObj, it) and ZeD.EquipmentTab.fits(key, it, bands) then
+                local nm = it:getDisplayName()
+                if not seen[nm] then seen[nm] = true; out[#out + 1] = it end
+            end
+            if depth < 1 and it and instanceof(it, "InventoryContainer") then
+                local ok, sub = pcall(it.getInventory, it)
+                if ok and sub then scan(sub, depth + 1) end
+            end
+        end
+    end
+    scan(playerObj:getInventory(), 0)
+    return out
+end
+
+--- Put an item in a hand by the game's own equips: the main hand (a two-handed weapon goes to both),
+--- or the off hand.
+function ZeD.EquipmentTab.toHand(item, pn, main)
+    local CM = ISInventoryPaneContextMenu
+    if main then
+        local ok, two = pcall(item.isTwoHandWeapon, item)
+        if ok and two and CM.OnTwoHandsEquip then CM.OnTwoHandsEquip({ item }, pn)
+        elseif CM.OnPrimaryWeapon then CM.OnPrimaryWeapon({ item }, pn) end
+    elseif CM.OnSecondWeapon then
+        CM.OnSecondWeapon({ item }, pn)
+    end
+end
+local function _wearPicked(item, pn) ISInventoryPaneContextMenu.onWearItems({ item }, pn) end
+local function _handPicked(item, pn, main) ZeD.EquipmentTab.toHand(item, pn, main) end
+
+--- The empty slot's list at (absX, absY), screen: what fits; a pick wears it, or takes it in the hand.
+--- Nothing fits: one grayed line, the game's None. Returns the menu.
+function ZeD.EquipmentTab.openWearMenu(win, key, absX, absY)
+    local pn = win.playerNum or 0
+    local p = win._playerObj or getSpecificPlayer(pn)
+    if not p then return nil end
+    local hand, main = ZeD.EquipmentTab.handOf(key)
+    local context = ISContextMenu.get(pn, absX or getMouseX(), absY or getMouseY())
+    local list = ZeD.EquipmentTab.fitting(p, key, win._equipDollBands)
+    for _, it in ipairs(list) do
+        local opt
+        if hand then opt = context:addOption(it:getDisplayName(), it, _handPicked, pn, main)
+        else opt = context:addOption(it:getDisplayName(), it, _wearPicked, pn) end
+        opt.itemForTexture = it
+    end
+    if #list == 0 then
+        local o = context:addOption(getText("IGUI_None"))
+        o.notAvailable = true
+    end
+    ZeD.EquipmentTab.lastWearMenu = { key = key, n = #list }   -- (for QA's checks)
+    return context
+end
+
+--- Take a worn or held thing off: a belt thing comes off the belt, the rest by the game's Unequip.
+function ZeD.EquipmentTab.takeOff(win, item)
+    if not (win and item) then return end
+    local pn = win.playerNum or 0
+    if (ZeD.Atoms.safeGet(item, "getAttachedSlot") or -1) > -1 and ZeD.Belt and ZeD.Belt.detach then
+        ZeD.Belt.detach(pn, item)
+    elseif ISInventoryPaneContextMenu.unequipItem then
+        ISInventoryPaneContextMenu.unequipItem(item, pn)
+    end
+    win._equipCache, win._equipDollTimer = nil, 99
+    ZeD.EquipmentTab.lastTakeOff = item   -- (for QA's checks)
+end
+
+-- A click on a filled slot waits this long for a second one: two take it off, one opens its card
+ZeD.EquipmentTab.DOUBLE_MS = 300
+
+--- The empty slot under (x, y), drawer-local: a list row or a doll box (not a belt slot: its own ATTACH).
+function ZeD.EquipmentTab.emptyAt(win, x, y)
+    if not win or win._equipSelected then return nil end
+    for _, list in ipairs({ win._equipListEmpty or {}, win._equipDollEmpty or {} }) do
+        for _, z in ipairs(list) do
+            if z.type and x >= z.x and x <= z.x + z.w and y >= z.y and y <= z.y + z.h then return z end
+        end
+    end
+    return nil
+end
+
+-- ============================================================================
 -- LAYOUT CONSTANTS
 -- ============================================================================
 
@@ -708,6 +835,8 @@ function ZeD.EquipmentTab.gatherData(playerObj)
             groups[5].slots[si].attach = 0
             groups[5].slots[si].prot   = getProtection(pri)
         elseif sDef.type == "SEC" and sec then
+            -- the same weapon in both hands: the off hand's row shows it dimmed, "both hands" (the director's call 7)
+            if sec == pri then groups[5].slots[si].bothHands = pri; groups[5].slots[si].tex = getItemTexture(pri) end
             if sec ~= pri then
                 groups[5].slots[si].item   = sec
                 groups[5].slots[si].cond   = condRatio(sec)
@@ -1007,6 +1136,11 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win, why, q)
         local hv = T.hover
         panel:drawRect(x, y, w, rowH, hv.a, hv.r, hv.g, hv.b)
         ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Doll_SlotHelp", safeGet(slot.item, "getDisplayName") or "?"))
+    elseif not slot.item and eqHover(panel, win, x, y, w, rowH) then
+        -- an empty row: a press opens what fits it (the director's call 5)
+        local hv = T.hover
+        panel:drawRect(x, y, w, rowH, hv.a, hv.r, hv.g, hv.b)
+        ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Doll_EmptyHint", ZeD.EquipmentTab.wordsOf(slot)))
     end
 
     -- Being dragged: dimmed, as the inventory lists dim the rows they carry
@@ -1033,12 +1167,17 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win, why, q)
     local iconX = x + c.padX
     local iconY = y + math.floor((rowH - c.iconW) / 2)
     if slot.tex then
-        panel:drawTextureScaledAspect(slot.tex, iconX, iconY, c.iconW, c.iconW, 1, 1, 1, 1)
+        panel:drawTextureScaledAspect(slot.tex, iconX, iconY, c.iconW, c.iconW, empty and 0.4 or 1, 1, 1, 1)   -- (both hands: dimmed)
     end
 
     -- Name
     local textY = y + math.floor((rowH - bodyFH) / 2)
-    if empty then
+    if empty and slot.bothHands then
+        -- the main hand's two-handed weapon, dimmed: "Shotgun (both hands)" (the director's call 7)
+        local dc = washed and T.textOnFocus or (T.textDim or T.textSec)
+        local name = ZeD.tr("UI_ZeD_Equip_BothHands", safeGet(slot.bothHands, "getDisplayName") or "?")
+        panel:drawText(A.truncateText(name, T.fontF2, c.nameW), x + c.nameX, textY, dc.r, dc.g, dc.b, dc.a or 0.6, T.fontF2)
+    elseif empty then
         local dc = washed and T.textOnFocus or (T.textDim or T.textSec)
         panel:drawText("---", x + c.nameX, textY, dc.r, dc.g, dc.b, dc.a or 0.28, T.fontF2)
     else
@@ -1121,10 +1260,9 @@ local function _beltSlots(win, expanded)
     if not (B and B.slots) then return {} end
     local ok, slots = pcall(B.slots, win.playerNum or 0)
     if not ok or not slots then return {} end
-    if expanded then return slots end
-    local out = {}
-    for _, s in ipairs(slots) do if s.item then out[#out + 1] = s end end
-    return out
+    -- every slot, the empty ones too, open or folded: an empty slot is where a thing can go (the director's
+    -- call 6, Nov 25 2026; expanded is kept for the callers)
+    return slots
 end
 
 -- two lines: the item over the slot
@@ -1509,7 +1647,18 @@ function ZeD.EquipmentTab.dragRelease(win, panel)
         d:cancel()
         local zone = win._equipPress
         win._equipPress = nil
-        if zone then selectSlot(win, zone.type) end
+        if zone then
+            -- a second click on the same thing in time takes it off; one alone opens its card when the
+            -- time is up (render) (the director's call 5, Nov 25 2026)
+            local now = getTimestampMs()
+            local w1 = win._equipClickWait
+            if w1 and w1.item == zone.item and now - w1.t <= ZeD.EquipmentTab.DOUBLE_MS then
+                win._equipClickWait = nil
+                ZeD.EquipmentTab.takeOff(win, zone.item)
+            else
+                win._equipClickWait = { type = zone.type, item = zone.item, t = now }
+            end
+        end
         return true
     end
     return false
@@ -1550,6 +1699,12 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     -- ================================================================
     -- CARD MODE — selected slot inspection
     -- ================================================================
+    -- a single click's card, once the double-click's time is up
+    local cw1 = win._equipClickWait
+    if cw1 and getTimestampMs() - cw1.t > ZeD.EquipmentTab.DOUBLE_MS then
+        win._equipClickWait = nil
+        if not win._equipSelected then selectSlot(win, cw1.type) end
+    end
     -- a new selection starts at its outermost layer
     if win._equipSelected ~= win._equipSelPrev then
         win._equipSelPrev = win._equipSelected
@@ -1811,7 +1966,9 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     -- Zone arrays — reset indices
     local gzi = 0
     local szi = 0
+    local ezi = 0
     local beltZones = {}
+    win._equipListEmpty = win._equipListEmpty or {}
 
     if dollView then
         -- the doll in place of the list (EquipDoll.lua); it stamps the slot,
@@ -1877,6 +2034,14 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
                     -- the Find text: a row that doesn't match is dimmed in place
                     if findRes and not why then TF.dim(panel, x, drawY, contentW, T.rowH) end
 
+                    -- an empty row: a press or the pad's A opens what fits it (the director's call 5)
+                    if not s.item and not s.layerOf then
+                        ezi = ezi + 1
+                        local ez = win._equipListEmpty[ezi] or {}
+                        ez.x, ez.y, ez.w, ez.h, ez.type = x, drawY, contentW, T.rowH, s.type
+                        win._equipListEmpty[ezi] = ez
+                        win._equipSlotYMap[s.type] = drawY
+                    end
                     -- Store slot zone + stamp Y for gamepad scroll-follow (only if item present)
                     if s.item then
                         szi = szi + 1
@@ -1935,6 +2100,7 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     -- Trim excess zones
     for i = gzi + 1, #win._equipGroupZones do win._equipGroupZones[i] = nil end
     for i = szi + 1, #win._equipSlotZones  do win._equipSlotZones[i]  = nil end
+    for i = ezi + 1, #win._equipListEmpty  do win._equipListEmpty[i]  = nil end
 
     panel:clearStencilRect()
 

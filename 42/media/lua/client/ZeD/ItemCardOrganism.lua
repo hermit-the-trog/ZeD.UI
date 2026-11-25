@@ -29,7 +29,7 @@ ZeD.ItemCard.VERB_KEYS = {
     EQUIP = "UI_ZeD_Card_VerbEquip", UNEQUIP = "ContextMenu_Unequip", DROP = "ContextMenu_Drop",
     TAKE = "ContextMenu_Grab", EAT = "ContextMenu_Eat", READ = "ContextMenu_Read",   -- (TAKE reads Grab: punch list 227)
     USE = "UI_ZeD_Card_VerbUse", DRINK = "ContextMenu_Drink", WEAR = "ContextMenu_Wear",
-    ["OFF HAND"] = "UI_ZeD_Card_VerbOffHand", MORE = "ContextMenu_More",
+    ["OFF HAND"] = "UI_ZeD_Card_VerbOffHand", ["TWO HANDS"] = "UI_ZeD_Card_VerbTwoHands", MORE = "ContextMenu_More",
     WASH = "ContextMenu_Wash", REPAIR = "ContextMenu_Repair",
     BANDAGE = "ContextMenu_Bandage",   -- (KISS #29: a bandage's card bandages, in the game's word)
     PAD = "UI_ZeD_Card_VerbPad", SHARPEN = "UI_ZeD_Card_VerbSharpen",
@@ -461,11 +461,22 @@ local function headerVerbsForContext(ctx, item, playerObj)   -- (playerObj: the 
     local VT = ZeD.ItemCard.verbText
     local more = {id = "MORE", label = VT("MORE"), primary = false, isMore = true}
     if ctx == "equipped" then
-        return {
-            {id = "UNEQUIP", label = VT("UNEQUIP"), primary = true},
-            dropVerb(playerObj),
-            more,
-        }
+        local out = { {id = "UNEQUIP", label = VT("UNEQUIP"), primary = true} }
+        -- a weapon in hand: Off hand and Two hands are buttons of their own, not only under More (the director's
+        -- call 8, Nov 25 2026). Off hand while it is in the main hand; Two hands while it is not in both.
+        -- keepCompact: the 220 card keeps them where they fit (compactVerbs)
+        if (cat == "Weapon" or cat == "Firearm") and playerObj then
+            local pri, sec = playerObj:getPrimaryHandItem(), playerObj:getSecondaryHandItem()
+            if pri == item or sec == item then
+                if pri == item then out[#out + 1] = {id = "OFF HAND", label = VT("OFF HAND"), primary = false, keepCompact = true} end
+                if not (pri == item and sec == item) then
+                    out[#out + 1] = {id = "TWO HANDS", label = VT("TWO HANDS"), primary = false, keepCompact = true}
+                end
+            end
+        end
+        out[#out + 1] = dropVerb(playerObj)
+        out[#out + 1] = more
+        return out
     end
 
     -- inventory, container and ground share the same primary verb logic, modulo TAKE
@@ -1250,6 +1261,25 @@ local function compactVerbs(verbs, w)
             out = moreV and { grab, moreV } or { grab }
         end
     end
+    -- the hand buttons on an equipped weapon's card stay where the row has room for them, before More;
+    -- else they are in More's menu as before (the director's call 8: Lite and the 220 card)
+    local T = ZeD.T
+    local gap, pad = T.px(4), T.px(8)
+    local room = w - T.px(4) * 2 - (T.buttonH - T.px(4)) - gap
+    local function used()
+        local n = 0
+        for _, v in ipairs(out) do n = n + ZeD.TM:MeasureStringX(T.fontF3, ZeD.btnCase(v.label or "")) + pad * 2 + gap end
+        return n
+    end
+    for _, v in ipairs(verbs) do
+        if v.keepCompact then
+            local add = ZeD.TM:MeasureStringX(T.fontF3, ZeD.btnCase(v.label or "")) + pad * 2 + gap
+            if used() + add <= room then
+                local at = (out[#out] == moreV) and #out or (#out + 1)
+                table.insert(out, at, v)
+            end
+        end
+    end
     return out
 end
 
@@ -1261,6 +1291,7 @@ local VERB_HELP = {
     TAKE = "UI_ZeD_Card_HelpTake", EAT = "UI_ZeD_Card_HelpEat", READ = "UI_ZeD_Card_HelpRead",
     USE = "UI_ZeD_Card_HelpUse", DRINK = "UI_ZeD_Card_HelpDrink", WEAR = "UI_ZeD_Card_HelpWear",
     BANDAGE = "UI_ZeD_Card_HelpBandage", ["OFF HAND"] = "UI_ZeD_Card_HelpOffHand", MORE = "UI_ZeD_Card_HelpMore",
+    ["TWO HANDS"] = "UI_ZeD_Card_HelpTwoHands",
     wash = "UI_ZeD_Card_HelpWash", repair_all = "UI_ZeD_Card_HelpRepairHoles", pad_all = "UI_ZeD_Card_HelpPad",
     repair = "UI_ZeD_Card_HelpRepair", sharpen = "UI_ZeD_Card_HelpSharpen",
 }

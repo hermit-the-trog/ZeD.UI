@@ -248,7 +248,7 @@ local function noStrain(s) return not s:find("strainMap", 1, true) and not s:fin
 check("Thermal reads no strain and draws no strain tint", noStrain(thermal))
 check("Equipment's defense figure draws no strain tint", noStrain(equip))
 check("the defense data reads no strain", noStrain(prot))
-check("Thermal's figure: its view colour as before", thermal:find("local color = getThermalColor(uiVal, viewIdx)\n        fig:setPartColor(partName", 1, true) ~= nil)
+check("Thermal's figure: its view colour as before (wetness in its own scheme: the director's call 2)", thermal:find('local color = (view.id == "wetness") and ZeD.ThermalTab.wetColor(uiVal) or getThermalColor(uiVal)\n        fig:setPartColor(partName', 1, true) ~= nil)
 check("no strainMap left in HealthTab (nothing reads it)", src and not src:find("strainMap", 1, true) and H.strainMap == nil)
 
 -- ---------------------------------------------------------------------------
