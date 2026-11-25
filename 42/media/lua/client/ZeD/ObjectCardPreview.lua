@@ -313,6 +313,13 @@ function def.refresh(t, player)
         id = "go", label = ZeD.btnCase and ZeD.btnCase(getText(labelKey)) or getText(labelKey), primary = true,
         enabled = can and true or false, needs = needs, hint = ZeD.tr("UI_ZeD_Preview_HintGo"),
         run = function(pl, tt, card)
+            -- the facing on show at the press, read from the card itself (B6, QA cb sweep rerun, Nov 25 2026: the
+            -- one left by the last draw could be a step behind, and the cursor started on the face the card opened on)
+            local tc = tt or t
+            local fc = tc and tc.d and tc.d.faces and tc.d.faces[tc.face]
+            if fc and fc.idx and o.state then
+                o.state._buildFace = { name = tc.entry.name, nSprite = NSPRITE_OF[fc.idx] }
+            end
             card:close()
             if o.config.startAction then o.config.startAction(o.win, o.state) end
         end,
