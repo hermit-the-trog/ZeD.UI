@@ -262,13 +262,19 @@ function ZeD_ErrorNotice:prerender()
     local T = ZeD.T
     if not T then return end
     local w, h = self.width, self.height
-    local s1, bd = T.surf1, T.borderS
-    self:drawRect(0, 0, w, h, 0.92, s1.r, s1.g, s1.b)
+    -- the belt row's white block, here and in the corner alike (WHITE BLOCKS, ZeD_Belt.lua; the director, Nov 24
+    -- 2026: the Messages icon "did not receive the updated background and framing"): System 7's hard shadow, the
+    -- paper, a one-unit ink edge, the same in every theme
+    local BL = ZeD.Belt
+    local s1 = (BL and BL.PAPER) or { r = 0.95, g = 0.95, b = 0.95 }
+    local bd = (BL and BL.INK) or { r = 0.08, g = 0.08, b = 0.08 }
+    ZeD.Atoms.drawHardShadow(self, 0, 0, w, h)
+    self:drawRect(0, 0, w, h, 1, s1.r, s1.g, s1.b)
     local over = self:isMouseOver()
     local pad = E.padOn()
     if pad then ZeD.Focus.mark(self, 0, 0, w, h, self._mkOpts)
     elseif over then local hv = T.hover; self:drawRect(0, 0, w, h, hv.a or 0.2, hv.r, hv.g, hv.b) end
-    self:drawRectBorder(0, 0, w, h, 1, bd.r, bd.g, bd.b)
+    for i = 0, (T.hair or 1) - 1 do self:drawRectBorder(i, i, w - 2 * i, h - 2 * i, 1, bd.r, bd.g, bd.b) end
     -- the map's flyer note without its pin, pixel art at a whole zoom (the belt's note's picture)
     if noteTex == nil then noteTex = getTexture("media/textures/ZeD/icons/msg_note.png") or false end
     if noteTex then
