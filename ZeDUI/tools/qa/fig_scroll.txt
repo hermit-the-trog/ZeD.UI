@@ -1,0 +1,9 @@
+# ZeDUI/tools/qa/fig_scroll.txt (Nov 25 2026, QA): the figure in a photo frame partly scrolled out of its tab's view (the director: "Why does the avatar get smaller as you scroll down in the paper doll equipment tab? Shouldn't it just scroll away?"), checked in the running game against Build's fix (fix/dollscroll, c690207bb: win._fitFigureCut), at the size the runner uses, Dark theme, the text size found.
+#   fig_scroll.lua  the Equip tab in Doll view (the outfit as found) and the Identity tab (the photo as found, then the other: bust and full body), each scrolled through 0, 0.1, 0.2, 0.3, 0.45, 0.6, 0.8 and 1 (the window made shorter when the tab does not scroll). Each step logs a FIG line (the photo frame, the clip, the cut at top and bottom, the figure's element, the camera's zoom and y offset against Build's maths, its scale and place) and checks: the figure shows while more than 6 px (Equip) / 20 px (Identity) of its frame shows; its element stays inside the view; the element is exactly the part that shows; the figure keeps its size and place as at pos 0. On the old code the size checks FAIL by design. Pictures fig_equip_<pos>_*, fig_identity_<bust|full>_<pos>_* (each with the screen size)
+# It puts back the Equip view, the tab, both scroll positions, the window's height and layout, the Identity photo's state and zoom, the theme, the pointer, the figure's own setZoom / setYOffset and the window pair.
+# Run both sizes:
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/fig_scroll.txt -Mode fullscreen4k -Report fig_4k
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/fig_scroll.txt -Mode windowed -Width 1280 -Height 800 -Report fig_deck
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+fig_scroll.lua | fig_scroll | timeout=900
