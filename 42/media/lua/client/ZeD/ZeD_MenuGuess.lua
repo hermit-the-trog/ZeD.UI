@@ -54,16 +54,20 @@ end
 local function now() return safe(function() return getTimestampMs() end, 0) end
 
 -- The game's words for a key: { whole, prefix } (prefix: the text before a %1, for a key that names something)
+local MARK = "ZeDGuessArg"   -- (stands in for %1 and %2 while reading a key's words; never shown)
 local _words = {}
 local function words(key)
     local w = _words[key]
     if w == nil then
-        local t = safe(function() return getText(key) end, nil)
+        -- (QA lv_calls, Nov 24 2026: getText on a key whose text needs an argument, "Drop %1", logs a Java
+        -- MissingFormatArgumentException. So every key is asked with two markers for %1 and %2; a key without them
+        -- ignores the extras. The text before the first marker is the prefix.)
+        local t = safe(function() return getText(key, MARK, MARK) end, nil)
         if type(t) ~= "string" or t == key then
             w = false
         else
-            local cut = string.find(t, "%1", 1, true)
-            w = { whole = t, prefix = cut and string.sub(t, 1, cut - 1) or nil }
+            local cut = string.find(t, MARK, 1, true)
+            w = cut and { whole = nil, prefix = string.sub(t, 1, cut - 1) } or { whole = t, prefix = nil }
         end
         _words[key] = w
     end

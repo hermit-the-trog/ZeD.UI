@@ -173,7 +173,7 @@ end
 --- The spare for a broken weapon, or nil. Attached slots first, then the main inventory (not bags). Same kind
 --- first; else, for a melee weapon, any melee weapon; a firearm only for a firearm. The most worn wins; a tie keeps
 --- the first found (the attached slot).
-function SA.pickSpare(playerObj, broken)
+function SA.pickSpare(playerObj, broken, leftover)
     local want = kindOf(broken)
     if not want then return nil end
     local list, seen = {}, {}
@@ -191,7 +191,7 @@ function SA.pickSpare(playerObj, broken)
     end
     local best, bestW, bestSame = nil, nil, false
     for _, it in ipairs(list) do
-        if it ~= broken and instanceof(it, "HandWeapon") and not it:isBroken() and it:getCondition() > 0 then
+        if it ~= broken and it ~= leftover and instanceof(it, "HandWeapon") and not it:isBroken() and it:getCondition() > 0 then
             local k = kindOf(it)
             local ok = k ~= nil and ((want == "Firearm") == (k == "Firearm"))
             if ok then
@@ -216,17 +216,40 @@ function SA.replaceBroken(playerObj, broken)
     if broken:isRanged() and playerObj:isAiming() then return false end
     -- the main hand already holds something else (he picked a new weapon himself); the off hand's torch can stay
     local prim = playerObj:getPrimaryHandItem()
-    if prim and prim ~= broken then return false end
+    -- (QA lv_calls, Nov 24 2026) the game's OnBreak handlers put the broken weapon's leftover in the hand (a bat
+    -- becomes BaseballBat_Broken, OnBreak.HandleHandler): that leftover is the break's own, not his new pick
+    local lo = SA._leftover[playerObj]
+    local left = lo and lo.from == broken and lo.left or nil
+    SA._leftover[playerObj] = nil
+    if prim and prim ~= broken and prim ~= left then return false end
     -- an equip already waiting (his own, or this one from the swing before): nothing more
     local q = ISTimedActionQueue.getTimedActionQueue(playerObj)
     for _, a in ipairs(q and q.queue or {}) do
         if a.Type == "ISEquipWeaponAction" then return false end
     end
-    local spare = SA.pickSpare(playerObj, broken)
+    local spare = SA.pickSpare(playerObj, broken, left)   -- (never the leftover itself)
     if not spare then return false end
     ISInventoryPaneContextMenu.equipWeapon(spare, true, spare:isTwoHandWeapon(), playerObj:getPlayerNum())
     SA.lastSpare = spare   -- (QA reads this: the spare last sent to hand)
     return true
+end
+
+-- The leftover a break put in the hand, per player: { from = the broken weapon, left = what the hand holds now }.
+-- (QA lv_calls, Nov 24 2026) The game's OnBreak.HandleHandler (shared/Items/OnBreak.lua) is the one handler that
+-- puts a new item in the hand; it runs before the swing's OnPlayerAttackFinished.
+SA._leftover = SA._leftover or {}
+if OnBreak and OnBreak.HandleHandler and not OnBreak._zedSmartAttach then
+    OnBreak._zedSmartAttach = true
+    local origHandle = OnBreak.HandleHandler
+    OnBreak.HandleHandler = function(item, player, newItemString, breakItem)
+        local held = player and item and player.getPrimaryHandItem and player:getPrimaryHandItem() == item
+        local r = origHandle(item, player, newItemString, breakItem)
+        if held then
+            local now = player:getPrimaryHandItem()
+            if now and now ~= item then SA._leftover[player] = { from = item, left = now } end
+        end
+        return r
+    end
 end
 
 -- multiplayer: swings that did not break the weapon yet, looked at again for a second (the break comes from the server)

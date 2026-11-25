@@ -266,6 +266,28 @@ hands = weapon({ cond = 5 })
 check("SPARE: not with a new thing in hand", SA.replaceBroken(player, broke) == false)
 hands = broke
 check("SPARE: with the broken one still in hand", SA.replaceBroken(player, broke) == true)
+-- (QA lv_calls, Nov 24 2026) the game's OnBreak handler puts the leftover (BaseballBat_Broken) in the hand
+reset()
+broke = weapon({ broken = true, cond = 0, type = "BaseballBat" })
+local leftover = weapon({ cond = 2, type = "BaseballBat_Broken" })
+local spare3 = weapon({ cond = 3 })
+mainItems = { leftover, spare3 }
+hands = leftover
+SA._leftover[player] = { from = broke, left = leftover }
+check("LEFTOVER: the break's leftover in hand still swaps", SA.replaceBroken(player, broke) == true)
+check("LEFTOVER: the spare, never the more worn leftover itself", equipped[1] and equipped[1].w == spare3)
+check("LEFTOVER: the note is used up", SA._leftover[player] == nil)
+reset()
+broke = weapon({ broken = true, cond = 0 })
+mainItems = { weapon({ cond = 5 }) }
+hands = weapon({ cond = 6 })
+SA._leftover[player] = { from = weapon({ broken = true }), left = hands }
+check("LEFTOVER: another break's leftover counts as his own pick", SA.replaceBroken(player, broke) == false)
+do
+    local f = io.open(Z .. "ZeD_SmartAttach.lua", "rb"); local s = f and f:read("*a") or ""; if f then f:close() end
+    check("LEFTOVER: OnBreak.HandleHandler wrapped once", string.find(s, "OnBreak.HandleHandler = function(item, player, newItemString, breakItem)", 1, true) ~= nil
+        and string.find(s, "if now and now ~= item then SA._leftover[player] = { from = item, left = now } end", 1, true) ~= nil)
+end
 reset(); on = false
 broke = weapon({ broken = true, cond = 0 })
 mainItems = { broke, weapon({ cond = 5 }) }

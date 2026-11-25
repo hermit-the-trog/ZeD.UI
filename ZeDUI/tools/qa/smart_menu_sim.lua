@@ -43,7 +43,15 @@ local TEXT = {
     ContextMenu_Equip_Two_Hands = "Equip in Both Hands", ContextMenu_Drop = "Drop", ContextMenu_DropNamedItem = "Drop %1",
     ContextMenu_Disassemble = "Disassemble", ContextMenu_Move_To = "Move to", ContextMenu_Inspect = "Inspect",
 }
-getText = function(k) return TEXT[k] or k end
+-- (as the game: a text with %1 asked without its argument throws, QA lv_calls Nov 24 2026; arguments fill %1, %2)
+getTextMissingArgs = 0
+getText = function(k, a, b)
+    local t = TEXT[k] or k
+    if string.find(t, "%1", 1, true) and a == nil then getTextMissingArgs = getTextMissingArgs + 1; error("Missing arguments for " .. k) end
+    if a ~= nil then t = t:gsub("%%1", a) end
+    if b ~= nil then t = t:gsub("%%2", b) end
+    return t
+end
 local clock = 1000000
 getTimestampMs = function() return clock end
 instanceof = function(o, cls) return type(o) == "table" and o._cls ~= nil and o._cls[cls] == true end
@@ -282,6 +290,14 @@ check("WIRED: the setting", has(ST, "addComboBox(\"menuGuess\"") and has(ST, "me
 check("WIRED: its words", has(EN, "\"UI_ZeD_Settings_MenuGuess\"") and has(EN, "\"UI_ZeD_Settings_MenuGuessTip\"")
     and has(CX, "`UI_ZeD_Settings_MenuGuess`") and has(CX, "`UI_ZeD_Settings_MenuGuessTip`"))
 check("WIRED: ASCII only", not string.find(src, "[\128-\255]"))
+
+-- (QA lv_calls, Nov 24 2026)
+check("LOG: no key was asked without its argument (the game logs a Java exception for each)", getTextMissingArgs == 0, getTextMissingArgs)
+check("LOG: a key with %1 still matches by its prefix", G.isDanger({ name = "Drop Hammer" }) == true)
+do
+    local f = io.open(Z .. "InventoryRenderer.lua", "rb"); local s = f and f:read("*a") or ""; if f then f:close() end
+    check("DRAG: a drop notes the move", string.find(s, "if destContainer and not destIsFloor and #items > 0 and ZeD.MenuGuess then ZeD.MenuGuess.noteMove(playerObj, destContainer) end", 1, true) ~= nil)
+end
 
 print("smart_menu_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end

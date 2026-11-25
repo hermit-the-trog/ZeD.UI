@@ -4332,6 +4332,8 @@ local function handleDrop(content, items, srcInventory)
     -- (Nov 15 2026, add-on hooks: things an add-on's rule refuses stay where they are; the first reason shows once in
     -- the notice over the head, ItemRules.lua. Without a rule the same list comes back)
     items = ZeD.ItemRules.filter(items, destContainer, playerObj, srcContainer)
+    -- (the menu's best guess: a drag is a move too; the floor is never noted. QA lv_calls, Nov 24 2026)
+    if destContainer and not destIsFloor and #items > 0 and ZeD.MenuGuess then ZeD.MenuGuess.noteMove(playerObj, destContainer) end
 
     for _, item in ipairs(items) do
         local cur = item:getContainer()
