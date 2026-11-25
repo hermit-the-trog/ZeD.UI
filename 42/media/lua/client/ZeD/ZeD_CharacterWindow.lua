@@ -4297,7 +4297,7 @@ local function drawContainerStrip(self, win, content)
         self:drawRect(0, arrowY, w, T.px(1), sep2.a, sep2.r, sep2.g, sep2.b)
 
         -- the row's inside between the strip's lines, two equal halves; each arrow centred in its half (the director)
-        local L, M, M2, R = A.stripArrowHalves(w, "frame", "edge")   -- (the bags: the divider left, the frame just past the right)
+        local L, M, M2, R = A.stripArrowHalves(w, "own", "own+edge")   -- (the bags: its own line left; right, its own line and the frame just past it: QA HC measures)
         local aS = T.px(ARROW_SZ)
         A.stripArrowLine(self, M, M2, arrowY, h)
         local arY = arrowY + T.px(1) + math.floor((scrollArrowH - T.px(1) - aS) / 2)   -- (centred under the row's top line)
