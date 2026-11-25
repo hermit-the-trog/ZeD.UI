@@ -86,7 +86,11 @@ if SB then
                     getWidth = function() return 114 end, getHeight = function() return 250 end }
     tracks, arrows = {}, {}
     sb:draw(edgeP)
-    check("EDGE: at the panel's own edge nothing is drawn past it", tracks[1].x + tracks[1].w == 114 and arrows[2].y + arrows[2].s == 250 and arrows[1].y == 50 - px(1))
+    -- (QA's hand measures: the drawer's divider and footer rule lie just outside the drawer panel, so the bar reaches
+    -- past the panel's edge onto them; a bar at a window's own edge says inRight / inBottom instead)
+    check("EDGE: at the panel's edge it still reaches the line outside", tracks[1].x + tracks[1].w == 114 + px(1) and arrows[2].y + arrows[2].s == 250 + px(1))
+    check("EDGE: the console's window-edge bars say inRight", select(2, string.gsub(readFile(Z .. "ZeD_ConsolePages.lua"), "inRight = true", "")) == 2)
+    check("EDGE: scrollBar passes inRight / inTop / inBottom on", has(MOL, "sb.inRight, sb.inTop, sb.inBottom = opts and opts.inRight or nil"))
     sb.reserveBottom = 20
     tracks, arrows = {}, {}
     sb:draw(panel)
