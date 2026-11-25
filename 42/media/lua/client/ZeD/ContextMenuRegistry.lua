@@ -737,6 +737,25 @@ local function makeActionDef(option, index, vanillaMenu, target)
             def.iconTexture, def.pxIcon, def.iconTintable = ZeD.PxIcon.tex("backpack", 16), "backpack", true
         end
     end
+    -- (QA rt_menus, Nov 24 2026: "no icon: Corpse") A row that moves things into a container named by its own name
+    -- (Move to's loot row, called after the World window's container on show: a body, a car's trunk, a crate) gets
+    -- that container's picture from the World window's strip, else the game's box. The container is the option's
+    -- param1 (ZeD's Move to), or the game's loot page's for its Put in / loot row (onPutItems, param1 the player).
+    if not keep and not def.iconTexture and ZeD_WorldWindow and ZeD_WorldWindow.containerIcon then
+        local ok, inv, pn = pcall(function()
+            local c = option.param1
+            if c and instanceof(c, "ItemContainer") then return c, option.param2 end
+            if ISInventoryPaneContextMenu and option.onSelect == ISInventoryPaneContextMenu.onPutItems and type(c) == "number" then
+                local lp = getPlayerLoot(c)
+                return lp and lp.inventory, c
+            end
+            return nil
+        end)
+        if ok and inv then
+            def.iconTexture = ZeD_WorldWindow.containerIcon(inv, type(pn) == "number" and pn or 0)
+            def.iconTrim = def.iconTexture ~= nil   -- (the game's container art: colored, cropped like an object's)
+        end
+    end
     if not keep and not def.iconTexture then   -- (punch list 200; untinted, cropped to its drawn pixels)
         def.iconTexture = objectIconOf(option)
         def.iconTrim = def.iconTexture ~= nil
