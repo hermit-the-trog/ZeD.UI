@@ -141,7 +141,13 @@ local cut = dofile(ROOT .. "ZeDUI/tools/qa/cc_cut.lua")
 cut(ROOT, CC, { "function CC.due(", "function CC.carryStatus(", "function CC.rowsBegin(", "function CC.refreshRow(",
     "function CC.perkLevelOf(", "function CC.rowsEnd(", "function CC.showMode(", "function CC.filterAndSort(", "function CC.stableSort(", "function CC.craftSurface(",
     "function CC.moveCraftInputs(", "function CC.returnCraftInputs(",
-    "local function logicSig(", "local function sameContainers(", "function CC.logicScan(" })
+    "local function logicSig(", "local function sameContainers(", "function CC.logicScan(",
+    -- (QA cb sweep, Nov 25 2026: Craft grays while a craft ZeD queued is still in the queue, C1)
+    "function CC.trackCraftActions(", "function CC.craftBusy(" })
+-- (the cb sweep's per-craft count and the card's game counts: cb_craft_fixes_sim checks them)
+CC.prepCraftAction = function() end
+CC.gameInputCounts = function() return nil end
+CC.applyGameCounts = function() end
 
 local okC, errC = pcall(dofile, ROOT .. "42/media/lua/client/ZeD/CraftingTab.lua")
 check("CraftingTab.lua loads on the stubs", okC, errC)

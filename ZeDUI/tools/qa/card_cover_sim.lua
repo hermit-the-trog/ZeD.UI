@@ -237,6 +237,13 @@ local CC = {
     moveCraftInputs = function() return {} end,
     returnCraftInputs = function() end,
     incrementCraftCount = function() counted = counted + 1 end,
+    -- (QA cb sweep, Nov 25 2026: a craft counts when it starts (C19), here when the queue takes it;
+    -- the card's have counts are the game's (C4); Craft grays while a craft is queued (C1))
+    prepCraftAction = function(a) a._countsAtStart = true end,
+    trackCraftActions = function() end,
+    craftBusy = function() return false end,
+    gameInputCounts = function() return nil end,
+    applyGameCounts = function() end,
 }
 local gatherDetail
 local lastAction
@@ -252,7 +259,8 @@ local function loadCraft(src, opts)
         HandcraftLogic = opts.HandcraftLogic or HandcraftLogic, pcall = pcall, math = math, tostring = tostring,
         ipairs = ipairs,
         ISBaseTimedAction = { new = function() return {} end }, ISHandcraftAction = {},
-        ISTimedActionQueue = { add = function(act) queued = queued + 1; lastAction = act end },
+        ISTimedActionQueue = { add = function(act) queued = queued + 1; lastAction = act
+            if act._countsAtStart then counted = counted + 1 end end },
         CharacterTrait = { ALL_THUMBS = 1 }, ISEntityUI = opts.ISEntityUI,
     }
     -- (beast W23: the surface lookup moved to CC.craftSurface; the same rule, on this load's ISEntityUI)
@@ -307,7 +315,8 @@ if not (CT and gatherDetail) then check("the Craft tab's start check loads", fal
     local rd2 = { entry = entry, status = "missing", learned = true }
     n0 = logicNews
     gatherDetail(rd2, player, win)
-    check("missing: no start check", logicNews == n0)
+    -- (QA cb sweep, Nov 25 2026, C4: one logic for the card's have counts, the game's; no start check)
+    check("missing: no start check", logicNews == n0 + 1 and rd2.canStart == nil, logicNews - n0)
     check("missing: Craft off", canCraftOf(rd2, 1) == false)
 
     -- the game would not answer (nil): the list's answer stands, as before
@@ -335,7 +344,7 @@ if not (CT and gatherDetail) then check("the Craft tab's start check loads", fal
     st = { selected = entry.name, qty = 2 }
     CT.startCraft(w3, st)
     check("accepted batch of 2: two queued", queued == 2, queued)
-    check("accepted batch of 2: counted", counted == 1, counted)
+    check("accepted batch of 2: counted once per craft (C19)", counted == 2, counted)
 end
 
 -- ---------------------------------------------------------------------------
