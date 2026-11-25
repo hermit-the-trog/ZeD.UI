@@ -169,7 +169,7 @@ check("BELT: every slot, folded too", bsrc ~= nil and not has(bsrc, "if expanded
 
 print("-- BOTH")
 check("BOTH: the list's SEC row keeps the weapon as bothHands", has(ET, "if sec == pri then groups[5].slots[si].bothHands = pri"))
-check("BOTH: drawn dimmed with its words", has(ET, 'ZeD.tr("UI_ZeD_Equip_BothHands"'))
+check("BOTH: drawn dimmed, the words alone so a long name cannot cut them (QA's pictures)", has(ET, 'local name = ZeD.tr("UI_ZeD_Equip_BothHands", ""):gsub("^%s+", ""):gsub("%s+$", "")'))
 check("BOTH: the doll's Off box", has(ED, "elseif off then out.offBoth = off end") and has(ED, 'if key == "doll:off" and data.offBoth then'))
 check("BOTH: EN words", has(EN, '"UI_ZeD_Equip_BothHands": "%1 (both hands)"'))
 

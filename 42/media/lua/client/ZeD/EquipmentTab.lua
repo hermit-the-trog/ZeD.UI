@@ -1190,7 +1190,8 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win, why, q)
     if empty and slot.bothHands then
         -- the main hand's two-handed weapon, dimmed: "Shotgun (both hands)" (the director's call 7)
         local dc = washed and T.textOnFocus or (T.textDim or T.textSec)
-        local name = ZeD.tr("UI_ZeD_Equip_BothHands", safeGet(slot.bothHands, "getDisplayName") or "?")
+        -- the words alone, "(both hands)": a long name cut them off (QA's pictures, Sledgehammer); the icon is the weapon
+        local name = ZeD.tr("UI_ZeD_Equip_BothHands", ""):gsub("^%s+", ""):gsub("%s+$", "")
         panel:drawText(A.truncateText(name, T.fontF2, c.nameW), x + c.nameX, textY, dc.r, dc.g, dc.b, dc.a or 0.6, T.fontF2)
     elseif empty then
         local dc = washed and T.textOnFocus or (T.textDim or T.textSec)
