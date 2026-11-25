@@ -217,6 +217,7 @@ function CT.moveItems(playerObj, items, dest, unequip)
     -- Without a rule the same list comes back.)
     items = ZeD.ItemRules.filter(items, dest, playerObj, nil)
     if #items == 0 then return end
+    if ZeD.MenuGuess then ZeD.MenuGuess.noteMove(playerObj, dest) end   -- (the next item menu may start on moving there; smart menu, the director, Nov 24 2026)
     sortForTransfer(items)
     if isFloor(dest) then
         -- seated with the window shut, nothing goes out to the ground (QA B6-9)

@@ -123,6 +123,10 @@ end
 
 function ZeD_ContextMenu:open()
     self._ctx.open = true
+    -- The menu's best guess is the selection it opens on (Overrides/ContextMenu.lua sets _zedGuessIdx; smart menu,
+    -- the director, Nov 24 2026)
+    local g = self._zedGuessIdx
+    if g and g >= 1 and g <= #self._ctx.actions then self._ctx.selected = g end
     -- Initial track build + layout seeding
     self:_rebuildTrack()
     -- Position the panel based on anchor mode
@@ -680,6 +684,15 @@ function ZeD_ContextMenu:confirm()
         return
     end
     -- Leaf action → fire + close
+    -- (an item menu remembers the pick for its kind of item: the next one starts there; smart menu, the director,
+    -- Nov 24 2026)
+    if self._zedGuessType and ZeD.MenuGuess then
+        local names, parents = self:_parentChain(), {}
+        names[#names + 1] = def.name
+        local node = self._ctx.actions
+        for _, p in ipairs(self._ctx.path) do parents[#parents + 1] = node[p]; node = node[p].children or {} end
+        pcall(ZeD.MenuGuess.notePick, self.player, self._zedGuessType, names, def, parents)
+    end
     if def.onFire then
         pcall(def.onFire, self._ctx.target)
     end
@@ -1082,6 +1095,21 @@ function ZeD_ContextMenu:_positionAssembly()
         if sx + estW > screenW - pad then sx = screenW - estW - pad end
         if sy < pad then sy = pad end
         if sy + estH > screenH - pad then sy = screenH - estH - pad end
+        -- Opened by the mouse on a best guess: the guessed cell sits under the pointer instead (System 7's pop-up
+        -- menus open on the current choice), clamped the same; the cell stays selected if the clamp moves it off
+        -- the pointer. (smart menu, the director, Nov 24 2026)
+        if self._zedGuessUnder and ZeD.MenuGuess then
+            local N = #self._ctx.items
+            local vc = math.min(N, ctx.maxVisible)
+            local step = ctx.cellW + ctx.gap
+            local housingW = vc * ctx.cellW + math.max(0, vc - 1) * ctx.gap + T.px(1) * 2
+            local stripX = math.floor(estW / 2) - math.floor(housingW / 2)
+            local slot = self._ctx.truncating and self:_anchorSlot(vc) or (self._ctx.selected - 1)
+            local cx = stripX + T.px(1) + slot * step + math.floor(ctx.cellW / 2)
+            local cy = self._stripYLocal + T.px(1) + math.floor(ctx.cellH / 2)
+            sx, sy = ZeD.MenuGuess.place(self._anchorX, self._anchorY, cx, cy, ctx.cellW / 2, ctx.cellH / 2,
+                estW, estH, screenW, screenH, pad)
+        end
     end
     self:setX(sx)
     self:setY(sy)

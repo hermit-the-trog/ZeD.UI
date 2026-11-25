@@ -21,6 +21,7 @@ require "ZeD/ContextMenuRegistry"
 require "ZeD/ZeD_ContextMenu"
 require "ZeD/ZeD_ContextList"
 require "ZeD/SafeMode"
+require "ZeD/ZeD_MenuGuess"
 
 -- In safe mode (SafeMode.lua) every hook below hands straight to vanilla's own
 -- function, so the game's menu opens and draws as it would without ZeD.
@@ -183,6 +184,9 @@ ISContextMenu.get = function(player, x, y)
         -- (the menu is reused: a kept order (Registry.keepsOrder) is for the one menu that asked, set after this
         -- get) (QA belt row run, Nov 22 2026)
         context.zedKeepOrder = nil
+        -- (the items an item menu is for, set by its createMenu below: only those menus guess; smart menu, the
+        -- director, Nov 24 2026)
+        context._zedGuessItems, context._zedByPad, context._zedGuessIdx, context._zedGuessRule = nil, nil, nil, nil
     end
     return context
 end
@@ -242,7 +246,11 @@ function ISInventoryPaneContextMenu.createMenu(player, isInInv, items, x, y, ori
     if lootOld and not lootOld.open then W.restoreLootPage(player, lootOld) end
     if menu then
         menu._zedTarget = items
-        if _isGamepadActive(player) then
+        -- (the menu's best guess reads these: the items, and whether the pad opened it, which keeps the menu where
+        -- it is and only starts the focus on the guess; smart menu, the director, Nov 24 2026)
+        menu._zedGuessItems = items
+        menu._zedByPad = _isGamepadActive(player)
+        if menu._zedByPad then
             -- a caller that names the spot (X on an Equip row, a belt row or
             -- a belt box) gets it; 0, 0 asks for the focused inventory row
             local ix, iy
@@ -281,6 +289,11 @@ ISInventoryPaneContextMenu.onPutItems = function(items, player)
     if origPutItems and not ZeD.Safe.on() and W and W.syncLootPage then
         local old = W.syncLootPage(player)
         if old and not old.open then W.restoreLootPage(player, old) end
+    end
+    -- (the container the page shows is where these go: the next item menu may start on moving there; smart menu,
+    -- the director, Nov 24 2026)
+    if origPutItems and not ZeD.Safe.on() and ZeD.MenuGuess then
+        pcall(function() ZeD.MenuGuess.noteMove(getSpecificPlayer(player), getPlayerLoot(player).inventory) end)
     end
     if origPutItems then return origPutItems(items, player) end
 end
@@ -411,9 +424,22 @@ function ISContextMenu:prerender()
     local styleOpt = ZeD.Settings and ZeD.Settings.contextStyleOption
     local okS, style = pcall(function() return styleOpt and styleOpt:getValue() end)
     local Cls = (okS and style == 2 and ZeD_ContextList) or ZeD_ContextMenu
+    -- The menu's best guess (ZeD_MenuGuess.lua): an item menu opens with its selection on the row the player most
+    -- likely wants. The mouse's menu opens with that row under the pointer; the pad's stays where it is and starts
+    -- its focus there. (smart menu, the director, Nov 24 2026)
+    local gIdx, gRule, gType = nil, nil, nil
+    if self._zedGuessItems and ZeD.MenuGuess then
+        local okG, i, r = pcall(ZeD.MenuGuess.pick, tree, self.player, self._zedGuessItems)
+        if okG and i then gIdx, gRule = i, r end
+        local okT2, t = pcall(ZeD.MenuGuess.typeOf, self._zedGuessItems)
+        if okT2 then gType = t end
+    end
+    self._zedGuessIdx, self._zedGuessRule = gIdx, gRule
     local ok, menuOrErr = pcall(function()
         local m = Cls:new(self.player, anchorMode, anchorX, anchorY,
                                        target, tree, self)
+        m._zedGuessIdx, m._zedGuessRule, m._zedGuessType = gIdx, gRule, gType
+        m._zedGuessUnder = gIdx ~= nil and not self._zedByPad and anchorMode == "cursor"
         m:initialise()
         m:open()   -- open() internally calls addToUIManager + bringToTop
         return m
