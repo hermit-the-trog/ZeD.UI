@@ -1554,6 +1554,10 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     if win._equipSelected ~= win._equipSelPrev then
         win._equipSelPrev = win._equipSelected
         win._equipLayer = 1
+        -- and a fresh pin: the card pins what it shows on this opening, never a thing an earlier card
+        -- showed in the same slot (the back arrow, a tab switch or clearSelection all pass through nil
+        -- here first, so a garment swapped in since opens its card; QA eq_tab 8)
+        win._equipPinKey, win._equipPinItem = nil, nil
     end
     win._equipLayerZones = nil
     win._equipDollEmpty = nil
