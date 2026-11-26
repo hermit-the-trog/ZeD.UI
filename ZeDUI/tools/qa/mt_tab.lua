@@ -2297,6 +2297,12 @@ function C.c11()
         local zx, zy, axA, ayA = nil, nil, nil, nil
         pcall(function() axA, ayA = c._zedAnchorX, c._zedAnchorY end)
         pcall(function() if c._zedMenu then zx, zy = c._zedMenu:getX(), c._zedMenu:getY() end end)
+        -- (Build, Nov 26 2026: in the list style c._zedMenu is a full-screen catcher; its top list as drawn on screen is
+        -- c._zedMenu._levels[1] { x, y, w, h }. In the strip style the menu's own x,y is the place)
+        pcall(function()
+            local L1 = c._zedMenu and c._zedMenu._levels and c._zedMenu._levels[1]
+            if L1 and L1.x ~= nil then zx, zy = L1.x, L1.y end
+        end)
         local vx, vy = cx, cy
         if zx ~= nil then cx, cy = zx, zy end
         local sw, sh = H.screen()
