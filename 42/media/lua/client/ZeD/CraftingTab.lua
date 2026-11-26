@@ -405,8 +405,8 @@ local function gatherDetail(rd, playerObj, win)
     local state = win._craftState
     local picks = state and state.picks and state.picks[entry.name]
     if chk.ok and picks then
-        local sig = ""
-        for i = 1, #(entry.inputDefs or {}) do sig = sig .. tostring(picks[i]) .. ";" end
+        -- (the chosen items count in the key too: the director's call 1, Nov 25 2026)
+        local sig = CC.pickSig(state, entry.name, #(entry.inputDefs or {}))
         if chk.pickSig ~= sig then
             chk.pickSig = sig
             chk.pickMost = CC.pickedCraftCount(playerObj, state, entry, bench, containers, chk.surface, chk.most or 1)
@@ -522,7 +522,7 @@ function ZeD.CraftingTab.startCraft(win, state)
     end)
     CC.returnCraftInputs(playerObj, back)   -- (beast W25)
     -- Craft stays gray while these are in the queue (C1)
-    CC.trackCraftActions(win, queued)
+    CC.trackCraftActions(win, queued, recipeName)   -- (and the card's progress band names it: the director's call 2, Nov 25 2026)
 
     -- Reset state
     state.qty = 1
@@ -696,6 +696,9 @@ function ZeD.CraftingTab.focusKey(win)
     local k = tostring(ZeD.Stations and ZeD.Stations.gen or 0) .. ":" .. tostring(state.stDropdownOpen) .. ":" .. tostring(state.stDropdownScroll or 0)
     -- (the Station box shown or not moves the stops too) (KISS #48)
     k = k .. ":" .. tostring(CC.stationShown(win, ZeD.Stations))
+    -- (the progress band's Cancel comes and goes with the running craft: the director's call 2, Nov 25 2026;
+    -- the chosen type's item rows come and go in the alternatives list: call 1)
+    k = k .. ":" .. tostring(state._progOn) .. ":" .. tostring(state._altItemN or 0)
     if view and view.focusKey then k = k .. ":" .. tostring(view.focusKey(win, state, st)) end
     return k
 end
