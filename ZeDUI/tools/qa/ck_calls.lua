@@ -1672,12 +1672,14 @@ function C.c5()
     C.c5leg("pad", false)
     H.step(2, function()
         for _, z in ipairs(S.c5zed or {}) do
+            -- (Nov 25 2026: the game's own add leaves the stew in his bags, its move back being for the pot the first add
+            -- replaced; ZeD now puts the dish back where the base came from, fix/cookback ZeD_CookReturn: a NOTE, not a
+            -- check, that ZeD and the game differ here)
             if S.c5game then
-                Q.check(z.where == S.c5game, "5 (" .. z.how .. ") (call 5): the stew ends where the game's own add from the crate leaves its stew",
-                    "ZeD: " .. tostring(z.where) .. "; the game: " .. tostring(S.c5game))
+                H.note("5 (" .. z.how .. ") (call 5): ZeD's stew ends in " .. tostring(z.where) .. "; the game's own add from the crate leaves its stew in " .. tostring(S.c5game))
             end
             Q.check(z.where == "the crate", "5 (" .. z.how .. ") (call 5, its words): the stew ends back in the crate",
-                "ZeD: " .. tostring(z.where) .. "; the game's own add: " .. tostring(S.c5game) .. " (the first add turns the pot into a new item, and the move back was queued for the pot)")
+                "ZeD: " .. tostring(z.where) .. "; the game's own add: " .. tostring(S.c5game))
         end
         S.crate = nil
     end)
