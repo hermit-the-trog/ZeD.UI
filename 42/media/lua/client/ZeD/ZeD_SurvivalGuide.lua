@@ -701,9 +701,15 @@ Rules.SurvivalGuide_eating_drinking_title = function()
                 seen[ft] = true
                 local sc = it:getScriptItem()
                 local fresh, rot = sc and sc:getDaysFresh() or 0, sc and sc:getDaysTotallyRotten() or 0
-                local kcal = 0
-                pcall(function() kcal = it:getCalories() end)
-                rows[#rows + 1] = { tostring(it:getDisplayName()), (fresh > 0 and fresh < 1000000) and fmt(fresh) or "-", (rot > 0 and rot < 1000000) and fmt(rot) or "-", fmt(kcal) }
+                -- calories only where the game's food tooltip shows them: the Nutritionist trait, or a packaged
+                -- food whose label the character can read (ZeD.seesNutrition); the name as the game shows it
+                -- to this character, Herbalist berries and mushrooms included (ZeD.herbalName; QA K3/K17, Nov 25 2026)
+                local kcal = "-"
+                if ZeD.seesNutrition and ZeD.seesNutrition(it, p) then
+                    pcall(function() kcal = fmt(it:getCalories()) end)
+                end
+                local name = (ZeD.herbalName and ZeD.herbalName(it, p)) or it:getDisplayName()
+                rows[#rows + 1] = { tostring(name), (fresh > 0 and fresh < 1000000) and fmt(fresh) or "-", (rot > 0 and rot < 1000000) and fmt(rot) or "-", kcal }
             end
         end
     end)

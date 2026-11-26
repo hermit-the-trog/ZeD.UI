@@ -823,17 +823,19 @@ for i = 1, 40 do frame("steady after it all " .. i) end
 -- ---------------------------------------------------------------------------
 -- WHAT THE CARD HAS NO READING FOR: shown within MODEL_MS
 -- ---------------------------------------------------------------------------
-section("A change with no reading (poison put in food) shows within MODEL_MS")
+section("A change with no reading (poison and boredom put in food) shows within MODEL_MS")
 setItem(ITEMS.apple)
 for i = 1, 3 do frame("apple fresh " .. i) end
-ITEMS.apple._f.getPoisonPower = 12
+-- (the card shows no poison since QA K3, Nov 25 2026: the game's tooltip hides it; the change the card has no reading
+-- for is now boredom put in, a row the facts panel does show)
+ITEMS.apple._f.getPoisonPower = 12; ITEMS.apple._f.getBoredomChange = 30
 local lag, caught = 0, false
 for i = 1, 40 do
     local same = frame("apple poisoned", 16, true)
     if same then caught = true; break end
     lag = lag + 16
 end
-check("poison shows on the new card within 250 ms", caught and lag <= 250, lag .. " ms")
+check("the change shows on the new card within 250 ms", caught and lag > 0 and lag <= 250, lag .. " ms")
 print(string.format("   poison on the new card: %d ms behind the old (MODEL_MS 250)", lag))
 diffs = diffs - lag / 16   -- (those frames were the expected lag, not a fault)
 setItem(ITEMS.apple)

@@ -47,6 +47,7 @@
 -- ============================================================================
 
 require "ZeD/Molecules"
+require "ZeD/CookClock"
 
 ZeD = ZeD or {}
 ZeD.ObjectCards = ZeD.ObjectCards or {}
@@ -636,20 +637,23 @@ function UI.cookRows(card, x, y, w, container, on)
                 local toBurn = call(it, "getMinutesToBurn") or 0
                 -- (punch list 224: by the food's own heat, the game's test; an oven on with no power or gas heats nothing)
                 local hot = on and not call(it, "isFrozen") and (call(it, "getHeat") or 0) > 1.6
+                -- the minutes left are game minutes at this food's measured rate (ZeD.CookClock), nil until
+                -- one is measured: the row shows its percent then (QA K12, Nov 25 2026)
+                local CC = ZeD.CookClock
                 if call(it, "isBurnt") then
                     tag, mode, p = ZeD.tr("IGUI_invpanel_Burnt"), "dng", 1
                 elseif call(it, "isCooked") or (toCook > 0 and ct >= toCook) then
                     if hot then
                         tag, mode = ZeD.tr("IGUI_invpanel_Burning"), "dng"
                         p = math.max(0, math.min(1, (ct - toCook) / math.max(1, toBurn - toCook)))
-                        left = math.max(0, math.ceil(toBurn - ct))
+                        left = CC and CC.minutesLeft(it, ct, toBurn, hot) or nil
                     else
                         tag, mode = ZeD.tr("Tooltip_food_Cooked"), "pos"
                     end
                 else
                     p = toCook > 0 and math.max(0, math.min(1, ct / toCook)) or 0
                     tag, mode = hot and ZeD.tr("IGUI_invpanel_Cooking") or ZeD.tr("UI_ZeD_ObjCard_TagRaw"), hot and "acc" or "dim"
-                    left = hot and math.max(0, math.ceil(toCook - ct)) or nil
+                    left = (hot and CC) and CC.minutesLeft(it, ct, toCook, hot) or nil
                 end
             end
             local isz = T.px(16)

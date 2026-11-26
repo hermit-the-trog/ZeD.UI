@@ -24,6 +24,7 @@ require "ZeD/ContainerGroups"  -- (a mod that files things into groups of its ow
 require "ZeD/InventoryFilter"  -- (the window's Filter: its state, matching and bar)
 require "ZeD/GridLayout"       -- (Nov 15 2026, add-on hooks: an add-on's grid layout, item spans and placing)
 require "ZeD/ItemRules"        -- (Nov 15 2026, add-on hooks: an add-on's rule about what may go where)
+require "ZeD/ZeD_HerbalName"   -- (berries and mushrooms named as the game's list names them: QA K3, Nov 25 2026)
 
 ZeD = ZeD or {}
 
@@ -2532,7 +2533,12 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
                 -- the game's list ages every food it draws, and in single player nothing else does: a steak in a
                 -- freezer never froze while only this list showed it. Once per item per model build (about every
                 -- second per visible column), as vanilla's refreshContainer does (QA B5-9)
-                if instanceof and instanceof(item, "Food") then pcall(item.updateAge, item) end
+                if instanceof and instanceof(item, "Food") then
+                    pcall(item.updateAge, item)
+                    -- and names its berries and mushrooms as it lists them, the name kept on the item (setName), before
+                    -- the sort reads names (ISInventoryPane.lua:2107-2127; ZeD_HerbalName.lua; QA K3, Nov 25 2026)
+                    if ZeD.herbalName then pcall(ZeD.herbalName, item, playerObj) end
+                end
                 if not groups[cat] then
                     groups[cat] = {}
                     catOrder[#catOrder + 1] = cat

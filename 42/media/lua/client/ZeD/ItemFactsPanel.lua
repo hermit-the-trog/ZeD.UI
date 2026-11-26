@@ -26,6 +26,7 @@
 -- ============================================================================
 
 require "ZeD/Tr"
+require "ZeD/ZeD_HerbalName"   -- (ZeD.seesNutrition: the game's rule for who reads nutrition, QA K17)
 ZeD = ZeD or {}
 ZeD.ItemFactsPanel = ZeD.ItemFactsPanel or {}
 
@@ -181,7 +182,7 @@ end
 -- ---------------------------------------------------------------------------
 -- NutritionFacts - food
 -- ---------------------------------------------------------------------------
-function M.NutritionFacts(item)
+function M.NutritionFacts(item, playerNum)
     if not item then return nil end
     if not (instanceof and instanceof(item, "Food")) then return nil end
 
@@ -191,7 +192,8 @@ function M.NutritionFacts(item)
     local protein  = safeGet(item, "getProteins")
     local fat      = safeGet(item, "getLipids")
     local carbs    = safeGet(item, "getCarbohydrates")
-    local sickness = safeGet(item, "getPoisonPower")  -- 0 if not poisoned/raw
+    -- (no poison row: the game's food tooltip never shows poison, and the card showed "Sickness risk +10%" on a
+    -- poisonous berry the game hides, with or without Herbalist; QA K3, Nov 25 2026)
     local boredom  = safeGet(item, "getBoredomChange")
     local happy    = safeGet(item, "getUnhappyChange")
 
@@ -209,21 +211,31 @@ function M.NutritionFacts(item)
         },
     }
 
-    -- Group 2: macro nutrients
-    panel.groups[#panel.groups + 1] = {
-        rows = {
-            {label = getText("Tooltip_food_Calories"), value = cal     and tostring(math.floor(cal     + 0.5))             or "-"},
-            {label = getText("Tooltip_food_Prots"),    value = protein and string.format("%d g", math.floor(protein + 0.5)) or "-"},
-            {label = getText("Tooltip_food_Fat"),      value = fat     and string.format("%d g", math.floor(fat     + 0.5)) or "-"},
-            {label = getText("Tooltip_food_Carbs"),    value = carbs   and string.format("%d g", math.floor(carbs   + 0.5)) or "-"},
-        },
-    }
+    -- Group 2: macro nutrients, only where the game's tooltip lists them: a Nutritionist, or a packaged food whose
+    -- label the player can read (Food.DoTooltip; ZeD_HerbalName.lua). A packaged food the player can't read gets the
+    -- game's one Nutrition line with the reason, as the tooltip does (QA K17, Nov 25 2026)
+    local seen, why = true, nil
+    if ZeD.seesNutrition then
+        seen, why = ZeD.seesNutrition(item, getSpecificPlayer and getSpecificPlayer(playerNum or 0) or nil)
+    end
+    if seen then
+        panel.groups[#panel.groups + 1] = {
+            rows = {
+                {label = getText("Tooltip_food_Calories"), value = cal     and tostring(math.floor(cal     + 0.5))             or "-"},
+                {label = getText("Tooltip_food_Prots"),    value = protein and string.format("%d g", math.floor(protein + 0.5)) or "-"},
+                {label = getText("Tooltip_food_Fat"),      value = fat     and string.format("%d g", math.floor(fat     + 0.5)) or "-"},
+                {label = getText("Tooltip_food_Carbs"),    value = carbs   and string.format("%d g", math.floor(carbs   + 0.5)) or "-"},
+            },
+        }
+    elseif why then
+        panel.groups[#panel.groups + 1] = {
+            rows = { {label = getText("Tooltip_food_Nutrition"), value = getText(why), valueClass = "dim"} },
+        }
+    end
 
     -- Group 3: secondary effects
     panel.groups[#panel.groups + 1] = {
         rows = {
-            {label = ZeD.tr("UI_ZeD_Card_SicknessRisk"), value = (sickness and sickness > 0) and string.format("+%d%%", sickness) or "0%",
-             valueClass = (sickness and sickness > 0) and "bad" or "dim"},
             {label = getText("Tooltip_food_Boredom"),    value = boredom and string.format("%+d", math.floor(boredom + 0.5)) or "-",
              valueClass = (boredom or 0) > 0 and "warn" or nil},
             {label = ZeD.tr("UI_ZeD_Card_Happiness"),    value = happy   and string.format("%+d", math.floor(-happy  + 0.5)) or "-"},

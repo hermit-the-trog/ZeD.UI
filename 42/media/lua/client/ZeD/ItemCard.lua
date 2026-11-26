@@ -14,6 +14,7 @@ require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/ZeD_AddonAPI"
+require "ZeD/ZeD_HerbalName"   -- (berry and mushroom names, who reads nutrition: QA K3/K17)
 ZeD = ZeD or {}
 ZeD_ItemCard = ISPanel:derive("ZeD_ItemCard")
 ZeD.ItemCard = ZeD.ItemCard or {}
@@ -229,7 +230,7 @@ local function formatFood(item)
     local t=safeGet(item,"getThirstChange"); if t and t~=0 then local v=math.floor(t*100); table.insert(s,{label="Thirst",value=string.format("%+d",v),color=v<0 and T.positive or T.warning}) end
     local b=safeGet(item,"getUnhappyChange") or safeGet(item,"getBoredomChange"); if b and b~=0 then local v=math.floor(b); table.insert(s,{label="Boredom",value=string.format("%+d",v),color=v<0 and T.positive or T.warning}) end
     local alc=safeGet(item,"getAlcoholPower"); if alc and alc>0 then table.insert(s,{label="Alcohol",value=string.format("%.1f",alc),color=T.warning}) end
-    local poi=safeGet(item,"getPoisonPower"); if poi and poi>0 then table.insert(s,{label="Poison",value=string.format("%.0f",poi),color=T.danger}) end
+    -- (no Poison row: the game's food tooltip never shows poison power; QA K3, Nov 25 2026)
     local heat=safeGet(item,"getHeat")
     if heat and heat>1.3 then table.insert(s,{label="Temp",value="Hot",color=T.warning})
     elseif heat and heat<0.5 then table.insert(s,{label="Temp",value="Cold",color=T.info}) end
@@ -322,8 +323,11 @@ end
 -- preview: the item you would craft, and the one of yours it upgrades)
 ZeD.itemFacts = function(item) return getStatsForItem(item), getBarsForItem(item), getItemCategory(item) end
 
-local function getNutritionForItem(item)
+local function getNutritionForItem(item, playerNum)
     if not instanceof(item, "Food") then return {} end
+    -- the label only where the game's tooltip lists nutrition: a Nutritionist, or a packaged food the player can
+    -- read (ZeD.seesNutrition, ZeD_HerbalName.lua; QA K17, Nov 25 2026)
+    if ZeD.seesNutrition and not ZeD.seesNutrition(item, getSpecificPlayer(playerNum or 0)) then return {} end
     local n = {}
     -- Serving size: the whole item is one serving; its weight stands in
     local wt = safeGet(item,"getActualWeight") or safeGet(item,"getWeight") or 0
@@ -931,6 +935,9 @@ function ZeD_ItemCard:_onZonePress(zoneIdx, zone, rect)
     end
 end
 function ZeD_ItemCard:setItem(item)
+    -- a berry or mushroom gets the name the game's list gives it before the card shows it (ZeD_HerbalName.lua;
+    -- QA K3, Nov 25 2026)
+    if item and ZeD.herbalName then pcall(ZeD.herbalName, item, getSpecificPlayer(self.playerNum or 0)) end
     self.item = item
     self._model = nil   -- the card's model (ItemCardOrganism.lua) is built again for it
     self:_loadFoldStates()
@@ -1360,7 +1367,7 @@ function ZeD_ItemCard:_calcBodyH()
             end
         end
     elseif cat == "Food" then
-        local nutrition   = getNutritionForItem(item)
+        local nutrition   = getNutritionForItem(item, self.playerNum)
         local ingredients = getIngredientsForItem(item)
 
         -- Nutrition disclosure

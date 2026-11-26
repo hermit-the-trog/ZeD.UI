@@ -19,6 +19,7 @@
 -- ============================================================================
 
 require "ZeD/Tr"
+require "ZeD/ZeD_HerbalName"   -- (berry and mushroom names: QA K3)
 ZeD = ZeD or {}
 ZeD.ItemCard = ZeD.ItemCard or {}
 
@@ -769,6 +770,9 @@ local function buildModel(card, item, ctx, playerNum, now, g1, g2, g3, g4, g5, g
         item = item, ctx = ctx, pn = playerNum, at = now,
         g1 = g1, g2 = g2, g3 = g3, g4 = g4, g5 = g5, g6 = g6, g7 = g7, g8 = g8,
     }
+    -- a berry or mushroom named as the game's list names it, before the title reads getDisplayName (ZeD_HerbalName.lua;
+    -- QA K3, Nov 25 2026)
+    if ZeD.herbalName then pcall(ZeD.herbalName, item, getSpecificPlayer(playerNum or 0)) end
     m.cat    = categoryOf(item)
     m.marks  = readMarks(item, playerNum)
     m.verbs  = headerVerbsForContext(ctx, item, getSpecificPlayer(playerNum or 0))
