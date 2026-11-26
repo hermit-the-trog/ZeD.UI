@@ -1257,6 +1257,7 @@ function C.c3crate()
         Q.check(g ~= nil and g.where == T.word, L .. " (call 3): the row names where its items are: the crate's own word (the game's container title, " .. tostring(T.word) .. ")",
             "the row says " .. tostring(g and g.where))
         Q.check(H.seenAt(S.cookDrawn, T.word, 800), L .. " (call 3): the aside \"" .. tostring(T.word) .. "\" is drawn in the tab", H.rowsText())
+        C.c3spot(L)
     end)
     H.shot("ck_calls_3_where_" .. H.sizeTag(), "a tomato only in the crate beside him: the row's dim aside names the crate", function() return not T.off end)
     H.press(T, H.rowId(S.FT.tomato), "mouse", L)
@@ -1320,6 +1321,7 @@ function C.c3floor()
         Q.check(g ~= nil and g.where == T.word and H.seenAt(S.cookDrawn, T.word, 800), L .. " (call 3): the row's aside is \"" .. tostring(T.word) .. "\", drawn",
             "the row says " .. tostring(g and g.where) .. ", drawn " .. tostring(H.seenAt(S.cookDrawn, T.word, 800)) .. "; the game's loot title for the floor "
             .. tostring(getTextOrNull("IGUI_ContainerTitle_floor")))
+        C.c3spot(L)
     end)
     H.press(T, H.rowId(S.FT.tomato), "pad", L)
     H.press(T, "cook:make", "pad", L)
@@ -1559,6 +1561,18 @@ function C.c4()
     C.c4soup()
     C.c4toast()
     H.caseEnd("4 made")
+end
+
+-- the director's look call on call 3 ("1, own spot", Nov 26 2026): the aside sits right after the name with a clear
+-- stretch (16 design units at the least) before the row's numbers, so "Crate" and "11 x1" never read as one
+-- (fix/cookwhere: the tab records each aside's { x, w, numX } in s._whereAt[row id] as it draws)
+function C.c3spot(L)
+    local s = H.cs()
+    local id = H.rowId(S.FT.tomato)
+    local w = s and s._whereAt and s._whereAt[id]
+    local gap = w and (w.numX - (w.x + w.w)) or nil
+    Q.check(gap ~= nil and gap >= ZeD.T.px(16), L .. " (the director's look call): the aside has its own spot, 16 units or more clear of the row's numbers",
+        "aside at " .. tostring(w and w.x) .. "+" .. tostring(w and w.w) .. ", the numbers from " .. tostring(w and w.numX) .. ": " .. tostring(gap) .. " px clear (16 units = " .. ZeD.T.px(16) .. " px)")
 end
 
 -- ===================================================================== 5. a base in reach, not carried
