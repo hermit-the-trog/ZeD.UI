@@ -2738,6 +2738,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "Kész kivezetni hátul",
     "UI_ZeD_Veh_ReadyWalkHim": "Kész kivezetni hátul",
     "UI_ZeD_Veh_Removed": "Levéve",
+    "UI_ZeD_Veh_PartGone": "%1 már le van szerelve.",
     "UI_ZeD_Veh_RepairWith": "Javítás ezzel",
     "UI_ZeD_Veh_Seat": "Ülés",
     "UI_ZeD_Veh_SizeHdr": "Méret",

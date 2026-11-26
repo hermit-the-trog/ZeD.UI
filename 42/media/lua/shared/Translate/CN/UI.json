@@ -2738,6 +2738,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "可以把它从后面牵出来",
     "UI_ZeD_Veh_ReadyWalkHim": "可以把它从后面牵出来",
     "UI_ZeD_Veh_Removed": "已拆下",
+    "UI_ZeD_Veh_PartGone": "%1 已经拆下了。",
     "UI_ZeD_Veh_RepairWith": "修理用",
     "UI_ZeD_Veh_Seat": "座位",
     "UI_ZeD_Veh_SizeHdr": "尺寸",

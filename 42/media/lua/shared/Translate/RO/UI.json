@@ -2738,6 +2738,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "Gata s-o scoți în spate",
     "UI_ZeD_Veh_ReadyWalkHim": "Gata să-l scoți în spate",
     "UI_ZeD_Veh_Removed": "Scos",
+    "UI_ZeD_Veh_PartGone": "%1 e deja scos.",
     "UI_ZeD_Veh_RepairWith": "Repară cu",
     "UI_ZeD_Veh_Seat": "Loc",
     "UI_ZeD_Veh_SizeHdr": "Mărime",

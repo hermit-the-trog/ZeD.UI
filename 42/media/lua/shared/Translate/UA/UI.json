@@ -2738,6 +2738,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "Можна вивести її ззаду",
     "UI_ZeD_Veh_ReadyWalkHim": "Можна вивести його ззаду",
     "UI_ZeD_Veh_Removed": "Знято",
+    "UI_ZeD_Veh_PartGone": "%1 вже знято.",
     "UI_ZeD_Veh_RepairWith": "Ремонт за допомогою",
     "UI_ZeD_Veh_Seat": "Сидіння",
     "UI_ZeD_Veh_SizeHdr": "Розмір",

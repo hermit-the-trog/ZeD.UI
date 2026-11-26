@@ -2738,6 +2738,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "Pronto a levá-la para fora pela traseira",
     "UI_ZeD_Veh_ReadyWalkHim": "Pronto a levá-lo para fora pela traseira",
     "UI_ZeD_Veh_Removed": "Removido",
+    "UI_ZeD_Veh_PartGone": "%1 já foi retirado.",
     "UI_ZeD_Veh_RepairWith": "Reparar com",
     "UI_ZeD_Veh_Seat": "Banco",
     "UI_ZeD_Veh_SizeHdr": "Porte",

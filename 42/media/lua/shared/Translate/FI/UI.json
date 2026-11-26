@@ -2738,6 +2738,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "Valmis taluttamaan ulos takaa",
     "UI_ZeD_Veh_ReadyWalkHim": "Valmis taluttamaan ulos takaa",
     "UI_ZeD_Veh_Removed": "Poistettu",
+    "UI_ZeD_Veh_PartGone": "%1 on jo irrotettu.",
     "UI_ZeD_Veh_RepairWith": "Korjaa välineellä",
     "UI_ZeD_Veh_Seat": "Istuin",
     "UI_ZeD_Veh_SizeHdr": "Koko",

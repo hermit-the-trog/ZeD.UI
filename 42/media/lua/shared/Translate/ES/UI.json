@@ -2738,6 +2738,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "Lista para sacarla por detrás",
     "UI_ZeD_Veh_ReadyWalkHim": "Listo para sacarlo por detrás",
     "UI_ZeD_Veh_Removed": "Quitada",
+    "UI_ZeD_Veh_PartGone": "%1 ya no está puesto.",
     "UI_ZeD_Veh_RepairWith": "Reparar con",
     "UI_ZeD_Veh_Seat": "Asiento",
     "UI_ZeD_Veh_SizeHdr": "Tamaño",

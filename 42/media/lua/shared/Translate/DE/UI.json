@@ -2738,6 +2738,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "Bereit, sie hinten hinauszuführen",
     "UI_ZeD_Veh_ReadyWalkHim": "Bereit, ihn hinten hinauszuführen",
     "UI_ZeD_Veh_Removed": "Entfernt",
+    "UI_ZeD_Veh_PartGone": "%1 ist schon ab.",
     "UI_ZeD_Veh_RepairWith": "Reparieren mit",
     "UI_ZeD_Veh_Seat": "Sitz",
     "UI_ZeD_Veh_SizeHdr": "Größe",
