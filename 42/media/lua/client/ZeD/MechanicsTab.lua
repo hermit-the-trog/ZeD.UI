@@ -1007,7 +1007,8 @@ local function runVerb(s, verb, part, chr)
     if verb == "install" then
         local picks = installPicks(part, chr, itemsFor(s, chr))
         local pick = pickedInstall(s, picks)   -- (the item picked, not its row: M3)
-        if pick and pick.item then ISVehiclePartMenu.onInstallPart(chr, part, pick.item) end
+        if pick and pick.item then ISVehiclePartMenu.onInstallPart(chr, part, pick.item)
+        elseif ZeD.logOnce then ZeD.logOnce("veh install nopick", "Vehicle tab: install found no spare to put on") end
     elseif verb == "uninstall" then ISVehiclePartMenu.onUninstallPart(chr, part)
     elseif verb == "inflate" then ISVehiclePartMenu.onInflateTire(chr, part)
     elseif verb == "deflate" then ISVehiclePartMenu.onDeflateTire(chr, part)
@@ -1035,6 +1036,8 @@ local function runVerb(s, verb, part, chr)
         end
         if #list > 0 then
             s.queued, s.queuedLabel, s.queuedV, s.queuedPart = list, vlabel(verb), part:getVehicle(), part:getId()
+        elseif ZeD.logOnce then
+            ZeD.logOnce("veh queued none " .. tostring(verb), "Vehicle tab: " .. tostring(verb) .. " queued nothing")
         end
     end
     s.items = nil   -- tools and parts move; re-read next frame
@@ -1055,6 +1058,7 @@ local function partContextMenu(part, chr, win, atX, atY)
     local ax, ay = sx - ui:getAbsoluteX(), sy - ui:getAbsoluteY()
     pcall(ui.doPartContextMenu, ui, part, ax, ay)
     local ctx = ui.context
+    if win and win._mech then win._mech.partMenu = ctx end   -- (B shuts it first: closePartMenu, M11)
     local pn = chr:getPlayerNum()
     if ctx and win and JoypadState and JoypadState.players and JoypadState.players[pn + 1] then
         local shown = false
@@ -1804,7 +1808,13 @@ end
 -- run a verb from the footer (a destructive one asks first)
 local function pressVerb(win, s, cm, verb, chr)
     s.verb = verb
-    if cm.busy or chainBusy(s, chr) or not cm.needs[verb].ok then return end
+    -- (a refused press says why in the console, once per reason: QA's M3 second pass found Install doing nothing
+    -- after a pick and the screen gave no reason, Nov 26 2026)
+    local why = (cm.busy and "busy") or (chainBusy(s, chr) and "chain") or ((not (cm.needs[verb] and cm.needs[verb].ok)) and "needs") or nil
+    if why then
+        if ZeD.logOnce then ZeD.logOnce("veh press " .. tostring(verb) .. " " .. why, "Vehicle tab: " .. tostring(verb) .. " refused (" .. why .. ")") end
+        return
+    end
     if DANGER[verb] then
         if refusePaused(chr) then return end   -- (no question to answer while paused: M12)
         s.confirm = verb; win._mechFocusTarget = "mech:confirm:no"; return
@@ -2655,7 +2665,11 @@ function MT.onRightClick(win, x, y)
         if s.card and s.rightClip and hit(s.rightClip, x, y) then id = s.card
         elseif not s.card and s.figClip and hit(s.figClip, x, y) then id = figurePartAt(s, x, y) end
     end
-    if id then partContextMenu(e.vehicle:getPartById(id), chr, win) end
+    -- (at the press's own point on screen, not the pointer: a pad's X arrives here too, with the pointer hidden at
+    -- 0,0, and the menu opened in the corner. QA M11 second pass, Nov 26 2026)
+    local ax, ay = nil, nil
+    if s.panel then ax, ay = s.panel:getAbsoluteX() + x, s.panel:getAbsoluteY() + y end
+    if id then partContextMenu(e.vehicle:getPartById(id), chr, win, ax, ay) end
     return true
 end
 
@@ -2682,6 +2696,22 @@ end
 -- card in the right column), B shuts the card (or the open Sort list); B with neither
 -- leaves the tab as before.
 -- ----------------------------------------------------------------------------
+-- B with the part menu up shuts the menu and nothing else, whatever drives the pad. The hand-back above needs
+-- a joined pad (setJoypadFocus); with none, B went on to the card and the menu stayed up (QA M11 second pass,
+-- Nov 26 2026). Returns true when it shut one.
+local function closePartMenu(s)
+    local ctx = s and s.partMenu
+    if not ctx then return false end
+    s.partMenu = nil
+    local shown = false
+    pcall(function() shown = ctx:getIsVisible() end)
+    if not shown then return false end
+    pcall(function() ctx:setVisible(false) end)
+    pcall(function() if ctx.hideAndChildren then ctx:hideAndChildren() end end)
+    return true
+end
+MT.closePartMenu = closePartMenu
+
 -- The screen point for the game's part menu opened from the pad: the focused stop's lower left, not the
 -- hidden pointer (QA M11, Nov 26 2026)
 local function padMenuAt(s, z)
@@ -2711,6 +2741,15 @@ function MT.buildFocusables(win)
                     if s.confirm == "xrelease" then win._mechFocusTarget = "mech:xrelease" end
                     if s.confirm then s.confirm = nil else closeCard(win, s) end
                     return true
+                end
+            end
+            -- (B shuts an open part menu first; with none up it does what it did: false lets the window's own B run)
+            do
+                local inner = el.onCancel
+                el.onCancel = function(w2, e2)
+                    if closePartMenu(s) then return true end
+                    if inner then return inner(w2, e2) end
+                    return false
                 end
             end
             if zz.isRow then
