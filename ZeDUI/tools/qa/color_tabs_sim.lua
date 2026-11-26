@@ -55,7 +55,7 @@ G.stripCell(panel, 0, 0, 40, 40, tex("Container_Crate"), false, false)
 check("STRIP: not shown: the tint alone", #draws == 1 and draws[1].a == 1)
 draws = {}
 G.stripCell(panel, 0, 0, 40, 40, tex("Container_Crate"), true, false)
-check("STRIP: shown: the tint, the wash and four frame sides", #draws == 6 and draws[2].a == 0.30 and draws[3].h == 2)
+check("STRIP: shown: the tint and four one-hairline frame sides, no wash (the director, Nov 25 2026)", #draws == 5 and draws[2].a == 1 and draws[2].h == 1 and draws[4].w == 1)
 draws = {}
 G.stripCell(panel, 0, 0, 40, 40, tex("Container_Crate"), false, true)
 check("STRIP: hovered: the tint and the hover wash", #draws == 2 and draws[2].a == 0.08)

@@ -110,9 +110,9 @@ end
 
 -- ============================================================================
 -- THE CONTAINER STRIPS' TINTED BUTTONS (the director, Nov 25 2026; mock-up ZeDUI/mockups/container_tabs_color_v4.html,
--- "Stronger tint" and "Wash and frame"). Always on: each container button of both windows is filled with a stronger
--- tint of its picture's main color than the grid's tiles take; the shown one keeps today's accent wash over it and
--- gains a frame (the accent's bright tone; on Light a darker accent), so the selection reads over any tint.
+-- "Stronger tint"; the shown one since framed by one hairline, no wash). Always on: each container button of both windows is filled with a stronger
+-- tint of its picture's main color than the grid's tiles take; the shown one keeps its tint and gains a one-hairline
+-- frame (the accent's bright tone; on Light a darker accent), no wash (the director, Nov 25 2026).
 -- The colors: ZeD.ContainerTints (the game's Container_* pictures, the world's containers and the main inventory)
 -- or ZeD.ItemTints (a bag's item icon); a picture in neither (another mod's) takes the neutral gray.
 -- ============================================================================
@@ -158,16 +158,17 @@ function G.stripFill(T, tex)
     return t[1], t[2], t[3]
 end
 
---- One container button's background in (x, y, w, h) of panel: the tint, then the shown look (the accent wash
---- and the frame) or the pointer's hover wash. The icon and the controller's mark go on after, as before.
+--- One container button's background in (x, y, w, h) of panel: the tint, then the shown look (a one-hairline
+--- frame) or the pointer's hover wash. The icon and the controller's mark go on after, as before.
 function G.stripCell(panel, x, y, w, h, tex, lit, hover)
     local T = ZeD.T
     local r, g, b = G.stripFill(T, tex)
     panel:drawRect(x, y, w, h, 1, r, g, b)
     if lit then
+        -- the shown one: its own tint and a one-hairline frame, no accent wash (the director, Nov 25 2026, after the
+        -- frame fix's before and after: "single pixel outline/highlight, no wash")
         local ac = T.accent
-        panel:drawRect(x, y, w, h, T.selectionA or 0.30, ac.r, ac.g, ac.b)
-        local f = T.px(2)
+        local f = T.px(1)
         local fr, fg, fb
         if T.baseKey == "light" then
             fr, fg, fb = ac.r * 0.72, ac.g * 0.72, ac.b * 0.72
