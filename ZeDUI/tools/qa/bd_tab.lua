@@ -425,7 +425,9 @@ function H.openSteps(T, key, lab)
         H.search(tostring(rd.entry.displayName))
     end)
     H.wait(3000, function() return T.name == nil or T.open or H.zone("recipeRow", T.name) ~= nil end, function()
-        if not (T.name and H.row(T.name)) then return end
+        if not T.name then return end
+        -- (a row the list leaves out, e.g. nothing carried for it, still opens: H.open falls back to the card from code)
+        if not H.row(T.name) then H.note(tostring(lab) .. ": " .. tostring(T.name) .. " has no row in the list; its card is opened from code") end
         if not T.open then T.open = H.open(T.name, lab) end
     end)
     H.wait(6000, function()
