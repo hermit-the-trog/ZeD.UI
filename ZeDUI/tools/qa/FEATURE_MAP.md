@@ -233,8 +233,9 @@ Paths are relative to `42/media/lua/client/ZeD/`. CW = ZeD_CharacterWindow.lua, 
 
 | Feature | Owning file | Entry function(s) | Mouse path | Pad path | PASS measures | Needs | Check |
 |---|---|---|---|---|---|---|---|
-| Tab shows in context | CookingTab.lua | `ZeD.CookingTab.visible(win)` :1154, registered by `addTab` :1180 (after thermal) | n/a | n/a | `visible` true only with a base (pot/pan/bowl) on the player and an ingredient in reach | pot + food | rt_inv: "the Cooking tab is on the strip" |
-| Pick dish, add/remove ingredients, Make | CookingTab.lua | `onClick` :1077, `firstDish` :1135, `make` (local) :425 | stamped zones `win._cook.zones` | `"cook:ing:<type>"`, `"cook:plan:<i>"`, `"make"` | `#win._cook.plan` grows/shrinks; Make queues the game's add-ingredient actions | pot + food | not here: needs pot + food |
+| Tab shows in context | CookingTab.lua | `ZeD.CookingTab.visible(win)` :1154, registered by `addTab` :1180 (after thermal) | n/a | n/a | `visible` true only with a base (pot/pan/bowl) on the player and an ingredient in reach | pot + food | rt_inv: "the Cooking tab is on the strip"; ck_tab (ck.txt): the tab comes with a base and goes with it (QA K10, Nov 25 2026) |
+| Pick dish, add/remove ingredients, Make | CookingTab.lua | `onClick` :1077, `firstDish` :1135, `make` (local) :425 | stamped zones `win._cook.zones` | `"cook:ing:<type>"`, `"cook:plan:<i>"`, `"make"` | `#win._cook.plan` grows/shrinks; Make queues the game's add-ingredient actions | pot + food | ck_tab (ck.txt, QA Nov 25 2026): K1 the best item of a type goes in, K2 one row per state (raw, cooked, frozen), K3 names as the game names them, K7 the dish limit, K8 seasoning after the first ingredient, K9 Make twice makes one, K11 the half card, K16 the Hunger line, pad A on every stop |
+| Cooking minutes left (oven, fire card, item card) | CookClock.lua | the oven's In the oven row, the fire card's On the fire row, the item card's cooking band | n/a (read on the card) | n/a | a percent until the rate has 5 game minutes of this heat and 3 agreeing slopes, then minutes within 20 percent of the game minutes the food really takes | a range, a generator, a campfire | ck_tab 7 (K12, the food timed to cooked on the game clock), K13 off the heat |
 
 ### World tabs
 
