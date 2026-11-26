@@ -3,7 +3,8 @@
 -- handed vehicleName the list's entries ({ vehicle = v, id, dist }, from MT.buildVehicles) in place of the vehicles.
 -- With no game running, vehicleName, mechType and MT.vehicleTabItems (cut out of the real MechanicsTab.lua) run on
 -- entries shaped like MT.buildVehicles' with stub vehicles. It checks:
---   no error on real entries; each tab is the car's name; two of one name carry their place; the help line adds the type;
+--   no error on real entries; each tab is the car's name; two of one name carry their own number (first seen, kept:
+--   QA M13b, Nov 26 2026); the help line adds the type;
 --   a shorter list drops the old tabs.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/vehicle_tab_strip_sim.lua
 local ROOT = string.gsub(arg and arg[0] or "", "ZeDUI[/\\]tools[/\\]qa[/\\]vehicle_tab_strip_sim%.lua$", "")
@@ -19,7 +20,7 @@ local tb = ta and src:find("\nend\n", ta, true)
 local va = src:find("local function vehicleName(v)", 1, true)
 local vb = va and src:find("local function mechType(v)", va, true)
 local vc = vb and src:find("\nend\n", vb, true)
-local ia = src:find("local _vehTabItems = {}", 1, true)
+local ia = src:find("local VEH_NUM = ", 1, true)
 local ib = ia and src:find("\nend\n", src:find("function MT.vehicleTabItems", ia, true), true)
 check("the pieces are found", ta and tb and va and vb and vc and ia and ib)
 if not (ta and tb and va and vb and vc and ia and ib) then print("vehicle_tab_strip_sim: " .. checks .. " checks, " .. failed .. " failed"); os.exit(1) end
@@ -40,7 +41,7 @@ check("real entries draw without an error", ok, not ok and items or nil)
 if ok then
     check("three tabs", #items == 3, #items)
     check("a car's tab is its name", items[2].label == "Franklin Van", items[2].label)
-    check("two of one name carry their place", items[1].label == "Chevalier Nyala (1)" and items[3].label == "Chevalier Nyala (3)",
+    check("two of one name carry their own number", items[1].label == "Chevalier Nyala (1)" and items[3].label == "Chevalier Nyala (2)",
           tostring(items[1].label) .. " / " .. tostring(items[3].label))
     check("the help line adds the type", items[1].help == "Chevalier Nyala | Standard", items[1].help)
     local ok2, few = pcall(MT.vehicleTabItems, { list[2] })
