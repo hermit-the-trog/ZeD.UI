@@ -1559,7 +1559,11 @@ function C.c2mouse()
         local made = H.count(S.OUT.stake) - T.c0
         if st._progOn then T.on = (T.on or 0) + 1 end
         local bs = S.bandSeen
-        if isCraft and H.fresh2(bs) then
+        -- (a sample counts only when the same craft ran at the last tick too: when one craft ends and the next starts between
+        -- the band's draw and this read, the band still shows the ended craft's 0.98 against the new craft's 0.0)
+        local same = T.lastA == a
+        T.lastA = a
+        if isCraft and same and H.fresh2(bs) then
             local d = H.delta(a)
             if type(d) == "number" and type(bs.pct) == "number" then
                 T.gap = math.max(T.gap or 0, math.abs(d - bs.pct))
