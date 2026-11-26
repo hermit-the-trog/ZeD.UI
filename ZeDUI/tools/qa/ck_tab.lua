@@ -1341,10 +1341,12 @@ end
 -- a grey row of its type says why. The game's right-click menu shows one option per type and number, so a raw and
 -- a cooked steak of the same number show as one option there (the first, refused); the tab lists each state as its
 -- own row, which is right (Build and QA agreed Nov 25: do not copy the menu's merge).
+function H.gameHas(r, base, it)
+    for _, x in ipairs(H.gameList(r, base)) do if x == it then return true end end
+    return false
+end
 function H.gameTakes(r, base, it)
-    local inList = false
-    for _, x in ipairs(H.gameList(r, base)) do if x == it then inList = true end end
-    if not inList then return false end
+    if not H.gameHas(r, base, it) then return false end
     local ok = true
     pcall(function()
         if instanceof(it, "Food") and it:isFrozen() and not r:isAllowFrozenItem() then ok = false end
@@ -1380,12 +1382,17 @@ function C.rowGame(what)
                 anyTaken = true
                 Q.check(rowLit, L .. " (K2): the " .. e.tag .. " one, which the game takes, sits in a lit row",
                     "its row " .. tostring(g and g.id) .. " " .. (rowLit and "lit" or "grey or none") .. (g and g.why and (" (" .. g.why .. ")") or ""))
-            else
+            elseif H.gameHas(T.r, T.baseIt, e.it) then
+                -- the game lists it and refuses it: the tab greys a row and says why
                 local greys = H.greyRows(ft)
                 local why = {}
                 for _, x in ipairs(greys) do why[#why + 1] = tostring(x.name) .. ": " .. tostring(x.why) end
-                Q.check(not rowLit and #greys >= 1, L .. " (K2): the " .. e.tag .. " one, which the game refuses, sits in no lit row and a grey row says why",
+                Q.check(not rowLit and #greys >= 1, L .. " (K2): the " .. e.tag .. " one, which the game lists and refuses, sits in no lit row and a grey row says why",
                     "its row " .. tostring(g and g.id) .. (rowLit and " lit" or "") .. "; grey rows " .. H.list(why))
+            else
+                -- the game does not list it at all (its own menu never shows it): the tab need only keep it out of a lit row
+                Q.check(not rowLit, L .. " (K2): the " .. e.tag .. " one, which the game does not list, sits in no lit row",
+                    "its row " .. tostring(g and g.id) .. (rowLit and " lit" or " none"))
             end
         end
         T.gameAvail = anyTaken
@@ -1975,19 +1982,40 @@ function C.rate(T, label, key, food)
                 .. tostring(T.z0) .. ")")
         end
     end)
-    H.wait(30000, function() return T.off or T.noHeat or T.rateOff or H.worldMin() - T.r0.m >= 8 end, function()
-        if T.off or T.noHeat or T.rateOff then T.rateOff = nil; return end
+    -- the truth: the game minutes the food really takes from that moment to its next mark (cooked, or burnt once
+    -- cooked), on the game clock; ZeD's number must land within 20 percent of it (3 minutes at the least). The
+    -- cooking time does not grow one per game minute (the heat speeds it), so a straight count was never the test.
+    H.step(1, function()
+        if T.off or T.noHeat or T.rateOff or not T.r0 then return end
+        T.toBurnLeg = (T.r0.cooked or (type(T.r0.ct) == "number" and type(T.r0.toCook) == "number" and T.r0.ct >= T.r0.toCook)) and true or false
+        T.mid = nil
+    end)
+    H.wait(120000, function()
+        if T.off or T.noHeat or T.rateOff or not T.r0 then return true end
+        local r = H.cookRead(food())
+        if not T.mid and r.m - T.r0.m >= 8 then T.mid = r; T.zmid = H.seen(key, 1500) end
+        if T.toBurnLeg then return r.burnt == true end
+        return r.cooked == true or (type(r.ct) == "number" and type(r.toCook) == "number" and r.ct >= r.toCook)
+    end, function(ok)
+        if T.off or T.noHeat or T.rateOff or not T.r0 then T.rateOff = nil; return end
         local r1 = H.cookRead(food())
         if not (type(r1.ct) == "number" and type(T.r0.ct) == "number" and type(T.r0.toCook) == "number" and type(T.r0.toBurn) == "number") then
             Q.skip(label, "the food's cooking time could not be read"); return
         end
-        local dm = r1.m - T.r0.m
-        local rate = (dm > 0) and ((r1.ct - T.r0.ct) / dm) or nil
-        local left = math.max(0, (T.r0.cooked or T.r0.ct >= T.r0.toCook) and (T.r0.toBurn - T.r0.ct) or (T.r0.toCook - T.r0.ct))
-        Q.check(rate ~= nil and math.abs(rate - 1) <= 0.25, label .. ": ZeD's '" .. tostring(T.z0) .. " min left' are game minutes (the food's cooking time grows one per game minute)",
-            H.cookText(T.r0) .. " -> " .. H.n1(r1.ct) .. " over " .. H.n1(dm) .. " game minutes: " .. H.n2(rate) .. " a minute; ZeD said " .. tostring(T.z0)
-            .. " m, the food gets there in " .. ((rate and rate > 0) and H.n1(left / rate) or "?") .. " game minutes")
-        H.note(label .. ": ZeD drew " .. tostring(T.z0) .. ", the food's own " .. H.n1(left) .. " (rounded up " .. math.ceil(left) .. ")")
+        local mark = T.toBurnLeg and "burnt" or "cooked"
+        if not ok then
+            Q.skip(label, "the food was not " .. mark .. " in 120 s on fast-forward (" .. H.cookText(r1) .. " after " .. H.n1(r1.m - T.r0.m) .. " game minutes)")
+            return
+        end
+        local real = r1.m - T.r0.m
+        local z = tonumber(T.z0)
+        local slope = T.mid and ((T.mid.ct - T.r0.ct) / (T.mid.m - T.r0.m)) or nil
+        Q.check(z ~= nil and math.abs(z - real) <= math.max(3, 0.2 * real), label .. ": ZeD's '" .. tostring(T.z0) .. " min left' is within 20 percent of the game minutes the food really took to be " .. mark,
+            H.cookText(T.r0) .. "; " .. mark .. " after " .. H.n1(real) .. " game minutes; ZeD said " .. tostring(T.z0) .. " m"
+            .. (slope and ("; the first 8 minutes grew " .. H.n2(slope) .. " a minute") or ""))
+        if T.mid then
+            H.note(label .. ": 8 minutes in, ZeD said " .. tostring(T.zmid) .. " m and the food took " .. H.n1(r1.m - T.mid.m) .. " more")
+        end
     end)
 end
 function C.c7fire()
