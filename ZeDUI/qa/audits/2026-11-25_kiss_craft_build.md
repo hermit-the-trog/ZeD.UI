@@ -37,7 +37,7 @@ Build merged fixes as 60a9d636d. The rerun found 13 fixed. Still open and with B
 
 ## Design calls for the director
 
-Asked as numbered choices in chat. Option 1 is QA's pick in each.
+Asked as numbered choices in chat. Option 1 is QA's pick in each. **Decided Nov 25 2026:** the director picked option 1 on all seven ("1 on all"), and QA relayed them to Build.
 1. **Which item a craft uses.** The game lets you pick each item; ZeD picks by type. Options: item-level choice in the alternatives list, or keep.
 2. **Progress while crafting.** The game shows a bar. Options: a progress band on the craft card while it runs, or keep.
 3. **Tool wear.** The game's tooltip says a tool may degrade, its sharpness, and whether it must be worn. Options: show those on the card's tool rows, or keep.
