@@ -1810,7 +1810,15 @@ local function pressVerb(win, s, cm, verb, chr)
     s.verb = verb
     -- (a refused press says why in the console, once per reason: QA's M3 second pass found Install doing nothing
     -- after a pick and the screen gave no reason, Nov 26 2026)
-    local why = (cm.busy and "busy") or (chainBusy(s, chr) and "chain") or ((not (cm.needs[verb] and cm.needs[verb].ok)) and "needs") or nil
+    -- (asked live, not from cm: cm is the card as it was drawn when the button was stamped, and a press can come
+    -- from a stamp a frame or more old (QA's M3: "busy" with nothing queued, the card's busy left from the last
+    -- chain). Nov 26 2026)
+    local v = cm.part and cm.part:getVehicle()
+    local busyNow = chainBusy(s, chr) or (v ~= nil and activeAction(chr, v) ~= nil)
+    local n = nil
+    if cm.part and v then pcall(function() n = needsFor(s, cm.part, verb, chr, v) end) end
+    n = n or cm.needs[verb]
+    local why = (busyNow and "busy") or ((not (n and n.ok)) and "needs") or nil
     if why then
         if ZeD.logOnce then ZeD.logOnce("veh press " .. tostring(verb) .. " " .. why, "Vehicle tab: " .. tostring(verb) .. " refused (" .. why .. ")") end
         return
