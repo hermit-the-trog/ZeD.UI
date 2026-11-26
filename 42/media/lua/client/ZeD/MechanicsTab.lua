@@ -1141,41 +1141,6 @@ local function partContextMenu(part, chr, win, atX, atY)
     pcall(ui.doPartContextMenu, ui, part, ax, ay)
     local ctx = ui.context
     if win and win._mech then win._mech.partMenu = ctx end   -- (B shuts it first: closePartMenu, M11)
-    -- (QA's M11 hunt, Nov 26 2026: the shown menu read 0,0 though its anchor was the row's point; what the game
-    -- built, to the console)
-    pcall(function()
-        local vis, nopt = "?", "?"
-        if ctx then
-            pcall(function() vis = tostring(ctx:getIsVisible()) end)
-            pcall(function() nopt = tostring(ctx.numOptions or (ctx.options and #ctx.options)) end)
-        end
-        print("[ZeD] Vehicle tab: part menu at " .. tostring(sx) .. "," .. tostring(sy) .. " (given " .. tostring(atX) .. ","
-            .. tostring(atY) .. "): menu " .. tostring(ctx ~= nil) .. ", shown " .. vis .. ", options " .. nopt)
-    end)
-    if ctx and Events and Events.OnTick then
-        local n = 0
-        local fn
-        fn = function()
-            n = n + 1
-            if n == 2 or n == 10 or n == 40 then
-                pcall(function()
-                    local zm = ctx._zedMenu
-                    local zx, zy, zax, zay, zw, zvis = "-", "-", "-", "-", "-", "-"
-                    if zm then
-                        zx, zy = tostring(zm:getX()), tostring(zm:getY())
-                        zax, zay = tostring(zm:getAbsoluteX()), tostring(zm:getAbsoluteY())
-                        zw = tostring(zm:getWidth()) .. "x" .. tostring(zm:getHeight())
-                        zvis = tostring(zm:getIsVisible())
-                    end
-                    print("[ZeD] Vehicle tab: part menu tick " .. n .. ": game's " .. tostring(ctx:getX()) .. "," .. tostring(ctx:getY())
-                        .. " spawned " .. tostring(ctx._zedSpawned) .. "; ZeD's " .. tostring(zm ~= nil) .. " at " .. zx .. "," .. zy
-                        .. " (abs " .. zax .. "," .. zay .. ") " .. zw .. " shown " .. zvis)
-                end)
-            end
-            if n >= 40 then Events.OnTick.Remove(fn) end
-        end
-        Events.OnTick.Add(fn)
-    end
     local pn = chr:getPlayerNum()
     if ctx and win and JoypadState and JoypadState.players and JoypadState.players[pn + 1] then
         local shown = false
