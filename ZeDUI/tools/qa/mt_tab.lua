@@ -2030,11 +2030,10 @@ function C.c10batt()
     H.caseEnd(T.L)
 end
 -- b. a profession in the muffler's uninstall table (a modded car's table; put back at once)
+-- (Nov 26 2026, the first run: the game's own VehicleUtils.testProfession throws on every profession string in this
+-- build, "expected argument of type CharacterProfession, got String", and each throw is a Lua error in the log. No
+-- string can be staged, so the case SKIPs without asking the game)
 function C.profTry()
-    for _, pr in ipairs({ "base:mechanics", "mechanics", "base:burgerflipper", "burgerflipper" }) do
-        local ok, r = pcall(VehicleUtils.testProfession, S.p, pr)
-        if ok and r == false then return pr end
-    end
     return nil
 end
 function H.tblBack()
@@ -2054,7 +2053,7 @@ function C.c10prof()
         local kv = part and part:getTable("uninstall")
         if not (kv and part:getInventoryItem()) then T.off = true; Q.skip(T.L, "the car has no muffler with an uninstall table"); return end
         local pr = C.profTry()
-        if not pr then T.off = true; Q.skip(T.L, "no profession string the game's testProfession reads cleanly as one he lacks"); return end
+        if not pr then T.off = true; Q.skip(T.L, "the game's testProfession throws on any profession string in this build (it wants a CharacterProfession), so no part table can name one"); return end
         T.pr = pr
         S.back.tbl = { kv = kv, was = kv.professions }
         kv.professions = pr
@@ -2484,7 +2483,7 @@ function C.c14()
         pcall(function() pb = ZeD.Extras and ZeD.Extras.partsBlock and ZeD.Extras.partsBlock(S.vA) end)
         H.note("14 M14 single player: the claims' block on the car is " .. tostring(pb) .. " (no claims off a server)")
         Q.check(#S.mad > 0 and S.flashSeen ~= nil, "14 M14 single player: after the installs the game's OnMechanicActionDone fired and the tab flashed its band",
-            #S.mad .. " game events; the band's words seen: " .. tostring(S.flashSeen))
+            #S.mad .. " game events; the band's words seen (lower case): " .. string.lower(tostring(S.flashSeen)))
     end)
 end
 
@@ -2740,7 +2739,7 @@ function C.c17()
         else Q.skip(T.L .. " (M17): the Smash question's lower case in a language that capitalizes nouns", "the run is in " .. lang) end
         H.click("mech:confirm:no", T.L)
         Q.check(S.notNowSeen == nil, T.L .. " (M17): no NEEDS line reads \"" .. H.notNowFor("IGUI_Uninstall") .. "\" without a reason (see 10a)", tostring(S.notNowSeen))
-        H.note(T.L .. ": the flash's words seen this run: " .. tostring(S.flashSeen) .. " (Done is the game's UI_mods_Done \"" .. tostring(S.doneWord) .. "\", Failed is ZeD's \"" .. tostring(S.failWord) .. "\")")
+        H.note(T.L .. ": the flash's words seen this run (lower case): " .. string.lower(tostring(S.flashSeen)) .. " (Done is the game's UI_mods_Done \"" .. string.lower(tostring(S.doneWord)) .. "\" in capitals, Failed is ZeD's \"" .. tostring(S.failWord) .. "\")")
     end)
     H.caseEnd(T.L)
 end
