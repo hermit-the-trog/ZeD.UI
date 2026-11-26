@@ -977,6 +977,13 @@ function H.openCard(T, key, label)
             .. "; clicked " .. tostring(T.clicked) .. "; before the click " .. tostring(T.preClick) .. "; just after " .. tostring(T.postClick)
             .. "; now " .. H.winText())
     end)
+    -- (Nov 26 2026: a card opened while the Cooking tab's drawer was up was shut when the tab hid a moment later;
+    -- fix/cardstays keeps it. The card must still be open 2 s on, past the tab's once-a-second scan)
+    Q.waitMs(2000)
+    H.step(2, function()
+        if T.off or T[key] == nil or not T[key .. "Card"] then return end
+        Q.check(H.cardOn(T[key]), label .. ": the card stays open 2 s later (the Cooking tab hiding does not shut it)", H.winText())
+    end)
 end
 -- the Character window's state in a few words (for a failed card open: which tab, the drawer, the Cooking tab shown)
 function H.winText()
