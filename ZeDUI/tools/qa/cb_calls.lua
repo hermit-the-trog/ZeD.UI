@@ -1886,10 +1886,31 @@ function C.pins(tb)
     end)
     H.wait(4000, function() return T.off or H.zone(tb, "recipeRow", T.names[10]) ~= nil end, function(ok)
         if T.off then return end
+        T.z10 = ok
         H.padOn()
-        T.f10 = ok and H.focusEl(tb .. ":row:" .. T.names[10])
+    end)
+    -- (a few frames for the pad's stops to be built for the list as it now stands: the focus ring is made while the
+    -- tab draws, so the row's stop is not there in the frame the pad comes on)
+    Q.waitMs(400)
+    H.wait(3000, function()
+        if T.off or not T.z10 then return true end
+        T.f10 = H.focusEl(tb .. ":row:" .. T.names[10])
+        return T.f10
+    end, function()
+        if T.off then return end
+        -- what Build asked for: the focused stop, whether it takes X, and the pins before the press
+        local e = nil
+        pcall(function() e = S.F.liveElement(RT.ww()) end)
+        T.pinsBefore = #(RT.ww()[stateKey] or {})
+        H.note(L .. ": before the pad's X the focus is on " .. tostring(e and e.id) .. ", onContextMenu " .. tostring(e and e.onContextMenu ~= nil)
+            .. ", " .. T.pinsBefore .. " pinned")
     end)
     H.tapX(function() return T.f10 end)
+    H.step(2, function()
+        if T.off then return end
+        H.note(L .. ": after the pad's X (the QA hook's press and release through FocusManager), " .. #(RT.ww()[stateKey] or {}) .. " pinned (before "
+            .. tostring(T.pinsBefore) .. "), the 10th pinned " .. tostring(S.CC.isPinned(RT.ww(), T.names[10], stateKey)))
+    end)
     H.step(6, function()
         if T.off then return end
         H.setSearch(tb, "")
