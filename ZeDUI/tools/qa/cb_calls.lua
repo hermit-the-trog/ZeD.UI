@@ -619,7 +619,8 @@ function H.freeSq(dx, dy)
         good = sq ~= nil and sq:getFloor() ~= nil and sq:isFree(false) and not sq:HasTree()
             and sq:getObjects():size() <= 1 and sq:getWorldObjects():size() == 0 and sq:getVehicleContainer() == nil
     end)
-    if good then pcall(function() good = S.p:getCurrentSquare():canReachTo(sq) and true or false end) end
+    -- (no canReachTo: on the drag strip it said no for every square 2 and 3 off, while bd_tab's same test without it
+    -- finds clear tiles there and builds on them; the walk itself is the game's to make)
     return good and sq or nil
 end
 function H.used(sq) for _, c in ipairs(S.objs) do if c.sq == sq then return true end end; return false end
