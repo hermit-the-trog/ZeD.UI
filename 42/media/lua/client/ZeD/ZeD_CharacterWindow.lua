@@ -4056,7 +4056,10 @@ local function drawContainerStrip(self, win, content)
         end
         -- the button's tint of its picture's color, the one selected look (the shown bag: the wash and the frame) or
         -- the hover wash, then the controller's mark (ZeD.GridTint.stripCell; the director, Nov 25 2026)
-        ZeD.GridTint.stripCell(self, T.px(1), curY, w - T.px(1), mainH,
+        local cL, _, _, cR = A.stripArrowHalves(w, "own", "own+edge")
+        -- (the button's fill and the shown one's frame inside the strip's own lines, the insets its scroll row uses:
+        -- the frame's right side lay half under the right line, 2 px of its 4 at 4K, QA ctab3, Nov 25 2026)
+        ZeD.GridTint.stripCell(self, cL, curY, cR - cL, mainH,
             mainCnt.texture or (ZeD.genericContainerTex and ZeD.genericContainerTex()), mainVis, isHover)
         if isHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_CW_MainHelp", mainCnt.name or "")) end
         local onFocusM = false
@@ -4208,7 +4211,8 @@ local function drawContainerStrip(self, win, content)
             -- tab's columns): the T.selectionA wash; else the hover wash. The
             -- controller's mark goes on after, so it shows on a selected bag.
             -- (on the button's tint of its picture's color: ZeD.GridTint.stripCell, the director, Nov 25 2026)
-            ZeD.GridTint.stripCell(self, T.px(1), btnY, w - T.px(1), T.px(CONTAINER_BTN_SZ),
+            local cL, _, _, cR = A.stripArrowHalves(w, "own", "own+edge")
+            ZeD.GridTint.stripCell(self, cL, btnY, cR - cL, T.px(CONTAINER_BTN_SZ),
                 cnt.texture or (ZeD.genericContainerTex and ZeD.genericContainerTex()), isMcSel or isViewed, isHover)
             if isHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_CW_BagHelp", cnt.name or "")) end
             local onFocusC = false

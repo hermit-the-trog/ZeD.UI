@@ -3509,7 +3509,10 @@ local function drawWorldContainerStrip(self, win, content)
         -- the one selected look (the shown container), the hover wash, then the controller's mark
         local floorOn = mainVis and (isActive or isMC)
         -- (on the button's tint of its picture's color, with the wash and the frame when shown: the director, Nov 25 2026)
-        ZeD.GridTint.stripCell(self, 0, curY, w - T.px(1), floorH, floorCnt.texture or ZeD.genericContainerTex(), floorOn, isHover)
+        local cL, _, _, cR = A.stripArrowHalves(w, "frame", "own")
+        -- (the button's fill and the shown one's frame inside the strip's own lines, the insets its scroll row uses:
+        -- the frame's right side lay half under the right line, 2 px of its 4 at 4K, QA ctab3, Nov 25 2026)
+        ZeD.GridTint.stripCell(self, cL, curY, cR - cL, floorH, floorCnt.texture or ZeD.genericContainerTex(), floorOn, isHover)
         if isHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_World_FloorHelp")) end
         local onFocusF = false
         if gpFocusedCI == floorIdx then
@@ -3657,7 +3660,8 @@ local function drawWorldContainerStrip(self, win, content)
             -- the Loot tab's columns): the T.selectionA wash; else the hover wash.
             -- The controller's mark goes on after, so it shows on a selected one.
             -- (on the button's tint of its picture's color: ZeD.GridTint.stripCell, the director, Nov 25 2026)
-            ZeD.GridTint.stripCell(self, 0, drawY, w - T.px(1), T.px(CONTAINER_BTN_SZ),
+            local cL, _, _, cR = A.stripArrowHalves(w, "frame", "own")
+            ZeD.GridTint.stripCell(self, cL, drawY, cR - cL, T.px(CONTAINER_BTN_SZ),
                 cnt.texture or ZeD.genericContainerTex(), isOn, isHover)
             if isHover then
                 ZeD.Help.set(self, ZeD.tr(cnt.locked and "UI_ZeD_World_LockedHelp" or "UI_ZeD_World_ContainerHelp", cnt.name or ""))
