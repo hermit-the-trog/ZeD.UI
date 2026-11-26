@@ -499,7 +499,7 @@ function S.spyOn()
             local T = ZeD.T
             rec = { x = x, y = y, w = w, h = h, tex = tex, lit = lit and true or false, hov = hover and true or false,
                     draws = {}, base = T and T.baseKey, acc = S.copyC(T and T.accent), bright = S.copyC(T and T.accentBright),
-                    selA = T and T.selectionA, f = T and T.px and T.px(2) }
+                    selA = T and T.selectionA, f = T and T.px and T.px(1) }   -- (the director, Nov 25: "single pixel outline/highlight, no wash")
             local list = S.listFor(sp.cells, panel)
             if #list < 80 then list[#list + 1] = rec end
             had = rawget(panel, "drawRect")
@@ -634,13 +634,17 @@ function S.frameOf(r)
     return r.bright or r.acc
 end
 function S.isFrame(r)
-    if #r.draws < 6 then return false end
+    if #r.draws < 5 then return false end
     local f, fc = r.f, S.frameOf(r)
     local sides = { { r.x, r.y, r.w, f }, { r.x, r.y + r.h - f, r.w, f }, { r.x, r.y, f, r.h }, { r.x + r.w - f, r.y, f, r.h } }
+    -- (each side among the draws after the fill, in any order: one hairline, full alpha, the theme's frame colour)
     for j = 1, 4 do
-        local d, s = r.draws[j + 2], sides[j]
-        if not (d and d.x == s[1] and d.y == s[2] and d.w == s[3] and d.h == s[4] and S.near(d.a, 1, 0.001)
-                and S.sameC(fc, d.r, d.g, d.b, 0.003)) then return false end
+        local s, hit = sides[j], false
+        for k = 2, #r.draws do
+            local d = r.draws[k]
+            if d.x == s[1] and d.y == s[2] and d.w == s[3] and d.h == s[4] and S.near(d.a, 1, 0.001) and S.sameC(fc, d.r, d.g, d.b, 0.003) then hit = true end
+        end
+        if not hit then return false end
     end
     return true
 end
@@ -685,7 +689,7 @@ function S.cellChecks(wk, theme)
             local d2 = r.draws[2]
             local wash = d2 ~= nil and d2.x == r.x and d2.w == r.w and d2.h == r.h and S.near(d2.a, r.selA or 0.30, 0.001)
                 and S.sameC(r.acc, d2.r, d2.g, d2.b, 0.003)
-            if wash and S.isFrame(r) then litOk = litOk + 1
+            if (not wash) and S.isFrame(r) then litOk = litOk + 1
             else badUnlit[#badUnlit + 1] = "shown #" .. i .. " " .. name .. ": " .. #r.draws .. " rects, wash " .. tostring(wash) end
         else
             local n = #r.draws
@@ -697,9 +701,9 @@ function S.cellChecks(wk, theme)
         (#badFill == 0) and (#view .. " right, " .. kindN .. " kinds of color") or table.concat(badFill, "; "))
     Q.check(#badSrc == 0, lab .. ": every raw color is the picture's (ContainerTints, ItemTints, else gray)",
         (#badSrc == 0) and "all match" or table.concat(badSrc, "; "))
-    if lit == 0 then Q.skip(lab .. ": the shown button draws the wash and the frame", "no button is shown on this strip now")
+    if lit == 0 then Q.skip(lab .. ": the shown button draws its one-pixel outline, no wash", "no button is shown on this strip now")
     else
-        Q.check(litOk == lit and #badUnlit == 0, lab .. ": the shown button draws the wash and a T.px(2) frame in "
+        Q.check(litOk == lit and #badUnlit == 0, lab .. ": the shown button draws no wash and a one-hairline (T.px(1)) frame in "
             .. ((theme == "light") and "the accent x0.72" or "accentBright") .. "; the others their fill alone",
             lit .. " shown, " .. litOk .. " framed" .. ((#badUnlit > 0) and ("; " .. table.concat(badUnlit, "; ")) or ""))
     end
