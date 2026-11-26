@@ -1927,7 +1927,8 @@ end
 function C.grayed()
     H.caseStart("grayed")
     local T = {}
-    H.step(2, function() if S.ok then H.clearMat() end end)
+    -- (Show: All, so the cross is listed with nothing carried: Ready would leave it out)
+    H.step(2, function() if S.ok then H.clearMat(); H.show("all") end end)
     H.openSteps(T, "cross", "grayed")
     H.wait(6000, function()
         if not T.ready then return true end
