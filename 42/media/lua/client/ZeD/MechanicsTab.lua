@@ -997,6 +997,40 @@ local function vehNote(verb, part, why)
     print("[ZeD] Vehicle tab: " .. tostring(verb) .. " on " .. pid .. ": " .. tostring(why))
 end
 
+-- The queue's actions by type, right after a press and on the next frames until it changes (QA's M3 hunt, Nov 26
+-- 2026: Install queued its chain and the queue was empty three frames later, so something in it failed its start
+-- check and the game cleared the queue). With the weight he carries, against what he can.
+local function queueTypes(chr)
+    local q = nil
+    pcall(function() q = ISTimedActionQueue.getTimedActionQueue(chr) end)
+    if not (q and q.queue) then return "(no queue)" end
+    local t = {}
+    for i = 1, #q.queue do
+        local a = q.queue[i]
+        local ok, ty = pcall(function() return a.Type end)
+        t[#t + 1] = tostring(ok and ty or "?")
+    end
+    return (#t > 0) and table.concat(t, " > ") or "(empty)"
+end
+local function traceQueue(chr, verb, part)
+    local w = "?"
+    pcall(function()
+        local inv = chr:getInventory()
+        w = string.format("%.1f/%.1f", inv:getCapacityWeight(), inv:getEffectiveCapacity(chr))
+    end)
+    vehNote(verb, part, "queue " .. queueTypes(chr) .. ", carried " .. w)
+    if not (Events and Events.OnTick) then return end
+    local n, last = 0, nil
+    local fn
+    fn = function()
+        n = n + 1
+        local now = queueTypes(chr)
+        if now ~= last then vehNote(verb, part, "tick " .. n .. ": queue " .. now); last = now end
+        if n >= 30 then Events.OnTick.Remove(fn) end
+    end
+    Events.OnTick.Add(fn)
+end
+
 local function runVerb(s, verb, part, chr)
     if not part then return end
     if chainBusy(s, chr) then vehNote(verb, part, "refused (chainBusy, " .. tostring(s.queued and #s.queued) .. " kept)"); return end   -- (asked at the press: two presses in one frame saw the same idle card. M2)
@@ -1048,6 +1082,7 @@ local function runVerb(s, verb, part, chr)
             vehNote(verb, part, "queued nothing")
         end
     end
+    pcall(traceQueue, chr, verb, part)
     s.items = nil   -- tools and parts move; re-read next frame
     s.needsCache, s.fixCache, s.partsCache = nil, nil, nil
 end
@@ -1078,6 +1113,30 @@ local function partContextMenu(part, chr, win, atX, atY)
         print("[ZeD] Vehicle tab: part menu at " .. tostring(sx) .. "," .. tostring(sy) .. " (given " .. tostring(atX) .. ","
             .. tostring(atY) .. "): menu " .. tostring(ctx ~= nil) .. ", shown " .. vis .. ", options " .. nopt)
     end)
+    if ctx and Events and Events.OnTick then
+        local n = 0
+        local fn
+        fn = function()
+            n = n + 1
+            if n == 2 or n == 10 or n == 40 then
+                pcall(function()
+                    local zm = ctx._zedMenu
+                    local zx, zy, zax, zay, zw, zvis = "-", "-", "-", "-", "-", "-"
+                    if zm then
+                        zx, zy = tostring(zm:getX()), tostring(zm:getY())
+                        zax, zay = tostring(zm:getAbsoluteX()), tostring(zm:getAbsoluteY())
+                        zw = tostring(zm:getWidth()) .. "x" .. tostring(zm:getHeight())
+                        zvis = tostring(zm:getIsVisible())
+                    end
+                    print("[ZeD] Vehicle tab: part menu tick " .. n .. ": game's " .. tostring(ctx:getX()) .. "," .. tostring(ctx:getY())
+                        .. " spawned " .. tostring(ctx._zedSpawned) .. "; ZeD's " .. tostring(zm ~= nil) .. " at " .. zx .. "," .. zy
+                        .. " (abs " .. zax .. "," .. zay .. ") " .. zw .. " shown " .. zvis)
+                end)
+            end
+            if n >= 40 then Events.OnTick.Remove(fn) end
+        end
+        Events.OnTick.Add(fn)
+    end
     local pn = chr:getPlayerNum()
     if ctx and win and JoypadState and JoypadState.players and JoypadState.players[pn + 1] then
         local shown = false
