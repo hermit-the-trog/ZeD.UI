@@ -209,6 +209,32 @@ end
 
 local ROWS_MS = 1000   -- the rows' refresh (once a second on the clock, not per frame)
 
+-- The first required skill the player is short of, as the row's tag: the game's skill name and the level
+-- ("Carpentry 3"); nil when none is short or it cannot be read. The words are kept on the entry per skill
+-- and level, so a refresh makes no new string. (the director's call 6, Nov 25 2026)
+local function skillTagOf(entry, playerObj)
+    local recipe = entry and entry.recipe
+    if not (recipe and playerObj) then return nil end
+    local out = nil
+    pcall(function()
+        for i = 0, recipe:getRequiredSkillCount() - 1 do
+            local rs = recipe:getRequiredSkill(i)
+            local lv = rs:getLevel()
+            if playerObj:getPerkLevel(rs:getPerk()) < lv then
+                entry._skillTags = entry._skillTags or {}
+                local t = entry._skillTags[i + 1]
+                if not t then
+                    t = tostring(rs:getPerk():getName()) .. " " .. tostring(lv)
+                    entry._skillTags[i + 1] = t
+                end
+                out = t
+                return
+            end
+        end
+    end)
+    return out
+end
+
 function ZeD.BuildingTab.gatherData(playerObj, win)
     buildBuildCatalog(playerObj)
     if not _flatRecipes then return { recipes = {}, categories = _categories, flatRecipes = _flatRecipes } end
@@ -259,6 +285,10 @@ function ZeD.BuildingTab.gatherData(playerObj, win)
         -- and locked in the scan, and flipped every refresh
         local status = (hasSkill and learned) and "unlocked" or "locked"
         local rd = CC.refreshRow(pool, entry, gen, prevGen, status, hasSkill, learned, playerLevel)
+        -- The list opens on Show: All, so a recipe short of skill is listed: its row carries the skill it is short of
+        -- ("Carpentry 3") in the danger color, as the game's build list writes it in red (the director's call 6,
+        -- Nov 25 2026). Asked only of a short row, once a refresh.
+        rd.skillTag = (not hasSkill) and skillTagOf(entry, playerObj) or nil
         n = n + 1
         if recipes[n] ~= rd then recipes[n] = rd; changed = true end
     end
@@ -311,6 +341,43 @@ end
 
 local _active = {}
 
+-- The materials chosen on the build card (its alternatives list, CC.togglePick: picks[input index] = the item's
+-- full type) put on the build's logic, as the game's build window does with its manual select: the logic goes to
+-- manual select, its slots are filled the game's way first (autoPopulateInputs, as ISBuildPanel), then each chosen
+-- slot is cleared and offered only items of the chosen type from the containers (ISCraftInventoryPanel's
+-- offerInputItem). The logic is the cursor's (ISBuildIsoEntity.buildPanelLogic), so the build consumes the chosen
+-- items, and the B7 move in tryBuild (getAllInputItems) carries them. (the director's call 7, Nov 25 2026)
+-- picks: nil or { [input index] = full type }. Returns true when any pick was put on the logic.
+local function applyPicks(logic, entry, picks, containers)
+    if not (logic and entry and entry.inputDefs and picks and containers) then return false end
+    local any = false
+    for idx = 1, #entry.inputDefs do if picks[idx] then any = true end end
+    if not any then return false end
+    pcall(function()
+        logic:setManualSelectInputs(true)
+        logic:autoPopulateInputs()
+        for idx, def in ipairs(entry.inputDefs) do
+            local pick, script = picks[idx], def.inputRef
+            if pick and script and script:getResourceType() == ResourceType.Item then
+                logic:setManualSelectInputScriptFilter(script)
+                local data = logic:getRecipeData():getDataForInputScript(script)
+                logic:clearManualInputsFor(data)
+                for ci = 0, containers:size() - 1 do
+                    if data:isInputItemsSatisfied() then break end
+                    local items = containers:get(ci):getItems()
+                    for j = 0, items:size() - 1 do
+                        if data:isInputItemsSatisfied() then break end
+                        local it = items:get(j)
+                        if it and it:getFullType() == pick then logic:offerInputItem(it) end
+                    end
+                end
+            end
+        end
+        logic:setManualSelectInputScriptFilter(nil)
+    end)
+    return true
+end
+
 -- (B2, B7) The game's ISBuildPanel:createBuildIsoEntity(true): the cursor may build when the logic can
 -- perform the recipe (or BuildCheat is on) and no build of it is under way; else it is blocked (drawn red).
 local function rearm(a)
@@ -355,6 +422,9 @@ local function refreshContainers(player)
     pcall(function() changed = a.logic:setContainers(containers) and true or false end)
     if changed then
         a.cursor.containers = containers
+        -- (the chosen materials offered again from what is now in reach, before a build is placed; while one is
+        -- under way its items are left as they are, as the game's panel leaves manual inputs on a container change)
+        if a.picks and not busy then applyPicks(a.logic, a.entry, a.picks, containers) end
         if cursorUp(a, pn) then rearm(a) end
     end
 end
@@ -424,10 +494,26 @@ function ZeD.BuildingTab.startBuild(win, state)
     end)
     if not ok or not logic then return end
 
+    -- The materials chosen on the card (the director's call 7, Nov 25 2026): a copy, so a pick changed on the
+    -- card later does not change the cursor already up
+    local picks = nil
+    local cardPicks = state.picks and state.picks[recipeName]
+    if cardPicks then
+        for k, v in pairs(cardPicks) do picks = picks or {}; picks[k] = v end
+    end
+    local picked = applyPicks(logic, entry, picks, containers)
+
     -- Validate
     local canPerform = false
     pcall(function() canPerform = logic:canPerformCurrentRecipe() end)
-    if not canPerform and not playerObj:isBuildCheat() then return end
+    if not canPerform and not playerObj:isBuildCheat() then
+        -- (the chosen items no longer cover the build: nothing starts, in the game's words, rather than a build
+        -- from other items; the craft card's refusal, CC.startPickedCraft)
+        if picked and HaloTextHelper and HaloTextHelper.addBadText then
+            pcall(HaloTextHelper.addBadText, playerObj, getText("IGUI_CraftingWindow_Error_Inputs"))
+        end
+        return
+    end
 
     -- Get build object info
     local okInfo, objectInfo = pcall(function() return logic:getSelectedBuildObject() end)
@@ -457,7 +543,7 @@ function ZeD.BuildingTab.startBuild(win, state)
         buildEntity.firstItem = getTool(recipe:getToolRight(), inventory)
         buildEntity.secondItem = getTool(recipe:getToolLeft(), inventory)
 
-        local a = { cursor = buildEntity, logic = logic, player = playerObj }
+        local a = { cursor = buildEntity, logic = logic, player = playerObj, entry = entry, picks = picked and picks or nil }
         local sq0 = playerObj:getCurrentSquare()
         if sq0 then a.sq = { x = sq0:getX(), y = sq0:getY(), z = sq0:getZ() } end
         -- (B2, QA cb sweep, Nov 25 2026) After one placement blockAfterPlace leaves the cursor blocked, and
@@ -471,6 +557,8 @@ function ZeD.BuildingTab.startBuild(win, state)
             local cs = CC.craftContainers(playerObj)
             pcall(function() a.logic:setContainers(cs) end)
             a.cursor.containers = cs
+            -- (the build used the chosen items: the next one is offered the same type again, call 7)
+            if a.picks then applyPicks(a.logic, a.entry, a.picks, cs) end
             if cursorUp(a, pn) then rearm(a) end
         end
         local function onContainers()
@@ -561,6 +649,11 @@ local buildConfig = {
     startAction = function(win, state)
         ZeD.BuildingTab.startBuild(win, state)
     end,
+    -- The card's alternatives list picks the materials (the director's call 7, Nov 25 2026): the craft card's own
+    -- pick list and marks (CC.togglePick, stampAltPick, the pad's altPick stops). startBuild puts the picks on the
+    -- build's logic itself (applyPicks), so the craft's picked start (a handcraft logic) is not run: ownPicks.
+    pickIngredients = true,
+    ownPicks        = true,
 }
 
 -- ============================================================================
@@ -570,7 +663,10 @@ local buildConfig = {
 local function getState(win)
     if not win._buildState then
         win._buildState = CC.createState()
-        win._buildState.show = "known"   -- Build opens on Known: Ready is empty until he carries the materials (KISS #17)
+        -- Build opens on Show: All, every recipe listed, the ones short of skill with that skill in the danger
+        -- color (rd.skillTag), as the game's build list shows them (the director's call 6, Nov 25 2026). It
+        -- opened on Known (KISS #17), which hid them. The Craft tab's default is its own and stays.
+        win._buildState.show = "all"
     end
     return win._buildState
 end
@@ -608,9 +704,40 @@ end
 -- CLICK HANDLER
 -- ============================================================================
 
+-- A second click on the same row within this long is a double-click (the Equipment tab's time)
+ZeD.BuildingTab.DOUBLE_MS = 300
+
+-- The recipe row under (x, y) in this frame's zones, or nil: only a row inside the list's view, and none while a
+-- list or select is open (that click only shuts it), as CC.onClick reads them.
+local function rowAt(state, x, y)
+    if state.catDropdownOpen or state.sortMenuOpen or state.showMenuOpen or state.stDropdownOpen then return nil end
+    local lg = state._listGeo
+    if lg and (y < lg.viewY or y >= lg.viewY + lg.viewH) then return nil end
+    for _, z in ipairs(state.zones or {}) do
+        if z.type == "recipeRow" and x >= z.x and x < z.x + z.w and y >= z.y and y < z.y + z.h then return z.id end
+    end
+    return nil
+end
+
 function ZeD.BuildingTab.onClick(win, x, y)
     local state = getState(win)
-    return CC.onClick(state, buildConfig, win, x, y, win._playerObj)
+    local row = rowAt(state, x, y)
+    local took = CC.onClick(state, buildConfig, win, x, y, win._playerObj)
+    -- A double-click on a recipe row starts placing it, as the game's build window does (ISBuildPanel:onDoubleClick);
+    -- the first click has opened its card, so the second is Build pressed on it, with its checks (startBuild: the
+    -- recipe can be built, no build under way). The pad's way is A on the row, which opens the card with the focus
+    -- on Build, and A again. (the director's call 5, Nov 25 2026)
+    if row then
+        local now = getTimestampMs()
+        local w1 = win._buildRowClick
+        if w1 and w1.name == row and now - w1.t <= ZeD.BuildingTab.DOUBLE_MS and state.selected == row then
+            win._buildRowClick = nil
+            CC.runStart(win, state, buildConfig.startAction)
+        else
+            win._buildRowClick = { name = row, t = now }
+        end
+    end
+    return took
 end
 
 -- ============================================================================
@@ -621,7 +748,10 @@ end
 -- focus manager's B stopped the running action instead, perhaps the build itself, and the card stayed. B now
 -- closes the card, as Escape does with the mouse (CC.takeEscape), and the focus goes back to its row. With no
 -- card open the press falls through as before. Stops that already have a B (open lists) keep theirs.
-local CARD_KINDS = { cardSection = true, slotAlt = true, icon = true, actBuild = true }
+-- (the alternatives list's stops too, now that it picks the materials: B there leaves the list first, as the
+-- Craft tab's B does, CC.padBack; the director's call 7, Nov 25 2026)
+local CARD_KINDS = { cardSection = true, slotAlt = true, icon = true, actBuild = true,
+    altPick = true, altBack = true, altOwned = true }
 
 function ZeD.BuildingTab.cardCancels(win, elements)
     local state = win and win._buildState
@@ -629,6 +759,10 @@ function ZeD.BuildingTab.cardCancels(win, elements)
     for _, el in ipairs(elements) do
         if type(el) == "table" and CARD_KINDS[el.craftKind] and not el.onCancel then
             el.onCancel = function(w, e)
+                if state.altSlotName then
+                    CC.exitAltMode(state)
+                    return true
+                end
                 local name = state.selected
                 if not name then return false end
                 CC.closeCraft(state)
