@@ -1569,13 +1569,16 @@ function C.c5order(T, L)
         if not mvIn and H.isMove(e) and e.item == T.pot and e.src == T.crate.inv then mvIn = i end
         if not add and H.isAdd(e) then add = i end
         if H.isMove(e) and e.item == T.pot and e.dst == T.crate.inv then mvBack = i end
+        -- (fix/cookback, Nov 25 2026: ZeD queues ZeD_CookReturn after the last add, which moves the dish the chain ended
+        -- with back to the base's container; the pot itself is gone by then. Where the stew ends is checked after Make)
+        if e.ty == "ZeD_CookReturn" then mvBack = i end
     end
     Q.check(mvIn ~= nil and add ~= nil and mvIn < add, L .. " (call 5): Make moves the crate's pot to him before the first add",
         "queued " .. tostring(T.kinds) .. "; the pot's move at " .. tostring(mvIn) .. ", the first add at " .. tostring(add))
     if S.found.disorg then
         H.note(L .. ": he is Disorganized: the game queues no move back; the pot's move back at " .. tostring(mvBack))
     else
-        Q.check(mvBack ~= nil and add ~= nil and mvBack > add, L .. " (call 5): and queues its move back to the crate after the adds, as the game's menu does",
+        Q.check(mvBack ~= nil and add ~= nil and mvBack > add, L .. " (call 5): and queues the dish's move back to the crate after the adds (ZeD_CookReturn, or a move of the pot)",
             "the move back at " .. tostring(mvBack) .. " of " .. #(T.q or {}))
     end
 end
