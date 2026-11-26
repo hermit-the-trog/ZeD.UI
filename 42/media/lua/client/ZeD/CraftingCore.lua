@@ -227,11 +227,68 @@ end
 -- ----------------------------------------------------------------------------
 
 --- Keeps the craft actions just queued on the window (win._craftQueued), for CC.craftBusy.
-function CC.trackCraftActions(win, actions)
+--- recipeName (optional): the recipe they make, for the card's progress band (CC.craftProgress).
+function CC.trackCraftActions(win, actions, recipeName)
     if not (win and actions and #actions > 0) then return end
     local list = win._craftQueued or {}
     for i = 1, #actions do list[#list + 1] = actions[i] end
     win._craftQueued = list
+    if recipeName then win._craftQueuedRecipe = recipeName end
+end
+
+--- The craft ZeD queued that the player is on now, for the card's progress band (the director's
+--- call 2, Nov 25 2026: the game's window shows a bar while its craft runs). Returns the recipe's
+--- name, the share done (0 while a walk or a move before it still runs) and the action, or nil
+--- when none of ZeD's crafts is in the queue. A second press is refused while one is queued (C1),
+--- so every action on the list makes the same recipe.
+function CC.craftProgress(win, playerObj)
+    local list = win and win._craftQueued
+    if not (list and win._craftQueuedRecipe) then return nil end
+    local pct, cur, any = 0, nil, false
+    pcall(function()
+        local q = ISTimedActionQueue.getTimedActionQueue(playerObj or win._playerObj)
+        if not (q and q.queue) then return end
+        for i = 1, #list do
+            local at = q:indexOf(list[i])
+            if at ~= -1 then
+                any = true
+                if at == 1 then cur = list[i] end
+            end
+        end
+        if cur then pct = cur:getJobDelta() or 0 end
+    end)
+    if not any then return nil end
+    return win._craftQueuedRecipe, math.max(0, math.min(1, pct)), cur
+end
+
+--- The band's Cancel (its X, or the pad's A on it): stops the craft that runs now, the way the
+--- game stops an action (forceStop; the game's stop then clears what was queued behind it, as
+--- every cancel in the game does). While a walk or a move still runs before it, ZeD's waiting
+--- crafts are taken out of the queue and the walk goes on. Returns true when it stopped one.
+function CC.cancelCraft(win, playerObj)
+    local list = win and win._craftQueued
+    if not list then return false end
+    local stopped = false
+    pcall(function()
+        local q = ISTimedActionQueue.getTimedActionQueue(playerObj or win._playerObj)
+        if not (q and q.queue) then return end
+        for i = #list, 1, -1 do
+            local a = list[i]
+            local at = q:indexOf(a)
+            if at == 1 then
+                -- (an action not yet begun has no game action to stop: the queue is reset, as its stop would)
+                if not pcall(function() a:forceStop() end) then q:resetQueue() end
+                stopped = true
+            elseif at ~= -1 then
+                q:removeFromQueue(a)
+                if a.forceCancel then pcall(function() a:forceCancel() end) end
+                stopped = true
+            end
+        end
+    end)
+    win._craftQueued = nil
+    win._craftQueuedRecipe = nil
+    return stopped
 end
 
 --- True while a craft ZeD queued is still in the player's action queue. The list empties itself
@@ -247,7 +304,7 @@ function CC.craftBusy(win, playerObj)
             if q:indexOf(list[i]) ~= -1 then busy = true; return end
         end
     end)
-    if not busy then win._craftQueued = nil end
+    if not busy then win._craftQueued = nil; win._craftQueuedRecipe = nil end
     return busy
 end
 
@@ -781,8 +838,10 @@ function CC.togglePin(win, recipeName, pinKey, stateKey, dirtyKey)
         end
     end
 
-    -- Add pin (FIFO eviction if at max)
-    if #pins >= CC.MAX_PINS then
+    -- Add pin. The Craft tab's pins have no cap: the Pinned group grows, and no pin is dropped
+    -- without the player's word (the director's call 4, Nov 25 2026: the 9th pin silently took the
+    -- oldest off). The other tabs keep their cap of CC.MAX_PINS, oldest out.
+    if not CC.GAME_FAV_PINS[pinKey] and #pins >= CC.MAX_PINS then
         local gone = table.remove(pins, 1)
         CC.setGameFavourite(win, gone, pinKey, false)   -- (else the game's flag pins it again: C18)
     end
@@ -801,7 +860,8 @@ end
 -- game's favourites, and a pin or unpin in ZeD sets the game's flag, as the game's star does.
 -- ----------------------------------------------------------------------------
 
---- Pin keys whose pins are the game's favourites too (the Craft tab's).
+--- Pin keys whose pins are the game's favourites too (the Craft tab's). The game's favourites
+--- have no cap, so these pins have none either (the director's call 4, Nov 25 2026).
 CC.GAME_FAV_PINS = { ZeD_CraftPins = true }
 
 --- Sets the game's favourite flag for recipeName, as the game's star does
@@ -1568,13 +1628,12 @@ function CC.gatherDetail(rd, playerObj, win, prefix)
         if entry._hasMapped then
             local st = win["_" .. prefix .. "State"]
             local p = st and st.picks and st.picks[entry.name] or nil
-            local sig = ""
-            if p then
-                for i = 1, #(entry.inputDefs or {}) do sig = sig .. tostring(p[i]) .. ";" end
-            end
+            -- (the chosen items count in the key too: call 1)
+            local sig = p and CC.pickSig(st, entry.name, #(entry.inputDefs or {})) or ""
             if rd._outCont ~= containers or rd._outSig ~= sig then
                 rd._outCont, rd._outSig = containers, sig
-                rd.outNames, rd.outItems = CC.resolveMappedOutputs(playerObj, entry, p, containers)
+                local ip = st and st.itemPicks and st.itemPicks[entry.name] or nil
+                rd.outNames, rd.outItems = CC.resolveMappedOutputs(playerObj, entry, p, containers, ip)
             end
         end
     end
@@ -1655,10 +1714,13 @@ function CC.enumerateAlts(playerObj, containers, inputDef)
                                 iconTex = item:getTexture(),
                                 have = 0,
                                 need = inputDef.amount or 1,  -- (the slot's own amount: beast W24)
+                                items = {},   -- each item of the type in reach, to choose by item (call 1)
                             }
                             typeOrder[#typeOrder + 1] = ft
                         end
                         byType[ft].have = byType[ft].have + 1
+                        local list = byType[ft].items
+                        list[#list + 1] = item
                     end
                 end
             end
@@ -1737,6 +1799,7 @@ function CC.createState()
         altSlotIdx       = nil,        -- index into ingredients for selected slot
         altItems         = nil,        -- cached alt enumeration result
         picks            = {},         -- chosen ingredient per slot: picks[recipe][slotIdx] = full type
+        itemPicks        = {},         -- chosen items per slot: itemPicks[recipe][slotIdx] = { item, ... } (call 1)
         reqCollapsed     = false,      -- REQUIRED section collapsed
         outCollapsed     = false,      -- OUTPUTS section collapsed
         catDropdownOpen  = false,      -- category dropdown expanded
@@ -1807,6 +1870,7 @@ ZeD.EscapeTakers.recipeCard = CC.takeEscape
 function CC.openCraft(state, recipeId)
     state.selected = recipeId
     state.picks = {}   -- a fresh recipe starts on the game's own choice of ingredients
+    state.itemPicks = {}
     state.qty = 1
     state.splitTarget = 1
     -- Exit alt mode if active
@@ -1820,6 +1884,7 @@ end
 function CC.closeCraft(state)
     state.selected = nil
     state.picks = {}
+    state.itemPicks = {}
     state.qty = 1
     state.splitTarget = 0
     state.filterDirty = true
@@ -1861,6 +1926,7 @@ function CC.exitAltMode(state)
     state.altSlotIdx  = nil
     state.altItems    = nil
     state.altSearch   = ""
+    state._altItemN   = 0   -- (no item rows shown: call 1)
 end
 
 -- ============================================================================
@@ -2836,6 +2902,103 @@ function CC.togglePick(state, recipeName, slotIdx, fullType)
         state.picks[recipeName] = p
     end
     if p[slotIdx] == fullType then p[slotIdx] = nil else p[slotIdx] = fullType end
+    -- (the items chosen for the slot were of the type before: a new type, or none, clears them)
+    local ip = state.itemPicks and state.itemPicks[recipeName]
+    if ip then ip[slotIdx] = nil end
+end
+
+-- ----------------------------------------------------------------------------
+-- Choosing the exact item (the director's call 1, Nov 25 2026). The game's craft window, in manual
+-- select, lets the player pick each item a slot uses (ISCraftInputItems: logic:setManualSelectInputs,
+-- then offerInputItem per item). ZeD's alternatives list chose by type only. Under the chosen type the
+-- list now shows each item of it in reach; a click (or the pad's A) chooses that item, again clears it.
+-- A slot with items chosen uses those items and no other (the batch stops where they run out, as the
+-- type picks do, QA B6-15); a slot with none chosen keeps the type pick, or the game's own pick.
+-- ----------------------------------------------------------------------------
+
+-- The items chosen for a slot of the recipe (a list, in the order chosen), or nil.
+function CC.itemPicksFor(state, recipeName, slotIdx)
+    local p = state.itemPicks and state.itemPicks[recipeName]
+    local list = p and p[slotIdx] or nil
+    if list and #list > 0 then return list end
+    return nil
+end
+
+-- Whether item is chosen for the slot.
+function CC.isItemPicked(state, recipeName, slotIdx, item)
+    local list = CC.itemPicksFor(state, recipeName, slotIdx)
+    if not list then return false end
+    for i = 1, #list do if list[i] == item then return true end end
+    return false
+end
+
+-- Choose an item for a slot; choosing it again clears it. Its type becomes the slot's chosen type
+-- (the item rows sit under that type), and items of another type chosen before are cleared.
+function CC.toggleItemPick(state, recipeName, slotIdx, item)
+    if not (recipeName and slotIdx and item) then return end
+    local ft = nil
+    pcall(function() ft = item:getFullType() end)
+    if not ft then return end
+    state.picks = state.picks or {}
+    state.itemPicks = state.itemPicks or {}
+    local p = state.picks[recipeName]
+    if not p then p = {}; state.picks[recipeName] = p end
+    local ip = state.itemPicks[recipeName]
+    if not ip then ip = {}; state.itemPicks[recipeName] = ip end
+    if p[slotIdx] ~= ft then
+        p[slotIdx] = ft
+        ip[slotIdx] = nil
+    end
+    local list = ip[slotIdx] or {}
+    for i = 1, #list do
+        if list[i] == item then
+            table.remove(list, i)
+            ip[slotIdx] = (#list > 0) and list or nil
+            return
+        end
+    end
+    list[#list + 1] = item
+    ip[slotIdx] = list
+end
+
+-- The picks of a recipe as one string (types and chosen items), so a cache keyed on it is worked out
+-- again when a choice changes (the band's Max, C7; the mapped outputs' names, B11-1).
+function CC.pickSig(state, recipeName, n)
+    local p = state and state.picks and state.picks[recipeName]
+    if not p then return "" end
+    local ip = state.itemPicks and state.itemPicks[recipeName]
+    local sig = ""
+    for i = 1, n or 0 do
+        sig = sig .. tostring(p[i])
+        local list = ip and ip[i]
+        if list then
+            for j = 1, #list do
+                local id = nil
+                pcall(function() id = list[j]:getID() end)
+                sig = sig .. "#" .. tostring(id)
+            end
+        end
+        sig = sig .. ";"
+    end
+    return sig
+end
+
+-- An item row's few words on its state, in numbers only: the share of its uses left (a drainable),
+-- else its condition when worn down. "" when there is nothing to tell it from another of its type.
+function CC.itemDetail(item)
+    local s = ""
+    pcall(function()
+        if item.getCurrentUsesFloat and item:IsDrainable() then
+            s = tostring(math.floor(item:getCurrentUsesFloat() * 100 + 0.5)) .. "%"
+            return
+        end
+        local mx = item:getConditionMax()
+        if mx and mx > 0 then
+            local c = item:getCondition()
+            if c < mx then s = tostring(c) .. "/" .. tostring(mx) end
+        end
+    end)
+    return s
 end
 
 -- A row of the open alternatives list that can be chosen: marks the chosen
@@ -2868,16 +3031,86 @@ function CC.stampAltPick(panel, state, alt, x, y, w, rowH, viewY, viewH)
     end
 end
 
+-- One item row under the chosen type in the alternatives list (the director's call 1, Nov 25 2026):
+-- indented under its type, a square (filled when chosen, hollow when not), the icon, the item's
+-- name and its uses or condition at the right (CC.itemDetail). The chosen wash, the pointer's
+-- hover and the controller's mark as the type rows; its click zone is "altItem" (the pad's stop
+-- craft:altItem:<item id>).
+function CC.drawAltItemRow(panel, state, item, n, x, y, w, rowH, viewY, viewH)
+    local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
+    local id = nil
+    pcall(function() id = item:getID() end)
+    id = tostring(id or n)
+    local picked = CC.isItemPicked(state, state.selected, state.altSlotIdx, item)
+    if picked then
+        local ac = T.accent
+        panel:drawRect(x, y, w, rowH, T.selectionA, ac.r, ac.g, ac.b)
+    end
+    local pmy = panel:getMouseY()
+    if not anyOpen(state) and pmy >= viewY and pmy < viewY + viewH and A.mouseIn(panel, x, y, w, rowH) then
+        local hv = T.hover
+        panel:drawRect(x, y, w, rowH, hv.a, hv.r, hv.g, hv.b)
+    end
+    local onFocus = false
+    if state._gpFocusedId and state._gpFocusedId == ((state._pickPrefix or "craft") .. ":altItem:" .. id) then
+        onFocus = ZeD.Focus.mark(panel, x, y, w, rowH) and true or false
+    end
+    local cx = x + T.px(20)   -- (indented under its type row)
+    local sq = T.px(6)
+    local sy = y + math.floor((rowH - sq) / 2)
+    if picked then A.drawStatusDot(panel, cx, sy, T.accent, sq)
+    else A.drawStatusHollow(panel, cx, sy, T.textDim, sq) end
+    cx = cx + sq + T.px(4)
+    local iconSz = T.px(16)
+    local tex = nil
+    pcall(function() tex = item:getTex() or item:getTexture() end)
+    if tex then
+        panel:drawTextureScaledAspect(tex, cx, y + math.floor((rowH - iconSz) / 2), iconSz, iconSz, 1, 1, 1, 1)
+    end
+    cx = cx + iconSz + T.px(4)
+    local font = T.fontF2
+    local ty = y + math.floor((rowH - tm:getFontHeight(font)) / 2)
+    local tc = onFocus and T.textOnFocus or T.text
+    local detail = CC.itemDetail(item)
+    local dW = (detail ~= "") and (tm:MeasureStringX(T.fontF3, detail) + T.px(8)) or 0
+    local name = ""
+    pcall(function() name = item:getDisplayName() or "" end)
+    panel:drawText(CC.truncText(name, font, math.max(T.px(8), w - (cx - x) - dW - T.px(6))), cx, ty,
+        tc.r, tc.g, tc.b, tc.a or 1, font)
+    if detail ~= "" then A.drawTextRight(panel, detail, x + w - T.px(6), ty, T.fontF3, tc) end
+    if y + rowH > viewY and y < viewY + viewH then
+        local zones = state.zones
+        zones[#zones + 1] = { type = "altItem", id = id, item = item,
+            x = x, y = y, w = w, h = rowH, _scrolled = true }
+    end
+end
+
 -- Kahlua has no next(); whether a table has any entry.
 local function hasAny(t) for _ in pairs(t) do return true end return false end
 
 -- Fill one item slot of the logic from the containers: only items of
 -- fullType when given (anything the slot accepts otherwise), skipping the
 -- items in skip.
-local function fillPickSlot(logic, script, containers, fullType, skip)
+-- items (optional): the very items chosen for the slot (call 1): only they are offered, in the
+-- order chosen, and only while they are still in one of the containers.
+local function fillPickSlot(logic, script, containers, fullType, skip, items)
     logic:setManualSelectInputScriptFilter(script)
     local data = logic:getRecipeData():getDataForInputScript(script)
     logic:clearManualInputsFor(data)
+    if items then
+        local inReach = {}
+        for ci = 0, containers:size() - 1 do inReach[containers:get(ci)] = true end
+        for i = 1, #items do
+            if data:isInputItemsSatisfied() then return end
+            local it = items[i]
+            local c = nil
+            pcall(function() c = it:getContainer() end)
+            if it and c and inReach[c] and not (skip and skip[it]) then
+                logic:offerInputItem(it)
+            end
+        end
+        return
+    end
     for ci = 0, containers:size() - 1 do
         local items = containers:get(ci):getItems()
         for j = 0, items:size() - 1 do
@@ -2933,8 +3166,9 @@ function CC.pickedCraftAction(playerObj, state, entry, bench, containers, used, 
             if script and script:getResourceType() == ResourceType.Item then
                 local skip = (used and not (def.isTool or def.isKeep)) and used or nil
                 local fullType = picks[idx]
+                local chosen = CC.itemPicksFor(state, entry.name, idx)   -- (the very items: call 1)
                 if fullType then
-                    fillPickSlot(logic, script, containers, fullType, skip)
+                    fillPickSlot(logic, script, containers, fullType, skip, chosen)
                 elseif skip and hasAny(skip) and slotHoldsAny(logic, script, skip) then
                     fillPickSlot(logic, script, containers, nil, skip)
                 end
@@ -2996,8 +3230,9 @@ end
 -- of Soup and the Cooking Pot back; a saucepan of rice, Bowl of Rice and the Saucepan.
 -- Returns two tables by output index (nil where the game gave nothing: the card keeps the def's
 -- first-result name), or nil, nil when the game would not answer. picks: the card's
--- { [slotIdx] = full type } or nil. (QA B11-1)
-function CC.resolveMappedOutputs(playerObj, entry, picks, containers)
+-- { [slotIdx] = full type } or nil. (QA B11-1) itemPicks (optional): the card's chosen items,
+-- { [slotIdx] = { item, ... } } (the director's call 1, Nov 25 2026).
+function CC.resolveMappedOutputs(playerObj, entry, picks, containers, itemPicks)
     if not (playerObj and entry and entry.recipe and entry.outputDefs and containers) then return nil, nil end
     local names, items = {}, {}
     local ok = pcall(function()
@@ -3011,7 +3246,9 @@ function CC.resolveMappedOutputs(playerObj, entry, picks, containers)
             for idx = 1, #defs do
                 local script = defs[idx].inputRef
                 if picks[idx] and script and script:getResourceType() == ResourceType.Item then
-                    fillPickSlot(logic, script, containers, picks[idx], nil)
+                    local chosen = itemPicks and itemPicks[idx]
+                    if chosen and #chosen == 0 then chosen = nil end
+                    fillPickSlot(logic, script, containers, picks[idx], nil, chosen)
                 end
             end
             logic:setManualSelectInputScriptFilter(nil)
@@ -3120,7 +3357,7 @@ function CC.startPickedCraft(win, state)
         end
     end)
     CC.returnCraftInputs(playerObj, back)
-    CC.trackCraftActions(win, queued)   -- (Craft stays gray while they are queued: C1)
+    CC.trackCraftActions(win, queued, name)   -- (Craft stays gray while they are queued: C1; the band names it: call 2)
 
     state.qty = 1
     state.filterDirty = true
@@ -3176,11 +3413,22 @@ function CC.renderAltList(panel, x, y, w, h, state)
     -- Hide "Other" section if ownedOnly
     if state.ownedOnly then other = {} end
 
+    -- The chosen type's items, one row each under its row, to choose by item (the director's call 1,
+    -- Nov 25 2026). Only where the craft is built from the choice (state._pickOn: the Craft tab).
+    local pickedType = state._pickOn and CC.pickFor(state, state.selected, state.altSlotIdx) or nil
+    local itemRowsN = 0
+    if pickedType then
+        for _, alt in ipairs(owned) do
+            if alt.fullType == pickedType and alt.items then itemRowsN = #alt.items end
+        end
+    end
+    state._altItemN = itemRowsN   -- (the pad's stops are rebuilt when it changes: CraftingTab.focusKey)
+
     -- Measure total content (headers use catHdrH, rows use ROW_H)
     local hdrH = T.sp.catHdrH
     local totalH = 0
     if #owned > 0 then
-        totalH = totalH + hdrH + #owned * ROW_H
+        totalH = totalH + hdrH + (#owned + itemRowsN) * ROW_H
     end
     if #other > 0 then
         totalH = totalH + hdrH + #other * ROW_H
@@ -3231,6 +3479,13 @@ function CC.renderAltList(panel, x, y, w, h, state)
             if state._pickOn then CC.stampAltPick(panel, state, alt, x, curY, contentW, ROW_H, y, h) end
             M.drawAltRow(panel, x, curY, contentW, alt, true, rowIdx)
             curY = curY + ROW_H
+            -- the chosen type's items (call 1)
+            if pickedType and alt.fullType == pickedType and alt.items then
+                for n, it in ipairs(alt.items) do
+                    CC.drawAltItemRow(panel, state, it, n, x, curY, contentW, ROW_H, y, h)
+                    curY = curY + ROW_H
+                end
+            end
         end
     end
 
@@ -3294,6 +3549,66 @@ function CC.shortInputIdx(playerObj, entry)
     return entry._shortIdx
 end
 
+-- What the game's input tooltip says of an input (ISWidgetInput:updateValues, the icon's mouse-over
+-- text), in its order and with its keys: { the input script's check, the game's key, only for a kept
+-- item }. The director's call 3, Nov 25 2026: the card's tool rows say whether a tool may wear, may
+-- dull, or must be worn, as the game's window does.
+CC.INPUT_NOTES = {
+    { "isSharpenable",       "IGUI_CraftingWindow_IsSharpenable" },
+    { "mayDegrade",          "IGUI_CraftingWindow_MayDegrade", true },
+    { "mayDegradeLight",     "IGUI_CraftingWindow_MayDegradeLight", true },
+    { "mayDegradeVeryLight", "IGUI_CraftingWindow_MayDegradeLight", true },
+    { "sharpnessCheck",      "IGUI_CraftingWindow_SharpnessCheck", true },
+    { "mayDegradeHeavy",     "IGUI_CraftingWindow_MayDegradeHeavy", true },
+    { "isNotDull",           "IGUI_CraftingWindow_IsNotDull" },
+    { "isWorn",              "IGUI_CraftingWindow_IsWorn" },
+    { "isNotWorn",           "IGUI_CraftingWindow_IsNotWorn" },
+    { "isFull",              "IGUI_CraftingWindow_IsFull" },
+    { "isEmpty",             "IGUI_CraftingWindow_IsEmpty" },
+    { "notFull",             "IGUI_CraftingWindow_NotFull" },
+    { "notEmpty",            "IGUI_CraftingWindow_NotEmpty" },
+    { "isDamaged",           "IGUI_CraftingWindow_IsDamaged" },
+    { "isUndamaged",         "IGUI_CraftingWindow_IsUndamaged" },
+    { "allowFrozenItem",     "IGUI_CraftingWindow_AllowFrozenItem" },
+    { "dontAllowFrozenItem", "IGUI_CraftingWindow_DontAllowFrozenItem" },
+    { "allowRottenItem",     "IGUI_CraftingWindow_AllowRottenItem" },
+    { "allowDestroyedItem",  "IGUI_CraftingWindow_AllowDestroyedItem" },
+    { "isEmptyContainer",    "IGUI_CraftingWindow_IsEmptyContainer" },
+    { "isWholeFoodItem",     "IGUI_CraftingWindow_IsWholeFoodItem" },
+    { "isUncookedFoodItem",  "IGUI_CraftingWindow_IsUncookedFoodItem" },
+    { "isCookedFoodItem",    "IGUI_CraftingWindow_IsCookedFoodItem" },
+    { "isHeadPart",          "IGUI_CraftingWindow_IsHeadPart" },
+}
+
+--- The notes the game's tooltip gives an input (def: a prebaked input, CC.prebakeInputs), as a list
+--- of the game's own sentences; the game's line breaks (<br>) read as a space. Asked of the game once
+--- per input and kept on the def.
+function CC.inputNotes(def)
+    if not def then return {} end
+    if def._notes then return def._notes end
+    local notes, seen = {}, {}
+    local script = def.inputRef
+    if script then
+        local keep = false
+        pcall(function() keep = script:isKeep() and true or false end)
+        for _, n in ipairs(CC.INPUT_NOTES) do
+            local on = false
+            pcall(function()
+                local f = script[n[1]]
+                if f then on = f(script) and true or false end
+            end)
+            if on and (keep or not n[3]) and not seen[n[2]] then
+                seen[n[2]] = true
+                local text = getText(n[2]) or n[2]
+                text = string.gsub(text, "%s*<[bB][rR]>%s*", " ")
+                notes[#notes + 1] = text
+            end
+        end
+    end
+    def._notes = notes
+    return notes
+end
+
 function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     local T     = ZeD.T
     local A     = ZeD.Atoms
@@ -3322,6 +3637,36 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         chipH = chipH + T.px(4) + #skillLines * skillStep
     end
     local inputsH = ROW_H + #(rd.ingredients or {}) * ROW_H  -- header + rows
+    -- The tool rows' notes, in the game's own words (the director's call 3, Nov 25 2026): what the
+    -- game's input tooltip says of a tool or kept item (may damage it, may dull it, must be worn),
+    -- wrapped under its row. The Craft tab only; worked out per frame from the cached notes.
+    local noteLines, noteStep = nil, 0
+    if config.prefix == "craft" and not config.readOnly and not state.reqCollapsed and entry.inputDefs then
+        noteStep = tm:getFontHeight(T.fontF5) + T.px(1)
+        local wrapW = math.max(T.px(40), w - T.sp.scrollbarW - T.px(30))
+        for idx, ing in ipairs(rd.ingredients or {}) do
+            local def = entry.inputDefs[idx]
+            if def and (ing.isTool or ing.isKeep) then
+                local notes = CC.inputNotes(def)
+                if #notes > 0 then
+                    -- (wrapped once per width and font, kept on the def)
+                    local lines = (def._noteW == wrapW and def._noteF == T.fontF5) and def._noteLines or nil
+                    if not lines then
+                        lines = {}
+                        for _, note in ipairs(notes) do
+                            local wl = A.wrapText(note, T.fontF5, wrapW)
+                            if type(wl) ~= "table" then wl = { note } end
+                            for _, l in ipairs(wl) do lines[#lines + 1] = l end
+                        end
+                        def._noteW, def._noteF, def._noteLines = wrapW, T.fontF5, lines
+                    end
+                    noteLines = noteLines or {}
+                    noteLines[idx] = lines
+                    inputsH = inputsH + #lines * noteStep + T.px(2)
+                end
+            end
+        end
+    end
     local outputsH = CC.outputsRepeatTitle(entry) and 0 or (ROW_H + #(entry.outputDefs or {}) * ROW_H)
     local actionH = 0   -- (the amount and Craft / Build live in the card's band, CC.renderBand)
     -- Learn info section height (readOnly + not accessible)
@@ -3584,11 +3929,22 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     if not state.reqCollapsed then
         for idx, ing in ipairs(rd.ingredients or {}) do
             local chosen = state._pickOn and CC.pickFor(state, state.selected, idx) or nil
+            -- the very items chosen (call 1): the row names the first and counts the chosen ones as
+            -- its have, so a slot short of chosen items reads red
+            local chosenItems = chosen and CC.itemPicksFor(state, state.selected, idx) or nil
+            local shownHave = (shortIdx == idx) and 0 or ing.have -- the input the game says is short reads red (QA K1-7)
+            local shownName = chosen and (ing.name .. ": " .. CC.typeName(chosen)) or ing.name
+            if chosenItems then
+                local nm = nil
+                pcall(function() nm = chosenItems[1]:getDisplayName() end)
+                shownName = ing.name .. ": " .. tostring(nm or CC.typeName(chosen))
+                shownHave = #chosenItems
+            end
             local slotData = {
                 name = ing.name,
-                displayName = chosen and (ing.name .. ": " .. CC.typeName(chosen)) or ing.name,
+                displayName = shownName,
                 iconTex = ing.iconTex,
-                have = (shortIdx == idx) and 0 or ing.have, -- the input the game says is short reads red (QA K1-7)
+                have = shownHave,
                 need = ing.need,
                 altCount = ing.altCount,
                 tag = CC.tagText(ing.tag, ing.altCount),
@@ -3615,6 +3971,15 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
             end
 
             curY = curY + ROW_H
+            -- the tool's notes under its row, dim, at the row's name inset (call 3)
+            local lines = noteLines and noteLines[idx]
+            if lines then
+                local dc = T.textDim
+                for li, line in ipairs(lines) do
+                    panel:drawText(line, x + T.px(24), curY + (li - 1) * noteStep, dc.r, dc.g, dc.b, dc.a or 1, T.fontF5)
+                end
+                curY = curY + #lines * noteStep + T.px(2)
+            end
         end
     end
     if benchLine then
@@ -3667,6 +4032,31 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         scroll:draw(panel)
     end
 
+    return h
+end
+
+-- The craft card's progress band (the director's call 2, Nov 25 2026): while a craft ZeD queued for
+-- the open recipe is in the player's queue, the item card's progress band sits at the card's top,
+-- in the accent, named for the recipe, its bar the running craft's share done. Its X is Cancel
+-- (CC.cancelCraft): a click, or the pad's A on its stop (craft:craftCancel). The Craft tab only.
+local _progRect, _progOpts = {}, {}
+function CC.renderCraftProgress(panel, win, state, config, x, y, w)
+    state._progOn = false
+    if not (config and config.prefix == "craft" and not config.readOnly and win and state.selected) then return 0 end
+    local name, pct = CC.craftProgress(win, win._playerObj)
+    if not name or name ~= state.selected then return 0 end
+    local entry = state._selEntry
+    local label = (entry and entry.displayName) or name
+    local fid = config.prefix .. ":craftCancel"
+    _progOpts.focus = (state._gpFocusedId == fid) and NO_FOCUS_OPTS or nil
+    _progOpts.hover, _progOpts.win, _progOpts.noPercent = nil, win, nil
+    _progRect.x, _progRect.y, _progRect.w, _progRect.h = nil, nil, nil, nil
+    local h = ZeD.Atoms.drawProgressBand(panel, x, y, w, "active", label, pct, nil, _progRect, true, _progOpts) or 0
+    if _progRect.w then
+        state.zones[#state.zones + 1] = { type = "craftCancel",
+            x = _progRect.x, y = _progRect.y, w = _progRect.w, h = _progRect.h }
+    end
+    state._progOn = true
     return h
 end
 
@@ -3865,12 +4255,18 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
             state.zones[#state.zones + 1] = { type = "cardBack", x = bx, y = by, w = bw, h = T.buttonH }
             ZeD.Atoms.drawDividerH(panel, x, curY + backH - T.px(1), w, true)
             cardY, cardH = curY + backH, panesH - backH
-            CC.renderCraftCard(panel, cardX, cardY, cardW, cardH, state, config, selRd, win._playerObj)
+            -- (the running craft's band over the card: call 2)
+            local ph = CC.renderCraftProgress(panel, win, state, config, cardX, cardY, cardW)
+            CC.renderCraftCard(panel, cardX, cardY + ph, cardW, cardH - ph, state, config, selRd, win._playerObj)
         else
             -- Vertical divider between panes
             panel:drawRect(cardX, curY, T.px(1), panesH, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
-            CC.renderCraftCard(panel, cardX + T.px(1), curY, cardW - T.px(1), panesH, state, config, selRd, win._playerObj)
+            -- (the running craft's band over the card: call 2)
+            local ph = CC.renderCraftProgress(panel, win, state, config, cardX + T.px(1), curY, cardW - T.px(1))
+            CC.renderCraftCard(panel, cardX + T.px(1), curY + ph, cardW - T.px(1), panesH - ph, state, config, selRd, win._playerObj)
         end
+    else
+        state._progOn = false
     end
 
     -- (Nov 14 2026, punch list 198: the panes' own clips leave their area one stencil level up when they clear
@@ -4212,6 +4608,16 @@ function CC.onClick(state, config, win, x, y, playerObj)
             elseif zone.type == "altPick" then
                 -- choose this item type for the open slot (again to clear)
                 CC.togglePick(state, state.selected, state.altSlotIdx, zone.id)
+                return true
+
+            elseif zone.type == "altItem" then
+                -- choose this very item for the open slot (again to clear): the director's call 1
+                CC.toggleItemPick(state, state.selected, state.altSlotIdx, zone.item)
+                return true
+
+            elseif zone.type == "craftCancel" then
+                -- the progress band's X: stops the running craft (the director's call 2)
+                CC.cancelCraft(win, playerObj or win._playerObj)
                 return true
 
             elseif zone.type == "action_dec" then
@@ -4670,6 +5076,27 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                 onActivate = function(w, el)
                     CC.togglePick(state, state.selected, state.altSlotIdx, el.fullType)
                 end,
+            }
+        elseif z.type == "altItem" then
+            -- A = choose this very item for the open slot (again to clear): the director's call 1
+            elements[#elements + 1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = prefix .. ":altItem:" .. tostring(z.id),
+                craftKind = "altItem",
+                item = z.item,
+                onFocus = function(w, el) end,
+                onActivate = function(w, el)
+                    CC.toggleItemPick(state, state.selected, state.altSlotIdx, el.item)
+                end,
+            }
+        elseif z.type == "craftCancel" then
+            -- A = the progress band's X: stops the running craft (the director's call 2)
+            elements[#elements + 1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = prefix .. ":craftCancel",
+                craftKind = "craftCancel",
+                onFocus = function(w, el) end,
+                onActivate = function(w, el) CC.cancelCraft(w, w._playerObj) end,
             }
         elseif z.type == "altStrip_back" then
             elements[#elements + 1] = {
