@@ -31,6 +31,7 @@
 
 require "ISUI/ISUIElement"
 require "ZeD/SafeMode"
+require "ZeD/ZeD_HerbalName"   -- (ZeD.herbalName: vanilla's berry and mushroom names, QA K3)
 
 ZeD = ZeD or {}
 ZeD.Trade = ZeD.Trade or {}
@@ -357,22 +358,8 @@ local function addToGroup(self, tables, item, isEquipped, isInHotbar)
     if item:isFavorite() then return end
     if item:isHidden() then return end
     if self:isOffered(item) then return end
-    local itemName = item:getName(player)
-    if item:IsFood() and item:getHerbalistType() and item:getHerbalistType() ~= "" then
-        if player:isRecipeActuallyKnown("Herbalist") then
-            if item:getHerbalistType() == "Berry" then
-                itemName = (item:getPoisonPower() > 0) and getText("IGUI_PoisonousBerry") or getText("IGUI_Berry")
-            end
-            if item:getHerbalistType() == "Mushroom" then
-                itemName = (item:getPoisonPower() > 0) and getText("IGUI_PoisonousMushroom") or getText("IGUI_Mushroom")
-            end
-        else
-            if item:getHerbalistType() == "Berry" then itemName = getText("IGUI_UnknownBerry") end
-            if item:getHerbalistType() == "Mushroom" then itemName = getText("IGUI_UnknownMushroom") end
-        end
-        if itemName ~= item:getDisplayName() then item:setName(itemName) end
-        itemName = item:getName(player)
-    end
+    -- (the shared copy of vanilla's rename, ZeD_HerbalName.lua; QA K3, Nov 25 2026)
+    local itemName = ZeD.herbalName and ZeD.herbalName(item, player) or item:getName(player)
     local label = itemName
     local equipped = false
     if isEquipped[item] then
