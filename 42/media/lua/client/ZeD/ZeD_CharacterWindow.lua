@@ -4054,7 +4054,7 @@ local function drawContainerStrip(self, win, content)
         else
             mainVis = win._invDrawerOpen and (win._viewedContainer == nil)
         end
-        -- the button's tint of its picture's color, the one selected look (the shown bag: the wash and the frame) or
+        -- the button's tint of its picture's color, the one selected look (the shown bag: a one-hairline frame) or
         -- the hover wash, then the controller's mark (ZeD.GridTint.stripCell; the director, Nov 25 2026)
         local cL, _, _, cR = A.stripArrowHalves(w, "own", "own+edge")
         -- (the button's fill and the shown one's frame inside the strip's own lines, the insets its scroll row uses:

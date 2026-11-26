@@ -3508,7 +3508,7 @@ local function drawWorldContainerStrip(self, win, content)
         end
         -- the one selected look (the shown container), the hover wash, then the controller's mark
         local floorOn = mainVis and (isActive or isMC)
-        -- (on the button's tint of its picture's color, with the wash and the frame when shown: the director, Nov 25 2026)
+        -- (on the button's tint of its picture's color, with a one-hairline frame when shown: the director, Nov 25 2026)
         local cL, _, _, cR = A.stripArrowHalves(w, "frame", "own")
         -- (the button's fill and the shown one's frame inside the strip's own lines, the insets its scroll row uses:
         -- the frame's right side lay half under the right line, 2 px of its 4 at 4K, QA ctab3, Nov 25 2026)
