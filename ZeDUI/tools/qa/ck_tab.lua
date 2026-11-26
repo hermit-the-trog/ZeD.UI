@@ -1965,11 +1965,15 @@ function H.cookRead(it)
 end
 function H.cookText(o) return "cooking time " .. H.n1(o.ct) .. " of " .. H.n1(o.toCook) .. " (burns at " .. H.n1(o.toBurn) .. "), heat " .. H.n2(o.heat) end
 -- queue: ZeD's minutes left (the key it draws them with) against the food's own cooking time over the game clock
+-- ZeD shows percent until its slope is steady (5 game minutes of this heat, 3 slopes agreeing), so the first figure
+-- comes some minutes after the food is hot: T.r0 is the moment that first figure is drawn, and that figure is judged
 function C.rate(T, label, key, food)
-    H.wait(45000, function()
+    T.hotAt = nil
+    H.wait(90000, function()
         if T.off or T.noHeat then return true end
         local it = food()
         local o = it and H.cookRead(it)
+        if o and (o.heat or 0) > 1.6 and not T.hotAt then T.hotAt = o.m end
         return o ~= nil and (o.heat or 0) > 1.6 and (o.ct or 0) > 0 and H.seen(key, 1500) ~= nil
     end, function(ok)
         if T.off or T.noHeat then return end
@@ -1978,9 +1982,12 @@ function C.rate(T, label, key, food)
         T.z0 = H.seen(key, 1500)
         if not ok then
             T.rateOff = true
-            Q.skip(label, "the food did not heat with ZeD's minutes drawn in 45 s on fast-forward (" .. (T.r0 and H.cookText(T.r0) or "no food") .. ", ZeD drew "
+            Q.skip(label, "the food did not heat with ZeD's minutes drawn in 90 s on fast-forward (" .. (T.r0 and H.cookText(T.r0) or "no food") .. ", ZeD drew "
                 .. tostring(T.z0) .. ")")
+            return
         end
+        H.note(label .. ": ZeD's first figure (" .. tostring(T.z0) .. " m) came " .. (T.hotAt and H.n1(T.r0.m - T.hotAt) or "?")
+            .. " game minutes after the food was hot (" .. H.cookText(T.r0) .. ")")
     end)
     -- the truth: the game minutes the food really takes from that moment to its next mark (cooked, or burnt once
     -- cooked), on the game clock; ZeD's number must land within 20 percent of it (3 minutes at the least). The
