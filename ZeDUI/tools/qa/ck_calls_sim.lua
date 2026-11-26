@@ -316,6 +316,20 @@ end
 -- ---------------------------------------------------------------------------
 section("call 3: where an ingredient is")
 do
+    -- the aside's own spot (the director's look call, Nov 26): right after the name, never against the numbers.
+    -- The half card (220u) at 1.75 and at Large text: a row's text runs from tx to rx (the numbers' left edge)
+    check("whereSpot exists", CK.whereSpot ~= nil)
+    if CK.whereSpot then
+        for _, c in ipairs({ { "half card", 20, 300 }, { "Large text", 20, 360 }, { "a long aside", 20, 200 } }) do
+            local tx, rx, ww = c[2], c[3], 60
+            local room = CK.whereSpot(tx, rx, ww)
+            local nameW = room                      -- (the name as long as it may be)
+            local wx = tx + nameW + 8
+            check(c[1] .. ": the aside ends clear of the numbers (16 apart)", wx + ww <= rx - 16, wx + ww .. " vs " .. rx)
+            check(c[1] .. ": the aside starts after the name", wx >= tx + nameW, wx)
+            check(c[1] .. ": the name keeps room", room >= 0, room)
+        end
+    end
     put({ POT }, { TOM })
     rescan("Stew")
     local tg = row("Base.Tomato")

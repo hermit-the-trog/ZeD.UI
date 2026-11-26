@@ -39,6 +39,7 @@ local CK = ZeD.CookingTab
 local TAB_ID     = "cooking"
 local PAD        = 10
 local ROW_H      = 24
+local WHERE_GAP  = 16   -- design units kept clear between an ingredient's where-aside and its numbers (call 3)
 local CAT_H      = 15
 local SEC_H      = 20
 local SCAN_MS    = 1000   -- what is in reach, looked at again this often
@@ -216,6 +217,14 @@ local function containersFor(chr)
     local ok, list = pcall(ISInventoryPaneContextMenu.getContainers, chr)
     if ok and list and list:size() > 0 then return list end
     return ZeD.CraftingCore.buildContainers(chr)
+end
+
+-- The where-aside's spot in an ingredient row (call 3, the director's "own spot"): the name from tx, the aside
+-- right after it (8 apart), and WHERE_GAP clear before the numbers, which end at rx. ww: the aside's width.
+-- Returns the room the name may take; the aside then ends no later than rx - WHERE_GAP.
+function CK.whereSpot(tx, rx, ww)
+    local T = ZeD.T   -- (the theme, read fresh)
+    return math.max(0, rx - T.px(WHERE_GAP) - ww - T.px(8) - tx)
 end
 
 -- where an item is, in a word (on you, a bag, the floor, a container)
@@ -1118,18 +1127,28 @@ local function renderIngredients(panel, win, s, x, top, w, bodyH, chr, mouse)
                     rx = rx - TM:MeasureStringX(T.fontF1, u) - T.px(6)
                 end
                 -- (where the row's items are, when none is carried: call 3. At most a third of the row, so
-                -- the name keeps the rest)
+                -- the name keeps the rest.) Its own spot: right after the name, with the row's widest gap
+                -- (WHERE_GAP) before the numbers. Set just left of them it read as one with the number,
+                -- "Crate 11 x1", a crate named "Crate 11" (the director's look call, "1, own spot", Nov 26 2026)
+                local nameY = cy + math.floor((rh - T.fontF2H) / 2)
+                local wt = ""
                 if g.where then
-                    local wt = A.truncateText(g.where, T.fontF1, math.floor((rx - tx) / 3))
-                    if wt ~= "" then
-                        local wa = (dim.a or 1) * a
-                        panel:drawText(wt, rx - TM:MeasureStringX(T.fontF1, wt), cy + math.floor((rh - T.fontF1H) / 2),
-                            dim.r, dim.g, dim.b, wa, T.fontF1)
-                        rx = rx - TM:MeasureStringX(T.fontF1, wt) - T.px(6)
-                    end
+                    local room = rx - T.px(WHERE_GAP) - tx
+                    wt = A.truncateText(g.where, T.fontF1, math.max(0, math.floor(room / 3)))
                 end
-                local nm = A.truncateText(g.name, T.fontF2, math.max(0, rx - tx))
-                panel:drawText(nm, tx, cy + math.floor((rh - T.fontF2H) / 2), ink.r, ink.g, ink.b, (ink.a or 1) * a, T.fontF2)
+                if wt ~= "" then
+                    local ww = TM:MeasureStringX(T.fontF1, wt)
+                    local nmRoom = CK.whereSpot(tx, rx, ww)
+                    local nm = A.truncateText(g.name, T.fontF2, nmRoom)
+                    panel:drawText(nm, tx, nameY, ink.r, ink.g, ink.b, (ink.a or 1) * a, T.fontF2)
+                    local wx = tx + TM:MeasureStringX(T.fontF2, nm) + T.px(8)
+                    panel:drawText(wt, wx, cy + math.floor((rh - T.fontF1H) / 2), dim.r, dim.g, dim.b, (dim.a or 1) * a, T.fontF1)
+                    s._whereAt = s._whereAt or {}
+                    s._whereAt[id] = { x = wx, w = ww, numX = rx }   -- (for the sims and QA: where it sits)
+                else
+                    local nm = A.truncateText(g.name, T.fontF2, math.max(0, rx - tx))
+                    panel:drawText(nm, tx, nameY, ink.r, ink.g, ink.b, (ink.a or 1) * a, T.fontF2)
+                end
                 -- why a grey row can't go in: the game's refusal, or the dish is full
                 local why = g.why or ((not can and full and not g.spice) and ZeD.tr("UI_ZeD_Cook_Full")) or nil
                 if mouse ~= nil and my >= cy and my < cy + rh and mx >= x and mx < x + cw then
