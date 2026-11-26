@@ -16,8 +16,9 @@
 -- no action from a client file), so Make there chains the game's own action with a
 -- short wait of ZeD's between adds (ZeD_CookWait; "Make on a server" below).
 --
--- Shown while a dish's base (a pot, a pan, a bowl, bread, a cup...) is on the player
--- and something in reach goes into it. Saved dishes live in the player's mod data.
+-- Shown while a dish's base (a pot, a pan, a bowl, bread, a cup...) is in reach (on the
+-- player, on the stove, in a crate) and something in reach goes into it. Saved dishes and
+-- the last dish made live in the player's mod data.
 -- Every layout number is a DESIGN UNIT and goes through T.px at use.
 -- ============================================================================
 
@@ -43,6 +44,7 @@ local SEC_H      = 20
 local SCAN_MS    = 1000   -- what is in reach, looked at again this often
 local SCROLL_STEP = 48
 local MD_KEY     = "ZeD_CookDishes"
+local MD_LAST    = "ZeD_CookLast"   -- the last dish made (its key), the dish the tab opens on (call 6)
 local MAX_SAVED  = 20     -- saved dishes kept; past it the oldest goes (FIFO)
 
 local function now() return (getTimestampMs and getTimestampMs()) or 0 end
@@ -148,8 +150,11 @@ local function catalog()
         pcall(function() hidden = r:isHidden() end)
         local base = fullType(r:getBaseItem())
         local result = fullType(r:getFullResultItem())
-        -- from scratch only: a recipe that adds to a dish already made (base == its result) is left to the game
-        if not hidden and base ~= result then
+        -- A recipe that adds to a dish already made (base == its result: an omelette, a pizza, toast, a bagel, a
+        -- second round of soup) is listed too, under the same dish name as the from-scratch ones, with the dish
+        -- itself as the base. The tab made dishes from scratch only, and the rest was the game's menu alone.
+        -- (director's call 4, Nov 25 2026)
+        if not hidden then
             -- one dish per name: the game's Stir fry, Stir fry Griddle Pan and Stir fry Forged are one
             -- Stir-fry, made in whichever of them is at hand
             local label = labelOf(r)
@@ -426,6 +431,17 @@ local function ingredients(s, chr)
             end
         end
         g.n = #g.items
+        -- Where a row's items are when none is on the player: "crate", "floor", a corpse, a car part, in the
+        -- base list's words (whereOf). Make takes from every container in reach, so a row read like a carried
+        -- one though the items were in a crate. With one carried, Make takes that first and the row says
+        -- nothing. (director's call 3, Nov 25 2026)
+        g.where = nil
+        if g.items[1] then
+            local carried = false
+            for _, it in ipairs(g.items) do if onPlayer(it, chr) then carried = true; break end end
+            if not carried then g.where = whereOf(g.items[1], chr) end
+            if g.where == "" then g.where = nil end
+        end
         local cur = byFt[g.ft]
         local better = not cur
         if cur and (cur.why ~= nil) ~= (g.why ~= nil) then better = cur.why ~= nil
@@ -511,6 +527,93 @@ local function howMany(s, chr)
         n = math.min(n, math.floor(have / k))
     end
     return math.max(0, n)
+end
+
+-- the last dish the player made, kept in his mod data beside the saved dishes (call 6)
+local function lastDish(chr)
+    local ok, v = pcall(function() return chr:getModData()[MD_LAST] end)
+    return (ok and type(v) == "string") and v or nil
+end
+local function rememberDish(chr, key)
+    if key then pcall(function() chr:getModData()[MD_LAST] = key end) end
+end
+
+-- The dish's whole hunger, as the made dish's item card reads it ("Hunger reduction", in hundredths).
+-- The Hunger line added only each ingredient's "(n)" and left out the base's own food: a sandwich of one cooked
+-- steak read 5 and the made sandwich takes 15 off; a stew of one tomato read 11 and the made stew 12. This is
+-- the game's own sum (EvolvedRecipe.addItem in the game's jar, read with javap):
+--   * a base that is not yet the dish makes a new dish item that starts from the base's own hunger (getHungChange,
+--     the unmodified figure) when the base is food (bread, a pie crust), else from nothing (a pot of water); a
+--     dish already made keeps what it holds
+--   * each ingredient adds its recipe amount (ItemRecipe use / 100), cut to the ingredient's own hunger
+--     (getHungerChange) when that is less, truncated to two places; a rotten one adds 5 percent of its base
+--     hunger at Cooking 7-8, 10 percent at 9-10, rounded to two places. A seasoning adds nothing.
+--   * the dish's card then reads its hunger through the dish's own state (Food.getHungerChange: x1.3 cooked,
+--     /1.3 stale, /2.2 rotten, /3 burnt): a dish already made is read through its own state; a new dish carries
+--     the base's freshness over (its age goes across as a share), and is never cooked or burnt.
+-- The game's own "(n)" (ISInventoryPaneContextMenu.getRealEvolvedItemUse) compares the two amounts in Lua's
+-- doubles, so a tomato that gives 12 reads 11 there; the Java compares them as floats and gives 12. The rows keep
+-- the game menu's "(n)"; the total follows the Java. (director's call 1, Nov 25 2026)
+local function evoUse(it, r, lvl)
+    local ok, use = pcall(function()
+        if not instanceof(it, "Food") then return 0 end
+        local ir = r:getItemRecipe(it)
+        local u = ir and ir:getUse() or -1
+        if u <= -1 then return 0 end
+        if it:isRotten() and lvl >= 7 then
+            local bh = math.abs(it:getBaseHunger() * 100)
+            u = math.floor(bh * ((lvl >= 9) and 0.10 or 0.05) + 0.5)
+        end
+        local h = math.abs(it:getHungerChange() * 100)
+        -- (the game's float test: a hunger equal to the amount, 0.12 against 0.12, is not less)
+        if h < u - 0.001 then u = math.floor(h) end
+        return u
+    end)
+    return (ok and tonumber(use)) or 0
+end
+-- the made dish's state as its card reads it: the share of its raw hunger the card shows
+local function dishFactor(b)
+    local f = 1
+    pcall(function()
+        if not instanceof(b.item, "Food") then return end
+        if isDish(b) then
+            local raw = b.item:getHungChange()
+            if raw and raw ~= 0 then f = b.item:getHungerChange() / raw end
+        else
+            local rank = foodState(b.item)
+            if rank == 3 then f = 1 / 2.2 elseif rank == 2 then f = 1 / 1.3 end
+        end
+    end)
+    return f
+end
+function CK.dishHunger(s, chr)
+    local b = curBase(s)
+    if not b then return 0 end
+    ingredients(s, chr)
+    local byKey = s.ingCache and s.ingCache.byKey or {}
+    local lvl = 0
+    pcall(function() lvl = chr:getPerkLevel(Perks.Cooking) end)
+    local total = 0
+    pcall(function() if instanceof(b.item, "Food") then total = math.abs(b.item:getHungChange() * 100) end end)
+    -- each planned ingredient as Make picks it: the carried ones of its row first, then the rest
+    local inv = chr:getInventory()
+    local used = {}
+    for _, e in ipairs(s.plan) do
+        if not e.spice then
+            local g = byKey[entryKey(s, e)]
+            local it = nil
+            if g then
+                for pass = 1, 2 do
+                    for _, x in ipairs(g.items) do
+                        if not it and not used[x] and ((pass == 1) == (x:getContainer() == inv)) then it = x end
+                    end
+                end
+            end
+            if it then used[it] = true; total = total + evoUse(it, b.recipe, lvl)
+            elseif g and g.use then total = total + (tonumber(g.use) or 0) end
+        end
+    end
+    return total * dishFactor(b)
 end
 
 -- ----------------------------------------------------------------------------
@@ -680,6 +783,8 @@ local function make(s, chr, n)
     end
     for k = 1, math.min(n, #bases) do
         local bk = bases[k]
+        -- (a base in reach but not carried, a pot on the stove, comes to the player first and goes back after, as
+        -- the game's own menu does: ISInventoryPaneContextMenu.onAddItemInEvoRecipe. Call 5)
         bring(bk.item)
         local chain = { base = bk.item, baseId = bk.item:getID(), seen = seen, pending = 0, track = track }
         local first = true
@@ -706,6 +811,7 @@ local function make(s, chr, n)
         end
     end
     s.queued = (#track > 0) and track or nil
+    if #track > 0 then rememberDish(chr, s.dish) end   -- (the tab opens on it next time: call 6)
     -- what came from elsewhere goes back where it was (as the game's own menu does)
     if #back > 0 and ISCraftingUI and ISCraftingUI.ReturnItemsToOriginalContainer then
         pcall(ISCraftingUI.ReturnItemsToOriginalContainer, chr, back)
@@ -950,12 +1056,23 @@ local function renderIngredients(panel, win, s, x, top, w, bodyH, chr, mouse)
                     A.drawTextRight(panel, u, rx, cy + math.floor((rh - T.fontF1H) / 2), T.fontF1, dim)
                     rx = rx - TM:MeasureStringX(T.fontF1, u) - T.px(6)
                 end
+                -- (where the row's items are, when none is carried: call 3. At most a third of the row, so
+                -- the name keeps the rest)
+                if g.where then
+                    local wt = A.truncateText(g.where, T.fontF1, math.floor((rx - tx) / 3))
+                    if wt ~= "" then
+                        local wa = (dim.a or 1) * a
+                        panel:drawText(wt, rx - TM:MeasureStringX(T.fontF1, wt), cy + math.floor((rh - T.fontF1H) / 2),
+                            dim.r, dim.g, dim.b, wa, T.fontF1)
+                        rx = rx - TM:MeasureStringX(T.fontF1, wt) - T.px(6)
+                    end
+                end
                 local nm = A.truncateText(g.name, T.fontF2, math.max(0, rx - tx))
                 panel:drawText(nm, tx, cy + math.floor((rh - T.fontF2H) / 2), ink.r, ink.g, ink.b, (ink.a or 1) * a, T.fontF2)
+                -- why a grey row can't go in: the game's refusal, or the dish is full
+                local why = g.why or ((not can and full and not g.spice) and ZeD.tr("UI_ZeD_Cook_Full")) or nil
                 if mouse ~= nil and my >= cy and my < cy + rh and mx >= x and mx < x + cw then
-                    if g.why then ZeD.Help.set(panel, g.why)
-                    elseif not can and full and not g.spice then help(panel, "UI_ZeD_Cook_Full")
-                    else help(panel, "UI_ZeD_Cook_HelpAdd") end
+                    if why then ZeD.Help.set(panel, why) else help(panel, "UI_ZeD_Cook_HelpAdd") end
                 end
                 local ft, key, nmFull, nmBase, spice = g.ft, g.key, g.name, g.base, g.spice
                 stamp(s, id, x, cy, cw, rh, function()
@@ -963,7 +1080,7 @@ local function renderIngredients(panel, win, s, x, top, w, bodyH, chr, mouse)
                     -- (the limit asked again at the press: two presses in one frame both saw room. K7)
                     if not spice and planN(s) >= maxItems(s) then return end
                     s.plan[#s.plan + 1] = { ft = ft, key = key, name = nmFull, base = nmBase, spice = spice }
-                end, { clip = clip, pane = "list", disabled = not can })
+                end, { clip = clip, pane = "list", disabled = not can, why = (not can) and why or nil })
                 cy = cy + rh
             end
         end
@@ -1081,15 +1198,13 @@ local function renderDish(panel, win, s, x, top, w, bodyH, chr, mouse)
         for i, e in ipairs(s.plan) do if e.spice then anyMissing = row(i, e) or anyMissing end end
     end
     s.anyMissing = anyMissing
-    -- what it will fill: the hunger the ingredients bring, as the game reckons each at your level
-    local fill = 0
-    for _, e in ipairs(s.plan) do
-        local g = byKey[entryKey(s, e)]
-        if g and g.use and not e.spice then fill = fill + (tonumber(g.use) or 0) end
-    end
+    -- what it will fill: the made dish's whole hunger, the base's own food and each ingredient's, in the item
+    -- card's words and figure ("+15"), so the two read alike (call 1; CK.dishHunger)
+    local fill = (n > 0) and CK.dishHunger(s, chr) or 0
     if fill > 0 then
         cy = cy + T.px(10)
-        cy = cy + M.drawStatRow(panel, x + pad, cy, iw, getText("Tooltip_food_Hunger"), tostring(math.floor(fill + 0.5)))
+        cy = cy + M.drawStatRow(panel, x + pad, cy, iw, ZeD.tr("UI_ZeD_Card_HungerReduction"),
+            string.format("%+d", math.floor(fill + 0.5)))
     end
     -- (QA's visual noise audit, Words, Nov 20 2026: "Press an ingredient..." over "Cook it afterwards...": one line at a
     -- time, the cooking note once the dish has something in it)
@@ -1383,6 +1498,16 @@ function CK.onClick(win, x, y)
     end
 end
 
+-- a grey ingredient row's reason as the help line's words beside the prompts ({ text }), or nil (call 2)
+local _whyPrompt = {}
+function CK.rowWhy(s, id)
+    local z = s and s.byId and s.byId[id]
+    local why = z and z.disabled and z.why or nil
+    if not why or why == "" then return nil end
+    if _whyPrompt[1] ~= why then _whyPrompt[1] = why end
+    return _whyPrompt
+end
+
 -- the controller: every stamped zone a stop; with a list open, its choices and its box only.
 -- B shuts an open list; else it leaves the tab as every tab does
 function CK.buildFocusables(win)
@@ -1394,6 +1519,19 @@ function CK.buildFocusables(win)
         if not s.popup or zz.popRow or zz.box then
             local el = { x = zz.x, y = zz.y, w = zz.w, h = zz.h, id = zz.id, isDisclosure = zz.isDisclosure,
                          onActivate = function() zz.fn() end }
+            -- On a controller the help line holds the prompts, so a grey ingredient row's reason ("Must be
+            -- cooked", "The dish is full", the game's own refusal) goes beside them while the focus is on the
+            -- row, in place of A's Select, which does nothing there. It was the mouse's hover alone. Read each
+            -- frame from the row as last drawn (these stops are rebuilt only when scrollKey changes).
+            -- (director's call 2, Nov 25 2026)
+            if zz.pane == "list" and not zz.isDisclosure then
+                local zid = zz.id
+                el.extraPrompts = function() return CK.rowWhy(s, zid) end
+                el.promptA = function()
+                    if CK.rowWhy(s, zid) then return false end
+                    return nil
+                end
+            end
             if s.popup then
                 el.onCancel = function() s.popup = nil; return true end
             end
@@ -1413,29 +1551,53 @@ function CK.scrollKey(win)
         .. ":" .. tostring(s.sort) .. ":" .. tostring(s.qty)
 end
 
--- The dish the tab opens on: the first (by name) with a base on the player that something in reach
--- goes into, as CK.visible asks it. The first by name alone was often one nothing goes into (a
--- Beverage in an empty cup beside a pot of water and vegetables), and the tab then read "Nothing in
--- reach goes into this dish". With none such, the first there is.
+-- something in reach goes into this base (the base itself is no ingredient)
+local function takesSome(o, chr, s)
+    local ok, items = pcall(function() return o.recipe:getItemsCanBeUse(chr, o.item, s.containers) end)
+    if ok and items then
+        for i = 0, items:size() - 1 do
+            if items:get(i) ~= o.item then return true end
+        end
+    end
+    return false
+end
+-- a base for this dish in reach that something goes into, the carried ones asked first
+local function dishReady(s, chr, key)
+    local list = key and s.bases and s.bases[key]
+    if not list then return false end
+    for pass = 1, 2 do
+        for _, o in ipairs(list) do
+            if ((pass == 1) == (o.mine and true or false)) and takesSome(o, chr, s) then return true end
+        end
+    end
+    return false
+end
+
+-- The dish the tab opens on: the last dish the player made, while a base for it in reach takes something;
+-- the tab opened on the first by name, a pot of water on Soup when he makes stew every day. (director's call
+-- 6, Nov 25 2026.) Else the first (by name) with a base that something in reach goes into, as CK.visible asks
+-- it: the first by name alone was often one nothing goes into (a Beverage in an empty cup beside a pot of water
+-- and vegetables), and the tab then read "Nothing in reach goes into this dish". With none such, the first there is.
 function CK.firstDish(s, chr)
+    local last = lastDish(chr)
+    if last and dishReady(s, chr, last) then return last end
     local list = s.dishList or {}
-    for _, key in ipairs(list) do
-        for _, o in ipairs(s.bases[key] or {}) do
-            if o.mine then
-                local ok, items = pcall(function() return o.recipe:getItemsCanBeUse(chr, o.item, s.containers) end)
-                if ok and items then
-                    for i = 0, items:size() - 1 do
-                        if items:get(i) ~= o.item then return key end   -- (the base itself is no ingredient)
-                    end
-                end
+    -- (a base on the player first, then one in reach: the stove's pot, a crate's)
+    for pass = 1, 2 do
+        for _, key in ipairs(list) do
+            for _, o in ipairs(s.bases[key] or {}) do
+                if ((pass == 1) == (o.mine and true or false)) and takesSome(o, chr, s) then return key end
             end
         end
     end
     return list[1]
 end
 
--- Shown while a base is on the player and something in reach goes into it (looked at
--- about once a second)
+-- Shown while a base is in reach and something in reach goes into it. The base had to be on the player, so a
+-- pot on the stove or in a crate could not be planned; now any base the scan finds counts: the same reach as
+-- the ingredients (containersFor, the game's ISInventoryPaneContextMenu.getContainers) and the scan's own
+-- once-a-second look, so it costs no more. Make brings a base that is not carried to the player first, as the
+-- game's menu does (ISAddItemInRecipe:isValidStart wants it in the inventory). (director's call 5, Nov 25 2026)
 function CK.visible(win)
     local chr = win and win._playerObj
     if not chr then return false end
@@ -1448,10 +1610,8 @@ function CK.visible(win)
         scan(s, chr, false)
         for _, key in ipairs(s.dishList or {}) do
             for _, o in ipairs(s.bases[key]) do
-                if o.mine then
-                    local items = o.recipe:getItemsCanBeUse(chr, o.item, s.containers)
-                    if items and items:size() > 0 then vis = true; return end
-                end
+                local items = o.recipe:getItemsCanBeUse(chr, o.item, s.containers)
+                if items and items:size() > 0 then vis = true; return end
             end
         end
     end)
