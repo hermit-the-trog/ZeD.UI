@@ -44,6 +44,7 @@ WORDS.Tooltip_chanceFailure = "Chance of damage:"
 WORDS.IGUI_VehiclePartEngine = "Engine"
 WORDS.IGUI_VehiclePartTireFrontLeft = "Front Left Tire"
 WORDS.UI_On = "On"
+WORDS.IGUI_ToHeavy = "Too heavy for inventory."
 WORDS.IGUI_VehicleNameCarNormal = "Chevalier Nyala"
 
 -- ---------------------------------------------------------------------------
@@ -229,6 +230,32 @@ local function run(src)
             "ok " .. tostring(n.ok) .. ", blocker " .. tostring(n.blocker and n.blocker.label)
     end)
 
+    -- M3 (QA's fourth pass): a spare in a crate that won't fit in his bags: the game drops the whole chain when its
+    -- move fails, so the card says it first in the game's words, and Install is grey
+    try("M3heavy", function()
+        local v = car({ canInstall = true })
+        local tire = partStub("TireFrontLeft", { itype = typeList({ "Base.OldTire1" }),
+            tables = { install = { skills = "Mechanics:1" } } })
+        v.parts.TireFrontLeft = tire
+        local crate = { getType = function() return "crate" end, getContainingItem = function() return nil end }
+        local spare = { getDisplayName = function() return "Old Tire" end, getCondition = function() return 70 end,
+                        getContainer = function() return crate end }
+        W.byType = { ["Base.OldTire1"] = { spare } }
+        local function heavy(room)
+            local c = chr(3)
+            local inv = c:getInventory()
+            inv.hasRoomFor = function() return room end
+            c.getInventory = function() return inv end
+            return c
+        end
+        local n = T.needsFor({ pick = 1, fixPick = 1 }, tire, "install", heavy(false), v)
+        local n2 = T.needsFor({ pick = 1, fixPick = 1 }, tire, "install", heavy(true), v)
+        W.byType = nil
+        local row = hasRow(n, function(r) return r.label == "Old Tire" end)
+        return n.ok == false and row ~= nil and row.ok == false and tostring(row.kicker):find("Too heavy", 1, true) ~= nil
+            and n2.ok == true, "ok " .. tostring(n.ok) .. ", kicker " .. tostring(row and row.kicker) .. ", fits " .. tostring(n2 and n2.ok)
+    end)
+
     -- M10f: repaired only once off the car
     try("M10f", function()
         local off = partStub("Muffler", { item = { fixes = { 1 } }, itype = typeList({ "Base.OldCarMuffler1" }) })
@@ -327,7 +354,7 @@ local function run(src)
 end
 
 -- ---------------------------------------------------------------------------
-local BUGS = { "M1", "M5", "M8", "M10a", "M10c", "M10f", "M11", "M13b", "M16c" }
+local BUGS = { "M1", "M3heavy", "M5", "M8", "M10a", "M10c", "M10f", "M11", "M13b", "M16c" }
 local src = readFile(ROOT .. "42/media/lua/client/ZeD/MechanicsTab.lua")
 check("MechanicsTab.lua is read", src ~= nil)
 local res, why = run(src or "")
