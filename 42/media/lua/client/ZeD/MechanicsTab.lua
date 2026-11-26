@@ -540,7 +540,8 @@ local VERB_HELP = {
     install = "UI_ZeD_Veh_HelpInstall", uninstall = "UI_ZeD_Veh_HelpUninstall", fix = "UI_ZeD_Veh_HelpFix",
     inflate = "UI_ZeD_Veh_HelpInflate", deflate = "UI_ZeD_Veh_HelpDeflate", openWindow = "UI_ZeD_Veh_HelpOpenWindow",
     closeWindow = "UI_ZeD_Veh_HelpCloseWindow", smash = "UI_ZeD_Veh_HelpSmash", repairEngine = "UI_ZeD_Veh_HelpRepairEngine",
-    takeParts = "UI_ZeD_Veh_HelpTakeParts", repairLightbar = "UI_ZeD_Veh_HelpRepairLightbar",
+    -- (QA M1, Nov 26 2026: ZeD said the engine "loses condition"; the game sets it to 0 and says so in its own words)
+    takeParts = "Tooltip_vehicle_TakeEnginePartsWarning", repairLightbar = "UI_ZeD_Veh_HelpRepairLightbar",
 }
 local DANGER = { smash = true, takeParts = true }
 -- Which available verb is the call to action (accent fill), in this order
@@ -650,7 +651,9 @@ local function tableNeeds(rows, part, chr, v, key, items)
             rows[#rows + 1] = { ok = known, label = getRecipeDisplayName(r), value = known and ZeD.tr("UI_ZeD_Veh_Known") or getText("IGUI_ItemCat_Unknown"), kicker = ZeD.tr("UI_ZeD_Veh_KRecipe") }
         end
     end
-    if kv.requireUninstalled then
+    -- (QA M10c, Nov 26 2026: only the uninstall test asks for this part off first; the game's InstallTest
+    -- ignores it, so a brake goes on under its tire and the row only ever said no to a lit Install)
+    if key == "uninstall" and kv.requireUninstalled then
         local o = v:getPartById(kv.requireUninstalled)
         if o then
             local on = o:getInventoryItem() ~= nil
@@ -829,6 +832,16 @@ needsCompute = function(s, part, verb, chr, v)
         end
         local sc, fc = tableNeeds(rows, part, chr, v, verb, items)
         success, failure = sc or 100, fc or 0
+        -- (QA M10a, Nov 26 2026: the battery's uninstall test also wants the engine off (Vehicles.UninstallTest.Battery);
+        -- its tooltip never says so, and the card read "Uninstall is not possible right now." with no reason)
+        local ukv = (verb == "uninstall") and part:getTable("uninstall") or nil
+        if ukv and type(ukv.test) == "string" and string.find(ukv.test, "Battery", 1, true) then
+            local running = false
+            pcall(function() running = v:isEngineStarted() or v:isEngineRunning() end)
+            if running then
+                rows[#rows + 1] = { ok = false, label = partName("Engine"), value = getText("UI_On"), kicker = ZeD.tr("UI_ZeD_Veh_KMustBeOff") }
+            end
+        end
         local can = false
         pcall(function()
             if verb == "install" then can = v:canInstallPart(chr, part) else can = v:canUninstallPart(chr, part) end
@@ -866,7 +879,8 @@ needsCompute = function(s, part, verb, chr, v)
         local ks = keyState(v, chr, true)   -- (the hood's rule here, QA K1-11)
         rows[#rows + 1] = { ok = not keyMissing, label = getText("IGUI_ItemType_Key"), value = keyMissing and ZeD.tr("UI_ZeD_Veh_NotFound") or ks }
         for _, r in ipairs(rows) do if not r.ok and not r.soft then ok = false end end
-        if verb == "takeParts" then rows[#rows + 1] = { ok = false, soft = true, label = ZeD.tr("UI_ZeD_Veh_LowersEngine"), value = "" } end
+        -- (QA M1, Nov 26 2026: the game's own warning, not a softer one)
+        if verb == "takeParts" then rows[#rows + 1] = { ok = false, soft = true, label = getText("Tooltip_vehicle_TakeEnginePartsWarning"), value = "" } end
     elseif verb == "repairLightbar" then
         local lvl = mechLevel(chr)
         local sd = ISVehicleMechanics:getScrewdriver(chr)
@@ -1028,14 +1042,29 @@ local function runVerb(s, verb, part, chr)
 end
 
 -- Vanilla's own part menu, rendered by ZeD's context-menu hook (X / right-click)
-local function partContextMenu(part, chr)
+-- at: the screen point to open it at (the pad's focused row), else the pointer; win: where the pad goes back
+-- (QA M11, Nov 26 2026: on a pad the menu opened at 0,0 under a hidden pointer, and its origin was the hidden
+-- mechanics window, so B left the pad on nothing. Now it opens at the row and B hands the pad back to the window.)
+local function partContextMenu(part, chr, win, atX, atY)
     if refusePaused(chr) then return end   -- (the game's menu returns at speed 0 and says nothing: here it says why. M11)
     local ui = getPlayerMechanicsUI(chr:getPlayerNum())
     if not ui or not part then return end
     ui.vehicle = part:getVehicle()
     ui.chr = chr
-    local ax, ay = getMouseX() - ui:getAbsoluteX(), getMouseY() - ui:getAbsoluteY()
+    local sx, sy = atX or getMouseX(), atY or getMouseY()
+    local ax, ay = sx - ui:getAbsoluteX(), sy - ui:getAbsoluteY()
     pcall(ui.doPartContextMenu, ui, part, ax, ay)
+    local ctx = ui.context
+    local pn = chr:getPlayerNum()
+    if ctx and win and JoypadState and JoypadState.players and JoypadState.players[pn + 1] then
+        local shown = false
+        pcall(function() shown = ctx:getIsVisible() end)
+        if shown then
+            ctx.origin = win
+            ctx.mouseOver = 1
+            setJoypadFocus(pn, ctx)
+        end
+    end
     -- (a mod's support file follows that mod's own options in the menu just built: EXTRAS)
     for _, e in ipairs(MT.extras) do
         if e.partMenu then pcall(e.partMenu, part, chr, ui) end
@@ -1092,8 +1121,22 @@ local _cancelOpts = {}                 -- the progress band's Cancel
 local _stripFocus = { s = nil }
 local _stripOpts = { focusOf = function(i) local s = _stripFocus.s; return s and focusFor(s, "mech:veh:" .. i) or nil end }
 
+-- A car's number among cars of its name: given the first time it is seen and kept for the session, so
+-- "Chevalier Nyala (1)" stays with its car. (QA M13b, Nov 26 2026: the number was the tab's place in a list
+-- sorted by distance, and two Nyalas swapped names as he walked from one to the other.)
+local VEH_NUM = MT._vehNum or { byId = {}, top = {} }   -- (kept across a hot reload of this file)
+MT._vehNum = VEH_NUM
+function MT.vehicleNumber(name, id)
+    local e = VEH_NUM.byId[id]
+    if e and e.name == name then return e.num end
+    local n = (VEH_NUM.top[name] or 0) + 1
+    VEH_NUM.top[name] = n
+    VEH_NUM.byId[id] = { name = name, num = n }
+    return n
+end
+
 local _vehTabItems = {}
---- The vehicles' tabs: each one's name (two of the same name carry their place in the list, "Chevalier Nyala (2)");
+--- The vehicles' tabs: each one's name (two of the same name carry their own number, "Chevalier Nyala (2)");
 --- the help line names it and its type.
 -- list is s.vehicles: entries { vehicle = v, id, dist } from MT.buildVehicles, not the vehicles themselves
 function MT.vehicleTabItems(list)
@@ -1107,7 +1150,7 @@ function MT.vehicleTabItems(list)
         local n = vehicleName(v)
         local it = _vehTabItems[i] or {}
         _vehTabItems[i] = it
-        it.label = (seen[n] > 1) and (n .. " (" .. i .. ")") or n
+        it.label = (seen[n] > 1) and (n .. " (" .. tostring(MT.vehicleNumber(n, e.id or v:getId())) .. ")") or n
         local ty = mechType(v)
         it.help = (ty ~= "") and (n .. " | " .. ty) or n
     end
@@ -1647,7 +1690,8 @@ end
 local function stepBefore(v, part, verb)
     local kv = part:getTable(verb == "install" and "install" or "uninstall")
     if not kv then return nil end
-    for _, q in ipairs(idsIn(kv.requireUninstalled)) do
+    -- (QA M10c, Nov 26 2026: an install never needs a part off first; the game's InstallTest skips requireUninstalled)
+    for _, q in ipairs(verb == "install" and {} or idsIn(kv.requireUninstalled)) do
         local qp = v:getPartById(q)
         if qp and qp:getInventoryItem() then
             return { id = q, text = getText("Tooltip_vehicle_requireUnistalled", partName(q)), off = true }
@@ -1662,6 +1706,32 @@ local function stepBefore(v, part, verb)
         end
     end
     return nil
+end
+
+-- The odds, in percent, that an install or uninstall damages the part, from the game's two numbers
+-- (VehicleUtils.calculateInstallationSuccess). An install that misses the success roll damages the
+-- item only on a second roll under the failure share (ISInstallVehiclePart:complete: 35% of 35% at
+-- Mechanics 0, about 12); an uninstall that misses always damages the part (ISUninstallVehiclePart:
+-- ZombRand(failure) < 100 is always true). (QA M16c, Nov 26 2026)
+function MT.damageOdds(verb, success, failure)
+    local miss = math.max(0, 100 - (success or 100))
+    if verb == "uninstall" then return miss end
+    return math.floor(miss * math.max(0, failure or 0) / 100 + 0.5)
+end
+
+-- A part with repair recipes the game will not run on the car (not a repair-mechanic part): its
+-- tooltip says "Can be repaired once uninstalled." (ISVehicleMechanics:doMenuTooltip). (QA M10f, Nov 26 2026)
+function MT.repairOnlyOff(part)
+    local yes = false
+    pcall(function()
+        local item = part:getInventoryItem()
+        local itype = part:getItemType()
+        if item and itype and not itype:isEmpty() and not part:getScriptPart():isRepairMechanic() then
+            local fixes = FixingManager.getFixes(item)
+            yes = fixes ~= nil and not fixes:isEmpty()
+        end
+    end)
+    return yes
 end
 
 -- Where the game walks the character to work on the part: its area in words
@@ -2008,6 +2078,10 @@ local function renderCardBody(panel, win, s, x, top, w, bodyH, v, chr, cm)
         end
         cy = cy + mh + T.px(6)
     end
+    -- (QA M10f, Nov 26 2026: a part the game repairs only off the car, no Repair here; the game's tooltip line)
+    if MT.repairOnlyOff(part) then
+        cy = cy + M.drawEmptyLine(panel, x + pad, cy, iw, getText("Tooltip_RepairableUninstalled")) + T.px(6)
+    end
 
     -- the readings: condition and what the part carries beyond it (pressure, charge, fuel...),
     -- and where the work is done
@@ -2121,7 +2195,9 @@ local function renderCardBody(panel, win, s, x, top, w, bodyH, v, chr, cm)
             cy = cy + T.fillBarH + T.px(3)
             local tt = T.text
             panel:drawText(succ, x + pad, cy, tt.r, tt.g, tt.b, tt.a or 1, T.fontF1)
-            A.drawTextRight(panel, cased(ZeD.tr("UI_ZeD_Veh_FailurePct", tostring(fc) .. "%")), x + pad + iw, cy, T.fontF1, tt)
+            -- (QA M16c, Nov 26 2026: the right side said "Failure 35%", the game's second roll, beside 65% success; the
+            -- real odds the part is damaged, in the game's words, "Chance of damage:")
+            A.drawTextRight(panel, getText("Tooltip_chanceFailure") .. " " .. tostring(MT.damageOdds(s.verb, sc, fc)) .. "%", x + pad + iw, cy, T.fontF1, tt)
             cy = cy + T.fontF1H + T.px(10)
         end
     end
@@ -2177,7 +2253,9 @@ local function renderFooter(panel, win, s, x, y, w, v, chr, inspected, cm, barSh
     end
     if s.confirm and cm then
         local verb = s.confirm
-        local q = (verb == "takeParts") and ZeD.tr("UI_ZeD_Veh_ConfirmTakeParts")
+        -- (QA M1, Nov 26 2026: the question is the game's warning, "This will set engine condition to 0.", beside
+        -- the Take parts button; "the engine loses condition" read as a dent)
+        local q = (verb == "takeParts") and getText("Tooltip_vehicle_TakeEnginePartsWarning")
                   or ZeD.tr("UI_ZeD_Veh_ConfirmSmash", string.lower(cm.p.name))
         local _, cancelR, verbR = M.drawQuestionBand(panel, x, y, w, q, vlabel(verb), { win = win, danger = true,
             cancelFocus = focusFor(s, "mech:confirm:no"), verbFocus = focusFor(s, "mech:confirm:yes"),
@@ -2323,6 +2401,32 @@ end
 -- ----------------------------------------------------------------------------
 -- The tab: the header, the two columns, the footer
 -- ----------------------------------------------------------------------------
+local MIN_RIGHT_W = 160   -- the right pane's least width beside the list; under it the two stack
+--- Where the list and the right pane (the diagram or the part card) go in the body. Side by side the list is
+--- the Craft tab's split (240u). On the half card (220u) that left the right pane a negative width (4K: 385 px
+--- tab, 420 list, -37 right): the rows ran past the tab, and the card, the install picks and the NEEDS lines
+--- drew nowhere while the footer's verbs still ran on the hidden pick. There the list sits over the right
+--- pane, each the full width with its own scroll, half the height each, as the Cooking tab does (CK.layout,
+--- QA K11). The controller moves between them as between columns. (QA M8, Nov 26 2026)
+--- Returns { stacked, list = {x,y,w,h}, right = {x,y,w,h}, line = {w,h}, splitX, splitY }.
+function MT.layout(x, top, w, bodyH)
+    local T = ZeD.T
+    local CC = ZeD.CraftingCore
+    local split = T.px((CC and CC.PANE_W_SPLIT) or 240)
+    local lw = T.px(1)
+    if w >= split + lw + T.px(MIN_RIGHT_W) then
+        return { stacked = false, line = { w = lw, h = bodyH },
+                 list = { x = x, y = top, w = split, h = bodyH },
+                 right = { x = x + split + lw, y = top, w = w - split - lw, h = bodyH },
+                 splitX = x + split, splitY = nil }
+    end
+    local lh = math.max(0, math.floor((bodyH - lw) / 2))
+    return { stacked = true, line = { w = w, h = lw },
+             list = { x = x, y = top, w = w, h = lh },
+             right = { x = x, y = top + lh + lw, w = w, h = math.max(0, bodyH - lh - lw) },
+             splitX = nil, splitY = top + lh }
+end
+
 local function renderSplit(panel, win, s, x, y, w, h, v, chr, inspected)
     local T = ZeD.T
     local M = ZeD.Molecules
@@ -2364,6 +2468,7 @@ local function renderSplit(panel, win, s, x, y, w, h, v, chr, inspected)
     elseif s.card then
         s.card = nil
     end
+    s.cmPrimary = cm and cm.primary or nil   -- (the opened card's focus target, MT.focusTargetIndex; QA M5)
 
     -- the tab's own actions, for the footer with no part chosen
     local hood = inspected and v:getPartById("EngineDoor") or nil
@@ -2396,17 +2501,17 @@ local function renderSplit(panel, win, s, x, y, w, h, v, chr, inspected)
     top = top + pbH
     local bodyH = h - headerH - pbH - bandH
 
-    -- the columns: CraftingCore's split measure for the list, the rest for the right
-    local CCm = ZeD.CraftingCore
-    local listW = T.px((CCm and CCm.PANE_W_SPLIT) or 240)
-    local rx = x + listW + T.px(1)
-    local rw = x + w - rx
-    s.splitX = x + listW
+    -- the columns: CraftingCore's split measure for the list, the rest for the right; on the half card the
+    -- list over the right pane (MT.layout, QA M8)
+    local L = MT.layout(x, top, w, bodyH)
+    local LP, RP = L.list, L.right
+    s.splitX, s.splitY = L.splitX, L.splitY
 
     -- what is lit: the controller's row, or the row or diagram part under the pointer
     local mx, my = panel:getMouseX(), panel:getMouseY()
-    local inList = (not isGamepad(ZeD.playerNumOf(win))) and mx >= x and mx < x + listW and my >= top and my < top + bodyH and not s.sortOpen
-    local inRight = (not isGamepad(ZeD.playerNumOf(win))) and mx >= rx and mx < x + w and my >= top and my < top + bodyH and not s.sortOpen
+    local free = (not isGamepad(ZeD.playerNumOf(win))) and not s.sortOpen
+    local inList = free and hit(LP, mx, my)
+    local inRight = free and hit(RP, mx, my)
     local gpId = s.gpId
     local hl = nil
     if gpId and gpId:sub(1, 9) == "mech:row:" then hl = gpId:sub(10) end
@@ -2417,13 +2522,17 @@ local function renderSplit(panel, win, s, x, y, w, h, v, chr, inspected)
     end
     s.hl = hl
 
-    renderList(panel, win, s, x, top, listW, bodyH, v, chr, inspected, parts, trailer, inList and { x = mx, y = my } or nil)
-    local bd = T.borderS
-    panel:drawRect(x + listW, top, T.px(1), bodyH, bd.a or 1, bd.r, bd.g, bd.b)
-    if cm then
-        renderCardBody(panel, win, s, rx, top, rw, bodyH, v, chr, cm)
+    renderList(panel, win, s, LP.x, LP.y, LP.w, LP.h, v, chr, inspected, parts, trailer, inList and { x = mx, y = my } or nil)
+    local bd, ln = T.borderS, L.line
+    if L.stacked then
+        panel:drawRect(x, LP.y + LP.h, w, ln.h, bd.a or 1, bd.r, bd.g, bd.b)
     else
-        renderDiagram(panel, win, s, rx, top, rw, bodyH, v, chr, inspected, parts, trailer)
+        panel:drawRect(LP.x + LP.w, top, ln.w, bodyH, bd.a or 1, bd.r, bd.g, bd.b)
+    end
+    if cm then
+        renderCardBody(panel, win, s, RP.x, RP.y, RP.w, RP.h, v, chr, cm)
+    else
+        renderDiagram(panel, win, s, RP.x, RP.y, RP.w, RP.h, v, chr, inspected, parts, trailer)
     end
 
     -- gamepad scroll-follow, in the column the focused element is in
@@ -2546,7 +2655,7 @@ function MT.onRightClick(win, x, y)
         if s.card and s.rightClip and hit(s.rightClip, x, y) then id = s.card
         elseif not s.card and s.figClip and hit(s.figClip, x, y) then id = figurePartAt(s, x, y) end
     end
-    if id then partContextMenu(e.vehicle:getPartById(id), chr) end
+    if id then partContextMenu(e.vehicle:getPartById(id), chr, win) end
     return true
 end
 
@@ -2559,7 +2668,8 @@ function MT.onMouseWheel(win, del)
         return true
     end
     local mx = s.panel and s.panel:getMouseX() or 0
-    if s.splitX and mx > s.splitX then
+    local my = s.panel and s.panel:getMouseY() or 0
+    if (s.splitX and mx > s.splitX) or (s.splitY and my > s.splitY) then   -- (stacked on the half card: QA M8)
         s.cardScroll = math.max(0, math.min(s.maxRight or 0, s.cardScroll + step))
     else
         s.scrollY = math.max(0, math.min(s.maxScroll or 0, s.scrollY + step))
@@ -2572,6 +2682,14 @@ end
 -- card in the right column), B shuts the card (or the open Sort list); B with neither
 -- leaves the tab as before.
 -- ----------------------------------------------------------------------------
+-- The screen point for the game's part menu opened from the pad: the focused stop's lower left, not the
+-- hidden pointer (QA M11, Nov 26 2026)
+local function padMenuAt(s, z)
+    local p = s.panel
+    if not (p and z) then return nil, nil end
+    return p:getAbsoluteX() + z.x, p:getAbsoluteY() + z.y + z.h
+end
+
 function MT.buildFocusables(win)
     local s = win and win._mech
     if not s then return {} end
@@ -2598,12 +2716,14 @@ function MT.buildFocusables(win)
             if zz.isRow then
                 el.onContextMenu = function()
                     local e = currentEntry(s)
-                    if e and chr then partContextMenu(e.vehicle:getPartById(zz.part), chr) end
+                    local ax, ay = padMenuAt(s, zz)
+                    if e and chr then partContextMenu(e.vehicle:getPartById(zz.part), chr, win, ax, ay) end
                 end
             elseif s.card and zz.verb then
                 el.onContextMenu = function()
                     local e = currentEntry(s)
-                    if e and chr and s.card then partContextMenu(e.vehicle:getPartById(s.card), chr) end
+                    local ax, ay = padMenuAt(s, zz)
+                    if e and chr and s.card then partContextMenu(e.vehicle:getPartById(s.card), chr, win, ax, ay) end
                 end
             end
             -- (Nov 16 2026, punch list 258: the right column, the part card or the diagram, is one scrolled view:
@@ -2642,6 +2762,17 @@ function MT.focusTargetIndex(win, els)
     -- the new view's zones appear a frame later: keep the target until it lands
     win._mechFocusTries = (win._mechFocusTries or 0) + 1
     local found = ZeD.MechTrailer.focusTarget(t, els)
+    if not found and t == "card" then
+        -- (QA M5, Nov 26 2026: the footer draws the main verb last, so the first lit stop was a secondary one and
+        -- A A deflated a tire or took the engine's parts; the main (accent) verb first)
+        local s = win._mech
+        local main = s and s.cmPrimary and ("mech:verb:" .. s.cmPrimary) or nil
+        if main then
+            for i, e in ipairs(els) do
+                if e.id == main and not e.disabled then found = i; break end
+            end
+        end
+    end
     if not found and t == "card" then
         local firstVerb = nil
         for i, e in ipairs(els) do
