@@ -62,6 +62,60 @@ local function fullType(s)
     return s
 end
 
+-- An item's name as the player sees it in the inventory. A wild berry or mushroom is named by what the
+-- character knows (the game's ISInventoryPane.lua:2107-2127: Poisonous Berry or Berry with Herbalist, else
+-- Unknown Berry); ZeD.herbalName (ZeD_HerbalName.lua) mirrors that. Rows group by this name, so a Herbalist
+-- sees poisonous and safe berries as two rows and picks one; without the trait they are one row, as the game
+-- shows them. (QA K3, Nov 25 2026)
+local function shownName(item, chr)
+    local n = nil
+    if ZeD.herbalName then pcall(function() n = ZeD.herbalName(item, chr) end) end
+    return n or item:getDisplayName()
+end
+
+-- A food's state, for its row: 1 fresh, 2 stale, 3 rotten, and a tag for cooked, burnt and frozen. The game's
+-- own menu lists each type once per amount it gives (ISInventoryPaneContextMenu.lua:4245-4252), so a rotten
+-- tomato (its amount cut by getRealEvolvedItemUse) is its own option; the tab had one row per type and Make
+-- took whichever came first, a stale tomato over a fresh one. Now each state is its own row and the player
+-- picks it. (QA K1, Nov 25 2026)
+local function foodState(item)
+    local rank, tag = 1, ""
+    if instanceof(item, "Food") then
+        pcall(function()
+            if item:isRotten() then rank = 3 elseif not item:isFresh() then rank = 2 end
+        end)
+        pcall(function()
+            tag = (item:isCooked() and "c" or "") .. (item:isBurnt() and "b" or "") .. (item:isFrozen() and "f" or "")
+        end)
+    end
+    return rank, tag
+end
+local STATE_WORDS = { { "c", "Tooltip_food_Cooked" }, { "b", "Tooltip_food_Burnt" }, { "f", "Tooltip_food_Frozen" } }
+-- the row's name: the shown name, with the game's own state words when the name does not already say them
+local function stateName(name, rank, tag)
+    local words = {}
+    local function add(key)
+        local w = getText(key)
+        if w and w ~= key and not string.find(string.lower(name), string.lower(w), 1, true) then words[#words + 1] = w end
+    end
+    if rank == 3 then add("Tooltip_food_Rotten") elseif rank == 2 then add("Tooltip_food_Stale") end
+    for _, sw in ipairs(STATE_WORDS) do
+        if string.find(tag, sw[1], 1, true) then add(sw[2]) end
+    end
+    if #words == 0 then return name end
+    return name .. " (" .. table.concat(words, ", ") .. ")"
+end
+
+-- a seasoning, as the game's own menu reads it: a food's own isSpice, the script's only for a non-food
+-- (the script says spice for many vegetables; read that way a stir-fry took five)
+local function isSpiceItem(it)
+    local spice = false
+    pcall(function()
+        if instanceof(it, "Food") then spice = it:isSpice() else spice = it:getScriptItem():isSpice() end
+    end)
+    return spice and true or false
+end
+
 -- ----------------------------------------------------------------------------
 -- The game's dishes, read once: grouped by dish (its untranslated name), with the
 -- recipes each base starts
@@ -198,7 +252,7 @@ local function scan(s, chr, force)
                     local key = C.keyOf[r] or r:getUntranslatedName()
                     local list = bases[key]
                     if not list then list = {}; bases[key] = list; dishes[#dishes + 1] = key end
-                    list[#list + 1] = { item = item, recipe = r, name = item:getDisplayName(), where = whereOf(item, chr),
+                    list[#list + 1] = { item = item, recipe = r, name = shownName(item, chr), where = whereOf(item, chr),
                                         ok = waterOk(r, item), mine = onPlayer(item, chr) }
                 end
             end
@@ -224,93 +278,169 @@ local function curBase(s)
     return list[s.baseIdx]
 end
 
--- The ingredients in reach for the chosen base, grouped by kind of item:
--- { ft, name, kind, kindLabel, spice, use, tex, items = {...}, n, why } (why: the game's reason it cannot go in)
-local function ingredients(s, chr)
-    local b = curBase(s)
-    if not b then return {} end
-    local c = s.ingCache
-    if c and c.item == b.item and c.at == s.scanAt then return c.list end
-    local r = b.recipe
-    local ok, items = pcall(function() return r:getItemsCanBeUse(chr, b.item, s.containers) end)
-    local groups, byFt = {}, {}
-    local lvl = chr:getPerkLevel(Perks.Cooking)
-    if ok and items then
-        for i = 0, items:size() - 1 do
-            local it = items:get(i)
-            if it ~= b.item then
-                local ft = it:getFullType()
-                local g = byFt[ft]
-                if not g then
-                    local spice = false
-                    -- as the game's own menu reads it: a food's own isSpice, the script's only for a non-food
-                    -- (the script says spice for many vegetables; read that way a stir-fry took five)
-                    pcall(function()
-                        if instanceof(it, "Food") then spice = it:isSpice() else spice = it:getScriptItem():isSpice() end
-                    end)
-                    local kind = "Other"
-                    pcall(function() if instanceof(it, "Food") and it:getFoodType() then kind = it:getFoodType() end end)
-                    if spice then kind = "_spice" end
-                    local kindLabel
-                    if spice then kindLabel = ZeD.tr("UI_ZeD_Cook_Seasoning")
-                    else
-                        local kt = getTextOrNull and getTextOrNull("ContextMenu_FoodType_" .. kind) or nil
-                        kindLabel = kt or getText("IGUI_ItemCat_Food")
+-- the ingredients planned that count toward the base's limit (seasoning does not)
+local function planN(s)
+    local n = 0
+    for _, e in ipairs(s.plan) do if not e.spice then n = n + 1 end end
+    return n
+end
+
+-- The seasonings for the dish once it has its first ingredient. The game seasons a dish, not its empty base:
+-- its list (EvolvedRecipe.checkItemCanBeUse in the game's jar) offers a seasoning once the base is the dish
+-- (isResultItem) and that seasoning is not in it yet, or to an empty base only for a recipe with
+-- CanAddSpicesEmpty (pies, sandwiches, drinks). The tab asked the empty pot, so a stew or a soup was never
+-- offered salt or pepper. Once the plan holds a first ingredient the seasonings come from the recipe's own
+-- list (getPossibleItems), with the game's same tests: not burnt, rotten only from Cooking 7, and not barred
+-- from recipes for this player. (QA K8, Nov 25 2026)
+local function dishSpices(r, chr, base, containers, lvl, have)
+    local out = {}
+    local ok, poss = pcall(function() return r:getPossibleItems() end)
+    if not (ok and poss) then return out end
+    for i = 0, poss:size() - 1 do
+        local ft = nil
+        pcall(function() ft = poss:get(i):getFullType() end)
+        if ft then
+            for ci = 0, containers:size() - 1 do
+                local l = containers:get(ci):getItemsFromFullType(ft)
+                if l then
+                    for ii = 0, l:size() - 1 do
+                        local it = l:get(ii)
+                        if not have[it] and it ~= base and isSpiceItem(it) then
+                            local usable = true
+                            pcall(function()
+                                if instanceof(it, "Food") and (it:isBurnt() or (it:isRotten() and lvl < 7)) then usable = false end
+                                if it:isNoRecipes(chr) then usable = false end
+                            end)
+                            if usable then have[it] = true; out[#out + 1] = it end
+                        end
                     end
-                    local use = nil
-                    pcall(function() use = ISInventoryPaneContextMenu.getRealEvolvedItemUse(it, r, lvl) end)
-                    g = { ft = ft, name = it:getDisplayName(), kind = kind, kindLabel = kindLabel, spice = spice,
-                          use = use, items = {}, tex = it:getTex() }
-                    byFt[ft] = g
-                    groups[#groups + 1] = g
                 end
-                -- the game's own refusals: frozen food (most dishes), food that must be cooked first
-                local why = nil
-                if instanceof(it, "Food") and it:isFrozen() and not r:isAllowFrozenItem() then
-                    why = getText("ContextMenu_CantAddFrozenFood")
-                elseif not r:needToBeCooked(it) then
-                    why = getText("ContextMenu_NeedCooked")
-                end
-                if why then g.why = g.why or why else g.items[#g.items + 1] = it end
             end
         end
     end
-    -- every item of each kind in reach, in the same state as the one the game offers (the game's list
-    -- may hold one of each kind; the count and Make need them all)
-    local function same(a, b)
-        if not instanceof(a, "Food") then return true end
-        return a:isRotten() == b:isRotten() and a:isFrozen() == b:isFrozen() and a:isBurnt() == b:isBurnt()
-            and a:isCooked() == b:isCooked()
+    return out
+end
+
+-- The ingredients in reach for the chosen base, one row per kind of item, shown name and state (K1, K3):
+-- { key, id, ft, name, base, rank, kind, kindLabel, spice, use, tex, items = {...}, n, why }
+-- (why: the game's reason it cannot go in). byFt holds each type's best row: no refusal, freshest, most.
+local function ingredients(s, chr)
+    local b = curBase(s)
+    if not b then return {} end
+    local hasIng = planN(s) > 0
+    local c = s.ingCache
+    if c and c.item == b.item and c.at == s.scanAt and c.hasIng == hasIng then return c.list end
+    local r = b.recipe
+    local lvl = chr:getPerkLevel(Perks.Cooking)
+    local cands, have = {}, {}
+    local ok, items = pcall(function() return r:getItemsCanBeUse(chr, b.item, s.containers) end)
+    if ok and items then
+        for i = 0, items:size() - 1 do
+            local it = items:get(i)
+            if it ~= b.item and not have[it] then have[it] = true; cands[#cands + 1] = it end
+        end
     end
+    if hasIng then
+        for _, it in ipairs(dishSpices(r, chr, b.item, s.containers, lvl, have)) do cands[#cands + 1] = it end
+    end
+    local groups, byKey, byFt = {}, {}, {}
+    local function keyOf(it)
+        local ft = it:getFullType()
+        local nm = shownName(it, chr)
+        local rank, tag = foodState(it)
+        return ft .. "|" .. nm .. "|" .. tostring(rank) .. tag, ft, nm, rank, tag
+    end
+    for _, it in ipairs(cands) do
+        local key, ft, nm, rank, tag = keyOf(it)
+        local g = byKey[key]
+        if not g then
+            local spice = isSpiceItem(it)
+            local kind = "Other"
+            pcall(function() if instanceof(it, "Food") and it:getFoodType() then kind = it:getFoodType() end end)
+            if spice then kind = "_spice" end
+            local kindLabel
+            if spice then kindLabel = ZeD.tr("UI_ZeD_Cook_Seasoning")
+            else
+                local kt = getTextOrNull and getTextOrNull("ContextMenu_FoodType_" .. kind) or nil
+                kindLabel = kt or getText("IGUI_ItemCat_Food")
+            end
+            local use = nil
+            pcall(function() use = ISInventoryPaneContextMenu.getRealEvolvedItemUse(it, r, lvl) end)
+            g = { key = key, ft = ft, name = stateName(nm, rank, tag), base = nm, rank = rank, kind = kind,
+                  kindLabel = kindLabel, spice = spice, use = use, items = {}, tex = it:getTex() }
+            byKey[key] = g
+            groups[#groups + 1] = g
+        end
+        -- the game's own refusals: frozen food (most dishes), food that must be cooked first
+        local why = nil
+        if instanceof(it, "Food") and it:isFrozen() and not r:isAllowFrozenItem() then
+            why = getText("ContextMenu_CantAddFrozenFood")
+        elseif not r:needToBeCooked(it) then
+            why = getText("ContextMenu_NeedCooked")
+        end
+        if why then g.why = g.why or why else g.items[#g.items + 1] = it end
+    end
+    -- every item of each row in reach (the game's list may hold one of each kind; the count and Make need
+    -- them all), only into a row the game already offers
     for _, g in ipairs(groups) do
-        local rep = g.items[1]
-        if rep then
-            local have = {}
-            for _, it in ipairs(g.items) do have[it] = true end
+        if g.items[1] then
+            local mine = {}
+            for _, it in ipairs(g.items) do mine[it] = true end
             for ci = 0, s.containers:size() - 1 do
                 local list = s.containers:get(ci):getItemsFromFullType(g.ft)
                 if list then
                     for ii = 0, list:size() - 1 do
                         local it = list:get(ii)
-                        if not have[it] and it ~= b.item and same(it, rep) then have[it] = true; g.items[#g.items + 1] = it end
+                        if not mine[it] and not have[it] and it ~= b.item and keyOf(it) == g.key then
+                            mine[it] = true; g.items[#g.items + 1] = it
+                        end
                     end
                 end
             end
         end
         g.n = #g.items
+        local cur = byFt[g.ft]
+        local better = not cur
+        if cur and (cur.why ~= nil) ~= (g.why ~= nil) then better = cur.why ~= nil
+        elseif cur and cur.rank ~= g.rank then better = g.rank < cur.rank
+        elseif cur then better = g.n > cur.n end
+        if better then byFt[g.ft] = g end
     end
-    s.ingCache = { item = b.item, at = s.scanAt, list = groups, byFt = byFt }
+    -- the controller's stop: a type's best row keeps the plain id (cook:ing:<type>), the others add their key
+    for _, g in ipairs(groups) do
+        g.id = (byFt[g.ft] == g) and ("cook:ing:" .. g.ft) or ("cook:ing:" .. g.key)
+    end
+    s.ingCache = { item = b.item, at = s.scanAt, hasIng = hasIng, list = groups, byKey = byKey, byFt = byFt }
     return groups
 end
 
--- the plan's counts: how many of each kind of item, the ingredients that count toward the limit
+-- the row a planned ingredient is: its own (key), else (a saved dish: type and shown name only) the freshest
+-- row of its type under that name, else its type's best row
+local function entryKey(s, e)
+    if e.key then return e.key end
+    local c = s.ingCache
+    if not c then return e.ft end
+    if e.base then
+        local best = nil
+        for _, g in ipairs(c.list) do
+            if g.ft == e.ft and g.base == e.base and not g.why and g.n > 0 and (not best or g.rank < best.rank) then best = g end
+        end
+        if best then return best.key end
+    end
+    local g = c.byFt and c.byFt[e.ft]
+    return g and g.key or e.ft
+end
+
+-- the plan's counts: how many of each row, of each type, the ingredients that count toward the limit
 local function planCounts(s)
-    local need, n = {}, 0
+    local need, needFt, n = {}, {}, 0
     for _, e in ipairs(s.plan) do
-        need[e.ft] = (need[e.ft] or 0) + 1
+        local k = entryKey(s, e)
+        need[k] = (need[k] or 0) + 1
+        needFt[e.ft] = (needFt[e.ft] or 0) + 1
         if not e.spice then n = n + 1 end
     end
-    return need, n
+    return need, n, needFt
 end
 
 local function maxItems(s)
@@ -318,12 +448,21 @@ local function maxItems(s)
     return b and b.recipe:getMaxItems() or 0
 end
 
+-- The plan fits its base. The game never offers more than the base takes (EvolvedRecipe.getItemsCanBeUse
+-- stops offering ingredients once the dish's extra items reach getMaxItems: a saucepan takes 4, a pot 5), but
+-- the tab kept the plan when the base changed or a saved dish loaded, and Make was lit for five tomatoes in a
+-- saucepan. (QA K7, Nov 25 2026)
+function CK.planFits(s)
+    local mx = maxItems(s)
+    return mx > 0 and planN(s) <= mx
+end
+
 -- How many of this dish what is in reach makes (bases of the same kind, each ingredient's count)
 local function howMany(s, chr)
     local b = curBase(s)
     if not b or #s.plan == 0 then return 0 end
-    local ing = ingredients(s, chr)
-    local byFt = s.ingCache and s.ingCache.byFt or {}
+    ingredients(s, chr)
+    local byKey = s.ingCache and s.ingCache.byKey or {}
     local nb = 0
     for _, o in ipairs(s.bases[s.dish] or {}) do
         if o.ok and o.item:getFullType() == b.item:getFullType() and o.recipe == b.recipe then nb = nb + 1 end
@@ -331,8 +470,8 @@ local function howMany(s, chr)
     if not b.ok then return 0 end
     local n = nb
     local need = planCounts(s)
-    for ft, k in pairs(need) do
-        local g = byFt[ft]
+    for key, k in pairs(need) do
+        local g = byKey[key]
         local have = g and g.n or 0
         n = math.min(n, math.floor(have / k))
     end
@@ -352,7 +491,15 @@ function ZeD_CookAdd:new(character, recipe, chain, usedItem)
 end
 function ZeD_CookAdd:isValidStart()
     self.baseItem = self.chain.base
-    return ISAddItemInRecipe.isValidStart(self)
+    if ISAddItemInRecipe.isValidStart(self) then return true end
+    -- a seasoning goes in once the base is the dish (K8). In 42.22 the add before it completes after this
+    -- start check, so the game's test still sees the plain pot and refuses the salt; while an ingredient of
+    -- this chain is still to complete, the seasoning waits on it: the base and the seasoning both still carried
+    if self.spice and (self.chain.pending or 0) > 0 then
+        local inv = self.character:getInventory()
+        return inv:contains(self.baseItem) and inv:contains(self.usedItem)
+    end
+    return false
 end
 function ZeD_CookAdd:start()
     self.baseItem = self.chain.base
@@ -365,6 +512,8 @@ function ZeD_CookAdd:complete()
     self.baseItem = self.chain.base
     local ok = ISAddItemInRecipe.complete(self)
     self.chain.base = self.baseItem
+    -- (chain.pending: the chain's ingredients, not seasonings, still to complete)
+    if not self.spice then self.chain.pending = math.max(0, (self.chain.pending or 1) - 1) end
     return ok
 end
 
@@ -417,7 +566,9 @@ function ZeD_CookWait:update()
         local ch = self.chain
         ch.base, ch.baseId = dish, dish:getID()
         ch.seen[ch.baseId] = true
-        ISTimedActionQueue.addAfter(self, ISAddItemInRecipe:new(self.character, self.recipe, dish, self.usedItem))
+        local add = ISAddItemInRecipe:new(self.character, self.recipe, dish, self.usedItem)
+        ISTimedActionQueue.addAfter(self, add)
+        if ch.track then ch.track[#ch.track + 1] = add end   -- (Make stays gray while it runs: K9)
         self:forceComplete()
     elseif not ok or getTimestampMs() - (self.t0 or 0) > 10000 then
         -- (no dish from the server within 10 s: the rest of this dish's adds go no further)
@@ -426,12 +577,38 @@ function ZeD_CookWait:update()
     end
 end
 
+-- Make stays gray, and a press is refused, while the adds it queued are still in the player's queue (waiting,
+-- walking or running). The items stay in reach until each add completes, so a second press two frames later
+-- (or the pad's A A) queued the whole dish again and made two stews. As the Craft tab's craftBusy
+-- (CraftingCore.lua): the actions are kept (s.queued) and looked up in the game's queue. (QA K9, Nov 25 2026)
+function CK.cookBusy(s, chr)
+    local list = s and s.queued
+    if not list then return false end
+    local busy = false
+    pcall(function()
+        local q = ISTimedActionQueue.getTimedActionQueue(chr)
+        if not (q and q.queue) then return end
+        for i = 1, #list do
+            if q:indexOf(list[i]) ~= -1 then busy = true; return end
+        end
+    end)
+    if not busy then s.queued = nil end
+    return busy
+end
+
 local function make(s, chr, n)
     local b = curBase(s)
     if not b or n < 1 then return end
+    if CK.cookBusy(s, chr) or not CK.planFits(s) then return end
     ingredients(s, chr)
-    local byFt = s.ingCache and s.ingCache.byFt or {}
+    local byKey = s.ingCache and s.ingCache.byKey or {}
     local inv = chr:getInventory()
+    local track = {}
+    local function queue(a)
+        ISTimedActionQueue.add(a)
+        track[#track + 1] = a
+        return a
+    end
     -- the bases: the chosen one first, then others like it
     local bases = { b }
     for _, o in ipairs(s.bases[s.dish] or {}) do
@@ -439,8 +616,9 @@ local function make(s, chr, n)
         if o ~= b and o.ok and o.item:getFullType() == b.item:getFullType() and o.recipe == b.recipe then bases[#bases + 1] = o end
     end
     local taken, back = {}, {}
-    local function pick(ft)
-        local g = byFt[ft]
+    -- an item of the planned row, never another row's (a rotten or stale one is its own row: K1)
+    local function pick(key)
+        local g = byKey[key]
         if not g then return nil end
         -- what the player carries first
         for pass = 1, 2 do
@@ -452,7 +630,7 @@ local function make(s, chr, n)
     end
     local function bring(item)
         if item:getContainer() ~= inv then
-            ISTimedActionQueue.add(ISInventoryTransferUtil.newInventoryTransferAction(chr, item, item:getContainer(), inv, nil))
+            queue(ISInventoryTransferUtil.newInventoryTransferAction(chr, item, item:getContainer(), inv, nil))
             back[#back + 1] = item
             return true
         end
@@ -468,24 +646,31 @@ local function make(s, chr, n)
     for k = 1, math.min(n, #bases) do
         local bk = bases[k]
         bring(bk.item)
-        local chain = { base = bk.item, baseId = bk.item:getID(), seen = seen }
+        local chain = { base = bk.item, baseId = bk.item:getID(), seen = seen, pending = 0, track = track }
         local first = true
-        for _, e in ipairs(s.plan) do
-            local it = pick(e.ft)
-            if it then
-                bring(it)
-                if instanceof(it, "Food") then it:setChef(chr:getUsername()) end
-                if not server then
-                    ISTimedActionQueue.add(ZeD_CookAdd:new(chr, bk.recipe, chain, it))
-                elseif first then
-                    ISTimedActionQueue.add(ISAddItemInRecipe:new(chr, bk.recipe, bk.item, it))
-                else
-                    ISTimedActionQueue.add(ZeD_CookWait:new(chr, bk.recipe, chain, it))
+        -- the ingredients first, then the seasoning: the game seasons the dish, not the empty pot (K8)
+        for pass = 1, 2 do
+            for _, e in ipairs(s.plan) do
+                local it = ((pass == 2) == (e.spice and true or false)) and pick(entryKey(s, e)) or nil
+                if it then
+                    bring(it)
+                    if instanceof(it, "Food") then it:setChef(chr:getUsername()) end
+                    if not server then
+                        local a = ZeD_CookAdd:new(chr, bk.recipe, chain, it)
+                        a.spice = e.spice and true or false
+                        if not a.spice then chain.pending = chain.pending + 1 end
+                        queue(a)
+                    elseif first then
+                        queue(ISAddItemInRecipe:new(chr, bk.recipe, bk.item, it))
+                    else
+                        queue(ZeD_CookWait:new(chr, bk.recipe, chain, it))
+                    end
+                    first = false
                 end
-                first = false
             end
         end
     end
+    s.queued = (#track > 0) and track or nil
     -- what came from elsewhere goes back where it was (as the game's own menu does)
     if #back > 0 and ISCraftingUI and ISCraftingUI.ReturnItemsToOriginalContainer then
         pcall(ISCraftingUI.ReturnItemsToOriginalContainer, chr, back)
@@ -515,7 +700,8 @@ local function saveDish(s, chr)
     if #s.plan == 0 or savedIndex(s, chr) then return end
     local b = curBase(s)
     local d = { dish = s.dish, base = b and b.item:getFullType() or nil, items = {} }
-    for i, e in ipairs(s.plan) do d.items[i] = { ft = e.ft, spice = e.spice, name = e.name } end
+    -- (a saved dish keeps the type and its shown name, not the state: loaded later it takes the freshest row)
+    for i, e in ipairs(s.plan) do d.items[i] = { ft = e.ft, spice = e.spice, name = e.base or e.name, base = e.base } end
     local l = savedList(chr)
     l[#l + 1] = d
     while #l > MAX_SAVED do table.remove(l, 1) end
@@ -538,7 +724,7 @@ local function loadSaved(s, chr, d)
     for i, o in ipairs((s.bases and s.bases[d.dish]) or {}) do
         if o.item:getFullType() == d.base and o.ok then s.baseIdx = i; break end
     end
-    for i, e in ipairs(d.items) do s.plan[i] = { ft = e.ft, spice = e.spice, name = e.name } end
+    for i, e in ipairs(d.items) do s.plan[i] = { ft = e.ft, spice = e.spice, name = e.name, base = e.base } end
     s.qty, s.dishScroll = 1, 0
 end
 
@@ -644,7 +830,7 @@ local function renderIngredients(panel, win, s, x, top, w, bodyH, chr, mouse)
     local clip = { x = x, y = top, w = w, h = bodyH }
     local mx, my = mouse and mouse.x or -1, mouse and mouse.y or -1
     local ing = ingredients(s, chr)
-    local need, n = planCounts(s)
+    local need, n, needFt = planCounts(s)
     local full = n >= maxItems(s)
     panel:setStencilRect(x, top, w, bodyH)
     local cy = top - s.listScroll
@@ -678,8 +864,13 @@ local function renderIngredients(panel, win, s, x, top, w, bodyH, chr, mouse)
         for _, g in ipairs(ing) do rows[#rows + 1] = g end
         groups[1] = { label = getText("IGUI_perks_Cooking"), rows = rows, kind = "_all" }
     end
+    -- (one type's rows together, fresh, stale, then rotten: K1)
     for _, grp in ipairs(groups) do
-        table.sort(grp.rows, function(a, b) return a.name < b.name end)
+        table.sort(grp.rows, function(a, b)
+            if a.base ~= b.base then return a.base < b.base end
+            if a.rank ~= b.rank then return a.rank < b.rank end
+            return a.name < b.name
+        end)
     end
     s._ingGroups = { src = ing, sort = s.sort, groups = groups }
     end
@@ -699,14 +890,14 @@ local function renderIngredients(panel, win, s, x, top, w, bodyH, chr, mouse)
             for ri, g in ipairs(grp.rows) do
                 local rh = T.px(ROW_H)
                 -- can it go in: the game's reasons first, then the dish's room, then what is left in reach
-                local left = g.n - (need[g.ft] or 0)
+                local left = g.n - (need[g.key] or 0)
                 local can = g.n > 0 and left > 0 and not g.why
-                if can and g.spice and need[g.ft] then can = false end           -- a seasoning goes in once
+                if can and g.spice and needFt[g.ft] then can = false end         -- a seasoning goes in once
                 if can and not g.spice and full then can = false end
                 if ri % 2 == 0 then local sp = T.stripe; panel:drawRect(x, cy, cw, rh, sp.a, sp.r, sp.g, sp.b) end
                 local hov = can and mouse ~= nil and my >= cy and my < cy + rh and mx >= x and mx < x + cw
                 if hov then local hv = T.hover; panel:drawRect(x, cy, cw, rh, hv.a, hv.r, hv.g, hv.b) end
-                local id = "cook:ing:" .. g.ft
+                local id = g.id or ("cook:ing:" .. g.key)
                 local onFocus = markAt(s, panel, id, x, cy, cw, rh)
                 local ink = onFocus and T.textOnFocus or T.text
                 local dim = onFocus and T.textOnFocus or T.textDim
@@ -731,10 +922,12 @@ local function renderIngredients(panel, win, s, x, top, w, bodyH, chr, mouse)
                     elseif not can and full and not g.spice then help(panel, "UI_ZeD_Cook_Full")
                     else help(panel, "UI_ZeD_Cook_HelpAdd") end
                 end
-                local ft, nmFull, spice = g.ft, g.name, g.spice
+                local ft, key, nmFull, nmBase, spice = g.ft, g.key, g.name, g.base, g.spice
                 stamp(s, id, x, cy, cw, rh, function()
                     if not can then return end
-                    s.plan[#s.plan + 1] = { ft = ft, name = nmFull, spice = spice }
+                    -- (the limit asked again at the press: two presses in one frame both saw room. K7)
+                    if not spice and planN(s) >= maxItems(s) then return end
+                    s.plan[#s.plan + 1] = { ft = ft, key = key, name = nmFull, base = nmBase, spice = spice }
                 end, { clip = clip, pane = "list", disabled = not can })
                 cy = cy + rh
             end
@@ -762,8 +955,8 @@ local function renderDish(panel, win, s, x, top, w, bodyH, chr, mouse)
     local C = catalog()
     local b = curBase(s)
     local ing = ingredients(s, chr)
-    local byFt = s.ingCache and s.ingCache.byFt or {}
-    local need, n = planCounts(s)
+    local byKey = s.ingCache and s.ingCache.byKey or {}
+    local need, n, needFt = planCounts(s)
     panel:setStencilRect(x, top, w, bodyH)
     local cy = top - s.dishScroll + pad
     -- (QA's visual noise audit 17, Nov 20 2026: the dish and the pot were named in the Dish and In pop-ups and
@@ -787,9 +980,10 @@ local function renderDish(panel, win, s, x, top, w, bodyH, chr, mouse)
     local seen = {}
     local function row(i, e)
         local rh = T.px(ROW_H)
-        seen[e.ft] = (seen[e.ft] or 0) + 1
-        local g = byFt[e.ft]
-        local missing = (not g) or (g.n < seen[e.ft])
+        local k = entryKey(s, e)
+        seen[k] = (seen[k] or 0) + 1
+        local g = byKey[k]
+        local missing = (not g) or (g.n < seen[k])
         local hov = mouse ~= nil and my >= cy and my < cy + rh and mx >= x and mx < x + cw
         if hov then local hv = T.hover; panel:drawRect(x, cy, cw, rh, hv.a, hv.r, hv.g, hv.b) end
         local id = "cook:plan:" .. i
@@ -804,8 +998,10 @@ local function renderDish(panel, win, s, x, top, w, bodyH, chr, mouse)
             local alt = nil
             local kind = nil
             for _, o in ipairs(ing) do if o.ft == e.ft then kind = o.kind end end
+            -- (another row: another type, or the same type in another state, which the player chooses. K1)
             for _, o in ipairs(ing) do
-                if not alt and o.ft ~= e.ft and o.spice == e.spice and o.n > (need[o.ft] or 0) and not o.why
+                local room = o.n > (need[o.key] or 0) and not (o.spice and needFt[o.ft])
+                if not alt and o.key ~= k and o.spice == e.spice and room and not o.why
                    and (kind == nil or o.kind == kind) then alt = o end
             end
             if alt then
@@ -814,9 +1010,9 @@ local function renderDish(panel, win, s, x, top, w, bodyH, chr, mouse)
                 local bh = rh - T.px(4)
                 M.drawButton(panel, right - bw, cy + T.px(2), bw, bh, label, "default", false, nil,
                     { focus = focusFor(s, "cook:alt:" .. i), win = win, compact = true })
-                local idx, aft, aname = i, alt.ft, alt.name
+                local idx, aft, akey, aname, abase = i, alt.ft, alt.key, alt.name, alt.base
                 stamp(s, "cook:alt:" .. i, right - bw, cy + T.px(2), bw, bh, function()
-                    s.plan[idx] = { ft = aft, name = aname, spice = e.spice }
+                    s.plan[idx] = { ft = aft, key = akey, name = aname, base = abase, spice = e.spice }
                 end, { clip = clip, pane = "dish" })
                 right = right - bw - T.px(6)
             else
@@ -853,7 +1049,7 @@ local function renderDish(panel, win, s, x, top, w, bodyH, chr, mouse)
     -- what it will fill: the hunger the ingredients bring, as the game reckons each at your level
     local fill = 0
     for _, e in ipairs(s.plan) do
-        local g = byFt[e.ft]
+        local g = byKey[entryKey(s, e)]
         if g and g.use and not e.spice then fill = fill + (tonumber(g.use) or 0) end
     end
     if fill > 0 then
@@ -897,7 +1093,9 @@ local function renderBand(panel, win, s, x, y, w, chr)
     local gap, edge = T.px(8), T.px(8)
     local maxN = howMany(s, chr)
     if s.qty > math.max(1, maxN) then s.qty = math.max(1, maxN) end
-    local canMake = maxN >= 1 and not s.anyMissing and #s.plan > 0
+    -- (gray past the base's limit: K7; gray while the last Make's adds are queued or running: K9)
+    local fits = CK.planFits(s)
+    local canMake = maxN >= 1 and not s.anyMissing and #s.plan > 0 and fits and not CK.cookBusy(s, chr)
     for i = #_bandBtns, 1, -1 do _bandBtns[i] = nil end
     local isSaved = savedIndex(s, chr) ~= nil
     if #s.plan > 0 then
@@ -905,7 +1103,7 @@ local function renderBand(panel, win, s, x, y, w, chr)
                                        focus = focusFor(s, isSaved and "cook:forget" or "cook:save") }
     end
     _bandBtns[#_bandBtns + 1] = { label = ZeD.tr("UI_ZeD_Cook_Make"), id = "make", variant = "primary", disabled = not canMake,
-                                   focus = focusFor(s, "cook:make"), help = ZeD.tr("UI_ZeD_Cook_HelpBuild") }
+                                   focus = focusFor(s, "cook:make"), help = ZeD.tr(fits and "UI_ZeD_Cook_HelpBuild" or "UI_ZeD_Cook_Full") }
     _bandSpec.win = win
     local _, out = M.drawBand(panel, x, y, w, _bandSpec)
     for i, bb in ipairs(_bandBtns) do
@@ -913,7 +1111,8 @@ local function renderBand(panel, win, s, x, y, w, chr)
         if r then
             if bb.id == "make" then
                 stamp(s, "cook:make", r.x, r.y, r.w, r.h, function()
-                    if not canMake then return end
+                    -- (asked again at the press: a second press before the next frame saw the old canMake. K9)
+                    if not canMake or CK.cookBusy(s, chr) then return end
                     make(s, chr, s.qty)
                     s.qty = 1
                 end, { footer = true, disabled = not canMake })
@@ -1024,6 +1223,31 @@ end
 -- ----------------------------------------------------------------------------
 -- The tab
 -- ----------------------------------------------------------------------------
+local MIN_DISH_W = 160   -- the dish pane's least width beside the list; under it the two stack
+--- Where the two panes go in the body. Side by side the list is the Craft tab's split (240u). On the half card
+--- (220u) that left the dish pane a negative width (385 px tab, 420 list, -37 pane; Large text 443, 483, -42):
+--- the planned rows, Remove and the Hunger line drew off the tab. There the list sits over the dish, each the
+--- full width with its own scroll, half the height each, as the Craft tab gives its half card the whole width
+--- (CraftingCore.lua, "stacked"). The controller moves between them as between columns. (QA K11, Nov 25 2026)
+--- Returns { stacked, list = {x,y,w,h}, dish = {x,y,w,h}, line = {w,h}, splitX, splitY }.
+function CK.layout(x, top, w, bodyH)
+    local T = ZeD.T
+    local CC = ZeD.CraftingCore
+    local split = T.px((CC and CC.PANE_W_SPLIT) or 240)
+    local lw = T.px(1)
+    if w >= split + lw + T.px(MIN_DISH_W) then
+        return { stacked = false, line = { w = lw, h = bodyH },
+                 list = { x = x, y = top, w = split, h = bodyH },
+                 dish = { x = x + split + lw, y = top, w = w - split - lw, h = bodyH },
+                 splitX = x + split, splitY = nil }
+    end
+    local lh = math.max(0, math.floor((bodyH - lw) / 2))
+    return { stacked = true, line = { w = w, h = lw },
+             list = { x = x, y = top, w = w, h = lh },
+             dish = { x = x, y = top + lh + lw, w = w, h = math.max(0, bodyH - lh - lw) },
+             splitX = nil, splitY = top + lh }
+end
+
 --- The tab's frame, as the Character window calls it (addTab, below): the header, the two
 --- columns, the band, and an open pop-up list over them.
 function CK.render(panel, win, x, y, w, h)
@@ -1045,13 +1269,12 @@ function CK.render(panel, win, x, y, w, h)
     local bandH = ZeD.Molecules.bandH()
     local top = y + headH
     local bodyH = h - headH - bandH
-    local listW = T.px(CC.PANE_W_SPLIT or 240)
-    local rx = x + listW + T.px(1)
-    local rw = x + w - rx
-    s.splitX = x + listW
+    local L = CK.layout(x, top, w, bodyH)
+    s.splitX, s.splitY = L.splitX, L.splitY
     local mx, my = panel:getMouseX(), panel:getMouseY()
-    local inL = (not isGamepad(win)) and not s.popup and mx >= x and mx < x + listW and my >= top and my < top + bodyH
-    local inR = (not isGamepad(win)) and not s.popup and mx >= rx and mx < x + w and my >= top and my < top + bodyH
+    local free = (not isGamepad(win)) and not s.popup
+    local inL = free and hit(L.list, mx, my)
+    local inR = free and hit(L.dish, mx, my)
     -- The Character window clips its drawer with a stencil, and PZ stencils do not nest: a column's own
     -- clip, once cleared, leaves its rect marked apart from the drawer's, so what draws over it later
     -- (the open Dish and Sort lists) would be hidden there. After each column the drawer's clip is laid
@@ -1060,11 +1283,16 @@ function CK.render(panel, win, x, y, w, h)
         panel:clearStencilRect()
         panel:setStencilRect(x, y, w, h)
     end
-    renderIngredients(panel, win, s, x, top, listW, bodyH, chr, inL and { x = mx, y = my } or nil)
+    local P, D = L.list, L.dish
+    renderIngredients(panel, win, s, P.x, P.y, P.w, P.h, chr, inL and { x = mx, y = my } or nil)
     relayClip()
-    local bd = T.borderS
-    panel:drawRect(x + listW, top, T.px(1), bodyH, bd.a or 1, bd.r, bd.g, bd.b)
-    renderDish(panel, win, s, rx, top, rw, bodyH, chr, inR and { x = mx, y = my } or nil)
+    local bd, ln = T.borderS, L.line
+    if L.stacked then
+        panel:drawRect(x, P.y + P.h, w, ln.h, bd.a or 1, bd.r, bd.g, bd.b)
+    else
+        panel:drawRect(P.x + P.w, top, ln.w, bodyH, bd.a or 1, bd.r, bd.g, bd.b)
+    end
+    renderDish(panel, win, s, D.x, D.y, D.w, D.h, chr, inR and { x = mx, y = my } or nil)
     relayClip()
     -- the controller's scroll-follow, in the column the focused element is in
     local gp = s.gpId
@@ -1086,7 +1314,8 @@ function CK.onWheel(win, del)
     local s = st(win)
     local step = ZeD.T.px(SCROLL_STEP) * del
     local mx = s.panel and s.panel:getMouseX() or 0
-    if s.splitX and mx > s.splitX then
+    local my = s.panel and s.panel:getMouseY() or 0
+    if (s.splitX and mx > s.splitX) or (s.splitY and my > s.splitY) then
         s.dishScroll = math.max(0, math.min(s.maxDish or 0, s.dishScroll + step))
     else
         s.listScroll = math.max(0, math.min(s.maxList or 0, s.listScroll + step))
@@ -1194,6 +1423,9 @@ function CK.visible(win)
     s.vis = ok and vis or false
     return s.vis
 end
+
+CK._test = { ingredients = ingredients, make = make, planCounts = planCounts, howMany = howMany,
+             entryKey = entryKey }   -- (for the sims: ck_fixes_sim.lua)
 
 -- its lit pixel-art icon, as every other tab's (ZeDUI/tools/tabpx/icons.py "cooking", drawn by ZeD_TabPx.lua)
 if ZeD.TabPx and ZeD.TabPx.ICONS then ZeD.TabPx.ICONS[TAB_ID] = true end
