@@ -989,10 +989,18 @@ end
 -- the verbs that work on the item the part holds
 local NEEDS_ITEM = { uninstall = true, fix = true, inflate = true, deflate = true }
 
+-- one console line for a press the tab turns down, every time, with the part and the test that held it (QA's
+-- M3 hunt, Nov 26 2026: a logOnce line printed once and hid the next refusals)
+local function vehNote(verb, part, why)
+    local pid = "?"
+    pcall(function() pid = tostring(part and part:getId()) end)
+    print("[ZeD] Vehicle tab: " .. tostring(verb) .. " on " .. pid .. ": " .. tostring(why))
+end
+
 local function runVerb(s, verb, part, chr)
     if not part then return end
-    if chainBusy(s, chr) then return end   -- (asked at the press: two presses in one frame saw the same idle card. M2)
-    if refusePaused(chr) then return end
+    if chainBusy(s, chr) then vehNote(verb, part, "refused (chainBusy, " .. tostring(s.queued and #s.queued) .. " kept)"); return end   -- (asked at the press: two presses in one frame saw the same idle card. M2)
+    if refusePaused(chr) then vehNote(verb, part, "refused (paused)"); return end
     -- the parts are read four times a second, so a press can land on a part already taken off; the game's start
     -- check then dropped the chain and said nothing (QA M13, Nov 26 2026)
     if NEEDS_ITEM[verb] and part:getInventoryItem() == nil then
@@ -1008,7 +1016,7 @@ local function runVerb(s, verb, part, chr)
         local picks = installPicks(part, chr, itemsFor(s, chr))
         local pick = pickedInstall(s, picks)   -- (the item picked, not its row: M3)
         if pick and pick.item then ISVehiclePartMenu.onInstallPart(chr, part, pick.item)
-        elseif ZeD.logOnce then ZeD.logOnce("veh install nopick", "Vehicle tab: install found no spare to put on") end
+        else vehNote(verb, part, "no spare to put on (pick " .. tostring(s.pick) .. ")") end
     elseif verb == "uninstall" then ISVehiclePartMenu.onUninstallPart(chr, part)
     elseif verb == "inflate" then ISVehiclePartMenu.onInflateTire(chr, part)
     elseif verb == "deflate" then ISVehiclePartMenu.onDeflateTire(chr, part)
@@ -1036,8 +1044,8 @@ local function runVerb(s, verb, part, chr)
         end
         if #list > 0 then
             s.queued, s.queuedLabel, s.queuedV, s.queuedPart = list, vlabel(verb), part:getVehicle(), part:getId()
-        elseif ZeD.logOnce then
-            ZeD.logOnce("veh queued none " .. tostring(verb), "Vehicle tab: " .. tostring(verb) .. " queued nothing")
+        else
+            vehNote(verb, part, "queued nothing")
         end
     end
     s.items = nil   -- tools and parts move; re-read next frame
@@ -1059,6 +1067,17 @@ local function partContextMenu(part, chr, win, atX, atY)
     pcall(ui.doPartContextMenu, ui, part, ax, ay)
     local ctx = ui.context
     if win and win._mech then win._mech.partMenu = ctx end   -- (B shuts it first: closePartMenu, M11)
+    -- (QA's M11 hunt, Nov 26 2026: the shown menu read 0,0 though its anchor was the row's point; what the game
+    -- built, to the console)
+    pcall(function()
+        local vis, nopt = "?", "?"
+        if ctx then
+            pcall(function() vis = tostring(ctx:getIsVisible()) end)
+            pcall(function() nopt = tostring(ctx.numOptions or (ctx.options and #ctx.options)) end)
+        end
+        print("[ZeD] Vehicle tab: part menu at " .. tostring(sx) .. "," .. tostring(sy) .. " (given " .. tostring(atX) .. ","
+            .. tostring(atY) .. "): menu " .. tostring(ctx ~= nil) .. ", shown " .. vis .. ", options " .. nopt)
+    end)
     local pn = chr:getPlayerNum()
     if ctx and win and JoypadState and JoypadState.players and JoypadState.players[pn + 1] then
         local shown = false
@@ -1807,6 +1826,7 @@ end
 
 -- run a verb from the footer (a destructive one asks first)
 local function pressVerb(win, s, cm, verb, chr)
+    vehNote(verb, cm.part, "pressed")
     s.verb = verb
     -- (a refused press says why in the console, once per reason: QA's M3 second pass found Install doing nothing
     -- after a pick and the screen gave no reason, Nov 26 2026)
@@ -1814,15 +1834,13 @@ local function pressVerb(win, s, cm, verb, chr)
     -- from a stamp a frame or more old (QA's M3: "busy" with nothing queued, the card's busy left from the last
     -- chain). Nov 26 2026)
     local v = cm.part and cm.part:getVehicle()
-    local busyNow = chainBusy(s, chr) or (v ~= nil and activeAction(chr, v) ~= nil)
+    local cb = chainBusy(s, chr)
+    local aa = (v ~= nil) and activeAction(chr, v) or nil
     local n = nil
     if cm.part and v then pcall(function() n = needsFor(s, cm.part, verb, chr, v) end) end
     n = n or cm.needs[verb]
-    local why = (busyNow and "busy") or ((not (n and n.ok)) and "needs") or nil
-    if why then
-        if ZeD.logOnce then ZeD.logOnce("veh press " .. tostring(verb) .. " " .. why, "Vehicle tab: " .. tostring(verb) .. " refused (" .. why .. ")") end
-        return
-    end
+    local why = (cb and "chainBusy") or (aa and ("activeAction " .. tostring(aa.Type or aa.jobType))) or ((not (n and n.ok)) and "needs") or nil
+    if why then vehNote(verb, cm.part, "refused (" .. why .. ")"); return end
     if DANGER[verb] then
         if refusePaused(chr) then return end   -- (no question to answer while paused: M12)
         s.confirm = verb; win._mechFocusTarget = "mech:confirm:no"; return
