@@ -2659,6 +2659,7 @@
     "UI_ZeD_Veh_AmountLeft": "เหลือ %1",
     "UI_ZeD_Veh_AtBack": "ที่ด้านหลัง",
     "UI_ZeD_Veh_Below": "ต่ำกว่า %1",
+    "UI_ZeD_Veh_FullCond": "ชิ้นส่วนนี้อยู่ในสภาพสมบูรณ์",
     "UI_ZeD_Veh_BelowPsi": "ต่ำกว่า %1 psi",
     "UI_ZeD_Veh_Braking": "แรงเบรก",
     "UI_ZeD_Veh_CantDo": "%1 ไม่ได้",

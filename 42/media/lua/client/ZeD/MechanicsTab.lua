@@ -246,6 +246,34 @@ function MT.buildVehicles(chr)
     return out
 end
 
+-- The look lasts while the car is within six tiles, whatever the window shows: Loot, another tab, the trailer's
+-- Open and Info and a folded drawer no longer end it, as the game's window stays open while the inventory is used.
+-- So the walk away is watched here, twice a second, not by the tab's refresh, which runs only while the window is
+-- drawn; past six tiles the look ends and the hood it opened shuts, as before. The window's close still ends every
+-- look (MT.endLooks). (the director's call, M7, Nov 26 2026)
+local REACH_CHECK_MS = 500
+function MT.reachCheck(t)
+    t = t or now()
+    if t < (MT._reachDue or 0) then return end
+    MT._reachDue = t + REACH_CHECK_MS
+    local ids = {}
+    for vid in pairs(INSP) do ids[#ids + 1] = vid end   -- (collected first: endInspection clears entries)
+    for _, vid in ipairs(ids) do
+        local e = INSP[vid]
+        local v, chr = e and e.vehicle, e and e.chr
+        if v and chr then
+            local gone = carGone(v)
+            if gone or distTo(chr, v) > KEEP_TILES then endInspection(vid, chr, gone) end
+        end
+    end
+end
+-- (on the player's update: he only walks away while the game runs; with no look it is an empty loop)
+if Events and Events.OnPlayerUpdate then
+    if MT._reachTick then Events.OnPlayerUpdate.Remove(MT._reachTick) end   -- (a hot reload: one check, not two)
+    MT._reachTick = function() pcall(MT.reachCheck) end
+    Events.OnPlayerUpdate.Add(MT._reachTick)
+end
+
 function MT.pin(v) if v then PIN[v:getId()] = v end end
 
 -- Within the tab's reach (vanilla's trailer menus skip their walk from here)
@@ -908,6 +936,11 @@ needsCompute = function(s, part, verb, chr, v)
         for _, r in ipairs(fr) do if r.ok then any = true end end
         ok = any
         if not any then rows[#rows + 1] = { ok = false, label = ZeD.tr("UI_ZeD_Veh_NoRecipeMaterials"), what = ZeD.tr("UI_ZeD_Veh_NeedFixWhat"), value = "" } end
+        -- (M4: at 100 the game spends the materials and the part stays 100; greyed, first row)
+        if part:getCondition() >= 100 then
+            table.insert(rows, 1, { ok = false, label = ZeD.tr("UI_ZeD_Veh_Below", "100%"), value = tostring(part:getCondition()) .. "%" })
+            ok = false
+        end
     elseif EXTRA_VERBS[verb] then
         local okX, r = pcall(EXTRA_VERBS[verb].needs, part, chr, v)
         if okX and type(r) == "table" then
@@ -926,9 +959,27 @@ needsCompute = function(s, part, verb, chr, v)
         rows[#rows + 1] = { ok = false, label = ZeD.tr("UI_ZeD_Ex_ClaimedBy", claimed), value = "" }
         ok = false
     end
+    -- A repair on a part at full condition: greyed, kept in view, and the NEEDS line says why in one line, not
+    -- "needs Below 100%". short "": nothing to fetch, so the folded row names no thing. (the director's call, M4,
+    -- Nov 26 2026)
+    local keep = false
+    if (verb == "fix" or verb == "repairEngine" or verb == "repairLightbar") and part:getCondition() >= 100 then
+        ok, keep, line, short = false, true, ZeD.tr("UI_ZeD_Veh_FullCond"), ""
+    end
+    -- Seated in any car, every part verb greys and says so in the game's words ("Must exit vehicle."): the game's
+    -- part menu refuses anyone seated (ISVehicleMechanics:doPartContextMenu), and the tab's verbs ran the game's
+    -- handlers, which get out first, at speed too. No get-out-walk-and-do from the seat. Open window on another car
+    -- too. (the director's call, M6, Nov 26 2026)
+    local seated = false
+    pcall(function() seated = chr:getVehicle() ~= nil end)
+    if seated then
+        local w = getText("IGUI_VehicleSeat_ExitToSwitch")
+        table.insert(rows, 1, { ok = false, label = (string.gsub(w, "%.$", "")), value = "" })
+        ok, keep, line, short = false, true, w, ""
+    end
     local blocker = nil
     for _, r in ipairs(rows) do if not r.ok and not r.soft then blocker = r; break end end
-    return { rows = rows, chance = { success, failure }, ok = ok, blocker = blocker, line = line, short = short }
+    return { rows = rows, chance = { success, failure }, ok = ok, blocker = blocker, line = line, short = short, keep = keep }
 end
 
 -- ----------------------------------------------------------------------------
@@ -996,6 +1047,16 @@ local function refusePaused(chr)
     say(chr, ZeD.tr("UI_ZeD_Char_PausedLook"))
     return true
 end
+-- Seated in any car: nothing is queued and he is told why, in the game's words. The game's part menu returns for a
+-- seated player and says nothing (ISVehicleMechanics:doPartContextMenu); here the press, X and right-click say it.
+-- (the director's call, M6, Nov 26 2026)
+local function refuseSeated(chr)
+    local seated = false
+    pcall(function() seated = chr:getVehicle() ~= nil end)
+    if not seated then return false end
+    say(chr, getText("IGUI_VehicleSeat_ExitToSwitch"))
+    return true
+end
 
 -- the verbs that work on the item the part holds
 local NEEDS_ITEM = { uninstall = true, fix = true, inflate = true, deflate = true }
@@ -1012,6 +1073,7 @@ local function runVerb(s, verb, part, chr)
     if not part then return end
     if chainBusy(s, chr) then vehNote(verb, part, "refused (chainBusy, " .. tostring(s.queued and #s.queued) .. " kept)"); return end   -- (asked at the press: two presses in one frame saw the same idle card. M2)
     if refusePaused(chr) then vehNote(verb, part, "refused (paused)"); return end
+    if refuseSeated(chr) then vehNote(verb, part, "refused (seated)"); return end   -- (M6)
     -- the parts are read four times a second, so a press can land on a part already taken off; the game's start
     -- check then dropped the chain and said nothing (QA M13, Nov 26 2026)
     if NEEDS_ITEM[verb] and part:getInventoryItem() == nil then
@@ -1069,6 +1131,7 @@ end
 -- mechanics window, so B left the pad on nothing. Now it opens at the row and B hands the pad back to the window.)
 local function partContextMenu(part, chr, win, atX, atY)
     if refusePaused(chr) then return end   -- (the game's menu returns at speed 0 and says nothing: here it says why. M11)
+    if refuseSeated(chr) then return end   -- (and from a seat, M6)
     local ui = getPlayerMechanicsUI(chr:getPlayerNum())
     if not ui or not part then return end
     ui.vehicle = part:getVehicle()
@@ -1663,10 +1726,12 @@ local function missingOf(n)
     return table.concat(names, ", ")
 end
 
--- A verb that makes no sense for the part as it is now is gone, not greyed: no repair for
--- a perfect part, no pump for a full tire, no air to let out of an empty one.
+-- A verb that makes no sense for the part as it is now is gone, not greyed: no pump for a full tire, no air
+-- to let out of an empty one. A repair on a part at full condition is the exception: it stays, greyed, and says
+-- the part is at full condition (needsCompute): the game runs a part's repair at 100 and spends the materials for
+-- nothing (QA's proof: a sheet and 8 screws, still 100, and the next repair gives less); Repair engine and the
+-- lightbar's repair grey the same way. (the director's call, M4, Nov 26 2026)
 local function verbSensible(part, vb)
-    if vb == "repairEngine" or vb == "repairLightbar" then return part:getCondition() < 100 end
     if vb == "inflate" then return part:getContainerContentAmount() < part:getContainerCapacity() + 5 end
     if vb == "deflate" then return part:getContainerContentAmount() > 0 end
     return true
@@ -1839,9 +1904,20 @@ local function cardModel(s, part, chr, v)
             hint = ZeD.tr(VERB_HINT[vb] or "UI_ZeD_Veh_HintDefault"),
             needsLine = n.line or ((missing == "") and ZeD.tr("UI_ZeD_Veh_NotNow", label) or nil),
             help = ZeD.tr(VERB_HELP[vb] or "UI_ZeD_Veh_HelpDefault"),
+            -- kept in view, greyed, whatever the hidden-actions setting: Install on a missing part (the types that
+            -- fit are listed under it, as the game lists them under its Install; M10g), a repair at full condition
+            -- (M4) and every verb from a seat (M6). (the director's calls, Nov 26 2026)
+            keep = (vb == "install") or n.keep == true,
         }
     end
-    local shown, hidden = DS.split(list)
+    local shown0, hidden0 = DS.split(list)
+    local inShown = {}
+    for _, sv in ipairs(shown0) do inShown[sv] = true end
+    local shown, hidden = {}, {}
+    for _, sv in ipairs(list) do
+        if inShown[sv] or (sv.keep and sv.sensible ~= false) then shown[#shown + 1] = sv end
+    end
+    for _, hv in ipairs(hidden0) do if not hv.keep then hidden[#hidden + 1] = hv end end
     local byId = {}
     for _, sv in ipairs(shown) do byId[sv.id] = sv end
     local primary = nil
@@ -2135,9 +2211,15 @@ local function renderCardBody(panel, win, s, x, top, w, bodyH, v, chr, cm)
     -- a verb shown greyed says what it needs; the folded row after: what you could do with the
     -- right things (A / click opens it)
     local moreKey = "veh:part:" .. tostring(p.id)
+    -- (one line said once: from a seat every verb greys with "Must exit vehicle.", M6)
+    local said = {}
     for _, sv in ipairs(cm.shown) do
         if not sv.canDo and not (sbId and (sv.id == "install" or sv.id == "uninstall") and (stepBefore(v, part, sv.id) or {}).id == sbId) then
-            cy = cy + M.drawNeedsLine(panel, x + pad, cy, iw, DS.needsLine(sv)) + T.px(4)
+            local nl = DS.needsLine(sv)
+            if not said[nl] then
+                said[nl] = true
+                cy = cy + M.drawNeedsLine(panel, x + pad, cy, iw, nl) + T.px(4)
+            end
         end
     end
     if #cm.hidden > 0 then
@@ -2905,7 +2987,8 @@ function MT.openFromAction(chr, vehicle, usedHood)
     local pn = chr:getPlayerNum()
     local vid = vehicle:getId()
     local prev = INSP[vid]
-    INSP[vid] = { vehicle = vehicle, hood = usedHood or (prev and prev.hood) }
+    -- (chr: whose look it is, so the reach check can end it with no window drawn: M7)
+    INSP[vid] = { vehicle = vehicle, hood = usedHood or (prev and prev.hood), chr = chr }
     setMechOpen(vehicle, true, chr)
     if not ZeD_WorldWindow.isOpen(pn) then
         local ok = pcall(ZeD_WorldWindow.open, pn)

@@ -2659,6 +2659,7 @@
     "UI_ZeD_Veh_AmountLeft": "%1 rămas",
     "UI_ZeD_Veh_AtBack": "În spate",
     "UI_ZeD_Veh_Below": "Sub %1",
+    "UI_ZeD_Veh_FullCond": "Piesa este în stare perfectă.",
     "UI_ZeD_Veh_BelowPsi": "Sub %1 psi",
     "UI_ZeD_Veh_Braking": "Frânare",
     "UI_ZeD_Veh_CantDo": "Nu se poate %1",

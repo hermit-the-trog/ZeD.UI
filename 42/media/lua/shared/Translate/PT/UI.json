@@ -2659,6 +2659,7 @@
     "UI_ZeD_Veh_AmountLeft": "restam %1",
     "UI_ZeD_Veh_AtBack": "Na traseira",
     "UI_ZeD_Veh_Below": "Abaixo de %1",
+    "UI_ZeD_Veh_FullCond": "A peça está em perfeito estado.",
     "UI_ZeD_Veh_BelowPsi": "Abaixo de %1 psi",
     "UI_ZeD_Veh_Braking": "Travagem",
     "UI_ZeD_Veh_CantDo": "Não se pode %1",

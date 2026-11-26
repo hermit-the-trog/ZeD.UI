@@ -2659,6 +2659,7 @@
     "UI_ZeD_Veh_AmountLeft": "zbývá %1",
     "UI_ZeD_Veh_AtBack": "Vzadu",
     "UI_ZeD_Veh_Below": "Pod %1",
+    "UI_ZeD_Veh_FullCond": "Díl je v plném stavu.",
     "UI_ZeD_Veh_BelowPsi": "Pod %1 psi",
     "UI_ZeD_Veh_Braking": "Brzdění",
     "UI_ZeD_Veh_CantDo": "Nelze: %1",

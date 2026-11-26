@@ -2659,6 +2659,7 @@
     "UI_ZeD_Veh_AmountLeft": "Ще: %1",
     "UI_ZeD_Veh_AtBack": "Біля задніх дверей",
     "UI_ZeD_Veh_Below": "Нижче %1",
+    "UI_ZeD_Veh_FullCond": "Деталь у ідеальному стані.",
     "UI_ZeD_Veh_BelowPsi": "Нижче %1 psi",
     "UI_ZeD_Veh_Braking": "Гальмування",
     "UI_ZeD_Veh_CantDo": "Не можна: %1",

@@ -2659,6 +2659,7 @@
     "UI_ZeD_Veh_AmountLeft": "%1 übrig",
     "UI_ZeD_Veh_AtBack": "Hinten",
     "UI_ZeD_Veh_Below": "Unter %1",
+    "UI_ZeD_Veh_FullCond": "Das Teil ist in einwandfreiem Zustand.",
     "UI_ZeD_Veh_BelowPsi": "Unter %1 psi",
     "UI_ZeD_Veh_Braking": "Bremskraft",
     "UI_ZeD_Veh_CantDo": "Nicht möglich: %1",

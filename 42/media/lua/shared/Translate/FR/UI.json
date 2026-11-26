@@ -2659,6 +2659,7 @@
     "UI_ZeD_Veh_AmountLeft": "reste %1",
     "UI_ZeD_Veh_AtBack": "À l'arrière",
     "UI_ZeD_Veh_Below": "Sous %1",
+    "UI_ZeD_Veh_FullCond": "La pièce est en parfait état.",
     "UI_ZeD_Veh_BelowPsi": "Sous %1 psi",
     "UI_ZeD_Veh_Braking": "Freinage",
     "UI_ZeD_Veh_CantDo": "Impossible de %1",

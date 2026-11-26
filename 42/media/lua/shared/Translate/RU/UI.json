@@ -2659,6 +2659,7 @@
     "UI_ZeD_Veh_AmountLeft": "Осталось %1",
     "UI_ZeD_Veh_AtBack": "У задней двери",
     "UI_ZeD_Veh_Below": "Ниже %1",
+    "UI_ZeD_Veh_FullCond": "Деталь в идеальном состоянии.",
     "UI_ZeD_Veh_BelowPsi": "Ниже %1 psi",
     "UI_ZeD_Veh_Braking": "Торможение",
     "UI_ZeD_Veh_CantDo": "Нельзя: %1",

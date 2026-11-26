@@ -2659,6 +2659,7 @@
     "UI_ZeD_Veh_AmountLeft": "%1 남음",
     "UI_ZeD_Veh_AtBack": "뒷문 앞",
     "UI_ZeD_Veh_Below": "%1 미만",
+    "UI_ZeD_Veh_FullCond": "부품이 완전한 상태입니다.",
     "UI_ZeD_Veh_BelowPsi": "%1 psi 미만",
     "UI_ZeD_Veh_Braking": "제동",
     "UI_ZeD_Veh_CantDo": "%1 불가",

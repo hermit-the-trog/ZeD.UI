@@ -2659,6 +2659,7 @@
     "UI_ZeD_Veh_AmountLeft": "%1 jäljellä",
     "UI_ZeD_Veh_AtBack": "Takana",
     "UI_ZeD_Veh_Below": "Alle %1",
+    "UI_ZeD_Veh_FullCond": "Osa on täydessä kunnossa.",
     "UI_ZeD_Veh_BelowPsi": "Alle %1 psi",
     "UI_ZeD_Veh_Braking": "Jarrutus",
     "UI_ZeD_Veh_CantDo": "Ei voi: %1",

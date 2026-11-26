@@ -2659,6 +2659,7 @@
     "UI_ZeD_Veh_AmountLeft": "%1 igjen",
     "UI_ZeD_Veh_AtBack": "Bak",
     "UI_ZeD_Veh_Below": "Under %1",
+    "UI_ZeD_Veh_FullCond": "Delen er i full stand.",
     "UI_ZeD_Veh_BelowPsi": "Under %1 psi",
     "UI_ZeD_Veh_Braking": "Bremsing",
     "UI_ZeD_Veh_CantDo": "Kan ikke %1",

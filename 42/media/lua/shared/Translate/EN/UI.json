@@ -2811,6 +2811,7 @@
     "UI_ZeD_Veh_AmountLeft": "%1 left",
     "UI_ZeD_Veh_AtBack": "At the back",
     "UI_ZeD_Veh_Below": "Below %1",
+    "UI_ZeD_Veh_FullCond": "The part is at full condition.",
     "UI_ZeD_Veh_BelowPsi": "Below %1 psi",
     "UI_ZeD_Veh_Braking": "Braking",
     "UI_ZeD_Veh_CantDo": "Can't %1",
