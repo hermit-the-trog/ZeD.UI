@@ -1814,6 +1814,7 @@ function C.c7()
 end
 
 -- ===================================================================== 8. the half card (M8)
+function H.ctxVisRaw(c) local v = nil; pcall(function() v = c:getIsVisible() end); return v end
 function C.c8look(T, label)
     local r = S.mtRect
     local s = H.ms()
@@ -2294,7 +2295,8 @@ function C.c11()
         Q.check(T.vis, T.L .. " (M11): X on a row opens the game's part menu", "visible " .. tostring(T.vis) .. ", " .. tostring(n) .. " options")
         Q.check(T.vis and onScreen and near, T.L .. " (M11): with the pointer hidden the menu opens on screen by the focused row",
             "the shown menu at " .. math.floor(cx) .. "," .. math.floor(cy) .. " (ZeD's menu " .. tostring(zx) .. "," .. tostring(zy) .. ", its anchor " .. tostring(axA) .. "," .. tostring(ayA)
-            .. ", the game's parked menu " .. tostring(vx) .. "," .. tostring(vy) .. "); the row at " .. math.floor(ax) .. "," .. math.floor(ay) .. "; screen " .. sw .. "x" .. sh)
+            .. ", the game's parked menu " .. tostring(vx) .. "," .. tostring(vy) .. "; visible " .. tostring(H.ctxVisRaw(c)) .. ", _zedSpawned " .. tostring(c and c._zedSpawned)
+            .. ", _zedFailed " .. tostring(c and c._zedFailed) .. "); the row at " .. math.floor(ax) .. "," .. math.floor(ay) .. "; screen " .. sw .. "x" .. sh)
         local jp = nil
         pcall(function() jp = JoypadState.players[S.pn + 1] end)
         H.note(T.L .. ": a pad joined to the game " .. tostring(jp ~= nil) .. " (the game hands its menu the pad's focus only with one)")
