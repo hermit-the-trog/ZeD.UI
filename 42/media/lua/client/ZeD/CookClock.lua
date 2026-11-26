@@ -20,10 +20,19 @@ local CC = ZeD.CookClock
 
 CC.SPAN   = 1      -- game minutes between samples (shorter ones are mostly rounding)
 CC.STALE  = 10     -- game minutes: a gap longer than this (the card was shut) starts a new sample
-CC.SMOOTH = 0.4    -- weight of the newest sample in the smoothed rate
+CC.WINDOW = 6      -- game minutes: the rate is the slope over the samples of the last this many minutes
+CC.MIN_SPAN = 3    -- game minutes of samples (after the first, skipped) before any rate is given
+CC.STEADY = 0.12   -- a rate is given once two slopes in a row agree within this share
+CC.RING   = 12     -- samples kept per food
 CC.KEEP_MAX = 128  -- foods remembered before the list starts over
 
--- per food: { ct = cooking time at the last sample, t = game minute of it, rate, shown }
+-- The first version smoothed each one-minute step, and one step taken as the food heated up (QA saw about
+-- 2 a minute where the food then cooked at 1.29) said 24 min for a real 37. Now the rate is the slope over
+-- the last several minutes, the minute the food went on the heat is left out, and no figure is given until
+-- two slopes agree: the rows show percent until then. (QA K12 second pass, Nov 25 2026)
+
+-- per food: { ring = { {t, ct}, ... }, skip = the anchor sample is still first, rate (steady), last (latest
+-- slope), shown }
 -- The game's Lua ignores weak keys (__mode), so the list counts its entries and
 -- starts over past KEEP_MAX, as the loot card's cache does; keyed by the item's
 -- id (a number) when it has one, so nothing holds the item itself.
@@ -58,23 +67,35 @@ function CC.sample(item, ct, hot)
     if not e then
         _seenN = _seenN + 1
         if _seenN > CC.KEEP_MAX then _seen = {}; _seenN = 1 end
-        e = { ct = ct, t = now }
+        e = { ring = { { t = now, ct = ct } }, skip = true }
         _seen[k] = e
         return nil
     end
-    local dt = now - e.t
-    -- off the heat, a clock run back (a load), cooking time gone down or a long gap: start the sample here,
+    local ring = e.ring
+    local lastS = ring[#ring]
+    local dt = now - lastS.t
+    -- off the heat, a clock run back (a load), cooking time gone down or a long gap: start the samples here,
     -- keep the rate it had (the food back on the same heat cooks as it did)
-    if not hot or dt < 0 or ct < e.ct or dt > CC.STALE then
-        e.ct, e.t = ct, now
+    if not hot or dt < 0 or ct < lastS.ct or dt > CC.STALE then
+        e.ring = { { t = now, ct = ct } }
+        e.skip, e.last = true, nil
         return e.rate
     end
     if dt >= CC.SPAN then
-        local r = (ct - e.ct) / dt
-        if r > 0 then
-            e.rate = e.rate and (e.rate + (r - e.rate) * CC.SMOOTH) or r
+        ring[#ring + 1] = { t = now, ct = ct }
+        if #ring > CC.RING then table.remove(ring, 1); e.skip = false end
+        -- the first sample: the minute the food went on (it may have been heating, or partway through a step)
+        local first = 1
+        if e.skip then first = 2 end
+        -- only the last WINDOW minutes
+        while first < #ring and now - ring[first].t > CC.WINDOW do first = first + 1 end
+        local a = ring[first]
+        local span = now - a.t
+        if span >= CC.MIN_SPAN and ct > a.ct then
+            local slope = (ct - a.ct) / span
+            if e.last and math.abs(slope - e.last) <= CC.STEADY * slope then e.rate = slope end
+            e.last = slope
         end
-        e.ct, e.t = ct, now
     end
     return e.rate
 end

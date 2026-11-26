@@ -233,10 +233,12 @@ do
     local BC = Item("Base.BerryGeneric1", "Berries", { _kind = "Fruits" })
     ITEMS = { PAN, FRESH1, FRESH2, BP, BC }
     local herbalist = true
+    -- (as the real one: it renames the item, setName, and the tab reads getDisplayName)
     ZeD.herbalName = function(item)
         if item._ft ~= "Base.BerryGeneric1" then return nil end
-        if not herbalist then return "Unknown Berry" end
-        return item._poison and "Poisonous Berry" or "Berry"
+        if not herbalist then item._name = "Unknown Berry"
+        else item._name = item._poison and "Poisonous Berry" or "Berry" end
+        return item._name
     end
     fresh()
     local rows = rowsOf("Base.BerryGeneric1")
@@ -334,6 +336,25 @@ do
     check("the salt's start passes while the tomato is still to complete", sa and sa.spice and sa:isValidStart() == true)
     sa.chain.pending = 0
     check("TEETH: on the plain saucepan with nothing pending, the game's check refuses the salt", sa:isValidStart() == false)
+    Q.queue, s.queued, s.plan = {}, nil, {}
+    -- QA's second pass: the game's own action put the first ingredient in, so the saucepan is now the dish
+    -- (Base.SaucepanStew). The tab lists that dish as a base and offers its salt with nothing planned.
+    local DISH = Item("Base.SaucepanStew", "Stew", { _food = false })
+    DISH.getExtraItems = function() return list({ "Base.Carrots" }) end
+    ITEMS = { DISH, FRESH1, SALT }
+    fresh()
+    local b = s.bases and s.bases.Stew
+    check("the started stew is a base of the Stew", b and #b == 1 and b[1].item == DISH, b and #b)
+    check("it needs no water (it has had its own)", b and b[1] and b[1].ok == true)
+    s.baseIdx, s.plan = 1, {}
+    local salt2 = rowsOf("Base.Salt")
+    check("the started stew is offered salt with nothing planned yet", #salt2 == 1, #salt2)
+    local tg = s.ingCache.byFt["Base.Tomato"]
+    s.plan = {}
+    for i = 1, 4 do s.plan[i] = { ft = "Base.Tomato", key = tg and tg.key, name = "Tomato", base = "Tomato" } end
+    check("its room is the limit less what it holds: 4 more do not fit a 4-item saucepan holding 1", CK.planFits(s) == false)
+    s.plan = { s.plan[1], s.plan[2], s.plan[3] }
+    check("3 more fit", CK.planFits(s) == true)
     Q.queue, s.queued, s.plan = {}, nil, {}
     ITEMS = { PAN, STALE, ROT, FRESH1, FRESH2 }
     fresh()
