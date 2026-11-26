@@ -65,6 +65,8 @@ Asked as numbered choices in chat. Option 1 is QA's pick in each. **Decided Nov 
 
 **Built and proved.** Calls 1 to 6 were built in fix/cookcalls (a3f1b6e94), plus fix/cookback (8f678cb4a). fix/cookback puts the made dish back in the crate its pot came from; the game's own add leaves it in his bags. ck_calls.lua (ck_calls.txt) passes 132 at both sizes on 8f678cb4a, and ck.txt is green there (188). One SKIP: the game takes nothing into a pot of soup in the QA world (call 4's Soup2 leg). Correction to call 1: the card's label is "Hunger" with a "+15" value (the key is named HungerReduction; its English text is "Hunger"). The tab now uses the same key, so the two read alike.
 
+**After (Nov 26 2026).** The director's look call on call 3, "1, own spot": the where aside now sits right after the name with at least 16 units clear before the numbers (fix/cookwhere, 7748ac45f; ck_calls checks the gap). One bug the calls exposed: an item card opened while the Cooking tab's drawer was up was shut when the tab hid a moment later (ck_tab case 10 failed 3 of 6 runs at 1280x800). Fixed in fix/cardstays (f4efb9e92); ck_tab now checks the card is still open 2 s later. On f4efb9e92: ck.txt 191 pass at 4K and three times at 1280x800, ck_calls.txt 134 pass at both sizes. Cooking is done.
+
 ## Not staged
 
 - A gas range after the gas shutoff (no sandbox setting in the QA world).
