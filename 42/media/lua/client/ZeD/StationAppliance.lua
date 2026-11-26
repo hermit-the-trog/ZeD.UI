@@ -45,6 +45,7 @@ require "ZeD/Stations"
 require "ZeD/ZeD_PixelParts"
 require "ZeD/ZeD_Plate"
 require "ZeD/PhysPx"
+require "ZeD/CookClock"
 
 ZeD = ZeD or {}
 ZeD.StationAppliance = ZeD.StationAppliance or {}
@@ -466,6 +467,9 @@ local function contents(st)
                 -- (punch list 224: Cooking / Burning by the food's own heat, the game's test: an oven on with no power
                 -- or gas reads Activated but heats nothing)
                 local hot = on and not call(it, "isFrozen") and (call(it, "getHeat") or 0) > 1.6
+                -- the minutes left are game minutes at this food's measured rate (ZeD.CookClock), nil until
+                -- one is measured: the row shows its percent then (QA K12, Nov 25 2026)
+                local CC = ZeD.CookClock
                 if call(it, "isBurnt") then
                     row.tag, row.mode, row.p = "IGUI_invpanel_Burnt", "danger", 1
                 elseif call(it, "isCooked") or (toCook > 0 and ct >= toCook) then
@@ -476,11 +480,11 @@ local function contents(st)
                     else
                         row.tag, row.mode, row.p = "Tooltip_food_Cooked", "pos", nil   -- done and safe: no bar
                     end
-                    row.left = math.max(0, math.ceil(toBurn - ct))
+                    row.left = CC and CC.minutesLeft(it, ct, toBurn, hot) or nil
                 else
                     row.p = toCook > 0 and math.max(0, math.min(1, ct / toCook)) or 0
                     row.tag, row.mode = hot and "IGUI_invpanel_Cooking" or "UI_ZeD_Appliance_Raw", hot and "warn" or "dim"
-                    row.left = math.max(0, math.ceil(toCook - ct))
+                    row.left = CC and CC.minutesLeft(it, ct, toCook, hot) or nil
                 end
             end
             out[#out + 1] = row
