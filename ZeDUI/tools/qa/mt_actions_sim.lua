@@ -345,6 +345,20 @@ r = C.m13()
 check("M13a: Uninstall on a part already gone queues nothing", r.n == 0, r.kinds)
 check("M13a: and says so, naming the part", r.said ~= nil and r.said:find("%1", 1, true) == nil, r.said)
 
+-- M11 second pass (QA, Nov 26): B shuts the part menu whatever drives the pad, and a right-click (a pad's X
+-- arrives there too) opens it at the press's point, not the hidden pointer's 0,0
+setup(src)
+do
+    local hidden = false
+    local ctx = { getIsVisible = function() return not hidden end, setVisible = function(_, v) hidden = not v end }
+    local s5 = { partMenu = ctx }
+    check("M11: B with the part menu up shuts it", G.MT.closePartMenu and G.MT.closePartMenu(s5) == true and hidden == true)
+    check("M11: and nothing else (a second B goes on as before)", G.MT.closePartMenu and G.MT.closePartMenu(s5) == false)
+    local body = src:match("function MT%.onRightClick.-\nend")
+    check("M11: the right-click opens the menu at its own point", body ~= nil
+        and body:find("partContextMenu(e.vehicle:getPartById(id), chr, win, ax, ay)", 1, true) ~= nil)
+end
+
 -- ===========================================================================
 section("OLD (the tab before the fix: each fault reproduces)")
 local pipe = io.popen('git -C "' .. (ROOT ~= "" and ROOT or ".") .. '" show ' .. BASE .. ':42/media/lua/client/ZeD/MechanicsTab.lua 2>NUL')
