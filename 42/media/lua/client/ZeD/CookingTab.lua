@@ -67,10 +67,12 @@ end
 -- Unknown Berry); ZeD.herbalName (ZeD_HerbalName.lua) mirrors that. Rows group by this name, so a Herbalist
 -- sees poisonous and safe berries as two rows and picks one; without the trait they are one row, as the game
 -- shows them. (QA K3, Nov 25 2026)
+-- (herbalName renames berries and mushrooms the game's way; the row then reads the item's own name, not
+-- getName(player), which adds the game's freshness word: "Tomato (Fresh)". The tab's own state words, Stale
+-- and Rotten, come from stateName below; QA K1 wording, Nov 25 2026)
 local function shownName(item, chr)
-    local n = nil
-    if ZeD.herbalName then pcall(function() n = ZeD.herbalName(item, chr) end) end
-    return n or item:getDisplayName()
+    if ZeD.herbalName then pcall(function() ZeD.herbalName(item, chr) end) end
+    return item:getDisplayName()
 end
 
 -- A food's state, for its row: 1 fresh, 2 stale, 3 rotten, and a tag for cooked, burnt and frozen. The game's
@@ -163,6 +165,17 @@ local function catalog()
             local b = CAT.byBase[base]
             if not b then b = {}; CAT.byBase[base] = b end
             b[#b + 1] = r
+            -- a dish already started (a pot of stew with its first carrot) takes more of the same recipe, its
+            -- seasoning too: the game's menu offers the recipe on its result item (isResultItem,
+            -- ISInventoryPaneContextMenu.lua:4219), so the tab lists that dish as a base of its own
+            -- (QA K8, Nov 25 2026)
+            if result then
+                local rb = CAT.byBase[result]
+                if not rb then rb = {}; CAT.byBase[result] = rb end
+                local dup = false
+                for _, x in ipairs(rb) do if x == r then dup = true end end
+                if not dup then rb[#rb + 1] = r end
+            end
         end
     end
     table.sort(CAT.order, function(a, b) return CAT.dishes[a].label < CAT.dishes[b].label end)
@@ -225,6 +238,9 @@ end
 
 -- the water a pot needs before it takes ingredients (soups and stews)
 local function waterOk(r, item)
+    -- (a dish already started has had its water: K8)
+    local okR, isRes = pcall(function() return r:isResultItem(item) end)
+    if okR and isRes then return true end
     local need = 0
     pcall(function() need = r:getMinimumWater() or 0 end)
     if need <= 0 then return true end
@@ -248,12 +264,16 @@ local function scan(s, chr, force)
             local item = items:get(ii)
             local rs = C.byBase[item:getFullType()]
             if rs then
+                local seenKey = {}   -- (a started dish is the result of every pot's recipe: listed once per dish)
                 for _, r in ipairs(rs) do
-                    local key = C.keyOf[r] or r:getUntranslatedName()
+                  local key = C.keyOf[r] or r:getUntranslatedName()
+                  if not seenKey[key] then
+                    seenKey[key] = true
                     local list = bases[key]
                     if not list then list = {}; bases[key] = list; dishes[#dishes + 1] = key end
                     list[#list + 1] = { item = item, recipe = r, name = shownName(item, chr), where = whereOf(item, chr),
                                         ok = waterOk(r, item), mine = onPlayer(item, chr) }
+                  end
                 end
             end
         end
@@ -276,6 +296,13 @@ local function curBase(s)
     if not list or #list == 0 then return nil end
     if s.baseIdx > #list then s.baseIdx = 1 end
     return list[s.baseIdx]
+end
+
+-- the base is a dish already started (the recipe's result item), not an empty pot or a plain slice of bread
+local function isDish(b)
+    if not b then return false end
+    local ok, v = pcall(function() return b.recipe:isResultItem(b.item) end)
+    return ok and v and true or false
 end
 
 -- the ingredients planned that count toward the base's limit (seasoning does not)
@@ -327,7 +354,7 @@ end
 local function ingredients(s, chr)
     local b = curBase(s)
     if not b then return {} end
-    local hasIng = planN(s) > 0
+    local hasIng = planN(s) > 0 or isDish(b)
     local c = s.ingCache
     if c and c.item == b.item and c.at == s.scanAt and c.hasIng == hasIng then return c.list end
     local r = b.recipe
@@ -445,7 +472,15 @@ end
 
 local function maxItems(s)
     local b = curBase(s)
-    return b and b.recipe:getMaxItems() or 0
+    if not b then return 0 end
+    local mx = b.recipe:getMaxItems() or 0
+    -- a dish already started has room for what it does not hold yet (its extra items count; K8)
+    if isDish(b) then
+        local n = 0
+        pcall(function() local ex = b.item:getExtraItems(); if ex then n = ex:size() end end)
+        mx = math.max(0, mx - n)
+    end
+    return mx
 end
 
 -- The plan fits its base. The game never offers more than the base takes (EvolvedRecipe.getItemsCanBeUse
