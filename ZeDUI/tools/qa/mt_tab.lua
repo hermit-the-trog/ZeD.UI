@@ -1494,7 +1494,9 @@ function C.c3leg(how, pid)
         local ms = H.ms()
         H.note(T.L .. ": at the press, s.pick " .. tostring(ms and ms.pick) .. ", s.pickItem " .. H.nm(ms and ms.pickItem)
             .. (ms and ms.pickItem == T.b and " (the crate's 70)" or (ms and ms.pickItem == T.a and " (the bag's 70)" or (ms and ms.pickItem == T.c and " (the bag's 90)" or "")))
-            .. ", s.queued " .. tostring(ms and ms.queued and #ms.queued or 0) .. ", the game's queue " .. H.qkinds())
+            .. ", s.queued " .. tostring(ms and ms.queued and #ms.queued or 0) .. ", the game's queue " .. H.qkinds()
+            .. "; footer " .. H.footText() .. "; NEEDS " .. H.needsText() .. "; picks " .. H.picksText()
+            .. "; room for the crate's spare " .. tostring(H.roomFor(T.b)))
         if how == "pad" then
             T.go2 = H.focusEl("mech:verb:install")
             Q.check(T.go2, T.L .. ": the pad's focus lands on Install", "on " .. tostring(H.focusedId()))
@@ -1825,6 +1827,7 @@ function C.c7()
 end
 
 -- ===================================================================== 8. the half card (M8)
+function H.roomFor(it) local r = nil; pcall(function() r = S.p:getInventory():hasRoomFor(S.p, it) end); return r end
 function H.ctxVisRaw(c) local v = nil; pcall(function() v = c:getIsVisible() end); return v end
 function C.c8look(T, label)
     local r = S.mtRect
