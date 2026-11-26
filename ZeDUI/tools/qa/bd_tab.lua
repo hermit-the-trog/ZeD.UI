@@ -410,6 +410,12 @@ end
 -- the steps that put a recipe's card up the player's way: its name typed in the search, its row clicked;
 -- T.ready once the card draws with its Build key and the row has settled
 function H.openSteps(T, key, lab)
+    -- (the Building tab first: a case before may have left the World window on another tab, e.g. Loot after Furniture,
+    -- and then the tab's list (_buildCache) has no rows to open)
+    H.step(1, function() if not H.showing() then H.tab("build") end end)
+    H.wait(3000, function() return H.showing() and H.data() ~= nil end, function(ok)
+        if not ok then H.note(tostring(lab) .. ": the World window would not show the Building tab") end
+    end)
     H.step(1, function()
         T.name = H.rname(key)
         local rd = T.name and H.row(T.name)
