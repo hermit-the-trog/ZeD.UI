@@ -1968,7 +1968,8 @@ function H.cookText(o) return "cooking time " .. H.n1(o.ct) .. " of " .. H.n1(o.
 -- ZeD shows percent until its slope is steady (5 game minutes of this heat, 3 slopes agreeing), so the first figure
 -- comes some minutes after the food is hot: T.r0 is the moment that first figure is drawn, and that figure is judged
 function C.rate(T, label, key, food)
-    T.hotAt = nil
+    -- (at run time: this function only lays the steps out, so a plain assignment here would run before every leg)
+    H.step(1, function() T.hotAt = nil; S.trSeen[key] = nil end)
     H.wait(90000, function()
         if T.off or T.noHeat then return true end
         local it = food()
@@ -2074,6 +2075,10 @@ function C.c7stove()
     H.step(2, function()
         if T.off then return end
         pcall(function() T.stove.obj:setMaxTemperature(300) end)
+        -- the first steak comes out first: the oven row reads one item's minutes, and a cooked steak left in draws
+        -- its burn countdown with the same key (runs before Nov 25 21:50 read that countdown as the new steak's)
+        pcall(function() T.steak:getContainer():Remove(T.steak) end)
+        pcall(function() H.inv():AddItem(T.steak) end)
         T.steak2 = H.giveTo(T.stove.obj:getContainer(), S.FT.steak)
     end)
     C.rate(T, "7 K12 range at 300 (the Craft tab's In the oven row)", "UI_ZeD_Appliance_MinShort", function() return T.steak2 end)
