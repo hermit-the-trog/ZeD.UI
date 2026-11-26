@@ -345,6 +345,17 @@ r = C.m13()
 check("M13a: Uninstall on a part already gone queues nothing", r.n == 0, r.kinds)
 check("M13a: and says so, naming the part", r.said ~= nil and r.said:find("%1", 1, true) == nil, r.said)
 
+-- M3 third pass (QA, Nov 26): the press asks busy live, not the card as stamped. A card drawn while a chain ran
+-- (busy) and pressed once the queue is empty must run: QA's log read "install refused (busy)" with nothing queued
+setup(src)
+do
+    local tire = newPart("TireFrontLeft", G.v, newItem("Tire", 80))
+    G.v.parts.TireFrontLeft = tire
+    local cm = { part = tire, busy = true, needs = { inflate = { ok = true } } }
+    G.MT._test.pressVerb({}, G.s, cm, "inflate", G.chr)
+    check("M3: a stale busy card still runs once nothing is queued", #G.q.queue > 0, kinds())
+end
+
 -- M11 second pass (QA, Nov 26): B shuts the part menu whatever drives the pad, and a right-click (a pad's X
 -- arrives there too) opens it at the press's point, not the hidden pointer's 0,0
 setup(src)
