@@ -220,14 +220,15 @@ if okCK and CK then
     CK.visible({ _playerObj = CHR, _cook = s })
     local p2 = CK.firstDish(s, CHR)
     check("nothing goes into any dish: the first there is", p2 == "Beverage", p2)
-    -- a base that is not on the player does not choose the dish
+    -- a base in reach but not on the player (a pot on the floor) chooses its dish too: the tab plans a pot on the
+    -- stove or in a crate (the director's call 5, Nov 25 2026, ck_calls_sim.lua; it was "does not choose it")
     ITEMS = { CUP, POT, VEG[1] }
     local FLOOR = { getType = function() return "floor" end, getContainingItem = function() return nil end }
     POT._cont = FLOOR
     s.scanAt, s.visAt = -1, nil   -- (the scan and the visible check both due again)
     CK.visible({ _playerObj = CHR, _cook = s })
     local p3 = CK.firstDish(s, CHR)
-    check("a pot on the floor (not on the player) does not choose it", p3 == "Beverage", p3)
+    check("a pot on the floor (in reach, not on the player) chooses its dish (Soup)", p3 == "Soup", p3)
     POT._cont = INV
     local src = readFile("42/media/lua/client/ZeD/CookingTab.lua") or ""
     check("the render picks the dish through CK.firstDish",
