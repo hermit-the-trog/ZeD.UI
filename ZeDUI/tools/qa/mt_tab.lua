@@ -1430,6 +1430,17 @@ function C.c3leg(how, pid)
         if T.off then return end
         T.crate = H.mkCrate()
         if not T.crate then T.off = true; Q.skip(T.L, "no free square beside him for the crate"); return end
+        -- (Nov 26 2026: with his own things on him, two spares in his bags and the crate's coming over, he carried 52.4 of
+        -- 50 and the game's move of the crate's tire failed its start, which clears the whole queue: Install did nothing.
+        -- His own free things are set aside for this leg (put back at the end), so the crate's spare fits)
+        do
+            local set = {}
+            for _, it in ipairs(H.all()) do if S.found.inv0[it] then set[H.ft(it)] = true end end
+            H.stashTypes(set)
+            local w, cap = nil, nil
+            pcall(function() w, cap = S.p:getInventory():getCapacityWeight(), S.p:getMaxWeight() end)
+            H.note(T.L .. ": his own free things set aside for the leg; he carries " .. tostring(w) .. " of " .. tostring(cap))
+        end
         T.a = H.give(T.tft)
         T.b = H.giveTo(T.crate.inv, T.tft)
         pcall(function() T.a:setCondition(70); T.b:setCondition(70) end)
