@@ -112,16 +112,21 @@ do
         local win = { _playerObj = {} }
         check("nothing queued: no band", CC.craftProgress(win) == nil)
         local walk, a1, a2 = mk(0.9), mk(0.4), mk(0)
-        Q.queue = { walk, a1, a2 }
+        Q.queue = { walk, a1, a2 }; Q.current = walk
         CC.trackCraftActions(win, { a1, a2 }, "MakeRope")
         local name, pct = CC.craftProgress(win)
         check("a walk first: the band shows, at 0", name == "MakeRope" and pct == 0, tostring(name) .. " " .. tostring(pct))
-        Q.queue = { a1, a2 }
+        Q.queue = { a1, a2 }; Q.current = a1
         name, pct = CC.craftProgress(win)
         check("the craft runs: its share done", name == "MakeRope" and pct == 0.4, pct)
         a1.delta = 1.7
         name, pct = CC.craftProgress(win)
         check("the share never passes 1", pct == 1, pct)
+        -- the head still holds the craft just done while the queue runs the next (QA cb_calls): the band reads the running one
+        a1.delta = 1; Q.current = a2; a2.delta = 0.25
+        name, pct = CC.craftProgress(win)
+        check("the band reads the action the queue runs now, not the head", pct == 0.25, pct)
+        Q.current = a1; a1.delta = 1.7
         -- Cancel while it runs: the game's stop
         check("Cancel stops the running craft", CC.cancelCraft(win) == true and a1.stops == 1)
         check("the game's stop clears what was behind it", #Q.queue == 0 and Q.resets == 1)
