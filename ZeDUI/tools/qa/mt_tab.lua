@@ -1479,6 +1479,11 @@ function C.c3leg(how, pid)
     H.step(2, function()
         if T.off then return end
         T.after = H.picksText()
+        -- (for Build, Nov 26 2026: Install queued nothing after a pick on ec6c95c19; the tab's own state at the press)
+        local ms = H.ms()
+        H.note(T.L .. ": at the press, s.pick " .. tostring(ms and ms.pick) .. ", s.pickItem " .. H.nm(ms and ms.pickItem)
+            .. (ms and ms.pickItem == T.b and " (the crate's 70)" or (ms and ms.pickItem == T.a and " (the bag's 70)" or (ms and ms.pickItem == T.c and " (the bag's 90)" or "")))
+            .. ", s.queued " .. tostring(ms and ms.queued and #ms.queued or 0) .. ", the game's queue " .. H.qkinds())
         if how == "pad" then
             T.go2 = H.focusEl("mech:verb:install")
             Q.check(T.go2, T.L .. ": the pad's focus lands on Install", "on " .. tostring(H.focusedId()))
