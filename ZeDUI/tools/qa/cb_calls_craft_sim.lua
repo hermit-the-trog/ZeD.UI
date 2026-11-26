@@ -383,7 +383,10 @@ do
     check("wire: the craft offers the chosen items", has(CCS, "fillPickSlot(logic, script, containers, fullType, skip, chosen)"))
     check("wire: the band's Max keys on the items", has(CTS, "local sig = CC.pickSig(state, entry.name, #(entry.inputDefs or {}))"))
     check("wire: the mapped outputs see the items", has(CCS, "CC.resolveMappedOutputs(playerObj, entry, p, containers, ip)"))
-    check("wire: the card's row counts the chosen items", has(CCS, "shownHave = #chosenItems"))
+    check("wire: the card's row counts the chosen items in reach", has(CCS, "shownHave = CC.pickedInReach(state, playerObj, chosenItems)"))
+    check("wire: only a used-up chosen item is dropped, one out of reach stays (the craft refuses)", has(CCS, "if not c then table.remove(list, i) end   -- (used up: in no container)"))
+    check("wire: no item rows on a Build card (its picks are by type)", has(CCS, "local pickedType = (state._pickOn and not ownPicks) and CC.pickFor(state, state.selected, state.altSlotIdx) or nil"))
+    check("wire: the World window's pad stops follow the list's sections", has(srcOf("ZeD_WorldWindow.lua"), '.. ":" .. tostring(stk._sections) .. ":" .. tostring(stk._sectionsTotalH or 0)'))
 end
 
 print("cb_calls_craft_sim: " .. checks .. " checks, " .. failed .. " failed")

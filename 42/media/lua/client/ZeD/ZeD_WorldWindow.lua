@@ -5473,6 +5473,10 @@ function ZeD_WorldWindow.toggle(playerNum)
                         -- recipe's; the next frame's stops could match the old count and ends, and the
                         -- box would go without its stop at 1280x720, UI scale 2.0, Large text)
                         .. ":" .. tostring(stk._bandSingle) .. ":" .. tostring(stk._bandSel)
+                        -- (the list itself: a search, a category or a Show that filters it rebuilds the sections, and
+                        -- the rows' stops must follow; the scroll and geometry alone stayed the same, so a pad player
+                        -- who searched could not move onto the results: QA cb_calls, Nov 25 2026)
+                        .. ":" .. tostring(stk._sections) .. ":" .. tostring(stk._sectionsTotalH or 0)
                     -- stations: binding, station dropdown and station-view controls
                     if win._activeTab == "craft" and ZeD.CraftingTab and ZeD.CraftingTab.focusKey then
                         scrollKey = scrollKey .. ":" .. tostring(ZeD.CraftingTab.focusKey(win))

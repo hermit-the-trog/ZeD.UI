@@ -2920,32 +2920,45 @@ end
 -- type picks do, QA B6-15); a slot with none chosen keeps the type pick, or the game's own pick.
 -- ----------------------------------------------------------------------------
 
--- Chosen items a craft used up, or that are no longer in reach, are dropped (QA cb_calls, Nov 25 2026: the
--- branch a craft used stayed chosen and the row read 1/1 while Craft was gray). The reach is the craft's own
--- container list, read again at most once a second. Run by the card each frame it draws.
-function CC.pruneItemPicks(state, recipeName, playerObj)
-    local ip = state and state.itemPicks and state.itemPicks[recipeName]
-    if not (ip and playerObj) then return end
+-- Chosen items a craft used up (in no container any more) are dropped (QA cb_calls, Nov 25 2026: the branch a
+-- craft used stayed chosen and the row read 1/1 while Craft was gray). One still somewhere but out of reach
+-- stays chosen: the craft then refuses in the game's words rather than take another of the type (the
+-- director's call 1), and the row counts only the chosen ones in reach (CC.pickedInReach). The reach is the
+-- craft's own container list, read again at most once a second. Run by the card each frame it draws.
+function CC.reachList(state, playerObj)
     local now = getTimestampMs()
     if not state._reachList or now - (state._reachAt or 0) > 1000 then
         state._reachList = CC.craftContainers(playerObj)
         state._reachAt = now
     end
-    local cs = state._reachList
-    local function inReach(c)
-        if not c then return false end
-        if cs and cs.contains then
-            local ok, r = pcall(function() return cs:contains(c) end)
-            return ok and r or false
-        end
-        for _, x in ipairs(cs or {}) do if x == c then return true end end
-        return false
+    return state._reachList
+end
+function CC.inReach(state, playerObj, item)
+    local c = nil
+    pcall(function() c = item:getContainer() end)
+    if not c then return false end
+    local cs = CC.reachList(state, playerObj)
+    if cs and cs.contains then
+        local ok, r = pcall(function() return cs:contains(c) end)
+        return ok and r or false
     end
+    for _, x in ipairs(cs or {}) do if x == c then return true end end
+    return false
+end
+--- How many of a slot's chosen items are in reach now
+function CC.pickedInReach(state, playerObj, list)
+    local n = 0
+    for i = 1, #(list or {}) do if CC.inReach(state, playerObj, list[i]) then n = n + 1 end end
+    return n
+end
+function CC.pruneItemPicks(state, recipeName, playerObj)
+    local ip = state and state.itemPicks and state.itemPicks[recipeName]
+    if not (ip and playerObj) then return end
     for slot, list in pairs(ip) do
         for i = #list, 1, -1 do
             local c = nil
             pcall(function() c = list[i]:getContainer() end)
-            if not inReach(c) then table.remove(list, i) end
+            if not c then table.remove(list, i) end   -- (used up: in no container)
         end
         if #list == 0 then ip[slot] = nil end
     end
@@ -3452,8 +3465,11 @@ function CC.renderAltList(panel, x, y, w, h, state)
     if state.ownedOnly then other = {} end
 
     -- The chosen type's items, one row each under its row, to choose by item (the director's call 1,
-    -- Nov 25 2026). Only where the craft is built from the choice (state._pickOn: the Craft tab).
-    local pickedType = state._pickOn and CC.pickFor(state, state.selected, state.altSlotIdx) or nil
+    -- Nov 25 2026). Only where the craft is built from the choice (state._pickOn: the Craft tab). Not on a Build
+    -- card (config.ownPicks): its picks are by type, put on the build's own logic, which never reads the very
+    -- items, so a row there showed chosen and the build took any of the type (QA cb_calls, read 1).
+    local ownPicks = state.config and state.config.ownPicks
+    local pickedType = (state._pickOn and not ownPicks) and CC.pickFor(state, state.selected, state.altSlotIdx) or nil
     local itemRowsN = 0
     if pickedType then
         for _, alt in ipairs(owned) do
@@ -3977,7 +3993,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
                 local nm = nil
                 pcall(function() nm = chosenItems[1]:getDisplayName() end)
                 shownName = ing.name .. ": " .. tostring(nm or CC.typeName(chosen))
-                shownHave = #chosenItems
+                shownHave = CC.pickedInReach(state, playerObj, chosenItems)   -- (only the chosen ones in reach)
             end
             local slotData = {
                 name = ing.name,
