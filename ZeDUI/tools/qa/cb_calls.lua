@@ -1452,7 +1452,9 @@ function C.c1()
         local reach = 0
         for _, it in ipairs(l) do if H.where(it) ~= nil then reach = reach + 1 end end
         local sr = S.slotSeen[tostring(T.ing)]
-        Q.check(sr ~= nil and sr.have == reach, L .. ": after the craft the slot row no longer counts the chosen branch it used up",
+        -- (once the used branch is dropped from the picks, #l is 0 and the row counts the slot as the game does again, so the
+        -- other branch carried may read 1/1; while picks remain, the row counts only those in reach)
+        Q.check(sr ~= nil and (#l == 0 or sr.have == reach), L .. ": after the craft the slot row no longer counts the chosen branch it used up",
             "chosen " .. #l .. " (in reach " .. reach .. "); the row reads \"" .. tostring(sr and sr.disp) .. "\" have " .. tostring(sr and sr.have)
             .. "/" .. tostring(sr and sr.need) .. "; Craft " .. (H.zedCan(H.row("craft", S.R.stake)) and "lit" or "gray")
             .. " (CraftingCore.lua:3936-3944 counts #itemPicks with no reach check)")
@@ -1548,7 +1550,10 @@ function C.c2mouse()
     H.wait(150000, function()
         if T.off then return true end
         local st, w = H.st("craft"), RT.ww()
-        local a = H.queue()[1]
+        -- (the queue's running action: queue[1] can still hold the craft that just ended while current is the next)
+        local a = nil
+        pcall(function() local q = ISTimedActionQueue.getTimedActionQueue(S.p); a = q and q.current end)
+        if not a then a = H.queue()[1] end
         local isCraft = a ~= nil and a.Type == "ISHandcraftAction"
         H.speed(isCraft and 2 or 1)
         local made = H.count(S.OUT.stake) - T.c0
