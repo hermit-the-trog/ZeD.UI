@@ -2738,6 +2738,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "Gotowa do wyprowadzenia z tyłu",
     "UI_ZeD_Veh_ReadyWalkHim": "Gotowy do wyprowadzenia z tyłu",
     "UI_ZeD_Veh_Removed": "Zdjęte",
+    "UI_ZeD_Veh_PartGone": "%1 jest już zdjęte.",
     "UI_ZeD_Veh_RepairWith": "Napraw za pomocą",
     "UI_ZeD_Veh_Seat": "Siedzenie",
     "UI_ZeD_Veh_SizeHdr": "Rozm.",

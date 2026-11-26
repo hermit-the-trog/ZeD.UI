@@ -2738,6 +2738,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "後方から連れ出せます",
     "UI_ZeD_Veh_ReadyWalkHim": "後方から連れ出せます",
     "UI_ZeD_Veh_Removed": "取り外し済",
+    "UI_ZeD_Veh_PartGone": "%1 はもう外されています。",
     "UI_ZeD_Veh_RepairWith": "修理に使う",
     "UI_ZeD_Veh_Seat": "座席",
     "UI_ZeD_Veh_SizeHdr": "大きさ",

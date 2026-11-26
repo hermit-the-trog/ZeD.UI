@@ -2738,6 +2738,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "Arkadan dışarı yürütmeye hazır",
     "UI_ZeD_Veh_ReadyWalkHim": "Arkadan dışarı yürütmeye hazır",
     "UI_ZeD_Veh_Removed": "Çıkarıldı",
+    "UI_ZeD_Veh_PartGone": "%1 zaten çıkarılmış.",
     "UI_ZeD_Veh_RepairWith": "Şununla onar",
     "UI_ZeD_Veh_Seat": "Koltuk",
     "UI_ZeD_Veh_SizeHdr": "Boyut",

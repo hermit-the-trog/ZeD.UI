@@ -2738,6 +2738,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "พร้อมพาออกทางด้านหลัง",
     "UI_ZeD_Veh_ReadyWalkHim": "พร้อมพาออกทางด้านหลัง",
     "UI_ZeD_Veh_Removed": "ถอดแล้ว",
+    "UI_ZeD_Veh_PartGone": "%1 ถูกถอดออกไปแล้ว",
     "UI_ZeD_Veh_RepairWith": "ซ่อมด้วย",
     "UI_ZeD_Veh_Seat": "ที่นั่ง",
     "UI_ZeD_Veh_SizeHdr": "ขนาด",

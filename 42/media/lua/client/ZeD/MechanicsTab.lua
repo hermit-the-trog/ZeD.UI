@@ -718,6 +718,22 @@ local function installPicks(part, chr, items)
     return picks
 end
 
+-- The spare picked, kept as the item itself (s.pickItem), not its row: the rows are rebuilt from items read again
+-- every 700 ms and sorted by condition, so a spare brought near after the pick moved every row under it and Install
+-- put on another one (QA M3, Nov 26 2026). With none picked yet, or the picked one gone from reach, the first row is
+-- taken and kept. s.pick follows it for the pad's rows.
+local function pickedInstall(s, picks)
+    local first, firstI = nil, nil
+    for i, pk in ipairs(picks) do
+        if not pk.none then
+            if s.pickItem ~= nil and pk.item == s.pickItem then s.pick = i; return pk end
+            if not first then first, firstI = pk, i end
+        end
+    end
+    if first then s.pick, s.pickItem = firstI, first.item end
+    return first
+end
+
 -- Repair recipes (FixingManager), one row per fixing x fixer
 local function fixRows(part, chr)
     local rows = {}
@@ -784,7 +800,7 @@ end
 -- Needs + availability for one verb. Returns { rows, chance = {s, f}, ok, blocker }
 local needsCompute
 local function needsFor(s, part, verb, chr, v)
-    local key = tostring(part:getId()) .. ":" .. tostring(verb) .. ":" .. tostring(s.pick) .. ":" .. tostring(s.fixPick)
+    local key = tostring(part:getId()) .. ":" .. tostring(verb) .. ":" .. tostring(s.pick) .. ":" .. tostring(s.pickItem) .. ":" .. tostring(s.fixPick)
     s.needsCache = s.needsCache or {}
     local c = s.needsCache[key]
     local t = now()
@@ -802,7 +818,7 @@ needsCompute = function(s, part, verb, chr, v)
     if verb == "install" or verb == "uninstall" then
         if verb == "install" then
             local picks = installPicks(part, chr, items)
-            local pick = picks[s.pick]
+            local pick = pickedInstall(s, picks)
             if pick and not pick.none then
                 rows[#rows + 1] = { ok = true, label = pick.name, value = tostring(pick.cond) .. "%", kicker = pick.loc }
             else
@@ -893,11 +909,90 @@ end
 -- ----------------------------------------------------------------------------
 -- Running verbs (vanilla handlers do the walking, equipping and queueing)
 -- ----------------------------------------------------------------------------
+-- the player's queue of timed actions (nil when the game has none to give)
+local function gameQueue(chr)
+    local ok, q = pcall(function() return ISTimedActionQueue.getTimedActionQueue(chr) end)
+    if ok and q and q.queue then return q end
+    return nil
+end
+local function inQueue(q, a)
+    for i = 1, #q.queue do if q.queue[i] == a then return true end end
+    return false
+end
+
+-- The whole chain a verb queued (the walk, the item moves, the equip, the hood, the job itself) is kept on the
+-- state (s.queued) and looked up in the game's queue, as the Craft tab's craftBusy does: the busy test read only the
+-- head of the queue and only an action with a job name, so a second press during the walk, or on a repair (which
+-- names no vehicle), queued the whole chain again: two repairs, two sets of materials, a hood left open (QA M2,
+-- Nov 26 2026). The list empties itself once none of it is left.
+local function chainBusy(s, chr)
+    local list = s and s.queued
+    if not list then return false end
+    local q = gameQueue(chr)
+    local busy = false
+    if q then
+        for i = 1, #list do
+            if inQueue(q, list[i]) then busy = true; break end
+        end
+    end
+    if not busy then s.queued, s.queuedLabel, s.queuedV, s.queuedPart = nil, nil, nil, nil end
+    return busy
+end
+
+-- The band's Cancel: the game's own stop (the running action stops, the queue empties), then anything of the
+-- chain still there taken out. The band showed only once the job itself ran, so a Cancel pressed as the walk
+-- handed over found no band and the uninstall still happened (QA M9, Nov 26 2026).
+local function cancelChain(s, chr)
+    pcall(function() ISTimedActionQueue.clear(chr) end)
+    local q = gameQueue(chr)
+    local list = s.queued or {}
+    if q then
+        for i = #list, 1, -1 do
+            local a = list[i]
+            if inQueue(q, a) then
+                pcall(function() q:removeFromQueue(a) end)
+                pcall(function() a:forceCancel() end)
+            end
+        end
+    end
+    s.queued, s.queuedLabel, s.queuedV, s.queuedPart = nil, nil, nil, nil
+end
+MT.cancelChain = cancelChain
+
+-- Paused (game speed 0), as the game's part menu asks (ISVehicleMechanics:doPartContextMenu): nothing is
+-- queued and the player is told why. The tab's verbs, the question's Yes and the right-click queued at any
+-- speed and said nothing (QA M11, M12, Nov 26 2026).
+local function say(chr, text)
+    if HaloTextHelper and HaloTextHelper.addBadText then pcall(HaloTextHelper.addBadText, chr, text) end
+end
+local function refusePaused(chr)
+    local ok, spd = pcall(function() return UIManager.getSpeedControls():getCurrentGameSpeed() end)
+    if not (ok and spd == 0) then return false end
+    say(chr, ZeD.tr("UI_ZeD_Char_PausedLook"))
+    return true
+end
+
+-- the verbs that work on the item the part holds
+local NEEDS_ITEM = { uninstall = true, fix = true, inflate = true, deflate = true }
+
 local function runVerb(s, verb, part, chr)
     if not part then return end
+    if chainBusy(s, chr) then return end   -- (asked at the press: two presses in one frame saw the same idle card. M2)
+    if refusePaused(chr) then return end
+    -- the parts are read four times a second, so a press can land on a part already taken off; the game's start
+    -- check then dropped the chain and said nothing (QA M13, Nov 26 2026)
+    if NEEDS_ITEM[verb] and part:getInventoryItem() == nil then
+        say(chr, ZeD.tr("UI_ZeD_Veh_PartGone", partName(part:getId())))
+        s.needsCache, s.fixCache, s.partsCache = nil, nil, nil
+        return
+    end
+    -- what the queue held before, so the chain this press adds can be kept (M2)
+    local q0 = gameQueue(chr)
+    local before = {}
+    if q0 then for i = 1, #q0.queue do before[q0.queue[i]] = true end end
     if verb == "install" then
         local picks = installPicks(part, chr, itemsFor(s, chr))
-        local pick = picks[s.pick]
+        local pick = pickedInstall(s, picks)   -- (the item picked, not its row: M3)
         if pick and pick.item then ISVehiclePartMenu.onInstallPart(chr, part, pick.item) end
     elseif verb == "uninstall" then ISVehiclePartMenu.onUninstallPart(chr, part)
     elseif verb == "inflate" then ISVehiclePartMenu.onInflateTire(chr, part)
@@ -917,12 +1012,24 @@ local function runVerb(s, verb, part, chr)
         local okR, err = pcall(EXTRA_VERBS[verb].run, part, chr, part:getVehicle())
         if not okR then print("[ZeD] Vehicle tab: verb " .. tostring(verb) .. ": " .. tostring(err)) end
     end
+    local q = gameQueue(chr)
+    if q then
+        local list = {}
+        for i = 1, #q.queue do
+            local a = q.queue[i]
+            if not before[a] then list[#list + 1] = a end
+        end
+        if #list > 0 then
+            s.queued, s.queuedLabel, s.queuedV, s.queuedPart = list, vlabel(verb), part:getVehicle(), part:getId()
+        end
+    end
     s.items = nil   -- tools and parts move; re-read next frame
     s.needsCache, s.fixCache, s.partsCache = nil, nil, nil
 end
 
 -- Vanilla's own part menu, rendered by ZeD's context-menu hook (X / right-click)
 local function partContextMenu(part, chr)
+    if refusePaused(chr) then return end   -- (the game's menu returns at speed 0 and says nothing: here it says why. M11)
     local ui = getPlayerMechanicsUI(chr:getPlayerNum())
     if not ui or not part then return end
     ui.vehicle = part:getVehicle()
@@ -1241,8 +1348,12 @@ end
 
 -- The timed action now running on this vehicle (nil when idle)
 local function activeAction(chr, v)
-    local q = ISTimedActionQueue.getTimedActionQueue(chr)
-    local a = q and q.queue and q.queue[1]
+    local q = gameQueue(chr)
+    if not q then return nil end
+    -- the running one is q.current (42.22: queue[1] can still hold the one just finished); a current the queue
+    -- no longer holds is a stale one left by a cleared queue (QA M9, Nov 26 2026)
+    local a = q.current
+    if not (a and inQueue(q, a)) then a = q.queue[1] end
     if a and a.jobType and a.jobType ~= "" then
         if (a.vehicle == v) or (a.part and a.part.getVehicle and a.part:getVehicle() == v) then return a end
     end
@@ -1252,22 +1363,24 @@ end
 -- Progress band for the running vehicle action, then the success / failure flash
 local function progressBand(panel, win, s, x, y, w, v, chr)
     local a = activeAction(chr, v)
-    if a then
+    -- (the chain the tab queued shows the band from its first step, the walk, with Cancel on it: QA M2, M9, Nov 26 2026)
+    local chain = (a == nil) and chainBusy(s, chr) and s.queuedV == v
+    if a or chain then
         do
             local pct = 0
-            pcall(function() pct = a:getJobDelta() end)
+            if a then pcall(function() pct = a:getJobDelta() end) end
             local rect = {}
             _cancelOpts.focus = focusFor(s, "mech:cancel")   -- Cancel's mark, drawn under its icon
             -- (QA's visual noise audit 18, Nov 20 2026: the action bar over the head already shows this job; the
             -- band keeps its bar and loses its percent. Bug B11: no "(Standard Vehicle)" on a standard car.)
             _cancelOpts.noPercent = true
-            local h = ZeD.Atoms.drawProgressBand(panel, x, y, w, "active", cased(MT.forThisCar(a.jobType, v)), pct, nil, rect, false, _cancelOpts)
+            local label = a and cased(MT.forThisCar(a.jobType, v))
+                          or (cased(s.queuedLabel or "") .. " " .. DOT .. " " .. cased(partName(s.queuedPart)))
+            local h = ZeD.Atoms.drawProgressBand(panel, x, y, w, "active", label, pct, nil, rect, false, _cancelOpts)
             if rect.w then
-                stamp(s, "mech:cancel", rect.x, rect.y, rect.w, rect.h, function()
-                    pcall(function() ISTimedActionQueue.clear(chr) end)
-                end)
+                stamp(s, "mech:cancel", rect.x, rect.y, rect.w, rect.h, function() cancelChain(s, chr) end)
             end
-            s.working = a.part and a.part.getId and a.part:getId() or nil
+            if a then s.working = a.part and a.part.getId and a.part:getId() or nil else s.working = s.queuedPart end
             return h
         end
     end
@@ -1562,6 +1675,7 @@ end
 local function openCard(win, s, id)
     s.card, s.verb, s.confirm, s.sortOpen = id, nil, nil, nil
     s.cardScroll, s.pick, s.fixPick = 0, 1, 1
+    s.pickItem = nil   -- (M3: the new part's best spare is taken at its first draw)
     s.items = nil
     s.needsCache, s.fixCache, s.partsCache = nil, nil, nil
     win._mechFocusTarget = "card"
@@ -1614,14 +1728,17 @@ local function cardModel(s, part, chr, v)
         if not s.verb and shown[1] then s.verb = shown[1].id end
     end
     return { part = part, p = partModel(part, chr, v), needs = needs, shown = shown, hidden = hidden,
-             verbs = verbs, primary = primary, busy = activeAction(chr, v) ~= nil }
+             verbs = verbs, primary = primary, busy = chainBusy(s, chr) or activeAction(chr, v) ~= nil }   -- (the whole chain: M2)
 end
 
 -- run a verb from the footer (a destructive one asks first)
 local function pressVerb(win, s, cm, verb, chr)
     s.verb = verb
-    if cm.busy or not cm.needs[verb].ok then return end
-    if DANGER[verb] then s.confirm = verb; win._mechFocusTarget = "mech:confirm:no"; return end
+    if cm.busy or chainBusy(s, chr) or not cm.needs[verb].ok then return end
+    if DANGER[verb] then
+        if refusePaused(chr) then return end   -- (no question to answer while paused: M12)
+        s.confirm = verb; win._mechFocusTarget = "mech:confirm:no"; return
+    end
     runVerb(s, verb, cm.part, chr)
 end
 
@@ -1933,13 +2050,11 @@ local function renderCardBody(panel, win, s, x, top, w, bodyH, v, chr, cm)
     -- install: the spares in reach and where each is
     if s.verb == "install" then
         local picks = installPicks(part, chr, itemsFor(s, chr))
-        local owned = 0
-        for _, pk in ipairs(picks) do if not pk.none then owned = owned + 1 end end
-        if s.pick > owned then s.pick = math.max(1, owned) end
+        pickedInstall(s, picks)   -- (the picked item keeps its tick whatever row it moves to: M3)
         section(ZeD.tr("UI_ZeD_Veh_FromBags"))
         for i, pk in ipairs(picks) do
             local rh = T.px(FIX_H)
-            local sel = (not pk.none) and (i == s.pick)
+            local sel = (not pk.none) and (pk.item == s.pickItem)
             local onFocus, textX = pickRow("mech:pick:" .. tostring(i), cy, rh, sel,
                 cy + T.px(6), not pk.none, not pk.none)
             local rc = onFocus and T.textOnFocus or (pk.none and T.textDim or T.text)
@@ -1957,8 +2072,8 @@ local function renderCardBody(panel, win, s, x, top, w, bodyH, v, chr, cm)
                 A.drawTextRight(panel, tostring(pk.cond) .. "%", right, ly, T.fontF1, onFocus and T.textOnFocus or T.text)
                 local loc = A.truncateText(pk.loc, T.fontF1, math.max(0, right - T.px(40) - textX))
                 panel:drawText(loc, textX, ly, dimc.r, dimc.g, dimc.b, dimc.a or 1, T.fontF1)
-                local idx = i
-                stamp(s, "mech:pick:" .. tostring(i), x + pad, cy, iw, rh, function() s.pick = idx end, { clip = clip, pane = "right" })
+                local idx, it = i, pk.item
+                stamp(s, "mech:pick:" .. tostring(i), x + pad, cy, iw, rh, function() s.pick, s.pickItem = idx, it end, { clip = clip, pane = "right" })
             end
             A.drawDividerH(panel, x + pad, cy + rh - T.px(1), iw, false)
             cy = cy + rh
@@ -2256,10 +2371,11 @@ local function renderSplit(panel, win, s, x, y, w, h, v, chr, inspected)
     local barVerbs = {
         { id = "inspect", label = getText("ContextMenu_Inspect"), variant = "primary", canDo = true, sensible = not inspected,
           help = ZeD.tr("UI_ZeD_Veh_HelpInspect"),
-          fn = function() ISVehicleMenu.onMechanic(chr, v) end },
+          fn = function() if not refusePaused(chr) then ISVehicleMenu.onMechanic(chr, v) end end },   -- (M12)
         { id = "closehood", label = getText("IGUI_CloseHood"), canDo = true, sensible = hoodOpen and true or false,
           help = ZeD.tr("UI_ZeD_Veh_HelpCloseHood"),
           fn = function()
+              if refusePaused(chr) then return end   -- (M12)
               ISTimedActionQueue.add(ISPathFindAction:pathToVehicleArea(chr, v, hood:getArea()))
               ISTimedActionQueue.add(ISCloseVehicleDoor:new(chr, v, hood))
               local e = INSP[v:getId()]
@@ -2346,7 +2462,7 @@ MT._h = {
 }
 -- For the sims only (ZeDUI/tools/qa/summercar_sim.lua): these are file locals.
 MT._test = { verbsFor = verbsFor, needsFor = needsFor, runVerb = runVerb, partContextMenu = partContextMenu,
-             cardModel = cardModel }
+             cardModel = cardModel, chainBusy = chainBusy, pressVerb = pressVerb, pickedInstall = pickedInstall }
 
 -- ----------------------------------------------------------------------------
 -- Entry: renderer registered in the World window's dispatch table

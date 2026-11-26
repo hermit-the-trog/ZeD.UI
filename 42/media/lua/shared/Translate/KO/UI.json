@@ -2738,6 +2738,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "뒤쪽으로 데리고 나갈 준비 완료",
     "UI_ZeD_Veh_ReadyWalkHim": "뒤쪽으로 데리고 나갈 준비 완료",
     "UI_ZeD_Veh_Removed": "제거됨",
+    "UI_ZeD_Veh_PartGone": "%1 이(가) 이미 떼어져 있습니다.",
     "UI_ZeD_Veh_RepairWith": "수리 재료",
     "UI_ZeD_Veh_Seat": "좌석",
     "UI_ZeD_Veh_SizeHdr": "크기",
