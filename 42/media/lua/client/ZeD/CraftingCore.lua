@@ -2738,7 +2738,10 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
                     elseif rd.status == "station" then status = "station"
                     elseif rd.status == "unlocked" then status = "miss" end
 
-                    rowData.tag = rd.stationTag
+                    -- (a Build row short of skill carries that skill, in the danger color: rd.skillTag, the
+                    -- director's call 6, Nov 25 2026)
+                    rowData.tag = rd.stationTag or rd.skillTag
+                    rowData.tagDanger = (rd.stationTag == nil and rd.skillTag ~= nil) or nil
                     rowData.name = name
                     rowData.displayName = rd.entry.displayName
                     rowData.iconTex = rd.entry.iconTex
@@ -3134,8 +3137,11 @@ end
 
 -- Start the craft or build for the selected recipe: the chosen ingredients
 -- when there are any, else the tab's own automatic start.
+-- (a tab whose start puts the picks on its own logic, config.ownPicks, gets its start with them: the Build tab,
+-- the director's call 7, Nov 25 2026)
 function CC.runStart(win, state, startAction)
-    if state._pickOn and CC.startPickedCraft(win, state) then return end
+    local own = state.config and state.config.ownPicks
+    if state._pickOn and not own and CC.startPickedCraft(win, state) then return end
     if startAction then startAction(win, state) end
 end
 
