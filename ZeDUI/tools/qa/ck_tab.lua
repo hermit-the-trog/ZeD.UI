@@ -1336,15 +1336,61 @@ function C.judgeSame(what, tag)
             .. " option(s) for the two (neither tells the " .. tag .. " one apart" .. (tag == "favorite" and ", neither skips it" or "") .. ")")
     end
 end
--- K2: the row lit exactly when the game offers an item of the type
+-- K2, row by row: each tracked item is judged on its own by the game's own rules (in getItemsCanBeUse, frozen
+-- allowed or not, needToBeCooked). An item the game takes sits in a lit row; one it refuses sits in no lit row and
+-- a grey row of its type says why. The game's right-click menu shows one option per type and number, so a raw and
+-- a cooked steak of the same number show as one option there (the first, refused); the tab lists each state as its
+-- own row, which is right (Build and QA agreed Nov 25: do not copy the menu's merge).
+function H.gameTakes(r, base, it)
+    local inList = false
+    for _, x in ipairs(H.gameList(r, base)) do if x == it then inList = true end end
+    if not inList then return false end
+    local ok = true
+    pcall(function()
+        if instanceof(it, "Food") and it:isFrozen() and not r:isAllowFrozenItem() then ok = false end
+        if not r:needToBeCooked(it) then ok = false end
+    end)
+    return ok
+end
+function H.rowOf(it)
+    local s = H.cs()
+    for _, g in ipairs((s and s.ingCache and s.ingCache.list) or {}) do
+        for _, x in ipairs(g.items or {}) do if x == it then return g end end
+    end
+    return nil
+end
+function H.greyRows(ft)
+    local o = {}
+    local s = H.cs()
+    for _, g in ipairs((s and s.ingCache and s.ingCache.list) or {}) do
+        if g.ft == ft and g.why then o[#o + 1] = g end
+    end
+    return o
+end
 function C.rowGame(what)
     return function(T)
         local L = T.spec.label
-        local avail = false
-        for _, o in ipairs(T.opts) do if o.avail then avail = true end end
-        T.gameAvail = avail
-        Q.check(T.lit == avail, L .. " (K2): the row is lit exactly when the game offers " .. what .. " (one refused item must not grey the type)",
-            "the row " .. (T.lit and "lit" or "grey") .. (T.g and T.g.why and (" (" .. T.g.why .. ")") or "") .. "; the game's options: " .. H.optsText(T.opts))
+        local ft = T.spec.ft
+        local anyTaken = false
+        for _, e in ipairs(T.items) do
+            local takes = H.gameTakes(T.r, T.baseIt, e.it)
+            local g = H.rowOf(e.it)
+            local rowLit = g ~= nil and g.id ~= nil and H.lit(g.id)
+            if takes then
+                anyTaken = true
+                Q.check(rowLit, L .. " (K2): the " .. e.tag .. " one, which the game takes, sits in a lit row",
+                    "its row " .. tostring(g and g.id) .. " " .. (rowLit and "lit" or "grey or none") .. (g and g.why and (" (" .. g.why .. ")") or ""))
+            else
+                local greys = H.greyRows(ft)
+                local why = {}
+                for _, x in ipairs(greys) do why[#why + 1] = tostring(x.name) .. ": " .. tostring(x.why) end
+                Q.check(not rowLit and #greys >= 1, L .. " (K2): the " .. e.tag .. " one, which the game refuses, sits in no lit row and a grey row says why",
+                    "its row " .. tostring(g and g.id) .. (rowLit and " lit" or "") .. "; grey rows " .. H.list(why))
+            end
+        end
+        T.gameAvail = anyTaken
+        Q.check(T.lit == anyTaken, L .. " (K2): the type's first row is lit exactly when the game takes " .. what,
+            "the row " .. (T.lit and "lit" or "grey") .. (T.g and T.g.why and (" (" .. T.g.why .. ")") or "") .. "; the game's menu options: " .. H.optsText(T.opts))
         if not T.lit then T.stop = true; H.note(L .. ": the row is grey, Make is not pressed") end
     end
 end
