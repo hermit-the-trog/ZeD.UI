@@ -1818,8 +1818,13 @@ function C.c6look(T, label)
     local r = S.ckRect
     local s = H.cs()
     if not (r and s and getTimestampMs() - r.t < 1000) then Q.skip(label, "the tab's rectangle was not read"); return end
+    -- (the pane's real width: since Build's K11 fix the 220 card stacks the list over the dish pane, each full width
+    -- (CK.layout); measured from the layout the tab drew, the fixed 240u list only when it has none)
+    local lay = nil
+    pcall(function() lay = ZeD.CookingTab.layout(r.x, r.y, r.w, r.h or ZeD.T.px(400)) end)
     local listW = ZeD.T.px((ZeD.CraftingCore and ZeD.CraftingCore.PANE_W_SPLIT) or 240)
     local rw = r.w - listW - ZeD.T.px(1)
+    if type(lay) == "table" and lay.dish and lay.list then listW, rw = lay.list.w, lay.dish.w end
     local bad, plans = {}, 0
     for _, z in ipairs(s.zones or {}) do
         if z.planRow then
@@ -2165,7 +2170,8 @@ function C.c9()
             for _, r in ipairs(g.rows or {}) do if r.label == getText("Tooltip_food_Calories") then card = r.value end end
         end
         local now = H.fact(T.tom, getText("Tooltip_food_Calories"))
-        Q.check(card ~= nil and card == now, "9 K17: the open item card's Calories row is its facts' (no Nutritionist)", "the card " .. tostring(card) .. ", the facts " .. tostring(now))
+        -- (without the trait both are hidden now, the game's rule: equal, nil and nil, is the pass)
+        Q.check(card == now, "9 K17: the open item card's Calories row is its facts' (no Nutritionist: both hidden, as the game)", "the card " .. tostring(card) .. ", the facts " .. tostring(now))
         H.cardShut()
         H.traitsBack()
     end)
