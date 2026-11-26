@@ -912,7 +912,12 @@ end)
 H.wait(40000, function() return not S.cookArm or S.steak:isCooked() or S.steak:isBurnt() end, function(held)
     if not S.cookArm then return end
     if held then
-        Q.check(true, "stove: the steak cooks on fast-forward", string.format("%.0f of %.0f minutes", S.steak:getCookingTime(), S.steak:getMinutesToCook()))
+        -- (Nov 25 2026, ck_tab's K24: was Q.check(true, ...). The game's own state, read back: cooked by the oven's
+        -- heat, its cooking time past its minutes to cook, the food hot, in the oven)
+        local ct, tc, heat = S.steak:getCookingTime(), S.steak:getMinutesToCook(), S.steak:getHeat()
+        Q.check((S.steak:isCooked() or S.steak:isBurnt()) and ct >= tc - 0.5 and heat > 1.6 and S.steak:getContainer() == S.stInv,
+            "stove: the steak cooks on fast-forward (cooked by its time, hot, in the oven)",
+            string.format("%.0f of %.0f minutes, heat %.2f, in the oven %s", ct, tc, heat, tostring(S.steak:getContainer() == S.stInv)))
     else
         Q.skip("stove: the steak cooks on fast-forward", string.format("after 40 s: %.1f of %.0f minutes, heat %.2f, oven at %.0f; set cooked by hand so the card checks run",
             S.steak:getCookingTime(), S.steak:getMinutesToCook(), S.steak:getHeat(), S.stove:getCurrentTemperature()))
@@ -924,7 +929,10 @@ end)
 H.wait(40000, function() return not S.cookArm or S.steak:isBurnt() end, function(held)
     if not S.cookArm then return end
     if held then
-        Q.check(true, "stove: left in, the steak burns", string.format("%.0f minutes, burns at %.0f", S.steak:getCookingTime(), S.steak:getMinutesToBurn()))
+        -- (Nov 25 2026, ck_tab's K24: was Q.check(true, ...). Burnt by its time in the oven, not set by hand)
+        local ct, tb = S.steak:getCookingTime(), S.steak:getMinutesToBurn()
+        Q.check(S.steak:isBurnt() and ct >= tb - 0.5 and S.steak:getContainer() == S.stInv, "stove: left in, the steak burns (by its time, in the oven)",
+            string.format("%.0f minutes, burns at %.0f, in the oven %s", ct, tb, tostring(S.steak:getContainer() == S.stInv)))
     else
         Q.skip("stove: left in, the steak burns", string.format("after 40 s more: %.1f of %.0f minutes; set burnt by hand", S.steak:getCookingTime(), S.steak:getMinutesToBurn()))
         S.steak:setBurnt(true)
@@ -1517,7 +1525,14 @@ H.wait(15000, function() return not S.litArm or S.campFood == nil or S.campFood:
     H.speed(1)
     if not S.litArm then return end
     if S.campFood == nil then Q.skip("campfire: a steak cooks on it", "the campfire has no container for it")
-    elseif held then Q.check(true, "campfire: a steak on the lit fire cooks on fast-forward", string.format("%.1f minutes, heat %.2f", S.campFood:getCookingTime(), S.campFood:getHeat()))
+    elseif held then
+        -- (Nov 25 2026, ck_tab's K24: was Q.check(true, ...). The steak is in the fire's own container, the fire is lit
+        -- by its own server object, and its cooking time has grown)
+        local soL, isoL = H.campServer(), H.campIso()
+        local inFire = isoL ~= nil and S.campFood:getContainer() == isoL:getContainer()
+        Q.check(inFire and soL ~= nil and soL.isLit == true and (S.campFood:getCookingTime() > 0 or S.campFood:isCooked()),
+            "campfire: a steak on the lit fire cooks on fast-forward (in the fire, the fire lit, its cooking time grown)",
+            string.format("%.1f minutes, heat %.2f, in the fire %s, lit %s", S.campFood:getCookingTime(), S.campFood:getHeat(), tostring(inFire), tostring(soL and soL.isLit)))
     else Q.skip("campfire: a steak cooks on it", string.format("after 15 s: %.1f minutes, heat %.2f", S.campFood:getCookingTime(), S.campFood:getHeat())) end
     if S.campFood then H.factsOK(S.campFood, "steak on the campfire") end
     local so, d = H.campServer(), H.fireD()
