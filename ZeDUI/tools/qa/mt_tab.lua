@@ -1441,7 +1441,9 @@ function C.c3leg(how, pid)
             pcall(function() w, cap = S.p:getInventory():getCapacityWeight(), S.p:getMaxWeight() end)
             H.note(T.L .. ": his own free things set aside for the leg; he carries " .. tostring(w) .. " of " .. tostring(cap))
         end
-        T.a = H.give(T.tft)
+        -- (Nov 26 2026: both 70% spares in the crate, so only the picked one is moved to him and its weight fits; on
+        -- the run before, a spare in his bag plus the third made the game's hasRoomFor say no and Install went grey)
+        T.a = H.giveTo(T.crate.inv, T.tft)
         T.b = H.giveTo(T.crate.inv, T.tft)
         pcall(function() T.a:setCondition(70); T.b:setCondition(70) end)
         H.lootRefresh()
@@ -1481,8 +1483,10 @@ function C.c3leg(how, pid)
         if T.off then return end
         local s = H.ms()
         Q.check(s ~= nil and s.pick == T.crateRow, T.L .. ": the crate's spare is picked", "pick " .. tostring(s and s.pick) .. " (row " .. T.crateRow .. ")")
+        T.pk = s and s.pickItem
+        if T.pk ~= T.a and T.pk ~= T.b then T.pk = nil end
         -- a third spare brought near after the pick (a better one, in his bag)
-        T.c = H.give(T.tft)
+        T.c = H.giveTo(T.crate.inv, T.tft)
         pcall(function() T.c:setCondition(90) end)
         H.lootRefresh()
     end)
@@ -1493,7 +1497,7 @@ function C.c3leg(how, pid)
         -- (for Build, Nov 26 2026: Install queued nothing after a pick on ec6c95c19; the tab's own state at the press)
         local ms = H.ms()
         H.note(T.L .. ": at the press, s.pick " .. tostring(ms and ms.pick) .. ", s.pickItem " .. H.nm(ms and ms.pickItem)
-            .. (ms and ms.pickItem == T.b and " (the crate's 70)" or (ms and ms.pickItem == T.a and " (the bag's 70)" or (ms and ms.pickItem == T.c and " (the bag's 90)" or "")))
+            .. (ms and ms.pickItem == T.b and " (the second 70)" or (ms and ms.pickItem == T.a and " (the first 70)" or (ms and ms.pickItem == T.c and " (the 90)" or "")))
             .. ", s.queued " .. tostring(ms and ms.queued and #ms.queued or 0) .. ", the game's queue " .. H.qkinds()
             .. "; footer " .. H.footText() .. "; NEEDS " .. H.needsText() .. "; picks " .. H.picksText()
             .. "; room for the crate's spare " .. tostring(H.roomFor(T.b)))
@@ -1510,8 +1514,9 @@ function C.c3leg(how, pid)
     H.step(3, function()
         if T.off then return end
         local on = H.item(T.v, pid)
-        local which = (on == T.b and "the crate's 70 (picked)") or (on == T.a and "the bag's 70") or (on == T.c and "the bag's 90 (brought after the pick)") or H.nm(on)
-        Q.check(on ~= nil and on == T.b, T.L .. " (M3): Install puts on the spare picked, whatever came near after",
+        local function nm(x) return (x == T.a and "the first 70") or (x == T.b and "the second 70") or (x == T.c and "the 90 (brought after the pick)") or H.nm(x) end
+        local which = nm(on) .. (on ~= nil and on == T.pk and " (picked)" or "") .. "; picked " .. (T.pk and nm(T.pk) or "nothing")
+        Q.check(on ~= nil and T.pk ~= nil and on == T.pk, T.L .. " (M3): Install puts on the spare picked, whatever came near after",
             "the game put on: " .. which .. "; the rows after the third spare came: " .. tostring(T.after) .. "; the game queued " .. tostring(T.kinds))
         T.flashOk = #S.mad > (T.mad0 or 0)
         if T.flashOk then S.madSeenAt = S.madSeenAt or getTimestampMs() end
