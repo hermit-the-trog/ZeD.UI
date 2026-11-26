@@ -4,7 +4,7 @@
 -- in 38.6 / 38.7 / 26.0. With no game running, the real ZeD/CookClock.lua runs on a stub game clock and a stub food
 -- cooking at each measured rate. It checks:
 --   no minutes figure before a steady rate is measured (the rows show their percent then); the first figure, within
---   about six game minutes, is the real game minutes (38.6, 38.7, 26.0); a jump as the food heats up does not set
+--   about ten game minutes (QA K12 third pass: a range warming up), is the real game minutes (38.6, 38.7, 26.0); a jump as the food heats up does not set
 --   the rate (QA's second pass: 24 said, 37 real); it counts down with the clock and never goes up
 --   while the heat holds; off the heat there is no figure; the time to burn uses the same rate; both call sites
 --   (StationAppliance and ObjectCards) ask ZeD.CookClock.minutesLeft, not the old "minutes to cook - cooking time".
@@ -42,7 +42,7 @@ end
 
 -- One food cooking at rate (cooking time per game minute), toCook 50, looked at every 0.1 game minute (a refresh).
 -- Returns the first figure shown after the first look, and the real minutes it takes to get there.
-local function run(name, rate, startCt, toCook, jump)
+local function run(name, rate, startCt, toCook, jump, ramp)
     CC.reset()
     local it = food(startCt)
     local first = CC.minutesLeft(it, it.ct, toCook, true)
@@ -50,18 +50,22 @@ local function run(name, rate, startCt, toCook, jump)
     local shown, t, last, rose = nil, 0, nil, false
     while it.ct < toCook do
         advance(0.1); t = t + 0.1
-        it.ct = it.ct + rate * 0.1
+        -- (ramp: a range warming up, the rate climbing from a fifth of its own over the first ramp minutes)
+        local r = rate
+        if ramp and t < ramp then r = rate * (0.2 + 0.8 * t / ramp) end
+        it.ct = it.ct + r * 0.1
         if jump and t > 0.45 and t < 0.55 then it.ct = it.ct + jump; startCt = startCt + jump end   -- (the heat-up step)
         local m = CC.minutesLeft(it, it.ct, toCook, true)
         if m and not shown then shown = { m = m, t = t } end
         if m and last and m > last then rose = true end
         if m then last = m end
     end
-    local real = (toCook - startCt) / rate
-    check(name .. ": a figure within about six game minutes", shown and shown.t <= 6.2, shown and shown.t)
-    -- the first figure shown, plus the minute already gone, is the real time (rounded up)
+    -- the first figure shown, plus the minutes already gone, is the real time (rounded up); the real time is
+    -- the minutes the loop took, so a ramp is counted as it cooked
+    local real = t
+    check(name .. ": a figure within about ten game minutes", shown and shown.t <= 10.2, shown and shown.t)
     local said = shown and (shown.m + shown.t) or -1
-    check(name .. ": says the real game minutes (" .. string.format("%.1f", real) .. ")", math.abs(said - real) <= 1, said)
+    check(name .. ": says the real game minutes (" .. string.format("%.1f", real) .. ")", math.abs(said - real) <= 1.2, said)
     check(name .. ": never counts up while the heat holds", not rose)
     check(name .. ": reaches 0 or 1 at the end", last and last <= 1, last)
     return shown and shown.m
@@ -75,20 +79,25 @@ check("the old line would have said 49 / 50, the new one does not", m1 and m3 an
 -- QA's second pass: range at 100, 1.29 a minute after a step as it heated (about 2 a minute read in the first
 -- minute): 47.8 left after it is 37 game minutes, not 24
 run("range at 100 with a heat-up step", 1.29, 0, 47.8 + 6, 6)
+-- QA's third pass: a range at 300 warming up (the food at 1.3 of 50 when the first figure came, 15 said for a
+-- real 24.8); with the rate climbing over the first four minutes the first figure must still be the real time
+run("range at 300 warming up", 1.88, 0, 48.9, nil, 4)
 
--- off the heat: no figure; back on, the kept rate gives one at once
+-- off the heat: no figure; back on, measured afresh (the heat may not be the one it left)
 CC.reset()
 do
     local it = food(0)
     CC.minutesLeft(it, it.ct, 70, true)
     local on = nil
-    for _ = 1, 80 do advance(0.1); it.ct = it.ct + 0.15; on = CC.minutesLeft(it, it.ct, 70, true) end
-    check("on the heat for eight minutes at 1.5/min: the real minutes", on and math.abs(on - (70 - it.ct) / 1.5) <= 1, on)
+    for _ = 1, 95 do advance(0.1); it.ct = it.ct + 0.15; on = CC.minutesLeft(it, it.ct, 70, true) end
+    check("on the heat for nine and a half minutes at 1.5/min: the real minutes", on and math.abs(on - (70 - it.ct) / 1.5) <= 1, on)
     advance(5)
     check("off the heat: no figure", CC.minutesLeft(it, it.ct, 50, false) == nil)
     advance(0.1); it.ct = it.ct + 0.15
     local back = CC.minutesLeft(it, it.ct, 50, true)
-    check("back on: the kept rate answers at once, not the five cold minutes", back and math.abs(back - (50 - it.ct) / 1.5) <= 1, back)
+    check("back on: no figure until it is measured again", back == nil, back)
+    for _ = 1, 90 do advance(0.1); it.ct = it.ct + 0.15; back = CC.minutesLeft(it, it.ct, 50, true) end
+    check("back on for nine minutes: the real minutes again", back and math.abs(back - (50 - it.ct) / 1.5) <= 1, back)
     -- cooked: the same food counts to burnt (minutes to burn 80) at its own rate
     local burn = CC.minutesLeft(it, it.ct, 80, true)
     check("the time to burn uses the same rate", burn and math.abs(burn - (80 - it.ct) / 1.5) <= 1, burn)

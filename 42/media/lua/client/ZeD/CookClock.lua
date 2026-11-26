@@ -21,8 +21,9 @@ local CC = ZeD.CookClock
 CC.SPAN   = 1      -- game minutes between samples (shorter ones are mostly rounding)
 CC.STALE  = 10     -- game minutes: a gap longer than this (the card was shut) starts a new sample
 CC.WINDOW = 6      -- game minutes: the rate is the slope over the samples of the last this many minutes
-CC.MIN_SPAN = 3    -- game minutes of samples (after the first, skipped) before any rate is given
-CC.STEADY = 0.12   -- a rate is given once two slopes in a row agree within this share
+CC.MIN_SPAN = 5    -- game minutes of samples (after the first, skipped) before any rate is given
+CC.STEADY = 0.10   -- slopes that agree within this share count as steady
+CC.AGREE  = 3      -- a rate is given once this many slopes in a row agree
 CC.RING   = 12     -- samples kept per food
 CC.KEEP_MAX = 128  -- foods remembered before the list starts over
 
@@ -30,6 +31,10 @@ CC.KEEP_MAX = 128  -- foods remembered before the list starts over
 -- 2 a minute where the food then cooked at 1.29) said 24 min for a real 37. Now the rate is the slope over
 -- the last several minutes, the minute the food went on the heat is left out, and no figure is given until
 -- two slopes agree: the rows show percent until then. (QA K12 second pass, Nov 25 2026)
+-- Third pass: in a range at 300 the first figure came with the food barely started (1.3 of 50) and said 15
+-- min for a real 24.8. Now the slope needs five game minutes of this heat behind it and three slopes in a
+-- row that agree, and a rate from before the food left the heat is not reused: each time on the heat is
+-- measured afresh. Until then the rows show percent. (QA K12 third pass, Nov 25 2026)
 
 -- per food: { ring = { {t, ct}, ... }, skip = the anchor sample is still first, rate (steady), last (latest
 -- slope), shown }
@@ -75,11 +80,11 @@ function CC.sample(item, ct, hot)
     local lastS = ring[#ring]
     local dt = now - lastS.t
     -- off the heat, a clock run back (a load), cooking time gone down or a long gap: start the samples here,
-    -- keep the rate it had (the food back on the same heat cooks as it did)
+    -- forget the rate (the heat it comes back to may not be the one it left: a range turned up, a fire dying)
     if not hot or dt < 0 or ct < lastS.ct or dt > CC.STALE then
         e.ring = { { t = now, ct = ct } }
-        e.skip, e.last = true, nil
-        return e.rate
+        e.skip, e.last, e.rate, e.agree = true, nil, nil, 0
+        return nil
     end
     if dt >= CC.SPAN then
         ring[#ring + 1] = { t = now, ct = ct }
@@ -93,8 +98,10 @@ function CC.sample(item, ct, hot)
         local span = now - a.t
         if span >= CC.MIN_SPAN and ct > a.ct then
             local slope = (ct - a.ct) / span
-            if e.last and math.abs(slope - e.last) <= CC.STEADY * slope then e.rate = slope end
+            if e.last and math.abs(slope - e.last) <= CC.STEADY * slope then e.agree = (e.agree or 0) + 1
+            else e.agree = 0 end
             e.last = slope
+            if e.agree >= CC.AGREE - 1 then e.rate = slope end
         end
     end
     return e.rate
