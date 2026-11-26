@@ -2738,6 +2738,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "A punt per fer-la sortir pel darrere",
     "UI_ZeD_Veh_ReadyWalkHim": "A punt per fer-lo sortir pel darrere",
     "UI_ZeD_Veh_Removed": "Retirat",
+    "UI_ZeD_Veh_PartGone": "%1 ja no hi és.",
     "UI_ZeD_Veh_RepairWith": "Reparar amb",
     "UI_ZeD_Veh_Seat": "Seient",
     "UI_ZeD_Veh_SizeHdr": "Mida",

@@ -2738,6 +2738,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "Lze ji vyvést vzadu",
     "UI_ZeD_Veh_ReadyWalkHim": "Lze ho vyvést vzadu",
     "UI_ZeD_Veh_Removed": "Sundáno",
+    "UI_ZeD_Veh_PartGone": "%1 už je sundaný.",
     "UI_ZeD_Veh_RepairWith": "Opravit pomocí",
     "UI_ZeD_Veh_Seat": "Sedadlo",
     "UI_ZeD_Veh_SizeHdr": "Velikost",

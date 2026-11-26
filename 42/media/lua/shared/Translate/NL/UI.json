@@ -2801,6 +2801,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "Klaar om haar achter naar buiten te leiden",
     "UI_ZeD_Veh_ReadyWalkHim": "Klaar om hem achter naar buiten te leiden",
     "UI_ZeD_Veh_Removed": "Verwijderd",
+    "UI_ZeD_Veh_PartGone": "%1 is er al af.",
     "UI_ZeD_Veh_RepairWith": "Repareren met",
     "UI_ZeD_Veh_Seat": "Stoel",
     "UI_ZeD_Veh_SizeHdr": "Grootte",

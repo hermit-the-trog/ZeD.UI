@@ -2892,6 +2892,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "Ready to walk her out at the back",
     "UI_ZeD_Veh_ReadyWalkHim": "Ready to walk him out at the back",
     "UI_ZeD_Veh_Removed": "Removed",
+    "UI_ZeD_Veh_PartGone": "%1 is already off.",
     "UI_ZeD_Veh_RepairWith": "Repair with",
     "UI_ZeD_Veh_Seat": "Seat",
     "UI_ZeD_Veh_SizeHdr": "Size",

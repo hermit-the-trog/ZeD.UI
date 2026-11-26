@@ -2738,6 +2738,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "Siap menuntunnya keluar di belakang",
     "UI_ZeD_Veh_ReadyWalkHim": "Siap menuntunnya keluar di belakang",
     "UI_ZeD_Veh_Removed": "Dilepas",
+    "UI_ZeD_Veh_PartGone": "%1 sudah dilepas.",
     "UI_ZeD_Veh_RepairWith": "Perbaiki dengan",
     "UI_ZeD_Veh_Seat": "Kursi",
     "UI_ZeD_Veh_SizeHdr": "Ukuran",

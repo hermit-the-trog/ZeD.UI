@@ -2744,6 +2744,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "Klar til at føre hende ud bagved",
     "UI_ZeD_Veh_ReadyWalkHim": "Klar til at føre ham ud bagved",
     "UI_ZeD_Veh_Removed": "Fjernet",
+    "UI_ZeD_Veh_PartGone": "%1 er allerede taget af.",
     "UI_ZeD_Veh_RepairWith": "Reparér med",
     "UI_ZeD_Veh_Seat": "Sæde",
     "UI_ZeD_Veh_SizeHdr": "Størr.",

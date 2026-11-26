@@ -2738,6 +2738,7 @@
     "UI_ZeD_Veh_ReadyWalkHer": "Можно вывести её через заднюю дверь",
     "UI_ZeD_Veh_ReadyWalkHim": "Можно вывести его через заднюю дверь",
     "UI_ZeD_Veh_Removed": "Снята",
+    "UI_ZeD_Veh_PartGone": "%1 уже снято.",
     "UI_ZeD_Veh_RepairWith": "Чем чинить",
     "UI_ZeD_Veh_Seat": "Сиденье",
     "UI_ZeD_Veh_SizeHdr": "Размер",
