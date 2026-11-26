@@ -1815,7 +1815,16 @@ function C.c8look(T, label)
     if not (r and s and getTimestampMs() - r.t < 1000) then Q.skip(label, "the tab's rectangle was not read"); return end
     local listW = ZeD.T.px((ZeD.CraftingCore and ZeD.CraftingCore.PANE_W_SPLIT) or 240)
     local rw = math.floor(r.w - listW - ZeD.T.px(1))
-    Q.check(rw > 0, label .. " (M8): the right column has room beside the fixed list", "the tab " .. math.floor(r.w) .. " px, the list " .. listW .. " px, the right column " .. rw .. " px")
+    -- (fix/mechanics, Nov 26 2026: MT.layout stacks the list over the right pane when the room beside the list is short,
+    -- as CK.layout does; the panes are read from it, not from the fixed list)
+    local lay = nil
+    pcall(function() lay = ZeD.MechanicsTab.layout(r.x or 0, r.y or 0, r.w, r.h or ZeD.T.px(400)) end)
+    local how = "side by side"
+    if type(lay) == "table" and lay.list and lay.right then
+        listW, rw = math.floor(lay.list.w), math.floor(lay.right.w)
+        if lay.stacked then how = "stacked" end
+    end
+    Q.check(rw > 0, label .. " (M8): the right column has room (" .. how .. ")", "the tab " .. math.floor(r.w) .. " px, the list " .. listW .. " px, the right pane " .. rw .. " px")
     local out, n = {}, 0
     for _, z in ipairs(s.zones or {}) do
         local id = tostring(z.id)
