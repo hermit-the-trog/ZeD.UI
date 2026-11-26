@@ -2280,13 +2280,21 @@ function C.c11()
         pcall(function() ax, ay = s.panel:getAbsoluteX() + z.x, s.panel:getAbsoluteY() + z.y end)
         local cx, cy, n = -1, -1, 0
         pcall(function() cx, cy, n = c:getX(), c:getY(), c.numOptions or 0 end)
+        -- (ZeD draws the game's menus itself, Overrides/ContextMenu.lua: its own menu (c._zedMenu) at the menu's anchor
+        -- (c._zedAnchorX/Y), the game's ISContextMenu parked off screen. Where the player sees it is ZeD's menu)
+        local zx, zy, axA, ayA = nil, nil, nil, nil
+        pcall(function() axA, ayA = c._zedAnchorX, c._zedAnchorY end)
+        pcall(function() if c._zedMenu then zx, zy = c._zedMenu:getX(), c._zedMenu:getY() end end)
+        local vx, vy = cx, cy
+        if zx ~= nil then cx, cy = zx, zy end
         local sw, sh = H.screen()
         local onScreen = cx >= 0 and cy >= 0 and cx < sw and cy < sh
         local near = math.abs(cx - ax) < ZeD.T.px(480) and math.abs(cy - ay) < ZeD.T.px(300)
         T.vis = H.ctxVis()
         Q.check(T.vis, T.L .. " (M11): X on a row opens the game's part menu", "visible " .. tostring(T.vis) .. ", " .. tostring(n) .. " options")
         Q.check(T.vis and onScreen and near, T.L .. " (M11): with the pointer hidden the menu opens on screen by the focused row",
-            "the menu at " .. math.floor(cx) .. "," .. math.floor(cy) .. "; the row at " .. math.floor(ax) .. "," .. math.floor(ay) .. "; screen " .. sw .. "x" .. sh)
+            "the shown menu at " .. math.floor(cx) .. "," .. math.floor(cy) .. " (ZeD's menu " .. tostring(zx) .. "," .. tostring(zy) .. ", its anchor " .. tostring(axA) .. "," .. tostring(ayA)
+            .. ", the game's parked menu " .. tostring(vx) .. "," .. tostring(vy) .. "); the row at " .. math.floor(ax) .. "," .. math.floor(ay) .. "; screen " .. sw .. "x" .. sh)
         local jp = nil
         pcall(function() jp = JoypadState.players[S.pn + 1] end)
         H.note(T.L .. ": a pad joined to the game " .. tostring(jp ~= nil) .. " (the game hands its menu the pad's focus only with one)")
