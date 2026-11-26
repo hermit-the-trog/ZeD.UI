@@ -3646,7 +3646,16 @@ local function drawTabStrip(self, win)
             -- (back to Loot with the drawer shut, as pressing Loot does. Setting only the tab left the drawer
             -- open in tab mode, and it drew the "placeholder" card for "loot". An item card over the vanished
             -- tab stays: only a tab drawer is shut.)
-            if win._drawerMode == "tab" and win._mainContent then
+            -- An item card pushed over the tab (drawer mode still "tab", _drawerItem set: the two-deep stack)
+            -- is kept too: the card stays open on its own, as a card opened with no tab, and goes when it is
+            -- put down. Shutting it lost the card a player had just opened: a stew clicked right after Make,
+            -- while the Cooking tab held on until its once-a-second scan saw nothing left to cook.
+            -- (QA, the 1280x800 stew card, Nov 26 2026)
+            if win._drawerMode == "tab" and win._drawerItem then
+                win._activeTab = "loot"
+                win._drawerMode = "item"
+                win._drawerOpen = true
+            elseif win._drawerMode == "tab" and win._mainContent then
                 _switchTabForNav(win, win._mainContent, "loot")
             else
                 win._activeTab = "loot"
