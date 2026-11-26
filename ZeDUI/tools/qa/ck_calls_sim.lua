@@ -10,7 +10,7 @@
 --   4  dishes already made are listed (base == result: an omelette, a second round of soup), folded into the dish
 --      of the same name, each base once
 --   5  the tab shows for a pot in a crate (none carried), and Make brings the pot to the player before the add and
---      sends it back after
+--      sends the dish it ends with (a new item: the pot became a pot of stew) back to the crate after
 --   6  the tab opens on the last dish made; with that dish not in reach, on the first rule's dish
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/ck_calls_sim.lua
 -- It prints FAIL lines and a last line "ck_calls_sim: N checks, M failed", and exits 1 if any failed.
@@ -372,9 +372,39 @@ do
     end
     check("Make brings the pot to the player", firstTransfer ~= nil and Q.queue[firstTransfer].dst == INV)
     check("before the add", firstTransfer and firstAdd and firstTransfer < firstAdd)
-    local back = false
-    for _, it in ipairs(RETURNED) do if it == POT then back = true end end
-    check("and sends it back after, as the game's menu", back)
+    -- the dish goes back, not the pot: the first add turns the pot into a new item, a pot of stew, so a move
+    -- back queued for the pot moved nothing and the stew stayed in his bags (QA's second read of call 5)
+    local potBack = false
+    for _, it in ipairs(RETURNED) do if it == POT then potBack = true end end
+    check("TEETH: the pot is not sent back with the ingredients (it becomes the stew)", not potBack)
+    local ret, retAt, lastAdd = nil, nil, nil
+    for i, a in ipairs(Q.queue) do
+        if a.usedItem then lastAdd = i end
+        if ZeD_CookReturn and getmetatable(a) == ZeD_CookReturn then ret, retAt = a, i end
+    end
+    check("a return is queued after the last add, for the crate", ret ~= nil and retAt > (lastAdd or 99) and ret.cont == CRATE)
+    if ret then
+        -- the chain ends with a new item, the stew, on the player
+        local STEWD = Item(ret.recipe:getFullResultItem(), "Stew", { _food = false })
+        INV.items[#INV.items + 1] = STEWD; STEWD._cont = INV
+        ret.chain.base = STEWD
+        CharacterTrait = CharacterTrait or { DISORGANIZED = "Disorganized" }
+        CHR.hasTrait = function() return false end
+        local before = #Q.queue
+        ret:start(); ret.forceComplete = noop; ret.forceStop = noop
+        ret:update()
+        check("it waits a frame (the last add completes after it starts)", #Q.queue == before)
+        ret:update()
+        local mv = Q.queue[#Q.queue]
+        check("then the stew goes back to the crate", #Q.queue == before + 1 and mv.transfer and mv.item == STEWD
+            and mv.src == INV and mv.dst == CRATE)
+        CHR.hasTrait = function() return true end
+        before = #Q.queue
+        ret.ticks = 1
+        ret:update()
+        check("not for a Disorganized character (as the game's ReturnItemToContainer)", #Q.queue == before)
+        CHR.hasTrait = nil
+    end
     Q.queue, s.queued = {}, nil
 end
 

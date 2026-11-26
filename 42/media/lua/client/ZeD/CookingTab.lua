@@ -715,6 +715,58 @@ function ZeD_CookWait:update()
     end
 end
 
+-- The dish goes back where its base came from. A base brought from a crate or the stove is turned by the first
+-- add into another item (a pot of water becomes a pot of stew), so a move back queued for the pot found nothing
+-- to move and the stew stayed in the player's bags (the game's own menu does the same; QA call 5). This waits
+-- behind the chain's last add, finds the dish the chain ended with (the chain's base; on a server the dish the
+-- server made), and queues the game's own move of it back (ISCraftingUI.ReturnItemToContainer's steps: not for
+-- a Disorganized character, missing items allowed). Client only, no complete(), like ZeD_CookWait.
+-- (director's call 5, QA's second read, Nov 25 2026)
+ZeD_CookReturn = ZeD_CookReturn or ISBaseTimedAction:derive("ZeD_CookReturn")
+function ZeD_CookReturn:new(character, recipe, chain, cont)
+    local o = ISBaseTimedAction.new(self, character)
+    o.recipe, o.chain, o.cont = recipe, chain, cont
+    o.maxTime = -1   -- (no set length: update() ends it)
+    o.useProgressBar = false
+    o.stopOnWalk, o.stopOnRun = false, false
+    return o
+end
+function ZeD_CookReturn:isValid() return true end
+function ZeD_CookReturn:isValidStart() return true end
+function ZeD_CookReturn:start() self.t0 = getTimestampMs(); self.ticks = 0 end
+function ZeD_CookReturn:stop() ISBaseTimedAction.stop(self) end
+function ZeD_CookReturn:perform() ISBaseTimedAction.perform(self) end
+-- the dish the chain ended with, on the player (nil: not there yet)
+function ZeD_CookReturn:dish()
+    local chr, ch = self.character, self.chain
+    local inv = chr:getInventory()
+    local b = ch.base
+    if b and inv:contains(b) and self.recipe:isResultItem(b) then return b end
+    if isClient() then return findDish(chr, self.recipe, ch) end
+    return nil
+end
+function ZeD_CookReturn:update()
+    -- (one frame first: in 42.22 the last add's complete() runs after this action's start())
+    self.ticks = (self.ticks or 0) + 1
+    if self.ticks < 2 then return end
+    local ok, dish = pcall(self.dish, self)
+    if ok and dish then
+        local chr = self.character
+        local skip = false
+        pcall(function() skip = chr:hasTrait(CharacterTrait.DISORGANIZED) end)
+        if not skip and self.cont and self.cont ~= chr:getInventory() then
+            local a = ISInventoryTransferUtil.newInventoryTransferAction(chr, dish, chr:getInventory(), self.cont, nil)
+            if a.setAllowMissingItems then a:setAllowMissingItems(true) end
+            ISTimedActionQueue.addAfter(self, a)
+        end
+        self:forceComplete()
+    elseif not ok or getTimestampMs() - (self.t0 or 0) > 10000 then
+        -- (no dish within 10 s, the adds stopped: nothing to move, it stays with the player)
+        if not ok then ZeD.logOnce("cook return", dish) end
+        self:forceStop()
+    end
+end
+
 -- Make stays gray, and a press is refused, while the adds it queued are still in the player's queue (waiting,
 -- walking or running). The items stay in reach until each add completes, so a second press two frames later
 -- (or the pad's A A) queued the whole dish again and made two stews. As the Craft tab's craftBusy
@@ -785,7 +837,14 @@ local function make(s, chr, n)
         local bk = bases[k]
         -- (a base in reach but not carried, a pot on the stove, comes to the player first and goes back after, as
         -- the game's own menu does: ISInventoryPaneContextMenu.onAddItemInEvoRecipe. Call 5)
-        bring(bk.item)
+        -- (the base is not put back with the ingredients: the first add turns it into the dish, a new item;
+        -- ZeD_CookReturn, after the chain, moves the dish back where the base was)
+        local baseFrom = bk.item:getContainer()
+        local brought = false
+        if baseFrom ~= inv then
+            queue(ISInventoryTransferUtil.newInventoryTransferAction(chr, bk.item, baseFrom, inv, nil))
+            brought = true
+        end
         local chain = { base = bk.item, baseId = bk.item:getID(), seen = seen, pending = 0, track = track }
         local first = true
         -- the ingredients first, then the seasoning: the game seasons the dish, not the empty pot (K8)
@@ -809,6 +868,8 @@ local function make(s, chr, n)
                 end
             end
         end
+        if brought and not first then queue(ZeD_CookReturn:new(chr, bk.recipe, chain, baseFrom))
+        elseif brought then back[#back + 1] = bk.item end   -- (nothing went in: the pot itself goes back)
     end
     s.queued = (#track > 0) and track or nil
     if #track > 0 then rememberDish(chr, s.dish) end   -- (the tab opens on it next time: call 6)
