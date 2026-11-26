@@ -35,7 +35,8 @@
 --     * (Build tab) a build recipe's card open from its row: the band has Build and no amount (no action_dec, inc,
 --       qty or max zone). Old code: the grayed - 1 + beside Build.
 --   #17 * (Build tab) the tab's state made fresh (the window's _buildState found is set aside and put back after) and
---       the tab opened by its own press: it is on Show: Known. Old code: Ready.
+--       the tab opened by its own press: it is on Show: All (the director's call 6, Nov 25 2026, replaced Known).
+--       Older code: Known, and Ready before that.
 --   #55 * (Character window, Journal, Recipes page) Open Box's card opened on the page: the band has the Open in
 --       Craft key (zone action_open), and its press (the drawer's own onMouseDown) puts the World window on Crafting
 --       with Open Box's card open (RecipeIndex.open). Old code: no key on the band.
@@ -1817,7 +1818,10 @@ end, function(ok)
     end
     local mode = nil
     pcall(function() mode = ZeD.CraftingCore.showMode(st, nil) end)
-    Q.check(mode == "known", "#17: the Building tab opens on Show: Known (old code: Ready, empty until he carries the materials)",
+    -- (the director's call 6, Nov 25 2026, replaces #17's Known for Build: the Building tab opens on Show: All, every
+    -- recipe listed and a skill-short row tagged with its skill in red, as the game's build list shows them; the Craft
+    -- tab's own default is untouched. BuildingTab.getState sets show = "all")
+    Q.check(mode == "all", "#17 / call 6: the Building tab opens on Show: All (the director's call 6, Nov 25 2026; before it: Known, and Ready before that)",
         "a fresh Building tab's Show " .. tostring(mode) .. " (its state's own: " .. tostring(st.show) .. ")")
     -- (Show: All for the card below on either code, so the list has rows: the card's band is what is under test; the
     -- state is a fresh one, set aside at the end for the one found)
