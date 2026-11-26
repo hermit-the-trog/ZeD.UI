@@ -965,12 +965,26 @@ function H.openCard(T, key, label)
     end)
     H.wait(5000, function() return T.off or T[key] == nil or H.seekRow(T[key], T) end, function(ok)
         if T.off or T[key] == nil then return end
-        if Q.check(ok, label .. ": its row is in the Character window's list", H.nm(T[key])) then H.clickRow(T[key]) end
+        if Q.check(ok, label .. ": its row is in the Character window's list", H.nm(T[key])) then
+            T.preClick = H.winText()
+            T.clicked = H.clickRow(T[key])
+            T.postClick = H.winText()
+        end
     end)
     H.wait(3000, function() return T.off or T[key] == nil or H.cardOn(T[key]) end, function(ok)
         if T.off or T[key] == nil then return end
-        T[key .. "Card"] = Q.check(ok, label .. ": a click on its row opens its item card", "the card shows " .. H.nm(RT.cw() and RT.cw()._drawerItem))
+        T[key .. "Card"] = Q.check(ok, label .. ": a click on its row opens its item card", "the card shows " .. H.nm(RT.cw() and RT.cw()._drawerItem)
+            .. "; clicked " .. tostring(T.clicked) .. "; before the click " .. tostring(T.preClick) .. "; just after " .. tostring(T.postClick)
+            .. "; now " .. H.winText())
     end)
+end
+-- the Character window's state in a few words (for a failed card open: which tab, the drawer, the Cooking tab shown)
+function H.winText()
+    local w = RT.cw()
+    if not w then return "no window" end
+    local s = w._cook
+    return "tab " .. tostring(w._activeTab) .. ", drawer " .. tostring(w._drawerMode) .. (w._drawerOpen and " open" or " shut")
+        .. ", item " .. H.nm(w._drawerItem) .. ", cooking shown " .. tostring(H.inStrip()) .. ", dish " .. tostring(s and s.dish)
 end
 function H.cardShut()
     local w = RT.cw()
