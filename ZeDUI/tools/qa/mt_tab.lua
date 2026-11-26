@@ -825,6 +825,12 @@ function H.wrapOn()
         S.qNow = S.qFrame
         if S.qFrame then S.qLast = S.qFrame end
         for _, t in ipairs(rec) do if t.s == S.doneWord or t.s == S.failWord then S.flashSeen = t.s end end
+        -- (the flash is drawn by Atoms.drawProgressBand, not the panel's drawText: read the tab's own flash while it
+        -- is up, win._mech.flash { ok, untilMs }, as the frame draws it)
+        pcall(function()
+            local f = win and win._mech and win._mech.flash
+            if f and getTimestampMs() < (f.untilMs or 0) then S.flashSeen = f.ok and S.doneWord or S.failWord end
+        end)
         if not ok then S.tabErrs = (S.tabErrs or 0) + 1; S.tabErrLast = res; error(res, 0) end
         return res
     end
