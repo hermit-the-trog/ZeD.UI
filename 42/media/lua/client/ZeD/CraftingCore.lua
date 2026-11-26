@@ -2933,10 +2933,17 @@ function CC.reachList(state, playerObj)
     end
     return state._reachList
 end
+--- True while the item lies on the ground (a world item: the game leaves its container nil there)
+function CC.onGround(item)
+    local wi = nil
+    pcall(function() wi = item:getWorldItem() end)
+    return wi ~= nil
+end
 function CC.inReach(state, playerObj, item)
     local c = nil
     pcall(function() c = item:getContainer() end)
-    if not c then return false end
+    -- (on the ground: in reach on the player's square or one beside it, QA cb_calls call 1)
+    if not c then return CC.onGround(item) and not (CC.floorTooFar and CC.floorTooFar(item, playerObj)) end
     if CC.floorTooFar and CC.floorTooFar(item, playerObj) then return false end
     local cs = CC.reachList(state, playerObj)
     if cs and cs.contains then
@@ -2959,7 +2966,8 @@ function CC.pruneItemPicks(state, recipeName, playerObj)
         for i = #list, 1, -1 do
             local c = nil
             pcall(function() c = list[i]:getContainer() end)
-            if not c then table.remove(list, i) end   -- (used up: in no container)
+            -- (used up: in no container and not on the ground; one on the ground stays chosen, QA cb_calls call 1)
+            if not c and not CC.onGround(list[i]) then table.remove(list, i) end
         end
         if #list == 0 then ip[slot] = nil end
     end
@@ -3173,7 +3181,10 @@ local function fillPickSlot(logic, script, containers, fullType, skip, items, pl
             local it = items[i]
             local c = nil
             pcall(function() c = it:getContainer() end)
-            if it and c and inReach[c] and not (skip and skip[it]) and not floorTooFar(it, playerObj) then
+            -- (in one of the containers, or on the ground beside the player; a far one is never offered)
+            local ok = it and not (skip and skip[it]) and not floorTooFar(it, playerObj)
+                and ((c and inReach[c]) or (not c and CC.onGround(it)))
+            if ok then
                 logic:offerInputItem(it)
             end
         end
