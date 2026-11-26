@@ -52,7 +52,7 @@ ck.txt on 7dc79b244 with ck_tab e156e7420: 188 pass, 0 fail at both sizes. One k
 
 ## Design calls for the director
 
-Asked as numbered choices in chat. Option 1 is QA's pick in each.
+Asked as numbered choices in chat. Option 1 is QA's pick in each. **Decided Nov 25 2026:** the director picked option 1 on all eight ("1 on all"), and QA relayed them to Build. Calls 1 to 6 are build work; 7 and 8 keep what ships.
 
 1. **The Hunger line.** It adds only the ingredients' numbers and leaves out the base's own food. A sandwich of one cooked steak read 5; the made sandwich takes 15 off hunger. The card calls the same number "Hunger reduction". Options: the dish's whole total with the card's words, or keep.
 2. **Why a row is grey, on a pad.** The reason ("Must be cooked", "The dish is full") shows on mouse hover only. Options: the reason in the help line when the pad is on a grey row, or keep.
