@@ -2659,6 +2659,7 @@
     "UI_ZeD_Veh_AmountLeft": "残り%1",
     "UI_ZeD_Veh_AtBack": "後方",
     "UI_ZeD_Veh_Below": "%1未満",
+    "UI_ZeD_Veh_FullCond": "この部品は完全な状態です。",
     "UI_ZeD_Veh_BelowPsi": "%1 psi未満",
     "UI_ZeD_Veh_Braking": "制動力",
     "UI_ZeD_Veh_CantDo": "%1: できません",

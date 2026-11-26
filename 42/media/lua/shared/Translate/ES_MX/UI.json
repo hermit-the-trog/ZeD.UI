@@ -2659,6 +2659,7 @@
     "UI_ZeD_Veh_AmountLeft": "Quedan %1",
     "UI_ZeD_Veh_AtBack": "Atrás",
     "UI_ZeD_Veh_Below": "Menos de %1",
+    "UI_ZeD_Veh_FullCond": "La pieza está en perfecto estado.",
     "UI_ZeD_Veh_BelowPsi": "Menos de %1 psi",
     "UI_ZeD_Veh_Braking": "Frenado",
     "UI_ZeD_Veh_CantDo": "No se puede %1",

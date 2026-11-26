@@ -2722,6 +2722,7 @@
     "UI_ZeD_Veh_AmountLeft": "%1 over",
     "UI_ZeD_Veh_AtBack": "Achter",
     "UI_ZeD_Veh_Below": "Onder %1",
+    "UI_ZeD_Veh_FullCond": "Het onderdeel is in perfecte staat.",
     "UI_ZeD_Veh_BelowPsi": "Onder %1 psi",
     "UI_ZeD_Veh_Braking": "Remkracht",
     "UI_ZeD_Veh_CantDo": "Kan niet %1",

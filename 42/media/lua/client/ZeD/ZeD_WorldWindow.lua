@@ -7065,12 +7065,12 @@ function ZeD_WorldWindow.openTab(playerNum, tabId, toggle)
     return true
 end
 
--- Called just before the window leaves a tab: leaving the Vehicle tab ends the look at the car and shuts the hood it
--- opened, as closing the window does (QA K1 review: K1-9).
+-- Called just before the window leaves a tab. Leaving the Vehicle tab no longer ends the look: Loot to fetch the jack,
+-- the trailer's Open and Info, a folded drawer all came back to "Not inspected" and a shut hood. The look now ends
+-- only when he walks past six tiles (MechanicsTab's reach check) or the window closes, as the game's window does.
+-- Kept as the one place a tab change can hand off to. (the director's call, M7, Nov 26 2026)
 function ZeD_WorldWindow._tabLeft(win)
     if not win or win._activeTab ~= "vehicle" then return end
-    local M = ZeD.MechanicsTab
-    if M and M.endLooks then pcall(M.endLooks, win._playerObj or getSpecificPlayer(win.playerNum or 0)) end
 end
 
 -- A livestock zone drawing in progress ends with the window: AnimalsTab holds

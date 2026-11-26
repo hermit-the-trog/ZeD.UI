@@ -2659,6 +2659,7 @@
     "UI_ZeD_Veh_AmountLeft": "%1 restant",
     "UI_ZeD_Veh_AtBack": "Al darrere",
     "UI_ZeD_Veh_Below": "Per sota de %1",
+    "UI_ZeD_Veh_FullCond": "La peça està en perfecte estat.",
     "UI_ZeD_Veh_BelowPsi": "Per sota de %1 psi",
     "UI_ZeD_Veh_Braking": "Frenada",
     "UI_ZeD_Veh_CantDo": "No es pot %1",

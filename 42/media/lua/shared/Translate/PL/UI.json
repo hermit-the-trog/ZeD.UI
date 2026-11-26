@@ -2659,6 +2659,7 @@
     "UI_ZeD_Veh_AmountLeft": "Zostało: %1",
     "UI_ZeD_Veh_AtBack": "Przy tylnych drzwiach",
     "UI_ZeD_Veh_Below": "Poniżej %1",
+    "UI_ZeD_Veh_FullCond": "Część jest w pełnym stanie.",
     "UI_ZeD_Veh_BelowPsi": "Poniżej %1 psi",
     "UI_ZeD_Veh_Braking": "Hamowanie",
     "UI_ZeD_Veh_CantDo": "Nie można: %1",

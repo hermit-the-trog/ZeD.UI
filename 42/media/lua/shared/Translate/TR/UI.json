@@ -2659,6 +2659,7 @@
     "UI_ZeD_Veh_AmountLeft": "%1 kaldı",
     "UI_ZeD_Veh_AtBack": "Arkada",
     "UI_ZeD_Veh_Below": "%1 altında",
+    "UI_ZeD_Veh_FullCond": "Parça tam durumda.",
     "UI_ZeD_Veh_BelowPsi": "%1 psi altında",
     "UI_ZeD_Veh_Braking": "Frenleme",
     "UI_ZeD_Veh_CantDo": "Yapılamaz: %1",

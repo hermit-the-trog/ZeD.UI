@@ -2665,6 +2665,7 @@
     "UI_ZeD_Veh_AmountLeft": "%1 tilbage",
     "UI_ZeD_Veh_AtBack": "Bagved",
     "UI_ZeD_Veh_Below": "Under %1",
+    "UI_ZeD_Veh_FullCond": "Delen er i fuld stand.",
     "UI_ZeD_Veh_BelowPsi": "Under %1 psi",
     "UI_ZeD_Veh_Braking": "Bremsning",
     "UI_ZeD_Veh_CantDo": "Kan ikke %1",

@@ -2659,6 +2659,7 @@
     "UI_ZeD_Veh_AmountLeft": "剩 %1",
     "UI_ZeD_Veh_AtBack": "在後面",
     "UI_ZeD_Veh_Below": "低於 %1",
+    "UI_ZeD_Veh_FullCond": "此部件狀態完好。",
     "UI_ZeD_Veh_BelowPsi": "低於 %1 psi",
     "UI_ZeD_Veh_Braking": "煞車力",
     "UI_ZeD_Veh_CantDo": "無法%1",

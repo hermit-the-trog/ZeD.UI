@@ -2659,6 +2659,7 @@
     "UI_ZeD_Veh_AmountLeft": "%1 maradt",
     "UI_ZeD_Veh_AtBack": "Hátul",
     "UI_ZeD_Veh_Below": "%1 alatt",
+    "UI_ZeD_Veh_FullCond": "Az alkatrész tökéletes állapotban van.",
     "UI_ZeD_Veh_BelowPsi": "%1 psi alatt",
     "UI_ZeD_Veh_Braking": "Fékezés",
     "UI_ZeD_Veh_CantDo": "Nem lehet: %1",
