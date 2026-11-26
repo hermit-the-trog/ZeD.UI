@@ -213,6 +213,9 @@ ZeD.Atoms = setmetatable({
     surfaceFill = noop, mouseIn = function() return false end,
     textCase = function(s) return s end, truncateText = function(s) return s end,
     drawTriangleDown = noop, drawTriangleRight = noop, drawTriangleUp = noop, syncHintLayer = noop,
+    -- (the strip buttons' and scroll rows' insets, Nov 25 2026: a hairline each side, enough for the rows' lines)
+    stripArrowHalves = function(w) return 1, math.floor(w / 2), math.floor(w / 2) + 1, w - 1 end,
+    stripArrowX = function(a, b, s) return a + math.floor((b - a - s) / 2) end,
 }, { __index = function() return noop end })
 ZeD.Surface = { fill = noop }
 ZeD.Help = { set = noop }
