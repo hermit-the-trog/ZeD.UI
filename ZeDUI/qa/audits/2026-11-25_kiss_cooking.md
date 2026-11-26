@@ -63,6 +63,8 @@ Asked as numbered choices in chat. Option 1 is QA's pick in each. **Decided Nov 
 7. **Cooking minutes, the first 8 game minutes.** Build's last change shows a percent until the rate is steady, then minutes. Before it, the first figure was already within about 10 percent on the campfire and the range at 100. Options: keep the percent first, or minutes from the first reading.
 8. **Random of a kind.** The game's "Add random Vegetables" has no match. Options: keep (rows by type say what goes in), or an "Any vegetable" row per kind.
 
+**Built and proved.** Calls 1 to 6 were built in fix/cookcalls (a3f1b6e94), plus fix/cookback (8f678cb4a). fix/cookback puts the made dish back in the crate its pot came from; the game's own add leaves it in his bags. ck_calls.lua (ck_calls.txt) passes 132 at both sizes on 8f678cb4a, and ck.txt is green there (188). One SKIP: the game takes nothing into a pot of soup in the QA world (call 4's Soup2 leg). Correction to call 1: the card's label is "Hunger" with a "+15" value (the key is named HungerReduction; its English text is "Hunger"). The tab now uses the same key, so the two read alike.
+
 ## Not staged
 
 - A gas range after the gas shutoff (no sandbox setting in the QA world).
