@@ -44,7 +44,6 @@ CC.PANE_W_SPLIT    = 240
 CC.ROW_H           = 24
 CC.HEADER_H        = (ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37  -- design units, kept for add-ons; the header draws at ZeD.T.stripH (row 1)
 CC.STRIP_H          = 20    -- design units, kept for add-ons; the alternatives strip draws at ZeD.T.sortBarH (row 2)
-CC.MAX_PINS        = 8
 CC.ANIM_DURATION   = 0.28  -- pane split animation in seconds
 
 -- Throttle intervals (ms)
@@ -248,14 +247,20 @@ function CC.craftProgress(win, playerObj)
     pcall(function()
         local q = ISTimedActionQueue.getTimedActionQueue(playerObj or win._playerObj)
         if not (q and q.queue) then return end
+        -- the action the queue runs now (q.current, the game's own running one): queue[1] can still hold the craft
+        -- just finished for a moment, so the band read it at 1 while the next ran at 0 (QA cb_calls, Nov 25 2026)
+        local running = q.current
         for i = 1, #list do
-            local at = q:indexOf(list[i])
-            if at ~= -1 then
+            if q:indexOf(list[i]) ~= -1 then
                 any = true
-                if at == 1 then cur = list[i] end
+                if list[i] == running then cur = running end
             end
         end
-        if cur then pct = cur:getJobDelta() or 0 end
+        if cur then
+            local d = cur:getJobDelta() or 0
+            if cur.action and cur.action.isFinished and cur.action:isFinished() then d = 1 end
+            pct = d
+        end
     end)
     if not any then return nil end
     return win._craftQueuedRecipe, math.max(0, math.min(1, pct)), cur
@@ -2915,6 +2920,37 @@ end
 -- type picks do, QA B6-15); a slot with none chosen keeps the type pick, or the game's own pick.
 -- ----------------------------------------------------------------------------
 
+-- Chosen items a craft used up, or that are no longer in reach, are dropped (QA cb_calls, Nov 25 2026: the
+-- branch a craft used stayed chosen and the row read 1/1 while Craft was gray). The reach is the craft's own
+-- container list, read again at most once a second. Run by the card each frame it draws.
+function CC.pruneItemPicks(state, recipeName, playerObj)
+    local ip = state and state.itemPicks and state.itemPicks[recipeName]
+    if not (ip and playerObj) then return end
+    local now = getTimestampMs()
+    if not state._reachList or now - (state._reachAt or 0) > 1000 then
+        state._reachList = CC.craftContainers(playerObj)
+        state._reachAt = now
+    end
+    local cs = state._reachList
+    local function inReach(c)
+        if not c then return false end
+        if cs and cs.contains then
+            local ok, r = pcall(function() return cs:contains(c) end)
+            return ok and r or false
+        end
+        for _, x in ipairs(cs or {}) do if x == c then return true end end
+        return false
+    end
+    for slot, list in pairs(ip) do
+        for i = #list, 1, -1 do
+            local c = nil
+            pcall(function() c = list[i]:getContainer() end)
+            if not inReach(c) then table.remove(list, i) end
+        end
+        if #list == 0 then ip[slot] = nil end
+    end
+end
+
 -- The items chosen for a slot of the recipe (a list, in the order chosen), or nil.
 function CC.itemPicksFor(state, recipeName, slotIdx)
     local p = state.itemPicks and state.itemPicks[recipeName]
@@ -3929,6 +3965,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
 
     -- Slot rows (hidden when collapsed)
     if not state.reqCollapsed then
+        if state._pickOn then CC.pruneItemPicks(state, state.selected, playerObj) end
         for idx, ing in ipairs(rd.ingredients or {}) do
             local chosen = state._pickOn and CC.pickFor(state, state.selected, idx) or nil
             -- the very items chosen (call 1): the row names the first and counts the chosen ones as
