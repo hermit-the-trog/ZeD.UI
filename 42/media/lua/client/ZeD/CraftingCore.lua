@@ -2937,6 +2937,7 @@ function CC.inReach(state, playerObj, item)
     local c = nil
     pcall(function() c = item:getContainer() end)
     if not c then return false end
+    if CC.floorTooFar and CC.floorTooFar(item, playerObj) then return false end
     local cs = CC.reachList(state, playerObj)
     if cs and cs.contains then
         local ok, r = pcall(function() return cs:contains(c) end)
@@ -3141,7 +3142,26 @@ local function hasAny(t) for _ in pairs(t) do return true end return false end
 -- items in skip.
 -- items (optional): the very items chosen for the slot (call 1): only they are offered, in the
 -- order chosen, and only while they are still in one of the containers.
-local function fillPickSlot(logic, script, containers, fullType, skip, items)
+-- An item lying on the ground is in reach only on the player's square or one next to it, as the game's floor
+-- list is: the floor's container is one shared ItemContainer, so an item moved 9 squares off still read as in
+-- the list's floor container until the loot page was gathered again (QA cb_calls, Nov 25 2026, call 1).
+-- True when the item is on the ground out of that reach.
+local function floorTooFar(it, playerObj)
+    local far = false
+    pcall(function()
+        local wi = it:getWorldItem()
+        if not wi then return end
+        local sq, psq = wi:getSquare(), playerObj and playerObj:getCurrentSquare()
+        if not (sq and psq) then far = true; return end
+        if sq:getZ() ~= psq:getZ() or math.abs(sq:getX() - psq:getX()) > 1 or math.abs(sq:getY() - psq:getY()) > 1 then
+            far = true
+        end
+    end)
+    return far
+end
+CC.floorTooFar = floorTooFar
+
+local function fillPickSlot(logic, script, containers, fullType, skip, items, playerObj)
     logic:setManualSelectInputScriptFilter(script)
     local data = logic:getRecipeData():getDataForInputScript(script)
     logic:clearManualInputsFor(data)
@@ -3153,7 +3173,7 @@ local function fillPickSlot(logic, script, containers, fullType, skip, items)
             local it = items[i]
             local c = nil
             pcall(function() c = it:getContainer() end)
-            if it and c and inReach[c] and not (skip and skip[it]) then
+            if it and c and inReach[c] and not (skip and skip[it]) and not floorTooFar(it, playerObj) then
                 logic:offerInputItem(it)
             end
         end
@@ -3216,7 +3236,7 @@ function CC.pickedCraftAction(playerObj, state, entry, bench, containers, used, 
                 local fullType = picks[idx]
                 local chosen = CC.itemPicksFor(state, entry.name, idx)   -- (the very items: call 1)
                 if fullType then
-                    fillPickSlot(logic, script, containers, fullType, skip, chosen)
+                    fillPickSlot(logic, script, containers, fullType, skip, chosen, playerObj)
                 elseif skip and hasAny(skip) and slotHoldsAny(logic, script, skip) then
                     fillPickSlot(logic, script, containers, nil, skip)
                 end
@@ -3296,7 +3316,7 @@ function CC.resolveMappedOutputs(playerObj, entry, picks, containers, itemPicks)
                 if picks[idx] and script and script:getResourceType() == ResourceType.Item then
                     local chosen = itemPicks and itemPicks[idx]
                     if chosen and #chosen == 0 then chosen = nil end
-                    fillPickSlot(logic, script, containers, picks[idx], nil, chosen)
+                    fillPickSlot(logic, script, containers, picks[idx], nil, chosen, playerObj)
                 end
             end
             logic:setManualSelectInputScriptFilter(nil)
