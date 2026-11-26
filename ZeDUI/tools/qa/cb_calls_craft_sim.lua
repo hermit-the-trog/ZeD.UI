@@ -82,9 +82,9 @@ do
         check("an unpin still takes only that one", #win._craftPins == 11 and md["fav:R5"] == false)
         local bwin = { _playerObj = win._playerObj, _buildPins = {} }
         for i = 1, 9 do CC.togglePin(bwin, "B" .. i, "ZeD_BuildPins", "_buildPins", "dirty") end
-        check("Build keeps its cap of 8, oldest out", #bwin._buildPins == 8 and bwin._buildPins[1] == "B2")
+        check("Build has no cap either: all nine kept (the director's call 4)", #bwin._buildPins == 9 and bwin._buildPins[1] == "B1")
     end
-    check("wire: the cap skips the game's favourite keys", has(CCS, "if not CC.GAME_FAV_PINS[pinKey] and #pins >= CC.MAX_PINS then"))
+    check("wire: no pin cap left in togglePin", not has(CCS, "#pins >= CC.MAX_PINS"))
 end
 
 -- ---------------------------------------------------------------------------

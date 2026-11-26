@@ -1095,7 +1095,7 @@ paths are in each commit's code comments, tagged `(KISS #N)`; QA fills the colum
 | Moves between bags while paused | ZeD_PausedLook.lua, EquipDoll.lua, HealthTab.lua, ZeD_Belt.lua | - | - | - | - | - | elsewhere: the K3 proof run, vk3_win.lua (KISS #41); the release test checks the page glass and the list's veil (rt_hud) |
 | The game's tab words (Inventory, Temperature, Info) | ZeD_CharacterWindow.lua | - | - | - | - | - | elsewhere: the K3 proof run, vk3_screen.lua (KISS #59) |
 | Health tab pad stop starts on the worst wound | ZeD_CharacterWindow.lua | - | - | - | - | - | elsewhere: the K3 proof run, vk3_craft.lua (KISS #29) |
-| Craft and Build: Build opens on Known, better empty line | BuildingTab.lua, CraftingCore.lua | - | - | - | - | - | elsewhere: the K3 proof run, vk3_craft.lua (KISS #17) |
+| Craft and Build: Build opens on All since Nov 25 2026 (the director's call 6; it opened on Known, KISS #17), better empty line | BuildingTab.lua, CraftingCore.lua | - | - | - | - | - | elsewhere: the K3 proof run, vk3_craft.lua (KISS #17) |
 | Right-click opens as the word list by default; Loot all and Transfer all word buttons | Settings.lua, ContainerControls.lua | - | - | - | - | - | elsewhere: the K3 proof run, vk3_win.lua (KISS #7) |
 | World wheel: Crafting by hand, nearest bench slice; Map opens at once | ZeD_DpadWheels.lua | - | - | - | - | - | elsewhere: the K3 proof run, vk3_pad.lua (KISS #15 and #36) |
 | Belt count red only for ZeD's own errors | ZeD_Belt.lua | - | - | - | - | - | elsewhere: the K3 proof run, vk3_screen.lua (KISS #42) |

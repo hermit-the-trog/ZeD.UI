@@ -838,13 +838,9 @@ function CC.togglePin(win, recipeName, pinKey, stateKey, dirtyKey)
         end
     end
 
-    -- Add pin. The Craft tab's pins have no cap: the Pinned group grows, and no pin is dropped
-    -- without the player's word (the director's call 4, Nov 25 2026: the 9th pin silently took the
-    -- oldest off). The other tabs keep their cap of CC.MAX_PINS, oldest out.
-    if not CC.GAME_FAV_PINS[pinKey] and #pins >= CC.MAX_PINS then
-        local gone = table.remove(pins, 1)
-        CC.setGameFavourite(win, gone, pinKey, false)   -- (else the game's flag pins it again: C18)
-    end
+    -- Add pin. No cap on any tab's pins (Craft and Build alike): the Pinned group grows, and no pin is
+    -- dropped without the player's word (the director's call 4, Nov 25 2026: the 9th pin silently took
+    -- the oldest off).
     pins[#pins + 1] = recipeName
     CC.setGameFavourite(win, recipeName, pinKey, true)   -- (C18)
     win[stateKey] = pins
