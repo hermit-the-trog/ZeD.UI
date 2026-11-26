@@ -102,8 +102,11 @@ S.TABLES = { "furniture_tables_high_01_16", "furniture_tables_high_01_0", "furni
 S.CRATE = "carpentry_01_16"
 S.WHEEL = "Base.Pottery_Wheel"
 S.NEAR = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 }, { 1, 1 }, { -1, 1 }, { 1, -1 }, { -1, -1 } }
-S.FAR2 = { { 2, 0 }, { 0, 2 }, { -2, 0 }, { 0, -2 }, { 2, 1 }, { 1, 2 }, { -2, 1 }, { -1, 2 }, { 2, -1 }, { -1, -2 } }
-S.RING2 = { { 2, 0 }, { 0, 2 }, { -2, 0 }, { 0, -2 }, { 2, 2 }, { -2, 2 }, { 2, -2 }, { -2, -2 }, { 2, 1 }, { 1, 2 }, { -2, 1 }, { 1, -2 } }
+S.FAR2 = { { 2, 0 }, { 0, 2 }, { -2, 0 }, { 0, -2 }, { 2, 1 }, { 1, 2 }, { -2, 1 }, { -1, 2 }, { 2, -1 }, { -1, -2 },
+           -- (3 off as well: at the drag strip the 2-off ring was all taken in the first run)
+           { 3, 0 }, { 0, 3 }, { -3, 0 }, { 0, -3 }, { 3, 1 }, { 1, 3 }, { -3, 1 }, { 1, -3 }, { 3, -1 }, { -1, 3 } }
+S.RING2 = { { 2, 0 }, { 0, 2 }, { -2, 0 }, { 0, -2 }, { 2, 2 }, { -2, 2 }, { 2, -2 }, { -2, -2 }, { 2, 1 }, { 1, 2 }, { -2, 1 }, { 1, -2 },
+            { 3, 0 }, { 0, 3 }, { -3, 0 }, { 0, -3 }, { 3, 2 }, { 2, 3 }, { -3, 2 }, { 2, -3 } }
 S.WHEEL_AT = { { 2, 0 }, { 0, 2 }, { -2, 0 }, { 0, -2 }, { 3, 0 }, { 2, 2 }, { -3, 0 }, { -2, -2 } }
 S.THEMES = { { key = "dark", tag = "dark", word = "Dark" }, { key = "light", tag = "light", word = "Light" },
              { key = "hicon", tag = "hc", word = "High contrast" } }
@@ -2140,6 +2143,8 @@ function C.c7()
     local T = {}
     local L = "7 build"
     H.caseStart(L)
+    -- (from where he stood when the run began: a case before may have walked him to a bench)
+    H.step(2, function() H.home() end)
     H.toTab("build", T, L)
     H.step(2, function()
         if T.off then return end
