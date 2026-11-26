@@ -3814,7 +3814,7 @@ function ZeD.Molecules.drawRecipeRow(panel, x, y, w, data, selected, hovered, pi
     -- Station tag (right, before the star): eats into name space
     local tagW = 0
     if data.tag and data.tag ~= "" then
-        tagW = A.tagW(data.tag, false)
+        tagW = A.tagW(data.tag, data.tagDanger and true or false)
         nameMaxW = nameMaxW - tagW - T.px(6)
     end
 
@@ -3843,9 +3843,12 @@ function ZeD.Molecules.drawRecipeRow(panel, x, y, w, data, selected, hovered, pi
 
     -- Station tag: the library tag (outline, F1, sentence case)
     if tagW > 0 then
+        -- (tagDanger: a Build row's skill it is short of, in the danger color with its mark, as the game's build
+        -- list writes it in red; the director's call 6, Nov 25 2026)
         local tg = _recTag
-        tg.textColor = onFocus and T.textOnFocus or nil
-        A.drawTag(panel, x + w - T.px(22) - tagW, y + math.floor((h - T.px(16)) / 2), data.tag, nil, tg)
+        tg.textColor = onFocus and T.textOnFocus or (data.tagDanger and (T.dangerText or T.danger) or nil)
+        A.drawTag(panel, x + w - T.px(22) - tagW, y + math.floor((h - T.px(16)) / 2), data.tag,
+            data.tagDanger and T.danger or nil, tg)
     end
 
     -- Star (right-aligned, hover-appear, accent when pinned)

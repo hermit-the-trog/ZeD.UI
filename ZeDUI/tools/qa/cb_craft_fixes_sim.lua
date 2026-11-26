@@ -130,9 +130,9 @@ do
     check("wire: startCraft refuses while busy", has(CTS, "if CC.craftBusy(win, playerObj) then return end"))
     check("wire: the chosen-inputs start refuses while busy", has(CCS, "if CC.craftBusy(win, playerObj) then return true end"))
     check("wire: startCraft preps and tracks its actions", has(CTS, "CC.prepCraftAction(action, playerObj, recipeName")
-        and has(CTS, "CC.trackCraftActions(win, queued)"))
+        and has(CTS, "CC.trackCraftActions(win, queued, recipeName)"))
     check("wire: the chosen-inputs start preps and tracks", has(CCS, "CC.prepCraftAction(actions[i], playerObj, name")
-        and has(CCS, "CC.trackCraftActions(win, queued)"))
+        and has(CCS, "CC.trackCraftActions(win, queued, name)"))
     check("wire: no count at the press any more", not has(CTS, "CC.incrementCraftCount(") and
         not has(CCS, "CC.incrementCraftCount(playerObj, name"))
 end
