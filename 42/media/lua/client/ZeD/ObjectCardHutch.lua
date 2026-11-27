@@ -165,6 +165,12 @@ local function showBird(p, animal)
         -- set after them never reached its B; QA HU5 second pass, Nov 26 2026. navigate keeps it for this bird.)
         if AT.setReturnCard then AT.setReturnCard(win, back, animal) end
         AT.showAnimal(win, animal)
+        -- the pad's focus goes onto the bird page (its breadcrumb, the page's own way back), so B lands on a stop
+        -- that carries the way back: it stayed on the window's floor strip, and B there went nowhere (QA HU5 third
+        -- pass, Nov 26 2026: "stop view:all:type:floor, its own B false")
+        win._animalsNavFocusTarget = "breadcrumb"
+        local F = ZeD.Input and ZeD.Input.Focus
+        if F and F.focusPrimarySoon then F.focusPrimarySoon(win, "worldTabContent", 2) end
     end
 end
 
