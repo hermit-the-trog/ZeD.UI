@@ -1920,6 +1920,9 @@ function ZeD_ObjectCard:buildFocusables(win)
                         if okC and took then return true end
                     end
                     if card._confirm then card._confirm = nil else card:close() end
+                    -- (QA TK3 hunt, Nov 26 2026: did B reach the card, and did the card go)
+                    print("[ZeD] ObjectCards: B on " .. tostring(zz.fid) .. " (" .. tostring(ce and ce.def and ce.def.id)
+                        .. "): card now " .. tostring(card.entry and card.entry.def and card.entry.def.id or "closed"))
                 end,
                 onDpadDir = zz.dpad and function(w, el, dir)
                     if zz.dpad(dir) then return nil end

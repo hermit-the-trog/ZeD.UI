@@ -1698,7 +1698,7 @@ local function _handleBContextual(pn)
     if not w then return end
     local el = Focus.getFocusedElement(w)
     -- (QA HU5 hunt, Nov 26 2026: with a card waiting to come back, say where B landed)
-    if w._animalsReturnCard then
+    if w._animalsReturnCard or (el and type(el.id) == "string" and string.sub(el.id, 1, 3) == "oc:") then
         print("[ZeD] Focus: B with a card to come back to: stop " .. tostring(el and el.id) .. ", its own B "
             .. tostring(el and el.onCancel ~= nil) .. ", the way back " .. tostring(el and el._zedReturnB == true))
     end
