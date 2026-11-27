@@ -119,6 +119,14 @@ function def.onClose(t)
         pcall(function() t.obj:syncExtendedPlacement() end)
     end
     pcall(function() Gizmos.getInstance():setGizmo(t.pn or 0, nil) end)
+    -- (the card's own draw set its gizmos visible each frame; clearing the player's gizmo alone left the last one
+    -- shown after the window's close box and U: QA PL1/OC2 second pass, Nov 26 2026)
+    pcall(function()
+        local G = Gizmos.getInstance()
+        local r, m = G:getRotateGizmo(t.pn or 0), G:getTranslateGizmo(t.pn or 0)
+        if r then r:setVisible(false) end
+        if m then m:setVisible(false) end
+    end)
 end
 
 -- the world gizmo, every frame the card shows

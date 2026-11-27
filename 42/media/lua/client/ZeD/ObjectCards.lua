@@ -1846,7 +1846,11 @@ end
 -- (QA PL1/OC2, Nov 26 2026) The upkeep off the draw: a card in a rolled-up or hidden window draws nothing, so
 -- its prerender never ran the leash, valid() or the placement's end, and the card stayed open past its leash with
 -- the game's placement on. A few times a second, each open card not drawn lately gets its tick here.
-OC.UPKEEP_MS = 250
+-- (every tick: a walk at fast-forward crosses more than a tile in 250 ms, and the placement card was still open at
+-- the game's 4.00 past its 3; the tick's refresh and browse keep their own pace, so this costs the leash alone.
+-- QA PL3 second pass, Nov 26 2026)
+OC.UPKEEP_MS = 0
+OC.UNDRAWN_MS = 100   -- (not drawn for this long: the window is rolled up or hidden)
 function OC.upkeep()
     local now = getTimestampMs()
     if now - (OC._upkeepAt or 0) < OC.UPKEEP_MS then return end
@@ -1855,7 +1859,7 @@ function OC.upkeep()
     for pn = 0, 3 do
         local card = ZeD_WorldWindow.getObjectCard(pn)
         local e = card and card.entry
-        if e and now - (card._drawnAt or 0) > OC.UPKEEP_MS then
+        if e and now - (card._drawnAt or 0) > OC.UNDRAWN_MS then   -- (a drawn card ticks in its own prerender)
             local player = getSpecificPlayer(pn)
             if player then card:keep(e, player) end
         end
