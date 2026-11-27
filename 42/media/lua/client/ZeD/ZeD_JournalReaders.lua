@@ -752,7 +752,7 @@ function J.writeNote(win)
     if not N.fits(N.append(N.page(b, page), text)) then s.msg = ZeD.tr("UI_ZeD_Notebook_NoRoomPage"); return end
     s.msg = nil
     sound("UIActivateButton")
-    s.pending = N.write(p, b, page, text, function()
+    s.pending, s.pendingQ = N.write(p, b, page, text, function()
         if win._jrNote then win._jrNote:clear() end
         s.pending = nil
     end)
@@ -1122,11 +1122,29 @@ function J.addLogEntry(win, text, source, tags)
     win._journalCache = nil
 end
 
+--- True while a line ZeD queued for this player is still on its way to a notebook: the move out of
+--- the bag or the write itself (Save's Into, or the quick note), or any of ZeD's writes in his queue.
+-- (QA J20, Nov 27 2026: a second Save while the Into write ran queued the same line again: two
+-- lines on the page and two entries. Save is greyed and refused while this holds. The actions each
+-- press queued are kept and looked up in the game's queue, as the Craft tab's craftBusy does.)
+function J.logBusy(win)
+    local s = st(win)
+    local p = win and win._playerObj
+    if not p then return false end
+    if s.logQueued and N.busy(p, s.logQueued) then return true end
+    s.logQueued = nil
+    if s.pendingQ and N.busy(p, s.pendingQ) then return true end
+    s.pendingQ = nil
+    local ok, has = pcall(ISTimedActionQueue.hasActionType, p, "ZeD_WriteNoteAction")
+    return ok and has == true
+end
+
 --- Save with a notebook picked: the character writes the words there, then the log keeps them
 --- with the tags (the notebook's page gets the words only). Returns true when it took the save
 --- (written, writing, or why not shown); the box and the ticks clear once it is written.
 function J.saveLog(win, text, tags)
     local s = st(win)
+    if J.logBusy(win) then return true end   -- (QA J20: one write at a time; the press is ignored)
     local b = logBook(win)
     if not b then return false end
     local p = win._playerObj
@@ -1137,7 +1155,7 @@ function J.saveLog(win, text, tags)
     if not page then s.logMsg = ZeD.tr("UI_ZeD_Notebook_NoRoomIn", b:getName()); return true end
     s.logMsg = nil
     local name = b:getName()
-    s.logPending = N.write(p, b, page, text, function(pg)
+    s.logPending, s.logQueued = N.write(p, b, page, text, function(pg)
         J.addLogEntry(win, text, { name = name, page = pg }, tags)
         if win._journalInput then win._journalInput:clear() end
         if ZeD.JournalTab and ZeD.JournalTab.clearPicks then ZeD.JournalTab.clearPicks(win) end
