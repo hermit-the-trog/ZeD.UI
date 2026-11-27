@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "поставить баллон",
     "UI_ZeD_Fire_NeedsFuelFirst": "топливо в огне",
     "UI_ZeD_Fire_NeedsFuelItems": "что-нибудь горючее в сумках",
+    "UI_ZeD_Fire_HelpAddPlain": "Добавить всё: положить в огонь обычное топливо (книги, карты и избранное остаются)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "обычное топливо: дерево или бумага (книги, карты и избранное не берутся)",
     "UI_ZeD_Fire_NeedsGas": "пропановый баллон с газом",
     "UI_ZeD_Fire_NeedsLighter": "зажигалка или спички в сумках",
     "UI_ZeD_Fire_NeedsSpareTank": "пропановый баллон в сумках",

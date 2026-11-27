@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "裝氣罐",
     "UI_ZeD_Fire_NeedsFuelFirst": "火上的燃料",
     "UI_ZeD_Fire_NeedsFuelItems": "你揹包裡能燃燒的東西",
+    "UI_ZeD_Fire_HelpAddPlain": "全部新增：把普通燃料放到火上（書、地圖和最愛物品會留下）",
+    "UI_ZeD_Fire_NeedsPlainFuel": "木頭或紙之類的普通燃料（不會選用書、地圖或最愛物品）",
     "UI_ZeD_Fire_NeedsGas": "有氣的丙烷罐",
     "UI_ZeD_Fire_NeedsLighter": "你揹包裡的打火機或火柴",
     "UI_ZeD_Fire_NeedsSpareTank": "你揹包裡的丙烷罐",

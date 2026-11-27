@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "włożyć butlę",
     "UI_ZeD_Fire_NeedsFuelFirst": "paliwo w ogniu",
     "UI_ZeD_Fire_NeedsFuelItems": "coś, co się pali, w torbach",
+    "UI_ZeD_Fire_HelpAddPlain": "Dodaj wszystko: dorzuć do ognia zwykłe paliwo (książki, mapy i ulubione zostają)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "zwykłe paliwo, np. drewno lub papier (książki, mapy i ulubione nie są wybierane)",
     "UI_ZeD_Fire_NeedsGas": "butla z propanem z gazem",
     "UI_ZeD_Fire_NeedsLighter": "zapalniczka lub zapałki w torbach",
     "UI_ZeD_Fire_NeedsSpareTank": "butla z propanem w torbach",

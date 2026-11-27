@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "einen Tank einsetzen",
     "UI_ZeD_Fire_NeedsFuelFirst": "Brennstoff im Feuer",
     "UI_ZeD_Fire_NeedsFuelItems": "etwas Brennbares in deinen Taschen",
+    "UI_ZeD_Fire_HelpAddPlain": "Alle hinzufügen: einfachen Brennstoff aufs Feuer legen (Bücher, Karten und Favoriten bleiben)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "einfacher Brennstoff wie Holz oder Papier (Bücher, Karten und Favoriten werden nicht genommen)",
     "UI_ZeD_Fire_NeedsGas": "Propantank mit Gas",
     "UI_ZeD_Fire_NeedsLighter": "Feuerzeug oder Streichhölzer in deinen Taschen",
     "UI_ZeD_Fire_NeedsSpareTank": "Propantank in deinen Taschen",

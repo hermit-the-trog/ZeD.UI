@@ -116,34 +116,48 @@ end
 -- ---------------------------------------------------------------------------
 local function iso(t) return t.kind == "campfire" and t.obj:getIsoObject() or t.obj end
 
+local keptTinder   -- (hoisted: the fuel rows ask it before its body below)
+local plainFuel
+
 local function fuelRows(info, current, max, player)
     local rows = {}
     local list = {}
     local durOf = {}      -- each item's burn time worked out once, not in every comparison (beast W34)
+    local plainOf = {}
     for _, it in ipairs(info.fuelList or {}) do
         list[#list + 1] = it
         durOf[it] = ISCampingMenu.getFuelDurationForItem(it) or 0
+        plainOf[it] = plainFuel(it)
     end
-    table.sort(list, function(a, b) return durOf[a] > durOf[b] end)
-    local totalN, totalDur = 0, 0
+    -- (QA FI2, Nov 26 2026) plain fuel first, the longest burn first; what the player keeps comes last
+    table.sort(list, function(a, b)
+        if plainOf[a] ~= plainOf[b] then return plainOf[a] end
+        return durOf[a] > durOf[b]
+    end)
+    local totalN, totalDur, plainTypes = 0, 0, 0
     for _, it in ipairs(list) do
         local count = info.itemCount[it:getName()] or 1
         local dur = durOf[it]
         -- vanilla's cap loop: as many of this type as the fire still holds
         local fitN = count
         while current + dur * fitN > max and fitN > 1 do fitN = fitN - 1 end
-        totalN = totalN + count
-        totalDur = totalDur + dur * count
+        -- (QA FI2, Nov 26 2026) the all-types total counts plain fuel only, as All fuel takes only that
+        if plainOf[it] then
+            plainTypes = plainTypes + 1
+            totalN = totalN + count
+            totalDur = totalDur + dur * count
+        end
         rows[#rows + 1] = {
             item = it, fullType = it:getFullType(), name = it:getName() .. (count > 1 and (" (" .. tostring(count) .. ")") or ""),
             baseName = it:getName(),
             tex = it:getTex(), where = OC.whereOf(it, player), dur = dur, count = count,
             fits = current + dur <= max,
             fitN = fitN, allFits = (fitN == count),
+            kept = not plainOf[it],
         }
     end
-    -- the all-types total (vanilla's "All (N)" across the list)
-    rows.totalN, rows.totalDur = totalN, totalDur
+    -- the all-types total (vanilla's "All (N)" across the list, plain fuel only)
+    rows.totalN, rows.totalDur, rows.plainTypes = totalN, totalDur, plainTypes
     return rows
 end
 
@@ -158,7 +172,7 @@ end
 -- (QA FI3, Nov 26 2026) tinder the player would not want burnt: a skill book, anything that teaches a recipe,
 -- a map, or a favorite. The game lists them like any paper, so the card puts them last and never picks them
 -- when Light is pressed.
-local function keptTinder(item)
+keptTinder = function(item)
     if call(item, "isFavorite") == true then return true end
     if call(item, "IsMap") == true or (instanceof and instanceof(item, "MapItem")) then return true end
     local sk = call(item, "getSkillTrained")
@@ -167,6 +181,67 @@ local function keptTinder(item)
     local rec = call(item, "getTeachedRecipes")
     if rec ~= nil and call(rec, "isEmpty") == false then return true end
     return false
+end
+
+-- (QA FI2, Nov 26 2026) All fuel burnt a skill book out of the crate beside him: the game's fuel list holds
+-- anything that burns (books, maps, clothes, bags, tents, bats, plush toys). The bulk adds take only plain
+-- fuel: a kind the game names in its fuel or tinder lists (planks, logs, sticks, paper, napkins), or wood and
+-- junk by their category (firewood, handles, splinters, broken chair legs). Never anything kept (above), a
+-- memento, a thing the player named, reading the game does not name, clothes or bags. Kept things still have
+-- their own row and go on one at a time, on purpose.
+local PLAIN_FUEL_CATS = { Material = true, MaterialWeapon = true, Junk = true, JunkWeapon = true }
+plainFuel = function(item)
+    if keptTinder(item) then return false end
+    if call(item, "isCustomName") == true then return false end
+    if call(item, "getDisplayCategory") == "Memento" then return false end
+    if ItemTag and ItemTag.IS_MEMENTO and call(item, "hasTag", ItemTag.IS_MEMENTO) == true then return false end
+    local ty = call(item, "getType")
+    if ty and ((campingFuelType and campingFuelType[ty]) or (campingLightFireType and campingLightFireType[ty])) then return true end
+    if call(item, "IsLiterature") == true or call(item, "IsClothing") == true then return false end
+    if instanceof and instanceof(item, "InventoryContainer") then return false end
+    return PLAIN_FUEL_CATS[tostring(call(item, "getDisplayCategory") or "")] == true
+end
+
+-- (QA FI2, Nov 26 2026) the plain fuel in reach, in the game's container order (the inventory, its bags, then
+-- what is around): every one, or only those of one type
+local function plainFuelItems(player, fullType)
+    local out = {}
+    local containers = ISInventoryPaneContextMenu.getContainers(player)
+    for i = 0, (containers and containers:size() or 0) - 1 do
+        local items = containers:get(i):getItems()
+        for j = 0, items:size() - 1 do
+            local it = items:get(j)
+            if (fullType == nil or it:getFullType() == fullType) and ISCampingMenu.isValidFuel(it) and plainFuel(it) then
+                out[#out + 1] = it
+            end
+        end
+    end
+    return out
+end
+
+-- (QA FI2, Nov 26 2026) the game's bulk add (its addFuel is local to ISCampingMenu): bring the pieces to the
+-- inventory, walk to the fire, one add action a piece (a use for each use left). It stops at the sandbox
+-- maximum across the whole batch, where the game checks only per piece. single: one action, as the game's
+-- one-piece add queues.
+local function queueFuel(p, target, items, timedAction, currentFuel, count, single)
+    local n = #items
+    if count and count < n then n = count end
+    if n <= 0 then return end
+    local batch = ArrayList.new()
+    for i = 1, n do batch:add(items[i]) end
+    ISCampingMenu.toPlayerInventory(p, batch)
+    if not ISCampingMenu.walkToCampfire(p, target:getSquare()) then return end
+    local fuel, cap = currentFuel or 0, fuelMax()
+    for i = 1, n do
+        local it = items[i]
+        if p:isEquipped(it) then ISTimedActionQueue.add(ISUnequipAction:new(p, it, 50)) end
+        local amt = ISCampingMenu.getFuelDurationForItem(it)
+        for _ = 1, (single and 1 or ISCampingMenu.getFuelItemUses(it)) do
+            if fuel + amt > cap then return end
+            fuel = fuel + amt
+            ISTimedActionQueue.add(timedAction:new(p, target, it, amt))
+        end
+    end
 end
 
 -- (QA FI3, Nov 26 2026) 0: the game's own named tinder (paper, sheets, twigs, napkins); 1: anything else
@@ -378,18 +453,28 @@ function def.refresh(t, player)
     local addAction = (t.kind == "campfire") and ISAddFuelAction or ISBBQAddFuel
     t.addFuel = function(p, row)
         t._fuelAt = nil   -- rescan after an action (beast W34)
+        -- (QA FI2, Nov 26 2026) a plain row takes a plain one of its type (a note he named shares its type with
+        -- blank ones); a kept row is the player's own pick and goes through the game's add as before
+        if not row.kept then
+            local one = plainFuelItems(p, row.fullType)[1]
+            if one then queueFuel(p, t.obj, { one }, addAction, d.fuel, 1, true) end
+            return
+        end
         ISCampingMenu.onAddFuel(p, t.obj, row.fullType, addAction, d.fuel)
     end
     -- vanilla's bulk adds: every one of a type that fits (or all that fit),
     -- and everything on the list. The capped count is passed explicitly
     -- because vanilla only checks the cap per item, not across the batch.
+    -- (QA FI2, Nov 26 2026) both take plain fuel only (plainFuel), never a kept thing from a crate; a kept
+    -- row has no bulk button (fuelBody), so its own Add is the one way it goes on
     t.addFuelMany = function(p, row)
         t._fuelAt = nil
-        ISCampingMenu.onAddMultipleFuel(p, t.obj, row.fullType, addAction, d.fuel, (not row.allFits) and row.fitN or nil)
+        if row.kept then return end
+        queueFuel(p, t.obj, plainFuelItems(p, row.fullType), addAction, d.fuel, (not row.allFits) and row.fitN or nil)
     end
     t.addFuelAll = function(p)
         t._fuelAt = nil
-        ISCampingMenu.onAddAllFuel(p, t.obj, addAction, d.fuel)
+        queueFuel(p, t.obj, plainFuelItems(p, nil), addAction, d.fuel, nil)
     end
     local petrolA = (t.kind == "campfire") and ISLightFromPetrol or ISBBQLightFromPetrol
     local tinderA = (t.kind == "campfire") and ISLightFromLiterature or ISBBQLightFromLiterature
@@ -407,8 +492,14 @@ function def.refresh(t, player)
 
     local verbs = {}
     local full = d.fuel >= d.max
-    local anyFits = false
-    for _, r in ipairs(d.fuelRows) do if r.fits then anyFits = true end end
+    -- (QA FI2, Nov 26 2026) Add fuel goes to the first plain row that fits, never a kept one; with only kept
+    -- things in reach it waits and says so (each kept row keeps its own Add button)
+    local safeFuel, keptFits = nil, false
+    for i, r in ipairs(d.fuelRows) do
+        if r.fits and not r.kept and not safeFuel then safeFuel = i end
+        if r.fits and r.kept then keptFits = true end
+    end
+    local anyFits = safeFuel ~= nil
     local safeLight = firstSafeLight(d.lightRows)
     local canLight = safeLight ~= nil
     local onlyKept = false
@@ -416,8 +507,9 @@ function def.refresh(t, player)
     local fuelOK = (not full) and anyFits
     -- a full fire takes no more, a burning one is not lit again, a dead one is not put out:
     -- those verbs are gone (sensible = false); the rest wait for what they need
-    verbs[#verbs + 1] = { id = "fuel", label = getText("ContextMenu_GeneratorAddFuel"), enabled = fuelOK, primary = fuelOK and (d.lit or not canLight), jump = "fire:fuel:1",
-        sensible = not full, needs = ZeD.tr("UI_ZeD_Fire_NeedsFuelItems"), hint = ZeD.tr("UI_ZeD_Fire_HintFuel"),
+    verbs[#verbs + 1] = { id = "fuel", label = getText("ContextMenu_GeneratorAddFuel"), enabled = fuelOK, primary = fuelOK and (d.lit or not canLight),
+        jump = "fire:fuel:" .. tostring(safeFuel or 1),
+        sensible = not full, needs = ZeD.tr(keptFits and "UI_ZeD_Fire_NeedsPlainFuel" or "UI_ZeD_Fire_NeedsFuelItems"), hint = ZeD.tr("UI_ZeD_Fire_HintFuel"),
         help = ZeD.tr("UI_ZeD_Fire_HelpFuel") }
     verbs[#verbs + 1] = { id = "out", label = ZeD.tr("UI_ZeD_Fire_PutOut"), enabled = d.lit, sensible = d.lit,
         help = ZeD.tr("UI_ZeD_Fire_HelpOut"),
@@ -426,7 +518,14 @@ function def.refresh(t, player)
             else ISBBQMenu.onExtinguish(nil, p:getPlayerNum(), tt.obj) end
         end }
     -- (QA FI3, Nov 26 2026) Light goes to the first row that burns nothing the player keeps, not row 1
-    local lightNeeds = (onlyKept and "UI_ZeD_Fire_NeedsTinder") or (d.fuel <= 0 and "UI_ZeD_Fire_NeedsFuelFirst") or "UI_ZeD_Fire_NeedsLighter"
+    -- (QA FI10, Nov 26 2026) the NEEDS line names what is missing: tinder lights a fire with no fuel on it
+    -- (ISCampingMenu.doLightFireOption), so with paper and no starter it is the lighter, not fuel; fuel on
+    -- the fire is named only when petrol is the one way left
+    local hasStarter = info.starters ~= nil and #info.starters > 0
+    local lightNeeds = "UI_ZeD_Fire_NeedsTinder"
+    if not hasStarter then lightNeeds = "UI_ZeD_Fire_NeedsLighter"
+    elseif onlyKept then lightNeeds = "UI_ZeD_Fire_NeedsTinder"
+    elseif info.petrol and d.fuel <= 0 then lightNeeds = "UI_ZeD_Fire_NeedsFuelFirst" end
     verbs[#verbs + 1] = { id = "light", label = getText("ContextMenu_Light"), enabled = (not d.lit) and canLight, primary = (not d.lit) and canLight,
         jump = "fire:light:" .. tostring(safeLight or 1),
         sensible = not d.lit, needs = ZeD.tr(lightNeeds),
@@ -522,16 +621,17 @@ local function fireBody(card, x, y, w, t, player)
     if #d.fuelRows > 0 then
         y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Fire_AddFromBags"), ZeD.tr("UI_ZeD_Fire_Adds"))
         local rows = d.fuelRows
-        -- one button for everything on the list, when more than one piece
-        -- is carried and the whole lot fits (vanilla's "All")
-        if #rows > 1 and (rows.totalN or 0) > 1 then
+        -- one button for all the plain fuel, when more than one kind and more than one piece
+        -- are in reach and the whole lot fits (vanilla's "All", without what the player keeps: QA FI2, Nov 26 2026;
+        -- UI_ZeD_Fire_HelpAddEvery, "everything on the list", stays unused in the language files)
+        if (rows.plainTypes or 0) > 1 and (rows.totalN or 0) > 1 then
             local lotFits = d.fuel + rows.totalDur <= d.max
             y = y + UI.pick(card, x, y, w, {
                 tex = rows[1].tex, name = ZeD.tr("UI_ZeD_Fire_AllFuel", rows.totalN),
                 gain = "+" .. OC.hm(rows.totalDur),
                 tag = (not lotFits) and ZeD.tr("UI_ZeD_Fire_TagFull") or nil,
                 button = ZeD.tr("ContextMenu_AddAll"), fid = "fire:fuelall", enabled = lotFits,
-                help = ZeD.tr("UI_ZeD_Fire_HelpAddEvery"),
+                help = ZeD.tr("UI_ZeD_Fire_HelpAddPlain"),
                 run = function(c, p) t.addFuelAll(p) end,
             })
         end
@@ -545,8 +645,9 @@ local function fireBody(card, x, y, w, t, player)
                 help = ZeD.tr("UI_ZeD_Fire_HelpAdd", r.baseName),
                 run = function(c, p) t.addFuel(p, rr) end,
             })
-            -- several of this type: add all of them, or all that fit
-            if r.fitN > 1 then
+            -- several of this type: add all of them, or all that fit (plain fuel only: a kept thing goes on
+            -- one at a time, QA FI2, Nov 26 2026)
+            if r.fitN > 1 and not r.kept then
                 y = y + UI.pick(card, x, y, w, {
                     tex = r.tex,
                     name = ZeD.tr(r.allFits and "UI_ZeD_Fire_NameAll" or "UI_ZeD_Fire_NameAllThatFit", r.baseName, r.fitN),

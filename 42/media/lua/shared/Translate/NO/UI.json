@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "sette inn en tank",
     "UI_ZeD_Fire_NeedsFuelFirst": "brensel på bålet",
     "UI_ZeD_Fire_NeedsFuelItems": "noe som brenner i posene dine",
+    "UI_ZeD_Fire_HelpAddPlain": "Legg til alt: legg vanlig brensel på bålet (bøker, kart og favoritter blir igjen)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "vanlig brensel som ved eller papir (bøker, kart og favoritter velges ikke)",
     "UI_ZeD_Fire_NeedsGas": "en propantank med gass",
     "UI_ZeD_Fire_NeedsLighter": "en lighter eller fyrstikker i posene dine",
     "UI_ZeD_Fire_NeedsSpareTank": "en propantank i posene dine",

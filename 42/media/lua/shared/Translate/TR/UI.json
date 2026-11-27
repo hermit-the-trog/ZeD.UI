@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "tüp takmak",
     "UI_ZeD_Fire_NeedsFuelFirst": "ateşte yakıt",
     "UI_ZeD_Fire_NeedsFuelItems": "çantalarınızda yanabilen bir şey",
+    "UI_ZeD_Fire_HelpAddPlain": "Hepsini ekle: sıradan yakıtı ateşe koy (kitaplar, haritalar ve favoriler kalır)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "odun veya kağıt gibi sıradan yakıt (kitaplar, haritalar ve favoriler seçilmez)",
     "UI_ZeD_Fire_NeedsGas": "gazlı bir propan tüpü",
     "UI_ZeD_Fire_NeedsLighter": "çantalarınızda çakmak veya kibrit",
     "UI_ZeD_Fire_NeedsSpareTank": "çantalarınızda bir propan tüpü",

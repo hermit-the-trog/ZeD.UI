@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "vložit láhev",
     "UI_ZeD_Fire_NeedsFuelFirst": "palivo v ohni",
     "UI_ZeD_Fire_NeedsFuelItems": "něco, co hoří, v taškách",
+    "UI_ZeD_Fire_HelpAddPlain": "Přidat vše: dát do ohně obyčejné palivo (knihy, mapy a oblíbené zůstanou)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "obyčejné palivo jako dřevo nebo papír (knihy, mapy a oblíbené se neberou)",
     "UI_ZeD_Fire_NeedsGas": "propanová láhev s plynem",
     "UI_ZeD_Fire_NeedsLighter": "zapalovač nebo sirky v taškách",
     "UI_ZeD_Fire_NeedsSpareTank": "propanová láhev v taškách",

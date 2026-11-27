@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "asettaa tankin",
     "UI_ZeD_Fire_NeedsFuelFirst": "polttoainetta tulella",
     "UI_ZeD_Fire_NeedsFuelItems": "jotain palavaa laukuissasi",
+    "UI_ZeD_Fire_HelpAddPlain": "Lisää kaikki: laita tavallinen polttoaine tulelle (kirjat, kartat ja suosikit jäävät)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "tavallista polttoainetta kuten puuta tai paperia (kirjoja, karttoja ja suosikkeja ei valita)",
     "UI_ZeD_Fire_NeedsGas": "propaanitankki, jossa on kaasua",
     "UI_ZeD_Fire_NeedsLighter": "sytytin tai tulitikkuja laukuissasi",
     "UI_ZeD_Fire_NeedsSpareTank": "propaanitankki laukuissasi",

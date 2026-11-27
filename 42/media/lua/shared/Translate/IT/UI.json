@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "metterci una bombola",
     "UI_ZeD_Fire_NeedsFuelFirst": "combustibile sul fuoco",
     "UI_ZeD_Fire_NeedsFuelItems": "qualcosa che brucia nelle tue borse",
+    "UI_ZeD_Fire_HelpAddPlain": "Aggiungi tutto: metti sul fuoco il combustibile comune (libri, mappe e preferiti restano)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "combustibile comune come legna o carta (libri, mappe e preferiti non vengono scelti)",
     "UI_ZeD_Fire_NeedsGas": "una bombola di propano con gas",
     "UI_ZeD_Fire_NeedsLighter": "un accendino o fiammiferi nelle tue borse",
     "UI_ZeD_Fire_NeedsSpareTank": "una bombola di propano nelle tue borse",

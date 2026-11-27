@@ -191,8 +191,11 @@ function OC.openNear(player, kindId, obj, sq)
     if sq and (math.floor(player:getZ()) ~= sq:getZ() or OC.squareDist(player, sq) > leash - 0.5) then
         if luautils.walkAdj(player, sq) then
             ISTimedActionQueue.add(ZeDOpenCardAction:new(player, kindId, obj))
+            return true
         end
-        return true
+        -- no way there: say no, so a hook hands the call back to the game's own handler rather than doing
+        -- nothing (QA PW9 / FI9, Nov 26 2026)
+        return false
     end
     return OC.open(player, kindId, obj)
 end

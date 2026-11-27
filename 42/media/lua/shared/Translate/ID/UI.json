@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "memasang tabung",
     "UI_ZeD_Fire_NeedsFuelFirst": "bahan di dalam api",
     "UI_ZeD_Fire_NeedsFuelItems": "sesuatu yang terbakar di tas Anda",
+    "UI_ZeD_Fire_HelpAddPlain": "Tambah semua: taruh bahan bakar biasa ke api (buku, peta, dan favorit tetap disimpan)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "bahan bakar biasa seperti kayu atau kertas (buku, peta, dan favorit tidak dipilih)",
     "UI_ZeD_Fire_NeedsGas": "tabung propana berisi gas",
     "UI_ZeD_Fire_NeedsLighter": "pemantik atau korek di tas Anda",
     "UI_ZeD_Fire_NeedsSpareTank": "tabung propana di tas Anda",
