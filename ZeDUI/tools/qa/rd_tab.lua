@@ -737,9 +737,35 @@ function H.boxUp() return H.findBox() ~= nil end
 function H.boxOK(text)
     local b = H.findBox()
     if not b then return false end
-    local ok = H.zcall(function() b.entry:setText(text); b:onClick(b.yes) end)
+    -- (run 2, 1280x800: an empty name changed nothing and no flash came; what the box held is kept for the detail)
+    local back, internal = "?", "?"
+    local ok = H.zcall(function()
+        b.entry:setText(text)
+        pcall(function() back = tostring(b.entry:getText()) end)
+        pcall(function() internal = tostring(b.entry:getInternalText()) end)
+        S.boxDiag = "the box: " .. tostring(b.Type) .. " " .. tostring(b.kind) .. ", answered already " .. tostring(b._dead) .. ", its channel " .. tostring(b.param1)
+            .. ", its OK enabled " .. tostring(b.yes and b.yes.enable) .. ", the field read back \"" .. H.s(back) .. "\" (internal \"" .. H.s(internal) .. "\")"
+        b:onClick(b.yes)
+    end)
     S.lastBox = nil
     return ok
+end
+-- queue: control id scrolled into the tab's view (as the D-pad's moves bring it), then the pad's focus put on it;
+-- T.go. (Run 2: A on LAMP and on MIC did nothing where the key started out of the view; the focus and the knob
+-- held are logged before and after, so a press that lands elsewhere shows itself.)
+function H.padAtQ(T, which, id)
+    H.hitShowQ(T, which, id)
+    H.step(2, function()
+        if T.off then return end
+        local w = H.win(which)
+        T.go = H.padOn(w) and H.focusEl(w, "radio:tw:" .. id)
+        T.padBefore = "before the press: focus " .. tostring(H.focusedId(w)) .. ", " .. id .. " in view " .. tostring(T.hitVis) .. ", knob held " .. tostring(w and w._knobGrab)
+        if not T.go then Q.check(false, T.L .. " (pad): the focus goes onto " .. id, "stops " .. H.stopIds(w)) end
+    end)
+end
+function H.padAfter(which)
+    local w = H.win(which)
+    return "after: focus " .. tostring(H.focusedId(w)) .. ", knob held " .. tostring(w and w._knobGrab)
 end
 function H.boxShut() local b = H.findBox(); S.lastBox = nil; if b then pcall(function() b:destroy() end) end end
 -- the game's radio window for this player (an item's or a set's), up or not
@@ -2368,21 +2394,22 @@ function C.r35()
         Q.check(#pr == 1 and pr[1].name == "Base" and row ~= nil and H.has(row.label, "Base"), T.L .. ": OK names the channel and its Channels row",
             "the game's list " .. H.presetText(T.dev) .. "; row " .. H.s(row and row.label))
         S.lastBox = nil
-        local cw = RT.cw()
-        T.go = H.padOn(cw) and H.focusEl(cw, "radio:tw:mem")
     end)
+    H.padAtQ(T, "cw", "mem")
     H.holdAQ("cw", 800, function() return T.go and not T.off end)
     H.wait(1500, function() return T.off or not T.go or H.boxUp() end, function(ok)
+        T.padAft = H.padAfter("cw")
         H.padOff()
         if T.off or not T.go then return end
-        Q.check(ok, T.L .. " (pad): A held on MEM opens the naming box", "box up " .. tostring(H.boxUp()))
+        Q.check(ok, T.L .. " (pad): A held on MEM opens the naming box", "box up " .. tostring(H.boxUp()) .. "; " .. tostring(T.padBefore) .. "; " .. T.padAft)
+        S.boxDiag = nil
         if ok then H.boxOK("") end
         T.fl = H.flash(T.dev)
     end)
     H.step(3, function()
         if T.off or not T.go then return end
         Q.check(#H.presets(T.dev) == 0 and T.fl == H.tr("UI_ZeD_Radio_ChCleared", "01"), T.L .. " (pad): an empty name forgets the channel and flashes CH 01 CLEARED",
-            "the game's list " .. H.presetText(T.dev) .. "; flash " .. H.s(T.fl))
+            "the game's list " .. H.presetText(T.dev) .. "; flash " .. H.s(T.fl) .. "; " .. tostring(S.boxDiag))
     end)
     H.caseEnd(T.L)
 end
@@ -2435,10 +2462,10 @@ function C.r37()
         Q.check(H.micMuted(T.dev) == false and T.game == false, T.L .. " (mouse): MIC on a walkie that is off does nothing, as the game refuses it",
             "the game's mic muted " .. tostring(H.micMuted(T.dev)) .. "; its isValidMuteMicrophone " .. tostring(T.game))
         H.prep(T.dev, { on = true })
-        local cw = RT.cw()
-        T.go = H.padOn(cw) and H.focusEl(cw, "radio:tw:mic")
     end)
+    H.padAtQ(T, "cw", "mic")
     H.tapQ("cw", "A", function() return T.go and not T.off end)
+    H.step(2, function() T.padAft = H.padAfter("cw") end)
     Q.waitMs(700)
     H.step(2, function()
         H.padOff()
@@ -2447,7 +2474,8 @@ function C.r37()
         local row = H.fillRow(RT.cw(), "fill:radio:mic")
         Q.check(H.micMuted(T.dev) == true and g ~= nil and g.tx == S.O.word("micOff") and row ~= nil and row.value == getText("IGUI_RadioNo"),
             T.L .. " (pad): MIC mutes the microphone: MIC OFF on the glass, Microphone No in the block",
-            "the game's mic muted " .. tostring(H.micMuted(T.dev)) .. "; glass " .. H.s(g and g.tx) .. "; row " .. H.s(row and row.value))
+            "the game's mic muted " .. tostring(H.micMuted(T.dev)) .. ", on " .. tostring(H.on(T.dev)) .. "; glass " .. H.s(g and g.tx) .. "; row " .. H.s(row and row.value)
+            .. "; " .. tostring(T.padBefore) .. "; " .. tostring(T.padAft))
     end)
     H.caseEnd(T.L)
 end
@@ -2506,11 +2534,11 @@ function C.r39()
     H.step(2, function()
         if T.off then return end
         if not H.hit(RT.cw(), "lamp") then T.off = true; Q.skip(T.L, "no LAMP on the face (" .. H.list(H.hitIds(RT.cw())) .. ")"); return end
-        local cw = RT.cw()
-        T.go = H.padOn(cw) and H.focusEl(cw, "radio:tw:lamp")
     end)
+    H.padAtQ(T, "cw", "lamp")
     H.tapQ("cw", "A", function() return T.go and not T.off end)
     H.step(2, function()
+        T.padAft = H.padAfter("cw")
         H.padOff()
         if T.off or not T.go then return end
         T.lit = S.O.lampLit(T.dev)
@@ -2520,7 +2548,8 @@ function C.r39()
     H.wait(7000, function() return T.off or not S.O.lampLit(T.dev) end, function(ok)
         if T.off or not T.go then return end
         local ms = getTimestampMs() - (T.t0 or 0)
-        Q.check(T.lit and ok and ms >= 4000 and ms <= 6500, T.L .. " (pad): A on LAMP lights the glass for 5 s", "lit " .. tostring(T.lit) .. ", dark again after " .. ms .. " ms")
+        Q.check(T.lit and ok and ms >= 4000 and ms <= 6500, T.L .. " (pad): A on LAMP lights the glass for 5 s", "lit " .. tostring(T.lit) .. ", dark again after " .. ms .. " ms (counted from the check after the tap); "
+            .. tostring(T.padBefore) .. "; " .. tostring(T.padAft))
         pcall(function() if S.found.tod then getGameTime():setTimeOfDay(S.found.tod) end end)
         S.back.clock = nil
     end)
@@ -3667,6 +3696,15 @@ function C.r30()
         if T.off or T.noBatt then return end
         T.bAim = H.qTarget("ISDeviceBatteryAction", T)
         T.bQueued = ok
+        -- (run 2: nothing was queued. RtvFace's battery action names the set by its square, and the game's
+        -- ISDeviceBatteryAction:new takes the square's getDeviceData; its isValid (getIsBatteryPowered) then decides.
+        -- Which set the square answers for, and the game's rule on each, go in the detail)
+        local sqAns = "?"
+        pcall(function()
+            local d = T.r:getSquare():getDeviceData()
+            sqAns = (d == H.dd(T.r) and "the radio") or (d == H.dd(T.tv) and "the TV") or (d and "another set") or "none"
+        end)
+        T.bAim = tostring(T.bAim) .. "; the square answers for " .. sqAns .. " (the radio battery-powered " .. tostring(H.usesBatt(T.r)) .. ", the TV " .. tostring(H.usesBatt(T.tv)) .. ")"
     end)
     H.waitQ(T, 15000)
     H.step(2, function()
@@ -4256,8 +4294,16 @@ function C.r50()
     local T = { L = "R50 the car's ham" }
     H.step(2, function()
         if not H.carStart(T, "Base.HamRadio1", 0) then return end
-        H.prep(T.part, { on = true, vol = 0.1, ch = 146520, presets = {}, mic = false })
-        if not H.on(T.part) then T.off = true; Q.skip(T.L, "the car's ham would not turn on") end
+        -- (run 2: the sedan's radio part keeps its own band (template_radio, FM 88-108) whatever item it holds, so
+        -- 146.520 and 147.000 never took and both MEMs stored one channel. The channels are taken inside the part's
+        -- own band now: its foot plus 2 and plus 4 MHz)
+        local lo, hi = H.range(T.part)
+        T.lo, T.hi = lo, hi
+        T.c1, T.c2 = (lo or 88000) + 2000, (lo or 88000) + 4000
+        H.prep(T.part, { on = true, vol = 0.1, ch = T.c1, presets = {}, mic = false })
+        if not H.on(T.part) then T.off = true; Q.skip(T.L, "the car's ham would not turn on"); return end
+        if H.ch(T.part) ~= T.c1 then H.note(T.L .. ": the part's channel did not take " .. H.mhz(T.c1) .. " (reads " .. H.mhz(H.ch(T.part)) .. ", band " .. H.mhz(lo) .. "-" .. H.mhz(hi) .. ")") end
+        H.note(T.L .. ": the car radio part's band " .. H.mhz(lo) .. "-" .. H.mhz(hi) .. " MHz with HamRadio1 in it (the part's template sets it, not the item)")
     end)
     H.carOpenQ(T)
     H.shotQ(function() if T.off then return nil end; return "rd_carradio_" .. tostring(T.kind) .. "_" .. H.sizeTag() end, "the car radio up close (ham)")
@@ -4277,7 +4323,7 @@ function C.r50()
         if T.off then return end
         local pr = H.presets(T.part)
         Q.check(pr[1] ~= nil and pr[1].name == "Base", T.L .. ": OK names it", "the game's list " .. H.presetText(T.part))
-        pcall(function() H.dd(T.part):setChannel(147000) end)
+        pcall(function() H.dd(T.part):setChannel(T.c2) end)
         H.carClick("mem")
     end)
     H.step(3, function()
@@ -4289,7 +4335,8 @@ function C.r50()
     H.step(3, function()
         if T.off then return end
         local pr = H.presets(T.part)
-        Q.check(#pr == 2 and H.ch(T.part) == pr[2].freq, T.L .. " (pad): CH- on channel 01 goes to the last", "the game's channel " .. H.mhz(H.ch(T.part)) .. "; the list " .. H.presetText(T.part))
+        Q.check(#pr == 2 and H.ch(T.part) == pr[2].freq, T.L .. " (pad): with two stored, CH- on channel 01 goes to the last (02)",
+            "the game's channel " .. H.mhz(H.ch(T.part)) .. "; the list " .. H.presetText(T.part) .. " (staged at " .. H.mhz(T.c1) .. " and " .. H.mhz(T.c2) .. ")")
         T.m0 = H.micMuted(T.part)
         H.carClick("mic")
     end)
