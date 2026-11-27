@@ -1697,11 +1697,6 @@ local function _handleBContextual(pn)
     local w = _S(pn).win
     if not w then return end
     local el = Focus.getFocusedElement(w)
-    -- (QA TK3 hunt, Nov 26 2026: B on an object card's stop says where it landed; to come out once found)
-    if el and type(el.id) == "string" and string.sub(el.id, 1, 3) == "oc:" then
-        print("[ZeD] Focus: B with a card to come back to: stop " .. tostring(el and el.id) .. ", its own B "
-            .. tostring(el and el.onCancel ~= nil) .. ", the way back " .. tostring(el and el._zedReturnB == true))
-    end
     if not el or not el.onCancel then _cancelAction(pn); return end
     local took = _fireCbR("element.onCancel", el.onCancel, w, el)
     if took ~= false then pcall(function() ZeD.uiSound("UIToggleTickBox") end)

@@ -4701,6 +4701,37 @@ function ZeD_WorldWindow.toggle(playerNum)
         -- (the inventory's least: 200 units, a little under while a grid hugs three cells, ZeD.Halves.invMin)
         win.minimumWidth = math.min(maxW, stripW + (win._invDrawerOpen and not win._rolled and ZeD.Halves.invMin(win, content) or 0) + effectiveW + T.px(ACTION_TAB_STRIP_W))
 
+        -- (QA OC7, Nov 26 2026) the columns an object card pushed out come back when it closes: at 1280x800 three
+        -- columns and the lock card did not fit, one went, and after the card only two came back. Put back in front,
+        -- as they were; the eviction below takes them again if the window still has no room.
+        if win._mcEvicted and not win._drawerObject then
+            local back = win._mcEvicted
+            win._mcEvicted = nil
+            if mcActive and #(win._mcSelected) > 0 then
+                for i = #back, 1, -1 do
+                    local ci = back[i]
+                    local have = false
+                    for _, c in ipairs(win._mcSelected) do if c == ci then have = true; break end end
+                    if not have and win._containers and win._containers[ci] then table.insert(win._mcSelected, 1, ci) end
+                end
+                local colSel = {}
+                for _, ci in ipairs(win._mcSelected) do colSel[#colSel + 1] = ci end
+                if win._mainVisible then
+                    local activeInMc = false
+                    for _, ci in ipairs(win._mcSelected) do
+                        if ci == win._activeContainer then activeInMc = true; break end
+                    end
+                    if not activeInMc then colSel[#colSel + 1] = win._activeContainer end
+                end
+                content._selectedContainers = colSel
+                content._containers = win._containers
+                getR().rebuildColStates(content)
+                content._activeCol = #colSel
+                win._invDrawerTargetW = computeInvDrawerTargetWorld(win)
+                if _syncWorldRingZones then _syncWorldRingZones(win, content) end
+            end
+        end
+
         -- ── MC eviction ──────────────────────────────────────────
         if mcActive and #(win._mcSelected) > 0 then
             local R = getR()
@@ -4711,7 +4742,12 @@ function ZeD_WorldWindow.toggle(playerNum)
             local perCol = totalCols > 0 and (usable / totalCols) or 0
             local evicted = false
             while perCol < minColW and #win._mcSelected > 0 do
-                table.remove(win._mcSelected, 1)
+                local gone = table.remove(win._mcSelected, 1)
+                -- (an object card's room: kept, to come back when the card closes; QA OC7)
+                if win._drawerObject then
+                    win._mcEvicted = win._mcEvicted or {}
+                    win._mcEvicted[#win._mcEvicted + 1] = gone
+                end
                 totalCols = #win._mcSelected + (win._mainVisible and 1 or 0)   -- (a hidden floor takes no column: one extra stays)
                 xferW = T.px(R.getXferW and R.getXferW(totalCols) or 32)
                 usable = invW - (totalCols - 1) * xferW
@@ -6590,8 +6626,6 @@ end
 --- view). The controller lands on the card. Returns true when it is up.
 function ZeD_WorldWindow.openObjectCard(playerNum, entry)
     if not entry then return false end
-    -- (QA TK3 hunt, Nov 26 2026: the track card closed on B and was up again 400 ms later; each open says so)
-    print("[ZeD] WorldWindow: object card open (" .. tostring(entry.def and entry.def.id) .. (entry.back and ", from a card" or "") .. ")")
     if not ZeD.windowsFor(playerNum) then return false end   -- (split-screen: the game's own, ZeD.windowsFor)
     if not _worldWins[playerNum or 0] then
         local ok = pcall(ZeD_WorldWindow.open, playerNum or 0)
