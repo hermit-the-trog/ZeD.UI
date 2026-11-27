@@ -78,6 +78,43 @@ local function waterSources(player)
     return out
 end
 
+-- (the director's call FA8, Nov 26 2026) the container Water pours from: the one he picked in the card's list,
+-- while he still carries it with water in it; else the biggest, the card's default before the list
+local function sameItem(a, b)
+    if a == nil or b == nil then return false end
+    if a == b then return true end
+    local ia = call(a, "getID")
+    return ia ~= nil and ia == call(b, "getID")
+end
+local function pickedSource(t, list)
+    if t.waterPick then
+        for _, it in ipairs(list) do
+            if sameItem(it, t.waterPick) then return it end
+        end
+    end
+    return list[1]
+end
+
+-- What a source holds, for its row: litres in a fluid container, else the game's uses.
+local function sourceAmount(it)
+    local fc = call(it, "getFluidContainer")
+    local amt = fc and tonumber(call(fc, "getAmount"))
+    if amt then return string.format("%.1f L", amt) end
+    return tostring(ISFarmingMenu.getWaterUsesInteger(it))
+end
+
+-- (the director's call FA7, Nov 26 2026) how many uses one Treat sprays. Mildew, flies and slugs: one, the only
+-- amount the game's menu offers. Aphids: what the plant needs, as the game's menu offers 1 to 10 at once
+-- (ISFarmingMenu, the aphids submenu): each use kills 10 + his Farming level (SPlantGlobalObject.cureAphids, the
+-- level ISCurePlantAction passes), so the level over that, at least 1, at most 10 and what the spray holds.
+local function sprayUsesFor(cure, plant, spray, player)
+    if cure ~= "Aphids" then return 1 end
+    local skill = tonumber(call(player, "getPerkLevel", Perks and Perks.Farming)) or 0
+    local need = math.ceil((plant and plant.aphidLvl or 0) / (10 + skill))
+    local have = tonumber(call(spray, "getCurrentUses")) or 1
+    return math.max(1, math.min(need, 10, have))
+end
+
 local function cropName(plant) return txt("Farming_" .. tostring(plant.typeOfSeed), tostring(plant.typeOfSeed)) end
 
 -- 0-based phase index on the strip, or nil (plowed / dead)
@@ -304,6 +341,16 @@ function def.refresh(t, player)
     d.compostItem = (not d.plowed) and (inv:getFirstTypeRecurse("CompostBag") or inv:getFirstTagRecurse(ItemTag.COMPOST)) or nil
     local pestsVisible = d.pestSkill >= 3
     t.d = d
+    -- (the director's call FA7, Nov 26 2026) a pest row's Treat: one walk, one equip and the game's cure action
+    -- with every use the plant needs (sprayUsesFor) and the game's time for them, 10 * (uses * 10); heavy aphids
+    -- took five presses, a walk and a use each
+    t.treat = function(p, pestDef)
+        local spray = findSpray(p, pestDef.spray)
+        if not spray or not ISFarmingMenu.walkToPlant(p, t.sq) then return end
+        local uses = sprayUsesFor(pestDef.cure, t.obj, spray, p)
+        ISWorldObjectContextMenu.equip(p, p:getPrimaryHandItem(), spray, true)
+        ISTimedActionQueue.add(ISCurePlantAction:new(p, spray, uses, t.obj, 10 * (uses * 10), pestDef.cure))
+    end
 
     local verbs = {}
     if d.plowed then
@@ -322,7 +369,7 @@ function def.refresh(t, player)
             sensible = thirstyOK, needs = ZeD.tr("UI_ZeD_Farm_NeedsWater"), hint = ZeD.tr("UI_ZeD_Farm_HintWater"),
             help = ZeD.tr("UI_ZeD_Farm_HelpWater"),
             run = function(p, tt)
-                local src = waterSources(p)[1]
+                local src = pickedSource(tt, waterSources(p))   -- (FA8: the picked one, else the biggest)
                 local pl = tt.obj
                 if not src or not pl then return end
                 local use = math.min(ISFarmingMenu.getWaterUsesInteger(src), math.ceil((100 - (pl.waterLvl or 0)) / 10), 10)
@@ -691,6 +738,32 @@ function def.body(card, x, y, w, t, player)
                 y = y + UI.pairWide(card, x, y, w, ZeD.tr("Fluid_Name_Water"), wv) + gap
             end
         end
+        -- (the director's call FA8, Nov 26 2026) Water from: each container he can pour, by name with what it holds
+        -- and what it gives the plant, as the game's watering menu lists them (the one in his hand alone when it
+        -- holds water, else every one in his inventory). The picked one has the selected wash; Use picks it and Water
+        -- pours from it. Unpicked, the biggest leads, as before.
+        if #d.water_src > 0 then
+            y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Farm_WaterFrom"), tostring(#d.water_src))
+            local cur = pickedSource(t, d.water_src)
+            local missing = math.ceil((100 - d.water) / 10)
+            local useW = ZeD.tr("UI_ZeD_Card_VerbUse")
+            for i, it in ipairs(d.water_src) do
+                local item = it
+                local name = call(it, "getName") or "?"
+                if sameItem(it, cur) then
+                    local rh = math.max(T.px(26), T.buttonH)
+                    card:drawRect(x, y, w, rh, T.selectionA, T.accent.r, T.accent.g, T.accent.b)
+                end
+                y = y + UI.pick(card, x, y, w, {
+                    tex = call(it, "getTex"), name = name, where = sourceAmount(it),
+                    gain = "+" .. tostring(math.min(ISFarmingMenu.getWaterUsesInteger(it), missing, 10) * 10),
+                    button = useW, fid = "farm:water:" .. i,
+                    help = ZeD.tr("UI_ZeD_Farm_HelpWaterFrom", name),
+                    run = function(c, p) t.waterPick = item end,
+                })
+            end
+            y = y + gap
+        end
         -- Pests and disease: rows with Treat (vanilla lets you spray blind). A Treat with no spray to
         -- use is drawn only under Show all (greyed, with what it needs), as the verb row's is.
         if d.alive then
@@ -716,12 +789,7 @@ function def.body(card, x, y, w, t, player)
                     UI.button(card, bx, by, treat, { w = bw, h = bh, disabled = pe.spray == nil, fid = fid, body = true,
                         help = ZeD.tr("UI_ZeD_Farm_HelpTreatPest", ZeD.textCase(ZeD.tr(pe.def.label))),
                         focus = card:focusOf(fid),
-                        run = pe.spray and function(c, p)
-                            local spray = findSpray(p, pp.def.spray)
-                            if not spray or not ISFarmingMenu.walkToPlant(p, t.sq) then return end
-                            ISWorldObjectContextMenu.equip(p, p:getPrimaryHandItem(), spray, true)
-                            ISTimedActionQueue.add(ISCurePlantAction:new(p, spray, 1, t.obj, 100, pp.def.cure))
-                        end or nil })
+                        run = pe.spray and function(c, p) t.treat(p, pp.def) end or nil })
                 else
                     vx = x + w - T.px(2)
                 end

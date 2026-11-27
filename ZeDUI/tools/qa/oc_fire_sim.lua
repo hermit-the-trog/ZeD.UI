@@ -490,5 +490,109 @@ do
     check("FI10 a lighter, nothing to light: tinder", v and v.needs == "UI_ZeD_Fire_NeedsTinder", v and v.needs)
 end
 
+-- ---------------------------------------------------------------------------
+-- FI1  (the director's call, Nov 26 2026) an indoor campfire beside a floor the game can set alight: the warning
+--      in the body while lit or while Light is offered, and over his head as he lights it; the game's own test
+--      (SCampfireSystem.lowerFirelvl): not outside, a neighbour's floor floors_interior_tilesandwood from tile 40,
+--      floors_interior_carpet or carpet, on the squares ZombRand(-1, 1) can pick (west, north, north-west)
+-- ---------------------------------------------------------------------------
+do
+    local function floorSq(x, y, name, n, outside)
+        local spr = name and { getName = function() return name end, getSheetGridIdFromName = function() return n or 0 end } or nil
+        return { getX = function() return x end, getY = function() return y end, getZ = function() return 0 end,
+            isOutside = function() return outside == true end,
+            getFloor = function() return spr and { getSprite = function() return spr end } or nil end }
+    end
+    local GRID = {}
+    local function grid(x, y, name, n, outside) GRID[x .. "," .. y] = floorSq(x, y, name, n, outside); return GRID[x .. "," .. y] end
+    local oldCell = getCell
+    getCell = function() return { getGridSquare = function(_, x, y) return GRID[x .. "," .. y] end } end
+    local halo = {}
+    HaloTextHelper = { addBadText = function(_, s) halo[#halo + 1] = s end }
+    local function fireOn(sq, lit)
+        local t = campfire(30)
+        t.sq = sq
+        t.obj.isLit = lit == true
+        return t
+    end
+    local paper = item({ name = "Sheet of Paper", type = "SheetPaper2", lit = true })
+    CURRENT_INFO = info({ paper }, { matchbook })
+
+    -- the fire on stone, a wood floor (tile 40) west of it
+    local here = grid(10, 10, "floors_interior_tilesandwood_01", 2)
+    grid(9, 10, "floors_interior_tilesandwood_01", 40)
+    local t = fireOn(here)
+    DEF.refresh(t, PLAYER)
+    check("FI1 indoors, wood floor west: the card knows", t.d.floorCatches == true)
+    -- the body draws the warning first (UI.warn), then stops (the sim has no strip to draw)
+    local warned = nil
+    OC.ui.warn = function(_, _, _, _, s) warned = s; error("stop") end
+    ZeD.T.px = function(n) return n end
+    pcall(DEF.body, {}, 0, 0, 400, t, PLAYER)
+    check("FI1 ... the body's warning box, Light offered", warned == "UI_ZeD_Fire_FloorCatches", warned)
+    halo = {}
+    t.light(PLAYER, t.d.lightRows[1])
+    check("FI1 ... lighting it says it over his head", halo[1] == "UI_ZeD_Fire_FloorCatches", halo[1])
+    check("FI1 ... and still lights it (warn, don't block)", CALLS[#CALLS] == "tinder:Base.SheetPaper2", CALLS[#CALLS])
+    -- lit: the box stays
+    t = fireOn(here, true)
+    DEF.refresh(t, PLAYER)
+    warned = nil
+    pcall(DEF.body, {}, 0, 0, 400, t, PLAYER)
+    check("FI1 lit on that floor: the box stays", warned == "UI_ZeD_Fire_FloorCatches", warned)
+
+    -- the game's tile rule: tilesandwood below 40 is tile, not wood
+    GRID = {}
+    here = grid(10, 10, "floors_interior_tilesandwood_01", 2)
+    grid(9, 10, "floors_interior_tilesandwood_01", 39)
+    grid(10, 9, "floors_exterior_street_01", 50)
+    t = fireOn(here)
+    DEF.refresh(t, PLAYER)
+    check("FI1 tile 39 of tilesandwood and a street floor: no warning", t.d.floorCatches == false)
+    warned = nil
+    pcall(DEF.body, {}, 0, 0, 400, t, PLAYER)
+    check("FI1 ... no box", warned == nil, warned)
+    halo = {}
+    t.light(PLAYER, t.d.lightRows[1])
+    check("FI1 ... no word over his head", #halo == 0, halo[1])
+
+    -- a carpet north-west: yes; a carpet only east or south (squares the game never picks): no
+    GRID = {}
+    here = grid(10, 10, nil)
+    grid(9, 9, "carpet_01", 3)
+    t = fireOn(here)
+    DEF.refresh(t, PLAYER)
+    check("FI1 a carpet north-west: warns", t.d.floorCatches == true)
+    GRID = {}
+    here = grid(10, 10, nil)
+    grid(11, 10, "floors_interior_carpet_01", 3)
+    grid(10, 11, "floors_interior_carpet_01", 3)
+    t = fireOn(here)
+    DEF.refresh(t, PLAYER)
+    check("FI1 carpet only east and south (the game never picks them): no warning", t.d.floorCatches == false)
+
+    -- outside, on wood (a deck): the game never spreads an outdoor campfire
+    GRID = {}
+    here = grid(10, 10, nil, 0, true)
+    grid(9, 10, "floors_interior_tilesandwood_01", 40, true)
+    t = fireOn(here)
+    DEF.refresh(t, PLAYER)
+    check("FI1 outside: no warning", t.d.floorCatches == false)
+
+    -- out and nothing to light it with: no box (it is neither lit nor about to be)
+    GRID = {}
+    here = grid(10, 10, nil)
+    grid(9, 10, "floors_interior_tilesandwood_01", 40)
+    CURRENT_INFO = info({}, {})
+    t = fireOn(here)
+    DEF.refresh(t, PLAYER)
+    warned = nil
+    pcall(DEF.body, {}, 0, 0, 400, t, PLAYER)
+    check("FI1 out with no way to light it: no box", warned == nil, warned)
+
+    OC.ui.warn, ZeD.T.px, HaloTextHelper = nil, nil, nil
+    getCell = oldCell
+end
+
 print("oc_fire_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end
