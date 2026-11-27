@@ -191,7 +191,11 @@ function R.fallbackPid(dev, dd)
     local X = ZeD.PhysPx
     if not (X and X.plates and dev) then return nil end
     dd = dd or _get(dev, "getDeviceData", nil)
-    if not dd or _get(dd, "getIsTwoWay", false) then return nil end
+    if not dd then return nil end
+    -- (QA R51, Nov 27 2026: a car's two-way part (a ham set built into the car, Vehicles.Create.Radio_HAM) has no
+    -- walkie or ham face in the World tab (TwoWayFace knows items and placed sets only), so it borrows the radio's
+    -- plain card too; with neither, the tab listed it and drew nothing)
+    if _get(dd, "getIsTwoWay", false) and not instanceof(dev, "VehiclePart") then return nil end
     local id = _get(dd, "getIsTelevision", false) and R.FALLBACK_TV or R.FALLBACK_RADIO
     if not X.plates[id] then return nil end
     return id

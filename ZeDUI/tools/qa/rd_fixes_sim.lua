@@ -14,6 +14,10 @@
 --        name and forget the channel the set is tuned to
 --   R35, R37, R39  a second walkie with the same face, and a face drawn after the tab's first build, bring new pad
 --        stops: LAMP lights the walkie shown, MEM held names its channel 01, MIC is a stop
+--   R21  the power key stops a playing disc by the state before the press (the game applies the switch later);
+--        every power key goes through RadioOps.power
+--   R51  Device Options on a car's radio from outside: the World window comes down whole (its halves had rolled),
+--        the part is listed and shown, a two-way part has a face too, and the tab draws the one part listed
 -- Run from the repo root: lua51 ZeDUI/tools/qa/rd_fixes_sim.lua
 -- It prints FAIL lines and a last line "rd_fixes_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -438,6 +442,125 @@ do
     O.power(CHR, part)
     check("B9: power on stops nothing", st.on == true and st.stopped == 0)
     ISRadioAction, O.poweredHere = saveRA, savePH
+end
+
+-- R21 (QA, Nov 27 2026): at 4K the disc still played 2.6 s after the Premium's power key in Lite. The stop went by
+-- the state read back after the press, and the game applies the switch later, so it still read on. The stop now
+-- goes by the state before the press; and every power key (the plain card's, the face's, the walkie's VOL) goes
+-- through RadioOps.power.
+do
+    local st = { on = true, playing = true, stopped = 0, pending = nil }
+    local dd = {}
+    function dd:getIsTurnedOn() return st.on end
+    function dd:isPlayingMedia() return st.playing end
+    function dd:StopPlayMedia() st.playing = false; st.stopped = st.stopped + 1 end
+    local part = { getDeviceData = function() return dd end }
+    local saveRA, savePH = ISRadioAction, O.poweredHere
+    -- the game's switch, applied after the press returns (as it read at 4K)
+    ISRadioAction = { new = function() return { deviceData = dd, isValidToggleOnOff = function() return true end,
+                                                performToggleOnOff = function() st.pending = not st.on end } end }
+    O.poweredHere = function() return true end
+    local ok = O.power(CHR, part)
+    check("R21: power off stops the playing disc though the set still reads on right after the press",
+        ok == true and st.stopped == 1 and st.playing == false, "stopped " .. st.stopped .. ", reads on " .. tostring(st.on))
+    st.on, st.playing, st.stopped, st.pending = false, true, 0, nil
+    O.power(CHR, part)
+    check("R21: power on (off before the press) stops nothing", st.stopped == 0, st.stopped)
+    ISRadioAction, O.poweredHere = saveRA, savePH
+
+    -- every power key reaches RadioOps.power
+    local calls, savePower = {}, O.power
+    O.power = function(chr, dev) calls[#calls + 1] = dev; return true end
+    local red = makeItem("Base.RadioBlack", { portable = true, hasBattery = true, power = 0.9, on = true })
+    PF.press(R, CHR, red, "power")
+    check("R21: the plain card's power key goes through RadioOps.power", #calls == 1 and calls[1] == red, #calls)
+    LITE = true
+    PF.press(R, CHR, red, "power")
+    check("R21: ... in Lite too", #calls == 2 and calls[2] == red, #calls)
+    LITE = false
+    R.press(CHR, red, "power")
+    check("R21: the face's power key goes through RadioOps.power", #calls == 3, #calls)
+    local wk = makeItem("Base.WalkieTalkie2", { tw = true, portable = true, hasBattery = true, power = 0.9, on = true })
+    TW.press(CHR, wk, "vol")
+    check("R21: a walkie's VOL pushed goes through RadioOps.power", #calls == 4 and calls[4] == wk, #calls)
+    O.power = savePower
+end
+
+-- R51 (QA, Nov 27 2026): Device Options on a car's radio from outside opens the World tab on the part, and the tab
+-- shows it: the window comes down whole (its halves had rolled at 4K and put openTab's unshade back), and a car's
+-- part always has a face (a two-way part had none: listed and nothing drawn).
+do
+    local function makePart(o)
+        local dd = makeDD(o)
+        local car = { getId = function() return 7 end }
+        local p = { _cls = { VehiclePart = true }, _dd = dd }
+        function p:getDeviceData() return self._dd end
+        function p:getVehicle() return car end
+        function p:getItemType() return nil end
+        function p:getInventoryItem() return {} end
+        function p:getId() return "Radio" end
+        function p:getX() return 102.5 end
+        function p:getY() return 100.5 end
+        function p:getZ() return 0 end
+        return p
+    end
+    local part = makePart({ battery = false, on = false, name = "ValuTech Radio" })
+    local ham = makePart({ tw = true, battery = false, on = false, name = "Ham Radio" })
+    local drv, pid, des = RT.faceFor({ radioInstance = part, deviceData = part._dd }, true)
+    check("R51: a car's radio part has the plain card in the World tab", drv ~= nil and drv.plain == true and des ~= nil, tostring(pid))
+    drv, pid, des = RT.faceFor({ radioInstance = ham, deviceData = ham._dd }, true)
+    check("R51: a car's two-way part has one too", drv ~= nil and drv.plain == true and des ~= nil, tostring(pid))
+    local pw, savePower = 0, O.power
+    O.power = function() pw = pw + 1; return true end
+    PF.press(R, CHR, ham, "power")
+    O.power = savePower
+    check("R51: ... and its power key finds its control", pw == 1, pw)
+
+    -- the route: the World window shaded by its halves, on the tab already
+    load("WorldRoutes.lua")
+    local WR = ZeD.WorldRoutes
+    local cell = { getGridSquare = function() return nil end }
+    getCell = function() return cell end
+    isClient = function() return false end
+    function CHR:getX() return 100.5 end
+    function CHR:getY() return 100.5 end
+    function CHR:getZ() return 0 end
+    function CHR:getVehicle() return nil end
+    function CHR:getCurrentSquare() return nil end
+    local ww = { _playerObj = CHR, windowShaded = true, _halves = { inv = { rolled = true }, drawer = { rolled = true } },
+                 _activeTab = "radio", _drawerMode = "tab", _drawerOpen = true }
+    local shows = 0
+    ZeD.Halves = { showAll = function(w)
+        shows = shows + 1
+        w._halves.inv.rolled, w._halves.drawer.rolled, w.windowShaded = false, false, false
+    end }
+    ZeD_WorldWindow = { getWindow = function() return ww end,
+        openTab = function(pn, tab) ww._activeTab = tab; ww.windowShaded = false; return true end }
+    local okR, took = pcall(WR.radio, CHR, part)
+    check("R51: the route takes the car's part to the World tab", okR and took == true, tostring(took))
+    check("R51: ... the part listed and the one shown", ww._radios and #ww._radios == 1 and ww._radios[1].radioInstance == part
+        and ww._radioIdx == 1 and ww._radioFollow == part, ww._radios and #ww._radios)
+    check("R51: ... the window comes down whole, its halves too (they shaded it again after openTab)",
+        shows == 1 and ww._halves.drawer.rolled == false and ww._halves.inv.rolled == false, shows)
+
+    -- the tab draws it: one listed, nothing selected
+    ZeD.SubTabs.draw = function() return 0, {} end
+    ZeD.TabFill = { begin = noop, block = function() return 0 end, follow = noop, onClick = function() return false end }
+    ZeD_ScrollbarState = { new = function()
+        local s = { scrollPos = 0 }
+        function s:setBarSize() end
+        function s:setScrollPos(v) self.scrollPos = v end
+        function s:draw() end
+        return s
+    end }
+    ZeD.TwoWayFull = { showing = function() return nil end }
+    local w2 = { _playerObj = CHR, _radios = { ww._radios[1] } }
+    local okD, errD = pcall(RT.render, panel, w2, 0, 0, 480, 600)
+    check("R51: the tab draws the one part listed with nothing selected", okD and w2._radioTw ~= nil and w2._radioTw.dev == part
+        and w2._radioTw.drv and w2._radioTw.drv.plain == true, okD and tostring(w2._radioTw) or errD)
+    local w3 = { _playerObj = CHR, _radios = { { radioInstance = ham, deviceData = ham._dd, locationTag = "Vehicle" } } }
+    okD, errD = pcall(RT.render, panel, w3, 0, 0, 480, 600)
+    check("R51: ... a car's two-way part too", okD and w3._radioTw ~= nil and w3._radioTw.dev == ham, okD and tostring(w3._radioTw) or errD)
 end
 
 -- R35, R37 and R39 (QA, Nov 27 2026): the windows keep the last stops while a new list has the same count, ends and
