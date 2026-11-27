@@ -1,0 +1,37 @@
+# ZeDUI/tools/qa/ocl.txt (Nov 26 2026, QA): the World window's object card host and seven cards (lock, medic, laundry, placement, track, trade, preview), the gamut sweep, from the map ZeDUI/qa/audits/2026-11-26_map_cards_lock_medic_rest.md (its suspicions OC1-OC8, LK1-LK9, MD1-MD5, LA1-LA6, PL1-PL5, TK1-TK3, TD1-TD4, PV1-PV4), each checked in the running game by the mouse (the card's own pointer poll) and the pad (FocusManager's QA hook), at the size the runner uses, against the game's own answers (getLockedByCode and isLockedByPadlock, padlocks and bandages spent, isActivated, isPowered, isModeDryer, the shirt's dirt, blood and wetness, getOffX and isDoingExtendedPlacement, DistToProper, LosUtil's line of sight, ISHealthPanel's list rows for a doctor at each First Aid level with cheat off, the build script's health with the sandbox's bonus, the game's queue).
+#   ocl_tab.lua  1 LK1 OC1 the Lock question: the wheel, a chevron and a key while it asks, then Yes: the code the game locked it with against the code the band showed; the pad (A on Cancel, Right, A); OC3 B with and without the question
+#                2 LK4 a Combination Padlock only in a bag (the NEEDS words against the main-inventory rule); two key padlocks, the first without keys; the key on a key ring against the game's own Remove Padlock
+#                3 LK5 a wrong code by the mouse and the pad: the game's queue and time, the code kept, the wrong-code line; the right code after three wrong; the game's own OK on a wrong code (nothing queued) as the baseline
+#                4 LK6 a walk elsewhere running, then the game's Use Combination Padlock from 5 tiles: is the walk still first (the game clears the queue)
+#                5 LK7 the pad's path from the card's open to a locked crate, the presses counted, the grab's prompt, the code locked
+#                6 LK8 the half card with the busy band and the set note: wheel 3's chevrons and Stop inside the body (picture ocl_lock_busy)
+#                7 OC7 three Loot columns open, then the lock card by the game's Remove Combination Padlock: the columns kept?
+#                8 PL1 OC2 the placement card closed by the World window's close box and by U: the game's isDoingExtendedPlacement, the gizmo, the place kept, the game's pick up; the roll-up past the leash; OC3 B from Rotation Z
+#                9 PL2 the X slider dragged to 0.25 by the mouse (the game's getOffX), the pad's steps (no typed values)
+#               10 PL3 the leash against the game's DistToProper rule; OC5 the hold during a walk away
+#               11 PL5 an item two squares off behind a wall: ZeD's pad option against the game's LosUtil.lineClear
+#               12 LA1 OC6 Power pressed twice from 4 tiles (a double click; the pad's A A): the game's toggles queued, isActivated after
+#               13 LA3 LA2 the power cut and the water drained while it runs (the game's isActivated and the card's tag); a dirty, bloody, wet shirt washed at speed against what the card draws
+#               14 LA4 Door from 3 tiles and from 1: the machine's contents in the Loot pane, or a word why not
+#               15 LA5 the washer-dryer in washer mode with no water: DRY by the mouse, WASH by the pad (the game's mode action); OC3 B from the Door
+#               16 OC5 the laundry card's leash during the game's walk 10 tiles off; Power pressed far off
+#               17 MD2 a scratch, a deep wound and a fracture on the stand-in patient (his own body) at First Aid 0, 3, 5, 7, 9: the card's grades and numbers against the game's own list rows
+#               18 MD1 a bandage, the part clicked again while the game's bandage runs: bandages spent, the game's job record against what the card drew
+#               19 MD4 MD5 the pad's A on a row (the game's menu on screen), B with the menu up; paused; OC3 B from a row
+#               20 TK1 TK2 the tag's mark for the game's oldest and freshest words; the game's longest species and freshness words against the card's edge
+#               21 TK3 a track lying on the ground picked up by the game's grab and carried 7 tiles off; the item gone; OC3 B
+#               22 PV2 a build with bonus health at Construction Bonus Points 1 and 2: the card's strength against the game's build health
+#               23 PV3 OC3 Carpentry up two levels while the log fence's card is open; B closes it
+#               24 PV1 frames drawn with the Craft tab alone and with the craft preview (NOTE)
+#               25 PV4 Craft pressed with every loose thing he carries set aside since the card's last reading: what the game made
+#               26 OC4 the held-in window (its cap at 640 units, as at 1280 wide) with the laundry, medic, placement and track cards (full) and the lock card (half): the window against its cap, the inventory beside the card
+#               27 OC8 (run last) seated in a parked car (the prelude's one spawn): the Craft tab and the recipe preview
+#               SKIP: LK2, LK3 (a server, a second player at one crate), LA6 (two players at one machine), PL4 (a server), TD1-TD4 (a trade needs a second player), MD3 (split screen), LK9 (a scope note)
+# Pictures ocl_lock_*, ocl_lock_busy_*, ocl_placement_*, ocl_laundry_*, ocl_medic_*, ocl_track_*, ocl_preview_*, ocl_<card>_held_* (each with the screen size); no trade picture (no trade in single player).
+# It puts back every object laid (the crates, the wall, the washer and washer-dryer, the generators), every thing given or made, his own padlocks, bandages and loose things set aside, the crates' padlocks, his body's staged wounds and bandages, god mode and invincible, his skill levels, the sandbox's Construction Bonus Points, the health panel cheat, the laundry clock's record of the run's machines, the hidden-actions setting, the windows, the World window's tab, columns, width cap and drawer, the Character window's tab, the layout, the pad lock and the pad state, the pointer and the mouse functions, the draw and queue watchers, the theme and the text size (checked), game speed 1, the clock, where he stood, and the car.
+# Run both sizes:
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/ocl.txt -Mode fullscreen4k -Report ocl_4k
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/ocl.txt -Mode windowed -Width 1280 -Height 800 -Report ocl_deck
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+ocl_tab.lua | ocl_tab | timeout=2400
