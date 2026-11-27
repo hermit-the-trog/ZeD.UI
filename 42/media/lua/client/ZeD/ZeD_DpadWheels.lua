@@ -1632,6 +1632,19 @@ function H.switchInReach(p)
     return nil
 end
 
+-- the target nearest him of a card kind's nearby list (it comes in reading order, for the browse arrows): the wheel
+-- acted on the first in reading order, so Turn on started the generator 5 tiles north and Put out went to a far
+-- fireplace while the campfire beside him burned (QA PW2/FI4, Nov 26 2026)
+function H.nearestOf(list, p)
+    local best, bd = nil, nil
+    for _, t in ipairs(list or {}) do
+        local sq = t.sq
+        local d = sq and safe(function() return p:DistToSquared(sq:getX() + 0.5, sq:getY() + 0.5) end)
+        if d and (not bd or d < bd) then best, bd = t, d end
+    end
+    return best
+end
+
 local function fireLit(f)
     if f.kind == "campfire" then
         pcall(function() f.obj:updateFromIsoObject() end)
@@ -1652,23 +1665,37 @@ function H.lights(p, pn)
     local OC = ZeD.ObjectCards
     local gk = OC and OC.kinds and OC.kinds.generator
     local gl = gk and gk.nearby and safe(gk.nearby, p) or {}
-    local g = gl[1] and gl[1].obj
+    local gt = H.nearestOf(gl, p)
+    local g = gt and gt.obj
+    local OCP = ZeD.ObjectCardPower
     local gOn = g and safe(function() return g:isActivated() end)
-    local gCan = g and (gOn or safe(function() return g:isConnected() and g:getFuel() > 0 and g:getCondition() > 0 end))
+    -- the game's own refusals (ISActivateGenerator: connected, fuel, condition above 0), each with its reason; on
+    -- indoors the slice carries the game's fumes line and the press says it over his head (QA PW1/PW4, Nov 26 2026)
+    local gWhy = g and not gOn and OCP and OCP.whyNotOn and OCP.whyNotOn(g) or nil
+    local gCan = g and (gOn or not gWhy)
     local gOff = nil
     if not g then gOff = tr("UI_ZeD_Wheel_NoGenerator")
-    elseif not gCan then gOff = tr(safe(function() return g:getFuel() <= 0 end) and "UI_ZeD_Power_NeedFuel" or "UI_ZeD_Power_NeedConnected") end
-    out[#out + 1] = { name = getText("ContextMenu_Generator"), icon = "generator",
-        detail = g and getText(gOn and "ContextMenu_Turn_Off" or "ContextMenu_Turn_On") or nil,
-        run = gCan and function(pl, n) ISWorldObjectContextMenu.onActivateGenerator(nil, not gOn, g, n) end or nil, off = gOff }
+    elseif not gCan then gOff = gWhy end
+    local gDetail = g and getText(gOn and "ContextMenu_Turn_Off" or "ContextMenu_Turn_On") or nil
+    if g and not gOn and OCP and OCP.indoors and OCP.indoors(g) then gDetail = gDetail .. "\n" .. getText("IGUI_Generator_IsToxic") end
+    out[#out + 1] = { name = getText("ContextMenu_Generator"), icon = "generator", detail = gDetail,
+        run = gCan and function(pl, n)
+            if OCP and OCP.activate then OCP.activate(pl, g, not gOn, n)
+            else ISWorldObjectContextMenu.onActivateGenerator(nil, not gOn, g, n) end
+        end or nil, off = gOff }
     local fk = OC and OC.kinds and OC.kinds.fire
     local fl = fk and fk.nearby and safe(fk.nearby, p) or {}
-    local f = fl[1]
+    local f = H.nearestOf(fl, p)
     local lit = f and fireLit(f)
     local fireRun = nil
     if f and lit then
+        -- each fire with the game's own action for it: a campfire its camping one; a propane grill its burner's
+        -- Turn off (ISBBQMenu offers no Put out for one); a charcoal grill or a fireplace ISBBQMenu.onExtinguish,
+        -- as the game's own menu and its loot window's Put out do (B42 has no ISFireplace* actions; QA FI4)
         fireRun = function(pl, n)
-            if f.kind == "campfire" then ISCampingMenu.onPutOutCampfire(nil, pl, f.obj) else ISBBQMenu.onExtinguish(nil, n, f.obj) end
+            if f.kind == "campfire" then ISCampingMenu.onPutOutCampfire(nil, pl, f.obj)
+            elseif f.kind == "propane" then ISBBQMenu.onToggle(nil, n, f.obj)
+            else ISBBQMenu.onExtinguish(nil, n, f.obj) end
         end
     elseif f then
         -- (lighting needs a method: the fire's card lists them, with what each needs)
@@ -1677,7 +1704,8 @@ function H.lights(p, pn)
             if ZeD_WorldWindow and ZeD_WorldWindow.openObjectCard then pcall(ZeD_WorldWindow.openObjectCard, n, { def = fk, t = f }) end
         end
     end
-    out[#out + 1] = { name = getText(lit and "ContextMenu_Put_out_fire" or "ContextMenu_Light_fire"), icon = "campfire",
+    local fireWord = (lit and f.kind == "propane" and "ContextMenu_Turn_Off") or (lit and "ContextMenu_Put_out_fire") or "ContextMenu_Light_fire"
+    out[#out + 1] = { name = getText(fireWord), icon = "campfire",
         detail = f and (lit and tr("UI_ZeD_Wheel_FireLit") or tr("UI_ZeD_Wheel_FireCard")) or nil, run = fireRun,
         off = (not f) and tr("UI_ZeD_Wheel_NoFire") or nil }
     return out

@@ -124,6 +124,7 @@ local function cardDriver(spec)
     end
     -- the face drawn on the pop-out standing in for the card; its stamped zones become the controls
     function D.drawFace(panel, x, y, k, face)
+        D._dev = face.dev      -- (one pop-out at a time: labelA reads the face's warning from it)
         local zones = {}
         panel._zones, panel._plateRoom = zones, cardRoom()
         local ok, err = pcall(spec.face, panel, x, y, k, face.des, face.dev.t)
@@ -133,7 +134,7 @@ local function cardDriver(spec)
         for _, z in ipairs(zones) do
             if z.fid then
                 hits[#hits + 1] = { id = z.fid, x = z.x, y = z.y, w = z.w, h = z.h, knob = false, run = z.run, help = z.help,
-                                    primary = z.primary }
+                                    primary = z.primary, warn = z.warn }
             end
         end
         face.dev.hits = hits
@@ -150,7 +151,14 @@ local function cardDriver(spec)
     end
     D.secondary, D.turn, D.holdTick = noop, noop, noop
     D.holdable, D.turnMult = never, one
-    function D.labelA(id) local key = id and spec.names[id]; return key and ZeD.tr(key) or nil end
+    -- A's word on the pad's strip: a control's warning in place of its name (the generator's engine indoors or
+    -- unable to start; the mouse reads it as the help line. QA PW1/PW4, Nov 26 2026)
+    function D.labelA(id)
+        local h = id and D._dev and hitById(D._dev, id)
+        if h and h.warn then return h.warn end
+        local key = id and spec.names[id]
+        return key and ZeD.tr(key) or nil
+    end
     function D.help(dev, id, h) return h and h.help or nil end
     function D.focusOrder(hits) return primaryFirst(hits) end
     return D
