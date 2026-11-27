@@ -7,8 +7,10 @@
 --        "Needs the action under way to finish"; the pop-out (its own target, the same machine) shares the gate;
 --        once the chain is done Power works again
 --   LA2  the clothes inside read in the game's tooltip words (Tooltip_clothing_bloody / _dirty / _wet) with the
---        tooltip's thresholds; no made-up RINSE / SPIN lamp however long it runs; the dial reads the load's
---        progress; the Simple form's big word is Running, not a phase
+--        tooltip's thresholds; the dial reads the load's progress; the Simple form's big word is Running, not a
+--        phase. (The director's call lamps, Nov 26 2026: the WASH / RINSE / SPIN lamps step again as dressing, so
+--        the old "no RINSE / SPIN lamp" checks now ask that they step, and the Simple form shows the lit phase
+--        small beside Running; oc_calls3_sim.lua has the rest.)
 --   LA4  Door from past the loot window's reach walks over first and shows the drum at the end; with no way there
 --        it says "Too far away from" the machine; in reach it shows at once
 -- Each check fails on the code before this work.
@@ -248,7 +250,7 @@ do
     draw(t)
     check("dirt under 1 isn't Dirty", pair("Tooltip_clothing_dirty") == nil)
     check("any blood is Bloody, at least 1%", pair("Tooltip_clothing_bloody") == "1%", pair("Tooltip_clothing_bloody"))
-    -- running a long time: never RINSE or SPIN, the game hasn't got them
+    -- running a long time: the lamps step WASH, RINSE, SPIN as dressing (the director's call lamps), never a dryer's
     DRUM = { shirt(60, 0, 0) }
     local lit = {}
     for m = 0, 60, 1 do
@@ -257,11 +259,12 @@ do
         local st = LD.plateState(t, t.d)
         for _, k in ipairs({ "phRinse", "phSpin", "phCool" }) do if st[k] then lit[k] = true end end
     end
-    check("no RINSE lamp in an hour of running", not lit.phRinse)
-    check("no SPIN lamp in an hour of running", not lit.phSpin)
+    check("the RINSE lamp steps on in an hour of running", lit.phRinse == true)
+    check("the SPIN lamp steps on in an hour of running", lit.phSpin == true)
+    check("a washer never lights COOL", not lit.phCool)
     def.refresh(t, player)
     local st = LD.plateState(t, t.d)
-    check("WASH is lit while it runs", st.phWash == true)
+    check("a phase lamp is lit while it runs", st.phWash == true or st.phRinse == true or st.phSpin == true)
     check("the dial reads the load: dirt 60 is 0.4 of the way", math.abs((st.cycleF or -1) - 0.4) < 1e-6, st.cycleF)
     DRUM = { shirt(0, 0, 100) }
     def.refresh(t, player)
@@ -272,6 +275,9 @@ do
     draw(t)
     local big = READOUT and READOUT.cols and READOUT.cols[1] and READOUT.cols[1].big
     check("the Simple form's big word is Running", big == "UI_ZeD_Power_PillRunning", big)
+    local unit = READOUT and READOUT.cols and READOUT.cols[1] and READOUT.cols[1].unit
+    check("the Simple form shows the lit phase small beside Running (the director's call lamps)",
+        unit == "UI_ZeD_PlainCard_Wash" or unit == "UI_ZeD_PlainCard_Rinse" or unit == "UI_ZeD_PlainCard_Spin", unit)
     local wetRow = false
     for _, r in ipairs(ROWS) do if r.label == "Tooltip_clothing_wet" and r.value == "100%" then wetRow = true end end
     check("the Simple form lists Wet 100%", wetRow)

@@ -2219,13 +2219,17 @@ local function drawWorldTabStrip(self, win)
 end
 
 --- The drawer's width for an open object card, in screen px (def: the card's kind; base: the tab's card under it, 0
---- when there is none). A kind marked half (the padlock, the recipe preview) is the half card, over a wider tab's card
---- as an item card lies; every other kind is the full card. The one place the object card's drawer width is decided:
---- QA's runs that picture a card at another width (336, 220) set it here, so the drawer itself is that wide and the
---- card still fills it (they once narrowed only the card and left an empty strip before the tabs: object card fill).
-function ZeD_WorldWindow.objectDrawerW(def, base)
+--- when there is none; heldIn: the window cannot hold the full card beside the inventory's minimum, the tabs' own
+--- rule, ZeD_WorldWindow.heldIn). A kind marked half (the padlock, the recipe preview) is the half card, over a wider
+--- tab's card as an item card lies; every other kind is the full card, but the half card where the drawer is held in.
+--- The one place the object card's drawer width is decided: QA's runs that picture a card at another width (336, 220)
+--- set it here, so the drawer itself is that wide and the card still fills it (they once narrowed only the card and
+--- left an empty strip before the tabs: object card fill).
+--- (QA OC4: at 1280 wide with the inventory open the full card left the inventory 88 units, where a tab's card gives
+--- way to the half card. The object card now gives way by the same rule. The director's call OC4, Nov 26 2026)
+function ZeD_WorldWindow.objectDrawerW(def, base, heldIn)
     local T = ZeD.T
-    if def and def.half then return math.max(base or 0, T.px(ITEM_CARD_W)) end
+    if (def and def.half) or heldIn then return math.max(base or 0, T.px(ITEM_CARD_W)) end
     return T.px(OBJECT_CARD_W)
 end
 
@@ -2246,6 +2250,21 @@ function ZeD_WorldWindow.tabCardW(tabId, want, half, full, heldIn, halfDev)
     return (want <= half) and half or full
 end
 
+--- The window is capped at half the screen, so on a small screen or a large text size a full card would squeeze the
+--- inventory beside it below its minimum: true where the full card (full, screen px) and the inventory's
+--- INV_MIN_BESIDE_CARD do not fit together, and the card gives way to the half card, never a width in between.
+--- Multi-column Loot lifts the cap, so it is left alone there; with the inventory hidden nothing is held in.
+--- (A rolled side (WindowCurtain) keeps the cap: the drawer stays as wide as it was, so a roll and an unroll only take
+--- the side away and give it back. Lifting the cap while rolled widened the drawer, shoved the window against the
+--- screen edge and left it elsewhere and at another size after the unroll.)
+--- One rule for a tab's card and an object card (the director's call OC4, Nov 26 2026).
+function ZeD_WorldWindow.heldIn(win, full)
+    local T = ZeD.T
+    if not (win and win._invDrawerOpen and #(win._mcSelected or {}) == 0) then return false end
+    local maxW = win._maxWinW or math.floor(ZeD.screenOf(win) * 0.5)
+    return maxW - T.px(CONTAINER_STRIP_W) - T.px(ACTION_TAB_STRIP_W) - T.px(INV_MIN_BESIDE_CARD) < full
+end
+
 -- Drawer width dispatch — mode-driven. MC columns live in content, not drawer.
 local function getWorldTargetDrawerW(win)
     local T = ZeD.T
@@ -2253,24 +2272,12 @@ local function getWorldTargetDrawerW(win)
     if win._drawerOpen then
         local half, full = T.px(DRAWER_W), T.px(TAB_DRAWER_W)
         local base = 0
+        local heldIn = ZeD_WorldWindow.heldIn(win, full)
         if win._drawerMode == "item" then base = half
         elseif win._drawerMode == "tab" then
             base = T.px(getWorldTabDrawerW(win._activeTab))
-            -- The window is capped at half the screen, so on a small screen or a
-            -- large text size a full card would squeeze the inventory beside it
-            -- below its minimum. The inventory gives way first, down to INV_MIN_BESIDE_CARD
-            -- (it scrolls anyway); where even that does not fit with the full card, the
-            -- tab gets the half card, never a width in between. Multi-column Loot lifts the
-            -- cap, so it is left alone there.
-            -- (A rolled side (WindowCurtain) keeps the cap: the drawer stays as wide as it
-            -- was, so a roll and an unroll only take the side away and give it back. Lifting
-            -- the cap while rolled widened the drawer, shoved the window against the screen
-            -- edge and left it elsewhere and at another size after the unroll.)
-            local heldIn = false
-            if win._invDrawerOpen and #(win._mcSelected or {}) == 0 then
-                local maxW = win._maxWinW or math.floor(ZeD.screenOf(win) * 0.5)
-                heldIn = maxW - T.px(CONTAINER_STRIP_W) - T.px(ACTION_TAB_STRIP_W) - T.px(INV_MIN_BESIDE_CARD) < full
-            end
+            -- The inventory gives way first, down to INV_MIN_BESIDE_CARD (it scrolls anyway); where even that
+            -- does not fit with the full card, the tab gets the half card (heldIn, ZeD_WorldWindow.heldIn).
             -- a two-way radio: a walkie's tab is the half card wherever one of its widths fits
             -- it, else the full card; a ham set's is the full card, or the card a walkie's width
             -- fits with the set's narrow face where the drawer is held in. Never a width between the two.
@@ -2283,10 +2290,10 @@ local function getWorldTargetDrawerW(win)
                 and ZeD.RadioTab.halfCard(win, half) or false
             base = ZeD_WorldWindow.tabCardW(win._activeTab, base, half, full, heldIn, halfDev)
         end
-        -- the object card needs the full card, over a tab or on its own
+        -- the object card needs the full card, over a tab or on its own, but the half card where the drawer is held in
         -- (a kind marked half, the recipe preview, is the half card over the tab's card like an item card)
         if win._drawerObject and win._drawerItem == nil then
-            return ZeD_WorldWindow.objectDrawerW(win._drawerObject.def, base)
+            return ZeD_WorldWindow.objectDrawerW(win._drawerObject.def, base, heldIn)
         end
         return base
     end

@@ -11,8 +11,9 @@
 --   * Lock (vanilla's rules: a Combination Padlock in your inventory, a code
 --     other than 000; the band at the foot warns the container shuts to
 --     everyone first) and Remove padlock, both vanilla's ISPadlockByCodeAction;
---   * a wrong code says so in the band at the foot (vanilla's pop-up just
---     closes); every try is vanilla's own 20-tick action, right or wrong;
+--   * a wrong code says so in the band at the foot at once and costs no time
+--     (vanilla's pop-up compares first and just closes); a right code runs
+--     vanilla's own 20-tick action;
 --   * key padlocks on the same card (vanilla's Use / Remove Padlock).
 -- A verb the character cannot do yet is hidden with what it needs (hidden actions).
 -- The code is never stored for the player: vanilla keeps no record, and
@@ -244,10 +245,19 @@ function LK.lock(player, t, code)
     end
 end
 
--- REMOVE PADLOCK on a code lock: every try runs vanilla's action, which takes
--- the padlock off only when the code is right; the card reads the outcome
+-- REMOVE PADLOCK on a code lock: the dialed code is held against the lock's first, as the game's own OK does
+-- (onCheckDigitalCode), and only a right one walks over and queues vanilla's action. A wrong one queues nothing and
+-- says so in the band at once: every try was a walk and 20 ticks, so a forgotten code took up to 1000 of them. The
+-- game says nothing over his head on a wrong code, so neither does the card. (QA LK5; the director's call LK5,
+-- Nov 26 2026)
 function LK.try(player, t)
     local code = codeOf(t)
+    local lockCode = call(t.obj, "getLockedByCode") or 0
+    if lockCode ~= code then
+        t.try = nil
+        t.wrong = code
+        return
+    end
     if not luautils.walkAdj(player, t.obj:getSquare()) then return end
     local a = ISPadlockByCodeAction:new(player, t.obj, nil, false, code)
     local basePerform = a.perform

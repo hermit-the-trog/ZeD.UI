@@ -617,6 +617,16 @@ function UI.pick(card, x, y, w, opts)
     local bx = x + w - bw - T.px(2)
     local by = y + math.floor((h - bh) / 2)
     local rx = bx - T.px(8)
+    -- (a full kind drawn at the half card, the director's call OC4, Nov 26 2026: the where, then the tag, give way
+    -- when the name would keep less than 40 units, else the where was drawn over the icon and the name vanished)
+    local nx0 = x + T.px(2) + isz + T.px(8)
+    local need = T.px(40)
+    local whereW = opts.where and (tm:MeasureStringX(T.fontF1, opts.where) + T.px(10)) or 0
+    local tagW = opts.tag and (UI.tagW(opts.tag, opts.tagC ~= nil and opts.tagC ~= T.textDim) + T.px(10)) or 0
+    local gainW = opts.gain and (tm:MeasureStringX(T.fontF3, opts.gain) + T.px(20)) or 0
+    local showWhere, showTag = opts.where ~= nil, opts.tag ~= nil
+    if showWhere and rx - gainW - tagW - whereW - nx0 < need then showWhere = false end
+    if showTag and rx - gainW - tagW - nx0 < need then showTag = false end
     if opts.gain then
         local gf = T.fontF3
         local gw = tm:MeasureStringX(gf, opts.gain)
@@ -624,13 +634,13 @@ function UI.pick(card, x, y, w, opts)
         A.drawStatusDot(card, rx - gw - T.px(10), y + math.floor((h - T.px(6)) / 2), opts.gainC or T.positive, T.px(6))
         rx = rx - gw - T.px(10) - T.px(10)
     end
-    if opts.tag then
+    if showTag then
         local tc = (opts.tagC ~= T.textDim) and opts.tagC or nil
         local tw = UI.tagW(opts.tag, tc ~= nil)
         UI.tag(card, rx - tw, y + math.floor((h - T.px(16)) / 2), opts.tag, tc)
         rx = rx - tw - T.px(10)
     end
-    if opts.where then
+    if showWhere then
         local lf = T.fontF1
         local lw = tm:MeasureStringX(lf, opts.where)
         card:drawText(opts.where, rx - lw, y + math.floor((h - tm:getFontHeight(lf)) / 2), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, lf)
@@ -1372,6 +1382,11 @@ end
 -- as M.drawBand reckons it: the edges, the band's buttons and their gaps, and the dot before the words.
 -- Returns the wrapped lines, or nil when the line fits the band.
 local NO_LABELS = {}   -- (a state line's band: no buttons)
+-- A half card: a kind marked half, or a full kind drawn at the half card where the drawer is held in (the World
+-- window's held-in rule, the director's call OC4, Nov 26 2026). Under 300 units, as drawHeader reckons a narrow card.
+local function narrowCard(def, w)
+    return (def and def.half) or w < ZeD.T.px(300)
+end
 local function footLines(self, w, text, labels)
     if not (text and text ~= "") then return nil end
     local T = ZeD.T
@@ -1590,7 +1605,7 @@ function ZeD_ObjectCard:prerender()
     if cf then
         footH = M.bandH()
         -- (the question band's two buttons: Cancel, then the verb's own word)
-        if def.half then fLines = footLines(self, w, cf.text, { ZeD.tr("UI_Cancel"), cf.yes }) end
+        if narrowCard(def, w) then fLines = footLines(self, w, cf.text, { ZeD.tr("UI_Cancel"), cf.yes }) end
         if fLines then footH = footH + footStripH(fLines) end
     elseif def.foot then
         -- the card's own actions in the band (the trade's Seal offer, Cancel and Accept deal)
@@ -1618,7 +1633,7 @@ function ZeD_ObjectCard:prerender()
         elseif st then
             status = st
             footH = M.bandH()
-            if def.half then fLines = footLines(self, w, st.text, NO_LABELS) end
+            if narrowCard(def, w) then fLines = footLines(self, w, st.text, NO_LABELS) end
             -- (a state line has no buttons, so the strip stands in for the band)
             if fLines then footH = footStripH(fLines) end
         end
