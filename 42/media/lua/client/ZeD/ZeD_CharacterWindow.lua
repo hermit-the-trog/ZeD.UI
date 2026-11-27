@@ -5936,8 +5936,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
             if win._activeTab == "journal" and ZeD.JournalTab.onBodyClick and ZeD.JournalTab.onBodyClick(win, x, y) then
                 return true
             end
+            -- (QA B8, Nov 27 2026: with the delete question up, another entry's cross took it over and a
+            -- month head folded under it. While it asks, only its own buttons answer: the folds and the
+            -- crosses below wait, as the tags do in onBodyClick.)
+            local journalAsking = win._activeTab == "journal" and win._journalAsk ~= nil
             -- Journal group collapse/expand (only in Journal sub-tab)
-            if win._activeTab == "journal" and (win._journalSubTab or 1) == 1 and win._journalGroupZones then
+            if win._activeTab == "journal" and not journalAsking and (win._journalSubTab or 1) == 1 and win._journalGroupZones then
                 for _, zone in ipairs(win._journalGroupZones) do
                     if x >= zone.x and x <= zone.x + zone.w
                        and y >= zone.y and y <= zone.y + zone.h then
@@ -5948,7 +5952,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 end
             end
             -- Journal entry delete (only in Journal sub-tab)
-            if win._activeTab == "journal" and (win._journalSubTab or 1) == 1 and win._journalDeleteZones then
+            if win._activeTab == "journal" and not journalAsking and (win._journalSubTab or 1) == 1 and win._journalDeleteZones then
                 for _, zone in ipairs(win._journalDeleteZones) do
                     if x >= zone.x and x <= zone.x + zone.w
                        and y >= zone.y and y <= zone.y + zone.h then
@@ -5964,8 +5968,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 end
             end
             -- Journal kills expand/collapse (only in Journal sub-tab)
-            if win._activeTab == "journal" and (win._journalSubTab or 1) == 1 and win._killsRowH > 0 then
-                if y >= win._killsRowY and y <= win._killsRowY + win._killsRowH then
+            if win._activeTab == "journal" and not journalAsking and (win._journalSubTab or 1) == 1 and win._killsRowH > 0 then
+                -- (QA B9, Nov 27 2026: a press beside the head, past its right end, folded the kills: the
+                -- head's own span, as the renderer stamps it, in x as well as y)
+                local kz = win._journalKillsZone
+                if kz and x >= kz.x and x <= kz.x + kz.w
+                   and y >= win._killsRowY and y <= win._killsRowY + win._killsRowH then
                     win._killsExpanded = not win._killsExpanded
                     win._journalCache = nil  -- force layout recalc
                     return true

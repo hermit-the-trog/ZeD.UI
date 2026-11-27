@@ -728,6 +728,12 @@ local function pageOf(win, b)
     return s.nbPage[id]
 end
 
+--- The Notebooks page bar's width without Open full: "<", the page line, ">" (each arrow a
+--- button, its letter and the padding either side) and the gaps between them.
+function J.pageBarW(lessW, lineW, moreW, padX, gap)
+    return (lessW + padX * 2) + gap + lineW + gap + (moreW + padX * 2)
+end
+
 function J.writeNote(win)
     local s = st(win)
     local p = win._playerObj
@@ -735,6 +741,9 @@ function J.writeNote(win)
     local _, b = current(win, books)
     local e = win._jrNote
     if not (b and e) then return end
+    -- (QA B2, Nov 27 2026: Enter now writes too, and it is not greyed as Write is while the line
+    -- goes down: one write at a time)
+    if s.pending and ISTimedActionQueue.hasAction(s.pending) then return end
     local text = (e:getText() or ""):gsub("\n", " "):gsub("^%s+", ""):gsub("%s+$", "")
     if text == "" then e:focus(); return end
     local why = N.why(p, b)
@@ -920,18 +929,28 @@ function J.renderNotebooks(panel, win, x, y, w, h)
         -- the page bar: < Page n of N >, Open full
         local page = pageOf(win, b)
         local all = b:getPageToWrite()
+        local fl = ZeD.tr("UI_ZeD_Papers_OpenFull")
+        local fw = tw(f3, ZeD.btnCase(fl)) + T.sp.md * 2
+        -- (QA J45, Nov 27 2026: at the half card ">" ran under Open full, in normal and Large text.
+        -- When the bar does not fit on one row, Open full takes its own row under it, at the right;
+        -- when the arrows and the page line alone do not fit, the line shortens to "n/N".)
+        local pl = ZeD.tr("UI_ZeD_Reader_PageOf", page, all)
+        local navW = J.pageBarW(tw(f3, "<"), tw(f3, pl), tw(f3, ">"), T.sp.md, T.px(6))
+        if navW > pw then
+            pl = tostring(page) .. "/" .. tostring(all)
+            navW = J.pageBarW(tw(f3, "<"), tw(f3, pl), tw(f3, ">"), T.sp.md, T.px(6))
+        end
+        local stacked = navW + T.sp.sm + fw > pw
         local bx = px
         bx = bx + button(panel, win, "prev", bx, py, "<", function() s.nbPage[b:getID()] = page - 1; s.msg = nil end, "default", { disabled = page <= 1 }) + T.px(6)
-        local pl = ZeD.tr("UI_ZeD_Reader_PageOf", page, all)
         panel:drawText(pl, bx, py + math.floor((T.buttonH - fh(f3)) / 2), dc.r, dc.g, dc.b, dc.a or 1, f3)
         bx = bx + tw(f3, pl) + T.px(6)
         button(panel, win, "next", bx, py, ">", function() s.nbPage[b:getID()] = page + 1; s.msg = nil end, "default", { disabled = page >= all })
+        if stacked then py = py + T.buttonH + T.sp.sm end
         local other = N.otherLock(p, b)
         local editable = N.hasWritingTool(p) and not other
         local canOpen = editable or not b:isEmptyPages()
-        local fl = ZeD.tr("UI_ZeD_Papers_OpenFull")
-        local fw = tw(f3, ZeD.btnCase(fl)) + T.sp.md * 2
-        button(panel, win, "full", px + pw - fw, py, fl, function()
+        button(panel, win, "full", px + math.max(0, pw - fw), py, fl, function()
             ISInventoryPaneContextMenu.onWriteSomething(b, editable, p:getPlayerNum())
         end, "default", { disabled = not canOpen or p:tooDarkToRead() })
         py = py + T.buttonH + T.sp.sm

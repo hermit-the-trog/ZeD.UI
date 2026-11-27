@@ -914,7 +914,7 @@ function ZeD_TextEntry:new(x, y, w, h, placeholder)
     setmetatable(o, self)
     self.__index = self
     o.placeholder = placeholder or ""
-    o.onSubmit = nil     -- callback: function(self, text) — fires on Ctrl+Enter
+    o.onSubmit = nil     -- callback: function(self, text) — fires on Enter (then Enter makes no new line)
     o.maxLines = 3
     o.maxLength = 500
     o.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
@@ -935,6 +935,13 @@ function ZeD_TextEntry:createChildren()
     -- Apply ZeD token colors to vanilla component
     entry.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
     entry.borderColor = { r = T.borderS.r, g = T.borderS.g, b = T.borderS.b, a = T.borderS.a }
+    -- (QA B2, Nov 27 2026: Enter in the quick note wrote nothing; the inner box kept the game's
+    -- empty onCommandEntered. A one-line box sends Enter here; a box of more lines takes Enter
+    -- as a new line instead, which prerender below turns into the submit. Without an onSubmit
+    -- both leave the box as the game has it.)
+    entry.onCommandEntered = function()
+        if self.onSubmit then self.onSubmit(self, entry:getText() or "") end
+    end
     self:addChild(entry)
     self._entry = entry
 end
@@ -944,6 +951,15 @@ function ZeD_TextEntry:prerender()
     if self._entry then
         self._entry:setWidth(self.width)
         self._entry:setHeight(self.height)
+        -- a box with an onSubmit: the new line Enter put in is the submit (the line itself dropped)
+        if self.onSubmit then
+            local text = self._entry:getText() or ""
+            if text:find("\n", 1, true) then
+                local flat = text:gsub("\n", "")
+                self._entry:setText(flat)
+                self.onSubmit(self, flat)
+            end
+        end
     end
 end
 

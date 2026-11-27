@@ -67,6 +67,15 @@ require "ZeD/WatchMini"
 ZeD = ZeD or {}
 ZeD.Watch = ZeD.Watch or {}
 local W = ZeD.Watch
+-- Whether the game's clock would show the date now (a watch that shows it), read before the watch parks the clock;
+-- nil when no watch has drawn lately (the clock then reads as the game has it). (QA I10, Nov 27 2026)
+function W.dateVisible()
+    if W._dateVisible ~= nil and getTimestampMs() - (W._dateAt or 0) < 2000 then return W._dateVisible end
+    local clock = UIManager and UIManager.getClock and UIManager.getClock() or nil
+    if not clock then return false end
+    local ok, v = pcall(clock.isDateVisible, clock)
+    return ok and v == true
+end
 W.scale = W.scale or 1.0
 W.LIGHT_MS = 3000                  -- how long a Timez or a CaZio's bulb stays lit after a press (a real one: about three seconds)
 W.watches = W.watches or {}        -- full item type -> its registration
@@ -755,6 +764,14 @@ function ZeD_Watch:prerender()
     if clock then
         local cy = clock:getY()
         if cy >= 0 then W._clockY = cy; pcall(clock.setY, clock, -4000) end
+        -- what the game's clock would show before it is parked: the game sets it visible each frame while a watch
+        -- shows it, and its date shows while that clock is digital (Clock.isDateVisible = visible and digital).
+        -- Read by ZeD.Watch.dateVisible, which the Info tab asks for the time survived (QA I10 second pass, Nov 27
+        -- 2026: the parked flag read false there, and "Survived for" always read "--")
+        local okV, vis = pcall(clock.isVisible, clock)
+        local okD, dig = pcall(clock.isDigital, clock)
+        W._dateVisible = (okV and vis == true) and (okD and dig == true)
+        W._dateAt = getTimestampMs()
         if clock:isVisible() then pcall(clock.setVisible, clock, false) end
     end
     local sc = UIManager.getSpeedControls()
