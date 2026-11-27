@@ -148,4 +148,31 @@ function ISWorldMap.ToggleWorldMap(playerNum)
     return _origToggle(playerNum)
 end
 
+-- The Map key while paused (QA B11, Nov 27 2026). The game's key check lets a paused key through only while its
+-- own map is up (ISWorldMap.checkKey), and ZeD's never is, so M could not fold ZeD's map at game speed 0 (Escape
+-- could). With ZeD's world map unfolded the paused key goes through on the game's other rules, so its release
+-- reaches Toggle above and folds it. Anything else (the game's own map, a paper map, the game running) is the
+-- game's answer, untouched.
+ISWorldMap._zedOrigCheckKey = ISWorldMap._zedOrigCheckKey or ISWorldMap.checkKey
+local _origCheckKey = ISWorldMap._zedOrigCheckKey
+
+local function _zedMapUnfolded(playerNum)
+    local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(playerNum)
+    return win ~= nil and win._mapPopout ~= nil and not win._mapPaperItem
+end
+
+if _origCheckKey then
+    function ISWorldMap.checkKey(key)
+        if _origCheckKey(key) then return true end
+        if getGameSpeed() ~= 0 then return false end
+        if ZeD.Safe.on() or not ZeD.windowsFor(0) or not _zedMapUnfolded(0) then return false end
+        -- the game's own checks, the pause aside
+        if not getCore():isKey(KeybindId.MAP, key) then return false end
+        if not ISWorldMap.IsAllowed() or getCore():isTutorial() then return false end
+        if MainScreen.instance and not MainScreen.instance.inGame then return false end
+        local playerObj = getSpecificPlayer(0)
+        return playerObj ~= nil and not playerObj:isDead()
+    end
+end
+
 print("[ZeD] Overrides/WorldMap: ISWorldMap Show/Hide/Toggle routed to the ZeD map pop-out")
