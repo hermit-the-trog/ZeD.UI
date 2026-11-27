@@ -936,8 +936,12 @@ add(500, function()
     if S.dead or S.off.fluid then return end
     local ok, err = H.press("oc:verb:empty")
     local cf = H.confirm()
-    local want = ZeD.tr("UI_ZeD_Fluid_QEmpty", H.L(H.amt(S.fB)), string.lower(Fluid.Water:getTranslatedName()))
-    check(ok and cf ~= nil and cf.text == want and cf.danger, "fluid: Empty asks first in the band, with the litres", (cf and cf.text) or err, want)
+    -- (Nov 26 2026, QA FL2: the question now names the container on the left, UI_ZeD_Fluid_QEmptyNamed; the litres and
+    -- the liquid are still in it)
+    local lit, liq = H.L(H.amt(S.fB)), string.lower(Fluid.Water:getTranslatedName())
+    local want = "the litres " .. lit .. " and " .. liq .. " in the question"
+    local has = cf ~= nil and cf.text ~= nil and string.find(cf.text, lit, 1, true) ~= nil and string.find(cf.text, liq, 1, true) ~= nil
+    check(ok and has and cf.danger, "fluid: Empty asks first in the band, with the litres", (cf and cf.text) or err, want)
 end)
 add(400, function()
     if S.dead or S.off.fluid then return end
