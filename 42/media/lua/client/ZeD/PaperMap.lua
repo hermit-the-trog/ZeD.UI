@@ -9,8 +9,11 @@
 -- which write on that paper as vanilla's do. The world map's tools (other
 -- mods' map extensions, Survey / Color / Paper, sharing) stay off it.
 --
--- The game's read stays the game's, in its order (ISInventoryPaneContextMenu.
--- onCheckMap and ISMap:initMapData, 42.22):
+-- The game's read stays the game's. Where the game has its read action
+-- (ISReadMapItem: the transfer, 30 ticks with the read pose, then the stash and
+-- the read in its complete), the action runs whole and ZeD's window opens at its
+-- end in place of the game's (step 3 below; QA B1, Nov 27 2026). Without it, the
+-- older order (ISInventoryPaneContextMenu.onCheckMap and ISMap:initMapData):
 --   1. a map not in the main inventory is taken there first (vanilla's own
 --      transfer; its end comes back to Read Map)
 --   2. item:doBuildingStash()          the stash's building is made
@@ -50,8 +53,10 @@ function P.itemOf(win)
 end
 
 --- Read Map in ZeD's window. True when ZeD shows it (the game's read is done);
---- false sends the read to the game's own window, untouched.
-function P.open(item, playerNum)
+--- false sends the read to the game's own window, untouched. readDone: the game's
+--- read action has done the stash and the read already (ISReadMapItem's end,
+--- Overrides/PaperMap.lua), so ZeD only opens the window (QA B1, Nov 27 2026).
+function P.open(item, playerNum, readDone)
     playerNum = playerNum or 0
     local playerObj = getSpecificPlayer(playerNum)
     if not (item and playerObj) then return false end
@@ -90,6 +95,7 @@ function P.open(item, playerNum)
     win._mapPaperBack = back
     P.setPaperWin(playerNum, win)   -- (P.tick: a World window gone with the paper still up folds it)
     -- the game's read (steps 2 and 4; 5 to 7 come with the map's drawing: instantiate, frame)
+    if readDone then return true end
     local ok2, err2 = pcall(function()
         item:doBuildingStash()
         playerObj:addReadMap(item)

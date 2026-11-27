@@ -524,7 +524,8 @@ local function drawRow(target, win, s, r, x, cy, w, ox, oy, focId, ask)
     end
     win._mapExtZones[#win._mapExtZones + 1] = rowZ
     if r.del then
-        local xz = { id = rid .. ":x", x = dx + ox, y = dy + oy, w = ds, h = ds,
+        -- (its row, so the pad's ring leaves it out: X on the row asks the same; QA B6, Nov 27 2026)
+        local xz = { id = rid .. ":x", x = dx + ox, y = dy + oy, w = ds, h = ds, row = r,
             activate = function(w2) w2._mapSideAsk = { row = r.key, text = r.del.ask, onYes = r.del.onYes } end }
         local o = _delOpts
         o.hover = overDel

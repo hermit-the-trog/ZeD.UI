@@ -4943,6 +4943,9 @@ function ZeD_WorldWindow.toggle(playerNum)
         if win._drawerMode == "tab" and win._activeTab == "radio" and ZeD.RadioTab.onWheel(win, del, self:getMouseX(), self:getMouseY()) then
             return true
         end
+        -- unfolded, the drawer holds only the fold-back placeholder and win._worldMapPanel is the unfolded
+        -- window's map: the wheel here zooms nothing (QA B9, Nov 27 2026)
+        if win._drawerMode == "tab" and win._activeTab == "maps" and win._mapPopout then return true end
         if win._drawerMode == "tab" and win._activeTab == "maps" and win._worldMapPanel then
             win._worldMapPanel:onMouseWheel(del)
             return true

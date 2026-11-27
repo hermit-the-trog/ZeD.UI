@@ -805,6 +805,8 @@ local function _openAnnotContextMenu(mp, absX, absY, sym, api, fromPad)
             if pwin._mapTextEntry then
                 pwin._mapTextEntry:setText(N.textOf(sym) or "")
                 pwin._mapTextEntry:setVisible(true)
+                -- by the pad, the keyboard opens on the note's words to change them (QA B3, Nov 27 2026)
+                if fromPad then ZeD.MapsTab.noteKeyboard(pwin) end
             end
         end
     end)
@@ -1672,10 +1674,16 @@ end
 
 -- Vanilla's world-map rules hold on the tab and the pop-out too: no map where
 -- the server or sandbox turns the world map off (or in the Tutorial), and none
--- to read in the dark where the map needs light. The light is looked at twice
--- a second; while either rule refuses, the refusal is drawn in place of the
--- toolbar and map, which stay hidden, and true is returned.
-local _light = { t = -1 }
+-- to read in the dark where the map needs light. While either rule refuses,
+-- the refusal is drawn in place of the toolbar and map, which stay hidden, and
+-- true is returned.
+-- The light is looked at as the map opens: the tab shown after a gap in its
+-- drawing, or the map unfolded (openPopout clears win._mapLight.seen). An open
+-- map stays open into the dark, as the game keeps its own (ISWorldMap.
+-- ToggleWorldMap checks only on opening); a map refused for the dark looks
+-- again twice a second, so it comes back with the light. (QA B12, Nov 27 2026)
+local LIGHT_GAP_MS = 500
+local MAP_RETRY_MS = 1000   -- (a world map that failed to build is tried again after this: QA B13)
 local function _mapBlocked(panel, win, x, y, w, h)
     local msg = nil
     -- a paper map is read wherever the game let it be (its own light check, at the menu)
@@ -1684,11 +1692,15 @@ local function _mapBlocked(panel, win, x, y, w, h)
         msg = ZeD.tr("UI_ZeD_Map_Unavailable")
     else
         local now = getTimestampMs()
-        if _light.who ~= win._playerObj or now - _light.t >= 500 then
-            _light.who, _light.t = win._playerObj, now
-            _light.dark = ZeD.MapsTab.tooDark(win._playerObj)
+        local L = win._mapLight
+        if not L then L = { t = -1 }; win._mapLight = L end
+        local opening = L.who ~= win._playerObj or not L.seen or now - L.seen > LIGHT_GAP_MS
+        if opening or (L.dark and now - L.t >= 500) then
+            L.who, L.t = win._playerObj, now
+            L.dark = ZeD.MapsTab.tooDark(win._playerObj)
         end
-        if _light.dark then msg = ZeD.trBare("ContextMenu_TooDark") end   -- (vanilla's words, as vanilla writes them)
+        L.seen = now
+        if L.dark then msg = ZeD.trBare("ContextMenu_TooDark") end   -- (vanilla's words, as vanilla writes them)
     end
     win._mapBlocked = msg ~= nil
     if not msg then return false end
@@ -1773,8 +1785,11 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
         w = w - sideW
     end
 
-    -- Lazy-create the world map panel
-    if not win._worldMapPanel and (win._mapPaperItem or not win._worldMapFailed) then
+    -- Lazy-create the world map panel. A world map that failed to build is tried
+    -- again a second later (the tab still showing, or its next show), not kept
+    -- "unavailable" for the World window's life (QA B13, Nov 27 2026).
+    local retry = win._worldMapFailed and getTimestampMs() - (win._worldMapFailedAt or 0) >= MAP_RETRY_MS
+    if not win._worldMapPanel and (win._mapPaperItem or not win._worldMapFailed or retry) then
         local ok, err = pcall(function()
             local mp = ZeD_WorldMap:new(x, mapY, w, mapH, win._playerObj)
             mp._parentWin = win
@@ -1788,7 +1803,13 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
         end)
         if not ok then
             -- a paper map that cannot be shown goes to the game's window (PaperMap.lua)
-            if win._mapPaperItem and ZeD.PaperMap then ZeD.PaperMap.failed(win, err) else win._worldMapFailed = true end
+            if win._mapPaperItem and ZeD.PaperMap then ZeD.PaperMap.failed(win, err)
+            else
+                if not win._worldMapFailed then print("[ZeD] map not built: " .. tostring(err)) end
+                win._worldMapFailed, win._worldMapFailedAt = true, getTimestampMs()
+            end
+        elseif win._worldMapPanel then
+            win._worldMapFailed, win._worldMapFailedAt = false, nil
         end
     end
 
@@ -2103,6 +2124,17 @@ function ZeD.MapsTab.buildFocusables(win)
     -- the key's controls, the side list's rows.
     Ext.addFocusables(win, elements, false)
 
+    -- 3e. The note box (the note in hand): A opens the pad's keyboard on it, so a pad note carries
+    -- its own words, not whatever the box last held (QA B3, Nov 27 2026).
+    local te = win._mapTextEntry
+    if te and win._mapActiveTool == "text" and te:isVisible() then
+        elements[#elements + 1] = {
+            x = te:getX(), y = te:getY(), w = te:getWidth(), h = te:getHeight(),
+            id = "map:note",
+            onActivate = function(w, _el) ZeD.MapsTab.noteKeyboard(w) end,
+        }
+    end
+
     -- 4. Canvas cursor pseudo-focusable (between the header and the band). Bounds = the map
     -- panel's bbox inside the content panel, so cone-nav from toolbar
     -- elements naturally drops onto the canvas when the user D-pads down.
@@ -2178,6 +2210,22 @@ function ZeD.MapsTab.buildFocusables(win)
     Ext.addFocusables(win, elements, true)
 
     return elements
+end
+
+--- The pad's keyboard on the note box (the note stop's A, Edit note by the pad), as the inventory
+--- Filter's field opens it; the keyboard gives the controller back to the window when it shuts.
+--- Without a pad the box takes the keys. (QA B3, Nov 27 2026)
+function ZeD.MapsTab.noteKeyboard(win)
+    local te = win and win._mapTextEntry
+    if not te then return false end
+    local pn = win.playerNum or 0
+    local jd = JoypadState and JoypadState.players and JoypadState.players[pn + 1]
+    if jd and OnScreenKeyboard and OnScreenKeyboard.Show then
+        local ok, osk = pcall(OnScreenKeyboard.Show, pn, te, jd)
+        if ok and osk then return true end
+    end
+    pcall(function() te:focus() end)
+    return false
 end
 
 -- ============================================================================
@@ -2498,6 +2546,7 @@ ZeD.EscapeTakers.mapPopout = ZeD.MapsTab.takeEscape
 function ZeD.MapsTab.openPopout(win, paperItem)
     local T = ZeD.T
     if not win or win._mapPopout then return end
+    if win._mapLight then win._mapLight.seen = nil end   -- (unfolding opens the map: the light is looked at, QA B12)
     local sw = getCore():getScreenWidth()
     local sh = getCore():getScreenHeight()
     local pw = math.max(T.px(600), math.floor(sw * 0.72))
