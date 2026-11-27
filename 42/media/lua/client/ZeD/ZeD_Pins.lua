@@ -14,7 +14,8 @@
 --   cond      a weapon or tool: its condition                  Axe | 7/10
 -- Items are found by their id in what the player carries; one put down shows nothing until it is back.
 -- Kept in the player's modData ZeD_Pins = { { k, id, name, ft }, ... } oldest first; ft, an item's full type, finds
--- the same kind of item when its id is gone (ZeD_PinnedSkills, the old skill pins, is read once into it).
+-- the same kind of item when its id is gone (ZeD_PinnedSkills, the old skill pins, is read once into it). A skill
+-- pin's id is the perk's id ("Woodwork"), its shown name found at draw (QA S15, Nov 27 2026).
 -- ============================================================================
 
 ZeD = ZeD or {}
@@ -22,6 +23,38 @@ ZeD.Pins = ZeD.Pins or {}
 local P = ZeD.Pins
 
 P.MAX = 3
+
+-- the perk id a skill pin's key names (an id, a shown name or an old English name), or nil
+local function skillId(key)
+    local SK = ZeD.SkillsTab
+    return SK and SK.perkIdOf and SK.perkIdOf(key) or nil
+end
+
+-- A skill pin kept by its shown name (before pins kept the perk's id) is moved to the id once the game's perks can
+-- be looked up; one whose name matches no perk in this language is dropped, as it showed nothing on the title bar
+-- yet still counted toward the three ("2 shown of 3 counted"). e.perk marks one already kept by id, so the title
+-- bar's every-frame ask does no lookups. (QA S15, Nov 27 2026)
+local function migrateSkills(L)
+    local SK = ZeD.SkillsTab
+    local i = 1
+    local ready = nil
+    while i <= #L do
+        local e = L[i]
+        if e.k == "skill" and not e.perk then
+            if ready == nil then ready = (SK and SK.perksReady and SK.perksReady()) and true or false end
+            if not ready then return end
+            local pid = skillId(e.id)
+            if pid then
+                e.id, e.perk, e.name = pid, true, nil
+                i = i + 1
+            else
+                table.remove(L, i)
+            end
+        else
+            i = i + 1
+        end
+    end
+end
 
 local function list(p)
     if not p then return {} end
@@ -31,11 +64,14 @@ local function list(p)
         for _, name in ipairs(md.ZeD_PinnedSkills or {}) do md.ZeD_Pins[#md.ZeD_Pins + 1] = { k = "skill", id = name } end
         md.ZeD_PinnedSkills = nil
     end
+    migrateSkills(md.ZeD_Pins)
     return md.ZeD_Pins
 end
 P.list = list
 
 function P.find(p, k, id)
+    -- (a skill is asked for by its shown name or its id; it is kept by its id)
+    if k == "skill" then id = skillId(id) or id end
     for i, e in ipairs(list(p)) do if e.k == k and tostring(e.id) == tostring(id) then return i end end
     return nil
 end
@@ -102,15 +138,22 @@ function P.toggle(p, k, id, name)
     local L = list(p)
     local i = P.find(p, k, id)
     if i then table.remove(L, i); return false end
-    -- (a pin made again starts from fresh words)
-    entryCache[k .. tostring(id)] = nil
     local ft = nil
-    if k ~= "skill" then
+    local perk = nil
+    if k == "skill" then
+        -- (kept by the perk's id, never the words this language shows; the note still says the name) (QA S15,
+        -- Nov 27 2026)
+        local pid = skillId(id)
+        if pid then id, perk = pid, true end
+    else
         local it = itemOf(p, id)
         if it then pcall(function() ft = it:getFullType() end) end
     end
+    -- (a pin made again starts from fresh words)
+    entryCache[k .. tostring(id)] = nil
     -- (an item pin made now is by id only, never moved to another item of its kind after a load) (QA B6-10)
-    L[#L + 1] = { k = k, id = id, name = name, ft = ft, byId = (k ~= "skill") or nil }
+    L[#L + 1] = { k = k, id = id, name = (k ~= "skill") and name or nil, ft = ft, byId = (k ~= "skill") or nil,
+        perk = perk }
     if #L > P.MAX then
         local gone = table.remove(L, 1)
         local pn = p:getPlayerNum()
@@ -120,10 +163,13 @@ function P.toggle(p, k, id, name)
     return true
 end
 
---- The skill names pinned (the Skills tab marks their rows).
+--- The skill names pinned, as this language shows them (the Skills tab marks its rows by the shown name).
 function P.skillNames(p)
     local out = {}
-    for _, e in ipairs(list(p)) do if e.k == "skill" then out[#out + 1] = e.id end end
+    local SK = ZeD.SkillsTab
+    for _, e in ipairs(list(p)) do
+        if e.k == "skill" then out[#out + 1] = (SK and SK.shownName and SK.shownName(e.id)) or e.id end
+    end
     return out
 end
 
