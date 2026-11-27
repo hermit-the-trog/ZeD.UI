@@ -487,7 +487,7 @@ function H.bookCatalog()
                 local sk = nil
                 pcall(function() sk = it:getSkillTrained() end)
                 if sk and sk ~= "" and SkillBook[sk] then
-                    local e = { ft = it:getFullName(), dn = tostring(it:getDisplayName()), skill = sk, lvl = 0, maxLvl = 0, pages = 0, item = it }
+                    local e = { ft = it:getFullName(), dn = tostring(it:getDisplayName()), skill = sk, lvl = 0, maxLvl = 99, pages = 0, item = it }
                     pcall(function() e.lvl = it:getLevelSkillTrained() end)
                     pcall(function() e.maxLvl = it:getMaxLevelTrained() end)
                     pcall(function() e.pages = it:getNumberOfPages() end)
@@ -509,10 +509,22 @@ function H.carried(ft)
     if not c then for _, it in ipairs(H.all()) do if H.ft(it) == ft then c = true end end end
     return c
 end
--- a book's state by the game's own getters (the four states the tab names)
+-- the game's known-by-level rule (ISLiteratureUI.lua:91): the book's last level at most one past the skill's
+function H.knownByLevel(b)
+    local lv = -1
+    pcall(function() lv = S.p:getPerkLevel(SkillBook[b.skill].perk) end)
+    return lv >= 0 and (b.maxLvl or 99) <= lv + 1
+end
+-- the game's Literature list counts the book known (LIT:86-92): every page read, or known by level
+function H.litKnown(b)
+    local rp, np = H.pagesRead(b.ft), b.pages or 0
+    return (np > 0 and rp == np) or H.knownByLevel(b)
+end
+-- a book's state by the game's own getters (the four states the tab names); read takes the game's
+-- known-by-level rule too
 function H.gameState(b)
     local rp, np = H.pagesRead(b.ft), b.pages or 0
-    if (np > 0 and rp >= np) or H.inReadList(b.ft) then return "read" end
+    if (np > 0 and rp >= np) or H.inReadList(b.ft) or H.knownByLevel(b) then return "read" end
     if rp > 0 then return "reading" end
     if H.carried(b.ft) then return "collected" end
     return "missing"
@@ -753,6 +765,29 @@ function H.pinsClear()
     if w then w._pinnedSkills = {} end
 end
 function H.pinIds() local o = {}; for _, e in ipairs(S.p:getModData().ZeD_Pins or {}) do o[#o + 1] = tostring(e.k) .. ":" .. tostring(e.id) end; return o end
+-- a skill pin's perk id, by the pins' own lookup (an old pin kept by its shown name is moved to the id by ZeD_Pins
+-- once the perks load; a name that matches no perk is dropped: nil)
+function H.perkIdOf(key)
+    local id = nil
+    pcall(function() id = S.ST.perkIdOf(key) end)
+    if id == nil and not S.ST.perkIdOf then id = tostring(key) end
+    return id
+end
+-- a pin as a key that survives that move: kind and the perk id (a skill) or the item id; nil for one ZeD drops
+function H.pinKey(e)
+    if e.k ~= "skill" then return tostring(e.k) .. ":" .. tostring(e.id) end
+    local id = H.perkIdOf(e.id)
+    return id and ("skill:" .. id) or nil
+end
+-- the pins now against the pins found, each by its key (and in order)
+function H.pinsSame()
+    local want, have = {}, {}
+    for _, e in ipairs(S.found.pins or {}) do local k = H.pinKey(e); if k then want[#want + 1] = k end end
+    local L = S.p:getModData().ZeD_Pins or {}
+    pcall(function() L = S.PN.list(S.p) end)
+    for _, e in ipairs(L) do have[#have + 1] = tostring(H.pinKey(e)) end
+    return table.concat(want, ",") == table.concat(have, ","), H.list(want) .. " (found) / " .. H.list(have) .. " (now)"
+end
 function H.titleTexts() local o = {}; local w = RT.cw(); for _, st in ipairs((w and w.titleStats) or {}) do o[#o + 1] = tostring(st.text or "") end; return o end
 -- sandbox options (the game's)
 function H.sbOpt(name) local o = nil; pcall(function() o = getSandboxOptions():getOptionByName(name) end); return o end
@@ -1992,9 +2027,10 @@ function C.s14()
     Q.waitMs(300)
     H.step(2, function()
         local L = S.p:getModData().ZeD_Pins or {}
-        local first = L[1] and tostring(L[1].id)
+        -- (a skill pin is kept by its perk's id: the first left is Cooking's, by its id)
+        local first = L[1] and H.pinKey(L[1])
         Q.check(T.opt ~= nil and T.opt.name == ZeD.tr("UI_ZeD_Pin_Pin"), T.L .. ": the item's menu (ZeD's line in the game's item menu) offers Pin to title bar", tostring(T.opt and T.opt.name))
-        Q.check(#L == 3 and first == T.names[2], T.L .. ": three pins at most: the oldest (" .. tostring(T.names[1]) .. ") goes", H.list(H.pinIds()))
+        Q.check(#L == 3 and first ~= nil and first == H.pinKey({ k = "skill", id = T.names[2] }), T.L .. ": three pins at most: the oldest (" .. tostring(T.names[1]) .. ") goes", H.list(H.pinIds()))
         local said = S.notes[T.n0 + 1]
         Q.check(said ~= nil and H.has(said, tostring(T.names[1])), T.L .. ": the note over his head names the pin taken off", tostring(said))
     end)
@@ -2021,19 +2057,30 @@ function C.s15()
         local stored = e and tostring(e.id)
         Q.check(stored ~= nil and (stored == pid or stored == ptype), T.L .. ": the pin is kept by the skill's own id, the same in every language [bug 1]",
             "stored \"" .. tostring(stored) .. "\" (the shown name " .. tostring(H.pname(Perks.Woodwork)) .. "), the perk's id " .. pid)
-        -- a pin kept under a name this language does not give (as a German save's pin reads in English), with two
-        -- real ones: on the title bar, or not counted against the three
-        S.p:getModData().ZeD_Pins = { { k = "skill", id = tostring(H.pname(Perks.Woodwork)) .. " (DE)" },
-            { k = "skill", id = H.pname(Perks.Cooking) }, { k = "skill", id = H.pname(Perks.Fitness) } }
+        -- pins saved the old way, by a shown name: "Carpentry" (an English name that names a perk, Woodwork), a name
+        -- that names no perk in any language (as a German save's pin reads here), and Cooking's name. ZeD_Pins moves
+        -- the first to the perk's id and drops the second once the perks load (fix/skillsinfo, Nov 27 2026)
+        S.p:getModData().ZeD_Pins = { { k = "skill", id = "Carpentry" }, { k = "skill", id = "Qzxw Tischlerei (DE)" },
+            { k = "skill", id = H.pname(Perks.Cooking) } }
+        pcall(function() S.PN.list(S.p) end)
         RT.cw()._pinnedSkills = S.PN.skillNames(S.p)
     end)
     Q.waitMs(400)
     H.step(2, function()
         if T.off then return end
+        local L = S.p:getModData().ZeD_Pins or {}
+        local wood = H.perkIdOf("Carpentry")
+        local hasWood, hasStale = false, false
+        for _, e in ipairs(L) do
+            if tostring(e.id) == tostring(wood) then hasWood = true end
+            if H.has(tostring(e.id), "Qzxw") then hasStale = true end
+        end
+        Q.check(wood ~= nil and hasWood and not hasStale and #L == 2, T.L .. ": an old pin by a name is moved to its perk's id (Carpentry to " .. tostring(wood) .. "), one that names no perk is dropped [bug 1]",
+            H.list(H.pinIds()))
         local shown = 0
         for _, st in ipairs(RT.cw().titleStats or {}) do if not st.noMark and tostring(st.text or "") ~= "" then shown = shown + 1 end end
-        Q.check(shown == 3, T.L .. ": a pin whose name the language no longer gives still shows or no longer counts toward the three [bug 1]",
-            shown .. " shown of 3 counted: " .. H.list(H.titleTexts()))
+        Q.check(shown == #L and H.has(table.concat(H.titleTexts(), ";"), tostring(H.pname(Perks.Woodwork))), T.L .. ": every pin counted is on the title bar, the moved one under its shown name [bug 1]",
+            shown .. " shown of " .. #L .. " counted: " .. H.list(H.titleTexts()))
         Q.skip(T.L .. ": pinned in English, the game restarted in German", "a restart in another language")
     end)
     H.caseEnd(T.L)
@@ -2341,13 +2388,17 @@ function C.s21()
     H.step(2, function()
         if T.off then return end
         local groups = RT.cw()._trainingCache or {}
+        -- (the game's Literature list: at MetaKnowledge 3 only the known books, LIT:78, 124; a skill with none listed
+        -- has no row)
+        local mk = H.optVal(H.sbOpt("MetaKnowledge"))
         local game, hidden = {}, {}
         for _, b in ipairs(S.books) do
-            if b.hidden then hidden[#hidden + 1] = b.ft else game[b.skill] = (game[b.skill] or 0) + 1 end
+            if b.hidden then hidden[#hidden + 1] = b.ft
+            elseif mk ~= 3 or H.litKnown(b) then game[b.skill] = (game[b.skill] or 0) + 1 end
         end
         local nGame = 0
         for _ in pairs(game) do nGame = nGame + 1 end
-        Q.check(#groups == nGame, T.L .. ": one row per skill the game has books for", #groups .. " rows, the game's skills with books " .. nGame)
+        Q.check(#groups == nGame, T.L .. ": one row per skill the game's Literature list has books for (MetaKnowledge " .. tostring(mk) .. ")", #groups .. " rows, the game's skills with books " .. nGame)
         local badName, badN, badOrd = {}, {}, {}
         for i, g in ipairs(groups) do
             local want = nil
@@ -2459,18 +2510,23 @@ function C.s24()
     H.step(2, function()
         if T.off then return end
         if not T.ok then Q.skip(T.L, "the sandbox has no MetaKnowledge option"); return end
-        local gameShown = 0
-        local lv = H.lvl(Perks.Woodwork)
-        for _, b in ipairs(H.booksOf("Carpentry")) do
-            local k = ((b.pages or 0) > 0 and H.pagesRead(b.ft) == b.pages) or (b.maxLvl or 99) <= lv + 1
-            if k then gameShown = gameShown + 1 end
-        end
-        local g = H.trGroup("Carpentry")
-        local mine = #((g and g.items) or {})
-        Q.check(mine <= gameShown, T.L .. ": MetaKnowledge 3 (the game hides unknown books, LIT:78, 124): the tab shows no more Carpentry titles than the game's list [bug 4, stakes]",
-            "the tab " .. mine .. ", the game " .. gameShown .. " (Carpentry " .. lv .. ", none read)")
+        C.s24judge(T, "none read")
+        H.setLvl(Perks.Woodwork, 4)
     end)
+    H.skWait(T, T.L .. " at 4")
+    H.step(2, function() if not T.off and T.ok then C.s24judge(T, "none read, Carpentry 4") end end)
     H.caseEnd(T.L)
+end
+-- the Carpentry titles the game's Literature list shows at MetaKnowledge 3 (the known ones) against the tab's; no
+-- row when it shows none
+function C.s24judge(T, what)
+    local gameShown = 0
+    local lv = H.lvl(Perks.Woodwork)
+    for _, b in ipairs(H.booksOf("Carpentry")) do if H.litKnown(b) then gameShown = gameShown + 1 end end
+    local g = H.trGroup("Carpentry")
+    local mine = #((g and g.items) or {})
+    Q.check(mine == gameShown and ((gameShown == 0) == (g == nil)), T.L .. " (" .. what .. "): MetaKnowledge 3 (the game hides unknown books, LIT:78, 124): the tab lists the Carpentry titles the game's list does, and no row when it lists none [bug 4, stakes]",
+        "the tab " .. mine .. (g == nil and " (no row)" or "") .. ", the game " .. gameShown .. " (Carpentry " .. lv .. ")")
 end
 
 -- ===================================================================== S25: the titles and volume numbers (bug 3)
@@ -2484,7 +2540,11 @@ function C.s25()
         local wrongVol, doubled, unmatched, shown = {}, {}, {}, {}
         for _, g in ipairs(RT.cw()._trainingCache or {}) do
             local books = H.booksOf(g.label)
-            table.sort(books, function(a, b) return (a.lvl or 0) < (b.lvl or 0) end)
+            -- (getLevelSkillTrained's order; a tie by the title, the tab's own second key)
+            table.sort(books, function(a, b)
+                if (a.lvl or 0) ~= (b.lvl or 0) then return (a.lvl or 0) < (b.lvl or 0) end
+                return a.dn < b.dn
+            end)
             local rank = {}
             for i, b in ipairs(books) do rank[b.ft] = S.ROMAN[i] or tostring(i) end
             for _, it in ipairs(g.items or {}) do
@@ -2672,7 +2732,9 @@ function C.s28()
         if T.off then return end
         local ms = getTimestampMs() - T.t0
         Q.check(ok and ms <= 450, T.L .. ": XP gained shows on the bar within the tab's 250 ms (and a frame or two)", ms .. " ms; " .. H.n3(T.p0) .. " -> " .. H.n3(H.skillOf(H.pname(Perks.Woodwork)).xpProgress))
-        -- the books in view for the pick-up
+        -- the books in view for the pick-up, Carpentry back to 0 (at 3 the game counts book I known by level, so it
+        -- reads Read, never Collected)
+        H.setLvl(Perks.Woodwork, 0)
         pcall(function() RT.cw()._skillsScroll:setScrollPos(1) end)
     end)
     Q.waitMs(700)
@@ -3191,7 +3253,7 @@ end
 function C.i8()
     local T = { L = "I8 hair color" }
     local COLS = { { "black", 0.05, 0.05, 0.05 }, { "dark brown", 0.25, 0.17, 0.10 }, { "blonde", 0.90, 0.80, 0.50 }, { "white", 0.95, 0.95, 0.95 },
-                   { "ginger", 0.70, 0.30, 0.10 }, { "grey 0.6", 0.6, 0.6, 0.6 }, { "grey 0.4", 0.4, 0.4, 0.4 } }
+                   { "ginger", 0.70, 0.30, 0.10 }, { "grey 0.6", 0.6, 0.6, 0.6 }, { "grey 0.4", 0.4, 0.4, 0.4 }, { "grey 0.25", 0.25, 0.25, 0.25 } }
     H.step(2, function() H.caseStart(T); T.words = {} end)
     H.toTab(T, "identity", T.L)
     for _, c in ipairs(COLS) do
@@ -3214,6 +3276,11 @@ function C.i8()
                          [ZeD.tr("UI_ZeD_Identity_HairBlonde")] = true, [ZeD.tr("UI_ZeD_Identity_HairAuburn")] = true }
         Q.check(not browns[T.words["grey 0.6"]] and not browns[T.words["grey 0.4"]], T.L .. ": a neutral grey reads neither a brown nor blonde [bug 11]",
             "grey 0.6 \"" .. tostring(T.words["grey 0.6"]) .. "\", grey 0.4 \"" .. tostring(T.words["grey 0.4"]) .. "\"")
+        local grey = getText("ContextMenu_Grey")
+        Q.check(T.words["grey 0.6"] == grey and T.words["grey 0.4"] == grey, T.L .. ": greys of 0.6 and 0.4 read the game's own grey word", grey)
+        -- (a grey this dark is under the grey rule's floor, brightness 0.3: it reads with the dark hair)
+        local dark = T.words["grey 0.25"]
+        Q.check(dark == ZeD.tr("UI_ZeD_Identity_HairDarkBrown") or dark == getText("ContextMenu_Black"), T.L .. ": a grey of 0.25 still reads dark brown or black", tostring(dark))
     end)
     H.caseEnd(T.L)
 end
@@ -3255,7 +3322,10 @@ function C.i10()
         local game = "?"
         pcall(function() game = tostring(S.p:getTimeSurvived()) end)
         local shown = d.timeSurv ~= nil and d.timeSurv ~= "--" and H.idText(tostring(d.survLines and d.survLines[1] or d.timeSurv)) ~= nil
-        Q.check(d.timeSurv == game, T.L .. ": the time survived against getTimeSurvived", tostring(d.timeSurv) .. "; the game " .. game)
+        -- (with the date hidden the tab keeps the license's field and reads "--", Simple drops the row)
+        local want = (vis == false) and "--" or game
+        Q.check(d.timeSurv == want, T.L .. ": the time survived against getTimeSurvived while the date shows, \"--\" while it does not",
+            tostring(d.timeSurv) .. "; the game " .. game .. ", the date visible " .. tostring(vis))
         Q.check(vis == nil or shown == vis, T.L .. ": shown exactly when the game shows it (while the clock's date shows, ISCS:237-240) [bug 6]",
             "the clock's date visible " .. tostring(vis) .. ", the tab draws it " .. tostring(shown))
         if vis then H.note(T.L .. ": the clock's date shows now; the state without it (no watch) is not staged") end
@@ -3553,7 +3623,11 @@ function C.i17()
         w._identityCustomZoom = 0
         T.z = {}
         for i = 1, 30 do pcall(function() T.m:onMouseWheel(1) end); if i == 15 or i == 30 then T.z[#T.z + 1] = w._identityCustomZoom end end
-        Q.check(T.z[1] ~= 0 and T.z[1] == T.z[2], T.L .. ": on the full body the wheel zooms, and stops at a bound [bug 8]", "after 15 notches " .. tostring(T.z[1]) .. ", after 30 " .. tostring(T.z[2]))
+        w._identityCustomZoom = 0
+        for i = 1, 30 do pcall(function() T.m:onMouseWheel(-1) end); if i == 15 or i == 30 then T.z[#T.z + 1] = w._identityCustomZoom end end
+        local lo, hi = T.z[1] or 0, T.z[3] or 0
+        Q.check(lo ~= 0 and lo == T.z[2] and hi ~= 0 and hi == T.z[4] and lo >= -6 and hi <= 12, T.L .. ": on the full body the wheel zooms, and stops at its bounds (-6 and 12) both ways [bug 8]",
+            "out: after 15 notches " .. tostring(T.z[1]) .. ", after 30 " .. tostring(T.z[2]) .. "; in: after 15 " .. tostring(T.z[3]) .. ", after 30 " .. tostring(T.z[4]))
         w._identityCustomZoom = 0
         w._identityPhotoExpanded = false
         S.IT.qaLayout = nil
@@ -3893,7 +3967,7 @@ function C.i25()
         pcall(function() S.p:getNutrition():setWeight(S.p:getNutrition():getWeight() + 5) end)
         if T.hair then pcall(function() H.hv():setHairModel(T.hair) end) end
         H.traitSet(S.PROMO[1], true)
-        T.f0 = S.idFrames or 0
+        T.f0, T.t0 = S.idFrames or 0, getTimestampMs()
     end)
     H.wait(3000, function()
         if T.off then return true end
@@ -3902,8 +3976,8 @@ function C.i25()
             and #(d.posTraits or {}) + #(d.negTraits or {}) ~= #(T.d0.posTraits or {}) + #(T.d0.negTraits or {})
     end, function(ok)
         if T.off then return end
-        local n = (S.idFrames or 0) - T.f0
-        Q.check(ok and n <= 32, T.L .. ": the weight, the hair and a new trait show within 30 frames drawn", n .. " frames; weight " .. tostring(H.idData().weightStr) .. ", hair " .. tostring(H.idData().hairStyle))
+        local n, ms = (S.idFrames or 0) - T.f0, getTimestampMs() - T.t0
+        Q.check(ok and ms <= 650, T.L .. ": the weight, the hair and a new trait show within the tab's 500 ms refresh (and a frame or two)", ms .. " ms, " .. n .. " frames; weight " .. tostring(H.idData().weightStr) .. ", hair " .. tostring(H.idData().hairStyle))
     end)
     H.caseEnd(T.L)
 end
@@ -4178,10 +4252,10 @@ function C.checkBack()
     pcall(function() prof = tostring(S.p:getDescriptor():getCharacterProfession()) end)
     Q.check(S.IT.qaProf == (f.qa and f.qa.prof) and S.IT.qaStyle == (f.qa and f.qa.style) and S.IT.qaLayout == (f.qa and f.qa.layout),
         "put back: his profession never changed (" .. prof .. "), the Info tab's QA hooks as found")
-    local md = S.p:getModData()
-    local same = #(md.ZeD_Pins or {}) == #(f.pins or {})
-    for i, e in ipairs(f.pins or {}) do local m = (md.ZeD_Pins or {})[i]; if not (m and m.k == e.k and tostring(m.id) == tostring(e.id)) then same = false end end
-    Q.check(same, "put back: the pins as found", H.list(H.pinIds()))
+    -- (by kind and perk id: ZeD_Pins moves a skill pin kept by its shown name to the perk's id, and drops one that
+    -- names no perk, on its own, as it would at his next load)
+    local same, pinText = H.pinsSame()
+    Q.check(same, "put back: the pins as found (skills by perk id)", pinText)
     local sbBad = {}
     for name, r in pairs(S.sbAll or {}) do if H.optVal(H.sbOpt(name)) ~= r.v then sbBad[#sbBad + 1] = name .. " " .. tostring(H.optVal(H.sbOpt(name))) .. " (found " .. tostring(r.v) .. ")" end end
     Q.check(#sbBad == 0 and H.optVal(H.screenOpt()) == f.screen, "put back: the sandbox options and the Character info screen switch as found", H.list(sbBad) .. "; switch " .. tostring(H.optVal(H.screenOpt())))
