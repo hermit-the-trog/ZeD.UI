@@ -146,6 +146,54 @@ end
 
 -- ===================================================================== small helpers
 function H.errN() local n = nil; pcall(function() n = getLuaDebuggerErrorCount() end); return n end
+-- the first Lua frame's file in an F11 entry ("Lua(Vanilla).fn(spawnpoints.lua:1969)": spawnpoints), or nil. This
+-- script runs under the name spawnpoints.lua (as the prelude and rt_kit do); no other code that throws is named so.
+function H.errFile(s)
+    if type(s) ~= "string" then return nil end
+    local f = string.match(s, "([%w_%-%.]+)%.lua:%d+")
+    return f
+end
+-- the F11 list's entries counted from e0 to e1 (getLuaDebuggerErrorCount counts entries, several to one error), split
+-- by where each error was thrown: in this script's own code (its first Lua frame in spawnpoints.lua: a test fault,
+-- fixed, never ZeD's) or anywhere else (ZeD's, the game's). An entry with no frame takes the frame of the next entry
+-- that has one (an error's message comes before its stack). Entries the list no longer holds (it keeps its last
+-- ones) count as not ours. Returns the count not ours, the count ours, and the first own frame line. (ocp_tab's split)
+function H.errSplit(e0, e1)
+    if not (e0 and e1) or e1 <= e0 then return 0, 0, nil end
+    local new = e1 - e0
+    local list, size = nil, 0
+    pcall(function() list = getLuaDebuggerErrors() end)
+    if list then pcall(function() size = list:size() end) end
+    if not (list and size and size > 0) then return new, 0, nil end
+    local from = math.max(0, size - new)
+    local files = {}
+    for i = from, size - 1 do
+        local s = nil
+        pcall(function() s = tostring(list:get(i) or "") end)
+        files[#files + 1] = { f = H.errFile(s), s = s }
+    end
+    local own, firstOwn = 0, nil
+    for i = 1, #files do
+        local f = files[i].f
+        local j = i
+        while not f and j < #files do j = j + 1; f = files[j].f end
+        if not f then j = i; while not f and j > 1 do j = j - 1; f = files[j].f end end
+        if f == "spawnpoints" then
+            own = own + 1
+            if not firstOwn then firstOwn = string.match(files[j].s or "", "[^\n]*spawnpoints%.lua:%d+[^\n]*") end
+        end
+    end
+    return new - own, own, firstOwn
+end
+-- the window e0 to e1 judged: "no Lua error" counts only the errors not thrown in this script's own code; its own are
+-- said as a NOTE (a test fault to fix, not ZeD's) and kept for the run's total
+function H.errCheck(label, e0, e1)
+    if not (e0 and e1) then Q.check(true, label, "the count cannot be read"); return end
+    local other, own, first = H.errSplit(e0, e1)
+    S.ownErrs = (S.ownErrs or 0) + own
+    if own > 0 then H.note(label .. ": TEST FAULT: " .. own .. " Lua error entries thrown in ocl_tab's own code (not ZeD's, not counted below): " .. tostring(first)) end
+    Q.check(other == 0, label, other .. " new" .. ((own > 0) and (" (" .. own .. " more in ocl_tab's own code)") or ""))
+end
 function H.step(n, fn) Q.step(n, function() if S.dead then return end; fn() end) end
 function H.note(s) Q.say("NOTE " .. tostring(s)) end
 -- time, not frames: cond asked every drawn frame until it holds, at most ms; fn(ok)
@@ -913,30 +961,38 @@ end
 
 -- ===================================================================== the draw, watched (on for the run)
 -- S.cr: the last frame the object card drew: texts { s, x, y, font }, tags { s, c, x, y }, needs, status, q, t, w
+-- (ocp_tab's way, which reads the card in the game: ZeD_ObjectCard.prerender wrapped on the class, and in each call
+-- the card's drawText swapped for one that records and draws, then put back. The first run hooked the card itself,
+-- gc_cleanup's way, and the card already held a prerender or drawText of its own, so nothing was watched. A card that
+-- holds its own prerender is wrapped on itself too, and put back as found.)
 function H.wrapOn()
     if S.w0 then return end
     local M = ZeD.Molecules
-    -- (on the card itself, as gc_cleanup hooks it: a World window closed and opened again makes a new card, which
-    -- the keeper hooks in its first frame)
-    local W = { pre = ZeD_ObjectCard.prerender, baseDT = ZeD_ObjectCard.drawText, cards = {},
+    local W = { pre = ZeD_ObjectCard.prerender, cards = {},
                 tag = M.drawTag, qb = M.drawQuestionBand, nl = M.drawNeedsLine, band = M.drawBand }
     if not W.pre then return end
     S.w0 = W
-    W.preFn = function(self, ...)
+    -- one frame of the card drawn by base (the class's prerender, or the card's own), its words recorded
+    W.run = function(base, self, ...)
         local rec = { texts = {}, tags = {}, needs = {}, t = getTimestampMs(), w = 0 }
         pcall(function() rec.w = self:getWidth() end)
+        local own = rawget(self, "drawText")
+        local dt = self.drawText
+        if dt then
+            self.drawText = function(pp, text, x, y, r, g, b, a, font, ...)
+                if pp == self then rec.texts[#rec.texts + 1] = { s = tostring(text), x = x or 0, y = y or 0, font = font } end
+                return dt(pp, text, x, y, r, g, b, a, font, ...)
+            end
+        end
         S.recIn, S.recCard = rec, self
-        local ok, res = pcall(W.pre, self, ...)
+        local ok, res = pcall(base, self, ...)
         S.recIn, S.recCard = nil, nil
+        self.drawText = own
         if self.entry then S.cr = rec; S.crCard = self end
         if not ok then S.cardErrs = (S.cardErrs or 0) + 1; S.cardErrLast = tostring(res); error(res, 0) end
         return res
     end
-    W.dtFn = function(self, text, x, y, r, g, b, a, font)
-        local rec = S.recIn
-        if rec and S.recCard == self then rec.texts[#rec.texts + 1] = { s = tostring(text), x = x or 0, y = y or 0, font = font } end
-        return W.baseDT(self, text, x, y, r, g, b, a, font)
-    end
+    W.preFn = function(self, ...) return W.run(W.pre, self, ...) end
     W.tagFn = function(panel, x, y, text, col, opts)
         local rec = S.recIn
         if rec and S.recCard == panel then rec.tags[#rec.tags + 1] = { s = tostring(text), c = col, x = x or 0, y = y or 0 } end
@@ -958,32 +1014,37 @@ function H.wrapOn()
         return W.band(panel, x, y, w, spec)
     end
     M.drawTag, M.drawQuestionBand, M.drawNeedsLine, M.drawBand = W.tagFn, W.qbFn, W.nlFn, W.bandFn
+    ZeD_ObjectCard.prerender = W.preFn
     H.hookCard()
 end
--- the World window's card hooked (its own prerender and drawText, as gc_cleanup's cardHook)
+-- the World window's card: one that holds a prerender of its own (a copy of the class's or another hook) has that
+-- one wrapped on the card itself, kept to put back (W.cards[card] = { own, fn }); a card with none draws through the
+-- class's, wrapped above
 function H.hookCard()
     local W = S.w0
     local w = RT.ww()
     local card = w and w._objectCard
     if not (W and card) or W.cards[card] then return end
-    if rawget(card, "prerender") ~= nil or rawget(card, "drawText") ~= nil then
-        if not S.said.ownPre then S.said.ownPre = true; H.note("the card has its own prerender or drawText (another hook): not watched") end
-        return
+    local own = rawget(card, "prerender")
+    local e = { own = own }
+    W.cards[card] = e
+    if type(own) == "function" and own ~= W.preFn then
+        e.fn = function(self, ...) return W.run(own, self, ...) end
+        rawset(card, "prerender", e.fn)
+        if not S.said.ownPre then
+            S.said.ownPre = true
+            H.note("the card holds a prerender of its own (" .. ((own == W.pre) and "a copy of the class's" or "another hook") .. "): wrapped on the card")
+        end
     end
-    W.cards[card] = true
-    rawset(card, "prerender", W.preFn)
-    rawset(card, "drawText", W.dtFn)
 end
 function H.wrapOff()
     local W = S.w0
     if not W then return end
     local M = ZeD.Molecules
-    for card in pairs(W.cards) do
-        pcall(function()
-            if rawget(card, "prerender") == W.preFn then rawset(card, "prerender", nil) end
-            if rawget(card, "drawText") == W.dtFn then rawset(card, "drawText", nil) end
-        end)
+    for card, e in pairs(W.cards) do
+        pcall(function() if e.fn and rawget(card, "prerender") == e.fn then rawset(card, "prerender", e.own) end end)
     end
+    if ZeD_ObjectCard.prerender == W.preFn then ZeD_ObjectCard.prerender = W.pre end
     if M.drawTag == W.tagFn then M.drawTag = W.tag end
     if M.drawQuestionBand == W.qbFn then M.drawQuestionBand = W.qb end
     if M.drawNeedsLine == W.nlFn then M.drawNeedsLine = W.nl end
@@ -996,12 +1057,13 @@ function H.wrapped()
     local M = ZeD.Molecules
     if S.w0 then return false end
     if W then
-        for card in pairs(W.cards) do
+        if ZeD_ObjectCard.prerender ~= W.pre then return false end
+        for card, e in pairs(W.cards) do
             local left = false
-            pcall(function() left = rawget(card, "prerender") == W.preFn or rawget(card, "drawText") == W.dtFn end)
+            pcall(function() left = e.fn ~= nil and rawget(card, "prerender") == e.fn end)
             if left then return false end
         end
-        if M.drawTag == W.tagFn or M.drawBand == W.bandFn then return false end
+        if M.drawTag == W.tagFn or M.drawBand == W.bandFn or M.drawNeedsLine == W.nlFn or M.drawQuestionBand == W.qbFn then return false end
     end
     return true
 end
@@ -1103,8 +1165,7 @@ function H.caseEnd(label)
     end)
     H.step(10, function()
         local e1 = H.errN()
-        Q.check(S.e0 == nil or e1 == nil or e1 == S.e0, label .. ": no Lua error over the case",
-            (S.e0 and e1) and ((e1 - S.e0) .. " new") or "the count cannot be read")
+        H.errCheck(label .. ": no Lua error over the case", S.e0, e1)
         if S.zerr then Q.check(false, label .. ": nothing ZeD ran for the case threw", S.zerr); S.zerr = nil end
         S.e0 = e1
     end)
@@ -1271,8 +1332,8 @@ function H.bpBack(rec)
     pcall(function() bp:setBleedingTime(0) end)
     pcall(function() bp:setStitched(false) end)
     pcall(function() bp:setAdditionalPain(rec.pain or 0) end)
+    -- (BodyPart has SetHealth only: a call to setHealth was nil, logged by the game even inside pcall)
     pcall(function() if rec.health then bp:SetHealth(rec.health) end end)
-    pcall(function() if rec.health then bp:setHealth(rec.health) end end)
     rec.back = true
 end
 function H.bodyBack()
@@ -1346,11 +1407,14 @@ function H.setCbp(v)
 end
 function H.buildScript(rd)
     local s = nil
+    if not (rd and rd.entry and rd.entry.recipe) then return nil end
     pcall(function()
         local l = BuildLogic.new(S.p, nil, nil)
         l:setRecipe(rd.entry.recipe)
         l:getAllBuildableRecipes()
-        s = l:getSelectedBuildObject():getScript()
+        -- (a recipe with no build object answers nil: asked before its getScript, as a nil index is logged even in pcall)
+        local bo = l:getSelectedBuildObject()
+        if bo then s = bo:getScript() end
     end)
     return s
 end
@@ -1358,10 +1422,12 @@ end
 -- relevant skill level x the skill base health), unrounded, for this character now
 function H.gameHealth(rd, s)
     local g = { base = 0, bonus = 0, k = 1, lvl = 0, sb = 0 }
-    pcall(function() g.base = math.max(s:getHealth(), 0) end)
-    pcall(function() g.bonus = s:getBonusHealth() end)
-    pcall(function() g.sb = s:getSkillBaseHealth() end)
-    pcall(function() g.lvl = rd.entry.recipe:getHighestRelevantSkillLevel(S.p) end)
+    if s then
+        pcall(function() g.base = math.max(s:getHealth(), 0) end)
+        pcall(function() g.bonus = s:getBonusHealth() end)
+        pcall(function() g.sb = s:getSkillBaseHealth() end)
+    end
+    pcall(function() if rd and rd.entry and rd.entry.recipe then g.lvl = rd.entry.recipe:getHighestRelevantSkillLevel(S.p) end end)
     local m = H.cbp()
     if m == 1 then g.k = 0.5 elseif m == 2 then g.k = 0.7 elseif m == 4 then g.k = 1.3 elseif m == 5 then g.k = 1.5 end
     g.total = g.base + g.bonus * g.k + g.lvl * g.sb
@@ -1419,6 +1485,8 @@ function H.previewQ(T, kind, noWait)
         if T.off then return end
         H.padOff()
         T.viaIcon = H.kind() == "preview"
+        -- (the recipe the tab drew last, which CraftingCore.openPreview opens on: without it the open says no anywhere)
+        T.rdReady = T.st ~= nil and T.st._rdLast ~= nil and T.st._rdLast.entry ~= nil
         if not T.viaIcon then
             if not noWait and not S.said.iconStop then S.said.iconStop = true; H.note(T.L .. ": the header's icon stop " .. kind .. ":icon was not there for the pad (found " .. tostring(T.iconStop) .. "): opened by its own handler, CraftingCore.openPreview") end
             H.zcall(function() T.openRet = ZeD.CraftingCore.openPreview(RT.ww(), T.st, S.p) end)
@@ -2404,9 +2472,9 @@ function C.c13()
         pcall(function() if not T.m.obj:isActivated() then T.m.obj:setActivated(true) end end)
         T.shirt = H.giveTo(T.m.inv, "Base.Shirt_FormalWhite") or H.giveTo(T.m.inv, "Base.Tshirt_DefaultTEXTURE_TINT")
         if not T.shirt then T.off = true; Q.skip(T.L .. " (LA2)", "no shirt type to wash"); return end
-        pcall(function() T.shirt:setDirtyness(60) end)
+        -- (Clothing's own setters: setDirtiness and setBloodLevel; a call to a name it lacks is logged even in pcall)
+        pcall(function() T.shirt:setDirtiness(60) end)
         pcall(function() T.shirt:setBloodLevel(60) end)
-        pcall(function() T.shirt:setBloodlevel(60) end)
         pcall(function() T.shirt:setWetness(0) end)
         T.samples = {}
         T.first = C.shirtNow(T)
@@ -2445,8 +2513,8 @@ end
 -- the shirt's dirt, blood and wetness, as the game's own getters give them
 function C.shirtNow(T)
     local s = { d = -1, b = -1, w = -1 }
-    pcall(function() s.d = T.shirt:getDirtyness() end)
-    if not pcall(function() s.b = T.shirt:getBloodLevel() end) then pcall(function() s.b = T.shirt:getBloodlevel() end) end
+    pcall(function() s.d = T.shirt:getDirtiness() end)
+    pcall(function() s.b = T.shirt:getBloodLevel() end)
     pcall(function() s.w = T.shirt:getWetness() end)
     return s
 end
@@ -2965,8 +3033,9 @@ function C.c22()
         local firstAny = nil
         local function pick(rd)
             local s = H.buildScript(rd)
+            if not s then return false end
             local b = 0
-            pcall(function() b = s:getBonusHealth() end)
+            pcall(function() b = s:getBonusHealth() or 0 end)
             if b <= 0 then return false end
             if not firstAny then firstAny = { rd = rd, s = s } end
             local f = b * 0.7 - math.floor(b * 0.7)
@@ -3016,8 +3085,9 @@ function C.c23()
         if T.off then return end
         local rd = H.findRd(ZeD.BuildingTab, { "LogFence", "LogWall", "WoodenFence" }, function(r)
             local s = H.buildScript(r)
+            if not s then return false end
             local sb = 0
-            pcall(function() sb = s:getSkillBaseHealth() end)
+            pcall(function() sb = s:getSkillBaseHealth() or 0 end)
             return sb > 0
         end, 160)
         if not rd then T.off = true; Q.skip(T.L, "no build recipe grows with a skill"); return end
@@ -3232,10 +3302,22 @@ function C.c27()
         local tab = w ~= nil and w._activeTab == "craft"
         local open = H.kind() == "preview"
         local seated = S.p:getVehicle() ~= nil
-        if T.ready and seated and T.rd then
+        -- (the first run: opened by the icon false, up before its first frame false: nothing opened at all. Since QA
+        -- FL5 OC.open says no to a kind without vehicleOk while he is seated, so the open is refused before OC.tick
+        -- could close it; the detail names which of the two it was. With no recipe drawn on the tab the open says no
+        -- on foot too: that is this script's setup, a skip, not ZeD's answer.)
+        local def = S.OC.kinds and S.OC.kinds.preview
+        local vok = def ~= nil and def.vehicleOk == true
+        if T.ready and seated and T.rd and tab and not open and not T.viaIcon and not T.rdReady then
+            Q.skip(T.L .. ": the recipe preview seated", "the Craft tab had drawn no recipe to open the preview on (state._rdLast unset): the open could not be asked")
+        elseif T.ready and seated and T.rd then
+            local how = "not opened"
+            if T.viaIcon or T.openedNow then how = open and "opened and still open" or "opened, then closed (OC.tick: in a vehicle)"
+            elseif T.openRet == false then how = "refused at open (OC.open says no seated to a kind without vehicleOk, QA FL5)" end
             Q.check(not (tab and not open), T.L .. ": seated in a parked car the recipe preview stays open over the Craft tab, which works there",
-                "seated " .. tostring(seated) .. ", the Craft tab " .. tostring(tab) .. ", the card opened (by the icon " .. tostring(T.viaIcon) .. ", up before its first frame "
-                .. tostring(T.openedNow) .. ") and open 1.5 s later " .. tostring(open) .. " (OC.tick closes every kind but medic and trade in a vehicle)")
+                "seated " .. tostring(seated) .. ", the Craft tab " .. tostring(tab) .. ", the recipe drawn " .. tostring(T.rdReady) .. ", the preview kind vehicleOk " .. tostring(vok)
+                .. "; the card " .. how .. " (by the icon " .. tostring(T.viaIcon) .. ", by its own handler " .. tostring(T.openRet) .. ", up before its first frame "
+                .. tostring(T.openedNow) .. ", open 1.5 s later " .. tostring(open) .. ")")
         end
         T.off = nil
         H.closeCard()
@@ -3392,7 +3474,15 @@ function S.buildPutBack()
         Q.check(S.errs == 0, "put back: nothing ZeD ran for this script threw", S.errs .. " caught" .. (S.zerr and (": " .. S.zerr) or ""))
         if S.cardErrs then Q.check(false, "the object card drew without an error", S.cardErrs .. " times; last " .. tostring(S.cardErrLast)) end
         local e1 = H.errN()
-        if S.err0 and e1 then Q.check(e1 == S.err0, "the object card run ran with no Lua error", (e1 - S.err0) .. " new")
+        if S.err0 and e1 then
+            -- every case window was split at its end; the last stretch (put back) is split here
+            local other, own, first = H.errSplit(S.e0 or S.err0, e1)
+            if own > 0 then H.note("put back: TEST FAULT: " .. own .. " Lua error entries thrown in ocl_tab's own code: " .. tostring(first)) end
+            local ownAll = (S.ownErrs or 0) + own
+            local notOurs = (e1 - S.err0) - ownAll
+            Q.check(notOurs == 0, "the object card run ran with no Lua error", notOurs .. " new"
+                .. ((ownAll > 0) and (" (" .. ownAll .. " more in ocl_tab's own code: a test fault)") or ""))
+            if other > 0 then H.note("put back: " .. other .. " of those during the put-back itself") end
         else Q.skip("the object card run's Lua error count", "the game's Lua error count cannot be read here") end
         H.note("pictures taken: " .. H.list(S.shots, 20))
     end)
