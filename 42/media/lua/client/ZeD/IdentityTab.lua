@@ -455,8 +455,15 @@ function ZeD.IdentityTab.gatherData(playerObj)
         -- UIManager.getClock():isDateVisible(), a watch that shows it); without one ZeD told it
         -- anyway (QA I10, Nov 27 2026). Simple drops the row; the license, a printed card, keeps
         -- its field and reads "--".
-        local clock = UIManager and UIManager.getClock and UIManager.getClock() or nil
-        if instanceof(playerObj, "IsoPlayer") and clock and clock:isDateVisible() then
+        -- (asked of ZeD.Watch: the watch parks the game's clock every frame, so its own visible flag reads false
+        -- here; ZeD.Watch.dateVisible reads it before the parking. QA I10 second pass, Nov 27 2026)
+        local dateOn = false
+        if ZeD.Watch and ZeD.Watch.dateVisible then dateOn = ZeD.Watch.dateVisible() == true
+        else
+            local clock = UIManager and UIManager.getClock and UIManager.getClock() or nil
+            dateOn = clock ~= nil and clock:isDateVisible() == true
+        end
+        if instanceof(playerObj, "IsoPlayer") and dateOn then
             data.timeSurv = playerObj:getTimeSurvived() or "--"
         else
             data.survHidden = true
