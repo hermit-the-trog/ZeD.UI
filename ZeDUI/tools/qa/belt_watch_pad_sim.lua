@@ -232,5 +232,29 @@ check("250: the belt takes the pad back (padReturn)", BS:find("function ZeD_Belt
 check("250: leaving the belt never takes the pad from the watch", BS:find("if jd and wi and jd.focus == wi then return end", 1, true) ~= nil)
 check("250: the belt's mark only while it holds the pad", BS:find("local gpTarget = padHere and", 1, true) ~= nil)
 
+-- (QA I10 third pass, Nov 27 2026) W.dateVisible: the game's rule from the watch he wears, not the parked clock's
+-- flags (the watch parks the clock every frame, so its visible flag stays false)
+do
+    local function list(t) return { size = function() return #t end, get = function(_, i) return t[i + 1] end } end
+    local oldInst = instanceof
+    instanceof = function(o, cls) return type(o) == "table" and o._cls == cls end
+    local digital = { _cls = "AlarmClockClothing", isDigital = function() return true end }
+    local analog = { _cls = "AlarmClockClothing", isDigital = function() return false end }
+    local function wearer(item)
+        local worn = item and { { getItem = function() return item end, getLocation = function() return "LeftWrist" end } } or {}
+        return { getWornItems = function() return list(worn) end,
+                 getInventory = function() return { getItems = function() return list({}) end } end }
+    end
+    local oldUI = UIManager
+    UIManager = { getClock = function() return { isVisible = function() return false end, isDigital = function() return false end,
+                                                  isDateVisible = function() return false end } end,
+                  getSpeedControls = oldUI and oldUI.getSpeedControls }
+    check("I10: a digital watch worn: the date shows (the parked clock says not visible)", W.dateVisible(wearer(digital)) == true)
+    check("I10: an analog watch: no date", W.dateVisible(wearer(analog)) == false)
+    check("I10: no watch: no date", W.dateVisible(wearer(nil)) == false)
+    UIManager = oldUI
+    instanceof = oldInst
+end
+
 print("belt_watch_pad_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end

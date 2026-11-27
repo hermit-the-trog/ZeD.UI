@@ -28,7 +28,18 @@ local _orig = ISInventoryPaneContextMenu._zedOrigCheckMap
 ISInventoryPaneContextMenu.onCheckMap = function(map, player)
     if ZeD.Safe.on() then return _orig(map, player) end   -- safe mode: the game's map window
     -- the game's read action is there: its Read Map, whole (the window at its end is ZeD's, below)
-    if ISReadMapItem and ISReadMapItem.showUI then return _orig(map, player) end
+    -- (the move it queues is the player's own ask, not part of a run: ZeD's Put things back took the floor-to-him
+    -- move as the read's and queued the map back to the floor, so the paper never showed; the read keeps the map on
+    -- him, as the game does without Put back. Same as the Journal's notebook, J29. QA MP53, Nov 27 2026)
+    if ISReadMapItem and ISReadMapItem.showUI then
+        local PB = ZeD.PutBack
+        local was = PB and PB.queuing
+        if PB then PB.queuing = true end
+        local ok, err = pcall(_orig, map, player)
+        if PB then PB.queuing = was end
+        if not ok then print("[ZeD] paper map: Read Map failed: " .. tostring(err)) end
+        return
+    end
     local playerObj = getSpecificPlayer(player)
     -- not in the main inventory: vanilla's transfer first (it comes back here when done)
     if not (playerObj and map) or luautils.haveToBeTransfered(playerObj, map) then return _orig(map, player) end

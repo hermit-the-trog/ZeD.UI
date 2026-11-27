@@ -417,5 +417,26 @@ PF.press(TW, CHR, walkie, "chadd")
 check("B14: off, Add does nothing (the game greys it)", pl:size() == 0, pl:size())
 LITE = false
 
+-- B9 / R21 (QA, Nov 27 2026): the power key turning a playing set off stops its disc at once, as the game's radio
+-- window does on its next update (RWMMedia.lua:161-163)
+do
+    local st = { on = true, playing = true, stopped = 0 }
+    local dd = {}
+    function dd:getIsTurnedOn() return st.on end
+    function dd:isPlayingMedia() return st.playing end
+    function dd:StopPlayMedia() st.playing = false; st.stopped = st.stopped + 1 end
+    local part = { getDeviceData = function() return dd end }
+    local saveRA, savePH = ISRadioAction, O.poweredHere
+    ISRadioAction = { new = function() return { deviceData = dd, isValidToggleOnOff = function() return true end,
+                                                performToggleOnOff = function() st.on = not st.on end } end }
+    O.poweredHere = function() return true end
+    local ok = O.power(CHR, part)
+    check("B9: power off stops the playing disc at once", ok == true and st.on == false and st.playing == false and st.stopped == 1)
+    st.on, st.playing, st.stopped = false, false, 0
+    O.power(CHR, part)
+    check("B9: power on stops nothing", st.on == true and st.stopped == 0)
+    ISRadioAction, O.poweredHere = saveRA, savePH
+end
+
 print("rd_fixes_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end
