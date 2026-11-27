@@ -2245,6 +2245,7 @@
     "UI_ZeD_Radio_NoCds": "Немає CD при собі",
     "UI_ZeD_Radio_NoHeadphones": "Немає навушників при собі",
     "UI_ZeD_Radio_None": "Немає радіо в зоні дії",
+    "UI_ZeD_Radio_NoneOnYou": "Немає радіо при собі",
     "UI_ZeD_Radio_NoTapes": "Немає касет при собі",
     "UI_ZeD_Radio_Range": "ДАЛЬН. %1 КМ",
     "UI_ZeD_Radio_Scan": "СКАН",

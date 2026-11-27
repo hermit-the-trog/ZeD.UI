@@ -2245,6 +2245,7 @@
     "UI_ZeD_Radio_NoCds": "Nincs nálad CD",
     "UI_ZeD_Radio_NoHeadphones": "Nincs nálad fejhallgató vagy fülhallgató",
     "UI_ZeD_Radio_None": "Nincs rádió hatótávon belül",
+    "UI_ZeD_Radio_NoneOnYou": "Nincs nálad rádió",
     "UI_ZeD_Radio_NoTapes": "Nincs nálad kazetta",
     "UI_ZeD_Radio_Range": "HATÓTÁV %1 KM",
     "UI_ZeD_Radio_Scan": "PÁSZT",

@@ -2245,6 +2245,7 @@
     "UI_ZeD_Radio_NoCds": "Keine CDs dabei",
     "UI_ZeD_Radio_NoHeadphones": "Keine Kopfhörer oder Ohrhörer dabei",
     "UI_ZeD_Radio_None": "Kein Radio in Reichweite",
+    "UI_ZeD_Radio_NoneOnYou": "Kein Radio dabei",
     "UI_ZeD_Radio_NoTapes": "Keine Kassetten dabei",
     "UI_ZeD_Radio_Range": "REICHW. %1 KM",
     "UI_ZeD_Radio_Scan": "SCAN",

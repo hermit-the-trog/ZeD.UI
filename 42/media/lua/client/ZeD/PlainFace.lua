@@ -38,6 +38,7 @@
 --   pwr               the car radios' own power key or rocker: the power switch
 --   play, phones, battery, media (the slot / eject)   buttons on their rows
 --   mem (held: name), lamp   the footer band's buttons
+--   chadd, chedit, chdel     Lite's footer band: the game's Add, Edit and Delete preset (QA B14)
 -- A stepper is one control: a click on its left half lowers, on its right half
 -- raises; the wheel turns it; on the controller left / right turn it and up /
 -- down move on (the card is a column).
@@ -131,6 +132,7 @@ function V.battery(x)
     local st = x.st
     if x.tw then
         if st.ac then return ZeD.tr("UI_ZeD_Plain_AcPower") end
+        if st.hasBattery == false then return ZeD.tr("UI_ZeD_Plain_NoBattery") end   -- (QA B1: it can be out now)
         return nil, nil, st.charge or 0
     end
     if not st.battery then return ZeD.tr("UI_ZeD_Plain_AcPower") end
@@ -182,17 +184,74 @@ local C_CH_KNOB = { id = "channel", kind = "stepper", label = "IGUI_RadioChannel
 local C_CH_KEYS = { id = "channel", kind = "stepper", label = "IGUI_RadioChannel", dn = "chdn", up = "chup", val = V.channel }
 local C_SIGNAL = { id = "signal", kind = "read", label = "IGUI_RadioSignal", val = V.signal }
 local C_RANGE = { id = "range", kind = "read", label = "IGUI_RadioStrength", val = V.range }
-local C_BATT_READ = { id = "batt", kind = "read", label = "IGUI_VehiclePartBattery", val = V.battery }
 local C_MUTE = { id = "mute", kind = "switch", label = "UI_ZeD_RadioPrompt_Mute", real = "mute", on = ON.mute }
 local C_MIC = { id = "mic", kind = "switch", label = "IGUI_RadioMicrophone", real = "mic", on = ON.mic }
 local C_SCAN = { id = "scan", kind = "switch", label = "UI_ZeD_RadioPrompt_Scan", real = "scan", on = ON.scan }
 local C_PLAY = { id = "play", kind = "button", label = "UI_ZeD_Plain_Playback", real = "play", val = V.play, word = WORD.play }
-local C_PHONES = { id = "phones", kind = "button", label = "UI_ZeD_Plain_Headphones", real = "phones", val = V.phones, word = WORD.phones }
+-- (QA B2, Nov 27 2026: headphones only where the game takes them, a portable set that is not a TV, walkies too; a
+-- pair already in shows, so it can come out. when(x): the row is drawn this frame.)
+local function phonesShown(x)
+    return x.st.phones == true or ZeD.TwoWay.phonesOk(x.st.dd)
+end
+local C_PHONES = { id = "phones", kind = "button", label = "UI_ZeD_Plain_Headphones", real = "phones", val = V.phones, word = WORD.phones,
+    when = phonesShown }
 local C_BATTERY = { id = "battery", kind = "button", label = "IGUI_VehiclePartBattery", real = "battery", val = V.battery, word = WORD.battery }
+-- (QA B1, Nov 27 2026: a two-way set's battery goes in and out here, as in the game's Power box; every walkie and ham
+-- set runs on one. A set with no battery to change, a modded one on the mains, keeps the reading only.)
+local C_BATTERY_TW = { id = "battery", kind = "button", label = "IGUI_VehiclePartBattery", real = "battery", val = V.battery,
+    word = WORD.battery, noCtl = function(x) return x.st.battery ~= true end }
 local C_MEM = { id = "mem", kind = "button", foot = true, real = "mem", word = WORD.mem }
 local C_LAMP = { id = "lamp", kind = "button", foot = true, real = "lamp", word = WORD.lamp,
     sel = function(x) return O.lampLit(x.dev) == true end }
 local C_SEEK = { id = "seek", kind = "stepper", label = "UI_ZeD_RadioPrompt_Seek", dn = "seekdn", up = "seek" }
+
+-- ---------------------------------------------------------------------------
+-- LITE'S CHANNELS (QA B14, Nov 27 2026): Lite drops the preset keys and MEM (the game's window has neither), which
+-- left it no way to keep a channel at all. The game's Channel box has Add, Edit and Delete, so Lite's card has the
+-- three on its footer band, with the game's own words, live while the set is on (the game greys them while off).
+-- They work on the channel the set is tuned to, through the full face's own preset code (ZeD_RadioOps; TW.nameChannel
+-- names it): Add stores it, Edit names it (storing it first), Delete forgets it. A stored channel is tuned to from the
+-- Channels rows under the card. Not on a TV or a set that cannot transmit: the game's window has no Channel box there.
+-- ---------------------------------------------------------------------------
+local function tunedPreset(dev)
+    local dd = dev and dev.getDeviceData and dev:getDeviceData() or nil
+    if not dd then return nil end
+    local hz = dd:getChannel()
+    for i, p in ipairs((O.presetList(dd))) do
+        if p.freq == hz then return i end
+    end
+    return nil
+end
+local function setOn(base, dev)
+    local st = base.read(dev)
+    return st ~= nil and st.on == true
+end
+local function chAdd(base, chr, dev)
+    if not setOn(base, dev) then return end
+    local i = tunedPreset(dev)
+    if i then O.flash(dev, ZeD.tr("UI_ZeD_Radio_ChStored", string.format("%02d", i)), 1400); return end
+    local dd = dev:getDeviceData()
+    if not O.store(chr, dev, #(O.presetList(dd)) + 1) then O.flash(dev, ZeD.tr("UI_ZeD_Radio_MemFull"), 1600) end
+end
+local function chEdit(base, chr, dev)
+    if not setOn(base, dev) then return end
+    ZeD.TwoWay.nameChannel(chr, dev, nil)
+end
+local function chDelete(base, chr, dev)
+    if not setOn(base, dev) then return end
+    local i = tunedPreset(dev)
+    if not i then O.flash(dev, ZeD.tr("UI_ZeD_Radio_Empty"), 900); return end
+    O.rename(chr, dev, i, "")
+end
+local function chanOff(x) return not x.st.on end
+local function chanShown(x) return not x.noTx end
+local C_CH_ADD = { id = "chadd", kind = "button", foot = true, act = chAdd, dis = chanOff, when = chanShown,
+    word = function() return ZeD.tr("IGUI_RadioAddPreset") end }
+local C_CH_EDIT = { id = "chedit", kind = "button", foot = true, act = chEdit, dis = chanOff, when = chanShown,
+    word = function() return ZeD.tr("IGUI_RadioEditPreset") end }
+local C_CH_DEL = { id = "chdel", kind = "button", foot = true, act = chDelete, dis = chanOff, when = chanShown,
+    word = function() return ZeD.tr("IGUI_RadioRemovePreset") end }
+PF.CHANNEL_IDS = { chadd = true, chedit = true, chdel = true }
 
 local function add(out, c)
     if out.byId[c.id] then return end
@@ -288,8 +347,12 @@ controlsFor = function(base, pid)
     for _, h in ipairs(order) do
         if not (lite and (PF.LITE_DROPS[h.id] or h.id:match("^p%d$"))) then place(out, h.id, isTw, tv, shared, have) end
     end
-    -- a two-way set's battery is read on its glass (BAT / AC), never pressed
-    if isTw and not (spec and spec.noBattery) then add(out, C_BATT_READ) end
+    -- a two-way set's battery and headphones: no plate has a key for them, so their rows follow the face's own
+    -- (QA B1 and B2, Nov 27 2026; the battery was a reading only, the headphones missing)
+    if isTw and not (spec and spec.noBattery) then add(out, C_BATTERY_TW) end
+    if isTw and not spec then add(out, C_PHONES) end
+    -- Lite's Add, Edit and Delete for the stored channels (QA B14, above)
+    if lite and not tv then add(out, C_CH_ADD); add(out, C_CH_EDIT); add(out, C_CH_DEL) end
     out.tw, out.tv = isTw, tv
     out.keyN = out.byId.presets and #out.byId.presets.keys or 0
     _ctl[key] = out
@@ -319,6 +382,8 @@ ctxOf = function(base, dev, pid)
     local C = controlsFor(base, pid)
     local x = { st = st, base = base, pid = pid, dev = dev, tw = C.tw, tv = C.tv, C = C, keyN = C.keyN }
     if C.tv then x.air, x.stop = ZeD.Rtv.air(st) end
+    local dd = st.dd
+    x.noTx = dd ~= nil and dd.isNoTransmit ~= nil and dd:isNoTransmit() == true   -- (the CD player: QA B14's rule)
     return x
 end
 
@@ -480,6 +545,7 @@ local function gapW() return ZeD.T.px(4) end
 
 -- a control's width
 local function ctlW(c, x)
+    if c.noCtl and c.noCtl(x) then return 0 end   -- (a reading only on this set: no control, no stop)
     if c.kind == "switch" then return 2 * segW() + ZeD.T.px(2) end
     if c.kind == "stepper" then return 2 * keyW() + gapW() end
     if c.kind == "keys" then local n = #c.keys; return n * keyW() + (n - 1) * gapW() end
@@ -679,7 +745,7 @@ local _bandSpec = { buttons = {}, status = { text = "", color = nil } }
 local _bandPool = {}
 local function footButtons(x)
     local out = {}
-    for _, c in ipairs(x.C.list) do if c.foot then out[#out + 1] = c end end
+    for _, c in ipairs(x.C.list) do if c.foot and not (c.when and not c.when(x)) then out[#out + 1] = c end end
     return out
 end
 
@@ -719,7 +785,7 @@ local function band(panel, x0, y, w, x, face, hits, draw, fo)
             b.hover = face.hoverId == c.id
             b.focus = (face.focusId == c.id) and fo or nil
             b.pressed = face.pressId == c.id
-            b.disabled, b.help, b.minW, b.w = nil, nil, nil, nil
+            b.disabled, b.help, b.minW, b.w = (c.dis and c.dis(x)) or nil, nil, nil, nil
             btns[i] = b
         end
         -- (QA's visual noise audit 5, Nov 20 2026: the band's lone "On" was the power state a third time; the Power
@@ -778,7 +844,7 @@ layout = function(panel, x0, y0, w, x, face, draw)
     for _, c in ipairs(x.C.list) do
         if c == tuneC then
             if tuneHit then hits[#hits + 1] = tuneHit end   -- (its stop stays where the row was: the controller's order)
-        elseif not c.foot then y = y + row(panel, x0, y, w, c, x, face, hits, draw, fo) end
+        elseif not c.foot and not (c.when and not c.when(x)) then y = y + row(panel, x0, y, w, c, x, face, hits, draw, fo) end
     end
     local bh = band(panel, x0, y, w, x, face, hits, false, fo)
     local by = math.max(y + T.px(8), y0 + (face.minH or 0) - bh)
@@ -824,6 +890,7 @@ end
 function PF.press(base, chr, dev, id, dx, at)
     local c = ctlOf(base, dev, id)
     if not c then return end
+    if c.act then c.act(base, chr, dev); return end   -- (Lite's channel buttons: their own work, above)
     if c.kind == "stepper" then
         if dx then PF.turn(base, chr, dev, id, dx < 0 and -1 or 1, 1) end
         return
@@ -864,6 +931,7 @@ function PF.wrap(base)
     W.holdable = function(id) return base.holdable(id) end
     W.onRelease = function(id)
         if id == "media" or id == "battery" or id == "phones" then return true end   -- (a list may open: on the release)
+        if PF.CHANNEL_IDS[id] then return true end   -- (Edit's naming box: on the release too)
         if base.onRelease then return base.onRelease(id) end
         return base.holdable(id)
     end

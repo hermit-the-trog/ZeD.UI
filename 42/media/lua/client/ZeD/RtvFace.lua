@@ -706,8 +706,11 @@ function R.drawFace(panel, x, y, k, face)
     local shared = factsOf(des).volPower
     local ac = T.accent
     local hits = {}
+    -- (QA B2, Nov 27 2026: a TV's jack is art only; the game takes headphones on a portable set that is not a TV, so
+    -- the key is no control there, unless a pair is already in and has to come out)
+    local noPhones = not (TW.phonesOk(st.dd) or st.phones)
     for _, c in ipairs(PL.controls(des, ps)) do
-        if not (shared and c.id == "power") then
+        if not ((shared and c.id == "power") or (noPhones and c.id == "phones")) then
             if shared and c.id == "vol" then c.id = "volpwr" end
             local knob = c.kind == "turn"
             hits[#hits + 1] = { id = c.id, kind = c.kind, knob = knob, x = x + c.x * k, y = y + c.y * k, w = c.w * k, h = c.h * k }
@@ -832,6 +835,8 @@ end
 function R.phonesKey(chr, dev, st, at)
     if not (ISRadioAction and ISTimedActionQueue) then return false end
     if st.phones then ISTimedActionQueue.add(ISRadioAction:new("RemoveHeadphones", chr, dev)); return true end
+    -- (QA B2, Nov 27 2026: only where the game takes them, a portable set that is not a TV; a pair already in comes out)
+    if not TW.phonesOk(st.dd) then return false end
     local inv = chr:getInventory()
     local found = nil
     for _, ft in ipairs({ "Base.Headphones", "Base.Earbuds" }) do

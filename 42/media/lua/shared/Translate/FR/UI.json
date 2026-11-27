@@ -2245,6 +2245,7 @@
     "UI_ZeD_Radio_NoCds": "Aucun CD sur vous",
     "UI_ZeD_Radio_NoHeadphones": "Aucun casque ni écouteurs sur vous",
     "UI_ZeD_Radio_None": "Aucune radio à portée",
+    "UI_ZeD_Radio_NoneOnYou": "Aucune radio sur vous",
     "UI_ZeD_Radio_NoTapes": "Aucune cassette sur vous",
     "UI_ZeD_Radio_Range": "PORTEE %1 KM",
     "UI_ZeD_Radio_Scan": "SCAN",
