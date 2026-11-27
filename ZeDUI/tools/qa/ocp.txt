@@ -1,0 +1,40 @@
+# ZeDUI/tools/qa/ocp.txt (Nov 26 2026, QA): the World window's Power, Fluid and Fire object cards, the gamut sweep, from the map ZeDUI/qa/audits/2026-11-26_map_cards_power_fluid_fire.md (its suspicions PW1-PW10, FL1-FL10, FI1-FI10), each checked in the running game by the mouse and the pad, at the size the runner uses, against the game's own answers (the generator's getFuel, getCondition, isActivated, isConnected and getTotalPowerUsing on the world clock; the fluid container's amount, fluids, isTaintedStatusKnown, isHiddenAmount and FluidContainer.CanTransfer; the campfire's own fuel and lit flags, the barbecue's isLit, isSmouldering and hasPropaneTank; the items the game burned or moved; the game's queue; the game's own menus, read and shut before they draw).
+# Staging: ZEDQA_HOME first (the Irvington drag strip, 925.5,13040.5); every fire on the open asphalt there, put out and removed after its case; PW1 and FI1 on the nearest indoor floor within 60 tiles (SKIP when the loaded map has none); one car by the prelude's spawn for the seated case, run last. His own free things are set aside for the run so the game's moves have room and the lists hold only what a case gave.
+#   ocp_tab.lua  PW1 indoors: the card's fumes box (the control); the face popped out by a click on the machine and by the pad's Interact A, its engine switch by the mouse and the pad, and the Lights wheel's Generator slice: started indoors, is he told about the fumes (the game's Turn on tooltip read from its menu)
+#                PW2 two generators (5 tiles north, first in reading order; beside him): the Lights wheel's Turn on and Turn off: which one the game started and stopped
+#                PW3 Electricity 0 and no Generator recipe, connected and off: the game's menu offers Disconnect; the card's Disconnect (folded, then greyed) and outlet by the mouse and the pad; the game's own Disconnect at Electricity 0
+#                PW4 condition 0: Turn on lit or not, pressed by the mouse and the pad, what the game did and what he was told; condition 50: three starts, the game's failure roll counted (NOTE)
+#                PW5 Fix at 60% with 10 Scrap Electronics at Electricity 3 (mouse) and at 90% with 2 (pad): the scrap the game's chain spent against what the card said first; Electricity 2: the NEEDS line against the game's tooltip (NOTE)
+#                PW6 SKIP (multiplayer)
+#                PW7 two cans: the first can's Add (mouse), the second's (pad) while the first pours: the fuel the game took; the game's Add all against the card; a can of petrol and water (NOTE); PW10's "+x.x L" words (NOTE)
+#                PW8 running idle, then with a range on: the card's run time left against the game's own burn over two game hours each on fast-forward; the load needle, OIL lamp and meters (NOTE)
+#                PW9 Info from 2 (control), 7 and 15 tiles: the card shown, or the game's walk
+#                PW10 words and docs: a NOTE
+#                FL1 tainted water (0.5 L, 1.5 L, 1:9 and 9:1 mixes): the card's Tainted against the game's isTaintedStatusKnown; the 0.5 L drunk the game's way (NOTE)
+#                FL2 a rain collector and a bottle: Switch, Empty (mouse), its question, Cancel; Switch back, Empty and Yes (pad): what the game emptied, whether the question named it
+#                FL3 the collector 5 tiles off: Pour, Stop at once during the walk (mouse); into a container tagged Mixes (pad): what the game poured
+#                FL4 Pour twice in one frame (mouse) and A A (pad) into a pot of bleach: the transfers queued and the liters moved against one Max Pour
+#                FL6 a well (the game hides its amount): what the card shows of its level
+#                FL7 Transfer on the collector from 2 (control), 7 and 15 tiles: the card shown, or the game's walk
+#                FL8 a bottle in a bag poured: where the game left it; over and just under the weight limit: the Too heavy tag against the game's refusal
+#                FL9 the drawn pour progress against the liters moved; the Into bottle put in a crate: no stale side; another player's drain SKIP (multiplayer)
+#                FL10 Empty's question lowercases the liquid (a FAIL only in German; NOTE elsewhere)
+#                FI1 an indoor campfire on a floor the game can set alight, lit from the card: does the card warn; an hour on fast-forward, any fire the game starts nearby put out at once (NOTE)
+#                FI2 All fuel with a crate holding a skill book, a map and a plank (mouse; pad): what the game burned (gone for good: NOTE)
+#                FI3 a skill book in the bags, paper in a bag, matches and a lighter: Light by the pad's A A and the mouse's two clicks: what burned, which starter
+#                FI4 a fireplace 5 tiles north and a campfire cooking beside him, both lit: the Lights wheel's Put out: which one the game put out
+#                FI5 Take apart on a lit campfire with stew (mouse) and an unlit one with a steak (pad): where the game put the food, against the question
+#                FI6 a propane grill with an empty tank in and a full spare in the bags: the game's Insert against the card's verbs; the tank key (mouse; pad); a spare on the floor: Insert (mouse)
+#                FI7 a charcoal barbecue put out to smouldering (mouse): no Put out; a steak over 10 game minutes: the game's heat against the card's reading
+#                FI8 SKIP (multiplayer)
+#                FI9 the campfire's Info from 2 (control), 7 and 15 tiles
+#                FI10 no fuel, paper and no starter: Light's NEEDS line against the game's lighting rule; the hour marks' case (NOTE)
+#                seated (last) a passenger seat: the generator's Info (PW9), a bottle's Transfer and Show info (FL5), the campfire's Info (FI9), against the game's own menus seated
+# Pictures ocp_power_*, ocp_fluid_*, ocp_fire_* (each with the screen size).
+# It puts back every object laid (generators, the range, the rain collector, the well, campfires, the fireplace, barbecues, crates) and any fire near home or the building, every thing given or made (the bags, the floor, the crates, the fires' own containers), his own set-aside things, his skills (Electricity) and the Generator recipe, his traits (not changed: checked), his stats (the drink), the windows and both windows' tabs, the card drawer and the pop-out (shut), the hidden-actions setting, the input lock, the pointer, the theme and the text size (not changed: checked), the draw watchers, instant actions, game speed 1, the clock, where he stood, the car, god mode and invincible as found.
+# Run both sizes:
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/ocp.txt -Mode fullscreen4k -Report ocp_4k
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/ocp.txt -Mode windowed -Width 1280 -Height 800 -Report ocp_deck
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+ocp_tab.lua | ocp_tab | timeout=2400
