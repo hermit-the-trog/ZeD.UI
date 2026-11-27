@@ -2219,7 +2219,7 @@ function C.findJudge(T, label, q)
 end
 function C.s18()
     local T = { L = "S18 Find" }
-    H.step(2, function() H.caseStart(T) end)
+    H.step(2, function() H.caseStart(T); C.allBooks() end)
     H.toTab(T, "skills", T.L)
     H.skWait(T, T.L)
     H.step(2, function()
@@ -2417,6 +2417,11 @@ function C.s21()
 end
 
 -- ===================================================================== S22 to S24: the books' states
+-- every skill book listed, known or not (sandbox MetaKnowledge 1; put back at the case's end): the QA world runs at
+-- 3, where the game's list (and since fix/skillsinfo the tab, SkillsTab.lua gatherTrainingData) leaves out a book not
+-- known, so at his Carpentry 0 the Carpentry row is gone. S18, S22 and S28 test Find and the book states, not that
+-- rule (S21 and S24 test it), so they list every book.
+function C.allBooks() H.sbSet("MetaKnowledge", 1) end
 -- the Carpentry books unread and not carried (staging for S22-S24)
 function C.booksBlank(fts)
     for _, ft in ipairs(fts) do H.setPages(ft, 0); H.dropRead(ft) end
@@ -2436,6 +2441,7 @@ function C.s22()
     local T = { L = "S22 book states" }
     H.step(2, function()
         H.caseStart(T)
+        C.allBooks()
         C.booksBlank(S.CARP)
         C.booksBlank({ "Base.BookCooking1" })
         H.give(S.CARP[1])
@@ -2712,6 +2718,7 @@ function C.s28()
     local T = { L = "S28 while open" }
     H.step(2, function()
         H.caseStart(T)
+        C.allBooks()
         C.booksBlank({ S.CARP[1] })
         H.atFrac(Perks.Woodwork, 3, 0.1)
     end)

@@ -13,13 +13,13 @@
 #               S12 the help lines (row, bar, heading) and the hover card's XP (mouse; pad)
 #               S13 pin and unpin from the right-click menu; S14 a fourth pin (an item from the item menu); S15 the pin kept by the perk's id; old pins by a name: "Carpentry" moved to Woodwork and shown, a name of no perk dropped, shown equal to counted (bug 1; the restart in German SKIP)
 #               S16 the pad on a row: A, X, Pin; B with an apple being eaten, B with nothing running
-#               S17 the grid's disclosure (mouse; pad); S18 Find (a name, a group, "zzz" and its Clear by A, cleared)
+#               S17 the grid's disclosure (mouse; pad); S18 Find, every book listed (sandbox MetaKnowledge 1 for the case) (a name, a group, "zzz" and its Clear by A, cleared)
 #               S19 the half card with Large text: names whole, one column's Left and Right
 #               S20 the scroll follows Down to the last book of an open training row; the wheel does not snap back
-#               S21 the training rows against the game's Literature list (MetaKnowledge as found); S22 the book states (carried, bag in a bag, half read, read, none, a crate's) against the game's getters and its known-by-level rule
+#               S21 the training rows against the game's Literature list (MetaKnowledge as found); S22 the book states with every book listed (MetaKnowledge 1 for the case: carried, bag in a bag, half read, read, none, a crate's) against the game's getters and its known-by-level rule
 #               S23 known by level (bug 4); S24 MetaKnowledge 3 at Carpentry 0 and 4: the known titles only, no row with none (bug 4); S25 the volume numbers in getLevelSkillTrained order, no title keeping its own numeral (bug 3)
 #               S26 a training row folded (mouse; pad), a book row does nothing; S27 presses on the heading over rows beneath it (bug 7)
-#               S28 XP and a book picked up while open; S29 a level up while watching
+#               S28 XP and a book picked up while open (MetaKnowledge 1 for the case); S29 a level up while watching
 #               S30 paused: the glass, the pad's A, the wheel, the help line
 #               S31 the Character info screen given back to the game: the Skills key shows the game's window, and it goes again
 #               S32 the extras loaded (NOTE; the add-on mods SKIP); S33 layout in Dark, Light, High contrast and Large text, picture sk_skills_<WxH>; S34, S35 SKIP
