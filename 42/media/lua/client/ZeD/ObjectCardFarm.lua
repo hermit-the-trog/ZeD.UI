@@ -92,14 +92,66 @@ local function phaseIndex(plant)
     return 1
 end
 
--- vanilla's water words, with a dot
+-- vanilla's water words (ISFarmingInfo.getWaterLvl: fixed levels, the same for every crop)
 local function waterWord(lvl)
+    if lvl > 80 then return txt("Farming_Well_watered", "Well watered") end
+    if lvl > 60 then return txt("Farming_Fine", "Fine") end
+    if lvl > 50 then return txt("Farming_Thirsty", "Thirsty") end
+    if lvl > 25 then return txt("Farming_Dry", "Dry") end
+    return txt("Farming_Parched", "Parched")
+end
+
+-- The water mark, by the crop's own need: vanilla's ISFarmingInfo.getWaterLvlColor, rule for rule. Returns
+-- the colour and a rank (0 fine, 1 orange, 2 red), or nil below Farming 3 or on a plant that is not alive.
+-- (QA FA2, Nov 26 2026: fixed levels read "Fine" in green on a crop needing 80 at 65, where the game is orange
+-- and the crop does not grow; vanilla colours from Farming 3, the card drew no mark there.)
+local function waterMark(plant, skill)
     local T = ZeD.T
-    if lvl > 80 then return txt("Farming_Well_watered", "Well watered"), T.positive end
-    if lvl > 60 then return txt("Farming_Fine", "Fine"), T.positive end
-    if lvl > 50 then return txt("Farming_Thirsty", "Thirsty"), T.warning end
-    if lvl > 25 then return txt("Farming_Dry", "Dry"), T.danger end
-    return txt("Farming_Parched", "Parched"), T.danger
+    if (skill or 0) < 3 or not plant:isAlive() then return nil, 0 end
+    local lvl, need = plant.waterLvl or 0, plant.waterNeeded or 0
+    -- the first stage must have its need: red under it
+    if plant.nbOfGrow == 1 then
+        if lvl < need then return T.danger, 2 end
+        return T.positive, 0
+    end
+    local water = farming_vegetableconf.calcWater(plant.waterNeeded, plant.waterLvl)
+    local waterMax = farming_vegetableconf.calcWater(plant.waterLvl, plant.waterNeededMax)
+    if water >= 0 and waterMax >= 0 then return T.positive, 0 end
+    if water == -1 or waterMax == -1 then return T.warning, 1 end
+    return T.danger, 2
+end
+
+-- Each crop's garden label: the shortest start of its name (three letters or more) that no other crop's name
+-- shares, worked out once per language. (QA FA11, Nov 26 2026: three letters made Bro of Broccoli and
+-- Broadleaf Plantain, Com of Comfrey and Common Mallow, Ros of Rosemary and Roses.)
+local labelCache = { lang = nil, map = nil }
+local function gardenLabel(typeOfSeed)
+    local lang = "?"
+    pcall(function() lang = tostring(Translator.getLanguage()) end)
+    if labelCache.lang ~= lang or not labelCache.map then
+        local names = {}
+        for k, _ in pairs(farming_vegetableconf.props) do names[k] = txt("Farming_" .. tostring(k), tostring(k)) end
+        local map = {}
+        for k, n in pairs(names) do
+            local L = 3
+            while L < #n do
+                local pre = string.sub(n, 1, L)
+                local clash = false
+                for k2, n2 in pairs(names) do
+                    if k2 ~= k and n2 ~= n and string.sub(n2, 1, L) == pre then clash = true; break end
+                end
+                -- (never end on a space or a dash: "Chou " reads as "Chou")
+                local last = string.sub(pre, L, L)
+                if not clash and last ~= " " and last ~= "-" then break end
+                L = L + 1
+            end
+            map[k] = string.sub(n, 1, L)
+        end
+        labelCache.lang, labelCache.map = lang, map
+    end
+    local s = labelCache.map[typeOfSeed]
+    if s then return s end
+    return string.sub(txt("Farming_" .. tostring(typeOfSeed), tostring(typeOfSeed)), 1, 3)
 end
 
 local function pestWord(lvl)
@@ -110,24 +162,27 @@ local function pestWord(lvl)
     return txt("Farming_Heavy", "Heavy"), T.danger
 end
 
--- Most urgent need of a plot for the garden strip (honours the pest gate).
-local function urgency(plant, pestsVisible)
+-- Most urgent need of a plot for the garden strip (honours the pest gate, and the water mark's: QA FA2, the
+-- cell's water reading is vanilla's getWaterLvlColor, from Farming 3).
+local function urgency(plant, pestsVisible, skill)
     local T = ZeD.T
     if plant.state == "plow" then return nil, 0 end
     if not plant:isAlive() then return T.danger, 3 end
-    local lvl = plant.waterLvl or 0
-    if lvl <= 50 then return T.danger, (lvl <= 25 and 3 or 2) end
+    local wc, wr = waterMark(plant, skill)
+    if wr == 2 then return T.danger, 2 end
     if pestsVisible then
         for _, p in ipairs(PESTS) do
             if (plant[p.key] or 0) >= 30 then return T.danger, 2 end
         end
     end
-    if lvl <= 60 then return T.warning, 1 end
+    if wr == 1 then return T.warning, 1 end
     if pestsVisible then
         for _, p in ipairs(PESTS) do
             if (plant[p.key] or 0) > 0 then return T.warning, 1 end
         end
     end
+    -- (below Farming 3 a living plant reads nothing: no mark, as vanilla's tooltip)
+    if not wc and not pestsVisible then return nil, 0 end
     return T.positive, 0
 end
 
@@ -229,6 +284,7 @@ function def.refresh(t, player)
     d.waterNeeded = plant.waterNeeded or 0
     d.waterMax = plant.waterNeededMax or 100
     d.firstStage = plant.nbOfGrow == 1
+    d.waterC = (not d.plowed) and waterMark(plant, d.skill) or nil
     d.compost = plant.compost and true or false
     d.next = nil
     if d.alive and d.skill >= 6 then
@@ -258,7 +314,8 @@ function def.refresh(t, player)
         local canHarvest = plant:canHarvest()
         local thirstyOK = d.alive and seeded and d.water < 100
         local canWater = thirstyOK and #d.water_src > 0
-        local thirsty = d.water <= 60
+        -- (QA FA2/FA3: under the crop's own need counts as thirsty too, so Water leads on a crop needing 80 at 65)
+        local thirsty = d.water <= 60 or d.water < d.waterNeeded
         -- a plant that is dead, or full of water, is not watered; one not ripe is not harvested:
         -- those verbs are gone (sensible = false); the rest wait for what they need
         verbs[#verbs + 1] = { id = "water", label = getText("ContextMenu_Water"), enabled = canWater, primary = canWater and thirsty and not canHarvest,
@@ -319,13 +376,33 @@ function def.refresh(t, player)
             needs = ZeD.tr("UI_ZeD_Farm_NeedsShovel"), hint = ZeD.tr("UI_ZeD_Farm_HintDig"), help = ZeD.tr("UI_ZeD_Farm_HelpDig"),
             confirm = d.alive and ZeD.tr("UI_ZeD_Farm_ConfirmDig", string.lower(cropName(plant))) or ZeD.tr("UI_ZeD_Farm_ConfirmClear", string.lower(d.name)),
             run = function(p, tt)
+                -- (QA FA12, Nov 26 2026: a shovel dropped between Dig up and Yes queued the dig with no tool, and the
+                -- game's action threw every tick. The tool is looked for again at Yes; none, and nothing is queued.)
+                local shovel = ISFarmingMenu.getShovel(p)
+                if not shovel then
+                    if HaloTextHelper and HaloTextHelper.addBadText then
+                        pcall(HaloTextHelper.addBadText, p, ZeD.tr("UI_ZeD_Disclose_Needs", ZeD.btnCase(ZeD.tr("UI_ZeD_Farm_DigUp")), ZeD.tr("UI_ZeD_Farm_NeedsShovel")))
+                    end
+                    return
+                end
                 if not ISFarmingMenu.walkToPlant(p, tt.sq) then return end
-                local hand = ISWorldObjectContextMenu.equip(p, p:getPrimaryHandItem(), ISFarmingMenu.getShovel(p), true)
-                ISTimedActionQueue.add(ISShovelAction:new(p, hand, tt.obj, 40))
+                local hand = ISWorldObjectContextMenu.equip(p, p:getPrimaryHandItem(), shovel, true)
+                ISTimedActionQueue.add(ISShovelAction:new(p, hand or shovel, tt.obj, 40))
             end }
     end
     t.verbs = verbs
     t.pestsVisible = pestsVisible
+end
+
+-- Where the pad lands when the card opens. (QA FA3, Nov 26 2026: with no choice here it fell on the first lit
+-- verb, Fertilize on a watered plant, and A gave a dose.) Water when it is the card's main verb (lit, the plant
+-- thirsty), Sow on plowed land (it only moves to the seed list); otherwise the back button, never a verb that
+-- spends something.
+function def.openFocus(t)
+    for _, v in ipairs(t.verbs or {}) do
+        if (v.id == "water" or v.id == "sow") and v.primary and v.enabled ~= false then return "oc:verb:" .. v.id end
+    end
+    return "oc:back"
 end
 
 function def.title(t) return ZeD.tr("UI_ZeD_Farm_Plot") end
@@ -345,6 +422,12 @@ function def.pill(t)
     if not d then return nil end
     if d.plowed then return ZeD.tr("UI_ZeD_Farm_PillEmpty"), T.textDim end
     if d.state == "rotten" then return ZeD.tr("Farming_Rotten"), T.danger end
+    -- (QA FA11, Nov 26 2026: a trampled plant read "Dead" where the game's name says "Destroyed Carrots": the game's
+    -- own word, without the brackets some languages put round it)
+    if d.state == "destroyed" then
+        local s = string.gsub(getText("Farming_Destroyed"), "[%(%)]", "")
+        return OC.cap(s), T.danger
+    end
     if not d.alive then return OC.cap(d.state == "harvested" and getText("Farming_Harvested") or getText("Farming_Dead")), T.danger end
     -- (QA's visual noise audit 31, Nov 20 2026: "Ready" sat in the title, the heading and the stage strip. A living
     -- plant's tag only repeated the heading, the strip or the water row under it; the tag stays for dead and rotten.)
@@ -474,8 +557,8 @@ local function drawGarden(card, x, y, w, t, e)
         if plant then
             if plowed then label = A.textCase(ZeD.tr("UI_ZeD_Farm_GardenPlowed"))
             else
-                label = string.sub(cropName(plant), 1, 3)
-                dotC = urgency(plant, t.pestsVisible)
+                label = gardenLabel(plant.typeOfSeed)
+                dotC = urgency(plant, t.pestsVisible, t.d and t.d.skill)
             end
         end
         local tc = onFocus and T.textOnFocus or (cur and T.text or T.textDim)
@@ -510,12 +593,14 @@ end
 local function gardenSummary(t, e)
     local list = (e and e.list) or { t }
     syncGarden(e, t)
+    -- (QA FA2: counted by the cells' own water mark, red as dry and orange as thirsty, from Farming 3)
     local parched, thirsty = 0, 0
+    local skill = t.d and t.d.skill
     for _, o in ipairs(list) do
         local plant = gardenPlant(o)
         if plant and plant.state == "seeded" and plant:isAlive() then
-            local w = plant.waterLvl or 0
-            if w <= 50 then parched = parched + 1 elseif w <= 60 then thirsty = thirsty + 1 end
+            local _, wr = waterMark(plant, skill)
+            if wr == 2 then parched = parched + 1 elseif wr == 1 then thirsty = thirsty + 1 end
         end
     end
     local parts = {}
@@ -581,7 +666,7 @@ function def.body(card, x, y, w, t, player)
         end
         -- WATER
         if d.alive then
-            local word, dotC = waterWord(d.water)
+            local word, dotC = waterWord(d.water), d.waterC
             if d.skill >= 4 then
                 local lo = d.waterNeeded
                 local hi = d.firstStage and 100 or math.min(100, d.waterMax or 100)
@@ -593,8 +678,17 @@ function def.body(card, x, y, w, t, player)
                 elseif d.water < d.waterNeeded then fillC = T.danger end
                 y = y + UI.meter(card, x, y, w, ZeD.tr("Fluid_Name_Water"), word, dotC, d.water, fillC, { lo, hi }) + gap
             else
-                -- (the word without its locked bar: audit 31)
-                y = y + UI.pairWide(card, x, y, w, ZeD.tr("Fluid_Name_Water"), word) + gap
+                -- (the word without its locked bar: audit 31; its mark from Farming 3, as vanilla's: QA FA2)
+                local wv = word
+                if dotC then
+                    wv = function(rx, ry, rh)
+                        local f2 = T.fontF2
+                        local ww = tm:MeasureStringX(f2, word)
+                        ZeD.Atoms.drawTextRight(card, word, rx, ry + math.floor((rh - tm:getFontHeight(f2)) / 2), f2, T.text)
+                        ZeD.Atoms.drawStatusDot(card, rx - ww - T.px(10), ry + math.floor((rh - T.px(6)) / 2), dotC, T.px(6))
+                    end
+                end
+                y = y + UI.pairWide(card, x, y, w, ZeD.tr("Fluid_Name_Water"), wv) + gap
             end
         end
         -- Pests and disease: rows with Treat (vanilla lets you spray blind). A Treat with no spray to

@@ -150,7 +150,13 @@ local function cardDriver(spec)
         if dev.hits == nil then dev.pending = { chr = chr, id = id }; return end
         local h = hitById(dev, id)
         if not (h and h.run) then return end
-        local ok, err = pcall(h.run, nil, chr)
+        -- (the pop-out stands in for the card: what it queues is the card's own and holds the card's leash, QA OC5)
+        local OCm = ZeD.ObjectCards
+        local own = OCm and OCm.ownRun
+        local pn = own and OCm.call and OCm.call(chr, "getPlayerNum")
+        local card = pn and ZeD_WorldWindow and ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard(pn)
+        local ok, err
+        if own then ok, err = pcall(own, card and card.entry, chr, h.run, nil, chr) else ok, err = pcall(h.run, nil, chr) end
         if not ok then print("[ZeD] FacePop: " .. tostring(id) .. " failed: " .. tostring(err)) end
         dev.at = 0
     end

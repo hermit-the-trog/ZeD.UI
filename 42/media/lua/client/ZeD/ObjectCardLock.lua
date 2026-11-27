@@ -76,11 +76,18 @@ end
 -- vanilla looks in the main inventory (ItemContainer.FindAndReturn), and the
 -- action removes the padlock from there
 local function comboPadlock(player) return call(player:getInventory(), "FindAndReturn", "CombinationPadlock") end
+-- (QA LK4, Nov 26 2026) the padlock that still has its keys, not the first one found: a keyless padlock
+-- ahead of it in the main inventory left Use padlock grayed though the game would put the other one on
 local function keyPadlock(player)
-    local p = call(player:getInventory(), "FindAndReturn", "Padlock")
-    if p and (call(p, "getNumberOfKey") or 0) > 0 then return p end
+    local list = call(player:getInventory(), "getAllType", "Padlock")
+    local n = list and list:size() or 0
+    for i = 0, n - 1 do
+        local p = list:get(i)
+        if p and (call(p, "getNumberOfKey") or 0) > 0 then return p end
+    end
     return nil
 end
+LK._keyPadlock = keyPadlock   -- (the sims)
 
 local function codeOf(t) return t.digits[1] * 100 + t.digits[2] * 10 + t.digits[3] end
 local function codeText(t) return tostring(t.digits[1]) .. " " .. tostring(t.digits[2]) .. " " .. tostring(t.digits[3]) end
@@ -194,10 +201,14 @@ function def.refresh(t, player)
         if not d.combo and codeOf(t) == 0 then lockNeeds = ZeD.tr("UI_ZeD_Lock_NeedsBoth", ZeD.tr("UI_ZeD_Lock_NeedsCombo"), ZeD.tr("UI_ZeD_Lock_NeedsCode"))
         elseif not d.combo then lockNeeds = ZeD.tr("UI_ZeD_Lock_NeedsCombo")
         else lockNeeds = ZeD.tr("UI_ZeD_Lock_NeedsCode") end
-        verbs[1] = { id = "lock", label = ZeD.tr("UI_ZeD_Lock_Lock"), primary = true, enabled = (not busy) and d.combo ~= nil and codeOf(t) ~= 0,
-            confirm = ZeD.tr("UI_ZeD_Lock_QLock"), needs = lockNeeds, hint = ZeD.tr("UI_ZeD_Lock_HintLock"),
+        -- (QA LK1, Nov 26 2026) the question names the code, and its Yes locks with that code, held here
+        -- when the question's words were made, never the dial as it reads at the press: a crate shut with
+        -- a code he never read is lost to him too
+        local code = codeOf(t)
+        verbs[1] = { id = "lock", label = ZeD.tr("UI_ZeD_Lock_Lock"), primary = true, enabled = (not busy) and d.combo ~= nil and code ~= 0,
+            confirm = ZeD.tr("UI_ZeD_Lock_QLock", spaced(code)), needs = lockNeeds, hint = ZeD.tr("UI_ZeD_Lock_HintLock"),
             help = ZeD.tr("UI_ZeD_Lock_HelpLock"),
-            run = function(p, tt) LK.lock(p, tt) end }
+            run = function(p, tt) LK.lock(p, tt, code) end }
     elseif d.mode == "enter" then
         verbs[1] = { id = "remove", label = getText("ContextMenu_RemovePadlock"), primary = true, enabled = not busy,
             help = ZeD.tr("UI_ZeD_Lock_HelpTry"),
@@ -223,9 +234,9 @@ function def.refresh(t, player)
     t.verbs = verbs
 end
 
--- LOCK: vanilla's onSetDigitalCode (walk next to it, then the action)
-function LK.lock(player, t)
-    local code = codeOf(t)
+-- LOCK: vanilla's onSetDigitalCode (walk next to it, then the action). code: the one the question named
+function LK.lock(player, t, code)
+    code = code or codeOf(t)
     local pad = comboPadlock(player)
     if code == 0 or not pad then return end
     if luautils.walkAdj(player, t.obj:getSquare()) then
@@ -249,13 +260,27 @@ function LK.try(player, t)
     t.wrong = nil
 end
 
+-- (QA LK1, Nov 26 2026) while the card asks its question the dial holds still: the wheel, the chevrons, the
+-- number keys and the pad all turned it under "Lock?", and Yes locked with a code the band never showed.
+-- The card is the one that drew the dial last (def.body keeps it on t).
+local function asking(t)
+    local c = t._card
+    return c ~= nil and c._confirm ~= nil and c.entry ~= nil and c.entry.t == t
+end
+LK._asking = asking   -- (the sims)
+
 local function turn(t, i, step)
     if t.d and t.d.busy then return end
+    if asking(t) then return end
     -- (Kahlua's % keeps the sign: -1 % 10 is -1, so wrap by hand)
     t.digits[i] = ((t.digits[i] + step) % 10 + 10) % 10
     t.cursor = i
     t.wrong = nil
+    -- (the Lock verb's question and its code are made at refresh: make them again now, so a press straight
+    -- after a turn asks with the code the dial shows)
+    t._refreshT = OC.REFRESH
 end
+LK._turn = turn   -- (the sims)
 
 -- number keys type left to right (Backspace steps back); only while the
 -- pointer is over the card (the hotbar keeps the number keys otherwise)
@@ -278,6 +303,8 @@ function def.onKey(t, key, card, act)
     if n == nil and key ~= Keyboard.KEY_BACK then return false end
     if not act then return true end
     if t.d.busy then return true end
+    -- (QA LK1, Nov 26 2026) taken but not typed while the question asks: the dial holds the code it names
+    if asking(t) or (card and card._confirm ~= nil) then return true end
     if n ~= nil then
         t.digits[t.cursor] = n
         t.cursor = (t.cursor % 3) + 1
@@ -460,7 +487,8 @@ local function drawPadlock(card, x, y, t, key)
     -- the wheel window and its three wheels
     local winX, winY, winW, winH = ox + p(50), y + p(108), p(136), p(68)
     card:drawRect(winX, winY, winW, winH, 1, 0.05, 0.05, 0.05)
-    local busy = d.busy ~= nil
+    -- (a question up draws the chevrons as held, as a running action does: QA LK1)
+    local busy = d.busy ~= nil or asking(t)
     local wheelW, wheelH, gap = p(WHEEL_W), p(WHEEL_H), p(WHEEL_GAP)
     local total = wheelW * 3 + gap * 2
     local wx0 = winX + math.floor((winW - total) / 2)
@@ -509,7 +537,7 @@ local function drawPadlock(card, x, y, t, key)
             -- lets go. While an action runs it lets go and the D-pad moves on (to STOP). The card's LOCK / REMOVE is
             -- its own button.)
             knob = function(d) turn(t, ii, d) end,
-            canTurn = function() return not (t.d and t.d.busy) end,
+            canTurn = function() return not (t.d and t.d.busy) and not asking(t) end,
             wheel = function(del) turn(t, ii, del < 0 and 1 or -1) end })
         local ch = p(CHEV_H)
         chevron(card, wx, bodyY + p(12), wheelW, ch, true, focused, busy)
@@ -642,6 +670,7 @@ function def.body(card, x, y, w, t, player)
     if not d then return 0 end
     OC.armKeys()
     card._lkW = w
+    t._card = card   -- (whose question freezes the dial: asking, QA LK1)
     local y0 = y
     if d.busy then y = y + band(card, x, y, w, t, player) + T.px(8) end
 

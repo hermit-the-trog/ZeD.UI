@@ -27,7 +27,9 @@ local function round(v, dp) local m = 10 ^ (dp or 3) return math.floor(v * m + 0
 -- a floored remainder: Kahlua's % keeps the dividend's sign (-10 % 360 is -10, not 350)
 local function wrap360(a) return a - math.floor(a / 360) * 360 end
 
-local def = { id = "place3d", leash = 3 }
+-- gameDist: the leash is the game's own, DistToProper from his square to the item's past 3 (ISExtendedPlacementUI)
+-- (QA PL3, Nov 26 2026)
+local def = { id = "place3d", leash = 3, gameDist = true }
 
 function def.resolve(player, wi)
     if not (wi and instanceof(wi, "IsoWorldInventoryObject")) then return nil end

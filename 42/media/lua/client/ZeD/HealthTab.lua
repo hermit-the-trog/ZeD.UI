@@ -271,7 +271,9 @@ end
 -- marks (ZeD_BodyFigure.woundsFrom): one table, filled again for each part, so the figure reads
 -- nothing of the part a second time (Design, Nov 22 2026). gatherData adds held.
 local SEEN = {}
-local function classifyConditions(bp, doctorLevel)
+-- panelWords: the words vanilla's panel writes for a doctor looking at someone else ("Scratched", "Burned"),
+-- for the medical check card; the Health tab keeps its own short ones (QA MD2, Nov 26 2026)
+local function classifyConditions(bp, doctorLevel, panelWords)
     local conds = {}
     local doc = doctorLevel or 0
     local cheat = ISHealthPanel and ISHealthPanel.cheat
@@ -333,7 +335,7 @@ local function classifyConditions(bp, doctorLevel)
             if t > 17 then word = getText("IGUI_health_Severe")
             elseif t > 14 then word = getText("IGUI_health_Moderate") end
         end
-        conds[#conds + 1] = { label = qualify(getText("IGUI_health_Scratch"), word), severity = "warning" }
+        conds[#conds + 1] = { label = qualify(getText(panelWords and "IGUI_health_Scratched" or "IGUI_health_Scratch"), word), severity = "warning" }
     end
     seen.cut = bp:isCut()
     if seen.cut then
@@ -349,7 +351,7 @@ local function classifyConditions(bp, doctorLevel)
     if seen.burn and not bandaged then
         word = nil
         if (doc > 4 or cheat) and bp:isNeedBurnWash() then word = ZeD.tr("IGUI_health_NeedCleaning") end
-        conds[#conds + 1] = { label = qualify(ZeD.tr("UI_ZeD_Health_Burn"), word), severity = "warning" }
+        conds[#conds + 1] = { label = qualify(panelWords and getText("IGUI_health_Burned") or ZeD.tr("UI_ZeD_Health_Burn"), word), severity = "warning" }
     end
 
     -- Stiffness / muscle strain (exercise soreness); strain = true: the summary counts it apart from
@@ -692,6 +694,23 @@ function ZeD.HealthTab.drawOverall(panel, x, y, w, data)
     local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
     local frac = (data.overall or 0) / 100
     local label = ZeD.tr("UI_ZeD_Health_Overall")
+    if data.hideNumbers then
+        -- the game's own reading for a doctor: its label and the damage word, the word's dot in the
+        -- health colour as vanilla tints the word red (QA MD2)
+        local secH = ZeD.TM:getFontHeight(T.fontF1)
+        A.drawSecondary(panel, getText("IGUI_health_Overall_Body_Status"), x, y)
+        y = y + secH + T.sp.xs
+        local f2 = T.fontF2
+        local lh = ZeD.TM:getFontHeight(f2)
+        local dotSz, dotGap = T.px(6), T.px(4)
+        local lines = overallLines(data, f2, math.max(1, math.floor(w - dotSz - dotGap)))
+        A.drawStatusDot(panel, x, y + math.floor((lh - dotSz) / 2), A.statusColor(frac), dotSz)
+        for i = 1, #lines do
+            A.drawBody(panel, lines[i], x + dotSz + dotGap, y)
+            y = y + lh
+        end
+        return y + T.sp.xs
+    end
     if ZeD.HealthTab.calm(data) then
         return y + M.drawFillBar(panel, x, y, w, frac, nil, label) + T.sp.xs
     end
@@ -748,7 +767,7 @@ function ZeD.HealthTab.gatherData(playerObj, opts)
     for i = 1, nParts do
         local bp = parts:get(i - 1)
         local health = bp:getHealth()
-        local conds, stiffness, pain = classifyConditions(bp, doctorLevel)
+        local conds, stiffness, pain = classifyConditions(bp, doctorLevel, opts and opts.panelWords)
         -- a part another mod holds back until it is examined names no wound
         local held = heldBack(playerObj, bp)
         if held then conds = careOnly(conds) end
@@ -841,6 +860,9 @@ function ZeD.HealthTab.gatherData(playerObj, opts)
         partByFigure     = partByFigure,
         woundsByFigure   = woundsByFigure,
         skinTone         = ZeD_BodyFigure.skinToneOf(playerObj),
+        -- (QA MD2, Nov 26 2026) a doctor's look at someone else: no health figures, as vanilla's panel gives
+        -- them only in cheat mode; drawOverall and the detail view leave the percent and its bar out
+        hideNumbers      = (opts and opts.hideNumbers) and true or nil,
     }
 end
 
@@ -1381,15 +1403,15 @@ function ZeD.HealthTab._renderDetailView(panel, win, data, figureName, rx, ry, r
 
     local curY = ry
 
-    -- Health % stat row
-    local pct = math.floor(health + 0.5)
-    local pctColor = pctToStatusColor(pct)
-    local rowH = M.drawStatRowDot(panel, rx, curY, rw, getText("IGUI_XP_Health"), pct .. "%", pctColor)
-    curY = curY + rowH + T.sp.rowGap
-
-    -- Health fill bar
-    local barH = M.drawFillBar(panel, rx, curY, rw, health / 100, nil, ZeD.tr("IGUI_XP_Health"))
-    curY = curY + barH + T.sp.sm
+    -- Health % stat row and its bar (not for a doctor's look at someone else: QA MD2, Nov 26 2026)
+    if not data.hideNumbers then
+        local pct = math.floor(health + 0.5)
+        local pctColor = pctToStatusColor(pct)
+        local rowH = M.drawStatRowDot(panel, rx, curY, rw, getText("IGUI_XP_Health"), pct .. "%", pctColor)
+        curY = curY + rowH + T.sp.rowGap
+        local barH = M.drawFillBar(panel, rx, curY, rw, health / 100, nil, ZeD.tr("IGUI_XP_Health"))
+        curY = curY + barH + T.sp.sm
+    end
 
     -- Other mods' wound details for this part (HealthTab.addExtras)
     local extra = data.extraByFigureName and data.extraByFigureName[figureName]
