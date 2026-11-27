@@ -355,7 +355,8 @@ end
 -- or the pick no longer carried, the biggest, as before
 -- ---------------------------------------------------------------------------
 do
-    local function src(name, uses) return { uses = uses, getName = function() return name end } end
+    local function src(name, uses) return { uses = uses, getName = function() return name end, hasTag = function() return false end,
+        getType = function() return "Water" .. name end, getCurrentUses = function() return 0 end } end
     local bottle, jug = src("Water Bottle", 4), src("Water Jug", 20)
     inv.items = { Bottle = bottle, Jug = jug }
     local t = { obj = plant({ waterLvl = 20 }), sq = { id = 1 } }
@@ -373,6 +374,20 @@ do
     a = pour()
     check("FA8 picked the bottle: Water pours the bottle", a and a.args[2] == bottle, a and a.args[2] and a.args[2].getName())
     check("FA8 ... its 4 uses", a and a.args[3] == 4, a and a.args[3])
+    -- (QA's case: the bigger one already in his hand. The game's menu then offers the hand item alone, and the pick
+    -- of the bottle was lost at the press)
+    local hand = player.getPrimaryHandItem
+    player.getPrimaryHandItem = function() return jug end
+    def.refresh(t, player)
+    check("FA8 the jug in hand: both still listed, the hand item first", #t.d.water_src == 2 and t.d.water_src[1] == jug, #t.d.water_src)
+    t.waterPick = bottle
+    a = pour()
+    check("FA8 the jug in hand, the bottle picked: Water pours the bottle", a and a.args[2] == bottle, a and a.args[2] and a.args[2].getName())
+    t.waterPick = nil
+    a = pour()
+    check("FA8 the jug in hand, nothing picked: the hand item, as the game's menu", a and a.args[2] == jug, a and a.args[2] and a.args[2].getName())
+    player.getPrimaryHandItem = hand
+    t.waterPick = bottle
     inv.items = { Jug = jug }
     a = pour()
     check("FA8 the picked bottle gone: back to the biggest", a and a.args[2] == jug, a and a.args[2] and a.args[2].getName())
