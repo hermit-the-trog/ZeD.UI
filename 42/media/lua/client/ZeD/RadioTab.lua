@@ -618,23 +618,29 @@ local function _channelValue(freq, tv)
     return s and string.format("%02d", s.number) or nil
 end
 
--- the rows of the three blocks for this set, from the game
-local function _radioFillRead(win, dev)
+-- the rows of the three blocks for this set, from the game (tw: the face's record, its driver among it)
+local function _radioFillRead(win, dev, tw)
     local T, O = ZeD.T, ZeD.RadioOps
     local st = ZeD.Rtv and ZeD.Rtv.read and ZeD.Rtv.read(dev)
     if not (st and O) then return nil end
     local dd = st.dd
     local twoWay = _fillGet(dd, "getIsTwoWay") == true
     local tv = _fillGet(dd, "getIsTelevision") == true
+    -- (QA B6, Nov 27 2026: a set that cannot transmit, the CD player, has no channels, nothing heard and no band; the
+    -- game's window hides its General, Signal and Channel boxes, RWMGeneral / RWMSignal / RWMChannel.readFromObject)
+    local noTx = _fillGet(dd, "isNoTransmit") == true
+    -- (QA B1 and B2, Nov 27 2026: a two-way face has no battery or headphone key, so its Battery and Headphones rows
+    -- press them, as the game's Power and Volume boxes do; the plain card has its own rows for them)
+    local act = twoWay and not (tw and tw.drv and tw.drv.plain)
     local d = { presets = {}, heard = {}, power = {} }
-    for i, p in ipairs(st.presets or {}) do
+    for i, p in ipairs(noTx and {} or st.presets or {}) do
         local name = (p.name and p.name ~= "") and p.name or O.chanName(p.freq) or getText("IGUI_RadioUknownChannel")
         local idx = i
         d.presets[i] = { id = "fill:radio:ch:" .. i, label = ZeD.tr("UI_ZeD_Plain_ChannelName", i, name), cut = true,
                          value = _channelValue(p.freq, tv), sel = (i == st.presetIdx),
                          fn = function() O.recall(win._playerObj, dev, idx) end }
     end
-    local lines = ZeD.Rtv.heardLines and ZeD.Rtv.heardLines(st) or nil
+    local lines = (not noTx) and ZeD.Rtv.heardLines and ZeD.Rtv.heardLines(st) or nil
     for i, l in ipairs(lines or {}) do
         d.heard[i] = { id = "fill:radio:heard:" .. i, label = l, read = true }
     end
@@ -642,18 +648,26 @@ local function _radioFillRead(win, dev)
     -- block drew nothing, and the review read that as Heard missing)
     local nHeard = #d.heard
     d.heardN = nHeard
-    if nHeard == 0 then
+    if nHeard == 0 and not noTx then
         d.heard[1] = { id = "fill:radio:heard:none", label = ZeD.tr("UI_ZeD_Radio_NothingHeard"), dim = true, read = true }
     end
     local pw = d.power
+    local chr = win._playerObj
     if st.battery then
+        local bRow
         if st.hasBattery then
-            pw[#pw + 1] = { id = "fill:radio:batt", label = getText("Tooltip_Dashboard_Battery"),
-                            value = math.floor((st.charge or 0) * 100 + 0.5) .. "%", bar = st.charge or 0,
-                            barColor = ZeD.Atoms.statusColor(st.charge or 0) }
+            bRow = { id = "fill:radio:batt", label = getText("Tooltip_Dashboard_Battery"),
+                     value = math.floor((st.charge or 0) * 100 + 0.5) .. "%", bar = st.charge or 0,
+                     barColor = ZeD.Atoms.statusColor(st.charge or 0) }
         else
-            pw[#pw + 1] = { id = "fill:radio:batt", dot = T.danger, label = ZeD.tr("UI_ZeD_Plain_NoBattery") }
+            bRow = { id = "fill:radio:batt", dot = T.danger, label = ZeD.tr("UI_ZeD_Plain_NoBattery") }
         end
+        if act then
+            bRow.word = ZeD.tr(st.hasBattery and "UI_ZeD_Plain_Remove" or "UI_ZeD_Plain_Insert")
+            bRow.help = getText(st.hasBattery and "ContextMenu_Remove_Battery" or "ContextMenu_AddBattery")
+            bRow.fn = function() ZeD.TwoWay.press(chr, dev, "battery") end
+        end
+        pw[#pw + 1] = bRow
         local inv = win._playerObj and win._playerObj:getInventory()
         local n = inv and _fillGet(inv, "getCountTypeRecurse", "Base.Battery") or 0
         if n > 0 then
@@ -666,12 +680,19 @@ local function _radioFillRead(win, dev)
         pw[#pw + 1] = { id = "fill:radio:mains", dot = st.grid and T.positive or T.danger,
                         label = getText(st.grid and "IGUI_RadioPowerNearby" or "IGUI_RadioRequiresPowerNearby") }
     end
-    if not twoWay then
-        pw[#pw + 1] = { id = "fill:radio:phones", label = ZeD.tr("UI_ZeD_Plain_Headphones"),
-                        value = ZeD.tr(st.phones and "UI_ZeD_Plain_PhonesIn" or "UI_ZeD_Plain_PhonesOut") }
+    -- (QA B2, Nov 27 2026: where the game takes headphones, a portable set that is not a TV, walkies included; a pair
+    -- already in a set that takes none still shows, so it can come out)
+    if ZeD.TwoWay.phonesOk(dd) or st.phones then
+        local hRow = { id = "fill:radio:phones", label = ZeD.tr("UI_ZeD_Plain_Headphones"),
+                       value = ZeD.tr(st.phones and "UI_ZeD_Plain_PhonesIn" or "UI_ZeD_Plain_PhonesOut") }
+        if act then
+            hRow.word = ZeD.tr(st.phones and "UI_ZeD_Plain_Unplug" or "UI_ZeD_Plain_PlugIn")
+            hRow.fn = function() ZeD.TwoWay.press(chr, dev, "phones") end
+        end
+        pw[#pw + 1] = hRow
     end
-    -- (a TV has channels, not a frequency band: the game's own window shows it no range either)
-    if not tv then
+    -- (a TV has channels, not a frequency band: the game's own window shows it no range either; nor a NoTransmit set)
+    if not tv and not noTx then
         pw[#pw + 1] = { id = "fill:radio:range", label = getText("IGUI_RadioFreqRange"),
                         value = ZeD.tr("UI_ZeD_Plain_MHz", O.freqText(st.min, false) .. "-" .. O.freqText(st.max, false)) }
     end
@@ -692,7 +713,7 @@ function ZeD.RadioTab.renderFill(panel, win, tw, x, y, w)
     if not (F and tw and tw.dev) then return 0 end
     local now = getTimestampMs()
     if not tw.fill or not tw.fillAt or now - tw.fillAt >= 500 or now < tw.fillAt then
-        tw.fill, tw.fillAt = _radioFillRead(win, tw.dev), now
+        tw.fill, tw.fillAt = _radioFillRead(win, tw.dev, tw), now
     end
     local d = tw.fill
     if not d then return 0 end
@@ -824,6 +845,15 @@ end
 -- TOP-LEVEL TAB RENDERER
 -- ============================================================================
 
+--- The empty tab's line: the Character window lists the radios on him, the World window those in reach.
+--- (QA B11, Nov 27 2026: the Character window read "No radio in range" over a list of what he carries.)
+function ZeD.RadioTab.emptyKey(win)
+    local CW = ZeD_CharacterWindow
+    local pn = win and win._playerObj and win._playerObj:getPlayerNum() or 0
+    if CW and CW.getInstance and win ~= nil and CW.getInstance(pn) == win then return "UI_ZeD_Radio_NoneOnYou" end
+    return "UI_ZeD_Radio_None"
+end
+
 --- Render the radio tab content into the drawer.
 --- @param panel  The drawer ISPanel
 --- @param win    The window owning the drawer (Char or World)
@@ -841,7 +871,7 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
         -- next time a radio is equipped (the gate only writes on nil).
         win._gpFocusedRadioCtl = nil
         -- one dim F2 line at the list's text inset, a full sentence (no header here: 10u from the top)
-        ZeD.Molecules.drawEmptyLine(panel, x + T.px(10), y + T.px(10), w - T.px(20), ZeD.tr("UI_ZeD_Radio_None"))
+        ZeD.Molecules.drawEmptyLine(panel, x + T.px(10), y + T.px(10), w - T.px(20), ZeD.tr(ZeD.RadioTab.emptyKey(win)))
         return
     end
 
@@ -1208,18 +1238,16 @@ function ZeD.RadioTab.buildFocusables(win)
         }
     end
 
-    -- ---- The radios' tab strip (a tab per radio; with one radio there is none to pick) ----
-    _addTabStops(win, elements)
-
-    -- ---- A two-way face: the full view button, then the face's controls in reading order. A presses, held (or
-    -- X) MEM names and the army set's 1..6 store; A grabs a knob and the D-pad turns it (_knob; VOL pushes on X).
+    -- ---- A two-way face: the face's controls, VOL first, then the full view button, the radios' tabs and the fill
+    -- blocks. A presses, held (or X) MEM names and the army set's 1..6 store; A grabs a knob and the D-pad turns it
+    -- (_knob; VOL pushes on X). (QA B8, Nov 27 2026: the tabs came first, so the pad landed on radio:tab:1, not VOL;
+    -- now the face leads, as on the ordinary radios and the plain card.)
     local tw = win._radioTw
     local cur = win._radios and win._radios[win._radioIdx or 1]
     if tw and cur and cur.radioInstance == tw.dev and tw.hits then
         local TW = ZeD.TwoWay
         local dev = tw.dev
-        addZone(win._radioFullZone, "radio:full", function(w) ZeD.TwoWayFull.toggle(w._playerObj, dev, w) end)
-        for _, h in ipairs(TW.readingOrder(tw.hits, tw.k)) do
+        for _, h in ipairs(TW.focusOrder(tw.hits, tw.k)) do
             local id = h.id
             local el = { x = h.x, y = h.y, w = h.w, h = h.h, id = "radio:tw:" .. id,
                          onFocus = function(w, e) w._gpFocusedRadioCtl = e.id end }
@@ -1234,10 +1262,15 @@ function ZeD.RadioTab.buildFocusables(win)
             end
             elements[#elements + 1] = el
         end
+        addZone(win._radioFullZone, "radio:full", function(w) ZeD.TwoWayFull.toggle(w._playerObj, dev, w) end)
+        _addTabStops(win, elements)
         _addFillStops(win, elements)
         if elements[1] and win._gpFocusedRadioCtl == nil then win._gpFocusedRadioCtl = elements[1].id end
         return elements
     end
+
+    -- ---- No face drawn yet: the radios' tab strip (a tab per radio) ----
+    _addTabStops(win, elements)
 
     -- Seed gate — only writes on nil so D-pad onFocus updates are never
     -- stomped between frames.

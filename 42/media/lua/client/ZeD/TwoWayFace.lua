@@ -199,6 +199,9 @@ function TW.read(dev)
     st.name = O.chanName(st.channel)
     st.micMuted = _get(dd, "getMicIsMuted", false)
     st.range = _get(dd, "getTransmitRange", 0)
+    -- (QA B1 and B2, Nov 27 2026: the battery in or out and the headphones, as the game's Power and Volume boxes)
+    st.hasBattery = st.battery and _get(dd, "getHasBattery", false)
+    st.phones = _get(dd, "getHeadphoneType", -1) >= 0
     st.flash, st.flashShort = O.flashOf(st.key)
     st.scanning = O._scan[st.key] ~= nil
     return st
@@ -270,10 +273,28 @@ function TW.turn(chr, dev, id, dir, mult)
     elseif id == "tune" then O.tuneStep(chr, dev, dir, mult or 1) end
 end
 
---- The press (a click, A, the end of a short press); dx = where a knob was clicked (< 0: its left half).
-function TW.press(chr, dev, id, dx)
+--- True where the game takes headphones: a portable set that is not a TV (its Volume box, RWMVolume.readFromObject).
+--- A walkie is portable, a ham set and a TV are not. (QA B2, Nov 27 2026: ZeD had them on TVs and off walkies.)
+function TW.phonesOk(dd)
+    if not dd then return false end
+    return _get(dd, "getIsPortable", false) == true and _get(dd, "getIsTelevision", false) ~= true
+end
+
+--- The press (a click, A, the end of a short press); dx = where a knob was clicked (< 0: its left half);
+--- at = where a list opens (the battery's and the headphones' "none on you").
+function TW.press(chr, dev, id, dx, at)
     local st = TW.read(dev)
     if not st then return end
+    -- (QA B1 and B2, Nov 27 2026: every two-way set takes a battery and a walkie takes headphones, as in the game's
+    -- window; no plate has a key for them, so the plain card's rows and the fill's rows under the face press these.
+    -- The ordinary radios' keys do the work: the same timed actions and the same choice of battery.)
+    if id == "battery" then
+        if ZeD.Rtv and ZeD.Rtv.batteryKey then ZeD.Rtv.batteryKey(chr, dev, st, at) end
+        return
+    elseif id == "phones" then
+        if ZeD.Rtv and ZeD.Rtv.phonesKey then ZeD.Rtv.phonesKey(chr, dev, st, at) end
+        return
+    end
     if id == "vol" then O.power(chr, dev)
     elseif id == "tune" then TW.turn(chr, dev, "tune", (dx and dx < 0) and -1 or 1)
     elseif id:match("^p%d$") then
@@ -313,7 +334,8 @@ function TW.labelA(id)
     if id == "vol" then return getText("IGUI_RadioPower") end
     if id:match("^p%d$") then return ZeD.tr("UI_ZeD_RadioPrompt_Listen") end
     local K = { chup = "UI_ZeD_RadioPrompt_ChannelUp", chdn = "UI_ZeD_RadioPrompt_ChannelDown", mem = "UI_ZeD_RadioPrompt_StoreChannel",
-                mute = "UI_ZeD_RadioPrompt_Mute", scan = "UI_ZeD_RadioPrompt_Scan", lamp = "UI_ZeD_RadioPrompt_Lamp" }
+                mute = "UI_ZeD_RadioPrompt_Mute", scan = "UI_ZeD_RadioPrompt_Scan", lamp = "UI_ZeD_RadioPrompt_Lamp",
+                battery = "IGUI_VehiclePartBattery", phones = "UI_ZeD_Plain_Headphones" }
     if id == "mic" then return getText("IGUI_RadioMicrophone") end
     return ZeD.tr(K[id] or "UI_ZeD_RadioPrompt_Press")
 end
@@ -354,14 +376,26 @@ function TW.onNamed(target, button, idx)
 end
 
 -- ---------------------------------------------------------------------------
--- IN REACH: the radio is still the character's to use (in the hands or on the back; a set in the world within the
--- radio tab's reach). Full view closes when it is not.
+-- IN REACH: the radio is still the character's to use (anywhere on him: the hands, the back, a bag he carries; a
+-- set in the world within the radio tab's reach). Full view closes when it is not.
 -- ---------------------------------------------------------------------------
+-- (QA B7, Nov 27 2026: the game works a walkie anywhere in his inventory, a bag in a bag too, and the pop-out of one
+-- opened from a bag closed on its first reach check when only the hands and the back counted. The item's outermost
+-- container is his inventory, or the game's own test says the container is on him.)
+local function carriedBy(chr, dev)
+    local inv = chr:getInventory()
+    local top = dev.getOutermostContainer and dev:getOutermostContainer() or nil
+    if top ~= nil and top == inv then return true end
+    local c = dev:getContainer()
+    return c ~= nil and c:isInCharacterInventory(chr) == true
+end
 function TW.inReach(chr, dev)
     if not (chr and dev) then return false end
     if instanceof(dev, "InventoryItem") then
         if chr:getPrimaryHandItem() == dev or chr:getSecondaryHandItem() == dev then return true end
-        return chr.getClothingItem_Back ~= nil and chr:getClothingItem_Back() == dev
+        if chr.getClothingItem_Back ~= nil and chr:getClothingItem_Back() == dev then return true end
+        local ok, mine = pcall(carriedBy, chr, dev)
+        return ok and mine == true
     end
     local RT = ZeD.RadioTab
     if not (RT and RT.buildWorldRadios) then return false end
@@ -422,6 +456,16 @@ function TW.readingOrder(hits, k)
         if ra ~= rb then return ra < rb end
         return a.x < b.x
     end)
+    return out
+end
+
+--- The controls in the order the controller meets them: VOL first (the set's power, where focus lands), then
+--- reading order. (QA B8, Nov 27 2026: as the ordinary radios' R.focusOrder puts power first.)
+function TW.focusOrder(hits, k)
+    local out = TW.readingOrder(hits, k)
+    for i, h in ipairs(out) do
+        if h.id == "vol" then table.remove(out, i); table.insert(out, 1, h); break end
+    end
     return out
 end
 

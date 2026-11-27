@@ -263,6 +263,11 @@ do
             read = function() return { dd = {}, presets = {}, battery = true, hasBattery = true, charge = 0.8, min = 88000, max = 108000 } end,
             heardLines = function() return HEARD end,
         }
+        -- (QA B2, Nov 27 2026: the headphones row follows the game's rule, a portable set that is not a TV)
+        ZeD.TwoWay = { press = noop, phonesOk = function(dd)
+            return dd ~= nil and dd.getIsPortable ~= nil and dd.getIsPortable() == true
+                and not (dd.getIsTelevision ~= nil and dd.getIsTelevision() == true)
+        end }
         local chunk, err = loadstring(src:sub(a, b - 1), "=RadioTab.lua (cut)")
         check("the radio fill cuts and loads", chunk ~= nil, err)
         if chunk then
@@ -319,7 +324,8 @@ do
                 for _, r in ipairs(tw.fill.power) do out[r.id] = r end
                 return out
             end
-            -- a TV: the numbers its dial shows, the headphones row kept (its PHONES jack works), no frequency range
+            -- a TV: the numbers its dial shows, no headphones row (QA B2, Nov 27 2026: the game takes none on a TV), no
+            -- frequency range
             DD = { getIsTwoWay = function() return false end, getIsTelevision = function() return true end }
             PRESETS = { { name = "", freq = 200 }, { name = "", freq = 201 }, { name = "", freq = 5000 } }
             ZeD.Rtv.stopOf = function(f)
@@ -330,13 +336,17 @@ do
             pr = tw.fill.presets
             local pw = powerIds()
             check("a TV: no frequency range", pw["fill:radio:range"] == nil)
-            check("a TV: its headphones row kept", pw["fill:radio:phones"] ~= nil)
+            check("a TV: no headphones row", pw["fill:radio:phones"] == nil)
             check("a TV: its channels by the dial's number", pr[1].value == "02" and pr[2].value == "03" and pr[3].value == nil,
                 tostring(pr[1].value) .. " " .. tostring(pr[2].value) .. " " .. tostring(pr[3].value))
             -- a radio keeps its frequency range
             DD = {}
             draw()
             check("a radio keeps its frequency range", powerIds()["fill:radio:range"] ~= nil)
+            -- a portable radio keeps its headphones row
+            DD = { getIsPortable = function() return true end }
+            draw()
+            check("a portable radio keeps its headphones row", powerIds()["fill:radio:phones"] ~= nil)
         end
     end
     local en = readFile("42/media/lua/shared/Translate/EN/UI.json") or ""

@@ -2245,6 +2245,7 @@
     "UI_ZeD_Radio_NoCds": "ไม่มีซีดีติดตัว",
     "UI_ZeD_Radio_NoHeadphones": "ไม่มีหูฟังติดตัว",
     "UI_ZeD_Radio_None": "ไม่มีวิทยุในระยะ",
+    "UI_ZeD_Radio_NoneOnYou": "ไม่มีวิทยุติดตัว",
     "UI_ZeD_Radio_NoTapes": "ไม่มีเทปติดตัว",
     "UI_ZeD_Radio_Range": "ระยะ %1 KM",
     "UI_ZeD_Radio_Scan": "สแกน",

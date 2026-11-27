@@ -2245,6 +2245,7 @@
     "UI_ZeD_Radio_NoCds": "你身上没有 CD",
     "UI_ZeD_Radio_NoHeadphones": "你身上没有耳机",
     "UI_ZeD_Radio_None": "范围内没有收音机",
+    "UI_ZeD_Radio_NoneOnYou": "你身上没有收音机",
     "UI_ZeD_Radio_NoTapes": "你身上没有磁带",
     "UI_ZeD_Radio_Range": "范围 %1 公里",
     "UI_ZeD_Radio_Scan": "扫描",
