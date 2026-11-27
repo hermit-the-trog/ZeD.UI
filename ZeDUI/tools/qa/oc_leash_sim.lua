@@ -302,6 +302,7 @@ do
         P.x = 30.5
         NEW._upkeepAt = nil
         NEW.UPKEEP_MS = tonumber(OCN:match("OC%.UPKEEP_MS = (%d+)"))
+        NEW.UNDRAWN_MS = tonumber(OCN:match("OC%.UNDRAWN_MS = (%d+)")) or NEW.UPKEEP_MS
         NEW.upkeep()
         check("OC2: a card drawn this frame is left to its own draw", closed == 0, closed)
         CLOCK = CLOCK + 1000          -- (rolled up: a second with no draw)
@@ -310,7 +311,8 @@ do
         local n0 = closed
         CLOCK = CLOCK + 100
         NEW.upkeep()
-        check("OC2: the upkeep runs at most every 250 ms", closed == n0, closed)
+        -- (QA PL3 second pass: the upkeep now runs every tick, so a walk at fast-forward cannot outrun the leash)
+        check("OC2: the upkeep runs again on the next tick (every tick now)", closed == n0 + 1, closed)
         -- (the placement card through the upkeep: the card's close ends its placement as the window's does)
     end
 end
