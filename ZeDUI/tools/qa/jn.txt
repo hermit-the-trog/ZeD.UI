@@ -6,19 +6,19 @@
 #               J5 an empty log: No entries yet; the stops kills, write, picks, Save
 #               J6 Save (mouse, pad A): the date and clock against getGameTime, the survival day against getHoursSurvived, the stamp, the month head
 #               J7 tags in TAGS order, their words on the head, four tags squares alone, an unknown tag key not drawn; pad A on a pick
-#               J8 text edges: nothing, spaces only (B6), newlines, 500 letters, a long entry's stripe (B7)
+#               J8 text edges: nothing, spaces only and spaces with new lines, log only and through Into (B6: nothing saved or written), newlines, 500 letters, a long entry's stripe (B7)
 #               J9 month groups across two years, newest first; fold by the mouse, open by the pad
-#               J10 B10 an old entry's Day n against the calendar
+#               J10 B10 old entries 70 and 1000 days on: Day n against the calendar (real months, leap years)
 #               J11 search by word or tag word; a tag pressed (mouse, pad); X clears; DE SKIP
-#               J12 delete with a narrowed search: Cancel, Delete, the pad's landing; B8 (another cross, a month head with the question up); B12 (the question after another tab)
+#               J12 delete with a narrowed search: Cancel, Delete, the pad's landing; B8 (another cross, a month head and the kills head do nothing with the question up; Cancel still answers); B12 (the question goes on another tab, the drawer folded, the window shut)
 #               J13 kills by kind (axe 2, spear, bat, pistol, bare hands, pipe bomb 2): the head against getZombieKills plus fire, each row, the rows add up; the fold (mouse, pad); B9; fire and car kills SKIP
 #               J14 an old kill table rebuilt from the game's count; J15 no time survived on the Log
 #               J48 the death record built as at death (ZeD.Death.capture, no death)
 #               J16 Into's cycle (mouse, pad), the picked book taken away; J17 Into writes (Writing..., the page, the source, page 2 when page 1 is full)
 #               J18 Into's refusals: no pencil, too dark, locked by you, a full book; J19 the write stopped by the pad's B and by the game's forceStop
-#               J20 B1 Save twice while the write runs (mouse, pad); J21 odd books (five sheets, cards, a blank ID card for B3, a notepad); J22 newlines into a book
+#               J20 B1 Save twice while the write runs (mouse, pad); J21 odd books (five sheets, cards, a blank ID card for B3: locked by a random owner, its row Locked; a notepad); J22 newlines into a book
 #               J23 no notebook carried: the Writing block, Papers on you, Books on you against isLiteratureRead, a paper row opens Papers
-#               J24 the Notebooks list: kind lines, a press picks, the last written page, < and > at the ends; J25 the quick note, B2 (Enter), the pad's A on the note
+#               J24 the Notebooks list: kind lines, a press picks, the last written page, < and > at the ends; J25 the quick note, B2 (Enter: the game's new line taken as the submit, a second Enter during the write ignored; the 2-line limit a NOTE), the pad's A on the note
 #               J26 the quick note's refusals (no pencil, dark, locked by you, locked by another); J27 Open full; J28 the Notebooks search; J29 a notebook in a bag (against the game's own transferIfNeeded on a second book from the same bag)
 #               J30 the Papers list (one row for two copies, read first then by title, the count, each row's state); J31 Show and a title search
 #               J32 Read: the pad's B during the read (J43), read through (the reader, the row Read), the dark, B4 with the Illiterate trait
@@ -27,7 +27,7 @@
 #               J35 Recipes against the game (status, what the game would list, a pick, Open in Craft or Build, Sort Name, Show Known, a search; B11 a NOTE); J36 a recipe learned with the page open; J37 SeeNotLearntRecipe off and on
 #               J38 tapes and discs carried are listed nowhere; J39 skill books beside a notebook are listed nowhere (gaps: NOTE)
 #               J40 the pad's tour of the Log (the walk's order, A on each kind, B with nothing running for J43); J41 a long log (80 entries): the walk down and back, far stops, frame time
-#               J42 the pad's tour of Notebooks and Papers (< greyed on page 1 is no stop); J44 an item card over the Log; J45 the half card at the text size found and in Large text
+#               J42 the pad's tour of Notebooks and Papers (< greyed on page 1 is no stop); J44 an item card over the Log; J45 the half card at the text size found and in Large text (the page bar at Page 10 of 10: nothing overlaps, Open full on its own row or "n/N"; the pad's < and Open full)
 #               J46 the words in the run's language (others SKIP); J47 Dark, Light, High contrast (unread rows by tone, the tag colors)
 #               J3 safe mode (run last of the cases): the Character window does not open; Write note opens the game's journal window
 #               J49-J52 and B5 SKIP (multiplayer, split view); B13 drift a NOTE

@@ -29,12 +29,14 @@
 --       getHoursSurvived, the stamp, the box and picks cleared, the month head's words (the game's month name, the year)
 --   J7  tags: Injury then Danger ticked, kept in TAGS order; their words on the head; four tags squares alone; a tag
 --       key this version does not know: not drawn, no error
---   J8  text edges and B6, B7: nothing, spaces only, newlines inside, 500 letters, a 4-line entry's stripe
+--   J8  text edges and B6, B7: nothing, spaces only and spaces with new lines (log only and through Into: nothing
+--       saved, nothing written; the fix), newlines inside, 500 letters, a 4-line entry's stripe
 --   J9  month groups out of order across two years: newest first; a fold by the mouse and by the pad's A
---   J10 B10: an old entry with no survivalDay across a 31-day month: its Day n against the calendar
+--   J10 B10: old entries with no survivalDay 70 and 1000 days on (31-day months, a leap day): Day n by the calendar
 --   J11 search: the words or a tag's word; a tag pressed on an entry (mouse, pad A); X on a stop clears it
 --   J12 delete with a narrowed search: Cancel keeps all, Delete takes exactly that entry; the pad's landing; B8 (the
---       mouse on another cross and a month head with the question up); B12 (the question after another tab)
+--       mouse on another cross, a month head and the kills head do nothing with the question up; Cancel still answers);
+--       B12 (the question goes on a visit to another tab, with the drawer folded and with the window shut)
 --   J13 kills by kind and B9: zombies made harmless beside him and killed with the game's own Hit by an axe (2), a
 --       spear, a bat, a pistol, bare hands and a pipe bomb (2): the head against getZombieKills plus fire, each row
 --       against the kills staged, the rows add up; the head folded by the mouse and the pad; B9's press beside it
@@ -45,11 +47,13 @@
 --   J18 Into's refusals: no pencil, too dark, locked by you, a full book
 --   J19 an Into write stopped by the pad's B on a Log stop, and by the game's own stop (forceStop)
 --   J20 B1: Save twice while the Into write runs (mouse, then pad A A)
---   J21 odd books and B3: five sheets, an index card, a birthday card, a blank ID card, a notepad
+--   J21 odd books and B3: five sheets, an index card, a birthday card, a blank ID card (locked by a random owner once
+--       written, its row then Locked), a notepad
 --   J22 newlines into a book: one line on the page and in the entry
 --   J23 none carried: the Writing block, Papers on you, Books on you against isLiteratureRead; a paper row opens Papers
 --   J24 the Notebooks list: kind lines, a click picks, the last written page, < and > greyed at the ends
---   J25 the quick note and B2: Write, the lines left, a full page, 160 letters, Enter, the pad's A on the note
+--   J25 the quick note and B2: Write, the lines left, a full page, 160 letters, Enter (the game's new line taken as the
+--       submit; a second Enter during the write ignored), the pad's A on the note
 --   J26 the quick note's refusals: no pencil, dark, locked by you, locked by another (J49's single-player half)
 --   J27 Open full: written with and without a pencil, blank with none, dark
 --   J28 the Notebooks search: a word on page 4 of one book; a word in none
@@ -74,7 +78,8 @@
 --   J42 the pad's tour of Notebooks and Papers: no stop on a hidden note; the Show list holds the pad; a quick look
 --   J44 an item card over the Log: the write box, Save in the part left showing and still saving
 --   J45 the half card (220, held in by the window's width cap) at the text size found and Large: the picks' rows, a
---       long date cut, the Notebooks page bar, Into's label, the paper rows. Pictures jn_half_log_<WxH>,
+--       long date cut, the Notebooks page bar at Page 10 of 10 (nothing overlaps: Open full on its own row or "n/N"; the
+--       pad's < and Open full), Into's label, the paper rows. Pictures jn_half_log_<WxH>,
 --       jn_half_notebook_<WxH>
 --   J46 the words in the run's language (others SKIP): month names, kills rows, the Notebooks status line
 --   J47 Dark, Light, High contrast: unread paper rows by tone (4.5 : 1 at least), the tag colors, the paper tone.
@@ -1470,6 +1475,16 @@ function H.drewIn(z, word)
     end
     return false
 end
+-- a drawn word inside a zone's rectangle, whole or cut with "..."
+function H.drewInLike(z, word)
+    if not z then return false end
+    for _, t in ipairs(S.texts or {}) do
+        local s = t.s
+        local cut = #s >= 4 and string.sub(s, #s - 2) == "..." and string.sub(word, 1, #s - 3) == string.sub(s, 1, #s - 3)
+        if (s == word or cut) and t.y >= z.y - 2 and t.y <= z.y + z.h and t.x >= z.x - 2 and t.x <= z.x + z.w + 2 then return true end
+    end
+    return false
+end
 function C.j7()
     local T = { L = "J7 tags" }
     H.step(2, function() if not H.caseStart(T) then return end end)
@@ -1543,8 +1558,19 @@ function C.j8()
         if T.off then return end
         local e = (H.ents() or {})[1]
         local made = H.entN() == T.n0 + 1
-        Q.check(not made, T.L .. " (B6): Save with spaces only saves nothing (an entry of blanks is nothing kept)",
+        Q.check(not made, T.L .. " (B6): Save with spaces only saves nothing (an entry of blanks is nothing kept; fixed: JT.save needs a visible character)",
             made and ("an entry of " .. #(e and e.text or "") .. " blanks was made") or "nothing saved")
+        H.jClean()
+        T.n0 = H.entN()
+        T.ws = "  " .. S.NL .. "   " .. S.NL .. " "
+        H.type(T.ws)
+        H.saveClick()
+    end)
+    H.step(3, function()
+        if T.off then return end
+        local made = H.entN() ~= T.n0
+        Q.check(not made and H.boxText() == T.ws, T.L .. " (B6): Save with spaces and new lines only saves nothing, the box kept as typed",
+            (made and "an entry was made" or "nothing saved") .. ", box " .. #(H.boxText() or "") .. " letters")
         H.jClean()
         T.n0 = H.entN()
         T.nl = "ZQA one" .. S.NL .. S.NL .. "two zqedge"
@@ -1596,6 +1622,31 @@ function C.j8()
         local want = headH + Tk.sp.rowGap + n * (bodyH + Tk.px(2)) + Tk.sp.xs
         Q.check(r.h >= want - 1, T.L .. " (B7): the stripe covers the whole striped entry (its head and all " .. n .. " lines)",
             "stripe " .. math.floor(r.h) .. " px tall, the entry " .. math.floor(want) .. " px")
+    end)
+    -- B6 through Into: a notebook carried, Into on it
+    H.step(1, function()
+        if T.off then return end
+        pcall(S.JT.setSearch, RT.cw(), "")
+        T.nb = H.book("Base.Notebook", "ZQA blank into")
+        T.pen = H.give("Base.Pencil")
+        H.rescan()
+    end)
+    H.drawn(T, 3)
+    H.intoQ(T, "nb")
+    H.step(2, function()
+        if T.off then return end
+        T.n0 = H.entN()
+        T.pg0 = H.page(T.nb, 1)
+        H.type(T.ws)
+        H.saveClick()
+    end)
+    H.step(4, function()
+        if T.off then return end
+        local s = H.st()
+        Q.check(H.entN() == T.n0 and H.qcount("ZeD_WriteNoteAction") == 0 and H.page(T.nb, 1) == T.pg0 and s.logPending == nil,
+            T.L .. " (B6, Into): spaces and new lines only, Into on a notebook: no write queued, no entry, the page as it was",
+            "entries " .. H.entN() .. " (were " .. T.n0 .. "), queue " .. H.qkinds() .. ", page \"" .. H.page(T.nb, 1) .. "\", line \"" .. tostring(s.logMsg) .. "\"")
+        H.type("")
     end)
     H.caseEnd(T.L)
 end
@@ -1686,27 +1737,35 @@ function C.j10()
         if not H.caseStart(T) then return end
         local gt = getGameTime()
         local sy, sm, sd = gt:getStartYear(), gt:getStartMonth(), gt:getStartDay()
-        -- 70 days after the start date by the calendar (two or more month ends crossed)
-        local y, m, d = sy, sm, sd
-        for _ = 1, 70 do
-            d = d + 1
-            if d >= H.mlen(y, m) then d = 0; m = m + 1; if m > 11 then m = 0; y = y + 1 end end
+        -- 70 days after the start date by the calendar (two or more month ends crossed), and 1000 days after it (a
+        -- leap day crossed from a 1993 start: Feb 29 1996); the fix's dayNumber counts real months and leap years
+        T.legs = {}
+        for _, n in ipairs({ 70, 1000 }) do
+            local y, m, d = sy, sm, sd
+            for _ = 1, n do
+                d = d + 1
+                if d >= H.mlen(y, m) then d = 0; m = m + 1; if m > 11 then m = 0; y = y + 1 end end
+            end
+            local L = { n = n }
+            L.real = H.civil(y, m + 1, d + 1) - H.civil(sy, sm + 1, sd + 1) + 1
+            L.flat = (y * 360 + m * 30 + d) - (sy * 360 + sm * 30 + sd) + 1
+            L.date = y .. "-" .. (m + 1) .. "-" .. (d + 1) .. " from the start " .. sy .. "-" .. (sm + 1) .. "-" .. (sd + 1)
+            L.e = H.entAdd({ text = "ZQA old entry " .. n .. " zqold", year = y, month = m, day = d, noDay = true })
+            T.legs[#T.legs + 1] = L
         end
-        T.real = H.civil(y, m + 1, d + 1) - H.civil(sy, sm + 1, sd + 1) + 1
-        T.flat = (y * 360 + m * 30 + d) - (sy * 360 + sm * 30 + sd) + 1
-        T.date = y .. "-" .. (m + 1) .. "-" .. (d + 1) .. " from the start " .. sy .. "-" .. (sm + 1) .. "-" .. (sd + 1)
-        T.e = H.entAdd({ text = "ZQA old entry zqold", year = y, month = m, day = d, noDay = true })
     end)
     H.frontQ(T, 1)
     H.step(2, function() if not T.off then pcall(S.JT.setSearch, RT.cw(), "zqold") end end)
     H.drawn(T, 3)
     H.step(1, function()
         if T.off then return end
-        local wr = H.wrapOf(T.e)
-        local stamp = wr and wr.stamp or ""
-        local want = H.tr("UI_ZeD_Tk_Day", T.real)
-        Q.check(H.has(stamp, want .. " ") or stamp == want, T.L .. ": an entry with no survivalDay reads its day by the calendar (" .. T.real .. " days)",
-            "stamp \"" .. stamp .. "\"; the 30-day count gives " .. T.flat .. "; " .. T.date)
+        for _, L in ipairs(T.legs) do
+            local wr = H.wrapOf(L.e)
+            local stamp = wr and wr.stamp or ""
+            local want = H.tr("UI_ZeD_Tk_Day", L.real)
+            Q.check(H.has(stamp, want .. " ") or stamp == want, T.L .. ": an entry with no survivalDay " .. L.n .. " days on reads its day by the calendar (Day " .. L.real .. ")",
+                "stamp \"" .. stamp .. "\"; the 30-day count gives " .. L.flat .. "; " .. L.date)
+        end
     end)
     H.caseEnd(T.L)
 end
@@ -1775,6 +1834,45 @@ function C.j11()
 end
 
 -- ===================================================================== J12 delete, B8, B12
+-- B12, one leg: the question asked on entry a, then leave() (returns why the leg cannot run, or nil), then back()
+function C.j12ask(T, name, leave, back)
+    H.step(1, function()
+        T.leg = nil
+        if T.off then return end
+        H.front(1)
+    end)
+    H.drawn(T, 3)
+    H.step(1, function() if not T.off then H.press(H.delZone(H.idxOf(T.a))) end end)
+    H.step(3, function()
+        if T.off then return end
+        T.wAsk = RT.cw()
+        T.asked = T.wAsk ~= nil and T.wAsk._journalAsk ~= nil
+        local why = leave()
+        if why then T.leg = why end
+    end)
+    H.step(10, function()
+        if T.off then return end
+        local w = T.wAsk
+        if T.leg then
+            Q.skip(T.L .. " (B12): " .. name, T.leg)
+            if w then pcall(S.JT.cancelDelete, w) end
+        else
+            Q.check(T.asked and w ~= nil and w._journalAsk == nil, T.L .. " (B12): the question goes with " .. name,
+                "asked " .. tostring(T.asked) .. ", still asking " .. tostring(w ~= nil and w._journalAsk ~= nil) .. ", tab " .. tostring(w and w._activeTab)
+                .. ", drawer " .. tostring(w and w._drawerMode) .. " open " .. tostring(w and w._drawerOpen))
+        end
+        back()
+    end)
+    H.drawn(T, 3)
+    H.step(1, function()
+        if T.off then return end
+        local w = RT.cw()
+        Q.check(w ~= nil and w._journalAsk == nil and H.idxOf(T.a) ~= nil, T.L .. " (B12): back on the Journal after " .. name .. " no question is up and the entry is kept",
+            "asking " .. tostring(w and w._journalAsk ~= nil))
+        if w then pcall(S.JT.cancelDelete, w) end
+        if T.wAsk then T.wAsk._journalAsk, T.wAsk._journalAskRects = nil, nil end
+    end)
+end
 function C.j12()
     local T = { L = "J12 delete" }
     H.step(2, function()
@@ -1848,20 +1946,46 @@ function C.j12()
         local f1 = T.gk and w._journalGroupCollapsed[T.gk] or false
         Q.check(f1 == T.f0, T.L .. " (B8): with the question up, a month head does not fold under it", "folded " .. tostring(T.f0) .. " -> " .. tostring(f1))
         if T.gk then w._journalGroupCollapsed[T.gk] = nil end
-        pcall(S.JT.cancelDelete, w)
+        -- the kills head too (the fix: CW's journalAsking gate)
+        T.k0 = w._killsExpanded
+        H.press(w._journalKillsZone)
     end)
-    -- B12: the question after another Character tab
-    H.drawn(T, 2)
-    H.step(1, function() if not T.off then H.press(H.delZone(H.idxOf(T.a))) end end)
-    H.step(3, function() if not T.off then T.asked = RT.cw()._journalAsk ~= nil; RT.charTab("skills") end end)
-    H.step(10, function() if not T.off then RT.charTab("journal") end end)
-    H.drawn(T, 3)
-    H.step(1, function()
+    H.step(3, function()
         if T.off then return end
         local w = RT.cw()
-        Q.check(T.asked and w._journalAsk == nil, T.L .. " (B12): the question does not outlive a visit to another tab", "asked " .. tostring(T.asked) .. ", still asking " .. tostring(w._journalAsk ~= nil)
-            .. (w._journalAsk and (" about " .. tostring(w._journalAsk.entry and w._journalAsk.entry.text)) or ""))
+        local ask = w._journalAsk and w._journalAsk.entry
+        Q.check(w._killsExpanded == T.k0 and ask == T.a, T.L .. " (B8): with the question up, the kills head does not fold and the question stays",
+            "kills open " .. tostring(T.k0) .. " -> " .. tostring(w._killsExpanded) .. ", asking about " .. tostring(ask and ask.text))
+        w._killsExpanded = T.k0
+    end)
+    H.drawn(T, 2)
+    H.step(1, function()
+        if T.off then return end
+        local r = RT.cw()._journalAskRects
+        T.pc2 = r and r.cancel and H.click(H.mid(r.cancel))
+    end)
+    H.step(3, function()
+        if T.off then return end
+        local w = RT.cw()
+        Q.check(T.pc2 and w._journalAsk == nil and H.idxOf(T.a) ~= nil, T.L .. " (B8): after those presses the question's Cancel still answers it (mouse)", "asking " .. tostring(w._journalAsk ~= nil))
         pcall(S.JT.cancelDelete, w)
+    end)
+    -- B12: the question goes once the tab is not the Journal, the drawer shows no tab, or the window is shut
+    C.j12ask(T, "a visit to the Skills tab", function() RT.charTab("skills") end, function() RT.charTab("journal") end)
+    C.j12ask(T, "the drawer folded (the Journal's own tab pressed again)", function()
+        local w = RT.cw()
+        local strip = w and w._tabStripPanel
+        for _, z in ipairs((strip and strip._hitZones) or {}) do
+            if z.id == "tab:journal" then pcall(function() strip:onMouseDown(z.x + 2, z.y + 2) end) end
+        end
+        T.folded = w ~= nil and (w._drawerOpen == false or w._drawerMode ~= "tab")
+        if not T.folded then return "a press on the open Journal tab does not fold the drawer here (drawer open " .. tostring(w and w._drawerOpen) .. ", mode " .. tostring(w and w._drawerMode) .. ")" end
+        return nil
+    end, function() RT.charTab("journal") end)
+    C.j12ask(T, "the window shut", function() RT.pairShut(); return nil end, function() RT.pairOpen(); RT.charTab("journal") end)
+    H.step(2, function()
+        if T.off then return end
+        H.note(T.L .. " (B12): an item card opened over the Journal keeps the drawer on the tab (CW updateDrawer: the mode stays \"tab\" under a card), so the question stays; a card replaces the tab only from another tab, which the Skills leg covers")
     end)
     -- the pad: A on a cross asks with the focus on Cancel; A on Cancel back on that cross; Delete lands on the next
     H.drawn(T, 3)
@@ -2510,8 +2634,23 @@ function C.j21()
         pcall(function() tagged = T.id:hasTag(ItemTag.LOCK_ON_WRITE) and true or false end)
         pcall(function() by = T.id:getLockedBy() end)
         local written = H.endsWith(H.page(T.id, 1), "ZQA id card")
-        Q.check(written and ((not tagged) or by ~= nil), T.L .. " (B3): a write-once item (the game's LOCK_ON_WRITE) is locked once the quick note writes it, as the game's journal window locks it",
-            "written " .. tostring(written) .. ", tag " .. tostring(tagged) .. ", locked by " .. tostring(by))
+        local other = false
+        pcall(function() other = S.N.otherLock(S.p, T.id) and true or false end)
+        -- (the fix locks it as the game's ISUIWriteJournal does: setLockedBy(tostring(ZombRand(1000000))), an owner
+        -- nobody holds; so "locked, by something", never his name)
+        Q.check(written and tagged and by ~= nil and by ~= H.user(), T.L .. " (B3): a write-once item (the game's LOCK_ON_WRITE) is locked once the quick note writes it, by a random owner as the game's journal window locks it",
+            "written " .. tostring(written) .. ", tag " .. tostring(tagged) .. ", locked by " .. tostring(by) .. " (he is " .. tostring(H.user()) .. ")")
+        T.other = other
+        H.rescan()
+    end)
+    H.drawn(T, 4)
+    H.step(1, function()
+        if T.off or T.noId then return end
+        local z = H.jrZone("book:" .. tostring(H.id(T.id)))
+        local w1, wn = H.tr("UI_ZeD_Notebook_SubLockedOne"), H.tr("UI_ZeD_Notebook_SubLockedMany", 1)
+        local inRow = z ~= nil and (H.drewInLike(z, w1) or H.drewInLike(z, wn))
+        Q.check(T.other and inRow, T.L .. " (B3): its row then reads locked by another (\"" .. w1 .. "\"), as N.otherLock says",
+            "otherLock " .. tostring(T.other) .. ", row " .. tostring(z ~= nil) .. ", drawn in the row " .. tostring(inRow))
         local srj = H.firstKnown({ "SkillRecoveryJournal.SkillRecoveryBoundJournal", "Base.SkillRecoveryBoundJournal" })
         if srj then H.note(T.L .. ": Skill Recovery Journal's " .. srj .. " is here: its CanBeWrite decides whether the Journal lists it")
         else Q.skip(T.L .. ": Skill Recovery Journal's Bound Journal", "the mod is not on in this game") end
@@ -2736,22 +2875,38 @@ function C.j25()
         pcall(function() e:setText(H.rep("b", 200)); n = #(e:getText() or "") end)
         H.note(T.L .. ": the note's limit is " .. tostring(e and e.maxLength) .. " letters; 200 set by code read back " .. n)
         Q.check(e ~= nil and e.maxLength == 160, T.L .. ": the note takes at most 160 letters (2 lines of 80)", tostring(e and e.maxLength))
-        -- B2: Enter in the note
+        -- B2: Enter in the note. The note is the game's multi-line box: Enter puts a new line in the text; the fix's
+        -- ZeD_TextEntry:prerender takes that new line as the submit (the line itself dropped). So Enter is staged as
+        -- the game's box makes it: the words with a new line at the end, set in the inner box.
         local inner = e and e._entry
-        local hook = inner and inner.onCommandEntered
-        T.hook = hook
         T.own = false
         pcall(function() T.own = rawget(inner, "onCommandEntered") ~= nil end)
-        pcall(function() e:setText("ZQA enter zq25") end)
+        T.enter = "ZQA enter zq25"
         H.setPage(T.nb, 1, "")
-        if type(hook) == "function" then H.zcall(function() hook(inner) end) end
+        pcall(function() inner:setText(T.enter .. S.NL) end)
     end)
     H.step(3, function()
         if T.off then return end
         local e = RT.cw()._jrNote
-        Q.check(type(T.hook) == "function" and H.qcount("ZeD_WriteNoteAction") == 1, T.L .. " (B2): Enter in the note writes the line (its onSubmit reached)",
-            "the note's inner box onCommandEntered " .. type(T.hook) .. (T.own and " (its own)" or " (the game's ISTextEntryBox default, empty)") .. ", onSubmit " .. type(e and e.onSubmit)
-            .. " (set at JR:694, called by nothing in ZeD_TextEntry, MO:910-938), queued " .. H.qcount("ZeD_WriteNoteAction"))
+        local now = nil
+        pcall(function() now = e:getText() end)
+        T.q1 = H.qcount("ZeD_WriteNoteAction")
+        Q.check(T.q1 == 1 and not H.has(tostring(now), S.NL), T.L .. " (B2): Enter in the note writes the line (its new line taken as the submit, not kept)",
+            "queued " .. T.q1 .. ", the box \"" .. tostring(now) .. "\"; the inner box's own onCommandEntered " .. tostring(T.own) .. " (a one-line box's Enter)")
+        -- a second Enter while the line goes down is ignored (one write at a time)
+        pcall(function() e._entry:setText(T.enter .. S.NL) end)
+    end)
+    H.step(3, function()
+        if T.off then return end
+        T.q2 = H.qcount("ZeD_WriteNoteAction")
+    end)
+    H.writeWait(T)
+    H.step(3, function()
+        if T.off then return end
+        local pg = H.page(T.nb, 1)
+        Q.check(T.q2 == 1 and H.count(pg, T.enter) == 1 and not H.has(pg, S.NL .. S.NL), T.L .. " (B2): a second Enter during the write is ignored: the line is on the page once",
+            "queued " .. tostring(T.q1) .. " then " .. tostring(T.q2) .. "; page \"" .. pg .. "\"")
+        H.note(T.L .. " (B2): at the note's 2-line limit the game's box ignores Enter (no new line to take), so only Write sends a full note: not staged")
         H.qstop()
         T.go = H.padOn() and H.focusId("jr:note")
         if not T.go then Q.check(false, T.L .. " (pad): the note is a stop while it shows whole", "stops " .. H.stopIds()) end
@@ -4034,11 +4189,38 @@ function C.j45pass(T, tag, shots)
         local s = H.st()
         local pv, nx, fu = H.jrZone("prev"), H.jrZone("next"), H.jrZone("full")
         local c = s.clip or { x = 0, w = 99999 }
-        local fits = pv and nx and fu and nx.x + nx.w <= fu.x and pv.x + pv.w <= nx.x and fu.x + fu.w <= c.x + c.w + 1
-        Q.check(fits == true, T.L .. " (" .. tag .. "): the Notebooks page bar (<, Page 10 of 10, >, Open full) fits the half card without overlap",
-            (pv and nx and fu) and ("< " .. math.floor(pv.x) .. "+" .. math.floor(pv.w) .. ", > " .. math.floor(nx.x) .. "+" .. math.floor(nx.w) .. ", Open full " .. math.floor(fu.x) .. "+" .. math.floor(fu.w)
-            .. ", the view ends " .. math.floor(c.x + c.w)) or ("zones " .. H.list(H.jrIds())))
+        -- (the fix measures first: Open full drops to its own row at the right when the bar does not fit on one, and
+        -- the page line shortens to "n/N" when even the arrows do not fit)
+        local all = H.pages(T.nb)
+        local long, short = H.tr("UI_ZeD_Reader_PageOf", all, all), all .. "/" .. all
+        local lt = H.drewExact(long) or H.drewExact(short)
+        local lw = 0
+        if lt then pcall(function() lw = ZeD.TM:MeasureStringX(ZeD.T.fontF3, lt.s) end) end
+        local function over(a, b) return a and b and a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h end
+        local lineR = lt and { x = lt.x, y = pv and pv.y or lt.y, w = lw, h = pv and pv.h or 1 } or nil
+        local clash = {}
+        if over(pv, nx) then clash[#clash + 1] = "< and >" end
+        if over(pv, fu) then clash[#clash + 1] = "< and Open full" end
+        if over(nx, fu) then clash[#clash + 1] = "> and Open full" end
+        if over(lineR, pv) then clash[#clash + 1] = "the page line and <" end
+        if over(lineR, nx) then clash[#clash + 1] = "the page line and >" end
+        if over(lineR, fu) then clash[#clash + 1] = "the page line and Open full" end
+        local right = c.x + c.w + 1
+        local inside = pv and nx and fu and pv.x + pv.w <= right and nx.x + nx.w <= right and fu.x + fu.w <= right and (lineR == nil or lineR.x + lineR.w <= right)
+        local stacked = pv and fu and fu.y >= pv.y + pv.h
+        Q.check(pv ~= nil and nx ~= nil and fu ~= nil and lt ~= nil and #clash == 0 and inside, T.L .. " (" .. tag .. "): the Notebooks page bar at page " .. all .. " of " .. all .. ": nothing overlaps and all of it stays inside the half card",
+            (pv and nx and fu) and ("< " .. math.floor(pv.x) .. "+" .. math.floor(pv.w) .. ", the line \"" .. tostring(lt and lt.s) .. "\" " .. math.floor(lineR and lineR.x or -1) .. "+" .. math.floor(lw)
+            .. ", > " .. math.floor(nx.x) .. "+" .. math.floor(nx.w) .. ", Open full " .. math.floor(fu.x) .. "+" .. math.floor(fu.w) .. (stacked and " on its own row" or " on the bar's row")
+            .. ", the view ends " .. math.floor(c.x + c.w) .. "; overlaps " .. H.list(clash)) or ("zones " .. H.list(H.jrIds())))
+        H.note(T.L .. " (" .. tag .. "): the page bar " .. (stacked and "puts Open full on its own row" or "fits on one row") .. ", the page line reads \"" .. tostring(lt and lt.s) .. "\"")
         RT.bounds(Q, T.L .. " (" .. tag .. "), Notebooks")
+        T.padBar = H.padOn()
+    end)
+    H.step(12, function()
+        if T.off or not T.pass or not T.padBar then return end
+        Q.check(H.stopHas("jr:prev") ~= nil and H.stopHas("jr:full") ~= nil and H.stopHas("jr:next") == nil, T.L .. " (" .. tag .. ", pad): on the last page the bar's stops are < and Open full (> greyed)",
+            H.stopIds(14))
+        H.padOff()
     end)
     if shots then H.shot("jn_half_notebook_" .. H.sizeTag(), "Notebooks on the half card: the page bar at Page 10 of 10", function() return T.pass and not T.off end) end
     H.step(2, function()
