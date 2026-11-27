@@ -88,7 +88,7 @@ Lock, medic, laundry, placement, track, preview:
 
 ## Design calls for the director (asked Nov 26 2026)
 
-Option 1 is QA's pick in each. **Decided Nov 26 2026** (Hermit: "1 through 6, do 1, and 4, 7, do number 3, and number 8, do 2"): option 1 on calls 1 to 6, the Side by side fluid layout (option 3) and the washer's stepping lamps kept as dressing (option 2). Relayed to Build.
+Option 1 is QA's pick in each. **Decided Nov 26 2026** (Hermit: "1 through 6, do 1, and 4, 7, do number 3, and number 8, do 2"): option 1 on calls 1 to 6, the Side by side fluid layout (option 3) and the washer's stepping lamps kept as dressing (option 2). Relayed to Build. Built in fix/cardcalls2 (89fc5699d) and fix/fa8pick (0cc898b42). On OC4, the hook, placement, farm, fire, power and hutch cards overlap at 220, so they keep the full card held in; Hermit (Nov 26): "They should stay full width."
 1. **FI1, an indoor campfire:** warn, as the generator does, or keep the game's silence.
 2. **FA7, heavy aphids:** one press sprays what's needed, as the game does, or keep one use per press.
 3. **FA8, watering:** pick the container, or keep the biggest automatically.
