@@ -181,7 +181,9 @@ function ISReadMapItem:new(character, item) return setmetatable({ character = ch
 function ISReadMapItem:complete() self.item:doBuildingStash(); self.character:addReadMap(self.item); return true end
 function ISReadMapItem:showUI() log("game:window:" .. self.item:getName()) end
 function ISReadMapItem:perform() self:showUI() end
+local PB_SEEN = nil   -- (Put things back's queuing flag while the game's Read Map queues its moves: MP53)
 ISInventoryPaneContextMenu.onCheckMap = function(map, player)
+    PB_SEEN = ZeD.PutBack and ZeD.PutBack.queuing
     ISTimedActionQueue.add(ISReadMapItem:new(getSpecificPlayer(player), map))
 end
 -- ZeD's paper window: the real PaperMap.lua over a stub World window and map tab
@@ -205,6 +207,19 @@ if QUEUE[1] then QUEUE[1]:complete(); QUEUE[1]:perform() end
 check("the action's end opens ZeD's window on the paper, not the game's",
     logHas("zed:open:MuldraughMap") and not logHas("game:window:MuldraughMap") and WIN._mapPaperItem == map, table.concat(LOG, ","))
 check("the stash and the read done once (by the action)", logCount("stash:MuldraughMap") == 1 and logCount("read:MuldraughMap") == 1, table.concat(LOG, ","))
+-- MP53 (QA, Nov 27 2026): the game's Read Map queues its own moves (the floor to him); ZeD's Put things back must
+-- not take them as the read's and queue the map back to the floor
+do
+    ZeD.PutBack = { queuing = false }
+    LOG, QUEUE = {}, {}
+    WIN._mapPopout, WIN._mapPaperItem = nil, nil
+    ISInventoryPaneContextMenu.onCheckMap(newItem("FloorMap"), 0)
+    check("MP53: Put things back sees the Read Map's moves as its own (queuing) and notes no run", PB_SEEN == true, tostring(PB_SEEN))
+    check("MP53: ... and is back to normal after", ZeD.PutBack.queuing == false)
+    ZeD.PutBack = nil
+    LOG, QUEUE = {}, {}
+    WIN._mapPopout, WIN._mapPaperItem = nil, nil
+end
 -- safe mode: the game's window
 WIN._mapPopout, WIN._mapPaperItem = nil, nil
 LOG, QUEUE = {}, {}
