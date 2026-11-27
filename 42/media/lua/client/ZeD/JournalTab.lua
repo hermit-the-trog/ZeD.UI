@@ -332,6 +332,9 @@ function ZeD.JournalTab.save(win, text)
     -- whitespace is nothing to save)
     if not win or not text or not text:find("%S") then return false end
     local JR = ZeD.JournalReaders
+    -- (QA J20, Nov 27 2026: a second Save while the line went into the notebook wrote it twice and
+    -- logged it twice. Save is greyed then, and a press, the mouse's or the pad's A, does nothing.)
+    if JR.logBusy and JR.logBusy(win) then return true end
     local tags = ZeD.JournalTab.pickedTags(win)
     if JR.saveLog(win, text, tags) then return true end
     JR.addLogEntry(win, text, nil, tags)
@@ -579,6 +582,12 @@ local function wrappedLines(entry, font, width)
     byEntry[entry] = { text = text, lines = lines }
     _wrapCount = _wrapCount + 1
     return lines
+end
+
+--- An entry's height down to its divider, as the log lays it out: the head row, the gap, each of its
+--- n lines (bodyH and lineGap under it), and xs. The alternate entry's stripe is this tall.
+function ZeD.JournalTab.entryH(headH, rowGap, n, bodyH, lineGap, xs)
+    return headH + rowGap + n * (bodyH + lineGap) + xs
 end
 
 -- The month groups for the entries the search leaves (its words in what was
@@ -1239,13 +1248,16 @@ local function renderJournal(panel, win, x, y, w, h)
             if not collapsed then
                 local entryIdx = 0
                 for _, wrapped in ipairs(group.entries) do
-                    -- Alternating entry stripe
+                    local entry = wrapped.entry
+                    local lines = wrappedLines(entry, T.fontF2, drawW)
+                    -- Alternating entry stripe, the entry's whole height (QA J8, Nov 27 2026: it covered
+                    -- the date and one line, so a long striped entry read as two)
                     if entryIdx % 2 == 1 then
                         local st = T.stripe
-                        panel:drawRect(x, curY, drawW, bodyH + headH + T.sp.xs, st.a, st.r, st.g, st.b)
+                        panel:drawRect(x, curY, drawW, ZeD.JournalTab.entryH(headH, T.sp.rowGap, #lines, bodyH, T.px(2), T.sp.xs),
+                            st.a, st.r, st.g, st.b)
                     end
                     entryIdx = entryIdx + 1
-                    local entry = wrapped.entry
                     -- The stamp is built once per entry and language state (the loop draws every
                     -- entry each frame, and a translated phrase costs more than a concatenation).
                     local dateStr = wrapped.stamp
@@ -1302,7 +1314,6 @@ local function renderJournal(panel, win, x, y, w, h)
 
                     curY = curY + headH + T.sp.rowGap
 
-                    local lines = wrappedLines(entry, T.fontF2, drawW)
                     for _, line in ipairs(lines) do
                         A.drawBody(panel, line, x, curY)
                         curY = curY + bodyH + T.px(2)
@@ -1350,6 +1361,10 @@ local function renderJournal(panel, win, x, y, w, h)
             local _, roomR = M.bandRoom(panel, outerX, outerW, btnW + 2 * T.px(8))
             local btnX, btnY = roomR - T.px(8) - btnW, by + T.px(5)
             if saveBtn:getX() ~= btnX or saveBtn:getY() ~= btnY then saveBtn:setX(btnX); saveBtn:setY(btnY) end
+            -- greyed while a line ZeD queued is still going into a notebook (QA J20, Nov 27 2026)
+            local JR = ZeD.JournalReaders
+            saveBtn._zedOpts = saveBtn._zedOpts or {}
+            saveBtn._zedOpts.disabled = (JR and JR.logBusy and JR.logBusy(win)) and true or nil
             -- Controller: stamp the save button's hit zone and mark it BEHIND the button's
             -- own render (the button is a drawer child, drawn after this panel, and
             -- transparent, so the mark shows through).
@@ -1401,6 +1416,14 @@ function ZeD.JournalTab.dropStaleAsk(win)
     if shown and win.isVisible then
         local ok, vis = pcall(win.isVisible, win)
         if ok and vis == false then shown = false end
+    end
+    -- (QA's leak check, Nov 27 2026: a window shut with the question up still answered visible once
+    -- off the UI manager, so it stayed in the watch, read every frame. Only the player's open
+    -- Character window (ZeD_CharacterWindow.getWindow, nil once shut) keeps a question.)
+    local CW = ZeD_CharacterWindow
+    if shown and CW and CW.getWindow then
+        local ok, open = pcall(CW.getWindow, win.playerNum or 0)
+        if ok and open ~= win then shown = false end
     end
     if shown then return false end
     win._journalAsk, win._journalAskRects = nil, nil
@@ -1842,6 +1865,79 @@ local function helpPrompt(t)
     return p
 end
 
+-- (QA J40, Nov 27 2026: Down from an entry's tag went to Save, past the next entry: an entry with no
+-- tags has only its cross, which sits right of where the tags end, so nothing in its row lined up
+-- under the tag and Save in the band did. Up and Down from a tag now go to the next row's nearest
+-- stop, its tag or its cross, when that row comes before what the plain pick would take.)
+local ROW_KINDS = { tag = true, delete = true }
+local function midY(e) return e.y + (e.h or 0) * 0.5 end
+local function midX(e) return e.x + (e.w or 0) * 0.5 end
+
+--- Where Up or Down from an entry's tag goes when the plain pick would skip a log row: the next
+--- row's stop nearest across (a tag or the cross), or nil to leave it to the plain pick.
+function ZeD.JournalTab.rowStep(elements, from, dir)
+    if not (elements and from and from.journalKind == "tag") then return nil end
+    if dir ~= "up" and dir ~= "down" then return nil end
+    local sgn = (dir == "down") and 1 or -1
+    local fy, fx = midY(from), midX(from)
+    -- the next row that way: the nearest row stop past this one
+    local rowD = nil
+    for i = 1, #elements do
+        local e = elements[i]
+        if e ~= from and ROW_KINDS[e.journalKind] and type(e.y) == "number" then
+            local d = (midY(e) - fy) * sgn
+            if d > 0.5 and (not rowD or d < rowD) then rowD = d end
+        end
+    end
+    if not rowD then return nil end
+    local best, bestX = nil, nil
+    for i = 1, #elements do
+        local e = elements[i]
+        if e ~= from and ROW_KINDS[e.journalKind] and type(e.y) == "number" and math.abs((midY(e) - fy) * sgn - rowD) < 1 then
+            local dx = math.abs(midX(e) - fx)
+            if not bestX or dx < bestX then best, bestX = e, dx end
+        end
+    end
+    if not best then return nil end
+    -- what the plain pick takes (lined up first, then any that way): left to it when it is no further
+    local SN = ZeD.SpatialNav
+    if SN and SN.cost then
+        local pick, pTier, pCost = nil, nil, nil
+        for i = 1, #elements do
+            local e = elements[i]
+            if e ~= from and type(e.y) == "number" then
+                local tier, c = SN.cost(from, e, dir)
+                if tier and (pTier == nil or tier < pTier or (tier == pTier and c < pCost)) then pick, pTier, pCost = e, tier, c end
+            end
+        end
+        if pick and (midY(pick) - fy) * sgn <= rowD + 0.5 then return nil end
+    end
+    return best
+end
+
+-- a tag stop's Up and Down (the Focus manager's onDpadDir: false hands the move to its plain pick)
+local function tagDpad(w, el, dir)
+    if dir ~= "up" and dir ~= "down" then return false end
+    local F = ZeD.Input and ZeD.Input.Focus
+    if not (F and F.focusWhere and w and w._focusRing) then return false end
+    for _, z in ipairs(w._focusRing) do
+        local els = z.elements
+        if els then
+            local mine = nil
+            for i = 1, #els do if els[i] == el or (els[i].id == el.id) then mine = els[i]; break end end
+            if mine then
+                local to = ZeD.JournalTab.rowStep(els, mine, dir)
+                if not to then return false end
+                local id = to.id
+                if not F.focusWhere(w, z.zone, function(e) return e.id == id end) then return false end
+                pcall(function() ZeD.uiSound("UISelectListItem") end)
+                return true
+            end
+        end
+    end
+    return false
+end
+
 --- The controller's stops for the tags: the eight picks (left and right walk them, A ticks or
 --- unticks), then each tag on an entry near the view (A puts its word in the search). The help
 --- band names the tag and what it is for beside the prompts.
@@ -1857,7 +1953,7 @@ function ZeD.JournalTab.tagFocusables(win)
         if ZeD.JournalTab.inPadReach(win, z) then
             local t = TAG_BY[z.k]
             out[#out + 1] = { x = z.x, y = z.y, w = z.w, h = z.h, id = z.id, journalKind = "tag", tagKey = z.k,
-                entryIdx = z.entryIdx, onFocus = noFocus, onActivate = tagActivate,
+                entryIdx = z.entryIdx, onFocus = noFocus, onActivate = tagActivate, onDpadDir = tagDpad,
                 promptA = ZeD.tr("UI_ZeD_Journal_TagShow", ZeD.tr(t.key)), extraPrompts = helpPrompt(t) }
         end
     end

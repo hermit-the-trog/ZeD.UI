@@ -176,11 +176,36 @@ function ZeD_WriteNoteAction:new(character, item, page, text, onDone)
     return o
 end
 
---- Queue the writing as vanilla does (the book out of the bag first); returns the action.
+--- Queue the writing as vanilla does (the book out of the bag first); returns the write action and
+--- every action the call queued (the move out of the bag, then the write), for a busy check.
 --- onDone(page) runs once the line is on the page.
+-- (QA J29, Nov 27 2026: the book was taken out of the bag, written in, then went back into it. ZeD's
+-- Put things back (ZeD_PutBack.lua) took the move as the write's own and undid it after. The game's
+-- transferIfNeeded queues the same move; it is queued here with _zedApart, Put back's mark for a
+-- move the player asked for, so the book stays in the main inventory as the game leaves it.)
 function N.write(playerObj, item, page, text, onDone)
-    ISInventoryPaneContextMenu.transferIfNeeded(playerObj, item)
+    local queued = {}
+    if luautils.haveToBeTransfered(playerObj, item) then
+        local t = ISInventoryTransferUtil.newInventoryTransferAction(playerObj, item, item:getContainer(), playerObj:getInventory())
+        t._zedApart = true
+        ISTimedActionQueue.add(t)
+        queued[#queued + 1] = t
+    end
     local a = ZeD_WriteNoteAction:new(playerObj, item, page, text, onDone)
     ISTimedActionQueue.add(a)
-    return a
+    queued[#queued + 1] = a
+    return a, queued
+end
+
+--- True while any of `queued` (N.write's list) is still in the character's action queue.
+function N.busy(playerObj, queued)
+    if not (playerObj and queued) then return false end
+    local ok, q = pcall(ISTimedActionQueue.getTimedActionQueue, playerObj)
+    if not (ok and q and q.queue) then return false end
+    for i = 1, #queued do
+        for j = 1, #q.queue do
+            if q.queue[j] == queued[i] then return true end
+        end
+    end
+    return false
 end
