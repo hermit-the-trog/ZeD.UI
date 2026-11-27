@@ -265,7 +265,10 @@ local function navigate(win, view, zoneName, animalRef)
     if state.view == "zone" and view ~= "zone" and view ~= "animal" then AT._unlightZone(win) end
     -- leaving the bird a hutch card's Info opened ends the way back to that card (QA HU5, Nov 26 2026)
     local rc = win._animalsReturnCard
-    if rc and (view ~= "animal" or (animalRef ~= nil and animalRef ~= rc.animal)) then win._animalsReturnCard = nil end
+    if rc and (view ~= "animal" or (animalRef ~= nil and animalRef ~= rc.animal)) then
+        win._animalsReturnCard = nil
+        print("[ZeD] Animals: way back to the card dropped: navigate to " .. tostring(view))   -- (QA HU5 hunt)
+    end
     state.prevView = state.view
     state.view = view
     if zoneName ~= nil then state.zoneName = zoneName end
@@ -4291,6 +4294,7 @@ end
 function AT.setReturnCard(win, entry, animal)
     if not win then return end
     win._animalsReturnCard = (entry and animal) and { entry = entry, animal = animal } or nil
+    print("[ZeD] Animals: way back to the card kept: " .. tostring(win._animalsReturnCard ~= nil))   -- (QA HU5 hunt)
 end
 local function returnCard(win)
     local r = win and win._animalsReturnCard
@@ -4301,11 +4305,17 @@ local function returnCard(win)
 end
 --- True when the card the open bird came from is up again.
 function AT.backToCard(win)
+    local had = win and win._animalsReturnCard ~= nil
     local r = returnCard(win)
-    if not r then return false end
+    if not r then
+        print("[ZeD] Animals: back to card: none (" .. (had and "dropped: another view or animal" or "no card kept") .. ")")
+        return false
+    end
     win._animalsReturnCard = nil
     local OC = ZeD.ObjectCards
-    return (OC and OC.backTo and OC.backTo(WPN(win), r.entry)) == true
+    local ok = (OC and OC.backTo and OC.backTo(WPN(win), r.entry)) == true
+    print("[ZeD] Animals: back to card: " .. tostring(ok))
+    return ok
 end
 function AT.goBack(win)
     if not AT.backToCard(win) then navigateBack(win) end
@@ -4313,11 +4323,20 @@ end
 --- The World window's pad stops for the page: while a card waits, B on any stop without its own B goes back to it.
 function AT.withReturn(win, elements)
     if not returnCard(win) then return end
+    local n = 0
     for _, el in ipairs(elements) do
         if not el.onCancel then
             el.onCancel = function(w) return AT.backToCard(w) end
             el.promptB = ZeD.tr("UI_ZeD_Prompt_Back")
+            el._zedReturnB = true
+            n = n + 1
         end
+    end
+    -- (QA HU5 hunt, Nov 26 2026: said when the count changes, not every build)
+    local sig = tostring(#elements) .. "/" .. tostring(n)
+    if win._animalsReturnSig ~= sig then
+        win._animalsReturnSig = sig
+        print("[ZeD] Animals: way back to the card on " .. n .. " of " .. #elements .. " stops")
     end
 end
 AT.navigateBack     = function(win) AT.goBack(win) end   -- (the pad's Back stop: the card first, QA HU5)
