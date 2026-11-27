@@ -2184,7 +2184,7 @@ function C.fa9(how)
         local function inList(list) for _, m in ipairs(list or {}) do if m == T.month then return true end end; return false end
         for _, k in ipairs(S.cropList or {}) do
             local p = H.prop(k)
-            if not T.crop and p and p.sowMonth and #p.sowMonth > 0 and not inList(p.sowMonth) and H.known(p.seedName) then T.crop = k end
+            if not T.crop and p and p.sowMonth and #p.sowMonth > 0 and not inList(p.sowMonth) and H.known((p.seedTypes and p.seedTypes[1]) or p.seedName) then T.crop = k end
         end
         if not T.crop then
             T.off = true
@@ -2192,7 +2192,8 @@ function C.fa9(how)
             return
         end
         local p = H.prop(T.crop)
-        T.seed = p.seedName
+        -- (Build, Nov 26 2026: the game and the card sow from seedTypes (Base.BarleySeed), not seedName (the sheaf))
+        T.seed = (p.seedTypes and p.seedTypes[1]) or p.seedName
         T.recipe = p.seasonRecipe
         if how == "mouse" then H.perkSet("Farming", 5); H.recipeOff(T.recipe) else H.perkSet("Farming", 6) end
         T.sq = H.plotSq(9)
