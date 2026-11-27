@@ -2404,7 +2404,9 @@ function C.c10()
         if T.off then return end
         if T.maxD <= 3.5 then Q.skip(T.L .. " (OC5 the hold)", "the game's walk never took him past the leash (" .. H.n2(T.maxD) .. ")"); H.qstop(); return end
         local ov = T.ov
-        Q.check(T.maxOpen <= 3, T.L .. " (OC5): with a walk away running the card still closes past the game's 3",
+        -- (Nov 26 2026: the test reads once a frame before the card's own tick; one read past 3 with at most one frame drawn
+        -- is the card closing on its next tick, not a hold. DistToProper jumps a whole square at a time)
+        Q.check(T.maxOpen <= 3 or (ov.n <= 1 and ov.drew <= 1 and H.kind() ~= "place3d"), T.L .. " (OC5): with a walk away running the card still closes past the game's 3",
             "open at the game's DistToProper " .. H.n2(T.maxOpen) .. " during the walk, which reached " .. H.n2(T.maxD) .. " (the hold: any queued action holds the leash); "
             .. ov.n .. " of " .. ov.frames .. " reads open past 3, the card drew " .. ov.drew .. " frames then; the World window rolled up in " .. ov.rolled
             .. " reads, hidden in " .. ov.hidden .. "; ZeD_WorldWindow._closeWhy " .. tostring(ov.wwWhy) .. "; the card's own closeWhy " .. tostring(ov.ocWhy)
