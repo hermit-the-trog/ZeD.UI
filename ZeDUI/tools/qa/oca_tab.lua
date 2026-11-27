@@ -43,8 +43,10 @@
 --   FA6  Fertilize on a dead plot (mouse), Compost on a composted plot (pad): the item's uses against the plant
 --   FA7  Treat at Farming 3 on aphids at None (mouse): the spray's uses; heavy aphids (60) by the pad: the presses
 --        and the walks and equips it takes against the game's one spray of up to 10 uses
---   FA8  Water with a smaller and a bigger drinking-water container carried (mouse; pad): which one the game's
---        watering emptied, and the level after
+--   FA8  a smaller and a bigger drinking-water container carried (mouse; pad): the card's Water from against the
+--        game's set of sources (ISFarmingMenu.doFarmingMenu2), biggest first, each with its litres, +N and Use; Use
+--        on the smaller then Water (which one the game's watering emptied, the level after); then a fresh card with
+--        nothing picked: Water alone pours from the biggest
 --   FA9  seasons on (the sandbox's PlantGrowingSeasons, put back): sowing out of season at Farming 5 without the
 --        season recipe (mouse): the plant's cursed flag and what the card said; at Farming 6 (pad): the tag
 --   FA10 small screens: the drawer at 480 units, the inventory beside the card, the card inside the screen, at the
@@ -59,10 +61,11 @@
 --   TG1  a bottle of bleach (mouse) and one of gasoline (pad) carried: listed to pour, and the pour through the fluid
 --        card: what the trough holds after (the game's own trough path pours water only)
 --   TG2  a feed bag drained to no feed in the trough: the card's tag against getCurrentFeedAmount
---   TG3  food in (the game's debug add), Take all (mouse; pad, hidden actions all): Add water against the trough's
---        fluid container, its NEEDS line
+--   TG3  food in (the game's debug add), Take All (mouse; pad, hidden actions all): Add water against the trough's
+--        fluid container, its NEEDS line when it is drawn greyed
 --   TG4  a double trough with one tile in an animal zone: the card's zone line against each tile's zone. MP: SKIP
---   TG5  ten carrots (or three feed bags) carried: one Add (mouse), one Take (pad): how many moved
+--   TG5  ten carrots (or three feed bags): one Add then Add All (mouse, carried), one Take then Take All (pad, in
+--        the trough): one press moves one, the All row (its label the game's) moves the rest
 --   TG6  Empty (mouse; pad): the trough system's own object against the trough after; the question's words (TG9).
 --        Picture oca_trough_<WxH>. MP: SKIP
 --   TG7  the Transfer row and the fluid card's Pour (mouse; pad): which card is up after the pour
@@ -2129,7 +2132,52 @@ function C.fa7heavy()
     H.caseEnd(T.L)
 end
 
--- ===================================================================== FA8 which water source
+-- ===================================================================== FA8 which water source (the Water-from list)
+-- (the director's call FA8, Nov 26 2026: the card's "Water from" lists the game's water sources, biggest first, each
+-- with its name, its litres, "+N" for the plant and Use; Water pours from the one picked, else the biggest. The old
+-- check, "Water keeps the bigger", was the old design.)
+-- the game's water uses of an item (ISFarmingMenu.getWaterUsesInteger)
+function H.waterUses(it) local n = 0; if H.isItem(it) then pcall(function() n = ISFarmingMenu.getWaterUsesInteger(it) end) end; return tonumber(n) or 0 end
+-- the game's own water sources for a plant (ISFarmingMenu.doFarmingMenu2, 324-335): the item in his hand alone when it
+-- holds water, else every one in his main inventory; put biggest first by the game's uses
+function H.gameWaterSet()
+    local out = {}
+    local h = nil
+    pcall(function() h = S.p:getPrimaryHandItem() end)
+    if h and H.waterUses(h) > 0 then out[1] = h; return out end
+    pcall(function()
+        local items = H.inv():getItems()
+        for i = 0, items:size() - 1 do
+            local it = items:get(i)
+            if H.waterUses(it) > 0 then out[#out + 1] = it end
+        end
+    end)
+    table.sort(out, function(a, b) return H.waterUses(a) > H.waterUses(b) end)
+    return out
+end
+-- the Water-from rows the card drew: for each farm:water:i stop, the words drawn on its line left of its Use button
+function H.waterRows()
+    local out = {}
+    for i = 1, 12 do
+        local z = H.zone("farm:water:" .. i)
+        if not z then break end
+        local r = { i = i, words = {} }
+        local zh = z.h or 20
+        for _, t in ipairs(S.texts or {}) do
+            if t.x < z.x and t.y >= z.y - zh * 0.5 and t.y <= z.y + zh * 0.75 then r.words[#r.words + 1] = t.s end
+        end
+        out[#out + 1] = r
+    end
+    return out
+end
+function H.rowHas(r, s) for _, w in ipairs((r and r.words) or {}) do if H.has(H.low(w), H.low(s)) then return true end end; return false end
+-- (a long name is cut short with dots at a narrow card: its first six letters are enough to tell these apart)
+function H.rowNamed(r, it) return H.rowHas(r, string.sub(H.nm(it), 1, 6)) end
+function H.rowOf(it) for _, r in ipairs(H.waterRows()) do if H.rowNamed(r, it) then return r.i end end; return nil end
+function H.waterEv(T)
+    return H.nm(T.small) .. " " .. H.n2(T.s0) .. " -> " .. H.n2(H.amount(T.small)) .. " L, " .. H.nm(T.big) .. " " .. H.n2(T.b0) .. " -> " .. H.n2(H.amount(T.big))
+        .. " L; the plot's water " .. H.n1(T.w0) .. " -> " .. H.n1(H.pf(T.sq, "waterLvl")) .. "; Water lit " .. tostring(T.lit)
+end
 function C.fa8(how)
     local T = { L = "FA8 the water source (" .. how .. ")" }
     H.step(2, function()
@@ -2140,15 +2188,78 @@ function C.fa8(how)
         H.setPlant(T.sq, { waterLvl = 20, health = 100 })
         H.perkSet("Farming", 10)
         local a = H.give("Base.WaterBottle")
-        local b = H.give(H.firstKnown({ "Base.PopBottle", "Base.Canteen", "Base.WaterBottle" }))
+        local b = H.give(H.firstKnown({ "Base.PopBottle", "Base.Canteen" }))
         H.fill(a, Fluid.Water)
         H.fill(b, Fluid.Water)
-        local ca, cb = 0, 0
-        pcall(function() ca = H.fc(a):getCapacity() end)
-        pcall(function() cb = H.fc(b):getCapacity() end)
-        if ca <= cb then T.small, T.big = a, b else T.small, T.big = b, a end
-        T.s0, T.b0 = H.amount(T.small), H.amount(T.big)
+        local ua, ub = H.waterUses(a), H.waterUses(b)
+        if ua == ub or ua == 0 or ub == 0 then
+            T.off = true
+            Q.check(false, T.L .. ": a smaller and a bigger drinking-water container staged", H.nm(a) .. " " .. ua .. " uses, " .. H.nm(b) .. " " .. ub .. " uses (the game's)")
+            return
+        end
+        if ua < ub then T.small, T.big = a, b else T.small, T.big = b, a end
+        T.s0, T.b0, T.w0 = H.amount(T.small), H.amount(T.big), H.pf(T.sq, "waterLvl")
         if how == "pad" then H.padOn(); H.park(true) end
+    end)
+    H.cardQ(T, "plant", function() H.openPlot(T.sq) end)
+    H.pause(400)
+    -- leg 1: the list against the game's set, then Use on the smaller and Water
+    H.step(1, function()
+        if T.off then return end
+        local set, rows, bad, seen = H.gameWaterSet(), H.waterRows(), {}, {}
+        local missing = math.ceil((100 - (tonumber(H.pf(T.sq, "waterLvl")) or 0)) / 10)
+        for i, it in ipairs(set) do
+            local r = rows[i]
+            local litres = string.format("%.1f L", H.amount(it))
+            local gain = "+" .. tostring(math.min(H.waterUses(it), missing, 10) * 10)
+            seen[#seen + 1] = H.nm(it) .. " " .. H.waterUses(it) .. " uses " .. litres .. " " .. gain
+            if not r then
+                bad[#bad + 1] = H.nm(it) .. " has no row " .. i
+            else
+                if not H.rowNamed(r, it) then bad[#bad + 1] = "row " .. i .. " is not " .. H.nm(it) .. " (" .. H.list(r.words, 5) .. ")" end
+                if not H.rowHas(r, litres) then bad[#bad + 1] = "row " .. i .. " has no '" .. litres .. "' (" .. H.list(r.words, 5) .. ")" end
+                if not H.rowHas(r, gain) then bad[#bad + 1] = "row " .. i .. " has no '" .. gain .. "' (" .. H.list(r.words, 5) .. ")" end
+                if not H.lit("farm:water:" .. i) then bad[#bad + 1] = "row " .. i .. " has no live Use" end
+            end
+        end
+        if #rows ~= #set then bad[#bad + 1] = #rows .. " rows drawn for the game's " .. #set .. " sources" end
+        Q.check(#set >= 2 and #bad == 0, T.L .. ": Water from lists each of his water containers, biggest first, each with its litres, its +N and Use (the game's set: ISFarmingMenu.doFarmingMenu2 324-335)",
+            "the game's, biggest first: " .. H.list(seen, 6) .. "; the plot's water " .. H.n1(H.pf(T.sq, "waterLvl")) .. "; " .. H.list(bad, 6))
+        T.smallRow = H.rowOf(T.small)
+        T.lit = H.lit("oc:verb:water")
+        if not T.smallRow then T.off = true; Q.check(false, T.L .. ": the smaller container (" .. H.nm(T.small) .. ") has a Water-from row", H.list(H.zonesLike("farm:water:"), 6)); return end
+        if how == "mouse" then H.click("farm:water:" .. T.smallRow, T.L .. " Use") end
+    end)
+    if how == "pad" then
+        H.padPress(T, function() return "farm:water:" .. tostring(T.smallRow) end, function() return T.smallRow ~= nil end)
+        H.step(1, function() T.useFocus = T.focusOk end)
+    end
+    H.settle(400)
+    H.step(1, function()
+        if T.off then return end
+        T.lit = H.lit("oc:verb:water")
+        if how == "mouse" then H.click("oc:verb:water", T.L) end
+    end)
+    if how == "pad" then H.padPress(T, "oc:verb:water") end
+    H.idleQ(T, 12000)
+    H.step(2, function()
+        if T.off then return end
+        local s1, b1, w1 = H.amount(T.small), H.amount(T.big), tonumber(H.pf(T.sq, "waterLvl")) or 0
+        Q.check(s1 < T.s0 - 0.001 and math.abs(b1 - T.b0) < 0.001 and w1 > (tonumber(T.w0) or 0),
+            T.L .. ": Use on the smaller, then Water, pours from the smaller: its litres drop, the bigger's stay, the plot's water rises",
+            H.waterEv(T) .. ((how == "pad") and ("; the pad reached Use " .. tostring(T.useFocus)) or ""))
+    end)
+    -- leg 2: nothing picked (a fresh card, the hands cleared, both filled, the plot dry again): Water alone
+    H.step(2, function()
+        if T.off then return end
+        H.qstop()
+        H.close()
+        H.loose(T.small)
+        H.loose(T.big)
+        H.fill(T.small, Fluid.Water)
+        H.fill(T.big, Fluid.Water)
+        H.setPlant(T.sq, { waterLvl = 20 })
+        T.s0, T.b0, T.w0 = H.amount(T.small), H.amount(T.big), H.pf(T.sq, "waterLvl")
     end)
     H.cardQ(T, "plant", function() H.openPlot(T.sq) end)
     H.pause(400)
@@ -2161,10 +2272,9 @@ function C.fa8(how)
     H.idleQ(T, 12000)
     H.step(2, function()
         if T.off then return end
-        local s1, b1 = H.amount(T.small), H.amount(T.big)
-        Q.check(b1 >= T.b0 - 0.001, T.L .. ": Water keeps the bigger drinking-water container when a smaller one is carried (the card offers no choice; the game lists each source by name)",
-            "Water lit " .. tostring(T.lit) .. "; " .. H.nm(T.small) .. " " .. H.n2(T.s0) .. " -> " .. H.n2(s1) .. " L, " .. H.nm(T.big) .. " " .. H.n2(T.b0) .. " -> " .. H.n2(b1)
-            .. " L; the plot's water 20 -> " .. H.n1(H.pf(T.sq, "waterLvl")) .. " (no amount asked)")
+        local s1, b1, w1 = H.amount(T.small), H.amount(T.big), tonumber(H.pf(T.sq, "waterLvl")) or 0
+        Q.check(b1 < T.b0 - 0.001 and math.abs(s1 - T.s0) < 0.001 and w1 > (tonumber(T.w0) or 0),
+            T.L .. ": with nothing picked, Water pours from the biggest: its litres drop, the smaller's stay, the plot's water rises", H.waterEv(T))
     end)
     H.caseEnd(T.L)
 end
@@ -2551,7 +2661,7 @@ function C.tg2()
     H.caseEnd(T.L)
 end
 function C.tg3(how)
-    local T = { L = "TG3 Add water after Take all (" .. how .. ")" }
+    local T = { L = "TG3 Add water after Take all (" .. how .. ")", pressed = {} }
     H.step(2, function()
         if not H.caseStart(T, "yard") then return end
         if not H.troughHere(T) then return end
@@ -2562,10 +2672,21 @@ function C.tg3(how)
     end)
     H.cardQ(T, "trough", function() H.openTrough(T.tr) end)
     H.pause(400)
-    H.step(1, function() if not T.off and how == "mouse" then H.click("trough:take:1", T.L) end end)
-    if how == "pad" then H.padPress(T, "trough:take:1") end
-    H.idleQ(T, 12000)
-    H.settle(900)
+    -- (the director's call TG5, Nov 26 2026: Take moves one, Take All the kind. The game's debug add puts two feed
+    -- bags in, one kind, so the row's Take All empties it; Take on the first row until empty where none is drawn)
+    for _ = 1, 3 do
+        H.step(1, function()
+            T.zid = nil
+            if T.off or H.tItems(T.tr) == 0 then return end
+            T.zid = (H.zone("trough:takeall:1") ~= nil) and "trough:takeall:1" or "trough:take:1"
+            T.pressed[#T.pressed + 1] = T.zid
+            if how == "mouse" then H.click(T.zid, T.L) end
+        end)
+        if how == "pad" then H.padPress(T, function() return T.zid end, function() return T.zid ~= nil end) end
+        H.idleQ(T, 12000)
+        H.settle(600)
+    end
+    H.settle(300)
     H.step(1, function()
         if T.off then return end
         T.items1 = H.tItems(T.tr)
@@ -2574,14 +2695,21 @@ function C.tg3(how)
         T.drawn = H.zone("oc:verb:water") ~= nil
         T.folded = H.zone("oc:hv:water") ~= nil
         local needs = H.list(S.needs, 6)
-        Q.check(T.items0 > 0 and T.items1 == 0, T.L .. ": Take (the game's transfers) empties the trough of its food", T.items0 .. " -> " .. T.items1)
+        Q.check(T.items0 > 0 and T.items1 == 0, T.L .. ": Take All (the game's transfers) empties the trough of its food",
+            T.items0 .. " -> " .. T.items1 .. " by " .. H.list(T.pressed, 4))
         Q.check(T.lit == T.fc1, T.L .. ": after Take all, Add water is live exactly when the trough has its fluid container again",
             "the game's fluid container: with food " .. tostring(T.fc0) .. ", after " .. tostring(T.fc1) .. "; Add water lit " .. tostring(T.lit) .. ", in the verb row " .. tostring(T.drawn)
             .. ", folded " .. tostring(T.folded) .. " (hidden actions " .. H.hiddenNow() .. "); NEEDS lines: " .. needs)
-        if how == "pad" and not T.lit then
-            local named = false
-            for _, l in ipairs(S.needs or {}) do if H.has(H.low(l), H.low(H.tr("UI_ZeD_Trough_AddWater"))) and string.len(l) > string.len(H.tr("UI_ZeD_Trough_AddWater")) + 8 then named = true end end
-            Q.check(named, T.L .. ": under hidden actions all, the greyed Add water says what it needs", needs)
+        if how == "pad" then
+            -- (Nov 26 2026: the NEEDS words are asked only of a greyed Add water the card drew. With food left in the
+            -- trough Add water is gone, as the game's one-or-the-other has it, and has nothing to say; live, neither)
+            if T.drawn and not T.lit then
+                local named = false
+                for _, l in ipairs(S.needs or {}) do if H.has(H.low(l), H.low(H.tr("UI_ZeD_Trough_AddWater"))) and string.len(l) > string.len(H.tr("UI_ZeD_Trough_AddWater")) + 8 then named = true end end
+                Q.check(named, T.L .. ": under hidden actions all, the greyed Add water says what it needs", needs)
+            else
+                H.note(T.L .. ": under hidden actions all, Add water is " .. (T.lit and "live" or "not drawn") .. " with " .. T.items1 .. " item(s) left in the trough: no greyed Add water to read | NEEDS lines: " .. needs)
+            end
         end
     end)
     H.caseEnd(T.L)
@@ -2644,8 +2772,21 @@ function C.tg4()
     end)
     H.caseEnd(T.L)
 end
+-- the TG5 row's stops for the staged kind: Add and Add All in "Your feed" (mouse), Take and Take All in "In the
+-- trough" (pad); the All stop nil when the card drew none
+function H.tg5fids(T, how)
+    local rows = (how == "mouse") and ((H.d() and H.d().feedRows) or {}) or ((H.d() and H.d().inside) or {})
+    local row = nil
+    for i, g in ipairs(rows) do if g.item and H.ft(g.item) == T.ft and not row then row = i end end
+    if not row then return nil, nil end
+    local one = ((how == "mouse") and "trough:feed:" or "trough:take:") .. row
+    local all = ((how == "mouse") and "trough:feedall:" or "trough:takeall:") .. row
+    if not H.zone(all) then all = nil end
+    return one, all
+end
 function C.tg5(how)
-    local T = { L = (how == "mouse") and "TG5 one Add (mouse)" or "TG5 one Take (pad)" }
+    local T = { L = (how == "mouse") and "TG5 Add one, then Add All (mouse)" or "TG5 Take one, then Take All (pad)" }
+    T.allKey = (how == "mouse") and "ContextMenu_AddAll" or "IGUI_invpage_Loot_all"
     H.step(2, function()
         if not H.caseStart(T, "yard") then return end
         if not H.troughHere(T) then return end
@@ -2664,27 +2805,52 @@ function C.tg5(how)
     end)
     H.cardQ(T, "trough", function() H.openTrough(T.tr) end)
     H.pause(400)
+    -- one press of the row's own button
     H.step(1, function()
         if T.off then return end
-        if how == "mouse" then
-            local row = nil
-            for i, g in ipairs((H.d() and H.d().feedRows) or {}) do if g.item and H.ft(g.item) == T.ft and not row then row = i end end
-            T.row = row
-            if row then H.click("trough:feed:" .. row, T.L) end
-            T.queued = H.qcount("ISInventoryTransferAction")
-        end
+        T.one, T.all = H.tg5fids(T, how)
+        T.all0 = T.all
+        if how == "mouse" and T.one then H.click(T.one, T.L) end
+        T.q1 = H.qcount("ISInventoryTransferAction")
     end)
     if how == "pad" then
-        H.padPress(T, "trough:take:1")
-        H.step(1, function() T.queued = H.qcount("ISInventoryTransferAction") end)
+        H.padPress(T, function() return T.one end, function() return T.one ~= nil end)
+        H.step(1, function() T.q1 = H.qcount("ISInventoryTransferAction") end)
     end
     H.idleQ(T, 15000)
+    H.settle(600)
+    -- then the All beside it, on what is left of the kind
+    H.step(1, function()
+        if T.off then return end
+        T.in1 = H.tItems(T.tr)
+        local _, all = H.tg5fids(T, how)
+        T.all = all
+        local b = all and H.btn(all)
+        T.allLabel = b and b.label or "none"
+        if how == "mouse" and all then H.click(all, T.L) end
+        T.q2 = H.qcount("ISInventoryTransferAction")
+    end)
+    if how == "pad" then
+        H.padPress(T, function() return T.all end, function() return T.all ~= nil end)
+        H.step(1, function() T.q2 = H.qcount("ISInventoryTransferAction") end)
+    end
+    H.idleQ(T, 20000)
     H.step(2, function()
         if T.off then return end
-        local in1 = H.tItems(T.tr)
-        local moved = (how == "mouse") and (in1 - T.in0) or (T.in0 - in1)
-        Q.check(moved <= 1, T.L .. ": one press moves one " .. H.nm(T.items[1]) .. " (the loot window moves one, or the stack chosen)",
-            "one press queued " .. tostring(T.queued) .. " transfers and moved " .. moved .. " of " .. T.n .. " (in the trough " .. T.in0 .. " -> " .. in1 .. ")")
+        local in2 = H.tItems(T.tr)
+        local m = (how == "mouse")
+        local moved1 = m and (T.in1 - T.in0) or (T.in0 - T.in1)
+        local moved2 = m and (in2 - T.in1) or (T.in1 - in2)
+        local carried = H.count(T.ft)
+        local word = H.tr(T.allKey)
+        local whole = false
+        if m then whole = (in2 == T.n and carried == 0) else whole = (in2 == 0 and carried == T.n) end
+        Q.check(T.one ~= nil and moved1 == 1, T.L .. ": one press of " .. (m and "Add" or "Take") .. " moves one " .. H.nm(T.items[1]) .. " (the loot window's one)",
+            "the stop " .. tostring(T.one) .. "; one press queued " .. tostring(T.q1) .. " transfers and moved " .. moved1 .. " of " .. T.n .. " (in the trough " .. T.in0 .. " -> " .. tostring(T.in1) .. ")")
+        Q.check(T.all ~= nil and T.allLabel == word and moved2 == T.n - 1 and whole,
+            T.L .. ": the kind of several has '" .. word .. "' beside its row (" .. T.allKey .. "), and one press of it moves the rest",
+            "the All stop " .. tostring(T.all) .. " (before the first press " .. tostring(T.all0) .. "), its label '" .. tostring(T.allLabel) .. "'; one press queued " .. tostring(T.q2)
+            .. " transfers and moved " .. moved2 .. " of the " .. (T.n - 1) .. " left (in the trough " .. tostring(T.in1) .. " -> " .. in2 .. ", carried " .. carried .. ")")
     end)
     H.caseEnd(T.L)
 end
