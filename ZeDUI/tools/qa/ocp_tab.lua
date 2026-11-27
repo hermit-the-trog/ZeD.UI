@@ -81,7 +81,8 @@
 --   FI10 no fuel, paper and no starter: Light's NEEDS line against the game's own lighting rule
 --   seated (run last) a passenger seat in a car: the generator's Info (PW9), a bottle's Transfer and Show info (FL5),
 --        the campfire's Info (FI9): what showed, against the game's own menus seated
---   every case: no Lua error over it; put back exactly
+--   every case: no Lua error over it (an error thrown in this script's own code, its first frame here, is a TEST
+--        FAULT note, not counted against ZeD); put back exactly
 -- Puts back: every object laid (the generators, the range, the collectors and the well, the campfires, the fireplace,
 -- the barbecues, the crates: named if left) and any fire near home or the building put out; every thing given or made
 -- (the bags, the floor, the crates, the fires' own containers); his own free things set aside for the run (so the
@@ -132,6 +133,54 @@ end
 
 -- ===================================================================== small helpers
 function H.errN() local n = nil; pcall(function() n = getLuaDebuggerErrorCount() end); return n end
+-- the first Lua frame's file in an F11 entry ("Lua(Vanilla).fn(spawnpoints.lua:1969)": spawnpoints), or nil. This
+-- script runs under the name spawnpoints.lua (as the prelude and rt_kit do); no other code that throws is named so.
+function H.errFile(s)
+    if type(s) ~= "string" then return nil end
+    local f = string.match(s, "([%w_%-%.]+)%.lua:%d+")
+    return f
+end
+-- the F11 list's entries counted from e0 to e1 (getLuaDebuggerErrorCount counts entries, several to one error), split
+-- by where each error was thrown: in this script's own code (its first Lua frame in spawnpoints.lua: a test fault,
+-- fixed, never ZeD's) or anywhere else (ZeD's, the game's). An entry with no frame takes the frame of the next entry
+-- that has one (an error's message comes before its stack). Entries the list no longer holds (it keeps its last
+-- ones) count as not ours. Returns the count not ours, the count ours, and the first own frame line.
+function H.errSplit(e0, e1)
+    if not (e0 and e1) or e1 <= e0 then return 0, 0, nil end
+    local new = e1 - e0
+    local list, size = nil, 0
+    pcall(function() list = getLuaDebuggerErrors() end)
+    if list then pcall(function() size = list:size() end) end
+    if not (list and size and size > 0) then return new, 0, nil end
+    local from = math.max(0, size - new)
+    local files = {}
+    for i = from, size - 1 do
+        local s = nil
+        pcall(function() s = tostring(list:get(i) or "") end)
+        files[#files + 1] = { f = H.errFile(s), s = s }
+    end
+    local own, firstOwn = 0, nil
+    for i = 1, #files do
+        local f = files[i].f
+        local j = i
+        while not f and j < #files do j = j + 1; f = files[j].f end
+        if not f then j = i; while not f and j > 1 do j = j - 1; f = files[j].f end end
+        if f == "spawnpoints" then
+            own = own + 1
+            if not firstOwn then firstOwn = string.match(files[j].s or "", "[^\n]*spawnpoints%.lua:%d+[^\n]*") end
+        end
+    end
+    return new - own, own, firstOwn
+end
+-- the window e0 to e1 judged: "no Lua error" counts only the errors not thrown in this script's own code; its own are
+-- said as a NOTE (a test fault to fix, not ZeD's) and kept for the run's total
+function H.errCheck(label, e0, e1)
+    if not (e0 and e1) then Q.check(true, label, "the count cannot be read"); return end
+    local other, own, first = H.errSplit(e0, e1)
+    S.ownErrs = (S.ownErrs or 0) + own
+    if own > 0 then H.note(label .. ": TEST FAULT: " .. own .. " Lua error entries thrown in ocp_tab's own code (not ZeD's, not counted below): " .. tostring(first)) end
+    Q.check(other == 0, label, other .. " new" .. ((own > 0) and (" (" .. own .. " more in ocp_tab's own code)") or ""))
+end
 function H.step(n, fn) Q.step(n, function() if S.dead then return end; fn() end) end
 function H.note(s) Q.say("NOTE " .. tostring(s)) end
 -- time, not frames: cond asked every drawn frame until it holds, at most ms; fn(ok)
@@ -239,7 +288,26 @@ function H.ft(it) local s = "?"; if H.isItem(it) then pcall(function() s = tostr
 function H.nm(it) local s = "nothing"; if H.isItem(it) then pcall(function() s = tostring(it:getDisplayName()) end) end; return s end
 function H.where(it) local c = nil; if H.isItem(it) then pcall(function() c = it:getContainer() end) end; return c end
 function H.ctype(c) local t = "none"; if c then pcall(function() t = tostring(c:getType()) end) end; return t end
-function H.onFloor(it) local wo = nil; if H.isItem(it) then pcall(function() wo = it:getWorldItem() end) end; return wo end
+-- its world object, while a square still holds it (the game's own moves can leave an item pointing at a world object
+-- it took off the square: the item is on no floor then)
+function H.onFloor(it)
+    local wo = nil
+    if H.isItem(it) then pcall(function() wo = it:getWorldItem() end) end
+    if wo then
+        local on = true
+        pcall(function() local sq = wo:getSquare(); on = sq ~= nil and sq:getWorldObjects():contains(wo) end)
+        if not on then return nil end
+    end
+    return wo
+end
+function H.whereText(it)
+    local c = H.where(it)
+    if c then return H.ctype(c) end
+    local wo = H.onFloor(it)
+    local s = "nowhere"
+    if wo then pcall(function() local sq = wo:getSquare(); s = "the floor at " .. sq:getX() .. "," .. sq:getY() end) end
+    return s
+end
 function H.gone(it) return H.where(it) == nil and H.onFloor(it) == nil end
 function H.inv() return S.p:getInventory() end
 function H.carried(it) local c = false; pcall(function() c = H.inv():containsRecursive(it) and true or false end); return c end
@@ -652,6 +720,11 @@ function H.build(full, sq, what)
     if not (sq and ISBuildIsoEntity and SpriteConfigManager) then return nil, "the game's build code is not loaded" end
     local info = H.findInfo(full)
     if not info then return nil, "no entity info for " .. full end
+    -- (the game's build code needs a craft recipe: BuildLogic:setRecipe and setInfo take it unchecked; an entity with
+    -- none, as the well, is laid by H.placeEntity)
+    local rec = nil
+    pcall(function() rec = info:getRecipe() and info:getRecipe():getCraftRecipe() end)
+    if not rec then return nil, "the game builds " .. full .. " from no craft recipe" end
     local x, y, z = sq:getX(), sq:getY(), sq:getZ()
     local before = H.objsAround(x, y, z, 2)
     local cheatWas = false
@@ -684,6 +757,36 @@ function H.build(full, sq, what)
     return out, nil
 end
 function H.rmBuilt(b) for _, c in ipairs((b and b.parts) or {}) do H.rmObj(c) end end
+-- an entity with no craft recipe (the well: a map object) laid as the map's loading lays it: a plain object of its
+-- sprite on the square, its components made from its entity script (GameEntityFactory.CreateIsoObjectEntity, as the
+-- game's MORainCollectorBarrel and ISBuildIsoEntity do). Returns { parts, fc, master } as H.build, or nil and why
+function H.placeEntity(full, sq, sprite, what)
+    if not (sq and GameEntityFactory and GameEntityFactory.CreateIsoObjectEntity and SpriteConfigManager) then return nil, "the game's entity code is not loaded" end
+    if not getSprite(sprite) then return nil, "no sprite " .. sprite end
+    local script = nil
+    pcall(function()
+        local info = SpriteConfigManager.getObjectInfoFromSprite(sprite)
+        if info and info:getScript() then script = info:getScript():getParent() end
+    end)
+    if not script then
+        pcall(function() local info = H.findInfo(full); if info and info:getScript() then script = info:getScript():getParent() end end)
+    end
+    if not script then return nil, "no entity script for " .. full .. " (sprite " .. sprite .. ")" end
+    local o = nil
+    pcall(function() o = IsoObject.new(getCell(), sq, sprite) end)
+    if not o then return nil, "no object of sprite " .. sprite end
+    local okE, errE = pcall(function() GameEntityFactory.CreateIsoObjectEntity(o, script, true) end)
+    if not okE then return nil, "the entity threw: " .. tostring(errE) end
+    pcall(function() sq:AddSpecialObject(o) end)
+    pcall(function() if o:getObjectIndex() < 0 then sq:AddTileObject(o) end end)
+    pcall(function() sq:RecalcProperties() end)
+    local c = H.keepObj(o, sq, what .. " at " .. sq:getX() .. "," .. sq:getY(), "built")
+    local out = { parts = { c } }
+    local fc = H.fcOf(o)
+    if fc then out.fc, out.master = fc, o end
+    if not H.objLeft(c) then H.rmObj(c); return nil, "the square took no " .. what end
+    return out, nil
+end
 
 -- ===================================================================== the object card (read from its draw)
 function H.ocard() local c = nil; pcall(function() c = ZeD_WorldWindow.getObjectCard(S.pn) end); return c end
@@ -937,15 +1040,56 @@ function H.menuWalk(ctx, path, out, depth)
         end
     end
 end
--- the game's world menu on these objects (ISWorldObjectContextMenu.createMenu), every option with its path, grey
--- flag and tooltip; shut before it draws
+-- the game's world menu as a right-click on the object builds it (ISWorldObjectContextMenu.createMenu): the objects
+-- of the object's own square in worldobjects (the object among them), the point the object's square stands at on
+-- the screen (the game picks world items and corpses at that point; a point off the object read the floor items on
+-- his square instead), every option with its path, grey flag and tooltip; shut before it draws. Returns the whole
+-- menu, an error, and the object's own options (those under its own heading: its tile name, or "Generator")
 function H.gameMenu(objs)
-    local out, ctx = {}, nil
-    local mx, my = math.floor(RT.core:getScreenWidth() * 0.45), math.floor(RT.core:getScreenHeight() * 0.4)
-    local ok, err = pcall(function() ctx = ISWorldObjectContextMenu.createMenu(S.pn, objs, mx, my, false) end)
+    local out, own, ctx = {}, {}, nil
+    local obj = objs and objs[1]
+    local sq = nil
+    if obj then pcall(function() sq = obj:getSquare() end) end
+    local list = {}
+    if sq then pcall(function() local ol = sq:getObjects(); for i = 0, ol:size() - 1 do list[#list + 1] = ol:get(i) end end) end
+    for _, o in ipairs(objs or {}) do
+        local has = false
+        for _, l in ipairs(list) do if l == o then has = true end end
+        if not has then list[#list + 1] = o end
+    end
+    local sw, sh = H.screen()
+    local mx, my = math.floor(sw * 0.45), math.floor(sh * 0.4)
+    if sq then
+        pcall(function()
+            local x, y, z = sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ()
+            local px, py = isoToScreenX(S.pn, x, y, z), isoToScreenY(S.pn, x, y, z)
+            if type(px) == "number" and type(py) == "number" then
+                mx = math.max(1, math.min(sw - 2, math.floor(px)))
+                my = math.max(1, math.min(sh - 2, math.floor(py)))
+            end
+        end)
+    end
+    local ok, err = pcall(function() ctx = ISWorldObjectContextMenu.createMenu(S.pn, list, mx, my, false) end)
     if ok and type(ctx) == "table" and ctx.options then pcall(H.menuWalk, ctx, "", out, 0) end
     H.menuShut(ctx)
-    return out, (not ok) and tostring(err) or nil
+    local heads = {}
+    local tn = obj and H.call(obj, "getTileName")
+    if tn and tn ~= "" then heads[#heads + 1] = tostring(tn) end
+    local isGen = false
+    if obj then pcall(function() isGen = instanceof(obj, "IsoGenerator") end) end
+    if isGen then heads[#heads + 1] = getText("ContextMenu_Generator") end
+    for _, e in ipairs(out) do
+        for _, h in ipairs(heads) do
+            if e.path == h or string.sub(e.path, 1, #h + 3) == h .. " > " then own[#own + 1] = e; break end
+        end
+    end
+    return out, (not ok) and tostring(err) or nil, own
+end
+-- the game's menu read off the object, or why not: a menu without the object's own options was read off something
+-- else (or the game offers nothing on it here); a check on it is a SKIP with the menu read
+function H.ownMenuWhy(all, own, err)
+    if #(own or {}) > 0 then return nil end
+    return "the game's menu read did not hold the object's own options (read: " .. H.menuNames(all, 10) .. (err and ("; " .. err) or "") .. ")"
 end
 function H.menuFind(list, name) for _, e in ipairs(list or {}) do if e.name == name then return e end end; return nil end
 function H.menuLike(list, sub) for _, e in ipairs(list or {}) do if H.has(e.path, sub) then return e end end; return nil end
@@ -1223,8 +1367,7 @@ function H.caseEnd(label)
     end)
     H.step(10, function()
         local e1 = H.errN()
-        Q.check(S.e0 == nil or e1 == nil or e1 == S.e0, label .. ": no Lua error over the case",
-            (S.e0 and e1) and ((e1 - S.e0) .. " new") or "the count cannot be read")
+        H.errCheck(label .. ": no Lua error over the case", S.e0, e1)
         if S.zerr then Q.check(false, label .. ": nothing ZeD ran for the case threw", S.zerr); S.zerr = nil end
         S.e0 = e1
     end)
@@ -1406,11 +1549,11 @@ function C.pw1()
     Q.waitMs(1500)   -- (the square seen and the chunk settled after the move)
     H.step(2, function()
         if T.off then return end
-        local m, err = H.gameMenu({ T.gen })
-        local on = H.menuLike(m, getText("ContextMenu_Turn_On"))
+        local m, err, own = H.gameMenu({ T.gen })
+        local on = H.menuLike(own, getText("ContextMenu_Turn_On"))
         T.gameTip = on and on.tip or nil
         T.gameWarns = H.fumesIn(T.gameTip or "")
-        H.note(T.L .. ": the game's menu on the indoor generator: " .. H.menuNames(m, 14) .. (err and ("; " .. err) or ""))
+        H.note(T.L .. ": the game's menu on the indoor generator: " .. (H.ownMenuWhy(m, own, err) or H.menuNames(own, 14)))
         H.genInfo(T.gen)
     end)
     H.wait(4000, function() return T.off or H.cardOn("generator", T.gen) end, function(ok)
@@ -1485,9 +1628,10 @@ function C.pw3()
         local g = H.mkGen(H.firstFree(S.RING2), { fuel = 2, cond = 100, conn = true })
         if not g then T.off = true; Q.skip(T.L, "no square for a generator"); return end
         T.gen = g.obj
-        local m = H.gameMenu({ T.gen })
-        T.gameDis = H.menuLike(m, getText("ContextMenu_GeneratorUnplug"))
-        T.gameMenu = H.menuNames(m, 14)
+        local m, err, own = H.gameMenu({ T.gen })
+        T.gameDis = H.menuLike(own, getText("ContextMenu_GeneratorUnplug"))
+        T.gameMenu = H.menuNames(own, 14)
+        T.gameWhy = H.ownMenuWhy(m, own, err)
         H.genInfo(T.gen)
     end)
     H.wait(4000, function() return T.off or H.cardOn("generator", T.gen) end, function(ok)
@@ -1496,9 +1640,13 @@ function C.pw3()
         T.cardDis = H.lit("oc:verb:plug")
         T.hv = H.zone("oc:hv:plug") ~= nil
         T.outlet = H.lit("gen:outlet")
-        Q.check(T.gameDis == nil or T.gameDis.na or T.cardDis or T.outlet, T.L .. " (PW3): the card offers Disconnect where the game's menu does",
-            "the game's menu: " .. T.gameMenu .. "; Disconnect " .. tostring(T.gameDis and (T.gameDis.na and "grey" or "offered") or "not listed")
-            .. "; the card: the verb live " .. tostring(T.cardDis) .. ", folded away " .. tostring(T.hv) .. ", the outlet live " .. tostring(T.outlet) .. "; Electricity " .. H.elecLvl())
+        if T.gameWhy then
+            Q.skip(T.L .. " (PW3): the card offers Disconnect where the game's menu does", T.gameWhy)
+        else
+            Q.check(T.gameDis == nil or T.gameDis.na or T.cardDis or T.outlet, T.L .. " (PW3): the card offers Disconnect where the game's menu does",
+                "the game's menu on the generator: " .. T.gameMenu .. "; Disconnect " .. tostring(T.gameDis and (T.gameDis.na and "grey" or "offered") or "not listed")
+                .. "; the card: the verb live " .. tostring(T.cardDis) .. ", folded away " .. tostring(T.hv) .. ", the outlet live " .. tostring(T.outlet) .. "; Electricity " .. H.elecLvl())
+        end
         T.k0 = H.qkinds()
         H.cardClick("gen:outlet", T.L)
         H.hidden("all")
@@ -1658,9 +1806,9 @@ function C.pw5()
         for _, it in ipairs(T.scrap or {}) do H.removeItem(it) end
         T.scrap = { H.give(S.FT.scrap) }
         H.hidden("all")
-        local m = H.gameMenu({ T.gen })
-        local fix = H.menuLike(m, getText("ContextMenu_GeneratorFix"))
-        T.gameFixTip = fix and (tostring(fix.tip) .. (fix.na and " (grey)" or "")) or "no Fix in the game's menu"
+        local m, err, own = H.gameMenu({ T.gen })
+        local fix = H.menuLike(own, getText("ContextMenu_GeneratorFix"))
+        T.gameFixTip = fix and (tostring(fix.tip) .. (fix.na and " (grey)" or "")) or (H.ownMenuWhy(m, own, err) or "no Fix in the game's menu on the generator")
         H.genInfo(T.gen)
     end)
     H.wait(4000, function() return T.off or (H.cardOn("generator", T.gen) and #(S.cardNeeds or {}) > 0) end, function(ok)
@@ -1683,9 +1831,10 @@ function C.pw7()
         T.cans = { H.give(S.FT.can), H.give(S.FT.can) }
         for _, it in ipairs(T.cans) do H.fill(H.fcOf(it), { { T.petrol, 3 } }) end
         T.max = H.call(T.gen, "getMaxFuel") or 10
-        local m = H.gameMenu({ T.gen })
-        T.gameAll = H.menuLike(m, getText("ContextMenu_GeneratorAddFuel") .. " > " .. getText("ContextMenu_AddAll"))
-        T.gameMenu = H.menuNames(m, 16)
+        local m, err, own = H.gameMenu({ T.gen })
+        T.gameAll = H.menuLike(own, getText("ContextMenu_GeneratorAddFuel") .. " > " .. getText("ContextMenu_AddAll"))
+        T.gameMenu = H.menuNames(own, 16)
+        T.gameWhy = H.ownMenuWhy(m, own, err)
         H.genInfo(T.gen)
     end)
     H.wait(4000, function() return T.off or (H.cardOn("generator", T.gen) and H.zone("gen:can:2") ~= nil) end, function(ok)
@@ -1697,26 +1846,52 @@ function C.pw7()
             local id = tostring(z.fid)
             if string.sub(id, 1, 4) == "gen:" and not string.find(id, "^gen:can:%d+$") and id ~= "gen:engine" and id ~= "gen:outlet" then all = true end
         end
-        Q.check(T.gameAll == nil or all, T.L .. " (PW7): the card has one press for every can, as the game's Add all",
-            "the game's menu: " .. T.gameMenu .. "; the card's can rows: " .. H.zoneIds("gen:can"))
+        if T.gameWhy then
+            Q.skip(T.L .. " (PW7): the card has one press for every can, as the game's Add all", T.gameWhy)
+        else
+            Q.check(T.gameAll == nil or all, T.L .. " (PW7): the card has one press for every can, as the game's Add all",
+                "the game's menu on the generator: " .. T.gameMenu .. "; the card's can rows: " .. H.zoneIds("gen:can"))
+        end
         H.note("PW10: the can rows' gain words as drawn: " .. H.drewAll("+", 4) .. " (built in code: \"+%.1f L\")")
     end)
     H.clickQ(T, "gen:can:1", T.L .. " (mouse, the first can)")
-    H.step(2, function() if not T.off then T.k1 = H.qkinds() end end)
+    H.step(2, function()
+        if T.off then return end
+        T.k1 = H.qkinds()
+        T.act1 = H.qfind("ISAddFuel")
+    end)
     H.padPress(T, "gen:can:2", T.L .. " (the second can, while the first pours)", "goPad")
     H.step(3, function()
         H.padOff()
         if T.off then return end
         T.nAdd = H.qcount("ISAddFuel")
         T.k2 = H.qkinds()
+        T.act2 = H.qfind("ISAddFuel")
     end)
     H.waitQ(T, 60000)
     H.step(2, function()
         if T.off then return end
         local fuel = H.genFuel(T.gen) or 0
         local want = math.min(6, T.max)
-        Q.check(math.abs(fuel - want) < 0.05, T.L .. " (PW7): the second can's Add pressed while the first pours runs too (both cans' petrol in)",
-            "after the first press the game's queue " .. tostring(T.k1) .. "; after the second " .. tostring(T.k2) .. "; the generator's fuel " .. H.n2(fuel) .. " (want " .. H.n2(want) .. ")")
+        -- which can each queued pour holds (the game's ISAddFuel .petrol)
+        local function canNo(a)
+            if not a then return "none" end
+            for i, it in ipairs(T.cans) do if a.petrol == it then return "can " .. i end end
+            return "another can"
+        end
+        local L2 = T.L .. " (PW7): the second can's Add pressed while the first pours runs too (both cans' petrol in)"
+        local what = "after the first press the game's queue " .. tostring(T.k1) .. " (its pour: " .. canNo(T.act1) .. "); after the second " .. tostring(T.k2)
+            .. " (its pours: " .. tostring(T.nAdd) .. ", " .. canNo(T.act2) .. "); the generator's fuel " .. H.n2(fuel) .. " (want " .. H.n2(want) .. ")"
+        if not T.act1 then
+            Q.skip(L2, "the first press queued no pour: " .. what)
+        elseif T.act2 == T.act1 then
+            Q.skip(L2, "the second press reached nothing (the pad's focus took " .. tostring(T.goPad) .. "; the first pour still the queue's own): " .. what)
+        else
+            -- the card's row calls the game's doAddFuelGenerator, whose luautils.walkAdj clears the queue first: the
+            -- second press drops the first can's pour (the game's own Add One twice does the same; its Add All queues
+            -- both)
+            Q.check(math.abs(fuel - want) < 0.05, L2, what .. ((T.act2 and (T.nAdd or 0) <= 1) and "; the second press replaced the first can's pour (the row runs the game's doAddFuelGenerator, whose walkAdj clears the queue)" or ""))
+        end
         -- a can of petrol and water: its liquid as fuel
         H.closeCard()
         pcall(function() T.gen:setFuel(0) end)
@@ -1832,6 +2007,31 @@ end
 
 -- ===================================================================== PW9 reach (far; seated in the seated case)
 function H.walking() for _, a in ipairs(H.queue()) do local ty = tostring(a.Type); if H.has(ty, "Walk") or H.has(ty, "PathFind") then return true end end; return false end
+-- the object's square for the reach legs: free (FL7's collector stood on the first free RING2 square), with loaded
+-- floor he can stand on 2, 7 and 15 tiles east of it (the legs stand there); home's west square, the first run's
+-- only try, held things earlier runs left
+S.REACH = { { -2, 0 }, { -2, -2 }, { -2, 2 }, { -3, 0 }, { -3, -1 }, { -3, 1 }, { 0, -2 }, { 0, 2 }, { -4, 0 }, { -2, -3 }, { -2, 3 },
+            { -5, 0 }, { -5, -2 }, { -5, 2 }, { 2, -2 }, { 2, 2 }, { 0, -4 }, { 0, 4 }, { -6, -4 }, { -6, 4 }, { -8, 0 }, { -8, -3 }, { -8, 3 } }
+function H.reachSq()
+    local f = S.found.pos
+    if not f then return nil end
+    local hx, hy, hz = math.floor(f.x), math.floor(f.y), math.floor(f.z)
+    for _, o in ipairs(S.REACH) do
+        local x, y = hx + o[1], hy + o[2]
+        local sq = H.sqXY(x, y, hz)
+        if sq and H.sqFree(sq) and not H.used(sq) then
+            local all = true
+            for _, e in ipairs({ 2, 7, 15 }) do
+                local st = H.sqXY(x + e, y, hz)
+                local good = false
+                pcall(function() good = st ~= nil and st:getFloor() ~= nil and st:isFree(false) and st:getVehicleContainer() == nil end)
+                if not good or H.used(st) then all = false end
+            end
+            if all then return sq end
+        end
+    end
+    return nil
+end
 -- queue: stand d tiles east of the object's square, run open(), 1.5 s later: shown(), or a walk queued
 function C.reachLeg(T, d, open, shown)
     local L = T.L .. " (" .. d .. " tiles)"
@@ -1864,8 +2064,8 @@ function C.pw9()
     local T = { L = "PW9 Info from far off" }
     H.step(2, function()
         H.caseStart(T)
-        local g = H.mkGen(H.freeSq(-2, 0), { fuel = 2, cond = 100, conn = true })
-        if not g then T.off = true; Q.skip(T.L, "no square for a generator"); return end
+        local g = H.mkGen(H.reachSq(), { fuel = 2, cond = 100, conn = true })
+        if not g then T.off = true; Q.skip(T.L, "no free square near home with loaded floor to stand on 2, 7 and 15 tiles east of it"); return end
         T.gen, T.sq = g.obj, g.sq
     end)
     for _, d in ipairs({ 2, 7, 15 }) do
@@ -1966,19 +2166,19 @@ function C.fl1()
     H.step(2, function()
         if T.off or not T.kept then return end
         T.p0, T.s0 = H.stat("POISON"), H.stat("SICKNESS")
-        pcall(function() T.bd0 = S.p:getBodyDamage():getPoisonLevel() end)
+        T.bd = nil; pcall(function() T.bd = S.p:getBodyDamage() end)
+        T.bd0 = H.call(T.bd, "getPoisonLevel")   -- (gone from BodyDamage in 42.2x: the poison is the POISON stat; nil then)
         H.gcall("the game's drink", function() ISInventoryPaneContextMenu.onDrinkFluid(T.kept, 1, S.p) end)
     end)
     H.waitQ(T, 30000)
     H.step(2, function()
         if T.off or not T.kept then return end
-        local bd1 = nil
-        pcall(function() bd1 = S.p:getBodyDamage():getPoisonLevel() end)
+        local bd1 = H.call(T.bd, "getPoisonLevel")
         H.note(T.L .. ": the 0.5 L of tainted water drunk the game's way: the bottle holds " .. H.n2(H.amt(H.fcOf(T.kept))) .. " L after; poison stat "
             .. H.n2(T.p0) .. " -> " .. H.n2(H.stat("POISON")) .. ", sickness " .. H.n2(T.s0) .. " -> " .. H.n2(H.stat("SICKNESS")) .. ", the body's poison level "
             .. H.n2(T.bd0) .. " -> " .. H.n2(bd1) .. " (god mode on for the run)")
         H.statsBack()
-        pcall(function() S.p:getBodyDamage():setPoisonLevel(T.bd0 or 0) end)
+        if T.bd0 ~= nil then H.call(T.bd, "setPoisonLevel", T.bd0) end
     end)
     H.caseEnd(T.L)
 end
@@ -2168,11 +2368,13 @@ function C.fl6()
         H.caseStart(T)
         local sq = H.firstFree(S.RING2)
         local b, why = nil, "no free square two tiles from home"
-        if sq then b, why = H.build("Base.Well", sq, "the well") end
+        -- (the well has no craft recipe: the game's build code threw "expected argument of type CraftRecipe, got
+        -- Boolean" on it in the first run; it is laid as the map lays one, its sprite and its entity script)
+        if sq then b, why = H.placeEntity("Base.Well", sq, "camping_01_16", "the well") end
         if not (b and b.fc) then
             if b then H.rmBuilt(b) end
             T.off = true
-            Q.skip(T.L, "only the well hides its amount in this game (entity_well HiddenAmount) and none could be built: " .. tostring(why))
+            Q.skip(T.L, "only the well hides its amount in this game (entity_well HiddenAmount) and none could be laid: " .. tostring(why or "it has no fluid container"))
             return
         end
         T.well = b
@@ -2405,6 +2607,94 @@ function C.fireLay(T, sqFn, extra)
         if extra then extra(T) end
     end)
 end
+-- the things in his reach (the game's own list: ISInventoryPaneContextMenu.getContainers, the bags, the floor round him,
+-- the containers beside him) the game would burn or light with that the script did not give: fuel, tinder, starters
+function H.foreignFire(fuelOnly)
+    local o = {}
+    pcall(function()
+        local cs = ISInventoryPaneContextMenu.getContainers(S.p)
+        for i = 0, cs:size() - 1 do
+            local c = cs:get(i)
+            local items = c:getItems()
+            for j = 0, items:size() - 1 do
+                local it = items:get(j)
+                local mine = false
+                pcall(function() mine = it:getModData().ZeDQA_spawned == true end)
+                if not mine then
+                    local fuel, tinder, starter = false, false, false
+                    pcall(function() fuel = ISCampingMenu.isValidFuel(it) and true or false end)
+                    pcall(function() tinder = ISCampingMenu.isValidTinder(it) and true or false end)
+                    pcall(function() local ty = it:getType(); starter = (ty == "Lighter" or ty == "Matches" or it:hasTag(ItemTag.START_FIRE)) and it:getCurrentUses() > 0 end)
+                    if fuel or ((tinder or starter) and not fuelOnly) then o[#o + 1] = H.nm(it) .. " (" .. H.ctype(c) .. ")" end
+                end
+            end
+        end
+    end)
+    return o
+end
+-- a square with nothing round it the game would count in his reach: 5 x 5 loaded floor, outdoors, no world items, no
+-- object with a container, no car within 6 tiles. Home's square has the keys and things earlier runs left (none the
+-- script's to take): the cases that need a bare reach (FI2's All fuel, FI10's nothing to light with) stand here. The
+-- site is snapped (its floor swept after) and its fires swept at the end.
+S.CLEAN = { { 0, -6 }, { 0, 6 }, { -6, 0 }, { 6, 0 }, { -6, -6 }, { 6, -6 }, { -6, 6 }, { 6, 6 }, { 0, -10 }, { 0, 10 }, { -10, 0 }, { 10, 0 },
+            { -12, -6 }, { 12, -6 }, { -12, 6 }, { 12, 6 } }
+function H.bareAt(cx, cy, cz)
+    local cars = {}
+    pcall(function() local vs = getCell():getVehicles(); for i = 0, vs:size() - 1 do cars[#cars + 1] = vs:get(i) end end)
+    for _, v in ipairs(cars) do
+        local far = true
+        pcall(function() far = math.abs(v:getX() - cx) > 6 or math.abs(v:getY() - cy) > 6 end)
+        if not far then return false end
+    end
+    for y = cy - 2, cy + 2 do
+        for x = cx - 2, cx + 2 do
+            local sq = H.sqXY(x, y, cz)
+            local bare = false
+            pcall(function()
+                bare = sq ~= nil and sq:getFloor() ~= nil and sq:isOutside() and sq:getWorldObjects():size() == 0 and sq:getVehicleContainer() == nil
+                    and not H.used(sq)
+                if bare then
+                    local objs = sq:getObjects()
+                    for i = 0, objs:size() - 1 do
+                        local ob = objs:get(i)
+                        local n = 0
+                        pcall(function() n = ob:getContainerCount() end)
+                        if n > 0 or instanceof(ob, "IsoGenerator") then bare = false end
+                    end
+                end
+            end)
+            if not bare then return false end
+        end
+    end
+    return true
+end
+function H.cleanSite()
+    local f = S.found.pos
+    if not f then return nil end
+    local hx, hy, hz = math.floor(f.x), math.floor(f.y), math.floor(f.z)
+    for _, d in ipairs(S.CLEAN) do
+        local x, y = hx + d[1], hy + d[2]
+        local sq = H.sqXY(x, y, hz)
+        if sq and H.sqFree(sq) and H.bareAt(x, y, hz) then
+            local c = { x = x, y = y, z = hz }
+            if not S.cleanSnapped or S.cleanSnapped.x ~= x or S.cleanSnapped.y ~= y then
+                S.cleanSnapped = c
+                H.snapAt(x, y, hz)
+                S.sites = S.sites or {}
+                S.sites[#S.sites + 1] = c
+            end
+            return c
+        end
+    end
+    return nil
+end
+-- stand on the clean site (T.site), or say why not (nil)
+function H.toClean(T)
+    T.site = H.cleanSite()
+    if not T.site then return false end
+    H.goTo(T.site.x + 0.5, T.site.y + 0.5, T.site.z)
+    return true
+end
 function H.fireItems(f) local o = {}; pcall(function() local c = H.fireIso(f):getContainer(); for i = 0, c:getItems():size() - 1 do o[#o + 1] = H.ft(c:getItems():get(i)) end end); return o end
 
 -- ===================================================================== FI1 an indoor campfire
@@ -2484,6 +2774,9 @@ function C.fi2leg(T, how)
         T.off = nil
         H.legClean()
         H.caseStart(T)
+        -- (the first run: at home the game's reach held 22 burnables earlier runs left, so the lot of 26 overfilled
+        -- the fire, the All row stood greyed with no press, and the click did nothing: the case stands on a bare site)
+        if not H.toClean(T) then T.off = true; Q.skip(L, "no bare square within 12 tiles of home (no world items, containers or car round it)"); return end
         T.crate = H.mkCrate()
         if not T.crate then T.off = true; Q.skip(L, "no square for a crate"); return end
         T.book = H.giveTo(T.crate.inv, S.FT.book)
@@ -2494,9 +2787,10 @@ function C.fi2leg(T, how)
     end)
     C.fireLay(T, function() return H.firstFree(S.RING2) end, function()
         T.fuel0 = H.fireFuel(T.f)
-        local m = H.gameMenu({ H.fireIso(T.f) })
-        T.gameAll = H.menuLike(m, getText("ContextMenu_AllWithCount", 4)) or H.menuLike(m, getText("ContextMenu_AllWithCount", 3))
-        T.gameMenu = H.menuNames(m, 14)
+        local m, err, own = H.gameMenu({ H.fireIso(T.f) })
+        T.gameAll = H.menuLike(own, getText("ContextMenu_AllWithCount", 4)) or H.menuLike(own, getText("ContextMenu_AllWithCount", 3))
+        T.gameMenu = H.ownMenuWhy(m, own, err) or H.menuNames(own, 14)
+        H.lootRefresh()
         H.fireInfo(T.f)
     end)
     H.wait(5000, function() return T.off or (H.cardFire(T.f) and H.zone("fire:fuelall") ~= nil) end, function(ok)
@@ -2505,14 +2799,30 @@ function C.fi2leg(T, how)
         T.allRow = H.rowWords("fire:fuelall")
         T.head = H.drewAll(ZeD.tr("UI_ZeD_Fire_AddFromBags"), 2)
         T.bookRow = H.drew(H.nm(T.book)) ~= nil
+        -- the press must reach the game: the All row live (the lot fits the fire), and nothing in reach the script did
+        -- not give (All would burn it)
+        local foreign = H.foreignFire(true)
+        if not H.lit("fire:fuelall") then
+            T.off = true
+            Q.skip(L .. " (FI2): one press of All fuel, no question, leaves the crate's skill book and map", "the card's All row has no press (its row '"
+                .. tostring(T.allRow) .. "'; the fire's fuel " .. H.n1(T.fuel0) .. " min; not the script's in reach: " .. H.list(foreign, 8) .. ")")
+        elseif #foreign > 0 then
+            T.off = true
+            Q.skip(L .. " (FI2): one press of All fuel, no question, leaves the crate's skill book and map", "All would burn things in his reach the script did not give: " .. H.list(foreign, 8))
+        end
     end)
     if how == "mouse" then
         H.shot("ocp_fire_" .. H.sizeTag(), "the Fire card: a campfire with fuel to add (the strip, the Light rows, Add fuel with a crate's skill book and map in the list)", function() return not T.off end)
-        H.clickQ(T, "fire:fuelall", L)
+        H.clickQ(T, "fire:fuelall", L, "clicked")
     else
         H.padPress(T, "fire:fuelall", L, "goA")
     end
-    H.step(2, function() H.padOff(); if not T.off then T.k = H.qkinds() end end)
+    H.step(2, function()
+        H.padOff()
+        if T.off then return end
+        T.k = H.qkinds()
+        T.nFuel = H.qcount("ISAddFuelAction") + H.qcount("ISBBQAddFuel") + H.qcount("ISAddFuel")
+    end)
     H.waitQ(T, 60000)
     H.step(2, function()
         if T.off then return end
@@ -2520,10 +2830,19 @@ function C.fi2leg(T, how)
         for _, e in ipairs({ { T.book, "the skill book (crate)" }, { T.map, "the map (crate)" }, { T.cplank, "the plank (crate)" }, { T.bplank, "the plank (bags)" } }) do
             if H.gone(e[1]) then burned[#burned + 1] = e[2] else kept[#kept + 1] = e[2] end
         end
-        Q.check(not H.gone(T.book) and not H.gone(T.map), L .. " (FI2): one press of All fuel, no question, leaves the crate's skill book and map",
-            "the game burned " .. H.list(burned) .. "; kept " .. H.list(kept) .. "; the fire's fuel " .. H.n1(T.fuel0) .. " -> " .. H.n1(H.fireFuel(T.f))
-            .. " min; the queue was " .. tostring(T.k) .. "; the card's head read '" .. tostring(T.head) .. "', its All row '" .. tostring(T.allRow) .. "', the book listed " .. tostring(T.bookRow))
-        H.note(L .. ": gone for good (test items the script gave): " .. H.list(burned) .. "; the game's own menu: " .. tostring(T.gameMenu))
+        local fuel1 = H.fireFuel(T.f)
+        local rose = type(fuel1) == "number" and type(T.fuel0) == "number" and fuel1 > T.fuel0 + 0.5
+        local what = "the game burned " .. H.list(burned) .. "; kept " .. H.list(kept) .. "; the fire's fuel " .. H.n1(T.fuel0) .. " -> " .. H.n1(fuel1)
+            .. " min; the queue after the press " .. tostring(T.k) .. " (" .. tostring(T.nFuel) .. " fuel actions); the card's head read '" .. tostring(T.head)
+            .. "', its All row '" .. tostring(T.allRow) .. "', the book listed " .. tostring(T.bookRow)
+        -- judged only when the press reached the game: its fuel actions queued, or the fire's fuel rose
+        if (T.nFuel or 0) == 0 and not rose then
+            Q.skip(L .. " (FI2): one press of All fuel, no question, leaves the crate's skill book and map", "the press ran nothing in the game ("
+                .. ((how == "mouse") and ("the click landed " .. tostring(T.clicked)) or ("the pad's focus took " .. tostring(T.goA))) .. "): " .. what)
+        else
+            Q.check(not H.gone(T.book) and not H.gone(T.map), L .. " (FI2): one press of All fuel, no question, leaves the crate's skill book and map", what)
+        end
+        H.note(L .. ": gone for good (test items the script gave): " .. H.list(burned) .. "; the game's own menu on the campfire: " .. tostring(T.gameMenu))
     end)
 end
 function C.fi2()
@@ -2553,8 +2872,8 @@ function C.fi3leg(T, how)
     C.fireLay(T, function() return H.firstFree(S.RING2) end, function()
         local so = H.fireServer(T.f)
         if so then pcall(function() so:addFuel(30) end) end
-        local m = H.gameMenu({ H.fireIso(T.f) })
-        T.gameLight = H.menuNames(m, 20)
+        local m, err, own = H.gameMenu({ H.fireIso(T.f) })
+        T.gameLight = H.ownMenuWhy(m, own, err) or H.menuNames(own, 20)
         H.fireInfo(T.f)
     end)
     H.wait(5000, function() return T.off or (H.cardFire(T.f) and H.zone("fire:light:1") ~= nil) end, function(ok)
@@ -2708,6 +3027,49 @@ function H.tankItem(uses)
     pcall(function() tank:setCurrentUsesFloat(uses) end)
     return tank
 end
+-- every propane tank the case gave (T.floorTank, the spares) or the game moved (the tanks its Remove and Insert put
+-- on the floor where he stood), taken away: the floor within 2 tiles of the grill and of him (what was not there at
+-- the start), his bags (what he did not carry), the grill's own. Returns the count, and true when the floor's tank is
+-- still somewhere
+function H.tanksAway(T)
+    local n = 0
+    for _, it in ipairs({ T.floorTank, T.spare }) do
+        if H.isItem(it) then
+            H.removeItem(it)
+            pcall(function() it:setWorldItem(nil) end)
+        end
+    end
+    T.spare = nil
+    local spots = {}
+    if T.bbq and T.bbq.sq then spots[#spots + 1] = T.bbq.sq end
+    pcall(function() local cs = S.p:getCurrentSquare(); if cs then spots[#spots + 1] = cs end end)
+    for _, c in ipairs(spots) do
+        local cx, cy, cz = c:getX(), c:getY(), c:getZ()
+        for y = cy - 2, cy + 2 do
+            for x = cx - 2, cx + 2 do
+                local sq = H.sqXY(x, y, cz)
+                local wos = {}
+                pcall(function() local l = sq:getWorldObjects(); for i = 0, l:size() - 1 do wos[#wos + 1] = l:get(i) end end)
+                for _, wo in ipairs(wos) do
+                    local it = nil
+                    pcall(function() it = wo:getItem() end)
+                    if H.ft(it) == S.FT.tank and not S.found.floor0[wo] then
+                        pcall(function() sq:transmitRemoveItemFromSquare(wo) end)
+                        pcall(function() wo:removeFromWorld() end)
+                        pcall(function() wo:removeFromSquare() end)
+                        pcall(function() it:setWorldItem(nil) end)
+                        n = n + 1
+                    end
+                end
+            end
+        end
+    end
+    for _, it in ipairs(H.all()) do
+        if H.ft(it) == S.FT.tank and not S.found.inv0[it] then H.removeItem(it); n = n + 1 end
+    end
+    pcall(function() if T.bbq.obj:hasPropaneTank() then T.bbq.obj:removePropaneTank(); n = n + 1 end end)
+    return n, (T.floorTank ~= nil and not H.gone(T.floorTank))
+end
 function C.fi6tank(T, how)
     local L = T.L .. " (the tank key, " .. how .. ")"
     H.step(2, function()
@@ -2726,9 +3088,15 @@ function C.fi6tank(T, how)
         T.verbs = H.zoneIds("oc:")
         T.ins = H.zone("oc:verb:insert") ~= nil or H.zone("oc:hv:insert") ~= nil
         if how == "mouse" then
-            T.gameIns = H.menuLike(H.gameMenu({ T.bbq.obj }), getText("ContextMenu_Insert_Propane_Tank"))
-            Q.check(T.gameIns == nil or T.ins, T.L .. " (FI6): with an empty tank in and a full one in the bags, the card offers Insert as the game's menu does",
-                "the game's menu offers Insert " .. tostring(T.gameIns ~= nil) .. " (its action drops the old tank, BIT:65-72); the card's verbs: " .. T.verbs)
+            local m, err, own = H.gameMenu({ T.bbq.obj })
+            T.gameIns = H.menuLike(own, getText("ContextMenu_Insert_Propane_Tank"))
+            local why = H.ownMenuWhy(m, own, err)
+            if why then
+                Q.skip(T.L .. " (FI6): with an empty tank in and a full one in the bags, the card offers Insert as the game's menu does", why)
+            else
+                Q.check(T.gameIns == nil or T.ins, T.L .. " (FI6): with an empty tank in and a full one in the bags, the card offers Insert as the game's menu does",
+                    "the game's menu on the grill offers Insert " .. tostring(T.gameIns ~= nil) .. " (its action drops the old tank, BIT:65-72); the card's verbs: " .. T.verbs)
+            end
         end
     end)
     if how == "mouse" then H.clickQ(T, "bbq:tank", L) else H.padPress(T, "bbq:tank", L, "goK") end
@@ -2779,6 +3147,13 @@ function C.fi6()
             .. "; the needs words (none in reach): \"" .. ZeD.tr("UI_ZeD_Fire_NeedsSpareTank") .. "\"")
         pcall(function() T.bbq.obj:removePropaneTank() end)
     end)
+    -- the clean-up: every propane tank the case gave or the game moved (the first run's put back found one left)
+    H.step(2, function()
+        if not T.bbq then return end
+        local n, still = H.tanksAway(T)
+        if still then H.note(T.L .. ": the floor's tank still not gone after the clean-up (" .. H.whereText(T.floorTank) .. ")") end
+        if n > 0 then H.note(T.L .. ": the clean-up took away " .. n .. " propane tanks (the floor round the grill and him, his bags, the grill)") end
+    end)
     H.caseEnd(T.L)
 end
 
@@ -2815,7 +3190,7 @@ function C.fi7()
     end)
     H.wait(3000, function() return T.off or H.cardOn("fire", T.bbq.obj) end, function(ok)
         if T.off then return end
-        local gm = H.gameMenu({ T.bbq.obj })
+        local _, _, gm = H.gameMenu({ T.bbq.obj })
         T.gameOut = H.menuLike(gm, getText("ContextMenu_Put_out_fire")) or H.menuLike(gm, campingText and campingText.putOutCampfire or "?")
         Q.check(H.zone("oc:verb:out") == nil, T.L .. " (FI7): smouldering, the card has no Put out, as the game's menu",
             "the card's verbs " .. H.zoneIds("oc:") .. "; the game's menu offers Put out " .. tostring(T.gameOut ~= nil) .. " (" .. H.menuNames(gm, 10) .. ")")
@@ -2840,7 +3215,7 @@ function C.fi7()
         Q.check(cardCooks == heating, T.L .. " (FI7): on the smouldering barbecue the card reads the steak cooking exactly when the game heats it",
             "over " .. H.n1(r1.m - T.r0.m) .. " game minutes the steak's cooking time " .. H.n1(T.r0.ct) .. " -> " .. H.n1(r1.ct) .. ", heat " .. H.n2(T.r0.heat) .. " -> " .. H.n2(r1.heat)
             .. "; the card drew its minutes " .. tostring(cardCooks) .. "; still smouldering " .. tostring(H.call(T.bbq.obj, "isSmouldering")))
-        local gm = H.gameMenu({ T.bbq.obj })
+        local _, _, gm = H.gameMenu({ T.bbq.obj })
         H.note(T.L .. ": smouldering, the card's Light verb shown " .. tostring(H.zone("oc:verb:light") ~= nil or H.zone("oc:hv:light") ~= nil) .. "; the game's menu: " .. H.menuNames(gm, 12))
     end)
     H.caseEnd(T.L)
@@ -2850,7 +3225,7 @@ end
 function C.fi9()
     local T = { L = "FI9 the fire's Info from far off" }
     H.step(2, function() H.caseStart(T) end)
-    C.fireLay(T, function() return H.freeSq(-2, 0) end, function() T.sq = T.f.sq end)
+    C.fireLay(T, function() return H.reachSq() end, function() T.sq = T.f.sq end)
     for _, d in ipairs({ 2, 7, 15 }) do
         C.reachLeg(T, d, function() H.fireInfo(T.f) end, function() return H.cardFire(T.f) end)
     end
@@ -2862,13 +3237,18 @@ function C.fi10()
     local T = { L = "FI10 Light's NEEDS words" }
     H.step(2, function()
         H.caseStart(T)
-        H.give(S.FT.paper)
+        -- (the first run: at home the game's reach held books, bats and the like earlier runs left: "no fuel and no
+        -- lighter" did not hold there; the case stands on a bare site)
+        if not H.toClean(T) then T.off = true; Q.skip(T.L, "no bare square within 12 tiles of home (no world items, containers or car round it)"); return end
+        T.paper = H.give(S.FT.paper)
         H.hidden("all")
+        H.lootRefresh()
     end)
     C.fireLay(T, function() return H.firstFree(S.RING2) end, function()
-        local m = H.gameMenu({ H.fireIso(T.f) })
-        T.gameNo = H.menuLike(m, getText("ContextMenu_No_LightingMethod"))
-        T.gameMenu = H.menuNames(m, 12)
+        local m, err, own = H.gameMenu({ H.fireIso(T.f) })
+        T.gameNo = H.menuLike(own, getText("ContextMenu_No_LightingMethod"))
+        T.gameWhy = H.ownMenuWhy(m, own, err)
+        T.gameMenu = T.gameWhy or H.menuNames(own, 12)
         H.lootRefresh()
         H.fireInfo(T.f)
     end)
@@ -2878,8 +3258,17 @@ function C.fi10()
         local fuelFirst = ZeD.tr("UI_ZeD_Fire_NeedsFuelFirst")
         local line = nil
         for _, l in ipairs(S.cardNeeds or {}) do if not line and (H.hasLc(l, lighter) or H.hasLc(l, fuelFirst)) then line = l end end
-        Q.check(line ~= nil and H.hasLc(line, lighter), T.L .. " (FI10): with paper, no fuel and no lighter, Light's NEEDS line names the lighter or matches (the game lights tinder with no fuel, CM:257)",
-            "Light's line: \"" .. tostring(line) .. "\"; every NEEDS line: " .. H.list(S.cardNeeds) .. "; the game's menu: " .. T.gameMenu .. " (no lighting method " .. tostring(T.gameNo ~= nil) .. ")")
+        local L2 = T.L .. " (FI10): with paper, no fuel and no lighter, Light's NEEDS line names the lighter or matches (the game lights tinder with no fuel, CM:257)"
+        local foreign = H.foreignFire(false)
+        if #foreign > 0 then
+            Q.skip(L2, "his reach holds fuel, tinder or a starter the script did not give: " .. H.list(foreign, 8))
+        elseif not H.carried(T.paper) then
+            Q.skip(L2, "the paper the script gave is not in his bags")
+        else
+            Q.check(line ~= nil and H.hasLc(line, lighter), L2,
+                "Light's line: \"" .. tostring(line) .. "\"; every NEEDS line: " .. H.list(S.cardNeeds) .. "; the game's menu on the campfire: " .. T.gameMenu
+                .. " (its no lighting method line " .. tostring(T.gameNo ~= nil) .. ")")
+        end
         local raw = ZeD.tr("UI_ZeD_Fire_ScaleHours", 2)
         H.note("FI10: the hour mark \"" .. raw .. "\" as drawn: " .. H.drewAll(raw, 2) .. " (ZeD.textCase on the key: OCF:358, ZUI:1045)")
     end)
@@ -2948,7 +3337,7 @@ function C.seated()
     C.seatLeg(T, "FL5 a bottle's Liquid > Transfer", function() H.openItemFluid(T.b, false) end, function() return H.kind() == "fluid" end, nil)
     C.seatLeg(T, "FL5 a bottle's Liquid > Show info", function() H.openItemFluid(T.b, true) end, function() return H.kind() == "fluid" end, nil)
     C.seatLeg(T, "FI9 the campfire's Info", function() H.fireInfo(T.f) end, function() return H.kind() == "fire" end,
-        function() local iso = H.fireIso(T.f); local m = iso and H.gameMenu({ iso }) or {}; return (#m > 0) and H.menuNames(m, 10) or "nothing" end)
+        function() local iso = H.fireIso(T.f); local own = {}; if iso then local _, _, o2 = H.gameMenu({ iso }); own = o2 or {} end; return (#own > 0) and H.menuNames(own, 10) or "nothing" end)
     H.step(2, function()
         pcall(function() if S.p:getVehicle() then local car = S.p:getVehicle(); car:exit(S.p); triggerEvent("OnExitVehicle", S.p) end end)
     end)
@@ -3050,7 +3439,7 @@ function S.buildPutBack()
         end
         Q.check(carsLeft == 0, "put back: the car the run spawned is gone", #S.cars .. " spawned, " .. carsLeft .. " left")
         local left = {}
-        for _, it in ipairs(S.made) do if not H.gone(it) then left[#left + 1] = H.ft(it) end end
+        for _, it in ipairs(S.made) do if not H.gone(it) then left[#left + 1] = H.ft(it) .. " (" .. H.whereText(it) .. ")" end end
         Q.check(#left == 0, "put back: every thing the run gave is gone (the bags, the floor, the crates, the fires)", #S.made .. " given; left " .. H.list(left, 8))
         local extra = {}
         for _, it in ipairs(H.all()) do if not f.inv0[it] then extra[#extra + 1] = H.ft(it) end end
@@ -3084,7 +3473,14 @@ function S.buildPutBack()
         Q.check(S.errs == 0, "put back: nothing ZeD ran for this script threw", S.errs .. " caught" .. (S.zerr and (": " .. S.zerr) or ""))
         if S.cardErrs then Q.check(false, "the object card drew without an error", S.cardErrs .. " times; last " .. tostring(S.cardErrLast)) end
         local e1 = H.errN()
-        if S.err0 and e1 then Q.check(e1 == S.err0, "the Power, Fluid and Fire card run ran with no Lua error", (e1 - S.err0) .. " new")
+        if S.err0 and e1 then
+            -- every case window was split at its end; the last stretch (put back) is split here
+            local other, own = H.errSplit(S.e0 or S.err0, e1)
+            local ownAll = (S.ownErrs or 0) + own
+            local notOurs = (e1 - S.err0) - ownAll
+            Q.check(notOurs == 0, "the Power, Fluid and Fire card run ran with no Lua error", notOurs .. " new"
+                .. ((ownAll > 0) and (" (" .. ownAll .. " more in ocp_tab's own code: a test fault)") or ""))
+            if other > 0 then H.note("put back: " .. other .. " of those during the put-back itself") end
         else Q.skip("the run's Lua error count", "the game's Lua error count cannot be read here") end
         H.note("pictures: " .. H.list(S.shots))
     end)
