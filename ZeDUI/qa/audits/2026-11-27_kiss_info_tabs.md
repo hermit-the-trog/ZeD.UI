@@ -10,20 +10,20 @@ Maps (in ZeDUI/qa/audits):
 
 Scripts (each manifest at 4K and 1280x800): sk_tab (sk.txt), jn_tab (jn.txt), rd_tab (rd.txt), mz_tab (mz.txt).
 
-## Where it stands (Nov 27 2026)
+## Where it stands (Nov 27 2026: every tab fails only its design calls)
 
 | Sweep | 4K | 1280x800 | What still fails |
 | --- | --- | --- | --- |
 | Skills and Info | 353 pass, 1 fail | 353 pass, 1 fail | S3 (call 1) |
 | Journal | 336 pass, 2 fail | 336 pass, 2 fail | J1, J32 (calls 5 and 6) |
-| Radio | 317 pass, 6 fail (run 4) | 318 pass, 6 fail (run 4) | R6, R51 (call 4); R35, R37, R39 fixed in fix/twoway, run 5 pending |
+| Radio | 322 pass, 2 fail | 322 pass, 2 fail | R6, R51 (call 4) |
 | Maps | 343 pass, 1 fail | 340 pass, 1 fail | MP33 (call 7) |
 
 The skips are multiplayer cases, split screen, other languages and staging the game can't do in single player.
 
 ## Bugs found and fixed
 
-Built in fix/skillsinfo, fix/radio, fix/journal, fix/infotabs2 (Journal, Survived for, Maps), fix/rtvbattery, fix/journal2, fix/survived2, fix/jn41 and fix/twoway.
+Built in fix/skillsinfo, fix/radio, fix/journal, fix/infotabs2 (Journal, Survived for, Maps), fix/rtvbattery, fix/journal2, fix/survived2, fix/jn41, fix/twoway and fix/radio6.
 
 Skills and Info:
 - Skill pins are kept by the perk's id, so a language change no longer loses them.
@@ -50,6 +50,7 @@ Radio:
 - A battery pressed on the radio's tab goes into the radio, not a TV on its square.
 - Turning a set off stops its disc at once.
 - The pad's stops follow the walkie shown (LAMP, MEM and MIC hit the right set).
+- Device Options on a car's radio shows the World window whole, and a car's built-in ham gets the plain card.
 
 Journal:
 - Blank text saves nothing.
