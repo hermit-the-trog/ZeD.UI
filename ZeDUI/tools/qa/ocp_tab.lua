@@ -302,7 +302,11 @@ function H.onFloor(it)
 end
 function H.whereText(it)
     local c = H.where(it)
-    if c then return H.ctype(c) end
+    if c then
+        local listed = nil
+        pcall(function() listed = c:contains(it) and true or false end)
+        return H.ctype(c) .. ((listed == false) and " (a stale pointer: the container does not list it)" or "")
+    end
     local wo = H.onFloor(it)
     local s = "nowhere"
     if wo then pcall(function() local sq = wo:getSquare(); s = "the floor at " .. sq:getX() .. "," .. sq:getY() end) end
@@ -354,6 +358,16 @@ function H.removeItem(it)
         end
     end)
     pcall(function() local c = it:getContainer(); if c then c:Remove(it) end end)
+    -- (Nov 26 2026, FI6: ItemContainer.Remove clears the item's container only when its list holds the item. The
+    -- game's shared floor container (ISInventoryPage.GetFloorContainer, the loot window's and the World window's) is
+    -- emptied by clear() at each refresh, which leaves every item it listed pointing at it. The floor's propane tank
+    -- the grill's Insert took off the square (ISBBQInsertPropaneTank:complete: transmitRemoveItemFromSquare; the grill
+    -- gets a new tank) kept that stale "floor" container, so put back read it as left on the floor. The stale pointer
+    -- is cut; a container that does list the thing had it removed above.)
+    pcall(function()
+        local c = it:getContainer()
+        if c and not c:contains(it) then it:setContainer(nil) end
+    end)
 end
 function H.sweepNew()
     local n = 0
@@ -2642,7 +2656,9 @@ S.CLEAN = { { 0, -6 }, { 0, 6 }, { -6, 0 }, { 6, 0 }, { -6, -6 }, { 6, -6 }, { -
             { -12, -6 }, { 12, -6 }, { -12, 6 }, { 12, 6 } }
 function H.bareAt(cx, cy, cz)
     local cars = {}
-    pcall(function() local vs = getCell():getVehicles(); for i = 0, vs:size() - 1 do cars[#cars + 1] = vs:get(i) end end)
+    -- (IsoCell.getVehicles is a Set here, with no get(i): the last run threw "tried to call nil" in this pcall at
+    -- every site, 54 entries noted as test faults, and no car was ever counted. Its iterator, as put back reads it.)
+    pcall(function() local it = getCell():getVehicles():iterator(); while it:hasNext() do cars[#cars + 1] = it:next() end end)
     for _, v in ipairs(cars) do
         local far = true
         pcall(function() far = math.abs(v:getX() - cx) > 6 or math.abs(v:getY() - cy) > 6 end)
@@ -3026,13 +3042,17 @@ function C.fi5()
 end
 
 -- ===================================================================== FI6 the propane tank swap
+-- a propane tank made for the case (marked, so put back counts it; kept in S.tanks for the clean-up: the grill's
+-- empty one goes to the floor when the game's Insert swaps it, ISBBQInsertPropaneTank:complete)
 function H.tankItem(uses)
     local tank = nil
     pcall(function() tank = instanceItem(S.FT.tank) end)
     if not tank then return nil end
     pcall(function() tank:setUsedDelta(uses) end)
     pcall(function() tank:setCurrentUsesFloat(uses) end)
-    return tank
+    S.tanks = S.tanks or {}
+    S.tanks[#S.tanks + 1] = tank
+    return H.mark(tank)
 end
 -- every propane tank the case gave (T.floorTank, the spares) or the game moved (the tanks its Remove and Insert put
 -- on the floor where he stood), taken away: the floor within 2 tiles of the grill and of him (what was not there at
@@ -3040,10 +3060,18 @@ end
 -- still somewhere
 function H.tanksAway(T)
     local n = 0
-    for _, it in ipairs({ T.floorTank, T.spare }) do
+    -- (the grill's own first, so a tank of the run's it still holds is taken out of it, not left inside)
+    pcall(function() if T.bbq.obj:hasPropaneTank() then T.bbq.obj:removePropaneTank(); n = n + 1 end end)
+    local mine = { T.floorTank, T.spare }
+    for _, it in ipairs(S.tanks or {}) do mine[#mine + 1] = it end
+    for _, it in ipairs(mine) do
         if H.isItem(it) then
+            local was = not H.gone(it)
             H.removeItem(it)
             pcall(function() it:setWorldItem(nil) end)
+            -- (a container that does not list it is a stale pointer: the shared floor container's clear() leaves one)
+            pcall(function() local c = it:getContainer(); if c and not c:contains(it) then it:setContainer(nil) end end)
+            if was then n = n + 1 end
         end
     end
     T.spare = nil
@@ -3074,8 +3102,9 @@ function H.tanksAway(T)
     for _, it in ipairs(H.all()) do
         if H.ft(it) == S.FT.tank and not S.found.inv0[it] then H.removeItem(it); n = n + 1 end
     end
-    pcall(function() if T.bbq.obj:hasPropaneTank() then T.bbq.obj:removePropaneTank(); n = n + 1 end end)
-    return n, (T.floorTank ~= nil and not H.gone(T.floorTank))
+    local still = false
+    for _, it in ipairs(mine) do if H.isItem(it) and not H.gone(it) then still = true end end
+    return n, still
 end
 function C.fi6tank(T, how)
     local L = T.L .. " (the tank key, " .. how .. ")"
@@ -3135,7 +3164,7 @@ function C.fi6()
         for _, it in ipairs(H.all()) do if H.ft(it) == S.FT.tank and not S.found.inv0[it] then H.removeItem(it) end end
         local tank = H.tankItem(1.0)
         local sq = H.sqXY(T.bbq.sq:getX(), T.bbq.sq:getY() + 1, T.bbq.sq:getZ())
-        if tank and sq then pcall(function() sq:AddWorldInventoryItem(tank, 0.5, 0.5, 0) end); T.floorTank = H.mark(tank) end
+        if tank and sq then pcall(function() sq:AddWorldInventoryItem(tank, 0.5, 0.5, 0) end); T.floorTank = tank end
         H.hidden("all")
         H.bbqInfo(T.bbq.obj)
     end)
@@ -3158,7 +3187,11 @@ function C.fi6()
     H.step(2, function()
         if not T.bbq then return end
         local n, still = H.tanksAway(T)
-        if still then H.note(T.L .. ": the floor's tank still not gone after the clean-up (" .. H.whereText(T.floorTank) .. ")") end
+        if still then
+            local o = {}
+            for _, it in ipairs(S.tanks or {}) do if H.isItem(it) and not H.gone(it) then o[#o + 1] = H.whereText(it) end end
+            H.note(T.L .. ": a tank the run made still not gone after the clean-up (" .. H.list(o, 6) .. ")")
+        end
         if n > 0 then H.note(T.L .. ": the clean-up took away " .. n .. " propane tanks (the floor round the grill and him, his bags, the grill)") end
     end)
     H.caseEnd(T.L)

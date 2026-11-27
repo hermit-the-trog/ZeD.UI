@@ -54,7 +54,8 @@
 --   4 LK6 the hook keeps the queue: a walk elsewhere running, then the game's Use Combination Padlock from 5 tiles
 --          (the hooked onPutDigitalPadlock): the walk still first in the game's queue (the game clears it)
 --   5 LK7 the pad's path from the card's open to a locked crate: the opening stop, A grabs, the D-pad turns, A lets
---          go, up to Lock, the question on Cancel, Right, A; the presses counted; the grab's prompt; the code locked
+--          go, down to Lock (the verbs' band at the foot), the question on Cancel, Right, A; the presses counted; the
+--          grab's prompt; the code locked
 --   6 LK8 the half card at the run's size with the busy band and the set note: wheel 3's chevrons and Stop inside the
 --          body's width (beside the scroll bar when it shows). Picture ocl_lock_busy_<WxH>
 --   7 OC7 three Loot columns open (the World window's own toggleColumn), then the lock card by the game's Remove
@@ -366,6 +367,35 @@ function H.removeItem(it)
         end
     end)
     pcall(function() local c = it:getContainer(); if c then c:Remove(it) end end)
+    -- (Nov 26 2026: ItemContainer.Remove clears the item's container only when its list holds the item, and the
+    -- game's shared floor container (ISInventoryPage.GetFloorContainer) is emptied by clear(), which leaves each
+    -- item it listed pointing at it. A thing that left the floor some other way (taken off the square by the game or
+    -- swept) keeps that stale "floor" container for good, and put back read it as left. The stale pointer is cut;
+    -- a container that does list the thing has had it removed above.)
+    pcall(function()
+        local c = it:getContainer()
+        if c and not c:contains(it) then it:setContainer(nil) end
+    end)
+    pcall(function()
+        local wo = it:getWorldItem()
+        if wo and (wo:getSquare() == nil or not wo:getSquare():getWorldObjects():contains(wo)) then it:setWorldItem(nil) end
+    end)
+end
+-- where a thing the run made still is, for a detail line
+function H.whereText(it)
+    local o = {}
+    pcall(function()
+        local c = it:getContainer()
+        if c then o[#o + 1] = "container " .. tostring(c:getType()) .. " (lists it " .. tostring(c:contains(it)) .. ")" end
+    end)
+    pcall(function()
+        local wo = it:getWorldItem()
+        if wo then
+            local sq = wo:getSquare()
+            o[#o + 1] = "world item " .. (sq and (sq:getX() .. "," .. sq:getY() .. " (on the square " .. tostring(sq:getWorldObjects():contains(wo)) .. ")") or "on no square")
+        end
+    end)
+    return (#o > 0) and table.concat(o, ", ") or "nowhere"
 end
 function H.gone(it)
     if H.where(it) ~= nil then return false end
@@ -597,19 +627,42 @@ function H.mkMachine(cls, sq)
     S.ldKeys[#S.ldKeys + 1] = S.OC.keyOf(sq, "laundry")
     return c
 end
+-- water in a laundry machine on the drag strip (outdoors, no plumbing). The washer has no fluid container of its own
+-- (IsoObject.addFluid pours only into getFluidContainer, which a washer tile lacks: the last run's washer read 0 L,
+-- so the card's Power ran nothing and the band said "Requires a source of water"). The game's getFluidAmount then
+-- reads the tile's reserve: a piped tile (waterPiped) that was never moved (modData canBeWaterPiped not true) holds
+-- modData.waterAmount litres (IsoObject.getReserveWaterAmount); the plumbed-house supply needs a room. So the reserve
+-- is set (and emptied the same way). S.waterHow says which way took.
 function H.water(o, litres)
     pcall(function() o:setUsesExternalWaterSource(false) end)
+    local n = 0
+    local function amount() local a = 0; pcall(function() a = o:getFluidAmount() or 0 end); return a end
     if litres and litres > 0 then
-        pcall(function() if (o:getFluidAmount() or 0) <= 0 then o:createFluidContainersFromSpriteProperties() end end)
+        pcall(function() if amount() <= 0 then o:createFluidContainersFromSpriteProperties() end end)
         pcall(function() o:addFluid(FluidType.Water, litres) end)
+        S.waterHow = "its fluid container"
+        if amount() <= 0 then
+            pcall(function() local md = o:getModData(); md.canBeWaterPiped = nil; md.waterAmount = litres end)
+            S.waterHow = "the piped tile's reserve (modData.waterAmount)"
+        end
     else
         pcall(function() o:emptyFluid() end)
+        pcall(function() local md = o:getModData(); if md.waterAmount ~= nil or amount() > 0 then md.waterAmount = 0 end end)
+        S.waterHow = "emptied"
     end
-    local n = 0
-    pcall(function() n = o:getFluidAmount() or 0 end)
+    n = amount()
+    if litres and litres > 0 and n <= 0 then
+        local piped, room, noWater = false, false, false
+        pcall(function() piped = o:getSprite():getProperties():has(IsoFlagType.waterPiped) end)
+        pcall(function() room = o:getSquare():getRoom() ~= nil end)
+        pcall(function() noWater = o:getSquare():isNoWater() end)
+        S.waterHow = "none took (the tile piped " .. tostring(piped) .. ", in a room " .. tostring(room) .. ", the square's isNoWater " .. tostring(noWater) .. ")"
+    end
     return n
 end
 function H.on(o) local a = nil; pcall(function() a = o:isActivated() and true or false end); return a end
+-- o's getter by name, or nil (a reading for a detail line)
+function H.call0(o, fn) local v = nil; if o then pcall(function() v = o[fn](o) end) end; return v end
 function H.powered(o) local pw = false; pcall(function() local c = o:getContainer(); pw = c ~= nil and c:isPowered() end); return pw and true or false end
 function H.rmObj(c)
     if not (c and c.obj) or c.removed then return end
@@ -1138,6 +1191,17 @@ function H.legClean()
     pcall(function() local c = getPlayerContextMenu(S.pn); if c and c:getIsVisible() then c:setVisible(false) end end)
     pcall(function() if S.p:getVehicle() then local car = S.p:getVehicle(); car:exit(S.p); triggerEvent("OnExitVehicle", S.p) end end)
     for _, it in ipairs(S.caseMade) do H.removeItem(it) end
+    -- (Nov 26 2026: put back found a Base.Hammer the run laid still not gone, with no case named. Each case's own
+    -- things are checked here at its end: one still somewhere is named with its case and where it points, and its
+    -- pointers are cut so the case leaves nothing.)
+    for _, it in ipairs(S.caseMade) do
+        if not H.gone(it) then
+            local where = H.whereText(it)
+            pcall(function() it:setContainer(nil) end)
+            pcall(function() it:setWorldItem(nil) end)
+            H.note(tostring(S.caseLabel or "a case") .. ": its " .. H.ft(it) .. " was still somewhere after the clean-up (" .. where .. "): cut loose, gone now " .. tostring(H.gone(it)))
+        end
+    end
     S.caseMade = {}
     H.sweepNew()
     H.sweepFloor()
@@ -1149,6 +1213,7 @@ function H.legClean()
 end
 function H.caseStart(T)
     S.caseMade = {}
+    S.caseLabel = T.L
     S.presses = 0
     T.t0case = getTimestampMs()
     H.legClean()
@@ -1434,12 +1499,30 @@ function H.gameHealth(rd, s)
     g.text = H.n2(g.total) .. " = " .. tostring(g.base) .. " + " .. tostring(g.bonus) .. " x " .. tostring(g.k) .. " + " .. tostring(g.lvl) .. " x " .. tostring(g.sb)
     return g
 end
+-- the card's strength line: the number it leads with, whether the card drew it, the line as the card holds it, and
+-- as it was drawn. (Nov 26 2026: the preview card draws it in its body, in the card's own prerender, by
+-- UI.pairWide: the label in F1, the value in F2 through drawTextRight after ZeD.Atoms.truncateText to the room
+-- beside the label. "200 (more with your Masonry + 200 bonus)" does not fit a half card, so the card drew
+-- "200 (more with your Ma..." and the last run's exact match read it as not drawn. A drawn cut of the line, its
+-- lead number whole, counts as drawn.)
 function H.strength()
     local t = H.ct()
     local s = t and t.d and t.d.strength
     if not s then return nil, nil end
-    local shown = H.drew(s) ~= nil
-    return tonumber(string.match(tostring(s), "^(%d+)")), shown, s
+    s = tostring(s)
+    local lead = string.match(s, "^(%d+)")
+    local hit = H.drew(s)
+    if not hit then
+        for _, d in ipairs(H.texts()) do
+            local ds = tostring(d.s)
+            if #ds > 3 and string.sub(ds, -3) == "..." then
+                local head = string.sub(ds, 1, #ds - 3)
+                if lead and string.match(head, "^(%d+)") == lead and string.sub(s, 1, #head) == head then hit = d; break end
+            end
+        end
+    end
+    local drawnLead = hit and string.match(tostring(hit.s), "^(%d+)") or lead
+    return tonumber(drawnLead), hit ~= nil, s, hit and hit.s or nil
 end
 function H.findRd(mod, names, pred, max)
     local ok, data = pcall(mod.gatherData, S.p, RT.ww())
@@ -1920,6 +2003,8 @@ function C.c4()
 end
 
 -- ===================================================================== 5. the pad's path (LK7)
+-- the pad's focus is on one of the card's verbs (the band at its foot: "oc:verb:<id>")
+function C.onVerb() return string.sub(tostring(H.focusedId()), 1, 8) == "oc:verb:" end
 function C.c5()
     local T = { L = "5 LK7 the pad's path" }
     H.step(2, function()
@@ -1954,8 +2039,14 @@ function C.c5()
     H.dirQ("up", 1, function() return not T.off end)
     H.tapA(function() return not T.off end)
     H.step(1, function() if not T.off then T.path[#T.path + 1] = "A Up A: dial " .. H.dial() end end)
-    for _ = 1, 4 do H.dirQ("up", 1, function() return not T.off and H.focusedId() ~= "oc:verb:lock" end) end
-    H.step(1, function() if not T.off then T.path[#T.path + 1] = "Up to: " .. tostring(H.focusedId()) end end)
+    -- (Nov 26 2026: the Lock verb is in the verbs' band at the card's foot, under the wheels (drawVerbBand, foot =
+    -- true), so a player goes Down to it; the last run pressed Up four times, which left the card for its header,
+    -- the title pins and the window's own stops, and A then pressed a loot row. Down until a verb has the focus,
+    -- then along the band to Lock.)
+    for _ = 1, 3 do H.dirQ("down", 1, function() return not T.off and not C.onVerb() end) end
+    for _ = 1, 3 do H.dirQ("right", 1, function() return not T.off and C.onVerb() and H.focusedId() ~= "oc:verb:lock" end) end
+    for _ = 1, 3 do H.dirQ("left", 1, function() return not T.off and C.onVerb() and H.focusedId() ~= "oc:verb:lock" end) end
+    H.step(1, function() if not T.off then T.path[#T.path + 1] = "Down to: " .. tostring(H.focusedId()) end end)
     H.tapA(function() return not T.off and H.focusedId() == "oc:verb:lock" end)
     Q.waitMs(300)
     H.step(1, function() if not T.off then T.path[#T.path + 1] = "A: asks on " .. tostring(H.focusedId()) end end)
@@ -2280,19 +2371,44 @@ function C.c10()
         T.far = H.spot({ { -7, 0 }, { 0, -7 }, { 7, 0 }, { 0, 7 }, { -6, 3 }, { 6, -3 } })
         if not T.far then T.off = true; Q.skip(T.L .. " (the hold)", "no square 7 tiles off"); return end
         T.maxOpen, T.maxD = 0, 0
+        -- (what the walk saw of the World window and the card, for the detail: its close reasons, rolled up or
+        -- hidden, the card's frames drawn while it read open past 3)
+        T.ov = { n = 0, drew = 0, rolled = 0, hidden = 0, frames = 0, wwWhy = nil, ocWhy = nil }
+        pcall(function() S.OC.closeWhy = nil end)
         H.zcall(function() ISTimedActionQueue.add(ISWalkToTimedAction:new(S.p, T.far)) end)
     end)
     H.wait(12000, function()
         if T.off then return true end
         local d = H.distProper(T.itSq)
         if d > T.maxD then T.maxD = d end
-        if H.kind() == "place3d" and d > T.maxOpen then T.maxOpen = d end
+        local open = H.kind() == "place3d"
+        if open and d > T.maxOpen then T.maxOpen = d end
+        local ov = T.ov
+        ov.frames = ov.frames + 1
+        local w = RT.ww()
+        local rolled, shown = false, false
+        pcall(function() rolled = w.windowShaded == true end)
+        pcall(function() shown = w:getIsVisible() and true or false end)
+        if rolled then ov.rolled = ov.rolled + 1 end
+        if not shown then ov.hidden = ov.hidden + 1 end
+        if ZeD_WorldWindow._closeWhy then ov.wwWhy = tostring(ZeD_WorldWindow._closeWhy) end
+        if S.OC.closeWhy then ov.ocWhy = tostring(S.OC.closeWhy) end
+        if open and d > 3 then
+            ov.n = ov.n + 1
+            -- the card drew a frame since the last read (its tick runs in its prerender: it ran and kept the card)
+            if S.cr and S.crCard == H.card() and S.cr.t ~= ov.lastT then ov.drew = ov.drew + 1 end
+        end
+        ov.lastT = S.cr and S.cr.t
         return (H.qlen() == 0 and d > 1) or d > 6
     end, function()
         if T.off then return end
         if T.maxD <= 3.5 then Q.skip(T.L .. " (OC5 the hold)", "the game's walk never took him past the leash (" .. H.n2(T.maxD) .. ")"); H.qstop(); return end
+        local ov = T.ov
         Q.check(T.maxOpen <= 3, T.L .. " (OC5): with a walk away running the card still closes past the game's 3",
-            "open at the game's DistToProper " .. H.n2(T.maxOpen) .. " during the walk, which reached " .. H.n2(T.maxD) .. " (the hold: any queued action holds the leash)")
+            "open at the game's DistToProper " .. H.n2(T.maxOpen) .. " during the walk, which reached " .. H.n2(T.maxD) .. " (the hold: any queued action holds the leash); "
+            .. ov.n .. " of " .. ov.frames .. " reads open past 3, the card drew " .. ov.drew .. " frames then; the World window rolled up in " .. ov.rolled
+            .. " reads, hidden in " .. ov.hidden .. "; ZeD_WorldWindow._closeWhy " .. tostring(ov.wwWhy) .. "; the card's own closeWhy " .. tostring(ov.ocWhy)
+            .. "; open now " .. tostring(H.kind() == "place3d"))
         H.qstop()
     end)
     H.caseEnd(T.L)
@@ -2362,6 +2478,8 @@ function C.ldStage(T, cls, litres)
         if not T.gen then T.off = true; Q.skip(T.L, "no square for the generator"); return end
         if cls == "IsoCombinationWasherDryer" then pcall(function() m.obj:setModeWasher() end) end
         T.litres = H.water(m.obj, litres)
+        T.waterHow = S.waterHow
+        if litres > 0 and T.litres <= 0 then T.off = true; Q.skip(T.L, "the machine took no water (" .. tostring(S.waterHow) .. "): its Power needs water"); return end
         H.lootRefresh()
     end)
     H.wait(8000, function() return T.off or H.powered(T.m.obj) end, function(ok)
@@ -2392,6 +2510,16 @@ function C.c12()
         H.qWatchOn()
     end)
     Q.waitMs(400)
+    -- what the card held for Power as the press came (its switch live only with power and water: def.refresh's
+    -- canToggle; the zone's run is nil when it is not)
+    H.step(1, function()
+        if T.off then return end
+        local t, z = H.ct(), H.zone("ldy:power")
+        local d = (t and t.d) or {}
+        T.pw = "the zone drawn " .. tostring(z ~= nil) .. ", live " .. tostring(z ~= nil and z.run ~= nil) .. "; the card read power " .. tostring(d.powered)
+            .. ", water " .. H.n1(d.fluid) .. " L (canToggle " .. tostring(d.canToggle) .. "); the game: isPowered " .. tostring(H.powered(T.m.obj))
+            .. ", " .. H.n1(T.litres) .. " L staged by " .. tostring(T.waterHow)
+    end)
     H.dblQ("ldy:power", T)
     H.step(1, function()
         if T.off then return end
@@ -2404,7 +2532,7 @@ function C.c12()
         if T.off then return end
         local n, on = H.qLogged("ISToggleClothingWasher"), H.on(T.m.obj)
         Q.check(n <= 1 and on == true, T.L .. ": a double click on Power from 4 tiles starts the washer once (the game's toggles queued, isActivated after)",
-            n .. " toggles handed to the game (" .. H.list(S.qLog, 10) .. "); isActivated " .. tostring(T.on0) .. " -> " .. tostring(on))
+            n .. " toggles handed to the game (" .. H.list(S.qLog, 10) .. "); isActivated " .. tostring(T.on0) .. " -> " .. tostring(on) .. "; " .. tostring(T.pw))
         H.note(T.L .. " (OC6): right after the presses the face read running " .. tostring(T.face) .. " while the game had " .. tostring(T.gameNow)
             .. " (the card reads the game every 250 ms; its face shows nothing of the walk)")
     end)
@@ -2427,7 +2555,8 @@ function C.c12()
         if T.off then return end
         local n, on = H.qLogged("ISToggleClothingWasher"), H.on(T.m.obj)
         Q.check(n <= 1 and on == true, T.L .. " (pad): A A on Power from 4 tiles starts the washer once (the game's toggles queued, isActivated after)",
-            n .. " toggles handed to the game (" .. H.list(S.qLog, 10) .. "); isActivated after " .. tostring(on))
+            n .. " toggles handed to the game (" .. H.list(S.qLog, 10) .. "); isActivated after " .. tostring(on) .. "; the pad's focus put on Power "
+            .. tostring(T.onPower) .. ", water now " .. H.n1(H.call0(T.m.obj, "getFluidAmount")) .. " L")
         H.qWatchOff()
         H.padOff()
     end)
@@ -2609,21 +2738,33 @@ function C.c16()
         if T.off then return end
         T.far = H.spot({ { -10, 0 }, { 0, -10 }, { 0, 10 }, { 10, 0 }, { -9, 4 }, { 9, -4 } })
         if not T.far then T.off = true; Q.skip(T.L, "no square 10 tiles off"); return end
-        T.maxD, T.reach = 0, 0
+        T.maxD, T.reach, T.overN = 0, 0, 0
+        pcall(function() S.OC.closeWhy = nil end)
         H.zcall(function() ISTimedActionQueue.add(ISWalkToTimedAction:new(S.p, T.far)) end)
     end)
     H.wait(15000, function()
         if T.off then return true end
         local d = H.sqDist(T.m.sq)
         if d > T.reach then T.reach = d end
-        if H.kind() == "laundry" and d > T.maxD then T.maxD = d end
+        local open = H.kind() == "laundry"
+        if open and d > T.maxD then T.maxD = d end
+        if open and d > 6.5 then T.overN = T.overN + 1 end
+        if not open and T.wasOpen and not T.why then T.why = tostring(S.OC.closeWhy); T.whyD = d end
+        T.wasOpen = open
         return d > 8 or (H.qlen() == 0 and d > 1)
     end, function()
         if T.off then return end
         T.openFar = H.kind() == "laundry"
         if T.reach <= 6.5 then T.off = true; Q.skip(T.L, "the game's walk never took him past the leash (" .. H.n1(T.reach) .. " tiles)"); H.qstop(); return end
-        Q.check(T.maxD <= 6.5, T.L .. ": the card keeps its leash while a walk it never started runs (the game's walk 10 tiles off)",
-            "open at " .. H.n1(T.maxD) .. " tiles from the washer (its leash 6 + 0.5), open now " .. tostring(T.openFar))
+        -- (Nov 26 2026: the card's leash is 6 + 0.5 from the square's middle (OC.tick: OC.squareDist > leash + 0.5),
+        -- as this reads it, and the last run's card closed at 6.53 (its own closeWhy). This wait is asked once a frame
+        -- before the card's prerender runs its tick, so the frame the walk first steps past 6.5 is read here with the
+        -- card still open: maxD 6.52 printed "6.5" and failed. The card keeps its leash when it closes within one
+        -- frame's walk of 6.5 and is shut at the walk's end; a card that held on would read 7 and more.)
+        local step = 0.25
+        Q.check(T.maxD <= 6.5 + step and not T.openFar, T.L .. ": the card keeps its leash while a walk it never started runs (the game's walk 10 tiles off)",
+            "open at most " .. H.n2(T.maxD) .. " tiles from the washer (its leash 6 + 0.5; a frame's walk of " .. step .. " over allowed: this reads before the card's tick), "
+            .. T.overN .. " frames read open past 6.5; the card closed: " .. tostring(T.why) .. " (read " .. H.n2(T.whyD) .. " tiles); open now " .. tostring(T.openFar))
         S.qLog = {}
         H.qWatchOn()
     end)
@@ -3065,10 +3206,12 @@ function C.c22()
         H.previewQ(T, "build")
         H.step(2, function()
             if T.off then return end
-            local lead, shown, s = H.strength()
+            local lead, shown, s, ds = H.strength()
             local g = H.gameHealth(T.rd, T.s)
             Q.check(lead ~= nil and shown and lead == math.floor(g.total), T.L .. ": at Construction Bonus Points " .. v .. " the card's strength is the game's build health",
-                "the card \"" .. tostring(s) .. "\" (drawn " .. tostring(shown) .. "); the game's ISBuildIsoEntity " .. g.text .. ", the thing built gets " .. math.floor(g.total))
+                "the card \"" .. tostring(s) .. "\" (drawn " .. tostring(shown) .. (ds and ds ~= s and (" as \"" .. ds .. "\", cut to the room beside its label") or "")
+                .. "); the game's ISBuildIsoEntity " .. g.text .. ", the thing built gets " .. math.floor(g.total)
+                .. (shown and "" or ("; the card's words with the number: " .. H.textsLike(tostring(lead or "?"), 6))))
         end)
         if i == 1 then H.shot("ocl_preview_" .. H.sizeTag(), "the recipe preview on a build with bonus health", function() return not T.off end) end
     end
@@ -3445,7 +3588,7 @@ function S.buildPutBack()
         end
         Q.check(carsLeft == 0, "put back: the car the run spawned is gone", #S.cars .. " spawned, " .. carsLeft .. " left")
         local left = {}
-        for _, it in ipairs(S.made) do if not H.gone(it) then left[#left + 1] = H.ft(it) end end
+        for _, it in ipairs(S.made) do if not H.gone(it) then left[#left + 1] = H.ft(it) .. " (" .. H.whereText(it) .. ")" end end
         Q.check(#left == 0, "put back: every thing the run gave is gone (padlocks, bags, keys, bandages, hammers, the shirt)", #S.made .. " given; left " .. H.list(left, 8))
         local extra = {}
         for _, it in ipairs(H.all()) do if not f.inv0[it] then extra[#extra + 1] = H.ft(it) end end
