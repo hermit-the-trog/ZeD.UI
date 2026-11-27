@@ -4545,6 +4545,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             -- the World window is mirrored); alone in the drawer the window's own lines
             -- bound it (the divider or the strip's edge, the waterfall's edge, the help line)
             card.overlayEdge = (win._drawerMode == "tab" and card:getWidth() < effectiveW) and "right" or nil
+            card.overlayFrame = (win._drawerMode == "tab")   -- (a line all round over a tab: the director, Nov 26 2026)
 
             -- Background fill: surface 1 at the window's see-through, claimed so the
             -- body is not drawn under it as well (one layer, ZeD.Surface)

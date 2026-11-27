@@ -5259,6 +5259,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             -- over a tab's content the card draws its left edge (a structure line); alone in the
             -- drawer the window's own lines bound it (the waterfall's edge, the divider, the help line)
             card.overlayEdge = (win._drawerMode == "tab") and "left" or nil
+            card.overlayFrame = (win._drawerMode == "tab")   -- (a line all round over a tab: the director, Nov 26 2026)
 
             -- Background fill: surface 1 at the window's see-through, claimed so the
             -- body is not drawn under it as well (one layer, ZeD.Surface)
