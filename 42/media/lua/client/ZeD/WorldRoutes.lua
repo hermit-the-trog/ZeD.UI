@@ -93,6 +93,15 @@ function WR.padFollow(pn, getWin)
     Events.OnTick.Add(tick)
 end
 
+-- the window the route opened on its tab comes down whole, as a bumper or Y brings it (WindowHalves.showAll)
+-- (QA R51, Nov 27 2026: at 4K the pointer was away from the World window, both its halves had rolled by
+-- themselves, and openTab's unshade was put back by the halves on their next update: the tab sat on Radio, the
+-- drawer open, the whole window rolled to its bar, and nothing drew the radio)
+local function showWhole(win)
+    if win and win._halves and ZeD.Halves and ZeD.Halves.showAll then pcall(ZeD.Halves.showAll, win) end
+end
+WR.showWhole = showWhole
+
 local function pairForPad(pn)
     if isPad(pn) and ZeD_CharacterWindow and ZeD_CharacterWindow.ensureBothOpenForGamepad then
         pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, pn)
@@ -255,6 +264,7 @@ local function radioItem(chr, item)
     win._radios = RT.buildEquippedRadios(chr)
     win._radioIdx = indexOf(win._radios, item) or 1
     win._radioFollow = item
+    showWhole(win)
     WR.padFollow(pn, charWin)
     return true
 end
@@ -291,6 +301,7 @@ local function worldDevice(chr, dev)
     win._radios = RT.buildWorldRadios(chr)
     win._radioIdx = indexOf(win._radios, dev) or 1
     win._radioFollow = dev
+    showWhole(win)
     WR.padFollow(pn, worldWin)
     return true
 end
