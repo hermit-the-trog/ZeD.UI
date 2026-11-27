@@ -3773,6 +3773,8 @@
     "UI_ZeD_Fluid_NeedsFit": "onu alabilecek bir konteyner",
     "UI_ZeD_Fluid_NeedsLiquid": "dökülecek bir şey ve içine dökülecek yer",
     "UI_ZeD_Fluid_QEmpty": "Konteyner boşaltılsın mı? %1 %2 kaybolur.",
+    "UI_ZeD_Fluid_QEmptyNamed": "%1 boşaltılsın mı? %2 %3 kaybolur.",
+    "UI_ZeD_Fluid_NeedsIdle": "süren eylemin bitmesi",
     "UI_ZeD_Hook_HelpAdd": "Ceset ekle: ölü bir hayvanı kancaya as",
     "UI_ZeD_Hook_HelpBleed": "Kanını akıt: kanın yere akmasına izin ver",
     "UI_ZeD_Hook_HelpGather": "Topla: parçaları leşten al",

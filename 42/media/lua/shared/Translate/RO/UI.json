@@ -3773,6 +3773,8 @@
     "UI_ZeD_Fluid_NeedsFit": "un container care îl poate primi",
     "UI_ZeD_Fluid_NeedsLiquid": "ceva de turnat și loc unde să-l torni",
     "UI_ZeD_Fluid_QEmpty": "Golești containerul? %1 de %2 se pierd.",
+    "UI_ZeD_Fluid_QEmptyNamed": "Golești %1? %2 de %3 se pierd.",
+    "UI_ZeD_Fluid_NeedsIdle": "terminarea acțiunii în curs",
     "UI_ZeD_Hook_HelpAdd": "Adaugă cadavru: atârnă un animal mort în cârlig",
     "UI_ZeD_Hook_HelpBleed": "Scurge: lasă sângele să curgă pe jos",
     "UI_ZeD_Hook_HelpGather": "Adună: ia părțile de pe carcasă",

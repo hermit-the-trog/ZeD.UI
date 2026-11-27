@@ -3773,6 +3773,8 @@
     "UI_ZeD_Fluid_NeedsFit": "kontejner, který to přijme",
     "UI_ZeD_Fluid_NeedsLiquid": "něco k nalití a místo, kam to nalít",
     "UI_ZeD_Fluid_QEmpty": "Vyprázdnit kontejner? %1 (%2) se ztratí.",
+    "UI_ZeD_Fluid_QEmptyNamed": "Vyprázdnit %1? %2 (%3) se ztratí.",
+    "UI_ZeD_Fluid_NeedsIdle": "dokončení probíhající akce",
     "UI_ZeD_Hook_HelpAdd": "Přidat mrtvolu: pověsit mrtvé zvíře na hák",
     "UI_ZeD_Hook_HelpBleed": "Odkrvit: nechat krev vytéct na zem",
     "UI_ZeD_Hook_HelpGather": "Sebrat: odebrat části z mršiny",

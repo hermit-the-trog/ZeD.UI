@@ -3773,6 +3773,8 @@
     "UI_ZeD_Fluid_NeedsFit": "tároló, amely befogadja",
     "UI_ZeD_Fluid_NeedsLiquid": "valami, amit önthetsz, és hely, ahová önthetsz",
     "UI_ZeD_Fluid_QEmpty": "Kiüríted a tárolót? Elvész: %2, %1.",
+    "UI_ZeD_Fluid_QEmptyNamed": "Kiüríted: %1? Elvész: %3, %2.",
+    "UI_ZeD_Fluid_NeedsIdle": "a folyamatban lévő művelet befejezését",
     "UI_ZeD_Hook_HelpAdd": "Holttest hozzáadása: holt állatot akaszt a horogra",
     "UI_ZeD_Hook_HelpBleed": "Vérenged: a vér a földre folyik",
     "UI_ZeD_Hook_HelpGather": "Gyűjt: leveszi a részeket a tetemről",

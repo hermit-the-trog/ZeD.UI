@@ -3773,6 +3773,8 @@
     "UI_ZeD_Fluid_NeedsFit": "ein Behälter, der es aufnehmen kann",
     "UI_ZeD_Fluid_NeedsLiquid": "etwas zum Umfüllen und Platz dafür",
     "UI_ZeD_Fluid_QEmpty": "Behälter leeren? %1 von %2 gehen verloren.",
+    "UI_ZeD_Fluid_QEmptyNamed": "%1 leeren? %2 von %3 gehen verloren.",
+    "UI_ZeD_Fluid_NeedsIdle": "dass die laufende Aktion fertig wird",
     "UI_ZeD_Hook_HelpAdd": "Kadaver hinzufügen: ein totes Tier an den Haken hängen",
     "UI_ZeD_Hook_HelpBleed": "Ausbluten: das Blut auf den Boden laufen lassen",
     "UI_ZeD_Hook_HelpGather": "Entnehmen: die Teile vom Kadaver nehmen",

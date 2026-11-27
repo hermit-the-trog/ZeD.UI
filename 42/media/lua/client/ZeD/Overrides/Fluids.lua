@@ -5,13 +5,14 @@
 -- the World window's card drawer instead of the floating vanilla windows:
 --   * ISFluidContainerMenu.showUI (an item's Liquid menu) and
 --     ISWorldObjectContextMenu.onFluidTransfer / onFluidInfo (rain barrels,
---     sinks, toilets, wells...) open the card at once (no walk first, no
---     timed action); the pour walks when it runs;
+--     sinks, toilets, wells...) open the card at once within its reach, and
+--     past it walk there first (OC.openNear); the pour walks when it runs;
 --   * ISFluidTransferUI.OpenPanel / ISFluidInfoUI.OpenPanel catch every
 --     other caller (crafting station fluid slots, mods).
 -- Each hook sets a _zed*Hooked flag before wrapping, so a Lua reload never
 -- wraps the wrapper. Vanilla runs only when ZeD declines (no World window,
--- invalid container), and every time while safe mode is on (SafeMode.lua).
+-- invalid container, seated in a vehicle), and every time while safe mode is
+-- on (SafeMode.lua).
 -- ============================================================================
 
 require "ZeD/SafeMode"
@@ -20,9 +21,27 @@ require "ZeD/ObjectCardFluid"
 
 local OC = ZeD.ObjectCards
 
+-- the tile of a world container (nil for an item: a bottle has no walk)
+local function squareOf(c)
+    local ok, sq = pcall(function()
+        if c:isItem() then return nil end
+        local o = c:getOwner()
+        return o and o:getSquare() or nil
+    end)
+    return ok and sq or nil
+end
+
+-- A world container past the card's reach is walked to first and the card opens at the end of the walk, as the
+-- game's own menu walks before its window (ISWorldObjectContextMenu.onFluidTransfer); the card opened, shut on its
+-- first frame past its 6 tiles and nothing else happened (QA FL7, Nov 26 2026). Seated, OC.open says no and the
+-- game's window opens instead (QA FL5).
 local function openCard(label, player, container, source, info)
     if not (player and container) then return false end
-    local ok, handled = pcall(OC.open, player, "fluid", { container = container, source = source, info = info })
+    local arg = { container = container, source = source, info = info }
+    local sq = squareOf(container)
+    local ok, handled
+    if sq then ok, handled = pcall(OC.openNear, player, "fluid", arg, sq)
+    else ok, handled = pcall(OC.open, player, "fluid", arg) end
     if not ok then print("[ZeD] Fluids: " .. label .. " route failed: " .. tostring(handled)) end
     return ok and handled
 end

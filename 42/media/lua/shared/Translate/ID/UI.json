@@ -3773,6 +3773,8 @@
     "UI_ZeD_Fluid_NeedsFit": "kontainer yang bisa menerimanya",
     "UI_ZeD_Fluid_NeedsLiquid": "sesuatu untuk dituang dan ruang untuk menuangkannya",
     "UI_ZeD_Fluid_QEmpty": "Kosongkan kontainer? %1 %2 hilang.",
+    "UI_ZeD_Fluid_QEmptyNamed": "Kosongkan %1? %2 %3 hilang.",
+    "UI_ZeD_Fluid_NeedsIdle": "tindakan yang berjalan selesai",
     "UI_ZeD_Hook_HelpAdd": "Tambah bangkai: gantung hewan mati di pengait",
     "UI_ZeD_Hook_HelpBleed": "Kuras: biarkan darah mengalir ke tanah",
     "UI_ZeD_Hook_HelpGather": "Ambil: ambil bagian dari bangkai",
