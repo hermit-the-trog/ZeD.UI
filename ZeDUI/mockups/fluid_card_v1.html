@@ -1,0 +1,740 @@
+<title>ZeD Fluid Card</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- ZeD-GUI mockup: the fluid transfer object card (ObjectCardFluid.lua) re-laid, v1, Nov 26 2026.
+     Three layouts, each at the full card (480) and the half card (220), in Dark, Light and High contrast.
+     Sources: ObjectCardFluid.lua and ObjectCards.lua (host: header, progress band, the band at the foot,
+     question band, NEEDS lines), ObjectCardPower.lua (OP.row stat rows), MechanicsTab.lua (verbs in the
+     footer, main one last), Atoms.drawProgressBand, QA map 2026-11-26_map_cards_power_fluid_fire.md.
+     Words: the game's Fluids.json (Pour, Switch, Empty, Amount, Mixture, Gasoline) and ZeD's UI.json
+     (UI_ZeD_Fluid_*). Chrome and tokens from zed_fishing_tab_v2.html.
+     Units: 1 CSS px here = 1 ZeD design unit; the game draws 1 unit as 1.75 screen pixels at 4K.
+     Assumes Build's Nov 26 fixes: busy gate on Pour, Switch and Empty; Stop ends the whole chain;
+     Empty's question names the container; Pour walks to a far container first. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600&display=swap">
+<style>
+/* Layout: a review bar, then the two cards side by side (full 480, half 220), stacked on a phone; notes under. */
+:root {
+  color-scheme: dark;
+  --page: #0f1011; --page-text: #c9c9cc; --page-dim: #8a8a90; --page-line: #2c2c30; --page-hi: #f0f0f2;
+  --font-mono: 'Fira Mono', ui-monospace, 'Consolas', monospace;
+  --font-sans: 'Fira Sans Condensed', 'Arial Narrow', sans-serif;
+}
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--page-text); font-family: var(--font-sans); font-size: 15px; }
+.page { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 40px; }
+
+/* ---------- review bar (mockup only, not game UI) */
+.review { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; justify-content: center; padding: 10px 0;
+  font-family: var(--font-mono); font-size: 12px; color: var(--page-dim); border-bottom: 1px solid var(--page-line); }
+.review .grp { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.review b { color: var(--page-text); font-weight: 500; margin-right: 4px; }
+.review button { font-family: var(--font-mono); font-size: 12px; background: #19191b; color: #c4c4c8; border: 1px solid #3a3a3f; padding: 4px 8px; cursor: pointer; }
+.review button.on { border-color: var(--page-hi); color: var(--page-hi); background: #26262a; }
+.review button:focus-visible { outline: 1px dashed var(--page-hi); outline-offset: 1px; }
+
+.stage { padding: 18px 0 8px; overflow: hidden; }
+.zoomer { transform-origin: top left; }
+.cards { display: flex; gap: 32px; align-items: flex-start; }
+.cards.stack { flex-direction: column; gap: 22px; }
+.cap { font: 400 12px/1 var(--font-mono); color: var(--page-dim); margin: 0 0 7px; display: flex; gap: 10px; }
+.cap b { color: var(--page-text); font-weight: 500; }
+.today img { display: block; width: 480px; height: auto; border: 1px solid var(--page-line); image-rendering: auto; }
+
+.notes { max-width: 860px; margin: 8px auto 0; color: #c4c4c8; line-height: 1.45; }
+.notes h2 { font: 700 12px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--page-hi); margin: 22px 0 8px; }
+.notes p { margin: 0 0 8px; max-width: 72ch; }
+.notes ol, .notes ul { margin: 0 0 8px; padding-left: 22px; max-width: 76ch; }
+.notes li { margin-bottom: 4px; }
+.notes code { font-family: var(--font-mono); font-size: 13px; color: #e4e4e6; }
+.notes .pick { color: var(--page-hi); }
+
+/* ---------- ZeD theme tokens (on the card's wrapper; strict parity with ZeD.T names) */
+.zt { --accent: #d4922a; --acc-text: var(--accent); --on-accent: #111;
+  --base: #1a1a1e; --surface-1: #222226; --surface-2: #2a2a2e; --surface-3: #333338;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.20);
+  --text: #d4d4d8; --text-secondary: rgba(255,255,255,0.50); --text-heading: rgba(255,255,255,0.65);
+  --danger: #c44040; --warning: #c49040; --positive: #4a9a5a; --sel-a: 22%;
+  --stripe-1: #333338; --stripe-2: #2a2a2e; --hatch: rgba(0,0,0,.45); }
+.zt[data-acc="teal"] { --accent: #47a18c; }
+.zt[data-zt="light"] { --acc-text: color-mix(in srgb, var(--accent) 66%, #000); --on-accent: #fff;
+  --base: #e9e7e2; --surface-1: #f2f0eb; --surface-2: #dddad3; --surface-3: #cfcbc2;
+  --border: rgba(0,0,0,0.14); --border-strong: rgba(0,0,0,0.32);
+  --text: #1d1d1f; --text-secondary: rgba(0,0,0,0.58); --text-heading: rgba(0,0,0,0.72);
+  --danger: #a83030; --warning: #8a6420; --positive: #3a7a48; --stripe-1: #cfcbc2; --stripe-2: #dddad3; --hatch: rgba(255,255,255,.6); }
+.zt[data-zt="hc"] { --base: #000; --surface-1: #0a0a0a; --surface-2: #141414; --surface-3: #262626;
+  --border: rgba(255,255,255,0.45); --border-strong: rgba(255,255,255,0.85);
+  --text: #fff; --text-secondary: rgba(255,255,255,0.82); --text-heading: #fff; --sel-a: 34%; --stripe-1: #444; --stripe-2: #111; }
+
+/* ---------- the card (drawer) */
+.win { display: flex; flex-direction: column; border: 1px solid var(--border-strong); background: color-mix(in srgb, var(--base) 92%, transparent); color: var(--text); }
+.zt[data-zt="hc"] .win { background: color-mix(in srgb, var(--base) 95%, transparent); }
+.card { display: flex; flex-direction: column; min-height: 0; position: relative; }
+.card > .hdr, .card > .pb, .card > .foot, .card > .fstrip { flex: 0 0 auto; }
+.body { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; padding: 6px 10px 6px; display: flex; flex-direction: column; gap: 6px; }
+.helpline { min-height: 26px; display: flex; align-items: center; gap: 10px; padding: 4px 10px; background: var(--surface-2); border-top: 1px solid var(--border);
+  font: 400 13px/1.25 var(--font-sans); color: var(--text-secondary); }
+.helpline .pr { display: inline-flex; align-items: center; gap: 5px; font: 400 12px/1 var(--font-mono); color: var(--text); white-space: nowrap; }
+.badge { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 7px; font: 700 9px/14px var(--font-mono); color: #fff; }
+.badge.a { background: #3e8e4a; } .badge.b { background: #b8403a; } .badge.y { background: #b8962a; }
+
+.hdr { display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-bottom: 1px solid var(--border); min-height: 32px; flex-wrap: wrap; }
+.ck { width: 20px; height: 20px; flex: 0 0 20px; border: 1px solid var(--border-strong); background: var(--surface-1); display: flex; align-items: center; justify-content: center; padding: 0; color: var(--text); cursor: pointer; }
+.ico { width: 18px; height: 18px; flex: 0 0 18px; display: block; }
+.ttl { font: 600 16px/1.1 var(--font-sans); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.pill { display: inline-flex; align-items: center; gap: 5px; font: 500 12px/1 var(--font-mono); color: var(--text); white-space: nowrap; }
+.pill i, .sq { width: 7px; height: 7px; flex: 0 0 7px; display: inline-block; background: var(--text-secondary); }
+.pill.bad i { background: var(--danger); }
+.pillrow { width: 100%; padding-left: 28px; }
+
+/* progress band (Atoms.drawProgressBand, 480 and 220 presets) */
+.pb { display: flex; align-items: center; gap: 10px; padding: 6px 10px 7px 12px; border-bottom: 1px solid var(--border); }
+.pb .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.pb .r1 { display: flex; align-items: center; gap: 6px; font: 400 12px/1 var(--font-mono); color: var(--text); white-space: nowrap; }
+.pb .r1 .sq { background: var(--accent); }
+.pb .r1 .lbl { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.pb .r1 .r { margin-left: auto; color: var(--text-secondary); }
+.pbar { height: 8px; border: 1px solid var(--border-strong); background: var(--surface-1); position: relative; }
+.pbar > i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); }
+.ik { width: 26px; height: 26px; flex: 0 0 26px; position: relative; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-2); color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.ik::before { content: ""; position: absolute; inset: 2px; border: 1px solid var(--border-strong); border-radius: 2px; pointer-events: none; }
+
+/* stat rows (OP.row): label left in accent mono, value right */
+.lab { font: 400 12px/1 var(--font-mono); color: var(--acc-text); white-space: nowrap; }
+.srow { display: grid; grid-template-columns: 44px minmax(0,1fr) auto 64px; align-items: center; column-gap: 8px; min-height: 24px; }
+.srow .nmw { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.nm { font: 400 14px/1.15 var(--font-sans); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.wh { font: 400 11px/1.2 var(--font-mono); color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.num { font: 400 12px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--text); white-space: nowrap; }
+.num.dim { color: var(--text-secondary); }
+.hint { font: 400 13px/1.2 var(--font-sans); color: var(--text-secondary); font-style: normal; }
+.srows { display: flex; flex-direction: column; gap: 2px; }
+.half .srow { grid-template-columns: 40px minmax(0,1fr) 44px; row-gap: 3px; column-gap: 6px; }
+.half .srow .nmw { grid-column: 2 / -1; }
+.half .srow .wh { display: none; }
+.half .srow .num { grid-column: 2; grid-row: 2; justify-self: start; font-size: 11px; }
+.half .srow .seg { grid-column: 3; grid-row: 2; width: 44px; }
+
+/* the pair block (option 3): From | Into as two columns */
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+.pcol { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pcol .seg { width: 100%; }
+.pcol .l1 { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.pcol .l2 { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.half .pair { grid-template-columns: 1fr; }
+
+/* the segmented level (Atoms.drawSegFill, ten cells), with what leaves and what arrives hatched */
+.seg { display: grid; grid-template-columns: repeat(10, 1fr); gap: 1px; width: 64px; height: 7px; }
+.seg i { background: var(--surface-3); }
+.zt[data-zt="hc"] .seg i { background: #333; }
+.seg i.go, .seg i.come { background-image: repeating-linear-gradient(to bottom, var(--hatch) 0 1px, transparent 1px 3px); }
+.seg.sm { width: 60px; height: 5px; }
+
+/* liquids in the mix */
+.lqs { display: flex; flex-direction: column; gap: 0; margin-top: -2px; }
+.lq { display: grid; grid-template-columns: 10px minmax(0,1fr) auto; align-items: center; column-gap: 8px; min-height: 16px; }
+.lq .sw { width: 10px; height: 10px; border: 1px solid var(--border-strong); }
+.lq .nmw { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.ind1 { padding-left: 52px; }
+.ind2 { padding-left: 64px; }
+.half .ind1, .half .ind2 { padding-left: 28px; }
+
+/* tags (M.drawTag): 1u outline, a status square for a coloured one */
+.tag { display: inline-flex; align-items: center; gap: 4px; font: 400 11px/14px var(--font-mono); padding: 0 5px; border: 1px solid var(--border-strong); color: var(--text); white-space: nowrap; }
+.tag .sq { width: 6px; height: 6px; flex: 0 0 6px; }
+.tag.dng .sq { background: var(--danger); } .tag.warn .sq { background: var(--warning); }
+.tag.dim { color: var(--text-secondary); border-color: var(--border); }
+
+/* amount: one control */
+.amt { display: grid; grid-template-columns: 52px minmax(0,1fr) 58px; align-items: center; column-gap: 10px; min-height: 32px; position: relative; padding-top: 1px; }
+.amt .rd { font: 500 13px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--text); text-align: right; }
+.amt.off .rd, .amt.off .lab { opacity: .45; }
+.sl { position: relative; height: 29px; cursor: pointer; touch-action: none; }
+.sl .track { position: absolute; left: 0; right: 0; top: 7px; height: 6px; background: var(--surface-1); border: 1px solid var(--border-strong); }
+.sl .track > i { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, var(--accent) 75%, transparent); }
+.sl .thumb { position: absolute; top: 2px; width: 10px; height: 16px; margin-left: -5px; background: var(--surface-3); border: 1px solid var(--border-strong); }
+.sl .tk { position: absolute; top: 15px; width: 1px; height: 4px; background: var(--border-strong); }
+.sl .tl { position: absolute; top: 19px; transform: translateX(-50%); font: 400 11px/11px var(--font-mono); color: var(--text-secondary); padding: 0 2px; cursor: pointer; }
+.sl .tl.end { transform: translateX(-100%); }
+.sl .tl.at { color: var(--acc-text); }
+.amt.off .sl { opacity: .45; cursor: default; }
+.half .amt { grid-template-columns: minmax(0,1fr) auto; row-gap: 2px; }
+.half .amt .sl { grid-column: 1 / -1; grid-row: 2; }
+.step { display: flex; align-items: center; gap: 6px; }
+.vbox { min-width: 72px; height: 22px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: flex-end; background: var(--surface-1); border: 1px solid var(--border-strong);
+  font: 500 13px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--text); }
+.amt.stp { grid-template-columns: 52px auto 1fr; }
+.amt.stp .qs { font: 400 11px/1 var(--font-mono); color: var(--text-secondary); justify-self: end; }
+.half .amt.stp { grid-template-columns: 52px 1fr; }
+.half .amt.stp .qs { display: none; }
+
+/* section head (UI.section) */
+.sec { display: flex; align-items: center; gap: 6px; padding: 5px 8px 4px; background: var(--surface-2); font: 700 12px/1 var(--font-mono); color: var(--text-heading); }
+.sec .r { margin-left: auto; font-weight: 400; color: var(--text-secondary); }
+
+/* your containers */
+.list { display: flex; flex-direction: column; margin-top: -4px; }
+.lrow { display: grid; grid-template-columns: 16px minmax(0,1fr) 92px auto auto; align-items: center; column-gap: 8px; padding: 2px 4px 2px 2px; min-height: 28px; position: relative; }
+.lrow + .lrow { margin-top: 1px; }
+.lrow .nmw { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.lrow .ga { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.lrow .ga .num { font-size: 11px; color: var(--text-secondary); }
+.lrow .tg { justify-self: end; }
+.lrow.use { background: color-mix(in srgb, var(--accent) var(--sel-a), transparent); }
+.lrow.r2 { grid-template-columns: 32px 16px minmax(0,1fr) 92px auto auto; }
+.role { font: 400 11px/1 var(--font-mono); color: var(--acc-text); }
+.keys { display: inline-flex; gap: 4px; }
+.half .lrow { grid-template-columns: 16px minmax(0,1fr) auto; grid-template-areas: "ic nm tg" "am am ky"; column-gap: 6px; row-gap: 3px; }
+.half .lrow > .ico { grid-area: ic; } .half .lrow > .nmw { grid-area: nm; } .half .lrow > .amn { grid-area: am; align-self: center; }
+.half .lrow > .tgh { grid-area: tg; } .half .lrow > .keys { grid-area: ky; }
+.half .lrow.r2 { grid-template-columns: 26px 16px minmax(0,1fr) auto; grid-template-areas: "ro ic nm tg" "ro am am ky"; }
+.half .lrow.r2 > .role { grid-area: ro; }
+.half .btn.sm { min-width: 36px; padding: 2px 5px; }
+.half .keys { gap: 3px; }
+.half .foot { gap: 4px; padding-left: 6px; padding-right: 6px; }
+.half .foot .btn:not(.sm) { padding: 4px 8px; }
+.half .foot .btn.has-hand { margin-left: 0; }
+.half .foot .btn .hand { left: -12px; }
+
+/* keycaps (the System 7 default-button ring) */
+.btn { position: relative; padding: 4px 12px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-2); color: var(--text);
+  font: 400 13px/16px var(--font-mono); cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; }
+.btn::before { content: ""; position: absolute; inset: 2px; border: 1px solid var(--border-strong); border-radius: 2px; pointer-events: none; }
+.btn.default, .btn.default::before { border-color: var(--accent); } .btn.default { color: var(--acc-text); }
+.btn.danger, .btn.danger::before { border-color: var(--danger); } .btn.danger { color: var(--danger); }
+.btn.sel { background: color-mix(in srgb, var(--accent) 26%, var(--surface-2)); }
+.btn.sel, .btn.sel::before { border-color: var(--accent); }
+.btn:disabled { cursor: default; color: color-mix(in srgb, var(--text) 40%, transparent); border-color: color-mix(in srgb, var(--border-strong) 50%, transparent); }
+.btn:disabled::before { border-color: color-mix(in srgb, var(--border-strong) 50%, transparent); }
+.btn.sel:disabled { color: var(--text); opacity: .7; }
+.btn:hover:not(:disabled) { color: var(--acc-text); }
+.btn.danger:hover:not(:disabled) { color: var(--danger); }
+.btn.sm { padding: 2px 8px; font-size: 12px; line-height: 15px; min-width: 46px; }
+.btn.sq { width: 24px; padding: 2px 0; }
+
+/* the band at the foot: words left, keycaps right, the default rightmost */
+.fstrip { display: flex; gap: 8px; align-items: flex-start; padding: 6px 10px; border-top: 1px solid var(--border); font: 400 13px/1.25 var(--font-sans); color: var(--text); }
+.fstrip .sq { margin-top: 5px; }
+.foot { display: flex; align-items: center; gap: 6px; padding: 6px 8px 7px 10px; background: var(--surface-2); border-top: 1px solid var(--border-strong); min-height: 38px; }
+.fstrip + .foot { border-top: 0; }
+.foot .st { flex: 1 1 auto; min-width: 0; display: flex; gap: 7px; align-items: flex-start; font: 400 13px/1.25 var(--font-sans); color: var(--text); }
+.foot .st .sq { margin-top: 5px; }
+.foot .sp { flex: 1 1 auto; }
+.sq.dng { background: var(--danger); } .sq.warn { background: var(--warning); } .sq.acc { background: var(--accent); } .sq.hollow { background: transparent; border: 1px solid var(--text-secondary); }
+
+/* controller highlight: the pointing hand at the left of the focused stop (system-wide setting, default) */
+.hand { position: absolute; left: -15px; top: 50%; transform: translateY(-50%); pointer-events: none; z-index: 4; display: block; }
+.has-hand { position: relative; }
+.amt > .hand { left: -11px; top: 14px; }
+.lrow .btn .hand, .foot .btn .hand, .step .btn .hand { left: -13px; }
+.ik > .hand { left: -15px; }
+.ik.has-hand { margin-left: 12px; }
+.foot .btn.has-hand, .keys .btn.has-hand, .step .btn.has-hand { margin-left: 15px; }
+.lrow:has(.keys .btn.has-hand) { }
+</style>
+
+<div class="page">
+  <div class="review" id="review"></div>
+  <div class="stage" id="stage"><div class="zoomer" id="zoomer"></div></div>
+  <div class="notes" id="notes"></div>
+</div>
+
+<script>
+/* ======================================================================
+   Data: Build 42 words and liquids (Fluids.json; colours near the game's)
+   ====================================================================== */
+const LQ = {
+  water:   { name: "Water",    c: "#7cbde4" },
+  tainted: { name: "Water",    c: "#8fb59a", poison: true, taintedWater: true },   // TaintedWater shows as "Water" (Fluids.json)
+  bleach:  { name: "Bleach",   c: "#e6e3c8", poison: true },
+  petrol:  { name: "Gasoline", c: "#d0a640" }
+};
+const PAL = { "#": "#000", "W": "#fff" };
+const HAND = ["....##########.","...#WWWWWWWWWW#","##.#WWW########","#W#WWWW#WWWW#..","#W#WWWW#####...","#W#WWWW#WWWW#..","#W#WWWW#####...","#W#WWWWWWWW#...","##.#WWWWWWW#...","....#######...."];
+function handSvg() {
+  let r = "";
+  HAND.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== ".") r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${PAL[ch]}"/>`; }));
+  return `<svg class="hand" width="15" height="10" viewBox="0 0 15 10" aria-hidden="true">${r}</svg>`;
+}
+// item art stays the same in every theme, as the game's textures do
+const ICON = {
+  barrel: `<svg class="ico" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="12" fill="#5c4a35"/><rect x="2" y="3" width="12" height="2" fill="#3a2e22"/><rect x="2" y="8" width="12" height="1" fill="#3a2e22"/><rect x="2" y="12" width="12" height="1" fill="#3a2e22"/><rect x="3" y="1" width="10" height="2" fill="#4d6b4a"/></svg>`,
+  bottle: `<svg class="ico" viewBox="0 0 16 16"><rect x="6" y="1" width="4" height="2" fill="#2f5d8a"/><rect x="5" y="3" width="6" height="12" fill="#a9d2ea"/><rect x="5" y="7" width="6" height="3" fill="#2f5d8a"/></svg>`,
+  pop:    `<svg class="ico" viewBox="0 0 16 16"><rect x="6" y="1" width="4" height="2" fill="#b33"/><rect x="5" y="3" width="6" height="12" fill="#7bb38a"/><rect x="5" y="7" width="6" height="3" fill="#c8402f"/></svg>`,
+  pot:    `<svg class="ico" viewBox="0 0 16 16"><rect x="2" y="6" width="12" height="8" fill="#8a8d92"/><rect x="1" y="5" width="14" height="2" fill="#b4b7bc"/><rect x="0" y="7" width="2" height="2" fill="#55585c"/><rect x="14" y="7" width="2" height="2" fill="#55585c"/></svg>`,
+  jug:    `<svg class="ico" viewBox="0 0 16 16"><rect x="4" y="4" width="9" height="11" fill="#e8e6da"/><rect x="6" y="1" width="3" height="3" fill="#3a6fb0"/><rect x="10" y="5" width="3" height="4" fill="#bdbbaf"/><rect x="5" y="9" width="6" height="3" fill="#3a6fb0"/></svg>`,
+  can:    `<svg class="ico" viewBox="0 0 16 16"><rect x="2" y="4" width="12" height="11" fill="#b8352c"/><rect x="9" y="1" width="3" height="3" fill="#333"/><rect x="3" y="2" width="5" height="2" fill="#7a1f1a"/><rect x="4" y="8" width="8" height="3" fill="#e2c046"/></svg>`
+};
+
+function baseConts() {
+  return [
+    { key: "pin",    name: "Rain Collector", where: "Nearby | 4 tiles", pin: true, dist: 4, cap: 400, lq: { water: 50 }, icon: "barrel" },
+    { key: "bottle", name: "Water Bottle",   where: "Inventory",        carried: true, cap: 1.0, lq: { water: 0.5 }, icon: "bottle" },
+    { key: "pop",    name: "Pop Bottle",     where: "Fanny Pack",       carried: true, cap: 0.6, lq: {}, icon: "pop" },
+    { key: "pot",    name: "Cooking Pot",    where: "Big Hiking Bag",   carried: true, cap: 3.0, lq: { water: 1.2 }, icon: "pot" },
+    { key: "bleach", name: "Bleach",         where: "Inventory",        carried: true, cap: 0.6, lq: { bleach: 0.45 }, icon: "jug" },
+    { key: "gas",    name: "Gas Can",        where: "Big Hiking Bag",   carried: true, cap: 10, lq: { petrol: 2 }, icon: "can" }
+  ];
+}
+const SCENES = {
+  pour:    { label: "Collector into a bottle", make() { return { conts: baseConts(), from: "pin", into: "bottle" }; } },
+  open:    { label: "Nothing picked yet", make() { return { conts: baseConts(), from: "pin", into: null }; } },
+  tainted: { label: "Tainted water", make() { const c = baseConts(); c[0].lq = { tainted: 50 }; return { conts: c, from: "pin", into: "bottle" }; } },
+  mix:     { label: "A mixture", make() { const c = baseConts(); c[3].lq = { water: 1.8, bleach: 0.6 }; return { conts: c, from: "pot", into: "pop" }; } },
+  heavy:   { label: "Carrying too much", make() { return { conts: baseConts(), from: "pin", into: "bottle", heavy: true }; } }
+};
+
+/* ======================================================================
+   State
+   ====================================================================== */
+const S = { opt: 1, theme: "dark", acc: "teal", scene: "pour", height: "tall", input: "pad",
+  focus: null, hoverHelp: "", frac: 1, busy: null, confirm: false, drag: null };
+function loadScene(k) {
+  const s = SCENES[k].make();
+  S.scene = k; S.conts = s.conts; S.from = s.from; S.into = s.into; S.heavy = !!s.heavy;
+  S.frac = 1; S.busy = null; S.confirm = false; S.focus = null;
+}
+loadScene("pour");
+
+/* ======================================================================
+   The card's rules (as ObjectCardFluid.lua reads the engine)
+   ====================================================================== */
+const byKey = k => S.conts.find(c => c.key === k) || null;
+const tot = c => Object.values(c.lq).reduce((a, b) => a + b, 0);
+const room = c => Math.max(0, c.cap - tot(c));
+const r2 = v => Math.round(v * 100) / 100;
+function N(v) { v = v || 0; return v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2); }
+const L = v => N(v) + " L";
+const ofL = (a, cap) => `${N(a)} of ${L(cap)}`;
+function liquids(c) {
+  const t = tot(c);
+  return Object.entries(c.lq).filter(([, a]) => a > 0.0001).sort((a, b) => b[1] - a[1]).map(([id, a]) => ({ id, a, share: t ? a / t : 0, ...LQ[id] }));
+}
+const colorOf = c => { const l = liquids(c); return l.length ? l[0].c : null; };
+const tainted = c => liquids(c).some(l => l.poison);    // sandbox's tainted-water text on
+function pillOf(c) {
+  if (!c) return null;
+  const l = liquids(c);
+  if (!l.length) return { t: "Empty", c: null };
+  if (tainted(c)) return { t: "Tainted", bad: true };
+  if (l.length > 1) return { t: "Mixture", c: l[0].c };
+  return { t: l[0].name, c: l[0].c };
+}
+// what a pour from the From side into c would do (vanilla's own refusal reasons)
+function tagFor(c) {
+  const f = byKey(S.from);
+  if (!c || (f && c.key === f.key)) return null;
+  if (!f) return tot(c) <= 0 ? { t: "Empty" } : null;
+  if (S.heavy && c.carried) return { t: "Too heavy", k: "dng", refuse: "You carry too much to pour into a container in your bags." };
+  if (room(c) <= 0.0001) return { t: "Full", k: "dim", refuse: "Container is full." };
+  if (tot(c) <= 0) return { t: "Empty" };
+  const a = Object.keys(f.lq).filter(k => f.lq[k] > 0), b = Object.keys(c.lq).filter(k => c.lq[k] > 0);
+  const pet = x => x.includes("petrol");
+  if (pet(a) !== pet(b) || (pet(a) && (a.length > 1 || b.length > 1))) return { t: "Won't mix", k: "dng", refuse: "Cannot mix these liquids." };
+  if (a.length === 1 && b.length === 1 && a[0] === b[0]) return { t: "Same" };
+  return { t: "Mixes", k: "warn" };
+}
+function pourMax() {
+  const f = byKey(S.from), i = byKey(S.into);
+  if (!f || !i) return 0;
+  const tg = tagFor(i); if (tg && tg.refuse) return 0;
+  return r2(Math.min(tot(f), room(i)));
+}
+const amount = () => r2(pourMax() * S.frac);
+
+/* the verbs: the band at the foot, Empty (danger), Switch, then Pour (the default, rightmost) */
+function verbs() {
+  const f = byKey(S.from), i = byKey(S.into), busy = !!S.busy;
+  const max = pourMax(), amt = amount();
+  const tg = i ? tagFor(i) : null;
+  let need = null;
+  if (busy) need = "Pour, Switch and Empty wait for the action under way to finish.";
+  else if (!f || !i) need = "Pour needs a container that can take it.";
+  else if (tg && tg.refuse) need = tg.refuse;
+  else if (max <= 0) need = "Pour needs something to pour and room to pour it into.";
+  else if (amt <= 0) need = "Pour needs an amount above zero.";
+  const emptySensible = !!f && tot(f) > 0;
+  return {
+    need,
+    pour: { on: !busy && max > 0 && amt > 0 },
+    sw: { on: !busy && !!(f || i) },
+    empty: { show: emptySensible, on: emptySensible && !busy }
+  };
+}
+
+/* ======================================================================
+   Actions
+   ====================================================================== */
+let timer = null;
+function moveLiquid(from, into, amt) {
+  const t = tot(from); if (t <= 0 || amt <= 0) return;
+  const k = Math.min(1, amt / t);
+  for (const id of Object.keys(from.lq)) {
+    const part = from.lq[id] * k;
+    from.lq[id] = r2(from.lq[id] - part);
+    if (into) into.lq[id] = r2((into.lq[id] || 0) + part);
+    if (from.lq[id] <= 0.0001) delete from.lq[id];
+  }
+}
+function startBusy(kind) {
+  const f = byKey(S.from), i = byKey(S.into);
+  const far = [f, i].find(c => c && c.pin && c.dist > 2);
+  S.busy = { kind, amt: kind === "pour" ? amount() : tot(f), done: 0, phase: far ? "walk" : "act", t: 0, far: far ? far.name : "" };
+  S.focus = "stop";
+  clearInterval(timer);
+  timer = setInterval(() => {
+    const b = S.busy; if (!b) { clearInterval(timer); return; }
+    if (b.phase === "walk") { b.t += 0.1; if (b.t >= 1.4) { b.phase = "act"; b.t = 0; } }
+    else { b.done = Math.min(1, b.done + 0.1 / (b.kind === "pour" ? 2.8 : 2.2)); if (b.done >= 1) { finishBusy(1); return; } }
+    render();
+  }, 100);
+  render();
+}
+function finishBusy(part) {
+  const b = S.busy; if (!b) return;
+  clearInterval(timer);
+  const f = byKey(S.from), i = byKey(S.into);
+  if (b.phase === "act" && part > 0) {
+    if (b.kind === "pour") moveLiquid(f, i, r2(b.amt * part));
+    else moveLiquid(f, null, r2(b.amt * part));
+  }
+  S.busy = null; S.focus = null;
+  if (S.opt === 3) S.frac = 1;
+  render();
+}
+function act(id) {
+  const v = verbs();
+  if (id === "pour" && v.pour.on) startBusy("pour");
+  else if (id === "switch" && v.sw.on) { [S.from, S.into] = [S.into, S.from]; S.frac = 1; }
+  else if (id === "empty" && v.empty.on) { S.confirm = true; S.focus = "q-no"; }
+  else if (id === "q-no") { S.confirm = false; S.focus = "empty"; }
+  else if (id === "q-yes") { S.confirm = false; if (!S.busy) startBusy("empty"); return; }
+  else if (id === "stop") { if (S.busy) finishBusy(S.busy.done); return; }
+  else if (id === "amt-") { S.frac = Math.max(0, Math.round(S.frac * 4 - 1) / 4); }
+  else if (id === "amt+") { S.frac = Math.min(1, Math.round(S.frac * 4 + 1) / 4); }
+  else if (id.startsWith("from:")) setSide("from", id.slice(5));
+  else if (id.startsWith("into:")) setSide("into", id.slice(5));
+  render();
+}
+function setSide(side, key) {
+  if (S.busy) return;
+  const c = byKey(key);
+  if (side === "from") {
+    if (key === S.from || tot(c) <= 0) return;
+    if (key === S.into) S.into = S.from;
+    S.from = key;
+  } else {
+    if (key === S.into) return;
+    if (key === S.from) { S.from = S.into; S.into = key; }
+    else { const tg = tagFor(c); if (tg && tg.refuse) return; S.into = key; }
+  }
+  S.frac = 1;
+}
+
+/* ======================================================================
+   Drawing helpers
+   ====================================================================== */
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+function nseg(v, cap) { return v <= 0.0001 ? 0 : Math.max(1, Math.min(10, Math.round(10 * v / cap))); }
+// ten cells; on the From side what leaves is hatched, on the Into side what arrives
+function seg(c, small) {
+  const col = colorOf(c) || "var(--accent)";
+  const cur = tot(c), amt = (S.busy && S.busy.kind === "pour") ? r2(S.busy.amt * (1 - S.busy.done)) : (S.busy ? 0 : amount());
+  let lit = nseg(cur, c.cap), lo = lit, hi = lit;
+  if (amt > 0 && c.key === S.from && S.into) { lo = nseg(cur - amt, c.cap); }
+  if (amt > 0 && c.key === S.into && S.from) { hi = nseg(cur + amt, c.cap); }
+  let r = "";
+  for (let n = 1; n <= 10; n++) {
+    if (n <= lo) r += `<i style="background:${col}"></i>`;
+    else if (n <= lit) r += `<i class="go" style="background-color:${col}"></i>`;
+    else if (n <= hi) r += `<i class="come" style="background-color:color-mix(in srgb, ${col} 55%, transparent)"></i>`;
+    else r += `<i></i>`;
+  }
+  return `<span class="seg${small ? " sm" : ""}" aria-hidden="true">${r}</span>`;
+}
+function tagHtml(t) {
+  if (!t) return "";
+  const k = t.k === "dng" ? " dng" : t.k === "warn" ? " warn" : t.k === "dim" ? " dim" : "";
+  return `<span class="tag${k}">${t.k === "dng" || t.k === "warn" ? '<i class="sq"></i>' : ""}${esc(t.t)}</span>`;
+}
+function btn(fid, label, o = {}) {
+  const cls = ["btn"]; if (o.sm) cls.push("sm"); if (o.cls) cls.push(o.cls);
+  if (o.def) cls.push("default"); if (o.danger) cls.push("danger"); if (o.sel) cls.push("sel");
+  return `<button class="${cls.join(" ")}" data-f="${fid}" data-help="${esc(o.help || "")}"${o.off ? " disabled" : ""}>${label}</button>`;
+}
+function liquidRows(c, ind) {
+  const l = liquids(c);
+  if (!(l.length > 1 || tainted(c))) return "";
+  return `<div class="lqs ${ind}">${l.map(x => `<div class="lq" data-help="${esc(x.name)}: ${Math.round(x.share * 100)}% of what the ${esc(c.name)} holds">
+    <span class="sw" style="background:${x.c}"></span>
+    <span class="nmw"><span class="nm">${esc(x.name)}</span>${x.poison ? tagHtml({ t: "Tainted", k: "dng" }) : ""}</span>
+    <span class="num">${Math.round(x.share * 100)}%</span></div>`).join("")}</div>`;
+}
+
+/* the amount: a slider with its stops named under the track (options 1 and 2) */
+function sliderAmt() {
+  const max = pourMax(), off = !!S.busy || max <= 0;
+  const p = Math.round(S.frac * 1000) / 10;
+  const ticks = [[25, "1/4"], [50, "1/2"], [100, "All"]].map(([x, t]) =>
+    `<span class="tk" style="left:${x}%"></span><span class="tl${x === 100 ? " end" : ""}${Math.abs(S.frac * 100 - x) < .5 ? " at" : ""}" style="left:${x}%" data-snap="${x / 100}">${t}</span>`).join("");
+  return `<div class="amt${off ? " off" : ""}" data-f="amt" data-help="Amount: drag, or press 1/4, 1/2 or All under the track | D-pad left and right move it 5%">
+    <span class="lab">Amount</span>
+    <div class="sl" data-slider="1"><div class="track"><i style="width:${off ? 0 : p}%"></i></div>${off ? "" : `<div class="thumb" style="left:${p}%"></div>`}${ticks}</div>
+    <span class="rd">${off ? "--" : L(amount())}</span></div>`;
+}
+/* the amount as - / + keys flanking a value box, in quarters (option 3) */
+function stepperAmt() {
+  const max = pourMax(), off = !!S.busy || max <= 0;
+  const q = ["0", "1/4", "1/2", "3/4", "All"][Math.round(S.frac * 4)];
+  return `<div class="amt stp${off ? " off" : ""}">
+    <span class="lab">Amount</span>
+    <span class="step">${btn("amt-", "-", { cls: "sq", off: off || S.frac <= 0, help: "Less: a quarter less" })}<span class="vbox">${off ? "--" : L(amount())}</span>${btn("amt+", "+", { cls: "sq", off: off || S.frac >= 1, help: "More: a quarter more" })}</span>
+    <span class="qs">${off ? "" : q}</span></div>`;
+}
+
+/* ---------- option 1: stat rows, then your other containers */
+function statRow(role, c) {
+  const lab = role === "from" ? "From" : "Into";
+  if (!c) return `<div class="srow"><span class="lab">${lab}</span><span class="hint" style="grid-column: 2 / -1">Choose "${lab}" on a container below</span></div>`;
+  return `<div class="srow" data-help="${lab}: ${esc(c.name)}, ${ofL(tot(c), c.cap)}">
+    <span class="lab">${lab}</span>
+    <span class="nmw"><span class="nm">${esc(c.name)}</span>${c.pin ? `<span class="wh">${esc(c.where)}</span>` : ""}</span>
+    <span class="num">${ofL(tot(c), c.cap)}</span>${seg(c)}</div>`;
+}
+function listRow(c, mode, half) {
+  const busy = !!S.busy, isF = c.key === S.from, isI = c.key === S.into;
+  const tg = tagFor(c), refuse = tg && tg.refuse;
+  const fromOff = busy || isF || tot(c) <= 0, intoOff = busy || isI || (!isF && refuse);
+  const keys = `<span class="keys">${btn("from:" + c.key, "From", { sm: 1, sel: isF, off: fromOff, help: "From: pour out of " + c.name })}${btn("into:" + c.key, "Into", { sm: 1, sel: isI, off: intoOff, help: "Into: pour into " + c.name })}</span>`;
+  // (at 220 the lit From or Into key alone names the row's side: no room for a side column)
+  const role = mode === "pair" && !half ? `<span class="role">${isF ? "From" : isI ? "Into" : ""}</span>` : "";
+  const cls = "lrow" + (mode === "pair" && !half ? " r2" : "") + ((isF || isI) && mode === "pair" ? " use" : "");
+  if (half) {
+    return `<div class="${cls}">${role}${ICON[c.icon]}<span class="nmw"><span class="nm">${esc(c.name)}</span></span><span class="tgh">${tagHtml(tg)}</span>
+      <span class="amn num dim">${ofL(tot(c), c.cap)}</span>${keys}</div>${mode === "pair" && isF ? liquidRows(c, "ind2") : ""}`;
+  }
+  return `<div class="${cls}">${role}${ICON[c.icon]}
+    <span class="nmw"><span class="nm">${esc(c.name)}</span><span class="wh">${esc(c.where)}</span></span>
+    <span class="ga">${seg(c, 1)}<span class="num">${ofL(tot(c), c.cap)}</span></span>
+    <span class="tg">${tagHtml(tg)}</span>${keys}</div>${mode === "pair" && isF ? liquidRows(c, "ind2") : ""}`;
+}
+function others() { return S.conts.filter(c => c.key !== S.from && c.key !== S.into); }
+function body1(half) {
+  const f = byKey(S.from), i = byKey(S.into), rest = others();
+  return `<div class="srows">${statRow("from", f)}${f ? liquidRows(f, "ind1") : ""}${statRow("into", i)}</div>
+    ${sliderAmt()}
+    <div class="sec">${f || i ? "Other containers" : "Your containers"}<span class="r">(${rest.length})</span></div>
+    <div class="list">${rest.map(c => listRow(c, "keys", half)).join("")}</div>`;
+}
+/* ---------- option 2: the amount, then one list that is the pour */
+function body2(half) {
+  return `${sliderAmt()}
+    <div class="sec">Your containers<span class="r">(${S.conts.length})</span></div>
+    <div class="list">${S.conts.map(c => listRow(c, "pair", half)).join("")}</div>`;
+}
+/* ---------- option 3: From | Into side by side, a stepper, then your other containers */
+function pcol(role, c) {
+  const lab = role === "from" ? "From" : "Into";
+  if (!c) return `<div class="pcol"><span class="lab">${lab}</span><span class="hint">Choose "${lab}" on a container below</span></div>`;
+  return `<div class="pcol" data-help="${lab}: ${esc(c.name)}, ${ofL(tot(c), c.cap)}"><span class="l1"><span class="lab">${lab}</span><span class="num">${ofL(tot(c), c.cap)}</span></span>
+    <span class="l2"><span class="nm">${esc(c.name)}</span>${c.pin ? `<span class="wh">${esc(c.where)}</span>` : ""}</span>${seg(c)}</div>`;
+}
+function body3(half) {
+  const f = byKey(S.from), i = byKey(S.into), rest = others();
+  return `<div class="pair">${pcol("from", f)}${pcol("into", i)}</div>${f ? liquidRows(f, "") : ""}
+    ${stepperAmt()}
+    <div class="sec">${f || i ? "Other containers" : "Your containers"}<span class="r">(${rest.length})</span></div>
+    <div class="list">${rest.map(c => listRow(c, "keys", half)).join("")}</div>`;
+}
+
+function header(half) {
+  const f = byKey(S.from), i = byKey(S.into), c = f || i;
+  const pill = pillOf(f);
+  const ph = pill ? `<span class="pill${pill.bad ? " bad" : ""}"><i style="${pill.c ? "background:" + pill.c : ""}"></i>${esc(pill.t)}</span>` : "";
+  const x = `<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1 9 9M9 1 1 9" stroke="currentColor" stroke-width="2"/></svg>`;
+  return `<div class="hdr"><span class="ck" data-help="Close card">${x}</span>${c ? ICON[c.icon] : ""}<span class="ttl">${esc(c ? c.name : "Liquid")}</span>${half ? (ph ? `<span class="pillrow">${ph}</span>` : "") : ph}</div>`;
+}
+function band(half) {
+  const b = S.busy; if (!b) return "";
+  const f = byKey(S.from);
+  const what = f ? (liquids(f)[0] || {}).name || "liquid" : "liquid";
+  let lbl, right = "", pct = 0;
+  if (b.phase === "walk") { lbl = `Walking to the ${b.far}`; right = half ? "" : ""; }
+  else if (b.kind === "pour") { lbl = `Pouring ${what.toLowerCase()}`; right = L(r2(b.amt * b.done)) + " poured"; pct = b.done; }
+  else { lbl = `Emptying the ${f ? f.name : "container"}`; pct = b.done; }
+  const x = `<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1 9 9M9 1 1 9" stroke="currentColor" stroke-width="2"/></svg>`;
+  return `<div class="pb"><div class="col"><div class="r1"><i class="sq"></i><span class="lbl">${esc(lbl)}</span>${right && !half ? `<span class="r">${right}</span>` : ""}</div>
+    <div class="pbar"><i style="width:${Math.round(pct * 100)}%"></i></div></div>
+    <button class="ik" data-f="stop" data-help="Stop: end the walk and the pour; nothing more moves">${x}</button></div>`;
+}
+function foot(half) {
+  if (S.confirm) {
+    const f = byKey(S.from), l = liquids(f);
+    const what = l.length > 1 ? "mixture" : (l[0] ? l[0].name.toLowerCase() : "liquid");
+    const q = `Empty the ${esc(f.name)}? ${L(tot(f))} of ${what} is lost.`;
+    const keys = btn("q-no", "Cancel", { help: "Cancel: keep it" }) + btn("q-yes", "Empty", { danger: 1, help: "Empty: pour the liquid out on the ground" });
+    return half ? `<div class="fstrip"><i class="sq dng"></i><span>${q}</span></div><div class="foot"><span class="sp"></span>${keys}</div>`
+                : `<div class="foot"><span class="st"><i class="sq dng"></i><span>${q}</span></span>${keys}</div>`;
+  }
+  const v = verbs();
+  const keys = (v.empty.show ? btn("empty", "Empty", { danger: 1, off: !v.empty.on, help: "Empty: pour the liquid out on the ground (asks first)" }) : "")
+    + btn("switch", "Switch", { off: !v.sw.on, help: "Switch: swap From and Into" })
+    + btn("pour", "Pour", { def: v.pour.on, off: !v.pour.on, help: "Pour: move the amount From into Into" });
+  const st = v.need ? `<i class="sq ${S.busy ? "acc" : "hollow"}"></i><span>${esc(v.need)}</span>` : "";
+  return half ? `${st ? `<div class="fstrip">${st}</div>` : ""}<div class="foot"><span class="sp"></span>${keys}</div>`
+              : `<div class="foot"><span class="st">${st}</span>${keys}</div>`;
+}
+function helpline() {
+  const pr = `<span class="pr"><span class="badge a">A</span>Choose</span><span class="pr"><span class="badge b">B</span>Close card</span>`;
+  const h = S.input === "pad" ? (S._focusHelp || "") : S.hoverHelp;
+  return `<div class="helpline">${h ? esc(h) : (S.input === "pad" ? pr : "")}</div>`;
+}
+function cardHtml(half) {
+  const H = S.height === "tall" ? 372 : 272;
+  const body = S.opt === 1 ? body1(half) : S.opt === 2 ? body2(half) : body3(half);
+  return `<div class="win ${half ? "half" : "full"}" style="width:${half ? 220 : 480}px">
+    <div class="card" style="height:${H}px">${header(half)}${band(half)}<div class="body">${body}</div>${foot(half)}</div>${helpline()}</div>`;
+}
+
+/* ======================================================================
+   Page
+   ====================================================================== */
+function review() {
+  const b = (k, v, t) => `<button data-set="${k}:${v}" class="${String(S[k]) === String(v) ? "on" : ""}">${t}</button>`;
+  return `<span class="grp"><b>Layout</b>${b("opt", 1, "1 Stat rows")}${b("opt", 2, "2 One list")}${b("opt", 3, "3 Side by side")}${b("opt", 0, "Today")}</span>
+    <span class="grp"><b>Case</b>${Object.entries(SCENES).map(([k, s]) => b("scene", k, s.label)).join("")}</span>
+    <span class="grp"><b>Theme</b>${b("theme", "dark", "Dark")}${b("theme", "light", "Light")}${b("theme", "hc", "High contrast")}</span>
+    <span class="grp"><b>Accent</b>${b("acc", "teal", "Teal")}${b("acc", "orange", "Orange")}</span>
+    <span class="grp"><b>Window</b>${b("height", "tall", "4K")}${b("height", "short", "1280x800")}</span>
+    <span class="grp"><b>Input</b>${b("input", "pad", "Controller")}${b("input", "mouse", "Mouse")}</span>`;
+}
+function stageHtml() {
+  if (S.opt === 0) return `<div class="cards"><div class="today"><div class="cap"><b>Today</b><span>4K, Light, teal (QA's shot, Nov 26)</span></div><img src="fluid_card_today_4k.png" alt="The fluid card as it ships today: Pour, Switch and Empty under the title, two tank drawings with an arrow and a large 0.50 L, a slider with 1/4, 1/2 and All, a Liquids band and Your containers cut off at the bottom."></div></div>`;
+  const name = ["", "Stat rows", "One list", "Side by side"][S.opt];
+  return `<div class="cards" id="cards"><div><div class="cap"><b>${S.opt} ${name}</b><span>full card, 480</span></div><div class="zt" data-zt="${S.theme}" data-acc="${S.acc}" data-card="full">${cardHtml(false)}</div></div>
+    <div><div class="cap"><b>${S.opt} ${name}</b><span>half card, 220</span></div><div class="zt" data-zt="${S.theme}" data-acc="${S.acc}" data-card="half">${cardHtml(true)}</div></div></div>`;
+}
+
+function focusables() { return [...document.querySelectorAll('[data-card="full"] [data-f]')].filter(el => !el.disabled && !el.classList.contains("off")); }
+function defaultFocus() {
+  if (S.busy) return "stop";
+  if (S.confirm) return "q-no";
+  if (!S.into) { const r = S.conts.find(c => c.key !== S.from && !(tagFor(c) || {}).refuse); if (r) return "into:" + r.key; }
+  return verbs().pour.on ? "pour" : "switch";
+}
+function placeHand() {
+  S._focusHelp = "";
+  if (S.input !== "pad" || S.opt === 0) return;
+  const list = focusables(); if (!list.length) return;
+  let el = list.find(e => e.dataset.f === S.focus);
+  if (!el) { el = list.find(e => e.dataset.f === defaultFocus()) || list[list.length - 1]; S.focus = el.dataset.f; }
+  S._focusHelp = el.dataset.help || "";
+  document.querySelectorAll(`[data-f="${CSS.escape(S.focus)}"]`).forEach(e => { e.classList.add("has-hand"); e.insertAdjacentHTML("beforeend", handSvg()); });
+  document.querySelectorAll(".helpline").forEach(h => { h.outerHTML = helpline(); });
+}
+
+function render() {
+  const keep = [...document.querySelectorAll(".body")].map(b => b.scrollTop);
+  document.getElementById("review").innerHTML = review();
+  document.getElementById("zoomer").innerHTML = stageHtml();
+  placeHand();
+  [...document.querySelectorAll(".body")].forEach((b, n) => { b.scrollTop = keep[n] || 0; });
+  fit();
+}
+function fit() {
+  const z = document.getElementById("zoomer"), stage = document.getElementById("stage");
+  const cards = z.querySelector(".cards"); if (!cards) return;
+  const availW = stage.clientWidth;
+  cards.classList.toggle("stack", availW < 760 && S.opt !== 0);
+  z.style.transform = "none"; z.style.width = "max-content";
+  const w = cards.offsetWidth, h = cards.offsetHeight;
+  let k = Math.min(availW / w, 2);
+  if (availW >= 760) k = Math.min(k, Math.max(1, (window.innerHeight - document.getElementById("review").offsetHeight - 40) / h));
+  z.style.transform = `scale(${k})`;
+  z.style.width = w + "px"; z.style.height = h + "px";
+  stage.style.height = (h * k + 26) + "px";
+  z.style.marginLeft = Math.max(0, (availW - w * k) / 2) + "px";
+}
+
+/* ---------- input */
+function setFrac(f) { if (S.busy || pourMax() <= 0) return; S.frac = Math.max(0, Math.min(1, Math.round(f * 20) / 20)); }
+function fracAt(clientX, card) {
+  const t = document.querySelector(`[data-card="${card}"] .sl .track`); if (!t) return S.frac;
+  const r = t.getBoundingClientRect(); return (clientX - r.left) / Math.max(1, r.width);
+}
+document.addEventListener("pointerdown", e => {
+  const sl = e.target.closest("[data-slider]"); if (!sl || e.target.closest("[data-snap]")) return;
+  const card = sl.closest("[data-card]").dataset.card;
+  S.drag = card; S.focus = "amt"; setFrac(fracAt(e.clientX, card)); render(); e.preventDefault();
+});
+document.addEventListener("pointermove", e => { if (S.drag) { setFrac(fracAt(e.clientX, S.drag)); render(); } });
+document.addEventListener("pointerup", () => { S.drag = null; });
+document.addEventListener("click", e => {
+  const set = e.target.closest("[data-set]");
+  if (set) {
+    const [k, v] = set.dataset.set.split(":");
+    if (k === "scene") loadScene(v);
+    else if (k === "opt") { S.opt = +v; S.focus = null; if (S.opt === 3) S.frac = Math.round(S.frac * 4) / 4; }
+    else S[k] = v;
+    render(); return;
+  }
+  const snap = e.target.closest("[data-snap]");
+  if (snap) { setFrac(+snap.dataset.snap); S.focus = "amt"; render(); return; }
+  const a = e.target.closest("button[data-f]");
+  if (a && !a.disabled) { S.focus = a.dataset.f; act(a.dataset.f); }
+});
+document.addEventListener("mouseover", e => {
+  if (S.input !== "mouse") return;
+  const h = e.target.closest("[data-help]"); const t = h ? h.dataset.help : "";
+  if (t !== S.hoverHelp) { S.hoverHelp = t; document.querySelectorAll(".helpline").forEach(x => { x.outerHTML = helpline(); }); }
+});
+document.addEventListener("keydown", e => {
+  if (S.input !== "pad" || S.opt === 0) return;
+  if (e.target.closest && e.target.closest(".review")) return;
+  const list = focusables(); if (!list.length) return;
+  let i = list.findIndex(el => el.dataset.f === S.focus);
+  if (S.focus === "amt" && (e.key === "ArrowLeft" || e.key === "ArrowRight")) { e.preventDefault(); setFrac(S.frac + (e.key === "ArrowLeft" ? -0.05 : 0.05)); render(); return; }
+  if (e.key === "ArrowDown" || e.key === "ArrowRight") i = Math.min(list.length - 1, i + 1);
+  else if (e.key === "ArrowUp" || e.key === "ArrowLeft") i = Math.max(0, i - 1);
+  else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); const f = list[i] && list[i].dataset.f; if (f && f !== "amt") act(f); return; }
+  else if (e.key === "Escape" || e.key === "Backspace") { if (S.confirm) { e.preventDefault(); act("q-no"); } return; }
+  else return;
+  e.preventDefault(); S.focus = list[i].dataset.f; render();
+});
+window.addEventListener("resize", fit);
+
+/* ---------- notes for the director */
+function notes() {
+  return `
+  <h2>What you are looking at</h2>
+  <p>The fluid card in three layouts, each at the full card (480) and the half card (220). Pick a layout and a case at the top. Pour, Switch, Empty, From and Into all work; Pour walks to the collector first (it is 4 tiles off) and then shows the progress band, and the X on the band stops the whole chain. Arrow keys move the pointing hand like the D-pad, Enter is A. "Today" shows the card as QA shot it.</p>
+  <h2>The three layouts</h2>
+  <ol>
+    <li class="pick"><b>Stat rows</b> (my pick). From and Into are label-left, value-right rows, as the generator card's rows are. Under them the amount as one slider, with 1/4, 1/2 and All written under the track at the very spots they stand for. Then "Your other containers", each with From and Into. The two containers in the pour leave the list, so no amount shows twice.</li>
+    <li><b>One list.</b> No From and Into rows at all: the list is the pour. The two containers in use are washed in the accent with "From" and "Into" at their left. Most room for your containers, but From and Into can sit far apart in a long list.</li>
+    <li><b>Side by side.</b> From and Into as two columns, closest to today's left-to-right reading without the tank drawings. The amount is a - / + pair around a value box, in quarters. At 220 the columns stack, so the half card is close to layout 1.</li>
+  </ol>
+  <h2>What changed from today (QA's seven points)</h2>
+  <ol>
+    <li>The verbs moved to the band at the card's foot: Empty in red, Switch, then Pour, the default, rightmost. When Pour can't run, its reason sits in the same band at the left ("Pour needs a container that can take it.", the game's own "Cannot mix these liquids.", the too-heavy line).</li>
+    <li>No large number. The amount reads at the normal size at the right of its control.</li>
+    <li>Each amount shows once: a container's level is on its own row only; the levels after the pour show as hatched cells in its bar. The liquid's name is in the title tag only, unless the container holds a mixture or tainted liquid, when a short Liquids list sits under From.</li>
+    <li>One amount control. The slider's tick marks line up with their words.</li>
+    <li>One left edge: every row, the section head and the list start at the same 10-unit inset.</li>
+    <li>"Your containers" starts on screen at 4K with every row in view; at 1280x800 its head and first rows show and the card scrolls as one piece.</li>
+    <li>The tank drawings and the arrow are gone; the rows are the house's stat rows.</li>
+  </ol>
+  <h2>Controller stops</h2>
+  <ul>
+    <li>1 and 2: Amount (D-pad left and right move it 5%), then From and Into on each container, then Empty, Switch, Pour. The card opens on Pour, or on the first Into that takes the pour when nothing is picked yet.</li>
+    <li>3: the - and + keys, then the same.</li>
+    <li>While it pours: the X on the progress band. The question: Cancel first.</li>
+  </ul>
+  <h2>One thing to know before you pick</h2>
+  <p>The generator and fire cards still put their verbs in a row under the title today, with the main verb leftmost. The foot band here follows the Mechanics tab and the trade card. If the fluid card moves to the foot, the other object cards should follow so they all match; that would be a separate change.</p>`;
+}
+render();
+document.getElementById("notes").innerHTML = notes();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+</script>
