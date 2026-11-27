@@ -194,6 +194,14 @@ function H.ft(it) local s = "?"; if H.isItem(it) then pcall(function() s = tostr
 function H.nm(it) local s = "nothing"; if H.isItem(it) then pcall(function() s = tostring(it:getName()) end) end; return s end
 function H.where(it) local c = nil; if H.isItem(it) then pcall(function() c = it:getContainer() end) end; return c end
 function H.inv() return S.p:getInventory() end
+function H.ctypeOf(it)
+    local c = H.where(it)
+    if c == nil then return "no container" end
+    if c == H.inv() then return "his main inventory" end
+    local t = "?"
+    pcall(function() t = tostring(c:getType()) end)
+    return "the container " .. t
+end
 function H.known(ft) local ok = false; if ft then pcall(function() ok = getScriptManager():FindItem(ft) ~= nil end) end; return ok end
 function H.firstKnown(list) for _, ft in ipairs(list) do if H.known(ft) then return ft end end; return nil end
 function H.walkInv(inv, out, depth)
@@ -535,6 +543,7 @@ function H.drewCut(whole)
     end
     return nil
 end
+function H.drewOrCut(s) return H.drewI(s) or H.drewCut(s) end
 function H.onLog() local w = RT.cw(); return w ~= nil and w._activeTab == "journal" and (w._journalSubTab or 1) == 1 end
 function H.onPage(i) local w = RT.cw(); return w ~= nil and w._activeTab == "journal" and (w._journalSubTab or 1) == i end
 -- the pair open, the Journal tab up, on page i (set directly: a page press is its own check)
@@ -562,20 +571,21 @@ end
 
 -- ===================================================================== the draw watched (on for the run)
 -- the drawer panel's drawText, drawTextRight, drawTextCentre and drawRect wrapped: every word and every rectangle drawn
--- while the Journal draws; a frame is one JournalReaders.beginFrame to the next (S.texts / S.rects: the last whole one)
-function H.wrapOn()
-    if S.w0 then return end
-    local d = H.drawer()
-    if not d then return end
-    local W = { d = d, own = {}, base = {}, bf = S.JR.beginFrame }
-    S.w0 = W
+-- while the Journal draws; a frame is one JournalReaders.beginFrame to the next (S.texts / S.rects: the last whole one).
+-- (run 1, Nov 27 2026: the Character window is made again each time it opens (CW:4490-4492 drops it), so its drawer
+-- is a new panel: every drawer a Journal frame starts on is wrapped, from the readers' frame start)
+function H.hookDrawer(W, d)
+    if not d or W.hooked[d] then return end
+    local R = { d = d, own = {} }
+    W.hooked[d] = R
+    W.list[#W.list + 1] = R
+    W.d = d
     for _, k in ipairs({ "drawText", "drawTextRight", "drawTextCentre" }) do
         local own = nil
         pcall(function() own = rawget(d, k) end)
-        W.own[k] = own or false
+        R.own[k] = own or false
         local base = d[k]
         if base then
-            W.base[k] = base
             d[k] = function(self, text, tx, ty, ...)
                 local r = S.rec
                 if r and #r < 3000 then r[#r + 1] = { s = tostring(text), x = tonumber(tx) or 0, y = tonumber(ty) or 0 } end
@@ -585,10 +595,9 @@ function H.wrapOn()
     end
     local ownR = nil
     pcall(function() ownR = rawget(d, "drawRect") end)
-    W.own.drawRect = ownR or false
+    R.own.drawRect = ownR or false
     local baseR = d.drawRect
     if baseR then
-        W.base.drawRect = baseR
         d.drawRect = function(self, rx, ry, rw, rh, a, cr, cg, cb)
             local st = S.stripe
             if st and a == st.a and cr == st.r and cg == st.g and cb == st.b then
@@ -598,11 +607,20 @@ function H.wrapOn()
             return baseR(self, rx, ry, rw, rh, a, cr, cg, cb)
         end
     end
+end
+function H.wrapOn()
+    if S.w0 then return end
+    local d = H.drawer()
+    if not d then return end
+    local W = { hooked = {}, list = {}, bf = S.JR.beginFrame }
+    S.w0 = W
+    H.hookDrawer(W, d)
     W.bfFn = function(win)
         S.texts, S.rects = S.rec, S.recR
         S.rec, S.recR = {}, {}
         S.jf = S.jf + 1
         pcall(function() S.stripe = ZeD.T.stripe end)
+        pcall(function() local dd = win and win._drawerPanel; if dd and dd ~= W.d then H.hookDrawer(W, dd); S.rehooks = (S.rehooks or 0) + 1 end end)
         return W.bf(win)
     end
     S.JR.beginFrame = W.bfFn
@@ -610,9 +628,11 @@ end
 function H.wrapOff()
     local W = S.w0
     if not W then return end
-    local d = W.d
-    for k, own in pairs(W.own) do
-        if own then d[k] = own else pcall(function() rawset(d, k, nil) end) end
+    for _, R in ipairs(W.list) do
+        for k, own in pairs(R.own) do
+            local d = R.d
+            if own then d[k] = own else pcall(function() rawset(d, k, nil) end) end
+        end
     end
     if S.JR.beginFrame == W.bfFn then S.JR.beginFrame = W.bf end
     S.w0 = nil
@@ -1189,7 +1209,8 @@ function C.j1()
     H.step(10, function() RT.charTab("journal") end)
     H.step(5, function()
         local w = RT.cw()
-        Q.check(w ~= nil and w._journalSubTab == 2, T.L .. ": the page picked (Notebooks) is kept when the window shuts and opens again", "page " .. tostring(w and w._journalSubTab))
+        Q.check(w ~= nil and w._journalSubTab == 2, T.L .. ": the page picked (Notebooks) is kept when the window shuts and opens again (the map: kept for the session)",
+            "page " .. tostring(w and w._journalSubTab) .. "; the window is made again on each open (CW:4490-4492 drops it, CW:4787 sets page 1; saveCharState keeps no Journal page)")
         H.note(T.L .. ": the first open of a session lands on the Log (win._journalSubTab = 1 at the window's making); a session's first open cannot be staged again here")
         if w then pcall(S.JT.setPage, w, 1) end
         RT.charTab("loot")
@@ -1385,6 +1406,12 @@ function C.j6()
         local gt = getGameTime()
         T.g = { month = gt:getMonth(), day = gt:getDay(), year = gt:getYear(), hour = gt:getHour(), min = math.floor((gt:getTimeOfDay() % 1) * 60) }
         T.hrs = S.p:getHoursSurvived()
+        local cal = "?"
+        pcall(function()
+            cal = "getYear " .. gt:getYear() .. ", getMonth " .. gt:getMonth() .. ", getDay " .. gt:getDay() .. "; start " .. gt:getStartYear() .. "-" .. gt:getStartMonth() .. "-" .. gt:getStartDay()
+                .. "; world age " .. H.n2(gt:getWorldAgeHours()) .. " h"
+        end)
+        H.note(T.L .. ": the game's calendar now (0-based month and day): " .. cal)
         T.pressed = H.saveClick()
     end)
     H.step(3, function()
@@ -1604,7 +1631,12 @@ function C.j9()
         local dE, dB = H.delZone(iE), H.delZone(iB)
         Q.check(dE ~= nil and dB ~= nil and iE < iB and dE.y < dB.y, T.L .. ": inside a month the entries keep the list's order", "e at " .. tostring(dE and dE.y) .. " (index " .. tostring(iE) .. "), b at " .. tostring(dB and dB.y) .. " (index " .. tostring(iB) .. ")")
         T.dels0 = #(w._journalDeleteZones or {})
-        T.press = H.press(H.groupZone("0_1981"))
+        local gz = H.groupZone("0_1981")
+        local v = w._journalView
+        T.where = gz and ("head " .. math.floor(gz.x) .. "," .. math.floor(gz.y) .. " " .. math.floor(gz.w) .. "x" .. math.floor(gz.h)
+            .. (v and (", view y " .. math.floor(v.y) .. "-" .. math.floor(v.y + v.h)) or "")) or "no head zone"
+        T.press = H.press(gz)
+        T.c1 = w._journalGroupCollapsed["0_1981"]
         local m = H.gt("Sandbox_StartMonth_option1")
         H.note(T.L .. ": the head words for January 1981 hold the game's \"" .. m .. "\": " .. tostring(H.drewI(m) and H.drewI(m).s))
     end)
@@ -1614,7 +1646,10 @@ function C.j9()
         local w = RT.cw()
         local dels = #(w._journalDeleteZones or {})
         Q.check(T.press and w._journalGroupCollapsed["0_1981"] == true and dels == T.dels0 - 1 and H.groupZone("0_1981") ~= nil,
-            T.L .. " (mouse): a press on a month head folds it: its entry goes, the head stays", "folded " .. tostring(w._journalGroupCollapsed["0_1981"]) .. ", crosses " .. dels .. " (were " .. tostring(T.dels0) .. ")")
+            T.L .. " (mouse): a press on a month head folds it: its entry goes, the head stays", "folded " .. tostring(w._journalGroupCollapsed["0_1981"]) .. " (right after the press "
+            .. tostring(T.c1) .. ", pressed " .. tostring(T.press) .. "), crosses " .. dels .. " (were " .. tostring(T.dels0) .. "); " .. tostring(T.where))
+        -- (the pad's leg starts from the head folded, whatever the mouse did)
+        w._journalGroupCollapsed["0_1981"] = true
         T.go = H.padOn() and H.focusId("journal:group:0_1981")
     end)
     H.tapA(function() return T.go end)
@@ -2251,8 +2286,9 @@ function C.j18leg(T, name, arm, want, undo)
         T.legOff, T.ready = nil, nil
         if T.off then return end
         T.n0 = H.entN()
-        T.pg0 = H.page(T.nb, 1)
         local why = arm()
+        -- (the page read after the leg is armed: a full book's leg fills it; run 1 read it before)
+        T.pg0 = H.page(T.nb, 1)
         if why then T.legOff = true; Q.skip(T.L .. ": " .. name, why) end
     end)
     H.wait(5000, function() return T.off or T.legOff or T.ready == nil or T.ready() end, function()
@@ -2368,7 +2404,8 @@ function C.j20leg(T, how)
     H.step(2, function()
         if T.off then return end
         T.n0 = #H.runEnts()
-        T.text = "ZQA twice " .. how .. " zq20 " .. H.rep("more words ", 6)
+        -- (no space at the end: Into trims the words before it writes them, JR:1114; run 1 counted a text with one)
+        T.text = "ZQA twice " .. how .. " zq20 " .. H.rep("more words ", 6) .. "end"
         H.type(T.text)
         if how == "mouse" then H.saveClick() else T.go = H.padOn() and H.focusId("journal:__save") end
     end)
@@ -2547,7 +2584,7 @@ function C.j23()
         if T.off then return end
         Q.check(H.drewI(H.tr("UI_ZeD_Notebook_NoneCarried")) ~= nil, T.L .. ": it reads \"" .. H.tr("UI_ZeD_Notebook_NoneCarried") .. "\"", H.drewLike(" ", 3))
         local tool, light = H.toolsHeld() > 0, not H.dark()
-        Q.check(H.drewI(H.tr(tool and "UI_ZeD_Notebook_HasTool" or "UI_ZeD_Notebook_WhyNoTool")) ~= nil and H.drewI(H.tr(light and "UI_ZeD_Notebook_LightOk" or "UI_ZeD_Notebook_WhyTooDark")) ~= nil,
+        Q.check(H.drewOrCut(H.tr(tool and "UI_ZeD_Notebook_HasTool" or "UI_ZeD_Notebook_WhyNoTool")) ~= nil and H.drewOrCut(H.tr(light and "UI_ZeD_Notebook_LightOk" or "UI_ZeD_Notebook_WhyTooDark")) ~= nil,
             T.L .. ": the Writing block's two rows match the game (a pencil by its tags, the light by tooDarkToRead)", "tool " .. tostring(tool) .. ", light " .. tostring(light))
         local nRead = (H.isRead(T.id1) and 1 or 0) + (H.isRead(T.id2) and 1 or 0)
         local cnt = H.tr("UI_ZeD_Papers_Count", nRead, 2)
@@ -2571,7 +2608,7 @@ function C.j23()
     H.step(1, function()
         if T.off then return end
         if S.found.toolsKept == 0 then
-            Q.check(H.drewI(H.tr("UI_ZeD_Notebook_WhyNoTool")) ~= nil, T.L .. ": the pencil taken away, the Writing block says why", H.drewLike(" ", 3))
+            Q.check(H.drewOrCut(H.tr("UI_ZeD_Notebook_WhyNoTool")) ~= nil, T.L .. ": the pencil taken away, the Writing block says why", H.drewLike(" ", 3))
         else Q.skip(T.L .. ": the Writing block with no pencil", "a writing tool of his stays worn or held") end
         local rows = H.fillRows("papers")
         T.want = nil
@@ -2670,7 +2707,7 @@ function C.j25()
     H.step(1, function()
         if T.off then return end
         local left = 15 - 2
-        Q.check(H.drewI(H.tr("UI_ZeD_Notebook_ReadyMany", left)) ~= nil, T.L .. ": the line under the note counts the lines left (" .. left .. ")", H.drewLike(" ", 4))
+        Q.check(H.drewOrCut(H.tr("UI_ZeD_Notebook_ReadyMany", left)) ~= nil, T.L .. ": the line under the note counts the lines left (" .. left .. ")", H.drewLike(" ", 4))
         pcall(function() RT.cw()._jrNote:setText("ZQA quick line zq25") end)
         T.press = H.jrPress("write", T.L)
     end)
@@ -2684,7 +2721,7 @@ function C.j25()
     H.step(1, function()
         if T.off then return end
         local pg = H.page(T.nb, 1)
-        Q.check(H.endsWith(pg, "ZQA quick line zq25") and H.drewI(H.tr("UI_ZeD_Notebook_ReadyMany", 12)) ~= nil, T.L .. ": the line is on the page (seePage) and the lines left drop to 12",
+        Q.check(H.endsWith(pg, "ZQA quick line zq25") and H.drewOrCut(H.tr("UI_ZeD_Notebook_ReadyMany", 12)) ~= nil, T.L .. ": the line is on the page (seePage) and the lines left drop to 12",
             "page ends \"" .. tostring(string.sub(pg, -24)) .. "\"; Writing shown " .. tostring(T.writing))
         H.setPage(T.nb, 1, H.lines(15, "zq25"))
         pcall(function() RT.cw()._jrNote:setText("ZQA no room zq25") end)
@@ -2703,6 +2740,8 @@ function C.j25()
         local inner = e and e._entry
         local hook = inner and inner.onCommandEntered
         T.hook = hook
+        T.own = false
+        pcall(function() T.own = rawget(inner, "onCommandEntered") ~= nil end)
         pcall(function() e:setText("ZQA enter zq25") end)
         H.setPage(T.nb, 1, "")
         if type(hook) == "function" then H.zcall(function() hook(inner) end) end
@@ -2711,7 +2750,8 @@ function C.j25()
         if T.off then return end
         local e = RT.cw()._jrNote
         Q.check(type(T.hook) == "function" and H.qcount("ZeD_WriteNoteAction") == 1, T.L .. " (B2): Enter in the note writes the line (its onSubmit reached)",
-            "the note's inner box onCommandEntered " .. type(T.hook) .. ", onSubmit " .. type(e and e.onSubmit) .. ", queued " .. H.qcount("ZeD_WriteNoteAction"))
+            "the note's inner box onCommandEntered " .. type(T.hook) .. (T.own and " (its own)" or " (the game's ISTextEntryBox default, empty)") .. ", onSubmit " .. type(e and e.onSubmit)
+            .. " (set at JR:694, called by nothing in ZeD_TextEntry, MO:910-938), queued " .. H.qcount("ZeD_WriteNoteAction"))
         H.qstop()
         T.go = H.padOn() and H.focusId("jr:note")
         if not T.go then Q.check(false, T.L .. " (pad): the note is a stop while it shows whole", "stops " .. H.stopIds()) end
@@ -2899,12 +2939,29 @@ function C.j29()
         if T.off then return end
         pcall(function() RT.cw()._jrNote:setText("ZQA from the bag zq29") end)
         H.jrPress("write", T.L)
+        T.q = H.qkinds()
     end)
     H.writeWait(T)
+    H.wait(5000, function() return T.off or H.qlen() == 0 end, function() end)
     H.step(30, function()
         if T.off then return end
-        Q.check(H.where(T.nb) == H.inv() and H.endsWith(H.page(T.nb, 1), "ZQA from the bag zq29"), T.L .. ": Write takes the book out of the bag and leaves it in his main inventory (the game's Write note does)",
-            "in " .. tostring(H.where(T.nb) == H.inv() and "his main inventory" or "the bag or elsewhere") .. ", page \"" .. H.page(T.nb, 1) .. "\"")
+        T.zIn = H.where(T.nb) == H.inv()
+        T.zWhere = H.ctypeOf(T.nb)
+        -- the game's own way out of the bag (transferIfNeeded, which its Write note and ZeD both call) on a second book
+        local inv = nil
+        pcall(function() inv = T.bag:getInventory() end)
+        T.nb2 = inv and H.giveTo(inv, "Base.Notebook")
+        pcall(function() ISInventoryPaneContextMenu.transferIfNeeded(S.p, T.nb2) end)
+        T.q2 = H.qkinds()
+        H.speed(2)
+    end)
+    H.wait(8000, function() return T.off or H.qlen() == 0 end, function() H.speed(1) end)
+    H.step(30, function()
+        if T.off then return end
+        local gIn = H.where(T.nb2) == H.inv()
+        H.note(T.L .. ": queued at Write: " .. tostring(T.q) .. "; the game's transferIfNeeded queued " .. tostring(T.q2) .. " and left its book in " .. H.ctypeOf(T.nb2))
+        Q.check(T.zIn and gIn and H.endsWith(H.page(T.nb, 1), "ZQA from the bag zq29"), T.L .. ": Write takes the book out of the bag and leaves it in his main inventory (the game's own transfer does)",
+            "ZeD's book in " .. tostring(T.zWhere) .. ", the game's in " .. H.ctypeOf(T.nb2) .. ", page \"" .. H.page(T.nb, 1) .. "\"")
     end)
     H.caseEnd(T.L)
 end
@@ -3085,7 +3142,8 @@ function C.j32()
         if T.off then return end
         local s = H.st()
         Q.check(T.go and H.qcount("ISReadABook") == 0 and not H.isRead(T.idU), T.L .. " (J43): the pad's B during the read stops it",
-            "queue " .. H.qkinds() .. ", read " .. tostring(H.isRead(T.idU)) .. ", the quick look " .. tostring(s.paperOpen))
+            "queue " .. H.qkinds() .. ", read " .. tostring(H.isRead(T.idU)) .. ", the quick look " .. tostring(s.paperOpen)
+            .. " (the Read stop's B is its Back, cancel = back at JR:518-519; FM stops the action only on a stop with no onCancel)")
         H.padOff()
         H.qstop()
         if s.paperOpen ~= T.idU then H.jrPress("paper:" .. T.idU, T.L) end
@@ -3140,10 +3198,16 @@ function C.j32()
         pcall(function() ISInventoryPaneContextMenu.onLiteratureItems({ T.fU2 }, S.pn) end)
         T.qG = H.qcount("ISReadABook")
         H.qstop()
+        T.ill = H.hasTrait("ILLITERATE")
         H.setTrait("ILLITERATE", S.found.illit == true)
         S.back.illit = nil
-        Q.check(T.qZ == 0, T.L .. " (B4): an illiterate character cannot read a paper from the Papers page (the game's own read filter refuses him)",
-            "Read " .. tostring(T.zr and (T.zr.fn and "live" or "grey")) .. ", it queued " .. T.qZ .. " reads; the game's onLiteratureItems queued " .. T.qG)
+        -- (run 1: the game's own filter let the illiterate read the flyer too, a flyer being a picture for him; the
+        -- truth is the game's onLiteratureItems on the same piece, whatever it says)
+        local pic = false
+        pcall(function() pic = T.fU2:hasTag(ItemTag.PICTURE) or T.fU2:hasTag(ItemTag.PICTUREBOOK) end)
+        Q.check(T.ill and (T.qZ > 0) == (T.qG > 0), T.L .. " (B4): an illiterate character reads a paper from the Papers page only where the game's own read filter lets him",
+            "Read " .. tostring(T.zr and (T.zr.fn and "live" or "grey")) .. ", it queued " .. T.qZ .. " reads; the game's onLiteratureItems queued " .. T.qG .. " (picture tag " .. tostring(pic) .. ", the trait on " .. tostring(T.ill) .. ")")
+        if T.qG > 0 then H.note(T.L .. " (B4): a flyer is one the game lets an illiterate read; the case the map fears (a newspaper) needs a real newspaper piece, not staged") end
         Q.skip(T.L .. ": asleep (the game refuses a read asleep)", "sleep is not staged in the sweep")
         Q.skip(T.L .. ": as a driver at speed", "a car must be driven")
     end)
@@ -3298,7 +3362,9 @@ function C.j35status(T)
             if e and e.recipe then
                 n = n + 1
                 local _, _, want = H.rTruth(e.recipe, e.needLearn)
-                if rd.status ~= want and #bad < 6 then bad[#bad + 1] = tostring(e.name) .. " " .. tostring(rd.status) .. " (the game: " .. want .. ")" end
+                -- (run 1: the ingredients scan turns an unlocked row into "craftable" or "missing" (CraftingCore's
+                -- backgroundIngredientScan); locked is the only verdict the game's rule makes)
+                if (rd.status == "locked") ~= (want == "locked") and #bad < 6 then bad[#bad + 1] = tostring(e.name) .. " " .. tostring(rd.status) .. " (the game: " .. want .. ")" end
             end
         end
         Q.check(n > 0 and #bad == 0, T.L .. ": each row is unlocked or locked as the game says (isRecipeKnown, characterHasRequiredSkills)", n .. " rows; " .. H.list(bad))
@@ -3387,13 +3453,15 @@ function C.j35()
     H.step(1, function()
         if T.off or T.noSort then return end
         local st = H.rst()
-        local inv, prev = 0, nil
+        -- (run 1 compared lower case; CraftingCore orders by its key (pins first), then displayName as written, CC:1440-1470)
+        local inv, prev, pk, ex = 0, nil, nil, {}
         for _, rd in ipairs(st.filteredCache or {}) do
-            local n = string.lower(tostring(rd.entry and rd.entry.displayName or ""))
-            if prev and n < prev then inv = inv + 1 end
-            prev = n
+            local n = tostring(rd.entry and rd.entry.displayName or "")
+            local k = rd._sortKey
+            if prev and k == pk and n < prev then inv = inv + 1; if #ex < 3 then ex[#ex + 1] = prev .. " > " .. n end end
+            prev, pk = n, k
         end
-        Q.check(st.sort == "name" and inv == 0, T.L .. " (mouse): Sort Name orders the rows by name", "sort " .. tostring(st.sort) .. ", " .. inv .. " out of order in " .. #(st.filteredCache or {}))
+        Q.check(st.sort == "name" and inv == 0, T.L .. " (mouse): Sort Name orders the rows by name", "sort " .. tostring(st.sort) .. ", " .. inv .. " out of order in " .. #(st.filteredCache or {}) .. (#ex > 0 and (": " .. H.list(ex)) or ""))
         local z = H.rzone("showMenu")
         T.noShow = z == nil
         if z then H.press(z) else Q.skip(T.L .. ": Show Known", "no Show box drawn") end
@@ -3474,7 +3542,7 @@ function C.j36()
     end)
     H.wait(3000, function()
         if T.off then return true end
-        for _, rd in ipairs((H.rdata() or {}).recipes or {}) do if rd.entry and tostring(rd.entry.name) == T.name and rd.status == "unlocked" then return true end end
+        for _, rd in ipairs((H.rdata() or {}).recipes or {}) do if rd.entry and tostring(rd.entry.name) == T.name and rd.status ~= "locked" then return true end end
         return false
     end, function(ok)
         if T.off then return end
@@ -3671,7 +3739,7 @@ function C.j40()
         end
         local miss = {}
         for k = 1, 7 do if not seen[k] then miss[#miss + 1] = S.KINDS[k] end end
-        Q.check(W.done and #miss == 0, T.L .. ": Down from the page tab reaches the kills head, the write box, the picks, Into, the log and Save", H.fold(seq) .. (#miss > 0 and ("; never reached: " .. H.list(miss)) or ""))
+        Q.check(W.done and #miss == 0, T.L .. ": Down from the page tab reaches the kills head, the write box, the picks, Into, the log and Save", H.fold(seq) .. (#miss > 0 and ("; never reached: " .. H.list(miss)) or "") .. "; the stops walked: " .. H.list(W.ids, 14))
         Q.check(ok, T.L .. ": the walk keeps the map's order (header, kills, write, picks, Into, the log, Save)", H.fold(seq))
         T.goW = H.focusId("journal:__write")
     end)
@@ -3781,7 +3849,7 @@ function C.j41()
         if T.off or not T.go then return end
         local reached = false
         for _, id in ipairs(W.ids) do if id == T.lastId then reached = true end end
-        Q.check(reached, T.L .. ": Down walks to the last entry's cross (" .. T.lastId .. ")", W.n .. " presses; last focus " .. tostring(W.ids[#W.ids]))
+        Q.check(reached, T.L .. ": Down walks to the last entry's cross (" .. T.lastId .. ")", W.n .. " presses: " .. H.list(W.ids, 12) .. "; " .. #H.stops() .. " stops now")
         Q.check(#T.out == 0, T.L .. ": the view follows the focus down the log", "out of view: " .. H.list(T.out))
     end)
     H.walk(T, U, "up", 300, function(id) return H.kindOf(id) == 1 end)
@@ -3813,10 +3881,12 @@ function C.j42()
         if T.off or not T.go then return end
         local shown = false
         pcall(function() shown = RT.cw()._jrNote:isVisible() end)
-        local need = { "jr:book:" .. tostring(H.id(T.nb)), "jr:prev", "jr:next", "jr:full", "jr:write" }
+        -- (run 1 wanted jr:prev: on page 1 of the book < is greyed and a greyed button is no stop, JR:924, JR:1170)
+        local need = { "jr:book:" .. tostring(H.id(T.nb)), "jr:next", "jr:full", "jr:write" }
         local miss = {}
         for _, id in ipairs(need) do if not H.stopHas(id) then miss[#miss + 1] = id end end
-        Q.check(#miss == 0 and ((H.stopHas("jr:note") ~= nil) == shown), T.L .. ": Notebooks' stops: the book, <, >, Open full, Write, and the note only while it shows whole",
+        if H.stopHas("jr:prev") then miss[#miss + 1] = "jr:prev is a stop though greyed" end
+        Q.check(#miss == 0 and ((H.stopHas("jr:note") ~= nil) == shown), T.L .. ": Notebooks' stops: the book, > (< greyed on page 1, no stop), Open full, Write, and the note only while it shows whole",
             "missing " .. H.list(miss) .. "; note shown " .. tostring(shown) .. ", a stop " .. tostring(H.stopHas("jr:note") ~= nil) .. "; " .. H.stopIds(16))
         if S.found.toolsKept == 0 then H.removeItem(T.pen); H.rescan() else T.penKept = true end
     end)
@@ -4046,7 +4116,7 @@ function C.j46()
     H.drawn(T, 4)
     H.step(1, function()
         if T.off then return end
-        Q.check(H.drewI(H.tr("UI_ZeD_Notebook_ReadyMany", 15)) ~= nil, T.L .. ": the Notebooks status line in " .. H.lang(), "\"" .. H.tr("UI_ZeD_Notebook_ReadyMany", 15) .. "\"")
+        Q.check(H.drewOrCut(H.tr("UI_ZeD_Notebook_ReadyMany", 15)) ~= nil, T.L .. ": the Notebooks status line in " .. H.lang(), "\"" .. H.tr("UI_ZeD_Notebook_ReadyMany", 15) .. "\"")
         for _, L in ipairs({ "DE", "ES", "FR", "RU", "JP" }) do
             if L ~= H.lang() then Q.skip(T.L .. ": " .. L, "the run is in " .. H.lang() .. ": a game started in " .. L .. " is needed") end
         end

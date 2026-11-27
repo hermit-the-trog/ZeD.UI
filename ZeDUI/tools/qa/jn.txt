@@ -19,7 +19,7 @@
 #               J20 B1 Save twice while the write runs (mouse, pad); J21 odd books (five sheets, cards, a blank ID card for B3, a notepad); J22 newlines into a book
 #               J23 no notebook carried: the Writing block, Papers on you, Books on you against isLiteratureRead, a paper row opens Papers
 #               J24 the Notebooks list: kind lines, a press picks, the last written page, < and > at the ends; J25 the quick note, B2 (Enter), the pad's A on the note
-#               J26 the quick note's refusals (no pencil, dark, locked by you, locked by another); J27 Open full; J28 the Notebooks search; J29 a notebook in a bag
+#               J26 the quick note's refusals (no pencil, dark, locked by you, locked by another); J27 Open full; J28 the Notebooks search; J29 a notebook in a bag (against the game's own transferIfNeeded on a second book from the same bag)
 #               J30 the Papers list (one row for two copies, read first then by title, the count, each row's state); J31 Show and a title search
 #               J32 Read: the pad's B during the read (J43), read through (the reader, the row Read), the dark, B4 with the Illiterate trait
 #               J33 a read piece: Open full with no timed action, Show place (squares recorded, not marked; ISReadWorldMap cleared at once), the D-pad on the words, B back
@@ -27,7 +27,7 @@
 #               J35 Recipes against the game (status, what the game would list, a pick, Open in Craft or Build, Sort Name, Show Known, a search; B11 a NOTE); J36 a recipe learned with the page open; J37 SeeNotLearntRecipe off and on
 #               J38 tapes and discs carried are listed nowhere; J39 skill books beside a notebook are listed nowhere (gaps: NOTE)
 #               J40 the pad's tour of the Log (the walk's order, A on each kind, B with nothing running for J43); J41 a long log (80 entries): the walk down and back, far stops, frame time
-#               J42 the pad's tour of Notebooks and Papers; J44 an item card over the Log; J45 the half card at the text size found and in Large text
+#               J42 the pad's tour of Notebooks and Papers (< greyed on page 1 is no stop); J44 an item card over the Log; J45 the half card at the text size found and in Large text
 #               J46 the words in the run's language (others SKIP); J47 Dark, Light, High contrast (unread rows by tone, the tag colors)
 #               J3 safe mode (run last of the cases): the Character window does not open; Write note opens the game's journal window
 #               J49-J52 and B5 SKIP (multiplayer, split view); B13 drift a NOTE
