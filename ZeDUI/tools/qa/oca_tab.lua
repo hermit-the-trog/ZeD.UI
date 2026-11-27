@@ -2144,15 +2144,19 @@ function H.gameWaterSet()
     local out = {}
     local h = nil
     pcall(function() h = S.p:getPrimaryHandItem() end)
-    if h and H.waterUses(h) > 0 then out[1] = h; return out end
+    -- (fix/fa8pick, Nov 26 2026: the card lists every container he carries with water, the one in his hand first (the
+    -- game's own default), then the rest biggest first, so another can be picked; the game's menu with one in hand lists
+    -- that one alone)
+    local held = (h and H.waterUses(h) > 0) and h or nil
     pcall(function()
         local items = H.inv():getItems()
         for i = 0, items:size() - 1 do
             local it = items:get(i)
-            if H.waterUses(it) > 0 then out[#out + 1] = it end
+            if it ~= held and H.waterUses(it) > 0 then out[#out + 1] = it end
         end
     end)
     table.sort(out, function(a, b) return H.waterUses(a) > H.waterUses(b) end)
+    if held then table.insert(out, 1, held) end
     return out
 end
 -- the Water-from rows the card drew: for each farm:water:i stop, the words drawn on its line left of its Use button
