@@ -1207,13 +1207,16 @@ function H.bodiesNear(x, y, r)
     for yy = y - r, y + r do
         for xx = x - r, x + r do
             local sq = H.sqXY(xx, yy)
-            pcall(function()
+            -- (Nov 26 2026: a nil square here threw inside the pcall on every frame of a wait, and the game logs each
+            -- caught throw: 161390 errors, the console rolled over and the runner missed the run's end)
+            if sq then pcall(function()
                 local list = sq:getStaticMovingObjects()
+                if not list then return end
                 for i = 0, list:size() - 1 do
                     local o = list:get(i)
                     if instanceof(o, "IsoDeadBody") and o:isAnimal() then out[#out + 1] = o end
                 end
-            end)
+            end) end
         end
     end
     return out
