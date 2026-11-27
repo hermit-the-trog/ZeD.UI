@@ -145,6 +145,11 @@ function ZeD_WriteNoteAction:perform()
         -- (the pages are kept in order: a blank page before this one is written as blank)
         for i = 1, page - 1 do if item:seePage(i) == nil then item:addPage(i, "") end end
         item:addPage(page, text)
+        -- (QA B3, Nov 27 2026: a blank ID card written here stayed open. The game's write window
+        -- locks a LOCK_ON_WRITE item on OK with a random owner nobody holds, so it is written once;
+        -- the same here, before the sync carries it.)
+        local lockTag = ItemTag and ItemTag.LOCK_ON_WRITE
+        if lockTag and item:hasTag(lockTag) then item:setLockedBy(tostring(ZombRand(1000000))) end
         pcall(syncItemFields, self.character, item)
         if self.onDone then pcall(self.onDone, page) end
     end

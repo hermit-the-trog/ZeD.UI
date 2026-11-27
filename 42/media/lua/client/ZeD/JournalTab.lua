@@ -328,7 +328,9 @@ end
 --- notebook, the character writes the words there first (the tags stay in the log only) and the
 --- box and ticks clear once it is written. True when it took the save.
 function ZeD.JournalTab.save(win, text)
-    if not win or not text or text == "" then return false end
+    -- (QA B6, Nov 27 2026: four spaces were kept as an entry, and Into wrote a blank line: only
+    -- whitespace is nothing to save)
+    if not win or not text or not text:find("%S") then return false end
     local JR = ZeD.JournalReaders
     local tags = ZeD.JournalTab.pickedTags(win)
     if JR.saveLog(win, text, tags) then return true end
@@ -955,6 +957,26 @@ end
 
 local _reachProbe = {}   -- an entry's head row as inPadReach reads a rect (one table, refilled per entry)
 
+-- (QA B10, Nov 27 2026: an old entry 70 days after a July 9 start read "Day 69" where the
+-- calendar gives Day 71; the day was counted on 30-day months. The game keeps the real calendar,
+-- so the count does too: the month lengths and the Gregorian leap years.)
+local _monthDays = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+
+--- Days from a fixed origin to a date as the game stores it (month and day from 0); two dates'
+--- difference is the days between them.
+function ZeD.JournalTab.dayNumber(year, month0, day0)
+    year = math.floor(tonumber(year) or 0)
+    month0 = math.max(0, math.min(11, math.floor(tonumber(month0) or 0)))
+    local y = year - 1
+    local n = y * 365 + math.floor(y / 4) - math.floor(y / 100) + math.floor(y / 400)
+    local leap = (year % 4 == 0 and year % 100 ~= 0) or year % 400 == 0
+    for m = 1, month0 do
+        n = n + _monthDays[m]
+        if m == 2 and leap then n = n + 1 end
+    end
+    return n + math.floor(tonumber(day0) or 0)
+end
+
 local function renderJournal(panel, win, x, y, w, h)
     local T    = ZeD.T
     local A    = ZeD.Atoms
@@ -1236,9 +1258,9 @@ local function renderJournal(panel, win, x, y, w, h)
                         local survDay = entry.survivalDay
                         if not survDay then
                             local gt = getGameTime()
-                            local entryEpoch = (entry.year or 0) * 360 + (entry.month or 0) * 30 + (entry.day or 0)
-                            local startEpoch = gt:getStartYear() * 360 + gt:getStartMonth() * 30 + gt:getStartDay()
-                            survDay = math.max(1, entryEpoch - startEpoch + 1)
+                            local dayNo = ZeD.JournalTab.dayNumber
+                            survDay = math.max(1, dayNo(entry.year or 0, entry.month or 0, entry.day or 0)
+                                - dayNo(gt:getStartYear(), gt:getStartMonth(), gt:getStartDay()) + 1)
                         end
 
                         -- (QA's visual noise audit 42, Nov 20 2026: "Day 7  Jul 23, 1993 - 10:05" under "July, Year
@@ -1363,7 +1385,39 @@ function ZeD.JournalTab.askDelete(win, entry, index)
     elseif type(tbl) == "table" and tbl.entryIdx then tbl = entries[tbl.entryIdx] end
     if type(tbl) ~= "table" then return end
     win._journalAsk = { entry = tbl }
+    ZeD.JournalTab._asking[win] = true
 end
+
+-- (QA B12, Nov 27 2026: after a visit to Skills the question was still up about the same entry.
+-- The question belongs to the Journal tab: the windows asking are watched each frame and the
+-- question goes once the tab is left or the window is shut. Only windows with a question are
+-- in the list, so nothing runs while none asks.)
+ZeD.JournalTab._asking = ZeD.JournalTab._asking or {}
+
+--- Drop the delete question when its window no longer shows the Journal tab. True when it dropped one.
+function ZeD.JournalTab.dropStaleAsk(win)
+    if not (win and win._journalAsk) then return false end
+    local shown = win._activeTab == "journal" and win._drawerMode == "tab" and win._drawerOpen ~= false
+    if shown and win.isVisible then
+        local ok, vis = pcall(win.isVisible, win)
+        if ok and vis == false then shown = false end
+    end
+    if shown then return false end
+    win._journalAsk, win._journalAskRects = nil, nil
+    return true
+end
+
+local function watchAsks()
+    local list = ZeD.JournalTab._asking
+    local gone
+    for win in pairs(list) do
+        ZeD.JournalTab.dropStaleAsk(win)
+        if not win._journalAsk then gone = gone or {}; gone[#gone + 1] = win end
+    end
+    if gone then for _, w in ipairs(gone) do list[w] = nil end end
+end
+ZeD.JournalTab._watchAsks = watchAsks
+if Events and Events.OnPreUIDraw then Events.OnPreUIDraw.Add(watchAsks) end
 
 --- Delete the entry the question is about (the Delete answer); does nothing without one.
 function ZeD.JournalTab.confirmDelete(win)
