@@ -5,18 +5,19 @@
 -- this def fills it).
 -- Vanilla's "Transfer Liquid" and "Container Info" windows become one fluid
 -- card in the World window's card drawer:
---   * two tanks, Pouring from / Pouring to, filled in each liquid's colour, with
---     a hatched band for what leaves and what arrives and a line where each
---     ends up;
---   * one amount control (catalog M16 slider, 1/4, 1/2, All) from nothing to
---     vanilla's Max Pour (the smaller of what the left holds and the room in
---     the right, rounded by FluidUtil.roundTransfer), starting at the most;
---   * Liquids: what the left container holds, each with its share; the
---     "Tainted" flag where vanilla's tooltip shows it (poison level only in
---     debug, as vanilla);
---   * Your containers: every liquid container you carry (and the world
---     container the card opened on, pinned), each with From / Into and a tag
---     for what a pour into it would do, from vanilla's own refusal reasons;
+--   * From and Into side by side, each with its level and ten segments, what
+--     leaves and what arrives hatched; a narrow card (the half card) stacks
+--     From over Into (the director's call, fluid card side by side, Nov 26 2026);
+--   * the amount as - / + around the litres, in quarters of vanilla's Max Pour
+--     (the smaller of what the left holds and the room in the right, rounded
+--     by FluidUtil.roundTransfer), starting at the most;
+--   * a mixture or a tainted liquid on the From side: each liquid with its
+--     share; the "Tainted" flag where vanilla's tooltip shows it (poison level
+--     only in debug, as vanilla);
+--   * Other containers: every liquid container you carry (and the world
+--     container the card opened on, pinned) but the two in the pour, each
+--     with From / Into and a tag for what a pour into it would do, from
+--     vanilla's own refusal reasons;
 --   * verbs Pour (vanilla's ISFluidTransferAction), Switch, Empty (the band
 --     at the foot asks first, vanilla's empty action); while it pours, a
 --     progress strip with Stop. The verbs show only when they make sense.
@@ -30,10 +31,6 @@ local OC = ZeD.ObjectCards
 local UI = OC.ui
 local call = OC.call
 local DOT = OC.DOT
-
-local TANK_W, TANK_H = 60, 104   -- design units
-local VESSEL_W = 150
-local STEP = 0.05                -- controller step on the amount (share of Max Pour)
 
 local function txt(k, fb) local s = getTextOrNull and getTextOrNull(k) return s or fb or k end
 
@@ -334,7 +331,12 @@ function def.refresh(t, player)
     d.pouring = d.busy and t.action ~= nil
     -- the pour this card queued is over (Stop clears t.action first, so a stopped one is not): a card opened from
     -- another (the trough's Add water and Transfer) goes back to it, which reads the new level (QA TG7, Nov 26 2026)
-    if hadPour and not d.busy then t._returnNow = true end
+    if hadPour and not d.busy then
+        t._returnNow = true
+        -- the next pour starts at the most again, as a new pair does (the director's call, fluid card side by side,
+        -- Nov 26 2026)
+        t.frac = 1
+    end
 
     -- rows: the pinned world container, then what you carry
     local rows = {}
@@ -515,27 +517,13 @@ end
 
 -- ---------------------------------------------------------------------------
 -- BODY
+-- From and Into side by side over the amount, then the other containers. A card narrower than this
+-- stacks From over Into (the half card, 220). (the director's call, fluid card side by side, Nov 26 2026)
 -- ---------------------------------------------------------------------------
-local function col(c) return c.r, c.g, c.b end
+local SIDE_BY_SIDE_W = 360   -- design units of body width: below it the two sides stack
+local COL_GAP = 16           -- design units between the From and Into columns
 
-local function dashed(card, x, y, w, h, c)
-    local T = ZeD.T
-    local seg, one = T.px(4), T.px(1)
-    local sx = x
-    while sx < x + w do
-        local l = math.min(seg, x + w - sx)
-        card:drawRect(sx, y, l, one, c.a or 1, col(c))
-        card:drawRect(sx, y + h - one, l, one, c.a or 1, col(c))
-        sx = sx + seg * 2
-    end
-    local sy = y
-    while sy < y + h do
-        local l = math.min(seg, y + h - sy)
-        card:drawRect(x, sy, one, l, c.a or 1, col(c))
-        card:drawRect(x + w - one, sy, one, l, c.a or 1, col(c))
-        sy = sy + seg * 2
-    end
-end
+local function col(c) return c.r, c.g, c.b end
 
 -- horizontal hatching inside a band (what leaves / what arrives)
 local function hatch(card, x, y, w, h, c, a)
@@ -548,187 +536,125 @@ local function hatch(card, x, y, w, h, c, a)
     end
 end
 
--- A vertical tank: layers bottom-up {amt, colour}; after = litres when the
--- pour is done (nil: no pour); incoming = {amt, colour} landing on top.
-local function drawTank(card, x, y, w, h, cap, layers, after, incoming)
-    local T = ZeD.T
-    local s1 = T.surf1
-    card:drawRect(x, y, w, h, 1, col(s1))
-    cap = (cap and cap > 0) and cap or 1
-    local function ph(l) return math.floor(h * math.max(0, math.min(cap, l)) / cap + 0.5) end
-    local fill, total = 0, 0
-    for _, ly in ipairs(layers) do
-        local lh = math.min(ph(ly[1]), h - fill)
-        if lh > 0 then card:drawRect(x, y + h - fill - lh, w, lh, 1, col(ly[2])) end
-        fill = fill + lh
-        total = total + ly[1]
-    end
-    if after and after < total - 0.0001 then
-        -- the part that leaves: light hatching between the after line and the top of the fill
-        local a = ph(after)
-        hatch(card, x, y + h - fill, w, fill - a, { r = 1, g = 1, b = 1 }, 0.28)
-    end
-    if incoming and incoming[1] > 0 then
-        local ih = math.min(ph(incoming[1]), h - fill)
-        if ih > 0 then
-            card:drawRect(x, y + h - fill - ih, w, ih, 0.55, col(incoming[2]))
-            hatch(card, x, y + h - fill - ih, w, ih, { r = 0, g = 0, b = 0 }, 0.35)
-        end
-    end
-    local bs = T.borderS
-    for i, f in ipairs({ 0.25, 0.5, 0.75 }) do
-        local tw = (i == 2) and T.px(14) or T.px(8)
-        card:drawRect(x + w - tw, y + h - math.floor(h * f), tw, T.px(1), bs.a or 1, col(bs))
-    end
-    if after then
-        local ay = y + h - ph(after)
-        local tc = T.text
-        card:drawRect(x - T.px(1), math.max(y, ay - T.px(1)), w + 2 * T.px(1), T.px(2), tc.a or 1, col(tc))
-    end
-    card:drawRectBorder(x, y, w, h, bs.a or 1, col(bs))
+-- The amount in quarters of the most a pour can move: 0 (nothing) to 4 (all). The - / + step it, and the
+-- quarters replace the slider, so a press always lands on a step the words can name.
+-- (the director's call, fluid card side by side, Nov 26 2026)
+local function quarter(t) return math.max(0, math.min(4, math.floor((t.frac or 0) * 4 + 0.5))) end
+local function stepAmount(t, by)
+    local q = math.max(0, math.min(4, quarter(t) + by))
+    t.frac = q / 4
+    t._refreshT = OC.REFRESH
 end
 
-local function layersOf(liquids)
-    local out = {}
-    for _, l in ipairs(liquids) do out[#out + 1] = { l.amt, l.color or ZeD.T.info } end
-    return out
+-- What one side shows: its row when it has one (the same reading as the list), else read off the container.
+local function sideOf(d, c, isFrom)
+    if not c then return nil end
+    for _, r in ipairs(d.rows or {}) do
+        if (isFrom and r.isFrom) or ((not isFrom) and r.isInto) then return r end
+    end
+    local fc = c:getFluidContainer()
+    return { c = c, fc = fc, name = nameOf(c), amt = fc:getAmount(), cap = fc:getCapacity(), hidden = fc:isHiddenAmount(),
+        color = (not fc:isEmpty()) and rgb(fc:getColor()) or nil }
 end
 
--- One vessel box; returns its height.
-local function drawVessel(card, x, y, w, label, name, fc, layers, after, incoming, hint)
-    local T, tm = ZeD.T, ZeD.TM
-    local f1, f2, f3 = T.fontF1, T.fontF2, T.fontF3
-    local tw, th = T.px(TANK_W), T.px(TANK_H)
-    local h = T.px(6) + tm:getFontHeight(f1) + T.px(5) + th + T.px(5) + tm:getFontHeight(f2) + T.px(2) + tm:getFontHeight(f3) + T.px(7)
-    if not fc then
-        dashed(card, x, y, w, h, T.border)
-    else
-        UI.fill(card, x, y, w, h, "surf2")
-        ZeD.Atoms.frame(card, x, y, w, h, T.border)
-    end
-    local ac = T.accent
-    label = ZeD.Atoms.textCase(label)
-    local lw = tm:MeasureStringX(f1, label)
-    local cy = y + T.px(6)
-    card:drawText(label, x + math.floor((w - lw) / 2), cy, ac.r, ac.g, ac.b, 1, f1)
-    cy = cy + tm:getFontHeight(f1) + T.px(5)
-    if not fc then
-        ZeD.Molecules.drawEmptyLine(card, x + T.px(12), cy + math.floor(th / 2) - tm:getFontHeight(f2), w - T.px(24), hint or "")
-        return h
-    end
-    if fc:isHiddenAmount() then layers, after, incoming = {}, nil, nil end   -- vanilla hides the level
-    drawTank(card, x + math.floor((w - tw) / 2), cy, tw, th, fc:getCapacity(), layers, after, incoming)
-    cy = cy + th + T.px(5)
-    local n = ZeD.CraftingCore.truncText(name or "", f2, w - T.px(12))
-    local nw = tm:MeasureStringX(f2, n)
-    card:drawText(n, x + math.floor((w - nw) / 2), cy, T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
-    cy = cy + tm:getFontHeight(f2) + T.px(2)
-    local amt = fc:isHiddenAmount() and txt("Fluid_Unknown", "Unknown") or (L(fc:getAmount()) .. " / " .. L(fc:getCapacity()))
-    local aw = tm:MeasureStringX(f3, amt)
-    card:drawText(amt, x + math.floor((w - aw) / 2), cy, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f3)
-    return h
-end
-
--- The arrow between the tanks, the liquid and the amount.
-local function drawFlow(card, x, y, w, h, d, amount, live)
-    local T, tm = ZeD.T, ZeD.TM
-    local f1 = T.fontF1
-    local on = live and d.can
-    local ac = on and T.accent or T.border
-    local midY = y + math.floor(h / 2) - T.px(6)
-    -- liquid name with its dot
-    if d.fluid then
-        local s = d.fluid
-        local sw = tm:MeasureStringX(f1, s) + T.px(10)
-        local sx = x + math.floor((w - sw) / 2)
-        local sy = midY - T.px(16) - tm:getFontHeight(f1)
-        ZeD.Atoms.drawStatusDot(card, sx, sy + math.floor((tm:getFontHeight(f1) - T.px(6)) / 2), d.fluidColor or T.info, T.px(6))
-        card:drawText(s, sx + T.px(10), sy, T.text.r, T.text.g, T.text.b, T.text.a or 1, f1)
-    end
-    -- arrow: shaft + head
-    local hw, hh = T.px(12), T.px(16)
-    local ax0, ax1 = x + T.px(4), x + w - T.px(4)
-    card:drawRect(ax0, midY - T.px(2), ax1 - hw - ax0, T.px(4), 1, col(ac))
-    for k = 0, hw - 1 do
-        local ch = math.floor(hh * (1 - k / hw))
-        if ch > 0 then card:drawRect(ax1 - hw + k, midY - math.floor(ch / 2), 1, ch, 1, col(ac)) end
-    end
-    if amount then
-        -- the amount, big, with L and the Max Pour under it ("?" and Unknown when the hidden side sets them: QA FL6)
-        local big = string.format("%.2f", amount)
-        if amount >= 100 then big = string.format("%.0f", amount) elseif amount >= 10 then big = string.format("%.1f", amount) end
-        if d.maxHidden then big = "?" end
-        local bpx = 28
-        local by = midY + T.px(10)
-        local bigW = ZeD.Text and ZeD.Text.width and ZeD.Text.width(ZeD.Font.sdf.head, big, ZeD.Text.zoomPx(bpx)) or tm:MeasureStringX(T.fontF4, big)
-        local lW = tm:MeasureStringX(T.fontF3, "L")
-        local bx = x + math.floor((w - bigW - T.px(3) - lW) / 2)
-        UI.big(card, big, bx, by, bpx, live and T.text or T.textDim)
-        card:drawText("L", bx + bigW + T.px(3), by + T.px(bpx) - tm:getFontHeight(T.fontF3), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF3)
-        if not d.pouring then
-            local sub = txt("Fluid_Max_Transfer", "Max Pour") .. " " .. (d.maxHidden and txt("Fluid_Unknown", "Unknown") or L(d.max or 0))
-            local sw = tm:MeasureStringX(T.fontF5, sub)
-            card:drawText(sub, x + math.floor((w - sw) / 2), by + T.px(bpx) + T.px(4), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF5)
-        end
-    end
-end
-
--- Amount: label, slider, 1/4 1/2 All. Returns height.
-local function drawAmount(card, x, y, w, t)
+-- One side's column: "From" and its level on the first line, the name (and where a world container stands) on
+-- the second, its ten segments under them; what leaves hatched on From, what arrives on Into. No side picked
+-- yet: the label and the hint. Returns the column's height.
+local function drawSide(card, x, y, w, label, s, after, hint, isFrom, inColor)
     local T, tm = ZeD.T, ZeD.TM
     local A = ZeD.Atoms
-    local h = math.max(T.px(24), T.buttonH)
-    local f1 = T.fontF1
+    local f1, f2, f3, f5 = T.fontF1, T.fontF2, T.fontF3, T.fontF5
     local ac = T.accent
-    local amountTxt = A.textCase(getText("Fluid_Amount"))
-    card:drawText(amountTxt, x, y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
-    local labels = { { "1/4", 0.25 }, { "1/2", 0.5 }, { getText("Fluid_All"), 1 } }
+    local l1 = math.max(tm:getFontHeight(f1), tm:getFontHeight(f3))
+    label = A.textCase(label)
+    card:drawText(label, x, y + math.floor((l1 - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+    local cy = y + l1 + T.px(3)
+    if not s then
+        ZeD.Molecules.drawEmptyLine(card, x, cy, w, hint or "")
+        return l1 + T.px(3) + tm:getFontHeight(f2)
+    end
+    local at = s.hidden and txt("Fluid_Unknown", "Unknown") or (L(s.amt) .. " / " .. L(s.cap))   -- (QA FL6, Nov 26 2026)
+    local room = w - tm:MeasureStringX(f1, label) - T.px(8)
+    A.drawTextRight(card, ZeD.CraftingCore.truncText(at, f3, room), x + w, y + math.floor((l1 - tm:getFontHeight(f3)) / 2), f3, T.text)
+    -- (a world container's where keeps its room beside the name, which gives way first down to two fifths)
+    local nmax = w
+    if s.pin and s.where then nmax = math.max(math.floor(w * 0.4), w - tm:MeasureStringX(f5, s.where) - T.px(8)) end
+    local n = ZeD.CraftingCore.truncText(s.name or "", f2, nmax)
+    card:drawText(n, x, cy, T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
+    if s.pin and s.where then
+        local wx = x + tm:MeasureStringX(f2, n) + T.px(8)
+        local wroom = x + w - wx
+        if wroom > T.px(24) then
+            card:drawText(ZeD.CraftingCore.truncText(s.where, f5, wroom), wx, cy + tm:getFontHeight(f2) - tm:getFontHeight(f5),
+                T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f5)
+        end
+    end
+    cy = cy + tm:getFontHeight(f2) + T.px(3)
+    local sh = A.fillBarCompactH()
+    local cap = (s.cap and s.cap > 0) and s.cap or 1
+    local c = s.color or inColor or T.info
+    local lit = s.hidden and 0 or A.fillSegsLit(math.min(1, s.amt / cap))   -- (no lit segments when hidden: QA FL6)
+    if A.drawSegFill(card, x, cy, w, sh, 10, lit, c) then ZeD.Help.set(card, at) end
+    if after and not s.hidden then
+        local k = A.fillSegsLit(math.max(0, math.min(1, after / cap)))
+        local function cellX(i) return x + math.floor(w * i / 10) end
+        if isFrom and k < lit then
+            hatch(card, cellX(k), cy, cellX(lit) - cellX(k), sh, { r = 1, g = 1, b = 1 }, 0.28)
+        elseif (not isFrom) and k > lit then
+            card:drawRect(cellX(lit), cy, cellX(k) - cellX(lit), sh, 0.55, col(c))
+            hatch(card, cellX(lit), cy, cellX(k) - cellX(lit), sh, { r = 0, g = 0, b = 0 }, 0.35)
+        end
+    end
+    return cy + sh - y
+end
+
+-- Amount: the label, - , the litres in a box, + ; at the full card the quarter's name at the right
+-- ("1/2", "All"). The D-pad's left and right on either key step it too. Returns the height.
+local function drawAmount(card, x, y, w, t, wide)
+    local T, tm = ZeD.T, ZeD.TM
+    local A = ZeD.Atoms
+    local d = t.d
+    local h = math.max(T.px(24), T.buttonH)
+    local f1, f3 = T.fontF1, T.fontF3
+    local ac = T.accent
+    local off = d.busy or not (d.can and d.max > 0)
+    local q = quarter(t)
+    local lbl = A.textCase(getText("Fluid_Amount"))
+    card:drawText(lbl, x, y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, off and 0.5 or 1, f1)
+    local names = { "0", "1/4", "1/2", "3/4", getText("Fluid_All") }
+    local qs = names[q + 1]
     local bh = T.buttonH - T.px(4)
-    local bx = x + w
-    for i = #labels, 1, -1 do
-        local lb = labels[i]
-        local bw = UI.buttonW(lb[1])
-        bx = bx - bw
-        local fid = "fl:step:" .. i
-        local frac = lb[2]
-        UI.button(card, bx, y + math.floor((h - bh) / 2), lb[1], { w = bw, h = bh, selected = math.abs((t.frac or 0) - frac) < 0.001,
-            fid = fid, body = true, focus = card:focusOf(fid), help = ZeD.tr("UI_ZeD_Fluid_HelpStep", lb[1]),
-            run = function() t.frac = frac; t._refreshT = OC.REFRESH end })
-        bx = bx - T.px(4)
+    local bw = bh
+    local gap = T.px(6)
+    local sx = x + tm:MeasureStringX(f1, lbl) + T.px(10)
+    local v = "--"
+    if not off then v = d.maxHidden and txt("Fluid_Unknown", "Unknown") or L(FluidUtil.roundTransfer(d.max * q / 4)) end   -- (QA FL6)
+    local qsW = wide and (tm:MeasureStringX(f3, qs) + T.px(8)) or 0
+    local vbW = math.max(T.px(72), tm:MeasureStringX(f3, v) + T.px(16))
+    vbW = math.max(T.px(40), math.min(vbW, x + w - qsW - sx - 2 * bw - 2 * gap))
+    local by = y + math.floor((h - bh) / 2)
+    local function key(fid, kx, word, delta, help, can)
+        local hov = card._hoverFid == fid
+        UI.button(card, kx, by, word, { w = bw, h = bh, disabled = off or not can, hover = hov, focus = card:focusOf(fid) })
+        card:zone({ fid = fid, x = kx, y = by, w = bw, h = bh, body = true, help = help,
+            run = (not off and can) and function() stepAmount(t, delta) end or nil,
+            -- (the pad's left and right step the amount on either key; with nothing to pour they move on)
+            dpad = function(dir)
+                if off then return false end
+                if dir == "left" then stepAmount(t, -1) elseif dir == "right" then stepAmount(t, 1) else return false end
+                return true
+            end })
     end
-    local sx0 = x + tm:MeasureStringX(f1, amountTxt) + T.px(14)
-    local sx1 = bx - T.px(10)
-    local sw = sx1 - sx0
-    local frac = t.frac or 0
-    local trH = A.fillBarCompactH()
-    local trY = y + math.floor((h - trH) / 2)
-    -- the controller's mark goes under the track; the track is the library's strip, the thumb a flat block on it
-    local fm = card:focusOf("fl:slider")
-    if fm then ZeD.Focus.mark(card, sx0 - T.px(6), y, sw + T.px(12), h, fm) end
-    A.drawSmoothBar(card, sx0, trY, sw, frac, false, ac, trH)   -- (a slider's track stays smooth)
-    local bs = T.borderS
-    for _, f in ipairs({ 0.25, 0.5, 0.75 }) do
-        card:drawRect(sx0 + math.floor(sw * f), trY + trH + T.px(1), T.px(1), T.px(3), bs.a or 1, col(bs))
+    key("fl:amt:less", sx, "-", -1, ZeD.tr("UI_ZeD_Fluid_HelpLess"), q > 0)
+    local vx = sx + bw + gap
+    UI.fill(card, vx, by, vbW, bh, "surf1")
+    A.frame(card, vx, by, vbW, bh, T.borderS)
+    A.drawTextRight(card, ZeD.CraftingCore.truncText(v, f3, vbW - T.px(8)), vx + vbW - T.px(6), by + math.floor((bh - tm:getFontHeight(f3)) / 2), f3,
+        off and T.textDim or T.text)
+    key("fl:amt:more", vx + vbW + gap, "+", 1, ZeD.tr("UI_ZeD_Fluid_HelpMore"), q < 4)
+    if wide and not off then
+        A.drawTextRight(card, qs, x + w, y + math.floor((h - tm:getFontHeight(f3)) / 2), f3, T.textDim)
     end
-    local thW, thH = T.px(12), T.px(18)
-    local thX = sx0 + math.floor(sw * frac) - math.floor(thW / 2)
-    local thY = y + math.floor((h - thH) / 2)
-    card:drawRect(thX, thY, thW, thH, T.surf3.a or 1, col(T.surf3))
-    A.frame(card, thX, thY, thW, thH, T.borderS)
-    card:zone({ fid = "fl:slider", x = sx0 - T.px(6), y = y, w = sw + T.px(12), h = h, body = true,
-        help = ZeD.tr("UI_ZeD_Fluid_HelpSlider"),
-        drag = function(c, mx, my)
-            local f = (mx - sx0) / math.max(1, sw)
-            t.frac = math.max(0, math.min(1, f))
-            t._refreshT = OC.REFRESH
-        end,
-        dpad = function(dir)
-            if dir == "left" then t.frac = math.max(0, (t.frac or 0) - STEP)
-            elseif dir == "right" then t.frac = math.min(1, (t.frac or 0) + STEP)
-            else return false end
-            t._refreshT = OC.REFRESH
-            return true
-        end })
     return h
 end
 
@@ -757,130 +683,137 @@ local function drawPouring(card, x, y, w, t, player)
     UI.button(card, bx, y + math.floor((h - bh) / 2), stop, { w = bw, h = bh, fid = fid, body = true, focus = card:focusOf(fid),
         help = ZeD.tr("UI_ZeD_Fluid_HelpStop"),
         run = function() def.stop(player, t) end })
+    -- (the half card: the litres only while they fit beside the label and Stop)
     local vw = tm:MeasureStringX(f3, v)
+    local lx1 = x + T.px(8) + tm:MeasureStringX(f1, lbl) + T.px(10)
     local vx = bx - T.px(10) - vw
-    card:drawText(v, vx, y + math.floor((h - tm:getFontHeight(f3)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f3)
-    local px0 = x + T.px(8) + tm:MeasureStringX(f1, lbl) + T.px(10)
-    local pw = vx - T.px(10) - px0
+    if vx >= lx1 then
+        card:drawText(v, vx, y + math.floor((h - tm:getFontHeight(f3)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f3)
+    else
+        vx = bx
+    end
+    local pw = vx - T.px(10) - lx1
     local ph = A.fillBarCompactH()
-    if pw > T.px(20) then A.drawSmoothBar(card, px0, y + math.floor((h - ph) / 2), pw, delta, false, ac, ph) end   -- (the pour's progress: smooth)
+    if pw > T.px(20) then A.drawSmoothBar(card, lx1, y + math.floor((h - ph) / 2), pw, delta, false, ac, ph) end   -- (the pour's progress: smooth)
     return h
 end
 
--- LIQUIDS rows
+-- A mixture or a tainted liquid on the From side: each liquid with its swatch and share, under the two sides.
+-- One liquid alone is named in the title's tag already, so it gets no list. (the director's call, fluid card side
+-- by side, Nov 26 2026)
 local function drawLiquids(card, x, y, w, d, fc)
     local T, tm = ZeD.T, ZeD.TM
     local y0 = y
     -- shares from the same reading as the amounts (the refresh), never the live total
     local total = 0
     for _, l in ipairs(d.fromLiquids) do total = total + l.amt end
-    local cap = fc:getCapacity()
-    local rh = T.px(24)
+    local rh = T.px(20)
+    local f2, f3 = T.fontF2, T.fontF3
+    local pctW = T.px(36)
+    -- (QA FL6, Nov 26 2026) hidden: no share and no amount, only the liquid's name
+    local hidden = fc:isHiddenAmount()
     for _, l in ipairs(d.fromLiquids) do
         local c = l.color or T.info
-        local sw = T.px(12)
+        local sw = T.px(10)
         card:drawRect(x + T.px(2), y + math.floor((rh - sw) / 2), sw, sw, 1, col(c))
         card:drawRectBorder(x + T.px(2), y + math.floor((rh - sw) / 2), sw, sw, T.borderS.a or 1, col(T.borderS))
-        local f2, f3 = T.fontF2, T.fontF3
         local nx = x + T.px(2) + sw + T.px(8)
-        card:drawText(l.name, nx, y + math.floor((rh - tm:getFontHeight(f2)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
-        if d.tainted and (l.tainted or l.poison) then
-            UI.tag(card, nx + tm:MeasureStringX(f2, l.name) + T.px(6), y + math.floor((rh - T.px(16)) / 2), txt("Tooltip_tainted", "Tainted"), T.danger)
+        local tagged = d.tainted and (l.tainted or l.poison)
+        local tagTxt = txt("Tooltip_tainted", "Tainted")
+        local tagW = tagged and (UI.tagW(tagTxt, true) + T.px(6)) or 0
+        local name = ZeD.CraftingCore.truncText(l.name, f2, x + w - pctW - tagW - nx)
+        card:drawText(name, nx, y + math.floor((rh - tm:getFontHeight(f2)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
+        if tagged then
+            UI.tag(card, nx + tm:MeasureStringX(f2, name) + T.px(6), y + math.floor((rh - T.px(16)) / 2), tagTxt, T.danger)
         end
-        local pctW, valW, barW = T.px(36), T.px(62), T.px(120)
-        local rx = x + w - T.px(2)
         local pct = total > 0 and math.floor(100 * l.amt / total + 0.5) or 0
-        -- (QA FL6, Nov 26 2026) hidden: no share, no amount and no lit segments, only the liquid's name
-        local hidden = fc:isHiddenAmount()
-        ZeD.Atoms.drawTextRight(card, hidden and "?" or (tostring(pct) .. "%"), rx, y + math.floor((rh - tm:getFontHeight(f3)) / 2), f3, T.textDim)
-        local lv = hidden and "?" or L(l.amt)
-        ZeD.Atoms.drawTextRight(card, lv, rx - pctW, y + math.floor((rh - tm:getFontHeight(f3)) / 2), f3, T.text)
-        local bx = rx - pctW - valW - barW
-        local bh = ZeD.Atoms.fillBarCompactH()
-        -- ten segments; the help line the layer's amount ("Water 1.2 L"), "?" while the game hides it
-        if ZeD.Atoms.drawSegFill(card, bx, y + math.floor((rh - bh) / 2), barW, bh, 10,
-                hidden and 0 or ZeD.Atoms.fillSegsLit(math.min(1, l.amt / math.max(0.0001, cap))), c) then
-            ZeD.Help.set(card, ZeD.tr("UI_ZeD_Bar_Help", l.name, lv))
-        end
-        card:drawRect(x, y + rh - T.px(1), w, T.px(1), T.border.a or 1, col(T.border))
+        ZeD.Atoms.drawTextRight(card, hidden and "?" or (tostring(pct) .. "%"), x + w - T.px(2), y + math.floor((rh - tm:getFontHeight(f3)) / 2), f3, T.text)
         y = y + rh
     end
     if d.poison then
-        local f1, f3 = T.fontF1, T.fontF3
+        local f1 = T.fontF1
         local ac = T.accent
         card:drawText(txt("Fluid_Poison", "Poison"), x + T.px(2), y + math.floor((rh - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
         local vw = tm:MeasureStringX(f3, d.poison)
         ZeD.Atoms.drawTextRight(card, d.poison, x + w - T.px(2), y + math.floor((rh - tm:getFontHeight(f3)) / 2), f3, T.text)
         ZeD.Atoms.drawStatusDot(card, x + w - T.px(2) - vw - T.px(10), y + math.floor((rh - T.px(6)) / 2), T.danger, T.px(6))
-        card:drawRect(x, y + rh - T.px(1), w, T.px(1), T.border.a or 1, col(T.border))
         y = y + rh
     end
     return y - y0
 end
 
--- Your containers: rows with From / Into
-local function drawRows(card, x, y, w, t, d)
+-- The other containers: rows with From / Into. The two in the pour stand in the columns above and leave the list,
+-- so no level shows twice (the director's call, fluid card side by side, Nov 26 2026). A narrow card puts the
+-- level and the keys on a second line under the name.
+local function drawRows(card, x, y, w, t, d, wide)
     local T, tm = ZeD.T, ZeD.TM
     local A = ZeD.Atoms
     local y0 = y
-    local rh = math.max(T.px(30), T.buttonH)
     local f2, f5 = T.fontF2, T.fontF5
+    local bh = T.buttonH - T.px(4)
+    local rh = wide and math.max(T.px(30), T.buttonH) or (T.px(4) + math.max(tm:getFontHeight(f2), T.px(16)) + T.px(3) + bh + T.px(4))
     local fromTxt, intoTxt = ZeD.tr("UI_ZeD_Fluid_From"), ZeD.tr("UI_ZeD_Fluid_Into")
     local btnW = math.max(UI.buttonW(intoTxt), UI.buttonW(fromTxt))
-    local bh = T.buttonH - T.px(4)
     for _, r in ipairs(d.rows) do
-        -- the container on either side of the pour: the selected wash
-        if r.isFrom or r.isInto then card:drawRect(x, y, w, rh, T.selectionA, col(T.accent)) end
-        local isz = T.px(16)
-        if r.tex then card:drawTextureScaledAspect(r.tex, x + T.px(2), y + math.floor((rh - isz) / 2), isz, isz, 1, 1, 1, 1) end
-        -- buttons (right)
-        local intoX = x + w - T.px(2) - btnW
-        local fromX = intoX - T.px(4) - btnW
-        local by = y + math.floor((rh - bh) / 2)
-        local fFid, iFid = "fl:from:" .. r.key, "fl:into:" .. r.key
-        local rr = r
-        UI.button(card, fromX, by, fromTxt, { w = btnW, h = bh, selected = r.isFrom, disabled = not (r.isFrom or r.canFrom),
-            fid = fFid, body = true, focus = card:focusOf(fFid), help = ZeD.tr("UI_ZeD_Fluid_HelpFromRow", r.name),
-            -- picking the INTO container as FROM swaps the two sides
-            run = (r.canFrom) and function()
-                if rr.isInto then setSides(t, rr.c, t.from) else setSides(t, rr.c, t.into) end
-            end or nil })
-        UI.button(card, intoX, by, intoTxt, { w = btnW, h = bh, selected = r.isInto, disabled = not (r.isInto or r.canInto),
-            fid = iFid, body = true, focus = card:focusOf(iFid), help = ZeD.tr("UI_ZeD_Fluid_HelpIntoRow", r.name),
-            run = (r.canInto) and function()
-                if rr.isFrom then setSides(t, t.into, rr.c) else setSides(t, t.from, rr.c) end
-            end or nil })
-        -- tag: what a pour into it would do (the mark carries the colour)
-        local rx = fromX - T.px(8)
-        if r.tag then
-            local tc = (r.tagK == "dng" and T.danger) or (r.tagK == "warn" and T.warning) or nil
-            local tw = UI.tagW(r.tag, tc ~= nil)
-            UI.tag(card, rx - tw, y + math.floor((rh - T.px(16)) / 2), r.tag, tc)
-            rx = rx - tw - T.px(8)
-        else
-            rx = rx - UI.tagW(ZeD.tr("UI_ZeD_Fluid_TagWontTake"), true) - T.px(8)
+        if not (r.isFrom or r.isInto) then
+            local isz = T.px(16)
+            local line1 = wide and rh or (T.px(4) + math.max(tm:getFontHeight(f2), isz))
+            if r.tex then card:drawTextureScaledAspect(r.tex, x + T.px(2), y + math.floor((line1 - isz) / 2) + (wide and 0 or T.px(2)), isz, isz, 1, 1, 1, 1) end
+            -- buttons (right; a narrow card's on the second line)
+            local intoX = x + w - T.px(2) - btnW
+            local fromX = intoX - T.px(4) - btnW
+            local by = wide and (y + math.floor((rh - bh) / 2)) or (y + line1 + T.px(3))
+            local fFid, iFid = "fl:from:" .. r.key, "fl:into:" .. r.key
+            local rr = r
+            UI.button(card, fromX, by, fromTxt, { w = btnW, h = bh, disabled = not r.canFrom,
+                fid = fFid, body = true, focus = card:focusOf(fFid), help = ZeD.tr("UI_ZeD_Fluid_HelpFromRow", r.name),
+                run = (r.canFrom) and function() setSides(t, rr.c, t.into) end or nil })
+            UI.button(card, intoX, by, intoTxt, { w = btnW, h = bh, disabled = not r.canInto,
+                fid = iFid, body = true, focus = card:focusOf(iFid), help = ZeD.tr("UI_ZeD_Fluid_HelpIntoRow", r.name),
+                run = (r.canInto) and function() setSides(t, t.from, rr.c) end or nil })
+            -- tag: what a pour into it would do (the mark carries the colour)
+            local tagX = wide and (fromX - T.px(8)) or (x + w - T.px(2))
+            local tw = 0
+            local ty = wide and (y + math.floor((rh - T.px(16)) / 2)) or (y + math.floor((line1 - T.px(16)) / 2) + T.px(2))
+            if r.tag then
+                local tc = (r.tagK == "dng" and T.danger) or (r.tagK == "warn" and T.warning) or nil
+                tw = UI.tagW(r.tag, tc ~= nil)
+                UI.tag(card, tagX - tw, ty, r.tag, tc)
+            elseif wide then
+                tw = UI.tagW(ZeD.tr("UI_ZeD_Fluid_TagWontTake"), true)
+            end
+            local at = r.hidden and txt("Fluid_Unknown", "Unknown") or (L(r.amt) .. " / " .. L(r.cap))
+            local nx = x + T.px(2) + isz + T.px(8)
+            if wide then
+                -- mini gauge: strip + "amt / cap"
+                local rx = tagX - tw - T.px(8)
+                local gw = T.px(104)
+                local gx = rx - gw
+                local gh = A.fillBarCompactH()
+                local gy = y + T.px(4)
+                -- ten segments; the help line the words under it ("1.2 L / 4.0 L", "Unknown")
+                if A.drawSegFill(card, gx, gy, gw, gh, 10,
+                        (not r.hidden) and A.fillSegsLit((r.color and r.cap > 0) and math.min(1, r.amt / r.cap) or 0) or 0, r.color or T.info) then   -- (no lit segments when hidden: QA FL6, Nov 26 2026)
+                    ZeD.Help.set(card, at)
+                end
+                A.drawTextRight(card, at, gx + gw, gy + gh + T.px(2), f5, T.textDim)
+                -- name + where
+                local nmax = gx - T.px(8) - nx
+                local ny = y + math.floor((rh - tm:getFontHeight(f2) - tm:getFontHeight(f5)) / 2)
+                card:drawText(ZeD.CraftingCore.truncText(r.name, f2, nmax), nx, ny, T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
+                card:drawText(ZeD.CraftingCore.truncText(r.where or "", f5, nmax), nx, ny + tm:getFontHeight(f2), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f5)
+            else
+                -- the name beside its tag; the level under it, left of the keys
+                local nmax = tagX - tw - T.px(6) - nx
+                card:drawText(ZeD.CraftingCore.truncText(r.name, f2, nmax), nx, y + math.floor((line1 - tm:getFontHeight(f2)) / 2) + T.px(2),
+                    T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
+                card:drawText(ZeD.CraftingCore.truncText(at, f5, fromX - T.px(6) - nx), nx, by + math.floor((bh - tm:getFontHeight(f5)) / 2),
+                    T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f5)
+            end
+            local line = r.pin and T.borderS or T.border
+            card:drawRect(x, y + rh - T.px(1), w, T.px(1), line.a or 1, col(line))
+            y = y + rh
         end
-        -- mini gauge: strip + "amt / cap"
-        local gw = T.px(104)
-        local gx = rx - gw
-        local gh = A.fillBarCompactH()
-        local gy = y + T.px(4)
-        local at = r.hidden and txt("Fluid_Unknown", "Unknown") or (L(r.amt) .. " / " .. L(r.cap))
-        -- ten segments; the help line the words under it ("1.2 L / 4.0 L", "Unknown")
-        if A.drawSegFill(card, gx, gy, gw, gh, 10,
-                (not r.hidden) and A.fillSegsLit((r.color and r.cap > 0) and math.min(1, r.amt / r.cap) or 0) or 0, r.color or T.info) then   -- (no lit segments when hidden: QA FL6, Nov 26 2026)
-            ZeD.Help.set(card, at)
-        end
-        ZeD.Atoms.drawTextRight(card, at, gx + gw, gy + gh + T.px(2), f5, T.textDim)
-        -- name + where
-        local nx = x + T.px(2) + isz + T.px(8)
-        local nmax = gx - T.px(8) - nx
-        local ny = y + math.floor((rh - tm:getFontHeight(f2) - tm:getFontHeight(f5)) / 2)
-        card:drawText(ZeD.CraftingCore.truncText(r.name, f2, nmax), nx, ny, T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
-        card:drawText(ZeD.CraftingCore.truncText(r.where or "", f5, nmax), nx, ny + tm:getFontHeight(f2), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f5)
-        local line = r.pin and T.borderS or T.border
-        card:drawRect(x, y + rh - T.px(1), w, T.px(1), line.a or 1, col(line))
-        y = y + rh
     end
     return y - y0
 end
@@ -893,51 +826,50 @@ function def.body(card, x, y, w, t, player)
     local gap = T.px(8)
     local ffc = t.from and t.from:getFluidContainer()
     local ifc = t.into and t.into:getFluidContainer()
+    local wide = w >= T.px(SIDE_BY_SIDE_W)
 
     -- the pour amount and the levels after it
-    local amount = nil
-    if d.pouring then amount = t.pourAmount
-    elseif d.can then amount = FluidUtil.roundTransfer(d.max * (t.frac or 0)) end
-    local fromAfter, intoAfter, incoming = nil, nil, nil
-    if ffc and ifc and amount and not d.pouring then
-        fromAfter = ffc:getAmount() - amount
-        intoAfter = ifc:getAmount() + amount
-        incoming = { amount, d.fluidColor or T.info }
-    elseif d.pouring and ffc and ifc then
-        local delta = jobDelta(t.action)
-        local left = (t.pourAmount or 0) * (1 - delta)
+    local fromAfter, intoAfter = nil, nil
+    if ffc and ifc and d.pouring then
+        local left = (t.pourAmount or 0) * (1 - jobDelta(t.action))
         fromAfter = math.max(0, ffc:getAmount() - left)
         intoAfter = ifc:getAmount() + left
-        incoming = { left, d.fluidColor or T.info }
+    elseif ffc and ifc and d.can and not d.busy then
+        local amount = FluidUtil.roundTransfer(d.max * (t.frac or 0))
+        fromAfter = ffc:getAmount() - amount
+        intoAfter = ifc:getAmount() + amount
     end
 
-    -- tanks + flow
-    local vw = T.px(VESSEL_W)
-    local hint = ZeD.tr("UI_ZeD_Fluid_HintInto")
-    local hFrom = drawVessel(card, x, y, vw, txt("Fluid_Source", "Pouring From"), d.fromName, ffc,
-        layersOf(d.fromLiquids), fromAfter, nil, ZeD.tr("UI_ZeD_Fluid_HintFrom"))
-    local hInto = drawVessel(card, x + w - vw, y, vw, txt("Fluid_Target", "Pouring To"), d.intoName, ifc,
-        layersOf(d.intoLiquids), intoAfter, incoming, hint)
-    local th = math.max(hFrom, hInto)
-    drawFlow(card, x + vw + T.px(10), y, w - vw * 2 - 2 * T.px(10), th, d, (ffc and ifc) and (amount or 0) or nil, ffc ~= nil and ifc ~= nil)
-    y = y + th + gap
+    -- From and Into: two columns, or From over Into on a narrow card
+    local fromS, intoS = sideOf(d, t.from, true), sideOf(d, t.into, false)
+    local cw = wide and math.floor((w - T.px(COL_GAP)) / 2) or w
+    local hFrom = drawSide(card, x, y, cw, ZeD.tr("UI_ZeD_Fluid_From"), fromS, fromAfter, ZeD.tr("UI_ZeD_Fluid_HintFrom"), true, nil)
+    if wide then
+        local hInto = drawSide(card, x + w - cw, y, cw, ZeD.tr("UI_ZeD_Fluid_Into"), intoS, intoAfter, ZeD.tr("UI_ZeD_Fluid_HintInto"), false, d.fluidColor)
+        y = y + math.max(hFrom, hInto) + gap
+    else
+        y = y + hFrom + T.px(6)
+        y = y + drawSide(card, x, y, cw, ZeD.tr("UI_ZeD_Fluid_Into"), intoS, intoAfter, ZeD.tr("UI_ZeD_Fluid_HintInto"), false, d.fluidColor) + gap
+    end
+
+    -- a mixture or a tainted liquid: what the From side holds
+    if ffc and (#d.fromLiquids > 1 or d.tainted or d.poison) then
+        y = y + drawLiquids(card, x, y, w, d, ffc) + gap
+    end
 
     -- amount / pouring
     if d.pouring then
         y = y + drawPouring(card, x, y, w, t, player) + gap
     elseif ffc and ifc then
-        if d.can and d.max > 0 then y = y + drawAmount(card, x, y, w, t) + gap end
+        y = y + drawAmount(card, x, y, w, t, wide) + gap
     end
 
-    -- liquids
-    if ffc and #d.fromLiquids > 0 then
-        y = y + UI.section(card, x, y, w, txt("Fluid_Fluids", "Liquids"), d.fromName or "")
-        y = y + drawLiquids(card, x, y, w, d, ffc) + gap
-    end
-
-    -- your containers
-    y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Fluid_YourContainers"), tostring(#d.rows))
-    y = y + drawRows(card, x, y, w, t, d)
+    -- the other containers
+    local n = 0
+    for _, r in ipairs(d.rows) do if not (r.isFrom or r.isInto) then n = n + 1 end end
+    local head = (t.from or t.into) and ZeD.tr("UI_ZeD_Fluid_OtherContainers") or ZeD.tr("UI_ZeD_Fluid_YourContainers")
+    y = y + UI.section(card, x, y, w, head, tostring(n))
+    y = y + drawRows(card, x, y, w, t, d, wide)
     return y - y0
 end
 
