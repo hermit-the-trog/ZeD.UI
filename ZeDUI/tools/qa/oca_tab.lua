@@ -2184,6 +2184,9 @@ function H.rowNamed(r, it)
     if l and H.rowHas(r, string.format("%.1f L", l)) then return true end
     return H.rowHas(r, string.sub(H.nm(it), 1, 6))
 end
+-- the open card's target table (as a string, to tell a rebuilt one) and the name of its water pick
+function H.cardTarget() local r = nil; pcall(function() local e = ZeD.ObjectCards.current(S.p); r = e and e.t and tostring(e.t) or nil end); return r end
+function H.cardPick() local r = "none"; pcall(function() local e = ZeD.ObjectCards.current(S.p); local w = e and e.t and e.t.waterPick; if w then r = H.nm(w) .. " " .. H.n2(H.amount(w)) .. " L" end end); return r end
 function H.waterRowOf(it) for _, r in ipairs(H.waterRows()) do if H.rowNamed(r, it) then return r.i end end; return nil end
 function H.waterEv(T)
     return H.nm(T.small) .. " " .. H.n2(T.s0) .. " -> " .. H.n2(H.amount(T.small)) .. " L, " .. H.nm(T.big) .. " " .. H.n2(T.b0) .. " -> " .. H.n2(H.amount(T.big))
@@ -2237,6 +2240,7 @@ function C.fa8(how)
         Q.check(#set >= 2 and #bad == 0, T.L .. ": Water from lists each of his water containers, biggest first, each with its litres, its +N and Use (the game's set: ISFarmingMenu.doFarmingMenu2 324-335)",
             "the game's, biggest first: " .. H.list(seen, 6) .. "; the plot's water " .. H.n1(H.pf(T.sq, "waterLvl")) .. "; " .. H.list(bad, 6))
         T.smallRow = H.waterRowOf(T.small)
+        T.tId0 = H.cardTarget()
         T.lit = H.lit("oc:verb:water")
         if not T.smallRow then T.off = true; Q.check(false, T.L .. ": the smaller container (" .. H.nm(T.small) .. ") has a Water-from row", H.list(H.zonesLike("farm:water:"), 6)); return end
         if how == "mouse" then H.click("farm:water:" .. T.smallRow, T.L .. " Use") end
@@ -2249,6 +2253,8 @@ function C.fa8(how)
     H.step(1, function()
         if T.off then return end
         T.lit = H.lit("oc:verb:water")
+        -- (probe: what the card holds as the pick when Water is pressed, and whether its target is still the same table)
+        T.pickAt = H.cardPick(); T.tId1 = H.cardTarget()
         if how == "mouse" then H.click("oc:verb:water", T.L) end
     end)
     if how == "pad" then H.padPress(T, "oc:verb:water") end
@@ -2258,7 +2264,8 @@ function C.fa8(how)
         local s1, b1, w1 = H.amount(T.small), H.amount(T.big), tonumber(H.pf(T.sq, "waterLvl")) or 0
         Q.check(s1 < T.s0 - 0.001 and math.abs(b1 - T.b0) < 0.001 and w1 > (tonumber(T.w0) or 0),
             T.L .. ": Use on the smaller, then Water, pours from the smaller: its litres drop, the bigger's stay, the plot's water rises",
-            H.waterEv(T) .. ((how == "pad") and ("; the pad reached Use " .. tostring(T.useFocus)) or ""))
+            H.waterEv(T) .. "; the card's pick at Water " .. tostring(T.pickAt) .. ", same target " .. tostring(T.tId0 ~= nil and T.tId0 == T.tId1)
+            .. ((how == "pad") and ("; the pad reached Use " .. tostring(T.useFocus)) or ""))
     end)
     -- leg 2: nothing picked (a fresh card, the hands cleared, both filled, the plot dry again): Water alone
     H.step(2, function()
