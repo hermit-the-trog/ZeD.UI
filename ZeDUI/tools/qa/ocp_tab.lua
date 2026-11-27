@@ -1845,12 +1845,14 @@ function C.pw7()
         for _, z in ipairs((c and c._zones) or {}) do
             local id = tostring(z.fid)
             if string.sub(id, 1, 4) == "gen:" and not string.find(id, "^gen:can:%d+$") and id ~= "gen:engine" and id ~= "gen:outlet" then all = true end
+            -- (fix/cards2, Nov 26 2026: Add All is a header verb, oc:verb:fuelall, with the game's ContextMenu_AddAll)
+            if id == "oc:verb:fuelall" then all = true end
         end
         if T.gameWhy then
             Q.skip(T.L .. " (PW7): the card has one press for every can, as the game's Add all", T.gameWhy)
         else
             Q.check(T.gameAll == nil or all, T.L .. " (PW7): the card has one press for every can, as the game's Add all",
-                "the game's menu on the generator: " .. T.gameMenu .. "; the card's can rows: " .. H.zoneIds("gen:can"))
+                "the game's menu on the generator: " .. T.gameMenu .. "; the card's can rows: " .. H.zoneIds("gen:can") .. "; its verbs: " .. H.zoneIds("oc:verb"))
         end
         H.note("PW10: the can rows' gain words as drawn: " .. H.drewAll("+", 4) .. " (built in code: \"+%.1f L\")")
     end)
@@ -2793,16 +2795,19 @@ function C.fi2leg(T, how)
         H.lootRefresh()
         H.fireInfo(T.f)
     end)
-    H.wait(5000, function() return T.off or (H.cardFire(T.f) and H.zone("fire:fuelall") ~= nil) end, function(ok)
+    -- (fix/cards2, Nov 26 2026: All fuel takes plain fuel only; with one plain kind in reach, the planks, the card shows
+    -- that kind's "all" row (fire:fuelmany:1) and no separate All row: either is the press that burns "all")
+    H.wait(5000, function() return T.off or (H.cardFire(T.f) and (H.zone("fire:fuelall") ~= nil or H.zone("fire:fuelmany:1") ~= nil)) end, function(ok)
         if T.off then return end
-        if not Q.check(ok, L .. ": the card offers All fuel with the crate beside him", "zones " .. H.zoneIds("fire:") .. "; words " .. H.cardWords(24)) then T.off = true; return end
-        T.allRow = H.rowWords("fire:fuelall")
+        if not Q.check(ok, L .. ": the card offers All fuel (or a plain kind's all row) with the crate beside him", "zones " .. H.zoneIds("fire:") .. "; words " .. H.cardWords(24)) then T.off = true; return end
+        T.allId = (H.zone("fire:fuelall") ~= nil) and "fire:fuelall" or "fire:fuelmany:1"
+        T.allRow = H.rowWords(T.allId)
         T.head = H.drewAll(ZeD.tr("UI_ZeD_Fire_AddFromBags"), 2)
         T.bookRow = H.drew(H.nm(T.book)) ~= nil
         -- the press must reach the game: the All row live (the lot fits the fire), and nothing in reach the script did
         -- not give (All would burn it)
         local foreign = H.foreignFire(true)
-        if not H.lit("fire:fuelall") then
+        if not H.lit(T.allId) then
             T.off = true
             Q.skip(L .. " (FI2): one press of All fuel, no question, leaves the crate's skill book and map", "the card's All row has no press (its row '"
                 .. tostring(T.allRow) .. "'; the fire's fuel " .. H.n1(T.fuel0) .. " min; not the script's in reach: " .. H.list(foreign, 8) .. ")")
@@ -2813,9 +2818,11 @@ function C.fi2leg(T, how)
     end)
     if how == "mouse" then
         H.shot("ocp_fire_" .. H.sizeTag(), "the Fire card: a campfire with fuel to add (the strip, the Light rows, Add fuel with a crate's skill book and map in the list)", function() return not T.off end)
-        H.clickQ(T, "fire:fuelall", L, "clicked")
+        H.clickQ(T, "fire:fuelall", L, "clicked", function() return T.allId == "fire:fuelall" end)
+        H.clickQ(T, "fire:fuelmany:1", L, "clicked", function() return T.allId == "fire:fuelmany:1" end)
     else
-        H.padPress(T, "fire:fuelall", L, "goA")
+        H.padPress(T, "fire:fuelall", L, "goA", function() return T.allId == "fire:fuelall" end)
+        H.padPress(T, "fire:fuelmany:1", L, "goA2", function() return T.allId == "fire:fuelmany:1" end)
     end
     H.step(2, function()
         H.padOff()
@@ -2838,7 +2845,7 @@ function C.fi2leg(T, how)
         -- judged only when the press reached the game: its fuel actions queued, or the fire's fuel rose
         if (T.nFuel or 0) == 0 and not rose then
             Q.skip(L .. " (FI2): one press of All fuel, no question, leaves the crate's skill book and map", "the press ran nothing in the game ("
-                .. ((how == "mouse") and ("the click landed " .. tostring(T.clicked)) or ("the pad's focus took " .. tostring(T.goA))) .. "): " .. what)
+                .. ((how == "mouse") and ("the click landed " .. tostring(T.clicked)) or ("the pad's focus took " .. tostring(T.goA or T.goA2))) .. "): " .. what)
         else
             Q.check(not H.gone(T.book) and not H.gone(T.map), L .. " (FI2): one press of All fuel, no question, leaves the crate's skill book and map", what)
         end
