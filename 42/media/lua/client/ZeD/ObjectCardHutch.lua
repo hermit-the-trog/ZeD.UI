@@ -161,8 +161,10 @@ local function showBird(p, animal)
     win = ZeD_WorldWindow.getWindow(pn)
     local AT = ZeD.AnimalsTab
     if win and AT and AT.showAnimal then
-        AT.showAnimal(win, animal)
+        -- (the way back is set before the page opens: the page's pad stops are built as it opens, and a way back
+        -- set after them never reached its B; QA HU5 second pass, Nov 26 2026. navigate keeps it for this bird.)
         if AT.setReturnCard then AT.setReturnCard(win, back, animal) end
+        AT.showAnimal(win, animal)
     end
 end
 
