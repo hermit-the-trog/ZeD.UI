@@ -297,8 +297,11 @@ function def.refresh(t, player)
     local e, o = t.entry, t.obj
     local d = { words = e.description }
     if o.config.prefix == "build" then
-        -- (worked out once per card: the engine's recipe list is built for it)
-        if not t._bd then t._bd = {}; buildData(t._bd, t, player) end
+        -- (worked out once per skill level: the engine's recipe list is built for it, so not every refresh; a level
+        -- gained with the card open works it out again, as the strength grows with it. QA PV3, Nov 26 2026: Carpentry
+        -- 2 to 4 left the log fence at 300 where the game's is 400)
+        local lvl = call(t.entry.recipe, "getHighestRelevantSkillLevel", player) or 0
+        if not t._bd or t._bdLvl ~= lvl then t._bd = {}; t._bdLvl = lvl; buildData(t._bd, t, player) end
         for k, v in pairs(t._bd) do d[k] = v end
     else
         craftData(d, t, player)

@@ -30,6 +30,18 @@ local ORDER = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" }
 -- (the director, Nov 26 2026: "could probably just be a half card"; QA TK2: the values ran past the edge)
 local def = { id = "track", half = true }
 
+-- Where a track item is now: the square it lies on, the square of the crate or car it sits in, or none once he
+-- carries it (QA TK3, Nov 26 2026: the card kept the square it lay on at open, so one he picked up closed its card
+-- 6 tiles from that spot while it was in his bag).
+local function itemSquare(item)
+    local wi = call(item, "getWorldItem")
+    if wi then return call(wi, "getSquare") end
+    if call(item, "isInPlayerInventory") then return nil end
+    local c = call(item, "getContainer")
+    local parent = c and call(c, "getParent")
+    return parent and call(parent, "getSquare") or nil
+end
+
 -- track = an IsoAnimalTrack on the ground or an InventoryItem with tracks
 function def.resolve(player, track)
     if not track then return nil end
@@ -40,8 +52,7 @@ function def.resolve(player, track)
         t.sq = track:getSquare()
         t.tex = getTexture(track:getSprite():getName())
     else
-        local wi = call(track, "getWorldItem")
-        t.sq = wi and wi:getSquare() or nil
+        t.sq = itemSquare(track)
         t.tex = call(track, "getTex") or call(track, "getTexture")
     end
     return t
@@ -50,6 +61,8 @@ end
 function def.valid(t)
     local o = t.obj
     if instanceof(o, "IsoAnimalTrack") then return o:getSquare() ~= nil and (call(o, "getObjectIndex") or 0) >= 0 end
+    -- (read each tick before the leash, so the leash follows the item)
+    t.sq = itemSquare(o)
     return true
 end
 
@@ -79,7 +92,8 @@ function def.icon(t) return t.tex end
 function def.pill(t)
     local T = ZeD.T
     if not (t.d and t.d.fresh ~= "") then return nil end
-    return OC.cap(t.d.fresh), T.positive
+    -- plain, as the game writes it: a green mark read a days-old track as a good state (QA TK1, Nov 26 2026)
+    return OC.cap(t.d.fresh), T.textDim
 end
 
 -- a map compass: the eight points round a ring, the way it went lit

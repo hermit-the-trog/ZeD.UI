@@ -3921,6 +3921,10 @@ local function _closeWorldWindow(w)
     -- the build cursor the Build tab started goes with the window, as the game's build window's close clears
     -- its cursor (ISBuildPanel.lua:405-407) (QA cb sweep, Nov 25 2026, B5)
     if ZeD.BuildingTab and ZeD.BuildingTab.dropCursor then pcall(ZeD.BuildingTab.dropCursor, w.playerNum or 0) end
+    -- the object card goes with the window through its own drop, so its kind tidies up: the placement card saves and
+    -- ends the game's placement and its gizmo, the laundry hands the focus back (QA PL1/OC2, Nov 26 2026: the close
+    -- box and U left isDoingExtendedPlacement on and the gizmo up). A pinned trade stays pinned, as on a tab switch.
+    pcall(dropObjectCard, w, "the World window closed")
     -- unregisterWindow releases focus if this window holds it
     if ZeD and ZeD.Input and ZeD.Input.Focus then ZeD.Input.Focus.unregisterWindow(w) end
     w:removeFromUIManager()
