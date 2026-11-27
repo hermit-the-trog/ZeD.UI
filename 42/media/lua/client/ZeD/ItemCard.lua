@@ -1661,7 +1661,7 @@ function ZeD_ItemCard:prerender()
                 self._sb.arrowH = T.sp.scrollbarW
                 self._sb.x      = self:getWidth() - T.sp.scrollbarW
                 -- lying over a tab at its right, the card draws its own right line inside its rect
-                self._sb.inRight = (self.overlayEdge == "right")
+                self._sb.inRight = (self.overlayEdge == "right") or self.overlayFrame == true
                 self._sb.y      = headH
                 self._sb.height = viewH
                 self._sb:setBarSize(viewH / contentH)
@@ -1687,10 +1687,21 @@ end
 --- host sets card.overlayEdge = "left" / "right" (nil: none; the window's own
 --- lines bound the card). Drawn last in the card's render, from top to bottom.
 function ZeD_ItemCard:drawOverlayEdge()
-    local edge = self.overlayEdge
-    if edge ~= "left" and edge ~= "right" then return end
     local T = ZeD.T
     local bs = T.borderS
+    -- Over another layer (a tab's card, the World window's tab card) the card draws the house 1 px line all round,
+    -- so it reads as its own layer and does not blend into the card under it; the host sets overlayFrame (the
+    -- director, Nov 26 2026: "make sure that item card has a border line so it doesnt blend into the tab card")
+    if self.overlayFrame then
+        local f, w, h = T.px(1), self:getWidth(), self:getHeight()
+        self:drawRect(0, 0, w, f, bs.a or 1, bs.r, bs.g, bs.b)
+        self:drawRect(0, h - f, w, f, bs.a or 1, bs.r, bs.g, bs.b)
+        self:drawRect(0, 0, f, h, bs.a or 1, bs.r, bs.g, bs.b)
+        self:drawRect(w - f, 0, f, h, bs.a or 1, bs.r, bs.g, bs.b)
+        return
+    end
+    local edge = self.overlayEdge
+    if edge ~= "left" and edge ~= "right" then return end
     local x = (edge == "left") and 0 or (self:getWidth() - T.px(1))
     self:drawRect(x, 0, T.px(1), self:getHeight(), bs.a or 1, bs.r, bs.g, bs.b)
 end
