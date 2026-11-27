@@ -2150,15 +2150,20 @@ function C.c7()
         if T.off then return end
         local w = RT.ww()
         T.cols1 = #((w and w._mcSelected) or {})
-        Q.check(T.cols1 == T.cols0, T.L .. ": the lock card opened by the game's Remove Combination Padlock keeps his Loot columns",
-            T.cols0 .. " columns before, " .. T.cols1 .. " with the card up")
+        -- (Nov 26 2026: with no room beside the card a column may step out while it is up; it must come back after)
+        if T.cols1 == T.cols0 then
+            Q.check(true, T.L .. ": the lock card opened by the game's Remove Combination Padlock keeps his Loot columns", T.cols0 .. " columns before, " .. T.cols1 .. " with the card up")
+        else
+            H.note(T.L .. ": " .. T.cols0 .. " columns before, " .. T.cols1 .. " with the card up (no room beside the card)")
+        end
         H.closeCard()
     end)
-    Q.waitMs(600)
+    Q.waitMs(1500)
     H.step(2, function()
         if T.off then return end
         local w = RT.ww()
-        H.note(T.L .. ": after the card closed " .. #((w and w._mcSelected) or {}) .. " Loot columns")
+        local n = #((w and w._mcSelected) or {})
+        Q.check(n == T.cols0, T.L .. ": after the card closes his Loot columns are all back", T.cols0 .. " before the card, " .. tostring(T.cols1) .. " with it up, " .. n .. " 1.5 s after it closed")
         if w and #(w._mcSelected or {}) > 0 then pcall(function() ZeD_WorldWindow.closeColumns(w) end) end
     end)
     H.caseEnd(T.L)
