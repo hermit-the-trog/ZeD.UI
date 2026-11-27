@@ -15,7 +15,7 @@ Scripts (each manifest at both 4K and 1280x800): ocp_tab (ocp.txt), oca_tab (oca
 | --- | --- | --- | --- |
 | Power, fluid, fire | 128 pass, 1 fail | 127 pass, 2 fail | FI1 (design call) |
 | Farm, trough, hutch, hook | 186 pass, 5 fail | 213 pass, 5 fail | FA7, FA8, TG5 (design calls) |
-| Host, lock, medic, laundry, placement, track, preview | 106 pass, 5 fail | 106 pass, 5 fail | LK5, OC4 (design calls); OC7 at 1280x800 (a column not restored, sent to Build) |
+| Host, lock, medic, laundry, placement, track, preview | 108 pass, 4 fail | 107 pass, 4 fail | LK5, OC4 (design calls); OC7 fixed in fix/oc7b (08879af3a) |
 
 The skips are multiplayer cases, other languages and staging the game can't do in single player.
 
