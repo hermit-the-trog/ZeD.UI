@@ -23,7 +23,10 @@ local OC = ZeD.ObjectCards
 local UI = OC.ui
 local call = OC.call
 
-local def = { id = "preview", half = true }
+-- vehicleOk: the preview shows what a recipe makes; it acts on nothing in the world, so it stays usable seated, as
+-- the Craft tab is (QA, Nov 26 2026: seated in a parked car the preview could not open once OC.open refused every
+-- kind without vehicleOk, the FL5 hand-back)
+local def = { id = "preview", half = true, vehicleOk = true }
 
 -- the faces' names as the compass letters ZeD already has
 local FACE_KEYS = { N = "UI_ZeD_Track_CompassN", E = "UI_ZeD_Track_CompassE", S = "UI_ZeD_Track_CompassS", W = "UI_ZeD_Track_CompassW" }
