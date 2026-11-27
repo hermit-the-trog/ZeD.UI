@@ -3152,6 +3152,7 @@ function C.c21()
             .. " (valid() is always true for an item; the game's own window keeps its window too)")
         H.padOn()
         T.onBack = H.focusCard("oc:back")
+        T.qAtB = H.qkinds and H.qkinds() or "?"
     end)
     H.tapB(function() return not T.off and T.onBack end)
     Q.waitMs(400)
@@ -3161,7 +3162,8 @@ function C.c21()
         if not T.onBack then
             Q.skip(T.L .. " (OC3): B on the track card closes it", "the pad's focus did not land on oc:back (on " .. tostring(H.focusedId()) .. "), so B was not pressed")
         else
-            Q.check(H.kind() == nil, T.L .. " (OC3): B on the track card closes it", "card " .. tostring(H.kind()) .. "; the focus before B on oc:back, now " .. tostring(H.focusedId()))
+            Q.check(H.kind() == nil, T.L .. " (OC3): B on the track card closes it", "card " .. tostring(H.kind()) .. "; the focus before B on oc:back, now " .. tostring(H.focusedId())
+                .. "; the game's queue at B " .. tostring(T.qAtB) .. ", now " .. tostring(H.qkinds and H.qkinds() or "?"))
         end
         H.padOff()
     end)
