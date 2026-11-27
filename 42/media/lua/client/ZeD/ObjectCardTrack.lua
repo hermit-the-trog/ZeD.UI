@@ -25,7 +25,10 @@ local DIR_NAME = { N = "AEBS_zone_name_n", NE = "AEBS_zone_name_ne", E = "AEBS_z
 local DIR_DEG = { N = 0, NE = 45, E = 90, SE = 135, S = 180, SW = 225, W = 270, NW = 315 }
 local ORDER = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" }
 
-local def = { id = "track" }
+-- half = true: the half card (220), like the padlock's and the recipe preview's (ZeD_WorldWindow reads def.half);
+-- the track's picture and compass sit above its facts there, and the facts' values are cut to the card
+-- (the director, Nov 26 2026: "could probably just be a half card"; QA TK2: the values ran past the edge)
+local def = { id = "track", half = true }
 
 -- track = an IsoAnimalTrack on the ground or an InventoryItem with tracks
 function def.resolve(player, track)
@@ -110,34 +113,45 @@ function def.body(card, x, y, w, t, player)
     local T, tm = ZeD.T, ZeD.TM
     local d = t.d
     if not d then return 0 end
-    local lw = T.px(140)
+    local A = ZeD.Atoms
+    local lw = math.min(T.px(140), w)
+    -- side by side when the facts have room beside the picture (the full card), else the picture and the compass
+    -- above the facts (the half card)
+    local beside = w >= lw + T.px(14) + T.px(180)
+    local px = beside and x or (x + math.floor((w - lw) / 2))
     -- the track itself
     local ih = T.px(96)
-    UI.fill(card, x, y, lw, ih, "surf2")
-    if t.tex then card:drawTextureScaledAspect(t.tex, x + T.px(4), y + T.px(4), lw - 2 * T.px(4), ih - 2 * T.px(4), 1, 1, 1, 1) end
-    ZeD.Atoms.frame(card, x, y, lw, ih, T.borderS)
+    UI.fill(card, px, y, lw, ih, "surf2")
+    if t.tex then card:drawTextureScaledAspect(t.tex, px + T.px(4), y + T.px(4), lw - 2 * T.px(4), ih - 2 * T.px(4), 1, 1, 1, 1) end
+    A.frame(card, px, y, lw, ih, T.borderS)
     -- compass under it
     local r = T.px(60)
-    compass(card, x + math.floor(lw / 2), y + ih + T.px(10) + r, r, d.dir)
+    compass(card, px + math.floor(lw / 2), y + ih + T.px(10) + r, r, d.dir)
     local leftH = ih + T.px(10) + r * 2
 
     -- facts
-    local fx = x + lw + T.px(14)
-    local fy = y
+    local fx = beside and (x + lw + T.px(14)) or x
+    local fy = beside and y or (y + leftH + T.px(12))
+    local right = x + w   -- (no value runs past the card: TK2)
     local function fact(label, value, dot, dim)
         local f1, f2 = T.fontF1, T.fontF2
         local h = T.px(24)
         local ac = T.accent
-        card:drawText(label, fx, fy + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
         local vx = fx + T.px(96)
+        local lab1 = A.truncateText(label, f1, math.max(0, vx - T.px(6) - fx))
+        card:drawText(lab1, fx, fy + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
         if dot then
-            ZeD.Atoms.drawStatusDot(card, vx, fy + math.floor((h - T.px(6)) / 2), dot, T.px(6))
+            A.drawStatusDot(card, vx, fy + math.floor((h - T.px(6)) / 2), dot, T.px(6))
             vx = vx + T.px(12)
         end
-        card:drawText(value, vx, fy + math.floor((h - tm:getFontHeight(f2)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
+        local v1 = A.truncateText(tostring(value or ""), f2, math.max(0, right - vx))
+        card:drawText(v1, vx, fy + math.floor((h - tm:getFontHeight(f2)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
         if dim then
-            local dx = vx + tm:MeasureStringX(f2, value) + T.px(8)
-            card:drawText(dim, dx, fy + math.floor((h - tm:getFontHeight(T.fontF5)) / 2), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF5)
+            local dx = vx + tm:MeasureStringX(f2, v1) + T.px(8)
+            local d1 = A.truncateText(dim, T.fontF5, math.max(0, right - dx))
+            if d1 ~= "" then
+                card:drawText(d1, dx, fy + math.floor((h - tm:getFontHeight(T.fontF5)) / 2), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF5)
+            end
         end
         fy = fy + h
     end
@@ -147,7 +161,7 @@ function def.body(card, x, y, w, t, player)
     fact(lab("IGUI_AnimalTracks_Animal"), d.species, nil, ZeD.tr("UI_ZeD_Track_TrackingLevel", d.level))
     fact(lab("IGUI_AnimalTracks_Freshness"), d.fresh)
     if d.dir then fact(lab("IGUI_AnimalTracks_Direction"), DIR_NAME[d.dir] and getText(DIR_NAME[d.dir]) or d.dir) end
-    return math.max(leftH, fy - y) + T.px(4)
+    return (beside and math.max(leftH, fy - y) or (fy - y)) + T.px(4)
 end
 
 OC.register(def)
