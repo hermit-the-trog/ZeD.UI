@@ -983,6 +983,8 @@
     "UI_ZeD_Farm_Garden": "Tuin binnen bereik",
     "UI_ZeD_Farm_GardenPlowed": "Akker",
     "UI_ZeD_Farm_LockTag": "Landbouw %1",
+    "UI_ZeD_Farm_MoreAt": "Meer bij Landbouw %1",
+    "UI_ZeD_Farm_ListAnd": "%1 en %2",
     "UI_ZeD_Farm_NeedSeeds": "Zaaien: zaad nodig",
     "UI_ZeD_Farm_NeedShovel": "Opgraven: schep of troffel nodig",
     "UI_ZeD_Farm_NeedSpray": "Behandelen: %1 nodig",

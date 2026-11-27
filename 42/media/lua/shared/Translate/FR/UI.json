@@ -924,6 +924,8 @@
     "UI_ZeD_Farm_Garden": "Jardin à portée",
     "UI_ZeD_Farm_GardenPlowed": "Labour",
     "UI_ZeD_Farm_LockTag": "Agricult. %1",
+    "UI_ZeD_Farm_MoreAt": "Plus en Agriculture %1",
+    "UI_ZeD_Farm_ListAnd": "%1 et %2",
     "UI_ZeD_Farm_NeedSeeds": "Semer : nécessite des graines",
     "UI_ZeD_Farm_NeedShovel": "Déterrer : nécessite une pelle ou une truelle",
     "UI_ZeD_Farm_NeedSpray": "Traiter : nécessite %1",

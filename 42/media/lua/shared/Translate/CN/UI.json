@@ -924,6 +924,8 @@
     "UI_ZeD_Farm_Garden": "范围内的菜园",
     "UI_ZeD_Farm_GardenPlowed": "已翻耕",
     "UI_ZeD_Farm_LockTag": "耕作 %1",
+    "UI_ZeD_Farm_MoreAt": "耕作 %1 级可见更多",
+    "UI_ZeD_Farm_ListAnd": "%1 和 %2",
     "UI_ZeD_Farm_NeedSeeds": "播种：需要种子",
     "UI_ZeD_Farm_NeedShovel": "挖出：需要铲子或小铲",
     "UI_ZeD_Farm_NeedSpray": "处理：需要 %1",

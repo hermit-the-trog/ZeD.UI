@@ -924,6 +924,8 @@
     "UI_ZeD_Farm_Garden": "Zahrada na dosah",
     "UI_ZeD_Farm_GardenPlowed": "Zorané",
     "UI_ZeD_Farm_LockTag": "Zeměd. %1",
+    "UI_ZeD_Farm_MoreAt": "Více od Zemědělství %1",
+    "UI_ZeD_Farm_ListAnd": "%1 a %2",
     "UI_ZeD_Farm_NeedSeeds": "Zasít: potřebuješ semena",
     "UI_ZeD_Farm_NeedShovel": "Vykopat: potřebuješ lopatu nebo lopatku",
     "UI_ZeD_Farm_NeedSpray": "Ošetřit: potřebuješ %1",

@@ -924,6 +924,8 @@
     "UI_ZeD_Farm_Garden": "Hort a l'abast",
     "UI_ZeD_Farm_GardenPlowed": "Arat",
     "UI_ZeD_Farm_LockTag": "Agricult. %1",
+    "UI_ZeD_Farm_MoreAt": "Més amb Agricultura %1",
+    "UI_ZeD_Farm_ListAnd": "%1 i %2",
     "UI_ZeD_Farm_NeedSeeds": "Sembrar: calen llavors",
     "UI_ZeD_Farm_NeedShovel": "Arrencar: cal una pala o una paleta",
     "UI_ZeD_Farm_NeedSpray": "Tractar: cal %1",

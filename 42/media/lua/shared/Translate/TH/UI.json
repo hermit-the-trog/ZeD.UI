@@ -924,6 +924,8 @@
     "UI_ZeD_Farm_Garden": "แปลงในระยะเอื้อม",
     "UI_ZeD_Farm_GardenPlowed": "ไถแล้ว",
     "UI_ZeD_Farm_LockTag": "เพาะปลูก %1",
+    "UI_ZeD_Farm_MoreAt": "ดูเพิ่มที่เพาะปลูก %1",
+    "UI_ZeD_Farm_ListAnd": "%1 และ %2",
     "UI_ZeD_Farm_NeedSeeds": "หว่านเมล็ด: ต้องมีเมล็ดพันธุ์",
     "UI_ZeD_Farm_NeedShovel": "ขุดทิ้ง: ต้องมีพลั่วหรือพลั่วมือ",
     "UI_ZeD_Farm_NeedSpray": "รักษา: ต้องมี %1",

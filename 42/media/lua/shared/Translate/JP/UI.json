@@ -924,6 +924,8 @@
     "UI_ZeD_Farm_Garden": "手の届く畑",
     "UI_ZeD_Farm_GardenPlowed": "耕地",
     "UI_ZeD_Farm_LockTag": "耕作 %1",
+    "UI_ZeD_Farm_MoreAt": "耕作 %1 でさらに表示",
+    "UI_ZeD_Farm_ListAnd": "%1 と %2",
     "UI_ZeD_Farm_NeedSeeds": "種まき: 種が必要",
     "UI_ZeD_Farm_NeedShovel": "掘り起こし: シャベルか移植ごてが必要",
     "UI_ZeD_Farm_NeedSpray": "処置: %1が必要",

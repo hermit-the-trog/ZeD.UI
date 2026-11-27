@@ -924,6 +924,8 @@
     "UI_ZeD_Farm_Garden": "Yakındaki bahçe",
     "UI_ZeD_Farm_GardenPlowed": "Sürülü",
     "UI_ZeD_Farm_LockTag": "Çiftçilik %1",
+    "UI_ZeD_Farm_MoreAt": "Çiftçilik %1 ile daha fazlası",
+    "UI_ZeD_Farm_ListAnd": "%1 ve %2",
     "UI_ZeD_Farm_NeedSeeds": "Ek: tohum gerekir",
     "UI_ZeD_Farm_NeedShovel": "Sök: kürek veya mala gerekir",
     "UI_ZeD_Farm_NeedSpray": "İlaçla: %1 gerekir",

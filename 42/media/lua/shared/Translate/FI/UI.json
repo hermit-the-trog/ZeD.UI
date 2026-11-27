@@ -924,6 +924,8 @@
     "UI_ZeD_Farm_Garden": "Puutarha lähellä",
     "UI_ZeD_Farm_GardenPlowed": "Kynnös",
     "UI_ZeD_Farm_LockTag": "Maanvilj. %1",
+    "UI_ZeD_Farm_MoreAt": "Lisää viljelytaidolla %1",
+    "UI_ZeD_Farm_ListAnd": "%1 ja %2",
     "UI_ZeD_Farm_NeedSeeds": "Kylvä: tarvitaan siemeniä",
     "UI_ZeD_Farm_NeedShovel": "Kaiva ylös: tarvitaan lapio tai puutarhalapio",
     "UI_ZeD_Farm_NeedSpray": "Hoida: tarvitaan %1",
