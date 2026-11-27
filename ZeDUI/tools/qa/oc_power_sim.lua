@@ -9,6 +9,11 @@
 --        a press on the face's engine switch says why; the condition line says it won't start
 --   FI4  the Lights wheel puts out the fire nearest him, with the game's action for its kind (a campfire the camping
 --        one, a fireplace or charcoal grill ISBBQMenu.onExtinguish, a propane grill its Turn off)
+--   PW1  (second pass) the pop-out's pad A pressed before its face has drawn still starts it, at the first draw;
+--        opening empties the view's old controls
+--   PW3  Disconnect is lit at Electricity 0 (the game's has no skill check); Connect still needs Electricity 3
+--   PW7  the game's Add All (doAddFuelGenerator with every can); a second can's Add while the first pours joins
+--        the chain instead of clearing it; every verb and the face's controls wait for the chain
 -- Each check fails on the code before this work.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/oc_power_sim.lua
 -- It prints FAIL lines and a last line "oc_power_sim: N checks, M failed", and exits 1 if any failed.
@@ -321,6 +326,162 @@ do
     check("a lit propane grill reads Turn off", s and s.name == "ContextMenu_Turn_Off", s and s.name)
     if s and s.run then pcall(s.run, player, 0) end
     check("a propane grill turns off with ISBBQMenu.onToggle", CALLS[1] and CALLS[1].fn == "toggle" and CALLS[1].obj == grill)
+end
+
+-- ===========================================================================
+section("PW1: the pop-out's pad A right after it opens")
+-- ===========================================================================
+do
+    local garage = generator("garage2", 10, 11, { outside = false })
+    local drv = ZeD.FacePop and ZeD.FacePop.generator
+    if drv then
+        -- a press before this opening's face has drawn (the view's focus set, its A pressed at once)
+        local t = { obj = garage, sq = garage:getSquare() }
+        pcall(def.refresh, t, player)
+        local dev = { t = t, obj = garage }
+        reset()
+        pcall(drv.press, player, dev, "gen:engine")
+        check("a press before the first draw queues nothing yet", #CALLS == 0)
+        local panel = { zone = function(self, z) local l = self._zones; if l then l[#l + 1] = z end end, focusOf = function() return nil end }
+        pcall(drv.drawFace, panel, 0, 0, 1, { dev = dev, des = { w = 100, h = 50 } })
+        check("the first draw runs it: the pad's A starts it", CALLS[1] and CALLS[1].fn == "activate" and CALLS[1].enable == true, #CALLS)
+        check("and warns over his head", haloHas("IGUI_Generator_IsToxic"))
+        reset()
+        pcall(drv.drawFace, panel, 0, 0, 1, { dev = dev, des = { w = 100, h = 50 } })
+        check("only once", #CALLS == 0, #CALLS)
+    end
+    -- the view keeps the last face's controls until the new one draws: FacePop.open empties them
+    local stale = { { id = "gen:engine", x = 0, y = 0, w = 10, h = 10 } }
+    local view = { _hits = stale }
+    ZeD.TwoWayFull = { open = function() return view end }
+    ZeD.ObjectCardLaundry = { plateId = function() return nil end }
+    local okFP, errFP = loadZ("FacePop.lua")
+    check("FacePop.lua reloads over the stand-in view", okFP, errFP)
+    -- (FacePop.resolve takes only world objects, never a Lua table: the fake generator goes straight to its driver)
+    ZeD.FacePop.resolve = function(p, o) return ZeD.FacePop.generator, { t = def.resolve(p, o), obj = o } end
+    local okO, opened = pcall(ZeD.FacePop.open, player, garage)
+    check("the pop-out opens on the generator", okO and opened == true, opened)
+    check("the view's old controls are gone until the face draws", view._hits ~= stale and #view._hits == 0, view._hits and #view._hits)
+end
+
+-- ===========================================================================
+section("PW3: Disconnect needs no skill")
+-- ===========================================================================
+do
+    local plugged = {}
+    ISWorldObjectContextMenu.onPlugGenerator = function(wo, g, pn, plug) plugged[#plugged + 1] = { obj = g, plug = plug } end
+    local g = generator("yard3", 11, 10, { conn = true })
+    local t = { obj = g, sq = g:getSquare() }
+    pcall(def.refresh, t, player)
+    local pv
+    for _, v in ipairs(t.verbs or {}) do if v.id == "plug" then pv = v end end
+    check("at Electricity 0 the card's Disconnect is lit", pv and pv.enabled == true and pv.label == "UI_ZeD_Power_Disconnect", pv and tostring(pv.enabled))
+    check("the face's outlet can disconnect it", t.plug ~= nil)
+    if pv and pv.run then pcall(pv.run, player, t) end
+    check("it runs the game's Disconnect", plugged[1] and plugged[1].obj == g and plugged[1].plug == false)
+    g.conn = false
+    pcall(def.refresh, t, player)
+    pv = nil
+    for _, v in ipairs(t.verbs or {}) do if v.id == "plug" then pv = v end end
+    check("Connect still needs Electricity 3", pv and pv.enabled == false and pv.needs == "UI_ZeD_Power_NeedsElec", pv and pv.needs)
+    check("and the outlet can't connect it", t.plug == nil)
+end
+
+-- ===========================================================================
+section("PW7: Add all, and a second can's Add while the first pours")
+-- ===========================================================================
+do
+    -- the game's queue and its fuel route: doAddFuelGenerator walks (luautils.walkAdj clears the queue), then each
+    -- can's equip and ISAddFuel
+    local Q = {}
+    local adds = {}
+    ISTimedActionQueue.getTimedActionQueue = function(p) return { queue = Q } end
+    local function qadd(a) Q[#Q + 1] = a end
+    ISTimedActionQueue.add = qadd
+    ISAddFuel = { new = function(self, p, g, item, time) return { Type = "ISAddFuel", item = item } end }
+    ISWorldObjectContextMenu.equip = function(p, hand, item) qadd({ Type = "equip", item = item }) end
+    ISWorldObjectContextMenu.doAddFuelGenerator = function(wo, g, list, one, pn)
+        adds[#adds + 1] = list
+        for i = #Q, 1, -1 do Q[i] = nil end
+        if not list or #list == 0 then list = { one } end
+        for _, it in ipairs(list) do
+            ISWorldObjectContextMenu.equip(nil, nil, it)
+            qadd(ISAddFuel:new(nil, g, it, 100))
+        end
+    end
+    local function can(name, amt)
+        local fc = { contains = function() return true end, getAmount = function() return amt end, getCapacity = function() return 10 end }
+        return { name = name, getFluidContainer = function() return fc end, getDisplayName = function() return name end,
+                 getTex = function() return nil end }
+    end
+    local c1, c2 = can("can1", 4), can("can2", 3)
+    local oldInv = player.getInventory
+    player.getInventory = function()
+        local l = { c1, c2 }
+        return { getAllEvalRecurse = function() return { size = function() return #l end, get = function(_, i) return l[i + 1] end } end,
+                 getFirstTypeRecurse = function() return nil end }
+    end
+    player.getPrimaryHandItem = function() return nil end
+    OC.whereOf = function() return "" end
+    local picks = {}
+    OC.ui.pick = function(card, x, y, w, spec) picks[#picks + 1] = spec; return 10 end
+    local function pours()
+        local o = {}
+        for _, a in ipairs(Q) do if a.Type == "ISAddFuel" then o[#o + 1] = a.item.name end end
+        return table.concat(o, ",")
+    end
+    local function verb(t, id) for _, v in ipairs(t.verbs or {}) do if v.id == id then return v end end return nil end
+    local function rows(t)
+        picks = {}
+        local card = { zone = function() end, focusOf = function() return nil end }
+        local ok, err = pcall(def.body, card, 0, 0, 400, t, player)
+        if not ok then print("body failed: " .. tostring(err)) end
+        return picks
+    end
+
+    local g = generator("yard7", 11, 10, { fuel = 2 })
+    local t = { obj = g, sq = g:getSquare() }
+    pcall(def.refresh, t, player)
+    local all = verb(t, "fuelall")
+    check("the card has the game's Add All", all ~= nil and all.label == "ContextMenu_AddAll", all and all.label)
+    check("lit with two cans", all and all.enabled == true)
+    if all and all.run then pcall(all.run, player, t) end
+    check("it runs the game's Add All: doAddFuelGenerator with both cans", adds[1] and #adds[1] == 2, adds[1] and #adds[1])
+    check("both cans pour", pours() == "can1,can2", pours())
+
+    -- one can, then the other while the first pours
+    for i = #Q, 1, -1 do Q[i] = nil end
+    adds = {}
+    t = { obj = g, sq = g:getSquare() }
+    pcall(def.refresh, t, player)
+    local r = rows(t)
+    check("a row per can", #r == 2, #r)
+    if r[1] and r[1].run then pcall(r[1].run, nil, player) end
+    check("the first can pours", pours() == "can1", pours())
+    pcall(def.refresh, t, player)
+    r = rows(t)
+    check("while it pours the first can's row is greyed", r[1] and r[1].enabled == false)
+    check("and the second's is lit", r[2] and r[2].enabled == true)
+    if r[2] and r[2].run then pcall(r[2].run, nil, player) end
+    check("the second can's Add keeps the first pour", pours() == "can1,can2", pours())
+    check("it joins the chain without the game's walk", #adds == 1, #adds)
+    -- the busy gate
+    pcall(def.refresh, t, player)
+    local gated = true
+    for _, id in ipairs({ "fuelall", "power", "fix", "plug", "take", "fuel" }) do
+        local v = verb(t, id)
+        if not v or v.enabled ~= false then gated = false end
+    end
+    check("while the chain runs every verb waits", gated)
+    check("and says why", verb(t, "power") and verb(t, "power").needs == "UI_ZeD_Fluid_NeedsIdle", verb(t, "power") and verb(t, "power").needs)
+    check("the face's switch and outlet wait too", t.toggle == nil and t.plug == nil)
+    -- the chain done
+    for i = #Q, 1, -1 do Q[i] = nil end
+    pcall(def.refresh, t, player)
+    check("once it's done the verbs come back", verb(t, "power") and verb(t, "power").enabled == true and (verb(t, "fuelall") or {}).enabled == true)
+    r = rows(t)
+    check("and both cans' rows", r[1] and r[1].enabled == true and r[2] and r[2].enabled == true)
+    player.getInventory = oldInv
 end
 
 print("oc_power_sim: " .. checks .. " checks, " .. failed .. " failed")
