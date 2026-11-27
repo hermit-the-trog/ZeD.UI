@@ -2946,7 +2946,8 @@ function C.hu4(which)
     H.pause(500)
     H.step(1, function()
         if T.off then return end
-        T.putin = H.zone("oc:verb:putin") ~= nil
+        -- (the foot band, Nov 26 2026: a greyed verb may draw with no stop; the card's verb list says it is there)
+        T.putin = H.zone("oc:verb:putin") ~= nil or string.find(H.verbIds(), "putin", 1, true) ~= nil
         T.putinLit = H.lit("oc:verb:putin")
         T.folded = H.zone("oc:hv:putin") ~= nil
         local full = H.txt("IGUI_PutAnimalInHutch_HutchFull", "Hutch full")
