@@ -1082,6 +1082,7 @@ function H.legClean()
     H.gameMapShut()
     S.drawRec = nil
     S.hidWatch = nil
+    H.readWatch(false)
     H.tabBaseline()
     for _, it in ipairs(S.caseMade) do H.removeItem(it) end
     S.caseMade = {}
@@ -2808,7 +2809,8 @@ function C.mp34()
     -- MP35: the pad's note (B3): the note box's stop (map:note) while the note is in hand, its A opens the pad's
     -- keyboard (ZeD.MapsTab.noteKeyboard, counted); the run types into the box as the keyboard does (setText); A on the
     -- map's cursor places those words. Edit note by the pad opens the keyboard on the note's words.
-    H.step(1, function() H.noteKbOn() end)
+    -- (MP34's notes taken off first: a long note's words reach across the map, and the engine's hit test takes them)
+    H.step(1, function() H.noteKbOn(); H.removeNew() end)
     H.padPress(T, "map:tool:text")
     H.pause(300)
     H.step(1, function()
@@ -2852,6 +2854,15 @@ function C.mp34()
         Q.check(not H.hasStop("map:note"), "MP35 the pad's note: with the note put down the box's stop is gone", "stops " .. H.list(H.stopIds(), 30))
         T.k1 = S.nkN
         T.go = T.sym ~= nil and H.cursorAt(T.x, T.y)
+        -- (the X acts on the mark under the cursor: only when that is this note, not MP34's long note nearby)
+        if T.go then
+            local hit = nil
+            pcall(function() hit = S.MT.gpFindAnnotAtCursor(RT.ww()) end)
+            if not (hit and H.sameMark(hit.sym, T.sym)) then
+                T.go = false
+                Q.skip("MP35 the pad's note: Edit note by the pad", "the mark under the cursor is not the pad's note (" .. tostring(hit and H.sig(hit.sym)) .. ")")
+            end
+        end
     end)
     -- the pad's Edit note: X on it, Edit note opens the keyboard on its words; new words typed, A puts them on it
     H.tapX(function() return T.go and not T.off end)
@@ -3005,9 +3016,15 @@ function C.mp37()
                 "the option " .. H.ctxNames() .. "; marks " .. tostring(T.n0) .. " -> " .. H.marks() .. ", still there " .. tostring(H.inStore(T.sym)))
         end)
     end
-    -- no eraser: greyed with the game's reason, and a press says it
-    H.step(2, function() if not T.off then H.kit({ Pencil = true }) end end)
+    -- no eraser: greyed with the game's reason, and a press says it. (A Pencil carries the game's eraser tag,
+    -- base:eraser, so a pencil alone can erase in the game too: the leg writes with a Pen and nothing else.)
+    H.step(2, function() if not T.off then H.kit({ Pen = true }) end end)
     H.makeQ(T, "star", 2)
+    H.step(1, function()
+        if T.off or not H.gameCanErase() then return end
+        T.sym = nil   -- (no menu for this leg)
+        Q.skip(T.L .. ": without an eraser", "the game still finds an eraser on him (a worn or held thing with its tag): canErase true")
+    end)
     H.menuQ(T)
     H.step(2, function()
         if T.off or not T.menu then return end
@@ -3111,7 +3128,13 @@ function C.mp39()
         pcall(function() words = T.sym:getTranslatedText() end)
         Q.check(words == "ZEDQA edit two" and H.marks() == T.n0 and H.armed() == nil, T.L .. ": the next click puts the new words on the same note and puts the tool down",
             "the note \"" .. tostring(words) .. "\", marks " .. tostring(T.n0) .. " -> " .. H.marks() .. ", tool " .. tostring(H.armed()))
-        H.kit({ Pencil = true })
+        -- (a Pen and nothing else: the game's Pencil carries the eraser tag, base:eraser)
+        H.kit({ Pen = true })
+    end)
+    H.step(2, function()
+        if T.off or not H.gameCanErase() then return end
+        T.sym = nil   -- (no menu for this leg)
+        Q.skip(T.L .. ": without an eraser", "the game still finds an eraser on him (a worn or held thing with its tag): canErase true")
     end)
     H.menuQ(T)
     H.step(2, function()
@@ -3640,14 +3663,50 @@ function C.mp53leg(T, where)
         pcall(function() must = luautils.haveToBeTransfered(S.p, T.it, true) and true or false end)
         T.must = must
         T.leg = true
+        T.ft = H.ft(T.it)
+        T.from = "?"
+        pcall(function() T.from = tostring(T.it:getContainer():getType()) end)
+        H.readWatch(true)
         H.readMap(T.it)
         T.q = H.qkinds()
+        T.hist = { T.q }
     end)
-    H.wait(6000, function() return T.off or not T.leg or H.paperUp(nil) end, function(ok)
+    -- (every frame: the queue's changes, so a FAIL says where the read stopped)
+    H.wait(10000, function()
+        if T.off or not T.leg then return true end
+        local q = H.qkinds()
+        if q ~= T.hist[#T.hist] and #T.hist < 12 then T.hist[#T.hist + 1] = q end
+        return H.paperUp(nil)
+    end, function(ok)
+        H.readWatch(false)
         if T.off or not T.leg then return end
+        local wo, cont = nil, "none"
+        pcall(function() wo = T.it:getWorldItem() end)
+        pcall(function() local c = T.it:getContainer(); if c then cont = tostring(c:getType()) end end)
+        local mine = 0
+        for _, it in ipairs(H.all()) do if H.ft(it) == T.ft then mine = mine + 1 end end
         Q.check(ok and T.must and (string.find(T.q, "Transfer", 1, true) ~= nil), L .. ": the game's transfer first (luautils.haveToBeTransfered), then ZeD's paper window",
-            "the game says transfer " .. tostring(T.must) .. ", queued right after " .. tostring(T.q) .. "; the paper up " .. tostring(ok) .. " (" .. H.ft(H.paperItem()) .. ")")
+            "from " .. tostring(T.from) .. "; the game says transfer " .. tostring(T.must) .. "; the queue " .. H.list(T.hist, 12) .. "; Read Map called " .. S.rw.ocm .. " times, the read action's end (showUI) "
+            .. S.rw.ui .. " times; the map now in " .. cont .. " (on the floor " .. tostring(wo ~= nil) .. "), " .. mine .. " of its kind in his things; the paper up " .. tostring(ok) .. " (" .. H.ft(H.paperItem()) .. ")")
     end)
+end
+-- Read Map's calls (ISInventoryPaneContextMenu.onCheckMap, the transfer's end calls it again) and the read action's
+-- end (ISReadMapItem:showUI) counted for a leg, each call the game's own
+function H.readWatch(on)
+    if on and not S.rw0 then
+        S.rw = { ocm = 0, ui = 0 }
+        S.rw0 = { ocm = ISInventoryPaneContextMenu.onCheckMap, ui = ISReadMapItem and ISReadMapItem.showUI }
+        S.rw0.ocmFn = function(...) S.rw.ocm = S.rw.ocm + 1; return S.rw0.ocm(...) end
+        ISInventoryPaneContextMenu.onCheckMap = S.rw0.ocmFn
+        if S.rw0.ui then
+            S.rw0.uiFn = function(self, ...) S.rw.ui = S.rw.ui + 1; return S.rw0.ui(self, ...) end
+            ISReadMapItem.showUI = S.rw0.uiFn
+        end
+    elseif not on and S.rw0 then
+        if ISInventoryPaneContextMenu.onCheckMap == S.rw0.ocmFn then ISInventoryPaneContextMenu.onCheckMap = S.rw0.ocm end
+        if S.rw0.uiFn and ISReadMapItem.showUI == S.rw0.uiFn then ISReadMapItem.showUI = S.rw0.ui end
+        S.rw0 = nil
+    end
 end
 function C.mp53()
     local T = { L = "MP53 Read Map from a bag and the floor" }
@@ -4555,6 +4614,7 @@ function H.putBack()
     if S.defs0 then PrintMediaDefinitions.MiscDetails = S.defs0; S.defs0 = nil end
     H.stageDark(false)
     H.noteKbOff()
+    H.readWatch(false)
     H.gameWinWatch(false)
     H.extOff()
     if S.back.cbp ~= nil then pcall(function() getCore():setOptionColorblindPatterns(S.back.cbp) end); S.back.cbp = nil end
