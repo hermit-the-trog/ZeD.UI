@@ -119,16 +119,24 @@ local _washBg = {}
 --- opts (optional): { focus = the ZeD.Focus.mark opts ({ win, zone }) when this tab
 --- has the controller's focus, help = the help line's words (pass them only while
 --- the pointer is over the tab) }
-function TP.drawTab(el, x, y, w, h, id, isActive, isWashed, line, opts)
+-- The lit tab's panel: the accent, its bottom and right in shade, its top and left catching the light. The shown
+-- container's button draws the same one (ZeD.GridTint.stripCell), so the two strips have one selected look (the
+-- director, Nov 26 2026: "the same selection type that's on the tabs").
+function TP.drawLitPanel(el, x, y, w, h, line)
     local T = ZeD.T
     local acc, bright = T.accent, T.accentBright or T.accent
     local b = line or 1
+    rect(el, x, y, w, h, shade(_c, acc, 0.85))
+    rect(el, x, y + h - 2 * b, w, 2 * b, shade(_c, acc, 0.55))        -- the bottom falls into shade
+    rect(el, x + w - b, y, b, h, shade(_c, acc, 0.60))                -- and the right
+    rect(el, x, y, w, b, shade(_c, bright, 1.10))                    -- the top catches the light
+    rect(el, x, y, b, h, shade(_c, bright, 1.05))                    -- and the left
+end
+
+function TP.drawTab(el, x, y, w, h, id, isActive, isWashed, line, opts)
+    local T = ZeD.T
     if isActive then
-        rect(el, x, y, w, h, shade(_c, acc, 0.85))
-        rect(el, x, y + h - 2 * b, w, 2 * b, shade(_c, acc, 0.55))        -- the bottom falls into shade
-        rect(el, x + w - b, y, b, h, shade(_c, acc, 0.60))                -- and the right
-        rect(el, x, y, w, b, shade(_c, bright, 1.10))                    -- the top catches the light
-        rect(el, x, y, b, h, shade(_c, bright, 1.05))                    -- and the left
+        TP.drawLitPanel(el, x, y, w, h, line)
     elseif isWashed then
         local hv = T.hover
         rect(el, x, y, w, h, hv, hv.a)

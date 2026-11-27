@@ -3516,6 +3516,7 @@ local function drawWorldContainerStrip(self, win, content)
         if isHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_World_FloorHelp")) end
         local onFocusF = false
         if gpFocusedCI == floorIdx then
+            stripFocus.solid = floorOn and true or false   -- (on the lit panel the mark leaves out its wash, as on a lit tab)
             onFocusF = ZeD.Focus.mark(self, 0, curY, w - T.px(1), floorH, stripFocus)
         end
 
@@ -3668,6 +3669,7 @@ local function drawWorldContainerStrip(self, win, content)
             end
             local onFocusC = false
             if gpFocusedCI == ci then
+                stripFocus.solid = isOn and true or false
                 onFocusC = ZeD.Focus.mark(self, 0, drawY, w - T.px(1), T.px(CONTAINER_BTN_SZ), stripFocus)
             end
 
