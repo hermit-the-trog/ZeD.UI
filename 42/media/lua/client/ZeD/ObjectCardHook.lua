@@ -11,8 +11,8 @@
 --     card, as the vanilla window builds it) beside Leather / Blood / Head /
 --     Meat, each with Gather; Blood gathers into a container picked under
 --     Collect into or Bleeds onto the ground; a progress strip while you work
---     (Stop for your own actions); Remove corpse (it acts at once: the
---     carcass can be hung again); the knife is what a hidden Gather needs.
+--     (Stop for your own actions); Remove corpse (the band at the foot asks
+--     first); the knife is what a hidden Gather needs.
 -- Vanilla's butchering actions talk to their window ("luaHook": doingAction,
 -- actionText, updateProgressBar, updateCorpseDatas, onAddedCorpse,
 -- onClickRemoveCorpse, resetCorpse, getBuckets; Java calls back through
@@ -142,8 +142,13 @@ function def.nearby(player)
     return OC.sortTargets(out)
 end
 
--- vanilla's rules for what the hook takes
+-- vanilla's rules for what the hook takes: the game's own test (ISButcherHookUI:isCorpseValid reads only the
+-- corpse), this copy when its window's file is not there
 local function corpseValid(c)
+    if ISButcherHookUI and ISButcherHookUI.isCorpseValid then
+        local ok, v = pcall(ISButcherHookUI.isCorpseValid, ISButcherHookUI, c)
+        if ok then return v == true end
+    end
     local md = c and c:getModData()
     if not md then return false end
     if instanceof(c, "Food") and c:isFrozen() then return false end
@@ -270,6 +275,19 @@ function def.refresh(t, player)
         end
     end
     if not d.animal then d.corpses = corpsesNear(player) end
+    -- the first body the hook takes: Add corpse jumps to its row, and with none it is greyed (QA HK7, Nov 26 2026)
+    d.firstHang = nil
+    for i, r in ipairs(d.corpses or {}) do
+        if r.valid and not d.firstHang then d.firstHang = i end
+    end
+    -- the first part a Gather can take now, where the pad starts (the game's window starts on the parts, Remove on X)
+    d.firstPart = nil
+    if d.animal and d.knife and not d.busy then
+        if br.leather then d.firstPart = "hook:leather"
+        elseif (br.blood or 0) > 0 then d.firstPart = "hook:blood"
+        elseif br.head then d.firstPart = "hook:head"
+        elseif br.meat then d.firstPart = "hook:meat" end
+    end
     t.d = d
 
     local verbs = {}
@@ -280,14 +298,22 @@ function def.refresh(t, player)
             verbs[#verbs + 1] = { id = "gather", label = txt("IGUI_ButcherHook_Gather", "Gather"), enabled = false,
                 needs = ZeD.tr("UI_ZeD_Hook_NeedsKnife"), hint = ZeD.tr("UI_ZeD_Hook_HintGather"), help = ZeD.tr("UI_ZeD_Hook_HelpGather") }
         end
-        -- taking the carcass off the hook can be undone (hang it again): no question
+        -- taking the carcass down asks first in the foot band (focus on Cancel): opened from the Animals tab's hook
+        -- row it was the only verb, so the pad landed on it and A took the carcass down with no question; the
+        -- hang again costs the walk and the put (QA HK4, Nov 26 2026)
         verbs[#verbs + 1] = { id = "remove", label = txt("IGUI_ButcherHook_RemoveCorpse", "Remove Corpse"),
-            enabled = not d.busy, help = ZeD.tr("UI_ZeD_Hook_HelpRemove"),
+            enabled = not d.busy, help = ZeD.tr("UI_ZeD_Hook_HelpRemove"), danger = true,
+            confirm = ZeD.tr("UI_ZeD_Hook_QRemove", d.name),
             run = function(p, tt) removeCorpse(p, tt) end }
     else
+        -- lit only while a body in reach passes the game's hook test, and it jumps to that row; with bodies but none
+        -- the hook takes, the game's own reason (QA HK7, Nov 26 2026)
+        local anyNear = d.corpses ~= nil and #d.corpses > 0
         verbs[#verbs + 1] = { id = "add", label = txt("ContextMenu_AddCorpse", "Add Corpse"), primary = true,
-            enabled = not d.busy and d.corpses and #d.corpses > 0, jump = "hook:hang:1",
-            needs = ZeD.tr("UI_ZeD_Hook_NeedsCorpse"), hint = ZeD.tr("UI_ZeD_Hook_HintHang"), help = ZeD.tr("UI_ZeD_Hook_HelpAdd") }
+            enabled = not d.busy and d.firstHang ~= nil, jump = "hook:hang:" .. tostring(d.firstHang or 1),
+            needs = ZeD.tr("UI_ZeD_Hook_NeedsCorpse"),
+            needsLine = (anyNear and not d.firstHang) and txt("Tooltip_ButcherUI_CantAddThis", "Not a valid dead animal for the Butcher Hook.") or nil,
+            hint = ZeD.tr("UI_ZeD_Hook_HintHang"), help = ZeD.tr("UI_ZeD_Hook_HelpAdd") }
     end
     t.verbs = verbs
 end
@@ -308,6 +334,14 @@ function def.pill(t)
     if not d.animal then return ZeD.tr("UI_ZeD_Hook_PillEmpty"), T.textDim end
     if d.bleeding then return ZeD.tr("UI_ZeD_Hook_PillBleeding"), T.warning end
     return ZeD.tr("UI_ZeD_Hook_PillOnHook"), T.positive
+end
+
+--- The pad opens on a part it can gather, as the game's window starts on the parts; with none, on the close key,
+--- never on Remove corpse (QA HK4, Nov 26 2026).
+function def.openFocus(t)
+    local d = t.d
+    if not (d and d.animal) then return nil end
+    return d.firstPart or "oc:back"
 end
 
 --- The card goes: the hook stops reporting to it, the figure goes with it.
@@ -475,9 +509,14 @@ function def.body(card, x, y, w, t, player)
     local blood = br.blood or 0
     local hasBuckets = #d.buckets > 0
     local gatherW = txt("IGUI_ButcherHook_Gather", "Gather")
+    -- a part reads as the game's window reads it: Yes with Gather while it is there, No and no Gather when it is
+    -- not (the game keeps false for a part the breed never had and for one taken). False read "Taken" with a lit
+    -- Gather that walked, took the knife and failed (QA HK6, Nov 26 2026)
+    local yes, no = txt("IGUI_Yes", "Yes"), txt("IGUI_No", "No")
+    local hasLeather, hasHead, hasMeat = br.leather and true or false, br.head and true or false, br.meat and true or false
     py = py + partRow(card, px, py, pw, bare(txt("IGUI_ButcherHook_Leather", "Leather:")),
-        br.leather and txt("IGUI_Yes", "Yes") or ZeD.tr("UI_ZeD_Hook_Taken"), br.leather, gatherW, "hook:leather",
-        can and br.leather ~= nil, function(c, p) gather(p, t, "leather") end, ZeD.tr("UI_ZeD_Hook_HelpPart", bare(txt("IGUI_ButcherHook_Leather", "Leather:"))))
+        hasLeather and yes or no, hasLeather, gatherW, "hook:leather",
+        can and hasLeather, function(c, p) gather(p, t, "leather") end, ZeD.tr("UI_ZeD_Hook_HelpPart", bare(txt("IGUI_ButcherHook_Leather", "Leather:"))))
     -- blood: while vanilla bleeds it out you may still switch to a container
     local bloodOK = d.knife ~= nil and blood > 0 and (not d.busy or (d.bleeding and hasBuckets and not d.inUse and not currentAction(player)))
     local bloodBtn = hasBuckets and gatherW or txt("IGUI_ButcherHook_Bleed", "Bleed")
@@ -491,11 +530,11 @@ function def.body(card, x, y, w, t, player)
             end
         end, ZeD.tr("UI_ZeD_Hook_HelpPart", bare(txt("IGUI_ButcherHook_Blood", "Blood:"))))
     py = py + partRow(card, px, py, pw, bare(txt("IGUI_ButcherHook_Head", "Head:")),
-        br.head and txt("IGUI_Yes", "Yes") or ZeD.tr("UI_ZeD_Hook_Taken"), br.head, gatherW, "hook:head",
-        can and br.head == true, function(c, p) gather(p, t, "head") end, ZeD.tr("UI_ZeD_Hook_HelpPart", bare(txt("IGUI_ButcherHook_Head", "Head:"))))
+        hasHead and yes or no, hasHead, gatherW, "hook:head",
+        can and hasHead, function(c, p) gather(p, t, "head") end, ZeD.tr("UI_ZeD_Hook_HelpPart", bare(txt("IGUI_ButcherHook_Head", "Head:"))))
     py = py + partRow(card, px, py, pw, bare(txt("IGUI_ButcherHook_Meat", "Meat:")),
-        br.meat and txt("IGUI_Yes", "Yes") or ZeD.tr("UI_ZeD_Hook_Taken"), br.meat ~= nil, gatherW, "hook:meat",
-        can and br.meat ~= nil, function(c, p) gather(p, t, "meat") end, ZeD.tr("UI_ZeD_Hook_HelpPart", bare(txt("IGUI_ButcherHook_Meat", "Meat:"))))
+        hasMeat and yes or no, hasMeat, gatherW, "hook:meat",
+        can and hasMeat, function(c, p) gather(p, t, "meat") end, ZeD.tr("UI_ZeD_Hook_HelpPart", bare(txt("IGUI_ButcherHook_Meat", "Meat:"))))
     py = py + T.px(6)
     local perk = PerkFactory and PerkFactory.getPerk(Perks.Butchering)
     py = py + UI.pair(card, px, py, pw, ZeD.tr("UI_ZeD_Hook_Knife"), d.knife and d.knife:getDisplayName() or txt("IGUI_None", "None"))

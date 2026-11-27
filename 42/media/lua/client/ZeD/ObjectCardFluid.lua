@@ -298,8 +298,12 @@ function def.refresh(t, player)
     local ifc = t.into and t.into:getFluidContainer()
 
     -- busy with what the card queued (an empty, or a pour from its first step), and pouring
+    local hadPour = t.action ~= nil
     d.busy = chainBusy(t, player)
     d.pouring = d.busy and t.action ~= nil
+    -- the pour this card queued is over (Stop clears t.action first, so a stopped one is not): a card opened from
+    -- another (the trough's Add water and Transfer) goes back to it, which reads the new level (QA TG7, Nov 26 2026)
+    if hadPour and not d.busy then t._returnNow = true end
 
     -- rows: the pinned world container, then what you carry
     local rows = {}

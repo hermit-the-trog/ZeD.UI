@@ -263,6 +263,9 @@ local function navigate(win, view, zoneName, animalRef)
         AT._endZoneEdit(win)
     end
     if state.view == "zone" and view ~= "zone" and view ~= "animal" then AT._unlightZone(win) end
+    -- leaving the bird a hutch card's Info opened ends the way back to that card (QA HU5, Nov 26 2026)
+    local rc = win._animalsReturnCard
+    if rc and (view ~= "animal" or (animalRef ~= nil and animalRef ~= rc.animal)) then win._animalsReturnCard = nil end
     state.prevView = state.view
     state.view = view
     if zoneName ~= nil then state.zoneName = zoneName end
@@ -307,6 +310,7 @@ local function switchSubmode(win, submode)
     local state = getState(win)
     AT._endZoneEdit(win)    -- (a rename or remove question belongs to the zone page being left) (beast W30)
     AT._unlightZone(win)    -- (and so does the ground highlight) (beast W29)
+    win._animalsReturnCard = nil   -- (and the way back to a hutch card, QA HU5)
     state.submode = submode
     state.view = "overview"
     state.zoneName = nil
@@ -1977,8 +1981,10 @@ local function structInfo(kind, o, player)
         local cont = ocall(o, "getContainer")
         local wl = ocall(o, "getWater") or 0
         if cont and not cont:getItems():isEmpty() then
-            sub = ZeD.tr("UI_ZeD_Animals_TroughFeed", string.format("%.1f", ocall(o, "getCurrentFeedAmount") or 0))
-            badge, variant = getText("IGUI_ItemCat_Food"), "positive"
+            local feed = ocall(o, "getCurrentFeedAmount") or 0
+            sub = ZeD.tr("UI_ZeD_Animals_TroughFeed", string.format("%.1f", feed))
+            -- the Food tag follows the feed, as the trough card's does: an emptied bag is no food (QA TG2, Nov 26 2026)
+            if feed > 0 then badge, variant = getText("IGUI_ItemCat_Food"), "positive" end
         elseif wl > 0 then
             sub = ZeD.tr("UI_ZeD_Animals_TroughWater", string.format("%.1f", wl), string.format("%.1f", ocall(o, "getMaxWater") or 0))
             badge, variant = getText("IGUI_FeedingTroughUI_Water"), "info"
@@ -4067,7 +4073,7 @@ function ZeD.AnimalsTab.onClick(win, x, y)
         local z = win._animalsBreadcrumbZone
         if x >= z.x and x < z.x + z.w
            and y >= z.y and y < z.y + z.h then
-            navigateBack(win)
+            AT.goBack(win)   -- (a bird from a hutch card's Info: back to that card, QA HU5)
             return true
         end
     end
@@ -4279,7 +4285,42 @@ function AT.zoneHelp(win)
     end
     return WR.zoneHelp(pn)
 end
-AT.navigateBack     = navigateBack
+-- (QA HU5, Nov 26 2026) A bird the hutch card's Info opened goes back to that card: the page's Back (mouse and
+-- pad) and B anywhere on the page bring the card up again (ObjectCards.backTo, which reads it fresh). Without
+-- the card (gone, or the page left for another), Back steps back as before.
+function AT.setReturnCard(win, entry, animal)
+    if not win then return end
+    win._animalsReturnCard = (entry and animal) and { entry = entry, animal = animal } or nil
+end
+local function returnCard(win)
+    local r = win and win._animalsReturnCard
+    if not r then return nil end
+    local state = getState(win)
+    if state.view ~= "animal" or state.animalRef ~= r.animal then win._animalsReturnCard = nil; return nil end
+    return r
+end
+--- True when the card the open bird came from is up again.
+function AT.backToCard(win)
+    local r = returnCard(win)
+    if not r then return false end
+    win._animalsReturnCard = nil
+    local OC = ZeD.ObjectCards
+    return (OC and OC.backTo and OC.backTo(WPN(win), r.entry)) == true
+end
+function AT.goBack(win)
+    if not AT.backToCard(win) then navigateBack(win) end
+end
+--- The World window's pad stops for the page: while a card waits, B on any stop without its own B goes back to it.
+function AT.withReturn(win, elements)
+    if not returnCard(win) then return end
+    for _, el in ipairs(elements) do
+        if not el.onCancel then
+            el.onCancel = function(w) return AT.backToCard(w) end
+            el.promptB = ZeD.tr("UI_ZeD_Prompt_Back")
+        end
+    end
+end
+AT.navigateBack     = function(win) AT.goBack(win) end   -- (the pad's Back stop: the card first, QA HU5)
 -- The cards link back here (a bird's INFO), and the World window's gamepad
 -- builder opens and edits through these.
 AT.openStruct       = openStruct

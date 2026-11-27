@@ -117,13 +117,16 @@ local function moveItems(p, t, items, toTrough)
     end
 end
 
+-- The fluid card opens with this card as its way back: its close (back, B) and the end of its pour bring the
+-- trough card back to read the new level (QA TG7, Nov 26 2026).
 local function openFluid(p, t, fromItemFC)
     local tfc = wrapFC(t.obj:getFluidContainer())
     if not tfc then return end
+    local back = OC.current and OC.current(p) or nil
     if fromItemFC then
-        OC.open(p, "fluid", { container = wrapFC(fromItemFC), source = true, target = tfc })
+        OC.open(p, "fluid", { container = wrapFC(fromItemFC), source = true, target = tfc }, back)
     else
-        OC.open(p, "fluid", { container = tfc, into = true })
+        OC.open(p, "fluid", { container = tfc, into = true }, back)
     end
 end
 
@@ -145,6 +148,9 @@ function def.refresh(t, player)
     d.inside = group(items)
     d.hasFood = #items > 0
     d.feed = call(o, "getCurrentFeedAmount") or 0
+    -- the Food tag follows the feed, as the game's window reads it: an emptied bag left in the trough is still an
+    -- item but no food (QA TG2, Nov 26 2026); hasFood (any item) still keeps water out, the game's one-or-the-other
+    d.fed = d.feed > 0
     local fc = o:getFluidContainer()
     d.fc = fc
     d.water = call(o, "getWater") or 0
@@ -223,7 +229,7 @@ function def.pill(t)
     local T = ZeD.T
     local d = t.d
     if not d then return nil end
-    if d.hasFood then return ZeD.tr("UI_ZeD_Trough_PillFood"), T.positive end
+    if d.fed then return ZeD.tr("UI_ZeD_Trough_PillFood"), T.positive end
     if d.hasWater then
         if d.tainted then return txt("Tooltip_tainted", "Tainted"), T.danger end
         return ZeD.tr("Fluid_Name_Water"), T.textDim, d.waterColor
