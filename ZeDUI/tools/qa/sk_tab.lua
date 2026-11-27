@@ -6,7 +6,7 @@
 -- Each case single player can stage is checked in the running game against the game's own answer: the perks
 -- (PerkFactory, getPerkLevel, getXP, getPerkBoost, getMultiplier), the game's own sums for the bar
 -- (ISSkillProgressBar.getPreviousXpLvl and getXpForLvl), the game's own group sort (ISCharacterInfo), the skill books
--- (the script items, SkillBook, getAlreadyReadPages, getAlreadyReadBook, getLvlSkillTrained, getMaxLevelTrained, the
+-- (the script items, SkillBook, getAlreadyReadPages, getAlreadyReadBook, the script item's getLevelSkillTrained, getMaxLevelTrained, the
 -- Literature list's own known and MetaKnowledge rules), the game's own Info page functions run on a stand-in
 -- (ISCharacterScreen.loadBeardAndHairStyle, loadFavouriteWeapon, loadProfession, setDisplayedTraits), the weight as
 -- the game rounds it, getZombieKills, the clock's date, the sandbox's start date, the trait definitions, the game's
@@ -100,7 +100,7 @@
 -- his traits (the set as found), his profession (never changed: the QA hook qaProf put back to none), the skill books
 -- read (each book's pages read and the read-books list as found), his name, his look (hair color, hair and beard
 -- styles, body hair, the sex flag), his weight and its three trend flags, the zombie kill count and the fire count,
--- the favorite-weapon counts, his stats (an apple bitten), the pins (the list as found), the Skills tab's grid fold,
+-- the favorite-weapon counts, his stats (an apple bitten), what he wears, the pins (the list as found), the Skills tab's grid fold,
 -- training folds, Find text and scroll, the Info tab's photo, zoom, scroll and Hair and beard part, the QA hooks
 -- (qaStyle, qaLayout, qaTrend, qaProf), the sandbox's MetaKnowledge and XP multiplier, ZeD setup's Character info
 -- screen switch, the theme, the text size, the width cap (the half card), the input lock, the pointer, the draw
@@ -377,13 +377,19 @@ function H.setLvl(t, n)
     pcall(function() S.p:setPerkLevelDebug(t, n) end)
     pcall(function() S.p:getXp():setXPToLevel(t, n) end)
 end
+-- XP added as the game's own admin panel adds it (ISPlayerStatsUI: AddXP with every multiplier off). AddXPNoMultiplier
+-- still applies the skill's boost (a quarter at boost 0: the first run's XP drift and its S29 level up that never came)
+function H.addRaw(t, amt)
+    local ok = pcall(function() S.p:getXp():AddXP(t, amt, false, false, false, false) end)
+    if not ok then pcall(function() S.p:getXp():AddXPNoMultiplier(t, amt) end) end
+end
 -- the skill at level lvl and frac of the way to the next (by the game's own sums), XP added past any multiplier
 function H.atFrac(t, lvl, frac)
     H.setLvl(t, lvl)
     if lvl >= 10 or frac <= 0 then return end
     pcall(function()
         local need = ISSkillProgressBar.getXpForLvl(H.perkOf(t), lvl)
-        S.p:getXp():AddXPNoMultiplier(t, need * frac)
+        H.addRaw(t, need * frac)
     end)
 end
 -- the game's reading of a skill's place in its level (ISSkillProgressBar's own sums): lvl, xp, prev, need, inLvl, pct
@@ -437,7 +443,7 @@ function H.xpBack()
                     S.p:setPerkLevelDebug(r.perk, r.lvl)
                     xp:setXPToLevel(r.perk, r.lvl)
                     local now = xp:getXP(r.perk)
-                    if math.abs(r.xp - now) > 0.001 then xp:AddXPNoMultiplier(r.perk, r.xp - now) end
+                    if math.abs(r.xp - now) > 0.001 then H.addRaw(r.perk, r.xp - now) end
                 end)
                 local nx, nl = xp:getXP(r.perk), S.p:getPerkLevel(r.perk)
                 if math.abs(nx - r.xp) > 0.01 or nl ~= r.lvl then
@@ -482,7 +488,7 @@ function H.bookCatalog()
                 pcall(function() sk = it:getSkillTrained() end)
                 if sk and sk ~= "" and SkillBook[sk] then
                     local e = { ft = it:getFullName(), dn = tostring(it:getDisplayName()), skill = sk, lvl = 0, maxLvl = 0, pages = 0, item = it }
-                    pcall(function() e.lvl = it:getLvlSkillTrained() end)
+                    pcall(function() e.lvl = it:getLevelSkillTrained() end)
                     pcall(function() e.maxLvl = it:getMaxLevelTrained() end)
                     pcall(function() e.pages = it:getNumberOfPages() end)
                     pcall(function() e.hidden = (LITERATURE_HIDDEN ~= nil and LITERATURE_HIDDEN[e.ft]) and true or false end)
@@ -625,6 +631,45 @@ function H.lookSnap()
     f.killFire = (type(md.ZeD_Kills) == "table") and md.ZeD_Kills.fire or nil
     f.favs = {}
     for k, v in pairs(md) do if type(k) == "string" and string.sub(k, 1, 4) == "Fav:" then f.favs[k] = v end end
+    f.worn, f.wornList = {}, {}
+    for _, w in ipairs(H.wornNow()) do f.worn[w.it] = true; f.wornList[#f.wornList + 1] = w end
+end
+-- what he wears now: { it, loc }
+function H.wornNow()
+    local o = {}
+    pcall(function()
+        local wi = S.p:getWornItems()
+        for i = 0, wi:size() - 1 do local w = wi:get(i); o[#o + 1] = { it = w:getItem(), loc = w:getLocation() } end
+    end)
+    return o
+end
+-- worn as found: anything a case's action put on (a make-up) taken off and away, anything it took off (the hat a
+-- haircut's chain unequips) worn again
+function H.wornBack()
+    if not S.found.wornList then return 0 end
+    local n, now = 0, {}
+    for _, w in ipairs(H.wornNow()) do
+        now[w.it] = true
+        if not S.found.worn[w.it] then
+            pcall(function() S.p:removeWornItem(w.it) end)
+            pcall(function() local c = w.it:getContainer(); if c then c:Remove(w.it) end end)
+            n = n + 1
+        end
+    end
+    for _, w in ipairs(S.found.wornList) do
+        if not now[w.it] then
+            pcall(function() if S.p:getInventory():containsRecursive(w.it) then S.p:setWornItem(w.loc, w.it) end end)
+            n = n + 1
+        end
+    end
+    if n > 0 then pcall(function() triggerEvent("OnClothingUpdated", S.p) end) end
+    return n
+end
+function H.wornAsFound()
+    local now, bad = {}, {}
+    for _, w in ipairs(H.wornNow()) do now[w.it] = true; if not S.found.worn[w.it] then bad[#bad + 1] = "+" .. H.ft(w.it) end end
+    for _, w in ipairs(S.found.wornList or {}) do if not now[w.it] then bad[#bad + 1] = "-" .. H.ft(w.it) end end
+    return #bad == 0, H.list(bad, 6)
 end
 function H.lookBack()
     local f = S.found
@@ -1290,6 +1335,7 @@ function H.restore()
     H.xpBack()
     H.readBack()
     H.lookBack()
+    H.wornBack()
     H.traitsBack()
     H.pinsBack()
     H.statsBack()
@@ -1434,8 +1480,17 @@ function C.s2()
         if not H.keyOf("TOGGLE_SKILL_PANEL") then T.off = true; Q.skip(T.L, "the game has no Skills key bound here"); return end
         RT.pairOpen()
     end)
-    H.wait(4000, function() return T.off or RT.isOpen() end, function() if not T.off then RT.charTab("loot") end end)
-    H.wait(2000, function() local w = RT.cw(); return T.off or (w ~= nil and w._activeTab == "loot") end, function(ok)
+    H.wait(4000, function() return T.off or RT.isOpen() end, function() end)
+    -- (the first run: one press the frame the window opened did not land; the strip is pressed until it does, by the
+    -- Loot tab or by the open tab folded, as S4 reaches Loot)
+    H.wait(3000, function()
+        local w = RT.cw()
+        if T.off then return true end
+        if w ~= nil and (w._activeTab == "loot" or not H.on(w._activeTab)) then return true end
+        T.pr = (T.pr or 0) + 1
+        if T.pr == 2 or T.pr == 30 or T.pr == 60 then RT.charTab("loot") end
+        return false
+    end, function(ok)
         if T.off then return end
         if not ok then T.off = true; Q.skip(T.L, "the window would not go to Loot: " .. H.tabText()); return end
         H.gameKey("TOGGLE_SKILL_PANEL")
@@ -1712,7 +1767,19 @@ function C.s8()
             local ok, cc = pcall(S.ST._skillCard, RT.cw(), T.sk)
             if ok and cc then line = cc.lines[1].text; H.note(T.L .. ": no hover card was asked for under the pointer; the tab's card read directly") end
         end
-        Q.check(line ~= nil and line == ZeD.tr("UI_ZeD_Skills_CardMax", 10), T.L .. ": the row's card reads Level 10 (getPerkLevel " .. H.lvl(Perks.Woodwork) .. ")", tostring(line))
+        -- (the card shows only while an extra has lines for the row (SkillsTab.lua:713); RecipeIndex lists the levels
+        -- still to come (RecipeIndex.lua:340), so at 10 with no add-on there is no card at all: the first run's nil)
+        local extraLines = nil
+        for _, e in ipairs(S.ST.extras or {}) do
+            if e.cardLines or e.card then
+                pcall(function() local ls = (e.cardLines or e.card)(S.p, T.sk.perk, T.sk); if ls and (ls.lines or #ls > 0) then extraLines = true end end)
+            end
+        end
+        if line == nil and not extraLines then
+            Q.check(S.skCard == nil, T.L .. ": at 10 no extra has a line (no recipe level to come), so the row asks for no card", "card asked " .. tostring(S.skCard and S.skCard.key))
+        else
+            Q.check(line ~= nil and line == ZeD.tr("UI_ZeD_Skills_CardMax", 10), T.L .. ": the row's card reads Level 10 (getPerkLevel " .. H.lvl(Perks.Woodwork) .. ")", tostring(line))
+        end
         H.hoverOff()
         H.lockBack()
     end)
@@ -1723,7 +1790,7 @@ function C.s9()
     H.step(2, function()
         H.caseStart(T)
         H.setLvl(Perks.Strength, 5)
-        pcall(function() S.p:getXp():AddXPNoMultiplier(Perks.Strength, -40) end)
+        pcall(function() H.addRaw(Perks.Strength, -40) end)
     end)
     H.toTab(T, "skills", T.L)
     H.skWait(T, T.L)
@@ -2218,10 +2285,13 @@ function C.s20()
         for _, z in ipairs(H.trZones()) do if not z.book and (minX == nil or z.x < minX) then minX = z.x end end
         for _, z in ipairs(H.trZones()) do if not z.book and z.x == minX and (pick == nil or z.y > pick.y) then pick = z end end
         if not pick then T.off = true; Q.skip(T.L, "no training rows drawn"); return end
+        -- (the book count read before the cache drops: the first run read it after and looked for book 0)
+        local g = H.trGroup(pick.label)
+        local nb = #((g and g.items) or {})
+        if nb == 0 then nb = #H.booksOf(pick.label) end
+        T.endId = "training:" .. pick.id .. "#" .. nb
         RT.cw()._trainingExpanded[pick.id] = true
         H.skFresh()
-        local g = H.trGroup(pick.label)
-        T.endId = "training:" .. pick.id .. "#" .. #((g and g.items) or {})
     end)
     Q.waitMs(300)
     H.step(2, function()
@@ -2541,7 +2611,16 @@ function C.s27()
         if not (gz and z) then Q.skip(T.L .. ": a right-click on the heading over a row", "no scroll put a skill row under the heading (the tab does not scroll here)"); return end
         S.menuStub = true
         T.mc0 = #S.menuCalls
-        H.rclickAt(gz.x + 6, math.max(gz.y, z.y) + 2)
+        -- (a point inside both the heading and the row: the first run pressed 6 px into the heading, left of the row's
+        -- own left edge at 4K's padding, so 4K missed the row and passed while 1280x800 hit it)
+        local px = math.max(gz.x + 6, z.x + 3)
+        local py = math.max(gz.y, z.y) + 2
+        if px >= gz.x + gz.w - 1 or py >= math.min(gz.y + gz.h, z.y + z.h) then
+            S.menuStub = nil
+            Q.skip(T.L .. ": a right-click on the heading over a row", "no point lies in both the heading and the row (" .. math.floor(px) .. "," .. math.floor(py) .. ")")
+            return
+        end
+        H.rclickAt(px, py)
         S.menuStub = nil
         Q.check(#S.menuCalls == T.mc0, T.L .. ": a right-click on the pinned heading does not open the menu of the row scrolled beneath it [bug 7]",
             (#S.menuCalls - T.mc0) .. " menus asked for (" .. tostring(S.menuCalls[#S.menuCalls] and S.menuCalls[#S.menuCalls].name) .. ")")
@@ -2583,7 +2662,7 @@ function C.s28()
         if T.off then return end
         local sk = H.skillOf(H.pname(Perks.Woodwork))
         T.p0 = sk and sk.xpProgress
-        pcall(function() S.p:getXp():AddXPNoMultiplier(Perks.Woodwork, ISSkillProgressBar.getXpForLvl(H.perkOf(Perks.Woodwork), 3) * 0.3) end)
+        pcall(function() H.addRaw(Perks.Woodwork, ISSkillProgressBar.getXpForLvl(H.perkOf(Perks.Woodwork), 3) * 0.3) end)
         T.t0 = getTimestampMs()
     end)
     H.wait(1500, function()
@@ -2644,7 +2723,7 @@ function C.s29()
     H.step(3, function()
         if T.off then return end
         T.b0 = H.badgeIn(H.rowZ(H.pname(Perks.Woodwork)))
-        pcall(function() S.p:getXp():AddXPNoMultiplier(Perks.Woodwork, ISSkillProgressBar.getXpForLvl(H.perkOf(Perks.Woodwork), 3) * 0.3) end)
+        pcall(function() H.addRaw(Perks.Woodwork, ISSkillProgressBar.getXpForLvl(H.perkOf(Perks.Woodwork), 3) * 0.3) end)
     end)
     H.wait(1500, function() return T.off or H.badgeIn(H.rowZ(H.pname(Perks.Woodwork))) == H.lvl(Perks.Woodwork) and H.lvl(Perks.Woodwork) == 4 end, function(ok)
         if T.off then return end
@@ -2678,15 +2757,23 @@ function C.s30()
         local PL = ZeD.PausedLook
         local w = RT.cw()
         local g = PL and PL._glass
-        local z = H.rowZ(H.pname(Perks.Woodwork))
-        local tz = H.trZones()[1]
+        -- (only places a press can reach: a row and a training row in the view; the first run took Carpentry's row and
+        -- the first training row wherever they lay, out of the view too, and read the glass as short)
+        local z, tz = nil, nil
+        for _, rz in ipairs(w._skillRowZones or {}) do if z == nil and H.inView(rz) then z = rz end end
+        for _, t in ipairs(H.trZones()) do if tz == nil and not t.book and H.inView(t) then tz = t end end
         local gz = w._skillsGridZone
         local dp = H.dp()
-        local over = z and tz and gz and C.glassOver(g, dp, H.mid(z)) and C.glassOver(g, dp, H.mid(tz)) and C.glassOver(g, dp, gz.x + 6, gz.y + 4)
+        local o1 = z ~= nil and C.glassOver(g, dp, H.mid(z))
+        local o2 = (tz == nil) or C.glassOver(g, dp, H.mid(tz))
+        local o3 = gz ~= nil and C.glassOver(g, dp, gz.x + 6, gz.y + 4)
+        if tz == nil then H.note(T.L .. ": no training row in the view at the top of the scroll: the glass tested on a row and the heading") end
+        local over = o1 and o2 and o3
+        T.overText = "row " .. tostring(o1) .. ", training row " .. tostring(o2) .. ", heading " .. tostring(o3)
         local ate = false
         if g then pcall(function() ate = g:onMouseDown(10, 10) == true and g:onRightMouseDown(10, 10) == true end) end
         Q.check(PL ~= nil and PL.on() and g ~= nil and g:isVisible() and over and ate, T.L .. ": the glass lies over a row, a training row and the heading and eats the press and the right press (no pin, no fold)",
-            "paused " .. tostring(PL and PL.on()) .. ", glass " .. tostring(g ~= nil and g:isVisible()) .. ", over all three " .. tostring(over) .. ", eats " .. tostring(ate))
+            "paused " .. tostring(PL and PL.on()) .. ", glass " .. tostring(g ~= nil and g:isVisible()) .. ", over: " .. T.overText .. ", eats " .. tostring(ate))
         T.id = "skill:" .. tostring(H.pname(Perks.Woodwork))
         T.go = H.padOn() and H.focusEl(T.id)
         T.mc0 = #S.menuCalls
@@ -3497,7 +3584,10 @@ function C.i18()
         local cam = RT.cw()._studioBtn
         if not cam then T.off = true; Q.skip(T.L, "no camera button on the photo"); return end
         T.sp0 = getGameSpeed()
-        H.zcall(function() if cam.forceClick then cam:forceClick() elseif cam.onclick then cam.onclick(cam.target, cam) end end)
+        -- (the camera is a ZeD panel with its own press and release, ZeD_Studio.lua ST.newCamButton: no button's
+        -- forceClick, which the first run looked for)
+        H.zcall(function() cam:onMouseDown(2, 2) end)
+        H.zcall(function() cam:onMouseUp(2, 2) end)
     end)
     H.wait(2000, function() return T.off or ZeD.Studio.isOpen() end, function(ok)
         if T.off then return end
@@ -3611,14 +3701,19 @@ function C.i21()
     H.wait(3000, function() return T.off or C.hbRow(function(r) return r.part == "hair" end) ~= nil end, function(ok)
         if T.off then return end
         if not ok then T.off = true; Q.skip(T.L, "with scissors no hair row can be done on this character (" .. tostring(H.hv() and H.hv():getHairModel()) .. ")"); return end
-        T.row = C.hbRow(function(r) return r.part == "hair" end)
+        -- (a row that needs the scissors first: the first run took the tied style's Untie row)
+        T.row = C.hbRow(function(r) return r.part == "hair" and r.req ~= nil and string.find(tostring(r.req), "s", 1, true) ~= nil end)
+            or C.hbRow(function(r) return r.part == "hair" end)
         T.key = T.row.key
+        pcall(function() RT.cw()._identityScroll:setScrollPos(0) end)
     end)
-    -- the row into view (the photo's page scrolled by the wheel), then a click on it and on Cut
-    H.wait(4000, function()
+    -- the row into view (the page scrolled by the wheel): a row has a click zone only while it shows
+    -- (ZeD_HairBeard.lua:1646-1649), and the rows lie under the card, so the wheel goes down until it does
+    H.wait(6000, function()
         if T.off then return true end
         local z, v = C.hbZone(T.key), H.idView()
-        if not (z and v) then return false end
+        if not v then return false end
+        if not z then H.wheel(1); return false end
         local my = z.y + math.floor(z.h / 2)
         if my < v.y + 2 then H.wheel(-1); return false end
         if my > v.y + v.h - 2 then H.wheel(1); return false end
@@ -3626,16 +3721,23 @@ function C.i21()
     end, function(ok)
         if T.off then return end
         local z = C.hbZone(T.key)
-        if not z then T.off = true; Q.check(false, T.L .. ": the hair row is drawn for its click", T.key); return end
+        if not z then T.off = true; Q.check(false, T.L .. ": the hair row is drawn for its click", T.key .. ", rows with zones " .. #((C.hb() and C.hb().zones) or {})); return end
         local x, y = H.mid(z)
         H.clickAt(x, y)
         Q.check(C.hb().sel == T.key, T.L .. " (mouse): a click on a row picks it", "picked " .. tostring(C.hb().sel) .. ", wanted " .. tostring(T.key))
-        local b = C.hb().btn
-        if b then local bx, by = H.mid(b); H.clickAt(bx, by) end
     end)
+    -- the button (Cut) into view and pressed
+    H.wait(4000, function()
+        if T.off then return true end
+        local b = C.hb() and C.hb().btn
+        if not b then H.wheel(-1); return false end
+        local bx, by = H.mid(b)
+        H.clickAt(bx, by)
+        return true
+    end, function(ok) if not T.off and not ok then H.note(T.L .. ": the Cut button was not drawn in the view") end end)
     H.wait(2000, function() return T.off or H.qcount("ISCutHair") + H.qcount("ISTrimBeard") > 0 end, function(ok)
         if T.off then return end
-        Q.check(ok, T.L .. " (mouse): Cut queues the game's own action for the row (" .. tostring(T.row.verb) .. ")", H.qkinds())
+        Q.check(ok, T.L .. " (mouse): Cut queues the game's own action for the row (" .. tostring(T.row.verb) .. " " .. tostring(T.row.style) .. ")", H.qkinds())
         local b = C.hb().btn
         if b and b.stop then local bx, by = H.mid(b); H.clickAt(bx, by) else H.qstop(); T.noStop = true end
     end)
@@ -3700,11 +3802,23 @@ function C.i23()
             Q.skip(T.L .. ": Apply", "no make-up row can be done here (" .. tostring(why) .. ")")
             return
         end
+        -- (the game's ISApplyMakeUp lasts one tick (its getDuration is 1), so it has run and left the queue before
+        -- the next drawn frame at a high frame rate: the first run's 4K "none", while 1280x800 caught it. What the
+        -- row hands the game's queue is read at the hand-off, and kept from running so no make-up is put on him.)
+        T.added = {}
+        local orig = ISTimedActionQueue.add
+        ISTimedActionQueue.add = function(a, ...)
+            T.added[#T.added + 1] = tostring(a and a.Type)
+            return nil
+        end
         H.zcall(function() ZeD.HairBeard.run(RT.cw(), T.row.key) end)
+        ISTimedActionQueue.add = orig
     end)
-    H.wait(2000, function() return T.off or H.qcount("ISApplyMakeUp") > 0 end, function(ok)
+    H.step(2, function()
         if T.off then return end
-        Q.check(ok, T.L .. ": Apply on a row queues the game's ISApplyMakeUp", H.qkinds())
+        local n = 0
+        for _, ty in ipairs(T.added) do if ty == "ISApplyMakeUp" then n = n + 1 end end
+        Q.check(n > 0, T.L .. ": Apply on a row hands the game's queue an ISApplyMakeUp", "handed " .. H.list(T.added))
         H.qstop()
         H.note(T.L .. ": Apply was pressed through HairBeard.run (the button's own call); Remove is instant and not staged")
     end)
@@ -3724,7 +3838,14 @@ function C.i24()
     Q.waitMs(400)
     H.step(2, function()
         if T.off then return end
+        -- (the walk's end: a trait on the bottom row. The traits lie in two columns on the wide card and Down keeps to
+        -- its column, so the list's last trait (the second column's) is not where Down from the photo ends: the
+        -- first run stopped on the first column's last, Slow Healer)
         local zs = RT.cw()._idTraitZones or {}
+        local maxY = nil
+        for _, z in ipairs(zs) do if maxY == nil or z.y > maxY then maxY = z.y end end
+        T.bottom = {}
+        for _, z in ipairs(zs) do if math.abs(z.y - maxY) < 2 then T.bottom[z.id] = true end end
         T.endId = zs[#zs] and zs[#zs].id
         T.go = H.padOn() and H.focusEl("identity:photo")
         if not (T.go and T.endId) then T.off = true; Q.check(false, T.L .. ": the focus lands on the photo and the traits have stops", "focus " .. tostring(H.focusedId()) .. ", last trait " .. tostring(T.endId)) end
@@ -3740,7 +3861,7 @@ function C.i24()
             T.kinds[k] = true
             if e and v and (e.y < v.y - 1 or e.y + e.h > v.y + v.h + 1) then T.out[#T.out + 1] = tostring(id) end
         end
-        if id == T.endId then T.reached = true; return true end
+        if id and T.bottom and T.bottom[id] then T.reached = true; return true end
         if id == T.last then T.same = (T.same or 0) + 1 else T.same = 0 end
         T.last = id
         return (T.same or 0) >= 3
@@ -3752,7 +3873,7 @@ function C.i24()
         table.sort(ks)
         local hb = false
         for k in pairs(T.kinds) do if string.sub(k, 1, 3) == "hb:" then hb = true end end
-        Q.check(T.reached == true and hb, T.L .. ": Down from the photo passes Hair and beard's stops and reaches the last trait", "kinds " .. H.list(ks) .. ", stopped on " .. tostring(H.focusedId()))
+        Q.check(T.reached == true and hb, T.L .. ": Down from the photo passes Hair and beard's stops and reaches a trait on the bottom row", "kinds " .. H.list(ks) .. ", stopped on " .. tostring(H.focusedId()))
         Q.check(#T.out == 0, T.L .. ": each stop the pad lands on is scrolled into view", H.list(T.out, 6))
     end)
     H.caseEnd(T.L)
@@ -3884,7 +4005,8 @@ function C.i32()
     Q.waitMs(800)
     H.step(2, function()
         if T.off then return end
-        local r = C.hbRow(function(x) return x.part == "hair" end)
+        local r = C.hbRow(function(x) return x.part == "hair" and x.req ~= nil and string.find(tostring(x.req), "s", 1, true) ~= nil end)
+            or C.hbRow(function(x) return x.part == "hair" end)
         if not r then T.off = true; Q.skip(T.L, "no hair row can be done here"); return end
         H.zcall(function() ZeD.HairBeard.run(RT.cw(), r.key) end)
     end)
@@ -3949,6 +4071,7 @@ function H.putBack()
     S.xpGrew, S.xpLeft = H.xpBack()
     S.readFixed = H.readBack()
     H.lookBack()
+    H.wornBack()
     H.traitsBack()
     H.pinsBack()
     H.statsBack()
@@ -4047,6 +4170,8 @@ function C.checkBack()
     Q.check(rok, "put back: the skill books read as found (each book's pages, the read-books list)", rbad .. "; " .. tostring(S.readFixed) .. " set back")
     local tok, tbad = H.traitsAsFound()
     Q.check(tok, "put back: his traits as found", tbad)
+    local wok, wbad = H.wornAsFound()
+    Q.check(wok, "put back: what he wears as found (no make-up put on, the hat a haircut took off worn again)", wbad)
     local lok, lbad = H.lookAsFound()
     Q.check(lok, "put back: his name, look, weight, kills and favorite-weapon counts as found", lbad)
     local prof = "?"

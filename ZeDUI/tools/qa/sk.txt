@@ -7,7 +7,7 @@
 #               S5 the groups and skills against the game's order (other languages SKIP)
 #               S6 the level badge at 0, 1, 5, 9, 10 on every skill (as drawn)
 #               S7 Carpentry 3 at 0, 45, 99%: progress, lit segments, the bar's help (mouse hover, pad rest); the sandbox XP multiplier 0.5 and 5
-#               S8 Carpentry 10: full, yellow, its help and card
+#               S8 Carpentry 10: full, yellow, its help; its card reads Level 10, or no card when no extra has a line (no recipe level to come)
 #               S9 Strength 5 under its floor: never under 0
 #               S10 boost tags 0 to 3; S11 a book multiplier (NOTE, a gap)
 #               S12 the help lines (row, bar, heading) and the hover card's XP (mouse; pad)
@@ -32,12 +32,12 @@
 #               I15 traits against the game's displayed traits, then none and its line (bugs 5, 9); I16 a trait's card (mouse; pad)
 #               I17 the photo: click, drag, the wheel on the bust and the full body (bug 8), A; I18 the studio (camera; A)
 #               I19 layout wide, narrow, Simple, the half card, picture sk_info_<WxH>; I20 the narrow license at 220
-#               I21 Hair and beard: a row and Cut, Stop, no scissors, a trim by the pad; I23 make-up Apply; I22 SKIP
-#               I24 the pad's walk from the photo to the last trait; I25 the card follows within 30 frames
+#               I21 Hair and beard: a row and Cut, Stop, no scissors, a trim by the pad; I23 make-up Apply (the ISApplyMakeUp handed to the game's queue, held from running); I22 SKIP
+#               I24 the pad's walk from the photo to a trait on the bottom row; I25 the card follows within 30 frames
 #               I26 paused (Info); I27 the Info key with the screen given back to the game; I28 words (other languages SKIP); I29 themes and Large text; I30 NOTE; I31 SKIP; I32 B during a haircut
 #               C15 the Info tab's gathers a second (bug 15); bug 16 and the FEATURE_MAP drift as NOTEs
 # Pictures sk_skills_<WxH> and sk_info_<WxH>.
-# It puts back his real skill levels and XP (drift a NOTE), the perk boosts and the Carpentry book multiplier, his traits, his profession (never changed; the QA hook qaProf back to none), the skill books read (pages and the read-books list), his name, hair color, hair and beard styles and body hair, his weight and its trend flags, the zombie kill count and the fire count, the favorite-weapon counts, his stats, the pins, the Skills tab's grid fold, training folds, Find text and scroll, the Info tab's photo, zoom, scroll and Hair and beard part, the QA hooks (qaStyle, qaLayout, qaTrend, qaProf), the sandbox's MetaKnowledge, XP multiplier and start date, ZeD setup's Character info screen switch, the theme, the text size, the width cap, the input lock, the pointer, the draw watchers, every thing given (books, bags, scissors, razor, lipstick, mirror, hammer, apple) and the crate, his own set-aside things, the queue, the instant-action cheat, the clock, game speed 1, the windows and both tabs as found, the layout, where he stood, god mode and invincible as found.
+# It puts back his real skill levels and XP (drift a NOTE), the perk boosts and the Carpentry book multiplier, his traits, his profession (never changed; the QA hook qaProf back to none), the skill books read (pages and the read-books list), his name, hair color, hair and beard styles and body hair, his weight and its trend flags, the zombie kill count and the fire count, the favorite-weapon counts, his stats, what he wears (a make-up put on taken off, a hat a haircut took off worn again), the pins, the Skills tab's grid fold, training folds, Find text and scroll, the Info tab's photo, zoom, scroll and Hair and beard part, the QA hooks (qaStyle, qaLayout, qaTrend, qaProf), the sandbox's MetaKnowledge, XP multiplier and start date, ZeD setup's Character info screen switch, the theme, the text size, the width cap, the input lock, the pointer, the draw watchers, every thing given (books, bags, scissors, razor, lipstick, mirror, hammer, apple) and the crate, his own set-aside things, the queue, the instant-action cheat, the clock, game speed 1, the windows and both tabs as found, the layout, where he stood, god mode and invincible as found.
 # Run both sizes:
 #   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/sk.txt -Mode fullscreen4k -Report sk_4k
 #   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/sk.txt -Mode windowed -Width 1280 -Height 800 -Report sk_deck
