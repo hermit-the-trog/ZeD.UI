@@ -170,6 +170,16 @@ UIManager = nil
 d = gather()
 check("no clock at all: not told", d.timeSurv ~= "3 days, 4 hours", tostring(d.timeSurv))
 UIManager = saveUI
+-- (QA I10 second pass: the watch parks the game's clock, so the clock's own flag reads false in the gather; the
+-- tab asks ZeD.Watch.dateVisible, read before the parking)
+dateVisible = false
+ZeD.Watch = { dateVisible = function() return true end }
+d = gather()
+check("the watch says the date shows (the parked clock says no): the time survived", d.timeSurv == "3 days, 4 hours" and not d.survHidden, tostring(d.timeSurv))
+ZeD.Watch.dateVisible = function() return false end
+d = gather()
+check("the watch says the date is hidden: not told", d.survHidden == true, tostring(d.timeSurv))
+ZeD.Watch = nil
 dateVisible = true
 check("Simple drops the row while hidden",
     itSrc:find('if not (data.survHidden and TALL_LABELS[i][2] == "IGUI_char_Survived_For") then', 1, true) ~= nil)
