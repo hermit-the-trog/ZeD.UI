@@ -387,12 +387,27 @@ do
     a = pour()
     check("FA8 the jug in hand, nothing picked: the hand item, as the game's menu", a and a.args[2] == jug, a and a.args[2] and a.args[2].getName())
     player.getPrimaryHandItem = hand
+    -- (QA's probe, Nov 27: the card swapped the plot's target for a fresh one between Use and Water, and the pick on
+    -- the old one was lost. The pick is the player's now: a fresh target pours from it)
+    local WP = def._waterPick
+    check("FA8 the pick is kept per player (def._waterPick)", WP ~= nil)
+    if WP then
+        WP[0] = bottle
+        local t2 = { obj = t.obj, sq = t.sq }
+        def.refresh(t2, player)
+        queued = {}
+        verb(t2, "water").run(player, t2)
+        local a2 = nil
+        for _, q in ipairs(queued) do if q.kind == "water" then a2 = q end end
+        check("FA8 a fresh target after the pick: Water still pours the bottle", a2 and a2.args[2] == bottle, a2 and a2.args[2] and a2.args[2].getName())
+        WP[0] = nil
+    end
     t.waterPick = bottle
     inv.items = { Jug = jug }
     a = pour()
     check("FA8 the picked bottle gone: back to the biggest", a and a.args[2] == jug, a and a.args[2] and a.args[2].getName())
     check("FA8 the card lists each source with a Use row (farm:water:i) that sets the pick",
-        farmSrc:find('fid = "farm:water:" .. i', 1, true) ~= nil and farmSrc:find("run = function(c, p) t.waterPick = item end", 1, true) ~= nil)
+        farmSrc:find('fid = "farm:water:" .. i', 1, true) ~= nil and farmSrc:find("WATER_PICK[pnOf(p or player)] = item", 1, true) ~= nil)
     local miss = {}
     for _, l in ipairs(langs) do
         local s = readFile(ROOT .. "42/media/lua/shared/Translate/" .. l .. "/UI.json")
