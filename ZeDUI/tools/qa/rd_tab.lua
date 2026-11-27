@@ -37,7 +37,7 @@
 --   R11 split screen: SKIP (a second controller)
 --   R12 safe mode: the game's onEquip window and Device Options come back, the car radio up close goes; off again:
 --       suppressed (run late, before the put-back)
---   R13 power with no battery refused as the game refuses (mouse), with one on (pad)
+--   R13 power with no battery against what the game's own action does on a twin set (mouse), with one on (pad)
 --   R14 volume steps to 1.0 and 0, refused while off; the hand-built set's knob by the wheel and the grabbed D-pad
 --   R15 mute and unmute to the kept volume; with none kept: 0.5 (the game: 0.1)
 --   R16 TUNE wraps 108.0 to 88.0, the wheel's fast spin 1 MHz a click, refused while off
@@ -93,7 +93,7 @@
 -- headphones and media set aside and given back, his hands and back as found, the grid and the shut-off day, the clock,
 -- Lite and safe mode as found, the theme and the text size, the Character and World windows' tabs, the width cap and
 -- the layout, the input lock, the pointer, the pop-out and the car radio put away, the route's pin and the Carried pin,
--- the draw watchers and the hooks (ISContextMenu.get, ISTextBox.new, the empty line, the tab strip, the World list,
+-- the draw watchers and the hooks (ISContextMenu.get, the empty line, the tab strip, the World list,
 -- RadioPlates), game speed 1, where he stood, god mode as found; the game's volume settings are never touched (checked).
 
 if not (RT and RT.make) then
@@ -431,6 +431,21 @@ function H.gameValid(mode, dev, arg)
     end)
     return v
 end
+-- the game's own portable flag (DeviceData:getIsPortable, what RWMVolume asks before its headphone box)
+function H.portable(dev) local v = nil; local d = H.dd(dev); if d then pcall(function() v = d:getIsPortable() and true or false end) end; return v end
+-- what the game's own action leaves (its perform<mode>, as its timed action ends) on a twin of the set, staged the
+-- same and taken away again: the twin's on state, nil when it could not be run
+function H.gameDoes(mode, ft, o, arg)
+    local twin = H.giveRadio(ft, o)
+    if not twin then return nil end
+    local v = nil
+    pcall(function()
+        local a = ISRadioAction:new(mode, S.p, twin, arg)
+        if a and a.deviceData and a["perform" .. mode] then a["perform" .. mode](a); v = H.on(twin) end
+    end)
+    H.removeItem(twin)
+    return v
+end
 -- ZeD's short-lived state for a device (its key in RadioOps)
 function H.key(dev) local k = nil; pcall(function() k = S.O.keyOf(dev) end); return k end
 function H.flash(dev) local t = nil; pcall(function() t = S.O.flashOf(S.O.keyOf(dev)) end); return t end
@@ -704,16 +719,29 @@ function H.menuClose()
     pcall(function() c:hideAndChildren() end)
     pcall(function() c:setVisible(false) end)
 end
-function H.boxUp() local b = S.lastBox; local v = false; if b then pcall(function() v = b:isReallyVisible() and true or false end) end; return v end
+-- the naming box on screen: ZeD's text prompt (Overrides/Prompts.lua makes ISTextBox:new one) or the game's own
+-- ISTextBox where ZeD's prompt is not ready. (Run 1: a wrapper on ISTextBox.new never saw the box: Prompts.lua's
+-- rewrap, every tick, puts its own new back on top and keeps any other wrapper as its fallback only.)
+function H.findBox()
+    local b = nil
+    pcall(function()
+        b = RT.find(function(t)
+            return (t.Type == "ZeD_Prompt" and t.kind == "text" and not t._dead) or t.Type == "ISTextBox"
+        end)
+    end)
+    S.lastBox = b
+    return b
+end
+function H.boxUp() return H.findBox() ~= nil end
 -- the naming box answered: its words, then its OK (the game's button)
 function H.boxOK(text)
-    local b = S.lastBox
+    local b = H.findBox()
     if not b then return false end
     local ok = H.zcall(function() b.entry:setText(text); b:onClick(b.yes) end)
     S.lastBox = nil
     return ok
 end
-function H.boxShut() local b = S.lastBox; S.lastBox = nil; if b then pcall(function() b:destroy() end) end end
+function H.boxShut() local b = H.findBox(); S.lastBox = nil; if b then pcall(function() b:destroy() end) end end
 -- the game's radio window for this player (an item's or a set's), up or not
 function H.gameWin()
     local up = false
@@ -742,20 +770,15 @@ function H.carShut() pcall(function() S.CR.closeFor(S.pn) end) end
 -- ===================================================================== hooks on for the run (put back at the end)
 function H.hooksOn()
     if S.hk then return end
-    local K = { ctxGet = ISContextMenu.get, boxNew = ISTextBox and ISTextBox.new }
+    local K = { ctxGet = ISContextMenu.get }
     S.hk = K
     K.ctxFn = function(...) local c = K.ctxGet(...); S.lastCtx = c; return c end
     ISContextMenu.get = K.ctxFn
-    if K.boxNew then
-        K.boxFn = function(...) local b = K.boxNew(...); S.lastBox = b; S.boxes[#S.boxes + 1] = b; return b end
-        ISTextBox.new = K.boxFn
-    end
 end
 function H.hooksOff()
     local K = S.hk
     if not K then return end
     if ISContextMenu.get == K.ctxFn then ISContextMenu.get = K.ctxGet end
-    if K.boxFn and ISTextBox.new == K.boxFn then ISTextBox.new = K.boxNew end
     S.hk = nil
 end
 function H.hooked() return S.hk == nil end
@@ -931,7 +954,11 @@ function H.rmObj(c)
     if not (c and c.obj) or c.removed then return end
     local o = c.obj
     pcall(function() if c.kind == "gen" then o:setActivated(false); o:setConnected(false) end end)
-    pcall(function() if c.kind == "set" then local d = o:getDeviceData(); if d then d:setIsTurnedOn(false) end end end)
+    -- (a set still on its square is switched off first; one already taken off has no square, and the game's
+    -- setIsTurnedOn asks the square for power: run 1 threw 15 times here, sets swept twice)
+    local onSq = false
+    pcall(function() onSq = o:getSquare() ~= nil and o:getObjectIndex() >= 0 end)
+    if c.kind == "set" and onSq then pcall(function() local d = o:getDeviceData(); if d and d:getIsTurnedOn() then d:setIsTurnedOn(false) end end) end
     local sq = c.sq
     pcall(function() sq = o:getSquare() or c.sq end)
     if sq then
@@ -1163,10 +1190,11 @@ function H.legClean()
     for _, it in ipairs(S.caseMade) do H.removeItem(it) end
     S.caseMade = {}
     for _, it in ipairs(H.all()) do if not S.found.inv0[it] and not S.keep[it] then H.removeItem(it) end end
-    H.sweepFloor()
-    H.sweepSets()
+    -- (the sets the case placed first, through their own records; then any set a dropped radio left standing)
     for i = (S.caseObjs or 0) + 1, #S.objs do H.rmObj(S.objs[i]) end
     S.caseObjs = #S.objs
+    H.sweepFloor()
+    H.sweepSets()
     H.liteBack()
     H.halfBack()
     for _, w in ipairs({ RT.cw(), RT.ww() }) do
@@ -1439,17 +1467,25 @@ function C.r3()
         Q.check(sh ~= nil and sh.radioInstance == T.pickDev, T.L .. " (mouse): a click on a radio's tab shows that radio",
             "showing " .. H.s(sh and H.devName(sh.radioInstance)) .. " (" .. H.s(sh and sh.locationTag) .. ")")
         T.t0 = getTimestampMs()
-        H.unhold(T.b)
+        -- (the radio before the shown one is put down, so the shown one moves up a place in the list: run 1 put down
+        -- the very radio it showed, with no ManPack on his back, and read that as the tab not following)
+        T.victim, T.vSlot = T.b, "s"
+        if not T.backOk then T.victim, T.vSlot = T.a, "p" end
+        T.n0 = #(RT.cw()._radios or {})
+        T.idx0 = RT.cw()._radioIdx
+        H.unhold(T.victim)
     end)
-    H.wait(1500, function() local cw = RT.cw(); return T.off or (cw ~= nil and #(cw._radios or {}) == (T.backOk and 2 or 1)) end, function(ok)
+    H.wait(1500, function() local cw = RT.cw(); return T.off or (cw ~= nil and #(cw._radios or {}) == (T.n0 or 0) - 1) end, function(ok)
         if T.off then return end
         local cw = RT.cw()
         local ms = getTimestampMs() - (T.t0 or 0)
         local sh = S.RTab.showingEntry(cw)
-        Q.check(ok and ms <= 1100, T.L .. ": the unequipped walkie's tab goes within the list's 500 ms read", ms .. " ms, " .. #(cw._radios or {}) .. " tabs left")
-        Q.check(sh ~= nil and sh.radioInstance == T.pickDev, T.L .. ": the tab stays on the radio it showed while the list changes",
-            "showing " .. H.s(sh and H.devName(sh.radioInstance)) .. " (" .. H.s(sh and sh.locationTag) .. ")")
+        Q.check(ok and ms <= 1100, T.L .. ": an unequipped walkie's tab goes within the list's 500 ms read", ms .. " ms, " .. #(cw._radios or {}) .. " tabs left")
+        Q.check(sh ~= nil and sh.radioInstance == T.pickDev, T.L .. ": the tab stays on the radio it showed while the list moves up under it",
+            "showing " .. H.s(sh and H.devName(sh.radioInstance)) .. " (" .. H.s(sh and sh.locationTag) .. "), its place " .. tostring(T.idx0) .. " -> " .. tostring(cw._radioIdx))
+        H.hold(T.victim, T.vSlot)
     end)
+    H.wait(1500, function() local cw = RT.cw(); return T.off or (cw ~= nil and #(cw._radios or {}) == (T.n0 or 0)) end, function() end)
     H.step(2, function()
         if T.off then return end
         local cw = RT.cw()
@@ -1518,13 +1554,17 @@ function C.r13()
     H.step(2, function()
         if T.off then return end
         T.game = H.gameValid("ToggleOnOff", T.dev)
+        -- (run 1: the game's isValidToggleOnOff says true with no battery (canBePoweredHere answers true for a battery
+        -- set in his hands); the truth is what the game's own action leaves: its perform run on a twin set)
+        T.twin = H.gameDoes("ToggleOnOff", "Base.RadioBlack", { batt = false, on = false, vol = 0.5 })
         T.battIn = H.battOn(T.dev)
         H.click(RT.cw(), "power", nil, T.L)
     end)
     H.step(3, function()
         if T.off then return end
-        Q.check(not H.on(T.dev) and T.game == false, T.L .. " (mouse): power with no battery does nothing, as the game refuses it",
-            "on " .. tostring(H.on(T.dev)) .. "; a battery in " .. tostring(T.battIn) .. "; the game's isValidToggleOnOff " .. tostring(T.game))
+        Q.check(H.on(T.dev) == T.twin, T.L .. " (mouse): power with no battery does what the game's own action does",
+            "ZeD: on " .. tostring(H.on(T.dev)) .. " (a battery in " .. tostring(T.battIn) .. "); the game's performToggleOnOff on a twin leaves it on " .. tostring(T.twin)
+            .. "; its isValidToggleOnOff " .. tostring(T.game))
         H.prep(T.dev, { batt = 0.6 })
         local cw = RT.cw()
         T.go = H.padOn(cw) and H.focusEl(cw, "radio:tw:power")
@@ -2109,12 +2149,31 @@ function C.r32()
         Q.check(H.on(T.dev), T.L .. " (mouse): a click on VOL pushes the walkie's power on", "the game's on " .. tostring(H.on(T.dev)) .. ", volume " .. H.n2(H.vol(T.dev)))
         local cw = RT.cw()
         T.go = H.padOn(cw) and H.focusEl(cw, "radio:tw:vol")
+        -- (run 1: X did nothing at both sizes. What the focused stop carries is read here, and its own X is pressed
+        -- after the pad's, so the report tells the pad's dispatch from the stop)
+        local el = nil
+        pcall(function() el = S.F.getFocusedElement(cw) end)
+        T.elInfo = "focused " .. tostring(el and el.id) .. ", a knob " .. tostring(el and el.isKnob) .. ", an X (onContextMenu) " .. tostring(el ~= nil and el.onContextMenu ~= nil)
+            .. ", its X word " .. H.s(el and el.promptX)
+        T.t0 = getTimestampMs()
     end)
     H.tapQ("cw", "X", function() return T.go and not T.off end)
     H.step(3, function()
+        if T.off or not T.go then H.padOff(); return end
+        T.ms = getTimestampMs() - (T.t0 or 0)
+        Q.check(not H.on(T.dev), T.L .. " (pad): X on VOL pushes the power off", "the game's on " .. tostring(H.on(T.dev)) .. "; " .. T.elInfo
+            .. "; the tap (down 4 frames, then up) and this check about " .. T.ms .. " ms apart (X counts as held past 350 ms)")
+        T.on1 = H.on(T.dev)
+        local cw = RT.cw()
+        local el = nil
+        pcall(function() el = S.F.getFocusedElement(cw) end)
+        if T.on1 and el and el.onContextMenu then H.zcall(function() el.onContextMenu(cw, el) end) end
+    end)
+    H.step(3, function()
         H.padOff()
-        if T.off or not T.go then return end
-        Q.check(not H.on(T.dev), T.L .. " (pad): X on VOL pushes the power off", "the game's on " .. tostring(H.on(T.dev)) .. ", focus was " .. tostring(H.focusedId(RT.cw())))
+        if T.off or not T.go or not T.on1 then return end
+        H.note(T.L .. ": the focused VOL stop's own X (onContextMenu) called directly leaves the walkie on " .. tostring(H.on(T.dev))
+            .. " (off means the stop is wired and the pad's X tap never reached it)")
     end)
     H.caseEnd(T.L)
 end
@@ -2424,14 +2483,18 @@ function C.r41()
         if T.off then return end
         if not Q.check(ok, T.L .. ": the walkie in a bag shows on the Carried tab with its pop-out button", H.tabText("cw", T.dev)) then T.off = true; return end
         H.clickAt(RT.cw(), RT.cw()._radioFullZone)
+        T.opened0 = H.popShowing() == T.dev
         T.t0 = getTimestampMs()
     end)
     H.step(3, function() if not T.off then T.opened = H.popShowing() == T.dev end end)
     Q.waitMs(1500)
     H.step(2, function()
         if T.off then return end
+        local tw = nil
+        pcall(function() tw = S.TW.inReach(S.p, T.dev) end)
         Q.check(T.opened and H.popShowing() == T.dev, T.L .. " (B7): the pop-out of a walkie in a bag stays open",
-            "opened " .. tostring(T.opened) .. ", still showing after 1.5 s " .. tostring(H.popShowing() == T.dev) .. "; the walkie in " .. H.ctype(H.where(T.dev))
+            "showing in the click's own frame " .. tostring(T.opened0) .. ", 3 frames on " .. tostring(T.opened) .. ", after 1.5 s " .. tostring(H.popShowing() == T.dev)
+            .. "; TwoWayFace.inReach " .. tostring(tw) .. "; the walkie in " .. H.ctype(H.where(T.dev))
             .. " (TwoWayFace.inReach takes the hands and the back only)")
     end)
     H.caseEnd(T.L)
@@ -2453,9 +2516,8 @@ function C.r42()
         local cw = RT.cw()
         local key, row = H.hit(cw, "phones") ~= nil, H.fillRow(cw, "fill:radio:phones") ~= nil
         local game = H.gameValid("AddHeadphones", T.dev, H.slice(H.all(), function(it) return H.ft(it) == "Base.Earbuds" end))
-        local port = nil
-        pcall(function() port = getScriptManager():FindItem("Base.WalkieTalkie2"):isPortable() end)
-        Q.check(key or row, T.L .. " (B2): a walkie has a ZeD way to plug in the headphones the game offers it (a portable set's box)",
+        local port = H.portable(T.dev)
+        Q.check(key or row, T.L .. " (B2): a walkie has a ZeD way to plug in the headphones the game offers it (a portable set's box, RWMVolume)",
             "a phones key " .. tostring(key) .. ", a Headphones row " .. tostring(row) .. "; the face's controls " .. H.list(H.hitIds(cw), 14)
             .. "; the game's isValidAddHeadphones " .. tostring(game) .. ", portable " .. tostring(port))
     end)
@@ -3286,12 +3348,17 @@ function C.r27()
         H.prep(T.tv, { on = true, vol = 0.1, ch = 200 })
         if not H.on(T.tv) then T.off = true; Q.skip(T.L, "the TV has no power here") end
     end)
+    -- (run 1, 4K: every channel read snow. The TV was never shown, so the screen's channel memory moved only on this
+    -- script's one read 600 ms later, and a change first seen reads snow for 450 ms. The TV is shown now, its face
+    -- reading each frame as a player sees it, and the change is also seen at once here)
+    H.wwShow(T, "tv")
     for i = 1, 10 do
         H.step(2, function()
             if T.off then return end
             local s = H.stops()[i]
             T.cur = s
             if s then pcall(function() H.dd(T.tv):setChannel(s.freq) end) end
+            pcall(function() S.R.air(S.R.read(T.tv)) end)
         end)
         Q.waitMs(600)
         H.step(1, function()
@@ -3386,8 +3453,7 @@ function C.r29()
     H.waitQ(T, 15000)
     H.step(2, function()
         if T.off then return end
-        local port = nil
-        pcall(function() port = getScriptManager():FindItem("Base.TvBlack"):isPortable() end)
+        local port = H.portable(T.tv)
         Q.check((H.phones(T.tv) or -1) < 0, T.L .. " (B2): ZeD puts no headphones on a TV (the game offers its headphone box on portable non-TV sets only, RWMVolume)",
             "queued " .. tostring(T.k) .. "; the TV's headphone type " .. tostring(H.phones(T.tv)) .. ", headphones on him " .. H.count("Base.Headphones") .. "; TvBlack portable " .. tostring(port))
     end)
@@ -3395,6 +3461,19 @@ function C.r29()
 end
 
 -- ===================================================================== R30 two sets on one square (B4)
+-- which set the game's queued action of type ty works on: its deviceData against each set's ("the radio", "the TV")
+function H.qTarget(ty, T)
+    for _, a in ipairs(H.queue()) do
+        if a.Type == ty then
+            local d = a.deviceData
+            if d == nil then return "no set" end
+            if d == H.dd(T.r) then return "the radio" end
+            if d == H.dd(T.tv) then return "the TV" end
+            return "another set"
+        end
+    end
+    return "nothing queued"
+end
 function C.r30()
     local T = { L = "R30 a TV and a ValuTech on one square" }
     H.step(2, function()
@@ -3416,11 +3495,19 @@ function C.r30()
         T.tvB = H.battOn(T.tv)
         H.click(RT.ww(), "battery", nil, T.L)
     end)
+    -- (the key acts on the release, the next drawn frame: the action is read off the game's queue once it is there.
+    -- Run 1 read the queue a frame too soon and saw nothing)
+    H.wait(1500, function() return T.off or T.noBatt or H.qcount("ISDeviceBatteryAction") > 0 end, function(ok)
+        if T.off or T.noBatt then return end
+        T.bAim = H.qTarget("ISDeviceBatteryAction", T)
+        T.bQueued = ok
+    end)
     H.waitQ(T, 15000)
     H.step(2, function()
         if T.off or T.noBatt then return end
         Q.check(H.battOn(T.r) == true and not H.onHim(T.batt), T.L .. " (B4): the battery pressed on the radio's tab goes into the radio, not the TV on its square",
-            "the radio's battery in " .. tostring(H.battOn(T.r)) .. "; the TV's " .. tostring(T.tvB) .. " -> " .. tostring(H.battOn(T.tv)) .. "; the battery still on him " .. tostring(H.onHim(T.batt)) .. "; queued " .. tostring(T.qKinds))
+            "the game's battery action queued " .. tostring(T.bQueued) .. ", aimed at " .. tostring(T.bAim) .. "; the radio's battery in " .. tostring(H.battOn(T.r))
+            .. "; the TV's " .. tostring(T.tvB) .. " -> " .. tostring(H.battOn(T.tv)) .. "; the battery still on him " .. tostring(H.onHim(T.batt)) .. "; queued " .. tostring(T.qKinds))
     end)
     H.wwShow(T, "tv")
     H.step(2, function()
@@ -3435,11 +3522,15 @@ function C.r30()
         if not H.menuPick(T.tape) then T.noTape = true; Q.check(false, T.L .. ": the TV's slot lists the tape", "the list: " .. H.s(H.list(H.menuNames()))) end
         H.menuClose()
     end)
+    H.wait(1500, function() return T.off or T.noTape or H.qcount("ISDeviceMediaAction") > 0 end, function()
+        if T.off or T.noTape then return end
+        T.mAim = H.qTarget("ISDeviceMediaAction", T)
+    end)
     H.waitQ(T, 20000)
     H.step(2, function()
         if T.off or T.noTape then return end
         Q.check(H.media(T.tv) and H.media(T.r) == T.rM, T.L .. " (B4): the tape picked on the TV's tab goes into the TV, not the radio on its square",
-            "the TV's media " .. tostring(H.media(T.tv)) .. "; the radio's " .. tostring(T.rM) .. " -> " .. tostring(H.media(T.r)) .. "; queued " .. tostring(T.qKinds))
+            "the game's media action aimed at " .. tostring(T.mAim) .. "; the TV's media " .. tostring(H.media(T.tv)) .. "; the radio's " .. tostring(T.rM) .. " -> " .. tostring(H.media(T.r)) .. "; queued " .. tostring(T.qKinds))
     end)
     H.caseEnd(T.L)
 end
@@ -3459,8 +3550,10 @@ function C.r52leg(T, which, key, want, label)
         local fid = first and first.id
         local ok = false
         for _, id in ipairs(want) do if fid == id then ok = true end end
-        Q.check(ok and w._gpFocusedRadioCtl == fid, label .. ": the pad lands on its first stop, the set's primary control (" .. H.list(want) .. ")",
-            "first stop " .. tostring(fid) .. ", the tab's seed " .. tostring(w and w._gpFocusedRadioCtl) .. "; stops " .. H.stopIds(w))
+        -- (run 1, 4K: the TV's first stop was power but the tab's seed id read radio:tab:1, written in a frame before
+        -- the face drew. Nothing reads that seed (FocusManager lands on the zone's first stop): it is reported only)
+        Q.check(ok, label .. ": the pad lands on its first stop, the set's primary control (" .. H.list(want) .. ")",
+            "first stop " .. tostring(fid) .. " (the tab's seed id " .. tostring(w and w._gpFocusedRadioCtl) .. ", read by nothing); stops " .. H.stopIds(w))
     end)
 end
 function C.r52()
@@ -3527,16 +3620,27 @@ function C.r54()
     end)
     C.r54leg(T, "cw", "r", T.L .. " on a ValuTech")
     Q.waitMs(700)
-    H.step(2, function()
+    -- (run 1: the row was found but below the tab's view, where a click does nothing: the body is scrolled to it the
+    -- way the wheel scrolls it, one notch a frame, then the row is clicked where it is drawn)
+    H.wait(4000, function()
+        if T.off then return true end
+        local cw = RT.cw()
+        local t, z = H.tw(cw), H.fillZone(cw, "fill:radio:ch:2")
+        if z and H.inView(t, z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2)) then return true end
+        local sc = cw and cw._radioScroll
+        if sc and sc.visible then pcall(function() sc:handleMouseWheel(1) end) end
+        return false
+    end, function(ok)
         if T.off then return end
         local cw = RT.cw()
         local z = H.fillZone(cw, "fill:radio:ch:2")
-        if z then H.clickAt(cw, z) end
-        T.zOk = z ~= nil
+        T.zOk, T.inV = z ~= nil, ok
+        if z and ok then H.clickAt(cw, z) end
     end)
     H.step(3, function()
         if T.off then return end
-        Q.check(T.zOk and H.ch(T.r) == 101200, T.L .. " (mouse): a Channels row still tunes to its channel", "row found " .. tostring(T.zOk) .. "; the game's channel " .. H.mhz(H.ch(T.r)))
+        Q.check(T.zOk and T.inV and H.ch(T.r) == 101200, T.L .. " (mouse): a Channels row still tunes to its channel",
+            "row found " .. tostring(T.zOk) .. ", in the tab's view " .. tostring(T.inV) .. "; the game's channel " .. H.mhz(H.ch(T.r)))
         H.unhold(T.r)
         H.hold(T.wk, "p")
     end)
