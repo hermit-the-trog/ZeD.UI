@@ -5,11 +5,13 @@
 -- advice, no controller, no distance close) becomes a card in the World
 -- window's card drawer. A trough holds food or water, never both:
 --   * the tag says Food, Water (Tainted) or Empty;
---   * food: the feed amount and what lies in the trough, each with Take;
+--   * food: the feed amount and what lies in the trough, each with Take (one)
+--     and Take All beside it for a kind of several;
 --   * water: the litres on a strip in the water's colour;
 --   * Zone: the zone it feeds and how many animals use it, and a warning when
 --     it stands outside any animal zone (animals cannot use it there);
---   * Add food from your bags (moved into the trough as the loot window does),
+--   * Add food from your bags (moved into the trough as the loot window does:
+--     Add moves one, Add All beside it the whole kind),
 --     Add water (the fluid card aimed at the trough), Pour from a container
 --     you carry, Empty (the band at the foot asks first, vanilla's empty).
 -- Add food and Add water show only on a trough that can take them.
@@ -128,6 +130,30 @@ local function openFluid(p, t, fromItemFC)
     else
         OC.open(p, "fluid", { container = tfc, into = true }, back)
     end
+end
+
+-- One press moves one item; the All button beside it moves the kind, as the loot window's one / all. A press used to
+-- move every item of the kind, so Add with ten carrots carried put all ten in. (QA TG5; the director's call TG5,
+-- Nov 26 2026)
+local function moveOne(p, t, items, toTrough)
+    local it = items and items[1]
+    if it then moveItems(p, t, { it }, toTrough) end
+end
+
+-- A pick row with the All button beside its own (a kind of several): the row gives up the button's room and the
+-- All button sits in it, its own zone, so the mouse and the pad reach both. Returns the row's height.
+local function pickWithAll(card, x, y, w, opts, allLabel, allFid, allHelp, allRun, many)
+    local T = ZeD.T
+    if not many then return UI.pick(card, x, y, w, opts) end
+    local aw = UI.buttonW(allLabel)
+    local gap = T.px(6)
+    local h = UI.pick(card, x, y, w - aw - gap, opts)
+    local bh = T.buttonH - T.px(4)
+    local by = y + math.floor((h - bh) / 2)
+    UI.button(card, x + w - aw - T.px(2), by, allLabel, { w = aw, h = bh, disabled = opts.enabled == false, fid = allFid,
+        body = true, run = allRun, help = allHelp, focus = card.focusOf and card:focusOf(allFid) or nil })
+    card:drawRect(x + w - aw - gap, y + h - T.px(1), aw + gap, T.px(1), T.border.a, col(T.border))
+    return h
 end
 
 -- ---------------------------------------------------------------------------
@@ -283,9 +309,11 @@ function def.body(card, x, y, w, t, player)
         y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Trough_InTrough"), tostring(#d.inside))
         for i, g in ipairs(d.inside) do
             local gg = g
-            y = y + UI.pick(card, x, y, w, { tex = g.tex, name = g.name .. (#g.items > 1 and (" " .. DOT .. " " .. #g.items) or ""),
+            y = y + pickWithAll(card, x, y, w, { tex = g.tex, name = g.name .. (#g.items > 1 and (" " .. DOT .. " " .. #g.items) or ""),
                 button = getText("ContextMenu_Take"), fid = "trough:take:" .. i, help = ZeD.tr("UI_ZeD_Trough_HelpTake", g.name),
-                run = function(c, p) moveItems(p, t, gg.items, false) end })
+                run = function(c, p) moveOne(p, t, gg.items, false) end },
+                ZeD.tr("IGUI_invpage_Loot_all"), "trough:takeall:" .. i, ZeD.tr("UI_ZeD_Trough_HelpTakeAll", g.name),
+                function(c, p) moveItems(p, t, gg.items, false) end, #g.items > 1)
         end
         y = y + gap
     end
@@ -304,9 +332,11 @@ function def.body(card, x, y, w, t, player)
         end
         for i, g in ipairs(d.feedRows) do
             local gg = g
-            y = y + UI.pick(card, x, y, w, { tex = g.tex, name = g.name .. (#g.items > 1 and (" " .. DOT .. " " .. #g.items) or ""),
+            y = y + pickWithAll(card, x, y, w, { tex = g.tex, name = g.name .. (#g.items > 1 and (" " .. DOT .. " " .. #g.items) or ""),
                 where = g.where, button = getText("UI_btn_add"), fid = "trough:feed:" .. i, help = ZeD.tr("UI_ZeD_Trough_HelpFeed", g.name),
-                run = function(c, p) moveItems(p, t, gg.items, true) end })
+                run = function(c, p) moveOne(p, t, gg.items, true) end },
+                ZeD.tr("ContextMenu_AddAll"), "trough:feedall:" .. i, ZeD.tr("UI_ZeD_Trough_HelpFeedAll", g.name),
+                function(c, p) moveItems(p, t, gg.items, true) end, #g.items > 1)
         end
         y = y + gap
     end

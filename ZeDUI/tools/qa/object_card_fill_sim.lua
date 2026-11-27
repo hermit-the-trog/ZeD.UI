@@ -29,7 +29,7 @@ local f = io.open(ROOT .. "42/media/lua/client/ZeD/ZeD_WorldWindow.lua", "rb")
 local src = f:read("*a"):gsub("\r\n", "\n"); f:close()   -- (the file may have CRLF line ends)
 
 -- the two width functions, with the file's two card widths in front of them
-local fnA = src:match("(function ZeD_WorldWindow%.objectDrawerW%(def, base%).-\nend)\n")
+local fnA = src:match("(function ZeD_WorldWindow%.objectDrawerW%(def, base, heldIn%).-\nend)\n")
 local fnB = src:match("(function ZeD_WorldWindow%.objectCardW%(def, effectiveW%).-\nend)\n")
 local itemW = tonumber(src:match("\nlocal ITEM_CARD_W%s*=%s*(%d+)"))
 local objW = tonumber(src:match("\nlocal OBJECT_CARD_W%s*=%s*(%d+)"))
