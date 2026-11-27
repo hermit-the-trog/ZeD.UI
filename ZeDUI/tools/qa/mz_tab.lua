@@ -26,8 +26,8 @@
 --   MP15 fog of war on all three styles (HideUnvisited); MapAllKnown SKIP (a new game). MP16 the player dots; remote SKIP
 --   MP2  the Map key (the game's key handlers): ISReadWorldMap queued, ZeD's map unfolded, the game's map shut
 --   MP3  put away by M, Escape, the pad's B and the close box, the World window shut and open before
---   MP5  the key held 500 ms: the game's radial with World map, no mini-map slice; letting go shuts it
---   MP6  paused: the Map key (B11) and Escape
+--   MP5  the key held 500 ms: the game's radial with World map, no mini-map slice; letting go as the game's key toggle option says
+--   MP6  paused: the Map key folds ZeD's map (B11), Escape; a paper up and the world map off keep the game's refusal
 --   MP7  the World wheel's Map slice; greyed "No world map" with AllowWorldMap off
 --   MP8  the HUD's map button (ISEquippedItem's MAP press)
 --   MP12 AllowWorldMap off: "Map unavailable", no stops, M does nothing; unfolded, the one stop and A folds
@@ -51,15 +51,15 @@
 --   MP31 the 15 marks in the 5 inks: the game's symbol, the pen's color, its scale, the tool kept (mouse); a pad mark.
 --        Picture mz_world_<WxH>
 --   MP32 the ink rules (only a pencil, a pen put away, the last pen put away); MP33 the first ink against the game's
---   MP34 a note (the box's words, spaces only, illiterate); MP35 the pad's note and B3 (no stop to the box)
+--   MP34 a note (the box's words, spaces only, illiterate); MP35 the pad's note (B3: the map:note stop, its keyboard, the typed words; Edit note by the pad)
 --   MP36 pins: right-click and X in the full set; the header at the half card
 --   MP37 Delete (a note, a symbol; no eraser; the pad's X); MP38 Change color (B10; illiterate); MP39 Edit note
 --   MP40 the hit test (two marks 10 px apart, a town's name, the pad's X 15 px off); MP42 the old marks carried over
 --   MP43, MP44, MP45 SKIP (multiplayer)
 --   MP46 unfold and fold every way (button, placeholder, A, B, Escape, close box) and the drawer map kept
---   MP47 Escape with the note box focused; MP48 unfolded with the World window on Loot (B9: drawing, the wheel)
+--   MP47 Escape with the note box focused; MP48 unfolded with the World window on Loot (B9: drawing; the drawer's wheel taken while unfolded, zooming folded)
 --   MP49 the World window shut while unfolded; MP50 the unfolded window at 600 by 400 and full screen; MP51 SKIP
---   MP52 Read Map (B1: the game's read action), the window, the reveal asked, the paper's band and key. Picture
+--   MP52 Read Map (B1: the game's read action whole, the window at its end), the window, the reveal asked, the paper's band and key. Picture
 --        mz_paper_<WxH>
 --   MP53 a map in a bag and on the floor; MP54 marks on a paper (B2 SKIP: multiplayer); MP55 the paper dropped or bagged
 --   MP56 paper over paper, M with a paper up, Read Map over the world map; MP57 every town and Louisville map drawn;
@@ -67,10 +67,10 @@
 --   MP60 the drawer's stop order, the D-pad walk, the cursor's B; MP61 the unfolded window's stops
 --   MP62 the side list (a test extension the run adds and takes away): rows, X, Cancel and Delete, B6, the wheel, docked
 --   MP63 other mods' extensions (SKIP each not loaded); MP65 Lite; MP66 the game's mini-map hidden
---   night: MP4 the key in the dark, MP13 the tab in the dark (MapNeedsLight off, the light back), B12 the open map in the
---        dark, MP59 a paper in the dark and the game's greyed Read Map (a debug game stages ZeD's rule, said so)
+--   night: MP4 the key in the dark, MP13 the tab in the dark (MapNeedsLight off, the light back), B12 a lit open map stays open into the
+--        dark; a map opened in the dark refused, A folds it, back with the light; MP59 a paper in the dark and the game's greyed Read Map (a debug game stages ZeD's rule, said so)
 --   MP4's car legs at night: a live battery, a flat one, a torch (SKIP in a debug game); admin SKIP
---   B13 a map that failed to build (one build made to fail, then can it come back)
+--   B13 a map that failed to build (one build made to fail: made again within about 2 s, the failed mark cleared)
 --   MP10 safe mode (the game's map, its paper window, the mini-map) with MP41 (ZeD's marks on the game's map)
 --   MP64 small screens: UI scale 1.5 and 2 with Large text at the half card (and MP25's label heights at each)
 --   B7, B8 SKIP (split screen); B14, B15 and the FEATURE_MAP rows: NOTEs
@@ -1448,21 +1448,57 @@ function C.mp6()
     H.step(4, function()
         if T.off then return end
         T.speed = getGameSpeed()
-        T.ck = nil
+        T.ck, T.ck0 = nil, nil
         pcall(function() T.ck = ISWorldMap.checkKey(H.mapKey()) end)
+        pcall(function() T.ck0 = ISWorldMap._zedOrigCheckKey(H.mapKey()) end)
         H.keyM()
     end)
     H.pause(600)
     H.step(1, function()
         if T.off then return end
-        Q.check(H.pop() == nil, T.L .. " (B11): the Map key folds ZeD's map while the game is paused",
-            "game speed " .. tostring(T.speed) .. "; after the key the map unfolded " .. tostring(H.pop() ~= nil) .. "; the game's ISWorldMap.checkKey answered " .. tostring(T.ck)
-            .. " (it lets a paused key through only while its own map is up)")
-        if H.pop() then T.took = ZeD.EscapeTakers and ZeD.EscapeTakers.mapPopout and ZeD.EscapeTakers.mapPopout() end
+        Q.check(T.speed == 0 and H.pop() == nil and H.wwOpen(), T.L .. " (B11): the Map key folds ZeD's unfolded world map while the game is paused",
+            "game speed " .. tostring(T.speed) .. "; after the key the map unfolded " .. tostring(H.pop() ~= nil) .. ", World open " .. tostring(H.wwOpen())
+            .. "; the key check answered " .. tostring(T.ck) .. " (the game's own " .. tostring(T.ck0) .. ": it passes a paused key only for its own map)")
+        -- unfolded again, still paused, for Escape
+        H.zcall(function() S.MT.openPopout(RT.ww()) end)
+    end)
+    H.wait(1500, function() return T.off or H.popUp() end, function(ok)
+        if T.off then return end
+        T.up2 = ok
+        T.took = ZeD.EscapeTakers and ZeD.EscapeTakers.mapPopout and ZeD.EscapeTakers.mapPopout()
     end)
     H.wait(1500, function() return T.off or H.pop() == nil end, function(ok)
         if T.off then return end
-        Q.check(ok, T.L .. ": Escape folds it while paused", "Escape taken " .. tostring(T.took) .. "; " .. H.tabState())
+        Q.check(T.up2 and ok, T.L .. ": Escape folds it while paused", "unfolded again " .. tostring(T.up2) .. ", Escape taken " .. tostring(T.took) .. "; " .. H.tabState())
+    end)
+    -- the game's other rules still decide: a paper map up (the key is the game's answer: refused while paused), and
+    -- no world map in this game (the sandbox)
+    H.step(2, function()
+        if T.off then return end
+        T.paper = H.townMap()
+        if T.paper then H.zcall(function() S.MT.openPopout(RT.ww(), T.paper) end) end
+    end)
+    H.wait(2000, function() return T.off or not T.paper or H.paperUp(T.paper) end, function(ok)
+        if T.off or not T.paper then return end
+        T.ckP = nil
+        pcall(function() T.ckP = ISWorldMap.checkKey(H.mapKey()) end)
+        H.keyM()
+    end)
+    H.pause(500)
+    H.step(1, function()
+        if T.off or not T.paper then return end
+        Q.check(T.ckP == false and H.paperUp(T.paper), T.L .. " (B11): with a paper map up, the paused key stays the game's answer (refused) and the paper stays",
+            "the key check " .. tostring(T.ckP) .. ", the paper up " .. tostring(H.paperUp(T.paper)))
+        pcall(S.MT.closePopout, RT.ww(), true)
+        H.zcall(function() S.MT.openPopout(RT.ww()) end)
+    end)
+    H.wait(1500, function() return T.off or H.popUp() end, function(ok)
+        if T.off then return end
+        H.sbx(false, nil)
+        T.ckA = nil
+        pcall(function() T.ckA = ISWorldMap.checkKey(H.mapKey()) end)
+        H.sbx(true, nil)
+        Q.check(ok and T.ckA == false, T.L .. " (B11): with the world map off in the sandbox, the paused key is refused (the game's IsAllowed still applies)", "unfolded " .. tostring(ok) .. ", the key check " .. tostring(T.ckA))
         H.speed(1)
     end)
     H.caseEnd(T.L)
@@ -2769,17 +2805,33 @@ function C.mp34()
         RT.ww()._mapActiveTool = nil
         H.traitSet("ILLITERATE", false)
     end)
-    -- MP35: the pad's note, and whether the pad reaches the box (B3)
+    -- MP35: the pad's note (B3): the note box's stop (map:note) while the note is in hand, its A opens the pad's
+    -- keyboard (ZeD.MapsTab.noteKeyboard, counted); the run types into the box as the keyboard does (setText); A on the
+    -- map's cursor places those words. Edit note by the pad opens the keyboard on the note's words.
+    H.step(1, function() H.noteKbOn() end)
     H.padPress(T, "map:tool:text")
-    H.pause(200)
+    H.pause(300)
     H.step(1, function()
         if T.off then return end
+        local ids = H.stopIds()
+        local iN = H.idx(ids, function(v) return v == "map:note" end)
+        local iC = H.idx(ids, function(v) return v == "map:canvas:cursor" end)
+        Q.check(H.armed() == "text" and iN ~= nil and iC ~= nil and iN < iC, "MP35 the pad's note (B3): with the note in hand the note box is a pad stop (map:note), before the map's cursor", "stops " .. H.list(ids, 30))
+        T.k0 = S.nkN
+        T.go = H.focusEl("map:note")
+    end)
+    H.tapA(function() return T.go and not T.off end)
+    H.pause(300)
+    H.step(1, function()
+        if T.off or not T.go then return end
         local te = RT.ww()._mapTextEntry
-        T.words = nil
-        pcall(function() T.words = te:getText() end)
-        local o = {}
-        for _, id in ipairs(H.stopIds()) do if H.has(id, "note") or H.has(id, "entry") or H.has(id, "box") or (H.has(id, "text") and id ~= "map:tool:text") then o[#o + 1] = id end end
-        Q.check(#o > 0, "MP35 the pad's note (B3): a stop leads to the note box, so the pad can type its words", "stops " .. H.list(H.stopIds(), 30))
+        local focused, jd = false, nil
+        pcall(function() focused = te:isFocused() and true or false end)
+        pcall(function() jd = JoypadState.players[S.pn + 1] end)
+        Q.check(S.nkN == T.k0 + 1 and (focused or jd ~= nil), "MP35 the pad's note (B3): A on the note box opens the pad's keyboard on it (ZeD.MapsTab.noteKeyboard)",
+            "keyboard calls " .. (S.nkN - T.k0) .. ", the box has the keys " .. tostring(focused) .. (jd and "" or " (no pad bound: the box takes the keys in place of the on-screen keyboard)"))
+        pcall(function() te:setText("ZEDQA typed by pad") end)
+        pcall(function() te:unfocus() end)
         T.x, T.y = H.freeSpot(3)
         T.n0 = H.marks()
         T.go = H.cursorAt(T.x, T.y)
@@ -2791,34 +2843,57 @@ function C.mp34()
         local s = H.lastNew()
         local words = nil
         pcall(function() words = s:getTranslatedText() end)
-        Q.check(s ~= nil and H.marks() == T.n0 + 1 and words == T.words, "MP35 the pad's note: Aa, then A on the map's cursor, places the box's words as they stand (\"" .. tostring(T.words) .. "\")", "placed \"" .. tostring(words) .. "\"")
+        Q.check(s ~= nil and H.marks() == T.n0 + 1 and words == "ZEDQA typed by pad", "MP35 the pad's note: the words typed on the pad's keyboard go on the map with A on the cursor", "placed \"" .. tostring(words) .. "\"")
         T.sym = s
         RT.ww()._mapActiveTool = nil
-        T.go = H.cursorAt(T.x, T.y)
     end)
-    -- the pad's Edit note: X on it, Edit note, A puts back the box's words
-    H.tapX(function() return T.go and not T.off and T.sym ~= nil end)
+    H.step(3, function()
+        if T.off then return end
+        Q.check(not H.hasStop("map:note"), "MP35 the pad's note: with the note put down the box's stop is gone", "stops " .. H.list(H.stopIds(), 30))
+        T.k1 = S.nkN
+        T.go = T.sym ~= nil and H.cursorAt(T.x, T.y)
+    end)
+    -- the pad's Edit note: X on it, Edit note opens the keyboard on its words; new words typed, A puts them on it
+    H.tapX(function() return T.go and not T.off end)
     H.pause(300)
     H.step(1, function()
-        if T.off or not T.sym then return end
+        if T.off or not T.go then return end
         local op = H.ctxOpt(H.txt("IGUI_Map_EditNote"))
-        if not op then Q.check(false, "MP35 the pad's note: X on the note opens its menu with Edit note", H.ctxNames()); return end
+        if not op then Q.check(false, "MP35 the pad's note: X on the note opens its menu with Edit note", H.ctxNames()); T.go = false; return end
         H.ctxPick(op)
         local te = RT.ww()._mapTextEntry
         local box = nil
         pcall(function() box = te:getText() end)
-        H.note("MP35 the pad's note (B3): Edit note by the pad fills the box with the note's words (\"" .. tostring(box) .. "\"); with no stop on the box the next A puts the same words back")
+        Q.check(S.nkN == T.k1 + 1 and box == "ZEDQA typed by pad", "MP35 the pad's note (B3): Edit note by the pad opens the keyboard on the note's words", "keyboard calls " .. (S.nkN - T.k1) .. ", the box \"" .. tostring(box) .. "\"")
+        pcall(function() te:setText("ZEDQA edited by pad") end)
+        pcall(function() te:unfocus() end)
+        T.n1 = H.marks()
+        T.go = H.cursorAt(T.x, T.y)
     end)
-    H.tapA(function() return T.go and not T.off and T.sym ~= nil end)
+    H.tapA(function() return T.go and not T.off end)
     H.pause(300)
     H.step(1, function()
         H.padOff()
-        if T.off or not T.sym then return end
+        H.noteKbOff()
+        if T.off or not T.go then return end
         local words = nil
         pcall(function() words = T.sym:getTranslatedText() end)
-        H.note("MP35 the pad's note: after Edit note and A the note reads \"" .. tostring(words) .. "\" (it read \"" .. tostring(T.words) .. "\")")
+        Q.check(words == "ZEDQA edited by pad" and H.marks() == T.n1, "MP35 the pad's note: A after Edit note puts the newly typed words on the same note", "the note reads \"" .. tostring(words) .. "\", marks " .. tostring(T.n1) .. " -> " .. H.marks())
     end)
     H.caseEnd(T.L)
+end
+-- the note box's keyboard counted (the stop's A and Edit note by the pad call it), the call itself the tab's own
+function H.noteKbOn()
+    S.nkN = S.nkN or 0
+    if S.nkW or not (S.MT and S.MT.noteKeyboard) then return end
+    S.nkW = S.MT.noteKeyboard
+    S.nkFn = function(w, ...) S.nkN = S.nkN + 1; return S.nkW(w, ...) end
+    S.MT.noteKeyboard = S.nkFn
+end
+function H.noteKbOff()
+    if not S.nkW then return end
+    if S.MT.noteKeyboard == S.nkFn then S.MT.noteKeyboard = S.nkW end
+    S.nkW, S.nkFn = nil, nil
 end
 
 -- ===================================================================== MP36 the pinned marks
@@ -3310,7 +3385,26 @@ function C.mp48()
     H.step(1, function()
         if T.off then return end
         local z = H.zoom()
-        Q.check(z ~= nil and T.z0 ~= nil and math.abs(z - T.z0) < 0.01, T.L .. " (B9): the wheel over the drawer's placeholder leaves the unfolded map's zoom", H.n2(T.z0) .. " -> " .. H.n2(z))
+        local ret = nil
+        local dr = RT.ww()._drawerPanel
+        pcall(function() ret = dr:onMouseWheel(-1) end)
+        local z2 = H.zoom()
+        Q.check(z ~= nil and T.z0 ~= nil and math.abs(z - T.z0) < 0.01 and math.abs((z2 or 0) - z) < 0.01 and ret == true, T.L .. " (B9): unfolded, the drawer takes the wheel over its placeholder and zooms nothing",
+            "the unfolded map's zoom " .. H.n2(T.z0) .. " -> " .. H.n2(z) .. " -> " .. H.n2(z2) .. ", the wheel taken " .. tostring(ret))
+        H.click("map:popout", T.L)
+    end)
+    -- folded, the drawer's wheel zooms the drawer's map as before
+    H.wait(2000, function() return T.off or (H.pop() == nil and H.mapUp()) end, function(ok)
+        if T.off then return end
+        T.z1 = H.zoom()
+        local dr = RT.ww()._drawerPanel
+        H.zcall(function() dr:onMouseWheel(-1) end)
+    end)
+    H.pause(500)
+    H.step(1, function()
+        if T.off then return end
+        local z = H.zoom()
+        Q.check(H.pop() == nil and z ~= nil and T.z1 ~= nil and z > T.z1, T.L .. ": folded, the drawer's wheel zooms the drawer's map", H.n2(T.z1) .. " -> " .. H.n2(z))
     end)
     H.caseEnd(T.L)
 end
@@ -3441,12 +3535,28 @@ function C.mp52()
         S.reveals = {}
         T.t0 = getTimestampMs()
         T.wins0 = S.gameWinN
+        -- (the read action at its own length for this leg: the instant-actions cheat off, put back after)
+        H.instant(false)
         H.readMap(T.item)
         T.zq = H.qkinds()
+        local a = H.qfirst("ISReadMapItem")
+        T.dur = nil
+        if a then pcall(function() T.dur = a:getDuration() end); if T.dur == nil then T.dur = a.maxTime end end
         T.upAtOnce = H.paperUp(T.item)
+        T.early, T.actSeen, T.actGoneAt = false, a ~= nil, nil
     end)
-    H.wait(3000, function() return T.off or H.paperUp(T.item) end, function(ok)
+    -- each frame until the paper is up: the window never before the action has ended
+    H.wait(8000, function()
+        if T.off then return true end
+        local inQ = H.qcount("ISReadMapItem") > 0
+        if inQ then T.actSeen = true elseif T.actSeen and not T.actGoneAt then T.actGoneAt = getTimestampMs() end
+        local up = H.paperUp(T.item)
+        if up and inQ then T.early = true end
+        return up
+    end, function(ok)
+        H.instant(true)
         if T.off then return end
+        T.tUp = getTimestampMs()
         local pop = H.pop()
         local title = nil
         pcall(function() title = pop.title end)
@@ -3454,8 +3564,12 @@ function C.mp52()
         pcall(function() name = T.item:getName() end)
         Q.check(ok and title == name and S.gameWinN == T.wins0, T.L .. ": Read Map on a town map opens ZeD's window on the paper, titled with its name, no game window",
             "title \"" .. tostring(title) .. "\" (the map \"" .. tostring(name) .. "\"), the game's windows made " .. (S.gameWinN - T.wins0) .. "; " .. H.tabState())
-        Q.check(not T.gameReads or H.qcount("ISReadMapItem") > 0 or string.find(T.zq, "ISReadMapItem", 1, true) ~= nil, T.L .. " (B1): Read Map takes the game's read action (ISReadMapItem: 30 ticks, the read pose, the stash and the read done when it completes)",
-            "the game's Read Map queues: " .. T.gameQ .. "; ZeD's queued: " .. tostring(T.zq) .. ", the window up at once " .. tostring(T.upAtOnce))
+        local read = nil
+        pcall(function() read = S.p:hasReadMap(T.item) and true or false end)
+        Q.check(not T.gameReads or (string.find(T.zq, "ISReadMapItem", 1, true) ~= nil and not T.upAtOnce and not T.early and ok and (T.dur == nil or T.dur >= 20)),
+            T.L .. " (B1): Read Map runs the game's own read action whole (ISReadMapItem, about 30 ticks), and ZeD's window opens only at its end",
+            "the game's Read Map queues: " .. T.gameQ .. "; queued: " .. tostring(T.zq) .. ", its length " .. tostring(T.dur) .. " ticks; the window up at once " .. tostring(T.upAtOnce)
+            .. ", up while the action ran " .. tostring(T.early) .. ", up " .. (T.tUp - T.t0) .. " ms after Read Map; the game marks the map read " .. tostring(read))
     end)
     H.pause(300)
     H.step(1, function()
@@ -4063,15 +4177,6 @@ function C.night()
         local how = T.dark and "a night" or "ZeD's light rule answering dark, staged (no night is dark here)"
         Q.check(not H.blocked() and H.vis(H.mp()), "B12 the open map in the dark (" .. how .. "): the unfolded world map stays readable, as the game keeps an open map (ISWorldMap.ToggleWorldMap)",
             "blocked " .. tostring(H.blocked()) .. ", the map seen " .. tostring(H.vis(H.mp())))
-        T.blk = H.blocked()
-        if T.blk then H.padOn(); T.go = H.focusEl("map:blocked") end
-    end)
-    H.tapA(function() return T.blk and T.go and not T.off end)
-    H.wait(1500, function() return T.off or not T.blk or H.pop() == nil end, function(ok)
-        if T.off then return end
-        H.padOff()
-        if T.blk then Q.check(T.go and ok, "MP13 the tab in the dark (pad): unfolded, the refusal keeps one stop and A folds it", "on the stop " .. tostring(T.go) .. ", folded " .. tostring(ok)) end
-        -- (still dark: the map unfolded again by its own call, the drawer having no button while it is refused)
         if not H.pop() then H.zcall(function() S.MT.openPopout(RT.ww()) end) end
     end)
     H.step(4, function()
@@ -4082,6 +4187,44 @@ function C.night()
     H.wait(1500, function() return T.off or H.pop() == nil end, function(ok)
         if T.off then return end
         Q.check(ok and T.upAgain, T.L .. ": in the dark the Map key still folds the map (closing never waits on the light)", "unfolded before the key " .. tostring(T.upAgain) .. "; " .. H.tabState())
+        RT.worldTab("loot")
+    end)
+    -- still dark: a map opened now is refused (the tab shown after a gap, the map unfolded), and a refused one looks
+    -- again twice a second, so it comes back with the light
+    H.pause(800)
+    H.step(1, function() if not T.off then RT.worldTab("maps") end end)
+    H.pause(500)
+    H.step(1, function()
+        if T.off then return end
+        local how = T.dark and "a night" or "staged dark"
+        local word = ZeD.trBare and ZeD.trBare("ContextMenu_TooDark") or H.txt("ContextMenu_TooDark")
+        Q.check(H.blocked() and H.drew(word) ~= nil, "MP13 the tab in the dark (" .. how .. "): the tab shown again in the dark reads the game's words in place of the map (the light looked at on opening)",
+            "blocked " .. tostring(H.blocked()) .. ", drawn " .. H.textsLike(string.sub(tostring(word), 1, 6)))
+        H.zcall(function() S.MT.openPopout(RT.ww()) end)
+    end)
+    H.pause(400)
+    H.step(1, function()
+        if T.off then return end
+        T.blk = H.blocked() and H.pop() ~= nil
+        H.padOn()
+        T.go = T.blk and H.focusEl("map:blocked")
+        Q.check(T.blk and T.go and #H.stops() == 1, "MP13 the tab in the dark (pad): unfolded in the dark, the refusal is the window's one stop", "blocked " .. tostring(H.blocked()) .. ", unfolded " .. tostring(H.pop() ~= nil) .. "; stops " .. H.list(H.stopIds(), 6))
+    end)
+    H.tapA(function() return T.go and not T.off end)
+    H.wait(1500, function() return T.off or not T.go or H.pop() == nil end, function(ok)
+        H.padOff()
+        if T.off or not T.go then return end
+        Q.check(ok, "MP13 the tab in the dark (pad): A on the refusal folds the unfolded map", H.tabState())
+    end)
+    H.step(2, function()
+        if T.off then return end
+        if T.dark then H.day() else H.stageDark(false) end
+    end)
+    H.wait(12000, function() return T.off or not H.dark() end, function() T.tLit2 = getTimestampMs() end)
+    H.wait(3000, function() return T.off or not H.blocked() end, function(ok)
+        if T.off then return end
+        Q.check(ok and getTimestampMs() - (T.tLit2 or 0) <= 700, "MP13 the tab in the dark (" .. (T.dark and "a night" or "staged dark") .. "): a refused map looks again twice a second and comes back with the light",
+            "back " .. tostring(ok) .. " in " .. (getTimestampMs() - (T.tLit2 or 0)) .. " ms after the light")
         H.stageDark(false)
     end)
     -- MP59: a paper opened in the light keeps showing in the dark; Read Map in the dark is the game's greyed option
@@ -4206,15 +4349,22 @@ function C.b13()
         local e = H.errN()
         if e and S.e0 then H.note(T.L .. ": " .. (e - S.e0) .. " Lua errors logged by the staged build failure (excused)"); S.e0 = e end
         if e and S.eB13 then S.excused = (S.excused or 0) + (e - S.eB13) end
+        T.tWorks = getTimestampMs()
+        T.failed0 = RT.ww() and RT.ww()._worldMapFailed
     end)
-    H.pause(1200)
-    H.step(1, function()
+    H.step(2, function()
+        local word = H.tr("UI_ZeD_Map_Unavailable")
+        H.note(T.L .. ": the first build failed (staged): failed mark " .. tostring(T.failed0) .. ", the tab reads \"" .. tostring(H.drew(word) and word) .. "\"")
+    end)
+    -- the tab tries again a second after the failure (MapsTab MAP_RETRY_MS), and a build that works clears the mark
+    H.wait(2500, function() return H.mp() ~= nil end, function(ok)
         local w = RT.ww()
         local failed = w and w._worldMapFailed
-        local word = H.tr("UI_ZeD_Map_Unavailable")
-        H.note(T.L .. ": the first build failed (staged): failed mark " .. tostring(failed) .. ", the tab reads \"" .. tostring(H.drew(word) and word) .. "\"")
-        Q.check(H.mp() ~= nil, T.L .. ": once the map can be made again, the tab makes it (without the World window made again)",
-            "1.2 s after the build could work again: the map " .. tostring(H.mp() ~= nil) .. ", the failed mark " .. tostring(failed))
+        Q.check(ok and T.failed0 == true and not failed, T.L .. ": once the map can be made again, the tab makes it within about 2 s (no World window made again) and clears the failed mark",
+            "the map " .. tostring(H.mp() ~= nil) .. " after " .. (getTimestampMs() - (T.tWorks or 0)) .. " ms; failed at first " .. tostring(T.failed0) .. ", now " .. tostring(failed))
+    end)
+    H.wait(3000, function() return H.mapUp() end, function(ok)
+        Q.check(ok, T.L .. ": the made map shows on the tab", H.tabState())
         H.freshWindow()
     end)
     H.wait(4000, function() return #RT.tabs(RT.worldStrip()) > 0 end, function() end)
@@ -4404,6 +4554,7 @@ function H.putBack()
     if S.uwm then UIWorldMap = S.uwm; S.uwm = nil end
     if S.defs0 then PrintMediaDefinitions.MiscDetails = S.defs0; S.defs0 = nil end
     H.stageDark(false)
+    H.noteKbOff()
     H.gameWinWatch(false)
     H.extOff()
     if S.back.cbp ~= nil then pcall(function() getCore():setOptionColorblindPatterns(S.back.cbp) end); S.back.cbp = nil end
