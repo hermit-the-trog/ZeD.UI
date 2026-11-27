@@ -62,19 +62,21 @@ local function hasMagnifier(player)
     return (p and p:hasTag(ItemTag.MAGNIFIER)) or (s and s:hasTag(ItemTag.MAGNIFIER)) or false
 end
 
+-- Every container he carries with water, the one in his hand first (it is the default, as the game's menu offers
+-- it alone), then the rest biggest first. The game's menu lists only the hand item while it holds water; the card
+-- lists them all, so a pick can be made and kept: with the soda in hand, Use on the bottle then Water poured from
+-- the soda, the list at the press holding the hand item alone (QA FA8, Nov 26 2026; the director's call FA8).
 local function waterSources(player)
     local out = {}
     local h = player:getPrimaryHandItem()
-    if h and ISFarmingMenu.getWaterUsesInteger(h) > 0 then
-        out[1] = h
-        return out
-    end
+    local handHas = h and ISFarmingMenu.getWaterUsesInteger(h) > 0
     local items = player:getInventory():getItems()
     for i = 0, items:size() - 1 do
         local it = items:get(i)
-        if ISFarmingMenu.getWaterUsesInteger(it) > 0 then out[#out + 1] = it end
+        if it ~= h and ISFarmingMenu.getWaterUsesInteger(it) > 0 then out[#out + 1] = it end
     end
     table.sort(out, function(a, b) return ISFarmingMenu.getWaterUsesInteger(a) > ISFarmingMenu.getWaterUsesInteger(b) end)
+    if handHas then table.insert(out, 1, h) end
     return out
 end
 
