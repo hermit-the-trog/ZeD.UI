@@ -5851,9 +5851,15 @@ function ZeD_WorldWindow.toggle(playerNum)
                 end
                 if keepIdx and objCard._pendingFocus == wantId then objCard._pendingFocus = nil end
                 if not keepIdx and objCard._grabFocus then
-                    -- first verb, else the back button
+                    -- the primary verb, else the first verb, else the back button (the verbs sit in the band at the
+                    -- foot, a danger one leftmost, so the first is no longer the main one: Hermit, Nov 26 2026)
                     for i, el in ipairs(cardEls) do
-                        if string.sub(el.id or "", 1, 8) == "oc:verb:" then keepIdx = i; break end
+                        if el.isPrimary and string.sub(el.id or "", 1, 8) == "oc:verb:" then keepIdx = i; break end
+                    end
+                    if not keepIdx then
+                        for i, el in ipairs(cardEls) do
+                            if string.sub(el.id or "", 1, 8) == "oc:verb:" then keepIdx = i; break end
+                        end
                     end
                     keepIdx = keepIdx or 1
                 end

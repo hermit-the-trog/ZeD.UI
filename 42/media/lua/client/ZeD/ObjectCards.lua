@@ -23,7 +23,8 @@
 --                                check = { id, label, on, disabled, help, run },
 --                                buttons = { { id, label, variant, disabled, help, run }, ... }
 --                                (the main one last) }; run(player, t, card). Taken over
---                                def.status; a question still takes the band first.
+--                                def.status; a question still takes the band first. A kind with its own band
+--                                has no verbs: they would sit in the same band (the trade card's are none).
 --   def.pxIcon(t) (optional)  -> a ZeD pixel icon id for the header, when def.icon has no picture
 --   def.vehicleOk (optional)  -> true: the card stays open in a vehicle (a medical check in
 --                                the same car, a trade)
@@ -31,6 +32,9 @@
 --                                (asked only while the pointer is over the card)
 -- Verbs: { id, label, enabled, primary, danger, run(player, t, card), jump = fid,
 --          confirm = "question", help, sensible, needs, hint, needsLine }.
+-- The verbs are push buttons in the band at the foot (the kind's state line at
+-- their left), the primary one rightmost, a danger one leftmost; what a greyed
+-- or hidden one needs reads under the name (Hermit, Nov 26 2026).
 -- A verb with jump moves the view (and the controller focus) to a list in the
 -- body; one with confirm asks in the band at the foot first (danger when it
 -- cannot be undone). The card stays open within OC.LEASH tiles of the object.
@@ -1191,12 +1195,15 @@ function ZeD_ObjectCard:drawPillRow(y, txt, mark)
     return ty + T.px(16)
 end
 
--- the verbs in the order they read: the primary one first, the one that starts a question last
+-- the verbs in the order the band at the foot reads them, left to right: the one that starts a
+-- question first, then the rest, the primary one last, at the right where a band's default sits.
+-- A primary verb that can't run keeps its place, greyed, so the default spot never moves
+-- (Hermit, Nov 26 2026: the object cards' verbs go to the band at the foot, as the Mechanics tab's do).
 local function inOrder(list)
     local first, mid, last = {}, {}, {}
     for _, v in ipairs(list) do
-        if v.primary and v.enabled ~= false then first[#first + 1] = v
-        elseif v.danger then last[#last + 1] = v
+        if v.primary then last[#last + 1] = v
+        elseif v.danger then first[#first + 1] = v
         else mid[#mid + 1] = v end
     end
     for _, v in ipairs(mid) do first[#first + 1] = v end
@@ -1204,8 +1211,10 @@ local function inOrder(list)
     return first
 end
 
--- The verbs for the thing, under its name: push buttons (hidden actions per the ZeD setup: a
--- greyed verb with its NEEDS line, or one folded row that opens to them). Returns the y under.
+-- The verbs for the thing: which show (hidden actions per the ZeD setup), where the controller lands,
+-- and under the name only what they need: a greyed verb's NEEDS line, or the one folded row that
+-- opens to the hidden ones. The push buttons themselves are drawn in the band at the foot
+-- (drawVerbBand). Returns the y under.
 function ZeD_ObjectCard:drawVerbs(e, y, win)
     local T = ZeD.T
     local DS = ZeD.Disclose
@@ -1228,34 +1237,17 @@ function ZeD_ObjectCard:drawVerbs(e, y, win)
         end
     end
     self._mainFid = mainFid
-    if #shown == 0 and #hidden == 0 then return y end
-
-    local padX, gap = T.px(8), T.px(6)
-    local bh = T.buttonH
-    local hv = self._hoverFid
-    local vx, vy = padX, y + T.px(6)
-    local maxX = w - padX
-    for i, v in ipairs(shown) do
-        local fid = "oc:verb:" .. tostring(v.id or i)
-        local bw = M.buttonW(v.label)
-        local label = v.label
-        -- A button wider than the whole row (a long verb in the half card, 220, in some languages):
-        -- it is cut to the row, its words ending in "...". The help line still names the verb.
-        if bw > maxX - padX then
-            bw = maxX - padX
-            label = A.truncateText(ZeD.btnCase(label or ""), T.fontF3, bw - T.sp.buttonPadX * 2)
-        end
-        if vx + bw > maxX and vx > padX then vx = padX; vy = vy + bh + gap end
-        UI.button(self, vx, vy, label, { w = bw, h = bh, primary = v.primary and v.enabled ~= false, danger = v.danger,
-            disabled = v.enabled == false, hover = hv == fid, focus = self:focusOf(fid) })
-        local vv = v
-        self:zone({ fid = fid, x = vx, y = vy, w = bw, h = bh, run = function() self:press(vv) end, verb = true,
-            primary = (fid == mainFid) or nil, help = v.help })
-        vx = vx + bw + gap
-    end
-    local cy = (#shown > 0) and (vy + bh + T.px(6)) or (y + T.px(2))
-    -- Show all: one NEEDS line for each greyed verb
+    local greyed = false
     if setting == "all" then
+        for _, v in ipairs(shown) do if not v.canDo then greyed = true; break end end
+    end
+    if #hidden == 0 and not greyed then return y end
+
+    local padX = T.px(8)
+    local hv = self._hoverFid
+    local cy = y + T.px(6)
+    -- Show all: one NEEDS line for each greyed verb
+    if greyed then
         for _, v in ipairs(shown) do
             if not v.canDo then cy = cy + M.drawNeedsLine(self, padX, cy, w - 2 * padX, DS.needsLine(v)) + T.px(4) end
         end
@@ -1375,6 +1367,74 @@ local function drawOwnFoot(self, e, foot, fy, w, win)
     end
 end
 
+-- The verbs' rows in the band at the foot, top row first: as many as fit on a row, packed from the
+-- right so the primary verb ends the bottom row; a card too narrow for them all (the half card, 220,
+-- or long words in some languages) gets a second row above. A button wider than the whole row is cut
+-- to it, its words ending in "..."; the help line still names the verb. Each item: { v, fid, label, bw }.
+local function verbRows(self, w)
+    local T = ZeD.T
+    local shown = self._shown or {}
+    if #shown == 0 then return nil end
+    local edge, gap = T.px(8), T.px(8)   -- (M.drawBand's own edge and gap)
+    local room = w - 2 * edge
+    local rows, row, used = {}, {}, 0
+    for i = #shown, 1, -1 do
+        local v = shown[i]
+        local label = v.label or ""
+        local bw = M.buttonW(label)
+        if bw > room then
+            bw = room
+            label = A.truncateText(ZeD.btnCase(label), T.fontF3, bw - T.sp.buttonPadX * 2)
+        end
+        if #row > 0 and used + gap + bw > room then
+            table.insert(rows, 1, row)
+            row, used = {}, 0
+        end
+        table.insert(row, 1, { v = v, fid = "oc:verb:" .. tostring(v.id or i), label = label, bw = bw })
+        used = used + ((#row > 1) and gap or 0) + bw
+    end
+    table.insert(rows, 1, row)
+    return rows
+end
+
+-- the bottom row's labels, for the room a state line has beside them (footLines)
+local function rowLabels(row)
+    local out = {}
+    for i, b in ipairs(row) do out[i] = b.label end
+    return out
+end
+
+-- Draw the verbs' band at fy: the state line's strip over it when its words don't fit beside the
+-- buttons, then the rows. Each verb is a controller stop pinned with the band (foot = true).
+function ZeD_ObjectCard:drawVerbBand(rows, fy, w, status, lines, win)
+    local T = ZeD.T
+    local hv = self._hoverFid
+    local by = fy
+    if lines then by = by + drawFootStrip(self, by, w, lines, status and status.c) end
+    for ri, row in ipairs(rows) do
+        local last = ri == #rows
+        local spec = { win = win, buttons = {}, noLine = (by > fy) or nil }
+        if last and status and status.text and not lines then spec.status = { text = status.text, color = status.c } end
+        for j, b in ipairs(row) do
+            local v = b.v
+            local can = v.enabled ~= false
+            spec.buttons[j] = { label = b.label, w = b.bw, id = b.fid, help = v.help, disabled = not can,
+                variant = (v.primary and can and "primary") or (v.danger and "danger") or nil,
+                hover = hv == b.fid, focus = self:focusOf(b.fid) }
+        end
+        local _, rects = M.drawBand(self, 0, by, w, spec)
+        for j, b in ipairs(row) do
+            local r = rects.buttons[j]
+            if r then
+                local vv = b.v
+                self:zone({ fid = b.fid, x = r.x, y = r.y, w = r.w, h = r.h, foot = true, verb = true,
+                    primary = (b.fid == self._mainFid) or nil, help = vv.help, run = function() self:press(vv) end })
+            end
+        end
+        by = by + M.bandH()
+    end
+end
+
 function ZeD_ObjectCard:prerender()
     local e = self.entry
     if not e then return end
@@ -1417,10 +1477,12 @@ function ZeD_ObjectCard:prerender()
         self._wantGrab = nil
     end
 
-    -- BODY (one scrolling unit); the band at the foot holds a question, or the kind's state line
+    -- BODY (one scrolling unit); the band at the foot holds a question, else the kind's own band, else the verbs with the
+    -- kind's state line, else the state line alone
     local footH, status = 0, nil
     local foot = nil     -- (def.foot's band: the card's own actions)
     local fLines = nil   -- (a half card's foot words, wrapped into a strip when the band cannot hold them)
+    local vRows = nil    -- (the verbs' rows in the band at the foot)
     local cf = self._confirm
     if cf then
         footH = M.bandH()
@@ -1436,9 +1498,21 @@ function ZeD_ObjectCard:prerender()
         elseif not fok then
             ZeD.logOnce("ObjectCards foot " .. tostring(def.id), fs)
         end
-    elseif def.status then
-        local sok, st = pcall(def.status, t)
-        if sok and st and st.text then
+    else
+        local st = nil
+        if def.status then
+            local sok, s = pcall(def.status, t)
+            if sok and s and s.text then st = s end
+        end
+        vRows = verbRows(self, w)
+        if vRows then
+            -- the verbs' band (a row more when they don't fit one), the state line at its left; words too long
+            -- for the room beside the buttons go in a strip over the band, at either width
+            status = st
+            footH = #vRows * M.bandH()
+            if st then fLines = footLines(self, w, st.text, rowLabels(vRows[#vRows])) end
+            if fLines then footH = footH + footStripH(fLines) end
+        elseif st then
             status = st
             footH = M.bandH()
             if def.half then fLines = footLines(self, w, st.text, NO_LABELS) end
@@ -1511,7 +1585,7 @@ function ZeD_ObjectCard:prerender()
     end
     self._jumpTo = nil
 
-    -- the band at the foot: the question before the act that asks one, else the kind's state line
+    -- the band at the foot: the question before the act that asks one, else the kind's own band, the verbs or the state line
     local fy = h - footH
     if cf then
         UI.claim(self, 0, fy, w, footH)
@@ -1539,6 +1613,9 @@ function ZeD_ObjectCard:prerender()
     elseif foot then
         UI.claim(self, 0, fy, w, footH)
         drawOwnFoot(self, e, foot, fy, w, win)
+    elseif vRows then
+        UI.claim(self, 0, fy, w, footH)
+        self:drawVerbBand(vRows, fy, w, status, fLines, win)
     elseif status then
         UI.claim(self, 0, fy, w, footH)
         if fLines then
