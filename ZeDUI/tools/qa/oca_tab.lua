@@ -2954,6 +2954,8 @@ function C.hu4(which)
         local shut = H.txt("IGUI_PutAnimalInHutch_DoorsClosed", "Doors closed")
         T.reason = H.drewLow(full) ~= nil or H.drewLow(shut) ~= nil
         for _, l in ipairs(S.needs or {}) do if H.has(H.low(l), H.low(H.tr("UI_ZeD_Hutch_PutIn"))) then T.reason = true end end
+        -- (the game's words in a NEEDS line, Build's fix/cards3: "Hutch is full." / the doors closed words)
+        for _, l in ipairs(S.needs or {}) do if H.has(H.low(l), H.low(full)) or H.has(H.low(l), H.low(shut)) then T.reason = true end end
         local shutNow = "?"
         pcall(function() shutNow = tostring(T.h:isAllDoorClosed()) end)
         local ev = "Put in in the verb row " .. tostring(T.putin) .. " (lit " .. tostring(T.putinLit) .. "), in the folded row " .. tostring(T.folded) .. ", a reason drawn " .. tostring(T.reason)
