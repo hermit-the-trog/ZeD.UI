@@ -5192,14 +5192,19 @@ function ZeD_CharacterWindow.toggle(playerNum)
         return true
     end
 
-    -- Scroll wheel zoom when expanded
+    -- The wheel zooms the full body only. On the bust (a fixed crop, nothing to zoom) it scrolls
+    -- the tab as anywhere else in it; the photo held it and the tab stayed put. The zoom stops at
+    -- -6 (the whole body with room round it) and 12 (about half the body); past those the figure
+    -- only shrank to a speck or filled the frame with cloth (QA I17, Nov 27 2026). The camera is
+    -- 2 * (25 - zoom) / sqrt(2048) units tall (_fitFigureCut): 0 is the frame's own fit.
     identityModel.onMouseWheel = function(self, del)
         -- on the Equip doll the wheel scrolls the tab, as anywhere else in it
-        if win._activeTab == "equip" and drawer.onMouseWheel then
+        if (win._activeTab == "equip" or not win._identityPhotoExpanded) and drawer.onMouseWheel then
             return drawer.onMouseWheel(drawer, del)
         end
         if win._identityPhotoExpanded then
-            win._identityCustomZoom = win._identityCustomZoom - del * 2
+            local z = (win._identityCustomZoom or 0) - del * 2
+            win._identityCustomZoom = math.max(-6, math.min(12, z))
         end
         return true
     end
