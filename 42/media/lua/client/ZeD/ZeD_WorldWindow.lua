@@ -4704,9 +4704,23 @@ function ZeD_WorldWindow.toggle(playerNum)
         -- (QA OC7, Nov 26 2026) the columns an object card pushed out come back when it closes: at 1280x800 three
         -- columns and the lock card did not fit, one went, and after the card only two came back. Put back in front,
         -- as they were; the eviction below takes them again if the window still has no room.
-        if win._mcEvicted and not win._drawerObject then
+        -- (they wait for the room: the drawer slides shut over a few frames, and a column put back on the first one was
+        -- taken again by the eviction below while the card's width was still there; QA OC7 second pass. Given up
+        -- after a few seconds, or when the columns change in between.)
+        local fits = false
+        if win._mcEvicted and not win._drawerObject and mcActive and #(win._mcSelected) > 0 then
+            local R0 = getR()
+            local n = #win._mcSelected + #win._mcEvicted + (win._mainVisible and 1 or 0)
+            local xw = T.px(R0.getXferW and R0.getXferW(n) or 32)
+            fits = (invW - (n - 1) * xw) / n >= T.px(R0.MIN_COL_W or 140)
+            win._mcEvictedAt = win._mcEvictedAt or getTimestampMs()
+            if not fits and getTimestampMs() - win._mcEvictedAt > 3000 then win._mcEvicted, win._mcEvictedAt = nil, nil end
+        elseif win._mcEvicted and not win._drawerObject then
+            win._mcEvicted, win._mcEvictedAt = nil, nil
+        end
+        if win._mcEvicted and fits then
             local back = win._mcEvicted
-            win._mcEvicted = nil
+            win._mcEvicted, win._mcEvictedAt = nil, nil
             if mcActive and #(win._mcSelected) > 0 then
                 for i = #back, 1, -1 do
                     local ci = back[i]
@@ -4747,6 +4761,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                 if win._drawerObject then
                     win._mcEvicted = win._mcEvicted or {}
                     win._mcEvicted[#win._mcEvicted + 1] = gone
+                    win._mcEvictedAt = nil   -- (the wait for room starts once the card is gone)
                 end
                 totalCols = #win._mcSelected + (win._mainVisible and 1 or 0)   -- (a hidden floor takes no column: one extra stays)
                 xferW = T.px(R.getXferW and R.getXferW(totalCols) or 32)
