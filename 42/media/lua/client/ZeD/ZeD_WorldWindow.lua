@@ -6587,7 +6587,9 @@ function ZeD_WorldWindow.openObjectCard(playerNum, entry)
     if not (win and win._objectCard) then return false end
     local content = win._mainContent
     if content then
-        if #(win._mcSelected or {}) > 0 and exitWorldMC then exitWorldMC(win, content) end
+        -- (QA OC7, Nov 26 2026) the Loot columns stay: a card opened from the game's menu or a locked crate's
+        -- button closed his extra columns (2 to 0) and never gave them back. The drawer sits beside the columns
+        -- as the item card does; only a new column opened under a card still takes the card (enterWorldMC).
         content._selectedItems = {}
         content._lastClickedItem = nil
     end
