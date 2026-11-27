@@ -13,8 +13,9 @@
 -- time left at the current draw and the fuel in litres; then condition, what
 -- it powers in L/h, the indoor fumes warning, and vanilla's generator actions
 -- as header verbs:
---   TURN ON / OFF  ISActivateGenerator (on needs it connected and fuel; at 50%
---                  condition or less it can fail to start, vanilla rolls that)
+--   TURN ON / OFF  ISActivateGenerator (on needs it connected, fuel and condition
+--                  above 0; at 50% or less it can fail to start, vanilla rolls
+--                  that; on indoors says the game's fumes line over his head)
 --   ADD FUEL       ISAddFuel per petrol can (off, under a full tank)
 --   FIX            ISFixGenerator (off, under 100%, Scrap Electronics,
 --                  Electricity 3 or the generator magazine)
@@ -301,6 +302,38 @@ ZeD.ObjectCardPower.LOAD_FULL = LOAD_FULL
 
 local function isGenerator(o) return o ~= nil and instanceof(o, "IsoGenerator") end
 
+--- Indoors by the game's own rule for the toxic line: not outside and in a building (ISGeneratorInfoWindow.getRichText).
+function ZeD.ObjectCardPower.indoors(g)
+    local sq = g and call(g, "getSquare")
+    return sq ~= nil and not sq:isOutside() and sq:getBuilding() ~= nil
+end
+
+--- Why the game's ISActivateGenerator would refuse to start it (the wheel's and the pop-out's sentence), nil when it
+--- would start. Its isValid checks connected, fuel and condition; at condition 0 the game's menu still offers Turn on
+--- and the press does nothing, so ZeD says why instead (QA PW4, Nov 26 2026).
+function ZeD.ObjectCardPower.whyNotOn(g)
+    if not g then return nil end
+    if (call(g, "getFuel") or 0) <= 0 then return ZeD.tr("UI_ZeD_Power_NeedFuel") end
+    if not call(g, "isConnected") then return ZeD.tr("UI_ZeD_Power_NeedConnected") end
+    if (call(g, "getCondition") or 0) <= 0 then return ZeD.tr("UI_ZeD_Power_NeedRepair") end
+    return nil
+end
+
+--- Turn it on or off with the game's handler (its walk and ISActivateGenerator). Turning one on indoors says the
+--- game's fumes line over his head at the press: the card's body warned, but the pop-out and the Lights wheel
+--- started one in a garage without a word. It warns, it doesn't stop him (QA PW1, Nov 26 2026).
+function ZeD.ObjectCardPower.activate(player, g, enable, pn)
+    if enable and ZeD.ObjectCardPower.indoors(g) and HaloTextHelper and HaloTextHelper.addBadText then
+        pcall(HaloTextHelper.addBadText, player, getText("IGUI_Generator_IsToxic"))
+    end
+    ISWorldObjectContextMenu.onActivateGenerator(nil, enable, g, pn or player:getPlayerNum())
+end
+
+--- Says why it can't start over his head: the press on a switch that can't turn on, so the pad's A isn't silent.
+function ZeD.ObjectCardPower.sayWhy(player, why)
+    if why and player and HaloTextHelper and HaloTextHelper.addBadText then pcall(HaloTextHelper.addBadText, player, why) end
+end
+
 local function canElectric(player)
     return player:getPerkLevel(Perks.Electricity) >= 3 or (call(player, "isRecipeActuallyKnown", "Generator") == true)
 end
@@ -388,8 +421,7 @@ function def.refresh(t, player)
             d.items[#d.items + 1] = { name = name, val = val }
         end
     end
-    local sq = g:getSquare()
-    d.toxic = sq ~= nil and not sq:isOutside() and sq:getBuilding() ~= nil
+    d.toxic = ZeD.ObjectCardPower.indoors(g)
     d.itemType = call(g, "getGeneratorItemType")
     local si = scriptItem(d.itemType)
     d.name = (si and call(si, "getDisplayName")) or getText("ContextMenu_Generator")
@@ -402,11 +434,17 @@ function def.refresh(t, player)
     -- verbs, with vanilla's rules. Running, adding fuel, fixing, connecting and taking it all wait
     -- for one thing the player can do right here: turn it off (the need "the generator turned off").
     local verbs = {}
-    local onOK = d.on or (d.conn and d.fuel > 0)
+    -- (at condition 0 the game's action refuses: Turn on greys with the reason, not lit as the main verb; QA PW4,
+    -- Nov 26 2026)
+    local onOK = d.on or (d.conn and d.fuel > 0 and d.cond > 0)
     local function toggle(p, tt)
-        ISWorldObjectContextMenu.onActivateGenerator(nil, not tt.obj:isActivated(), tt.obj, p:getPlayerNum())
+        ZeD.ObjectCardPower.activate(p, tt.obj, not tt.obj:isActivated(), p:getPlayerNum())
     end
     t.toggle = onOK and toggle or nil
+    -- what the engine switch says on the face and the pop-out: the game's fumes line while it's off indoors, else
+    -- why it can't start (QA PW1/PW4, Nov 26 2026)
+    t.powerWhy = (not onOK) and ZeD.ObjectCardPower.whyNotOn(g) or nil
+    t.powerWarn = (not d.on and d.toxic) and getText("IGUI_Generator_IsToxic") or nil
     t.plug = nil                       -- the outlet: only while it is off (below)
     local off = not d.on
     local fuelOK = off and d.pct < 100 and #d.cans > 0
@@ -420,7 +458,7 @@ function def.refresh(t, player)
         sensible = d.pct < 100, needs = off and ZeD.tr("UI_ZeD_Power_NeedsCan") or NEED_OFF, hint = ZeD.tr("UI_ZeD_Power_HintFuel"),
         help = ZeD.tr("UI_ZeD_Power_HelpFuel") }
     verbs[#verbs + 1] = { id = "power", label = getText(d.on and "ContextMenu_Turn_Off" or "ContextMenu_Turn_On"), enabled = onOK, primary = primary == "power", run = toggle,
-        needs = ZeD.tr(d.fuel <= 0 and "UI_ZeD_Power_NeedsFuel" or "UI_ZeD_Power_NeedsConnected"), hint = ZeD.tr("UI_ZeD_Power_HintOn"),
+        needs = ZeD.tr((d.fuel <= 0 and "UI_ZeD_Power_NeedsFuel") or (not d.conn and "UI_ZeD_Power_NeedsConnected") or "UI_ZeD_Power_NeedsRepair"), hint = ZeD.tr("UI_ZeD_Power_HintOn"),
         help = ZeD.tr(d.on and "UI_ZeD_Power_HelpOff" or "UI_ZeD_Power_HelpOn") }
     verbs[#verbs + 1] = { id = "fix", label = ZeD.tr("UI_ZeD_Power_Fix"), enabled = fixOK, sensible = d.cond < 100,
         needs = off and ZeD.tr(d.elec and "UI_ZeD_Power_NeedsScrap" or "UI_ZeD_Power_NeedsElec") or NEED_OFF, hint = ZeD.tr("UI_ZeD_Power_HintFix"),
@@ -522,6 +560,11 @@ function ZeD.ObjectCardPower.face(card, px0, y, k, des, t)
     for _, c in ipairs(PL.controls(des, st)) do
         local fid = "gen:" .. c.id
         local fn = (c.id == "engine" and t.toggle) or (c.id == "outlet" and t.plug) or nil
+        -- the engine's line: the fumes while it's off indoors, else why it won't start; a press on a switch that
+        -- can't start says why over his head (the pop-out's pad A said nothing; QA PW1/PW4, Nov 26 2026)
+        local warn = c.id == "engine" and (t.powerWhy or t.powerWarn) or nil
+        local why = c.id == "engine" and t.powerWhy or nil
+        if not fn and why then fn = function(p) ZeD.ObjectCardPower.sayWhy(p, why) end end
         -- a key (the outlet) takes the pointer's wash and the controller's mark; a knob or
         -- rocker keeps its own lit cue
         if c.kind == "turn" then
@@ -531,8 +574,8 @@ function ZeD.ObjectCardPower.face(card, px0, y, k, des, t)
             local fm = card:focusOf(fid)
             if fm then PL.markKey(card, c, px0, y, k, fm) end
         end
-        card:zone({ fid = fid, x = px0 + c.x * k, y = y + c.y * k, w = c.w * k, h = c.h * k, body = true,
-            help = (c.id == "engine" and ZeD.tr("UI_ZeD_Power_HelpEngine")) or (c.id == "outlet" and ZeD.tr("UI_ZeD_Power_HelpOutlet")) or nil,
+        card:zone({ fid = fid, x = px0 + c.x * k, y = y + c.y * k, w = c.w * k, h = c.h * k, body = true, warn = warn,
+            help = warn or (c.id == "engine" and ZeD.tr("UI_ZeD_Power_HelpEngine")) or (c.id == "outlet" and ZeD.tr("UI_ZeD_Power_HelpOutlet")) or nil,
             run = fn and function(cc, p) fn(p, t) end or nil })
     end
 end
@@ -606,7 +649,8 @@ local function drawPlain(card, x, y, w, t)
     y = y + OP.row(card, x, y, w, {
         label = ZeD.tr("UI_ZeD_PlainCard_Engine"),
         value = ZeD.tr(d.on and "UI_ZeD_Power_PillRunning" or "UI_Off"), dot = d.on and T.positive or nil,
-        ctl = { kind = "switch", fid = "gen:engine", on = d.on, help = ZeD.tr("UI_ZeD_Power_HelpEngine"),
+        ctl = { kind = "switch", fid = "gen:engine", on = d.on,
+                help = t.powerWhy or t.powerWarn or ZeD.tr("UI_ZeD_Power_HelpEngine"),   -- (QA PW1/PW4, Nov 26 2026)
                 run = t.toggle and function(cc, p) t.toggle(p, t) end or nil },
     })
     y = y + OP.row(card, x, y, w, {
@@ -658,7 +702,9 @@ function def.body(card, x, y, w, t, player)
     -- condition
     local condC = d.cond > 50 and T.positive or T.warning
     local condTxt = tostring(d.cond) .. "%"
-    if d.cond <= 50 then condTxt = ZeD.tr("UI_ZeD_Power_MayFail", condTxt) end
+    -- (at 0 the game won't start it at all, not "may fail"; QA PW4, Nov 26 2026)
+    if d.cond <= 0 then condTxt = ZeD.tr("UI_ZeD_Power_Broken", condTxt)
+    elseif d.cond <= 50 then condTxt = ZeD.tr("UI_ZeD_Power_MayFail", condTxt) end
     y = y + UI.meter(card, x, y, w, ZeD.tr("IGUI_invpanel_Condition"), condTxt, d.cond <= 50 and T.warning or nil, d.cond, condC) + gap
 
     if d.on then
