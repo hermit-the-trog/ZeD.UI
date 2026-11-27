@@ -2290,6 +2290,18 @@ function C.fa8(how)
         H.fill(T.big, Fluid.Water)
         H.setPlant(T.sq, { waterLvl = 20 })
         T.s0, T.b0, T.w0 = H.amount(T.small), H.amount(T.big), H.pf(T.sq, "waterLvl")
+        -- (fix/fa8pick2, Nov 27 2026: the pick is kept per player, "the one he picked, while he still carries it",
+        -- so it outlives the card. Leg 2 checks that, then clears it through the card's own table to stage "nothing
+        -- picked"; a player can't unpick from the card)
+        T.carried = "none"
+        pcall(function()
+            local wp = ZeD.ObjectCards.kinds.plant._waterPick
+            local w = wp and wp[S.pn]
+            if w then T.carried = H.nm(w) end
+            if wp then wp[S.pn] = nil end
+        end)
+        Q.check(T.carried == H.nm(T.small), T.L .. ": the pick is still his after the card closes (kept per player while he carries it)",
+            "the kept pick " .. tostring(T.carried) .. ", the one he picked " .. H.nm(T.small))
     end)
     H.cardQ(T, "plant", function() H.openPlot(T.sq) end)
     H.pause(400)
