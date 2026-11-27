@@ -3398,6 +3398,14 @@ function C.c26one(T, kind, open)
         local inv = ww - strips - drawer
         local folded = not w._invDrawerOpen
         local half = math.abs(drawer - H.px(220)) <= 1
+        -- (Hermit, Nov 26 2026: the hook, placement, farm, fire, power and hutch cards stay full width held in; only the
+        -- kinds laid out for the half card (def.halfOk) give way)
+        local def = nil
+        pcall(function() def = ZeD.ObjectCards.kinds[kind] end)
+        if def and not def.halfOk then
+            H.note(T.L .. ": the " .. kind .. " card stays full width held in, as Hermit picked (window " .. ww .. " px, the inventory beside it " .. inv .. " px)")
+            return
+        end
         Q.check(ww <= cap + 1 and (folded or inv >= H.px(180) - 1), T.L .. ": the " .. kind .. " card in the held-in window: the window within its cap, the inventory beside the card 180 units or folded",
             "window " .. ww .. " px (cap " .. cap .. "), the card's drawer " .. drawer .. " (" .. (half and "half" or "full") .. "), the inventory beside it "
             .. inv .. " px (180 units is " .. math.floor(H.px(180)) .. "), folded " .. tostring(folded))
