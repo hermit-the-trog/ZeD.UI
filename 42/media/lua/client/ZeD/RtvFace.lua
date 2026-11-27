@@ -756,7 +756,12 @@ local function param(chr, dev)
     return ok and v or nil
 end
 local function queue(a, dev)
-    if not a.deviceData then a.deviceData = dev:getDeviceData() end      -- (a square holding two sets answers for one)
+    -- the set the tab shows, always: the action names a placed set by its square, and a square holding two sets
+    -- (a radio beside a TV) answers for one of them, so the battery went to the TV, failed its isValid (a TV takes
+    -- no battery) and was dropped with nothing said (QA B4 / R30, Nov 27 2026). Only the client's half: on a
+    -- server the game re-reads the square, as its own menu does.
+    local dd = dev:getDeviceData()
+    if dd then a.deviceData = dd end
     ISTimedActionQueue.add(a)
     return true
 end
