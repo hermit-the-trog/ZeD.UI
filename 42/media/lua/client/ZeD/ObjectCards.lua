@@ -29,6 +29,8 @@
 --                                the same car, a trade)
 --   def.onKey(t, key, card) (optional) -> true when the card takes the key
 --                                (asked only while the pointer is over the card)
+--   def.onCancel(t, card) (optional) -> true when the kind spent the pad's B itself (a menu it
+--                                put up shuts first); false lets the card's own B run
 -- Verbs: { id, label, enabled, primary, danger, run(player, t, card), jump = fid,
 --          confirm = "question", help, sensible, needs, hint, needsLine }.
 -- A verb with jump moves the view (and the controller focus) to a list in the
@@ -1829,6 +1831,13 @@ function ZeD_ObjectCard:buildFocusables(win)
                 onFocus = function(w, el) end,
                 onActivate = function(w, el) if zz.run then OC.ownRun(card.entry, card:player(), zz.run, card, card:player()) end end,
                 onCancel = function(w, el)
+                    -- (QA MD4, Nov 26 2026) a kind's own B first (the medic card shuts the game's treatment menu
+                    -- it put up, and the card stays): def.onCancel(t, card) true spends the B
+                    local ce = card.entry
+                    if ce and ce.def and ce.def.onCancel then
+                        local okC, took = pcall(ce.def.onCancel, ce.t, card)
+                        if okC and took then return true end
+                    end
                     if card._confirm then card._confirm = nil else card:close() end
                 end,
                 onDpadDir = zz.dpad and function(w, el, dir)
