@@ -3150,6 +3150,9 @@ function C.c21()
         if T.off then return end
         H.note(T.L .. ": the item gone (the game: in no container, on no square " .. tostring(H.gone(T.it)) .. "): the card open " .. tostring(H.kind() == "track")
             .. " (valid() is always true for an item; the game's own window keeps its window too)")
+        -- (Nov 26 2026: the leg's own ISInspectAnimalTrackAction was still queued at B and reopened the card after it:
+        -- clear the game's queue before B, so only the card's B is judged)
+        pcall(function() ISTimedActionQueue.clear(S.p) end)
         H.padOn()
         T.onBack = H.focusCard("oc:back")
         T.qAtB = H.qkinds and H.qkinds() or "?"
