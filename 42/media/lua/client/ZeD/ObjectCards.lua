@@ -153,6 +153,9 @@ function OC.open(player, kindId, obj)
     local def = OC.kinds[kindId]
     if not (def and player and obj) then return false end
     if not (ZeD_WorldWindow and ZeD_WorldWindow.openObjectCard) then return false end
+    -- A kind that closes in a vehicle says no here, so the hook that asked hands the call back to the game's own
+    -- window; it said yes and the card shut on its first frame, and seated nothing opened at all (QA FL5, Nov 26 2026).
+    if call(player, "getVehicle") and not def.vehicleOk then return false end
     local t = def.resolve(player, obj)
     if not t then return false end
     return ZeD_WorldWindow.openObjectCard(player:getPlayerNum(), { def = def, t = t }) and true or false
@@ -184,6 +187,7 @@ function OC.openNear(player, kindId, obj, sq)
     local def = OC.kinds[kindId]
     if not (def and player and obj) then return false end
     local leash = def.leash or OC.LEASH
+    if call(player, "getVehicle") and not def.vehicleOk then return false end   -- (no walk from a seat: QA FL5, Nov 26 2026)
     if sq and (math.floor(player:getZ()) ~= sq:getZ() or OC.squareDist(player, sq) > leash - 0.5) then
         if luautils.walkAdj(player, sq) then
             ISTimedActionQueue.add(ZeDOpenCardAction:new(player, kindId, obj))

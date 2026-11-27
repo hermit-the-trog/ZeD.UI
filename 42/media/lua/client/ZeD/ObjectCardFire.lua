@@ -147,23 +147,73 @@ local function fuelRows(info, current, max, player)
     return rows
 end
 
--- The lighting methods vanilla offers (one row per tinder, first starter).
+-- (QA FI3, Nov 26 2026) the game sorts its lists by name; the card does too, so the lighter and the matches
+-- come in the same order as in its menu
+local function byName(a, b)
+    local x, y = tostring(call(a, "getDisplayName") or ""), tostring(call(b, "getDisplayName") or "")
+    if string.sort then return not string.sort(x, y) end   -- (Kahlua's, as vanilla sorts)
+    return x < y
+end
+
+-- (QA FI3, Nov 26 2026) tinder the player would not want burnt: a skill book, anything that teaches a recipe,
+-- a map, or a favorite. The game lists them like any paper, so the card puts them last and never picks them
+-- when Light is pressed.
+local function keptTinder(item)
+    if call(item, "isFavorite") == true then return true end
+    if call(item, "IsMap") == true or (instanceof and instanceof(item, "MapItem")) then return true end
+    local sk = call(item, "getSkillTrained")
+    if sk ~= nil and tostring(sk) ~= "" then return true end
+    if call(item, "getDisplayCategory") == "SkillBook" then return true end
+    local rec = call(item, "getTeachedRecipes")
+    if rec ~= nil and call(rec, "isEmpty") == false then return true end
+    return false
+end
+
+-- (QA FI3, Nov 26 2026) 0: the game's own named tinder (paper, sheets, twigs, napkins); 1: anything else
+-- that is not reading; 2: books, magazines and newspapers; 3: what the player keeps
+local function tinderRank(item)
+    if keptTinder(item) then return 3 end
+    local ty = call(item, "getType")
+    if (campingLightFireType and ty and campingLightFireType[ty]) or call(item, "hasTag", ItemTag and ItemTag.IS_FIRE_TINDER) == true then return 0 end
+    if call(item, "IsLiterature") == true then return 2 end
+    return 1
+end
+
+-- The lighting methods vanilla offers (one row per tinder, the first starter by name). Petrol first, then paper
+-- and plain tinder, the notched plank, books, and last what the player keeps (QA FI3, Nov 26 2026).
 local function lightRows(info, hasFuel, player)
     local rows = {}
-    local starters = info.starters or {}
+    local starters = {}
+    for _, s in ipairs(info.starters or {}) do starters[#starters + 1] = s end
+    table.sort(starters, byName)
     local starter = starters[1]
     if starter and hasFuel and info.petrol then
         rows[#rows + 1] = { method = "petrol", name = info.petrol:getName(), with = starter:getName(),
             tex = info.petrol:getTex(), where = OC.whereOf(info.petrol, player), starter = starter, petrol = info.petrol }
     end
+    local tinder, rankOf = {}, {}
     if starter then
         for _, v in ipairs(info.tinder or {}) do
-            local count = info.itemCount[v:getName()] or 1
-            rows[#rows + 1] = { method = "tinder", name = v:getName() .. (count > 1 and (" (" .. tostring(count) .. ")") or ""), with = starter:getName(),
-                tex = v:getTex(), where = OC.whereOf(v, player), starter = starter, tinderType = v:getFullType(),
-                dur = ISCampingMenu.getFuelDurationForItem(v) }
+            tinder[#tinder + 1] = v
+            rankOf[v] = tinderRank(v)
+        end
+        table.sort(tinder, function(a, b)
+            if rankOf[a] ~= rankOf[b] then return rankOf[a] < rankOf[b] end
+            return byName(a, b)
+        end)
+    end
+    local function addTinder(lo, hi)
+        for _, v in ipairs(tinder) do
+            local rk = rankOf[v]
+            if rk >= lo and rk <= hi then
+                local count = info.itemCount[v:getName()] or 1
+                rows[#rows + 1] = { method = "tinder", name = v:getName() .. (count > 1 and (" (" .. tostring(count) .. ")") or ""), with = starter:getName(),
+                    tex = v:getTex(), where = OC.whereOf(v, player), starter = starter, tinderType = v:getFullType(),
+                    dur = ISCampingMenu.getFuelDurationForItem(v), kept = (rk == 3) }
+            end
         end
     end
+    addTinder(0, 1)
     if info.percedWood then
         local stick = info.stick or info.branch
         local endurance = player:getStats():get(CharacterStat.ENDURANCE)
@@ -176,7 +226,67 @@ local function lightRows(info, hasFuel, player)
             tex = info.percedWood:getTex(), where = OC.whereOf(info.percedWood, player), percedWood = info.percedWood, stick = stick,
             enabled = ok, need = need }
     end
+    addTinder(2, 3)
     return rows
+end
+
+-- (QA FI3, Nov 26 2026) the row Light goes to, so a second A lights with it: the first that can be used and is
+-- not kept; nil when only kept tinder is left (each still has its own Light button further down)
+local function firstSafeLight(rows)
+    for i, r in ipairs(rows) do
+        if r.enabled ~= false and not r.kept then return i end
+    end
+    return nil
+end
+
+-- A propane tank's gas, 0 to 1 (a tank on the floor beside the grill is read through its item).
+local function tankUses(tank)
+    local it = tank
+    if instanceof and instanceof(tank, "IsoWorldInventoryObject") then it = call(tank, "getItem") end
+    return tonumber(call(it, "getCurrentUsesFloat")) or 0
+end
+
+-- (QA FI6, Nov 26 2026) the tank the card would put in: the fullest one in the same places the game looks (the
+-- inventory and its bags, the floor on the eight squares round the grill); the game's own pick when that
+-- search finds nothing, so the card never offers less than its menu does
+local function fullestTank(player, bbq)
+    local best = ISBBQMenu.FindPropaneTank(player, bbq)
+    local bestU = best and tankUses(best) or 0
+    local inv = call(player, "getInventory")
+    local list = inv and call(inv, "getAllTypeRecurse", "Base.PropaneTank")
+    for i = 0, (list and list:size() or 0) - 1 do
+        local it = list:get(i)
+        local u = tankUses(it)
+        if u > bestU then best, bestU = it, u end
+    end
+    local cell = getCell and getCell()
+    local bsq = call(bbq, "getSquare")
+    if cell and bsq then
+        for y = bbq:getY() - 1, bbq:getY() + 1 do
+            for x = bbq:getX() - 1, bbq:getX() + 1 do
+                local sq = cell:getGridSquare(x, y, bbq:getZ())
+                if sq and not sq:isSomethingTo(bsq) then
+                    local wobs = sq:getWorldObjects()
+                    for i = 0, wobs:size() - 1 do
+                        local o = wobs:get(i)
+                        local it = call(o, "getItem")
+                        if it and call(it, "getFullType") == "Base.PropaneTank" then
+                            local u = tankUses(it)
+                            if u > bestU then best, bestU = o, u end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    if best and bestU <= 0 then return nil end
+    return best
+end
+
+-- Puts the fullest tank in reach in the cart (vanilla's insert; a tank already in comes out onto the ground).
+local function insertTank(p, tt)
+    local tank = fullestTank(p, tt.obj)
+    if tank then ISBBQMenu.onInsertPropaneTank(nil, p:getPlayerNum(), tt.obj, tank) end
 end
 
 local function refreshPropane(t, player)
@@ -189,7 +299,10 @@ local function refreshPropane(t, player)
     d.name = call(o, "getTileName") or ZeD.tr("UI_ZeD_Fire_PropaneBBQ")
     d.tex = spriteIcon(o)
     d.container = call(o, "getContainer")
-    d.spare = ISBBQMenu.FindPropaneTank(player, o)
+    d.spare = fullestTank(player, o)
+    -- (QA FI6, Nov 26 2026) the game's Insert takes the old tank out and leaves it on the ground in the same
+    -- action, so with a tank in, a fuller one in reach is a one-step swap
+    d.swap = d.tank and d.spare ~= nil and tankUses(d.spare) > math.min(1, d.fuel / PROPANE_FULL_MIN) + 0.01
     t.d = d
     local verbs = {}
     local toggle = function(p, tt) ISBBQMenu.onToggle(nil, p:getPlayerNum(), tt.obj) end
@@ -197,14 +310,11 @@ local function refreshPropane(t, player)
     verbs[#verbs + 1] = { id = "power", label = d.lit and getText("ContextMenu_Turn_Off") or getText("ContextMenu_Turn_On"), primary = d.hasFuel, enabled = d.hasFuel, run = toggle,
         needs = ZeD.tr("UI_ZeD_Fire_NeedsGas"), hint = ZeD.tr("UI_ZeD_Fire_HintOn"),
         help = ZeD.tr(d.lit and "UI_ZeD_Fire_HelpOff" or "UI_ZeD_Fire_HelpOn") }
-    -- a tank already in the cart: nothing to insert
+    -- no tank in: insert one; a tank in: only a fuller one is worth the swap (the main verb when the one in is empty)
     verbs[#verbs + 1] = { id = "insert", label = ZeD.tr("UI_ZeD_Fire_InsertTank"), enabled = d.spare ~= nil, primary = (not d.hasFuel) and d.spare ~= nil,
-        sensible = not d.tank, needs = ZeD.tr("UI_ZeD_Fire_NeedsSpareTank"), hint = ZeD.tr("UI_ZeD_Fire_HintTank"),
-        help = ZeD.tr("UI_ZeD_Fire_HelpInsert"),
-        run = function(p, tt)
-            local tank = ISBBQMenu.FindPropaneTank(p, tt.obj)
-            if tank then ISBBQMenu.onInsertPropaneTank(nil, p:getPlayerNum(), tt.obj, tank) end
-        end }
+        sensible = (not d.tank) or d.swap, needs = ZeD.tr("UI_ZeD_Fire_NeedsSpareTank"), hint = ZeD.tr("UI_ZeD_Fire_HintTank"),
+        help = ZeD.tr(d.swap and "UI_ZeD_Fire_HelpSwap" or "UI_ZeD_Fire_HelpInsert"),
+        run = function(p, tt) insertTank(p, tt) end }
     verbs[#verbs + 1] = { id = "remove", label = ZeD.tr("UI_ZeD_Fire_RemoveTank"), enabled = d.tank, sensible = d.tank,
         help = ZeD.tr("UI_ZeD_Fire_HelpRemove"),
         run = function(p, tt) ISBBQMenu.onRemovePropaneTank(nil, p:getPlayerNum(), tt.obj) end }
@@ -222,6 +332,24 @@ local function fuelInfo(t, player)
         t._fuelAt, t._fuelSq = now, sq
     end
     return t._fuelInfo
+end
+
+-- (QA FI5, Nov 26 2026) the game's take-apart drops what is on the fire to the ground, lit or not, and gives
+-- 3 stones, so the question names what will drop (the first three by name, then how many more); with nothing
+-- on it, the old question. UI_ZeD_Fire_ConfirmTakeApart ("what is on it drops", never named anything) stays
+-- unused in the language files: UI_ZeD_Fire_QTakeApartDrop says it and names the things.
+local function takeApartQuestion(container)
+    local items = container and call(container, "getItems")
+    local n = items and items:size() or 0
+    if n <= 0 then return ZeD.tr("UI_ZeD_Fire_QTakeApart") end
+    local names = {}
+    for i = 0, math.min(n, 3) - 1 do
+        local it = items:get(i)
+        names[#names + 1] = tostring(call(it, "getDisplayName") or call(it, "getName") or "?")
+    end
+    local list = table.concat(names, ", ")
+    if n > 3 then list = list .. " (+" .. tostring(n - 3) .. ")" end
+    return ZeD.tr("UI_ZeD_Fire_QTakeApartDrop", list)
 end
 
 function def.refresh(t, player)
@@ -281,8 +409,10 @@ function def.refresh(t, player)
     local full = d.fuel >= d.max
     local anyFits = false
     for _, r in ipairs(d.fuelRows) do if r.fits then anyFits = true end end
-    local canLight = false
-    for _, r in ipairs(d.lightRows) do if r.enabled ~= false then canLight = true end end
+    local safeLight = firstSafeLight(d.lightRows)
+    local canLight = safeLight ~= nil
+    local onlyKept = false
+    for _, r in ipairs(d.lightRows) do if r.enabled ~= false and r.kept then onlyKept = not canLight end end
     local fuelOK = (not full) and anyFits
     -- a full fire takes no more, a burning one is not lit again, a dead one is not put out:
     -- those verbs are gone (sensible = false); the rest wait for what they need
@@ -295,12 +425,15 @@ function def.refresh(t, player)
             if tt.kind == "campfire" then ISCampingMenu.onPutOutCampfire(nil, p, tt.obj)
             else ISBBQMenu.onExtinguish(nil, p:getPlayerNum(), tt.obj) end
         end }
-    verbs[#verbs + 1] = { id = "light", label = getText("ContextMenu_Light"), enabled = (not d.lit) and canLight, primary = (not d.lit) and canLight, jump = "fire:light:1",
-        sensible = not d.lit, needs = ZeD.tr(d.fuel <= 0 and "UI_ZeD_Fire_NeedsFuelFirst" or "UI_ZeD_Fire_NeedsLighter"),
+    -- (QA FI3, Nov 26 2026) Light goes to the first row that burns nothing the player keeps, not row 1
+    local lightNeeds = (onlyKept and "UI_ZeD_Fire_NeedsTinder") or (d.fuel <= 0 and "UI_ZeD_Fire_NeedsFuelFirst") or "UI_ZeD_Fire_NeedsLighter"
+    verbs[#verbs + 1] = { id = "light", label = getText("ContextMenu_Light"), enabled = (not d.lit) and canLight, primary = (not d.lit) and canLight,
+        jump = "fire:light:" .. tostring(safeLight or 1),
+        sensible = not d.lit, needs = ZeD.tr(lightNeeds),
         hint = ZeD.tr("UI_ZeD_Fire_HintLight"), help = ZeD.tr("UI_ZeD_Fire_HelpLight") }
     if t.kind == "campfire" then
         verbs[#verbs + 1] = { id = "take", label = ZeD.tr("UI_ZeD_Fire_TakeApart"), danger = true,
-            confirm = ZeD.tr("UI_ZeD_Fire_QTakeApart"), help = ZeD.tr("UI_ZeD_Fire_HelpTake"),
+            confirm = takeApartQuestion(d.container), help = ZeD.tr("UI_ZeD_Fire_HelpTake"),
             run = function(p, tt) ISCampingMenu.onRemoveCampfire(nil, p, tt.obj) end }
     end
     t.verbs = verbs
@@ -453,12 +586,14 @@ local function plateTex(name) return P.tex(ZeD.PhysPx.texdir .. name .. ".png") 
 
 -- the grill's controls (the face's and the plain card's): the cart takes a tank or gives it back; the igniter
 -- lights the burner (t.toggle: vanilla's toggle, nil without gas)
+-- (QA FI6, Nov 26 2026: an empty tank in and a full one in reach, the key swaps them in one step, as the card's
+-- main verb does, rather than taking the empty one out first)
+local function tankSwaps(tt)
+    return tt.obj:hasPropaneTank() and call(tt.obj, "hasFuel") ~= true and tt.d ~= nil and tt.d.spare ~= nil
+end
 local function tankFn(p, tt)
-    if tt.obj:hasPropaneTank() then ISBBQMenu.onRemovePropaneTank(nil, p:getPlayerNum(), tt.obj)
-    else
-        local tank = ISBBQMenu.FindPropaneTank(p, tt.obj)
-        if tank then ISBBQMenu.onInsertPropaneTank(nil, p:getPlayerNum(), tt.obj, tank) end
-    end
+    if tt.obj:hasPropaneTank() and not tankSwaps(tt) then ISBBQMenu.onRemovePropaneTank(nil, p:getPlayerNum(), tt.obj)
+    else insertTank(p, tt) end
 end
 -- (Nov 15 2026, QA's beta 16 pass, p336: the burner and the igniter ask the grill itself for gas when pressed, not
 -- the card's last read of it, so a tank that just went in lights at once rather than after the next refresh)
@@ -508,7 +643,7 @@ local function propanePlain(card, x, y, w, t)
         label = ZeD.tr("UI_ZeD_Fire_Tank"),
         value = d.tank and ZeD.tr("UI_ZeD_Fire_TankIn") or ZeD.tr("IGUI_None"),
         share = st.tankF, shareLabel = ZeD.tr("UI_ZeD_Fire_Tank"),
-        ctl = { kind = "button", fid = "bbq:tank", word = ZeD.tr(d.tank and "UI_ZeD_Fire_RemoveTank" or "UI_ZeD_Fire_InsertTank"),
+        ctl = { kind = "button", fid = "bbq:tank", word = ZeD.tr((d.tank and not (d.spare and not d.hasFuel)) and "UI_ZeD_Fire_RemoveTank" or "UI_ZeD_Fire_InsertTank"),
                 help = ZeD.tr("UI_ZeD_Fire_HelpTankPart"), run = (d.tank or d.spare) and function(cc, p) tankFn(p, t) end or nil },
     })
     return y - y0

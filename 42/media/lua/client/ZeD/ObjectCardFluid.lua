@@ -178,6 +178,73 @@ local function jobDelta(act)
     return (ok and v) or 0
 end
 
+-- The whole chain the card queued for a pour or an empty (the item moves, the walk, the action itself) is kept on
+-- the card (t.queued) and looked up in the game's queue, as the Vehicle tab's chainBusy does. The card asked only
+-- after the pour action at its next refresh, so two presses in one frame queued two pours (QA FL4, Nov 26 2026).
+local function gameQueue(p)
+    local ok, q = pcall(function() return ISTimedActionQueue.getTimedActionQueue(p) end)
+    if ok and q and type(q.queue) == "table" then return q end
+    return nil
+end
+local function inQueue(q, a)
+    for i = 1, #q.queue do if q.queue[i] == a then return true end end
+    return false
+end
+local function chainBusy(t, p)
+    local list = t and t.queued
+    if not list then return false end
+    local q = gameQueue(p)
+    if q then
+        for i = 1, #list do if inQueue(q, list[i]) then return true end end
+    end
+    t.queued, t.action = nil, nil
+    return false
+end
+
+-- Runs fn, which queues the game's actions, and keeps what it added.
+local function track(t, p, fn)
+    local q = gameQueue(p)
+    local before = {}
+    if q then for i = 1, #q.queue do before[q.queue[i]] = true end end
+    local ok, err = pcall(fn)
+    if not ok then print("[ZeD] fluid card: queueing failed: " .. tostring(err)) end
+    q = gameQueue(p)
+    local list = {}
+    if q then
+        for i = 1, #q.queue do
+            local a = q.queue[i]
+            if not before[a] then list[#list + 1] = a end
+        end
+    end
+    t.queued = (#list > 0) and list or nil
+end
+
+-- Stop: the game's own stop when the running action is the chain's (it ends that action and empties the queue, as
+-- moving does), then what is left of the chain taken out unstarted. Stop called forceStop on the pour, whose Java
+-- action is nil until the walk ends, so it threw, the walk went on and the pour ran (QA FL3, Nov 26 2026).
+local function stopChain(t, p)
+    local list = t.queued or {}
+    local q = gameQueue(p)
+    local head = q and q.queue[1]
+    if head then
+        for i = 1, #list do
+            if list[i] == head then pcall(function() ISTimedActionQueue.clear(p) end); break end
+        end
+    end
+    q = gameQueue(p)
+    if q then
+        for i = #list, 1, -1 do
+            local a = list[i]
+            if inQueue(q, a) then
+                pcall(function() q:removeFromQueue(a) end)
+                pcall(function() a:forceCancel() end)
+            end
+        end
+    end
+    t.queued, t.action = nil, nil
+    t._refreshT = OC.REFRESH
+end
+
 local def = { id = "fluid" }
 
 --- arg = { container = ISFluidContainer, source = bool, info = bool }.
@@ -230,9 +297,9 @@ function def.refresh(t, player)
     local ffc = t.from and t.from:getFluidContainer()
     local ifc = t.into and t.into:getFluidContainer()
 
-    -- pouring?
-    d.pouring = t.action ~= nil and ISTimedActionQueue.hasAction(t.action)
-    if not d.pouring then t.action = nil end
+    -- busy with what the card queued (an empty, or a pour from its first step), and pouring
+    d.busy = chainBusy(t, player)
+    d.pouring = d.busy and t.action ~= nil
 
     -- rows: the pinned world container, then what you carry
     local rows = {}
@@ -275,7 +342,7 @@ function def.refresh(t, player)
         elseif not r.isFrom and fc:isEmpty() then
             r.tag = ZeD.tr("Fluid_Empty")
         end
-        if d.pouring then r.canFrom, r.canInto = false, false end
+        if d.busy then r.canFrom, r.canInto = false, false end
     end
     d.rows = rows
 
@@ -305,59 +372,77 @@ function def.refresh(t, player)
 
     -- verbs
     local verbs = {}
-    local pourOK = d.can and d.max > 0 and (t.frac or 0) > 0 and not d.pouring
+    local pourOK = d.can and d.max > 0 and (t.frac or 0) > 0 and not d.busy
     -- Pour waits for the two sides; when the engine refuses the pair, its own words say why
-    -- (needsLine); while it pours the verbs are gone, the strip in the body has Stop
+    -- (needsLine); while what the card queued runs the verbs stay, greyed, and the strip in the
+    -- body has Stop (QA FL4, Nov 26 2026)
     local pourNeeds = "UI_ZeD_Fluid_NeedsFit"
-    if d.can and d.max <= 0 then pourNeeds = "UI_ZeD_Fluid_NeedsLiquid"
+    if d.busy then pourNeeds = "UI_ZeD_Fluid_NeedsIdle"
+    elseif d.can and d.max <= 0 then pourNeeds = "UI_ZeD_Fluid_NeedsLiquid"
     elseif d.can then pourNeeds = "UI_ZeD_Fluid_NeedsAmount" end
+    local idle = ZeD.tr("UI_ZeD_Fluid_NeedsIdle")
     verbs[#verbs + 1] = { id = "pour", label = txt("Fluid_Transfer", "Pour"), primary = true, enabled = pourOK,
-        sensible = ffc ~= nil and ifc ~= nil and not d.pouring,
+        sensible = ffc ~= nil and ifc ~= nil,
         needs = ZeD.tr(pourNeeds), hint = ZeD.tr("UI_ZeD_Fluid_HintPour"),
-        needsLine = d.reason and ((d.reason == TOO_FULL) and ZeD.tr("UI_ZeD_Fluid_TooFull") or d.reason) or nil,
+        needsLine = (d.reason and not d.busy) and ((d.reason == TOO_FULL) and ZeD.tr("UI_ZeD_Fluid_TooFull") or d.reason) or nil,
         help = ZeD.tr("UI_ZeD_Fluid_HelpPour"),
         run = function(p, tt) def.pour(p, tt) end }
     verbs[#verbs + 1] = { id = "switch", label = txt("Fluid_Swap", "Switch"),
-        enabled = true, sensible = (t.from ~= nil or t.into ~= nil) and not d.pouring,
+        enabled = not d.busy, sensible = (t.from ~= nil or t.into ~= nil), needs = idle,
         help = ZeD.tr("UI_ZeD_Fluid_HelpSwitch"),
-        run = function(p, tt) setSides(tt, tt.into, tt.from) end }
-    local emptyOK = ffc ~= nil and not ffc:isEmpty() and ffc:canPlayerEmpty() and not t.from:isResource() and not d.pouring
+        run = function(p, tt) if not chainBusy(tt, p) then setSides(tt, tt.into, tt.from) end end }
+    local emptyCan = ffc ~= nil and not ffc:isEmpty() and ffc:canPlayerEmpty() and not t.from:isResource()
     local emptyQ = nil
-    if emptyOK then
-        emptyQ = ZeD.tr("UI_ZeD_Fluid_QEmpty", L(ffc:getAmount()), string.lower(d.fluid or ZeD.tr("UI_ZeD_Fluid_LiquidWord")))
+    if emptyCan then
+        -- the question names the container on the left: after Switch it can be the rain collector (QA FL2, Nov 26 2026)
+        emptyQ = ZeD.tr("UI_ZeD_Fluid_QEmptyNamed", d.fromName or ZeD.tr("UI_ZeD_Fluid_Container"), L(ffc:getAmount()),
+            string.lower(d.fluid or ZeD.tr("UI_ZeD_Fluid_LiquidWord")))
     end
-    verbs[#verbs + 1] = { id = "empty", label = txt("Fluid_Empty", "Empty"), enabled = emptyOK, sensible = emptyOK, danger = true,
-        confirm = emptyQ, help = ZeD.tr("UI_ZeD_Fluid_HelpEmpty"),
+    verbs[#verbs + 1] = { id = "empty", label = txt("Fluid_Empty", "Empty"), enabled = emptyCan and not d.busy, sensible = emptyCan,
+        danger = true, confirm = emptyQ, needs = idle, help = ZeD.tr("UI_ZeD_Fluid_HelpEmpty"),
         run = function(p, tt)
             local c = tt.from
-            if not c then return end
+            if not c or chainBusy(tt, p) then return end   -- (asked at the Yes: the card may have queued since the question)
             local fc = c:getFluidContainer()
-            if c:isItem() then ISFluidContainerMenu.emptyFluidContainer(p, fc)
-            else ISWorldObjectContextMenu.onFluidEmpty(p:getPlayerNum(), fc) end
+            track(tt, p, function()
+                if c:isItem() then ISFluidContainerMenu.emptyFluidContainer(p, fc)
+                else ISWorldObjectContextMenu.onFluidEmpty(p:getPlayerNum(), fc) end
+            end)
+            tt._refreshT = OC.REFRESH
         end }
     t.verbs = verbs
 end
 
 -- Queue vanilla's pour: items come to the main inventory first, a world
 -- container is walked to, then ISFluidTransferAction moves the amount.
+-- The whole chain is kept (t.queued) for the busy gate and for Stop; the gate is asked here, live, as the
+-- refresh's d.busy is up to a refresh old (QA FL3, FL4, Nov 26 2026).
 function def.pour(p, t)
     local d = t.d
+    if chainBusy(t, p) then return end
     if not (d and t.from and t.into and d.can) then return end
     local amount = FluidUtil.roundTransfer(d.max * (t.frac or 0))
     if amount <= 0 then return end
-    for _, c in ipairs({ t.from, t.into }) do
-        local o = c:getOwner()
-        if o and instanceof(o, "InventoryItem") then ISInventoryPaneContextMenu.transferIfNeeded(p, o) end
-    end
-    local iso = (t.from:isIsoPanel() and t.from) or (t.into:isIsoPanel() and t.into) or nil
-    if iso and not ISFluidUtil.doWalkTo(p, iso) then return end
-    local a, b = t.from:copy(), t.into:copy()
-    local act = ISFluidTransferAction:new(p, a, a:getFluidObject(), b, b:getFluidObject(), amount)
-    ISTimedActionQueue.add(act)
+    local act = nil
+    track(t, p, function()
+        for _, c in ipairs({ t.from, t.into }) do
+            local o = c:getOwner()
+            if o and instanceof(o, "InventoryItem") then ISInventoryPaneContextMenu.transferIfNeeded(p, o) end
+        end
+        local iso = (t.from:isIsoPanel() and t.from) or (t.into:isIsoPanel() and t.into) or nil
+        if iso and not ISFluidUtil.doWalkTo(p, iso) then return end
+        local a, b = t.from:copy(), t.into:copy()
+        act = ISFluidTransferAction:new(p, a, a:getFluidObject(), b, b:getFluidObject(), amount)
+        ISTimedActionQueue.add(act)
+    end)
+    if not act then t._refreshT = OC.REFRESH; return end
     t.action = act
     t.pourAmount = amount
     t._refreshT = OC.REFRESH
 end
+
+--- The strip's Stop: the whole chain the card queued (the walk and the pour).
+function def.stop(p, t) stopChain(t, p) end
 
 function def.title(t) return (t.d and (t.d.fromName or t.d.intoName)) or txt("Fluid_Transfer_Fluids", "Liquid") end
 function def.icon(t) return t.d and t.d.icon or nil end
@@ -601,7 +686,7 @@ local function drawAmount(card, x, y, w, t)
 end
 
 -- The pour under way: Pouring, its strip, "x of y" and Stop
-local function drawPouring(card, x, y, w, t)
+local function drawPouring(card, x, y, w, t, player)
     local T, tm = ZeD.T, ZeD.TM
     local A = ZeD.Atoms
     local ac = T.accent
@@ -623,7 +708,7 @@ local function drawPouring(card, x, y, w, t)
     local fid = "fl:stop"
     UI.button(card, bx, y + math.floor((h - bh) / 2), stop, { w = bw, h = bh, fid = fid, body = true, focus = card:focusOf(fid),
         help = ZeD.tr("UI_ZeD_Fluid_HelpStop"),
-        run = function() if act then pcall(function() act:forceStop() end) end; t._refreshT = OC.REFRESH end })
+        run = function() def.stop(player, t) end })
     local vw = tm:MeasureStringX(f3, v)
     local vx = bx - T.px(10) - vw
     card:drawText(v, vx, y + math.floor((h - tm:getFontHeight(f3)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f3)
@@ -790,7 +875,7 @@ function def.body(card, x, y, w, t, player)
 
     -- amount / pouring
     if d.pouring then
-        y = y + drawPouring(card, x, y, w, t) + gap
+        y = y + drawPouring(card, x, y, w, t, player) + gap
     elseif ffc and ifc then
         if d.can and d.max > 0 then y = y + drawAmount(card, x, y, w, t) + gap end
     end
