@@ -3037,7 +3037,9 @@ function C.mp37()
             "greyed " .. tostring(op and op.notAvailable) .. ", tip \"" .. tostring(tip) .. "\", still there " .. tostring(H.inStore(T.sym)) .. ", said " .. H.list(H.saidSince(T.t1)) .. ", the game's canErase " .. tostring(H.gameCanErase()))
         H.fullKit()
     end)
-    -- the pad: X on the cursor over the mark, Delete
+    -- the pad: X on the cursor over the mark, Delete. (The no-eraser leg's star is taken off first: it stays there by
+    -- design, and the X acts on whatever mark is under the cursor. The eraser is back: H.fullKit above.)
+    H.step(2, function() if not T.off then H.removeNew(); H.fullKit() end end)
     H.makeQ(T, "skull", 3)
     H.step(2, function()
         if T.off or not T.sym then return end
@@ -3048,12 +3050,24 @@ function C.mp37()
     H.tapX(function() return T.go and not T.off end)
     H.pause(300)
     H.step(1, function()
-        H.padOff()
-        if T.off or not T.go then return end
+        if T.off or not T.go then H.padOff(); return end
+        -- (the menu read and its option taken while the pad still holds it: letting the pad go may shut the menu)
         local op = H.ctxOpt(H.txt("ContextMenu_Delete"))
-        Q.check(H.ctxSince(0) > T.c0 and op ~= nil, T.L .. " (pad): X with the map's cursor on a mark opens its menu", H.ctxNames())
-        if op and H.hitOurs(T) then H.ctxPick(op) end
-        Q.check(not H.inStore(T.sym), T.L .. " (pad): its Delete takes the mark off", "still there " .. tostring(H.inStore(T.sym)))
+        local sel = op ~= nil and type(op.onSelect) == "function"
+        Q.check(H.ctxSince(0) > T.c0 and op ~= nil, T.L .. " (pad): X with the map's cursor on a mark opens its menu", H.ctxNames() .. ", its Delete has its action " .. tostring(sel))
+        -- the mark the X found: the tab's own lookup at the cursor (gpFindAnnotAtCursor), the one its menu acts on
+        local hit = nil
+        pcall(function() hit = S.MT.gpFindAnnotAtCursor(RT.ww()) end)
+        local ours = hit ~= nil and H.sameMark(hit.sym, T.sym)
+        local lit = op ~= nil and not op.notAvailable
+        T.t1 = getTimestampMs()
+        -- (the option taken as the menu takes it, its own onSelect: the same as the mouse legs above, which pass)
+        local picked = false
+        if sel and ours then picked = H.ctxPick(op) else H.ctxShut() end
+        H.padOff()
+        Q.check(ours and lit and not H.inStore(T.sym) and H.marks() == T.n0 - 1, T.L .. " (pad): its Delete takes the mark off",
+            "picked " .. tostring(picked) .. "; the menu's mark " ..(ours and "the pad's skull" or tostring(hit and H.sig(hit.sym))) .. ", Delete lit " .. tostring(lit) .. ", the game's canErase " .. tostring(H.gameCanErase())
+            .. "; still there " .. tostring(H.inStore(T.sym)) .. ", marks " .. tostring(T.n0) .. " -> " .. H.marks() .. ", said " .. H.list(H.saidSince(T.t1)))
     end)
     H.caseEnd(T.L)
 end
