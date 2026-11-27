@@ -12,6 +12,8 @@
 --   B11  the empty line: the Character window says "on you", the World window "in range"; every UI.json has the key
 --   B14  Lite's card has Add, Edit and Delete for the stored channels (not on a TV or the CD player); they store,
 --        name and forget the channel the set is tuned to
+--   R35, R37, R39  a second walkie with the same face, and a face drawn after the tab's first build, bring new pad
+--        stops: LAMP lights the walkie shown, MEM held names its channel 01, MIC is a stop
 -- Run from the repo root: lua51 ZeDUI/tools/qa/rd_fixes_sim.lua
 -- It prints FAIL lines and a last line "rd_fixes_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -436,6 +438,72 @@ do
     O.power(CHR, part)
     check("B9: power on stops nothing", st.on == true and st.stopped == 0)
     ISRadioAction, O.poweredHere = saveRA, savePH
+end
+
+-- R35, R37 and R39 (QA, Nov 27 2026): the windows keep the last stops while a new list has the same count, ends and
+-- last place (their _lastTabContentSnapshot); refresh() below is that check, as the Character window runs it. A
+-- second walkie with the same face, or the face drawn after the tab's first build, must still bring new stops.
+do
+    local function refresh(w)
+        local els = RT.buildFocusables(w)
+        local s, n = w._lastTabContentSnapshot, #els
+        local dirty = (s == nil) or s.tab ~= "radio" or s.n ~= n
+        if not dirty and n > 0 then
+            dirty = s.firstId ~= els[1].id or s.lastId ~= els[n].id or s.lastY ~= els[n].y or s.lastH ~= els[n].h
+        end
+        if dirty then
+            w._lastTabContentSnapshot = { tab = "radio", n = n, firstId = els[1] and els[1].id, lastId = els[n] and els[n].id,
+                lastY = els[n] and els[n].y, lastH = els[n] and els[n].h }
+            w.ring = els
+        end
+    end
+    local function ringEl(w, id) for _, e in ipairs(w.ring or {}) do if e.id == id then return e end end return nil end
+    local function faceHits()
+        local hs = {}
+        for _, c in ipairs(PLATES.walkie_valutech.ids) do hs[#hs + 1] = { id = c[1], knob = c[2] == "turn", x = c[3], y = c[4] + 40, w = 20, h = 20 } end
+        hs[#hs + 1] = { id = "lamp", knob = false, x = 120, y = 240, w = 20, h = 20 }
+        return hs
+    end
+    local function show(w, dev)
+        w._radios = { { radioInstance = dev } }
+        w._radioTw = { dev = dev, hits = faceHits(), k = 1, drv = TW }
+    end
+    ZeD.TabFill = { focusables = function() return {} end }
+    local a = makeItem("Base.WalkieTalkie2", { tw = true, portable = true, hasBattery = true, power = 0.9, on = true, ch = 146800 })
+    local b = makeItem("Base.WalkieTalkie2", { tw = true, portable = true, hasBattery = true, power = 0.9, on = true, ch = 146520 })
+    a._dd.presets:add(PresetEntry.new("146.520 MHz", 146520)); a._dd.presets:add(PresetEntry.new("146.800 MHz", 146800))
+    b._dd.presets:add(PresetEntry.new("Base", 146520))
+    local w = { _playerObj = CHR, _radioIdx = 1, _radioTabZones = { { x = 0, y = 0, w = 60, h = 20, idx = 1 } } }
+    show(w, a)
+    refresh(w)
+    -- R39: the next walkie, the same face: A on its LAMP lights its own glass
+    show(w, b)
+    refresh(w)
+    local lampEl = ringEl(w, "radio:tw:lamp")
+    O._lamp = {}
+    if lampEl and lampEl.onActivate then lampEl.onActivate(w, lampEl) end
+    check("R39: A on LAMP lights the shown walkie's lamp (not the one shown before)", O.lampLit(b) == true and O.lampLit(a) == false,
+        "shown " .. tostring(O.lampLit(b)) .. ", the one before " .. tostring(O.lampLit(a)))
+    -- R35: A held on MEM names the tuned channel, 01, on the shown walkie
+    boxes = {}
+    local memEl = ringEl(w, "radio:tw:mem")
+    if memEl and memEl.onHoldActivate then memEl.onHoldActivate(w, memEl) end
+    check("R35: A held on MEM opens one naming box, for the shown walkie's channel 01",
+        #boxes == 1 and boxes[1].idx == 1 and boxes[1].target.dev == b, #boxes .. " box(es), channel " .. tostring(boxes[1] and boxes[1].idx))
+    if boxes[1] then
+        boxes[1].fn(boxes[1].target, { internal = "OK", parent = { entry = { getText = function() return "" end } } }, boxes[1].idx)
+    end
+    check("R35: ... an empty name forgets that channel, the other walkie keeps its two",
+        b._dd.presets:size() == 0 and a._dd.presets:size() == 2, b._dd.presets:size() .. " / " .. a._dd.presets:size())
+    -- R37: the tab's first build on a new walkie (no face drawn yet: the tabs alone), then the face draws
+    local c = makeItem("Base.WalkieTalkie2", { tw = true, portable = true, hasBattery = true, power = 0.9, on = true })
+    w._radios, w._radioTw = { { radioInstance = c } }, nil
+    w.ring = RT.buildFocusables(w)   -- as the window's tab switch sets them, its record untouched
+    check("R37: before the face draws, the tabs alone", #w.ring == 1 and w.ring[1].id == "radio:tab:1", #w.ring)
+    show(w, c)
+    refresh(w)
+    check("R37: once the face draws its controls are the stops, VOL first, MIC among them",
+        w.ring[1] and w.ring[1].id == "radio:tw:vol" and ringEl(w, "radio:tw:mic") ~= nil, w.ring[1] and w.ring[1].id)
 end
 
 print("rd_fixes_sim: " .. checks .. " checks, " .. failed .. " failed")

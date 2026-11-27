@@ -1218,6 +1218,17 @@ function ZeD.RadioTab.buildFocusables(win)
     if not win then return {} end
     local rtw = win._radioTw
     local rcur = win._radios and win._radios[win._radioIdx or 1]
+    -- (QA R35, R37 and R39, Nov 27 2026: both windows keep the last stops while the new list has the same count, ends
+    -- and last place (win._lastTabContentSnapshot). Another walkie with the same face matched, so its stops still
+    -- acted on the radio before (A on LAMP lit that one; MEM held named its channel 02). And the tab's first build,
+    -- before the face drew, left the tabs alone as the stops. A new radio, a face drawn or gone, or another driver
+    -- now drops the window's record, so the next refresh takes these stops.)
+    local faceDev = (rtw and rtw.hits and rcur and rcur.radioInstance == rtw.dev) and rtw.dev or false
+    local faceDrv = faceDev and rtw.drv or false
+    if win._radioStopsDev ~= faceDev or win._radioStopsDrv ~= faceDrv then
+        win._radioStopsDev, win._radioStopsDrv = faceDev, faceDrv
+        win._lastTabContentSnapshot = nil
+    end
     -- the plain card (Devices on Simple, or a radio with no face): its rows top to bottom, then its footer band (above)
     if rtw and rtw.drv and rtw.drv.plain and rcur and rcur.radioInstance == rtw.dev and rtw.hits then
         return _plainFocusables(win, rtw)
