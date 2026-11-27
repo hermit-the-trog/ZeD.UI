@@ -75,7 +75,7 @@ Perks = { Fitness = "Fitness", Strength = "Strength", Sprinting = "Sprinting", A
           Carving = "Carving", Crafting = "Crafting", None = "None" }
 CharacterTrait = { FAST_LEARNER = "FL", SLOW_LEARNER = "SL", PACIFIST = "PA", CRAFTY = "CR" }
 local function perk(t, parent)
-    return { getType = function() return t end, getName = function() return t end, getParent = function() return parent or "Combat" end,
+    return { getType = function() return t end, getId = function() return t end, getName = function() return t end, getParent = function() return parent or "Combat" end,
              getXpForLevel = function() return 100 end, getXp1 = function() return 75 end }
 end
 local P = { Fitness = perk("Fitness", "Passiv"), Strength = perk("Strength", "Passiv"), Sprinting = perk("Sprinting", "Agility"),

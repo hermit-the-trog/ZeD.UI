@@ -6035,9 +6035,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
             -- (a plain click on a skill row does not pin it: the row's right-click menu does)
             -- Training materials expand/collapse click detection
             if win._activeTab == "skills" and win._trainingGroupZones then
+                -- (only inside the scroll view, as the tab's own click: a row scrolled under the pinned heading is
+                -- not under the pointer) (QA S27, Nov 27 2026)
+                local sv = win._skillsHoverView
                 for _, zone in ipairs(win._trainingGroupZones) do
                     if not zone.book and x >= zone.x and x <= zone.x + zone.w
-                       and y >= zone.y and y <= zone.y + zone.h then
+                       and y >= zone.y and y <= zone.y + zone.h
+                       and (not sv or (y >= sv.y and y < sv.y + sv.h)) then
                         win._trainingExpanded = win._trainingExpanded or {}
                         win._trainingExpanded[zone.id] = not win._trainingExpanded[zone.id]
                         win._skillsCache = nil  -- force scroll height recalc
@@ -6133,8 +6137,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
     drawer.onRightMouseUp = function(self, x, y)
         -- a skill row: its menu, Pin to title bar (ZeD_Pins)
         if win._activeTab == "skills" and win._drawerMode == "tab" and win._skillRowZones then
+            -- (only inside the scroll view: at 1280 a right-click on the pinned heading opened the menu of the row
+            -- scrolled under it) (QA S27, Nov 27 2026)
+            local sv = win._skillsHoverView
             for _, zone in ipairs(win._skillRowZones) do
-                if x >= zone.x and x <= zone.x + zone.w and y >= zone.y and y <= zone.y + zone.h then
+                if x >= zone.x and x <= zone.x + zone.w and y >= zone.y and y <= zone.y + zone.h
+                   and (not sv or (y >= sv.y and y < sv.y + sv.h)) then
                     skillRowMenu(win, zone.name, self:getAbsoluteX() + x, self:getAbsoluteY() + y)
                     return true
                 end
