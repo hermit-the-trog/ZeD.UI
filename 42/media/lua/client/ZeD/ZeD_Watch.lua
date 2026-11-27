@@ -67,13 +67,15 @@ require "ZeD/WatchMini"
 ZeD = ZeD or {}
 ZeD.Watch = ZeD.Watch or {}
 local W = ZeD.Watch
--- Whether the game's clock would show the date now (a watch that shows it), read before the watch parks the clock;
--- nil when no watch has drawn lately (the clock then reads as the game has it). (QA I10, Nov 27 2026)
-function W.dateVisible()
-    if W._dateVisible ~= nil and getTimestampMs() - (W._dateAt or 0) < 2000 then return W._dateVisible end
-    local clock = UIManager and UIManager.getClock and UIManager.getClock() or nil
-    if not clock then return false end
-    local ok, v = pcall(clock.isDateVisible, clock)
+-- Whether the game's clock would show the date for this player: the game's rule, worked out from the watch he wears
+-- (the clock shows while a watch is worn, AlarmClockClothing, and its date while that watch is digital:
+-- Clock.isDateVisible = visible and digital). The game's own clock flags can't be asked: the watch parks the clock
+-- every frame, so its visible flag stays false (QA I10 third pass, Nov 27 2026). Defined below the worn-watch scan.
+local _dateVisibleFor
+function W.dateVisible(player)
+    if not player then player = getSpecificPlayer and getSpecificPlayer(0) end
+    if not player or not _dateVisibleFor then return false end
+    local ok, v = pcall(_dateVisibleFor, player)
     return ok and v == true
 end
 W.scale = W.scale or 1.0
@@ -311,6 +313,25 @@ local function _wornWatch(player)
     return item, loc
 end
 W._wornWatch = _wornWatch
+_dateVisibleFor = function(player)
+    local item = _wornWatch(player)
+    -- (the game's clock also takes an alarm clock carried: zombie.ui.Clock reads the inventory's AlarmClock too)
+    if not item then
+        local inv = _callOr(player, "getInventory", nil)
+        local items = inv and _callOr(inv, "getItems", nil)
+        if items then
+            for i = 0, items:size() - 1 do
+                local it = items:get(i)
+                if it and instanceof(it, "AlarmClock") then item = it; break end
+            end
+        end
+    end
+    if item == nil then return false end
+    if _callOr(item, "isDigital", false) == true then return true end
+    -- (and the clock's own digital flag, which the watch's parking does not touch)
+    local clock = UIManager and UIManager.getClock and UIManager.getClock() or nil
+    return clock ~= nil and _callOr(clock, "isDigital", false) == true
+end
 if Events.OnPreUIDraw and Events.OnPostUIDraw then
     Events.OnPreUIDraw.Add(function() _memoClear(); _drawing = true end)
     Events.OnPostUIDraw.Add(function() _drawing = false; _memoClear() end)
@@ -764,14 +785,6 @@ function ZeD_Watch:prerender()
     if clock then
         local cy = clock:getY()
         if cy >= 0 then W._clockY = cy; pcall(clock.setY, clock, -4000) end
-        -- what the game's clock would show before it is parked: the game sets it visible each frame while a watch
-        -- shows it, and its date shows while that clock is digital (Clock.isDateVisible = visible and digital).
-        -- Read by ZeD.Watch.dateVisible, which the Info tab asks for the time survived (QA I10 second pass, Nov 27
-        -- 2026: the parked flag read false there, and "Survived for" always read "--")
-        local okV, vis = pcall(clock.isVisible, clock)
-        local okD, dig = pcall(clock.isDigital, clock)
-        W._dateVisible = (okV and vis == true) and (okD and dig == true)
-        W._dateAt = getTimestampMs()
         if clock:isVisible() then pcall(clock.setVisible, clock, false) end
     end
     local sc = UIManager.getSpeedControls()

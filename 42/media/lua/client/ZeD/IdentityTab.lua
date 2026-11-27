@@ -458,7 +458,7 @@ function ZeD.IdentityTab.gatherData(playerObj)
         -- (asked of ZeD.Watch: the watch parks the game's clock every frame, so its own visible flag reads false
         -- here; ZeD.Watch.dateVisible reads it before the parking. QA I10 second pass, Nov 27 2026)
         local dateOn = false
-        if ZeD.Watch and ZeD.Watch.dateVisible then dateOn = ZeD.Watch.dateVisible() == true
+        if ZeD.Watch and ZeD.Watch.dateVisible then dateOn = ZeD.Watch.dateVisible(playerObj) == true
         else
             local clock = UIManager and UIManager.getClock and UIManager.getClock() or nil
             dateOn = clock ~= nil and clock:isDateVisible() == true
