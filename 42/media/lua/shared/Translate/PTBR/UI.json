@@ -924,6 +924,8 @@
     "UI_ZeD_Farm_Garden": "Horta ao alcance",
     "UI_ZeD_Farm_GardenPlowed": "Arado",
     "UI_ZeD_Farm_LockTag": "Agricultura %1",
+    "UI_ZeD_Farm_MoreAt": "Mais com Agricultura %1",
+    "UI_ZeD_Farm_ListAnd": "%1 e %2",
     "UI_ZeD_Farm_NeedSeeds": "Semear: precisa de sementes",
     "UI_ZeD_Farm_NeedShovel": "Arrancar: precisa de pá ou pazinha",
     "UI_ZeD_Farm_NeedSpray": "Tratar: precisa de %1",

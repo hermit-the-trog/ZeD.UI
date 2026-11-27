@@ -924,6 +924,8 @@
     "UI_ZeD_Farm_Garden": "Garten in Reichweite",
     "UI_ZeD_Farm_GardenPlowed": "Acker",
     "UI_ZeD_Farm_LockTag": "Landw. %1",
+    "UI_ZeD_Farm_MoreAt": "Mehr ab Landwirtschaft %1",
+    "UI_ZeD_Farm_ListAnd": "%1 und %2",
     "UI_ZeD_Farm_NeedSeeds": "Säen: braucht Samen",
     "UI_ZeD_Farm_NeedShovel": "Ausgraben: braucht Schaufel oder Kelle",
     "UI_ZeD_Farm_NeedSpray": "Behandeln: braucht %1",

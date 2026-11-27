@@ -930,6 +930,8 @@
     "UI_ZeD_Farm_Garden": "Have i nærheden",
     "UI_ZeD_Farm_GardenPlowed": "Pløjet",
     "UI_ZeD_Farm_LockTag": "Landbrug %1",
+    "UI_ZeD_Farm_MoreAt": "Mere ved Landbrug %1",
+    "UI_ZeD_Farm_ListAnd": "%1 og %2",
     "UI_ZeD_Farm_NeedSeeds": "Så: kræver frø",
     "UI_ZeD_Farm_NeedShovel": "Grav op: kræver en skovl eller en havespade",
     "UI_ZeD_Farm_NeedSpray": "Behandl: kræver %1",

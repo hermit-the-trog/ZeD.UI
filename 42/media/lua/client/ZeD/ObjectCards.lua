@@ -948,7 +948,10 @@ function ZeD_ObjectCard:press(v)
     local e = self.entry
     if not (player and e) then return end
     if v.confirm then
-        self._confirm = { text = v.confirm, yes = v.label, run = v.run, danger = v.danger and true or false, help = v.help }
+        -- (QA FA4, Nov 26 2026: a farm card that stepped to the next plot kept the question up, and Yes dug up the
+        -- neighbour. The question remembers the object it asked about and is good for that one only.)
+        self._confirm = { text = v.confirm, yes = v.label, run = v.run, danger = v.danger and true or false, help = v.help,
+            key = e.t and e.t.key }
         -- (Nov 16 2026) a question opens on Cancel (digging up a crop, taking a grill apart, emptying), so a second A cannot act
         self._pendingFocus = "oc:confirm:no"
         return
@@ -1404,6 +1407,12 @@ function ZeD_ObjectCard:prerender()
     fm.win, fm.zone = win, "worldItemCard"
     self:updateHover()
     local def, t = e.def, e.t
+    -- (QA FA4, Nov 26 2026) the card now shows another object than the one the question asked about: the question
+    -- goes without acting
+    if self._confirm and self._confirm.key ~= (t and t.key) then
+        self._confirm = nil
+        self._pendingFocus = "oc:back"
+    end
 
     self:drawBackground(w, h)
     local hh = T.stripH   -- row 1, the shared strip
@@ -1533,7 +1542,14 @@ function ZeD_ObjectCard:prerender()
             run = function()
                 self._confirm = nil
                 local p = self:player()
-                if p and cf.run then
+                -- (QA FA4: checked again at the press, so Yes never acts on an object it did not ask about)
+                local tNow = e.t
+                local same = tNow ~= nil and tNow.key == cf.key
+                if same and def.valid then
+                    local vok, v = pcall(def.valid, tNow)
+                    same = vok and v and true or false
+                end
+                if p and cf.run and same then
                     local ok2, err = pcall(cf.run, p, e.t, self)
                     if not ok2 then print("[ZeD] ObjectCards: confirm failed: " .. tostring(err)) end
                     e.t._refreshT = OC.REFRESH - 3

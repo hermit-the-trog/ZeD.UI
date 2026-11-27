@@ -924,6 +924,8 @@
     "UI_ZeD_Farm_Garden": "닿는 범위의 텃밭",
     "UI_ZeD_Farm_GardenPlowed": "경작됨",
     "UI_ZeD_Farm_LockTag": "농사 %1",
+    "UI_ZeD_Farm_MoreAt": "농사 %1에서 더 보기",
+    "UI_ZeD_Farm_ListAnd": "%1 및 %2",
     "UI_ZeD_Farm_NeedSeeds": "파종: 씨앗 필요",
     "UI_ZeD_Farm_NeedShovel": "캐내기: 삽이나 모종삽 필요",
     "UI_ZeD_Farm_NeedSpray": "처리: %1 필요",

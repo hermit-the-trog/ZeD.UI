@@ -924,6 +924,8 @@
     "UI_ZeD_Farm_Garden": "Grădină la îndemână",
     "UI_ZeD_Farm_GardenPlowed": "Arat",
     "UI_ZeD_Farm_LockTag": "Agricultură %1",
+    "UI_ZeD_Farm_MoreAt": "Mai mult la Agricultură %1",
+    "UI_ZeD_Farm_ListAnd": "%1 și %2",
     "UI_ZeD_Farm_NeedSeeds": "Semănă: trebuie semințe",
     "UI_ZeD_Farm_NeedShovel": "Dezgroapă: trebuie lopată sau mistrie",
     "UI_ZeD_Farm_NeedSpray": "Tratează: trebuie %1",

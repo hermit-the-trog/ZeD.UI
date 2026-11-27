@@ -924,6 +924,8 @@
     "UI_ZeD_Farm_Garden": "Ogród w zasięgu",
     "UI_ZeD_Farm_GardenPlowed": "Zorana",
     "UI_ZeD_Farm_LockTag": "Rolnictwo %1",
+    "UI_ZeD_Farm_MoreAt": "Więcej od Rolnictwa %1",
+    "UI_ZeD_Farm_ListAnd": "%1 i %2",
     "UI_ZeD_Farm_NeedSeeds": "Siew: potrzebne nasiona",
     "UI_ZeD_Farm_NeedShovel": "Wykop: potrzebna łopata lub kielnia",
     "UI_ZeD_Farm_NeedSpray": "Lecz: potrzebujesz %1",

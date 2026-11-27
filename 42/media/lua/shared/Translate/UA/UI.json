@@ -924,6 +924,8 @@
     "UI_ZeD_Farm_Garden": "Грядки поруч",
     "UI_ZeD_Farm_GardenPlowed": "Зорано",
     "UI_ZeD_Farm_LockTag": "Земл. %1",
+    "UI_ZeD_Farm_MoreAt": "Більше із землеробством %1",
+    "UI_ZeD_Farm_ListAnd": "%1 і %2",
     "UI_ZeD_Farm_NeedSeeds": "Сіяти: потрібне насіння",
     "UI_ZeD_Farm_NeedShovel": "Викопати: потрібна лопата або совок",
     "UI_ZeD_Farm_NeedSpray": "Обробити: потрібно %1",

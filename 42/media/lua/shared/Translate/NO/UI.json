@@ -924,6 +924,8 @@
     "UI_ZeD_Farm_Garden": "Hage innen rekkevidde",
     "UI_ZeD_Farm_GardenPlowed": "Pløyd",
     "UI_ZeD_Farm_LockTag": "Jordbruk %1",
+    "UI_ZeD_Farm_MoreAt": "Mer ved Jordbruk %1",
+    "UI_ZeD_Farm_ListAnd": "%1 og %2",
     "UI_ZeD_Farm_NeedSeeds": "Så: trenger frø",
     "UI_ZeD_Farm_NeedShovel": "Grave opp: trenger spade eller graveskje",
     "UI_ZeD_Farm_NeedSpray": "Behandle: trenger %1",
