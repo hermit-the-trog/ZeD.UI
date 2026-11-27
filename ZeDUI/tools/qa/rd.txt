@@ -1,0 +1,48 @@
+# ZeDUI/tools/qa/rd.txt (Nov 27 2026, QA): the Radio tab in both windows, the device faces, the pop-out, the car radio up close, the dash's head unit and the D-pad wheels' radio slices, the gamut sweep, from the map ZeDUI/qa/audits/2026-11-27_map_radio.md (cases R1-R56, its suspicions B1-B14), each checked in the running game by the mouse and the pad against the game's own answers (the device's DeviceData: on, channel, volume, mic, battery and charge, headphones, media and play, the preset list; ISRadioAction's isValid rules; the game's queue; where the game put the items; ISRadioWindow's instances; the car's part).
+# Where: ZEDQA_HOME first (the drag strip) for the radios he carries and the car; a room on the grid for the placed sets and the TVs (rt_media's way: the nearest room square within 45 tiles of home with three room squares beside it, else the Fossoil at West Point), the grid turned on for the run and put back.
+#   rd_tab.lua  R1  empty: neither strip offers Radio, the three wheel slices greyed; B11 the Character window's empty line
+#               R2  a walkie equipped by the game's action, both windows open: Radio on the strip at once, no tab change, no game window
+#               R3  walkies in both hands and a ManPack on the back (only when nothing is worn there): the game's order, (Primary) / (Secondary), the help line, an unequipped tab gone, the shown radio followed (mouse; pad)
+#               R4  a radio in a bag by Device Options: the Carried tab; put on the floor: gone with its pin
+#               R5  placed sets: one tile away listed, two tiles away not until he steps closer, sorted by distance; one behind a wall left out (SKIP when no wall)
+#               R6  Lite, a TV 5 to 7 tiles away by Device Options: pinned (Floor), the plain card; B3 power from there with no walk; 11 tiles: dropped, back to Loot
+#               R7  a TV one floor up or down: nothing opens; the game's own window (compare, closed)
+#               R8  faces on: a world click pops the TV's face out, a second puts it away; the game's click within 1.5 tiles: one surface
+#               R9  a radio and a TV: the World tab, its icon and the wheel's slice read Television only with the TV shown (mouse; pad)
+#               R10 three ham sets: the tabs' short names against the map's rule; the half card's "..." (picture rd_ham_tabs_half_<WxH>)
+#               R11 SKIP: split screen (a second controller)
+#               R12 safe mode (run last, with the car): the car radio up close put away, the game's onEquip window and Device Options back; off: suppressed
+#               R13-R16 the ValuTech: power refused with no battery (mouse), on with one (pad); VOL steps to 1.0 and 0, refused while off; the hand-built set's knob (wheel; A grabs, D-pad, B); MUTE to the kept volume and to 0.5; TUNE's wrap, the wheel's fast spin, refused while off
+#               R17 battery in and out (mouse; pad); B5 Spare against the key with only a dead battery
+#               R18 presets: A held on P2 stores, P2 recalls, an empty P4 flashes EMPTY, nothing while off
+#               R19 headphones: Earbuds in a bag (the key's words), in the main inventory (pad), out (mouse)
+#               R20 the Premium's CD: the list, in, play and its clock, stop and play inside 4 s, eject (pad)
+#               R21 B9 the Premium turned off while the disc plays; on again (NOTE)
+#               R22 the pop-out of a held radio: the button, the face, dropped: closed; a radio in a bag: stays
+#               R31-R42 the walkies: B1 the battery (no key), VOL's push (mouse; X), the Tactical's band and the pad's 5x, MEM and CH, MEM held names (right-click; A held), MEMORY FULL, MIC refused off then MIC OFF, SCAN on the Army set, LAMP at night (the clock put back; picture rd_walkie_tactical_night_lamp_<WxH>), the toy's three controls, B7 the pop-out of a walkie in a bag, B2 headphones on a walkie
+#               R43 SKIP: two-way talk and a server's channels (multiplayer)
+#               R44-R46 the hams placed: BAT off the grid and AC on it, no battery key; the army set's P3 held and pressed, MEMORY FULL, P3 at full, the pad's 25x; the makeshift ham's narrow face at the half card (picture rd_ham_makeshift_narrow_<WxH>)
+#               R23 B6 the CD player: the half card held and on the floor, no tuner, the fill's Channels, Heard and range rows
+#               R24 a TV on the grid: Power nearby, power on and the screen, off by the pad; B10 the World list's rebuilds in 2 s (NOTE)
+#               R25 a TV with no power: refused as the game refuses; a generator beside it: on (pad)
+#               R26 the TV's 12 stops by CH+ (mouse), the bars at stop 12; the antique dial's ends (pad)
+#               R27 each TV channel's screen against its getAiringBroadcast now
+#               R28 VHS: both tapes listed, in, play and H:MM:SS, eject (pad)
+#               R29 B2 headphones on a TV
+#               R30 B4 a TV and a ValuTech on one square: a battery and a tape each through its own tab
+#               R52 B8 the pad's first stop on a ValuTech, a walkie and a TV; the walkie's VOL: A grabs, D-pad turns, B lets go
+#               R53 the pad's A on an empty slot: the list, back on the slot (the list's own focus SKIP with no controller bound)
+#               R54 B14 Lite on a ValuTech, the Army walkie and a TV: plain cards, nothing stores, a Channels row recalls
+#               R55 the wheel over the strip, over a knob, over the body
+#               R56 Large text, Dark and Light (pictures rd_fill_dark_<WxH>, rd_fill_light_<WxH>), the Channels head folds and opens, the scrollbar (NOTE)
+#               faces: the makeshift walkie, the ManPack and the widescreen TV drawn and pictured
+#               R47-R51 the car (Base.CarNormal by the prelude's spawn, its radio part given RadioBlack, RadioRed or HamRadio1 each case): up close from the driver's seat and away by B, Escape and the exit, none from a back seat; power with the battery flat (mouse) and charged (X); the CD: list, in, play, eject (pad), the dash's slot both ways; the ham: MEM, MEM named, CH-, MIC; B3 its part pinned in the World tab from outside, power pressed there
+#               B12 RadioPlates' reads over the run (NOTE), B13 RadioWindow.lua's comment (NOTE)
+# Pictures rd_<face>_<WxH> for each face the first time it shows (walkie_toy, walkie_valutech, walkie_premium, walkie_tactical, walkie_army, walkie_makeshift, walkie_manpack, ham_civilian, ham_army, ham_makeshift, radio_black, radio_red, radio_handbuilt, cd_player, tv_widescreen, tv_black, tv_antique), rd_plain_<face>_<WxH> (Lite), rd_carradio_<kind>_<WxH> and the ones named above.
+# It puts back every item given (radios, walkies, batteries, discs, tapes, headphones, bags, the car's key), every set placed and the generator, the car (the prelude's ZEDQA_CAR_AWAY a tick after he is out), his own radios, batteries, headphones and recorded media set aside and given back, his hands and back as found, the grid and the shut-off day, the clock, Lite and safe mode as found, the theme and the text size, both windows' tabs, the width cap and the layout, the input lock, the pointer, the pop-out, the car radio and the game's radio window shut, the route's pin and the Carried pin, the hooks (ISContextMenu.get, ISTextBox.new, the tab strip, the World list counter, RadioPlates), game speed 1, where he stood, god mode as found. The game's volume settings are never set (checked unchanged).
+# Run both sizes:
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/rd.txt -Mode fullscreen4k -Report rd_4k
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/rd.txt -Mode windowed -Width 1280 -Height 800 -Report rd_deck
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+rd_tab.lua | rd_tab | timeout=2400
