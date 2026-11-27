@@ -66,6 +66,44 @@ local function spriteIcon(iso)
     return call(tex, "splitIcon") or tex
 end
 
+-- (the director's call FI1, Nov 26 2026) the game's own spread test for a lit campfire indoors
+-- (SCampfireSystem.lowerFirelvl: every ten game minutes, one time in five): the fire's square not outside, and the
+-- floor of a square next to it a wood floor (floors_interior_tilesandwood from tile 40 on) or a carpet. Its
+-- ZombRand(-1, 1) leaves the top out, so the only squares it can pick are west, north and north-west of the fire;
+-- the card reads those three and no others, so it warns only where the game can start a fire. Barbecues and
+-- fireplaces are not in that system and never spread, so only a campfire asks.
+local function startsWith(s, start) return string.sub(s, 1, string.len(start)) == start end
+local function burnableFloor(sq)
+    local floor = sq and call(sq, "getFloor")
+    local spr = floor and call(floor, "getSprite")
+    local name = spr and call(spr, "getName")
+    if not name then return false end
+    local n = tonumber(call(spr, "getSheetGridIdFromName"))
+    if not n or n < 0 then return false end
+    return (startsWith(name, "floors_interior_tilesandwood") and n >= 40)
+        or startsWith(name, "floors_interior_carpet") or startsWith(name, "carpet")
+end
+local function floorCanCatch(sq)
+    if not sq or call(sq, "isOutside") ~= false then return false end
+    local cell = getCell and getCell()
+    if not cell then return false end
+    local x, y, z = sq:getX(), sq:getY(), sq:getZ()
+    for dy = -1, 0 do
+        for dx = -1, 0 do
+            if (dx ~= 0 or dy ~= 0) and burnableFloor(cell:getGridSquare(x + dx, y + dy, z)) then return true end
+        end
+    end
+    return false
+end
+
+-- Says the warning over his head as he lights one there; it warns, it doesn't stop him (FI1, as the generator's
+-- fumes line at its switch).
+local function warnFloor(player, t)
+    if t.kind == "campfire" and floorCanCatch(t.sq) and HaloTextHelper and HaloTextHelper.addBadText then
+        pcall(HaloTextHelper.addBadText, player, ZeD.tr("UI_ZeD_Fire_FloorCatches"))
+    end
+end
+
 local def = { id = "fire" }
 
 --- Accepts a campfire (its Lua object or the IsoObject) or a barbecue /
@@ -442,7 +480,8 @@ function def.refresh(t, player)
         d.smoulder = (not d.lit) and (call(t.obj, "isSmouldering") == true)
     end
     d.max = fuelMax()
-    d.name = (io and call(io, "getTileName")) or (t.kind == "campfire" and ZeD.tr("IGUI_Campfire_Campfire") or ZeD.tr("UI_ZeD_Fire_Fire"))
+    d.floorCatches = t.kind == "campfire" and floorCanCatch(t.sq)   -- (FI1)
+    d.name =(io and call(io, "getTileName")) or (t.kind == "campfire" and ZeD.tr("IGUI_Campfire_Campfire") or ZeD.tr("UI_ZeD_Fire_Fire"))
     d.tex = spriteIcon(io)
     d.container = io and call(io, "getContainer")
     local info = fuelInfo(t, player)
@@ -481,6 +520,7 @@ function def.refresh(t, player)
     local kindleA = (t.kind == "campfire") and ISLightFromKindle or ISBBQLightFromKindle
     t.light = function(p, row)
         t._fuelAt = nil
+        warnFloor(p, t)   -- (FI1)
         if row.method == "petrol" then
             ISCampingMenu.onLightFromPetrol(p, row.starter, row.petrol, t.obj, petrolA)
         elseif row.method == "tinder" then
@@ -600,6 +640,11 @@ local function fireBody(card, x, y, w, t, player)
     local d = t.d
     local y0 = y
     local gap = T.px(8)
+    -- (the director's call FI1, Nov 26 2026) a campfire indoors next to a floor the game can set alight: the warning
+    -- box while it burns or while Light is offered, as the generator card's fumes box
+    if d.floorCatches and (d.lit or #d.lightRows > 0) then
+        y = y + UI.warn(card, x, y, w, ZeD.tr("UI_ZeD_Fire_FloorCatches")) + gap
+    end
     y = y + drawFuelStrip(card, x, y, w, d) + gap
 
     if not d.lit and #d.lightRows > 0 then

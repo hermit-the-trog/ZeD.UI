@@ -300,6 +300,94 @@ end
 check("FA11 MoreAt and ListAnd in every UI.json", #miss == 0, table.concat(miss, " "))
 
 -- ---------------------------------------------------------------------------
+-- FA7 (the director's call, Nov 26 2026): Treat on aphids sprays every use the plant needs in one press, one walk,
+-- as the game's aphids menu (1 to 10 uses; each kills 10 + Farming, SPlantGlobalObject.cureAphids); the other
+-- pests stay one use, the only amount the game offers. The game's time: 10 * (uses * 10).
+-- ---------------------------------------------------------------------------
+do
+    local farming = 0
+    local fplayer = { getInventory = function() return inv end, getPrimaryHandItem = function() return nil end,
+        getSecondaryHandItem = function() return nil end, getPerkLevel = function() return farming end }
+    local walks = 0
+    local oldWalk = ISFarmingMenu.walkToPlant
+    ISFarmingMenu.walkToPlant = function() walks = walks + 1; return true end
+    local sprayUses = 20
+    local spray = { getType = function() return "GardeningSprayAphids" end, getCurrentUses = function() return sprayUses end }
+    local milk = { getType = function() return "GardeningSprayMilk" end, getCurrentUses = function() return 20 end }
+    local oldEval = inv.getFirstTypeEvalRecurse
+    inv.getFirstTypeEvalRecurse = function(_, ty) return (ty == "GardeningSprayAphids" and spray) or (ty == "GardeningSprayMilk" and milk) or nil end
+    inv.items = {}
+    local function press(lvl, pestKey, skill, have)
+        farming, sprayUses = skill or 0, have or 20
+        local t = { obj = plant({ aphidLvl = lvl, mildewLvl = lvl }), sq = { id = 1 } }
+        def.refresh(t, fplayer)
+        queued, walks = {}, 0
+        local pd = nil
+        for _, pe in ipairs(t.d.pests) do if pe.def.key == pestKey then pd = pe.def end end
+        if t.treat and pd then t.treat(fplayer, pd) end
+        local cure = nil
+        for _, a in ipairs(queued) do if a.kind == "cure" then cure = a end end
+        return cure, walks, t
+    end
+    local cure, w, t = press(50, "aphidLvl", 0)
+    check("FA7 the card has one Treat path for every pest row (t.treat)", t.treat ~= nil)
+    check("FA7 heavy aphids (50), Farming 0: one press sprays 5 uses", cure and cure.args[3] == 5, cure and cure.args[3])
+    check("FA7 ... with one walk", w == 1, w)
+    check("FA7 ... and the game's time for 5 (500)", cure and cure.args[5] == 500, cure and cure.args[5])
+    check("FA7 ... the game's cure, Aphids, with the spray", cure and cure.args[6] == "Aphids" and cure.args[2] == spray)
+    cure = press(50, "aphidLvl", 3)
+    check("FA7 aphids 50 at Farming 3 (13 a use): 4 uses", cure and cure.args[3] == 4, cure and cure.args[3])
+    cure = press(100, "aphidLvl", 0)
+    check("FA7 aphids 100: the game's cap of 10", cure and cure.args[3] == 10, cure and cure.args[3])
+    cure = press(50, "aphidLvl", 0, 3)
+    check("FA7 aphids 50, the spray holds 3: 3 uses", cure and cure.args[3] == 3, cure and cure.args[3])
+    cure = press(0, "aphidLvl", 0)
+    check("FA7 no aphids seen: one use, as before", cure and cure.args[3] == 1 and cure.args[5] == 100, cure and cure.args[3])
+    cure = press(50, "mildewLvl", 0)
+    check("FA7 mildew stays one use (the game offers only 1)", cure and cure.args[3] == 1 and cure.args[6] == "Mildew", cure and cure.args[3])
+    check("FA7 the pest row's Treat goes through t.treat", farmSrc:find("run = pe.spray and function(c, p) t.treat(p, pp.def) end or nil", 1, true) ~= nil)
+    ISFarmingMenu.walkToPlant = oldWalk
+    inv.getFirstTypeEvalRecurse = oldEval
+end
+
+-- ---------------------------------------------------------------------------
+-- FA8 (the director's call, Nov 26 2026): Water pours from the container he picked in the card's list; unpicked,
+-- or the pick no longer carried, the biggest, as before
+-- ---------------------------------------------------------------------------
+do
+    local function src(name, uses) return { uses = uses, getName = function() return name end } end
+    local bottle, jug = src("Water Bottle", 4), src("Water Jug", 20)
+    inv.items = { Bottle = bottle, Jug = jug }
+    local t = { obj = plant({ waterLvl = 20 }), sq = { id = 1 } }
+    def.refresh(t, player)
+    check("FA8 both containers are listed", #t.d.water_src == 2, #t.d.water_src)
+    local function pour()
+        queued = {}
+        verb(t, "water").run(player, t)
+        for _, a in ipairs(queued) do if a.kind == "water" then return a end end
+    end
+    local a = pour()
+    check("FA8 unpicked: Water pours the biggest (the jug)", a and a.args[2] == jug, a and a.args[2] and a.args[2].getName())
+    check("FA8 ... 8 uses, what the plant lacks (the game's rule)", a and a.args[3] == 8, a and a.args[3])
+    t.waterPick = bottle
+    a = pour()
+    check("FA8 picked the bottle: Water pours the bottle", a and a.args[2] == bottle, a and a.args[2] and a.args[2].getName())
+    check("FA8 ... its 4 uses", a and a.args[3] == 4, a and a.args[3])
+    inv.items = { Jug = jug }
+    a = pour()
+    check("FA8 the picked bottle gone: back to the biggest", a and a.args[2] == jug, a and a.args[2] and a.args[2].getName())
+    check("FA8 the card lists each source with a Use row (farm:water:i) that sets the pick",
+        farmSrc:find('fid = "farm:water:" .. i', 1, true) ~= nil and farmSrc:find("run = function(c, p) t.waterPick = item end", 1, true) ~= nil)
+    local miss = {}
+    for _, l in ipairs(langs) do
+        local s = readFile(ROOT .. "42/media/lua/shared/Translate/" .. l .. "/UI.json")
+        if s and not (s:find('"UI_ZeD_Farm_WaterFrom": "[^"]', 1) and s:find('"UI_ZeD_Farm_HelpWaterFrom": "[^"]*%%1', 1)) then miss[#miss + 1] = l end
+    end
+    check("FA8 WaterFrom and HelpWaterFrom in every UI.json", #miss == 0, table.concat(miss, " "))
+    inv.items = {}
+end
+
+-- ---------------------------------------------------------------------------
 -- FA4: the question is tied to the object it asked about (ObjectCards.lua)
 -- ---------------------------------------------------------------------------
 local oc = readFile(Z .. "ObjectCards.lua", true)
