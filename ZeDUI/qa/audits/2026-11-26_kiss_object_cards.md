@@ -9,13 +9,15 @@ Maps (in ZeDUI/qa/audits):
 
 Scripts (each manifest at both 4K and 1280x800): ocp_tab (ocp.txt), oca_tab (oca.txt), ocl_tab (ocl.txt).
 
-## Where it stands (Nov 26 2026, main 6cf674e45)
+## Where it stands (Nov 27 2026: DONE)
 
-| Sweep | 4K | 1280x800 | What still fails |
+| Sweep | 4K | 1280x800 | Run on |
 | --- | --- | --- | --- |
-| Power, fluid, fire | 128 pass, 1 fail | 127 pass, 2 fail | FI1 (design call) |
-| Farm, trough, hutch, hook | 186 pass, 5 fail | 213 pass, 5 fail | FA7, FA8, TG5 (design calls) |
-| Host, lock, medic, laundry, placement, track, preview | 108 pass, 4 fail | 107 pass, 4 fail | LK5, OC4 (design calls); OC7 fixed in fix/oc7b (08879af3a) |
+| Power, fluid, fire | 127 pass, 0 fail | 127 pass, 0 fail | 89fc5699d |
+| Farm, trough, hutch, hook | 201 pass, 0 fail | 228 pass, 0 fail | ee9695b17 |
+| Host, lock, medic, laundry, placement, track, preview | 111 pass, OC4 noted | 110 pass, OC4 noted | 89fc5699d; OC4 notes the six full-width kinds (2df3b4a8e) |
+
+FA8 took three rounds. fix/fa8pick was real: with a container in hand, the list now shows them all. Then QA's own row finder pressed Use on the wrong row: the soda's row reads "Water (...)" and matched the Water Bottle's name before litres were checked; fixed in b4b839133. fix/fa8pick2 keeps the pick per player while he carries it, and leg 2 now checks that.
 
 The skips are multiplayer cases, other languages and staging the game can't do in single player.
 
