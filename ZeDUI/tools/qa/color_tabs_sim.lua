@@ -54,8 +54,17 @@ local panel = { drawRect = function(_, x, y, w, h, a, rr, gg2, bb) draws[#draws 
 G.stripCell(panel, 0, 0, 40, 40, tex("Container_Crate"), false, false)
 check("STRIP: not shown: the tint alone", #draws == 1 and draws[1].a == 1)
 draws = {}
+-- (the director, Nov 26 2026: the shown one takes the window tabs' lit panel, ZeD.TabPx.drawLitPanel, in place of
+-- the Nov 25 one-hairline frame; its own tint is not drawn under it)
+local lit = nil
+ZeD.TabPx = { drawLitPanel = function(_, x, y, w, h, line) lit = { x = x, y = y, w = w, h = h, line = line } end }
 G.stripCell(panel, 0, 0, 40, 40, tex("Container_Crate"), true, false)
-check("STRIP: shown: the tint and four one-hairline frame sides, no wash (the director, Nov 25 2026)", #draws == 5 and draws[2].a == 1 and draws[2].h == 1 and draws[4].w == 1)
+check("STRIP: shown: the lit tab's panel over the whole button, no tint or frame under it",
+    lit ~= nil and lit.w == 40 and lit.h == 40 and lit.line == 1 and #draws == 0, #draws)
+ZeD.TabPx = nil
+draws = {}
+G.stripCell(panel, 0, 0, 40, 40, tex("Container_Crate"), true, false)
+check("STRIP: shown, no TabPx loaded: a plain accent panel", #draws == 1 and draws[1].w == 40 and draws[1].a == 1)
 draws = {}
 G.stripCell(panel, 0, 0, 40, 40, tex("Container_Crate"), false, true)
 check("STRIP: hovered: the tint and the hover wash", #draws == 2 and draws[2].a == 0.08)

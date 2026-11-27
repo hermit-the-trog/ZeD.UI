@@ -7,7 +7,7 @@
 -- TradeMedic.lua). It is ZeD's Health tab on the patient:
 --   the body figure coloured by each part's health, the summary (overall, wounded parts, their pain
 --   for a First Aid 5+ doctor, as vanilla) or the part under the pointer or the controller, then the
---   injury list, with exactly what vanilla's panel lets this doctor see (ZeD.HealthTab's classifier,
+--   injury list (beside the figure on the full card, under it on the half card), with exactly what vanilla's panel lets this doctor see (ZeD.HealthTab's classifier,
 --   given the doctor's First Aid level). On a server another player's body is read from their remote
 --   copy, as vanilla reads it.
 --   A part (on the figure or in the list) opens the game's treatment menu for it: vanilla's own
@@ -78,6 +78,8 @@ if Events and Events.OnTick and not MC._tickAdded then
 end
 
 local function remote(p) return isClient() and not p:isLocalPlayer() end
+-- vanilla's panel shows its numbers in cheat mode only (ISHealthPanel.cheat)
+function MC.cheat() return ISHealthPanel ~= nil and ISHealthPanel.cheat == true end
 
 -- the patient's name in the title, as vanilla's perform writes it
 local function patientName(p)
@@ -144,7 +146,10 @@ function def.refresh(t, doctor)
     -- holds never reaches it)
     local bd = isRemote and p:getBodyDamageRemote() or p:getBodyDamage()
     if not bd then return end
-    local d = ZeD.HealthTab.gatherData(p, { doctorLevel = t.level, bodyDamage = bd })
+    -- (QA MD2, Nov 26 2026) the words vanilla's panel writes for a doctor, and no health figures unless its cheat
+    -- is on: the game's doctor reads a damage word, never a percent, whatever his First Aid
+    local d = ZeD.HealthTab.gatherData(p, { doctorLevel = t.level, bodyDamage = bd, panelWords = true,
+        hideNumbers = not MC.cheat() })
     -- each listed part's name on the figure (the list's words can differ: "Left Thigh")
     local figOf = {}
     for fname, bp in pairs(d.partByFigure or {}) do figOf[bp] = fname end
@@ -167,6 +172,8 @@ function def.pxIcon(t) return "stethoscope" end
 -- (the status bars' rule: ZeD.Atoms.statusColor, punch list 143)
 function def.pill(t)
     if t.blocking or not t.d then return nil end
+    -- (QA MD2, Nov 26 2026) no percent for a doctor outside cheat mode: the summary gives the game's damage word
+    if t.d.hideNumbers then return nil end
     -- (cut down, as the Overall row's percent: 99.6 is 99%, never 100% beside "Slight damage")
     local frac = t.d.overall / 100
     return ZeD.Atoms.pctText(frac), ZeD.Atoms.statusColor(frac)
@@ -198,24 +205,45 @@ local function treat(card, t, bp, zx, zy, zh)
         ry = getMouseY() - card:getAbsoluteY()
     end
     ZeD.HealthTab.treat(t.patient, t.doctor, bp, card, rx, ry, t.blocking)
+    -- (QA MD4, Nov 26 2026) the menu the game just put up, so B shuts it before the card (def.onCancel)
+    local okM, ctx = pcall(function() return getPlayerContextMenu(t.doctor:getPlayerNum()) end)
+    t.menu = okM and ctx or nil
 end
 
+-- B on any of the card's stops: the game's treatment menu first, when it is up (true: B is spent); false lets the
+-- card's own B run (MechanicsTab's closePartMenu, QA MD4, Nov 26 2026)
+local function closeMenu(t)
+    local ctx = t and t.menu
+    if not ctx then return false end
+    t.menu = nil
+    local shown = false
+    pcall(function() shown = ctx:getIsVisible() end)
+    if not shown then return false end
+    pcall(function() ctx:setVisible(false) end)
+    pcall(function() if ctx.hideAndChildren then ctx:hideAndChildren() end end)
+    return true
+end
+MC.closeMenu = closeMenu
+function def.onCancel(t, card) return closeMenu(t) end
+
 -- the part the right column details: the controller's (a figure part or an injury row) leads,
--- else the pointer's
+-- else the pointer's; the second value is true when it came from the figure
 local function activePart(card, t)
     local function fromFid(fid)
         if not fid then return nil end
         local fig = fid:match("^mc:fig:(.+)$")
-        if fig then return fig end
+        if fig then return fig, true end
         local row = fid:match("^mc:part:(.+)$")
         if row and t.d then
             for _, en in ipairs(t.d.entries) do
-                if en.name == row then return en.figure end
+                if en.name == row then return en.figure, false end
             end
         end
         return nil
     end
-    return fromFid(card._fid) or fromFid(card._hoverFid)
+    local part, onFig = fromFid(card._fid)
+    if part then return part, onFig end
+    return fromFid(card._hoverFid)
 end
 
 local FIG = nil
@@ -271,7 +299,8 @@ local function injuryRow(card, t, x, y, w, en, stripe)
     local mark = HT.sevColor(en.worstSev)
     if mark then A.drawStatusDot(card, x + T.px(2), y + math.floor((bodyH - sq) / 2), mark, sq) end
     A.drawBody(card, ZeD.partLabel(en.name), x + T.px(2) + sq + T.px(6), y, ink)
-    A.drawTextRight(card, math.floor(en.health + 0.5) .. "%", x + w, y, T.fontF2, ink)
+    -- (the part's health only in cheat mode, as vanilla's rows: QA MD2, Nov 26 2026)
+    if not t.d.hideNumbers then A.drawTextRight(card, math.floor(en.health + 0.5) .. "%", x + w, y, T.fontF2, ink) end
     local ty = y + bodyH + T.px(2)
     if tagsH > 0 then HT.condTags(card, en.conditions, x + ind, ty, w - ind, hang); ty = ty + tagsH + T.sp.xs end
     A.drawDividerH(card, x, ty, w)
@@ -290,7 +319,7 @@ function def.body(card, x, y, w, t, doctor)
     -- the figure in its frame, the left half of the card, the text the right half; a card too narrow for halves
     -- (the 220 drawer card) stacks the frame over the text (Figure frame, the director, Nov 22 2026)
     local L = ZeD.Molecules.figureFrame(x, y, w)
-    local active = activePart(card, t)
+    local active, onFig = activePart(card, t)
     -- the figure: each part in its health's colour (a strained part with no wound in the strain tint, as the
     -- Health tab's: HealthTab.figureColor) (Strain, the director, Nov 22 2026); the controller's mark under the focused part
     -- (last frame's rects, as the Health tab draws it), the part a stop that opens the treatment menu
@@ -322,9 +351,30 @@ function def.body(card, x, y, w, t, doctor)
             help = getText("IGUI_health_JoypadTreatment"),
             run = function(c) treat(card, t, bp, rr.x, rr.y, rr.h) end })
     end
-    -- beside it (under it on a narrow card): the part in hand, else the summary
     local rx, ry, rw = L.rightX, L.rightY, L.rightW
     local bottom
+    -- a card wide enough for halves: the summary, then the injury list with its treatments, in the column beside the
+    -- figure, as the Health tab's column lists them, so no one scrolls past the figure to reach a treatment. The
+    -- column grows down with the card and scrolls with it. A figure part in hand takes the summary's place; an injury
+    -- row in hand does not, as the row already shows its part and a column that changed height under the pointer
+    -- would slide the rows it points at (the director, Nov 26 2026)
+    if L.two then
+        if active and onFig and d.partHealth[active] then
+            bottom = ZeD.HealthTab._renderDetailView(card, t.fakeWin, d, active, rx, ry, rw)
+        else
+            bottom = summary(card, t, rx, ry, rw)
+        end
+        y = bottom or ry
+        if #d.entries > 0 then
+            A.drawDividerH(card, rx, y, rw)
+            y = y + T.px(1) + T.sp.afterGroove
+            for i, en in ipairs(d.entries) do
+                y = y + injuryRow(card, t, rx, y, rw, en, i % 2 == 0)
+            end
+        end
+        return math.max(L.frameY + L.frameH, y) - y0
+    end
+    -- the 220 drawer card, stacked: under the figure the part in hand, else the summary, then the list full width
     if active and d.partHealth[active] then
         bottom = ZeD.HealthTab._renderDetailView(card, t.fakeWin, d, active, rx, ry, rw)
     else

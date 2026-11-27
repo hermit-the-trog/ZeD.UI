@@ -30,6 +30,8 @@
 --                                the same car, a trade)
 --   def.onKey(t, key, card) (optional) -> true when the card takes the key
 --                                (asked only while the pointer is over the card)
+--   def.onCancel(t, card) (optional) -> true when the kind spent the pad's B itself (a menu it
+--                                put up shuts first); false lets the card's own B run
 -- Verbs: { id, label, enabled, primary, danger, run(player, t, card), jump = fid,
 --          confirm = "question", help, sensible, needs, hint, needsLine }.
 -- The verbs are push buttons in the band at the foot (the kind's state line at
@@ -153,7 +155,11 @@ function OC.whereOf(item, player)
 end
 
 -- Open the card on an object (World window opens if needed).
-function OC.open(player, kindId, obj)
+-- back: the entry of the card this one is opened from (OC.current). Its close (the close key, B) and, for a kind
+-- that asks for it (t._returnNow: the fluid card once its pour is done), the end of its work bring that card back,
+-- which reads fresh. The trough's Transfer left the fluid card up after the pour, and the trough card never came
+-- back to show the new level (QA TG7, Nov 26 2026).
+function OC.open(player, kindId, obj, back)
     local def = OC.kinds[kindId]
     if not (def and player and obj) then return false end
     if not (ZeD_WorldWindow and ZeD_WorldWindow.openObjectCard) then return false end
@@ -162,7 +168,27 @@ function OC.open(player, kindId, obj)
     if call(player, "getVehicle") and not def.vehicleOk then return false end
     local t = def.resolve(player, obj)
     if not t then return false end
-    return ZeD_WorldWindow.openObjectCard(player:getPlayerNum(), { def = def, t = t }) and true or false
+    return ZeD_WorldWindow.openObjectCard(player:getPlayerNum(), { def = def, t = t, back = back }) and true or false
+end
+
+-- The entry of the card open in player's World window, or nil (what a card hands OC.open as back).
+function OC.current(player)
+    if not (player and ZeD_WorldWindow and ZeD_WorldWindow.getObjectCard) then return nil end
+    local card = ZeD_WorldWindow.getObjectCard(player:getPlayerNum())
+    return card and card.entry or nil
+end
+
+-- Bring back the card of entry back in player pn's window. False when it cannot be had again (its object is
+-- gone, the player is seated or dead): then the caller closes as before. The Animals tab uses it too: a bird
+-- opened from the hutch card's Info goes back to that card (QA TG7 / HU5, Nov 26 2026).
+function OC.backTo(pn, back)
+    if not (back and back.def and back.t and ZeD_WorldWindow and ZeD_WorldWindow.openObjectCard) then return false end
+    local p = getSpecificPlayer(pn or 0)
+    if not p or p:isDead() or (p:getVehicle() and not back.def.vehicleOk) then return false end
+    local okV, v = pcall(back.def.valid, back.t)
+    if not (okV and v) then return false end
+    back._held, back._ownQ = nil, nil   -- (the leash's hold starts over, as on a fresh open)
+    return ZeD_WorldWindow.openObjectCard(pn or 0, back) == true
 end
 
 -- Open the card on an object that may be out of reach (the Animals tab lists
@@ -195,8 +221,11 @@ function OC.openNear(player, kindId, obj, sq)
     if sq and (math.floor(player:getZ()) ~= sq:getZ() or OC.squareDist(player, sq) > leash - 0.5) then
         if luautils.walkAdj(player, sq) then
             ISTimedActionQueue.add(ZeDOpenCardAction:new(player, kindId, obj))
+            return true
         end
-        return true
+        -- no way there: say no, so a hook hands the call back to the game's own handler rather than doing
+        -- nothing (QA PW9 / FI9, Nov 26 2026)
+        return false
     end
     return OC.open(player, kindId, obj)
 end
@@ -251,9 +280,31 @@ local function browsePhase(e)
 end
 
 -- (Nov 15 2026, QA's beta 16 pass, p336: "put the tank in" from the grill's card walked a path that swung 6.5
--- tiles out and back, and the leash closed the card on the way.) Whatever the character starts while the card is
--- open (a press on the card, its pop-out, a key) holds the leash: from the frame the action queue goes from empty
--- to busy until it is empty again (the walk, then the action). Then the leash applies as before (OC.tick).
+-- tiles out and back, and the leash closed the card on the way.) What the card itself starts (a press on the card,
+-- its pop-out, a key) holds the leash while those actions are queued (the walk, then the action); then the leash
+-- applies as before (OC.tick). (QA PL3/OC5, Nov 26 2026: the hold was any action, so a walk the card never started
+-- kept the laundry's card open 8 tiles off and the placement card at 6. OC.ownRun marks the actions a press adds
+-- to the queue with the card's entry, and only those hold it.)
+
+-- Run fn(a, b) for the card entry e (a zone's run, a key, a pop-out's control) and mark each action it adds to
+-- player's queue as the card's own, for the leash's hold. e nil: just runs fn.
+function OC.ownRun(e, player, fn, a, b)
+    local TAQ = ISTimedActionQueue
+    if not (e and player and TAQ and TAQ.getTimedActionQueue) then return fn(a, b) end
+    local before = {}
+    local okQ, q = pcall(TAQ.getTimedActionQueue, player)
+    if okQ and q and type(q.queue) == "table" then
+        for _, act in ipairs(q.queue) do before[act] = true end
+    end
+    local r = fn(a, b)
+    okQ, q = pcall(TAQ.getTimedActionQueue, player)
+    if okQ and q and type(q.queue) == "table" then
+        for _, act in ipairs(q.queue) do
+            if type(act) == "table" and not before[act] then act._zedCard = e; e._ownQ = true end
+        end
+    end
+    return r
+end
 
 -- Per-frame upkeep for the open entry: validity, leash, data and browse list.
 -- Returns false when the card should close.
@@ -282,17 +333,41 @@ function OC.tick(e, player)
     -- bottles has none)
     local sq = t.sq
     local leash = def.leash or OC.LEASH
-    -- (the hold: busy now, and either it began while the card was open or the hold is already on)
-    -- (read in place, no helper and no closure: it runs every frame the card is open)
+    -- (the hold: one of the card's own actions is still queued, OC.ownRun; the queue is read only once the card
+    -- has queued something. Read in place, no helper and no closure: it runs every frame the card is open.)
+    local held = false
     local TAQ = ISTimedActionQueue
-    local okQ, q = false, nil
-    if TAQ then okQ, q = pcall(TAQ.getTimedActionQueue, player) end
-    local busy = okQ and q ~= nil and type(q.queue) == "table" and #q.queue > 0
-    if busy and (e._wasIdle or e._held) then e._held = true else e._held = nil end
-    e._wasIdle = not busy
-    if sq and not e._held and (math.floor(player:getZ()) ~= sq:getZ() or OC.squareDist(player, sq) > leash + 0.5) then
-        OC.closeWhy = string.format("out of reach (leash): %.2f tiles of %s, player z %.3f, square z %d, player at %.2f,%.2f", OC.squareDist(player, sq), tostring(leash), player:getZ(), sq:getZ(), player:getX(), player:getY())
-        return false
+    if e._ownQ and TAQ then
+        local okQ, q = pcall(TAQ.getTimedActionQueue, player)
+        if okQ and q ~= nil and type(q.queue) == "table" then
+            for _, act in ipairs(q.queue) do
+                if type(act) == "table" and act._zedCard == e then held = true; break end
+            end
+        end
+        if not held then e._ownQ = nil end
+    end
+    e._held = held or nil
+    if sq and not held then
+        -- a kind that stands in for a game window keeps that window's rule (def.gameDist): the game's DistToProper
+        -- from his square to the object's against its own limit, the placement window's 3 (QA PL3, Nov 26 2026: the
+        -- old 3 + 0.5 from the square's middle left the card open at the game's 3.16)
+        local far, dist = math.floor(player:getZ()) ~= sq:getZ(), nil
+        -- a kind may read reach as the game's own window does in its own way (def.farFrom: the hutch's DistToProper
+        -- from the entry square past 5; QA HU8, Nov 26 2026)
+        if not far and def.farFrom then
+            far = def.farFrom(t, player) == true
+        elseif not far and def.gameDist then
+            local psq = player:getCurrentSquare()
+            dist = psq and psq:DistToProper(sq) or 999
+            far = dist > leash
+        elseif not far then
+            dist = OC.squareDist(player, sq)
+            far = dist > leash + 0.5
+        end
+        if far then
+            OC.closeWhy = string.format("out of reach (leash): %.2f tiles of %s, player z %.3f, square z %d, player at %.2f,%.2f", dist or OC.squareDist(player, sq), tostring(leash), player:getZ(), sq:getZ(), player:getX(), player:getY())
+            return false
+        end
     end
     local now = getTimestampMs()
     t._refreshT = (t._refreshT or OC.REFRESH) + sixtieths(t, "_refreshAt", now)
@@ -309,6 +384,12 @@ function OC.tick(e, player)
         e.list = ok and list or { t }
         e.idx = 1
         for i, o in ipairs(e.list) do if o.key == t.key then e.idx = i end end
+    end
+    -- the kind's work is done and the card it came from waits: close, which takes the player back there (QA TG7)
+    if t._returnNow and e.back then
+        t._returnNow = nil
+        OC.closeWhy = "done: back to the card it was opened from"
+        return false
     end
     return true
 end
@@ -938,6 +1019,12 @@ function ZeD_ObjectCard:focusOf(fid)
 end
 
 function ZeD_ObjectCard:close()
+    -- a card opened from another card goes back to it (the close key, B, its work done; QA TG7, Nov 26 2026)
+    local back = self.entry and self.entry.back
+    if back and OC.backTo(self.playerNum, back) then
+        if ZeD_WorldWindow then ZeD_WorldWindow._closeWhy = nil end
+        return
+    end
     if ZeD_WorldWindow and not ZeD_WorldWindow._closeWhy then ZeD_WorldWindow._closeWhy = "the card's close (close key, B or a verb)" end
     if ZeD_WorldWindow and ZeD_WorldWindow.closeObjectCard then ZeD_WorldWindow.closeObjectCard(self.playerNum) end
 end
@@ -949,7 +1036,10 @@ function ZeD_ObjectCard:press(v)
     local e = self.entry
     if not (player and e) then return end
     if v.confirm then
-        self._confirm = { text = v.confirm, yes = v.label, run = v.run, danger = v.danger and true or false, help = v.help }
+        -- (QA FA4, Nov 26 2026: a farm card that stepped to the next plot kept the question up, and Yes dug up the
+        -- neighbour. The question remembers the object it asked about and is good for that one only.)
+        self._confirm = { text = v.confirm, yes = v.label, run = v.run, danger = v.danger and true or false, help = v.help,
+            key = e.t and e.t.key }
         -- (Nov 16 2026) a question opens on Cancel (digging up a crop, taking a grill apart, emptying), so a second A cannot act
         self._pendingFocus = "oc:confirm:no"
         return
@@ -1435,21 +1525,28 @@ function ZeD_ObjectCard:drawVerbBand(rows, fy, w, status, lines, win)
     end
 end
 
-function ZeD_ObjectCard:prerender()
-    local e = self.entry
-    if not e then return end
-    local player = self:player()
-    if not player then return end
-    -- (a card kind's own calls run every frame: a throw closes the card or drops that piece,
-    -- logged once, rather than repeating each frame)
+-- The card's upkeep (OC.tick), closing it when the tick says so. False when it closed.
+-- (a card kind's own calls run every frame: a throw closes the card or drops that piece,
+-- logged once, rather than repeating each frame)
+function ZeD_ObjectCard:keep(e, player)
     local okT, alive = pcall(OC.tick, e, player)
     if not okT then ZeD.logOnce("ObjectCards tick " .. tostring(e.def and e.def.id), alive) end
     if not (okT and alive) then
         if ZeD_WorldWindow then ZeD_WorldWindow._closeWhy = "card tick: " .. tostring(okT and OC.closeWhy or alive) end
         OC.closeWhy = nil
         self:close()
-        return
+        return false
     end
+    return true
+end
+
+function ZeD_ObjectCard:prerender()
+    local e = self.entry
+    if not e then return end
+    local player = self:player()
+    if not player then return end
+    self._drawnAt = getTimestampMs()   -- (the upkeep off the draw leaves a drawn card to this, OC.upkeep)
+    if not self:keep(e, player) then return end
     local T, tm = ZeD.T, ZeD.TM
     local w, h = self:getWidth(), self:getHeight()
     self._lastZones = self._zones
@@ -1461,6 +1558,12 @@ function ZeD_ObjectCard:prerender()
     fm.win, fm.zone = win, "worldItemCard"
     self:updateHover()
     local def, t = e.def, e.t
+    -- (QA FA4, Nov 26 2026) the card now shows another object than the one the question asked about: the question
+    -- goes without acting
+    if self._confirm and self._confirm.key ~= (t and t.key) then
+        self._confirm = nil
+        self._pendingFocus = "oc:back"
+    end
 
     self:drawBackground(w, h)
     local hh = T.stripH   -- row 1, the shared strip
@@ -1604,7 +1707,14 @@ function ZeD_ObjectCard:prerender()
             run = function()
                 self._confirm = nil
                 local p = self:player()
-                if p and cf.run then
+                -- (QA FA4: checked again at the press, so Yes never acts on an object it did not ask about)
+                local tNow = e.t
+                local same = tNow ~= nil and tNow.key == cf.key
+                if same and def.valid then
+                    local vok, v = pcall(def.valid, tNow)
+                    same = vok and v and true or false
+                end
+                if p and cf.run and same then
                     local ok2, err = pcall(cf.run, p, e.t, self)
                     if not ok2 then print("[ZeD] ObjectCards: confirm failed: " .. tostring(err)) end
                     e.t._refreshT = OC.REFRESH - 3
@@ -1690,7 +1800,8 @@ function ZeD_ObjectCard:_pointer()
     end
     if self._wasDown and not down and self._pressFid then
         local z = inside and self:zoneAt(mx, my)
-        if z and z.fid == self._pressFid and z.run then z.run(self, self:player()) end
+        -- (the card's own: what it queues holds the leash, OC.ownRun)
+        if z and z.fid == self._pressFid and z.run then OC.ownRun(self.entry, self:player(), z.run, self, self:player()) end
         self._pressFid = nil
     end
     self._wasDown = down
@@ -1728,8 +1839,33 @@ function OC.cardKey(key, pn)
     local card = ZeD_WorldWindow and ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard(pn)
     local e = card and card.entry
     if not (e and e.def.onKey and card:pointerOver()) then return end
-    local ok, err = pcall(e.def.onKey, e.t, key, card, true)
+    local ok, err = pcall(OC.ownRun, e, card:player(), function() return e.def.onKey(e.t, key, card, true) end)
     if not ok then print("[ZeD] ObjectCards: key failed: " .. tostring(err)) end
+end
+
+-- (QA PL1/OC2, Nov 26 2026) The upkeep off the draw: a card in a rolled-up or hidden window draws nothing, so
+-- its prerender never ran the leash, valid() or the placement's end, and the card stayed open past its leash with
+-- the game's placement on. A few times a second, each open card not drawn lately gets its tick here.
+OC.UPKEEP_MS = 250
+function OC.upkeep()
+    local now = getTimestampMs()
+    if now - (OC._upkeepAt or 0) < OC.UPKEEP_MS then return end
+    OC._upkeepAt = now
+    if not (ZeD_WorldWindow and ZeD_WorldWindow.getObjectCard) then return end
+    for pn = 0, 3 do
+        local card = ZeD_WorldWindow.getObjectCard(pn)
+        local e = card and card.entry
+        if e and now - (card._drawnAt or 0) > OC.UPKEEP_MS then
+            local player = getSpecificPlayer(pn)
+            if player then card:keep(e, player) end
+        end
+    end
+end
+if Events and Events.OnTick then
+    -- (a hot reload swaps the hook rather than adding a second)
+    if OC._upkeepHook then Events.OnTick.Remove(OC._upkeepHook) end
+    OC._upkeepHook = function() OC.upkeep() end
+    Events.OnTick.Add(OC._upkeepHook)
 end
 
 -- The World window asks for key events once a card that reads keys opens
@@ -1770,8 +1906,15 @@ function ZeD_ObjectCard:buildFocusables(win)
                 x = z.x, y = z.body and (z.y + off) or z.y, w = z.w, h = z.h, id = z.fid, zone = z,
                 isPrimary = z.primary,   -- (where a move into the card lands)
                 onFocus = function(w, el) end,
-                onActivate = function(w, el) if zz.run then zz.run(card, card:player()) end end,
+                onActivate = function(w, el) if zz.run then OC.ownRun(card.entry, card:player(), zz.run, card, card:player()) end end,
                 onCancel = function(w, el)
+                    -- (QA MD4, Nov 26 2026) a kind's own B first (the medic card shuts the game's treatment menu
+                    -- it put up, and the card stays): def.onCancel(t, card) true spends the B
+                    local ce = card.entry
+                    if ce and ce.def and ce.def.onCancel then
+                        local okC, took = pcall(ce.def.onCancel, ce.t, card)
+                        if okC and took then return true end
+                    end
                     if card._confirm then card._confirm = nil else card:close() end
                 end,
                 onDpadDir = zz.dpad and function(w, el, dir)

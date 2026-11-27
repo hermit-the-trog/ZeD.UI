@@ -138,14 +138,25 @@ local function cardDriver(spec)
             end
         end
         face.dev.hits = hits
+        local pend = face.dev.pending
+        if pend then face.dev.pending = nil; D.press(pend.chr, face.dev, pend.id) end
         return hits, face.dev.t.d
     end
     D.hitAt = TW.hitAt
     -- a control runs as the card runs it (its zone's run, vanilla's action behind it); the data is read again soon
     function D.press(chr, dev, id)
+        -- (a press before this opening's face has drawn found no hits and did nothing: the pad's A right after the
+        -- pop-out opened on a second machine queued nothing. It waits for the first draw instead; QA PW1, Nov 26 2026)
+        if dev.hits == nil then dev.pending = { chr = chr, id = id }; return end
         local h = hitById(dev, id)
         if not (h and h.run) then return end
-        local ok, err = pcall(h.run, nil, chr)
+        -- (the pop-out stands in for the card: what it queues is the card's own and holds the card's leash, QA OC5)
+        local OCm = ZeD.ObjectCards
+        local own = OCm and OCm.ownRun
+        local pn = own and OCm.call and OCm.call(chr, "getPlayerNum")
+        local card = pn and ZeD_WorldWindow and ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard(pn)
+        local ok, err
+        if own then ok, err = pcall(own, card and card.entry, chr, h.run, nil, chr) else ok, err = pcall(h.run, nil, chr) end
         if not ok then print("[ZeD] FacePop: " .. tostring(id) .. " failed: " .. tostring(err)) end
         dev.at = 0
     end
@@ -293,7 +304,11 @@ function FP.open(player, obj, win, st)
         dev.at = now()
     end
     local pn = player:getPlayerNum()
-    return TF.open(player, dev, win or worldWin(pn), drv) ~= nil
+    local v = TF.open(player, dev, win or worldWin(pn), drv)
+    -- (the view kept the controls of the face it showed before until this one draws, so a press in between ran
+    -- against the old machine's list; QA PW1, Nov 26 2026)
+    if v and type(dev) == "table" and dev.hits == nil then v._hits = {} end
+    return v ~= nil
 end
 
 --- The same, or put away when it already shows this object (the cards' button and face, a click on the machine again).

@@ -1192,6 +1192,8 @@ local function _buildAnimalsFocusables(win)
     -- ranch/animal: submode pills + breadcrumb, the hutch link and (with
     -- animal cheats) the genome editor; the rest of the detail is readout.
 
+    -- a bird the hutch card's Info opened: B goes back to that card (QA HU5, Nov 26 2026)
+    if AT.withReturn then AT.withReturn(win, elements) end
     return elements
 end
 
@@ -3516,6 +3518,7 @@ local function drawWorldContainerStrip(self, win, content)
         if isHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_World_FloorHelp")) end
         local onFocusF = false
         if gpFocusedCI == floorIdx then
+            stripFocus.solid = floorOn and true or false   -- (on the lit panel the mark leaves out its wash, as on a lit tab)
             onFocusF = ZeD.Focus.mark(self, 0, curY, w - T.px(1), floorH, stripFocus)
         end
 
@@ -3668,6 +3671,7 @@ local function drawWorldContainerStrip(self, win, content)
             end
             local onFocusC = false
             if gpFocusedCI == ci then
+                stripFocus.solid = isOn and true or false
                 onFocusC = ZeD.Focus.mark(self, 0, drawY, w - T.px(1), T.px(CONTAINER_BTN_SZ), stripFocus)
             end
 
@@ -3917,6 +3921,10 @@ local function _closeWorldWindow(w)
     -- the build cursor the Build tab started goes with the window, as the game's build window's close clears
     -- its cursor (ISBuildPanel.lua:405-407) (QA cb sweep, Nov 25 2026, B5)
     if ZeD.BuildingTab and ZeD.BuildingTab.dropCursor then pcall(ZeD.BuildingTab.dropCursor, w.playerNum or 0) end
+    -- the object card goes with the window through its own drop, so its kind tidies up: the placement card saves and
+    -- ends the game's placement and its gizmo, the laundry hands the focus back (QA PL1/OC2, Nov 26 2026: the close
+    -- box and U left isDoingExtendedPlacement on and the gizmo up). A pinned trade stays pinned, as on a tab switch.
+    pcall(dropObjectCard, w, "the World window closed")
     -- unregisterWindow releases focus if this window holds it
     if ZeD and ZeD.Input and ZeD.Input.Focus then ZeD.Input.Focus.unregisterWindow(w) end
     w:removeFromUIManager()
@@ -4543,6 +4551,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             -- the World window is mirrored); alone in the drawer the window's own lines
             -- bound it (the divider or the strip's edge, the waterfall's edge, the help line)
             card.overlayEdge = (win._drawerMode == "tab" and card:getWidth() < effectiveW) and "right" or nil
+            card.overlayFrame = (win._drawerMode == "tab")   -- (a line all round over a tab: the director, Nov 26 2026)
 
             -- Background fill: surface 1 at the window's see-through, claimed so the
             -- body is not drawn under it as well (one layer, ZeD.Surface)
@@ -6590,7 +6599,9 @@ function ZeD_WorldWindow.openObjectCard(playerNum, entry)
     if not (win and win._objectCard) then return false end
     local content = win._mainContent
     if content then
-        if #(win._mcSelected or {}) > 0 and exitWorldMC then exitWorldMC(win, content) end
+        -- (QA OC7, Nov 26 2026) the Loot columns stay: a card opened from the game's menu or a locked crate's
+        -- button closed his extra columns (2 to 0) and never gave them back. The drawer sits beside the columns
+        -- as the item card does; only a new column opened under a card still takes the card (enterWorldMC).
         content._selectedItems = {}
         content._lastClickedItem = nil
     end

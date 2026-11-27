@@ -2200,10 +2200,10 @@ The Find field in the heading of the Character window's Skills and Equipment tab
 | `UI_ZeD_Lock_HintUsePad` | `put it on` | Padlock card: what Use padlock does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
 | `UI_ZeD_Lock_NeedsBoth` | `%1 and %2` | Padlock card: joins two needs of Lock into one, filling %2 of "%1 needs %2"; %1 = the padlock need, %2 = the code need | - |
 | `UI_ZeD_Lock_NeedsCode` | `a code other than 000` | Padlock card: what Lock needs when the code on the dial is 000, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
-| `UI_ZeD_Lock_NeedsCombo` | `a Combination Padlock in your bags` | Padlock card: what Lock and Use combination padlock need, the game's item name for the padlock, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Lock_NeedsCombo` | `a Combination Padlock in your main inventory` | Padlock card (the main inventory, not a bag: the game takes it from there): what Lock and Use combination padlock need, the game's item name for the padlock, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
 | `UI_ZeD_Lock_NeedsKey` | `its key in your bags` | Padlock card: what Remove padlock needs for a key padlock, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
-| `UI_ZeD_Lock_NeedsKeyPad` | `a padlock with its keys in your bags` | Padlock card: what Use padlock needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
-| `UI_ZeD_Lock_QLock` | `Lock the container? It shuts to everyone.` | Padlock card: the question in the footer after Lock is pressed; the footer then offers a yes and a no | - |
+| `UI_ZeD_Lock_NeedsKeyPad` | `a padlock with its keys in your main inventory` | Padlock card (the main inventory, not a bag): what Use padlock needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Lock_QLock` | `Lock it with %1? It shuts to everyone.` | Padlock card: the question in the footer after Lock is pressed, %1 the code it locks with ("3 1 9"); the footer then offers a yes and a no | - |
 
 ## Looks
 

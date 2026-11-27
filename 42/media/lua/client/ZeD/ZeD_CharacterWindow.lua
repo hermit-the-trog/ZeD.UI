@@ -4073,6 +4073,7 @@ local function drawContainerStrip(self, win, content)
         if isHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_CW_MainHelp", mainCnt.name or "")) end
         local onFocusM = false
         if gpFocusedCI == 1 then
+            stripFocus.solid = mainVis   -- (on the lit panel the mark leaves out its wash, as on a lit tab)
             onFocusM = ZeD.Focus.mark(self, T.px(1), curY, w - T.px(1), mainH, stripFocus)
         end
         local iconAlpha = mainVis and 1 or 0.5
@@ -4226,6 +4227,7 @@ local function drawContainerStrip(self, win, content)
             if isHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_CW_BagHelp", cnt.name or "")) end
             local onFocusC = false
             if gpFocusedCI == ci then
+                stripFocus.solid = (isMcSel or isViewed) and true or false
                 onFocusC = ZeD.Focus.mark(self, T.px(1), btnY, w - T.px(1), T.px(CONTAINER_BTN_SZ), stripFocus)
             end
 
@@ -5257,6 +5259,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             -- over a tab's content the card draws its left edge (a structure line); alone in the
             -- drawer the window's own lines bound it (the waterfall's edge, the divider, the help line)
             card.overlayEdge = (win._drawerMode == "tab") and "left" or nil
+            card.overlayFrame = (win._drawerMode == "tab")   -- (a line all round over a tab: the director, Nov 26 2026)
 
             -- Background fill: surface 1 at the window's see-through, claimed so the
             -- body is not drawn under it as well (one layer, ZeD.Surface)

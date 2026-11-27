@@ -48,6 +48,17 @@ function def.resolve(player, obj)
     return { obj = h, sq = sq, key = OC.keyOf(h:getSquare(), "hutch") }
 end
 
+-- Out of reach as the game's window reads it: the player's square past 5 from the entry square (DistToProper,
+-- ISHutchUI:prerender). The shared leash's 5 + 0.5 from the square's center kept the card up at 5.10
+-- (QA HU8, Nov 26 2026).
+function def.farFrom(t, player)
+    local cs = player and player:getCurrentSquare()
+    if not (cs and t.sq) then return true end
+    local ok, dist = pcall(function() return cs:DistToProper(t.sq) end)
+    if not (ok and dist) then return OC.squareDist(player, t.sq) > def.leash + 0.5 end
+    return dist > def.leash
+end
+
 function def.valid(t)
     local h = t.obj
     return h ~= nil and h:getSquare() ~= nil and (call(h, "getObjectIndex") or 0) >= 0
@@ -143,11 +154,16 @@ local function showBird(p, animal)
     -- the window of the player who pressed INFO
     local pn = p:getPlayerNum()
     local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow(pn)
+    -- this card, kept as the bird page's way back: B and the page's Back bring it up again (QA HU5, Nov 26 2026)
+    local back = OC.current and OC.current(p) or nil
     if ZeD_WorldWindow.closeObjectCard then ZeD_WorldWindow.closeObjectCard(pn) end
     if ZeD_WorldWindow.openTab then ZeD_WorldWindow.openTab(pn, "animals") end
     win = ZeD_WorldWindow.getWindow(pn)
     local AT = ZeD.AnimalsTab
-    if win and AT and AT.showAnimal then AT.showAnimal(win, animal) end
+    if win and AT and AT.showAnimal then
+        AT.showAnimal(win, animal)
+        if AT.setReturnCard then AT.setReturnCard(win, back, animal) end
+    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -275,10 +291,15 @@ function def.refresh(t, player)
         hatchVerb()
     end
     if d.carry then
-        -- a full hutch takes no more (the verb is gone); with both doors shut it waits for one open
+        -- a full hutch or one with both doors shut takes no bird now: Put in stays, greyed with the game's own
+        -- reason (ISHutchMenu's tooltips; full wins, as its last one does). It vanished with no word when the hutch
+        -- was full (QA HU4, Nov 26 2026)
         local full = d.count >= d.max
-        verbs[#verbs + 1] = { id = "putin", label = ZeD.tr("UI_ZeD_Hutch_PutIn"), enabled = not d.allClosed, sensible = not full,
-            needs = ZeD.tr("UI_ZeD_Hutch_NeedsOpen"), hint = ZeD.tr("UI_ZeD_Hutch_HintPutIn"), help = ZeD.tr("UI_ZeD_Hutch_HelpPutIn"),
+        local why = nil
+        if full then why = txt("IGUI_PutAnimalInHutch_HutchFull", "Hutch is full.")
+        elseif d.allClosed then why = txt("IGUI_PutAnimalInHutch_DoorsClosed", "You need to have either door or eggs door open.") end
+        verbs[#verbs + 1] = { id = "putin", label = ZeD.tr("UI_ZeD_Hutch_PutIn"), enabled = why == nil,
+            needs = ZeD.tr("UI_ZeD_Hutch_NeedsOpen"), needsLine = why, hint = ZeD.tr("UI_ZeD_Hutch_HintPutIn"), help = ZeD.tr("UI_ZeD_Hutch_HelpPutIn"),
             run = function(p, tt) tt.eggChain = nil; ISHutchMenu.onPutAnimalInsideHutch(tt.obj, p) end }
     end
     t.verbs = verbs
@@ -444,9 +465,10 @@ function def.body(card, x, y, w, t, player)
     -- (QA's visual noise audit 32, Nov 20 2026: a row of "Door open" and "Egg hatch open" chips sat over the
     -- "Close door" and "Close hatch" buttons that already say each door's state; the chip row is gone)
 
-    -- egg laying boxes ("9 eggs"; the boxes are drawn, so no "| 4 boxes")
+    -- egg laying boxes ("Eggs: 9"; the boxes are drawn, so no "| 4 boxes"). The game's own count words: one
+    -- egg read "1 eggs", and ZeD's words were English in every language (QA HU7, Nov 26 2026)
     y = y + UI.section(card, x, y, w, txt("IGUI_Hutch_EggLayingBox", "Egg Laying Boxes"),
-        d.boxesShown and ZeD.tr("UI_ZeD_Hutch_Eggs", d.eggs) or ZeD.tr("UI_ZeD_Hutch_Boxes", #d.boxes))
+        d.boxesShown and ZeD.tr("IGUI_Hutch_EggsNb", d.eggs) or ZeD.tr("UI_ZeD_Hutch_Boxes", #d.boxes))
     y = y + T.px(6)
     if not d.boxesShown then
         y = y + closedPlate(card, x, y, w, ZeD.tr("UI_ZeD_Hutch_BothShut"))

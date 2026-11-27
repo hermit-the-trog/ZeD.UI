@@ -10,6 +10,10 @@
 --   FL7  Transfer and Info on a world container 7 and 15 tiles off walk there and open the card at the end of the
 --        walk; within reach the card opens at once
 --   FL5  seated, an item's Liquid > Transfer and Show info reach the game's own window; on foot the card takes them
+--   FL6  a well (the game's HiddenAmount) shows Unknown, no litres, no share and no lit segments; Max Pour hides
+--        too when the hidden side sets it; a plain barrel still shows its amount
+--   PW9 / FI9  Info on a generator, a campfire or a barbecue 7 and 15 tiles off (Overrides/InfoCards.lua) walks
+--        there and opens the card at the walk's end; in reach at once; with no path the game's own Info runs
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/oc_fluid_sim.lua
 -- It prints FAIL lines and a last line "oc_fluid_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -263,6 +267,8 @@ check("FL4: a press during the pour queues nothing", count("ISFluidTransferActio
 Q.queue = {}
 def.refresh(t, player)
 check("FL4: Pour comes back once the chain is gone", verb(t, "pour").enabled == true and not t.d.busy)
+-- (QA TG7, Nov 26 2026) the pour's end asks the frame to go back to the card this one came from
+check("TG7: the end of the pour asks for the way back (t._returnNow)", t._returnNow == true)
 check("FL4: Switch comes back", verb(t, "switch").enabled == true)
 
 -- ---------------------------------------------------------------------------
@@ -284,6 +290,7 @@ check("FL3: the waiting pour was cancelled, not run", pour and pour.cancelled ==
 check("FL3: no forceStop on an action that had not begun", forceStopErrors == 0, forceStopErrors)
 def.refresh(t, player)
 check("FL3: the card is idle after Stop", t.d.busy == false and t.d.pouring == false)
+check("TG7: a stopped pour does not send the player back", t._returnNow ~= true)
 -- Stop with something of the player's own ahead of the card's chain: only the card's chain goes
 resetQueue()
 local own = newAction("ISReadABook")
@@ -351,5 +358,149 @@ reset()
 player.veh = nil
 ISFluidContainerMenu.showUI(player, bottleFC, ISFluidTransferUI)
 check("FL5: on foot the card takes Transfer", #opened == 1 and #vanilla == 0, table.concat(vanilla, ","))
+
+-- ---------------------------------------------------------------------------
+-- FL6: a well hides its amount; the card draws no number for it and no lit segments
+-- ---------------------------------------------------------------------------
+-- a card that keeps what it draws: every string, and every segment strip with how many segments it lit
+local drawn, segs = {}, {}
+local function noteText(s) drawn[#drawn + 1] = tostring(s) end
+local COL = { r = 1, g = 1, b = 1, a = 1 }
+ZeD.T = setmetatable({ px = function(n) return n end, selectionA = 0.2, fillBarH = 6, buttonH = 20 },
+    { __index = function() return COL end })
+ZeD.TM = { MeasureStringX = function(_, _, s) return #tostring(s) end, getFontHeight = function() return 10 end }
+ZeD.Atoms = {
+    drawSegFill = function(_, _, _, _, _, _, lit) segs[#segs + 1] = lit; return false end,
+    fillSegsLit = function(f) return math.floor((f or 0) * 10 + 0.5) end,
+    fillBarCompactH = function() return 4 end,
+    drawTextRight = function(_, s) noteText(s) end,
+    textCase = function(s) return s end,
+    frame = function() end, drawStatusDot = function() end, drawSmoothBar = function() end,
+}
+ZeD.Help = { set = function() end }
+ZeD.CraftingCore = { truncText = function(s) return s end }
+ZeD.Molecules = { drawEmptyLine = function(_, _, _, _, s) noteText(s) end }
+ZeD.Focus = { mark = function() end }
+OC.ui.fill = function() end
+OC.ui.section = function(_, _, _, _, a, b) noteText(a); noteText(b); return 10 end
+OC.ui.tag = function(_, _, _, s) noteText(s) end
+OC.ui.tagW = function(s) return #tostring(s) end
+OC.ui.button = function(_, _, _, s) noteText(s) end
+OC.ui.buttonW = function(s) return #tostring(s) end
+OC.ui.big = function(_, s) noteText(s) end
+local CARD = {
+    drawText = function(_, s) noteText(s) end,
+    drawRect = function() end, drawRectBorder = function() end, drawTextureScaledAspect = function() end,
+    zone = function() end, focusOf = function() return nil end,
+}
+local BLUE = { getRedFloat = function() return 0.2 end, getGreenFloat = function() return 0.4 end, getBlueFloat = function() return 0.9 end }
+local function hiddenFC(name, amt, cap)
+    local fc = newFC(name, amt, cap)
+    function fc:isHiddenAmount() return true end
+    function fc:getColor() return BLUE end
+    return fc
+end
+local function drawCard(t)
+    drawn, segs = {}, {}
+    def.refresh(t, player)
+    def.body(CARD, 0, 0, 480, t, player)
+    return table.concat(drawn, " / ")
+end
+local function litSum() local n = 0; for _, v in ipairs(segs) do n = n + (v or 0) end; return n end
+
+do
+    resetQueue()
+    -- the player carries an empty bottle, so every segment the card lights would be the well's
+    local emptyFC = newFC("Empty Bottle fc", 0, 1.0)
+    local emptyItem = itemOwner("Empty Bottle")
+    emptyItem.getFluidContainer = function() return emptyFC end
+    fc_owner[emptyFC] = emptyItem
+    player.inv = { emptyItem }
+    local wellSq = newSq(102, 100)
+    local wellFC = hiddenFC("Well", 6074, 10000)
+    local wellOwner = isoOwner(wellSq)
+    fc_owner[wellFC] = wellOwner
+    local well, emptyB = wrapFC(wellFC, wellOwner), wrapFC(emptyFC, emptyItem)
+    local tw = { key = "fluid", frac = 1, from = well, into = emptyB, pinned = well, sq = wellSq }
+    local okB, s = pcall(drawCard, tw)
+    check("FL6: the card draws over a well", okB, s)
+    s = okB and s or ""
+    check("FL6: no 6074 anywhere on the card", s:find("6074", 1, true) == nil, s)
+    check("FL6: the game's Unknown in its place", s:find("Unknown", 1, true) ~= nil, s)
+    check("FL6: no share either (the Liquids row's 100%)", s:find("100%", 1, true) == nil, s)
+    check("FL6: no lit segments (the well's row and its Liquids bar)", #segs > 0 and litSum() == 0, table.concat(segs, ","))
+    local q = verb(tw, "empty") and verb(tw, "empty").confirm or ""
+    check("FL6: Empty's question names no amount", q:find("6074", 1, true) == nil, q)
+    -- the bottle sets the most a pour takes: that number is the bottle's, so it shows
+    check("FL6: the pour's Max Pour is the bottle's 1 L (it gives nothing away)", s:find("Max Pour 1.00 L", 1, true) ~= nil and not tw.d.maxHidden, s)
+
+    -- a nearly dry hidden source sets Max Pour itself: then the amount reads Unknown too
+    local lowFC = hiddenFC("Well", 0.3, 10000)
+    fc_owner[lowFC] = wellOwner
+    local low = wrapFC(lowFC, wellOwner)
+    local tl = { key = "fluid", frac = 1, from = low, into = emptyB, pinned = low, sq = wellSq }
+    local okL, s2 = pcall(drawCard, tl)
+    s2 = okL and s2 or ""
+    check("FL6: a hidden side that sets Max Pour hides it", okL and tl.d.maxHidden == true and s2:find("0.30", 1, true) == nil, s2)
+
+    -- a plain barrel still shows its amount and lights its segments
+    local barFC = newFC("Barrel", 80, 160)
+    function barFC:getColor() return BLUE end
+    fc_owner[barFC] = wellOwner
+    local bar = wrapFC(barFC, wellOwner)
+    local tb = { key = "fluid", frac = 1, from = bar, into = emptyB, pinned = bar, sq = wellSq }
+    local okP, s3 = pcall(drawCard, tb)
+    s3 = okP and s3 or ""
+    check("FL6: a barrel that does not hide shows 80.0 L", s3:find("80.0 L", 1, true) ~= nil, s3)
+    check("FL6: and lights its segments", litSum() > 0, table.concat(segs, ","))
+    player.inv = { bottleItem }
+end
+
+-- ---------------------------------------------------------------------------
+-- PW9 / FI9: Info on a generator or a fire past the card's reach walks there and opens the card on arrival
+-- (Overrides/InfoCards.lua through OC.openNear); in reach it opens at once; no path hands it to the game
+-- ---------------------------------------------------------------------------
+do
+    local gameInfo = {}
+    ISWorldObjectContextMenu.onInfoGenerator = function() gameInfo[#gameInfo + 1] = "generator" end
+    ISCampingMenu = { onDisplayInfo = function() gameInfo[#gameInfo + 1] = "campfire" end }
+    ISBBQMenu = { onDisplayInfo = function() gameInfo[#gameInfo + 1] = "bbq" end }
+    local function kind(id) OC.kinds[id] = { id = id, resolve = function(_, obj) return { key = id, obj = obj } end } end
+    kind("generator"); kind("fire")
+    assert(loadstring(readFile(Z .. "Overrides/InfoCards.lua"), "Overrides/InfoCards.lua"))()
+    local objSq
+    local thing = { getSquare = function() return objSq end }
+    -- the campfire's Lua object: its square only through its tile
+    local luaFire = { getIsoObject = function() return thing end }
+    local cases = {
+        { "generator", function() ISWorldObjectContextMenu.onInfoGenerator({}, thing, 0) end },
+        { "campfire", function() ISCampingMenu.onDisplayInfo({}, player, luaFire) end },
+        { "barbecue", function() ISBBQMenu.onDisplayInfo({}, 0, thing) end },
+    }
+    for _, c in ipairs(cases) do
+        for _, far in ipairs({ 7, 15 }) do
+            reset(); gameInfo = {}
+            objSq = newSq(100 + far, 100)
+            c[2]()
+            check("PW9/FI9: Info on the " .. c[1] .. " " .. far .. " tiles off walks there", #walks == 1 and walks[1] == objSq, #walks)
+            local last = Q.queue[#Q.queue]
+            check("PW9/FI9: ... the card waits for the walk's end", #opened == 0 and last and last.Type == "ZeDOpenCardAction", #opened)
+            if last and last.perform then last:perform() end
+            check("PW9/FI9: ... and opens there", #opened == 1 and #gameInfo == 0, #opened)
+        end
+        reset(); gameInfo = {}
+        objSq = newSq(102, 100)
+        c[2]()
+        check("PW9/FI9: Info on the " .. c[1] .. " in reach opens at once", #walks == 0 and #opened == 1 and #gameInfo == 0)
+    end
+    -- no path: never nothing; the game's own Info runs
+    local walkAdj = luautils.walkAdj
+    luautils.walkAdj = function() return false end
+    reset(); gameInfo = {}
+    objSq = newSq(115, 100)
+    ISWorldObjectContextMenu.onInfoGenerator({}, thing, 0)
+    check("PW9: no path to the generator: the game's Info runs", #opened == 0 and gameInfo[1] == "generator", table.concat(gameInfo, ","))
+    luautils.walkAdj = walkAdj
+end
 
 done()

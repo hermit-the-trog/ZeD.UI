@@ -162,25 +162,21 @@ end
 --- frame) or the pointer's hover wash. The icon and the controller's mark go on after, as before.
 function G.stripCell(panel, x, y, w, h, tex, lit, hover)
     local T = ZeD.T
+    if lit then
+        -- the shown one: the window tabs' lit panel, the full accent with its light and shade, the container's
+        -- picture drawn on it after (the director, Nov 26 2026: "the same selection type that's on the tabs ... keep
+        -- the colors though when they aren't selected"; it replaces the one-hairline frame of Nov 25)
+        if ZeD.TabPx and ZeD.TabPx.drawLitPanel then
+            ZeD.TabPx.drawLitPanel(panel, x, y, w, h, T.px(1))
+        else
+            local ac = T.accent
+            panel:drawRect(x, y, w, h, 1, ac.r, ac.g, ac.b)
+        end
+        return
+    end
     local r, g, b = G.stripFill(T, tex)
     panel:drawRect(x, y, w, h, 1, r, g, b)
-    if lit then
-        -- the shown one: its own tint and a one-hairline frame, no accent wash (the director, Nov 25 2026, after the
-        -- frame fix's before and after: "single pixel outline/highlight, no wash")
-        local ac = T.accent
-        local f = T.px(1)
-        local fr, fg, fb
-        if T.baseKey == "light" then
-            fr, fg, fb = ac.r * 0.72, ac.g * 0.72, ac.b * 0.72
-        else
-            local br = T.accentBright or ac
-            fr, fg, fb = br.r, br.g, br.b
-        end
-        panel:drawRect(x, y, w, f, 1, fr, fg, fb)
-        panel:drawRect(x, y + h - f, w, f, 1, fr, fg, fb)
-        panel:drawRect(x, y, f, h, 1, fr, fg, fb)
-        panel:drawRect(x + w - f, y, f, h, 1, fr, fg, fb)
-    elseif hover then
+    if hover then
         local hv = T.hover
         panel:drawRect(x, y, w, h, hv.a, hv.r, hv.g, hv.b)
     end
