@@ -17,7 +17,7 @@
 #               R18 presets: A held on P2 stores, P2 recalls, an empty P4 flashes EMPTY, nothing while off
 #               R19 headphones: Earbuds in a bag (the key looks in the main inventory only: an open gap, NOTE), in the main inventory (pad), out (mouse)
 #               R20 the Premium's CD: the list, in, play and its clock, stop and play inside 4 s, eject (pad)
-#               R21 B9 the Premium turned off while the disc plays; on again (NOTE)
+#               R21 B9 the Premium turned off while the disc plays: stopped within 2.5 s, the time it played on measured up to 10 s; on again (NOTE)
 #               R22 the pop-out of a held radio: the button, the face, dropped: closed; a radio in a bag: stays
 #               R31-R42 the walkies: B1 the battery out by the fill's Battery row (mouse), in by it (pad: the fullest carried), out by the plain card's button, the pop-out's missing battery and phones (open gap: NOTE), VOL's push (mouse; X, then the stop's own X as a NOTE), the Tactical's band and the pad's 5x, MEM and CH, MEM held names (right-click; A held), MEMORY FULL, MIC refused off then MIC OFF, SCAN on the Army set, LAMP at night (the clock put back; picture rd_walkie_tactical_night_lamp_<WxH>), the toy's three controls, B7 the pop-out of a walkie in a bag, B2 headphones on a walkie: in by the fill's Headphones row (mouse), out by the plain card's button (pad)
 #               R43 SKIP: two-way talk and a server's channels (multiplayer)

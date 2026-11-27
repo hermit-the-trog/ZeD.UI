@@ -504,7 +504,7 @@ function H.tabText(which, dev)
     local t = H.tw(w)
     return H.wname(which) .. " tab " .. tostring(w and w._activeTab) .. ", " .. #((w and w._radios) or {}) .. " listed, shown "
         .. H.s(t and H.devName(t.dev)) .. " (the one wanted " .. tostring(t ~= nil and t.dev == dev) .. "), face " .. tostring(t and t.pid)
-        .. ", " .. #((t and t.hits) or {}) .. " controls"
+        .. ", " .. #((t and t.hits) or {}) .. " controls, drawer " .. tostring(w and w._drawerMode) .. " open " .. tostring(w and w._drawerOpen)
 end
 -- the drawer has stopped growing (its width the same three frames running)
 function H.settled(w)
@@ -733,6 +733,17 @@ function H.findBox()
     return b
 end
 function H.boxUp() return H.findBox() ~= nil end
+-- every naming box on screen: the channel number each names (its param1)
+function H.boxesUp()
+    local o = {}
+    for _, r in ipairs(RT.roots()) do
+        local vis = false
+        pcall(function() vis = r.e:isVisible() end)
+        local t = r.t
+        if vis and type(t) == "table" and ((t.Type == "ZeD_Prompt" and t.kind == "text" and not t._dead) or t.Type == "ISTextBox") then o[#o + 1] = tostring(t.param1) end
+    end
+    return o
+end
 -- the naming box answered: its words, then its OK (the game's button)
 function H.boxOK(text)
     local b = H.findBox()
@@ -753,14 +764,35 @@ end
 -- queue: control id scrolled into the tab's view (as the D-pad's moves bring it), then the pad's focus put on it;
 -- T.go. (Run 2: A on LAMP and on MIC did nothing where the key started out of the view; the focus and the knob
 -- held are logged before and after, so a press that lands elsewhere shows itself.)
+-- (Run 3: in R35 and R37 the first try found the content zone holding radio:tab:1 alone, the Radio tab's
+-- "no face drawn yet" list, in the frame the pad took the window. The focus is now tried each frame for up to 2 s,
+-- and a failure says what the tab held: its face record, its device, its controls.)
+function H.tabState(w)
+    local t = H.tw(w)
+    local cur = w and w._radios and w._radios[w._radioIdx or 1]
+    return "the tab's face record " .. tostring(t ~= nil) .. ", for the shown set " .. tostring(t ~= nil and cur ~= nil and t.dev == cur.radioInstance)
+        .. ", its controls " .. #((t and t.hits) or {}) .. ", drawer mode " .. tostring(w and w._drawerMode) .. ", tab " .. tostring(w and w._activeTab)
+end
 function H.padAtQ(T, which, id)
     H.hitShowQ(T, which, id)
     H.step(2, function()
         if T.off then return end
+        T.go = H.padOn(H.win(which))
+        T.tries, T.first = 0, nil
+    end)
+    H.wait(2000, function()
+        if T.off or not T.go then return true end
         local w = H.win(which)
-        T.go = H.padOn(w) and H.focusEl(w, "radio:tw:" .. id)
-        T.padBefore = "before the press: focus " .. tostring(H.focusedId(w)) .. ", " .. id .. " in view " .. tostring(T.hitVis) .. ", knob held " .. tostring(w and w._knobGrab)
-        if not T.go then Q.check(false, T.L .. " (pad): the focus goes onto " .. id, "stops " .. H.stopIds(w)) end
+        T.tries = T.tries + 1
+        if not T.first then T.first = H.stopIds(w) .. " (" .. H.tabState(w) .. ")" end
+        return H.focusEl(w, "radio:tw:" .. id) and H.focusedId(w) == "radio:tw:" .. id
+    end, function(ok)
+        if T.off then return end
+        local w = H.win(which)
+        T.go = T.go and ok
+        T.padBefore = "before the press: focus " .. tostring(H.focusedId(w)) .. " after " .. tostring(T.tries) .. " frame(s), " .. id .. " in view " .. tostring(T.hitVis)
+            .. ", knob held " .. tostring(w and w._knobGrab)
+        if not ok then Q.check(false, T.L .. " (pad): the focus goes onto " .. id, "stops at the first try " .. tostring(T.first) .. "; at the last " .. H.stopIds(w) .. " (" .. H.tabState(w) .. ")") end
     end)
 end
 function H.padAfter(which)
@@ -2029,13 +2061,25 @@ function C.r21()
         T.p0 = H.playing(T.dev)
         if not T.p0 then T.off = true; Q.skip(T.L, "the disc did not start playing"); return end
         H.click(RT.cw(), "power", nil, T.L)
+        T.tOff = getTimestampMs()
+        T.at25 = nil
     end)
-    Q.waitMs(2500)
-    H.step(2, function()
+    -- (run 3: the disc read stopped 2.5 s after power off at 4K and still playing at 1280x800. How long it plays on is
+    -- measured now, up to 10 s, against the 2.5 s the check allows; the game's own window stops it in its next
+    -- update, RWMMedia.lua:161-163)
+    H.wait(10000, function()
+        if T.off then return true end
+        local ms = getTimestampMs() - (T.tOff or 0)
+        if ms >= 2500 and T.at25 == nil then T.at25 = H.playing(T.dev) end
+        return not H.playing(T.dev) and ms >= 300
+    end, function(ok)
         if T.off then return end
-        T.offPlay = H.playing(T.dev)
-        Q.check(not H.on(T.dev) and not T.offPlay, T.L .. " (B9): turned off by its power key, the disc stops (the game's window stops it, RWMMedia)",
-            "on " .. tostring(H.on(T.dev)) .. ", the game's isPlayingMedia " .. tostring(T.offPlay) .. " 2.5 s after power off (playing before " .. tostring(T.p0) .. ")")
+        T.stopMs = getTimestampMs() - (T.tOff or 0)
+        T.offPlay = not ok
+        local stopped25 = ok and (T.at25 == nil or T.at25 == false)
+        Q.check(not H.on(T.dev) and stopped25, T.L .. " (B9): turned off by its power key, the disc stops within 2.5 s (the game's window stops it at its next update, RWMMedia)",
+            "on " .. tostring(H.on(T.dev)) .. "; the game's isPlayingMedia went false after " .. (ok and (T.stopMs .. " ms") or "more than 10 s")
+            .. " (still playing at 2.5 s: " .. tostring(T.at25) .. "; playing before " .. tostring(T.p0) .. "); ZeD's power (RadioOps.power) never calls StopPlayMedia")
         local cw = RT.cw()
         T.go = H.padOn(cw) and H.focusEl(cw, "radio:tw:power")
     end)
@@ -2396,20 +2440,34 @@ function C.r35()
         S.lastBox = nil
     end)
     H.padAtQ(T, "cw", "mem")
+    H.step(1, function()
+        if T.off then return end
+        -- (run 3, 1280x800: the box named channel 2 while the list held one channel. What the set was tuned to and its
+        -- list are read just before the hold, every naming box up just after)
+        T.atHold = "tuned " .. H.mhz(H.ch(T.dev)) .. ", the list " .. H.presetText(T.dev)
+    end)
     H.holdAQ("cw", 800, function() return T.go and not T.off end)
     H.wait(1500, function() return T.off or not T.go or H.boxUp() end, function(ok)
         T.padAft = H.padAfter("cw")
         H.padOff()
         if T.off or not T.go then return end
+        local boxes = H.boxesUp()
+        T.atBox = "tuned " .. H.mhz(H.ch(T.dev)) .. ", the list " .. H.presetText(T.dev) .. ", naming boxes up for channel(s) " .. H.list(boxes)
         Q.check(ok, T.L .. " (pad): A held on MEM opens the naming box", "box up " .. tostring(H.boxUp()) .. "; " .. tostring(T.padBefore) .. "; " .. T.padAft)
+        local b = H.findBox()
+        T.idx = b and tonumber(b.param1) or nil
+        Q.check(#boxes == 1 and T.idx == 1, T.L .. " (pad): one naming box, for the channel the set is tuned to (01)",
+            "at the hold: " .. tostring(T.atHold) .. "; with the box up: " .. T.atBox)
         S.boxDiag = nil
+        T.n0 = #H.presets(T.dev)
         if ok then H.boxOK("") end
         T.fl = H.flash(T.dev)
     end)
     H.step(3, function()
         if T.off or not T.go then return end
-        Q.check(#H.presets(T.dev) == 0 and T.fl == H.tr("UI_ZeD_Radio_ChCleared", "01"), T.L .. " (pad): an empty name forgets the channel and flashes CH 01 CLEARED",
-            "the game's list " .. H.presetText(T.dev) .. "; flash " .. H.s(T.fl) .. "; " .. tostring(S.boxDiag))
+        local want = H.tr("UI_ZeD_Radio_ChCleared", string.format("%02d", T.idx or 1))
+        Q.check(T.n0 ~= nil and #H.presets(T.dev) == T.n0 - 1 and (T.fl == want or H.flash(T.dev) == want), T.L .. " (pad): an empty name forgets the box's channel and flashes CH " .. string.format("%02d", T.idx or 1) .. " CLEARED",
+            "the game's list " .. H.presetText(T.dev) .. " (" .. tostring(T.n0) .. " before); flash " .. H.s(T.fl) .. " then " .. H.s(H.flash(T.dev)) .. "; " .. tostring(S.boxDiag))
     end)
     H.caseEnd(T.L)
 end
@@ -2539,10 +2597,26 @@ function C.r39()
     H.tapQ("cw", "A", function() return T.go and not T.off end)
     H.step(2, function()
         T.padAft = H.padAfter("cw")
-        H.padOff()
-        if T.off or not T.go then return end
+        if T.off or not T.go then H.padOff(); return end
         T.lit = S.O.lampLit(T.dev)
         T.t0 = getTimestampMs()
+        -- (run 3: the focus was on LAMP before and after the tap, no knob held, and the lamp stayed dark. The focused
+        -- stop is read here and its own A action called once, so the report tells the stop from the pad's dispatch)
+        if not T.lit then
+            local cw = RT.cw()
+            local el = nil
+            pcall(function() el = S.F.getFocusedElement(cw) end)
+            T.elInfo = "the focused stop " .. tostring(el and el.id) .. ": an A action (onActivate) " .. tostring(el ~= nil and el.onActivate ~= nil) .. ", a knob " .. tostring(el and el.isKnob)
+            if el and el.onActivate then H.zcall(function() el.onActivate(cw, el) end) end
+            T.direct = S.O.lampLit(T.dev)
+            local direct2 = nil
+            pcall(function() S.TW.press(S.p, T.dev, "lamp"); direct2 = S.O.lampLit(T.dev) end)
+            H.note(T.L .. " (pad): after the tap the lamp was dark; " .. T.elInfo .. "; that action called directly lights it " .. tostring(T.direct)
+                .. "; TwoWayFace.press(\"lamp\") lights it " .. tostring(direct2))
+            T.lit = false
+            pcall(function() S.O._lamp[S.O.keyOf(T.dev)] = nil end)
+        end
+        H.padOff()
     end)
     H.shotQ(function() if T.off or not T.lit then return nil end; return "rd_walkie_tactical_night_lamp_" .. H.sizeTag() end, "the Tactical's lamp lit at night")
     H.wait(7000, function() return T.off or not S.O.lampLit(T.dev) end, function(ok)
@@ -4360,8 +4434,24 @@ function C.r51()
         if T.off then return end
         local ww = RT.ww()
         local e = ww and ww._radios and ww._radios[S.RTab.indexOf(ww._radios, T.part) or 0]
+        -- (run 3, 4K: the tab was on Radio with the part listed but no face drawn for 4 s; the drawer's mode and the
+        -- face's record are in the detail now, and the strip's Radio tab is pressed once more so the B3 leg can run)
         Q.check(ok and e ~= nil and e.locationTag == "Vehicle" and H.isPlain(ww), T.L .. ": Device Options on the car's radio from outside opens the World tab on it, Vehicle, the plain card",
-            H.tabText("ww", T.part) .. "; its place " .. H.s(e and e.locationTag) .. ", the plain card " .. tostring(H.isPlain(ww)))
+            H.tabText("ww", T.part) .. "; its place " .. H.s(e and e.locationTag) .. ", the plain card " .. tostring(H.isPlain(ww)) .. "; " .. H.tabState(ww))
+        T.firstOk = ok
+        if not ok then
+            H.refreshList("ww")
+            local i = ww and S.RTab.indexOf(ww._radios, T.part)
+            if i then S.RTab.selectRadio(ww, i) end
+            pcall(function() if ww._drawerMode ~= "tab" or ww._drawerOpen == false then RT.worldTab("radio") end end)
+        end
+    end)
+    H.wait(3000, function() local ww = RT.ww(); return T.off or T.firstOk or (H.onTab(ww) and H.shownDev(ww) == T.part and H.isPlain(ww)) end, function(ok)
+        if T.off then return end
+        local ww = RT.ww()
+        if not T.firstOk then
+            H.note(T.L .. ": after the strip's Radio tab was pressed again the face drew " .. tostring(ok) .. " (" .. H.tabText("ww", T.part) .. ")")
+        end
         if not ok then T.off = true; return end
         T.pw = H.powered(T.part)
         if not H.click(ww, "power", nil, T.L) then T.off = true; Q.skip(T.L .. " (B3)", "the plain card has no power control (" .. H.list(H.hitIds(ww)) .. ")") end
