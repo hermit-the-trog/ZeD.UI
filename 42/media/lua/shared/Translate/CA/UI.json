@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "posar-hi un dipòsit",
     "UI_ZeD_Fire_NeedsFuelFirst": "combustible al foc",
     "UI_ZeD_Fire_NeedsFuelItems": "alguna cosa que cremi a les bosses",
+    "UI_ZeD_Fire_HelpAddPlain": "Afegir-ho tot: posa al foc el combustible senzill (els llibres, mapes i preferits es queden)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "combustible senzill com fusta o paper (no s'agafen llibres, mapes ni preferits)",
     "UI_ZeD_Fire_NeedsGas": "un dipòsit de propà amb gas",
     "UI_ZeD_Fire_NeedsLighter": "un encenedor o llumins a les bosses",
     "UI_ZeD_Fire_NeedsSpareTank": "un dipòsit de propà a les bosses",

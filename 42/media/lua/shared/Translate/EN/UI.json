@@ -3923,6 +3923,8 @@
     "UI_ZeD_Fire_HintTank": "put a tank in",
     "UI_ZeD_Fire_NeedsFuelFirst": "fuel on the fire",
     "UI_ZeD_Fire_NeedsFuelItems": "something that burns in your bags",
+    "UI_ZeD_Fire_HelpAddPlain": "Add all: put the plain fuel on the fire (books, maps and favorites stay)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "plain fuel such as wood or paper (books, maps and favorites are not picked)",
     "UI_ZeD_Fire_NeedsGas": "a propane tank with gas",
     "UI_ZeD_Fire_NeedsLighter": "a lighter or matches in your bags",
     "UI_ZeD_Fire_NeedsSpareTank": "a propane tank in your bags",

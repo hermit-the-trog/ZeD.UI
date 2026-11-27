@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "タンクを入れる",
     "UI_ZeD_Fire_NeedsFuelFirst": "火の上の燃料",
     "UI_ZeD_Fire_NeedsFuelItems": "バッグ内の燃えるもの",
+    "UI_ZeD_Fire_HelpAddPlain": "すべて追加: 普通の燃料を火にくべます (本、地図、お気に入りは残します)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "木や紙などの普通の燃料 (本、地図、お気に入りは選ばれません)",
     "UI_ZeD_Fire_NeedsGas": "ガス入りのプロパンタンク",
     "UI_ZeD_Fire_NeedsLighter": "バッグ内のライターかマッチ",
     "UI_ZeD_Fire_NeedsSpareTank": "バッグ内のプロパンタンク",

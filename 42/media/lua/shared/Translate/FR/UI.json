@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "brancher une bouteille",
     "UI_ZeD_Fire_NeedsFuelFirst": "du combustible dans le feu",
     "UI_ZeD_Fire_NeedsFuelItems": "quelque chose qui brûle dans vos sacs",
+    "UI_ZeD_Fire_HelpAddPlain": "Tout ajouter : mettre le combustible ordinaire sur le feu (livres, cartes et favoris restent)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "du combustible ordinaire comme du bois ou du papier (livres, cartes et favoris ne sont pas pris)",
     "UI_ZeD_Fire_NeedsGas": "une bouteille de propane avec du gaz",
     "UI_ZeD_Fire_NeedsLighter": "un briquet ou des allumettes dans vos sacs",
     "UI_ZeD_Fire_NeedsSpareTank": "une bouteille de propane dans vos sacs",

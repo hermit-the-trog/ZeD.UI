@@ -7,6 +7,12 @@
 --   FI5   Take apart's question names what is on the fire (three, then how many more); empty, the plain question
 --   FI6   the grill: an empty tank in and a full one in reach offers Insert as the main verb (the game's one-step
 --         swap); a fuller tank is the one picked; a worse one is not offered over a tank with gas
+--   FI2   All fuel and a kind's "all" take plain fuel only (planks, logs, blank notes, firewood), never the skill
+--         book or the map in the crate beside him, a note he named, clothes or a memento; never the game's own
+--         bulk adds (they burn the whole list); a kept row has no bulk press but its own Add; Add fuel jumps to
+--         a plain row, and with only kept things it waits and names plain fuel
+--   FI10  Light's NEEDS line: paper and no lighter names the lighter (tinder lights a fire with no fuel on it);
+--         petrol with no fuel names fuel on the fire; a lighter with nothing to light names tinder
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/oc_fire_sim.lua
 -- It prints FAIL lines and a last line "oc_fire_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -311,6 +317,177 @@ do
     DEF.refresh(t, PLAYER)
     ins = verb(t, "insert")
     check("FI6 no tank in: Insert is the main verb", ins and ins.sensible ~= false and ins.primary == true)
+end
+
+-- ---------------------------------------------------------------------------
+-- FI2  All fuel and the many-of-a-kind rows take plain fuel only
+-- ---------------------------------------------------------------------------
+-- the game's fuel side, as ISCampingMenu has it: what is in reach (the inventory, the bags, a crate beside
+-- him), its add, its bulk adds (recorded: the old card called them, and they burn everything on the list)
+local CRATE = { name = "crate" }
+local REACH = {}
+local QUEUED = {}
+local GAME_BULK = {}
+local function jlistOf(t) return jlist(t) end
+ISInventoryPaneContextMenu = { getContainers = function()
+    local cs = {}
+    for _, c in ipairs({ INV, BAG, CRATE }) do
+        local items = {}
+        for _, it in ipairs(REACH) do if it:getContainer() == c then items[#items + 1] = it end end
+        cs[#cs + 1] = { getItems = function() return jlistOf(items) end }
+    end
+    return jlistOf(cs)
+end }
+ISCampingMenu.isValidFuel = function(it) return not it:isFavorite() end
+ISCampingMenu.getFuelItemUses = function() return 1 end
+ISCampingMenu.toPlayerInventory = function() end
+ISCampingMenu.walkToCampfire = function() return true end
+ISCampingMenu.onAddAllFuel = function() GAME_BULK[#GAME_BULK + 1] = "all" end
+ISCampingMenu.onAddMultipleFuel = function(_, _, ty) GAME_BULK[#GAME_BULK + 1] = "many:" .. tostring(ty) end
+ISCampingMenu.onAddFuel = function(_, _, ty) GAME_BULK[#GAME_BULK + 1] = "one:" .. tostring(ty) end
+ISTimedActionQueue = { add = function(a) QUEUED[#QUEUED + 1] = a end }
+ISAddFuelAction = { new = function(_, p, target, it, amt) return { item = it, amt = amt } end }
+ArrayList = { new = function() local l = {}; return { add = function(_, v) l[#l + 1] = v end, size = function() return #l end } end }
+PLAYER.isEquipped = function() return false end
+campingFuelType = { Plank = 2.0, Log = 6.0, Note = 5 / 60, SheetPaper2 = 5 / 60 }
+
+local function fuelItem(f)
+    local it = item(f)
+    it.getDisplayCategory = function() return f.cat or (f.skill and "SkillBook") or (f.lit and "Literature") or "Item" end
+    it.isCustomName = function() return f.named == true end
+    it.IsClothing = function() return f.clothing == true end
+    REACH[#REACH + 1] = it
+    return it
+end
+local function fuelInfo(list)
+    local counts, reps, order = {}, {}, {}
+    for _, it in ipairs(list) do
+        local n = it:getName()
+        if not counts[n] then counts[n] = 0; reps[#reps + 1] = it end
+        counts[n] = counts[n] + 1
+    end
+    return { tinder = {}, starters = {}, fuelList = reps, itemCount = counts }
+end
+local function fireWith(fuel)
+    local t = campfire(fuel)
+    t.obj.getSquare = function() return "sq" end
+    return t
+end
+local function queuedNames()
+    local out = {}
+    for _, a in ipairs(QUEUED) do out[#out + 1] = a.item:getName() end
+    return table.concat(out, ", ")
+end
+local function rowNamed(t, base)
+    for i, r in ipairs(t.d.fuelRows) do if r.baseName == base then return r, i end end
+    return nil
+end
+
+do
+    -- QA's case: a skill book and a plank in the crate beside him, a plank in his bags, a map, and a log
+    REACH, QUEUED, GAME_BULK = {}, {}, {}
+    local book = fuelItem({ name = "Carpentry I", type = "BookCarpentry1", lit = true, skill = "Carpentry", where = CRATE })
+    local plankC = fuelItem({ name = "Plank", type = "Plank", where = CRATE })
+    local plankB = fuelItem({ name = "Plank", type = "Plank", where = BAG })
+    local map = fuelItem({ name = "Louisville Map", type = "LouisvilleMap1", map = true, cat = "Cartography", where = CRATE })
+    local log = fuelItem({ name = "Log", type = "Log" })
+    CURRENT_INFO = fuelInfo({ book, plankC, plankB, map, log })
+    local t = fireWith(0)
+    DEF.refresh(t, PLAYER)
+    local rows = t.d.fuelRows
+    check("FI2 four fuel rows (plank, log, book, map)", #rows == 4, #rows)
+    check("FI2 the skill book and the map are kept, last", rows[3] and rows[3].kept and rows[4] and rows[4].kept,
+        rows[3] and rows[3].baseName)
+    check("FI2 the plank and the log are plain, first", rows[1] and not rows[1].kept and rows[2] and not rows[2].kept)
+    check("FI2 All fuel counts the plain fuel only (2 planks and a log)", rows.totalN == 3, rows.totalN)
+    t.addFuelAll(PLAYER)
+    local got = queuedNames()
+    check("FI2 All fuel never asks the game's All (it burns the whole list)", #GAME_BULK == 0, table.concat(GAME_BULK, ","))
+    check("FI2 All fuel takes the planks and the log", #QUEUED == 3 and select(2, got:gsub("Plank", "")) == 2 and got:find("Log", 1, true) ~= nil, got)
+    check("FI2 All fuel leaves the skill book in the crate", got:find("Carpentry", 1, true) == nil, got)
+    check("FI2 All fuel leaves the map", got:find("Map", 1, true) == nil, got)
+
+    -- the kept rows have no bulk press; their own Add still works, on purpose
+    QUEUED, GAME_BULK = {}, {}
+    local br = rowNamed(t, "Carpentry I")
+    if br then t.addFuelMany(PLAYER, br) end
+    check("FI2 a kept row's bulk add does nothing", #QUEUED == 0 and #GAME_BULK == 0, queuedNames() .. table.concat(GAME_BULK, ","))
+    if br then t.addFuel(PLAYER, br) end
+    check("FI2 a kept row's own Add puts it on (the player's pick)", GAME_BULK[1] == "one:Base.BookCarpentry1", GAME_BULK[1])
+
+    -- the planks' "all (2)" takes the two planks, nothing else
+    QUEUED, GAME_BULK = {}, {}
+    local pr = rowNamed(t, "Plank")
+    if pr then t.addFuelMany(PLAYER, pr) end
+    check("FI2 Plank: all takes the two planks", queuedNames() == "Plank, Plank" and #GAME_BULK == 0, queuedNames())
+
+    -- Add fuel's jump lands on a plain row
+    local v = verb(t, "fuel")
+    local n = v and tonumber(string.match(v.jump or "", "fire:fuel:(%d+)$"))
+    check("FI2 Add fuel jumps to a plain row", n and rows[n] and not rows[n].kept, v and v.jump)
+end
+
+do
+    -- only a skill book in reach: Add fuel waits and says what it needs; the row keeps its button
+    REACH, QUEUED, GAME_BULK = {}, {}, {}
+    local book = fuelItem({ name = "Carpentry I", type = "BookCarpentry1", lit = true, skill = "Carpentry", where = CRATE })
+    CURRENT_INFO = fuelInfo({ book })
+    local t = fireWith(0)
+    DEF.refresh(t, PLAYER)
+    local v = verb(t, "fuel")
+    check("FI2 only a skill book: Add fuel is not pressable", v and v.enabled == false, v and tostring(v.enabled))
+    check("FI2 only a skill book: it names plain fuel", v and v.needs == "UI_ZeD_Fire_NeedsPlainFuel", v and v.needs)
+    check("FI2 only a skill book: its row stays", #t.d.fuelRows == 1 and t.d.fuelRows[1].fits)
+end
+
+do
+    -- what else stays out of the bulk adds: a note he named, a jacket, a memento; firewood goes in
+    REACH, QUEUED, GAME_BULK = {}, {}, {}
+    local note = fuelItem({ name = "Directions home", type = "Note", named = true })
+    local blank = fuelItem({ name = "Note", type = "Note" })
+    local jacket = fuelItem({ name = "Jacket", type = "Jacket_Shellsuit_Black", clothing = true, cat = "Clothing" })
+    local bear = fuelItem({ name = "Spiffo", type = "Spiffo", cat = "Memento" })
+    local wood = fuelItem({ name = "Firewood", type = "Firewood", cat = "MaterialWeapon" })
+    CURRENT_INFO = fuelInfo({ note, blank, jacket, bear, wood })
+    local t = fireWith(0)
+    DEF.refresh(t, PLAYER)
+    t.addFuelAll(PLAYER)
+    local got = queuedNames()
+    check("FI2 All fuel: the blank note and the firewood", got == "Note, Firewood", got)
+    QUEUED = {}
+    local nr = rowNamed(t, "Note")
+    if nr then t.addFuel(PLAYER, nr) end
+    check("FI2 the blank Note row's Add takes a blank note, not the named one", queuedNames() == "Note", queuedNames())
+end
+
+-- ---------------------------------------------------------------------------
+-- FI10  Light's NEEDS line names what is missing
+-- ---------------------------------------------------------------------------
+do
+    REACH = {}
+    -- paper, no fuel on the fire, no lighter: tinder lights it without fuel, so the lighter is what is missing
+    local paper = item({ name = "Sheet of Paper", type = "SheetPaper2", lit = true })
+    CURRENT_INFO = info({ paper }, {})
+    local t = campfire(0)
+    DEF.refresh(t, PLAYER)
+    local v = verb(t, "light")
+    check("FI10 paper, no fuel, no lighter: Light waits", v and v.enabled == false)
+    check("FI10 ... and names the lighter, not fuel", v and v.needs == "UI_ZeD_Fire_NeedsLighter", v and v.needs)
+
+    -- a lighter and petrol, no tinder, no fuel: petrol needs fuel on the fire
+    local petrol = item({ name = "Gas Can", type = "PetrolCan" })
+    CURRENT_INFO = info({}, { lighter }, petrol)
+    t = campfire(0)
+    DEF.refresh(t, PLAYER)
+    v = verb(t, "light")
+    check("FI10 petrol, no fuel: fuel on the fire", v and v.needs == "UI_ZeD_Fire_NeedsFuelFirst", v and v.needs)
+
+    -- a lighter, nothing to light: tinder
+    CURRENT_INFO = info({}, { lighter })
+    t = campfire(0)
+    DEF.refresh(t, PLAYER)
+    v = verb(t, "light")
+    check("FI10 a lighter, nothing to light: tinder", v and v.needs == "UI_ZeD_Fire_NeedsTinder", v and v.needs)
 end
 
 print("oc_fire_sim: " .. checks .. " checks, " .. failed .. " failed")

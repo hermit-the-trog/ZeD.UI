@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "pune o butelie",
     "UI_ZeD_Fire_NeedsFuelFirst": "combustibil pe foc",
     "UI_ZeD_Fire_NeedsFuelItems": "ceva care arde în bagaje",
+    "UI_ZeD_Fire_HelpAddPlain": "Adaugă tot: pune pe foc combustibilul obișnuit (cărțile, hărțile și favoritele rămân)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "combustibil obișnuit precum lemn sau hârtie (cărțile, hărțile și favoritele nu sunt alese)",
     "UI_ZeD_Fire_NeedsGas": "o butelie de propan cu gaz",
     "UI_ZeD_Fire_NeedsLighter": "o brichetă sau chibrituri în bagaje",
     "UI_ZeD_Fire_NeedsSpareTank": "o butelie de propan în bagaje",

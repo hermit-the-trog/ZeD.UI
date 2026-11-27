@@ -3764,6 +3764,8 @@
     "UI_ZeD_Fire_HintTank": "sætte en tank i",
     "UI_ZeD_Fire_NeedsFuelFirst": "brændsel på ilden",
     "UI_ZeD_Fire_NeedsFuelItems": "noget, der brænder, i dine tasker",
+    "UI_ZeD_Fire_HelpAddPlain": "Tilføj alle: læg almindeligt brændsel på ilden (bøger, kort og favoritter bliver)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "almindeligt brændsel som træ eller papir (bøger, kort og favoritter vælges ikke)",
     "UI_ZeD_Fire_NeedsGas": "en propantank med gas",
     "UI_ZeD_Fire_NeedsLighter": "en lighter eller tændstikker i dine tasker",
     "UI_ZeD_Fire_NeedsSpareTank": "en propantank i dine tasker",

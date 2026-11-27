@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "berakhatsz egy palackot",
     "UI_ZeD_Fire_NeedsFuelFirst": "tüzelő a tűzön",
     "UI_ZeD_Fire_NeedsFuelItems": "valami éghető a táskáidban",
+    "UI_ZeD_Fire_HelpAddPlain": "Mind hozzáad: az egyszerű tüzelő a tűzre (könyvek, térképek és kedvencek maradnak)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "egyszerű tüzelő, például fa vagy papír (könyvet, térképet és kedvencet nem választ)",
     "UI_ZeD_Fire_NeedsGas": "gázzal teli propánpalack",
     "UI_ZeD_Fire_NeedsLighter": "öngyújtó vagy gyufa a táskáidban",
     "UI_ZeD_Fire_NeedsSpareTank": "propánpalack a táskáidban",

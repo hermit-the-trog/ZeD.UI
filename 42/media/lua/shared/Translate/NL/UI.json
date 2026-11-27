@@ -3823,6 +3823,8 @@
     "UI_ZeD_Fire_HintTank": "een tank plaatsen",
     "UI_ZeD_Fire_NeedsFuelFirst": "brandstof op het vuur",
     "UI_ZeD_Fire_NeedsFuelItems": "iets brandbaars in je tassen",
+    "UI_ZeD_Fire_HelpAddPlain": "Alles toevoegen: leg gewone brandstof op het vuur (boeken, kaarten en favorieten blijven)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "gewone brandstof zoals hout of papier (boeken, kaarten en favorieten worden niet gekozen)",
     "UI_ZeD_Fire_NeedsGas": "een propaantank met gas",
     "UI_ZeD_Fire_NeedsLighter": "een aansteker of lucifers in je tassen",
     "UI_ZeD_Fire_NeedsSpareTank": "een propaantank in je tassen",

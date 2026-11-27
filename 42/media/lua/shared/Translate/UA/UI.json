@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "поставити балон",
     "UI_ZeD_Fire_NeedsFuelFirst": "паливо у вогні",
     "UI_ZeD_Fire_NeedsFuelItems": "щось, що горить, у ваших сумках",
+    "UI_ZeD_Fire_HelpAddPlain": "Додати все: покласти у вогонь звичайне паливо (книги, мапи й улюблене лишаються)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "звичайне паливо: дерево чи папір (книги, мапи й улюблене не беруться)",
     "UI_ZeD_Fire_NeedsGas": "балон пропану з газом",
     "UI_ZeD_Fire_NeedsLighter": "запальничка або сірники у ваших сумках",
     "UI_ZeD_Fire_NeedsSpareTank": "балон пропану у ваших сумках",

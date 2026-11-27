@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "탱크 장착",
     "UI_ZeD_Fire_NeedsFuelFirst": "불에 연료",
     "UI_ZeD_Fire_NeedsFuelItems": "가방 속 탈 것",
+    "UI_ZeD_Fire_HelpAddPlain": "모두 추가: 일반 연료를 불에 넣습니다 (책, 지도, 즐겨찾기는 남깁니다)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "나무나 종이 같은 일반 연료 (책, 지도, 즐겨찾기는 고르지 않습니다)",
     "UI_ZeD_Fire_NeedsGas": "가스가 든 프로판 탱크",
     "UI_ZeD_Fire_NeedsLighter": "가방 속 라이터나 성냥",
     "UI_ZeD_Fire_NeedsSpareTank": "가방 속 프로판 탱크",

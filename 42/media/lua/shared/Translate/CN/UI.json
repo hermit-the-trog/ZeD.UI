@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "装气罐",
     "UI_ZeD_Fire_NeedsFuelFirst": "火上的燃料",
     "UI_ZeD_Fire_NeedsFuelItems": "你背包里能燃烧的东西",
+    "UI_ZeD_Fire_HelpAddPlain": "全部添加：把普通燃料放到火上（书、地图和收藏物品会留下）",
+    "UI_ZeD_Fire_NeedsPlainFuel": "木头或纸之类的普通燃料（不会选用书、地图或收藏物品）",
     "UI_ZeD_Fire_NeedsGas": "有气的丙烷罐",
     "UI_ZeD_Fire_NeedsLighter": "你背包里的打火机或火柴",
     "UI_ZeD_Fire_NeedsSpareTank": "你背包里的丙烷罐",

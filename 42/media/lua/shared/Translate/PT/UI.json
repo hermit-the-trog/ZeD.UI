@@ -3758,6 +3758,8 @@
     "UI_ZeD_Fire_HintTank": "pôr um tanque",
     "UI_ZeD_Fire_NeedsFuelFirst": "combustível no fogo",
     "UI_ZeD_Fire_NeedsFuelItems": "algo que queime nos teus sacos",
+    "UI_ZeD_Fire_HelpAddPlain": "Pôr tudo: pôr no fogo o combustível simples (livros, mapas e favoritos ficam)",
+    "UI_ZeD_Fire_NeedsPlainFuel": "combustível simples como madeira ou papel (livros, mapas e favoritos não são escolhidos)",
     "UI_ZeD_Fire_NeedsGas": "um tanque de propano com gás",
     "UI_ZeD_Fire_NeedsLighter": "um isqueiro ou fósforos nos teus sacos",
     "UI_ZeD_Fire_NeedsSpareTank": "um tanque de propano nos teus sacos",

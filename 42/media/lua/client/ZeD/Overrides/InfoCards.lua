@@ -6,7 +6,8 @@
 -- instead of the small vanilla info windows:
 --   * the menu handlers (ISWorldObjectContextMenu.onInfoGenerator,
 --     ISCampingMenu.onDisplayInfo, ISBBQMenu.onDisplayInfo,
---     ISFarmingMenu.onInfo) open the card at once: no walk, no info cursor;
+--     ISFarmingMenu.onInfo) open the card at once when it is in reach, else
+--     walk there first and open it on arrival (OC.openNear); no info cursor;
 --   * the info timed actions' perform is the fallback for any other caller.
 -- Vanilla runs only when ZeD declines (no World window, object not found),
 -- and every time while safe mode is on (SafeMode.lua). Each hook sets a
@@ -21,10 +22,27 @@ require "ZeD/ObjectCardFarm"
 
 local OC = ZeD.ObjectCards
 
+-- The square the Info was asked about: the generator's, the campfire's (its Lua object or its tile), the plot's.
+local function squareOf(obj)
+    if not obj then return nil end
+    local ok, sq = pcall(function() return obj:getSquare() end)
+    if ok and sq then return sq end
+    local okI, io = pcall(function() return obj:getIsoObject() end)
+    if okI and io then
+        local okS, s2 = pcall(function() return io:getSquare() end)
+        if okS then return s2 end
+    end
+    return nil
+end
+
 local function route(label, player, kind, obj)
     -- (Nov 15 2026, the director: Info keeps opening the card, with the fuel, the condition and what it powers; a click
     -- on the machine or A at it pops the face out, FacePop.lua)
-    local ok, handled = pcall(OC.open, player, kind, obj)
+    -- (QA PW9 / FI9, Nov 26 2026) Info from past the card's reach opened it and the leash shut it on its first
+    -- frame, with no walk: nothing at all happened. It goes through OC.openNear, as the fluid hook does (FL7):
+    -- far off, he walks next to it and the card opens there; near, it opens at once. A path the game cannot
+    -- find hands the call back to the game's own Info.
+    local ok, handled = pcall(OC.openNear, player, kind, obj, squareOf(obj))
     if not ok then print("[ZeD] InfoCards: " .. label .. " route failed: " .. tostring(handled)) end
     return ok and handled
 end
