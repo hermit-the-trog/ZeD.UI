@@ -2229,7 +2229,10 @@ end
 --- way to the half card. The object card now gives way by the same rule. The director's call OC4, Nov 26 2026)
 function ZeD_WorldWindow.objectDrawerW(def, base, heldIn)
     local T = ZeD.T
-    if (def and def.half) or heldIn then return math.max(base or 0, T.px(ITEM_CARD_W)) end
+    -- (held in, only a kind whose body is laid out for the half card gives way: def.halfOk. The hook, placement,
+    -- farm, fire, power and hutch bodies still overlap or spill at 220, so they keep the full card until they get
+    -- a half layout; the director's call OC4, Nov 26 2026)
+    if (def and def.half) or (heldIn and def and def.halfOk) then return math.max(base or 0, T.px(ITEM_CARD_W)) end
     return T.px(OBJECT_CARD_W)
 end
 

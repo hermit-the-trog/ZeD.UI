@@ -242,7 +242,8 @@ local function stopChain(t, p)
     t._refreshT = OC.REFRESH
 end
 
-local def = { id = "fluid" }
+-- halfOk: its body is laid out for the half card, so it gives way to it where the window is held in (OC4)
+local def = { id = "fluid", halfOk = true }
 
 --- arg = { container = ISFluidContainer, source = bool, info = bool }.
 function def.resolve(player, arg)

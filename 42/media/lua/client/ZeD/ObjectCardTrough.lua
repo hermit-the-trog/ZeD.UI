@@ -30,7 +30,8 @@ local function col(c) return c.r, c.g, c.b end
 local function L(v) return string.format("%.1f L", v or 0) end
 local function rgb(c) return c and { r = c:getRedFloat(), g = c:getGreenFloat(), b = c:getBlueFloat(), a = 1 } or nil end
 
-local def = { id = "trough" }
+-- halfOk: its body is laid out for the half card, so it gives way to it where the window is held in (OC4)
+local def = { id = "trough", halfOk = true }
 
 local function masterOf(o)
     if not (o and instanceof(o, "IsoFeedingTrough")) then return nil end

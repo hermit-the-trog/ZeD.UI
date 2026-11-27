@@ -33,7 +33,8 @@ ZeD = ZeD or {}
 ZeD.Medic = ZeD.Medic or {}
 local MC = ZeD.Medic
 
-local def = { id = "medic", vehicleOk = true }
+-- halfOk: its body is laid out for the half card, so it gives way to it where the window is held in (OC4)
+local def = { id = "medic", vehicleOk = true, halfOk = true }
 
 --- The check can open on this doctor's World window (one window, for one player; not in safe mode).
 function MC.canOpen(doctor)

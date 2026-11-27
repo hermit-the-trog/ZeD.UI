@@ -110,7 +110,8 @@ local function gameMinutes()
     return gt and (gt:getWorldAgeHours() * 60) or 0
 end
 
-local def = { id = "laundry" }
+-- halfOk: its body is laid out for the half card, so it gives way to it where the window is held in (OC4)
+local def = { id = "laundry", halfOk = true }
 
 function def.resolve(player, obj)
     local pid = LD.plateId(obj)

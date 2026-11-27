@@ -257,11 +257,13 @@ if fnHeld and fnDraw then
     if lf then
         lf(num("ITEM_CARD_W"), num("OBJECT_CARD_W"), num("CONTAINER_STRIP_W"), num("ACTION_TAB_STRIP_W"), num("INV_MIN_BESIDE_CARD"))
         local W = ZeD_WorldWindow
-        local FULL, HALF = { id = "laundry" }, { id = "lock", half = true }
+        local FULL, HALF = { id = "laundry", halfOk = true }, { id = "lock", half = true }
+        local WIDE = { id = "hook" }   -- (no half layout yet: keeps the full card held in)
         local w1280 = { _screen = 1280, _invDrawerOpen = true, _mcSelected = {} }
         local h = W.heldIn(w1280, 480)
         check("OC4: 1280 wide, inventory open: held in", h == true, h)
         check("OC4: ... a full object card is the half card", W.objectDrawerW(FULL, 0, h) == 220, W.objectDrawerW(FULL, 0, h))
+        check("OC4: ... a kind with no half layout keeps the full card", W.objectDrawerW(WIDE, 0, h) == 480, W.objectDrawerW(WIDE, 0, h))
         check("OC4: ... a half kind stays the half card", W.objectDrawerW(HALF, 0, h) == 220)
         local w4k = { _screen = 3840, _invDrawerOpen = true, _mcSelected = {} }
         h = W.heldIn(w4k, 480)
