@@ -17,25 +17,29 @@
 --   mode_wash  ISWorldObjectContextMenu.onSetComboWasherDryerMode(..,
 --   mode_dry   "washer" / "dryer") when it is not already in that mode;
 --              needs power
---   door       its contents in the Loot pane (ZeD_WorldWindow.selectContainer)
+--   door       its contents in the Loot pane (ZeD_WorldWindow.selectContainer),
+--              after a walk over when the machine is past the loot window's
+--              reach (a square)
+-- While a press's walk and action are queued every control waits for them.
 -- Live on the face: the run lamp (green) or no power (red), the water meter
 -- and the water in the drum (fluid against capacity, 0..5), FILL (washer mode
 -- with no water), the clothes in the drum, the washer-dryer's WASH / DRY
--- lamps. The game has no wash phases, so the clock makes them: while it runs
--- the phase lamps step every PHASE_MIN game minutes (washer WASH, RINSE, SPIN;
--- dryer DRY, COOL; the washer-dryer by its mode) and round again, the cycle
--- dial follows them 0 to 1, and the drum turns once in DRUM_MS of real time
--- (it stops with the game paused). Stopped: phase lamps dark, the dial at 0.
--- Under the face: the water and what is inside. The band at the foot says
--- what stops it running (no power, no water), in vanilla's words.
+-- lamps. The game has no wash phases and its machine runs until it is turned
+-- off: while it runs the first phase lamp (WASH, or DRY) is lit, the cycle dial
+-- reads how far the clothes inside have come by the game's own numbers (the
+-- dirtiest or bloodiest item for a wash, the wettest for a dry), and the drum
+-- turns once in DRUM_MS of real time (it stops with the game paused).
+-- Stopped: phase lamps dark, the dial at 0.
+-- Under the face: the water, what is inside, and the clothes' blood, dirt and
+-- wetness in the words of the game's clothing tooltip. The band at the foot
+-- says what stops it running (no power, no water), in vanilla's words.
 -- Where it opens: the World window's container buttons (ContainerControls:
 -- one button in place of vanilla's laundry buttons while LD.useFace says so).
 -- LD.useFace is the one switch between the face and vanilla's plain controls;
 -- a faces-or-simple-cards setting, when one comes, hangs there.
 -- The Simple form (ZeD setup's Devices row; ZeD.ObjectCardPlain in
--- ObjectCardPower.lua): the cycle phase in large type over the cycle dial as a
--- segmented bar; then the power switch, the washer-dryer's Wash | Dry keys, the
--- water and what is inside with the door's Open key, each the face's own zone
+-- ObjectCardPower.lua): running or stopped in large type; then the power switch, the washer-dryer's Wash | Dry keys, the
+-- water, what is inside with the door's Open key, the clothes' blood, dirt and wetness, each the face's own zone
 -- (ldy:power, ldy:mode_wash, ldy:mode_dry, ldy:door) with the face's run and help.
 -- ============================================================================
 
@@ -54,16 +58,11 @@ local call = OC.call
 ZeD.ObjectCardLaundry = ZeD.ObjectCardLaundry or {}
 local LD = ZeD.ObjectCardLaundry
 
-LD.PHASE_MIN = 5      -- game minutes a phase lamp stays lit (12.5 s of real time at the default day length)
 LD.DRUM_MS   = 2000   -- real ms for one turn of the drum
-LD.PHASES = {
-    washer = { "phWash", "phRinse", "phSpin" },
-    dryer  = { "phDry", "phCool" },
-}
+-- (the plate's phase lamps. The clock used to step WASH, RINSE, SPIN every 5 game minutes and round again, a cycle
+-- the game hasn't got: its machine runs until it is turned off, so a player waited for SPIN to end forever. Now only
+-- the first lamp of the mode shows while it runs. QA LA2, Nov 26 2026)
 local ALL_PHASES = { "phWash", "phRinse", "phSpin", "phDry", "phCool" }
-
--- when each running machine was first seen running, by its card key: { min, mode } (the clock's phases start there)
-LD._run = LD._run or {}
 
 --- The plate id for this object ("washer", "dryer", "washer_dryer"), or nil when it is not a laundry machine.
 function LD.plateId(obj)
@@ -94,11 +93,6 @@ local function nameOf(obj)
     local title = ty and getTextOrNull and getTextOrNull("IGUI_ContainerTitle_" .. tostring(ty))
     if title then return title end
     return call(obj, "getName") or "?"
-end
-
-local function gameMinutes()
-    local gt = getGameTime and getGameTime()
-    return gt and (gt:getWorldAgeHours() * 60) or 0
 end
 
 local def = { id = "laundry" }
@@ -147,10 +141,127 @@ local function setMode(p, t, mode)
     ISWorldObjectContextMenu.onSetComboWasherDryerMode(p, o, mode)
 end
 
--- its contents in the Loot pane (the container the World window already lists)
-local function openDoor(p, t)
-    local c = call(t.obj, "getContainer")
-    if c and ZeD_WorldWindow and ZeD_WorldWindow.selectContainer then ZeD_WorldWindow.selectContainer(c, 120, p:getPlayerNum()) end
+-- The chain a press queued (the walk, then the game's toggle, mode switch or the door's opening) is kept by the
+-- machine's card key and looked up in the game's queue, as the fluid card's and the generator's chainBusy do: while
+-- any of it is still queued every control waits. Power pressed twice from 4 tiles (a double click, or A A) queued
+-- walk, toggle, walk, toggle, and the second toggle undid the first; the face reads the old state for up to 250 ms,
+-- so the press itself asks the queue. Kept by key, not on the target, so the card and its pop-out share one chain.
+-- (QA LA1/OC6, Nov 26 2026)
+LD._chain = LD._chain or {}
+local function gameQueue(p)
+    local ok, q = pcall(function() return ISTimedActionQueue.getTimedActionQueue(p) end)
+    if ok and q and type(q.queue) == "table" then return q end
+    return nil
+end
+local function inQueue(q, a)
+    for i = 1, #q.queue do if q.queue[i] == a then return true end end
+    return false
+end
+local function chainBusy(t, p)
+    local list = t and LD._chain[t.key]
+    if not (list and p) then return false end
+    local q = gameQueue(p)
+    if q then
+        for i = 1, #list do if inQueue(q, list[i]) then return true end end
+    end
+    LD._chain[t.key] = nil
+    return false
+end
+LD.chainBusy = chainBusy
+
+-- Runs fn, which queues the game's actions, and keeps what it added as the machine's chain.
+local function track(t, p, fn)
+    local q = gameQueue(p)
+    local before = {}
+    if q then for i = 1, #q.queue do before[q.queue[i]] = true end end
+    local ok, err = pcall(fn)
+    if not ok then print("[ZeD] laundry card: queueing failed: " .. tostring(err)) end
+    q = gameQueue(p)
+    local list = {}
+    if q then
+        for i = 1, #q.queue do
+            local a = q.queue[i]
+            if not before[a] then list[#list + 1] = a end
+        end
+    end
+    LD._chain[t.key] = (#list > 0) and list or nil
+end
+
+-- A control's press: refused while an earlier press's chain is still queued, else run and kept as the chain.
+local function gated(fn)
+    return function(p, t)
+        if not (p and t) or chainBusy(t, p) then return end
+        t._pl = p
+        track(t, p, function() fn(p, t) end)
+    end
+end
+
+-- "Too far away from <the machine>!" over his head, in the game's words
+local function sayFar(p, obj)
+    local OCP = ZeD.ObjectCardPower
+    if OCP and OCP.sayWhy then OCP.sayWhy(p, ZeD.tr("IGUI_TradingUI_TooFarAway", nameOf(obj))) end
+end
+
+-- The door's opening at the end of the walk. The loot window lists a container only within a square of the player,
+-- so from 3 tiles the Door looked for the washer in the Loot list until its tries ran out and showed nothing, with
+-- no word. Now the press walks over first, as the card's own open does (ZeDOpenCardAction), and this one-tick
+-- action shows it; still out of reach at the end (a wall between), it says so over his head. (QA LA4, Nov 26 2026)
+ZeDLaundryDoorAction = ZeDLaundryDoorAction or ISBaseTimedAction:derive("ZeDLaundryDoorAction")
+function ZeDLaundryDoorAction:isValid() return true end
+function ZeDLaundryDoorAction:update() end
+function ZeDLaundryDoorAction:start() end
+function ZeDLaundryDoorAction:stop() ISBaseTimedAction.stop(self) end
+function ZeDLaundryDoorAction:getDuration() return 1 end
+function ZeDLaundryDoorAction:perform()
+    local ok, err = pcall(LD.showInside, self.character, self.obj, true)
+    if not ok then print("[ZeD] laundry card: the door after the walk failed: " .. tostring(err)) end
+    ISBaseTimedAction.perform(self)
+end
+function ZeDLaundryDoorAction:new(character, obj)
+    local o = ISBaseTimedAction.new(self, character)
+    o.obj = obj
+    o.maxTime = 1
+    o.stopOnWalk, o.stopOnRun = false, false
+    return o
+end
+
+--- Its contents in the Loot pane: at once when the loot window can reach it, else after a walk over (walked: the
+--- walk is done, so out of reach now says why). Returns true when it showed or a walk is queued.
+function LD.showInside(p, obj, walked)
+    local c = obj and call(obj, "getContainer")
+    local WW = ZeD_WorldWindow
+    if not (p and c and WW and WW.selectContainer) then return false end
+    local pn = p:getPlayerNum()
+    if not WW.inReach or WW.inReach(c, pn) then
+        WW.selectContainer(c, 120, pn)
+        return true
+    end
+    local sq = (not walked) and obj:getSquare() or nil
+    if sq and luautils.walkAdj(p, sq) then
+        ISTimedActionQueue.add(ZeDLaundryDoorAction:new(p, obj))
+        return true
+    end
+    sayFar(p, obj)
+    return false
+end
+local function openDoor(p, t) LD.showInside(p, t.obj, false) end
+
+-- the controls' presses, each behind the gate (made once: the face asks for them every frame)
+local RUN = {
+    power = gated(toggle),
+    mode_wash = gated(function(p, t) setMode(p, t, "washer") end),
+    mode_dry = gated(function(p, t) setMode(p, t, "dryer") end),
+    door = gated(openDoor),
+}
+
+-- An amount of blood, dirt or water as the tooltip's bar reads it, out of 100 (any amount at least 1%)
+local function pctOf(v) return math.max(1, math.min(100, math.floor(v + 0.5))) .. "%" end
+
+-- How far the load has come by the game's numbers, 0..1: a wash takes the dirt and blood off, a dry the water out.
+local function loadDone(d)
+    if (d.clothes or 0) == 0 then return 0 end
+    local left = d.washMode and math.max(d.dirt, d.blood) or d.wet
+    return math.max(0, math.min(1, 1 - left / 100))
 end
 
 function def.refresh(t, player)
@@ -170,11 +281,31 @@ function def.refresh(t, player)
     d.hasWater = d.fluid > 0
     local items = c and c:getItems()
     d.n = items and items:size() or 0
+    -- The clothes inside as the game's clothing tooltip reads them (Clothing.DoTooltip): Bloody while the blood level
+    -- is above 0, Dirty from 1, Wet above 0, each out of 100; the most of each among the clothes. The card said only
+    -- "n items" while the game washed a shirt from dirt 60 and blood 60 to 0 and soaked it. (QA LA2, Nov 26 2026)
+    local dirt, blood, wet, nCl = 0, 0, 0, 0
+    for i = 0, d.n - 1 do
+        local it = items:get(i)
+        if it and instanceof(it, "Clothing") then
+            nCl = nCl + 1
+            dirt = math.max(dirt, call(it, "getDirtiness") or 0)
+            blood = math.max(blood, call(it, "getBloodLevel") or 0)
+            wet = math.max(wet, call(it, "getWetness") or 0)
+        end
+    end
+    d.clothes, d.dirt, d.blood, d.wet = nCl, dirt, blood, wet
+    local states = {}
+    if blood > 0 then states[#states + 1] = { key = "Tooltip_clothing_bloody", v = blood } end
+    if dirt >= 1 then states[#states + 1] = { key = "Tooltip_clothing_dirty", v = dirt } end
+    if wet > 0 then states[#states + 1] = { key = "Tooltip_clothing_wet", v = wet } end
+    d.states = states
     d.name = nameOf(o)
     -- vanilla's checks: the switch needs power, and water in washer mode; the mode keys need power
     d.canToggle = d.powered and (d.hasWater or not d.washMode)
     d.canMode = d.combo and d.powered
     t.d = d
+    t._pl = player   -- (whose queue the gate reads while the face draws: QA LA1)
     t.verbs = {}   -- (the face is the control surface: no verb row under the header)
 end
 
@@ -212,23 +343,13 @@ function def.onClose(t, card)
     end, 1)
 end
 
--- the clock's part of the face: phase lamps and the cycle dial by game minutes, the drum by real time
+-- the running part of the face: the mode's first lamp and the load's progress on the dial (QA LA2), the drum by real time
 local function clockState(t, d, st)
-    local key = t.key
-    local mode = d.washMode and "washer" or "dryer"
-    local run = LD._run[key]
-    if not d.on then
-        LD._run[key] = nil
-        st.cycleF = 0
+    if d.on then
+        st[d.washMode and "phWash" or "phDry"] = true
+        st.cycleF = loadDone(d)
     else
-        local now = gameMinutes()
-        if not run or run.mode ~= mode then run = { min = now, mode = mode }; LD._run[key] = run end
-        local list = LD.PHASES[mode]
-        local cycle = LD.PHASE_MIN * #list
-        local pos = math.max(0, now - run.min) % cycle
-        local i = math.min(#list, math.floor(pos / LD.PHASE_MIN) + 1)
-        st[list[i]] = true
-        st.cycleF = pos / cycle
+        st.cycleF = 0
     end
     -- the drum: a turn in DRUM_MS while it runs, still with the game paused or the machine off
     local ms = getTimestampMs()
@@ -293,18 +414,20 @@ local function plateTex(name) return P.tex(ZeD.PhysPx.texdir .. name .. ".png") 
 
 -- each control: what it does now (nil = not now) and its help line
 local function control(t, d, id)
+    -- (every control waits while a press's walk and action are queued, greyed with why: QA LA1, Nov 26 2026)
+    if RUN[id] and chainBusy(t, t._pl) then return nil, ZeD.tr("UI_ZeD_Craft_BadgeNeeds", ZeD.tr("UI_ZeD_Fluid_NeedsIdle")) end
     if id == "power" then
         if not d.powered then return nil, ZeD.tr("UI_ZeD_Laundry_HelpNoPower") end
         if not d.canToggle then return nil, ZeD.tr("UI_ZeD_Laundry_HelpNoWater") end
-        return toggle, ZeD.tr(d.on and "UI_ZeD_Laundry_HelpOff" or "UI_ZeD_Laundry_HelpOn")
+        return RUN.power, ZeD.tr(d.on and "UI_ZeD_Laundry_HelpOff" or "UI_ZeD_Laundry_HelpOn")
     elseif id == "mode_wash" or id == "mode_dry" then
         local mode = (id == "mode_wash") and "washer" or "dryer"
         local help = ZeD.tr(mode == "washer" and "UI_ZeD_Laundry_HelpWash" or "UI_ZeD_Laundry_HelpDry")
         if not d.canMode then return nil, ZeD.tr("UI_ZeD_Laundry_HelpNoPower") end
         if (mode == "washer") == d.washMode then return nil, help end
-        return function(p, tt) setMode(p, tt, mode) end, help
+        return RUN[id], help
     elseif id == "door" then
-        return openDoor, ZeD.tr("UI_ZeD_Laundry_HelpDoor")
+        return RUN.door, ZeD.tr("UI_ZeD_Laundry_HelpDoor")
     end
     return nil, nil
 end
@@ -516,8 +639,9 @@ local function fitFace(card, t, room, scale)
     local d = t.d
     local viewH = card._viewH
     -- what stands in the body besides the face: the top gap, the gap under it, a row each for the water (not a
-    -- dryer's) and what is inside, and the body's closing gap
-    local extra = T.px(8) + T.px(6) + ((d and d.dryerOnly) and 1 or 2) * T.px(20) + T.px(18)
+    -- dryer's), what is inside and each of the clothes' states (QA LA2), and the body's closing gap
+    local rows = ((d and d.dryerOnly) and 1 or 2) + #((d and d.states) or {})
+    local extra = T.px(8) + T.px(6) + rows * T.px(20) + T.px(18)
     local function fits(des, k) return des.w * k <= room and (not viewH or des.h * k + extra <= viewH) end
     local des0 = P.pick(t.pid, room)
     if not des0 then return nil, t.pid, 1 end
@@ -578,6 +702,8 @@ local function drawFace(card, x, y, w, t)
     -- (a row each: the readings are too long to share a row. None for a dryer: it takes no water)
     if not d.dryerOnly then h = h + UI.pairWide(card, x, y + h, w, ZeD.tr("UI_ZeD_Laundry_Water"), water) end
     h = h + UI.pairWide(card, x, y + h, w, ZeD.tr("UI_ZeD_Laundry_Inside"), inside)
+    -- the clothes' blood, dirt and wetness, a row each as the game's tooltip has them (QA LA2, Nov 26 2026)
+    for _, s in ipairs(d.states or {}) do h = h + UI.pairWide(card, x, y + h, w, ZeD.tr(s.key), pctOf(s.v)) end
     return h
 end
 
@@ -590,8 +716,6 @@ ZeD.trDefaults({
     UI_ZeD_PlainCard_Dry = "Dry",
     UI_ZeD_PlainCard_Cool = "Cool",
 })
-local PHASE_KEY = { phWash = "UI_ZeD_PlainCard_Wash", phRinse = "UI_ZeD_PlainCard_Rinse", phSpin = "UI_ZeD_PlainCard_Spin",
-    phDry = "UI_ZeD_PlainCard_Dry", phCool = "UI_ZeD_PlainCard_Cool" }
 
 -- a face control as a plain control's zone: the face's run (nil = not now) and help, by its id
 local function plainRun(t, d, id)
@@ -599,9 +723,10 @@ local function plainRun(t, d, id)
     return fn and function(cc, p) fn(p, t) end or nil, help
 end
 
--- The Simple form: the cycle phase in large type (the phase lamps) over the cycle dial; then the power switch (the
+-- The Simple form: running or stopped in large type over the load's progress (the dial); then the power switch (the
 -- run lamp, NO POWER), the washer-dryer's mode keys (its WASH / DRY lamps), the water (the meter, FILL), what is
--- inside and the door. Same zones as the face, so the mouse, the controller and the opening focus are unchanged.
+-- inside and the door, and the clothes' blood, dirt and wetness. Same zones as the face, so the mouse, the controller
+-- and the opening focus are unchanged. (The big word was the made-up phase, Rinse or Spin: QA LA2, Nov 26 2026)
 local function drawPlain(card, x, y, w, t)
     local T = ZeD.T
     local d = t.d
@@ -609,12 +734,10 @@ local function drawPlain(card, x, y, w, t)
     t._face, t._k = "plain", nil   -- (for the QA bridge)
     local st = plateState(t, d)
     t._st = st
-    local phase = nil
-    for _, k in ipairs(ALL_PHASES) do if st[k] then phase = k end end
     local y0 = y
     y = y + OP.readout(card, x, y, w, {
         cols = { { label = ZeD.tr("UI_ZeD_PlainCard_Cycle"), live = d.on,
-                   big = phase and ZeD.tr(PHASE_KEY[phase]) or ZeD.tr("UI_ZeD_Plain_Stopped") } },
+                   big = d.on and ZeD.tr("UI_ZeD_Power_PillRunning") or ZeD.tr("UI_ZeD_Plain_Stopped") } },
         bar = st.cycleF or 0, barLabel = ZeD.tr("UI_ZeD_PlainCard_Cycle"),
     })
     local run, help = plainRun(t, d, "power")
@@ -643,6 +766,9 @@ local function drawPlain(card, x, y, w, t)
     local dr2, dh2 = plainRun(t, d, "door")
     y = y + OP.row(card, x, y, w, { label = ZeD.tr("UI_ZeD_Laundry_Inside"), value = inside,
         ctl = { kind = "button", fid = "ldy:door", word = ZeD.tr("IGUI_Open"), run = dr2, help = dh2 } })
+    for _, s in ipairs(d.states or {}) do
+        y = y + OP.row(card, x, y, w, { label = ZeD.tr(s.key), value = pctOf(s.v) })
+    end
     return y - y0
 end
 
