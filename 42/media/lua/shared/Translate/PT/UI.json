@@ -3775,6 +3775,8 @@
     "UI_ZeD_Fluid_NeedsFit": "um recipiente que o aceite",
     "UI_ZeD_Fluid_NeedsLiquid": "algo para despejar e espaço para despejar",
     "UI_ZeD_Fluid_QEmpty": "Esvaziar o recipiente? %1 de %2 perde-se.",
+    "UI_ZeD_Fluid_QEmptyNamed": "Esvaziar %1? %2 de %3 perde-se.",
+    "UI_ZeD_Fluid_NeedsIdle": "que a ação em curso termine",
     "UI_ZeD_Hook_HelpAdd": "Pôr carcaça: pendurar um animal morto no gancho",
     "UI_ZeD_Hook_HelpBleed": "Sangrar: deixar o sangue escorrer para o chão",
     "UI_ZeD_Hook_HelpGather": "Recolher: tirar as partes da carcaça",

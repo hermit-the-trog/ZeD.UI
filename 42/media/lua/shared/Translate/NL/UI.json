@@ -3840,6 +3840,8 @@
     "UI_ZeD_Fluid_NeedsFit": "een container die het kan opnemen",
     "UI_ZeD_Fluid_NeedsLiquid": "iets om te gieten en ruimte om het in te gieten",
     "UI_ZeD_Fluid_QEmpty": "De container legen? %1 %2 gaat verloren.",
+    "UI_ZeD_Fluid_QEmptyNamed": "%1 legen? %2 %3 gaat verloren.",
+    "UI_ZeD_Fluid_NeedsIdle": "dat de lopende handeling klaar is",
     "UI_ZeD_Hook_HelpAdd": "Kadaver toevoegen: hang een dood dier aan de haak",
     "UI_ZeD_Hook_HelpBleed": "Bloeden: laat het bloed op de grond lopen",
     "UI_ZeD_Hook_HelpGather": "Verzamelen: haal de delen van het kadaver",

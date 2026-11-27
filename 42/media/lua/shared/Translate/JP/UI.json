@@ -3775,6 +3775,8 @@
     "UI_ZeD_Fluid_NeedsFit": "受け入れられるコンテナ",
     "UI_ZeD_Fluid_NeedsLiquid": "注ぐ物と注ぎ先の空き",
     "UI_ZeD_Fluid_QEmpty": "コンテナを空にしますか? %2が%1失われます。",
+    "UI_ZeD_Fluid_QEmptyNamed": "%1を空にしますか? %3が%2失われます。",
+    "UI_ZeD_Fluid_NeedsIdle": "実行中の行動の完了",
     "UI_ZeD_Hook_HelpAdd": "死骸を追加: 動物の死骸をフックに吊るします",
     "UI_ZeD_Hook_HelpBleed": "血抜き: 血を地面に流します",
     "UI_ZeD_Hook_HelpGather": "集める: 死骸から部位を取ります",

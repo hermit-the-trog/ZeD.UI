@@ -3775,6 +3775,8 @@
     "UI_ZeD_Fluid_NeedsFit": "ภาชนะที่รับได้",
     "UI_ZeD_Fluid_NeedsLiquid": "ของที่จะเทและที่ว่างให้เทใส่",
     "UI_ZeD_Fluid_QEmpty": "เทภาชนะให้ว่างหรือไม่? %2 %1 จะสูญเสียไป",
+    "UI_ZeD_Fluid_QEmptyNamed": "เท%1ให้ว่างหรือไม่? %3 %2 จะสูญเสียไป",
+    "UI_ZeD_Fluid_NeedsIdle": "ให้การกระทำที่ทำอยู่เสร็จก่อน",
     "UI_ZeD_Hook_HelpAdd": "เพิ่มซาก: แขวนสัตว์ที่ตายบนตะขอ",
     "UI_ZeD_Hook_HelpBleed": "ปล่อยเลือด: ให้เลือดไหลลงพื้น",
     "UI_ZeD_Hook_HelpGather": "เก็บ: เอาชิ้นส่วนออกจากซาก",

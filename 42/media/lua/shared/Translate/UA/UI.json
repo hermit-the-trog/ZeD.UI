@@ -3775,6 +3775,8 @@
     "UI_ZeD_Fluid_NeedsFit": "вмістилище, що може це прийняти",
     "UI_ZeD_Fluid_NeedsLiquid": "що лити й місце, куди лити",
     "UI_ZeD_Fluid_QEmpty": "Спорожнити вмістилище? Буде втрачено %1 (%2).",
+    "UI_ZeD_Fluid_QEmptyNamed": "Спорожнити: %1? Буде втрачено %2 (%3).",
+    "UI_ZeD_Fluid_NeedsIdle": "завершення поточної дії",
     "UI_ZeD_Hook_HelpAdd": "Додати тушу: повісити мертву тварину на гак",
     "UI_ZeD_Hook_HelpBleed": "Спустити кров: дати крові стекти на землю",
     "UI_ZeD_Hook_HelpGather": "Зібрати: зняти частини з туші",

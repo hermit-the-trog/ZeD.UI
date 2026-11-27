@@ -3775,6 +3775,8 @@
     "UI_ZeD_Fluid_NeedsFit": "pojemnik, który go przyjmie",
     "UI_ZeD_Fluid_NeedsLiquid": "coś do przelania i miejsce, gdzie to wlać",
     "UI_ZeD_Fluid_QEmpty": "Opróżnić pojemnik? Przepadnie %1: %2.",
+    "UI_ZeD_Fluid_QEmptyNamed": "Opróżnić: %1? Przepadnie %2: %3.",
+    "UI_ZeD_Fluid_NeedsIdle": "zakończenia trwającej czynności",
     "UI_ZeD_Hook_HelpAdd": "Dodaj zwłoki: powieś martwe zwierzę na haku",
     "UI_ZeD_Hook_HelpBleed": "Wypuść krew: pozwól krwi spłynąć na ziemię",
     "UI_ZeD_Hook_HelpGather": "Zbierz: zdejmij części z tuszy",

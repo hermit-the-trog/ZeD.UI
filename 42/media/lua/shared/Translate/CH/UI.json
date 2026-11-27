@@ -3775,6 +3775,8 @@
     "UI_ZeD_Fluid_NeedsFit": "裝得下它的容器",
     "UI_ZeD_Fluid_NeedsLiquid": "可倒的東西，以及倒進去的空間",
     "UI_ZeD_Fluid_QEmpty": "倒空這個容器？%1 的%2會遺失。",
+    "UI_ZeD_Fluid_QEmptyNamed": "倒空%1？%2 的%3會遺失。",
+    "UI_ZeD_Fluid_NeedsIdle": "等目前的動作完成",
     "UI_ZeD_Hook_HelpAdd": "新增屍體：把死動物掛到鉤子上",
     "UI_ZeD_Hook_HelpBleed": "放血：讓血流到地上",
     "UI_ZeD_Hook_HelpGather": "取下：把部件從屠體上取下來",

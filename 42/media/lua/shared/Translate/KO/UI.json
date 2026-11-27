@@ -3775,6 +3775,8 @@
     "UI_ZeD_Fluid_NeedsFit": "받을 수 있는 보관함",
     "UI_ZeD_Fluid_NeedsLiquid": "부을 것과 부을 공간",
     "UI_ZeD_Fluid_QEmpty": "보관함을 비우시겠습니까? %2 %1을(를) 잃습니다.",
+    "UI_ZeD_Fluid_QEmptyNamed": "%1을(를) 비우시겠습니까? %3 %2을(를) 잃습니다.",
+    "UI_ZeD_Fluid_NeedsIdle": "진행 중인 행동의 완료",
     "UI_ZeD_Hook_HelpAdd": "사체 추가: 죽은 동물을 고리에 겁니다",
     "UI_ZeD_Hook_HelpBleed": "피 빼기: 피를 바닥으로 흘립니다",
     "UI_ZeD_Hook_HelpGather": "채취: 사체에서 부위를 뗍니다",

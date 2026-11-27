@@ -3775,6 +3775,8 @@
     "UI_ZeD_Fluid_NeedsFit": "säilö, joka voi ottaa sen",
     "UI_ZeD_Fluid_NeedsLiquid": "jotain kaadettavaa ja tilaa, minne kaataa",
     "UI_ZeD_Fluid_QEmpty": "Tyhjennetäänkö säilö? Menetetään: %1 (%2).",
+    "UI_ZeD_Fluid_QEmptyNamed": "Tyhjennetäänkö %1? Menetetään: %2 (%3).",
+    "UI_ZeD_Fluid_NeedsIdle": "käynnissä olevan toiminnon päättymisen",
     "UI_ZeD_Hook_HelpAdd": "Lisää raato: ripusta kuollut eläin koukkuun",
     "UI_ZeD_Hook_HelpBleed": "Valuta: anna veren valua maahan",
     "UI_ZeD_Hook_HelpGather": "Kerää: ota osat raadosta",

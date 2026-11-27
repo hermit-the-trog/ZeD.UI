@@ -3775,6 +3775,8 @@
     "UI_ZeD_Fluid_NeedsFit": "un contenidor que ho pugui admetre",
     "UI_ZeD_Fluid_NeedsLiquid": "alguna cosa per abocar i lloc on abocar-ho",
     "UI_ZeD_Fluid_QEmpty": "Buidar el contenidor? %1 de %2 es perd.",
+    "UI_ZeD_Fluid_QEmptyNamed": "Buidar %1? %2 de %3 es perd.",
+    "UI_ZeD_Fluid_NeedsIdle": "que acabi l'acció en curs",
     "UI_ZeD_Hook_HelpAdd": "Afegir cadàver: penja un animal mort al ganxo",
     "UI_ZeD_Hook_HelpBleed": "Sagnar: deixa que la sang corri al terra",
     "UI_ZeD_Hook_HelpGather": "Recollir: treu les parts del cadàver",

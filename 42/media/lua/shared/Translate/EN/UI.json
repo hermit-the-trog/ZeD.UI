@@ -3940,6 +3940,8 @@
     "UI_ZeD_Fluid_NeedsFit": "a container that can take it",
     "UI_ZeD_Fluid_NeedsLiquid": "something to pour and room to pour it into",
     "UI_ZeD_Fluid_QEmpty": "Empty the container? %1 of %2 is lost.",
+    "UI_ZeD_Fluid_QEmptyNamed": "Empty the %1? %2 of %3 is lost.",
+    "UI_ZeD_Fluid_NeedsIdle": "the action under way to finish",
     "UI_ZeD_Hook_HelpAdd": "Add corpse: hang a dead animal on the hook",
     "UI_ZeD_Hook_HelpBleed": "Bleed: let the blood run onto the ground",
     "UI_ZeD_Hook_HelpGather": "Gather: take the parts off the carcass",

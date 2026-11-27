@@ -3775,6 +3775,8 @@
     "UI_ZeD_Fluid_NeedsFit": "un contenedor que lo admita",
     "UI_ZeD_Fluid_NeedsLiquid": "algo que verter y sitio donde verterlo",
     "UI_ZeD_Fluid_QEmpty": "¿Vaciar el contenedor? Se pierden %1 de %2.",
+    "UI_ZeD_Fluid_QEmptyNamed": "¿Vaciar %1? Se pierden %2 de %3.",
+    "UI_ZeD_Fluid_NeedsIdle": "que termine la acción en curso",
     "UI_ZeD_Hook_HelpAdd": "Agregar cadáver: cuelga un animal muerto del gancho",
     "UI_ZeD_Hook_HelpBleed": "Desangrar: deja que la sangre caiga al suelo",
     "UI_ZeD_Hook_HelpGather": "Recoger: saca las partes del cadáver",
