@@ -1869,14 +1869,23 @@ end
 -- tags has only its cross, which sits right of where the tags end, so nothing in its row lined up
 -- under the tag and Save in the band did. Up and Down from a tag now go to the next row's nearest
 -- stop, its tag or its cross, when that row comes before what the plain pick would take.)
+-- (QA J41, Nov 27 2026: on a log of 80 entries Down from the first cross went del:1, del:2, then
+-- Save. The rows past the view's foot are stops, but Save in the band sits nearer than the next of
+-- them, so the plain pick left the log at its last row on show. A cross and a month head now step
+-- as a tag does, and a pick that leaves the log (Save below, the header above) gives way to the log's
+-- own stop that way while there is one; the scroll-follow then brings it into view.)
 local ROW_KINDS = { tag = true, delete = true }
+local FROM_KINDS = { tag = true, delete = true, group = true }
+-- the stops that scroll with the log (the rest, the header and Save in the band, stay put)
+local LOG_KINDS = { tag = true, delete = true, group = true, tagPick = true, into = true, write = true, kills = true }
 local function midY(e) return e.y + (e.h or 0) * 0.5 end
 local function midX(e) return e.x + (e.w or 0) * 0.5 end
 
---- Where Up or Down from an entry's tag goes when the plain pick would skip a log row: the next
---- row's stop nearest across (a tag or the cross), or nil to leave it to the plain pick.
+--- Where Up or Down from an entry's tag or cross, or a month head, goes when the plain pick would
+--- skip a log row or leave the log: the next row's stop nearest across (a tag or the cross), the
+--- log's own nearest stop that way when it comes first (a month head), or nil to leave it to the plain pick.
 function ZeD.JournalTab.rowStep(elements, from, dir)
-    if not (elements and from and from.journalKind == "tag") then return nil end
+    if not (elements and from and FROM_KINDS[from.journalKind]) then return nil end
     if dir ~= "up" and dir ~= "down" then return nil end
     local sgn = (dir == "down") and 1 or -1
     local fy, fx = midY(from), midX(from)
@@ -1889,33 +1898,45 @@ function ZeD.JournalTab.rowStep(elements, from, dir)
             if d > 0.5 and (not rowD or d < rowD) then rowD = d end
         end
     end
-    if not rowD then return nil end
     local best, bestX = nil, nil
-    for i = 1, #elements do
-        local e = elements[i]
-        if e ~= from and ROW_KINDS[e.journalKind] and type(e.y) == "number" and math.abs((midY(e) - fy) * sgn - rowD) < 1 then
-            local dx = math.abs(midX(e) - fx)
-            if not bestX or dx < bestX then best, bestX = e, dx end
-        end
-    end
-    if not best then return nil end
-    -- what the plain pick takes (lined up first, then any that way): left to it when it is no further
-    local SN = ZeD.SpatialNav
-    if SN and SN.cost then
-        local pick, pTier, pCost = nil, nil, nil
+    if rowD then
         for i = 1, #elements do
             local e = elements[i]
-            if e ~= from and type(e.y) == "number" then
-                local tier, c = SN.cost(from, e, dir)
-                if tier and (pTier == nil or tier < pTier or (tier == pTier and c < pCost)) then pick, pTier, pCost = e, tier, c end
+            if e ~= from and ROW_KINDS[e.journalKind] and type(e.y) == "number" and math.abs((midY(e) - fy) * sgn - rowD) < 1 then
+                local dx = math.abs(midX(e) - fx)
+                if not bestX or dx < bestX then best, bestX = e, dx end
             end
         end
-        if pick and (midY(pick) - fy) * sgn <= rowD + 0.5 then return nil end
     end
+    -- what the plain pick takes (lined up first, then any that way), and the same pick among the log's stops
+    local SN = ZeD.SpatialNav
+    if not (SN and SN.cost) then return best end
+    local pick, pTier, pCost = nil, nil, nil
+    local lpick, lTier, lCost = nil, nil, nil
+    for i = 1, #elements do
+        local e = elements[i]
+        if e ~= from and type(e.y) == "number" then
+            local tier, c = SN.cost(from, e, dir)
+            if tier then
+                if pTier == nil or tier < pTier or (tier == pTier and c < pCost) then pick, pTier, pCost = e, tier, c end
+                if LOG_KINDS[e.journalKind] and (lTier == nil or tier < lTier or (tier == lTier and c < lCost)) then
+                    lpick, lTier, lCost = e, tier, c
+                end
+            end
+        end
+    end
+    -- a pick in the log no further than the next row (that row itself, or a month head before it): left to it
+    if pick and LOG_KINDS[pick.journalKind] then
+        if not best or (midY(pick) - fy) * sgn <= rowD + 0.5 then return nil end
+        return best
+    end
+    -- the pick leaves the log while some of it lies that way, out of view: the log's own stop first
+    if lpick and (not best or (midY(lpick) - fy) * sgn <= rowD + 0.5) then return lpick end
     return best
 end
 
--- a tag stop's Up and Down (the Focus manager's onDpadDir: false hands the move to its plain pick)
+-- a log row's stop's Up and Down, a tag's, a cross's or a month head's (the Focus manager's
+-- onDpadDir: false hands the move to its plain pick)
 local function tagDpad(w, el, dir)
     if dir ~= "up" and dir ~= "down" then return false end
     local F = ZeD.Input and ZeD.Input.Focus
@@ -1937,6 +1958,8 @@ local function tagDpad(w, el, dir)
     end
     return false
 end
+-- (the Character window's crosses and month heads share it: one function for every stop, QA J41, Nov 27 2026)
+ZeD.JournalTab.rowDpad = tagDpad
 
 --- The controller's stops for the tags: the eight picks (left and right walk them, A ticks or
 --- unticks), then each tag on an entry near the view (A puts its word in the search). The help
