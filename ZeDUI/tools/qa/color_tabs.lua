@@ -648,6 +648,17 @@ function S.isFrame(r)
     end
     return true
 end
+-- the tabs' lit panel on a shown button (TabPx.drawLitPanel, Hermit Nov 26 2026): an opaque rect over the whole cell
+-- in the accent x0.85 (clamped), then at least the four edges
+function S.isLitPanel(r)
+    if #r.draws < 5 or not r.acc then return false end
+    local function cl(v) if v > 1 then return 1 end; if v < 0 then return 0 end; return v end
+    local want = { r = cl(r.acc.r * 0.85), g = cl(r.acc.g * 0.85), b = cl(r.acc.b * 0.85) }
+    for _, d in ipairs(r.draws) do
+        if d.x == r.x and d.y == r.y and d.w == r.w and d.h == r.h and S.near(d.a, 1, 0.001) and S.sameC(want, d.r, d.g, d.b, 0.004) then return true end
+    end
+    return false
+end
 -- the checks on one window's strip
 function S.cellChecks(wk, theme)
     local lab = ((wk == "cw") and "the Character window's" or "the World window's") .. " container strip (" .. theme .. ")"
@@ -667,7 +678,9 @@ function S.cellChecks(wk, theme)
         pcall(function() gr = G.stripRaw(r.tex) end)
         if gr ~= raw then badSrc[#badSrc + 1] = name .. " stripRaw " .. S.rawHex(gr) .. " vs " .. S.rawHex(raw) .. " (" .. src .. ")" end
         local d1 = r.draws[1]
-        if not (d1 and d1.x == r.x and d1.y == r.y and d1.w == r.w and d1.h == r.h and S.near(d1.a, 1, 0.001)) then
+        if r.lit then
+            -- (Hermit, Nov 26 2026: the shown container takes the tabs' lit look, TabPx.drawLitPanel: no tint fill)
+        elseif not (d1 and d1.x == r.x and d1.y == r.y and d1.w == r.w and d1.h == r.h and S.near(d1.a, 1, 0.001)) then
             noFill[#noFill + 1] = "#" .. i .. " " .. name
         else
             local er, eg, eb = G.apply(raw, rule)
@@ -689,7 +702,7 @@ function S.cellChecks(wk, theme)
             local d2 = r.draws[2]
             local wash = d2 ~= nil and d2.x == r.x and d2.w == r.w and d2.h == r.h and S.near(d2.a, r.selA or 0.30, 0.001)
                 and S.sameC(r.acc, d2.r, d2.g, d2.b, 0.003)
-            if (not wash) and S.isFrame(r) then litOk = litOk + 1
+            if (not wash) and S.isLitPanel(r) then litOk = litOk + 1
             else badUnlit[#badUnlit + 1] = "shown #" .. i .. " " .. name .. ": " .. #r.draws .. " rects, wash " .. tostring(wash) end
         else
             local n = #r.draws
@@ -701,11 +714,11 @@ function S.cellChecks(wk, theme)
         (#badFill == 0) and (#view .. " right, " .. kindN .. " kinds of color") or table.concat(badFill, "; "))
     Q.check(#badSrc == 0, lab .. ": every raw color is the picture's (ContainerTints, ItemTints, else gray)",
         (#badSrc == 0) and "all match" or table.concat(badSrc, "; "))
-    if lit == 0 then Q.skip(lab .. ": the shown button draws its one-pixel outline, no wash", "no button is shown on this strip now")
+    if lit == 0 then Q.skip(lab .. ": the shown button draws the tabs' lit panel", "no button is shown on this strip now")
     else
-        Q.check(litOk == lit and #badUnlit == 0, lab .. ": the shown button draws no wash and a one-hairline (T.px(1)) frame in "
-            .. ((theme == "light") and "the accent x0.72" or "accentBright") .. "; the others their fill alone",
-            lit .. " shown, " .. litOk .. " framed" .. ((#badUnlit > 0) and ("; " .. table.concat(badUnlit, "; ")) or ""))
+        Q.check(litOk == lit and #badUnlit == 0, lab .. ": the shown button draws the tabs' lit panel (the accent x0.85 over the whole cell, "
+            .. "its light and shade edges), no tint; the others their fill alone",
+            lit .. " shown, " .. litOk .. " lit" .. ((#badUnlit > 0) and ("; " .. table.concat(badUnlit, "; ")) or ""))
     end
     if hov > 0 then S.note(lab .. ": " .. hov .. " button(s) under the pointer (hover wash)") end
     if wk == "ww" and kindN < 3 then S.note(lab .. ": only " .. kindN .. " kinds of color on the strip") end
