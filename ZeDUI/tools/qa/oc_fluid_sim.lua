@@ -267,6 +267,8 @@ check("FL4: a press during the pour queues nothing", count("ISFluidTransferActio
 Q.queue = {}
 def.refresh(t, player)
 check("FL4: Pour comes back once the chain is gone", verb(t, "pour").enabled == true and not t.d.busy)
+-- (QA TG7, Nov 26 2026) the pour's end asks the frame to go back to the card this one came from
+check("TG7: the end of the pour asks for the way back (t._returnNow)", t._returnNow == true)
 check("FL4: Switch comes back", verb(t, "switch").enabled == true)
 
 -- ---------------------------------------------------------------------------
@@ -288,6 +290,7 @@ check("FL3: the waiting pour was cancelled, not run", pour and pour.cancelled ==
 check("FL3: no forceStop on an action that had not begun", forceStopErrors == 0, forceStopErrors)
 def.refresh(t, player)
 check("FL3: the card is idle after Stop", t.d.busy == false and t.d.pouring == false)
+check("TG7: a stopped pour does not send the player back", t._returnNow ~= true)
 -- Stop with something of the player's own ahead of the card's chain: only the card's chain goes
 resetQueue()
 local own = newAction("ISReadABook")

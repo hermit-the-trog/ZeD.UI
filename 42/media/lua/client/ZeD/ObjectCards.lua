@@ -149,7 +149,11 @@ function OC.whereOf(item, player)
 end
 
 -- Open the card on an object (World window opens if needed).
-function OC.open(player, kindId, obj)
+-- back: the entry of the card this one is opened from (OC.current). Its close (the close key, B) and, for a kind
+-- that asks for it (t._returnNow: the fluid card once its pour is done), the end of its work bring that card back,
+-- which reads fresh. The trough's Transfer left the fluid card up after the pour, and the trough card never came
+-- back to show the new level (QA TG7, Nov 26 2026).
+function OC.open(player, kindId, obj, back)
     local def = OC.kinds[kindId]
     if not (def and player and obj) then return false end
     if not (ZeD_WorldWindow and ZeD_WorldWindow.openObjectCard) then return false end
@@ -158,7 +162,27 @@ function OC.open(player, kindId, obj)
     if call(player, "getVehicle") and not def.vehicleOk then return false end
     local t = def.resolve(player, obj)
     if not t then return false end
-    return ZeD_WorldWindow.openObjectCard(player:getPlayerNum(), { def = def, t = t }) and true or false
+    return ZeD_WorldWindow.openObjectCard(player:getPlayerNum(), { def = def, t = t, back = back }) and true or false
+end
+
+-- The entry of the card open in player's World window, or nil (what a card hands OC.open as back).
+function OC.current(player)
+    if not (player and ZeD_WorldWindow and ZeD_WorldWindow.getObjectCard) then return nil end
+    local card = ZeD_WorldWindow.getObjectCard(player:getPlayerNum())
+    return card and card.entry or nil
+end
+
+-- Bring back the card of entry back in player pn's window. False when it cannot be had again (its object is
+-- gone, the player is seated or dead): then the caller closes as before. The Animals tab uses it too: a bird
+-- opened from the hutch card's Info goes back to that card (QA TG7 / HU5, Nov 26 2026).
+function OC.backTo(pn, back)
+    if not (back and back.def and back.t and ZeD_WorldWindow and ZeD_WorldWindow.openObjectCard) then return false end
+    local p = getSpecificPlayer(pn or 0)
+    if not p or p:isDead() or (p:getVehicle() and not back.def.vehicleOk) then return false end
+    local okV, v = pcall(back.def.valid, back.t)
+    if not (okV and v) then return false end
+    back._held, back._wasIdle = nil, nil   -- (the leash's hold starts over, as on a fresh open)
+    return ZeD_WorldWindow.openObjectCard(pn or 0, back) == true
 end
 
 -- Open the card on an object that may be out of reach (the Animals tab lists
@@ -289,7 +313,13 @@ function OC.tick(e, player)
     local busy = okQ and q ~= nil and type(q.queue) == "table" and #q.queue > 0
     if busy and (e._wasIdle or e._held) then e._held = true else e._held = nil end
     e._wasIdle = not busy
-    if sq and not e._held and (math.floor(player:getZ()) ~= sq:getZ() or OC.squareDist(player, sq) > leash + 0.5) then
+    -- a kind may read reach as the game's own window does (def.farFrom: the hutch's DistToProper past 5, where
+    -- leash + 0.5 from the square's center held it open to 5.5; QA HU8, Nov 26 2026)
+    local far = false
+    if sq then
+        if def.farFrom then far = def.farFrom(t, player) == true else far = OC.squareDist(player, sq) > leash + 0.5 end
+    end
+    if sq and not e._held and (math.floor(player:getZ()) ~= sq:getZ() or far) then
         OC.closeWhy = string.format("out of reach (leash): %.2f tiles of %s, player z %.3f, square z %d, player at %.2f,%.2f", OC.squareDist(player, sq), tostring(leash), player:getZ(), sq:getZ(), player:getX(), player:getY())
         return false
     end
@@ -308,6 +338,12 @@ function OC.tick(e, player)
         e.list = ok and list or { t }
         e.idx = 1
         for i, o in ipairs(e.list) do if o.key == t.key then e.idx = i end end
+    end
+    -- the kind's work is done and the card it came from waits: close, which takes the player back there (QA TG7)
+    if t._returnNow and e.back then
+        t._returnNow = nil
+        OC.closeWhy = "done: back to the card it was opened from"
+        return false
     end
     return true
 end
@@ -937,6 +973,12 @@ function ZeD_ObjectCard:focusOf(fid)
 end
 
 function ZeD_ObjectCard:close()
+    -- a card opened from another card goes back to it (the close key, B, its work done; QA TG7, Nov 26 2026)
+    local back = self.entry and self.entry.back
+    if back and OC.backTo(self.playerNum, back) then
+        if ZeD_WorldWindow then ZeD_WorldWindow._closeWhy = nil end
+        return
+    end
     if ZeD_WorldWindow and not ZeD_WorldWindow._closeWhy then ZeD_WorldWindow._closeWhy = "the card's close (close key, B or a verb)" end
     if ZeD_WorldWindow and ZeD_WorldWindow.closeObjectCard then ZeD_WorldWindow.closeObjectCard(self.playerNum) end
 end

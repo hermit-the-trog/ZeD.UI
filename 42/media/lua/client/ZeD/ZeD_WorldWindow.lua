@@ -1192,6 +1192,8 @@ local function _buildAnimalsFocusables(win)
     -- ranch/animal: submode pills + breadcrumb, the hutch link and (with
     -- animal cheats) the genome editor; the rest of the detail is readout.
 
+    -- a bird the hutch card's Info opened: B goes back to that card (QA HU5, Nov 26 2026)
+    if AT.withReturn then AT.withReturn(win, elements) end
     return elements
 end
 
