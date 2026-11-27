@@ -3301,6 +3301,8 @@ local function _buildJournalGroupFocusables(win)
     local zones = win and win._journalGroupZones
     if not zones or #zones == 0 then return {} end
     local elements = {}
+    -- Up and Down step through the log's rows, those out of view too, before Save or the header (QA J41, Nov 27 2026)
+    local rowDpad = ZeD.JournalTab and ZeD.JournalTab.rowDpad
     for _, z in ipairs(zones) do
         elements[#elements + 1] = {
             x = z.x, y = z.y, w = z.w, h = z.h,
@@ -3308,6 +3310,7 @@ local function _buildJournalGroupFocusables(win)
             isDisclosure = true,
             journalKind = "group",
             groupKey = z.id,
+            onDpadDir = rowDpad,
             onFocus = function(w, el) end,
             -- A toggles expand/collapse (= LMB on header, mouse parity).
             onActivate = function(w, el)
@@ -3328,6 +3331,8 @@ local function _buildJournalDeleteFocusables(win)
     if not zones or #zones == 0 then return {} end
     local elements = {}
     local JT = ZeD.JournalTab
+    -- Up and Down step to the next row's stop, out of view too, before Save or the header (QA J41, Nov 27 2026)
+    local rowDpad = JT and JT.rowDpad
     for _, z in ipairs(zones) do
       if not (JT and JT.inPadReach) or JT.inPadReach(win, z) then
         elements[#elements + 1] = {
@@ -3335,6 +3340,7 @@ local function _buildJournalDeleteFocusables(win)
             id = "journal:del:" .. tostring(z.entryIdx),
             journalKind = "delete",
             entryIdx = z.entryIdx,
+            onDpadDir = rowDpad,
             onFocus = function(w, el) end,
             onActivate = function(w, el)
                 -- the entry is asked about first (the Journal tab's question band), when the tab has one
