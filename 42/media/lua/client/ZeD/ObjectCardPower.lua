@@ -16,10 +16,14 @@
 --   TURN ON / OFF  ISActivateGenerator (on needs it connected, fuel and condition
 --                  above 0; at 50% or less it can fail to start, vanilla rolls
 --                  that; on indoors says the game's fumes line over his head)
---   ADD FUEL       ISAddFuel per petrol can (off, under a full tank)
+--   ADD FUEL       ISAddFuel per petrol can (off, under a full tank); ADD ALL
+--                  every can, the game's doAddFuelGenerator with the list
 --   FIX            ISFixGenerator (off, under 100%, Scrap Electronics,
 --                  Electricity 3 or the generator magazine)
---   CONNECT / DISCONNECT  ISPlugGenerator (off, same skill)
+--   CONNECT / DISCONNECT  ISPlugGenerator (off; connecting needs the same
+--                  skill, disconnecting nothing)
+-- While the fuel chain the card queued runs, the verbs wait and a can's Add
+-- joins the chain.
 --   TAKE           ISTakeGenerator (disconnected)
 -- All actions go through vanilla's own handlers (walk-adjacent included).
 -- Its Simple form (ZeD setup's Devices row; the plain parts below, shared with
@@ -334,6 +338,74 @@ function ZeD.ObjectCardPower.sayWhy(player, why)
     if why and player and HaloTextHelper and HaloTextHelper.addBadText then pcall(HaloTextHelper.addBadText, player, why) end
 end
 
+-- The fuel chain the card queued (the walk, each can's equip and pour) is kept on the card (t.queued) and looked up
+-- in the game's queue, as the fluid card and the Vehicle tab's chainBusy do: the header verbs wait for it, and a can
+-- pressed while it runs joins it instead of starting over (QA PW7, Nov 26 2026).
+local function gameQueue(p)
+    local ok, q = pcall(function() return ISTimedActionQueue.getTimedActionQueue(p) end)
+    if ok and q and type(q.queue) == "table" then return q end
+    return nil
+end
+local function inQueue(q, a)
+    for i = 1, #q.queue do if q.queue[i] == a then return true end end
+    return false
+end
+local function chainBusy(t, p)
+    local list = t and t.queued
+    if not list then return false end
+    local q = gameQueue(p)
+    if q then
+        for i = 1, #list do if inQueue(q, list[i]) then return true end end
+    end
+    t.queued, t.fueling = nil, nil
+    return false
+end
+ZeD.ObjectCardPower.chainBusy = chainBusy
+
+-- Runs fn, which queues the game's actions, and keeps what it added on the chain.
+local function track(t, p, fn)
+    local q = gameQueue(p)
+    local before = {}
+    if q then for i = 1, #q.queue do before[q.queue[i]] = true end end
+    local ok, err = pcall(fn)
+    if not ok then print("[ZeD] generator card: queueing failed: " .. tostring(err)) end
+    q = gameQueue(p)
+    if not q then return end
+    local list = t.queued or {}
+    for i = 1, #q.queue do
+        local a = q.queue[i]
+        if not before[a] then list[#list + 1] = a end
+    end
+    if #list > 0 then t.queued = list end
+end
+
+--- Pour cans into it the way the game's Add fuel > Add All does: doAddFuelGenerator walks over (its walk clears the
+--- queue) and queues each can's equip and ISAddFuel. A can pressed while that chain runs is put at its end with the
+--- same two steps and no walk, so a second press no longer wipes the first pour (QA PW7, Nov 26 2026).
+function ZeD.ObjectCardPower.addFuel(p, t, items)
+    local g = t and t.obj
+    if not (p and g and items and #items > 0) then return end
+    local busy = chainBusy(t, p)
+    t.fueling = t.fueling or {}
+    local list = {}
+    for _, it in ipairs(items) do
+        if not t.fueling[it] then list[#list + 1] = it; t.fueling[it] = true end
+    end
+    if #list == 0 then return end
+    if busy then
+        track(t, p, function()
+            for _, it in ipairs(list) do
+                ISWorldObjectContextMenu.equip(p, p:getPrimaryHandItem(), it, true, false)
+                ISTimedActionQueue.add(ISAddFuel:new(p, g, it, 70 + (it:getFluidContainer():getAmount() * 40)))
+            end
+        end)
+    else
+        track(t, p, function() ISWorldObjectContextMenu.doAddFuelGenerator(nil, g, list, nil, p:getPlayerNum()) end)
+    end
+    if not t.queued then t.fueling = nil end   -- (nothing went on the queue: the cans can be pressed again)
+    t._refreshT = OC.REFRESH
+end
+
 local function canElectric(player)
     return player:getPerkLevel(Perks.Electricity) >= 3 or (call(player, "isRecipeActuallyKnown", "Generator") == true)
 end
@@ -429,6 +501,7 @@ function def.refresh(t, player)
     d.cans = (not d.on and d.pct < 100) and petrolCans(player) or {}
     d.elec = canElectric(player)
     d.scrap = player:getInventory():getFirstTypeRecurse("ElectronicsScrap") ~= nil
+    d.busy = chainBusy(t, player)      -- (pouring what the card queued: QA PW7, Nov 26 2026)
     t.d = d
 
     -- verbs, with vanilla's rules. Running, adding fuel, fixing, connecting and taking it all wait
@@ -437,10 +510,14 @@ function def.refresh(t, player)
     -- (at condition 0 the game's action refuses: Turn on greys with the reason, not lit as the main verb; QA PW4,
     -- Nov 26 2026)
     local onOK = d.on or (d.conn and d.fuel > 0 and d.cond > 0)
+    -- (every verb and both face controls wait for the fuel chain: each goes through the game's walk, which clears
+    -- the queue and so would stop the pour; QA PW7, Nov 26 2026)
+    local idle = not d.busy
+    local NEED_IDLE = ZeD.tr("UI_ZeD_Fluid_NeedsIdle")
     local function toggle(p, tt)
         ZeD.ObjectCardPower.activate(p, tt.obj, not tt.obj:isActivated(), p:getPlayerNum())
     end
-    t.toggle = onOK and toggle or nil
+    t.toggle = (onOK and idle) and toggle or nil
     -- what the engine switch says on the face and the pop-out: the game's fumes line while it's off indoors, else
     -- why it can't start (QA PW1/PW4, Nov 26 2026)
     t.powerWhy = (not onOK) and ZeD.ObjectCardPower.whyNotOn(g) or nil
@@ -448,29 +525,41 @@ function def.refresh(t, player)
     t.plug = nil                       -- the outlet: only while it is off (below)
     local off = not d.on
     local fuelOK = off and d.pct < 100 and #d.cans > 0
+    -- (the game's Add fuel > Add All, offered as the game offers it: two cans or more; QA PW7, Nov 26 2026)
+    local allOK = fuelOK and #d.cans > 1
     local fixOK = off and d.cond < 100 and d.elec and d.scrap
-    local plugOK = off and d.elec
+    -- (connecting needs Electricity 3 or the magazine; disconnecting needs nothing, as the game's Disconnect
+    -- Generator and ISPlugGenerator have no skill check; QA PW3, Nov 26 2026)
+    local plugOK = off and (d.conn or d.elec)
     local takeOK = off and not d.conn
     local primary = (d.on and "power") or (d.fuel <= 0 and fuelOK and "fuel") or (onOK and "power") or (not d.conn and plugOK and "plug") or nil
-    -- what each waits for: the engine stopped first, then what it needs of its own
+    -- what each waits for: the fuel chain, then the engine stopped, then what it needs of its own
     local NEED_OFF = ZeD.tr("UI_ZeD_Power_NeedsOff")
-    verbs[#verbs + 1] = { id = "fuel", label = getText("ContextMenu_GeneratorAddFuel"), enabled = fuelOK, primary = primary == "fuel", jump = "gen:can:1",
-        sensible = d.pct < 100, needs = off and ZeD.tr("UI_ZeD_Power_NeedsCan") or NEED_OFF, hint = ZeD.tr("UI_ZeD_Power_HintFuel"),
+    local function needs(own) return (not idle and NEED_IDLE) or (not off and NEED_OFF) or own end
+    verbs[#verbs + 1] = { id = "fuel", label = getText("ContextMenu_GeneratorAddFuel"), enabled = fuelOK and idle, primary = primary == "fuel", jump = "gen:can:1",
+        sensible = d.pct < 100, needs = needs(ZeD.tr("UI_ZeD_Power_NeedsCan")), hint = ZeD.tr("UI_ZeD_Power_HintFuel"),
         help = ZeD.tr("UI_ZeD_Power_HelpFuel") }
-    verbs[#verbs + 1] = { id = "power", label = getText(d.on and "ContextMenu_Turn_Off" or "ContextMenu_Turn_On"), enabled = onOK, primary = primary == "power", run = toggle,
-        needs = ZeD.tr((d.fuel <= 0 and "UI_ZeD_Power_NeedsFuel") or (not d.conn and "UI_ZeD_Power_NeedsConnected") or "UI_ZeD_Power_NeedsRepair"), hint = ZeD.tr("UI_ZeD_Power_HintOn"),
+    verbs[#verbs + 1] = { id = "fuelall", label = getText("ContextMenu_AddAll"), enabled = allOK and idle, sensible = d.pct < 100 and #d.cans > 1,
+        needs = needs(ZeD.tr("UI_ZeD_Power_NeedsCan")), hint = ZeD.tr("UI_ZeD_Power_HintFuelAll"), help = ZeD.tr("UI_ZeD_Power_HelpFuelAll"),
+        run = function(p, tt)
+            local items = {}
+            for _, c in ipairs((tt.d and tt.d.cans) or {}) do items[#items + 1] = c.item end
+            if not chainBusy(tt, p) then ZeD.ObjectCardPower.addFuel(p, tt, items) end   -- (asked at the press)
+        end }
+    verbs[#verbs + 1] = { id = "power", label = getText(d.on and "ContextMenu_Turn_Off" or "ContextMenu_Turn_On"), enabled = onOK and idle, primary = primary == "power", run = toggle,
+        needs = (not idle and NEED_IDLE) or ZeD.tr((d.fuel <= 0 and "UI_ZeD_Power_NeedsFuel") or (not d.conn and "UI_ZeD_Power_NeedsConnected") or "UI_ZeD_Power_NeedsRepair"), hint = ZeD.tr("UI_ZeD_Power_HintOn"),
         help = ZeD.tr(d.on and "UI_ZeD_Power_HelpOff" or "UI_ZeD_Power_HelpOn") }
-    verbs[#verbs + 1] = { id = "fix", label = ZeD.tr("UI_ZeD_Power_Fix"), enabled = fixOK, sensible = d.cond < 100,
-        needs = off and ZeD.tr(d.elec and "UI_ZeD_Power_NeedsScrap" or "UI_ZeD_Power_NeedsElec") or NEED_OFF, hint = ZeD.tr("UI_ZeD_Power_HintFix"),
+    verbs[#verbs + 1] = { id = "fix", label = ZeD.tr("UI_ZeD_Power_Fix"), enabled = fixOK and idle, sensible = d.cond < 100,
+        needs = needs(ZeD.tr(d.elec and "UI_ZeD_Power_NeedsScrap" or "UI_ZeD_Power_NeedsElec")), hint = ZeD.tr("UI_ZeD_Power_HintFix"),
         help = ZeD.tr("UI_ZeD_Power_HelpFix"),
         run = function(p, tt) ISWorldObjectContextMenu.onFixGenerator(nil, tt.obj, p:getPlayerNum()) end }
     local plug = function(p, tt) ISWorldObjectContextMenu.onPlugGenerator(nil, tt.obj, p:getPlayerNum(), not tt.obj:isConnected()) end
-    t.plug = plugOK and plug or nil
-    verbs[#verbs + 1] = { id = "plug", label = d.conn and ZeD.tr("UI_ZeD_Power_Disconnect") or ZeD.tr("UI_ZeD_Power_Connect"), enabled = plugOK, primary = primary == "plug",
-        needs = off and ZeD.tr("UI_ZeD_Power_NeedsElec") or NEED_OFF, hint = ZeD.tr(d.conn and "UI_ZeD_Power_HintDisconnect" or "UI_ZeD_Power_HintConnect"),
+    t.plug = (plugOK and idle) and plug or nil
+    verbs[#verbs + 1] = { id = "plug", label = d.conn and ZeD.tr("UI_ZeD_Power_Disconnect") or ZeD.tr("UI_ZeD_Power_Connect"), enabled = plugOK and idle, primary = primary == "plug",
+        needs = needs(ZeD.tr("UI_ZeD_Power_NeedsElec")), hint = ZeD.tr(d.conn and "UI_ZeD_Power_HintDisconnect" or "UI_ZeD_Power_HintConnect"),
         help = ZeD.tr(d.conn and "UI_ZeD_Power_HelpDisconnect" or "UI_ZeD_Power_HelpConnect"), run = plug }
-    verbs[#verbs + 1] = { id = "take", label = getText("ContextMenu_Take"), enabled = takeOK,
-        needs = off and ZeD.tr("UI_ZeD_Power_NeedsDisconnected") or NEED_OFF, hint = ZeD.tr("UI_ZeD_Power_HintTake"),
+    verbs[#verbs + 1] = { id = "take", label = getText("ContextMenu_Take"), enabled = takeOK and idle,
+        needs = needs(ZeD.tr("UI_ZeD_Power_NeedsDisconnected")), hint = ZeD.tr("UI_ZeD_Power_HintTake"),
         help = ZeD.tr("UI_ZeD_Power_HelpTake"),
         run = function(p, tt) ISWorldObjectContextMenu.onTakeGenerator(nil, tt.obj, p:getPlayerNum()) end }
     t.verbs = verbs
@@ -726,9 +815,12 @@ function def.body(card, x, y, w, t, player)
     elseif #d.cans > 0 then
         y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Fire_AddFromBags"), ZeD.tr("UI_ZeD_Fire_Adds"))
         local room = math.max(0, d.max - d.fuel)
+        local inChain = (d.busy and t.fueling) or {}
         for i, c in ipairs(d.cans) do
             local add = math.min(c.amt, room)
             local cc = c
+            -- (a can already on the fuel chain can't be pressed again; the others join the chain: QA PW7, Nov 26 2026)
+            local queued = inChain[c.item] == true
             y = y + UI.pick(card, x, y, w, {
                 tex = c.tex,
                 name = ZeD.tr("UI_ZeD_Power_CanName", c.name, string.format("%.1f", c.amt), math.floor(c.cap + 0.5)),
@@ -736,11 +828,9 @@ function def.body(card, x, y, w, t, player)
                 gain = string.format("+%.1f L", add),
                 button = getText("UI_btn_add"),
                 fid = "gen:can:" .. i,
-                enabled = room > 0,
+                enabled = room > 0 and not queued,
                 help = ZeD.tr("UI_ZeD_Power_HelpAddCan", c.name),
-                run = function(card2, p)
-                    ISWorldObjectContextMenu.doAddFuelGenerator(nil, t.obj, {}, cc.item, p:getPlayerNum())
-                end,
+                run = function(card2, p) ZeD.ObjectCardPower.addFuel(p, t, { cc.item }) end,
             })
         end
     end

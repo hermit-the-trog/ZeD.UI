@@ -352,6 +352,16 @@ function def.refresh(t, player)
     if d.can then
         d.max = FluidUtil.roundTransfer(math.min(ffc:getAmount(), ifc:getCapacity() - ifc:getAmount()))
     end
+    -- (QA FL6, Nov 26 2026) a well hides its amount (its script's HiddenAmount; the game's panel writes Unknown
+    -- for stored, capacity and free): the most a pour can move gives it away when the hidden side sets it, so
+    -- then the arrow's amount, Max Pour and the progress read Unknown too
+    d.fromHidden = ffc ~= nil and ffc:isHiddenAmount() == true
+    d.intoHidden = ifc ~= nil and ifc:isHiddenAmount() == true
+    d.maxHidden = false
+    if ffc and ifc then
+        local free = ifc:getCapacity() - ifc:getAmount()
+        d.maxHidden = (d.fromHidden and ffc:getAmount() <= free) or (d.intoHidden and free <= ffc:getAmount())
+    end
     d.reason = (ffc and ifc and not d.can) and reasonFor(ffc, ifc, player) or nil
 
     -- what the left holds
@@ -395,7 +405,8 @@ function def.refresh(t, player)
     local emptyQ = nil
     if emptyCan then
         -- the question names the container on the left: after Switch it can be the rain collector (QA FL2, Nov 26 2026)
-        emptyQ = ZeD.tr("UI_ZeD_Fluid_QEmptyNamed", d.fromName or ZeD.tr("UI_ZeD_Fluid_Container"), L(ffc:getAmount()),
+        emptyQ = ZeD.tr("UI_ZeD_Fluid_QEmptyNamed", d.fromName or ZeD.tr("UI_ZeD_Fluid_Container"),
+            d.fromHidden and txt("Fluid_Unknown", "Unknown") or L(ffc:getAmount()),   -- (QA FL6, Nov 26 2026)
             string.lower(d.fluid or ZeD.tr("UI_ZeD_Fluid_LiquidWord")))
     end
     verbs[#verbs + 1] = { id = "empty", label = txt("Fluid_Empty", "Empty"), enabled = emptyCan and not d.busy, sensible = emptyCan,
@@ -608,9 +619,10 @@ local function drawFlow(card, x, y, w, h, d, amount, live)
         if ch > 0 then card:drawRect(ax1 - hw + k, midY - math.floor(ch / 2), 1, ch, 1, col(ac)) end
     end
     if amount then
-        -- the amount, big, with L and the Max Pour under it
+        -- the amount, big, with L and the Max Pour under it ("?" and Unknown when the hidden side sets them: QA FL6)
         local big = string.format("%.2f", amount)
         if amount >= 100 then big = string.format("%.0f", amount) elseif amount >= 10 then big = string.format("%.1f", amount) end
+        if d.maxHidden then big = "?" end
         local bpx = 28
         local by = midY + T.px(10)
         local bigW = ZeD.Text and ZeD.Text.width and ZeD.Text.width(ZeD.Font.sdf.head, big, ZeD.Text.zoomPx(bpx)) or tm:MeasureStringX(T.fontF4, big)
@@ -619,7 +631,7 @@ local function drawFlow(card, x, y, w, h, d, amount, live)
         UI.big(card, big, bx, by, bpx, live and T.text or T.textDim)
         card:drawText("L", bx + bigW + T.px(3), by + T.px(bpx) - tm:getFontHeight(T.fontF3), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF3)
         if not d.pouring then
-            local sub = txt("Fluid_Max_Transfer", "Max Pour") .. " " .. L(d.max or 0)
+            local sub = txt("Fluid_Max_Transfer", "Max Pour") .. " " .. (d.maxHidden and txt("Fluid_Unknown", "Unknown") or L(d.max or 0))
             local sw = tm:MeasureStringX(T.fontF5, sub)
             card:drawText(sub, x + math.floor((w - sw) / 2), by + T.px(bpx) + T.px(4), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF5)
         end
@@ -701,6 +713,7 @@ local function drawPouring(card, x, y, w, t, player)
     local total = t.pourAmount or 0
     local done = L(total * delta):gsub(" L$", "")
     local v = ZeD.tr("UI_ZeD_Fluid_PourProgress", done, L(total))
+    if t.d and t.d.maxHidden then v = txt("Fluid_Unknown", "Unknown") end   -- (QA FL6, Nov 26 2026)
     local stop = getText("IGUI_media_stop")
     local bw = UI.buttonW(stop)
     local bh = T.buttonH - T.px(4)
@@ -742,15 +755,16 @@ local function drawLiquids(card, x, y, w, d, fc)
         local pctW, valW, barW = T.px(36), T.px(62), T.px(120)
         local rx = x + w - T.px(2)
         local pct = total > 0 and math.floor(100 * l.amt / total + 0.5) or 0
-        ZeD.Atoms.drawTextRight(card, tostring(pct) .. "%", rx, y + math.floor((rh - tm:getFontHeight(f3)) / 2), f3, T.textDim)
+        -- (QA FL6, Nov 26 2026) hidden: no share, no amount and no lit segments, only the liquid's name
         local hidden = fc:isHiddenAmount()
+        ZeD.Atoms.drawTextRight(card, hidden and "?" or (tostring(pct) .. "%"), rx, y + math.floor((rh - tm:getFontHeight(f3)) / 2), f3, T.textDim)
         local lv = hidden and "?" or L(l.amt)
         ZeD.Atoms.drawTextRight(card, lv, rx - pctW, y + math.floor((rh - tm:getFontHeight(f3)) / 2), f3, T.text)
         local bx = rx - pctW - valW - barW
         local bh = ZeD.Atoms.fillBarCompactH()
         -- ten segments; the help line the layer's amount ("Water 1.2 L"), "?" while the game hides it
         if ZeD.Atoms.drawSegFill(card, bx, y + math.floor((rh - bh) / 2), barW, bh, 10,
-                ZeD.Atoms.fillSegsLit(math.min(1, l.amt / math.max(0.0001, cap))), c) then
+                hidden and 0 or ZeD.Atoms.fillSegsLit(math.min(1, l.amt / math.max(0.0001, cap))), c) then
             ZeD.Help.set(card, ZeD.tr("UI_ZeD_Bar_Help", l.name, lv))
         end
         card:drawRect(x, y + rh - T.px(1), w, T.px(1), T.border.a or 1, col(T.border))
@@ -819,7 +833,7 @@ local function drawRows(card, x, y, w, t, d)
         local at = r.hidden and txt("Fluid_Unknown", "Unknown") or (L(r.amt) .. " / " .. L(r.cap))
         -- ten segments; the help line the words under it ("1.2 L / 4.0 L", "Unknown")
         if A.drawSegFill(card, gx, gy, gw, gh, 10,
-                A.fillSegsLit((r.color and r.cap > 0) and math.min(1, r.amt / r.cap) or 0), r.color or T.info) then
+                (not r.hidden) and A.fillSegsLit((r.color and r.cap > 0) and math.min(1, r.amt / r.cap) or 0) or 0, r.color or T.info) then   -- (no lit segments when hidden: QA FL6, Nov 26 2026)
             ZeD.Help.set(card, at)
         end
         ZeD.Atoms.drawTextRight(card, at, gx + gw, gy + gh + T.px(2), f5, T.textDim)

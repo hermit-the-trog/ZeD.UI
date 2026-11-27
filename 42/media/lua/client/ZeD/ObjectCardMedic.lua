@@ -7,7 +7,7 @@
 -- TradeMedic.lua). It is ZeD's Health tab on the patient:
 --   the body figure coloured by each part's health, the summary (overall, wounded parts, their pain
 --   for a First Aid 5+ doctor, as vanilla) or the part under the pointer or the controller, then the
---   injury list, with exactly what vanilla's panel lets this doctor see (ZeD.HealthTab's classifier,
+--   injury list (beside the figure on the full card, under it on the half card), with exactly what vanilla's panel lets this doctor see (ZeD.HealthTab's classifier,
 --   given the doctor's First Aid level). On a server another player's body is read from their remote
 --   copy, as vanilla reads it.
 --   A part (on the figure or in the list) opens the game's treatment menu for it: vanilla's own
@@ -201,21 +201,23 @@ local function treat(card, t, bp, zx, zy, zh)
 end
 
 -- the part the right column details: the controller's (a figure part or an injury row) leads,
--- else the pointer's
+-- else the pointer's; the second value is true when it came from the figure
 local function activePart(card, t)
     local function fromFid(fid)
         if not fid then return nil end
         local fig = fid:match("^mc:fig:(.+)$")
-        if fig then return fig end
+        if fig then return fig, true end
         local row = fid:match("^mc:part:(.+)$")
         if row and t.d then
             for _, en in ipairs(t.d.entries) do
-                if en.name == row then return en.figure end
+                if en.name == row then return en.figure, false end
             end
         end
         return nil
     end
-    return fromFid(card._fid) or fromFid(card._hoverFid)
+    local part, onFig = fromFid(card._fid)
+    if part then return part, onFig end
+    return fromFid(card._hoverFid)
 end
 
 local FIG = nil
@@ -290,7 +292,7 @@ function def.body(card, x, y, w, t, doctor)
     -- the figure in its frame, the left half of the card, the text the right half; a card too narrow for halves
     -- (the 220 drawer card) stacks the frame over the text (Figure frame, the director, Nov 22 2026)
     local L = ZeD.Molecules.figureFrame(x, y, w)
-    local active = activePart(card, t)
+    local active, onFig = activePart(card, t)
     -- the figure: each part in its health's colour (a strained part with no wound in the strain tint, as the
     -- Health tab's: HealthTab.figureColor) (Strain, the director, Nov 22 2026); the controller's mark under the focused part
     -- (last frame's rects, as the Health tab draws it), the part a stop that opens the treatment menu
@@ -322,9 +324,30 @@ function def.body(card, x, y, w, t, doctor)
             help = getText("IGUI_health_JoypadTreatment"),
             run = function(c) treat(card, t, bp, rr.x, rr.y, rr.h) end })
     end
-    -- beside it (under it on a narrow card): the part in hand, else the summary
     local rx, ry, rw = L.rightX, L.rightY, L.rightW
     local bottom
+    -- a card wide enough for halves: the summary, then the injury list with its treatments, in the column beside the
+    -- figure, as the Health tab's column lists them, so no one scrolls past the figure to reach a treatment. The
+    -- column grows down with the card and scrolls with it. A figure part in hand takes the summary's place; an injury
+    -- row in hand does not, as the row already shows its part and a column that changed height under the pointer
+    -- would slide the rows it points at (the director, Nov 26 2026)
+    if L.two then
+        if active and onFig and d.partHealth[active] then
+            bottom = ZeD.HealthTab._renderDetailView(card, t.fakeWin, d, active, rx, ry, rw)
+        else
+            bottom = summary(card, t, rx, ry, rw)
+        end
+        y = bottom or ry
+        if #d.entries > 0 then
+            A.drawDividerH(card, rx, y, rw)
+            y = y + T.px(1) + T.sp.afterGroove
+            for i, en in ipairs(d.entries) do
+                y = y + injuryRow(card, t, rx, y, rw, en, i % 2 == 0)
+            end
+        end
+        return math.max(L.frameY + L.frameH, y) - y0
+    end
+    -- the 220 drawer card, stacked: under the figure the part in hand, else the summary, then the list full width
     if active and d.partHealth[active] then
         bottom = ZeD.HealthTab._renderDetailView(card, t.fakeWin, d, active, rx, ry, rw)
     else
