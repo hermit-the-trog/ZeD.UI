@@ -1682,23 +1682,41 @@ function C.j9()
         local dE, dB = H.delZone(iE), H.delZone(iB)
         Q.check(dE ~= nil and dB ~= nil and iE < iB and dE.y < dB.y, T.L .. ": inside a month the entries keep the list's order", "e at " .. tostring(dE and dE.y) .. " (index " .. tostring(iE) .. "), b at " .. tostring(dB and dB.y) .. " (index " .. tostring(iB) .. ")")
         T.dels0 = #(w._journalDeleteZones or {})
+        local m = H.gt("Sandbox_StartMonth_option1")
+        H.note(T.L .. ": the head words for January 1981 hold the game's \"" .. m .. "\": " .. tostring(H.drewI(m) and H.drewI(m).s))
+        -- (run 2: the head lay under the view's foot (y 601 against a view ending at 586), where a press rightly
+        -- reaches the band, not the head: it is scrolled into the view first, as a player would)
+        local gz = H.groupZone("0_1981")
+        if gz and not H.inView(gz) then
+            T.scrolled = true
+            pcall(function() w._journalScroll:setScrollPos(1) end)
+        end
+    end)
+    H.drawn(T, 3)
+    H.step(1, function()
+        if T.off then return end
+        local w = RT.cw()
         local gz = H.groupZone("0_1981")
         local v = w._journalView
         T.where = gz and ("head " .. math.floor(gz.x) .. "," .. math.floor(gz.y) .. " " .. math.floor(gz.w) .. "x" .. math.floor(gz.h)
-            .. (v and (", view y " .. math.floor(v.y) .. "-" .. math.floor(v.y + v.h)) or "")) or "no head zone"
+            .. (v and (", view y " .. math.floor(v.y) .. "-" .. math.floor(v.y + v.h)) or "") .. (T.scrolled and ", the log scrolled to bring it in" or "")) or "no head zone"
+        if gz and not H.inView(gz) then
+            T.press = false
+            Q.skip(T.L .. " (mouse): a press on a month head folds it", "the head cannot be brought into the view here (" .. T.where .. ")")
+            T.noPress = true
+            return
+        end
         T.press = H.press(gz)
         T.c1 = w._journalGroupCollapsed["0_1981"]
-        local m = H.gt("Sandbox_StartMonth_option1")
-        H.note(T.L .. ": the head words for January 1981 hold the game's \"" .. m .. "\": " .. tostring(H.drewI(m) and H.drewI(m).s))
     end)
     H.drawn(T, 3)
     H.step(1, function()
         if T.off then return end
         local w = RT.cw()
         local dels = #(w._journalDeleteZones or {})
-        Q.check(T.press and w._journalGroupCollapsed["0_1981"] == true and dels == T.dels0 - 1 and H.groupZone("0_1981") ~= nil,
+        if not T.noPress then Q.check(T.press and w._journalGroupCollapsed["0_1981"] == true and dels == T.dels0 - 1 and H.groupZone("0_1981") ~= nil,
             T.L .. " (mouse): a press on a month head folds it: its entry goes, the head stays", "folded " .. tostring(w._journalGroupCollapsed["0_1981"]) .. " (right after the press "
-            .. tostring(T.c1) .. ", pressed " .. tostring(T.press) .. "), crosses " .. dels .. " (were " .. tostring(T.dels0) .. "); " .. tostring(T.where))
+            .. tostring(T.c1) .. ", pressed " .. tostring(T.press) .. "), crosses " .. dels .. " (were " .. tostring(T.dels0) .. "); " .. tostring(T.where)) end
         -- (the pad's leg starts from the head folded, whatever the mouse did)
         w._journalGroupCollapsed["0_1981"] = true
         T.go = H.padOn() and H.focusId("journal:group:0_1981")
@@ -1837,7 +1855,7 @@ end
 -- B12, one leg: the question asked on entry a, then leave() (returns why the leg cannot run, or nil), then back()
 function C.j12ask(T, name, leave, back)
     H.step(1, function()
-        T.leg = nil
+        T.leg, T.shutLeg = nil, nil
         if T.off then return end
         H.front(1)
     end)
@@ -1856,6 +1874,16 @@ function C.j12ask(T, name, leave, back)
         if T.leg then
             Q.skip(T.L .. " (B12): " .. name, T.leg)
             if w then pcall(S.JT.cancelDelete, w) end
+        elseif T.shutLeg then
+            -- (run 2 read the old window here: shut, the window is dropped (CW:4490-4492) and a new one is made on the
+            -- next open, so the question cannot be seen again; the dropped object keeps its fields)
+            local now = RT.cw()
+            local watched = false
+            pcall(function() watched = S.JT._asking ~= nil and S.JT._asking[w] == true end)
+            Q.check(T.asked and not RT.isOpen() and now ~= w, T.L .. " (B12): " .. name .. ": the window and its question are gone (the window dropped; the next open makes a new one)",
+                "asked " .. tostring(T.asked) .. ", open " .. tostring(RT.isOpen()) .. ", the window now " .. ((now == nil) and "none" or ((now == w) and "the same" or "another")))
+            H.note(T.L .. " (B12): the dropped window still holds its question (" .. tostring(w ~= nil and w._journalAsk ~= nil) .. ") and is " .. (watched and "still" or "no longer")
+                .. " on JournalTab's watch list (dropStaleAsk reads isVisible, which a window taken off the UI manager may keep true)")
         else
             Q.check(T.asked and w ~= nil and w._journalAsk == nil, T.L .. " (B12): the question goes with " .. name,
                 "asked " .. tostring(T.asked) .. ", still asking " .. tostring(w ~= nil and w._journalAsk ~= nil) .. ", tab " .. tostring(w and w._activeTab)
@@ -1982,7 +2010,7 @@ function C.j12()
         if not T.folded then return "a press on the open Journal tab does not fold the drawer here (drawer open " .. tostring(w and w._drawerOpen) .. ", mode " .. tostring(w and w._drawerMode) .. ")" end
         return nil
     end, function() RT.charTab("journal") end)
-    C.j12ask(T, "the window shut", function() RT.pairShut(); return nil end, function() RT.pairOpen(); RT.charTab("journal") end)
+    C.j12ask(T, "the window shut", function() RT.pairShut(); T.shutLeg = true; return nil end, function() RT.pairOpen(); RT.charTab("journal") end)
     H.step(2, function()
         if T.off then return end
         H.note(T.L .. " (B12): an item card opened over the Journal keeps the drawer on the tab (CW updateDrawer: the mode stays \"tab\" under a card), so the question stays; a card replaces the tab only from another tab, which the Skills leg covers")
@@ -3892,10 +3920,43 @@ function C.j40()
             if k < last or k == 0 then ok = false end
             last = k
         end
+        -- (run 2: the D-pad moves by the screen (SpatialNav.cost: the nearest stop lined up across the move, FM:1323),
+        -- not by the stop list's order; Down from the write box lands on the pick under its middle, and Into, a short
+        -- button at the left under the first picks, is lined up only with those. So the straight walk is not asked to
+        -- pass Into; Into's own ways in are the two checks after it)
         local miss = {}
-        for k = 1, 7 do if not seen[k] then miss[#miss + 1] = S.KINDS[k] end end
-        Q.check(W.done and #miss == 0, T.L .. ": Down from the page tab reaches the kills head, the write box, the picks, Into, the log and Save", H.fold(seq) .. (#miss > 0 and ("; never reached: " .. H.list(miss)) or "") .. "; the stops walked: " .. H.list(W.ids, 14))
-        Q.check(ok, T.L .. ": the walk keeps the map's order (header, kills, write, picks, Into, the log, Save)", H.fold(seq))
+        for k = 1, 7 do if k ~= 5 and not seen[k] then miss[#miss + 1] = S.KINDS[k] end end
+        Q.check(W.done and #miss == 0, T.L .. ": Down from the page tab reaches the kills head, the write box, the picks, the log and Save", H.fold(seq) .. (#miss > 0 and ("; never reached: " .. H.list(miss)) or "") .. "; the stops walked: " .. H.list(W.ids, 14))
+        Q.check(ok, T.L .. ": the walk keeps the screen's order (header, kills, write, picks, Into when passed, the log, Save)", H.fold(seq))
+        local untagged = false
+        for i, id in ipairs(W.ids) do
+            if id == "journal:__save" and i > 1 and H.kindOf(W.ids[i - 1]) == 6 then
+                local last = W.ids[i - 1]
+                local idx = tonumber(string.match(last, "^journal:%a+:(%d+)") or "")
+                if idx and H.delZone(idx + 1) then untagged = true; T.skipFrom = last end
+            end
+        end
+        if untagged then
+            H.note(T.L .. ": Down from " .. tostring(T.skipFrom) .. " went to Save past the next entry's row: a row with no tags has only its cross at the far right, not lined up with a tag, while Save in the band is (SpatialNav.cost, FM:1323; tags end 8 px left of the cross, JT:1279-1283)")
+        end
+        T.goPk = H.focusId("journal:tagpick:danger")
+    end)
+    -- Into's ways in: Down from the first pick, Up from the month head under it
+    -- (the picks wrap to a second row on a narrow card: Down again while the focus is still on a pick)
+    for _ = 1, 3 do
+        H.step(1, function() if not T.off and T.go and T.goPk and H.kindOf(H.focId()) == 4 then H.dir("down") end end)
+        H.step(4, function() end)
+    end
+    H.step(1, function()
+        if T.off or not T.go then return end
+        Q.check(T.goPk and H.focId() == "jr:into", T.L .. ": Down from the first pick (Danger), past any second row of picks, lands on Into", "focus " .. tostring(H.focId()))
+        local wr, g = H.wrapOf(T.e1)
+        T.goHd = g and H.focusId("journal:group:" .. tostring(g.key))
+    end)
+    H.step(1, function() if not T.off and T.go and T.goHd then H.dir("up") end end)
+    H.step(5, function()
+        if T.off or not T.go then return end
+        Q.check(T.goHd and H.focId() == "jr:into", T.L .. ": Up from the month head lands on Into", "focus " .. tostring(H.focId()))
         T.goW = H.focusId("journal:__write")
     end)
     H.tapA(function() return T.go and T.goW end)
@@ -3992,7 +4053,19 @@ function C.j41()
         local last = g and g.entries[#g.entries]
         T.lastId = last and ("journal:del:" .. tostring(last.idx)) or "?"
         T.out = {}
-        T.go = H.focusId("journal:__write")
+        -- (run 2 walked from the write box and went write, a pick, a month head, two tags, Save: the D-pad goes by the
+        -- screen (SpatialNav.cost, FM:1323), and from a tag the next row's tag or Save in the band is what lines up.
+        -- The crosses stand in one column at the right, each lined up with the next and the month heads (full width)
+        -- between: the walk down the log starts on the first entry's cross. The stops near the top, for the record:)
+        local near = {}
+        for _, e in ipairs(H.stops()) do
+            if H.kindOf(e.id) == 6 and #near < 9 then near[#near + 1] = tostring(e.id) .. " " .. math.floor(e.x) .. "+" .. math.floor(e.w) .. "," .. math.floor(e.y) end
+        end
+        H.note(T.L .. ": the log's first stops (x+w,y): " .. H.list(near))
+        local first = groups and groups[1] and groups[1].entries[1]
+        T.firstId = first and ("journal:del:" .. tostring(first.idx)) or "?"
+        T.go = H.focusId(T.firstId)
+        if not T.go then Q.check(false, T.L .. ": the first entry's cross is a stop", T.firstId .. "; " .. H.stopIds(20)) end
     end)
     H.walk(T, W, "down", 300, function(id) return id == T.lastId or id == "journal:__save" end, function(id)
         if H.kindOf(id) == 6 then
@@ -4002,9 +4075,17 @@ function C.j41()
     end)
     H.step(1, function()
         if T.off or not T.go then return end
+        -- (the last entry reached: its cross, or one of its tags, the head over it handing Down to the middle of a row)
+        local lastIdx = string.match(T.lastId, "(%d+)$")
         local reached = false
-        for _, id in ipairs(W.ids) do if id == T.lastId then reached = true end end
-        Q.check(reached, T.L .. ": Down walks to the last entry's cross (" .. T.lastId .. ")", W.n .. " presses: " .. H.list(W.ids, 12) .. "; " .. #H.stops() .. " stops now")
+        for _, id in ipairs(W.ids) do
+            local k = string.match(id, "^journal:del:(%d+)$") or string.match(id, "^journal:tag:(%d+):")
+            if id == T.lastId or (k ~= nil and k == lastIdx) then reached = true end
+        end
+        local heads = 0
+        for _, id in ipairs(W.ids) do if string.sub(id, 1, 14) == "journal:group:" then heads = heads + 1 end end
+        Q.check(reached, T.L .. ": Down from the first entry's cross walks the crosses (and the month heads between) to the last one (" .. T.lastId .. ")",
+            W.n .. " presses, " .. heads .. " month heads passed; first " .. H.list(W.ids, 8) .. "; last " .. tostring(W.ids[#W.ids]) .. "; " .. #H.stops() .. " stops now")
         Q.check(#T.out == 0, T.L .. ": the view follows the focus down the log", "out of view: " .. H.list(T.out))
     end)
     H.walk(T, U, "up", 300, function(id) return H.kindOf(id) == 1 end)

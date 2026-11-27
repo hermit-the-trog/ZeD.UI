@@ -26,7 +26,7 @@
 #               J34 a piece read by the game with the tab open turns Read; the open piece taken away
 #               J35 Recipes against the game (status, what the game would list, a pick, Open in Craft or Build, Sort Name, Show Known, a search; B11 a NOTE); J36 a recipe learned with the page open; J37 SeeNotLearntRecipe off and on
 #               J38 tapes and discs carried are listed nowhere; J39 skill books beside a notebook are listed nowhere (gaps: NOTE)
-#               J40 the pad's tour of the Log (the walk's order, A on each kind, B with nothing running for J43); J41 a long log (80 entries): the walk down and back, far stops, frame time
+#               J40 the pad's tour of the Log (the Down walk by the screen's order; Into by Down from the first pick and Up from the month head; A on each kind; B with nothing running for J43); J41 a long log (80 entries): Down from the first cross to the last entry and Up back, far stops, frame time
 #               J42 the pad's tour of Notebooks and Papers (< greyed on page 1 is no stop); J44 an item card over the Log; J45 the half card at the text size found and in Large text (the page bar at Page 10 of 10: nothing overlaps, Open full on its own row or "n/N"; the pad's < and Open full)
 #               J46 the words in the run's language (others SKIP); J47 Dark, Light, High contrast (unread rows by tone, the tag colors)
 #               J3 safe mode (run last of the cases): the Character window does not open; Write note opens the game's journal window
