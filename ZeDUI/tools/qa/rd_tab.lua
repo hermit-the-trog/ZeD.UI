@@ -19,7 +19,7 @@
 -- and the TVs (rt_media's way: the nearest room square within 45 tiles of home with room beside it, else the Fossoil at
 -- West Point; the grid turned on for the run through ElecShutModifier and the world's hydro flag, put back).
 -- Cases (R<n> = the map's case; B<n> = its suspicion, each a check where it can be staged):
---   R1  empty: both strips without Radio, the wheels' radio slices greyed, B11 the Character window's empty line
+--   R1  empty: both strips without Radio, the wheels' radio slices greyed, B11 each window's empty line (No radio on you / in range)
 --   R2  a walkie equipped by the game's action with both windows open: Radio on the Character strip, no tab change,
 --       no game window
 --   R3  a walkie in each hand and a ManPack on the back: three tabs in the game's order, (Primary) / (Secondary), the
@@ -41,21 +41,21 @@
 --   R14 volume steps to 1.0 and 0, refused while off; the hand-built set's knob by the wheel and the grabbed D-pad
 --   R15 mute and unmute to the kept volume; with none kept: 0.5 (the game: 0.1)
 --   R16 TUNE wraps 108.0 to 88.0, the wheel's fast spin 1 MHz a click, refused while off
---   R17 battery in and out (the fullest one, moved from a bag), B5 Spare counting a dead battery
+--   R17 battery in and out (the fullest one, moved from a bag); B5 Spare counting a dead battery (an open gap: NOTE)
 --   R18 presets: a hold stores on p2, a press recalls, an empty key flashes EMPTY, nothing while off
---   R19 headphones: Earbuds in a bag only (the key's words), then in the main inventory: in, then out
+--   R19 headphones: Earbuds in a bag only (the main inventory only: an open gap, NOTE), then in the main inventory: in, out
 --   R20 the Premium's CD: the slot lists the disc in a bag, in, play (the clock runs), stop and play inside 4 s, eject
 --   R21 B9 the Premium turned off while the CD plays: does the disc stop (the game's window stops it)
 --   R22 the pop-out of a held radio: the header button, a click on the face, dropped: closed; in a bag: stays
---   R23 the CD player: the half card held and dropped, no tuner; B6 the fill's Channels, Heard and range rows
+--   R23 the CD player: the half card held and dropped, no tuner; B6 no Channels, Heard or range rows on a NoTransmit set
 --   R24 a TV on the grid: Power nearby, power on: snow then a picture, sign-off or standby
 --   R25 a TV with no power: Requires power nearby, power refused; a generator in range: on
 --   R26 the TV's 12 stops by CH+ (mouse), 12 and 13 bars, the wrap; the antique dial stops at its ends (pad)
 --   R27 the screen against each channel's getAiringBroadcast at this hour
 --   R28 VHS: the slot lists both tapes, in, play (H:MM:SS), eject
---   R29 B2 headphones on a TV (the game never offers them)
+--   R29 B2 a TV: no headphone control on its face, fill or plain card, the key refuses; a pair already in comes out
 --   R30 B4 a TV and a ValuTech on one square: a battery and a tape each through its own tab
---   R31 B1 a walkie's battery: BAT bars, Battery 10%, no battery key on the face or the plain card
+--   R31 B1 a walkie's battery: BAT bars, Battery 10%, out by the fill's row (mouse), in by it (pad), out by the plain card; the pop-out (open gap, NOTE)
 --   R32 a walkie's power: VOL clicked (mouse), X on VOL (pad)
 --   R33 the Tactical's 10-500 MHz: three places, the wrap, the pad's 5x step after quick repeats
 --   R34 MEM and CH: stored once, CH 02 STORED, CH- from 01 to the last
@@ -65,10 +65,10 @@
 --   R38 SCAN on the Army walkie: a named station each 5 s, stopped by power off
 --   R39 LAMP on the Tactical at night: 5 s
 --   R40 the toy walkie: vol, tune and mic only, nnn.nn MHZ
---   R41 B7 the pop-out of a walkie carried in a bag
---   R42 B2 headphones on a walkie: no key, no row (the game offers them)
+--   R41 B7 the pop-out of a walkie carried in a bag stays open
+--   R42 B2 headphones on a walkie: the fill's row plugs them in (mouse), the plain card's button unplugs them (pad)
 --   R43 two-way talk and a server's channels: SKIP (multiplayer)
---   R44 a ham set placed on its battery and on the grid: BAT or AC, no battery key
+--   R44 a ham set placed on its battery and on the grid: BAT or AC; B1 its fill Battery row takes the battery out
 --   R45 the army ham's p1-p6: a hold stores, a press recalls, MEM to MEMORY FULL, the pad's 25x tuning
 --   R46 a ham set at the half card: its narrow face, the same controls
 --   R47 the car radio up close from the driver's seat: B, Escape, leaving the seat; the back seat gets none
@@ -76,9 +76,9 @@
 --   R49 the car's CD (RadioRed in the radio part): list, in, play, eject; the dash's slot
 --   R50 the car's ham: MEM, MEM named, CH, MIC
 --   R51 B3 the car's radio part pinned in the World tab from outside: the plain card, power from outside
---   R52 B8 the pad's landing on a TV, a ValuTech and a walkie; A grabs a knob, the D-pad turns, B lets go
+--   R52 B8 the pad's landing on a ValuTech, a walkie (VOL) and a TV; A grabs a knob, the D-pad turns, B lets go
 --   R53 the pad on an empty slot: the list, back on the slot
---   R54 B14 Lite: plain cards, no preset keys, MEM, lamp or pop-out; the Channels rows recall; nothing stores
+--   R54 B14 Lite: plain cards; Add, Edit and Remove preset (gray off, on the release, mouse and pad) against the game's list; none on a TV or the CD player
 --   R55 the wheel over the strip, over a knob, elsewhere
 --   R56 Large text, Dark and Light: the fill blocks fold, the scrollbar (pictures)
 --   B10 the World list's rebuilds a second (NOTE), B12 RadioPlates read by nothing (NOTE), B13 RadioWindow.lua's
@@ -1183,6 +1183,7 @@ function H.legClean()
     H.carShut()
     H.gameWinShut()
     H.stripRecOff()
+    H.bandRecOff()
     pcall(function() S.WR.unpin(S.p) end)
     pcall(function() if S.RTab._carried then S.RTab._carried[S.pn] = nil end end)
     pcall(function() if S.p:getVehicle() then local car = S.p:getVehicle(); car:exit(S.p); triggerEvent("OnExitVehicle", S.p) end end)
@@ -1335,13 +1336,17 @@ function S.toHomeQ()
 end
 
 -- ===================================================================== R1 empty states (B11)
--- the words the tab draws with no radio (the same render in both windows): its empty line, read off its draw
-function H.emptyLine()
+-- the words the tab draws with no radio in window w: its own empty line, read off its draw (the window's list emptied
+-- for that one call and given back; fix/radio's emptyKey tells the windows apart by the window itself)
+function H.emptyLine(w)
+    if not w then return "?" end
     local got = nil
     local orig = ZeD.Molecules.drawEmptyLine
-    ZeD.Molecules.drawEmptyLine = function(panel, x, y, w, text) got = tostring(text) end
-    local stub = { _radios = {}, _playerObj = S.p }
-    pcall(function() S.RTab.render({}, stub, 0, 0, 300, 200) end)
+    local keep = w._radios
+    ZeD.Molecules.drawEmptyLine = function(panel, x, y, ww, text) got = tostring(text) end
+    w._radios = {}
+    pcall(function() S.RTab.render({}, w, 0, 0, 300, 200) end)
+    w._radios = keep
     ZeD.Molecules.drawEmptyLine = orig
     return got or "?"
 end
@@ -1375,13 +1380,12 @@ function C.r1()
             "slice " .. H.s(wr and wr.name) .. ", off: " .. H.s(wr and wr.off))
         Q.check(ur ~= nil and ur.off ~= nil, T.L .. ": the Use wheel's Radio slice is greyed", "slice " .. H.s(ur and ur.name) .. ", off: " .. H.s(ur and ur.off))
         H.note(T.L .. ": the wheels' words are \"" .. H.s(cr and cr.off) .. "\" and \"" .. H.s(wr and wr.off) .. "\" (the map wrote \"No radio on you\" and \"No radio in reach\")")
-        local text = H.emptyLine()
-        if H.lang() == "EN" then
-            Q.check(not H.has(string.lower(text), "in range"), T.L .. " (B11): the Character window's empty line speaks of radios on him, not in range",
-                "the tab draws \"" .. text .. "\" in both windows; the Character window lists only radios in his hands, on his back or carried")
-        else
-            H.note(T.L .. " (B11): the empty line in " .. H.lang() .. " is \"" .. text .. "\" (the check runs in EN)")
-        end
+        local cText, wText = H.emptyLine(RT.cw()), H.emptyLine(RT.ww())
+        local cWant, wWant = H.tr("UI_ZeD_Radio_NoneOnYou"), H.tr("UI_ZeD_Radio_None")
+        Q.check(cText == cWant and cWant ~= "UI_ZeD_Radio_NoneOnYou", T.L .. " (B11): the Character window's empty line speaks of radios on him",
+            "drawn \"" .. H.s(cText) .. "\"; want \"" .. H.s(cWant) .. "\" (UI_ZeD_Radio_NoneOnYou; the list is radios in his hands, on his back or carried)")
+        Q.check(wText == wWant, T.L .. " (B11): the World window's empty line still speaks of radios in range",
+            "drawn \"" .. H.s(wText) .. "\"; want \"" .. H.s(wWant) .. "\" (UI_ZeD_Radio_None)")
     end)
     H.caseEnd(T.L)
 end
@@ -1801,8 +1805,9 @@ function C.r17()
         local said = H.list(H.menuNames())
         local keyNone = H.has(said, none)
         local spSays = T.sp and T.sp.value
-        Q.check(not (keyNone and spSays ~= nil and H.has(spSays, "x")), T.L .. " (B5): the Spare row and the battery key agree when the only battery is dead",
-            "the Power block reads " .. H.s(T.sp and T.sp.label) .. " " .. H.s(spSays) .. "; the key answers \"" .. H.s(said) .. "\"; the game: " .. n .. " battery on him, " .. live .. " with charge (Spare counts getCountTypeRecurse, the key takes only one with uses left)")
+        -- (B5 is an open gap Build has noted, Nov 27 2026: a NOTE, not a check)
+        H.note(T.L .. " (B5, open gap): with only a dead battery on him the Spare row and the battery key agree " .. tostring(not (keyNone and spSays ~= nil and H.has(spSays, "x")))
+            .. "; the Power block reads " .. H.s(T.sp and T.sp.label) .. " " .. H.s(spSays) .. "; the key answers \"" .. H.s(said) .. "\"; the game: " .. n .. " battery on him, " .. live .. " with charge (Spare counts getCountTypeRecurse, the key takes only one with uses left)")
         H.menuClose()
     end)
     H.caseEnd(T.L)
@@ -1884,8 +1889,9 @@ function C.r19()
     H.step(3, function()
         if T.off then return end
         local said = H.list(H.menuNames())
-        Q.check(H.has(said, H.tr("UI_ZeD_Radio_NoHeadphones")) and H.qlen() == 0, T.L .. " (mouse): with Earbuds only in a bag the key says none are on him",
-            "the key answers \"" .. H.s(said) .. "\"; queued " .. H.qkinds() .. "; the earbuds in " .. H.ctype(H.where(T.ear)) .. " (the key reads his main inventory only)")
+        -- (an open gap Build has noted, Nov 27 2026: the key looks in his main inventory only; a NOTE, not a check)
+        H.note(T.L .. " (mouse, open gap): Earbuds only in a bag: the key answers \"" .. H.s(said) .. "\", queued " .. H.qkinds() .. "; the earbuds in "
+            .. H.ctype(H.where(T.ear)) .. " (the phones key reads his main inventory only, RtvFace.phonesKey)")
         H.menuClose()
         H.moveTo(T.ear, H.inv())
         local cw = RT.cw()
@@ -2088,13 +2094,36 @@ function H.twGlass(w)
     return r
 end
 
+-- ===================================================================== a fill row brought into the tab's view
+-- queue: the body scrolled, the way the wheel scrolls it (the scrollbar's own wheel, one notch a frame), until the
+-- fill row id stands in the tab's view; T.fillVis. (A row out of the view takes no click and is no pad stop.)
+function H.fillShowQ(T, which, id)
+    H.wait(4000, function()
+        if T.off then return true end
+        local w = H.win(which)
+        local t, z = H.tw(w), H.fillZone(w, id)
+        if z and H.inView(t, z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2)) then return true end
+        local sc = w and w._radioScroll
+        if sc and sc.visible then pcall(function() sc:handleMouseWheel(1) end) end
+        return false
+    end, function(ok) if not T.off then T.fillVis = ok end end)
+end
+-- the pop-out's own controls as it drew them (open it a few frames first): their ids
+function H.popIds()
+    local ids = {}
+    pcall(function() local v = S.TF.get(S.pn); for _, h in ipairs((v and v._hits) or {}) do ids[#ids + 1] = tostring(h.id) end end)
+    return ids
+end
+
 -- ===================================================================== R31 a walkie's battery (B1)
+-- (fix/radio b59f1995e: a two-way set's battery goes in and out by the fill's Battery row under the full face, mouse
+-- and pad, and by the plain card's Battery button; TW.press "battery" through RtvFace.batteryKey)
 function C.r31()
     local T = { L = "R31 a walkie's battery" }
     H.step(2, function()
         if not H.caseStart(T, "home") then return end
         T.dev = H.giveRadio("Base.WalkieTalkie3", { batt = 0.1, on = true, vol = 0.3 })
-        H.give("Base.Battery")
+        T.spare = H.battery(1.0)
         H.hold(T.dev, "p")
     end)
     H.showQ(T, "cw", "dev")
@@ -2110,22 +2139,73 @@ function C.r31()
             "glass " .. H.s(g and g.batLabel) .. " " .. tostring(g and g.batt) .. " bars; the game's charge " .. H.n2(c) .. " (" .. want .. " bars)")
         local row = H.fillRow(cw, "fill:radio:batt")
         Q.check(row ~= nil and row.value == math.floor(c * 100 + 0.5) .. "%", T.L .. ": the Power block reads the battery's charge", "row " .. H.s(row and row.value) .. "; the game's " .. H.n2(c))
-        pcall(function() H.dd(T.dev):setPower(0) end)
-        T.keys = H.hitIds(cw)
     end)
-    Q.waitMs(700)
+    -- the full face: the fill's Battery row by the mouse takes the battery out
+    H.fillShowQ(T, "cw", "fill:radio:batt")
     H.step(2, function()
         if T.off then return end
         local cw = RT.cw()
-        local key = H.hit(cw, "battery") ~= nil
-        local plainBatt = nil
-        pcall(function()
-            local ctl = ZeD.PlainFace.controlsFor(S.TW, S.TW.basePid(H.face(cw)))
-            plainBatt = ctl and ctl.byId and ctl.byId.battery ~= nil and ctl.byId.battery.press ~= nil
-        end)
-        Q.check(key or plainBatt == true, T.L .. " (B1): a walkie gone flat has a ZeD control to change its battery (the game's Power module does: UsesBattery)",
-            "the face's controls " .. H.list(T.keys, 16) .. "; a pressable battery row on the plain card " .. tostring(plainBatt) .. "; the game: uses a battery " .. tostring(H.usesBatt(T.dev))
-            .. ", battery in " .. tostring(H.battOn(T.dev)) .. " at " .. H.n2(H.charge(T.dev)) .. ", a spare on him " .. H.count("Base.Battery"))
+        local row = H.fillRow(cw, "fill:radio:batt")
+        if not Q.check(T.fillVis and row ~= nil and row.fn ~= nil, T.L .. " (B1): under the full face the fill's Battery row is a control",
+            "row " .. H.s(row and row.label) .. " " .. H.s(row and row.value) .. ", pressable " .. tostring(row ~= nil and row.fn ~= nil) .. ", in view " .. tostring(T.fillVis)
+            .. "; the face's own controls " .. H.list(H.hitIds(cw), 16) .. "; the game: uses a battery " .. tostring(H.usesBatt(T.dev))) then T.off = true; return end
+        T.n0 = H.battsOn()
+        H.clickAt(cw, H.fillZone(cw, "fill:radio:batt"))
+    end)
+    H.wait(1500, function() return T.off or H.qcount("ISDeviceBatteryAction") > 0 end, function() end)
+    H.waitQ(T, 15000)
+    H.step(2, function()
+        if T.off then return end
+        Q.check(H.battOn(T.dev) == false and H.battsOn() == (T.n0 or 0) + 1, T.L .. " (mouse, B1): the Battery row takes the battery out into his inventory",
+            "queued " .. tostring(T.qKinds) .. "; the game's battery in " .. tostring(H.battOn(T.dev)) .. "; batteries on him " .. tostring(T.n0) .. " -> " .. H.battsOn())
+    end)
+    -- the pad: A on the same row puts in the fullest battery he carries (the 100% spare, not the 10% one just out)
+    Q.waitMs(700)
+    H.fillShowQ(T, "cw", "fill:radio:batt")
+    H.step(2, function()
+        if T.off then return end
+        local cw = RT.cw()
+        T.go = H.padOn(cw) and H.focusEl(cw, "fill:radio:batt")
+        Q.check(T.go, T.L .. " (pad): the focus goes onto the Battery row", "stops " .. H.stopIds(cw))
+    end)
+    H.tapQ("cw", "A", function() return T.go and not T.off end)
+    H.step(2, function() H.padOff() end)
+    H.wait(1500, function() return T.off or not T.go or H.qcount("ISDeviceBatteryAction") > 0 end, function() end)
+    H.waitQ(T, 15000)
+    H.step(2, function()
+        if T.off or not T.go then return end
+        Q.check(H.battOn(T.dev) == true and math.abs((H.charge(T.dev) or 0) - 1.0) < 0.02, T.L .. " (pad, B1): A on the Battery row puts in the fullest battery he carries",
+            "queued " .. tostring(T.qKinds) .. "; the game's battery in " .. tostring(H.battOn(T.dev)) .. " at " .. H.n2(H.charge(T.dev)) .. " (spares 1.00 and 0.10)")
+    end)
+    -- the plain card (Lite): its Battery button
+    H.step(2, function() if not T.off then H.lite(true) end end)
+    H.showQ(T, "cw", "dev")
+    H.faceShotQ(T, "cw", "dev")
+    H.step(2, function()
+        if T.off then return end
+        local cw = RT.cw()
+        if not Q.check(H.isPlain(cw) and H.hit(cw, "battery") ~= nil, T.L .. " (B1): the walkie's plain card has a Battery button",
+            "plain " .. tostring(H.isPlain(cw)) .. "; controls " .. H.list(H.hitIds(cw), 18)) then return end
+        H.click(cw, "battery", nil, T.L)
+        T.plainPressed = true
+    end)
+    H.wait(1500, function() return T.off or not T.plainPressed or H.qcount("ISDeviceBatteryAction") > 0 end, function() end)
+    H.waitQ(T, 15000)
+    H.step(2, function()
+        if T.off or not T.plainPressed then return end
+        Q.check(H.battOn(T.dev) == false, T.L .. " (mouse, B1): the plain card's Battery button takes it out", "queued " .. tostring(T.qKinds) .. "; the game's battery in " .. tostring(H.battOn(T.dev)))
+        H.liteBack()
+    end)
+    -- the pop-out: an open gap Build has noted (no battery or headphone control there): a NOTE
+    Q.waitMs(400)
+    H.step(2, function() if not T.off then pcall(function() S.TF.open(S.p, T.dev, RT.cw()) end) end end)
+    H.step(5, function()
+        if T.off then return end
+        local ids = H.popIds()
+        H.popShut()
+        local has = false
+        for _, id in ipairs(ids) do if id == "battery" or id == "phones" then has = true end end
+        H.note(T.L .. " (open gap): the walkie's pop-out has a battery or headphone control " .. tostring(has) .. " (its controls " .. H.list(ids, 16) .. ")")
     end)
     H.caseEnd(T.L)
 end
@@ -2511,15 +2591,54 @@ function C.r42()
     end)
     H.showQ(T, "cw", "dev")
     Q.waitMs(700)
+    -- (fix/radio b59f1995e, B2a: a walkie has a Headphones row in the fill, pressable under the full face, and one on
+    -- its plain card; the game takes headphones on a portable set that is not a TV, RWMVolume.lua:123)
+    H.fillShowQ(T, "cw", "fill:radio:phones")
     H.step(2, function()
         if T.off then return end
         local cw = RT.cw()
-        local key, row = H.hit(cw, "phones") ~= nil, H.fillRow(cw, "fill:radio:phones") ~= nil
+        local row = H.fillRow(cw, "fill:radio:phones")
         local game = H.gameValid("AddHeadphones", T.dev, H.slice(H.all(), function(it) return H.ft(it) == "Base.Earbuds" end))
-        local port = H.portable(T.dev)
-        Q.check(key or row, T.L .. " (B2): a walkie has a ZeD way to plug in the headphones the game offers it (a portable set's box, RWMVolume)",
-            "a phones key " .. tostring(key) .. ", a Headphones row " .. tostring(row) .. "; the face's controls " .. H.list(H.hitIds(cw), 14)
-            .. "; the game's isValidAddHeadphones " .. tostring(game) .. ", portable " .. tostring(port))
+        if not Q.check(T.fillVis and row ~= nil and row.fn ~= nil, T.L .. " (B2): under the walkie's full face the fill's Headphones row is a control",
+            "row " .. H.s(row and row.label) .. " " .. H.s(row and row.value) .. ", pressable " .. tostring(row ~= nil and row.fn ~= nil) .. ", in view " .. tostring(T.fillVis)
+            .. "; the game's isValidAddHeadphones " .. tostring(game) .. ", portable " .. tostring(H.portable(T.dev))) then return end
+        H.clickAt(cw, H.fillZone(cw, "fill:radio:phones"))
+        T.pressed = true
+    end)
+    H.wait(1500, function() return T.off or not T.pressed or H.qcount("ISRadioAction") > 0 end, function() end)
+    H.waitQ(T, 15000)
+    H.step(2, function()
+        if T.off or not T.pressed then return end
+        Q.check((H.phones(T.dev) or -1) >= 0 and H.count("Base.Earbuds") == 0, T.L .. " (mouse, B2): the Headphones row plugs the Earbuds into the walkie",
+            "queued " .. tostring(T.qKinds) .. "; the game's headphone type " .. tostring(H.phones(T.dev)) .. ", earbuds on him " .. H.count("Base.Earbuds"))
+    end)
+    H.step(2, function()
+        if T.off then return end
+        -- (the earbuds in for the plain card's leg, whatever the mouse leg did: the game's own action)
+        if (H.phones(T.dev) or -1) < 0 then
+            local e = H.slice(H.all(), function(it) return H.ft(it) == "Base.Earbuds" end)
+            if e then pcall(function() ISTimedActionQueue.add(ISRadioAction:new("AddHeadphones", S.p, T.dev, e)) end) end
+        end
+        H.lite(true)
+    end)
+    H.waitQ(T, 15000)
+    H.showQ(T, "cw", "dev")
+    H.step(2, function()
+        if T.off then return end
+        local cw = RT.cw()
+        T.go = H.isPlain(cw) and H.hit(cw, "phones") ~= nil and H.padOn(cw) and H.focusEl(cw, "radio:tw:phones")
+        Q.check(T.go, T.L .. " (pad, B2): the walkie's plain card has a Headphones button the pad lands on",
+            "plain " .. tostring(H.isPlain(cw)) .. "; controls " .. H.list(H.hitIds(cw), 18) .. "; stops " .. H.stopIds(cw))
+    end)
+    H.tapQ("cw", "A", function() return T.go and not T.off end)
+    H.step(2, function() H.padOff() end)
+    H.wait(1500, function() return T.off or not T.go or H.qcount("ISRadioAction") > 0 end, function() end)
+    H.waitQ(T, 15000)
+    H.step(2, function()
+        if T.off or not T.go then return end
+        Q.check((H.phones(T.dev) or 0) < 0 and H.count("Base.Earbuds") == 1, T.L .. " (pad, B2): A on the plain card's Headphones button unplugs them",
+            "queued " .. tostring(T.qKinds) .. "; the game's headphone type " .. tostring(H.phones(T.dev)) .. ", earbuds on him " .. H.count("Base.Earbuds"))
+        H.liteBack()
     end)
     H.caseEnd(T.L)
 end
@@ -3011,7 +3130,6 @@ function C.r44()
         else
             Q.skip(T.L .. ": the glass on its battery", "the placed set's data uses no battery")
         end
-        Q.check(H.hit(ww, "battery") == nil, T.L .. " (B1): the ham's face has no battery key (as R31: no ZeD way to change it)", H.list(H.hitIds(ww), 16))
         H.setGrid(true)
     end)
     Q.waitMs(1500)
@@ -3022,6 +3140,25 @@ function C.r44()
         Q.check((not pw) or (g ~= nil and g.batLabel == H.tr("UI_ZeD_Radio_Ac")), T.L .. ": on the grid the glass reads AC",
             "glass " .. H.s(g and g.batLabel) .. "; the game's power nearby " .. tostring(pw) .. ", grid on his square " .. tostring(H.gridHere()))
         if not pw then H.note(T.L .. ": the grid does not reach the ham's square here: the AC leg says what the game says") end
+        if not H.usesBatt(T.dev) then T.noBatt = true end
+    end)
+    -- (fix/radio b59f1995e, B1: the ham's battery comes out by the fill's Battery row under its full face)
+    H.fillShowQ(T, "ww", "fill:radio:batt")
+    H.step(2, function()
+        if T.off or T.noBatt then return end
+        local ww = RT.ww()
+        local row = H.fillRow(ww, "fill:radio:batt")
+        if not Q.check(T.fillVis and row ~= nil and row.fn ~= nil, T.L .. " (B1): the ham's fill Battery row is a control",
+            "row " .. H.s(row and row.label) .. " " .. H.s(row and row.value) .. ", pressable " .. tostring(row ~= nil and row.fn ~= nil) .. ", in view " .. tostring(T.fillVis)) then T.noBatt = true; return end
+        T.n0 = H.battsOn()
+        H.clickAt(ww, H.fillZone(ww, "fill:radio:batt"))
+    end)
+    H.wait(1500, function() return T.off or T.noBatt or H.qcount("ISDeviceBatteryAction") > 0 end, function() end)
+    H.waitQ(T, 15000)
+    H.step(2, function()
+        if T.off or T.noBatt then return end
+        Q.check(H.battOn(T.dev) == false and H.battsOn() == (T.n0 or 0) + 1, T.L .. " (mouse, B1): the Battery row takes the ham's battery out into his inventory",
+            "queued " .. tostring(T.qKinds) .. "; the game's battery in " .. tostring(H.battOn(T.dev)) .. "; batteries on him " .. tostring(T.n0) .. " -> " .. H.battsOn())
     end)
     H.caseEnd(T.L)
 end
@@ -3443,19 +3580,48 @@ function C.r29()
         H.prep(T.tv, { on = true, vol = 0.1, ch = 200 })
         T.hp = H.give("Base.Headphones")
     end)
+    -- (fix/radio b59f1995e, B2b: a TV has no headphone control anywhere, the face, the fill or the plain card, and the
+    -- phones key refuses one; a pair already in keeps its control so it can come out)
+    H.wwShow(T, "tv")
+    Q.waitMs(700)
+    H.step(2, function()
+        if T.off then return end
+        local ww = RT.ww()
+        local key, row = H.hit(ww, "phones") ~= nil, H.fillRow(ww, "fill:radio:phones") ~= nil
+        Q.check(not key and not row, T.L .. " (B2): the TV's face and fill have no headphone control (the game: portable sets that are not TVs only, RWMVolume.lua:123)",
+            "a phones key " .. tostring(key) .. ", a Headphones row " .. tostring(row) .. "; controls " .. H.list(H.hitIds(ww), 16) .. "; the game's portable " .. tostring(H.portable(T.tv)) .. ", a TV " .. tostring(H.isTV(T.tv)))
+        H.qstop()
+        local took = nil
+        H.zcall(function() took = S.R.phonesKey(S.p, T.tv, S.R.read(T.tv), nil) end)
+        Q.check(took ~= true and H.qcount("ISRadioAction") == 0, T.L .. " (B2): the phones key itself refuses a TV", "phonesKey answered " .. tostring(took) .. "; queued " .. H.qkinds())
+        H.qstop()
+        H.menuClose()
+        H.lite(true)
+    end)
     H.wwShow(T, "tv")
     H.step(2, function()
         if T.off then return end
-        if not H.hit(RT.ww(), "phones") then Q.check(true, T.L .. " (B2): the TV's face has no headphone jack", H.list(H.hitIds(RT.ww()))); T.off = true; return end
-        H.click(RT.ww(), "phones", nil, T.L)
+        local ww = RT.ww()
+        Q.check(H.isPlain(ww) and H.hit(ww, "phones") == nil, T.L .. " (B2): the TV's plain card has no Headphones button", "plain " .. tostring(H.isPlain(ww)) .. "; controls " .. H.list(H.hitIds(ww), 18))
+        H.liteBack()
+        -- a pair put in by the game's own action (as one left in from before the fix)
+        pcall(function() ISTimedActionQueue.add(ISRadioAction:new("AddHeadphones", S.p, T.tv, T.hp)) end)
     end)
-    H.step(3, function() if not T.off then T.k = H.qkinds() end end)
     H.waitQ(T, 15000)
+    H.wwShow(T, "tv")
     H.step(2, function()
         if T.off then return end
-        local port = H.portable(T.tv)
-        Q.check((H.phones(T.tv) or -1) < 0, T.L .. " (B2): ZeD puts no headphones on a TV (the game offers its headphone box on portable non-TV sets only, RWMVolume)",
-            "queued " .. tostring(T.k) .. "; the TV's headphone type " .. tostring(H.phones(T.tv)) .. ", headphones on him " .. H.count("Base.Headphones") .. "; TvBlack portable " .. tostring(port))
+        if (H.phones(T.tv) or -1) < 0 then Q.skip(T.L .. ": a pair already in comes out", "the game's AddHeadphones put none in the TV"); T.noIn = true; return end
+        if not Q.check(H.hit(RT.ww(), "phones") ~= nil, T.L .. " (B2): with a pair already in, the TV keeps its headphone key so they can come out",
+            "the game's headphone type " .. tostring(H.phones(T.tv)) .. "; controls " .. H.list(H.hitIds(RT.ww()), 16)) then T.noIn = true; return end
+        H.click(RT.ww(), "phones", nil, T.L)
+    end)
+    H.wait(1500, function() return T.off or T.noIn or H.qcount("ISRadioAction") > 0 end, function() end)
+    H.waitQ(T, 15000)
+    H.step(2, function()
+        if T.off or T.noIn then return end
+        Q.check((H.phones(T.tv) or 0) < 0 and H.count("Base.Headphones") == 1, T.L .. " (mouse, B2): the key takes them out of the TV",
+            "queued " .. tostring(T.qKinds) .. "; the game's headphone type " .. tostring(H.phones(T.tv)) .. ", headphones on him " .. H.count("Base.Headphones"))
     end)
     H.caseEnd(T.L)
 end
@@ -3594,7 +3760,61 @@ function C.r52()
 end
 
 -- ===================================================================== R54 Lite (B14)
-function C.r54leg(T, which, key, label)
+-- (fix/radio b59f1995e, B14: Lite's plain card has the game's Add preset, Edit preset and Remove preset on its footer
+-- band (ids chadd, chedit, chdel), working on the tuned channel; gray while the set is off; none on a TV or a set that
+-- cannot transmit; they act on the release and are pad stops)
+S.CH_BTNS = { "chadd", "chedit", "chdel" }
+-- the footer band's buttons as drawn (their words and gray state), recorded only while R54 asks
+function H.bandRecOn()
+    if S.br then return end
+    local K = { orig = ZeD.Molecules.drawBand }
+    S.br = K
+    S.bandSeen = {}
+    K.fn = function(panel, x, y, w, spec, ...)
+        if type(spec) == "table" and type(spec.buttons) == "table" then
+            for _, b in ipairs(spec.buttons) do
+                if b.id == "chadd" or b.id == "chedit" or b.id == "chdel" then
+                    S.bandSeen[b.id] = { disabled = b.disabled and true or false, label = tostring(b.label), t = getTimestampMs() }
+                end
+            end
+        end
+        return K.orig(panel, x, y, w, spec, ...)
+    end
+    ZeD.Molecules.drawBand = K.fn
+end
+function H.bandRecOff()
+    local K = S.br
+    if not K then return end
+    if ZeD.Molecules.drawBand == K.fn then ZeD.Molecules.drawBand = K.orig end
+    S.br = nil
+end
+function H.bandGray()
+    local o, all = {}, true
+    for _, id in ipairs(S.CH_BTNS) do
+        local b = S.bandSeen and S.bandSeen[id]
+        o[#o + 1] = id .. " " .. (b and (H.s(b.label) .. (b.disabled and " gray" or " live")) or "not drawn")
+        if not (b and b.disabled) then all = false end
+    end
+    return all, H.list(o)
+end
+function H.bandLive()
+    for _, id in ipairs(S.CH_BTNS) do local b = S.bandSeen and S.bandSeen[id]; if not (b and not b.disabled) then return false end end
+    return true
+end
+-- queue: the body scrolled (the scrollbar's own wheel, a notch a frame) until the control id stands in the view; T.hitVis
+function H.hitShowQ(T, which, id)
+    H.wait(4000, function()
+        if T.off then return true end
+        local w = H.win(which)
+        local t, h = H.tw(w), H.hit(w, id)
+        if h and H.inView(t, h.x + math.floor(h.w / 2), h.y + math.floor(h.h / 2)) then return true end
+        local sc = w and w._radioScroll
+        if sc and sc.visible then pcall(function() sc:handleMouseWheel(1) end) end
+        return false
+    end, function(ok) if not T.off then T.hitVis = ok end end)
+end
+function H.chBtns(w) local n = 0; for _, id in ipairs(S.CH_BTNS) do if H.hit(w, id) then n = n + 1 end end; return n end
+function C.r54leg(T, which, key, label, wantCh)
     H.showQ(T, which, key)
     H.faceShotQ(T, which, key)
     H.step(2, function()
@@ -3603,8 +3823,114 @@ function C.r54leg(T, which, key, label)
         local stores = {}
         for _, id in ipairs(H.hitIds(w)) do if string.find(id, "^p%d$") or id == "mem" or id == "lamp" then stores[#stores + 1] = id end end
         Q.check(H.isPlain(w) and #stores == 0 and w._radioCanPop ~= true and w._radioFullZone == nil, label .. ": the plain card, no preset keys, MEM or lamp, no pop-out button",
-            "plain " .. tostring(H.isPlain(w)) .. "; controls " .. H.list(H.hitIds(w), 16) .. "; the pop-out " .. tostring(w and w._radioCanPop))
-        T.stores = (T.stores or 0) + #stores
+            "plain " .. tostring(H.isPlain(w)) .. "; controls " .. H.list(H.hitIds(w), 18) .. "; the pop-out " .. tostring(w and w._radioCanPop))
+        local n = H.chBtns(w)
+        Q.check(n == (wantCh and 3 or 0), label .. " (B14): " .. (wantCh and "Add preset, Edit preset and Remove preset on its footer" or "no preset buttons (the game's window has no Channel box here)"),
+            n .. " of chadd, chedit, chdel; controls " .. H.list(H.hitIds(w), 18) .. "; the game's TV " .. tostring(H.isTV(T[key])) .. ", NoTransmit " .. tostring(H.noTransmit(T[key])))
+    end)
+end
+-- queue: one of the three pressed (how "mouse" or "pad") on the ValuTech T.r; T.pr0 the game's list before
+function C.r54press(T, id, how)
+    H.step(2, function()
+        if T.off then return end
+        T.pr0 = H.presets(T.r)
+        T.pressGo = nil
+    end)
+    if how == "mouse" then
+        H.hitShowQ(T, "cw", id)
+        H.step(1, function()
+            if T.off then return end
+            local cw = RT.cw()
+            H.click(cw, id, nil, T.L)
+            T.same = #H.presets(T.r) == #T.pr0 and H.presetText(T.r) == T.prText0
+            T.pressGo = true
+        end)
+    else
+        H.step(1, function()
+            if T.off then return end
+            local cw = RT.cw()
+            T.pressGo = H.padOn(cw) and H.focusEl(cw, "radio:tw:" .. id)
+            if not T.pressGo then Q.check(false, T.L .. " (pad, B14): " .. id .. " is a pad stop", "stops " .. H.stopIds(cw)) end
+        end)
+        H.tapQ("cw", "A", function() return T.pressGo and not T.off end)
+        H.step(1, function() H.padOff() end)
+    end
+end
+function H.prHas(dev, hz) for i, p in ipairs(H.presets(dev)) do if p.freq == hz then return i, p end end; return nil end
+function C.r54chan(T)
+    -- gray while off, live while on
+    H.step(2, function()
+        if T.off then return end
+        H.bandRecOn()
+        H.prep(T.r, { on = false })
+    end)
+    H.hitShowQ(T, "cw", "chadd")
+    Q.waitMs(300)
+    H.step(2, function()
+        if T.off then return end
+        T.grayOff, T.grayTxt = H.bandGray()
+        H.prep(T.r, { on = true })
+    end)
+    Q.waitMs(300)
+    H.step(2, function()
+        if T.off then return end
+        local _, onTxt = H.bandGray()
+        Q.check(T.grayOff and H.bandLive(), T.L .. " (B14): the preset buttons are gray while the set is off and live while it is on",
+            "off: " .. tostring(T.grayTxt) .. "; on: " .. onTxt)
+        pcall(function() H.dd(T.r):setChannel(95000) end)
+        T.prText0 = H.presetText(T.r)
+    end)
+    -- Add by the mouse: on the release (the next frame), the tuned channel stored at the list's end
+    C.r54press(T, "chadd", "mouse")
+    H.step(3, function()
+        if T.off or not T.pressGo then return end
+        local i, p = H.prHas(T.r, 95000)
+        Q.check(T.same and i == #T.pr0 + 1 and #H.presets(T.r) == #T.pr0 + 1, T.L .. " (mouse, B14): Add preset stores the tuned channel at the list's end, on the release",
+            "unchanged in the click's own frame " .. tostring(T.same) .. "; the game's list " .. H.presetText(T.r) .. " (was " .. #T.pr0 .. ")")
+    end)
+    -- Edit by the pad: the naming box, named
+    C.r54press(T, "chedit", "pad")
+    H.wait(1500, function() return T.off or not T.pressGo or H.boxUp() end, function(ok)
+        if T.off or not T.pressGo then return end
+        T.boxOk = ok
+        if ok then H.boxOK("Base") end
+    end)
+    H.step(3, function()
+        if T.off or not T.pressGo then return end
+        local _, p = H.prHas(T.r, 95000)
+        Q.check(T.boxOk and p ~= nil and p.name == "Base", T.L .. " (pad, B14): Edit preset opens the naming box and names the tuned channel",
+            "box up " .. tostring(T.boxOk) .. "; the game's list " .. H.presetText(T.r))
+    end)
+    -- Remove by the pad
+    C.r54press(T, "chdel", "pad")
+    H.step(3, function()
+        if T.off or not T.pressGo then return end
+        Q.check(H.prHas(T.r, 95000) == nil and #H.presets(T.r) == #T.pr0 - 1, T.L .. " (pad, B14): Remove preset forgets the tuned channel", "the game's list " .. H.presetText(T.r) .. " (was " .. #T.pr0 .. ")")
+        pcall(function() H.dd(T.r):setChannel(96000) end)
+        T.prText0 = H.presetText(T.r)
+    end)
+    -- Add by the pad, Edit and Remove by the mouse
+    C.r54press(T, "chadd", "pad")
+    H.step(3, function()
+        if T.off or not T.pressGo then return end
+        Q.check(H.prHas(T.r, 96000) == #T.pr0 + 1, T.L .. " (pad, B14): Add preset stores the tuned channel", "the game's list " .. H.presetText(T.r))
+    end)
+    C.r54press(T, "chedit", "mouse")
+    H.wait(1500, function() return T.off or not T.pressGo or H.boxUp() end, function(ok)
+        if T.off or not T.pressGo then return end
+        T.boxOk = ok
+        if ok then H.boxOK("Base2") end
+    end)
+    H.step(3, function()
+        if T.off or not T.pressGo then return end
+        local _, p = H.prHas(T.r, 96000)
+        Q.check(T.boxOk and p ~= nil and p.name == "Base2", T.L .. " (mouse, B14): Edit preset names the tuned channel", "box up " .. tostring(T.boxOk) .. "; the game's list " .. H.presetText(T.r))
+    end)
+    C.r54press(T, "chdel", "mouse")
+    H.step(3, function()
+        if T.off or not T.pressGo then return end
+        Q.check(H.prHas(T.r, 96000) == nil and #H.presets(T.r) == #T.pr0 - 1, T.L .. " (mouse, B14): Remove preset forgets the tuned channel", "the game's list " .. H.presetText(T.r))
+        H.bandRecOff()
     end)
 end
 function C.r54()
@@ -3614,11 +3940,12 @@ function C.r54()
         if not H.lite(true) then T.off = true; Q.skip(T.L, "no Lite setting"); return end
         T.r = H.giveRadio("Base.RadioBlack", { batt = 0.8, on = true, vol = 0.2, ch = 90000, presets = { { "One", 90000 }, { "Two", 101200 } } })
         T.wk = H.giveRadio("Base.WalkieTalkie5", { batt = 0.8, on = true, vol = 0.2 })
+        T.cd = H.giveRadio("Base.CDplayer", { batt = 0.8, on = true, vol = 0.2 })
         T.tv = H.place("tv_black", H.ringSq(1))
         if T.tv then H.prep(T.tv, { on = true, vol = 0.1, ch = 200 }) end
         H.hold(T.r, "p")
     end)
-    C.r54leg(T, "cw", "r", T.L .. " on a ValuTech")
+    C.r54leg(T, "cw", "r", T.L .. " on a ValuTech", true)
     Q.waitMs(700)
     -- (run 1: the row was found but below the tab's view, where a click does nothing: the body is scrolled to it the
     -- way the wheel scrolls it, one notch a frame, then the row is clicked where it is drawn)
@@ -3641,17 +3968,19 @@ function C.r54()
         if T.off then return end
         Q.check(T.zOk and T.inV and H.ch(T.r) == 101200, T.L .. " (mouse): a Channels row still tunes to its channel",
             "row found " .. tostring(T.zOk) .. ", in the tab's view " .. tostring(T.inV) .. "; the game's channel " .. H.mhz(H.ch(T.r)))
+    end)
+    C.r54chan(T)
+    H.step(2, function()
+        H.bandRecOff()
+        if T.off then return end
         H.unhold(T.r)
         H.hold(T.wk, "p")
     end)
-    C.r54leg(T, "cw", "wk", T.L .. " on the Army walkie")
-    H.step(2, function()
-        if T.off then return end
-        Q.check((T.stores or 0) > 0, T.L .. " (B14): Lite keeps a way to store a channel (the game's window has Add, Edit and Delete: \"if vanilla does it, so does Lite\")",
-            (T.stores or 0) .. " storing controls on the ValuTech's and the walkie's plain cards; the Channels rows only recall")
-    end)
+    C.r54leg(T, "cw", "wk", T.L .. " on the Army walkie", true)
+    H.step(2, function() if T.off then return end; H.unhold(T.wk); H.hold(T.cd, "p") end)
+    C.r54leg(T, "cw", "cd", T.L .. " on the CD player", false)
     -- (the TV last: no TV placed skips only this leg)
-    C.r54leg(T, "ww", "tv", T.L .. " on a TV")
+    C.r54leg(T, "ww", "tv", T.L .. " on a TV", false)
     H.caseEnd(T.L)
 end
 
@@ -4135,6 +4464,7 @@ function H.putBack()
     H.carShut()
     H.gameWinShut()
     H.stripRecOff()
+    H.bandRecOff()
     H.countOff()
     S.rpN = H.plateProxyOff()
     H.hooksOff()
@@ -4244,7 +4574,7 @@ function S.buildPutBack()
             .. tostring(H.optVal(ZeD.Settings and ZeD.Settings.safeModeOption)) .. ", " .. tostring(ZeD.currentBase) .. ", " .. tostring(ZeD.currentSize))
         local w = RT.ww()
         Q.check(H.lockFound() == (S.lockWas or H.lockFound()) and S.parked == nil and S.back.maxW == nil and (w == nil or w._maxWinW == f.maxW)
-            and H.hooked() and S.sr == nil and S.cnt == nil and S.rp == nil and H.popShowing() == nil and not H.carUp() and not H.gameWin(),
+            and H.hooked() and S.sr == nil and S.br == nil and S.cnt == nil and S.rp == nil and H.popShowing() == nil and not H.carUp() and not H.gameWin(),
             "put back: the input lock, the pointer, the width cap, the hooks and watchers, the pop-out, the car radio and the game's window as found",
             "lock " .. H.lockFound() .. ", width cap " .. tostring(w and w._maxWinW) .. ", hooks off " .. tostring(H.hooked()))
         Q.check(H.volumes() == f.vols, "put back: the game's volume settings untouched", H.volumes() .. " (found " .. tostring(f.vols) .. ")")

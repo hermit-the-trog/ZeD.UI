@@ -1,6 +1,6 @@
 # ZeDUI/tools/qa/rd.txt (Nov 27 2026, QA): the Radio tab in both windows, the device faces, the pop-out, the car radio up close, the dash's head unit and the D-pad wheels' radio slices, the gamut sweep, from the map ZeDUI/qa/audits/2026-11-27_map_radio.md (cases R1-R56, its suspicions B1-B14), each checked in the running game by the mouse and the pad against the game's own answers (the device's DeviceData: on, channel, volume, mic, battery and charge, headphones, media and play, the preset list; ISRadioAction's isValid rules; the game's queue; where the game put the items; ISRadioWindow's instances; the car's part).
 # Where: ZEDQA_HOME first (the drag strip) for the radios he carries and the car; a room on the grid for the placed sets and the TVs (rt_media's way: the nearest room square within 45 tiles of home with three room squares beside it, else the Fossoil at West Point), the grid turned on for the run and put back.
-#   rd_tab.lua  R1  empty: neither strip offers Radio, the three wheel slices greyed; B11 the Character window's empty line
+#   rd_tab.lua  R1  empty: neither strip offers Radio, the three wheel slices greyed; B11 the empty line: "No radio on you" in the Character window, "No radio in range" in the World window
 #               R2  a walkie equipped by the game's action, both windows open: Radio on the strip at once, no tab change, no game window
 #               R3  walkies in both hands and a ManPack on the back (only when nothing is worn there): the game's order, (Primary) / (Secondary), the help line, an unequipped tab gone, the shown radio followed (mouse; pad)
 #               R4  a radio in a bag by Device Options: the Carried tab; put on the floor: gone with its pin
@@ -13,26 +13,26 @@
 #               R11 SKIP: split screen (a second controller)
 #               R12 safe mode (run last, with the car): the car radio up close put away, the game's onEquip window and Device Options back; off: suppressed
 #               R13-R16 the ValuTech: power with no battery against the game's own action on a twin set (mouse), on with one (pad); VOL steps to 1.0 and 0, refused while off; the hand-built set's knob (wheel; A grabs, D-pad, B); MUTE to the kept volume and to 0.5; TUNE's wrap, the wheel's fast spin, refused while off
-#               R17 battery in and out (mouse; pad); B5 Spare against the key with only a dead battery
+#               R17 battery in and out (mouse; pad); B5 Spare against the key with only a dead battery (an open gap Build noted: NOTE)
 #               R18 presets: A held on P2 stores, P2 recalls, an empty P4 flashes EMPTY, nothing while off
-#               R19 headphones: Earbuds in a bag (the key's words), in the main inventory (pad), out (mouse)
+#               R19 headphones: Earbuds in a bag (the key looks in the main inventory only: an open gap, NOTE), in the main inventory (pad), out (mouse)
 #               R20 the Premium's CD: the list, in, play and its clock, stop and play inside 4 s, eject (pad)
 #               R21 B9 the Premium turned off while the disc plays; on again (NOTE)
 #               R22 the pop-out of a held radio: the button, the face, dropped: closed; a radio in a bag: stays
-#               R31-R42 the walkies: B1 the battery (no key), VOL's push (mouse; X, then the stop's own X as a NOTE), the Tactical's band and the pad's 5x, MEM and CH, MEM held names (right-click; A held), MEMORY FULL, MIC refused off then MIC OFF, SCAN on the Army set, LAMP at night (the clock put back; picture rd_walkie_tactical_night_lamp_<WxH>), the toy's three controls, B7 the pop-out of a walkie in a bag, B2 headphones on a walkie
+#               R31-R42 the walkies: B1 the battery out by the fill's Battery row (mouse), in by it (pad: the fullest carried), out by the plain card's button, the pop-out's missing battery and phones (open gap: NOTE), VOL's push (mouse; X, then the stop's own X as a NOTE), the Tactical's band and the pad's 5x, MEM and CH, MEM held names (right-click; A held), MEMORY FULL, MIC refused off then MIC OFF, SCAN on the Army set, LAMP at night (the clock put back; picture rd_walkie_tactical_night_lamp_<WxH>), the toy's three controls, B7 the pop-out of a walkie in a bag, B2 headphones on a walkie: in by the fill's Headphones row (mouse), out by the plain card's button (pad)
 #               R43 SKIP: two-way talk and a server's channels (multiplayer)
-#               R44-R46 the hams placed: BAT off the grid and AC on it, no battery key; the army set's P3 held and pressed, MEMORY FULL, P3 at full, the pad's 25x; the makeshift ham's narrow face at the half card (picture rd_ham_makeshift_narrow_<WxH>)
-#               R23 B6 the CD player: the half card held and on the floor, no tuner, the fill's Channels, Heard and range rows
+#               R44-R46 the hams placed: BAT off the grid and AC on it, B1 the fill's Battery row takes the battery out; the army set's P3 held and pressed, MEMORY FULL, P3 at full, the pad's 25x; the makeshift ham's narrow face at the half card (picture rd_ham_makeshift_narrow_<WxH>)
+#               R23 B6 the CD player: the half card held and on the floor, no tuner, no Channels, Heard or range rows on a NoTransmit set
 #               R24 a TV on the grid: Power nearby, power on and the screen, off by the pad; B10 the World list's rebuilds in 2 s (NOTE)
 #               R25 a TV with no power: refused as the game refuses; a generator beside it: on (pad)
 #               R26 the TV's 12 stops by CH+ (mouse), the bars at stop 12; the antique dial's ends (pad)
 #               R27 each TV channel's screen against its getAiringBroadcast now
 #               R28 VHS: both tapes listed, in, play and H:MM:SS, eject (pad)
-#               R29 B2 headphones on a TV
+#               R29 B2 a TV: no headphone control on its face, fill or plain card, the phones key refuses one; a pair put in by the game's action comes out by the key
 #               R30 B4 a TV and a ValuTech on one square: a battery and a tape each through its own tab, the set each queued action is aimed at
-#               R52 B8 the pad's first stop on a ValuTech, a walkie and a TV; the walkie's VOL: A grabs, D-pad turns, B lets go
+#               R52 B8 the pad's first stop: power on a ValuTech and a TV, VOL on a walkie; the walkie's VOL: A grabs, D-pad turns, B lets go
 #               R53 the pad's A on an empty slot: the list, back on the slot (the list's own focus SKIP with no controller bound)
-#               R54 B14 Lite on a ValuTech, the Army walkie and a TV: plain cards, nothing stores, a Channels row recalls
+#               R54 B14 Lite on a ValuTech, the Army walkie, the CD player and a TV: plain cards, a Channels row recalls; Add, Edit and Remove preset on the ValuTech and the walkie (gray while off, acting on the release), Add, Edit and Remove each by the mouse and the pad against the game's preset list; none on the CD player or the TV
 #               R55 the wheel over the strip, over a knob, over the body
 #               R56 Large text, Dark and Light (pictures rd_fill_dark_<WxH>, rd_fill_light_<WxH>), the Channels head folds and opens, the scrollbar (NOTE)
 #               faces: the makeshift walkie, the ManPack and the widescreen TV drawn and pictured
