@@ -42,7 +42,13 @@ local function openCard(label, player, container, source, info)
     local ok, handled
     if sq then ok, handled = pcall(OC.openNear, player, "fluid", arg, sq)
     else ok, handled = pcall(OC.open, player, "fluid", arg) end
-    if not ok then print("[ZeD] Fluids: " .. label .. " route failed: " .. tostring(handled)) end
+    if not ok then print("[ZeD] Fluids: " .. label .. " route failed: " .. tostring(handled))
+    elseif not handled then
+        -- (said once per turn-down, so a refusal is never silent: the game's own window opens instead; QA FL7's hunt)
+        local valid = false
+        pcall(function() valid = ISFluidUtil.validateContainer(container) and container:isValid() end)
+        print("[ZeD] Fluids: " .. label .. ": no card (" .. (sq and "near" or "item") .. ", container valid " .. tostring(valid) .. "); the game's window instead")
+    end
     return ok and handled
 end
 

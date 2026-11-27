@@ -275,8 +275,39 @@ function def.resolve(player, arg)
     return t
 end
 
+-- The pinned world container, found again on its square. A pour can swap the game's object under it (a rain
+-- collector's object is rebuilt as its level changes), so the old one no longer exists in the world though the
+-- collector stands where it stood; the card took that for "the object is gone" and closed right after a pour (QA
+-- FL4 / FL8, Nov 26 2026). The same square's object with a fluid container takes its place, on both sides.
+local function repin(t)
+    local sq = t.sq
+    if not sq then return false end
+    local objs = call(sq, "getObjects")
+    if not objs then return false end
+    for i = 0, objs:size() - 1 do
+        local o = objs:get(i)
+        local fc = call(o, "getFluidContainer")
+        if fc then
+            local c = ISFluidContainer:new(fc)
+            if ISFluidUtil.validateContainer(c) then
+                local old = t.pinned
+                t.pinned = c
+                if t.from == old then t.from = c end
+                if t.into == old then t.into = c end
+                print("[ZeD] fluid card: the pinned container's object was replaced; found again on its square")
+                return true
+            end
+        end
+    end
+    return false
+end
+
 function def.valid(t)
-    if t.pinned and not ISFluidUtil.validateContainer(t.pinned) then return false end
+    if t.pinned and not ISFluidUtil.validateContainer(t.pinned) then
+        if repin(t) then return true end
+        print("[ZeD] fluid card: not valid: the pinned world container is gone (no fluid container on its square)")
+        return false
+    end
     return true
 end
 
