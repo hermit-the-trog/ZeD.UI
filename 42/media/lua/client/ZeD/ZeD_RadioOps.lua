@@ -268,7 +268,21 @@ end
 O.stopScan = stopScan
 
 --- the power switch (a SCAN stops, a remembered Stop is forgotten); false when vanilla refuses
-function O.power(chr, part) stopScan(part); if part and O.forgetStop then O.forgetStop(keyOf(part)) end; return run("ToggleOnOff", chr, part) end
+function O.power(chr, part)
+    stopScan(part)
+    if part and O.forgetStop then O.forgetStop(keyOf(part)) end
+    local ok = run("ToggleOnOff", chr, part)
+    -- a set turned off stops its disc now, as the game's radio window does on its next update (RWMMedia.lua:
+    -- 161-163); with ZeD the disc played on until the game's device update reached it, 2.5 s and more at
+    -- 1280x800 (QA B9 / R21, Nov 27 2026)
+    if ok and part then
+        pcall(function()
+            local dd = part:getDeviceData()
+            if dd and not dd:getIsTurnedOn() and dd:isPlayingMedia() then dd:StopPlayMedia() end
+        end)
+    end
+    return ok
+end
 
 --- dir +1 / -1 a tenth; wrap = the dash's one-button volume (past full it starts over)
 function O.volStep(chr, part, dir, wrap)
