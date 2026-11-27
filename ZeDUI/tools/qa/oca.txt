@@ -1,0 +1,47 @@
+# ZeDUI/tools/qa/oca.txt (Nov 26 2026, QA): four of ZeD's object cards in the World window's card drawer, the gamut sweep: Farm (plots and crops), Trough, Hutch and Hook (the butcher's hook), from the map ZeDUI/qa/audits/2026-11-26_map_cards_farm_animals.md (its suspicions FA1-FA13, TG1-TG10, HU1-HU9, HK1-HK12), each checked in the running game by the mouse and the pad, at the size the runner uses, against the game's own answers (the plant's own fields: health, water, fertilizer, the pests, nbOfGrow, the crop's water need, cursed, state; the trough's fluid and food and its system object; each nest box's eggs; the hook's carcass, its BloodQty and parts, the bodies on the ground; what the game's own actions did: the doses applied, the items used up, the eggs and seeds taken, the timed actions queued).
+# Where: ZEDQA_HOME first (the drag strip, 925.5,13040.5); the farm is the nearest 9 x 6 of the game's own dirt (ISShovelGroundCursor.GetDirtGravelSand, the game's plow rule) within 40 tiles of home, the yard the nearest 15 x 11 of open ground there; he comes home at the end.
+#   oca_tab.lua  FA1 Fertilize pressed twice during the walk (mouse), A A (pad), a third dose on a plant at fertilizer 2 and 25 health: the doses queued, fertilizer and health after each dose, the uses, a question
+#                FA2 a crop needing 80 at stage 2, water 65 and 60, Farming 3 and 4: the water word's mark and the garden cell's mark against ISFarmingInfo.getWaterLvlColor and calcWater; the garden summary (NOTE). Picture oca_farm_<WxH>
+#                FA3 the pad's opening focus on a watered unripe plant with fertilizer carried, then A
+#                FA4 the Dig question open while the game's own Remove takes the shown plot, another crop beside it: Yes (mouse; pad), which plot is dug
+#                FA5 Harvest at Ready (mouse) and In bloom (pad): the main verb, the seeds the game gave
+#                FA6 Fertilize on a dead plot (mouse), Compost on a composted plot (pad): the uses spent against the plant
+#                FA7 Treat on aphids at None at Farming 3 (mouse): the spray's uses; heavy aphids by the pad: the presses it takes
+#                FA8 Water with a smaller and a bigger drinking-water container carried (mouse; pad): which one the game emptied
+#                FA9 seasons on: out-of-season sowing at Farming 5 without the season recipe (mouse): cursed and what the card said; Farming 6 (pad): the tag
+#                FA10 (run last) the drawer at 480 units, the inventory beside it, the card on screen, at the run's size, Large text and UI scale 2 (a FAIL only at 1280x800, a NOTE at other sizes); the garden labels in their cells
+#                FA11 the MoreAt and ListAnd keys in the UI.json files; three-letter label collisions in the run's language; a trampled plant's tag against the game's name; German capitals (NOTE)
+#                FA12 a field of 27 plots: the card's frame cost (NOTE); the shovel dropped between Dig and Yes: what Yes queued, Lua errors. MP: SKIP
+#                TG1 bleach (mouse) and gasoline (pad) carried: listed to pour, and what reaches the trough
+#                TG2 an emptied feed bag in the trough: the Food tag against getCurrentFeedAmount
+#                TG3 food in, Take all (mouse; pad under hidden actions all): Add water against the trough's fluid container, its NEEDS line
+#                TG4 a double trough with one tile in a zone: the zone line against each tile's zone. MP: SKIP
+#                TG5 ten carrots (or three feed bags): one Add (mouse), one Take (pad): how many moved
+#                TG6 Empty (mouse; pad): the trough system's own object after; TG9 the question's words. Picture oca_trough_<WxH>. MP: SKIP
+#                TG7 the Transfer row and the fluid card's Pour (mouse; pad): which card is up after
+#                TG8 the trough card's size, Large text (as FA10)
+#                HU1 Grab eggs on four boxes with the pointer off the window (mouse) and with the window down (pad): the eggs left per box. Picture oca_hutch_<WxH>
+#                HU2 SKIP (MP)
+#                HU3 60 s at speed 3 with only the card open: dirt and eggs (NOTE: reforceUpdate never called; days needed)
+#                HU4 a hen carried to a full hutch, and with both doors shut: what the card shows against the game's greyed Put in
+#                HU5 the pad: a box's Grab and the focus after it empties; a bird's Info and B
+#                HU6 Large text with four boxes and a long-named sitting hen: the Grab buttons and the words in the card
+#                HU7 the Birds and Eggs keys in the UI.json files; "1 eggs"
+#                HU8 the leash: just past the game's DistToProper 5 from the entry, and past 5.5
+#                HK1 Hang on row 1 then row 2 (mouse), A A on a carried carcass (pad): the puts queued, the hook, the ground, orphans
+#                HK2 Bleed with no bucket (pad): the band and the Blood row against getRemovingBloodProgress and BloodQty. Picture oca_hook_<WxH>
+#                HK3 bleeding, > to a second hook and < back (mouse): the card after the bleed ends; split screen SKIP
+#                HK4 the pad from the Animals tab's hook row: the opening focus, A
+#                HK5 Meat (mouse) and Head (pad) with blood still in: a question, the blood spilled
+#                HK6 a part the animal never had (the game's leather false): the card's word and Gather (mouse; pad)
+#                HK7 only a dead hen near: Add corpse and where it goes (mouse; pad); HK8 that row's name
+#                HK9 Large text: the part labels against the value column; the card's size; HK11 the blood liters against BloodQty
+#                HK10 SKIP (MP)
+#                FA13, TG10, HU9, HK12 are test drift: NOTEs at the end
+# It puts back every plot and plant made (and each square's plowDay), every trough, hen house, hook, hen, cow, animal body and hook animal made (and any orphan), every zone drawn, anything new lying on the farm and the yard, the items given and anything new on him, his own set-aside things, every skill level (Farming, Butchering, Animal Care; XP drift a NOTE), the season recipes, the sandbox's PlantGrowingSeasons, the hidden-actions setting, the text size, the UI scale, the World window's tab and card, the Animals tab's view, the Character window's tab, the layout, the pad lock, the pointer, the draw watchers, the instant and build cheats, the farming menu's cursor, his stiffness and blood, game speed 1, the clock, where he stood, god mode and invincible as found.
+# Run both sizes:
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/oca.txt -Mode fullscreen4k -Report oca_4k
+#   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/oca.txt -Mode windowed -Width 1280 -Height 800 -Report oca_deck
+zedqa_prelude.lua | pre | timeout=120
+rt_kit.lua | rtk | timeout=60
+oca_tab.lua | oca_tab | timeout=2400
