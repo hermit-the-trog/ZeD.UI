@@ -1750,7 +1750,10 @@ function C.c2()
         local deep = nil
         pcall(function() deep = H.inv():getFirstTypeRecurse("CombinationPadlock") end)
         local line = H.needsHas(ZeD.tr("UI_ZeD_Lock_NeedsCombo"))
-        Q.check(not (line and deep ~= nil and main == nil), T.L .. ": a Combination Padlock only in his school bag: the NEEDS line does not say he lacks one in his bags",
+        -- (fix/cards3, Nov 26 2026: the line now says "in your main inventory", which is right: the game's action takes from
+        -- there only. The fault was saying "in your bags" while one was in a bag)
+        local mainWords = string.find(string.lower(H.needs()), "main inventory", 1, true) ~= nil
+        Q.check(not (line and deep ~= nil and main == nil) or mainWords, T.L .. ": a Combination Padlock only in his school bag: the NEEDS line says where the game's action takes it from (his main inventory), not that he lacks one in his bags",
             "the game's FindAndReturn on the main inventory (the one its action removes from) " .. tostring(main ~= nil) .. ", its recursive find " .. tostring(deep ~= nil)
             .. " (in " .. H.nm(T.bag) .. "); the card's NEEDS lines: " .. H.needs())
         H.closeCard()
