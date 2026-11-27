@@ -88,10 +88,20 @@ local function sameItem(a, b)
     local ia = call(a, "getID")
     return ia ~= nil and ia == call(b, "getID")
 end
-local function pickedSource(t, list)
-    if t.waterPick then
+-- The pick is kept per player, not on the card's target: the card can swap the plot's target for a fresh one
+-- between the Use and the Water (a browse, a step to the plot again), and the pick on the old one was lost, so
+-- Water poured from the biggest (QA FA8 probe, Nov 27 2026: "same target false"). It names one of his containers,
+-- so it is his, whatever plot the card shows.
+local WATER_PICK = {}
+local function pnOf(p)
+    local ok, n = pcall(function() return p:getPlayerNum() end)
+    return (ok and n) or 0
+end
+local function pickedSource(t, list, p)
+    local pick = (p and WATER_PICK[pnOf(p)]) or t.waterPick
+    if pick then
         for _, it in ipairs(list) do
-            if sameItem(it, t.waterPick) then return it end
+            if sameItem(it, pick) then return it end
         end
     end
     return list[1]
@@ -226,6 +236,7 @@ local function urgency(plant, pestsVisible, skill)
 end
 
 local def = { id = "plant", keepOnLoss = true }
+def._waterPick = WATER_PICK   -- (for the sims: oc_farm_sim)
 
 local function targetFor(plant)
     local sq = plant:getSquare()
@@ -371,7 +382,7 @@ function def.refresh(t, player)
             sensible = thirstyOK, needs = ZeD.tr("UI_ZeD_Farm_NeedsWater"), hint = ZeD.tr("UI_ZeD_Farm_HintWater"),
             help = ZeD.tr("UI_ZeD_Farm_HelpWater"),
             run = function(p, tt)
-                local src = pickedSource(tt, waterSources(p))   -- (FA8: the picked one, else the biggest)
+                local src = pickedSource(tt, waterSources(p), p)   -- (FA8: the picked one, else the biggest)
                 local pl = tt.obj
                 if not src or not pl then return end
                 local use = math.min(ISFarmingMenu.getWaterUsesInteger(src), math.ceil((100 - (pl.waterLvl or 0)) / 10), 10)
@@ -746,7 +757,7 @@ function def.body(card, x, y, w, t, player)
         -- pours from it. Unpicked, the biggest leads, as before.
         if #d.water_src > 0 then
             y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Farm_WaterFrom"), tostring(#d.water_src))
-            local cur = pickedSource(t, d.water_src)
+            local cur = pickedSource(t, d.water_src, player)
             local missing = math.ceil((100 - d.water) / 10)
             local useW = ZeD.tr("UI_ZeD_Card_VerbUse")
             for i, it in ipairs(d.water_src) do
@@ -761,7 +772,7 @@ function def.body(card, x, y, w, t, player)
                     gain = "+" .. tostring(math.min(ISFarmingMenu.getWaterUsesInteger(it), missing, 10) * 10),
                     button = useW, fid = "farm:water:" .. i,
                     help = ZeD.tr("UI_ZeD_Farm_HelpWaterFrom", name),
-                    run = function(c, p) t.waterPick = item end,
+                    run = function(c, p) t.waterPick = item; WATER_PICK[pnOf(p or player)] = item end,
                 })
             end
             y = y + gap
