@@ -30,6 +30,31 @@ require "ZeD/KillTracker"
 ZeD = ZeD or {}
 ZeD.IdentityTab = {}
 
+-- The tab's data refreshes on the clock, as the Skills tab's does (SkillsTab.lua dueMs, the same
+-- function): 30 frames were 500 ms at 60 FPS but ran 2.4-4 times as often at 144-240 Hz (QA, Nov 27
+-- 2026). True once periodMs has passed since owner[key], on the first call or when forced; a window's
+-- first run starts at its own phase (owner._zedPhase, shared by its tabs). No % on the clock (past 2^31).
+local function dueMs(owner, key, periodMs, force)
+    local now = getTimestampMs()
+    local last = owner[key]
+    if not force and last and now >= last and now - last < periodMs then return false end
+    if last == nil then
+        local ph = owner._zedPhase
+        if not ph then
+            ZeD._throttleN = (ZeD._throttleN or 0) + 1
+            local g = ZeD._throttleN * 0.6180339887
+            ph = g - math.floor(g)
+            owner._zedPhase = ph
+        end
+        owner[key] = now - math.floor(ph * periodMs)
+    elseif force or now < last or now - last >= periodMs * 2 then
+        owner[key] = now               -- (forced, or after a gap: the period starts again)
+    else
+        owner[key] = last + periodMs   -- (on the beat: a late frame doesn't stretch the next period)
+    end
+    return true
+end
+
 -- ============================================================================
 -- THE CONCEALED CARRY PERMIT, by the game's profession id (CharacterProfession
 -- toString). "yes" carries one, "revoked" has it stamped REVOKED, anyone else has
@@ -180,6 +205,14 @@ local function getHairColorName(char)
     if not hc then return ZeD.tr("UI_ZeD_Identity_Unknown") end
     local r, g, b = hc:getRedFloat(), hc:getGreenFloat(), hc:getBlueFloat()
     local brightness = r * 0.299 + g * 0.587 + b * 0.114
+    -- Grey hair has almost no tint, where every brown, red and blonde does; read by brightness alone
+    -- it came out Light Brown (0.6) or Brown (0.4). So a colour within 0.08 between its strongest and
+    -- weakest channel, and lighter than dark brown (0.3), reads Gray, unless it is light enough for
+    -- White (QA I8, Nov 27 2026).
+    local chroma = math.max(r, g, b) - math.min(r, g, b)
+    if chroma <= 0.08 and brightness > 0.3 and not (r > 0.85 and g > 0.85) then
+        return getText("ContextMenu_Grey")
+    end
     -- vanilla's paint-color words where it has them (ContextMenu_*), else ZeD's
     if brightness > 0.75 then
         if r > 0.85 and g > 0.85 then return getText("ContextMenu_White") end
@@ -344,8 +377,7 @@ local function profDefById(id)
     return nil
 end
 
--- the profession's display name (Title Case: Kahlua2 doesn't support gsub function
--- replacement, so iterate words manually instead), and its id
+-- the profession's display name as the game writes it, and its id
 local function professionOf(desc)
     local prof = desc and desc:getCharacterProfession() or nil
     local id = prof and prof:toString() or nil
@@ -358,12 +390,10 @@ local function professionOf(desc)
         def = profDefById(id) or def
     end
     local raw = (def and def:getUIName()) or (prof and prof:getName()) or nil
-    if not raw then return "--", id end
-    local words = {}
-    for word in raw:gmatch("%S+") do
-        words[#words + 1] = ZeD.upper(word:sub(1, 1)) .. word:sub(2):lower()
-    end
-    return #words > 0 and table.concat(words, " ") or raw, id
+    -- the name as it comes: the translations already write it in their own case, and lowering every
+    -- letter after the first made "DIY Expert" read "Diy Expert" (QA I6, Nov 27 2026)
+    if not raw or raw == "" then return "--", id end
+    return raw, id
 end
 
 -- ============================================================================
@@ -404,7 +434,9 @@ function ZeD.IdentityTab.gatherData(playerObj)
         end
 
         local nutrition = playerObj:getNutrition()
-        data.weightStr  = ZeD.tr("UI_ZeD_Identity_WeightKg", math.floor(nutrition:getWeight()))
+        -- rounded as the game's own Info page does (ISCharacterScreen: round(weight, 0)); floored,
+        -- 79.6 kg read 79 here and 80 there (QA I3, Nov 27 2026)
+        data.weightStr  = ZeD.tr("UI_ZeD_Identity_WeightKg", math.floor(nutrition:getWeight() + 0.5))
         data.trend      = weightTrend(nutrition)
         data.sexStr     = playerObj:isFemale() and getText("IGUI_char_Female") or getText("IGUI_char_Male")
         local profName, profId = professionOf(desc)
@@ -419,8 +451,15 @@ function ZeD.IdentityTab.gatherData(playerObj)
         data.dlNo       = dlNumber(data.surname, data.forename)
         data.issStr, data.expStr = licenseDates()
 
-        if instanceof(playerObj, "IsoPlayer") then
+        -- The game tells the time survived only while its clock shows the date (ISCharacterScreen:
+        -- UIManager.getClock():isDateVisible(), a watch that shows it); without one ZeD told it
+        -- anyway (QA I10, Nov 27 2026). Simple drops the row; the license, a printed card, keeps
+        -- its field and reads "--".
+        local clock = UIManager and UIManager.getClock and UIManager.getClock() or nil
+        if instanceof(playerObj, "IsoPlayer") and clock and clock:isDateVisible() then
             data.timeSurv = playerObj:getTimeSurvived() or "--"
+        else
+            data.survHidden = true
         end
 
         data.posTraits, data.negTraits = getCharacterTraitsSorted(playerObj)
@@ -1237,7 +1276,7 @@ end
 -- Simple's rows at width w, one place for the measure and the draw: { label, lines, lineW, beside }
 -- and h, the rows' whole height. A row is the label with the value beside it while the two fit;
 -- else the value goes under the label, right-aligned (the half card). Kept with the data, which
--- is made anew every 30 frames (half a second at 60 fps), so nothing is measured every frame.
+-- is made anew every 500 ms (dueMs), so nothing is measured every frame.
 local function simpleRows(data, w)
     local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
     local c = data._rows
@@ -1257,7 +1296,12 @@ local function simpleRows(data, w)
     end
     local vals = { data.sexStr, data.profession, data.hairStyle, data.hairColor, data.facialHair,
         data.bodyHair, data.timeSurv, data.favWeapon, data.zKills }
-    for i = 1, #TALL_LABELS do add(simpleLabel(i), vals[i]) end
+    for i = 1, #TALL_LABELS do
+        -- no Survived for row while the game's clock hides the date (QA I10, Nov 27 2026)
+        if not (data.survHidden and TALL_LABELS[i][2] == "IGUI_char_Survived_For") then
+            add(simpleLabel(i), vals[i])
+        end
+    end
     if data.permit then
         add(ZeD.tr("UI_ZeD_Identity_CarryPermit"),
             ZeD.tr(data.permit == "revoked" and "UI_ZeD_Identity_CarryRevoked" or "UI_ZeD_Identity_CarryYes"))
@@ -1392,10 +1436,18 @@ local function traitRowH()
     return math.max(T.px(TRAIT_ROW_H), ZeD.TM:getFontHeight(T.fontF2) + T.px(6))
 end
 
-local function measureZoneBH(data, cols)
+local function measureZoneBH(data, cols, w)
     local T = ZeD.T
     local pad   = T.sp.sm
     local h = pad + T.px(20) + T.sp.afterGroove  -- section head (20u, its line under it)
+
+    -- No traits: the empty line renderZoneB draws, wrapped as drawEmptyLine wraps it, and the room
+    -- under a group. Not counted, the line sat past the end of the scroll (QA I15, Nov 27 2026).
+    if #data.posTraits + #data.negTraits == 0 then
+        local step = ZeD.TM:getFontHeight(T.fontF2) + T.px(2)
+        local lines = ZeD.Atoms.wrapText(ZeD.tr("UI_ZeD_Identity_NoTraits"), T.fontF2, math.max(1, (w or 0) - pad * 2))
+        return h + math.max(1, #lines) * step - T.px(2) + T.sp.sm
+    end
 
     -- Positive traits
     if #data.posTraits > 0 then
@@ -1584,11 +1636,9 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     local M    = ZeD.Molecules
     local I    = ZeD.IdentityTab
 
-    -- Throttled data refresh (QA's forced trend and profession show at once)
-    win._identityTimer = (win._identityTimer or 0) + 1
-    if win._identityTimer >= 30 or not win._identityCache
-       or win._idQaTrend ~= I.qaTrend or win._idQaProf ~= I.qaProf then
-        win._identityTimer = 0
+    -- Throttled data refresh, every 500 ms on the clock (dueMs; QA's forced trend and profession show at once)
+    if dueMs(win, "_identityAt", 500, not win._identityCache
+       or win._idQaTrend ~= I.qaTrend or win._idQaProf ~= I.qaProf) then
         win._idQaTrend, win._idQaProf = I.qaTrend, I.qaProf
         win._identityCache = I.gatherData(win._playerObj)
     end
@@ -1620,7 +1670,7 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     win._idTall, win._idSimple = tall, simple
     local traitCols = tall and 1 or 2
     local zoneAH = measureZoneA(data, tall, simple, win._identityPhotoExpanded, layoutW)
-    local zoneBH = measureZoneBH(data, traitCols)
+    local zoneBH = measureZoneBH(data, traitCols, layoutW)
     local totalContentH = zoneAH + zoneHH + zoneBH
 
     local scrollY = y + tabHeaderH
