@@ -43,7 +43,7 @@
 --   MP24 flyer pins: the pin at its place, the hover card, a visit within a second, the click and A open the reader
 --   MP25 the labels: line heights against the UI scale, Paper's names hidden, notes kept
 --   MP9  Show on map from the reader (mouse; pad A): known squares asked, the read, the landing, the pulse; B5 (Paper)
---   MP26 the key: pages, columns, close box (mouse; pad); on Color, Show survey
+--   MP26 the key: pages, the page inside the map (its columns a NOTE), close box (mouse; pad); on Color, Show survey
 --   MP27 zoom: the wheel to 24 and back, the trigger's step, the drawer's wheel
 --   MP28 pan: a drag, a release off the map, a drag under 4 units; the stick's cursor at the margins
 --   MP29 opening again: the drawer map kept, the unfolded one on him at 18
@@ -545,11 +545,15 @@ function H.freeSpot(i)
     local row = math.floor(k / cols)
     local x = math.floor(w * 0.2 + col * (w * 0.6 / cols))
     local y = math.floor(h * 0.3 + (row - math.floor(row / 4) * 4) * (h * 0.4 / 4))
-    for _ = 1, 12 do
+    for _ = 1, 24 do
         local clear = true
         for _, s in ipairs(H.userSyms()) do
             local sx, sy = H.symUI(s)
-            if sx and math.abs(sx - x) < H.px(30) and math.abs(sy - y) < H.px(30) then clear = false end
+            -- (a note's words reach well to each side of its anchor: the engine's hit test takes the whole line)
+            local isText = false
+            pcall(function() isText = s:isText() and true or false end)
+            local reach = isText and H.px(160) or H.px(30)
+            if sx and math.abs(sx - x) < reach and math.abs(sy - y) < H.px(30) then clear = false end
         end
         if clear then return x, y end
         x = x + H.px(37)
@@ -694,6 +698,12 @@ function H.frameTick()
         S.frame = S.frame + 1
         S.texts, S.tNow = S.tNow, {}
         S.btns, S.bNow = S.bNow, {}
+        -- (MP17: the frames the map is off the screen, counted every frame from the press, the pad's included)
+        local hw = S.hidWatch
+        if hw then
+            local mp = H.mp()
+            if mp and mp.isVisible and not mp:isVisible() then hw.n = hw.n + 1 end
+        end
         if S.holdOn then H.hold(RT.ww()); H.hold(RT.cw()) end
         local w = RT.ww()
         if w then
@@ -1071,6 +1081,7 @@ function H.legClean()
     H.radialShut()
     H.gameMapShut()
     S.drawRec = nil
+    S.hidWatch = nil
     H.tabBaseline()
     for _, it in ipairs(S.caseMade) do H.removeItem(it) end
     S.caseMade = {}
@@ -1414,8 +1425,12 @@ function C.mp5()
     H.step(4, function()
         local m = nil
         pcall(function() m = getPlayerRadialMenu(S.pn) end)
-        Q.check(not H.vis(m) and H.pop() == nil and H.qcount("ISReadWorldMap") == 0, T.L .. ": letting go shuts the radial and opens nothing",
-            "radial up " .. tostring(H.vis(m)) .. "; " .. H.tabState())
+        -- the game's own rule (ISWorldMap.onKeyReleased): the radial stays up only with its "radial menu key toggles" option
+        local toggles = false
+        pcall(function() toggles = getCore():getOptionRadialMenuKeyToggle() and true or false end)
+        Q.check(H.vis(m) == toggles and H.pop() == nil and H.qcount("ISReadWorldMap") == 0, T.L .. ": letting go leaves the radial as the game's key handler does (shut, or up with the toggle option) and opens nothing",
+            "radial up " .. tostring(H.vis(m)) .. ", the game's radial key toggle option " .. tostring(toggles) .. "; unfolded " .. tostring(H.pop() ~= nil) .. ", queued " .. H.qkinds())
+        H.radialShut()
     end)
     H.caseEnd(T.L)
 end
@@ -1585,6 +1600,9 @@ function C.styleQ(T, st, by)
         s.cx, s.cy = H.cxy()
         s.z = H.zoom()
         s.go = true
+        -- (the frames off the screen are counted every frame from here, the pad's tap frames included: H.frameTick)
+        s.watch = { n = 0 }
+        S.hidWatch = s.watch
         if by == "mouse" then
             if not H.click("map:style:" .. st, L) then s.go = nil; Q.check(false, L .. ": the band's " .. st .. " radio is drawn", H.list(H.zoneIds(), 30)) end
         else
@@ -1595,26 +1613,31 @@ function C.styleQ(T, st, by)
     if by == "pad" then H.tapA(function() return s.go and s.f end) end
     H.wait(4000, function()
         if not s.go then return true end
-        if not H.vis(H.mp()) then s.hid = s.hid + 1 end
-        return H.style() == st and H.mapUp() and s.hid > 0
+        return H.style() == st and H.mapUp() and s.watch.n > 0
     end, function(ok)
         H.padOff()
+        S.hidWatch = nil
         if not s.go then return end
+        s.hid = s.watch.n
         local a = H.api()
-        local pyr, imgs, data = nil, nil, nil
+        local pyr, imgs, data, water = nil, nil, nil, nil
         pcall(function() pyr = a:getBoolean("ImagePyramid") end)
         pcall(function() imgs = a:getImagesCount() end)
         pcall(function() data = a:getDataCount() end)
+        pcall(function() water = a:getStyleAPI():getLayerByName("water") end)
         local cx, cy = H.cxy()
         local z = H.zoom()
         Q.check(ok and H.md().ZeD_MapStyle == st, L .. ": the map takes the style and his modData keeps it", "map " .. tostring(H.style()) .. ", modData " .. tostring(H.md().ZeD_MapStyle))
         Q.check(s.hid >= 3, L .. ": the map is off the screen three frames before the restyle (the render thread's guard)", s.hid .. " frames off")
         Q.check(cx ~= nil and s.cx ~= nil and math.abs(cx - s.cx) <= 1 and math.abs(cy - s.cy) <= 1, L .. ": the center is kept", H.n1(s.cx) .. "," .. H.n1(s.cy) .. " -> " .. H.n1(cx) .. "," .. H.n1(cy))
         if st == "paper" then Q.check(z ~= nil and z <= 16.01, L .. ": Paper's zoom is at most 16", H.n2(s.z) .. " -> " .. H.n2(z)) end
-        local wantPyr = st ~= "survey"
-        Q.check(pyr == wantPyr and ((st == "survey" and (data or 0) > 0) or (st ~= "survey" and (imgs or 0) > 0)),
-            L .. ": the engine draws the style's own ground (Survey the map's data; Color and Paper a picture: ImagePyramid)",
-            "ImagePyramid " .. tostring(pyr) .. ", pictures " .. tostring(imgs) .. ", data " .. tostring(data))
+        -- Survey: the map's data drawn in the game's style layers (its forest picture is a pyramid too, so ImagePyramid
+        -- is on there as on the game's map); Color and Paper: a picture with no polygon layers (MapsTab initColor, initPaper)
+        local good
+        if st == "survey" then good = (data or 0) > 0 and water ~= nil
+        else good = pyr == true and (imgs or 0) > 0 and water == nil end
+        Q.check(good, L .. ": the engine draws the style's own ground (Survey the map's data in the game's style layers; Color and Paper a picture with no style layers)",
+            "ImagePyramid " .. tostring(pyr) .. ", pictures " .. tostring(imgs) .. ", data " .. tostring(data) .. ", the water layer " .. tostring(water ~= nil))
     end)
 end
 function C.mp17()
@@ -1916,14 +1939,19 @@ function C.mp22()
     -- B4: a place far from where he has been, at zoom 15
     H.step(2, function()
         if T.off then return end
-        local far, fd = nil, -1
+        -- the farthest place with a picture on ground the game calls neither known nor visited (the farthest at all when
+        -- none reads so: then the check says what it found)
+        local far, fd, unseen, ud = nil, -1, nil, -1
         local hx, hy = S.p:getX(), S.p:getY()
         for _, p in ipairs((ZeD.MapsSurveyData or {}).places or {}) do
             if ZeD.MapsSurvey.PLACE_ICON[p.kind] then
                 local d = (p.x - hx) * (p.x - hx) + (p.y - hy) * (p.y - hy)
                 if d > fd then far, fd = p, d end
+                local k, v = H.knownAt(p.x, p.y)
+                if k == false and v == false and d > ud then unseen, ud = p, d end
             end
         end
+        if unseen then far = unseen end
         T.far = far
         if not far then T.off = true; Q.skip(T.L .. " (B4)", "Survey's data has no place with a picture"); return end
         pcall(function() H.api():centerOn(far.x, far.y) end)
@@ -2277,11 +2305,19 @@ function C.mp26()
         local w = RT.ww()
         Q.check(w._mapKeyOpen == true and H.zone("map:key:page:colors") ~= nil and H.zone("map:key:page:symbols") ~= nil and H.zone("map:key:close") ~= nil,
             T.L .. ": Key on the band opens Survey's key with its two pages and its close box", "open " .. tostring(w._mapKeyOpen) .. "; " .. H.list(H.zoneIds(), 30))
+        -- the columns follow the map's height, not the screen (MapsTabKey surveyBody: two, a third only when two run
+        -- taller than the map): the check is that the key's panel stays inside the map; the columns are a NOTE
         local cols = H.keyCols()
-        local sw, sh = H.screen()
-        local want = ((sw == 3840 and sh == 2160) or (sw == 1280 and sh == 800)) and 3 or ((sw == 1920 and sh == 1080) and 2 or nil)
-        if want then Q.check(cols == want, T.L .. ": the Colors page in " .. want .. " columns at " .. H.sizeTag(), cols .. " columns drawn")
-        else H.note(T.L .. ": the Colors page in " .. cols .. " columns at " .. H.sizeTag() .. " (the map asks 2 at 1080p, 3 at 4K and on the Deck)") end
+        local pz = H.zone("map:key:panel")
+        local mp = H.mp()
+        local inside, rect = false, "?"
+        pcall(function()
+            local mx, my, mw, mh = mp:getX(), mp:getY(), mp:getWidth(), mp:getHeight()
+            inside = pz ~= nil and pz.x >= mx - 1 and pz.y >= my - 1 and pz.x + pz.w <= mx + mw + 1 and pz.y + pz.h <= my + mh + 1
+            rect = "key " .. math.floor(pz.x) .. "," .. math.floor(pz.y) .. " " .. math.floor(pz.w) .. "x" .. math.floor(pz.h) .. " in the map " .. math.floor(mx) .. "," .. math.floor(my) .. " " .. math.floor(mw) .. "x" .. math.floor(mh)
+        end)
+        Q.check(inside, T.L .. ": the Colors page fits inside the map (its columns as many as the map's height asks)", rect .. "; " .. cols .. " columns drawn")
+        H.note(T.L .. ": the Colors page in " .. cols .. " columns at " .. H.sizeTag() .. " (a third column only when two would run taller than the map)")
         H.click("map:key:page:symbols", T.L)
     end)
     H.step(3, function()
@@ -2652,13 +2688,16 @@ function C.mp32()
         T.picked = RT.ww()._mapActiveColor
         H.kit({ Pencil = true })
     end)
-    H.step(4, function()
+    -- (ZeD reads the pens at most four times a second, MapsTab _mapInk's 250 ms cache: the read after 600 ms)
+    H.pause(600)
+    H.step(1, function()
         if T.off then return end
         Q.check(T.picked == 4 and RT.ww()._mapActiveColor == 1 and H.armed() == "house", T.L .. ": the red pen put away with the tool up: the ink moves to the next pen at hand (the pencil)",
             "picked " .. tostring(T.picked) .. ", now " .. tostring(RT.ww()._mapActiveColor) .. ", tool " .. tostring(H.armed()))
         H.kit({})
     end)
-    H.step(4, function()
+    H.pause(600)
+    H.step(1, function()
         if T.off then return end
         Q.check(H.armed() == nil, T.L .. ": the last pen put away: the tool goes down", "tool " .. tostring(H.armed()) .. ", the game's canWrite " .. tostring(H.gameCanWrite()))
     end)
@@ -2700,15 +2739,13 @@ function C.mp34()
         pcall(function() te:setText(fifty) end)
         local kept = ""
         pcall(function() kept = te:getText() end)
-        local maxN = nil
-        pcall(function() maxN = te:getMaxTextLength() end)
         local x, y = H.freeSpot(1)
         local n0 = H.marks()
         local s = H.placeAt(x, y)
         local words = nil
         pcall(function() words = s:getTranslatedText() end)
         Q.check(s ~= nil and H.marks() == n0 + 1 and words == kept, T.L .. ": a click puts the box's words on the map as one note", "note \"" .. tostring(words) .. "\", the box \"" .. tostring(kept) .. "\"")
-        H.note(T.L .. ": 50 characters handed to the box keep " .. string.len(kept) .. " (the box's limit " .. tostring(maxN) .. ", the game's note box 45: typing stops there; the run sets the words as one block)")
+        H.note(T.L .. ": 50 characters handed to the box keep " .. string.len(kept) .. " (ZeD's box takes the game's 45-character limit, setMaxTextLength; the run sets the words as one block)")
         pcall(function() te:setText("    ") end)
         local n1 = H.marks()
         local x2, y2 = H.freeSpot(2)
@@ -2853,7 +2890,16 @@ end
 function H.hitOurs(T)
     local s = nil
     pcall(function() s = S.N.hitAt(H.mp(), T.sx, T.sy, H.px(16)) end)
-    return s ~= nil and s == T.sym and not S.found.symSet[s], s
+    return H.sameMark(s, T.sym), s
+end
+-- the same mark seen through two of the game's symbol lists (the map's own and the store's give each their own
+-- wrapper of one symbol): what it is, where, its color; and none of his found at the start looks like it
+function H.sameMark(s, ours)
+    if not (s and ours) then return false end
+    local a = H.sig(s)
+    if a ~= H.sig(ours) or a == "?" then return false end
+    for _, g in ipairs(S.found.sigs or {}) do if g == a then return false end end
+    return true
 end
 -- queue: a right-click on the run's mark (its menu up: T.menu)
 function H.menuQ(T)
@@ -3020,9 +3066,10 @@ function C.mp40()
         local hit = nil
         pcall(function() hit = S.N.hitAt(H.mp(), x + H.px(5), y, H.px(16)) end)
         T.c0 = H.ctxSince(0)
-        if hit and (hit == T.a or hit == T.b) then H.mapRight(x + H.px(5), y) end
-        Q.check(hit ~= nil and (hit == T.a or hit == T.b) and H.ctxSince(0) > T.c0, T.L .. ": a right-click between two marks 10 px apart opens the menu for one of them",
-            "the engine's hit or the nearest within 16 px: " .. (hit == T.a and "the left one" or (hit == T.b and "the right one" or tostring(hit and H.sig(hit)))))
+        local isA, isB = H.sameMark(hit, T.a), H.sameMark(hit, T.b)
+        if isA or isB then H.mapRight(x + H.px(5), y) end
+        Q.check((isA or isB) and H.ctxSince(0) > T.c0, T.L .. ": a right-click between two marks 10 px apart opens the menu for one of them",
+            "the engine's hit or the nearest within 16 px: " .. (isA and "the left one" or (isB and "the right one" or tostring(hit and H.sig(hit)))))
         H.ctxShut()
     end)
     -- a town's name (one of the map's own labels) never opens the menu
@@ -3446,7 +3493,7 @@ end
 function C.mp53leg(T, where)
     local L = T.L .. " (" .. where .. ")"
     H.step(2, function()
-        T.leg = nil
+        T.leg, T.staged = nil, nil
         if T.off then return end
         H.legClean()
         H.qstop()
@@ -3464,9 +3511,19 @@ function C.mp53leg(T, where)
             local sq = S.p:getCurrentSquare()
             pcall(function() H.inv():Remove(T.it) end)
             pcall(function() sq:AddWorldInventoryItem(T.it, 0.5, 0.5, 0) end)
+            -- (a map lying on the floor has a container only once the loot lists list the floor: as a player sees it)
+            pcall(function() local lp = getPlayerLoot(S.pn); if lp and lp.refreshBackpacks then lp:refreshBackpacks() end end)
+            pcall(function() triggerEvent("OnContainerUpdate") end)
+            pcall(function() local w = RT.ww(); if w then w._containersDirty = true end end)
         end
+        T.staged = true
+    end)
+    H.wait(2500, function() return T.off or not T.staged or H.where(T.it) ~= nil end, function(ok)
+        if T.off or not T.staged then return end
+        T.staged = nil
+        if not ok then Q.skip(L, "the map on the floor has no container the game's transfer can take it from (item:getContainer() nil after the loot lists refreshed)"); return end
         local must = false
-        pcall(function() must = luautils.haveToBeTransfered(S.p, T.it) and true or false end)
+        pcall(function() must = luautils.haveToBeTransfered(S.p, T.it, true) and true or false end)
         T.must = must
         T.leg = true
         H.readMap(T.it)
@@ -4136,6 +4193,7 @@ function C.b13()
     end)
     H.wait(4000, function() return #RT.tabs(RT.worldStrip()) > 0 end, function() end)
     H.step(2, function()
+        S.eB13 = H.errN()
         S.uwm = UIWorldMap
         UIWorldMap = { new = function() error("zedqa: the map build fails here (staged)") end }
         RT.worldTab("maps")
@@ -4143,6 +4201,11 @@ function C.b13()
     H.wait(3000, function() local w = RT.ww(); return w ~= nil and (w._worldMapFailed == true or w._worldMapPanel ~= nil) end, function(ok)
         if S.uwm then UIWorldMap = S.uwm; S.uwm = nil end
         if not ok then H.note(T.L .. ": the tab did not try to build its map in 3 s (the drawer not drawn)") end
+        -- (the staged throw is caught by the tab's own pcall, and the game logs each caught throw: those are the run's,
+        -- not the tab's, so the case's error count starts after them)
+        local e = H.errN()
+        if e and S.e0 then H.note(T.L .. ": " .. (e - S.e0) .. " Lua errors logged by the staged build failure (excused)"); S.e0 = e end
+        if e and S.eB13 then S.excused = (S.excused or 0) + (e - S.eB13) end
     end)
     H.pause(1200)
     H.step(1, function()
@@ -4473,7 +4536,7 @@ function S.buildPutBack()
             "put back: he stands where he stood, on foot, nothing queued, game speed 1", string.format("%.1f,%.1f off", dx, dy) .. ", " .. H.qkinds())
         Q.check(S.errs == 0, "put back: nothing ZeD ran for this script threw", S.errs .. " caught" .. (S.zerr and (": " .. S.zerr) or ""))
         local e1 = H.errN()
-        if S.err0 and e1 then Q.check(e1 == S.err0, "the Maps tab run ran with no Lua error", (e1 - S.err0) .. " new")
+        if S.err0 and e1 then Q.check(e1 - (S.excused or 0) == S.err0, "the Maps tab run ran with no Lua error (B13's staged build failure excused)", (e1 - S.err0) .. " new, " .. tostring(S.excused or 0) .. " of them B13's staged throw")
         else Q.skip("the Maps tab run's Lua error count", "the game's Lua error count cannot be read here") end
     end)
     Q.step(10, function()
