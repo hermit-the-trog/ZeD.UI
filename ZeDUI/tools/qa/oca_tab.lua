@@ -2332,16 +2332,23 @@ function C.fa11()
         local read, missing, seen = H.langKeys({ "UI_ZeD_Farm_MoreAt", "UI_ZeD_Farm_ListAnd" })
         Q.check(read > 0 and #missing == 0, "FA11: UI_ZeD_Farm_MoreAt and UI_ZeD_Farm_ListAnd are in every language the mod ships (else the line under Farming 6 reads English)",
             read .. " UI.json files read (" .. H.list(seen, 20) .. "); missing in " .. H.list(missing, 20))
-        local by, coll = {}, {}
-        for _, k in ipairs(S.cropList or {}) do
-            local nm = H.cropName(k)
-            local three = string.sub(nm, 1, 3)
-            by[three] = by[three] or {}
-            by[three][#by[three] + 1] = nm
+        -- (fix/cards3, Nov 26 2026: each label is the shortest start of the crop's name, 3 letters or more, no other
+        -- crop's name shares; the check works that rule out from the game's names and finds any two labels alike)
+        local names, by, coll = {}, {}, {}
+        for _, k in ipairs(S.cropList or {}) do names[#names + 1] = H.cropName(k) end
+        for i, nm in ipairs(names) do
+            local lab = nm
+            for n = 3, string.len(nm) do
+                local pre, clash = string.sub(nm, 1, n), false
+                for j, other in ipairs(names) do if j ~= i and string.sub(other, 1, n) == pre then clash = true end end
+                if not clash then lab = pre; break end
+            end
+            by[lab] = by[lab] or {}
+            by[lab][#by[lab] + 1] = nm
         end
         for three, list in pairs(by) do if #list > 1 then coll[#coll + 1] = three .. " (" .. table.concat(list, ", ") .. ")" end end
         table.sort(coll)
-        Q.check(#coll == 0, "FA11: the garden's three-letter labels tell the crops apart in " .. H.lang(), #coll .. " collisions: " .. H.list(coll, 12))
+        Q.check(#coll == 0, "FA11: the garden's labels (the shortest unique start, 3 letters or more) tell the crops apart in " .. H.lang(), #coll .. " collisions: " .. H.list(coll, 12))
         H.note("FA11: the next-stage words and the crop names are lowercased into ZeD's lines (German nouns lose their capitals): this run is in " .. H.lang()
             .. (H.lang() == "DE" and "" or "; only a German run shows it"))
     end)
@@ -2899,8 +2906,10 @@ function C.hu3()
         local e1 = H.sum(H.eggsAll(T.h))
         local hr = 0
         pcall(function() hr = getGameTime():getWorldAgeHours() - T.hr0 end)
-        local shown = H.drew(H.tr("UI_ZeD_Hutch_Eggs", e1)) ~= nil
-        Q.check(shown, T.L .. ": the card counts the eggs the game holds after the run", e1 .. " eggs; drawn '" .. H.tr("UI_ZeD_Hutch_Eggs", e1) .. "' " .. tostring(shown))
+        -- (fix/cards3, Nov 26 2026: the egg count is the game's own IGUI_Hutch_EggsNb)
+        local word = getText("IGUI_Hutch_EggsNb", e1)
+        local shown = H.drew(word) ~= nil
+        Q.check(shown, T.L .. ": the card counts the eggs the game holds after the run", e1 .. " eggs; drawn '" .. word .. "' " .. tostring(shown))
         H.note("HU3: with only the card open for " .. H.n1(hr) .. " game hours: dirt " .. H.n1(T.d0) .. " -> " .. H.n1(d1) .. ", eggs " .. T.e0 .. " -> " .. e1
             .. "; the card never calls the game's reforceUpdate (present on this hutch: " .. tostring(T.reforce) .. "; the game's window calls it on every open, HUI:971-972). A hutch that stopped updating shows over days of play: not provable in one run")
     end)
@@ -3056,8 +3065,8 @@ end
 function C.hu7()
     local T = { L = "HU7 the words" }
     H.step(2, function()
-        local read, missing, seen = H.langKeys({ "UI_ZeD_Hutch_Birds", "UI_ZeD_Hutch_Eggs" })
-        Q.check(read > 0 and #missing == 0, "HU7: UI_ZeD_Hutch_Birds and UI_ZeD_Hutch_Eggs are in every language the mod ships (else the two heads read English)",
+        local read, missing, seen = H.langKeys({ "UI_ZeD_Hutch_Birds" })
+        Q.check(read > 0 and #missing == 0, "HU7: UI_ZeD_Hutch_Birds is in every language the mod ships (the egg count is the game's IGUI_Hutch_EggsNb since fix/cards3)",
             read .. " UI.json files read (" .. H.list(seen, 20) .. "); missing in " .. H.list(missing, 20))
         if not H.caseStart(T, "yard") then return end
         if not H.hutchHere(T) then return end
@@ -3068,7 +3077,7 @@ function C.hu7()
     H.pause(400)
     H.step(1, function()
         if T.off then return end
-        local one = H.tr("UI_ZeD_Hutch_Eggs", 1)
+        local one = getText("IGUI_Hutch_EggsNb", 1)
         Q.check(not H.drewLow("1 eggs"), T.L .. ": one egg reads in the singular", "the game holds " .. H.sum(H.eggsAll(T.h)) .. " egg; the card drew '" .. one .. "' " .. tostring(H.drew(one) ~= nil)
             .. " (" .. H.textsLike("egg", 4) .. ")")
     end)
