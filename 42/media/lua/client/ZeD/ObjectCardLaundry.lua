@@ -25,11 +25,12 @@
 -- and the water in the drum (fluid against capacity, 0..5), FILL (washer mode
 -- with no water), the clothes in the drum, the washer-dryer's WASH / DRY
 -- lamps. The game has no wash phases and its machine runs until it is turned
--- off: while it runs the first phase lamp (WASH, or DRY) is lit, the cycle dial
--- reads how far the clothes inside have come by the game's own numbers (the
--- dirtiest or bloodiest item for a wash, the wettest for a dry), and the drum
--- turns once in DRUM_MS of real time (it stops with the game paused).
--- Stopped: phase lamps dark, the dial at 0.
+-- off: while it runs the phase lamps step every PHASE_MIN game minutes as
+-- dressing (washer WASH, RINSE, SPIN; dryer DRY, COOL; the washer-dryer by its
+-- mode) and round again, the cycle dial reads how far the clothes inside have
+-- come by the game's own numbers (the dirtiest or bloodiest item for a wash,
+-- the wettest for a dry), and the drum turns once in DRUM_MS of real time (it
+-- stops with the game paused). Stopped: phase lamps dark, the dial at 0.
 -- Under the face: the water, what is inside, and the clothes' blood, dirt and
 -- wetness in the words of the game's clothing tooltip. The band at the foot
 -- says what stops it running (no power, no water), in vanilla's words.
@@ -38,7 +39,7 @@
 -- LD.useFace is the one switch between the face and vanilla's plain controls;
 -- a faces-or-simple-cards setting, when one comes, hangs there.
 -- The Simple form (ZeD setup's Devices row; ZeD.ObjectCardPlain in
--- ObjectCardPower.lua): running or stopped in large type; then the power switch, the washer-dryer's Wash | Dry keys, the
+-- ObjectCardPower.lua): running or stopped in large type, the lit phase beside it; then the power switch, the washer-dryer's Wash | Dry keys, the
 -- water, what is inside with the door's Open key, the clothes' blood, dirt and wetness, each the face's own zone
 -- (ldy:power, ldy:mode_wash, ldy:mode_dry, ldy:door) with the face's run and help.
 -- ============================================================================
@@ -59,9 +60,18 @@ ZeD.ObjectCardLaundry = ZeD.ObjectCardLaundry or {}
 local LD = ZeD.ObjectCardLaundry
 
 LD.DRUM_MS   = 2000   -- real ms for one turn of the drum
--- (the plate's phase lamps. The clock used to step WASH, RINSE, SPIN every 5 game minutes and round again, a cycle
--- the game hasn't got: its machine runs until it is turned off, so a player waited for SPIN to end forever. Now only
--- the first lamp of the mode shows while it runs. QA LA2, Nov 26 2026)
+-- The plate's phase lamps step WASH, RINSE, SPIN (DRY, COOL) every PHASE_MIN game minutes and round again. The game
+-- has no such cycle (its machine runs until it is turned off: QA LA2), so they are dressing only, a machine that
+-- looks busy; what the clothes are comes from the rows under the face in the game's words, and the big word stays
+-- Running or Stopped. (QA LA2 took them out; the director brought them back as dressing: the director's call lamps,
+-- Nov 26 2026)
+LD.PHASE_MIN = 5      -- game minutes a phase lamp stays lit (12.5 s of real time at the default day length)
+LD.PHASES = {
+    washer = { "phWash", "phRinse", "phSpin" },
+    dryer  = { "phDry", "phCool" },
+}
+-- when each running machine was first seen running, by its card key: { min, mode } (the lamps' steps start there)
+LD._run = LD._run or {}
 local ALL_PHASES = { "phWash", "phRinse", "phSpin", "phDry", "phCool" }
 
 --- The plate id for this object ("washer", "dryer", "washer_dryer"), or nil when it is not a laundry machine.
@@ -95,7 +105,13 @@ local function nameOf(obj)
     return call(obj, "getName") or "?"
 end
 
-local def = { id = "laundry" }
+local function gameMinutes()
+    local gt = getGameTime and getGameTime()
+    return gt and (gt:getWorldAgeHours() * 60) or 0
+end
+
+-- halfOk: its body is laid out for the half card, so it gives way to it where the window is held in (OC4)
+local def = { id = "laundry", halfOk = true }
 
 function def.resolve(player, obj)
     local pid = LD.plateId(obj)
@@ -343,13 +359,28 @@ function def.onClose(t, card)
     end, 1)
 end
 
--- the running part of the face: the mode's first lamp and the load's progress on the dial (QA LA2), the drum by real time
+-- the running part of the face: the phase lamps stepping by game minutes (dressing), the load's progress on the dial
+-- (the game's numbers, QA LA2), the drum by real time. st.phase: the lamp lit, for the Simple form.
 local function clockState(t, d, st)
-    if d.on then
-        st[d.washMode and "phWash" or "phDry"] = true
-        st.cycleF = loadDone(d)
-    else
+    local key = t.key
+    if not d.on then
+        LD._run[key] = nil
         st.cycleF = 0
+        st.phase = nil
+    else
+        local mode = d.washMode and "washer" or "dryer"
+        local now = gameMinutes()
+        local run = LD._run[key]
+        if not run or run.mode ~= mode then run = { min = now, mode = mode }; LD._run[key] = run end
+        local list = LD.PHASES[mode]
+        local cycle = LD.PHASE_MIN * #list
+        local pos = math.max(0, now - run.min) % cycle
+        local i = math.min(#list, math.floor(pos / LD.PHASE_MIN) + 1)
+        st[list[i]] = true
+        st.phase = list[i]
+        -- (the dial keeps the clothes' real progress: a dial going round with the lamps would say the load is done
+        -- at every SPIN)
+        st.cycleF = loadDone(d)
     end
     -- the drum: a turn in DRUM_MS while it runs, still with the game paused or the machine off
     local ms = getTimestampMs()
@@ -716,6 +747,8 @@ ZeD.trDefaults({
     UI_ZeD_PlainCard_Dry = "Dry",
     UI_ZeD_PlainCard_Cool = "Cool",
 })
+local PHASE_KEY = { phWash = "UI_ZeD_PlainCard_Wash", phRinse = "UI_ZeD_PlainCard_Rinse", phSpin = "UI_ZeD_PlainCard_Spin",
+    phDry = "UI_ZeD_PlainCard_Dry", phCool = "UI_ZeD_PlainCard_Cool" }
 
 -- a face control as a plain control's zone: the face's run (nil = not now) and help, by its id
 local function plainRun(t, d, id)
@@ -726,7 +759,9 @@ end
 -- The Simple form: running or stopped in large type over the load's progress (the dial); then the power switch (the
 -- run lamp, NO POWER), the washer-dryer's mode keys (its WASH / DRY lamps), the water (the meter, FILL), what is
 -- inside and the door, and the clothes' blood, dirt and wetness. Same zones as the face, so the mouse, the controller
--- and the opening focus are unchanged. (The big word was the made-up phase, Rinse or Spin: QA LA2, Nov 26 2026)
+-- and the opening focus are unchanged. (The big word was the made-up phase, Rinse or Spin: QA LA2, Nov 26 2026. The
+-- lamps came back as dressing, so the lit phase stands small beside Running, never in its place, where it would say
+-- the load was rinsing while the rows say it is still dirty: the director's call lamps, Nov 26 2026)
 local function drawPlain(card, x, y, w, t)
     local T = ZeD.T
     local d = t.d
@@ -737,7 +772,8 @@ local function drawPlain(card, x, y, w, t)
     local y0 = y
     y = y + OP.readout(card, x, y, w, {
         cols = { { label = ZeD.tr("UI_ZeD_PlainCard_Cycle"), live = d.on,
-                   big = d.on and ZeD.tr("UI_ZeD_Power_PillRunning") or ZeD.tr("UI_ZeD_Plain_Stopped") } },
+                   big = d.on and ZeD.tr("UI_ZeD_Power_PillRunning") or ZeD.tr("UI_ZeD_Plain_Stopped"),
+                   unit = st.phase and ZeD.tr(PHASE_KEY[st.phase]) or nil } },
         bar = st.cycleF or 0, barLabel = ZeD.tr("UI_ZeD_PlainCard_Cycle"),
     })
     local run, help = plainRun(t, d, "power")

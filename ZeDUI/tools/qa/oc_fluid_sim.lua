@@ -10,7 +10,7 @@
 --   FL7  Transfer and Info on a world container 7 and 15 tiles off walk there and open the card at the end of the
 --        walk; within reach the card opens at once
 --   FL5  seated, an item's Liquid > Transfer and Show info reach the game's own window; on foot the card takes them
---   FL6  a well (the game's HiddenAmount) shows Unknown, no litres, no share and no lit segments; Max Pour hides
+--   FL6  a well (the game's HiddenAmount) shows Unknown, no litres, no share and no lit segments; the amount hides
 --        too when the hidden side sets it; a plain barrel still shows its amount
 --   PW9 / FI9  Info on a generator, a campfire or a barbecue 7 and 15 tiles off (Overrides/InfoCards.lua) walks
 --        there and opens the card at the walk's end; in reach at once; with no path the game's own Info runs
@@ -432,7 +432,9 @@ do
     local q = verb(tw, "empty") and verb(tw, "empty").confirm or ""
     check("FL6: Empty's question names no amount", q:find("6074", 1, true) == nil, q)
     -- the bottle sets the most a pour takes: that number is the bottle's, so it shows
-    check("FL6: the pour's Max Pour is the bottle's 1 L (it gives nothing away)", s:find("Max Pour 1.00 L", 1, true) ~= nil and not tw.d.maxHidden, s)
+    -- (the amount box between - and + took the Max Pour line's place: the director's call, fluid card side by side,
+    -- Nov 26 2026)
+    check("FL6: the pour's amount is the bottle's 1 L (it gives nothing away)", s:find("- / 1.00 L / +", 1, true) ~= nil and not tw.d.maxHidden, s)
 
     -- a nearly dry hidden source sets Max Pour itself: then the amount reads Unknown too
     local lowFC = hiddenFC("Well", 0.3, 10000)

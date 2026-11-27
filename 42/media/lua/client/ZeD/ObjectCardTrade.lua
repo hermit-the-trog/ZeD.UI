@@ -23,7 +23,8 @@ local OC = ZeD.ObjectCards
 local UI = OC.ui
 local TR = ZeD.Trade
 
-local def = { id = "trade", vehicleOk = true }
+-- halfOk: its body is laid out for the half card, so it gives way to it where the window is held in (OC4)
+local def = { id = "trade", vehicleOk = true, halfOk = true }
 
 function def.resolve(player, s)
     if not (s and s.other) then return nil end
