@@ -233,25 +233,68 @@ end
 -- PERK LOOKUP CACHE — maps display name → PerkFactory.Perk for pin data
 -- ============================================================================
 
-local _perkByName = nil
+-- A pin is kept by the perk's id ("Woodwork"), the same in every language; a name is only what the language shows.
+-- A pin saved before that was kept by its shown name, mostly the English one, so the English names that differ
+-- from their ids still find their perk (QA S15, Nov 27 2026)
+local EN_PERK = {
+    ["Carpentry"] = "Woodwork", ["Agriculture"] = "Farming", ["Running"] = "Sprinting", ["Survival"] = "Survivalist",
+    ["First Aid"] = "Doctor", ["Long Blunt"] = "Blunt", ["Short Blunt"] = "SmallBlunt", ["Long Blade"] = "LongBlade",
+    ["Short Blade"] = "SmallBlade", ["Electrical"] = "Electricity", ["Animal Care"] = "Husbandry",
+    ["Knapping"] = "FlintKnapping", ["Blacksmithing"] = "Blacksmith", ["Welding"] = "MetalWelding",
+    ["Smelting"] = "Melting", ["Lightfooted"] = "Lightfoot", ["Sneaking"] = "Sneak",
+}
+ZeD.SkillsTab._EN_PERK = EN_PERK   -- (the QA sims read it: ZeDUI/tools/qa/sk_fixes_sim.lua)
 
-local function getPerkByName(name)
-    if not _perkByName then
-        _perkByName = {}
-        for i = 0, PerkFactory.PerkList:size() - 1 do
-            local perk = PerkFactory.PerkList:get(i)
-            _perkByName[perk:getName()] = perk
-        end
+local _perkById, _perkByShown = nil, nil
+
+-- (built once the game's perk list is filled: a list asked for too early would stay empty)
+local function perkTables()
+    if _perkById then return true end
+    local n = 0
+    pcall(function() n = PerkFactory.PerkList:size() end)
+    if n <= 0 then return false end
+    local byId, byShown = {}, {}
+    for i = 0, n - 1 do
+        local perk = PerkFactory.PerkList:get(i)
+        byId[tostring(perk:getId())] = perk
+        byShown[perk:getName()] = perk
     end
-    return _perkByName[name]
+    _perkById, _perkByShown = byId, byShown
+    return true
 end
 
---- Returns live XP data for a pinned skill (called every frame from title bar).
-function ZeD.SkillsTab.getPinData(playerObj, perkName)
-    local perk = getPerkByName(perkName)
+-- the perk a pin's key names: its id first, then the name this language shows, then an old English name
+local function perkOf(key)
+    if key == nil or not perkTables() then return nil end
+    key = tostring(key)
+    local perk = _perkById[key] or _perkByShown[key]
+    if not perk and EN_PERK[key] then perk = _perkById[EN_PERK[key]] end
+    return perk
+end
+
+--- True once the game's perks can be looked up (ZeD_Pins waits for it before it drops a stale pin).
+function ZeD.SkillsTab.perksReady() return perkTables() end
+
+--- The perk id ("Woodwork") a skill pin's key names (an id, a shown name or an old English name), or nil.
+function ZeD.SkillsTab.perkIdOf(key)
+    local perk = perkOf(key)
+    return perk and tostring(perk:getId()) or nil
+end
+
+--- The name the language shows for a skill pin's key, or nil.
+function ZeD.SkillsTab.shownName(key)
+    local perk = perkOf(key)
+    return perk and perk:getName() or nil
+end
+
+--- Returns live XP data for a pinned skill (called every frame from title bar). key: the perk's id, or a shown name.
+function ZeD.SkillsTab.getPinData(playerObj, key)
+    local perk = perkOf(key)
     if not perk then return nil end
     local perkType = perk:getType()
     if perkType == Perks.None then return nil end
+    -- (the name is the one this language shows, found at draw: the pin keeps only the id)
+    local perkName = perk:getName()
     local level = playerObj:getPerkLevel(perkType)
     if level >= 10 then
         return { name = perkName, level = 10, xpInLevel = 0, xpForLevel = 0, xpPct = 1.0 }
@@ -380,10 +423,16 @@ local function buildTMCatalog()
                 if not _tmCatalog[skillTrained] then
                     _tmCatalog[skillTrained] = { label = skillTrained, items = {} }
                 end
+                -- (lvl orders the volumes; maxLvl is the game's known-by-level rule, ISLiteratureUI.lua:91)
+                local lvl, maxLvl = 0, 99
+                pcall(function() lvl = item:getLevelSkillTrained() or 0 end)
+                pcall(function() maxLvl = item:getMaxLevelTrained() or 99 end)
                 _tmCatalog[skillTrained].items[#_tmCatalog[skillTrained].items + 1] = {
                     title    = item:getDisplayName(),
                     fullName = item:getFullName(),
                     numPages = item:getNumberOfPages() or 0,
+                    lvl      = lvl,
+                    maxLvl   = maxLvl,
                 }
             end
         end
@@ -393,23 +442,30 @@ local function buildTMCatalog()
     local volNumerals = { "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X" }
     local list = {}
     for _, v in pairs(_tmCatalog) do
-        table.sort(v.items, function(a, b) return a.title < b.title end)
+        -- (volumes in the order of the level each book starts training at, as the game reads them: by title the
+        -- numbers followed the alphabet) (QA S25, Nov 27 2026)
+        table.sort(v.items, function(a, b)
+            if a.lvl ~= b.lvl then return a.lvl < b.lvl end
+            return a.title < b.title
+        end)
+        -- the names a title may begin with: the one this language shows for the skill, then its id
+        local heads = { ZeD.SkillsTab.perkName(v.label), v.label }
         for i, entry in ipairs(v.items) do
             entry.volume = volNumerals[i] or tostring(i)
             -- Strip skill name prefix + any roman numeral/number + colon/dash
             -- e.g. "Trapping III: Expert Trapping" → "Expert Trapping"
             -- e.g. "Cooking for Beginners" with skill "Cooking" → "for Beginners"
             local clean = entry.title
-            local label = v.label
-            -- Try stripping "SkillName I:" / "SkillName II:" etc pattern first
-            local stripped = clean:match("^" .. label .. "%s+[IVXLC]+[:%s%-]+%s*(.*)")
-            if not stripped then
-                -- Try "SkillName:" pattern
-                stripped = clean:match("^" .. label .. "[:%s%-]+%s*(.*)")
-            end
-            if not stripped then
-                -- Else strip the skill name prefix alone
-                stripped = clean:match("^" .. label .. "%s+(.*)")
+            -- (a title's own head, "<name> <numeral>:", whatever name it starts with: the skill's id is not what the
+            -- title says, "Agriculture I:" for Farming, so 40 titles kept their numeral before the Vol.) (QA S25,
+            -- Nov 27 2026)
+            local stripped = clean:match("^[^:]-%s+[IVXLC]+%s*:%s*(.+)$")
+            for _, hd in ipairs(heads) do
+                if stripped then break end
+                if hd and hd ~= "" then
+                    local esc = (string.gsub(hd, "(%W)", "%%%1"))
+                    stripped = clean:match("^" .. esc .. "[:%s%-]+%s*(.+)$") or clean:match("^" .. esc .. "%s+(.+)$")
+                end
             end
             if stripped and stripped ~= "" then
                 -- Capitalize first letter
@@ -468,10 +524,19 @@ function ZeD.SkillsTab.gatherTrainingData(playerObj)
         end
     end
 
+    -- (the sandbox's MetaKnowledge read as the game's Literature list reads it: at 3 a book not known is left out
+    -- of the list, ISLiteratureUI.lua:78, 124) (QA S24, Nov 27 2026)
+    local hideUnknown = false
+    pcall(function() hideUnknown = getSandboxOptions():getOptionByName("MetaKnowledge"):getValue() == 3 end)
+
     -- Evaluate status per book
     local groups = {}
     for _, catGroup in ipairs(catalog) do
         local books = {}
+        -- (the skill's level: the game counts a book known once its last level is at most one past it, read or
+        -- not, ISLiteratureUI.lua:91; Carpentry 10 showed its five books as not found) (QA S23, Nov 27 2026)
+        local skLvl = -1
+        pcall(function() skLvl = playerObj:getPerkLevel(SkillBook[catGroup.label].perk) or -1 end)
         for _, entry in ipairs(catGroup.items) do
             local status = "missing"
             local numPages = entry.numPages
@@ -481,25 +546,32 @@ function ZeD.SkillsTab.gatherTrainingData(playerObj)
                 status = "read"
             elseif playerObj:getAlreadyReadBook():contains(entry.fullName) then
                 status = "read"
+            elseif skLvl >= 0 and (entry.maxLvl or 99) <= skLvl + 1 then
+                status = "read"
             elseif readPages > 0 then
                 status = "reading"
             elseif inventoryHas[entry.fullName] then
                 status = "collected"
             end
 
-            books[#books + 1] = {
-                title      = entry.shortTitle or entry.title,
-                volume     = entry.volume or nil,
-                status     = status,
+            if status == "read" or not hideUnknown then
+                books[#books + 1] = {
+                    title      = entry.shortTitle or entry.title,
+                    volume     = entry.volume or nil,
+                    status     = status,
+                }
+            end
+        end
+        -- (a skill with no book the game would list has no row)
+        if #books > 0 then
+            local disp = ZeD.SkillsTab.perkName(catGroup.label)
+            groups[#groups + 1] = {
+                label = catGroup.label,                                   -- the skill id: expand keys
+                disp  = disp,                                             -- what the row shows
+                sortKey = string.lower(disp),                             -- (its place in the list)
+                items = books,
             }
         end
-        local disp = ZeD.SkillsTab.perkName(catGroup.label)
-        groups[#groups + 1] = {
-            label = catGroup.label,                                   -- the skill id: expand keys
-            disp  = disp,                                             -- what the row shows
-            sortKey = string.lower(disp),                             -- (its place in the list)
-            items = books,
-        }
     end
     table.sort(groups, byShownName)
 
