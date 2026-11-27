@@ -2172,8 +2172,15 @@ function H.waterRows()
 end
 function H.rowHas(r, s) for _, w in ipairs((r and r.words) or {}) do if H.has(H.low(w), H.low(s)) then return true end end; return false end
 -- (a long name is cut short with dots at a narrow card: its first six letters are enough to tell these apart)
-function H.rowNamed(r, it) return H.rowHas(r, string.sub(H.nm(it), 1, 6)) end
-function H.rowOf(it) for _, r in ipairs(H.waterRows()) do if H.rowNamed(r, it) then return r.i end end; return nil end
+-- (a water row is told by its litres: the card names a bottle by its fluid, "Water (Plastic Bottle)", not its
+-- item name; the two staged containers hold different amounts. Was H.rowOf, which clashed with the text-row helper)
+function H.rowNamed(r, it)
+    local l = nil
+    pcall(function() l = it:getFluidContainer():getAmount() end)
+    if l and H.rowHas(r, string.format("%.1f L", l)) then return true end
+    return H.rowHas(r, string.sub(H.nm(it), 1, 6))
+end
+function H.waterRowOf(it) for _, r in ipairs(H.waterRows()) do if H.rowNamed(r, it) then return r.i end end; return nil end
 function H.waterEv(T)
     return H.nm(T.small) .. " " .. H.n2(T.s0) .. " -> " .. H.n2(H.amount(T.small)) .. " L, " .. H.nm(T.big) .. " " .. H.n2(T.b0) .. " -> " .. H.n2(H.amount(T.big))
         .. " L; the plot's water " .. H.n1(T.w0) .. " -> " .. H.n1(H.pf(T.sq, "waterLvl")) .. "; Water lit " .. tostring(T.lit)
@@ -2225,7 +2232,7 @@ function C.fa8(how)
         if #rows ~= #set then bad[#bad + 1] = #rows .. " rows drawn for the game's " .. #set .. " sources" end
         Q.check(#set >= 2 and #bad == 0, T.L .. ": Water from lists each of his water containers, biggest first, each with its litres, its +N and Use (the game's set: ISFarmingMenu.doFarmingMenu2 324-335)",
             "the game's, biggest first: " .. H.list(seen, 6) .. "; the plot's water " .. H.n1(H.pf(T.sq, "waterLvl")) .. "; " .. H.list(bad, 6))
-        T.smallRow = H.rowOf(T.small)
+        T.smallRow = H.waterRowOf(T.small)
         T.lit = H.lit("oc:verb:water")
         if not T.smallRow then T.off = true; Q.check(false, T.L .. ": the smaller container (" .. H.nm(T.small) .. ") has a Water-from row", H.list(H.zonesLike("farm:water:"), 6)); return end
         if how == "mouse" then H.click("farm:water:" .. T.smallRow, T.L .. " Use") end
