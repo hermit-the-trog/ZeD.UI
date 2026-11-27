@@ -6590,6 +6590,8 @@ end
 --- view). The controller lands on the card. Returns true when it is up.
 function ZeD_WorldWindow.openObjectCard(playerNum, entry)
     if not entry then return false end
+    -- (QA TK3 hunt, Nov 26 2026: the track card closed on B and was up again 400 ms later; each open says so)
+    print("[ZeD] WorldWindow: object card open (" .. tostring(entry.def and entry.def.id) .. (entry.back and ", from a card" or "") .. ")")
     if not ZeD.windowsFor(playerNum) then return false end   -- (split-screen: the game's own, ZeD.windowsFor)
     if not _worldWins[playerNum or 0] then
         local ok = pcall(ZeD_WorldWindow.open, playerNum or 0)

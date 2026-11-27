@@ -109,6 +109,8 @@ ZeD.PhysPx = { plates = { washer = plate(233, 214), washer_n = plate(130, 190), 
 ZeD.ObjectCards = { ui = {}, call = noop, register = noop, spriteIcon = noop, faceZone = noop }
 ZeD.Plate = { centre = function(aw, w, k) return math.floor((aw - w * k) / 2) end }
 ZeD.ObjectCardPlain = { on = function() return false end }
+-- (the card defines its door's walk-then-open action at load, as ObjectCards.lua does: QA LA4, Nov 26 2026)
+ISBaseTimedAction = ISBaseTimedAction or { derive = function(self, name) return { Type = name } end }
 ok, err = loadFile(CLIENT .. "ZeD_PixelParts.lua")
 check("LAUNDRY ZeD_PixelParts.lua loads", ok, err)
 ok, err = loadFile(CLIENT .. "ObjectCardLaundry.lua")
