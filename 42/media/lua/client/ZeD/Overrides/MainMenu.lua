@@ -123,6 +123,12 @@ local function handBack()
     -- the desk goes, and with MM.root gone the screens ZeD redirects (New Game, Load,
     -- Mods, ...) show as vanilla's again, and a game start skips the switch-off
     if MM.root then
+        -- NG23, NG62 (Nov 27 2026): vanilla's map panel and 3D figure go back to vanilla's screens first, with their
+        -- own handlers, or the screens that now show would have no map (or one that will not pan) and no figure
+        for _, rv in ipairs(MM.views or {}) do
+            local win = rv.field and MM.root[rv.field]
+            if win and win.returnParts then pcall(win.returnParts, win) end
+        end
         MM._zedSafeRoot = MM.root
         MM.root:setVisible(false)
         MM.root = nil

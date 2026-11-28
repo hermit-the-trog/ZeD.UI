@@ -45,8 +45,16 @@ local function signed(n)
 end
 
 -- a description's lines, plain (vanilla's tooltips use "\n" between facts)
+-- (kept per text, font and width: NG50's band height measures every row's description each frame)
+local helpMemo, helpMemoN = {}, 0
 local function helpLines(text, font, w)
+    local key = tostring(text or "") .. "|" .. tostring(font) .. "|" .. tostring(w)
+    local hit = helpMemo[key]
+    if hit then return hit end
+    if helpMemoN > 600 then helpMemo, helpMemoN = {}, 0 end
     local out = {}
+    helpMemo[key] = out
+    helpMemoN = helpMemoN + 1
     for line in (tostring(text or "") .. "\n"):gmatch("([^\n]*)\n") do
         local p = UI.plain(line)
         if p ~= "" then
@@ -64,7 +72,7 @@ function ZeD_MMTraits:new()
     o.noResetControl = true
     o.scroll = { 0, 0, 0 }
     o.jcol, o.jidx = 1, 1
-    o.confirm = false      -- false | "save" | "delete"
+    o.confirm = false      -- false | "save" | "replace" | "delete"
     return o
 end
 
@@ -183,10 +191,18 @@ function ZeD_MMTraits:loadBuild(i)
 end
 
 -- vanilla's saveBuildStep2 with the name from the band's field (its name rules)
-function ZeD_MMTraits:saveBuild()
+-- NG51 (Nov 27 2026): a name a build already has asks first (vanilla wrote over it with no question);
+-- replace = true is the question's yes, with the name held from the field
+function ZeD_MMTraits:saveBuild(replace)
     local p = prof()
-    local name = self.field:getText() or ""
+    local name = replace and (self._replaceName or "") or (self.field:getText() or "")
     if not p or not p:saveBuildValidate(name) then return end
+    if not replace and p:presetExists(name) then
+        self._replaceName = name
+        self:setConfirm("replace")
+        return
+    end
+    self._replaceName = nil
     p:saveBuildStep2({ internal = "OK", parent = { entry = { getText = function() return name end } } }, nil)
     self:setConfirm(false)
     MM.clickSound()
@@ -211,7 +227,7 @@ end
 
 -- The answer the controller lands on when a question opens: a question that
 -- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
-local SAFE_ANSWER = { delete = "confirm:no" }
+local SAFE_ANSWER = { delete = "confirm:no", replace = "confirm:no" }
 function ZeD_MMTraits:setConfirm(mode)
     if self.confirm == mode then return end
     -- (B on a question goes back to the stop it was asked from)
@@ -221,7 +237,16 @@ function ZeD_MMTraits:setConfirm(mode)
     if mode == "save" then
         local p = prof()
         local text = p and p.savedBuilds.options[p.savedBuilds.selected] or ""
-        if text == "" and p then text = p:getSelectedProf():getUIName() end
+        if text == "" and p then
+            -- NG51 (Nov 27 2026): as vanilla's saveBuildStep1, the occupation's name numbered past the builds that
+            -- have it ("Chef 1", "Chef 2")
+            text = p:getSelectedProf():getUIName()
+            if p:presetExists(text) then
+                local n = 1
+                while p:presetExists(text .. " " .. n) do n = n + 1 end
+                text = text .. " " .. n
+            end
+        end
         self.field:setText(tostring(text))
         self.field:setVisible(true)
         self.field:focus()
@@ -296,11 +321,15 @@ function ZeD_MMTraits:prerender()
     local pad = T.px(U.STACK_PAD)
     local stripH = MM.bandH()
     local stripY = h - self:footerHeight() - stripH
-    local helpH = T.px(HELP_H)
     local bodyY = tb + pad
+    local cols = self:columns()
+    -- NG50 (Nov 27 2026): the band grows to the longest description any row (or the occupation line) can show,
+    -- so a 5 to 7 line occupation reads whole; one height for every row, so the columns hold still under the pointer
+    -- (capped at half the room: the columns keep the rest and scroll as before)
+    local helpH = math.min(self:helpHeight(cols, w - pad * 2, pts), math.floor((stripY - pad - bodyY) / 2))
+    helpH = math.max(T.px(HELP_H), helpH)
     local colH = stripY - pad - helpH - pad - bodyY
     local inner = w - pad * 4
-    local cols = self:columns()
     self._cols = cols
     self._hover = nil
     local x = pad
@@ -453,6 +482,30 @@ function ZeD_MMTraits:drawRow(r, x, y, w, h, onFocus)
     end
 end
 
+-- the chosen occupation's line (the band with nothing under the pointer)
+local function profSummary()
+    local p = prof()
+    local it = p and p.listboxProf.items[p.listboxProf.selected or 0]
+    if it then return tostring(it.text) .. ": " .. tostring(it.tooltip or "") end
+    return nil
+end
+
+-- NG50 (Nov 27 2026): the band's height for the most lines any of its texts takes at this width
+function ZeD_MMTraits:helpHeight(cols, w, pts)
+    local T = ZeD.T
+    local f2 = T.fontF2
+    local lw = w - T.px(24)
+    local n = #helpLines(profSummary() or "", f2, lw)
+    if pts < 0 then n = math.max(n, #helpLines(getText("UI_charactercreation_needpoints"), f2, lw)) end
+    for c = 1, 3 do
+        for _, r in ipairs(cols[c] or {}) do
+            if r.help and r.help ~= "" then n = math.max(n, #helpLines(r.help, f2, lw)) end
+        end
+    end
+    -- (as drawHelp lays them: 7 above, each line its height plus 2, 4 below)
+    return T.px(7) + n * (MM.fontH(f2) + T.px(2)) + T.px(4)
+end
+
 -- the band: what the row under the pointer (or the controller) does
 function ZeD_MMTraits:drawHelp(x, y, w, h, pts)
     local T = ZeD.T
@@ -463,11 +516,7 @@ function ZeD_MMTraits:drawHelp(x, y, w, h, pts)
     local text = r and r.help or nil
     if (not text or text == "") and pts < 0 then text = getText("UI_charactercreation_needpoints") end
     -- nothing under the pointer: what the chosen occupation does
-    if not text or text == "" then
-        local p = prof()
-        local it = p and p.listboxProf.items[p.listboxProf.selected or 0]
-        if it then text = tostring(it.text) .. ": " .. tostring(it.tooltip or "") end
-    end
+    if not text or text == "" then text = profSummary() end
     if not text or text == "" then return end
     local f2, tc = T.fontF2, T.text
     local ly = y + T.px(7)
@@ -492,6 +541,17 @@ function ZeD_MMTraits:buildStrip(stripY, stripH, w, pts)
         for _, b in ipairs(self._specs) do if b.row == row then firstBtn = math.min(firstBtn, b.x) end end
         local fh = T.px(24)
         UI.styleEntry(self.field, fx, stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx), fh)
+    elseif self.confirm == "replace" then
+        -- NG51 (Nov 27 2026): Cancel goes back to the name with it still typed
+        local name = tostring(self._replaceName or "")
+        UI.stripSpecs(self, stripY, w, row, {}, {
+            { "confirm:no", getText("UI_btn_cancel"), function()
+                self:setConfirm("save")
+                self.field:setText(name)
+                if ZeD.selectDefault then ZeD.selectDefault(self.field) end
+            end },
+            { "confirm:yes", ZeD.tr("UI_ZeD_Traits_Replace"), function() self:saveBuild(true) end, "danger" } },
+            ZeD.tr("UI_ZeD_Traits_AskReplace", name))
     elseif self.confirm == "delete" then
         local p = prof()
         UI.stripSpecs(self, stripY, w, row, {}, {

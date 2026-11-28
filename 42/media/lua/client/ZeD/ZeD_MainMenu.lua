@@ -2937,6 +2937,8 @@ function MM.showView(view, joypadData)
     MM.deskAt, MM.deskBack = nil, nil   -- (a view put up takes the controller: off the menu bar and the icons)
     local w = MM.activeWindow()
     if was and was ~= w then MM.unfocusEntries(was) end
+    -- NG23, NG62 (Nov 27 2026): a window holding vanilla's parts (Spawn's map, Looks' figure) gives them back as it goes
+    if was and was ~= w and was.returnParts then pcall(was.returnParts, was) end
     -- (the Mods screen left: the Files tab's open file is shut, or it stays open for the whole session)
     if was ~= w and ZeD.ModFiles and ZeD.ModFiles.pause then ZeD.ModFiles.pause() end
     if w and w.onShow then w:onShow() end

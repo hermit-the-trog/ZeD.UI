@@ -353,7 +353,15 @@ end
 local function setTick(c, i, v)
     if tickDisabled(c, i) then return end
     c.selected[i] = v
-    if c.changeOptionMethod then c.changeOptionMethod(c.changeOptionTarget, i, v, c.changeOptionArg1, c.changeOptionArg2, c) end
+    -- NG34 (Nov 27 2026): B42's ISTickBox keeps its args in changeOptionArgs[1] and [2] (ISTickBox.lua:47, 317);
+    -- older builds kept changeOptionArg1 and 2. Read both, so the game's handler gets its option name either way.
+    local a = c.changeOptionArgs
+    local a1, a2 = c.changeOptionArg1, c.changeOptionArg2
+    if type(a) == "table" then
+        if a[1] ~= nil then a1 = a[1] end
+        if a[2] ~= nil then a2 = a[2] end
+    end
+    if c.changeOptionMethod then c.changeOptionMethod(c.changeOptionTarget, i, v, a1, a2, c) end
 end
 
 local function volumeMax(c) return (c.Type == "ISMegaVolumeControl") and 11 or 10 end
