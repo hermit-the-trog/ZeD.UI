@@ -26,4 +26,4 @@
 #   pwsh -File ZeDUI/tools/qa/zedqa_run.ps1 -Manifest ZeDUI/tools/qa/mz.txt -Mode windowed -Width 1280 -Height 800 -Report mz_deck
 zedqa_prelude.lua | pre | timeout=120
 rt_kit.lua | rtk | timeout=60
-mz_tab.lua | mz_tab | timeout=2400
+mz_tab.lua | mz_tab | timeout=2400 | expect=the map build fails here \(staged\)   # B13 stages a map build that throws
