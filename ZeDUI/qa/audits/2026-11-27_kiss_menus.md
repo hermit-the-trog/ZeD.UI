@@ -131,6 +131,11 @@ Folders and load order:
 ## Design calls for the director (asked Nov 27 2026)
 
 Option 1 is QA's pick in each.
+
+Hermit's picks (Nov 27 2026): "1 (1); 2 (2); 3 (1); 4 (2); 5 (1); 6 (2); 7 (1); 8 (1); 9 (1)".
+- To build: 1 the quit questions land the pad on Cancel; 3 B in the welcome goes back one step (Skip only its own button); 5 a chord pick counts as a change Discard undoes; 6 No mods says in its question that it turns ZeD-GUI off; 7 Homepage asks first; 8 leaving the load order page after a move asks "Keep the new order?"; 9 a new account may have an empty password.
+- No change: 2 the terms' Quit quits at once (the game's way); 4 Reset to defaults resets everything, as today.
+
 1. **DK13, the quit question on a pad:** the pad lands on Exit, so A then A quits. (1) land on Cancel, as the notepad, Documents and Mail questions do; (2) keep it on Exit.
 2. **DK48, the terms' Quit:** it quits at once, as the game's does, while every other quit on the desk asks. (1) ask, like the rest of the desk; (2) keep the game's way.
 3. **OP72, B in the welcome:** B (the pad's usual back) is Skip: every pick is thrown away and the setup is marked seen. (1) B goes back one step and Skip is only its own button; (2) keep B as Skip.
