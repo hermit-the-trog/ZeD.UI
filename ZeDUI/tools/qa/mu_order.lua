@@ -592,7 +592,18 @@ function X.pure()
         local mainKey = O.listKey(nil)
         local sk = O.listKey({ loadGameFolder = "ZeDQA_mu_none" })
         local nk = O.listKey({ isNewGame = true })
-        local vk = O.listKey({ isServerSettingsMods = true })
+        -- (a server's key reads the game's server settings screen's open settings, which the main menu has none of:
+        -- a stand-in screen for this one call, so listKey's pcall'd getName does not raise; put back at once)
+        local vk = nil
+        if ServerSettingsScreen then
+            local inst0 = ServerSettingsScreen.instance
+            ServerSettingsScreen.instance = { pageEdit = { settings = { getName = function() return "ZeDQA_mu_server" end } } }
+            pcall(function() vk = O.listKey({ isServerSettingsMods = true }) end)
+            ServerSettingsScreen.instance = inst0
+        else
+            vk = O.listKey({ isServerSettingsMods = true })
+        end
+        vk = tostring(vk)
         local e = O.entry(mainKey, true)
         local was = K.copy(e.first)
         e.first = e.first or {}
@@ -1748,7 +1759,16 @@ function X.maps()
             end
             return t
         end
-        if n == 0 then check(false, "MO55: the map order page lists the maps", "no map in the list"); return end
+        if n == 0 then
+            -- (the game's own map order reads the same model call, ModSelector.Model:getAllMapsInOrder, which builds
+            -- its groups with includeVanilla false: with no map mod on, the game's list is empty too, so an empty
+            -- page here is the staging, not ZeD's)
+            local game = -1
+            pcall(function() game = K.model():getAllMapsInOrder():size() end)
+            if game == 0 then skip("MO55: the map order page lists the maps and its pane", "no map mod is on in this run: the game's own map order list is empty too (getAllMapsInOrder, vanilla maps left out)")
+            else check(false, "MO55: the map order page lists the maps", "no map in the list, while the game's model lists " .. tostring(game)) end
+            return
+        end
         w.oSel = 1
         local a = look()
         local conf = {}

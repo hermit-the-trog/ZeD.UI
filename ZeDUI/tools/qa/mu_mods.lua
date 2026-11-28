@@ -409,7 +409,8 @@ end
 function X.revisit(label)
     after(200, function() if keep.noMods then return end; K.try(label .. ": the main window", function() MM.showView("main") end) end)
     after(250, function() if keep.noMods then return end; K.try(label .. ": Mods again", MM.openMods) end)
-    waitFor(function() return keep.noMods or (K.up() and #K.rows() > 0) end, 6000, function(met)
+    -- (QA, Nov 27 2026: MM10 writes an empty tab to ZeD_modsview.txt, so this visit may open on a tab with no rows)
+    waitFor(function() local w = K.W(); return keep.noMods or (K.up() and (#K.rows() > 0 or (w and w.filter ~= nil and w.filter ~= "all"))) end, 6000, function(met)
         if keep.noMods then return end
         if not met then keep.noMods = true; check(false, label .. ": the Mods window opens again", "view " .. tostring(MM.view)) end
     end)
@@ -778,6 +779,7 @@ function X.find()
         -- MM16: the picked mod hidden by Find stays picked
         local d = K.dev() or K.model().mods["ZeD_UI"]
         w.sel = d and d.modId or nil
+        keep.m16sel = w.sel
         w.find:setText("zzqqxxnothingmatches")
     end))
     after(300, M(function(w)
@@ -788,7 +790,14 @@ function X.find()
     end))
     X.revisit("MM15")
     after(200, M(function(w)
-        check((w.find:getInternalText() or "") == "" and w.sel == nil and not w.confirm, "MM15: Find is empty and nothing is picked on each visit", "Find \"" .. tostring(w.find:getInternalText()) .. "\"")
+        -- (onShow clears the pick, ZeD_MainMenuMods.lua:140; the list's first frame then picks its first entry itself,
+        -- :1414 and ZeD_MainMenuModsFolders.lua:405: so the pick is judged as "not the one left behind", unless that
+        -- one is the first entry anyway)
+        local rows = w:rows() or {}
+        local first = rows[1] and rows[1].modId or nil
+        local fresh = w.sel == nil or w.sel ~= keep.m16sel or w.sel == first
+        check((w.find:getInternalText() or "") == "" and fresh and not w.confirm, "MM15: Find is empty and the last visit's pick is gone on each visit (the list picks its first entry)",
+            "Find \"" .. tostring(w.find:getInternalText()) .. "\", picked " .. tostring(w.sel) .. " (left on " .. tostring(keep.m16sel) .. ", the first row " .. tostring(first) .. "), question " .. tostring(w.confirm))
         w.filter = "all"
         K.errCheck("MM14-MM16")
     end))

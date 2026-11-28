@@ -488,6 +488,9 @@ function X.ngChallenges()
         check(n == 60 and bottom <= band, "NG4: 60 challenges: every row of icons ends above the window's band (no scroll in the grid)",
             n .. " icons laid out, the last row ends at " .. math.floor(bottom) .. ", the band starts at " .. math.floor(band) .. ", window " .. math.floor(w.height)
             .. " high on " .. getCore():getScreenWidth() .. "x" .. getCore():getScreenHeight())
+        local fits = 0
+        for _, s in ipairs(w._specs or {}) do if tostring(s.id):sub(1, 5) == "icon:" and s.y + s.h <= band then fits = fits + 1 end end
+        note("NG4: the game has 4 challenges (one row); at this screen " .. fits .. " of the 60 end above the band, so a mod list past " .. fits .. " challenges runs over it")
         w._challengeItems = nil
         keep.fakeOn = nil
         w.sel = 1
@@ -1821,8 +1824,15 @@ function X.lkOutfits()
     after(250, NG("looks", function(w)
         local hits = 0
         local stub = function() hits = hits + 1 end
+        -- (what the window held as its own before, nil when Play is only its class's; the real Play is the class's)
+        local orig = rawget(w, "play")
+        local real = ZeD_MMLooks and ZeD_MMLooks.play
+        local function putBack()
+            rawset(w, "play", orig)
+            if rawget(w, "play") == stub or w.play == stub then rawset(w, "play", real) end
+        end
         rawset(w, "play", stub)
-        if rawget(w, "play") ~= stub then rawset(w, "play", nil); skip("NG64: Return and A on Play", "Play could not be swapped for a stub: not tried"); return end
+        if rawget(w, "play") ~= stub then putBack(); skip("NG64: Return and A on Play", "Play could not be swapped for a stub: not tried"); return end
         w._enterAt = nil
         pcall(function() w:setConfirm(false) end)
         local free = not (w.field:isFocused() or w.fore:isFocused() or w.sur:isFocused() or w.confirm)
@@ -1830,9 +1840,13 @@ function X.lkOutfits()
         local h1 = hits
         local sp = K.spec(w, "play")
         if sp and sp.fn and rawget(w, "play") == stub then pcall(sp.fn) end
-        rawset(w, "play", nil)
-        check(free and h1 == 1 and hits == 2 and rawget(w, "play") == nil, "NG64: Return on Looks (outside a field) and A on Play both press Play: every QA script keeps them away (Play stubbed here, never pressed)",
-            "Return " .. h1 .. ", A on Play " .. (hits - h1) .. ", the stub gone " .. tostring(rawget(w, "play") == nil))
+        putBack()
+        -- (judged on the two presses; the put-back only has to leave the real Play in place: the stub out of reach
+        -- both raw and through the class)
+        local restored = rawget(w, "play") ~= stub and w.play ~= stub and (real == nil or w.play == real)
+        check(free and h1 == 1 and hits == 2, "NG64: Return on Looks (outside a field) and A on Play both press Play: every QA script keeps them away (Play stubbed here, never pressed)",
+            "Return " .. h1 .. ", A on Play " .. (hits - h1) .. ", outside a field " .. tostring(free))
+        check(restored, "NG64: the real Play is back on Looks once the stub is taken out", "raw " .. tostring(rawget(w, "play") == stub and "stub" or rawget(w, "play")) .. ", the window's Play is the class's " .. tostring(w.play == real))
     end))
 end
 

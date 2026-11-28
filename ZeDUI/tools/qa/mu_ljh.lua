@@ -782,8 +782,16 @@ function X.loadFakes()
         local orig = getSaveInfo
         local okS = K.stub(_G, "getSaveInfo", function(k) if k == target then error("zedqa: this save's info throws") end; return orig(k) end)
         local okR, err = false, nil
+        -- (the stand-in throws on purpose; ZeD's readSaves catches it, and a -debug run counts a caught error too:
+        -- those are taken off the Lua error count, with a note below)
+        local e0 = K.errs()
         if okS then okR, err = pcall(function() w:readSaves() end) end
         K.unstub(_G, "getSaveInfo")
+        local e1 = K.errs()
+        if e0 and e1 and keep.errs and e1 > e0 then
+            keep.errs = keep.errs + (e1 - e0)
+            note("LJ6: the stand-in's own " .. (e1 - e0) .. " thrown error(s) (\"zedqa: this save's info throws\", caught by ZeD) are left out of the Lua error count")
+        end
         local n1, still = #w.saves, false
         for _, s in ipairs(w.saves) do if s.key == target then still = true end end
         pcall(function() w:readSaves(); w:filter() end)

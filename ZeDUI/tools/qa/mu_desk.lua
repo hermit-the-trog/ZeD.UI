@@ -819,7 +819,7 @@ function X.barRows()
         local bottom = d:getAbsoluteY() + d:getHeight()
         check(d:isVisible() and bottom <= L.ty + L.th + 1, "DK21: the ZeD menu with its About block ends on the monitor's tube",
             "its foot at " .. K.n(bottom) .. ", the tube's at " .. K.n(L.ty + L.th) .. " (" .. K.screen() .. ", scale " .. tostring(ZeD.T and ZeD.T.scale) .. ")")
-        note("DK21: a menu bar pull-down is never cut or scrolled (dropScrollMax " .. tostring(MM.ctx.dropScrollMax) .. "): its room test runs for pop-ups only; at 1280 x 720 or with Large text the ZeD menu can run past the tube (not stageable at this screen size)")
+        note("DK21: a menu bar pull-down is never cut or scrolled (dropScrollMax " .. tostring(MM.ctx.dropScrollMax) .. "): its room test runs for pop-ups only (ZeD_MainMenu.lua, the \"if not pos\" block); at a small screen or with Large text the ZeD menu can run past the tube (checked above at " .. K.screen() .. ")")
         MM.ctx.open = nil
     end)
     after(250, function()
@@ -989,10 +989,25 @@ function X.desk()
         end
         for _ = 1, 3 do if MM.deskAt == "icons" then pcall(MM.joyDir, m, "left") end end
         r.back = MM.deskAt
+        -- (is there a left-column icon off the window's left edge at all? In the small layout the window can lie
+        -- over the whole left column: then Left has nowhere to go, as DT:211-230 mean, and the bar is tried from the
+        -- right column instead)
+        r.leftCells = 0
+        for _, c in ipairs(ic._cells or {}) do
+            local cx, cy = c.x + c.w / 2, c.y + c.h / 2
+            local under = cx >= wr.x and cx < wr.x + wr.w and cy >= wr.y and cy < wr.y + wr.h
+            if c.left and cx < wr.x and not under and not (c.item.off and c.item.off()) then r.leftCells = r.leftCells + 1 end
+        end
         w.focusId = "newgame"
         pcall(MM.joyDir, m, "left")
         r.lat, r.licon = MM.deskAt, ic.focusId
-        if r.lat == "icons" then
+        if r.lat ~= "icons" and r.leftCells == 0 then
+            MM.deskAt, MM.deskBack = nil, nil
+            w.focusId = "newgame"
+            pcall(MM.joyDir, m, "right")
+            r.via = "right"
+        end
+        if MM.deskAt == "icons" then
             for _ = 1, 12 do if MM.deskAt ~= "bar" then pcall(MM.joyDir, m, "up") end end
             r.bar, r.bback = MM.deskAt, MM.deskBack
             pcall(MM.joyDown, m, Joypad.BButton)
@@ -1004,7 +1019,12 @@ function X.desk()
         check(r.back == nil, "DK32: pushing back toward the window returns to it", "deskAt " .. tostring(r.back))
         if St.lite() then skip("DK32: Left to the left column", "Lite has no left column")
         else
-            check(r.lat == "icons", "DK32: Left from New Game reaches the left column", tostring(r.lat) .. " on " .. tostring(r.licon))
+            if r.leftCells == 0 then
+                check(r.lat == nil, "DK32: Left from New Game stays in the window when no left-column icon is clear of it", "deskAt " .. tostring(r.lat))
+                note("DK32: at " .. K.screen() .. " the main window (x " .. K.n(wr.x) .. ") lies over the whole left column, which starts at the tube's left edge: the pad reaches it from the bare desktop only (DK28's Up is checked from the right column)")
+            else
+                check(r.lat == "icons", "DK32: Left from New Game reaches the left column", tostring(r.lat) .. " on " .. tostring(r.licon))
+            end
             check(r.bar == "bar" and r.bback == "icons" and r.after == "icons", "DK28: Up from the icons reaches the bar, and B there goes back to the icons",
                 tostring(r.bar) .. " (back " .. tostring(r.bback) .. "), after B " .. tostring(r.after))
         end
@@ -1378,10 +1398,14 @@ function X.credits()
         r.endMode, r.endRoll = w.mode, w.roll
         w.roll = 2
         w.mode = "rewind"
+        r.t0 = getTimestampMs()
     end)
     after(400, function()
         local w, r = K.win("credits"), keep.r47
         r.topMode, r.topRoll = w.mode, w.roll
+        -- (the rewind meets the top on its first frame and turns to play, which rolls on at 36 px a second (scaled)
+        -- for the rest of the wait: the roll can only be as far as that play, never a rewind still running)
+        r.topMax = ((getTimestampMs() - (r.t0 or 0)) / 1000) * ((ZeD.T and ZeD.T.px and ZeD.T.px(36)) or 36) + 1
         local before = w.roll or 0
         MM.wheel(3)
         r.wheel = (w.roll or 0) > before
@@ -1392,7 +1416,8 @@ function X.credits()
         check(r.f == "fast" and r.f2 == "play" and r.r == "rewind" and r.r2 == "play", "DK47: << and >> are toggles: a second press plays again", r.f .. " " .. r.f2 .. " " .. r.r .. " " .. r.r2)
         check(r.p == "pause" and r.p2 == "play", "DK47: Pause and Play")
         check(r.endMode == "pause" and K.near(r.endRoll, r.max), "DK47: the roll stops paused with the last line halfway up", tostring(r.endMode) .. ", roll " .. K.n(r.endRoll) .. " of " .. K.n(r.max))
-        check(r.topMode == "play" and r.topRoll == 0, "DK47: a rewind to the top plays again", tostring(r.topMode) .. ", roll " .. tostring(r.topRoll))
+        check(r.topMode == "play" and type(r.topRoll) == "number" and r.topRoll >= 0 and r.topRoll <= r.topMax, "DK47: a rewind to the top plays again (from the top: the roll no farther than the play since)",
+            tostring(r.topMode) .. ", roll " .. K.n(r.topRoll) .. " (at most " .. K.n(r.topMax) .. ")")
         check(r.wheel, "DK47: the wheel anywhere on the desk rolls the credits (MM.wheel)")
         check(r.ja == "pause", "DK47: the pad's A pauses", tostring(r.ja))
         note("DK47: (director) the pad on Credits: A pause or play, X fast, Y rewind, B back; the game's Credits close on A")
@@ -1485,9 +1510,14 @@ function X.notepad()
         r.after, r.text = np.confirm, np.edit:getText()
         np.edit:setText("zedqa dk52 again")
         np:doNew()
+        -- (the staged failure: the stand-in disk hands back no writer, so ZeD_DeskNotes.lua's writeText raises "no
+        -- writer" inside its own pcall; a -debug run counts a caught error too, so these are taken off the count below)
+        local e0 = K.errs()
         D.failWrite = true
         np:answer(true)
         D.failWrite = false
+        local e1 = K.errs()
+        if e0 and e1 and keep.errs then keep.errs = keep.errs + (e1 - e0); r.staged = e1 - e0 end
         r.fc, r.ftext, r.fnote = np.confirm, np.edit:getText(), np.note
         r.saved = np:save() == true and np.doc and np.doc.id ~= nil
         np:setConfirm("delete")
@@ -1499,6 +1529,7 @@ function X.notepad()
         check(r.fc == false and r.ftext == "zedqa dk52 again" and r.fnote == ZeD.tr("UI_ZeD_Desk_WriteFailed"), "DK52: a Save that fails closes the question and does nothing else, saying so",
             tostring(r.fc) .. ", " .. K.q(r.ftext) .. ", " .. K.q(r.fnote))
         check(r.saved, "DK52: Save then works")
+        if r.staged and r.staged > 0 then note("DK52: the failed Save's " .. r.staged .. " caught \"no writer\" error(s) (ZeD_DeskNotes.lua writeText, the stand-in disk's doing) are left out of the Lua error count") end
     end)
 end
 function X.notesCaps()
@@ -1683,8 +1714,11 @@ function X.workshop()
             keep.ws.title = why or tostring(w.titleE:isFocused())
             pcall(function() w.titleE:unfocus() end)
         end
-        -- an upload waiting on Steam (set by hand: nothing is sent), left by the menu bar and come back to
-        w.busy = { stage = "send", t0 = MM.now() }
+        -- an upload waiting on Steam (set by hand: nothing is sent), left by the menu bar and come back to. Its stage
+        -- is "create" (the first wait, ZeD_MainMenuWorkshop.lua:362), not "send": the send stage's progress bar asks
+        -- the picked item for getUpdateProgress every frame (:829), and a faked send has no Steam item behind it, so
+        -- each frame raised a caught error. Both stages are the same busy to onShow, which is what DK58 checks.
+        w.busy = { stage = "create", t0 = MM.now() }
         MM.showView("main")
     end)
     after(250, function() if not keep.noWs then MM.showView("workshop") end end)
