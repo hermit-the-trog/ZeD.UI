@@ -23,6 +23,21 @@ Scripts (main menu only, each through zedqa_menu_mods_run.ps1 with ZeD alone, at
 | Mods | 103 pass, 6 fail | 103 pass, 6 fail | bugs only |
 | Folders and load order | 67 pass, 7 fail | 67 pass, 7 fail | bugs only |
 
+After Build's fixes (fix/menus, main d71db6c3a; scripts refit 6a038034f, 8c1897a77, f2b8262c4):
+
+| Sweep | 4K | 1280x800 | What fails |
+| --- | --- | --- | --- |
+| Desk | 185 pass | 185 pass | nothing |
+| New game | 116 pass | 116 pass | nothing |
+| Load, Join, Host | 102 pass | 102 pass | nothing |
+| Options and welcome | 182 pass, 1 fail | 182 pass, 1 fail | OP43: the Find box can still take a click under Back's question (Build's known gap) |
+| Mods | 116 pass | 116 pass | nothing |
+| Folders and load order | 76 pass | 76 pass | nothing |
+
+- Still open for Build: OP43; and the Connect to form prints ip : port in its title and heading whatever Streamer mode says (ZeD_MainMenuJoinMore.lua:487-488, 505), found while refitting LJ35.
+- Build's other known gaps: safe mode turned off while on Spawn or Looks leaves an empty map or figure box until reopened (NG23, NG62, not staged); LJ43 has no port range check; LJ40's new account is not kept.
+- Test faults found in the refit: "a and K.press(...) or b" read every successful answer (nil) as "no question open" (DK19, DK59, MM2, MM53); a masked port field reads back as stars (LJ43).
+
 Skips are cases a main-menu script must not or cannot stage (a real load, join, server, Steam, a Lua reload, other languages, other screen sizes, a real pad), each named in its line.
 
 ## Bugs for Build
