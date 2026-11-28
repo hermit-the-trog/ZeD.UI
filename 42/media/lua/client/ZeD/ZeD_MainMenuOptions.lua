@@ -353,7 +353,15 @@ end
 local function setTick(c, i, v)
     if tickDisabled(c, i) then return end
     c.selected[i] = v
-    if c.changeOptionMethod then c.changeOptionMethod(c.changeOptionTarget, i, v, c.changeOptionArg1, c.changeOptionArg2, c) end
+    -- NG34 (Nov 27 2026): B42's ISTickBox keeps its args in changeOptionArgs[1] and [2] (ISTickBox.lua:47, 317);
+    -- older builds kept changeOptionArg1 and 2. Read both, so the game's handler gets its option name either way.
+    local a = c.changeOptionArgs
+    local a1, a2 = c.changeOptionArg1, c.changeOptionArg2
+    if type(a) == "table" then
+        if a[1] ~= nil then a1 = a[1] end
+        if a[2] ~= nil then a2 = a[2] end
+    end
+    if c.changeOptionMethod then c.changeOptionMethod(c.changeOptionTarget, i, v, a1, a2, c) end
 end
 
 local function volumeMax(c) return (c.Type == "ISMegaVolumeControl") and 11 or 10 end
@@ -728,9 +736,21 @@ function ZeD_MMOptions:back()
     MM.clickSound()
     -- (punch list 261: Back during "Keep these display settings?" answers No, as Escape does; the old ones come back)
     if self.confirm == "monitor" then self:answerMonitor(false); return end
-    if self:anyChanged() then self:setConfirm("back"); return end
+    -- (QA OP46, Nov 27 2026: the game's changed flag stays up after a change set back by hand, so Back asked
+    -- "Discard 1 changes?" with nothing changed. Only rows that really differ count; with none, Back leaves without
+    -- asking, through Discard so the flag and the held values are cleared too.)
+    if self:anyChanged() then
+        if self:changedCount() > 0 then self:setConfirm("back"); return end
+        self:discard()
+        return
+    end
     pcall(MainOptions.loadKeys)
     self:finish()
+end
+
+-- the footer's Discard (and X): asks only when a row really differs, else discards at once (QA OP46, Nov 27 2026)
+function ZeD_MMOptions:askDiscard()
+    if self:changedCount() > 0 then self:setConfirm("discard") else self:discardStay() end
 end
 
 --- DISCARD: vanilla's "No" (live values restored), and the key list put back as the file has it;
@@ -929,7 +949,11 @@ end
 -- (punch list 261: "Keep these display settings?" lands on Cancel, the old settings: a screen that can't be read
 -- must not be kept by one press)
 -- (KISS #33: Back's question lands on Apply, its main answer; nothing is lost by it)
-local SAFE_ANSWER = { back = "confirm:apply", discard = "confirm:no", monitor = "confirm:no" }
+-- (QA OP61, Nov 27 2026: the key band has No key, Default and Cancel, no confirm:yes; the hand lands on Cancel)
+local SAFE_ANSWER = { back = "confirm:apply", discard = "confirm:no", monitor = "confirm:no", key = "confirm:no" }
+-- (QA OP43, Nov 27 2026) the Options window itself, not the windows built on it (Sandbox, the server, Looks), whose
+-- questions have answers of their own
+local function optionsWin(self) return self.kind == "options" or self.kind == "options_ig" end
 function ZeD_MMOptions:setConfirm(mode)
     if self.confirm == mode then return end
     -- (B on a question goes back to the stop it was asked from)
@@ -984,10 +1008,20 @@ function ZeD_MMOptions:prerender()
     local rows
     if q ~= "" then
         -- (ZeD's own options found on ZeD setup with ZeD's controls; the game's settings in their own groups)
-        rows = MM.optionGroups.findRows(pages, function(p) return self:rowsFor(p) end, q, function(r)
-            local name = r.labelKey and ZeD.tr(r.labelKey) or ""
-            return string.lower(tostring(r.label or "") .. " " .. name .. " " .. tostring(help(r) or ""))
-        end)
+        -- (QA's frame count, Nov 27 2026: one letter in Find halved the frame rate, every group read and every help line
+        -- built each frame. The hits are kept until the words, the page or the groups change (a new group cache: Apply,
+        -- Discard, a page's mark, a Style or debug switch, an add-on's group).)
+        self:rowsFor(page)   -- (brings the group cache up to date first)
+        local fc = self._findCache
+        if not (fc and fc.q == q and fc.gc == self._groupCache and fc.page == self.pageIdx and fc.n == #pages) then
+            fc = { q = q, gc = self._groupCache, page = self.pageIdx, n = #pages }
+            fc.rows = MM.optionGroups.findRows(pages, function(p) return self:rowsFor(p) end, q, function(r)
+                local name = r.labelKey and ZeD.tr(r.labelKey) or ""
+                return string.lower(tostring(r.label or "") .. " " .. name .. " " .. tostring(help(r) or ""))
+            end)
+            self._findCache = fc
+        end
+        rows = fc.rows
         self._findCounts = true
     else
         rows = self:rowsFor(page)
@@ -1007,6 +1041,13 @@ function ZeD_MMOptions:render()
     UI.drawStripAndButtons(self)
     -- the band's buttons are what the key catcher leaves alone
     for _, hh in ipairs(self._hits) do if hh.id and hh.id:find(":confirm:") then hh.strip = true end end
+    -- (QA OP43, Nov 27 2026: under a question the rows, the pages, Find and the scroll bars took clicks, so a change
+    -- could be made under Back's ask and go uncounted. While the band asks only its answers take the pointer.)
+    if self.confirm and optionsWin(self) then
+        local keep = {}
+        for _, hh in ipairs(self._hits) do if hh.strip then keep[#keep + 1] = hh end end
+        self._hits = keep
+    end
     ZeD_Window.render(self)
 end
 
@@ -1560,6 +1601,39 @@ function ZeD_MMOptions:drawFoldHead(r, rowId, x, y, w, focused)
     return hot
 end
 
+-- the help band's "Default: X" for a row (ZeD's own options and the chords), and the column it takes at the right
+local function defaultText(r)
+    local chordDefault = r.kind == "chord" and ZeD.QuickChords.defaultName(r.chord) or nil
+    if (r.zedDefault and r.control) or chordDefault then
+        return ZeD.tr("UI_ZeD_Options_DefaultIs", chordDefault or comboText(r.control, r.zedDefault))
+    end
+    return nil
+end
+local function defaultColW(dt, f2) return math.min(ZeD.T.px(240), MM.textW(f2, dt) + ZeD.T.px(26)) end
+
+--- (QA OP31, Nov 27 2026) The most help lines any of these rows needs in a band w wide: worked out once for the
+--- list, the width and the font (the rows list is kept while the page, Find and the groups stay), not each frame.
+function ZeD_MMOptions:helpLinesFor(rows, w)
+    local T = ZeD.T
+    local f2 = T.fontF2
+    local c = self._helpLines
+    if c and c.rows == rows and c.w == w and c.f == f2 and c.s == T.px(100) and c.n == #rows then return c.lines end
+    local most = 0
+    for _, r in ipairs(rows) do
+        if r.kind ~= "header" and r.kind ~= "note" and r.kind ~= "desc" then
+            local ok, t = pcall(help, r)
+            if ok and t and t ~= "" then
+                local dt = defaultText(r)
+                local hw = w - T.px(24) - (dt and defaultColW(dt, f2) or 0)
+                local n = #ZeD.Atoms.wrapText(t, f2, hw)
+                if n > most then most = n end
+            end
+        end
+    end
+    self._helpLines = { rows = rows, w = w, f = f2, s = T.px(100), n = #rows, lines = most }
+    return most
+end
+
 --- The rows list and the help band. A window built on this one bends it through hooks:
 --- noHelpBand / helpBandH, tagsW / drawRowTags, rowDisabled and drawHelp (Sandbox in game uses
 --- most of them; the Looks window has no help band; the Sandbox and server windows dim rows).
@@ -1570,7 +1644,17 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     UI.insetBox(self, x, y, w, h)
     -- the help band: three lines of the body font (two cut the longer ZeD tips short)
     -- (a window without help text has no band; one with its own band says how tall: Sandbox in game)
-    local helpH = self.noHelpBand and 0 or (self.helpBandH and self:helpBandH()) or math.max(T.px(HELP_H), T.px(14) + 3 * (MM.fontH(T.fontF2) + T.px(3)))
+    -- (QA OP31, Nov 27 2026: at 1280x800 the longer ZeD tips ran past three lines and the rest was dropped with no
+    -- mark. The band grows to the longest help on the rows shown, up to three tenths of the list's height; a help
+    -- longer still ends its last line in an ellipsis.)
+    local helpH = self.noHelpBand and 0 or (self.helpBandH and self:helpBandH()) or nil
+    local helpLineH = MM.fontH(T.fontF2) + T.px(3)
+    if not helpH then
+        local most = math.max(3, math.floor(h * 0.3 / helpLineH))
+        -- (the Options window only: the windows built on this one keep their three lines and their own help)
+        local lines = optionsWin(self) and math.max(3, math.min(most, self:helpLinesFor(rows, w))) or 3
+        helpH = math.max(T.px(HELP_H), T.px(14) + lines * helpLineH)
+    end
     local vy, vh = y + T.px(1), h - helpH - T.px(2)
     local sbW = T.sp.scrollbarW
     local inner = w - T.px(2) - sbW
@@ -1642,6 +1726,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
             if isFoc then focusRow = r end
             if visible then
                 local isHov = mx >= x and mx < x + inner and my >= ry and my < ry + rh and my >= vy and my < vy + vh
+                    and not (self.confirm and optionsWin(self))   -- (QA OP43, Nov 27 2026: under a question no row is live)
                 if isHov then hovered = r end
                 -- the row's wash: T.hover under the pointer, the controller's mark on the focused row (under the words)
                 local onFocus = MM.rowLook(self, x + T.px(1), ry, inner, rh, false, isHov and not gp and not MM.ctx.open and not dimRow, isFoc)
@@ -1729,10 +1814,9 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     if hr and not htext and self:isChanged(hr) then htext = self.changedNote and MM.optionGroups.text(self.changedNote) or ZeD.tr("UI_ZeD_Options_ChangedNote") end
     -- ZeD's own options: their default in a column at the right of the band
     local dcol = 0
-    local chordDefault = hr and hr.kind == "chord" and ZeD.QuickChords.defaultName(hr.chord) or nil
-    if (hr and hr.zedDefault and hr.control) or chordDefault then
-        local dt = ZeD.tr("UI_ZeD_Options_DefaultIs", chordDefault or comboText(hr.control, hr.zedDefault))
-        dcol = math.min(T.px(240), MM.textW(f2, dt) + T.px(26))
+    local dt = hr and defaultText(hr) or nil
+    if dt then
+        dcol = defaultColW(dt, f2)
         local dx = x + w - T.px(1) - dcol
         local bd, d = T.border, T.textDim
         self:drawRect(dx, hy + T.px(7), T.px(1), helpH - 2 * T.px(7), bd.a or 1, bd.r, bd.g, bd.b)
@@ -1753,10 +1837,15 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     if htext then
         local tc = T.text
         local ly = hy + T.px(8)
-        for k, l in ipairs(ZeD.Atoms.wrapText(htext, f2, w - T.px(24) - dcol)) do
-            if k > 3 then break end
-            self:drawText(l, x + T.px(12), ly, tc.r, tc.g, tc.b, tc.a or 1, f2)
-            ly = ly + MM.fontH(f2) + T.px(3)
+        local hw = w - T.px(24) - dcol
+        local hls = ZeD.Atoms.wrapText(htext, f2, hw)
+        local hmax = math.max(1, math.floor((helpH - T.px(14)) / helpLineH))   -- (QA OP31, Nov 27 2026: as many as the band holds)
+        for k, l in ipairs(hls) do
+            if k > hmax then break end
+            local lt = l
+            if k == hmax and #hls > hmax then lt = ZeD.Atoms.truncateText(l .. " " .. hls[k + 1], f2, hw) end   -- (cut: an ellipsis)
+            self:drawText(lt, x + T.px(12), ly, tc.r, tc.g, tc.b, tc.a or 1, f2)
+            ly = ly + helpLineH
         end
     end
 end
@@ -1817,15 +1906,20 @@ end
 -- vanilla's palette as a pop-up of swatches (a ZeD drop with colour rows would not read)
 function ZeD_MMOptions:openPalette(r, anchor)
     -- (Nov 15 2026, punch list 238: the controller's cursor in the palette starts on the color in use)
+    -- (QA OP33, Nov 27 2026: a stored color off the 84 swatches left the cursor on swatch 1 and no frame drawn: the
+    -- nearest swatch takes both, so the pad starts beside the color in use)
     local at = 1
     local cur = r and r.control and r.control.backgroundColor
     if cur then
+        local best = nil
         for i, code in ipairs(PALETTE) do
             local col = paletteColor(code)
-            if math.abs((cur.r or -1) - col.r) < 0.02 and math.abs((cur.g or -1) - col.g) < 0.02 and math.abs((cur.b or -1) - col.b) < 0.02 then at = i; break end
+            local dr, dg, db = (cur.r or 0) - col.r, (cur.g or 0) - col.g, (cur.b or 0) - col.b
+            local d = dr * dr + dg * dg + db * db
+            if not best or d < best then best = d; at = i end
         end
     end
-    self._palette = { row = r, anchor = anchor, at = at }
+    self._palette = { row = r, anchor = anchor, at = at, near = at }
     MM.clickSound()
 end
 
@@ -1855,8 +1949,12 @@ function ZeD_MMOptions:joyA()
         return
     end
     -- (punch list 261: while "Keep these display settings?" is up only its answers take A)
-    if self.confirm == "monitor" and not string.find(tostring(self.focusId or ""), "^confirm:") then
-        self.focusId = "confirm:no"
+    -- (QA OP43, Nov 27 2026: so for every question of the Options window: A off an answer lands on its safe one)
+    -- (written out here, not through the helpers above: pad_type_sim reads this function on its own)
+    local fA = tostring(self.focusId or "")
+    local onA = string.find(fA, "^confirm:") ~= nil or fA == "field:band"
+    if (self.confirm == "monitor" or (self.confirm and (self.kind == "options" or self.kind == "options_ig"))) and not onA then
+        self.focusId = SAFE_ANSWER[self.confirm] or "confirm:yes"
         return
     end
     ZeD_MMWindow.joyA(self)
@@ -1900,7 +1998,7 @@ function ZeD_MMOptions:render()
         local cx = px + T.px(4) + ((i - 1) % cols) * cell
         local cy = py + T.px(4) + math.floor((i - 1) / cols) * cell
         self:drawRect(cx + T.px(1), cy + T.px(1), cell - 2 * T.px(1), cell - 2 * T.px(1), 1, col.r, col.g, col.b)
-        local isCur = math.abs((cur.r or -1) - col.r) < 0.02 and math.abs((cur.g or -1) - col.g) < 0.02 and math.abs((cur.b or -1) - col.b) < 0.02
+        local isCur = i == p.near   -- (the swatch in use, or the nearest one to it: QA OP33, Nov 27 2026)
         if isCur or self:pctx().hot == self.kind .. ":pal:" .. i then
             ZeD.Atoms.frame(self, cx, cy, cell, cell, T.text)
         end
@@ -2079,7 +2177,7 @@ function ZeD_MMOptions:buildStrip(stripY, stripH, w)
             lefts[2] = { "defaults", ZeD.tr("UI_ZeD_Options_Defaults"), function() self:zedDefaults() end, "default", not self:zedOffDefault() }
         end
         UI.stripSpecs(self, stripY, w, row, lefts,
-            { { "discard", discardWord, function() self:setConfirm("discard") end, "default", not changed },
+            { { "discard", discardWord, function() self:askDiscard() end, "default", not changed },
               { "apply", getText("UI_btn_apply"), function() self:apply(false) end, "primary", not changed } })
     end
 end
@@ -2119,11 +2217,15 @@ function ZeD_MMOptions:joyDir(dir)
     if self._palette then self:paletteDir(dir); return end
     -- (punch list 261: while "Keep these display settings?" is up the D-pad stays on its answers: it can't wander to
     -- an option, the menu bar or the desk and leave the 20-second revert behind)
-    if self.confirm == "monitor" then
+    -- (QA OP43, Nov 27 2026: every question of the Options window keeps the D-pad on its answers, not only this one)
+    -- (written out here, not through the helpers above: pad_type_sim reads this function on its own)
+    if self.confirm == "monitor" or (self.confirm and (self.kind == "options" or self.kind == "options_ig")) then
+        local function onA() local f = tostring(self.focusId or ""); return string.find(f, "^confirm:") ~= nil or f == "field:band" end
         local was = self.focusId
+        local wasOn = onA()
         if dir == "left" or dir == "right" then ZeD_MMWindow.joyDir(self, dir) end
-        if not string.find(tostring(self.focusId or ""), "^confirm:") then
-            self.focusId = string.find(tostring(was or ""), "^confirm:") and was or "confirm:no"
+        if not onA() then
+            self.focusId = wasOn and was or (SAFE_ANSWER[self.confirm] or "confirm:yes")
         end
         self._edge = nil
         return
@@ -2154,7 +2256,7 @@ end
 function ZeD_MMOptions:joyX()
     local r = (not self.confirm) and self:focusedRow()
     if r and r.kind == "chord" then ZeD.QuickChords.clear(r.chord); MM.clickSound(); return end
-    if not self.confirm and self:anyChanged() then self:setConfirm("discard") end
+    if not self.confirm and self:anyChanged() then self:askDiscard() end
 end
 function ZeD_MMOptions:joyY() if not self.confirm and self:anyChanged() then self:apply(false) end end
 --- LB / RB: the previous or next page, wrapping round; Find's words are cleared.

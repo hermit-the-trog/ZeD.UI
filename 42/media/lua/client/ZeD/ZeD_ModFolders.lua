@@ -347,13 +347,17 @@ local function insertAfter(M, at, list)
     M.lines = out
 end
 
--- a new folder at the end of the folders, open, empty: its id, or false
+-- a new folder at the end of the folders, open, empty: its id, or false and why ("full", a name
+-- problem's key and its argument, "nowrite")
+-- (MO9, Nov 27 2026: a refusal says its own reason; the band blamed the file for every one)
 function F.create(name)
     name = trim(name)
     if #name > F.NAME_MAX then name = string.sub(name, 1, F.NAME_MAX) end
-    return F.change(function(M)
-        if #M.folders >= F.MAX then return false end
-        if F.nameProblem(name, nil, M) then return false end
+    local why, whyArg = nil, nil
+    local ok, res = F.change(function(M)
+        if #M.folders >= F.MAX then why = "full"; return false end
+        local pk, pa = F.nameProblem(name, nil, M)
+        if pk then why, whyArg = pk, pa; return false end
         ensureHead(M)
         local id = M.nextId
         local e = { k = "folder", id = id, open = true, name = name, dirty = true }
@@ -364,6 +368,8 @@ function F.create(name)
         index(M)
         return id
     end)
+    if not ok and why then return false, why, whyArg end
+    return ok, res
 end
 
 function F.rename(id, name)
@@ -378,10 +384,12 @@ function F.rename(id, name)
     end)
 end
 
--- the folder goes; its mods go to Unfiled (their member lines go, as in the mod); none turn off
+-- the folder goes; its mods go to Unfiled (their member lines go, as in the mod); none turn off.
+-- Returns ok, the id; false, "gone" when the folder is gone
 function F.delete(id)
-    return F.change(function(M)
-        if not M.byId[id] then return false end
+    local gone = false
+    local ok, res = F.change(function(M)
+        if not M.byId[id] then gone = true; return false end
         local out = {}
         for _, e in ipairs(M.lines) do
             if not ((e.k == "folder" and e.id == id) or (e.k == "member" and e.fid == id)) then out[#out + 1] = e end
@@ -390,16 +398,30 @@ function F.delete(id)
         index(M)
         return id
     end)
+    if gone then return false, "gone" end
+    -- (MO5, Nov 27 2026: its label and its color go with it; a file reset outside starts at folder 1 again,
+    -- and a new folder 1 showed the old one's label and color. The colors are the Mods screen's own file.)
+    if ok then
+        if F.labelOf(id) then F.setLabel(id, nil) end
+        local S = ZeD_MMMods
+        if S and S.folderColorKey and S.folderColorKey(id) then S.setFolderColor(id, nil) end
+    end
+    return ok, res
 end
 
--- open (true) or closed (false), saved as the mod saves it
+-- open (true) or closed (false), saved as the mod saves it; false, "gone" when the folder is gone
+-- (MO9, Nov 27 2026: so the band says so, not that the file could not be written)
 function F.setOpen(id, open)
-    return F.change(function(M)
+    local gone = false
+    local ok, res = F.change(function(M)
         local e = M.byId[id]
-        if not e or e.open == (open and true or false) then return false end
+        if not e then gone = true; return false end
+        if e.open == (open and true or false) then return false end
         e.open, e.dirty = open and true or false, true
         return id
     end)
+    if gone then return false, "gone" end
+    return ok, res
 end
 
 -- every folder open or closed (Open all / Close all)

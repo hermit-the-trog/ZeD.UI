@@ -36,17 +36,23 @@ local function ms() return MainScreen and MainScreen.instance end
 local function coop() local m = ms(); return m and m.onlineCoopScreen end
 local function s(v) if v == nil then return "" end; return tostring(v) end
 local function comboText(c, i) local ok, t = pcall(function() return c:getOptionText(i) end); return ok and tostring(t or "") or "" end
--- vanilla's translated text can carry a backslash and an n for a line break: real breaks
+-- vanilla's translated text can carry a backslash and an n for a line break: real breaks. Two backslashes are
+-- one backslash, so a folder path put in with esc() keeps its own backslashes (LJ57, Nov 27 2026: a settings
+-- name starting with n broke "...\Multiplayer\nightly" in two; vanilla escapes the path the same way, COS:383)
 local function unescape(t)
-    local out, i = {}, 1
-    while true do
-        local a, b = t:find("\\n", i, true)
+    local out, i, n = {}, 1, #t
+    while i <= n do
+        local a = t:find("\\", i, true)
         if not a then out[#out + 1] = t:sub(i); break end
         out[#out + 1] = t:sub(i, a - 1)
-        i = b + 1
+        local nx = t:sub(a + 1, a + 1)
+        if nx == "n" then out[#out + 1] = "\n"; i = a + 2
+        elseif nx == "\\" then out[#out + 1] = "\\"; i = a + 2
+        else out[#out + 1] = "\\"; i = a + 1 end
     end
-    return table.concat(out, "\n")
+    return table.concat(out)
 end
+local function esc(p) return (tostring(p or ""):gsub("\\", "\\\\")) end
 
 ZeD_MMHost = ZeD_MMWindow:derive("ZeD_MMHost")
 
@@ -256,9 +262,9 @@ function ZeD_MMHost:prerender()
         -- folders a delete removes, the character), the short question in the band
         if self.confirm then
             local text
-            if self.confirm == "reset" then text = getText("UI_coopscreen_softreset_prompt", getAbsoluteSaveFolderName(c:getServerSaveFolder()))
+            if self.confirm == "reset" then text = getText("UI_coopscreen_softreset_prompt", esc(getAbsoluteSaveFolderName(c:getServerSaveFolder())))   -- (LJ57)
             elseif self.confirm == "deleteWorld" then
-                local folder = getAbsoluteSaveFolderName(c:getServerSaveFolder())
+                local folder = esc(getAbsoluteSaveFolderName(c:getServerSaveFolder()))   -- (LJ57)
                 text = getText("UI_coopscreen_delete_world_prompt", folder, folder .. "_player")
             else text = getText("UI_coopscreen_delete_player_prompt", s(c.accountNameEntry:getText())) end
             text = unescape(s(text))
@@ -271,6 +277,17 @@ function ZeD_MMHost:prerender()
                     self:drawText(l, ix, cy, tc.r, tc.g, tc.b, tc.a or 1, f2)
                     cy = cy + MM.fontH(f2) + T.px(3)
                 end
+            end
+        end
+        -- (LJ56, Nov 27 2026: why the server stopped, or the last thing it said: vanilla always draws its status line)
+        local st = UI.plain(s(c.serverStatus))
+        if st ~= "" then
+            cy = cy + T.px(8)
+            local tc = T.text
+            for _, l in ipairs(ZeD.Atoms.wrapText(st, f2, bx + bw - T.px(24) - ix)) do
+                if cy + MM.fontH(f2) > by + bh - T.px(8) then break end
+                self:drawText(l, ix, cy, tc.r, tc.g, tc.b, tc.a or 1, f2)
+                cy = cy + MM.fontH(f2) + T.px(3)
             end
         end
         -- what keeps START from going
@@ -370,6 +387,16 @@ function ZeD_MMHost:keyOther(key)
     return false
 end
 function ZeD_MMHost:close() self:back() end
+
+-- (LJ2, Nov 27 2026) the desk left for another view (the menu bar) while the host screen waits: vanilla's screen,
+-- parked off the screen, is put away as its own Back would (its options saved), so it does not stay shown. Not while
+-- a server starts: that one keeps following its server. MM.showView calls it.
+function ZeD_MMHost:onViewLeft()
+    local c = coop()
+    if not c or not self:idle() or not c:isVisible() then return end
+    pcall(function() c:saveOptions() end)
+    c:setVisible(false)
+end
 
 -- on the desk: vanilla's host screen stays shown off the screen (it follows its server only
 -- while visible) and "host" mirrors it

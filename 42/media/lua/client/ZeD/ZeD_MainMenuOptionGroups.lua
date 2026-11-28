@@ -666,7 +666,18 @@ function G.build(pages, rowsOf)
         local rows = rowsOf(p) or {}
         if pid then byPage[pid] = rows else extra[#extra + 1] = { title = p.raw, rows = rows } end
         for _, r in ipairs(rows) do
-            if pid == "audio" and r.kind == "button" and not r.opt then byName.__audioButton = r end
+            if pid == "audio" and r.kind == "button" and not r.opt then
+                byName.__audioButton = r
+                -- (QA OP5, Nov 27 2026: the row had no name, and Advanced no help. Advanced opens ZeD's Advanced game
+                -- sounds page; the debug Reload keeps the game's tooltip, GameSound_ButtonReload_tt)
+                local title = r.control and tostring(r.control.title or "") or ""
+                -- (the name as the Other rows get theirs, in label: Find and the row read it there)
+                if title == getText("GameSound_ButtonReload") then
+                    r.label = ZeD.tr("UI_ZeD_Options_ReloadSounds")
+                else
+                    r.label, r.zedTipKey = ZeD.tr("UI_ZeD_Options_GameSounds"), "UI_ZeD_Options_GameSoundsTip"
+                end
+            end
             if r.opt and r.opt.name then
                 byName[r.opt.name] = r
                 -- (QA's visual noise audit 29, Nov 20 2026: "Does nothing with ZeD active" under each replaced setting,

@@ -294,7 +294,8 @@ function ZeD_MMMods:drawOptionsTab(d, ix, iw, cy, vy, vh)
     local dim = T.textDim
     if d.modId == "ZeD_UI" then
         cy = self:paneNote(ZeD.tr("UI_ZeD_Mods_OptZeDOwn"), ix, iw, cy, T.accent)
-        return self:paneVerbs({ { "opt:open", ZeD.tr("UI_ZeD_Mods_VerbOpenOptions"), function() self:openInOptions() end } }, ix, cy, iw, vy, vh, 790) + T.px(8)
+        -- (MM3, Nov 27 2026: off while changes wait, as every other mod's)
+        return self:paneVerbs({ { "opt:open", ZeD.tr("UI_ZeD_Mods_VerbOpenOptions"), function() self:openInOptions() end, "default", self:changed() or self:reordered() } }, ix, cy, iw, vy, vh, 790) + T.px(8)
     end
     if not (d.isActive and MS.isLoaded(d.modId)) then
         local key = d.isActive and "UI_ZeD_Mods_OptAfterReload" or "UI_ZeD_Mods_OptTurnOn"

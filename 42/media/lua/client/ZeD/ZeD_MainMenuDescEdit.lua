@@ -76,6 +76,7 @@ function ZeD_MMDescEdit:onShow()
     self.cscroll, self.pscroll = 0, 0
     self.undo, self.redo = {}, {}
     self.confirm = false
+    self._leaveGo, self._leaveView = nil, nil
     self.focusId = nil
     self:loadEdit()
 end
@@ -192,16 +193,50 @@ function ZeD_MMDescEdit:finish(keep)
     if keep and self.src and self.src.done then self.src.done(self:text()) end
     local ws = MM.root and MM.root.workshopWin
     if ws then ws._fromEditor = true end
+    -- (DK19, DK59, Nov 27 2026: left by the menu bar, an icon or the power button (askLeave), the text is answered
+    -- here, then the Workshop asks its own question for its folders' unsaved edits, else the move goes on)
+    -- (a move to the Workshop itself is this very step back)
+    local go = self._leaveView ~= "workshop" and self._leaveGo or nil
+    self._leaveGo, self._leaveView = nil, nil
+    self._finishing = true
     MM.showView("workshop")
+    self._finishing = nil
+    if go and not (ws and MM.view == "workshop" and ws.askLeave and ws:askLeave(go)) then MM.leaveRun(go) end
+end
+
+--- The text differs from what the Workshop handed in.
+function ZeD_MMDescEdit:changed()
+    return self:text() ~= BB.write(BB.parse(self.src and self.src.text or ""))
 end
 
 -- Cancel, B, Escape and the close box: an open question is answered Cancel; text that changed asks first
 function ZeD_MMDescEdit:back()
-    if self.confirm then self.confirm = false; self.focusId = nil; MM.clickSound(); return end
-    if self:text() ~= BB.write(BB.parse(self.src and self.src.text or "")) then
-        self.confirm = "leave"; self.focusId = "confirm:yes"; MM.clickSound(); return
+    if self.confirm then self.confirm = false; self._leaveGo, self._leaveView = nil, nil; self.focusId = nil; MM.clickSound(); return end
+    if self:changed() then
+        self.confirm = "leave"; self._leaveGo, self._leaveView = nil, nil; self.focusId = "confirm:yes"; MM.clickSound(); return
     end
     self:finish(false)
+end
+
+-- (DK19, DK59, Nov 27 2026) Left any way but Cancel (the menu bar, an icon, the power button): changed text asks
+-- Back's question first (MM.leaveGuard); unchanged, the editor hands back to the Workshop when its folders hold
+-- unsaved edits, so the Workshop asks its own; else the move goes through.
+function ZeD_MMDescEdit:askLeave(go, view)
+    if self._finishing then return false end
+    if self:changed() then
+        if self.confirm ~= "leave" then self.confirm = "leave"; self.focusId = "confirm:yes"; MM.clickSound() end
+        self._leaveGo, self._leaveView = go, view
+        return true
+    end
+    -- (the Workshop picked from the menu bar: back to it as Cancel goes, its form kept)
+    if view == "workshop" then self:finish(false); return true end
+    local ws = MM.root and MM.root.workshopWin
+    if ws and ws.anyUnsaved and ws:anyUnsaved() then
+        self._leaveGo, self._leaveView = go, view
+        self:finish(false)
+        return true
+    end
+    return false
 end
 
 -- ----------------------------------------------------------------------------
@@ -465,7 +500,7 @@ function ZeD_MMDescEdit:buildStrip(stripY, stripH, w)
     if self.confirm == "leave" then
         -- Cancel stays and edits on; Discard changes drops the text; Keep hands it back
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:cancel", getText("UI_btn_cancel"), function() self.confirm = false; self.focusId = nil; MM.clickSound() end },
+            { "confirm:cancel", getText("UI_btn_cancel"), function() self.confirm = false; self._leaveGo, self._leaveView = nil, nil; self.focusId = nil; MM.clickSound() end },
             { "confirm:no", ZeD.tr("UI_ZeD_MMWord_DiscardChanges"), function() self:finish(false) end, "danger" },
             { "confirm:yes", getText("ContextMenu_Keep"), function() self:finish(true) end, "primary" } },
             ZeD.tr("UI_ZeD_DescEdit_AskKeep"))

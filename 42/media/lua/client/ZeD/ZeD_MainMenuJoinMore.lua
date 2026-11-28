@@ -374,9 +374,8 @@ function ZeD_MMBootstrap:prerender()
     UI.insetBox(self, bx, by, bw, bh)
     local ix, iw = bx + T.px(20), bw - T.px(40)
     local cy = by + T.px(18)
-    if b.host then
-        cy = cy + heading(self, s(b.host) .. " : " .. s(b.port), ix, cy, iw) + T.px(18)
-    end
+    -- (LJ35, Nov 27 2026: no host : port heading: vanilla's invite screen shows no address at all, and a player in
+    -- streamer mode must not see it drawn)
     local failed = not b.connecting
     statusLines(self, s(b.connectLabel and b.connectLabel.name), ix, cy, iw, failed and T.danger or T.accent, b.connecting)
     local label = b.connecting and getText("UI_Cancel") or getText("UI_btn_back")

@@ -981,11 +981,15 @@ local function fire(field)
     local item = m and m[field]
     if not item then return end
     MM.ctx.open = nil
+    -- (DK51, Nov 27 2026: a game started past MM.showView, File > Continue, saves the notepad's unsaved words to the
+    -- draft first, as every view change does: ZeD_MainMenuNotes.lua)
+    if MM.flushNotepad then pcall(MM.flushNotepad) end
     MainScreen.onMenuItemMouseDownMainMenu(item, 0, 0)
 end
 
 MM.act = {
-    continue  = function() fire("latestSaveOption") end,
+    -- (DK19, Nov 27 2026: a window with unsaved work asks first, as for any other way off it)
+    continue  = function() if MM.leaveGuard(MM.act.continue) then return end; fire("latestSaveOption") end,
     -- New Game and Load Game open on the monitor (ZeD_MainMenuSaves.lua); vanilla's
     -- SOLO item also copies the default mods into the new game's list
     newGame   = function()
@@ -1009,7 +1013,7 @@ MM.act = {
         local c = ms() and ms().onlineCoopScreen
         if c then c:aboutToShow(); c:setVisible(true, JoypadState.getMainMenuJoypad()) end
     end,
-    tutorial  = function() fire("tutorialOption") end,
+    tutorial  = function() if MM.leaveGuard(MM.act.tutorial) then return end; fire("tutorialOption") end,   -- (DK19, Nov 27 2026)
     options   = function() MM.openOptions() end,   -- ZeD_MainMenuOptions.lua (main menu and in game)
     mods      = function() MM.openMods() end,   -- the mod manager on the monitor (ZeD_MainMenuMods.lua)
     -- (vanilla's WORKSHOP item hides the menu after opening its screen: the monitor's window opens directly)
@@ -1036,7 +1040,13 @@ MM.act = {
         MM.ctx.open = nil
         local w = MM.root and MM.root.win
         if not w then return end
-        if MM.view ~= "main" then MM.showView("main") end
+        -- (DK19, MM2, Nov 27 2026: the power button and Quit to restart from a window with unsaved work ask its Back
+        -- question first; the quit question follows a leave answer)
+        if MM.view ~= "main" then
+            if MM.leaveGuard(MM.act.askQuit, "main") then return end
+            MM.showView("main")
+            if MM.view ~= "main" then return end
+        end
         w:setConfirm(true)
     end,
     quit      = function()
@@ -1881,6 +1891,12 @@ function ZeD_MMDrop:prerender()
         elseif pop.up and y < limTop then
             h = math.max(rowH * 3, an.y - T.px(2) - limTop); y = limTop
         end
+    else
+        -- (DK21, Nov 27 2026: a menu bar pull-down is cut to the same room and scrolls, the ZeD menu's About block
+        -- at 1280 x 800 or with Large text ran past the tube's foot)
+        local _, limBot
+        _, limBot, limL, limR = MM.popRoom()
+        if y + h > limBot then h = math.max(rowH * 3, limBot - y) end
     end
     local scrollMax = math.max(0, full - h)
     local dropBarW = T.sp.scrollbarW
@@ -1889,7 +1905,8 @@ function ZeD_MMDrop:prerender()
         w = w + dropBarW
         x = math.max(0, math.min(x, getCore():getScreenWidth() - w))
     end
-    if not pos then x = math.max(limL, math.min(x, limR - w)) end   -- (a pop-up stays on its room side to side too)
+    if not pos then x = math.max(limL, math.min(x, limR - w))   -- (a pop-up stays on its room side to side too)
+    else x = math.max(0, math.min(x, limR - w)) end              -- (a pull-down, DK21: kept off the tube's right edge)
     MM.ctx.dropScrollMax = scrollMax
     MM.ctx.dropScroll = math.max(0, math.min(MM.ctx.dropScroll or 0, scrollMax))
     local off = MM.ctx.dropScroll
@@ -2182,8 +2199,18 @@ function ZeD_MMGlass:prerender()
     local A = ZeD.Atoms
     self._powerHint = self._powerHint or {}
     if A.hoverReady(self._powerHint, MM.ctx.hot == "power" and "power" or nil) then
-        local pr = self._hits and self._hits[1]
-        if pr and pr.id == "power" then
+        -- (DK18, Nov 27 2026: the power button's hit is the desk's (MM.root), not the glass's, and on the screen:
+        -- moved into the glass's space so the balloon points at the button)
+        local desk = MM.root
+        local dh = desk and desk._hits and desk._hits[1]
+        local pr = nil
+        if dh and dh.id == "power" then
+            pr = self._powerRect or {}
+            self._powerRect = pr
+            pr.id, pr.w, pr.h = "power", dh.w, dh.h
+            pr.x, pr.y = dh.x - self:getAbsoluteX(), dh.y - self:getAbsoluteY()
+        end
+        if pr then
             A.drawHintBox(self, getText("IGUI_Exit"), 0, 0, pr, "above", "power")
         else
             A.drawHintBox(self, getText("IGUI_Exit"), getMouseX() - self:getAbsoluteX(), getMouseY() - self:getAbsoluteY())
@@ -2579,7 +2606,8 @@ end
 
 function ZeD_MMWindow:getFooterPrompts()
     if not MM.gamepad() then return nil end
-    if self.confirm then return { { glyph = "A", label = getText("IGUI_Exit") }, { glyph = "B", label = getText("UI_Cancel") } } end
+    -- (DK14, Nov 27 2026: A names the answer the controller is on: Cancel once it has moved there)
+    if self.confirm then return { { glyph = "A", label = getText(self.focusId == "confirm:no" and "UI_Cancel" or "IGUI_Exit") }, { glyph = "B", label = getText("UI_Cancel") } } end
     if self.page then return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = ZeD.btnCase(getText("UI_btn_back")) } } end
     if self.kind == "pause" then return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = getText("UI_Resume") } } end
     return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "Y", label = ZeD.tr("UI_ZeD_MainMenu_PromptLegal") } }
@@ -2871,17 +2899,47 @@ function MM.redirect(screen, view)
     end
 end
 
+-- ---------------------------------------------------------------------------
+-- LEAVING A WINDOW WITH UNSAVED WORK (DK19, DK59, MM2, Nov 27 2026). Every way off a view (the menu bar, a desktop
+-- icon, the power button, File > Continue) asks the question the window's own Back asks, and goes on only on an
+-- answer that leaves. A window opts in with w:askLeave(go, view): true when it has opened its question and kept go
+-- (the way out to run once answered: MM.leaveRun); false lets the move through as before. view is where the move
+-- goes (nil for a move that is not a view: Continue, Quit).
+-- ---------------------------------------------------------------------------
+--- True when the active window holds the move back to ask first (go runs once its leave answer is picked).
+function MM.leaveGuard(go, view)
+    if MM._leaveOk then return false end
+    local w = MM.activeWindow()
+    if not (w and w.askLeave) then return false end
+    local ok, asked = pcall(w.askLeave, w, go, view)
+    return ok and asked == true
+end
+
+--- A window's leave answer (Discard, Save, Keep): the move it held back goes on, past every window's question
+--- (the answer was the question); with none held, fallback's view ("main" when nil), as its Back always went.
+function MM.leaveRun(go, fallback)
+    MM._leaveOk = true
+    local ok, err = pcall(go or function() MM.showView(fallback or "main") end)
+    MM._leaveOk = nil
+    if not ok then print("ZeD: leaving a view failed: " .. tostring(err)) end
+end
+
 --- Puts a view on the monitor: "main", "load", "desktop", any view MM.addView registered. The menu
 --- comes back up (vanilla's bottom panel) and the controller focus returns to MainScreen.
 function MM.showView(view, joypadData)
     local m = ms()
     if not m then return end
+    -- (DK19, DK59, MM2, Nov 27 2026: a window with unsaved work asks its Back question first; MM.leaveGuard)
+    if view ~= MM.view and MM.leaveGuard(function() if MM.view ~= view then MM.showView(view, joypadData) end end, view) then return end
     local was = MM.activeWindow()
     MM.view = view
     MM.ctx.open, MM.ctx.hot, MM.ctx.press = nil, nil, nil
     MM.deskAt, MM.deskBack = nil, nil   -- (a view put up takes the controller: off the menu bar and the icons)
     local w = MM.activeWindow()
     if was and was ~= w then MM.unfocusEntries(was) end
+    -- NG23, NG62 (Nov 27 2026): a window holding vanilla's parts (Spawn's map, Looks' figure) gives them back as it goes
+    if was and was ~= w and was.returnParts then pcall(was.returnParts, was) end
+    if was and was ~= w and was.onViewLeft then pcall(was.onViewLeft, was) end   -- (LJ2, Nov 27 2026: Host puts vanilla's idle screen away)
     -- (the Mods screen left: the Files tab's open file is shut, or it stays open for the whole session)
     if was ~= w and ZeD.ModFiles and ZeD.ModFiles.pause then ZeD.ModFiles.pause() end
     if w and w.onShow then w:onShow() end
@@ -3139,6 +3197,7 @@ end
 
 --- A controller button: an open pull-down takes A and B, else MM.window(m)'s joy handlers do.
 function MM.joyDown(m, button)
+    if MM.poweringOn() then return end   -- (DK2, Nov 27 2026: nothing answers while the monitor switches on, as the pointer)
     if MM.ctx.open then
         local live = MM.dropLive()
         if button == Joypad.AButton then
@@ -3176,6 +3235,7 @@ end
 --- round; a menu bar title's takes left and right to the next title's), else the window moves its focus, and
 --- on the desk a press past its edge leaves it (MM.offEdge).
 function MM.joyDir(m, dir)
+    if MM.poweringOn() then return end   -- (DK2, Nov 27 2026: nothing answers while the monitor switches on, as the pointer)
     if MM.ctx.open then
         local n = #MM.dropLive()
         if n > 0 and (dir == "up" or dir == "down") then
