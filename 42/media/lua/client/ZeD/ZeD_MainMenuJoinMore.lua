@@ -485,6 +485,15 @@ function ZeD_MMSrvForm:prerender()
     local p = formScreen()
     local w, h = UI.placeOnTube(self, T.px(FORM_H))
     local addr = p and (s(p.ip) .. " : " .. s(p.port)) or ""
+    -- (LJ35, Nov 27 2026: streamer mode masks the address and port in the title and the heading, as the server form
+    -- masks its fields; the game's option or the server list's tick)
+    local mpui = ms() and ms().multiplayer
+    local tick = mpui and mpui.showIPAddressesTickBox
+    local core = getCore and getCore()
+    local sm = core and core.getOptionStreamerMode and core:getOptionStreamerMode()
+    if p and (sm or (tick and tick:isSelected(1))) then
+        addr = string.rep("*", #s(p.ip)) .. " : " .. string.rep("*", #s(p.port))
+    end
     self.title = ZeD.tr("UI_ZeD_Join_TitleConnect", addr)
     self.titleStats = {}
     ZeD_Window.prerender(self)
